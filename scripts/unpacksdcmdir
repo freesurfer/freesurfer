@@ -9,6 +9,7 @@ proc PrintUsage { } {
   puts ""
   puts "  -run  runno subdir format name : spec unpacking rules on cmdline"
   puts "  -cfg  file : spec unpacking rules in file"
+  puts "  -seqcfg seqcfgfile : spec unpacking rules based on sequence"
   puts ""
   puts "  -fsfast  : unpack to fsfast  directory structure"
   puts "  -generic : unpack to generic directory structure"
@@ -40,13 +41,13 @@ puts ""
 puts "  -src srcdir "
 puts ""
 puts "     This is the directory where the DICOM files reside. This can be "
-puts "     a CD-ROM. Note that there is often a file called 'dicomdir.'"
-puts "     This should not be confused with the directory where the "
-puts "     DICOM files are located."
+puts "     a subdirectory on a CD-ROM. Note that there is often a file called"
+puts "     'dicomdir.' This should not be confused with the directory where "
+puts "     the puts DICOM files are located."
 puts ""
 puts "  -targ trgdir "
 puts ""
-puts "     This is the parent directory into which the files will be unpacked. "
+puts "     This is the parent directory into which the files will be unpacked."
 puts "     It does not need to exist before running this script. The sorting "
 puts "     of the files into directories under the parent is determined by "
 puts "     the unpacking rules (see below)."
@@ -58,6 +59,14 @@ puts ""
 puts "  -cfgfile file"
 puts ""
 puts "     Specifies unpacking rules using the given file."
+puts ""
+puts "  -seqcfg file"
+puts "
+      Specifies unpacking rules based on the acquisition pulse
+      sequence/protocol name (DICOM tag 0x18, 0x1030). This may be more 
+      convenient than run-based. See SPECIFYING UNPACKING RULES below.
+      Note: the protocol name listed in the seqcfgfile cannot have white
+      spaces (see BUGS below). "
 puts ""
 puts "  -fsfast"
 puts ""
@@ -83,22 +92,47 @@ puts "     unpacking rules (though source and target directories are still"
 puts "     necessary)."
 puts ""
 puts "SPECIFYING UNPACKING RULES:"
+puts "
+To unpack a series/run of data, one needs to specify three things: 
+   1. The subdirectory the data will go into
+   2. The name assigned to the data file(s)
+   3. The format
+
+This is done by specifying a configuration and sorting method. The
+sorting method can be either generic or fsfast. The configuration can
+be either run-based or pulse sequence-based. The final path of a data file
+can be determined from the following table:
+
+  Generic, Run-based: targdir/subdir/name.ext
+  Generic, Seq-based: targdir/subdir/nameXXX.ext
+  FSFAST,  Run-based: targdir/subdir/XXX/name.ext
+  FSFAST,  Seq-based: targdir/subdir/XXX/name.ext
+
+where XXX is the three digit, zero-padded run number. ext is the
+format-based extension.
+
+The run-based configuration can be specified either on the command
+line (-run option) or from a file (-cfg option). In either case, the
+configuration is consists of four pieces of information: run number,
+subdir, format, and name. The run number is the integer number of the
+run (or Series) to be unpacked. Only the runs specified will be
+unpacked.
+
+The pulse sequence-based configuration can only be specified from a
+file. Each row in the file must contain the following four pieces of
+information: protocol/sequence name, subdirectory, format, name.  The
+protocol name is that stored in DICOM tag 0x18 0x1030. If a protocol
+in the source directory does not match one in the configuration file,
+the unpacking process aborts.  If generic sorting is used, then the
+three digit run number is inserted between the name and
+extension. This method is convenient when unpacking many different
+sessions where the sequences are all the same but the run on which
+each was collected may change. A configuration file with sequences
+commonly used around the MGH/NMR center can be found in
+\$FREESURFER_HOME/numaris4-protocols.unpackcfg."
+
 puts ""
-puts "To unpack a series/run of data, one needs to specify four things: "
-puts "   1. The Series/Run number of the data"
-puts "   2. The directory the data will go into"
-puts "   3. The name assigned to the data files"
-puts "   4. The format"
-puts ""
-puts "This is done by specifying a configuration and sorting method. The"
-puts "configuration consists of four pieces of information: RunNumber, Subdir,"
-puts "Format, and Name. The RunNumber is the integer number of the Run (or"
-puts "Series) to be unpacked. The interpretation of Subdir depends upon the"
-puts "sorting method. For generic sorting, the output files for the given"
-puts "run are placed targdir/Subdir. For FS-FAST sorting, the output files"
-puts "for the given run are placed targdir/Subdir/RRR, where RRR is the"
-puts "zero-padded, 3-digit run number. Name is used to name the files; the"
-puts "final file names depend upon the Format. Legal formats are:"
+puts "Legal formats are:"
 puts ""
 puts "     DICOM   - just copies DICOM files"
 puts "     COR     - MGH-NMR COR file format"
@@ -276,6 +310,13 @@ puts "volumes."
 puts ""
 puts "MINC volumes are incorrectly oriented."
 puts ""
+puts "The protocol names in the DICOM files (tag 18,1030) may have white"
+puts "spaces in them. If this is the case, the white spaces are stripped"
+puts "before the protocol name is compared to the protocol names found in"
+puts "the sequence configuration file. Therefore, when creating the "
+puts "sequence configuration file, make sure to strip all the white spaces"
+puts "from the protocol names."
+puts ""
 puts "BUG REPORTING"
 puts ""
 puts "Send bugs/suggestions to analysis-bugs@nmr.mgh.harvard.edu. For bug"
@@ -288,7 +329,7 @@ puts "Douglas N. Greve, Ph.D., MGH-NMR Center"
 puts ""
 puts "VERSION"
 puts ""
-puts {$Id: unpacksdcmdir,v 1.1 2002/01/23 17:12:09 greve Exp $}
+puts {$Id: unpacksdcmdir,v 1.2 2002/02/26 01:30:26 greve Exp $}
 
 exit 1;
 
@@ -297,7 +338,7 @@ exit 1;
 #------------------------------------------------------------------#
 proc ParseCommandLine { argc argv } {
   global dicomdir targdir sortmethod cfgfile unpackcfg noexec scanonly;
-  global scanfile nspmzeropad;
+  global scanfile nspmzeropad seqcfgfile;
 
   set ntharg 0
   while  { $ntharg < $argc } {
@@ -337,6 +378,12 @@ proc ParseCommandLine { argc argv } {
         incr ntharg 1
       }
 
+      -seqcfg {
+        if { $nargrem < 1 } { ArgNError $option 1 }
+        set seqcfgfile [lindex $argv $ntharg];
+        incr ntharg 1
+      }
+
       -scanonly { 
         if { $nargrem < 1 } { ArgNError $option 1 }
         set scanfile [lindex $argv $ntharg];
@@ -366,6 +413,7 @@ proc ParseCommandLine { argc argv } {
 #------------------------------------------------------------------#
 proc CheckArgs { } {
   global dicomdir targdir sortmethod cfgfile unpackcfg scanonly;
+  global scanfile seqcfgfile;
 
   if { ! [info exists dicomdir] } {
      puts "ERROR: no source directory specified"
@@ -384,9 +432,14 @@ proc CheckArgs { } {
      exit 1;
   }
 
-  if { ![info exists cfgfile] && ![info exists unpackcfg] } {
+  if { ![info exists cfgfile] && ![info exists unpackcfg] && ![info exists seqcfgfile] } {
      puts "ERROR: no unpacking rules specified"
      # Goto GUI here???
+     exit 1;
+  }
+
+  if { [info exists cfgfile] && [info exists seqcfgfile] } {
+     puts "ERROR: cannot spec cfgfile and seqcfgfile"
      exit 1;
   }
 
@@ -398,7 +451,64 @@ proc CheckArgs { } {
     set unpackcfg [ReadUnpackCfg $cfgfile];
   }; # else unpackcfg specified on command line
 
+  if { [info exists seqcfgfile] } {
+    if {! [file exists $seqcfgfile]} {
+      puts stdout "ERROR: config file $seqcfgfile does not exist"
+      exit 1;
+    }
+  }; 
   return;
+}
+#---------------------------------------------------------------#
+proc ReadSeqCfg { seqcfgfile } {
+  global LF;
+
+  if [catch {open $seqcfgfile r} FileId] {
+     puts "Cannot open $seqcfgfile";
+     puts $LF "Cannot open $seqcfgfile";
+     exit 1;
+  }
+
+  set nthline 0;
+  while { [gets $FileId line] >= 0 } {
+    incr nthline;
+    set linelen [llength $line ];
+    if { $linelen == 0  } { continue; }
+
+    # Skip lines that begin with `#`
+    set tmp [lindex $line 0];
+    set firstchar [string index $tmp 0];
+    if { $firstchar == "#" } { continue; }
+
+    if { $linelen != 4 } {
+       puts "ERROR: $seqcfgfile is formatted incorrectly"
+       puts "  Line $nthline has [llength $line ] elements."
+       puts "  Expecting 4 elements: SeqName, Dir, Format, Basename";
+       puts " $line";
+       puts $LF "ERROR: $seqcfgfile is formatted incorrectly"
+       puts $LF "  Line $nthline has [llength $line ] elements."
+       puts $LF "  Expecting 4 elements: SeqName, Dir, Format, Name";
+       puts $LF " $line";
+       exit 1;
+    }
+    #puts $line
+    lappend seqcfg $line;
+  }
+  close $FileId;
+
+  return $seqcfg;
+}
+#---------------------------------------------------------------#
+proc GetSeqUnpackCfg { TargSeq SeqCfgList } {
+
+  foreach SeqCfg $SeqCfgList {
+    set Seq [lindex $SeqCfg 0];
+    if { [string compare $TargSeq $Seq]  == 0 } {
+       return $SeqCfg;
+    }
+  }
+  puts "ERROR: cannot find a match for $TargSeq in Sequence Config";
+  exit 1;
 }
 #------------------------------------------------------------------#
 proc ArgNError { option n } {
@@ -684,24 +794,13 @@ if [catch {open $LogFile w} LF] {
 }
 puts "INFO: Logfile is $LogFile"
 puts $LF "Log file created by unpacksdcmdir"
-puts $LF {$Id: unpacksdcmdir,v 1.1 2002/01/23 17:12:09 greve Exp $};
+puts $LF {$Id: unpacksdcmdir,v 1.2 2002/02/26 01:30:26 greve Exp $};
 puts $LF "$LogFile"
 puts $LF [pwd];
 puts $LF [exec date];
 puts $LF "$argv"
 
 puts $LF "dicomdir $dicomdir"
-
-if { ! $scanonly } {
-
-  CheckUnpackCfgDuplication $unpackcfg;
-  CheckUnpackCfgFormat      $unpackcfg;
-  puts $LF "sortmethod $sortmethod"
-  puts $LF "unpacking config ------------------"
-  puts $LF $unpackcfg;
-  puts $LF "-----------------------------------"
-
-} 
 
 # Get a summary of the data in the source directory #
 set sumfile  "$targdir/dicomdir.sumfile";
@@ -849,6 +948,53 @@ if { $scanonly } {
   close $ScanFileId;
   exit 0; 
 }
+
+# Create upackcfg from Sequence Configuration #
+if { [info exists seqcfgfile] } {
+  set SeqCfgList [ReadSeqCfg $seqcfgfile];
+}
+if { [info exists SeqCfgList] } {
+  puts $LF "------------------------------------------"
+  puts $LF "Automatically configuring unpack ..."
+  puts "------------------------------------------"
+  puts "Automatically configuring unpack ..."
+  foreach Series $SeriesLeaders {
+    set RunNo    [lindex $Series  2];
+    set Protocol [lindex $Series 12];
+
+    set SeqUnpackCfg [GetSeqUnpackCfg $Protocol $SeqCfgList]
+    set dirid      [lindex $SeqUnpackCfg 1];
+    set unpackfmt  [lindex $SeqUnpackCfg 2];
+    set basename   [lindex $SeqUnpackCfg 3];
+
+    set unpackname $basename
+    if { [string compare $sortmethod "generic"] == 0} {
+      switch -exact -- [string tolower $unpackfmt] {
+        spm     {set unpackname [format "%s%03d" $basename $RunNo]}
+        analyze {set unpackname [format "%s%03d" $basename $RunNo]}
+        minc    {set unpackname [format "%s%03d" $basename $RunNo]}
+        mgh     {set unpackname [format "%s%03d" $basename $RunNo]}
+        bshort  {set unpackname [format "%s%03d"     $basename $RunNo]}
+        cor     {set unpackname [format "%03d"       $RunNo]}
+      }
+    }
+
+    set cfg [list $RunNo $dirid $unpackfmt $unpackname]
+    puts "$RunNo $Protocol $dirid $unpackfmt $unpackname"
+    lappend unpackcfg $cfg;
+  }
+}
+
+CheckUnpackCfgDuplication $unpackcfg;
+CheckUnpackCfgFormat      $unpackcfg;
+puts $LF "sortmethod $sortmethod"
+puts $LF "unpacking config ------------------"
+puts $LF $unpackcfg;
+puts $LF "-----------------------------------"
+
+puts "unpacking config ------------------"
+puts $unpackcfg;
+puts "-----------------------------------"
 
 # Check that each run listed in the configuration
 # actually exists in the session.
