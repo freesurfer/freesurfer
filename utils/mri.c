@@ -3938,6 +3938,12 @@ MRItoImageView(MRI *mri, IMAGE *I, int slice, int view, int frame)
   }
   else switch (view)
   {
+  default:
+    ErrorReturn(NULL, 
+                (ERROR_UNSUPPORTED, 
+                 "MRItoImageView(%d, %d): unsupported view/slice direction %d",
+                 slice, view, mri->slice_direction)) ;
+    break ;
   case MRI_CORONAL:
     w = width ;
     h = height ;
@@ -3954,6 +3960,7 @@ MRItoImageView(MRI *mri, IMAGE *I, int slice, int view, int frame)
     d = height ;
     break ;
   }
+
   if (slice < 0 || slice >= d)
     ErrorReturn(NULL, (ERROR_BADPARM, "MRItoImageView: bad slice %d\n",slice));
 
