@@ -338,6 +338,11 @@ int   MRIsampleVolumeGradient(MRI *mri, Real x, Real y, Real z,
                               Real *pdx, Real *pdy, Real *pdz) ;
 int   MRIsampleVolumeDerivative(MRI *mri, Real x, Real y, Real z,
                                 Real dx, Real dy, Real dz, Real *pmag) ;
+float MRIsampleCardinalDerivative(MRI *mri, int x, int y, int z,
+                                  int xk, int yk, int zk) ;
+float MRIsampleXDerivative(MRI *mri, int x, int y, int z, int dir) ;
+float MRIsampleYDerivative(MRI *mri, int x, int y, int z, int dir) ;
+float MRIsampleZDerivative(MRI *mri, int x, int y, int z, int dir) ;
 
 /* resampling routines */
 MRI   *MRIupsample2(MRI *mri_src, MRI *mri_dst) ;
@@ -448,6 +453,8 @@ MRI        *MRIfillFG(MRI *mri_src, MRI *mri_dst, int seed_x, int seed_y,
 
 int   MRIneighborsOn(MRI *mri, int x0, int y0, int z0, int min_val) ;
 int   MRIneighborsOff(MRI *mri, int x0, int y0, int z0, int min_val) ;
+int   MRIneighborsOn3x3(MRI *mri, int x0, int y0, int z0, int min_val) ;
+int   MRIneighborsOff3x3(MRI *mri, int x0, int y0, int z0, int min_val) ;
 
 MRI   *MRIreplaceValues(MRI *mri_src, MRI *mri_dst, 
                        BUFTYPE in_val, BUFTYPE out_val) ;
