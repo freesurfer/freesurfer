@@ -143,3 +143,33 @@ freadFloat(FILE *fp)
   return(f) ;
 }
 
+int
+freadInt(FILE *fp)
+{
+  int  i, nread ;
+
+  nread = fread(&i,1,sizeof(int),fp);
+#ifdef Linux
+  i = swapInt(i) ;
+#endif
+  return(i) ;
+}
+
+int
+fwriteInt(int v, FILE *fp)
+{
+#ifdef Linux
+  v = swapInt(v) ;
+#endif
+  return(fwrite(&v,1,sizeof(int),fp));
+}
+
+int
+fwriteFloat(float f, FILE *fp)
+{
+#ifdef Linux
+  f = swapFloat(f) ;
+#endif
+  return(fwrite(&f,1,sizeof(float),fp));
+}
+
