@@ -1,7 +1,7 @@
 function flac = fast_ldflac(flacfile)
 % flac = fast_ldflac(flacfile)
 %
-% $Id: fast_ldflac.m,v 1.5 2004/10/26 05:00:47 greve Exp $
+% $Id: fast_ldflac.m,v 1.6 2004/11/01 05:10:28 greve Exp $
 
 flac = [];
 if(nargin > 1)
@@ -144,6 +144,7 @@ function flac = load_contrast(fp,flac)
 
   flac.con(ncon).sumev    = 0;
   flac.con(ncon).sumevreg = 0;
+  flac.con(ncon).varsm = 0;
   
   nthev = 1;
   while(1)
@@ -160,6 +161,10 @@ function flac = load_contrast(fp,flac)
       [tmp c] = sscanfitem(tline,2);
       if(c ~= 1) fprintf('FLAC-CON format error\n');flac=[];return;end
       flac.con(ncon).name = tmp;     
+     case 'VARSM'
+      [tmp c] = sscanfitem(tline,2);
+      if(c ~= 1) fprintf('FLAC-CON format error: VARSM\n');flac=[];return;end
+      flac.con(ncon).varsm = sscanf(tmp,'%f',1);
      case 'SUMEV'
       [tmp c] = sscanfitem(tline,2);
       if(c ~= 1) fprintf('FLAC-CON format error\n');flac=[];return;end
