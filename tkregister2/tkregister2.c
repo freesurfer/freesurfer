@@ -1,10 +1,10 @@
 /*============================================================================
  Copyright (c) 1996 Martin Sereno and Anders Dale
 =============================================================================*/
-/*   $Id: tkregister2.c,v 1.8 2003/03/11 21:39:28 greve Exp $   */
+/*   $Id: tkregister2.c,v 1.9 2003/03/15 22:15:26 greve Exp $   */
 
 #ifndef lint
-static char vcid[] = "$Id: tkregister2.c,v 1.8 2003/03/11 21:39:28 greve Exp $";
+static char vcid[] = "$Id: tkregister2.c,v 1.9 2003/03/15 22:15:26 greve Exp $";
 #endif /* lint */
 
 #define TCL
@@ -969,6 +969,34 @@ target can be changed by editing the 'contrast:' and 'midpoint:' text
 boxes. The target can be masked off to the FOV of the movable by 
 pressing the 'masktarg' radio button. If a surface has been loaded, it
 can be toggled by clicking in the display window and hitting 's'.
+
+SUMMARY OF KEYPRESS COMMANDS
+
+0 swap buffers (same as Compare)
+1 dispaly target
+2 dispaly moveable
+i intensity normalize images
+n use nearest neighbor interpolation
+t use trilinear interpolation
+s toggle display of cortical surface
+x show sagittal view
+y show horizontal view
+z show coronal view
+p translate up
+. translate down
+l translate left
+; translate right
+[ rotate counter-clockwise about image normal
+] rotate clockwise about image normal
+q rotate about horiztonal image axis (neg)
+w rotate about horiztonal image axis (pos)
+r rotate about vertical image axis (neg)
+f rotate about vertical image axis (pos)
+Insert increase scale horizontally
+Delete decrease scale horizontally
+Home   increase scale vertically
+End    decrease scale vertically
+
 
 USING WITH FSL and SPM 
 
@@ -1941,7 +1969,7 @@ int do_one_gl_event(Tcl_Interp *interp)   /* tcl */
 	  updateflag = TRUE; 
 	  break;
 
-	  /* rotate */
+	  /* rotation about normal to image plane */
 	case '[':
 	case ']':
 	  r = +2.0;
@@ -1950,6 +1978,32 @@ int do_one_gl_event(Tcl_Interp *interp)   /* tcl */
 	  if(plane == HORIZONTAL) {c = 'z'; r = -2.0;}
 	  if(ks == ']') rotate_brain(+r,c); /* in tenths of deg */
 	  if(ks == '[') rotate_brain(-r,c); /* in tenths of deg */
+	  updateflag = TRUE; 
+	  break;
+
+	  /* rotation about horizontal image axis */
+	case 'q': /* top comes out, bottom goes in */
+	case 'w': /* top goes in, comes out */
+	  //printf("ks = %c\n",ks);
+	  r = +10.0;
+	  if(plane == SAGITTAL)   c = 'y';
+	  if(plane == CORONAL)    c = 'x';
+	  if(plane == HORIZONTAL) {c = 'x'; r = -10.0;}
+	  if(ks == 'q') rotate_brain(+r,c); /* in tenths of deg */
+	  if(ks == 'w') rotate_brain(-r,c); /* in tenths of deg */
+	  updateflag = TRUE; 
+	  break;
+
+	  /* rotation about vertical image axis */
+	case 'r': /* left goes in, right comes out*/
+	case 'f':
+	  //printf("ks = %c\n",ks);
+	  r = +10.0;
+	  if(plane == SAGITTAL)   c = 'z';
+	  if(plane == CORONAL)    c = 'z';
+	  if(plane == HORIZONTAL) {c = 'y'; r = -10.0;}
+	  if(ks == 'r') rotate_brain(+r,c); /* in tenths of deg */
+	  if(ks == 'f') rotate_brain(-r,c); /* in tenths of deg */
 	  updateflag = TRUE; 
 	  break;
 
