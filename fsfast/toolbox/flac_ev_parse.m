@@ -6,7 +6,7 @@ function ev = flac_ev_parse(tline)
 %
 % EV EVName ModelName Type <parameters>
 %
-% $Id: flac_ev_parse.m,v 1.3 2004/10/23 01:43:05 greve Exp $
+% $Id: flac_ev_parse.m,v 1.4 2004/10/25 04:53:33 greve Exp $
 
 ev = [];
 if(nargin > 1)
@@ -41,6 +41,12 @@ if(c ~= 1) fprintf('Format error\n'); ev=[]; return; end
 % Read in the EV type (should be task or nuis)
 [ev.type c] = sscanf(tline,'%*s %*s %*s %s',1);
 if(c ~= 1) fprintf('Format error\n'); ev=[]; return; end
+if(~strcmp(ev.type,'task') & ~strcmp(ev.type,'nuis'))
+  fprintf('ERROR: %s,%s: EVType is %s, must be nuis or task\n',...
+	  ev.name, ev.model, ev.type);
+  ev = [];
+  return;
+end
 
 switch (ev.model)
  
@@ -110,15 +116,15 @@ switch (ev.model)
   % 3 parameters: period nharmonics tdelay
   % EV SMPer fourier task 30 2 3
   [item c] = sscanfitem(tline,5);
-  if(c ~= 1) fprintf('Format error\n'); ev=[]; return; end
+  if(c ~= 1) fprintf('Format error: %s: period\n',ev.model); ev=[]; return; end
   ev.params(1) = sscanf(item,'%f',1); % period (sec)
 
   [item c] = sscanfitem(tline,6);
-  if(c ~= 1) fprintf('Format error\n'); ev=[]; return; end
+  if(c ~= 1) fprintf('Format error: %s: nharm\n',ev.model); ev=[]; return; end
   ev.params(2) = sscanf(item,'%d',1); % nharmonics
 
   [item c] = sscanfitem(tline,7);
-  if(c ~= 1) fprintf('Format error\n'); ev=[]; return; end
+  if(c ~= 1) fprintf('Format error: %s: tdelay\n',ev.model); ev=[]; return; end
   ev.params(3) = sscanf(item,'%f',1); % tdelay (sec)
 
   ev.nreg = 2*(ev.params(2)+1); % 2*(nharm+1)
