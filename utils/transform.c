@@ -31,6 +31,7 @@
 
 static LTA  *ltaMNIread(char *fname) ;
 static int  ltaMNIwrite(LTA *lta, char *fname) ;
+static LTA  *ltaReadFile(char *fname) ;
 
 /*-----------------------------------------------------
         Parameters:
@@ -132,20 +133,60 @@ LTAwrite(LTA *lta, char *fname)
 LTA *
 LTAread(char *fname)
 {
-  FILE             *fp;
-  LINEAR_TRANSFORM *lt ;
-  int              i, type, nxforms ;
-  char             line[200], *cp ;
-  LTA              *lta ;
+  int       type ;
+  LTA       *lta ;
+  MATRIX    *V, *W, *m_tmp ;
 
   type = TransformFileNameType(fname) ;
-  if (type == MNI_TRANSFORM_TYPE)
-    return(ltaMNIread(fname)) ;
+  switch (type)
+  {
+  case MNI_TRANSFORM_TYPE:
+    lta = ltaMNIread(fname) ;
+    break ;
+  case TRANSFORM_ARRAY_TYPE:
+  default:
+    lta = ltaReadFile(fname) ;
+    break ;
+  }
+
+  /* convert to voxel coords */
+  V = MatrixAlloc(4, 4, MATRIX_REAL) ;  /* world to voxel transform */
+  W = MatrixAlloc(4, 4, MATRIX_REAL) ;  /* voxel to world transform */
+  *MATRIX_RELT(V, 1, 1) = -1 ; *MATRIX_RELT(V, 1, 4) = 128 ;
+  *MATRIX_RELT(V, 2, 3) = -1 ; *MATRIX_RELT(V, 2, 4) = 128 ;
+  *MATRIX_RELT(V, 3, 2) = 1 ;  *MATRIX_RELT(V, 3, 4) = 128 ;
+  *MATRIX_RELT(V, 4, 4) = 1 ;
+
+  *MATRIX_RELT(W, 1, 1) = -1 ; *MATRIX_RELT(W, 1, 4) = 128 ;
+  *MATRIX_RELT(W, 2, 3) = 1 ; *MATRIX_RELT(W, 2, 4) = -128 ;
+  *MATRIX_RELT(W, 3, 2) = -1 ;  *MATRIX_RELT(W, 3, 4) = 128 ;
+  *MATRIX_RELT(W, 4, 4) = 1 ;
+
+  m_tmp = MatrixMultiply(lta->xforms[0].m_L, W, NULL) ;
+  MatrixMultiply(V, m_tmp, lta->xforms[0].m_L) ;
+  MatrixFree(&V) ; MatrixFree(&W) ; MatrixFree(&m_tmp) ;
+  return(lta) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+static LTA *
+ltaReadFile(char *fname)
+{
+  FILE             *fp;
+  LINEAR_TRANSFORM *lt ;
+  int              i, nxforms, type ;
+  char             line[STRLEN], *cp ;
+  LTA              *lta ;
 
   fp = fopen(fname,"r");
   if (fp==NULL) 
     ErrorReturn(NULL,
-                (ERROR_BADFILE, "LTAread(%s): can't open file",fname));
+                (ERROR_BADFILE, "ltaReadFile(%s): can't open file",fname));
   cp = fgetl(line, 199, fp) ; sscanf(cp, "type      = %d\n", &type) ;
   cp = fgetl(line, 199, fp) ; sscanf(cp, "nxforms   = %d\n", &nxforms) ;
   lta = LTAalloc(nxforms, NULL) ;
@@ -645,23 +686,12 @@ ltaMNIread(char *fname)
   char             *cp, line[1000] ;
   FILE             *fp ;
   int              row ;
-  MATRIX           *m_L, *V, *W, *m_tmp ;
+  MATRIX           *m_L ;
 
   fp = fopen(fname, "r") ;
   if (!fp)
     ErrorReturn(NULL, 
                 (ERROR_NOFILE, "ltMNIread: could not open file %s",fname));
-  V = MatrixAlloc(4, 4, MATRIX_REAL) ;  /* world to voxel transform */
-  W = MatrixAlloc(4, 4, MATRIX_REAL) ;  /* voxel to world transform */
-  *MATRIX_RELT(V, 1, 1) = -1 ; *MATRIX_RELT(V, 1, 4) = 128 ;
-  *MATRIX_RELT(V, 2, 3) = -1 ; *MATRIX_RELT(V, 2, 4) = 128 ;
-  *MATRIX_RELT(V, 3, 2) = 1 ;  *MATRIX_RELT(V, 3, 4) = 128 ;
-  *MATRIX_RELT(V, 4, 4) = 1 ;
-
-  *MATRIX_RELT(W, 1, 1) = -1 ; *MATRIX_RELT(W, 1, 4) = 128 ;
-  *MATRIX_RELT(W, 2, 3) = 1 ; *MATRIX_RELT(W, 2, 4) = -128 ;
-  *MATRIX_RELT(W, 3, 2) = -1 ;  *MATRIX_RELT(W, 3, 4) = 128 ;
-  *MATRIX_RELT(W, 4, 4) = 1 ;
 
   lta = LTAalloc(1, NULL) ;
   lt = &lta->xforms[0] ;
@@ -682,10 +712,6 @@ ltaMNIread(char *fname)
            MATRIX_RELT(m_L,row,1), MATRIX_RELT(m_L,row,2), 
            MATRIX_RELT(m_L,row,3), MATRIX_RELT(m_L,row,4)) ;
   }
-  m_tmp = MatrixMultiply(lt->m_L, W, NULL) ;
-  MatrixMultiply(V, m_tmp, lt->m_L) ;
-  /*  MatrixAsciiWriteInto(stderr, lt->m_L) ;*/
-  MatrixFree(&V) ; MatrixFree(&W) ; MatrixFree(&m_tmp) ;
   fclose(fp) ;
   return(lta) ;
 }
