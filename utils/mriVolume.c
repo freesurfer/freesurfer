@@ -63,6 +63,8 @@ Volm_tErr Volm_New ( mriVolumeRef* opVolume ) {
   bzero( this->msOriginalPath, sizeof( this->msOriginalPath ) );
   this->mfColorBrightness      = Volm_kfDefaultBrightness;
   this->mfColorContrast        = Volm_kfDefaultContrast;
+  this->mfColorMin             = 0;
+  this->mfColorMax             = 0;
   bzero( this->mafColorTable, sizeof( this->mafColorTable ) );
   bzero( this->manColorTable, sizeof( this->manColorTable ) );
 
@@ -418,8 +420,12 @@ Volm_tErr Volm_SetFromMRI_ ( mriVolumeRef this,
   DebugAssertThrowX( (NULL != iMRI), eResult, Volm_tErr_InvalidParamater );
   
   /* Get the reange. */
-  MRIvalRange(iMRI, &this->min_val, &this->max_val) ;
+  MRIvalRange(iMRI, &this->mfMinValue, &this->mfMaxValue) ;
   
+  /* Set the color min/max to these values. */
+  this->mfColorMin = this->mfMinValue;
+  this->mfColorMax = this->mfMaxValue;
+
   /* find the resampling matrix */
   DebugNote( ("Computing norming matrix ") );
   m_resample = MRIgetConformMatrix( iMRI );
@@ -941,14 +947,17 @@ void Volm_GetIntColorAtIdx ( mriVolumeRef this,
   }
 #endif
   
-  /* Get the value and normalize it to 0-255 if it's not already an
-     unsigned char. */
+  /* Get the value. Cap it to the color min and max. If in between
+     that, calculate the color index between 0 and 255. */
   Volm_GetValueAtIdx_( this, iIdx, &value );
-  if( MRI_UCHAR != this->mpMriValues->type ) {
-    colorIdx = (int) (255.0 * (value - this->min_val) / 
-		      (this->max_val - this->min_val)) ;
-  } else {
-    colorIdx = value;
+  if( value <= this->mfColorMin ) 
+    colorIdx = 0;
+  else if( value >= this->mfColorMax ) 
+    colorIdx = 255;
+  else {
+    colorIdx = (int) (Volm_knNumColorTableEntries * 
+		      (value - this->mfColorMin) / 
+		      (this->mfColorMax - this->mfColorMin)) ;
   }
 
   *oColor = this->manColorTable[colorIdx];
@@ -1000,8 +1009,8 @@ void Volm_GetMaxIntColorAtXYSlice ( mriVolumeRef     this,
   /* Get the value and normalize it to 0-255. Return this entry in the
      color table. */
   Volm_GetMaxValueAtXYSlice_( this, iOrientation, iPoint, &value );
-  colorIdx = (int) (255.0 * (value - this->min_val) / 
-		    (this->max_val - this->min_val)) ;
+  colorIdx = (int) (255.0 * (value - this->mfMinValue) / 
+		    (this->mfMaxValue - this->mfMinValue)) ;
   *oColor = this->manColorTable[colorIdx];
 }
 
@@ -1086,6 +1095,37 @@ Volm_tErr Volm_GetType ( mriVolumeRef this, int* onType ) {
   /* return the dimension */
   DebugNote( ("Returning the type") );
   *onType = this->mpMriValues->type;
+  
+  DebugCatch;
+  DebugCatchError( eResult, Volm_tErr_NoErr, Volm_GetErrorString );
+  EndDebugCatch;
+  
+  DebugExitFunction;
+  
+  return eResult;
+}
+
+Volm_tErr Volm_GetValueMinMax ( mriVolumeRef this, 
+				float*       ofMin,
+				float*       ofMax ) {
+
+  Volm_tErr eResult = Volm_tErr_NoErr;
+  
+  DebugEnterFunction( ("Volm_GetValueMinMax( this=%p, ofMin=%p, ofMax )",
+		       this, ofMin, ofMax ) );
+  
+  DebugNote( ("Verifying volume") );
+  eResult = Volm_Verify( this );
+  DebugAssertThrow( (eResult == Volm_tErr_NoErr) );
+  
+  DebugNote( ("Checking parameters") );
+  DebugAssertThrowX( (ofMin != NULL), eResult, Volm_tErr_InvalidParamater );
+  DebugAssertThrowX( (ofMax != NULL), eResult, Volm_tErr_InvalidParamater );
+  
+  /* return the min and max */
+  DebugNote( ("Returning the min") );
+  *ofMin = this->mfMinValue;
+  *ofMax = this->mfMaxValue;
   
   DebugCatch;
   DebugCatchError( eResult, Volm_tErr_NoErr, Volm_GetErrorString );
@@ -1628,8 +1668,8 @@ Volm_tErr Volm_Flood ( mriVolumeRef        this,
   DebugAssertThrow( (eResult == Volm_tErr_NoErr) );
   
   DebugNote( ("Checking parameters") );
-  DebugAssertThrowX( (iParams->mfSourceValue >= this->min_val &&
-		      iParams->mfSourceValue <= this->max_val),
+  DebugAssertThrowX( (iParams->mfSourceValue >= this->mfMinValue &&
+		      iParams->mfSourceValue <= this->mfMaxValue),
 		     eResult, Volm_tErr_InvalidParamater );
   DebugAssertThrowX( (iParams->mComparator > Volm_tValueComparator_Invalid &&
 		      iParams->mComparator < Volm_knNumValueComparators),
@@ -1965,11 +2005,12 @@ Volm_tErr Volm_FindMaxValues ( mriVolumeRef this ) {
 Volm_tErr Volm_MakeColorTable ( mriVolumeRef this ) {
   
   Volm_tErr   eResult    = Volm_tErr_NoErr;
+  float       min        = 0;
+  float       max        = 0;
   float       thresh     = 0;
   float       squash     = 0;
-  float       scale      = 0;
-  int         value      = 0;
-  float       fValue     = 0;
+  int         entry      = 0;
+  float       value      = 0;
   float       fComponent = 0;
   
   DebugEnterFunction( ("Volm_MakeColorTable( this=%p )", this) );
@@ -1979,30 +2020,36 @@ Volm_tErr Volm_MakeColorTable ( mriVolumeRef this ) {
   DebugAssertThrow( (eResult == Volm_tErr_NoErr) );
   
   /* for each value... */
-  scale = Volm_knMaxValue;
+  min = this->mfColorMin;
+  max = this->mfColorMax;
   thresh = this->mfColorBrightness;
   squash = this->mfColorContrast;
-  for( value = 0; value < Volm_knNumValues; value++ ) {
+  for( entry = 0; entry < Volm_knNumColorTableEntries; entry++ ) {
     
-    /* calculate the color */
-    fValue = (float)value;
-    fComponent = 
-      (1.0 / (1.0 + exp(-squash * ((fValue/scale) - thresh)))) * scale + 0.5;
-    if( fComponent > Volm_knMaxValue )
-      fComponent = Volm_knMaxValue;
+    /* Get the corresponding value for this entry, where entry 0 = min
+       and entry Volm_knNumColorTableEntries = max. */
+    value = ((entry * (max - min)) / Volm_knNumColorTableEntries) + min;
+
+    /* This is a standard sigma 1 / (1+ exp((x-thresh)*-squash) )
+       where x=(value-min)/(max-min) to normalize it to 0-1 within the
+       range of min->max. This function will populate the 256
+       lookuptable entries with intensity values from min->max so
+       that by lowering the range of min->max, you increase the
+       granularity of intensities in the visible values. */
+    fComponent = (1.0 / (1.0 + exp( (((value-min)/(max-min))-thresh) * -squash )));
+
+    /* set the float color */
+    this->mafColorTable[entry].mfRed   = fComponent;
+    this->mafColorTable[entry].mfGreen = fComponent;
+    this->mafColorTable[entry].mfBlue  = fComponent;
+
+    /* normalize to 0 - 255 pixel value */
+    fComponent = (float)fComponent * 255.0;
     
     /* set the integer color */
-    this->manColorTable[value].mnRed   = (int)fComponent;
-    this->manColorTable[value].mnGreen = (int)fComponent;
-    this->manColorTable[value].mnBlue  = (int)fComponent;
-
-    /* normalize to 0 - 1 */
-    fComponent = (float)fComponent / (float)Volm_knMaxValue;
-    
-    /* set the float color */
-    this->mafColorTable[value].mfRed   = fComponent;
-    this->mafColorTable[value].mfGreen = fComponent;
-    this->mafColorTable[value].mfBlue  = fComponent;
+    this->manColorTable[entry].mnRed   = (int)fComponent;
+    this->manColorTable[entry].mnGreen = (int)fComponent;
+    this->manColorTable[entry].mnBlue  = (int)fComponent;
   }
   
   DebugCatch;
@@ -2029,12 +2076,45 @@ Volm_tErr Volm_SetBrightnessAndContrast ( mriVolumeRef this,
   eResult = Volm_Verify( this );
   DebugAssertThrow( (eResult == Volm_tErr_NoErr) );
   
-  DebugNote( ("Checking parameters") );
-  DebugAssertThrowX( (1), eResult, Volm_tErr_InvalidParamater );
-  
   /* set the values */
   this->mfColorBrightness = ifBrightness;
   this->mfColorContrast   = ifContrast;
+  
+  /* recalc the color table */
+  eResult = Volm_MakeColorTable( this );
+  DebugAssertThrow( (Volm_tErr_NoErr == eResult) );
+  
+  DebugCatch;
+  DebugCatchError( eResult, Volm_tErr_NoErr, Volm_GetErrorString );
+  EndDebugCatch;
+  
+  DebugExitFunction;
+  
+  return eResult;
+}
+
+Volm_tErr Volm_SetColorMinMax ( mriVolumeRef this,
+				float        ifMin,
+				float        ifMax ) {
+  
+  Volm_tErr eResult = Volm_tErr_NoErr;
+  
+  DebugEnterFunction( ("Volm_SetColorMinMax( this=%p, "
+		       "ifMin=%.2f, ifMax=%.2f )", this, ifMin, ifMax) );
+  
+  DebugNote( ("Verifying volume") );
+  eResult = Volm_Verify( this );
+  DebugAssertThrow( (eResult == Volm_tErr_NoErr) );
+  
+  DebugNote( ("Checking parameters") );
+  DebugAssertThrowX( (ifMin >= this->mfMinValue && ifMin <= this->mfMaxValue),
+		     eResult, Volm_tErr_InvalidParamater );
+  DebugAssertThrowX( (ifMax >= this->mfMinValue && ifMax <= this->mfMaxValue),
+		     eResult, Volm_tErr_InvalidParamater );
+  
+  /* set the values */
+  this->mfColorMin = ifMin;
+  this->mfColorMax = ifMax;
   
   /* recalc the color table */
   eResult = Volm_MakeColorTable( this );
