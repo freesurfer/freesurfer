@@ -132,6 +132,7 @@ MRI   *MRIadd(MRI *mri1, MRI *mri2, MRI *mri_dst) ;
 MRI   *MRIdivide(MRI *mri1, MRI *mri2, MRI *mri_dst) ;
 MRI   *MRImultiply(MRI *mri1, MRI *mri2, MRI *mri_dst) ;
 MRI   *MRIabs(MRI *mri, MRI *mri_dst) ;
+MRI   *MRIscalarMul(MRI *mri_src, MRI *mri_dst, float scalar) ;
 
 /* filtering */
 MRI   *MRIplaneOfLeastVarianceNormal(MRI *mri_src, MRI *mri_dst, int wsize) ;
@@ -232,17 +233,21 @@ IMAGE *MRItoImageView(MRI *mri, IMAGE *I, int slice, int view, int frame) ;
 
 
 #define MRISvox(mri,x,y,z)  (((short *)mri->slices[z][y])[x])
-#define MRIFvox(mri,x,y,z)  (((float *)mri->slices[z][y])[x])
+#define MRIFvox(mri,x,y,z)  (((float *)(mri->slices[z][y]))[x])
 #define MRIvox(mri,x,y,z)   (((BUFTYPE *)mri->slices[z][y])[x])
 #define MRIIvox(mri,x,y,z)  (((int *)mri->slices[z][y])[x])
 #define MRILvox(mri,x,y,z)  (((long *)mri->slices[z][y])[x])
 
-#define MRISseq_vox(mri,x,y,z,n)  (((short*)mri->slices[z+(n)*mri->depth][y])[x])
-#define MRIFseq_vox(mri,x,y,z,n)  (((float*)mri->slices[z+(n)*mri->depth][y])[x])
+#define MRISseq_vox(mri,x,y,z,n)  (((short*)mri->slices[z+(n)*mri->depth][y])\
+                                   [x])
+#define MRIFseq_vox(mri,x,y,z,n)  (((float*)(mri->slices[z+((n)*mri->depth)]\
+                                                        [y]))[x])
 #define MRIseq_vox(mri,x,y,z,n)   (((BUFTYPE *)\
                                     mri->slices[z+(n)*mri->depth][y])[x])
-#define MRIIseq_vox(mri,x,y,z,n)  (((int *)mri->slices[z+(n)*mri->depth][y])[x])
-#define MRILseq_vox(mri,x,y,z,n)  (((long *)mri->slices[z+(n)*mri->depth][y])[x])
+#define MRIIseq_vox(mri,x,y,z,n)  (((int *)mri->slices[z+(n)*mri->depth][y])\
+                                   [x])
+#define MRILseq_vox(mri,x,y,z,n)  (((long *)mri->slices[z+(n)*mri->depth][y])\
+                                   [x])
 
 #define MRI_HEIGHT      0
 #define MRI_WIDTH       1
