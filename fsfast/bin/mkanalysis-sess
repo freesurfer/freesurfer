@@ -2,29 +2,67 @@
 # mkanalysis-sess -- sets up post-processing environment for 
 # functional analysis
 
-set VERSION = '$Id: mkanalysis-sess,v 1.1 2003/03/04 21:22:09 greve Exp $';
+set VERSION = '$Id: mkanalysis-sess,v 1.2 2005/01/06 23:12:19 greve Exp $';
 
 set scriptsdir = ();
 set fsd    = ();
 set parname    = ();
 set analysis   = ();
 set funcstem   = f;
-set fmcstem    = fmc;
+set designtype = ();
+set eventrelated = 0;
 set blocked    = 0;
+set abblocked  = 0;
+set retinotopy = 0;
 set inorm      = 0;
 set motioncor  = 0;
-set designtype    = "event-related"
+set designtype = ()
 set tpexclude = ();
 set force = 0;
 set runlistfile = ();
+set ncycles = ();
+set IdealTW = ();
+set PreStim = 0;
+set hanrad = 0;
+set fwhm   = 0;
+set nskip = 0;
+set TR  = ();
+set TER = ();
+set TauMax = 0;
+set WhitenFlag = 0;
+set gammafit = 0;
+set spmhrf   = -1;
+set gDelta  = ();
+set gTau    = ();
+set gAlpha = ();
+set meanfit = 1;
+set trendfit = 1;
+set qtrendfit = 0;
+set PolyFitOrder = 1;
+set nyqreg = 0;
+set sveres = ();
+set svsignal = ();
+set nconditions = ();
+set timeoffset = ();
+set extreg = ();
+set nextreg = ();
+set extregorthog = 0;
+set maskstem = ();
+set autostimdur = 0;
+set stimdur = ();
+set PrintHelp = 0;
 
+#### If no arguments, print usage and exit ####
 if($#argv == 0) then
   goto usage_exit;
   exit 1;
 endif
-
-set GSPArgs = ();
-set sxacfg = "analysis.cfg"
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+  exit 1;
+endif
 
 ##### Print out version info, if needed ####
 set n = `echo $argv | grep version | wc -l` 
@@ -33,32 +71,119 @@ if($n != 0) then
   exit 0;
 endif
 
+set GSPArgs = ();
+set sxacfg = "analysis.cfg"
+
+# Don't require Session Arguments #
 set SessList = `getsesspath $argv`;
-if($status || $#SessList == 0) then
-  getsesspath $argv 
-  exit 1;
-endif
+if($status || $#SessList == 0) set SessList = ();
 
 goto parse_args;
 parse_args_return:
 
-if($#fsd   == 0)  set fsd = bold
-
 goto check_params;
 check_params_return:
-
-if($motioncor)   set funcstem = $fmcstem;
 
 ## File permission masking ###
 if(! $?MRI_UMASK ) set MRI_UMASK = `umask`;
 umask $MRI_UMASK;
 set umaskarg = "-umask $MRI_UMASK"
 
+mkdir -p $analysis
+
+##---- Create the analysis config file ------#
+set sxacfg = $analysis/$sxacfg
+rm -f $sxacfg
+touch $sxacfg
+
+if($#TER == 0) set TER = $TR;
+
+if($designtype == "event-related" || $designtype == "blocked") then
+  set Nh  = `echo "($IdealTW/$TR)" | bc`;
+  set TW  = `echo "$TR*$Nh" | bc`;
+  #if($#PreStim == 0) set PreStim = `echo "2*$TR"   | bc -l`;
+  if($gammafit) then
+    @ nth = 1;
+    while($nth <= $#gDelta)
+      echo "-gammafit $gDelta[$nth] $gTau[$nth]" >> $sxacfg
+      @ nth = $nth + 1;
+    end
+    if($#gAlpha != 0) echo "-gammaexp $gAlpha" >> $sxacfg
+  endif
+  if($spmhrf > -1) echo "-spmhrf $spmhrf" >> $sxacfg
+
+  echo "-timewindow $TW" >> $sxacfg
+  echo "-prestim $PreStim" >> $sxacfg
+  #if(! $meanfit) then
+  #  echo "-nobaseline" >> $sxacfg
+  #else
+  #  echo "-baseline" >> $sxacfg
+  #endif
+  #if($trendfit)  echo "-detrend" >> $sxacfg
+  #if($qtrendfit) echo "-qtrendfit" >> $sxacfg
+  if($PolyFitOrder >= 0) echo "-polyfit $PolyFitOrder" >> $sxacfg
+  if($nyqreg) echo "-nyqreg" >> $sxacfg
+  echo "-TER $TER" >> $sxacfg
+  if($TauMax > 0)  echo "-autowhiten $TauMax" >> $sxacfg
+  if($#timeoffset != 0) echo "-timeoffset $timeoffset" >> $sxacfg
+  if($WhitenFlag != 0)  echo "-whiten" >> $sxacfg
+else if($designtype == "retinotopy" || $designtype == "abblocked") then
+  echo "-ncycles $ncycles" >> $sxacfg
+  echo "-delay   0" >> $sxacfg
+endif
+
+echo "-nskip $nskip" >> $sxacfg
+if($hanrad != 0) then
+  echo "-hanrad $hanrad" >> $sxacfg
+else
+  echo "-fwhm $fwhm" >> $sxacfg
+endif
+
+if($#extreg != 0) then
+  echo "-extreg $extreg" >> $sxacfg
+  if($#nextreg != 0)  echo "-nextreg $nextreg" >> $sxacfg
+  if($extregorthog)   echo "-extregorthog " >> $sxacfg
+endif
+
+if($inorm) echo "-rescale 1000" >> $sxacfg
+echo "" >> $sxacfg
+echo $sveres >> $sxacfg
+echo $svsignal >> $sxacfg
+
+if($autostimdur) echo "-autostimdur" >> $sxacfg
+if($#stimdur) echo "-stimdur $stimdur" >> $sxacfg
+
+##---- Create the analysis info file ------#
+set infofile = $analysis/analysis.info
+rm -f $infofile
+touch $infofile
+echo "analysis   $analysis"   >> $infofile
+echo "TR         $TR"         >> $infofile
+echo "designtype $designtype" >> $infofile
+if($eventrelated || $blocked) then
+  echo "nconditions $nconditions"  >> $infofile 
+endif
+echo "parname    $parname"    >> $infofile
+echo "fsd        $fsd"        >> $infofile
+echo "funcstem   $funcstem"   >> $infofile
+if($#runlistfile != 0) echo "runlistfile $runlistfile" >> $infofile
+echo "tpexclude  $tpexclude"  >> $infofile
+if($#maskstem != 0) echo "maskstem $maskstem" >> $infofile
+
+if($#SessList == 0) then
+  echo "Completed successfully"
+  exit 0;
+endif
+
+#----- Set up session-level scripts -------#
 echo $SessList
+
+set TRAnalysis = $TR;
 
 # Go through each session, make sure it exists, and check consistency #
 set n = 1;
 foreach sess ($SessList)
+  set sessbase = `basename $sess`;
 
   set sifile = $sess/$fsd/seq.info
   if(! -e $sifile ) then
@@ -80,6 +205,11 @@ foreach sess ($SessList)
       echo "ERROR: $sess has inconsistent TR"
       exit 1;
     endif
+  endif
+
+  if($TR != $TRAnalysis) then
+    echo "ERROR: TR for $sessbase = $TR, Analysis TR = $TRAnalysis"
+    exit 1;
   endif
 
   # get and check the conistency of the nslices #
@@ -111,50 +241,8 @@ foreach sess ($SessList)
 end # Loop over sessions #
 
 mkdir -p scripts
-
-mkdir -p $analysis
 set scriptsdir = $analysis/scripts
 mkdir -p $scriptsdir
-
-##---- Create the analysis config file ------#
-set sxacfg = $analysis/$sxacfg
-set IdealTW = 24;
-set Nh  = `echo "($IdealTW/$TR +1)" | bc`;
-set TW  = `echo "$TR*$Nh" | bc`;
-set TPS = `echo "2*$TR"   | bc -l`;
-rm -f $sxacfg
-touch $sxacfg
-
-if($blocked) then
-  echo "-gammafit 2.25 1.25" >> $sxacfg
-endif
-echo "-timewindow $TW" >> $sxacfg
-echo "-prestim $TPS" >> $sxacfg
-echo "-detrend" >> $sxacfg
-echo "-baseline" >> $sxacfg
-echo "-nskip 0" >> $sxacfg
-echo "-hanrad 0" >> $sxacfg
-if($inorm) echo "-rescale 1000" >> $sxacfg
-#echo "-interleave"  >> $sxacfg
-#echo "-firstslice 0" >> $sxacfg
-#echo "-nslices    $nslices" >> $sxacfg
-#echo "-timeoffset 0" >> $sxacfg
-#echo "-parname $parname" >> $sxacfg
-#echo "-TR  $TR" >> $sxacfg
-echo "" >> $sxacfg
-
-##---- Create the analysis info file ------#
-set infofile = $analysis/analysis.info
-rm -f $infofile
-touch $infofile
-echo "analysis   $analysis"   >> $infofile
-echo "designtype $designtype"    >> $infofile
-echo "fsd        $fsd"        >> $infofile
-echo "funcstem   $funcstem"   >> $infofile
-echo "parname    $parname"    >> $infofile
-echo "TR         $TR"         >> $infofile
-echo "tpexclude  $tpexclude"  >> $infofile
-if($#runlistfile != 0) echo "runlistfile $runlistfile" >> $infofile
 
 ##---- Create default motion correction script ------#
 set scr = scripts/run-mc-sess
@@ -189,6 +277,7 @@ echo "cd ../"                        >> $scr
 echo "inorm-sess -motioncor $umaskarg $GSPArgs " >> $scr
 echo ""                                >> $scr
 
+if($designtype == "event-related" || $designtype == "blocked") then
 ##---- Create default selxavg script ------##
 set scr = $scriptsdir/run-selxavg-sess
 rm -f $scr
@@ -220,16 +309,6 @@ echo "#\!/bin/csh -f "      >> $scr
 echo "# Resampling of functional averages into Talariach Space" >> $scr
 echo "cd ../.."                >> $scr
 echo "func2tal-sess -res 4 -analysis $analysis $GSPArgs -umask 0" >> $scr
-echo ""                     >> $scr
-
-##---- Create default funcvits script ------#
-set scr = $scriptsdir/run-funcvits-sess
-rm -f $scr
-touch $scr
-chmod a+x $scr
-echo "#\!/bin/csh -f "      >> $scr
-echo "cd ../.."                >> $scr
-echo "funcvits-sess -analysis $analysis $GSPArgs -umask 0">> $scr
 echo ""                     >> $scr
 
 ##---- Create default func2sph script ------#
@@ -264,6 +343,10 @@ echo "# Group-Level Statistical Grinding " >> $scr
 echo "cd ../.."                >> $scr
 echo "stxgrinder-sess -contrast allvfix -analysis $analysis -umask 0 -grpname all -resamp tal" >> $scr
 echo ""                     >> $scr
+endif
+
+# Delete the h.dat file if it exists
+rm -f  $analysis/h.dat
 
 
 echo "Completed successfully"
@@ -294,6 +377,73 @@ while( $#argv != 0 )
       set GSPArgs = ($GSPArgs -cwd);
       breaksw
 
+    case "-clone":
+      if ( $#argv == 0) goto arg1err;
+      set cloneanalysis = $argv[1]; shift;
+      if(! -e $cloneanalysis ) then
+        echo "ERROR: $cloneanalysis does not exist"
+        exit 1;
+      endif
+      set cainfo = $cloneanalysis/analysis.info
+      set cacfg  = $cloneanalysis/analysis.cfg
+      if(! -e $cainfo ) then
+        echo "ERROR: $cloneanalysis does have analysis.info"
+        exit 1;
+      endif
+      if(! -e $cacfg ) then
+        echo "ERROR: $cloneanalysis does have analysis.cfg"
+        exit 1;
+      endif
+
+  set TR = `cat $cainfo   | awk '{if($1 == "TR") print $2}'`;
+  set designtype = `cat $cainfo | awk '{if($1 == "designtype") print $2}'`;
+  set fsd       = `cat $cainfo | awk '{if($1 == "fsd") print $2}'`;
+  set funcstem  = `cat $cainfo | awk '{if($1 == "funcstem") print $2}'`;
+  set parname   = `cat $cainfo | awk '{if($1 == "parname") print $2}'`;
+  set tpexclude = `cat $cainfo | awk '{if($1 == "tpexclude") print $2}'`;
+  set runlistfile = `cat $cainfo | awk '{if($1 == "runlistfile") print $2}'`;
+  set nconditions = `cat $cainfo | awk '{if($1 == "nconditions") print $2}'`;
+  set maskstem = `cat $cainfo | awk '{if($1 == "maskstem") print $2}'`;
+
+  set gDelta = `cat $cacfg | awk '{if($1 == "-gammafit") print $2}'`;
+  set gTau   = `cat $cacfg | awk '{if($1 == "-gammafit") print $3}'`;
+  set gAlpha = `cat $cacfg | awk '{if($1 == "-gammaexp") print $2}'`;
+  if($#gDelta != 0) set gammafit = 1;
+  set spmhrf = `cat $cacfg | awk '{if($1 == "-spmhrf") print $2}'`;
+  if($#spmhrf == 0) set spmhrf = -1;
+  set IdealTW = `cat $cacfg | awk '{if($1 == "-timewindow") print $2}'`;
+  set PreStim = `cat $cacfg | awk '{if($1 == "-prestim") print $2}'`;
+  set TER = `cat $cacfg | awk '{if($1 == "-TER") print $2}'`;
+  set TauMax = `cat $cacfg | awk '{if($1 == "-autowhiten") print $2}'`;
+  if($#TauMax == 0) set TauMax = 0;
+  set WhitenFlag = `cat $cacfg | awk '{if($1 == "-whiten") print $1}'`;
+  if($#WhitenFlag == 0) set WhitenFlag = 0;
+  set nskip  = `cat $cacfg | awk '{if($1 == "-nskip") print $2}'`;
+  set fwhm  = `cat $cacfg | awk '{if($1 == "-fwhm") print $2}'`;
+  if($#fwhm == 0) set fwhm = 0;
+  set extreg  = `cat $cacfg | awk '{if($1 == "-extreg") print $2}'`;
+  set nextreg  = `cat $cacfg | awk '{if($1 == "-nextreg") print $2}'`;
+  set extregorthog = `cat $cacfg | awk '{if($1 == "-extregorthog") print 1}'`;
+  set timeoffset  = `cat $cacfg | awk '{if($1 == "-timeoffset") print $2}'`;
+  set ncycles  = `cat $cacfg | awk '{if($1 == "-ncycles") print $2}'`;
+
+  set trendfit = `cat $cacfg | awk '{if($1 == "-detrend") print 1}'`;
+  set qtrendfit = `cat $cacfg | awk '{if($1 == "-qtrendfit") print 1}'`;
+  set inorm = `cat $cacfg | awk '{if($1 == "-rescale") print 1}'`;
+  set PolyFitOrder = `cat $cacfg | awk '{if($1 == "-polyfit") print $2}'`;
+  set nyqreg = `cat $cacfg | awk '{if($1 == "-nyqreg") print $1}'|wc -l`;
+
+  set sveres = `cat $cacfg | awk '{if($1 == "-sveres") print $1}'`;
+  set svsignal = `cat $cacfg | awk '{if($1 == "-svsignal") print $1}'`;
+
+  set tmp  = `cat $cacfg | awk '{if($1 == "-autostimdur") print 1}'`;
+  if($#tmp == 0) set autostimdur = 0;
+  set stimdur = `cat $cacfg | awk '{if($1 == "-stimdur") print $1}'`;
+
+      #goto getclone;
+      #getclone_return:
+      breaksw
+
     case "-sxacfg": # not advertised #
       if ( $#argv == 0) goto arg1err;
       set sxacfg = $1; shift;
@@ -317,9 +467,10 @@ while( $#argv != 0 )
       set fsd = $1; shift;
       breaksw
 
+    case "-funcstem":
     case "-fmcstem":
       if ( $#argv == 0) goto arg1err;
-      set fmcstem = $1; shift;
+      set funcstem = $1; shift;
       breaksw
 
     case "-runlistfile":
@@ -328,14 +479,233 @@ while( $#argv != 0 )
       set runlistfile = $1; shift;
       breaksw
 
+    case "-norlf":
+      set runlistfile = ();
+      breaksw
+
+    case "-nconditions":
+    case "-nc":
+      if ( $#argv == 0) goto arg1err;
+      set nconditions = $argv[1]; shift;
+      breaksw
+
     case "-tpexclude":
+    case "-tpef":
       if ( $#argv == 0) goto arg1err;
       set tpexclude = $argv[1]; shift;
+      breaksw
+
+    case "-timewindow":
+    case "-tw":
+      if ( $#argv == 0) goto arg1err;
+      set IdealTW = $argv[1]; shift;
+      breaksw
+
+    case "-timeoffset":
+      if ( $#argv == 0) goto arg1err;
+      set  timeoffset = $argv[1]; shift;
+      breaksw
+
+    case "-prestim":
+    case "-tprestim":
+    case "-tps":
+    case "-ps":
+      if ( $#argv == 0) goto arg1err;
+      set PreStim = $argv[1]; shift;
+      breaksw
+
+    case "-taumax":
+      if ( $#argv == 0) goto arg1err;
+      set TauMax = $argv[1]; shift;
+      breaksw
+
+    case "-whiten":
+      set WhitenFlag = 1;
+      breaksw
+
+    case "-nowhiten":
+      set WhitenFlag = 0;
+      breaksw
+
+    case "-mask":
+      if ( $#argv < 0) goto arg1err;
+      set maskstem = $argv[1]; shift;
+      breaksw
+
+    case "-TER":
+      if ( $#argv == 0) goto arg1err;
+      set TER = $argv[1]; shift;
+      breaksw
+
+    case "-TR":
+      if ( $#argv == 0) goto arg1err;
+      set TR = $argv[1]; shift;
+      breaksw
+
+    case "-hanrad":
+      echo "INFO: HanRad is obsolete, though you can still use it."
+      echo "If you really want to use HanRad, run mkanalysis-sess"
+      echo "with -hanrad-really. Otherwise, consider using spatialsmooth-sess."
+      echo "Do not use both."
+      exit 1;
+      breaksw
+
+    case "-hanrad-really":
+      if ( $#argv == 0) goto arg1err;
+      set hanrad = $argv[1]; shift;
+      breaksw
+
+    case "-extreg": # External regressor file
+      if ( $#argv == 0) goto arg1err;
+      set extreg = $argv[1]; shift;
+      breaksw
+
+    case "-mcextreg": # MotionCor External regressor file
+      set extreg = mcextreg;
+      set nextreg = 3;
+      breaksw
+
+    case "-nextreg": # No. of External regressors to use
+      if ( $#argv == 0) goto arg1err;
+      set nextreg = $argv[1]; shift;
+      breaksw
+
+    case "-extregorthog": # Orthogonalize External regressors wrt Par
+      set extregorthog = 1;
+      breaksw
+
+    case "-gammafit":
+      if ( $#argv < 2) goto arg2err;
+      set gDelta = ($gDelta $argv[1]); shift;
+      set gTau   = ($gTau   $argv[1]); shift;
+      set gammafit = 1;
+      breaksw
+
+    case "-gammaexp":
+      if ( $#argv < 1) goto arg1err;
+      set gAlpha = $argv[1]; shift;
+      breaksw
+
+    case "-nogammafit":
+      # for use with -clone #
+      set gDelta = ();
+      set gTau   = ();
+      set gammafit = 0;
+      breaksw
+
+    case "-spmhrf":
+      # for use with -clone #
+      if ( $#argv < 1) goto arg1err;
+      set spmhrf = $argv[1]; shift;
+      breaksw
+
+    case "-nospmhrf":
+      set sphhrf = -1;
+      breaksw
+
+    case "-fwhm-really":
+      if ( $#argv == 0) goto arg1err;
+      set fwhm = $argv[1]; shift;
+      breaksw
+
+    case "-fwhm":
+      echo "INFO: FWHM is obsolete, though you can still use it."
+      echo "If you really want to use FWHM, run mkanalysis-sess"
+      echo "with -fwhm-really. Otherwise, consider using spatialsmooth-sess."
+      echo "Do not use both."
+      exit 1;
+      breaksw
+
+    case "-nskip":
+      if ( $#argv == 0) goto arg1err;
+      set nskip = $argv[1]; shift;
+      breaksw
+
+    case "-ncycles":
+      if ( $#argv == 0) goto arg1err;
+      set ncycles = $argv[1]; shift;
+      breaksw
+
+    case "-designtype":
+    case "-design":
+    case "-dt":
+      if ( $#argv == 0) goto arg1err;
+      set designtype = $argv[1]; shift;
+      if("$designtype" == "er") set designtype = event-related;
+      if("$designtype" != "blocked" && "$designtype" != "abblocked" && \
+         "$designtype" != "event-related" && "$designtype" != "retinotopy")then
+         echo "ERROR: design type must be one of the following:"
+         echo "       event-related, blocked, abblocked, or retinotopy"
+         exit 1;
+      endif
+      breaksw
+
+    case "-event-related":
+      set eventrelated = 1;
+      set designtype = "event-related"
       breaksw
 
     case "-blocked":
       set blocked = 1;
       set designtype    = "blocked"
+      breaksw
+
+    case "-abblocked":
+      set abblocked = 1;
+      set designtype    = "abblocked"
+      breaksw
+
+    case "-retinotopy":
+    case "-rtopy":
+    case "-ret":
+      set retinotopy = 1;
+      set designtype    = "retinotopy"
+      breaksw
+
+    case "-notrendfit":
+      echo "ERROR: -notrendfit is no longer supported"
+      echo "  specify the polynomial order you want with -polyfit."
+      echo "  See -help."
+      exit 1;
+      breaksw
+
+    case "-qtrendfit":
+      echo "ERROR: -qtrendfit is no longer supported"
+      echo "  specify the polynomial order you want with -polyfit."
+      echo "  See -help."
+      exit 1;
+      breaksw
+
+    case "-noqtrendfit":
+      echo "ERROR: -noqtrendfit is no longer supported"
+      echo "  specify the polynomial order you want with -polyfit."
+      echo "  See -help."
+      exit 1;
+      breaksw
+
+    case "-nomeanfit":
+      echo "ERROR: -nomeanfit is no longer supported"
+      echo "  specify the polynomial order you want with -polyfit."
+      echo "  See -help."
+      exit 1;
+      breaksw
+
+    case "-polyfit":
+    case "-pf":
+      if ( $#argv < 1) goto arg1err;
+      set PolyFitOrder = $argv[1]; shift;
+      breaksw
+
+    case "-nyqreg":
+      set nyqreg = -1;
+      breaksw
+
+    case "-sveres":
+      set sveres = "-sveres";
+      breaksw
+
+    case "-svsignal":
+      set svsignal = "-svsignal";
       breaksw
 
     case "-motioncor":
@@ -350,13 +720,33 @@ while( $#argv != 0 )
       set inorm = 1;
       breaksw
 
+    case "-noinorm":
+      set inorm = 0;
+      breaksw
+
     case "-umask":
       if ( $#argv == 0) goto arg1err;
       setenv MRI_UMASK $1; shift;
       breaksw
 
-    case "-verbose":
-      set verbose = 1;
+    case "-stimdur":
+      if ( $#argv == 0) goto arg1err;
+      set stimdur = $argv[1]; shift;
+      breaksw
+
+    case "-nostimdur":
+      set stimdur = ();
+      breaksw
+
+    case "-autostimdur":
+      set autostimdur = 1;
+      breaksw
+
+    case "-noautostimdur":
+      set autostimdur = 0;
+      breaksw
+
+    case "-newmka": #ignore
       breaksw
 
     case "-debug":
@@ -378,9 +768,38 @@ goto parse_args_return;
 ############--------------##################
 check_params:
 
+  if($#TR == 0) then
+    echo "ERROR: must specify TR"
+    exit 1;
+  endif
+
+  if($#fsd   == 0)  set fsd = bold
+
+  if($#funcstem == 0) then
+    if($motioncor) then
+      set funcstem = fmc;
+    else
+      set funcstem = f;
+    endif
+  endif
+
+  if($#designtype == 0) then
+    echo "ERROR: must specify a design type"
+    exit 1;
+  endif
+
+  if("$designtype" == "event-related") set eventrelated = 1;
+  if("$designtype" == "blocked")       set blocked      = 1;
+  if("$designtype" == "abblocked")     set abblocked    = 1;
+  if("$designtype" == "retinotopy")    set retinotopy   = 1;
+
   if($#analysis == 0) then
     echo "ERROR: must specify an analysis name"
     exit 1;
+  endif
+
+  if($#parname == 0 && $abblocked) then
+    set parname = NONE;
   endif
 
   if($#parname == 0) then
@@ -400,6 +819,58 @@ check_params:
     echo "INFO:  analysis $analysis exists, but overwrite forced by user."
   endif
 
+  if($abblocked && $retinotopy) then
+    echo "ERROR: cannot specify -abblocked and -retinotopy"
+    exit 1;
+  endif
+
+  if($abblocked && ! $#ncycles) then
+    echo "ERROR: must specify -ncycles with -abblocked"
+    exit 1;
+  endif
+
+  if($retinotopy && ! $#ncycles) then
+    echo "ERROR: must specify -ncycles with -retinotopy"
+    exit 1;
+  endif
+
+  if($#nskip == 0)   set nskip = 0;
+
+  if($gammafit == 1 && $#IdealTW == 0) then
+    set IdealTW = 40;
+    set PreStim = 0;
+    echo "INFO: setting Gamma time window to $IdealTW sec"
+  endif
+
+  if($spmhrf > 0 && $#IdealTW == 0) then
+    set IdealTW = 40;
+    set PreStim = 0;
+    echo "INFO: setting SPM time window to $IdealTW sec"
+  endif
+
+  if("$hanrad" != "0" && "$fwhm" != "0") then
+    echo "ERROR: cannot specify hanrad and fwhm"
+    exit 1;
+  endif
+
+  if($eventrelated || $blocked) then
+    if($gammafit == 0 && $#IdealTW == 0) then
+      echo "ERROR: must set a timewindow if not fitting a gamma function"
+      exit 1;
+    endif
+    if($#nconditions == 0) then
+      echo "ERROR: must specify number of conditions"
+      exit 1;
+    endif
+  endif
+
+  if($TauMax > 0 && $WhitenFlag) then
+    echo "ERROR: cannot use both -taumax and -whiten"
+    echo $TauMax
+    exit 1;
+  endif
+
+
 goto check_params_return;
 ############--------------##################
 
@@ -410,21 +881,286 @@ arg1err:
 ############--------------##################
 
 ############--------------##################
+arg2err:
+  echo "ERROR: flag $flag requires two arguments"
+  exit 1
+############--------------##################
+
+############--------------##################
 usage_exit:
-  echo "USAGE: mkanalysis-sess"
-  echo "   -analysis  analysisname : name of session-level functional analysis";
-  echo "   -paradigm  parname      : name of paradigm file"
-  echo "   -runlistfile filename   : file with list of runs to include in analysis"
-  echo "   -tpexclude filename     : time-point exclude file name"
-  echo "   -blocked                : for blocked designs (default is event-related)"
-  echo "   -motioncor              : use motion corrected data (see mc-sess) "
-  echo "   -inorm                  : use intensity normalized data (see inorm-sess)"
-  echo "   -sf  sessidfile  ..."
-  echo "   -df  srchdirfile ..."
-  echo "   -s   sessid      ..."
-  echo "   -d   srchdir     ..."
-  echo "   -fsd dir        : name of functional subdir (bold)"
-  echo "   -fmcstem stem   : stem of motion-corrected volume (fmc), with -motioncor"
+  echo ""
+  echo "USAGE: mkanalysis-sess (and mkanalysis-sess.new)"
+  echo ""
+  echo "Required Arguments"
+  echo "  -analysis  analysisname : name of session-level functional analysis";
+  echo "  -TR   TR                : TR value in seconds"
+  echo "  -paradigm  parname      : name of paradigm file"
+  echo "  -designtype  type       : type of design. Legal values are: event-related,"
+  echo "                            blocked, abblocked, retinotopy"
+  echo ""
+  echo "Optional Arguments"
+  echo "   -fsd FSD               : functional subdirectory"
+  echo "   -funcstem stem         : stem of functional data (default = f or fmc)"
+  echo "   -motioncor             : use motion corrected data (see mc-sess) "
+  echo "   -runlistfile filename  : file with list of runs to include in analysis"
+  echo "   -inorm                 : intensity normalize data (see inorm-sess)"
+  echo "   -fwhm        FWHM      : Full-Width/Half-Max for in-plane smoothing (mm)"
+  echo "   -nskip       N         : skip the first N time points in each run"
+  echo "   -tpef      filename    : time-point exclude file name"
+  echo "   -polyfit N             : fit trend with polynomial of order N"
+  echo "   -extreg extregstem     : external regressor"
+  echo "   -mcextreg              : use motion parameters as external regressors"
+  echo ""
+  echo "Event-Related and Blocked Arguments "
+  echo "   -nconditions Nc      : number of conditions (excluding fixation)"
+  echo "   -timewindow  TW      : event time window (sec)"
+  echo "   -prestim     PS      : event prestimulus window (sec)"
+  echo "   -TER         TER     : temporal estimation resolution (sec)"
+  echo "   -gammafit gfDelta gfTau : assume IRF is a gamma function"
+  echo "   -gammaexp gfAlpha : gamma exponent (default is 2) "
+  echo "   -taumax      TauMax  : maximum lag for noise autocor and whitening (sec)"
+  echo "   -mask  maskid : use masks/maskid to compute autocor and whitening"
+  echo "   -timeoffset  toffset : time offset (sec) to add to each paradigm file"
+  echo ""
+  echo "Retinotopy and AB Blocked Arguments (Required)"
+  echo "   -ncycles     N       : number of cycles in each run"
+  echo ""
+  echo "Other Optional Arguments"
   echo "   -umask umask    : set unix file permission mask"
   echo "   -version        : print version and exit"
+  echo "   -help           : my analysis has fallen, and it can't get up!"
+  echo ""
+  echo "See also mkanalysis-sess.old"
+  echo ""
+
+  if( ! $PrintHelp) exit 1;
+
+  echo $VERSION
+
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+
 exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+This program creates an 'analysis'. An analysis is a concept within the 
+FS-FAST processing stream framework. The analysis is meant to be a 
+placeholder for all the within-session processing options (eg, motion 
+correction, spatial smoothing, event-type definition, etc). As such, 
+the parameters apply to ALL sessions (ie, it does not need to be run 
+separately for each session), and does not depend upon the data in any 
+one session. This program should be run from your FS-FAST Study 
+Directory. This program only configures the analysis; it does not 
+analyze the data (see selxavg-sess or sfa-sess). 
+
+ 
+ARGUMENTS AND FLAGS: 
+
+-analysis analysisname (Shortcut: -a) 
+
+This is the name given to the analysis. A folder called analysisname 
+will be created in the Study Directory. Two files (analysis.info and 
+analysis.cfg) will be created in this directory. The analysis 
+parameters will be stored in these files. Contrast matrices (created 
+by mkcontrast-sess) will also be stored in this directory. When the 
+session data are analyzed with selxavg-sess or sfa-sess data, a folder 
+called analysisname will be created in the functional subdirectory 
+(FSD), and the results of the analysis will be placed there.  
+
+ 
+
+-TR TR 
+ 
+This is the TR in seconds. It will be checked against the TR in each 
+session when selxavg-sess is run. See also -TER. 
+ 
+-paradigm parname (Shortcut: -p) 
+ 
+This is the name of the paradigm file as found in each functional run 
+directory. For blocked and event-related designs, the paradigm file 
+defines which event type was presented when. For periodic designs 
+(retinotopy and AB blocked), it defines the phase and period of 
+stimulation for each run. The name of the paradigm file must be the 
+same across runs and sessions, though its contents can change. 
+If event types are redefined (eg, post-hoc event sorting), then a 
+new paradigm file (with a different name) should be created followed 
+by creating a new analysis. For event and blocked designs, time=0 
+is relative to the time of acquisition of the first stored image. 
+ 
+-designtype type (Shortcut: -dt) 
+ 
+This specifies the type of design for which the analysis is being 
+created. Legal values are event-related, blocked, abblocked, and 
+retinotopy. Event-related and blocked must be analyzed with 
+selxavg-sess. abblocked and retinotopy must be analyzed with 
+sfa-sess. abblocked is a block design in which only two conditions (or 
+one condition and one null condition) are presented in a periodic 
+fashion. Ie, each condition is presented for for the same duration in 
+an alternating fashion. 
+ 
+-fsd FSD 
+ 
+Functional subdirectory (FSD). This is the folder under the sessions 
+directory in which the runs of raw functional data will be found 
+(default is bold). 
+ 
+-funcstem stem 
+ 
+This is the bshort/bfloat stem of the functional volume to process. This 
+volume must exist in each functional run. By default, the stem is f. 
+If the -motioncor flag is included, then the stem fmc is used (this is 
+the default output of mc-sess). 
+ 
+-motioncor (see -funcstem stem).
+ 
+-runlistfile filename (Shortcut: -rlf) 
+
+This is a file that should exist in each FSD that lists the runs to be 
+processed in that session. The name must be the same across sessions 
+but the contents of each file can vary. If an RLF is not specified, 
+all runs found in the FSD will be processed. 
+ 
+-inorm 
+ 
+Perform intensity normalization. This requires that inorm-sess be run 
+on the volume specified by -funcstem (or whatever it defaults to).  
+Intensity normalization will force the grand within-tissue mean of the 
+functional data to be 1000 for each run.  
+ 
+-fwhm Full-Width-Half-Max  
+ 
+This functionality is somewhat obsolete. Consider using spatialsmooth-sess 
+for 3D smoothing. -fwhm Specifies that within-plane (ie, 2D) spatial 
+smoothing using a Hanning kernel should be performed. The 
+Full-Width-Half-Max (FWHM) indicates the extent of the smoothing and 
+is specified in mm. 
+
+-nskip N 
+ 
+Skip the first N time points in each functional run. It may be 
+necessary to eliminate the first 4 or 5 time points in a functional 
+run because the sample has not reached magnetic equilibrium. This is 
+usually not necessary if the sample was scanned with discarded 
+acquisitions (DISTACQS or DDAs). Note: the nskip does not affect the 
+definition of time=0 in the paradigm file (see -paradigm). This  
+functionality can also be implemented using a time-point exclude file  
+(see -tpef). 
+ 
+-tpef filename 
+ 
+This is the name of a time point exclude file (TPEF). The TPEF stores 
+a list of times (in seconds) of time points to exclude from the 
+analysis. The TPEF must be found in the run directory with the functional 
+data to which it applies. Like paradigm files, the TPEFs must have the  
+same name across subjects and runs though their contents can differ.  
+Unlike paradigm files, it is not necessary to have a TPEF in each run; 
+if no TPEF is found, no time points are excluded. 
+ 
+-polyfit N
+
+Drift removal. Fit and remove polynomial of order N. Default is 1
+(ie, 0=mean, 1=linear, and 2=quadradic). 
+
+-nconditions Nc (Shortcut: -nc) 
+ 
+(For blocked and event-related designs). This is the number of 
+conditions as found in the paradigm files. When selxavg-sess runs, it 
+checks the number of conditions found the paradigm files against Nc 
+and returns an error if they differ. 
+ 
+-timewindow TimeWindow (Shortcut: -tw) 
+ 
+(For blocked and event-related designs). If no shape to the 
+hemodynamic response is to be assumed (ie, -gammafit is not used), then 
+this is the amount of time needed to capture the entire event and 
+response, including a prestimulus window. Here, for blocked designs, 
+the event refers to the entire block. If a shape to the hemodynamic 
+response will be assumed (ie, -gammafit is used), then the time window 
+should be long enough to capture the gamma function. In this case, there 
+is no penalty for a long time window. If no time window is selected with 
+-gammafit, an appropriate one will be selected automatically.
+
+-extreg extregstem
+
+Use external regressors when doing estimation. The external regressors
+should be stored in the bfloat "volume" with stem extregstem. There
+should actually be only one file there (extregstem_000.bfloat). It
+should have one row, and the number of columns should be equal to 
+the number of external regressors. The number of frames must be
+equal to the number time points. There should be an external regressor
+file in each run directory. By default, all the regressors will be
+used, but this can be changed with -nextreg. See also -mcextreg.
+
+-nextreg N
+
+Use only N external regressors. See -extreg.
+
+-mcextreg
+
+Use motion parameters as external regressors. This is the same as
+setting "-extreg mcextreg -nextreg 3". mcextreg is created when
+running mc-sess by orthognalizing the motion parameters. Only the top
+three components are used (unless changed with -nextreg).  Note: this
+feature was incorporated into mc-sess on 7/1/02.  If motion correction
+was run before this date, it will need to be re-run in order to create
+the mcextreg file.
+
+-prestim PreStimTimeWindow (Shortcut: -ps) 
+ 
+(For blocked and event-related designs). Start averaging 
+PreStimTimeWindow seconds before the onset of the stimulus. This only  
+applies to analyses in which the no shape to the hemodynamic response 
+is to be assumed (ie, -gammafit is not used).  
+ 
+-gammafit gfDelta gfTau 
+ 
+(For blocked and event-related designs). Assume that the hemodynamic 
+response takes the shape of a gamma function. gfDelta is the hemodynamic 
+delay (ie, the time until the onset of the response), and gfTau is the 
+dispersion, which controls the rise and fall times. Both are specified 
+in seconds. gfAlpha is the exponent for the gamma function (see
+-gammaexp); for BOLD, alpha=2. The gamma function takes the form:  
+
+         f(t) = ((t-delta)/tau)^alpha * exp(-(t-delta)/tau) 
+
+-gammaexp gfAlpha
+
+Exponent for the gamma function. Default is 2, which tends to fit the 
+BOLD hemodynamic response better.
+ 
+-taumax TauMax 
+ 
+(For blocked and event-related designs). This instructs selxavg-sess  
+to estimate and correct for global autocorrelation in the noise. It 
+will assume that the autocorrelation function is zero beyond a delay 
+of TauMax seconds. 
+
+-mask maskid
+
+This only applies when using -taumax. This is a mask (as found in
+bold/masks) that is used to limit the voxels used in the computation
+of the whitening fillter. Usually, one would run  mkbrainmask-sess
+to create masks/brain, and then specify brain as maskid.
+ 
+-TER TemporalEstimationResolution 
+ 
+(For event-related designs). The TER is the Temporal Estimation 
+Resolution. This is the resolution to which the hemodynamic response 
+will be estimated (in seconds). It must be an integer divisor of  
+the TR. The stimulus schedule (ie, paradigm file) must have been 
+created with with the given TER in mind. 
+ 
+-timeoffset toffset 
+ 
+(For blocked and event-related designs). The time to add to the times 
+listed in each paradigm file. This is only useful if, for some 
+reason, each paradigm file if off by the same amount. This may happen 
+if there was a systematic delay between the beginning of the stimulus 
+stream and the beginning of scanning. 
+ 
+-ncycles N 
+ 
+(For retinotopy and AB blocked designs). For designs in which the 
+stimuli are presented periodically, this is the number of cycles 
+of stimulation presented in each run. 
