@@ -14,7 +14,7 @@
 #include "macros.h"
 #include "utils.h"
 
-static char vcid[] = "$Id: mris_flatten.c,v 1.2 1997/12/11 19:09:56 fischl Exp $";
+static char vcid[] = "$Id: mris_flatten.c,v 1.3 1997/12/15 19:50:20 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -55,7 +55,7 @@ main(int argc, char *argv[])
 
   parms.dt = .1 ;
   parms.projection = PROJECT_PLANE ;
-  parms.tol = 1e-4 ;
+  parms.tol = 1e-2 ;
   parms.n_averages = 1024 ;
   parms.min_averages = 0 ;
   parms.l_angle = 0.0 /* L_ANGLE */ ;
@@ -79,8 +79,8 @@ main(int argc, char *argv[])
   parms.ici_desired = -1.0 ;
   parms.base_name[0] = 0 ;
   parms.Hdesired = 0.0 ;   /* a flat surface */
-  parms.nbhd_size = 32 ;
-  parms.max_nbrs = 20 ;
+  parms.nbhd_size = 8 ;
+  parms.max_nbrs = 4 ;
 
   ac = argc ;
   av = argv ;
@@ -137,6 +137,7 @@ main(int argc, char *argv[])
   if (Gdiag & DIAG_SHOW)
     fprintf(stderr, "done, with avg # of neighbors = %2.1f\n", mris->avg_nbrs);
   MRIScomputeMetricProperties(mris) ;
+  MRIScomputeTriangleProperties(mris, 0) ;  /* hack */
   MRISstoreMetricProperties(mris) ;
   MRISrestoreOldPositions(mris) ;
   MRIScomputeMetricProperties(mris) ;
@@ -172,17 +173,21 @@ main(int argc, char *argv[])
       MRISstoreCurrentPositions(mris) ;
       mris->status = MRIS_PATCH ;
       MRISreadVertexPositions(mris, "smoothwm") ;
+      MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ;
       MRIScomputeMetricProperties(mris) ;
+      MRIScomputeTriangleProperties(mris, 0) ;  /* hack */
       MRISstoreMetricProperties(mris) ;
       MRISrestoreOldPositions(mris) ;
       mris->status = MRIS_PLANE ;
       MRISupdateSurface(mris) ;
+#if 0
 #if 1
       if (!nospring)
         MRISremoveNegativeVertices(mris, &parms, min_neg, min_neg_pct) ;
 #else
       if (!nospring)
         MRISunfold(mris, &parms) ;  /* use spring force to remove neg. vert. */
+#endif
 #endif
       /* restore user-specified parameters */
       parms.l_spring = l_spring ; parms.l_dist = l_dist ;
@@ -196,17 +201,19 @@ main(int argc, char *argv[])
       /* read in original positions and calculate distances */
       if (nbrs > 1)
       {
-        MRISstoreCurrentPositions(mris) ;
+        MRISsaveVertexPositions(mris, TMP_VERTICES) ;
         mris->status = MRIS_PATCH ;  /* so no orientating will be done */
-        MRISreadVertexPositions(mris, "smoothwm") ;
+        MRISrestoreVertexPositions(mris, ORIGINAL_VERTICES) ;
         MRISsetNeighborhoodSize(mris, nbrs) ;
         MRIScomputeMetricProperties(mris) ;
+        MRIScomputeTriangleProperties(mris, 0) ;  /* hack */
         MRISstoreMetricProperties(mris) ;
         
         /* restore the current positions and properties */
-        MRISrestoreOldPositions(mris) ;
+        MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
         mris->status = MRIS_PLANE ;
         MRIScomputeMetricProperties(mris) ;
+        MRIScomputeTriangleProperties(mris, 0) ;  /* hack */
         MRISupdateSurface(mris) ;
       }
 
