@@ -436,14 +436,14 @@ MRInormCheckPeaks(MNI *mni, float *inputs, float *outputs, int npeaks)
 
     if (Gdiag & DIAG_SHOW)
     {
-      fprintf(stdout, "avg = %2.5f, sigma = %2.5f\n", avg_dy, sigma_dy) ;
+      fprintf(stderr, "avg = %2.5f, sigma = %2.5f\n", avg_dy, sigma_dy) ;
       for (i = 0 ; i < npeaks ; i++)
       {
         bdy = fabs(backward_dy[i]) ;
         fdy = fabs(forward_dy[i]) ;
         sbdy = (bdy - avg_dy) / sigma_dy ;
         sfdy = (fdy - avg_dy) / sigma_dy ;
-        fprintf(stdout, "%d:  fwd = %2.3f (%2.3f), backwd = %2.3f (%2.3f)\n",
+        fprintf(stderr, "%d:  fwd = %2.3f (%2.3f), backwd = %2.3f (%2.3f)\n",
                 i, fdy, sfdy, bdy, sbdy) ;
       }
       
@@ -476,7 +476,7 @@ MRInormCheckPeaks(MNI *mni, float *inputs, float *outputs, int npeaks)
         int nelts ;
 
         /*        if (Gdiag & DIAG_SHOW)*/
-          fprintf(stdout, "deleting peak %d = %2.1f\n", maxi, outputs[maxi]) ;
+          fprintf(stderr, "deleting peak %d = %2.1f\n", maxi, outputs[maxi]) ;
         deleted = 1 ;
         nelts = npeaks - maxi - 1 ;
         if (nelts)  /* not the last item in the list */
@@ -492,7 +492,7 @@ MRInormCheckPeaks(MNI *mni, float *inputs, float *outputs, int npeaks)
   } while (deleted > 0) ;
 
   if (Gdiag & DIAG_SHOW)
-    fflush(stdout) ;
+    fflush(stderr) ;
 
   return(npeaks) ;
 }
