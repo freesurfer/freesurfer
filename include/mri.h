@@ -16,6 +16,16 @@
 
 typedef struct
 {
+  int  x ;
+  int  y ;
+  int  z ;
+  int  dx ;
+  int  dy ;
+  int  dz ;
+} MRI_REGION ;
+
+typedef struct
+{
   int           width ;
   int           height ;
   int           depth ;     /* # of slices */
@@ -209,6 +219,8 @@ int   MRIvoxelToTalairach(MRI *mri, Real xv, Real yv, Real zv,
 int   MRItalairachToVoxel(MRI *mri, Real xt, Real yt, Real zt,
                                Real *pxv, Real *pyv, Real *pzv) ;
 
+int   MRItransformRegion(MRI *mri_src, MRI *mri_dst, MRI_REGION *src_region,
+                                 MRI_REGION *dst_region) ;
 
 #include "image.h"
 
@@ -246,18 +258,32 @@ extern float ic_y_vertices[]  ;
 extern float ic_z_vertices[]  ;
 
 
-/* histogram stuff */
-#define MAX_BINS  256
-typedef struct
-{
-  int     nbins ;
-  BUFTYPE bins[MAX_BINS] ;    /* upper end of the range that maps to this bin */
-  int     counts[MAX_BINS] ;  /* # of voxels which map to this bin */
-} MRI_HISTO ;
+#include "histo.h"
 
-MRI_HISTO  *MRIhistogram(MRI *mri, int nbins) ;
-int        MRIfreeHistogram(MRI_HISTO **pmrih) ;
 int        MRIvalRange(MRI *mri, float *pmin, float *pmax) ;
-int        MRIdumpHistogram(MRI_HISTO *mrih, FILE *fp) ;
+HISTOGRAM  *MRIhistogram(MRI *mri, int nbins) ;
+MRI        *MRIhistoEqualize(MRI *mri_src, MRI *mri_dst, int low) ;
+MRI        *MRIapplyHistogram(MRI *mri_src, MRI *mri_dst, HISTOGRAM *histo) ;
+MRI        *MRIcrunch(MRI *mri_src, MRI *mri_dst) ;
+HISTOGRAM  *MRIgetEqualizeHisto(MRI *mri, HISTOGRAM *histo_eq, int low) ;
+MRI        *MRIhistoNormalize(MRI *mri_src, MRI *mri_norm, MRI *mri_template,
+                  int low) ;
+MRI        *MRIadaptiveHistoNormalize(MRI *mri_src, MRI *mri_norm, 
+                                      MRI *mri_template, int wsize,
+                                      int hsize, int low) ;
+
+/* these are adaptive (i.e. only operate on a subregion of the whole image */
+HISTOGRAM  *MRIhistogramRegion(MRI *mri, int nbins, MRI_REGION *region) ;
+MRI        *MRIhistoEqualizeRegion(MRI *mri_src, MRI *mri_dst, int low, 
+                                   MRI_REGION *region) ;
+MRI        *MRIapplyHistogramToRegion(MRI *mri_src, MRI *mri_dst, 
+                                    HISTOGRAM *histo, MRI_REGION *region) ;
+HISTOGRAM  *MRIgetEqualizeHistoRegion(MRI *mri, HISTOGRAM *histo_eq, int low, 
+                                      MRI_REGION *region) ;
+MRI        *MRIhistoNormalizeRegion(MRI *mri_src, MRI *mri_norm, 
+                                    MRI *mri_template, int low, 
+                                    MRI_REGION *wreg, 
+                                    MRI_REGION *h_src_reg, 
+                                    MRI_REGION *h_tmp_reg) ;
 
 #endif
