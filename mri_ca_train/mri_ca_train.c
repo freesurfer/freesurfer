@@ -1,3 +1,13 @@
+/***********************************************************************/
+/* mri_ca_train.c                                                      */
+/* by Bruce Fischl                                                     */
+/*                                                                     */
+/* Warning: Do not edit the following four lines.  CVS maintains them. */
+/* Revision Author: $Author: tosa $                                           */
+/* Revision Date  : $Date: 2003/08/15 13:43:44 $                                             */
+/* Revision       : $Revision: 1.16 $                                         */
+/***********************************************************************/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -115,21 +125,21 @@ main(int argc, char *argv[])
   }
 
   printf("training on %d subject and writing results to %s\n",
-          nsubjects, out_fname) ;
-	if (gca_inputs == 0)
-		gca_inputs = ninputs ;   /* gca reads same # of inputs as we read from command line - not the case if we are mapping to flash */
+         nsubjects, out_fname) ;
+  if (gca_inputs == 0)
+    gca_inputs = ninputs ;   /* gca reads same # of inputs as we read from command line - not the case if we are mapping to flash */
   n = 0 ;
-	if (gca_flags & GCA_GRAD)
-	{
-		int extra = 0 ;
-		if (gca_flags & GCA_XGRAD)
-			extra += gca_inputs ;
-		if (gca_flags & GCA_YGRAD)
-			extra += gca_inputs ;
-		if (gca_flags & GCA_ZGRAD)
-			extra += gca_inputs ;
-		gca_inputs += extra ;
-	}
+  if (gca_flags & GCA_GRAD)
+  {
+    int extra = 0 ;
+    if (gca_flags & GCA_XGRAD)
+      extra += gca_inputs ;
+    if (gca_flags & GCA_YGRAD)
+      extra += gca_inputs ;
+    if (gca_flags & GCA_ZGRAD)
+      extra += gca_inputs ;
+    gca_inputs += extra ;
+  }
   do
   {
     gca = GCAalloc(gca_inputs, parms.prior_spacing, parms.node_spacing, DEFAULT_VOLUME_SIZE, 
@@ -157,17 +167,17 @@ main(int argc, char *argv[])
       if (!mri_seg)
         ErrorExit(ERROR_NOFILE, "%s: could not read segmentation file %s",
                   Progname, fname) ;
-			if (binarize)
-			{
-				int i ;
-				for (i = 0 ; i < 256 ; i++)
-				{
-					if (i == binarize_in)
-						MRIreplaceValues(mri_seg, mri_seg, i, binarize_out) ;
-					else
-						MRIreplaceValues(mri_seg, mri_seg, i, 0) ;
-				}
-			}
+      if (binarize)
+      {
+        int i ;
+        for (i = 0 ; i < 256 ; i++)
+        {
+          if (i == binarize_in)
+            MRIreplaceValues(mri_seg, mri_seg, i, binarize_out) ;
+          else
+            MRIreplaceValues(mri_seg, mri_seg, i, 0) ;
+        }
+      }
       if (insert_fname)
       {
         MRI *mri_insert ;
@@ -186,98 +196,98 @@ main(int argc, char *argv[])
       replaceLabels(mri_seg) ;
       MRIeraseBorderPlanes(mri_seg) ;
 
-			if (i != 0)  /* not the first image read - reorder it to be in the same order as 1st */
-			{
-				for (input = 0 ; input < ninputs ; input++)
-				{ 
-					sprintf(fname, "%s/%s/mri/%s", subjects_dir, subject_name,input_names[input]);
-					mri_tmp = MRIreadInfo(fname) ;
-					if (!mri_tmp)
-						ErrorExit(ERROR_NOFILE, "%s: could not read image from file %s", Progname, fname) ;
-					for (o = 0 ; o < ninputs ; o++)
-						if (FEQUAL(TRs[o],mri_tmp->tr) && FEQUAL(FAs[o],mri_tmp->flip_angle) && FEQUAL(TEs[o], mri_tmp->te))
-							ordering[input] = o ;
-					MRIfree(&mri_tmp) ;
-				}
-			}
-			else
-				for (o = 0 ; o < ninputs ; o++)
-					ordering[o] = o ;
+      if (i != 0)  /* not the first image read - reorder it to be in the same order as 1st */
+      {
+        for (input = 0 ; input < ninputs ; input++)
+        { 
+          sprintf(fname, "%s/%s/mri/%s", subjects_dir, subject_name,input_names[input]);
+          mri_tmp = MRIreadInfo(fname) ;
+          if (!mri_tmp)
+            ErrorExit(ERROR_NOFILE, "%s: could not read image from file %s", Progname, fname) ;
+          for (o = 0 ; o < ninputs ; o++)
+            if (FEQUAL(TRs[o],mri_tmp->tr) && FEQUAL(FAs[o],mri_tmp->flip_angle) && FEQUAL(TEs[o], mri_tmp->te))
+              ordering[input] = o ;
+          MRIfree(&mri_tmp) ;
+        }
+      }
+      else
+        for (o = 0 ; o < ninputs ; o++)
+          ordering[o] = o ;
 
-			if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
-			{
-				printf("ordering images: ") ;
-				for (o = 0 ; o < ninputs ; o++)
-					printf("%d ", ordering[o]) ;
-				printf("\n") ;
-			}
-
-			for (input = 0 ; input < ninputs ; input++)
-			{      
-	      sprintf(fname, "%s/%s/mri/%s", subjects_dir, subject_name,input_names[ordering[input]]);
-	      if (DIAG_VERBOSE_ON)
-	        printf("reading co-registered input from %s...\n", fname) ;
-	      mri_tmp = MRIread(fname) ;
-	      if (!mri_tmp)
-	        ErrorExit(ERROR_NOFILE, "%s: could not read image from file %s", Progname, fname) ;
-				if (i == 0)
-				{
-					TRs[input] = mri_tmp->tr ;
-					FAs[input] = mri_tmp->flip_angle ;
-					TEs[input] = mri_tmp->te ;
-				}
-				else if (!FEQUAL(TRs[input],mri_tmp->tr) || !FEQUAL(FAs[input],mri_tmp->flip_angle) ||
-								 !FEQUAL(TEs[input], mri_tmp->te))
-					ErrorExit(ERROR_BADPARM, "%s: subject %s input volume %s: sequence parameters (%2.1f, %2.1f, %2.1f)"
-										"don't match other inputs (%2.1f, %2.1f, %2.1f)",
-										Progname, subject_name, fname, 
-										mri_tmp->tr, DEGREES(mri_tmp->flip_angle), mri_tmp->te,
-										TRs[input], DEGREES(FAs[input]), TEs[input]) ;
-
-				if (input == 0)
-				{
-					int nframes = ninputs ;
-
-					if (gca_flags & GCA_XGRAD)
-						nframes += ninputs ;
-					if (gca_flags & GCA_YGRAD)
-						nframes += ninputs ;
-					if (gca_flags & GCA_ZGRAD)
-						nframes += ninputs ;
-					mri_inputs = 
-						MRIallocSequence(mri_tmp->width, mri_tmp->height, mri_tmp->depth,
-							mri_tmp->type, nframes) ;
-					if (!mri_inputs)
-						ErrorExit(ERROR_NOMEMORY, 
-							"%s: could not allocate input volume %dx%dx%dx%d",
-							mri_tmp->width, mri_tmp->height, mri_tmp->depth,nframes) ;
-					MRIcopyHeader(mri_tmp, mri_inputs) ;
-				}
-									 
-	      if (mask_fname)
-	      {
-  	      MRI *mri_mask ;
-    	    
-      	  sprintf(fname, "%s/%s/mri/%s", subjects_dir, subject_name, mask_fname);
-        	printf("reading volume %s for masking...\n", fname) ;
-	        mri_mask = MRIread(fname) ;
-  	      if (!mri_mask)
-    	      ErrorExit(ERROR_NOFILE, "%s: could not open mask volume %s.\n",
-      	              Progname, fname) ;
+      if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+      {
+        printf("ordering images: ") ;
+        for (o = 0 ; o < ninputs ; o++)
+          printf("%d ", ordering[o]) ;
+        printf("\n") ;
+      }
+      
+      for (input = 0 ; input < ninputs ; input++)
+      {      
+        sprintf(fname, "%s/%s/mri/%s", subjects_dir, subject_name,input_names[ordering[input]]);
+        if (DIAG_VERBOSE_ON)
+          printf("reading co-registered input from %s...\n", fname) ;
+        mri_tmp = MRIread(fname) ;
+        if (!mri_tmp)
+          ErrorExit(ERROR_NOFILE, "%s: could not read image from file %s", Progname, fname) ;
+        if (i == 0)
+        {
+          TRs[input] = mri_tmp->tr ;
+          FAs[input] = mri_tmp->flip_angle ;
+          TEs[input] = mri_tmp->te ;
+        }
+        else if (!FEQUAL(TRs[input],mri_tmp->tr) || !FEQUAL(FAs[input],mri_tmp->flip_angle) ||
+                 !FEQUAL(TEs[input], mri_tmp->te))
+          ErrorExit(ERROR_BADPARM, "%s: subject %s input volume %s: sequence parameters (%2.1f, %2.1f, %2.1f)"
+                    "don't match other inputs (%2.1f, %2.1f, %2.1f)",
+                    Progname, subject_name, fname, 
+                    mri_tmp->tr, DEGREES(mri_tmp->flip_angle), mri_tmp->te,
+                    TRs[input], DEGREES(FAs[input]), TEs[input]) ;
         
-        	MRImask(mri_tmp, mri_mask, mri_tmp, 0, 0) ;
-	        MRIfree(&mri_mask) ;
-  	    }
-    	  if (mri_eq && !noint)
-      	{
-        	printf("histogram equalizing input image...\n") ;
-	        MRIhistoEqualize(mri_tmp, mri_eq, mri_tmp, 30, 170) ;
-  	    }
-				MRIcopyFrame(mri_tmp, mri_inputs, 0, input) ;
-				MRIfree(&mri_tmp) ;
-			}
-			if (i == 0 && flash)   /* first subject */
-				GCAsetFlashParameters(gca, TRs, FAs, TEs) ;
+        if (input == 0)
+        {
+          int nframes = ninputs ;
+          
+          if (gca_flags & GCA_XGRAD)
+            nframes += ninputs ;
+          if (gca_flags & GCA_YGRAD)
+            nframes += ninputs ;
+          if (gca_flags & GCA_ZGRAD)
+            nframes += ninputs ;
+          mri_inputs = 
+            MRIallocSequence(mri_tmp->width, mri_tmp->height, mri_tmp->depth,
+                             mri_tmp->type, nframes) ;
+          if (!mri_inputs)
+            ErrorExit(ERROR_NOMEMORY, 
+                      "%s: could not allocate input volume %dx%dx%dx%d",
+                      mri_tmp->width, mri_tmp->height, mri_tmp->depth,nframes) ;
+          MRIcopyHeader(mri_tmp, mri_inputs) ;
+        }
+        
+        if (mask_fname)
+        {
+          MRI *mri_mask ;
+          
+          sprintf(fname, "%s/%s/mri/%s", subjects_dir, subject_name, mask_fname);
+          printf("reading volume %s for masking...\n", fname) ;
+          mri_mask = MRIread(fname) ;
+          if (!mri_mask)
+            ErrorExit(ERROR_NOFILE, "%s: could not open mask volume %s.\n",
+                      Progname, fname) ;
+          
+          MRImask(mri_tmp, mri_mask, mri_tmp, 0, 0) ;
+          MRIfree(&mri_mask) ;
+        }
+        if (mri_eq && !noint)
+        {
+          printf("histogram equalizing input image...\n") ;
+          MRIhistoEqualize(mri_tmp, mri_eq, mri_tmp, 30, 170) ;
+        }
+        MRIcopyFrame(mri_tmp, mri_inputs, 0, input) ;
+        MRIfree(&mri_tmp) ;
+      }
+      if (i == 0 && flash)   /* first subject */
+        GCAsetFlashParameters(gca, TRs, FAs, TEs) ;
       printf("processing subject %s, %d of %d...\n", subject_name,i+1-nargs,
              nsubjects);
       
@@ -296,70 +306,70 @@ main(int argc, char *argv[])
       else
         transform = TransformAlloc(LINEAR_VOXEL_TO_VOXEL, NULL) ;
 
-			if (map_to_flash)
-			{
-				MRI *mri_tmp ;
-
-				mri_tmp = MRIparameterMapsToFlash(mri_inputs, NULL, TRs, TEs, FAs, gca_inputs) ;
-				MRIfree(&mri_inputs) ;
-				mri_inputs = mri_tmp ;
-			}
-
-			if (gca_flags & GCA_GRAD)
-			{
-				MRI *mri_kernel, *mri_smooth, *mri_grad, *mri_tmp ;
-				int i, start ;
-
-				mri_kernel = MRIgaussian1d(1.0, 30) ;
-				mri_smooth = MRIconvolveGaussian(mri_inputs, NULL, mri_kernel) ;
-
-				if (mri_inputs->type != MRI_FLOAT)
-				{
-					mri_tmp = MRISeqchangeType(mri_inputs, MRI_FLOAT, 0, 0, 1) ;
-					MRIfree(&mri_inputs) ; mri_inputs = mri_tmp ;
-				}
-
-				start = ninputs ;
-				if (gca_flags & GCA_XGRAD)
-				{
-					for (i = 0 ; i < ninputs ; i++)
-					{
-						mri_grad = MRIxSobel(mri_smooth, NULL, i) ;
-						MRIcopyFrame(mri_grad, mri_inputs, 0, start+i) ;
-						MRIfree(&mri_grad) ;
-					}
-					start += ninputs ;
-				}
-				if (gca_flags & GCA_YGRAD)
-				{
-					for (i = 0 ; i < ninputs ; i++)
-					{
-						mri_grad = MRIySobel(mri_smooth, NULL, i) ;
-						MRIcopyFrame(mri_grad, mri_inputs, 0, start+i) ;
-						MRIfree(&mri_grad) ;
-					}
-					start += ninputs ;
-				}
-				if (gca_flags & GCA_ZGRAD)
-				{
-					for (i = 0 ; i < ninputs ; i++)
-					{
-						mri_grad = MRIzSobel(mri_smooth, NULL, i) ;
-						MRIcopyFrame(mri_grad, mri_inputs, 0, start+i) ;
-						MRIfree(&mri_grad) ;
-					}
-					start += ninputs ;
-				}
-
-				MRIfree(&mri_kernel) ; MRIfree(&mri_smooth) ; 
-			}
+      if (map_to_flash)
+      {
+        MRI *mri_tmp ;
+        
+        mri_tmp = MRIparameterMapsToFlash(mri_inputs, NULL, TRs, TEs, FAs, gca_inputs) ;
+        MRIfree(&mri_inputs) ;
+        mri_inputs = mri_tmp ;
+      }
+      
+      if (gca_flags & GCA_GRAD)
+      {
+        MRI *mri_kernel, *mri_smooth, *mri_grad, *mri_tmp ;
+        int i, start ;
+        
+        mri_kernel = MRIgaussian1d(1.0, 30) ;
+        mri_smooth = MRIconvolveGaussian(mri_inputs, NULL, mri_kernel) ;
+        
+        if (mri_inputs->type != MRI_FLOAT)
+        {
+          mri_tmp = MRISeqchangeType(mri_inputs, MRI_FLOAT, 0, 0, 1) ;
+          MRIfree(&mri_inputs) ; mri_inputs = mri_tmp ;
+        }
+        
+        start = ninputs ;
+        if (gca_flags & GCA_XGRAD)
+        {
+          for (i = 0 ; i < ninputs ; i++)
+          {
+            mri_grad = MRIxSobel(mri_smooth, NULL, i) ;
+            MRIcopyFrame(mri_grad, mri_inputs, 0, start+i) ;
+            MRIfree(&mri_grad) ;
+          }
+          start += ninputs ;
+        }
+        if (gca_flags & GCA_YGRAD)
+        {
+          for (i = 0 ; i < ninputs ; i++)
+          {
+            mri_grad = MRIySobel(mri_smooth, NULL, i) ;
+            MRIcopyFrame(mri_grad, mri_inputs, 0, start+i) ;
+            MRIfree(&mri_grad) ;
+          }
+          start += ninputs ;
+        }
+        if (gca_flags & GCA_ZGRAD)
+        {
+          for (i = 0 ; i < ninputs ; i++)
+          {
+            mri_grad = MRIzSobel(mri_smooth, NULL, i) ;
+            MRIcopyFrame(mri_grad, mri_inputs, 0, start+i) ;
+            MRIfree(&mri_grad) ;
+          }
+          start += ninputs ;
+        }
+        
+        MRIfree(&mri_kernel) ; MRIfree(&mri_smooth) ; 
+      }
       GCAtrain(gca, mri_inputs, mri_seg, transform, gca_prune, noint) ;
       MRIfree(&mri_seg) ; MRIfree(&mri_inputs) ; TransformFree(&transform) ;
     }
-
+    
     GCAcompleteMeanTraining(gca) ;
-
-		/* now compute covariances */
+    
+    /* now compute covariances */
     for (nargs = i = 0 ; i < nsubjects+options ; i++)
     {
       subject_name = argv[i+1] ;
@@ -375,11 +385,11 @@ main(int argc, char *argv[])
         noint = 0 ; nargs++ ;
         continue ;
       }
-			if (noint)
-			{
-				printf("skipping covariance calculation for subject %s...\n", subject_name) ;
-				continue ;
-			}
+      if (noint)
+      {
+        printf("skipping covariance calculation for subject %s...\n", subject_name) ;
+        continue ;
+      }
       printf("computing covariances for subject %s, %d of %d...\n", subject_name,i+1-nargs,
              nsubjects);
       sprintf(fname, "%s/%s/mri/%s", subjects_dir, subject_name, seg_dir) ;
@@ -407,58 +417,58 @@ main(int argc, char *argv[])
       replaceLabels(mri_seg) ;
       MRIeraseBorderPlanes(mri_seg) ;
       
-			for (input = 0 ; input < ninputs ; input++)
-			{      
-	      sprintf(fname, "%s/%s/mri/%s", subjects_dir, subject_name,input_names[input]);
-	      if (DIAG_VERBOSE_ON)
-	        printf("reading co-registered input from %s...\n", fname) ;
-	      mri_tmp = MRIread(fname) ;
-	      if (!mri_tmp)
-	        ErrorExit(ERROR_NOFILE, "%s: could not read T1 data from file %s",
-                  Progname, fname) ;
-
-				if (input == 0)
-				{
-					int nframes = ninputs ;
-
-					if (gca_flags & GCA_XGRAD)
-						nframes += ninputs ;
-					if (gca_flags & GCA_YGRAD)
-						nframes += ninputs ;
-					if (gca_flags & GCA_ZGRAD)
-						nframes += ninputs ;
-					mri_inputs = 
-						MRIallocSequence(mri_tmp->width, mri_tmp->height, mri_tmp->depth,
-							mri_tmp->type, nframes) ;
-					if (!mri_inputs)
-						ErrorExit(ERROR_NOMEMORY, 
-							"%s: could not allocate input volume %dx%dx%dx%d",
-							mri_tmp->width, mri_tmp->height, mri_tmp->depth,ninputs) ;
-					MRIcopyHeader(mri_tmp, mri_inputs) ;
-				}
-
-	      if (mask_fname)
-	      {
-  	      MRI *mri_mask ;
-    	    
-      	  sprintf(fname, "%s/%s/mri/%s", subjects_dir, subject_name, mask_fname);
-        	printf("reading volume %s for masking...\n", fname) ;
-	        mri_mask = MRIread(fname) ;
-  	      if (!mri_mask)
-    	      ErrorExit(ERROR_NOFILE, "%s: could not open mask volume %s.\n",
-      	              Progname, fname) ;
+      for (input = 0 ; input < ninputs ; input++)
+      {      
+        sprintf(fname, "%s/%s/mri/%s", subjects_dir, subject_name,input_names[input]);
+        if (DIAG_VERBOSE_ON)
+          printf("reading co-registered input from %s...\n", fname) ;
+        mri_tmp = MRIread(fname) ;
+        if (!mri_tmp)
+          ErrorExit(ERROR_NOFILE, "%s: could not read T1 data from file %s",
+                    Progname, fname) ;
         
-        	MRImask(mri_tmp, mri_mask, mri_tmp, 0, 0) ;
-	        MRIfree(&mri_mask) ;
-  	    }
-    	  if (mri_eq && !noint)
-      	{
-        	printf("histogram equalizing input image...\n") ;
-	        MRIhistoEqualize(mri_tmp, mri_eq, mri_tmp, 30, 170) ;
-  	    }
-				MRIcopyFrame(mri_tmp, mri_inputs, 0, input) ;
-				MRIfree(&mri_tmp) ;
-			}
+        if (input == 0)
+        {
+          int nframes = ninputs ;
+          
+          if (gca_flags & GCA_XGRAD)
+            nframes += ninputs ;
+          if (gca_flags & GCA_YGRAD)
+            nframes += ninputs ;
+          if (gca_flags & GCA_ZGRAD)
+            nframes += ninputs ;
+          mri_inputs = 
+            MRIallocSequence(mri_tmp->width, mri_tmp->height, mri_tmp->depth,
+                             mri_tmp->type, nframes) ;
+          if (!mri_inputs)
+            ErrorExit(ERROR_NOMEMORY, 
+                      "%s: could not allocate input volume %dx%dx%dx%d",
+                      mri_tmp->width, mri_tmp->height, mri_tmp->depth,ninputs) ;
+          MRIcopyHeader(mri_tmp, mri_inputs) ;
+        }
+        
+        if (mask_fname)
+        {
+          MRI *mri_mask ;
+          
+          sprintf(fname, "%s/%s/mri/%s", subjects_dir, subject_name, mask_fname);
+          printf("reading volume %s for masking...\n", fname) ;
+          mri_mask = MRIread(fname) ;
+          if (!mri_mask)
+            ErrorExit(ERROR_NOFILE, "%s: could not open mask volume %s.\n",
+                      Progname, fname) ;
+          
+          MRImask(mri_tmp, mri_mask, mri_tmp, 0, 0) ;
+          MRIfree(&mri_mask) ;
+        }
+        if (mri_eq && !noint)
+        {
+          printf("histogram equalizing input image...\n") ;
+          MRIhistoEqualize(mri_tmp, mri_eq, mri_tmp, 30, 170) ;
+        }
+        MRIcopyFrame(mri_tmp, mri_inputs, 0, input) ;
+        MRIfree(&mri_tmp) ;
+      }
       
       if (xform_name)
       {
@@ -475,67 +485,67 @@ main(int argc, char *argv[])
       else
         transform = TransformAlloc(LINEAR_VOXEL_TO_VOXEL, NULL) ;
       
-			if (map_to_flash)
-			{
-				MRI *mri_tmp ;
-
-				mri_tmp = MRIparameterMapsToFlash(mri_inputs, NULL, TRs, TEs, FAs, gca_inputs) ;
-				MRIfree(&mri_inputs) ;
-				mri_inputs = mri_tmp ;
-			}
-
-			if (gca_flags & GCA_GRAD)
-			{
-				MRI *mri_kernel, *mri_smooth, *mri_grad, *mri_tmp ;
-				int i, start ;
-
-				mri_kernel = MRIgaussian1d(1.0, 30) ;
-				mri_smooth = MRIconvolveGaussian(mri_inputs, NULL, mri_kernel) ;
-
-				if (mri_inputs->type != MRI_FLOAT)
-				{
-					mri_tmp = MRISeqchangeType(mri_inputs, MRI_FLOAT, 0, 0, 1) ;
-					MRIfree(&mri_inputs) ; mri_inputs = mri_tmp ;
-				}
-
-				start = ninputs ;
-				if (gca_flags & GCA_XGRAD)
-				{
-					for (i = 0 ; i < ninputs ; i++)
-					{
-						mri_grad = MRIxSobel(mri_smooth, NULL, i) ;
-						MRIcopyFrame(mri_grad, mri_inputs, 0, start+i) ;
-						MRIfree(&mri_grad) ;
-					}
-					start += ninputs ;
-				}
-				if (gca_flags & GCA_YGRAD)
-				{
-					for (i = 0 ; i < ninputs ; i++)
-					{
-						mri_grad = MRIySobel(mri_smooth, NULL, i) ;
-						MRIcopyFrame(mri_grad, mri_inputs, 0, start+i) ;
-						MRIfree(&mri_grad) ;
-					}
-					start += ninputs ;
-				}
-				if (gca_flags & GCA_ZGRAD)
-				{
-					for (i = 0 ; i < ninputs ; i++)
-					{
-						mri_grad = MRIzSobel(mri_smooth, NULL, i) ;
-						MRIcopyFrame(mri_grad, mri_inputs, 0, start+i) ;
-						MRIfree(&mri_grad) ;
-					}
-					start += ninputs ;
-				}
-
-				MRIfree(&mri_kernel) ; MRIfree(&mri_smooth) ; 
-			}
+      if (map_to_flash)
+      {
+        MRI *mri_tmp ;
+        
+        mri_tmp = MRIparameterMapsToFlash(mri_inputs, NULL, TRs, TEs, FAs, gca_inputs) ;
+        MRIfree(&mri_inputs) ;
+        mri_inputs = mri_tmp ;
+      }
+      
+      if (gca_flags & GCA_GRAD)
+      {
+        MRI *mri_kernel, *mri_smooth, *mri_grad, *mri_tmp ;
+        int i, start ;
+        
+        mri_kernel = MRIgaussian1d(1.0, 30) ;
+        mri_smooth = MRIconvolveGaussian(mri_inputs, NULL, mri_kernel) ;
+        
+        if (mri_inputs->type != MRI_FLOAT)
+        {
+          mri_tmp = MRISeqchangeType(mri_inputs, MRI_FLOAT, 0, 0, 1) ;
+          MRIfree(&mri_inputs) ; mri_inputs = mri_tmp ;
+        }
+        
+        start = ninputs ;
+        if (gca_flags & GCA_XGRAD)
+        {
+          for (i = 0 ; i < ninputs ; i++)
+          {
+            mri_grad = MRIxSobel(mri_smooth, NULL, i) ;
+            MRIcopyFrame(mri_grad, mri_inputs, 0, start+i) ;
+            MRIfree(&mri_grad) ;
+          }
+          start += ninputs ;
+        }
+        if (gca_flags & GCA_YGRAD)
+        {
+          for (i = 0 ; i < ninputs ; i++)
+          {
+            mri_grad = MRIySobel(mri_smooth, NULL, i) ;
+            MRIcopyFrame(mri_grad, mri_inputs, 0, start+i) ;
+            MRIfree(&mri_grad) ;
+          }
+          start += ninputs ;
+        }
+        if (gca_flags & GCA_ZGRAD)
+        {
+          for (i = 0 ; i < ninputs ; i++)
+          {
+            mri_grad = MRIzSobel(mri_smooth, NULL, i) ;
+            MRIcopyFrame(mri_grad, mri_inputs, 0, start+i) ;
+            MRIfree(&mri_grad) ;
+          }
+          start += ninputs ;
+        }
+        
+        MRIfree(&mri_kernel) ; MRIfree(&mri_smooth) ; 
+      }
       GCAtrainCovariances(gca, mri_inputs, mri_seg, transform) ;
       MRIfree(&mri_seg) ; MRIfree(&mri_inputs) ; TransformFree(&transform) ;
     }
-
+    
     GCAcompleteCovarianceTraining(gca) ;
     if (gca_prune)
       GCAfree(&gca_prune) ;
@@ -611,7 +621,7 @@ main(int argc, char *argv[])
 static int
 get_option(int argc, char *argv[])
 {
-	static int first_input = 1 ;
+        static int first_input = 1 ;
   int  nargs = 0 ;
   char *option ;
   
@@ -629,50 +639,50 @@ get_option(int argc, char *argv[])
   }
   else if (!stricmp(option, "XGRAD"))
   {
-		gca_flags |= GCA_XGRAD ;
+    gca_flags |= GCA_XGRAD ;
     printf("using x gradient information in training...\n") ;
   }
   else if (!stricmp(option, "YGRAD"))
   {
-		gca_flags |= GCA_YGRAD ;
+    gca_flags |= GCA_YGRAD ;
     printf("using y gradient information in training...\n") ;
   }
   else if (!stricmp(option, "ZGRAD"))
   {
-		gca_flags |= GCA_ZGRAD ;
+    gca_flags |= GCA_ZGRAD ;
     printf("using z gradient information in training...\n") ;
   }
   else if (!stricmp(option, "FLASH"))
   {
 #if 1
-		flash = 0 ;
-		printf("setting gca->type to FLASH\n") ;
+    flash = 0 ;
+    printf("setting gca->type to FLASH\n") ;
 #else
-		int i ;
-
-		map_to_flash = 1 ;
-		gca_inputs = atoi(argv[2]) ;
-		nargs = 1+3*gca_inputs ;
+    int i ;
+    
+    map_to_flash = 1 ;
+    gca_inputs = atoi(argv[2]) ;
+    nargs = 1+3*gca_inputs ;
     printf("mapping T1/PD inputs to flash volumes:\n") ;
-		for (i = 0 ; i < gca_inputs ; i++)
-		{
-			TRs[i] = atof(argv[3+3*i]) ;
-			FAs[i] = RADIANS(atof(argv[4+3*i])) ;
-			TEs[i] = atof(argv[5+3*i]) ;
-			printf("\tvolume %d: TR=%2.1f msec, flip angle %2.1f, TE=%2.1f msec\n",
-						 i, TRs[i], DEGREES(FAs[i]), TEs[i]) ;
-		}
+    for (i = 0 ; i < gca_inputs ; i++)
+    {
+      TRs[i] = atof(argv[3+3*i]) ;
+      FAs[i] = RADIANS(atof(argv[4+3*i])) ;
+      TEs[i] = atof(argv[5+3*i]) ;
+      printf("\tvolume %d: TR=%2.1f msec, flip angle %2.1f, TE=%2.1f msec\n",
+             i, TRs[i], DEGREES(FAs[i]), TEs[i]) ;
+    }
 #endif
   }
   else if (!stricmp(option, "INPUT"))
   {
-		if (first_input)
-		{
-			ninputs-- ;
-			first_input = 0 ;
-		}
-
-		input_names[ninputs++] = argv[2] ;
+    if (first_input)
+    {
+      ninputs-- ;
+      first_input = 0 ;
+    }
+    
+    input_names[ninputs++] = argv[2] ;
     nargs = 1 ;
     printf("input[%d] = %s\n", ninputs-1, input_names[ninputs-1]) ;
   }
@@ -685,11 +695,11 @@ get_option(int argc, char *argv[])
   else if (!stricmp(option, "BINARIZE"))
   {
     binarize = 1 ; 
-		binarize_in = atoi(argv[2]) ;
-		binarize_out = atoi(argv[3]) ;
+    binarize_in = atoi(argv[2]) ;
+    binarize_out = atoi(argv[3]) ;
     nargs = 2 ;
     printf("binarizing segmentation values, setting input %d to output %d\n",
-					 binarize_in, binarize_out) ;
+           binarize_in, binarize_out) ;
   }
   else if (!stricmp(option, "NOMRF"))
   {
@@ -758,7 +768,7 @@ get_option(int argc, char *argv[])
     printf("reading PD data  subject's mri/%s file\n",PD_name) ;
   }
   else if (!stricmp(option, "PARC_DIR") || !stricmp(option, "SEG_DIR") || 
-					 !stricmp(option, "SEGMENTATION"))
+                                         !stricmp(option, "SEGMENTATION"))
   {
     seg_dir = argv[2] ;
     nargs = 1 ;
