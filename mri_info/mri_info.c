@@ -106,6 +106,9 @@ static void do_file(char *fname)
 
   if (at)
   {
+#if 1
+	type  = string_to_type(at) ;
+#else
     for(i = 0;at[i] != '\0';i++)
       at[i] = (at[i] >= 'a' && at[i] <= 'z' ? at[i] += 'A' - 'a' : at[i]);
     if (!strcmp(at, "MNC"))
@@ -133,7 +136,7 @@ static void do_file(char *fname)
       fprintf(stderr, "unknown file type %s\n", at);
       return;
     }
-
+#endif
   }
   else  /* no '@' found */
   {
