@@ -8,10 +8,10 @@
  *
  */
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2005/01/26 20:09:20 $
-// Revision       : $Revision: 1.285 $
-char *MRI_C_VERSION = "$Revision: 1.285 $";
+// Revision Author: $Author: tosa $
+// Revision Date  : $Date: 2005/01/26 21:18:21 $
+// Revision       : $Revision: 1.286 $
+char *MRI_C_VERSION = "$Revision: 1.286 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -2579,6 +2579,7 @@ MRIextractInto(MRI *mri_src, MRI *mri_dst, int x0, int y0, int z0,
     ErrorReturn(NULL,
                 (ERROR_BADPARM, 
                  "MRIextractInto: bad src location (%d, %d, %d)", x0,y0,z0));
+  // validation
   if (x0 < 0)
     x0 = 0 ;
   if (y0 < 0)
@@ -2685,7 +2686,7 @@ MRIextractInto(MRI *mri_src, MRI *mri_dst, int x0, int y0, int z0,
   }
   // calculate c_ras
   Real c_r, c_a, c_s;
-  MRIcalcCRASforExtractedVolume(mri_src, x0, y0, z0, x1, y1, z1, &c_r, &c_a, &c_s); 
+  MRIcalcCRASforExtractedVolume(mri_src, x0, y0, z0, dx, dy, dz, &c_r, &c_a, &c_s); 
   mri_dst->c_r = c_r;
   mri_dst->c_a = c_a;
   mri_dst->c_s = c_s;
@@ -11607,15 +11608,15 @@ void MRIcalcCRASforSampledVolume(MRI *src, MRI *dst, Real *pr, Real *pa, Real *p
  * @param pa                 c_a
  * @param ps                 c_s
  */
-void MRIcalcCRASforExtractedVolume(MRI *src, int x0, int y0, int z0, int x1, int y1, int z1, 
+void MRIcalcCRASforExtractedVolume(MRI *src, int x0, int y0, int z0, int dx, int dy, int dz, 
 				Real *pr, Real *pa, Real *ps)
 {
   int cx, cy, cz;
   // The "center" voxel position of the extracted volume in the original voxel position 
   // is given by
-  cx = (x0+x1+1)/2;  // integer divide cutoff extra
-  cy = (y0+y1+1)/2;
-  cz = (z0+z1+1)/2;
+  cx = (x0+x0+dx)/2;  // integer divide cutoff extra
+  cy = (y0+y0+dy)/2;
+  cz = (z0+z0+dz)/2;
 
   if (!src->i_to_r__)
   {
@@ -11623,6 +11624,9 @@ void MRIcalcCRASforExtractedVolume(MRI *src, int x0, int y0, int z0, int x1, int
     src->r_to_i__ = extract_r_to_i(src);
   }
   TransformWithMatrix(src->i_to_r__, cx, cy, cz, pr, pa, ps);
+  // got where the RAS position of the new volume position
+  // we have to translate so that we can get the same value 
+  // under the new volume
 
   if (Gdiag & DIAG_SHOW)
     fprintf(stderr, "c_ras for sample volume is (%f, %f, %f) compared with the src (%f, %f, %f)\n",
