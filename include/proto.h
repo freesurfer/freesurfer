@@ -75,6 +75,7 @@ void swab(const void *from, void *to, size_t n);
 #endif   /* Linux */
 
 #ifdef SunOS
+int ftime(struct timeb *tp) ;
 #define nint(f)   ((int)(rint((double)f)))
 #include <ieeefp.h>
 
