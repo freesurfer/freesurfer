@@ -5,9 +5,6 @@ function y = erlang(x,avg,r)
 % r. If avg and r are not specfied, both are assumed to be 1. The
 % variance will be (avg^2)/r. The stddev = avg/sqrt(r).
 %
-% Note: it is not possible to control the average and variance
-% separately.
-%
 % To test emperically:
 %   y = rande(10000,5);
 %   [h x] = hist(y,100);  h = h/max(h);
@@ -19,7 +16,7 @@ function y = erlang(x,avg,r)
 %
 % See also rande.
 %
-% $Id: erlang.m,v 1.1 2004/02/12 04:11:30 greve Exp $
+% $Id: erlang.m,v 1.2 2004/02/12 04:14:34 greve Exp $
 
 y = [];
 

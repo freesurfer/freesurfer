@@ -6,9 +6,6 @@ function r = rande(rdim,order)
 % have an erlang distribution. The expected value
 % is 1. The variance is 1/r. The stddev is 1/sqrt(r).
 %
-% Note: it is not possible to control the average
-% and variance separately.
-%
 % If the order is unspecified, defalts to 1.
 % An order of 1 is an exponential distribution.
 %
@@ -16,7 +13,7 @@ function r = rande(rdim,order)
 %
 % See also erlang.m
 %
-% $Id: rande.m,v 1.2 2004/02/12 04:12:34 greve Exp $
+% $Id: rande.m,v 1.3 2004/02/12 04:14:34 greve Exp $
 
 if(exist('rdim')  ~= 1) rdim  = 1; end
 if(exist('order') ~= 1) order = 1; end
