@@ -258,8 +258,6 @@ proc TimeCourse_DrawGraph {} {
     }
     set nPadding [expr [expr $nYMax - $nYMin] / 15]
 
-    puts "y min $nYMin y max $nYMax padding $nPadding -> [expr $nYMin - $nPadding] [expr $nYMax + $nPadding]"
-
     # now size the graph, but only if they haven't selected autorange.
     if { $gbAutoRangeGraph == 1 } {
   $gsGraphName configure -autorange 0 \
