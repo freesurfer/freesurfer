@@ -15,7 +15,7 @@
 #include "macros.h"
 #include "oglutil.h"
 
-static char vcid[] = "$Id: mris_show.c,v 1.19 1998/01/11 03:04:18 fischl Exp $";
+static char vcid[] = "$Id: mris_show.c,v 1.20 1998/01/22 18:19:32 fischl Exp $";
 
 
 /*-------------------------------- CONSTANTS -----------------------------*/
@@ -97,6 +97,9 @@ static int gaussian_curvature_flag = 0 ;
 static int fit_flag = 0 ;
 static int fov = -1 ;
 static int noscale = 1 ;
+static MRI_SURFACE_PARAMETERIZATION *mrisp = NULL ;
+static int navgs = 0 ;
+static int nbrs = 2 ;
 
 /*-------------------------------- FUNCTIONS ----------------------------*/
 
@@ -167,13 +170,15 @@ main(int argc, char *argv[])
   MRIScomputeMetricProperties(mris) ;
   if (mean_curvature_flag || gaussian_curvature_flag)
   {
-    MRISsetNeighborhoodSize(mris, 3) ;  /* so curvatures are reasonable */
+    MRISsetNeighborhoodSize(mris, nbrs) ;  /* so curvatures are reasonable */
     MRIScomputeSecondFundamentalForm(mris) ;
     if (mean_curvature_flag)
       MRISuseMeanCurvature(mris) ;
     if (gaussian_curvature_flag)
       MRISuseGaussianCurvature(mris) ;
   }
+  if (mrisp)
+    MRISfromParameterization(mrisp, mris, 0) ;
   if (curvature_fname[0])
     MRISreadCurvatureFile(mris, curvature_fname) ;
   if (ellipsoid_flag)
@@ -181,6 +186,7 @@ main(int argc, char *argv[])
     MRISupdateEllipsoidSurface(mris) ;
     findAreaExtremes(mris) ;
   }
+  MRISaverageCurvatures(mris, navgs) ;
   if (talairach_flag)
     MRIStalairachTransform(mris, mris) ;
   MRIScenter(mris, mris) ;
@@ -297,11 +303,26 @@ get_option(int argc, char *argv[])
     print_help() ;
   else if (!stricmp(option, "-version"))
     print_version() ;
+  else if (!stricmp(option, "param"))
+  {
+    mrisp = MRISPread(argv[2]) ;
+    if (!mrisp)
+      ErrorExit(ERROR_NOFILE, "%s: could not read parameterization file %s",
+                Progname, argv[2]) ;
+    fprintf(stderr, "reading parameterized curvature from %s\n", argv[2]) ;
+    nargs = 1 ;
+  }
   else if (!stricmp(option, "cslope"))
   {
     sscanf(argv[2], "%f", &cslope) ;
     nargs = 1 ;
     fprintf(stderr, "using color slope compression = %2.4f\n", cslope) ;
+  }
+  else if (!stricmp(option, "nbrs"))
+  {
+    nbrs = atoi(argv[2]) ;
+    nargs = 1 ;
+    fprintf(stderr, "using %d neighbors for curvature calculation\n", nbrs) ;
   }
   else if (!stricmp(option, "tp"))
     compile_flags |= TP_FLAG ;
@@ -319,6 +340,11 @@ get_option(int argc, char *argv[])
   }
   else switch (toupper(*option))
   {
+  case 'A':
+    navgs = atoi(argv[2]) ;
+    fprintf(stderr, "averaging curvature patterns %d times.\n", navgs) ;
+    nargs = 1 ;
+    break ;
   case 'M':
     mean_curvature_flag = 1 ;
     break ;
