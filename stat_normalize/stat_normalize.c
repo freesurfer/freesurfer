@@ -14,7 +14,7 @@
 #include "stats.h"
 #include "version.h"
 
-static char vcid[] = "$Id: stat_normalize.c,v 1.8 2003/08/12 22:46:07 greve Exp $";
+static char vcid[] = "$Id: stat_normalize.c,v 1.9 2003/08/19 05:45:01 greve Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -42,7 +42,7 @@ main(int argc, char *argv[])
   MRI_SURFACE *mris ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: stat_normalize.c,v 1.8 2003/08/12 22:46:07 greve Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: stat_normalize.c,v 1.9 2003/08/19 05:45:01 greve Exp $");
   if (nargs && argc - nargs == 1) exit (0);
   argc -= nargs;
 
@@ -203,7 +203,7 @@ get_option(int argc, char *argv[])
     break ;
   case 'I':
     stats_fixxfm = 1;
-    printf("INFO: fixing tal xfm\n");
+    printf("INFO: flag giving to devolve tal xfm\n");
     break ;
   case 'C':
     statnorm_float2int = float2int_code(argv[2]);
