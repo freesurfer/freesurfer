@@ -17,7 +17,7 @@
 #include "oglutil.h"
 
 #if 0
-static char vcid[] = "$Id: oglutil.c,v 1.10 1998/01/27 00:41:09 fischl Exp $";
+static char vcid[] = "$Id: oglutil.c,v 1.11 1998/01/27 21:52:24 fischl Exp $";
 #endif
 
 /*-------------------------------- CONSTANTS -----------------------------*/
@@ -152,7 +152,7 @@ OGLUsetLightingModel(float lite0, float lite1, float lite2, float lite3,
 int
 OGLUcompile(MRI_SURFACE *mris, int *marked_vertices, int flags, float cslope)
 {
-  int          k, n, red, green, blue, error, mv, marked, coord ;
+  int          k, n, red, green, blue, error, mv, marked, coord, vno ;
   face_type    *f;
   VERTEX       *v, *vn ;
   float        v1[3], min_curv, max_curv, offset, theta, phi ;
@@ -205,6 +205,7 @@ OGLUcompile(MRI_SURFACE *mris, int *marked_vertices, int flags, float cslope)
       /* don't display negative flat stuff */
       if (flags & PATCH_FLAG && v->nz < 0) 
         continue ;
+#if 1
       if (flags & COORD_FLAG)
       {
         int itheta, iphi ;
@@ -219,18 +220,21 @@ OGLUcompile(MRI_SURFACE *mris, int *marked_vertices, int flags, float cslope)
           DiagBreak() ;
       }
       else
+#endif
         coord = 0 ;
       
       if (coord)
         glColor3ub(255,255,255) ;    /* paint the coordinate line white */
       else if (marked)
         glColor3ub(0,255,255) ;      /* paint the marked vertex blue */
-      else if (v->border)
+      else if (v->border && !(flags & BW_FLAG))
         glColor3f(240,240,0.0);
       else   /* color it depending on curvature */
       {
-#define MIN_GRAY  50
-#define MAX_COLOR ((float)(255 - MIN_GRAY))
+#define DARK_GRAY    (128-(64/2))
+#define BRIGHT_GRAY  (128+(64/2))
+#define MIN_GRAY     50
+#define MAX_COLOR    ((float)(255 - MIN_GRAY))
 
         red = green = blue = MIN_GRAY ;
         if (FZERO(max_curv))  /* no curvature info */
@@ -263,6 +267,14 @@ OGLUcompile(MRI_SURFACE *mris, int *marked_vertices, int flags, float cslope)
           green = 0 ;
         if (blue < 0)
           blue = 0 ;
+        if (flags & BW_FLAG)
+        {
+          if (v->curv > 0)
+            red = green = blue = DARK_GRAY ;
+          else
+            red = green = blue = BRIGHT_GRAY ;
+
+        }
         glColor3ub(red,green,blue);  /* specify the RGB color */
       }
       load_brain_coords(v->nx,v->ny,v->nz,v1);
@@ -274,7 +286,6 @@ OGLUcompile(MRI_SURFACE *mris, int *marked_vertices, int flags, float cslope)
   }
 
 
-#if 0
   if (flags & COORD_FLAG)    /* draw canonical coordinate system */
   {
     int itheta, iphi ;
@@ -300,7 +311,6 @@ OGLUcompile(MRI_SURFACE *mris, int *marked_vertices, int flags, float cslope)
       glVertex3fv(v1);                /* specify the position of the vertex*/
     }
   }
-#endif
       
 
   if (flags & TP_FLAG) for (mv = 0 ; marked_vertices[mv] >= 0 ; mv++)

@@ -15,7 +15,7 @@
 #include "macros.h"
 #include "oglutil.h"
 
-static char vcid[] = "$Id: mris_show.c,v 1.21 1998/01/27 00:41:37 fischl Exp $";
+static char vcid[] = "$Id: mris_show.c,v 1.22 1998/01/27 21:53:09 fischl Exp $";
 
 
 /*-------------------------------- CONSTANTS -----------------------------*/
@@ -172,7 +172,9 @@ main(int argc, char *argv[])
                 Progname, in_fname) ;
   }
   if (coord_fname)
-    MRISreadCanonicalCoordinates(mris, coord_fname) ;
+    if (MRISreadCanonicalCoordinates(mris, coord_fname) != NO_ERROR)
+      ErrorExit(Gerror, "%s: could not read canonical coordinate system",
+                Progname) ;
 
   /*  MRIScomputeMetricProperties(mris) ;*/
   if (mean_curvature_flag || gaussian_curvature_flag)
@@ -321,6 +323,8 @@ get_option(int argc, char *argv[])
     fprintf(stderr, "reading parameterized curvature from %s\n", argv[2]) ;
     nargs = 1 ;
   }
+  else if (!stricmp(option, "bw"))
+    compile_flags |= BW_FLAG ;
   else if (!stricmp(option, "coord"))
   {
     coord_fname = argv[2] ;
