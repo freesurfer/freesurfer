@@ -74,12 +74,13 @@ main(int argc, char *argv[])
   fprintf(stderr, "training on %d subject and writing results to %s\n",
           nsubjects, out_fname) ;
 
-  gca = GCAalloc(ninputs, parms.spacing, DEFAULT_VOLUME_SIZE) ;
+  gca = GCAalloc(ninputs, parms.spacing, 
+                 DEFAULT_VOLUME_SIZE, DEFAULT_VOLUME_SIZE,DEFAULT_VOLUME_SIZE);
 
   for (i = 0 ; i < nsubjects ; i++)
   {
     subject_name = argv[i+1] ;
-    printf("processing subject %s, %d of %d...\n", subject_name, i+1, nsubjects) ;
+    printf("processing subject %s, %d of %d...\n", subject_name,i+1,nsubjects);
     sprintf(fname, "%s/%s/mri/%s", subjects_dir, subject_name, parc_dir) ;
     if (DIAG_VERBOSE_ON)
       fprintf(stderr, "reading parcellation from %s...\n", fname) ;
@@ -96,14 +97,19 @@ main(int argc, char *argv[])
       ErrorExit(ERROR_NOFILE, "%s: could not read T1 data from file %s",
                 Progname, fname) ;
 
-    sprintf(fname, "%s/%s/mri/transforms/%s", 
-            subjects_dir, subject_name, xform_name) ;
-    if (DIAG_VERBOSE_ON)
-      fprintf(stderr, "reading transform from %s...\n", fname) ;
-    lta = LTAread(fname) ;
-    if (!lta)
-      ErrorExit(ERROR_NOFILE, "%s: could not read transform from file %s",
-                Progname, fname) ;
+    if (xform_name)
+    {
+      sprintf(fname, "%s/%s/mri/transforms/%s", 
+              subjects_dir, subject_name, xform_name) ;
+      if (DIAG_VERBOSE_ON)
+        fprintf(stderr, "reading transform from %s...\n", fname) ;
+      lta = LTAread(fname) ;
+      if (!lta)
+        ErrorExit(ERROR_NOFILE, "%s: could not read transform from file %s",
+                  Progname, fname) ;
+    }
+    else
+      lta = LTAalloc(1, NULL) ;
 
     GCAtrain(gca, mri_T1, mri_parc, lta) ;
     MRIfree(&mri_parc) ; MRIfree(&mri_T1) ; LTAfree(&lta) ;
@@ -163,6 +169,11 @@ get_option(int argc, char *argv[])
     xform_name = argv[2] ;
     nargs = 1 ;
     fprintf(stderr, "reading xform from %s\n", xform_name) ;
+  }
+  else if (!stricmp(option, "NOXFORM"))
+  {
+    xform_name = NULL ;
+    fprintf(stderr, "disabling application of xform...\n") ;
   }
   else if (!stricmp(option, "SDIR"))
   {
