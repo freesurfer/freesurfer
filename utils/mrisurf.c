@@ -16614,7 +16614,8 @@ MRISvertexToVoxel(VERTEX *v, MRI *mri,Real *pxv, Real *pyv, Real *pzv)
   Real  xw, yw, zw ;
 
   xw = v->x ; yw = v->y ; zw = v->z ;
-  MRIworldToVoxel(mri, xw, yw, zw, pxv, pyv, pzv) ;
+  // MRIworldToVoxel(mri, xw, yw, zw, pxv, pyv, pzv) ;
+  MRIsurfaceRASToVoxel(mri, xw, yw, zw, pxv, pyv, pzv) ;
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
@@ -16630,7 +16631,8 @@ MRISorigVertexToVoxel(VERTEX *v, MRI *mri,Real *pxv, Real *pyv, Real *pzv)
   Real  xw, yw, zw ;
 
   xw = v->origx ; yw = v->origy ; zw = v->origz ;
-  MRIworldToVoxel(mri, xw, yw, zw, pxv, pyv, pzv) ;
+  // MRIworldToVoxel(mri, xw, yw, zw, pxv, pyv, pzv) ;
+  MRIsurfaceRASToVoxel(mri, xw, yw, zw, pxv, pyv, pzv) ;
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
