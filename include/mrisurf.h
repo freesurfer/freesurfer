@@ -278,6 +278,7 @@ typedef struct
   float   l_pcorr ;           /* polar correlation for rigid body */
   float   l_curv ;            /* coefficient of curvature term */
   float   l_spring ;          /* coefficient of spring term */
+  float   l_spring_norm ;     /* coefficient of normalize spring term */
   float   l_tspring ;         /* coefficient of tangential spring term */
   float   l_nspring ;         /* coefficient of normal spring term */
   float   l_boundary ;        /* coefficient of boundary term */
@@ -600,6 +601,8 @@ int   MRISmeasureCorticalThickness(MRI_SURFACE *mris) ;
 
 int   MRISmarkRandomVertices(MRI_SURFACE *mris, float prob_marked) ;
 int   MRISclearMarks(MRI_SURFACE *mris) ;
+int   MRISclearAnnotations(MRI_SURFACE *mris) ;
+int   MRISsetMarks(MRI_SURFACE *mris, int mark) ;
 int   MRISsequentialAverageVertexPositions(MRI_SURFACE *mris, int navgs) ;
 int   MRISreverse(MRI_SURFACE *mris, int which) ;
 int   MRISdisturbOriginalDistances(MRI_SURFACE *mris, double max_pct) ;
