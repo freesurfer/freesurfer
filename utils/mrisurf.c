@@ -8697,7 +8697,7 @@ mrisComputeQuadraticCurvatureSSE(MRI_SURFACE *mris, double l_curv)
   double   sse = 0.0 ;
 
   if (FZERO(l_curv))
-    return(NO_ERROR) ;
+    return(0.0) ;
 
   mrisComputeTangentPlanes(mris) ;
   v_n = VectorAlloc(3, MATRIX_REAL) ;
@@ -8742,7 +8742,7 @@ mrisComputeQuadraticCurvatureSSE(MRI_SURFACE *mris, double l_curv)
 
   VectorFree(&v_n) ; VectorFree(&v_e1) ; VectorFree(&v_e2) ; 
   VectorFree(&v_nbr) ; VectorFree(&v_A) ;
-  return(NO_ERROR) ;
+  return(sse) ;
 }
 #else
 /*-----------------------------------------------------

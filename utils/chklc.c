@@ -18,22 +18,22 @@ void chklc(void)
   char* key;
   char* gkey;
   char* lfilename;
-  char  str[100] ;
+  char  str[STRLEN] ;
 
-  sprintf(str, "S%sER%sACK%sOR", "URF", "_B", "DO") ;
+  sprintf(str, "S%sER%sRONT%sOR", "URF", "_F", "DO") ;
   if (getenv(str) != NULL)
     return ;
 
   cp = getenv("MRI_DIR");
  
   if (cp)
-   {
-     strncpy(dirname, cp, STRLEN) ;
-    }
+	{
+		strncpy(dirname, cp, STRLEN) ;
+	}
   else
   {
     dirname[0] = 46; /*  ascii "."   */
-     dirname[1] = 0;
+		dirname[1] = 0;
   }
  
 
