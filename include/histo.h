@@ -19,6 +19,7 @@ int       HISTOfree(HISTOGRAM **phisto) ;
 int       HISTOdump(HISTOGRAM *histo, FILE *fp) ;
 int       HISTOwrite(HISTOGRAM *histo, char *fname) ;
 HISTOGRAM *HISTOalloc(int nbins) ;
+HISTOGRAM *HISTOrealloc(HISTOGRAM *histo, int nbins) ;
 HISTOGRAM *HISTOcrunch(HISTOGRAM *histo_src, HISTOGRAM *histo_dst) ;
 HISTOGRAM *HISTOcopy(HISTOGRAM *histo_src, HISTOGRAM *histo_dst) ;
 HISTOGRAM *HISTOinvert(HISTOGRAM *histo_src, HISTOGRAM *histo_dst,int max_dst);
