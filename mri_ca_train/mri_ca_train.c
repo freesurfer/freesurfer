@@ -18,7 +18,6 @@ static int get_option(int argc, char *argv[]) ;
 
 char *Progname ;
 static void usage_exit(int code) ;
-static int  erase_border_planes(MRI *mri) ;
 
 static GCA_PARMS parms ;
 static char *seg_dir = "seg" ;
@@ -37,7 +36,7 @@ int
 main(int argc, char *argv[])
 {
   char         **av, fname[STRLEN], *out_fname, *subject_name, *cp ;
-  int          ac, nargs, i, n ;
+  int          ac, nargs, i, n, noint = 0, options ;
   int          msec, minutes, seconds, nsubjects ;
   struct timeb start ;
   GCA          *gca, *gca_prune = NULL ;
@@ -85,6 +84,14 @@ main(int argc, char *argv[])
 
   out_fname = argv[argc-1] ;
   nsubjects = argc-2 ;
+  for (options = i = 0 ; i < nsubjects ; i++)
+  {
+    if (argv[i+1][0] == '-')
+    {
+      nsubjects-- ; options++ ;
+    }
+  }
+
   printf("training on %d subject and writing results to %s\n",
           nsubjects, out_fname) ;
 
@@ -94,10 +101,22 @@ main(int argc, char *argv[])
     gca = GCAalloc(ninputs, parms.spacing, DEFAULT_VOLUME_SIZE, 
                    DEFAULT_VOLUME_SIZE,DEFAULT_VOLUME_SIZE);
 
-    for (i = 0 ; i < nsubjects ; i++)
+    for (nargs = i = 0 ; i < nsubjects+options ; i++)
     {
       subject_name = argv[i+1] ;
-      printf("processing subject %s, %d of %d...\n", subject_name,i+1,
+      if (stricmp(subject_name, "-NOINT") == 0)
+      {
+        printf("not using intensity information for subsequent subjects...\n");
+        noint = 1 ; nargs++ ;
+        continue ;
+      }
+      else if (stricmp(subject_name, "-INT") == 0)
+      {
+        printf("using intensity information for subsequent subjects...\n");
+        noint = 0 ; nargs++ ;
+        continue ;
+      }
+      printf("processing subject %s, %d of %d...\n", subject_name,i+1-nargs,
              nsubjects);
       sprintf(fname, "%s/%s/mri/%s", subjects_dir, subject_name, seg_dir) ;
       if (DIAG_VERBOSE_ON)
@@ -106,7 +125,7 @@ main(int argc, char *argv[])
       if (!mri_seg)
         ErrorExit(ERROR_NOFILE, "%s: could not read segmentation file %s",
                   Progname, fname) ;
-      erase_border_planes(mri_seg) ;
+      MRIeraseBorderPlanes(mri_seg) ;
       
       sprintf(fname, "%s/%s/mri/%s", subjects_dir, subject_name, orig_dir) ;
       if (DIAG_VERBOSE_ON)
@@ -116,7 +135,7 @@ main(int argc, char *argv[])
         ErrorExit(ERROR_NOFILE, "%s: could not read T1 data from file %s",
                   Progname, fname) ;
       
-      if (mri_eq)
+      if (mri_eq && !noint)
       {
         printf("histogram equalizing input image...\n") ;
         MRIhistoEqualize(mri_T1, mri_eq, mri_T1, 30, 170) ;
@@ -136,7 +155,7 @@ main(int argc, char *argv[])
       else
         lta = LTAalloc(1, NULL) ;
       
-      GCAtrain(gca, mri_T1, mri_seg, lta, gca_prune) ;
+      GCAtrain(gca, mri_T1, mri_seg, lta, gca_prune, noint) ;
       MRIfree(&mri_seg) ; MRIfree(&mri_T1) ; LTAfree(&lta) ;
     }
     GCAcompleteTraining(gca) ;
@@ -156,6 +175,7 @@ main(int argc, char *argv[])
     GCAmeanFilterConditionalDensities(gca, navgs) ;
   }
 
+  printf("writing trained GCA to %s...\n", out_fname) ;
   GCAwrite(gca, out_fname) ;
   GCAfree(&gca) ;
   msec = TimerStop(&start) ;
@@ -291,29 +311,4 @@ usage_exit(int code)
          "\t-spacing  - spacing of classifiers in canonical space\n");
   printf("\t-gradient - use intensity gradient as input to classifier.\n") ;
   exit(code) ;
-}
-static int
-erase_border_planes(MRI *mri)
-{
-  int  x, y, z ;
-
-  for (x = 0 ; x < mri->width ; x++)
-    for (y = 0 ; y < mri->height ; y++)
-    {
-      MRIvox(mri, x, y, 0) = MRIvox(mri, x, y, mri->depth-1) = 0 ;
-    }
-
-  for (y = 0 ; y < mri->height ; y++)
-    for (z = 0 ; z < mri->depth ; z++)
-    {
-      MRIvox(mri, 0, y, z) = MRIvox(mri, mri->width-1, y, z) = 0 ;
-    }
-
-  for (x = 0 ; x < mri->width ; x++)
-    for (z = 0 ; z < mri->depth ; z++)
-    {
-      MRIvox(mri, x, 0, z) = MRIvox(mri, x, mri->height-1, z) = 0 ;
-    }
-
-  return(NO_ERROR) ;
 }
