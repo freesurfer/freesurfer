@@ -1,5 +1,5 @@
 % fast_isxavg_re_abb_sess.m
-% $Id: fast_isxavg_re_abb_sess.m,v 1.1 2003/08/02 00:59:32 greve Exp $
+% $Id: fast_isxavg_re_abb_sess.m,v 1.2 2003/08/05 22:28:42 greve Exp $
 
 % These variable must be set first
 %SessList = splitstring('$SessList');
@@ -52,9 +52,11 @@ for nthhemi = 1:nhemi
     hiall = zeros(nsess,nrows*ncols);
     for nthsess = 1:nsess
       sessdir = deblank(SessList(nthsess,:));
-      hstem = sprintf('%s/%s/%s/%s/h%s',sessdir,fsd,analysis,spacedir,hemicode);
+      hstem = sprintf('%s/%s/%s/%s/h%s',sessdir,fsd,...
+		      analysis,spacedir,hemicode);
       if(~synth)
         [h mristruct] = fast_ldbslice(hstem,slice);
+	mristruct.voldim = [ncols nrows nslices];
         if(isempty(h))
           fprintf('ERROR: loading %s\n',hstem);
           return;
@@ -107,7 +109,7 @@ for nthhemi = 1:nhemi
      if(c == 3)
        %[m i] = max(abs(ces));
        %ind = sub2ind(size(ces),i,1:nrows*ncols);
-       sig = -log10(abs(Fsig)); % dont try to adjust sign
+       sig = -sign(ces(1,:)).*log10(abs(Fsig)); % dont try to adjust sign
      else
        sig = -sign(ces).*log10(abs(Fsig));
      end
