@@ -16,11 +16,11 @@ function [vol, M, mr_parms, Mdc] = load_mgh(fname,slices,frames)
 % indices are 0-based. If the input has multiple frames,
 % only the first frame is read.
 %
-% mr_parms = [tr flipangle te ti]
+% mr_parms = [tr flipangle te ti fov]
 %
 % See also: save_mgh, vox2ras_0to1
 %
-% $Id: load_mgh.m,v 1.7 2003/09/21 23:15:13 greve Exp $
+% $Id: load_mgh.m,v 1.8 2004/01/02 22:15:24 fischl Exp $
 
 vol = [];
 M = [];
@@ -194,8 +194,8 @@ filepos = (nframes*nvvol)*nbytespervox + filepos0;
 fseek(fid,filepos,'bof');
 
 if(~feof(fid))
-  [mr_parms count] = fread(fid,4,'float32');
-  if(count ~= 4) 
+  [mr_parms count] = fread(fid,5,'float32');
+  if(count < 4) 
     fprintf('WARNING: error reading MR params\n');
   end
 end

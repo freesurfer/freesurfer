@@ -10,7 +10,7 @@ function r = save_mgh(vol, fname, M, mr_parms);
 %
 % See also: load_mgh, vox2ras_0to1
 %
-% $Id: save_mgh.m,v 1.4 2003/07/21 16:14:11 ebeth Exp $
+% $Id: save_mgh.m,v 1.5 2004/01/02 22:15:24 fischl Exp $
 %
 
 r = 1;
@@ -22,8 +22,8 @@ end
 
 if(exist('mr_parms')~=1) mr_parms = []; end
 if(isempty(mr_parms))   mr_parms = [0 0 0 0]; end
-if(length(mr_parms) ~= 4)
-  fprintf('ERROR: mr_parms length = %d, must be 4\n', ...
+if(length(mr_parms) < 4)
+  fprintf('ERROR: mr_parms length = %d, must be 4 or 5\n', ...
 	  length(mr_parms));
   return;
 end
