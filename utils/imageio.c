@@ -63,6 +63,10 @@ static IMAGE *PPMReadImage(char *fname) ;
 static IMAGE *PPMReadHeader(FILE *fp, IMAGE *) ;
 static IMAGE *PBMReadImage(char *fname) ;
 static IMAGE *PBMReadHeader(FILE *fp, IMAGE *) ;
+static byte FindMachineEndian(void);
+static void ImageSwapEndian(IMAGE *I);
+
+static byte endian = END_UNDEF;
 
 /*-----------------------------------------------------
                     GLOBAL FUNCTIONS
@@ -88,6 +92,14 @@ ImageWrite(IMAGE *I, char *fname)
   fclose(fp) ;
   return(0) ;
 }
+
+static byte FindMachineEndian(void)
+{
+  short int word = 0x0001;
+  char *bite = (char *) &word;
+  return (bite[0] ? END_SMALL : END_BIG);
+}
+
 /*-----------------------------------------------------
         Parameters:
 
@@ -99,7 +111,7 @@ int
 ImageFWrite(IMAGE *I, FILE *fp, char *fname)
 {
   byte    *image ;
-  int     ecode, type, frame ;
+  int     ecode, type, frame;
   char    buf[100] ;
 
   if (!fname)
@@ -122,6 +134,13 @@ ImageFWrite(IMAGE *I, FILE *fp, char *fname)
     PGMWriteImage(I, fname, frame);
     break;
   case HIPS_IMAGE:
+    if (endian == END_UNDEF)
+      endian = FindMachineEndian();
+
+    if (findparam(I,"endian"))
+      clearparam(I,"endian"); /* Clear any existing endian parameter */
+    setparam(I, "endian", PFBYTE, 1, endian);
+
     ecode = fwrite_header(fp,I,"fwrite") ;
     if (ecode != HIPS_OK)
      ErrorExit(ERROR_NO_FILE,"ImageFWrite: fwrite_header failed (%d)\n",ecode);
@@ -140,6 +159,61 @@ ImageFWrite(IMAGE *I, FILE *fp, char *fname)
   }
   return(0) ;
 }
+
+static void ImageSwapEndian(IMAGE *I)
+{
+  DCPIX  *dcpix, dcval ;
+  CPIX   *cpix, cval ;
+  double *dpix, dval ;
+  float  *fpix, fval ;
+  long   npix ;
+    
+  npix = (long)I->numpix * (long)I->num_frame ;
+  
+  switch (I->pixel_format)
+    {
+    case PFDBLCOM:
+      dcpix = IMAGEDCpix(I, 0, 0) ;
+      while (npix--)
+  {
+    dcval = *dcpix ;
+    dcpix->real = swapDouble(dcval.real) ;
+    dcpix->imag = swapDouble(dcval.imag) ;
+    dcpix++ ;
+  }
+      break ;
+    case PFCOMPLEX:
+      cpix = IMAGECpix(I, 0, 0) ;
+      while (npix--)
+  {
+    cval = *cpix ;
+    cpix->real = swapFloat(cval.real) ;
+    cpix->imag = swapFloat(cval.imag) ;
+    cpix++ ;
+  }
+      break ;
+    case PFDOUBLE:
+      dpix = IMAGEDpix(I, 0, 0) ;
+      while (npix--)
+  {
+    dval = *dpix ;
+    *dpix++ = swapDouble(dval) ;
+  }
+      break ;
+    case PFFLOAT:
+      fpix = IMAGEFpix(I, 0, 0) ;
+      while (npix--)
+  {
+    fval = *fpix ;
+    *fpix++ = swapFloat(fval) ;
+  }
+      break ;
+    default:
+      ErrorExit(ERROR_UNSUPPORTED,"ImageFRead: unsupported type %d\n",
+    I->pixel_format);
+    }
+}
+
 /*-----------------------------------------------------
         Parameters:
 
@@ -150,9 +224,9 @@ ImageFWrite(IMAGE *I, FILE *fp, char *fname)
 IMAGE *
 ImageFRead(FILE *fp, char *fname, int start, int nframes)
 {
-  int    ecode, end_frame, frame ;
+  int    ecode, end_frame, frame, count = 1;
   IMAGE  *I ;
-  byte   *startpix ;
+  byte   *startpix, end = END_UNDEF;
 
   if (!fname)
     fname = "ImageFRead" ;
@@ -164,6 +238,12 @@ ImageFRead(FILE *fp, char *fname, int start, int nframes)
   ecode = fread_header(fp, I, fname) ;
   if (ecode != HIPS_OK)
     ErrorExit(ERROR_NO_FILE, "ImageFRead: fread_header failed (%d)\n",ecode);
+
+  if (endian == END_UNDEF)
+    endian = FindMachineEndian();
+
+  if (findparam(I, "endian"))
+    getparam(I, "endian", PFBYTE, &count, &end);
 
   if (start < 0)    /* read all frames */
   {
@@ -204,61 +284,30 @@ ImageFRead(FILE *fp, char *fname, int start, int nframes)
   }
   I->image = startpix ;
 
-  if (!ImageValid(I))
-  {
-    DCPIX  *dcpix, dcval ;
-    CPIX   *cpix, cval ;
-    double *dpix, dval ;
-    float  *fpix, fval ;
-    long   npix ;
+  /* We only swap endians if there wasn't an endian parameter and the image is
+     invalid (ie.  values in the image seem to be extreme) OR the endian of 
+     the machine does not match the endian of the image */
 
-    npix = (long)I->numpix * (long)I->num_frame ;
-
-    switch (I->pixel_format)
+  fprintf(stderr,"Endian: %d End: %d\n",endian, end);
+  switch (end)
     {
-    case PFDBLCOM:
-      dcpix = IMAGEDCpix(I, 0, 0) ;
-      while (npix--)
-      {
-        dcval = *dcpix ;
-        dcpix->real = swapDouble(dcval.real) ;
-        dcpix->imag = swapDouble(dcval.imag) ;
-        dcpix++ ;
-      }
-      break ;
-    case PFCOMPLEX:
-      cpix = IMAGECpix(I, 0, 0) ;
-      while (npix--)
-      {
-        cval = *cpix ;
-        cpix->real = swapFloat(cval.real) ;
-        cpix->imag = swapFloat(cval.imag) ;
-        cpix++ ;
-      }
-      break ;
-    case PFDOUBLE:
-      dpix = IMAGEDpix(I, 0, 0) ;
-      while (npix--)
-      {
-        dval = *dpix ;
-        *dpix++ = swapDouble(dval) ;
-      }
-      break ;
-    case PFFLOAT:
-      fpix = IMAGEFpix(I, 0, 0) ;
-      while (npix--)
-      {
-        fval = *fpix ;
-        *fpix++ = swapFloat(fval) ;
-      }
-      break ;
-    default:
-      ErrorReturn(NULL, 
-                  (ERROR_UNSUPPORTED, 
-                   "ImageFRead: unsupported type %d\n", I->pixel_format)) ;
-    }
+    case END_UNDEF:
+      if (!ImageValid(I))
+  {
+    printf("Calling ImageSwapEndian (!ImageValid)\n");
+    ImageSwapEndian(I);
+  } 
+      break;
+    case END_BIG:
+    case END_SMALL:
+      if (end != endian)
+  {
+    printf("Calling ImageSwapEndian (end != endian)\n");
+    ImageSwapEndian(I);
   }
-  
+      break;
+    }
+
   return(I) ;
 }
 /*-----------------------------------------------------
