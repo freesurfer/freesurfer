@@ -23,6 +23,7 @@
 #define UNKNOWN_FILE  3
 
 double randomNumber(double low, double hi) ;
+int    setRandomSeed(long seed) ;
 double normAngle(double angle) ;
 float deltaAngle(float angle1, float angle2) ;
 double calcDeltaPhi(double phi1, double phi2) ;
