@@ -10,6 +10,7 @@ void   OGLUsetLightingModel(float lite0, float lite1, float lite2,
                             float lite3, float newoffset) ;
 int    OGLUnoscale(void) ;
 int    OGLUsetFOV(int fov) ;
+int    OGLUsetCoordParms(double coord_thickness, double coord_spacing) ;
 
 #define SCALE_FACTOR       0.55f
 
