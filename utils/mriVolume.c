@@ -1534,12 +1534,10 @@ Volm_tErr Volm_ConvertIdxToMNITal ( mriVolumeRef this,
 				    xVoxelRef    oMNITal ) {
   
   Volm_tErr eResult = Volm_tErr_NoErr;
-  xVoxel    mriIdx;
   xVoxel    scannerRAS;
   Real      talX    = 0;
   Real      talY    = 0;
   Real      talZ    = 0;
-  int cVolume;
   
   DebugEnterFunction( ("Volm_ConvertIdxToMNITal( this=%p, iIdx=%p, "
 		       "oMNITal=%p )", this, iIdx, oMNITal) );
@@ -1582,7 +1580,6 @@ Volm_tErr Volm_ConvertIdxToTal ( mriVolumeRef this,
 				 xVoxelRef    oTal ) {
   
   Volm_tErr eResult = Volm_tErr_NoErr;
-  xVoxel    mriIdx;
   xVoxel    scannerRAS;
   Real      talX    = 0;
   Real      talY    = 0;
