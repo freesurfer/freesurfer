@@ -2,7 +2,7 @@
    DICOM 3.0 reading functions
    Author: Sebastien Gicquel and Douglas Greve
    Date: 06/04/2001
-   $Id: DICOMRead.c,v 1.50 2003/12/15 17:43:11 tosa Exp $
+   $Id: DICOMRead.c,v 1.51 2003/12/15 18:21:47 tosa Exp $
 *******************************************************/
 
 #include <stdio.h>
@@ -3165,6 +3165,8 @@ CONDITION GetDICOMInfo(char *fname, DICOMInfo *dcminfo, BOOL ReadImage, int Imag
       printf("WARNING: tag Slice Thickness not found\n");
 #endif
     }
+    else
+      IsTagPresent[DCM_SliceThickness]=true;
   }
   else
     IsTagPresent[DCM_SliceThickness]=true;
