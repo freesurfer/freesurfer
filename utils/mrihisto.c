@@ -660,16 +660,11 @@ MRIhistogram(MRI *mri, int nbins)
   int        width, height, depth, x, y, z, bin_no ;
   HISTOGRAM  *histo ;
   float      fmin, fmax, bin_size ;
-  BUFTYPE    val, *psrc, bmin, bmax ;
-  float fval;
-
-  if (mri->type != MRI_UCHAR && mri->type != MRI_FLOAT)
-    ErrorReturn(NULL, (ERROR_UNSUPPORTED,"MRIhistogram: must by type UCHAR or FLOAT"));
+  Real       val ;
 
   fmin = MRIvalRange(mri, &fmin, &fmax) ;
-  bmin = (BUFTYPE)fmin ; bmax = (BUFTYPE)fmax ;
   if (!nbins)
-    nbins = bmax - bmin + 1 ;
+    nbins = nint(fmax - fmin + 1) ;
 
   histo = HISTOalloc(nbins) ;
 
@@ -686,28 +681,9 @@ MRIhistogram(MRI *mri, int nbins)
     {
       for (x = 0 ; x < width ; x++)
       {
-  switch (mri->type)
-  {
-  case MRI_UCHAR:
-/* 0 -> x */
-          psrc = &MRIvox(mri, x, y, z) ;
-          val = *psrc++ ;  
-          bin_no = (int)((float)(val - bmin) / (float)bin_size) ;
-          histo->counts[bin_no]++ ;
-    break ;
-
-  case MRI_SHORT:
-    break ;
-
-  case MRI_FLOAT:
-    fval = MRIFvox(mri, x, y, z);
-    bin_no = (int)((fval - fmin) / (float)bin_size);
-    histo->counts[bin_no]++;
-    break;
-
-  default:
-    break ;
-        }
+        MRIsampleVolumeType(mri, x, y, z, &val, SAMPLE_NEAREST) ;
+        bin_no = (int)((float)(val - fmin) / (float)bin_size) ;
+        histo->counts[bin_no]++ ;
       }
     }
   }
