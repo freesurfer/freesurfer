@@ -14,8 +14,10 @@
 #include "mri.h"
 #include "mrishash.h"
 #include "macros.h"
+#include "mrimorph.h"
+#include "mrinorm.h"
 
-static char vcid[] = "$Id: mris_make_surfaces.c,v 1.14 1999/04/18 03:16:53 fischl Exp $";
+static char vcid[] = "$Id: mris_make_surfaces.c,v 1.15 1999/06/06 02:46:04 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -25,11 +27,14 @@ static void print_usage(void) ;
 static void print_help(void) ;
 static void print_version(void) ;
 static int  mrisFindMiddleOfGray(MRI_SURFACE *mris) ;
+MRI *MRIfillVentricle(MRI *mri_inv_lv, MRI *mri_T1, float thresh,
+                      int out_label, MRI *mri_dst);
 
 char *Progname ;
 
 static int navgs = 10 ;
 static int create = 1 ;
+static int smoothwm = 0 ;
 static float sigma = 0.5f ;  /* should be around 1 */
 static int white_only = 0 ;
 
@@ -37,6 +42,7 @@ static INTEGRATION_PARMS  parms ;
 #define BASE_DT_SCALE    1.0
 static float base_dt_scale = BASE_DT_SCALE ;
 
+static int add = 0 ;
 
 static int smooth = 0 ;
 static int nwhite = 5 /*15*/ ;
@@ -49,18 +55,21 @@ static int write_vals = 0 ;
 
 static char *orig_name = ORIG_NAME ;
 static char *suffix = "" ;
+static char *xform_fname = NULL ;
+
+static char pial_name[100] = "pial" ;
 
 int
 main(int argc, char *argv[])
 {
-  char          **av, *hemi, *sname, sdir[400], *cp, fname[500] ;
-  int           ac, nargs, i ;
+  char          **av, *hemi, *sname, sdir[400], *cp, fname[500], mdir[STRLEN];
+  int           ac, nargs, i, label_val, replace_val, msec ;
   MRI_SURFACE   *mris ;
   MRI           *mri_wm, *mri_kernel = NULL, *mri_smooth = NULL, 
                 *mri_filled, *mri_T1 ;
-  int           label_val, replace_val ;
-  int           msec ;
+  float         max_len ;
   struct timeb  then ;
+  M3D           *m3d ;
 
   Gdiag |= DIAG_SHOW ;
   Progname = argv[0] ;
@@ -123,6 +132,12 @@ main(int argc, char *argv[])
               "%s: SUBJECTS_DIR not defined in environment.\n", Progname) ;
   strcpy(sdir, cp) ;
   
+  cp = getenv("MRI_DIR") ;
+  if (!cp)
+    ErrorExit(ERROR_BADPARM, 
+              "%s: MRI_DIR not defined in environment.\n", Progname) ;
+  strcpy(mdir, cp) ;
+  
   sprintf(fname, "%s/%s/mri/filled", sdir, sname) ;
   fprintf(stderr, "reading volume %s...\n", fname) ;
   mri_filled = MRIread(fname) ;
@@ -141,6 +156,36 @@ main(int argc, char *argv[])
     ErrorExit(ERROR_NOFILE, "%s: could not read input volume %s",
               Progname, fname) ;
 
+  if (xform_fname)
+  {
+    char fname[STRLEN], ventricle_fname[STRLEN] ;
+    MRI  *mri_lv, *mri_inv_lv ;
+
+    sprintf(fname, "%s/%s/mri/transforms/%s", sdir, sname,xform_fname) ;
+    fprintf(stderr, "reading transform %s...\n", fname) ;
+    m3d = MRI3DreadSmall(fname) ;
+    if (!m3d)
+      ErrorExit(ERROR_NOFILE, "%s: could not open transform file %s\n",
+                Progname, fname) ;
+    sprintf(ventricle_fname, "%s/average/%s_ventricle.mgh#0@mgh", 
+            mdir, !stricmp(hemi, "lh") ? "left" : "right") ;
+    fprintf(stderr,"reading ventricle representation %s...\n",ventricle_fname);
+    mri_lv = MRIread(ventricle_fname) ;
+    if (!mri_lv)
+      ErrorExit(ERROR_NOFILE,"%s: could not read %s",Progname,ventricle_fname);
+    fprintf(stderr, "applying inverse morph to ventricle...\n") ;
+    mri_inv_lv = MRIapplyInverse3DMorph(mri_lv,m3d,NULL);
+    MRI3DmorphFree(&m3d) ;
+    MRIfree(&mri_lv) ;
+    fprintf(stderr, "filling in ventricle...\n") ;
+    mri_lv = MRIfillVentricle(mri_inv_lv,mri_T1,100, 
+                              DEFAULT_DESIRED_WHITE_MATTER_VALUE, NULL);
+    MRIfree(&mri_inv_lv) ;
+    MRIunion(mri_lv, mri_T1, mri_T1) ;
+    MRIfree(&mri_lv) ;
+    sprintf(fname, "%s/%s/mri/T1_filled", sdir, sname) ;
+    MRIwrite(mri_T1, fname) ;
+  }
   MRImask(mri_T1, mri_filled, mri_T1, replace_val,65) ; /* remove other hemi */
   MRIfree(&mri_filled) ;
 
@@ -153,7 +198,7 @@ main(int argc, char *argv[])
 
   sprintf(fname, "%s/%s/surf/%s.%s%s", sdir, sname, hemi, orig_name, suffix) ;
   fprintf(stderr, "reading original surface position from %s...\n", fname) ;
-  mris = MRISread(fname) ;
+  mris = MRISreadOverAlloc(fname, 1.1) ;
   if (!mris)
     ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
               Progname, fname) ;
@@ -211,14 +256,42 @@ main(int argc, char *argv[])
       MRISwriteValues(mris, fname) ;
     }
     MRISpositionSurface(mris, mri_T1, mri_smooth,&parms);
+    if (add)
+    {
+      for (max_len = 1.5*8 ; max_len > 1 ; max_len /= 2)
+        MRISdivideLongEdges(mris, max_len) ;
+    }
     parms.l_nspring = 0 ;  /* only first time smooth surface */
   }
+
+#if 0
+  {
+    double l_intensity ;
+
+    /* ensure the surface is 2nd order smooth */
+    l_intensity = parms.l_intensity ; parms.l_intensity = 0.0 ;
+    MRISpositionSurface(mris, mri_T1, mri_smooth,&parms);
+    parms.l_intensity = l_intensity ;
+  }
+#endif
   if (!nowhite)
   {
     sprintf(fname, "%s/%s/surf/%s.%s%s", sdir, sname,hemi,WHITE_MATTER_NAME,
             suffix);
     fprintf(stderr, "writing white matter surface to %s...\n", fname) ;
+    MRISaverageVertexPositions(mris, smoothwm) ;
     MRISwrite(mris, fname) ;
+#if 0
+    if (smoothwm > 0)
+    {
+      MRISaverageVertexPositions(mris, smoothwm) ;
+      sprintf(fname, "%s/%s/surf/%s.%s%s", sdir, sname,hemi,SMOOTH_NAME,
+              suffix);
+      fprintf(stderr,"writing smoothed white matter surface to %s...\n",fname);
+      MRISwrite(mris, fname) ;
+    }
+#endif
+    
     if (create)   /* write out curvature and area files */
     {
       MRIScomputeMetricProperties(mris) ;
@@ -231,8 +304,10 @@ main(int argc, char *argv[])
       MRISwriteCurvature(mris, fname) ;
       sprintf(fname, "%s.area%s",
               mris->hemisphere == LEFT_HEMISPHERE?"lh":"rh", suffix);
+#if 0
       fprintf(stderr, "writing smoothed area to %s\n", fname) ;
       MRISwriteArea(mris, fname) ;
+#endif
       MRISprintTessellationStats(mris, stderr) ;
     }
   }
@@ -280,11 +355,26 @@ main(int argc, char *argv[])
     parms.l_nspring = 0 ;
   }
 
+#if 0
+  /* ensure the surface is 2nd order smooth */
+  {
+    double l_intensity ;
+
+    l_intensity = parms.l_intensity ; parms.l_intensity = 0.0 ;
+    MRISpositionSurface(mris, mri_T1, mri_smooth,&parms);
+    parms.l_intensity = l_intensity ;
+  }
+#endif
+
+#if 0
   sprintf(fname, "%s/%s/surf/%s.%s%s", sdir, sname, hemi, GRAY_MATTER_NAME,
           suffix) ;
+#else
+  sprintf(fname, "%s/%s/surf/%s.%s%s", sdir, sname, hemi, pial_name, suffix) ;
+#endif
   fprintf(stderr, "writing pial surface to %s...\n", fname) ;
   MRISwrite(mris, fname) ;
-  if (!(parms.flags & IPFLAG_NO_SELF_INT_TEST))
+  /*  if (!(parms.flags & IPFLAG_NO_SELF_INT_TEST))*/
   {
     fprintf(stderr, "measuring cortical thickness...\n") ;
     MRISmeasureCorticalThickness(mris) ;
@@ -336,6 +426,11 @@ get_option(int argc, char *argv[])
   {
     white_only = 1 ;
     fprintf(stderr,  "only generating white matter surface\n") ;
+  }
+  else if (!stricmp(option, "pial"))
+  {
+    strcpy(pial_name, argv[2]) ;
+    fprintf(stderr,  "writing pial surface to file named %s\n", pial_name) ;
   }
   else if (!stricmp(option, "write_vals"))
   {
@@ -416,6 +511,13 @@ get_option(int argc, char *argv[])
     nowhite = 1 ;
     fprintf(stderr, "reading previously compute gray/white surface\n") ;
   }
+  else if (!stricmp(option, "smoothwm"))
+  {
+    smoothwm = atoi(argv[2]) ;
+    fprintf(stderr, "writing smoothed (%d iterations) wm surface\n",
+            smoothwm) ;
+    nargs = 1 ;
+  }
   else if (!stricmp(option, "pial"))
   {
     gray_surface = atof(argv[2]) ;
@@ -436,6 +538,11 @@ get_option(int argc, char *argv[])
     fprintf(stderr,  "smoothing volume with Gaussian sigma = %2.1f\n", sigma) ;
     nargs = 1 ;
   }
+  else if (!stricmp(option, "add"))
+  {
+    add = 1 ;
+    fprintf(stderr, "adding vertices to tessellation during deformation.\n");
+  }
   else switch (toupper(*option))
   {
   case 'S':
@@ -447,6 +554,11 @@ get_option(int argc, char *argv[])
   case 'U':
     print_usage() ;
     exit(1) ;
+    break ;
+  case 'T':
+    xform_fname = argv[2] ;
+    nargs = 1;
+    fprintf(stderr, "applying ventricular xform %s\n", xform_fname);
     break ;
   case 'O':
     orig_name = argv[2] ;
@@ -570,3 +682,48 @@ mrisFindMiddleOfGray(MRI_SURFACE *mris)
   return(NO_ERROR) ;
 }
 
+MRI *
+MRIfillVentricle(MRI *mri_inv_lv, MRI *mri_T1, float thresh,
+                 int out_label, MRI *mri_dst)
+{
+  BUFTYPE   *pdst, *pinv_lv, out_val, T1_val, inv_lv_val, *pT1 ;
+  int       width, height, depth, x, y, z,
+            ventricle_voxels;
+
+  if (!mri_dst)
+    mri_dst = MRIclone(mri_T1, NULL) ;
+
+  width = mri_T1->width ; height = mri_T1->height ; depth = mri_T1->depth ; 
+  /* now apply the inverse morph to build an average wm representation
+     of the input volume 
+     */
+
+
+  ventricle_voxels = 0 ;
+  for (z = 0 ; z < depth ; z++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      pdst = &MRIvox(mri_dst, 0, y, z) ;
+      pT1 = &MRIvox(mri_T1, 0, y, z) ;
+      pinv_lv = &MRIvox(mri_inv_lv, 0, y, z) ;
+      for (x = 0 ; x < width ; x++)
+      {
+        T1_val = *pT1++ ; inv_lv_val = *pinv_lv++ ; 
+        out_val = 0 ;
+        if (inv_lv_val >= thresh)
+        {
+          ventricle_voxels++ ;
+          out_val = out_label ;
+        }
+        *pdst++ = out_val ;
+      }
+    }
+  }
+
+#if 0
+  MRIfillRegion(mri_T1, mri_dst, 30, out_label, 2*ventricle_voxels) ;
+  MRIdilate(mri_dst, mri_dst) ; MRIdilate(mri_dst, mri_dst) ;
+#endif
+  return(mri_dst) ;
+}
