@@ -3,10 +3,10 @@
   ===========================================================================*/
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2004/01/21 18:44:04 $
-// Revision       : $Revision: 1.193 $
-char *VERSION = "$Revision: 1.193 $";
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2004/01/22 20:49:04 $
+// Revision       : $Revision: 1.194 $
+char *VERSION = "$Revision: 1.194 $";
 
 #define TCL
 #define TKMEDIT 
@@ -1034,7 +1034,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
      shorten our argc and argv count. If those are the only args we
      had, exit. */
   /* rkt: check for and handle version tag */
-  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.193 2004/01/21 18:44:04 kteich Exp $", "$Name:  $");
+  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.194 2004/01/22 20:49:04 fischl Exp $", "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
   argc -= nNumProcessedVersionArgs;
@@ -1069,7 +1069,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
     printf("                            : (default is register.dat in same path as\n");
     printf("                            :  volume)\n");
     printf("\n");
-    printf("-fthresh <value>       : specfify min, mid, and slope threshold\n");
+    printf("-fthresh <value>       : specify min, mid, and slope threshold\n");
     printf("-fmid <value>          : values for functional overlay display\n");
     printf("-fslope <value>        : (default is 0, 1.0, and 1.0)\n");
     printf("-fsmooth <sigma>       : smooth functional overlay after loading\n");
@@ -5043,7 +5043,7 @@ int main ( int argc, char** argv ) {
     DebugPrint( ( "%s ", argv[nArg] ) );
   }
   DebugPrint( ( "\n\n" ) );
-  DebugPrint( ( "$Id: tkmedit.c,v 1.193 2004/01/21 18:44:04 kteich Exp $ $Name:  $\n" ) );
+  DebugPrint( ( "$Id: tkmedit.c,v 1.194 2004/01/22 20:49:04 fischl Exp $ $Name:  $\n" ) );
 
   
   /* init glut */
