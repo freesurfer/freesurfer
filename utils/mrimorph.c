@@ -706,7 +706,7 @@ find_midline(MRI *mri_src, MRI *mri_thresh, float *px)
     count = MRIcountAboveThreshold(mri_dst, 2) ;
     if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
     {
-      char fname[300] ; 
+      char fname[STRLEN] ; 
       fprintf(stderr, "%d: count = %d (min=%d @ %d)\n", x, 
               count, min_count, xmid) ;
       sprintf(fname, "mid%d.mgh", x) ;
@@ -4219,7 +4219,7 @@ write3DSnapshot(MRI *mri_in,MRI *mri_ref,MORPH_PARMS *parms,
                 MORPH_3D *m3d, int n)
 {
   MRI   *mri_tmp ;
-  char  fname[200] ;
+  char  fname[STRLEN] ;
 
   if (!(Gdiag & DIAG_WRITE))
     return(NO_ERROR) ;
@@ -4280,7 +4280,7 @@ static int
 mriWriteImageView(MRI *mri, char *base_name, int target_size, int view, 
                   int slice)
 {
-  char  fname[200], *prefix ;
+  char  fname[STRLEN], *prefix ;
   IMAGE *I ;
   float scale ;
 
@@ -4309,6 +4309,8 @@ mriWriteImageView(MRI *mri, char *base_name, int target_size, int view,
     }
   }
   I = MRItoImageView(mri, NULL, slice, view, 0) ;
+  if (!I)
+    ErrorReturn(Gerror, (Gerror, "MRItoImageView failed")) ;
   scale = (float)target_size / (float)I->rows ;
   if (!FEQUAL(scale, 1.0f))
   {
