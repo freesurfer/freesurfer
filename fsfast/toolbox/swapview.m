@@ -1,7 +1,7 @@
 function r = swapview(varargin)
 % r = swapview(varargin)
 
-version = '$Id: swapview.m,v 1.4 2003/08/07 02:21:53 greve Exp $';
+version = '$Id: swapview.m,v 1.5 2003/09/08 21:23:46 greve Exp $';
 r = 1;
 
 %% Print usage if there are no arguments %%
@@ -95,14 +95,17 @@ if(~isempty(strmatch(flag,'-init')) | isempty(hcurrentfig))
   s.curpostxt = uicontrol('Style', 'text','Position',  [1 150 60 20]);
   s.mousepostxt = uicontrol('Style', 'text','Position',[1 170 60 20]);
 
-  nslices = size(s.vol1,3);
-  d = 1/(nslices-1);
-  s.sliceslider = uicontrol('Style','slider','Min',1,'Max',nslices,...
-			    'SliderStep',[d 3*d],...
-			    'value',s.curvox(3),...
-			    'position', [1 200 20 120],...
-			    'callback','swapview(''sliceslider'');');
-  
+  nslices = size(s.vol1,3)
+  if(nslices > 1) 
+    d = 1/(nslices-1)
+    s.sliceslider = uicontrol('Style','slider','Min',1,'Max',nslices,...
+			      'SliderStep',[d 3*d],...
+			      'value',s.curvox(3),...
+			      'position', [1 200 20 120],...
+			      'callback','swapview(''sliceslider'');');
+  else 
+    s.sliceslider = [];
+  end
   
   fprintf('\n');
   fprintf(' ----------------------------------\n');
@@ -133,6 +136,7 @@ switch(flag)
   
  case {'mosaic'}
   if(s.mosview == 1) return; end
+  if(size(s.vol1,3)==1)  return; end
   hc = get(s.viewmenu,'children');
   set(hc(1),'checked','off');
   set(hc(2),'checked','on');
@@ -526,7 +530,9 @@ function printstate(s)
   fprintf('\n');
   fprintf('Current Plane View: %d\n',s.curview);
   fprintf('Mos View: %d\n',s.mosview);
-  fprintf('SliceSlider: %g\n',get(s.sliceslider,'value'));
+  if(~isempty(s.sliceslider))
+    fprintf('SliceSlider: %g\n',get(s.sliceslider,'value'));
+  end
 return;
 
 %--------------------------------------------------%
