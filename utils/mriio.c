@@ -57,6 +57,12 @@ static int data_size[] = { 1, 4, 4, 4, 2 };
 
 static void short_buffer_to_image(short *buf, MRI *mri, int slice, int frame) ;
 static void image_to_short_buffer(short *buf, MRI *mri, int slice);
+static void int_buffer_to_image(int *buf, MRI *mri, int slice, int frame) ;
+static void image_to_int_buffer(int *buf, MRI *mri, int slice);
+static void long_buffer_to_image(long *buf, MRI *mri, int slice, int frame) ;
+static void image_to_long_buffer(long *buf, MRI *mri, int slice);
+static void float_buffer_to_image(float *buf, MRI *mri, int slice, int frame) ;
+static void image_to_float_buffer(float *buf, MRI *mri, int slice);
 static void buffer_to_image(BUFTYPE *buf, MRI *mri, int slice, int frame) ;
 static void image_to_buffer(BUFTYPE *buf, MRI *mri, int slice) ;
 static MRI *mncRead(char *fname, int read_volume, int frame) ;
@@ -191,23 +197,49 @@ MRIreadRaw(FILE *fp, int width, int height, int depth, int type)
 {
   MRI     *mri ;
   BUFTYPE *buf ;
-  int     slice, bytes ;
+  int     slice, pixels ;
+  int     i;
 
   mri = MRIalloc(width, height, depth, type) ;
   if (!mri)
     return(NULL) ;
 
-  bytes = width*height ;
-  buf = (BUFTYPE *)calloc(bytes, sizeof(BUFTYPE)) ;
+  pixels = width*height ;
+  buf = (BUFTYPE *)calloc(pixels, data_size[type]) ;
 
-  /* every width x height bytes should be another slice */
+  /* every width x height pixels should be another slice */
   for (slice = 0 ; slice < depth ; slice++)
   {
-    if (fread(buf, sizeof(BUFTYPE), bytes, fp) != bytes)
+    if (fread(buf, data_size[type], pixels, fp) != pixels)
       ErrorReturn(NULL,
                   (ERROR_BADFILE, "%s: could not read %dth slice (%d)",
-                   Progname, slice, bytes)) ;
-    buffer_to_image(buf, mri, slice, 0) ;
+                   Progname, slice, pixels)) ;
+    if(type == 0)
+      buffer_to_image(buf, mri, slice, 0) ;
+    if(type == 1)
+    {
+      for(i = 0;i < pixels;i++)
+        ((int *)buf)[i] = orderIntBytes(((int *)buf)[i]);
+      int_buffer_to_image((int *)buf, mri, slice, 0);
+    }
+    if(type == 2)
+    {
+      for(i = 0;i < pixels;i++)
+        ((long *)buf)[i] = orderLongBytes(((long *)buf)[i]);
+      long_buffer_to_image((long *)buf, mri, slice, 0);
+    }
+    if(type == 3)
+    {
+      for(i = 0;i < pixels;i++)
+        ((float *)buf)[i] = orderFloatBytes(((float *)buf)[i]);
+      float_buffer_to_image((float *)buf, mri, slice, 0);
+    }
+    if(type == 4)
+    {
+      for(i = 0;i < pixels;i++)
+        ((short *)buf)[i] = orderShortBytes(((short *)buf)[i]);
+      short_buffer_to_image((short *)buf, mri, slice, 0);
+    }
   }
 
   MRIinitHeader(mri) ;
@@ -991,6 +1023,171 @@ buffer_to_image(BUFTYPE *buf, MRI *mri, int slice, int frame)
 }
 
 static void
+image_to_int_buffer(int *buf, MRI *mri, int slice)
+{
+  int y, x, width, height, depth ;
+
+  width = mri->width ;
+  height = mri->height ;
+  depth = mri->depth;
+  for (y=0; y < height ; y++)
+  {
+    if(mri->type == MRI_UCHAR)
+    {
+      for(x = 0;x < depth;x++)
+        buf[x] = (int)MRIvox(mri, x, y, slice);
+    }
+    else if(mri->type == MRI_SHORT)
+    {
+      for(x = 0;x < depth;x++)
+        buf[x] = (int)MRISvox(mri, x, y, slice);
+    }
+    else if(mri->type == MRI_LONG)
+    {
+      for(x = 0;x < depth;x++)
+        buf[x] = (int)MRILvox(mri, x, y, slice);
+    }
+    else if(mri->type == MRI_FLOAT)
+    {
+      for(x = 0;x < depth;x++)
+        buf[x] = (int)MRIFvox(mri, x, y, slice);
+    }
+    else
+    {
+      memcpy(buf, mri->slices[slice][y], width*sizeof(int)) ;
+    }
+
+    buf += width ;
+  }
+}
+
+static void
+int_buffer_to_image(int *buf, MRI *mri, int slice, int frame)
+{
+  int           y, width, height ;
+  int           *pslice ;
+  
+  width = mri->width ;
+  height = mri->height ;
+  for (y = 0 ; y < height ; y++)
+  {
+    pslice = &MRIIseq_vox(mri, 0, y, slice, frame) ;
+    memcpy(pslice, buf, width*sizeof(int)) ;
+    buf += width ;
+  }
+}
+
+static void
+image_to_long_buffer(long *buf, MRI *mri, int slice)
+{
+  int y, x, width, height, depth ;
+
+  width = mri->width ;
+  height = mri->height ;
+  depth = mri->depth;
+  for (y=0; y < height ; y++)
+  {
+    if(mri->type == MRI_UCHAR)
+    {
+      for(x = 0;x < depth;x++)
+        buf[x] = (long)MRIvox(mri, x, y, slice);
+    }
+    else if(mri->type == MRI_INT)
+    {
+      for(x = 0;x < depth;x++)
+        buf[x] = (long)MRIIvox(mri, x, y, slice);
+    }
+    else if(mri->type == MRI_SHORT)
+    {
+      for(x = 0;x < depth;x++)
+        buf[x] = (long)MRISvox(mri, x, y, slice);
+    }
+    else if(mri->type == MRI_FLOAT)
+    {
+      for(x = 0;x < depth;x++)
+        buf[x] = (long)MRIFvox(mri, x, y, slice);
+    }
+    else
+    {
+      memcpy(buf, mri->slices[slice][y], width*sizeof(long)) ;
+    }
+
+    buf += width ;
+  }
+}
+
+static void
+long_buffer_to_image(long *buf, MRI *mri, int slice, int frame)
+{
+  int           y, width, height ;
+  long          *pslice ;
+  
+  width = mri->width ;
+  height = mri->height ;
+  for (y = 0 ; y < height ; y++)
+  {
+    pslice = &MRILseq_vox(mri, 0, y, slice, frame) ;
+    memcpy(pslice, buf, width*sizeof(long)) ;
+    buf += width ;
+  }
+}
+
+static void
+image_to_float_buffer(float *buf, MRI *mri, int slice)
+{
+  int y, x, width, height, depth ;
+
+  width = mri->width ;
+  height = mri->height ;
+  depth = mri->depth;
+  for (y=0; y < height ; y++)
+  {
+    if(mri->type == MRI_UCHAR)
+    {
+      for(x = 0;x < depth;x++)
+        buf[x] = (float)MRIvox(mri, x, y, slice);
+    }
+    else if(mri->type == MRI_INT)
+    {
+      for(x = 0;x < depth;x++)
+        buf[x] = (float)MRIIvox(mri, x, y, slice);
+    }
+    else if(mri->type == MRI_LONG)
+    {
+      for(x = 0;x < depth;x++)
+        buf[x] = (float)MRILvox(mri, x, y, slice);
+    }
+    else if(mri->type == MRI_SHORT)
+    {
+      for(x = 0;x < depth;x++)
+        buf[x] = (float)MRISvox(mri, x, y, slice);
+    }
+    else
+    {
+      memcpy(buf, mri->slices[slice][y], width*sizeof(float)) ;
+    }
+
+    buf += width ;
+  }
+}
+
+static void
+float_buffer_to_image(float *buf, MRI *mri, int slice, int frame)
+{
+  int           y, width, height ;
+  float         *pslice ;
+  
+  width = mri->width ;
+  height = mri->height ;
+  for (y = 0 ; y < height ; y++)
+  {
+    pslice = &MRIFseq_vox(mri, 0, y, slice, frame) ;
+    memcpy(pslice, buf, width*sizeof(float)) ;
+    buf += width ;
+  }
+}
+
+static void
 image_to_short_buffer(short *buf, MRI *mri, int slice)
 {
   int y, x, width, height, depth ;
@@ -1044,6 +1241,7 @@ short_buffer_to_image(short *buf, MRI *mri, int slice, int frame)
     buf += width ;
   }
 }
+
 /*-----------------------------------------------------
         Parameters:
 
@@ -1355,51 +1553,20 @@ analyzeRead(char *fname, int read_volume, int frame)
   mri->ysize = hdr.dime.pixdim[2] ;
   mri->zsize = hdr.dime.pixdim[1] ;
 
-/*
-printf("Ja, I am the originator\n");
-printf("originator[0] = %x\n", hdr.hist.originator[0]);
-printf("originator[1] = %x\n", hdr.hist.originator[1]);
-printf("originator[2] = %x\n", hdr.hist.originator[2]);
-printf("originator[3] = %x\n", hdr.hist.originator[3]);
-printf("originator[4] = %x\n", hdr.hist.originator[4]);
-printf("originator[5] = %x\n", hdr.hist.originator[5]);
-
-printf("sizes are %g,%g,%g\n", mri->xsize, mri->ysize, mri->zsize);
-*/
 #if 1
-/*
-ox = 256 * hdr.hist.originator[4] + hdr.hist.originator[5];
-oy = 256 * hdr.hist.originator[2] + hdr.hist.originator[3];
-oz = 256 * hdr.hist.originator[0] + hdr.hist.originator[1];
 
-oy = mri->height - oy;
-*/
+  ox = mri->width / 2;
+  oy = mri->height / 2;
+  oz = mri->depth / 2;
 
-ox = mri->width / 2;
-oy = mri->height / 2;
-oz = mri->depth / 2;
+  mri->xstart = -mri->xsize * ox;
+  mri->ystart = -mri->ysize * oy;
+  mri->zstart = -mri->zsize * oz;
 
-/*
-printf("originators are %d, %d, %d\n", ox, oy, oz);
-*/
-mri->xstart = -mri->xsize * ox;
-mri->ystart = -mri->ysize * oy;
-mri->zstart = -mri->zsize * oz;
-/*
-printf("dims are %d,%d,%d\n", mri->width, mri->height, mri->depth);
-*/
-mri->xend = (mri->width - ox) * mri->xsize;
-mri->yend = (mri->height - oy) * mri->ysize;
-mri->zend = (mri->depth - oz) * mri->zsize;
-/*
-printf("widths are %g,%g,%g\n", mri->xsize, mri->ysize, mri->zsize);
-printf("st/ends are %g, %g; %g, %g; %g, %g\n", mri->xstart, mri->xend, 
+  mri->xend = (mri->width - ox) * mri->xsize;
+  mri->yend = (mri->height - oy) * mri->ysize;
+  mri->zend = (mri->depth - oz) * mri->zsize;
 
-mri->ystart, mri->yend, 
-mri->zstart, mri->zend);
-
-MRIdump(mri, stdout);
-*/
 #else
 
   if (FEQUAL(mri->xsize, 1))
@@ -1688,14 +1855,15 @@ read_byte_analyze_image(char *fname, MRI *mri, dsr *hdr)
 /*
 printf("bpp = %d\n", bytes_per_pix);
 */
+/*
   width = hdr->dime.dim[1] ;
   height = hdr->dime.dim[2] ;
   depth = hdr->dime.dim[3] ;
-/*
+*/
 width = mri->width;
 depth = mri->depth;
 height = mri->height;
-*/
+
 #if SUPPORT_TEXAS
   if (hdr->dime.pixdim[0] > 3.5f)/* hack to support FIL and texas */
   {
@@ -1732,9 +1900,13 @@ height = mri->height;
 printf("depth to read is %d\n",depth);
 printf("depth in mri is %d\n", mri->depth);
 */
+
   for (z = 0 ; z < depth ; z++)
   {
     nread = fread(buf, bytes_per_pix, bufsize, fp) ;
+/*
+printf("%d\n", ftell(fp));
+*/
     if (nread != bufsize)
     {
       free(buf) ;
@@ -1749,18 +1921,23 @@ printf("depth in mri is %d\n", mri->depth);
     {
       for (x = 0 ; x < width ; x++)
       {
+/*
+printf("%d\n", (int)(buf[y*width+x]);
+*/
         switch (datatype)
         {
-        default:
-          printf("data type %d not supported\n",datatype);
-          exit(1);
-          break;
         case DT_UNSIGNED_CHAR:
           b = (unsigned char)(*(unsigned char *)(buf+bytes_per_pix*(y*width+x)));
           xd = z + xoff ; yd = (height-y-1) + yoff ; zd = (width-x-1) + zoff;
 xd = x;
 yd = y;
 zd = z;
+/*
+printf("%4d,%4d,%4d: %10p, %10p, %10p, %10p\n", xd, yd, zd, mri, mri->slices, mri->slices[1], mri->slices[1][0]);
+*/
+/*
+printf("%d,%d,%d\n", width, height, depth);
+*/
           MRIvox(mri, xd, yd, zd) = b ;
           break;
         case DT_SIGNED_SHORT:
@@ -1776,6 +1953,10 @@ printf("val is %hd\n", s);
           if (s < smin)
             smin = s ;
           b = (char)(scale * (float)(s-hdr->dime.glmin));
+          break;
+        default:
+          printf("data type %d not supported\n",datatype);
+          exit(1);
           break;
         }
 #if 0
