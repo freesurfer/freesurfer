@@ -1224,7 +1224,7 @@ xvCreateXimage(XV_FRAME *xvf, IMAGE *image)
 static Panel_setting
 xvHipsCommand(Panel_item item, Event *event)
 {
-  DIMAGE  *dimage ;
+  DIMAGE   *dimage ;
 
   strcpy(hips_cmd_str, (char *)xv_get(hips_cmd_panel_item, PANEL_VALUE)) ;
   xv_set(hips_cmd_frame, FRAME_CMD_PUSHPIN_IN, FALSE, XV_SHOW, FALSE, NULL) ;
@@ -1232,26 +1232,24 @@ xvHipsCommand(Panel_item item, Event *event)
   dimage = XVgetDimage(xvf_hips, hips_cmd_source, DIMAGE_IMAGE) ;
   if (!dimage)
     return(0) ;
-#if 1
-  ImageWrite(dimage->sourceImage, "out.hipl") ;
-#else
-  if (ImageWriteFrames(dimage->sourceImage, "out.hipl", dimage->frame, 1) < 0)
+
+  if (xvf_hips->write_func)
+    (*xvf_hips->write_func)(event, dimage, hips_cmd_str) ;
+  else
   {
-    XVprintf(xvf_hips, 0, "write failed\n") ;
-    return(0) ;
-  }
-#endif
+    ImageWrite(dimage->sourceImage, "out.hipl") ;
 
-  if (strlen(hips_cmd_str) < 4)
-    return(0) ;
-
-  fprintf(stderr, "executing hips command '%s'\n", hips_cmd_str) ;
-
-  system(hips_cmd_str) ;
-  if (strstr(hips_cmd_str, "in.hipl"))
-  {
-    ImageReadInto("in.hipl", dimage->sourceImage, 0) ;
-    XVshowImage(xvf_hips, hips_cmd_source, dimage->sourceImage, dimage->frame) ;
+    if (strlen(hips_cmd_str) < 4)
+      return(0) ;
+    
+    fprintf(stderr, "executing hips command '%s'\n", hips_cmd_str) ;
+    
+    system(hips_cmd_str) ;
+    if (strstr(hips_cmd_str, "in.hipl"))
+    {
+      ImageReadInto("in.hipl", dimage->sourceImage, 0) ;
+      XVshowImage(xvf_hips,hips_cmd_source,dimage->sourceImage,dimage->frame);
+    }
   }
 
   XFlush(xvf_hips->display); 
@@ -2402,6 +2400,22 @@ XVchangeDisplaySize(XV_FRAME *xvf)
 {
   xvf->orig_disp_rows = xvf->display_rows ;
   xvf->orig_disp_cols = xvf->display_cols ;
+  return(NO_ERROR) ;
+}
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+----------------------------------------------------------------------*/
+int
+XVsetWriteFunc(XV_FRAME *xvf, char *frame_name, char *prompt_str,
+              int (*write_func)(Event *event, DIMAGE *dimage, char *cmd_str))
+{
+  if (frame_name)
+    xv_set(hips_cmd_frame, FRAME_LABEL, frame_name, NULL) ;
+  if (prompt_str)
+    xv_set(hips_cmd_panel_item, PANEL_LABEL_STRING, prompt_str) ;
+  xvf->write_func = write_func ;
   return(NO_ERROR) ;
 }
 
