@@ -5,11 +5,11 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2003/04/16 19:51:18 $
-// Revision       : $Revision: 1.16 $
+// Revision Date  : $Date: 2003/04/17 17:46:45 $
+// Revision       : $Revision: 1.17 $
 //
 ////////////////////////////////////////////////////////////////////
-char *MRI_WATERSHED_VERSION = "$Revision: 1.16 $";
+char *MRI_WATERSHED_VERSION = "$Revision: 1.17 $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -332,8 +332,6 @@ get_option(int argc, char *argv[],STRIP_PARMS *parms)
   char *option ;
   
   option = argv[1] + 1 ;            /* past '-' */
-  
-  option = argv[1] + 1 ;            /* past '-' */
   if (!strcmp(option, "-help"))
   {
     usageHelp();
@@ -542,7 +540,7 @@ int main(int argc, char *argv[])
   /************* Command line****************/
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_watershed.cpp,v 1.16 2003/04/16 19:51:18 tosa Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_watershed.cpp,v 1.17 2003/04/17 17:46:45 tosa Exp $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -6919,7 +6917,7 @@ static void MRISFineSegmentation(MRI_variables *MRI_var)
     // if (iter%10==0)
     //   printf("brainsize = %d\n", calcBrainSize(mri, mris));
   }
-  fprintf(stderr,"\n%d iterations",iter);
+  fprintf(stderr,"%d iterations\n",iter);
 
   MRIScomputeNormals(mris);
 
