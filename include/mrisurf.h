@@ -715,6 +715,16 @@ int MRISdivideLongEdges(MRI_SURFACE *mris, double thresh) ;
 int MRISremoveTriangleLinks(MRI_SURFACE *mris) ;
 int MRISsetOriginalFileName(char *orig_name) ;
 
+int MRISextractCurvatureVector(MRI_SURFACE *mris, float *curvs) ;
+int MRISimportCurvatureVector(MRI_SURFACE *mris, float *curvs) ;
+int MRISimportValVector(MRI_SURFACE *mris, float *vals) ;
+int MRISmaskLabel(MRI_SURFACE *mris, LABEL *area) ;
+int MRISmaskNotLabel(MRI_SURFACE *mris, LABEL *area) ;
+int MRISripLabel(MRI_SURFACE *mris, LABEL *area) ;
+int MRISripNotLabel(MRI_SURFACE *mris, LABEL *area) ;
+int MRISsegmentMarked(MRI_SURFACE *mris, LABEL ***plabel_array, int *pnlabels,
+                      float min_label_area) ;
+
 #if 1
 #include "mrishash.h"
 float  MRISdistanceToSurface(MRI_SURFACE *mris, MHT *mht,
