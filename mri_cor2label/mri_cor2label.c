@@ -1,6 +1,6 @@
 /*----------------------------------------------------------
   Name: mri_cor2label.c
-  $Id: mri_cor2label.c,v 1.2 2001/05/15 22:04:12 greve Exp $
+  $Id: mri_cor2label.c,v 1.3 2003/01/03 20:38:24 greve Exp $
   Author: Douglas Greve
   Purpose: Converts values in a COR file to a label.
   -----------------------------------------------------------*/
@@ -20,12 +20,13 @@ static void print_help(void) ;
 static void print_version(void) ;
 static void argnerr(char *option, int n);
 
-static char vcid[] = "$Id: mri_cor2label.c,v 1.2 2001/05/15 22:04:12 greve Exp $";
+static char vcid[] = "$Id: mri_cor2label.c,v 1.3 2003/01/03 20:38:24 greve Exp $";
 char *Progname ;
 int main(int argc, char *argv[]) ;
 
 static char *cordir;
 static char *labelfile;
+static char *volfile;
 static int  labelid;
 MRI *COR;
 LABEL *lb;
@@ -38,9 +39,11 @@ int synthlabel = 0;
 int verbose = 0;
 float xsum, ysum, zsum;
 
+
 /*----------------------------------------------------*/
 int main(int argc, char **argv)
 {
+  FILE *fp;
 
   Progname = argv[0] ;
   argc --;
@@ -72,46 +75,59 @@ int main(int argc, char **argv)
     for(zi=0; zi < COR->height; zi++){
       for(yi=0; yi < COR->depth; yi++){
         c = (int) MRIvox(COR,xi,zi,yi);
-  /* The call to MRIvox is with arguments (COR,xi,zi,yi) instead
-     of (COR,xi,yi,zi) becase
-     MRIvox(mri,x,y,z) = (((BUFTYPE *)mri->slices[z][y])[x])
-     but from mriio.c, L959ish,      mri->slices[y][z])[x])*/
-
+	/* The call to MRIvox is with arguments (COR,xi,zi,yi) instead
+	   of (COR,xi,yi,zi) becase
+	   MRIvox(mri,x,y,z) = (((BUFTYPE *)mri->slices[z][y])[x])
+	   but from mriio.c, L959ish,      mri->slices[y][z])[x])*/
+	
         doit = 0;
         if(synthlabel &&
            xi > 120 && xi < 130 && 
            zi > 128 && zi < 138 && 
            yi >  40 && yi <  50) doit = 1;
-
+	
         if(c == labelid && !synthlabel) doit = 1;
-
+	
         if(doit){
           x = -xi + 128.0;
           y =  yi - 128.0;
-    z = -zi + 128.0;
+	  z = -zi + 128.0;
           if(verbose) 
-      printf("%5d   %3d %3d %3d   %6.2f %6.2f %6.2f \n",
-       nlabel,xi,yi,zi,x,y,z);
-    lb->lv[nlabel].x = x;
-    lb->lv[nlabel].y = y;
-    lb->lv[nlabel].z = z;
+	    printf("%5d   %3d %3d %3d   %6.2f %6.2f %6.2f \n",
+		   nlabel,xi,yi,zi,x,y,z);
+	  lb->lv[nlabel].x = x;
+	  lb->lv[nlabel].y = y;
+	  lb->lv[nlabel].z = z;
           nlabel ++;
           xsum += x;
           ysum += y;
           zsum += z;
-  }
+	}
       }
     }
   }
   lb->n_points = nlabel;
   fprintf(stderr,"Found %d label voxels\n",nlabel);
   if(nlabel == 0){
-    fprintf(stderr,"ERROR: found no voxels matching id %d \n",labelid);
+    printf("ERROR: found no voxels matching id %d \n",labelid);
     exit(1);
   }
 
-  fprintf(stderr,"Writing label file %s\n",labelfile);
-  LabelWrite(lb,labelfile);
+  if(labelfile != NULL){
+    printf("Writing label file %s\n",labelfile);
+    LabelWrite(lb,labelfile);
+  }
+  if(volfile != NULL){
+    printf("Writing volume to  %s\n",volfile);
+    fp = fopen(volfile,"w");
+    if(fp == NULL){
+      printf("ERROR: could not open  %s\n",volfile);      
+      exit(1);
+    }
+    fprintf(fp,"%d\n",nlabel);
+    fclose(fp);
+  }
+
 
   fprintf(stderr,"Centroid: %6.2f  %6.2f  %6.2f \n",
     xsum/nlabel,ysum/nlabel,zsum/nlabel);
@@ -148,6 +164,13 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcmp(option, "--l")){
       if(nargc < 2) argnerr(option,1);
       labelfile = pargv[1];
+      nargs = 2;
+    }
+
+    /* ---- count file ---------- */
+    else if (!strcmp(option, "--v")){
+      if(nargc < 2) argnerr(option,1);
+      volfile = pargv[1];
       nargs = 2;
     }
 
@@ -197,6 +220,7 @@ static void print_usage(void)
   fprintf(stdout,"   --c  cordir  directory to find COR volume \n");
   fprintf(stdout,"   --id labelid 0-255 value in COR volume\n");
   fprintf(stdout,"   --l  labelfile name of output file\n");
+  fprintf(stdout,"   --v  volfile : write label volume in file\n");
   fprintf(stdout,"   --help print out help information\n");
 }
 /* --------------------------------------------- */
@@ -214,6 +238,7 @@ static void print_help(void)
 "any COR volume, it was designed to convert parcellation volumes, which\n"
 "happen to be stored in COR format.  See tkmedit for more information\n"
 "on parcellations. The labelid must be within the range of 0 to 255.\n"
+"The label volume in mm^3 can be written to the argument of --v.\n"
 "\n"
 "Bugs:\n"
 "\n"
@@ -261,8 +286,8 @@ static void check_options(void)
     fprintf(stderr,"ERROR: must supply a COR directory\n");
     exit(1);
   }
-  if(labelfile == NULL){
-    fprintf(stderr,"ERROR: must be supply a label file\n");
+  if(labelfile == NULL && volfile == NULL){
+    fprintf(stderr,"ERROR: must be supply a label or volume file\n");
     exit(1);
   }
   if(labelid == 257){
