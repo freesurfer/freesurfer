@@ -50,22 +50,22 @@ typedef struct
   Canvas      canvas ;
   Panel_item  title_item ;
   char        title_string[STR_LEN] ;
-  IMAGE       *dispImage ;
-  IMAGE       *sourceImage ;
+  IMAGE       *dispImage ;    /* image displayed on screen */
+  IMAGE       *sourceImage ;  /* source image passed to XVshowImage */
   XImage      *ximage ;
   Window      window ;
   GC          clearGC, greenGC, blueGC, redGC, 
               xorGC, whiteGC, cyanGC, yellowGC, purpleGC ;
-  float       xscale ;
-  float       yscale ;
+  float       xscale ;        /* scale of dispImage relative to sourceImage */
+  float       yscale ;        /* scale of dispImage relative to sourceImage */
   int         rescale_range ;
-  int         frame ;
-  int         used ;
+  int         frame ;       /* frame of sourceImage which is shown*/
+  int         used ;        /* whether this dimage is in use */
   int         entered ;     /* to prevent re-entrancy in repaint proc. */
-  int         which ;
+  int         which ;       /* index into table in XV_FRAME structure */
   int         x, y ;        /* position on canvas */
   int         bshift ;      /* for modifying brightness of displayed image */
-  float       gamma[MAX_COLORS] ;
+  float       gamma[MAX_COLORS] ;  /* for gamma correction */
   float       zoom ;        /* current zoom scale */
   int         x0 ;          /* x zoom origin */
   int         y0 ;          /* y zoom origin */
@@ -145,6 +145,9 @@ int XVgamma(XV_FRAME *xvf, int which, float beta) ;
 int XVzoom(XV_FRAME *xvf, int which, float zoom) ;
 int XVsync(XV_FRAME *xvf, int which, int sync) ;
 int XVdoSync(XV_FRAME *xvf, int which) ;
+int XVsyncAll(XV_FRAME *xvf, int which) ;
+int XVunsyncAll(XV_FRAME *xvf, int which) ;
+int XVshowAllSyncedImages(XV_FRAME *xvf, int which) ;
 
 #define WINDOW_PAD          3
 
