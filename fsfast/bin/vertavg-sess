@@ -1,8 +1,8 @@
 #!/bin/csh -f
 # vertavg-sess
 #
-# $Id: vertavg-sess,v 1.2 2003/03/25 01:04:34 greve Exp $
-set VERSION = '$Id: vertavg-sess,v 1.2 2003/03/25 01:04:34 greve Exp $'
+# $Id: vertavg-sess,v 1.3 2003/04/01 19:01:18 greve Exp $
+set VERSION = '$Id: vertavg-sess,v 1.3 2003/04/01 19:01:18 greve Exp $'
 set FASTVER = `cat $FMRI_ANALYSIS_DIR/docs/version`;
 
 #------ Defaults --------#
@@ -13,6 +13,7 @@ set outfstem  = ();
 set outbext = ();
 set runlistfile = ();
 set parlist  = ();
+set nolog = 0;
 
 set inputargs = ($argv);
 
@@ -41,6 +42,7 @@ goto check_params;
 check_params_return:
 
 ##### Create a log file ######
+if(! $nolog) then
 set logdir = `pwd`/log;
 mkdir -p $logdir
 if(! -e $logdir) then
@@ -49,6 +51,9 @@ if(! -e $logdir) then
 else
   set LF = $logdir/vertavg-sess.log
   if(-e $LF) mv $LF $LF.old
+endif
+else
+  set LF = /dev/null
 endif
 
 echo "--------------------------------------------------------------"
@@ -122,7 +127,7 @@ foreach sess ($SessList)
   set outvol = $outdir/$outfstem
 
   set cmd = (mri_xvolavg $inputlist --vol_type $bext)
-  set cmd = ($cmd --out $outvol --out_type $outbext)
+  set cmd = ($cmd --out $outvol --out_type $outbextuse)
 
   echo "---------------------------------------------" |& tee -a $LF
   pwd        |& tee -a $LF
@@ -213,6 +218,10 @@ while( $#argv != 0 )
     case "-umask":
       if ( $#argv == 0) goto arg1err;
       umask $argv[1]; shift;
+      breaksw
+
+    case "-nolog":
+      set nolog = 1;
       breaksw
 
     case "-verbose":
