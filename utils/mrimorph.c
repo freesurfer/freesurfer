@@ -1,3 +1,4 @@
+#define USE_ITERATIVE_AVERAGING   0
 #define SCALE_INVARIANT           1
 #define USE_ORIGINAL_PROPERTIES   0
 /*
@@ -33,7 +34,9 @@
 #define EXP_K            10.0
 #define IMAGE_SIZE       400
 #define BACKGROUND_VAL   10
+#define MAX_EXP          200
 
+static int m3dcheck(MORPH_3D * m3d);
 static MRI    *find_midline(MRI *mri_src, MRI *mri_thresh, float *px) ;
 static int    find_spinal_fusion(MRI *mri_thresh, float *px, float *py,
                                  float *pz) ;
@@ -502,7 +505,7 @@ MRIremoveNeck(MRI *mri_src,MRI *mri_dst,int thresh_low,int thresh_hi,MP *parms,
   
   if (spinal_label < 0)
     ErrorReturn(NULL, 
-                (ERROR_BADPARM, "MRIremoveNeck: could not find spinal chord"));
+                (ERROR_BADPARM,"MRIremoveNeck: could not find spinal chord"));
 
   if (Gdiag & DIAG_SHOW)
     fprintf(stderr,"spinal label %d, area = %2.0f, "
@@ -579,6 +582,8 @@ MRIremoveNeck(MRI *mri_src,MRI *mri_dst,int thresh_low,int thresh_hi,MP *parms,
   z0 = ((float)in_bbox.z+(float)in_bbox.dz/2.0f) / thick ;
   if (!parms)  /* 1 cm below for morph. HACK - should be fixed */
     y0 += 10.0f/thick ;
+#else
+  y0 += 20.0f / thick ;
 #endif
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
   {
@@ -1534,8 +1539,9 @@ openLogFile(MORPH_PARMS *parms)
     sprintf(fname, "%s.log", parms->base_name) ;
     parms->log_fp = fopen(fname, "w") ;
     fprintf(parms->log_fp, 
-            "dt=%2.2e, momentum=%2.2f, tol=%2.2e, niteratons=%d\n",
-            parms->dt, parms->momentum, parms->tol, parms->niterations) ;
+            "dt=%2.2e, momentum=%2.2f, tol=%2.2e, niteratons=%d, navgs=%d\n",
+            parms->dt, parms->momentum, parms->tol, parms->niterations,
+            parms->navgs) ;
     if (!FZERO(parms->l_intensity))
       fprintf(parms->log_fp, "l_intensity = %2.4f\n", parms->l_intensity) ;
     if (!FZERO(parms->l_dist))
@@ -1586,6 +1592,12 @@ logIntegration(MORPH_PARMS *parms, int n, double rms)
                                 3D Morph
 ----------------------------------------------------------------*/
 
+#if USE_ITERATIVE_AVERAGING
+static int mri3DaverageGradient(MORPH_3D *m3d, int niter) ;
+#else
+static int mri3DblurGradient(MORPH_3D *m3d, float sigma) ;
+#endif
+static int m3dCopyTempToGradient(MORPH_3D *m3d) ;
 static double   mri3DSSE(MRI *mri_in, MRI *mri_ref, MORPH_PARMS *parms,
                          MORPH_3D *m3d, 
                          double *pintensity_rms,
@@ -1622,7 +1634,8 @@ static double   mri3DIntegrationStep(MRI *mri_in, MRI *mri_ref,
 static int      mri3DcomputeMetricProperties(MORPH_3D *m3d) ;
 static int      mri3DclearGradient(MORPH_3D *m3d) ;
 static int      mri3DapplyGradient(MORPH_3D *m3d, double dt);
-static double   mri3DscaleDeltaT(MORPH_3D *m3d, double dt, double max_grad);
+static double   mri3DscaleDeltaT(MORPH_3D *m3d, double dt, double max_grad,
+                                 MORPH_PARMS *parms);
 static int      MRIsample3Dmorph(MORPH_3D *m3d, float x, float y, float z, 
                                  float *pxd, float *pyd, float *pzd);
 static MORPH_3D *mri3DscaleUp2(MORPH_3D *m3d_in, MORPH_3D *m3d_out,
@@ -1822,7 +1835,7 @@ static double
 mri3DNonlinearAreaSSE(MRI *mri_in, MRI *mri_ref, MORPH_3D *m3d, 
                       MORPH_PARMS *parms)
 {
-  double     sse, delta, n3, ratio ;
+  double     sse, delta, n3, ratio, exponent ;
   int        i, j, k, width, height, depth ;
   MORPH_NODE *mn ;
   MNP        *mnp ;
@@ -1842,7 +1855,8 @@ mri3DNonlinearAreaSSE(MRI *mri_in, MRI *mri_ref, MORPH_3D *m3d,
       {
         mn = &m3d->nodes[i][j][k] ;
         mnp = &m3d->pnodes[i][j][k] ;
-        delta = (mnp->area - mnp->orig_area) / n3 ;
+        if (mnp->area <= 0)
+          m3d->neg++ ;
         /* scale up the area coefficient if the area of the current node is
            close to 0 or already negative */
         if (!FZERO(mnp->orig_area))
@@ -1852,11 +1866,11 @@ mri3DNonlinearAreaSSE(MRI *mri_in, MRI *mri_ref, MORPH_3D *m3d,
           ratio = 0 ;
           fprintf(stderr, "orig area = 0 at (%d, %d, %d)!!!\n", i, j, k) ;
         }
-#if 0
-        delta = (1.0 / parms->exp_k) * log(1.0+exp(-parms->exp_k*ratio));
-#else
-        delta = log(1+exp(parms->exp_k*ratio)) / parms->exp_k - ratio ;
-#endif
+        exponent = -parms->exp_k*ratio ;
+        if (exponent > MAX_EXP)
+          delta = 0.0 ;
+        else
+          delta = log(1+exp(exponent)) / parms->exp_k ;
 
         sse += delta * mri_in->thick ;
         if (!finitep(delta) || !finitep(sse))
@@ -1898,6 +1912,8 @@ mri3DAreaSSE(MRI *mri_in, MRI *mri_ref, MORPH_3D *m3d)
       {
         mn = &m3d->nodes[i][j][k] ;
         mnp = &m3d->pnodes[i][j][k] ;
+        if (mnp->area <= 0)
+          m3d->neg++ ;
         delta = (mnp->area - mnp->orig_area) / n3 ;
         sse += delta * delta * mri_in->thick ;
         if (!finitep(delta) || !finitep(sse))
@@ -2015,9 +2031,11 @@ mri3DInit(MRI *mri_in, MRI *mri_ref, MORPH_PARMS *parms, float size)
   v_X = VectorAlloc(4, MATRIX_REAL) ;
   v_Y = VectorAlloc(4, MATRIX_REAL) ;
   scale = mri_in->thick / size  ;
-  width = mri_in->width*scale ; 
-  height = mri_in->height*scale ; 
-  depth = mri_in->depth*scale ; 
+
+  /* put one node at the end of each row so expansion always interpolates */
+  width = mri_in->width*scale+1 ; 
+  height = mri_in->height*scale+1 ; 
+  depth = mri_in->depth*scale+1 ;
   m3d = (MORPH_3D *)calloc(1, sizeof(MORPH_3D)) ;
   if (!m3d)
     ErrorExit(ERROR_NOMEMORY, "mri3DInit: could not allocate m3d") ;
@@ -2148,11 +2166,11 @@ MRI3Dinit(MORPH_3D *m3d)
 MORPH_3D *
 MRI3Dmorph(MRI *mri_in, MRI *mri_ref, MORPH_PARMS *parms)
 {
-  int      nlevels, i, max_levels ;
+  int      nlevels, i, max_levels, navgs, base_avgs ;
   MRI      *mri_in_pyramid[MAX_LEVELS], *mri_ref_pyramid[MAX_LEVELS] ;
   MORPH_3D *m3d_tmp, *m3d ;
   char     base_name[100] ;
-  double   dt ;
+  double   dt, base_intensity, base_sigma, sigma ;
 
   mriNormalizeStds(mri_ref) ;
   if (parms->levels >= 0)
@@ -2189,36 +2207,87 @@ MRI3Dmorph(MRI *mri_in, MRI *mri_ref, MORPH_PARMS *parms)
     mri3DInit(mri_in_pyramid[MAX_LEVEL], mri_ref_pyramid[MAX_LEVEL], 
                   parms, mri_in_pyramid[MAX_LEVEL]->thick) ;
   m3d->mri_in = mri_in ; m3d->mri_ref = mri_ref ;
-  dt = parms->dt ;
+  dt = parms->dt ; navgs = base_avgs = parms->navgs ; 
+  base_intensity = parms->l_intensity ; base_sigma = parms->sigma ;
   for (i = MAX_LEVEL ; i >= MIN_LEVEL ; i--)
   {
     /*    parms->dt = dt / mri_in_pyramid[i]->thick ;*/
 #if !SCALE_INVARIANT
-#if 0
-    parms->dt = dt / (mri_in_pyramid[i]->thick*mri_in_pyramid[i]->thick) ;
-#else
     parms->dt = dt / (mri_in_pyramid[i]->thick) ;
-#endif
 #endif
     /*    parms->l_intensity = l_intensity * (sigma*sigma+1.0f) ;*/
     sprintf(parms->base_name, "%s_level%d_", base_name, i) ;
     sprintf(parms->base_name, "%s_", base_name) ;
-    fprintf(stderr, "aligning pyramid level %d.\n", i) ;
-    if ((Gdiag & DIAG_WRITE) && parms->log_fp)
-      fprintf(parms->log_fp, "aligning pyramid level %d.\n", i) ;
-    mri3DAlignPyramidLevel(mri_in_pyramid[i], mri_ref_pyramid[i], 
-                           mri_ref_pyramid[i], parms, m3d) ;
+#if USE_ITERATIVE_AVERAGING
+    for (navgs = base_avgs ; navgs >= 1 ; navgs /= 8)
+    {
+      if (navgs == 1)
+        navgs = 0 ;
+      parms->dt = dt*sqrt((float)navgs+1) / (mri_in_pyramid[i]->thick) ;
+      parms->l_intensity = base_intensity * sqrt((float)(navgs+1)) ;
+      fprintf(stderr, 
+              "aligning pyramid level %d, dt=%2.3f, navgs=%d, l_int=%2.2f\n", 
+              i, parms->dt, navgs, parms->l_intensity) ;
+      if ((Gdiag & DIAG_WRITE) && parms->log_fp)
+        fprintf(parms->log_fp,
+              "aligning pyramid level %d, dt=%2.2f, navgs=%d, l_int=%2.2f.\n",
+                i, parms->dt, navgs, parms->l_intensity);
+      parms->navgs = navgs ;
+      mri3DAlignPyramidLevel(mri_in_pyramid[i], mri_ref_pyramid[i], 
+                             mri_ref_pyramid[i], parms, m3d) ;
+    }
 
     if (i > MIN_LEVEL)
     {
       MRIfree(&mri_in_pyramid[i]) ;
       MRIfree(&mri_ref_pyramid[i]) ;
       m3d_tmp = mri3DscaleUp2(m3d, NULL, parms) ;
-      /*      MRI3DmorphFree(&m3d) ;  done inside function now */
       m3d = m3d_tmp ;
       m3d->mri_in = mri_in ; m3d->mri_ref = mri_ref ;
     }
+#else
+    for (sigma = base_sigma ; sigma >= 0 ; sigma /= 4)
+    {
+      if (sigma < 1)
+        sigma = 0 ;
+      parms->dt = dt * (sigma+1) / (mri_in_pyramid[i]->thick) ;
+      parms->l_intensity = base_intensity * (sigma+1) ;
+      fprintf(stderr, 
+            "aligning pyramid level %d, dt=%2.3f, sigma=%2.2f, l_int=%2.2f\n",
+              i, parms->dt, sigma, parms->l_intensity) ;
+      if ((Gdiag & DIAG_WRITE) && parms->log_fp)
+        fprintf(parms->log_fp,
+          "aligning pyramid level %d, dt=%2.2f, sigma=%2.2f, l_int=%2.2f.\n",
+                i, parms->dt, sigma, parms->l_intensity);
+      parms->sigma = sigma ;
+      mri3DAlignPyramidLevel(mri_in_pyramid[i], mri_ref_pyramid[i], 
+                             mri_ref_pyramid[i], parms, m3d) ;
+      if (FZERO(sigma))
+        break ;
+    }
+
+    if (i > MIN_LEVEL)
+    {
+      MRIfree(&mri_in_pyramid[i]) ;
+      MRIfree(&mri_ref_pyramid[i]) ;
+      m3d_tmp = mri3DscaleUp2(m3d, NULL, parms) ;
+      m3d = m3d_tmp ;
+      m3d->mri_in = mri_in ; m3d->mri_ref = mri_ref ;
+    }
+#endif
   }
+
+#if 0
+  /* one more time - do at highest resolution */
+  m3d->mri_in = mri_in ; m3d->mri_ref = mri_ref ;
+  sprintf(parms->base_name, "%s_level", base_name) ;
+  sprintf(parms->base_name, "%s_", base_name) ;
+  fprintf(stderr, "aligning base level.\n") ;
+  if ((Gdiag & DIAG_WRITE) && parms->log_fp)
+    fprintf(parms->log_fp, "aligning base level.\n") ;
+  mri3DAlignPyramidLevel(mri_in, mri_ref, mri_ref, parms, m3d) ;
+#endif
+
   strcpy(parms->base_name, base_name) ;
 
   /* free Gaussian pyramid */
@@ -3023,6 +3092,7 @@ mri3DNonlinearAreaTerm(MORPH_3D *m3d, double l_nlarea, int i, int j, int k,
   int            n ;
   static VECTOR  *v_a = NULL, *v_b, *v_c, *v_c_x_b, *v_b_x_a,*v_a_x_c,*v_grad,
                  *v_tmp ;
+  double         exponent ;
 
   if ((FZERO(l_nlarea)) || 
       (i >= m3d->width-1 || j >= m3d->height-1 || k >= m3d->depth-1) ||
@@ -3091,10 +3161,6 @@ mri3DNonlinearAreaTerm(MORPH_3D *m3d, double l_nlarea, int i, int j, int k,
     V3_LOAD(v_b, mnj->x - mn->x, mnj->y - mn->y, mnj->z - mn->z) ;
     V3_LOAD(v_c, mnk->x - mn->x, mnk->y - mn->y, mnk->z - mn->z) ;
     delta = (mnp->orig_area - mnp->area) / n3 ;
-#if 0
-    ratio = delta_scale = 1 ;
-#else
-#define MAX_AREA_SCALE (l_nlarea)
     /* scale up the area coefficient if the area of the current node is
        close to 0 or already negative */
     if (!FZERO(mnp->orig_area))
@@ -3107,19 +3173,16 @@ mri3DNonlinearAreaTerm(MORPH_3D *m3d, double l_nlarea, int i, int j, int k,
     if (mnp->area < 0)
       DiagBreak() ;
     /*delta = mnp->area / mnp->orig_area ;delta = 100*pow(0.001, abs(10*x));*/
-#if 0
-    delta_scale = l_nlarea * (1 - (1/(1.0+exp(-parms->exp_k*ratio)))) ;
-#else
-    delta_scale = l_nlarea/(1.0+exp(parms->exp_k*ratio)) ;
-#endif
+    exponent = parms->exp_k*ratio ;
+    if (exponent > MAX_EXP)
+      exponent = MAX_EXP ;
+    delta_scale = l_nlarea/(1.0+exp(exponent)) ;
     if (delta_scale > 10000)
       DiagBreak() ;
-#endif
-    delta *= delta_scale ;
-    if (delta > 100000)
+    delta *= delta_scale ;   /* chain rule */
+    if (fabs(delta) > 10000)
       DiagBreak() ;
-    if (!finitep(delta_scale))
-      DiagBreak() ;
+    
     
     
     /* compute cross-products and add the appropriate 
@@ -3164,7 +3227,7 @@ mri3DNonlinearAreaTerm(MORPH_3D *m3d, double l_nlarea, int i, int j, int k,
 
         Description
 ------------------------------------------------------*/
-#define AVG_LEN  10
+#define AVG_LEN  5
 static int
 mri3DAlignPyramidLevel(MRI *mri_in, MRI *mri_ref, MRI *mri_ref_blur, 
                        MP *parms, MORPH_3D *m3d)
@@ -3190,7 +3253,7 @@ mri3DAlignPyramidLevel(MRI *mri_in, MRI *mri_ref, MRI *mri_ref_blur,
   sse = mri3DSSE(mri_in, mri_ref, parms, m3d,
                  &intensity_rms, &distance_rms, &area_rms) ; 
   old_rms = rms = sqrt(sse / nvox) ;
-  old_rms += parms->tol*rms ;
+  old_rms += 0.5*parms->tol*rms ;
   log3DIntegration(parms, m3d,0,dt,rms, intensity_rms, distance_rms,area_rms);
 
   last_neg = m3d->neg ;
@@ -3231,10 +3294,16 @@ mri3DAlignPyramidLevel(MRI *mri_in, MRI *mri_ref, MRI *mri_ref_blur,
     if  ((((n+1)-parms->start_t) % AVG_LEN) == 0)
     {
       current_avg /= AVG_LEN ;
-      fprintf(stderr, "last avg=%2.2f, current avg = %2.2f, ratio=%2.3f\n",
+      if (Gdiag & DIAG_WRITE && parms->log_fp)
+        fprintf(parms->log_fp, 
+                "last avg=%2.2f, current avg = %2.2f, ratio=%2.3f\n\n",
+                last_avg, current_avg, (last_avg - current_avg)/current_avg);
+      fprintf(stderr, "last avg=%2.2f, current avg = %2.2f, ratio=%2.3f\n\n",
               last_avg, current_avg, (last_avg - current_avg) / current_avg);
-      if ((last_avg - current_avg) / current_avg < parms->tol) 
+      if (((last_avg - current_avg) / current_avg < parms->tol) && 
+          (last_neg <= m3d->neg)) 
         break ;
+      last_neg = m3d->neg ;
       last_avg = current_avg ;
       current_avg = rms ;
     }
@@ -3280,7 +3349,7 @@ mri3DIntegrationStep(MRI *mri_in, MRI *mri_ref, MRI *mri_ref_blur,
         xgrad = ygrad = zgrad = 0.0 ;
         zin = z * scale ; zsi = pzi[nint(zin)] ;  /* voxel coords of mri_in */
         mn = &m3d->nodes[x][y][z] ;        /* find out where this voxel went */
-        mnp = &m3d->pnodes[x][y][z] ;       /* find out where this voxel went */
+        mnp = &m3d->pnodes[x][y][z] ;      /* find out where this voxel went */
         xref = mn->x / mri_ref->thick ;
         yref = mn->y / mri_ref->thick ; 
         zref = mn->z / mri_ref->thick ; 
@@ -3313,7 +3382,14 @@ mri3DIntegrationStep(MRI *mri_in, MRI *mri_ref, MRI *mri_ref_blur,
   }
 
 #define MAX_GRAD (m3d->node_spacing / 8.0f)
-  dt = mri3DscaleDeltaT(m3d, dt, MAX_GRAD) ;
+  m3dcheck(m3d) ;
+#if USE_ITERATIVE_AVERAGING
+  mri3DaverageGradient(m3d, parms->navgs) ;
+#else
+  mri3DblurGradient(m3d, parms->sigma) ;
+#endif
+  m3dcheck(m3d) ;
+  dt = mri3DscaleDeltaT(m3d, dt, MAX_GRAD, parms) ;
   mri3DapplyGradient(m3d, dt) ;
   return(dt) ;
 }
@@ -3472,16 +3548,32 @@ log3DIntegration(MORPH_PARMS *parms, MORPH_3D *m3d,int n,double dt,double rms,
                  double intensity_rms, double distance_rms, double area_rms)
 {
   if (Gdiag & DIAG_SHOW)
+#if USE_ITERATIVE_AVERAGING
     fprintf(stderr, "%3.3d: dt = %2.4f, "
-            "rms = %2.3f (%2.2f, %2.2f, %2.2f), neg = %d\n", 
+            "rms = %2.3f (%2.2f, %2.2f, %2.2f), neg=%d, avgs=%d\n", 
             n, dt, rms,
-            intensity_rms, distance_rms, area_rms, m3d->neg) ;
+            intensity_rms, distance_rms, area_rms, m3d->neg, parms->navgs) ;
+#else
+    fprintf(stderr, "%3.3d: dt = %2.4f, "
+            "rms = %2.3f (%2.2f, %2.2f, %2.2f), neg=%d, sigma=%2.1f\n", 
+            n, dt, rms,
+            intensity_rms, distance_rms, area_rms, m3d->neg, parms->sigma) ;
+#endif
   if (Gdiag & DIAG_WRITE)
   {
+#if USE_ITERATIVE_AVERAGING
     fprintf(parms->log_fp, 
             "%3.3d: dt = %2.4f, "
-            "rms = %2.3f (%2.2f, %2.2f, %2.2f), neg=%d\n", 
-            n, dt, rms, intensity_rms, distance_rms, area_rms, m3d->neg) ;
+            "rms = %2.3f (%2.2f, %2.2f, %2.2f), neg=%d, avgs=%d\n", 
+            n, dt, rms, intensity_rms, distance_rms, area_rms, 
+            m3d->neg, parms->navgs) ;
+#else
+    fprintf(parms->log_fp, 
+            "%3.3d: dt = %2.4f, "
+            "rms = %2.3f (%2.2f, %2.2f, %2.2f), neg=%d, sigma=%2.1f\n", 
+            n, dt, rms, intensity_rms, distance_rms, area_rms, 
+            m3d->neg, parms->sigma) ;
+#endif
     fflush(parms->log_fp) ;
   }
   return(NO_ERROR) ;
@@ -3519,13 +3611,15 @@ write3DSnapshot(MRI *mri_in,MRI *mri_ref,MORPH_PARMS *parms,
   mri_tmp = MRIapplyInverse3DMorph(mri_ref, m3d, NULL) ;
   sprintf(fname, "%s%3.3d", parms->base_name, n) ;
   mriWriteImageViews(mri_tmp, fname, IMAGE_SIZE) ;
-  if (((n) % (5*parms->write_iterations)) == 0)
+#if 0
+  if (((n) % (10*parms->write_iterations)) == 0)
   {
     sprintf(fname, "%s%3.3d.mgh", parms->base_name, n) ;
     fprintf(stderr, "writing volume to %s...\n", fname) ;
     MRIwrite(mri_tmp, fname) ;
-    MRIfree(&mri_tmp) ;
   }
+#endif
+  MRIfree(&mri_tmp) ;
 
   return(NO_ERROR) ;
 }
@@ -3541,7 +3635,7 @@ static int
 mriWriteImageViews(MRI *mri, char *base_name, int target_size)
 {
   if (Gdiag & DIAG_SHOW)
-    fprintf(stderr, "writing image views to ???_%s.hipl...\n", base_name) ;
+    fprintf(stderr, "writing image views to ???_%s.rgb...\n", base_name) ;
   mriWriteImageView(mri, base_name, target_size, MRI_CORONAL, -1) ; 
   mriWriteImageView(mri, base_name, target_size, MRI_SAGITTAL, -1) ;
   mriWriteImageView(mri, base_name, target_size, MRI_HORIZONTAL, -1) ; 
@@ -3591,7 +3685,7 @@ mriWriteImageView(MRI *mri, char *base_name, int target_size, int view,
     ImageFree(&I) ;
     I = Itmp ;
   }
-  sprintf(fname, "%s_%s.hipl", prefix, base_name) ;
+  sprintf(fname, "%s_%s.rgb", prefix, base_name) ;
   ImageWrite(I, fname) ;
   ImageFree(&I) ;
   return(NO_ERROR) ;
@@ -3730,16 +3824,17 @@ finitep(float f)
         Description
 ------------------------------------------------------*/
 static double
-mri3DscaleDeltaT(MORPH_3D *m3d, double dt, double max_len)
+mri3DscaleDeltaT(MORPH_3D *m3d, double dt, double max_len, MORPH_PARMS *parms)
 {
   int        i, j, k, width, height, depth, maxi, maxj, maxk ;
   MORPH_NODE *mn ;
   MNP        *mnp ;
-  double     len, dx, dy, dz, max_delta, new_dt ;
+  double     len, dx, dy, dz, max_delta, new_dt, max_orig, max_current ;
 
   maxi = maxj = maxk = -1 ;
   width = m3d->width ; height = m3d->height ; depth = m3d->depth ; 
-  for (max_delta = 0.0f, i = 0 ; i < width ; i++)
+  max_current = max_orig = 1.0 ;
+  for (max_delta = -1.0f, i = 0 ; i < width ; i++)
   {
     for (j = 0 ; j < height ; j++)
     {
@@ -3753,13 +3848,23 @@ mri3DscaleDeltaT(MORPH_3D *m3d, double dt, double max_len)
         {
           maxi = i ; maxj = j ; maxk = k ;
           max_delta = len ;
+          max_orig = mnp->orig_area ;
+          max_current = mnp->area ;
         }
       }
     }
   }
 
   if (Gdiag & DIAG_SHOW)
-    fprintf(stderr,"max delta %2.3f at (%d,%d,%d)\n",max_delta,maxi,maxj,maxk);
+    fprintf(stderr,"max delta %2.3f at (%d,%d,%d), ratio=%2.1f/%2.1f=%2.2f\n",
+            max_delta,maxi,maxj,maxk, max_current, max_orig,
+            FZERO(max_orig) ? 0.0 : max_current / max_orig);
+  if (Gdiag & DIAG_WRITE && parms->log_fp)
+    fprintf(parms->log_fp,
+            "max delta %2.3f at (%d,%d,%d), ratio=%2.1f/%2.1f=%2.2f\n",
+            max_delta,maxi,maxj,maxk, max_current, max_orig, 
+            FZERO(max_orig) ? 0.0 : max_current / max_orig);
+
   if (max_delta * dt > max_len)
   {
     new_dt = max_len / max_delta ;
@@ -3788,7 +3893,7 @@ MRI3Dwrite(MORPH_3D *m3d, char *fname)
   fp = fopen(fname, "wb") ;
   if (!fp)
     ErrorReturn(ERROR_NOFILE, 
-                (ERROR_NOFILE, "mris3Dwrite: could not open file %s", fname)) ;
+                (ERROR_NOFILE, "mris3Dwrite: could not open file %s", fname));
 
   if (fwriteInt(M3D_MAGIC, fp) != 1)
     ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "mri3Dwrite: fwrite failed")) ;
@@ -4006,6 +4111,7 @@ mri3DscaleUp2(MORPH_3D *m3d_in, MORPH_3D *m3d_out, MORPH_PARMS *parms)
   return(m3d_out) ;
 }
 #else
+#if 0
 static MORPH_3D *
 mri3DscaleUp2(MORPH_3D *m3d_in, MORPH_3D *m3d_out, MORPH_PARMS *parms)
 {
@@ -4153,6 +4259,86 @@ mri3DscaleUp2(MORPH_3D *m3d_in, MORPH_3D *m3d_out, MORPH_PARMS *parms)
   }
   return(m3d_out) ;
 }
+#else
+static MORPH_3D *
+mri3DscaleUp2(MORPH_3D *m3d_in, MORPH_3D *m3d_out, MORPH_PARMS *parms)
+{
+  int         width, height, depth, i, j, k, alloced = 0 ;
+  MORPH_NODE  *mn ;
+  MNP         *mnp ;
+  float       x, y, z, node_spacing ;
+  VECTOR     *v_X, *v_Y ;
+
+  v_X = VectorAlloc(4, MATRIX_REAL) ;
+  v_Y = VectorAlloc(4, MATRIX_REAL) ;
+
+  width  = m3d_in->width *2-1 ; 
+  height = m3d_in->height*2-1 ; 
+  depth  = m3d_in->depth *2-1 ;
+  node_spacing = m3d_in->node_spacing/2.0 ;
+  if (!m3d_out)
+  {
+    alloced = 1 ;
+    m3d_out = mri3Dalloc(width, height, depth, node_spacing) ;
+  }
+  m3d_out->lta = m3d_in->lta ;
+
+  for (i = 0 ; i < width ; i++)
+  {
+    x = V3_X(v_X) = (float)i * node_spacing ;
+    for (j = 0 ; j < height ; j++)
+    {
+      y = V3_Y(v_X) = (float)j * node_spacing ;
+      for (k = 0 ; k < depth ; k++)
+      {
+        if (k == depth-1)
+          DiagBreak() ;
+        z = V3_Z(v_X) = (float)k * node_spacing ;
+        mn  = &m3d_out->nodes[i][j][k] ;
+        MRIsample3Dmorph(m3d_in, x, y, z, &mn->x, &mn->y, &mn->z) ;
+      }
+    }
+  }
+  MRI3DmorphFree(&m3d_in) ;
+
+  mri3DallocProperties(m3d_out) ;
+  for (i = 0 ; i < width ; i++)
+  {
+    x = V3_X(v_X) = (float)i * node_spacing ;
+    for (j = 0 ; j < height ; j++)
+    {
+      y = V3_Y(v_X) = (float)j * node_spacing ;
+      for (k = 0 ; k < depth ; k++)
+      {
+        z = V3_Z(v_X) = (float)k * node_spacing ;
+        mn  = &m3d_out->nodes[i][j][k] ;
+        mnp = &m3d_out->pnodes[i][j][k] ;
+        if (alloced)
+        {
+#if !USE_ORIGINAL_PROPTERIES
+          LTAtransformPoint(parms->lta, v_X, v_Y) ;
+#else
+          MatrixCopy(v_X, v_Y) ;
+#endif
+          mnp->ox = V3_X(v_Y) ; mnp->oy = V3_Y(v_Y) ; mnp->oz = V3_Z(v_Y) ; 
+        }
+
+        if (!finitep(mn->x) || !finitep(mn->y) || !finitep(mn->z) || 
+            !finitep(mnp->ox) || !finitep(mnp->oy) || !finitep(mnp->oz))
+          DiagBreak() ;
+      }
+    }
+  }
+
+  mri3DcomputeMetricProperties(m3d_out) ;
+  if (alloced)
+  {
+    mri3DInitDistances(m3d_out) ;
+    mri3DInitAreas(m3d_out) ;
+  }
+  return(m3d_out) ;
+}
+#endif
 #endif
 #if 0
 /*-----------------------------------------------------
@@ -4322,3 +4508,253 @@ mriNormalizeStds(MRI *mri)
   mri->mean = MRImeanFrame(mri, 1) ;
   return(NO_ERROR) ;
 }
+#if USE_ITERATIVE_AVERAGING
+static int
+mri3DaverageGradient(MORPH_3D *m3d, int niter)
+{
+  int        i, j, k, width, height, depth, n, a, num ;
+  MORPH_NODE *mn ;
+  MNP        *mnp, *mnp_nbr ;
+
+  width = m3d->width ; height = m3d->height ; depth = m3d->depth ; 
+
+  for (a = 0 ; a < niter ; a++)
+  {
+    for (i = 0 ; i < width ; i++)
+    {
+      for (j = 0 ; j < height ; j++)
+      {
+        for (k = 0 ; k < depth ; k++)
+        {
+          mn = &m3d->nodes[i][j][k] ;
+          mnp = &m3d->pnodes[i][j][k] ;
+          for (num = n = 0 ; n < NEIGHBORS ; n++)
+          {
+            switch (n)
+            {
+            default:
+            case 0:      /* i-1 */
+              if (i > 0)
+                mnp_nbr = &m3d->pnodes[i-1][j][k] ;
+              else
+                mnp_nbr = NULL ;
+              break ;
+            case 1:      /* i+1 */
+              if (i < width-1)
+                mnp_nbr = &m3d->pnodes[i+1][j][k] ;
+              else
+                mnp_nbr = NULL ;
+              break ;
+            case 2:      /* j-1 */
+              if (j > 0)
+                mnp_nbr = &m3d->pnodes[i][j-1][k] ;
+              else
+                mnp_nbr = NULL ;
+              break ;
+            case 3:      /* j+1 */
+              if (j < height-1)
+                mnp_nbr = &m3d->pnodes[i][j+1][k] ;
+              else
+                mnp_nbr = NULL ;
+              break ;
+            case 4:      /* k-1 */
+              if (k > 0)
+                mnp_nbr = &m3d->pnodes[i][j][k-1] ;
+              else
+                mnp_nbr = NULL ;
+              break ;
+            case 5:      /* k+1 */
+              if (k < depth-1)
+                mnp_nbr = &m3d->pnodes[i][j][k+1] ;
+              else
+                mnp_nbr = NULL ;
+              break ;
+            }
+            if (mnp_nbr)
+            {
+              num++ ;
+              mnp->tdx += mnp_nbr->dx ;
+              mnp->tdy += mnp_nbr->dy ;
+              mnp->tdz += mnp_nbr->dz ;
+            }
+          }
+          if (num >= 0)
+          {
+            mnp->tdx /= (float)num ;
+            mnp->tdy /= (float)num ;
+            mnp->tdz /= (float)num ;
+          }
+        }
+      }
+    }
+    for (i = 0 ; i < width ; i++)
+    {
+      for (j = 0 ; j < height ; j++)
+      {
+        for (k = 0 ; k < depth ; k++)
+        {
+          mnp = &m3d->pnodes[i][j][k] ;
+          mnp->dx = mnp->tdx ; mnp->dy = mnp->tdy ; mnp->dz = mnp->tdz ; 
+          mnp->tdx = mnp->tdy = mnp->tdz = 0.0 ;
+        }
+      }
+    }
+
+  }
+  return(NO_ERROR) ;
+}
+#else
+static int
+mri3DblurGradient(MORPH_3D *m3d, float sigma)
+{
+  int        i, j, k, i1, j1, k1, whalf, width, height, depth ;
+  MORPH_NODE *mn ;
+  MNP        *mnp, *mnp_nbr ;
+  double     dx_total, dy_total, dz_total, ktotal, two_sigma_sq, dist, kernel ;
+
+  if (FZERO(sigma))
+    return(NO_ERROR) ;
+
+  width = m3d->width ; height = m3d->height ; depth = m3d->depth ; 
+
+  whalf = nint(1.5*sigma) /*nint(2*sigma)*/ ;
+  two_sigma_sq = 2.0 * sigma * sigma ;
+
+  /* convolve in width */
+  for (i = 0 ; i < width ; i++)
+  {
+    for (j = 0 ; j < height ; j++)
+    {
+      for (k = 0 ; k < depth ; k++)
+      {
+        mn = &m3d->nodes[i][j][k] ;
+        mnp = &m3d->pnodes[i][j][k] ;
+        
+        dx_total = dy_total = dz_total = ktotal = 0.0 ;
+        for (i1 = i-whalf ; i1 <= i+whalf ; i1++)
+        {
+          if (i1 < 0 || i1 >= width)
+            continue ;
+          mnp_nbr = &m3d->pnodes[i1][j][k] ;
+          dist = (i1-i) ; dist *= dist ;
+          kernel = exp(-dist / two_sigma_sq) ;
+          ktotal += kernel ;
+          dx_total += mnp_nbr->dx*kernel ;
+          dy_total += mnp_nbr->dy*kernel ;
+          dz_total += mnp_nbr->dz*kernel ;
+        }
+        mnp->tdx = dx_total / ktotal ;
+        mnp->tdy = dy_total / ktotal ;
+        mnp->tdz = dz_total / ktotal ;
+      }
+    }
+  }
+  m3dCopyTempToGradient(m3d) ;
+
+  /* convolve in height */
+  for (i = 0 ; i < width ; i++)
+  {
+    for (j = 0 ; j < height ; j++)
+    {
+      for (k = 0 ; k < depth ; k++)
+      {
+        mn = &m3d->nodes[i][j][k] ;
+        mnp = &m3d->pnodes[i][j][k] ;
+        
+        dx_total = dy_total = dz_total = ktotal = 0.0 ;
+        for (j1 = j-whalf ; j1 <= j+whalf ; j1++)
+        {
+          if (j1 < 0 || j1 >= height)
+            continue ;
+          mnp_nbr = &m3d->pnodes[i][j1][k] ;
+          dist = (j1-j) ; dist *= dist ;
+          kernel = exp(-dist / two_sigma_sq) ;
+          ktotal += kernel ;
+          dx_total += mnp_nbr->dx*kernel ;
+          dy_total += mnp_nbr->dy*kernel ;
+          dz_total += mnp_nbr->dz*kernel ;
+        }
+        mnp->tdx = dx_total / ktotal ;
+        mnp->tdy = dy_total / ktotal ;
+        mnp->tdz = dz_total / ktotal ;
+      }
+    }
+  }
+  m3dCopyTempToGradient(m3d) ;
+
+  /* convolve in depth */
+  for (i = 0 ; i < width ; i++)
+  {
+    for (j = 0 ; j < height ; j++)
+    {
+      for (k = 0 ; k < depth ; k++)
+      {
+        mn = &m3d->nodes[i][j][k] ;
+        mnp = &m3d->pnodes[i][j][k] ;
+        
+        dx_total = dy_total = dz_total = ktotal = 0.0 ;
+        for (k1 = k-whalf ; k1 <= k+whalf ; k1++)
+        {
+          if (k1 < 0 || k1 >= depth)
+            continue ;
+          mnp_nbr = &m3d->pnodes[i][j][k1] ;
+          dist = (k1-k) ; dist *= dist ;
+          kernel = exp(-dist / two_sigma_sq) ;
+          ktotal += kernel ;
+          dx_total += mnp_nbr->dx*kernel ;
+          dy_total += mnp_nbr->dy*kernel ;
+          dz_total += mnp_nbr->dz*kernel ;
+        }
+        mnp->tdx = dx_total / ktotal ;
+        mnp->tdy = dy_total / ktotal ;
+        mnp->tdz = dz_total / ktotal ;
+      }
+    }
+  }
+  m3dCopyTempToGradient(m3d) ;
+  return(NO_ERROR) ;
+}
+
+static int
+m3dCopyTempToGradient(MORPH_3D *m3d)
+{
+  int        i, j, k, width, height, depth ;
+  MNP        *mnp ;
+
+  width = m3d->width ; height = m3d->height ; depth = m3d->depth ; 
+
+  for (i = 0 ; i < width ; i++)
+  {
+    for (j = 0 ; j < height ; j++)
+    {
+      for (k = 0 ; k < depth ; k++)
+      {
+        mnp = &m3d->pnodes[i][j][k] ;
+        mnp->dx = mnp->tdx ; mnp->dy = mnp->tdy ; mnp->dz = mnp->tdz ;
+      }
+    }
+  }
+  return(NO_ERROR) ;
+}
+#endif
+static int
+m3dcheck(MORPH_3D * m3d)
+{
+  MNP        *mnp ;
+  int        i, j, k ;
+
+  for (i = 0 ; i < m3d->width ; i++)
+  {
+    for (j = 0 ; j < m3d->height ; j++)
+    {
+      for (k = 0 ; k < m3d->depth ; k++)
+      {
+        mnp = &m3d->pnodes[i][j][k] ;
+        if (FZERO(mnp->orig_area))
+          DiagBreak() ;
+      }
+    }
+  }
+  return(NO_ERROR) ;
+}
+

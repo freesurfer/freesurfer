@@ -26,6 +26,7 @@ typedef struct
   double     tol ;           /* for terminating integration */
   int        levels ;
   MRI        *mri_in, *mri_ref ;  /* for diagnostics to get at originals */
+  int        navgs ;         /* # of iterations of gradient averaging */
 } MORPH_PARMS, MP ;
 
 #define INTEGRATION_TOL    1e-4  /*5e-5*/
@@ -46,6 +47,7 @@ typedef struct
   float      orig_dist[NEIGHBORS] ;  /* original distances to 6 neighbors */
   float      orig_area ;             /* original area */
   float      area ;                  /* current area */
+  float      tdx, tdy, tdz ;         /* temp. quantities for gradient avging */
 } MORPH_NODE_PROPERTIES, MNP ;
 
 typedef struct
