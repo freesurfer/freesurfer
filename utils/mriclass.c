@@ -400,12 +400,13 @@ MRI *
 MRICclassify(MRIC *mric, MRI *mri_src, MRI *mri_dst, 
             float conf, MRI *mri_probs, MRI *mri_classes)
 {
-  MATRIX     *m_inputs, *m_priors ;
+  MATRIX     *m_priors ;
+  VECTOR     *v_inputs ;
   GCLASSIFY  *gc ;
-  int        x, y, z, width, depth, height, classno, nclasses, row, xt, yt,zt,
+  int        x, y, z, width, depth, height, classno, nclasses, xt, yt,zt,
              round, x1, y1, z1, x0 ;
   BUFTYPE    *psrc, src, *pdst, *pclasses ;
-  float      prob, *pprobs = NULL, inputs[MAX_INPUTS+1] ;
+  float      prob, *pprobs = NULL ;
   Real       xrt, yrt, zrt ;
   MRI        *mri_priors, *mri_in ;
   MRI_REGION bounding_box ;
@@ -439,7 +440,7 @@ MRICclassify(MRIC *mric, MRI *mri_src, MRI *mri_dst,
   {
     gc = mric->classifier[round].gc ;
     nclasses = gc->nclasses ;
-    m_inputs = MatrixAlloc(mric->ninputs[round], 1, MATRIX_REAL) ;
+    v_inputs = VectorAlloc(mric->ninputs[round], MATRIX_REAL) ;
     
     for (z = bounding_box.z ; z <= z1 ; z++)
     {
@@ -471,12 +472,10 @@ MRICclassify(MRIC *mric, MRI *mri_src, MRI *mri_dst,
               m_priors->rptr[classno+1][1] = 
                 MRIFseq_vox(mri_priors, xt, yt, zt, classno) ;
           }
-          MRICcomputeInputs(mri_in, x, y, z, inputs, mric->features[round]) ;
-          for (row = 1 ; row <= mric->ninputs[round] ; row++)
-            m_inputs->rptr[row][1] = inputs[row] ;
+          MRICcomputeInputs(mri_in, x, y, z, v_inputs, mric->features[round]) ;
           
           /* now classify this observation */
-          classno = GCclassify(gc, m_inputs, m_priors, &prob) ;
+          classno = GCclassify(gc, v_inputs, m_priors, &prob) ;
           
           if (pclasses)
             *pclasses++ = (BUFTYPE)classno*CLASS_SCALE ;
@@ -490,7 +489,7 @@ MRICclassify(MRIC *mric, MRI *mri_src, MRI *mri_dst,
         }
       }
     }
-    MatrixFree(&m_inputs) ;
+    VectorFree(&v_inputs) ;
     mri_in = mri_classes ;  /* all subsequent rounds */
   }
 
@@ -514,7 +513,7 @@ MRICclassify(MRIC *mric, MRI *mri_src, MRI *mri_dst,
 ------------------------------------------------------*/
 #define REGION_SIZE 8
 int
-MRICcomputeInputs(MRI *mri, int x,int y,int z,float *inputs,int features)
+MRICcomputeInputs(MRI *mri, int x,int y,int z,VECTOR *v_inputs,int features)
 {
   static int         old_features = 0 ;
   static MRI_REGION  region = {0,0, 0, 0,0,0} ;
@@ -525,9 +524,8 @@ MRICcomputeInputs(MRI *mri, int x,int y,int z,float *inputs,int features)
               *mri_cpolv_median5 = NULL,
               *mri_min3 = NULL, *mri_min5 = NULL, *mri_min7 = NULL ;
 
-  int         x0, y0, z0 ;
+  int         x0, y0, z0, index ;
   MRI_REGION  rbig ;
-  float       *in ;
   char        *cp ;
 
   if (mri != mri_prev)   /* reset counters */
@@ -702,33 +700,33 @@ MRICcomputeInputs(MRI *mri, int x,int y,int z,float *inputs,int features)
 
   /* x0,y0,z0 are coordinates in region based images (not input mri or polv) */
   x0 = x-region.x ; y0 = y - region.y ; z0 = z - region.z ;
-  in = &inputs[1] ;  /* inputs are 1-based because of NRC */
+  index = 1 ;  /* inputs are 1-based because of NRC */
   if (features & FEATURE_INTENSITY)
-    *in++ = (float)MRIvox(mri, x, y, z) ;
+    VECTOR_ELT(v_inputs, index++) = (float)MRIvox(mri, x, y, z) ;
   if (features & FEATURE_ZSCORE3)
-    *in++ = MRIFvox(mri_zscore3, x0, y0, z0) ;
+    VECTOR_ELT(v_inputs, index++) = MRIFvox(mri_zscore3, x0, y0, z0) ;
   if (features & FEATURE_ZSCORE5)
-    *in++ = MRIFvox(mri_zscore5, x0, y0, z0) ;
+    VECTOR_ELT(v_inputs, index++) = MRIFvox(mri_zscore5, x0, y0, z0) ;
   if (features & FEATURE_DIRECTION)
-    *in++ = MRIFvox(mri_direction, x0, y0, z0) ;
+    VECTOR_ELT(v_inputs, index++) = MRIFvox(mri_direction, x0, y0, z0) ;
   if (features & FEATURE_MEAN3)
-    *in++ = MRIFvox(mri_mean3, x0, y0, z0) ;
+    VECTOR_ELT(v_inputs, index++) = MRIFvox(mri_mean3, x0, y0, z0) ;
   if (features & FEATURE_MEAN5)
-    *in++ = MRIFvox(mri_mean5, x0, y0, z0) ;
+    VECTOR_ELT(v_inputs, index++) = MRIFvox(mri_mean5, x0, y0, z0) ;
   if (features & FEATURE_CPOLV_MEAN3)
-    *in++ = (float)MRIvox(mri_cpolv_mean3, x0, y0, z0) ;
+    VECTOR_ELT(v_inputs, index++) = (float)MRIvox(mri_cpolv_mean3, x0, y0, z0) ;
   if (features & FEATURE_CPOLV_MEAN5)
-    *in++ = (float)MRIvox(mri_cpolv_mean5, x0, y0, z0) ;
+    VECTOR_ELT(v_inputs, index++) = (float)MRIvox(mri_cpolv_mean5, x0, y0, z0) ;
   if (features & FEATURE_CPOLV_MEDIAN3)
-    *in++ = (float)MRIvox(mri_cpolv_median3, x0, y0, z0) ;
+    VECTOR_ELT(v_inputs, index++) = (float)MRIvox(mri_cpolv_median3, x0, y0, z0);
   if (features & FEATURE_CPOLV_MEDIAN5)
-    *in++ = (float)MRIvox(mri_cpolv_median5, x0, y0, z0) ;
+    VECTOR_ELT(v_inputs, index++) = (float)MRIvox(mri_cpolv_median5, x0, y0, z0);
   if (features & FEATURE_MIN3)
-    *in++ = (float)MRIvox(mri_min3, x0, y0, z0) ;
+    VECTOR_ELT(v_inputs, index++) = (float)MRIvox(mri_min3, x0, y0, z0) ;
   if (features & FEATURE_MIN5)
-    *in++ = (float)MRIvox(mri_min5, x0, y0, z0) ;
+    VECTOR_ELT(v_inputs, index++) = (float)MRIvox(mri_min5, x0, y0, z0) ;
   if (features & FEATURE_MIN7)
-    *in++ = (float)MRIvox(mri_min7, x0, y0, z0) ;
+    VECTOR_ELT(v_inputs, index++) = (float)MRIvox(mri_min7, x0, y0, z0) ;
   
   return(NO_ERROR) ;
 }
@@ -906,10 +904,12 @@ MRICupdateStatistics(MRIC *mric, int round, MRI *mri_src, MRI *mri_wm,
   int        x, y, z, classno, nclasses, width, height, depth, row, col,
              x1,y1,z1 ;
   BUFTYPE    *psrc, *ptarget, src ;
-  float      inputs[MAX_INPUTS+1], covariance ;
+  float      covariance ;
+  VECTOR     *v_inputs ;
   MRI        *mri_target ;
 
   mri_target = MRICbuildTargetImage(mri_src, NULL, mri_wm, LO_LIM, HI_LIM) ;
+  v_inputs = VectorAlloc(mric->ninputs[round], MATRIX_REAL) ;
 
   nclasses = mric->classifier[round].gc->nclasses ;
   gc = mric->classifier[round].gc ;
@@ -936,15 +936,15 @@ MRICupdateStatistics(MRIC *mric, int round, MRI *mri_src, MRI *mri_wm,
         gcl = &gc->classes[classno] ;
         gcl->nobs++ ;
 
-        MRICcomputeInputs(mri_src, x, y, z, inputs, mric->features[round]) ;
+        MRICcomputeInputs(mri_src, x, y, z, v_inputs, mric->features[round]) ;
         for (row = 1 ; row <= mric->ninputs[round] ; row++)
-          gcl->m_u->rptr[row][1] += inputs[row] ;
+          gcl->m_u->rptr[row][1] += VECTOR_ELT(v_inputs, row);
         for (row = 1 ; row <= gcl->m_covariance->rows ; row++)
         {
           for (col = 1 ; col <= row ; col++)
           {
             covariance = gcl->m_covariance->rptr[row][col] +
-              inputs[row]*inputs[col] ;
+              VECTOR_ELT(v_inputs,row)*VECTOR_ELT(v_inputs,col) ;
             gcl->m_covariance->rptr[row][col] = covariance;
             /*            gcl->m_covariance->rptr[col][row] = covariance;*/
           }
@@ -953,6 +953,7 @@ MRICupdateStatistics(MRIC *mric, int round, MRI *mri_src, MRI *mri_wm,
     }
   }
 
+  VectorFree(&v_inputs) ;
   MRIfree(&mri_target) ;
   return(NO_ERROR) ;
 }
