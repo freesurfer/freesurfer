@@ -427,10 +427,15 @@ int
 FileExists(char *fname)
 {
   FILE *fp ;
+  int old_errno;
+
+  old_errno = errno;
 
   fp = fopen(fname, "r") ;
   if (fp)
     fclose(fp) ;
+  else
+    errno = old_errno;
 
   return(fp != NULL) ;
 }
