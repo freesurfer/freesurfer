@@ -227,7 +227,8 @@ MRI   *MRIextractCpolvCoords(MRI *mri_src, int *px, int *py, int *pz,
                                  MRI *mri_polv, int x, int y,int z,int wsize);
 MRI   *MRIextractValues(MRI *mri_src, MRI *mri_dst, float min_val, 
                         float max_val) ;
-MRI   *MRIwmfilter(MRI *mri_src, MRI *mri_cpolv, MRI *mri_dst) ;
+MRI   *MRIwmfilter(MRI *mri_src, MRI *mri_cpolv, MRI *mri_dst,
+                   float nslope, float pslope) ;
 MRI   *MRIorder(MRI *mri_src, MRI *mri_dst, int wsize, float pct) ;
 MRI   *MRIremoveHoles(MRI *mri_src, MRI*mri_dst, int wsize, float pct) ;
 
