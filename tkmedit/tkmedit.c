@@ -12,6 +12,7 @@
 /*#endif */
 #include <fcntl.h>
 #include "error.h"
+#include "diag.h"
 #include "utils.h"
 
 
@@ -81,6 +82,19 @@ int            tk_NumMainWindows = 0;
            glMatrixMode(GL_PROJECTION); \
            glLoadIdentity(); \
            glOrtho(X0,X1,Y0,Y1,-1.0,1.0);
+#ifdef BLACK
+#undef BLACK
+#endif
+#ifdef RED
+#undef RED
+#endif
+#ifdef YELLOW
+#undef YELLOW
+#endif
+#ifdef GREEN
+#undef GREEN
+#endif
+
 #  define BLACK   0  /* TODO: use tkoSetOneColor, glIndexs */
 #  define GREEN   1
 #  define RED     2
@@ -858,20 +872,22 @@ void getPlane(char* fbuffer, int zf, int xoff, int yoff)
   y = auy + avy + cy; 
   z = auz + avz + cz;
 
-  for(h=0; h<256*zf; ++h) {
+  for(h=0; h<256*zf; ++h) 
+  {
     x = aux + avx + cx;
     y = auy + avy + cy; 
     z = auz + avz + cz;
-    for(w=0; w<256*zf; ++w) {
+    for(w=0; w<256*zf; ++w) 
+    {
       if(z<0 || z > 255 || x <0 || x>255 || y<0 || y>255) {
-  dhcache[myoff+w]=0;
-  continue;
+        dhcache[myoff+w]=0;
+        continue;
       }
       /* this sucks on a sgi !!!
-   floating point calculation is to slow on R5000 and
-   this cast during memory access kills the remaining speed
-      */
-      dhcache[myoff+w] = im[(int)z][(int)(256-1-y)][(int)x];
+         floating point calculation is to slow on R5000 and
+         this cast during memory access kills the remaining speed
+         */
+      dhcache[myoff+w] = im[(int)z][(int)(256-1/zf-y)][(int)x];
       x += sux;
       y += suy; 
       z += suz;
@@ -2661,8 +2677,11 @@ void redraw(void)
     wintitle(imtype2);
   }
   else {
+#ifdef Linux
     draw_image_hacked(imc,ic,jc);
-    /* draw_image(imc,ic,jc); */
+#else
+    draw_image(imc,ic,jc); 
+#endif
     wintitle(imtype);
   }
   if (ptsflag && !all3flag) drawpts();
@@ -3277,49 +3296,57 @@ void draw_image(int imc,int ic,int jc)
   if (all3flag) curs = 15;
   else          curs = 2;
 
-  if (maxflag && !all3flag) {
+  if (maxflag && !all3flag) 
+  {
     k = 0;
     if (plane==CORONAL)
       for (i=ydim-1;i>=0;i--)
-      for (j=0;j<xdim;j++)  vidbuf[k++] = sim[0][i/zf][j/zf]+MAPOFFSET;
+        for (j=0;j<xdim;j++)  vidbuf[k++] = sim[0][i/zf][j/zf]+MAPOFFSET;
     else if (plane==HORIZONTAL)
       for (i=0;i<ydim;i++)
-      for (j=0;j<xdim;j++)  vidbuf[k++] = sim[1][i/zf][j/zf]+MAPOFFSET;
+        for (j=0;j<xdim;j++)  vidbuf[k++] = sim[1][i/zf][j/zf]+MAPOFFSET;
     else if (plane==SAGITTAL)
       for (i=ydim-1;i>=0;i--)
-      for (j=0;j<xdim;j++)  vidbuf[k++] = sim[2][i/zf][j/zf]+MAPOFFSET;
+        for (j=0;j<xdim;j++)  vidbuf[k++] = sim[2][i/zf][j/zf]+MAPOFFSET;
   }
-  else {
-    if (plane==CORONAL || all3flag) {
+  else 
+  {
+    if (plane==CORONAL || all3flag) 
+    {
       k = 0;
       zimc = imc/zf;
-      if (zimc>=0&&zimc<imnr1) {
+      if (zimc>=0&&zimc<imnr1) 
+      {
         for (i=0;i<ydim;i++)
-        for (j=0;j<xdim;j++) {
-          if (all3flag && (i%2 || j%2)) continue;
-          v = im[zimc][(ydim-i-1)/zf][j/zf]+MAPOFFSET;
-          if (truncflag)
-            if (v<white_lolim+MAPOFFSET || v>white_hilim+MAPOFFSET)
-              v=MAPOFFSET;
-          if (all3flag)
+          for (j=0;j<xdim;j++) 
           {
-            idx_buf = 4*((xdim*hay) + k + ((i/2)*hax)) ;
-            vidbuf[idx_buf] = vidbuf[idx_buf+1] = vidbuf[idx_buf + 2] = v;
-            vidbuf[idx_buf + 3]=255;
-            k++;
+            if (i == 128 && j == 128)
+              DiagBreak() ;
+            if (all3flag && (i%2 || j%2)) continue;
+            v = im[zimc][(ydim-i-1)/zf][j/zf]+MAPOFFSET;
+            if (truncflag)
+              if (v<white_lolim+MAPOFFSET || v>white_hilim+MAPOFFSET)
+                v=MAPOFFSET;
+            if (all3flag)
+            {
+              idx_buf = 4*((xdim*hay) + k + ((i/2)*hax)) ;
+              vidbuf[idx_buf] = vidbuf[idx_buf+1] = vidbuf[idx_buf + 2] = v;
+              vidbuf[idx_buf + 3]=255;
+              k++;
+            }
+            else
+            {
+              /*
+                vidbuf[k] = v;
+                k++;
+              */
+              vidbuf[k] = vidbuf[k+1] = vidbuf[k+2]= v; 
+              vidbuf[k+3]=255;
+              k+=4;
+            }
           }
-          else
-          {
-    /*
-      vidbuf[k] = v;
-      k++;
-    */
-            vidbuf[k] = vidbuf[k+1] = vidbuf[k+2]= v; 
-            vidbuf[k+3]=255;
-            k+=4;
-          }
-        }
-        for (i=ic-curs;i<=ic+curs;i++) {
+        for (i=ic-curs;i<=ic+curs;i++) 
+        {
           if (all3flag) k = 4*(xdim*hay + i/2*xdim/2+jc/2 + i/2*hax);
           else      k = 4*(i*xdim+jc);
           vidbuf[k] = NUMVALS-1; vidbuf[k+1] = vidbuf[k+2] = 0; 
@@ -3334,10 +3361,10 @@ void draw_image(int imc,int ic,int jc)
       }
       else {  /* outside=black */
         for (i=0;i<ydim;i++)
-        for (j=0;j<xdim;j++) {
-          if (all3flag && (i%2 || j%2)) continue;
-          vidbuf[k++] = MAPOFFSET;
-        }
+          for (j=0;j<xdim;j++) {
+            if (all3flag && (i%2 || j%2)) continue;
+            vidbuf[k++] = MAPOFFSET;
+          }
       }
     }
     if (plane==HORIZONTAL || all3flag) 
@@ -3346,30 +3373,30 @@ void draw_image(int imc,int ic,int jc)
       zic = (ydim-1-ic)/zf;
       if (zic>=0&&zic<ynum) {
         for (imnr=0;imnr<ydim;imnr++)
-        for (j=0;j<xdim;j++) {
-          if (all3flag && (imnr%2 || j%2)) continue;
-          v = im[imnr/zf][zic][j/zf]+MAPOFFSET;
-          if (truncflag)
-            if (v<white_lolim+MAPOFFSET || v>white_hilim+MAPOFFSET)
-              v=MAPOFFSET;
-          if ((imnr==imc&&abs(j-jc)<=curs)||
-              (j==jc&&abs(imnr-imc)<=curs)) 
-            v=0 /*NUMVALS+MAPOFFSET*/;
-          if (all3flag) 
-          {
-            idx_buf = 4*((xdim*hay) + hax + k + ((imnr/2)*hax)) ;
-            vidbuf[idx_buf] = vidbuf[idx_buf+1] = vidbuf[idx_buf + 2] = v;
-            vidbuf[idx_buf + 3]=255;
-            k++;
+          for (j=0;j<xdim;j++) {
+            if (all3flag && (imnr%2 || j%2)) continue;
+            v = im[imnr/zf][zic][j/zf]+MAPOFFSET;
+            if (truncflag)
+              if (v<white_lolim+MAPOFFSET || v>white_hilim+MAPOFFSET)
+                v=MAPOFFSET;
+            if ((imnr==imc&&abs(j-jc)<=curs)||
+                (j==jc&&abs(imnr-imc)<=curs)) 
+              v=0 /*NUMVALS+MAPOFFSET*/;
+            if (all3flag) 
+            {
+              idx_buf = 4*((xdim*hay) + hax + k + ((imnr/2)*hax)) ;
+              vidbuf[idx_buf] = vidbuf[idx_buf+1] = vidbuf[idx_buf + 2] = v;
+              vidbuf[idx_buf + 3]=255;
+              k++;
+            }
+            else
+            {
+              vidbuf[k] = vidbuf[k+1] = vidbuf[k+2]= v; 
+              vidbuf[k+3]=255;
+              k+=4;
+            }
+            
           }
-          else
-          {
-            vidbuf[k] = vidbuf[k+1] = vidbuf[k+2]= v; 
-            vidbuf[k+3]=255;
-            k+=4;
-          }
-
-        }
         for (imnr=imc-curs;imnr<=imc+curs;imnr++) {
           if (all3flag) k = 4*(xdim*hay+hax + imnr/2*xdim/2+jc/2 + imnr/2*hax);
           else          k = 4*(imnr*xdim+jc);
@@ -3385,10 +3412,10 @@ void draw_image(int imc,int ic,int jc)
       }
       else {
         for (imnr=0;imnr<ydim;imnr++)
-        for (j=0;j<xdim;j++) {
-          if (all3flag && (imnr%2 || j%2)) continue;
-          vidbuf[k++] = MAPOFFSET;
-        }
+          for (j=0;j<xdim;j++) {
+            if (all3flag && (imnr%2 || j%2)) continue;
+            vidbuf[k++] = MAPOFFSET;
+          }
       }
     }
     if (plane==SAGITTAL || all3flag) {
@@ -3397,27 +3424,27 @@ void draw_image(int imc,int ic,int jc)
       if (zjc>=0&&zjc<xnum) {
         /*for (i=ydim-1;i>=0;i--)*//* TODO:4% faster, but 25% l.t. COR/HOR */
         for (i=0;i<ydim;i++)
-        for (imnr=0;imnr<xdim;imnr++) {
-          if (all3flag && (i%2 || imnr%2)) continue;
-          /*v = im[imnr/zf][i/zf][zjc]+MAPOFFSET;*/
-          v = im[imnr/zf][(ydim-1-i)/zf][zjc]+MAPOFFSET;
-          if (truncflag)
-            if (v<white_lolim+MAPOFFSET || v>white_hilim+MAPOFFSET)
-              v=MAPOFFSET;
-          if (all3flag) 
-          {
-            idx_buf = 4*(k + ((i/2)*hax));
-            vidbuf[idx_buf] = vidbuf[idx_buf+1] = vidbuf[idx_buf + 2] = v;
-            vidbuf[idx_buf + 3]=255;
-            k++;
+          for (imnr=0;imnr<xdim;imnr++) {
+            if (all3flag && (i%2 || imnr%2)) continue;
+            /*v = im[imnr/zf][i/zf][zjc]+MAPOFFSET;*/
+            v = im[imnr/zf][(ydim-1-i)/zf][zjc]+MAPOFFSET;
+            if (truncflag)
+              if (v<white_lolim+MAPOFFSET || v>white_hilim+MAPOFFSET)
+                v=MAPOFFSET;
+            if (all3flag) 
+            {
+              idx_buf = 4*(k + ((i/2)*hax));
+              vidbuf[idx_buf] = vidbuf[idx_buf+1] = vidbuf[idx_buf + 2] = v;
+              vidbuf[idx_buf + 3]=255;
+              k++;
+            }
+            else
+            {
+              vidbuf[k] = vidbuf[k+1] = vidbuf[k+2]= v; 
+              vidbuf[k+3]=255;
+              k+=4;
+            }
           }
-          else
-          {
-            vidbuf[k] = vidbuf[k+1] = vidbuf[k+2]= v; 
-            vidbuf[k+3]=255;
-            k+=4;
-          }
-        }
         for (i=ic-curs;i<=ic+curs;i++) {
           if (all3flag) k = 4*(i/2*xdim/2+imc/2 + i/2*hax);
           else          k = 4*(i*xdim+imc);
@@ -3439,19 +3466,21 @@ void draw_image(int imc,int ic,int jc)
         }
       }
     }
-    if (all3flag) {
+    if (all3flag) 
+    {
       k = 0;
       for (i=0;i<ydim;i++)
-      for (j=0;j<xdim;j++) {
-        if (i%2 || j%2) continue;
+        for (j=0;j<xdim;j++) 
         {
-          idx_buf = 4*(hax + k + i/2*hax);
-          vidbuf[idx_buf] = vidbuf[idx_buf+1] = vidbuf[idx_buf+2]= 
-            sim[2][255-i/zf][j/zf]+MAPOFFSET;
-          vidbuf[idx_buf+3] = 255;
-          k++;
+          if (i%2 || j%2) continue;
+          {
+            idx_buf = 4*(hax + k + i/2*hax);
+            vidbuf[idx_buf] = vidbuf[idx_buf+1] = vidbuf[idx_buf+2]= 
+              sim[2][255-i/zf][j/zf]+MAPOFFSET;
+            vidbuf[idx_buf+3] = 255;
+            k++;
+          }
         }
-      }
     }
     rectwrite(0,0,xdim-1,ydim-1,vidbuf);
   }
@@ -3460,140 +3489,145 @@ void draw_image(int imc,int ic,int jc)
 void
 draw_second_image(int imc, int ic, int jc)
 {
-        int i,j,imnr,k;
-        int hax,hay,curs;
+  int i,j,imnr,k;
+  int hax,hay,curs;
   int idx_buf;
   GLubyte v;
 
-        hax = xdim/2;
-        hay = ydim/2;
-        if (all3flag) curs = 15;
-        else          curs = 2;
-
-        if (maxflag && !all3flag)
+  hax = xdim/2;
+  hay = ydim/2;
+  if (all3flag) curs = 15;
+  else          curs = 2;
+  
+  if (maxflag && !all3flag)
+  {
+    k = 0;
+    for (i=0;i<ydim;i++)
+      for (j=0;j<xdim;j++)
+      {
+        if (plane==CORONAL)
+          vidbuf[k] = sim2[0][255-i/zf][j/zf]+MAPOFFSET;
+        else if (plane==HORIZONTAL)
+          vidbuf[k] = sim2[1][i/zf][j/zf]+MAPOFFSET;
+        else if (plane==SAGITTAL)
+          vidbuf[k] = sim2[2][255-i/zf][j/zf]+MAPOFFSET;
+        k++;
+      }
+  }
+  else /*No max flag */        
+  {
+    if (plane==CORONAL || all3flag)
+    {
+      k = 0;
+      for (i=0;i<ydim;i++)
+        for (j=0;j<xdim;j++)
         {
-          k = 0;
-          for (i=0;i<ydim;i++)
-          for (j=0;j<xdim;j++)
+          if (i == 128 && j == 128)
+            DiagBreak() ;
+          if (all3flag && (i%2 || j%2)) continue;
+          if (imc/zf>=0&&imc/zf<imnr1)
+            v = im2[imc/zf][(ydim-1-i)/zf][j/zf]+MAPOFFSET;
+          else v=MAPOFFSET;
+          if (truncflag)
+            if (v<white_lolim+MAPOFFSET || v>white_hilim+MAPOFFSET)
+              v=MAPOFFSET;
+          if (i==ipt||j==jpt) v=255-(v-MAPOFFSET)+MAPOFFSET;
+          if ((i==ic&&abs(j-jc)<=curs)||
+              (j==jc&&abs(i-ic)<=curs)) v=0/*NUMVALS+MAPOFFSET*/;
+          if (all3flag) 
           {
-            if (plane==CORONAL)
-              vidbuf[k] = sim2[0][255-i/zf][j/zf]+MAPOFFSET;
-            else if (plane==HORIZONTAL)
-              vidbuf[k] = sim2[1][i/zf][j/zf]+MAPOFFSET;
-            else if (plane==SAGITTAL)
-              vidbuf[k] = sim2[2][255-i/zf][j/zf]+MAPOFFSET;
+            idx_buf = 4*((xdim*hay) + k + ((i/2)*hax)) ;
+            vidbuf[idx_buf] = vidbuf[idx_buf+1] = vidbuf[idx_buf + 2] = v;
+            vidbuf[idx_buf + 3]=255;
+            k++;
+          }
+          else
+          {
+            vidbuf[k] = vidbuf[k+1] = vidbuf[k+2]= v; 
+            vidbuf[k+3]=255;
+            k+=4;
+          }
+        }
+    } 
+    if (plane==HORIZONTAL || all3flag)
+    {
+      k = 0;
+      for (imnr=0;imnr<ydim;imnr++)
+        for (j=0;j<xdim;j++)
+        {
+          if (all3flag && (imnr%2 || j%2)) continue;
+          if (imnr/zf>=0&&imnr/zf<imnr1)
+            v = im2[imnr/zf][(ydim-1-ic)/zf][j/zf]+MAPOFFSET;
+          else v=MAPOFFSET;
+          if (truncflag)
+            if (v<white_lolim+MAPOFFSET || v>white_hilim+MAPOFFSET)
+              v=MAPOFFSET;
+          if (imnr==impt||j==jpt) v=255-(v-MAPOFFSET)+MAPOFFSET;
+          if ((imnr==imc&&abs(j-jc)<=curs)||
+              (j==jc&&abs(imnr-imc)<=curs)) v=0/*NUMVALS+MAPOFFSET*/;
+          if (all3flag)
+          {
+            idx_buf = 4*((xdim*hay) + hax + k + ((imnr/2)*hax)) ;
+            vidbuf[idx_buf] = vidbuf[idx_buf+1] = vidbuf[idx_buf + 2] = v;
+            vidbuf[idx_buf + 3]=255;
+            k++;
+          }
+          else
+          {
+            vidbuf[k] = vidbuf[k+1] = vidbuf[k+2]= v; 
+            vidbuf[k+3]=255;
+            k+=4;
+          }
+        }
+    } /*else*/
+    if (plane==SAGITTAL || all3flag)
+    {
+      k = 0;
+      for (i=0;i<ydim;i++)
+        for (imnr=0;imnr<xdim;imnr++)
+        {
+          if (all3flag && (i%2 || imnr%2)) continue;
+          if (imnr/zf>=0&&imnr/zf<imnr1)
+            v = im2[imnr/zf][(ydim-1-i)/zf][jc/zf]+MAPOFFSET;
+          else v=MAPOFFSET;
+          if (truncflag)
+            if (v<white_lolim+MAPOFFSET || v>white_hilim+MAPOFFSET)
+              v=MAPOFFSET;
+          if (imnr==impt||i==ipt) v=255-(v-MAPOFFSET)+MAPOFFSET;
+          if ((imnr==imc&&abs(i-ic)<=curs)||
+              (i==ic&&abs(imnr-imc)<=curs)) v=0/*NUMVALS+MAPOFFSET*/;
+          if (all3flag) 
+          {
+            idx_buf = 4*(k + ((i/2)*hax));
+            vidbuf[idx_buf] = vidbuf[idx_buf+1] = vidbuf[idx_buf + 2] = v;
+            vidbuf[idx_buf + 3]=255;
+            k++;
+          }
+          else
+          {
+            vidbuf[k] = vidbuf[k+1] = vidbuf[k+2]= v; 
+            vidbuf[k+3]=255;
+            k+=4;
+          }
+        }
+    }
+    if (all3flag) 
+    {
+      k = 0;
+      for (i=0;i<ydim;i++)
+        for (j=0;j<xdim;j++) 
+        {
+          if (i%2 || j%2) continue;
+          {
+            idx_buf = 4*(hax + k + i/2*hax);
+            vidbuf[idx_buf] = vidbuf[idx_buf+1] = vidbuf[idx_buf+2]= 
+              sim[2][255-i/zf][j/zf]+MAPOFFSET;
+            vidbuf[idx_buf+3] = 255;
             k++;
           }
         }
-  else /*No max flag */        {
-        if (plane==CORONAL || all3flag)
-        {
-          k = 0;
-          for (i=0;i<ydim;i++)
-          for (j=0;j<xdim;j++)
-          {
-            if (all3flag && (i%2 || j%2)) continue;
-            if (imc/zf>=0&&imc/zf<imnr1)
-              v = im2[imc/zf][(ydim-1-i)/zf][j/zf]+MAPOFFSET;
-            else v=MAPOFFSET;
-            if (truncflag)
-              if (v<white_lolim+MAPOFFSET || v>white_hilim+MAPOFFSET)
-                v=MAPOFFSET;
-            if (i==ipt||j==jpt) v=255-(v-MAPOFFSET)+MAPOFFSET;
-            if ((i==ic&&abs(j-jc)<=curs)||
-                (j==jc&&abs(i-ic)<=curs)) v=0/*NUMVALS+MAPOFFSET*/;
-            if (all3flag) 
-      {
-        idx_buf = 4*((xdim*hay) + k + ((i/2)*hax)) ;
-        vidbuf[idx_buf] = vidbuf[idx_buf+1] = vidbuf[idx_buf + 2] = v;
-        vidbuf[idx_buf + 3]=255;
-        k++;
-      }
-            else
-        {
-        vidbuf[k] = vidbuf[k+1] = vidbuf[k+2]= v; 
-        vidbuf[k+3]=255;
-        k+=4;
-        }
-          }
-        } 
-        if (plane==HORIZONTAL || all3flag)
-        {
-          k = 0;
-          for (imnr=0;imnr<ydim;imnr++)
-          for (j=0;j<xdim;j++)
-          {
-            if (all3flag && (imnr%2 || j%2)) continue;
-            if (imnr/zf>=0&&imnr/zf<imnr1)
-              v = im2[imnr/zf][(ydim-1-ic)/zf][j/zf]+MAPOFFSET;
-            else v=MAPOFFSET;
-            if (truncflag)
-              if (v<white_lolim+MAPOFFSET || v>white_hilim+MAPOFFSET)
-                v=MAPOFFSET;
-            if (imnr==impt||j==jpt) v=255-(v-MAPOFFSET)+MAPOFFSET;
-            if ((imnr==imc&&abs(j-jc)<=curs)||
-                (j==jc&&abs(imnr-imc)<=curs)) v=0/*NUMVALS+MAPOFFSET*/;
-            if (all3flag)
-      {
-        idx_buf = 4*((xdim*hay) + hax + k + ((imnr/2)*hax)) ;
-        vidbuf[idx_buf] = vidbuf[idx_buf+1] = vidbuf[idx_buf + 2] = v;
-        vidbuf[idx_buf + 3]=255;
-        k++;
-      }
-    else
-        {
-        vidbuf[k] = vidbuf[k+1] = vidbuf[k+2]= v; 
-        vidbuf[k+3]=255;
-        k+=4;
-      }
-          }
-        } /*else*/
-        if (plane==SAGITTAL || all3flag)
-        {
-          k = 0;
-          for (i=0;i<ydim;i++)
-          for (imnr=0;imnr<xdim;imnr++)
-          {
-            if (all3flag && (i%2 || imnr%2)) continue;
-            if (imnr/zf>=0&&imnr/zf<imnr1)
-              v = im2[imnr/zf][(ydim-1-i)/zf][jc/zf]+MAPOFFSET;
-            else v=MAPOFFSET;
-            if (truncflag)
-              if (v<white_lolim+MAPOFFSET || v>white_hilim+MAPOFFSET)
-                v=MAPOFFSET;
-            if (imnr==impt||i==ipt) v=255-(v-MAPOFFSET)+MAPOFFSET;
-            if ((imnr==imc&&abs(i-ic)<=curs)||
-                (i==ic&&abs(imnr-imc)<=curs)) v=0/*NUMVALS+MAPOFFSET*/;
-            if (all3flag) 
-      {
-        idx_buf = 4*(k + ((i/2)*hax));
-        vidbuf[idx_buf] = vidbuf[idx_buf+1] = vidbuf[idx_buf + 2] = v;
-        vidbuf[idx_buf + 3]=255;
-        k++;
-      }
-    else
-        {
-        vidbuf[k] = vidbuf[k+1] = vidbuf[k+2]= v; 
-        vidbuf[k+3]=255;
-              k+=4;
-      }
-          }
-        }
-        if (all3flag) {
-          k = 0;
-          for (i=0;i<ydim;i++)
-      for (j=0;j<xdim;j++) {
-        if (i%2 || j%2) continue;
-    {
-      idx_buf = 4*(hax + k + i/2*hax);
-      vidbuf[idx_buf] = vidbuf[idx_buf+1] = vidbuf[idx_buf+2]= 
-        sim[2][255-i/zf][j/zf]+MAPOFFSET;
-      vidbuf[idx_buf+3] = 255;
-      k++;
     }
-      }
-  }
-  rectwrite(0,0,xdim-1,ydim-1,vidbuf);
+    rectwrite(0,0,xdim-1,ydim-1,vidbuf);
   }
 }
 
