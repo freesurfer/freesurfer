@@ -4,7 +4,7 @@ function flacnew = flac_conmat(flac,nthcon)
 % Computes the contrast matrix for the nth contrast. 
 % Adds to flac.con(nthcon).C
 %
-% $Id: flac_conmat.m,v 1.1 2004/10/18 05:50:30 greve Exp $
+% $Id: flac_conmat.m,v 1.2 2004/10/22 22:17:17 greve Exp $
 
 flacnew = [];
 
@@ -89,7 +89,7 @@ if(con.sumev == 0 & con.sumevreg == 0)
   c = [];
   for nthev = 1:nevs
     [evw evrw hit] = flac_evconw(flac,nthev,nthcon);    
-    c = [evw*evrw c];
+    c = [c evw*evrw];
   end 
   C = diag(c);
 end
@@ -110,6 +110,7 @@ end
 
 flacnew = flac;
 flacnew.con(nthcon).C = C;
+
 
 return
 
