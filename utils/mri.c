@@ -1801,6 +1801,71 @@ MRIclear(MRI *mri)
           in means (these last two must be three elements long.)
 ------------------------------------------------------*/
 int
+MRIcenterOfMass(MRI *mri,double *means, BUFTYPE threshold)
+{
+  int     width, height, depth, x, y, z ;
+  BUFTYPE *psrc, val ;
+  long    npoints ;
+  double  mx, my, mz, weight ;
+
+  if (mri->type != MRI_UCHAR)
+    ErrorReturn(ERROR_UNSUPPORTED, 
+                (ERROR_UNSUPPORTED, 
+                 "MRIcenterOfMass: unsupported input type %d", mri->type)) ;
+
+  width = mri->width ;
+  height = mri->height ;
+  depth = mri->depth ;
+
+  mx = my = mz = weight = 0.0f ; npoints = 0L ;
+
+  for (z = 0 ; z < depth ; z++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      psrc = &MRIvox(mri, 0, y, z) ;
+      for (x = 0 ; x < width ; x++)
+      {
+        val = *psrc++ ;
+        if (val > threshold)
+        {
+          weight += val ;
+          mx += (float)x*val ;
+          my += (float)y*val ;
+          mz += (float)z*val ;
+          npoints++ ;
+        }
+      }
+    }
+  }
+
+  if (weight > 0.0)
+  {
+    mx /= weight ;
+    my /= weight  ;
+    mz /= weight ;
+    means[0] = mx ;
+    means[1] = my ;
+    means[2] = mz ;
+  }
+  else
+    means[0] = means[1] = means[2] = 0.0f ;
+
+
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+          find the principle components of a (binary) MRI. The
+          eigenvectors are the columns of the matrix mEvectors, the
+          eigenvalues are returned in the array evalues and the means
+          in means (these last two must be three elements long.)
+------------------------------------------------------*/
+int
 MRIprincipleComponents(MRI *mri, MATRIX *mEvectors, float *evalues, 
                        double *means, BUFTYPE threshold)
 {
@@ -1872,6 +1937,104 @@ MRIprincipleComponents(MRI *mri, MATRIX *mEvectors, float *evalues,
           mX->rptr[1][1] = (x - (int)mx)*val ;
           mX->rptr[2][1] = (y - (int)my)*val ;
           mX->rptr[3][1] = (z - (int)mz)*val ;
+          mXT = MatrixTranspose(mX, mXT) ;
+          mTmp = MatrixMultiply(mX, mXT, mTmp) ;
+          mCov = MatrixAdd(mTmp, mCov, mCov) ;
+        }
+      }
+    }
+  }
+
+  if (weight > 0)
+    MatrixScalarMul(mCov, 1.0f/weight, mCov) ;
+
+  MatrixEigenSystem(mCov, evalues, mEvectors) ;
+
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+          find the principle components of a (binary) MRI. The
+          eigenvectors are the columns of the matrix mEvectors, the
+          eigenvalues are returned in the array evalues and the means
+          in means (these last two must be three elements long.)
+------------------------------------------------------*/
+int
+MRIbinaryPrincipleComponents(MRI *mri, MATRIX *mEvectors, float *evalues, 
+                       double *means, BUFTYPE threshold)
+{
+  int     width, height, depth, x, y, z ;
+  BUFTYPE *psrc, val ;
+  long    npoints ;
+  MATRIX  *mCov, *mX, *mXT, *mTmp ;
+  double  mx, my, mz, weight ;
+
+  if (mri->type != MRI_UCHAR)
+    ErrorReturn(ERROR_UNSUPPORTED, 
+                (ERROR_UNSUPPORTED, 
+                 "MRIprincipleComponents: unsupported input type %d", 
+                 mri->type)) ;
+
+  width = mri->width ;
+  height = mri->height ;
+  depth = mri->depth ;
+
+  mx = my = mz = weight = 0.0f ; npoints = 0L ;
+
+  for (z = 0 ; z < depth ; z++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      psrc = &MRIvox(mri, 0, y, z) ;
+      for (x = 0 ; x < width ; x++)
+      {
+        val = *psrc++ ;
+        if (val > threshold)
+        {
+          weight++ ;
+          mx += (float)x ;
+          my += (float)y ;
+          mz += (float)z ;
+          npoints++ ;
+        }
+      }
+    }
+  }
+
+  if (weight > 0.0)
+  {
+    mx /= weight ;
+    my /= weight  ;
+    mz /= weight ;
+    means[0] = mx ;
+    means[1] = my ;
+    means[2] = mz ;
+  }
+  else
+    means[0] = means[1] = means[2] = 0.0f ;
+
+  mX = MatrixAlloc(3, 1, MATRIX_REAL) ;     /* zero-mean coordinate vector */
+  mXT = NULL ;                              /* transpose of above */
+  mTmp = MatrixAlloc(3, 3, MATRIX_REAL) ;   /* tmp matrix for covariance */
+  mCov = MatrixAlloc(3, 3, MATRIX_REAL) ;   /* covariance matrix */
+
+  for (z = 0 ; z < depth ; z++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      psrc = &MRIvox(mri, 0, y, z) ;
+      for (x = 0 ; x < width ; x++)
+      {
+        val = *psrc++ ;
+        if (val > threshold)
+        {
+          mX->rptr[1][1] = (x - (int)mx) ;
+          mX->rptr[2][1] = (y - (int)my) ;
+          mX->rptr[3][1] = (z - (int)mz) ;
           mXT = MatrixTranspose(mX, mXT) ;
           mTmp = MatrixMultiply(mX, mXT, mTmp) ;
           mCov = MatrixAdd(mTmp, mCov, mCov) ;
@@ -5722,6 +5885,25 @@ MRIinverseLinearTransform(MRI *mri_src, MRI *mri_dst, MATRIX *mA)
         Returns value:
 
         Description
+          Convert a transform from RAS to voxel coordinates, then apply
+          it to an MRI.
+------------------------------------------------------*/
+MRI *
+MRIapplyRASlinearTransform(MRI *mri_src, MRI *mri_dst, MATRIX *m_ras_xform)
+{
+  MATRIX   *m_voxel_xform ;
+
+  m_voxel_xform = MRIrasXformToVoxelXform(mri_src, mri_dst, m_ras_xform, NULL);
+  mri_dst = MRIlinearTransform(mri_src, mri_dst, m_voxel_xform) ;
+  MatrixFree(&m_voxel_xform) ;
+  return(mri_dst) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
           Perform an linear coordinate transformation x' = Ax on
           the MRI image mri_src into mri_dst
 ------------------------------------------------------*/
@@ -5729,7 +5911,7 @@ MRI *
 MRIlinearTransform(MRI *mri_src, MRI *mri_dst, MATRIX *mA)
 {
   int    y1, y2, y3, width, height, depth ;
-  MATRIX *mX, *mY ;   /* original and transformed coordinate systems */
+  VECTOR *v_X, *v_Y ;   /* original and transformed coordinate systems */
   MATRIX *mAinv ;     /* inverse of mA */
   Real   val, x1, x2, x3 ;
 
@@ -5744,24 +5926,22 @@ MRIlinearTransform(MRI *mri_src, MRI *mri_dst, MATRIX *mA)
   else
     MRIclear(mri_dst) ;
 
-  mX = MatrixAlloc(4, 1, MATRIX_REAL) ;  /* input (src) coordinates */
-  mY = MatrixAlloc(4, 1, MATRIX_REAL) ;  /* transformed (dst) coordinates */
+  v_X = VectorAlloc(4, MATRIX_REAL) ;  /* input (src) coordinates */
+  v_Y = VectorAlloc(4, MATRIX_REAL) ;  /* transformed (dst) coordinates */
 
+  v_Y->rptr[4][1] = 1.0f ;
   for (y3 = 0 ; y3 < depth ; y3++)
   {
-    mY->rptr[4][1] = 1.0f / mri_src->thick ;
-    mY->rptr[3][1] = y3 ;
+    V3_Z(v_Y) = y3 ;
     for (y2 = 0 ; y2 < height ; y2++)
     {
-      mY->rptr[2][1] = y2 ;
+      V3_Y(v_Y) = y2 ;
       for (y1 = 0 ; y1 < width ; y1++)
       {
-        mY->rptr[1][1] = y1 ;
-        MatrixMultiply(mAinv, mY, mX) ;
+        V3_X(v_Y) = y1 ;
+        MatrixMultiply(mAinv, v_Y, v_X) ;
         
-        x1 = (Real)mX->rptr[1][1] ;
-        x2 = (Real)mX->rptr[2][1] ;
-        x3 = (Real)mX->rptr[3][1] ;
+        x1 = V3_X(v_X) ; x2 = V3_Y(v_X) ; x3 = V3_Z(v_X) ;
 
         if (nint(y1) == 13 && nint(y2) == 10 && nint(y3) == 7)
           DiagBreak() ;
@@ -5780,15 +5960,15 @@ MRIlinearTransform(MRI *mri_src, MRI *mri_dst, MATRIX *mA)
             x3 > -1 && x3 < depth)
         {
           MRIsampleVolume(mri_src, x1, x2, x3, &val);
-          mri_dst->slices[y3][y2][y1] = (BUFTYPE)nint(val) ;
+          MRIvox(mri_dst,y1,y2,y3) = (BUFTYPE)nint(val) ;
         }
       }
     }
   }
 
-  MatrixFree(&mX) ;
+  MatrixFree(&v_X) ;
   MatrixFree(&mAinv) ;
-  MatrixFree(&mY) ;
+  MatrixFree(&v_Y) ;
 
   mri_dst->ras_good_flag = 0;
 
@@ -5808,7 +5988,10 @@ MRIconcatenateFrames(MRI *mri_frame1, MRI *mri_frame2, MRI *mri_dst)
   height = mri_frame1->height ;
   depth = mri_frame1->depth ;
   if (mri_dst == NULL)
+  {
     mri_dst = MRIallocSequence(width, height, depth, mri_frame1->type, 2) ;
+    MRIcopyHeader(mri_frame1, mri_dst) ;
+  }
   if (!mri_dst)
     ErrorExit(ERROR_NOMEMORY, "MRIconcatenateFrames: could not alloc dst") ;
 
@@ -6998,6 +7181,56 @@ int apply_i_to_r(MRI *mri, MATRIX *m)
 
 } /* end apply_i_to_r() */
 
+MATRIX *
+MRIrasXformToVoxelXform(MRI *mri_src, MRI *mri_dst, MATRIX *m_ras_xform, 
+                        MATRIX *m_voxel_xform)
+{
+  MATRIX *m_ras_to_voxel, *m_voxel_to_ras, *m_tmp ;
+
+  if (!mri_dst)
+    mri_dst = mri_src ;   /* assume they will be in the same space */
+
+  m_voxel_to_ras = MRIgetVoxelToRasXform(mri_src) ;
+  m_ras_to_voxel = MRIgetRasToVoxelXform(mri_dst) ;
+
+  m_tmp = MatrixMultiply(m_ras_xform, m_voxel_to_ras, NULL) ;
+  m_voxel_xform = MatrixMultiply(m_ras_to_voxel, m_tmp, m_voxel_xform) ;
+
+  MatrixFree(&m_voxel_to_ras); MatrixFree(&m_ras_to_voxel); MatrixFree(&m_tmp);
+
+  return(m_voxel_xform) ;
+}
+
+MATRIX *
+MRIvoxelXformToRasXform(MRI *mri_src, MRI *mri_dst, MATRIX *m_voxel_xform, 
+                        MATRIX *m_ras_xform)
+{
+  MATRIX *m_ras_to_voxel, *m_voxel_to_ras, *m_tmp ;
+
+  if (!mri_dst)
+    mri_dst = mri_src ;  /* assume they will be in the same space */
+
+  m_ras_to_voxel = MRIgetRasToVoxelXform(mri_src) ;
+  m_voxel_to_ras = MRIgetVoxelToRasXform(mri_dst) ;
+
+  m_tmp = MatrixMultiply(m_voxel_xform, m_ras_to_voxel, NULL) ;
+  m_ras_xform = MatrixMultiply(m_voxel_to_ras, m_tmp, m_ras_xform) ;
+
+  MatrixFree(&m_voxel_to_ras); MatrixFree(&m_ras_to_voxel); MatrixFree(&m_tmp);
+
+  return(m_ras_xform) ;
+}
+
+MATRIX *extract_r_to_i(MRI *mri)
+{
+  MATRIX *m_ras_to_voxel, *m_voxel_to_ras ;
+
+  m_voxel_to_ras = extract_i_to_r(mri) ;
+  m_ras_to_voxel = MatrixInverse(m_voxel_to_ras, NULL) ;
+  MatrixFree(&m_voxel_to_ras) ;
+  return(m_ras_to_voxel) ;
+}
+  
 MATRIX *extract_i_to_r(MRI *mri)
 {
 
