@@ -1,0 +1,434 @@
+#!/bin/csh -f
+# glmfourier
+
+set VERSION = '$Id: glmfourier,v 1.1 2004/06/03 22:51:35 greve Exp $'
+set inputargs = ($argv);
+set ystem = ();
+set period = ();
+set nharmonics = 0;
+set polyorder = 1;
+set TR = ();
+set nbins = 10;
+set maskstem = ();
+set extregstem = ();
+set nextreg = ();
+set outdir = ();
+set synth = 0;
+set synthmatfile = ();
+set synthar1 = ();
+set monly = 0;
+set MLF = ();
+
+
+## If there are no arguments, just print useage and exit ##
+set PrintHelp = 0;
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+set n = `echo $argv | grep -e -version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+mkdir -p $outdir
+mkdir -p $outdir/omnibus
+
+set StartTime = `date`;
+#----------------------------------------------#
+if($#MLF == 0) set MLF = $outdir/glmfourier_tmp.m
+rm -f $MLF
+tee $MLF > /dev/null <<EOF
+tic;
+
+VERSION = '$VERSION';
+ystem = '$ystem';
+period = $period;
+nharmonics = $nharmonics;
+polyorder = $polyorder;
+extregstem = '$extregstem';
+nextreg    = [$nextreg];
+TR = $TR;
+nbins = $nbins;
+maskstem = '$maskstem';
+outdir = '$outdir';
+synth = $synth;
+synthar1 = [$synthar1];
+synthmatfile = '$synthmatfile';
+
+%------- Load the mask -------------%
+if(~isempty(maskstem))
+  mask = fast_ldbslice(maskstem);
+  if(isempty(mask))
+    fprintf('ERROR: loading %s\n',maskstem);
+    return;
+  end
+  indmask = find(mask);
+  indmaskout = find(~mask);
+else
+  mask = [];
+  indmask = [1:nv];  
+  indmaskout = [];
+end
+nmask = length(indmask);
+
+%------ Get dimension of data ------------%
+[ns nr nc nf] = fmri_bvoldim(ystem);
+if(isempty(ns) | ns == 0) return; end
+nv = nr*nc*ns;
+nn = [1:nf]';
+
+%------ Load or Synth data ------------%
+if(synth)
+  fprintf('Synthesizing\n');
+  if(isempty(synthmatfile))
+    fprintf('  synth ar1 = %g\n',synthar1);
+    nacfsynth = synthar1.^[0:nf-1]';
+    Fn = chol(toeplitz(nacfsynth)');
+    y = Fn*randn(nf,nv);
+  else
+    fprintf('  synth mat  = %s\n',synthmatfile);
+    synthmat = load(synthmatfile);
+    y = randn(nf,nv);
+    for nthbin = 1:synthmat.nbins
+      nacfsynth = synthmat.racfbinest(:,nthbin);
+      %nacfsynth = rand.^[0:nf-1]';
+      Fn = chol(toeplitz(nacfsynth)');
+      indbin = find(synthmat.binmap==nthbin);
+      nbin = length(indbin);
+      if(isempty(indbin)) continue; end
+      y(:,indbin) = Fn*randn(nf,nbin);
+    end
+    y = y + repmat(synthmat.ymn(:)',[nf 1]);
+  end
+  mristruct = [];
+else
+  fprintf('Loading %s\n',ystem);
+  [y mristruct] = fast_ldbslice(ystem);
+  if(isempty(y))
+    fprintf('ERROR: loading %s\n',ystem);
+    return;
+  end
+  % Reshape to something more comfortable
+  y = fast_vol2mat(y);
+end
+
+%--------- Build the design matrix -------------%
+Xfund = fast_fourier_reg(period,nf,TR,0);
+if(nharmonics > 0)
+  Xharm = fast_fourier_reg(period,nf,TR,nharmonics);
+  Xharm = Xharm(:,3:end);
+else
+  Xharm = [];
+end
+Xpoly = fast_polytrendmtx(1,nf,1,polyorder);
+if(~isempty(extregstem))
+  Xext = squeeze(fast_ldbslice(extregstem))';
+  if(isempty(nextreg)) nextreg = size(Xext,2); end
+  Xext = Xext(:,1:nextreg);
+  Xext = Xext - repmat(mean(Xext),[nf 1]);
+else
+  Xext = [];
+end
+X = [Xfund Xharm Xpoly Xext];
+R = eye(nf) - X*inv(X'*X)*X';
+
+nfund = size(Xfund,2);
+ntask = size(Xfund,2) + size(Xharm,2);
+nbeta = size(X,2);
+indxmean = ntask+1;
+Cfund = [eye(nfund) zeros(nfund,nbeta-nfund)];
+
+%--------- Do OLS estimation ----------------%
+fprintf('Performing OLS estimation t=%g\n',toc);
+[betaols, rvarols, vdofols, rols] = fast_glmfitw(y,X);
+[Fols dof1 dof2] = fast_fratiow(betaols,X,rvarols,Cfund);
+Fsigols = FTest(dof1, dof2, Fols, 200);
+
+% ----- Extract the mean intensity map ------- %
+if(polyorder >= 0) ymn = betaols(indxmean,:);
+else               ymn = mean(y);
+end
+
+%---------------------------------------------%
+% SVD of OLS residual - for reporting only
+Mrols = rols(:,indmask)*rols(:,indmask)';
+[uols sols v] = svd(Mrols);
+ds = diag(sols);
+pvsols = 100*ds/sum(ds);
+
+% ------- Get the bins of the intensity ----------
+fprintf('Computing bins t=%g\n',toc);
+[hbin xbin] = hist(ymn(indmask),nbins);
+dxbin = xbin(2)-xbin(1);
+binmap = zeros(nr,nc,ns);
+nperbin = zeros(nbins,1);
+for nthbin = 1:nbins
+  yminbin = xbin(nthbin)-dxbin/2;
+  ymaxbin = xbin(nthbin)+dxbin/2;
+  if(nthbin == 1)     yminbin = -inf; end
+  if(nthbin == nbins) ymaxbin = +inf; end
+  indbin = find(yminbin < ymn & ymn < ymaxbin & mask(:)');
+  nperbin(nthbin) = length(indbin);
+  binmap(indbin) = nthbin;
+end
+
+fprintf('Computing RACF t=%g\n',toc);
+racf = fast_acorr(rols(:,indmask));
+
+%-------------------------------------------------%
+fprintf('Averaging RACF within bins t=%g\n',toc);
+w = 1./nn;
+taper = tukeytaper(nf,round(sqrt(nf)));
+for nthbin = 1:nbins
+  indbin = find(binmap(indmask)==nthbin);
+
+  racfbin(:,nthbin) = mean(racf(:,indbin),2);
+  racfbinest(:,nthbin) = racfbin(:,nthbin).*taper;
+
+  %nar1(nthbin) = fminsearch('fast_arnw_fiterr',racfbin(2,nthbin),...
+  %              [],racfbin(:,nthbin),R,w,1);
+  %nacf(:,nthbin) = nar1(nthbin).^(nn-1);
+
+  fprintf('  %3d  %8.2f  %6d  %7.4f\n',...
+    nthbin,xbin(nthbin),nperbin(nthbin),racfbin(2,nthbin));
+end
+
+%-------------------------------------------------%
+fprintf('Performing GLS estimation t=%g\n',toc);
+[betagls, rvargls, vdofgls, rgls] = fast_glmfitw(y,X,racfbinest,binmap);
+[Fgls dof1 dof2] = fast_fratiow(betagls,X,rvargls,Cfund,racfbinest,binmap);
+Fsiggls = FTest(dof1, dof2, Fgls, 200);
+
+%-------------------------------------------------%
+% SVD of GLS residual - for reporting only
+Mrgls = rgls(:,indmask)*rgls(:,indmask)';
+[ugls sgls v] = svd(Mrgls);
+ds = diag(sgls);
+pvsgls = 100*ds/sum(ds);
+
+%-- Postive Rate -----------------------------------------------%
+[pdf, alpha, nxhist, fprols] = ComputePDF(Fsigols(indmask),.0001,1,.0001);
+[pdf, alpha, nxhist, fprgls] = ComputePDF(Fsiggls(indmask),.0001,1,.0001);
+%loglog(alpha,alpha,alpha,fprols,alpha,fprgls);
+
+%---- Reshape ---------------------------------------------%
+ymn = fast_mat2vol(ymn,[nr nc ns]);
+betagls = fast_mat2vol(betagls,[nr nc ns]);
+Fsiggls = fast_mat2vol(Fsiggls,[nr nc ns]);
+rvargls = fast_mat2vol(rvargls,[nr nc ns]);
+
+%----- Save --------------------------------------------%
+stem = sprintf('%s/ymn',outdir);
+fast_svbslice(ymn,stem,-1,[],mristruct);
+stem = sprintf('%s/beta',outdir);
+fast_svbslice(betagls,stem,-1,[],mristruct);
+stem = sprintf('%s/rvar',outdir);
+fast_svbslice(rvargls,stem,-1,[],mristruct);
+stem = sprintf('%s/omnibus/fsig',outdir);
+fast_svbslice(-log10(Fsiggls),stem,-1,[],mristruct);
+
+%------ Save mat file -------------------------------------------%
+xmatoutfile = sprintf('%s/X.mat',outdir);
+save(xmatoutfile,'ystem','period','nharmonics','polyorder',...
+     'extregstem','nextreg','TR','nbins','maskstem','outdir',...
+     'synth','synthar1','mask','Xfund','Xharm','Xpoly','Xext','X','R',...
+     'ntask','nbeta','indxmean','Cfund','ymn','Fsigols','Mrols',...
+     'uols','sols','pvsols','rvarols','xbin','nperbin','binmap',...
+     'racfbin','racfbinest','Fsiggls','alpha','fprols','fprgls',...
+     'Mrgls','ugls','sgls','pvsgls','rvargls','VERSION')
+
+fprintf('glmfourier: matlab: done (t=%g)\n',toc);
+
+EOF
+#----------------------------------------------#
+
+if(! $monly) then
+  cat $MLF | matlab -display iconic
+  rm -f $MLF
+endif
+
+
+echo "Started at $StartTime" 
+echo "Ended   at `date`"     
+
+echo "glmfourier done"
+
+
+exit 0
+
+##############################################################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "--y":
+      if ( $#argv == 0) goto arg1err;
+      set ystem = $argv[1]; shift;
+      breaksw
+
+    case "--p":
+      if ( $#argv == 0) goto arg1err;
+      set period = $argv[1]; shift;
+      breaksw
+
+    case "--nharm":
+      if ( $#argv == 0) goto arg1err;
+      set nharmonics = $argv[1]; shift;
+      breaksw
+
+    case "--poly":
+      if ( $#argv == 0) goto arg1err;
+      set polyorder = $argv[1]; shift;
+      breaksw
+
+    case "--extreg":
+      if ( $#argv == 0) goto arg1err;
+      set extregstem = $argv[1]; shift;
+      breaksw
+
+    case "--nextreg":
+      if ( $#argv == 0) goto arg1err;
+      set nextreg = $argv[1]; shift;
+      breaksw
+
+    case "--tr":
+    case "--TR":
+      if ( $#argv == 0) goto arg1err;
+      set TR = $argv[1]; shift;
+      breaksw
+
+    case "--nbins":
+      if ( $#argv == 0) goto arg1err;
+      set nbins = $argv[1]; shift;
+      breaksw
+
+    case "--mask":
+      if ( $#argv == 0) goto arg1err;
+      set maskstem = $argv[1]; shift;
+      breaksw
+
+    case "--o":
+      if ( $#argv == 0) goto arg1err;
+      set outdir = $argv[1]; shift;
+      breaksw
+
+    case "--synth":
+      if ( $#argv == 0) goto arg1err;
+      set synthar1 = $argv[1]; shift;
+      set synth = 1;
+     breaksw
+
+    case "--synthmat":
+      if ( $#argv == 0) goto arg1err;
+      set synthmatfile = $argv[1]; shift;
+      if(! -e $synthmatfile) then
+        echo "ERROR: cannot find $synthmatfile"
+        exit 1;
+      endif
+      set synth = 1;
+     breaksw
+
+    case "--monly":
+      if ( $#argv == 0) goto arg1err;
+      set MLF = $argv[1]; shift;
+      set monly = 1;
+      breaksw
+
+    case "--debug":
+      set verbose = 1;
+      set echo = 1; # turns on terminal echoing
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+  if($#ystem == 0) then
+    echo "ERROR: no input specified"    
+    exit 1;
+  endif
+
+  if($#period == 0) then
+    echo "ERROR: no period specified"    
+    exit 1;
+  endif
+
+  if($#TR == 0) then
+    echo "ERROR: no TR specified"    
+    exit 1;
+  endif
+
+  if($#outdir == 0) then
+    echo "ERROR: no output directory specified"    
+    exit 1;
+  endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "USAGE: glmfourier"
+  echo ""
+  echo "  --y ystem "
+  echo "  --p period (sec)"
+  echo "  --nharm nharmonics : default is $nharmonics"
+  echo "  --poly  order : default is $polyorder"
+  echo "  --extreg  extregstem"
+  echo "  --nextreg nextreg"
+  echo "  --tr TR (sec)"
+  echo "  --nbins nbins : for whitening. Default is $nbins"
+  echo "  --mask maskstem"
+  echo "  --o outdir"
+  echo ""
+  echo "  --synth ar1 : use synthetic AR(1) noise"
+  echo "  --synthmat synthmatfile : synth based on previous run"
+  echo ""
+  echo "  --monly MLF"
+  echo "  --debug"
+  echo "  --help"
+  echo ""
+
+  if(! $PrintHelp) exit 1;
+
+  echo $VERSION
+
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+
+exit 1;
+
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
