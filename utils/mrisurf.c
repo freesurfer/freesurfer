@@ -1444,7 +1444,7 @@ mrisComputeNormals(MRI_SURFACE *mris)
       }
 
       v->z += (float)randomNumber(-RAN, RAN) ;
-      for (n=0;n<v->num;n++) if (!mris->faces[v->f[n]].ripflag)
+      for (n=0;n<v->vnum;n++) /*if (!mris->faces[v->f[n]].ripflag)*/
       {
         mris->vertices[v->v[n]].x += (float)randomNumber(-RAN, RAN) ;
         mris->vertices[v->v[n]].y += (float)randomNumber(-RAN, RAN) ;
