@@ -1,6 +1,6 @@
 #! /usr/bin/tixwish
 
-# $Id: tkmedit.tcl,v 1.59 2003/08/05 19:19:23 kteich Exp $
+# $Id: tkmedit.tcl,v 1.60 2003/08/11 14:43:01 kteich Exp $
 
 
 source $env(FREESURFER_HOME)/lib/tcl/tkm_common.tcl
@@ -3479,6 +3479,9 @@ proc CreateMenuBar { ifwMenuBar } {
 	{ command
 	    "Goto Point..."
 	    DoGotoPointDlog }
+	{ command
+	    "Goto Center of Selection"
+	    SetCursorToCenterOfSelection }
 	{ separator }
 	{ cascade "Volume" {
 	    { command
