@@ -2152,6 +2152,7 @@ Volm_tErr Volm_SetAllValues ( mriVolumeRef this,
   eResult = Volm_Verify( this );
   DebugAssertThrow( (eResult == Volm_tErr_NoErr) );
   
+#if 0
   /* step through the volume and set everything to this value. */
   xVoxl_Set( &idx, 0, 0, 0 );
   DebugNote( ("Setting volume values") );
@@ -2160,7 +2161,11 @@ Volm_tErr Volm_SetAllValues ( mriVolumeRef this,
 				     this->mnDimensionZ-1) ) {
     Volm_SetValueAtIdx_( this, &idx, iNewValue );
   }
-  
+#else
+  /* This is quicker, mriset.c uses memset to do this optimally. */
+  MRIsetValues( this->mpMriValues, nint(iNewValue) );
+#endif
+
   DebugCatch;
   DebugCatchError( eResult, Volm_tErr_NoErr, Volm_GetErrorString );
   EndDebugCatch;
