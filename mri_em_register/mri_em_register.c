@@ -106,7 +106,7 @@ main(int argc, char *argv[])
   MRI          *mri_in ;
   GCA          *gca /*, *gca_tmp, *gca_reduced*/ ;
   int          ac, nargs, i, done ;
-  int          msec, minutes, seconds ;
+  int          msec, minutes, seconds, min_left_cbm, min_right_cbm ;
   struct timeb start ;
   float        old_log_p, log_p ;
 
@@ -413,17 +413,6 @@ main(int argc, char *argv[])
     ordered_indices = (int *)calloc(nsamples, sizeof(int)) ;
     GCArankSamples(gca, parms.gcas, nsamples, ordered_indices) ;
 
-#if 0
-    for (i = 0 ; i < nsamples ; i++)
-    {
-      float pct ;
-
-      pct = 100.0f*(float)(nsamples-i)/nsamples;
-      if (pct < 50)
-        parms.gcas[ordered_indices[i]].label = 0 ;
-    }
-#else
-
     /* remove the least likely samples */
     printf("sorting %d (%d/%d l/r cerebellum) white matter points by "
            "likelihood\n", nused, nleft_cbm, nright_cbm) ;
@@ -443,17 +432,19 @@ main(int argc, char *argv[])
                 parms.gcas[ordered_indices[i]].label) ;
 
     }
-#define MIN_CEREBELLUM  (30)
-    printf("%d/%d (l/r) cerebellar points initially in top 10%%\n", 
-           nleft_used,nright_used) ;
+
+    min_left_cbm = (int)(nleft_cbm*.1+.9) ;
+    min_right_cbm = (int)(nright_cbm*.1+.9) ;
+    printf("%d/%d (l/r) cerebellar points initially in top 10%%, min (%d,%d)\n"
+           , nleft_used,nright_used, min_left_cbm, min_right_cbm) ;
           
     for (i = nused/10 ; i < nsamples ; i++)
     {
       if ((parms.gcas[ordered_indices[i]].label == 
-           Left_Cerebellum_White_Matter) && nleft_used < MIN_CEREBELLUM)
+           Left_Cerebellum_White_Matter) && nleft_used < min_left_cbm)
         nleft_used++ ;
       else  if ((parms.gcas[ordered_indices[i]].label == 
-                 Right_Cerebellum_White_Matter) && nright_used< MIN_CEREBELLUM)
+                 Right_Cerebellum_White_Matter) && nright_used< min_right_cbm)
         nright_used++ ;
       else
         parms.gcas[ordered_indices[i]].label = 0 ;
@@ -466,7 +457,6 @@ main(int argc, char *argv[])
                 parms.gcas[ordered_indices[i]].label) ;
 
     }
-#endif
 
 #if 0
     GCAtransformAndWriteSamples(gca, mri_in, parms.gcas, nsamples, 
@@ -591,10 +581,8 @@ find_optimal_transform(MRI *mri, GCA *gca, GCA_SAMPLE *gcas, int nsamples,
   MRI      *mri_gca  ;
   double   in_means[3], gca_means[3], dx, dy, dz, max_log_p, old_max,
            max_angle, angle_steps, min_scale, max_scale, scale_steps, scale,
-           delta, mean, wm_mean ;
-  int      niter, mri_peak ;
-  HISTOGRAM *h_mri, *h_smooth ;
-  MRI_REGION box ;
+           delta, mean ;
+  int      niter ;
 
 
   if (!passno && Gdiag & DIAG_WRITE && write_iterations > 0)
@@ -607,41 +595,9 @@ find_optimal_transform(MRI *mri, GCA *gca, GCA_SAMPLE *gcas, int nsamples,
     MRIwriteImageViews(mri, "before_intensity", 400) ;
   }
 
-#define MIN_BIN  50
-#define OFFSET_SIZE  25
-#define BOX_SIZE   60   /* mm */
-#define HALF_BOX   (BOX_SIZE/2)
+  if (!passno)
+    GCAhistoScaleImageIntensities(gca, mri) ;
 
-  if (passno == 0)
-  {
-    float   x0, y0, z0 ;
-    MRIfindApproximateSkullBoundingBox(mri, 50, &box) ;
-    x0 = box.x+box.dx/2 ; y0 = box.y+box.dy/2 ; z0 = box.z+box.dz/2 ;
-    printf("using (%.0f, %.0f, %.0f) as brain centroid...\n",x0, y0, z0) ;
-    box.x = x0 - HALF_BOX*mri->xsize ; box.dx = BOX_SIZE*mri->xsize ;
-    box.y = y0 - HALF_BOX*mri->ysize ; box.dy = BOX_SIZE*mri->ysize ;
-    box.x = z0 - HALF_BOX*mri->zsize ; box.dz = BOX_SIZE*mri->zsize ;
-    wm_mean = GCAlabelMean(gca, Left_Cerebral_White_Matter) ;
-    wm_mean = (wm_mean + GCAlabelMean(gca, Right_Cerebral_White_Matter))/2.0 ;
-    printf("mean wm in atlas = %2.0f, using box (%d,%d,%d) --> (%d, %d,%d) "
-           "to find MRI wm\n", wm_mean, box.x, box.y, box.z, 
-           box.x+box.dx-1,box.y+box.dy-1, box.z+box.dz-1) ;
-    
-    h_mri = MRIhistogramRegion(mri, 0, NULL, &box) ; 
-    HISTOclearBins(h_mri, h_mri, 0, MIN_BIN) ;
-    HISTOplot(h_mri, "mri.histo") ;
-    mri_peak = HISTOfindLastPeak(h_mri, HISTO_WINDOW_SIZE,MIN_HISTO_PCT);
-    printf("before smoothing, mri peak at %d\n", mri_peak) ;
-    h_smooth = HISTOsmooth(h_mri, NULL, 2) ;
-    HISTOplot(h_smooth, "mri_smooth.histo") ;
-    mri_peak = HISTOfindLastPeak(h_smooth, HISTO_WINDOW_SIZE,MIN_HISTO_PCT);
-    printf("after smoothing, mri peak at %d, scaling input intensities "
-           "by %2.1f\n", mri_peak, wm_mean/mri_peak) ;
-    HISTOfree(&h_smooth) ; HISTOfree(&h_mri) ;
-    MRIscalarMul(mri, mri, wm_mean/mri_peak) ;
-  }
-
-  
   /* first align centroids */
   mri_gca = MRIclone(mri, NULL) ;
   GCAmri(gca, mri_gca) ;
