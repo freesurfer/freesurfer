@@ -331,6 +331,7 @@ void wmfilter_corslice(int imc) ;
 void sagnorm_allslices(void) ;
 void sagnorm_corslice(int imc) ;
 void alloc_second_im(void) ;
+void smooth_surface(int niter) ;
 
 char *Progname ;
 /*--------------------- end prototypes ------------------------------*/
@@ -3922,6 +3923,13 @@ show_canonical_surface(void)
   redraw() ;
 }
 void
+smooth_surface(int niter)
+{
+  if (mris)
+    MRISaverageVertexPositions(mris, niter) ;
+  redraw() ;
+}
+void
 show_current_surface(void)
 {
   MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
@@ -5473,6 +5481,10 @@ int                  W_show_current_surface  WBEGIN
   ERR(1,"Wrong # args: show_current_surface ")
                        show_current_surface(); WEND
 
+int                  W_smooth_surface  WBEGIN
+  ERR(2,"Wrong # args: smooth_surface ")
+                       smooth_surface(atoi(argv[1])); WEND
+
 int                  W_show_canonical_surface  WBEGIN
   ERR(1,"Wrong # args: show_canonical_surface ")
                        show_canonical_surface(); WEND
@@ -5641,7 +5653,9 @@ char **argv;
 
   Tcl_CreateCommand(interp, "orig",               W_show_orig_surface,REND);
   Tcl_CreateCommand(interp, "canonical",          W_show_canonical_surface,REND);
+  Tcl_CreateCommand(interp, "pial",               W_show_canonical_surface,REND);
   Tcl_CreateCommand(interp, "current",            W_show_current_surface,REND);
+  Tcl_CreateCommand(interp, "smooth",             W_smooth_surface,REND);
   
   Tcl_CreateCommand(interp, "wmfilter_corslice",  W_wmfilter_corslice,  REND);
   Tcl_CreateCommand(interp, "norm_slice",         W_norm_slice,         REND);
