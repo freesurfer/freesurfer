@@ -14,7 +14,7 @@
 #include "macros.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_reverse.c,v 1.5 2003/09/05 04:45:43 kteich Exp $";
+static char vcid[] = "$Id: mris_reverse.c,v 1.6 2005/01/28 18:52:07 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -38,7 +38,7 @@ main(int argc, char *argv[])
   MRI_SURFACE        *mris ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_reverse.c,v 1.5 2003/09/05 04:45:43 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_reverse.c,v 1.6 2005/01/28 18:52:07 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -131,7 +131,7 @@ get_option(int argc, char *argv[])
     which = REVERSE_Y ;
     break ;
   case 'Z':
-    which = REVERSE_Y ;
+    which = REVERSE_Z ;
     break ;
   default:
     fprintf(stderr, "unknown option %s\n", argv[1]) ;
