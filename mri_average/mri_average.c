@@ -40,6 +40,7 @@ static int nreductions = 2 ;
 static int conform = 1 ;
 static int sinc_flag = 1;
 static int sinchalfwindow = 3;
+static float scale_factor = 0.0 ;
 
 int
 main(int argc, char *argv[])
@@ -52,7 +53,7 @@ main(int argc, char *argv[])
   struct timeb start ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_average.c,v 1.22 2003/09/05 04:45:32 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_average.c,v 1.23 2003/09/15 14:32:11 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -92,6 +93,8 @@ main(int argc, char *argv[])
     mri_src = MRIread(in_fname) ;
     if (!mri_src)
       ErrorExit(Gerror, "%s: MRIread(%s) failed", Progname, in_fname) ;
+		if (scale_factor > 0)
+			MRIscalarMul(mri_src, mri_src, scale_factor) ;
     if (conform)
     {
       MRI *mri_tmp ;
@@ -272,6 +275,11 @@ get_option(int argc, char *argv[])
     fprintf(stderr, "writing snapshots every %d iterations\n",
             parms.write_iterations) ;
     break ;
+	case 'S':
+		scale_factor = atof(argv[2]) ;
+		nargs = 1 ;
+		printf("scaling all volumes by %f\n", scale_factor) ;
+		break ;
   case 'T':
     tx = atof(argv[2]) ; ty = atof(argv[3]) ; tz = atof(argv[4]) ;
     nargs = 3 ;
