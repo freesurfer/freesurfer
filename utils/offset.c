@@ -44,7 +44,7 @@
 
            Description:
 ----------------------------------------------------------------------*/
-#define MAX_STEPS 6
+#define MAX_STEPS 30
 IMAGE *
 ImageCalculateOffset(IMAGE *Ix, IMAGE *Iy, int wsize, IMAGE *Ioffset)
 {
@@ -1130,7 +1130,7 @@ ImageOffsetDirection(IMAGE *Ix, IMAGE *Iy, int wsize, IMAGE *Iorient,
         }
       }
 
-      if (ISSMALL(dir))
+      if (FZERO(dir))
         ox = oy = 0.0f ;
       else if (dir > 0.0f)   /* flip by 180 */
         {
@@ -1214,14 +1214,14 @@ ImageOffsetDirectionMap(IMAGE *Ix, IMAGE *Iy, int wsize, IMAGE *Iorient,
         }
       }
 
-      if (ISTINY(dir))
+      if (FZERO(dir))
         *IMAGEFpix(Idir, x0, y0) = 0.0f ;
       else if (dir > 0.0f)
         *IMAGEFpix(Idir, x0, y0) = -1.0f ;
       else
         *IMAGEFpix(Idir, x0, y0) = 1.0f ;
         
-      if (ISSMALL(dir))
+      if (FZERO(dir))
         ox = oy = 0.0f ;
       else if (dir > 0.0f)   /* flip by 180 */
       {
@@ -1443,7 +1443,7 @@ ImageNitshiOffsetDirection(IMAGE *Ix,IMAGE *Iy,int wsize,IMAGE *Iorient,
       }
       dir = dirx * ox + diry * oy ;
 
-      if (ISSMALL(dir))
+      if (ISTINY(dir))
         ox = oy = 0.0f ;
       else if (dir > 0.0f)   /* flip by 180 */
         {
@@ -1515,7 +1515,7 @@ imageOffsetDirection(IMAGE *Ix, IMAGE *Iy, int wsize, IMAGE *Iorient,
     }
   }
   
-  if (ISSMALL(dir))
+  if (FZERO(dir))
     d = 0 ;
   else if (dir > 0.0f)   /* flip by 180 */
     d = -1 ;
