@@ -236,3 +236,10 @@ IOPNormalize(IOP *iop)
   }
   return(NO_ERROR) ;
 }
+MATRIX *
+IOPapplyInverseOperator(IOP *iop, REC *rec, MATRIX *m_sol)
+{
+  m_sol = MatrixMultiply(iop->m_iop, rec->m_data, NULL) ;
+  return(m_sol) ;
+}
+
