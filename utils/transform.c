@@ -1345,6 +1345,7 @@ ltaReadRegisterDat(char *fname)
 // if buffer == NULL, then it will allocate memory
 char *mincFindVolume(char *line, char *buffer)
 {
+  int ret;
   static int count = 0;
   char buf[1000];
   char *pch = strtok(line, " ");
@@ -1360,7 +1361,7 @@ char *mincFindVolume(char *line, char *buffer)
 	strcpy(buffer, pch);
 	// check the existence of the file
 	struct stat stat_buf;
-	int ret = stat(buffer, &stat_buf);
+	ret = stat(buffer, &stat_buf);
 	if (ret != 0)
 	{
 	  fprintf(stderr, "File %s cannot be stat. Return NULL.\n", buffer);
@@ -1388,6 +1389,7 @@ void mincGetCRASfromTarget(char *xfmfile, double *r, double *a, double *s)
   volume_input_struct input_info;
   Real voxel[4];
   char line[1000];
+  char *origVolume;
 
   FILE *fp = fopen(xfmfile, "r");
   if (!fp)
@@ -1396,7 +1398,7 @@ void mincGetCRASfromTarget(char *xfmfile, double *r, double *a, double *s)
   }
   fgetl(line, 900, fp);
   fgetl(line, 900, fp);
-  char *origVolume = mincFindVolume(line, NULL);
+  origVolume = mincFindVolume(line, NULL);
   dim_names[0] = MIxspace;
   dim_names[1] = MIyspace;
   dim_names[2] = MIzspace;
@@ -1448,6 +1450,7 @@ void mincGetCRASfromTarget(char *xfmfile, double *r, double *a, double *s)
 	*s = 0.;
       }
     }
+    free(origVolume);
   }
   else
   {
