@@ -1,10 +1,10 @@
 /*============================================================================
  Copyright (c) 1996 Martin Sereno and Anders Dale
 =============================================================================*/
-/*   $Id: tkregister2.c,v 1.24 2004/08/12 04:13:34 greve Exp $   */
+/*   $Id: tkregister2.c,v 1.25 2004/08/12 17:42:04 greve Exp $   */
 
 #ifndef lint
-static char vcid[] = "$Id: tkregister2.c,v 1.24 2004/08/12 04:13:34 greve Exp $";
+static char vcid[] = "$Id: tkregister2.c,v 1.25 2004/08/12 17:42:04 greve Exp $";
 #endif /* lint */
 
 #define TCL
@@ -350,13 +350,12 @@ int Register(ClientData clientData,Tcl_Interp *interp, int argc, char *argv[])
   printf("%s\n",vcid);
   printf("Diagnostic Level %d\n",Gdiag_no);
 
-  Mtc = MatrixIdentity(4,NULL);
-
   /* read the registration here to get subjectid */
   if(!mkheaderreg && fslregfname == NULL && !fstal) 
     read_reg(regfname);
 
   if(fstal){
+    // Load the talairach.xfm 
     if(subjectsdir == NULL) subjectsdir = getenv("SUBJECTS_DIR");
     if(subjectsdir==NULL) {
       printf("ERROR: SUBJECTS_DIR undefined. Use setenv or --sd\n");
@@ -449,6 +448,59 @@ int Register(ClientData clientData,Tcl_Interp *interp, int argc, char *argv[])
     MRIfree(&targ_vol);
     targ_vol = mritmp;
   }
+
+  /* Make target conformant if necessary */
+  if(! MRIisConformant(targ_vol) ){
+    printf("INFO: target does not conform to COR format, so I'm going to\n");
+    printf("reslice to COR. This will not affect the final registration.\n");
+    mritmp = MRIallocSequence(256,256,256, MRI_FLOAT, 1) ;
+    mritmp->xsize = 1;
+    mritmp->ysize = 1;
+    mritmp->zsize = 1;
+    mritmp->x_r = -1;
+    mritmp->x_a = 0;
+    mritmp->x_s = 0;
+    mritmp->y_r = 0;
+    mritmp->y_a = 0;
+    mritmp->y_s = -1;
+    mritmp->z_r = 0;
+    mritmp->z_a = 1;
+    mritmp->z_s = 0;
+    mritmp->c_r = targ_vol->c_r;
+    mritmp->c_a = targ_vol->c_a;
+    mritmp->c_s = targ_vol->c_s;
+
+    Ttarg     = MRIxfmCRS2XYZtkreg(targ_vol);
+    invTtarg  = MatrixInverse(Ttarg,NULL);
+    Ttargcor  = MRIxfmCRS2XYZtkreg(mritmp);
+    Dtargcor  = MRIxfmCRS2XYZ(mritmp,0);
+    Dtarg     = MRIxfmCRS2XYZ(targ_vol,0);
+    invDtarg  = MatrixInverse(Dtarg,0);
+    Vt2s = MatrixMultiply(invDtarg,Dtargcor,NULL);
+
+    invTtargcor  = MatrixInverse(Ttargcor,NULL);
+    invDtargcor  = MatrixInverse(Dtargcor,NULL);
+    Mtc = MatrixMultiply(Ttargcor,invDtargcor,NULL);
+    MatrixMultiply(Mtc,Dtarg,Mtc);
+    MatrixMultiply(Mtc,invTtarg,Mtc);
+
+    MRIvol2Vol(targ_vol, mritmp, Vt2s, SAMPLE_TRILINEAR, 0);
+    MRIfree(&targ_vol);
+    targ_vol = mritmp;
+
+    MatrixFree(&Ttargcor);
+    MatrixFree(&invTtargcor);
+    MatrixFree(&Dtargcor);
+    MatrixFree(&Dtarg);
+    MatrixFree(&invDtarg);
+    MatrixFree(&Ttarg);
+    MatrixFree(&invTtarg);
+    MatrixFree(&Vt2s);
+    //MRIwrite(targ_vol,"cor.mgh");
+  }
+  else Mtc = MatrixIdentity(4,NULL);
+  invMtc = MatrixInverse(Mtc,NULL);
+
   if(!fstal || !fixxfm) Ttarg = MRIxfmCRS2XYZtkreg(targ_vol);
   else                  Ttarg = MRIxfmCRS2XYZ(targ_vol,0);
   invTtarg = MatrixInverse(Ttarg,NULL);
@@ -489,9 +541,11 @@ int Register(ClientData clientData,Tcl_Interp *interp, int argc, char *argv[])
   else if(fslregfname != NULL){
     /* Compute Reg from FSLReg */
     RegMat = MRIfsl2TkReg(targ_vol, mov_vol, FSLRegMat);
+    MatrixMultiply(RegMat,invMtc,RegMat);
   }
   else{
     /* Use the registration file that was loaded above */
+    MatrixMultiply(RegMat,invMtc,RegMat);
     if(float2int == FLT2INT_TKREG){
       if(fixtkreg){
 	printf("INFO: making tkreg matrix compatible with round\n");
@@ -514,12 +568,12 @@ int Register(ClientData clientData,Tcl_Interp *interp, int argc, char *argv[])
     }
   }
 
-  if(mkheaderreg || fslregfname != NULL){
-    for (i=0;i<4;i++){
-      for (j=0;j<4;j++){
-	tm[i][j] = RegMat->rptr[i+1][j+1];
-      }
+  for (i=0;i<4;i++){
+    for (j=0;j<4;j++){
+      tm[i][j] = RegMat->rptr[i+1][j+1];
     }
+  }
+  if(mkheaderreg || fslregfname != NULL){
     printf("---- Input registration matrix (computed) --------\n");
     MatrixPrint(stdout,RegMat);
     printf("---------------------------------------\n");
@@ -629,72 +683,6 @@ int Register(ClientData clientData,Tcl_Interp *interp, int argc, char *argv[])
     printf("that a .bhdr file exists\n");
   }
 
-  if(! MRIisConformant(targ_vol) ){
-    printf("ERROR: target volume is non-conformant\n");
-    exit(1);
-    printf("WARNING: conforming target. Cardinal axis may be \n");
-    printf("rotated but the registration will be correct. \n");
-    mritmp = MRIallocSequence(256,256,256, MRI_FLOAT, 1) ;
-    mritmp->xsize = 1;
-    mritmp->ysize = 1;
-    mritmp->zsize = 1;
-    mritmp->x_r = targ_vol->x_r;
-    mritmp->x_a = targ_vol->x_a;
-    mritmp->x_s = targ_vol->x_s;
-    mritmp->y_r = targ_vol->y_r;
-    mritmp->y_a = targ_vol->y_a;
-    mritmp->y_s = targ_vol->y_s;
-    mritmp->z_r = targ_vol->z_r;
-    mritmp->z_a = targ_vol->z_a;
-    mritmp->z_s = targ_vol->z_s;
-    mritmp->c_r = targ_vol->c_r;
-    mritmp->c_a = targ_vol->c_a;
-    mritmp->c_s = targ_vol->c_s;
-
-    Ttargcor  = MRIxfmCRS2XYZtkreg(mritmp);
-    Dtargcor  = MRIxfmCRS2XYZ(mritmp,0);
-    Dtarg     = MRIxfmCRS2XYZ(targ_vol,0);
-    invDtarg  = MatrixInverse(Dtarg,0);
-    Vt2s = MatrixMultiply(invDtarg,Dtargcor,NULL);
-
-    invTtargcor  = MatrixInverse(Ttargcor,NULL);
-    invDtargcor  = MatrixInverse(Dtargcor,NULL);
-    Mtc = MatrixMultiply(Ttargcor,invDtargcor,NULL);
-    MatrixMultiply(Mtc,Dtarg,Mtc);
-    MatrixMultiply(Mtc,invTtarg,Mtc);
-
-    printf("Ttc -------------\n");
-    MatrixPrint(stdout,Ttargcor);
-    printf("Dtc -------------\n");
-    MatrixPrint(stdout,Dtargcor);
-    printf("Dt -------------\n");
-    MatrixPrint(stdout,Dtarg);
-    printf("Tt -------------\n");
-    MatrixPrint(stdout,Ttarg);
-    printf("Mtc -------------\n");
-    MatrixPrint(stdout,Mtc);
-
-    MRIvol2Vol(targ_vol, mritmp, Vt2s, SAMPLE_TRILINEAR, 0);
-    MRIfree(&targ_vol);
-    targ_vol = mritmp;
-
-    MatrixFree(&Ttargcor);
-    MatrixFree(&invTtargcor);
-    MatrixFree(&Dtargcor);
-    MatrixFree(&Dtarg);
-    MatrixFree(&invDtarg);
-    MatrixFree(&Vt2s);
-    //MRIwrite(targ_vol,"cor.mgh");
-  }
-  //else Mtc already equals identity
-  invMtc = MatrixInverse(Mtc,NULL);
-
-  MatrixMultiply(RegMat,invMtc,RegMat);
-  for (i=0;i<4;i++){
-    for (j=0;j<4;j++){
-      tm[i][j] = RegMat->rptr[i+1][j+1];
-    }
-  }
 
   xdim_2 = mov_vol->width;
   ydim_2 = mov_vol->height;
@@ -1142,10 +1130,6 @@ static void print_help(void)
 "\n"
 "   XYZmov = R*XYZtarg\n"
 "\n"
-"Note: the target is almost always a FreeSurfer anatomical, which\n"
-"has 256x256x256 voxels, isotropic at 1mm. The GUI probably will\n"
-"not work unless the target has these dimensions.\n"
-"\n"
 "FREESURFER REGISTRATION FILE FORMAT\n"
 "\n"
 "The FreeSurfer registration is stored in an ASCII file with the \n"
@@ -1238,10 +1222,11 @@ static void print_help(void)
 "\n"
 "BUGS\n"
 "\n"
-"The target is almost always a FreeSurfer anatomical, which has \n"
-"256x256x256 voxels, isotropic at 1mm. The GUI probably will not work \n"
-"unless the target has these dimensions.  The non-GUI operations\n"
-"will probably be OK though.\n"
+"It used to be the case that the GUI would not work if the target"
+"was not 256x256x256 voxels, isotropic at 1mm. This has been fixed\n"
+"by resampling the target into this space. This does not affect the\n"
+"final registration, ie, the registration matrix maps the original\n"
+"target (regarless of size) to the movable.\n"
 "\n"
 "AUTHORS\n"
 "\n"
@@ -3552,7 +3537,7 @@ char **argv;
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tkregister2.c,v 1.24 2004/08/12 04:13:34 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: tkregister2.c,v 1.25 2004/08/12 17:42:04 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -3810,13 +3795,37 @@ static void Prompt(interp, partial)
   fflush(stdout);
 }
 
+/*----------------------------------------------------
+  MRIisConformant() - checks whether the input volume
+  conforms to the COR format, ie, coronally sliced,
+  256^3 which voxel size 1mm^3.
+  ----------------------------------------------------*/
 static int MRIisConformant(MRI *vol)
 {
+  // Voxel size should be 1mm^3
   if(fabs(vol->xsize - 1) > .001) return(0);
   if(fabs(vol->ysize - 1) > .001) return(0);
   if(fabs(vol->zsize - 1) > .001) return(0);
+
+  // Column Direction Cosine should be -1 0 0
+  if(fabs(vol->x_r + 1) > .001) return(0);
+  if(fabs(vol->x_a) > .001) return(0);
+  if(fabs(vol->x_s) > .001) return(0);
+
+  // Row Direction Cosine should be 0 0 -1
+  if(fabs(vol->y_r) > .001) return(0);
+  if(fabs(vol->y_a) > .001) return(0);
+  if(fabs(vol->y_s + 1) > .001) return(0);
+
+  // Slice Direction Cosine should be 0 1 0
+  if(fabs(vol->z_r) > .001) return(0);
+  if(fabs(vol->z_a - 1) > .001) return(0);
+  if(fabs(vol->z_s) > .001) return(0);
+
+  // Dimension should be 256^3
   if(vol->width  != 256) return(0);
   if(vol->depth  != 256) return(0);
   if(vol->height != 256) return(0);
+
   return(1);
 }
