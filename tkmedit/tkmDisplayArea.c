@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2004/02/20 18:29:13 $
-// Revision       : $Revision: 1.100 $
+// Revision Date  : $Date: 2004/02/20 19:33:18 $
+// Revision       : $Revision: 1.101 $
 
 #include "tkmDisplayArea.h"
 #include "tkmMeditWindow.h"
@@ -5330,6 +5330,7 @@ DspA_tErr DspA_DrawUndoableVoxelsOverlayToFrame_ ( tkmDisplayAreaRef this ) {
   xPoint2n   bufferPt    = {0, 0};
   GLubyte*   pDest       = NULL;
   xVoxel     anaIdx;
+  xVoxel     MRIIdx;
   xColor3n   color;
   int        yMin        = 0;
   int        yMax        = 0;
@@ -5355,8 +5356,11 @@ DspA_tErr DspA_DrawUndoableVoxelsOverlayToFrame_ ( tkmDisplayAreaRef this ) {
 	if ( DspA_tErr_NoErr != eResult )
 	  goto error;
 
+	Volm_ConvertIdxToMRIIdx( this->mpVolume[tkm_tVolumeType_Main],
+				 &anaIdx, &MRIIdx );
+
 	/* Is this voxel is in the undo volume? */
-	if( tkm_IsMRIIdxInUndoVolume ( &anaIdx ) ) {
+	if( tkm_IsMRIIdxInUndoVolume ( &MRIIdx ) ) {
 
 	  /* Get the color at the dest. */
 	  color.mnRed   = pDest[DspA_knRedPixelCompIndex];

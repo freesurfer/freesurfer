@@ -4,9 +4,9 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2004/02/20 18:22:32 $
-// Revision       : $Revision: 1.198 $
-char *VERSION = "$Revision: 1.198 $";
+// Revision Date  : $Date: 2004/02/20 19:33:19 $
+// Revision       : $Revision: 1.199 $
+char *VERSION = "$Revision: 1.199 $";
 
 #define TCL
 #define TKMEDIT 
@@ -724,8 +724,8 @@ tkm_tErr InitUndoVolume    ();
 void   DeleteUndoVolume ();
 
 /* adds a value to the volume at an anatomical index */
-void   AddAnaIdxAndValueToUndoVolume ( xVoxelRef iAnaIdx,
-           int       iValue );
+void   AddMRIIdxAndValueToUndoVolume ( xVoxelRef iMRIIdx,
+				       int       iValue );
 
 /* sees if there is a value for this MRI idx, i.e. if it can be undone */
 tBoolean IsMRIIdxInUndoVolume         ( xVoxelRef iMRIIdx );
@@ -1034,7 +1034,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
      shorten our argc and argv count. If those are the only args we
      had, exit. */
   /* rkt: check for and handle version tag */
-  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.198 2004/02/20 18:22:32 kteich Exp $", "$Name:  $");
+  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.199 2004/02/20 19:33:19 kteich Exp $", "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
   argc -= nNumProcessedVersionArgs;
@@ -5050,7 +5050,7 @@ int main ( int argc, char** argv ) {
     DebugPrint( ( "%s ", argv[nArg] ) );
   }
   DebugPrint( ( "\n\n" ) );
-  DebugPrint( ( "$Id: tkmedit.c,v 1.198 2004/02/20 18:22:32 kteich Exp $ $Name:  $\n" ) );
+  DebugPrint( ( "$Id: tkmedit.c,v 1.199 2004/02/20 19:33:19 kteich Exp $ $Name:  $\n" ) );
 
   
   /* init glut */
@@ -7893,7 +7893,7 @@ void EditAnatomicalVolumeInRangeArray ( tkm_tVolumeType iVolume,
 	   undo volume. */
 	AddVoxelAndValueToUndoList( EditAnatomicalVolume, 
 				    &(iaMRIIdx[nVoxel]), value ); 
-	AddAnaIdxAndValueToUndoVolume( &(iaMRIIdx[nVoxel]), value ); 
+	AddMRIIdxAndValueToUndoVolume( &(iaMRIIdx[nVoxel]), value ); 
 	break;
 	
       case tkm_tVolumeType_Aux:
@@ -7954,7 +7954,7 @@ void CloneAnatomicalVolumeInRangeArray ( tkm_tVolumeType iDestVolume,
 	   undo volume. */
 	AddVoxelAndValueToUndoList( EditAnatomicalVolume, 
 				    &(iaMRIIdx[nVoxel]), value ); 
-	AddAnaIdxAndValueToUndoVolume( &(iaMRIIdx[nVoxel]), value ); 
+	AddMRIIdxAndValueToUndoVolume( &(iaMRIIdx[nVoxel]), value ); 
 	break;
 	
       case tkm_tVolumeType_Aux:
@@ -10327,25 +10327,25 @@ void DeleteUndoVolume () {
   }
 }
 
-void AddAnaIdxAndValueToUndoVolume ( xVoxelRef    iAnaIdx,
-             int    iValue ) {
+void AddMRIIdxAndValueToUndoVolume ( xVoxelRef    iMRIIdx,
+				     int          iValue ) {
   
   UndoVolumeEntryRef entry = NULL;
   xSVol_tErr       eVolume = xSVol_tErr_NoErr;
   
   if( NULL == gUndoVolume ) {
-    DebugPrint( ("AddAnaIdxAndValueToUndoVolume: Undo volume not inited.\n") );
+    DebugPrint( ("AddMRIIdxAndValueToUndoVolume: Undo volume not inited.\n") );
     goto cleanup;
   }
   
   /* try getting a voxel at this location */
-  eVolume = xSVol_Get( gUndoVolume, iAnaIdx, (void**)&entry );
+  eVolume = xSVol_Get( gUndoVolume, iMRIIdx, (void**)&entry );
   if( xSVol_tErr_NoErr != eVolume )
     goto cleanup;
   
   /* if it exists, delete it */
   if( NULL != entry ) {
-    eVolume = xSVol_Set( gUndoVolume, iAnaIdx, NULL );
+    eVolume = xSVol_Set( gUndoVolume, iMRIIdx, NULL );
     if( xSVol_tErr_NoErr != eVolume )
       goto cleanup;
     
@@ -10359,7 +10359,7 @@ void AddAnaIdxAndValueToUndoVolume ( xVoxelRef    iAnaIdx,
     goto cleanup;
   
   /* set the voxel at this location */
-  eVolume = xSVol_Set( gUndoVolume, iAnaIdx, entry );
+  eVolume = xSVol_Set( gUndoVolume, iMRIIdx, entry );
   if( xSVol_tErr_NoErr != eVolume )
     goto cleanup;
   
