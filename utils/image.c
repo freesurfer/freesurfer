@@ -80,6 +80,26 @@ ImageAlloc(int rows, int cols, int format, int nframes)
         Returns value:
 
         Description
+------------------------------------------------------*/
+IMAGE *
+ImageAllocHeader(int rows, int cols, int format, int nframes)
+{
+  IMAGE *I ;
+  
+  I = (IMAGE *)calloc(1, sizeof(IMAGE)) ;
+  if (!I)
+    ErrorExit(ERROR_NO_MEMORY,"ImageAllocHeader: could not allocate header\n");
+
+  init_header(I, "orig", "seq", nframes, "today", rows,cols,format,1, "temp");
+  I->imdealloc = FALSE ;
+  return(I) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
            stolen from hips2 code and modified to allocate multiple frames.
 ------------------------------------------------------*/
 static int
