@@ -1479,7 +1479,7 @@ typedef struct
 
 /* a fixed array of labels. */
 #define LABL_MAX_LABELS 300
-LABL_LABEL labl_labels[LABL_MAX_LABELS]; /* oh, for the c++ stl.. */
+LABL_LABEL labl_labels[LABL_MAX_LABELS];
 int labl_num_labels;
 
 /* the color lookup table. */
@@ -21912,22 +21912,32 @@ int labl_load_color_table (char* fname)
   CLUT_GetNumEntries (labl_table, &labl_num_structures);
   printf ("Read %s, found %d structures\n", fname, labl_num_structures);
   
-  /* for each label, if the structure index is > the number of entries
-     we have now, set it to 0 and the corresponding color. */
-  CLUT_GetColorInt (labl_table, 0, &color);
+  /* for each label, if it's not free, reset its color to the new
+     color in the table. if the structure index is > the number of
+     entries we have now, set it to 0 and the corresponding color. */
   for (label = 0; label < labl_num_labels; label++ )
     {
-      if (labl_labels[label].structure >= labl_num_structures)
+      if (labl_labels[label].structure >= 0 &&
+	  labl_labels[label].structure < labl_num_structures)
 	{
+	  CLUT_GetColorInt (labl_table, labl_labels[label].structure, &color);
+	  labl_labels[label].r = color.mnRed;
+	  labl_labels[label].g = color.mnGreen;
+	  labl_labels[label].b = color.mnBlue;
+	} 
+      else if (labl_labels[label].structure >= labl_num_structures)
+	{
+	  CLUT_GetColorInt (labl_table, 0, &color);
 	  labl_labels[label].structure = 0;
 	  labl_labels[label].r = color.mnRed;
 	  labl_labels[label].g = color.mnGreen;
-	  labl_labels[label].r = color.mnBlue;
+	  labl_labels[label].b = color.mnBlue;
 	}
     }
   
   /* save the name of the color table */
-  strcpy (labl_color_table_name, fname);
+  /* this will crash on a second call to this function. why??? (who cares?) */
+  //  strcpy (labl_color_table_name, fname);
   
   /* send the color table to tcl. */
   labl_send_color_table_info ();
@@ -21954,7 +21964,7 @@ labl_send_color_table_info ()
 	  /* allocate a string long enough for the update command and all
 	     our labels. */
 	  structure_label_list = (char*) 
-	    malloc (256 * mris->ct->nbins * sizeof(char) );
+	    malloc (256 * mris->ct->nbins * sizeof(char));
 	  if (NULL != structure_label_list)
 	    {
 	      /* build a string out of all the label names and send them to the
@@ -21986,7 +21996,7 @@ labl_send_color_table_info ()
 	  /* allocate a string long enough for the update command and all
 	     our labels. */
 	  structure_label_list = (char*) 
-	    malloc (CLUT_knLabelLen * labl_num_structures * sizeof(char) );
+	    malloc (CLUT_knLabelLen * labl_num_structures * sizeof(char));
 	  if (NULL != structure_label_list)
 	    {
 	      
