@@ -2470,8 +2470,7 @@ MRISunfold(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int max_passes)
            ) ;
 
   /* remove most of remaining negative vertices */
-  if (Gdiag & DIAG_SHOW)
-    fprintf(stderr, "initial flattening complete - settling to equilibrium...\n") ;
+  fprintf(stderr, "initial optimization complete - settling to equilibrium...\n") ;
   parms->niterations = 1000 ;
   mrisIntegrationEpoch(mris, parms, parms->n_averages = 0) ; 
 
@@ -2481,8 +2480,7 @@ MRISunfold(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int max_passes)
   parms->niterations = niter ;
 
   /* finally, remove all the small holes */
-  if (Gdiag & DIAG_SHOW)
-    fprintf(stderr, "removing remaining folds...\n") ;
+  fprintf(stderr, "removing remaining folds...\n") ;
   mrisRemoveNegativeArea(mris, parms, base_averages, MAX_NEG_AREA_PCT/4.0f, 4) ;
 
   pct_error = MRISpercentDistanceError(mris) ;
@@ -2500,7 +2498,7 @@ MRISunfold(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int max_passes)
   msec = TimerStop(&start) ;
   if (Gdiag & DIAG_SHOW)
   {
-    fprintf(stderr, "flattening complete.\n") ;
+    fprintf(stderr, "optimization complete.\n") ;
     fprintf(stderr, "unfolding took %2.2f hours\n",
             (float)msec/(1000.0f*60.0f*60.0f));
     if (Gdiag & DIAG_WRITE)
