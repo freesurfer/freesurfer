@@ -4893,11 +4893,11 @@ ImageRMSDifference(IMAGE *I1_in, IMAGE *I2_in)
   rms = 0.0f ;
   pix1 = IMAGEFpix(I1, 0, 0) ;
   pix2 = IMAGEFpix(I2, 0, 0) ;
-  for (y = 0 ; y < height ; y++, pix1++, pix2++)
+  for (y = 0 ; y < height ; y++)
   {
     for (x = 0 ; x < width ; x++)
     {
-      dif = (*pix1 - *pix2) ;
+      dif = (*pix1++ - *pix2++) ;
       rms += (dif * dif) ;
     }
   }
