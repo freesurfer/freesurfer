@@ -14,8 +14,8 @@
 #define IMGSIZE     256
 #define NUMVALS     256
 #define MAXIM       256
-#define MAXFACES    400000
-#define MAXVERTICES 400000
+#define MAXFACES    1000000
+#define MAXVERTICES 1000000
 
 typedef struct face_type_
 {
@@ -194,6 +194,9 @@ add_face(int imnr, int i, int j, int f, int prev_flag)
 {
   int pack = f*65536+i*256+j;
 
+  if (face_index >= MAXFACES-1)
+    ErrorExit(ERROR_NOMEMORY, "%s: max faces %d exceeded", 
+              Progname,MAXFACES) ;
   if (prev_flag)
     face_index_table0[pack] = face_index;
   else
@@ -211,6 +214,9 @@ add_vertex(int imnr, int i, int j)
 {
   int pack = i*257+j;
 
+  if (vertex_index >= MAXVERTICES-1)
+    ErrorExit(ERROR_NOMEMORY, "%s: max vertices %d exceeded", 
+              Progname,MAXVERTICES) ;
   vertex_index_table[pack] = vertex_index;
   vertex[vertex_index].imnr = imnr;
   vertex[vertex_index].i = i;
