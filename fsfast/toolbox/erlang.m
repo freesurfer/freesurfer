@@ -15,7 +15,7 @@ function y = erlang(x,avg,r)
 %
 % See also rande.
 %
-% $Id: erlang.m,v 1.3 2004/02/12 05:23:51 greve Exp $
+% $Id: erlang.m,v 1.4 2004/02/12 18:43:01 greve Exp $
 
 y = [];
 
@@ -27,10 +27,10 @@ end
 if(exist('avg')~=1) avg = 1; end
 if(exist('r')~=1)  r = 1; end
 
+x = x - (avg-1);
 y = zeros(size(x));
 indgez = find(x >= 0);
 
-x = x - (avg-1);
 y(indgez) = r*((r*x(indgez)).^(r-1)) .* exp(-r*x(indgez)) / factorial(r-1);
 
 return;
