@@ -1,7 +1,14 @@
 function [F, Fsig, ces, edof] = fast_fratio(beta,X,rvar,C,Sn,dof2max)
 % [F, Fsig, ces] = fast_fratio(beta,X,rvar,C,<Sn>,<dof2max>)
 %
-% Sn is the covariance matrix of the noise after any filtering.
+% Sn is the covariance matrix of the noise AFTER any filtering.
+%
+% Worsley, K.J. and Friston, K.J. Analysis of fMRI Time-Series
+% Revisited - Again. Neuroimage 2, 173-181, 1995.
+%
+% See also: fast_glmfit.m
+%
+% $Id: fast_fratio.m,v 1.5 2003/05/02 03:43:47 greve Exp $
 
 if(nargin < 4 | nargin > 6)
   fprintf('[F, Fsig, ces, edof] = fast_fratio(beta,X,rvar,C,<Sn>,<dof2max>)\n');
@@ -21,8 +28,12 @@ if(~isempty(Sn))
   R = eye(nf)-X*inv(X'*X)*X';
   vdof = trace(R*Sn);
   edof = (vdof.^2)/trace(R*Sn*R*Sn);
+  % Covariance matrix of contrast effect size
+  cescvm = inv(C*inv(X'*X)*X'*Sn*X*inv(X'*X)*C');
 else
   edof = size(X,1) - size(X,2);
+  % Covariance matrix of contrast effect size
+  cescvm = inv(C*inv(X'*X)*C');
 end
 
 J = size(C,1);
@@ -39,9 +50,6 @@ end
 
 % Contast Effect Size
 ces = C*beta;
-
-% Covariance matrix of contrast effect size
-cescvm = inv(C*inv(X'*X)*C');
 
 if(J ~= 1) F = (sum(ces .* (cescvm*ces))./rvar)/J;
 else       F = ((ces.^2)./rvar)*(cescvm/J);
