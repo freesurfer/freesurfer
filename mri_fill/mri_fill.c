@@ -10,7 +10,7 @@
 #include "macros.h"
 #include "proto.h"
 
-static char vcid[] = "$Id: mri_fill.c,v 1.22 1999/06/17 14:45:54 fischl Exp $";
+static char vcid[] = "$Id: mri_fill.c,v 1.23 1999/06/19 21:31:01 fischl Exp $";
 
 /*-------------------------------------------------------------------
                                 CONSTANTS
@@ -129,7 +129,6 @@ static int cc_mask = 1 ;
                              STATIC PROTOTYPES
 -------------------------------------------------------------------*/
 
-static int mriExtendMaskDownward(MRI *mri) ;
 int MRIsetValues(MRI *mri, int val) ;
 static int get_option(int argc, char *argv[]) ;
 static void print_version(void) ;
@@ -244,7 +243,6 @@ main(int argc, char *argv[])
   if (!pons_seed_set)
 	{
 		MRI  *mri_tmp, *mri_mask ;
-		int  i ;
 
 		if (cc_mask)
 		{
@@ -1517,11 +1515,13 @@ MRIsetValues(MRI *mri, int val)
   
   return(NO_ERROR) ;
 }
+#if 0
+static int mriExtendMaskDownward(MRI *mri) ;
 static int
 mriExtendMaskDownward(MRI *mri)
 {
   int     width, height, depth, x, y, z, y1 ;
-  BUFTYPE *psrc, max_val, val ;
+  BUFTYPE *psrc, val ;
 
   width = mri->width ;
   height = mri->height ;
@@ -1545,3 +1545,4 @@ mriExtendMaskDownward(MRI *mri)
 	return(NO_ERROR) ;
 }
 
+#endif
