@@ -46,6 +46,7 @@ int stricmp(char *str1, char *str2) ;
 #ifdef IRIX
 #define nint(f)   ((int)(rint((double)f)))
 #define isnan(f)  0
+int stricmp(char *str1, char *str2) ;
 #endif
 
 /*----------- MSDOS -----------------------*/
