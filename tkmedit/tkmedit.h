@@ -1,11 +1,12 @@
 #ifndef tkmedit_h
 #define tkmedit_h
 
+#include "mrisurf.h" /* declares WM_MIN_VAL */
 #include "mriTypes.h"
 #include "xVoxel.h"
 #include "x3DList.h"
-#include "mrisurf.h"
 #include "xGLutWindow.h"
+#include "mriHeadPointList.h"
 
 typedef unsigned char tVolumeValue;
 typedef tVolumeValue* tVolumeRef;
@@ -15,28 +16,13 @@ typedef tVolumeValue* tVolumeRef;
 
 #define WM_EDITED_OFF 1
 
-#ifndef WM_MIN_VAL
-#define WM_MIN_VAL    5 /* 1 is used for voxels that are edited to off */
-#endif
-
 #define tkm_knEditToWhiteLow      knMinVolumeValue
 #define tkm_knEditToWhiteHigh     WM_MIN_VAL
 #define tkm_knEditToWhiteNewValue 255
 
-#define tkm_knEditToBlackLow      knMinVolumeValue
+#define tkm_knEditToBlackLow      WM_MIN_VAL
 #define tkm_knEditToBlackHigh     knMaxVolumeValue
 #define tkm_knEditToBlackNewValue WM_EDITED_OFF
-
-/* this is synced to defs in tkmedit.c and in tkm_interface.tcl */
-/*
-typedef enum {  
-  Surf_tVertexSet_None = -1,
-  Surf_tVertexSet_Main = 0,
-  Surf_tVertexSet_Original,
-  Surf_tVertexSet_Pial,
-  Surf_knNumVertexSets
-} Surf_tVertexSet;
-*/
 
 /* commands for the tcl side of things */
 typedef enum {
@@ -60,6 +46,7 @@ typedef enum {
   tkm_tTclCommand_UpdateBrushThreshold,
   tkm_tTclCommand_UpdateVolumeColorScale,
   tkm_tTclCommand_UpdateParcellationLabel,
+  tkm_tTclCommand_UpdateHeadPointLabel,
 
   /* display status */
   tkm_tTclCommand_ShowVolumeCoords,
@@ -67,20 +54,39 @@ typedef enum {
   tkm_tTclCommand_ShowTalCoords,
   tkm_tTclCommand_ShowAuxValue,
   tkm_tTclCommand_ShowParcellationLabel,
+  tkm_tTclCommand_ShowHeadPointLabel,
   tkm_tTclCommand_ShowFuncCoords,
   tkm_tTclCommand_ShowFuncValue,
   tkm_tTclCommand_ShowFuncOverlayOptions,
   tkm_tTclCommand_ShowFuncTimeCourseOptions,
   tkm_tTclCommand_ShowSurfaceLoadingOptions,
+  tkm_tTclCommand_ShowSurfaceViewingOptions,
   tkm_tTclCommand_ShowOriginalSurfaceViewingOptions,
   tkm_tTclCommand_ShowCanonicalSurfaceViewingOptions,
+  tkm_tTclCommand_ShowHeadPointLabelEditingOptions,
 
   /* interface configuration */
   tkm_tTclCommand_MoveToolWindow,
   tkm_tTclCommand_CsurfInterface,
-  tkm_tTclCommand_ErrorDlog,
+  tkm_tTclCommand_ErrorDlog,  
+  tkm_tTclCommand_AlertDlog,
   tkm_knNumTclCommands
 } tkm_tTclCommand;
+
+typedef enum {
+
+  tkm_tVolumeType_Main = 0,
+  tkm_tVolumeType_Aux,
+  tkm_knNumVolumeTypes
+} tkm_tVolumeType;
+
+typedef enum {
+
+  tkm_tAxis_X = 0,
+  tkm_tAxis_Y,
+  tkm_tAxis_Z,
+  tkm_knNumAxes
+} tkm_tAxis;
 
 /* convesion functions */
 void tkm_ConvertVolumeToRAS ( xVoxelRef iAnaIdx,
@@ -98,7 +104,8 @@ tBoolean tkm_IsValidRAS       ( xVoxelRef iRAS );
 /* interfaces for accessing current volume state */
 tVolumeValue tkm_GetVolumeValue ( tVolumeRef iVolume,
           xVoxelRef  iAnaIdx );
-void tkm_GetAnatomicalVolumeColor( tVolumeValue inValue, 
+void tkm_GetAnatomicalVolumeColor( tVolumeRef   iVolume,
+           tVolumeValue inValue, 
            xColor3fRef  oColor );
 
 /* getting the maximum intensity projection */
@@ -110,7 +117,11 @@ tVolumeValue tkm_GetMaxIntProjValue( tVolumeRef       iVolume,
 void tkm_GetParcellationColor ( xVoxelRef   iWhere, 
         xColor3fRef oColor );
 void tkm_GetParcellationLabel ( xVoxelRef   iWhere, 
+        int*        onIndex,
         char*       osLabel );
+
+/* selects all the voxels in the label with the given index */
+void tkm_SelectParcellationLabel ( int inIndex );
 
 /* dealing with control points */
 void tkm_AddNearestCtrlPtToSelection      ( xVoxelRef        iAnaIdx, 
@@ -131,6 +142,11 @@ void tkm_EditVoxelInRange( xVoxelRef    iAnaIdx,
 /* undo list */
 void tkm_ClearUndoList   ();
 void tkm_RestoreUndoList ();
+
+/* head points */
+void tkm_GetHeadPoint ( xVoxelRef           iAnaIdx,
+      mri_tOrientation    iOrientation,
+      HPtL_tHeadPointRef* opPoint );
 
 /* selecting */
 void tkm_SelectVoxel    ( xVoxelRef iAnaIdx );

@@ -18,6 +18,7 @@ typedef enum {
   Trns_tErr_NoErr = 0,
   Trns_tErr_InvalidPtr,
   Trns_tErr_InvalidSignature,
+  Trns_tErr_InvalidParameter,
   Trns_tErr_AllocationFailed,
   Trns_tErr_TransformationMatrixNotInited,
   Trns_tErr_InvalidErrorCode,
@@ -68,22 +69,48 @@ Trns_tErr Trns_GetBtoRAS     ( mriTransformRef this,
 Trns_tErr Trns_GetARAStoBRAS ( mriTransformRef this,
              MATRIX**        opMatrix );
 
+/* apply a transformation to the ARAStoBRAS matrix */
+Trns_tErr Trns_ApplyTransform ( mriTransformRef this,
+        MATRIX*         iTransform );
+
+/* extracts the individual portions of a transformation matrix. necessary
+   for local transformation. does not allocate new matricies. note that the
+   scale extraction assumes all scales have been uniform in the three axes. */
+Trns_tErr Trns_ExtractTranslationMatrix ( MATRIX* iTransform,
+            MATRIX* oTranslation );
+Trns_tErr Trns_ExtractRotationMatrix    ( MATRIX* iTransform,
+            MATRIX* oRotation );
+Trns_tErr Trns_ExtractScaleMatrix       ( MATRIX* iTransform,
+            MATRIX* oScale );
+
 /* converts from a voxel in A space to one in B space, i.e. 
    A -> A_RAS, A_RAS -> B_RAS, B_RAS -> B */
-Trns_tErr Trns_ConvertAtoB ( mriTransformRef this,
-           xVoxelRef       iAVoxel,
-           xVoxelRef       oBVoxel );
-Trns_tErr Trns_ConvertBtoA ( mriTransformRef this,
-           xVoxelRef       iBVoxel,
-           xVoxelRef       oAVoxel );
-
-/* converts between a and ras */
+Trns_tErr Trns_ConvertAtoB   ( mriTransformRef this,
+             xVoxelRef       iAVoxel,
+             xVoxelRef       oBVoxel );
 Trns_tErr Trns_ConvertAtoRAS ( mriTransformRef this,
              xVoxelRef       iAVoxel,
-             xVoxelRef       oARASVoxel );
-Trns_tErr Trns_ConvertRAStoA ( mriTransformRef this,
-             xVoxelRef       iARASVoxel,
+             xVoxelRef       oRASVoxel );
+Trns_tErr Trns_ConvertBtoA   ( mriTransformRef this,
+             xVoxelRef       iBVoxel,
              xVoxelRef       oAVoxel );
+Trns_tErr Trns_ConvertBtoRAS ( mriTransformRef this,
+             xVoxelRef       iBVoxel,
+             xVoxelRef       oRASVoxel );
+
+/* converts matricies between a and b */
+Trns_tErr Trns_ConvertMatrixAtoB ( mriTransformRef this,
+           MATRIX*         iAMatrix,
+           MATRIX*         oBMatrix );
+Trns_tErr Trns_ConvertMatrixAtoRAS ( mriTransformRef this,
+             MATRIX*         iAMatrix,
+             MATRIX*         oRASMatrix );
+Trns_tErr Trns_ConvertMatrixBtoA ( mriTransformRef this,
+           MATRIX*         iBMatrix,
+           MATRIX*         oAMatrix );
+Trns_tErr Trns_ConvertMatrixBtoRAS ( mriTransformRef this,
+             MATRIX*         iBMatrix,
+             MATRIX*         oRASMatrix );
 
 /* internal function that calculates all the matricies */
 Trns_tErr Trns_CalcMatricies_ ( mriTransformRef this );

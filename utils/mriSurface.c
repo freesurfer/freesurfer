@@ -302,7 +302,7 @@ Surf_tErr Surf_ConvertSurfaceToClientSpace_ ( mriSurfaceRef   this,
 
 
 Surf_tErr Surf_SetIteratorPosition ( mriSurfaceRef    this,
-             xVoxelRef        plane ) {
+             xVoxelRef        iPlane ) {
 
   Surf_tErr     eResult = Surf_tErr_NoErr;
 
@@ -311,15 +311,15 @@ Surf_tErr Surf_SetIteratorPosition ( mriSurfaceRef    this,
     goto error;
 
   /* see what orientation we're in and save the plane */
-  if( xVoxl_GetFloatX( plane ) != 0 ) {
-    this->mIterOrientation = Surf_tOrientation_X;
-    this->mfIterPlane      = xVoxl_GetFloatX( plane );
-  } else if( xVoxl_GetFloatY( plane ) != 0 ) {
-    this->mIterOrientation = Surf_tOrientation_Y;
-    this->mfIterPlane      = xVoxl_GetFloatY( plane );
-  } else if( xVoxl_GetFloatZ( plane ) != 0 ) {
-    this->mIterOrientation = Surf_tOrientation_Z;
-    this->mfIterPlane      = xVoxl_GetFloatZ( plane );
+  if( xVoxl_GetFloatX( iPlane ) != 0 ) {
+    this->mIterOrientation  = Surf_tOrientation_X;
+    this->mfIterPlane       = xVoxl_GetFloatX( iPlane );
+  } else if( xVoxl_GetFloatY( iPlane ) != 0 ) {
+    this->mIterOrientation  = Surf_tOrientation_Y;
+    this->mfIterPlane       = xVoxl_GetFloatY( iPlane );
+  } else if( xVoxl_GetFloatZ( iPlane ) != 0 ) {
+    this->mIterOrientation  = Surf_tOrientation_Z;
+    this->mfIterPlane       = xVoxl_GetFloatZ( iPlane );
   }
 
   /* right now just start on first face */

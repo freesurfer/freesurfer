@@ -84,12 +84,11 @@ typedef enum {
 } DspA_tBrushShape;
 
 typedef enum {
-
-  DspA_tVolumeType_Main = 0,
-  DspA_tVolumeType_Aux,
-  DspA_knNumVolumeTypes
-} DspA_tVolumeType;
-
+  
+  DspA_tMarker_Crosshair = 0,
+  DspA_tMarker_Diamond,
+  DspA_knNumMarkers
+} DspA_tMarker;
 
 #define DspA_kSignature 0x194ffb2
 
@@ -120,7 +119,9 @@ struct tkmDisplayArea {
   Surf_tVertexSet        mHilitedSurface;
   tBoolean               mabDisplayFlags [DspA_knNumDisplayFlags];
   tBoolean               mbSliceChanged;
-
+  HPtL_tHeadPointRef     mpSelectedHeadPoint;
+  int                    mnParcellationIndex;
+  
   /* surface lists */
   xGrowableArrayRef*     maSurfaceLists;
 
@@ -200,6 +201,8 @@ DspA_tErr DspA_SetHeadPointList              ( tkmDisplayAreaRef this,
 /* viewing state changes */
 DspA_tErr DspA_SetCursor             ( tkmDisplayAreaRef this, 
               xVoxelRef          ipCursor );
+DspA_tErr DspA_SetSlice              ( tkmDisplayAreaRef this,
+               int               inSlice );
 DspA_tErr DspA_SetOrientation        ( tkmDisplayAreaRef this, 
                mri_tOrientation  iOrientation );
 DspA_tErr DspA_SetZoomLevel          ( tkmDisplayAreaRef this,
@@ -260,6 +263,9 @@ DspA_tErr DspA_BrushVoxels_ ( tkmDisplayAreaRef this,
             void(*ipFunction)(xVoxelRef) );
 void DspA_BrushVoxelsInThreshold_ (xVoxelRef ipVoxel );
 
+/* select the currently clicked parcellation label */
+DspA_tErr DspA_SelectCurrentParcellationLabel ( tkmDisplayAreaRef this );
+
 /* for drawing the surface. */
 tBoolean xUtil_FaceIntersectsPlane( MRI_SURFACE*     ipSurface,
             face_type*       ipFace,
@@ -288,6 +294,8 @@ DspA_tErr DspA_Redraw_ ( tkmDisplayAreaRef this );
 DspA_tErr DspA_HandleDraw_             ( tkmDisplayAreaRef this );
 DspA_tErr DspA_DrawFrameBuffer_        ( tkmDisplayAreaRef this );
 DspA_tErr DspA_DrawSurface_            ( tkmDisplayAreaRef this );
+DspA_tErr DspA_DrawHeadPoints_         ( tkmDisplayAreaRef this );
+DspA_tErr DspA_DrawControlPoints_      ( tkmDisplayAreaRef this );
 DspA_tErr DspA_DrawCursor_             ( tkmDisplayAreaRef this );
 DspA_tErr DspA_DrawFrameAroundDisplay_ ( tkmDisplayAreaRef this );
 DspA_tErr DspA_DrawAxes_               ( tkmDisplayAreaRef this );
@@ -295,13 +303,12 @@ DspA_tErr DspA_DrawAxes_               ( tkmDisplayAreaRef this );
 /* build the frame buffer */
 DspA_tErr DspA_BuildCurrentFrame_            ( tkmDisplayAreaRef this );
 DspA_tErr DspA_DrawFunctionalOverlayToFrame_ ( tkmDisplayAreaRef this );
-DspA_tErr DspA_DrawControlPointsToFrame_     ( tkmDisplayAreaRef this );
 DspA_tErr DspA_DrawSelectionToFrame_         ( tkmDisplayAreaRef this );
-DspA_tErr DspA_DrawHeadPointsToFrame_        ( tkmDisplayAreaRef this );
 
 /* other drawing subfunctions */
 DspA_tErr DspA_BuildSurfaceDrawLists_  ( tkmDisplayAreaRef this );
-DspA_tErr DspA_DrawCrosshairIntoFrame_ ( tkmDisplayAreaRef this,
+DspA_tErr DspA_DrawMarker_             ( tkmDisplayAreaRef this,
+           DspA_tMarker      iType,
            float*            ifaColor,
            xPoint2nRef       ipWhere,
            int               inSize );
@@ -320,6 +327,10 @@ DspA_tErr DspA_GetOrientation   ( tkmDisplayAreaRef this,
 DspA_tErr DspA_GetZoomLevel     ( tkmDisplayAreaRef this, 
           int*              oZoomLevel );
 int DspA_GetCurrentSliceNumber_ ( tkmDisplayAreaRef this );
+
+/* tkmedit needs to get the selected head pt */
+DspA_tErr DspA_GetSelectedHeadPt ( tkmDisplayAreaRef   this,
+           HPtL_tHeadPointRef* opHeadPoint );
 
 /* handles the lists of surface points */
 DspA_tErr DspA_InitSurfaceLists_     ( tkmDisplayAreaRef this,

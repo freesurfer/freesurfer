@@ -6,6 +6,7 @@ char Trns_ksaErrorStrings [Trns_knNumErrorCodes][256] = {
   "No error.",
   "Invalid pointer to object.",
   "Invalid signature.",
+  "Invalid parameter.",
   "Allocation failed.",
   "Tranformation matrices not inited.",
   "Invalid error code."
@@ -292,6 +293,176 @@ Trns_tErr Trns_GetARAStoBRAS ( mriTransformRef this,
   return eResult;
 }
 
+Trns_tErr Trns_ApplyTransform ( mriTransformRef this,
+        MATRIX*         iTransform ) {
+
+  Trns_tErr eResult         = Trns_tErr_NoErr;
+  MATRIX*   mTranslation    = NULL;
+  MATRIX*   mRotation       = NULL;
+  MATRIX*   mScale          = NULL;
+  MATRIX*   mNewTranslation = NULL;
+  MATRIX*   mNewRotation    = NULL;
+  MATRIX*   mNewScale       = NULL;
+  MATRIX*   mNew            = NULL;
+
+  eResult = Trns_Verify( this );
+  if( Trns_tErr_NoErr != eResult )
+    goto error;
+
+  /* init our matricies */
+  mTranslation    = MatrixAlloc( 4, 4, MATRIX_REAL );
+  mRotation       = MatrixAlloc( 4, 4, MATRIX_REAL );
+  mScale          = MatrixAlloc( 4, 4, MATRIX_REAL );
+  mNewTranslation = MatrixAlloc( 4, 4, MATRIX_REAL );
+  mNewRotation    = MatrixAlloc( 4, 4, MATRIX_REAL );
+  mNewScale       = MatrixAlloc( 4, 4, MATRIX_REAL );
+  mNew            = MatrixAlloc( 4, 4, MATRIX_REAL );
+
+  /* get our matrix components */
+  Trns_ExtractTranslationMatrix( this->mARAStoBRAS, mTranslation );
+  Trns_ExtractRotationMatrix(    this->mARAStoBRAS, mRotation );
+  Trns_ExtractScaleMatrix(       this->mARAStoBRAS, mScale );
+  Trns_ExtractTranslationMatrix( iTransform,        mNewTranslation );
+  Trns_ExtractRotationMatrix(    iTransform,        mNewRotation );
+  Trns_ExtractScaleMatrix(       iTransform,        mNewScale );
+
+  /* compose them back together in the proper order with the
+     new transforms */
+  MatrixIdentity( 4, mNew );
+  MatrixMultiply( mNewTranslation, mNew, mNew );
+  MatrixMultiply( mTranslation,    mNew, mNew );
+  MatrixMultiply( mNewScale,       mNew, mNew );
+  MatrixMultiply( mScale,          mNew, mNew );
+  MatrixMultiply( mNewRotation,    mNew, mNew );
+  MatrixMultiply( mRotation,       mNew, mNew );
+
+  /* set the new matrix */
+  eResult = Trns_CopyARAStoBRAS( this, mNew );
+  if( Trns_tErr_NoErr != eResult )
+    goto error;
+
+  goto cleanup;
+
+ error:
+
+  if( Trns_tErr_NoErr != eResult ) {
+    DebugPrint "Error %d in Trns_ApplyTransform: %s\n",
+      eResult, Trns_GetErrorString( eResult ) EndDebugPrint;
+  }
+
+ cleanup:
+
+  if( mTranslation ) 
+    MatrixFree( &mTranslation );
+  if( mRotation ) 
+    MatrixFree( &mRotation );
+  if( mScale ) 
+    MatrixFree( &mScale );
+  if( mNewTranslation ) 
+    MatrixFree( &mNewTranslation );
+  if( mNewRotation ) 
+    MatrixFree( &mNewRotation );
+  if( mNewScale ) 
+    MatrixFree( &mNewScale );
+  if( mNew ) 
+    MatrixFree( &mNew );
+
+  return eResult;
+}
+
+Trns_tErr Trns_ExtractTranslationMatrix ( MATRIX* iTransform,
+            MATRIX* oTranslation ) {
+
+  if( NULL == iTransform
+      || NULL == oTranslation ) 
+    return Trns_tErr_InvalidParameter;
+  
+  /* identity matrix with just the translation components */
+  MatrixIdentity( 4, oTranslation );
+  *MATRIX_RELT(oTranslation,1,4) = *MATRIX_RELT(iTransform,1,4);
+  *MATRIX_RELT(oTranslation,2,4) = *MATRIX_RELT(iTransform,2,4);
+  *MATRIX_RELT(oTranslation,3,4) = *MATRIX_RELT(iTransform,3,4);
+
+  return Trns_tErr_NoErr;
+}
+
+Trns_tErr Trns_ExtractRotationMatrix    ( MATRIX* iTransform,
+            MATRIX* oRotation ) {
+
+  MATRIX* mTmp    = NULL;
+  MATRIX* mTmp2   = NULL;
+  VECTOR* vTmp    = NULL;
+  float   fFactor = 0;
+
+  if( NULL == iTransform
+      || NULL == oRotation ) 
+    return Trns_tErr_InvalidParameter;
+
+  /* create a matrix identical to the transform but without the translation */
+  mTmp = MatrixCopy( iTransform, NULL );
+  *MATRIX_RELT(mTmp,1,4) = 0;
+  *MATRIX_RELT(mTmp,2,4) = 0;
+  *MATRIX_RELT(mTmp,3,4) = 0;
+
+  /* create a 1,0,0 vector and compose it. */
+  vTmp = VectorAlloc(4,MATRIX_REAL);
+  VECTOR_ELT(vTmp,1) = 1.0; VECTOR_ELT(vTmp,2) = 0;
+  VECTOR_ELT(vTmp,3) = 0;   VECTOR_ELT(vTmp,4) = 1.0;
+  MatrixMultiply(mTmp,vTmp,vTmp);
+  
+  /* create a matrix with 1/length in the diagonal */
+  fFactor = 1.0 / VectorLen( vTmp );
+  mTmp2 = MatrixIdentity( 4, mTmp2 );
+  *MATRIX_RELT(mTmp2,1,1) = fFactor;
+  *MATRIX_RELT(mTmp2,2,2) = fFactor;
+  *MATRIX_RELT(mTmp2,3,3) = fFactor;
+
+  /* rotation is that matrix composed with original matrix sans translation */
+  MatrixMultiply( mTmp2, mTmp, oRotation );
+
+  MatrixFree( &mTmp );
+  MatrixFree( &mTmp2 );
+  VectorFree( &vTmp );
+
+  return Trns_tErr_NoErr;
+}
+
+Trns_tErr Trns_ExtractScaleMatrix       ( MATRIX* iTransform,
+            MATRIX* oScale ) {
+
+  MATRIX* mTmp    = NULL;
+  VECTOR* vTmp    = NULL;
+  float   fFactor = 0;
+
+  if( NULL == iTransform
+      || NULL == oScale ) 
+    return Trns_tErr_InvalidParameter;
+
+  /* create a matrix identical to the transform but without the translation */
+  mTmp = MatrixCopy( iTransform, mTmp );
+  *MATRIX_RELT(mTmp,1,4) = 0;
+  *MATRIX_RELT(mTmp,2,4) = 0;
+  *MATRIX_RELT(mTmp,3,4) = 0;
+
+  /* create a 1,0,0 vector and compose it. */
+  vTmp = VectorAlloc(4,MATRIX_REAL);
+  VECTOR_ELT(vTmp,1) = 1.0; VECTOR_ELT(vTmp,2) = 0;
+  VECTOR_ELT(vTmp,3) = 0;   VECTOR_ELT(vTmp,4) = 1.0;
+  MatrixMultiply(mTmp,vTmp,vTmp);
+
+  /* the scale is an identity matrix with the length in the diagonal */
+  fFactor = VectorLen( vTmp );
+  MatrixIdentity( 4, oScale );
+  *MATRIX_RELT(oScale,1,1) = fFactor;
+  *MATRIX_RELT(oScale,2,2) = fFactor;
+  *MATRIX_RELT(oScale,3,3) = fFactor;
+
+  MatrixFree( &mTmp );
+  VectorFree( &vTmp );
+
+  return Trns_tErr_NoErr;
+}
+
 Trns_tErr Trns_ConvertAtoB ( mriTransformRef this,
            xVoxelRef       iAVoxel,
            xVoxelRef       oBVoxel ) {
@@ -329,6 +500,51 @@ Trns_tErr Trns_ConvertAtoB ( mriTransformRef this,
 
   if( Trns_tErr_NoErr != eResult ) {
     DebugPrint "Error %d in Trns_ConvertAtoB: %s\n",
+      eResult, Trns_GetErrorString( eResult ) EndDebugPrint;
+  }
+
+ cleanup:
+
+  return eResult;
+}
+
+Trns_tErr Trns_ConvertAtoRAS ( mriTransformRef this,
+           xVoxelRef       iAVoxel,
+           xVoxelRef       oRASVoxel ) {
+
+  Trns_tErr eResult = Trns_tErr_NoErr;
+
+  eResult = Trns_Verify( this );
+  if( Trns_tErr_NoErr != eResult )
+    goto error;
+
+  /* if we don't have our trans matricies, return an error. */
+  if( NULL == this->mAtoRAS ) {
+    eResult = Trns_tErr_TransformationMatrixNotInited;
+    goto error;
+  }
+
+  /* set our coord matrix */
+  *MATRIX_RELT(this->mCoord1,1,1) = xVoxl_GetFloatX( iAVoxel );
+  *MATRIX_RELT(this->mCoord1,2,1) = xVoxl_GetFloatY( iAVoxel );
+  *MATRIX_RELT(this->mCoord1,3,1) = xVoxl_GetFloatZ( iAVoxel );
+  *MATRIX_RELT(this->mCoord1,4,1) = 1;
+
+  /* do the transform */
+  MatrixMultiply( this->mAtoRAS, this->mCoord1, this->mCoord2 );
+
+  /* set the voxel to the matrix */
+  xVoxl_SetFloat( oRASVoxel,
+      *MATRIX_RELT(this->mCoord2,1,1), 
+      *MATRIX_RELT(this->mCoord2,2,1), 
+      *MATRIX_RELT(this->mCoord2,3,1) );
+
+  goto cleanup;
+
+ error:
+
+  if( Trns_tErr_NoErr != eResult ) {
+    DebugPrint "Error %d in Trns_ConvertAtoRAS: %s\n",
       eResult, Trns_GetErrorString( eResult ) EndDebugPrint;
   }
 
@@ -382,9 +598,88 @@ Trns_tErr Trns_ConvertBtoA ( mriTransformRef this,
   return eResult;
 }
 
-Trns_tErr Trns_ConvertAtoRAS ( mriTransformRef this,
-             xVoxelRef       iAVoxel,
-             xVoxelRef       oARASVoxel ) {
+Trns_tErr Trns_ConvertBtoRAS ( mriTransformRef this,
+           xVoxelRef       iBVoxel,
+           xVoxelRef       oRASVoxel ) {
+
+  Trns_tErr eResult = Trns_tErr_NoErr;
+
+  eResult = Trns_Verify( this );
+  if( Trns_tErr_NoErr != eResult )
+    goto error;
+
+  /* if we don't have our trans matricies, return an error. */
+  if( NULL == this->mBtoRAS ) {
+    eResult = Trns_tErr_TransformationMatrixNotInited;
+    goto error;
+  }
+
+  /* set our coord matrix */
+  *MATRIX_RELT(this->mCoord1,1,1) = xVoxl_GetFloatX( iBVoxel );
+  *MATRIX_RELT(this->mCoord1,2,1) = xVoxl_GetFloatY( iBVoxel );
+  *MATRIX_RELT(this->mCoord1,3,1) = xVoxl_GetFloatZ( iBVoxel );
+  *MATRIX_RELT(this->mCoord1,4,1) = 1;
+
+  /* do the transform */
+  MatrixMultiply( this->mBtoRAS, this->mCoord1, this->mCoord2 );
+
+  /* set the voxel to the matrix */
+  xVoxl_SetFloat( oRASVoxel,
+      *MATRIX_RELT(this->mCoord2,1,1), 
+      *MATRIX_RELT(this->mCoord2,2,1), 
+      *MATRIX_RELT(this->mCoord2,3,1) );
+
+  goto cleanup;
+
+ error:
+
+  if( Trns_tErr_NoErr != eResult ) {
+    DebugPrint "Error %d in Trns_ConvertBtoRAS: %s\n",
+      eResult, Trns_GetErrorString( eResult ) EndDebugPrint;
+  }
+
+ cleanup:
+
+  return eResult;
+}
+
+
+Trns_tErr Trns_ConvertMatrixAtoB ( mriTransformRef this,
+           MATRIX*         iAMatrix,
+           MATRIX*         oBMatrix ) {
+
+  Trns_tErr eResult = Trns_tErr_NoErr;
+
+  eResult = Trns_Verify( this );
+  if( Trns_tErr_NoErr != eResult )
+    goto error;
+
+  /* if we don't have our trans matricies, return an error. */
+  if( NULL == this->mAtoB ) {
+    eResult = Trns_tErr_TransformationMatrixNotInited;
+    goto error;
+  }
+
+  /* do the transform */
+  MatrixMultiply( this->mAtoB, iAMatrix, oBMatrix );
+
+  goto cleanup;
+
+ error:
+
+  if( Trns_tErr_NoErr != eResult ) {
+    DebugPrint "Error %d in Trns_ConvertAtoB: %s\n",
+      eResult, Trns_GetErrorString( eResult ) EndDebugPrint;
+  }
+
+ cleanup:
+
+  return eResult;
+}
+
+Trns_tErr Trns_ConvertMatrixAtoRAS ( mriTransformRef this,
+             MATRIX*         iAMatrix,
+             MATRIX*         oRASMatrix ) {
 
   Trns_tErr eResult = Trns_tErr_NoErr;
 
@@ -398,20 +693,8 @@ Trns_tErr Trns_ConvertAtoRAS ( mriTransformRef this,
     goto error;
   }
 
-  /* set our coord matrix */
-  *MATRIX_RELT(this->mCoord1,1,1) = xVoxl_GetFloatX( iAVoxel );
-  *MATRIX_RELT(this->mCoord1,2,1) = xVoxl_GetFloatY( iAVoxel );
-  *MATRIX_RELT(this->mCoord1,3,1) = xVoxl_GetFloatZ( iAVoxel );
-  *MATRIX_RELT(this->mCoord1,4,1) = 1;
-
   /* do the transform */
-  MatrixMultiply( this->mAtoRAS, this->mCoord1, this->mCoord2 );
-
-  /* set the voxel to the matrix */
-  xVoxl_SetFloat( oARASVoxel,
-      *MATRIX_RELT(this->mCoord2,1,1), 
-      *MATRIX_RELT(this->mCoord2,2,1), 
-      *MATRIX_RELT(this->mCoord2,3,1) );
+  MatrixMultiply( this->mAtoRAS, iAMatrix, oRASMatrix );
 
   goto cleanup;
 
@@ -427,9 +710,9 @@ Trns_tErr Trns_ConvertAtoRAS ( mriTransformRef this,
   return eResult;
 }
 
-Trns_tErr Trns_ConvertRAStoA ( mriTransformRef this,
-             xVoxelRef       iARASVoxel,
-             xVoxelRef       oAVoxel ) {
+Trns_tErr Trns_ConvertMatrixBtoA ( mriTransformRef this,
+           MATRIX*         iBMatrix,
+           MATRIX*         oAMatrix ) {
 
   Trns_tErr eResult = Trns_tErr_NoErr;
 
@@ -438,32 +721,53 @@ Trns_tErr Trns_ConvertRAStoA ( mriTransformRef this,
     goto error;
 
   /* if we don't have our trans matricies, return an error. */
-  if( NULL == this->mRAStoA ) {
+  if( NULL == this->mBtoA ) {
     eResult = Trns_tErr_TransformationMatrixNotInited;
     goto error;
   }
 
-  /* set our coord matrix */
-  *MATRIX_RELT(this->mCoord1,1,1) = xVoxl_GetFloatX( iARASVoxel );
-  *MATRIX_RELT(this->mCoord1,2,1) = xVoxl_GetFloatY( iARASVoxel );
-  *MATRIX_RELT(this->mCoord1,3,1) = xVoxl_GetFloatZ( iARASVoxel );
-  *MATRIX_RELT(this->mCoord1,4,1) = 1;
-
   /* do the transform */
-  MatrixMultiply( this->mRAStoA, this->mCoord1, this->mCoord2 );
-
-  /* set the voxel to the matrix */
-  xVoxl_SetFloat( oAVoxel,
-      *MATRIX_RELT(this->mCoord2,1,1), 
-      *MATRIX_RELT(this->mCoord2,2,1), 
-      *MATRIX_RELT(this->mCoord2,3,1) );
+  MatrixMultiply( this->mBtoA, iBMatrix, oAMatrix );
 
   goto cleanup;
 
  error:
 
   if( Trns_tErr_NoErr != eResult ) {
-    DebugPrint "Error %d in Trns_ConvertRAStoA: %s\n",
+    DebugPrint "Error %d in Trns_ConvertBtoA: %s\n",
+      eResult, Trns_GetErrorString( eResult ) EndDebugPrint;
+  }
+
+ cleanup:
+
+  return eResult;
+}
+
+Trns_tErr Trns_ConvertMatrixBtoRAS ( mriTransformRef this,
+             MATRIX*         iBMatrix,
+             MATRIX*         oRASMatrix ) {
+
+  Trns_tErr eResult = Trns_tErr_NoErr;
+
+  eResult = Trns_Verify( this );
+  if( Trns_tErr_NoErr != eResult )
+    goto error;
+
+  /* if we don't have our trans matricies, return an error. */
+  if( NULL == this->mBtoRAS ) {
+    eResult = Trns_tErr_TransformationMatrixNotInited;
+    goto error;
+  }
+
+  /* do the transform */
+  MatrixMultiply( this->mBtoRAS, iBMatrix, oRASMatrix );
+
+  goto cleanup;
+
+ error:
+
+  if( Trns_tErr_NoErr != eResult ) {
+    DebugPrint "Error %d in Trns_ConvertBtoRAS: %s\n",
       eResult, Trns_GetErrorString( eResult ) EndDebugPrint;
   }
 

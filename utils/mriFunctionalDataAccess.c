@@ -34,7 +34,7 @@ char FunD_ksaErrorString [FunD_tErr_knNumErrorCodes][256] = {
   "Couldn't allocate volume (memory allocation failed).",
   "Unrecognized header format.",
   "Questionable header format (found expected types of values, but keywords were different).",
-  "Couldn't find a recognized data file.",
+  "Couldn't find a recognizable data file.",
   "Couldn't allocate storage (memory allocation failed).",
   "Data has already been read.",
   "Slice file not found.",
@@ -251,204 +251,102 @@ FunD_tErr FunD_GuessStem ( char* inPathName, char* outStem ) {
   return FunD_tErr_CouldntGuessStem;
 }
 
-                                   /* macro that checks for two types of
-              errors, return if one and setting a flag
-              if the other. can be neither. */
-#define MACRO_ReturnErrorOrCheckForQuestionable(err,flag,keyword) \
-       if ( FunD_tErr_UnrecognizedHeaderFormat == err ) {        \
-            DebugPrint "FunD_ParseStemHeader(): Error parsing keyword %s\n", keyword EndDebugPrint;                                            \
-            fclose ( theHeaderFile );                             \
-            return err;                                           \
-       } else if ( FunD_tErr_QuestionableHeaderFormat == err ){  \
-            DebugPrint "FunD_ParseStemHeader(): Keyword %s had questionable value\n", keyword EndDebugPrint;                                   \
-            flag = TRUE;                                          \
-       }
 
 FunD_tErr FunD_ParseStemHeader ( mriFunctionalDataRef this ) {
 
-  FunD_tErr theErr;
-  char isQuestionable = FALSE;
-  int theMatrixSize;
-  FILE * theHeaderFile;
-  char theFileName [128];
-    
-  // make the filename. if we have an alternate header stem
-  sprintf ( theFileName, "%s/%s.%s", this->mPath, this->mHeaderStem,
+  FunD_tErr eResult        = FunD_tErr_NoError;
+  FILE*     pHeader        = NULL;
+  char      sFileName[128] = "";
+  tBoolean  bGood          = FALSE;
+  char      sKeyword[128]  = "";
+  int       nNumValues     = 0;
+  int       nValue         = 0;
+  int       nValuesRead    = 0;
+
+  /* make the filename. if we have an alternate header stem */
+  sprintf ( sFileName, "%s/%s.%s", this->mPath, this->mHeaderStem,
       kFileName_StemHeaderSuffix );
   
-  // try to open the file.
-  theHeaderFile = fopen ( theFileName, "r" );
-  if ( NULL == theHeaderFile ) {
+  /* try to open the file. */
+  pHeader = fopen ( sFileName, "r" );
+  if ( NULL == pHeader ) {
     DebugPrint "FunD_ParseStemHeader (): Didn't find %s\n",
-      theFileName EndDebugPrint;
+      sFileName EndDebugPrint;
     return FunD_tErr_HeaderNotFound;
   }
 
-                                   /* our idea here is to make a
-              distinction between a good header,
-              a questionable header, and an
-              incorrect header. we look for
-              keywords and values. if we match
-              the keyword with the expected
-              keyword, it's good. if we don't
-              match the keyword but the rest of
-              the format is okay, we're
-              questionable and we return a
-              warning. if we are expecting a
-              char or int and get something else,
-              it's unrecognized, in which case
-              we return a failure. fscanf will
-              return 0 if an incorrect conversion
-              was made. */
+  /* start scanning for keywords... */
+  while( !feof( pHeader ) ) {
 
+    /* grab a keyword */
+    nValuesRead = fscanf( pHeader, "%s", sKeyword );
+    if( 1 != nValuesRead
+  && !feof( pHeader ) ) {
+      eResult = FunD_tErr_UnrecognizedHeaderFormat;
+      goto error;
+    }
 
-  // try TR, don't assign it
-  theErr = FunD_ReadKeywordAndValue ( theHeaderFile, "TR", "%d",
-          1, sizeof(int), 
-          (char*)&(this->mTimeResolution) );
-  MACRO_ReturnErrorOrCheckForQuestionable(theErr,isQuestionable,"TR");
+    /* look at the keyword */
+    if( strcmp( sKeyword, "TR" ) == 0 ) { 
+      nValuesRead = fscanf( pHeader, "%d", &this->mTimeResolution );
+      bGood = (1 == nValuesRead);
 
-  // time window is next
-  theErr = FunD_ReadKeywordAndValue ( theHeaderFile, "TimeWindow", "%d",
-          1, sizeof(int), NULL );
-  MACRO_ReturnErrorOrCheckForQuestionable(theErr,isQuestionable,"TimeWindow");
+    } else if( strcmp( sKeyword, "TPreStim" ) == 0 ) { 
+      nValuesRead = fscanf( pHeader, "%d", &this->mNumPreStimTimePoints );
+      this->mNumPreStimTimePoints /= this->mTimeResolution;
+      bGood = (1 == nValuesRead);
 
-  // pre stim next. save it.
-  theErr = FunD_ReadKeywordAndValue ( theHeaderFile, "TPreStim", "%d",
-          1, sizeof(int), 
-          (char*)&(this->mNumPreStimTimePoints) );
-  MACRO_ReturnErrorOrCheckForQuestionable(theErr,isQuestionable,"TPreStim");
-  // this is actually in seconds, and we want it in time points, so
-  // divide by tr
-  this->mNumPreStimTimePoints /= this->mTimeResolution;
-
-  // num conditions next. save it, then subtract one for the null condition
-  // that we don't want.
-  theErr = FunD_ReadKeywordAndValue ( theHeaderFile, "nCond", "%d",
-          1, sizeof(int), 
-          (char*)&(this->mNumConditions) );
-  MACRO_ReturnErrorOrCheckForQuestionable(theErr,isQuestionable,"nCond");
+    } else if( strcmp( sKeyword, "nCond" ) == 0 ) { 
+      nValuesRead = fscanf( pHeader, "%d", &this->mNumConditions );
+      bGood = (1 == nValuesRead);
 #if KEEP_NULL_CONDITION
 #else
-  this->mNumConditions--;
+      this->mNumConditions--;
 #endif
 
-  // num timepoints next. save it.
-  theErr = FunD_ReadKeywordAndValue ( theHeaderFile, "Nh", "%d",
-          1, sizeof(int), 
-          (char*)&(this->mNumTimePoints) );
-  MACRO_ReturnErrorOrCheckForQuestionable(theErr,isQuestionable,"Nh");
+    } else if( strcmp( sKeyword, "Nh" ) == 0 ) { 
+      nValuesRead = fscanf( pHeader, "%d", &this->mNumTimePoints );
+      bGood = (1 == nValuesRead);
 
-  // version next.
-  theErr = FunD_ReadKeywordAndValue ( theHeaderFile, "Version", "%d",
-          1, sizeof(int), NULL );
-  MACRO_ReturnErrorOrCheckForQuestionable(theErr,isQuestionable,"Version");
-
-  // TER next.
-  theErr = FunD_ReadKeywordAndValue ( theHeaderFile, "TER", "%d",
-          1, sizeof(int), NULL );
-  MACRO_ReturnErrorOrCheckForQuestionable(theErr,isQuestionable,"TER");
-
-  // DOF next.
-  theErr = FunD_ReadKeywordAndValue ( theHeaderFile, "DOF", "%d",
-          1, sizeof(int), NULL );
-  MACRO_ReturnErrorOrCheckForQuestionable(theErr,isQuestionable,"DOF");
-
-  // Npercond next. there are mNumConditions+1 of them.
+    } else if( strcmp( sKeyword, "Npercond" ) == 0 ) { 
 #if KEEP_NULL_CONDITION
-  theErr = FunD_ReadKeywordAndValue ( theHeaderFile, "Npercond", "%d",
-           this->mNumConditions, sizeof(int), NULL );
+      nNumValues = this->mNumConditions;
 #else
-  theErr = FunD_ReadKeywordAndValue ( theHeaderFile, "Npercond", "%d",
-           this->mNumConditions+1, sizeof(int), NULL );
+      nNumValues = this->mNumConditions + 1;
 #endif
-  MACRO_ReturnErrorOrCheckForQuestionable(theErr,isQuestionable,"Npercond");
+      for( nValue = 0; nValue < nNumValues; nValue++ )
+  fscanf( pHeader, "%*d" );
 
-  // nRuns next.
-  theErr = FunD_ReadKeywordAndValue ( theHeaderFile, "nRuns", "%d",
-          1, sizeof(int), NULL );
-  MACRO_ReturnErrorOrCheckForQuestionable(theErr,isQuestionable,"nRuns");
+    } else if( strcmp( sKeyword, "Rows" ) == 0 ) { 
+      nValuesRead = fscanf( pHeader, "%d", &this->mNumRows );
+      bGood = (1 == nValuesRead);
 
-  // nTP next.
-  theErr = FunD_ReadKeywordAndValue ( theHeaderFile, "nTP", "%d",
-          1, sizeof(int), NULL );
-  MACRO_ReturnErrorOrCheckForQuestionable(theErr,isQuestionable,"nTP");
+    } else if( strcmp( sKeyword, "Cols" ) == 0 ) { 
+      nValuesRead = fscanf( pHeader, "%d", &this->mNumCols );
+      bGood = (1 == nValuesRead);
 
-  // rows next.
-  theErr = FunD_ReadKeywordAndValue ( theHeaderFile, "Rows", "%d",
-          1, sizeof(int), 
-          (char*)&(this->mNumRows) );
-  MACRO_ReturnErrorOrCheckForQuestionable(theErr,isQuestionable,"Rows");
+    } else if( strcmp( sKeyword, "SumXtX" ) == 0 ) { 
+      nNumValues = pow( this->mNumTimePoints * (this->mNumConditions-1), 2 );
+      for( nValue = 0; nValue < nNumValues; nValue++ )
+  fscanf( pHeader, "%*d" );
 
-  // cols next.
-  theErr = FunD_ReadKeywordAndValue ( theHeaderFile, "Cols", "%d",
-          1, sizeof(int), 
-          (char*)&(this->mNumCols) );
-  MACRO_ReturnErrorOrCheckForQuestionable(theErr,isQuestionable,"Cols");
+    } else if( strcmp( sKeyword, "hCovMtx" ) == 0 ) { 
+      nNumValues = pow( this->mNumTimePoints * (this->mNumConditions-1), 2 );
+      this->mCovMtx = (float*) malloc ( sizeof(float) * nNumValues );
+      for( nValue = 0; nValue < nNumValues && bGood; nValue++ ) {
+  nValuesRead = fscanf( pHeader, "%f", &(this->mCovMtx[nValue]) );
+  bGood = (1 == nValuesRead);
+      }
+    }
 
-  // now we skip a bunch of things: nKsip, DTOrder, Rescale, HanRad,
-  // nNoiseAC, BASeg, GammaFit, NullCondId
-  theErr = FunD_ReadKeywordAndValue ( theHeaderFile, "nSkip", "%d",
-          1, sizeof(int), NULL );
-  MACRO_ReturnErrorOrCheckForQuestionable(theErr,isQuestionable,"nSkip");
-
-  theErr = FunD_ReadKeywordAndValue ( theHeaderFile, "DTOrder", "%d",
-          1, sizeof(int), NULL );
-  MACRO_ReturnErrorOrCheckForQuestionable(theErr,isQuestionable,"DTOrder");
-
-  theErr = FunD_ReadKeywordAndValue ( theHeaderFile, "Rescale", "%d",
-          1, sizeof(int), NULL );
-  MACRO_ReturnErrorOrCheckForQuestionable(theErr,isQuestionable,"Rescale");
-
-  theErr = FunD_ReadKeywordAndValue ( theHeaderFile, "HanRad", "%d",
-          1, sizeof(int), NULL );
-  MACRO_ReturnErrorOrCheckForQuestionable(theErr,isQuestionable,"HanRad");
-
-  theErr = FunD_ReadKeywordAndValue ( theHeaderFile, "nNosieAC", "%d",
-          1, sizeof(int), NULL );
-  MACRO_ReturnErrorOrCheckForQuestionable(theErr,isQuestionable,"nNosieAC");
-
-  theErr = FunD_ReadKeywordAndValue ( theHeaderFile, "BASeg", "%d",
-          1, sizeof(int), NULL );
-  MACRO_ReturnErrorOrCheckForQuestionable(theErr,isQuestionable,"BASeg");
-
-  theErr = FunD_ReadKeywordAndValue ( theHeaderFile, "SGammaFit", "%d",
-          1, sizeof(int), NULL );
-  MACRO_ReturnErrorOrCheckForQuestionable(theErr,isQuestionable,"SGammaFit");
-
-  theErr = FunD_ReadKeywordAndValue ( theHeaderFile, "NullCondId", "%d",
-          1, sizeof(int), NULL );
-  MACRO_ReturnErrorOrCheckForQuestionable(theErr,isQuestionable,"NullCondId");
-
-  // skip the Nh*(numConditions) ^ 2 big SumXtX
-  theMatrixSize = ( this->mNumTimePoints * (this->mNumConditions-1) ) *
-                  ( this->mNumTimePoints * (this->mNumConditions-1) );
-  theErr = FunD_ReadKeywordAndValue ( theHeaderFile, "SumXtX", "%d",
-          theMatrixSize, sizeof(int), NULL );
-  MACRO_ReturnErrorOrCheckForQuestionable(theErr,isQuestionable,"SumXtX");
-
-  // attempt to allocate the hCovMtx
-  this->mCovMtx = (float*) malloc ( sizeof(float) * theMatrixSize );
-  if ( NULL == this->mCovMtx ) {
-    return FunD_tErr_CouldntAllocateStorage;
+    if( !bGood ) {
+      eResult = FunD_tErr_UnrecognizedHeaderFormat;
+      goto error;
+    }
   }
 
-  // read it in
-  theErr = FunD_ReadKeywordAndValue ( theHeaderFile, "hCovMtx", "%f",
-          theMatrixSize,
-          sizeof(float),
-          (char*)(this->mCovMtx) );
-  MACRO_ReturnErrorOrCheckForQuestionable(theErr,isQuestionable,"hCovMtx");
-
-  // check for cond id map
-  theErr = FunD_ReadKeywordAndValue ( theHeaderFile, "CondIdMap", "%d",
-          5, sizeof(int), NULL );
-  MACRO_ReturnErrorOrCheckForQuestionable(theErr,isQuestionable,"CondIdMap");
-
-  fclose ( theHeaderFile );
-
   DebugPrint "FunD_ParseStemHeader(): Successfully parsed %s\n", 
-    theFileName EndDebugPrint;
+    sFileName EndDebugPrint;
   DebugPrint "FunD_ParseStemHeader(): cols = %d rows = %d num conds = %d num time points = %d\n", 
     this->mNumCols, this->mNumRows, this->mNumConditions, this->mNumTimePoints 
     EndDebugPrint;
@@ -456,7 +354,18 @@ FunD_tErr FunD_ParseStemHeader ( mriFunctionalDataRef this ) {
   // in this format we have error data.
   this->mIsErrorDataPresent = TRUE;
 
-  return FunD_tErr_NoError;
+  goto cleanup;
+
+ error:
+
+  DebugPrint "Error %d in FunD_ParseStemHeader: %s. Last parsed keyword: %s\n", eResult, FunD_GetErrorString(eResult), sKeyword EndDebugPrint;
+
+ cleanup:
+
+  if( NULL != pHeader )
+    fclose( pHeader );
+
+  return eResult;
 }
 
 FunD_tErr FunD_ParseAnalyseHeader ( mriFunctionalDataRef this ) {

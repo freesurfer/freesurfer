@@ -1,6 +1,14 @@
 #ifndef xTypes_H
 #define xTypes_H
 
+#ifndef FALSE
+#define FALSE 0
+#endif
+
+#ifndef TRUE
+#define TRUE 1
+#endif
+
 
 typedef unsigned char tBoolean;
 typedef long          tSignature;
@@ -12,6 +20,10 @@ typedef struct {
 typedef struct {
   float mfX, mfY;
 } xPoint2f, *xPoint2fRef;
+
+typedef struct {
+  int mnRed, mnGreen, mnBlue;
+} xColor3n, *xColor3nRef;
 
 typedef struct {
   float mfRed, mfGreen, mfBlue;

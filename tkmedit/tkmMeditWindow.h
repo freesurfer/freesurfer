@@ -35,22 +35,14 @@ typedef enum {
 
   MWin_tDisplayConfiguration_None = -1,
   MWin_tDisplayConfiguration_1x1  = 0,
-  MWin_tDisplayConfiguration_2x2
+  MWin_tDisplayConfiguration_2x2,
+  MWin_tDisplayConfiguration_4x4
 
 } MWin_tDisplayConfiguration;
 
-/* synced to tkm_interface.tcl */
-typedef enum {
-  MWin_tVolumeType_None = -1,
-  MWin_tVolumeType_Main = 0,
-  MWin_tVolumeType_Aux,
-  MWin_knNumVolumesTypes
-} MWin_tVolumeType;
-
-
 #define MWin_kSignature 0xffb21001
 
-#define MWin_knMaxNumAreas     4
+#define MWin_knMaxNumAreas     16
 #define MWin_kAllDisplayAreas -1
 
 #define MWin_knSpaceBetweenWindowAndPanel 20
@@ -166,11 +158,15 @@ MWin_tErr MWin_SetVolumeColorScale   ( tkmMeditWindowRef this,
                int               inMax );
 
 /* get the viewing state of the last clicked display area */
-MWin_tErr MWin_GetCursor ( tkmMeditWindowRef this,
-        xVoxelRef          opCursor );
-MWin_tErr MWin_GetOrientation ( tkmMeditWindowRef         this,
-        mri_tOrientation*   oOrientation );
+MWin_tErr MWin_GetCursor         ( tkmMeditWindowRef   
+this,
+           xVoxelRef           opCursor );
+MWin_tErr MWin_GetOrientation    ( tkmMeditWindowRef   this,
+           mri_tOrientation*   oOrientation );
 
+/* tkmedit needs to get the selected head pt. bad design. */
+MWin_tErr MWin_GetSelectedHeadPt ( tkmMeditWindowRef   this,
+           HPtL_tHeadPointRef* opHeadPoint );
 
 /* for cursor linking. a display area whose cursor was set calls this
    function. if we have cursor linking turned on, this will set all display
@@ -270,6 +266,10 @@ int MWin_TclSetBrushThreshold ( ClientData  iClientData,
         Tcl_Interp* ipInterp,
         int         argc,
         char*       argv[] );
+int MWin_TclSelectCurrentParcellationLabel ( ClientData  iClientData, 
+               Tcl_Interp* ipInterp,
+               int         argc,
+               char*       argv[] );
 int MWin_TclRedrawAll        ( ClientData  iClientData, 
              Tcl_Interp* ipInterp,
              int         argc,

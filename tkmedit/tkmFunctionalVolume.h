@@ -19,6 +19,7 @@ typedef enum {
   FunV_tErr_ErrorAccessingSelectionList,
   FunV_tErr_ErrorConvertingSecondToTimePoint,
   FunV_tErr_ErrorAllocatingOverlayCache,
+  FunV_tErr_ErrorOpeningFile,
   FunV_tErr_OverlayNotLoaded,
   FunV_tErr_TimeCourseNotLoaded,
   FunV_tErr_GraphWindowAlreadyInited,
@@ -40,18 +41,19 @@ typedef enum {
 typedef enum {
   FunV_tDisplayFlag_None = -1,
   FunV_tDisplayFlag_Ol_TruncateNegative = 0,
-  FunV_tDisplayFlag_Ol_ReversePhase,
-  FunV_tDisplayFlag_TC_GraphWindowOpen,
-  FunV_tDisplayFlag_Ol_OffsetValues,
-  FunV_tDisplayFlag_TC_OffsetValues,
   FunV_tDisplayFlag_Ol_TruncatePositive,
+  FunV_tDisplayFlag_Ol_ReversePhase,
+  FunV_tDisplayFlag_Ol_OffsetValues,
+  FunV_tDisplayFlag_TC_GraphWindowOpen,
+  FunV_tDisplayFlag_TC_OffsetValues,
+  FunV_tDisplayFlag_TC_PreStimOffset,
   FunV_knNumDisplayFlags
 } FunV_tDisplayFlag;
 
 #define FunV_knFirstOverlayDisplayFlag    FunV_tDisplayFlag_Ol_TruncateNegative
-#define FunV_knLastOverlayDisplayFlag     FunV_tDisplayFlag_Ol_ReversePhase
+#define FunV_knLastOverlayDisplayFlag     FunV_tDisplayFlag_Ol_OffsetValues
 #define FunV_knFirstTimeCourseDisplayFlag FunV_tDisplayFlag_TC_GraphWindowOpen
-#define FunV_knLastTimeCourseDisplayFlag  FunV_tDisplayFlag_TC_GraphWindowOpen
+#define FunV_knLastTimeCourseDisplayFlag  FunV_tDisplayFlag_TC_PreStimOffset
 
 typedef enum {
   FunV_tTclCommand_Ol_DoConfigDlog = 0,
@@ -237,6 +239,17 @@ FunV_tErr FunV_AddAnatomicalVoxelToSelectionRange
                     xVoxelRef               ipVoxel );
 FunV_tErr FunV_EndSelectionRange        ( tkmFunctionalVolumeRef this );
 
+/* finds average time course values for a condition over the voxels in the
+   current selection range. also returns the number of good voxels */
+FunV_tErr FunV_CalcTimeCourseAverages_ ( tkmFunctionalVolumeRef this,
+           int                    inCondition,
+           int*                   onNumValues,
+           float*                 oafValues,
+           float*                 oafDeviations);
+/* prints out a log of the selected time course data */
+FunV_tErr FunV_PrintSelectionRangeToFile ( tkmFunctionalVolumeRef this,
+             char*                  isFileName );
+
 /* grabs values for the current selected voxels and shoots them towards
    the graph to be drawn onto the screen. */
 FunV_tErr FunV_DrawGraph           ( tkmFunctionalVolumeRef this );
@@ -277,7 +290,9 @@ int FunV_TclTCSetTimeResolution   ( ClientData iClientData,
 int FunV_TclTCSetDisplayFlag      ( ClientData iClientData, 
             Tcl_Interp *ipInterp, 
             int argc, char *argv[] );
-
+int FunV_TclTCPrintSelectionRangeToFile ( ClientData iClientData, 
+            Tcl_Interp *ipInterp, 
+            int argc, char *argv[] );
 /* misc */
 FunV_tErr FunV_SendViewStateToTcl  ( tkmFunctionalVolumeRef this );
 FunV_tErr FunV_RegisterTclCommands ( tkmFunctionalVolumeRef this,
