@@ -365,8 +365,11 @@ int          MRISreadPatchNoRemove(MRI_SURFACE *mris, char *pname) ;
 int          MRISreadTriangleProperties(MRI_SURFACE *mris, char *mris_fname) ;
 int          MRISreadBinaryCurvature(MRI_SURFACE *mris, char *mris_fname) ;
 int          MRISreadCurvatureFile(MRI_SURFACE *mris, char *fname) ;
+#define MRISreadCurvature MRISreadCurvatureFile
+
 int          MRISreadValues(MRI_SURFACE *mris, char *fname) ;
 int          MRISreadAnnotation(MRI_SURFACE *mris, char *fname) ;
+int          MRISwriteAnnotation(MRI_SURFACE *mris, char *fname) ;
 int          MRISreadValuesBak(MRI_SURFACE *mris, char *fname) ;
 int          MRISreadImagValues(MRI_SURFACE *mris, char *fname) ;
 int          MRIScopyValuesToImagValues(MRI_SURFACE *mris) ;
@@ -695,6 +698,7 @@ int  MRISremoveRipped(MRI_SURFACE *mris) ;
 int  MRISbuildFileName(MRI_SURFACE *mris, char *sname, char *fname) ;
 int  MRISsmoothSurfaceNormals(MRI_SURFACE *mris, int niter) ;
 int  MRISsoapBubbleVals(MRI_SURFACE *mris, int niter) ;
+int  MRISmodeFilterVals(MRI_SURFACE *mris, int niter) ;
 int  MRISreadBinaryAreas(MRI_SURFACE *mris, char *mris_fname) ;
 int  MRISwriteAreaErrorToValFile(MRI_SURFACE *mris, char *name) ;
 int  MRIStransform(MRI_SURFACE *mris, MRI *mri, LTA *lta) ;
@@ -716,6 +720,8 @@ int MRISremoveTriangleLinks(MRI_SURFACE *mris) ;
 int MRISsetOriginalFileName(char *orig_name) ;
 
 int MRISextractCurvatureVector(MRI_SURFACE *mris, float *curvs) ;
+#define MRISexportCurvatureVector  MRISextractCurvatureVector
+
 int MRISimportCurvatureVector(MRI_SURFACE *mris, float *curvs) ;
 int MRISimportValVector(MRI_SURFACE *mris, float *vals) ;
 int MRISexportValVector(MRI_SURFACE *mris, float *vals) ;
