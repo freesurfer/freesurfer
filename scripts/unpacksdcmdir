@@ -336,7 +336,7 @@ puts "Douglas N. Greve, Ph.D., MGH-NMR Center"
 puts ""
 puts "VERSION"
 puts ""
-puts {$Id: unpacksdcmdir,v 1.5 2002/08/01 21:50:56 greve Exp $}
+puts {$Id: unpacksdcmdir,v 1.6 2002/10/02 18:23:06 greve Exp $}
 
 exit 1;
 
@@ -803,7 +803,7 @@ if [catch {open $LogFile w} LF] {
 }
 puts "INFO: Logfile is $LogFile"
 puts $LF "Log file created by unpacksdcmdir"
-puts $LF {$Id: unpacksdcmdir,v 1.5 2002/08/01 21:50:56 greve Exp $};
+puts $LF {$Id: unpacksdcmdir,v 1.6 2002/10/02 18:23:06 greve Exp $};
 puts $LF "$LogFile"
 puts $LF [pwd];
 puts $LF [exec date];
@@ -822,14 +822,18 @@ puts "Scanning source directory ..."
 
 #----------------- Parse the source directory --------------------#
 # Set up the parsing process as an open pipe without blocking #
+puts $LF "INFO: summary file is $sumfile"
+puts     "INFO: summary file is $sumfile"
+puts $LF "INFO: status file is $statfile"
+puts     "INFO: status file is $statfile"
 set ParsePipeId [open \
  "| mri_parse_sdcmdir --sortbyrun --d $dicomdir --o $sumfile --status $statfile 2>@ stdout" r];
 fconfigure $ParsePipeId -blocking 0
 
-# Wait until the statfile is created (or timeout after 10)
+# Wait until the statfile is created (or timeout after 20)
 set ProbeStart [clock seconds];
 set TimeSince 0
-while { ! [file exists $statfile] && $TimeSince < 10 } {
+while { ! [file exists $statfile] && $TimeSince < 20 } {
   after 500;
   set TimeSince [expr [clock seconds] - $ProbeStart];
 }
