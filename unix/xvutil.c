@@ -608,6 +608,8 @@ XVshowImage(XV_FRAME *xvf, int which, IMAGE *image, int frame)
   /* scale range of values to be in byte display range (about 0-60) */
   if (!xvf->rescale)
   {
+    if (!FZERO(dimage->fmax))
+      ImageScaleRange(GtmpFloatImage,dimage->fmin,dimage->fmax,0,MAX_DISP_VAL);
     if (dimage->rescale_range || image->num_frame == 1)
       ImageScale(GtmpFloatImage, GtmpFloatImage, 0, MAX_DISP_VAL) ;
     else   /* use entire sequence to compute display range */
@@ -637,6 +639,152 @@ XVshowImage(XV_FRAME *xvf, int which, IMAGE *image, int frame)
     }
     ImageScaleRange(GtmpFloatImage, sync_fmin, sync_fmax, 0, MAX_DISP_VAL) ;
   }
+
+  /* resize image to display area */
+  scale = (xscale + yscale)/2.0f ;
+  rows = nint((float)GtmpFloatImage->rows*scale) ;
+  cols = nint((float)GtmpFloatImage->cols*scale) ;
+
+#if 0
+  if ((rows != dimage->dispImage->rows) || (cols != dimage->dispImage->cols))
+    ImageResize(GtmpFloatImage, GtmpScaledFloatImage, srows, scols) ;
+  else
+    ImageRescale(GtmpFloatImage, GtmpScaledFloatImage, MIN(xscale,yscale)) ;
+#else
+  ImageDifferentialScale(GtmpFloatImage, GtmpScaledFloatImage, srows, scols) ;
+#endif
+
+  ImageCopy(GtmpScaledFloatImage, GtmpByteImage) ; /* convert to bytes */
+  h_invert(GtmpByteImage, dimage->dispImage) ;
+
+  /* use current colormap */
+  substtable = (unsigned long *) xv_get(xvf->cms,CMS_INDEX_TABLE);
+  for (i=0;i<MAX_COLORS;i++)
+  {
+    c = (dimage->gamma[i] + dimage->bshift)  ;
+    if (c < 0)
+      c = 0 ;
+    if (c > MAX_GRAY)
+      c = MAX_GRAY ;
+    lut[i] = (byte)substtable[c];
+  }
+#if 0
+  if (MAX_COLORS == 64)
+    h_shift_b(dimage->dispImage, dimage->dispImage, -2);
+#endif
+  h_applylut(dimage->dispImage, dimage->dispImage, MAX_COLORS, lut);
+
+  XVrepaintImage(xvf, which) ;
+  XFlush(xvf->display); 
+}
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+----------------------------------------------------------------------*/
+void
+XVshowImageRange(XV_FRAME *xvf, int which, IMAGE *image, int frame, 
+                 float fmin, float fmax)
+{
+  float         xscale, yscale, scale ;
+  DIMAGE        *dimage ;
+  unsigned long *substtable ;
+  int           i, rows, cols, srows, scols, c ;
+  byte          lut[MAX_COLORS] ;
+
+  if (!image)
+    return ;
+
+  dimage = XVgetDimage(xvf, which, DIMAGE_ALLOC) ;
+  if (!dimage)
+    return ;
+  dimage->used = DIMAGE_IMAGE ;
+  dimage->frame = frame ;
+  dimage->fmin = fmin ;
+  dimage->fmax = fmax ;
+
+/* 
+   dimage->oSourceImage is controlled by the user, and hence we cannot
+   be assured that it is still valid memory. Therefore, we must make a
+   copy of it for internal use. Since this is the case, the 'image' being
+   passed in may in fact be dimage->sourceImage from an internal call. If 
+   that is the case, we of course cannot free dimage->sourceImage as it
+   will be the same as dimage->oSourceImage (I know, I know, it's getting
+   too complicated).
+ */
+  /* if it's a new image, or we are not zooming... */
+  if (((image != dimage->sourceImage) && (image != dimage->oSourceImage)) || 
+      (dimage->dx == 0))
+  {
+    dimage->oSourceImage = image ;
+    if (dimage->zoomImage != dimage->sourceImage)
+      ImageFree(&dimage->zoomImage) ;
+    if (dimage->sourceImage != image)
+      dimage->sourceImage = ImageCopy(image, dimage->sourceImage) ;
+    dimage->zoomImage = dimage->sourceImage ;
+  }
+  else   /* image from here on in refers to the zoomed image */
+  {
+/*    dimage->oSourceImage = image ;*/
+    dimage->zoomImage = 
+      ImageExtract(image, NULL, dimage->x0, dimage->y0, dimage->dx,dimage->dy);
+    if (dimage->sourceImage && dimage->sourceImage != dimage->oSourceImage &&
+        (dimage->sourceImage != image))
+      ImageFree(&dimage->sourceImage) ;
+    if (!dimage->sourceImage)
+      dimage->sourceImage = ImageCopy(image, NULL) ;
+    image = dimage->zoomImage ;
+  }
+
+  scols = dimage->dispImage->cols ;
+  srows = dimage->dispImage->rows ;
+  xscale = (float)scols / (float)image->cols ;
+  yscale = (float)srows / (float)image->rows ;
+  dimage->xscale = xscale ;
+  dimage->yscale = yscale ;
+
+  if (!ImageCheckSize(image, GtmpFloatImage, image->rows, image->cols, 1))
+  {
+    if (GtmpFloatImage)
+      ImageFree(&GtmpFloatImage) ;
+    GtmpFloatImage = ImageAlloc(image->rows,image->cols, PFFLOAT,1);
+  }
+  else
+    ImageSetSize(GtmpFloatImage, image->rows, image->cols) ;
+
+  if (!ImageCheckSize(dimage->dispImage, GtmpByteImage, srows, scols, 1))
+  {
+    if (GtmpByteImage)
+      ImageFree(&GtmpByteImage) ;
+    if (GtmpByteImage2)
+      ImageFree(&GtmpScaledFloatImage) ;
+    if (GtmpScaledFloatImage)
+      ImageFree(&GtmpByteImage2) ;
+    GtmpScaledFloatImage = ImageAlloc(srows, scols, PFFLOAT, 1) ;
+    GtmpByteImage = ImageAlloc(srows, scols, PFBYTE, 1) ;
+    GtmpByteImage2 = ImageAlloc(srows, scols, PFBYTE, 1) ;
+  }
+  else
+  {
+    ImageSetSize(GtmpScaledFloatImage, srows, scols) ;
+    ImageSetSize(GtmpByteImage, srows, scols) ;
+    ImageSetSize(GtmpByteImage2, srows, scols) ;
+  }
+
+  if (image->pixel_format == PFDOUBLE)
+  {
+    IMAGE *Itmp ;
+
+    Itmp = ImageAlloc(image->rows, image->cols, PFFLOAT, image->num_frame) ;
+    ImageCopy(image, Itmp) ;
+    ImageCopyFrames(Itmp, GtmpFloatImage, frame, 1, 0) ;
+    ImageFree(&Itmp) ;
+  }
+  else
+    ImageCopyFrames(image, GtmpFloatImage, frame, 1, 0) ;
+
+  /* scale range of values to be in byte display range (about 0-60) */
+  ImageScaleRange(GtmpFloatImage, fmin, fmax, 0, MAX_DISP_VAL) ;
 
   /* resize image to display area */
   scale = (xscale + yscale)/2.0f ;
