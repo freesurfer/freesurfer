@@ -40,6 +40,7 @@ int  XVMRIfree(MRI **pmri, int which) ;
 int  XVMRIsetView(XV_FRAME *xvf, int which, int view) ;
 int  XVMRIsetPoint(XV_FRAME *xvf, int which, int x, int y, int z) ;
 int  XVMRIsetImageName(XV_FRAME *xvf, char *image_name) ;
+int  XVMRIfixDepth(XV_FRAME *xvf, int which, int fix) ;
 
 
 
