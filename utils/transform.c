@@ -616,15 +616,15 @@ LTAtransform(MRI *mri_src, MRI *mri_dst, LTA *lta)
     if (!mri_dst) 
     {
       mri_dst = MRIclone(mri_src, NULL);
-			if (DIAG_VERBOSE_ON)
-				fprintf(stderr, "INFO: Copied c_(r,a,s) from the src\n");
+      if (DIAG_VERBOSE_ON)
+	fprintf(stderr, "INFO: Copied c_(r,a,s) from the src\n");
     }
     if (tran->dst.valid == 1) // transform dst is valid
     {
       // modify dst c_(r,a,s) using the transform dst value
       // to make the better positioning
-			if (DIAG_VERBOSE_ON)
-				fprintf(stderr, "INFO: Modifying dst c_(r,a,s), using the transform dst\n");
+      if (DIAG_VERBOSE_ON)
+	fprintf(stderr, "INFO: Modifying dst c_(r,a,s), using the transform dst\n");
       mri_dst->c_r = tran->dst.c_r;
       mri_dst->c_a = tran->dst.c_a;
       mri_dst->c_s = tran->dst.c_s;
@@ -1202,6 +1202,7 @@ LTAinverseWorldToWorld(LTA *lta, float x, float y, float z, float *px,
   return(NO_ERROR) ;
 }
 
+// this assumes that lta was ras to ras
 int
 LTAtoVoxelCoords(LTA *lta, MRI *mri)
 {
@@ -1673,21 +1674,21 @@ TransformAlloc(int type, MRI *mri)
 int
 TransformSwapInverse(TRANSFORM *transform)
 {
-	LT    *lt ;
-	LTA   *lta ;
+  LT    *lt ;
+  LTA   *lta ;
 
-	if (transform->type == MORPH_3D_TYPE)
-	{
-		ErrorReturn(ERROR_UNSUPPORTED, (ERROR_UNSUPPORTED, "TransformSwapInverse: MORPH_3D_TYPE not supported"));
-	}
-	else
-	{
-		lta = (LTA *)(transform->xform) ;
-		lt = lta->xforms ;
-		lta->xforms = lta->inv_xforms ;
-		lta->inv_xforms = lt ;
-	}
-	return(NO_ERROR) ;
+  if (transform->type == MORPH_3D_TYPE)
+  {
+    ErrorReturn(ERROR_UNSUPPORTED, (ERROR_UNSUPPORTED, "TransformSwapInverse: MORPH_3D_TYPE not supported"));
+  }
+  else
+  {
+    lta = (LTA *)(transform->xform) ;
+    lt = lta->xforms ;
+    lta->xforms = lta->inv_xforms ;
+    lta->inv_xforms = lt ;
+  }
+  return(NO_ERROR) ;
 }
 
 int
@@ -1700,10 +1701,13 @@ TransformInvert(TRANSFORM *transform, MRI *mri)
   {
   default:
     lta = (LTA *)transform->xform ;
+    LTAinvert(lta);
+#if 0
     if (MatrixInverse(lta->xforms[0].m_L, lta->inv_xforms[0].m_L) == NULL)
       ErrorExit(ERROR_BADPARM, "TransformInvert: xform noninvertible") ;
-		memmove(&lta->inv_xforms[0].src, &lta->xforms[0].dst, sizeof(lta->xforms[0].dst)) ;
-		memmove(&lta->inv_xforms[0].dst, &lta->xforms[0].src, sizeof(lta->xforms[0].dst)) ;
+    memmove(&lta->inv_xforms[0].src, &lta->xforms[0].dst, sizeof(lta->xforms[0].dst)) ;
+    memmove(&lta->inv_xforms[0].dst, &lta->xforms[0].src, sizeof(lta->xforms[0].dst)) ;
+#endif
     break ;
   case MORPH_3D_TYPE:
     if (!mri)
@@ -1813,29 +1817,29 @@ int mincFindVolume(const char *line, const char *line2, char **srcVol, char **ds
       pch = strtok((char *) line, " ");
       while (pch != NULL)
       {
-				strcpy(buf, pch);
-				if (strstr(buf, ".mnc")) // first src mnc volume
-				{
-					mncorig = 1;
-					if (count ==0) // src
-					{
-						count++;
-						*srcVol = (char *) malloc(strlen(pch)+1);
-						strcpy(*srcVol, pch);
-						if (DIAG_VERBOSE_ON)
-							fprintf(stdout, "INFO: Src volume %s\n", *srcVol);
-					}	
-					else if (count == 1) // this is the second one must be dest volume
-					{
-						*dstVol = (char *) malloc(strlen(pch)+1);
-						strcpy(*dstVol, pch);
-						if (DIAG_VERBOSE_ON)
-							fprintf(stdout, "INFO: Target volume %s\n", *dstVol);
-						count = 0; // restore for another case
-						return 1;
-					}
-				}
-				pch = strtok(NULL, " ");
+	strcpy(buf, pch);
+	if (strstr(buf, ".mnc")) // first src mnc volume
+	{
+	  mncorig = 1;
+	  if (count ==0) // src
+	  {
+	    count++;
+	    *srcVol = (char *) malloc(strlen(pch)+1);
+	    strcpy(*srcVol, pch);
+	    if (DIAG_VERBOSE_ON)
+	      fprintf(stdout, "INFO: Src volume %s\n", *srcVol);
+	  }	
+	  else if (count == 1) // this is the second one must be dest volume
+	  {
+	    *dstVol = (char *) malloc(strlen(pch)+1);
+	    strcpy(*dstVol, pch);
+	    if (DIAG_VERBOSE_ON)
+	      fprintf(stdout, "INFO: Target volume %s\n", *dstVol);
+	    count = 0; // restore for another case
+	    return 1;
+	  }
+	}
+	pch = strtok(NULL, " ");
       }
     }
     else // let us assume MINC GUI transform
@@ -1844,34 +1848,34 @@ int mincFindVolume(const char *line, const char *line2, char **srcVol, char **ds
       pch = strtok(NULL, " ");          // now points to filename
       if (pch != NULL)
       {
-				strcpy(buf, pch);
-				if (strstr(buf, ".mnc")) // if it is a minc file.  it is dst
-				{
-					*dstVol = (char *) malloc(strlen(pch)+1);
-					strcpy(*dstVol, pch);
-				}
-				pch = strtok((char *) line2, " "); // points to %Volume
-				pch = strtok(NULL, " ");        // now points to filename
-				if (pch != NULL)
-				{
-					strcpy(buf, pch);
-					if (strstr(buf, ".mnc")) // if it is a minc file   it is src
-					{
-						*srcVol = (char *) malloc(strlen(pch)+1);
-						strcpy(*srcVol, pch);
-					}
-				}
+	strcpy(buf, pch);
+	if (strstr(buf, ".mnc")) // if it is a minc file.  it is dst
+	{
+	  *dstVol = (char *) malloc(strlen(pch)+1);
+	  strcpy(*dstVol, pch);
+	}
+	pch = strtok((char *) line2, " "); // points to %Volume
+	pch = strtok(NULL, " ");        // now points to filename
+	if (pch != NULL)
+	{
+	  strcpy(buf, pch);
+	  if (strstr(buf, ".mnc")) // if it is a minc file   it is src
+	  {
+	    *srcVol = (char *) malloc(strlen(pch)+1);
+	    strcpy(*srcVol, pch);
+	  }
+	}
       }
       if (*srcVol)
-			{
-				if (DIAG_VERBOSE_ON)
-					fprintf(stdout, "INFO: Src volume %s\n", *srcVol);
-			}
+      {
+	if (DIAG_VERBOSE_ON)
+	  fprintf(stdout, "INFO: Src volume %s\n", *srcVol);
+      }
       if (*dstVol)
-			{
-				if (DIAG_VERBOSE_ON)
-					fprintf(stdout, "INFO: Target volume %s\n", *dstVol);
-			}
+      {
+	if (DIAG_VERBOSE_ON)
+	  fprintf(stdout, "INFO: Target volume %s\n", *dstVol);
+      }
     }
   }
   else
@@ -1883,22 +1887,22 @@ int mincFindVolume(const char *line, const char *line2, char **srcVol, char **ds
       strcpy(buf, pch);
       if (strstr(buf, "src")) // first src mnc volume
       {
-				// get next token
-				pch=strtok(NULL, " ");
-				*srcVol = (char *) malloc(strlen(pch)+1);
-				strcpy(*srcVol, pch);
-				if (DIAG_VERBOSE_ON)
-					fprintf(stdout, "INFO: Src volume %s\n", *srcVol);
+	// get next token
+	pch=strtok(NULL, " ");
+	*srcVol = (char *) malloc(strlen(pch)+1);
+	strcpy(*srcVol, pch);
+	if (DIAG_VERBOSE_ON)
+	  fprintf(stdout, "INFO: Src volume %s\n", *srcVol);
       }
       else if (strstr(buf, "dst"))
       {
-				// get next token
-				pch=strtok(NULL, " "); 
-				*dstVol = (char *) malloc(strlen(pch)+1);
-				strcpy(*dstVol, pch);
-				if (DIAG_VERBOSE_ON)
-					fprintf(stdout, "INFO: Target volume %s\n", *dstVol);
-				return 1;
+	// get next token
+	pch=strtok(NULL, " "); 
+	*dstVol = (char *) malloc(strlen(pch)+1);
+	strcpy(*dstVol, pch);
+	if (DIAG_VERBOSE_ON)
+	  fprintf(stdout, "INFO: Target volume %s\n", *dstVol);
+	return 1;
       }
       pch = strtok(NULL, " ");
     }
@@ -1925,22 +1929,22 @@ void mincGetVolumeInfo(const char *srcVol, VOL_GEOM *vgSrc)
       // now check whether it is average_305
       if (strstr(srcVol, "average_305"))
       {
-				printf("INFO: The transform was made with average_305.mnc.\n");
-				// average_305 value
-				vgSrc->width = 172; vgSrc->height = 220; vgSrc->depth = 156;
-				vgSrc->xsize = 1; vgSrc->ysize = 1; vgSrc->zsize = 1;
-				vgSrc->x_r = 1; vgSrc->x_a = 0; vgSrc->x_s = 0;
-				vgSrc->y_r = 0; vgSrc->y_a = 1; vgSrc->y_s = 0;
-				vgSrc->z_r = 0; vgSrc->z_a = 0; vgSrc->z_s = 1;      
-				vgSrc->c_r = -0.0950;
-				vgSrc->c_a = -16.5100;
-				vgSrc->c_s = 9.7500;
-				vgSrc->valid = 1;
+	printf("INFO: The transform was made with average_305.mnc.\n");
+	// average_305 value
+	vgSrc->width = 172; vgSrc->height = 220; vgSrc->depth = 156;
+	vgSrc->xsize = 1; vgSrc->ysize = 1; vgSrc->zsize = 1;
+	vgSrc->x_r = 1; vgSrc->x_a = 0; vgSrc->x_s = 0;
+	vgSrc->y_r = 0; vgSrc->y_a = 1; vgSrc->y_s = 0;
+	vgSrc->z_r = 0; vgSrc->z_a = 0; vgSrc->z_s = 1;      
+	vgSrc->c_r = -0.0950;
+	vgSrc->c_a = -16.5100;
+	vgSrc->c_s = 9.7500;
+	vgSrc->valid = 1;
       }
       else
       {
-				// printf("INFO: Set Volume %s to the standard COR type.\n", srcVol);
-				initVolGeom(vgSrc); // valid = 0; so no need to give info
+	// printf("INFO: Set Volume %s to the standard COR type.\n", srcVol);
+	initVolGeom(vgSrc); // valid = 0; so no need to give info
       }
     }
     else // file exists
@@ -1950,7 +1954,7 @@ void mincGetVolumeInfo(const char *srcVol, VOL_GEOM *vgSrc)
       if (mri) // find the MRI volume
       	getVolGeom(mri, vgSrc);
       else // cound not find the volume
-				initVolGeom(vgSrc);
+	initVolGeom(vgSrc);
     }
   }
   else
@@ -2129,11 +2133,18 @@ LTA *ltaReadFileEx(const char *fname)
     {
       if (strncmp(line, "src volume info", 15)==0)
       {
+	if (DIAG_VERBOSE_ON)
+	  fprintf(stderr, "INFO: src volume info present\n");
 	char *p;
 	readVolGeom(fp, &lta->xforms[i].src);
 	p = fgets(line, 199, fp);
 	if (strncmp(line, "dst volume info", 15)==0)
+	{
+	  if (DIAG_VERBOSE_ON)
+	    fprintf(stderr, "INFO: dst volume info present\n");
+
 	  readVolGeom(fp, &lta->xforms[i].dst);
+	}
       }
     }
   }
@@ -2152,7 +2163,7 @@ LTAreadEx(const char *fname)
   type = TransformFileNameType((char *) fname) ;
   switch (type)
   {
-	case FSLREG_TYPE:
+  case FSLREG_TYPE:
     lta = ltaFSLread(fname) ;
 		break ;
   case REGISTER_DAT:
@@ -2267,6 +2278,7 @@ int LTAvoxelXformToRASXform(const MRI *src, const MRI *dst, LT *voxTran, LT *ras
   getVolGeom(dst, &voxTran->dst);
   return 1; 
 }
+
 static LTA  *
 ltaFSLread(const char *fname)
 {
@@ -2303,6 +2315,324 @@ ltaFSLread(const char *fname)
            MATRIX_RELT(m_L,row,3), MATRIX_RELT(m_L,row,4)) ;
   }
   fclose(fp) ;
-	lta->type = LINEAR_VOX_TO_VOX;
+  lta->type = LINEAR_PHYSVOX_TO_PHYSVOX;
+
   return(lta) ;
+}
+
+LTA *LTAinvert(LTA *lta)
+{
+  int i;
+  for (i=0; i < lta->num_xforms; ++i)
+  {
+    if (MatrixInverse(lta->xforms[i].m_L, lta->inv_xforms[i].m_L) == NULL)
+      ErrorExit(ERROR_BADPARM, "TransformInvert: xform noninvertible") ;
+  }
+  memmove(&lta->inv_xforms[0].src, &lta->xforms[0].dst, sizeof(lta->xforms[0].dst)) ;
+  memmove(&lta->inv_xforms[0].dst, &lta->xforms[0].src, sizeof(lta->xforms[0].dst)) ;
+  return lta;
+}
+
+
+// verify lta stored src and dst are the same as src and dst
+int LTAmodifySrcDstGeom(LTA *lta, MRI *src, MRI *dst)
+{
+  LINEAR_TRANSFORM *lt=0;  // work pointer
+  int i;
+  int resSrc = 0;
+  int resDst = 0;
+  int countValidSrc = 0;
+  int countValidDst = 0;
+  int res; 
+  VOL_GEOM svg, dvg;
+
+  for (i = 0; i < lta->num_xforms; ++i)
+  {  
+    lt = &lta->xforms[i];
+    if (src) // src is not NULL
+    {
+      if (lt->src.valid)
+      {
+	countValidSrc++;
+	getVolGeom(src, &svg);
+	res = vg_isEqual(&lt->src, &svg); 
+	resSrc+=res;
+	if (res==0)
+	{
+	  fprintf(stderr, "INFO: src volume info differs from the one stored in lta. gets modified now.\n");
+	  vg_print(&svg);
+	  vg_print(&lt->src);
+	  getVolGeom(src, &lt->src);
+	}
+      }
+      else if (lt->src.valid == 0) // if not valid, just copy
+      {
+	getVolGeom(src, &lt->src);
+      }
+    }
+    if (dst) // dst is not NULL
+    {
+      if (lt->dst.valid)
+      {
+	countValidDst++;
+	getVolGeom(dst, &dvg);
+	res= vg_isEqual(&lt->dst, &dvg); 
+	resDst+=res;
+	if (res==0)
+	{
+	  fprintf(stderr, "INFO: dst volume info differs from the one stored in lta.  gets modified now.\n");
+	  vg_print(&dvg);
+	  vg_print(&lt->dst);
+	  getVolGeom(dst, &lt->dst);
+	}
+      }
+      else if (lt->dst.valid == 0) // if not valid, just copy
+      {
+	getVolGeom(dst, &lt->dst);
+      }
+    }
+  }
+  // currently just do nothing for error checking
+  return 0;
+}
+
+// this one does not need to allocate sI2R and dR2I
+// compared with MRIgetRasToVoxelXform().
+static void LTAgetV2V(MATRIX *mod, VOL_GEOM *vgSrc, VOL_GEOM *vgDst)
+{
+  //           sI2R
+  //     src -------> RAS
+  //      |?           | mod (input)
+  //      V            V
+  //     dst <------- RAS
+  //           dR2I
+  MATRIX *sI2R = vg_i_to_r(vgSrc);
+  MATRIX *dR2I = vg_r_to_i(vgDst);
+  MATRIX *tmp = 0;
+  if (sI2R==0 || dR2I==0)
+    ErrorExit(ERROR_BADPARM, "LTAgetV2V: passed volumes did not have the info on i_to_r or r_to_i.");	
+  tmp = MatrixMultiply(mod, sI2R, NULL);
+  MatrixMultiply(dR2I, tmp, mod);  // m_L gets modified -> lta gets modified
+  MatrixFree(&tmp);
+  MatrixFree(&sI2R);
+  MatrixFree(&dR2I);
+}
+
+// this one does not need to allocate sR2I and dI2R
+// compared with MRIgetVoxToRasXform().
+static void LTAgetR2R(MATRIX *mod, VOL_GEOM *vgSrc, VOL_GEOM *vgDst)
+{
+  //           sR2I
+  //     src <------- RAS
+  //      | mod        | ?
+  //      V            V
+  //     dst -------> RAS
+  //           dI2R
+  MATRIX *sR2I = vg_r_to_i(vgSrc);
+  MATRIX *dI2R = vg_i_to_r(vgDst);
+  MATRIX *tmp = 0;
+  if (sR2I==0 || dI2R==0)
+    ErrorExit(ERROR_BADPARM, "LTAgetR2R: passed volumes did not have the info on r_to_i or i_to_r");	
+  tmp = MatrixMultiply(mod, sR2I, NULL);
+  MatrixMultiply(dI2R, tmp, mod);  // m_L gets modified -> lta gets modified
+  MatrixFree(&tmp);
+  MatrixFree(&sR2I);
+  MatrixFree(&dI2R);
+}
+ 
+LTA *LTAchangeType(LTA *lta, int ltatype)
+{
+  LINEAR_TRANSFORM *lt;  // work pointer
+  MATRIX           *m_L; // work pointer
+  MATRIX *sISize = 0;
+  MATRIX *sSize = 0;
+  MATRIX *dISize = 0;
+  MATRIX *dSize = 0;
+  MATRIX *tmp = 0;
+  int               i;
+  // if it is the same, don't do anything
+  if (lta->type == ltatype)
+    return lta;
+
+  // verify both src and dst have valid geometry
+  for (i=0; i < lta->num_xforms; ++i)
+  {
+    lt = &lta->xforms[i];
+    if (lt->src.valid == 0 || lt->dst.valid == 0)
+      ErrorExit(ERROR_BADPARM, "LTAchangeType: src and dst geometry must be valid\n");
+  }
+
+  // ras-to-ras 
+  if (lta->type == LINEAR_RAS_TO_RAS)
+  {
+    switch(ltatype)
+    {
+    case LINEAR_VOX_TO_VOX:
+      for (i = 0; i < lta->num_xforms; ++i)
+      {
+	lt = &lta->xforms[i];
+	m_L = lt->m_L;
+	LTAgetV2V(m_L, &lt->src, &lt->dst); // m_L gets modified
+      }
+      lta->type = LINEAR_VOX_TO_VOX;
+      break;
+    case LINEAR_PHYSVOX_TO_PHYSVOX:
+      //       src' (regarded as 1 mm unit voxel)
+      //        |sISize
+      //        V 
+      //       src  -------> RAS
+      //        |             |
+      //        V             V
+      //       dst  -------> RAS
+      //        |dSize
+      //        V 
+      //       dst' (regarded as 1 mm unix voxel)
+      //  we need src' to dst'
+      sISize = MatrixIdentity(4, 0);
+      dSize = MatrixIdentity(4, 0);
+      tmp = MatrixIdentity(4, NULL);
+      for (i=0; i < lta->num_xforms; ++i)
+      {
+	lt = &lta->xforms[i];
+	m_L = lt->m_L;
+	*MATRIX_RELT(sISize, 1,1) = 1./lt->src.xsize;
+	*MATRIX_RELT(sISize, 2,2) = 1./lt->src.ysize;
+	*MATRIX_RELT(sISize, 3,3) = 1./lt->src.zsize;
+	*MATRIX_RELT(dSize, 1,1) = lt->dst.xsize;
+	*MATRIX_RELT(dSize, 2,2) = lt->dst.ysize;
+	*MATRIX_RELT(dSize, 3,3) = lt->dst.zsize;
+	LTAgetV2V(m_L, &lt->src, &lt->dst); // m_L gets modified to be V2V
+	tmp = MatrixMultiply(m_L, sISize, NULL);
+	MatrixMultiply(dSize, tmp, m_L); // modified to physvox to physvox
+      }
+      MatrixFree(&sISize); sISize = 0;
+      MatrixFree(&dSize); dSize = 0;
+      MatrixFree(&tmp); tmp = 0;
+      lta->type = LINEAR_PHYSVOX_TO_PHYSVOX;
+      break;
+    default:
+      ErrorExit(ERROR_BADPARM, "LTAchangeType: you are requesting ras-to-ras to %d ", ltatype);	      
+      break;
+    }
+  }
+  else if (lta->type == LINEAR_VOX_TO_VOX)
+  {
+    switch(ltatype)
+    {
+    case LINEAR_RAS_TO_RAS:
+      for (i = 0; i < lta->num_xforms; ++i)
+      {
+	lt = &lta->xforms[i];
+	m_L = lt->m_L;
+	LTAgetR2R(m_L, &lt->src, &lt->dst); // m_L gets modified to be R2R
+      }
+      lta->type = LINEAR_RAS_TO_RAS;
+      break;
+    case LINEAR_PHYSVOX_TO_PHYSVOX:
+      //       src' (regarded as 1 mm unit voxel)
+      //        |sISize
+      //        V 
+      //       src  
+      //        |            
+      //        V             
+      //       dst 
+      //        |dSize
+      //        V 
+      //       dst' (regarded as 1 mm unix voxel)
+      //  we need src' to dst'
+      sISize = MatrixIdentity(4, 0);
+      dSize = MatrixIdentity(4, 0);
+      tmp = MatrixIdentity(4, NULL);
+      for (i=0; i < lta->num_xforms; ++i)
+      {
+	lt = &lta->xforms[i];
+	m_L = lt->m_L;
+	*MATRIX_RELT(sISize, 1,1) = 1./lt->src.xsize;
+	*MATRIX_RELT(sISize, 2,2) = 1./lt->src.ysize;
+	*MATRIX_RELT(sISize, 3,3) = 1./lt->src.zsize;
+	*MATRIX_RELT(dSize, 1,1) = lt->dst.xsize;
+	*MATRIX_RELT(dSize, 2,2) = lt->dst.ysize;
+	*MATRIX_RELT(dSize, 3,3) = lt->dst.zsize;
+	tmp = MatrixMultiply(m_L, sISize, NULL);
+	MatrixMultiply(dSize, tmp, m_L); // modified to physvox to physvox
+      }
+      MatrixFree(&sISize); sISize = 0;
+      MatrixFree(&dSize); dSize = 0;
+      MatrixFree(&tmp); tmp = 0;
+      lta->type = LINEAR_PHYSVOX_TO_PHYSVOX;
+      break;
+    default:
+      ErrorExit(ERROR_BADPARM, "LTAchangeType: you are requesting vox-to-vox to %d ", ltatype);	      
+      break;
+    }
+  }
+  else if (lta->type == LINEAR_PHYSVOX_TO_PHYSVOX)
+  {
+    switch(ltatype)
+    {
+    case LINEAR_VOX_TO_VOX:
+      //       src' (regarded as 1 mm unit voxel)
+      //        |sISize
+      //        V 
+      //       src  
+      //        | ?            
+      //        V               
+      //       dst 
+      //        |dSize
+      //        V 
+      //       dst' (regarded as 1 mm unix voxel)
+      //  we need src to dst.  thus
+      //      X = dISize*M*sSize
+      sSize = MatrixIdentity(4, 0);
+      dISize = MatrixIdentity(4, 0);
+      tmp = MatrixIdentity(4, NULL);
+      for (i=0; i < lta->num_xforms; ++i)
+      {
+	lt = &lta->xforms[i];
+	m_L = lt->m_L;
+	*MATRIX_RELT(sSize, 1,1) = lt->src.xsize;
+	*MATRIX_RELT(sSize, 2,2) = lt->src.ysize;
+	*MATRIX_RELT(sSize, 3,3) = lt->src.zsize;
+	*MATRIX_RELT(dISize, 1,1) = 1./lt->dst.xsize;
+	*MATRIX_RELT(dISize, 2,2) = 1./lt->dst.ysize;
+	*MATRIX_RELT(dISize, 3,3) = 1./lt->dst.zsize;
+	tmp = MatrixMultiply(m_L, sSize, NULL);
+	MatrixMultiply(dISize, tmp, m_L); // modified to physvox to physvox
+      }
+      MatrixFree(&sSize); sSize = 0;
+      MatrixFree(&dISize); dISize = 0;
+      MatrixFree(&tmp); tmp = 0;
+      lta->type = LINEAR_VOX_TO_VOX;
+      break;
+    case LINEAR_RAS_TO_RAS:
+      sSize = MatrixIdentity(4, 0);
+      dISize = MatrixIdentity(4, 0);
+      tmp = MatrixIdentity(4, NULL);
+      for (i=0; i < lta->num_xforms; ++i)
+      {
+	lt = &lta->xforms[i];
+	m_L = lt->m_L;
+	*MATRIX_RELT(sSize, 1,1) = lt->src.xsize;
+	*MATRIX_RELT(sSize, 2,2) = lt->src.ysize;
+	*MATRIX_RELT(sSize, 3,3) = lt->src.zsize;
+	*MATRIX_RELT(dISize, 1,1) = 1./lt->dst.xsize;
+	*MATRIX_RELT(dISize, 2,2) = 1./lt->dst.ysize;
+	*MATRIX_RELT(dISize, 3,3) = 1./lt->dst.zsize;
+	LTAgetV2V(m_L, &lt->src, &lt->dst);
+	tmp = MatrixMultiply(m_L, sSize, NULL);
+	MatrixMultiply(dISize, tmp, m_L); // modified to physvox to physvox
+      }
+      MatrixFree(&sSize); sSize = 0;
+      MatrixFree(&dISize); dISize = 0;
+      MatrixFree(&tmp); tmp = 0;
+      lta->type = LINEAR_RAS_TO_RAS;
+      break;
+    default:
+      ErrorExit(ERROR_BADPARM, "LTAchangeType: you are requesting physvox-to-physvox to %d ", ltatype);	      
+      break;
+    }
+  }
+  // fill inverse part
+  LTAinvert(lta);
+  return lta;
 }

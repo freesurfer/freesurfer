@@ -3,8 +3,8 @@
 /*                                                                     */
 /* Warning: Do not edit the following four lines.  CVS maintains them. */
 /* Revision Author: $Author: tosa $                                           */
-/* Revision Date  : $Date: 2004/11/24 14:48:58 $                                             */
-/* Revision       : $Revision: 1.32 $                                         */
+/* Revision Date  : $Date: 2004/11/29 19:24:53 $                                             */
+/* Revision       : $Revision: 1.33 $                                         */
 /*                                                                     */
 /***********************************************************************/
 
@@ -85,7 +85,11 @@ MATRIX   *LTAinverseTransformAtPoint(LTA *lta, float x, float y, float z,
                                      MATRIX *m_L) ;
 MATRIX   *LTAworldTransformAtPoint(LTA *lta, float x, float y,float z,
                                    MATRIX *m_L);
-int      LTAtoVoxelCoords(LTA *lta, MRI *mri) ;
+int      LTAtoVoxelCoords(LTA *lta, MRI *mri) ; // don't use this
+
+LTA *LTAinvert(LTA *lta); // fill inverse part of LTA
+int LTAmodifySrcDstGeom(LTA *lta, MRI *src, MRI *dst);  // src and dst can be null.  only those non-null used to modifiy geom
+LTA *LTAchangeType(LTA *lta, int ltatype);  // must have both src and dst vol_geom valid
 
 // new routines to retrieve src and dst volume info for transform
 LTA      *LTAreadEx(const char *fname);
