@@ -8,10 +8,10 @@
  *
 */
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2003/09/10 22:31:56 $
-// Revision       : $Revision: 1.242 $
-char *MRI_C_VERSION = "$Revision: 1.242 $";
+// Revision Author: $Author: tosa $
+// Revision Date  : $Date: 2003/09/19 16:53:55 $
+// Revision       : $Revision: 1.243 $
+char *MRI_C_VERSION = "$Revision: 1.243 $";
 
 /*-----------------------------------------------------
                     INCLUDE FILES
@@ -2089,6 +2089,13 @@ MRIworldToTalairachVoxel(MRI *mri, Real xw, Real yw, Real zw,
 int   MRIworldToVoxelIndex(MRI *mri, Real xw, Real yw, Real zw,
                 int *pxv, int *pyv, int *pzv)
 {
+  Real xv, yv, zv;
+  MRIworldToVoxel(mri, xw, yw, zw, &xv, &yv, &zv);
+  *pxv = (int) xv;
+  *pyv = (int) yv;
+  *pzv = (int) zv;
+
+  /*
   switch (getSliceDirection(mri))
   {
   case MRI_CORONAL:
@@ -2110,6 +2117,7 @@ int   MRIworldToVoxelIndex(MRI *mri, Real xw, Real yw, Real zw,
                  getSliceDirection(mri))) ;
     break ;
   }
+  */
   return(NO_ERROR) ;
 }
 
@@ -8402,7 +8410,7 @@ MRIlinearTransformInterp(MRI *mri_src, MRI *mri_dst, MATRIX *mA,
   MatrixFree(&mAinv) ;
   MatrixFree(&v_Y) ;
 
-  mri_dst->ras_good_flag = 0;
+  mri_dst->ras_good_flag = 1;
 
   if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
   {
