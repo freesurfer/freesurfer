@@ -69,6 +69,15 @@ typedef struct
   float       zoom ;        /* current zoom scale */
   int         x0 ;          /* x zoom origin */
   int         y0 ;          /* y zoom origin */
+  int         dx ;          /* width of zoomed image */
+  int         dy ;          /* height of zoomed image */
+
+/* the next 4 are temporary copies of the prior 4 while drawing is underway */
+  int         x1 ;          
+  int         y1 ;          /* y box origin */
+  int         dx1 ;         /* width of zoomed image */
+  int         dy1 ;         /* height of zoomed image */
+
   IMAGE       *zoomImage ;  /* zoomed image */
 } DISPLAY_IMAGE, DIMAGE ;
 
@@ -139,7 +148,7 @@ int XVzoom(XV_FRAME *xvf, int which, float zoom) ;
 
 #ifdef IRIX
 #define ROW_HEIGHT           40
-#define CHAR_WIDTH           15
+#define CHAR_WIDTH           13
 #else
 #define ROW_HEIGHT           30
 #define CHAR_WIDTH           8
