@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2004/01/09 22:33:57 $
-// Revision       : $Revision: 1.97 $
+// Revision Date  : $Date: 2004/01/15 00:03:41 $
+// Revision       : $Revision: 1.98 $
 
 #include "tkmDisplayArea.h"
 #include "tkmMeditWindow.h"
@@ -4270,6 +4270,15 @@ DspA_tErr DspA_HandleDraw_ ( tkmDisplayAreaRef this ) {
     eResult = DspA_tErr_NoErr;
   }
 
+  /* Draw functional overlay color bar */
+  if( this->mabDisplayFlags[DspA_tDisplayFlag_FunctionalColorScaleBar] ) {
+    eResult = DspA_DrawFunctionalOverlay_( this );
+    if ( DspA_tErr_NoErr != eResult ) {
+      DspA_Signal( "DspA_HandleDraw_", __LINE__, eResult );
+      eResult = DspA_tErr_NoErr;
+    }
+  }
+
   /* rebuilt all our slice changes, so we can clear this flag. */
   this->mbSliceChanged = FALSE;
   
@@ -4803,6 +4812,99 @@ DspA_tErr DspA_DrawLines_ ( tkmDisplayAreaRef this ) {
   return eResult;
 }
 
+DspA_tErr DspA_DrawFunctionalOverlay_ ( tkmDisplayAreaRef this ) {
+  
+  DspA_tErr eResult = DspA_tErr_NoErr;
+  FunV_tErr eFunctional = FunV_tErr_NoError;
+  FunV_tFunctionalValue max         = 0;
+  int nY = 0;
+  FunV_tFunctionalValue funcValue   = 0.0;
+  float absFuncValue   = 0.0;
+  xColor3f              color;
+  xColor3f              newColor    = {0,0,0};
+  int numDecimals = 0;
+  char sValue[1024] = "";
+  char sFormat[1024] = "";
+  int nChar = 0;
+
+  DspA_SetUpOpenGLPort_( this );
+  
+
+  /* draw the color scale bar. get threshold max. */
+  eFunctional = FunV_GetThresholdMax( this->mpFunctionalVolume, &max );
+  if( FunV_tErr_NoError != eFunctional ) {
+    eResult = DspA_tErr_ErrorAccessingFunctionalVolume;
+    goto error;
+  }
+
+  color.mfRed = color.mfGreen = color.mfBlue;
+  for( nY = 0; nY < this->mnVolumeSizeY; nY++ ) {
+    
+    /* get an interpolated value within the range of -max to +max 
+       determined by the y value */
+    funcValue = (FunV_tFunctionalValue) 
+      ( (float)(this->mnVolumeSizeY - nY) * (float)((max*2.0)/(float)this->mnVolumeSizeY) - max );
+    
+    /* get the functional color for this value */
+    eFunctional = FunV_GetColorForValue( this->mpFunctionalVolume,
+					 funcValue, &color, &newColor );
+    if( FunV_tErr_NoError != eFunctional ) {
+      eResult = DspA_tErr_ErrorAccessingFunctionalVolume;
+      goto error;
+    }
+    
+    /* draw a colored line on the right side of the screen. */
+    glColor3f ( newColor.mfRed, newColor.mfGreen, newColor.mfBlue );
+    glBegin( GL_POLYGON );
+    glVertex2i( this->mnVolumeSizeX - 10, GLDRAW_Y_FLIP(nY) );
+    glVertex2i( this->mnVolumeSizeX - 1, GLDRAW_Y_FLIP(nY) );
+    glVertex2i( this->mnVolumeSizeX - 1, GLDRAW_Y_FLIP(nY)+1 );
+    glVertex2i( this->mnVolumeSizeX - 10, GLDRAW_Y_FLIP(nY)+1 );
+    glEnd ();
+  
+    /* Draw a value marker at the top and every 50 pixels. */
+    if( nY % 50 == 0 ) {
+    
+      absFuncValue = fabs( funcValue );
+      if (absFuncValue > 1)     numDecimals = 2 ;
+      else if (absFuncValue > .1) numDecimals = 3 ;
+      else if (absFuncValue > .01) numDecimals = 4 ;
+      else if (absFuncValue > 0.001) numDecimals = 5 ;
+      else if (absFuncValue > 0.0001) numDecimals = 6 ;
+      else if (absFuncValue > 0.00001) numDecimals = 7 ;
+      else if (absFuncValue > 0.000001) numDecimals = 8 ;
+      else if (absFuncValue > 0.0000001) numDecimals = 9 ;
+      else numDecimals = 10 ;
+      
+      sprintf( sFormat, "%%2.%df", numDecimals) ;
+      sprintf( sValue, sFormat, funcValue );
+
+      glColor3f( 1.0, 1.0, 1.0 );
+      glRasterPos2i( this->mnVolumeSizeX - 10 -
+		     (strlen(sValue) * 4) , GLDRAW_Y_FLIP(nY + 5) );
+      for( nChar = 0; nChar < strlen(sValue); nChar++ ) {
+	glutBitmapCharacter( GLUT_BITMAP_8_BY_13, sValue[nChar] );
+      }
+    }
+}
+
+  goto cleanup;
+  
+  goto error;
+  
+ error:
+  
+  /* print error message */
+  if ( DspA_tErr_NoErr != eResult ) {
+    DebugPrint( ("Error %d in DspA_DrawFunctionalOverlay_: %s\n",
+		 eResult, DspA_GetErrorString(eResult) ) );
+  }
+  
+ cleanup:
+  
+  return eResult;
+}
+
 void DspA_DrawVerticalArrow_ ( xPoint2nRef iStart,
 			       int         inLength,
 			       char*       isLabel ) {
@@ -5297,7 +5399,6 @@ DspA_tErr DspA_DrawFunctionalOverlayToFrame_ ( tkmDisplayAreaRef this ) {
   DspA_tErr             eResult     = DspA_tErr_NoErr;
   FunV_tErr             eFunctional = FunV_tErr_NoError;
   xPoint2n              bufferPt    = {0,0};
-  FunV_tFunctionalValue max         = 0;
   FunV_tFunctionalValue funcValue   = 0.0;
   xColor3f              color;
   xColor3f              newColor    = {0,0,0};
@@ -5377,6 +5478,7 @@ DspA_tErr DspA_DrawFunctionalOverlayToFrame_ ( tkmDisplayAreaRef this ) {
   }
 
 
+#if 0
   /* if we're drawing the color scale bar... */
   if( this->mabDisplayFlags[DspA_tDisplayFlag_FunctionalColorScaleBar] ) {
     
@@ -5425,6 +5527,7 @@ DspA_tErr DspA_DrawFunctionalOverlayToFrame_ ( tkmDisplayAreaRef this ) {
       }
     }
   }
+#endif
   
   goto cleanup;
   

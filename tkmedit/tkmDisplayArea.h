@@ -575,6 +575,7 @@ DspA_tErr DspA_DrawCursor_             ( tkmDisplayAreaRef this );
 DspA_tErr DspA_DrawFrameAroundDisplay_ ( tkmDisplayAreaRef this );
 DspA_tErr DspA_DrawAxes_               ( tkmDisplayAreaRef this );
 DspA_tErr DspA_DrawLines_              ( tkmDisplayAreaRef this );
+DspA_tErr DspA_DrawFunctionalOverlay_  ( tkmDisplayAreaRef this );
 
 /* build the frame buffer */
 DspA_tErr DspA_BuildCurrentFrame_              ( tkmDisplayAreaRef this );
