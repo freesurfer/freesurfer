@@ -4,9 +4,9 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2003/05/05 16:41:36 $
-// Revision       : $Revision: 1.142 $
-char *VERSION = "$Revision: 1.142 $";
+// Revision Date  : $Date: 2003/05/05 18:16:18 $
+// Revision       : $Revision: 1.143 $
+char *VERSION = "$Revision: 1.143 $";
 
 #define TCL
 #define TKMEDIT 
@@ -998,7 +998,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
      shorten our argc and argv count. If those are the only args we
      had, exit. */
   /* rkt: check for and handle version tag */
-  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.142 2003/05/05 16:41:36 kteich Exp $");
+  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.143 2003/05/05 18:16:18 kteich Exp $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
   argc -= nNumProcessedVersionArgs;
@@ -2694,9 +2694,7 @@ tkm_tErr LoadSurface ( tkm_tSurfaceType iType,
   char      sName[tkm_knPathLen]       = "";
   char      sError[tkm_knErrStringLen] = "";
   mriTransformRef surfaceTransform = NULL;
-#if 0
   MATRIX *tmp1, *tmp2;
-#endif  
 
   DebugEnterFunction( ("LoadSurface( iType=%d, isName=%s )", 
            (int)iType, isName) );
@@ -2723,7 +2721,6 @@ tkm_tErr LoadSurface ( tkm_tSurfaceType iType,
 
   /* RKT: Why was this happening? This makes BtoRAS be _not_ the
      inverse of RAStoB, which is bad. */
-#if 0
   // modify surfaceTransform->mBtoRAS
   *MATRIX_RELT(surfaceTransform->mBtoRAS, 1, 4) = 128;
   *MATRIX_RELT(surfaceTransform->mBtoRAS, 2, 4) = -128;
@@ -2735,7 +2732,6 @@ tkm_tErr LoadSurface ( tkm_tSurfaceType iType,
 						 surfaceTransform->mARAStoBRAS);
   MatrixFree(&tmp1);
   MatrixFree(&tmp2);
-#endif
 
 #if 0
   fprintf(stderr,"composed a to b:\n");
