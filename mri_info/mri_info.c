@@ -3,11 +3,11 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: greve $
-// Revision Date  : $Date: 2004/10/04 20:55:48 $
-// Revision       : $Revision: 1.30 $
+// Revision Date  : $Date: 2004/10/04 22:12:07 $
+// Revision       : $Revision: 1.31 $
 //
 ////////////////////////////////////////////////////////////////////
-char *MRI_INFO_VERSION = "$Revision: 1.30 $";
+char *MRI_INFO_VERSION = "$Revision: 1.31 $";
 #include <stdio.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -36,7 +36,7 @@ static void usage_exit(void);
 static void print_help(void) ;
 static void print_version(void) ;
 
-static char vcid[] = "$Id: mri_info.c,v 1.30 2004/10/04 20:55:48 greve Exp $";
+static char vcid[] = "$Id: mri_info.c,v 1.31 2004/10/04 22:12:07 greve Exp $";
 
 char *Progname ;
 
@@ -53,6 +53,7 @@ int PrintNCols = 0;
 int PrintNRows = 0;
 int PrintNSlices = 0;
 int PrintNFrames = 0;
+int PrintFormat = 0;
 
 int debug = 0;
 
@@ -133,6 +134,7 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--depth"))     PrintNSlices = 1;
 
     else if (!strcasecmp(option, "--nframes"))   PrintNFrames = 1;
+    else if (!strcasecmp(option, "--format")) PrintFormat = 1;
 
     else{
       inputlist[nthinput] = option;
@@ -159,6 +161,7 @@ static void print_usage(void)
   printf("   --nrows : print number of rows (height) to stdout\n");
   printf("   --nslices : print number of columns (depth) to stdout\n");
   printf("   --nframes : print number of frames to stdout\n");
+  printf("   --format : file format\n");
   printf("\n");
   //printf("   --svol svol.img (structural volume)\n");
 }
@@ -170,7 +173,8 @@ static void print_help(void)
 "\n"
 "Dumps information about the volume to stdout. Specific pieces \n"
 "of information can be printed out as well by specifying the proper\n"
-"flag (eg, --tr for TR).\n"
+"flag (eg, --tr for TR). Time is in msec. Distance is in MM. Angles\n"
+"are in radians.\n"
 );
 
 
@@ -269,6 +273,10 @@ static void do_file(char *fname)
   }
   if(PrintNFrames){
     printf("%d\n",mri->nframes);
+    return;
+  }
+  if(PrintFormat){
+    printf("%s\n", type_to_string(mri_identify(fname)));
     return;
   }
 
