@@ -10389,7 +10389,7 @@ MRISaverageEveryOtherVertexPositions(MRI_SURFACE *mris, int navgs, int which)
 ------------------------------------------------------*/
 
 #define MAX_TOTAL_MOVEMENT 3.0
-#define MAX_MOVEMENT       1.5
+#define MAX_MOVEMENT       .3
 #define DELTA_M            0.1
 
 #define WHALF              (5-1)/2
@@ -10697,6 +10697,7 @@ MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_wm,
   MRIfree(&mri_filled) ;
 #endif
 
+#if 0
 #define MAX_AVERAGES 100
   fprintf(stderr, "performing soap bubble smoothing for %d iterations...",
           MAX_AVERAGES) ;
@@ -10704,6 +10705,7 @@ MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_wm,
   MRISsoapBubbleVertexPositions(mris, MAX_AVERAGES, .95f) ;
 #else
   MRISsequentialAverageVertexPositions(mris, MAX_AVERAGES) ;
+#endif
 #endif
 
   fprintf(stderr, "done.\n") ;
