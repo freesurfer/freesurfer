@@ -979,3 +979,19 @@ LabelUnmark(LABEL *area, MRI_SURFACE *mris)
   }
   return(NO_ERROR) ;
 }
+int
+LabelToOriginal(LABEL *area, MRI_SURFACE *mris)
+{
+  int     n, vno ;
+  VERTEX  *v ;
+
+  for (n = 0 ; n < area->n_points ; n++)
+  {
+    vno = area->lv[n].vno ;
+    v = &mris->vertices[vno] ;
+    area->lv[n].x = v->origx ;
+    area->lv[n].y = v->origy ;
+    area->lv[n].z = v->origz ;
+  }
+  return(NO_ERROR) ;
+}
