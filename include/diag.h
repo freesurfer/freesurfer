@@ -49,6 +49,7 @@ void DiagHeartbeat(float pct_done) ;
 
 #define DIAG_WAIT    0x08000000L
 #define DIAG_VERBOSE 0x10000000L   /* allows 2 levels for each type */
+#define DIAG_VERBOSE_ON  (Gdiag & DIAG_VERBOSE)
 
 /* supported colors */
 #define DIAG_BLACK   -1
