@@ -22,7 +22,7 @@
 #include "transform.h"
 #include "talairachex.h"
 
-static char vcid[] = "$Id: mri_fill.c,v 1.72 2003/12/18 17:14:44 tosa Exp $";
+static char vcid[] = "$Id: mri_fill.c,v 1.73 2003/12/18 17:15:47 tosa Exp $";
 
 
 /*-------------------------------------------------------------------
@@ -231,13 +231,13 @@ main(int argc, char *argv[])
   LT *lt;
   MATRIX *m_L;
   int row;
-  VOL_GEOM *dst;
-  VOL_GEOM *src;
+  VOL_GEOM *dst=0;
+  VOL_GEOM *src=0;
 
   // Gdiag = 0xFFFFFFFF;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_fill.c,v 1.72 2003/12/18 17:14:44 tosa Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_fill.c,v 1.73 2003/12/18 17:15:47 tosa Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -395,8 +395,8 @@ main(int argc, char *argv[])
       printf("INFO: volume does not have linear_transform set nor lta is given by option.-xform.\n") ;
       printf("INFO: use identity matrix as the talairach transform.\n");
       printf("INFO: use src volume parameters for the talairach volume.\n");
-      VOL_GEOM *dst = &lt->dst;
-      VOL_GEOM *src = &lt->src;
+      dst = &lt->dst;
+      src = &lt->src;
       getVolGeom(mri_im, src);
       getVolGeom(mri_im, dst);
       dst->valid = 1;
