@@ -13,7 +13,7 @@
 #include "mri.h"
 #include "macros.h"
 
-static char vcid[] = "$Id: mris_curvature.c,v 1.13 1998/05/25 02:33:10 fischl Exp $";
+static char vcid[] = "$Id: mris_curvature.c,v 1.14 1998/05/27 04:55:24 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -32,6 +32,8 @@ static char *param_file = NULL ;
 static int normalize = 0 ;
 static int diff_flag = 0 ;
 static int max_flag = 0 ;
+static int min_flag = 0 ;
+static int stretch_flag = 0 ;
 static int patch_flag = 0 ;
 static int neg_flag = 0 ;
 static int param_no = 0 ;
@@ -221,6 +223,31 @@ main(int argc, char *argv[])
       fprintf(stderr, "done.\n") ;
     }
 
+    if (min_flag)
+    {
+      MRISuseCurvatureMin(mris) ;
+      MRISaverageCurvatures(mris, navgs) ;
+      if (normalize)
+        MRISnormalizeCurvature(mris) ;
+      sprintf(fname, "%s/%s.min", path,name) ; 
+      fprintf(stderr, "writing curvature minima to %s...", fname) ;
+      MRISwriteCurvature(mris, fname) ;
+      fprintf(stderr, "done.\n") ;
+    }
+
+    if (stretch_flag)
+    {
+      MRISreadOriginalProperties(mris, NULL) ;
+      MRISuseCurvatureStretch(mris) ;
+      MRISaverageCurvatures(mris, navgs) ;
+      if (normalize)
+        MRISnormalizeCurvature(mris) ;
+      sprintf(fname, "%s/%s.stretch", path,name) ; 
+      fprintf(stderr, "writing curvature stretch to %s...", fname) ;
+      MRISwriteCurvature(mris, fname) ;
+      fprintf(stderr, "done.\n") ;
+    }
+
     if (write_flag)
     {
       MRISuseGaussianCurvature(mris) ;
@@ -272,6 +299,10 @@ get_option(int argc, char *argv[])
     neg_flag = 1 ;
   else if (!stricmp(option, "max"))
     max_flag = 1 ;
+  else if (!stricmp(option, "min"))
+    min_flag = 1 ;
+  else if (!stricmp(option, "stretch"))
+    stretch_flag = 1 ;
   else if (!stricmp(option, "param"))
   {
     param_file = argv[2] ;
