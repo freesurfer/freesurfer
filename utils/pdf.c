@@ -25,4 +25,21 @@ double PDFgaussian(void)
 
   return( v1 * sqrt( -2.0 * log(r2)/r2 ));
 }
+/*********************************************************
+ * Name:    PDFerlang(order)
+ * Purpose: generates random numbers that obey an erlang
+ *          distribution with mean=1 and stddev = mean/sqrt(order):
+ *   pdf(x) = r*mu*((r*mu*x)^(r-1)) * exp(-r*mu*x) / (r-1)!
+ *     mu = 1/mean
+ ************************************************************/
+double PDFerlang(int order)
+{
+  double v, n;
+
+  v = 0;
+  for(n=0; n < order; n++)
+    v = v + -log(drand48());
+  v /= order;
+  return(v);
+}
 
