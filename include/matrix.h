@@ -1,6 +1,8 @@
 #ifndef MATRIX_H
 #define MATRIX_H
 
+#include <stdio.h>
+
 typedef struct
 {
   int   type ;
