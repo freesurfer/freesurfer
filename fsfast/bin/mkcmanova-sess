@@ -1,8 +1,8 @@
 #!/bin/csh -f
 # mkcmanova-sess
 #
-# $Id: mkcmanova-sess,v 1.1 2003/05/05 04:30:40 greve Exp $
-set VERSION = '$Id: mkcmanova-sess,v 1.1 2003/05/05 04:30:40 greve Exp $'
+# $Id: mkcmanova-sess,v 1.2 2003/05/05 04:39:07 greve Exp $
+set VERSION = '$Id: mkcmanova-sess,v 1.2 2003/05/05 04:39:07 greve Exp $'
 
 set inputargs = ($argv);
 set DateStr = "`date '+%y%m%d%H%M'`"
@@ -342,12 +342,12 @@ Creates a cell-means ANOVA contrast matrix which can then be used as
 input to stxgrinder-sess (this is the ANOVA version of
 mkcontrast-sess); supports any number of factors with any number of
 levels. The factorial design is modeled as a tree. A condition (as
-found in the paradigm file) is found at the end of a branch. The trunk
-divides into the number of levels assocated with Factor 1 (ie,
-nf1). Each of the branches coming from the trunk divides into the the
-number of levels assocated with Factor 2 (ie, nf2), etc.  The number
-of paths to the terminus is equal to the product of the number of
-levels. A unique condition number must be assigned to each.
+found in the paradigm file) is found at the end of a series of
+branches. The trunk divides into the number of levels assocated with
+Factor 1 (ie, nf1). Each of the branches coming from the trunk divides
+into the the number of levels assocated with Factor 2 (ie, nf2), etc.
+The number of paths to the terminus is equal to the product of the
+number of levels. A unique condition number must be assigned to each.
 
   Example: 2-by-3 factorial design.
 
@@ -382,6 +382,10 @@ where fn is the factor number. Use multiple flags for multiple test factors.
 Example: -tstfactor 1 -tstfactor 3 to test for an interaction between
 factors 1 and 3. To test the main effect of a factor, specify only that
 factor with -tstfactor.
+
+The signficance of the ANOVA null hypothesis is stored in fsig (after
+running stxgrinder-sess).
+
 
 BUGS:
 
