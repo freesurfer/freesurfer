@@ -31,7 +31,7 @@ LabelRead(char *subject_name, char *label_name)
   char   fname[200], *cp, line[200], subjects_dir[100], lname[200] ;
   FILE   *fp ;
   int    vno, nlines ;
-  float  x, y, z ;
+  float  x, y, z, stat ;
 
   area = (LABEL *)calloc(1, sizeof(LABEL)) ;
   if (!area)
@@ -83,12 +83,13 @@ LabelRead(char *subject_name, char *label_name)
   nlines = 0 ;
   while ((cp = fgetl(line, 199, fp)) != NULL)
   {
-    if (sscanf(cp, "%d %f %f %f", &vno, &x, &y, &z) != 4)
+    if (sscanf(cp, "%d %f %f %f", &vno, &x, &y, &z, &stat) != 5)
       ErrorExit(ERROR_BADFILE, "%s: could not parse %dth line in %s",
                 Progname, area->n_points, fname) ;
     area->lv[nlines].x = x ;
     area->lv[nlines].y = y ;
     area->lv[nlines].z = z ;
+    area->lv[nlines].stat = stat ;
     area->lv[nlines].vno = vno ;
     nlines++ ;
   }
@@ -432,8 +433,9 @@ LabelWrite(LABEL *area, char *label_name)
   fprintf(fp, "%d\n", num) ;
   for (n = 0 ; n < area->n_points ; n++)
     if (!area->lv[n].deleted)
-      fprintf(fp, "%d  %2.3f  %2.3f  %2.3f\n", area->lv[n].vno, area->lv[n].x, 
-              area->lv[n].y, area->lv[n].z) ;
+      fprintf(fp, "%d  %2.3f  %2.3f  %2.3f %f\n", 
+              area->lv[n].vno, area->lv[n].x, 
+              area->lv[n].y, area->lv[n].z, area->lv[n].stat) ;
   fclose(fp) ;
   return(NO_ERROR) ;
 }
@@ -531,7 +533,7 @@ LabelAlloc(int max_points, char *subject_name, char *label_name)
     ErrorExit(ERROR_NOMEMORY, 
               "%s: LabelAlloc(%s) could not allocate %d-sized vector",
               Progname, label_name ? label_name : "", 
-							sizeof(LV)*area->n_points) ;
+              sizeof(LV)*area->n_points) ;
   return(area) ;
 }
 /*-----------------------------------------------------
@@ -1013,27 +1015,28 @@ LabelToOriginal(LABEL *area, MRI_SURFACE *mris)
 LABEL *
 LabelFromMarkedSurface(MRI_SURFACE *mris)
 {
-	int    vno, npoints, n ;
-	LABEL  *area ;
+  int    vno, npoints, n ;
+  LABEL  *area ;
   VERTEX *v ;
 
-	for (npoints = vno = 0 ; vno < mris->nvertices ; vno++)
-		if (mris->vertices[vno].marked)
-			npoints++ ;
+  for (npoints = vno = 0 ; vno < mris->nvertices ; vno++)
+    if (mris->vertices[vno].marked)
+      npoints++ ;
 
-	if (!npoints)
-		return(NULL) ;
-	area = LabelAlloc(npoints, NULL, NULL) ;
-	for (n = vno = 0 ; vno < mris->nvertices ; vno++)
-	{
+  if (!npoints)
+    return(NULL) ;
+  area = LabelAlloc(npoints, NULL, NULL) ;
+  for (n = vno = 0 ; vno < mris->nvertices ; vno++)
+  {
     v = &mris->vertices[vno] ;
-		if (!v->marked)
-			continue ;
-		area->lv[n].x = v->x ;
-		area->lv[n].y = v->y ;
-		area->lv[n].z = v->z ;
-		area->lv[n].vno = vno ;
-	}
-	return(area) ;
+    if (!v->marked)
+      continue ;
+    area->lv[n].x = v->x ;
+    area->lv[n].y = v->y ;
+    area->lv[n].z = v->z ;
+    area->lv[n].vno = vno ;
+    area->lv[n].stat = v->stat ;
+  }
+  return(area) ;
 }
 
