@@ -68,4 +68,7 @@ int devIsinf(float value);
 int devIsnan(float value);
 int devFinite(float value);
 
+int getPid(); // return process id from Progname
+int getMemoryUsed(); // return memory used by Progname. works only under Linux /proc system
+
 #endif
