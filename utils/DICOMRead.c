@@ -2,7 +2,7 @@
    DICOM 3.0 reading functions
    Author: Sebastien Gicquel and Douglas Greve
    Date: 06/04/2001
-   $Id: DICOMRead.c,v 1.26 2002/12/03 21:04:55 greve Exp $
+   $Id: DICOMRead.c,v 1.27 2002/12/19 21:45:58 greve Exp $
 *******************************************************/
 
 #include <stdio.h>
@@ -2296,11 +2296,16 @@ int sdfiFixImagePosition(SDCMFILEINFO *sdfi)
   return(0);
 }
 /*-----------------------------------------------------------------------
-  sdfiVolCenter() - Computes the RAS XYZ center of the volume for the
-    given the first Siemens DICOM file of a run. For mosaics, this
-    assumes that the Image Position has been fixed (see 
-    sdfiFixImagePosition()).
-  Author: Douglas N. Greve, 9/12/2001
+  sdfiVolCenter() - Computes the RAS XYZ "center" of the volume for
+  the given the first Siemens DICOM file of a run. For mosaics, this
+  assumes that the Image Position has been fixed (see
+  sdfiFixImagePosition()). Center is in quotes because it is not
+  really the center. Rather it is the RAS XYZ position at voxel CRS =
+  [Nc Nr Ns]/2. The true center would be at CRS = ([Nc Nr Ns]-1)/2.
+  This definition of the "center" is consistent with the c_r, c_a,
+  c_s in the MRI struct.
+
+  Author: Douglas N. Greve, 9/12/2001. Updated 12/19/02.
   -----------------------------------------------------------------------*/
 int sdfiVolCenter(SDCMFILEINFO *sdfi)
 {
@@ -2311,7 +2316,8 @@ int sdfiVolCenter(SDCMFILEINFO *sdfi)
     Mdc[r][0] = sdfi->Vc[r]; Mdc[r][1] = sdfi->Vr[r]; Mdc[r][2] = sdfi->Vs[r];
   }
 
-  for(r=0;r<3;r++) FoV[r] = sdfi->VolRes[r] * (sdfi->VolDim[r]-1);
+  /* Note: for true center use (sdfi->VolDim[r]-1) */
+  for(r=0;r<3;r++) FoV[r] = sdfi->VolRes[r] * sdfi->VolDim[r];
 
   for(r=0;r<3;r++){
     sdfi->VolCenter[r] = sdfi->ImgPos[r];
