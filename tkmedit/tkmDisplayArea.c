@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2003/05/02 19:38:27 $
-// Revision       : $Revision: 1.64 $
+// Revision Date  : $Date: 2003/05/05 16:41:36 $
+// Revision       : $Revision: 1.65 $
 
 #include "tkmDisplayArea.h"
 #include "tkmMeditWindow.h"
@@ -95,7 +95,7 @@ char *DspA_ksaOrientation [mri_knNumOrientations] = {
 char *DspA_ksaSurface [Surf_knNumVertexSets] = {
   "Main",
   "Original",
-  "Canonical"
+  "Pial"
 };
 
 char *DspA_ksaDisplaySet [DspA_knNumDisplaySets] = {
@@ -1641,7 +1641,7 @@ DspA_tErr DspA_SetDisplayFlag ( tkmDisplayAreaRef this,
     
   case DspA_tDisplayFlag_MainSurface:
   case DspA_tDisplayFlag_OriginalSurface:
-  case DspA_tDisplayFlag_CanonicalSurface:
+  case DspA_tDisplayFlag_PialSurface:
   case DspA_tDisplayFlag_DisplaySurfaceVertices:
     
     /* if no surface, set to false. */
@@ -3268,7 +3268,7 @@ DspA_tErr DspA_HandleKeyDown_ ( tkmDisplayAreaRef this,
       break;
     case 'p':
       eResult = 
-	DspA_ToggleDisplayFlag( this, DspA_tDisplayFlag_CanonicalSurface );
+	DspA_ToggleDisplayFlag( this, DspA_tDisplayFlag_PialSurface );
       break;
     case 's':
       eResult = 
@@ -3375,6 +3375,15 @@ DspA_tErr DspA_HandleKeyDown_ ( tkmDisplayAreaRef this,
     case 'g':
       eResult = 
       DspA_ToggleDisplayFlag( this, DspA_tDisplayFlag_AuxSegmentationVolume );
+      break;
+    case 'm':
+      tkm_ShowNearestSurfaceVertex( Surf_tVertexSet_Main );
+      break;
+    case 'o':
+      tkm_ShowNearestSurfaceVertex( Surf_tVertexSet_Original );
+      break;
+    case 'p':
+      tkm_ShowNearestSurfaceVertex( Surf_tVertexSet_Pial );
       break;
     case 'x':
       eResult = DspA_SetOrientation( this, mri_tOrientation_Sagittal );
@@ -3921,7 +3930,7 @@ DspA_tErr DspA_HandleDraw_ ( tkmDisplayAreaRef this ) {
   /* Draw the surface */
   if( this->mabDisplayFlags[DspA_tDisplayFlag_MainSurface] ||
       this->mabDisplayFlags[DspA_tDisplayFlag_OriginalSurface] ||
-      this->mabDisplayFlags[DspA_tDisplayFlag_CanonicalSurface] ) {
+      this->mabDisplayFlags[DspA_tDisplayFlag_PialSurface] ) {
     eResult = DspA_DrawSurface_ ( this );
     if ( DspA_tErr_NoErr != eResult ) {
       DspA_Signal( "DspA_HandleDraw_", __LINE__, eResult );

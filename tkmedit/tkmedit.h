@@ -9,6 +9,7 @@
 #include "x3DList.h"
 #include "xGLutWindow.h"
 #include "mriHeadPointList.h"
+#include "mriSurface.h"
 
 typedef unsigned char tVolumeValue;
 typedef tVolumeValue* tVolumeRef;
@@ -139,7 +140,7 @@ typedef enum {
   tkm_tTclCommand_ShowSurfaceLoadingOptions,
   tkm_tTclCommand_ShowSurfaceViewingOptions,
   tkm_tTclCommand_ShowOriginalSurfaceViewingOptions,
-  tkm_tTclCommand_ShowCanonicalSurfaceViewingOptions,
+  tkm_tTclCommand_ShowPialSurfaceViewingOptions,
   tkm_tTclCommand_ShowHeadPointLabelEditingOptions,
   tkm_tTclCommand_ShowVLIOptions,
   tkm_tTclCommand_ShowGCAOptions,
@@ -337,6 +338,9 @@ void tkm_ReadCursorFromEditFile  ();
 /* writing surface distances. */
 void tkm_SetSurfaceDistance    ( xVoxelRef iAnaIdx,
 				 float     ifDistance );
+
+/* show nearest verts */
+void tkm_ShowNearestSurfaceVertex ( Surf_tVertexSet iVertexSet );
 
 /* cleaning up */
 void tkm_Quit ();

@@ -51,7 +51,7 @@ typedef enum {
   DspA_tDisplayFlag_Cursor,
   DspA_tDisplayFlag_MainSurface,
   DspA_tDisplayFlag_OriginalSurface,
-  DspA_tDisplayFlag_CanonicalSurface,
+  DspA_tDisplayFlag_PialSurface,
   DspA_tDisplayFlag_InterpolateSurfaceVertices,
   DspA_tDisplayFlag_DisplaySurfaceVertices,
   DspA_tDisplayFlag_ControlPoints,

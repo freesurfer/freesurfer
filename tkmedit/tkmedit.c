@@ -4,9 +4,9 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2003/04/30 18:06:36 $
-// Revision       : $Revision: 1.141 $
-char *VERSION = "$Revision: 1.141 $";
+// Revision Date  : $Date: 2003/05/05 16:41:36 $
+// Revision       : $Revision: 1.142 $
+char *VERSION = "$Revision: 1.142 $";
 
 #define TCL
 #define TKMEDIT 
@@ -998,7 +998,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
      shorten our argc and argv count. If those are the only args we
      had, exit. */
   /* rkt: check for and handle version tag */
-  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.141 2003/04/30 18:06:36 kteich Exp $");
+  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.142 2003/05/05 16:41:36 kteich Exp $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
   argc -= nNumProcessedVersionArgs;
@@ -2304,10 +2304,13 @@ void GotoSurfaceVertex ( Surf_tVertexSet iSurface, int inVertex ) {
   OutputPrint "%s vertex index %d:\n\t%s\n", 
     sSetName, inVertex, sDescription EndOutputPrint;
   
+  /* RKT: We don't need to adjust surface verts any more. */
+#if 0
   /* adjust it so it aligns to the surface. */
   eWindow = MWin_AdjustSurfaceAnaIdx( gMeditWindow, &anaIdx );
   if( MWin_tErr_NoErr != eWindow )
     goto error;
+#endif
   
   /* tell the window to go there. */
   eWindow = MWin_SetCursor ( gMeditWindow, -1, &anaIdx );
@@ -2348,10 +2351,13 @@ void FindNearestSurfaceVertex ( Surf_tVertexSet iSet ) {
   if( MWin_tErr_NoErr != eWindow )
     goto error;
   
+  /* RKT: We don't need to adjust surface verts any more. */
+#if 0
   /* first unadjust the point. */
   eWindow = MWin_UnadjustSurfaceAnaIdx( gMeditWindow, &cursor );
   if( MWin_tErr_NoErr != eWindow )
     goto error;
+#endif
   
   /* get the vertex */
   eSurface = Surf_GetClosestVertexVoxel( gSurface[tkm_tSurfaceType_Main],
@@ -2365,10 +2371,13 @@ void FindNearestSurfaceVertex ( Surf_tVertexSet iSet ) {
   OutputPrint "Nearest %s vertex to %d, %d, %d:\n\t%s\n",
     sSetName, xVoxl_ExpandInt( &cursor ), sDescription EndOutputPrint;
   
+  /* RKT: We don't need to adjust surface verts any more. */
+#if 0
   /* adjust it so it aligns to the surface. */
   eWindow = MWin_AdjustSurfaceAnaIdx( gMeditWindow, &anaIdx );
   if( MWin_tErr_NoErr != eWindow )
     goto error;
+#endif
   
   /* tell the window to go there. */
   eWindow = MWin_SetCursor ( gMeditWindow, -1, &anaIdx );
@@ -2409,10 +2418,13 @@ void FindNearestInterpolatedSurfaceVertex ( Surf_tVertexSet iSet ) {
   if( MWin_tErr_NoErr != eWindow )
     goto error;
   
+  /* RKT: We don't need to adjust surface verts any more. */
+#if 0
   /* first unadjust the point. */
   eWindow = MWin_UnadjustSurfaceAnaIdx( gMeditWindow, &cursor );
   if( MWin_tErr_NoErr != eWindow )
     goto error;
+#endif
   
   /* get the verteices */
   eWindow = MWin_GetClosestInterpSurfVoxel( gMeditWindow,
@@ -2428,10 +2440,13 @@ void FindNearestInterpolatedSurfaceVertex ( Surf_tVertexSet iSet ) {
   OutputPrint "Nearest %s vertex to %d, %d, %d:\n\t%s\n",
     sSetName, xVoxl_ExpandInt( &cursor ), sDescription EndOutputPrint;
   
+  /* RKT: We don't need to adjust surface verts any more. */
+#if 0
   /* adjust it so it aligns to the surface. */
   eWindow = MWin_AdjustSurfaceAnaIdx( gMeditWindow, &interpAnaIdx );
   if( MWin_tErr_NoErr != eWindow )
     goto error;
+#endif
   
   /* tell the window to go there. */
   eWindow = MWin_SetCursor ( gMeditWindow, -1, &interpAnaIdx );
@@ -2678,10 +2693,11 @@ tkm_tErr LoadSurface ( tkm_tSurfaceType iType,
   tBoolean  bLoaded           = FALSE;
   char      sName[tkm_knPathLen]       = "";
   char      sError[tkm_knErrStringLen] = "";
-  MATRIX*   conformMatrix = NULL;
   mriTransformRef surfaceTransform = NULL;
+#if 0
   MATRIX *tmp1, *tmp2;
-  
+#endif  
+
   DebugEnterFunction( ("LoadSurface( iType=%d, isName=%s )", 
            (int)iType, isName) );
   
@@ -2699,25 +2715,15 @@ tkm_tErr LoadSurface ( tkm_tSurfaceType iType,
     Surf_Delete( &gSurface[iType] );
   }
 
-  /* Make the transformation for the surface. It's the composition of
-     the AnaIdxToRAS matrix and the conform matrix. */
-  DebugNote( ("Getting conform matrix") );
-  conformMatrix = 
-    MRIgetConformMatrix(gAnatomicalVolume[tkm_tVolumeType_Main]->mpMriValues);
-  DebugAssertThrowX( (NULL != conformMatrix),
-		     eResult, tkm_tErr_CouldntAllocate );
-
-#if 0
-  fprintf(stderr,"conform (from MRIgetConformMatrix), will be BtoRAS:\n");
-  MatrixPrint(stderr,conformMatrix);
-#endif
-
 
   DebugNote( ("Cloning gIdxToRASTransform to get surfaceTransform") );
   eTrns = Trns_DeepClone( gIdxToRASTransform, &surfaceTransform );
   DebugAssertThrowX( (Trns_tErr_NoErr == eTrns),
 		     eResult, tkm_tErr_CouldntAllocate );
 
+  /* RKT: Why was this happening? This makes BtoRAS be _not_ the
+     inverse of RAStoB, which is bad. */
+#if 0
   // modify surfaceTransform->mBtoRAS
   *MATRIX_RELT(surfaceTransform->mBtoRAS, 1, 4) = 128;
   *MATRIX_RELT(surfaceTransform->mBtoRAS, 2, 4) = -128;
@@ -2729,10 +2735,7 @@ tkm_tErr LoadSurface ( tkm_tSurfaceType iType,
 						 surfaceTransform->mARAStoBRAS);
   MatrixFree(&tmp1);
   MatrixFree(&tmp2);
-
-  // DebugNote( ("Copying conformMatrix to BtoRAS in surfaceTransform") );
-  // eTrns = Trns_CopyBtoRAS( surfaceTransform, conformMatrix );
-  // DebugAssertThrowX( (Trns_tErr_NoErr == eTrns),eResult, tkm_tErr_CouldntAllocate );
+#endif
 
 #if 0
   fprintf(stderr,"composed a to b:\n");
@@ -2744,24 +2747,25 @@ tkm_tErr LoadSurface ( tkm_tSurfaceType iType,
   eSurface = Surf_New( &gSurface[iType], sName, surfaceTransform);
   DebugAssertThrowX( (Surf_tErr_NoErr == eSurface),
          eResult, tkm_tErr_CouldntLoadSurface );
+
 #if 0
-  printf("Surf_New gIdxToRASTransform================================\n");
+  printf("Surf_New surfaceTransform================================\n");
   printf("AtoRAS\n");
-  MatrixPrint(stdout, gIdxToRASTransform->mAtoRAS);
+  MatrixPrint(stdout, surfaceTransform->mAtoRAS);
   printf("BToRAS\n");
-  MatrixPrint(stdout, gIdxToRASTransform->mBtoRAS);
+  MatrixPrint(stdout, surfaceTransform->mBtoRAS);
   printf("ARASToBRAS\n");
-  MatrixPrint(stdout, gIdxToRASTransform->mARAStoBRAS);
+  MatrixPrint(stdout, surfaceTransform->mARAStoBRAS);
   printf("RASToA\n");
-  MatrixPrint(stdout, gIdxToRASTransform->mRAStoA);
+  MatrixPrint(stdout, surfaceTransform->mRAStoA);
   printf("RASToB\n");
-  MatrixPrint(stdout, gIdxToRASTransform->mRAStoB);
+  MatrixPrint(stdout, surfaceTransform->mRAStoB);
   printf("BRASToARAS\n");
-  MatrixPrint(stdout, gIdxToRASTransform->mBRAStoARAS);
+  MatrixPrint(stdout, surfaceTransform->mBRAStoARAS);
   printf("AToB\n");
-  MatrixPrint(stdout, gIdxToRASTransform->mAtoB);
+  MatrixPrint(stdout, surfaceTransform->mAtoB);
   printf("BToA\n");
-  MatrixPrint(stdout, gIdxToRASTransform->mBtoA);
+  MatrixPrint(stdout, surfaceTransform->mBtoA);
 #endif
  
   /* see if it was loaded */
@@ -2806,7 +2810,6 @@ tkm_tErr LoadSurface ( tkm_tSurfaceType iType,
         "or the file was unreadable due to permissions." );
   EndDebugCatch;
   
-  MatrixFree( &conformMatrix );
   Trns_Delete( &surfaceTransform );
 
   DebugExitFunction;
@@ -2847,8 +2850,8 @@ tkm_tErr LoadSurfaceVertexSet ( tkm_tSurfaceType iType,
   /* get command and flag to set */
   switch( iSet ) {
   case Surf_tVertexSet_Pial:
-    flag    = DspA_tDisplayFlag_CanonicalSurface;
-    command = tkm_tTclCommand_ShowCanonicalSurfaceViewingOptions;
+    flag    = DspA_tDisplayFlag_PialSurface;
+    command = tkm_tTclCommand_ShowPialSurfaceViewingOptions;
     break;
   case Surf_tVertexSet_Original:
     flag    = DspA_tDisplayFlag_OriginalSurface;
@@ -2900,12 +2903,12 @@ void UnloadSurface ( tkm_tSurfaceType iType ) {
   if( tkm_tSurfaceType_Main == iType ) {
     tkm_SendTclCommand( tkm_tTclCommand_ShowSurfaceLoadingOptions, "0" );
     tkm_SendTclCommand( tkm_tTclCommand_ShowSurfaceViewingOptions, "0" );
-    tkm_SendTclCommand(tkm_tTclCommand_ShowCanonicalSurfaceViewingOptions,"0");
+    tkm_SendTclCommand(tkm_tTclCommand_ShowPialSurfaceViewingOptions,"0");
     tkm_SendTclCommand(tkm_tTclCommand_ShowOriginalSurfaceViewingOptions,"0");
     MWin_SetDisplayFlag( gMeditWindow, -1,
 			 DspA_tDisplayFlag_MainSurface, FALSE );
     MWin_SetDisplayFlag( gMeditWindow, -1, 
-			 DspA_tDisplayFlag_CanonicalSurface, FALSE );
+			 DspA_tDisplayFlag_PialSurface, FALSE );
     MWin_SetDisplayFlag( gMeditWindow, -1, 
 			 DspA_tDisplayFlag_OriginalSurface, FALSE );
     MWin_SetDisplayFlag( gMeditWindow, -1,
@@ -3750,7 +3753,7 @@ int TclLoadMainSurface ( ClientData inClientData, Tcl_Interp* inInterp,
   return TCL_OK;
 }
 
-int TclLoadCanonicalSurface ( ClientData inClientData, Tcl_Interp* inInterp,
+int TclLoadPialSurface ( ClientData inClientData, Tcl_Interp* inInterp,
             int argc, char* argv[] ) {
   
   tkm_tSurfaceType type        = tkm_tSurfaceType_Main;
@@ -3767,7 +3770,7 @@ int TclLoadCanonicalSurface ( ClientData inClientData, Tcl_Interp* inInterp,
     break;
   default:
     Tcl_SetResult ( inInterp, 
-        "wrong # args: LoadCanonicalSurface 0=main,1=aux"
+        "wrong # args: LoadPialSurface 0=main,1=aux"
         "surface_name:string", TCL_VOLATILE );
     return TCL_ERROR;
   }
@@ -3898,12 +3901,12 @@ int TclGotoMainVertex ( ClientData inClientData, Tcl_Interp* inInterp,
   return TCL_OK;
 }
 
-int TclGotoCanonicalVertex ( ClientData inClientData, Tcl_Interp* inInterp,
+int TclGotoPialVertex ( ClientData inClientData, Tcl_Interp* inInterp,
            int argc, char* argv[] ) {
   
   if ( argc != 2 ) {
     Tcl_SetResult ( inInterp,
-        "wrong # args: GotoCanonicalVertex vertex_num:int",
+        "wrong # args: GotoPialVertex vertex_num:int",
         TCL_VOLATILE );
     return TCL_ERROR;
   }
@@ -3967,13 +3970,13 @@ int TclShowNearestOriginalVertex ( ClientData inClientData,
   return TCL_OK;
 }
 
-int TclShowNearestCanonicalVertex ( ClientData inClientData, 
+int TclShowNearestPialVertex ( ClientData inClientData, 
             Tcl_Interp* inInterp,
             int argc, char* argv[] ) {
   
   if ( argc != 1 ) {
     Tcl_SetResult ( inInterp,
-        "wrong # args: ShowNearestCanonicalVertex",
+        "wrong # args: ShowNearestPialVertex",
         TCL_VOLATILE );
     return TCL_ERROR;
   }
@@ -4022,13 +4025,13 @@ int TclShowNearestInterpolatedOriginalVertex ( ClientData inClientData,
   return TCL_OK;
 }
 
-int TclShowNearestInterpolatedCanonicalVertex ( ClientData inClientData, 
+int TclShowNearestInterpolatedPialVertex ( ClientData inClientData, 
 						Tcl_Interp* inInterp,
 						int argc, char* argv[] ) {
   
   if ( argc != 1 ) {
     Tcl_SetResult ( inInterp,
-        "wrong # args: ShowNearestInterpolatedCanonicalVertex",
+        "wrong # args: ShowNearestInterpolatedPialVertex",
         TCL_VOLATILE );
     return TCL_ERROR;
   }
@@ -4695,7 +4698,7 @@ int main ( int argc, char** argv ) {
   tkm_SendTclCommand( tkm_tTclCommand_ShowAuxVolumeOptions, "0" );
   tkm_SendTclCommand( tkm_tTclCommand_ShowSurfaceLoadingOptions, "0" );
   tkm_SendTclCommand( tkm_tTclCommand_ShowSurfaceViewingOptions,"0" );
-  tkm_SendTclCommand( tkm_tTclCommand_ShowCanonicalSurfaceViewingOptions,"0" );
+  tkm_SendTclCommand( tkm_tTclCommand_ShowPialSurfaceViewingOptions,"0" );
   tkm_SendTclCommand( tkm_tTclCommand_ShowOriginalSurfaceViewingOptions, "0" );
   tkm_SendTclCommand( tkm_tTclCommand_ShowHeadPointLabel, "0" );
   tkm_SendTclCommand( tkm_tTclCommand_ShowDTIOptions, "0" );
@@ -5187,8 +5190,8 @@ int main ( int argc, char** argv ) {
           TclLoadMainSurface,
           (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
   
-  Tcl_CreateCommand ( interp, "LoadCanonicalSurface",
-          TclLoadCanonicalSurface,
+  Tcl_CreateCommand ( interp, "LoadPialSurface",
+          TclLoadPialSurface,
           (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
   
   Tcl_CreateCommand ( interp, "LoadOriginalSurface",
@@ -5211,8 +5214,8 @@ int main ( int argc, char** argv ) {
           TclGotoMainVertex,
           (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
   
-  Tcl_CreateCommand ( interp, "GotoCanonicalVertex",
-          TclGotoCanonicalVertex,
+  Tcl_CreateCommand ( interp, "GotoPialVertex",
+          TclGotoPialVertex,
           (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
   
   Tcl_CreateCommand ( interp, "GotoOriginalVertex",
@@ -5227,8 +5230,8 @@ int main ( int argc, char** argv ) {
           TclShowNearestOriginalVertex,
           (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
   
-  Tcl_CreateCommand ( interp, "ShowNearestCanonicalVertex",
-          TclShowNearestCanonicalVertex,
+  Tcl_CreateCommand ( interp, "ShowNearestPialVertex",
+          TclShowNearestPialVertex,
           (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
   
   Tcl_CreateCommand ( interp, "ShowNearestInterpolatedMainVertex",
@@ -5239,8 +5242,8 @@ int main ( int argc, char** argv ) {
 		      TclShowNearestInterpolatedOriginalVertex,
 		      (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
   
-  Tcl_CreateCommand ( interp, "ShowNearestInterpolatedCanonicalVertex",
-		      TclShowNearestInterpolatedCanonicalVertex,
+  Tcl_CreateCommand ( interp, "ShowNearestInterpolatedPialVertex",
+		      TclShowNearestInterpolatedPialVertex,
 		      (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
   
   Tcl_CreateCommand ( interp, "AverageSurfaceVertexPositions",
@@ -10889,6 +10892,15 @@ void tkm_SetSurfaceDistance    ( xVoxelRef iAnaIdx,
            iAnaIdx, ifDistance );
 }
 
+void tkm_ShowNearestSurfaceVertex ( Surf_tVertexSet iVertexSet ) {
+  
+  if( iVertexSet < 0 || iVertexSet >= Surf_knNumVertexSets ) {
+    return;
+  }
+
+  FindNearestSurfaceVertex( iVertexSet );
+}
+
 
 char *kTclCommands [tkm_knNumTclCommands] = {
   
@@ -10951,7 +10963,7 @@ char *kTclCommands [tkm_knNumTclCommands] = {
   "tkm_SetMenuItemGroupStatus tMenuGroup_SurfaceLoading",
   "tkm_SetMenuItemGroupStatus tMenuGroup_SurfaceViewing",
   "tkm_SetMenuItemGroupStatus tMenuGroup_OriginalSurfaceViewing",
-  "tkm_SetMenuItemGroupStatus tMenuGroup_CanonicalSurfaceViewing",
+  "tkm_SetMenuItemGroupStatus tMenuGroup_PialSurfaceViewing",
   "tkm_SetMenuItemGroupStatus tMenuGroup_HeadPoints",
   "tkm_SetMenuItemGroupStatus tMenuGroup_VLIOptions",
   "tkm_SetMenuItemGroupStatus tMenuGroup_GCAOptions",
