@@ -6,11 +6,61 @@
 using namespace std;
 
 int const ScubaView::kBytesPerPixel = 4;
+map<int,bool> ScubaView::mViewIDLinkedList;
+int ScubaView::mCurrentBroadcaster = -1;
 
 ScubaView::ScubaView() {
   mBuffer = NULL;
   mbPostRedisplay = false;
   mbRebuildOverlayDrawList = true;
+  mViewIDLinkedList[GetID()] = false;
+  //  mWorldToView = MatrixAlloc( 4, 4, MATRIX_REAL );
+  mWorldRAS = VectorAlloc( 4, MATRIX_REAL );
+  mViewRAS = VectorAlloc( 4, MATRIX_REAL );
+
+  // -1 0 0 0
+  //  0 0 1 0
+  //  0 1 0 0
+  //  0 0 0 1
+
+#define FLIP_Z
+#define VIEW
+
+  float radians = (float)M_PI;
+  MATRIX* rotate = MatrixIdentity( 4, NULL );
+#ifdef FLIP_X
+  *MATRIX_RELT(rotate,1,1) = 1;
+  *MATRIX_RELT(rotate,2,2) = cos(radians);
+  *MATRIX_RELT(rotate,2,3) = -sin(radians);
+  *MATRIX_RELT(rotate,3,2) = sin(radians);
+  *MATRIX_RELT(rotate,3,3) = cos(radians);
+  *MATRIX_RELT(rotate,4,4) = 1;
+#endif
+#ifdef FLIP_Y
+  *MATRIX_RELT(rotate,1,1) = cos(radians);
+  *MATRIX_RELT(rotate,1,3) = sin(radians);
+  *MATRIX_RELT(rotate,2,2) = 1;
+  *MATRIX_RELT(rotate,3,1) = -sin(radians);
+  *MATRIX_RELT(rotate,3,3) = cos(radians);
+  *MATRIX_RELT(rotate,4,4) = 1;
+#endif
+#ifdef FLIP_Z
+  *MATRIX_RELT(rotate,1,1) = cos(radians);
+  *MATRIX_RELT(rotate,1,2) = -sin(radians);
+  *MATRIX_RELT(rotate,2,1) = sin(radians);
+  *MATRIX_RELT(rotate,2,2) = cos(radians);
+  *MATRIX_RELT(rotate,3,3) = 1;
+  *MATRIX_RELT(rotate,4,4) = 1;
+#endif
+
+#ifdef WORLD
+  mWorldToView = rotate;
+  mViewToWorld = MatrixInverse( mWorldToView, NULL );
+#endif
+#ifdef VIEW
+  mViewToWorld = rotate;
+  mWorldToView = MatrixInverse( mViewToWorld, NULL );
+#endif
 
   TclCommandManager& commandMgr = TclCommandManager::GetManager();
   commandMgr.AddCommand( *this, "SetViewInPlane", 2, "viewID inPlane",
@@ -37,6 +87,11 @@ ScubaView::ScubaView() {
 			 "Get a set of label value pairs." );
   commandMgr.AddCommand( *this, "GetFirstUnusedDrawLevelInView", 1, "viewID",
 			 "Returns the first unused draw level." );
+  commandMgr.AddCommand( *this, "SetViewLinkedStatus", 2, "viewID linked",
+			 "Set the linked status for a view." );
+  commandMgr.AddCommand( *this, "GetViewLinkedStatus", 1, "viewID",
+			 "Returns the linked status for a view." );
+  
 
   PreferencesManager& prefsMgr = PreferencesManager::GetManager();
   prefsMgr.UseFile( ".scuba" );
@@ -120,12 +175,72 @@ ScubaView::Set2DRASCenter ( float iRASCenter[] ) {
   mViewState.mCenterRAS[0] = iRASCenter[0];
   mViewState.mCenterRAS[1] = iRASCenter[1];
   mViewState.mCenterRAS[2] = iRASCenter[2];
+
+  // If we're linked, set the center in other linked views.
+  if( mViewIDLinkedList[GetID()] && mCurrentBroadcaster == -1 ) {
+
+    mCurrentBroadcaster = GetID();
+    map<int,bool>::iterator tIDLinked;
+    for( tIDLinked = mViewIDLinkedList.begin();
+	 tIDLinked != mViewIDLinkedList.end(); ++tIDLinked ) {
+      int viewID = (*tIDLinked).first;
+      bool bLinked = (*tIDLinked).second;
+      if( bLinked && GetID() != viewID ) {
+	try { 
+	  View& view = View::FindByID( viewID );
+	  // ScubaView& scubaView = dynamic_cast<ScubaView&>(view);
+	  ScubaView& scubaView = (ScubaView&)view;
+	  scubaView.Set2DRASCenter( iRASCenter );
+	  scubaView.RebuildOverlayDrawList();
+	  scubaView.RequestRedisplay();
+	}
+	catch(...) {
+	  DebugOutput( << "Couldn't find view " << viewID );
+	}
+      }
+    }
+    mCurrentBroadcaster = -1;
+  }
+  
+  // Changed our view center, so we need to rebuild the overlay.
+  RebuildOverlayDrawList();
+  RequestRedisplay();
 }
 
 void
 ScubaView::Set2DZoomLevel ( float iZoomLevel ) {
 
   mViewState.mZoomLevel = iZoomLevel;
+
+  // If we're linked, set the center in other linked views.
+  if( mViewIDLinkedList[GetID()] && mCurrentBroadcaster == -1 ) {
+
+    mCurrentBroadcaster = GetID();
+    map<int,bool>::iterator tIDLinked;
+    for( tIDLinked = mViewIDLinkedList.begin();
+	 tIDLinked != mViewIDLinkedList.end(); ++tIDLinked ) {
+      int viewID = (*tIDLinked).first;
+      bool bLinked = (*tIDLinked).second;
+      if( bLinked && GetID() != viewID ) {
+	try { 
+	  View& view = View::FindByID( viewID );
+	  // ScubaView& scubaView = dynamic_cast<ScubaView&>(view);
+	  ScubaView& scubaView = (ScubaView&)view;
+	  scubaView.Set2DZoomLevel( iZoomLevel );
+	  scubaView.RebuildOverlayDrawList();
+	  scubaView.RequestRedisplay();
+	}
+	catch(...) {
+	  DebugOutput( << "Couldn't find view " << viewID );
+	}
+      }
+    }
+    mCurrentBroadcaster = -1;
+  }
+  
+  // Changed zoom, so we need to rebuild the overlay.
+  RebuildOverlayDrawList();
+  RequestRedisplay();
 }
 
 void
@@ -135,7 +250,7 @@ ScubaView::Set2DInPlane ( ViewState::Plane iPlane ) {
 }
 
 void 
-ScubaView::AddLayer ( int iLayerID, int iLevel ) {
+ScubaView::SetLayerAtLevel ( int iLayerID, int iLevel ) {
 
   // If we got layer ID -1, remove this layer. Otherwise set it in our
   // map.
@@ -162,6 +277,19 @@ ScubaView::AddLayer ( int iLayerID, int iLevel ) {
   RequestRedisplay();
 }
 
+int
+ScubaView::GetLayerAtLevel ( int iLevel ) {
+
+  // Look for this level in the level layer ID map. If we found
+  // it, return the layer ID, otherwise return -1.
+  map<int,int>::iterator tLevelLayerID = mLevelLayerIDMap.find( iLevel );
+  if( tLevelLayerID == mLevelLayerIDMap.end() ) {
+    return -1;
+  } else {
+    return mLevelLayerIDMap[iLevel];
+  }
+}
+
 void 
 ScubaView::RemoveAllLayers () {
 
@@ -172,6 +300,20 @@ void
 ScubaView::RemoveLayerAtLevel ( int iLevel ) {
 
   mLevelLayerIDMap.erase( iLevel );
+}
+
+void 
+ScubaView::CopyLayerSettingsToView ( ScubaView& iView ) {
+
+  map<int,int>::iterator tLevelLayerID;
+  for( tLevelLayerID = mLevelLayerIDMap.begin(); 
+       tLevelLayerID != mLevelLayerIDMap.end(); ++tLevelLayerID ) {
+    
+    int level = (*tLevelLayerID).first;
+    int layerID = (*tLevelLayerID).second;
+    iView.SetLayerAtLevel( level, layerID );
+
+  }
 }
 
 TclCommandListener::TclCommandResult
@@ -285,7 +427,7 @@ ScubaView::DoListenToTclCommand( char* isCommand, int iArgc, char** iasArgv ) {
 	return error;
       }
       
-      AddLayer( layerID, level );
+      SetLayerAtLevel( layerID, level );
     }
   }
 
@@ -307,16 +449,7 @@ ScubaView::DoListenToTclCommand( char* isCommand, int iArgc, char** iasArgv ) {
       
       stringstream ssReturn;
       sReturnFormat = "i";
-
-      // Look for this level in the level layer ID map. If we found
-      // it, return the layer ID, otherwise return -1.
-      map<int,int>::iterator tLevelLayerID = mLevelLayerIDMap.find( level );
-      if( tLevelLayerID == mLevelLayerIDMap.end() ) {
-	ssReturn << -1;
-      } else {
-	ssReturn << mLevelLayerIDMap[level];
-      }
-
+      ssReturn << GetLayerAtLevel( level );
       sReturnValues = ssReturn.str();
       return ok;
     }
@@ -415,6 +548,48 @@ ScubaView::DoListenToTclCommand( char* isCommand, int iArgc, char** iasArgv ) {
     }
   }
 
+
+  // SetViewLinkedStatus <viewID> <linked>
+  if( 0 == strcmp( isCommand, "SetViewLinkedStatus" ) ) {
+    int viewID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad view ID";
+      return error;
+    }
+    
+    if( mID == viewID ) {
+      
+      if( 0 == strcmp( iasArgv[2], "true" ) || 
+	  0 == strcmp( iasArgv[2], "1" )) {
+	SetLinkedStatus( true );
+      } else if( 0 == strcmp( iasArgv[2], "false" ) ||
+		 0 == strcmp( iasArgv[2], "0" ) ) {
+	SetLinkedStatus( false );
+      } else {
+	sResult = "bad linkedStatus \"" + string(iasArgv[2]) +
+	  "\", should be true, 1, false, or 0";
+	return error;	
+      }
+    }
+  }
+
+  // GetViewLinkedStatus <viewID>
+  if( 0 == strcmp( isCommand, "GetViewLinkedStatus" ) ) {
+    int viewID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad view ID";
+      return error;
+    }
+    
+    if( mID == viewID ) {
+
+      sReturnFormat = "i";
+      stringstream ssReturnValues;
+      ssReturnValues << (int)GetLinkedStatus();
+      sReturnValues = ssReturnValues.str();
+    }
+  }
+
   return ok;
 }
 
@@ -481,10 +656,11 @@ ScubaView::DoTimer() {
 }
   
 void
-ScubaView::DoMouseMoved( int iX, int iY, InputState& iState ) {
+ScubaView::DoMouseMoved( int iWindow[2], 
+			 InputState& iInput, ScubaToolState& iTool ) {
 
-  float rasX, rasY, rasZ;
-  TranslateWindowToRAS( iX, iY, rasX, rasY, rasZ );
+  float ras[3];
+  TranslateWindowToRAS( iWindow, ras );
 
   map<string,string> labelValueMap;
 
@@ -494,7 +670,7 @@ ScubaView::DoMouseMoved( int iX, int iY, InputState& iState ) {
 
   // Get the RAS coords into a string and set that label/value.
   stringstream ssRASCoords;
-  ssRASCoords << rasX << " " << rasY << " " << rasZ;
+  ssRASCoords << ras[0] << " " << ras[1] << " " << ras[2];
   labelValueMap["RAS"] = ssRASCoords.str();
 
   // Go through our draw levels. For each one, get the Layer.
@@ -507,7 +683,7 @@ ScubaView::DoMouseMoved( int iX, int iY, InputState& iState ) {
       Layer& layer = Layer::FindByID( layerID );
       
       // Ask the layer for info strings at this point.
-      layer.GetInfoAtRAS( rasX, rasY, rasZ, labelValueMap );
+      layer.GetInfoAtRAS( ras, labelValueMap );
     }
     catch(...) {
       DebugOutput( << "Couldn't find layer " << layerID );
@@ -519,79 +695,107 @@ ScubaView::DoMouseMoved( int iX, int iY, InputState& iState ) {
   mLabelValueMaps["cursor"] = labelValueMap;
 
 
+  // Handle the navigation tool.
+  if( iTool.GetMode() == ScubaToolState::navigation ) {
 
-  // Now handle the tools.
-  if( iState.Button() && !iState.IsControlKeyDown() ) {
-    
-    float delta[2];
-    delta[0] = (float)(mLastMouseMoved[0] - iX) / mViewState.mZoomLevel;
-    delta[1] = (float)(mLastMouseMoved[1] - iY) / mViewState.mZoomLevel;
-
-    /* add to the total delta */
-    mMouseMoveDelta[0] += delta[0];
-    mMouseMoveDelta[1] += delta[1];
-
-    /* save this mouse position */
-    mLastMouseMoved[0] = iX;
-    mLastMouseMoved[1] = iY;
-    
-    float moveLeftRight = 0, moveUpDown = 0, moveInOut = 0, zoomInOut = 0;
-    switch( iState.Button() ) {
-    case 1:
-      moveLeftRight = mMouseMoveDelta[0];
-      moveUpDown    = mMouseMoveDelta[1];
-      break;
-    case 2:
-      moveInOut = mMouseMoveDelta[1];
-      break;
-    case 3:
-      zoomInOut = mMouseMoveDelta[1] / 10.0;
-      break;
+    if( iInput.Button() && !iInput.IsControlKeyDown() ) {
+      
+      float delta[2];
+      delta[0] = (float)(mLastMouseMoved[0] - iWindow[0]) / 
+	mViewState.mZoomLevel;
+      delta[1] = (float)(mLastMouseMoved[1] - iWindow[1]) /
+	mViewState.mZoomLevel;
+      
+      /* add to the total delta */
+      mMouseMoveDelta[0] += delta[0];
+      mMouseMoveDelta[1] += delta[1];
+      
+      /* save this mouse position */
+      mLastMouseMoved[0] = iWindow[0];
+      mLastMouseMoved[1] = iWindow[1];
+      
+      float moveLeftRight = 0, moveUpDown = 0, moveInOut = 0, zoomInOut = 0;
+      switch( iInput.Button() ) {
+      case 1:
+	moveLeftRight = mMouseMoveDelta[0];
+	moveUpDown    = mMouseMoveDelta[1];
+	break;
+      case 2:
+	moveInOut = mMouseMoveDelta[1];
+	break;
+      case 3:
+	zoomInOut = mMouseMoveDelta[1] / 10.0;
+	break;
+      }
+      
+      if( moveLeftRight || moveUpDown || moveInOut ) {
+	
+	float newRAS[3];
+	switch( mViewState.mInPlane ) {
+	case ViewState::X:
+	  newRAS[0] = mOriginalCenterRAS[0] + moveInOut;
+	  newRAS[1] = mOriginalCenterRAS[1] + moveLeftRight;
+	  newRAS[2] = mOriginalCenterRAS[2] + moveUpDown;
+	  break;
+	case ViewState::Y:
+	  newRAS[0] = mOriginalCenterRAS[0] + moveLeftRight;
+	  newRAS[1] = mOriginalCenterRAS[1] + moveInOut;
+	  newRAS[2] = mOriginalCenterRAS[2] + moveUpDown;
+	  break;
+	case ViewState::Z:
+	  newRAS[0] = mOriginalCenterRAS[0] + moveLeftRight;
+	  newRAS[1] = mOriginalCenterRAS[1] + moveUpDown;
+	  newRAS[2] = mOriginalCenterRAS[2] + moveInOut;
+	  break;
+	}
+	Set2DRASCenter( newRAS );
+      }
+      
+      if( zoomInOut ) {
+	
+	float newZoom = mOriginalZoom + zoomInOut;
+	if( newZoom <= 0.25 ) {
+	  newZoom = 0.25;
+	}
+	Set2DZoomLevel( newZoom );
+      }
     }
-
-    switch( mViewState.mInPlane ) {
-    case ViewState::X:
-      mViewState.mCenterRAS[0] = mOriginalCenterRAS[0] + moveInOut;
-      mViewState.mCenterRAS[1] = mOriginalCenterRAS[1] + moveLeftRight;
-      mViewState.mCenterRAS[2] = mOriginalCenterRAS[2] + moveUpDown;
-      break;
-    case ViewState::Y:
-      mViewState.mCenterRAS[0] = mOriginalCenterRAS[0] + moveLeftRight;
-      mViewState.mCenterRAS[1] = mOriginalCenterRAS[1] + moveInOut;
-      mViewState.mCenterRAS[2] = mOriginalCenterRAS[2] + moveUpDown;
-      break;
-    case ViewState::Z:
-      mViewState.mCenterRAS[0] = mOriginalCenterRAS[0] + moveLeftRight;
-      mViewState.mCenterRAS[1] = mOriginalCenterRAS[1] + moveUpDown;
-      mViewState.mCenterRAS[2] = mOriginalCenterRAS[2] + moveInOut;
-      break;
+  }
+  
+  // Pass this tool to our layers.
+  for( tLevelLayerID = mLevelLayerIDMap.begin(); 
+       tLevelLayerID != mLevelLayerIDMap.end(); ++tLevelLayerID ) {
+    int layerID = (*tLevelLayerID).second;
+    try {
+      Layer& layer = Layer::FindByID( layerID );
+      layer.HandleTool( ras, iTool, iInput );
+      if( layer.WantRedisplay() ) {
+	RequestRedisplay();
+	layer.RedisplayPosted();
+      }
     }
-    
-    mViewState.mZoomLevel = mOriginalZoom + zoomInOut;
-    if( mViewState.mZoomLevel <= 0.25 ) {
-      mViewState.mZoomLevel = 0.25;
+    catch(...) {
+      DebugOutput( << "Couldn't find layer " << layerID );
     }
-
-    mbRebuildOverlayDrawList = true;
-    RequestRedisplay();
   }
 }
 
 void
-ScubaView::DoMouseUp( int iX, int iY, InputState& iState ) {
+ScubaView::DoMouseUp( int iWindow[2],
+		      InputState& iInput, ScubaToolState& iTool ) {
 
   // No matter what tool we're on, look for ctrl-b{1,2,3} and do some
   // navigation stuff.
-  if( iState.IsControlKeyDown() && 
-      !iState.IsShiftKeyDown() && !iState.IsAltKeyDown() ) {
+  if( iInput.IsControlKeyDown() && 
+      !iInput.IsShiftKeyDown() && !iInput.IsAltKeyDown() ) {
     
     // Set the new view center to this point. If they also hit b1 or
     // b3, zoom in or out accordingly.
     float world[3];
-    TranslateWindowToRAS( iX, iY, world );
+    TranslateWindowToRAS( iWindow, world );
     Set2DRASCenter( world );
 
-    switch( iState.Button() ) {
+    switch( iInput.Button() ) {
     case 1:
       mViewState.mZoomLevel *= 2.0;
       break;
@@ -607,127 +811,207 @@ ScubaView::DoMouseUp( int iX, int iY, InputState& iState ) {
     RequestRedisplay();
   }
 
+
+  // Pass this tool to our layers.
+  float ras[3];
+  TranslateWindowToRAS( iWindow, ras );
+  map<int,int>::iterator tLevelLayerID;
+  for( tLevelLayerID = mLevelLayerIDMap.begin(); 
+       tLevelLayerID != mLevelLayerIDMap.end(); ++tLevelLayerID ) {
+    int layerID = (*tLevelLayerID).second;
+    try {
+      Layer& layer = Layer::FindByID( layerID );
+      layer.HandleTool( ras, iTool, iInput );
+      if( layer.WantRedisplay() ) {
+	RequestRedisplay();
+	layer.RedisplayPosted();
+      }
+    }
+    catch(...) {
+      DebugOutput( << "Couldn't find layer " << layerID );
+    }
+  }
 }
 
 void
-ScubaView::DoMouseDown( int iX, int iY, InputState& iState ) {
+ScubaView::DoMouseDown( int iWindow[2], 
+			InputState& iInput, ScubaToolState& iTool ) {
 
-  mLastMouseDown[0] = mLastMouseMoved[0] = iX;
-  mLastMouseDown[1] = mLastMouseMoved[1] = iY;
+  mLastMouseDown[0] = mLastMouseMoved[0] = iWindow[0];
+  mLastMouseDown[1] = mLastMouseMoved[1] = iWindow[1];
   mMouseMoveDelta[0] = 0.0;
   mMouseMoveDelta[1] = 0.0;
   mOriginalCenterRAS[0] = mViewState.mCenterRAS[0];
   mOriginalCenterRAS[1] = mViewState.mCenterRAS[1];
   mOriginalCenterRAS[2] = mViewState.mCenterRAS[2];
   mOriginalZoom = mViewState.mZoomLevel;
+
+  // Pass this tool to our layers.
+  float ras[3];
+  TranslateWindowToRAS( iWindow, ras );
+  map<int,int>::iterator tLevelLayerID;
+  for( tLevelLayerID = mLevelLayerIDMap.begin(); 
+       tLevelLayerID != mLevelLayerIDMap.end(); ++tLevelLayerID ) {
+    int layerID = (*tLevelLayerID).second;
+    try {
+      Layer& layer = Layer::FindByID( layerID );
+      layer.HandleTool( ras, iTool, iInput );
+      if( layer.WantRedisplay() ) {
+	RequestRedisplay();
+	layer.RedisplayPosted();
+      }
+    }
+    catch(...) {
+      DebugOutput( << "Couldn't find layer " << layerID );
+    }
+  }
 }
 
 void
-ScubaView::DoKeyDown( int iX, int iY, InputState& iState ) {
+ScubaView::DoKeyDown( int iWindow[2], 
+		      InputState& iInput, ScubaToolState& iTool ) {
 
   float moveDistance = 1.0;
-  if( iState.IsControlKeyDown() ) {
+  if( iInput.IsControlKeyDown() ) {
     moveDistance = 10.0;
   }
 
-  string key = iState.Key();
-  if( key == msMoveViewLeft ) {
-    switch( mViewState.mInPlane ) {
-    case ViewState::X: mViewState.mCenterRAS[1] -= moveDistance; break;
-    case ViewState::Y: mViewState.mCenterRAS[0] -= moveDistance; break;
-    case ViewState::Z: mViewState.mCenterRAS[0] -= moveDistance; break;
-    }
-    mbRebuildOverlayDrawList = true;
-  } else if( key == msMoveViewRight ) {
-    switch( mViewState.mInPlane ) {
-    case ViewState::X: mViewState.mCenterRAS[1] += moveDistance; break;
-    case ViewState::Y: mViewState.mCenterRAS[0] += moveDistance; break;
-    case ViewState::Z: mViewState.mCenterRAS[0] += moveDistance; break;
-    }
-    mbRebuildOverlayDrawList = true;
-  } else if( key == msMoveViewDown ) {
-    switch( mViewState.mInPlane ) {
-    case ViewState::X: mViewState.mCenterRAS[2] -= moveDistance; break;
-    case ViewState::Y: mViewState.mCenterRAS[2] -= moveDistance; break;
-    case ViewState::Z: mViewState.mCenterRAS[1] -= moveDistance; break;
-    }
-    mbRebuildOverlayDrawList = true;
-  } else if( key == msMoveViewUp ) {
-    switch( mViewState.mInPlane ) {
-    case ViewState::X: mViewState.mCenterRAS[2] += moveDistance; break;
-    case ViewState::Y: mViewState.mCenterRAS[2] += moveDistance; break;
-    case ViewState::Z: mViewState.mCenterRAS[1] += moveDistance; break;
-    }
-    mbRebuildOverlayDrawList = true;
-  } else if( key == msMoveViewIn ) {
-    switch( mViewState.mInPlane ) {
-    case ViewState::X: mViewState.mCenterRAS[0] += moveDistance; break;
-    case ViewState::Y: mViewState.mCenterRAS[1] += moveDistance; break;
-    case ViewState::Z: mViewState.mCenterRAS[2] += moveDistance; break;
-    }
-    mbRebuildOverlayDrawList = true;
-  } else if( key == msMoveViewOut ) {
-    switch( mViewState.mInPlane ) {
-    case ViewState::X: mViewState.mCenterRAS[0] -= moveDistance; break;
-    case ViewState::Y: mViewState.mCenterRAS[1] -= moveDistance; break;
-    case ViewState::Z: mViewState.mCenterRAS[2] -= moveDistance; break;
-    }
-    mbRebuildOverlayDrawList = true;
+  string key = iInput.Key();
+  
 
-  } else if( key == msZoomViewIn ) {
-    mViewState.mZoomLevel *= 2.0;
-    mbRebuildOverlayDrawList = true;
-  } else if( key == msZoomViewOut ) {
-    mViewState.mZoomLevel /= 2.0;
-    if( mViewState.mZoomLevel < 0.25 ) {
-      mViewState.mZoomLevel = 0.25;
+  if( key == msMoveViewLeft || key == msMoveViewRight ||
+      key == msMoveViewDown || key == msMoveViewUp ||
+      key == msMoveViewIn   || key == msMoveViewOut ) {
+    
+    float newRAS[3];
+    newRAS[0] = mViewState.mCenterRAS[0];
+    newRAS[1] = mViewState.mCenterRAS[1];
+    newRAS[2] = mViewState.mCenterRAS[2];
+
+    if( key == msMoveViewLeft ) {
+      switch( mViewState.mInPlane ) {
+      case ViewState::X: 
+	newRAS[1] = mViewState.mCenterRAS[1] - moveDistance; break;
+      case ViewState::Y: 
+	newRAS[0] = mViewState.mCenterRAS[0] - moveDistance; break;
+      case ViewState::Z: 
+	newRAS[0] = mViewState.mCenterRAS[0] - moveDistance; break;
+      }
+    } else if( key == msMoveViewRight ) {
+      switch( mViewState.mInPlane ) {
+      case ViewState::X: 
+	newRAS[1] = mViewState.mCenterRAS[1] + moveDistance; break;
+      case ViewState::Y: 
+	newRAS[0] = mViewState.mCenterRAS[0] + moveDistance; break;
+      case ViewState::Z: 
+	newRAS[0] = mViewState.mCenterRAS[0] + moveDistance; break;
+      }
+    } else if( key == msMoveViewDown ) {
+      switch( mViewState.mInPlane ) {
+      case ViewState::X: 
+	newRAS[2] = mViewState.mCenterRAS[2] - moveDistance; break;
+      case ViewState::Y: 
+	newRAS[2] = mViewState.mCenterRAS[2] - moveDistance; break;
+      case ViewState::Z: 
+	newRAS[1] = mViewState.mCenterRAS[1] - moveDistance; break;
+      }
+    } else if( key == msMoveViewUp ) {
+      switch( mViewState.mInPlane ) {
+      case ViewState::X: 
+	newRAS[2] = mViewState.mCenterRAS[2] + moveDistance; break;
+      case ViewState::Y: 
+	newRAS[2] = mViewState.mCenterRAS[2] + moveDistance; break;
+      case ViewState::Z: 
+	newRAS[1] = mViewState.mCenterRAS[1] + moveDistance; break;
+      }
+    } else if( key == msMoveViewIn ) {
+      switch( mViewState.mInPlane ) {
+      case ViewState::X: 
+	newRAS[0] = mViewState.mCenterRAS[0] + moveDistance; break;
+      case ViewState::Y: 
+	newRAS[1] = mViewState.mCenterRAS[1] + moveDistance; break;
+      case ViewState::Z: 
+	newRAS[2] = mViewState.mCenterRAS[2] + moveDistance; break;
+      }
+    } else if( key == msMoveViewOut ) {
+      switch( mViewState.mInPlane ) {
+      case ViewState::X: 
+	newRAS[0] = mViewState.mCenterRAS[0] - moveDistance; break;
+      case ViewState::Y: 
+	newRAS[1] = mViewState.mCenterRAS[1] - moveDistance; break;
+      case ViewState::Z: 
+	newRAS[2] = mViewState.mCenterRAS[2] - moveDistance; break;
+      }
     }
-    mbRebuildOverlayDrawList = true;
+    Set2DRASCenter( newRAS );
+
+  } else if( key == msZoomViewIn || key == msZoomViewOut ) {
+
+    float newZoom;
+    if( key == msZoomViewIn ) {
+      newZoom = mViewState.mZoomLevel * 2.0;
+    } else if( key == msZoomViewOut ) {
+      newZoom = mViewState.mZoomLevel / 2.0;
+      if( newZoom < 0.25 ) {
+	newZoom = 0.25;
+      }
+    }
+    Set2DZoomLevel( newZoom );
 
   } else if( key == msInPlaneXKey ) {
     mViewState.mInPlane = ViewState::X;
-    mbRebuildOverlayDrawList = true;
+    RebuildOverlayDrawList();
   } else if( key == msInPlaneYKey ) {
     mViewState.mInPlane = ViewState::Y;
-    mbRebuildOverlayDrawList = true;
+    RebuildOverlayDrawList();
   } else if( key == msInPlaneZKey ) {
     mViewState.mInPlane = ViewState::Z;
-    mbRebuildOverlayDrawList = true;
+    RebuildOverlayDrawList();
   }
 
   RequestRedisplay();
 }
 
 void
-ScubaView::DoKeyUp( int iX, int iY, InputState& iState ) {
+ScubaView::DoKeyUp( int iWindow[2], 
+		    InputState& iInput, ScubaToolState& iTool ) {
 
 }
 
 void
-ScubaView::TranslateWindowToRAS ( int iXWindow, int iYWindow,
-				  float& oXRAS, float& oYRAS, float& oZRAS ) {
+ScubaView::TranslateWindowToRAS ( int iWindow[2], float oRAS[3] ) {
 
   // At zoom level one every pixel is an RAS point, so we're scaled by
   // that and then offset by the RAS center. We find a 3D point by
   // using our mInPlane and the corresponding mCenterRAS in ViewState.
 
+  float viewRAS[3];
   switch( mViewState.mInPlane ) {
   case ViewState::X:
-    oXRAS = mViewState.mCenterRAS[0];
-    oYRAS = ConvertWindowToRAS( iXWindow, mViewState.mCenterRAS[1], mWidth );
-    oZRAS = ConvertWindowToRAS( iYWindow, mViewState.mCenterRAS[2], mHeight );
+    viewRAS[0] = mViewState.mCenterRAS[0];
+    viewRAS[1] = ConvertWindowToRAS( iWindow[0],mViewState.mCenterRAS[1],mWidth );
+    viewRAS[2] = ConvertWindowToRAS(iWindow[1],mViewState.mCenterRAS[2],mHeight );
     break;
   case ViewState::Y:
-    oXRAS = ConvertWindowToRAS( iXWindow, mViewState.mCenterRAS[0], mWidth );
-    oYRAS = mViewState.mCenterRAS[1];
-    oZRAS = ConvertWindowToRAS( iYWindow, mViewState.mCenterRAS[2], mHeight );
+    viewRAS[0] = ConvertWindowToRAS( iWindow[0],mViewState.mCenterRAS[0],mWidth );
+    viewRAS[1] = mViewState.mCenterRAS[1];
+    viewRAS[2] = ConvertWindowToRAS(iWindow[1],mViewState.mCenterRAS[2],mHeight );
     break;
   case ViewState::Z:
-    oXRAS = ConvertWindowToRAS( iXWindow, mViewState.mCenterRAS[0], mWidth );
-    oYRAS = ConvertWindowToRAS( iYWindow, mViewState.mCenterRAS[1], mHeight );
-    oZRAS = mViewState.mCenterRAS[2];
+    viewRAS[0] = ConvertWindowToRAS( iWindow[0],mViewState.mCenterRAS[0],mWidth );
+    viewRAS[1] = ConvertWindowToRAS(iWindow[1],mViewState.mCenterRAS[1],mHeight );
+    viewRAS[2] = mViewState.mCenterRAS[2];
     break;
   }
+
+  VECTOR_ELT( mViewRAS, 1 ) = viewRAS[0];
+  VECTOR_ELT( mViewRAS, 2 ) = viewRAS[1];
+  VECTOR_ELT( mViewRAS, 3 ) = viewRAS[2];
+  VECTOR_ELT( mViewRAS, 4 ) = 1.0;
+  MatrixMultiply( mViewToWorld, mViewRAS, mWorldRAS );
+  oRAS[0] = VECTOR_ELT( mWorldRAS, 1 );
+  oRAS[1] = VECTOR_ELT( mWorldRAS, 2 );
+  oRAS[2] = VECTOR_ELT( mWorldRAS, 3 );
 }
 
 float
@@ -739,27 +1023,42 @@ ScubaView::ConvertWindowToRAS ( float iWindow, float iRASCenter,
 }
 
 void
-ScubaView::TranslateRASToWindow ( float iXRAS, float iYRAS, float iZRAS,
-				  int& oXWindow, int& oYWindow ) {
+ScubaView::TranslateRASToWindow ( float iRAS[3], int oWindow[2] ) {
   
+  float viewRAS[3];
+  VECTOR_ELT( mWorldRAS, 1 ) = iRAS[0];
+  VECTOR_ELT( mWorldRAS, 2 ) = iRAS[1];
+  VECTOR_ELT( mWorldRAS, 3 ) = iRAS[2];
+  VECTOR_ELT( mWorldRAS, 4 ) = 1.0;
+  MatrixMultiply( mWorldToView, mWorldRAS, mViewRAS );
+  viewRAS[0] = VECTOR_ELT( mViewRAS, 1 );
+  viewRAS[1] = VECTOR_ELT( mViewRAS, 2 );
+  viewRAS[2] = VECTOR_ELT( mViewRAS, 3 );
+
   float xWindow, yWindow;
   switch( mViewState.mInPlane ) {
   case ViewState::X:
-    xWindow = ConvertRASToWindow( iYRAS, mViewState.mCenterRAS[1], mWidth );
-    yWindow = ConvertRASToWindow( iZRAS, mViewState.mCenterRAS[2], mHeight );
+    xWindow = ConvertRASToWindow( viewRAS[1],
+				  mViewState.mCenterRAS[1], mWidth );
+    yWindow = ConvertRASToWindow( viewRAS[2],
+				  mViewState.mCenterRAS[2], mHeight );
     break;
   case ViewState::Y:
-    xWindow = ConvertRASToWindow( iXRAS, mViewState.mCenterRAS[0], mWidth );
-    yWindow = ConvertRASToWindow( iZRAS, mViewState.mCenterRAS[2], mHeight );
+    xWindow = ConvertRASToWindow( viewRAS[0],
+				  mViewState.mCenterRAS[0], mWidth );
+    yWindow = ConvertRASToWindow( viewRAS[2],
+				  mViewState.mCenterRAS[2], mHeight );
     break;
   case ViewState::Z:
-    xWindow = ConvertRASToWindow( iXRAS, mViewState.mCenterRAS[0], mWidth );
-    yWindow = ConvertRASToWindow( iYRAS, mViewState.mCenterRAS[1], mHeight );
+    xWindow = ConvertRASToWindow( viewRAS[0],
+				  mViewState.mCenterRAS[0], mWidth );
+    yWindow = ConvertRASToWindow( viewRAS[1],
+				  mViewState.mCenterRAS[1], mHeight );
     break;
   }
 
-  oXWindow = (int) rint( xWindow );
-  oYWindow = (int) rint( yWindow );
+  oWindow[0] = (int) rint( xWindow );
+  oWindow[1] = (int) rint( yWindow );
 }
 
 float

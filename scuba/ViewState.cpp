@@ -8,11 +8,11 @@ ViewState::ViewState () {
   mInPlane = X;
 }
 
-std::ostream& operator << ( std::ostream& os, ViewState& iState ) { 
-  os << "ViewState CenterRAS: " << iState.mCenterRAS[0] << ", "
-     << iState.mCenterRAS[1] << ", " << iState.mCenterRAS[2] 
-     << " ZoomLevel: " << iState.mZoomLevel << " InPlane: " 
-     << iState.mInPlane;
+std::ostream& operator << ( std::ostream& os, ViewState& iInput ) { 
+  os << "ViewState CenterRAS: " << iInput.mCenterRAS[0] << ", "
+     << iInput.mCenterRAS[1] << ", " << iInput.mCenterRAS[2] 
+     << " ZoomLevel: " << iInput.mZoomLevel << " InPlane: " 
+     << iInput.mInPlane;
   return os;
 }
 

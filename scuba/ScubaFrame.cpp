@@ -3,6 +3,7 @@
 extern "C" {
 #include "glut.h"
 }
+#include "ScubaView.h"
 
 using namespace std;
 
@@ -46,6 +47,12 @@ ScubaFrame::ScubaFrame( ToglFrame::ID iID )
 			 "Return the row of the view ID in a frame." );
   commandMgr.AddCommand( *this, "RedrawFrame", 1, "frameID", 
 			 "Tells a frame to redraw." );
+  commandMgr.AddCommand( *this, "CopyViewLayersToAllViewsInFrame", 2,
+			 "frameID viewID", "Copies the layer settings "
+			 "in a view to all other views in a frame." );
+  commandMgr.AddCommand( *this, "GetToolIDForFrame", 1, "frameID",
+			 "Returns the ID of the tool for this frame." );
+
 
   PreferencesManager& prefsMgr = PreferencesManager::GetManager();
   prefsMgr.UseFile( ".scuba" );
@@ -337,8 +344,10 @@ ScubaFrame::DoListenToTclCommand( char* isCommand, int iArgc, char** iasArgv ) {
       try { 
 	// We need to y flip this since we're getting the coords right
 	// from Tcl, just like we y flip them in ToglFrame.
-	View* view = FindViewAtWindowLoc( windowX, (mHeight - windowY),
-					  NULL, NULL );
+	int windowCoords[2];
+	windowCoords[0] = windowX;
+	windowCoords[0] = (mHeight - windowY);
+	View* view = FindViewAtWindowLoc( windowCoords, NULL, NULL );
 	if( NULL != view ) {
 	  int id = view->GetID();
 	  stringstream sID;
@@ -373,7 +382,81 @@ ScubaFrame::DoListenToTclCommand( char* isCommand, int iArgc, char** iasArgv ) {
     }
   }
 
+  // CopyViewLayersToAllViewsInFrame <frameID> <viewID>
+  if( 0 == strcmp( isCommand, "CopyViewLayersToAllViewsInFrame" ) ) {
+    int frameID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad frame ID";
+      return error;
+    }
+    
+    if( mID == frameID ) {
+      
+      int viewID = strtol(iasArgv[2], (char**)NULL, 10);
+      if( ERANGE == errno ) {
+	sResult = "bad view ID";
+	return error;
+      }
+
+      try {
+
+	// Try getting this view first.
+	View& srcView = View::FindByID( viewID );
+	// ScubaView& scubaView = dynamic_cast<ScubaView&>(view);
+	ScubaView& srcScubaView = (ScubaView&)srcView;
+
+	// For each view in this frame...
+	for( int nRow = 0; nRow < mcRows; nRow++ ) {
+	  int cCols = mcCols[nRow];
+	  for( int nCol = 0; nCol < cCols; nCol++ ) {
+	    
+	    try {
+	      View* destView = GetViewAtColRow( nCol, nRow );
+	      ScubaView& destScubaView = *(ScubaView*)destView;
+	      if( destView->GetID() != viewID ) {
+		srcScubaView.CopyLayerSettingsToView( destScubaView );
+	      }
+	    } 
+	    catch(...) {
+	    }
+	  }
+	}
+      }
+      catch(...) {
+	sResult = "bad view ID";
+	return error;
+      }
+
+      RequestRedisplay();
+    }
+  }
+
+  // GetToolIDForFrame <frameID>
+  if( 0 == strcmp( isCommand, "GetToolIDForFrame" ) ) {
+    int frameID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad frame ID";
+      return error;
+    }
+    
+    if( mID == frameID ) {
+      
+      stringstream sID;
+      sID << mTool.GetID();;
+      sReturnFormat = "i";
+      sReturnValues = sID.str();
+    }
+  }
+
   return ok;
+}
+
+void
+ScubaFrame::TranslateWindowToView ( int iWindow[2], int inCol, int inRow,
+				    int oView[2] ) {
+
+    oView[0] = iWindow[0] - (inCol * (mWidth / mcCols[inRow]));
+    oView[1] = iWindow[1] - ((mcRows-1 - inRow) * (mHeight/mcRows));
 }
 
 void
@@ -389,8 +472,8 @@ ScubaFrame::SizeViewsToConfiguration() {
 	view->Reshape( mWidth / cCols, mHeight / mcRows );
       } 
       catch(...) {
-	DebugOutput( << "Couldn't create new view because factory "
-		     << "has not been set" );
+	DebugOutput( << "Couldn't find a view where there was supposed "
+		     << "to be one: " << nCol << ", " << nRow );
       }
       
     }
@@ -406,9 +489,17 @@ ScubaFrame::DoDraw() {
 
       glMatrixMode( GL_PROJECTION );
       glLoadIdentity();
-      //      glOrtho( 0, mWidth, 0, mHeight, -1.0, 1.0 );
-      glOrtho( 0, mWidth/cCols, 0, mHeight/mcRows, -1.0, 1.0 );
+      glOrtho( 0, mWidth/cCols-1, 0, mHeight/mcRows-1, -1.0, 1.0 );
       glMatrixMode( GL_MODELVIEW );
+      
+      // Flip left/right.
+      float m[16];
+      m[0] = -1;  m[4] =  0;   m[8] = 0;  m[12] = 0;
+      m[1] =  0;  m[5] =  0;   m[9] = 1;  m[13] = 0;
+      m[2] =  0;  m[6] =  1;  m[10] = 0;  m[14] = 0;
+      m[3] =  0;  m[7] =  0;  m[11] = 0;  m[15] = 1;
+      glLoadMatrixf( m );
+
 
       // We change the y position so that the 0,0 view is in the top
       // left corner and the cCols-1,mcRows-1 view is in the bottom
@@ -418,10 +509,7 @@ ScubaFrame::DoDraw() {
       int y = (mHeight/mcRows) * (mcRows - nRow-1);
 
       // Use glViewport to change the origin of the gl context so our
-      // views can start drawing at 0,0. However leave the width and
-      // height at the frame's width and height, otherwise we'll mess
-      // up the proportions.
-      //      glViewport( x, y, mWidth, mHeight );
+      // views can start drawing at 0,0.
       glViewport( x, y, mWidth/cCols, mHeight/mcRows );
       glRasterPos2i( 0, 0 );
 
@@ -486,38 +574,39 @@ ScubaFrame::DoTimer() {
 }
 
 void
-ScubaFrame::DoMouseMoved( int inX, int inY, InputState& iState ) {
+ScubaFrame::DoMouseMoved( int iWindow[2], InputState& iInput ) {
 
   try {
     int nRow, nCol;
-    View* view = FindViewAtWindowLoc( inX, inY, &nCol, &nRow );
-    int width = mWidth / mcCols[nRow];
-    int height = mHeight / mcRows;
-    view->MouseMoved( inX - (nCol * width), 
-		      inY - ((mcRows-1 - nRow) * height), iState );
+    View* view = FindViewAtWindowLoc( iWindow, &nCol, &nRow );
+    int viewCoords[2];
+    TranslateWindowToView( iWindow, nCol, nRow, viewCoords );
+    view->MouseMoved( viewCoords, iInput, mTool );
   }
   catch(...) {
   }
 }
 
 void
-ScubaFrame::DoMouseUp( int inX, int inY, InputState& iState ) {
+ScubaFrame::DoMouseUp( int iWindow[2], InputState& iInput ) {
 
   try {
-    View* view = FindViewAtWindowLoc( inX, inY, NULL, NULL );
-    view->MouseUp( inX, inY, iState );
+    int nRow, nCol;
+    View* view = FindViewAtWindowLoc( iWindow, &nCol, &nRow );
+    int viewCoords[2];
+    TranslateWindowToView( iWindow, nCol, nRow, viewCoords );
+    view->MouseUp( viewCoords, iInput, mTool );
   }
   catch(...) {
   } 
 }
 
 void
-ScubaFrame::DoMouseDown( int inX, int inY, InputState& iState ) {
+ScubaFrame::DoMouseDown( int iWindow[2], InputState& iInput ) {
 
   try {
-    int nRow;
-    int nCol;
-    View* view = FindViewAtWindowLoc( inX, inY, &nCol, &nRow );
+    int nRow, nCol;
+    View* view = FindViewAtWindowLoc( iWindow, &nCol, &nRow );
 
     // Select this view and request a redisplay that we can draw our
     // frame around it.
@@ -526,19 +615,21 @@ ScubaFrame::DoMouseDown( int inX, int inY, InputState& iState ) {
 
     RequestRedisplay();
 
-    view->MouseDown( inX, inY, iState );
+    int viewCoords[2];
+    TranslateWindowToView( iWindow, nCol, nRow, viewCoords );
+    view->MouseDown( viewCoords, iInput, mTool );
   }
   catch(...) {
   } 
 }
 
 void
-ScubaFrame::DoKeyDown( int inX, int inY, InputState& iState ) {
+ScubaFrame::DoKeyDown( int iWindow[2], InputState& iInput ) {
 
   try {
 
     // Tab key cycles selected view.
-    if( iState.Key() == msCycleKey ) {
+    if( iInput.Key() == msCycleKey ) {
       if( mnSelectedViewCol < mcCols[mnSelectedViewRow] - 1 ) {
 	mnSelectedViewCol++;
       } else if( mnSelectedViewRow < mcRows - 1 ) {
@@ -554,20 +645,26 @@ ScubaFrame::DoKeyDown( int inX, int inY, InputState& iState ) {
     }
 
     View* view = GetViewAtColRow( mnSelectedViewCol, mnSelectedViewRow );
-    //    View* view = FindViewAtWindowLoc( inX, inY, NULL, NULL );
-    view->KeyDown( inX, inY, iState );
+
+    int viewCoords[2];
+    TranslateWindowToView( iWindow, mnSelectedViewCol, mnSelectedViewRow,
+			   viewCoords );
+    view->KeyDown( viewCoords, iInput, mTool );
   }
   catch(...) {
   } 
 }
 
 void
-ScubaFrame::DoKeyUp( int inX, int inY, InputState& iState ) {
+ScubaFrame::DoKeyUp( int iWindow[2], InputState& iInput ) {
 
   try {
     View* view = GetViewAtColRow( mnSelectedViewCol, mnSelectedViewRow );
-    //    View* view = FindViewAtWindowLoc( inX, inY, NULL, NULL );
-    view->KeyUp( inX, inY, iState );
+
+    int viewCoords[2];
+    TranslateWindowToView( iWindow, mnSelectedViewCol, mnSelectedViewRow,
+			   viewCoords );
+    view->KeyUp( viewCoords, iInput, mTool );
   }
   catch(...) {
   } 
@@ -662,14 +759,13 @@ ScubaFrame::SetViewAtColRow( int iCol, int iRow, View* const iView ) {
 }
 
 View*
-ScubaFrame::FindViewAtWindowLoc( int iWindowX, int iWindowY,
-				 int* onCol, int* onRow ) {
+ScubaFrame::FindViewAtWindowLoc( int iWindow[2], int* onCol, int* onRow ) {
 
   try {
 
-    int nRow = (int)floor( (float)(mHeight - iWindowY) / 
+    int nRow = (int)floor( (float)(mHeight - iWindow[1]) / 
 			   ((float)mHeight / (float)mcRows) );
-    int nCol = (int)floor( (float)iWindowX / 
+    int nCol = (int)floor( (float)iWindow[0] / 
 			   ((float)mWidth / (float)mcCols[nRow]) );
     
     if( NULL != onCol ) 

@@ -34,11 +34,11 @@ protected:
   virtual void DoDraw();
   virtual void DoReshape( int iWidth, int iHeight );
   virtual void DoTimer();
-  virtual void DoMouseMoved( int inX, int inY, InputState& iState );
-  virtual void DoMouseUp( int inX, int inY, InputState& iState );
-  virtual void DoMouseDown( int inX, int inY, InputState& iState );
-  virtual void DoKeyDown( int inX, int inY, InputState& iState );
-  virtual void DoKeyUp( int inX, int inY, InputState& iState );
+  virtual void DoMouseMoved( int inX, int inY, InputState& iInput );
+  virtual void DoMouseUp( int inX, int inY, InputState& iInput );
+  virtual void DoMouseDown( int inX, int inY, InputState& iInput );
+  virtual void DoKeyDown( int inX, int inY, InputState& iInput );
+  virtual void DoKeyUp( int inX, int inY, InputState& iInput );
 };  
 
 TestView::TestView() {
@@ -88,26 +88,26 @@ TestView::DoTimer() {
 }
 
 void
-TestView::DoMouseMoved( int inX, int inY, InputState& iState ) {
+TestView::DoMouseMoved( int inX, int inY, InputState& iInput ) {
 }
 
 void
-TestView::DoMouseUp( int inX, int inY, InputState& iState ) {
+TestView::DoMouseUp( int inX, int inY, InputState& iInput ) {
 
 }
 
 void
-TestView::DoMouseDown( int inX, int inY, InputState& iState ) {
+TestView::DoMouseDown( int inX, int inY, InputState& iInput ) {
   cerr << msLabel << ": click " << endl;
 }
 
 void
-TestView::DoKeyDown( int inX, int inY, InputState& iState ) {
+TestView::DoKeyDown( int inX, int inY, InputState& iInput ) {
 
 }
 
 void
-TestView::DoKeyUp( int inX, int inY, InputState& iState ) {
+TestView::DoKeyUp( int inX, int inY, InputState& iInput ) {
 
 }
 

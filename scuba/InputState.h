@@ -22,7 +22,7 @@ class InputState {
   std::string msKey;
 };
 
-std::ostream& operator << ( std::ostream& os, InputState& iState );
+std::ostream& operator << ( std::ostream& os, InputState& iInput );
 
 
 

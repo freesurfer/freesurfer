@@ -252,10 +252,8 @@ x make label/value display panel
 x fix overlay drawing bugs
 set view state dlog
 
-
 x b/c, LUT color map support
 x opacity
-
 
 x label/value display panel
 
@@ -269,18 +267,43 @@ x View Props panel
 x  - menu of views
 x  - draw level slots, each with menu of layers
 
-ScubaFrame:
-tool
-Tcl interface for setting tool (navigation, selection, editing, control points)
-
-
 x ScubaView:
 x key down
 x  - left right down up in out zoom inplane
 
-
 x ScubaLayer2DMRIS.cpp
 x layer factory stuff
+x  - surface color
+x  - draw with opacity
+ - line drawing
+ - line width
+
+cursor linking
+x - Set2DRASCenter, Set2DZoomLevel
+x - each ScubaView has a linked flag, settable in view props panel
+x - SetLinkedFlag in ScubaView, adds id to static list
+x - when link functions called, goes through linked list and calls the same
+x - Copy These Layers to Current Views button in views props, copies layer/level settings to other views, tcl function takes list of view IDs
+
+ScubaToolState
+ - registers tcl functions for getting and setting stuff (with id)
+ - tool: { navigation, marker, voxel paint, voxel clone, voxel selection, voxel restore, control points }
+ - brush : radius, 3d, shape
+ - voxel paint : min/max, new value
+ - voxel clone : min/max, source
+
+x ScubaFrame gets a ScubaToolState, tcl function for getting tool ID
+x scuba.tcl makes gaTool(id,...), gets id from frame=gaFrame(id,toolID)
+x View adds ScubaToolState to its mouse/key events, ScubaFrame passes
+x View calls Layer::HandleTool ( RAS, ToolState, InputState )
+
+
+x - should set,get,min/max stuff be in VolumeCollection? Layer is doing a lot of stuff
+
+display transform interface on view level
+
+
+consider linking ScubaFrame's selected view to the gaView(current) view in scuba.tcl, link view configuration in scuba.tcl and select view in view props automatically. the 't' view selecting key would need to be reimplemented in scuba.tcl.
 
 
 
@@ -346,8 +369,8 @@ Frame Info
 BUGS:::
 
 - left right flipped in coronal
-- when loading mult layers from cmd line, wrong one is selected in layer props
-- on first, select first subject in subject loader
+- when change in plane with key, no update to tcl
+   - should all this stuff be done in tcl because there's no notficiation method from c->tcl?
 
 
 future ideas:

@@ -9,6 +9,10 @@
 #include "ViewState.h"
 #include "Layer.h"
 #include "ScubaWindowToRASTranslator.h"
+#include "ScubaToolState.h"
+extern "C" {
+#include "matrix.h"
+}
 
 class ScubaView : public View, public ScubaWindowToRASTranslator {
 
@@ -32,28 +36,24 @@ class ScubaView : public View, public ScubaWindowToRASTranslator {
   // that only one layer can be at a specific level, and adding a
   // layer at a level that is already occupied will replace the
   // existing layer.
-  void AddLayer ( int iLayerID, int iLevel );
+  void SetLayerAtLevel ( int iLayerID, int iLevel );
+  int GetLayerAtLevel ( int iLevel );
   void RemoveAllLayers ();
   void RemoveLayerAtLevel ( int iLevel );
 
+  // Sets the same layers in another view.
+  void CopyLayerSettingsToView ( ScubaView& iView );
+
   virtual TclCommandResult
-    DoListenToTclCommand ( char* iCommand, int iArgc, char** iArgv );
+    DoListenToTclCommand ( char* isCommand, int iArgc, char** iasArgv );
 
   // Implement ScubaWindowToRASTranslator.
-  void TranslateWindowToRAS ( int iXWindow, int iYWindow,
-			      float& oXRAS, float& oYRAS, float& oZRAS );
-  void TranslateWindowToRAS ( int iXWindow, int iYWindow, float oRAS[3] ) {
-    TranslateWindowToRAS( iXWindow, iYWindow, oRAS[0], oRAS[1], oRAS[2] ); 
-  }
-  void TranslateRASToWindow( float iXRAS, float iYRAS, float iZRAS,
-			     int& oXWindow, int& oYWindow );
-  void TranslateRASToWindow( float iRAS[3], 
-			     int& oXWindow, int& oYWindow ) {
-    TranslateRASToWindow( iRAS[0], iRAS[1], iRAS[2], oXWindow, oYWindow ); 
-  }
-
+  void TranslateWindowToRAS ( int iWindow[2], float oRAS[3] );
+  void TranslateRASToWindow ( float iRAS[3], int oWindow[2] );
 
   int GetFirstUnusedDrawLevel ();
+
+  void RebuildOverlayDrawList () { mbRebuildOverlayDrawList = true; }
 
 protected:
 
@@ -69,18 +69,23 @@ protected:
   
   // On mouse moves, this calls GetInfoAtRAS on all Layers and writes
   // the info as strings on the window.
-  virtual void DoMouseMoved ( int inX, int inY, InputState& iState );
+  virtual void DoMouseMoved ( int iWindow[2], 
+			      InputState& iInput, ScubaToolState& iTool );
 
   // Mouse up sets a marker at the current location. Mouse down and
   // mouse up may trigger tool effects.
-  virtual void DoMouseUp ( int inX, int inY, InputState& iState );
-  virtual void DoMouseDown ( int inX, int inY, InputState& iState );
+  virtual void DoMouseUp ( int iWindow[2], 
+			   InputState& iInput, ScubaToolState& iTool );
+  virtual void DoMouseDown ( int iWindow[2], 
+			     InputState& iInput, ScubaToolState& iTool );
 
   // Key up and down may trigger commands.
-  virtual void DoKeyDown ( int inX, int inY, InputState& iState );
-  virtual void DoKeyUp ( int inX, int inY, InputState& Translates );
+  virtual void DoKeyDown ( int iWindow[2], 
+			   InputState& iInput, ScubaToolState& iTool );
+  virtual void DoKeyUp ( int iWindow[2], 
+			 InputState& Translates, ScubaToolState& iTool );
 
-  // iState window coords to RAS coordinates based on the current
+  // iInput window coords to RAS coordinates based on the current
   // view port.
   float ConvertWindowToRAS ( float iWindow, float iRASCenter, 
 			     float iWindowDimension );
@@ -100,7 +105,10 @@ protected:
   void BuildOverlay();
   void DrawOverlay ();
 
-  // Tee draw list for the view overlay and a boolean saying whether
+  void SetLinkedStatus ( bool ibLinked ) {mViewIDLinkedList[GetID()]=ibLinked;}
+  bool GetLinkedStatus () { return mViewIDLinkedList[GetID()]; }
+
+  // The draw list for the view overlay and a boolean saying whether
   // it should be rebuilt, usually when the view changes. This view
   // will actually use list kOverlayDrawListID + mID.
   #define kOverlayDrawListID 1
@@ -136,6 +144,15 @@ protected:
   std::string msInPlaneXKey;
   std::string msInPlaneYKey;
   std::string msInPlaneZKey;
+
+  // Link stuff.
+  static int mCurrentBroadcaster;
+  static std::map<int,bool> mViewIDLinkedList;
+
+  MATRIX* mWorldToView;
+  MATRIX* mViewToWorld;
+  MATRIX* mWorldRAS;
+  MATRIX* mViewRAS;
 };  
 
 class ScubaViewFactory : public ViewFactory {

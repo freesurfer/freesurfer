@@ -46,6 +46,21 @@ tkuMakeSliders .sw \
     }
 pack .sw
 
+set red1 0
+set green1 0
+set blue1 0
+set red2 0
+set green2 0
+set blue2 0
+tkuMakeColorPickers .cp \
+    -pickers {
+	{ -label "color1" -command {puts "color1: $red1 $green1 $blue1"}
+	    -redVariable red1 -blueVariable blue1 -greenVariable green1 }
+	{ -label "color2" -command {puts "color2: $red2 $green2 $blue2"}
+	    -redVariable red2 -blueVariable blue2 -greenVariable green2 }
+    }
+pack .cp
+
 tkuMakeToolbar .tb \
     -allowzero false \
     -radio true \

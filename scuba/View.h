@@ -6,6 +6,7 @@
 #include "DebugReporter.h"
 #include "InputState.h"
 #include "TclCommandManager.h"
+#include "ScubaToolState.h"
 
 // This is a base class used by ScubaFrame as an interface to views,
 // or the internal components of the Frame. Each Frame can have
@@ -23,11 +24,11 @@ public:
   void Draw();
   void Reshape( int iWidth, int iHeight );
   void Timer();
-  void MouseMoved( int inX, int inY, InputState& iState );
-  void MouseUp( int inX, int inY, InputState& iState );
-  void MouseDown( int inX, int inY, InputState& iState );
-  void KeyDown( int inX, int inY, InputState& iState );
-  void KeyUp( int inX, int inY, InputState& iState );
+  void MouseMoved( int iWindow[2], InputState& iInput, ScubaToolState& iTool );
+  void MouseUp( int iWindow[2], InputState& iInput, ScubaToolState& iTool );
+  void MouseDown( int iWinodw[2], InputState& iInput, ScubaToolState& iTool );
+  void KeyDown( int iWindow[2], InputState& iInput, ScubaToolState& iTool );
+  void KeyUp( int iWindow[2], InputState& iInput, ScubaToolState& iTool );
 
   void SetWidth( int iWidth ) { mWidth = iWidth; }
   void SetHeight( int iHeight ) { mHeight = iHeight; }
@@ -47,11 +48,16 @@ public:
   virtual void DoDraw();
   virtual void DoReshape( int iWidth, int iHeight );
   virtual void DoTimer();
-  virtual void DoMouseMoved( int inX, int inY, InputState& iState );
-  virtual void DoMouseUp( int inX, int inY, InputState& iState );
-  virtual void DoMouseDown( int inX, int inY, InputState& iState );
-  virtual void DoKeyDown( int inX, int inY, InputState& iState );
-  virtual void DoKeyUp( int inX, int inY, InputState& iState );
+  virtual void DoMouseMoved( int iWindow[2], 
+			     InputState& iInput, ScubaToolState& iTool );
+  virtual void DoMouseUp( int iWindow[2],
+			  InputState& iInput, ScubaToolState& iTool );
+  virtual void DoMouseDown( int iWindow[2],
+			    InputState& iInput, ScubaToolState& iTool );
+  virtual void DoKeyDown( int iWindow[2],
+			  InputState& iInput, ScubaToolState& iTool );
+  virtual void DoKeyUp( int iWindow[2],
+			InputState& iInput, ScubaToolState& iTool );
 
   int mWidth;
   int mHeight;

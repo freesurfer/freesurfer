@@ -8,6 +8,9 @@ using namespace std;
 VolumeCollection::VolumeCollection () :
   DataCollection() {
   mMRI = NULL;
+  mWorldToIndexMatrix = NULL;
+  mWorldCoord = VectorAlloc( 4, MATRIX_REAL );
+  mIndexCoord = VectorAlloc( 4, MATRIX_REAL );
 
   TclCommandManager& commandMgr = TclCommandManager::GetManager();
   commandMgr.AddCommand( *this, "SetVolumeCollectionFileName", 2, 
@@ -24,6 +27,16 @@ VolumeCollection::~VolumeCollection() {
   } 
   catch(...) {
     cerr << "Couldn't release data"  << endl;
+  }
+
+  if( NULL != mWorldCoord ) {
+    VectorFree( &mWorldCoord );
+  }
+  if( NULL != mIndexCoord ) {
+    VectorFree( &mIndexCoord );
+  }
+  if( NULL != mWorldToIndexMatrix ) {
+    MatrixFree( &mWorldToIndexMatrix );
   }
 }
 
@@ -51,9 +64,127 @@ VolumeCollection::GetMRI() {
     if( msLabel == "" ) {
       SetLabel( mfnMRI );
     }
+
+    mWorldToIndexMatrix = extract_r_to_i( mMRI );
+    UpdateMRIValueRange();
   }
 
   return mMRI; 
+}
+
+void
+VolumeCollection::UpdateMRIValueRange () {
+
+  if( NULL != mMRI ) {
+    MRIvalRange( mMRI, &mMRIMinValue, &mMRIMaxValue );
+  }
+}
+
+void
+VolumeCollection::RASToMRIIndex ( float iRAS[3], int oIndex[3] ) {
+  
+  Real index[3];
+  VECTOR_ELT( mWorldCoord, 1 ) = iRAS[0];
+  VECTOR_ELT( mWorldCoord, 2 ) = iRAS[1];
+  VECTOR_ELT( mWorldCoord, 3 ) = iRAS[2];
+  VECTOR_ELT( mWorldCoord, 4 ) = 1.0;
+  MatrixMultiply( mWorldToIndexMatrix, mWorldCoord, mIndexCoord );
+  oIndex[0] = (int) rint( VECTOR_ELT( mIndexCoord, 1 ) );
+  oIndex[1] = (int) rint( VECTOR_ELT( mIndexCoord, 2 ) );
+  oIndex[2] = (int) rint( VECTOR_ELT( mIndexCoord, 3 ) );
+}
+
+void
+VolumeCollection::RASToMRIIndex ( float iRAS[3], float oIndex[3] ) {
+  
+  Real index[3];
+  VECTOR_ELT( mWorldCoord, 1 ) = iRAS[0];
+  VECTOR_ELT( mWorldCoord, 2 ) = iRAS[1];
+  VECTOR_ELT( mWorldCoord, 3 ) = iRAS[2];
+  VECTOR_ELT( mWorldCoord, 4 ) = 1.0;
+  MatrixMultiply( mWorldToIndexMatrix, mWorldCoord, mIndexCoord );
+  oIndex[0] = VECTOR_ELT( mIndexCoord, 1 );
+  oIndex[1] = VECTOR_ELT( mIndexCoord, 2 );
+  oIndex[2] = VECTOR_ELT( mIndexCoord, 3 );
+}
+
+bool 
+VolumeCollection::IsRASInMRIBounds ( float iRAS[3] ) {
+
+  if( NULL != mMRI ) {
+      return ( iRAS[0] > mMRI->xstart && iRAS[0] < mMRI->xend &&
+	       iRAS[1] > mMRI->ystart && iRAS[1] < mMRI->yend &&
+	       iRAS[2] > mMRI->zstart && iRAS[2] < mMRI->zend );
+  } else {
+    return false;
+  }
+}
+
+float 
+VolumeCollection::GetMRINearestValueAtRAS ( float iRAS[3] ) {
+
+  Real value = 0;
+  if( NULL != mMRI ) {
+    float index[3];
+    RASToMRIIndex( iRAS, index );
+    MRIsampleVolumeType( mMRI, index[0], index[1], index[2],
+			 &value, SAMPLE_NEAREST );
+  }
+  return (float)value;
+}
+
+float 
+VolumeCollection::GetMRITrilinearValueAtRAS ( float iRAS[3] ) {
+
+  Real value = 0;
+  if( NULL != mMRI ) {
+    float index[3];
+    RASToMRIIndex( iRAS, index );
+    MRIsampleVolumeType( mMRI, index[0], index[1], index[2],
+			 &value, SAMPLE_TRILINEAR );
+  }
+  return (float)value;
+}
+
+float 
+VolumeCollection::GetMRISincValueAtRAS ( float iRAS[3] ) {
+  
+  Real value = 0;
+  if( NULL != mMRI ) {
+    float index[3];
+    RASToMRIIndex( iRAS, index );
+    MRIsampleVolumeType( mMRI, index[0], index[1], index[2],
+			 &value, SAMPLE_SINC );
+  }
+  return (float)value;
+}
+
+void
+VolumeCollection::SetMRIValueAtRAS ( float iRAS[3], float iValue ) {
+  Real value = 0;
+  if( NULL != mMRI ) {
+    int index[3];
+    RASToMRIIndex( iRAS, index );
+    switch( mMRI->type ) {
+    default:
+      break ;
+    case MRI_UCHAR:
+      MRIvox( mMRI, index[0], index[1], index[2] ) = (BUFTYPE) iValue;
+      break ;
+    case MRI_SHORT:
+      MRISvox( mMRI, index[0], index[1], index[2] ) = (short) iValue;
+      break ;
+    case MRI_FLOAT:
+      MRIFvox( mMRI, index[0], index[1], index[2] ) = (float) iValue;
+      break ;
+    case MRI_LONG:
+      MRILvox( mMRI, index[0], index[1], index[2] ) = (long) iValue;
+      break ;
+    case MRI_INT:
+      MRIIvox( mMRI, index[0], index[1], index[2] ) = (int) iValue;
+      break ;
+    }
+  }
 }
 
 TclCommandListener::TclCommandResult 

@@ -22,7 +22,7 @@ class ScubaLayer2DMRI : public Layer {
   
   // Asks the layer to describe a point of data by adding pairs of
   // labels and values.
-  virtual void GetInfoAtRAS ( float inX, float inY, float inZ,
+  virtual void GetInfoAtRAS ( float iRAS[3],
 			   std::map<std::string,std::string>& iLabelValues );
   
   // Should return a type description unique to the subclass.
@@ -30,6 +30,9 @@ class ScubaLayer2DMRI : public Layer {
 
   virtual TclCommandResult
     DoListenToTclCommand ( char* iCommand, int iArgc, char** iArgv );
+
+  virtual void HandleTool ( float iRAS[3],
+			    ScubaToolState& iTool, InputState& iInput );
 
   enum ColorMapMethod { grayscale, heatScale, LUT };
   void SetColorMapMethod ( ColorMapMethod iMethod ) { 
@@ -56,14 +59,8 @@ class ScubaLayer2DMRI : public Layer {
   void SetMaxVisibleValue ( float iValue ) { mMaxVisibleValue = iValue; }
   float GetMaxVisibleValue () { return mMaxVisibleValue; }
 
-  float GetMinValue () { return mMinValue; }
-  float GetMaxValue () { return mMaxValue; }
-
  protected:
   VolumeCollection* mVolume;
-  MATRIX* mWorldToIndexMatrix;
-  VECTOR* mWorldCoord;
-  VECTOR* mIndexCoord;
   
   SampleMethod mSampleMethod;
   ColorMapMethod mColorMapMethod;
@@ -78,7 +75,6 @@ class ScubaLayer2DMRI : public Layer {
 
   bool mbClearZero;
   float mMinVisibleValue, mMaxVisibleValue;
-  float mMinValue, mMaxValue;
 };
 
 

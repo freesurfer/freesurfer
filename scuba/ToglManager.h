@@ -26,11 +26,11 @@ class ToglFrame : public DebugReporter {
   void Draw();
   void Reshape( int iWidth, int iHeight );
   void Timer();
-  void MouseMoved( int inX, int inY, InputState& iState );
-  void MouseUp( int inX, int inY, InputState& iState );
-  void MouseDown( int inX, int inY, InputState& iState );
-  void KeyDown( int inX, int inY, InputState& iState );
-  void KeyUp( int inX, int inY, InputState& iState );
+  void MouseMoved( int iWindow[2], InputState& iInput );
+  void MouseUp( int iWindow[2], InputState& iInput );
+  void MouseDown( int iWindow[2], InputState& iInput );
+  void KeyDown( int iWindow[2], InputState& iInput );
+  void KeyUp( int iWindow[2], InputState& iInput );
   
   // These manage flags that the ToglManager will check to see if the
   // frame wants a redisplay. The frame should call RequestRedisplay()
@@ -51,11 +51,11 @@ class ToglFrame : public DebugReporter {
   virtual void DoDraw();
   virtual void DoReshape();
   virtual void DoTimer();
-  virtual void DoMouseMoved( int inX, int inY, InputState& iState  );
-  virtual void DoMouseUp( int inX, int inY, InputState& iState );
-  virtual void DoMouseDown( int inX, int inY, InputState& iState );
-  virtual void DoKeyDown( int inX, int inY, InputState& iState );
-  virtual void DoKeyUp( int inX, int inY, InputState& iState );
+  virtual void DoMouseMoved( int iWindow[2], InputState& iInput  );
+  virtual void DoMouseUp( int iWindow[2], InputState& iInput );
+  virtual void DoMouseDown( int iWindow[2], InputState& iInput );
+  virtual void DoKeyDown( int iWindow[2], InputState& iInput );
+  virtual void DoKeyUp( int iWindow[2], InputState& iInput );
 
   // These are set by the Reshape() function. These should not be
   // manually set by subclasses.
@@ -122,13 +122,8 @@ class ToglManager {
 
  protected:
 
-#if 1
   static inline int YFlip ( ToglFrame* iFrame, int iY ) {
     return (iFrame->GetHeight() - iY); }
-#else
-  static inline int YFlip ( ToglFrame* iFrame, int iY ) {
-    return iY; }
-#endif  
 
   // Maps Window IDs to frames.
   static std::map<ToglFrame::ID,ToglFrame*> mFrames;

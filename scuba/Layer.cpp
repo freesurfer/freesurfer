@@ -11,6 +11,7 @@ LayerStaticTclListener Layer::mStaticListener;
 Layer::Layer() {
   mOpacity = 1.0;
   msLabel = "";
+  mbPostRedisplay = false;
 
   TclCommandManager& commandMgr = TclCommandManager::GetManager();
   commandMgr.AddCommand( *this, "SetLayerLabel", 2, "layerID label",
@@ -42,7 +43,7 @@ Layer::DrawIntoBuffer( GLubyte* iBuffer, int iWidth, int iHeight,
 }
 
 void 
-Layer::GetInfoAtRAS ( float inX, float inY, float inZ,
+Layer::GetInfoAtRAS ( float iRAS[3],
 		      std::map<std::string,std::string>& iLabelValues ) {
 
   string sLabel;
@@ -144,6 +145,12 @@ Layer::DoListenToTclCommand( char* isCommand, int iArgc, char** iasArgv ) {
   return ok;
 }
 
+void
+Layer::HandleTool ( float iRAS[3],
+		    ScubaToolState& iTool, InputState& iInput ){
+
+}
+
 TclCommandListener::TclCommandResult
 LayerStaticTclListener::DoListenToTclCommand ( char* isCommand, 
 					       int iArgc, char** iasArgv ) {
@@ -172,3 +179,4 @@ LayerStaticTclListener::DoListenToTclCommand ( char* isCommand,
 
 LayerStaticTclListener::~LayerStaticTclListener () {
 }
+

@@ -76,7 +76,11 @@ ToglManager::MouseMotionCallback ( struct Togl* iTogl,
   }
   ToglFrame::ID id = atoi( Togl_Ident( iTogl ));
   ToglFrame* frame = mFrames[id];
-  frame->MouseMoved( atoi(iArgv[2]), YFlip(frame, atoi(iArgv[3])), mState );
+
+  int windowCoords[2];
+  windowCoords[0] = atoi(iArgv[2]);
+  windowCoords[1] = YFlip(frame, atoi(iArgv[3]));
+  frame->MouseMoved( windowCoords, mState );
 
   // Post a redisplay if the frame wants one. 
   if( frame->WantRedisplay() ) {
@@ -101,7 +105,11 @@ ToglManager::MouseDownCallback ( struct Togl* iTogl,
 
   ToglFrame::ID id = atoi( Togl_Ident( iTogl ));
   ToglFrame* frame = mFrames[id];
-  frame->MouseDown( atoi(iArgv[2]),  YFlip(frame, atoi(iArgv[3])), mState );
+
+  int windowCoords[2];
+  windowCoords[0] = atoi(iArgv[2]);
+  windowCoords[1] = YFlip(frame, atoi(iArgv[3]));
+  frame->MouseDown( windowCoords, mState );
 
   // Post a redisplay if the frame wants one. 
   if( frame->WantRedisplay() ) {
@@ -125,7 +133,11 @@ ToglManager::MouseUpCallback ( struct Togl* iTogl, int iArgc, char* iArgv[] ) {
   
   ToglFrame::ID id = atoi( Togl_Ident( iTogl ));
   ToglFrame* frame = mFrames[id];
-  frame->MouseUp( atoi(iArgv[2]),  YFlip(frame, atoi(iArgv[3])), mState );
+
+  int windowCoords[2];
+  windowCoords[0] = atoi(iArgv[2]);
+  windowCoords[1] = YFlip(frame, atoi(iArgv[3]));
+  frame->MouseUp( windowCoords, mState );
 
   // Clear this in the keyboard state.
   mState.mButton = 0;
@@ -167,7 +179,11 @@ ToglManager::KeyDownCallback ( struct Togl* iTogl, int iArgc, char* iArgv[] ) {
     
     ToglFrame::ID id = atoi( Togl_Ident( iTogl ));
     ToglFrame* frame = mFrames[id];
-    frame->KeyDown( atoi(iArgv[2]),  YFlip(frame, atoi(iArgv[3])), mState );
+
+    int windowCoords[2];
+    windowCoords[0] = atoi(iArgv[2]);
+    windowCoords[1] = YFlip(frame, atoi(iArgv[3]));
+    frame->KeyDown( windowCoords, mState );
     
     // Post a redisplay if the frame wants one. 
     if( frame->WantRedisplay() ) {
@@ -207,7 +223,11 @@ ToglManager::KeyUpCallback ( struct Togl* iTogl, int iArgc, char* iArgv[] ) {
     
     ToglFrame::ID id = atoi( Togl_Ident( iTogl ));
     ToglFrame* frame = mFrames[id];
-    frame->KeyUp( atoi(iArgv[2]),  YFlip(frame, atoi(iArgv[3])), mState );
+
+    int windowCoords[2];
+    windowCoords[0] = atoi(iArgv[2]);
+    windowCoords[1] = YFlip(frame, atoi(iArgv[3]));
+    frame->KeyUp( windowCoords, mState );
     
     // Clear this in the keyboard state.
     mState.msKey = "";
@@ -311,47 +331,47 @@ ToglFrame::Timer() {
 }
 
 void
-ToglFrame::MouseMoved( int inX, int inY, InputState& iState ) {
+ToglFrame::MouseMoved( int iWindow[2], InputState& iInput ) {
 
-  if( inX > 0 && inX < mWidth-1 &&
-      inY > 0 && inY < mHeight-1 ) {
-    this->DoMouseMoved( inX, inY, iState );
+  if( iWindow[0] > 0 && iWindow[0] < mWidth-1 &&
+      iWindow[1] > 0 && iWindow[1] < mHeight-1 ) {
+    this->DoMouseMoved( iWindow, iInput );
   }
 }
 
 void
-ToglFrame::MouseUp( int inX, int inY, InputState& iState ) {
+ToglFrame::MouseUp( int iWindow[2], InputState& iInput ) {
 
-  if( inX > 0 && inX < mWidth-1 &&
-      inY > 0 && inY < mHeight-1 ) {
-    this->DoMouseUp( inX, inY, iState );
+  if( iWindow[0] > 0 && iWindow[0] < mWidth-1 &&
+      iWindow[1] > 0 && iWindow[1] < mHeight-1 ) {
+    this->DoMouseUp( iWindow, iInput );
   }
 }
 
 void
-ToglFrame::MouseDown( int inX, int inY, InputState& iState ) {
+ToglFrame::MouseDown( int iWindow[2], InputState& iInput ) {
 
-  if( inX > 0 && inX < mWidth-1 &&
-      inY > 0 && inY < mHeight-1 ) {
-    this->DoMouseDown( inX, inY, iState );
+  if( iWindow[0] > 0 && iWindow[0] < mWidth-1 &&
+      iWindow[1] > 0 && iWindow[1] < mHeight-1 ) {
+    this->DoMouseDown( iWindow, iInput );
   }
 }
 
 void
-ToglFrame::KeyDown( int inX, int inY, InputState& iState ) {
+ToglFrame::KeyDown( int iWindow[2], InputState& iInput ) {
 
-  if( inX > 0 && inX < mWidth-1 &&
-      inY > 0 && inY < mHeight-1 ) {
-    this->DoKeyDown( inX, inY, iState );
+  if( iWindow[0] > 0 && iWindow[0] < mWidth-1 &&
+      iWindow[1] > 0 && iWindow[1] < mHeight-1 ) {
+    this->DoKeyDown( iWindow, iInput );
   }
 }
 
 void
-ToglFrame::KeyUp( int inX, int inY, InputState& iState ) {
+ToglFrame::KeyUp( int iWindow[2], InputState& iInput ) {
 
-  if( inX > 0 && inX < mWidth-1 &&
-      inY > 0 && inY < mHeight-1 ) {
-    this->DoKeyUp( inX, inY, iState );
+  if( iWindow[0] > 0 && iWindow[0] < mWidth-1 &&
+      iWindow[1] > 0 && iWindow[1] < mHeight-1 ) {
+    this->DoKeyUp( iWindow, iInput );
   }
 }
 
@@ -374,31 +394,31 @@ ToglFrame::DoTimer() {
 }
 
 void
-ToglFrame::DoMouseMoved( int inX, int inY, InputState& iState ) {
+ToglFrame::DoMouseMoved( int iWindow[2], InputState& iInput ) {
 
   DebugOutput( << "ToglFrame " << mID << ": DoMouseMoved()" );
 }
 
 void
-ToglFrame::DoMouseUp( int inX, int inY, InputState& iState ) {
+ToglFrame::DoMouseUp( int iWindow[2], InputState& iInput ) {
 
   DebugOutput( << "ToglFrame " << mID << ": DoMouseUp()" );
 }
 
 void
-ToglFrame::DoMouseDown( int inX, int inY, InputState& iState ) {
+ToglFrame::DoMouseDown( int iWindow[2], InputState& iInput ) {
 
   DebugOutput( << "ToglFrame " << mID << ": DoMouseDown()" );
 }
 
 void
-ToglFrame::DoKeyDown( int inX, int inY, InputState& iState ) {
+ToglFrame::DoKeyDown( int iWindow[2], InputState& iInput ) {
 
   DebugOutput( << "ToglFrame " << mID << ": DoKeyDown()" );
 }
 
 void
-ToglFrame::DoKeyUp( int inX, int inY, InputState& iState ) {
+ToglFrame::DoKeyUp( int iWindow[2], InputState& iInput ) {
 
   DebugOutput( << "ToglFrame " << mID << ": DoKeyUp()" );
 }

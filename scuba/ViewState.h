@@ -15,6 +15,6 @@ class ViewState {
   Plane mInPlane;
 };
 
-std::ostream& operator << ( std::ostream& os, ViewState& iState );
+std::ostream& operator << ( std::ostream& os, ViewState& iInput );
 
 #endif

@@ -9,6 +9,8 @@
 #include "DebugReporter.h"
 #include "TclCommandManager.h"
 #include "ScubaWindowToRASTranslator.h"
+#include "ScubaToolState.h"
+#include "InputState.h"
 
 class LayerStaticTclListener : public DebugReporter, public TclCommandListener {
   public :
@@ -35,7 +37,7 @@ class Layer : public DebugReporter, public IDTracker<Layer>, public TclCommandLi
   
   // Asks the layer to describe a point of data by adding pairs of
   // labels and values.
-  virtual void GetInfoAtRAS ( float inX, float inY, float inZ,
+  virtual void GetInfoAtRAS ( float iRAS[3],
 			   std::map<std::string,std::string>& iLabelValues );
   
   // Should return a type description unique to the subclass.
@@ -53,6 +55,14 @@ class Layer : public DebugReporter, public IDTracker<Layer>, public TclCommandLi
   void SetWidth( int iWidth ) { mWidth = iWidth; }
   void SetHeight( int iHeight ) { mHeight = iHeight; }
 
+  virtual void HandleTool ( float iRAS[3],
+			    ScubaToolState& iTool, InputState& iInput );
+
+  // Redisplay posters.
+  void RequestRedisplay() { mbPostRedisplay = true; }
+  bool WantRedisplay() const { return mbPostRedisplay; }
+  void RedisplayPosted() { mbPostRedisplay = false; }
+
  protected:
 
   int mWidth;
@@ -64,6 +74,9 @@ class Layer : public DebugReporter, public IDTracker<Layer>, public TclCommandLi
 
   static bool mbRegisteredStaticListener;
   static LayerStaticTclListener mStaticListener;
+
+  // Redisplay requested flag.
+  bool mbPostRedisplay;
 };
 
 

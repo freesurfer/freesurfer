@@ -21,6 +21,20 @@ class VolumeCollection : public DataCollection {
   void SetFileName ( std::string& ifnMRI );
 
   MRI* GetMRI ();
+  void UpdateMRIValueRange ();
+  float GetMRIMinValue () { return mMRIMinValue; }
+  float GetMRIMaxValue () { return mMRIMaxValue; }
+
+  void RASToMRIIndex ( float iRAS[3], int oIndex[3] );
+  void RASToMRIIndex ( float iRAS[3], float oIndex[3] );
+
+  bool IsRASInMRIBounds ( float iRAS[3] );
+
+  float GetMRINearestValueAtRAS ( float iRAS[3] );
+  float GetMRITrilinearValueAtRAS ( float iRAS[3] );
+  float GetMRISincValueAtRAS ( float iRAS[3] );
+  
+  void SetMRIValueAtRAS ( float iRAS[3], float iValue );
   
   virtual TclCommandResult
     DoListenToTclCommand ( char* isCommand, int iArgc, char** iasArgv );
@@ -29,6 +43,11 @@ protected:
   std::string mfnMRI;
   MRI* mMRI;
 
+  MATRIX* mWorldToIndexMatrix;
+  VECTOR* mWorldCoord;
+  VECTOR* mIndexCoord;
+
+  float mMRIMinValue, mMRIMaxValue;
 };
 
 

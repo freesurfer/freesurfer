@@ -17,10 +17,10 @@ protected:
   virtual void DoReshape();
   virtual void DoTimer();
   virtual void DoMouseMoved( int inX, int inY, InputState& iModifier );
-  virtual void DoMouseUp( int inX, int inY, InputState& iState );
-  virtual void DoMouseDown( int inX, int inY, InputState& iState );
-  virtual void DoKeyDown( int inX, int inY, InputState& iState );
-  virtual void DoKeyUp( int inX, int inY, InputState& iState );
+  virtual void DoMouseUp( int inX, int inY, InputState& iInput );
+  virtual void DoMouseDown( int inX, int inY, InputState& iInput );
+  virtual void DoKeyDown( int inX, int inY, InputState& iInput );
+  virtual void DoKeyUp( int inX, int inY, InputState& iInput );
 
   bool bTimerCalled;
 };
@@ -59,38 +59,38 @@ TestFrame::DoTimer() {
 }
 
 void
-TestFrame::DoMouseMoved( int inX, int inY, InputState& iState ) {
+TestFrame::DoMouseMoved( int inX, int inY, InputState& iInput ) {
 
   DebugOutput( << "TestFrame " << mID << ": DoMouseMoved " 
-	       << inX << ", " << inY << ", " << iState );
+	       << inX << ", " << inY << ", " << iInput );
 }
 
 void
-TestFrame::DoMouseUp( int inX, int inY, InputState& iState ) {
+TestFrame::DoMouseUp( int inX, int inY, InputState& iInput ) {
 
   DebugOutput( << "TestFrame " << mID << ": DoMouseUp "
-	       << inX << ", " << inY << ", " << iState );
+	       << inX << ", " << inY << ", " << iInput );
 }
 
 void
-TestFrame::DoMouseDown( int inX, int inY, InputState& iState ) {
+TestFrame::DoMouseDown( int inX, int inY, InputState& iInput ) {
 
   DebugOutput( << "TestFrame " << mID << ": DoMouseDown "
-	       << inX << ", " << inY << ", " << iState );
+	       << inX << ", " << inY << ", " << iInput );
 }
 
 void
-TestFrame::DoKeyDown( int inX, int inY, InputState& iState ) {
+TestFrame::DoKeyDown( int inX, int inY, InputState& iInput ) {
 
   DebugOutput( << "TestFrame " << mID << ": DoKeyDown "
-	       << inX << ", " << inY << ", " << iState );
+	       << inX << ", " << inY << ", " << iInput );
 }
 
 void
-TestFrame::DoKeyUp( int inX, int inY, InputState& iState ) {
+TestFrame::DoKeyUp( int inX, int inY, InputState& iInput ) {
 
   DebugOutput( << "TestFrame " << mID << ": DoKeyUp "
-	       << inX << ", " << inY << ", " << iState );
+	       << inX << ", " << inY << ", " << iInput );
 }
 
 

@@ -6,7 +6,7 @@
 #include "TclCommandManager.h"
 #include "IDTracker.h"
 #include "View.h"
-
+#include "ScubaToolState.h"
 
 class ScubaFrame : public ToglFrame, public TclCommandListener {
 
@@ -32,6 +32,10 @@ public:
 
 protected:
 
+  // Adjusts window coords for a view.
+  void TranslateWindowToView ( int iWindow[2], int inCol, int inRow,
+			       int oView[2] );
+  
   // Sets the sizes for all of our views according to our current
   // configuration and view size.
   void SizeViewsToConfiguration ();
@@ -40,16 +44,15 @@ protected:
   virtual void DoDraw();
   virtual void DoReshape();
   virtual void DoTimer();
-  virtual void DoMouseMoved( int inX, int inY, InputState& iState );
-  virtual void DoMouseUp( int inX, int inY, InputState& iState );
-  virtual void DoMouseDown( int inX, int inY, InputState& iState );
-  virtual void DoKeyDown( int inX, int inY, InputState& iState );
-  virtual void DoKeyUp( int inX, int inY, InputState& iState );
+  virtual void DoMouseMoved( int iWindow[2], InputState& iInput );
+  virtual void DoMouseUp( int iWindow[2], InputState& iInput );
+  virtual void DoMouseDown( int iWindow[2], InputState& iInput );
+  virtual void DoKeyDown( int iWindow[2], InputState& iInput );
+  virtual void DoKeyUp( int iWindow[2], InputState& iInput );
 
   // Given a window location, returns a pointer to a view. Or could
   // throw an exception.
-  View* FindViewAtWindowLoc( int iWindowX, int iWindowY,
-			     int* onCol, int* onRow );
+  View* FindViewAtWindowLoc( int iWindow[2], int* onCol, int* onRow );
 
   // Access functions to get/set views at a col/row position. This can
   // be used even if the current view configuration doesn't have the
@@ -79,6 +82,9 @@ protected:
 
   // Uses this factory to make views.
   static ViewFactory* mFactory;
+
+  // Our tool.
+  ScubaToolState mTool;
 };
 
 // The factory passed to ToglManager so that this type of Frame is

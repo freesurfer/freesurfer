@@ -1,6 +1,3 @@
-#!/bin/sh
-# the next line restarts using wish \
-exec wish "$0" "$@"
 
 package require Tix
 
@@ -40,10 +37,23 @@ foreach sSourceFileName { tkUtils.tcl tkcon.tcl } {
 #   labelArea - label area
 #     col, row - grid position
 
-# gView
-#   config - 
+# gSubject
 
-# gLayer
+# gaMenu
+
+# gView
+#  inPlane - inPlane of current view
+
+# gaSubject
+
+# gaFrame
+#   n - id of frame
+#     viewConfi
+
+# gaView
+
+
+# gaLayer
 #   current - currently displayed layer in props panel
 #     id
 #     type
@@ -66,7 +76,6 @@ proc dputs { isMsg } {
 
 set gNextFrameID 0
 proc GetNewFrameID { } {
-
     global gNextFrameID
     set frameID $gNextFrameID
     incr gNextFrameID
@@ -143,13 +152,27 @@ proc SetDefaultFileLocation { iType isValue } {
 
 proc SetSubjectName { isSubject } {
     global gSubject
+    global gaWidget
     global env
     
-    # TODO: make sure this subject exists in the subject directory
-    
+    # Make sure this subject exists in the subject directory
+    if { ![info exists env(SUBJECTS_DIR)] } { 
+	tkuErrorDlog "SUBJECTS_DIR environment variable not set."
+	return
+    }
+    if { ![file isdirectory $env(SUBJECTS_DIR)/$isSubject] } { 
+	tkuErrorDlog "Subject $isSubject doesn't exist."
+	return
+    }
+
+    # Set some info.
     set gSubject(name) $isSubject
     set gSubject(homeDir) [file join $env(SUBJECTS_DIR) $isSubject]
     set gSubject(subjectsDir) $env(SUBJECTS_DIR)
+
+    # Select it in the subjects loader.
+    SelectSubjectInSubjectsLoader $isSubject
+	
 }
 
 proc FindFile { ifn } {
@@ -249,7 +272,7 @@ proc ExtractLabelFromFileName { ifnData } {
 	set sSubject ""
     }
     
-    # Data name is between mri/ and the next slash.
+    # Volume data name is between mri/ and the next slash.
     set bFoundDataName 0
     set nBegin [string first mri $ifnData]
     set nEnd 0
@@ -258,14 +281,21 @@ proc ExtractLabelFromFileName { ifnData } {
 	set nEnd [string first / $ifnData $nBegin]
 	if { $nEnd == -1 } {
 	    set nEnd [string length $ifnData]
+	    set sData [string range $ifnData $nBegin $nEnd]
+	    set sData [file rootname $sData] ; # Remove any file suffixes.
 	    set bFoundDataName 1
 	}
     }
 
-    if { $bFoundDataName } {
-	set sData [string range $ifnData $nBegin $nEnd]
-	set sData [file rootname $sData] ; # Remove any file suffixes.
-    } else {
+    # Surface data name is after surf/.
+    set nBegin [string first surf$sSeparator $ifnData]
+    if { $nBegin != -1 } {
+	incr nBegin 5
+	set sData [string range $ifnData $nBegin end]
+	set bFoundDataName 1
+    }
+
+    if { ! $bFoundDataName } {
 	# Not found, just use file name without suffix and path.
 	set sData [file rootname [file tail $ifnData]]
     }
@@ -335,28 +365,29 @@ proc MakeMenuBar { ifwTop } {
 
 
 proc MakeToolBar { ifwTop } {
-    global gTool
-    global gView
+    global gaTool
+    global gaFrame
 
     set fwToolBar     $ifwTop.fwToolBar
 
     frame $fwToolBar -border 2 -relief raised
-    
+
     tkuMakeToolbar $fwToolBar.fwTool \
 	-allowzero false \
 	-radio true \
-	-variable gTool(current) \
+	-variable gaTool($gaFrame([GetMainFrameID],toolID),mode) \
 	-command {ToolBarWrapper} \
 	-buttons {
-	    { -type image -name nav -image icon_navigate } 
+	    { -type image -name navigation -image icon_navigate } 
+	    { -type image -name voxelEditing -image icon_edit_volume } 
 	}
 
-    set gTool(current) nav
+    set gaTool($gaFrame([GetMainFrameID],toolID),mode) navigation
 
     tkuMakeToolbar $fwToolBar.fwView \
 	-allowzero false \
 	-radio true \
-	-variable gView(config) \
+	-variable gaFrame([GetMainFrameID],viewConfig) \
 	-command {ToolBarWrapper} \
 	-buttons {
 	    { -type image -name c1 -image icon_view_single }
@@ -364,7 +395,7 @@ proc MakeToolBar { ifwTop } {
 	    { -type image -name c13 -image icon_view_31 }
 	}
 
-    set gView(config) c1
+    set gaFrame([GetMainFrameID],viewConfig) c1
 
     tkuMakeToolbar $fwToolBar.fwInPlane \
 	-allowzero false \
@@ -387,10 +418,11 @@ proc MakeToolBar { ifwTop } {
 
 proc ToolBarWrapper { isName iValue } {
     global gaLayer
+    global gaFrame
     if { $iValue == 1 } {
 	switch $isName {
-	    nav {
-
+	    navigation - voxelEditing {
+		SetToolMode $gaFrame([GetMainFrameID],toolID) $isName
 	    }
 	    c1 - c22 - c13 {
 		SetFrameViewConfiguration [GetMainFrameID] $isName
@@ -424,8 +456,9 @@ proc GetMainFrameID {} {
 }
 
 proc MakeScubaFrame { ifwTop } {
-
     global gFrameWidgetToID
+    global gaFrame
+    global gaTool
 
     set fwScuba $ifwTop.fwScuba
     
@@ -441,6 +474,9 @@ proc MakeScubaFrame { ifwTop } {
     bind $fwScuba <Enter> "focus $fwScuba"
 
     set gFrameWidgetToID($fwScuba) $frameID
+
+    set gaFrame($frameID,toolID) [GetToolIDForFrame $frameID]
+    set gaTool($frameID,mode) [GetToolMode $gaFrame($frameID,toolID)]
 
     return $fwScuba
 }
@@ -603,6 +639,7 @@ proc MakeLayerPropertiesPanel { ifwTop } {
     frame $fwProps
     set fwPropsCommon $fwProps.fwPropsCommon
     set fwProps2DMRI  $fwProps.fwProps2DMRI
+    set fwProps2DMRIS $fwProps.fwProps2DMRIS
 
     frame $fwPropsCommon
     tkuMakeActiveLabel $fwPropsCommon.ewID \
@@ -622,6 +659,7 @@ proc MakeLayerPropertiesPanel { ifwTop } {
     grid $fwPropsCommon.ewType    -column 1 -row 0               -sticky new
     grid $fwPropsCommon.ewLabel   -column 0 -row 1 -columnspan 2 -sticky we
     grid $fwPropsCommon.swOpacity -column 0 -row 2 -columnspan 2 -sticky we
+
 
     frame $fwProps2DMRI
     tkuMakeToolbar $fwProps2DMRI.tbwColorMapMethod \
@@ -673,7 +711,6 @@ proc MakeLayerPropertiesPanel { ifwTop } {
     }
     set gaWidget(layerProperties,minMaxSliders) $fwProps2DMRI.swMinMax
 
-
     grid $fwProps2DMRI.tbwColorMapMethod -column 0 -row 0 -sticky ew
     grid $fwProps2DMRI.fwLUT             -column 0 -row 1 -sticky ew
     grid $fwProps2DMRI.cbwClearZero      -column 0 -row 2 -sticky ew
@@ -681,6 +718,25 @@ proc MakeLayerPropertiesPanel { ifwTop } {
     grid $fwProps2DMRI.swBC              -column 0 -row 4 -sticky ew
     grid $fwProps2DMRI.swMinMax          -column 0 -row 5 -sticky ew
     set gaWidget(layerProperties,2DMRI) $fwProps2DMRI
+
+    # hack, necessary to init color pickers first time
+    set gaLayer(current,redLineColor) 0
+    set gaLayer(current,greenLineColor) 0
+    set gaLayer(current,blueLineColor) 0
+
+    frame $fwProps2DMRIS
+    tkuMakeColorPickers $fwProps2DMRIS.cpColors \
+	-pickers {
+	    {-label "Line Color" -redVariable gaLayer(current,redLineColor) 
+		-greenVariable gaLayer(current,greenLineColor)
+		-blueVariable gaLayer(current,blueLineColor)
+		-command {Set2DMRISLayerLineColor $gaLayer(current,id) $gaLayer(current,redLineColor) $gaLayer(current,greenLineColor) $gaLayer(current,blueLineColor); RedrawFrame [GetMainFrameID]}}
+	}
+    set gaWidget(layerProperties,lineColorPickers) $fwProps2DMRIS.cpColors
+
+    grid $fwProps2DMRIS.cpColors        -column 0 -row 1 -sticky ew
+    set gaWidget(layerProperties,2DMRIS) $fwProps2DMRIS
+
 
     grid $fwPropsCommon -column 0 -row 0 -sticky news
 
@@ -719,6 +775,12 @@ proc MakeViewPropertiesPanel { ifwTop } {
 	-label "Row: " \
 	-variable gaView(current,row) -width 2
 
+    tkuMakeCheckboxes $fwProps.cbwLinked \
+	-checkboxes {
+	    {-type text -label "Linked" -variable gaView(current,linked)
+		-command {SetViewLinkedStatus $gaView(current,id) $gaView(current,linked)} }
+	}
+
     for { set nLevel 0 } { $nLevel < 10 } { incr nLevel } {
 	tixOptionMenu $fwProps.mwDraw$nLevel \
 	    -label "Draw Level $nLevel:" \
@@ -728,13 +790,18 @@ proc MakeViewPropertiesPanel { ifwTop } {
 	    $fwProps.mwDraw$nLevel
     }
 
-    grid $fwProps.ewID    -column 0 -row 0 -sticky nw
-    grid $fwProps.ewCol   -column 1 -row 0 -sticky e
-    grid $fwProps.ewRow   -column 2 -row 0 -sticky e
+    button $fwProps.bwCopyLayers -text "Copy Layers to Other Views" \
+	-command { CopyViewLayersToAllViewsInFrame [GetMainFrameID] $gaView(current,id) }
+    
+    grid $fwProps.ewID      -column 0 -row 0 -sticky nw
+    grid $fwProps.ewCol     -column 1 -row 0 -sticky e
+    grid $fwProps.ewRow     -column 2 -row 0 -sticky e
+    grid $fwProps.cbwLinked -column 0 -row 1 -sticky ew -columnspan 3
     for { set nLevel 0 } { $nLevel < 10 } { incr nLevel } {
 	grid $fwProps.mwDraw$nLevel \
-	    -column 0 -row [expr $nLevel + 1] -sticky ew -columnspan 3
+	    -column 0 -row [expr $nLevel + 2] -sticky ew -columnspan 3
     }
+    grid $fwProps.bwCopyLayers -column 0 -row 13 -sticky ew -columnspan 3
     
     grid $fwMenu -column 0 -row 0 -sticky new
     grid $fwProps -column 0 -row 1 -sticky news
@@ -759,6 +826,7 @@ proc SelectLayerInLayerProperties { iLayerID } {
 
     # Unpack the type-specific panels.
     grid forget $gaWidget(layerProperties,2DMRI)
+    grid forget $gaWidget(layerProperties,2DMRIS)
 
     # Get the general layer properties from the specific layer and
     # load them into the 'current' slots.
@@ -803,6 +871,21 @@ proc SelectLayerInLayerProperties { iLayerID } {
 	    set gaLayer(current,maxVisibleValue) \
 		[Get2DMRILayerMaxVisibleValue $iLayerID]
 	}
+	2DMRIS {
+	    # Pack the type panel.
+	    grid $gaWidget(layerProperties,2DMRIS) \
+		-column 0 -row 1 -sticky news
+
+	    # Get the type specific properties.
+	    set lColor [Get2DMRISLayerLineColor $iLayerID]
+	    set gaLayer(current,redLineColor) [lindex $lColor 0]
+	    set gaLayer(current,greenLineColor) [lindex $lColor 1]
+	    set gaLayer(current,blueLineColor) [lindex $lColor 2]
+
+	    # Configure color selector.
+	    tkuUpdateColorPickerValues \
+		$gaWidget(layerProperties,lineColorPickers)
+	}
     }
 }
 
@@ -841,6 +924,12 @@ proc UpdateLayerList {} {
     }
     # Renable the menu.
     $gaWidget(layerProperties,menu) config -disablecallback 0
+
+    # Reselect the current layer.
+    if { [info exists gaLayer(current,id)] && 
+	 $gaLayer(current,id) >= 0 } {
+	SelectLayerInLayerProperties $gaLayer(current,id)
+    }
 
 
     # Populate the menus in the view props draw level menus.
@@ -908,6 +997,7 @@ proc SelectViewInViewProperties { iViewID } {
     set gaView(current,id) $iViewID
     set gaView(current,col) [GetColumnOfViewInFrame [GetMainFrameID] $iViewID]
     set gaView(current,row) [GetRowOfViewInFrame [GetMainFrameID] $iViewID]
+    set gaView(current,linked) [GetViewLinkedStatus $iViewID]
  
     for { set nLevel 0 } { $nLevel < 10 } { incr nLevel } {
 	set gaView(current,draw$nLevel) \
@@ -1017,15 +1107,37 @@ proc SubjectsLoaderSubjectMenuCallback { inSubject } {
 
 proc SelectSubjectInSubjectsLoader { isSubject } {
     global gaWidget
+    global gaSubject
     global env
 
-    # We need to populate the data menus for this subject. 
+    # Make sure we know this subject.
+    set nSubject [lsearch $gaSubject(nameList) $isSubject]
+    if { $nSubject == -1 } {
+	tkuErrorDlog "Subject $isSubject doesn't exist."
+	return
+    }
+
+    # Make sure that this is the item selected in the menu. Disale the
+    # callback and set the value of the menu to the index of this
+    # subject name in the subject name list. Then reenable the callback.
+    $gaWidget(subjectsLoader,subjectsMenu) config -disablecallback 1
+    $gaWidget(subjectsLoader,subjectsMenu) config -value $nSubject
+    $gaWidget(subjectsLoader,subjectsMenu) config -disablecallback 0
+
+    # We need to populate the data menus for this subject.  Empty them
+    # first.
+
+    set lEntries [$gaWidget(subjectsLoader,volumeMenu) entries]
+    foreach entry $lEntries { 
+	$gaWidget(subjectsLoader,volumeMenu) delete $entry
+    }
 
     # For volumes, look for all the $sSubject/mri/ subdirs except
-    # transforms.and tmp.
+    # transforms.and tmp. Make sure they have COR-.info files in them.
     set lContents [dir -full $env(SUBJECTS_DIR)/$isSubject/mri]
     foreach sItem $lContents {
-	if { [file isdirectory $env(SUBJECTS_DIR)/$isSubject/mri/$sItem ] } {
+	if { [file isdirectory $env(SUBJECTS_DIR)/$isSubject/mri/$sItem] &&
+	  [file exists $env(SUBJECTS_DIR)/$isSubject/mri/$sItem/COR-.info]} {
 	    set sVolume [string trim $sItem /]
 	    if { "$sVolume" != "transforms" &&
 		 "$sVolume" != "tmp" } {
@@ -1036,6 +1148,10 @@ proc SelectSubjectInSubjectsLoader { isSubject } {
 	}
     }
     
+    set lEntries [$gaWidget(subjectsLoader,surfaceMenu) entries]
+    foreach entry $lEntries { 
+	$gaWidget(subjectsLoader,surfaceMenu) delete $entry
+    }
     # For surfaces, look for all the $sSubject/surf/{l,r}h files.
     set lContents [dir -full $env(SUBJECTS_DIR)/$isSubject/surf]
     foreach sItem $lContents {
@@ -1096,6 +1212,11 @@ proc UpdateSubjectList {} {
 
     # Reenable the menu.
     $gaWidget(subjectsLoader,subjectsMenu) config -disablecallback 0
+
+    # If we don't have a subject select, select the first one.
+    if { ![info exists gaSubject(current,id)] } {
+	SelectSubjectInSubjectsLoader [lindex $gaSubject(nameList) 0]
+    }
 }
 
 # LABEL AREA FUNCTIONS ==================================================
@@ -1161,7 +1282,7 @@ proc DrawLabelArea {} {
 
 # VIEW CONFIGURATION ==================================================
 
-proc AddLayerToAllViewsInFrame { iFrameID iLayerID } {
+proc SetLayerInAllViewsInFrame { iFrameID iLayerID } {
 
     # For each view...
     set err [catch { set cRows [GetNumberOfRowsInFrame $iFrameID] } sResult]
@@ -1266,16 +1387,16 @@ proc LoadVolume { ifnVolume ibCreateLayer iFrameIDToAdd } {
 
     if { $ibCreateLayer } {
 
-	set sLabel [ExtractLabelFromFileName $ifnVolume]
+	set sLabel [ExtractLabelFromFileName $fnVolume]
 
-	set layerID [Make2DMRILayer $sLabel]
+	set layerID [Make2DMRILayer "$sLabel"]
 
 	set err [catch {
 	    Set2DMRILayerVolumeCollection $layerID $colID } sResult]
 	if { 0 != $err } { tkuErrorDlog $sResult; return }
 	
 	if { $iFrameIDToAdd != -1 } {
-	    AddLayerToAllViewsInFrame $iFrameIDToAdd $layerID
+	    SetLayerInAllViewsInFrame $iFrameIDToAdd $layerID
 	}
 
 	SelectLayerInLayerProperties $layerID
@@ -1294,16 +1415,16 @@ proc LoadSurface { ifnSurface ibCreateLayer iFrameIDToAdd } {
 
     if { $ibCreateLayer } {
 
-	set sLabel [ExtractLabelFromFileName $ifnSurface]
+	set sLabel [ExtractLabelFromFileName $fnSurface]
 
-	set layerID [Make2DMRISLayer $sLabel]
+	set layerID [Make2DMRISLayer "$sLabel"]
 
 	set err [catch {
 	    Set2DMRISLayerSurfaceCollection $layerID $colID } sResult]
 	if { 0 != $err } { tkuErrorDlog $sResult; return }
 	
 	if { $iFrameIDToAdd != -1 } {
-	    AddLayerToAllViewsInFrame $iFrameIDToAdd $layerID
+	    SetLayerInAllViewsInFrame $iFrameIDToAdd $layerID
 	}
 
 	SelectLayerInLayerProperties $layerID
@@ -1401,10 +1522,11 @@ set gaWidget(tkconWindow) .tkcon
 set gaWidget(window) .main
 toplevel $gaWidget(window)
 
-# Make the areas in the window.
+# Make the areas in the window. Make the scuba frame first because it
+# inits stuff that is needed by other areas.
+set gaWidget(scubaFrame) [MakeScubaFrame $gaWidget(window)]
 set gaWidget(menuBar) [MakeMenuBar $gaWidget(window)]
 set gaWidget(toolBar) [MakeToolBar $gaWidget(window)]
-set gaWidget(scubaFrame) [MakeScubaFrame $gaWidget(window)]
 set gaWidget(labelArea) [MakeLabelArea $gaWidget(window)]
 set gaWidget(properties) [MakePropertiesPanel $gaWidget(window)]
 
@@ -1437,11 +1559,6 @@ grid rowconfigure $gaWidget(window) 3 -weight 0
 
 wm withdraw .
 
-# Now execute all the commands we cached before.
-foreach command $lCommands {
-    eval $command
-}
-
 # Let tkUtils finish up.
 tkuFinish
 
@@ -1453,3 +1570,8 @@ UpdateViewList
 UpdateSubjectList
 SelectViewInViewProperties 0
 
+
+# Now execute all the commands we cached before.
+foreach command $lCommands {
+    eval $command
+}

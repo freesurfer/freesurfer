@@ -5,11 +5,25 @@ using namespace std;
 ScubaLayer2DMRIS::ScubaLayer2DMRIS () {
   SetOutputStreamToCerr();
   mSurface = NULL;
+  maLineColor[0] = 0;
+  maLineColor[1] = 255;
+  maLineColor[2] = 0;
+  maVertexColor[0] = 255;
+  maVertexColor[1] = 0;
+  maVertexColor[2] = 255;
 
   TclCommandManager& commandMgr = TclCommandManager::GetManager();
   commandMgr.AddCommand( *this, "Set2DMRISLayerSurfaceCollection", 2, 
 			 "layerID collectionID",
 			 "Sets the surface collection for this layer." );
+  commandMgr.AddCommand( *this, "Set2DMRISLayerLineColor", 4, 
+			 "layerID red green blue",
+			 "Sets the line color for this layer. red, green, "
+			 "and blue should be 0-255 integers." );
+  commandMgr.AddCommand( *this, "Get2DMRISLayerLineColor", 1, "layerID",
+			 "Returns the line color for this layer as a list "
+			 " of red, green, and blue integers from 0-255." );
+
 
 }
 
@@ -86,14 +100,18 @@ ScubaLayer2DMRIS::DrawIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
 	  break;
 	}
 
-	int x, y;
-	iTranslator.TranslateRASToWindow( world, x, y );
+	int window[2];
+	iTranslator.TranslateRASToWindow( world, window );
 
-	if( x >= 0 && x < iWidth && y >= 0 && y < iHeight ) { 
-	  GLubyte* dest = iBuffer + (iWidth * y * 4) + (x * 4);
-	  dest[0] = 0;
-	  dest[1] = 255;
-	  dest[2] = 0;
+	if( window[0] >= 0 && window[0] < iWidth && 
+	    window[1] >= 0 && window[1] < iHeight ) { 
+	  GLubyte* dest = iBuffer + (iWidth * window[1] * 4) + (window[0] * 4);
+	  dest[0] = (GLubyte) (((float)dest[0] * (1.0 - mOpacity)) +
+			       ((float)maLineColor[0] * mOpacity));
+	  dest[1] = (GLubyte) (((float)dest[1] * (1.0 - mOpacity)) +
+			       ((float)maLineColor[1] * mOpacity));
+	  dest[2] = (GLubyte) (((float)dest[2] * (1.0 - mOpacity)) +
+			       ((float)maLineColor[2] * mOpacity));
 	  dest[3] = 255;
 	}
       }
@@ -102,7 +120,7 @@ ScubaLayer2DMRIS::DrawIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
 }
   
 void
-ScubaLayer2DMRIS::GetInfoAtRAS ( float inX, float inY, float inZ,
+ScubaLayer2DMRIS::GetInfoAtRAS ( float inRAS[3],
 			   std::map<std::string,std::string>& iLabelValues ) {
 
 }
@@ -146,6 +164,59 @@ ScubaLayer2DMRIS::DoListenToTclCommand ( char* isCommand,
 	sResult = "bad collection ID, collection not found";
 	return error;
       }
+    }
+  }
+
+  // Set2DMRISLayerLineColor <layerID> <red> <green> <blue>
+  if( 0 == strcmp( isCommand, "Set2DMRISLayerLineColor" ) ) {
+    int layerID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad layer ID";
+      return error;
+    }
+    
+    if( mID == layerID ) {
+      
+      int red = strtol( iasArgv[2], (char**)NULL, 10);
+      if( ERANGE == errno ) {
+	sResult = "bad red";
+	return error;
+      }
+      
+      int green = strtol( iasArgv[3], (char**)NULL, 10);
+      if( ERANGE == errno ) {
+	sResult = "bad green";
+	return error;
+      }
+      
+      int blue = strtol( iasArgv[4], (char**)NULL, 10);
+      if( ERANGE == errno ) {
+	sResult = "bad blue";
+	return error;
+      }
+      
+      int color[3];
+      color[0] = red;
+      color[1] = green;
+      color[2] = blue;
+      SetLineColor3d( color );
+    }
+  }
+
+  // Get2DMRISLayerLineColor <layerID>
+  if( 0 == strcmp( isCommand, "Get2DMRISLayerLineColor" ) ) {
+    int layerID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad layer ID";
+      return error;
+    }
+    
+    if( mID == layerID ) {
+      sReturnFormat = "Liiil";
+      stringstream ssReturnValues;
+      ssReturnValues << maLineColor[0] << " " << maLineColor[1] << " "
+		     << maLineColor[2];
+      sReturnValues = ssReturnValues.str();
     }
   }
 

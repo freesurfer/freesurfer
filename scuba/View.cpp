@@ -37,33 +37,33 @@ View::Timer() {
 }
 
 void
-View::MouseMoved( int inX, int inY, InputState& iState ) {
+View::MouseMoved( int iWindow[2], InputState& iInput, ScubaToolState& iTool ) {
 
-  this->DoMouseMoved( inX, inY, iState );
+  this->DoMouseMoved( iWindow, iInput, iTool );
 }
 
 void
-View::MouseUp( int inX, int inY, InputState& iState ) {
+View::MouseUp( int iWindow[2], InputState& iInput, ScubaToolState& iTool ) {
 
-  this->DoMouseUp( inX, inY, iState );
+  this->DoMouseUp( iWindow, iInput, iTool );
 }
 
 void
-View::MouseDown( int inX, int inY, InputState& iState ) {
+View::MouseDown( int iWindow[2], InputState& iInput, ScubaToolState& iTool ) {
 
-  this->DoMouseDown( inX, inY, iState );
+  this->DoMouseDown( iWindow, iInput, iTool );
 }
 
 void
-View::KeyDown( int inX, int inY, InputState& iState ) {
+View::KeyDown( int iWindow[2], InputState& iInput, ScubaToolState& iTool ) {
 
-  this->DoKeyDown( inX, inY, iState );
+  this->DoKeyDown( iWindow, iInput, iTool );
 }
 
 void
-View::KeyUp( int inX, int inY, InputState& iState ) {
+View::KeyUp( int iWindow[2], InputState& iInput, ScubaToolState& iTool ) {
 
-  this->DoKeyUp( inX, inY, iState );
+  this->DoKeyUp( iWindow, iInput, iTool );
 }
 
 TclCommandListener::TclCommandResult 
@@ -90,31 +90,36 @@ View::DoTimer() {
 }
 
 void
-View::DoMouseMoved( int inX, int inY, InputState& iState ) {
+View::DoMouseMoved( int iWindow[2], 
+		    InputState& iInput, ScubaToolState& iTool ) {
 
   DebugOutput( << "View " << msLabel << ": DoMouseMoved()" );
 }
 
 void
-View::DoMouseUp( int inX, int inY, InputState& iState ) {
+View::DoMouseUp( int iWindow[2], 
+		 InputState& iInput, ScubaToolState& iTool ) {
 
   DebugOutput( << "View " << msLabel << ": DoMouseUp()" );
 }
 
 void
-View::DoMouseDown( int inX, int inY, InputState& iState ) {
+View::DoMouseDown( int iWindow[2], 
+		   InputState& iInput, ScubaToolState& iTool ) {
 
   DebugOutput( << "View " << msLabel << ": DoMouseDown()" );
 }
 
 void
-View::DoKeyDown( int inX, int inY, InputState& iState ) {
+View::DoKeyDown( int iWindow[2], 
+		 InputState& iInput, ScubaToolState& iTool ) {
 
   DebugOutput( << "View " << msLabel << ": DoKeyDown()" );
 }
 
 void
-View::DoKeyUp( int inX, int inY, InputState& iState ) {
+View::DoKeyUp( int iWindow[2], 
+	       InputState& iInput, ScubaToolState& iTool ) {
 
   DebugOutput( << "View " << msLabel << ": DoKeyUp()" );
 }

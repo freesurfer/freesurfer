@@ -30,17 +30,17 @@ string InputState::Key() {
   return msKey;
 }
 
-std::ostream& operator << ( std::ostream& os, InputState& iState ) { 
-  if( iState.IsShiftKeyDown() )
+std::ostream& operator << ( std::ostream& os, InputState& iInput ) { 
+  if( iInput.IsShiftKeyDown() )
     os << "shift ";
-  if( iState.IsAltKeyDown() )
+  if( iInput.IsAltKeyDown() )
     os << "alt ";
-  if( iState.IsControlKeyDown() )
+  if( iInput.IsControlKeyDown() )
     os << "control ";
-  if( iState.Button() != 0 )
-    os << "button " << iState.Button();
-  if( iState.Key() != "" )
-    os << "key " << iState.Key();
+  if( iInput.Button() != 0 )
+    os << "button " << iInput.Button();
+  if( iInput.Key() != "" )
+    os << "key " << iInput.Key();
   return os;
 }
 
