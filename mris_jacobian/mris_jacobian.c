@@ -12,7 +12,7 @@
 #include "mri.h"
 #include "macros.h"
 
-static char vcid[] = "$Id: mris_jacobian.c,v 1.2 2002/05/01 20:00:00 fischl Exp $";
+static char vcid[] = "$Id: mris_jacobian.c,v 1.3 2002/05/01 20:52:28 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -23,8 +23,10 @@ static void print_help(void) ;
 static void print_version(void) ;
 static int  compute_area_ratios(MRI_SURFACE *mris, int noscale) ;
 static int  log_ratios(MRI_SURFACE *mris) ;
+static int  invert_ratios(MRI_SURFACE *mris) ;
 
 static int log_flag = 0 ;
+static int invert_flag = 0 ;
 static int noscale = 0 ;
 
 char *Progname ;
@@ -73,6 +75,8 @@ main(int argc, char *argv[])
   compute_area_ratios(mris, noscale) ;  /* will put results in v->curv */
   if (log_flag)
     log_ratios(mris) ;
+  if (invert_flag)
+    invert_ratios(mris) ;
   MRISwriteCurvature(mris, out_fname) ;
 
 
@@ -101,6 +105,11 @@ get_option(int argc, char *argv[])
   {
     log_flag = 1 ;
     fprintf(stderr, "computing log of jacobian...\n") ;
+  }
+  else if (!stricmp(option, "invert"))
+  {
+    invert_flag = 1 ;
+    fprintf(stderr, "computing inverse of jacobian<1 locations...\n") ;
   }
   else switch (toupper(*option))
   {
@@ -152,6 +161,7 @@ print_help(void)
   fprintf(stderr, "\nvalid options are:\n\n") ;
   fprintf(stderr, "\t-log:\tcompute and write out log of jacobian\n") ;
   fprintf(stderr, "\t-noscale:\tdon't scale jacobian by total surface areas\n") ;
+  fprintf(stderr, "\t-invert:\tcompute -1/jacobian for jacobian<1\n") ;
   exit(1) ;
 }
 
@@ -207,6 +217,30 @@ log_ratios(MRI_SURFACE *mris)
     if (v->curv < SMALL)
       v->curv = SMALL ;
     v->curv = log10(v->curv) ;
+    if (!finite(v->curv))
+      ErrorPrintf(ERROR_BADPARM, "vertex %d log not finite", vno) ;
+  }
+
+  return(NO_ERROR) ;
+}
+static int
+invert_ratios(MRI_SURFACE *mris)
+{
+  VERTEX  *v ;
+  int     vno ;
+  float   area_scale ;
+
+  area_scale = mris->total_area / mris->orig_area  ;
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+
+    if (v->curv < SMALL)
+      v->curv = SMALL ;
+    if (v->curv < 1)
+      v->curv = -1/v->curv ;
     if (!finite(v->curv))
       ErrorPrintf(ERROR_BADPARM, "vertex %d log not finite", vno) ;
   }
