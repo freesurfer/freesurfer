@@ -4,8 +4,8 @@
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/05/07 14:14:09 $
-// Revision       : $Revision: 1.27 $
+// Revision Date  : $Date: 2004/05/07 14:16:59 $
+// Revision       : $Revision: 1.28 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -217,6 +217,10 @@ GCAMwrite(GCA_MORPH *gcam, char *fname)
       for (z = 0 ; z < gcam->depth ; z++)
       {
         gcamn = &gcam->nodes[x][y][z] ;
+	// check whether negative area is written or not
+	if (gcamn->area < 0)
+	  fprintf(stderr, "node at (%d, %d, %d) has negative area %f\n", 
+		  x, y, z, gcamn->area);
         fwriteFloat(gcamn->origx, fp) ;
         fwriteFloat(gcamn->origy, fp) ;
         fwriteFloat(gcamn->origz, fp) ;
