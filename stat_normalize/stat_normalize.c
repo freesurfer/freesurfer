@@ -12,7 +12,7 @@
 #include "stats.h"
 #include "volume_io.h"
 
-static char vcid[] = "$Id: stat_normalize.c,v 1.2 1999/06/06 21:10:30 fischl Exp $";
+static char vcid[] = "$Id: stat_normalize.c,v 1.3 1999/07/15 19:00:15 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -52,7 +52,7 @@ main(int argc, char *argv[])
     argv += nargs ;
   }
 
-  if (argc < 2)
+  if (argc < 3)
     print_help() ;
   cp = getenv("SUBJECTS_DIR") ;
   if (!cp)
@@ -129,9 +129,13 @@ main(int argc, char *argv[])
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON) 
     for (event = 0 ; event < sv_avg->nevents ; event++)
   {
-    sprintf(out_fname, "avg%d.mnc", event) ;
+    float val ;
+
+    val = MRIFvox(sv_avg->mri_avgs[event], 35, 26, 78) ;
+    val = MRIFvox(sv_avg->mri_avgs[event], 53, 16, 74) ;
+    sprintf(out_fname, "avg%d.mgh", event) ;
     MRIwrite(sv_avg->mri_avgs[event], out_fname) ;
-    sprintf(out_fname, "std%d.mnc", event) ;
+    sprintf(out_fname, "std%d.mgh", event) ;
     MRIwrite(sv_avg->mri_stds[event], out_fname) ;
   }
 
