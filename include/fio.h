@@ -9,6 +9,7 @@ int   fread1(int *v, FILE *fp) ;
 int   fread2(int *v, FILE *fp) ;
 int   fread3(int *v, FILE *fp) ;
 int   fread4(float *v, FILE *fp) ;
+double freadDouble(FILE *fp) ;
 float freadFloat(FILE *fp) ;
 int   freadInt(FILE *fp) ;
 short freadShort(FILE *fp) ;

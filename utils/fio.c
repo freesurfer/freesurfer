@@ -151,6 +151,18 @@ freadFloat(FILE *fp)
 #endif
   return(f) ;
 }
+double
+freadDouble(FILE *fp)
+{
+  double d;
+  int   ret ;
+
+  ret = fread(&d,sizeof(double),1,fp);
+#ifdef Linux
+  d = swapDouble(d) ;
+#endif
+  return(d) ;
+}
 
 int
 freadInt(FILE *fp)
