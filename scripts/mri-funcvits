@@ -1,6 +1,6 @@
 #!/bin/csh -f
 
-set FUNCVITS_VER = '$Id: mri-funcvits,v 1.1 1999/10/26 15:09:34 greve Exp $';
+set FUNCVITS_VER = '$Id: mri-funcvits,v 1.2 2000/01/06 21:16:50 greve Exp $';
 
 set stem     = ();
 set outdir   = ();
@@ -13,6 +13,7 @@ set sphsurfname  = sphere
 set cansurfname  = sphere.dist_new
 set noforce = 0;
 set mailuser = ()
+set debug = 0;
 
 goto parse_args;
 parse_args_return:
@@ -113,8 +114,12 @@ foreach hemi ($hemilist)
      echo "$csurffc  already exists, skipping"
   else
     echo "---- $csurffc `date`--------"
-    vss-project -i $origsurf -f surf -pm $regfile -f register \
-                -o $csurffc
+    set cmd = "vss-project -i $origsurf -f surf "
+    set cmd = "$cmd -pm $regfile -f register -o $csurffc"
+    if($debug) then
+      echo $cmd
+    endif
+    $cmd
     if($status) then
       echo "ERROR: vss-project"
       exit 1;
@@ -171,6 +176,15 @@ while( $#argv != 0 )
   set flag = $argv[1]; shift;
   
   switch($flag)
+
+    case "-verbose"
+      set verbose = 1;
+      breaksw
+
+    case "-debug"
+      set debug = 1;
+      set verbose = 1;
+      breaksw
 
     case "-stem":
     case "-st":
