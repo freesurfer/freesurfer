@@ -28,7 +28,7 @@
 #include "tiff.h"
 #include "tiffio.h"
 
-static char vcid[] = "$Id: mris2rgb.c,v 1.6 1998/02/22 22:25:15 fischl Exp $";
+static char vcid[] = "$Id: mris2rgb.c,v 1.7 1998/02/24 17:45:42 fischl Exp $";
 
 /*-------------------------------- CONSTANTS -----------------------------*/
 
@@ -123,6 +123,8 @@ static int noscale = 1 ;
 static int fov = -1 ;
 static MRI_SURFACE_PARAMETERIZATION *mrisp = NULL ;
 static int tiff_flag = 0;
+static int param_no = -1 ;
+static int normalize_param = 0 ;
 
 /*-------------------------------- FUNCTIONS ----------------------------*/
 
@@ -206,7 +208,11 @@ main(int argc, char *argv[])
     }
 
     if (coord_fname)
-      MRISreadCanonicalCoordinates(mris, coord_fname) ;
+    {
+      if (MRISreadCanonicalCoordinates(mris, coord_fname) != NO_ERROR)
+        ErrorExit(Gerror, "%s: could not read canonical coordinate system",
+                  Progname) ;
+    }
     else
       MRISsaveVertexPositions(mris, CANONICAL_VERTICES) ;
 
@@ -241,7 +247,12 @@ main(int argc, char *argv[])
     if (mrisp)
     {
       MRISrestoreVertexPositions(mris, CANONICAL_VERTICES) ;
-      MRISfromParameterization(mrisp, mris, 0) ;
+      if (normalize_param)
+      {
+        MRISnormalizeFromParameterization(mrisp, mris, param_no) ;
+      }
+      else
+        MRISfromParameterization(mrisp, mris, 0) ;
       MRISrestoreVertexPositions(mris, ORIGINAL_VERTICES) ;
     }
     if (curvature_fname)
@@ -413,6 +424,25 @@ get_option(int argc, char *argv[])
   else if (!stricmp(option, "param"))
   {
     mrisp = MRISPread(argv[2]) ;
+    if (!mrisp)
+      ErrorExit(ERROR_NOFILE, "%s: could not read parameterization file %s",
+                Progname, argv[2]) ;
+    fprintf(stderr, "reading parameterized curvature from %s\n", argv[2]) ;
+    nargs = 1 ;
+  }
+  else if (!stricmp(option, "nparam"))
+  {
+    char *cp ;
+    cp = strchr(argv[2], '#') ;
+    if (cp)   /* # explicitly given */
+    {
+      param_no = atoi(cp+1) ;
+      *cp = 0 ;
+    }
+    else
+      param_no = 0 ;
+    mrisp = MRISPread(argv[2]) ;
+    normalize_param = 1 ;
     if (!mrisp)
       ErrorExit(ERROR_NOFILE, "%s: could not read parameterization file %s",
                 Progname, argv[2]) ;

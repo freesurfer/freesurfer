@@ -15,7 +15,7 @@
 #include "macros.h"
 #include "oglutil.h"
 
-static char vcid[] = "$Id: mris_show.c,v 1.23 1998/02/23 05:34:35 fischl Exp $";
+static char vcid[] = "$Id: mris_show.c,v 1.24 1998/02/24 17:46:50 fischl Exp $";
 
 
 /*-------------------------------- CONSTANTS -----------------------------*/
@@ -102,6 +102,8 @@ static int navgs = 0 ;
 static int nbrs = 2 ;
 static int nonmax_flag = 0 ;
 static char *coord_fname = NULL ;
+static int param_no = -1 ;
+static int normalize_param = 0 ;
 
 
 /*-------------------------------- FUNCTIONS ----------------------------*/
@@ -172,9 +174,13 @@ main(int argc, char *argv[])
                 Progname, in_fname) ;
   }
   if (coord_fname)
+  {
     if (MRISreadCanonicalCoordinates(mris, coord_fname) != NO_ERROR)
       ErrorExit(Gerror, "%s: could not read canonical coordinate system",
                 Progname) ;
+  }
+  else
+    MRISsaveVertexPositions(mris, CANONICAL_VERTICES) ;
 
   /*  MRIScomputeMetricProperties(mris) ;*/
   if (mean_curvature_flag || gaussian_curvature_flag)
@@ -187,7 +193,14 @@ main(int argc, char *argv[])
       MRISuseGaussianCurvature(mris) ;
   }
   if (mrisp)
-    MRISfromParameterization(mrisp, mris, 0) ;
+  {
+    MRISrestoreVertexPositions(mris, CANONICAL_VERTICES) ;
+    if (normalize_param)
+      MRISnormalizeFromParameterization(mrisp, mris, param_no) ;
+    else
+      MRISfromParameterization(mrisp, mris, 0) ;
+    MRISrestoreVertexPositions(mris, ORIGINAL_VERTICES) ;
+  }
   if (curvature_fname[0])
     MRISreadCurvatureFile(mris, curvature_fname) ;
   if (ellipsoid_flag)
@@ -316,6 +329,25 @@ get_option(int argc, char *argv[])
     print_help() ;
   else if (!stricmp(option, "-version"))
     print_version() ;
+  else if (!stricmp(option, "nparam"))
+  {
+    char *cp ;
+    cp = strchr(argv[2], '#') ;
+    if (cp)   /* # explicitly given */
+    {
+      param_no = atoi(cp+1) ;
+      *cp = 0 ;
+    }
+    else
+      param_no = 0 ;
+    mrisp = MRISPread(argv[2]) ;
+    normalize_param = 1 ;
+    if (!mrisp)
+      ErrorExit(ERROR_NOFILE, "%s: could not read parameterization file %s",
+                Progname, argv[2]) ;
+    fprintf(stderr, "reading parameterized curvature from %s\n", argv[2]) ;
+    nargs = 1 ;
+  }
   else if (!stricmp(option, "param"))
   {
     mrisp = MRISPread(argv[2]) ;
