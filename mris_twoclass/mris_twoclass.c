@@ -18,7 +18,7 @@
 #include "mrishash.h"
 #include "sig.h"
 
-static char vcid[] = "$Id: mris_twoclass.c,v 1.5 2002/06/25 20:33:05 fischl Exp $";
+static char vcid[] = "$Id: mris_twoclass.c,v 1.6 2002/07/26 14:51:08 fischl Exp $";
 
 
 /*-------------------------------- CONSTANTS -----------------------------*/
@@ -38,6 +38,7 @@ static int condition_0 = -1 ;
 static int condition_1 = -1 ;
 static int wfile_flag = 0 ;
 static double conf = 0.0 ;
+static int rectify_flag = 0 ;
 
 int main(int argc, char *argv[]) ;
 
@@ -419,6 +420,8 @@ main(int argc, char *argv[])
         if (normalize_flag)
           MRISnormalizeCurvature(mris) ;
       }
+      if (rectify_flag)
+        MRISrectifyCurvature(mris) ;
       mrisp = MRIStoParameterization(mris, NULL, 1, 0) ;
       MRISfree(&mris) ;
       
@@ -1111,6 +1114,8 @@ main(int argc, char *argv[])
       ErrorExit(Gerror,"%s: could no read curvature file %s",Progname,fname);
     if (normalize_flag)
       MRISnormalizeCurvature(mris) ;
+    if (rectify_flag)
+      MRISrectifyCurvature(mris) ;
 
     mrisp = MRIStoParameterization(mris, NULL, 1, 0) ;
     MRISfree(&mris) ;
@@ -1235,6 +1240,11 @@ get_option(int argc, char *argv[])
     sigma = atof(argv[2]) ;
     fprintf(stderr, "writing out confidence intervals of +-%2.1f*stderr\n",sigma) ;
     nargs = 1 ;
+  }
+  else if (!stricmp(option, "rectify") || !stricmp(option, "fabs"))
+  {
+    rectify_flag = 1 ;
+    fprintf(stderr, "rectifying input vectors.\n") ;
   }
   else if (!stricmp(option, "conf"))
   {
