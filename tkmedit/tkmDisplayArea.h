@@ -233,6 +233,7 @@ struct tkmDisplayArea {
   /* view state */
   xVoxelRef              mpLastCursor;
   xVoxelRef              mpCursor;
+  xVoxelRef              mpMouseLocationAnaIdx;
   mri_tOrientation       mOrientation;
   int                    mnZoomLevel;
   xVoxelRef              mpZoomCenter;

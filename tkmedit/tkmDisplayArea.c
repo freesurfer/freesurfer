@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2003/04/10 20:06:19 $
-// Revision       : $Revision: 1.57 $
+// Revision Date  : $Date: 2003/04/16 23:05:50 $
+// Revision       : $Revision: 1.58 $
 
 #include "tkmDisplayArea.h"
 #include "tkmMeditWindow.h"
@@ -141,6 +141,7 @@ DspA_tErr DspA_New ( tkmDisplayAreaRef* oppWindow,
   /* allocate our voxels */
   xVoxl_New( &this->mpLastCursor );
   xVoxl_New( &this->mpCursor );
+  xVoxl_New( &this->mpMouseLocationAnaIdx );
   xVoxl_New( &this->mpZoomCenter );
   xVoxl_New( &this->mpOriginalZoomCenter );
   
@@ -248,6 +249,7 @@ DspA_tErr DspA_Delete ( tkmDisplayAreaRef* ioppWindow ) {
   /* delete our voxels */
   xVoxl_Delete( &this->mpLastCursor );
   xVoxl_Delete( &this->mpCursor );
+  xVoxl_Delete( &this->mpMouseLocationAnaIdx );
   xVoxl_Delete( &this->mpZoomCenter );
   xVoxl_Delete( &this->mpOriginalZoomCenter );
   
@@ -3022,6 +3024,7 @@ DspA_tErr DspA_HandleMouseMoved_ ( tkmDisplayAreaRef this,
   if ( DspA_tErr_NoErr == eResult ) {
     DspA_SendPointInformationToTcl_( this, DspA_tDisplaySet_Mouseover, 
 				     &anaIdx );
+    xVoxl_Copy( this->mpMouseLocationAnaIdx, &anaIdx );
   } else {
     goto cleanup;
   }
@@ -4039,6 +4042,14 @@ DspA_tErr DspA_HandleDraw_ ( tkmDisplayAreaRef this ) {
   /* rebuilt all our slice changes, so we can clear this flag. */
   this->mbSliceChanged = FALSE;
   
+  /* we have to send the cursor info again to update the stars around
+     the currently active volume or segmentation (which may now be
+     different) */
+  DspA_SendPointInformationToTcl_( this, DspA_tDisplaySet_Cursor,
+				   this->mpCursor );
+  DspA_SendPointInformationToTcl_( this, DspA_tDisplaySet_Mouseover,
+				   this->mpMouseLocationAnaIdx );
+
   goto cleanup;
   
   goto error;
@@ -6648,8 +6659,13 @@ DspA_tErr DspA_SendPointInformationToTcl_ ( tkmDisplayAreaRef this,
   switch (this->mpVolume[tkm_tVolumeType_Main]->mpMriValues->type)
     {
     default:
-      sprintf( sTclArguments, "%s %d", 
-	       DspA_ksaDisplaySet[iSet], (int)fVolumeValue );
+      if( this->mabDisplayFlags[DspA_tDisplayFlag_AuxVolume] ) {
+	sprintf( sTclArguments, "%s %d", 
+		 DspA_ksaDisplaySet[iSet], (int)fVolumeValue );
+      } else {
+	sprintf( sTclArguments, "%s **%d**", 
+		 DspA_ksaDisplaySet[iSet], (int)fVolumeValue );
+      }
       break ;
     case MRI_FLOAT:
       {
@@ -6686,8 +6702,13 @@ DspA_tErr DspA_SendPointInformationToTcl_ ( tkmDisplayAreaRef this,
       switch (this->mpVolume[tkm_tVolumeType_Aux]->mpMriValues->type)
 	{
 	default:
-	  sprintf( sTclArguments, "%s %d", 
-		   DspA_ksaDisplaySet[iSet], (int)fVolumeValue );
+	  if( this->mabDisplayFlags[DspA_tDisplayFlag_AuxVolume] ) {
+	    sprintf( sTclArguments, "%s **%d**", 
+		 DspA_ksaDisplaySet[iSet], (int)fVolumeValue );
+	  } else {
+	    sprintf( sTclArguments, "%s %d", 
+		 DspA_ksaDisplaySet[iSet], (int)fVolumeValue );
+	  }
 	  break ;
 	case MRI_FLOAT:
 	  {
@@ -6789,8 +6810,13 @@ DspA_tErr DspA_SendPointInformationToTcl_ ( tkmDisplayAreaRef this,
       
       /* else just the label */
     } else {
-      sprintf( sTclArguments, "%s \"%s\"",
-               DspA_ksaDisplaySet[iSet], sLabel );
+      if( this->mabDisplayFlags[DspA_tDisplayFlag_AuxSegmentationVolume] ) {
+	sprintf( sTclArguments, "%s \"%s\"",
+		 DspA_ksaDisplaySet[iSet], sLabel );
+      } else {
+	sprintf( sTclArguments, "%s \"**%s**\"",
+		 DspA_ksaDisplaySet[iSet], sLabel );
+      }
     }
     tkm_SendTclCommand( tkm_tTclCommand_UpdateSegLabel, sTclArguments );
   }
@@ -6821,8 +6847,13 @@ DspA_tErr DspA_SendPointInformationToTcl_ ( tkmDisplayAreaRef this,
       
       /* else just the label */
     } else {
-      sprintf( sTclArguments, "%s \"%s\"",
-               DspA_ksaDisplaySet[iSet], sLabel );
+      if( this->mabDisplayFlags[DspA_tDisplayFlag_AuxSegmentationVolume] ) {
+	sprintf( sTclArguments, "%s \"**%s**\"",
+		 DspA_ksaDisplaySet[iSet], sLabel );
+      } else {
+	sprintf( sTclArguments, "%s \"%s\"",
+		 DspA_ksaDisplaySet[iSet], sLabel );
+      }
     }
     tkm_SendTclCommand( tkm_tTclCommand_UpdateAuxSegLabel, sTclArguments );
   }
