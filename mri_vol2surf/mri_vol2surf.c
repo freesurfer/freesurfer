@@ -1,6 +1,6 @@
 /*----------------------------------------------------------
   Name: vol2surf.c
-  $Id: mri_vol2surf.c,v 1.1 2001/02/06 17:54:20 greve Exp $
+  $Id: mri_vol2surf.c,v 1.2 2001/02/06 23:27:22 greve Exp $
   Author: Douglas Greve
   Purpose: Resamples a volume onto a surface. The surface
   may be that of a subject other than the source subject.
@@ -56,7 +56,7 @@ static int  check_format(char *fmt);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2surf.c,v 1.1 2001/02/06 17:54:20 greve Exp $";
+static char vcid[] = "$Id: mri_vol2surf.c,v 1.2 2001/02/06 23:27:22 greve Exp $";
 char *Progname = NULL;
 
 char *srcvolid   = NULL;
@@ -145,11 +145,11 @@ int main(int argc, char **argv)
   /* get info about the source volume */
   if(!strcmp(srcfmt,"bvolume")){
     err = bf_getvoldim(srcvolid,&nrows_src,&ncols_src,
-		       &nslcs_src,&nfrms,&endian,&srctype);
+           &nslcs_src,&nfrms,&endian,&srctype);
     if(err) exit(1);
     /* Dsrc: read the source registration file */
     err = regio_read_register(srcregfile, &srcsubject, &ipr, &bpr, 
-			      &intensity, &Dsrc, &float2int_src);
+            &intensity, &Dsrc, &float2int_src);
     if(err) exit(1);
     colres_src = ipr; /* in-plane resolution */
     rowres_src = ipr; /* in-plane resolution */
@@ -174,7 +174,7 @@ int main(int argc, char **argv)
 
   /* Qsrc: Compute the quantization matrix for src volume */
   Qsrc = FOVQuantMatrix(ncols_src,  nrows_src,  nslcs_src, 
-			colres_src, rowres_src, slcres_src); 
+      colres_src, rowres_src, slcres_src); 
 
   /* load in the (possibly 4-D) source volume */
   printf("Loading volume %s ...",srcvolid); fflush(stdout);
@@ -196,7 +196,7 @@ int main(int argc, char **argv)
     framepower = sxa_framepower(sxa,&f);
     if(f != SrcVol->nframes){
       fprintf(stderr," number of frames is incorrect (%d,%d)\n",
-	      f,SrcVol->nframes);
+        f,SrcVol->nframes);
       exit(1);
     }
     printf("INFO: Adjusting Frame Power\n");  fflush(stdout);
@@ -222,8 +222,8 @@ int main(int argc, char **argv)
   /* Map the values from the volume to the surface */
   printf("Mapping Source Volume onto Source Subject Surface\n");
   SurfVals = vol2surf_linear(SrcVol, Qsrc, Fsrc, Wsrc, Dsrc, 
-			     Surf, ProjFrac, interpmethod, 
-			     float2int);
+           Surf, ProjFrac, interpmethod, 
+           float2int);
   MRIfree(&SrcVol);
 
   if(trgsubject != NULL && strcmp(trgsubject,srcsubject)){
@@ -245,8 +245,8 @@ int main(int argc, char **argv)
 
     printf("Mapping Surfaces (%s -> %s)\n",srcsubject,trgsubject);
     SurfVals2 = surf2surf_nnfr(SurfVals, SrcSurfReg,TrgSurfReg,
-			       &SrcHits,&SrcDist,&TrgHits,&TrgDist,
-			       ReverseMapFlag,UseHash);
+             &SrcHits,&SrcDist,&TrgHits,&TrgDist,
+             ReverseMapFlag,UseHash);
 
     /*Compute some stats on mapping number of trgvtxs mapped from a source vtx*/
     nSrc121 = 0;
@@ -262,7 +262,7 @@ int main(int argc, char **argv)
     if(nSrcMulti > 0) MnSrcMultiHits = (MnSrcMultiHits/nSrcMulti);
     else              MnSrcMultiHits = 0;
     printf("nSrc121 = %5d, nSrcLost = %5d, nSrcMulti = %5d, MnSrcMultiHits = %g\n",
-	   nSrc121,nSrcLost,nSrcMulti,MnSrcMultiHits);
+     nSrc121,nSrcLost,nSrcMulti,MnSrcMultiHits);
     MRISfree(&SrcSurfReg);
 
     nTrg121 = 0;
@@ -276,7 +276,7 @@ int main(int argc, char **argv)
     if(nTrgMulti > 0) MnTrgMultiHits = (MnTrgMultiHits/nTrgMulti);
     else              MnTrgMultiHits = 0;
     printf("nTrg121 = %5d, nTrgMulti = %5d, MnTrgMultiHits = %g\n",
-	   nTrg121,nTrgMulti,MnTrgMultiHits);
+     nTrg121,nTrgMulti,MnTrgMultiHits);
 
     if(!strcasecmp(ofmt,"w") || !strcasecmp(ofmt,"paint"))
       SurfOut = TrgSurfReg;
@@ -286,14 +286,14 @@ int main(int argc, char **argv)
     /* save the Source Hits into a .w file */
     if(srchitfile != NULL){
       for(vtx = 0; vtx < Surf->nvertices; vtx++)
-	Surf->vertices[vtx].val = MRIFseq_vox(SrcHits,vtx,0,0,0) ;
+  Surf->vertices[vtx].val = MRIFseq_vox(SrcHits,vtx,0,0,0) ;
       MRISwriteValues(Surf, srchitfile) ;
       MRIfree(&SrcHits);
     }
     /* save the Target Hits into a .w file */
     if(trghitfile != NULL){
       for(vtx = 0; vtx < SurfOut->nvertices; vtx++)
-	SurfOut->vertices[vtx].val = MRIFseq_vox(TrgHits,vtx,0,0,0) ;
+  SurfOut->vertices[vtx].val = MRIFseq_vox(TrgHits,vtx,0,0,0) ;
       MRISwriteValues(SurfOut, trghitfile) ;
       MRIfree(&TrgHits);
     }
@@ -409,8 +409,8 @@ static int parse_commandline(int argc, char **argv)
       if(nargc < 1) argnerr(option,1);
       mapmethod = pargv[0];
       if(strcmp(mapmethod,"nnfr") && strcmp(mapmethod,"nnf")){
-	fprintf(stderr,"ERROR: mapmethod must be nnfr or nnf\n");
-	exit(1);
+  fprintf(stderr,"ERROR: mapmethod must be nnfr or nnf\n");
+  exit(1);
       }
       nargsused = 1;
     }
@@ -423,7 +423,7 @@ static int parse_commandline(int argc, char **argv)
       if(nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%d",&IcoOrder);
       printf("IcoOrder = %d, nIcoVtxs = %d\n",IcoOrder,
-	     IcoNVtxsFromOrder(IcoOrder));
+       IcoNVtxsFromOrder(IcoOrder));
       nargsused = 1;
     }
     else if (!strcmp(option, "--surfreg")){
@@ -446,9 +446,9 @@ static int parse_commandline(int argc, char **argv)
       interpmethod_string = pargv[0];
       interpmethod = interpolation_code(interpmethod_string);
       if(interpmethod == -1){
-	fprintf(stderr,"ERROR: interpmethod = %s\n",interpmethod_string);
-	fprintf(stderr,"  must be either nearest, tli, or sinc\n");
-	exit(1);
+  fprintf(stderr,"ERROR: interpmethod = %s\n",interpmethod_string);
+  fprintf(stderr,"  must be either nearest, tli, or sinc\n");
+  exit(1);
       }
       nargsused = 1;
     }
@@ -457,9 +457,9 @@ static int parse_commandline(int argc, char **argv)
       float2int_string = pargv[0];
       float2int = float2int_code(float2int_string);
       if(float2int == -1){
-	fprintf(stderr,"ERROR: float2int = %s\n",float2int_string);
-	fprintf(stderr,"  must be either round, floor, or tkreg\n");
-	exit(1);
+  fprintf(stderr,"ERROR: float2int = %s\n",float2int_string);
+  fprintf(stderr,"  must be either round, floor, or tkreg\n");
+  exit(1);
       }
       nargsused = 1;
     }
@@ -486,7 +486,7 @@ static int parse_commandline(int argc, char **argv)
     else{
       fprintf(stderr,"ERROR: Option %s unknown\n",option);
       if(singledash(option))
-	fprintf(stderr,"       Did you really mean -%s ?\n",option);
+  fprintf(stderr,"       Did you really mean -%s ?\n",option);
       exit(-1);
     }
     nargc -= nargsused;
@@ -531,7 +531,7 @@ static void print_usage(void)
   fprintf(stderr, "\n");
   fprintf(stderr, "   --interp    interpolation method (<nearest>, tli, or sinc)\n");
   fprintf(stderr, "   --float2int float-to-int conversion method "
-	  "(<round>, floor, or tkreg )\n");
+    "(<round>, floor, or tkreg )\n");
 
   fprintf(stderr, "\n");
 }
