@@ -11,6 +11,7 @@
 #define SAMPLE_NEAREST       0
 #define SAMPLE_TRILINEAR     1
 #define SAMPLE_SINC          2
+#define SAMPLE_CUBIC         3 /*E*/
 
 #define MRI_UCHAR   0
 #define MRI_INT     1
@@ -774,6 +775,7 @@ float MRIvolumeDeterminant(MRI *mri);
 #define RESAMPLE_NEAREST      1
 #define RESAMPLE_WEIGHTED     2
 #define RESAMPLE_SINC         3
+#define RESAMPLE_CUBIC        4 /*E*/
 
 int mriio_command_line(int argc, char *argv[]);
 int mriio_set_subject_name(char *name);
@@ -816,6 +818,7 @@ MATRIX *MRIrasXformToVoxelXform(MRI *mri_src, MRI *mri_dst,
 
 
 int MRIsincSampleVolume(MRI *mri, Real x, Real y, Real z, int hw, Real *pval);
+int MRIcubicSampleVolume(MRI *mri, Real x, Real y, Real z, Real *pval); /*E*/
 MRI *MRIsincTransform(MRI *mri_src, MRI *mri_dst, MATRIX *mA, int hw);
 int MRIlabelOverlap(MRI *mri1, MRI *mri2, int label) ;
 int MRIeraseBorderPlanes(MRI *mri) ;
