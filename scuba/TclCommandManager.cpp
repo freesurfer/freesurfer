@@ -417,3 +417,43 @@ TclCommandManager::SetCommandLineParameters ( int iArgc, char** iArgv ) {
   mArgc = iArgc;
   mArgv = iArgv;
 }
+
+int
+TclCommandManager::ConvertArgumentToInt ( std::string isArg ) {
+
+  int theInteger = strtol(isArg.c_str(), (char**)NULL, 10);
+  if( ERANGE == errno ) { 
+    string sResult = "non-integer value";
+    throw runtime_error( sResult );
+  }
+
+  return theInteger;
+}
+
+bool
+TclCommandManager::ConvertArgumentToBoolean ( std::string isArg ) {
+
+  bool theBoolean;
+  if( isArg == "true" || 
+      isArg == "1" ) {
+    theBoolean = true;
+  } else if( isArg == "false" ||
+	     isArg == "0" ) {
+    theBoolean = false;
+  } else {
+    string sResult;
+    sResult = "should be true, 1, false, or 0";
+    throw runtime_error( sResult );	
+  }
+  
+  return theBoolean;
+}
+
+std::string
+TclCommandManager::ConvertBooleanToReturnValue ( bool ib ) {
+  
+  stringstream ssValue;
+  ssValue << (int)ib;
+  return ssValue.str();
+}
+

@@ -14,7 +14,7 @@ Matrix44::Matrix44() {
 }
 
 Matrix44::~Matrix44() {
-
+  MatrixFree( &m );
 }
 
 void
@@ -32,13 +32,13 @@ Matrix44::SetMatrix ( float i0j0, float i1j0, float i2j0, float i3j0,
 void
 Matrix44::SetMatrix ( MATRIX* iMatrix ) {
   
-  m = MatrixCopy( iMatrix, NULL );
+  MatrixCopy( iMatrix, m );
 }
 
 void
 Matrix44::SetMatrix ( Matrix44& iMatrix ) {
 
-  m = MatrixCopy( iMatrix.GetMatrix(), NULL );
+  MatrixCopy( iMatrix.GetMatrix(), m );
 }
 
 void 
@@ -86,15 +86,20 @@ Matrix44::MakeRotation ( float iCenterPoint[3],
   
   Matrix44 transInv;
   transInv.SetMatrix ( 1, 0, 0, -p[0],
-			  0, 1, 0, -p[1],
+		       0, 1, 0, -p[1],
 			  0, 0, 1, -p[2],
-			  0, 0, 0, 1 );
+		       0, 0, 0, 1 );
 
-  Matrix44 final( transInv * 
-			yRotationInv * zRotationInv * 
-			rotation * 
-			zRotation * yRotation *
-			trans );
+  /*  Matrix44 final( transInv * 
+		  yRotationInv * zRotationInv * 
+		  rotation * 
+		  zRotation * yRotation *
+		  trans ); */
+  Matrix44 final( trans * 
+		  yRotation * zRotation * 
+		  rotation * 
+		  zRotationInv * yRotationInv *
+		  transInv );
 
   SetMatrix( final.GetMatrix() );
 }
@@ -394,13 +399,102 @@ Matrix44::MultiplyVector3 ( float const iVector[3], int oVector[3] ) {
 		       GetCR(3,2) );
 }
 
-inline Matrix44& operator*( Matrix44& m1, 
-			     Matrix44& m2 ) {
+inline Matrix44& operator*( Matrix44& m2, 
+			    Matrix44& m1 ) {
 
-  MATRIX* mult = MatrixMultiply( m1.GetMatrix(), m2.GetMatrix(), NULL );
+
+  float m00 = 
+    m1(0,0) * m2(0,0) + 
+    m1(0,1) * m2(1,0) + 
+    m1(0,2) * m2(2,0) + 
+    m1(0,3) * m2(3,0);
+  float m10 = 
+    m1(1,0) * m2(0,0) +
+    m1(1,1) * m2(1,0) +
+    m1(1,2) * m2(2,0) +
+    m1(1,3) * m2(3,0);
+  float m20 = 
+    m1(2,0) * m2(0,0) +
+    m1(2,1) * m2(1,0) +
+    m1(2,2) * m2(2,0) +
+    m1(2,3) * m2(3,0);
+  float m30 = 
+    m1(3,0) * m2(0,0) +
+    m1(3,1) * m2(1,0) +
+    m1(3,2) * m2(2,0) +
+    m1(3,3) * m2(3,0);
+
+  float m01 = 
+    m1(0,0) * m2(0,1) + 
+    m1(0,1) * m2(1,1) + 
+    m1(0,2) * m2(2,1) + 
+    m1(0,3) * m2(3,1);
+  float m11 = 
+    m1(1,0) * m2(0,1) +
+    m1(1,1) * m2(1,1) +
+    m1(1,2) * m2(2,1) +
+    m1(1,3) * m2(3,1);
+  float m21 = 
+    m1(2,0) * m2(0,1) +
+    m1(2,1) * m2(1,1) +
+    m1(2,2) * m2(2,1) +
+    m1(2,3) * m2(3,1);
+  float m31 = 
+    m1(3,0) * m2(0,1) +
+    m1(3,1) * m2(1,1) +
+    m1(3,2) * m2(2,1) +
+    m1(3,3) * m2(3,1);
+
+  float m02 = 
+    m1(0,0) * m2(0,2) + 
+    m1(0,1) * m2(1,2) + 
+    m1(0,2) * m2(2,2) + 
+    m1(0,3) * m2(3,2);
+  float m12 = 
+    m1(1,0) * m2(0,2) +
+    m1(1,1) * m2(1,2) +
+    m1(1,2) * m2(2,2) +
+    m1(1,3) * m2(3,2);
+  float m22 = 
+    m1(2,0) * m2(0,2) +
+    m1(2,1) * m2(1,2) +
+    m1(2,2) * m2(2,2) +
+    m1(2,3) * m2(3,2);
+  float m32 = 
+    m1(3,0) * m2(0,2) +
+    m1(3,1) * m2(1,2) +
+    m1(3,2) * m2(2,2) +
+    m1(3,3) * m2(3,2);
+
+  float m03 = 
+    m1(0,0) * m2(0,3) + 
+    m1(0,1) * m2(1,3) + 
+    m1(0,2) * m2(2,3) + 
+    m1(0,3) * m2(3,3);
+  float m13 = 
+    m1(1,0) * m2(0,3) +
+    m1(1,1) * m2(1,3) +
+    m1(1,2) * m2(2,3) +
+    m1(1,3) * m2(3,3);
+  float m23 = 
+    m1(2,0) * m2(0,3) +
+    m1(2,1) * m2(1,3) +
+    m1(2,2) * m2(2,3) +
+    m1(2,3) * m2(3,3);
+  float m33 = 
+    m1(3,0) * m2(0,3) +
+    m1(3,1) * m2(1,3) +
+    m1(3,2) * m2(2,3) +
+    m1(3,3) * m2(3,3);
+
+  //  MATRIX* mult = MatrixMultiply( m1.GetMatrix(), m2.GetMatrix(), NULL );
   Matrix44* result = new Matrix44();
-  result->SetMatrix( mult );
-  MatrixFree( &mult );
+  //  result->SetMatrix( mult );
+  //  MatrixFree( &mult );
+  result->SetMatrix( m00, m10, m20, m30,
+		     m01, m11, m21, m31,
+		     m02, m12, m22, m32,
+		     m03, m13, m23, m33 );
   return *result;
 };
 

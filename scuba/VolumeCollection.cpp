@@ -674,12 +674,12 @@ VolumeCollection::GetRASPointsInCube ( float iCenterRAS[3], float iRadius,
 				       list<Point3<float> >& oPoints ) {
   
   // Find out the RAS.bounds.
-  float beginX = MAX( mMRI->xstart, iCenterRAS[0] - iRadius );
-  float endX   = MIN( mMRI->xend,   iCenterRAS[0] + iRadius );
-  float beginY = MAX( mMRI->ystart, iCenterRAS[1] - iRadius );
-  float endY   = MIN( mMRI->yend,   iCenterRAS[1] + iRadius );
-  float beginZ = MAX( mMRI->zstart, iCenterRAS[2] - iRadius );
-  float endZ   = MIN( mMRI->zend,   iCenterRAS[2] + iRadius );
+  float beginX = iCenterRAS[0] - iRadius;
+  float endX   = iCenterRAS[0] + iRadius;
+  float beginY = iCenterRAS[1] - iRadius;
+  float endY   = iCenterRAS[1] + iRadius;
+  float beginZ = iCenterRAS[2] - iRadius;
+  float endZ   = iCenterRAS[2] + iRadius;
 
   // Limit according to our dimensions.
   if( !ibBrushX ) {
@@ -698,7 +698,8 @@ VolumeCollection::GetRASPointsInCube ( float iCenterRAS[3], float iRadius,
     for( float nY = beginY; nY <= endY; nY += GetVoxelYSize()/2.0 ) {
       for( float nX = beginX; nX <= endX; nX += GetVoxelZSize()/2.0 ) {
 	Point3<float> ras( nX, nY, nZ );
-	oPoints.push_back( ras );
+	if( IsRASInMRIBounds(ras.xyz()) )
+	    oPoints.push_back( ras );
       }
     }
   }
@@ -710,12 +711,12 @@ VolumeCollection::GetRASPointsInSphere ( float iCenterRAS[3], float iRadius,
 					 bool ibBrushZ,
 					 list<Point3<float> >& oPoints ) {
   // Find out the RAS.bounds.
-  float beginX = MAX( mMRI->xstart, iCenterRAS[0] - iRadius );
-  float endX   = MIN( mMRI->xend,   iCenterRAS[0] + iRadius );
-  float beginY = MAX( mMRI->ystart, iCenterRAS[1] - iRadius );
-  float endY   = MIN( mMRI->yend,   iCenterRAS[1] + iRadius );
-  float beginZ = MAX( mMRI->zstart, iCenterRAS[2] - iRadius );
-  float endZ   = MIN( mMRI->zend,   iCenterRAS[2] + iRadius );
+  float beginX = iCenterRAS[0] - iRadius;
+  float endX   = iCenterRAS[0] + iRadius;
+  float beginY = iCenterRAS[1] - iRadius;
+  float endY   = iCenterRAS[1] + iRadius;
+  float beginZ = iCenterRAS[2] - iRadius;
+  float endZ   = iCenterRAS[2] + iRadius;
 
   // Limit according to our dimensions.
   if( !ibBrushX ) {
@@ -744,7 +745,8 @@ VolumeCollection::GetRASPointsInSphere ( float iCenterRAS[3], float iRadius,
 	}
 
 	Point3<float> ras( nX, nY, nZ );
-	oPoints.push_back( ras );
+	if( IsRASInMRIBounds(ras.xyz()) )
+	  oPoints.push_back( ras );
       }
     }
   }
@@ -903,18 +905,13 @@ VolumeCollection::WriteROIsToSegmentation ( string ifnVolume ) {
 void
 VolumeCollection::CalcWorldToIndexTransform () {
 
-  // I guess we don't really want to do this here.
-#if 0
-  mWorldToIndexTransform = mDataToWorldTransform->Inverse();
-  mWorldToIndexTransform.ApplyTransform( mDataToIndexTransform );
-#endif
-
   // This makes it look like tkmedit when it loads a display
   // transform, is this right???
   mWorldToIndexTransform =
     mDataToIndexTransform * mDataToWorldTransform->Inverse();
 
   DataChanged();
+  UpdateRASBounds();
 }
 
 #if 0

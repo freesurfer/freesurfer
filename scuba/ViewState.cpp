@@ -7,6 +7,7 @@ ViewState::ViewState () {
   mCenterRAS[0] = mCenterRAS[1] = mCenterRAS[2] = 0;
   mZoomLevel = 1;
   mInPlane = X;
+  mPlaneNormal[0] = 1; mPlaneNormal[1] = 0; mPlaneNormal[2] = 0;
 }
 
 std::ostream& operator << ( std::ostream& os, ViewState& iInput ) { 

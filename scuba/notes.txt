@@ -290,12 +290,12 @@ x     - display text, progress, have buttons on right
 - use transform.h TransformRead to load transforms
   - need TransformCompose to get single matrix
 
+- add 'selectable' flag to layer
 
 DRAWING TOOLS:::
 
 - connecting lines
 - save reload lines
-- < 1mm brush size
 
 - write docs for jean and david
 
@@ -312,7 +312,7 @@ BUGS:::
 - brings up tkcon window briefly when booting
 - sometimes filling returns an error with NewTask tcl cmd
 - crashing on ROI fill
-- on first boot, doesn't find view before adding volume
+- markers and cursor draw at different slices when zoomed in
 
 FUTURE IDEAS:::
 
@@ -326,9 +326,3 @@ nav tools draw onscreen sliders for feedback
 
 
  
-
-optimization
- - replace if's in DrawIntoBuffer with function pointers, i.e. GetValueAtRASForSampleMethod and GetColorOfValueForColorMapMethod - woudn't matter much
-
-
-

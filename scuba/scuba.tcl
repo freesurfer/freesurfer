@@ -10,7 +10,7 @@ if { $err } {
     load [file dirname [info script]]/libscuba[info sharedlibextension] scuba
 }
 
-DebugOutput "\$Id: scuba.tcl,v 1.36 2004/06/14 01:28:12 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.37 2004/06/18 20:04:58 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -473,6 +473,7 @@ proc MakeToolBar { ifwTop } {
 
     global gaTool
     global gaFrame
+    global gaView
 
     set fwToolBar     $ifwTop.fwToolBar
 
@@ -1492,6 +1493,14 @@ proc MakeLayerPropertiesPanel { ifwTop } {
     }
     set gaWidget(layerProperties,minMaxSliders) $fwProps2DMRI.swMinMax
 
+    tkuMakeCheckboxes $fwProps2DMRI.cbwEditableROI \
+	-font [tkuNormalFont] \
+	-checkboxes { 
+	    {-type text -label "Editable ROI" 
+		-variable gaLayer(current,editableROI) 
+		-command {Set2DMRILayerEditableROI $gaLayer(current,id) $gaLayer(current,editableROI)} }
+	}
+
     tkuMakeSliders $fwProps2DMRI.swROIOpacity -sliders {
 	{-label "ROI Opacity" -variable gaLayer(current,roiOpacity) 
 	    -min 0 -max 1 -resolution 0.1 
@@ -1505,7 +1514,8 @@ proc MakeLayerPropertiesPanel { ifwTop } {
     grid $fwProps2DMRI.tbwSampleMethod   -column 0 -row 3 -sticky ew
     grid $fwProps2DMRI.swBC              -column 0 -row 4 -sticky ew
     grid $fwProps2DMRI.swMinMax          -column 0 -row 5 -sticky ew
-    grid $fwProps2DMRI.swROIOpacity      -column 0 -row 6 -sticky ew
+    grid $fwProps2DMRI.cbwEditableROI    -column 0 -row 6 -sticky ew
+    grid $fwProps2DMRI.swROIOpacity      -column 0 -row 7 -sticky ew
     set gaWidget(layerProperties,2DMRI) $fwProps2DMRI
 
     # hack, necessary to init color pickers first time
@@ -2089,6 +2099,8 @@ proc SelectLayerInLayerProperties { iLayerID } {
 		[Get2DMRILayerMinVisibleValue $iLayerID]
 	    set gaLayer(current,maxVisibleValue) \
 		[Get2DMRILayerMaxVisibleValue $iLayerID]
+	    set gaLayer(current,editableROI) \
+		[Get2DMRILayerEditableROI $iLayerID]
 	    set gaLayer(current,roiOpacity) \
 		[Get2DMRILayerROIOpacity $iLayerID]
 
@@ -3367,6 +3379,11 @@ while { $nArg < $argc } {
 	    set sSubject [lindex $argv $nArg]
 	    lappend lCommands "SetSubjectName $sSubject"
 	}
+	t - transform {
+	    incr nArg
+	    set fnTransform [lindex $argv $nArg]
+	    lappend lCommands "LoadTransform $fnTransform"
+	}
 	
 	help - default {
 	    if {$sOption != "help"} {puts "Option $sOption not recognized."}
@@ -3381,6 +3398,8 @@ while { $nArg < $argc } {
 	    puts "                      the subject's directory specified with -s."
 	    puts "-f, --surface FILE    Load a surface file Can be a file name or a subdir in"
 	    puts "                      the subject's directory specified with -s."
+	    puts "-t, --transform FILE  Load a transform file Can be a file name or a file in"
+	    puts "                      the subject's mri/transforms directory specified with -s."
 	    exit
 	}
     }

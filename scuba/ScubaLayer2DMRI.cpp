@@ -23,6 +23,7 @@ ScubaLayer2DMRI::ScubaLayer2DMRI () {
   mContrast = 12.0; mNegContrast = -mContrast;
   mCurrentLine = NULL;
   mROIOpacity = 0.7;
+  mbEditableROI = true;
   mbClearZero = false;
 
   // Try setting our initial color LUT to the default LUT with
@@ -95,6 +96,12 @@ ScubaLayer2DMRI::ScubaLayer2DMRI () {
 			 "Sets the opacity of the ROI for a layer." );
   commandMgr.AddCommand( *this, "Get2DMRILayerROIOpacity", 1, "layerID",
 			 "Returns the opacity of the ROI for a layer." );
+  commandMgr.AddCommand( *this, "Set2DMRILayerEditableROI", 2, 
+			 "layerID editable", "Specify whether or not this "
+			 "layer's ROI is editable." );
+  commandMgr.AddCommand( *this, "Get2DMRILayerEditableROI", 1, "layerID",
+			 "Returns whether or not this layer's ROI is "
+			 "editable." );
   
 }
 
@@ -167,7 +174,7 @@ ScubaLayer2DMRI::DrawIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
 	case heatScale: GetHeatscaleColorForValue( value, dest, color );break;
 	case LUT:       GetColorLUTColorForValue( value, dest, color ); break;
 	}
-	
+
 	dest[0] = aColorTimesOneMinusOpacity[dest[0]] + 
 	  aColorTimesOpacity[color[0]];
 	dest[1] = aColorTimesOneMinusOpacity[dest[1]] + 
@@ -181,25 +188,27 @@ ScubaLayer2DMRI::DrawIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
     }
   }
 
+
+  dest = iBuffer;
   for( window[1] = 0; window[1] < iHeight; window[1]++ ) {
     for( window[0] = 0; window[0] < iWidth; window[0]++ ) {
       
       // Use our buffer to get an RAS point.
       Point3<float> RAS = windowToRAS.Get( window[0], window[1] );
-
+      
       int selectColor[3];
       if( mVolume->IsRASInMRIBounds( RAS.xyz() ) ) {
 	if( mVolume->IsRASSelected( RAS.xyz(), selectColor ) ) {
-	
-	// Write the RGB value to the buffer. Write a 255 in the
-	// alpha byte.
-	dest[0] = (GLubyte) (((float)dest[0] * (1.0 - mROIOpacity)) +
-			     ((float)selectColor[0] * mROIOpacity));
-	dest[1] = (GLubyte) (((float)dest[1] * (1.0 - mROIOpacity)) +
-			     ((float)selectColor[1] * mROIOpacity));
-	dest[2] = (GLubyte) (((float)dest[2] * (1.0 - mROIOpacity)) +
-			     ((float)selectColor[2] * mROIOpacity));
-      }
+
+	  // Write the RGB value to the buffer. Write a 255 in the
+	  // alpha byte.
+	  dest[0] = (GLubyte) (((float)dest[0] * (1.0 - mROIOpacity)) +
+			       ((float)selectColor[0] * mROIOpacity));
+	  dest[1] = (GLubyte) (((float)dest[1] * (1.0 - mROIOpacity)) +
+			       ((float)selectColor[1] * mROIOpacity));
+	  dest[2] = (GLubyte) (((float)dest[2] * (1.0 - mROIOpacity)) +
+			       ((float)selectColor[2] * mROIOpacity));
+	}
       }
       
       // Advance our pixel buffer pointer.
@@ -243,9 +252,8 @@ void
 ScubaLayer2DMRI::GetGrayscaleColorForValue ( float iValue,GLubyte* const iBase,
 					     int* oColor ) {
 
-  if( (!mbClearZero && 
-       iValue >= mMinVisibleValue && iValue <= mMaxVisibleValue) ||
-      (mbClearZero && iValue != 0) ) {
+  if( (!mbClearZero || (mbClearZero && iValue != 0)) &&
+       (iValue >= mMinVisibleValue && iValue <= mMaxVisibleValue) ) {
 
     int nLUT = (int) floor( (cGrayscaleLUTEntries-1) * 
 			    ((iValue - mMinVisibleValue) /
@@ -257,7 +265,9 @@ ScubaLayer2DMRI::GetGrayscaleColorForValue ( float iValue,GLubyte* const iBase,
 
   } else {
     
-    oColor[0] = iBase[0]; oColor[1] = iBase[1]; oColor[2] = iBase[2];
+    oColor[0] = (int)iBase[0]; 
+    oColor[1] = (int)iBase[1]; 
+    oColor[2] = (int)iBase[2];
   }
 }
 
@@ -265,9 +275,8 @@ void
 ScubaLayer2DMRI::GetHeatscaleColorForValue ( float iValue,GLubyte* const iBase,
 					     int* oColor ) {
 
-  if( (!mbClearZero && 
-       iValue >= mMinVisibleValue && iValue <= mMaxVisibleValue) ||
-      (mbClearZero && iValue != 0) ) {
+  if( (!mbClearZero || (mbClearZero && iValue != 0)) &&
+       (iValue >= mMinVisibleValue && iValue <= mMaxVisibleValue) ) {
     
     float midValue;
     midValue = (mMaxVisibleValue - mMinVisibleValue) / 2.0 + mMinVisibleValue;
@@ -336,9 +345,9 @@ void
 ScubaLayer2DMRI::GetColorLUTColorForValue ( float iValue, GLubyte* const iBase,
 					    int* oColor ) {
   
-  if( (NULL != mColorLUT && !mbClearZero && 
-       iValue >= mMinVisibleValue && iValue <= mMaxVisibleValue) ||
-      (NULL != mColorLUT && mbClearZero && iValue != 0) ) {
+  if( (NULL != mColorLUT) && 
+      (!mbClearZero || (mbClearZero && iValue != 0)) &&
+      (iValue >= mMinVisibleValue && iValue <= mMaxVisibleValue) ) {
 
     mColorLUT->GetColorAtIndex( (int)iValue, oColor );
 
@@ -834,6 +843,49 @@ ScubaLayer2DMRI::DoListenToTclCommand ( char* isCommand, int iArgc, char** iasAr
     }
   }
   
+  // Set2DMRILayerEditableROI <layerID> <editable>
+  if( 0 == strcmp( isCommand, "Set2DMRILayerEditableROI" ) ) {
+    int layerID;
+    try {
+      layerID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
+    }
+    catch( runtime_error e ) {
+      sResult = string("bad layerID: ") + e.what();
+      return error;
+    }
+    
+    if( mID == layerID ) {
+      
+      try {
+	mbEditableROI =
+	  TclCommandManager::ConvertArgumentToBoolean( iasArgv[2] );
+      }
+      catch( runtime_error e ) {
+	sResult = "bad editable \"" + string(iasArgv[2]) + "\"," + e.what();
+	return error;	
+      }
+    }
+  }
+
+  // Get2DMRILayerEditableROI <layerID>
+  if( 0 == strcmp( isCommand, "Get2DMRILayerEditableROI" ) ) {
+    int layerID;
+    try {
+      layerID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
+    }
+    catch( runtime_error e ) {
+      sResult = string("bad layerID: ") + e.what();
+      return error;
+    }
+    
+    if( mID == layerID ) {
+
+      sReturnValues =
+	TclCommandManager::ConvertBooleanToReturnValue( mbEditableROI );
+      sReturnFormat = "i";
+    }
+  }
+
   return Layer::DoListenToTclCommand( isCommand, iArgc, iasArgv );
 }
 
@@ -850,13 +902,19 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
     
     switch( iInput.Button() ) {
     case 2:
-      mVolume->SetMRIValueAtRAS( iRAS, 255 );
-      RequestRedisplay();
+      if( mVolume->IsRASInMRIBounds(iRAS) ) {
+	mVolume->SetMRIValueAtRAS( iRAS, 255 );
+	RequestRedisplay();
+      }
       break;
     }
     break;
 
   case ScubaToolState::roiEditing:
+
+    // If not editable, return now;
+    if( !mbEditableROI ) 
+      return;
 
     // If shift key is down, we're filling. Make a flood params object
     // and fill it out, then make a flood select object, specifying
@@ -864,7 +922,8 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
     // the params.
     if( iInput.IsShiftKeyDown() ) {
 
-      if( iInput.IsButtonDownEvent() ) {
+      if( iInput.IsButtonDownEvent() &&
+	  mVolume->IsRASInMRIBounds(iRAS) ) {
 
 	VolumeCollectionFlooder::Params params;
 	params.mbStopAtEdges = iTool.GetFloodStopAtLines();
@@ -942,10 +1001,12 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
 	  list<Point3<float> >::iterator tPoints;
 	  for( tPoints = points.begin(); tPoints != points.end(); ++tPoints ) {
 	    Point3<float> point = *tPoints;
-	    mVolume->SelectRAS( point.xyz() );
-	    UndoSelectionAction* action = 
-	      new UndoSelectionAction( mVolume, true, point.xyz() );
-	    undoList.AddAction( action );
+	    if( mVolume->IsRASInMRIBounds(point.xyz()) ) {
+	      mVolume->SelectRAS( point.xyz() );
+	      UndoSelectionAction* action = 
+		new UndoSelectionAction( mVolume, true, point.xyz() );
+	      undoList.AddAction( action );
+	    }
 	  }
 	  undoList.EndAction();
 	}
@@ -954,10 +1015,12 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
 	  list<Point3<float> >::iterator tPoints;
 	  for( tPoints = points.begin(); tPoints != points.end(); ++tPoints ) {
 	    Point3<float> point = *tPoints;
-	    mVolume->UnselectRAS( point.xyz() );
-	    UndoSelectionAction* action = 
-	      new UndoSelectionAction( mVolume, false, point.xyz() );
-	    undoList.AddAction( action );
+	    if( mVolume->IsRASInMRIBounds(point.xyz()) ) {
+	      mVolume->UnselectRAS( point.xyz() );
+	      UndoSelectionAction* action = 
+		new UndoSelectionAction( mVolume, false, point.xyz() );
+	      undoList.AddAction( action );
+	    }
 	  }
 	}
 	  

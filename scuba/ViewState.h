@@ -16,6 +16,7 @@ class ViewState {
 
   float mCenterRAS[3];
   float mZoomLevel;            
+  float mPlaneNormal[3];
   Plane mInPlane;
 
   int mBufferWidth;

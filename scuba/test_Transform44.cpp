@@ -64,8 +64,6 @@ Transform44Tester::Test () {
 	    FEQUAL( in[1], 6.0 ) && FEQUAL( in[2], 7.0) ),
 	   "Inv scale mult check failed");
 
-
-
     // Try loading an LTA.
     Transform44 l;
     l.LoadFromLTAFile( "sample.lta" );

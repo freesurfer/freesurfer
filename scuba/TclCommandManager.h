@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2004/06/10 23:15:06 $
-// Revision       : $Revision: 1.11 $
+// Revision Date  : $Date: 2004/06/18 20:04:58 $
+// Revision       : $Revision: 1.12 $
 
 #ifndef TclCommandManager_h
 #define TclCommandManager_h
@@ -104,6 +104,14 @@ class TclCommandManager : public DebugReporter, public TclCommandListener {
   void DoTclEvent ();
 
   void SetCommandLineParameters ( int iArgc, char** iArgv );
+
+  // For converting arguments. Will throw run_time exception if not
+  // it's an unconvertible value. The exception's message will
+  // specify what the problem with the value was.
+  static int ConvertArgumentToInt ( std::string isArg );
+  static bool ConvertArgumentToBoolean ( std::string isArg );
+  static std::string ConvertBooleanToReturnValue ( bool ib );
+
 
  protected:
 

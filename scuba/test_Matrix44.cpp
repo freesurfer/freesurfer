@@ -21,6 +21,8 @@ using namespace std;
 #define VFEQUAL(v,a,b,c) \
    (FEQUAL(((v)[0]),a) && FEQUAL(((v)[1]),b) && FEQUAL(((v)[2]),c))
 
+#define FEQUAL2(a,b) ((a) - (b) < 0.001)
+
 class Matrix44Tester {
 public:
   void Test();
@@ -177,7 +179,7 @@ Matrix44Tester::Test () {
 		     1, 0, 1, 0,
 		     0, 1, 0, 1,
 		     1, 0, 1, 0 );
-    Matrix44 a3 = a1 * a2;
+    Matrix44 a3 = a2 * a1;
     for( int r = 0; r < 4; r++ ) {
       for( int c = 0; c < 4; c++ ) {
 	float sum = 0;
@@ -241,6 +243,26 @@ Matrix44Tester::Test () {
 	  throw runtime_error( ss.str() );
     }
 
+
+    // Inverse.
+    m.SetMatrix( -0.263203142774843, -0.92207253201611, -0.283736411718422, -3.35437752965114,
+		 0.960353372502555, -0.222402361044052, -0.168102914088361, 19.7297470143766,
+		 0.0918994317523974, -0.316732435193226, 0.944052466200981, -17.5292922485199,
+		 0, 0, 0, 1 );
+    Matrix44 inv = m.Inverse();
+
+    Matrix44 i = m * inv;
+    if( !(FEQUAL2((i(0,0)),1)  &&  FEQUAL2((i(1,0)),1)  &&  FEQUAL2((i(2,0)),1)  &&  FEQUAL2((i(3,0)),1)  &&
+	  FEQUAL2((i(0,1)),1)  &&  FEQUAL2((i(1,1)),1)  &&  FEQUAL2((i(2,1)),1)  &&  FEQUAL2((i(3,1)),1)  &&
+	  FEQUAL2((i(0,2)),1)  &&  FEQUAL2((i(1,2)),1)  &&  FEQUAL2((i(2,2)),1)  &&  FEQUAL2((i(3,2)),1)  &&
+	  FEQUAL2((i(0,3)),1)  &&  FEQUAL2((i(1,3)),1)  &&  FEQUAL2((i(2,3)),1)  &&  FEQUAL2((i(3,3)),1))) {
+      
+      stringstream ss;
+      ss << "Line " << __LINE__ << ": Inverse failed"<< endl;
+      ss << inv;
+      ss << i;
+      throw runtime_error( ss.str() );
+    }
 
   }
   catch( runtime_error e ) {

@@ -48,6 +48,7 @@ public:
   void Get2DRASCenter ( float oRASCenter[3] );
   float Get2DZoomLevel ();
   ViewState::Plane Get2DInPlane ();
+  void Get2DPlaneNormal ( float oNormal[3] );
 
   // Add and remove layers that this view at a specific level. Note
   // that only one layer can be at a specific level, and adding a
@@ -222,6 +223,7 @@ protected:
 
   static ScubaViewStaticTclListener mStaticListener;
 
+  Matrix44 mTmpRotation;
 };  
 
 class ScubaViewFactory : public ViewFactory {

@@ -8,6 +8,7 @@
 #include "Timer.h"
 #include "Point2.h"
 #include "Point3.h"
+#include "VectorOps.h"
 
 using namespace std;
 
@@ -194,6 +195,24 @@ ScubaView::Set2DInPlane ( ViewState::Plane iPlane ) {
 
   mViewState.mInPlane = iPlane;
 
+  switch( iPlane ) {
+  case ViewState::X:
+    mViewState.mPlaneNormal[0] = 1; 
+    mViewState.mPlaneNormal[1] = 0;
+    mViewState.mPlaneNormal[2] = 0;
+    break;
+  case ViewState::Y:
+    mViewState.mPlaneNormal[0] = 0; 
+    mViewState.mPlaneNormal[1] = 1; 
+    mViewState.mPlaneNormal[2] = 0;
+    break;
+  case ViewState::Z:
+    mViewState.mPlaneNormal[0] = 0; 
+    mViewState.mPlaneNormal[1] = 0;
+    mViewState.mPlaneNormal[2] = 1;
+    break;
+  }
+
   // Broadcast this change.
   ScubaViewBroadcaster& broadcaster = ScubaViewBroadcaster::GetBroadcaster();
   broadcaster.SendBroadcast( "2DInPlaneChanged", (void*)&mID );
@@ -221,6 +240,14 @@ ViewState::Plane
 ScubaView::Get2DInPlane () {
 
   return mViewState.mInPlane;
+}
+
+void
+ScubaView::Get2DPlaneNormal ( float oNormal[3] ) {
+
+  oNormal[0] = mViewState.mPlaneNormal[0];
+  oNormal[1] = mViewState.mPlaneNormal[1];
+  oNormal[2] = mViewState.mPlaneNormal[2];
 }
 
 
@@ -993,8 +1020,9 @@ ScubaView::DoMouseMoved( int iWindow[2],
   RebuildLabelValueInfo( ras, "mouse" );
 
 
-  // Handle the navigation tool.
-  if( iTool.GetMode() == ScubaToolState::navigation ) {
+  // Handle the navigation tool and plane tool.
+  if( iTool.GetMode() == ScubaToolState::navigation ||
+      iTool.GetMode() == ScubaToolState::plane ) {
 
     if( iInput.Button() && 
 	!iInput.IsControlKeyDown() && !iInput.IsShiftKeyDown() ) {
@@ -1035,25 +1063,36 @@ ScubaView::DoMouseMoved( int iWindow[2],
       
       if( moveLeftRight || moveUpDown || moveInOut ) {
 	
-	float newRAS[3];
-	switch( mViewState.mInPlane ) {
-	case ViewState::X:
-	  newRAS[0] = mOriginalCenterRAS[0] + moveInOut;
-	  newRAS[1] = mOriginalCenterRAS[1] + moveLeftRight;
-	  newRAS[2] = mOriginalCenterRAS[2] + moveUpDown;
-	  break;
-	case ViewState::Y:
-	  newRAS[0] = mOriginalCenterRAS[0] + moveLeftRight;
-	  newRAS[1] = mOriginalCenterRAS[1] + moveInOut;
-	  newRAS[2] = mOriginalCenterRAS[2] + moveUpDown;
-	  break;
-	case ViewState::Z:
-	  newRAS[0] = mOriginalCenterRAS[0] + moveLeftRight;
-	  newRAS[1] = mOriginalCenterRAS[1] + moveUpDown;
-	  newRAS[2] = mOriginalCenterRAS[2] + moveInOut;
-	  break;
+	if( iTool.GetMode() == ScubaToolState::navigation ) {
+	  
+	  float newRAS[3];
+	  switch( mViewState.mInPlane ) {
+	  case ViewState::X:
+	    newRAS[0] = mOriginalCenterRAS[0] + moveInOut;
+	    newRAS[1] = mOriginalCenterRAS[1] + moveLeftRight;
+	    newRAS[2] = mOriginalCenterRAS[2] + moveUpDown;
+	    break;
+	  case ViewState::Y:
+	    newRAS[0] = mOriginalCenterRAS[0] + moveLeftRight;
+	    newRAS[1] = mOriginalCenterRAS[1] + moveInOut;
+	    newRAS[2] = mOriginalCenterRAS[2] + moveUpDown;
+	    break;
+	  case ViewState::Z:
+	    newRAS[0] = mOriginalCenterRAS[0] + moveLeftRight;
+	    newRAS[1] = mOriginalCenterRAS[1] + moveUpDown;
+	    newRAS[2] = mOriginalCenterRAS[2] + moveInOut;
+	    break;
+	  }
+	  Set2DRASCenter( newRAS );
+	  
+	} else if( iTool.GetMode() == ScubaToolState::plane ) {
+	  
+	  // Find the closest inplane line from another view.
+	  
+	  // Move that view's center RAS.
+
+	  
 	}
-	Set2DRASCenter( newRAS );
       }
       
       if( zoomInOut ) {
@@ -1359,7 +1398,33 @@ ScubaView::TranslateWindowToRAS ( int const iWindow[2], float oRAS[3] ) {
     break;
   }
 
+#if 0
+  float RAS[3];
+  mWorldToView->InvMultiplyVector3( viewRAS, RAS );
+
+  Point3<float> N( mViewState.mPlaneNormal );
+  N = NormalizeVector( N );
+
+  Point3<float> D;
+  switch( mViewState.mInPlane ) {
+  case ViewState::X: D.Set( 1, 0, 0 ); break;
+  case ViewState::Y: D.Set( 0, 1, 0 ); break;
+  case ViewState::Z: D.Set( 0, 0, 1 ); break;
+  }
+  D = NormalizeVector( D );
+
+
+  double rads = RadsBetweenVectors( N, D );
+
+  Point3<float> axis = CrossVectors( N, D );
+  mTmpRotation.MakeRotation( mViewState.mCenterRAS,
+			     axis.xyz(),
+			     rads );
+
+  mTmpRotation.MultiplyVector3( RAS, oRAS );
+#else
   mWorldToView->InvMultiplyVector3( viewRAS, oRAS );
+#endif
 }
 
 float
@@ -1373,9 +1438,36 @@ ScubaView::ConvertWindowToRAS ( float iWindow, float iRASCenter,
 void
 ScubaView::TranslateRASToWindow ( float const iRAS[3], int oWindow[2] ) {
   
+#if 0
+  Point3<float> N( mViewState.mPlaneNormal );
+  N = NormalizeVector( N );
+
+  Point3<float> D;
+  switch( mViewState.mInPlane ) {
+  case ViewState::X: D.Set( 1, 0, 0 ); break;
+  case ViewState::Y: D.Set( 0, 1, 0 ); break;
+  case ViewState::Z: D.Set( 0, 0, 1 ); break;
+  }
+  D = NormalizeVector( D );
+
+
+  double rads = RadsBetweenVectors( N, D );
+
+  Point3<float> axis = CrossVectors( N, D );
+  mTmpRotation.MakeRotation( mViewState.mCenterRAS,
+			     axis.xyz(),
+			     -rads );
+
+  float RAS[3];
+  mTmpRotation.MultiplyVector3( iRAS, RAS );
+  
+  float viewRAS[3];
+  mWorldToView->MultiplyVector3( RAS, viewRAS );
+#else
+  
   float viewRAS[3];
   mWorldToView->MultiplyVector3( iRAS, viewRAS );
-
+#endif
   float xWindow = 0, yWindow = 0;
   switch( mViewState.mInPlane ) {
   case ViewState::X:
@@ -1671,52 +1763,77 @@ ScubaView::BuildOverlay () {
 	  
 	  if( scubaView.IsVisibleInFrame() ) {
 	    
-	    // If its inplane is not ours..
-	    if( scubaView.Get2DInPlane() != Get2DInPlane() ) {
-	      
-	      // Get its marker color and middle coordinate draw an
-	      // appropriate line.
-	      float color[3];
-	      float viewCenterRAS[3];
-	      int viewCenterWindow[2];
-	      scubaView.GetInPlaneMarkerColor( color );
-	      scubaView.Get2DRASCenter( viewCenterRAS );
-	      
-	      TranslateRASToWindow( viewCenterRAS, viewCenterWindow );
-	      
-	      glColor3f( color[0], color[1], color[2] );	    
-	      glBegin( GL_LINES );
-	      
+	    // Get the dot of our plane normal and its plane
+	    // normal. If not zero...
+	    Point3<float> n1( mViewState.mPlaneNormal );
+	    Point3<float> n2;
+	    scubaView.Get2DPlaneNormal( n2.xyz() );
+	    if( !AreVectorsParallel( n1, n2 ) ) {
+
+	      // Get p1 and p2, the center RAS points for our plane
+	      // and their plane.
+	      Point3<float> p1( mViewState.mCenterRAS );
+	      Point3<float> p2;
+	      scubaView.Get2DRASCenter( p2.xyz() );
+
+	      // p3 is our RAS point for the edge of the window, and
+	      // n3 is the normal for the 'side' of the viewing 'box',
+	      // pointing into the middle of the window. This is
+	      // definitely perpendicular to n1, but we need to check
+	      // against n2, because if it is, then we need to change
+	      // the normal to try a plane in the other
+	      // orientation. i.e. if we're checking the left side
+	      // plane, we'll change to the top side plane.
+	      Point2<int> windowTopLeft( 0, 0 );
+	      Point3<float> p3;
+	      TranslateWindowToRAS( windowTopLeft.xy(), p3.xyz() );
+	      Point3<float> n3;
 	      switch( Get2DInPlane() ) { 
-	      case ViewState::X: 
-		if( scubaView.Get2DInPlane() == ViewState::Y ) {
-		  glVertex2d( viewCenterWindow[0], 0 ); 
-		  glVertex2d( viewCenterWindow[0], mHeight-1 );
-		} else if( scubaView.Get2DInPlane() == ViewState::Z ){
-		  glVertex2d( 0, viewCenterWindow[1] ); 
-		  glVertex2d( mWidth-1, viewCenterWindow[1] );
-		}
-		break;
-	      case ViewState::Y:
-		if( scubaView.Get2DInPlane() == ViewState::X ) {
-		  glVertex2d( viewCenterWindow[0], 0 ); 
-		  glVertex2d( viewCenterWindow[0], mHeight-1 );
-		} else if( scubaView.Get2DInPlane() == ViewState::Z ) {
-		  glVertex2d( 0, viewCenterWindow[1] ); 
-		  glVertex2d( mWidth-1, viewCenterWindow[1] );
-		}
-		break;
-	      case ViewState::Z:
-		if( scubaView.Get2DInPlane() == ViewState::X ) {
-		  glVertex2d( viewCenterWindow[0], 0 ); 
-		  glVertex2d( viewCenterWindow[0], mHeight-1 );
-		} else if( scubaView.Get2DInPlane() == ViewState::Y ) {
-		  glVertex2d( 0, viewCenterWindow[1] ); 
-		  glVertex2d( mWidth-1, viewCenterWindow[1] );
-		}
-		break;
+	      case ViewState::X:  n3.Set( 0, 1, 0 ); break;
+	      case ViewState::Y:  n3.Set( 1, 0, 0 ); break;
+	      case ViewState::Z:  n3.Set( 1, 0, 0 ); break;
 	      }
 	      
+	      if( AreVectorsParallel( n2, n3 ) ) {
+		switch( Get2DInPlane() ) { 
+		case ViewState::X:  n3.Set( 0, 0, 1 ); break;
+		case ViewState::Y:  n3.Set( 0, 0, 1 ); break;
+		case ViewState::Z:  n3.Set( 0, 1, 0 ); break;
+		}
+	      }
+
+	      // Intersect the three planes. This gives us an RAS
+	      // interesction.
+	      Point3<float> P_1((DotVectors(p1,n1) * CrossVectors(n2,n3)) +
+				(DotVectors(p2,n2) * CrossVectors(n3,n1)) +
+				(DotVectors(p3,n3) * CrossVectors(n1,n2)));
+	      Point3<float> P1 = P_1 / TripleScaleVectors( n1, n2, n3 );
+
+	      // Now do the right or bottom plane.
+	      Point2<int> windowBottomRight( mWidth-1, mHeight-1 );
+	      TranslateWindowToRAS( windowBottomRight.xy(), p3.xyz() );
+
+	      Point3<float> P_2((DotVectors(p1,n1) * CrossVectors(n2,n3)) +
+				(DotVectors(p2,n2) * CrossVectors(n3,n1)) +
+				(DotVectors(p3,n3) * CrossVectors(n1,n2)));
+	      Point3<float> P2 = P_2 / TripleScaleVectors( n1, n2, n3 );
+
+	      // Transform to window points. These are the two points
+	      // to connect to draw a line.
+	      Point2<int> drawPoint1;
+	      Point2<int> drawPoint2;
+	      TranslateRASToWindow( P1.xyz(), drawPoint1.xy() );
+	      TranslateRASToWindow( P2.xyz(), drawPoint2.xy() );
+
+	      // Get its marker color.
+	      float color[3];
+	      scubaView.GetInPlaneMarkerColor( color );
+
+	      // Draw the line.
+	      glColor3f( color[0], color[1], color[2] );	    
+	      glBegin( GL_LINES );
+	      glVertex2d( drawPoint1.x(), drawPoint1.y() );
+	      glVertex2d( drawPoint2.x(), drawPoint2.y() );
 	      glEnd();
 	    }
 	  }

@@ -108,23 +108,28 @@ class ScubaLayer2DMRI : public Layer {
   virtual void GetPreferredInPlaneIncrements ( float oIncrements[3] );
  
  protected:
-
+  
+  // The volume data set.
   VolumeCollection* mVolume;
   
+  // General drawing settings.
   SampleMethod mSampleMethod;
   ColorMapMethod mColorMapMethod;
+  bool mbClearZero;
+  float mMinVisibleValue, mMaxVisibleValue;
 
+  // For grayscale drawing.
   float mBrightness, mContrast, mNegContrast;
   //  std::map<int,float> mGrayscaleLUT; // 0-255
   int mGrayscaleLUT[256]; // 0-255
 
+  // Our look up table.
   ScubaColorLUT* mColorLUT;
   
-  bool mbClearZero;
-  float mMinVisibleValue, mMaxVisibleValue;
-
+  // ROI settings.
   float mROIOpacity;
-
+  bool mbEditableROI;
+  
   // For lines.
   std::list<PointList3<float>* > mLines;
   PointList3<float>*             mCurrentLine;
