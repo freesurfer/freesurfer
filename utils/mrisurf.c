@@ -64,7 +64,6 @@
 /* this definition should come from mrisurf.h 
  * #define MRIS_ASCII_FILE     1
 */
-#define MRIS_GEO_FILE       2    /* movie.byu format */
 
 static double NEG_AREA_K=20.0 ; /* was 200 */
 /* limit the size of the ratio so that the exp() doesn't explode */
@@ -13795,7 +13794,7 @@ MRISreadVertexPositions(MRI_SURFACE *mris, char *name)
 
   type = MRISfileNameType(name) ;
   MRISbuildFileName(mris, name, fname) ;
-  if (type == MRIS_GEO_FILE)
+  if (type == MRIS_GEO_TRIANGLE_FILE)
     return(mrisReadGeoFilePositions(mris, fname)) ;
   else if (type == MRIS_ICO_FILE)
     return(ICOreadVertexPositions(mris, fname, CURRENT_VERTICES)) ;
@@ -14299,7 +14298,7 @@ MRISfileNameType(char *fname)
   if (!strcmp(ext, "ASC"))
     type = MRIS_ASCII_FILE ;
   else if (!strcmp(ext, "GEO"))
-    type = MRIS_GEO_FILE ;
+    type = MRIS_GEO_TRIANGLE_FILE ;
   else if (!strcmp(ext, "TRI") || !strcmp(ext, "ICO"))
     type = MRIS_ICO_FILE ;
   else if (!strcmp(ext, "VTK"))
