@@ -1,0 +1,358 @@
+/*
+  Name:    mri_volsynth
+  Author:  Douglas N. Greve 
+  email:   analysis-bugs@nmr.mgh.harvard.edu
+  Date:    2/27/02
+  Purpose: Synthesize a volume.
+  $Id: mri_volsynth.c,v 1.1 2003/07/03 04:28:03 greve Exp $
+*/
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
+#include <unistd.h>
+#include <string.h>
+
+#include "error.h"
+#include "diag.h"
+#include "proto.h"
+
+#include "mri_identify.h"
+#include "matrix.h"
+#include "mri.h"
+#include "MRIio_old.h"
+
+static int  parse_commandline(int argc, char **argv);
+static void check_options(void);
+static void print_usage(void) ;
+static void usage_exit(void);
+static void print_help(void) ;
+static void print_version(void) ;
+static void argnerr(char *option, int n);
+static void dump_options(FILE *fp);
+static int  singledash(char *flag);
+static int  nth_is_arg(int nargc, char **argv, int nth);
+static int checkfmt(char *fmt);
+static int getfmtid(char *fname);
+static int  isflag(char *flag);
+//static int  stringmatch(char *str1, char *str2);
+
+int main(int argc, char *argv[]) ;
+
+static char vcid[] = "$Id: mri_volsynth.c,v 1.1 2003/07/03 04:28:03 greve Exp $";
+char *Progname = NULL;
+
+int debug = 0;
+char *volid = NULL;
+char *vol_type;
+int volfmtid;
+char *volfmt = NULL;
+int dim[4];
+float res[4];
+float cras[4];
+float cdircos[3], rdircos[3], sdircos[3];
+char *pdfname = "guassian";
+char *precision=NULL; /* not used yet */
+MRI *mri;
+long seed=53;
+
+/*---------------------------------------------------------------*/
+int main(int argc, char **argv)
+{
+
+  Progname = argv[0] ;
+  argc --;
+  argv++;
+  ErrorInit(NULL, NULL, NULL) ;
+  DiagInit(NULL, NULL, NULL) ;
+
+  /* assign default geometry */
+  cdircos[0] = 1.0;
+  cdircos[1] = 0.0;
+  cdircos[2] = 0.0;
+  rdircos[0] = 0.0;
+  rdircos[1] = 1.0;
+  rdircos[2] = 0.0;
+  sdircos[0] = 0.0;
+  sdircos[1] = 0.0;
+  sdircos[2] = 1.0;
+  res[0] = 1.0;
+  res[1] = 1.0;
+  res[2] = 1.0;
+  cras[0] = 0.0;
+  cras[1] = 0.0;
+  cras[2] = 0.0;
+  res[3] = 2.0; /* TR */
+
+  if(argc == 0) usage_exit();
+
+  parse_commandline(argc, argv);
+  check_options();
+  dump_options(stdout);
+
+  srand48(seed);
+  if(strcmp(pdfname,"gaussian")==0)
+    mri = MRIrandn(dim[0], dim[1], dim[2], dim[3], 0, 1, NULL);
+  else if(strcmp(pdfname,"uniform")==0)
+    mri = MRIdrand48(dim[0], dim[1], dim[2], dim[3], 0, 1, NULL);
+  else {
+    printf("ERROR: pdf %s unrecognized, must be gaussian or uniform\n",pdfname);
+    exit(1);
+  }
+
+  mri->xsize = res[0];
+  mri->ysize = res[1];
+  mri->zsize = res[2];
+  mri->tr    = res[3];
+  mri->x_r = cdircos[0];
+  mri->x_a = cdircos[1];
+  mri->x_s = cdircos[2];
+  mri->y_r = rdircos[0];
+  mri->y_a = rdircos[1];
+  mri->y_s = rdircos[2];
+  mri->z_r = sdircos[0];
+  mri->z_a = sdircos[1];
+  mri->z_s = sdircos[2];
+  mri->c_r = cras[0];
+  mri->c_a = cras[1];
+  mri->c_s = cras[2];
+
+  MRIwriteAnyFormat(mri,volid,volfmt,-1,NULL);
+  //if(volfmtid == NULL) MRIwrite(mri,volid);
+  //else MRIwriteType(mri,volid,);
+
+  return(0);
+}
+/* ------------------------------------------------------------------ */
+static int parse_commandline(int argc, char **argv)
+{
+  int  i, nargc , nargsused;
+  char **pargv, *option ;
+
+  if(argc < 1) usage_exit();
+
+  nargc   = argc;
+  pargv = argv;
+  while(nargc > 0){
+
+    option = pargv[0];
+    if(debug) printf("%d %s\n",nargc,option);
+    nargc -= 1;
+    pargv += 1;
+
+    nargsused = 0;
+
+    if (!strcasecmp(option, "--help"))  print_help() ;
+    else if (!strcasecmp(option, "--version")) print_version() ;
+    else if (!strcasecmp(option, "--debug"))   debug = 1;
+
+    else if (!strcmp(option, "--vol")){
+      if(nargc < 1) argnerr(option,1);
+      volid = pargv[0];
+      nargsused = 1;
+      if(nth_is_arg(nargc, pargv, 1)){
+	volfmt = pargv[1]; nargsused ++;
+	volfmtid = checkfmt(volfmt);
+      }
+      else volfmtid = getfmtid(volid);
+    }
+    else if (!strcmp(option, "--vol_type")){
+      if(nargc < 1) argnerr(option,1);
+      vol_type = pargv[0];
+      nargsused = 1;
+    }
+    else if ( !strcmp(option, "--dim") ) {
+      if(nargc < 4) argnerr(option,4);
+      for(i=0;i<4;i++) sscanf(pargv[i],"%d",&dim[i]);
+      nargsused = 4;
+    }
+    else if ( !strcmp(option, "--res") ) {
+      if(nargc < 4) argnerr(option,4);
+      for(i=0;i<4;i++) sscanf(pargv[i],"%f",&res[i]);
+      nargsused = 4;
+    }
+    else if ( !strcmp(option, "--c_ras") ) {
+      if(nargc < 3) argnerr(option,3);
+      for(i=0;i<3;i++) sscanf(pargv[i],"%f",&cras[i]);
+      nargsused = 3;
+    }
+    else if ( !strcmp(option, "--cdircos") ) {
+      if(nargc < 3) argnerr(option,3);
+      for(i=0;i<3;i++) sscanf(pargv[i],"%f",&cdircos[i]);
+      nargsused = 3;
+    }
+    else if ( !strcmp(option, "--rdircos") ) {
+      if(nargc < 3) argnerr(option,3);
+      for(i=0;i<3;i++) sscanf(pargv[i],"%f",&rdircos[i]);
+      nargsused = 3;
+    }
+    else if ( !strcmp(option, "--sdircos") ) {
+      if(nargc < 3) argnerr(option,3);
+      for(i=0;i<3;i++) sscanf(pargv[i],"%f",&sdircos[i]);
+      nargsused = 3;
+    }
+    else if (!strcmp(option, "--precision")){
+      if(nargc < 1) argnerr(option,1);
+      precision = pargv[0];
+      nargsused = 1;
+    }
+    else if (!strcmp(option, "--seed")){
+      if(nargc < 1) argnerr(option,1);
+      sscanf(pargv[0],"%ld",&seed);
+      nargsused = 1;
+    }
+    else if (!strcmp(option, "--pdf")){
+      if(nargc < 1) argnerr(option,1);
+      pdfname = pargv[0];
+      nargsused = 1;
+    }
+    else{
+      fprintf(stderr,"ERROR: Option %s unknown\n",option);
+      if(singledash(option))
+	fprintf(stderr,"       Did you really mean -%s ?\n",option);
+      exit(-1);
+    }
+    nargc -= nargsused;
+    pargv += nargsused;
+  }
+  return(0);
+}
+/* ------------------------------------------------------ */
+static void usage_exit(void)
+{
+  print_usage() ;
+  exit(1) ;
+}
+/* --------------------------------------------- */
+static void print_usage(void)
+{
+  printf("USAGE: %s \n",Progname) ;
+  printf("\n");
+  printf("   --vol volid <fmt> : output volume path id and format\n");
+  printf("\n");
+  printf(" Geometry flags\n");
+  printf("   --dim nc nr ns nf  \n");
+  printf("   --res dc dr ds df\n");
+  printf("   --cdircos x y z\n");
+  printf("   --rdircos x y z\n");
+  printf("   --sdircos x y z\n");
+  printf("   --c_ras   c_r c_a c_s\n");
+  printf("\n");
+  printf(" Value distribution flags\n");
+  printf("   --pdf pdfname : <gaussian> or uniform\n");
+  printf("\n");
+}
+/* --------------------------------------------- */
+static void print_help(void)
+{
+  print_usage() ;
+  printf("Synthesizes a volume with the given geometry and pdf. Default pdf \n");
+  printf("is gaussian (mean 0, std 1). If uniform is chosen, then the min\n");
+  printf("is 0 and the max is 1.\n");
+  printf("\n");
+
+  exit(1) ;
+}
+/* --------------------------------------------- */
+static void print_version(void)
+{
+  printf("%s\n", vcid) ;
+  exit(1) ;
+}
+/* --------------------------------------------- */
+static void argnerr(char *option, int n)
+{
+  if(n==1)
+    fprintf(stderr,"ERROR: %s flag needs %d argument\n",option,n);
+  else
+    fprintf(stderr,"ERROR: %s flag needs %d arguments\n",option,n);
+  exit(-1);
+}
+/* --------------------------------------------- */
+static void check_options(void)
+{
+  if(volid == NULL){
+    printf("A volume path must be supplied\n");
+    exit(1);
+  }
+  return;
+}
+/* --------------------------------------------- */
+static void dump_options(FILE *fp)
+{
+  fprintf(fp,"volid    %s\n",volid);
+  fprintf(fp,"volfmt   %s\n",volfmt);
+  fprintf(fp,"dim      %3d %3d %3d %3d\n",
+	  dim[0],dim[1],dim[2],dim[3]);
+  fprintf(fp,"res      %6.4f %6.4f %6.4f %6.4f\n",
+	  res[0],res[1],res[2],res[3]);
+  fprintf(fp,"c_ras  %6.4f %6.4f %6.4f\n",
+	  cras[0], cras[1], cras[2]);
+  fprintf(fp,"col   dircos  %6.4f %6.4f %6.4f\n",
+	  cdircos[0],cdircos[1],cdircos[2]);
+  fprintf(fp,"row   dircos  %6.4f %6.4f %6.4f\n",
+	  rdircos[0],rdircos[1],rdircos[2]);
+  fprintf(fp,"slice dircos  %6.4f %6.4f %6.4f\n",
+	  sdircos[0],sdircos[1],sdircos[2]);
+  //fprintf(fp,"precision %s\n",precision);
+  fprintf(fp,"seed %ld\n",seed);
+  fprintf(fp,"pdf   %s\n",pdfname);
+
+  return;
+}
+/*---------------------------------------------------------------*/
+static int singledash(char *flag)
+{
+  int len;
+  len = strlen(flag);
+  if(len < 2) return(0);
+  if(flag[0] == '-' && flag[1] != '-') return(1);
+  return(0);
+}
+/*---------------------------------------------------------------*/
+static int nth_is_arg(int nargc, char **argv, int nth)
+{
+  /* Checks that nth arg exists and is not a flag */
+  /* nth is 0-based */
+  /* check that there are enough args for nth to exist */
+  if(nargc <= nth) return(0); 
+  /* check whether the nth arg is a flag */
+  if(isflag(argv[nth])) return(0);
+  return(1);
+}
+/*------------------------------------------------------------*/
+static int getfmtid(char *fname)
+{
+  int fmtid;
+  fmtid = mri_identify(fname);
+  if(fmtid == MRI_VOLUME_TYPE_UNKNOWN){
+    printf("ERROR: cannot determine format of %s\n",fname);
+    exit(1);
+  }
+  return(fmtid);
+}
+
+/*------------------------------------------------------------*/
+static int checkfmt(char *fmt)
+{
+  int fmtid;
+
+  if(fmt == NULL) return(MRI_VOLUME_TYPE_UNKNOWN);
+  fmtid = string_to_type(fmt);
+  if(fmtid == MRI_VOLUME_TYPE_UNKNOWN){
+    printf("ERROR: format string %s unrecognized\n",fmt);
+    exit(1);
+  }
+  return(fmtid);
+}
+/*---------------------------------------------------------------*/
+static int isflag(char *flag)
+{
+  int len;
+  len = strlen(flag);
+  if(len < 2) return(0);
+
+  if(flag[0] == '-' && flag[1] == '-') return(1);
+  return(0);
+}
+
