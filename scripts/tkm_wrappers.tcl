@@ -1136,7 +1136,7 @@ proc tkm_MakeFileSelector { isFrame isText iVariable {iDefaultFunc ""}} {
     button $isFrame.bw \
   -text "Browse..." \
   -command "tkm_BrowseFile $iVariable {$iDefaultFunc}"
-
+    
     # pack it in a grid
     grid $isFrame.ew -column 0 -row 0 -sticky ew
     grid $isFrame.bw -column 1 -row 0
@@ -1151,8 +1151,7 @@ proc tkm_BrowseFile { iVariable {iDefaultFunc ""} } {
 
     # set the default location 
     if { $iDefaultFunc != "" } {
-#  [$wwDirDlog subwidget filebox] \
-      subwidget dirlist configure -value [eval $iDefaultFunc]
+  [$wwDirDlog subwidget fsbox] configure -directory [eval $iDefaultFunc]
     }
     
     # when they click ok, call the tkm_HandleSelectDirectory function,
@@ -1168,7 +1167,7 @@ proc tkm_HandleSelectFile { iVariable iFile } {
     set theVar $iFile
 }
 
-proc tkm_UpdateDirectoryFileVariable { isFrame } {
+proc tkm_UpdateFileSelectorVariable { isFrame } {
     $isFrame.ew update;
 }
 
@@ -1206,8 +1205,7 @@ proc tkm_BrowseDirectory { iVariable {iDefaultFunc ""} } {
 
     # set the default location 
     if { $iDefaultFunc != "" } {
-  [$wwDirDlog subwidget dirbox] \
-      subwidget dirlist configure -value [eval $iDefaultFunc]
+  [$wwDirDlog subwidget dirbox] configure -value [eval $iDefaultFunc]
     }
     
     # when they click ok, call the tkm_HandleSelectDirectory function,
