@@ -19,6 +19,18 @@
 #include "utils.h"
 #include "math.h"
 
+#ifdef _MSDOS
+#include <math.h>
+#define exp2(f)     pow(2.0,(f))
+#define log2(f)     (log(f) / log(2.0))
+#ifndef M_E
+#define M_E 2.718282 /* exp(1) */
+#endif
+#ifndef M_PI
+#define M_PI  3.141593
+#endif
+
+#endif
 #ifndef UCHAR
 #define UCHAR        unsigned char
 #endif
@@ -42,8 +54,8 @@
 #define ISEVEN       EVEN
 #define ISODD        ODD
 
-#define RADIANS(deg) (2.0 * PI * (double)(deg)) / (360.0)
-#define DEGREES(rad) ((360.0 * (double)(rad)) / (2.0 * PI))
+#define RADIANS(deg) (2.0 * M_PI * (double)(deg)) / (360.0)
+#define DEGREES(rad) ((360.0 * (double)(rad)) / (2.0 * M_PI))
 #define NDEGREES(rad) (DEGREES(normAngle(rad)))
 
 #define ISSMALL(f)   (fabs(f) < 0.000001f)
@@ -86,18 +98,6 @@
 #define log2(f)     (log(f) / log(2.0))
 #endif
 
-#ifdef _MSDOS
-#include <math.h>
-#define exp2(f)     pow(2.0,(f))
-#define log2(f)     (log(f) / log(2.0))
-#ifndef M_E
-#define M_E 2.718282 /* exp(1) */
-#endif
-#ifndef M_PI
-#define M_PI  3.141593
-#endif
-
-#endif
 
 #define ISPOW2(n)   (exp2((float)nint(log2((float)n))) == (float)n)
 
