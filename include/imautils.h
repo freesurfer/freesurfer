@@ -63,19 +63,10 @@ typedef struct {
 } IMA_DICTIONARY_ENTRY;
 #define NMAX_IMA_DICTIONARY 500
 
-#ifdef IMAUTILS_SRC
-  IMA_DICTIONARY_ENTRY ImaDictionary[NMAX_IMA_DICTIONARY];
-  int nImaDictionary = 0, ImaDictionaryGood = 0;
-  char *imaTypeString[6] = {"short","int","long","float","double","string"};
-  int imaTypeSize[6] = {sizeof(short),sizeof(int),sizeof(long),
-              sizeof(float),sizeof(double),sizeof(char)};
-#else
-  extern IMA_DICTIONARY_ENTRY ImaDictionary[NMAX_IMA_DICTIONARY];
-  extern int   nImaDictionary, ImaDictionaryGood;
-  extern char *imaTypeString[6];
-  extern int   imaTypeSize[6];
-#endif
-
+extern IMA_DICTIONARY_ENTRY ImaDictionary[NMAX_IMA_DICTIONARY];
+extern int   nImaDictionary, ImaDictionaryGood;
+extern char *imaTypeString[6];
+extern int   imaTypeSize[6];
 
 int imaTypeFromString(char *typestring);
 void *imaLoadVal(FILE *imafp, int offset, int nbytes, int nitems, void *pval);
