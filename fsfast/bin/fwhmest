@@ -1,0 +1,225 @@
+#!/bin/csh -f
+############################################################
+# Name:  fwhmest - front end for FSL's smoothest
+############################################################
+
+set inputargs = ($argv);
+set VERSION = '$Id'
+set PrintHelp = 0;
+
+set InStem = ();
+set PolyOrder = ();
+set MaskStem = ();
+set tmpdir = ();
+set outfile = ();
+set monly = 0;
+set MLF = ();
+
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | grep version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+set n = `echo $argv | grep help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+## Get path for log-file ##
+set LF = $InStem"_fwhm.log"
+echo "Logfile is $LF"
+rm -f $LF;
+touch $LF;
+echo ------------------------------------------ >> $LF
+echo "fwhmest $VERSION" >> $LF
+uname -a >> $LF
+hostname >> $LF
+date >> $LF
+pwd >> $LF
+echo $0 >> $LF
+echo $inputargs >> $LF
+
+if($#tmpdir == 0) then
+  set indir = `dirname $InStem`;
+  set tmpdir = $indir/fwhmest-tmp
+endif
+
+mkdir -p $tmpdir  |& tee -a $LF
+if($status) exit 1;
+
+set doffile = $tmpdir/dof.dat
+rm -f $doffile
+
+if($PolyOrder > -1) then
+
+  ## Set path for matlab file ##
+  if(! $monly)  set MLF = "/tmp/fwhmest_$$.m"
+  rm -f $MLF
+
+  set outstem = $tmpdir/f;
+
+  #-----------------------------------------------------#
+tee $MLF <<EOF
+  instem  = '$InStem';
+  outstem = '$outstem';
+  order   = [$PolyOrder];
+  doffile = '$doffile';
+
+  [f mristruct] = fast_ldbslice(instem);
+  if(isempty(f))
+    fprintf('ERROR: loading %s\n',instem);
+    return;
+  end
+
+  szf = size(f);
+  nv = prod(szf(1:3));
+  nf = szf(4);
+  f = reshape(f,[nv nf])';
+
+  X = fast_polytrendmtx(1,nf,1,order);
+  R = eye(nf) - X*inv(X'*X)*X';
+  f = R*f;
+
+  f = reshape(f',szf);
+  fast_svbslice(f,outstem,-1,'',mristruct);
+
+  dof = size(X,1) - size(X,2);
+  fp = fopen(doffile,'w');
+  fprintf(fp,'%g\n',dof);
+  fclose(fp);
+
+  return; quit;
+EOF
+  #-----------------------------------------------------#
+
+  cat $MLF | matlab -nospash -display iconic |& tee -a $LF
+  mri_convert $outstem"_000.bfloat" $tmpdir/f.img
+else
+  set dof = `getnframes $instem`;
+  echo $dof > $doffile
+  set bext = `getbext $InStem`;
+  mri_convert $instem"_000.$bext" $tmpdir/f.img
+endif
+
+set bext = `getbext $MaskStem`;
+mri_convert $MaskStem"_000.$bext" $tmpdir/mask.img
+
+set dof = `cat $doffile`;
+set cmd = (smoothest -d $dof -m $tmpdir/mask.img -r $tmpdir/f.img)
+echo $cmd |& tee $LF
+$cmd > $outfile
+
+cat $outfile
+
+rm -r $tmpdir
+
+echo " " | tee -a $LF
+echo " " | tee -a $LF
+date | tee -a $LF
+echo "fwhmest: finished" | tee -a $LF
+
+exit 0;
+############################################################
+
+############--------------##################
+parse_args:
+
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "--i":
+      if ( $#argv == 0) goto arg1err;
+      set InStem = $argv[1]; shift;
+      breaksw
+
+    case "--o":
+      if ( $#argv == 0) goto arg1err;
+      set outfile = $argv[1]; shift;
+      breaksw
+
+    case "--polyfit":
+      if ( $#argv == 0) goto arg1err;
+      set PolyOrder = $argv[1]; shift;
+      breaksw
+
+    case "--mask":
+      if ( $#argv == 0) goto arg1err;
+      set MaskStem = $argv[1]; shift;
+      breaksw
+
+    case "--umask":
+      if ( $#argv == 0) goto arg1err;
+      umask $1; shift;
+      breaksw
+
+    case "--debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+
+    default:
+      echo ERROR: Flag $flag unrecognized.
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+  if($#InStem == 0) then
+     echo "ERROR: must specify input stem";
+     exit 1
+  endif
+  if($#MaskStem == 0) then
+     echo "ERROR: must specify mask stem";
+     exit 1
+  endif
+  if($#outfile == 0) set outfile = $InStem.fwhm.dat
+
+goto check_params_return;
+############--------------##################
+
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+#--------------------------------------------------------------------#
+usage_exit:
+  echo "fwhmest"
+  echo "  --i instem "
+  echo "  --mask maskstem"
+  echo ""
+  echo "  --polyfit N : default is 0"
+  echo "  --o outfile : default is instem.fwhm.dat"
+  echo "   -umask umask          : set unix file permission mask"
+  echo "   -version              : print version and exit"
+  if($PrintHelp) \
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+Frontend for FSLs smoothest
