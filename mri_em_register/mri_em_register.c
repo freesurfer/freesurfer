@@ -453,6 +453,7 @@ main(int argc, char *argv[])
   MRIvoxelXformToRasXform(mri_in, mri_in, 
                           parms.lta->xforms[0].m_L, parms.lta->xforms[0].m_L) ;
 #endif
+  parms.lta->type = LINEAR_VOX_TO_VOX ;
   LTAwrite(parms.lta, out_fname) ;
 
   if (transformed_sample_fname)
