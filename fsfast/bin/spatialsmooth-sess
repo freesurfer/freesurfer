@@ -1,13 +1,14 @@
 #!/bin/csh -f
 # spatialsmooth-sess
 #
-# $Id: spatialsmooth-sess,v 1.5 2004/03/16 17:04:04 greve Exp $
+# $Id: spatialsmooth-sess,v 1.6 2005/01/23 17:17:05 greve Exp $
 
-set VERSION = '$Id: spatialsmooth-sess,v 1.5 2004/03/16 17:04:04 greve Exp $';
+set VERSION = '$Id: spatialsmooth-sess,v 1.6 2005/01/23 17:17:05 greve Exp $';
 
 set cmdargs = ($argv);
 
 set fsd     = "bold";
+set fmt     = bhdr;
 set instem  = (); 
 set outstem = (); 
 set RunList0 = ();
@@ -130,7 +131,7 @@ foreach sess ($SessList)
 
     # Construct and run the command for this run #
     set cmd = (ipfsl -i $run/$instem -o $run/$outstem -pct .1)
-    set cmd = ($cmd -fwhm $fwhm)
+    set cmd = ($cmd -fwhm $fwhm -fmt $fmt)
     if($#HPF != 0)  set cmd = ($cmd -t $HPF -1)
     echo ---------------------------------------------- |& tee -a $LF
     $PWDCMD   |& tee -a $LF
@@ -223,6 +224,12 @@ while( $#argv != 0 )
 
     case "-inorm":
       set inorm = 1;
+      breaksw
+
+    case "-fmt":
+      if ( $#argv == 0) goto arg1err;
+      set fmt = $argv[1]; shift;
+      if($fmt == mgh) set inorm = 0;
       breaksw
 
     case "-verbose":
@@ -319,6 +326,7 @@ usage_exit:
   echo ""
   echo "Other Arguments"
   echo "   -noinorm        : do not intensity norm smoothed volume"
+  echo "   -fmt fileformat : bhdr (default) or mgh"
   echo "   -umask umask    : set unix file permission mask"
   echo "   -version        : print version and exit"
   echo "   -help           : print help and exit"
