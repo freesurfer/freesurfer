@@ -8216,8 +8216,10 @@ tkm_tErr LoadGCA ( char* isGCAFileName, char* isTransformFileName ) {
 
   if( NULL != gca )
     GCAfree( &gca );
+#if 0
   GCAhistoScaleImageIntensities(gGCAVolume, 
                                 gAnatomicalVolume[tkm_tVolumeType_Main]->mpMriValues) ;
+#endif
 
   DebugExitFunction;
   
