@@ -1087,3 +1087,22 @@ MRIsegmentClearIgnoreFlags(MRI_SEGMENTATION *mriseg)
   return(NO_ERROR) ;
 }
 
+int
+MRIfindMaxSegmentNumber(MRI_SEGMENTATION *mriseg)
+{
+  MRI_SEGMENT *mseg ;
+	int         max_segno = 0, segno, max_voxels = 0 ;
+
+  for (segno = 0 ; segno < mriseg->nsegments ; segno++)
+  {
+    mseg = &mriseg->segments[segno] ;
+		if (mseg->nvoxels >= max_voxels)
+		{
+			max_voxels = mseg->nvoxels ;
+			max_segno = segno ;
+		}
+  }
+	return(max_segno) ;
+}
+
+
