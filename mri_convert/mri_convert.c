@@ -88,8 +88,8 @@ main(int argc, char *argv[])
 static int
 get_option(int argc, char *argv[])
 {
-  int  nargs = 0 ;
-  char *option ;
+  int  nargs = 0, sign = 1 ;
+  char *option, *cp ;
   
   option = argv[1] + 1 ;            /* past '-' */
   switch (toupper(*option))
@@ -109,6 +109,57 @@ get_option(int argc, char *argv[])
     ydim = atoi(argv[3]) ;
     zdim = atoi(argv[4]) ;
     nargs = 3 ;
+    break ;
+  case 'X':
+    cp = argv[2] ;
+    if (*cp == '-')
+    {
+      cp++ ;  /* skip minus sign */
+      sign = -1 ;
+    }
+    switch (toupper(*cp))
+    {
+    default:
+    case 'X': xdim = XDIM ; break ;
+    case 'Y': xdim = YDIM ; break ;
+    case 'Z': xdim = ZDIM ; break ;
+    }
+    xdim *= sign ;
+    nargs = 1 ;
+    break ;
+  case 'Y':
+    cp = argv[2] ;
+    if (*cp == '-')
+    {
+      cp++ ;  /* skip minus sign */
+      sign = -1 ;
+    }
+    switch (toupper(*cp))
+    {
+    default:
+    case 'X': ydim = XDIM ; break ;
+    case 'Y': ydim = YDIM ; break ;
+    case 'Z': ydim = ZDIM ; break ;
+    }
+    ydim *= sign ;
+    nargs = 1 ;
+    break ;
+  case 'Z':
+    cp = argv[2] ;
+    if (*cp == '-')
+    {
+      cp++ ;  /* skip minus sign */
+      sign = -1 ;
+    }
+    switch (toupper(*cp))
+    {
+    default:
+    case 'X': zdim = XDIM ; break ;
+    case 'Y': zdim = YDIM ; break ;
+    case 'Z': zdim = ZDIM ; break ;
+    }
+    zdim *= sign ;
+    nargs = 1 ;
     break ;
   case '?':
   case 'U':
