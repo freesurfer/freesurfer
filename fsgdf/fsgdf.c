@@ -1,7 +1,7 @@
 /*
   fsgdf.c
   Utilities for reading freesurfer group descriptor file format 
-  $Id: fsgdf.c,v 1.5 2002/11/12 20:52:18 kteich Exp $
+  $Id: fsgdf.c,v 1.6 2002/11/12 22:43:55 greve Exp $
 
   See:   http://surfer.nmr.mgh.harvard.edu/docs/fsgdf.txt
 
@@ -50,6 +50,7 @@
 #include <string.h>
 #include <ctype.h>
 #include "fsgdf.h"
+#include "mri2.h"
 
 /* This should be in ctype.h, but the compiler complains */
 #ifndef Darwin
@@ -90,7 +91,7 @@ int gdfFree(FSGD **ppgd)
   return(0);
 }
 /*--------------------------------------------------*/
-int gdfPrint(FILE *fp, FSGD *gd)
+int gdfPrintHeader(FILE *fp, FSGD *gd)
 {
   int r;
 
@@ -124,6 +125,8 @@ static int gdfPrintV1(FILE *fp, FSGD *gd)
     fprintf(fp,"Title %s\n",gd->title);
   if(strlen(gd->measname) > 0)
     fprintf(fp,"MeasurementName %s\n",gd->measname);
+  if(strlen(gd->tesselation) > 0)
+    fprintf(fp,"Tesselation %s\n",gd->tesselation);
   if(strlen(gd->regsubj) > 0)
     fprintf(fp,"RegistrationSubject %s\n",gd->regsubj);
   if(strlen(gd->datafile) > 0)
@@ -165,12 +168,16 @@ static int gdfPrintV1(FILE *fp, FSGD *gd)
 }
 
 /*--------------------------------------------------*/
-FSGD *gdfRead(char *gdfname)
+FSGD *gdfRead(char *gdfname, int LoadData)
 {
   FSGD *gd;
   FILE *fp;
   char tmpstr[1000];
   int version=0;
+  int nv;
+  MRI *mritmp;
+
+  printf("gdfReadHeader: reading %s\n",gdfname);
 
   fp = fopen(gdfname,"r");
   if(fp==NULL){
@@ -195,11 +202,20 @@ FSGD *gdfRead(char *gdfname)
   }
 
   /* load the MRI containing our raw data. */
-  gd->data = MRIread(gd->datafile);
-  if(NULL == gd->data){
-    printf("ERROR: Couldn't read raw data at %s \n",gd->datafile);
-    gdfFree(&gd);
-    return(NULL);
+  if(LoadData && strlen(gd->datafile) > 0){
+    gd->data = MRIread(gd->datafile);
+    if(NULL == gd->data){
+      printf("ERROR: Couldn't read raw data at %s \n",gd->datafile);
+      gdfFree(&gd);
+      return(NULL);
+    }
+    nv = gd->data->width * gd->data->height * gd->data->depth;
+    if(strcmp(gd->tesselation,"surface")==0 && nv != gd->data->width){
+      printf("INFO: gdfRead: reshaping\n");
+      mritmp = mri_reshape(gd->data, nv, 1, 1, gd->data->nframes);
+      MRIfree(&gd->data);
+      gd->data = mritmp;
+    }
   }
 
   return(gd);
@@ -249,6 +265,12 @@ static FSGD *gdfReadV1(char *gdfname)
 
     if(!strcasecmp(tag,"MeasurementName")){
       r = fscanf(fp,"%s",gd->measname);
+      if(r==EOF) goto formaterror;
+      continue;
+    }
+
+    if(!strcasecmp(tag,"Tesselation")){
+      r = fscanf(fp,"%s",gd->tesselation);
       if(r==EOF) goto formaterror;
       continue;
     }
