@@ -10631,6 +10631,8 @@ GCAmapRenormalize(GCA *gca, MRI *mri, TRANSFORM *transform)
 				continue ;
 			HISTOclear(h, h) ;
 			h->bin_size = (fmax-fmin)/255.0 ;
+			if (h->bin_size < 1 && (mri->type == MRI_UCHAR || mri->type == MRI_SHORT))
+				h->bin_size = 1 ;
 			for (i = 0 ; i < nbins ; i++)
 				h->bins[i] = (i+1)*h->bin_size ;
 
@@ -10660,6 +10662,7 @@ GCAmapRenormalize(GCA *gca, MRI *mri, TRANSFORM *transform)
 			}
 			if (num <= 50)  /* not enough to reliably estimate density */
 				continue ;
+			HISTOfillHoles(h) ;
 			if (l == Gdiag_no)
 				DiagBreak() ;
 			HISTOsmooth(h, hsmooth, 1) ;
@@ -10670,7 +10673,7 @@ GCAmapRenormalize(GCA *gca, MRI *mri, TRANSFORM *transform)
 						 cma_label_to_name(l), l, peak, smooth_peak, num,
 						 label_scales[l]) ;
 			bin = nint((means[frame] - fmin)/hsmooth->bin_size) ;
-			bin = HISTOfindCurrentPeak(hsmooth, bin, 11) ;
+			bin = HISTOfindCurrentPeak(hsmooth, bin, 11, .2) ;
 			smooth_peak = hsmooth->bins[bin] ;
 			if (bin < 0 || smooth_peak <= 0)
 				continue ;

@@ -1091,10 +1091,17 @@ HISTOfindEndOfPeak(HISTOGRAM *h, int b0, float pct_peak)
 }
 
 int
-HISTOfindCurrentPeak(HISTOGRAM *histo, int b0, int wsize)
+HISTOfindCurrentPeak(HISTOGRAM *histo, int b0, int wsize, float min_pct)
 {
   int  b, whalf, bw, peak, nbins = histo->nbins ;
 	float next_count, prev_count, other_val, center_val ;
+  float max_count, min_count ;
+
+  peak = HISTOfindHighestPeakInRegion(histo, 0, histo->nbins) ;
+  if (peak < 0)
+    return(-1) ;
+  max_count = histo->counts[peak] ;
+  min_count = min_pct * max_count ;
 
   whalf = (wsize-1)/2 ;
 	for (next_count = prev_count = 0, bw = b0-whalf ; bw <= b0+whalf ; bw++)
@@ -1116,6 +1123,8 @@ HISTOfindCurrentPeak(HISTOGRAM *histo, int b0, int wsize)
 			if (b < 0)
 				continue ;
 			center_val = histo->counts[b] ;
+			if (center_val < min_count)
+				continue ;
 			peak = 1 ;
 			for (bw = b-(whalf-1) ; bw <= b+whalf ; bw++)
 			{
@@ -1129,7 +1138,16 @@ HISTOfindCurrentPeak(HISTOGRAM *histo, int b0, int wsize)
 				}
 			}
 			if (peak)
+			{
+				int bv ;
+
+				bv = HISTOfindNextValley(histo, 0) ;
+#if 0
+				if (bv >= 0 && center_val*min_pct < histo->counts[bv])
+					continue ;
+#endif
 				return(b) ;
+			}
 		}
 	}
 	else   /* search backwards */
@@ -1139,6 +1157,8 @@ HISTOfindCurrentPeak(HISTOGRAM *histo, int b0, int wsize)
 			if (b >= histo->nbins)
 				continue ;
 			center_val = histo->counts[b] ;
+			if (center_val < min_count)
+				continue ;
 			peak = 1 ;
 			for (bw = b-whalf ; bw <= b+whalf ; bw++)
 			{
@@ -1152,10 +1172,35 @@ HISTOfindCurrentPeak(HISTOGRAM *histo, int b0, int wsize)
 				}
 			}
 			if (peak)
+			{
+				int bv ;
+
+				bv = HISTOfindPreviousValley(histo, 0) ;
+#if 0
+				if (bv >= 0 && center_val*min_pct < histo->counts[bv])
+					continue ;
+#endif
 				return(b) ;
+			}
 		}
 	}
 
   return(-1) ;
 }
 
+int
+HISTOfillHoles(HISTO *h)
+{
+	int b ;
+
+	for (b = 1 ; b < h->nbins-1 ; b++)
+	{
+		if (h->counts[b] == 0)
+			h->counts[b] = (h->counts[b-1] + h->counts[b+1]) / 2 ;
+	}
+	if (h->counts[0] == 0)
+		h->counts[0] = h->counts[1] ;
+	if (h->counts[h->nbins-1] == 0)
+		h->counts[h->nbins-1] = h->counts[h->nbins-2] ;
+	return(NO_ERROR) ;
+}
