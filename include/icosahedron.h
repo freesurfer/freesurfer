@@ -33,6 +33,7 @@ MRI_SURFACE *ic163842_make_surface(int max_vertices, int max_faces) ;
 MRI_SURFACE *ic12_make_surface(int max_vertices, int max_faces) ;
 MRI_SURFACE *ICOread(char *fname) ;
 MRI_SURFACE *ICOreadOverAlloc(char *fname, double pct_over) ;
+int         ICOreadVertexPositions(MRI_SURFACE *mris, char *fname, int which) ;
 
 #define ICO4_NVERTICES    2562
 #define ICO4_NFACES       5120

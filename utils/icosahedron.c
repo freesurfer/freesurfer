@@ -8028,7 +8028,8 @@ read_icosahedron(char *fname)
 
   fp = fopen(fname, "r") ;
   if (!fp)
-    ErrorExit(ERROR_NOFILE, "read_icosahedron: could not open %s", fname) ;
+    ErrorReturn(NULL,
+                (ERROR_NOFILE, "read_icosahedron: could not open %s", fname));
 
   ico = (ICOSOHEDRON *)calloc(1, sizeof(ICOSOHEDRON)) ;
 
@@ -8075,3 +8076,46 @@ read_icosahedron(char *fname)
 }
 
 
+int
+ICOreadVertexPositions(MRI_SURFACE *mris, char *fname, int which)
+{
+  ICOSOHEDRON *ico ;
+  int         vno ;
+  VERTEX      *v ;
+
+  ico = read_icosahedron(fname) ;
+  if (!ico)
+    return(Gerror) ;
+
+  if (ico->nvertices != mris->nvertices || ico->nfaces != mris->nfaces)
+    ErrorReturn(ERROR_BADPARM,
+                (ERROR_BADPARM, 
+                 "ICOreadVertexPositions: different size surfaces")) ;
+
+  /* position vertices */
+  for (vno = 0 ; vno < ico->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+
+    switch (which)
+    {
+    default:
+    case CURRENT_VERTICES:
+      v->x = ico->vertices[vno].x ;
+      v->y = ico->vertices[vno].y ;
+      v->z = ico->vertices[vno].z ;
+      break ;
+    case CANONICAL_VERTICES:
+      v->cx = ico->vertices[vno].x ;
+      v->cy = ico->vertices[vno].y ;
+      v->cz = ico->vertices[vno].z ;
+      break ;
+    case ORIGINAL_VERTICES:
+      v->origx = ico->vertices[vno].x ;
+      v->origy = ico->vertices[vno].y ;
+      v->origz = ico->vertices[vno].z ;
+      break ;
+    }
+  }
+  return(NO_ERROR) ;
+}
