@@ -5,6 +5,14 @@
 #include "region.h"
 #include "histo.h"
 
+/* defaults which can be used in MRInormInit call (using 0 will install these)
+ */
+#define DEFAULT_DESIRED_WHITE_MATTER_VALUE  110
+#define DEFAULT_SMOOTH_SIGMA                2.0f
+#define DEFAULT_WINDOWS_BELOW_T0            4
+#define DEFAULT_WINDOWS_ABOVE_T0            9
+#define DEFAULT_WINDOW_SIZE                 10
+
 #define HISTO_BINS           0
 #define BACKGROUND_INTENSITY 30
 
