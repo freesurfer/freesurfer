@@ -47,7 +47,7 @@ typedef struct face_type_
   float  angle[ANGLES_PER_TRIANGLE] ;
   float  orig_angle[ANGLES_PER_TRIANGLE]  ;
   int    ripflag;                        /* ripped face */
-#if 0
+#if 1
   float logshear,shearx,sheary;  /* compute_shear */
 #endif
 } face_type, FACE ;
@@ -60,6 +60,7 @@ typedef struct vertex_type_
   double odx, ody, odz ;  /* last change of position (for momentum) */
   double tdx, tdy, tdz ;  /* temporary storage for averaging gradient */
   float  curv;            /* curr curvature */
+  float  curvbak ;
   float  val;             /* scalar data value (file: rh.val, sig2-rh.w) */
   float  imag_val ;       /* imaginary part of complex data value */
   float  cx, cy, cz ;     /* coordinates in canonical coordinate system */
@@ -68,7 +69,7 @@ typedef struct vertex_type_
          origz ;          /* original coordinates */
   float e1x, e1y, e1z ;  /* 1st basis vector for the local tangent plane */
   float e2x, e2y, e2z ;  /* 2nd basis vector for the local tangent plane */
-#if 0
+#if 1
   float  ox,oy,oz;        /* last position (for undoing time steps) */
   float mx,my,mz;        /* last movement */
   float dipx,dipy,dipz;  /* dipole position */
@@ -83,7 +84,10 @@ typedef struct vertex_type_
   int undefval;          /* [previously dist=0] */
   int old_undefval;      /* for smooth_val_sparse */
   int fixedval;          /* [previously val=0] */
+#if 0
   float dist;            /* dist from sampled point [defunct: or 1-cos(a)] */
+  /* now used d field */
+#endif
   float fieldsign;       /* fieldsign--final: -1,0,1 (file: rh.fs) */
   float fsmask;          /* significance mask (file: rh.fm) */
 #endif
@@ -97,7 +101,6 @@ typedef struct vertex_type_
   int vtotal ;        /* total # of neighbors, will be same as one of above*/
   float d ;              /* for distance calculations */
   int nsize ;            /* size of neighborhood (e.g. 1, 2, 3) */
-#if 0
   float bnx,bny,obnx,obny;                       /* boundary normal */
   float *fnx ;           /* face normal - x component */
   float *fny ;           /* face normal - y component */
@@ -113,9 +116,8 @@ typedef struct vertex_type_
   float smx,smy,smz,osmx,osmy,osmz;            /* smoothed curr,last move */
   int   oripflag,origripflag;  /* cuts flags */
   float coord[3];
+#if 0
   float ftmp ;          /* temporary floating pt. storage */
-  int   tethered ;
-  int   label ;         /* is this vertex part of a labeled region? */
 #endif
   float theta, phi ;     /* parameterization */
   int   marked;          /* for a variety of uses */
@@ -633,6 +635,7 @@ int  MRISremoveRipped(MRI_SURFACE *mris) ;
 int  MRISbuildFileName(MRI_SURFACE *mris, char *sname, char *fname) ;
 int  MRISsmoothSurfaceNormals(MRI_SURFACE *mris, int niter) ;
 int  MRISsoapBubbleVals(MRI_SURFACE *mris, int niter) ;
+int  MRISreadBinaryAreas(MRI_SURFACE *mris, char *mris_fname) ;
 
 #define MRIS_BINARY_QUADRANGLE_FILE    0    /* homegrown */
 #define MRIS_ASCII_QUADRANGLE_FILE     1    /* homegrown */
