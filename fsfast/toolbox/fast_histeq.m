@@ -7,6 +7,10 @@ function edge = fast_histeq(y,nbins,r)
 % unspecfied, it defaults to 20. The larger r is, the better the final
 % result, but the more data needed.
 %
+% The size of edge will be nbins+1, where the first bin will be
+% between edge(1) and edge(2), etc.
+%
+%
 % To check:
 % y = randn(10000,1);
 % edge = fast_histeq(y,100);
@@ -14,7 +18,7 @@ function edge = fast_histeq(y,nbins,r)
 % plot(nk(1:end-1));
 % plot should have approx 1000 = 10000/nbins at each entry
 %
-% $Id: fast_histeq.m,v 1.1 2003/05/23 22:35:56 greve Exp $
+% $Id: fast_histeq.m,v 1.2 2003/05/23 22:38:26 greve Exp $
 
 edge = [];
 
