@@ -1,23 +1,20 @@
 #!/bin/csh -f 
 
-set VERSION = '$Id: ghostdet,v 1.3 2004/05/06 18:33:42 greve Exp $';
+set VERSION = '$Id: ghostdet,v 1.4 2004/05/06 21:47:58 greve Exp $';
 set inputargs = ($argv);
 
-set instem   = ();
-set maskstem = ();
-set outdir   = ();
-set outmaskstem = ();
-set sigstem  = ();
-set betastem = ();
-set rvarstem = ();
-set sumfile  = ();
-set gprfile  = (); # ghost-positive rate 
-set maskthresh = 0.1;
-set allowoverlap = 0;
-set pedim = 2; # coldim, ie, row-to-row
-set synth = 0;
-set inmgh = 0;
-set monly = 0;
+set instem    = ();
+set tmpdir    = ();
+set sumfile   = ();
+set cleanup   = 1;
+
+set headthresh   = 0.05;
+set nheaddilate  = 3;
+
+set brainthresh  = 0.5;
+set nbrainerode  = 3;
+
+set nairerode = 3;
 
 set PrintHelp = 0;
 if($#argv == 0) goto usage_exit;
@@ -39,15 +36,7 @@ goto check_params;
 check_params_return:
 
 ##### Create a log file ######
-set logdir = $outdir/log;
-mkdir -p $logdir
-if(! -e $logdir) then
-  echo "WARNING: could not create $logdir"
-  set LF = /dev/null
-else
-  set LF = $logdir/ghostdet.log
-  if(-e $LF) mv $LF $LF.old
-endif
+set LF = $sumfile.log
 echo "--------------------------------------------------------------"
 echo "ghostdet logfile is $LF"
 echo "--------------------------------------------------------------"
@@ -62,236 +51,184 @@ date          >> $LF
 
 set StartTime = `date`;
 
-if(! $monly) set MLF = $outdir/ghostdet.m
+# Compute the mean functional image and use as template
+set fmnstem = $tmpdir/fmn
+set cmd = (meanimg -i $instem -o $fmnstem)
+pwd | tee -a $LF
+echo $cmd | tee -a $LF
+$cmd | tee -a $LF
+if($status) exit 1;
+
+# Make the head mask
+set cmd = (mkbrainmask -i $fmnstem -o $headstem \
+           -thresh $headthresh -ndil $nheaddilate)
+pwd | tee -a $LF
+echo $cmd | tee -a $LF
+$cmd | tee -a $LF
+if($status) exit 1;
+
+# Make the brain mask
+set cmd = (mkbrainmask -i $fmnstem -o $brainstem \
+           -thresh $brainthresh -nerode $nbrainerode)
+pwd | tee -a $LF
+echo $cmd | tee -a $LF
+$cmd | tee -a $LF
+if($status) exit 1;
+
+set headghoststem = $tmpdir/headghost
+
+# Go into matlab to create the initial air mask
+set MLF = $tmpdir/mkairmasktmp.m
 rm -f $MLF
-  #---------------------------------------------#
-tee -a > /dev/null $MLF  <<EOF
-instem   = '$instem';
-inmgh    = $inmgh;
-maskstem = '$maskstem';
-outmaskstem = '$outmaskstem';
-sigstem  = '$sigstem';
-betastem = '$betastem';
-rvarstem = '$rvarstem';
-sumfile  = '$sumfile';
-gprfile  = '$gprfile';
-maskthresh = $maskthresh;
-allowoverlap = $allowoverlap;
-pedim        = $pedim;
-synth        = $synth;
+#---------#
+tee $MLF > /dev/null <<EOF
+headstem = '$headstem';
+fmnstem  = '$fmnstem';
+airstem  = '$airstem';
+headghoststem  = '$headghoststem';
 
-fprintf('Loading %s\n',instem);
-if(~inmgh)
-  [f mristruct] = fast_ldbslice(instem);
-  if(isempty(f))
-    fprintf('ERROR: cannot load %s\n',instem);
-    return;
-  end
-else
-  [f M mr_params Mdc] = load_mgh(instem);
-  if(isempty(f))
-    fprintf('ERROR: cannot load %s\n',instem);
-    return;
-  end
-  f = permute(f,[2 1 3 4]);
-  [nr nc ns nf] = size(f);
-  mristruct.voldim = [nr nc ns];
-  mristruct.nframes = nf;
-  mristruct.volres = sqrt(sum(M(1:3,1:3).^2));
-  mristruct.T = M;
+[head mristruct] = fast_ldbslice(headstem);
+if(isempty(head)) return; end
+
+fmn = fast_ldbslice(fmnstem);
+if(isempty(fmn)) return; end
+
+% For this, compute the ghost of the head
+headghost = fast_ghostmask(head);
+air = ~(head | headghost);
+indair = find(air);
+
+% Exclude air voxels that are identical to 0
+indnz = find(fmn(air) ~=0 );
+indair = indair(indnz);
+
+air = zeros(size(fmn));
+air(indair) = 1;
+
+fast_svbslice(air,[airstem '0'],-1,'bshort',mristruct);
+fast_svbslice(air,airstem,-1,'bshort',mristruct);
+fast_svbslice(headghost,headghoststem,-1,'bshort',mristruct);
+fprintf('matlab: finished creating init air mask\n');
+EOF
+#---------#
+cat $MLF >> $LF
+cat $MLF | matlab -display iconic |& tee -a $LF
+
+# Erode the air mask
+set cmd = (mri_convert $airstem"_000.bshort" $airstem.img)
+pwd | tee -a $LF
+echo $cmd | tee -a $LF
+$cmd | tee -a $LF
+if($status) exit 1;
+
+set cmd = (avwmaths $airstem.img -ero $airstem.img)
+pwd | tee -a $LF
+echo $cmd | tee -a $LF
+@ n = 1;
+while($n < $nairerode)
+  $cmd | tee -a $LF
+  if($status) exit 1;
+  @ n = $n + 1;
 end
 
+set cmd = (mri_convert $airstem.img $airstem"_000.bshort")
+pwd | tee -a $LF
+echo $cmd | tee -a $LF
+$cmd | tee -a $LF
+if($status) exit 1;
 
-[nr nc ns nf] = size(f);
-nv = nr*nc*ns;
-fmn = mean(f,4);
-fmnglobal = mean(reshape1d(fmn));
-fzmask = (fmn==0);
+# Go back into matlab to do the final processing
+set MLF = $tmpdir/ghostdettmp.m
+rm -f $MLF
+#---------#
+tee $MLF > /dev/null <<EOF
+headstem   = '$headstem';
+brainstem  = '$brainstem';
+airstem    = '$airstem';
+fmnstem    = '$fmnstem';
+ghoststem  = '$ghoststem';
+sumfile    = '$sumfile';
 
-% Load or create the brain mask
-if(~isempty(maskstem))
-  fprintf('Loading mask %s\n',maskstem);
-  brain = fast_ldbslice(maskstem);
-  if(isempty(brain))
-    fprintf('ERROR: cannot find %s\n',maskstem);
-    return;
-  end
-else
-  brain = fmn > maskthresh*fmnglobal;
-end
+[head mristruct] = fast_ldbslice(headstem);
+if(isempty(head)) return; end
+
+[brain mristruct] = fast_ldbslice(brainstem);
+if(isempty(brain)) return; end
+
+[air mristruct] = fast_ldbslice(airstem);
+if(isempty(air)) return; end
+
+fmn = fast_ldbslice(fmnstem);
+if(isempty(fmn)) return; end
+
+indair = find(air);
 indbrain = find(brain);
 
-% Compute corresponding voxels in the ghost
-indghost = indbrain2ghost(size(brain),indbrain,pedim);
+% For this, compute the ghost of the brain
+indghost = indbrain2ghost(size(brain),indbrain);
 
-% Remove voxels in ghost that are 0 (equiv: keep voxels 
-% that are non-zero).
-indgnz = find(fmn(indghost) > eps);
-indghost = indghost(indgnz);
+% Exclude ghost (and corresp brain) voxels that have fmn=0
+indnz    = find(fmn(indghost) ~= 0);
+indghost = indghost(indnz);
+indbrain = indbrain2ghost(size(brain),indghost);
 
-% Remap the remaining ghost voxels back to the brain. 
-% This may remove some voxels from the inside of the
-% brain corresponding to the edge of the volume where
-% the ghost may be zero.
-indbrain = indbrain2ghost(size(brain),indghost,pedim);
-
-% Now remake the actual masks
-brain = zeros(nr, nc, ns);
-brain(indbrain) = 1;
-ghost = zeros(nr, nc, ns);
+ghost = zeros(size(fmn));
 ghost(indghost) = 1;
 
-nbrain = length(indbrain);
-fprintf('nbrain = %d (%g%%)\n',nbrain,100*nbrain/nv);
+% Exclude overlapping ghost and head voxels from both ghost and brain
+ghost = ghost & ~head;
+indghost = find(ghost);
+indbrain = indbrain2ghost(size(brain),indghost);
 
-% Voxels that ghost from brain to nonbrain
-indbraintoair = find(brain & ~ghost);
-nbraintoair = length(indbraintoair);
+% Remake the ghost and brain masks
+ghost = zeros(size(fmn));
+ghost(indghost) = 1;
+brain = zeros(size(fmn));
+brain(indbrain) = 1;
 
-% Voxels that ghost from nonbrain to brain
-indairtobrain = find(~brain & ghost);
+nbrain = length(indbrain); % Equals number in ghost too
+nair   = length(indair);
 
-% Voxels that map from brain to brain
-indbraintobrain = find(brain & ghost);
+brainmn = mean(fmn(indbrain));
+ghostmn = mean(fmn(indghost));
+airmn   = mean(fmn(indair));
 
-% Voxels that are in neither brain nor ghost
-indnothing = find(~brain & ~ghost);
+brain_ghost_ratio = brainmn/ghostmn;
+brain_air_ratio   = brainmn/airmn;
+ghost_air_ratio   = ghostmn/airmn;
+structural_snr    = brain_air_ratio/1.54;
 
-% Reshape to nframes by nvoxels
-f = fast_vol2mat(f);
-
-% Compute ghost intensity suppression based on only those 
-% voxels that map from brain to air
-brainmean = mean(reshape1d(f(:,indbraintoair)));
-ghostmean = mean(reshape1d(f(:,indairtobrain)));
-nothingmean = mean(reshape1d(f(:,indnothing)));
-gsr = brainmean/ghostmean;% Ghost suppression ratio
-nsr = brainmean/nothingmean;% Nothing suppression ratio
-fprintf('mean: brain = %g, ghost = %g, GSR = %g, NSR = %g\n',...
-    brainmean,ghostmean,gsr,nsr);
-
-% Use ghost voxel waveforms to predict the waveform in the brain,
-% use quadradic (2) detrending. Bigger betas are worse.
-y = f(:,indbrain);
-x = f(:,indghost);
-if(synth)
-  fprintf('Synthsizing raw data\n');
-  x = randn(size(x));
-  y = randn(size(y));
+fp = fopen(sumfile,'w');
+if(fp == -1)
+  fprintf('ERROR: opening %s\n',sumfile);
+  return;
 end
+fprintf(fp,'brain_mean %g\n',brainmn);
+fprintf(fp,'ghost_mean %g\n',ghostmn);
+fprintf(fp,'air_mean   %g\n',airmn);
+fprintf(fp,'brain_ghost_ratio %g\n',brain_ghost_ratio);
+fprintf(fp,'brain_air_ratio   %g\n',brain_air_ratio);
+fprintf(fp,'ghost_air_ratio   %g\n',ghost_air_ratio);
+%fprintf(fp,'structural_snr    %g\n',structural_snr);
+fprintf(fp,'n_air   %7d\n',nair);
+fprintf(fp,'n_brain %7d\n',nbrain);
+fprintf(fp,'head_thresh   %g\n',$headthresh);
+fprintf(fp,'n_head_dilate %d\n',$nheaddilate);
+fprintf(fp,'brain_thresh  %g\n',$brainthresh);
+fprintf(fp,'n_brain_erode %d\n',$nbrainerode);
+fprintf(fp,'n_air_erode   %d\n',$nairerode);
 
-fprintf('Performing estimation\n');
-[beta rvar t tsig] = fast_vvglm(y,x,2);
+fclose(fp);
 
-% Put the sig values into a volume. Make the voxels
-% that map from brain-to-air pos. Those that map
-% from brain-to-brain negative.
-tsigvol = zeros(nr,nc,ns);
-tsigvol(indbrain) = -log10(tsig);
-tsigvol(indbraintobrain) = -tsigvol(indbraintobrain);
+fast_svbslice(brain,brainstem,-1,'bshort',mristruct);
+fast_svbslice(ghost,ghoststem,-1,'bshort',mristruct);
 
-if(~isempty(gprfile))
-  % Treat like finding false positives, 
-  %  the "ghost" positive rate (GPR)
-  % Only use voxels that map from brain to air
-  tsigtmp = 10.^(-abs(tsigvol(indbraintoair)));
-  [pdf alpha nxhist gpr] = ComputePDF(tsigtmp,.001,1,.001);
-  fp = fopen(gprfile,'w');
-  if(fp == -1)
-    fpritnf('ERROR: could not open %s\n',gprfile);
-    return;
-  end
-  fprintf(fp,'%g %g\n',[alpha; gpr]);
-  fclose(fp);
-end
-
-% Compute the GPR for a single point along the curve
-% to save in the summary file
-pthresh = .001;
-nover = length(find(tsigvol(indbraintoair) > -log10(pthresh)));
-pover = nover/nbraintoair;
-pctover = 100*pover;
-gprthresh = pover/pthresh;
-gprsig = 1-binomialcdf(nover,nbraintoair,pthresh);
-
-fprintf('pthresh = %g, nover = %d (%g%%), gpr = %g, sig=%g\n',...
-    pthresh,nover,pctover,gprthresh,gprsig);
-
-if(~isempty(betastem))
-  betavol = zeros(nr,nc,ns);
-  betavol(indbrain) = beta;
-  fast_svbslice(betavol,betastem,-1,'',mristruct);
-end
-
-if(~isempty(sigstem))
-  fast_svbslice(tsigvol,sigstem,-1,'',mristruct);
-end
-
-if(~isempty(rvarstem))
-  rvarvol = zeros(nr,nc,ns);
-  rvarvol(indbrain) = rvar;
-  fast_svbslice(rvarvol,rvarstem,-1,'',mristruct);
-end
-
-if(~isempty(outmaskstem))
-  outmask = zeros(size(brain));
-  outmask(indbraintoair) = 1;
-  outmask(indairtobrain) = 2;
-  indbrainandghost = find(brain & ghost);
-  outmask(indbrainandghost) = 3;
-  fast_svbslice(outmask,outmaskstem,-1,'',mristruct);
-end
-
-if(~isempty(sumfile))
-  fp = fopen(sumfile,'w');
-  if(fp == -1)
-    fprintf('ERROR: could not open %s\n',sumfile);
-    return;
-  end
-  fprintf(fp,'date           %s\n',date);
-  fprintf(fp,'pwd            %s\n',pwd);
-  fprintf(fp,'instem         %s\n',instem);
-  fprintf(fp,'inmgh          %d\n',inmgh);
-  fprintf(fp,'maskstem       %s\n',maskstem);
-  fprintf(fp,'outmaskstem    %s\n',outmaskstem);
-  fprintf(fp,'pedim          %d\n',pedim);
-  fprintf(fp,'allowoverlap   %d\n',allowoverlap);
-  fprintf(fp,'synth          %d\n',synth);
-  fprintf(fp,'betastem       %s\n',betastem);
-  fprintf(fp,'sigstem        %s\n',sigstem);
-  fprintf(fp,'rvarstem       %s\n',rvarstem);
-  fprintf(fp,'gprfile        %s\n',gprfile);
-  fprintf(fp,'maskthresh     %g\n',maskthresh);
-  fprintf(fp,'nbrain         %d\n',nbrain);
-  fprintf(fp,'pctbrain       %g\n',100*nbrain/nv);
-  fprintf(fp,'nbraintoair    %d\n',nbraintoair);
-  fprintf(fp,'brainmean      %g\n',brainmean);
-  fprintf(fp,'ghostmean      %g\n',ghostmean);
-  fprintf(fp,'pthresh        %g\n',pthresh);
-  fprintf(fp,'pover          %g\n',pover);
-  fprintf(fp,'pctover        %g\n',pctover);
-  fprintf(fp,'nover          %d\n',nover);
-  fprintf(fp,'gpr            %g\n',gprthresh);
-  fprintf(fp,'gsr            %g\n',gsr);
-  fprintf(fp,'nsr            %g\n',nsr);
-  fprintf(fp,'gprsig         %g\n',-log10(gprsig));
-  %fprintf(fp,'\n',);
-  fclose(fp);
-
-end
-
-fprintf('ghostdet matlab done\n');
-
-return;
-
+fprintf('matlab: finished computing ghost measures\n');
 EOF
-  #---------------------------------------------#
+#---------#
+cat $MLF >> $LF
+cat $MLF | matlab -display iconic |& tee -a $LF
 
-if(! $monly) then
-  cat $MLF >> $LF
-  cat $MLF | matlab -display iconic -nojvm -nosplash | & tee -a $LF
-  echo "" | & tee -a $LF
-endif
 
 echo "Started at $StartTime" |& tee -a $LF
 echo "Ended   at `date`"     |& tee -a $LF
@@ -315,60 +252,15 @@ while( $#argv != 0 )
       set instem = $argv[1]; shift;
       breaksw
 
-    case "--imgh":
-      set inmgh = 1;
-      breaksw
-
-    case "--m":
-      if ( $#argv == 0) goto arg1err;
-      set maskstem = $argv[1]; shift;
-      breaksw
-
-    case "--om":
-      if ( $#argv == 0) goto arg1err;
-      set outmaskstem = $argv[1]; shift;
-      breaksw
-
-    case "--mthresh":
-      if ( $#argv == 0) goto arg1err;
-      set maskthresh = $argv[1]; shift;
-      breaksw
-
-    case "--p":
-      if ( $#argv == 0) goto arg1err;
-      set sigstem = $argv[1]; shift;
-      breaksw
-
-    case "--b":
-      if ( $#argv == 0) goto arg1err;
-      set betastem = $argv[1]; shift;
-      breaksw
-
-    case "--v":
-      if ( $#argv == 0) goto arg1err;
-      set rvarstem = $argv[1]; shift;
-      breaksw
-
     case "--s":
       if ( $#argv == 0) goto arg1err;
       set sumfile = $argv[1]; shift;
       breaksw
 
-    case "--o":
+    case "--tmp":
       if ( $#argv == 0) goto arg1err;
-      set outdir = $argv[1]; shift;
-      set outmaskstem  = $outdir/mask
-      set sigstem  = $outdir/sig
-      set betastem = $outdir/beta
-      set rvarstem = $outdir/rvar
-      set sumfile  = $outdir/ghost.sum
-      set gprfile  = $outdir/gpr.dat
-      breaksw
-
-    case "--monly":
-      if ( $#argv == 0) goto arg1err;
-      set monly = 1;
-      set MLF = $argv[1]; shift;
+      set tmpdir    = $argv[1]; shift;
+      set cleanup   = 0;
       breaksw
 
     case "--pedim":
@@ -376,12 +268,16 @@ while( $#argv != 0 )
       set pedim = $argv[1]; shift;
       breaksw
 
-    case "--overlap":
-      set allowoverlap = 1;
-      breaksw
-
     case "--synth":
       set synth = 1;
+      breaksw
+
+    case "--cleanup":
+      set cleanup = 1;
+      breaksw
+
+    case "--nocleanup":
+      set cleanup = 0;
       breaksw
 
     case "--debug":
@@ -405,7 +301,7 @@ goto parse_args_return;
 check_params:
 
   if($#instem == 0) then
-    echo "ERROR: no input specified"
+    echo "ERROR: no input specified"    
     exit 1;
   endif
 
@@ -415,34 +311,18 @@ check_params:
     exit 1;
   endif
 
-  if($#sigstem == 0 && $#sigstem == 0 && \
-     $#sigstem == 0 && $#sumfile) then
-    echo "ERROR: no output specified"
-    exit 1;
-  endif
+  if($#tmpdir == 0) set tmpdir = /tmp/ghostdet.tmp.$$
+  mkdir -p $tmpdir
+  set maskstem  = $tmpdir/mask
+  set headstem  = $tmpdir/head
+  set brainstem = $tmpdir/brain
+  set ghoststem = $tmpdir/ghost
+  set airstem   = $tmpdir/air
 
-  if($#sigstem != 0) then
-    set outdir = `dirname $sigstem`;
-    mkdir -p $outdir
-  endif
-
-  if($#betastem != 0) then
-    set outdir = `dirname $betastem`;
-    mkdir -p $outdir
-  endif
-
-  if($#rvarstem != 0) then
-    set outdir = `dirname $rvarstem`;
-    mkdir -p $outdir
-  endif
-
-  if($#sumfile != 0) then
+  if($#sumfile == 0) then
+    set sumfile = $instem.ghost.sum
+  else
     set outdir = `dirname $sumfile`;
-    mkdir -p $outdir
-  endif
-
-  if($#gprfile != 0) then
-    set outdir = `dirname $gprfile`;
     mkdir -p $outdir
   endif
 
@@ -461,18 +341,13 @@ usage_exit:
   echo "USAGE: ghostdet"
   echo ""
   echo "  --i instem "
-  echo "  --imgh : load input as mgh file"
-  echo "  --m maskstem"
-  echo "  --om outmaskstem"
-  echo "  --mthresh maskthresh"
-  echo "  --p sigstem "
-  echo "  --b betastem "
-  echo "  --v rvarstem "
-  echo "  --s sumfile "
-  echo "  --gpr gprfile "
-  echo "  --overlap : allow overlap "
-  echo "  --pedim dim : 2=col (default) 1=row "
-  echo "  --synth "
+  echo ""
+  echo "  --s sumfile  : default is instem.ghost.sum"
+  echo "  --tmp tmpdir : turns cleanup off "
+  echo "  --nocleanup  : do not delete temporary files"
+  echo "  --cleanup    : force deleting fo temporary files"
+#  echo "  --pedim dim  : 2=col (default) 1=row "
+#  echo "  --synth "
   echo ""
 
   if(! $PrintHelp) exit 1;
@@ -487,5 +362,146 @@ exit 1;
 #---- Everything below here is printed out as part of help -----#
 BEGINHELP
 
-Help!
+Measures ghost suppression for EPI functional scans.
 
+
+REQUIRED ARGUMENTS
+
+--i instem
+
+Stem of functional data from which the ghosting measure is computed. This 
+can have one or more frames. This is the only compulsary argument.
+
+OPTIONAL ARUGMENTS
+
+--s sumfile
+
+Save summary into sumfile. Default is instem.ghost.sum. See SUMMARY
+MEASURES below. Note: log file is saved as sumfile.log
+
+--tmp tmpdir
+
+Save intermediate results in tmpdir. By default the temporary directory
+is /tmp/ghostdet.tmp.procid is deleted by default. When explicitly 
+specified with --tmp, tmpdir will not be deleted (ie, implies --nocleanup). 
+If you want tmpdir to be deleted, specify --cleanup after --tmp.
+
+--nocleanup
+
+Do not delete temporary directory and files.
+
+--cleanup
+
+Delete temporary directory and files. Does this auotmatically unless --tmp.
+
+SUMMARY MEASURES
+
+The summary file is a report of the ghost detection analysis. It contains 
+both output results and the input parameters. See ALGORITHM below for
+an explanation of how these parameters are used. It looks like this:
+
+brain_mean 6398.47
+ghost_mean 418.601
+air_mean   92.8722
+brain_ghost_ratio 15.2854
+brain_air_ratio   68.8955
+ghost_air_ratio   4.50729
+n_air     27509
+n_brain    2192
+head_thresh   0.05
+n_head_dilate 3
+brain_thresh  0.5
+n_brain_erode 3
+n_air_erode   3
+
+brain_mean - mean of the voxels inside the brain voxels chosen for the
+  analysis. Each voxel in the brain has a corresponding voxel in the ghost.
+
+ghost_mean - mean of the voxels inside the ghost voxels chosen for the
+  analysis. Each voxel in the ghost has a corresponding voxel in the brain.
+
+air_mean - mean of the voxels outside both the head and the ghost of the
+  head.
+
+brain_ghost_ratio - ratio of the mean of the brain to the mean of the ghost.
+  This is the primary measure of ghost suppression.
+
+brain_air_ratio - ratio of the mean of the brain to the mean of the air.
+  This is the ideal value of upper limit to the brain_ghost_ratio.
+
+ghost_air_ratio - ratio of the mean of the ghost to the mean of the air.
+  This ratio should be 1 ideally.
+
+n_air - number of voxels in the air.
+
+n_brain - number of voxels in the subset of the brain used for the analysis. 
+  Note: this should NOT be interpreted as brain volume. See below for how this
+  is computed. Note: each brain voxels has a corresponding ghost voxel,
+  so the number of ghost voxels is equal to the number of brain voxels.
+
+head_thresh - fraction of grand mean to use to initially segment the head.
+  This threshold is passed to FSL BET. Default is 0.05.
+
+n_head_dilate - the head mask created by BET is dilated (grown) by this 
+  number of voxels. Default is 3.
+  
+brain_thresh - fraction of grand mean to use to initially segment the brain.
+  This threshold is passed to FSL BET. Default is 0.5.
+
+n_brain_erode - the brain mask created by BET is eroded (shrunk) by this 
+  number of voxels. Default is 3.
+  
+n_air_erode - the air mask is eroded (shrunk) by this number of voxels. 
+  Default is 3.
+  
+ALGORITHM
+
+The basic measure of ghosting is to compare the average intensity in
+the head with that in the ghost. For an N/2 ghost, a voxel in the head
+will map to another voxel in the slice. This ghost voxel will be in
+the same column as the original voxel. Its row will be that of the
+original plus N/2. If this puts it out of the slice, then it is
+wrapped around. There are voxels where the ghost and the head will
+overlap, and we do not want to consider these voxels because it would
+skew the results. We want head-ghost voxel pairs for which the ghost
+voxel is absolutely not in any tissue. A simple intensity-based
+segmentation of the head often fails because there is some tissue (eg
+the skull) that can have an intensity comparable to the ghost. In
+addition to determining which voxels are head and ghost, it is nice to
+know which voxels are "air". The average in the air will give a lower
+limit that the ghost can achieve. Note that the average air intensity
+will always be non-zero because of the nature of k-space
+reconstruction.
+
+1. Average the functional volume into a single volume. All the masks
+are created based on this volume. In the tmpdir, this will be the fmn
+volume.
+
+2. Create a head mask. The first stage is to run BET with a low
+threshold of 0.05 (head_thresh) to make sure that it gets most of the
+head. BET has constraints that force the mask to have a smooth surface
+and be connected. This usually does not capture the skull or non-brain
+tissue, so the initial head mask is grown (dilated) by 3 voxels
+(n_head_dilate) so as to expand out to the skull. In the tmpdir, this
+will be the head volume.
+
+3. Create a mask of the ghost of the head. This is done by mapping the
+the head mask by N/2 rows. In the tmpdir, this will be the headghost
+volume.
+
+4. Create a mask of the air. These are all the voxels that do not fall
+into either the head or the headghost. In addition, the initial air
+mask is eroded (shrunk) by 3 voxels (n_air_erode) to make sure that
+it does not contain any tissue. In the tmpdir, this will be the air
+volume.
+
+5. Create an initial brain mask. The first stage is to run BET with a
+high threshold of 0.5 (brain_thresh) to make sure that it gets only
+brain.  This brain mask is then eroded (shrunk) by 3 voxels
+(n_brain_erode) to assure that it contains no low-intensity areas.
+
+6. Create the brain ghost and final brain mask. The brain ghost is
+created by wrapping the intial brain mask by N/2. Voxels that are in
+both the brain and ghost are eliminated from both masks. The resulting
+brain mask is saved as brain in tmpdir. The resulting ghost mask is
+saved as ghost in tmpdir.
