@@ -2,7 +2,7 @@
    DICOM 3.0 reading functions
    Author: Sebastien Gicquel and Douglas Greve
    Date: 06/04/2001
-   $Id: DICOMRead.c,v 1.52 2004/01/21 16:49:36 tosa Exp $
+   $Id: DICOMRead.c,v 1.53 2004/04/26 16:32:05 tosa Exp $
 *******************************************************/
 
 #include <stdio.h>
@@ -65,7 +65,7 @@ static int sliceDirCosPresent;
   be unpacked as one run. If using mri_convert, it can be passed
   with the --sdcmlist.
   -----------------------------------------------------------------*/
-MRI * sdcmLoadVolume(char *dcmfile, int LoadVolume)
+MRI * sdcmLoadVolume(char *dcmfile, int LoadVolume, int nthonly)
 {
   SDCMFILEINFO *sdfi;
   DCM_ELEMENT *element;
@@ -111,7 +111,11 @@ MRI * sdcmLoadVolume(char *dcmfile, int LoadVolume)
   sdfiAssignRunNo2(sdfi_list, nlist);
 
   /* First File in the Run */
-  sdfi = sdfi_list[0];
+  if (nthonly < 0)
+    sdfi = sdfi_list[0];
+  else
+    sdfi = sdfi_list[nthonly];
+
   /* there are some Siemens files don't have the slice dircos */
   if (sliceDirCosPresent == 0)
   {
@@ -142,14 +146,31 @@ MRI * sdcmLoadVolume(char *dcmfile, int LoadVolume)
   nframes = sdfi->NFrames;
   IsMosaic = sdfi->IsMosaic;
 
+  // verify nthframe is within the range
+  if (nthonly >= 0)
+  {
+    if (nthonly > nframes-1)
+    {
+      fprintf(stderr, "ERROR: only has %d frames (%d - %d) but called for %d\n",
+	      nframes, 0, nframes-1, nthonly);
+      fflush(stderr);
+      return NULL;
+    }
+  }
+
   printf("INFO: (%3d %3d %3d), nframes = %d, ismosaic=%d\n",
 	 ncols,nrows,nslices,nframes,IsMosaic);
   fflush(stdout);
   fflush(stdout);
 
   /** Allocate an MRI structure **/
-  if(LoadVolume){
-    vol = MRIallocSequence(ncols,nrows,nslices,MRI_SHORT,nframes);
+  if(LoadVolume)
+  {
+    if (nthonly < 0)
+      vol = MRIallocSequence(ncols,nrows,nslices,MRI_SHORT,nframes);
+    else
+      vol = MRIallocSequence(ncols,nrows,nslices,MRI_SHORT,1);
+
     if(vol==NULL){
       fprintf(stderr,"ERROR: could not alloc MRI volume\n");
       fflush(stderr);
@@ -237,7 +258,8 @@ MRI * sdcmLoadVolume(char *dcmfile, int LoadVolume)
 
     if(!IsMosaic){/*---------------------------------------------*/
       /* It's not a mosaic -- load rows and cols from pixel data */
-      if(nthfile == 0){
+      if(nthfile == 0)
+      {
 	frame = 0;
 	slice = 0;
       }
@@ -245,13 +267,30 @@ MRI * sdcmLoadVolume(char *dcmfile, int LoadVolume)
       printf("%3d %3d %3d %s \n",nthfile,slice,frame,sdfi->FileName);
       fflush(stdout);
 #endif
-      for(row=0; row < nrows; row++){
-	for(col=0; col < ncols; col++){
-	  MRISseq_vox(vol,col,row,slice,frame) = *(pixeldata++);
+      if (nthonly <0)
+      {
+	for(row=0; row < nrows; row++)
+	{
+	  for(col=0; col < ncols; col++)
+	  {
+	    MRISseq_vox(vol,col,row,slice,frame) = *(pixeldata++);
+	  }
+	}
+      }
+      // only copy a particular frame
+      else if (frame == nthonly)
+      {
+	for(row=0; row < nrows; row++)
+	{
+	  for(col=0; col < ncols; col++)
+	  {
+	    MRISvox(vol,col,row,slice) = *(pixeldata++);
+	  }
 	}
       }
       frame ++;
-      if(frame >= nframes){
+      if(frame >= nframes)
+      {
 	frame = 0;
 	slice ++;
       }
@@ -4306,7 +4345,7 @@ int DICOMRead(char *FileName, MRI **mri, int ReadImage)
 
   // first check whether this is a siemens dicom file or not
   if (IsSiemensDICOM(FileName))
-    *mri=sdcmLoadVolume(FileName, 1);
+    *mri=sdcmLoadVolume(FileName, 1, -1);
 
   // scan directory
   error=ScanDir(PathName, &FileNames, &NumberOfFiles);
