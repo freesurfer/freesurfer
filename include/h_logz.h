@@ -80,6 +80,8 @@ typedef struct
   float   min_rho ;
   float   max_rho ;
   float   *rhos ;
+  int     *start_spoke ;  /* first spoke with real data in each ring */
+  int     *end_spoke ;    /* last  spoke with real data in each ring */
 } LOGMAP_INFO ;
 
 /*
@@ -122,7 +124,8 @@ int    LogMapForward(LOGMAP_INFO *mi, IMAGE *inImage, IMAGE *outImage);
 IMAGE  *LogMapSample(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *Idst) ;
 int    LogMapInverse(LOGMAP_INFO *mi, IMAGE *inImage, IMAGE *outImage);
 int    LogMapGradient(LOGMAP_INFO *mi, IMAGE *inImage, 
-                      IMAGE *gradImage, int doweight) ;
+                      IMAGE *gradImage, int doweight, 
+                      int start_ring, int end_ring) ;
 double LogMapDiffuse(LOGMAP_INFO *mi, IMAGE *inImage, IMAGE *outImage, 
                      double k, int niter, int doweight, int which,
                      int time_type) ;
@@ -133,8 +136,8 @@ double LogMapDiffuseCurvature(LOGMAP_INFO *lmi, IMAGE *inImage,
                               IMAGE *outImage, double A, int niterations, 
                               int doweight, int time_type) ;
 
-int   LogMapCurvature(LOGMAP_INFO *lmi, IMAGE *inImage, 
-                      IMAGE *gradImage, float A, int doweight) ;
+int   LogMapCurvature(LOGMAP_INFO *lmi, IMAGE *inImage, IMAGE *gradImage, 
+                      float A, int doweight, int start_ring, int end_ring) ;
 
 void  LogMapPatchHoles(LOGMAP_INFO *lmi, IMAGE *Itv, IMAGE *Ilog) ;
 IMAGE *LogMapNormalize(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *Idst, 
@@ -150,9 +153,14 @@ IMAGE *LogMapNormalize(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *Idst,
 #endif
 
 #define for_each_log_pixel(lmi, r, s) \
-    for (s = 0; s < lmi->nspokes; s++) \
-      for (r = 0; r < lmi->nrings; r++) \
-           if (LOG_PIX_AREA(lmi, r, s) > 0)
+    for (r = 0; r < lmi->nrings; r++) \
+      for (s = 0; s < lmi->nspokes; s++) \
+        if (LOG_PIX_AREA(lmi,r,s) > 0)
+
+/* this macro will go through a specified set of rings */
+#define for_each_ring(lmi, r, s, start_ring, end_ring) \
+    for (r = start_ring; r <= end_ring ; r++) \
+      for (s = lmi->start_spoke[r]; s <= lmi->end_spoke[r]; s++)
 
 /* this macro will go through all log pixels, even those with no area */
 #define for_all_log_pixels(lmi, r, s) \
