@@ -6,7 +6,7 @@
   Purpose: averages the voxels within an ROI. The ROI
            can be constrained structurally (with a label file)
            and/or functionally (with a volumetric mask)
-  $Id: mri_vol2roi.c,v 1.7 2002/02/18 22:27:14 greve Exp $
+  $Id: mri_vol2roi.c,v 1.8 2002/02/27 00:28:47 greve Exp $
 */
 
 #include <stdio.h>
@@ -51,7 +51,7 @@ int CountLabelHits(MRI *SrcVol, MATRIX *Qsrc, MATRIX *Fsrc,
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2roi.c,v 1.7 2002/02/18 22:27:14 greve Exp $";
+static char vcid[] = "$Id: mri_vol2roi.c,v 1.8 2002/02/27 00:28:47 greve Exp $";
 char *Progname = NULL;
 
 char *roifile    = NULL;
@@ -116,6 +116,7 @@ int main(int argc, char **argv)
   float colres_src, rowres_src, slcres_src;
   float colres_msk, rowres_msk, slcres_msk;
   float *framepower=NULL, val;
+  LTA *lta;
 
   Progname = argv[0] ;
   argc --;
@@ -172,8 +173,14 @@ int main(int argc, char **argv)
     if(Label == NULL) exit(1);
     /* load in the source-to-label registration */
     if(src2lblregfile != NULL){
-      err = regio_read_xfm(src2lblregfile, &Msrc2lbl);
-      if(err) exit(1);
+      //err = regio_read_xfm(src2lblregfile, &Msrc2lbl);
+      //if(err) exit(1);
+      lta = LTAread(src2lblregfile);
+      if(lta->type == LINEAR_VOX_TO_VOX){
+  printf("INFO: converting LTA to RAS\n");
+  LTAvoxelTransformToCoronalRasTransform(lta);
+      }
+      Msrc2lbl = lta->xforms[0].m_L;
       printf("-- Source2Label %s \n---- \n",src2lblregfile);
       MatrixPrint(stdout,Msrc2lbl);
       printf("-------------------------------\n");
