@@ -1,6 +1,6 @@
 /*----------------------------------------------------------
   Name: vol2surf.c
-  $Id: mri_vol2surf.c,v 1.7 2002/02/18 19:57:13 greve Exp $
+  $Id: mri_vol2surf.c,v 1.8 2002/04/11 16:25:52 greve Exp $
   Author: Douglas Greve
   Purpose: Resamples a volume onto a surface. The surface
   may be that of a subject other than the source subject.
@@ -56,7 +56,7 @@ static void dump_options(FILE *fp);
 static int  singledash(char *flag);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2surf.c,v 1.7 2002/02/18 19:57:13 greve Exp $";
+static char vcid[] = "$Id: mri_vol2surf.c,v 1.8 2002/04/11 16:25:52 greve Exp $";
 char *Progname = NULL;
 
 char *defaulttypestring;
@@ -265,7 +265,7 @@ int main(int argc, char **argv)
     fflush(stdout);
 
     /* load in the target subject registration */
-    if(strcmp(trgsubject,"ico")){
+    if(strcmp(trgsubject,"ico")){ /* not ico */
       sprintf(fname,"%s/%s/surf/%s.%s",SUBJECTS_DIR,trgsubject,hemi,surfreg); 
       printf("Reading target registration \n   %s\n",fname);
       TrgSurfReg = MRISread(fname);
@@ -274,10 +274,11 @@ int main(int argc, char **argv)
         exit(1);
       }
     }
-    else {
-      reshapefactor = 6; /* 6 slices for ico target */
+    else { /* is ico */
+      if(reshapefactor == 0) reshapefactor = 6; /* 6 slices for ico target */
       fflush(stdout);
-      printf("Reading icosahedron, order = %d, radius = %g\n",IcoOrder,IcoRadius);
+      printf("Reading icosahedron, order = %d, radius = %g\n",
+       IcoOrder,IcoRadius);
       TrgSurfReg = ReadIcoByOrder(IcoOrder,IcoRadius);
       if(TrgSurfReg==NULL) {
   printf("ERROR reading icosahedron\n");
@@ -555,6 +556,11 @@ static int parse_commandline(int argc, char **argv)
       outtype = string_to_type(outtypestring);
       nargsused = 1;
     }
+    else if (!strcmp(option, "--rf")){
+      if(nargc < 1) argnerr(option,1);
+      sscanf(pargv[0],"%d",&reshapefactor);
+      nargsused = 1;
+    }
     else if (!strcmp(option, "--srchits")){
       if(nargc < 1) argnerr(option,1);
       srchitfile = pargv[0];
@@ -611,6 +617,7 @@ static void print_usage(void)
   printf("   --out_type  output format\n");
   printf("   --frame     save only nth frame (with paint format)\n");
   printf("   --noreshape do not save output as multiple 'slices'\n");
+  printf("   --rf R  integer reshaping factor, save as R 'slices'\n");
   printf("\n");
   printf(" Other Options\n");
   printf("   --help      print out information on how to use this program\n");
@@ -717,6 +724,11 @@ static void print_help(void)
 "    the size of a dimension cannot exceed 2^15). Use this flag to prevent\n"
 "    this behavior. This has no effect when the output type is paint.\n"
 "\n"
+"  --rf R\n"
+"\n"
+"    Explicity set the reshaping factor to R. R must be an integer factor of \n"
+"    the number of vertices.\n"
+"\n"
 "  --version : print version and exit.\n"
 "\n"
 "SPECIFYING THE INPUT/OUTPUT PATH and TYPE\n"
@@ -736,7 +748,8 @@ static void print_help(void)
 "  for the icosaheron. For non-ico, the prime factor of Nv closest to 6 is chosen. \n"
 "  Reshaping can be important for logistical reasons (eg, Nv can easily exceed \n"
 "  the maximum number of elements allowed in the analyze format). R can be forced \n"
-"  to 1 with --noreshape. Any geometry information saved with the output file will \n"
+"  to 1 with --noreshape. The user can also explicity set R from the command-line"
+"  using --rf. Any geometry information saved with the output file will \n"
 "  be bogus.\n"
 "\n"
 "  When resampling for fixed-effects intersubject averaging, make sure\n"
