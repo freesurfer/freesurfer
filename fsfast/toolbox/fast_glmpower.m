@@ -1,29 +1,39 @@
-function [tpr, tnc] = fast_glmpower(beta,X,rvar,C,alpha,nsides)
-% [tpr tnc] = fast_glmpower(beta,X,rvar,C,alpha,nsides)
+function [tpr, tnc, dof] = fast_glmpower(beta,XtX,rvar,C,alpha,dof,nsides)
+% [tpr tnc dof] = fast_glmpower(beta,XtX,rvar,C,alpha,dof,nsides)
 % 
 % Computes the power (ie, true positive rate) of a hypothetical
-% GLM analysis. NOTE: requires statistics toolbox.
+% t-test from a GLM analysis. NOTE: requires statistics toolbox.
 %
 % beta - vector of hypothetical regression coefficients
-% X - deisgn matrix (dof = size(X,1) - size(X,2))
-% rvar - hypothetical variance (scalar)
-% C - contrast matrix (only one row allowed)
-% alpha - Type I Error Rate (can be a vector)
+% XtX - deisgn covariance matrix (ie, X'*X)
+% rvar - hypothetical variance 
+% C - contrast matrix (only one row allowed for t-test)
+% alpha - Type I Error Rate 
+% dof - degrees of freedom
 % nsides - 1 for one-sided t test, or 2 for two-sided t test
 %   default is one-sided.
 %
-% tpr = 1 - Type II Error Rate (vector same length as alpha)
+% Notes on input dimensions. beta, rvar, and alpha may have more
+% than one column under certain circumstances. If beta and/or rvar
+% have more than one column, then alpha must be scalar. If both
+% beta and rvar have more than one column, then must have the same
+% number of columns. tpr will have the same number of columns as
+% beta, rvar, or alpha.
+%
+% tpr = 1 - Type II Error Rate
 % tnc = noncentrality parameter
 %
+% Bugs: not accurate for 1-sided with alpha > 0.5.
+% 
 % See also: fast_glmfitw, fast_fratiow, FTest.
 % 
-% $Id: fast_glmpower.m,v 1.1 2005/01/06 00:32:07 greve Exp $
+% $Id: fast_glmpower.m,v 1.2 2005/01/06 16:56:59 greve Exp $
 
 tpr = [];
 tnc = [];
 
-if(nargin < 5 | nargin > 6)
-  fprintf('[tpr tnc] = fast_glmpower(beta,X,rvar,C,alpha,nsides)\n');
+if(nargin < 6 | nargin > 7)
+  fprintf('[tpr tnc] = fast_glmpower(beta,X,rvar,C,alpha,dof,nsides)\n');
   return;
 end
 
@@ -35,10 +45,9 @@ end
 if(~exist('nsides','var')) nsides = []; end
 if(isempty(nsides)) nsides = 1; end
 
-dof = size(X,1) - size(X,2);
-
 % This is the noncentraliity parameter for the noncentral t distribution
-tnc = C*beta/sqrt(rvar*C*inv(X'*X)*C');
+iXtX = inv(XtX);
+tnc = (C*beta)./sqrt(rvar*(C*iXtX*C'));
 
 % Compute the ideal TPR
 if(nsides == 1)
