@@ -672,7 +672,7 @@ FunV_tErr FunV_InitOverlayCache_ ( tkmFunctionalVolumeRef this ) {
 		   nZ + this->manCacheOffsets[2] );
 	
 	/* get the functional value at this anatomical voxel */
-	FunV_GetValueAtAnaIdx( this, pVoxel, &funcValue );
+	FunV_GetValueAtAnaIdx( this, pVoxel, TRUE, &funcValue );
 	
 	/* set the cache value */
 	this->mOverlayCache[nIndex] = funcValue;
@@ -1171,9 +1171,6 @@ FunV_tErr FunV_SetTimePoint ( tkmFunctionalVolumeRef this,
   eVolume = FunD_ConvertTimePointToSecond( this->mpOverlayVolume,
 					   this->mnTimePoint, &fSecond );
   
-  fprintf( stderr, "mnTimePoint set to %d, fSecond = %.2f\n",
-	   this->mnTimePoint, fSecond );
-
   /* send the new value to tcl */
   sprintf( sTclArguments, "%d %f", this->mnTimePoint, fSecond );
   FunV_SendTclCommand_( this, FunV_tTclCommand_Ol_UpdateTimePoint, 
@@ -1822,7 +1819,8 @@ FunV_tErr FunV_ScaleOverlayRegistration ( tkmFunctionalVolumeRef this,
 }
 
 FunV_tErr FunV_GetValueAtAnaIdx ( tkmFunctionalVolumeRef this,
-				  xVoxelRef               ipVoxel,
+				  xVoxelRef              ipVoxel,
+				  tBoolean               iSampled,
 				  FunV_tFunctionalValue* opValue ) {
   
   FunV_tErr        eResult = FunV_tErr_NoError;
@@ -1854,9 +1852,15 @@ FunV_tErr FunV_GetValueAtAnaIdx ( tkmFunctionalVolumeRef this,
   }
   
   /* get the data */
-  eVolume =FunD_GetData( this->mpOverlayVolume, ipVoxel,
-			 this->mnCondition, this->mnTimePoint,
-			 &fValue );
+  if( iSampled ) {
+    eVolume = FunD_GetSampledData( this->mpOverlayVolume, ipVoxel,
+				   this->mnCondition, this->mnTimePoint,
+				   &fValue );
+  } else {
+    eVolume = FunD_GetData( this->mpOverlayVolume, ipVoxel,
+			    this->mnCondition, this->mnTimePoint,
+			    &fValue );
+  }
   if( FunD_tErr_NoError != eVolume ) {
     eResult = FunV_tErr_InvalidAnatomicalVoxel;
     *opValue = 0;
@@ -2141,7 +2145,7 @@ FunV_tErr FunV_GetAvgFunctionalValue ( tkmFunctionalVolumeRef this,
       /* get the value to create an average. it's okay if this call 
 	 fails, that just means one of the selected voxels are out 
 	 of bounds. */
-      eResult = FunV_GetValueAtAnaIdx( this, pVoxel, &value );
+      eResult = FunV_GetValueAtAnaIdx( this, pVoxel, FALSE, &value );
       if( FunV_tErr_NoError == eResult ) {
 	
 	/* add value to sum and inc count */
@@ -3166,7 +3170,7 @@ FunV_tErr FunV_FloodSelect ( tkmFunctionalVolumeRef this,
   params.mComparatorFuncData     = (void*)&callbackData;
 
   /* Get the value at the starting voxel */
-  eResult = FunV_GetValueAtAnaIdx( this, iSeedMRIIdx, &funcValue );
+  eResult = FunV_GetValueAtAnaIdx( this, iSeedMRIIdx, FALSE, &funcValue );
   DebugAssertThrow( (FunV_tErr_NoError == eResult) );
 
   /* Initialize the callback data. */
@@ -3223,7 +3227,7 @@ tBoolean FunV_CompareMRIAndFuncValues ( xVoxelRef  iMRIIdx,
 
   /* Get the functional value at this voxel. */
   DisableDebuggingOutput;
-  eResult = FunV_GetValueAtAnaIdx( this, iMRIIdx, &funcValue );
+  eResult = FunV_GetValueAtAnaIdx( this, iMRIIdx, FALSE, &funcValue );
   DebugAssertThrow( (FunV_tErr_NoError == eResult) );
   EnableDebuggingOutput;
   
@@ -3334,7 +3338,8 @@ FunV_tErr FunV_SelectAnaVoxelsByFuncValue ( tkmFunctionalVolumeRef this,
   
   /* get the min value */
   DebugNote( ("Getting starting functional value") );
-  eResult = FunV_GetValueAtAnaIdx( this, iAnaIdx, &(params.mStartValue) );
+  eResult = FunV_GetValueAtAnaIdx( this, iAnaIdx, 
+				   FALSE, &(params.mStartValue) );
   if( FunV_tErr_NoError != eResult ) {
     DebugGotoCleanup;
   }
@@ -3412,7 +3417,7 @@ void FunV_SelectAnaVoxelsByFuncValueIter_ ( tkmFunctionalVolumeRef this,
   /* get the value at the starting voxel */
   DisableDebuggingOutput;
   xVoxl_Copy( &anaIdx, iAnaIdx );
-  eFunctional = FunV_GetValueAtAnaIdx( this, &anaIdx, &value );
+  eFunctional = FunV_GetValueAtAnaIdx( this, &anaIdx, FALSE, &value );
   if( FunV_tErr_NoError != eFunctional )
     goto cleanup;
   EnableDebuggingOutput;
@@ -3884,6 +3889,61 @@ int FunV_TclOlSetThreshold ( ClientData iClientData,
   if ( IsDebugging && FunV_tErr_NoError != eResult ) {
     
     sprintf ( sError, "Error %d in FunV_TclOlSetThreshold: %s\n",
+	      eResult, FunV_GetErrorString(eResult) );
+    
+    DebugPrint( (sError ) );
+    
+    /* set tcl result, volatile so tcl will make a copy of it. */
+    Tcl_SetResult( ipInterp, sError, TCL_VOLATILE );
+    
+    eTclResult = TCL_ERROR;
+  }
+  
+ cleanup:
+  
+  return eTclResult;
+}
+
+int FunV_TclOlSetSampleType ( ClientData iClientData, 
+			      Tcl_Interp *ipInterp, int argc, char *argv[] ){
+  
+  tkmFunctionalVolumeRef this         = NULL;
+  FunV_tErr              eResult      = FunV_tErr_NoError;
+  FunD_tSampleType       sampleType   = FunD_tSampleType_Nearest;
+  int                    eTclResult   = TCL_OK;
+  char                   sError[256]  = "";       
+  
+  /* grab us from the client data ptr */
+  this = (tkmFunctionalVolumeRef) iClientData;
+  
+  /* verify us. */
+  eResult = FunV_Verify ( this );
+  if ( FunV_tErr_NoError != eResult )
+    goto error;
+  
+  /* verify the number of arguments. */
+  if ( argc < 2 ) {
+    eResult = FunV_tErr_WrongNumberArgs;
+    goto error;
+  }
+  
+  /* parse args */
+  sampleType = (FunD_tSampleType) atoi( argv[1] );
+  
+  /* set value */
+  eResult = FunD_SetSampleType( this->mpOverlayVolume, sampleType );
+  if( FunV_tErr_NoError != eResult )
+    goto error;
+  
+  goto cleanup;
+  
+ error:
+  
+  /* print error message if debugging is enabled. otherwise, the user got
+     their error message already. */
+  if ( IsDebugging && FunV_tErr_NoError != eResult ) {
+    
+    sprintf ( sError, "Error %d in FunV_TclOlSetSampleType: %s\n",
 	      eResult, FunV_GetErrorString(eResult) );
     
     DebugPrint( (sError ) );
@@ -4395,6 +4455,9 @@ FunV_tErr FunV_RegisterTclCommands ( tkmFunctionalVolumeRef this,
   Tcl_CreateCommand( pInterp, "Overlay_SetThreshold",
 		     FunV_TclOlSetThreshold,
 		     (ClientData) this, (Tcl_CmdDeleteProc *) NULL );
+  Tcl_CreateCommand( pInterp, "Overlay_SetVolumeSampleType",
+		     FunV_TclOlSetSampleType,
+		     (ClientData) this, (Tcl_CmdDeleteProc *) NULL );
   Tcl_CreateCommand( pInterp, "TimeCourse_SetNumPreStimPoints",
 		     FunV_TclTCSetNumPreStimPoints,
 		     (ClientData) this, (Tcl_CmdDeleteProc *) NULL );
@@ -4515,7 +4578,7 @@ FunV_tErr FunV_OverlayChanged_ ( tkmFunctionalVolumeRef this ) {
   if ( xList_tErr_NoErr == eList ) {
     
     /* try to get a value for it */
-    eValueResult = FunV_GetValueAtAnaIdx( this, pVoxel, &value );
+    eValueResult = FunV_GetValueAtAnaIdx( this, pVoxel, FALSE, &value );
     if( FunV_tErr_NoError == eValueResult ) {
       
       /* if we got one, send it to the tcl window */

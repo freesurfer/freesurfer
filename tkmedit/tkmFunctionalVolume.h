@@ -267,6 +267,7 @@ FunV_tErr FunV_ScaleOverlayRegistration     ( tkmFunctionalVolumeRef this,
    applicable */
 FunV_tErr FunV_GetValueAtAnaIdx ( tkmFunctionalVolumeRef this,
 				  xVoxelRef               ipVoxel,
+				  tBoolean               iSampled,
 				  FunV_tFunctionalValue* opValue );
 
 /* calculate the rgb values for a color */
@@ -378,6 +379,9 @@ int FunV_TclOlSetDisplayFlag      ( ClientData iClientData,
 				    Tcl_Interp *ipInterp, 
 				    int argc, char *argv[] );
 int FunV_TclOlSetThreshold        ( ClientData inClientData, 
+				    Tcl_Interp *ipInterp, 
+				    int argc, char *argv[] );
+int FunV_TclOlSetSampleType       ( ClientData inClientData, 
 				    Tcl_Interp *ipInterp, 
 				    int argc, char *argv[] );
 int FunV_TclTCSetNumPreStimPoints ( ClientData iClientData, 
