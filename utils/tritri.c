@@ -39,6 +39,12 @@
             dest[1]=v1[1]-v2[1]; \
             dest[2]=v1[2]-v2[2]; 
 
+#define SCALAR_MUL(dest, s, v) \
+            dest[0]=v[0]*s; \
+            dest[1]=v[1]*s; \
+            dest[2]=v[2]*s; 
+
+
 /* sort so that a<=b */
 #define SORT(a,b)       \
              if(a>b)    \
@@ -372,12 +378,12 @@ triangle_ray_intersect(double orig_pt[3], double dir[3], double U0[3],
   MAT_COL_SET(m_U, 2, basis2) ;
   MAT_COL_SET(m_U, 3, -dir) ;
   m_inv = MatrixSVDInverse(m_U, NULL) ;
-  VEC_SET(v_p, orig_pt) ;
+  SUB(Point, orig_pt, U0) ; VEC_SET(v_p, Point) ; /* pt in U0 coord sys */
   MatrixMultiply(m_inv, v_p, v_r) ;
 
   /* a and b are coordinate of point in plane, t is parameterization of ray */
   a = VECTOR_ELT(v_r, 1) ; b = VECTOR_ELT(v_r, 2) ; t = VECTOR_ELT(v_r, 3) ; 
-  MatrixFree(&m_U) ; VectorFree(&v_p) ; VectorFree(&v_r) ; MatrixFree(&m_inv) ;
+  MatrixFree(&m_U) ; VectorFree(&v_p) ; VectorFree(&v_r) ; MatrixFree(&m_inv);
 
   /* coordinates of interesection point */
   int_pt[0] = orig_pt[0] + t * dir[0] ; 
@@ -385,11 +391,21 @@ triangle_ray_intersect(double orig_pt[3], double dir[3], double U0[3],
   int_pt[2] = orig_pt[2] + t * dir[2] ; 
 
   /* now determine whether the point is in the triagle by seeing if it is
-     on the 'right' halfplane defined by each triagle leg
+     on the 'right' halfplane defined by each triangle leg
   */
 
   for (i = 0 ; i < 3 ; i++)
   {
+    /* 
+       build a coordinate system with V0 as the origin, then construct
+       the vector connecting V2 with it's normal projection onto V0->V1.
+       This will be a descriminant vector for dividing the plane by the
+       V0->V1 line. A positive dot product with the desc. vector indicates
+       that the point is on the positive side of the plane and therefore
+       may be contained within the triangle. Doing this for each of the
+       legs in sequence gives a test for being inside the triangle.
+       */
+       
     switch (i)
     {
     default:
@@ -402,14 +418,17 @@ triangle_ray_intersect(double orig_pt[3], double dir[3], double U0[3],
     /* compute normal projection onto base of triangle */
     len = VLEN(L0) ; L0[0] /= len ; L0[1] /= len ; L0[2] /= len ;
     dot = DOT(L0,L1) ; 
-    norm_proj[0] = dot * L0[0] ; 
-    norm_proj[1] = dot * L0[1] ; 
-    norm_proj[2] = dot * L0[2] ;
+    SCALAR_MUL(norm_proj, dot, L0) ;
 
     /* build descriminant vector */
-    SUB(desc, V2, norm_proj) ;
+    SUB(desc, L1, norm_proj) ;
 
-    /* transform point in question into local coordinate system */
+    /* 
+       transform point in question into local coordinate system and build
+       the vector from the point in question to the normal projection point.
+       The dot product of this vector with the descrimant vector will then
+       indicate which side of the V0->V1 line the point is on.
+       */
     SUB(Point, int_pt, V0) ; SUB(Point, Point, norm_proj) ;
     dot = DOT(desc, Point) ;
     if (dot < 0 && !DZERO(dot))
