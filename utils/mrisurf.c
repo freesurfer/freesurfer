@@ -1591,7 +1591,8 @@ MRISsampleDistances(MRI_SURFACE *mris, int *nbrs, int max_nbhd)
         vn = &mris->vertices[vall[n]] ;
         if (vn->ripflag)
           continue ;
-        for (min_dist = 1000000.0f, n2 = 0 ; n2 < vn->vnum ; n2++)
+#define UNFOUND_DIST 1000000.0f
+        for (min_dist = UNFOUND_DIST, n2 = 0 ; n2 < vn->vnum ; n2++)
         {
           vn2 = &mris->vertices[vn->v[n2]] ;
           if (vn2->ripflag)
@@ -3903,7 +3904,7 @@ MRISsetOriginalFile(char *orig_name)
 
 int
 MRISregister(MRI_SURFACE *mris, MRI_SP *mrisp_template, 
-             INTEGRATION_PARMS *parms, int max_passes)
+             INTEGRATION_PARMS *parms, int max_passes, float min_degrees, float max_degrees, int nangles)
 {
   float   sigma ;
   int     i, /*steps,*/ done, sno, ino, msec ;
@@ -4097,7 +4098,8 @@ MRISregister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
             fprintf(stdout, "finding optimal rigid alignment\n") ;
           if (Gdiag & DIAG_WRITE)
             fprintf(parms->fp, "finding optimal rigid alignment\n") ;
-          MRISrigidBodyAlignGlobal(mris, parms, 0.5f, 32.0f, 8) ;
+          MRISrigidBodyAlignGlobal(mris, parms, min_degrees, max_degrees, nangles) ;
+					/*          MRISrigidBodyAlignGlobal(mris, parms, 0.5f, 32.0f, 8) ;*/
            if (Gdiag & DIAG_WRITE && parms->write_iterations != 0)
              MRISwrite(mris, "rotated") ;
         }
@@ -12877,23 +12879,27 @@ max_del = -1.0 ; max_v = max_n = -1 ;
     if (mris->vertices[v->v[n]].neg)
       continue ;
 #endif
-      delta = dist_scale*v->dist[n] - v->dist_orig[n] ;
-
-if (fabs(delta) > max_del)
-{
-  max_del = delta ;
-  max_v = vno ;
-  max_n = n ;
-}
-      v_sse += delta*delta ;
-      if (!finite(delta) || !finite(v_sse))
-        DiagBreak() ;
+		if (v->dist_orig[n] >= UNFOUND_DIST)
+			continue ;
+		delta = dist_scale*v->dist[n] - v->dist_orig[n] ;
+			
+		if (fabs(delta) > fabs(max_del))
+		{
+			max_del = delta ;
+			max_v = vno ;
+			max_n = n ;
+		}
+		v_sse += delta*delta ;
+		if (!finite(delta) || !finite(v_sse))
+			DiagBreak() ;
     }
+		if (v_sse > 10000)
+			DiagBreak() ;
     sse_dist += v_sse ;
     if (!finite(sse_dist) || !finite(v_sse))
       DiagBreak() ;
   }
-
+	
   /*fprintf(stdout, "max_del = %f at v %d, n %d\n", max_del, max_v, max_n) ;*/
   return(sse_dist) ;
 }

@@ -612,7 +612,11 @@ Volm_tErr Volm_ExportNormToCOR ( mriVolumeRef this,
   
   /* write the volume */
   DebugNote( ("Writing volume with MRIwriteType") );
+#if 0
   eMRI = MRIwriteType( this->mpMriValues, sPath,MRI_CORONAL_SLICE_DIRECTORY );
+#else
+  eMRI = MRIwrite( this->mpMriValues, sPath );
+#endif
   DebugAssertThrowX( (NO_ERROR == eMRI), 
 		     eResult, Volm_tErr_CouldntExportVolumeToCOR );
   
