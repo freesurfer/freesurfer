@@ -735,7 +735,7 @@ ImageConvolve1d(IMAGE *I, IMAGE *J, float k[], int len, int axis)
   {
     LUT_width = width ;
     if (xi_LUT)
-      free(xi_LUT-halflen) ;
+      free(xi_LUT-LUT_len/2) ;
     xi_LUT = (int *)calloc(width+2*halflen, sizeof(int)) ;
     if (!xi_LUT)
       ErrorExit(ERROR_NO_MEMORY, "ImageConvolve1d: could not allocate LUT\n");
@@ -755,7 +755,7 @@ ImageConvolve1d(IMAGE *I, IMAGE *J, float k[], int len, int axis)
   {
     LUT_height = height ;
     if (yi_LUT)
-      free(yi_LUT-halflen) ;
+      free(yi_LUT-LUT_len/2) ;
     yi_LUT = (int *)calloc(height+2*halflen, sizeof(int)) ;
     if (!yi_LUT)
       ErrorExit(ERROR_NO_MEMORY, "ImageConvolve1d: could not allocate LUT\n");
