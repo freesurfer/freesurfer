@@ -13,7 +13,7 @@
 #include "mri.h"
 #include "macros.h"
 
-static char vcid[] = "$Id: mris_curvature.c,v 1.7 1998/01/22 19:38:16 fischl Exp $";
+static char vcid[] = "$Id: mris_curvature.c,v 1.8 1998/01/27 00:46:23 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -28,6 +28,8 @@ char *Progname ;
 static int write_flag = 0 ;
 static int nbrs = 2 ;
 static int navgs = 0 ;
+static char *param_file = NULL ;
+static int normalize = 0 ;
 
 int
 main(int argc, char *argv[])
@@ -61,35 +63,15 @@ main(int argc, char *argv[])
               Progname, in_fname) ;
 
   MRISsetNeighborhoodSize(mris, nbrs) ;
-#if 0
-MRISprojectOntoCylinder(mris, 50.0f) ;
-MRISwrite(mris,in_fname) ;
-#endif
 
-#if 0
-MRISprojectOntoEllipsoid(mris, mris, 50.0f, 50.0f, 50.0f) ;
-MRISwrite(mris, in_fname) ;
-mrisComputeNormals(mris) ;
-#endif
-
-  MRIScomputeSecondFundamentalForm(mris) ;
-  nhandles = nint(1.0 - mris->Ktotal / (4.0*M_PI)) ;
-  fprintf(stderr, "total integrated curvature = %2.3f*4pi (%2.3f) --> "
-          "%d handles\n", (float)mris->Ktotal/(4.0f*M_PI), 
-          (float)mris->Ktotal, nhandles) ;
-
-fprintf(stderr, "0: k1 = %2.3f, k2 = %2.3f, H = %2.3f, K = %2.3f\n",
-        mris->vertices[0].k1, mris->vertices[0].k2, 
-        mris->vertices[0].H, mris->vertices[0].K) ;
-fprintf(stderr, "0: vnum = %d, v2num = %d, total=%d, area=%2.3f\n",
-        mris->vertices[0].vnum, mris->vertices[0].v2num,
-        mris->vertices[0].vtotal,mris->vertices[0].area) ;
-  MRIScomputeCurvatureIndices(mris, &ici, &fi);
-  var = MRIStotalVariation(mris) ;
-  fprintf(stderr, "ICI = %2.1f, FI = %2.1f, variation=%2.3f\n", ici, fi, var) ;
-
-  if (write_flag)
+  if (param_file)
   {
+    MRI_SP *mrisp ;
+    mrisp = MRISPread(param_file) ;
+    MRISfromParameterization(mrisp, mris, 0) ;
+    MRISPfree(&mrisp) ;
+    if (normalize)
+      MRISnormalizeCurvature(mris) ;
     FileNamePath(in_fname, path) ;
     FileNameOnly(in_fname, name) ;
     cp = strchr(name, '.') ;
@@ -98,18 +80,52 @@ fprintf(stderr, "0: vnum = %d, v2num = %d, total=%d, area=%2.3f\n",
                 Progname, fname) ;
     strncpy(hemi, cp-2, 2) ;
     hemi[2] = 0 ;
-    
-    MRISuseGaussianCurvature(mris) ;
-    MRISaverageCurvatures(mris, navgs) ;
-    sprintf(fname, "%s/%s.K", path,name) ; 
-    fprintf(stderr, "writing Gaussian curvature to %s...", fname) ;
-    MRISwriteCurvature(mris, fname) ;
-    MRISuseMeanCurvature(mris) ;
-    MRISaverageCurvatures(mris, navgs) ;
-    sprintf(fname, "%s/%s.H", path,name) ; 
-    fprintf(stderr, "done.\nwriting mean curvature to %s...", fname) ;
+    sprintf(fname, "%s/%s.param", path,name) ; 
+    fprintf(stderr, "writing parameterized curvature to %s...", fname) ;
     MRISwriteCurvature(mris, fname) ;
     fprintf(stderr, "done.\n") ;
+  }
+  else
+  {
+    MRIScomputeSecondFundamentalForm(mris) ;
+    nhandles = nint(1.0 - mris->Ktotal / (4.0*M_PI)) ;
+    fprintf(stderr, "total integrated curvature = %2.3f*4pi (%2.3f) --> "
+            "%d handles\n", (float)mris->Ktotal/(4.0f*M_PI), 
+            (float)mris->Ktotal, nhandles) ;
+    
+    fprintf(stderr, "0: k1 = %2.3f, k2 = %2.3f, H = %2.3f, K = %2.3f\n",
+            mris->vertices[0].k1, mris->vertices[0].k2, 
+            mris->vertices[0].H, mris->vertices[0].K) ;
+    fprintf(stderr, "0: vnum = %d, v2num = %d, total=%d, area=%2.3f\n",
+            mris->vertices[0].vnum, mris->vertices[0].v2num,
+            mris->vertices[0].vtotal,mris->vertices[0].area) ;
+    MRIScomputeCurvatureIndices(mris, &ici, &fi);
+    var = MRIStotalVariation(mris) ;
+    fprintf(stderr,"ICI = %2.1f, FI = %2.1f, variation=%2.3f\n", ici, fi, var);
+
+    if (write_flag)
+    {
+      FileNamePath(in_fname, path) ;
+      FileNameOnly(in_fname, name) ;
+      cp = strchr(name, '.') ;
+      if (!cp)
+        ErrorExit(ERROR_BADPARM, "%s: could not scan hemisphere from '%s'",
+                  Progname, fname) ;
+      strncpy(hemi, cp-2, 2) ;
+      hemi[2] = 0 ;
+      
+      MRISuseGaussianCurvature(mris) ;
+      MRISaverageCurvatures(mris, navgs) ;
+      sprintf(fname, "%s/%s.K", path,name) ; 
+      fprintf(stderr, "writing Gaussian curvature to %s...", fname) ;
+      MRISwriteCurvature(mris, fname) ;
+      MRISuseMeanCurvature(mris) ;
+      MRISaverageCurvatures(mris, navgs) ;
+      sprintf(fname, "%s/%s.H", path,name) ; 
+      fprintf(stderr, "done.\nwriting mean curvature to %s...", fname) ;
+      MRISwriteCurvature(mris, fname) ;
+      fprintf(stderr, "done.\n") ;
+    }
   }
   exit(0) ;
   return(0) ;  /* for ansi */
@@ -139,6 +155,14 @@ get_option(int argc, char *argv[])
   }
   else switch (toupper(*option))
   {
+  case 'N':
+    normalize = 1 ;
+    break ;
+  case 'P':
+    param_file = argv[2] ;
+    nargs = 1 ;
+    fprintf(stderr, "using parameterization file %s\n", param_file) ;
+    break ;
   case 'A':
     navgs = atoi(argv[2]) ;
     fprintf(stderr, "averaging curvature patterns %d times.\n", navgs) ;
