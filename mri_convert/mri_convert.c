@@ -3,9 +3,9 @@
 // original: written by Bruce Fischl (Apr 16, 1997)
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: greve $
-// Revision Date  : $Date: 2003/09/21 21:13:23 $
-// Revision       : $Revision: 1.63 $
+// Revision Author: $Author: tosa $
+// Revision Date  : $Date: 2003/09/22 14:02:41 $
+// Revision       : $Revision: 1.64 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -205,7 +205,7 @@ int main(int argc, char *argv[])
   nskip = 0;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_convert.c,v 1.63 2003/09/21 21:13:23 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_convert.c,v 1.64 2003/09/22 14:02:41 tosa Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -1312,27 +1312,10 @@ int main(int argc, char *argv[])
       MatrixPrint(stdout,lta_transform->xforms[0].m_L);
       printf("---------------------------------\n");
 
-#if 1
       /* LTAtransform() runs either MRIapplyRASlinearTransform() 
          for RAS2RAS or MRIlinearTransform() for Vox2Vox. */
+      /* MRIlinearTransform() calls MRIlinearTransformInterp() */
       mri_transformed = LTAtransform(mri, NULL, lta_transform);
-#else
-      /* This part is experimental. The section that uses NEAREST
-         can be used for transforming ROIs that need to be resampled
-         given the transform matrix. */
-      if (lta_transform->type == LINEAR_RAS_TO_RAS){
-        mri_transformed = 
-          MRIapplyRASlinearTransform(mri,NULL,
-                                     lta_transform->xforms[0].m_L);
-      }
-      else{
-        printf("INFO: transforming using nearest\n");
-        mri_transformed = 
-          MRIlinearTransformInterp(mri, NULL,
-                                   lta_transform->xforms[0].m_L,
-                                   SAMPLE_NEAREST);
-      }
-#endif
       if(mri_transformed == NULL){
         fprintf(stderr, "ERROR: applying transform to volume\n");
         exit(1);
