@@ -368,6 +368,12 @@ int          MRISreadValuesBak(MRI_SURFACE *mris, char *fname) ;
 int          MRISreadImagValues(MRI_SURFACE *mris, char *fname) ;
 int          MRIScopyValuesToImagValues(MRI_SURFACE *mris) ;
 
+int          MRIScopyValToVal2(MRI_SURFACE *mris) ;
+int          MRIScopyValToVal2Bak(MRI_SURFACE *mris) ;
+int          MRIScopyValToValBak(MRI_SURFACE *mris) ;
+int          MRISsqrtVal(MRI_SURFACE *mris) ;
+int          MRISmulVal(MRI_SURFACE *mris, float mul) ;
+
 int          MRISwrite(MRI_SURFACE *mris, char *fname) ;
 int          MRISwriteAscii(MRI_SURFACE *mris, char *fname) ;
 int          MRISwriteGeo(MRI_SURFACE *mris, char *fname) ;
