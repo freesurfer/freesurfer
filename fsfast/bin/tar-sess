@@ -1,0 +1,202 @@
+#!/bin/csh -f
+# tar-sess
+#
+set VERSION = '$Id: tar-sess,v 1.1 2004/12/06 00:09:59 greve Exp $';
+
+set cmdargs = ($argv);
+
+set monly     = 0;
+set PrintHelp = 0;
+set funcstems = ();
+set parfiles = ();
+set tarfile = ();
+set fsd = bold;
+set runlistfile = ();
+set compress = 1;
+
+if($#argv == 0)  goto usage_exit;
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+  exit 1;
+endif
+
+set SessList = `getsesspath $argv`;
+if($status || $#SessList == 0) then
+  getsesspath $argv 
+  exit 1;
+endif
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+rm -f $tarfile
+set tardir = `dirname $tarfile`;
+set tarfname = `basename $tarfile`;  
+mkdir -p $tardir
+pushd $tardir > /dev/null
+set tardir = `pwd`;
+popd > /dev/null
+set tarfile = $tardir/$tarfname
+set tarfiletmp = $tarfile.$$.tmp
+
+#------------------------------------------------------------------#
+set StartTime = `date`;
+foreach sess ($SessList)
+  set sessid = `basename $sess`;
+  set sesspar = `dirname $sess`;
+  pushd $sesspar > /dev/null
+  set RunList = `getrunlist $sess/$fsd $runlistfile`
+  set flist = ./$sessid/subjectname;
+  set flist = ($flist ./$sessid/$fsd/seq.info)
+  set flist = ($flist ./$sessid/$fsd/masks);
+  foreach run ($RunList)
+    foreach stem ($funcstems)
+      set fstem = ./$sessid/$fsd/$run/$stem
+      set flist = ($flist `ls "$fstem"_???.*`);
+      set flist = ($flist $fstem.bhdr);
+    end
+    foreach par ($parfiles)
+      set parfile = ./$sessid/$fsd/$run/$par
+      set flist = ($flist $parfile);
+    end
+  end # run
+  tar rvf $tarfiletmp $flist
+end # Loop over sessions #
+
+if($compress) gzip $tarfiletmp
+mv $tarfiletmp $tarfile
+
+echo "Started at $StartTime" 
+echo "Ended   at `date`"     
+echo "tar-sess Done"    
+
+exit 0;
+###############################################
+
+
+############--------------##################
+parse_args:
+set cmdline = "$argv";
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-f":
+      if ( $#argv == 0) goto arg1err;
+      set funcstems = ($funcstems $argv[1]); shift;
+      breaksw
+
+    case "-p":
+      if ( $#argv == 0) goto arg1err;
+      set parfiles = ($parfiles $argv[1]); shift;
+      breaksw
+
+    case "-rlf":
+      if ( $#argv == 0) goto arg1err;
+      set runlistfile = $argv[1]; shift;
+      breaksw
+
+    case "-t":
+      if ( $#argv == 0) goto arg1err;
+      set tarfile = $argv[1]; shift;
+      breaksw
+
+    case "-fsd":
+      if ( $#argv == 0) goto arg1err;
+      set fsd = $argv[1]; shift;
+      breaksw
+
+    case "-debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    case "-nocompress":
+      set compress = 0;
+      breaksw
+
+    case "-g":
+    case "-s":
+    case "-sf":
+    case "-d":
+    case "-df":
+      shift;
+      # ignore getsesspath arguments 
+      breaksw
+
+    case "-cwd":
+      # ignore getsesspath arguments 
+      breaksw
+
+    case "-umask":
+      if ( $#argv == 0) goto arg1err;
+      setenv MRI_UMASK $1; shift;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "USAGE: tar-sess"
+  echo ""
+  echo "   -t tarfile "
+  echo "   -f funcstem <-f funcstem>"
+  echo "   -p parfile  <-p parfile>"
+  echo "   -nocompresss"
+  echo ""
+  echo "Session Arguments (Required)"
+  echo "   -sf sessidfile  "
+  echo "   -df srchdirfile "
+  echo "   -s  sessid      "
+  echo "   -d  srchdir     "
+  echo "   -fsd fsdir      (optional)"
+  echo "   -rlf runlistfile   (optional)"
+  echo ""
+  echo "   -version        : print version and exit"
+  echo "   -help           : print help and exit"
+  echo ""
+
+  if(! $PrintHelp) exit 1;
+
+  echo $VERSION
+
+  echo "------------------------------------------------------------"
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+
+  echo "------------------------------------------------------------"
+
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
