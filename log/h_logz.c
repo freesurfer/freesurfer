@@ -49,6 +49,7 @@
 #include "image.h"
 #include "error.h"
 #include "proto.h"
+#include "timer.h"
 
 /*----------------------------------------------------------------------
                            CONSTANTS
@@ -2304,6 +2305,7 @@ imageOffsetDirection(IMAGE *Ix, IMAGE *Iy, int wsize, IMAGE *Iorient,
   oy = *or_ypix++ ;
   
   dir = 0.0f ;
+
   for (y = -whalf ; y <= whalf ; y++)
   {
     /* reflect across the boundary */
@@ -2354,8 +2356,10 @@ static int compare_sort_barray(const void *pb1, const void *pb2) ;
 IMAGE *
 LogMapNonlocal(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *Ismooth, IMAGE *Idst)
 {
-  int  rows, cols, x, y, ax, ay, sx, sy, x1, y1, dx, dy, odx, ody, d, xn, yn,
-       steps, dir, dot, wsize = 3, maxsteps = 3 ;
+  int          msec ;
+  struct timeb then ;
+  int   rows, cols, x, y, ax, ay, sx, sy, x1, y1, dx, dy, odx, ody, d, xn, yn,
+        steps, dir, dot, wsize = 3, maxsteps = 6 ;
   float *src_xpix, *src_ypix, *oxpix, *oypix, fdir ;
   byte  *calculated ;
   int   ring, spoke ;
@@ -2386,12 +2390,33 @@ LogMapNonlocal(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *Ismooth, IMAGE *Idst)
     Ix = ImageAlloc(rows, cols, PFFLOAT, 1) ;
     Iy = ImageAlloc(rows, cols, PFFLOAT, 1) ;
     Ioffset = ImageAlloc(rows, cols, PFFLOAT, 2) ;
+    Iorient = ImageAlloc(rows, cols, PFFLOAT, 2) ;
   }
   else
     ImageClear(Icalculated) ;
 
+  if (Gdiag & DIAG_TIMER)
+    TimerStart(&then) ;
   ImageSobel(Ismooth, NULL, Ix, Iy) ;
+  if (Gdiag & DIAG_TIMER)
+  {
+    msec = TimerStop(&then) ;
+    fprintf(stderr, "sobel took              %d msec (%2.1f Hz)\n",
+            msec, 1000.0f / ((float)msec)) ;
+    TimerStart(&then) ;
+  }
+#if 0
   Iorient = ImageOffsetOrientation(Ix, Iy, 3, Iorient) ;
+#else
+  ImageCopyFrames(Ix, Iorient, 0, 1, 0) ;
+  ImageCopyFrames(Iy, Iorient, 0, 1, 1) ;
+#endif
+  if (Gdiag & DIAG_TIMER)
+  {
+    msec = TimerStop(&then) ;
+    fprintf(stderr, "orientation took        %d msec (%2.1f Hz)\n",
+            msec, 1000.0f / ((float)msec)) ;
+  }
 
   if (!Idst)
     Idst = ImageAlloc(lmi->nspokes,lmi->nrings, Isrc->pixel_format,1);
@@ -2403,6 +2428,8 @@ LogMapNonlocal(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *Ismooth, IMAGE *Idst)
   else
     Iout = Idst ;
 
+  if (Gdiag & DIAG_TIMER)
+    TimerStart(&then) ;
   for_each_log_pixel(lmi, ring, spoke)
   {
     y1 = LOG_PIX_ROW_CENT(lmi, ring, spoke) ;
@@ -2586,6 +2613,12 @@ LogMapNonlocal(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *Ismooth, IMAGE *Idst)
     }
   }
 
+  if (Gdiag & DIAG_TIMER)
+  {
+    msec = TimerStop(&then) ;
+    fprintf(stderr, "nonlocal filtering took %d msec (%2.1f Hz)\n",
+            msec, 1000.0f / ((float)msec)) ;
+  }
 #if 0
 ImageWrite(Icalculated, "calc.hipl") ;
 ImageWrite(Ioffset, "offset_bad.hipl") ;
