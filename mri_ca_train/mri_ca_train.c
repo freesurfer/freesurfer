@@ -3,9 +3,9 @@
 /* by Bruce Fischl                                                     */
 /*                                                                     */
 /* Warning: Do not edit the following four lines.  CVS maintains them. */
-/* Revision Author: $Author: tosa $                                           */
-/* Revision Date  : $Date: 2003/10/30 15:49:41 $                                             */
-/* Revision       : $Revision: 1.17 $                                         */
+/* Revision Author: $Author: fischl $                                           */
+/* Revision Date  : $Date: 2003/12/09 20:43:27 $                                             */
+/* Revision       : $Revision: 1.18 $                                         */
 /***********************************************************************/
 
 #include <stdio.h>
@@ -317,7 +317,7 @@ main(int argc, char *argv[])
       
       if (xform_name)
       {
-	// we read talairach.xfm which is a RAS-to-RAS
+				// we read talairach.xfm which is a RAS-to-RAS
         sprintf(fname, "%s/%s/mri/transforms/%s", 
                 subjects_dir, subject_name, xform_name) ;
         if (DIAG_VERBOSE_ON)
