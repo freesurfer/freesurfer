@@ -44,9 +44,14 @@ main(int argc, char *argv[])
   int          msec, minutes, seconds ;
   struct timeb start ;
 
-  parms.niterations = 15 ;
-  parms.l_intensity = parms.l_dist = 1.0f ;
-  parms.dt = .005 ;
+  parms.niterations = 100 ;
+  parms.l_intensity = 0.1 ;
+  parms.levels = -1 ;   /* use default */
+  parms.l_dist = 0.0f ;
+  parms.l_area = 0.1 ;
+  parms.l_narea = 1000 ;
+  parms.dt = .5 ;
+  parms.sigma = 0.0f ;
   Progname = argv[0] ;
 
   DiagInit(NULL, NULL, NULL) ;
@@ -99,6 +104,7 @@ main(int argc, char *argv[])
 
   if (linear || !parms.m_L)    /* find optimal linear transformation */
   {
+    parms.mri_ref = mri_ref ; parms.mri_in = mri_in ;
     parms.dt = 5e-6 ;
     fprintf(stderr, "computing optimal linear transformation...\n") ;
     mri_reg = register_mri(mri_in, mri_ref, NULL, &parms) ;
@@ -119,12 +125,28 @@ main(int argc, char *argv[])
   if (!linear)   /* do the 3d morph */
   {
     MORPH_3D *m3d ;
+    MRI      *mri_in_reduced, *mri_ref_reduced ;
+
+    if (mri_in->width > 128)
+      mri_in_reduced = MRIreduceByte(mri_in, NULL) ;
+    else
+      mri_in_reduced = mri_in ;
+    if (mri_ref->width > 128)
+      mri_ref_reduced = MRIreduceByte(mri_ref, NULL) ;
+    else
+      mri_ref_reduced = mri_ref ;
     
-    m3d = MRImorph3D(mri_in, mri_ref, &parms, NULL) ;
+    m3d = MRI3Dmorph(mri_in_reduced, mri_ref_reduced, &parms) ;
+    if (mri_ref_reduced != mri_ref)
+      MRIfree(&mri_ref_reduced) ;
+    if (mri_in_reduced != mri_in)
+      MRIfree(&mri_in_reduced) ;
+    if (Gdiag & DIAG_SHOW)
+      fprintf(stderr, "applying 3d morph...\n") ;
     mri_reg = MRIapply3DMorph(mri_in, mri_ref, m3d, NULL) ;
-    
+
     fprintf(stderr, "writing transformed volume to %s...\n", out_fname) ;
-    MRImorph3DFree(&m3d) ;
+    MRI3DmorphFree(&m3d) ;
     MRIwrite(mri_reg, out_fname) ;
   }
   if (mri_reg)
@@ -156,7 +178,7 @@ get_option(int argc, char *argv[])
 
   option = argv[1] + 1 ;            /* past '-' */
   StrUpper(option) ;
-  if (!strcmp(option, "DIST"))
+  if (!strcmp(option, "DIST") || !strcmp(option, "DISTANCE"))
   {
     parms.l_dist = atof(argv[2]) ;
     nargs = 1 ;
@@ -174,7 +196,19 @@ get_option(int argc, char *argv[])
     nargs = 1 ;
     fprintf(stderr, "l_area = %2.2f\n", parms.l_area) ;
   }
-  else if (!strcmp(option, "INTENSITY"))
+  else if (!strcmp(option, "NAREA"))
+  {
+    parms.l_narea = atof(argv[2]) ;
+    nargs = 1 ;
+    fprintf(stderr, "l_narea = %2.2f\n", parms.l_narea) ;
+  }
+  else if (!strcmp(option, "LEVELS"))
+  {
+    parms.levels = atoi(argv[2]) ;
+    nargs = 1 ;
+    fprintf(stderr, "levels = %d\n", parms.levels) ;
+  }
+  else if (!strcmp(option, "INTENSITY") || !strcmp(option, "CORR"))
   {
     parms.l_intensity = atof(argv[2]) ;
     nargs = 1 ;
@@ -182,6 +216,12 @@ get_option(int argc, char *argv[])
   }
   else switch (*option)
   {
+  case 'S':
+    parms.sigma = atof(argv[2]) ;
+    fprintf(stderr, "using sigma=%2.3f as upper bound on blurring.\n", 
+            parms.sigma) ;
+    nargs = 1 ;
+    break ;
   case '?':
   case 'U':
     printf("usage: %s [image file name]\n", argv[0]) ;
