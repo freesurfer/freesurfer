@@ -70,6 +70,7 @@ typedef struct
   int           *yi ;
   int           *zi ;
   int           yinvert ;  /* for converting between MNC and coronal slices */
+  MRI_REGION    roi ;
 } MRI_IMAGE, MRI ;
 
 /* single pixel filtering */
@@ -175,6 +176,7 @@ MRI   *MRIapplyOffset(MRI *mri_src, MRI *mri_dst, MRI *mri_offset) ;
 
 
 MRI   *MRIclone(MRI *mri_src, MRI *mri_dst) ;
+MRI   *MRIcloneRoi(MRI *mri_src, MRI *mri_dst) ;
 MRI   *MRIthreshold(MRI *mri_src, MRI *mri_dst, BUFTYPE threshold) ;
 int   MRIprincipleComponents(MRI *mri, MATRIX *mEvectors, float *evalues,
                               int *means, BUFTYPE theshold) ;
