@@ -882,6 +882,13 @@ TiffReadImage(char *fname, int frame0)
   int      nframe=0,frame;
   byte     *iptr ;
   tdata_t *buf;
+  int      photometric;
+  int      fillorder;
+  unsigned char     *buffer;
+  int      skip;
+  int      i;
+  float    r, g, b, y;
+  float    *pf;
 
   if (!tif)
     return(NULL) ;
@@ -901,10 +908,41 @@ TiffReadImage(char *fname, int frame0)
   ret = TIFFGetFieldDefaulted(tif, TIFFTAG_IMAGELENGTH, &height);
   ret = TIFFGetFieldDefaulted(tif, TIFFTAG_SAMPLESPERPIXEL, &nsamples);
   ret = TIFFGetFieldDefaulted(tif, TIFFTAG_BITSPERSAMPLE, &bits_per_sample);
-  // nsamples not handled here
-  if (nsamples > 1)
-    ErrorExit(ERROR_BADPARM, "IMAGE: nsamples = %d.  only grey scale image is supported\n", nsamples );
+  ret = TIFFGetFieldDefaulted(tif, TIFFTAG_PHOTOMETRIC, &photometric);
+  // we don't handle fillorder at this time ;-)
+  ret = TIFFGetFieldDefaulted(tif, TIFFTAG_FILLORDER, &fillorder);
 
+  fprintf(stderr, "tiff info\n");
+  fprintf(stderr, "         size: (%d, %d)\n", width, height);
+  fprintf(stderr, "samples/pixel: %d\n", nsamples);
+  fprintf(stderr, "  bits/sample: %d\n", bits_per_sample);
+  switch(photometric)
+  {
+  case PHOTOMETRIC_MINISWHITE:
+    fprintf(stderr, "photometric: min value is white.\n"); break;
+  case PHOTOMETRIC_MINISBLACK:
+    fprintf(stderr, "photometric: min value is black.\n"); break;
+  case PHOTOMETRIC_RGB:
+    fprintf(stderr, "photometric: RGB color model.\n"); break;
+  case PHOTOMETRIC_PALETTE:
+    fprintf(stderr, "photometric: use palette.\n"); break;
+  case PHOTOMETRIC_MASK:
+    fprintf(stderr, "photometric: $holdout mask.\n"); break;
+  case PHOTOMETRIC_SEPARATED:
+    fprintf(stderr, "photometric: color separations.\n"); break;
+  case PHOTOMETRIC_YCBCR:
+    fprintf(stderr, "photometric: YCbCr6 CCIR 601.\n"); break;
+  case PHOTOMETRIC_CIELAB:
+    fprintf(stderr, "photometric: 1976 CIE L*a*b* \n"); break;
+  case PHOTOMETRIC_ITULAB:
+    fprintf(stderr, "photometric: ITU L*a*b* \n"); break;
+  case PHOTOMETRIC_LOGL:
+    fprintf(stderr, "photometric: CIE Log2(L) \n"); break;
+  case PHOTOMETRIC_LOGLUV:
+    fprintf(stderr, "photometric: CIE Log2(L) (u',v') \n"); break;
+  default:
+    fprintf(stderr, "photometric: unknown type\n"); break;
+  }
   switch (bits_per_sample)  /* not valid - I don't know why */
   {
   default:
@@ -918,12 +956,19 @@ TiffReadImage(char *fname, int frame0)
     type = PFDOUBLE;
     break;
   }
+  // nsamples not handled here
+  if (nsamples != 1 && nsamples != 3)
+    ErrorExit(ERROR_BADPARM, "IMAGE: nsamples = %d.  only grey scale or RGB image is supported\n", nsamples );
+
+  // we allocate only grey scale image
   if (frame0 < 0) 
     I = ImageAlloc(height, width, type, nframe) ;
   else
     I = ImageAlloc(height, width, type, 1) ;
   
   iptr = I->image;
+
+
   for(frame=0;frame<nframe;frame++)
   {
     TIFFSetDirectory(tif,frame);
@@ -934,23 +979,69 @@ TiffReadImage(char *fname, int frame0)
     ret = TIFFGetFieldDefaulted(tif, TIFFTAG_BITSPERSAMPLE,&bits_per_sample);
     for(row=0;row<height;row++)
     {
-      switch (bits_per_sample)
+      // get the pointer at the first column of a row
+      // note that the orientation is column, row
+      if (nsamples == 1)
       {
-      default:
-      case 8:
-        buf = (tdata_t *)IMAGEpix(I,0,row);
-        break;
-      case 32:
-        buf = (tdata_t *)IMAGEFpix(I,0,row);
-        break;
-      case 64:
-        buf = (tdata_t *)IMAGEDpix(I,0,row);
-        break;
+	switch (bits_per_sample)
+	{
+	default:
+	case 8:
+	  buf = (tdata_t *)IMAGEpix(I,0,row);
+	  break;
+	case 32:
+	  buf = (tdata_t *)IMAGEFpix(I,0,row);
+	  break;
+	case 64:
+	  buf = (tdata_t *)IMAGEDpix(I,0,row);
+	  break;
+	}
+	if (TIFFReadScanline(tif, buf, row, 0) < 0)
+	  ErrorReturn(NULL,
+		      (ERROR_BADFILE,
+		       "TiffReadImage:  TIFFReadScanline returned error"));
       }
-      if (TIFFReadScanline(tif, buf, row, 0) < 0)
-        ErrorReturn(NULL,
-                    (ERROR_BADFILE,
-                     "TiffReadImage:  TIFFReadScanline returned error"));
+      else if (nsamples == 3) // RGB model
+      {
+	buffer = (unsigned char *) malloc(bits_per_sample*width*nsamples/8); // count in bytes
+	if (TIFFReadScanline(tif, buffer, row, 0) < 0)
+	  ErrorReturn(NULL,
+		      (ERROR_BADFILE,
+		       "TiffReadImage:  TIFFReadScanline returned error"));
+	// now translate it into Y value
+	// RGB range 0 to 1.0
+	// then YIQ is 
+	//     Y   =  0.299  0.587   0.114  R
+	//     I      0.596 -0.275  -0.321  G
+	//     Q      0.212 -0.523   0.311  B
+	// and use Y for grey scale (this is color tv signal into bw tv
+	switch(bits_per_sample)
+	{
+	default:
+	case 8:
+	  skip = 3; // 
+	  for (i = 0; i < width; ++i)
+	  {
+	    r = (float) buffer[i*skip]; g = (float) buffer[i*skip+1]; b = (float) buffer[i*skip+2];
+	    y = (0.299*r + 0.587*g + 0.114*b);
+	    *IMAGEpix(I, i, row) = (unsigned char) y;
+	  }
+	  break; // 3 bytes at a time
+	case 32:
+	  skip = 12; // 3x4 bytes at a time
+	  for (i=0; i < width ; ++i)
+	  {
+	    pf = (float *) &buffer[i*skip]; r = *pf;
+	    pf = (float *) &buffer[i*skip+4]; g = *pf;
+	    pf = (float *) &buffer[i*skip+8]; b = *pf;
+	    y = (0.299*r + 0.587*g + 0.114*b);
+	    *IMAGEFpix(I, i, row) = y;
+	  }
+	case 64:
+	  ErrorExit(ERROR_BADPARM, "At this time we don't support RGB double valued tiff.\n");	  
+	}
+	free(buffer);
+      }
     }
     if (frame0 < 0)
       I->image += I->sizeimage;
