@@ -1106,6 +1106,9 @@ static int JPEGWriteImage(IMAGE *I, char *fname, int frame)
 #endif
 
 #ifdef IRIX
+static IMAGE *JPEGReadImage(char *fname) {return(NULL);}
+static IMAGE *JPEGReadHeader(FILE *fp, IMAGE *I) {return(NULL);}
+static int JPEGWriteImage(IMAGE *I, char *fname, int frame) {return(0);}
 static IMAGE *PGMReadImage(char *fname)
 {
   ErrorReturn(NULL, (ERROR_UNSUPPORTED, "pgm not supported on IRIX")) ; 
@@ -1335,8 +1338,6 @@ PPMReadHeader(FILE *fp, IMAGE *I)
   return I;
 }
 
-
-#endif
 static IMAGE *
 JPEGReadImage(char *fname) 
 {
@@ -1440,6 +1441,8 @@ JPEGWriteImage(IMAGE *I, char *fname, int frame)
   
   return NO_ERROR;
 }
+
+#endif
 
 #include "rgb_image.h"
 
