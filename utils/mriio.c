@@ -113,8 +113,8 @@ int DICOMRead(char *FileName, MRI **mri, int ReadImage);
 
 extern int errno;
 
-//extern char *Progname;
-char *Progname;
+extern char *Progname;
+/*char *Progname;*/
 
 static char *command_line;
 static char *subject_name;
