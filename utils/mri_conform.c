@@ -14,25 +14,28 @@
 #define  BOTTOM_CLIP  0.001
 #define TOP_CLIP  0.999
 
+static int data_size[] = { 1, 4, 4, 4, 2 };
 
 static MRI *interpolate_and_pad(MRI *mri);
 static short s_partial_quicksort(short list[], int n, float cutoff_fraction);
 static unsigned char *s_scale(short list[], int list_length);
 static float f_partial_quicksort(float list[], int n, float cutoff_fraction);
 static unsigned char *f_scale(float list[], int list_length);
+static void short_image_to_buffer(short *buf, MRI *mri);
+static void float_image_to_buffer(float *buf, MRI *mri);
 
-MRI *MRIconform(MRI *mri, void *p_data, int xdim, int ydim, int zdim)
+MRI *MRIconform(MRI *mri)
 {
 
   int n_pixels = mri->width * mri->height * mri->depth;
-  unsigned char *uchar_list;
+  unsigned char *uchar_list, *p_data;
   int i, j, k;
   MRI *mri2, *mri3, *mri4;
 
-  if(p_data == NULL)
+  if(mri->slices == NULL)
     {
-    mri2 = MRIallocHeader(mri->width, mri->height, 256, MRI_UCHAR);
-    MRIcopyHeader(mri, mri2);
+    mri2 = MRIcopy(mri, NULL);
+
     mri2->depth = 256;
     mri2->type = MRI_UCHAR;
 
@@ -45,39 +48,72 @@ MRI *MRIconform(MRI *mri, void *p_data, int xdim, int ydim, int zdim)
 
     mri2->imnr1 = 256;
 
-    mri2->slice_direction = MRI_CORONAL;
+printf("not slices\n");
+MRIdump(mri2, stdout);
+
     return(mri2);
 
     }
   else
     {
-
-    if(mri->type == MRI_FLOAT)
-      uchar_list = f_scale((float *)p_data, n_pixels);
-    else if(mri->type == MRI_SHORT)
-      uchar_list = s_scale((short *)p_data, n_pixels);
+/*
+mri2 = MRIcopy(mri, NULL);
+mri2->slice_direction = 
+return(mri2);
+*/
+    if(mri->type == MRI_UCHAR)
+    {
+      mri3 = interpolate_and_pad(mri);
+      MRIfree(&mri);
+    }
     else
-      ErrorReturn(NULL, (ERROR_UNSUPPORTED, "MRIconform: unsupported data type %d\n", mri->type));
+    {
+      p_data = malloc(data_size[mri->type] * mri->height * mri->width * mri->depth);
 
-    mri2 = MRIallocSequence(mri->width, mri->height, mri->depth, MRI_UCHAR, 1);
-    if(mri2 == NULL)
-      ErrorReturn(NULL, (ERROR_NO_MEMORY, "MRIconform: can't allocate sequence"));
-    MRIcopyHeader(mri, mri2);
-    mri2->depth = mri->depth;
+      if(mri->type == MRI_FLOAT)
+      {
+        float_image_to_buffer((float *)p_data, mri);
+        uchar_list = f_scale((float *)p_data, n_pixels);
+      }
+      else if(mri->type == MRI_SHORT)
+      {
+        short_image_to_buffer((short *)p_data, mri);
+        uchar_list = s_scale((short *)p_data, n_pixels);
+      }
+      else
+        ErrorReturn(NULL, (ERROR_UNSUPPORTED, "MRIconform: unsupported data type %d\n", mri->type));
 
-    for(i = 0;i < mri->width;i++)
-      for(j = 0;j < mri->height;j++)
-        for(k = 0;k < mri->depth;k++)
-          MRIvox(mri2, i, j, k) = uchar_list[i + mri->width * (j + k*mri->height)];
+      mri2 = MRIallocSequence(mri->width, mri->height, mri->depth, MRI_UCHAR, 1);
+      if(mri2 == NULL)
+        ErrorReturn(NULL, (ERROR_NO_MEMORY, "MRIconform: can't allocate sequence"));
+      MRIcopyHeader(mri, mri2);
+      mri2->depth = mri->depth;
 
-    mri3 = interpolate_and_pad(mri2);
-    MRIfree(&mri2);
+      for(i = 0;i < mri->width;i++)
+        for(j = 0;j < mri->height;j++)
+          for(k = 0;k < mri->depth;k++)
+            MRIvox(mri2, i, j, k) = uchar_list[i + mri->width * (j + k*mri->height)];
 
-    mri4 = MRIreorder(mri3, NULL, xdim, ydim, zdim);
+      mri3 = interpolate_and_pad(mri2);
+      MRIfree(&mri2);
+
+    free(p_data);
+
+    }
+
+    mri4 = MRIreorder(mri3, NULL, mri3->xdir, mri3->ydir, mri3->zdir);
+    mri4->xdir = XDIM;
+    mri4->ydir = YDIM;
+    mri4->zdir = ZDIM;
     mri4->slice_direction = MRI_CORONAL;
     MRIfree(&mri3);
 
+printf("slices\n");
+MRIdump(mri4, stdout);
     return(mri4);
+
+    free(p_data);
+
     }
 
 }  /*  end MRIconform()  */
@@ -255,5 +291,43 @@ static unsigned char *f_scale(float list[], int list_length)
   return(new_list);
 
 }  /*  end f_scale()  */
+
+static void
+float_image_to_buffer(float *buf, MRI *mri)
+{
+  int           y, z, width, height ;
+  BUFTYPE       *pslice ;
+  
+  width = mri->width ;
+  height = mri->height ;
+  for (z = 0;z < mri->depth ; z++)
+  {
+    for (y=0; y < height ; y++)
+    {
+      pslice = mri->slices[z][y] ;
+      memcpy(buf, pslice, width*sizeof(float)) ;
+      buf += width;
+    }
+  }
+}
+
+static void
+short_image_to_buffer(short *buf, MRI *mri)
+{
+  int           y, z, width, height ;
+  BUFTYPE       *pslice ;
+  
+  width = mri->width ;
+  height = mri->height ;
+  for (z = 0;z < mri->depth ; z++)
+  {
+    for (y=0; y < height ; y++)
+    {
+      pslice = mri->slices[z][y] ;
+      memcpy(buf, pslice, width*sizeof(short)) ;
+      buf += width;
+    }
+  }
+}
 
 /*  EOF  */
