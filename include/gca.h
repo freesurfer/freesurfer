@@ -27,6 +27,7 @@
 #define GCA_YGRAD             0x0004
 #define GCA_ZGRAD             0x0008
 #define GCA_GRAD              (GCA_XGRAD | GCA_YGRAD | GCA_ZGRAD)
+#define GCA_NO_GCS            0x0010
 
 typedef struct
 {

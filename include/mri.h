@@ -381,6 +381,7 @@ MRI   *MRIcomputeResidual(MRI *mri1, MRI *mri2, MRI *mri_dst, int t1, int t2) ;
 
 /* filtering operations */
 MRI   *MRImodeFilter(MRI *mri_src, MRI *mri_dst, int niter) ;
+MRI   *MRImodeFilterWithControlPoints(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst, int niter) ;
 MRI   *MRIthreshModeFilter(MRI *mri_src, MRI *mri_dst, int niter,float thresh);
 MRI   *MRIminmax(MRI *mri_src, MRI *mri_dst, MRI *mri_dir, int wsize) ;
 MRI   *MRIgaussian1d(float sigma, int max_len) ;

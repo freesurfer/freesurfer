@@ -48,7 +48,7 @@ typedef struct
   MRI  *mri_yind ;
   MRI  *mri_zind ;
   VOL_GEOM   src;            /* src for the transform       */
-  VOL_GEOM   dst;            /* dst for the transform       */
+  VOL_GEOM   atlas ;            /* dst for the transform       */
 	int        ninputs ;
 } GCA_MORPH, GCAM ;
 
@@ -124,6 +124,8 @@ int      GCAMinitLabels(GCA_MORPH *gcam, MRI *mri_labeled) ;
 int GCAMsetLabelStatus(GCA_MORPH *gcam, int label, int status) ;
 int GCAMsetStatus(GCA_MORPH *gcam, int status) ;
 int GCAMapplyTransform(GCA_MORPH *gcam, TRANSFORM *transform) ;
+int GCAMinitVolGeom(GCAM *gcam, MRI *mri_src, MRI *mri_atlas) ;
+MRI *GCAquickMorphFromAtlas(GCA_MORPH *gcam, MRI *mri, int fno) ;
 
 #define ORIGINAL_POSITIONS  0
 #define ORIG_POSITIONS      ORIGINAL_POSITIONS
