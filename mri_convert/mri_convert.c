@@ -3,9 +3,9 @@
 // original: written by Bruce Fischl (Apr 16, 1997)
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2003/12/11 15:23:03 $
-// Revision       : $Revision: 1.76 $
+// Revision Author: $Author: ch $
+// Revision Date  : $Date: 2003/12/11 21:12:02 $
+// Revision       : $Revision: 1.77 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -213,7 +213,7 @@ int main(int argc, char *argv[])
   nskip = 0;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_convert.c,v 1.76 2003/12/11 15:23:03 tosa Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_convert.c,v 1.77 2003/12/11 21:12:02 ch Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -1493,7 +1493,10 @@ int main(int argc, char *argv[])
   if(out_n_j_flag)
     template->height = out_n_j;
   if(out_n_k_flag)
+  {
     template->depth = out_n_k;
+    template->imnr1 = template->imnr0 + out_n_k - 1;
+  }
   if(out_i_direction_flag)
   {
     template->x_r = out_i_directions[0];
