@@ -23,6 +23,10 @@ static MORPH_PARMS  parms ;
 
 static char *norm_fname = NULL ;
 
+static double TR = -1 ;
+static double alpha = -1 ;
+static double TE = -1 ;
+
 static char *sample_fname = NULL ;
 static char *transformed_sample_fname = NULL ;
 static int novar = 0 ;
@@ -40,6 +44,8 @@ static double rzrot = 0.0 ;
 static double rxrot = 0.0 ;
 static double ryrot = 0.0 ;
 
+static FILE *diag_fp = NULL ;
+
 static LTA *Glta = NULL ;
 
 static int translation_only = 0 ;
@@ -47,6 +53,7 @@ static int get_option(int argc, char *argv[]) ;
 static int register_mri(MRI *mri_in, GCA *gca, MP *parms, int passno) ;
 
 static char *renormalization_fname = NULL ;
+static char *tissue_parms_fname = NULL ;
 static int center = 1 ;
 static int nreductions = 1 ;
 static int noscale = 0 ;
@@ -191,6 +198,7 @@ main(int argc, char *argv[])
     free(labels) ; free(intensities) ;
   }
 
+
 #if 0
   if (gca->spacing < min_spacing)
     printf(
@@ -225,6 +233,16 @@ main(int argc, char *argv[])
   if (!mri_in)
     ErrorExit(ERROR_NOFILE, "%s: could not open input volume %s.\n",
               Progname, in_fname) ;
+
+  if (alpha > 0)
+    mri_in->flip_angle = alpha ;
+  if (TR > 0)
+    mri_in->tr = TR ;
+  if (TE > 0)
+    mri_in->te = TE ;
+
+  if (tissue_parms_fname)   /* use FLASH forward model */
+    GCArenormalizeToFlash(gca, tissue_parms_fname, mri_in) ;
 
   if (parms.write_iterations != 0)
   {
@@ -416,6 +434,14 @@ main(int argc, char *argv[])
       else if (parms.gcas[ordered_indices[i]].label == 
                Right_Cerebellum_White_Matter)
         nright_used++ ;
+      if (diag_fp)
+        fprintf(diag_fp, "%d %d %d %2.1f %d\n",
+                parms.gcas[ordered_indices[i]].x,
+                parms.gcas[ordered_indices[i]].y,
+                parms.gcas[ordered_indices[i]].z,
+                parms.gcas[ordered_indices[i]].mean,
+                parms.gcas[ordered_indices[i]].label) ;
+
     }
 #define MIN_CEREBELLUM  (30)
     printf("%d/%d (l/r) cerebellar points initially in top 10%%\n", 
@@ -431,6 +457,14 @@ main(int argc, char *argv[])
         nright_used++ ;
       else
         parms.gcas[ordered_indices[i]].label = 0 ;
+      if (diag_fp && !IS_UNKNOWN(parms.gcas[ordered_indices[i]].label))
+        fprintf(diag_fp, "%d %d %d %2.1f %d\n",
+                parms.gcas[ordered_indices[i]].x,
+                parms.gcas[ordered_indices[i]].y,
+                parms.gcas[ordered_indices[i]].z,
+                parms.gcas[ordered_indices[i]].mean,
+                parms.gcas[ordered_indices[i]].label) ;
+
     }
 #endif
 
@@ -478,6 +512,8 @@ main(int argc, char *argv[])
   seconds = seconds % 60 ;
   printf("registration took %d minutes and %d seconds.\n", 
           minutes, seconds) ;
+  if (diag_fp)
+    fclose(diag_fp) ;
   exit(0) ;
   return(0) ;
 }
@@ -573,12 +609,18 @@ find_optimal_transform(MRI *mri, GCA *gca, GCA_SAMPLE *gcas, int nsamples,
 
 #define MIN_BIN  50
 #define OFFSET_SIZE  25
+#define BOX_SIZE   60   /* mm */
+#define HALF_BOX   (BOX_SIZE/2)
 
   if (passno == 0)
   {
+    float   x0, y0, z0 ;
     MRIfindApproximateSkullBoundingBox(mri, 50, &box) ;
-    box.x += OFFSET_SIZE ; box.y += OFFSET_SIZE ; box.z += OFFSET_SIZE ;
-    box.dx -= 2*OFFSET_SIZE; box.dy -= 2*OFFSET_SIZE; box.dz -= 2*OFFSET_SIZE;
+    x0 = box.x+box.dx/2 ; y0 = box.y+box.dy/2 ; z0 = box.z+box.dz/2 ;
+    printf("using (%.0f, %.0f, %.0f) as brain centroid...\n",x0, y0, z0) ;
+    box.x = x0 - HALF_BOX*mri->xsize ; box.dx = BOX_SIZE*mri->xsize ;
+    box.y = y0 - HALF_BOX*mri->ysize ; box.dy = BOX_SIZE*mri->ysize ;
+    box.x = z0 - HALF_BOX*mri->zsize ; box.dz = BOX_SIZE*mri->zsize ;
     wm_mean = GCAlabelMean(gca, Left_Cerebral_White_Matter) ;
     wm_mean = (wm_mean + GCAlabelMean(gca, Right_Cerebral_White_Matter))/2.0 ;
     printf("mean wm in atlas = %2.0f, using box (%d,%d,%d) --> (%d, %d,%d) "
@@ -764,6 +806,9 @@ find_optimal_rotation(GCA *gca, GCA_SAMPLE *gcas, MRI *mri, int nsamples,
   for (i = 0 ; i <= nreductions ; i++)
   {
     delta = (max_angle-min_angle) / angle_steps ;
+    if (FZERO(delta))
+      return(max_log_p) ;
+
     if (Gdiag & DIAG_SHOW)
       printf(
               "scanning %2.2f degree nbhd (%2.1f) ",
@@ -861,9 +906,14 @@ find_optimal_scaling(GCA *gca, GCA_SAMPLE *gcas, MRI *mri, int nsamples,
   for (i = 0 ; i <= nreductions ; i++)
   {
     delta = (max_scale-min_scale) / scale_steps ;
+    if (FZERO(delta))
+      return(max_log_p) ;
     if (Gdiag & DIAG_SHOW)
+    {
       printf("scanning scales %2.3f->%2.3f (%2.3f) ",
               min_scale,max_scale, delta) ;
+      fflush(stdout) ;
+    }
     for (x_scale = min_scale ; x_scale <= max_scale ; x_scale += delta)
     {
       *MATRIX_RELT(m_scale, 1, 1) = x_scale ;
@@ -949,10 +999,15 @@ find_optimal_translation(GCA *gca, GCA_SAMPLE *gcas, MRI *mri, int nsamples,
   for (i = 0 ; i <= nreductions ; i++)
   {
     delta = (max_trans-min_trans) / trans_steps ;
+    if (FZERO(delta))
+      return(max_log_p) ;
     if (Gdiag & DIAG_SHOW)
+    {
       printf(
               "scanning translations %2.2f->%2.2f (%2.1f) ",
               min_trans,max_trans, delta) ;
+      fflush(stdout) ;
+    }
     for (x_trans = min_trans ; x_trans <= max_trans ; x_trans += delta)
     {
       *MATRIX_RELT(m_trans, 1, 4) = x_trans ;
@@ -1032,6 +1087,33 @@ get_option(int argc, char *argv[])
     nargs = 1 ;
     printf("writing control points to %s...\n", sample_fname) ;
   }
+  else if (!strcmp(option, "DIAG"))
+  {
+    diag_fp = fopen(argv[2], "w") ;
+    if (!diag_fp)
+      ErrorExit(ERROR_NOFILE, "%s: could not open diag file %s for writing",
+                Progname, argv[2]) ;
+    printf("opening diag file %s for writing\n", argv[2]) ;
+    nargs = 1 ;
+  }
+  else if (!strcmp(option, "TR"))
+  {
+    TR = atof(argv[2]) ;
+    nargs = 1 ;
+    printf("using TR=%2.1f msec\n", TR) ;
+  }
+  else if (!strcmp(option, "TE"))
+  {
+    TE = atof(argv[2]) ;
+    nargs = 1 ;
+    printf("using TE=%2.1f msec\n", TE) ;
+  }
+  else if (!strcmp(option, "ALPHA"))
+  {
+    nargs = 1 ;
+    alpha = RADIANS(atof(argv[2])) ;
+    printf("using alpha=%2.0f degrees\n", DEGREES(alpha)) ;
+  }
   else if (!strcmp(option, "FSAMPLES") || !strcmp(option, "ISAMPLES"))
   {
     transformed_sample_fname = argv[2] ;
@@ -1050,6 +1132,13 @@ get_option(int argc, char *argv[])
     nargs = 1 ;
     printf("renormalizing using predicted intensity values in %s...\n",
            renormalization_fname) ;
+  }
+  else if (!strcmp(option, "FLASH"))
+  {
+    tissue_parms_fname = argv[2] ;
+    nargs = 1 ;
+    printf("using FLASH forward model and tissue parms in %s to predict"
+           " intensity values...\n", tissue_parms_fname) ;
   }
   else if (!strcmp(option, "TRANSONLY"))
   {
@@ -1258,10 +1347,13 @@ find_optimal_scaling_and_rotation(GCA *gca, GCA_SAMPLE *gcas,
     delta_scale = (max_scale-min_scale) / scale_steps ;
     delta = (max_angle-min_angle) / angle_steps ;
     if (Gdiag & DIAG_SHOW)
+    {
       printf("scanning %2.2f degree nbhd (%2.1f) and "
              "scale %2.3f->%2.3f (%2.3f)\n",
               (float)DEGREES(max_angle), (float)DEGREES(delta),
              min_scale,max_scale, delta_scale);
+      fflush(stdout) ;
+    }
 
     for (x_scale = min_scale ; x_scale <= max_scale ; x_scale += delta_scale)
     {
