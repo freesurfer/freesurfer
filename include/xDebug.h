@@ -4,11 +4,6 @@
 
 extern char gDebuggingOn;
 
-#undef GLOBAL
-
-#ifndef xDebug_H
-#define xDebug_H
-
 #include <stdio.h>
 
 // define true and false
