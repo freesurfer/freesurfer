@@ -879,7 +879,7 @@ static void read_sdt_file(char *fname, struct stat stat_buf)
       do
         {
         colon++;
-        } while(isspace(*colon));
+        } while(isspace((int)*colon));
 
       if(strcmp(line, "numDim") == 0)
         printf("number of dimensions: %s\n", colon);
@@ -907,9 +907,10 @@ static void read_sdt_file(char *fname, struct stat stat_buf)
         while(*colon != '\0')
           {
           tc = colon;
-          while(isdigit(*colon) || *colon == '-' || *colon == '+' || *colon == '.')
+          while(isdigit((int)*colon) || *colon == '-' || 
+                *colon == '+' || *colon == '.')
             colon++;
-          while(isspace(*colon))
+          while(isspace((int)*colon))
             colon++;
           *(colon-1) = '\0';
           sscanf(tc, "%f", &vs);
