@@ -306,7 +306,6 @@ MRInormInit(MRI *mri, MNI *mni, int windows_above_t0,int windows_below_t0,
             x0_tal, y0_tal, z0_tal) ;
     fprintf(stderr, "wsize %d, windows %d above, %d below\n", 
             wsize, mni->windows_above_t0, mni->windows_below_t0) ;
-    fprintf(stderr, "max gradient %2.3f\n", mni->max_gradient) ;
   }
 
   x = 0 ;
@@ -445,6 +444,8 @@ MRInormCheckPeaks(MNI *mni, float *inputs, float *outputs, int npeaks)
   else
     max_gradient = mni->max_gradient ;
 
+  if (Gdiag & DIAG_SHOW)
+    fprintf(stderr, "max gradient %2.3f\n", mni->max_gradient) ;
   if (Gdiag & DIAG_SHOW)
     for (slice = 0 ; slice < npeaks ; slice++)
       fprintf(stderr, "%d: %2.0f --> %2.0f\n",
