@@ -396,6 +396,8 @@ ScubaLayer2DMRI::GetInfoAtRAS ( float iRAS[3],
     
     float value;
     value = mVolume->GetMRINearestValue( loc ); 
+    //    fprintf( stderr, "value at %d, %d, %d is %f\n", 
+    //	     loc.Index()[0], loc.Index()[1], loc.Index()[2], value );
 
     // If this is a LUT volume, use the label from the lookup file,
     // otherwise just display the value.

@@ -10,7 +10,7 @@ if { $err } {
     load [file dirname [info script]]/libscuba[info sharedlibextension] scuba
 }
 
-DebugOutput "\$Id: scuba.tcl,v 1.70 2005/02/01 21:15:06 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.71 2005/02/02 16:46:14 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -294,14 +294,12 @@ proc FindFile { ifn } {
     
     # Make sure this file exists
     if { [file exists $fn] == 0 } {
-	tkuErrorDlog "Couldn't find file '$fn'"
-	return ""
+	error "Couldn't find file '$fn'"
     }
 
     # Make sure it is readable
     if { [file readable $fn] == 0 } {
-	tkuErrorDlog "File $fn isn't readable"
-	return ""
+	error "File $fn isn't readable"
     }
 
     return $fn
@@ -669,6 +667,16 @@ proc ToolBarWrapper { isName iValue } {
 	    grayscale - heatScale - lut {
 		Set2DMRILayerColorMapMethod \
 		    $gaLayer(current,id) $gaLayer(current,colorMapMethod)
+
+		# Preset the Draw 0 Clear cb.
+		if { "$isName" == "lut" } {
+		    set gaLayer(current,clearZero) 1
+		    Set2DMRILayerDrawZeroClear $gaLayer(current,id) 1
+		} else {
+		    set gaLayer(current,clearZero) 0
+		    Set2DMRILayerDrawZeroClear $gaLayer(current,id) 0
+		}
+
 		RedrawFrame [GetMainFrameID]
 	    }
 	    nearest - trilinear - sinc - magnitude {
@@ -3744,16 +3752,16 @@ proc MakeVolumeCollectionUsingTemplate { iColID } {
 
 
     set err [catch { set colID [MakeDataCollection Volume] } sResult]
-    if { 0 != $err } { tkuErrorDlog $sResult; return }
+    if { 0 != $err } { tkuErrorDlog $sResult; return -1 }
 
     set err [catch { MakeVolumeUsingTemplate $colID $iColID } sResult]
-    if { 0 != $err } { tkuErrorDlog $sResult; return }
+    if { 0 != $err } { tkuErrorDlog $sResult; return -1 }
 
     # Get a good name for the collection.
     set sLabel "New Volume"
     
     set err [catch { SetCollectionLabel $colID $sLabel } sResult]
-    if { 0 != $err } { tkuErrorDlog $sResult; return }
+    if { 0 != $err } { tkuErrorDlog $sResult; return -1 }
 
     return $colID
 }
@@ -3763,19 +3771,19 @@ proc MakeVolumeCollection { ifnVolume } {
 
 
     set err [catch { set colID [MakeDataCollection Volume] } sResult]
-    if { 0 != $err } { tkuErrorDlog $sResult; return }
+    if { 0 != $err } { error "$sResult" }
 
     set err [catch { SetVolumeCollectionFileName $colID $ifnVolume } sResult]
-    if { 0 != $err } { tkuErrorDlog $sResult; return }
+    if { 0 != $err } { error "$sResult" }
 
     set err [catch { LoadVolumeFromFileName $colID } sResult]
-    if { 0 != $err } { tkuErrorDlog $sResult; return }
+    if { 0 != $err } { error "$sResult" }
 
     # Get a good name for the collection.
     set sLabel [ExtractLabelFromFileName $ifnVolume]
     
     set err [catch { SetCollectionLabel $colID $sLabel } sResult]
-    if { 0 != $err } { tkuErrorDlog $sResult; return }
+    if { 0 != $err } { error "$sResult" }
 
     return $colID
 }
@@ -3785,19 +3793,19 @@ proc MakeSurfaceCollection { ifnSurface } {
 
 
     set err [catch { set colID [MakeDataCollection Surface] } sResult]
-    if { 0 != $err } { tkuErrorDlog $sResult; return }
+    if { 0 != $err } { error "$sResult" }
 
     set err [catch { SetSurfaceCollectionFileName $colID $ifnSurface } sResult]
-    if { 0 != $err } { tkuErrorDlog $sResult; return }
+    if { 0 != $err } { error "$sResult" }
 
     set err [catch { LoadSurfaceFromFileName $colID } sResult]
-    if { 0 != $err } { tkuErrorDlog $sResult; return }
+    if { 0 != $err } { error "$sResult" }
 
     # Get a good name for the collection.
     set sLabel [ExtractLabelFromFileName $ifnSurface]
     
     set err [catch { SetCollectionLabel $colID $sLabel } sResult]
-    if { 0 != $err } { tkuErrorDlog $sResult; return }
+    if { 0 != $err } { error "$sResult" }
 
     return $colID
 }
@@ -3807,10 +3815,10 @@ proc Make2DMRILayer { isLabel } {
 
 
     set err [catch { set layerID [MakeLayer 2DMRI] } sResult]
-    if { 0 != $err } { tkuErrorDlog $sResult; return }
+    if { 0 != $err } { error "$sResult" }
 
     set err [catch { SetLayerLabel $layerID $isLabel } sResult]
-    if { 0 != $err } { tkuErrorDlog $sResult; return }
+    if { 0 != $err } { error "$sResult" }
 
     UpdateLayerList
 
@@ -3822,10 +3830,10 @@ proc Make2DMRISLayer { isLabel } {
 
 
     set err [catch { set layerID [MakeLayer 2DMRIS] } sResult]
-    if { 0 != $err } { tkuErrorDlog $sResult; return }
+    if { 0 != $err } { error "$sResult" }
 
     set err [catch { SetLayerLabel $layerID $isLabel } sResult]
-    if { 0 != $err } { tkuErrorDlog $sResult; return }
+    if { 0 != $err } { error "$sResult" }
 
     UpdateLayerList
 
@@ -3838,7 +3846,7 @@ proc NewVolume { iTemplateID ibCreateLayer iFrameIDToAdd } {
     set err [catch { 
 	set colID [MakeVolumeCollectionUsingTemplate $iTemplateID] 
     } sResult]
-    if { 0 != $err } { tkuErrorDlog $sResult; return }
+    if { 0 != $err } { tkuErrorDlog "$sResult"; return }
 
     if { $ibCreateLayer } {
 
@@ -3874,10 +3882,11 @@ proc LoadVolume { ifnVolume ibCreateLayer iFrameIDToAdd } {
     dputs "LoadVolume  $ifnVolume $ibCreateLayer $iFrameIDToAdd  "
 
 
-    set fnVolume [FindFile $ifnVolume]
+    set err [catch { set fnVolume [FindFile $ifnVolume] } sResult]
+    if { 0 != $err } { tkuErrorDlog "$sResult"; return }
 
     set err [catch { set colID [MakeVolumeCollection $fnVolume] } sResult]
-    if { 0 != $err } { tkuErrorDlog $sResult; return }
+    if { 0 != $err } { tkuErrorDlog "$sResult"; return }
 
     if { $ibCreateLayer } {
 
@@ -3918,10 +3927,11 @@ proc LoadSurface { ifnSurface ibCreateLayer iFrameIDToAdd } {
 
     set layerID -1
 
-    set fnSurface [FindFile $ifnSurface]
+    set err [catch { set fnSurface [FindFile $ifnSurface] } sResult]
+    if { 0 != $err } { tkuErrorDlog "$sResult"; return }
 
     set err [catch { set colID [MakeSurfaceCollection $fnSurface] } sResult]
-    if { 0 != $err } { tkuErrorDlog $sResult; return }
+    if { 0 != $err } { tkuErrorDlog "$sResult"; return }
 
     if { $ibCreateLayer } {
 
@@ -3931,7 +3941,7 @@ proc LoadSurface { ifnSurface ibCreateLayer iFrameIDToAdd } {
 
 	set err [catch {
 	    Set2DMRISLayerSurfaceCollection $layerID $colID } sResult]
-	if { 0 != $err } { tkuErrorDlog $sResult; return }
+	if { 0 != $err } { tkuErrorDlog "$sResult"; return }
 	
 	if { $iFrameIDToAdd != -1 } {
 	    SetLayerInAllViewsInFrame $iFrameIDToAdd $layerID
@@ -3953,9 +3963,11 @@ proc LoadSurface { ifnSurface ibCreateLayer iFrameIDToAdd } {
 proc LoadTransform { ifnLTA } {
     dputs "LoadTransform"
     
-    set fnTransform [FindFile $ifnLTA]
+    set err [catch { set fnTransform [FindFile $ifnLTA] } sResult]
+    if { 0 != $err } { tkuErrorDlog "$sResult"; return }
 
-    set transformID [MakeNewTransform]
+    set err [catch { set transformID [MakeNewTransform] } sResult]
+    if { 0 != $err } { tkuErrorDlog "$sResult"; return }
 
     set sLabel [ExtractLabelFromFileName $fnTransform]
 
@@ -4371,7 +4383,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.70 2005/02/01 21:15:06 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.71 2005/02/02 16:46:14 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
