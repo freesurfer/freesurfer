@@ -180,24 +180,26 @@ check_size()
 # ---------------------------------------------------------------------
 # definitions
 
-mni_bin_dir=~inverse/bin/mni_tools-Linux/bin
-mni_lib_dir=~inverse/bin/mni_tools-Linux/lib
-perl_lib_dir=~inverse/bin/motion_correct/lib/perl5
+mni_bin_dir=$MINC_BIN_DIR
+mni_lib_dir=$MINC_LIB_DIR
+perl_lib_dir=/usr/lib/perl5
 
-mri_convert_default_dir=~inverse/freesurfer_alpha/bin/Linux/mri_convert
+mri_convert_default_dir=${FREESURFER_HOME}/bin/Linux/mri_convert
 
 # ----- update variables -----
 PATH=${mni_bin_dir}:${PATH}:${mri_convert_default_dir}
 
-if [ $LD_LIBRAY_PATH ] ; then LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${mni_lib_dir}
-else LD_LIBRARY_PATH=$mni_lib_dir ; fi
+if [ $LD_LIBRARY_PATH ] ; then 
+    LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${mni_lib_dir}
+else 
+    LD_LIBRARY_PATH=$mni_lib_dir
+fi
 
-if [ $PERLLIB ] ; then PERLLIB=${PERLLIB}:${perl_lib_dir}
-else PERLLIB=$perl_lib_dir ; fi
-
-export PATH
-export LD_LIBRARY_PATH
-export PERLLIB
+if [ $PERLLIB ] ; then 
+    PERLLIB=${PERLLIB}:${perl_lib_dir}
+else 
+    PERLLIB=$perl_lib_dir
+fi
 
 # ----- check for "which" -----
 have_which=
