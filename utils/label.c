@@ -1791,3 +1791,68 @@ int LabelRealloc(LABEL *lb, int max_points)
   
   return(0);
 }
+/*------------------------------------------------------------
+  LabelfromASeg() - creates a label from a segmentation given
+  the numeric segmentation code. If there are no voxels that
+  match the code, then it silently returns NULL. Note: this
+  generates the same result as the code in mri_cor2label.c.
+  ------------------------------------------------------------*/
+LABEL *LabelfromASeg(MRI *aseg, int segcode)
+{
+  int c,r,s,nlabel,v;
+  LABEL *lb;
+  MATRIX *Vox2RAS, *crs, *ras;
+  //char labelfile[100];
+
+  // Count number of label points first
+  nlabel = 0;
+  for(c=0; c < aseg->width; c++){
+    for(r=0; r < aseg->height; r++){
+      for(s=0; s < aseg->depth; s++){
+        v = (int)MRIgetVoxVal(aseg,c,r,s,0);
+	if(v == segcode) nlabel++;
+      }
+    }
+  }
+  //printf("Found %d voxels in label\n",nlabel);
+  if(nlabel==0)return(NULL);
+
+  lb = LabelAlloc(nlabel,"dontknow","dontcare");
+
+  Vox2RAS = MRIxfmCRS2XYZtkreg(aseg);
+  //printf("ASeg Vox2RAS---------------------------\n");
+  //MatrixPrint(stdout,Vox2RAS);
+  //printf("---------------------------\n");
+  crs = MatrixAlloc(4,1,MATRIX_REAL);
+  crs->rptr[4][1] = 1;
+  ras = MatrixAlloc(4,1,MATRIX_REAL);
+
+  nlabel = 0;
+  for(c=0; c < aseg->width; c++){
+    for(r=0; r < aseg->height; r++){
+      for(s=0; s < aseg->depth; s++){
+        v = (int)MRIgetVoxVal(aseg,c,r,s,0);
+	if(v == segcode){
+	  crs->rptr[1][1] = c;
+	  crs->rptr[2][1] = r;
+	  crs->rptr[3][1] = s;
+	  ras = MatrixMultiply(Vox2RAS,crs,ras);
+	  lb->lv[nlabel].x = ras->rptr[1][1];
+	  lb->lv[nlabel].y = ras->rptr[2][1];
+	  lb->lv[nlabel].z = ras->rptr[3][1];
+	  nlabel++;
+	}
+      }
+    }
+  }
+  lb->n_points = nlabel;
+  MatrixFree(&Vox2RAS);
+  MatrixFree(&crs);
+  MatrixFree(&ras);
+
+  //sprintf(labelfile,"./tmp-%d.label",segcode);
+  //LabelWrite(lb,labelfile);
+
+  return(lb);
+}
+
