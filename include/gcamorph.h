@@ -92,6 +92,7 @@ int       GCAMwrite(GCA_MORPH *gcam, char *fname) ;
 GCA_MORPH *GCAMread(char *fname) ;
 int       GCAMfree(GCA_MORPH **pgcam) ;
 MRI       *GCAMmorphFromAtlas(MRI *mri_src, GCA_MORPH *gcam, MRI *mri_dst) ;
+MRI       *GCAMmorphToAtlasWithDensityCorrection(MRI *mri_src, GCA_MORPH *gcam, MRI *mri_morphed, int frame) ;
 MRI       *GCAMmorphToAtlas(MRI *mri_src, GCA_MORPH *gcam, MRI *mri_dst, int frame) ;
 MRI       *GCAMmorphToAtlasType(MRI *mri_src, GCA_MORPH *gcam, MRI *mri_dst, int frame, int interp_type) ;
 int       GCAMmarkNegativeNodesInvalid(GCA_MORPH *gcam) ;

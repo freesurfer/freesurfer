@@ -2,9 +2,9 @@
 /* transform.h                                                         */
 /*                                                                     */
 /* Warning: Do not edit the following four lines.  CVS maintains them. */
-/* Revision Author: $Author: kteich $                                           */
-/* Revision Date  : $Date: 2005/01/05 21:27:52 $                                             */
-/* Revision       : $Revision: 1.35 $                                         */
+/* Revision Author: $Author: fischl $                                           */
+/* Revision Date  : $Date: 2005/01/19 14:37:22 $                                             */
+/* Revision       : $Revision: 1.36 $                                         */
 /*                                                                     */
 /***********************************************************************/
 
@@ -133,6 +133,7 @@ TRANSFORM *TransformAlloc(int type, MRI *mri) ;
 int       TransformInvert(TRANSFORM *transform, MRI *mri) ;
 int       TransformSwapInverse(TRANSFORM *transform) ;
 MRI       *TransformApply(TRANSFORM *transform, MRI *mri_src, MRI *mri_dst) ;
+MRI       *TransformCreateDensityMap(TRANSFORM *transform, MRI *mri_src, MRI *mri_dst) ;
 MRI       *TransformApplyType(TRANSFORM *transform, MRI *mri_src, MRI *mri_dst, int interp_type) ;
 MRI       *TransformApplyInverse(TRANSFORM *transform, MRI *mri_src, MRI *mri_dst) ;
 
