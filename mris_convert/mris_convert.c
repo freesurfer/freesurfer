@@ -13,7 +13,7 @@
 #include "macros.h"
 #include "fio.h"
 
-static char vcid[] = "$Id: mris_convert.c,v 1.10 2000/11/20 19:14:08 fischl Exp $";
+static char vcid[] = "$Id: mris_convert.c,v 1.11 2001/06/01 15:46:07 fischl Exp $";
 
 
 /*-------------------------------- CONSTANTS -----------------------------*/
@@ -50,8 +50,8 @@ int
 main(int argc, char *argv[])
 {
   MRI_SURFACE  *mris ;
-  char         **av, *in_fname, *out_fname, fname[100], hemi[10],
-               *cp, path[100], *dot, ext[100] ;
+  char         **av, *in_fname, *out_fname, fname[STRLEN], hemi[10],
+               *cp, path[STRLEN], *dot, ext[STRLEN] ;
   int          ac, nargs ;
 
   Progname = argv[0] ;
