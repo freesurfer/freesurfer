@@ -10393,12 +10393,12 @@ MRISaverageEveryOtherVertexPositions(MRI_SURFACE *mris, int navgs, int which)
 #define DELTA_M            0.1
 
 #define WHALF              (5-1)/2
-#define MAX_ITER           500
+#define MAX_ITER           10 /*500*/
 #define WRITE_ITER         10
 #define AVERAGE_ITER       5000
 
 #ifdef IRIX
-#define PREVENT_SELF_INTERSECTION   0
+#define PREVENT_SELF_INTERSECTION   1
 #else
 #define PREVENT_SELF_INTERSECTION   0
 #endif
@@ -10510,7 +10510,7 @@ MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_wm,
     int  avgs ;
     cp = getenv("AVERAGE_VALS") ;
     if (!cp)
-      cp = "64" ;
+      cp = "8" ;
     avgs = atoi(cp) ;
     fflush(stdout) ;
     fprintf(stdout, "avgs = %d ...", avgs) ;
@@ -10518,8 +10518,8 @@ MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_wm,
       fprintf(fp, "avgs = %d\n", avgs) ;
     MRISaverageVals(mris, avgs) ;
   }
-#if 0
-  MRISaverageVertexPositions(mris, 1) ;
+#if 1
+  MRISaverageVertexPositions(mris, 3) ;
 #endif
   mrisComputeNormals(mris) ;
   fprintf(stdout, "done.\n") ;
@@ -10648,9 +10648,9 @@ MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_wm,
       MRISvertexToVoxel(v, mri_filled, &x, &y, &z) ;
       xv = nint(x) ; yv = nint(y) ; zv = nint(z) ;
       MRIclear_bit(mri_filled, xv, yv, zv) ;
-      new_x = v->x + dist*v->nx ;
-      new_y = v->y + dist*v->ny ;
-      new_z = v->z + dist*v->nz ;
+      new_x = v->x + min_dist*v->nx ;
+      new_y = v->y + min_dist*v->ny ;
+      new_z = v->z + min_dist*v->nz ;
       MRIworldToVoxel(mri_filled, new_x, new_y,new_z,&new_x,&new_y,&new_z);
       new_xv = nint(new_x) ; new_yv = nint(new_y) ; new_zv = nint(new_z) ;
       MRIset_bit(mri_filled, new_xv, new_yv, new_zv) ;
@@ -10697,18 +10697,15 @@ MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_wm,
   MRIfree(&mri_filled) ;
 #endif
 
-#define MAX_AVERAGES 500
+#define MAX_AVERAGES 100
   fprintf(stderr, "performing soap bubble smoothing for %d iterations...",
           MAX_AVERAGES) ;
-#if 0
-  for (i = 0 ; i < MAX_AVERAGES ; i++)
-  {
-    MRISaverageEveryOtherVertexPositions(mris, 1, 0) ;
-    MRISaverageEveryOtherVertexPositions(mris, 1, 1) ;
-  }
-#else
+#if 1
   MRISsoapBubbleVertexPositions(mris, MAX_AVERAGES, .95f) ;
+#else
+  MRISsequentialAverageVertexPositions(mris, MAX_AVERAGES) ;
 #endif
+
   fprintf(stderr, "done.\n") ;
 
   return(NO_ERROR) ;
@@ -10995,6 +10992,46 @@ MRISclearMarks(MRI_SURFACE *mris)
     if (v->ripflag)
       continue ;
     v->marked = 0 ;
+  }
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+int
+MRISsequentialAverageVertexPositions(MRI_SURFACE *mris, int navgs)
+{
+  int    i, vno, vnb, *pnb, vnum ;
+  float  x, y, z, num ;
+  VERTEX *v, *vn ;
+
+  for (i = 0 ; i < navgs ; i++)
+  {
+    for (vno = 0 ; vno < mris->nvertices ; vno++)
+    {
+      v = &mris->vertices[vno] ;
+      if (v->ripflag || v->marked)
+        continue ;
+      x = v->x ; y = v->y ; z = v->z ;
+      pnb = v->v ;
+      vnum = v->vnum ;
+      for (num = 0.0f, vnb = 0 ; vnb < vnum ; vnb++)
+      {
+        vn = &mris->vertices[*pnb++] ;    /* neighboring vertex pointer */
+        if (vn->ripflag)
+          continue ;
+        num++ ;
+        x += vn->x ; y += vn->y ; z += vn->z ;
+      }
+      num++ ;   /* account for central vertex */
+      v->x = x / num ;
+      v->y = y / num ;
+      v->z = z / num ;
+    }
   }
   return(NO_ERROR) ;
 }
