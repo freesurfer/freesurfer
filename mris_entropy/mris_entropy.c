@@ -13,7 +13,7 @@
 #include "mri.h"
 #include "macros.h"
 
-static char vcid[] = "$Id: mris_entropy.c,v 1.1 2002/01/15 16:32:00 fischl Exp $";
+static char vcid[] = "$Id: mris_entropy.c,v 1.2 2002/01/16 20:15:25 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -24,6 +24,7 @@ static void print_version(void) ;
 
 char *Progname ;
 
+static char *log_fname = NULL ;
 static int navgs = 0 ;
 static char sdir[STRLEN] ;
 static int normalize_flag = 0 ;
@@ -110,6 +111,16 @@ main(int argc, char *argv[])
 
   entropy = -entropy ;
   printf("total entropy = %f\n", entropy) ;
+  if (log_fname)
+  {
+    FILE *fp ;
+
+    fp = fopen(log_fname, "a") ;
+    if (!fp)
+      ErrorExit(ERROR_NOFILE, "%s: could not open log file %s\n", Progname,log_fname) ;
+    fprintf(fp, "%f\n", entropy) ;
+    fclose(fp) ;
+  }
   exit(0) ;
   return(0) ;  /* for ansi */
 }
@@ -142,6 +153,10 @@ get_option(int argc, char *argv[])
   case 'U':
     print_usage() ;
     exit(1) ;
+    break ;
+  case 'L':
+    log_fname = argv[2] ;
+    printf("logging results to %s...\n", log_fname) ;
     break ;
   case 'A':
     navgs = atoi(argv[2]) ;
