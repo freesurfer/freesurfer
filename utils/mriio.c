@@ -643,7 +643,7 @@ int MRIwriteType(MRI *mri, char *fname, int type)
   }
   else if(type == MRI_MGH_FILE)
   {
-    error = mghWrite(mri, fname, 0);
+    error = mghWrite(mri, fname, -1);
   }
   else if(type == GDF_FILE)
   {
@@ -658,6 +658,17 @@ int MRIwriteType(MRI *mri, char *fname, int type)
   return(error);
 
 } /* end MRIwriteType() */
+
+int
+MRIwriteFrame(MRI *mri, char *fname, int frame)
+{
+	MRI *mri_tmp ;
+
+	mri_tmp =  MRIcopyFrame(mri, NULL, frame, 0) ;
+	MRIwrite(mri_tmp, fname) ;
+	MRIfree(&mri_tmp) ;
+	return(NO_ERROR) ;
+}
 
 int MRIwrite(MRI *mri, char *fname)
 {
