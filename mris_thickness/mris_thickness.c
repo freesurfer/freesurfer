@@ -13,7 +13,7 @@
 #include "mri.h"
 #include "macros.h"
 
-static char vcid[] = "$Id: mris_thickness.c,v 1.2 1999/01/21 18:29:58 fischl Exp $";
+static char vcid[] = "$Id: mris_thickness.c,v 1.3 1999/06/06 02:25:51 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -24,6 +24,7 @@ static void print_help(void) ;
 static void print_version(void) ;
 
 char *Progname ;
+static char pial_name[100] = "pial" ;
 
 int
 main(int argc, char *argv[])
@@ -57,8 +58,11 @@ main(int argc, char *argv[])
               "%s: SUBJECTS_DIR not defined in environment.\n", Progname) ;
   strcpy(sdir, cp) ;
   
-
+#if 0
   sprintf(fname, "%s/%s/surf/%s.%s", sdir, sname, hemi, GRAY_MATTER_NAME) ;
+#else
+  sprintf(fname, "%s/%s/surf/%s.%s", sdir, sname, hemi, pial_name) ;
+#endif
   fprintf(stderr, "reading gray matter surface %s...\n", fname) ;
   mris = MRISread(fname) ;
   if (!mris)
@@ -96,6 +100,11 @@ get_option(int argc, char *argv[])
     print_help() ;
   else if (!stricmp(option, "-version"))
     print_version() ;
+  else if (!stricmp(option, "pial"))
+  {
+    strcpy(pial_name, argv[2]) ;
+    fprintf(stderr,  "writing pial surface to file named %s\n", pial_name) ;
+  }
   else switch (toupper(*option))
   {
   case '?':
