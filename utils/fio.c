@@ -406,3 +406,25 @@ int fio_IsDirectory(char *fname)
   if(err != 0) return(0);
   return(S_ISDIR(buf.st_mode));
 }
+/*------------------------------------------------------------
+  fio_NLines() - get the number of lines. The line length
+  should not exceed 4000 characters.
+  ------------------------------------------------------------*/
+int fio_NLines(char *fname)
+{
+  FILE *fp;
+  int nrows;
+  char tmpstring[4001];
+
+  fp = fopen(fname,"r");
+  if(fp == NULL){
+    printf("ERROR: cannot open %s\n",fname);
+    return(-1);
+  }
+
+  nrows = 0;
+  while(fgets(tmpstring,4000,fp) != NULL)  nrows ++;
+  fclose(fp);
+
+  return(nrows);
+}
