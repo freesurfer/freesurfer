@@ -150,6 +150,7 @@ main(int argc, char *argv[])
   Progname = argv[0] ;
 
 
+  setRandomSeed(-1L) ;
   DiagInit(NULL, NULL, NULL) ;
   ErrorInit(NULL, NULL, NULL) ;
 
