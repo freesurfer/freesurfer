@@ -18,7 +18,7 @@
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_parse_sdcmdir.c,v 1.8 2004/06/29 14:15:26 tosa Exp $";
+static char vcid[] = "$Id: mri_parse_sdcmdir.c,v 1.9 2004/09/30 20:02:53 tosa Exp $";
 char *Progname = NULL;
 
 static int  parse_commandline(int argc, char **argv);
@@ -128,6 +128,25 @@ int main(int argc, char **argv)
     free(protoname);
   }
 
+  while(nlist--)
+  {
+    // free strings
+    free(sdfi_list[nlist]->FileName);
+    free(sdfi_list[nlist]->StudyDate);
+    free(sdfi_list[nlist]->StudyTime);
+    free(sdfi_list[nlist]->PatientName);
+    free(sdfi_list[nlist]->SeriesTime);
+    free(sdfi_list[nlist]->AcquisitionTime);
+    free(sdfi_list[nlist]->ScannerModel);
+    free(sdfi_list[nlist]->NumarisVer);
+    free(sdfi_list[nlist]->PulseSequence);
+    free(sdfi_list[nlist]->ProtocolName);
+    free(sdfi_list[nlist]->PhEncDir);
+    //
+    free(sdfi_list[nlist]);
+  }
+  free(sdfi_list);
+
   if(outfile != NULL) fclose(outstream);
 
   return(0);
@@ -145,7 +164,7 @@ static int parse_commandline(int argc, char **argv)
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_parse_sdcmdir.c,v 1.8 2004/06/29 14:15:26 tosa Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_parse_sdcmdir.c,v 1.9 2004/09/30 20:02:53 tosa Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
