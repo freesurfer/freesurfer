@@ -802,12 +802,16 @@ ImageAppend(IMAGE *I, char *fname)
            Description:
              Read a TIFF image from a file.
 ----------------------------------------------------------------------*/
+// 3 bytes per pixel
+#define IMAGERGBpix(im, x, y)           ((im->image) + (((int) y) * im->ocols * 3) + (x))
+
 static IMAGE *
 TiffReadImage(char *fname, int frame0) 
 {
   IMAGE    *I ;
   TIFF     *tif = TIFFOpen(fname, "r");
-  int      width, height, type, ret, row;
+  int type = PFBYTE; // just make compiler happy
+  int      width, height, ret, row;
   short    nsamples, bits_per_sample;
   int      nframe=0,frame;
   byte     *iptr ;
@@ -815,11 +819,13 @@ TiffReadImage(char *fname, int frame0)
   int      photometric;
   int      fillorder;
   int      compression;
+#if 0 // we used to translate RGB image into grey scale
   unsigned char     *buffer;
   int      skip;
   int      i;
   float    r, g, b, y;
   float    *pf;
+#endif
   int      scanlinesize;
 
   if (!tif)
@@ -845,71 +851,87 @@ TiffReadImage(char *fname, int frame0)
   ret = TIFFGetFieldDefaulted(tif, TIFFTAG_FILLORDER, &fillorder);
   ret = TIFFGetFieldDefaulted(tif, TIFFTAG_COMPRESSION, &compression);
 
-	if (DIAG_VERBOSE_ON)
-	{
-		fprintf(stderr, "\ntiff info\n");
-		fprintf(stderr, "         size: (%d, %d)\n", width, height);
-		fprintf(stderr, "samples/pixel: %d\n", nsamples);
-		fprintf(stderr, "  bits/sample: %d\n", bits_per_sample);
-		switch(photometric)
-		{
-		case PHOTOMETRIC_MINISWHITE:
-			fprintf(stderr, "  photometric: min value is white.\n"); break;
-		case PHOTOMETRIC_MINISBLACK:
-			fprintf(stderr, "  photometric: min value is black.\n"); break;
-		case PHOTOMETRIC_RGB:
-			fprintf(stderr, "  photometric: RGB color model.\n"); break;
-		case PHOTOMETRIC_PALETTE:
-			fprintf(stderr, "  photometric: use palette.\n"); break;
-		case PHOTOMETRIC_MASK:
-			fprintf(stderr, "  photometric: $holdout mask.\n"); break;
-		case PHOTOMETRIC_SEPARATED:
-			fprintf(stderr, "  photometric: color separations.\n"); break;
-		case PHOTOMETRIC_YCBCR:
-			fprintf(stderr, "  photometric: YCbCr6 CCIR 601.\n"); break;
-		case PHOTOMETRIC_CIELAB:
-			fprintf(stderr, "  photometric: 1976 CIE L*a*b* \n"); break;
-		case PHOTOMETRIC_ITULAB:
-			fprintf(stderr, "  photometric: ITU L*a*b* \n"); break;
-		case PHOTOMETRIC_LOGL:
-			fprintf(stderr, "  photometric: CIE Log2(L) \n"); break;
-		case PHOTOMETRIC_LOGLUV:
-			fprintf(stderr, "  photometric: CIE Log2(L) (u',v') \n"); break;
-		default:
-			fprintf(stderr, "  photometric: unknown type\n"); break;
-		}
-		switch(compression)
-		{
-		case COMPRESSION_NONE:
-			fprintf(stderr, "  compression: no compression\n"); break;
-		case COMPRESSION_LZW:
-			fprintf(stderr, "  compression: Lempel-Ziv & Welch\n"); break;
-		case COMPRESSION_JPEG:
-			fprintf(stderr, "  compression: JPEG DCT compression\n"); break;
-		case COMPRESSION_PACKBITS:
-			fprintf(stderr, "  compression: Macintosh RLE\n"); break;
-		default:
-			fprintf(stderr, "  compression: %d see /usr/include/tiff.h for meaning\n", compression); break; 
-		}
-	}
-  switch (bits_per_sample)  /* not valid - I don't know why */
+  if (DIAG_VERBOSE_ON)
   {
+    fprintf(stderr, "\ntiff info\n");
+    fprintf(stderr, "         size: (%d, %d)\n", width, height);
+    fprintf(stderr, "samples/pixel: %d\n", nsamples);
+    fprintf(stderr, "  bits/sample: %d\n", bits_per_sample);
+    switch(photometric)
+    {
+    case PHOTOMETRIC_MINISWHITE:
+      fprintf(stderr, "  photometric: min value is white.\n"); break;
+    case PHOTOMETRIC_MINISBLACK:
+      fprintf(stderr, "  photometric: min value is black.\n"); break;
+    case PHOTOMETRIC_RGB:
+      fprintf(stderr, "  photometric: RGB color model.\n"); break;
+    case PHOTOMETRIC_PALETTE:
+      fprintf(stderr, "  photometric: use palette.\n"); break;
+    case PHOTOMETRIC_MASK:
+      fprintf(stderr, "  photometric: $holdout mask.\n"); break;
+    case PHOTOMETRIC_SEPARATED:
+      fprintf(stderr, "  photometric: color separations.\n"); break;
+    case PHOTOMETRIC_YCBCR:
+      fprintf(stderr, "  photometric: YCbCr6 CCIR 601.\n"); break;
+    case PHOTOMETRIC_CIELAB:
+      fprintf(stderr, "  photometric: 1976 CIE L*a*b* \n"); break;
+    case PHOTOMETRIC_ITULAB:
+      fprintf(stderr, "  photometric: ITU L*a*b* \n"); break;
+    case PHOTOMETRIC_LOGL:
+      fprintf(stderr, "  photometric: CIE Log2(L) \n"); break;
+    case PHOTOMETRIC_LOGLUV:
+      fprintf(stderr, "  photometric: CIE Log2(L) (u',v') \n"); break;
+    default:
+      fprintf(stderr, "  photometric: unknown type\n"); break;
+    }
+    switch(compression)
+    {
+    case COMPRESSION_NONE:
+      fprintf(stderr, "  compression: no compression\n"); break;
+    case COMPRESSION_LZW:
+      fprintf(stderr, "  compression: Lempel-Ziv & Welch\n"); break;
+    case COMPRESSION_JPEG:
+      fprintf(stderr, "  compression: JPEG DCT compression\n"); break;
+    case COMPRESSION_PACKBITS:
+      fprintf(stderr, "  compression: Macintosh RLE\n"); break;
+    default:
+      fprintf(stderr, "  compression: %d see /usr/include/tiff.h for meaning\n", compression); break; 
+    }
+  }
+  switch(nsamples)
+  {
+  case 1:
+    switch (bits_per_sample)  /* not valid - I don't know why */
+    {
+    default:
+    case 8:
+      type = PFBYTE;
+      break;
+    case 32:
+      type = PFFLOAT;
+      break;
+    case 64:
+      type = PFDOUBLE;
+      break;
+    }
+    break;
+  case 3:
+    switch(bits_per_sample)
+    {
+    default:
+    case 8:
+      type = PFRGB;
+      break;
+    }
+    break;
   default:
-  case 8:
-    type = PFBYTE;
-    break;
-  case 32:
-    type = PFFLOAT;
-    break;
-  case 64:
-    type = PFDOUBLE;
-    break;
+    ErrorExit(ERROR_BADPARM, "IMAGE: nsamples = %d.  only grey scale or RGB image is supported\n", nsamples );    
   }
   // nsamples not handled here
   if (nsamples != 1 && nsamples != 3)
     ErrorExit(ERROR_BADPARM, "IMAGE: nsamples = %d.  only grey scale or RGB image is supported\n", nsamples );
 
-  // we allocate only grey scale image
+  // type can be grey scale or RGB
   if (frame0 < 0) 
     I = ImageAlloc(height, width, type, nframe) ;
   else
@@ -931,7 +953,6 @@ TiffReadImage(char *fname, int frame0)
     {
       // get the pointer at the first column of a row
       // note that the orientation is column, row
-
       if (nsamples == 1)
       {
 	switch (bits_per_sample)
@@ -954,12 +975,20 @@ TiffReadImage(char *fname, int frame0)
       }
       else if (nsamples == 3) // RGB model
       {
-	// buffer = (unsigned char *) malloc(bits_per_sample*width*nsamples/8); // count in bytes
-	buffer = (unsigned char *) malloc(scanlinesize); // count in bytes
-	if (TIFFReadScanline(tif, buffer, row, 0) < 0)
-	  ErrorReturn(NULL,
-		      (ERROR_BADFILE,
-		       "TiffReadImage:  TIFFReadScanline returned error"));
+	switch(bits_per_sample)
+	{
+	default:
+	case 8:
+	  buf = (tdata_t*) IMAGERGBpix(I, 0, row);
+	  if (TIFFReadScanline(tif, buf, row, 0) < 0)
+	    ErrorReturn(NULL,
+			(ERROR_BADFILE,
+			 "TiffReadImage:  TIFFReadScanline returned error"));
+	}
+
+#if 0
+	////////////////////////////////////////////////////////////
+	// we used to translate into the grey value
 	// now translate it into Y value
 	// RGB range 0 to 1.0
 	// then YIQ is 
@@ -993,6 +1022,8 @@ TiffReadImage(char *fname, int frame0)
 	  ErrorExit(ERROR_BADPARM, "At this time we don't support RGB double valued tiff.\n");	  
 	}
 	free(buffer);
+#endif
+
       }
     }
     if (frame0 < 0)
@@ -1036,16 +1067,33 @@ TiffReadHeader(char *fname, IMAGE *I)
   TIFFGetFieldDefaulted(tif, TIFFTAG_SAMPLESPERPIXEL, &nsamples);
   ret = TIFFGetFieldDefaulted(tif, TIFFTAG_BITSPERSAMPLE, &bits_per_sample);
 
-  switch (bits_per_sample)
+  switch(nsamples)
   {
-  case 32:
-    type = PFFLOAT ;
-    break ;
+  case 1: 
+    switch (bits_per_sample)
+    {
+    case 32:
+      type = PFFLOAT ;
+      break ;
+    default:
+    case 8:
+      type = PFBYTE ;
+      break ;
+    }
+    break;
+  case 3:
+    switch(bits_per_sample)
+    {
+    default:
+    case 8:
+      type = PFRGB;
+      break;
+    }
+    break;
   default:
-  case 8:
-    type = PFBYTE ;
-    break ;
+    ErrorExit(ERROR_BADPARM, "IMAGE: nsamples = %d.  only grey scale or RGB image is supported\n", nsamples );    
   }
+  
   if (!I)
     I = ImageAlloc(height, width, type, 1) ;
   else
