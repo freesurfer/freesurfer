@@ -1457,19 +1457,6 @@ typedef struct
   float min_z, max_z;
 } LABL_LABEL;
 
-/* macro to pack and unpack an annotation value into rgb values */
-#define LABL_UNPACK_ANNOT(annot,r,g,b)   \
-    r = annot & 0xff ;         \
-    g = (annot >> 8) & 0xff ;  \
-    b = (annot >> 16) & 0xff ; \
-
-int labl_tmp_r, labl_tmp_g, labl_tmp_b;
-#define LABL_PACK_ANNOT(r,g,b,annot) \
-      labl_tmp_r = (r) & 0xff;           \
-      labl_tmp_g = ((g) & 0xff) << 8;    \
-      labl_tmp_b = ((b) & 0xff) << 16;   \
-      annot = labl_tmp_r | labl_tmp_g | labl_tmp_b;
-
 /* a fixed array of labels. */
 #define LABL_MAX_LABELS 300
 LABL_LABEL labl_labels[LABL_MAX_LABELS]; /* oh, for the c++ stl.. */
@@ -1877,6 +1864,9 @@ int Surfer(ClientData clientData, Tcl_Interp *interp, int argc, char *argv[])
 #else
     printf("                                    [vers: 24m23s23j--GL]\n");
 #endif
+    /* begin rkt */
+    print_help_tksurfer();
+    /* end rkt */
     exit(1);
   }
   if (argv[1][0]=='-') {
@@ -15803,7 +15793,8 @@ open_window(char *name)
 {
 #ifdef OPENGL
   XSizeHints hin;
-  
+  int success;
+
   if (openglwindowflag) {
     printf("surfer: ### GL window already open: can't open second\n");PR
 									return; }
@@ -15828,7 +15819,25 @@ open_window(char *name)
     if (!initpositiondoneflag)
       tkoInitPosition(MOTIF_XFUDGE+wx0,(1024-wy0-frame_ydim)+MOTIF_XFUDGE,
 		      frame_xdim,frame_ydim);
-    tkoInitWindow(name);
+    /* begin rkt */
+    /* if we don't get a display, try again with the other kind of
+       buffer. */
+    success = tkoInitWindow(name);
+    if (!success) {
+      if (doublebufferflag) {
+	tkoInitDisplayMode(TKO_SINGLE | TKO_RGB | TKO_DEPTH);
+	printf("surfer: failed, trying single buffered window\n");
+      }
+      else {
+	tkoInitDisplayMode(TKO_DOUBLE | TKO_RGB | TKO_DEPTH);
+	printf("surfer: failed, trying double buffered window\n");
+      }
+      success = tkoInitWindow(name);
+    }
+    if (!success) {
+	printf("surfer: failed, no suitable display found\n");
+	exit(1);
+    }
     hin.max_width = hin.max_height = 1024;             /* maxsize */
     hin.min_aspect.x = hin.max_aspect.x = frame_xdim;  /* keepaspect */
     hin.min_aspect.y = hin.max_aspect.y = frame_ydim;
@@ -21099,7 +21108,7 @@ int sclv_send_current_field_info ()
   
   char cmd[1024];
   
-  printf("sending info for field=%d\n\tmin=%f max=%f\n\tfthresh=%f fmid=%f fslope=%f\n\ttp=%d cn=%d ntps+%d ncns=%d\n", sclv_current_field, sclv_value_min, sclv_value_max, fthresh, fmid, fslope, sclv_cur_timepoint, sclv_cur_condition, sclv_num_timepoints, sclv_num_conditions);
+  /*  printf("sending info for field=%d\n\tmin=%f max=%f\n\tfthresh=%f fmid=%f fslope=%f\n\ttp=%d cn=%d ntps+%d ncns=%d\n", sclv_current_field, sclv_value_min, sclv_value_max, fthresh, fmid, fslope, sclv_cur_timepoint, sclv_cur_condition, sclv_num_timepoints, sclv_num_conditions); */
   
   /* Send the current histogram info here as well. */
   sclv_send_histogram (sclv_current_field);
@@ -21263,8 +21272,6 @@ int sclv_copy_view_settings_from_field (int field, int fromfield)
   if (fromfield < 0 || fromfield >= NUM_SCALAR_VALUES)
     return (ERROR_BADPARM);
   
-  printf ("sclv_copy_view_settings_from_field %d %d\n", field, fromfield);
-
   /* if fromfield is the current field, update from the shared variables. */
   if (fromfield == sclv_current_field)
     {
@@ -21770,7 +21777,7 @@ int labl_import_annotation (char *fname)
   
   /* init our done array. */
   r = g = b = 255;
-  LABL_PACK_ANNOT(r,g,b,annotation);
+  MRISRGBToAnnot(r,g,b,annotation);
   done = (int*) calloc( annotation, sizeof(int) );
   if ( NULL == done ) {
     printf( "calloc of size %d failed\n", annotation );
@@ -21791,7 +21798,7 @@ int labl_import_annotation (char *fname)
       if (annotation) 
 	{
 	  /* get the rgb colors. */
-	  LABL_UNPACK_ANNOT( annotation, r, g, b );
+	  MRISAnnotToRGB( annotation, r, g, b );
 	  
 	  /* if we haven't imported this label yet... */
 	  if( !done[annotation] ) 
@@ -21912,7 +21919,7 @@ int labl_export_annotation (char *fname)
 	{
 	  
 	  /* make the composed color int for this label. */
-	  LABL_PACK_ANNOT (label->r, label->g, label->b, color);
+	  MRISRGBToAnnot (label->r, label->g, label->b, color);
 #if 0
 	  r = label->r & 0xff;
 	  g = (label->g & 0xff) << 8;
