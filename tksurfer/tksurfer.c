@@ -1344,7 +1344,7 @@ typedef struct {
   float min_value;
   float max_value;
   int ***frequencies; /* the frequency of values in num_freq_bins for
-m			 each time point and condition i.e.
+			 each time point and condition i.e.
 			 frequency[cond][tp][bin] */
   int num_freq_bins;
 } SCLV_FIELD_INFO;
@@ -1359,6 +1359,9 @@ static int sclv_cur_timepoint = 0;
 static int sclv_cur_condition = 0;
 
 static double sclv_overlay_alpha = 1.0;
+
+static mriTransformRef sclv_client_transform = NULL;
+static MATRIX *sclv_register_transform = NULL;
 
 #define sclv_set_value(v,i,n) \
  switch(i) { \
@@ -7683,107 +7686,52 @@ sclv_read_binary_values(char *fname, int field)  /* marty: openclose */
   char                  cmd[STRLEN];
   float                 min, max;
   
-#if 0
-  char                  *dot, path[STRLEN], stem[STRLEN] ;
-  Real                  x_ras, y_ras, z_ras ;
-  mriFunctionalDataRef  statVolume ;
-  xVoxel                voxel;
-  FunD_tErr             errno ;
-  float                 func_value;
+  /* unload this field if it already exists */
+  sclv_unload_field (field);
   
-  dot = strrchr(fname, '.') ;
-  if (!dot)
+  /* save all the v->val values */
+  if (field != SCLV_VAL)
     {
-      char tmp[STRLEN] ;
-      sprintf(tmp, "%s.w", fname) ;
-      if (FileExists(tmp))
-	dot = strrchr(tmp, '.') ;
-    }
-  if (!dot || !stricmp(dot+1, "float") || !stricmp(dot+1, "bfloat") || 
-      !stricmp(dot+1, "bshort") || stricmp(dot+1, "w"))
-    {
-      error_code = read_orig_vertex_coordinates(paint_fname);
-      if (NO_ERROR != error_code)
-	return(error_code);
-      
-      trans_SetBounds ( xx0, xx1,yy0, yy1, zz0, zz1) ;
-      trans_SetResolution(ps, ps, st) ;
-      FileNamePath(fname, path) ;
-      FileNameOnly(fname, stem) ;
-      dot = strrchr(stem, '.') ;
-      if (dot && (!stricmp(dot+1, "float") || !stricmp(dot+1, "bfloat") || 
-		  !stricmp(dot+1, "bshort")))
-	{
-	  *dot = 0 ;
-	}
-      
-      fprintf(stderr, "float volume detected - painting stats (%s, %s)...\n",
-	      path, stem) ;
-      errno = FunD_New(&statVolume, path, stem, NULL, NULL) ;
-      if (errno != FunD_tErr_NoError)
-	{
-	  /*      MACRO_ReturnErrorOrCheckForQuestionable(errno,isQuestionable);*/
-	  ErrorReturn (ERROR_FUNC,
-		       (ERROR_FUNC,"error '%s' reading functional volume\n",
-			FunD_GetErrorString(errno)));
-	}
+      saved_vals = (float*) calloc (mris->nvertices, sizeof(float));
+      if (saved_vals==NULL)
+	ErrorReturn(ERROR_NOMEMORY,(ERROR_NOMEMORY,"sclv_read_binary_values: calloc with %d elmnts failed\n", mris->nvertices));
       
       for (vno = 0 ; vno < mris->nvertices ; vno++)
 	{
 	  v = &mris->vertices[vno] ;
-	  if (v->ripflag)
-	    continue ;
-	  if (vno == Gdiag_no)
-	    DiagBreak() ;
-	  x_ras = v->origx ; y_ras = v->origy ; z_ras = v->origz ;
-	  xVoxl_SetFloat(&voxel, x_ras, y_ras, z_ras) ;
-	  if (FunD_GetDataAtRAS(statVolume, &voxel, 0, 0, &func_value) != 
-	      FunD_tErr_NoError)
-	    {
-	      sclv_set_value (v, field, func_value);
-#if 0
-	      v->val = 0.0 ;
-#endif
-	    } else {
-	      x_ras = v->x ;
-	    }
+	  saved_vals[vno] = v->val;
 	}
     }
-  else
+  
+  /* save the directory for later */
+  FileNamePath (fname, val_dir );
+  
+  /* read the file. if not found, bail. */
+  error_code = MRISreadValues(mris, fname) ;
+  if (error_code != NO_ERROR)
     {
-#endif
+      printf ("surfer: ### File %s could not be opened.\n", fname);
+      return (error_code);
+    }
+  
+  /* look for the min and max values. */
+  min = 1000000;
+  max = -1000000;
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+    {
+      v = &mris->vertices[vno] ;
       
-      /* unload this field if it already exists */
-      sclv_unload_field (field);
-      
-      /* save all the v->val values */
-      if (field != SCLV_VAL)
-	{
-	  saved_vals = (float*) calloc (mris->nvertices, sizeof(float));
-	  if (saved_vals==NULL)
-	    ErrorReturn(ERROR_NOMEMORY,(ERROR_NOMEMORY,"sclv_read_binary_values: calloc with %d elmnts failed\n", mris->nvertices));
-	  
-	  for (vno = 0 ; vno < mris->nvertices ; vno++)
-	    {
-	      v = &mris->vertices[vno] ;
-	      saved_vals[vno] = v->val;
-	    }
-	}
-      
-      /* save the directory for later */
-      FileNamePath (fname, val_dir );
-      
-      /* read the file. if not found, bail. */
-      error_code = MRISreadValues(mris, fname) ;
-      if (error_code != NO_ERROR)
-	{
-	  printf ("surfer: ### File %s could not be opened.\n", fname);
-	  return (error_code);
-	}
-      
-      /* look for the min and max values. */
-      min = 1000000;
-      max = -1000000;
+      /* look for the min or max value */
+      if (v->val < min)
+	min = v->val;
+      if (v->val > max)
+	max = v->val;
+    }
+  
+  /* move the v->vals into the proper field and restore the saved
+     values. */
+  if (field != SCLV_VAL && saved_vals != NULL)
+    {
       for (vno = 0 ; vno < mris->nvertices ; vno++)
 	{
 	  v = &mris->vertices[vno] ;
@@ -7793,34 +7741,15 @@ sclv_read_binary_values(char *fname, int field)  /* marty: openclose */
 	    min = v->val;
 	  if (v->val > max)
 	    max = v->val;
+	  
+	  /* set the field value from v->val */
+	  sclv_set_value (v, field, v->val);
+	  
+	  /* restore the value */
+	  v->val = saved_vals[vno];
 	}
-      
-      /* move the v->vals into the proper field and restore the saved
-	 values. */
-      if (field != SCLV_VAL && saved_vals != NULL)
-	{
-	  for (vno = 0 ; vno < mris->nvertices ; vno++)
-	    {
-	      v = &mris->vertices[vno] ;
-	      
-	      /* look for the min or max value */
-	      if (v->val < min)
-		min = v->val;
-	      if (v->val > max)
-		max = v->val;
-	      
-	      /* set the field value from v->val */
-	      sclv_set_value (v, field, v->val);
-	      
-	      /* restore the value */
-	      v->val = saved_vals[vno];
-	    }
-	  free (saved_vals);
-	}
-      
-#if 0
+      free (saved_vals);
     }
-#endif
   
   /* save the range */
   sclv_field_info[field].min_value = min;
@@ -7867,12 +7796,14 @@ sclv_read_bfile_values (char* dir, char* stem, char* registration, int field)
   FunD_tErr volume_error;
   mriFunctionalDataRef volume;
   char cmd[STRLEN];
-  
+
   /* unload this field if it already exists */
   sclv_unload_field (field);
   
-  /* create volume */
-  volume_error = FunD_New (&volume, dir, stem, NULL, registration );
+  /* create volume. */
+  volume_error = FunD_New (&volume, sclv_client_transform,
+			   dir, stem, NULL, registration, 
+			   sclv_register_transform );
   if (volume_error!=FunD_tErr_NoError)
     {
       printf("surfer: couldn't load %s/%s\n",dir,stem);
@@ -18196,7 +18127,7 @@ int main(int argc, char *argv[])   /* new main */
   /* end rkt */
   
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.42 2003/05/13 20:05:05 kteich Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.43 2003/05/22 20:42:43 kteich Exp $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -20982,7 +20913,9 @@ int func_load_timecourse (char* dir, char* stem, char* registration)
     }
   
   /* create new volume */
-  volume_error = FunD_New (&func_timecourse, dir, stem, NULL, registration );
+  volume_error = FunD_New (&func_timecourse, sclv_client_transform,
+			   dir, stem, NULL, registration, 
+			   sclv_register_transform);
   if (volume_error!=FunD_tErr_NoError)
     {
       printf("### surfer: couldn't load %s/%s\n",dir,stem);
@@ -21010,15 +20943,14 @@ int func_load_timecourse (char* dir, char* stem, char* registration)
       /* enable the related menu items */
       enable_menu_set (MENUSET_TIMECOURSE_LOADED, 1);
     }
-  
-  
+
   return(ERROR_NONE);
 }
 
 int func_load_timecourse_offset (char* dir, char* stem, char* registration)
 {
   FunD_tErr volume_error;
-  
+
   if (dir==NULL||stem==NULL)
     ErrorReturn(ERROR_BADPARM,(ERROR_BADPARM,"func_load_timecourse_offset: dir or stem was null\n"));
   
@@ -21031,8 +20963,9 @@ int func_load_timecourse_offset (char* dir, char* stem, char* registration)
     }
   
   /* create new volume */
-  volume_error = FunD_New (&func_timecourse_offset, 
-			   dir, stem, NULL, registration );
+  volume_error = FunD_New (&func_timecourse_offset, sclv_client_transform,
+			   dir, stem, NULL, registration, 
+			   sclv_register_transform );
   if (volume_error!=FunD_tErr_NoError)
     ErrorReturn(func_convert_error(volume_error),(func_convert_error(volume_error),"func_load_timecourse_offset: error in FunD_New\n"));
   
@@ -21047,7 +20980,7 @@ int func_load_timecourse_offset (char* dir, char* stem, char* registration)
       /* turn on the offset options */
       Tcl_Eval(g_interp, "Graph_ShowOffsetOptions 1");
     }
-  
+
   return(ERROR_NONE);
 }
 
@@ -21337,9 +21270,9 @@ int func_calc_avg_timecourse_values (int condition, int* num_good_voxels,
       xVoxl_SetFloat (&voxel,
 		      selected_voxel.x,selected_voxel.y,selected_voxel.z);
       
-      /* get all values at this voxel */
-      func_error = FunD_GetDataAtRASForAllTimePoints( func_timecourse, &voxel, 
-						      condition, values );
+      /* get all values at this voxel. */
+      func_error = FunD_GetDataForAllTimePoints( func_timecourse, &voxel, 
+						 condition, values );
       
       /* if it wasn't out of bounds... */
       if (func_error==FunD_tErr_NoError) {
@@ -21348,8 +21281,8 @@ int func_calc_avg_timecourse_values (int condition, int* num_good_voxels,
 	if (func_use_timecourse_offset && func_timecourse_offset!=NULL) 
 	  {
 	    /* get the offset at this value. only one plane in offset data. */
-	    func_error = FunD_GetDataAtRAS( func_timecourse_offset, 
-					    &voxel, 0, 0, &offset );
+	    func_error = FunD_GetData( func_timecourse_offset, 
+				       &voxel, 0, 0, &offset );
 	    if (func_error==FunD_tErr_NoError )
 	      {
 		
@@ -21450,6 +21383,7 @@ int func_convert_error (FunD_tErr volume_error)
 int sclv_initialize () 
 {
   int field;
+  MATRIX* identity;
   
   /* no layers loaded, clear all the stuff. */
   for (field = 0; field < NUM_SCALAR_VALUES; field++)
@@ -21464,6 +21398,18 @@ int sclv_initialize ()
       sclv_field_info[field].fslope = fslope;
     }
   
+  /* create an identity transform for the functional data client
+     transform. */
+  sclv_register_transform = MatrixIdentity (4, NULL);
+
+  identity = MatrixIdentity (4, NULL);
+  Trns_New (&sclv_client_transform);
+  Trns_CopyAtoRAS (sclv_client_transform, identity);
+  Trns_CopyBtoRAS (sclv_client_transform, identity);
+  Trns_CopyARAStoBRAS (sclv_client_transform, identity);
+
+  MatrixFree (&identity);
+
   return (ERROR_NONE);
 }
 
@@ -21686,9 +21632,9 @@ int sclv_set_timepoint_of_field (int field,
 	  
 	  /* if the voxel is valid here, use the value, else set to 0. */
 	  xVoxl_SetFloat (&voxel, v->origx, v->origy, v->origz);
-	  volume_error = FunD_GetDataAtRAS(sclv_field_info[field].volume,
-					   &voxel, condition, timepoint,
-					   &func_value);
+	  volume_error = FunD_GetData(sclv_field_info[field].volume,
+				      &voxel, condition, timepoint,
+				      &func_value);
 	  if (volume_error == FunD_tErr_NoError)
 	    {
 	      sclv_set_value (v, field, func_value);
