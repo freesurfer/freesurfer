@@ -1,6 +1,6 @@
 /*---------------------------------------------------------------
   Name: resample.c
-  $Id: resample.c,v 1.10 2003/05/15 21:11:01 greve Exp $
+  $Id: resample.c,v 1.11 2003/07/15 23:57:43 greve Exp $
   Author: Douglas N. Greve
   Purpose: code to perform resapling from one space to another, 
   including: volume-to-volume, volume-to-surface, and surface-to-surface.
@@ -589,12 +589,14 @@ int ProjNormFracThick(float *x, float *y, float *z,
 /*------------------------------------------------------------
   vol2surf_linear() - resamples data from a volume onto surface 
   vertices assuming the the transformation from the volume into
-  anatomical space is fully linear.
+  anatomical space is fully linear. The voxels actually 
+  sampled are stored in the SrcHitVol. The value is the number
+  of times the voxel was sampled.
   ------------------------------------------------------------*/
 MRI *vol2surf_linear(MRI *SrcVol, 
          MATRIX *Qsrc, MATRIX *Fsrc, MATRIX *Wsrc, MATRIX *Dsrc, 
          MRI_SURFACE *TrgSurf, float ProjFrac, 
-         int InterpMethod, int float2int)
+         int InterpMethod, int float2int, MRI *SrcHitVol)
 {
   MATRIX *QFWDsrc;
   MATRIX *Scrs, *Txyz;
@@ -626,6 +628,12 @@ MRI *vol2surf_linear(MRI *SrcVol,
   /* allocate a "volume" to hold the output */
   TrgVol = MRIallocSequence(TrgSurf->nvertices,1,1,MRI_FLOAT,SrcVol->nframes);
   if(TrgVol == NULL) return(NULL);
+
+  /* Zero the source hit volume */
+  if(SrcHitVol != NULL){
+    MRIconst(SrcHitVol->width,SrcHitVol->height,SrcHitVol->depth,
+	     1,0,SrcHitVol);
+  }
 
   nhits = 0;
   /*--- loop through each vertex ---*/
@@ -693,6 +701,8 @@ MRI *vol2surf_linear(MRI *SrcVol,
       srcval = MRIFseq_vox(SrcVol,icol_src,irow_src,islc_src,frm);
       MRIFseq_vox(TrgVol,vtx,0,0,frm) = srcval;
     }
+    if(SrcHitVol != NULL)
+      MRIFseq_vox(SrcHitVol,icol_src,irow_src,islc_src,0)++;
   }
 
   MatrixFree(&QFWDsrc);
