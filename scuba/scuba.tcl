@@ -10,7 +10,7 @@ if { $err } {
     load [file dirname [info script]]/libscuba[info sharedlibextension] scuba
 }
 
-DebugOutput "\$Id: scuba.tcl,v 1.80 2005/02/10 19:09:25 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.81 2005/02/16 18:44:30 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -562,19 +562,19 @@ proc MakeToolBar { ifwTop } {
 	-command {ToolBarWrapper} \
 	-buttons {
 	    { -type image -name navigation -image icon_navigate 
-		-balloon "Navigation" } 
+		-balloon "Navigation (n)" } 
 	    { -type image -name plane -image icon_rotate_plane 
-		-balloon "Plane" } 
+		-balloon "Plane (p)" } 
 	    { -type image -name marker -image icon_marker_crosshair 
-		-balloon "Marker" } 
+		-balloon "Marker (m)" } 
 	    { -type image -name voxelEditing -image icon_edit_volume 
-		-balloon "Voxel Editing" } 
+		-balloon "Voxel Editing (e)" } 
 	    { -type image -name roiEditing -image icon_edit_label 
-		-balloon "ROI Editing" } 
+		-balloon "ROI Editing (r)" } 
 	    { -type image -name straightPath -image icon_line_tool 
-		-balloon "Straight Path" } 
+		-balloon "Straight Path (s)" } 
 	    { -type image -name edgePath -image icon_draw_line 
-		-balloon "Edge Path" } 
+		-balloon "Edge Path (g)" } 
 	}
 
     set gaTool($gaFrame([GetMainFrameID],toolID),mode) navigation
@@ -838,6 +838,13 @@ proc MakeScubaFrameBindings { iFrameID } {
     bind $fwScuba <Key-8> {set gaTool(current,radius) 8; SetToolBrushRadius $gaFrame([GetMainFrameID],toolID) $gaTool(current,radius) }
     bind $fwScuba <Key-9> {set gaTool(current,radius) 9; SetToolBrushRadius $gaFrame([GetMainFrameID],toolID) $gaTool(current,radius) }
 
+    bind $fwScuba <Key-n> { set gaTool($gaFrame([GetMainFrameID],toolID),mode) navigation };
+    bind $fwScuba <Key-p> { set gaTool($gaFrame([GetMainFrameID],toolID),mode) plane };
+    bind $fwScuba <Key-m> { set gaTool($gaFrame([GetMainFrameID],toolID),mode) marker };
+    bind $fwScuba <Key-e> { set gaTool($gaFrame([GetMainFrameID],toolID),mode) voxelEditing };
+    bind $fwScuba <Key-r> { set gaTool($gaFrame([GetMainFrameID],toolID),mode) roiEditing };
+    bind $fwScuba <Key-s> { set gaTool($gaFrame([GetMainFrameID],toolID),mode) straightPath };
+    bind $fwScuba <Key-g> { set gaTool($gaFrame([GetMainFrameID],toolID),mode) edgePath };
 }
 
 proc ScubaMouseMotionCallback { inX inY iState iButton } {
@@ -4587,7 +4594,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.80 2005/02/10 19:09:25 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.81 2005/02/16 18:44:30 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.

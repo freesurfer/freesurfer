@@ -1465,7 +1465,7 @@ VolumeCollection::MakeHistogram ( int icBins,
     throw runtime_error( "Thresh values out of bounds." );
   }
 
-  if( iMinThresh >= iMaxThresh ) {
+  if( iMinThresh > iMaxThresh ) {
     throw runtime_error( "Min thresh is greater than max thresh." );
   }
 

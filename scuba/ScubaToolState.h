@@ -19,15 +19,18 @@ class ScubaToolState : public TclCommandListener, public IDTracker<ScubaToolStat
   void SetMode ( Mode iMode ) { mMode = iMode; }
   Mode GetMode () { return mMode; }
 
+  // Target.
   void SetLayerTarget ( int iTarget ) { mLayerTarget = iTarget; }
   int GetLayerTarget () { return mLayerTarget; }
 
+  // voxelEditing
   void SetNewValue ( float iValue ) { mNewValue = iValue; }
   float GetNewValue () { return mNewValue; }
 
   void SetEraseValue ( float iValue ) { mEraseValue = iValue; }
   float GetEraseValue () { return mEraseValue; }
 
+  // Brush settings.
   void SetOnlyBrushZero ( bool ibOnlyZero ) { mbOnlyFillZero = ibOnlyZero; }
   bool GetOnlyBrushZero () { return mbOnlyFillZero; }
 
@@ -40,6 +43,7 @@ class ScubaToolState : public TclCommandListener, public IDTracker<ScubaToolStat
   void SetBrush3D ( bool ib3D ) { mbBrush3D = ib3D; }
   bool GetBrush3D () { return mbBrush3D; }
 
+  // Fill settings
   void SetFloodStopAtPaths ( bool ibStop ) { mbFloodStopAtPaths = ibStop; }
   bool GetFloodStopAtPaths () { return mbFloodStopAtPaths; }
 
@@ -58,17 +62,18 @@ class ScubaToolState : public TclCommandListener, public IDTracker<ScubaToolStat
   void SetFloodSourceCollection ( int iCol ) { mFloodSourceCollection = iCol; }
   int GetFloodSourceCollection () { return mFloodSourceCollection; }
 
-  void SetEdgePathStraightBias ( float iBias ) {mEdgePathStraightBias = iBias;}
-  float GetEdgePathStraightBias () { return mEdgePathStraightBias; }
-
-  void SetEdgePathEdgeBias ( float iBias ) {mEdgePathEdgeBias = iBias;}
-  float GetEdgePathEdgeBias () { return mEdgePathEdgeBias; }
-
   void SetOnlyFloodZero ( bool ibOnlyZero ) { mbOnlyFloodZero = ibOnlyZero; }
   bool GetOnlyFloodZero () { return mbOnlyFloodZero; }
 
   void SetFuzzinessType ( FuzzinessType iType ) { mFloodFuzzinessType =iType; }
   FuzzinessType GetFuzzinessType () { return mFloodFuzzinessType; }
+
+  // edgePath.
+  void SetEdgePathStraightBias ( float iBias ) {mEdgePathStraightBias = iBias;}
+  float GetEdgePathStraightBias () { return mEdgePathStraightBias; }
+
+  void SetEdgePathEdgeBias ( float iBias ) {mEdgePathEdgeBias = iBias;}
+  float GetEdgePathEdgeBias () { return mEdgePathEdgeBias; }
 
   virtual TclCommandResult
     DoListenToTclCommand ( char* isCommand, int iArgc, char** iasArgv );
