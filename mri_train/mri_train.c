@@ -11,7 +11,7 @@
 #include "proto.h"
 
 #define SCALE     16
-#define NINPUTS   5
+#define NINPUTS   2
 
 static int scale = SCALE ;
 static int ninputs = NINPUTS ;
