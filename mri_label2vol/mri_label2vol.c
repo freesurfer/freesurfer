@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Converts a label to a segmentation volume.
-  $Id: mri_label2vol.c,v 1.6 2004/08/18 17:51:28 tosa Exp $
+  $Id: mri_label2vol.c,v 1.7 2005/01/25 21:55:31 greve Exp $
 */
 
 
@@ -52,7 +52,7 @@ static int load_annotation(char *annotfile, MRIS *Surf);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_label2vol.c,v 1.6 2004/08/18 17:51:28 tosa Exp $";
+static char vcid[] = "$Id: mri_label2vol.c,v 1.7 2005/01/25 21:55:31 greve Exp $";
 char *Progname = NULL;
 
 char *LabelList[100];
@@ -102,7 +102,7 @@ int main(int argc, char **argv)
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv, 
-      "$Id: mri_label2vol.c,v 1.6 2004/08/18 17:51:28 tosa Exp $", "$Name:  $");
+      "$Id: mri_label2vol.c,v 1.7 2005/01/25 21:55:31 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -226,11 +226,13 @@ int main(int argc, char **argv)
 	  if(ProjTypeId == PROJ_TYPE_FRAC)
 	    ProjNormFracThick(&x,&y,&z,Surf,vtxno,ProjDepth);
 	  oob = get_crs(Tras2vox,x,y,z,&c,&r,&s,TempVol);
+
 	  if(debug) printf("   ProjDepth %g   %g %g %g (%g)  %d %d %d   %d\n",
 		 ProjDepth,x,y,z,Surf->vertices[vtxno].curv,c,r,s,oob);
-	  if(oob) continue; // Out of the volume
-	  MRIIseq_vox(HitVol,c,r,s,nthlabel) ++;
+
 	  // Accumulate hit volume
+	  if(!oob) MRIIseq_vox(HitVol,c,r,s,nthlabel) ++;
+
 	  ProjDepth += ProjDelta;
 	  if(ProjDelta == 0) break; // only do once
 
