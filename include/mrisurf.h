@@ -27,7 +27,7 @@
 
 typedef struct _area_label
 {
-  char     name[100] ;        /* name of region */
+  char     name[STRLEN] ;     /* name of region */
   float    cx ;               /* centroid x */
   float    cy ;               /* centroid y */
   float    cz ;               /* centroid z */
@@ -202,7 +202,7 @@ typedef struct
   int          type ;             /* what type of surface was this initially*/
   int          max_vertices ;     /* may be bigger than nvertices */
   int          max_faces ;        /* may be bigger than nfaces */
-  char         subject_name[100] ;/* name of the subject */
+  char         subject_name[STRLEN] ;/* name of the subject */
 } MRI_SURFACE, MRIS ;
 
 
@@ -315,7 +315,7 @@ typedef struct
   int     nbhd_size ;
   int     max_nbrs ;
   int     write_iterations ;  /* # of iterations between saving movies */
-  char    base_name[100] ;    /* base name of movie files */
+  char    base_name[STRLEN] ; /* base name of movie files */
   int     projection ;        /* what kind of projection to do */
   int     niterations ;       /* max # of time steps */
   float   a ;
