@@ -6252,7 +6252,7 @@ gcaExtractRegionLabelAsSamples(GCA *gca, MRI *mri_labeled, TRANSFORM *transform,
                                int *pnsamples, int label, int xp, int yp, 
                                int zp, int wsize)
 {
-  int         i, nsamples, width, height, depth, x, y, z, n,
+  int         i, nsamples, width, height, depth, x, y, z,
               xi, yi, zi, xk, yk, zk, whalf ;
   GCA_SAMPLE  *gcas ;
   GCA_PRIOR   *gcap ;
@@ -6267,10 +6267,6 @@ gcaExtractRegionLabelAsSamples(GCA *gca, MRI *mri_labeled, TRANSFORM *transform,
   TransformInvert(transform, mri_labeled) ;
   GCApriorToSourceVoxel(gca, mri_labeled, transform, 
                        xp, yp, zp, &x, &y, &z) ;
-  for (n = 0 ; n < gcap->nlabels ; n++)
-    if (gcap->labels[n] == label)
-      break ;
-
   gc = GCAfindPriorGC(gca, xp, yp, zp, label) ;
   if (!gc)
     return(NULL) ;
@@ -6320,7 +6316,7 @@ gcaExtractRegionLabelAsSamples(GCA *gca, MRI *mri_labeled, TRANSFORM *transform,
         gcas[i].x = xi ;   gcas[i].y = yi ;   gcas[i].z = zi ; 
         gcas[i].var = gc->var ;
         gcas[i].mean = gc->mean ;
-        gcas[i].prior = gcap->priors[n] ;
+        gcas[i].prior = getPrior(gcap, label) ;
         if (FZERO(gcas[i].prior))
           DiagBreak() ;
         i++ ;
@@ -6336,7 +6332,7 @@ static GCA_SAMPLE *
 gcaExtractLabelAsSamples(GCA *gca, MRI *mri_labeled, TRANSFORM *transform,
                          int *pnsamples, int label)
 {
-  int         i, nsamples, width, height, depth, x, y, z, xp, yp, zp, n ;
+  int         i, nsamples, width, height, depth, x, y, z, xp, yp, zp ;
   GCA_SAMPLE  *gcas ;
   GCA_PRIOR    *gcap ;
   GC1D        *gc ;
@@ -6376,24 +6372,19 @@ gcaExtractLabelAsSamples(GCA *gca, MRI *mri_labeled, TRANSFORM *transform,
 
         GCAsourceVoxelToPrior(gca, mri_labeled, transform, x, y, z, &xp, &yp, &zp) ;
         gcap = &gca->priors[xp][yp][zp] ;
-        for (n = 0 ; n < gcap->nlabels ; n++)
-        {
-          if (gcap->labels[n] == label)
-            break ;
-        }
-
-        if (n >= gcap->nlabels)
+        gc = GCAfindPriorGC(gca, xp, yp, zp, label) ;
+        if (!gc)
         {
           nsamples-- ;   /* doesn't exist at this location */
           continue ;   /* ?? */
         }
-        gc = GCAfindPriorGC(gca, xp, yp, zp, label) ;
+          
         gcas[i].label = label ;
         gcas[i].xp = xp ; gcas[i].yp = yp ; gcas[i].zp = zp ; 
         gcas[i].x = x ;   gcas[i].y = y ;   gcas[i].z = z ; 
         gcas[i].var = gc->var ;
         gcas[i].mean = gc->mean ;
-        gcas[i].prior = gcap->priors[n] ;
+        gcas[i].prior = getPrior(gcap, label) ;
         if (FZERO(gcas[i].prior))
           DiagBreak() ;
         i++ ;
