@@ -21,10 +21,13 @@ char *Progname ;
 static char *log_fname = NULL ;
 static void usage_exit(int code) ;
 
-static int  annot_flag = -1 ;
+static int  segmentation_flag = -1 ;
+static char *annot_prefix = NULL ;
 static int quiet = 0 ;
 static int scaleup_flag = 0 ;
-int cras =0; // 0 is false.  1 is true
+static int cras =0; // 0 is false.  1 is true
+static char *surface_dir = NULL ;
+static char *hemi ;
 
 int
 main(int argc, char *argv[])
@@ -38,7 +41,7 @@ main(int argc, char *argv[])
 	Real   xw, yw, zw, xv, yv, zv, val;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_label_vals.c,v 1.9 2004/01/08 19:05:11 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_label_vals.c,v 1.10 2005/01/05 17:28:29 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -88,7 +91,7 @@ main(int argc, char *argv[])
     mri->fov = (fov_x > fov_y ? (fov_x > fov_z ? fov_x : fov_z) : (fov_y > fov_z ? fov_y : fov_z) );
 	}
 
-	if (annot_flag >= 0)
+	if (segmentation_flag >= 0)
 	{
 		int x, y, z  ;
 
@@ -102,7 +105,7 @@ main(int argc, char *argv[])
 			{
 				for (z = 0  ; z  < mri_seg->width ; z++)
 				{
-					if (MRIvox(mri_seg, x, y,  z) == annot_flag)
+					if (MRIvox(mri_seg, x, y,  z) == segmentation_flag)
 					{
 						MRIvoxelToSurfaceRAS(mri_seg, x, y,  z, &xw,  &yw, &zw) ;
 						MRIsurfaceRASToVoxel(mri, xw,  yw,  zw, &xv, &yv, &zv) ;
@@ -123,33 +126,93 @@ main(int argc, char *argv[])
 	}
 	else
 	{
-		area = LabelRead(NULL, label_name) ;
-		if (!area)
-			ErrorExit(ERROR_NOFILE, "%s: could not read label from %s",Progname, label_name) ;
-		
 		if (cras == 1)
 			fprintf(stderr,"using the label coordinates to be c_(r,a,s) != 0.\n");
-		
-		for (i = 0 ;  i  < area->n_points ; i++)
+
+		if (surface_dir)
 		{
-			
-			xw =  area->lv[i].x ;
-			yw =  area->lv[i].y ;
-			zw =  area->lv[i].z ;
-			if (cras == 1)
-				MRIworldToVoxel(mri, xw, yw,  zw, &xv, &yv, &zv) ;
-			else
-				MRIsurfaceRASToVoxel(mri, xw, yw, zw, &xv, &yv, &zv);
-			MRIsampleVolumeType(mri, xv,  yv, zv, &val, SAMPLE_NEAREST);
-#if 0
-			if (val < .000001)
-			{  
-				val *= 1000000;
-				printf("%f*0.000001\n", val);
+			MRI_SURFACE *mris ;
+			char fname[STRLEN] ;
+			sprintf(fname, "%s/%s.white", surface_dir, hemi) ;
+			mris = MRISread(fname) ;
+			if (mris == NULL)
+				ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s...\n", Progname,fname) ;
+			sprintf(fname, "%s/%s.thickness", surface_dir, hemi) ;
+			if (MRISreadCurvatureFile(mris, fname) != NO_ERROR)
+				ErrorExit(ERROR_BADPARM, "%s: could not read thickness file %s...\n", Progname,fname) ;
+
+			if (annot_prefix)   /* read an annotation in and print vals in it */
+			{
+#define MAX_ANNOT 10000
+				int   vno, annot_counts[MAX_ANNOT], index ;
+				VERTEX *v ;
+				Real  xw, yw, zw, xv, yv, zv, val ;
+				float annot_means[MAX_ANNOT] ;
+				FILE  *fp ;
+
+				memset(annot_means, 0, sizeof(annot_means)) ;
+				memset(annot_counts, 0, sizeof(annot_counts)) ;
+				if (MRISreadAnnotation(mris, label_name) != NO_ERROR)
+					ErrorExit(ERROR_BADPARM, "%s: could not read annotation file %s...\n", Progname,fname) ;
+				if (mris->ct == NULL)
+					ErrorExit(ERROR_BADPARM, "%s: annot file does not contain a color table, specifiy one with -t ", Progname);
+				for (vno = 0 ; vno < mris->nvertices ; vno++)
+				{
+					v = &mris->vertices[vno] ;
+					if (v->ripflag)
+						continue ;
+					index = CTABannotationToIndex(mris->ct, v->annotation) ;
+					if (index >= 0 && index < mris->ct->nbins)
+					{
+						annot_counts[index]++ ;
+						xw = v->x + v->curv*.5*v->nx ;
+						yw = v->y + v->curv*.5*v->ny ;
+						zw = v->z + v->curv*.5*v->nz ;
+						MRIsurfaceRASToVoxel(mri, xw, yw, zw, &xv, &yv, &zv);
+						MRIsampleVolume(mri, xv, yv, zv, &val) ;
+						annot_means[index] += val ;
+						sprintf(fname, "%s-%s-%s.dat", annot_prefix, hemi, mris->ct->bins[index].name) ;
+						fp = fopen(fname, "a") ;
+						fprintf(fp, "%f\n", val) ;
+						fclose(fp) ;
+					}
+				}
 			}
-			else
+			else  /* read label in and print vals in it */
+			{
+				area = LabelRead(NULL, label_name) ;
+				if (!area)
+					ErrorExit(ERROR_NOFILE, "%s: could not read label from %s",Progname, label_name) ;
+		
+			}
+		}
+		else
+		{
+			area = LabelRead(NULL, label_name) ;
+			if (!area)
+				ErrorExit(ERROR_NOFILE, "%s: could not read label from %s",Progname, label_name) ;
+		
+			for (i = 0 ;  i  < area->n_points ; i++)
+			{
+				
+				xw =  area->lv[i].x ;
+				yw =  area->lv[i].y ;
+				zw =  area->lv[i].z ;
+				if (cras == 1)
+					MRIworldToVoxel(mri, xw, yw,  zw, &xv, &yv, &zv) ;
+				else
+					MRIsurfaceRASToVoxel(mri, xw, yw, zw, &xv, &yv, &zv);
+				MRIsampleVolumeType(mri, xv,  yv, zv, &val, SAMPLE_NEAREST);
+#if 0
+				if (val < .000001)
+				{  
+					val *= 1000000;
+					printf("%f*0.000001\n", val);
+				}
+				else
 #endif
-				printf("%f\n", val);
+					printf("%f\n", val);
+			}
 		}
 	}
   msec = TimerStop(&start) ;
@@ -180,17 +243,29 @@ get_option(int argc, char *argv[])
     cras = 1;
 	else if (strcmp("scaleup", option) == 0)
 		scaleup_flag = 1 ;
+	else if (strcmp("segmentation", option) == 0)
+	{
+		segmentation_flag = atoi(argv[2]) ;
+		nargs =  1  ;
+		fprintf(stderr,"using  annotation %d as label...\n", segmentation_flag)  ;
+	}
   else
   {
     switch (toupper(*option))
     {
+		case 'S':
+			surface_dir = argv[2] ;
+			hemi = argv[3] ;
+			printf("sampling from midpoint of cortical ribbon in %s (hemi=%s)\n", surface_dir, hemi) ;
+			nargs = 2 ;
+			break ;
     case 'Q':
       quiet = 1 ;
       break ;
     case 'A':
-      annot_flag = atoi(argv[2]) ;
+			annot_prefix = argv[2] ;
 			nargs =  1  ;
-			fprintf(stderr,"using  annotation %d as label...\n", annot_flag)  ;
+			fprintf(stderr,"reading annotation file, and outputting with prefix %s ...\n", annot_prefix)  ;
       break ;
     case 'L':
       log_fname = argv[2] ;
