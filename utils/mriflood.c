@@ -18,7 +18,7 @@ MRI *MRIbitwiseand(MRI *mri1,MRI *mri2,MRI *mri_dst);
 MRI *MRIbitwiseor(MRI *mri1,MRI *mri2,MRI *mri_dst);
 MRI *MRIbitwisenot(MRI *mri_src,MRI *mri_dst);
 MRI *MRImajority(MRI *mri_src,MRI *mri_dst);
-MRI *MRImergecortexwhitecma(MRI *mri_cortex,MRI *mri_white,MRI *mri_cma,MRI *mri_dst);
+MRI *MRImergecortexwhitecma(MRI *mri_cortex,MRI *mri_white,MRI *mri_cma,MRI *mri_left,MRI *mri_dst);
 int HemisphereVote(MRI *mri_cma,int i,int j,int k,int halfside);
 float distance(float x,float y,float z);
 void MRIerodecerebralcortex(MRI *mri_masked,MRI *mri_cma);
@@ -476,13 +476,15 @@ MRI *MRISpartialfloodoutside(MRI *mri_src,MRI *mri_dst)
 
 MRI *MRISpartialribbon(MRI_SURFACE *inner_mris_lh,MRI_SURFACE *outer_mris_lh,MRI_SURFACE *inner_mris_rh,MRI_SURFACE *outer_mris_rh,MRI *mri_src,MRI *mri_dst,MRI *mri_mask)
 {
-  MRI *mri_inter1,*mri_inter2;
+  MRI *mri_inter1,*mri_inter2,*mri_inter3;
 
   /* Allocate new MRI structures as needed */
   mri_inter1=MRIalloc(mri_src->width,mri_src->height,mri_src->depth,mri_src->type);
   MRIcopyHeader(mri_src, mri_inter1);
   mri_inter2=MRIalloc(mri_src->width,mri_src->height,mri_src->depth,mri_src->type);
   MRIcopyHeader(mri_src, mri_inter2);
+  mri_inter3=MRIalloc(mri_src->width,mri_src->height,mri_src->depth,mri_src->type);
+  MRIcopyHeader(mri_src, mri_inter3);
   if (!mri_dst) {
     mri_dst=MRIalloc(mri_src->width,mri_src->height,mri_src->depth,mri_src->type);
     MRIcopyHeader(mri_src, mri_dst);
@@ -526,15 +528,22 @@ MRI *MRISpartialribbon(MRI_SURFACE *inner_mris_lh,MRI_SURFACE *outer_mris_lh,MRI
     MRISshell(mri_src,inner_mris_lh,mri_inter1,1);
     MRISshell(mri_src,inner_mris_rh,mri_inter1,0);
     MRISfloodoutside(mri_inter1,mri_inter1);
-
-    printf("Inverting volume...\n");
+    printf("  - inverting volume...\n");
     MRISaccentuate(mri_inter1,mri_inter2,1,254);
     MRIbitwisenot(mri_inter2,mri_inter2);
 
-    /* mri_dst contains cerebral cortex, mri_inter2 contains white matter and some of the gray inner shell */
+    /* Create volume inside left outer surface as reference. */
+    printf("Creating full reference volume inside left outer shell...\n");
+    MRISshell(mri_src,outer_mris_lh,mri_inter3,0);
+    MRISfloodoutside(mri_inter3,mri_inter3);
+    printf("  - inverting volume...\n");
+    MRISaccentuate(mri_inter3,mri_inter3,1,254);
+    MRIbitwisenot(mri_inter3,mri_inter3);
+
+    /* mri_dst contains cerebral cortex, mri_inter1 contains left side voxels, mri_inter2 contains white matter and some of the gray inner shell */
     printf("Merging labelled volumes...\n");
     MRIcopy(mri_dst,mri_inter1);
-    MRImergecortexwhitecma(mri_inter1,mri_inter2,mri_mask,mri_dst);
+    MRImergecortexwhitecma(mri_inter1,mri_inter2,mri_mask,mri_inter3,mri_dst);
   }
   printf("Eroding cortex...\n");
   MRIerodecerebralcortex(mri_dst,mri_mask);
@@ -545,7 +554,7 @@ MRI *MRISpartialribbon(MRI_SURFACE *inner_mris_lh,MRI_SURFACE *outer_mris_lh,MRI
   return mri_dst;
 }
 
-MRI *MRImergecortexwhitecma(MRI *mri_cortex,MRI *mri_white,MRI *mri_cma,MRI *mri_dst)
+MRI *MRImergecortexwhitecma(MRI *mri_cortex,MRI *mri_white,MRI *mri_cma,MRI *mri_left,MRI *mri_dst)
 {
   /* mri_cortex = cerebral cortex is labelled as 255, all else is 0.
      mri_white  = white matter and some of the inner gray matter shell is labelled as 255, all else is 0.
@@ -599,11 +608,15 @@ MRI *MRImergecortexwhitecma(MRI *mri_cortex,MRI *mri_white,MRI *mri_cma,MRI *mri
               MRIvox(mri_dst,i,j,k)=Unknown;
           }
         }
+
         if (vox==Unknown) {
           if (MRIvox(mri_cortex,i,j,k)==255) {
             switch (HemisphereVote(mri_cma,i,j,k,NEIGHBOURHALFSIDE)) {
               case -1:
-                MRIvox(mri_dst,i,j,k)=Unknown;
+                if (MRIvox(mri_left,i,j,k)==255)
+                  MRIvox(mri_dst,i,j,k)=Left_Cerebral_Cortex;
+                else
+                  MRIvox(mri_dst,i,j,k)=Right_Cerebral_Cortex;
                 break;
               case 0:
                 MRIvox(mri_dst,i,j,k)=Right_Cerebral_Cortex;
@@ -613,20 +626,22 @@ MRI *MRImergecortexwhitecma(MRI *mri_cortex,MRI *mri_white,MRI *mri_cma,MRI *mri
                 break;
             }
           }
-          else
-            if (MRIvox(mri_white,i,j,k)==255) {
-              switch (HemisphereVote(mri_cma,i,j,k,NEIGHBOURHALFSIDE)) {
-                case -1:
-                  MRIvox(mri_dst,i,j,k)=Unknown;
-                  break;
-                case 0:
-                  MRIvox(mri_dst,i,j,k)=Right_Cerebral_White_Matter;
-                  break;
-                case 1:
+          if (MRIvox(mri_white,i,j,k)==255) {
+            switch (HemisphereVote(mri_cma,i,j,k,NEIGHBOURHALFSIDE)) {
+              case -1:
+                if (MRIvox(mri_left,i,j,k)==255)
                   MRIvox(mri_dst,i,j,k)=Left_Cerebral_White_Matter;
-                  break;
-              }
+                else
+                  MRIvox(mri_dst,i,j,k)=Right_Cerebral_White_Matter;
+                break;
+              case 0:
+                MRIvox(mri_dst,i,j,k)=Right_Cerebral_White_Matter;
+                break;
+              case 1:
+                MRIvox(mri_dst,i,j,k)=Left_Cerebral_White_Matter;
+                break;
             }
+          }
         }
       }
 
@@ -678,11 +693,8 @@ int HemisphereVote(MRI *mri_cma,int i,int j,int k,int halfside)
             rightvote+=1/distance((float)(x-i),(float)(y-j),(float)(z-k));
         }
       }
-  if ((leftvote==rightvote)&&(leftvote==0)) {
-    if ((i!=0)&&(i!=255)&&(j!=0)&&(j!=255)&&(k!=0)&&(k!=255))
-      printf("Isolated voxel (%d, %d, %d) labelled unknown.\n",i,j,k);
+  if ((leftvote==rightvote)&&(leftvote==0))
     return -1;
-  }
   if (leftvote==rightvote)
     printf("Ambiguous voxel (%d, %d, %d) labelled right (%1.2f votes).\n",i,j,k,leftvote);
 
@@ -752,5 +764,4 @@ int IllegalCorticalNeighbour(MRI *mri_masked,int i,int j,int k)
 
   return illegalflag;
 }
-
 
