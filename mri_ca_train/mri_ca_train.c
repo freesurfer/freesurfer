@@ -58,7 +58,8 @@ main(int argc, char *argv[])
   TimerStart(&start) ;
 
   parms.use_gradient = 0 ;
-  parms.spacing = 4.0f ;
+  parms.node_spacing = 4.0f ;
+  parms.prior_spacing = 2.0f ;
 
   ac = argc ;
   av = argv ;
@@ -106,7 +107,7 @@ main(int argc, char *argv[])
   n = 0 ;
   do
   {
-    gca = GCAalloc(ninputs, parms.spacing, DEFAULT_VOLUME_SIZE, 
+    gca = GCAalloc(ninputs, parms.prior_spacing, parms.node_spacing, DEFAULT_VOLUME_SIZE, 
                    DEFAULT_VOLUME_SIZE,DEFAULT_VOLUME_SIZE, gca_flags);
 
     for (nargs = i = 0 ; i < nsubjects+options ; i++)
@@ -215,7 +216,8 @@ main(int argc, char *argv[])
   }
 
   printf("writing trained GCA to %s...\n", out_fname) ;
-  GCAwrite(gca, out_fname) ;
+  if (GCAwrite(gca, out_fname) != NO_ERROR)
+    ErrorExit(ERROR_BADFILE, "%s: could not write gca to %s", Progname, out_fname) ;
 
   if (histo_fname)
   {
@@ -230,11 +232,11 @@ main(int argc, char *argv[])
                 Progname, histo_fname) ;
 
     max_count = 0 ;
-    for (xn = 0 ; xn < gca->width;  xn++)
+    for (xn = 0 ; xn < gca->node_width;  xn++)
     {
-      for (yn = 0 ; yn < gca->height ; yn++)
+      for (yn = 0 ; yn < gca->node_height ; yn++)
       {
-        for (zn = 0 ; zn < gca->depth ; zn++)
+        for (zn = 0 ; zn < gca->node_depth ; zn++)
         {
           gcan = &gca->nodes[xn][yn][zn] ;
           if (gcan->nlabels < 1)
@@ -280,11 +282,17 @@ get_option(int argc, char *argv[])
     parms.use_gradient = 1 ;
     ninputs += 3 ;  /* components of the gradient */
   }
-  else if (!stricmp(option, "SPACING"))
+  else if (!stricmp(option, "PRIOR_SPACING"))
   {
-    parms.spacing = atof(argv[2]) ;
+    parms.prior_spacing = atof(argv[2]) ;
     nargs = 1 ;
-    printf("spacing nodes every %2.1f mm\n", parms.spacing) ;
+    printf("spacing priors every %2.1f mm\n", parms.prior_spacing) ;
+  }
+  else if (!stricmp(option, "NODE_SPACING"))
+  {
+    parms.node_spacing = atof(argv[2]) ;
+    nargs = 1 ;
+    printf("spacing nodes every %2.1f mm\n", parms.node_spacing) ;
   }
   else if (!stricmp(option, "NOMRF"))
   {
@@ -407,8 +415,8 @@ usage_exit(int code)
   printf("usage: %s [options] <subject 1> <subject 2> ... <output file>\n",
          Progname) ;
   printf(
-         "\t-spacing  - spacing of classifiers in canonical space\n");
-  printf("\t-gradient - use intensity gradient as input to classifier.\n") ;
+         "\t-node_spacing   - spacing of classifiers in canonical space\n"
+         "\t-prior_spacing  - spacing of class priors in canonical space\n");
   exit(code) ;
 }
 static int input_labels[] = {  
