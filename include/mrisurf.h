@@ -346,6 +346,7 @@ typedef struct
   float   l_tsmooth ;         /* thickness smoothness term */
   float   l_surf_repulse ;    /* repulsive orig surface (for white->pial) */
   float   l_external ;        /* external (user-defined) coefficient */
+	float   l_shrinkwrap ;      /* move in if MRI=0 and out otherwise */
   int     n_averages ;        /* # of averages */
   int     min_averages ;
   int     nbhd_size ;
