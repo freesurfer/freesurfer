@@ -1,1 +1,88 @@
-ERROR: File gcamorph.h does not exist.
+#ifndef GCA_MORPH_H
+#define GCA_MORPH_H
+
+#include "mri.h"
+#include "gca.h"
+#include "transform.h"
+
+
+#define EXP_K            20.0
+
+typedef struct
+{
+  Real   origx ;
+  Real   origy ;
+  Real   origz ;
+  Real   x ;
+  Real   y ;
+  Real   z ;
+  int    xn ;         /* node coordinates */
+  int    yn ;
+  int    zn ;
+  int    label ;
+  int    n ;          /* index in gcan structure */
+  float  prior ;
+  float  std ;
+  float  mean ;
+  float  log_p ;         /* current log probability of this sample */
+  float  dx, dy, dz;     /* current gradient */
+  float  odx, ody, odz ; /* previous gradient */
+  float  area ;
+  float  orig_area ;
+} GCA_MORPH_NODE, GMN ;
+
+typedef struct
+{
+  int  width, height ,depth ;
+  GCA  *gca ;
+  GMN  ***nodes ;
+  int  neg ;
+  double exp_k ;
+  int  spacing ;
+  MRI  *mri_xind ;    /* MRI->gca transform */
+  MRI  *mri_yind ;
+  MRI  *mri_zind ;
+} GCA_MORPH, GCAM ;
+
+typedef struct
+{
+  int    write_iterations ;
+  float  dt ;
+  float  momentum ;
+  int    niterations ;
+  char   base_name[STRLEN] ;
+  double l_likelihood ;
+  double l_area ;
+  double l_jacobian ;
+  double l_smoothness ;
+  double l_distance ;
+  double tol ;
+  int    levels ;
+  FILE   *log_fp ;
+  int    start_t ;
+  MRI    *mri ;
+  float  max_grad ;
+  double exp_k ;
+  double sigma ;
+} GCA_MORPH_PARMS, GMP ;
+
+GCA_MORPH *GCAMalloc(int width, int height, int depth) ;
+int       GCAMinit(GCA_MORPH *gcam, MRI *mri, GCA *gca, TRANSFORM *transform) ;
+int       GCAMinitLookupTables(GCA_MORPH *gcam) ;
+int       GCAMwrite(GCA_MORPH *gcam, char *fname) ;
+GCA_MORPH *GCAMread(char *fname) ;
+int       GCAMfree(GCA_MORPH **pgcam) ;
+MRI       *GCAMapplyMorph(MRI *mri_src, GCA_MORPH *gcam, MRI *mri_dst) ;
+MRI       *GCAMapplyInverseMorph(MRI *mri_src, GCA_MORPH *gcam, MRI *mri_dst) ;
+int       GCAMregister(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms) ;
+int       GCAMregisterLevel(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth, 
+                            GCA_MORPH_PARMS *parms) ;
+int       GCAMsampleMorph(GCA_MORPH *gcam, float x, float y, float z, 
+                          float *pxd, float *pyd, float *pzd) ;
+int       GCAMcomputeLabels(MRI *mri, GCA_MORPH *gcam) ;
+MRI       *GCAMbuildMostLikelyVolume(GCA_MORPH *gcam, MRI *mri) ;
+int       GCAMinvert(GCA_MORPH *gcam, MRI *mri) ;
+int       GCAMfreeInverse(GCA_MORPH *gcam) ;
+
+
+#endif
