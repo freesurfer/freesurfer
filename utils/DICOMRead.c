@@ -2,7 +2,7 @@
    DICOM 3.0 reading functions
    Author: Sebastien Gicquel and Douglas Greve
    Date: 06/04/2001
-   $Id: DICOMRead.c,v 1.16 2001/11/15 19:08:50 greve Exp $
+   $Id: DICOMRead.c,v 1.17 2001/11/15 19:11:19 greve Exp $
 *******************************************************/
 
 #include <stdio.h>
@@ -3288,7 +3288,7 @@ int ScanDir(char *PathName, char ***FileNames, int *NumberOfFiles)
   return 0;
 }
 
-#ifdef Solaris
+#ifdef SunOS
 /* added by kteich for solaris, since it doesn't have them by default. */
 /* these funcs Copyright (c) Joerg-R. Hill, December 2000 */
 int scandir(const char *dir, struct dirent ***namelist,
