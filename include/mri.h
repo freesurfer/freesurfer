@@ -1,4 +1,4 @@
-#ifndef MRI_H
+ #ifndef MRI_H
 #define MRI_H
 
 #include "const.h"
@@ -97,6 +97,9 @@ typedef struct
   int           dof ;
   double        mean ;   
   double        flip_angle ;  /* in radians */
+
+  void*         tag_data; /* saved tag data */
+  long          tag_data_size; /* size of saved tag data */
 } MRI_IMAGE, MRI ;
 
 MATRIX *MRIxfmCRS2XYZ(MRI *mri, int base);
