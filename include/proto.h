@@ -8,6 +8,9 @@
 #include <time.h>
 #include <sys/timeb.h>
 
+#if defined(SunOS) | defined(IRIX)
+#include <ieeefp.h>
+#endif
 
 /*----------------- ALL PLATFORMS *--------------------*/
 int stricmp(char *str1, char *str2) ;
