@@ -165,11 +165,11 @@ get_option(int argc, char *argv[])
     nargs = 1 ;
     fprintf(stderr, "l_area = %2.2f\n", parms.l_area) ;
   }
-  else if (!strcmp(option, "NAREA"))
+  else if (!strcmp(option, "NLAREA"))
   {
-    parms.l_narea = atof(argv[2]) ;
+    parms.l_nlarea = atof(argv[2]) ;
     nargs = 1 ;
-    fprintf(stderr, "l_narea = %2.2f\n", parms.l_narea) ;
+    fprintf(stderr, "l_nlarea = %2.2f\n", parms.l_nlarea) ;
   }
   else if (!strcmp(option, "LEVELS"))
   {
