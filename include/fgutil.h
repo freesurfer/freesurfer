@@ -1,4 +1,4 @@
-/*  $Id: fgutil.h,v 1.1 1997/03/11 18:43:07 fischl Exp $   */
+/*  $Id: fgutil.h,v 1.2 1997/04/08 12:51:02 fischl Exp $   */
 #ifndef _FGUTIL_H
 #define _FGUTIL_H
 
@@ -24,5 +24,6 @@ typedef struct {
 extern int FGInitialize(int GrabOpts, FGINFO *ptr);
 extern void FGClose(void);
 extern int FGGrab(FGINFO *fgi, char *buffer);
+extern int FGsetLogmapType(FGINFO *fgi, int logmap_type) ;
 
 #endif /* _FGUTIL_H */
