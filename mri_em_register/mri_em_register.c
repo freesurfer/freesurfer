@@ -22,7 +22,7 @@ static MORPH_PARMS  parms ;
 static char *sample_fname = NULL ;
 static char *transformed_sample_fname = NULL ;
 
-#define MIN_SPACING   16.0
+#define MIN_SPACING   4.0
 static float min_spacing = MIN_SPACING ;
 
 static int use_contrast = 0 ;
