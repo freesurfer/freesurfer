@@ -4,9 +4,9 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2004/05/21 17:31:51 $
-// Revision       : $Revision: 1.205 $
-char *VERSION = "$Revision: 1.205 $";
+// Revision Date  : $Date: 2004/06/11 22:44:01 $
+// Revision       : $Revision: 1.206 $
+char *VERSION = "$Revision: 1.206 $";
 
 #define TCL
 #define TKMEDIT 
@@ -1035,7 +1035,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
      shorten our argc and argv count. If those are the only args we
      had, exit. */
   /* rkt: check for and handle version tag */
-  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.205 2004/05/21 17:31:51 kteich Exp $", "$Name:  $");
+  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.206 2004/06/11 22:44:01 kteich Exp $", "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
   argc -= nNumProcessedVersionArgs;
@@ -2125,6 +2125,12 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
   if( bScaleUpVolume ) {
     Volm_SetMinVoxelSizeToOne( gAnatomicalVolume[tkm_tVolumeType_Main] );
     AllocateSelectionVolume();
+
+    /* This changes when you resize the volume like that, so get it
+       again. */
+    Volm_GetIdxToRASTransform( gAnatomicalVolume[tkm_tVolumeType_Main],
+			       &gIdxToRASTransform );
+    
   }
 
   /* If we got a non-default brightness and contrast or min and max,
@@ -4983,7 +4989,7 @@ int main ( int argc, char** argv ) {
     DebugPrint( ( "%s ", argv[nArg] ) );
   }
   DebugPrint( ( "\n\n" ) );
-  DebugPrint( ( "$Id: tkmedit.c,v 1.205 2004/05/21 17:31:51 kteich Exp $ $Name:  $\n" ) );
+  DebugPrint( ( "$Id: tkmedit.c,v 1.206 2004/06/11 22:44:01 kteich Exp $ $Name:  $\n" ) );
 
   
   /* init glut */
@@ -8702,9 +8708,9 @@ tkm_tErr LoadSegmentationVolume ( tkm_tSegType iVolume,
   eVolume = Volm_ImportData( newVolume, sSegmentationFileName );
   DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
 		     eResult, tkm_tErr_CouldntLoadSegmentation );
-	if( gbScaleUpVolume ) {
-		Volm_SetMinVoxelSizeToOne( newVolume );
-	}
+  if( gbScaleUpVolume ) {
+    Volm_SetMinVoxelSizeToOne( newVolume );
+  }
   
   /* Try to load the color table. */
   DebugNote( ("Loading color table.") );
