@@ -3126,6 +3126,7 @@ dump_vertex(int vno)
     dist = sqrt(dx*dx + dy*dy + dz*dz) ;
     fprintf(stderr, "\tvn %d, dist = %2.2f\n", v->v[n], dist) ;
   }
+  return(NO_ERROR) ;
 }
 
 int
@@ -3247,8 +3248,6 @@ select_pixel( short sx, short sy, int printflag)
       z = (Real)(zz0+st*imc/fsf) ;
     }
     x_click = x ; y_click = y ; z_click = z ;
-    fprintf(stderr, "setting click to (%2.2f,%2.2f,%2.2f)\n",
-            x_click,y_click,z_click) ;
     if (transform_loaded)
     {
       transform_point(linear_transform, x, y, z, &x_tal, &y_tal, &z_tal) ;
