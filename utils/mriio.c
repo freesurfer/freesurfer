@@ -6741,7 +6741,8 @@ mghRead(char *fname, int read_volume, int frame)
   case MRI_FLOAT:  bpv = sizeof(float) ; break ;
   case MRI_UCHAR:  bpv = sizeof(char)  ; break ;
   case MRI_SHORT:  bpv = sizeof(short) ; break ;
-  case MRI_INT:     bpv = sizeof(int) ; break ;
+  case MRI_INT:    bpv = sizeof(int) ; break ;
+  case MRI_TENSOR:  bpv = sizeof(float) ; nframes = 9 ; break ;
   }
   bytes = width * height * bpv ;  /* bytes per slice */
   if (frame >= 0)
@@ -6798,6 +6799,7 @@ mghRead(char *fname, int read_volume, int frame)
             }
           }
           break ;
+          case MRI_TENSOR:
           case MRI_FLOAT:
           for (y = 0 ; y < height ; y++)
           {
