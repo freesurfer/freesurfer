@@ -316,3 +316,34 @@ char *fio_basename(char *pathname, char *ext)
   memcpy(basename,&(pathname[n+1]),l-n);
   return(basename);
 }
+/*--------------------------------------------------------------
+  fio_extension() - returns the extension of the given filename.
+  Author: Douglas Greve, 1/30/2002
+  -------------------------------------------------------------*/
+char *fio_extension(char *pathname)
+{
+  int lpathname,n, lext;
+  char *ext;
+
+  if(pathname == NULL) return(NULL);
+
+  lpathname = strlen(pathname);
+
+  lext = 0;
+  n = lpathname - 1;
+  while(n >= 0 && pathname[n] != '.') {
+    n--;
+    lext++;
+  }
+
+  /* A dot was not found, return NULL */
+  if(n < 0) return(NULL);
+
+  /* A dot was not found at the end of the file name */
+  if(lext == 0) return(NULL);
+
+  ext = (char *) calloc(sizeof(char),lext+1);
+  memcpy(ext,&(pathname[n+1]),lext);
+
+  return(ext);
+}

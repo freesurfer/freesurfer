@@ -24,6 +24,7 @@ int   fwrite4(int v, FILE *fp) ;
 
 char *fio_basename(char *pathname, char *ext);
 char *fio_dirname(char *pathname);
+char *fio_extension(char *pathname);
 
 #define fwriteLong(l, fp)   fwrite4((int)l, fp)
 
