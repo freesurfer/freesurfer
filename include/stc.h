@@ -8,6 +8,8 @@ typedef struct
   float   epoch_begin_lat ;
   float   sample_period ;
   int     ntimepts ;
+  int     nperdip;
+  int     ndipoles;
   int     nvertices ;
   int     *vertices ;
   MATRIX  *m_vals ;
@@ -16,5 +18,5 @@ typedef struct
 STC *StcRead(char *fname) ;
 int StcWrite(char *fname, MATRIX *m_data, float epoch_begin_lat,
              float sample_period, int *vertices, int nvertices) ;
-
+void StcFree(STC* stc);
 #endif
