@@ -1,6 +1,6 @@
 /*---------------------------------------------------------------
   Name: resample.c
-  $Id: resample.c,v 1.11 2003/07/15 23:57:43 greve Exp $
+  $Id: resample.c,v 1.12 2003/08/29 22:50:06 greve Exp $
   Author: Douglas N. Greve
   Purpose: code to perform resapling from one space to another, 
   including: volume-to-volume, volume-to-surface, and surface-to-surface.
@@ -419,6 +419,7 @@ MRI *label2mask_linear(MRI *SrcVol,
   FinalMskVol = MRIallocSequence(SrcVol->width,SrcVol->height,SrcVol->depth,
          MRI_FLOAT,1);
   if(FinalMskVol == NULL) return(NULL);
+  MRIcopyHeader(SrcVol,FinalMskVol);
   
   *nlabelhits = 0;
   *nfinalhits = 0;
