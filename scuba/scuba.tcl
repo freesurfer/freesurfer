@@ -1,14 +1,26 @@
 
 package require Tix
 
+
+# This will probably be phased out, but for now. Check to see if the
+# PrintAllCommands command works. If so, we are running from a binary
+# and don't need to load the scuba shared lib. If not, load it.
 set err [catch { PrintAllCommands } sResult]
 if { $err } {
     load [file dirname [info script]]/libscuba[info sharedlibextension] scuba
 }
 
-# Also look for tkUtils.tcl.
+# Also look for tkUtils.tcl and tkcon.tcl
 foreach sSourceFileName { tkUtils.tcl tkcon.tcl } {
-    set lPath [list "." "$env(DEV)/scripts" "$env(MRI_DIR)/lib/tcl"]
+
+    set lPath [list "$env(PWD)"]
+    if { [info exists env(DEV)] } {
+	lappend lPath "$env(DEV)/scripts"
+    }
+    if { [info exists env(FREESURFER_HOME)] } {
+	lappend lPath "$env(MRI_DIR)/lib/tcl"
+    }
+
     set bFound 0
     foreach sPath $lPath {
        if { $bFound == 0 } {
@@ -3000,7 +3012,10 @@ proc DoLoadLabelDlog {} {
 # up our windows first. So cache those in lCommands and we'll execute
 # them later.
 set lCommands {}
-if { [info exists argc] } {
+
+set argc [GetArgc]
+set argv [GetArgv]
+
 set nArg 0
 while { $nArg < $argc } {
     set sArg [lindex $argv $nArg]
@@ -3030,7 +3045,6 @@ while { $nArg < $argc } {
 	}
     }
     incr nArg
-}
 }
 
 # Do some startup stuff.
