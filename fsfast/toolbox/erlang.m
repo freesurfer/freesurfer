@@ -6,17 +6,16 @@ function y = erlang(x,avg,r)
 % variance will be (avg^2)/r. The stddev = avg/sqrt(r).
 %
 % To test emperically:
-%   y = rande(10000,5);
+%   y = rande(100000,5) + 2.3; % avg is 2.3+1 = 3.3
 %   [h x] = hist(y,100);  h = h/max(h);
-%   hest = erlang(x,1,5); hest = hest/max(hest);
+%   hest = erlang(x,2.3+1,5); hest = hest/max(hest);
 %   plot(x,h,x,hest);
 %
-% mu = 1/avg;
-% y = r*mu*((r*mu*x)^(r-1)) * exp(-r*mu*x) / (r-1)!
+% y = r*((r*(x-(avg-1)))^(r-1)) * exp(-r*(x-(avg-1))) / (r-1)!
 %
 % See also rande.
 %
-% $Id: erlang.m,v 1.2 2004/02/12 04:14:34 greve Exp $
+% $Id: erlang.m,v 1.3 2004/02/12 05:23:51 greve Exp $
 
 y = [];
 
@@ -31,9 +30,8 @@ if(exist('r')~=1)  r = 1; end
 y = zeros(size(x));
 indgez = find(x >= 0);
 
-mu = 1/avg;
-rmu = r*mu;
-y(indgez) = rmu*((rmu*x(indgez)).^(r-1)) .* exp(-rmu*x(indgez)) / factorial(r-1);
+x = x - (avg-1);
+y(indgez) = r*((r*x(indgez)).^(r-1)) .* exp(-r*x(indgez)) / factorial(r-1);
 
 return;
   
