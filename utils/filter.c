@@ -720,13 +720,58 @@ void
 ImageConvolve1d(IMAGE *I, IMAGE *J, float k[], int len, int axis)
 {
   int           x, y, width, height, halflen ;
-  register int  xi,yi, i ;
-  float         total, *ki, *outPix, *inPix, *inBase ;
+  register int  i ;
+  float         *outPix ;
+  register float *ki, total, *inBase ;
+  static int *xi_LUT = NULL,LUT_width, LUT_height, *yi_LUT = NULL, LUT_len = 0;
 
   width = I->cols ;
   height = I->rows ;
 
+
   halflen = len/2 ;
+
+  if ((LUT_len != len) || (LUT_width != width))
+  {
+    LUT_width = width ;
+    if (xi_LUT)
+      free(xi_LUT-halflen) ;
+    xi_LUT = (int *)calloc(width+2*halflen, sizeof(int)) ;
+    if (!xi_LUT)
+      ErrorExit(ERROR_NO_MEMORY, "ImageConvolve1d: could not allocate LUT\n");
+    xi_LUT += halflen ;
+    for (i = -halflen ; i < width+halflen ; i++)
+    {
+      if (i < 0)
+        xi_LUT[i] = 0 ;
+      else if (i >= width)
+        xi_LUT[i] = width-1 ;
+      else
+        xi_LUT[i] = i ;
+    }
+  }
+
+  if ((LUT_len != len) || (LUT_height != height))
+  {
+    LUT_height = height ;
+    if (yi_LUT)
+      free(yi_LUT-halflen) ;
+    yi_LUT = (int *)calloc(height+2*halflen, sizeof(int)) ;
+    if (!yi_LUT)
+      ErrorExit(ERROR_NO_MEMORY, "ImageConvolve1d: could not allocate LUT\n");
+    yi_LUT += halflen ;
+    for (i = -halflen ; i < height+halflen ; i++)
+    {
+      if (i < 0)
+        yi_LUT[i] = 0 ;
+      else if (i >= height)
+        yi_LUT[i] = height-1 ;
+      else
+        yi_LUT[i] = i ;
+    }
+  }
+  LUT_len = len ;
+
   outPix = IMAGEFpix(J, 0, 0) ;
   if (axis == IMAGE_HORIZONTAL)
   {
@@ -738,16 +783,7 @@ ImageConvolve1d(IMAGE *I, IMAGE *J, float k[], int len, int axis)
         total = 0.0f ;
 
         for (ki = k, i = 0 ; i < len ; i++)
-        {
-          xi = x + i - halflen ;
-          if (xi < 0)
-            xi = 0 ;
-          else if (xi >= width)
-            xi = width - 1 ;
-
-          inPix = inBase + xi ;
-          total += *ki++ * *inPix ;
-        }
+          total += *ki++ * *(inBase + xi_LUT[x+i-halflen]) ;
 
         *outPix++ = total ;
       }
@@ -763,16 +799,8 @@ ImageConvolve1d(IMAGE *I, IMAGE *J, float k[], int len, int axis)
         total = 0.0f ;
 
         for (ki = k, i = 0 ; i < len ; i++)
-        {
-          yi = y + i - halflen ;
-          if (yi < 0)
-            yi = 0 ;
-          else if (yi >= height)
-            yi = height - 1 ;
+          total += *ki++ * *(inBase + yi_LUT[y+i-halflen]*width) ;
 
-          inPix = inBase + yi*width ;
-          total += *ki++ * *inPix ;
-        }
         *outPix++ = total ;
       }
     }
@@ -1021,7 +1049,7 @@ ImageGaussian1d(float sigma, int max_len)
 
   /* build the kernel in k */
   len = (int)nint(8.0f * sigma)+1 ;
-  if (max_len && max_len < len)
+  if (max_len && (max_len < len))
     len = max_len ;
   half = len/2 ;
   image = ImageAlloc(1, len, PFFLOAT, 1) ;
