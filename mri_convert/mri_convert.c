@@ -21,6 +21,8 @@ void get_string(int argc, char *argv[], int *pos, char *val);
 void usage_message(FILE *stream);
 void usage(FILE *stream);
 
+int debug=0;
+
 extern int errno;
 
 char *Progname;
@@ -76,7 +78,7 @@ int main(int argc, char *argv[])
   int transform_flag, invert_transform_flag;
   LTA *lta_transform;
   M3D *m3d_transform;
-  MRI *mri_transformed;
+  MRI *mri_transformed = NULL;
   int transform_type;
   MATRIX *inverse_transform_matrix;
   int smooth_parcellation_flag, smooth_parcellation_count;
@@ -92,10 +94,26 @@ int main(int argc, char *argv[])
   int temp_type;
   int roi_flag;
   FILE *fptmp;
-  int translate_labels_flag;
+  int j,translate_labels_flag;
 
   for(i=0;i<argc;i++) printf("%s ",argv[i]);
   printf("\n");
+
+  for(i=0;i<argc;i++){
+    if(strcmp(argv[i],"--debug")==0){
+      fptmp = fopen("debug.gdb","w");
+      fprintf(fptmp,"# source this file in gdb to debug\n");
+      fprintf(fptmp,"file %s \n",argv[0]);
+      fprintf(fptmp,"run ");
+      for(j=1;j<argc;j++){
+  if(strcmp(argv[j],"--debug")!=0)
+    fprintf(fptmp,"%s ",argv[j]);
+      }
+      fprintf(fptmp,"\n");
+      fclose(fptmp);
+      break;
+    }
+  }
 
   /* ----- keep the compiler quiet ----- */
   mri2 = NULL;
@@ -112,7 +130,7 @@ int main(int argc, char *argv[])
   /* ----- catch no arguments here ----- */
   if(argc == 1)
   {
-    usage(stderr);
+    usage(stdout);
     exit(1);
   }
 
@@ -163,6 +181,7 @@ int main(int argc, char *argv[])
       get_ints(argc, argv, &i, reorder_vals, 3);
       reorder_flag = TRUE;
     }
+    else if(strcmp(argv[i], "--debug") == 0) debug = 1;
     else if(strcmp(argv[i], "--invert_contrast") == 0)
       get_floats(argc, argv, &i, &invert_val, 1);
     else if(strcmp(argv[i], "-i") == 0 || strcmp(argv[i], "--input_volume") == 0)
@@ -237,7 +256,7 @@ int main(int argc, char *argv[])
       if(magnitude == 0.0)
       {
         fprintf(stderr, "\n%s: directions must have non-zero magnitude; in_i_direction = (%g, %g, %g)\n", Progname, in_i_directions[0], in_i_directions[1], in_i_directions[2]);
-        usage_message(stderr);
+        usage_message(stdout);
         exit(1);
       }
       if(magnitude != 1.0)
@@ -257,7 +276,7 @@ int main(int argc, char *argv[])
       if(magnitude == 0.0)
       {
         fprintf(stderr, "\n%s: directions must have non-zero magnitude; in_j_direction = (%g, %g, %g)\n", Progname, in_j_directions[0], in_j_directions[1], in_j_directions[2]);
-        usage_message(stderr);
+        usage_message(stdout);
         exit(1);
       }
       if(magnitude != 1.0)
@@ -277,7 +296,7 @@ int main(int argc, char *argv[])
       if(magnitude == 0.0)
       {
         fprintf(stderr, "\n%s: directions must have non-zero magnitude; in_k_direction = (%g, %g, %g)\n", Progname, in_k_directions[0], in_k_directions[1], in_k_directions[2]);
-        usage_message(stderr);
+        usage_message(stdout);
         exit(1);
       }
       if(magnitude != 1.0)
@@ -297,7 +316,7 @@ int main(int argc, char *argv[])
       if(magnitude == 0.0)
       {
         fprintf(stderr, "\n%s: directions must have non-zero magnitude; out_i_direction = (%g, %g, %g)\n", Progname, out_i_directions[0], out_i_directions[1], out_i_directions[2]);
-        usage_message(stderr);
+        usage_message(stdout);
         exit(1);
       }
       if(magnitude != 1.0)
@@ -317,7 +336,7 @@ int main(int argc, char *argv[])
       if(magnitude == 0.0)
       {
         fprintf(stderr, "\n%s: directions must have non-zero magnitude; out_j_direction = (%g, %g, %g)\n", Progname, out_j_directions[0], out_j_directions[1], out_j_directions[2]);
-        usage_message(stderr);
+        usage_message(stdout);
         exit(1);
       }
       if(magnitude != 1.0)
@@ -337,7 +356,7 @@ int main(int argc, char *argv[])
       if(magnitude == 0.0)
       {
         fprintf(stderr, "\n%s: directions must have non-zero magnitude; out_k_direction = (%g, %g, %g)\n", Progname, out_k_directions[0], out_k_directions[1], out_k_directions[2]);
-        usage_message(stderr);
+        usage_message(stdout);
         exit(1);
       }
       if(magnitude != 1.0)
@@ -410,7 +429,7 @@ int main(int argc, char *argv[])
       else
       {
         fprintf(stderr, "\n%s: unknown data type \"%s\"\n", Progname, argv[i]);
-        usage_message(stderr);
+        usage_message(stdout);
         exit(1);
       }
     }
@@ -428,7 +447,7 @@ int main(int argc, char *argv[])
       else
       {
         fprintf(stderr, "\n%s: unknown resample type \"%s\"\n", Progname, argv[i]);
-        usage_message(stderr);
+        usage_message(stdout);
         exit(1);
       }
     }
@@ -477,7 +496,7 @@ int main(int argc, char *argv[])
       if(smooth_parcellation_count < 14 || smooth_parcellation_count > 26)
       {
         fprintf(stderr, "\n%s: clean parcellation count must be between 14 and 26, inclusive\n", Progname);
-        usage_message(stderr);
+        usage_message(stdout);
         exit(1);
       }
       smooth_parcellation_flag = TRUE;
@@ -508,7 +527,7 @@ int main(int argc, char *argv[])
       (strcmp(unwarp_gradientType, "GE") != 0) )
     {
       fprintf(stderr, "\n%s: must specify gradient type ('sonata' or 'allegra' or 'GE')\n", Progname);
-      usage_message(stderr);
+      usage_message(stdout);
       exit(1);
     }
   
@@ -518,7 +537,7 @@ int main(int argc, char *argv[])
       (strcmp(unwarp_partialUnwarp, "through-plane")  != 0) )
     {
       fprintf(stderr, "\n%s: must specify unwarping type ('fullUnwarp' or 'through-plane')\n", Progname);
-      usage_message(stderr);
+      usage_message(stdout);
       exit(1);
     }
 
@@ -528,7 +547,7 @@ int main(int argc, char *argv[])
       (strcmp(unwarp_jacobianCorrection, "noJacobianCorrection") != 0) )
     {
       fprintf(stderr, "\n%s: must specify intensity correction type ('JacobianCorrection' or 'noJacobianCorrection')\n", Progname);
-      usage_message(stderr);
+      usage_message(stdout);
       exit(1);
     }
 
@@ -538,7 +557,7 @@ int main(int argc, char *argv[])
       (strcmp(unwarp_interpType, "sinc")   != 0) )
     {
       fprintf(stderr, "\n%s: must specify interpolation type ('linear' or 'sinc')\n", Progname);
-      usage_message(stderr);
+      usage_message(stdout);
       exit(1);
     }
 
@@ -651,7 +670,7 @@ int main(int argc, char *argv[])
       if(argv[i][0] == '-')
       {
         fprintf(stderr, "\n%s: unknown flag \"%s\"\n", Progname, argv[i]);
-        usage_message(stderr);
+        usage_message(stdout);
         exit(1);
       }
       else
@@ -666,7 +685,7 @@ int main(int argc, char *argv[])
             fprintf(stderr, "\n%s: extra argument (\"%s\")\n", Progname, argv[i]);
           else
             fprintf(stderr, "\n%s: extra arguments (\"%s\" and following)\n", Progname, argv[i]);
-          usage_message(stderr);
+          usage_message(stdout);
           exit(1);
         }
       }
@@ -704,7 +723,7 @@ int main(int argc, char *argv[])
 
   if(!sizes_good_flag)
   {
-    usage_message(stderr);
+    usage_message(stdout);
     exit(1);
   }
 
@@ -712,14 +731,14 @@ int main(int argc, char *argv[])
   if(in_name[0] == '\0')
   {
     fprintf(stderr, "\n%s: missing input volume name\n", Progname);
-    usage_message(stderr);
+    usage_message(stdout);
     exit(1);
   }
 
   if(out_name[0] == '\0' && !(read_only_flag || no_write_flag))
   {
     fprintf(stderr, "\n%s: missing output volume name\n", Progname);
-    usage_message(stderr);
+    usage_message(stdout);
     exit(1);
   }
 
@@ -730,7 +749,7 @@ int main(int argc, char *argv[])
   if(force_in_type_flag && forced_in_type == MRI_VOLUME_TYPE_UNKNOWN)
   {
     fprintf(stderr, "\n%s: unknown input volume type %s\n", Progname, in_type_string);
-    usage_message(stderr);
+    usage_message(stdout);
     exit(1);
   }
 
@@ -1060,10 +1079,10 @@ int main(int argc, char *argv[])
   if(fabs(i_dot_j) > CLOSE_ENOUGH || fabs(i_dot_k) > CLOSE_ENOUGH || fabs(i_dot_k) > CLOSE_ENOUGH)
   {
     printf("warning: input volume axes are not orthogonal\n");
-    printf("i_ras = (%g, %g, %g)\n", mri->x_r, mri->x_a, mri->x_s);
-    printf("j_ras = (%g, %g, %g)\n", mri->y_r, mri->y_a, mri->y_s);
-    printf("k_ras = (%g, %g, %g)\n", mri->z_r, mri->z_a, mri->z_s);
   }
+  printf("i_ras = (%g, %g, %g)\n", mri->x_r, mri->x_a, mri->x_s);
+  printf("j_ras = (%g, %g, %g)\n", mri->y_r, mri->y_a, mri->y_s);
+  printf("k_ras = (%g, %g, %g)\n", mri->z_r, mri->z_a, mri->z_s);
 
   /* ----- catch the in info flag ----- */
   if(in_info_flag)
@@ -1092,13 +1111,17 @@ int main(int argc, char *argv[])
     if(transform_type == MNI_TRANSFORM_TYPE || 
        transform_type == TRANSFORM_ARRAY_TYPE)
     {
+      printf("Reading transform\n");
       lta_transform = LTAread(transform_fname);
-      if(lta_transform  == NULL)
-      {
-        fprintf(stderr, "ERROR: Reading transform from file %s\n", 
-    transform_fname);
-        exit(1);
-      }
+      if(lta_transform  == NULL){
+    fprintf(stderr, "ERROR: Reading transform from file %s\n", 
+      transform_fname);
+    exit(1);
+  }
+      
+      printf("Input Matrix --------------------------\n");
+      MatrixPrint(stdout,lta_transform->xforms[0].m_L);
+      printf("---------------------------------\n");
 
       if(invert_transform_flag)
       {
@@ -1115,23 +1138,58 @@ int main(int argc, char *argv[])
         lta_transform->xforms[0].m_L = inverse_transform_matrix;
       }
 
+      /* Think about calling MRIlinearTransform() here; need vox2vox
+   transform. Can create NN version. In theory, LTAtransform()
+         can handle multiple transforms, but the inverse assumes only
+         one. NN is good for ROI*/
+
       printf("INFO: resampling input volume \n");
-      printf("Resampling Matirx: \n");
+      printf("---------------------------------\n");
+      printf("Resampling Matrix input to LTAtransform(): \n");
       MatrixPrint(stdout,lta_transform->xforms[0].m_L);
       printf("---------------------------------\n");
 
+      if (lta_transform->type == LINEAR_RAS_TO_RAS){
+  /* What does this do? M = M*V*W, where V is world2vox
+     transform for COR, and W is vox2world transform for
+     COR. Maybe it changes the center?*/
+  printf("INFO: LTAvoxelTransformToCoronalRasTransform()\n");
+  LTAvoxelTransformToCoronalRasTransform(lta_transform);
+      }
+
+#if 1
+      /* LTAtransform() runs either MRIapplyRASlinearTransform() 
+   for RAS2RAS or MRIlinearTransform() for Vox2Vox. Since
+      the matrix is transformed to Vox2Vox, the LTAtransform line
+      should give the same results as the MRIlinearTransfrom().*/
       mri_transformed = LTAtransform(mri, NULL, lta_transform);
-      if(mri_transformed == NULL)
-      {
+      //mri_transformed = MRIlinearTransform(mri, NULL, 
+      //           lta_transform->xforms[0].m_L);
+#else
+      /* This part is experimental. The section that uses NEAREST
+   can be used for transforming ROIs that need to be resampled
+   given the transform matrix. */
+      if (lta_transform->type == LINEAR_RAS_TO_RAS){
+  mri_transformed = 
+    MRIapplyRASlinearTransform(mri,NULL,
+             lta_transform->xforms[0].m_L);
+      }
+      else{
+  printf("INFO: transforming using nearest\n");
+  mri_transformed = 
+    MRIlinearTransformInterp(mri, NULL,
+           lta_transform->xforms[0].m_L,
+           SAMPLE_NEAREST);
+      }
+#endif
+      if(mri_transformed == NULL){
         fprintf(stderr, "ERROR: applying transform to volume\n");
         exit(1);
       }
 
       LTAfree(&lta_transform);
-
       MRIfree(&mri);
       mri = mri_transformed;
-
     }
 
     else if(transform_type == MORPH_3D_TYPE)
@@ -1172,7 +1230,7 @@ int main(int argc, char *argv[])
   if(reslice_like_flag)
   {
 
-    printf("reading information from volume %s...\n", reslice_like_name);
+    printf("reading template info from volume %s...\n", reslice_like_name);
 
     template = MRIreadInfo(reslice_like_name);
     if(template == NULL)
@@ -1184,7 +1242,6 @@ int main(int argc, char *argv[])
   }
   else
   {
-
     template = MRIallocHeader(mri->width, mri->height, mri->depth, mri->type);
     MRIcopyHeader(mri, template);
     if(conform_flag)
@@ -1290,16 +1347,17 @@ int main(int argc, char *argv[])
   }
 
   /* ----- exit here if read only is desired ----- */
-  if(read_only_flag)
-    exit(0);
+  if(read_only_flag)  exit(0);
 
   /* ----- change type if necessary ----- */
   if(mri->type != template->type)
   {
     printf("changing data type...\n");
     mri2 = MRIchangeType(mri, template->type, 0.0, 0.999, no_scale_flag);
-    if(mri2 == NULL)
+    if(mri2 == NULL) {
+      printf("ERROR: MRIchangeType\n");
       exit(1);
+    }
     MRIfree(&mri);
     mri = mri2;
   }
@@ -1336,12 +1394,11 @@ int main(int argc, char *argv[])
   }
 
   /* ----- reorder if necessary ----- */
-  if(reorder_flag)
-  {
+  if(reorder_flag){
     printf("reordering axes...\n");
-    mri2 = MRIreorder(mri, NULL, reorder_vals[0], reorder_vals[1], reorder_vals[2]);
-    if(mri2 == NULL)
-    {
+    mri2 = MRIreorder(mri, NULL, reorder_vals[0], reorder_vals[1], 
+          reorder_vals[2]);
+    if(mri2 == NULL){
       fprintf(stderr, "error reordering axes\n");
       exit(1);
     }
@@ -1350,34 +1407,36 @@ int main(int argc, char *argv[])
   }
 
   /* ----- catch the out info flag ----- */
-  if(out_info_flag)
-  {
+  if(out_info_flag){
     printf("output structure:\n");
     MRIdump(mri, stdout);
   }
 
   /* ----- catch the out stats flag ----- */
-  if(out_stats_flag)
-    MRIprintStats(mri, stdout);
+  if(out_stats_flag) MRIprintStats(mri, stdout);
 
+  /*------ Finally, write the output -----*/
   if(!no_write_flag)
   {
     printf("writing to %s...\n", out_name);
-    if(force_out_type_flag)
-    {
-      if(MRIwriteType(mri, out_name, out_volume_type) != NO_ERROR)
+    if(force_out_type_flag){
+      if(MRIwriteType(mri, out_name, out_volume_type) != NO_ERROR){
+  printf("ERROR: writing %s as %d\n",out_name,out_volume_type);
         exit(1);
+      }
     }
-    else
-    {
-      if(MRIwrite(mri, out_name) != NO_ERROR)
+    else{
+      if(MRIwrite(mri, out_name) != NO_ERROR){
+  printf("ERROR: writing %s\n",out_name);
         exit(1);
+      }
     }
   }
 
   exit(0);
 
 } /* end main() */
+/*----------------------------------------------------------------------*/
 
 void get_ints(int argc, char *argv[], int *pos, int *vals, int nvals)
 {
@@ -1388,7 +1447,7 @@ void get_ints(int argc, char *argv[], int *pos, int *vals, int nvals)
   if(*pos + nvals >= argc)
   {
     fprintf(stderr, "\n%s: argument %s expects %d integers; only %d arguments after flag\n", Progname, argv[*pos], nvals, argc - *pos - 1);
-    usage_message(stderr);
+    usage_message(stdout);
     exit(1);
   }
 
@@ -1397,7 +1456,7 @@ void get_ints(int argc, char *argv[], int *pos, int *vals, int nvals)
     if(argv[*pos+i+1][0] == '\0')
     {
       fprintf(stderr, "\n%s: argument to %s flag is null\n", Progname, argv[*pos]);
-      usage_message(stderr);
+      usage_message(stdout);
       exit(1);
     }
 
@@ -1406,7 +1465,7 @@ void get_ints(int argc, char *argv[], int *pos, int *vals, int nvals)
     if(*ep != '\0')
     {
       fprintf(stderr, "\n%s: error converting \"%s\" to an integer for %s flag\n", Progname, argv[*pos+i+1], argv[*pos]);
-      usage_message(stderr);
+      usage_message(stdout);
       exit(1);
     }
 
@@ -1425,7 +1484,7 @@ void get_floats(int argc, char *argv[], int *pos, float *vals, int nvals)
   if(*pos + nvals >= argc)
   {
     fprintf(stderr, "\n%s: argument %s expects %d integers; only %d arguments after flag\n", Progname, argv[*pos], nvals, argc - *pos - 1);
-    usage_message(stderr);
+    usage_message(stdout);
     exit(1);
   }
 
@@ -1434,7 +1493,7 @@ void get_floats(int argc, char *argv[], int *pos, float *vals, int nvals)
     if(argv[*pos+i+1][0] == '\0')
     {
       fprintf(stderr, "\n%s: argument to %s flag is null\n", Progname, argv[*pos]);
-      usage_message(stderr);
+      usage_message(stdout);
       exit(1);
     }
 
@@ -1443,7 +1502,7 @@ void get_floats(int argc, char *argv[], int *pos, float *vals, int nvals)
     if(*ep != '\0')
     {
       fprintf(stderr, "\n%s: error converting \"%s\" to an integer for %s flag\n", Progname, argv[*pos+i+1], argv[*pos]);
-      usage_message(stderr);
+      usage_message(stdout);
       exit(1);
     }
 
@@ -1459,7 +1518,7 @@ void get_string(int argc, char *argv[], int *pos, char *val)
   if(*pos + 1 >= argc)
   {
     fprintf(stderr, "\n%s: argument %s expects an extra argument; none found\n", Progname, argv[*pos]);
-    usage_message(stderr);
+    usage_message(stdout);
     exit(1);
   }  
 
@@ -1520,7 +1579,10 @@ void usage(FILE *stream)
   fprintf(stream, "\n");
   fprintf(stream, "  -odt, --out_data_type <uchar|short|int|float>\n");
   fprintf(stream, "\n");
-  fprintf(stream, "  -rt, --resample_type <interpolate|nearest|sinc> (default is interpolate)\n");
+  fprintf(stream, "  -rt, --resample_type <interpolate|weighted|nearest|sinc> (default is interpolate)\n");
+  fprintf(stream, "\n");
+  fprintf(stream, "  --no_scale flag <-ns>: 1 = dont rescale values for COR\n");
+  fprintf(stream, "\n");
   fprintf(stream, "\n");
   fprintf(stream, "  -tr TR : TR in seconds\n");
   fprintf(stream, "\n");
@@ -1555,8 +1617,8 @@ void usage(FILE *stream)
   "  gelx          - GE LX (input only)\n"
   "  lx            - same as gelx\n"
   "  siemens       - Siemens IMA (input only)\n"
-  "  dicom         - generic DICOM Format (iput only)\n"
-  "  siemens_dicom - Siemens DICOM Format (iput only)\n"
+  "  dicom         - generic DICOM Format (input only)\n"
+  "  siemens_dicom - Siemens DICOM Format (input only)\n"
   "  afni          - AFNI format\n"
   "  brik          - same as afni\n"
   "  bshort        - MGH-NMR bshort format\n"
@@ -1576,9 +1638,45 @@ void usage(FILE *stream)
   "frame as baseXXX.img where XXX is the three-digit, zero-padded frame number.\n"
   "Frame numbers begin at one. By default, the width the of zero padding is 3.\n"
   "This can be controlled with --in_nspmzeropad N where N is the new width.\n"
-  "\n"
+  "\n"  );
 
-  );
+  printf("\n");
+  printf("Other options\n");
+  printf("\n");
+  printf("  -r, --reorder olddim1 olddim2 olddim3\n");
+  printf("\n");
+  printf("  Reorders axes such that olddim1 is the new column dimension,\n");
+  printf("  olddim2 is the new row dimension, olddim3 is the new slice \n");
+  printf("  dimension. Example: 2 1 3 will swap rows and cols.\n");
+  printf("\n");
+  printf("  --invert_contrast threshold\n");
+  printf("\n");
+  printf("  All voxels in volume greater than threshold are replaced\n");
+  printf("  with 255-value. Only makes sense for 8 bit images.\n");
+  printf("  Only operates on the first frame.\n");
+  printf("\n");
+  printf("  -i, --input_volume\n");
+  printf("  -o, --output_volume\n");
+  printf("  -nc, --no_conform\n");
+  printf("  -po, --parse_only\n");
+  printf("  -is, --in_stats\n");
+  printf("  -os, --out_stats\n");
+  printf("  -ro, --read_only\n");
+  printf("  -nw, --no_write\n");
+  printf("  -sn, --subject_name\n");
+  printf("  -rl, --reslice_like\n");
+  printf("  -f,  --frame\n");
+  printf("  -il, --in_like\n");
+  printf("  -roi\n");
+  printf("  -fp, --file_parcellation\n");
+  printf("  -sp, --smooth_parcellation\n");
+  printf("  -cf, --color_file\n");
+  printf("  -nt, --no_translate\n");
+  printf("  --status (status file for DICOM conversion)\n");
+  printf("  --sdcmlist (list of DICOM files for conversion)\n");
+  printf("  -ti, --template_info : dump info about template\n");
+  printf("\n");
+
 
 } /* end usage() */
 
