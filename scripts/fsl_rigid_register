@@ -1,8 +1,8 @@
 #!/bin/csh -f
 #
 # 
-# $Id: fsl_rigid_register,v 1.4 2003/05/09 00:24:34 greve Exp $
-set VERSION = '$Id: fsl_rigid_register,v 1.4 2003/05/09 00:24:34 greve Exp $';
+# $Id: fsl_rigid_register,v 1.5 2003/05/09 22:18:30 greve Exp $
+set VERSION = '$Id: fsl_rigid_register,v 1.5 2003/05/09 22:18:30 greve Exp $';
 
 set refvol = ();
 set invol = ();
@@ -13,7 +13,13 @@ set tmpdir = /tmp/fsl_rigid_register.$$;
 set cleanup = 1;
 set PrintHelp = 0;
 set applyxfm = ();
+set initxfm = ();
+set initgeom = 1;
 set dof = 6;
+set maxangle = 90;
+set bins = 256;
+set cost = corratio;
+set costlist = (mutualinfo corratio normcorr normmi leastsq);
 
 if($#argv == 0) goto usage_exit;
 set n = `echo $argv | grep version | wc -l` 
@@ -31,6 +37,9 @@ goto parse_args;
 parse_args_return:
 goto check_params;
 check_params_return:
+
+echo $VERSION
+date
 
 set StartTime = `date`;
 
@@ -62,19 +71,43 @@ echo $cmd
 $cmd
 if($status) exit 1;
 
+# Create an init mat based on geometry in the header #
+if($initgeom) then
+  set initxfm = $tmpdir/initxfm.fslmat
+  set cmd = (tkregister2 --targ $refvol --mov $invol)
+  set cmd = ($cmd --reg $tmpdir/tkregister.dat)
+  set cmd = ($cmd --fslregout $initxfm)
+  set cmd = ($cmd  --regheader --noedit --s doesnotmatter);
+  echo "--------------------------------------"
+  pwd
+  echo $cmd
+  $cmd
+  if($status) exit 1;
+  rm $tmpdir/tkregister.dat;
+  echo "Init FSL Mat based on geometry -------------------"
+  cat $initxfm
+  echo "-------------------------------------------------"
+endif
+
+
 set outvolbase = $tmpdir/outvol.fsl_rigid_register
 set outvolimg  = $outvolbase.img
 
 # Run flirt
 set cmd = (flirt -in $involbase.hdr)
 set cmd = ($cmd -out $outvolbase.hdr)
-set cmd = ($cmd -bins 256 -cost corratio )
-set cmd = ($cmd -searchrx -90 90 -searchry -90 90 -searchrz -90 90)
-set cmd = ($cmd  -dof 6 -interp $interp)
-set cmd = ($cmd -ref $refvolbase.hdr -omat $outvolbase.fslmat)
-set cmd = ($cmd -dof $dof)
-if($#applyxfm != 0) set cmd = ($cmd -init $applyxfm -applyxfm)
-
+set cmd = ($cmd -bins $bins -cost $cost )
+set cmd = ($cmd -searchrx -$maxangle $maxangle)
+set cmd = ($cmd -searchry -$maxangle $maxangle)
+set cmd = ($cmd -searchrz -$maxangle $maxangle)
+set cmd = ($cmd -interp $interp -dof $dof)
+set cmd = ($cmd -ref $refvolbase.hdr)
+if($#initxfm  != 0) set cmd = ($cmd -init $initxfm )
+if($#applyxfm == 0) then
+  set cmd = ($cmd  -omat $outvolbase.fslmat)
+else
+  set cmd = ($cmd -init $applyxfm -applyxfm)
+endif
 
 echo "--------------------------------------"
 pwd
@@ -105,6 +138,7 @@ endif
 if($cleanup) then
   echo "Cleaning up"
   rm $involbase.* $outvolbase.* $refvolbase.*
+  if($initgeom) rm $initxfm
 endif
 
 echo " "
@@ -156,6 +190,25 @@ while( $#argv != 0 )
       set dof = $argv[1]; shift;
       breaksw
 
+    case "-bins":
+      if ( $#argv < 1) goto arg1err;
+      set bins = $argv[1]; shift;
+      breaksw
+
+    case "-cost":
+      if ( $#argv < 1) goto arg1err;
+      set cost = $argv[1]; shift;
+      set err = 1;
+      foreach c ($costlist);
+        if($cost == $c) err = 0;
+      end
+      if($err) then 
+        echo "ERROR: cost $cost is unrecognized"
+        echo " I only know about $costlist)"
+        exit 1;
+      endif
+      breaksw
+
     case "-tmp":
       if ( $#argv < 1) goto arg1err;
       set tmpdir = $argv[1]; shift;
@@ -168,6 +221,30 @@ while( $#argv != 0 )
         echo "ERROR: cannot find $applyxfm"
         exit 1;
       endif
+      set initgeom = 0;
+      breaksw
+
+    case "-initxfm":
+      if ( $#argv < 1) goto arg1err;
+      set initxfm = $argv[1]; shift;
+      if(! -e $initxfm) then
+        echo "ERROR: cannot find $initxfm"
+        exit 1;
+      endif
+      set initgeom = 0;
+      breaksw
+
+    case "-initgeom":
+      set initgeom = 1;
+      breaksw
+
+    case "-noinitgeom":
+      set initgeom = 0;
+      breaksw
+
+    case "-maxangle":
+      if ( $#argv < 1) goto arg1err;
+      set maxangle = $argv[1]; shift;
       breaksw
 
     case "-verbose":
@@ -223,6 +300,21 @@ check_params:
     exit 1;
   endif
 
+  if($#initxfm && $#applyxfm) then
+    echo "ERROR: cannot spec initxfm and applyxfm"
+    exit 1;
+  endif
+
+  if($initgeom && $#applyxfm) then
+    echo "ERROR: cannot spec initgeom and applyxfm"
+    exit 1;
+  endif
+
+  if($#initxfm && $initgeom) then
+    echo "ERROR: cannot spec initxfm and initgeom"
+    exit 1;
+  endif
+
 goto check_params_return;
 ############--------------##################
 
@@ -249,10 +341,17 @@ usage_exit:
   echo "   -o outputvol : input resampled to reference"
   echo ""
   echo "Optional Arguments"
+  echo "   -noinitgeom : do not initialize matrix based on geometry"
+  echo "   -initxfm  xfmfile : use this as an initial matrix"
   echo "   -applyxfm xfmfile : do not reg, just apply xfm to input"
+  echo "   -maxangle maxangle : only search over +/- maxangle degrees"
   echo "   -interp method : <trilinear>, nearestneighbour, sinc"
   echo "   -dof dof : use dof instead of 6"
+  echo "   -bins bins : number of bins to use (default $bins)"
+  echo "   -cost cost : objective function (default $cost)"
+  echo "      valid costs are $costlist"
   echo "   -tmp  tmpdir (default is $tmpdir)"
+  echo "   -nocleanup  : do not delete temporary files"
   echo ""
   echo "   -version : print version and exit"
   echo "   -help    : print help and exit"
@@ -276,12 +375,37 @@ automatically converted from analyze to the output format. Note: if
 using COR as output, the COR directory must exist prior to running
 this script.
 
+By default, an init FSL registration matrix is computed from the
+geometry information in the header ref and input headers. This is a
+good idea because the anlyze format does not keep the direction cosine
+info around.  
+
+-noinitgeom
+
+Do not compute init registration matrix from geometry.
+
+-initxfm fslmatfile
+
+Use matrix in flsmatfile as the initial registation matrix. If no
+initialization is specified, the identity is assumed. Forces
+-noinitgeom.
+
+-maxangle maxangle
+
+Search only +/- maxangle degrees around the initial starting
+point. Default is 90.
+
+-applyxfm 
+
 When the -applyxfm flag is is used, the input is resampled to the
 output using the FSL mat file supplied as the argument to the
 -applyxfm.  The ref volume is still needed in order to get the proper
-geometry for the output file.
+geometry for the output file. Forces -noinitgeom.
+
+-dof dof
 
 Non-rigid registration can be performed by changing the dof from 6.
+
 
 BUGS: 
 
