@@ -5840,8 +5840,8 @@ MRISreadTriangleProperties(MRI_SURFACE *mris, char *mris_fname)
     return(1) ;  /* doesn't exist */
   }
 
-  fread4((float *)&vnum,fp);
-  fread4((float *)&fnum,fp);
+  fread4(&f,fp); vnum = (int)f ;
+  fread4(&f,fp); fnum = (int)f ;
   if (vnum!=mris->nvertices)
   {
     fclose(fp) ;
@@ -5881,8 +5881,8 @@ MRISreadTriangleProperties(MRI_SURFACE *mris, char *mris_fname)
   if (fp==NULL)   
     return(1) ;  /* doesn't exist */
 
-  fread4((float *)&vnum,fp);
-  fread4((float *)&fnum,fp);
+  fread4(&f,fp); vnum = (int)f ;
+  fread4(&f,fp); fnum = (int)f ;
   if (vnum!=mris->nvertices)
   {
     fclose(fp) ;
@@ -29656,7 +29656,7 @@ vertexNeighbor(MRI_SURFACE *mris, int vno1, int vno2)
         Description
            Add the edge vnot <--> vno2 to the tessellation
 ------------------------------------------------------*/
-#define MAX_VLIST 10000
+#define MAX_VLIST 255
 static int
 mrisAddEdge(MRI_SURFACE *mris, int vno1, int vno2)
 {
@@ -29671,11 +29671,11 @@ mrisAddEdge(MRI_SURFACE *mris, int vno1, int vno2)
   if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
     fprintf(stdout, "adding edge %d <--> %d\n", vno1, vno2) ;
 
+  /* add v2 link to v1 struct */
+  v = &mris->vertices[vno1] ;
   if (v->vnum >= MAX_VLIST-1)
     ErrorExit(ERROR_NOMEMORY, "mrisAddEdge: too many edges (%d)",v->vnum) ;
 
-  /* add v2 link to v1 struct */
-  v = &mris->vertices[vno1] ;
   memcpy(vlist, v->v, v->vnum*sizeof(int)) ;
   vlist[(unsigned int)v->vnum++] = vno2 ; v->vtotal = v->vnum ;
   if (v->v)
