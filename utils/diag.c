@@ -92,6 +92,7 @@ int
 DiagShowImage(unsigned long diag_bits, int win, int which, IMAGE *I, 
               char *fmt, ...)
 {
+#if 0
   char    name[100] ;
   va_list args ;
   
@@ -110,7 +111,7 @@ DiagShowImage(unsigned long diag_bits, int win, int which, IMAGE *I,
   WinSetName(win, which, name) ;
   if (diag_bits & DIAG_WAIT)     /* wait for a keystroke before continuing */
     fgetc(stdin) ;    
-
+#endif
   return(win) ;
 }
 /*-----------------------------------------------------
@@ -162,7 +163,8 @@ int
 DiagCreateWindow(unsigned long diag_bits, int wrows, int wcols,
                  int rows,int cols)
 {
-  int win ;
+  int win = -1 ;
+#if 0
    int i;
    i=wcols; 
 
@@ -179,7 +181,7 @@ DiagCreateWindow(unsigned long diag_bits, int wrows, int wcols,
 #else
   win = WinCreate("window", 1, wrows, wcols, rows, cols) ;
 #endif
-
+#endif
   return(win) ;
 }
 
