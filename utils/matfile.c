@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/07/08 17:10:56 $
-// Revision       : $Revision: 1.14 $
+// Revision Date  : $Date: 2004/07/08 17:16:36 $
+// Revision       : $Revision: 1.15 $
 //
 ////////////////////////////////////////////////////////////////////
 #include <stdio.h>
@@ -16,6 +16,7 @@
 #include "error.h"
 #include "diag.h"
 #include "proto.h"
+#include "mghendian.h"
 
 static double **matAlloc(int rows, int ncols) ;
 static void   matFree(double **matrix, int nrows, int ncols) ;
