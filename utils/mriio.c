@@ -211,8 +211,9 @@ int mriOKforSurface(MRI *mri)
   // first check slice direction
   if (getSliceDirection(mri) != MRI_CORONAL)
     return 0;
-  else if (mri->width != 256 || mri->height != 256 || mri->depth != 256)
-    return 0;
+  // remove slice size limitation
+  // else if (mri->width != 256 || mri->height != 256 || mri->depth != 256)
+  //  return 0;
   // remove check for 1 mm size
   //  else if (mri->xsize != 1 || mri->ysize != 1 || mri->zsize != 1)
   //  return 0;
