@@ -22,7 +22,7 @@
 #include "transform.h"
 #include "talairachex.h"
 
-static char vcid[] = "$Id: mri_fill.c,v 1.76 2004/06/04 14:31:05 tosa Exp $";
+static char vcid[] = "$Id: mri_fill.c,v 1.77 2004/06/07 14:50:07 tosa Exp $";
 
 
 /*-------------------------------------------------------------------
@@ -250,7 +250,7 @@ main(int argc, char *argv[])
   // Gdiag = 0xFFFFFFFF;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_fill.c,v 1.76 2004/06/04 14:31:05 tosa Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_fill.c,v 1.77 2004/06/07 14:50:07 tosa Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -455,10 +455,23 @@ main(int argc, char *argv[])
   ///////////////////////////////////////////////////////////////////////////
   // find corpus callosum (work under the talairach volume)
   ///////////////////////////////////////////////////////////////////////////
-  // cc_seed is not given by tal position
+  // cc_seed is given by tal position
   if (cc_seed_set)
   {
+    Real xv, yv, zv;
     printf("Using the seed to calculate the cutting plane\n");
+    printf("Verify whether the seed point is inside the volume first\n");
+    MRItalairachToVoxelEx(mri_im, cc_tal_x, cc_tal_y, cc_tal_z, &xv, &yv, &zv, lta);
+    if (xv > (mri_im->width-1) || xv < 0 
+	|| yv > (mri_im->height-1) || yv < 0
+	|| zv > (mri_im->depth-1) || zv < 0)
+    {
+      fprintf(stderr, "The seed point (%.2f, %.2f, %.2f) is mapped to a voxel (%.2f, %.2f. %.2f).\n",
+	      cc_tal_x, cc_tal_y, cc_tal_z, xv, yv, zv);
+      fprintf(stderr, "Make sure that the seed point is given in talaraich position or use -CV option\n");
+      return -1;
+    }
+
     mri_cc =
       find_cutting_plane(mri_tal, cc_tal_x, cc_tal_y, cc_tal_z,
                          MRI_SAGITTAL, &x_cc, &y_cc, &z_cc, cc_seed_set, lta) ;
@@ -548,7 +561,22 @@ main(int argc, char *argv[])
     // mark as cc_seed_set by the tal
     pons_seed_set = 1;
   }
-  if (!pons_seed_set)   /* find pons automatically - no help from user */
+  else if (pons_seed_set)
+  {
+    Real xv, yv, zv;
+    printf("Verify whether the seed point is inside the volume first\n");
+    MRItalairachToVoxelEx(mri_im, pons_tal_x, pons_tal_y, pons_tal_z, &xv, &yv, &zv, lta);
+    if (xv > (mri_im->width-1) || xv < 0 
+	|| yv > (mri_im->height-1) || yv < 0
+	|| zv > (mri_im->depth-1) || zv < 0)
+    {
+      fprintf(stderr, "The seed point (%.2f, %.2f, %.2f) is mapped to a voxel (%.2f, %.2f. %.2f).\n",
+	      pons_tal_x, pons_tal_y, pons_tal_z, xv, yv, zv);
+      fprintf(stderr, "Make sure that the seed point is given in talaraich position or use -CV option\n");
+      return -1;
+    }
+  }
+  else // automatic find pons
   {
     MRI  *mri_mask=NULL ;
 
