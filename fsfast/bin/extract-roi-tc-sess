@@ -1,0 +1,380 @@
+#!/bin/csh -f
+# extract-roi-tc-sess
+#
+set VERSION = '$Id: extract-roi-tc-sess,v 1.1 2003/12/17 21:51:53 greve Exp $'
+
+set inputargs = ($argv);
+
+set analysis  = ();
+set roidef    = ();
+set outdir    = ();
+set monly     = 0;
+set MLF       = ();
+set nolog     = 0;
+set funcstem  = ();
+set PolyFit   = -1;
+set PrintHelp = 0;
+
+if($#argv == 0)  goto usage_exit;
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+set n = `echo $argv | grep version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+set n = `echo $argv | grep nolog | wc -l` 
+if($n != 0) set nolog = 1;
+
+set SessList = `getsesspath $argv`;
+if($status || $#SessList == 0) then
+  echo "ERROR: cannot find any sessions" 
+  echo $SessList
+  exit 1;
+endif
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+mkdir -p $outdir
+if($status) then
+  echo "ERROR: creating $outdir"
+  exit 1;
+endif
+
+##### Create a log file ######
+if(! $nolog) then
+  set logdir = `pwd`/log;
+  mkdir -p $logdir
+  if(! -e $logdir) then
+    echo "ERROR: could not create $logdir"
+    exit 1;
+  endif
+  set LF = $logdir/extract-roi-tc-sess.log
+  if(-e $LF) mv $LF $LF.old
+else
+  echo "No log file"
+  set LF = /dev/null
+endif
+
+echo "----------------------------------------------------------"
+echo "extract-roi-tc-sess logfile is $LF"
+echo "----------------------------------------------------------"
+
+echo "extract-roi-tc-sess log file" >> $LF
+echo $VERSION >> $LF
+pwd           >> $LF
+echo $0     >> $LF
+echo $inputargs  >> $LF
+uname -a      >> $LF
+date          >> $LF
+
+## Get functional subdirectory from the info file ##
+set infofile = $analysis/analysis.info
+if(! -e $infofile) then
+  echo "ERROR: cannot find $infofile"
+  exit 1;
+endif
+set fsd = `cat $infofile | awk '{if($1 == "fsd") print $2}'`;
+if($#funcstem == 0) then
+  set funcstem = `cat $infofile | awk '{if($1 == "funcstem") print $2}'`;
+endif
+set runlistfile = `cat $infofile | awk '{if($1 == "runlistfile") print $2}'`;
+
+####### Go through each session ######
+if(! $monly) set MLF = /tmp/extract-roi-$$.m
+rm -f $MLF 
+echo "MLF is $MLF" |& tee -a $LF
+
+set StartDate = `date`;
+set nth = 1;
+foreach sess ($SessList)
+  set sessid = `basename $sess`;
+
+  set roipath = $sess/$fsd/$analysis/$roidef
+  if(! -e $roipath) then
+    echo "ERROR: cannot find $roipath" |& tee -a $LF
+    exit 1;
+  endif
+  set maskpath = $roipath/mask
+
+  set fsdpath = $sess/$fsd
+  set runlist = `getrunlist $fsdpath $runlistfile`;
+  if($status) then
+    echo "$runlist"
+    exit 1;
+  endif
+
+  foreach run ($runlist)
+    set funcpath = $fsdpath/$run/$funcstem
+    set outfile = $outdir/$sessid.$analysis.$roidef.$funcstem.$run.dat
+    rm -f $outfile
+
+#--------------------------------------------#
+tee -a $MLF > /dev/null <<EOF
+
+clear all;
+fprintf('--------------------------------------------\n');
+    
+maskstem = '$maskpath';
+funcstem = '$funcpath';
+outfile = '$outfile'
+PolyFit = [$PolyFit];
+
+fprintf('mask = %s\n',maskstem);
+fprintf('func = %s\n',funcstem);
+fprintf('out  = %s\n',outfile);
+
+mask = fast_ldbslice(maskstem);
+if(isempty(mask))
+  fprintf('ERROR: could not load %s\n',maskstem);
+  return;
+end
+indmask = find(mask);
+nmask = length(indmask);
+fprintf('INFO: found %d in mask\n',nmask);
+if(nmask == 0)
+  fprintf('ERROR: no voxels in mask\n');
+  return;
+end
+[nr nc ns] = size(mask);
+
+froi = [];
+for slice = 1:ns
+
+  indslice = find(mask(:,:,slice));
+  if(isempty(indslice)) continue; end
+
+  f = fast_ldbslice(funcstem,slice-1);
+  if(isempty(f))
+    fprintf('ERROR: could not load %s, slice %d\n',funcstem,slice-1);
+    return;
+  end
+
+  [nr nc nf] = size(f);
+  nv = nr*nc;
+  f = reshape(f, [nv nf])';
+  froi = [froi f(:,indslice)];
+
+end
+
+if(PolyFit >= 0)
+  Xptm = fast_polytrendmtx(1,nf,1,PolyFit);
+  R = eye(nf) - Xptm*inv(Xptm'*Xptm)*Xptm';
+  froi = R*froi;
+end
+
+
+fp = fopen(outfile,'w');
+if(fp == -1)
+  fprintf('ERROR: could not open %s\n',outfile);
+  return;
+end
+
+for t = 1:nf
+  fprintf(fp,'%g ',froi(t,:));
+  fprintf(fp,'\n');
+end
+
+fclose(fp);
+
+EOF
+#--------------------------------------------#
+
+  if(! $monly) then
+    cat $MLF | matlab -display iconic
+    rm -f $MLF
+  end # run
+
+end # session
+
+echo $StartDate | tee -a $LF
+date | tee -a $LF
+echo "extract-roi-tc-sess completed" | tee -a $LF
+echo " "
+echo " "
+
+exit 0;
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-roidef"
+      if ( $#argv == 0) goto arg1err;
+      set roidef = $argv[1]; shift;
+      echo "roidef $roidef"
+      breaksw
+
+    case "-a":
+    case "-analysis":
+      if ( $#argv == 0) goto arg1err;
+      set analysis = $argv[1]; shift;
+      breaksw
+
+    case "-outdir":
+      if ( $#argv == 0) goto arg1err;
+      set outdir = $argv[1]; shift;
+      breaksw
+
+    case "-funcstem":
+      if ( $#argv == 0) goto arg1err;
+      set funcstem = $argv[1]; shift;
+      breaksw
+
+    case "-polyfit":
+      if ( $#argv == 0) goto arg1err;
+      set PolyFit = $argv[1]; shift;
+      breaksw
+
+    case "-monly":
+      if ( $#argv == 0) goto arg1err;
+      set MLF = $argv[1]; shift;
+      breaksw
+
+    case "-umask":
+      if ( $#argv == 0) goto arg1err;
+      umask $argv[1]; shift;
+      breaksw
+
+    case "-debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    case "-cwd":
+    case "-nolog":
+      breaksw
+
+    case "-g":
+    case "-s":
+    case "-sf":
+    case "-df":
+    case "-d":
+      # ignore getsesspath arguments 
+      shift;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+  if($#roidef == 0) then
+    echo "ERROR: no ROI definition name specified "
+    exit 1
+  endif
+
+  if($#analysis == 0) then
+    echo "ERROR: no analysis specified "
+    exit 1
+  endif
+
+  if($#outdir == 0) then
+    echo "ERROR: no outdir specified "
+    exit 1
+  endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+arg2err:
+  echo "ERROR: flag $flag requires two arguments"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo "USAGE: extract-roi-tc-sess"
+  echo ""
+  echo "Required:";
+  echo ""
+  echo "   -roidef   name : name of ROI definition"
+  echo "   -analysis name : source is averaged data from analysis"
+  echo "   -outdir   dir  : output directory"
+  echo ""
+  echo "Optional:";
+  echo ""
+  echo "   -polyfit N : detrend with polynomial of order N (default none)"
+  echo "   -funcstem stem : use stem instead that in analysis"
+  echo ""
+  echo "   -sf sessidfile  ..."
+  echo "   -df srchdirfile ..."
+  echo "   -s  sessid      ..."
+  echo "   -d  srchdir     ..."
+  echo ""
+  echo "   -help"
+  echo "   -debug"
+  echo "   -umask umask   : set unix file permission mask"
+  echo "   -version       : print version and exit"
+  echo ""
+
+  if(! $PrintHelp) exit 1;
+
+  echo $VERSION
+
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+
+exit 1;
+
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+Extracts raw time courses from an roi based on the roi created by 
+func2roi-sess. The data are saved in a text file where each
+row is a time point and each column is a voxel.
+
+-roidef roidef
+
+Definition name of the ROI as specified in func2roi-sess.
+
+-a analysis
+
+Analysis that the ROI was defined in.
+
+-outdir dir
+
+The output directory. The output will be saved in the output 
+directory as sessid.analysis.roidef.funcstem.run.dat.
+
+-polyfit N
+
+Detrend the raw time courses with a polynomial function of order
+N. Default is not to detrend. Note: this has the same meaning
+as when used in mkanalysis-sess.new.
+
+-funcstem stem
+
+Use raw data saved in stem. Default is to use the raw data saved
+in the stem specified when running mkanalysis-sess.new.
+
