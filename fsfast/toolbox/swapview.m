@@ -1,7 +1,7 @@
 function r = swapview(varargin)
 % r = swapview(varargin)
 
-version = '$Id: swapview.m,v 1.6 2003/09/20 03:28:09 greve Exp $';
+version = '$Id: swapview.m,v 1.7 2003/09/26 18:17:43 greve Exp $';
 r = 1;
 
 %% Print usage if there are no arguments %%
@@ -118,7 +118,9 @@ if(~isempty(strmatch(flag,'-init')) | isempty(hcurrentfig))
 	    [1 100 50 50], 'Callback', 'swapview(''state'');');
   s.curpostxt = uicontrol('Style', 'text','Position',  [1 150 60 20]);
   s.mousepostxt = uicontrol('Style', 'text','Position',[1 170 60 20]);
-  s.curvoltxt = uicontrol('Style', 'text','Position',  [1 190 60 20]);
+  s.vol2valtxt = uicontrol('Style', 'text','Position',  [1 190 60 20]);
+  s.vol1valtxt = uicontrol('Style', 'text','Position',  [1 210 60 20]);
+  s.curvoltxt = uicontrol('Style', 'text','Position',  [1 230 60 20]);
 
   nslices = size(s.vol1,3)
   if(nslices > 1) 
@@ -126,7 +128,7 @@ if(~isempty(strmatch(flag,'-init')) | isempty(hcurrentfig))
     s.sliceslider = uicontrol('Style','slider','Min',1,'Max',nslices,...
 			      'SliderStep',[d 3*d],...
 			      'value',s.curvox(3),...
-			      'position', [1 250 20 120],...
+			      'position', [1 260 20 120],...
 			      'callback','swapview(''sliceslider'');');
   else 
     s.sliceslider = [];
@@ -417,7 +419,11 @@ set(s.curpostxt,'string',curvoxstr);
 if(s.curvol == 1)  set(s.curvoltxt,'string','Vol1');
 else               set(s.curvoltxt,'string','Vol2');
 end
-  
+vol1valstr = sprintf('Vol1: %g',s.vol1(s.curvox(1),s.curvox(2),s.curvox(3)));
+set(s.vol1valtxt,'string',vol1valstr);
+vol2valstr = sprintf('Vol2: %g',s.vol2(s.curvox(1),s.curvox(2),s.curvox(3)));
+set(s.vol2valtxt,'string',vol2valstr);
+
 set(gcf,'UserData',s);
 
 return;
