@@ -1961,116 +1961,119 @@ static void initProb(TC_PARMS *parms)
   zinit=parms->region.z;
 
   if(parms->mapsfname)
-    {
-      mri_ps=MRIalloc(width,height,depth,MRI_FLOAT);
-      mri_pcs=MRIalloc(width,height,depth,MRI_FLOAT);
-      mri_pis=MRIalloc(width,height,depth,MRI_FLOAT);
-      mri_pi=MRIalloc(width,height,depth,MRI_FLOAT);
-      mri_psi=MRIalloc(width,height,depth,MRI_FLOAT);
-      mri_pcsi=MRIalloc(width,height,depth,MRI_FLOAT);
-    }
+  {
+    mri_ps=MRIalloc(width,height,depth,MRI_FLOAT);
+    mri_pcs=MRIalloc(width,height,depth,MRI_FLOAT);
+    mri_pis=MRIalloc(width,height,depth,MRI_FLOAT);
+    mri_pi=MRIalloc(width,height,depth,MRI_FLOAT);
+    mri_psi=MRIalloc(width,height,depth,MRI_FLOAT);
+    mri_pcsi=MRIalloc(width,height,depth,MRI_FLOAT);
+  }
   
 
   TransformInvert(transform, mri_orig) ;
   for(k=0;k<=depth-2;k++)
     for(j=0;j<=height-2;j++)
       for(i=0;i<=width-2;i++)
+      {
+	x=xinit+i-1;y=yinit+j-1;z=zinit+k-1;
+
+	ps=pis=0;
+	// if the point is inside the Prior volume
+	if (!GCAsourceVoxelToPrior(gca,mri_orig,transform, x, y, z,&a,&b,&c))
 	{
-	  x=xinit+i-1;y=yinit+j-1;z=zinit+k-1;
-
-	  ps=pis=0;
-	  GCAsourceVoxelToPrior(gca,mri_orig,transform, x, y, z,&a,&b,&c) ;
 	  gcap=&gca->priors[a][b][c];
-	  GCAsourceVoxelToNode(gca, mri_orig, transform, x, y, z, &a, &b, &c) ;
-	  gcan=&gca->nodes[a][b][c];
-	  intensity=(float)MRIvox(mri_orig,x,y,z);
-
-	  nlabels1=nlabels2=0;
-	  //compute prior prob
-	  maxp1=maxp2=0;
-	  for(l=0;l<gcap->nlabels;l++)
+	  if (!GCAsourceVoxelToNode(gca, mri_orig, transform, x, y, z, &a, &b, &c))
+	  {
+	    gcan=&gca->nodes[a][b][c];
+	    intensity=(float)MRIvox(mri_orig,x,y,z);
+	    
+	    nlabels1=nlabels2=0;
+	    //compute prior prob
+	    maxp1=maxp2=0;
+	    for(l=0;l<gcap->nlabels;l++)
 	    {
 	      test=1;
 	      label=gcap->labels[l];
 	      for(n=0;n<nlabels;n++)
 		if(tab[n]==label)
-		  {
-		    Labels1[nlabels1]=label;
-		    Ps1[nlabels1]=gcap->priors[l];
-		    nlabels1++;
-		    test=0;
-		    if(gcap->priors[l]>maxp1)
-		      maxp1=gcap->priors[l];
-		  }
+		{
+		  Labels1[nlabels1]=label;
+		  Ps1[nlabels1]=gcap->priors[l];
+		  nlabels1++;
+		  test=0;
+		  if(gcap->priors[l]>maxp1)
+		    maxp1=gcap->priors[l];
+		}
 	      if(test)
-		{
-		  Labels2[nlabels2]=label;
-		  Ps2[nlabels2]=gcap->priors[l];
-		  nlabels2++;
-		  if(gcap->priors[l]>maxp2)
-		    maxp2=gcap->priors[l];
-		} 
+	      {
+		Labels2[nlabels2]=label;
+		Ps2[nlabels2]=gcap->priors[l];
+		nlabels2++;
+		if(gcap->priors[l]>maxp2)
+		  maxp2=gcap->priors[l];
+	      } 
 	    }
-	  ps=maxp1;
-	  pcs=maxp2;
-	  //compute p(i|s)
-	  maxp1=0;
-	  for(n=0;n<nlabels1;n++) 
-	    for(m=0;m<gcan->nlabels;m++)
-	      if(Labels1[n]==gcan->labels[m])
+	    ps=maxp1;
+	    pcs=maxp2;
+	    //compute p(i|s)
+	    maxp1=0;
+	    for(n=0;n<nlabels1;n++) 
+	      for(m=0;m<gcan->nlabels;m++)
+		if(Labels1[n]==gcan->labels[m])
 		{
-		    Pis1[n]=PROB(gauss(intensity,gcan->gcs[m].means[0],gcan->gcs[m].covars[0])); 
+		  Pis1[n]=PROB(gauss(intensity,gcan->gcs[m].means[0],gcan->gcs[m].covars[0])); 
 		  if(Pis1[n]>maxp1)
 		    maxp1=Pis1[n];
 		}
-	  maxp2=0;
-	  for(n=0;n<nlabels2;n++) 
-	    for(m=0;m<gcan->nlabels;m++)
-	      if(Labels2[n]==gcan->labels[m])
+	    maxp2=0;
+	    for(n=0;n<nlabels2;n++) 
+	      for(m=0;m<gcan->nlabels;m++)
+		if(Labels2[n]==gcan->labels[m])
 		{
 		  Pis2[n]=PROB(gauss(intensity,gcan->gcs[m].means[0],gcan->gcs[m].covars[0])); 
 		  if(Pis2[n]>maxp2)
 		    maxp2=Pis2[n];
 		}
-	  pis=maxp1;
-	  //compute p(i)
-	  pi=0.0f;
-	  for(l=0;l<nlabels1;l++)
+	    pis=maxp1;
+	    //compute p(i)
+	    pi=0.0f;
+	    for(l=0;l<nlabels1;l++)
 	      pi+=Pis1[l]*Ps1[l];
-	  for(l=0;l<nlabels2;l++)
+	    for(l=0;l<nlabels2;l++)
 	      pi+=Pis2[l]*Ps2[l];
-	  pi=PROB(pi);
-
-	  //compute p(s|i)
-	  maxp1=maxp2=0;
-	  for(l=0;l<nlabels1;l++)
+	    pi=PROB(pi);
+	    
+	    //compute p(s|i)
+	    maxp1=maxp2=0;
+	    for(l=0;l<nlabels1;l++)
 	    {
 	      Psi1[l]=Pis1[l]*Ps1[l]/pi;
 	      if(Psi1[l]>maxp1)
 		maxp1=Psi1[l];
 	    }
-	  for(l=0;l<nlabels2;l++)
+	    for(l=0;l<nlabels2;l++)
 	    {
 	      Psi2[l]=Pis2[l]*Ps2[l]/pi;
 	      if(Psi2[l]>maxp2)
 		maxp2=Psi2[l];
 	    }
-	  psi=maxp1;
-	  pcsi=maxp2;
-
-	  if(!nlabels)
+	    psi=maxp1;
+	    pcsi=maxp2;
+	    
+	    if(!nlabels)
 	    {
 	      psi=0;
 	      pcsi=1;
 	    }
-    	  
-	  psi=PROB(psi);
-	  pcsi=PROB(pcsi);
-
-	  MRIFvox(mri_prob,i+1,j+1,k+1)=psi;
-	  MRIFvox(parms->mri_cprob,i+1,j+1,k+1)=pcsi;
-
-	  if(parms->mapsfname)
+	    
+	    psi=PROB(psi);
+	    pcsi=PROB(pcsi);
+	    
+	    MRIFvox(mri_prob,i+1,j+1,k+1)=psi;
+	    MRIFvox(parms->mri_cprob,i+1,j+1,k+1)=pcsi;
+	    
+	    if(parms->mapsfname)
 	    {
 	      MRIFvox(mri_ps,i+1,j+1,k+1)=ps;
 	      MRIFvox(mri_pcs,i+1,j+1,k+1)=pcs;
@@ -2079,9 +2082,11 @@ static void initProb(TC_PARMS *parms)
 	      MRIFvox(mri_psi,i+1,j+1,k+1)=psi;
 	      MRIFvox(mri_pcsi,i+1,j+1,k+1)=pcsi;
 	    }
-	}
-
-
+	  } // !GCAsourceVoxelToNode()
+	} // !GCAsourceVoxelToPrior()
+      }
+  
+  
   if(parms->mapsfname)
     {
       sprintf(fname,parms->mapsfname);
@@ -2320,9 +2325,10 @@ static void guessSegmentation(TC_PARMS *parms)
   for(k=0;k<=depth;k++)
     for(j=0;j<=height;j++)
       for(i=0;i<=width;i++)
+      {
+	x=i;y=j;z=k;
+	if(!GCAsourceVoxelToPrior(gca,mri_orig,transform, x, y, z,&a,&b,&c))
 	{
-	  x=i;y=j;z=k;
-	  GCAsourceVoxelToPrior(gca,mri_orig,transform, x, y, z,&a,&b,&c) ;
 	  gcap=&gca->priors[a][b][c];
 	  //compute prior prob
 	  ps=0;
@@ -2339,115 +2345,121 @@ static void guessSegmentation(TC_PARMS *parms)
 	      if(ymax<j) ymax=j;
 	      if(zmax<k) zmax=k;
 	    }
-	}
+	}// !GCAsourceVoxelToPrior()
+      }
 
   for(k=zmin;k<=zmax;k++)
     for(j=ymin;j<=ymax;j++)
       for(i=xmin;i<=xmax;i++)
+      {
+	x=i;y=j;z=k;
+	  
+	if (!GCAsourceVoxelToPrior(gca,mri_orig,transform, x, y, z,&a,&b,&c))
 	{
-	  x=i;y=j;z=k;
-	  
-	  GCAsourceVoxelToPrior(gca,mri_orig,transform, x, y, z,&a,&b,&c) ;
 	  gcap=&gca->priors[a][b][c];
-	  GCAsourceVoxelToNode(gca, mri_orig, transform, x, y, z, &a, &b, &c) ;
-	  gcan=&gca->nodes[a][b][c];
-	  intensity=(float)MRIvox(mri_orig,x,y,z);
-	  
-	  nlabels1=nlabels2=0;
-	  //compute prior prob
-	  maxp1=maxp2=0;
-	  for(l=0;l<gcap->nlabels;l++)
+	  if (!GCAsourceVoxelToNode(gca, mri_orig, transform, x, y, z, &a, &b, &c))
+	  {
+	    gcan=&gca->nodes[a][b][c];
+	    intensity=(float)MRIvox(mri_orig,x,y,z);
+	    
+	    nlabels1=nlabels2=0;
+	    //compute prior prob
+	    maxp1=maxp2=0;
+	    for(l=0;l<gcap->nlabels;l++)
 	    {
 	      test=1;
 	      label=gcap->labels[l];
 	      for(n=0;n<nlabels;n++)
 		if(tab[n]==label)
-		  {
-		    Labels1[nlabels1]=label;
-		    Ps1[nlabels1]=gcap->priors[l];
-		    nlabels1++;
-		    test=0;
-		    if(gcap->priors[l]>maxp1)
-		      maxp1=gcap->priors[l];
-		  }
-	      if(test)
 		{
-		  Labels2[nlabels2]=label;
-		  Ps2[nlabels2]=gcap->priors[l];
-		  nlabels2++;
-		  if(gcap->priors[l]>maxp2)
-		    maxp2=gcap->priors[l];
-		} 
+		  Labels1[nlabels1]=label;
+		  Ps1[nlabels1]=gcap->priors[l];
+		  nlabels1++;
+		  test=0;
+		  if(gcap->priors[l]>maxp1)
+		    maxp1=gcap->priors[l];
+		}
+	      if(test)
+	      {
+		Labels2[nlabels2]=label;
+		Ps2[nlabels2]=gcap->priors[l];
+		nlabels2++;
+		if(gcap->priors[l]>maxp2)
+		  maxp2=gcap->priors[l];
+	      } 
 	    }
-	  ps=maxp1;
-	  pcs=maxp2;
-	  //compute p(i|s)
-	  maxp1=0;
-	  for(n=0;n<nlabels1;n++) 
-	    for(m=0;m<gcan->nlabels;m++)
-	      if(Labels1[n]==gcan->labels[m])
+	    ps=maxp1;
+	    pcs=maxp2;
+	    //compute p(i|s)
+	    maxp1=0;
+	    for(n=0;n<nlabels1;n++) 
+	      for(m=0;m<gcan->nlabels;m++)
+		if(Labels1[n]==gcan->labels[m])
 		{
 		  Pis1[n]=PROB(gauss(intensity,gcan->gcs[m].means[0],gcan->gcs[m].covars[0])); 
 		  if(Pis1[n]>maxp1)
 		    maxp1=Pis1[n];
 		}
-	  maxp2=0;
-	  for(n=0;n<nlabels2;n++) 
-	    for(m=0;m<gcan->nlabels;m++)
-	      if(Labels2[n]==gcan->labels[m])
+	    maxp2=0;
+	    for(n=0;n<nlabels2;n++) 
+	      for(m=0;m<gcan->nlabels;m++)
+		if(Labels2[n]==gcan->labels[m])
 		{
 		  Pis2[n]=PROB(gauss(intensity,gcan->gcs[m].means[0],gcan->gcs[m].covars[0])); 
 		  if(Pis2[n]>maxp2)
 		    maxp2=Pis2[n];
 		}
-	  pis=maxp1;
-	  //compute p(i)
-	  pi=0.0f;
-	  for(l=0;l<nlabels1;l++)
+	    pis=maxp1;
+	    //compute p(i)
+	    pi=0.0f;
+	    for(l=0;l<nlabels1;l++)
 	      pi+=Pis1[l]*Ps1[l];
-	  for(l=0;l<nlabels2;l++)
+	    for(l=0;l<nlabels2;l++)
 	      pi+=Pis2[l]*Ps2[l];
-	  pi=PROB(pi);
-
-	  //compute p(s|i)
-	  maxp1=maxp2=0;
-	  val=0;
-	  for(l=0;l<nlabels1;l++)
+	    pi=PROB(pi);
+	    
+	    //compute p(s|i)
+	    maxp1=maxp2=0;
+	    val=0;
+	    for(l=0;l<nlabels1;l++)
 	    {
 	      Psi1[l]=Pis1[l]*Ps1[l]/pi;
 	      if(Psi1[l]>maxp1)
-		{
-		  val=Labels1[l];
-		  maxp1=Psi1[l];
-		}
+	      {
+		val=Labels1[l];
+		maxp1=Psi1[l];
+	      }
 	    }
-	  for(l=0;l<nlabels2;l++)
+	    for(l=0;l<nlabels2;l++)
 	    {
 	      Psi2[l]=Pis2[l]*Ps2[l]/pi;
 	      if(Psi2[l]>maxp2)
 		maxp2=Psi2[l];
 	    }
-	  psi=maxp1;
-	  pcsi=maxp2;
-
-	  if(!nlabels)
+	    psi=maxp1;
+	    pcsi=maxp2;
+	    
+	    if(!nlabels)
 	    {
 	      psi=0;
 	      pcsi=1;
 	    }
-    	  
-	  psi=PROB(psi);
-	  pcsi=PROB(pcsi);
+	    
+	    psi=PROB(psi);
+	    pcsi=PROB(pcsi);
+	    
+	    if(psi>pcsi)
+	      MRIvox(mri_seg,i,j,k)=val;
+	  }
+	} // !GCAsourceVoxelToNode()
+      } // !GCAsourceVoxelToPrior()
 
-	  if(psi>pcsi)
-	    MRIvox(mri_seg,i,j,k)=val;
-	}
   parms->mri_seg=mri_seg;
   if(!parms->gca)
     GCAfree(&gca);
   if(!parms->transform)
     free(transform);
-
+  
   MRIwrite(mri_seg,"/tmp/tmp");
 }
 
