@@ -9,6 +9,9 @@
 
 #define NUMBEROFTAGS 22
 #define SHORTSIZE 16
+#ifndef INTSIZE
+#define INTSIZE 16
+#endif
 #define INTSIZE 16
 #define LONGSIZE 32
 
