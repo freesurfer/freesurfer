@@ -13,7 +13,7 @@
 #include "mri.h"
 #include "macros.h"
 
-static char vcid[] = "$Id: mris_inflate.c,v 1.11 1998/02/07 18:31:04 fischl Exp $";
+static char vcid[] = "$Id: mris_inflate.c,v 1.12 1998/02/08 20:08:45 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -214,7 +214,10 @@ get_option(int argc, char *argv[])
   }
   else if (!stricmp(option, "scale"))
   {
+    parms.scale = atof(argv[2]) ;
+    nargs = 1 ;
     parms.fi_desired = -1.0 ;
+    fprintf(stderr, "setting desired FI to %2.2f of original\n",parms.scale);
   }
   else if (!stricmp(option, "dt_inc"))
   {
