@@ -70,7 +70,7 @@ DiagInit(char *fname,
   if (cp) 
   {
     sscanf(cp, "0x%lx", &Gdiag) ;
-    DiagPrintf(0, "diagnostics set to 0x%lx\n", Gdiag) ;
+    fprintf(stderr, "diagnostics set to 0x%lx\n", Gdiag) ;
   }
 
 #if 0
