@@ -109,6 +109,7 @@ int    MRICdump(FILE *fp, MRIC *mric) ;
 char   *MRICfeatureName(MRIC *mric, int round, int feature_number) ;
 int    MRICfeatureCode(MRIC *mric, int round, int feature_number) ;
 int    MRICfeatureNumberCode(int feature_number) ;
+int    MRICfeatureNumber(MRIC *mric, int round, int feature_code) ;
 int    MRICexamineTrainingSet(MRIC *mric, char *file_name, int round) ;
 int    MRICbuildScatterPlot(MRIC *mric, int class, MATRIX *m_scatter,
                  char *training_file_name) ;
