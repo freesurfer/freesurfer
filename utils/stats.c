@@ -785,7 +785,7 @@ StatAccumulateTalairachVolume(SV *sv_tal, SV *sv)
   Mcor2tal = StatLoadTalairachXFM(sv->reg->name, stats_talxfm);
   if(stats_fixxfm){
     printf("INFO: devolving talairach.xfm\n");
-    DevolveXFM(sv->reg->name,Mcor2tal);
+    DevolveXFM(sv->reg->name,Mcor2tal,stats_talxfm);
   }
   Mtal2cor  = MatrixInverse(Mcor2tal,NULL);
   Vtal2func = MatrixInverse(Tfunc,NULL);
