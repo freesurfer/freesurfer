@@ -260,6 +260,53 @@ RBFtrain(RBF *rbf, int (*get_observation_func)
         Returns value:
 
         Description
+          perform more training on an already trained RBF classifier.
+------------------------------------------------------*/
+int
+RBFretrain(RBF *rbf, int (*get_observation_func)
+               (VECTOR *v_obs, int no, void *parm,int same_class,int *pclass),
+         void *parm, float momentum)
+{
+  if ((momentum < 1.0f) && (momentum >= 0.0f))
+    rbf->base_momentum = rbf->momentum = momentum ;
+
+  /* must examine training set before allocating training set data, because
+     we need to know how many observations are in the training set.
+     */
+  RBFexamineTrainingSet(rbf, get_observation_func, parm) ;
+
+  /* do allocation of training-specific stuff */
+  if (rbfAllocateTrainingParameters(rbf) != NO_ERROR)
+    return(Gerror) ;
+
+
+  /* now that the initial cluster positions have been established,
+     train the RBF using gradient descent.
+     */
+  if (rbfGradientDescent(rbf, get_observation_func, parm) != NO_ERROR)
+    return(Gerror) ;
+
+  if (Gdiag & DIAG_SHOW)
+    fprintf(stderr, "\ntraining network...") ;
+  rbfTrain(rbf, get_observation_func, parm, TRAIN_ALL) ;
+  if (Gdiag & DIAG_SHOW)
+    fprintf(stderr, "training complete, calculating output weights...") ;
+
+  if (rbfCalculateOutputWeights(rbf, get_observation_func, parm) != NO_ERROR)
+    rbfTrain(rbf, get_observation_func, parm, TRAIN_OUTPUTS) ;
+  if (Gdiag & DIAG_SHOW)
+  {
+    fprintf(stderr, "done.\n") ;
+    rbfShowClusterCenters(rbf, stderr) ;
+  }
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
            free the memory allocated by an RBF structure.
 ------------------------------------------------------*/
 int
@@ -433,11 +480,6 @@ rbfGradientDescent(RBF *rbf, int (*get_observation_func)
                (VECTOR *v_obs, int no, void *parm, int same_class,int *pclass), 
                    void *parm)
 {
-  VECTOR           *v_obs, *v_error ;
-
-  v_obs = VectorAlloc(rbf->ninputs, MATRIX_REAL) ;
-  v_error = VectorAlloc(rbf->noutputs, MATRIX_REAL) ;
-
   if (Gdiag & DIAG_SHOW)
   {
     rbfShowClusterCenters(rbf, stderr) ;
@@ -454,28 +496,6 @@ rbfGradientDescent(RBF *rbf, int (*get_observation_func)
     fprintf(stderr, "training complete.\n") ;
     rbfShowClusterCenters(rbf, stderr) ;
   }
-#if 0
-{
-  int obs_no, class ;
-  float sse ;
-
-  obs_no = 0 ;
-  sse = 0.0f ;
-  while ((*get_observation_func)(v_obs, obs_no++, parm, 0,&class) == NO_ERROR)
-  {
-    rbfComputeHiddenActivations(rbf, v_obs) ;
-    rbfComputeOutputs(rbf) ;
-    if (Gdiag & DIAG_SHOW)
-    {
-      sse += RBFcomputeErrors(rbf, class, v_error) ;
-      RBFprintActivations(rbf, v_obs, v_error, class, stderr) ;
-    }
-  }
-  sse = sqrt(sse/obs_no) ;
-}
-#endif
-  VectorFree(&v_error) ;
-  VectorFree(&v_obs) ;
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
