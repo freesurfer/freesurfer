@@ -5817,17 +5817,16 @@ DspA_tErr DspA_SendPointInformationToTcl_ ( tkmDisplayAreaRef this,
   /* also convert to RAS and send those coords along. */
   Volm_ConvertIdxToRAS( this->mpVolume, iAnaIdx, &voxel );
   sprintf( sTclArguments, "%s %.1f %.1f %.1f", 
-     DspA_ksaDisplaySet[iSet], xVoxl_ExpandFloat( &voxel ) );
+	   DspA_ksaDisplaySet[iSet], xVoxl_ExpandFloat( &voxel ) );
   tkm_SendTclCommand( tkm_tTclCommand_UpdateRASCursor, sTclArguments );
- 
+  
   /* also convert to mni and send those coords along. */
-  if (NULL != this->mpVolume->mpMriValues->linear_transform)
-  {
+  if (NULL != this->mpVolume->mpMriValues->linear_transform) {
     Volm_ConvertIdxToMNITal( this->mpVolume, iAnaIdx, &voxel );
     sprintf( sTclArguments, "%s %.1f %.1f %.1f", 
              DspA_ksaDisplaySet[iSet], xVoxl_ExpandFloat( &voxel ) );
     tkm_SendTclCommand( tkm_tTclCommand_UpdateMNICursor, sTclArguments );
- 
+    
     /* and the tal coords */
     Volm_ConvertIdxToTal( this->mpVolume, iAnaIdx, &voxel );
     sprintf( sTclArguments, "%s %.1f %.1f %.1f", 
