@@ -28,7 +28,7 @@
 #include "tiff.h"
 #include "tiffio.h"
 
-static char vcid[] = "$Id: mris2rgb.c,v 1.5 1998/02/13 22:53:41 fischl Exp $";
+static char vcid[] = "$Id: mris2rgb.c,v 1.6 1998/02/22 22:25:15 fischl Exp $";
 
 /*-------------------------------- CONSTANTS -----------------------------*/
 
@@ -82,6 +82,7 @@ static int talairach_flag = 0 ;
 static int medial_flag = 0 ;
 static int lateral_flag = 1 ;
 
+static int normalize_flag = 0 ;
 static float angle_offset = 0.0f ;
 static float x_angle = 0.0f ;
 static float y_angle = 0.0f ;
@@ -206,6 +207,9 @@ main(int argc, char *argv[])
 
     if (coord_fname)
       MRISreadCanonicalCoordinates(mris, coord_fname) ;
+    else
+      MRISsaveVertexPositions(mris, CANONICAL_VERTICES) ;
+
     if (talairach_flag)
       MRIStalairachTransform(mris, mris) ;
     MRIScenter(mris, mris) ;
@@ -235,7 +239,11 @@ main(int argc, char *argv[])
       OGLUinit(mris, frame_xdim, frame_ydim) ;/* specify lighting and such */
     
     if (mrisp)
+    {
+      MRISrestoreVertexPositions(mris, CANONICAL_VERTICES) ;
       MRISfromParameterization(mrisp, mris, 0) ;
+      MRISrestoreVertexPositions(mris, ORIGINAL_VERTICES) ;
+    }
     if (curvature_fname)
       MRISreadCurvatureFile(mris, curvature_fname) ;
 
@@ -262,6 +270,9 @@ main(int argc, char *argv[])
       MRISuseAreaErrors(mris) ;
       break ;
     }
+
+    if (normalize_flag)
+      MRISnormalizeCurvature(mris) ;
 
     if (patch_flag)
     {
@@ -430,11 +441,19 @@ get_option(int argc, char *argv[])
     curvature_flag = MEAN_CURVATURE ;
   else if (!stricmp(option, "tp"))
     compile_flags |= TP_FLAG ;
+  else if (!stricmp(option, "bw"))
+    compile_flags |= BW_FLAG ;
   else if (!stricmp(option, "neg"))
     compile_flags |= NEG_FLAG ;
   else if (!stricmp(option, "coord"))
   {
     compile_flags |= COORD_FLAG ;
+    coord_fname = argv[2] ;
+    fprintf(stderr, "reading coordinate locations from %s.\n", coord_fname);
+    nargs = 1 ;
+  }
+  else if (!stricmp(option, "canon"))
+  {
     coord_fname = argv[2] ;
     fprintf(stderr, "reading coordinate locations from %s.\n", coord_fname);
     nargs = 1 ;
@@ -445,6 +464,9 @@ get_option(int argc, char *argv[])
     tiff_flag = 1;
   else switch (toupper(*option))
   {
+  case 'N':
+    normalize_flag = 1 ;
+    break ;
   case 'S':
     scale = atof(argv[2]) ;
     fprintf(stderr, "scaling window by %2.1f\n", scale) ;
