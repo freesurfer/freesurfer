@@ -28,7 +28,7 @@
 #include "tiff.h"
 #include "tiffio.h"
 
-static char vcid[] = "$Id: mris2rgb.c,v 1.8 1998/03/12 22:54:05 fischl Exp $";
+static char vcid[] = "$Id: mris2rgb.c,v 1.9 1998/04/18 18:06:05 fischl Exp $";
 
 /*-------------------------------- CONSTANTS -----------------------------*/
 
@@ -841,7 +841,7 @@ mark_centroids(MRI_SURFACE *mris, char *centroid_fnames[],
     if (sscanf(line, "%f  %f  %f\n", &x, &y, &z) != 3)
       ErrorExit(ERROR_BADFILE, "%s: could not scan area centroid from %s\n",
                 Progname, line) ;
-    vno = MRISfindClosestCannonicalVertex(mris, x, y, z) ;
+    vno = MRISfindClosestCanonicalVertex(mris, x, y, z) ;
     v = &mris->vertices[vno] ;
     color = centroid_colors[cno] ;
     v->marked = color ;
@@ -852,7 +852,7 @@ mark_centroids(MRI_SURFACE *mris, char *centroid_fnames[],
         ErrorExit(ERROR_BADFILE, 
                   "%s: could not scan area centroid from %s\n",
                   Progname, line) ;
-      vno = MRISfindClosestCannonicalVertex(mris, x, y, z) ;
+      vno = MRISfindClosestCanonicalVertex(mris, x, y, z) ;
       v = &mris->vertices[vno] ;
       if (!v->marked)
         v->marked = color ;
