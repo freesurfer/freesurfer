@@ -12,6 +12,7 @@
                     INCLUDE FILES
 -------------------------------------------------------*/
 #define USE_ELECTRIC_FENCE 1
+#define _MRIIO_SRC
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -74,8 +75,13 @@ static MRI *bshortRead(char *fname_passed, int read_volume);
 static MRI *bfloatRead(char *fname_passed, int read_volume);
 static MRI *genesisRead(char *stem, int read_volume);
 static MRI *gelxRead(char *stem, int read_volume);
+
 static MRI *analyzeRead(char *fname, int read_volume);
 static int analyzeWrite(MRI *mri, char *fname);
+static int analyzeWriteFrame(MRI *mri, char *fname, int frame);
+static int analyzeWriteSeries(MRI *mri, char *fname);
+static int analyzeWrite4D(MRI *mri, char *fname);
+
 static MRI *afniRead(char *fname, int read_volume);
 static int afniWrite(MRI *mri, char *fname);
 static void swap_analyze_header(dsr *hdr);
@@ -566,6 +572,10 @@ int MRIwriteType(MRI *mri, char *fname, int type)
   else if(type == MRI_ANALYZE_FILE)
   {
     error = analyzeWrite(mri, fname);
+  }
+  else if(type == MRI_ANALYZE4D_FILE)
+  {
+    error = analyzeWrite4D(mri, fname);
   }
   else if(type == BRIK_FILE)
   {
@@ -1515,13 +1525,16 @@ static MRI *mincRead(char *fname, int read_volume)
     ErrorReturn(NULL, (ERROR_BADFILE, "mincRead(): can't find file %s", fname));
   }
 
-  status = start_volume_input(fname, 0, dim_names, NC_UNSPECIFIED, 0, 0, 0, TRUE, &vol, NULL, &input_info);
+  printf("INFO: mincRead: reading %s\n",fname);
+  status = start_volume_input(fname, 0, dim_names, NC_UNSPECIFIED, 0, 0, 0, 
+            TRUE, &vol, NULL, &input_info);
+  printf("INFO: mincRead: done reading \n");
 
-/*
+  /**/
 printf("%d\n", status);
 printf("%d\n", get_volume_n_dimensions(vol));
 printf("%d\n", vol->nc_data_type);
-*/
+/**/
 
   if(status != OK)
   {
@@ -1680,10 +1693,12 @@ static int mincWrite(MRI *mri, char *fname)
   int vi[4];
   int r, a, s;
   float r_max;
+  Status status;
 
-/* di gives the bogus minc index */
-/* di[0] is width, 1 is height, 2 is depth, 3 is time if there is a time dimension of length > 1 */
-/* minc wants these to be ras */
+/* di gives the bogus minc index 
+   di[0] is width, 1 is height, 2 is depth, 3 is time if 
+   there is a time dimension of length > 1 
+   minc wants these to be ras */
 
 /* here: minc volume index 0 is r, 1 is a, 2 is s */
 /* mri is lia */
@@ -1854,34 +1869,41 @@ static int mincWrite(MRI *mri, char *fname)
 
 /* vi[n] gives the index of the variable along minc axis x */
 /* vi[di_x] gives the index of the variable along minc axis di_x, or along mri axis x */
-  for(vi[3] = 0;vi[3] < mri->nframes;vi[3]++)
-  {
-    for(vi[di_x] = 0;vi[di_x] < mri->width;vi[di_x]++)
-    {
-      for(vi[di_y] = 0;vi[di_y] < mri->height;vi[di_y]++)
-      {
-        for(vi[di_z] = 0;vi[di_z] < mri->depth;vi[di_z]++)
-        {
+  for(vi[3] = 0;vi[3] < mri->nframes;vi[3]++) {           /* frames */
+    for(vi[di_x] = 0;vi[di_x] < mri->width;vi[di_x]++) {   /* columns */
+      for(vi[di_y] = 0;vi[di_y] < mri->height;vi[di_y]++) { /* rows */
+        for(vi[di_z] = 0;vi[di_z] < mri->depth;vi[di_z]++) { /* slices */
 
           if(mri->type == MRI_UCHAR)
-            set_volume_voxel_value(minc_volume, vi[0], vi[1], vi[2], vi[3], 0, (Real)MRIseq_vox(mri, vi[di_x], vi[di_y], vi[di_z], vi[3]));
+            set_volume_voxel_value(minc_volume, vi[0], vi[1], vi[2], vi[3], 0, 
+           (Real)MRIseq_vox(mri, vi[di_x], vi[di_y], vi[di_z], vi[3]));
           if(mri->type == MRI_SHORT)
-            set_volume_voxel_value(minc_volume, vi[0], vi[1], vi[2], vi[3], 0, (Real)MRISseq_vox(mri, vi[di_x], vi[di_y], vi[di_z], vi[3]));
+            set_volume_voxel_value(minc_volume, vi[0], vi[1], vi[2], vi[3], 0, 
+           (Real)MRISseq_vox(mri, vi[di_x], vi[di_y], vi[di_z], vi[3]));
           if(mri->type == MRI_INT)
-            set_volume_voxel_value(minc_volume, vi[0], vi[1], vi[2], vi[3], 0, (Real)MRIIseq_vox(mri, vi[di_x], vi[di_y], vi[di_z], vi[3]));
+            set_volume_voxel_value(minc_volume, vi[0], vi[1], vi[2], vi[3], 0, 
+           (Real)MRIIseq_vox(mri, vi[di_x], vi[di_y], vi[di_z], vi[3]));
           if(mri->type == MRI_LONG)
-            set_volume_voxel_value(minc_volume, vi[0], vi[1], vi[2], vi[3], 0, (Real)MRILseq_vox(mri, vi[di_x], vi[di_y], vi[di_z], vi[3]));
+            set_volume_voxel_value(minc_volume, vi[0], vi[1], vi[2], vi[3], 0, 
+           (Real)MRILseq_vox(mri, vi[di_x], vi[di_y], vi[di_z], vi[3]));
           if(mri->type == MRI_FLOAT)
-            set_volume_voxel_value(minc_volume, vi[0], vi[1], vi[2], vi[3], 0, (Real)MRIFseq_vox(mri, vi[di_x], vi[di_y], vi[di_z], vi[3]));
+            set_volume_voxel_value(minc_volume, vi[0], vi[1], vi[2], vi[3], 0, 
+           (Real)MRIFseq_vox(mri, vi[di_x], vi[di_y], vi[di_z], vi[3]));
 
         }
       }
     }
   }
 
-  output_volume((STRING)fname, nc_data_type, signed_flag, min, max, minc_volume, (STRING)"", NULL);
-
+  status = output_volume((STRING)fname, nc_data_type, signed_flag, min, max, 
+       minc_volume, (STRING)"", NULL);
   delete_volume(minc_volume);
+
+  if(status) {
+    printf("ERROR: mincWrite: output_volume exited with %d\n",status);
+    return(1);
+  }
+    
 
   return(NO_ERROR);
 
@@ -4030,9 +4052,41 @@ static MRI *analyzeRead(char *fname, int read_volume)
 
 } /* end analyzeRead() */
 
+/*---------------------------------------------------------------
+analyzeWrite() - writes out a volume in SPM analyze format. If the
+file name has a .img extension, then the first frame is stored into
+the given file name. If it does not include the extension, then the
+volume is saved as a series of frame files using fname as a base
+followed by the zero-padded frame number (see analyzeWriteSeries).  A
+series can be saved from mri_convert by specifying the basename and
+adding "--out_type spm". DNG
+---------------------------------------------------------------*/
 static int analyzeWrite(MRI *mri, char *fname)
 {
+  int len;
+  int error_value;
 
+  /* Check for .img extension */
+  len = strlen(fname);
+  if(len > 4){
+    if(fname[len-4] == '.' && fname[len-3] == 'i' &&
+       fname[len-2] == 'm' && fname[len-1] == 'g' ){
+      /* There is a trailing .img - save frame 0 into fname */
+      error_value = analyzeWriteFrame(mri, fname, 0);
+      return(error_value);
+    }
+  }
+  /* There is no trailing .img - save as a series */
+  error_value = analyzeWriteSeries(mri, fname);
+  return(error_value);
+}
+/*---------------------------------------------------------------
+analyzeWriteFrame() - this used to be analyzeWrite() but was modified
+by DNG to be able to save a particular frame so that it could be
+used to write out an entire series.
+---------------------------------------------------------------*/
+static int analyzeWriteFrame(MRI *mri, char *fname, int frame)
+{
   dsr hdr;
   float max, min;
   MATRIX *m;
@@ -4044,19 +4098,25 @@ static int analyzeWrite(MRI *mri, char *fname)
   char *c;
   FILE *fp;
   int error_value;
-  int i, j;
+  int i, j, k;
   int bytes_per_voxel;
+
+  if(frame >= mri->nframes){
+    fprintf(stderr,"ERROR: analyzeWriteFrame(): frame number (%d) exceeds "
+      "number of frames (%d)\n",frame,mri->nframes);
+    return(1);
+  }
 
   c = strrchr(fname, '.');
   if(c == NULL)
   {
     errno = 0;
-    ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "analyzeRead(): bad file name %s", fname));
+    ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "analyzeWriteFrame(): bad file name %s", fname));
   }
   if(strcmp(c, ".img") != 0)
   {
     errno = 0;
-    ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "analyzeRead(): bad file name %s", fname));
+    ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "analyzeWriteFrame(): bad file name %s", fname));
   }
 
   strcpy(hdr_fname, fname);
@@ -4095,8 +4155,17 @@ static int analyzeWrite(MRI *mri, char *fname)
   else
   {
     errno = 0;
-    ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "analyzeWrite(): bad data type %d", mri->type));
+    ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, 
+        "analyzeWriteFrame(): bad data type %d", mri->type));
   }
+
+  /* Added by DNG 10/2/01 */
+  hdr.dime.dim[0] = 4; /* number of dimensions */
+  hdr.dime.dim[4] = 1; /* time */
+  hdr.dime.pixdim[4] = mri->tr;
+  hdr.dime.bitpix = 8*bytes_per_voxel;
+  memcpy(hdr.dime.vox_units,"mm\0",3);
+  /*----------------------------*/
 
   hdr.dime.dim[1] = mri->width;
   hdr.dime.dim[2] = mri->height;
@@ -4112,10 +4181,22 @@ static int analyzeWrite(MRI *mri, char *fname)
 
   m = MatrixAlloc(4, 4, MATRIX_REAL);
 
-  *MATRIX_RELT(m, 1, 1) = mri->x_r * mri->xsize;  *MATRIX_RELT(m, 1, 2) = mri->y_r * mri->ysize;  *MATRIX_RELT(m, 1, 3) = mri->z_r * mri->zsize;  *MATRIX_RELT(m, 1, 4) = mri->c_r;
-  *MATRIX_RELT(m, 2, 1) = mri->x_a * mri->xsize;  *MATRIX_RELT(m, 2, 2) = mri->y_a * mri->ysize;  *MATRIX_RELT(m, 2, 3) = mri->z_a * mri->zsize;  *MATRIX_RELT(m, 2, 4) = mri->c_a;
-  *MATRIX_RELT(m, 3, 1) = mri->x_s * mri->xsize;  *MATRIX_RELT(m, 3, 2) = mri->y_s * mri->ysize;  *MATRIX_RELT(m, 3, 3) = mri->z_s * mri->zsize;  *MATRIX_RELT(m, 3, 4) = mri->c_s;
-  *MATRIX_RELT(m, 4, 1) = 0.0;                    *MATRIX_RELT(m, 4, 2) = 0.0;                    *MATRIX_RELT(m, 4, 3) = 0.0;                    *MATRIX_RELT(m, 4, 4) = 1.0;
+  *MATRIX_RELT(m, 1, 1) = mri->x_r * mri->xsize;  
+  *MATRIX_RELT(m, 1, 2) = mri->y_r * mri->ysize;  
+  *MATRIX_RELT(m, 1, 3) = mri->z_r * mri->zsize;  
+  *MATRIX_RELT(m, 1, 4) = mri->c_r;
+  *MATRIX_RELT(m, 2, 1) = mri->x_a * mri->xsize;  
+  *MATRIX_RELT(m, 2, 2) = mri->y_a * mri->ysize;  
+  *MATRIX_RELT(m, 2, 3) = mri->z_a * mri->zsize;  
+  *MATRIX_RELT(m, 2, 4) = mri->c_a;
+  *MATRIX_RELT(m, 3, 1) = mri->x_s * mri->xsize;  
+  *MATRIX_RELT(m, 3, 2) = mri->y_s * mri->ysize;  
+  *MATRIX_RELT(m, 3, 3) = mri->z_s * mri->zsize;  
+  *MATRIX_RELT(m, 3, 4) = mri->c_s;
+  *MATRIX_RELT(m, 4, 1) = 0.0;                    
+  *MATRIX_RELT(m, 4, 2) = 0.0;                    
+  *MATRIX_RELT(m, 4, 3) = 0.0;                    
+  *MATRIX_RELT(m, 4, 4) = 1.0;
 
   ras = MatrixAlloc(4, 1, MATRIX_REAL);
 
@@ -4128,7 +4209,7 @@ static int analyzeWrite(MRI *mri, char *fname)
   if(minv == NULL)
   {
     errno = 0;
-    ErrorPrintf(ERROR_BADPARM, "analyzeWrite(): error inverting matrix\n");
+    ErrorPrintf(ERROR_BADPARM, "analyzeWriteFrame(): error inverting matrix\n");
     MatrixPrint(stdout, m);
     MatrixFree(&m);
     MatrixFree(&ras);
@@ -4145,15 +4226,23 @@ static int analyzeWrite(MRI *mri, char *fname)
   }
 
   /* --- matlab matrices start at index 1; hence the +1 --- */
-/* width-1, height-1, depth-1 hacks */
+  /* width-1, height-1, depth-1 hacks */
   ((short *)hdr.hist.originator)[0] = (int)(*MATRIX_RELT(index, 1, 1) + ((mri->width-1) / 2.0)) + 1;
   ((short *)hdr.hist.originator)[1] = (int)(*MATRIX_RELT(index, 2, 1) + ((mri->height-1) / 2.0)) + 1;
   ((short *)hdr.hist.originator)[2] = (int)(*MATRIX_RELT(index, 3, 1) + ((mri->depth-1) / 2.0)) + 1;
 
   /* --- solve 0 = m*orig element by element --- */
-  *MATRIX_RELT(m, 1, 4) = -(*MATRIX_RELT(m, 1, 1) * ((short *)hdr.hist.originator)[0] + *MATRIX_RELT(m, 1, 2) * ((short *)hdr.hist.originator)[1] + *MATRIX_RELT(m, 1, 3) * ((short *)hdr.hist.originator)[2]);
-  *MATRIX_RELT(m, 2, 4) = -(*MATRIX_RELT(m, 2, 1) * ((short *)hdr.hist.originator)[0] + *MATRIX_RELT(m, 2, 2) * ((short *)hdr.hist.originator)[1] + *MATRIX_RELT(m, 2, 3) * ((short *)hdr.hist.originator)[2]);
-  *MATRIX_RELT(m, 3, 4) = -(*MATRIX_RELT(m, 3, 1) * ((short *)hdr.hist.originator)[0] + *MATRIX_RELT(m, 3, 2) * ((short *)hdr.hist.originator)[1] + *MATRIX_RELT(m, 3, 3) * ((short *)hdr.hist.originator)[2]);
+  *MATRIX_RELT(m, 1, 4) = -(*MATRIX_RELT(m, 1, 1) * ((short *)hdr.hist.originator)[0] + 
+                            *MATRIX_RELT(m, 1, 2) * ((short *)hdr.hist.originator)[1] + 
+          *MATRIX_RELT(m, 1, 3) * ((short *)hdr.hist.originator)[2]);
+
+  *MATRIX_RELT(m, 2, 4) = -(*MATRIX_RELT(m, 2, 1) * ((short *)hdr.hist.originator)[0] + 
+          *MATRIX_RELT(m, 2, 2) * ((short *)hdr.hist.originator)[1] + 
+          *MATRIX_RELT(m, 2, 3) * ((short *)hdr.hist.originator)[2]);
+
+  *MATRIX_RELT(m, 3, 4) = -(*MATRIX_RELT(m, 3, 1) * ((short *)hdr.hist.originator)[0] + 
+          *MATRIX_RELT(m, 3, 2) * ((short *)hdr.hist.originator)[1] + 
+          *MATRIX_RELT(m, 3, 3) * ((short *)hdr.hist.originator)[2]);
 
   MatrixFree(&ras);
   MatrixFree(&minv);
@@ -4164,13 +4253,16 @@ static int analyzeWrite(MRI *mri, char *fname)
   {
     MatrixFree(&m);
     errno = 0;
-    ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "analyzeWrite(): error opening file %s for writing", hdr_fname));
+    ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, 
+        "analyzeWriteFrame(): error opening file %s for writing", 
+        hdr_fname));
   }
   if(fwrite(&hdr, sizeof(hdr), 1, fp) != 1)
   {
     MatrixFree(&m);
     errno = 0;
-    ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "analyzeWrite(): error writing to file %s", hdr_fname));
+    ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, 
+        "analyzeWriteFrame(): error writing to file %s", hdr_fname));
   }
   fclose(fp);
 
@@ -4186,17 +4278,20 @@ static int analyzeWrite(MRI *mri, char *fname)
   if((fp = fopen(fname, "w")) == NULL)
   {
     errno = 0;
-    ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "analyzeWrite(): error opening file %s for writing", fname));
+    ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, 
+        "analyzeWriteFrame(): error opening file %s for writing", fname));
   }
 
   for(i = 0;i < mri->depth;i++)
   {
+    k = i + mri->depth*frame; /* this is the change to make it save a given frame */
     for(j = 0;j < mri->height;j++)
     {
-      if(fwrite(mri->slices[i][j], bytes_per_voxel, mri->width, fp) != mri->width)
+      if(fwrite(mri->slices[k][j], bytes_per_voxel, mri->width, fp) != mri->width)
       {
         errno = 0;
-        ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "analyzeWrite(): error writing to file %s", fname));
+        ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "analyzeWriteFrame(): error writing to file %s", 
+            fname));
       }
     }
   }
@@ -4205,8 +4300,253 @@ static int analyzeWrite(MRI *mri, char *fname)
 
   return(0);
 
-} /* end analyzeWrite() */
+} /* end analyzeWriteFrame() */
 
+/*-------------------------------------------------------------*/
+static int analyzeWriteSeries(MRI *mri, char *fname)
+{
+  extern int SPM_N_Zero_Pad;
+  int frame;
+  int err;
+  char framename[STRLEN];
+  char spmnamefmt[STRLEN];
+  
+  /* NOTE: This function assumes that fname does not have a .img extension. */
+
+  /* SPM_N_Zero_Pad is a global variable used to control the name of      */
+  /* files in successive frames within the series. It can be set from     */
+  /* mri_convert using "--spmnzeropad N" where N is the width of the pad. */
+  if(SPM_N_Zero_Pad < 0) SPM_N_Zero_Pad = 3;
+
+  /* Create the format string used to create the filename for each frame.   */
+  /* The frame file name format will be fname%0Nd.img where N is the amount */
+  /* of zero padding. The (padded) frame numbers will go from 1 to nframes. */
+  sprintf(spmnamefmt,"%%s%%0%dd.img",SPM_N_Zero_Pad);
+
+  /* loop over slices */
+  for(frame = 0; frame < mri->nframes; frame ++){
+    sprintf(framename,spmnamefmt,fname,frame+1);
+    //printf("%3d %s\n",frame,framename);
+    err = analyzeWriteFrame(mri, framename, frame);
+    if(err) return(err);
+  }
+
+  return(0);
+}
+
+/*---------------------------------------------------------------
+analyzeWrite4D() - saves data in analyze 4D format. I hope.
+---------------------------------------------------------------*/
+static int analyzeWrite4D(MRI *mri, char *fname)
+{
+  dsr hdr;
+  float max, min;
+  MATRIX *m;
+  MATRIX *index;
+  MATRIX *ras;
+  MATRIX *minv;
+  char hdr_fname[STRLEN];
+  char mat_fname[STRLEN];
+  char *c;
+  FILE *fp;
+  int error_value;
+  int i, j, k, frame;
+  int bytes_per_voxel;
+
+  c = strrchr(fname, '.');
+  if(c == NULL)
+  {
+    errno = 0;
+    ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "analyzeWrite4D(): bad file name %s", fname));
+  }
+  if(strcmp(c, ".img") != 0)
+  {
+    errno = 0;
+    ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "analyzeWrite4D(): bad file name %s", fname));
+  }
+
+  strcpy(hdr_fname, fname);
+  sprintf(hdr_fname + (c - fname), ".hdr");
+
+  strcpy(mat_fname, fname);
+  sprintf(mat_fname + (c - fname), ".mat");
+
+  memset(&hdr, 0x00, sizeof(hdr));
+
+  hdr.hk.sizeof_hdr = sizeof(hdr);
+
+  hdr.dime.vox_offset = 0.0;
+
+  if(mri->type == MRI_UCHAR)
+  {
+    hdr.dime.datatype = DT_UNSIGNED_CHAR;
+    bytes_per_voxel = 1;
+  }
+  else if(mri->type == MRI_SHORT)
+  {
+    hdr.dime.datatype = DT_SIGNED_SHORT;
+    bytes_per_voxel = 2;
+  }
+  /* --- assuming long and int are identical --- */
+  else if(mri->type == MRI_INT || mri->type == MRI_LONG)
+  {
+    hdr.dime.datatype = DT_SIGNED_INT;
+    bytes_per_voxel = 4;
+  }
+  else if(mri->type == MRI_FLOAT)
+  {
+    hdr.dime.datatype = DT_FLOAT;
+    bytes_per_voxel = 4;
+  }
+  else
+  {
+    errno = 0;
+    ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, 
+        "analyzeWrite4D(): bad data type %d", mri->type));
+  }
+
+  hdr.dime.bitpix = 8*bytes_per_voxel;
+  memcpy(hdr.dime.vox_units,"mm\0",3);
+
+  hdr.dime.dim[0] = 4; /* number of dimensions (??) */
+  hdr.dime.dim[1] = mri->width;
+  hdr.dime.dim[2] = mri->height;
+  hdr.dime.dim[3] = mri->depth;
+  hdr.dime.dim[4] = mri->nframes; 
+
+  hdr.dime.pixdim[1] = mri->xsize;
+  hdr.dime.pixdim[2] = mri->ysize;
+  hdr.dime.pixdim[3] = mri->zsize;
+  hdr.dime.pixdim[4] = mri->tr;
+
+  MRIlimits(mri, &min, &max);
+  hdr.dime.glmin = (int)min;
+  hdr.dime.glmax = (int)max;
+
+  m = MatrixAlloc(4, 4, MATRIX_REAL);
+
+  *MATRIX_RELT(m, 1, 1) = mri->x_r * mri->xsize;  
+  *MATRIX_RELT(m, 1, 2) = mri->y_r * mri->ysize;  
+  *MATRIX_RELT(m, 1, 3) = mri->z_r * mri->zsize;  
+  *MATRIX_RELT(m, 1, 4) = mri->c_r;
+  *MATRIX_RELT(m, 2, 1) = mri->x_a * mri->xsize;  
+  *MATRIX_RELT(m, 2, 2) = mri->y_a * mri->ysize;  
+  *MATRIX_RELT(m, 2, 3) = mri->z_a * mri->zsize;  
+  *MATRIX_RELT(m, 2, 4) = mri->c_a;
+  *MATRIX_RELT(m, 3, 1) = mri->x_s * mri->xsize;  
+  *MATRIX_RELT(m, 3, 2) = mri->y_s * mri->ysize;  
+  *MATRIX_RELT(m, 3, 3) = mri->z_s * mri->zsize;  
+  *MATRIX_RELT(m, 3, 4) = mri->c_s;
+  *MATRIX_RELT(m, 4, 1) = 0.0;                    
+  *MATRIX_RELT(m, 4, 2) = 0.0;                    
+  *MATRIX_RELT(m, 4, 3) = 0.0;                    
+  *MATRIX_RELT(m, 4, 4) = 1.0;
+
+  ras = MatrixAlloc(4, 1, MATRIX_REAL);
+
+  *MATRIX_RELT(ras, 1, 1) = 0.0;
+  *MATRIX_RELT(ras, 2, 1) = 0.0;
+  *MATRIX_RELT(ras, 3, 1) = 0.0;
+  *MATRIX_RELT(ras, 4, 1) = 1.0;
+
+  minv = MatrixInverse(m, NULL);
+  if(minv == NULL)
+  {
+    errno = 0;
+    ErrorPrintf(ERROR_BADPARM, "analyzeWrite4D(): error inverting matrix\n");
+    MatrixPrint(stdout, m);
+    MatrixFree(&m);
+    MatrixFree(&ras);
+    return(ERROR_BADPARM);
+  }
+
+  index = MatrixMultiply(minv, ras, NULL);
+  if(minv == NULL)
+  {
+    MatrixFree(&m);
+    MatrixFree(&ras);
+    MatrixFree(&minv);
+    return(ERROR_BADPARM);
+  }
+
+  /* --- matlab matrices start at index 1; hence the +1 --- */
+  /* width-1, height-1, depth-1 hacks */
+  ((short *)hdr.hist.originator)[0] = (int)(*MATRIX_RELT(index, 1, 1) + ((mri->width-1) / 2.0)) + 1;
+  ((short *)hdr.hist.originator)[1] = (int)(*MATRIX_RELT(index, 2, 1) + ((mri->height-1) / 2.0)) + 1;
+  ((short *)hdr.hist.originator)[2] = (int)(*MATRIX_RELT(index, 3, 1) + ((mri->depth-1) / 2.0)) + 1;
+
+  /* --- solve 0 = m*orig element by element --- */
+  *MATRIX_RELT(m, 1, 4) = -(*MATRIX_RELT(m, 1, 1) * ((short *)hdr.hist.originator)[0] + 
+                            *MATRIX_RELT(m, 1, 2) * ((short *)hdr.hist.originator)[1] + 
+          *MATRIX_RELT(m, 1, 3) * ((short *)hdr.hist.originator)[2]);
+
+  *MATRIX_RELT(m, 2, 4) = -(*MATRIX_RELT(m, 2, 1) * ((short *)hdr.hist.originator)[0] + 
+          *MATRIX_RELT(m, 2, 2) * ((short *)hdr.hist.originator)[1] + 
+          *MATRIX_RELT(m, 2, 3) * ((short *)hdr.hist.originator)[2]);
+
+  *MATRIX_RELT(m, 3, 4) = -(*MATRIX_RELT(m, 3, 1) * ((short *)hdr.hist.originator)[0] + 
+          *MATRIX_RELT(m, 3, 2) * ((short *)hdr.hist.originator)[1] + 
+          *MATRIX_RELT(m, 3, 3) * ((short *)hdr.hist.originator)[2]);
+
+  MatrixFree(&ras);
+  MatrixFree(&minv);
+  MatrixFree(&index);
+
+  /* ----- write the header ----- */
+  if((fp = fopen(hdr_fname, "w")) == NULL)
+  {
+    MatrixFree(&m);
+    errno = 0;
+    ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, 
+        "analyzeWrite4D(): error opening file %s for writing", 
+        hdr_fname));
+  }
+  if(fwrite(&hdr, sizeof(hdr), 1, fp) != 1)
+  {
+    MatrixFree(&m);
+    errno = 0;
+    ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, 
+        "analyzeWrite4D(): error writing to file %s", hdr_fname));
+  }
+  fclose(fp);
+
+  /* ----- write the .mat file ----- */
+  /* this is not correct */
+  error_value = MatlabWrite(m, mat_fname, "M");
+  MatrixFree(&m);
+  if(error_value != NO_ERROR)
+  {
+    return(error_value);
+  }
+
+  /* ----- write the data ----- */
+  if((fp = fopen(fname, "w")) == NULL)
+  {
+    errno = 0;
+    ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, 
+        "analyzeWrite4D(): error opening file %s for writing", fname));
+  }
+
+  for(frame = 0; frame < mri->nframes; frame ++){
+    for(i = 0;i < mri->depth;i++){
+      k = i + mri->depth*frame; 
+      for(j = 0;j < mri->height;j++){
+  if(fwrite(mri->slices[k][j], bytes_per_voxel, mri->width, fp) != mri->width){
+    errno = 0;
+    ErrorReturn(ERROR_BADFILE, 
+          (ERROR_BADFILE, "analyzeWrite4D(): error writing to file %s", fname));
+  }
+      }
+    }
+  }
+
+  fclose(fp);
+
+  return(0);
+
+} /* end analyzeWrite4D() */
+
+/*-------------------------------------------------------------*/
 static void swap_analyze_header(dsr *hdr)
 {
 
