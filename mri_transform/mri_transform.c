@@ -11,7 +11,7 @@
 #include "proto.h"
 #include "transform.h"
 
-static char vcid[] = "$Id: mri_transform.c,v 1.1 2001/12/06 17:47:28 fischl Exp $";
+static char vcid[] = "$Id: mri_transform.c,v 1.2 2002/04/22 21:59:00 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -23,15 +23,17 @@ static void print_version(void) ;
 
 char *Progname ;
 static char *out_like_fname = NULL ;
+static int invert_flag = 0 ;
 
 int
 main(int argc, char *argv[])
 {
   char        **av, *in_vol, *out_vol, *xform_fname ;
-  int         ac, nargs, i, invert_flag = 0, ras_flag = 0 ;
+  int         ac, nargs, i, ras_flag = 0 ;
   MRI         *mri_in, *mri_out ;
   LTA         *lta ;
   MATRIX      *m, *m_total ;
+  TRANSFORM   *transform ;
 
   Progname = argv[0] ;
   ErrorInit(NULL, NULL, NULL) ;
@@ -69,6 +71,7 @@ main(int argc, char *argv[])
   else
     mri_out = MRIalloc(256, 256, 256, mri_in->type) ;
 
+  MRIcopyPulseParameters(mri_in, mri_out) ;
   m_total = MatrixIdentity(4, NULL) ;
   for (i = 2 ; i < argc-1 ; i++)
   {
@@ -79,41 +82,53 @@ main(int argc, char *argv[])
       continue ;
     }
     printf("reading transform %s...\n", xform_fname) ;
-    lta = LTAread(xform_fname) ;
-    if (!lta)
+    transform = TransformRead(xform_fname) ;
+    if (!transform)
       ErrorExit(ERROR_NOFILE, "%s: could not read transform from %s", 
                 Progname, xform_fname) ;
 
-    m = MatrixCopy(lta->xforms[0].m_L, NULL) ;
-
-    if (lta->type == LINEAR_RAS_TO_RAS)  /* convert it to a voxel transform */
+    if (transform->type != MORPH_3D_TYPE)
     {
-      ras_flag = 1 ;
+      lta = (LTA *)(transform->xform) ;
+      m = MatrixCopy(lta->xforms[0].m_L, NULL) ;
+      
+      if (lta->type == LINEAR_RAS_TO_RAS)  /* convert it to a voxel transform */
+      {
+        ras_flag = 1 ;
+      }
+      else if (ras_flag)
+        ErrorExit(ERROR_UNSUPPORTED, "%s: transforms must be all RAS or all voxel",Progname) ;
+      
+      if (invert_flag)
+      {
+        MATRIX *m_tmp ;
+        printf("inverting transform...\n") ;
+        m_tmp = MatrixInverse(m, NULL) ;
+        if (!m_tmp)
+          ErrorExit(ERROR_BADPARM, "%s: transform is singular!") ;
+        MatrixFree(&m) ; m = m_tmp ;
+        invert_flag = 0 ;
+      }
+      MatrixMultiply(m, m_total, m_total) ;
+      LTAfree(&lta) ;
+      if (ras_flag)  /* convert it to a voxel transform */
+      {
+        MATRIX *m_tmp ;
+        printf("converting RAS xform to voxel xform...\n") ;
+        m_tmp = MRIrasXformToVoxelXform(mri_in, mri_out, m_total, NULL) ;
+        MatrixFree(&m_total) ; m_total = m_tmp ;
+      }
+      MRIlinearTransform(mri_in, mri_out, m_total) ;
     }
-    else if (ras_flag)
-      ErrorExit(ERROR_UNSUPPORTED, "%s: transforms must be all RAS or all voxel",Progname) ;
-
-    if (invert_flag)
+    else
     {
-      MATRIX *m_tmp ;
-      printf("inverting transform...\n") ;
-      m_tmp = MatrixInverse(m, NULL) ;
-      if (!m_tmp)
-        ErrorExit(ERROR_BADPARM, "%s: transform is singular!") ;
-      MatrixFree(&m) ; m = m_tmp ;
-      invert_flag = 0 ;
+      if (invert_flag)
+        mri_out = TransformApplyInverse(transform, mri_in, NULL) ;
+      else
+        mri_out = TransformApply(transform, mri_in, NULL) ;
     }
-    MatrixMultiply(m, m_total, m_total) ;
-    LTAfree(&lta) ;
+    invert_flag = 0 ;
   }
-  if (ras_flag)  /* convert it to a voxel transform */
-  {
-    MATRIX *m_tmp ;
-    printf("converting RAS xform to voxel xform...\n") ;
-    m_tmp = MRIrasXformToVoxelXform(mri_in, mri_out, m_total, NULL) ;
-    MatrixFree(&m_total) ; m_total = m_tmp ;
-  }
-  MRIlinearTransform(mri_in, mri_out, m_total) ;
   
   printf("writing output to %s.\n", out_vol) ;
   MRIwrite(mri_out, out_vol) ;
@@ -149,6 +164,9 @@ get_option(int argc, char *argv[])
   case 'V':
     Gdiag_no = atoi(argv[2]) ;
     nargs = 1 ;
+    break ;
+  case 'I':
+    invert_flag = 1 ;
     break ;
   case '?':
   case 'U':
