@@ -1,8 +1,8 @@
 #!/bin/csh -f
 #
 # 
-# $Id: fsl_rigid_register,v 1.5 2003/05/09 22:18:30 greve Exp $
-set VERSION = '$Id: fsl_rigid_register,v 1.5 2003/05/09 22:18:30 greve Exp $';
+# $Id: fsl_rigid_register,v 1.6 2003/08/21 22:55:49 greve Exp $
+set VERSION = '$Id: fsl_rigid_register,v 1.6 2003/08/21 22:55:49 greve Exp $';
 
 set refvol = ();
 set invol = ();
@@ -20,6 +20,9 @@ set maxangle = 90;
 set bins = 256;
 set cost = corratio;
 set costlist = (mutualinfo corratio normcorr normmi leastsq);
+set flsmatfile = ();
+set regmatfile = ();
+set xfmmatfile = ();
 
 if($#argv == 0) goto usage_exit;
 set n = `echo $argv | grep version | wc -l` 
@@ -118,7 +121,7 @@ if($status) then
   exit 1;
 endif
 
-# Copy .mat from ref to output
+# Copy analyze .mat from ref to output
 cp $refvolbase.mat $outvolbase.mat
 
 # Convert to the output format
@@ -131,7 +134,34 @@ if($status) exit 1;
 
 if($#applyxfm == 0) then
   # Copy registration matrix
-  cp $outvolbase.fslmat $outvol.fslmat
+  cp $outvolbase.fslmat $fslmatfile
+
+  if($#regmatfile || $#xfmmatfile) then
+    # Convert to register.dat or xfm #
+    set tmpregdat = $tmpdir/reg.dat
+    set cmd = (tkregister2 --targ $refvol --mov $invol)
+    set cmd = ($cmd --reg $tmpregdat)
+    set cmd = ($cmd --fslreg $fslmatfile)
+    set cmd = ($cmd --noedit);
+    echo "--------------------------------------"
+    pwd
+    echo $cmd
+    $cmd
+    if($status) exit 1;
+    if($#regmatfile) cp $tmpregdat $regmatfile
+    if($#xfmmatfile) then
+      rm -f $xfmmatfile
+      echo "MNI Transform File" >> $xfmmatfile
+      echo "% This file was created by fsl_rigid_register" >> $xfmmatfile
+      echo "Transform_Type = Linear;" >> $xfmmatfile
+      echo "Linear_Transform =" >> $xfmmatfile
+      cat $tmpregdat | tail -5 | head -n 2  >> $xfmmatfile
+      set l3 = `cat $tmpregdat | tail -3 | head -n 1`
+      echo "$l3;"   >> $xfmmatfile
+    endif
+
+  endif
+
 endif
 
 # Cleanup
@@ -178,6 +208,21 @@ while( $#argv != 0 )
     case "-o":
       if ( $#argv < 1) goto arg1err;
       set outvol = $argv[1]; shift;
+      breaksw
+
+    case "-fslmat":
+      if ( $#argv < 1) goto arg1err;
+      set fslmatfile = $argv[1]; shift;
+      breaksw
+
+    case "-regmat":
+      if ( $#argv < 1) goto arg1err;
+      set regmatfile = $argv[1]; shift;
+      breaksw
+
+    case "-xfmmat":
+      if ( $#argv < 1) goto arg1err;
+      set xfmmatfile = $argv[1]; shift;
       breaksw
 
     case "-interp":
@@ -315,6 +360,8 @@ check_params:
     exit 1;
   endif
 
+  if($#fslmatfile == 0) set fslmatfile = $outvol.fslmat
+
 goto check_params_return;
 ############--------------##################
 
@@ -341,6 +388,9 @@ usage_exit:
   echo "   -o outputvol : input resampled to reference"
   echo ""
   echo "Optional Arguments"
+  echo "   -fslmat fsmatfile  : spec explicitly"
+  echo "   -regmat regmatfile : get reg matrix as register.dat file"
+  echo "   -xfmmat xfmmatfile :  get reg matrix as MNI xfm file"
   echo "   -noinitgeom : do not initialize matrix based on geometry"
   echo "   -initxfm  xfmfile : use this as an initial matrix"
   echo "   -applyxfm xfmfile : do not reg, just apply xfm to input"
@@ -373,12 +423,26 @@ constrained to be rigid (ie, 6 dof). The input and ref volumes are
 automatically converted to analyze, and the output volume is
 automatically converted from analyze to the output format. Note: if
 using COR as output, the COR directory must exist prior to running
-this script.
+this script. The FLIRT/FSL registration matrix will be stored in
+outvol.fslmat (unless -fslmat).
 
 By default, an init FSL registration matrix is computed from the
 geometry information in the header ref and input headers. This is a
 good idea because the anlyze format does not keep the direction cosine
 info around.  
+
+-fslmat fslmatfile
+
+Store the FSL registration matrix in fslmatfile instead of outvol.fslmat
+
+-regmat regmatfile
+
+Convert the FSL matrix to register.dat format and save in regmatfile. You
+will have to edit the subject name.
+
+-xfmmat xfmmatfile
+
+Convert the FSL matrix to an MNI xfm file. 
 
 -noinitgeom
 
