@@ -8,10 +8,10 @@
  *
 */
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2003/06/17 14:35:41 $
-// Revision       : $Revision: 1.230 $
-char *MRI_C_VERSION = "$Revision: 1.230 $";
+// Revision Author: $Author: ebeth $
+// Revision Date  : $Date: 2003/07/07 19:12:40 $
+// Revision       : $Revision: 1.231 $
+char *MRI_C_VERSION = "$Revision: 1.231 $";
 
 /*-----------------------------------------------------
                     INCLUDE FILES
@@ -594,6 +594,8 @@ int MRIinterpCode(char *InterpString)
     return(SAMPLE_TRILINEAR);
   if(!strncasecmp(InterpString,"sinc",3)) 
     return(SAMPLE_SINC);
+  if(!strncasecmp(InterpString,"cubic",3)) 
+    return(SAMPLE_CUBIC);
 
   return(-1);
 }
@@ -609,6 +611,7 @@ char * MRIinterpString(int InterpCode)
   case SAMPLE_NEAREST:   return("nearest"); break ;
   case SAMPLE_TRILINEAR: return("trilinear"); break ;
   case SAMPLE_SINC:      return("sinc"); break ;
+  case SAMPLE_CUBIC:     return("cubic"); break ;
   }
   return(NULL);
 }
@@ -6813,13 +6816,15 @@ MRIsampleVolumeType(MRI *mri, Real x, Real y, Real z, Real *pval, int type)
     break ;
   case SAMPLE_TRILINEAR:
     return(MRIsampleVolume(mri, x, y, z, pval)) ;
+  case SAMPLE_CUBIC:
+    return(MRIcubicSampleVolume(mri, x, y, z, pval)) ;
   case SAMPLE_SINC:
     return(MRIsincSampleVolume(mri, x, y, z, 5, pval)) ;
   }
 
   OutOfBounds = MRIindexNotInVolume(mri, x, y, z);
   if(OutOfBounds == 1){
-    /* unambiguoulsy out of bounds */
+    /* unambiguously out of bounds */
     *pval = 0.0;
     return(NO_ERROR) ;
   }
@@ -6882,6 +6887,7 @@ MRIsampleVolumeFrameType(MRI *mri, Real x, Real y, Real z, int frame, int type, 
   case SAMPLE_TRILINEAR:
     return(MRIsampleVolumeFrame(mri, x, y, z, frame, pval)) ;
   default:
+    /*E* add SAMPLE_CUBIC here? */
   case SAMPLE_SINC:
 		ErrorReturn(ERROR_UNSUPPORTED,
 								(ERROR_UNSUPPORTED, "MRIsampleVolumeFrameType(%d): unsupported interpolation type",
@@ -6891,7 +6897,7 @@ MRIsampleVolumeFrameType(MRI *mri, Real x, Real y, Real z, int frame, int type, 
 
   OutOfBounds = MRIindexNotInVolume(mri, x, y, z);
   if(OutOfBounds == 1){
-    /* unambiguoulsy out of bounds */
+    /* unambiguously out of bounds */
     *pval = 0.0;
     return(NO_ERROR) ;
   }
@@ -6949,7 +6955,7 @@ MRIsampleVolume(MRI *mri, Real x, Real y, Real z, Real *pval)
 
   OutOfBounds = MRIindexNotInVolume(mri, x, y, z);
   if(OutOfBounds == 1){
-    /* unambiguoulsy out of bounds */
+    /* unambiguously out of bounds */
     *pval = 0.0;
     return(NO_ERROR) ;
   }
@@ -7060,7 +7066,7 @@ int MRIsampleSeqVolume(MRI *mri, Real x, Real y, Real z, float *valvect,
 
   OutOfBounds = MRIindexNotInVolume(mri, x, y, z);
   if(OutOfBounds == 1){
-    /* unambiguoulsy out of bounds */
+    /* unambiguously out of bounds */
     for(f=firstframe; f <= lastframe; f++) valvect[f] = 0.0;
     return(NO_ERROR) ;
   }
@@ -7157,6 +7163,183 @@ int MRIsampleSeqVolume(MRI *mri, Real x, Real y, Real z, float *valvect,
 }
 
 /*-----------------------------------------------------
+  used by MRIcubicSampleVolume
+------------------------------------------------------*/
+
+double
+localeval(Real x, int iter)
+{
+  double p;
+  switch (iter)
+    {
+    case 0:
+      p = ((2-x)*x-1)*x; break;
+    case 1:
+      p = (3*x-5)*x*x+2; break;
+    case 2:
+      p = ((4-3*x)*x+1)*x; break;
+    case 3:
+      p = (x-1)*x*x; break;
+    default:
+      ErrorReturn(ERROR_UNSUPPORTED, 
+		  (ERROR_UNSUPPORTED, 
+		   "localeval: called wrong by MRIcubicSampleVolume!")) ;
+    }
+  return(p);
+}
+
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+
+        by analogy with
+	/usr/pubsw/common/matlab/6.5/toolbox/matlab/polyfun/interp3.m
+
+	uses localeval above
+
+------------------------------------------------------*/
+int
+MRIcubicSampleVolume(MRI *mri, Real x, Real y, Real z, Real *pval)
+{
+  int  OutOfBounds;
+  int  width, height, depth ;
+  int ix_low,iy_low,iz_low,ix,iy,iz;
+  double val,xx,yy,zz,fx,fy,fz,vv[4][4][4];
+
+    if (FEQUAL((int)x,x) && FEQUAL((int)y,y) && FEQUAL((int)z, z))
+      return(MRIsampleVolumeType(mri, x, y, z, pval, SAMPLE_NEAREST)) ;
+  
+  OutOfBounds = MRIindexNotInVolume(mri, x, y, z);
+  if(OutOfBounds == 1){
+    /* unambiguously out of bounds */
+    *pval = val = 0.0;
+    return(NO_ERROR) ;
+  }
+  width = mri->width ; height = mri->height ; depth = mri->depth ; 
+
+  /*E* I suppose these are for "ambiguously out of bounds" - within .5vox */
+  if (x >= width)    x = width - 1.0 ;
+  if (y >= height)   y = height - 1.0 ;
+  if (z >= depth)    z = depth - 1.0 ;
+  if (x < 0.0)       x = 0.0 ;
+  if (y < 0.0)       y = 0.0 ;
+  if (z < 0.0)       z = 0.0 ;
+
+  ix_low = floor((double)x);
+  if ((ix_low = floor((double)x)) < width-1)
+    xx = x - ix_low;
+  else
+    {
+      ix_low--; /*E* Now that's not really "low" anymore, is it =/ */
+      xx = 1;
+    }
+  iy_low = floor((double)y);
+  if ((iy_low = floor((double)y)) < width-1)
+    yy = y - iy_low;
+  else
+    {
+      iy_low--;
+      yy = 1;
+    }
+  iz_low = floor((double)z);
+  if ((iz_low = floor((double)z)) < width-1)
+    zz = z - iz_low;
+  else
+    {
+      iz_low--;
+      zz = 1;
+    }
+    
+  /*E* build a little box of the local points plus boundary stuff -
+    for this rev accept zeroes for border expansion */
+
+  /*E* probably most efficient to incorporate the vv bounds in the for
+    limits */
+
+  for(iz=0; iz<4; iz++)
+    {
+      for(iy=0; iy<4; iy++)
+	{
+	  for(ix=0; ix<4; ix++)
+	    {
+	      switch (mri->type)
+		{
+		case MRI_UCHAR:
+		  if ((ix_low-1+ix >= 0) && (ix_low-1+ix <width) &&
+		      (iy_low-1+iy >= 0) && (iy_low-1+iy <width) &&
+		      (iz_low-1+iz >= 0) && (iz_low-1+iz <width))
+		    vv[ix][iy][iz] =
+		      (double)MRIvox(mri,ix_low-1+ix,iy_low-1+iy,iz_low-1+iz);
+		  else vv[ix][iy][iz] = 0.;
+		  break;
+		case MRI_FLOAT:
+		  if ((ix_low-1+ix >= 0) && (ix_low-1+ix <width) &&
+		      (iy_low-1+iy >= 0) && (iy_low-1+iy <width) &&
+		      (iz_low-1+iz >= 0) && (iz_low-1+iz <width))
+		    vv[ix][iy][iz] =
+		      (double)MRIFvox(mri,ix_low-1+ix,iy_low-1+iy,iz_low-1+iz);
+		  else vv[ix][iy][iz] = 0.;
+		  break;
+		case MRI_SHORT:
+		  if ((ix_low-1+ix >= 0) && (ix_low-1+ix <width) &&
+		      (iy_low-1+iy >= 0) && (iy_low-1+iy <width) &&
+		      (iz_low-1+iz >= 0) && (iz_low-1+iz <width))
+		    vv[ix][iy][iz] =
+		      (double)MRISvox(mri,ix_low-1+ix,iy_low-1+iy,iz_low-1+iz);
+		  else vv[ix][iy][iz] = 0.;
+		  break;
+		case MRI_INT:
+		  if ((ix_low-1+ix >= 0) && (ix_low-1+ix <width) &&
+		      (iy_low-1+iy >= 0) && (iy_low-1+iy <width) &&
+		      (iz_low-1+iz >= 0) && (iz_low-1+iz <width))
+		    vv[ix][iy][iz] =
+		      (double)MRIIvox(mri,ix_low-1+ix,iy_low-1+iy,iz_low-1+iz);
+		  else vv[ix][iy][iz] = 0.;
+		  break;
+		case MRI_LONG:
+		  if ((ix_low-1+ix >= 0) && (ix_low-1+ix <width) &&
+		      (iy_low-1+iy >= 0) && (iy_low-1+iy <width) &&
+		      (iz_low-1+iz >= 0) && (iz_low-1+iz <width))
+		    vv[ix][iy][iz] =
+		      (double)MRILvox(mri,ix_low-1+ix,iy_low-1+iy,iz_low-1+iz);
+		  else vv[ix][iy][iz] = 0.;
+		  break;
+		default:
+		  ErrorReturn(ERROR_UNSUPPORTED, 
+			      (ERROR_UNSUPPORTED, 
+			       "MRIcubicSampleVolume: unsupported type %d",
+			       mri->type)) ;
+		  break ;
+		}
+	    }
+	}
+    }
+  
+  val = 0;
+
+  for(iz=0; iz<=3; iz++)
+    {
+      fz = localeval(zz,iz);
+      for(iy=0; iy<=3; iy++)
+	{
+	  fy = localeval(yy,iy);
+	  for(ix=0; ix<=3; ix++)
+	    {
+	      fx = localeval(xx,ix);
+	      val += (Real)(vv[ix][iy][iz]*fx*fy*fz);
+	    }
+	}
+    }
+
+  *pval = val/8.; // <<3?
+
+  return(NO_ERROR);
+}
+
+/*-----------------------------------------------------
         Parameters:
 
         Returns value:
@@ -7176,6 +7359,7 @@ double ham_sinc(double x,double fullwidth)
   }
   return ham;
 }
+
 /*-------------------------------------------------------------------------*/
 int
 MRIsincSampleVolume(MRI *mri, Real x, Real y, Real z, int hw, Real *pval)
@@ -7193,7 +7377,7 @@ MRIsincSampleVolume(MRI *mri, Real x, Real y, Real z, int hw, Real *pval)
 
   OutOfBounds = MRIindexNotInVolume(mri, x, y, z);
   if(OutOfBounds == 1){
-    /* unambiguoulsy out of bounds */
+    /* unambiguously out of bounds */
     *pval = 0.0;
     return(NO_ERROR) ;
   }
@@ -7216,80 +7400,88 @@ MRIsincSampleVolume(MRI *mri, Real x, Real y, Real z, int hw, Real *pval)
   iz_high = ceil((double)z);
 
   coeff_x_sum = coeff_y_sum = coeff_z_sum = 0; 
-  if(iz_low>=0 && iz_high < depth) {
-    for (jx1=IMAX(ix_high-nwidth,0), jx_rel=0;
-   jx1<IMIN(ix_low+nwidth,width-1); 
-   jx1++,jx_rel++) {
-      coeff_x[jx_rel] = ham_sinc((double)(x-jx1)*xsize,2*xsize*nwidth);
-      coeff_x_sum += coeff_x[jx_rel];
-    }
-    for (jy1=IMAX(iy_high-nwidth,0), jy_rel=0;
-   jy1<IMIN(iy_low+nwidth,height-1); 
-   jy1++,jy_rel++) {
-      coeff_y[jy_rel] = ham_sinc((double)(y-jy1)*ysize,2*nwidth*ysize);
-      coeff_y_sum += coeff_y[jy_rel];
-    }
-    for (jz1=IMAX(iz_high-nwidth,0), jz_rel=0;
-   jz1<IMIN(iz_low+nwidth,depth-1); 
-   jz1++,jz_rel++) {
-      coeff_z[jz_rel] = ham_sinc((double)(z-jz1)*zsize,2*nwidth*zsize);
-      coeff_z_sum += coeff_z[jz_rel];
-    }
-    
-    for(sum_z=0., jz1=IMAX(iz_high-nwidth,0), jz_rel = 0;
-  jz1 < IMIN(iz_low+nwidth,depth-1);
-  jz1++, jz_rel++) {
+  if(iz_low>=0 && iz_high < depth)
+    {
+      for (jx1=IMAX(ix_high-nwidth,0), jx_rel=0;
+	   jx1<IMIN(ix_low+nwidth,width-1); 
+	   jx1++,jx_rel++)
+	{
+	  coeff_x[jx_rel] = ham_sinc((double)(x-jx1)*xsize,2*xsize*nwidth);
+	  coeff_x_sum += coeff_x[jx_rel];
+	}
+      for (jy1=IMAX(iy_high-nwidth,0), jy_rel=0;
+	   jy1<IMIN(iy_low+nwidth,height-1); 
+	   jy1++,jy_rel++)
+	{
+	  coeff_y[jy_rel] = ham_sinc((double)(y-jy1)*ysize,2*nwidth*ysize);
+	  coeff_y_sum += coeff_y[jy_rel];
+	}
+      for (jz1=IMAX(iz_high-nwidth,0), jz_rel=0;
+	   jz1<IMIN(iz_low+nwidth,depth-1); 
+	   jz1++,jz_rel++)
+	{
+	  coeff_z[jz_rel] = ham_sinc((double)(z-jz1)*zsize,2*nwidth*zsize);
+	  coeff_z_sum += coeff_z[jz_rel];
+	}
       
-      for(sum_y=0., jy1=IMAX(iy_high-nwidth,0), jy_rel = 0;
-    jy1 < IMIN(iy_low+nwidth,height-1);
-    jy1++, jy_rel++) {
-  for(sum_x=0., jx1=IMAX(ix_high-nwidth,0), jx_rel = 0;
-      jx1 < IMIN(ix_low+nwidth,width-1);
-      jx1++, jx_rel++) {
-    
-    switch(mri->type)
-      {
-      case MRI_UCHAR:
-        sum_x += (coeff_x[jx_rel]/coeff_x_sum) 
-    * (double)MRIvox(mri,jx1,jy1,jz1);
-        break;
-      case MRI_SHORT:
-        sum_x += (coeff_x[jx_rel]/coeff_x_sum) 
-    * (double)MRISvox(mri,jx1,jy1,jz1);
-        break;
-      case MRI_INT:
-        sum_x += (coeff_x[jx_rel]/coeff_x_sum) 
-    * (double)MRIIvox(mri,jx1,jy1,jz1);
-        break;
-      case MRI_LONG:
-        sum_x += (coeff_x[jx_rel]/coeff_x_sum) 
-    * (double)MRILvox(mri,jx1,jy1,jz1);
-        break;
-      case MRI_FLOAT:
-        sum_x += (coeff_x[jx_rel]/coeff_x_sum) 
-    * (double)MRIFvox(mri,jx1,jy1,jz1);
-        break; 
-      default:
-        ErrorReturn(ERROR_UNSUPPORTED, 
-        (ERROR_UNSUPPORTED, 
-         "MRIsincSampleVolume: unsupported type %d", 
-         mri->type)) ;
-        break;
-      }
-  }
-  sum_y += sum_x * (coeff_y[jy_rel]/coeff_y_sum);
-      }
-      sum_z += sum_y * (coeff_z[jz_rel]/coeff_z_sum); 
+      for(sum_z=0., jz1=IMAX(iz_high-nwidth,0), jz_rel = 0;
+	  jz1 < IMIN(iz_low+nwidth,depth-1);
+	  jz1++, jz_rel++)
+	{
+	  
+	  for(sum_y=0., jy1=IMAX(iy_high-nwidth,0), jy_rel = 0;
+	      jy1 < IMIN(iy_low+nwidth,height-1);
+	      jy1++, jy_rel++)
+	    {
+	      for(sum_x=0., jx1=IMAX(ix_high-nwidth,0), jx_rel = 0;
+		  jx1 < IMIN(ix_low+nwidth,width-1);
+		  jx1++, jx_rel++)
+		{
+		  
+		  switch(mri->type)
+		    {
+		    case MRI_UCHAR:
+		      sum_x += (coeff_x[jx_rel]/coeff_x_sum) 
+			* (double)MRIvox(mri,jx1,jy1,jz1);
+		      break;
+		    case MRI_SHORT:
+		      sum_x += (coeff_x[jx_rel]/coeff_x_sum) 
+			* (double)MRISvox(mri,jx1,jy1,jz1);
+		      break;
+		    case MRI_INT:
+		      sum_x += (coeff_x[jx_rel]/coeff_x_sum) 
+			* (double)MRIIvox(mri,jx1,jy1,jz1);
+		      break;
+		    case MRI_LONG:
+		      sum_x += (coeff_x[jx_rel]/coeff_x_sum) 
+		      * (double)MRILvox(mri,jx1,jy1,jz1);
+		      break;
+		    case MRI_FLOAT:
+		      sum_x += (coeff_x[jx_rel]/coeff_x_sum) 
+			* (double)MRIFvox(mri,jx1,jy1,jz1);
+		      break; 
+		    default:
+		      ErrorReturn(ERROR_UNSUPPORTED, 
+				  (ERROR_UNSUPPORTED, 
+				   "MRIsincSampleVolume: unsupported type %d", 
+				   mri->type)) ;
+		      break;
+		    }
+		}
+	      sum_y += sum_x * (coeff_y[jy_rel]/coeff_y_sum);
+	    }
+	  sum_z += sum_y * (coeff_z[jz_rel]/coeff_z_sum); 
+	}
+      if((mri->type == MRI_UCHAR || mri->type == MRI_SHORT) && sum_z<0.0)
+	*pval = 0.0;
+      else if(mri->type == MRI_UCHAR && sum_z >255.0)
+	*pval = 255.0;
+      else if(mri->type == MRI_SHORT && sum_z > 65535.0)
+	*pval = 65535.0;
+      else
+	*pval = sum_z;
     }
-    if((mri->type == MRI_UCHAR || mri->type == MRI_SHORT) && sum_z<0.0)
-      *pval = 0.0;
-    else if(mri->type == MRI_UCHAR && sum_z >255.0)
-      *pval = 255.0;
-    else if(mri->type == MRI_SHORT && sum_z > 65535.0)
-      *pval = 65535.0;
-    else
-      *pval = sum_z;
-  } else 
+  else 
     *pval = 0.0;
   
   return(NO_ERROR);
@@ -8030,6 +8222,7 @@ MRIlinearTransformInterp(MRI *mri_src, MRI *mri_dst, MATRIX *mA,
 
   if(InterpMethod != SAMPLE_NEAREST &&
      InterpMethod != SAMPLE_TRILINEAR &&
+     InterpMethod != SAMPLE_CUBIC &&
      InterpMethod != SAMPLE_SINC ){
     printf("ERROR: MRIlinearTransformInterp: unrecoginzed interpolation "
      "method %d\n",InterpMethod);
@@ -8756,6 +8949,11 @@ MRI *MRIresample(MRI *src, MRI *template_vol, int resample_type)
         if(resample_type == RESAMPLE_SINC)
         {
           MRIsincSampleVolume(src, si_ff, sj_ff, sk_ff, 5, &pval);
+          val = (float)pval;
+        }
+        else if(resample_type == RESAMPLE_CUBIC)
+        {
+          MRIcubicSampleVolume(src, si_ff, sj_ff, sk_ff, &pval);
           val = (float)pval;
         }
         else if(si < 0.0 || si >= (float)(src->width - 2) ||
