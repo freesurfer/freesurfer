@@ -1,10 +1,10 @@
 /*============================================================================
  Copyright (c) 1996 Martin Sereno and Anders Dale
 =============================================================================*/
-/*   $Id: tkregister2.c,v 1.26 2004/08/27 19:17:53 greve Exp $   */
+/*   $Id: tkregister2.c,v 1.27 2004/08/27 21:02:37 greve Exp $   */
 
 #ifndef lint
-static char vcid[] = "$Id: tkregister2.c,v 1.26 2004/08/27 19:17:53 greve Exp $";
+static char vcid[] = "$Id: tkregister2.c,v 1.27 2004/08/27 21:02:37 greve Exp $";
 #endif /* lint */
 
 #define TCL
@@ -207,6 +207,7 @@ static int MRIisConformant(MRI *vol);
 #define WINDOW_COLS 512
 
 float FOV = 256;
+float mov_scale = 1;
 int plane = CORONAL;
 int plane_init = CORONAL;
 int slice_init = -1;
@@ -753,8 +754,13 @@ int Register(ClientData clientData,Tcl_Interp *interp, int argc, char *argv[])
     redraw();
   }
 
-  updateflag = FALSE;
-
+  if(mov_scale != 1){
+    printf("movscale = %g\n",mov_scale);
+    scale_brain(1.0/mov_scale,'x');
+    scale_brain(1.0/mov_scale,'y');
+    scale_brain(1.0/mov_scale,'z');
+  }
+  updateflag = TRUE;
 
   return GL_FALSE;
 
@@ -817,6 +823,11 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcmp(option, "--movbright")){
       if(nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%lf",&fscale_2);
+      nargsused = 1;
+    }
+    else if (!strcmp(option, "--movscale")){
+      if(nargc < 1) argnerr(option,1);
+      sscanf(pargv[0],"%f",&mov_scale);
       nargsused = 1;
     }
     else if (!strcmp(option, "--slice")){
@@ -958,6 +969,7 @@ static void print_usage(void)
   printf("   --slice  sliceno : startup slice number\n");
   printf("   --volview volid  : startup with targ or mov\n");
   printf("   --fov FOV  : window FOV in mm (default is 256)\n");
+  printf("   --movscale scale : scale size of mov by scale\n");
   printf("   --surf surfname : display surface as an overlay \n");
   printf("   --reg  register.dat : input/output registration file\n");
   printf("   --regheader : compute regstration from headers\n");
@@ -1045,6 +1057,13 @@ static void print_help(void)
 "\n"
 "  Set the view port field-of-view. Default is 256. Note, the zoom\n"
 "  can also be controlled interactively with - and =.\n"
+"\n"
+"  --movscale scale\n"
+"\n"
+"  Adjust registration matrix to scale mov volume by scale. This has\n"
+"  the same effect as adjusting the scale manually. It also flags\n"
+"  the matrix as being edited, and so you will be asked to save it\n"
+"  even if you have not made any manual edits.\n"
 "\n"
 "  --surf <surfacename>\n"
 "\n"
@@ -3573,7 +3592,7 @@ char **argv;
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tkregister2.c,v 1.26 2004/08/27 19:17:53 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: tkregister2.c,v 1.27 2004/08/27 21:02:37 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
