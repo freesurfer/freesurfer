@@ -829,6 +829,7 @@ MRI *MRIrandn(int ncols, int nrows, int nslices, int nframes,
 	      float avg, float stddev, MRI *mri);
 MRI *MRIdrand48(int ncols, int nrows, int nslices, int nframes,
 		float min, float max, MRI *mri);
+int MRInormalizeSequence(MRI *mri, float target) ;
 
 /* Zero-padding for 3d analyze (ie, spm) format */
 #ifdef _MRIIO_SRC
