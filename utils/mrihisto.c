@@ -548,7 +548,7 @@ MRIhistogram(MRI *mri, int nbins)
   HISTOGRAM  *histo ;
   float      fmin, fmax, bin_size ;
   BUFTYPE    val, *psrc, bmin, bmax ;
-float fval;
+  float fval;
 
   if (mri->type != MRI_UCHAR && mri->type != MRI_FLOAT)
     ErrorReturn(NULL, (ERROR_UNSUPPORTED,"MRIhistogram: must by type UCHAR or FLOAT"));
@@ -594,6 +594,77 @@ float fval;
 
   default:
     break ;
+        }
+      }
+    }
+  }
+  return(histo) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+HISTOGRAM *
+MRIhistogramLabel(MRI *mri, MRI *mri_labeled, int label, int nbins)
+{
+  int        width, height, depth, x, y, z, bin_no ;
+  HISTOGRAM  *histo ;
+  float      fmin, fmax, bin_size ;
+  BUFTYPE    *psrc ;
+  int        val, bmin, bmax ;
+  float      fval;
+
+  if (mri->type != MRI_UCHAR && mri->type != MRI_FLOAT)
+    ErrorReturn(NULL, (ERROR_UNSUPPORTED,
+                       "MRIhistogramLabel: must by type UCHAR or FLOAT"));
+
+  fmin = MRIvalRange(mri, &fmin, &fmax) ;
+  bmin = (int)fmin ; bmax = (int)fmax ;
+  if (!nbins)
+    nbins = bmax - bmin + 1 ;
+
+  histo = HISTOalloc(nbins) ;
+
+  bin_size = (fmax - fmin + 1) / (float)nbins ;
+  width = mri->width ;
+  height = mri->height ;
+  depth = mri->depth ;
+
+  for (bin_no = 0 ; bin_no < nbins ; bin_no++)
+    histo->bins[bin_no] = (bin_no+1)*bin_size ;
+  for (z = 0 ; z < depth ; z++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      for (x = 0 ; x < width ; x++)
+      {
+        if (MRIvox(mri_labeled, x, y, z) != label)
+          continue ;
+        switch (mri->type)
+        {
+        case MRI_UCHAR:
+          /* 0 -> x */
+          psrc = &MRIvox(mri, x, y, z) ;
+          val = *psrc++ ;  
+          bin_no = (int)((float)(val - bmin) / (float)bin_size) ;
+          histo->counts[bin_no]++ ;
+          break ;
+        case MRI_SHORT:
+          val = MRISvox(mri, x, y, z) ;
+          bin_no = (int)((float)(val - bmin) / (float)bin_size) ;
+          histo->counts[bin_no]++ ;
+          break ;
+        case MRI_FLOAT:
+          fval = MRIFvox(mri, x, y, z);
+          bin_no = (int)((fval - fmin) / (float)bin_size);
+          histo->counts[bin_no]++;
+          break;
+          
+        default:
+          break ;
         }
       }
     }
