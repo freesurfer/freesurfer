@@ -13,7 +13,7 @@
 #include "mri.h"
 #include "macros.h"
 
-static char vcid[] = "$Id: mris_thickness.c,v 1.4 1999/09/28 19:28:13 fischl Exp $";
+static char vcid[] = "$Id: mris_thickness.c,v 1.5 2000/01/03 19:33:41 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -26,7 +26,7 @@ static void print_version(void) ;
 char *Progname ;
 static char pial_name[100] = "pial" ;
 
-static int nbhd_size = 20 ;
+static int nbhd_size = 2 ;
 
 int
 main(int argc, char *argv[])
