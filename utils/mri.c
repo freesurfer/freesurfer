@@ -9,9 +9,9 @@
 */
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: greve $
-// Revision Date  : $Date: 2003/07/09 03:39:25 $
-// Revision       : $Revision: 1.235 $
-char *MRI_C_VERSION = "$Revision: 1.235 $";
+// Revision Date  : $Date: 2003/07/15 23:56:34 $
+// Revision       : $Revision: 1.236 $
+char *MRI_C_VERSION = "$Revision: 1.236 $";
 
 /*-----------------------------------------------------
                     INCLUDE FILES
@@ -4409,17 +4409,12 @@ MRIpeak(MRI *mri, int *px, int *py, int *pz)
   *pz = max_slice ;
   return(NO_ERROR) ;
 }
-/*-----------------------------------------------------
-        Parameters:
-
-        Returns value:
-
-        Description
-          Copy the header information from one MRI into
-          another.
-------------------------------------------------------*/
-int
-MRIcopyHeader(MRI *mri_src, MRI *mri_dst)
+/*--------------------------------------------------------------
+  Description: Copy the header information from one MRI into another.
+  Does not copy the dimension lengths, only the geometry, pulse seq,
+  etc.
+  ------------------------------------------------------*/
+int MRIcopyHeader(MRI *mri_src, MRI *mri_dst)
 {
   mri_dst->dof = mri_src->dof ;
   mri_dst->mean = mri_src->mean ;
