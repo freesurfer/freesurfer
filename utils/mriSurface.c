@@ -791,6 +791,39 @@ Surf_tErr Surf_GetVertexValue ( mriSurfaceRef   this,
   return eResult;
 }
 
+Surf_tErr Surf_GetVertexAnnotationByIndex ( mriSurfaceRef   this,
+					    int             iVertexIndex,
+					    int*            oAnnotation ) {
+  
+  Surf_tErr eResult = Surf_tErr_NoErr;
+  
+  eResult = Surf_Verify( this );
+  if( Surf_tErr_NoErr != eResult ) 
+    goto error;
+  
+  /* Verify the index. */
+  if( iVertexIndex < 0 || iVertexIndex >= this->mSurface->nvertices ) {
+    eResult = Surf_tErr_InvalidParameter;
+    goto error;
+  }
+
+  /* Return the annotation value. */
+  *oAnnotation = this->mSurface->vertices[iVertexIndex].annotation;
+
+  goto cleanup;
+  
+ error:
+  
+  if( Surf_tErr_NoErr != eResult ) {
+    DebugPrint( ("Error %d in Surf_GetVertexAnnotationByIndex: %s\n",
+		 eResult, Surf_GetErrorString( eResult ) ) );
+  }
+  
+ cleanup:
+  
+  return eResult;
+}
+
 Surf_tErr Surf_GetDistance ( mriSurfaceRef this,
 			     xVoxelRef     iClientVoxel1,
 			     xVoxelRef     iClientVoxel2,
