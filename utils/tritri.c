@@ -33,7 +33,7 @@
               dest[2]=v1[0]*v2[1]-v1[1]*v2[0];
 
 #define DOT(v1,v2) (v1[0]*v2[0]+v1[1]*v2[1]+v1[2]*v2[2])
-
+#define VLEN(v)    (sqrt(DOT(v,v)))
 #define SUB(dest,v1,v2)          \
             dest[0]=v1[0]-v2[0]; \
             dest[1]=v1[1]-v2[1]; \
@@ -307,4 +307,113 @@ int tri_tri_intersect(double V0[3],double V1[3],double V2[3],
   if(isect1[1]<isect2[0] || isect2[1]<isect1[0]) 
     return 0;
   return 1;
+}
+
+#define MAT_COL_SET(m, c, v) \
+     *MATRIX_RELT(m, 1, c) = (float)v[0] ; \
+     *MATRIX_RELT(m, 2, c) = (float)v[1] ; \
+     *MATRIX_RELT(m, 3, c) = (float)v[2] ;
+
+#define MAT_COL_GET(v, m, c) \
+     v[0] = *MATRIX_RELT(m, 1, c) ; \
+     v[1] = *MATRIX_RELT(m, 2, c) ; \
+     v[2] = *MATRIX_RELT(m, 3, c) ;
+
+#define VEC_GET(v, vec) \
+     v[0] = VECTOR_ELT(vec, 1) ; \
+     v[1] = VECTOR_ELT(vec, 2) ; \
+     v[2] = VECTOR_ELT(vec, 3) ;
+     
+#define VEC_SET(vec, v) \
+     VECTOR_ELT(vec, 1) = v[0] ; \
+     VECTOR_ELT(vec, 2) = v[1] ; \
+     VECTOR_ELT(vec, 3) = v[2] ;
+
+/*
+  find the intersection of a ray and a triangle. If none, return 0.
+  If found, return the location in T.
+  P is the origin of the ray. U0, U1, U2 contains the
+  coordinates of the vertices, and D is the direction of the ray.
+*/
+#include "matrix.h"
+int
+triangle_ray_intersect(double orig_pt[3], double dir[3], double U0[3], 
+                       double U1[3],double U2[3], double int_pt[3])
+{
+  double basis1[3], basis2[3], tmp[3], L0[3], L1[3], len, a, b, t, dot, 
+         norm_proj[3], *V0, *V1, *V2, desc[3], Point[3] ;
+  MATRIX *m_U, *m_inv ;
+  VECTOR *v_p, *v_r ;
+  int    i ;
+
+  m_U = MatrixAlloc(3, 3, MATRIX_REAL) ;
+  v_p = VectorAlloc(3, MATRIX_REAL) ;
+  v_r = VectorAlloc(3, MATRIX_REAL) ;
+
+  /* first compute basis vectors for plane defined by triangle */
+
+  /* first basis vector is U1 - U0 */
+  SUB(basis1, U1, U0) ;
+
+  /* compute second basis vector by crossing legs */
+  SUB(basis2, U2, U0) ;
+  CROSS(tmp, basis1, basis2) ;
+  CROSS(basis2, basis1, tmp) ;   /* now basis2 is orthogonal to basis1 */
+
+  /* normalize their lengths */
+  len = VLEN(basis1) ; basis1[0] /= len ; basis1[1] /= len ; basis1[2] /= len ;
+  len = VLEN(basis2) ; basis2[0] /= len ; basis2[1] /= len ; basis2[2] /= len ;
+
+  /* 
+     build matrix: 1st two cols are basis vectors and third is
+     negative of direction vector. Inverting this will yield solution.
+  */
+  MAT_COL_SET(m_U, 1, basis1) ;
+  MAT_COL_SET(m_U, 2, basis2) ;
+  MAT_COL_SET(m_U, 3, -dir) ;
+  m_inv = MatrixSVDInverse(m_U, NULL) ;
+  VEC_SET(v_p, orig_pt) ;
+  MatrixMultiply(m_inv, v_p, v_r) ;
+
+  /* a and b are coordinate of point in plane, t is parameterization of ray */
+  a = VECTOR_ELT(v_r, 1) ; b = VECTOR_ELT(v_r, 2) ; t = VECTOR_ELT(v_r, 3) ; 
+  MatrixFree(&m_U) ; VectorFree(&v_p) ; VectorFree(&v_r) ; MatrixFree(&m_inv) ;
+
+  /* coordinates of interesection point */
+  int_pt[0] = orig_pt[0] + t * dir[0] ; 
+  int_pt[1] = orig_pt[1] + t * dir[1] ; 
+  int_pt[2] = orig_pt[2] + t * dir[2] ; 
+
+  /* now determine whether the point is in the triagle by seeing if it is
+     on the 'right' halfplane defined by each triagle leg
+  */
+
+  for (i = 0 ; i < 3 ; i++)
+  {
+    switch (i)
+    {
+    default:
+    case 0:   V0 = U0 ; V1 = U1 ; V2 = U2 ; break ;
+    case 1:   V0 = U1 ; V1 = U2 ; V2 = U0 ; break ;
+    case 2:   V0 = U2 ; V1 = U0 ; V2 = U1 ; break ;
+    }
+    SUB(L0, V1, V0) ; SUB(L1, V2, V0) ;
+
+    /* compute normal projection onto base of triangle */
+    len = VLEN(L0) ; L0[0] /= len ; L0[1] /= len ; L0[2] /= len ;
+    dot = DOT(L0,L1) ; 
+    norm_proj[0] = dot * L0[0] ; 
+    norm_proj[1] = dot * L0[1] ; 
+    norm_proj[2] = dot * L0[2] ;
+
+    /* build descriminant vector */
+    SUB(desc, V2, norm_proj) ;
+
+    /* transform point in question into local coordinate system */
+    SUB(Point, int_pt, V0) ; SUB(Point, Point, norm_proj) ;
+    dot = DOT(desc, Point) ;
+    if (dot < 0 && !DZERO(dot))
+      return(0) ;
+  }
+  return(1) ;
 }
