@@ -1,6 +1,6 @@
 #! /usr/bin/tixwish
 
-# $Id: tkmedit.tcl,v 1.60 2003/08/11 14:43:01 kteich Exp $
+# $Id: tkmedit.tcl,v 1.61 2003/08/12 21:42:58 kteich Exp $
 
 
 source $env(FREESURFER_HOME)/lib/tcl/tkm_common.tcl
@@ -1546,7 +1546,8 @@ proc DoEditBrushInfoDlog {} {
 
       # defaults button
       tkm_MakeButtons $fwDefaults \
-        { {text "Restore Defaults" "SetBrushInfoToDefaults $tool"} }
+	  [list \
+	       [list text "Restore Defaults" "SetBrushInfoToDefaults $tool"]]
 
       # pack them in a column
       pack $fwScales $fwDefaults \
