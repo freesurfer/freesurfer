@@ -4,7 +4,7 @@
 SUBDIRS=. average lib docs
 
 foodir=$(prefix)
-foo_DATA=surface_labels.txt tkmeditColorsCMA tkmeditParcColorsCMA Simple_surface_labels2002.txt FreeSurferEnv.csh SetUpFreeSurfer.csh
+foo_DATA=surface_labels.txt tkmeditColorsCMA tkmeditParcColorsCMA Simple_surface_labels2002.txt FreeSurferEnv.csh SetUpFreeSurfer.csh jeans_labels.txt
 
 
 SetUpFreeSurfer.csh: SetUpFreeSurfer-SAMPLE.csh
