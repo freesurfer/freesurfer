@@ -58,14 +58,14 @@ main(int argc, char *argv[])
   out_fname = argv[2] ;
 
   if (verbose)
-    fprintf(stderr, "reading from %s...", in_fname) ;
+    fprintf(stderr, "reading from %s...\n", in_fname) ;
   mri_src = MRIread(in_fname) ;
   if (!mri_src)
     ErrorExit(ERROR_NO_FILE, "%s: could not open source file %s", 
               Progname, in_fname) ;
 
   if (verbose)
-    fprintf(stderr, "done.\nnormalizing image...") ;
+    fprintf(stderr, "normalizing image...\n") ;
   TimerStart(&start) ;
   MRInormInit(mri_src, &mni, 0, 0, 0, 0, 0.0f) ;
   mri_dst = MRInormalize(mri_src, NULL, &mni) ;
@@ -79,10 +79,8 @@ main(int argc, char *argv[])
   }
 
   if (verbose)
-    fprintf(stderr, "\ndone. writing output to %s", out_fname) ;
+    fprintf(stderr, "\writing output to %s\n", out_fname) ;
   MRIwrite(mri_dst, out_fname) ;
-  if (verbose)
-    fprintf(stderr, "\n") ;
   msec = TimerStop(&start) ;
   seconds = nint((float)msec/1000.0f) ;
   minutes = seconds / 60 ;
