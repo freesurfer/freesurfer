@@ -3,6 +3,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include "mri.h"
+#include "proto.h"
 #include "mri_identify.h"
 #include "analyze.h"
 #include "volume_io.h"
@@ -179,9 +180,16 @@ int is_mnc(char *fname)
 
 int is_mgh(char *fname)
 {
-
   FILE *fp;
   int version, width, height, depth, nframes, type, dof;
+  char *dot ;
+
+  dot = strchr(fname, '.') ;
+  if (dot)
+  {
+    if (!stricmp(dot+1, "mgh"))
+      return(1) ;
+  }
 
   if((fp = fopen(fname, "rb")) == NULL)
     return(0);
