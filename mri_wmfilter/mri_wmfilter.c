@@ -1,18 +1,23 @@
 #include <math.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <ctype.h>
+
+#include "macros.h"
 #include "MRIio.h"
 /*#include "typedefs.h"*/  /* not needed without matrix stuff */
 #include "matrix.h"
 #include "proto.h"
 
-static char vcid[] = "$Id: mri_wmfilter.c,v 1.2 1997/11/06 22:54:45 fischl Exp $";
+static char vcid[] = "$Id: mri_wmfilter.c,v 1.3 1997/12/15 20:33:02 fischl Exp $";
 
 /*-------------------------------------------------------------------
                                 CONSTANTS
 -------------------------------------------------------------------*/
 
+#ifndef SQR
 #define SQR(x) ((x)*(x))
+#endif
 #define IMGSIZE 256
 #define MAXIM 512
 #define MAXCOR 500
