@@ -7,14 +7,17 @@
 #include "artmap.h"
 #include "mri.h"
 
-#define GAUSSIAN_NCLASSES      4
-#define BACKGROUND             0
-#define GREY_MATTER            1
-#define WHITE_MATTER           2
-#define BRIGHT_MATTER          3
-#define LO_LIM                 70
-#define HI_LIM                 150
-#define DEFINITELY_BACKGROUND  50
+#define GAUSSIAN_NCLASSES                  5
+#define BACKGROUND                         0
+#define GREY_MATTER                        1
+#define SUBCORTICAL_GRAY_MATTER            2
+#define WHITE_MATTER                       3
+#define BRIGHT_MATTER                      4
+#define LO_LIM                             70
+#define HI_LIM                             150
+#define HI_SUBCORTICAL_GRAY                100
+#define TALAIRACH_SUBCORTICAL_GRAY_MAX_Z   20
+#define DEFINITELY_BACKGROUND              50
 
 #define MAX_INPUTS             10
 
@@ -70,7 +73,7 @@ MRI    *MRICbuildTargetImage(MRI *mri_src, MRI *mri_target, MRI *mri_wm,
 MRI    *MRICupdatePriors(MRI *mri_target, MRI *mri_priors, int scale) ;
 int    MRInormalizePriors(MRI *mri_priors) ;
 int    MRICupdateStatistics(MRIC *mric, int round, MRI *mri_src, 
-                            MRI *mri_target, MRI_REGION *box) ;
+                            MRI *mri_wm, MRI_REGION *box) ;
 int    MRICcomputeStatistics(MRIC *mric, int round) ;
 char   *MRICclassName(MRIC *mric, int round, int classno) ;
 
