@@ -158,6 +158,7 @@ twocond-views.tcl \
 wrappers.tcl \
 fsgdfPlot.tcl
 
+
 recon-all: recon-all-nmr
 	cat ./recon-all-nmr | grep -v dASEGd > ./recon-all
 	chmod a+x ./recon-all
@@ -170,3 +171,15 @@ SEDFLAGS = -e 's,xEXEC_PREFIXx,$(exec_prefix),g' \
 csurf: csurf.in
 	sed < $< $(SEDFLAGS) > $@ 
 	chmod +x $@
+
+
+SEDFLAGS2 = -e 's,xFREESURFER_HOMEx,$(prefix),g' \
+	    -e 's,xMNI_BINDIRx,$(mni_bindir),g' \
+	    -e 's,xTCL_LIBDIRx,$(tcl_libdir),g'
+
+freesurferenv.csh: freesurferenv.xxx
+	sed < $< $(SEDFLAGS2) > $@
+	chmod +x $@
+
+foodir=$(prefix)
+foo_SCRIPTS=freesurferenv.csh
