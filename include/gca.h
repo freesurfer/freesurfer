@@ -5,7 +5,10 @@
 #include "transform.h"
 #define MIN_PRIOR  0.5
 #define MAX_GCA_INPUTS 100
+/* GCA types *************/
+#define GCA_UNKNOWN    0
 #define GCA_FLASH      1
+#define GCA_PARAM      2
 
 #define FILE_TAG        0xab2c
 #define TAG_PARAMETERS  0x0001
