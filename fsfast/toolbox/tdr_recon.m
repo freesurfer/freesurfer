@@ -2,7 +2,7 @@
 % reconstruction according to the time-domain reconstruction
 % algorithm 
 %
-% $Id: tdr_recon.m,v 1.7 2004/01/12 02:30:29 greve Exp $
+% $Id: tdr_recon.m,v 1.8 2004/01/22 00:52:02 greve Exp $
 tic;
 
 
@@ -51,6 +51,7 @@ end
 
 fprintf('Loading rcolmat file ... ');
 load(rcolmatfile);
+if(exist('rorev') ~= 1) rorev = 0; end
 fprintf('Done (%g)\n',toc);
 [nrows ncols nslices] = size(fidvol1);
 nv = prod([nrows ncols nslices]);
@@ -59,7 +60,14 @@ nkcols = 2*ncols;
 
 kvec = kspacevector2(nkcols,tDwell,tRampUp,tFlat,...
 		     tRampDown,tDelSamp,tdelay);
-if(perev) kvec = fliplr(kvec); end
+if(perev & ~rorev) kvec = fliplr(kvec); end
+
+% Determine Deghosting Reference:
+%  0 = use first  (odd) lines
+%  1 = use second (even) lines
+DeghostRef = xor(perev,rorev);
+fprintf('DeghostRef = %d (perev = %d, rorev = %d)\n',...
+	DeghostRef,perev,rorev);
 
 % Compute the Ideal col and row DFT reconstruction matrices
 Frow = fast_dftmtx(kvec);
@@ -92,7 +100,7 @@ if(fixpedrift)
     ki = load_mgh(kepi_ifile,[],frame);
     ki = permute(ki,[2 1 3]);
     kvol = kr + i*ki;
-    [krvol, dgbeta] = tdr_recon_rows(kvol,Rrow,perev);
+    [krvol, dgbeta] = tdr_recon_rows(kvol,Rrow,DeghostRef);
     c1 = round(ncols/4);
     c2 = c1 + round(ncols/2) - 1;
     ind = c1:c2;
@@ -140,7 +148,7 @@ for nthAcqSlice = 1:nslices
     %if(perev) kepi = flipud(kepi);  end 
     
     % Recon the rows %
-    [kepi2 dgbetatmp] = tdr_deghost(kepi,Rrow,perev);
+    [kepi2 dgbetatmp] = tdr_deghost(kepi,Rrow,DeghostRef);
     dgbeta(:,1,sliceno,frame) = dgbetatmp;
     %kepi2 = kepi*Rrow; % without deghosting
     
