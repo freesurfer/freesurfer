@@ -1,6 +1,6 @@
 #! /usr/bin/tixwish
 
-# $Id: tkmedit.tcl,v 1.65 2003/09/29 15:35:29 kteich Exp $
+# $Id: tkmedit.tcl,v 1.66 2003/10/02 18:44:33 kteich Exp $
 
 
 source $env(FREESURFER_HOME)/lib/tcl/tkm_common.tcl
@@ -23,6 +23,8 @@ set sDefaultScriptsDir ""
 catch { set sDefaultScriptsDir "$env(FREESURFER_HOME)/lib/tcl" }
 set sTkmeditScriptsDir ""
 catch { set sTkmeditScriptsDir "$env(TKMEDIT_SCRIPTS_DIR)" }
+
+
 
 # Source the tkm_common.tcl and tkm_wrappers.tcl
 set fnCommon \
@@ -1545,7 +1547,7 @@ proc DoEditBrushInfoDlog {} {
     set wwDialog .wwEditBrushInfoDlog
 
     # try to create the dlog...
-    if { [Dialog_Create $wwDialog "Edit Brush Info" {-borderwidth 10}] } {
+    if { [Dialog_Create $wwDialog "Volume Brush Info" {-borderwidth 10}] } {
 	
 	set fwTop                $wwDialog.fwTop
 	set fwInfo               $fwTop.fwInfo
@@ -1565,14 +1567,19 @@ proc DoEditBrushInfoDlog {} {
       set fwCloneSrc       $fw.fwCloneSrc
       set fwDefaults       $fw.fwDefaults
       
+      # This is a hack. Even though the volume min/max of a COR volume
+      # might be 0-253, 255 is still a valid value, so we'll change
+      # the max here to allow that.
+      set min $gVolume(0,minValue)
+      set max $gVolume(0,maxValue)
+      if { $max < 255 } { set max 255 }
+
       # low, high, and new value sliders
       tkm_MakeSliders $fwThresh \
 	  [list \
-	       [list {"Low"} gEditBrush($tool,low) \
-		    $gVolume(0,minValue) $gVolume(0,maxValue) \
+	       [list {"Low"} gEditBrush($tool,low) $min $max \
 		    200 "SetEditBrushConfiguration" 1] \
-	       [list {"High"} gEditBrush($tool,high) \
-		    $gVolume(0,minValue) $gVolume(0,maxValue) \
+	       [list {"High"} gEditBrush($tool,high) $min $max \
 		    200 "SetEditBrushConfiguration" 1 ]]
 
       tkm_MakeRadioButtons $fwMode y "Mode" gEditBrush($tool,mode) \
@@ -4311,4 +4318,20 @@ foreach toolbar {main nav recon} {
 after idle { catch { ExecuteQueuedScripts } }
 
 dputs "Successfully parsed tkmedit.tcl"
+
+
+# now try parsing the prefs files. first look in
+# $FREESURFER_HOME/lib/tcl/tkmedit_init.tcl, then
+# $SUBJECTS_DIR/scripts/tkmedit_init.tcl, then
+# $subject/scripts/tkmedit_init.tcl, then
+# ~/scripts/tkmedit_init.tcl.
+foreach fnUserScript [list $env(FREESURFER_HOME)/lib/tcl/tkmedit_init.tcl $env(SUBJECTS_DIR)/scripts/tkmedit_init.tcl $gsSubjectDirectory/scripts/tkmedit_init.tcl ~/tkmedit_init.tcl] {
+    if { [file exists $fnUserScript] } {
+	catch { 
+	    dputs "Reading $fnUserScript"
+	    source $fnUserScript
+	    dputs "Successfully parsed $fnUserScript"
+	}
+    }
+}
 
