@@ -1,13 +1,25 @@
-function gcm = fmri_scm2gcm(X,Nnnc,TR,tPreStim,delta,tau)
+function gcm = fmri_scm2gcm(X,Nnnc,TR,tPreStim,delta,tau,alpha)
 %
-% gcm = fmri_scm2gcm(X,delta,tau)
+% gcm = fmri_scm2gcm(X,Nnnc,TR,tPreStim,delta,tau,<alpha>)
 %
 % Produces a Gamma Convolution Matrix from a stimulus
 % convolution matrix (X) and parameters of the gamma
-% function (delta, tau).  The gamma functions
-% are interpreted as basis vectors.
+% function (delta, tau, alpha).  The gamma functions
+% are interpreted as basis vectors. 
 %
-% $Id: fmri_scm2gcm.m,v 1.1 2003/03/04 20:47:40 greve Exp $
+% If alpha is not specified, then it is set to 2.
+%
+% See also: fmri_hemodyn.m
+%
+% $Id: fmri_scm2gcm.m,v 1.2 2004/01/08 20:05:11 greve Exp $
+
+
+if(nargin ~= 6 & nargin ~= 7)
+  msg = 'gcm = fmri_scm2gcm(X,Nnnc,TR,tPreStim,delta,tau,<alpha>)';
+  qoe(msg);error(msg);
+end
+
+if(nargin == 6) alpha = 2; end
 
 
 [Ntp Nch Nr] = size(X);
@@ -15,7 +27,7 @@ Nh = Nch/Nnnc;
 Ng = length(delta);
 
 t = TR*[0:Nh-1] - tPreStim;
-h = fmri_hemodyn(t,delta,tau);
+h = fmri_hemodyn(t,delta,tau,alpha);
 h = h./(repmat(max(h),[Nh 1]));
 
 h_all = zeros(Nch,Nnnc*Ng);

@@ -1,8 +1,8 @@
 function r = fast_selxavg(varargin)
 % r = fast_selxavg(varargin)
-% '$Id: fast_selxavg.m,v 1.8 2003/11/19 19:15:36 greve Exp $'
+% '$Id: fast_selxavg.m,v 1.9 2004/01/08 20:05:34 greve Exp $'
 
-version = '$Id: fast_selxavg.m,v 1.8 2003/11/19 19:15:36 greve Exp $';
+version = '$Id: fast_selxavg.m,v 1.9 2004/01/08 20:05:34 greve Exp $';
 fprintf(1,'%s\n',version);
 r = 1;
 
@@ -34,7 +34,8 @@ QTrendFit  = s.QTrendFit;
 RescaleTarget = s.RescaleTarget;
 GammaFit = s.GammaFit;
 gfDelta = s.gfDelta;
-gfTau =  s.gfTau;
+gfTau   = s.gfTau;
+gfAlpha = s.gfAlpha;
 nskip = s.nSkip;
 firstslice = s.firstslice;
 nslices = s.nslices;
@@ -298,7 +299,7 @@ for slice = firstslice:lastslice
 
       % Tranform for Fitting to Gamma Function(s) %
       if(GammaFit > 0)
-        Xpar = fmri_scm2gcm(Xfir,Nnnc,TER,TPS,gfDelta,gfTau);
+        Xpar = fmri_scm2gcm(Xfir,Nnnc,TER,TPS,gfDelta,gfTau,gfAlpha);
         Navgs_per_cond = length(gfDelta);
       else
         Xpar = Xfir;
@@ -657,8 +658,8 @@ nyqreg = s.nyqreg;
 fprintf('INFO: saving meta to %s\n',xfile);
 save(xfile,'Xfinal','Nnnc','pfOrder','nExtReg',...
      'nruns','Navgs_per_cond','TimeWindow','tPreStim','TR','TER',...
-     'gfDelta','gfTau','tpxlist','RescaleFactor','RescaleTarget',...
-     'nyqreg','-v4');
+     'gfDelta','gfTau','gfAlpha','tpxlist','RescaleFactor',...
+     'RescaleTarget','nyqreg','-v4');
 
 %-- Save ECovMtx for each run individually --%
 if(s.SaveErrCovMtx) 
@@ -707,6 +708,7 @@ hd.BrainAirSeg = 0;
 hd.GammaFit = GammaFit;
 hd.gfDelta  = gfDelta;
 hd.gfTau         = gfTau;
+%hd.gfAlpha      = gfAlpha; % This is not saved yet
 hd.NullCondId    = 0;
 hd.SumXtX        = SumXtXTmp;
 hd.nNoiseAC      = 0;
@@ -904,6 +906,7 @@ function s = sxa_struct
   s.HanRad = 0;
   s.gfDelta = [];
   s.gfTau = [];
+  s.gfAlpha = 2;
   s.TimeOffset = 0;
   s.AcqOrder = '';
   s.SynthSeed = 0;
@@ -1169,6 +1172,11 @@ function s = parse_args(varargin)
         narg = narg + 1;
         s.gfDelta = [s.gfDelta gfDelta];
         s.gfTau   = [s.gfTau   gfTau];
+
+      case {'-gammaexp'}
+        arg1check(flag,narg,ninputargs);
+        s.gfAlpha = sscanf(inputargs{narg},'%f',1);
+        narg = narg + 1;
 
       case '-acqorder',
         arg1check(flag,narg,ninputargs);
@@ -1458,6 +1466,7 @@ function s = sxa_print_struct(s,fid)
   for n = 1:s.GammaFit
     fprintf(fid,'%d  %g  %g\n',n,s.gfDelta,s.gfTau);
   end
+  fprintf('GammaFit Alpha: %g\n',s.gfAlpha);
 
   fprintf(fid,'Seg Brain/Air   %d\n',s.SegBrainAir);
   fprintf(fid,'SynthSeed       %d\n',s.SynthSeed);
