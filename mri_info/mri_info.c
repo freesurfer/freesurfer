@@ -3,11 +3,11 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/07/07 21:56:02 $
-// Revision       : $Revision: 1.28 $
+// Revision Date  : $Date: 2004/08/25 19:05:20 $
+// Revision       : $Revision: 1.29 $
 //
 ////////////////////////////////////////////////////////////////////
-char *MRI_INFO_VERSION = "$Revision: 1.28 $";
+char *MRI_INFO_VERSION = "$Revision: 1.29 $";
 #include <stdio.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -26,6 +26,7 @@ char *MRI_INFO_VERSION = "$Revision: 1.28 $";
 #include "diag.h"
 #include "version.h"
 #include "mghendian.h"
+#include "fio.h"
 
 struct ge_header {
   int magic;
@@ -85,7 +86,7 @@ int main(int argc, char *argv[])
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_info.c,v 1.28 2004/07/07 21:56:02 tosa Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_info.c,v 1.29 2004/08/25 19:05:20 tosa Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -173,10 +174,27 @@ static void do_file(char *fname)
   printf("              : x_s = %8.4f, y_s = %8.4f, z_s = %8.4f, c_s = %10.4f\n",
 	 mri->x_s, mri->y_s, mri->z_s, mri->c_s);
 
+  if (fio_IsDirectory(fname))
+    printf("\ntalairach xfm : %s\n", mri->transform_fname);
+  else
+  {
+    char *ext = 0;
+    ext = fio_extension(fname);
+    if (ext)
+    {
+      if (strcmp(ext, "mgz") == 0 || strcmp(ext, "mgh")==0)
+	printf("\ntalairach xfm : %s\n", mri->transform_fname);
+      free(ext);
+    }
+  }
   m = MRIgetVoxelToRasXform(mri) ; // extract_i_to_r(mri) (just macto)
-  printf("voxel to ras transform:\n") ; PrettyMatrixPrint(m) ;
-  MRIfree(&mri) ; MatrixFree(&m) ;
-
+  printf("\nvoxel to ras transform:\n") ; PrettyMatrixPrint(m) ;
+  MatrixFree(&m) ;
+  m = extract_r_to_i(mri);
+  printf("\nras to voxel transform:\n"); PrettyMatrixPrint(m);
+  MatrixFree(&m);
+  MRIfree(&mri);
+  
   return;
 
 #if 0 
