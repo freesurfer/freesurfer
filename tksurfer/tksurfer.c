@@ -7455,6 +7455,9 @@ write_labeled_vertices(char *fname)
       /* allocate a label. */
       area = LabelAlloc(npoints, NULL, NULL) ;
       
+      /* Copy the subject name. */
+      strncpy( area->subject_name, pname, 100 );
+
       /* for every vertex, if it's marked, save its vertex coords,
 	 index, and fill the value of the current overlay. */
       for (n = vno = 0 ; vno < mris->nvertices ; vno++)
@@ -14479,6 +14482,7 @@ floodfill_marked_patch(int filltype)
   if (filltype == CURVFILL)
     {
       area = LabelAlloc(MAXMARKED, pname, lfname) ;
+      strncpy( area->subject_name, pname, 100 );
       fprintf(stderr, "subject_name=%s, lfname=%s\n", pname,lfname) ;
       LabelCurvFill(area, marked, nmarked, MAXMARKED, mris) ;
 #if 0
@@ -14492,6 +14496,7 @@ floodfill_marked_patch(int filltype)
   else if (filltype == RIPFILL)
     {
       area = LabelAlloc(MAXMARKED, pname, lfname) ;
+      strncpy( area->subject_name, pname, 100 );
       fprintf(stderr, "subject_name=%s, lfname=%s\n", pname,lfname) ;
       LabelFillAll(area, marked, nmarked, MAXMARKED, mris) ;
 #if 0
@@ -18163,7 +18168,7 @@ int main(int argc, char *argv[])   /* new main */
   /* end rkt */
   
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.70 2004/06/16 20:19:04 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.71 2004/07/19 03:47:17 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -18363,418 +18368,525 @@ int main(int argc, char *argv[])   /* new main */
   
   /*=======================================================================*/
   /* register wrapped surfer functions with interpreter */
-  Tcl_CreateCommand(interp, "swap_buffers",       W_swap_buffers,       REND);
-  Tcl_CreateCommand(interp, "to_single_buffer",   W_to_single_buffer,   REND);
-  Tcl_CreateCommand(interp, "to_double_buffer",   W_to_double_buffer,   REND);
-  Tcl_CreateCommand(interp, "open_window",        W_open_window,        REND);
-  Tcl_CreateCommand(interp, "help",               W_help,               REND);
-  Tcl_CreateCommand(interp, "redraw",             W_redraw,             REND);
-  Tcl_CreateCommand(interp, "redraw_second",      W_redraw_second,      REND);
-  Tcl_CreateCommand(interp, "shrink",             W_shrink,             REND);
-  Tcl_CreateCommand(interp, "area_shrink",        W_area_shrink,        REND);
-  Tcl_CreateCommand(interp, "sphere_shrink",      W_sphere_shrink,      REND);
-  Tcl_CreateCommand(interp, "ellipsoid_project",  W_ellipsoid_project,  REND);
-  Tcl_CreateCommand(interp, "ellipsoid_morph",    W_ellipsoid_morph,     REND);
-  Tcl_CreateCommand(interp, "ellipsoid_shrink",   W_ellipsoid_shrink,     REND);
-  Tcl_CreateCommand(interp, "ellipsoid_shrink_bug",W_ellipsoid_shrink_bug,REND);
-  Tcl_CreateCommand(interp, "curv_shrink_to_fill",W_curv_shrink_to_fill,REND);
-  Tcl_CreateCommand(interp, "smooth_curvim",      W_smooth_curvim,      REND);
-  Tcl_CreateCommand(interp, "smooth_curv",        W_smooth_curv,        REND);
-  Tcl_CreateCommand(interp, "smooth_val",         W_smooth_val,         REND);
-  Tcl_CreateCommand(interp, "smooth_val_sparse",  W_smooth_val_sparse,  REND);
+  Tcl_CreateCommand(interp, "swap_buffers",       
+		    (Tcl_CmdProc*) W_swap_buffers,       REND);
+  Tcl_CreateCommand(interp, "to_single_buffer",   
+		    (Tcl_CmdProc*) W_to_single_buffer,   REND);
+  Tcl_CreateCommand(interp, "to_double_buffer",   
+		    (Tcl_CmdProc*) W_to_double_buffer,   REND);
+  Tcl_CreateCommand(interp, "open_window",        
+		    (Tcl_CmdProc*) W_open_window,        REND);
+  Tcl_CreateCommand(interp, "help",               
+		    (Tcl_CmdProc*) W_help,               REND);
+  Tcl_CreateCommand(interp, "redraw",             
+		    (Tcl_CmdProc*) W_redraw,             REND);
+  Tcl_CreateCommand(interp, "redraw_second",      
+		    (Tcl_CmdProc*) W_redraw_second,      REND);
+  Tcl_CreateCommand(interp, "shrink",             
+		    (Tcl_CmdProc*) W_shrink,             REND);
+  Tcl_CreateCommand(interp, "area_shrink",        
+		    (Tcl_CmdProc*) W_area_shrink,        REND);
+  Tcl_CreateCommand(interp, "sphere_shrink",      
+		    (Tcl_CmdProc*) W_sphere_shrink,      REND);
+  Tcl_CreateCommand(interp, "ellipsoid_project",  
+		    (Tcl_CmdProc*) W_ellipsoid_project,  REND);
+  Tcl_CreateCommand(interp, "ellipsoid_morph",    
+		    (Tcl_CmdProc*) W_ellipsoid_morph,     REND);
+  Tcl_CreateCommand(interp, "ellipsoid_shrink",   
+		    (Tcl_CmdProc*) W_ellipsoid_shrink,     REND);
+  Tcl_CreateCommand(interp, "ellipsoid_shrink_bug",
+		    (Tcl_CmdProc*) W_ellipsoid_shrink_bug,REND);
+  Tcl_CreateCommand(interp, "curv_shrink_to_fill",
+		    (Tcl_CmdProc*) W_curv_shrink_to_fill,REND);
+  Tcl_CreateCommand(interp, "smooth_curvim",      
+		    (Tcl_CmdProc*) W_smooth_curvim,      REND);
+  Tcl_CreateCommand(interp, "smooth_curv",        
+		    (Tcl_CmdProc*) W_smooth_curv,        REND);
+  Tcl_CreateCommand(interp, "smooth_val",         
+		    (Tcl_CmdProc*) W_smooth_val,         REND);
+  Tcl_CreateCommand(interp, "smooth_val_sparse",  
+		    (Tcl_CmdProc*) W_smooth_val_sparse,  REND);
   Tcl_CreateCommand(interp, "smooth_curvim_sparse",  
-		    W_smooth_curvim_sparse,                      REND);
-  Tcl_CreateCommand(interp, "smooth_fs",          W_smooth_fs,          REND);
+		    (Tcl_CmdProc*) W_smooth_curvim_sparse,    REND);
+  Tcl_CreateCommand(interp, "smooth_fs",          
+		    (Tcl_CmdProc*) W_smooth_fs,          REND);
   Tcl_CreateCommand(interp, "add_subject_to_average_curvim",
-		    W_add_subject_to_average_curvim,REND);
-  Tcl_CreateCommand(interp, "read_curv_images",   W_read_curv_images,   REND);
-  Tcl_CreateCommand(interp, "read_stds",          W_read_stds,          REND);
+		    (Tcl_CmdProc*) W_add_subject_to_average_curvim,REND);
+  Tcl_CreateCommand(interp, "read_curv_images",   
+		    (Tcl_CmdProc*) W_read_curv_images,   REND);
+  Tcl_CreateCommand(interp, "read_stds",          
+		    (Tcl_CmdProc*) W_read_stds,          REND);
   Tcl_CreateCommand(interp, "read_second_binary_surf",
-		    W_read_second_binary_surf,                   REND);
+		    (Tcl_CmdProc*) W_read_second_binary_surf,          REND);
   Tcl_CreateCommand(interp, "read_second_binary_curv",
-		    W_read_second_binary_curv,                   REND);
+		    (Tcl_CmdProc*) W_read_second_binary_curv,          REND);
   Tcl_CreateCommand(interp, "normalize_second_binary_curv",
-		    W_normalize_second_binary_curv,              REND);
+		    (Tcl_CmdProc*) W_normalize_second_binary_curv,     REND);
   Tcl_CreateCommand(interp, "curv_to_curvim",
-		    W_curv_to_curvim,                            REND);
+		    (Tcl_CmdProc*) W_curv_to_curvim,                   REND);
   Tcl_CreateCommand(interp, "second_surface_curv_to_curvim",
-		    W_second_surface_curv_to_curvim,             REND);
+		    (Tcl_CmdProc*) W_second_surface_curv_to_curvim,    REND);
   Tcl_CreateCommand(interp, "curvim_to_second_surface",
-		    W_curvim_to_second_surface,                  REND);
+		    (Tcl_CmdProc*) W_curvim_to_second_surface,         REND);
   Tcl_CreateCommand(interp, "swap_curv",
-		    W_swap_curv,                                 REND);
+		    (Tcl_CmdProc*) W_swap_curv,                        REND);
   Tcl_CreateCommand(interp, "curvim_to_surface",
-		    W_curvim_to_surface,                         REND);
-  Tcl_CreateCommand(interp, "read_binary_surf",   W_read_binary_surf,   REND);
-  Tcl_CreateCommand(interp, "read_surf",               W_read_surf,   REND);
-  Tcl_CreateCommand(interp, "save_surf",               W_save_surf,   REND);
-  Tcl_CreateCommand(interp, "store_surf",               W_save_surf,   REND);
-  Tcl_CreateCommand(interp, "restore_surf",               W_restore_surf,   REND);
-  Tcl_CreateCommand(interp, "surf",               W_show_surf,   REND);
-  Tcl_CreateCommand(interp, "read_binary_curv",   W_read_binary_curv,   REND);
-  Tcl_CreateCommand(interp, "read_binary_sulc",   W_read_binary_sulc,   REND);
-  Tcl_CreateCommand(interp, "read_binary_values", W_read_binary_values, REND);
+		    (Tcl_CmdProc*) W_curvim_to_surface,                REND);
+  Tcl_CreateCommand(interp, "read_binary_surf",   
+		    (Tcl_CmdProc*) W_read_binary_surf,   REND);
+  Tcl_CreateCommand(interp, "read_surf",               
+		    (Tcl_CmdProc*) W_read_surf,   REND);
+  Tcl_CreateCommand(interp, "save_surf",               
+		    (Tcl_CmdProc*) W_save_surf,   REND);
+  Tcl_CreateCommand(interp, "store_surf",               
+		    (Tcl_CmdProc*) W_save_surf,   REND);
+  Tcl_CreateCommand(interp, "restore_surf",               
+		    (Tcl_CmdProc*) W_restore_surf,   REND);
+  Tcl_CreateCommand(interp, "surf",               
+		    (Tcl_CmdProc*) W_show_surf,   REND);
+  Tcl_CreateCommand(interp, "read_binary_curv",   
+		    (Tcl_CmdProc*) W_read_binary_curv,   REND);
+  Tcl_CreateCommand(interp, "read_binary_sulc",   
+		    (Tcl_CmdProc*) W_read_binary_sulc,   REND);
+  Tcl_CreateCommand(interp, "read_binary_values", 
+		    (Tcl_CmdProc*) W_read_binary_values, REND);
   Tcl_CreateCommand(interp, "read_binary_values_frame", 
-		    W_read_binary_values_frame,                  REND);
-  Tcl_CreateCommand(interp, "read_annotated_image",W_read_annotated_image,REND);
-  Tcl_CreateCommand(interp, "read_annotations",W_read_annotations,REND);
-  Tcl_CreateCommand(interp, "read_binary_patch",  W_read_binary_patch,  REND);
-  Tcl_CreateCommand(interp, "read_fieldsign",     W_read_fieldsign,     REND);
-  Tcl_CreateCommand(interp, "read_fsmask",        W_read_fsmask,        REND);
-  Tcl_CreateCommand(interp, "write_binary_areas", W_write_binary_areas, REND);
-  Tcl_CreateCommand(interp, "write_binary_surface",W_write_binary_surface,REND);
-  Tcl_CreateCommand(interp, "write_binary_curv",  W_write_binary_curv,REND);
-  Tcl_CreateCommand(interp, "write_binary_sulc",  W_write_binary_sulc,REND);
-  Tcl_CreateCommand(interp, "write_binary_values",W_write_binary_values,REND);
-  Tcl_CreateCommand(interp, "write_binary_patch", W_write_binary_patch, REND);
+		    (Tcl_CmdProc*) W_read_binary_values_frame,        REND);
+  Tcl_CreateCommand(interp, "read_annotated_image",
+		    (Tcl_CmdProc*) W_read_annotated_image,REND);
+  Tcl_CreateCommand(interp, "read_annotations",
+		    (Tcl_CmdProc*) W_read_annotations,REND);
+  Tcl_CreateCommand(interp, "read_binary_patch",  
+		    (Tcl_CmdProc*) W_read_binary_patch,  REND);
+  Tcl_CreateCommand(interp, "read_fieldsign",     
+		    (Tcl_CmdProc*) W_read_fieldsign,     REND);
+  Tcl_CreateCommand(interp, "read_fsmask",        
+		    (Tcl_CmdProc*) W_read_fsmask,        REND);
+  Tcl_CreateCommand(interp, "write_binary_areas", 
+		    (Tcl_CmdProc*) W_write_binary_areas, REND);
+  Tcl_CreateCommand(interp, "write_binary_surface",
+		    (Tcl_CmdProc*) W_write_binary_surface,REND);
+  Tcl_CreateCommand(interp, "write_binary_curv",  
+		    (Tcl_CmdProc*) W_write_binary_curv,REND);
+  Tcl_CreateCommand(interp, "write_binary_sulc",  
+		    (Tcl_CmdProc*) W_write_binary_sulc,REND);
+  Tcl_CreateCommand(interp, "write_binary_values",
+		    (Tcl_CmdProc*) W_write_binary_values,REND);
+  Tcl_CreateCommand(interp, "write_binary_patch", 
+		    (Tcl_CmdProc*) W_write_binary_patch, REND);
   Tcl_CreateCommand(interp, "write_labeled_vertices", 
-		    W_write_labeled_vertices,                    REND);
+		    (Tcl_CmdProc*) W_write_labeled_vertices,    REND);
   Tcl_CreateCommand(interp, "read_labeled_vertices", 
-		    W_read_labeled_vertices,                    REND);
+		    (Tcl_CmdProc*) W_read_labeled_vertices,     REND);
   Tcl_CreateCommand(interp, "read_and_color_labeled_vertices", 
-		    W_read_and_color_labeled_vertices,           REND);
-  Tcl_CreateCommand(interp, "write_fieldsign",    W_write_fieldsign,    REND);
-  Tcl_CreateCommand(interp, "write_fsmask",       W_write_fsmask,       REND);
-  Tcl_CreateCommand(interp, "write_vrml",         W_write_vrml,         REND);
-  Tcl_CreateCommand(interp, "write_binary_dipoles",W_write_binary_dipoles,REND);
+		    (Tcl_CmdProc*) W_read_and_color_labeled_vertices, REND);
+  Tcl_CreateCommand(interp, "write_fieldsign",    
+		    (Tcl_CmdProc*) W_write_fieldsign,    REND);
+  Tcl_CreateCommand(interp, "write_fsmask",       
+		    (Tcl_CmdProc*) W_write_fsmask,       REND);
+  Tcl_CreateCommand(interp, "write_vrml",         
+		    (Tcl_CmdProc*) W_write_vrml,         REND);
+  Tcl_CreateCommand(interp, "write_binary_dipoles",
+		    (Tcl_CmdProc*) W_write_binary_dipoles,REND);
   Tcl_CreateCommand(interp, "write_binary_decimation",
-		    W_write_binary_decimation,                   REND);
-  Tcl_CreateCommand(interp, "write_dipoles",      W_write_dipoles,      REND);
-  Tcl_CreateCommand(interp, "write_decimation",   W_write_decimation,   REND);
-  Tcl_CreateCommand(interp, "write_curv_images",  W_write_curv_images,  REND);
-  Tcl_CreateCommand(interp, "write_fill_images",  W_write_fill_images,  REND);
-  Tcl_CreateCommand(interp, "fill_second_surface",W_fill_second_surface,REND);
-  Tcl_CreateCommand(interp, "subsample_dist",     W_subsample_dist,     REND);
-  Tcl_CreateCommand(interp, "subsample_orient",   W_subsample_orient,   REND);
-  Tcl_CreateCommand(interp, "write_subsample",    W_write_subsample,    REND);
-  Tcl_CreateCommand(interp, "compute_curvature",  W_compute_curvature,  REND);
-  Tcl_CreateCommand(interp, "compute_CMF",        W_compute_CMF,        REND);
+		    (Tcl_CmdProc*) W_write_binary_decimation,     REND);
+  Tcl_CreateCommand(interp, "write_dipoles",      
+		    (Tcl_CmdProc*) W_write_dipoles,      REND);
+  Tcl_CreateCommand(interp, "write_decimation",   
+		    (Tcl_CmdProc*) W_write_decimation,   REND);
+  Tcl_CreateCommand(interp, "write_curv_images",  
+		    (Tcl_CmdProc*) W_write_curv_images,  REND);
+  Tcl_CreateCommand(interp, "write_fill_images",  
+		    (Tcl_CmdProc*) W_write_fill_images,  REND);
+  Tcl_CreateCommand(interp, "fill_second_surface",
+		    (Tcl_CmdProc*) W_fill_second_surface,REND);
+  Tcl_CreateCommand(interp, "subsample_dist",     
+		    (Tcl_CmdProc*) W_subsample_dist,     REND);
+  Tcl_CreateCommand(interp, "subsample_orient",   
+		    (Tcl_CmdProc*) W_subsample_orient,   REND);
+  Tcl_CreateCommand(interp, "write_subsample",    
+		    (Tcl_CmdProc*) W_write_subsample,    REND);
+  Tcl_CreateCommand(interp, "compute_curvature",  
+		    (Tcl_CmdProc*) W_compute_curvature,  REND);
+  Tcl_CreateCommand(interp, "compute_CMF",        
+		    (Tcl_CmdProc*) W_compute_CMF,        REND);
   Tcl_CreateCommand(interp, "compute_cortical_thickness", 
-		    W_compute_cortical_thickness,                REND);
-  Tcl_CreateCommand(interp, "clear_curvature",    W_clear_curvature,    REND);
-  Tcl_CreateCommand(interp, "clear_ripflags",     W_clear_ripflags,     REND);
-  Tcl_CreateCommand(interp, "restore_ripflags",   W_restore_ripflags,   REND);
+		    (Tcl_CmdProc*) W_compute_cortical_thickness,     REND);
+  Tcl_CreateCommand(interp, "clear_curvature",    
+		    (Tcl_CmdProc*) W_clear_curvature,    REND);
+  Tcl_CreateCommand(interp, "clear_ripflags",     
+		    (Tcl_CmdProc*) W_clear_ripflags,     REND);
+  Tcl_CreateCommand(interp, "restore_ripflags",   
+		    (Tcl_CmdProc*) W_restore_ripflags,   REND);
   Tcl_CreateCommand(interp, "floodfill_marked_patch",
-		    W_floodfill_marked_patch,                    REND);
+		    (Tcl_CmdProc*) W_floodfill_marked_patch,    REND);
   Tcl_CreateCommand(interp, "twocond",
-		    W_twocond,                    REND);
-  Tcl_CreateCommand(interp, "cut_line",           W_cut_line,           REND);
-  Tcl_CreateCommand(interp, "plot_curv",          W_plot_curv,          REND);
-  Tcl_CreateCommand(interp, "draw_fundus",        W_draw_fundus,        REND);
-  Tcl_CreateCommand(interp, "plot_marked",        W_plot_marked,        REND);
+		    (Tcl_CmdProc*) W_twocond,                    REND);
+  Tcl_CreateCommand(interp, "cut_line",           
+		    (Tcl_CmdProc*) W_cut_line,           REND);
+  Tcl_CreateCommand(interp, "plot_curv",          
+		    (Tcl_CmdProc*) W_plot_curv,          REND);
+  Tcl_CreateCommand(interp, "draw_fundus",        
+		    (Tcl_CmdProc*) W_draw_fundus,        REND);
+  Tcl_CreateCommand(interp, "plot_marked",        
+		    (Tcl_CmdProc*) W_plot_marked,        REND);
   Tcl_CreateCommand(interp, "put_retinotopy_stats_in_vals",          
-                    W_put_retinotopy_stats_in_vals,                     REND);
-  Tcl_CreateCommand(interp, "draw_vector",        W_draw_vector,        REND);
-  Tcl_CreateCommand(interp, "cut_plane",          W_cut_plane,          REND);
-  Tcl_CreateCommand(interp, "flatten",            W_flatten,            REND);
+                    (Tcl_CmdProc*) W_put_retinotopy_stats_in_vals,    REND);
+  Tcl_CreateCommand(interp, "draw_vector",        
+		    (Tcl_CmdProc*) W_draw_vector,        REND);
+  Tcl_CreateCommand(interp, "cut_plane",          
+		    (Tcl_CmdProc*) W_cut_plane,          REND);
+  Tcl_CreateCommand(interp, "flatten",            
+		    (Tcl_CmdProc*) W_flatten,            REND);
   Tcl_CreateCommand(interp, "normalize_binary_curv",
-		    W_normalize_binary_curv,                    REND);
-  Tcl_CreateCommand(interp, "normalize_area",     W_normalize_area,     REND);
-  Tcl_CreateCommand(interp, "shift_values",       W_shift_values,       REND);
-  Tcl_CreateCommand(interp, "swap_values",        W_swap_values,        REND);
-  Tcl_CreateCommand(interp, "swap_stat_val",      W_swap_stat_val,      REND);
-  Tcl_CreateCommand(interp, "swap_val_val2",      W_swap_val_val2,      REND);
-  Tcl_CreateCommand(interp, "compute_angles",     W_compute_angles,     REND);
-  Tcl_CreateCommand(interp, "compute_fieldsign",  W_compute_fieldsign,  REND);
-  Tcl_CreateCommand(interp, "draw_radius",        W_draw_radius,        REND);
-  Tcl_CreateCommand(interp, "draw_theta",         W_draw_theta,         REND);
-  Tcl_CreateCommand(interp, "save_rgb",           W_save_rgb,           REND);
-  Tcl_CreateCommand(interp, "save_rgb_named_orig",W_save_rgb_named_orig,REND);
-  Tcl_CreateCommand(interp, "save_rgb_cmp_frame", W_save_rgb_cmp_frame, REND);
-  Tcl_CreateCommand(interp, "open_rgb_cmp_named", W_open_rgb_cmp_named, REND);
+		    (Tcl_CmdProc*) W_normalize_binary_curv,     REND);
+  Tcl_CreateCommand(interp, "normalize_area",     
+		    (Tcl_CmdProc*) W_normalize_area,     REND);
+  Tcl_CreateCommand(interp, "shift_values",       
+		    (Tcl_CmdProc*) W_shift_values,       REND);
+  Tcl_CreateCommand(interp, "swap_values",        
+		    (Tcl_CmdProc*) W_swap_values,        REND);
+  Tcl_CreateCommand(interp, "swap_stat_val",      
+		    (Tcl_CmdProc*) W_swap_stat_val,      REND);
+  Tcl_CreateCommand(interp, "swap_val_val2",      
+		    (Tcl_CmdProc*) W_swap_val_val2,      REND);
+  Tcl_CreateCommand(interp, "compute_angles",     
+		    (Tcl_CmdProc*) W_compute_angles,     REND);
+  Tcl_CreateCommand(interp, "compute_fieldsign",  
+		    (Tcl_CmdProc*) W_compute_fieldsign,  REND);
+  Tcl_CreateCommand(interp, "draw_radius",        
+		    (Tcl_CmdProc*) W_draw_radius,        REND);
+  Tcl_CreateCommand(interp, "draw_theta",         
+		    (Tcl_CmdProc*) W_draw_theta,         REND);
+  Tcl_CreateCommand(interp, "save_rgb",           
+		    (Tcl_CmdProc*) W_save_rgb,           REND);
+  Tcl_CreateCommand(interp, "save_rgb_named_orig",
+		    (Tcl_CmdProc*) W_save_rgb_named_orig,REND);
+  Tcl_CreateCommand(interp, "save_rgb_cmp_frame", 
+		    (Tcl_CmdProc*) W_save_rgb_cmp_frame, REND);
+  Tcl_CreateCommand(interp, "open_rgb_cmp_named", 
+		    (Tcl_CmdProc*) W_open_rgb_cmp_named, REND);
   Tcl_CreateCommand(interp, "save_rgb_cmp_frame_named",
-		    W_save_rgb_cmp_frame_named,                  REND);
-  Tcl_CreateCommand(interp, "close_rgb_cmp_named",W_close_rgb_cmp_named,REND);
-  Tcl_CreateCommand(interp, "rotate_brain_x",     W_rotate_brain_x,     REND);
-  Tcl_CreateCommand(interp, "rotate_brain_y",     W_rotate_brain_y,     REND);
-  Tcl_CreateCommand(interp, "rotate_brain_z",     W_rotate_brain_z,     REND);
-  Tcl_CreateCommand(interp, "translate_brain_x",  W_translate_brain_x,  REND);
-  Tcl_CreateCommand(interp, "translate_brain_y",  W_translate_brain_y,  REND);
-  Tcl_CreateCommand(interp, "translate_brain_z",  W_translate_brain_z,  REND);
-  Tcl_CreateCommand(interp, "scale_brain",        W_scale_brain,        REND);
-  Tcl_CreateCommand(interp, "resize_window",      W_resize_window,      REND);
-  Tcl_CreateCommand(interp, "setsize_window",     W_setsize_window,     REND);
-  Tcl_CreateCommand(interp, "move_window",        W_move_window,        REND);
-  Tcl_CreateCommand(interp, "do_lighting_model",  W_do_lighting_model,  REND);
+		    (Tcl_CmdProc*) W_save_rgb_cmp_frame_named,     REND);
+  Tcl_CreateCommand(interp, "close_rgb_cmp_named",
+		    (Tcl_CmdProc*) W_close_rgb_cmp_named,REND);
+  Tcl_CreateCommand(interp, "rotate_brain_x",     
+		    (Tcl_CmdProc*) W_rotate_brain_x,     REND);
+  Tcl_CreateCommand(interp, "rotate_brain_y",     
+		    (Tcl_CmdProc*) W_rotate_brain_y,     REND);
+  Tcl_CreateCommand(interp, "rotate_brain_z",     
+		    (Tcl_CmdProc*) W_rotate_brain_z,     REND);
+  Tcl_CreateCommand(interp, "translate_brain_x",  
+		    (Tcl_CmdProc*) W_translate_brain_x,  REND);
+  Tcl_CreateCommand(interp, "translate_brain_y",  
+		    (Tcl_CmdProc*) W_translate_brain_y,  REND);
+  Tcl_CreateCommand(interp, "translate_brain_z",  
+		    (Tcl_CmdProc*) W_translate_brain_z,  REND);
+  Tcl_CreateCommand(interp, "scale_brain",        
+		    (Tcl_CmdProc*) W_scale_brain,        REND);
+  Tcl_CreateCommand(interp, "resize_window",      
+		    (Tcl_CmdProc*) W_resize_window,      REND);
+  Tcl_CreateCommand(interp, "setsize_window",     
+		    (Tcl_CmdProc*) W_setsize_window,     REND);
+  Tcl_CreateCommand(interp, "move_window",        
+		    (Tcl_CmdProc*) W_move_window,        REND);
+  Tcl_CreateCommand(interp, "do_lighting_model",  
+		    (Tcl_CmdProc*) W_do_lighting_model,  REND);
   Tcl_CreateCommand(interp, "restore_zero_position",
-		    W_restore_zero_position,                     REND);
+		    (Tcl_CmdProc*) W_restore_zero_position,  REND);
   Tcl_CreateCommand(interp, "restore_initial_position",
-		    W_restore_initial_position,                  REND);
-  Tcl_CreateCommand(interp, "make_lateral_view",  W_make_lateral_view,  REND);
+		    (Tcl_CmdProc*) W_restore_initial_position,   REND);
+  Tcl_CreateCommand(interp, "make_lateral_view",  
+		    (Tcl_CmdProc*) W_make_lateral_view,  REND);
   Tcl_CreateCommand(interp, "make_lateral_view_second", 
-		    W_make_lateral_view_second,                  REND);
-  Tcl_CreateCommand(interp, "read_view_matrix",   W_read_view_matrix,   REND);
-  Tcl_CreateCommand(interp, "write_view_matrix",  W_write_view_matrix,  REND);
-  Tcl_CreateCommand(interp, "read_really_matrix", W_read_really_matrix, REND);
-  Tcl_CreateCommand(interp, "write_really_matrix",W_write_really_matrix,REND);
+		    (Tcl_CmdProc*) W_make_lateral_view_second,      REND);
+  Tcl_CreateCommand(interp, "read_view_matrix",   
+		    (Tcl_CmdProc*) W_read_view_matrix,   REND);
+  Tcl_CreateCommand(interp, "write_view_matrix",  
+		    (Tcl_CmdProc*) W_write_view_matrix,  REND);
+  Tcl_CreateCommand(interp, "read_really_matrix", 
+		    (Tcl_CmdProc*) W_read_really_matrix, REND);
+  Tcl_CreateCommand(interp, "write_really_matrix",
+		    (Tcl_CmdProc*) W_write_really_matrix,REND);
   Tcl_CreateCommand(interp, "really_translate_brain",
-		    W_really_translate_brain,                    REND);
-  Tcl_CreateCommand(interp, "really_scale_brain", W_really_scale_brain, REND);
+		    (Tcl_CmdProc*) W_really_translate_brain,      REND);
+  Tcl_CreateCommand(interp, "really_scale_brain", 
+		    (Tcl_CmdProc*) W_really_scale_brain, REND);
   Tcl_CreateCommand(interp, "align_sphere", 
-		    W_align_sphere,                              REND);
+		    (Tcl_CmdProc*) W_align_sphere,         REND);
   Tcl_CreateCommand(interp, "really_rotate_brain_x", 
-		    W_really_rotate_brain_x,                     REND);
+		    (Tcl_CmdProc*) W_really_rotate_brain_x,    REND);
   Tcl_CreateCommand(interp, "really_rotate_brain_y", 
-		    W_really_rotate_brain_y,                     REND);
+		    (Tcl_CmdProc*) W_really_rotate_brain_y,     REND);
   Tcl_CreateCommand(interp, "really_rotate_brain_z", 
-		    W_really_rotate_brain_z,                     REND);
-  Tcl_CreateCommand(interp, "really_center_brain",W_really_center_brain, REND);
+		    (Tcl_CmdProc*) W_really_rotate_brain_z,    REND);
+  Tcl_CreateCommand(interp, "really_center_brain",
+		    (Tcl_CmdProc*) W_really_center_brain, REND);
   Tcl_CreateCommand(interp, "really_center_second_brain",
-		    W_really_center_second_brain, REND);
-  Tcl_CreateCommand(interp, "really_align_brain", W_really_align_brain, REND);
+		    (Tcl_CmdProc*) W_really_center_second_brain, REND);
+  Tcl_CreateCommand(interp, "really_align_brain", 
+		    (Tcl_CmdProc*) W_really_align_brain, REND);
   Tcl_CreateCommand(interp, "read_binary_decimation", 
-		    W_read_binary_decimation,                    REND);
+		    (Tcl_CmdProc*) W_read_binary_decimation,    REND);
   Tcl_CreateCommand(interp, "read_binary_dipoles", 
-		    W_read_binary_dipoles,                       REND);
+		    (Tcl_CmdProc*) W_read_binary_dipoles,     REND);
   Tcl_CreateCommand(interp, "load_vals_from_sol", 
-		    W_load_vals_from_sol,                        REND);
+		    (Tcl_CmdProc*) W_load_vals_from_sol,   REND);
   Tcl_CreateCommand(interp, "load_var_from_sol",
-		    W_load_var_from_sol,                         REND);
-  Tcl_CreateCommand(interp, "compute_timecourses",W_compute_timecourses,
-		    REND);
-  Tcl_CreateCommand(interp, "filter_recs",W_filter_recs,                REND);
-  Tcl_CreateCommand(interp, "read_rec",W_read_rec,                      REND);
-  Tcl_CreateCommand(interp, "read_iop",W_read_iop,                      REND);
-  Tcl_CreateCommand(interp, "read_ncov",W_read_ncov,                    REND);
+		    (Tcl_CmdProc*) W_load_var_from_sol,     REND);
+  Tcl_CreateCommand(interp, "compute_timecourses",
+		    (Tcl_CmdProc*) W_compute_timecourses, REND);
+  Tcl_CreateCommand(interp, "filter_recs",
+		    (Tcl_CmdProc*) W_filter_recs,                REND);
+  Tcl_CreateCommand(interp, "read_rec",
+		    (Tcl_CmdProc*) W_read_rec,                      REND);
+  Tcl_CreateCommand(interp, "read_iop",
+		    (Tcl_CmdProc*) W_read_iop,                      REND);
+  Tcl_CreateCommand(interp, "read_ncov",
+		    (Tcl_CmdProc*) W_read_ncov,                    REND);
   Tcl_CreateCommand(interp, "normalize_time_courses", 
-		    W_normalize_time_courses,                    REND);
-  Tcl_CreateCommand(interp, "compute_timecourses",W_compute_timecourses,
-		    REND);
-  Tcl_CreateCommand(interp, "compute_pval_fwd",W_compute_pval_fwd,      REND);
-  Tcl_CreateCommand(interp, "compute_select_fwd",W_compute_select_fwd,  REND);
-  Tcl_CreateCommand(interp, "compute_pval_inv",W_compute_pval_inv,      REND);
+		    (Tcl_CmdProc*) W_normalize_time_courses,   REND);
+  Tcl_CreateCommand(interp, "compute_timecourses",
+		    (Tcl_CmdProc*) W_compute_timecourses,  REND);
+  Tcl_CreateCommand(interp, "compute_pval_fwd",
+		    (Tcl_CmdProc*) W_compute_pval_fwd,      REND);
+  Tcl_CreateCommand(interp, "compute_select_fwd",
+		    (Tcl_CmdProc*) W_compute_select_fwd,  REND);
+  Tcl_CreateCommand(interp, "compute_pval_inv",
+		    (Tcl_CmdProc*) W_compute_pval_inv,      REND);
   Tcl_CreateCommand(interp, "normalize_inverse",
-		    W_normalize_inverse,                         REND);
+		    (Tcl_CmdProc*) W_normalize_inverse,    REND);
   Tcl_CreateCommand(interp, "find_orig_vertex_coordinates",
-		    W_find_orig_vertex_coordinates,              REND);
+		    (Tcl_CmdProc*) W_find_orig_vertex_coordinates, REND);
   Tcl_CreateCommand(interp, "select_orig_vertex_coordinates",
-		    W_select_orig_vertex_coordinates,            REND);
+		    (Tcl_CmdProc*) W_select_orig_vertex_coordinates, REND);
   Tcl_CreateCommand(interp, "select_talairach_point",
-		    W_select_talairach_point,                    REND);
+		    (Tcl_CmdProc*) W_select_talairach_point, REND);
   Tcl_CreateCommand(interp, "read_white_vertex_coordinates",
-		    W_read_white_vertex_coordinates,              REND);
+		    (Tcl_CmdProc*) W_read_white_vertex_coordinates, REND);
   Tcl_CreateCommand(interp, "read_pial_vertex_coordinates",
-		    W_read_pial_vertex_coordinates,              REND);
+		    (Tcl_CmdProc*) W_read_pial_vertex_coordinates, REND);
   Tcl_CreateCommand(interp, "read_orig_vertex_coordinates",
-		    W_read_orig_vertex_coordinates,              REND);
+		    (Tcl_CmdProc*) W_read_orig_vertex_coordinates, REND);
   Tcl_CreateCommand(interp, "read_canon_vertex_coordinates",
-		    W_read_canon_vertex_coordinates,              REND);
+		    (Tcl_CmdProc*) W_read_canon_vertex_coordinates, REND);
   Tcl_CreateCommand(interp, "send_spherical_point",
-		    W_send_spherical_point,              REND);
+		    (Tcl_CmdProc*) W_send_spherical_point, REND);
   Tcl_CreateCommand(interp, "send_to_subject",
-		    W_send_to_subject,              REND);
+		    (Tcl_CmdProc*) W_send_to_subject, REND);
   Tcl_CreateCommand(interp, "resend_to_subject",
-		    W_resend_to_subject,              REND);
+		    (Tcl_CmdProc*) W_resend_to_subject, REND);
   Tcl_CreateCommand(interp, "drawcb",
-		    W_drawcb,              REND);
+		    (Tcl_CmdProc*) W_drawcb, REND);
   Tcl_CreateCommand(interp, "read_ellipsoid_vertex_coordinates",
-		    W_read_ellipsoid_vertex_coordinates,         REND);
+		    (Tcl_CmdProc*) W_read_ellipsoid_vertex_coordinates, REND);
   Tcl_CreateCommand(interp, "invert_surface",
-		    W_invert_surface,         REND);
+		    (Tcl_CmdProc*) W_invert_surface, REND);
   Tcl_CreateCommand(interp, "fix_nonzero_vals",
-		    W_fix_nonzero_vals,         REND);
+		    (Tcl_CmdProc*) W_fix_nonzero_vals, REND);
   Tcl_CreateCommand(interp, "invert_vertex",
-		    W_invert_vertex,         REND);
+		    (Tcl_CmdProc*) W_invert_vertex, REND);
   Tcl_CreateCommand(interp, "invert_face",
-		    W_invert_face,         REND);
+		    (Tcl_CmdProc*) W_invert_face, REND);
   Tcl_CreateCommand(interp, "mark_annotation",
-		    W_mark_annotation,         REND);
+		    (Tcl_CmdProc*) W_mark_annotation, REND);
   Tcl_CreateCommand(interp, "mark_faces",
-		    W_mark_faces,         REND);
+		    (Tcl_CmdProc*) W_mark_faces, REND);
   Tcl_CreateCommand(interp, "mark_face",
-		    W_mark_face,         REND);
+		    (Tcl_CmdProc*) W_mark_face, REND);
   Tcl_CreateCommand(interp, "dump_vertex",
-		    W_dump_vertex,         REND);
+		    (Tcl_CmdProc*) W_dump_vertex, REND);
   Tcl_CreateCommand(interp, "val_to_mark",
-		    W_val_to_mark,         REND);
+		    (Tcl_CmdProc*) W_val_to_mark, REND);
   Tcl_CreateCommand(interp, "resize_brain",
-		    W_resize_brain,         REND);
+		    (Tcl_CmdProc*) W_resize_brain, REND);
   Tcl_CreateCommand(interp, "transform_brain",
-		    W_transform_brain,         REND);
+		    (Tcl_CmdProc*) W_transform_brain, REND);
   Tcl_CreateCommand(interp, "show_flat_regions",
-		    W_show_flat_regions,         REND);
+		    (Tcl_CmdProc*) W_show_flat_regions, REND);
   Tcl_CreateCommand(interp, "val_to_stat",
-		    W_val_to_stat,         REND);
+		    (Tcl_CmdProc*) W_val_to_stat, REND);
   Tcl_CreateCommand(interp, "stat_to_val",
-		    W_stat_to_val,         REND);
+		    (Tcl_CmdProc*) W_stat_to_val, REND);
   Tcl_CreateCommand(interp, "read_soltimecourse",
-		    W_read_soltimecourse,         REND);
+		    (Tcl_CmdProc*) W_read_soltimecourse, REND);
   Tcl_CreateCommand(interp, "read_imag_vals",
-		    W_read_imag_vals,         REND);
+		    (Tcl_CmdProc*) W_read_imag_vals, REND);
   Tcl_CreateCommand(interp, "sol_plot",
-		    W_sol_plot,         REND);
+		    (Tcl_CmdProc*) W_sol_plot, REND);
   Tcl_CreateCommand(interp, "remove_triangle_links",
-		    W_remove_triangle_links,         REND);
+		    (Tcl_CmdProc*) W_remove_triangle_links, REND);
   Tcl_CreateCommand(interp, "f_to_t",
-		    W_f_to_t,         REND);
+		    (Tcl_CmdProc*) W_f_to_t, REND);
   Tcl_CreateCommand(interp, "label_to_stat",
-		    W_label_to_stat,         REND);
+		    (Tcl_CmdProc*) W_label_to_stat, REND);
   Tcl_CreateCommand(interp, "t_to_p",
-		    W_t_to_p,         REND);
+		    (Tcl_CmdProc*) W_t_to_p, REND);
   Tcl_CreateCommand(interp, "f_to_p",
-		    W_f_to_p,         REND);
+		    (Tcl_CmdProc*) W_f_to_p, REND);
   Tcl_CreateCommand(interp, "val_to_curv",
-		    W_val_to_curv,         REND);
+		    (Tcl_CmdProc*) W_val_to_curv, REND);
   Tcl_CreateCommand(interp, "curv_to_val",
-		    W_curv_to_val,         REND);
+		    (Tcl_CmdProc*) W_curv_to_val, REND);
   Tcl_CreateCommand(interp, "read_curv_to_val",
-		    W_read_curv_to_val,         REND);
+		    (Tcl_CmdProc*) W_read_curv_to_val, REND);
   Tcl_CreateCommand(interp, "read_and_smooth_parcellation",
-		    W_read_and_smooth_parcellation,         REND);
+		    (Tcl_CmdProc*) W_read_and_smooth_parcellation, REND);
   Tcl_CreateCommand(interp, "read_parcellation",
-		    W_read_parcellation,         REND);
+		    (Tcl_CmdProc*) W_read_parcellation, REND);
   Tcl_CreateCommand(interp, "deconvolve_weights",
-		    W_deconvolve_weights,         REND);
+		    (Tcl_CmdProc*) W_deconvolve_weights, REND);
   Tcl_CreateCommand(interp, "read_disc",
-		    W_read_disc,         REND);
+		    (Tcl_CmdProc*) W_read_disc, REND);
   Tcl_CreateCommand(interp, "mask_label",
-		    W_mask_label,         REND);
+		    (Tcl_CmdProc*) W_mask_label, REND);
   Tcl_CreateCommand(interp, "orient_sphere",
-		    W_orient_sphere,         REND);
+		    (Tcl_CmdProc*) W_orient_sphere, REND);
   Tcl_CreateCommand(interp, "dump_faces",
-		    W_dump_faces,         REND);
+		    (Tcl_CmdProc*) W_dump_faces, REND);
   Tcl_CreateCommand(interp, "draw_ellipsoid_latlong",
-		    W_draw_ellipsoid_latlong,                    REND);
-  Tcl_CreateCommand(interp, "left_click", W_left_click,                 REND);
+		    (Tcl_CmdProc*) W_draw_ellipsoid_latlong, REND);
+  Tcl_CreateCommand(interp, "left_click", 
+		    (Tcl_CmdProc*) W_left_click, REND);
   Tcl_CreateCommand(interp, "plot_all_time_courses",
-		    W_plot_all_time_courses,      REND);
+		    (Tcl_CmdProc*) W_plot_all_time_courses, REND);
   Tcl_CreateCommand(interp, "read_plot_list",
-		    W_read_plot_list,      REND);
+		    (Tcl_CmdProc*) W_read_plot_list, REND);
   Tcl_CreateCommand(interp, "read_vertex_list",
-		    W_read_vertex_list,      REND);
+		    (Tcl_CmdProc*) W_read_vertex_list, REND);
   Tcl_CreateCommand(interp, "draw_cursor",
-		    W_draw_cursor,      REND);
+		    (Tcl_CmdProc*) W_draw_cursor, REND);
   Tcl_CreateCommand(interp, "mark_vertex",
-		    W_mark_vertex,      REND);
+		    (Tcl_CmdProc*) W_mark_vertex, REND);
   Tcl_CreateCommand(interp, "draw_all_cursor",
-		    W_draw_all_cursor,      REND);
+		    (Tcl_CmdProc*) W_draw_all_cursor, REND);
   Tcl_CreateCommand(interp, "draw_all_vertex_cursor",
-		    W_draw_all_vertex_cursor,      REND);
+		    (Tcl_CmdProc*) W_draw_all_vertex_cursor, REND);
   Tcl_CreateCommand(interp, "clear_all_vertex_cursor",
-		    W_clear_all_vertex_cursor,      REND);
+		    (Tcl_CmdProc*) W_clear_all_vertex_cursor, REND);
   /* begin rkt */
   Tcl_CreateCommand(interp, "select_vertex_by_vno",
-		    W_select_vertex_by_vno, REND);
+		    (Tcl_CmdProc*) W_select_vertex_by_vno, REND);
   
   Tcl_CreateCommand(interp, "swap_vertex_fields",
-		    W_swap_vertex_fields, REND);
+		    (Tcl_CmdProc*) W_swap_vertex_fields, REND);
   
   Tcl_CreateCommand(interp, "clear_vertex_marks",
-		    W_clear_vertex_marks, REND);
+		    (Tcl_CmdProc*) W_clear_vertex_marks, REND);
   Tcl_CreateCommand(interp, "clear_all_vertex_marks",
-		    W_clear_all_vertex_marks, REND);
+		    (Tcl_CmdProc*) W_clear_all_vertex_marks, REND);
   
   Tcl_CreateCommand(interp, "close_marked_vertices",
-		    W_close_marked_vertices, REND);
+		    (Tcl_CmdProc*) W_close_marked_vertices, REND);
   
   Tcl_CreateCommand(interp, "undo_last_action",
-		    W_undo_last_action, REND);
+		    (Tcl_CmdProc*) W_undo_last_action, REND);
   
   Tcl_CreateCommand(interp, "sclv_read_binary_values", 
-		    W_sclv_read_binary_values, REND);
+		    (Tcl_CmdProc*) W_sclv_read_binary_values, REND);
   Tcl_CreateCommand(interp, "sclv_read_binary_values_frame", 
-		    W_sclv_read_binary_values_frame, REND);
+		    (Tcl_CmdProc*) W_sclv_read_binary_values_frame, REND);
   Tcl_CreateCommand(interp, "sclv_read_bfile_values", 
-		    W_sclv_read_bfile_values, REND);
+		    (Tcl_CmdProc*) W_sclv_read_bfile_values, REND);
   Tcl_CreateCommand(interp, "sclv_write_binary_values", 
-		    W_sclv_write_binary_values, REND);
+		    (Tcl_CmdProc*) W_sclv_write_binary_values, REND);
   Tcl_CreateCommand(interp, "sclv_smooth", 
-		    W_sclv_smooth, REND);
+		    (Tcl_CmdProc*) W_sclv_smooth, REND);
   Tcl_CreateCommand(interp, "sclv_set_overlay_alpha", 
-		    W_sclv_set_overlay_alpha, REND);
+		    (Tcl_CmdProc*) W_sclv_set_overlay_alpha, REND);
   Tcl_CreateCommand(interp, "sclv_set_current_field", 
-		    W_sclv_set_current_field, REND);
+		    (Tcl_CmdProc*) W_sclv_set_current_field, REND);
   Tcl_CreateCommand(interp, "sclv_set_current_timepoint", 
-		    W_sclv_set_current_timepoint, REND);
+		    (Tcl_CmdProc*) W_sclv_set_current_timepoint, REND);
   Tcl_CreateCommand(interp, "sclv_copy_view_settings_from_current_field", 
-		    W_sclv_copy_view_settings_from_current_field, REND);
+		    (Tcl_CmdProc*) W_sclv_copy_view_settings_from_current_field, REND);
   Tcl_CreateCommand(interp, "sclv_copy_all_view_settings_from_current_field", 
-		    W_sclv_copy_all_view_settings_from_current_field, REND);
+		    (Tcl_CmdProc*) W_sclv_copy_all_view_settings_from_current_field, REND);
   Tcl_CreateCommand(interp, "sclv_copy_view_settings_from_field", 
-		    W_sclv_copy_view_settings_from_field, REND);
+		    (Tcl_CmdProc*) W_sclv_copy_view_settings_from_field, REND);
   Tcl_CreateCommand(interp, "sclv_set_current_threshold_from_percentile", 
-		    W_sclv_set_current_threshold_from_percentile, REND);
+		    (Tcl_CmdProc*) W_sclv_set_current_threshold_from_percentile, REND);
   Tcl_CreateCommand(interp, "sclv_send_histogram",
-		    W_sclv_send_histogram, REND);
+		    (Tcl_CmdProc*) W_sclv_send_histogram, REND);
   Tcl_CreateCommand(interp, "sclv_send_current_field_info",
-		    W_sclv_send_current_field_info, REND);
+		    (Tcl_CmdProc*) W_sclv_send_current_field_info, REND);
   Tcl_CreateCommand(interp, "sclv_get_normalized_color_for_value",
-		    W_sclv_get_normalized_color_for_value, REND);
+		    (Tcl_CmdProc*) W_sclv_get_normalized_color_for_value, REND);
   
   Tcl_CreateCommand(interp, "read_surface_vertex_set",   
-		    W_read_surface_vertex_set,   REND);
+		    (Tcl_CmdProc*) W_read_surface_vertex_set, REND);
   Tcl_CreateCommand(interp, "set_current_vertex_set",   
-		    W_set_current_vertex_set,   REND);
+		    (Tcl_CmdProc*) W_set_current_vertex_set, REND);
   
   Tcl_CreateCommand(interp, "func_load_timecourse",
-		    W_func_load_timecourse, REND);
+		    (Tcl_CmdProc*) W_func_load_timecourse, REND);
   Tcl_CreateCommand(interp, "func_load_timecourse_offset",
-		    W_func_load_timecourse_offset, REND);
+		    (Tcl_CmdProc*) W_func_load_timecourse_offset, REND);
   Tcl_CreateCommand(interp, "func_select_marked_vertices",
-		    W_func_select_marked_vertices, REND);
+		    (Tcl_CmdProc*) W_func_select_marked_vertices, REND);
   Tcl_CreateCommand(interp, "func_select_label",
-		    W_func_select_label, REND);
+		    (Tcl_CmdProc*) W_func_select_label, REND);
   Tcl_CreateCommand(interp, "func_clear_selection",
-		    W_func_clear_selection, REND);
+		    (Tcl_CmdProc*) W_func_clear_selection, REND);
   Tcl_CreateCommand(interp, "func_graph_timecourse_selection",
-		    W_func_graph_timecourse_selection, REND);
+		    (Tcl_CmdProc*) W_func_graph_timecourse_selection, REND);
   Tcl_CreateCommand(interp, "func_print_timecourse_selection",
-		    W_func_print_timecourse_selection, REND);
+		    (Tcl_CmdProc*) W_func_print_timecourse_selection, REND);
   
   Tcl_CreateCommand(interp, "labl_load_color_table",
-		    W_labl_load_color_table, REND);
+		    (Tcl_CmdProc*) W_labl_load_color_table, REND);
   Tcl_CreateCommand(interp, "labl_load",
-		    W_labl_load, REND);
+		    (Tcl_CmdProc*) W_labl_load, REND);
   Tcl_CreateCommand(interp, "labl_save",
-		    W_labl_save, REND);
+		    (Tcl_CmdProc*) W_labl_save, REND);
   Tcl_CreateCommand(interp, "labl_save_all",
-		    W_labl_save_all, REND);
+		    (Tcl_CmdProc*) W_labl_save_all, REND);
   Tcl_CreateCommand(interp, "labl_import_annotation",
-		    W_labl_import_annotation, REND);
+		    (Tcl_CmdProc*) W_labl_import_annotation, REND);
   Tcl_CreateCommand(interp, "labl_export_annotation",
-		    W_labl_export_annotation, REND);
+		    (Tcl_CmdProc*) W_labl_export_annotation, REND);
   Tcl_CreateCommand(interp, "labl_new_from_marked_vertices",
-		    W_labl_new_from_marked_vertices, REND);
+		    (Tcl_CmdProc*) W_labl_new_from_marked_vertices, REND);
   Tcl_CreateCommand(interp, "labl_mark_vertices",
-		    W_labl_mark_vertices, REND);
+		    (Tcl_CmdProc*) W_labl_mark_vertices, REND);
   Tcl_CreateCommand(interp, "labl_select",
-		    W_labl_select, REND);
+		    (Tcl_CmdProc*) W_labl_select, REND);
   Tcl_CreateCommand(interp, "labl_set_name_from_table",
-		    W_labl_set_name_from_table, REND);
+		    (Tcl_CmdProc*) W_labl_set_name_from_table, REND);
   Tcl_CreateCommand(interp, "labl_set_info",
-		    W_labl_set_info, REND);
+		    (Tcl_CmdProc*) W_labl_set_info, REND);
   Tcl_CreateCommand(interp, "labl_set_color",
-		    W_labl_set_color, REND);
+		    (Tcl_CmdProc*) W_labl_set_color, REND);
   Tcl_CreateCommand(interp, "labl_remove",
-		    W_labl_remove, REND);
+		    (Tcl_CmdProc*) W_labl_remove, REND);
   Tcl_CreateCommand(interp, "labl_remove_all",
-		    W_labl_remove_all, REND);
+		    (Tcl_CmdProc*) W_labl_remove_all, REND);
   Tcl_CreateCommand(interp, "labl_erode",
-		    W_labl_erode, REND);
+		    (Tcl_CmdProc*) W_labl_erode, REND);
   Tcl_CreateCommand(interp, "labl_dilate",
-		    W_labl_dilate, REND);
+		    (Tcl_CmdProc*) W_labl_dilate, REND);
   Tcl_CreateCommand(interp, "labl_select_label_by_vno",
-		    W_labl_select_label_by_vno, REND);
+		    (Tcl_CmdProc*) W_labl_select_label_by_vno, REND);
   Tcl_CreateCommand(interp, "labl_print_list",
-		    W_labl_print_list, REND);
+		    (Tcl_CmdProc*) W_labl_print_list, REND);
   Tcl_CreateCommand(interp, "labl_print_table",
-		    W_labl_print_table, REND);
+		    (Tcl_CmdProc*) W_labl_print_table, REND);
   
   Tcl_CreateCommand(interp, "fbnd_select",
-		    W_fbnd_select, REND);
+		    (Tcl_CmdProc*) W_fbnd_select, REND);
   Tcl_CreateCommand(interp, "fbnd_new_line_from_marked_vertices",
-		    W_fbnd_new_line_from_marked_vertices, REND);
+		    (Tcl_CmdProc*) W_fbnd_new_line_from_marked_vertices, REND);
   Tcl_CreateCommand(interp, "fbnd_remove_selected_boundary",
-		    W_fbnd_remove_selected_boundary, REND);
+		    (Tcl_CmdProc*) W_fbnd_remove_selected_boundary, REND);
   
   Tcl_CreateCommand(interp, "fill_flood_from_cursor",
-		    W_fill_flood_from_cursor, REND);
+		    (Tcl_CmdProc*) W_fill_flood_from_cursor, REND);
   
   Tcl_CreateCommand(interp, "draw_curvature_line",
-                    W_draw_curvature_line, REND);
+                    (Tcl_CmdProc*) W_draw_curvature_line, REND);
 
   Tcl_CreateCommand(interp, "get_marked_vnos",
-                    W_get_marked_vnos, REND);
+                    (Tcl_CmdProc*) W_get_marked_vnos, REND);
   
   /* end rkt */
   /*=======================================================================*/
@@ -22589,6 +22701,7 @@ int labl_import_annotation (char *fname)
 	      label = LabelAlloc(num_verts_in_annotation, NULL, NULL);
 	      if (NULL != label)
 		{
+		  strncpy( label->subject_name, pname, 100 );
 		  label->n_points = num_verts_in_annotation;
 		  label_vno = 0;
 		  for (vno = 0; vno < mris->nvertices; vno++)
@@ -22778,6 +22891,7 @@ int labl_new_from_marked_vertices (int *new_index_out)
   
   /* allocate a label. */
   label = LabelAlloc(num_marked_verts, NULL, NULL);
+  strncpy( label->subject_name, pname, 100 );
   
   /* for every vertex, if it's marked, save its vertex coords,
      index. don't fill the value of the current overlay, as that
@@ -22860,6 +22974,8 @@ int labl_add_marked_vertices_to_label (int index)
     {
       return (ERROR_NO_MEMORY);
     }
+
+  strncpy( newlabel->subject_name, pname, 100 );
 
   /* add the label's points (note we're going through both the
      curlabel and newlabel vnos in this loop */
@@ -22959,6 +23075,8 @@ int labl_remove_marked_vertices_from_label (int index)
     {
       return (ERROR_NO_MEMORY);
     }
+
+  strncpy( newlabel->subject_name, pname, 100 );
 
   /* for each of the labels verts, add it to the new label if the
      corresponding surface vert is not marked. */
