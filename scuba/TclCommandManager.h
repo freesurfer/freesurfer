@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2004/03/24 17:06:13 $
-// Revision       : $Revision: 1.6 $
+// Revision Date  : $Date: 2004/03/24 23:34:24 $
+// Revision       : $Revision: 1.7 $
 
 #ifndef TclCommandManager_h
 #define TclCommandManager_h
@@ -98,6 +98,9 @@ class TclCommandManager : public DebugReporter, public TclCommandListener {
   std::string PrintAllCommands ();
 
   std::string SendCommand ( std::string isCommand );
+
+  // Lets the tcl parser handle an event.
+  void DoTclEvent ();
 
  protected:
 

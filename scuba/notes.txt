@@ -504,19 +504,15 @@ Frame Info
 
 
 BUGS:::
-- save tkcon history when quit?
 - viewflip pref is saved, but ScubaGlobalPrefs isn't doing all it should, need to add other values
 - when load /tmp/test-10.mgh, zoom in, doesn't draw until change min to 1
-- dlog code never gets a chance to open - CheckDlogForButton should maybe call DoOneEvent or something?
-- tkuSetMenuItemName doesn't work
+- start up blank, load bert T1, draws black until move min to 1
 
 
 future ideas:
 
 Save Scene
  - save a script file to automatically load in data and set up view state like current one
-
-tkconn pull out window
 
 nav tools draw onscreen sliders for feedback
  - on mouse down with right tool, draw scale bar

@@ -27,7 +27,7 @@ foreach sSourceFileName { tkUtils.tcl tkcon.tcl } {
 
 # gaWidget
 #   window - main window
-#   tkconWindow - tkcon window
+#   tkcon - tkcon frame
 #   scubaFrame,ID - frame widget for frame ID
 #   menuBar - menu bar
 #     col, row - grid position
@@ -392,7 +392,8 @@ proc MakeMenuBar { ifwTop } {
 
     global gaMenu
     global gaView
-
+    global gaWidget
+    
     set fwMenuBar     $ifwTop.fwMenuBar
     set gaMenu(file)  $fwMenuBar.mbwFile
     set gaMenu(edit)  $fwMenuBar.mbwEdit
@@ -409,13 +410,15 @@ proc MakeMenuBar { ifwTop } {
     pack $gaMenu(file) -side left
 
     tkuMakeMenu -menu $gaMenu(edit) -label "Edit" -items {
-	{command "Undo" { UndoOrRedo; RedrawFrame [GetMainFrameID] } }
+	{command "Nothing to undo" 
+	    { UndoOrRedo; RedrawFrame [GetMainFrameID]; UpdateUndoMenuItem } }
     }
 
     pack $gaMenu(edit) -side left
 
     tkuMakeMenu -menu $gaMenu(view) -label "View" -items {
 	{check "Flip Left/Right" { SetViewFlipLeftRightYZ $gaView(current,id) $gaView(flipLeftRight) } gaView(flipLeftRight) }
+	{check "Show Console:Alt N" { ShowHideConsole $gaWidget(tkcon,visible) } gaWidget(tkcon,visible) }
     }
 
     set gaView(flipLeftRight) [GetPreferencesValue ViewFlipLeftRight]
@@ -428,7 +431,12 @@ proc MakeMenuBar { ifwTop } {
 proc UpdateUndoMenuItem {} {
     global gaMenu
 
-    tkuSetMenuItemName $gaMenu(edit) 0 [GetUndoTitle]
+    # Try to get an Undo title. This may fail if there has been no
+    # undoable action yet.
+    set sLabel "Nothing to undo"
+    catch { set sLabel [GetUndoTitle] }
+
+    tkuSetMenuItemName $gaMenu(edit) 1 $sLabel
 }
 
 proc MakeToolBar { ifwTop } {
@@ -631,12 +639,16 @@ proc ScubaMouseDownCallback { inX inY iButton } {
 
 proc Quit {} {
     dputs "Quit  "
-
     global gaView
+    global gaWidget
 
+    # Set our prefs values and save our prefs.
     SetPreferencesValue ViewFlipLeftRight $gaView(flipLeftRight)
-
     SaveGlobalPreferences
+
+    # Destory the tkcon widget to shut it down properly.
+#    destroy $gaWidget(tkcon)
+
     exit
 }
 
@@ -992,10 +1004,8 @@ proc MakeToolsPanel { ifwTop } {
 
     set fwMenu               $fwProps.fwMenu
     set fwPropsCommon        $fwProps.fwPropsCommon
-    set fwPropsNavigation    $fwProps.fwPropsNavigation
-    set fwPropsVoxelEditing  $fwProps.fwPropsVoxelEditing
-    set fwPropsROIEditing    $fwProps.fwPropsROIEditing
-    set fwPropsStraightLine  $fwProps.fwPropsStraightLine
+    set fwPropsBrush         $fwProps.fwPropsBrush
+    set fwPropsFill          $fwProps.fwPropsFill
 
     tixOptionMenu $fwMenu \
 	-label "Tools:" \
@@ -1010,18 +1020,15 @@ proc MakeToolsPanel { ifwTop } {
 
     frame $fwPropsCommon
 
-    set fwPropsCommonBrush $fwPropsCommon.fwPropsCommonBrush
 
-    tixLabelFrame $fwPropsCommonBrush \
+    tixLabelFrame $fwPropsBrush \
 	-label "Brush Options" \
 	-labelside acrosstop \
 	-options { label.padX 5 }
 
-    pack $fwPropsCommonBrush -fill both -expand yes
-
-    set fwPropsCommonBrushSub [$fwPropsCommonBrush subwidget frame]
+    set fwPropsBrushSub [$fwPropsBrush subwidget frame]
     
-    tkuMakeToolbar $fwPropsCommonBrushSub.tbwBrushShape \
+    tkuMakeToolbar $fwPropsBrushSub.tbwBrushShape \
 	-allowzero false \
 	-radio true \
 	-variable gaTool(current,brushShape) \
@@ -1031,13 +1038,13 @@ proc MakeToolsPanel { ifwTop } {
 	    {-type text -name square -label "Square"}
 	}
 
-    tkuMakeSliders $fwPropsCommonBrushSub.swRadius -sliders {
+    tkuMakeSliders $fwPropsBrushSub.swRadius -sliders {
 	{-label "Radius" -variable gaTool(current,radius) 
 	    -min 1 -max 20 -entry true
 	    -command {SetToolBrushRadius $gaFrame([GetMainFrameID],toolID) $gaTool(current,radius)} }
     }
 
-    tkuMakeCheckboxes $fwPropsCommonBrushSub.cb3D \
+    tkuMakeCheckboxes $fwPropsBrushSub.cb3D \
 	-font [tkuNormalFont] \
 	-checkboxes { 
 	    {-type text -label "Work in 3D" 
@@ -1045,26 +1052,21 @@ proc MakeToolsPanel { ifwTop } {
 		-command {SetToolBrush3D $gaFrame([GetMainFrameID],toolID) $gaTool(current,brush3D)}}
 	}
 
-    grid $fwPropsCommonBrushSub.tbwBrushShape -column 0 -row 0 -sticky ew
-    grid $fwPropsCommonBrushSub.swRadius      -column 0 -row 1 -sticky ew
-    grid $fwPropsCommonBrushSub.cb3D          -column 0 -row 2 -sticky ew
+    grid $fwPropsBrushSub.tbwBrushShape -column 0 -row 0 -sticky ew
+    grid $fwPropsBrushSub.swRadius      -column 0 -row 1 -sticky ew
+    grid $fwPropsBrushSub.cb3D          -column 0 -row 2 -sticky ew
+
+    set gaWidget(toolProperties,brush) $fwPropsBrush
 
 
-    frame $fwPropsNavigation
-    set gaWidget(toolProperties,navigation) $fwPropsNavigation
-
-    frame $fwPropsVoxelEditing
-    set gaWidget(toolProperties,voxelEditing) $fwPropsVoxelEditing
-
-
-    tixLabelFrame $fwPropsROIEditing \
+    tixLabelFrame $fwPropsFill \
 	-label "Fill Options" \
 	-labelside acrosstop \
 	-options { label.padX 5 }
 
-    set fwPropsROIEditingSub [$fwPropsROIEditing subwidget frame]
+    set fwPropsFillSub [$fwPropsFill subwidget frame]
 
-    tkuMakeCheckboxes $fwPropsROIEditingSub.cbFillOptions \
+    tkuMakeCheckboxes $fwPropsFillSub.cbFillOptions \
 	-font [tkuNormalFont] \
 	-checkboxes { 
 	    {-type text -label "Stop at other ROIs" 
@@ -1075,7 +1077,7 @@ proc MakeToolsPanel { ifwTop } {
 		-command {SetToolFloodStopAtLines $gaFrame([GetMainFrameID],toolID) $gaTool(current,stopLines)}}
 	}
     
-    tkuMakeSliders $fwPropsROIEditingSub.swFuzziness -sliders {
+    tkuMakeSliders $fwPropsFillSub.swFuzziness -sliders {
 	{-label "Fill Fuzziness" -variable gaTool(current,fuzziness) 
 	    -min 0 -max 20 -entry true
 	    -command {SetToolFloodFuzziness $gaFrame([GetMainFrameID],toolID) $gaTool(current,fuzziness)}}
@@ -1084,7 +1086,7 @@ proc MakeToolsPanel { ifwTop } {
 	    -command {SetToolFloodMaxDistance $gaFrame([GetMainFrameID],toolID) $gaTool(current,maxDistance)}}
     }
 
-    tkuMakeCheckboxes $fwPropsROIEditingSub.cb3D \
+    tkuMakeCheckboxes $fwPropsFillSub.cb3D \
 	-font [tkuNormalFont] \
 	-checkboxes { 
 	    {-type text -label "Work in 3D" 
@@ -1092,14 +1094,11 @@ proc MakeToolsPanel { ifwTop } {
 		-command {SetToolFlood3D $gaFrame([GetMainFrameID],toolID) $gaTool(current,flood3D)}}
 	}
 
-    grid $fwPropsROIEditingSub.cbFillOptions -column 0 -row 0 -sticky ew
-    grid $fwPropsROIEditingSub.swFuzziness   -column 0 -row 1 -sticky ew
-    grid $fwPropsROIEditingSub.cb3D          -column 0 -row 2 -sticky ew
+    grid $fwPropsFillSub.cbFillOptions -column 0 -row 0 -sticky ew
+    grid $fwPropsFillSub.swFuzziness   -column 0 -row 1 -sticky ew
+    grid $fwPropsFillSub.cb3D          -column 0 -row 2 -sticky ew
 
-    set gaWidget(toolProperties,roiEditing) $fwPropsROIEditing
-
-    frame $fwPropsStraightLine
-    set gaWidget(toolProperties,straightLine) $fwPropsStraightLine
+    set gaWidget(toolProperties,fill) $fwPropsFill
 
     grid $fwMenu        -column 0 -row 0 -sticky news
     grid $fwPropsCommon -column 0 -row 1 -sticky news
@@ -1983,18 +1982,13 @@ proc SelectToolInToolProperties { iTool } {
     global gaFrame
 
     # Unpack the type-specific panels.
-    grid forget $gaWidget(toolProperties,navigation)
-    grid forget $gaWidget(toolProperties,voxelEditing)
-    grid forget $gaWidget(toolProperties,roiEditing)
-    grid forget $gaWidget(toolProperties,straightLine)
+    grid forget $gaWidget(toolProperties,brush)
+    grid forget $gaWidget(toolProperties,fill)
 
     # Get the general layer properties from the specific layer and
     # load them into the 'current' slots.
     set gaTool(current,id) $gaFrame([GetMainFrameID],toolID)
     set gaTool(current,type) $iTool
-    set gaTool(current,brushShape) [GetToolBrushShape $gaTool(current,id)]
-    set gaTool(current,radius) [GetToolBrushRadius $gaTool(current,id)]
-    set gaTool(current,brush3D) [GetToolBrush3D $gaTool(current,id)]
 
     # Make sure that this is the item selected in the menu. Disale the
     # callback and set the value of the menu to the layer ID. Then
@@ -2006,22 +2000,20 @@ proc SelectToolInToolProperties { iTool } {
     # Set this tool in the toolbar too.
     set gaTool($gaFrame([GetMainFrameID],toolID),mode) $gaTool(current,type)
 
-    # Do the type specific stuff.
+    # Do the type specific stuff. Pack the relevant tool panels.
     switch $gaTool(current,type) {
-	navigation { 
-	    # Pack the type panel.
-	    grid $gaWidget(toolProperties,navigation) \
-		-column 0 -row 2 -sticky news
-	}
-	voxelEditing { 
-	    # Pack the type panel.
-	    grid $gaWidget(toolProperties,voxelEditing) \
-		-column 0 -row 2 -sticky news
-	}
-	roiEditing { 
-	    # Pack the type panel.
-	    grid $gaWidget(toolProperties,roiEditing) \
-		-column 0 -row 2 -sticky news
+	roiEditing - voxelEditing { 
+	    # ROI and voxel editing get brush and fill stuff.
+	    grid $gaWidget(toolProperties,brush) -column 0 -row 2 -sticky ew
+
+	    set gaTool(current,brushShape) \
+		[GetToolBrushShape $gaTool(current,id)]
+	    set gaTool(current,radius) \
+		[GetToolBrushRadius $gaTool(current,id)]
+	    set gaTool(current,brush3D) \
+		[GetToolBrush3D $gaTool(current,id)]
+
+	    grid $gaWidget(toolProperties,fill)  -column 0 -row 3 -sticky ew
 
 	    set gaTool(current,stopROI) \
 		[GetToolFloodStopAtROIs $gaTool(current,id)]
@@ -2031,11 +2023,6 @@ proc SelectToolInToolProperties { iTool } {
 		[GetToolFloodMaxDistance $gaTool(current,id)]
 	    set gaTool(current,flood3D) \
 		[GetToolFlood3D $gaTool(current,id)]
-	}
-	straightLine { 
-	    # Pack the type panel.
-	    grid $gaWidget(toolProperties,straightLine) \
-		-column 0 -row 2 -sticky news
 	}
     }
 }
@@ -2584,6 +2571,24 @@ proc FillMenuFromList { imw ilEntries iLabelFunction ilLabels ibNone  } {
     $imw config -disablecallback 0
 }
 
+proc ShowHideConsole { ibShow } {
+    global gaWidget
+    
+    if { $ibShow } {
+
+	grid $gaWidget(tkcon) -sticky ews \
+	    -column $gaWidget(tkcon,column) -row $gaWidget(tkcon,row) \
+	    -columnspan 2
+
+    } else {
+	
+	grid forget $gaWidget(tkcon)
+    }
+
+    # Make sure our visible var is set correctly.
+    set gaWidget(tkcon,visible) $ibShow
+}
+
 # DATA LOADING =====================================================
 
 proc MakeVolumeCollection { ifnVolume } {
@@ -2799,23 +2804,23 @@ BuildShortcutDirsList
 LoadImages
 
 
-# Make the tkcon window. This must be done at this scope because the
-# tkcon.tcl script needs access to some global vars.
-set av $argv
-set argv "" 
-toplevel .dummy
-::tkcon::Init
-tkcon attach main
-wm geometry .tkcon -10-10
-destroy .dummy
-set argv $av
-
-set gaWidget(tkconWindow) .tkcon
-
-
 # Make the main window.
 set gaWidget(window) .main
 toplevel $gaWidget(window)
+
+# Make the tkcon window. This must be done at this scope because the
+# tkcon.tcl script needs access to some global vars.
+set gaWidget(tkcon) [frame $gaWidget(window).tkcon -height 40]
+
+set av $argv
+set argv ""
+#toplevel .dummy
+::tkcon::Init -root $gaWidget(window).tkcon -showmenu 0 -embed 1
+tkcon attach main
+#wm geometry $gaWidget(window).tkcon -10-10
+#destroy .dummy
+set argv $av
+
 
 # Make the areas in the window. Make the scuba frame first because it
 # inits stuff that is needed by other areas.
@@ -2830,7 +2835,8 @@ set gaWidget(menuBar,column)    0; set gaWidget(menuBar,row)    0
 set gaWidget(toolBar,column)    0; set gaWidget(toolBar,row)    1
 set gaWidget(scubaFrame,column) 0; set gaWidget(scubaFrame,row) 2
 set gaWidget(labelArea,column)  0; set gaWidget(labelArea,row)  3
-set gaWidget(properties,column)  1; set gaWidget(properties,row) 2
+set gaWidget(properties,column) 1; set gaWidget(properties,row) 2
+set gaWidget(tkcon,column)      0; set gaWidget(tkcon,row)      4
 
 grid $gaWidget(menuBar) -sticky ew -columnspan 2 \
     -column $gaWidget(menuBar,column) -row $gaWidget(menuBar,row)
@@ -2852,6 +2858,7 @@ grid rowconfigure $gaWidget(window) 0 -weight 0
 grid rowconfigure $gaWidget(window) 1 -weight 0
 grid rowconfigure $gaWidget(window) 2 -weight 1
 grid rowconfigure $gaWidget(window) 3 -weight 0
+grid rowconfigure $gaWidget(window) 4 -weight 0
 
 wm withdraw .
 
@@ -2890,6 +2897,8 @@ SelectTransformInTransformProperties 0
 SelectLUTInLUTProperties 0
 SelectToolInToolProperties navigation
 
+ShowHideConsole 0
+
 MakeScubaFrameBindings [GetMainFrameID]
 
 # Now execute all the commands we cached before.
@@ -2901,6 +2910,11 @@ foreach command $lCommands {
 
 
 bind $gaWidget(window) <Alt-Key-q> "Quit"
-
-
-
+bind $gaWidget(window) <Alt-Key-n> {
+    if { $gaWidget(tkcon,visible) } {
+	set gaWidget(tkcon,visible) 0
+    } else {
+	set gaWidget(tkcon,visible) 1
+    }
+    ShowHideConsole $gaWidget(tkcon,visible)
+}

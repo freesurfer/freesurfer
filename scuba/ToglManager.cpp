@@ -77,11 +77,14 @@ ToglManager::MouseMotionCallback ( struct Togl* iTogl,
   if( iArgc != 5 ) {
     return TCL_ERROR;
   }
-  ToglFrame::ID id = atoi( Togl_Ident( iTogl ));
-  ToglFrame* frame = mFrames[id];
 
   // Mouse is dragging.
-  mState.mbButtonDragging = true;
+  if( mState.Button() != 0 ) {
+    mState.SetButtonDragEvent();
+  }
+
+  ToglFrame::ID id = atoi( Togl_Ident( iTogl ));
+  ToglFrame* frame = mFrames[id];
 
   int windowCoords[2];
   windowCoords[0] = atoi(iArgv[2]);
@@ -106,12 +109,8 @@ ToglManager::MouseDownCallback ( struct Togl* iTogl,
     return TCL_ERROR;
   }
 
-  // Record this in the keyboard state.
-  mState.mButton = atoi(iArgv[4]);
-
-  // Mouse down.
-  mState.mbButtonDown = true;
-  mState.mbButtonDragging = false;
+  // Mouse down event.
+  mState.SetButtonDownEvent( atoi(iArgv[4]) );
 
   ToglFrame::ID id = atoi( Togl_Ident( iTogl ));
   ToglFrame* frame = mFrames[id];
@@ -138,13 +137,9 @@ ToglManager::MouseUpCallback ( struct Togl* iTogl, int iArgc, char* iArgv[] ) {
     return TCL_ERROR;
   }
 
-  // Record this in the keyboard state.
-  mState.mButton = atoi(iArgv[4]);
+  // Mouse up event.
+  mState.SetButtonUpEvent();
   
-  // Mouse up.
-  mState.mbButtonDown = false;
-  mState.mbButtonDragging = false;
-
   ToglFrame::ID id = atoi( Togl_Ident( iTogl ));
   ToglFrame* frame = mFrames[id];
 
@@ -153,8 +148,8 @@ ToglManager::MouseUpCallback ( struct Togl* iTogl, int iArgc, char* iArgv[] ) {
   windowCoords[1] = YFlip(frame, atoi(iArgv[3]));
   frame->MouseUp( windowCoords, mState );
 
-  // Clear this in the keyboard state.
-  mState.mButton = 0;
+  // Clear the mouse events.
+  mState.ClearEvents();
 
   // Post a redisplay if the frame wants one. 
   if( frame->WantRedisplay() ) {
@@ -267,10 +262,8 @@ ToglManager::ExitCallback ( struct Togl* iTogl, int iArgc, char* iArgv[] ) {
   mState.mbShiftKey = false;
   mState.mbAltKey = false;
   mState.mbControlKey = false;
-  mState.mButton = 0;
   mState.msKey = "";
-  mState.mbButtonDown = false;
-  mState.mbButtonDragging = false;
+  mState.ClearEvents();
   
   return TCL_OK;
 }

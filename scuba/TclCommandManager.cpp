@@ -341,3 +341,11 @@ TclCommandManager::SendCommand ( string isCommand ) {
     return "";
   }
 }
+
+void
+TclCommandManager::DoTclEvent () {
+
+  if( mInterp ) {
+    Tcl_DoOneEvent( TCL_ALL_EVENTS | TCL_DONT_WAIT );
+  }
+}

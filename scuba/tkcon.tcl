@@ -187,7 +187,7 @@ proc ::tkcon::Init {args} {
 	    alias clear dir dump echo idebug lremove
 	    tkcon_puts tkcon_gets observe observe_var unalias which what
 	}
-	RCS		{RCS: @(#) $Id: tkcon.tcl,v 1.1 2004/01/30 07:15:56 kteich Exp $}
+	RCS		{RCS: @(#) $Id: tkcon.tcl,v 1.2 2004/03/24 23:34:24 kteich Exp $}
 	HEADURL		{http://cvs.sourceforge.net/cgi-bin/viewcvs.cgi/tkcon/tkcon/tkcon.tcl?rev=HEAD}
 	docs		"http://tkcon.sourceforge.net/"
 	email		{jeff@hobbs.org}
@@ -300,6 +300,7 @@ proc ::tkcon::Init {args} {
 
     ## Handle rest of command line arguments after sourcing resource file
     ## and slave is created, but before initializing UI or setting packages.
+    # RKT: added -showmenu and -embed options here
     set slaveargs {}
     set slavefiles {}
     set truth {^(1|yes|true|on)$}
@@ -322,6 +323,8 @@ proc ::tkcon::Init {args} {
 		-nontcl		{ set OPT(nontcl) [regexp -nocase $truth $val]}
 		-root		{ set PRIV(root) $val }
 		-font		{ set OPT(font) $val }
+		-showmenu       { set OPT(showmenu) $val }
+		-embed          { set OPT(embed) $val ; set PRIV(WWW) 1 }
 		-rcfile	{}
 		default	{ lappend slaveargs $arg; incr i -1 }
 	    }
@@ -359,7 +362,9 @@ proc ::tkcon::Init {args} {
 	# Source history file only for the main console, as all slave
 	# consoles will adopt from the main's history, but still
 	# keep separate histories
-	if {!$PRIV(WWW) && $OPT(usehistory) && [file exists $PRIV(histfile)]} {
+	# RKT: added the OR for OPT(embed) to load the history file.
+	if { ((!$PRIV(WWW) && $OPT(usehistory)) ||
+	     $OPT(embed)) && [file exists $PRIV(histfile)]} {
 	    puts -nonewline "loading history file ... "
 	    # The history file is built to be loaded in and
 	    # understood by tkcon
@@ -552,7 +557,17 @@ proc ::tkcon::InitUI {title} {
     variable COLOR
 
     set root $PRIV(root)
-    if {[string match . $root]} { set w {} } else { set w [toplevel $root] }
+    # RKT : if embed is spec'd, don't try and make a window.
+    set w ""
+    if { $OPT(embed) } {
+	set w $root
+    } else {
+	if {[string match . $root]} {
+	    set w {} 
+	} else { 
+	    set w [toplevel $root] 
+	}
+    }
     if {!$PRIV(WWW)} {
 	wm withdraw $root
 	wm protocol $root WM_DELETE_WINDOW $PRIV(protocol)
@@ -619,7 +634,7 @@ proc ::tkcon::InitUI {title} {
 
     InitMenus $PRIV(menubar) $title
     Bindings
-
+    
     if {$OPT(showmenu)} {
 	$root configure -menu $PRIV(menubar)
     }
@@ -2127,6 +2142,7 @@ proc ::tkcon::MainInit {} {
     }
 
     if {$OPT(overrideexit)} {
+
 	## We want to do a couple things before exiting...
 	if {[catch {rename ::exit ::tkcon::FinalExit} err]} {
 	    puts stderr "tkcon might panic:\n$err"
