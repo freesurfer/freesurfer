@@ -1,6 +1,6 @@
 /*---------------------------------------------------------------
   Name: resample.c
-  $Id: resample.c,v 1.3 2002/03/10 21:53:35 greve Exp $
+  $Id: resample.c,v 1.4 2002/04/17 22:12:07 greve Exp $
   Author: Douglas N. Greve
   Purpose: code to perform resapling from one space to another, 
   including: volume-to-volume, volume-to-surface, and surface-to-surface.
@@ -50,6 +50,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+#include "diag.h"
 #include "matrix.h"
 #include "mri.h"
 #include "mrisurf.h"
@@ -204,15 +205,12 @@ MATRIX * FOVDeQuantMatrix(int ncols, int nrows, int nslcs,
   MatrixClear(deQ);
 
   deQ->rptr[0+1][0+1] = -colres;
-  /*deQ->rptr[0+1][3+1] =  colres*(ncols-1)/2;*/
   deQ->rptr[0+1][3+1] =  colres*(ncols)/2;
 
   deQ->rptr[1+1][2+1] =  slcres;
-  /*deQ->rptr[1+1][3+1] = -slcres*(nslcs-1)/2;*/
   deQ->rptr[1+1][3+1] = -slcres*(nslcs)/2;
 
   deQ->rptr[2+1][1+1] = -rowres;
-  /*deQ->rptr[2+1][3+1] =  rowres*(nrows-1)/2;*/
   deQ->rptr[2+1][3+1] =  rowres*(nrows)/2;
 
   deQ->rptr[3+1][3+1] = 1.0;
@@ -715,6 +713,11 @@ MRI *vol2surf_linear(MRI *SrcVol,
 
   /* compute the transforms */
   QFWDsrc = ComputeQFWD(Qsrc,Fsrc,Wsrc,Dsrc,NULL);
+  if(Gdiag_no > 0){
+    printf("QFWDsrc: vol2surf: ------------------------------\n");
+    MatrixPrint(stdout,QFWDsrc);
+    printf("--------------------------------------------------\n");
+  }
 
   /* preallocate the row-col-slc vectors */
   Scrs = MatrixAlloc(4,1,MATRIX_REAL);
