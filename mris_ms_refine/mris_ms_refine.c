@@ -19,7 +19,7 @@
 #include "cvector.h"
 #include "histo.h"
 
-static char vcid[] = "$Id: mris_ms_refine.c,v 1.6 2002/03/29 20:43:20 fischl Exp $";
+static char vcid[] = "$Id: mris_ms_refine.c,v 1.7 2002/04/08 14:42:36 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -110,6 +110,7 @@ static float subsample_dist = 10.0 ;
 static int sample_type = SAMPLE_NEAREST ;
 static double MIN_NONBRAIN_T1 = 500.0 ;
 static double MIN_NONBRAIN_PD = 600 ;
+static double MIN_RELIABLE_PD = 150 ;
 
 #define BRIGHT_LABEL         130
 #define BRIGHT_BORDER_LABEL  100
@@ -1844,6 +1845,13 @@ compute_maximal_distances(MRI_SURFACE *mris, float sigma, MRI **mri_flash, int n
             DiagBreak() ;
           break ;
         }
+        if (low_pd_csf != 0 && PD < MIN_RELIABLE_PD)
+        {
+          if (vno == Gdiag_no)
+            DiagBreak() ;
+          break ;  /* don't include very low pd stuff, as it's T1 will be arbitrary */
+        }
+
         if (++csf_dist >= 5)
           break ;
       }
@@ -3529,6 +3537,17 @@ compute_optimal_vertex_positions(MRI_SURFACE *mris, int vno, EXTRA_PARMS *ep,
 
   *pwhite_delta = (best_white_dist - (orig_white_index * ep->dstep)) ;
   *ppial_delta =  (best_pial_dist  - (orig_pial_index  * ep->dstep)) ;
+
+  if ((abs(vno-Gdiag_no) < 100) && (ep->scale*image_vals[3][nint(orig_pial_index)] < 100) && (*ppial_delta > 0.5))
+  {
+    FILE *fp ;
+    fp = fopen("v.log","a") ;
+    fprintf(fp, "v %d, T1=(%2.0f,%2.0f,%2.0f), PD=(%2.0f,%2.0f,%2.0f), D=%2.1f,%2.1f\n",
+            vno, T1_wm, T1_gm, T1_csf, PD_wm, PD_gm, PD_csf,
+            *pwhite_delta, *ppial_delta) ;
+    fclose(fp) ;
+    DiagBreak() ;
+  }
 
   if (vno == Gdiag_no && debug_flag)
   {
