@@ -115,3 +115,121 @@ float sigt(float t, int df)
 }
 */
 
+float gammp(float a,float x)
+{
+  float gamser,gammcf,gln;
+
+  if (x < 0.0 || a <= 0.0) 
+    ErrorReturn(0.0f,
+                (ERROR_BADPARM, "Invalid arguments gammp(%2.6f, %2.6f)",a,x));
+
+
+  if (x < (a+1.0)) 
+  {
+    gser(&gamser,a,x,&gln);
+    return gamser;
+  } 
+  else 
+  {
+    gcf(&gammcf,a,x,&gln);
+    return 1.0-gammcf;
+  }
+}
+
+float
+sigchisq(double chisq, int df)
+{
+  float p ;
+
+  if (FZERO(chisq) || df == 0)
+    return(1.0f) ;
+  p = gammp((float)df/2, (float)chisq/2.0) ;
+  return(1-p) ;
+}
+
+
+#ifdef ITMAX
+#undef ITMAX
+#endif
+
+#ifdef EPS
+#undef EPS
+#endif
+
+#define ITMAX 100
+#define EPS 3.0e-7
+
+void gser(float *gamser,float a,float x, float *gln)
+{
+  int n;
+  float sum,del,ap;
+
+  *gln=gammln(a);
+  if (x <= 0.0) {
+    if (x < 0.0) 
+    {
+      ErrorPrintf(ERROR_BADPARM, "gser(%2.1f) x less than 0",x);
+      return ;
+    }
+    *gamser=0.0;
+    return;
+  } else {
+    ap=a;
+    del=sum=1.0/a;
+    for (n=1;n<=ITMAX;n++) {
+      ap += 1.0;
+      del *= x/ap;
+      sum += del;
+      if (fabs(del) < fabs(sum)*EPS) {
+        *gamser=sum*exp(-x+a*log(x)-(*gln));
+        return;
+      }
+    }
+    ErrorPrintf(ERROR_BADPARM, "gser(%2.1f) a too large, ITMAX too small", a);
+    return;
+  }
+}
+
+#ifdef ITMAX
+#undef ITMAX
+#endif
+
+#ifdef EPS
+#undef EPS
+#endif
+
+#define ITMAX 100
+#define EPS 3.0e-7
+
+void gcf(float *gammcf, float a, float x, float *gln)
+{
+  int n;
+  float gold=0.0,g,fac=1.0,b1=1.0;
+  float b0=0.0,anf,ana,an,a1,a0=1.0;
+
+  *gln=gammln(a);
+  a1=x;
+  for (n=1;n<=ITMAX;n++) {
+    an=(float) n;
+    ana=an-a;
+    a0=(a1+a0*ana)*fac;
+    b0=(b1+b0*ana)*fac;
+    anf=an*fac;
+    a1=x*a0+anf*a1;
+    b1=x*b0+anf*b1;
+    if (a1) {
+      fac=1.0/a1;
+      g=b1*fac;
+      if (fabs((g-gold)/g) < EPS) {
+        *gammcf=exp(-x+a*log(x)-(*gln))*g;
+        return;
+      }
+      gold=g;
+    }
+  }
+  ErrorPrintf(ERROR_BADPARM,
+            "gcf(%2.1f, %2.1f): a too large, ITMAX too small", a, x);
+}
+
+#undef ITMAX
+#undef EPS
