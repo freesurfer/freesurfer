@@ -56,6 +56,11 @@ main(int argc, char *argv[])
     ErrorExit(ERROR_NO_FILE, "%s: could not open source file %s", 
               Progname, in_fname) ;
 
+  if (!mri->imnr0)
+  {
+    mri->imnr0++ ;
+    mri->imnr1++ ;
+  }
   if (verbose)
     fprintf(stderr, "done.\nwriting to %s...", out_fname) ;
   MRIwrite(mri, out_fname) ;
