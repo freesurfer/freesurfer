@@ -377,6 +377,11 @@ int MWin_TclSetSurfaceDistanceAtCursor ( ClientData  iClientData,
 					 Tcl_Interp* ipInterp,
 					 int   argc,
 					 char*   argv[] );
+
+int MWin_TclSetCursorToCenterOfSelectionVolume ( ClientData  iClientData, 
+						 Tcl_Interp* ipInterp,
+						 int   argc,
+						 char*   argv[] );
 int MWin_TclSmartCutAtCursor ( ClientData  iClientData, 
 			       Tcl_Interp* ipInterp,
 			       int   argc,

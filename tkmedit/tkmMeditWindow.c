@@ -2946,6 +2946,9 @@ MWin_tErr MWin_RegisterTclCommands ( tkmMeditWindowRef this,
   Tcl_CreateCommand ( ipInterp, "SetSurfaceDistanceAtCursor",
 		      MWin_TclSetSurfaceDistanceAtCursor,
 		      (ClientData) this, (Tcl_CmdDeleteProc*) NULL );
+  Tcl_CreateCommand ( ipInterp, "SetCursorToCenterOfSelection",
+		      MWin_TclSetCursorToCenterOfSelectionVolume,
+		      (ClientData) this, (Tcl_CmdDeleteProc*) NULL );
   Tcl_CreateCommand ( ipInterp, "SmartCutAtCursor",
 		      MWin_TclSmartCutAtCursor,
 		      (ClientData) this, (Tcl_CmdDeleteProc*) NULL );
@@ -4435,6 +4438,71 @@ int MWin_TclSetSurfaceDistanceAtCursor ( ClientData  iClientData,
 
     sprintf ( sError, "Error %d in MWin_TclSetSurfaceDistanceAtCursor: %s\n",
 	      eResult, MWin_GetErrorString(eResult) );
+
+    DebugPrint( (sError ) );
+
+    /* set tcl result, volatile so tcl will make a copy of it. */
+    Tcl_SetResult( ipInterp, MWin_GetErrorString(eResult), TCL_VOLATILE );
+  }
+
+  eTclResult = TCL_ERROR;
+
+ cleanup:
+
+  return eTclResult;
+}
+
+
+int MWin_TclSetCursorToCenterOfSelectionVolume ( ClientData  iClientData, 
+						 Tcl_Interp* ipInterp,
+						 int         argc,
+						 char*       argv[] ) {
+  
+  tkmMeditWindowRef this         = NULL;
+  int               eTclResult   = TCL_OK;
+  MWin_tErr         eResult      = MWin_tErr_NoErr;
+  DspA_tErr         eDispResult  = DspA_tErr_NoErr;
+  char              sError[256]  = "";       
+
+  /* grab us from the client data ptr */
+  this = (tkmMeditWindowRef) iClientData;
+
+  /* verify us. */
+  eResult = MWin_Verify ( this );
+  if ( MWin_tErr_NoErr != eResult )
+    goto error;
+
+  /* if not accepting commands yet, return. */
+  if( !this->mbAcceptingTclCommands )
+    goto cleanup;
+
+  /* verify the last clicked display area index. */
+  eResult = MWin_VerifyDisplayIndex ( this, this->mnLastClickedArea );
+  if ( MWin_tErr_NoErr != eResult )
+    goto error;
+
+  /* verify the number of arguments. */
+  if ( argc != 1 ) {
+    eResult = MWin_tErr_WrongNumberArgs;
+    goto error;
+  }
+
+  /* pass on to the last clicked display. */
+  eDispResult = DspA_SetCursorToCenterOfSelectionVolume
+    ( this->mapDisplays[this->mnLastClickedArea] );
+  if ( DspA_tErr_NoErr != eDispResult ) {
+    eResult = MWin_tErr_ErrorAccessingDisplay;
+    goto error;
+  }
+  goto cleanup;
+
+ error:
+
+  /* print error message */
+  if ( MWin_tErr_NoErr != eResult ) {
+
+    sprintf ( sError, "Error %d in MWin_TclSetCursorToCenterOfSelectionVolume:"
+	      " %s\n", eResult, MWin_GetErrorString(eResult) );
 
     DebugPrint( (sError ) );
 
