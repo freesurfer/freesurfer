@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Computes glm inferences on the surface.
-  $Id: mris_glm.c,v 1.23 2004/03/08 23:03:15 greve Exp $
+  $Id: mris_glm.c,v 1.24 2004/03/09 21:48:20 greve Exp $
 
 Things to do:
   0. Documentation.
@@ -68,7 +68,7 @@ static char *getstem(char *bfilename);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_glm.c,v 1.23 2004/03/08 23:03:15 greve Exp $";
+static char vcid[] = "$Id: mris_glm.c,v 1.24 2004/03/09 21:48:20 greve Exp $";
 char *Progname = NULL;
 
 char *hemi        = NULL;
@@ -179,7 +179,7 @@ int main(int argc, char **argv)
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv, 
-      "$Id: mris_glm.c,v 1.23 2004/03/08 23:03:15 greve Exp $", "$Name:  $");
+      "$Id: mris_glm.c,v 1.24 2004/03/09 21:48:20 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -259,7 +259,10 @@ int main(int argc, char **argv)
       exit(1);
     }
   }
-  printf("nvertices %d\n",IcoSurf->nvertices);
+  MRIScomputeMetricProperties(IcoSurf) ;
+  printf("surface nvertices %d\n",IcoSurf->nvertices);
+  printf("surface area %f\n",IcoSurf->total_area);
+
 
   /*--- Load previously computed beta and res err var ----*/
   if(beta_in_id != NULL){
