@@ -9,9 +9,9 @@
  */
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/06/08 15:48:58 $
-// Revision       : $Revision: 1.274 $
-char *MRI_C_VERSION = "$Revision: 1.274 $";
+// Revision Date  : $Date: 2004/06/08 18:23:54 $
+// Revision       : $Revision: 1.275 $
+char *MRI_C_VERSION = "$Revision: 1.275 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -2305,6 +2305,7 @@ int MRIvoxelToSurfaceRAS(MRI *mri, Real xv, Real yv, Real zv,
 
 MATRIX *voxelFromSurfaceRAS_(MRI *mri)
 {
+  MATRIX *voxelFromSRAS =0;
   //////////////////////////////////////////////////////////////////
   // it turned out that this can be done easily without taking inverse
   // Note the surfaceRASFromVoxel_ is given by
@@ -2339,7 +2340,7 @@ MATRIX *voxelFromSurfaceRAS_(MRI *mri)
   if (!mri->r_to_i__)
     mri->r_to_i__ = extract_r_to_i(mri);
 
-  MATRIX *voxelFromSRAS = MatrixCopy(mri->r_to_i__, NULL);
+  voxelFromSRAS = MatrixCopy(mri->r_to_i__, NULL);
   // modify translation part
   *MATRIX_RELT(voxelFromSRAS, 1,4) = mri->width/2;
   *MATRIX_RELT(voxelFromSRAS, 2,4) = mri->height/2;
