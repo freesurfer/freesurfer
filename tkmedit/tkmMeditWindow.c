@@ -1939,12 +1939,6 @@ MWin_tErr MWin_CursorChanged  ( tkmMeditWindowRef this,
     goto error;
   }
   
-  /* zoom around new cursor. */
-  eDispResult = DspA_SetZoomCenterToCursor ( this->mapDisplays[nDisplay] );
-  if ( DspA_tErr_NoErr != eDispResult ) {
-    eResult = MWin_tErr_ErrorAccessingDisplay;
-    goto error;
-  }
       }
     }
   }

@@ -1013,6 +1013,11 @@ DspA_tErr DspA_SetCursor ( tkmDisplayAreaRef this,
 				this->mOrientation, this->mpCursor );
   }
   
+  /* zoom around new cursor. */
+  eResult = DspA_SetZoomCenterToCursor ( this );
+  if ( DspA_tErr_NoErr != eResult )
+    goto error;
+
   /* if we're the currently focused display... */
   if( sFocusedDisplay == this ) {
     
@@ -1022,6 +1027,7 @@ DspA_tErr DspA_SetCursor ( tkmDisplayAreaRef this,
     /* send the information for this point */
     DspA_SendPointInformationToTcl_( this, DspA_tDisplaySet_Cursor,
 				     this->mpCursor );
+
   }
   
   /* if we have head point data... */
