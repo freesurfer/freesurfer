@@ -1,7 +1,14 @@
 function [beta, rvar, vdof, r] = fast_glmfit(y,X,Sn)
 % [beta, rvar, vdof, r] = fast_glmfit(y,X,<Sn>)
 %
-% Sn is the covariance matrix of the noise after any filtering.
+% Sn is the covariance matrix of the noise AFTER any filtering.
+%
+% Worsley, K.J. and Friston, K.J. Analysis of fMRI Time-Series
+% Revisited - Again. Neuroimage 2, 173-181, 1995.
+%
+% See also: fast_fratio.m
+%
+% $Id: fast_glmfit.m,v 1.3 2003/05/02 03:43:21 greve Exp $
 
 if(nargin ~= 2 & nargin ~= 3)
   fprintf('[beta, rvar, vdof, r] = fast_glmfit(y,X,<Sn>)\n');
