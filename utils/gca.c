@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/01/09 23:04:17 $
-// Revision       : $Revision: 1.81 $
+// Revision Date  : $Date: 2004/01/09 23:23:09 $
+// Revision       : $Revision: 1.82 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -352,7 +352,9 @@ static int
 gcaNodeToPrior(GCA *gca, int xn, int yn, int zn, int *pxp, int *pyp, int *pzp)
 {
   double xp, yp, zp;
-  int ixp, iyp, izp;
+  int ixp=0;
+  int iyp=0;
+  int izp=0;
   // initialize errCode
   int errCode = NO_ERROR;
   MATRIX *rasFromNode = extract_i_to_r(mri_node__);
@@ -385,7 +387,9 @@ int
 GCApriorToNode(GCA *gca, int xp, int yp, int zp, int *pxn, int *pyn, int *pzn)
 {
   double xn, yn, zn;
-  int ixn, iyn, izn;
+  int ixn=0;
+  int iyn=0;
+  int izn=0;
   int errCode = NO_ERROR;
   MATRIX *rasFromPrior = extract_i_to_r(mri_prior__);
   MATRIX *nodeFromRAS = extract_r_to_i(mri_node__);
@@ -1448,6 +1452,7 @@ GCAread(char *fname)
   float     version, node_spacing, prior_spacing ;
   int       node_width, node_height, node_depth, prior_width, prior_height, prior_depth, 
             ninputs, flags ;
+  int       tag;
 
   fp  = fopen(fname, "rb") ;
   if (!fp)
@@ -1668,7 +1673,6 @@ GCAread(char *fname)
   
   // if (!feof(fp))  // this does not work ;-)
   // feof(fp) check does not work, since feof is not signaled until you read
-  int tag;
   while (freadIntEx(&tag, fp))
   {
     int  n, nparms ;
@@ -8166,8 +8170,9 @@ gcaExtractThresholdedRegionLabelAsSamples(GCA *gca, MRI *mri_labeled,
                                           int *pnsamples, int label, int xp, int yp, 
                                           int zp, int wsize, float pthresh)
 {
-  int         i, nsamples, width, height, depth, x, y, z,
+  int         i, width, height, depth, x, y, z,
               xi, yi, zi, xk, yk, zk, whalf, r, c, v ;
+  int         nsamples = 0;
   GCA_SAMPLE  *gcas ;
   GCA_PRIOR   *gcap ;
   GC1D        *gc ;
@@ -11553,7 +11558,8 @@ static int labels[NLABELS] = { Dura, Bone, SC_FAT_MUSCLE, CSF_SA } ;
 MRI *
 GCArelabelNonbrain(GCA *gca, MRI *mri_inputs, MRI *mri_src, MRI *mri_dst, TRANSFORM *transform)
 {
-  int       x, y, z, xn, yn, zn, width, height, depth, label, i, max_i, total_changed = 0, n, nchanged ;
+  int       x, y, z, xn, yn, zn, width, height, depth, label, i, total_changed = 0, n, nchanged ;
+  int      max_i = 0;
   GC1D      *gcs[NLABELS] ;
   double    pvals[NLABELS], max_p ;
   GCA_NODE  *gcan ;
