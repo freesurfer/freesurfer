@@ -28,6 +28,9 @@ static int get_option(int argc, char *argv[]) ;
 char *Progname ;
 static void usage_exit(int code) ;
 
+static int novar = 0 ;
+static char *renormalization_fname = NULL ;
+static int renormalize = 0 ;
 static int filter = 0 ;
 #if 0
 static float thresh = 0.5 ;
@@ -131,6 +134,44 @@ main(int argc, char *argv[])
     MRIwrite(mri_in, mri_fname) ;
     exit(0) ;
   }
+  if (novar)
+    GCAunifyVariance(gca) ;
+
+  if (renormalization_fname)
+  {
+    FILE   *fp ;
+    int    *labels, nlines, i ;
+    float  *intensities, f1, f2 ;
+    char   *cp, line[STRLEN] ;
+
+    fp = fopen(renormalization_fname, "r") ;
+    if (!fp)
+      ErrorExit(ERROR_NOFILE, "%s: could not read %s",
+                Progname, renormalization_fname) ;
+
+    cp = fgetl(line, 199, fp) ;
+    nlines = 0 ;
+    while (cp)
+    {
+      nlines++ ;
+      cp = fgetl(line, 199, fp) ;
+    }
+    rewind(fp) ;
+    printf("reading %d labels from %s...\n", nlines,renormalization_fname) ;
+    labels = (int *)calloc(nlines, sizeof(int)) ;
+    intensities = (float *)calloc(nlines, sizeof(float)) ;
+    cp = fgetl(line, 199, fp) ;
+    for (i = 0 ; i < nlines ; i++)
+    {
+      sscanf(cp, "%e  %e", &f1, &f2) ;
+      labels[i] = (int)f1 ; intensities[i] = f2 ;
+      if (labels[i] == Left_Cerebral_White_Matter)
+        DiagBreak() ;
+      cp = fgetl(line, 199, fp) ;
+    }
+    GCArenormalizeIntensities(gca, labels, intensities, nlines) ;
+    free(labels) ; free(intensities) ;
+  }
   if (stricmp(xform_fname, "none"))
   {
     lta = LTAread(xform_fname) ;
@@ -197,6 +238,8 @@ main(int argc, char *argv[])
       MRIwrite(mri_labeled, fname) ;
     }
     preprocess(mri_in, mri_labeled, gca, lta, mri_fixed) ;
+    if (renormalize)
+      GCArenormalizeLabels(mri_in, mri_labeled, gca, lta) ;
     if (fixed_flag == 0)
       MRIfree(&mri_fixed) ;
     if (!no_gibbs)
@@ -284,6 +327,11 @@ get_option(int argc, char *argv[])
     nargs = 1 ;
     printf("applying max likelihood for %d iterations...\n", mle_niter) ;
   }
+  else if (!stricmp(option, "NOVAR"))
+  {
+    novar = 1 ;
+    printf("not using variance in classification\n") ;
+  }
   else if (!stricmp(option, "nohippo"))
   {
     hippocampus_flag = 0 ;
@@ -308,6 +356,19 @@ get_option(int argc, char *argv[])
     nargs = 1 ;
     printf("reading template for histogram equalization from %s...\n", 
            heq_fname) ;
+  }
+  else if (!stricmp(option, "RENORM"))
+  {
+    renormalization_fname = argv[2] ;
+    nargs = 1 ;
+    printf("renormalizing using predicted intensity values in %s...\n",
+           renormalization_fname) ;
+  }
+  else if (!stricmp(option, "renormalize"))
+  {
+    renormalize = atoi(argv[2]) ;
+    nargs = 1 ;
+    printf("renormalizing class means after initial labeling\n") ;
   }
   else switch (toupper(*option))
   {
