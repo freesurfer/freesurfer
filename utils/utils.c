@@ -13,8 +13,8 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/06/02 13:53:04 $
-// Revision       : $Revision: 1.40 $
+// Revision Date  : $Date: 2004/06/02 13:54:48 $
+// Revision       : $Revision: 1.41 $
 
 ------------------------------------------------------------------------*/
 
@@ -1060,5 +1060,5 @@ int getMemoryUsed()
 
 void printMemoryUsed()
 {
-  printf("heap used: %d\n", getMemoryUsed()); 
+  printf("heap used: %d Kbytes.\n", getMemoryUsed()); 
 }
