@@ -1904,7 +1904,7 @@ GCAnormalizedLogSampleProbability(GCA *gca, GCA_SAMPLE *gcas,
       norm_log_p += gcaComputeConditionalDensity(gc, val, gcan->labels[n]) ;
     }
     norm_log_p = log(norm_log_p) ;
-    gc = &gcan->gcs[gcas[i].n] ;
+    gc = gcaFindGC(gca, xn, yn, zn, gcas[i].label) ;
 #define TRIM_DISTANCES 0
 #if TRIM_DISTANCES
          
@@ -1917,8 +1917,8 @@ GCAnormalizedLogSampleProbability(GCA *gca, GCA_SAMPLE *gcas,
       0.5 * (dist*dist/gc->var) +
       log(getPrior(gcap, gcas[i].label])) ;
 #else
-    n = gcas[i].n ;
-    log_p = gcaComputeConditionalDensity(&gcan->gcs[n], val, gcan->labels[n]) ;
+  gc = GCAfindPriorGC(gca, xp, yp, zp, gcas[i].label) ;
+    log_p = gcaComputeConditionalDensity(gc, val, gcas[i].label) ;
     log_p = log(log_p) + log(gcas[i].prior) ;
 #endif
     log_p -= norm_log_p ;
@@ -1970,7 +1970,7 @@ GCAcomputeLogSampleProbability(GCA *gca, GCA_SAMPLE *gcas,
 
     gcan = &gca->nodes[xn][yn][zn] ;
     gcap = &gca->priors[xp][yp][zp] ;
-    gc = &gcan->gcs[gcas[i].n] ;
+      gc = GCAfindPriorGC(gca, xp, yp, zp, gcas[i].label) ;
 #define TRIM_DISTANCES 0
 #if TRIM_DISTANCES
          
@@ -3535,8 +3535,10 @@ GCAtransformAndWriteSamples(GCA *gca, MRI *mri, GCA_SAMPLE *gcas,
     TransformSampleInverseVoxel(transform, mri->width, mri->height, mri->depth, xv, yv, zv, &xv, &yv, &zv) ;
     if (gcas[n].label > 0)
       label = gcas[n].label ;
-    else
+    else if (gcas[n].label == 0)
       label = 29 ;  /* Left undetermined - visible */
+    else
+      label = 0 ;  /* Left undetermined - visible */
     mriFillRegion(mri_dst, xv, yv, zv, label, 0) ;
     gcas[n].x = xv ;
     gcas[n].y = yv ;
