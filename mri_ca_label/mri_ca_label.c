@@ -108,7 +108,7 @@ main(int argc, char *argv[])
   TRANSFORM     *transform ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_ca_label.c,v 1.38 2003/06/18 19:46:04 fischl Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ca_label.c,v 1.39 2003/07/07 20:12:04 fischl Exp $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -672,7 +672,7 @@ get_option(int argc, char *argv[])
     printf("regularizing covariance to be %2.2f Cclass + %2.2f Cpooled\n",(1-regularize),regularize) ;
 		nargs = 1 ;
   }
-  else if (!stricmp(option, "cross_sequence"))
+  else if (!stricmp(option, "cross-sequence"))
   {
     regularize = .8 ;
 		renormalize_iter = 1 ;
@@ -736,6 +736,10 @@ get_option(int argc, char *argv[])
   }
   else switch (toupper(*option))
   {
+  case 'V':
+    Gdiag_no = atoi(argv[2]) ;
+    nargs = 1 ;
+    break ;
   case 'R':
     read_flag = 1 ;
     read_fname = argv[2] ;
@@ -1663,11 +1667,12 @@ edit_amygdala(MRI *mri_inputs, MRI *mri_labeled, GCA *gca, TRANSFORM *transform,
             else
               was_wm = 0 ;
           }
-          if (found_wm && found_amygdala)
+					label = left ? Left_Cerebral_Cortex : Right_Cerebral_Cortex ;
+					
+          if (found_wm && found_amygdala && GCAisPossible(gca, mri_tmp, label, transform, x, y, z)) 
           {
             nchanged++ ;
-            MRIvox(mri_tmp, x, y, z) = left ? Left_Cerebral_Cortex : 
-              Right_Cerebral_Cortex ;
+            MRIvox(mri_tmp, x, y, z) = label ;
             if (x == Ggca_x && y == Ggca_y && z == Ggca_z)  
             {
               printf("(%d, %d, %d) %s changed to %s in edit_amygdala\n",
