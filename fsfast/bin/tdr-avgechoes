@@ -1,0 +1,249 @@
+#!/bin/tcsh -f
+# tdr-avgechoes
+
+set VERSION = '$Id: tdr-avgechoes,v 1.1 2003/09/25 02:11:56 greve Exp $';
+
+set inputargs = ($argv);
+
+set instemlist = ();
+set telist     = ();
+set outstem    = ();
+set avgmethod  = ();
+set monly      = 0;
+
+set PrintHelp = 0;
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+set n = `echo $argv | grep -e -version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+set umask = `umask`;
+
+##### Create a log file ######
+set LF = $outdir/tdr-avgechoes.log
+if(-e $LF) mv $LF $LF.old
+echo "--------------------------------------------------------------"
+echo "tdr-avgechoes logfile is $LF"
+echo "--------------------------------------------------------------"
+
+echo "tdr-avgechoes log file" >> $LF
+echo $VERSION >> $LF
+id            >> $LF
+pwd           >> $LF
+echo $0        >> $LF
+echo $inputargs  >> $LF
+uname -a      >> $LF
+date          >> $LF
+
+set StartTime = `date`;
+mkdir -p $outdir/wecho
+set wechostem = $outdir/wecho/wecho
+
+set MLF = $outdir/run_tdr_avgechoes.m
+echo "Matlab file is $MLF"
+rm -f $MLF
+  #---------------------------------------------#
+tee -a > /dev/null $MLF  <<EOF
+
+instemlist = splitstring('$instemlist');
+telist = [$telist];
+outstem = '$outstem';
+wechostem = '$wechostem';
+avgmethod = '$avgmethod';
+
+fout = 0;
+wecho = [];
+nechoes = size(instemlist,1);
+for n = 1:nechoes
+  instem = deblank(instemlist(n,:));
+  [fin mristruct] = fast_ldbslice(instem, -1);
+  if(isempty(fin)) return; end
+  if(strcmp(avgmethod,'avg'))
+    fout = fout + fin;
+  else
+    te = telist(n);
+    fscalefile = sprintf('%s.scale.dat',instem);
+    frange = load(fscalefile);
+    fmin = frange(1);
+    fscale = frange(3);
+    fin = fin/fscale + fmin;
+    finw = te*mean(fin,4);
+    nframes = size(fin,4);
+    fout = fout + fin .* repmat(finw,[1 1 1 nframes]);
+    wecho(:,:,:,n) = finw;
+  end
+end
+
+foutmin = min(reshape1d(fout));
+foutmax = max(reshape1d(fout));
+fscale = (2^15-1)/(foutmax-foutmin);
+fout = fscale*(fout-foutmin);
+fast_svbslice(fout,outstem,-1,'bshort',mristruct);
+
+if(~isempty(wechostem))
+  % normalize and save the echo weights %
+  wechosum = sum(wecho,4);
+  ind = find(wechosum==0);
+  wechosum(ind) = 1;
+  wecho = wecho ./ repmat(wechosum,[1 1 1 nechoes]);
+  fast_svbslice(wecho,wechostem,-1,'',mristruct);
+end
+
+return;
+
+EOF
+  #---------------------------------------------#
+
+if(! $monly) then
+  echo "--------------------------" >> $LF
+  cat $MLF >> $LF
+  echo "--------------------------" >> $LF
+  cat $MLF | matlab -display iconic -nojvm -nosplash | & tee -a $LF
+  echo "" | & tee -a $LF
+endif
+
+echo "Started at $StartTime" |& tee -a $LF
+echo "Ended   at `date`"     |& tee -a $LF
+
+echo "tdr-avgechoes done"
+
+
+exit 0
+
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "--i":
+      if ( $#argv == 0) goto arg1err;
+      set instemlist = ($instemlist $argv[1]); shift;
+      breaksw
+
+    case "--te":
+      if ( $#argv == 0) goto arg1err;
+      set telist = ($telist $argv[1]); shift;
+      breaksw
+
+    case "--o":
+      if ( $#argv == 0) goto arg1err;
+      set outstem = $argv[1]; shift;
+      breaksw
+
+    case "--we":
+      if ( $#argv == 0) goto arg1err;
+      set wechostem = $argv[1]; shift;
+      breaksw
+
+    case "--method":
+      if ( $#argv == 0) goto arg1err;
+      set avgmethod = $argv[1]; shift;
+      if($avgmethod != avg && $avgmethod != wavg) then
+        echo "ERROR: avg method $avgmethod unrecognized"
+        exit 1;
+      endif
+      breaksw
+
+    case "--debug":
+      set verbose = 1;
+      set echo = 1; # turns on terminal echoing
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+  if($#instemlist == 0) then
+    echo "ERROR: must specify instems"
+    exit 1;
+  endif
+  if($#avgmethod == 0) then
+    echo "ERROR: must specify averaging method"
+    exit 1;
+  endif
+  if($avgmethod == wavg && $#telist != $#instemlist) then
+    echo "ERROR: need $#instemlist TEs"
+    exit 1;
+  endif
+  foreach instem ($instemlist)
+    set h0 = $instem"_000.hdr"
+    if(! -e $h0) then
+      echo "ERROR: cannot find $h0"
+      exit 1;
+    endif
+  end
+
+  if($#outstem == 0) then
+    echo "ERROR: no outstem specified"
+    exit 1;
+  endif
+  set outdir = `dirname $outstem`;
+  mkdir -p $outdir
+  if($status) then
+    echo "ERROR: making $outdir"
+    exit 1;
+  endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "USAGE: tdr-avgechoes"
+  echo ""
+  echo "  --i instem1 <--i instem2 ...>"
+  echo "  --method  method: avg or wavg"
+  echo "  --te te1 <--te te2 ...> : needed with wavg"
+  echo "  --o outstem"
+  echo ""
+
+  if(! $PrintHelp) exit 1;
+
+  echo $VERSION
+
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+
+exit 1;
+
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+Averages multiple echoes together.

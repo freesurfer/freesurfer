@@ -1,0 +1,227 @@
+#!/bin/tcsh -f
+# tdr-fidmat
+
+set VERSION = '$Id: tdr-fidmat,v 1.1 2003/09/25 02:11:56 greve Exp $';
+
+set inputargs = ($argv);
+
+set rawkdir    = ();
+set outdir     = ();
+set fwhm       = 0;
+set monly      = 0;
+
+set PrintHelp = 0;
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+set n = `echo $argv | grep -e -version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+set umask = `umask`;
+
+##### Create a log file ######
+set logdir = $outdir/log;
+mkdir -p $logdir
+if(! -e $logdir) then
+  echo "WARNING: could not create $logdir"
+  set LF = /dev/null
+else
+  set LF = $logdir/tdr-fidmat.log
+  if(-e $LF) mv $LF $LF.old
+endif
+echo "--------------------------------------------------------------"
+echo "tdr-fidmat logfile is $LF"
+echo "--------------------------------------------------------------"
+
+echo "tdr-fidmat log file" >> $LF
+echo $VERSION >> $LF
+id            >> $LF
+pwd           >> $LF
+echo $0        >> $LF
+echo $inputargs  >> $LF
+uname -a      >> $LF
+date          >> $LF
+
+set StartTime = `date`;
+
+set fidrlf = $rawkdir/fid.rlf
+if(! -e $fidrlf) then
+  echo "ERROR: cannot find $fidrlf" |& tee -a $LF
+  exit 1;
+endif
+
+@ nthfid = 1;
+foreach fidsubdir (`cat $fidrlf`);
+
+  set fiddir = $rawkdir/$fidsubdir
+  if(! -e $fiddir) then
+    echo "ERROR: cannot find $fiddir" |& tee -a $LF
+    exit 1;
+  endif
+
+  pushd $fiddir > /dev/null
+  set fiddir = `pwd`;
+  popd > /dev/null
+
+  set fidmghdir = $outdir/tmp/fid1
+  mkdir -p $fidmghdir
+  set cmd = (mri_convert_mdh --srcdir $fiddir \
+      --outdir $fidmghdir --dim 1 35 99 64 128 0 \
+      --fasterdim echo)
+  echo "---------------------------------" |& tee -a $LF
+  date |& tee -a $LF
+  echo $cmd |& tee -a $LF
+  $cmd |& tee -a $LF
+  if($status) exit 1;
+
+  set MLF = $fidmghdir/run_tdr_fidmat.m
+  rm -f $MLF
+
+#---------------------------------------------#
+tee -a > /dev/null $MLF  <<EOF
+  fiddirlist = '$fidmghdir';
+  fidfwhm = [$fwhm];
+  TEList      = [20 50 30];  % Echo time in ms
+  TEPERevList = [ 0  1  0];  % Flag indicating reversal in PE direction
+  outlist =                 '$outdir/D20.$nthfid.mat';
+  outlist = strvcat(outlist,'$outdir/D50.$nthfid.mat');
+  outlist = strvcat(outlist,'$outdir/D30.$nthfid.mat');
+  tdr_fidmat;
+EOF
+#---------------------------------------------#
+
+  if(! $monly) then
+    cat $MLF >> $LF
+    cat $MLF | matlab -display iconic -nojvm -nosplash | & tee -a $LF
+  endif
+
+  @ nthfid = $nthfid + 1;
+end
+
+echo "Started at $StartTime" |& tee -a $LF
+echo "Ended   at `date`"     |& tee -a $LF
+
+echo "tdr-fidmat done"
+
+
+exit 0
+
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "--rawkdir":
+      if ( $#argv == 0) goto arg1err;
+      set rawkdir = $argv[1]; shift;
+      breaksw
+
+    case "--outdir":
+      if ( $#argv == 0) goto arg1err;
+      set outdir = $argv[1]; shift;
+      breaksw
+
+    case "--fwhm":
+      if ( $#argv == 0) goto arg1err;
+      set fwhm = $argv[1]; shift;
+      breaksw
+
+    case "--verbose":
+      set verbose = 1;
+      breaksw
+
+    case "--echo":
+      set echo = 1;
+      breaksw
+
+    case "--debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+  if($#rawkdir == 0) then
+    echo "ERROR: must specify a rawkdir"
+    exit 1;
+  endif
+  if(! -e $rawkdir ) then
+    echo "ERROR: $rawkdir does not exist"
+    exit 1;
+  endif
+
+  if($#outdir == 0) then
+    echo "ERROR: must specify an outdir"
+    exit 1;
+  endif
+
+  mkdir -p $outdir
+  if($status) then
+    echo "ERROR: making $outdir"
+    exit 1;
+  endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "USAGE: tdr-fidmat"
+  echo ""
+  echo "  --rawkdir dir"
+  echo "  --outdir  dir"
+  echo "  --fwhm    fwhm"
+  echo ""
+
+
+  if(! $PrintHelp) exit 1;
+
+  echo $VERSION
+
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+
+exit 1;
+
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+Computes the FID map for a functional set of data

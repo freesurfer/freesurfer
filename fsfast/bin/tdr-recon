@@ -1,0 +1,280 @@
+#!/bin/tcsh -f
+# tdr-fidmat
+
+set VERSION = '$Id: tdr-recon,v 1.1 2003/09/25 02:11:56 greve Exp $';
+
+set inputargs = ($argv);
+
+set rawkdir    = ();
+set rcolmat    = ();
+set outstem    = ();
+set bhdrfile   = ();
+set nframes    = ();
+set nechoes    = ();
+set usefid     = 1;
+set monly      = 0;
+set fidstem    = ();
+
+set PrintHelp = 0;
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+set n = `echo $argv | grep -e -version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+set umask = `umask`;
+
+##### Create a log file ######
+set logdir = $outdir/log;
+mkdir -p $logdir
+if(! -e $logdir) then
+  echo "WARNING: could not create $logdir"
+  set LF = /dev/null
+else
+  set LF = $logdir/tdr-recon.log
+  if(-e $LF) mv $LF $LF.old
+endif
+echo "--------------------------------------------------------------"
+echo "tdr-recon logfile is $LF"
+echo "--------------------------------------------------------------"
+
+echo "tdr-recon log file" >> $LF
+echo $VERSION >> $LF
+id            >> $LF
+pwd           >> $LF
+echo $0        >> $LF
+echo $inputargs  >> $LF
+uname -a      >> $LF
+date          >> $LF
+
+set StartTime = `date`;
+
+set kepimghdir = $outdir/tmp
+mkdir -p $kepimghdir
+set cmd = (mri_convert_mdh --srcdir $rawkdir \
+      --outdir $kepimghdir --dim $nframes 35 $nechoes 64 128 3 \
+      --fasterdim line)
+echo "---------------------------------" |& tee -a $LF
+date |& tee -a $LF
+echo $cmd |& tee -a $LF
+$cmd |& tee -a $LF
+if($status) exit 1;
+
+@ nthecho = 1;
+while($nthecho <= $nechoes)
+  echo "Echo $nthecho -----------"| & tee -a $LF
+  date | & tee -a $LF
+  set funcstem = $outstem$nthecho
+
+  set MLF = $outdir/run_tdr_recon_$nthecho.m
+  rm -f $MLF
+  #---------------------------------------------#
+tee -a > /dev/null $MLF  <<EOF
+  kepidir = '$kepimghdir';
+  epiecho =  $nthecho;
+  rcolmatfile = '$rcolmat[$nthecho]';
+  usefid = $usefid;
+  nframes = $nframes;
+  funcstem = '$funcstem';
+  fidstem  = '$fidstem';
+  bhdrfile = '$bhdrfile';
+  tdr_recon;
+EOF
+  #---------------------------------------------#
+
+  if(! $monly) then
+    cat $MLF >> $LF
+    cat $MLF | matlab -display iconic -nojvm -nosplash | & tee -a $LF
+    echo "" | & tee -a $LF
+  endif
+
+  @ nthecho = $nthecho + 1;
+end # Loop over echoes
+
+echo "Started at $StartTime" |& tee -a $LF
+echo "Ended   at `date`"     |& tee -a $LF
+
+echo "tdr-recon done"
+
+
+exit 0
+
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "--rawk":
+      if ( $#argv == 0) goto arg1err;
+      set rawkdir = $argv[1]; shift;
+      breaksw
+
+    case "--rcol":
+      if ( $#argv == 0) goto arg1err;
+      set rcolmat = ($rcolmat $argv[1]); shift;
+      breaksw
+
+    case "--nframes":
+      if ( $#argv == 0) goto arg1err;
+      set nframes = $argv[1]; shift;
+      breaksw
+
+    case "--nechoes":
+      if ( $#argv == 0) goto arg1err;
+      set nechoes = $argv[1]; shift;
+      breaksw
+
+    case "--o":
+      if ( $#argv == 0) goto arg1err;
+      set outstem = $argv[1]; shift;
+      breaksw
+
+    case "--fid":
+      if ( $#argv == 0) goto arg1err;
+      set fidstem = $argv[1]; shift;
+      breaksw
+
+    case "--bhdr":
+      if ( $#argv == 0) goto arg1err;
+      set bhdrfile = $argv[1]; shift;
+      breaksw
+
+    case "--nofid":
+      set usefid = 0;
+      breaksw
+
+    case "--debug":
+      set verbose = 1;
+      set echo = 1; # turns on terminal echoing
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+  if($#rawkdir == 0) then
+    echo "ERROR: must specify a rawkdir"
+    exit 1;
+  endif
+  if(! -e $rawkdir ) then
+    echo "ERROR: $rawkdir does not exist"
+    exit 1;
+  endif
+  if(! -e $rawkdir/meas.out ) then
+    echo "ERROR: $rawkdir/meas.out does not exist"
+    exit 1;
+  endif
+  if(! -e $rawkdir/meas.asc ) then
+    echo "ERROR: $rawkdir/meas.asc does not exist"
+    exit 1;
+  endif
+  if($#nframes == 0 ) then
+    echo "ERROR: must spec nframes"
+    exit 1;
+  endif
+  if($#nechoes == 0 ) then
+    echo "ERROR: must spec nechoes"
+    exit 1;
+  endif
+  if($#rcolmat != $nechoes) then
+    echo "ERROR: must specify $nechoes rcolmat files ($#rcolmat)"
+    exit 1;
+  endif
+  foreach rcol ($rcolmat)
+    if(! -e $rcol ) then
+      echo "ERROR: $rcol does not exist"
+      exit 1;
+    endif
+  end
+
+  if($#bhdrfile) then
+    if(! -e $bhdrfile ) then
+      echo "ERROR: $bhdrfile does not exist"
+      exit 1;
+    endif
+  endif
+
+  if($#outstem == 0) then
+    echo "ERROR: must specify an out stem"
+    exit 1;
+  endif
+  set outdir = `dirname $outstem`;
+
+  mkdir -p $outdir
+  if($status) then
+    echo "ERROR: making $outdir"
+    exit 1;
+  endif
+
+  if($#fidstem != 0) then
+    set fidoutdir = `dirname $fidstem`;
+    mkdir -p $fidoutdir
+  endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "USAGE: tdr-recon"
+  echo ""
+  echo "  --rawk    dir"
+  echo "  --rcol    rcolmat"
+  echo "  --nofid   don't compensate for decay"
+  echo "  --nframes nframes"
+  echo "  --nechoes nechoes"
+  echo "  --o       outstem"
+  echo "  --fid     save first echo of fid as an anatomical"
+  echo "  --bhdr    bhdrfile (use as a template)"
+  echo ""
+
+  if(! $PrintHelp) exit 1;
+
+  echo $VERSION
+
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+
+exit 1;
+
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+Converts raw k-space data into images using time-domain 
+reconstruction  method.

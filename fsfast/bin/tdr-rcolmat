@@ -1,0 +1,225 @@
+#!/bin/tcsh -f
+# tdr-fidmat
+
+set VERSION = '$Id: tdr-rcolmat,v 1.1 2003/09/25 02:11:56 greve Exp $';
+
+set inputargs = ($argv);
+
+set fidmat     = ();
+set rcolmat    = ();
+set dnorm      = 1;
+set rsegthresh = 0.2;
+set regmethod  = "svdpct";
+set svdregpct  = 90;
+set tikregfact = 0.5;
+set monly = 0;
+
+set PrintHelp = 0;
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+set n = `echo $argv | grep -e -version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+set umask = `umask`;
+
+##### Create a log file ######
+set logdir = $outdir/log;
+mkdir -p $logdir
+if(! -e $logdir) then
+  echo "WARNING: could not create $logdir"
+  set LF = /dev/null
+else
+  set LF = $logdir/tdr-rcolmat.log
+  if(-e $LF) mv $LF $LF.old
+endif
+echo "--------------------------------------------------------------"
+echo "tdr-rcolmat logfile is $LF"
+echo "--------------------------------------------------------------"
+
+echo "tdr-rcolmat log file" >> $LF
+echo $VERSION >> $LF
+id            >> $LF
+pwd           >> $LF
+echo $0        >> $LF
+echo $inputargs  >> $LF
+uname -a      >> $LF
+date          >> $LF
+
+set StartTime = `date`;
+
+set MLF = $outdir/run_tdr_rcolmat.m
+rm -f $MLF
+
+#---------------------------------------------#
+tee -a > /dev/null $MLF  <<EOF
+  fidmatfile  = '$fidmat';
+  rcolmatfile = '$rcolmat';
+  dnorm = [$dnorm];
+  rthreshfid = [$rsegthresh];
+  regmethod = '$regmethod'; % tikhonov or svdpct
+  svdregpct = [$svdregpct];
+  tikregfact = [$tikregfact];
+  tdr_rcolmat;
+EOF
+#---------------------------------------------#
+
+if(! $monly) then
+  cat $MLF >> $LF
+  cat $MLF | matlab -display iconic -nojvm -nosplash | & tee -a $LF
+  echo ""| & tee -a $LF
+endif
+
+echo "Started at $StartTime" |& tee -a $LF
+echo "Ended   at `date`"     |& tee -a $LF
+
+echo "tdr-rcolmat done"
+
+
+exit 0
+
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "--fid":
+      if ( $#argv == 0) goto arg1err;
+      set fidmat = $argv[1]; shift;
+      breaksw
+
+    case "--rcol":
+      if ( $#argv == 0) goto arg1err;
+      set rcolmat = $argv[1]; shift;
+      breaksw
+
+    case "--rsegthresh":
+      if ( $#argv == 0) goto arg1err;
+      set rsegthresh = $argv[1]; shift;
+      breaksw
+
+    case "--reg":
+      if ( $#argv == 0) goto arg1err;
+      set regmethod = $argv[1]; shift;
+      if($reg != svdpct && $reg != tikhonov) then
+        echo "ERROR: regmethod = $reg, must be svdpct or tikhonov"
+        exit 1;
+      endif
+      breaksw
+
+    case "--svdpct":
+      if ( $#argv == 0) goto arg1err;
+      set svdpct = $argv[1]; shift;
+      breaksw
+
+    case "--tik":
+      if ( $#argv == 0) goto arg1err;
+      set tikregfact = $argv[1]; shift;
+      breaksw
+
+    case "--nodnorm":
+      set dnorm = 0;
+      breaksw
+
+    case "--verbose":
+      set verbose = 1;
+      breaksw
+
+    case "--echo":
+      set echo = 1;
+      breaksw
+
+    case "--debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+  if($#fidmat == 0) then
+    echo "ERROR: must specify fidmat"
+    exit 1;
+  endif
+  if(! -e $fidmat ) then
+    echo "ERROR: $fidmat does not exist"
+    exit 1;
+  endif
+
+  if($#rcolmat == 0) then
+    echo "ERROR: must specify rcolmat"
+    exit 1;
+  endif
+  set outdir = `dirname $rcolmat`;
+
+  mkdir -p $outdir
+  if($status) then
+    echo "ERROR: making $outdir"
+    exit 1;
+  endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "USAGE: tdr-rcolmat"
+  echo ""
+  echo "  --fid     fidmat"
+  echo "  --rcol    rcolmat"
+  echo "  --nodnorm"
+  echo "  --rsegthresh rthresh <0.2>"
+  echo "  --reg  method : <svdpct> tikhonov"
+  echo "  --svdpct svdregpct <90>"
+  echo "  --tik    tikregfact <0.5>"
+
+  if(! $PrintHelp) exit 1;
+
+  echo $VERSION
+
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+
+exit 1;
+
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+Computes the matrix that reconstructs the columns
