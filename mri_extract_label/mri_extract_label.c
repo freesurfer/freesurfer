@@ -13,7 +13,9 @@
 #include "transform.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mri_extract_label.c,v 1.6 2004/06/30 14:59:27 vicka Exp $";
+#define UNIT_VOLUME 128
+
+static char vcid[] = "$Id: mri_extract_label.c,v 1.7 2005/01/19 14:31:17 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -22,25 +24,25 @@ static void usage_exit(void) ;
 static void print_usage(void) ;
 static void print_help(void) ;
 static void print_version(void) ;
-static int  extract_labeled_image(MRI *mri_in, MATRIX *m, int label, MRI *mri_out) ;
+static int  extract_labeled_image(MRI *mri_in, TRANSFORM *transform, int label, MRI *mri_out) ;
 
 char *Progname ;
 static char *out_like_fname = NULL ;
 
 static char *xform_fname = NULL ;
 static LTA  *lta = NULL;
+static TRANSFORM *transform = NULL ;
 static float sigma = 0 ;
 
 int
 main(int argc, char *argv[])
 {
-  char        **av, *in_vol, *out_vol, out_fname[STRLEN] ;
-  int         ac, nargs, i, invert_flag = 0, ras_flag = 0, label ;
+  char        **av, *in_fname, *out_fname ;
+  int         ac, nargs, i, label ;
   MRI         *mri_in, *mri_out, *mri_kernel, *mri_smoothed ;
-  MATRIX      *m ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_extract_label.c,v 1.6 2004/06/30 14:59:27 vicka Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_extract_label.c,v 1.7 2005/01/19 14:31:17 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -61,14 +63,14 @@ main(int argc, char *argv[])
   if (argc < 4)
     usage_exit() ;
 
-  in_vol = argv[1] ;
-  out_vol = argv[argc-1] ;
+  in_fname = argv[1] ;
+  out_fname = argv[argc-1] ;
 
-  printf("reading volume from %s...\n", in_vol) ;
-  mri_in = MRIread(in_vol) ;
+  printf("reading volume from %s...\n", in_fname) ;
+  mri_in = MRIread(in_fname) ;
   if (!mri_in)
     ErrorExit(ERROR_NOFILE, "%s: could not read MRI volume %s", Progname, 
-              in_vol) ;
+              in_fname) ;
   if (out_like_fname)
   {
     MRI *mri_tmp = MRIread(out_like_fname) ;
@@ -79,60 +81,27 @@ main(int argc, char *argv[])
     MRIfree(&mri_tmp) ;
   }
   else
-    mri_out = MRIalloc(256, 256, 256, mri_in->type) ;
+    mri_out = MRIclone(mri_in, NULL) ;
 
-  if (lta)
-  {
-    m = MatrixCopy(lta->xforms[0].m_L, NULL) ;
-    
-    if (lta->type == LINEAR_RAS_TO_RAS)  /* convert it to a voxel transform */
-    {
-      ras_flag = 1 ;
-    }
-    else if (ras_flag)
-      ErrorExit(ERROR_UNSUPPORTED, "%s: transforms must be all RAS or all voxel",Progname) ;
-    
-    if (invert_flag)
-    {
-      MATRIX *m_tmp ;
-      printf("inverting transform...\n") ;
-      m_tmp = MatrixInverse(m, NULL) ;
-      if (!m_tmp)
-        ErrorExit(ERROR_BADPARM, "%s: transform is singular!") ;
-      MatrixFree(&m) ; m = m_tmp ;
-      invert_flag = 0 ;
-    }
-    LTAfree(&lta) ;
-    if (ras_flag)  /* convert it to a voxel transform */
-    {
-      MATRIX *m_tmp ;
-      printf("converting RAS xform to voxel xform...\n") ;
-      m_tmp = MRIrasXformToVoxelXform(mri_in, mri_out, m, NULL) ;
-      MatrixFree(&m) ; m = m_tmp ;
-    }
-  }
-  else
-    m = NULL ;
 
   for (i = 2 ; i < argc-1 ; i++)
   {
     label = atoi(argv[i]) ;
     printf("extracting label %d (%s)\n", label, cma_label_to_name(label)) ;
-    extract_labeled_image(mri_in, m, label, mri_out) ;
-    if (!FZERO(sigma))
-    {
-      printf("smoothing extracted volume...\n") ;
-      mri_kernel = MRIgaussian1d(sigma, 30) ;
-      mri_smoothed = MRIconvolveGaussian(mri_out, NULL, mri_kernel) ;
-      MRIfree(&mri_out) ; mri_out = mri_smoothed ;
-    }
-    /* removed for gcc3.3
-     * vsprintf(out_fname, out_vol, (va_list) &label) ;
-    */
-    sprintf(out_fname, out_vol, label) ;
-    printf("writing output to %s.\n", out_fname) ;
-    MRIwrite(mri_out, out_fname) ;
+    extract_labeled_image(mri_in, transform, label, mri_out) ;
   }
+	if (!FZERO(sigma))
+	{
+		printf("smoothing extracted volume...\n") ;
+		mri_kernel = MRIgaussian1d(sigma, 10*sigma) ;
+		mri_smoothed = MRIconvolveGaussian(mri_out, NULL, mri_kernel) ;
+		MRIfree(&mri_out) ; mri_out = mri_smoothed ;
+	}
+	/* removed for gcc3.3
+	 * vsprintf(out_fname, out_fname, (va_list) &label) ;
+	 */
+	printf("writing output to %s.\n", out_fname) ;
+	MRIwrite(mri_out, out_fname) ;
   
 
   exit(0) ;
@@ -155,6 +124,14 @@ get_option(int argc, char *argv[])
     print_help() ;
   else if (!stricmp(option, "-version"))
     print_version() ;
+  else if (!stricmp(option, "DEBUG_VOXEL"))
+  {
+    Gx = atoi(argv[2]) ;
+    Gy = atoi(argv[3]) ;
+    Gz = atoi(argv[4]) ;
+    nargs = 3 ;
+    printf("debugging voxel (%d, %d, %d)\n", Gx,Gy,Gz) ;
+  }
   else if (!stricmp(option, "out_like") || !stricmp(option, "ol"))
   {
     out_like_fname = argv[2] ;
@@ -172,11 +149,13 @@ get_option(int argc, char *argv[])
     xform_fname = argv[2] ;
     printf("reading and applying transform %s...\n", xform_fname) ;
     nargs = 1 ;
-    lta = LTAread(xform_fname) ;
-    if (!lta)
+    transform = TransformRead(xform_fname) ;
+    if (!transform)
       ErrorExit(ERROR_NOFILE, "%s: could not read transform from %s", 
                 Progname, xform_fname) ;
 
+		if (transform->type != MORPH_3D_TYPE)
+			lta = (LTA *)(transform->xform) ;
     break ;
   case 'V':
     Gdiag_no = atoi(argv[2]) ;
@@ -232,18 +211,20 @@ print_version(void)
 }
 
 static int
-extract_labeled_image(MRI *mri_src, MATRIX *mA, int label, MRI *mri_dst)
+extract_labeled_image(MRI *mri_src, TRANSFORM *transform, int label, MRI *mri_dst)
 {
-  MRI  *mri_binarized ;
+  MRI  *mri_binarized, *mri_tmp ;
 
   mri_binarized = MRIclone(mri_src, NULL) ;
   MRIcopyLabel(mri_src, mri_binarized, label) ;
-  MRIbinarize(mri_binarized, mri_binarized, 1, 0, 255) ;
-  if (mA)
-    MRIlinearTransform(mri_binarized, mri_dst, mA) ;
-  else
-    MRIcopy(mri_binarized, mri_dst) ;
-  MRIfree(&mri_binarized) ;
+  MRIbinarize(mri_binarized, mri_binarized, 1, 0, UNIT_VOLUME) ;
+  if (transform)
+    mri_tmp = TransformCreateDensityMap(transform, mri_binarized, NULL) ;
+	else
+		mri_tmp = MRIcopy(mri_binarized,NULL) ;
+
+	MRIadd(mri_tmp, mri_dst, mri_dst) ;
+  MRIfree(&mri_binarized) ; MRIfree(&mri_tmp) ;
   return(NO_ERROR) ;
 }
 
