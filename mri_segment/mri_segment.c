@@ -272,6 +272,14 @@ get_option(int argc, char *argv[])
     nargs = 1 ;
     fprintf(stderr, "using curvature pslope = %2.2f\n", pslope) ;
   }
+  else if (!stricmp(option, "debug_voxel"))
+  {
+    Gx = atoi(argv[2]) ;
+    Gy = atoi(argv[3]) ;
+    Gz = atoi(argv[4]) ;
+    nargs = 3 ;
+    fprintf(stderr, "debugging voxel (%d, %d, %d)\n", Gx, Gy, Gz) ;
+  }
   else if (!stricmp(option, "auto"))
   {
     auto_detect_stats = !auto_detect_stats ;

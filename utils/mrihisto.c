@@ -27,6 +27,7 @@
 #include "box.h"
 #include "region.h"
 #include "nr.h"
+#include "mrinorm.h"
 
 /*-----------------------------------------------------
                     MACROS AND CONSTANTS
@@ -848,7 +849,7 @@ MRIhistoSegment(MRI *mri_src, MRI *mri_labeled, int wm_low, int wm_hi,
       psrc = &MRIvox(mri_src, 0, y, z) ;
       for (x = 0 ; x < width ; x++)
       {
-        if (x == X_DB && y == Y_DB && z == Z_DB)
+        if (x == Gx && y == Gy && z == Gz)
           DiagBreak() ;
 
         label = *pdst ;
@@ -863,6 +864,7 @@ MRIhistoSegment(MRI *mri_src, MRI *mri_labeled, int wm_low, int wm_hi,
         nvox++ ;
         region.x = x-whalf ; region.y = y-whalf ; region.z = z-whalf ;
         histo = mriHistogramRegion(mri_src, 0, histo, &region) ;
+        
         /*        HISTOclearBins(histo, histo, in_val-1, in_val+1) ;*/
         hsmooth = HISTOsmooth(histo, hsmooth, sigma) ;
 #if 0
