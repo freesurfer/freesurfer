@@ -4,9 +4,9 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2003/03/18 17:16:37 $
-// Revision       : $Revision: 1.135 $
-char *VERSION = "$Revision: 1.135 $";
+// Revision Date  : $Date: 2003/03/19 17:51:12 $
+// Revision       : $Revision: 1.136 $
+char *VERSION = "$Revision: 1.136 $";
 
 #define TCL
 #define TKMEDIT 
@@ -24,6 +24,7 @@ char *VERSION = "$Revision: 1.135 $";
 #include "utils.h"
 #include "const.h"
 #include "transform.h"
+#include "version.h"
 
 #include "tkmedit.h"
 
@@ -906,6 +907,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
   
   tkm_tErr      eResult          = tkm_tErr_NoErr;
   FunV_tErr      eFunctional          = FunV_tErr_NoError;
+  int        nNumProcessedVersionArgs = 0;
   int        nCurrentArg        = 0;
   int        bFatalError        = FALSE;
   char        sArg[tkm_knPathLen]      = "";
@@ -985,6 +987,18 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
   eFunctional = FunV_GetThreshold( gFunctionalVolume, &min, &min, &slope );
   DebugAssertThrow( (FunV_tErr_NoError == eFunctional ) );
   
+
+  /* First look for the version option and handle that. If found,
+     shorten our argc and argv count. If those are the only args we
+     had, exit. */
+  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.136 2003/03/19 17:51:12 kteich Exp $");
+  argc -= nNumProcessedVersionArgs;
+  argv += nNumProcessedVersionArgs;
+  if( 1 == argc ) {
+    exit( 0 );
+  }
+
+
   if (argc<2) {
     
     printf("usage: tkmedit {[subject image_type]|[-f absolute_path]}\n");
@@ -1062,11 +1076,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
     /* check for a option */
     if( '-' == sArg[0] ) {
       
-      if ( MATCH( sArg, "--version")) {
-	printf("Version: %s\n", VERSION);
-	exit(0);
-
-      } else if ( MATCH( sArg, "-tcl" ) ) {
+      if ( MATCH( sArg, "-tcl" ) ) {
   
 	/* check for one more. */
 	if( argc > nCurrentArg + 1 
