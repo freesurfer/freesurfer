@@ -14,7 +14,7 @@
 #include "macros.h"
 #include "utils.h"
 
-static char vcid[] = "$Id: mris_flatten.c,v 1.17 1998/11/03 18:17:22 fischl Exp $";
+static char vcid[] = "$Id: mris_flatten.c,v 1.18 1998/11/16 20:26:10 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -41,6 +41,9 @@ static int   max_passes = 1 ;
 static int sphere_flag = 0 ;
 static int plane_flag = 0 ;
 
+static int original_surf_flag = 0 ;
+static float rescale = 1.0f ;
+
 #define SMOOTHWM_FNAME  "smoothwm" 
 
 int
@@ -51,28 +54,19 @@ main(int argc, char *argv[])
   int          ac, nargs ;
   MRI_SURFACE  *mris ;
 
-  Gdiag = DIAG_SHOW ;
-
+  Gdiag |= DIAG_SHOW ;
   Progname = argv[0] ;
   ErrorInit(NULL, NULL, NULL) ;
   DiagInit(NULL, NULL, NULL) ;
   Gdiag |= (DIAG_SHOW | DIAG_WRITE) ;
+  memset(&parms, 0, sizeof(parms)) ;
   parms.dt = .1 ;
   parms.projection = PROJECT_PLANE ;
   parms.tol = 0.2 ;
-  parms.n_averages = 1024 /* 1024 */ ;
-  parms.min_averages = 0 ;
-  parms.l_angle = 0.0 /* L_ANGLE */ ;
-  parms.l_area = 0.0 /* L_AREA */ ;
-  parms.l_neg = 0.0 ;
+  parms.n_averages = 1024 ;
   parms.l_dist = 1.0 ;
-  parms.l_spring = 0.0 ;
   parms.l_area = 1.0 ;
-  parms.l_boundary = 0.0 ;
-  parms.l_curv = 0.0 ;
   parms.niterations = 40 ;
-  parms.write_iterations = 0 ;
-  parms.a = parms.b = parms.c = 0.0f ;  /* ellipsoid parameters */
   parms.dt_increase = 1.01 /* DT_INCREASE */;
   parms.dt_decrease = 0.98 /* DT_DECREASE*/ ;
   parms.error_ratio = 1.03 /*ERROR_RATIO */;
@@ -80,14 +74,8 @@ main(int argc, char *argv[])
   parms.momentum = 0.9 ;
   parms.desired_rms_height = -1.0 ;
   parms.base_name[0] = 0 ;
-  parms.Hdesired = 0.0 ;   /* a flat surface */
-#if 0
-  parms.nbhd_size = 4 ;    /* out to 4-connected neighbors */
-  parms.max_nbrs = 20 ;    /* 20 at each distance */
-#else
   parms.nbhd_size = 7 ;    /* out to 7-connected neighbors */
   parms.max_nbrs = 12 ;    /* 12 at each distance */
-#endif
   ac = argc ;
   av = argv ;
   for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++)
@@ -113,7 +101,10 @@ main(int argc, char *argv[])
   }
   else
     strcpy(hemi, "lh") ;
-  sprintf(in_surf_fname, "%s/%s.%s", path, hemi, SMOOTHWM_FNAME) ;
+  if (original_surf_flag)
+    sprintf(in_surf_fname, "%s", in_patch_fname) ;
+  else
+    sprintf(in_surf_fname, "%s/%s.%s", path, hemi, SMOOTHWM_FNAME) ;
 
   if (parms.base_name[0] == 0)
   {
@@ -138,9 +129,26 @@ main(int argc, char *argv[])
     MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ;
   }
 
-  if (MRISreadPatch(mris, in_patch_fname) != NO_ERROR)
-    ErrorExit(ERROR_BADPARM, "%s: could not read patch file %s",
-              Progname, in_patch_fname) ;
+  if (original_surf_flag)  /* only have the 1 surface - no patch file */
+  { 
+    mris->patch = 1 ; 
+    mris->status = MRIS_PATCH ; 
+    if (!FEQUAL(rescale,1))
+    {
+      MRISscaleBrain(mris, mris, rescale) ;
+      MRIScomputeMetricProperties(mris) ;
+    }
+    MRISstoreMetricProperties(mris) ; 
+    MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ;
+
+  }
+  else
+  {
+    if (MRISreadPatch(mris, in_patch_fname) != NO_ERROR)
+      ErrorExit(ERROR_BADPARM, "%s: could not read patch file %s",
+                Progname, in_patch_fname) ;
+  }
+
   fprintf(stderr, "reading original vertex positions...\n") ;
   if (!FZERO(disturb))
     mrisDisturbVertices(mris, disturb) ;
@@ -151,7 +159,7 @@ main(int argc, char *argv[])
     else
       MRISflattenPatch(mris) ;
 
-    if (!sphere_flag)
+    if (!sphere_flag && !original_surf_flag)
       MRISreadOriginalProperties(mris, "smoothwm") ;
     MRISsetNeighborhoodSize(mris, nbrs) ;
 
@@ -161,7 +169,6 @@ main(int argc, char *argv[])
     MRIScomputeMetricProperties(mris) ;
     MRISunfold(mris, &parms, max_passes) ;
     fprintf(stderr, "writing flattened patch to %s\n", out_patch_fname) ;
-    MRIScenter(mris, mris) ;
     MRISwritePatch(mris, out_patch_fname) ;
   }
 
@@ -221,6 +228,12 @@ get_option(int argc, char *argv[])
     sphere_flag = 1 ;
   else if (!stricmp(option, "plane"))
     plane_flag = 1 ;
+  else if (!stricmp(option, "rescale"))
+  {
+    rescale = atof(argv[2]) ;
+    nargs = 1 ;
+    fprintf(stderr, "rescaling brain by %2.3f\n", rescale) ;
+  }
   else if (!stricmp(option, "dist"))
   {
     sscanf(argv[2], "%f", &parms.l_dist) ;
@@ -336,6 +349,9 @@ get_option(int argc, char *argv[])
     max_passes = atoi(argv[2]) ;
     fprintf(stderr, "limitting unfolding to %d passes\n", max_passes) ;
     nargs = 1 ;
+    break ;
+  case 'O':
+    original_surf_flag = 1 ;  /* patch is only surface file */
     break ;
   case 'B':
     base_dt_scale = atof(argv[2]) ;
@@ -491,4 +507,3 @@ MRISscaleUp(MRI_SURFACE *mris)
 #endif
   return(NO_ERROR) ;
 }
-
