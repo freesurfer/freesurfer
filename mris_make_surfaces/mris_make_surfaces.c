@@ -15,7 +15,7 @@
 #include "mrishash.h"
 #include "macros.h"
 
-static char vcid[] = "$Id: mris_make_surfaces.c,v 1.7 1998/11/16 20:29:07 fischl Exp $";
+static char vcid[] = "$Id: mris_make_surfaces.c,v 1.8 1999/01/07 20:48:06 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -39,6 +39,7 @@ static int smooth = 2 ;
 static int nwhite = 15 /*25*/ ;
 static int ngray = 45 /*100*/ ;
 
+static int nowhite = 0 ;
 static float gray_surface = 55.0f ;
 static int nbrs = 2 ;
 static int write_vals = 0 ;
@@ -166,25 +167,34 @@ main(int argc, char *argv[])
   if (nbrs > 1)
     MRISsetNeighborhoodSize(mris, nbrs) ;
 
-  fprintf(stderr, "computing target intensity values...\n") ;
-  if (smooth)
-    MRISsmoothSurfaceNormals(mris, smooth); /* start with a smooth surface */
-  MRIScomputeMetricProperties(mris) ;    /* recompute surface normals */
-  MRIScomputeWhiteSurfaceValues(mris, mri_T1, mri_smooth, mri_wm) ;
-  if (write_vals)
+  if (!nowhite)
   {
-    sprintf(fname, "./%s-white.w", hemi) ;
-    MRISwriteValues(mris, fname) ;
+    fprintf(stderr, "computing target intensity values...\n") ;
+    if (smooth)
+      MRISsmoothSurfaceNormals(mris, smooth);
+    MRIScomputeMetricProperties(mris) ;    /* recompute surface normals */
+    MRIScomputeWhiteSurfaceValues(mris, mri_T1, mri_smooth, mri_wm) ;
+    if (write_vals)
+    {
+      sprintf(fname, "./%s-white.w", hemi) ;
+      MRISwriteValues(mris, fname) ;
+    }
+    fprintf(stderr,"repositioning cortical surface to gray/white boundary\n");
+    strcpy(parms.base_name, WHITE_MATTER_NAME) ;
+    
+    MRISpositionSurface(mris, mri_T1, mri_smooth,&parms);
+
+    sprintf(fname, "%s/%s/surf/%s.%s", sdir, sname, hemi, WHITE_MATTER_NAME) ;
+    fprintf(stderr, "writing white matter surface to %s...\n", fname) ;
+    MRISwrite(mris, fname) ;
   }
-  fprintf(stderr, "repositioning cortical surface to gray/white boundary.\n");
-  strcpy(parms.base_name, WHITE_MATTER_NAME) ;
-
-
-  MRISpositionSurface(mris, mri_T1, mri_smooth,&parms);
-
-  sprintf(fname, "%s/%s/surf/%s.%s", sdir, sname, hemi, WHITE_MATTER_NAME) ;
-  fprintf(stderr, "writing white matter surface to %s...\n", fname) ;
-  MRISwrite(mris, fname) ;
+  else
+  {
+    if (MRISreadVertexPositions(mris, "white") != NO_ERROR)
+      ErrorExit(Gerror, "%s: could not read white matter surfaces.",
+                Progname) ;
+    MRIScomputeMetricProperties(mris) ;
+  }
 
   if (mri_kernel)
   {
@@ -213,7 +223,7 @@ main(int argc, char *argv[])
   sprintf(fname, "%s/%s/surf/%s.%s", sdir, sname, hemi, GRAY_MATTER_NAME) ;
   fprintf(stderr, "writing pial surface to %s...\n", fname) ;
   MRISwrite(mris, fname) ;
-  MRISmeasureCorticalThickness(mris, mri_T1) ;
+  MRISmeasureCorticalThickness(mris) ;
   fprintf(stderr, 
           "writing cortical thickness estimate to 'thickness' file.\n") ;
   MRISwriteCurvature(mris, "thickness") ;
@@ -328,6 +338,11 @@ get_option(int argc, char *argv[])
     fprintf(stderr, 
            "integrating gray/white surface positioning for %d time steps\n",
            nwhite) ;
+  }
+  else if (!stricmp(option, "nowhite"))
+  {
+    nowhite = 1 ;
+    fprintf(stderr, "reading previously compute gray/white surface\n") ;
   }
   else if (!stricmp(option, "pial"))
   {
