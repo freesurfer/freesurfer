@@ -454,7 +454,19 @@ main(int argc, char *argv[])
   MRIvoxelXformToRasXform(mri_in, mri_in, 
                           parms.lta->xforms[0].m_L, parms.lta->xforms[0].m_L) ;
 #endif
-  parms.lta->type = LINEAR_VOX_TO_VOX ;
+  if (!stricmp(out_fname+strlen(out_fname)-3, "XFM"))
+  {
+    printf("converting xform to RAS...\n") ;
+    printf("initial:\n") ;
+    MatrixPrint(stdout, parms.lta->xforms[0].m_L) ;
+    MRIvoxelXformToRasXform(mri_in, mri_in, 
+                            parms.lta->xforms[0].m_L, parms.lta->xforms[0].m_L) ;
+    printf("final:\n") ;
+    MatrixPrint(stdout, parms.lta->xforms[0].m_L) ;
+    parms.lta->type = LINEAR_RAS_TO_RAS ;
+  }
+  else
+    parms.lta->type = LINEAR_VOX_TO_VOX ;
   LTAwrite(parms.lta, out_fname) ;
 
   if (transformed_sample_fname)
