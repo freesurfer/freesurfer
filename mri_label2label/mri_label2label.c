@@ -1,6 +1,6 @@
 /*----------------------------------------------------------
   Name: mri_label2label.c
-  $Id: mri_label2label.c,v 1.8 2002/05/16 17:20:29 greve Exp $
+  $Id: mri_label2label.c,v 1.9 2002/07/03 20:02:36 greve Exp $
   Author: Douglas Greve
   Purpose: Converts a label in one subject's space to a label
   in another subject's space using either talairach or spherical
@@ -58,7 +58,7 @@ static int  nth_is_arg(int nargc, char **argv, int nth);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_label2label.c,v 1.8 2002/05/16 17:20:29 greve Exp $";
+static char vcid[] = "$Id: mri_label2label.c,v 1.9 2002/07/03 20:02:36 greve Exp $";
 char *Progname = NULL;
 
 char  *srclabelfile = NULL;
@@ -459,7 +459,14 @@ static int parse_commandline(int argc, char **argv)
     }
     else if (!strcmp(option, "--srcmasksign")){
       if(nargc < 1) argnerr(option,1);
-      srcmasksign = pargv[1]; nargsused = 1;
+      srcmasksign = pargv[0]; nargsused = 1;
+      if(strcmp(srcmasksign,"abs") &&
+   strcmp(srcmasksign,"pos") &&
+   strcmp(srcmasksign,"neg")){
+  printf("ERROR: srcmasksign = %s, must be either "
+         "abs, pos, or neg\n", srcmasksign);
+  exit(1);
+      }
     }
     /* -------- target inputs ------ */
     else if (!strcmp(option, "--trgsubject")){
