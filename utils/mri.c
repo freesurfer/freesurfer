@@ -8,10 +8,10 @@
  *
  */
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2005/01/29 00:58:35 $
-// Revision       : $Revision: 1.292 $
-char *MRI_C_VERSION = "$Revision: 1.292 $";
+// Revision Author: $Author: tosa $
+// Revision Date  : $Date: 2005/02/10 18:16:05 $
+// Revision       : $Revision: 1.293 $
+char *MRI_C_VERSION = "$Revision: 1.293 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -11672,8 +11672,7 @@ void MRIcalcCRASforHiresVolume(MRI *hires, MRI *lowres, MATRIX *vox_xform, Real 
 // outside of the rotated volume.  This routine will keep the
 // center of the rotated volume at the right location.
 MRI *
-MRIsrcTransformedCentered(MRI *src, MRI *dst, MATRIX *stod_voxtovox,
-													int interp_method)
+MRIsrcTransformedCentered(MRI *src, MRI *dst, MATRIX *stod_voxtovox, int interp_method)
 {
   Real cr, ca, cs;
   MRI *rotated;
@@ -11704,4 +11703,110 @@ MRIsrcTransformedCentered(MRI *src, MRI *dst, MATRIX *stod_voxtovox,
   stosrotVox = MatrixMultiply(tmp, stod_voxtovox, NULL);
   MRIlinearTransformInterp(src, rotated, stosrotVox, interp_method);
   return rotated;
+}
+
+////////////////////////////////////////////////////////////////////////////
+// No sample method ////////////////////////////////////////////////////////
+// using the src and orig_dst to modify the direction cosines and c_(ras) value 
+// so that it will be rotated in the RAS space but no pixel is sampled 
+MRI *MRITransformedCentered(MRI *src, MRI *orig_dst, MATRIX *stod_voxtovox)
+{
+  MRI *dst = 0;
+  Real cx, cy, cz;
+  Real cr, ca, cs;
+  MATRIX *dstToRas = 0;
+  MATRIX *SI = 0;
+  MATRIX *D = 0;
+
+  dst = MRIcopy(src, NULL);
+  //     
+  //      src   -->   RAS
+  //       |           |
+  //       | M         | Y
+  //       V           V
+  //    orig_dst -->  RAS
+  //       |           |
+  //       |       (identity)
+  //       V           |
+  //      dst   -->   RAS      // new rotated src volume whose center is at the right location    
+  //            ?
+  // we try src->dst is identity (no sampling)
+  // 
+  //    Y = i_to_r(orig_dst) * M * r_to_i(src)
+  // 
+  // Thus we have simpler picture
+  //
+  //      src   -----> RAS   
+  //       |            |
+  //    (identity)     (Y)
+  //       |            |
+  //       V            V
+  //      dst   -----> RAS
+  //            (???)
+  //
+  // Thus 
+  //      (???) = Y * i_to_r(src)
+  //            = i_to_r(orig_dst) * M * r_to_i(src) * i_to_r(src)
+  //
+  //      (???) = i_to_r(orig_dst) * M           (A)
+  //
+  // Thus we derive direction cosines and c_(ras) from ???
+  //
+  //      (???)  =  ( X   T ) ( S  0 )    where S is the voxel size
+  //                ( 0   1 ) ( 0  1 )
+  // or
+  //      ( X  T ) = (???) * (S^(-1) 0 )         (B)
+  //      ( 0  1 )           ( 0     1 )
+  //
+  // 
+  dstToRas = MatrixMultiply(orig_dst->i_to_r__, stod_voxtovox, NULL);
+
+  SI = MatrixAlloc(4, 4, MATRIX_REAL);
+  *MATRIX_RELT(SI, 1, 1) = 1./dst->xsize ;
+  *MATRIX_RELT(SI, 2, 2) = 1./dst->ysize ; 
+  *MATRIX_RELT(SI, 3, 3) = 1./dst->zsize ;  
+  *MATRIX_RELT(SI, 4, 4) = 1. ;
+
+  D = MatrixMultiply(dstToRas, SI, NULL);
+
+  dst->x_r = *MATRIX_RELT(D, 1, 1);
+  dst->x_a = *MATRIX_RELT(D, 2, 1);
+  dst->x_s = *MATRIX_RELT(D, 3, 1);
+  dst->y_r = *MATRIX_RELT(D, 1, 2);
+  dst->y_a = *MATRIX_RELT(D, 2, 2);
+  dst->y_s = *MATRIX_RELT(D, 3, 2);
+  dst->z_r = *MATRIX_RELT(D, 1, 3);
+  dst->z_a = *MATRIX_RELT(D, 2, 3);
+  dst->z_s = *MATRIX_RELT(D, 3, 3);
+
+  MatrixFree(&D);
+  MatrixFree(&SI);
+
+  // c_ras is calculated by
+  //
+  //      ( X  T )(S 0)(dstwidth/2 )  = (c_r)   or  i_to_r(orig_dst) * M * (dstwidth/2 ) = C'
+  //      ( 0  1 )(0 1)(dstheight/2)    (c_a)                              (dstheight/2)
+  //                   (dstdepth/2 )    (c_s)                              (dstdepth/2 )
+  //                   (    1      )    ( 1 )                              (    1      )
+  // 
+  // This is the same as the original center point is mapped to orig_dst and then obtaining
+  // its ras position! (because src and dst has the same volume size).  The only difference
+  // is its orientation with respect to orig_dst RAS.  Good
+  //
+  // get where the center of hires volume goes to in the lowres volume
+  cx = dst->width/2; cy = dst->height/2; cz = dst->depth/2;
+  // get the c_ras values for this position
+  TransformWithMatrix(dstToRas, cx, cy, cz, &cr, &ca, &cs);
+  // if we use this c_ras value for the transformed hires volume, then 
+  // the volume will be containing the original points
+  dst->c_r = cr;
+  dst->c_a = ca;
+  dst->c_s = cs;
+
+  // when you change the direction cosine, you have to do this
+  MRIreInitCache(dst);
+
+  MatrixFree(&dstToRas);
+
+  return dst;
 }
