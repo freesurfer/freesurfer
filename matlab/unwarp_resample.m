@@ -1,4 +1,4 @@
-% $Id: unwarp_resample.m,v 1.2 2003/07/24 23:08:54 ebeth Exp $
+% $Id: unwarp_resample.m,v 1.3 2004/01/23 21:09:37 ebeth Exp $
 %
 % In this file:
 %
@@ -82,11 +82,13 @@ if unwarpflag %E%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   Mgwi = inv(Mgw); 
 end %if unwarpflag %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-if(plotflag) figure(1); end %?
+% if(plotflag) figure(1); end
 
 tic;
 for s = [1:nslices_out]
-  if (mod(s,10)==0) fprintf('slice %3d/%d  %g\t',s,nslices_out,toc); end
+%  if (mod(s,10)==0)
+    fprintf('slice %3d/%d  %g\t\t',s,nslices_out,toc)
+%  end
 
   % Get CRS in target volume %
   [R,C] = meshgrid(1:nrows_out,1:ncols_out);
@@ -101,25 +103,25 @@ for s = [1:nslices_out]
   Y = M_out(2,1)*R + M_out(2,2)*C + M_out(2,3)*S + M_out(2,4);
   Z = M_out(3,1)*R + M_out(3,2)*C + M_out(3,3)*S + M_out(3,4);
 
-  %E% Next chunks are for ~unwarpflag or plotflag.  DG's has in else.
-  X0 = X;
-  Y0 = Y;
-  Z0 = Z; % If GE, load_dicom_fl2() has repaired our M (& Mi).
-  
-  % Convert XYZ to CRS in source volume %
-  R0 = Mi(1,1)*X0 + Mi(1,2)*Y0 + Mi(1,3)*Z0 + Mi(1,4);
-  C0 = Mi(2,1)*X0 + Mi(2,2)*Y0 + Mi(2,3)*Z0 + Mi(2,4);
-  S0 = Mi(3,1)*X0 + Mi(3,2)*Y0 + Mi(3,3)*Z0 + Mi(3,4);
-  
-  % Get the value at these locations from the input volume %
-  % We make im0 even if unwarpflag in case of plotflag - could fix that
-  im0vec = interp3(imvol,C0,R0,S0,interp_method);
-  im0vec(find(isnan(im0vec))) = 0;
-  clear im0vec2;
-  im0vec2(imindx) = im0vec;
-  im0 = reshape(im0vec2,nrows_out,ncols_out);
-  
-  if unwarpflag
+  if ~unwarpflag
+    % Then this is the correct XYZ, proceed %
+    X0 = X;
+    Y0 = Y;
+    Z0 = Z;
+    
+    % Convert XYZ to CRS in source volume %
+    R0 = Mi(1,1)*X0 + Mi(1,2)*Y0 + Mi(1,3)*Z0 + Mi(1,4);
+    C0 = Mi(2,1)*X0 + Mi(2,2)*Y0 + Mi(2,3)*Z0 + Mi(2,4);
+    S0 = Mi(3,1)*X0 + Mi(3,2)*Y0 + Mi(3,3)*Z0 + Mi(3,4);
+    
+    % Get the value at these locations from the input volume %
+    im0vec = interp3(imvol,C0,R0,S0,interp_method);
+    im0vec(find(isnan(im0vec))) = 0;
+    clear im0vec2;
+    im0vec2(imindx) = im0vec;
+    im0 = reshape(im0vec2,nrows_out,ncols_out);
+    imvol_out(:,:,s) = im0;
+  else
     % Convert to XYZ in target volume to CRS in warp table %
     Rgw = Mgwi(1,1)*X + Mgwi(1,2)*Y + Mgwi(1,3)*Z + Mgwi(1,4);
     Cgw = Mgwi(2,1)*X + Mgwi(2,2)*Y + Mgwi(2,3)*Z + Mgwi(2,4);
@@ -138,7 +140,7 @@ for s = [1:nslices_out]
       JacDety1 = interp_trilin(Rgw,Cgw,Sgw,JacDety,ncoords_y,ncoords_x,ncoords_z);
       JacDetz1 = interp_trilin(Rgw,Cgw,Sgw,JacDetz,ncoords_y,ncoords_x,ncoords_z);
       JacDet1 = jdproj([JacDetx1;JacDety1;JacDetz1],Mdc,unwarpdims,3);
-      % maxjd=3; is last arg to jdproj
+      % that last arg to jdproj is maxjd=3
       % The first arg is 3 rows x ncoords^3 columns
       % and JacDet1 is a row vector with ncoords^3 rows.
       
@@ -161,7 +163,7 @@ for s = [1:nslices_out]
 
     % test - reorder these before multiplying, too - ?
     % But they work this order for DG so I must have compensating errors.
-    % No they didn't.
+    % No they didn't work for DG.
     clear im1vec2; %first mention
     im1vec2(imindx) = im1vec;
 
@@ -173,21 +175,22 @@ for s = [1:nslices_out]
     end
     im1 = reshape(im1vec2,nrows_out,ncols_out);
     imvol_out(:,:,s) = im1;
-  else % ~unwarpflag
-    imvol_out(:,:,s) = im0;
-  end % if unwarpflag
+  end % if ~unwarpflag
+  
+%%   if plotflag
+%%     figure(s);
+%%     subplot(2,2,1); imagesc(im0); axis equal; colorbar; title(sprintf('Slice %d:  Original',s));
+%%     if unwarpflag
+%%       subplot(2,2,2); imagesc(im1); axis equal; colorbar; title(sprintf('Slice %d:  Unwarped',s));
+%%       if Jacobianflag
+%%         subplot(2,2,3); imagesc(imjd); axis equal; colorbar; title(sprintf('Slice %d:  Jacobian factor',s));
+%%       end
+%%     end
+%%   end
 
-  if plotflag
-    figure(s);
-    subplot(2,2,1); imagesc(im0); axis equal; colorbar; title(sprintf('Slice %d:  Original',s));
-    if unwarpflag
-      subplot(2,2,2); imagesc(im1); axis equal; colorbar; title(sprintf('Slice %d:  Unwarped',s));
-      if Jacobianflag
-        subplot(2,2,3); imagesc(imjd); axis equal; colorbar; title(sprintf('Slice %d:  Jacobian factor',s));
-      end
-    end
-  end
 end % for s
+
+imvol_out(find(imvol_out<0))=0; % Clamp to positive values
 
 return % u_r
 
