@@ -16,7 +16,7 @@ function m = fast_ldbhdr(bhdrfile);
 %
 % See also fast_svbhdr and fast_mri_struct.
 %
-% $Id: fast_ldbhdr.m,v 1.4 2003/08/13 20:10:21 greve Exp $
+% $Id: fast_ldbhdr.m,v 1.5 2004/10/30 17:32:13 greve Exp $
 
 m = [];
 
@@ -48,7 +48,8 @@ while(1)
   % Read the keyword and value %  
   key = sscanf(tline,'%s',1);
   val = sscanf(tline,'%*s %f',1);
-
+  %fprintf('key = %s, val = %g\n',key,val);
+  
   % determine where to put it %
   switch(key)
    case {'cols:'},          ncols = val;
