@@ -272,7 +272,7 @@ x data transforms
   x Load Transform
   x button to Invert scuba transform
 
-- markers
+x markers
   x tool: 1 set cursor, 2 add marker, 3 delete nearest marker
   x ScubaView has list of markers with MaxNumMarkers
     x SetCursor() sets cursor marker
@@ -308,7 +308,6 @@ watch value of ow, when changes, disable menu, set value, enable
 SurfaceCollection
   x look for mris->VG structure to get transform
 
-
 DRAWING TOOLS:::
 
 x closed line tool
@@ -337,6 +336,8 @@ x Only Edit 0 Voxels
   x only sets new value if it was == 0
 
 x fill source
+
+x fill but only set new values if was == 0
 
 - set brush radius increment to voxel size?
 

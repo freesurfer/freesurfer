@@ -23,7 +23,8 @@ ScubaToolState::ScubaToolState() {
   mEdgePathEdgeBias = 0.9;
   mLayerTarget = -1;
   mFloodSourceCollection = -1;
-  mbOnlyZero = false;
+  mbOnlyFillZero = false;
+  mbOnlyFloodZero = false;
 
   TclCommandManager& commandMgr = TclCommandManager::GetManager();
   commandMgr.AddCommand( *this, "SetToolMode", 2, "toolID mode",
@@ -86,6 +87,12 @@ ScubaToolState::ScubaToolState() {
   commandMgr.AddCommand( *this, "GetToolFloodSourceCollection", 1, 
 			 "toolID", "Gets the current flood "
 			 "source collection of a tool." );
+  commandMgr.AddCommand( *this, "SetToolOnlyFloodZero", 2, "toolID onlyZero",
+			 "Specify whether the flood should only affect zero "
+			 "values.." );
+  commandMgr.AddCommand( *this, "GetToolOnlyFloodZero", 1, "toolID",
+			 "Returns whether or not a flood is only affecting "
+			 "zero values." );
   commandMgr.AddCommand( *this, "SetToolEdgePathStraightBias", 2, 
 			 "toolID bias", "Sets the bias (0-1) for straight "
 			 "paths for the edge path tool." );
@@ -640,6 +647,42 @@ ScubaToolState::DoListenToTclCommand ( char* isCommand,
       stringstream ssReturnValues;
       ssReturnValues << (int)GetFloodSourceCollection();
       sReturnValues = ssReturnValues.str();
+    }
+  }
+
+  // SetToolOnlyFloodZero <toolID> <onlyZero>
+  if( 0 == strcmp( isCommand, "SetToolOnlyFloodZero" ) ) {
+    int toolID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad tool ID";
+      return error;
+    }
+    
+    if( GetID() == toolID ) {
+      try {
+	bool bOnlyZero =
+	  TclCommandManager::ConvertArgumentToBoolean( iasArgv[2] );
+	SetOnlyFloodZero( bOnlyZero );
+      }
+      catch( runtime_error e ) {
+	sResult = "bad onlyZero \"" + string(iasArgv[2]) + "\"," + e.what();
+	return error;	
+      }
+    }
+  }
+
+  // GetToolOnlyFloodZero <toolID>
+  if( 0 == strcmp( isCommand, "GetToolOnlyFloodZero" ) ) {
+    int toolID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad tool ID";
+      return error;
+    }
+    
+    if( GetID() == toolID ) {
+      sReturnValues =
+	TclCommandManager::ConvertBooleanToReturnValue( GetOnlyFloodZero() );
+      sReturnFormat = "i";
     }
   }
 

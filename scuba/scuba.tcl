@@ -10,7 +10,7 @@ if { $err } {
     load [file dirname [info script]]/libscuba[info sharedlibextension] scuba
 }
 
-DebugOutput "\$Id: scuba.tcl,v 1.53 2004/09/10 03:37:52 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.54 2004/09/11 05:29:22 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -1207,7 +1207,6 @@ proc MakeDataCollectionsPropertiesPanel { ifwTop } {
     global gaCollection
     global gaROI
     global glShortcutDirs
-    global gaMenuSubscribers
 
     set fwTop        $ifwTop.fwCollectionsProps
     set fwProps      $fwTop.fwProps
@@ -1298,7 +1297,7 @@ proc MakeDataCollectionsPropertiesPanel { ifwTop } {
 	-command { SurfaceTransformVolumeMenuCallback }
     set gaWidget(collectionProperties,surfaceTransformMenu) \
 	$fwPropsSurface.owTransformVolume
-    lappend gaMenuSubscribers(collections) $fwPropsSurface.owTransformVolume
+
     
 
     grid $fwPropsSurface.owTransformVolume -column 0 -row 2 -sticky ew
@@ -1393,7 +1392,6 @@ proc MakeToolsPanel { ifwTop } {
     global gaTool
     global gaView
     global glShortcutDirs
-    global gaMenuSubscribers
 
     set fwTop        $ifwTop.fwToolsProps
     set fwProps      $fwTop.fwProps
@@ -1483,7 +1481,6 @@ proc MakeToolsPanel { ifwTop } {
 	-variable gatool(current,floodSourceCollection) \
 	-command { ToolFloodSourceCollectionMenuCallback }
     set gaWidget(toolProperties,floodSourceCollectionMenu) $fwPropsFillSub.owSourceCollection
-    lappend gaMenuSubscribers(collections) $fwPropsFillSub.owSourceCollection
 
     tkuMakeCheckboxes $fwPropsFillSub.cbFillOptions \
 	-font [tkuNormalFont] \
@@ -1513,10 +1510,19 @@ proc MakeToolsPanel { ifwTop } {
 		-command {SetToolFlood3D $gaFrame([GetMainFrameID],toolID) $gaTool(current,flood3D)}}
 	}
 
+    tkuMakeCheckboxes $fwPropsFillSub.cbOnlyFloodZero \
+	-font [tkuNormalFont] \
+	-checkboxes { 
+	    {-type text -label "Only fill zero values" 
+		-variable gaTool(current,onlyFloodZero)
+		-command {SetToolOnlyFloodZero $gaFrame([GetMainFrameID],toolID) $gaTool(current,onlyFloodZero)}}
+	}
+
     grid $fwPropsFillSub.owSourceCollection -column 0 -row 0 -sticky ew
-    grid $fwPropsFillSub.cbFillOptions -column 0 -row 1 -sticky ew
-    grid $fwPropsFillSub.swFuzziness   -column 0 -row 2 -sticky ew
-    grid $fwPropsFillSub.cb3D          -column 0 -row 3 -sticky ew
+    grid $fwPropsFillSub.cbFillOptions      -column 0 -row 1 -sticky ew
+    grid $fwPropsFillSub.swFuzziness        -column 0 -row 2 -sticky ew
+    grid $fwPropsFillSub.cb3D               -column 0 -row 3 -sticky ew
+    grid $fwPropsFillSub.cbOnlyFloodZero    -column 0 -row 4 -sticky ew
 
     set gaWidget(toolProperties,fill) $fwPropsFill
 
@@ -1857,7 +1863,6 @@ proc MakeTransformsPanel { ifwTop } {
 
     global gaWidget
     global gaTransform
-    global gaMenuSubscribers
 
     set fwTop          $ifwTop.fwTransforms
     set fwProps        $fwTop.fwProps
@@ -1926,7 +1931,6 @@ proc MakeTransformsPanel { ifwTop } {
 	-variable gaTransform(current,regSource) \
 	-command { TransformSourceRegistrationMenuCallback }
     set gaWidget(transformProperties,regSourceMenu) $fwProps.owSource
-    lappend gaMenuSubscribers(collections)  $fwProps.owSource
 
     grid $fwProps.owSource -column 0 -row 9 -columnspan 4 -sticky ew
 
@@ -1935,7 +1939,6 @@ proc MakeTransformsPanel { ifwTop } {
 	-variable gaTransform(current,regDest) \
 	-command { TransformDestRegistrationMenuCallback }
     set gaWidget(transformProperties,regDestMenu) $fwProps.owDest
-    lappend gaMenuSubscribers(collections)  $fwProps.owDest
 
     grid $fwProps.owDest -column 0 -row 10 -columnspan 4 -sticky ew
 
@@ -2094,9 +2097,8 @@ proc UpdateCollectionList {} {
 
     global gaWidget
     global gaCollection
-    global gaMenuSubscribers
 
-    # Get the layer ID list.
+    # Get the layer ID list and build the menu.
     set gaCollection(idList) [GetDataCollectionIDList]
     FillMenuFromList $gaWidget(collectionProperties,menu) \
 	$gaCollection(idList) "GetCollectionLabel %s" {} false
@@ -2107,11 +2109,17 @@ proc UpdateCollectionList {} {
 	SelectCollectionInCollectionProperties $gaCollection(current,id)
     }
 
-    # Update the menus.
-    foreach ow $gaMenuSubscribers(collections) {
-	FillMenuFromList $ow \
-	    $gaCollection(idList) "GetCollectionLabel %s" {} false
-    }
+    # Build source and dest menus in transforms.
+    FillMenuFromList $gaWidget(transformProperties,regSourceMenu) \
+	$gaCollection(idList) "GetCollectionLabel %s" {} false
+    FillMenuFromList $gaWidget(transformProperties,regDestMenu) \
+	$gaCollection(idList) "GetCollectionLabel %s" {} false
+
+    FillMenuFromList $gaWidget(collectionProperties,surfaceTransformMenu) \
+	$gaCollection(idList) "GetCollectionLabel %s" {} false
+
+    FillMenuFromList $gaWidget(toolProperties,floodSourceCollectionMenu) \
+	$gaCollection(idList) "GetCollectionLabel %s" {} true
 
     UpdateROIList
 }
@@ -2698,6 +2706,8 @@ proc SelectToolInToolProperties { iTool } {
 		[GetToolFloodMaxDistance $gaTool(current,id)]
 	    set gaTool(current,flood3D) \
 		[GetToolFlood3D $gaTool(current,id)]
+	    set gaTool(current,onlyFloodZero) \
+		[GetToolOnlyFloodZero $gaTool(current,id)]
 
 	    if { "$gaTool(current,type)" == "voxelEditing" } {
 

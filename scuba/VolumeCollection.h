@@ -225,6 +225,7 @@ class VolumeCollectionFlooder {
     int mFuzziness;
     int mMaxDistance;
     bool mbDiagonal;
+    bool mbOnlyZero;
   };
 
   class CheckPair {

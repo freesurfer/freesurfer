@@ -936,7 +936,7 @@ VolumeCollection::FindRASPointsInSquare ( float iPointA[3], float iPointB[3],
 	      float v1Length = VectorOps::Length(v1);
 	      float v2Length = VectorOps::Length(v2);
 
-	      if( fabs(v1Length * v2Length) <= EPSILON ) {
+	      if( fabs(v1Length * v2Length) <= (float)0.0001 ) {
 		angleSum = 2*M_PI;
 		break;
 	      }
@@ -945,7 +945,7 @@ VolumeCollection::FindRASPointsInSquare ( float iPointA[3], float iPointB[3],
 	      angleSum += rads;
 	    }
 	    
-	    if( fabs(angleSum - 2*M_PI) <= EPSILON ) {
+	    if( fabs(angleSum - 2.0*M_PI) <= (float)0.0001 ) {
 	      oPoints.push_back( voxelRAS[0] );
 	      break;
 	    }
@@ -1453,6 +1453,15 @@ VolumeCollectionFlooder::Flood ( VolumeCollection& iVolume,
 			     ((ras[1]-iRASSeed[1]) * (ras[1]-iRASSeed[1])) + 
 			     ((ras[2]-iRASSeed[2]) * (ras[2]-iRASSeed[2])) );
       if( distance > iParams.mMaxDistance ) {
+	continue;
+      }
+    }
+
+
+    // Check only zero.
+    if( iParams.mbOnlyZero ) {
+      float value = iVolume.GetMRINearestValueAtRAS( ras.xyz() );
+      if( value != 0 ) {
 	continue;
       }
     }

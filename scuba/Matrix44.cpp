@@ -8,6 +8,8 @@ extern "C" {
   #include "macros.h"
 }
 
+// #define RINT 1
+
 using namespace std;
 
 Matrix44::Matrix44() {
@@ -388,7 +390,7 @@ Matrix44::MultiplyVector3 ( int const iVector[3], float oVector[3] ) {
 void 
 Matrix44::MultiplyVector3 ( float const iVector[3], int oVector[3] ) {
 
-#if 1
+#if 0
   float iX = iVector[0];
   float iY = iVector[1];
   float iZ = iVector[2];
@@ -414,7 +416,7 @@ Matrix44::MultiplyVector3 ( float const iVector[3], int oVector[3] ) {
   float sum00 = a + b;
   float sum01 = c + m14;
 #ifdef RINT
-  int sumI0 = (int) rint(sum00 + sum01);
+  int sumI0 = (int) rintf(sum00 + sum01);
 #else
   int sumI0 = (int) (sum00 + sum01);
 #endif
@@ -425,7 +427,7 @@ Matrix44::MultiplyVector3 ( float const iVector[3], int oVector[3] ) {
   float sum10 = d + e;
   float sum11 = f + m24;
 #ifdef RINT
-  int sumI1 = (int) rint(sum10 + sum11);
+  int sumI1 = (int) rintf(sum10 + sum11);
 #else
   int sumI1 = (int) (sum10 + sum11);
 #endif
@@ -436,7 +438,7 @@ Matrix44::MultiplyVector3 ( float const iVector[3], int oVector[3] ) {
   float sum20 = g + h;
   float sum21 = i + m34;
 #ifdef RINT
-  int sumI2 = (int) rint(sum20 + sum21);
+  int sumI2 = (int) rintf(sum20 + sum21);
 #else
   int sumI2 = (int) (sum20 + sum21);
 #endif
@@ -446,18 +448,13 @@ Matrix44::MultiplyVector3 ( float const iVector[3], int oVector[3] ) {
   oVector[2] = sumI2;
 
 #else
-  oVector[0] = (int) ( GetCR(0,0) * iVector[0] +
-		       GetCR(1,0) * iVector[1] +
-		       GetCR(2,0) * iVector[2] +
-		       GetCR(3,0) );
-  oVector[1] = (int) ( GetCR(0,1) * iVector[0] +
-		       GetCR(1,1) * iVector[1] +
-		       GetCR(2,1) * iVector[2] +
-		       GetCR(3,1) );
-  oVector[2] = (int) ( GetCR(0,2) * iVector[0] +
-		       GetCR(1,2) * iVector[1] +
-		       GetCR(2,2) * iVector[2] +
-		       GetCR(3,2) );
+
+  float vectorF[3];
+  MultiplyVector3( iVector, vectorF );
+  oVector[0] = (int) vectorF[0];
+  oVector[1] = (int) vectorF[1];
+  oVector[2] = (int) vectorF[2];
+
 #endif
 }
 

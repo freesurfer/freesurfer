@@ -934,12 +934,13 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
 	params.mViewNormal[0]     = iViewState.mPlaneNormal[0];
 	params.mViewNormal[1]     = iViewState.mPlaneNormal[1];
 	params.mViewNormal[2]     = iViewState.mPlaneNormal[2];
+	params.mbOnlyZero         = iTool.GetOnlyFloodZero();
 	if( !iTool.GetFlood3D() ) {
 	  params.mbWorkPlaneX     = (iViewState.mInPlane == 0);
 	  params.mbWorkPlaneY     = (iViewState.mInPlane == 1);
 	  params.mbWorkPlaneZ     = (iViewState.mInPlane == 2);
 	}
-	
+
 	// Create and run the flood object.
 	VolumeCollectionFlooder* flooder = NULL;
 	if( ScubaToolState::voxelEditing == iTool.GetMode() ) {
@@ -1042,7 +1043,7 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
 	for( tPoints = points.begin(); tPoints != points.end(); ++tPoints ) {
 	  Point3<float> point = *tPoints;
 	  if( mVolume->IsRASInMRIBounds(point.xyz()) ) {
-	    
+
 	    UndoAction* action = NULL;
 	    if( ScubaToolState::voxelEditing == iTool.GetMode() ) {
 	      float origValue = mVolume->GetMRINearestValueAtRAS( point.xyz());
