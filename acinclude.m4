@@ -495,3 +495,74 @@ if test $ac_cv_c_bigendian = unknown; then
 fi
 ])
 
+############################################################################
+# check whether tix needs Itcl_Init() and Itk_Init()
+# $1 tcl/tk CFLAGS (-I)
+# $2 tcl/tk LDFLAGS(-L)
+# $3 tcl/tk LIBS   (-libtcl...)
+# defines NEEDS_ITCL_ITK to be 1 if needed
+############################################################################
+AC_DEFUN([AX_TIX_INITCHECK],
+[AC_CACHE_CHECK([Itcl_Init() and Itk_Init() needed before Tix_Init()...],
+  [ax_needs_itcl_itk],
+  [dnl
+# sae current values
+ax_save_CPPFLAGS="${CPPFLAGS}"
+ax_save_LDFLAGS="${LDFLAGS}"
+ax_save_LIBS="${LIBS}"
+
+# 
+ax_tcl_cppflags=$1
+ax_tcl_ldflags=$2
+ax_tcl_libs=$3
+
+# get the lib directory 
+ax_LIBONLY=`echo $ax_tcl_ldflags | sed "s/-L//g"`
+if test x$ax_LIBONLY = x; then
+ ax_LIBONLY=/usr/lib
+fi
+
+CPPFLAGS="${ax_tcl_cppflags} ${CPPFLAGS}"
+LDFLAGS="${ax_tcl_ldflags} ${LDFLAGS}"
+LIBS="${ax_tcl_libs} ${LIBS}"
+
+AC_TRY_RUN([
+#include <stdio.h>
+#include <stdlib.h>
+#include <tcl.h>
+#include <tk.h>
+#include <tix.h>
+extern int Tix_Init ( Tcl_Interp* interp );
+
+int main()
+{
+  int eTcl = TCL_OK;
+  Tcl_Interp *interp=0;
+  setenv("TCL_LIBRARY", "${ax_LIBONLY}", 1);
+  setenv ("TK_LIBRARY", "${ax_LIBONLY}", 1);
+  interp = Tcl_CreateInterp();
+  eTcl = Tcl_Init( interp );
+  if( TCL_OK != eTcl ) 
+    return 1;
+  eTcl = Tk_Init(interp);
+  if( TCL_OK != eTcl ) 
+    return 2;
+  eTcl = Tix_Init( interp );
+  if( TCL_OK != eTcl ) 
+    return -1;
+  return 0;
+}], ax_needs_itcl_itk=no, ax_needs_itcl_itk=yes, [])
+# end of AC_TRY_RUN
+])
+
+if test x$ax_needs_itcl_itk = xyes; then
+AC_DEFINE(NEEDS_ITCL_ITK, 1, [Tix_Init() needs Itcl_Init() and Itk_Init()])
+else
+AC_DEFINE(NEEDS_ITCL_ITK, 0, [Tix_Init() does not need Itcl_Init() and Itk_Init()])
+fi
+
+# restore values
+CPPFLAGS=${ax_save_CPPFLAGS}
+LDFLAGS=${ax_save_LDFLAGS}
+LIBS=${ax_save_LIBS}
+])
