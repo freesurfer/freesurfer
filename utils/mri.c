@@ -8574,3 +8574,42 @@ MRIcopyPulseParameters(MRI *mri_src, MRI *mri_dst)
   mri_dst->ti = mri_src->ti ;
   return(NO_ERROR) ;
 }
+float
+MRIfindNearestNonzero(MRI *mri, int wsize, Real xr, Real yr, Real zr)
+{
+  int   xk, yk, zk, xi, yi, zi, whalf, x, y, z ;
+  float dist, min_dist, min_val, dx, dy, dz ;
+
+  x = nint(xr) ; y = nint(yr) ; z = nint(zr) ;
+  if (MRIvox(mri, x, y, z) > 0)
+    return((float)MRIvox(mri, x, y, z)) ;
+
+  min_dist = 100000 ; min_val = 0 ;
+  whalf = (wsize-1)/2 ;
+  for (zk = -whalf ; zk <= whalf ; zk++)
+  {
+    zi = mri->zi[z+zk] ;
+    dz = zi-zr ;
+    for (yk = -whalf ; yk <= whalf ; yk++)
+    {
+      yi = mri->yi[y+yk] ;
+      dy = yi-yr ;
+      for (xk = -whalf ; xk <= whalf ; xk++)
+      {
+        xi = mri->xi[x+xk] ;
+        dx = xi-xr ;
+        if (MRIvox(mri, xi, yi, zi) > 0)
+        {
+          dist = sqrt(dx*dx + dy*dy + dz*dz) ;
+          if (dist < min_dist)
+          {
+            min_dist = dist ;
+            min_val = MRIvox(mri, xi, yi, zi) ;
+          }
+        }
+      }
+    }
+  }
+  return(min_val) ;
+}
+
