@@ -84,6 +84,7 @@ static void buffer_to_image(BUFTYPE *buf, MRI *mri, int slice, int frame) ;
 static MRI *sdtRead(char *fname, int read_volume);
 static MRI *mghRead(char *fname, int read_volume) ;
 static int mghWrite(MRI *mri, char *fname) ;
+int MRIwriteInfo(MRI *mri, char *fpref);
 
 /********************************************/
 
@@ -4072,25 +4073,27 @@ buffer_to_image(BUFTYPE *buf, MRI *mri, int slice, int frame)
 }
 
 #define UNUSED_SPACE_SIZE 256
+#define USED_SPACE_SIZE   (3*sizeof(float)+4*3*sizeof(float))
+
 #define MGH_VERSION       1
 
 static MRI *
-mghRead(char *fname, int read_volume)
+mghRead(char *fname, int read_volume, int frame)
 {
   MRI  *mri ;
   FILE  *fp ;
   int   start_frame, end_frame, width, height, depth, nframes, type, x, y, z,
-        bpv, dof, bytes, version, ival ;
+        bpv, dof, bytes, version, ival, unused_space_size, good_ras_flag ;
   BUFTYPE *buf ;
   char   unused_buf[UNUSED_SPACE_SIZE+1] ;
-  float  fval ;
+  float  fval, xsize, ysize, zsize, x_r, x_a, x_s, y_r, y_a, y_s,
+         z_r, z_a, z_s, c_r, c_a, c_s ;
   short  sval ;
-  int frame;
 
   fp = fopen(fname, "rb") ;
   if (!fp)
-    ErrorReturn(NULL, (ERROR_BADPARM,"mghRead(%s): could not open file",
-                       fname)) ;
+    ErrorReturn(NULL, (ERROR_BADPARM,"mghRead(%s, %d): could not open file",
+                       fname, frame)) ;
   version = freadInt(fp) ;
   width = freadInt(fp) ;
   height = freadInt(fp) ;
@@ -4099,8 +4102,25 @@ mghRead(char *fname, int read_volume)
   type = freadInt(fp) ;
   dof = freadInt(fp) ;
 
+  unused_space_size = UNUSED_SPACE_SIZE-sizeof(short) ;
+
+  good_ras_flag = freadShort(fp) ;
+  if (good_ras_flag)     /* has RAS and voxel size info */
+  {
+    unused_space_size -= USED_SPACE_SIZE ;
+    xsize = freadFloat(fp) ;
+    ysize = freadFloat(fp) ;
+    zsize = freadFloat(fp) ;
+    
+    x_r = freadFloat(fp) ; x_a = freadFloat(fp) ; x_s = freadFloat(fp) ;
+    y_r = freadFloat(fp) ; y_a = freadFloat(fp) ; y_s = freadFloat(fp) ;
+    
+    z_r = freadFloat(fp) ; z_a = freadFloat(fp) ; z_s = freadFloat(fp) ;
+    c_r = freadFloat(fp) ; c_a = freadFloat(fp) ; c_s = freadFloat(fp) ;
+  }
+
   /* so stuff can be added to the header in the future */
-  fread(unused_buf, sizeof(char), UNUSED_SPACE_SIZE, fp) ;
+  fread(unused_buf, sizeof(char), unused_space_size, fp) ;
 
   switch (type)
   {
@@ -4111,8 +4131,21 @@ mghRead(char *fname, int read_volume)
   case MRI_INT:     bpv = sizeof(int) ; break ;
   }
   bytes = width * height * bpv ;  /* bytes per slice */
-start_frame = end_frame = 1;
-
+  if (frame >= 0)
+  {
+    start_frame = end_frame = frame ;
+    fseek(fp, frame*width*height*depth*bpv, SEEK_CUR) ;
+    nframes = 1 ;
+  }
+  else
+  {  /* hack - # of frames < -1 means to only read in that
+        many frames. Otherwise I would have had to change the whole
+        MRIread interface and that was too much of a pain. Sorry.
+     */
+    if (frame < -1)  
+    { nframes = frame*-1 ; } 
+    start_frame = 0 ; end_frame = nframes-1 ;
+  }
   if (!read_volume)
   {
     mri = MRIallocHeader(width, height, depth, type) ;
@@ -4182,25 +4215,55 @@ start_frame = end_frame = 1;
   }
 
   fclose(fp) ;
+
+  if (good_ras_flag)
+  {
+    mri->xsize =     xsize ;
+    mri->ysize =     ysize ;
+    mri->zsize =     zsize ;
+    
+    mri->x_r = x_r  ;
+    mri->x_a = x_a  ;
+    mri->x_s = x_s  ;
+    
+    mri->y_r = y_r  ;
+    mri->y_a = y_a  ;
+    mri->y_s = y_s  ;
+    
+    mri->z_r = z_r  ;
+    mri->z_a = z_a  ;
+    mri->z_s = z_s  ;
+    
+    mri->c_r = c_r  ;
+    mri->c_a = c_a  ;
+    mri->c_s = c_s  ;
+    if (good_ras_flag > 0)
+      mri->ras_good_flag = 1 ;
+  }
   return(mri) ;
 }
 
 static int
-mghWrite(MRI *mri, char *fname)
+mghWrite(MRI *mri, char *fname, int frame)
 {
   FILE  *fp ;
-  int   ival, start_frame, end_frame, x, y, z, width, height, depth ;
+  int   ival, start_frame, end_frame, x, y, z, width, height, depth, 
+        unused_space_size ;
   char  buf[UNUSED_SPACE_SIZE+1] ;
   float fval ;
   short sval ;
-  int frame;
 
-  start_frame = 0 ; end_frame = mri->nframes-1 ;
+  if (frame >= 0)
+    start_frame = end_frame = frame ;
+  else
+  {
+    start_frame = 0 ; end_frame = mri->nframes-1 ;
+  }
   fp = fopen(fname, "wb") ;
   if (!fp)
     ErrorReturn(ERROR_BADPARM, 
-                (ERROR_BADPARM,"mghWrite(%s): could not open file",
-                 fname)) ;
+                (ERROR_BADPARM,"mghWrite(%s, %d): could not open file",
+                 fname, frame)) ;
 
   /* WARNING - adding or removing anything before nframes will
      cause mghAppend to fail.
@@ -4214,9 +4277,33 @@ mghWrite(MRI *mri, char *fname)
   fwriteInt(mri->type, fp) ;
   fwriteInt(mri->dof, fp) ;
 
+  unused_space_size = UNUSED_SPACE_SIZE - USED_SPACE_SIZE - sizeof(short) ;
+
+  /* write RAS and voxel size info */
+  fwriteShort(mri->ras_good_flag ? 1 : -1, fp) ;
+  fwriteFloat(mri->xsize, fp) ;
+  fwriteFloat(mri->ysize, fp) ;
+  fwriteFloat(mri->zsize, fp) ;
+
+  fwriteFloat(mri->x_r, fp) ;
+  fwriteFloat(mri->x_a, fp) ;
+  fwriteFloat(mri->x_s, fp) ;
+
+  fwriteFloat(mri->y_r, fp) ;
+  fwriteFloat(mri->y_a, fp) ;
+  fwriteFloat(mri->y_s, fp) ;
+
+  fwriteFloat(mri->z_r, fp) ;
+  fwriteFloat(mri->z_a, fp) ;
+  fwriteFloat(mri->z_s, fp) ;
+
+  fwriteFloat(mri->c_r, fp) ;
+  fwriteFloat(mri->c_a, fp) ;
+  fwriteFloat(mri->c_s, fp) ;
+
   /* so stuff can be added to the header in the future */
   memset(buf, 0, UNUSED_SPACE_SIZE*sizeof(char)) ;
-  fwrite(buf, sizeof(char), UNUSED_SPACE_SIZE, fp) ;
+  fwrite(buf, sizeof(char), unused_space_size, fp) ;
 
   for (frame = start_frame ; frame <= end_frame ; frame++)
   {
@@ -4274,6 +4361,7 @@ mghWrite(MRI *mri, char *fname)
   fclose(fp) ;
   return(NO_ERROR) ;
 }
+
 
 MRI *
 MRIreorder(MRI *mri_src, MRI *mri_dst, int xdim, int ydim, int zdim)
@@ -4462,6 +4550,78 @@ MRIreorder(MRI *mri_src, MRI *mri_dst, int xdim, int ydim, int zdim)
     }
   }
   return(mri_dst) ;
+}
+
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+           Write the MRI header information to the file
+           COR-.info in the directory specified by 'fpref'
+------------------------------------------------------*/
+int
+MRIwriteInfo(MRI *mri, char *fpref)
+{
+  FILE    *fp;
+  char    fname[STRLEN];
+
+  sprintf(fname,"%s/%s",fpref, INFO_FNAME);
+  fp = fopen(fname,"w");
+  if (fp == NULL) 
+    ErrorReturn(ERROR_NO_FILE, 
+                (ERROR_NO_FILE,
+                 "MRIwriteInfo(%s): could not open %s.\n", fpref, fname)) ;
+
+  fprintf(fp, "%s %d\n", "imnr0", mri->imnr0);
+  fprintf(fp, "%s %d\n", "imnr1", mri->imnr1);
+  fprintf(fp, "%s %d\n", "ptype", 
+          mri->slice_direction == MRI_CORONAL ? 2 :
+          mri->slice_direction == MRI_HORIZONTAL ? 0 : 1) ;
+  fprintf(fp, "%s %d\n", "x", mri->width);
+  fprintf(fp, "%s %d\n", "y", mri->height);
+  fprintf(fp, "%s %f\n", "fov", mri->fov/MM_PER_METER);
+  fprintf(fp, "%s %f\n", "thick", mri->ps/MM_PER_METER);
+  fprintf(fp, "%s %f\n", "psiz", mri->ps/MM_PER_METER);
+  fprintf(fp, "%s %f\n", "locatn", mri->location); /* locatn */
+  fprintf(fp, "%s %f\n", "strtx", mri->xstart/MM_PER_METER); /* strtx */
+  fprintf(fp, "%s %f\n", "endx", mri->xend/MM_PER_METER); /* endx */
+  fprintf(fp, "%s %f\n", "strty", mri->ystart/MM_PER_METER); /* strty */
+  fprintf(fp, "%s %f\n", "endy", mri->yend/MM_PER_METER); /* endy */
+  fprintf(fp, "%s %f\n", "strtz", mri->zstart/MM_PER_METER); /* strtz */
+  fprintf(fp, "%s %f\n", "endz", mri->zend/MM_PER_METER); /* endz */
+  fprintf(fp, "%s %f\n", "tr", mri->tr) ;
+  fprintf(fp, "%s %f\n", "te", mri->te) ;
+  fprintf(fp, "%s %f\n", "ti", mri->ti) ;
+  if (mri->linear_transform)
+  {
+    char fname[STRLEN] ;
+
+/* 
+   this won't work for relative paths which are not the same for the
+   destination directory as for the the source directory.
+   */
+    sprintf(fname,"%s", mri->transform_fname);
+    fprintf(fp, "xform %s\n", fname) ;
+
+#if 0
+    /* doesn't work - I don't know why */
+    if (output_transform_file(fname, "talairach xfm", &mri->transform) != OK)
+      ErrorPrintf(ERROR_BADFILE, "MRIwriteInfo(%s): xform write failed",fpref);
+#endif
+
+  }
+
+  fprintf(fp, "%s %d\n", "ras_good_flag", mri->ras_good_flag);
+  fprintf(fp, "%s %f %f %f\n", "x_ras", mri->x_r, mri->x_a, mri->x_s);
+  fprintf(fp, "%s %f %f %f\n", "y_ras", mri->y_r, mri->y_a, mri->y_s);
+  fprintf(fp, "%s %f %f %f\n", "z_ras", mri->z_r, mri->z_a, mri->z_s);
+  fprintf(fp, "%s %f %f %f\n", "c_ras", mri->c_r, mri->c_a, mri->c_s);
+
+  fclose(fp);
+
+  return(NO_ERROR) ;
 }
 
 /* EOF */
