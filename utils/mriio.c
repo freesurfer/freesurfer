@@ -720,22 +720,42 @@ static MRI *corRead(char *fname, int read_volume)
   char xform[STRLEN];
   long gotten;
   char xform_use[STRLEN];
+  char *cur_char;
+  char *last_slash;
 
   /* ----- check that it is a directory we've been passed ----- */
-  if(stat(fname, &stat_buf) < 0)
+  strcpy(fname_use, fname);
+  if(stat(fname_use, &stat_buf) < 0)
   {
     errno = 0;
-    ErrorReturn(NULL, (ERROR_BADFILE, "corRead(): can't stat %s", fname));
+    ErrorReturn(NULL, (ERROR_BADFILE, "corRead(): can't stat %s", fname_use));
   }
 
   if(!S_ISDIR(stat_buf.st_mode))
   {
-    errno = 0;
-    ErrorReturn(NULL, (ERROR_BADFILE, "corRead(): %s isn't a directory", fname));
+    /* remove the last bit and try again */
+    cur_char = fname_use;
+    last_slash = cur_char;
+    while( *(cur_char+1) != '\0' )
+      {
+	if(*cur_char == '/') 
+	  last_slash = cur_char;
+	cur_char++;
+      }
+    *last_slash = '\0';
+    if(stat(fname_use, &stat_buf) < 0)
+      {
+	errno = 0;
+	ErrorReturn(NULL, (ERROR_BADFILE, "corRead(): can't stat %s", fname_use));
+      }
+    if(!S_ISDIR(stat_buf.st_mode))
+      {
+	errno = 0;
+	ErrorReturn(NULL, (ERROR_BADFILE, "corRead(): %s isn't a directory", fname_use));
+      }
   }
 
   /* ----- copy the directory name and remove any trailing '/' ----- */
-  strcpy(fname_use, fname);
   fbase = &fname_use[strlen(fname_use)];
   if(*(fbase-1) != '/')
   {

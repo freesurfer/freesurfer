@@ -153,7 +153,12 @@ int is_cor(char *fname)
   if(stat(fname, &stat_buf) < 0)
     return(0);
 
+  /* if it's a directory, it's a COR dir. */
   if(S_ISDIR(stat_buf.st_mode))
+    return(1);
+
+  /* if the first four letters are COR- */
+  if(strncmp(fname,"COR-",4))
     return(1);
 
   return(0);
