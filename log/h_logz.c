@@ -37,6 +37,7 @@
 #include <stdio.h>
 #include <math.h>
 #include <memory.h>
+#include <unistd.h>
 #include <hipl_format.h>
 
 #include "const.h"
@@ -1392,6 +1393,10 @@ LogMapDiffusePerona(LOGMAP_INFO *lmi, IMAGE *inImage, IMAGE *outImage,
   nspokes = lmi->nspokes ;
   time = 0.0f ;
 
+#define LOG_MOVIE_FNAME      "log_diffuse_movie.hipl"
+
+  unlink(LOG_MOVIE_FNAME) ;
+  ImageAppend(tmpImage, LOG_MOVIE_FNAME) ;
   for (i = 0 ; i < niterations ; i++)
   {
     if (time_type != DIFFUSION_TIME_LOG)
@@ -1496,6 +1501,9 @@ LogMapDiffusePerona(LOGMAP_INFO *lmi, IMAGE *inImage, IMAGE *outImage,
     }     /* each ring */
 
     ImageCopy(outImage, tmpImage) ;
+    if (Gdiag & DIAG_MOVIE)
+        ImageAppend(tmpImage, LOG_MOVIE_FNAME) ;
+
     /*    k = k + k * slope ;*/
   }
 
