@@ -3026,6 +3026,13 @@ DspA_tErr DspA_HandleKeyDown_ ( tkmDisplayAreaRef this,
       goto error;
     break;
     
+  case 'm':
+    /* m toggles the segmentation display */
+    eResult = DspA_ToggleDisplayFlag( this, DspA_tDisplayFlag_ROIGroupOverlay);
+    if ( DspA_tErr_NoErr != eResult )
+      goto error;
+    break;
+    
   case 'o':
     /* ctrl+o toggles original suface display */
     if( ipEvent->mbCtrlKey ) {
