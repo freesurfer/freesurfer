@@ -627,7 +627,7 @@ static unsigned char thicken_se[9] = { 255, 1, 255, 1, 1, 1, 255, 1, 255 } ;
 IMAGE *
 ImageDilate(IMAGE *Isrc, IMAGE *Idst, int which)
 {
-  int    ecode, center_row, center_col, gray ;
+  int    ecode, center_row, center_col ;
   IMAGE  Ise, *Iin, *Itmp, *Iout ;
 
   init_header(&Ise, "orig", "seq", 1, "today", 3, 3, PFBYTE, 1, "temp");
@@ -705,7 +705,6 @@ ImageErode(IMAGE *Isrc, IMAGE *Idst, int which)
 IMAGE *
 ImageMorph(IMAGE *Isrc, IMAGE *Idst, int which)
 {
-  int            ecode, center_row, center_col, gray ;
   IMAGE          *Iin, *Itmp, *Iout, *Ifiltered ;
   unsigned char  *lut ;
 
@@ -858,9 +857,9 @@ ImageOpen(IMAGE *Isrc, IMAGE *Idst)
 ------------------------------------------------------*/
 static int filter[3][3] =
 {
-  1, 8,  64,
-  2, 16, 128,
-  4, 32, 256
+  { 1, 8,  64 },
+  { 2, 16, 128},
+  { 4, 32, 256}
 } ;
 static void
 morphFilter(IMAGE *Isrc, IMAGE *Idst)
