@@ -4,6 +4,7 @@
 
 #include <iostream>
 #include <fstream>
+#include <mcheck.h>
 
 extern "C" {
 #include "label.h"
@@ -20,7 +21,8 @@ int main(int, char **)
   VL ***voxel_labels;
   VOXEL_LABELS *vl;
 
-  for (size_t i=0; i < 100; ++i)
+  mtrace();
+  for (size_t i=0; i < 10; ++i)
   {
     pVli = VLread(const_cast<char *>("vltest.dat"));
     voxel_labels = pVli->vl;
