@@ -108,6 +108,7 @@ set gaLinkedVars(currentvaluefield) 0
 set gaLinkedVars(fthresh) 0
 set gaLinkedVars(fmid) 0
 set gaLinkedVars(fslope) 0
+set gaLinkedVars(fslope) 0
 set gaLinkedVars(fnumconditions) 0
 set gaLinkedVars(fnumtimepoints) 0
 set gaLinkedVars(ftimepoint) 0
@@ -139,7 +140,7 @@ set gaLinkedVars(numprestimpoints) 0
 array set gaLinkedVarGroups {
     scene { light0 light1 light2 light3 offset }
     overlay { colscale truncphaseflag invphaseflag revphaseflag \
-      complexvalflag fthresh fmid fslope fmin fmax \
+      complexvalflag foffset fthresh fmid fslope fmin fmax \
       fnumtimepoints fnumconditions ftimepoint fcondition}
     curvature { cslope cmid }
     phase { angle_offset angle_cycles }
@@ -148,7 +149,7 @@ array set gaLinkedVarGroups {
       verticesflag currentvaluefield }
     cvavg { cmid dipavg }
     mouseover { mouseoverflag }
-    all { light0 light1 light2 light3 offset colscale truncphaseflag invphaseflag revphaseflag complexvalflag fthresh fmid fslope cslope cmid angle_offset angle_cycles sulcflag surfcolor vertexset overlayflag scalebarflag colscalebarflag verticesflag cmid dipavg mouseoverflag }
+    all { light0 light1 light2 light3 offset colscale truncphaseflag invphaseflag revphaseflag complexvalflag fthresh foffset fmid fslope cslope cmid angle_offset angle_cycles sulcflag surfcolor vertexset overlayflag scalebarflag colscalebarflag verticesflag cmid dipavg mouseoverflag }
     redrawlock { redrawlockflag }
     graph { timeresolution numprestimpoints }
 }
@@ -206,8 +207,8 @@ proc UpdateValueLabelName { inValueIndex isName } {
     
     global gaScalarValueID gsaLabelContents gaSwapFieldInfo
     if { [info exists gaScalarValueID($inValueIndex,label)] == 0 } {
-  puts "UpdateValueLabelName: $inValueIndex invalid"
-  return
+        puts "UpdateValueLabelName: $inValueIndex invalid"
+        return
     }
 
     set label $gaScalarValueID($inValueIndex,label)
@@ -224,6 +225,34 @@ proc UpdateValueLabelName { inValueIndex isName } {
     # view->overlay menu
     .w.fwMenuBar.mbwView.mw.cmw7 entryconfigure [expr 1 + $inValueIndex] \
       -label $isName
+}
+
+proc SwapValueLabelNames { inValueIndexA inValueIndexB } {
+
+    global gaScalarValueID gsaLabelContents gaSwapFieldInfo
+    if { [info exists gaScalarValueID($inValueIndexA,label)] == 0 } {
+        puts "UpdateValueLabelName: $inValueIndex invalid"
+        return
+    }
+    if { [info exists gaScalarValueID($inValueIndexB,label)] == 0 } {
+        puts "UpdateValueLabelName: $inValueIndex invalid"
+        return
+    }
+
+    set labelA $gaScalarValueID($inValueIndexA,label)
+    set labelB $gaScalarValueID($inValueIndexB,label)
+
+    # get old values
+    set sLabelContentsA $gsaLabelContents($labelA,name)
+    set sLabelContentsB $gsaLabelContents($labelB,name)
+
+    # set the label contents name.
+    set gsaLabelContents($labelA,name) $sLabelContentsB
+    set gsaLabelContents($labelB,name) $sLabelContentsA
+
+    # set the swap field info name.
+    set gaSwapFieldInfo($labelA,label) $sLabelContentsB
+    set gaSwapFieldInfo($labelB,label) $sLabelContentsA
 }
 
 # ==================================================================== GLOBALS
@@ -511,6 +540,8 @@ proc DoConfigOverlayDisplayDlog {} {
   set fwThresholdSlope   $fwThresholdSub.fwThresholdSlope
 
   tkm_MakeSliders $fwThresholdSliders [list \
+    [list {"Threshold offset"} gaLinkedVars(foffset) \
+    -10000 10000 100 {} 1 0.25] \
     [list {"Threshold minimum"} gaLinkedVars(fthresh) \
     $gaLinkedVars(fmin) $gaLinkedVars(fmax) 100 {} 1 0.25] \
     [list {"Threshold midpoint"} gaLinkedVars(fmid) \
@@ -1119,11 +1150,7 @@ proc CreateMenuBar { ifwMenuBar } {
       {command "Load Label..." \
       {DoFileDlog LoadLabel}} \
       \
-      {command "Save Label" \
-      {CheckFileAndDoCmd $label write_labeled_vertices} \
-      mg_LabelLoaded } \
-      \
-      {command "Save Label As..." \
+      {command "Save Label..." \
       {DoFileDlog SaveLabelAs} \
       mg_LabelLoaded } \
     }   } \
@@ -1288,7 +1315,7 @@ proc CreateMenuBar { ifwMenuBar } {
       \
       { command "Overlay..." \
       {DoConfigOverlayDisplayDlog} \
-      mg_OverlayLoaded } \
+       mg_OverlayLoaded  } \
       \
       { command "Time Course..." \
       {Graph_DoConfig} \
