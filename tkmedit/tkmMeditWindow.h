@@ -129,6 +129,12 @@ MWin_tErr MWin_SetGCA                        ( tkmMeditWindowRef this,
                  int               inDispIndex,
                  GCA*              iVolume,
                  LTA*              iTransform );
+MWin_tErr MWin_SetVLIs                        ( tkmMeditWindowRef this,
+                 int               inDispIndex,
+                 VLI*              iVLI1,
+                 VLI*              iVLI2,
+                 char*             isVLI1_name,
+                 char*             isVLI2_name );
 
 
 /* viewing state changes. specify the display area the same way as above. */
