@@ -919,7 +919,7 @@ wscale = 1.0 ;
     else
       rval = ring - nrings/2 ;
 
-    /* don't left centroid be on border of image -- BRF for nonlocal stuff */
+    /* don't let centroid be on border of image -- BRF for nonlocal stuff */
     if (LOG_PIX_ROW_CENT(lmi,ring,spoke) == 0)
       LOG_PIX_ROW_CENT(lmi,ring,spoke) = 1 ;
     else if (LOG_PIX_ROW_CENT(lmi,ring,spoke) == rows-1)
@@ -3166,22 +3166,26 @@ LogMapOffsetMagnitude(LOGMAP_INFO *lmi,IMAGE *Isrc,IMAGE *Idst,int maxsteps)
 
           if (dot <= 0)
             break ;
-          if (d >= 0)               /* move in x and y */
+          if (d >= 0)               /* move only in y */
           {
             yoff = sy ;
             d -= ax ;
+            xoff = 0 ;
           }
           else                      /* move only in x */
+          {
             yoff = 0 ;
+            d += ay ;
+            xoff = sx ;
+          }
 
-          k = 4+3*yoff + sx ;         /* find index of appropriate neighbor */
+          k = 4+3*yoff + xoff ;      /* find index of appropriate neighbor */
           npix = pix->nbd[k] ;
 
           xold = x ;
           yold = y ;
           x = npix->ring ;
           y = npix->spoke ;
-          d += ay ;
           pix = npix ;
         }
       }
@@ -3197,22 +3201,26 @@ LogMapOffsetMagnitude(LOGMAP_INFO *lmi,IMAGE *Isrc,IMAGE *Idst,int maxsteps)
           dot = odx * dx + ody * dy ;
           if (dot <= 0)
             break ;
-          if (d >= 0)   /* move one in x direction */
+          if (d >= 0)   /* move only in x direction */
           {
             xoff = sx ;
             d -= ay ;
+            yoff = 0 ;
           }
           else         /* only move in y */
+          {
             xoff = 0 ;
+            yoff = sy ;
+            d += ax ;
+          }
 
-          k = 4+3*(sy) + xoff ;      /* find index of appropriate neighbor */
+          k = 4+3*(yoff) + xoff ;      /* find index of appropriate neighbor */
           npix = pix->nbd[k] ;
 
           xold = x ;
           yold = y ;
           x = npix->ring ;
           y = npix->spoke ;
-          d += ax ;
           pix = npix ;
         }
       }

@@ -1051,10 +1051,10 @@ ImageOffsetDirection(IMAGE *Ix, IMAGE *Iy, int wsize, IMAGE *Iorient,
     Ioffset = ImageAlloc(rows, cols, PFFLOAT, 2) ;
 
   if (!ImageCheckSize(Ix, Ioffset, 0, 0, 2))
-    {
-      ImageFree(&Ioffset) ;
-      Ioffset = ImageAlloc(rows, cols, PFFLOAT, 2) ;
-    }
+  {
+    ImageFree(&Ioffset) ;
+    Ioffset = ImageAlloc(rows, cols, PFFLOAT, 2) ;
+  }
 
   whalf = (wsize-1)/2 ;
   xpix = IMAGEFpix(Ix, 0, 0) ;
@@ -1169,28 +1169,31 @@ ImageOffsetMagnitude(IMAGE *Isrc, IMAGE *Idst, int maxsteps)
 
           if (dot <= 0)
             break ;
-          if (d >= 0)
+          if (d >= 0)   /* move in y direction */
           {
             yn = y + sy ;
             if (yn < 0 || yn >= rows)
               break ;
+            xn = x ;
             oxpix += (sy * cols) ;
             oypix += (sy * cols) ;
             d -= ax ;
           }
-          else
+          else          /* move in x direction */
+          {
+            xn = x + sx ;
+            if (xn < 0 || xn >= cols)
+              break ;
             yn = y ;
-          oxpix += sx ;
-          oypix += sx ;
-          xn = x + sx ;
-          if (xn < 0 || xn >= cols)
-            break ;
+            oxpix += sx ;
+            oypix += sx ;
+            d += ay ;
+          }
 
           xold = x ;
           yold = y ;
           x = xn ;
           y = yn ;
-          d += ay ;
         }
       }
       else    /* y dominant */
@@ -1203,28 +1206,31 @@ ImageOffsetMagnitude(IMAGE *Isrc, IMAGE *Idst, int maxsteps)
           dot = odx * dx + ody * dy ;
           if (dot <= 0)  /* vector field has reversed or changed directions */
             break ;
-          if (d >= 0)   /* move in x direction also */
+          if (d >= 0)   /* move only in x direction */
           {
             xn = x + sx ;
             if (xn < 0 || xn >= cols)
               break ;
+            yn = y ;
             oxpix += sx ;
             oypix += sx ;
             d -= ay ;
           }
           else          /* only move in y direction */
+          {
+            yn = y + sy ;
+            if (yn < 0 || yn >= rows)
+              break ;
             xn = x ;
-          yn = y + sy ;
-          if (yn < 0 || yn >= rows)
-            break ;
+            oypix += (sy * cols) ;
+            oxpix += (sy * cols) ;
+            d += ax ;
+          }
 
           xold = x ;
           yold = y ;
           x = xn ;
           y = yn ;
-          oypix += (sy * cols) ;
-          oxpix += (sy * cols) ;
-          d += ax ;
         }
       }
 
