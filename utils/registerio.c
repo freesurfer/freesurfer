@@ -259,7 +259,7 @@ int regio_write_mincxfm(char *xfmfile, MATRIX *R)
     for(c=0;c<4;c++)
       fprintf(fp,"%e ",R->rptr[r+1][c+1]);
     if(r != 2) fprintf(fp,"\n");
-    else       fprintf(fp,";");
+    else       fprintf(fp,";\n");
   }
 
   fclose(fp);
