@@ -25,6 +25,11 @@ extern double oglu_fov ;
 #define NEG_FLAG      0x0020   /* show negative vertices (flat maps only) */
 #define NOBORDER_FLAG 0x0040   /* don't draw a border */
 #define VAL_FLAG      0x0080   /* paint values on surface */
+#define TIME_FLAG     0x0100   /* paint latencies on surface */
+#define STAN_FLAG     0x0200   /* paint spatio-temporal meg loc results */
+#define LIN_FLAG      0x0400   /* paint linear analysis results */
+#define CSCALE_FLAG   0x0800   /* draw the color scale */
+#define LEG_FLAG      0x1000   /* Write a legend (min and max near the color scale) */
 
 #define LIGHT_OFFSET  0.25
 
