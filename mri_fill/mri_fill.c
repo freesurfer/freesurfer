@@ -12,7 +12,7 @@
 #include "mrimorph.h"
 #include "timer.h"
 
-static char vcid[] = "$Id: mri_fill.c,v 1.27 1999/07/04 15:49:27 fischl Exp $";
+static char vcid[] = "$Id: mri_fill.c,v 1.28 1999/07/19 15:15:55 fischl Exp $";
 
 /*-------------------------------------------------------------------
                                 CONSTANTS
@@ -741,7 +741,7 @@ print_help(void)
 
 /* aspect ratios are dy/dx */
 #define MIN_CC_AREA       350  /* smallest I've seen is 389 */
-#define MAX_CC_AREA      1100  /* biggest I've seen is 960 */
+#define MAX_CC_AREA      1400  /* biggest I've seen is 960 */
 #define MIN_CC_ASPECT     0.1
 #define MAX_CC_ASPECT     0.65
 
