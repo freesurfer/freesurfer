@@ -1,5 +1,5 @@
 % fast_group_glm.m - see groupreg-sess
-% $Id: fast_group_glm.m,v 1.2 2005/01/10 18:37:16 greve Exp $
+% $Id: fast_group_glm.m,v 1.3 2005/01/18 20:51:24 greve Exp $
 %
 % InstemList = splitstring('$InstemList');
 % FLAXMatList = splitstring('$FLAXMatList');
@@ -14,7 +14,7 @@
 
 tic;
 
-ver = '$Id: fast_group_glm.m,v 1.2 2005/01/10 18:37:16 greve Exp $';
+ver = '$Id: fast_group_glm.m,v 1.3 2005/01/18 20:51:24 greve Exp $';
 fprintf('%s\n',ver);
 
 Cflastruct = load(FLAConMat);
@@ -85,6 +85,12 @@ if(isempty(mristruct))
   return;
 end
 
+if(synth)
+  fprintf('Synthsizing input data\n');
+  SynthSeed = sum(100*clock);
+  fprintf('SynthSeed = %10d\n',SynthSeed);
+end
+
 for slice = 1:ns
   fprintf('slice = %d (%g)\n',slice,toc);
 
@@ -101,6 +107,8 @@ for slice = 1:ns
     end
     yn = reshape(yn,[nvslice nf])';
 
+    if(synth) yn = randn(size(yn)); end
+    
     if(WLS)
       invarstem = deblank(InVarStemList(n,:));      
       ynvar = fast_ldbslice(invarstem,slice-1);
@@ -111,6 +119,7 @@ for slice = 1:ns
       end
       ynvar = ynvar(:)';
       yvar = [yvar; ynvar];
+      if(synth) yn = yn .* sqrt(ynvar); end
     end
     
     y = [y; yn];
@@ -125,17 +134,49 @@ for slice = 1:ns
     
   end % Loop over inputs
   
+  inddata = find(all(y));
+  ndata = length(inddata);
+  indnodata = find(any(y==0));
+  fprintf('  Found %d voxels with data for all inputs\n',ndata);
   if(WLS)
-    % Rescale Var so that the sum=1 at each voxel
     yvarsum = sum(yvar);
-    yvar = yvar ./ repmat(yvarsum,[ninputs 1]);
-    % Divide each input by the variance
-    y = y ./ yvar;
+    nv = nr*nc;
+    nbeta = size(X,2);
+    beta = zeros(nbeta,nv);
+    rvar = zeros(1,nv);
+    F    = zeros(1,nv);
+    Fsig = ones(1,nv);
+    ces  = zeros(1,nv);
+    % weight is 1/std
+    w = zeros(ninputs,nv);
+    w(:,inddata) = 1./sqrt(yvar(:,inddata));
+    % Rescale weight so that the sum=1 at each voxel
+    wsum = sum(w);
+    w(:,inddata) = w(:,inddata) ./ repmat(wsum(inddata),[ninputs 1]);
+    X0 = X;
+    fprintf('  Staring WLS loop over %d voxels (%g)\n',length(inddata),toc);
+    for nthind = 1:ndata
+      indv = inddata(nthind); % index into the volume
+      wv = w(:,indv);
+      yv = wv.*y(:,indv);
+      Xv = X .* repmat(wv,[1 nbeta]);
+      [betav rvarv] = fast_glmfit(yv,Xv);
+      [Fv, Fsigv, cesv] = fast_fratio(betav,Xv,rvarv,C);
+      beta(:,indv) = betav;
+      rvar(indv) = rvarv;
+      F(indv) = Fv;
+      Fsig(indv) = Fsigv;
+      ces(indv) = cesv;
+    end
+  else
+    [beta rvar] = fast_glmfit(y,X);
+    [F, Fsig, ces] = fast_fratio(beta,X,rvar,C);
+    beta(:,indnodata) = 0;
+    rvar(indnodata) = 0;
+    F(indnodata) = 0;
+    Fsig(indnodata) = 1;
+    ces(indnodata) = 1;
   end
-  
-
-  [beta rvar] = fast_glmfit(y,X);
-  [F, Fsig, ces] = fast_fratio(beta,X,rvar,C);
 
   beta = reshape(beta', [nr nc nbeta]);
   rvar = reshape(rvar', [nr nc 1]);
@@ -156,7 +197,9 @@ for slice = 1:ns
   fast_svbslice(ces,stem,slice-1,'',mristruct);
 
   stem = sprintf('%s/sig%s',outdir,hemicode);
-  tmp = -sign(ces).*log10(abs(Fsig));
+  tmp = zeros(size(Fsig));
+  indok = find(Fsig ~= 0);
+  tmp(indok) = -sign(ces(indok)).*log10(abs(Fsig(indok)));
   fast_svbslice(tmp,stem,slice-1,'',mristruct);
 
 end
