@@ -156,7 +156,7 @@ is_signa(char *fname)
 
   fp = fopen(fname, "rb") ;
   if (!fp)
-    ErrorReturn(0, (ERROR_NOFILE, "is_signa(%s): could not open file",fname)) ;
+    return(0) ;
 
   if ((ret = fread(h,sizeof(char),HLENGTH,fp)) != HLENGTH)
     ErrorReturn(0, (ERROR_BADFILE, 
