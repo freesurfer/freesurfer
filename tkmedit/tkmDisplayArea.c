@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2003/09/18 21:50:38 $
-// Revision       : $Revision: 1.86 $
+// Revision Date  : $Date: 2003/09/25 17:48:37 $
+// Revision       : $Revision: 1.87 $
 
 #include "tkmDisplayArea.h"
 #include "tkmMeditWindow.h"
@@ -2773,6 +2773,7 @@ DspA_tErr DspA_HandleMouseUp_ ( tkmDisplayAreaRef this,
   DspA_tErr    eResult     = DspA_tErr_NoErr;
   xPoint2n     bufferPt    = {0,0};
   xVoxelRef    pVolumeVox  = NULL;
+  xVoxel       MRIIdx;
   int          nSegIndex   = 0;
   tkm_tSegType segType     = tkm_tSegType_Main;
   DspA_tSegBrushSettings segBrush;
@@ -2948,15 +2949,18 @@ DspA_tErr DspA_HandleMouseUp_ ( tkmDisplayAreaRef this,
     if( !ipEvent->mbCtrlKey &&
 	!ipEvent->mbAltKey ) {
       
+      Volm_ConvertIdxToMRIIdx( this->mpVolume[tkm_tVolumeType_Main],
+			       pVolumeVox, &MRIIdx );
+      
       /* if button 2, make a new point here. */
       if ( 2 == ipEvent->mButton ) {
 	
-	tkm_MakeControlPoint( pVolumeVox );
+	tkm_MakeControlPoint( &MRIIdx );
 	
 	/* if button 3, delete the nearest point. */
       } else if ( 3 == ipEvent->mButton ) {
 	
-	tkm_RemoveControlPointWithinDist( pVolumeVox, this->mOrientation, 3 );
+	tkm_RemoveControlPointWithinDist( &MRIIdx, this->mOrientation, 3 );
       }
     }
     break;
@@ -5167,26 +5171,27 @@ DspA_tErr DspA_DrawControlPoints_ ( tkmDisplayAreaRef this ) {
   xListRef     list       = NULL;
   xList_tErr   eList      = xList_tErr_NoErr;
   x3Lst_tErr   e3DList    = x3Lst_tErr_NoErr;
-  xVoxelRef    controlPt  = NULL;
-  xVoxel       convertedPt;
+  xVoxelRef    MRIIdx  = NULL;
+  xVoxel       anaIdx;
   xPoint2n     bufferPt   = {0,0};
   float        faColor[3] = {0, 0, 0};
   
-  /* decide which list we want out of the space. */
+  /* decide which list we want out of the space. The space is in MRI
+     Idx space, though, so */
   switch ( this->mOrientation ) {
   case mri_tOrientation_Coronal:
     e3DList = x3Lst_GetItemsInZPlane( this->mpControlPoints, 
-				      DspA_GetCurrentSliceNumber_(this),
+				     DspA_GetCurrentSliceNumberInMRIIdx_(this),
 				      &list );
     break;
   case mri_tOrientation_Sagittal:
     e3DList = x3Lst_GetItemsInXPlane( this->mpControlPoints, 
-				      DspA_GetCurrentSliceNumber_(this),
+				     DspA_GetCurrentSliceNumberInMRIIdx_(this),
 				      &list );
     break;
   case mri_tOrientation_Horizontal:
     e3DList = x3Lst_GetItemsInYPlane( this->mpControlPoints, 
-				      DspA_GetCurrentSliceNumber_(this),
+				     DspA_GetCurrentSliceNumberInMRIIdx_(this),
 				      &list );
     break;
   default:
@@ -5209,25 +5214,37 @@ DspA_tErr DspA_DrawControlPoints_ ( tkmDisplayAreaRef this ) {
     
     /* traverse the list */
     eList = xList_ResetPosition( list );
-    while( (eList = xList_NextFromPos( list, (void**)&controlPt )) 
+    while( (eList = xList_NextFromPos( list, (void**)&MRIIdx )) 
 	   != xList_tErr_EndOfList ) {
       
-      if( controlPt ) {
+      if( MRIIdx ) {
 	
+	/* Since our drawing function works in screen space, we need
+	   to convert it to the anaIdx space (which is screen
+	   space). */
+	Volm_ConvertMRIIdxToIdx( this->mpVolume[tkm_tVolumeType_Main],
+				 MRIIdx, &anaIdx );
+
 	/* convert the control point to be in the middle of voxel */
-	xVoxl_Copy( &convertedPt, controlPt );
-	if( xVoxl_GetX( &convertedPt ) == xVoxl_GetFloatX( &convertedPt ) )
-	  xVoxl_SetFloatX( &convertedPt, xVoxl_GetFloatX( &convertedPt ) + 0.5 );
-	if( xVoxl_GetY( &convertedPt ) == xVoxl_GetFloatY( &convertedPt ) )
-	  xVoxl_SetFloatY( &convertedPt, xVoxl_GetFloatY( &convertedPt ) + 0.5 );
-	if( xVoxl_GetZ( &convertedPt ) == xVoxl_GetFloatZ( &convertedPt ) )
-	  xVoxl_SetFloatZ( &convertedPt, xVoxl_GetFloatZ( &convertedPt ) + 0.5 );
+	if( xVoxl_GetX( &anaIdx ) == xVoxl_GetFloatX( &anaIdx ) )
+	  xVoxl_SetFloatX( &anaIdx, xVoxl_GetFloatX(&anaIdx) + 0.5);
+	if( xVoxl_GetY( &anaIdx ) == xVoxl_GetFloatY( &anaIdx ) )
+	  xVoxl_SetFloatY( &anaIdx, xVoxl_GetFloatY(&anaIdx) + 0.5);
+	if( xVoxl_GetZ( &anaIdx ) == xVoxl_GetFloatZ( &anaIdx ) )
+	  xVoxl_SetFloatZ( &anaIdx, xVoxl_GetFloatZ(&anaIdx) + 0.5);
 	
 	/* convert to buffer point. */
-	eResult = DspA_ConvertVolumeToBuffer_ ( this, &convertedPt, &bufferPt );
+	eResult = DspA_ConvertVolumeToBuffer_( this, &anaIdx, &bufferPt );
 	if ( DspA_tErr_NoErr != eResult )
 	  goto error;
 	
+#if 0
+	DebugPrint( ("ctrl pt MRIIdx %d %d %d -> Idx %d %d %d -> "
+		     "buffer %d %d\n",
+		    xVoxl_ExpandInt(MRIIdx), xVoxl_ExpandInt(&anaIdx),
+		    bufferPt.mnX, bufferPt.mnY) );
+#endif
+
 	/* draw a point here. */
 	DspA_DrawMarker_( this, DspA_tMarker_Crosshair, faColor, &bufferPt, 
 			  DspA_knControlPointCrosshairSize );
@@ -5970,6 +5987,32 @@ int DspA_GetCurrentSliceNumber_ ( tkmDisplayAreaRef this ) {
     break;
   case mri_tOrientation_Sagittal:
     nSlice = xVoxl_GetX( this->mpCursor );
+    break;
+  default:
+    nSlice = 0;
+    break;
+  }
+  
+  return nSlice;
+}
+
+int DspA_GetCurrentSliceNumberInMRIIdx_ ( tkmDisplayAreaRef this ) {
+  
+  int nSlice = 0;
+  xVoxel MRIIdx;
+
+  Volm_ConvertIdxToMRIIdx( this->mpVolume[tkm_tVolumeType_Main],
+			   this->mpCursor, &MRIIdx );
+
+  switch ( this->mOrientation ) {
+  case mri_tOrientation_Coronal:
+    nSlice = xVoxl_GetZ( &MRIIdx );
+    break;
+  case mri_tOrientation_Horizontal:
+    nSlice = xVoxl_GetY( &MRIIdx );
+    break;
+  case mri_tOrientation_Sagittal:
+    nSlice = xVoxl_GetX( &MRIIdx );
     break;
   default:
     nSlice = 0;
@@ -6743,6 +6786,7 @@ DspA_tErr DspA_SendPointInformationToTcl_ ( tkmDisplayAreaRef this,
   // translate the screen idx into the src Idx
   Volm_ConvertIdxToMRIIdx(this->mpVolume[tkm_tVolumeType_Main],
 			  iAnaIdx, &MRIIdx);
+
   // *****************************************************************************
   // To be implemented: need to tell whether these values are valid or not.
   sprintf(sTclArguments, "%s %d %d %d", DspA_ksaDisplaySet[iSet], xVoxl_ExpandInt(&MRIIdx) ); 
