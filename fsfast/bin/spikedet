@@ -1,0 +1,320 @@
+#!/bin/csh -f 
+
+set VERSION = '$Id: spikedet,v 1.1 2004/05/17 17:45:53 greve Exp $';
+set inputargs = ($argv);
+
+set instem    = ();
+set fftflag   = 0;
+set sumfile   = ();
+set dtorder   = 1;
+set MLF       = ();
+set monly = 0;
+set spikethresh = 10;
+
+set PrintHelp = 0;
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+set n = `echo $argv | grep -e -version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+##### Create a log file ######
+set LF = $sumfile.log
+rm -f $LF
+echo "--------------------------------------------------------------"
+echo "spikedet logfile is $LF"
+echo "--------------------------------------------------------------"
+
+echo "spikedet log file" >> $LF
+echo $VERSION | tee -a $LF
+pwd           | tee -a $LF
+echo $0       | tee -a $LF
+echo $inputargs | tee -a $LF
+uname -a      >> $LF
+date          >> $LF
+
+set StartTime = `date`;
+
+if($#MLF == 0) set MLF = $sumfile.m
+rm -f $MLF
+#---------#
+tee $MLF > /dev/null <<EOF
+instem   = '$instem';
+fftflag  = $fftflag;
+dtorder  = $dtorder;
+sumfile  = '$sumfile';
+matfile  = '$matfile';
+spikethresh = $spikethresh;
+
+[ns nr nc nf] = fmri_bvoldim(instem);
+if(isempty(ns) | ns == 0) 
+  fprintf('ERROR: with %s\n',instem);
+  return;
+end
+
+slicelist = [];
+nthslice = 1;
+for slice = 1:ns
+
+  fslice = fast_ldbslice(instem,slice-1);
+  if( isempty(fslice) )
+    fprintf('ERROR: with %s\n',instem);
+    return;
+  end
+
+  aaz(:,slice) = fast_aaz(fslice,dtorder,fftflag);
+
+  slicelist = [slicelist slice];
+  nthslice = nthslice + 1;
+end % slice
+
+jkz = fast_jkz(aaz);
+
+indspikes = find(abs(jkz) > spikethresh);
+nspikes = length(indspikes);
+jkzspikes = jkz(indspikes);
+jkzmax = max(jkz(:));
+      
+[spiketp spikesliceind] = ind2sub(size(jkz),indspikes);
+spikeslice = slicelist(spikesliceind)';
+      
+fp = fopen(sumfile,'w');
+fprintf(fp,'fftflag  %d\n',fftflag);
+fprintf(fp,'dtorder  %d\n',dtorder);
+fprintf(fp,'thresh   %g\n',spikethresh);
+fprintf(fp,'jkzmax   %g\n',jkzmax);
+fprintf(fp,'jkzmean  %g\n',mean(jkz(:)));
+fprintf(fp,'jkzstd   %g\n',std(jkz(:)));
+fprintf(fp,'aazmax   %g\n',max(aaz(:)));
+fprintf(fp,'nspikes  %d\n',nspikes);
+if(nspikes > 0)
+  fprintf(fp,'  Slice   TP     JKZ\n');
+  fprintf(fp,'#  %2d    %3d    %g\n',[spikeslice'; spiketp'; abs(jkzspikes')]);
+end
+fclose(fp);
+
+% Print to stdout so I have something to look at
+fp = 1;
+fprintf(fp,'fftflag  %d\n',fftflag);
+fprintf(fp,'dtorder  %d\n',dtorder);
+fprintf(fp,'thresh   %g\n',spikethresh);
+fprintf(fp,'jkzmax   %g\n',jkzmax);
+fprintf(fp,'jkzmean  %g\n',mean(jkz(:)));
+fprintf(fp,'jkzstd   %g\n',std(jkz(:)));
+fprintf(fp,'aazmax   %g\n',max(aaz(:)));
+fprintf(fp,'nspikes  %d\n',nspikes);
+if(nspikes > 0)
+  fprintf(fp,'  Slice   TP     JKZ\n');
+  fprintf(fp,'#  %2d    %3d    %g\n',[spikeslice'; spiketp'; abs(jkzspikes')]);
+end
+
+save(matfile,'instem','fftflag','dtorder','aaz','jkz','slicelist',...
+     'spikethresh','nr','nc','ns','nf');
+      
+fprintf('matlab: spikedet done\n');
+EOF
+#---------#
+cat $MLF >> $LF
+
+if(! $monly) then
+  cat $MLF | matlab -display iconic |& tee -a $LF
+  rm -f $MLF
+endif
+
+
+echo "Started at $StartTime" |& tee -a $LF
+echo "Ended   at `date`"     |& tee -a $LF
+
+echo "spikedet done"
+
+
+exit 0
+
+##############################################################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "--i":
+      if ( $#argv == 0) goto arg1err;
+      set instem = $argv[1]; shift;
+      breaksw
+
+    case "--s":
+      if ( $#argv == 0) goto arg1err;
+      set sumfile = $argv[1]; shift;
+      breaksw
+
+    case "--dt":
+      if ( $#argv == 0) goto arg1err;
+      set dtorder = $argv[1]; shift;
+      breaksw
+
+    case "--thresh":
+      if ( $#argv == 0) goto arg1err;
+      set spikethresh = $argv[1]; shift;
+      breaksw
+
+    case "--monly":
+      if ( $#argv == 0) goto arg1err;
+      set MLF = $argv[1]; shift;
+      set monly = 1;
+      breaksw
+
+    case "--fft":
+      set fftflag = 1;
+      breaksw
+
+    case "--debug":
+      set verbose = 1;
+      set echo = 1; # turns on terminal echoing
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+  if($#instem == 0) then
+    echo "ERROR: no input specified"    
+    exit 1;
+  endif
+
+  if($#sumfile == 0) then
+    if(! $fftflag) then
+      set sumfile = $instem.spike.sum
+      set matfile = $instem.spike.mat
+    else
+      set sumfile = $instem.spike.fft.sum
+      set matfile = $instem.spike.fft.mat
+    endif
+  else
+    set outdir = `dirname $sumfile`;
+    mkdir -p $outdir
+    set matfile = $sumfile.mat
+  endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "USAGE: spikedet"
+  echo ""
+  echo "  --i instem "
+  echo "  --s sumfile  : default is instem.spike.sum or instem.spike.fft.sum"
+  echo "  --fft : perform 2D spatial FFT prior to finding spikes"
+  echo "  --dt order : polynomial detrending order <$dtorder>"
+  echo "  --monly mlf"
+  echo ""
+
+  if(! $PrintHelp) exit 1;
+
+  echo $VERSION
+
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+
+exit 1;
+
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+Spike detector. Determines slices and time points where spikes are likely
+to be. 
+
+--i instem
+
+Bshort/bfloat stem of the functional data to check. Required.
+
+--s sumfile
+
+Summary file. Default is instem.spike.sum or instem.spike.fft.sum 
+depending upon whether the FFT flag is set. In addition, a matlab
+mat file is created with the name instem.spike.mat (or 
+instem.spike.fft.mat). If a summary file is explicitly specified,
+then the mat file will be called sumfile.mat.
+
+--fft
+
+Perform spike detection after taking the absolute of the 2D spatial FFT
+on each spike. Default is to not apply FFT. If this flag is set, then
+the default summary file name is changed to instem.spike.fft.sum.
+
+--dt order
+
+Functional detrending with polynomial of given order order. Default
+is 1 (linear detrending). Use -1 to prevent detrending entirely.
+
+
+ALGORITHM
+
+To be performed on each slice separately
+
+1. Functionally detrends data to remove most spatial correlation. 
+2. Divides each voxel by its temporal stddev (zscore)
+3. Spatially averages the absoute zscore for each slice/time point.
+   This gives a matrix of size equal to the number of slices by
+   number of time points (AAZ).
+4. Jackknifes the AAZ matrix to remove AAZ that is common across
+   slices. Computes a new z-score (JKZ).
+5. The AAZ and JKZ matrices are stored in the .mat file.
+6. A summary of the results are stored in  the summary file.
+
+If the FFT flag is set, then the 2D FFT is performed prior to step 1.
+
+SUMMARY FILE
+
+The Summary File looks like this:
+
+fftflag  0
+dtorder  1
+thresh   10               # Threshold used to flag spikes
+jkzmax   226.985          # Maximum of JKZ matrix
+jkzmean  0.102369         # Mean of all values JKZ matrix
+jkzstd   4.48454          # StdDev of all values JKZ matrix
+aazmax   4.12287          # Maximum of AAZ matrix
+nspikes  9                # Number of JKZ values over thresh
+  Slice   TP     JKZ      # List of slices and time points of
+#   2      7    26.2426   #  JKZ values over threshold. The
+#   4     20    32.046    #  slices and time points are 1-based.
+#   6     38    33.3682
+#   7     30    226.985
+#   9     27    14.8345
+#  10     36    10.3881
+#  17     80    11.5511
+#  26     67    18.8206
+#  34     39    22.4006
