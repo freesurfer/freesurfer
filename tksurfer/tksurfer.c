@@ -39,6 +39,7 @@ static void grabPixels(unsigned int width, unsigned int height,
 static int  is_val_file(char *fname) ;
 void show_flat_regions(char *surf_name, double thresh) ;
 void val_to_mark(void) ;
+void transform_brain(void) ;
 void curv_to_val(void) ;
 int read_curv_to_val(char *fname) ;
 int read_parcellation(char *parc_fname, char *lut_fname) ;
@@ -1103,8 +1104,8 @@ int vset_read_vertex_set(int set, char* fname);
 
 /* copies and restores main verts from MRIS into and out of 
    external storage. */
-int vset_save_surface_vertices(int set);
 int vset_load_surface_vertices(int set);
+int vset_save_surface_vertices(int set) ;
 
 /* changes the current set, calling vset_load_surface_vertices and recomputes
    the normals. marks the vertex array dirty for the next redraw. */
@@ -16251,6 +16252,7 @@ print_help_surfer(void)
   printf("  dump_vertex <vno>                     [script]\n");
   printf("  show_flat_regions surf thresh         [script]\n");
   printf("  val_to_mark                           [script]\n");
+  printf("  transform_brain                       [script]\n");
   printf("  val_to_curv                           [script]\n");
   printf("  val_to_stat                           [script]\n");
   printf("  stat_to_val                           [script]\n");
@@ -16604,6 +16606,7 @@ int W_help  PARM;
 int W_redraw  PARM; 
 int W_dump_vertex  PARM; 
 int W_show_flat_regions  PARM; 
+int W_transform_brain  PARM; 
 int W_val_to_mark  PARM; 
 int W_val_to_curv  PARM; 
 int W_val_to_stat  PARM; 
@@ -17490,6 +17493,10 @@ ERR(1,"Wrong # args: swap_buffers")
      int                  W_val_to_mark  WBEGIN
      ERR(1,"Wrong # args: val_to_mark ")
      val_to_mark();  WEND
+     
+     int                  W_transform_brain  WBEGIN
+     ERR(1,"Wrong # args: transform_brain ")
+     transform_brain();  WEND
      
      int                  W_show_flat_regions  WBEGIN
      ERR(3,"Wrong # args: show_flat_regions ")
@@ -18392,6 +18399,8 @@ int main(int argc, char *argv[])   /* new main */
 		    W_dump_vertex,         REND);
   Tcl_CreateCommand(interp, "val_to_mark",
 		    W_val_to_mark,         REND);
+  Tcl_CreateCommand(interp, "transform_brain",
+		    W_transform_brain,         REND);
   Tcl_CreateCommand(interp, "show_flat_regions",
 		    W_show_flat_regions,         REND);
   Tcl_CreateCommand(interp, "val_to_stat",
@@ -23771,3 +23780,39 @@ draw_curvature_line(void)
   return(NO_ERROR) ;
 }
 
+void
+transform_brain(void)
+{
+  int         vno ;
+  VERTEX      *v ;
+  float        x, y, z, xt, yt, zt ;
+  float       xlo, ylo, zlo, xhi, yhi, zhi ;
+
+	if (!lta)
+		return ;
+
+  xhi=yhi=zhi= -10000;
+  xlo=ylo=zlo= 10000;
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    x = v->x ; y = v->y ; z = v->z ;
+    LTAworldToWorld(lta, x, y, z, &xt, &yt, &zt) ;
+    v->x = xt ; v->y = yt ; v->z = zt ;
+    if (v->x > xhi) xhi = v->x;
+    if (v->x < xlo) xlo = v->x;
+    if (v->y > yhi) yhi = v->y;
+    if (v->y < ylo) ylo = v->y;
+    if (v->z > zhi) zhi = v->z;
+    if (v->z < zlo) zlo = v->z;
+  }
+
+  mris->xlo = xlo ; mris->ylo = ylo ; mris->zlo = zlo ;
+  mris->xctr = (xhi + xlo)/2 ;
+  mris->yctr = (yhi + ylo)/2 ;
+  mris->zctr = (zhi + zlo)/2 ;
+	MRIScomputeMetricProperties(mris) ;
+	vset_save_surface_vertices(VSET_MAIN) ;
+  vset_set_current_set(vset_current_set) ;
+	redraw() ;
+}
