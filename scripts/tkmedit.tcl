@@ -1,6 +1,6 @@
 #! /usr/bin/tixwish
 
-# $Id: tkmedit.tcl,v 1.43 2003/05/05 16:43:29 kteich Exp $
+# $Id: tkmedit.tcl,v 1.44 2003/05/05 18:22:22 kteich Exp $
 
 source $env(MRI_DIR)/lib/tcl/tkm_common.tcl
 
@@ -2565,13 +2565,14 @@ proc SetAndSendDisplayFlag { iFlag iValue } {
 proc MakeKeyBindings { iwTop } {
 
     global Surf_tVertexSet_Main Surf_tVertexSet_Original Surf_tVertexSet_Pial
+    
 
     bind $iwTop <Control-Key-1> \
 	{SetAndSendDisplayFlag flag_AuxVolume 0}
     bind $iwTop <Control-Key-2> \
 	{SetAndSendDisplayFlag flag_AuxVolume 1}
     bind $iwTop <Control-Key-m> \
-	{ToggleAndSendDisplayFlag flag_MainSurace}
+	{ToggleAndSendDisplayFlag flag_MainSurface}
     bind $iwTop <Alt-Key-m> \
 	{FindNearestSurfaceVertex $Surf_tVertexSet_Main}
     bind $iwTop <Control-Key-o> \
