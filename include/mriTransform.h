@@ -40,6 +40,7 @@ typedef struct {
   
   MATRIX* mCoord1;     /* temp matricies for transforms. */
   MATRIX* mCoord2;
+  int     type ;       /* RAS or voxel (see transform.h) */
   
 } mriTransform, *mriTransformRef;
 
@@ -55,6 +56,8 @@ Trns_tErr Trns_DeepClone  ( mriTransformRef  this,
 /* these are the minimum that should be set in a normal situation */
 Trns_tErr Trns_CopyAtoRAS     ( mriTransformRef this,
         MATRIX*         iAtoRAS );
+Trns_tErr Trns_CopyAtoB     ( mriTransformRef this,
+        MATRIX*         iAtoB );
 Trns_tErr Trns_CopyBtoRAS     ( mriTransformRef this,
         MATRIX*         iBtoRAS );
 Trns_tErr Trns_CopyARAStoBRAS ( mriTransformRef this,
@@ -63,6 +66,8 @@ Trns_tErr Trns_CopyARAStoBRAS ( mriTransformRef this,
 /* access internal matrices */
 Trns_tErr Trns_GetAtoRAS     ( mriTransformRef this,
              MATRIX**        opMatrix );
+Trns_tErr Trns_GetType     ( mriTransformRef this,
+                             int *ptype) ;
 Trns_tErr Trns_GetBtoRAS     ( mriTransformRef this,
              MATRIX**        opMatrix );
 Trns_tErr Trns_GetARAStoBRAS ( mriTransformRef this,
