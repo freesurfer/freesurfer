@@ -483,27 +483,57 @@ MRISreadOverAlloc(char *fname, double pct_over)
       else 
         vertex->num = 0;   /* will figure it out */
     }
-    
+
     for (fno = 0 ; fno < mris->nfaces ; fno += 2)
     {
+      int which ;
+
+      if (fno == 86)
+        DiagBreak() ;
       for (n = 0 ; n < 4 ; n++)   /* read quandrangular face */
+      {
         fread3(&vertices[n],fp);
+        if (vertices[n] == 22)
+          DiagBreak() ;
+      }
+
+/* if we're going to be arbitrary, we might as well be really arbitrary */
+#define WHICH_FACE_SPLIT(vno0, vno1) \
+            nint(sqrt(1.9*vno0) + sqrt(3.5*vno1)) 
+      /* 
+         NOTE: for this to work properly in the write, the first two
+         vertices in the first face (EVEN and ODD) must be 0 and 1.
+         */
+      which = WHICH_FACE_SPLIT(vertices[0], vertices[1]) ;
 
       /* 1st triangle */
-      mris->faces[fno].v[0] = vertices[0] ;
-      mris->faces[fno].v[1] = vertices[1] ;
-      mris->faces[fno].v[2] = vertices[3] ;
-      if (version < 0)
-        for (n = 0 ; n < VERTICES_PER_FACE ; n++)
-          mris->vertices[mris->faces[fno].v[n]].num++;
-
-      /* 2nd triangle */
-      mris->faces[fno+1].v[0] = vertices[2] ;
-      mris->faces[fno+1].v[1] = vertices[3] ;
-      mris->faces[fno+1].v[2] = vertices[1] ;
-      if (version < 0)
-        for (n = 0 ; n < VERTICES_PER_FACE ; n++)
-          mris->vertices[mris->faces[fno+1].v[n]].num++;
+      if (EVEN(which))
+      {
+        mris->faces[fno].v[0] = vertices[0] ;
+        mris->faces[fno].v[1] = vertices[1] ;
+        mris->faces[fno].v[2] = vertices[3] ;
+        
+        /* 2nd triangle */
+        mris->faces[fno+1].v[0] = vertices[2] ;
+        mris->faces[fno+1].v[1] = vertices[3] ;
+        mris->faces[fno+1].v[2] = vertices[1] ;
+      }
+      else
+      {
+        mris->faces[fno].v[0] = vertices[0] ;
+        mris->faces[fno].v[1] = vertices[1] ;
+        mris->faces[fno].v[2] = vertices[2] ;
+        
+        /* 2nd triangle */
+        mris->faces[fno+1].v[0] = vertices[0] ;
+        mris->faces[fno+1].v[1] = vertices[2] ;
+        mris->faces[fno+1].v[2] = vertices[3] ;
+      }
+      for (n = 0 ; n < VERTICES_PER_FACE ; n++)
+      {
+        mris->vertices[mris->faces[fno].v[n]].num++;
+        mris->vertices[mris->faces[fno+1].v[n]].num++;
+      }
     }
     fclose(fp);
   }
@@ -642,6 +672,9 @@ MRISreadOverAlloc(char *fname, double pct_over)
 MRI_SURFACE *
 MRISfastRead(char *fname)
 {
+#if 1
+  return(MRISread(fname)) ;
+#else
   MRI_SURFACE *mris ;
   int         nquads, nvertices, magic, version, ix, iy, iz, vno, fno, n, m,
               imnr, imnr0, imnr1, type, vertices[4], num ;
@@ -907,6 +940,7 @@ MRISfastRead(char *fname)
 #endif
   MRISstoreCurrentPositions(mris) ;
   return(mris) ;
+#endif
 }
 /*-----------------------------------------------------
         Parameters:
@@ -975,10 +1009,33 @@ MRISwrite(MRI_SURFACE *mris, char *name)
   }
   for (k = 0 ; k < mris->nfaces ; k+=2)
   {
-    fwrite3(mris->faces[k].v[0],fp);
-    fwrite3(mris->faces[k].v[1],fp);
-    fwrite3(mris->faces[k+1].v[0],fp);
-    fwrite3(mris->faces[k].v[2],fp);
+    int which ;
+    FACE *f ;
+
+    f = &mris->faces[k] ;
+    {
+      int n ;
+      for (n = 0 ; n < VERTICES_PER_FACE ; n++)
+      {
+        if ((mris->faces[k].v[n] == 22) || (mris->faces[k+1].v[n] == 22))
+          DiagBreak() ;
+      }
+    }
+    which = WHICH_FACE_SPLIT(f->v[0], f->v[1]) ;
+    if (EVEN(which))
+    {
+      fwrite3(mris->faces[k].v[0],fp);
+      fwrite3(mris->faces[k].v[1],fp);
+      fwrite3(mris->faces[k+1].v[0],fp);
+      fwrite3(mris->faces[k].v[2],fp);
+    }
+    else
+    {
+      fwrite3(mris->faces[k].v[0],fp);
+      fwrite3(mris->faces[k].v[1],fp);
+      fwrite3(mris->faces[k].v[2],fp);
+      fwrite3(mris->faces[k+1].v[2],fp);
+    }
   }
   fclose(fp);
   return(NO_ERROR) ;
@@ -3529,6 +3586,13 @@ static char *curvature_names[] =
   NULL
 } ;
 
+int
+MRISsetOriginalFile(char *orig_name)
+{
+  surface_names[1] = surface_names[2] = orig_name ;
+  return(NO_ERROR) ;
+}
+
 
 #define IMAGES_PER_SURFACE   3   /* mean, variance, and dof */
 #define SURFACES         sizeof(curvature_names) / sizeof(curvature_names[0])
@@ -3627,14 +3691,14 @@ MRISregister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
     {
       /* only small adjustments needed after 1st time around */
       parms->tol *= 2.0f ;
-      parms->l_corr /= 2.0f ;
+      parms->l_corr /= 10.0f ;  /* should be more adaptive */
       mrisLogIntegrationParms(parms->fp, mris, parms) ;
       mrisLogIntegrationParms(stderr, mris, parms) ;
     }
     else
       break ;   /* finished */
 
-    for (i = 0 ; i < NSIGMAS ; i++)
+    for (i = 0 ; i < NSIGMAS ; i++)  /* for each spatial scale (blurring) */
     {
       parms->sigma = sigma = sigmas[i] ;
       parms->dt = base_dt ;
@@ -8946,10 +9010,9 @@ int
 MRISinflateBrain(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 {
   int     n_averages, n, write_iterations, niterations ;
-  double  delta_t = 0.0, rms_height, desired_rms_height, sse ;
+  double  delta_t = 0.0, rms_height, desired_rms_height, sse, l_dist ;
 
   write_iterations = parms->write_iterations ;
-  n_averages = parms->n_averages ;
 
   if (IS_QUADRANGULAR(mris))
     MRISremoveTriangleLinks(mris) ;
@@ -8971,19 +9034,9 @@ MRISinflateBrain(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     mrisLogIntegrationParms(stderr, mris, parms) ;
 
   MRIScomputeMetricProperties(mris) ;
-#if 0
-  MRIScomputeSecondFundamentalForm(mris) ;
-#endif
-  /*  parms->start_t = 0 ;*/
   niterations = parms->niterations ;
-  MRISstoreMetricProperties(mris) ;
   rms_height = MRISrmsTPHeight(mris) ;
-#if 0
-  if (parms->scale > 0)
-    desired_rms_height = parms->scale * rms_height ;
-  else
-#endif
-    desired_rms_height = parms->desired_rms_height ;
+  desired_rms_height = parms->desired_rms_height ;
   fprintf(stderr, "inflating to desired rms height = %2.3f\n", 
           desired_rms_height);
 
@@ -8996,7 +9049,7 @@ MRISinflateBrain(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   {
     if (Gdiag & DIAG_SHOW)
       fprintf(stderr,"%3.3d: dt: %2.4f, rms height=%2.3f, avgs=%d\n", 
-              0, 0.0f, (float)rms_height, n_averages) ;
+              0, 0.0f, (float)rms_height, parms->n_averages) ;
     else
       fprintf(stderr, "\rstep %3.3d: RMS=%2.3f (target=%2.3f)   ", 0, 
               rms_height, desired_rms_height);
@@ -9004,68 +9057,82 @@ MRISinflateBrain(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     {
       fprintf(parms->fp, 
               "%3.3d: dt: %2.4f, rms height=%2.3f, avgs=%d\n", 
-              0, 0.0f, (float)rms_height, n_averages) ;
+              0, 0.0f, (float)rms_height, parms->n_averages) ;
       fflush(parms->fp) ;
     }
     
     MRISclearCurvature(mris) ;  /* curvature will be used to calculate sulc */
   }
 
-  for (n = parms->start_t ; n < parms->start_t+niterations ; n++)
+  l_dist = parms->l_dist ;
+  for (n_averages = parms->n_averages ; n_averages >= 0 ; n_averages /= 2)
   {
-    mrisClearGradient(mris) ;
-    mrisComputeDistanceTerm(mris, parms) ;
-    mrisComputeSphereTerm(mris, parms->l_sphere, parms->a) ;
-    mrisComputeExpansionTerm(mris, parms->l_expand) ;
-    
-    mrisAverageGradients(mris, n_averages) ;
-    mrisComputeSpringTerm(mris, parms->l_spring) ;
-    mrisComputeNormalizedSpringTerm(mris, parms->l_spring_norm) ;
-    switch (parms->integration_type)
+    parms->l_dist = l_dist * sqrt(n_averages) ;
+    for (n = parms->start_t ; n < parms->start_t+niterations ; n++)
     {
-    case INTEGRATE_LM_SEARCH:
-      delta_t = mrisLineMinimizeSearch(mris, parms) ;
-      break ;
-    default:
-    case INTEGRATE_LINE_MINIMIZE:
-      delta_t = mrisLineMinimize(mris, parms) ;
-      break ;
-    case INTEGRATE_MOMENTUM:
-      delta_t = mrisMomentumTimeStep(mris, parms->momentum, parms->dt, 
-                                     parms->tol, 0/*parms->n_averages*/) ;
-      break ;
-    case INTEGRATE_ADAPTIVE:
-      mrisAdaptiveTimeStep(mris, parms);
-      break ;
-    }
-    mrisTrackTotalDistance(mris) ;  /* update sulc */
-    MRIScomputeMetricProperties(mris) ; 
-    sse = mrisComputeSSE(mris, parms) ;
-    rms_height = MRISrmsTPHeight(mris) ;
-    if (!((n+1) % 5))     /* print some diagnostics */
-    {
-      if (Gdiag & DIAG_SHOW)
-        fprintf(stderr, 
-                "%3.3d: dt: %2.4f, rms height=%2.3f, avgs=%d\n", 
-                n+1,(float)delta_t, (float)rms_height, n_averages);
-      else
-        fprintf(stderr, "\rstep %3.3d: RMS=%2.3f (target=%2.3f)   ", 
-                n+1, rms_height, desired_rms_height) ;
-      if (Gdiag & DIAG_WRITE)
+      mrisClearGradient(mris) ;
+      mrisComputeDistanceTerm(mris, parms) ;
+      mrisComputeSphereTerm(mris, parms->l_sphere, parms->a) ;
+      mrisComputeExpansionTerm(mris, parms->l_expand) ;
+      
+      mrisAverageGradients(mris, n_averages) ;
+      mrisComputeNormalSpringTerm(mris, parms->l_nspring) ;
+      mrisComputeTangentialSpringTerm(mris, parms->l_tspring) ;
+      mrisComputeQuadraticCurvatureTerm(mris, parms->l_curv) ;
+      mrisComputeSpringTerm(mris, parms->l_spring) ;
+      mrisComputeNormalizedSpringTerm(mris, parms->l_spring_norm) ;
+      switch (parms->integration_type)
       {
-        fprintf(parms->fp, 
-                "%3.3d: dt: %2.4f, rms height=%2.3f, avgs=%d\n", 
-                n+1,(float)delta_t, (float)rms_height, n_averages);
-        fflush(parms->fp) ;
+      case INTEGRATE_LM_SEARCH:
+        delta_t = mrisLineMinimizeSearch(mris, parms) ;
+        break ;
+      default:
+      case INTEGRATE_LINE_MINIMIZE:
+        delta_t = mrisLineMinimize(mris, parms) ;
+        break ;
+      case INTEGRATE_MOMENTUM:
+        delta_t = mrisMomentumTimeStep(mris, parms->momentum, parms->dt, 
+                                       parms->tol, 0/*parms->n_averages*/) ;
+        break ;
+      case INTEGRATE_ADAPTIVE:
+        mrisAdaptiveTimeStep(mris, parms);
+        break ;
       }
+      mrisTrackTotalDistance(mris) ;  /* update sulc */
+      MRIScomputeMetricProperties(mris) ; 
+      sse = mrisComputeSSE(mris, parms) ;
+      rms_height = MRISrmsTPHeight(mris) ;
+      if (!((n+1) % 5))     /* print some diagnostics */
+      {
+        if (Gdiag & DIAG_SHOW)
+          fprintf(stderr, 
+                "%3.3d: dt: %2.4f, rms height=%2.3f, avgs=%d, l_dist=%2.2f\n",
+                  n+1,(float)delta_t, (float)rms_height, n_averages,
+                  parms->l_dist);
+        else
+          fprintf(stderr, "\rstep %3.3d: RMS=%2.3f (target=%2.3f)   ", 
+                  n+1, rms_height, desired_rms_height) ;
+        if (Gdiag & DIAG_WRITE)
+        {
+          fprintf(parms->fp, 
+                "%3.3d: dt: %2.4f, rms height=%2.3f, avgs=%d, l_dist=%2.2f\n",
+                  n+1,(float)delta_t, (float)rms_height, n_averages, 
+                  parms->l_dist);
+          fflush(parms->fp) ;
+        }
+      }
+
+      if (parms->scale > 0)
+        MRISscaleBrainArea(mris) ;
+      if ((parms->write_iterations > 0) &&
+          !((n+1)%write_iterations)&&(Gdiag&DIAG_WRITE))
+        mrisWriteSnapshot(mris, parms, n+1) ;
+      if (rms_height < desired_rms_height)
+        break ;
     }
 
-    if (parms->scale > 0)
-      MRISscaleBrainArea(mris) ;
-    if ((parms->write_iterations > 0) &&
-        !((n+1)%write_iterations)&&(Gdiag&DIAG_WRITE))
-      mrisWriteSnapshot(mris, parms, n+1) ;
-    if (rms_height < desired_rms_height)
+    parms->start_t = n ;
+    if (!n_averages || rms_height < desired_rms_height)
       break ;
   }
 
