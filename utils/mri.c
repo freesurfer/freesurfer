@@ -9,9 +9,9 @@
 */
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: ebeth $
-// Revision Date  : $Date: 2003/07/07 19:12:40 $
-// Revision       : $Revision: 1.231 $
-char *MRI_C_VERSION = "$Revision: 1.231 $";
+// Revision Date  : $Date: 2003/07/08 01:17:27 $
+// Revision       : $Revision: 1.232 $
+char *MRI_C_VERSION = "$Revision: 1.232 $";
 
 /*-----------------------------------------------------
                     INCLUDE FILES
@@ -7256,8 +7256,7 @@ MRIcubicSampleVolume(MRI *mri, Real x, Real y, Real z, Real *pval)
   /*E* build a little box of the local points plus boundary stuff -
     for this rev accept zeroes for border expansion */
 
-  /*E* probably most efficient to incorporate the vv bounds in the for
-    limits */
+  /*E* in next rev,  incorporate the vv bounds in the for limits */
 
   for(iz=0; iz<4; iz++)
     {
@@ -7269,40 +7268,40 @@ MRIcubicSampleVolume(MRI *mri, Real x, Real y, Real z, Real *pval)
 		{
 		case MRI_UCHAR:
 		  if ((ix_low-1+ix >= 0) && (ix_low-1+ix <width) &&
-		      (iy_low-1+iy >= 0) && (iy_low-1+iy <width) &&
-		      (iz_low-1+iz >= 0) && (iz_low-1+iz <width))
+		      (iy_low-1+iy >= 0) && (iy_low-1+iy <height) &&
+		      (iz_low-1+iz >= 0) && (iz_low-1+iz <depth))
 		    vv[ix][iy][iz] =
 		      (double)MRIvox(mri,ix_low-1+ix,iy_low-1+iy,iz_low-1+iz);
 		  else vv[ix][iy][iz] = 0.;
 		  break;
 		case MRI_FLOAT:
 		  if ((ix_low-1+ix >= 0) && (ix_low-1+ix <width) &&
-		      (iy_low-1+iy >= 0) && (iy_low-1+iy <width) &&
-		      (iz_low-1+iz >= 0) && (iz_low-1+iz <width))
+		      (iy_low-1+iy >= 0) && (iy_low-1+iy <height) &&
+		      (iz_low-1+iz >= 0) && (iz_low-1+iz <depth))
 		    vv[ix][iy][iz] =
 		      (double)MRIFvox(mri,ix_low-1+ix,iy_low-1+iy,iz_low-1+iz);
 		  else vv[ix][iy][iz] = 0.;
 		  break;
 		case MRI_SHORT:
 		  if ((ix_low-1+ix >= 0) && (ix_low-1+ix <width) &&
-		      (iy_low-1+iy >= 0) && (iy_low-1+iy <width) &&
-		      (iz_low-1+iz >= 0) && (iz_low-1+iz <width))
+		      (iy_low-1+iy >= 0) && (iy_low-1+iy <height) &&
+		      (iz_low-1+iz >= 0) && (iz_low-1+iz <depth))
 		    vv[ix][iy][iz] =
 		      (double)MRISvox(mri,ix_low-1+ix,iy_low-1+iy,iz_low-1+iz);
 		  else vv[ix][iy][iz] = 0.;
 		  break;
 		case MRI_INT:
 		  if ((ix_low-1+ix >= 0) && (ix_low-1+ix <width) &&
-		      (iy_low-1+iy >= 0) && (iy_low-1+iy <width) &&
-		      (iz_low-1+iz >= 0) && (iz_low-1+iz <width))
+		      (iy_low-1+iy >= 0) && (iy_low-1+iy <height) &&
+		      (iz_low-1+iz >= 0) && (iz_low-1+iz <depth))
 		    vv[ix][iy][iz] =
 		      (double)MRIIvox(mri,ix_low-1+ix,iy_low-1+iy,iz_low-1+iz);
 		  else vv[ix][iy][iz] = 0.;
 		  break;
 		case MRI_LONG:
 		  if ((ix_low-1+ix >= 0) && (ix_low-1+ix <width) &&
-		      (iy_low-1+iy >= 0) && (iy_low-1+iy <width) &&
-		      (iz_low-1+iz >= 0) && (iz_low-1+iz <width))
+		      (iy_low-1+iy >= 0) && (iy_low-1+iy <height) &&
+		      (iz_low-1+iz >= 0) && (iz_low-1+iz <depth))
 		    vv[ix][iy][iz] =
 		      (double)MRILvox(mri,ix_low-1+ix,iy_low-1+iy,iz_low-1+iz);
 		  else vv[ix][iy][iz] = 0.;
