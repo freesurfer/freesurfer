@@ -392,7 +392,7 @@ TclCommandManager::SendCommand ( string isCommand ) {
   if( mInterp ) {
     char* sCommand = strdup( isCommand.c_str() );
     int rTcl = Tcl_Eval( mInterp, sCommand );
-    char* sTclResult = const_cast<char *>(Tcl_GetStringResult( mInterp ));
+    const char* sTclResult = Tcl_GetStringResult( mInterp );
     if( TCL_OK != rTcl ) {
       DebugOutput( << "Error on cmd: \"" << sCommand << "\", " << sTclResult );
     }

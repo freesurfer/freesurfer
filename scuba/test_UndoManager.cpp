@@ -135,7 +135,7 @@ UndoManagerTester::Test ( Tcl_Interp* iInterp ) {
     sprintf( sCommand, "GetUndoTitle" );
     rTcl = Tcl_Eval( iInterp, sCommand );
     AssertTclOK( rTcl );
-    char* sTclResult = Tcl_GetStringResult( iInterp );
+    const char* sTclResult = Tcl_GetStringResult( iInterp );
     sTitle = sTclResult;
     ssError << "Tcl GetUndoTitle failed for redo, was " << sTitle;
     Assert( ("Undo Change values" == sTitle), ssError.str() );

@@ -90,7 +90,7 @@ ScubaROITester::Test ( Tcl_Interp* iInterp ) {
     sprintf( sCommand, "GetROILabel %d", roiID );
     rTcl = Tcl_Eval( iInterp, sCommand );
     AssertTclOK( rTcl );
-    char* sTclResult = Tcl_GetStringResult( iInterp );
+    const char* sTclResult = Tcl_GetStringResult( iInterp );
     sTestLabel = sTclResult;
     Assert( ("i hate ROIs" == sTestLabel), "Tcl GetROILabel failed" );
 

@@ -91,7 +91,7 @@ ScubaLayerFactoryTester::Test ( Tcl_Interp* iInterp ) {
     sprintf( sCommand, "MakeLayer 2DMRI" );
     rTcl = Tcl_Eval( iInterp, sCommand );
     AssertTclOK( rTcl );
-    char* sTclResult = Tcl_GetStringResult( iInterp );
+    const char* sTclResult = Tcl_GetStringResult( iInterp );
     int layerID = strtol( sTclResult, (char**)NULL, 10 );
     Assert( (ERANGE != errno), "Error converting return ID from MakeLayer" );
     try {

@@ -10,7 +10,7 @@ if { $err } {
     load [file dirname [info script]]/libscuba[info sharedlibextension] scuba
 }
 
-DebugOutput "\$Id: scuba.tcl,v 1.43 2004/07/30 04:59:33 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.44 2004/08/01 20:11:51 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -1184,6 +1184,8 @@ proc MakeDataCollectionsPropertiesPanel { ifwTop } {
 	-command { SurfaceTransformVolumeMenuCallback }
     set gaWidget(collectionProperties,surfaceTransformMenu) \
 	$fwPropsSurface.owTransformVolume
+
+    
 
     grid $fwPropsSurface.owTransformVolume -column 0 -row 2 -sticky ew
 
@@ -2678,24 +2680,32 @@ proc TransformPropertiesMenuCallback { iTransformID } {
 proc SelectTransformInTransformProperties { iTransformID } {
     dputs "SelectTransformInTransformProperties  $iTransformID  "
 
+    global gaTransform
+
+    set gaTransform(current,id) $iTransformID
+
+    UpdateCurrentTransformInTransformProperties
+}
+
+proc  UpdateCurrentTransformInTransformProperties {} {
     global gaWidget
     global gaTransform
 
     # Get the tranforms properties from the transofmr layer and
     # load them into the 'current' slots.
-    set gaTransform(current,id) $iTransformID
-    set gaTransform(current,label) [GetTransformLabel $iTransformID]
-    set gaTransform(current,valueList) [GetTransformValues $iTransformID]
+    set transformID $gaTransform(current,id)
+    set gaTransform(current,label) [GetTransformLabel $transformID]
+    set gaTransform(current,valueList) [GetTransformValues $transformID]
     tkuRefreshEntryNotify $gaWidget(transformProperties,labelEntry)
     set gaTransform(current,isRegistration) \
-	[IsTransformRegistration $iTransformID]
+	[IsTransformRegistration $transformID]
 
     if { $gaTransform(current,isRegistration) } {
 
 	set gaTransform(curernt,regSource) \
-	    [GetTransformRegistrationSource $iTransformID]
+	    [GetTransformRegistrationSource $transformID]
 	set gaTransform(curernt,regDest) \
-	    [GetTransformRegistrationDest $iTransformID]
+	    [GetTransformRegistrationDest $transformID]
 	
 	# Select the items in the menu.
 	$gaWidget(transformProperties,regSourceMenu) config -disablecallback 1
@@ -2724,7 +2734,7 @@ proc SelectTransformInTransformProperties { iTransformID } {
     # callback and set the value of the menu to the transform ID. Then
     # reenable the callback.
     $gaWidget(transformProperties,menu) config -disablecallback 1
-    $gaWidget(transformProperties,menu) config -value $iTransformID
+    $gaWidget(transformProperties,menu) config -value $transformID
     $gaWidget(transformProperties,menu) config -disablecallback 0
 }
 
@@ -2795,7 +2805,7 @@ proc TransformSourceRegistrationMenuCallback { iCollectionID } {
 
     set gaTransform(current,regSource) $iCollectionID
     SetTransformRegistration
-    UpdateTransformList
+    UpdateCurrentTransformValueList
 }
 
 proc TransformDestRegistrationMenuCallback { iCollectionID } {
@@ -2803,7 +2813,7 @@ proc TransformDestRegistrationMenuCallback { iCollectionID } {
 
     set gaTransform(current,regDest) $iCollectionID
     SetTransformRegistration
-    UpdateTransformList
+    UpdateCurrentTransformValueList
 }
 
 proc SetTransformRegistration {} {

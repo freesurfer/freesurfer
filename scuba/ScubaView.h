@@ -2,7 +2,7 @@
 #define ScubaView_h
 
 #include "string_fixed.h"
-#include <gl.h>
+#include <GL/gl.h>
 #include "View.h"
 #include "DataCollection.h"
 #include "InputState.h"

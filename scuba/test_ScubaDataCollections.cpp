@@ -57,7 +57,7 @@ ScubaDataCollectionFactoryTester::Test ( Tcl_Interp* iInterp ) {
     sprintf( sCommand, "MakeDataCollection Volume" );
     rTcl = Tcl_Eval( iInterp, sCommand );
     AssertTclOK( rTcl );
-    char* sTclResult = Tcl_GetStringResult( iInterp );
+    const char* sTclResult = Tcl_GetStringResult( iInterp );
     int colID = strtol( sTclResult, (char**)NULL, 10 );
     Assert( (ERANGE != errno), "Error converting return ID from MakeDataCollection" );
     try {

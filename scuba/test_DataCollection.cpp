@@ -125,7 +125,7 @@ DataCollectionTester::Test ( Tcl_Interp* iInterp ) {
     sprintf( sCommand, "NewCollectionROI %d", col1.GetID() );
     rTcl = Tcl_Eval( iInterp, sCommand );
     AssertTclOK( rTcl );
-    char* sTclResult = Tcl_GetStringResult( iInterp );
+    const char* sTclResult = Tcl_GetStringResult( iInterp );
     roiID = strtol( sTclResult, (char**)NULL, 10);
     try {
       ScubaROI* roi = col1.mROIMap[roiID];

@@ -191,7 +191,7 @@ ScubaFrameTester::Test( Tcl_Interp* iInterp ) {
     sprintf( sCommand, "GetNumberOfRowsInFrame %d", frame->GetID() );
     rTcl = Tcl_Eval( iInterp, sCommand );
     AssertTclOK( rTcl );
-    char* sTclResult = Tcl_GetStringResult( iInterp );
+    const char* sTclResult = Tcl_GetStringResult( iInterp );
     string scRows( sTclResult ); 
     Assert( (scRows == "2"), "tcl function returned wrong number of rows" );
     for( int nRow = 0; nRow < 2; nRow++ ) {
@@ -199,7 +199,7 @@ ScubaFrameTester::Test( Tcl_Interp* iInterp ) {
 	       frame->GetID(), nRow );
       rTcl = Tcl_Eval( iInterp, sCommand );
       AssertTclOK( rTcl );
-      char* sTclResult = Tcl_GetStringResult( iInterp );
+      const char* sTclResult = Tcl_GetStringResult( iInterp );
       string scCols( sTclResult ); 
       Assert( (scCols == "2"), "tcl function returned wrong number of cols" );
     }

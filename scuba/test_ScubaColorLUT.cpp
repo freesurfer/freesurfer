@@ -74,7 +74,7 @@ ScubaColorLUTTester::Test ( Tcl_Interp* iInterp ) {
     sprintf( sCommand, "MakeNewColorLUT" );
     rTcl = Tcl_Eval( iInterp, sCommand );
     AssertTclOK( rTcl );
-    char* sTclResult = Tcl_GetStringResult( iInterp );
+    const char* sTclResult = Tcl_GetStringResult( iInterp );
     int lutID = strtol(sTclResult, (char**)NULL, 10);
     Assert( (ERANGE != errno), "MakeNewColorLUT did not return valid ID" );
 

@@ -65,7 +65,7 @@ int main ( int argc, char** argv ) {
     int rTcl = Tcl_Init( interp );
     if( TCL_OK != rTcl ) {
       stringstream ssError;
-      char* sResult = Tcl_GetStringResult( interp );
+      const char* sResult = Tcl_GetStringResult( interp );
       ssError <<  "Tcl_Init returned not TCL_OK: " << sResult;
       throw runtime_error( ssError.str() );
     }
@@ -73,7 +73,7 @@ int main ( int argc, char** argv ) {
     rTcl = Tk_Init( interp );
     if( TCL_OK != rTcl ) {
       stringstream ssError;
-      char* sResult = Tcl_GetStringResult( interp );
+      const char* sResult = Tcl_GetStringResult( interp );
       ssError <<  "Tk_Init returned not TCL_OK: " << sResult;
       throw runtime_error( ssError.str() );
     }
@@ -81,7 +81,7 @@ int main ( int argc, char** argv ) {
     rTcl = Tix_Init( interp );
     if( TCL_OK != rTcl ) {
       stringstream ssError;
-      char* sResult = Tcl_GetStringResult( interp );
+      const char* sResult = Tcl_GetStringResult( interp );
       ssError <<  "Tix_Init returned not TCL_OK: " << sResult;
       throw runtime_error( ssError.str() );
     }
@@ -137,7 +137,7 @@ int main ( int argc, char** argv ) {
    rTcl = Tcl_EvalFile( interp, fnScubaC );
    if( TCL_OK != rTcl ) {
      stringstream ssError;
-     char* sResult = Tcl_GetStringResult( interp );
+     const char* sResult = Tcl_GetStringResult( interp );
      ssError <<  "Reading " << fnScuba << " returned not TCL_OK: " << sResult;
      throw runtime_error( ssError.str() );
    }

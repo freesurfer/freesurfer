@@ -122,7 +122,7 @@ ScubaTransformTester::Test ( Tcl_Interp* iInterp ) {
     sprintf( sCommand, "GetTransformValues %d", transform.GetID() );
     rTcl = Tcl_Eval( iInterp, sCommand );
     AssertTclOK( rTcl );
-    char* sTclResult = Tcl_GetStringResult( iInterp );
+    const char* sTclResult = Tcl_GetStringResult( iInterp );
     stringstream ssResult( sTclResult );
     for( int r = 0; r < 4; r++ ) {
       for( int c = 0; c < 4; c++ ) {

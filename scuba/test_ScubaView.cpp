@@ -411,7 +411,7 @@ ScubaViewTester::Test( Tcl_Interp* iInterp ) {
     sprintf( sCommand, "GetLayerIDList" );
     rTcl = Tcl_Eval( iInterp, sCommand );
     AssertTclOK( rTcl );
-    char* sTclResult = Tcl_GetStringResult( iInterp );
+    const char* sTclResult = Tcl_GetStringResult( iInterp );
     string sIDList( sTclResult );
     bFailed = false;
     for( int nLayer = 0; nLayer < kcLayers; nLayer++ ) {

@@ -2,7 +2,7 @@
 #define Layer_h
 
 #include "string_fixed.h"
-#include <gl.h>
+#include <GL/gl.h>
 #include <map>
 #include "ViewState.h"
 #include "IDTracker.h"

@@ -261,7 +261,7 @@ public:
     // Run the script that will test tcl return stuff.
     cerr << "Running tcl script..." << endl;
     rTcl = Tcl_EvalFile( iInterp, "test_TclCommandManager.tcl" );
-    char* sTclResult = Tcl_GetStringResult( iInterp );
+    const char* sTclResult = Tcl_GetStringResult( iInterp );
     if( 0 != strcmp( sTclResult, "" ) ) {
       cerr << "result not null" << endl;
       throw logic_error( iInterp->result );
