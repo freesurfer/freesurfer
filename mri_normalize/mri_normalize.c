@@ -16,7 +16,7 @@
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
 static void  usage_exit(int code) ;
-
+static MRI *compute_bias(MRI *mri_src, MRI *mri_dst, MRI *mri_bias) ;
 static int conform = 0 ;
 static int gentle_flag = 0 ;
 
@@ -33,6 +33,7 @@ static char *control_point_fname ;
 
 static char *control_volume_fname = NULL ;
 static char *bias_volume_fname = NULL ;
+static int read_flag = 0 ;
 
 static int no1d = 0 ;
 
@@ -41,13 +42,13 @@ main(int argc, char *argv[])
 {
   char   **av ;
   int    ac, nargs, n ;
-  MRI    *mri_src, *mri_dst = NULL ;
+  MRI    *mri_src, *mri_dst = NULL, *mri_bias ;
   char   *in_fname, *out_fname ;
   int          msec, minutes, seconds ;
   struct timeb start ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_normalize.c,v 1.25 2004/04/13 19:53:20 tosa Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_normalize.c,v 1.26 2004/04/21 21:53:39 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -83,6 +84,27 @@ main(int argc, char *argv[])
   if (!mri_src)
     ErrorExit(ERROR_NO_FILE, "%s: could not open source file %s", 
               Progname, in_fname) ;
+	if (read_flag)
+	{
+		MRI *mri_ctrl ;
+		double scale ;
+
+		mri_bias = MRIread(bias_volume_fname) ;
+		if (!mri_bias)
+      ErrorExit(ERROR_BADPARM, "%s: could not read bias volume %s", Progname, bias_volume_fname) ;
+		mri_ctrl = MRIread(control_volume_fname) ;
+		if (!mri_ctrl)
+      ErrorExit(ERROR_BADPARM, "%s: could not read control volume %s", Progname, control_volume_fname) ;
+		MRIbinarize(mri_ctrl, mri_ctrl, 1, 0, 128) ;
+		mri_dst = MRImultiply(mri_bias, mri_src, NULL) ;
+		scale = MRImeanInLabel(mri_dst, mri_ctrl, 128) ;
+		printf("mean in wm is %2.0f, scaling by %2.2f\n", scale, 110/scale) ;
+		scale = 110/scale ;
+		MRIscalarMul(mri_dst, mri_dst, scale) ;
+		MRIwrite(mri_dst, out_fname) ;
+		exit(0) ;
+	}
+
 #if 0
   if ((mri_src->type != MRI_UCHAR) ||
       (!(mri_src->xsize == 1 && mri_src->ysize == 1 && mri_src->zsize == 1)))
@@ -101,13 +123,14 @@ main(int argc, char *argv[])
   if (verbose)
     fprintf(stderr, "normalizing image...\n") ;
   TimerStart(&start) ;
+
   if (!no1d)
   {
     MRInormInit(mri_src, &mni, 0, 0, 0, 0, 0.0f) ;
     mri_dst = MRInormalize(mri_src, NULL, &mni) ;
     if (!mri_dst)
       ErrorExit(ERROR_BADPARM, "%s: normalization failed", Progname) ;
-  }
+	}
   else
   {
     mri_dst = MRIcopy(mri_src, NULL) ;
@@ -120,8 +143,6 @@ main(int argc, char *argv[])
   if (control_volume_fname)
     // this just setup writing control-point volume saving
     MRI3dWriteControlPoints(control_volume_fname) ;
-  if (bias_volume_fname)
-    MRI3dWriteBias(bias_volume_fname) ;
   for (n = 0 ; n < num_3d_iter ; n++)
   {
     fprintf(stderr, "3d normalization pass %d of %d\n", n+1, num_3d_iter) ;
@@ -135,6 +156,14 @@ main(int argc, char *argv[])
                      intensity_above, intensity_below,
                      control_point_fname != NULL && !n && no1d);
   }
+
+  if (bias_volume_fname)
+	{
+		mri_bias = compute_bias(mri_src, mri_dst, NULL) ;
+		printf("writing bias field to %s....\n", bias_volume_fname) ;
+    MRIwrite(mri_bias, bias_volume_fname) ;
+		MRIfree(&mri_bias) ;
+	}
 
   if (verbose)
     fprintf(stderr, "writing output to %s\n", out_fname) ;
@@ -182,12 +211,19 @@ get_option(int argc, char *argv[])
   }
   else switch (toupper(*option))
   {
+	case 'R':
+		read_flag = 1 ;
+    nargs = 2 ;
+    control_volume_fname = argv[2] ;
+    bias_volume_fname = argv[3] ;
+    printf("reading bias field from %s and ctrl points from %s\n", bias_volume_fname, control_volume_fname) ;
+    break ;
   case 'W':
     control_volume_fname = argv[2] ;
     bias_volume_fname = argv[3] ;
     nargs = 2 ;
-    fprintf(stderr, "writing ctrl pts to   %s\n", control_volume_fname) ;
-    fprintf(stderr, "writing bias field to %s\n", bias_volume_fname) ;
+    printf("writing ctrl pts to   %s\n", control_volume_fname) ;
+    printf("writing bias field to %s\n", bias_volume_fname) ;
     break ;
   case 'F':
     control_point_fname = argv[2] ;
@@ -248,5 +284,35 @@ usage_exit(int code)
 	printf("\t-n <int n>         use n 3d normalization iterations (default=%d)\n", num_3d_iter);
 	printf("\t-u                 print usage\n");
 	exit(code);
+}
+
+static MRI *
+compute_bias(MRI *mri_src, MRI *mri_dst, MRI *mri_bias)
+{
+	int x, y, z ;
+	float bias, src, dst ;
+
+	if (!mri_bias) 
+		mri_bias = MRIalloc(mri_src->width, mri_src->height, mri_src->depth, MRI_FLOAT) ;
+
+	MRIcopyHeader(mri_src, mri_bias) ;
+	for (x = 0 ; x < mri_src->width ; x++)
+	{
+		for (y = 0; y < mri_src->height ; y++)
+		{
+			for (z = 0 ; z < mri_src->depth ; z++)
+			{
+				src = MRIgetVoxVal(mri_src, x, y, z, 0) ;
+				dst = MRIgetVoxVal(mri_dst, x, y, z, 0) ;
+				if (FZERO(src))
+					bias = 1 ;
+				else
+					bias = dst/src ;
+				MRIsetVoxVal(mri_bias, x, y, z, 0, bias) ;
+			}
+		}
+	}
+
+	return(mri_bias) ;
 }
 
