@@ -26,5 +26,7 @@ int is_bfloat(char *fname);
 int is_sdt(char *fname);
 int is_gdf(char *fname);
 int is_otl(char *fname);
+int is_ximg(char *fname);
+int is_nifti1(char *fname);
 
 /* EOF */
