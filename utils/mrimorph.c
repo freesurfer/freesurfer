@@ -6887,7 +6887,7 @@ dfp_em_step_func(int itno, float sse, void *vparms, float *p)
   MP     *parms = (MP *)vparms ;
   int    i, row, col ;
 
-  printf("%03d: log(p) = %2.1f\n", itno, sse) ;
+  printf("%03d: -log(p) = %2.1f\n", itno, sse) ;
 
   /* read out current transform */
   for (i = row = 1 ; row <= 4 ; row++)
@@ -7669,7 +7669,7 @@ MRIemAlign(MRI *mri_in, GCA *gca, MORPH_PARMS *parms, MATRIX *m_L)
     pcurrent = 
       -GCAcomputeLogSampleProbability(gca,parms->gcas,mri_in,
                                    parms->lta->xforms[0].m_L,parms->nsamples);
-    printf("%03d: log(p) = %2.1f\n",++i, pcurrent) ;
+    printf("%03d: -log(p) = %2.1f\n",++i, pcurrent) ;
   } while(((pcurrent - pold) / (pold)) > parms->tol) ;
 
 #if 0
