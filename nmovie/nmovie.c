@@ -2,11 +2,11 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2005/02/14 23:00:12 $
-// Revision       : $Revision: 1.23 $
+// Revision Date  : $Date: 2005/02/23 23:15:39 $
+// Revision       : $Revision: 1.24 $
 //
 ////////////////////////////////////////////////////////////////////
-char *NMOVIE_VERSION = "$Revision: 1.23 $";
+char *NMOVIE_VERSION = "$Revision: 1.24 $";
 #include <stdio.h>
 #include <image.h>
 #include <stdlib.h>
@@ -402,18 +402,28 @@ void rgb2xcol(IMAGE *I, byte *ximgdata, int fnum)
   int i,j;
   unsigned long r,g,b,xcol;
   byte *bptr, *xptr, *ip;
-
-  bptr = I->image; 
+ 
+  bptr = I->image;
   xptr = ximgdata+(fnum+1)*rows*ximg->bytes_per_line-ximg->bytes_per_line;
   for(i=0;i<rows;i++,xptr -= ximg->bytes_per_line)
     for(j=0, ip = xptr; j<cols; j++)
     {
-      if (nocolor)
-      { r = *bptr; g = *bptr; }  // same values
+      if (I->sizepix == 2) // quick hack to show short data, assuming that the data is unsigned short
+      {
+	short *ptr = (short *) bptr;
+	short val = *ptr;
+        val /= 256; // only look at high byte
+	r = (byte) val; g = (byte) val; b = (byte) val;
+	bptr++; bptr++; // progress two bytes
+      }
       else
-      { r = *bptr++; g = *bptr++; } // next values
-      b = *bptr++;
-  
+      {
+	if (nocolor)
+	{ r = *bptr; g = *bptr; }  // same values
+	else
+	{ r = *bptr++; g = *bptr++; } // next values
+	b = *bptr++;
+      }
       if (xi.rshift<0) 
 	r = r << (-xi.rshift);
       else 
@@ -595,7 +605,7 @@ int main(int argc, char **argv)
 	DiagInit(NULL, NULL, NULL) ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: nmovie.c,v 1.23 2005/02/14 23:00:12 tosa Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: nmovie.c,v 1.24 2005/02/23 23:15:39 tosa Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -624,6 +634,7 @@ int main(int argc, char **argv)
     switch (I->pixel_format)
     {
     case PFBYTE:
+    case PFSHORT:
     case PFFLOAT:
       nocolor = 1 ;
       break ;
