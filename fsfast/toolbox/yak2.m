@@ -16,11 +16,11 @@ function yak2(varargin)
 %
 % yak(cbstring) % for callback functions
 %
-% $Id: yak2.m,v 1.3 2003/10/04 20:13:29 greve Exp $
+% $Id: yak2.m,v 1.4 2003/12/01 23:56:42 greve Exp $
 
 if(nargin == 0)
   msg = 'USAGE: hfig = yak2(flag,options)';
-  msg = sprintf('%s\n$Id: yak2.m,v 1.3 2003/10/04 20:13:29 greve Exp $',msg);
+  msg = sprintf('%s\n$Id: yak2.m,v 1.4 2003/12/01 23:56:42 greve Exp $',msg);
   qoe(msg);error(msg);
 end
 
@@ -205,6 +205,12 @@ if(Init)
   set(h,'FontSize',10);
   set(h,'EraseMode','background');
 
+  if(ud.IsMosaic)
+    h = uicontrol('Style', 'text','Position',  [1 1 400 20]);
+    set(h,'string','Volume Coordinates');
+    set(h,'Tag','txStatus2');
+  end
+  
   h = text(xr(1),yr(1),'-*-*-*-');
   set(h,'Tag','txMouse');
   set(h,'VerticalAlignment','Bottom');
@@ -823,19 +829,26 @@ function setstatus(ud)
   r = ud.CurPixel(1);
   c = ud.CurPixel(1);
 
-    if(~isempty(ud.ActImg))
-      [rf cf] = sind2find(r,c,ud);
-      v =  ud.ActImg(rf,cf,ud.CurPlaneNo);
-      % v =  sign(v)*10^(-abs(v));
-      s = sprintf('r = %3d, c = %3d, (%2d,%2d), ovl = %6.4f',r,c,rf,cf,v);
-    elseif(ishandle2(ud.hHDR))
-      v =  ud.UnderlayImg(r,c,ud.CurPlaneNo);
-      [rf cf] = sind2find(r,c,ud);
-      s = sprintf('r = %3d, c = %3d, (%2d,%2d), ovl = %6.4f',r,c,rf,cf,v);
-    else
-      v =  ud.UnderlayImg(r,c,ud.CurPlaneNo);
-      s = sprintf('r = %3d, c = %3d, v = %g',r,c,v);
-    end
+  if(ud.IsMosaic)
+    [rv cv sv tszmos] = mossub2volsub(r, c, ud.BaseSize);
+    s = sprintf('Volume Coordinates (1-based): r=%2d c=%2d s=%2d',rv,cv,sv);
+    h = findobj(gcf,'Tag','txStatus2');
+    set(h,'String',s);
+  end
+
+  if(~isempty(ud.ActImg))
+    [rf cf] = sind2find(r,c,ud);
+    v =  ud.ActImg(rf,cf,ud.CurPlaneNo);
+    % v =  sign(v)*10^(-abs(v));
+    s = sprintf('r = %3d, c = %3d, (%2d,%2d), ovl = %6.4f',r,c,rf,cf,v);
+  elseif(ishandle2(ud.hHDR))
+    v =  ud.UnderlayImg(r,c,ud.CurPlaneNo);
+    [rf cf] = sind2find(r,c,ud);
+    s = sprintf('r = %3d, c = %3d, (%2d,%2d), ovl = %6.4f',r,c,rf,cf,v);
+  else
+    v =  ud.UnderlayImg(r,c,ud.CurPlaneNo);
+    s = sprintf('r = %3d, c = %3d, v = %g',r,c,v);
+  end
 
 return
 %%%------------------------------------------%%%%
@@ -920,6 +933,13 @@ function set_text(hYak,ud)
   set(h,'FontUnits','points');
   set(h,'FontSize',10);
   set(h,'EraseMode','background');
+
+  if(ud.IsMosaic)
+    [rv cv sv tszmos] = mossub2volsub(r, c, ud.BaseSize);
+    s = sprintf('Volume Coordinates (1-based): r=%2d c=%2d s=%2d',rv,cv,sv);
+    h = findobj(gcf,'Tag','txStatus2');
+    set(h,'String',s);
+  end
 
 return
 
