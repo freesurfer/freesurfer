@@ -1,0 +1,131 @@
+#!/bin/tcsh
+#
+# $Id: mkfsdistall,v 1.1 2003/07/22 19:12:48 kteich Exp $
+
+
+if ( $#argv < 2 ) then
+    echo "USAGE: mkfsdistall freesurfer_dir dest_dir"
+    echo ""
+    echo "freesurfer_dir should be something like freesurfer_dev/."
+    echo ""
+    echo "A directory called freesurfer-DATE will be created in the"
+    echo "dest_dir. It needs about a gig of space."
+    echo ""
+    echo "Ex: mkfsdistall /space/lyon/1/fsdev/freesurfer_dev ~/work"
+    exit 1
+endif
+
+set FREESURFER_DIR = $1
+set TOP_DEST_DIR = $2
+
+# Make sure the directories exist.
+if(! -er $FREESURFER_DIR) then
+  echo "ERROR: cannot find $FREESURFER_DIR"
+  exit 1;
+endif
+if(! -ew $TOP_DEST_DIR) then
+  echo "ERROR: cannot find $TOP_DEST_DIR"
+  exit 1;
+endif
+
+
+# Our date string, something like 20030721.
+set DATE = "`date '+%Y%m%d'`"
+
+
+# Make sure we have the mkfs* scripts for making the distro and
+# snapshot below. If not, exit.
+set MKFSDIST = mkfsdist
+set MKFSSNAPSHOT = mkfssnapshot
+which $MKFSDIST > /dev/null
+if ( $? != 0 ) then
+    set MKFSDIST = $DEV/scripts/mkfsdist
+    set MKFSSNAPSHOT = $DEV/scripts/mkfssnapshot
+    which $MKFSDIST  > /dev/null
+    if ( $? != 0 ) then
+	echo "Couldn't find mkfsdist. Please add to path."
+	exit 1
+    endif
+endif
+
+# Say which scripts we're using.
+echo mkfsdist = $MKFSDIST
+echo mkfssnapshot = $MKFSSNAPSHOT
+
+
+# First create this directory tree.
+# fsdistro-DATE
+#   freesurfer
+#   Linux
+#     update
+#       freesurfer-DATE
+#     full
+#       freesurfer-DATE
+#   Solaris
+#     ...
+#   Darwin
+#     ...
+
+echo Making directory tree...
+
+set DISTRO_DIR = $TOP_DEST_DIR/fsdistro-$DATE
+
+mkdir -p $DISTRO_DIR
+mkdir -p $DISTRO_DIR/freesurfer
+
+foreach OS (Linux Darwin Solaris)
+    mkdir -p $DISTRO_DIR/$OS
+    mkdir -p $DISTRO_DIR/$OS/update
+    mkdir -p $DISTRO_DIR/$OS/update/freesurfer-$DATE
+    mkdir -p $DISTRO_DIR/$OS/full
+    mkdir -p $DISTRO_DIR/$OS/full/freesurfer-$DATE
+end
+
+
+
+# Build the exclude file and copy freesurfer/. The exclude file keeps
+# us from copying old backup files and other stuff.
+echo Building exclude file...
+
+set EXCLUDE_FILE = /tmp/copyfreesurfer-exclude-$OS-$DATE
+rm -f $EXCLUDE_FILE
+
+pushd $FREESURFER_DIR > /dev/null
+cd ..
+
+set FREESURFER_DIR_REL = `basename $FREESURFER_DIR`
+
+find $FREESURFER_DIR_REL -name \*.03\* >> $EXCLUDE_FILE
+find $FREESURFER_DIR_REL -name \*.02\* >> $EXCLUDE_FILE
+find $FREESURFER_DIR_REL -name \*.01\* >> $EXCLUDE_FILE
+find $FREESURFER_DIR_REL -name \*~ >> $EXCLUDE_FILE
+find $FREESURFER_DIR_REL -name \#\*\# >> $EXCLUDE_FILE
+find $FREESURFER_DIR_REL -name \*.bu >> $EXCLUDE_FILE
+find $FREESURFER_DIR_REL -name \*.bak >> $EXCLUDE_FILE
+find $FREESURFER_DIR_REL -name \*.log >> $EXCLUDE_FILE
+find $FREESURFER_DIR_REL -name \*.old >> $EXCLUDE_FILE
+find $FREESURFER_DIR_REL -name .xdebug\* >> $EXCLUDE_FILE
+
+# Copy the freesurfer directory given into the freesurfer/ part above.
+echo Copying $FREESURFER_DIR to $DISTRO_DIR/freesurfer...
+
+rsync --recursive --copy-links --exclude-from $EXCLUDE_FILE $FREESURFER_DIR/ $DISTRO_DIR/freesurfer
+
+rm -f $EXCLUDE_FILE
+
+
+# For each OS, run the mkfsdit and mkfssnapshot scripts. Tar each
+# result and put the tarball in the fsdistro-DATE directory.
+echo Running mkfs scripts...
+foreach OS (Linux Darwin Solaris)
+
+pushd $DISTRO_DIR/$OS/update
+$MKFSSNAPSHOT $DISTRO_DIR/freesurfer $DISTRO_DIR/$OS/update/freesurfer-$DATE $OS
+tar czf $DISTRO_DIR/freesurfer-$DATE-$OS-Update.tar.gz freesurfer-$DATE
+
+
+pushd $DISTRO_DIR/$OS/full
+$MKFSDIST $DISTRO_DIR/freesurfer $DISTRO_DIR/$OS/update/freesurfer-$DATE $OS
+tar czf $DISTRO_DIR/freesurfer-$DATE-$OS.tar.gz freesurfer-$DATE
+
+end
