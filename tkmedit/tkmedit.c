@@ -4,9 +4,9 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2003/02/10 20:10:20 $
-// Revision       : $Revision: 1.125 $
-char *VERSION = "$Revision: 1.125 $";
+// Revision Date  : $Date: 2003/02/10 20:31:13 $
+// Revision       : $Revision: 1.126 $
+char *VERSION = "$Revision: 1.126 $";
 
 #define TCL
 #define TKMEDIT 
@@ -8836,23 +8836,12 @@ tkm_tErr LoadDTIVolume ( char*              isNameEV,
 		     eResult, tkm_tErr_CouldntLoadDTIVolume );
   
   /* Now go through the EV volume and assign the processed color value
-     scaled by the FA value. */
+     scaled by the FA value. (r,g,b) = min(FA,1) * (evx,evy,evz) */
   xVoxl_Set( &EVIdx, 0, 0, 0 );
   xVoxl_Set( &FAIdx, 0, 0, 0 );
   Volm_GetDimensions( EVVolume, &zEVX, &zEVY, &zEVZ );
   Volm_GetDimensions( FAVolume, &zFAX, &zFAY, &zFAZ );
   do {
-    if( EVIdx.mfX == 128 && EVIdx.mfY == 128 && EVIdx.mfZ == 128 )
-      {
-	float x, y, z, fa;
-	Volm_GetValueAtIdxFrameUnsafe( EVVolume, &EVIdx, 0, &x );
-	Volm_GetValueAtIdxFrameUnsafe( EVVolume, &EVIdx, 1, &y );
-	Volm_GetValueAtIdxFrameUnsafe( EVVolume, &EVIdx, 2, &z );
-	Volm_GetValueAtIdxUnsafe( FAVolume, &FAIdx, &fa );
-	fprintf( stderr, "\nEV %.2f %.2f %.2f FA %.2f", x, y, z, sqrt(fa) );
-      }
-
-
     Volm_GetValueAtIdxUnsafe( FAVolume, &FAIdx, &FAValue );
     FAValue = sqrt( FAValue );
 
@@ -8862,15 +8851,6 @@ tkm_tErr LoadDTIVolume ( char*              isNameEV,
 			       EVValue * MIN( 1, FAValue) );
     }
     
-    if( EVIdx.mfX == 128 && EVIdx.mfY == 128 && EVIdx.mfZ == 128 )
-      {
-	float x, y, z;
-	Volm_GetValueAtIdxFrameUnsafe( EVVolume, &EVIdx, 0, &x );
-	Volm_GetValueAtIdxFrameUnsafe( EVVolume, &EVIdx, 1, &y );
-	Volm_GetValueAtIdxFrameUnsafe( EVVolume, &EVIdx, 2, &z );
-	fprintf( stderr, " final %.2f %.2f %.2f\n", x, y, z );
-      }
-
     xVoxl_IncrementUntilLimits( &FAIdx, zFAX, zFAY, zFAZ );
     
     if( xVoxl_GetY( &EVIdx ) == 0 ) {
