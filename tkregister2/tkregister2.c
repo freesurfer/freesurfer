@@ -1,10 +1,10 @@
 /*============================================================================
  Copyright (c) 1996 Martin Sereno and Anders Dale
 =============================================================================*/
-/*   $Id: tkregister2.c,v 1.2 2002/08/14 18:14:21 greve Exp $   */
+/*   $Id: tkregister2.c,v 1.3 2002/08/20 16:59:23 greve Exp $   */
 
 #ifndef lint
-static char vcid[] = "$Id: tkregister2.c,v 1.2 2002/08/14 18:14:21 greve Exp $";
+static char vcid[] = "$Id: tkregister2.c,v 1.3 2002/08/20 16:59:23 greve Exp $";
 #endif /* lint */
 
 #define TCL
@@ -589,6 +589,15 @@ int Register(ClientData clientData,Tcl_Interp *interp, int argc, char *argv[])
   zf = ozf = (int)nint((float)xdim/xnum); /* zoom factor */
   fsf = (float)zf;
   printf("Zoom Factor = %g\n",(float)zf);
+
+  ps = targ_vol->xsize;
+  st = targ_vol->zsize;
+  xx0 = -128.0;
+  xx1 = +128.0;
+  yy0 = -128.0;
+  yy1 = +128.0;
+  zz0 = -128.0;
+  zz1 = +128.0;
 
   vidbuf = (GLubyte *)lcalloc(3*bufsize*SQR(zf),sizeof(GLubyte));
   blinkbuft = (GLubyte *)lcalloc(3*bufsize*SQR(zf),sizeof(GLubyte));
@@ -1741,6 +1750,10 @@ void select_pixel(short sx, short sy)
   xc = xx1-ps*jc/fsf; 
   yc = yy0+st*imc/fsf; 
   zc = zz1-ps*(255.0-ic/fsf);
+  //printf("select_pixel: xc=%g, yc=%g,  zc=%g\n",xc,yc,zc);
+  //printf("select_pixel: jc=%d, imc=%d, ic=%d\n",jc,imc,ic);
+  //printf("xx1 = %g, ps = %g, fsf = %g, st=%g, yy0 = %g, zz1 = %g\n",
+  //	 xx1,ps,fsf,st,yy0,zz1);
 
   erase_cross_hair(rScreenCur,cScreenCur);
   cScreen = sx-ox;
@@ -2305,6 +2318,9 @@ void rotate_brain(float a,char c)
   int i,j,k;
   float m1[4][4],m2[4][4];
   float sa,ca;
+
+  printf("Rotating by %g deg around axis %c about point ",a/10.0,c);
+  printf("xc=%g, yc=%g, zc=%g\n",xc,yc,zc);
 
   if (c=='x')
   {
