@@ -105,7 +105,7 @@ extern char                 xDbg_sCurNoteDesc[xDbg_knMaxDescLength];
 
 /* use these only if you are going to catch them with the DebugCatch macros
    below. the first just takes a test. the second will set var to errorCode
-   if the test is true. */
+   if the test is true. the third throws without a test. */
 #define DebugAssertThrow(test)   if( !(test) ) goto error
 
 #define DebugAssertThrowX(test,var,errorCode) \
@@ -113,7 +113,13 @@ extern char                 xDbg_sCurNoteDesc[xDbg_knMaxDescLength];
                                     if( !(test) ) { \
                                         var = errorCode; \
                                         goto error; \
-            } \
+                                    } \
+                                 } while(0)
+
+#define DebugThrowX(var,errorCode) \
+                                 do { \
+                                    var = errorCode; \
+                                    goto error; \
                                  } while(0)
 
 /* start and end the 'catch block' */
