@@ -1,0 +1,405 @@
+#!/bin/csh -f
+# stxgrinder-sess
+#
+set VERSION = '$Id: stxgrinder0-sess,v 1.1 2003/08/04 17:45:14 greve Exp $';
+set FASTVER = `cat $FMRI_ANALYSIS_DIR/docs/version`;
+
+set inputargs = ($argv);
+
+set contrastlist = ();
+set pxform      = log10;
+set analysis    = ();
+set grpname     = ();
+set space       = native;
+set spacedir    = ();
+set ScriptOnly  = 0;
+set umaskarg    = ();
+set hemi        = ();
+set SessList     = ();
+set nolog = 0;
+set UseH0 = 0;
+set NoFTest = 0;
+set ForceFTest = 0;
+set perrun = ();
+
+set IsSess = 0;
+set IsGrp  = 0;
+
+set n = `echo $argv | grep version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+
+if($#argv == 0) then
+  goto usage_exit;
+  exit 1;
+endif
+
+goto parse_args;
+parse_args_return:
+
+set SessList = `getsesspath $inputargs`;
+if($status) then
+  echo "$SessList"
+  exit 1;
+endif
+
+goto check_params;
+check_params_return:
+
+## Get functional subdirectory from the info file ##
+set infofile = $analysis/analysis.info
+if(! -e $infofile) then
+  echo "ERROR: cannot find $infofile"
+  exit 1;
+endif
+set fsd = `cat $analysis/analysis.info | awk '{if($1 == "fsd") print $2}'`;
+set designtype = `cat $infofile | awk '{if($1 == "designtype") print $2}'`;
+if($#designtype == 0) then
+  set designtype = `cat $infofile | awk '{if($1 == "avgtype") print $2}'`;
+endif
+
+
+## Look for nolog option ##
+set n = `echo $inputargs | grep nolog | wc -l` 
+if($n != 0) set nolog = 1;
+
+##### Create a log file ######
+if(! $nolog) then
+  set logdir = `pwd`/log;
+  mkdir -p $logdir
+  if(! -e $logdir) then
+    echo "ERROR: could not create $logdir"
+    exit 1;
+  endif
+  set LF = $logdir/stxgrinder-sess-$fsd-$analysis.log
+  if(-e $LF) mv $LF $LF.old
+else
+  echo "No log file"
+  set LF = /dev/null
+endif
+
+echo "stxgrinder-sess Logfile is $LF"
+
+echo "stxgrinder-sess log file" >> $LF
+echo $VERSION >> $LF
+echo "FAST Version $FASTVER"  >> $LF
+id            >> $LF
+pwd           >> $LF
+echo $0     >> $LF
+echo $inputargs  >> $LF
+uname -a      >> $LF
+date          >> $LF
+which stxgrinder >> $LF
+
+## Prepare the script, if need be ##
+if($ScriptOnly) then
+  echo "ERROR: scriptonly not supported"
+  exit 1;
+endif
+
+if($#perrun != 0) then
+  set analysis = $analysis$perrun;
+endif
+
+set StartDate = `date`;
+
+## Loop through each hemi (if needed) ##
+foreach hs ($hemi)
+
+  if($space == sph) echo "------ $hemi hemisphere ------" |& tee -a $LF
+  date |& tee -a $LF
+
+  foreach sess ($SessList)
+
+   echo "-------------------------------------------------------"
+   echo "-------------------------------------------------------"
+   echo "Session: $sess "
+
+   foreach contrast ($contrastlist)
+    set cmtx = $analysis/$contrast.mat
+
+    set sessinfo = $sess/session.info
+    set IsGroup = `grep GroupAverage $sessinfo | wc -l`;
+    if(! $IsGroup) then
+      if($space == native) then
+        set spacesubdir = ();
+      else
+        set spacesubdir = $spacedir;
+      endif
+    else
+      set spacesubdir = $spacedir-ffx;
+      set NoFTest = 1;
+    endif
+
+    if("$designtype" != "event-related") then
+      set NoFTest = 1;
+    endif
+
+    if($ForceFTest) set NoFTest = 0;
+
+    set indir = $sess/$fsd/$analysis/$spacesubdir
+    if(! -d $indir) then
+      echo "ERROR: $indir does not exist"   |& tee -a $LF
+      exit 1;
+    endif
+
+    set outdir = $indir/$contrast
+    mkdir -p $outdir
+    if(! -d $outdir) then
+      echo "ERROR ($sess): cannot create $outdir"|& tee -a $LF
+      exit 1;
+    endif
+
+    if($UseH0) then
+      set instem = $indir/h0
+      set outdir = $outdir-h0
+    else
+      set instem    = $indir/h
+    endif
+    set sigstem   = $outdir/sig
+    set pminstem  = $outdir/minsig
+    set ipminstem = $outdir/iminsig
+    set statstem  = $outdir/t
+    set cesstem  = $outdir/ces
+    set fstatstem  = $outdir/f
+    set fsigstem  = $outdir/fsig
+    if($space == sph) then
+      set instem    = $instem-$hs
+      set sigstem   = $sigstem-$hs
+      set pminstem  = $pminstem-$hs
+      set ipminstem = $ipminstem-$hs
+      set statstem  = $statstem-$hs
+      set cesstem   = $cesstem-$hs
+      set fstatstem = $fstatstem-$hs
+      set fsigstem  = $fsigstem-$hs
+    endif
+
+    set cmd = (stxgrinder -cmtx $cmtx -i $instem -o $sigstem)
+    set cmd = ($cmd -statstem $statstem -cesstem $cesstem)
+    if("$designtype" == "event-related") then
+      set cmd = ($cmd -pmin $pminstem -ipmin $ipminstem)
+    endif
+    if(! $NoFTest) set cmd = ($cmd -fstat $fstatstem -fsig $fsigstem)
+    # ftest has been removed for group because it is very slow for large DOF
+    if($nolog) set cmd = ($cmd -nolog)
+
+    if($ScriptOnly) then
+      echo $cmd >> $scriptfile
+      echo " " >> $scriptfile
+      echo " " >> $scriptfile
+    else
+      echo "-------------------------------------------------"
+      pwd  |& tee -a $LF
+      echo $cmd |& tee -a $LF
+      echo "-------------------------------------------------"
+      $cmd |& tee -a $LF
+      if($status) then
+        echo "ERROR: stxgrinder failed" |& tee -a $LF
+        exit 1;
+      endif
+      cp $cmtx $outdir
+    endif
+
+   end # loop over contrast list
+
+  end # loop over SessList #
+
+end # loop over hemispheres #
+
+echo "Started on $StartDate" | tee -a $LF
+echo "Ended   on `date`"     | tee -a $LF
+echo " "
+echo "stxgrinder-sess completed " | tee -a $LF
+echo " "
+
+exit 0;
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-c":
+    case "-contrast":
+      if ( $#argv == 0) goto arg1err;
+      set contrastlist = ($contrastlist $argv[1]); shift;
+      breaksw
+
+    case "-space":
+      if ( $#argv == 0) goto arg1err;
+      set space = $argv[1]; shift;
+      breaksw
+
+    case "-spacedir":
+      if ( $#argv == 0) goto arg1err;
+      set spacedir = $argv[1]; shift;
+      breaksw
+
+    case "-hemi":
+      if ( $#argv == 0) goto arg1err;
+      set hemi = ($hemi $argv[1]); shift;
+      breaksw
+
+    case "-a":
+    case "-analysis":
+      if ( $#argv == 0) goto arg1err;
+      set analysis = $argv[1]; shift;
+      set analysis = `basename $analysis`; # removes tailing slash
+      breaksw
+
+    case "-group":
+      echo "ERROR: -group flag is no longer valid. Specify the group "
+      echo "       using the  -s or -sf flag."
+      exit 1;
+      breaksw
+
+    case "-pxform":
+      if ( $#argv == 0) goto arg1err;
+      set pxform = $argv[1]; shift;
+      breaksw
+
+    case "-umask":
+      if ( $#argv == 0) goto arg1err;
+      set umaskarg = "-umask $argv[1]";
+      umask $argv[1]; shift;
+      breaksw
+
+    case "-anapend":
+    case "-append":
+    case "-perrun":
+      if ( $#argv == 0) goto arg1err;
+      set perrun = $argv[1]; shift;
+      breaksw
+
+    case "-noftest":
+      set NoFTest = 1;
+      breaksw
+
+    case "-forceftest":
+      set ForceFTest = 1;
+      breaksw
+
+    case "-h0":
+      set UseH0 = 1;
+      breaksw
+
+    case "-verbose":
+      set verbose = 1;
+      breaksw
+
+    case "-echo":
+      set echo = 1;
+      breaksw
+
+    case "-debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    case "-scriptonly":
+      set ScriptOnly = 1;
+      breaksw
+
+    case "-nolog"
+      breaksw
+
+    case "-cwd"
+      set IsSess = 1;  # otherwise, ignore getsesspath arguments 
+      breaksw
+
+    case "-s":
+    case "-sf":
+    case "-df":
+    case "-d":
+    case "-g":
+      set IsSess = 1;  # otherwise, ignore getsesspath arguments 
+      shift;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+  if ($#contrastlist == 0) then
+     echo "ERROR: no contrast specified"
+     exit 1
+  endif
+
+  if ($#analysis == 0) then
+     echo "ERROR: no analysis specified"
+     exit 1
+  endif
+
+  foreach contrast ($contrastlist)
+    set cmtx = `pwd`/$analysis/$contrast.mat
+    if(! -e $cmtx) then
+      echo "ERROR: cannot find $cmtx, see mkcontrast-sess"
+      exit 1;
+    endif
+  end
+
+  if($#hemi != 0 && $space != sph) then
+    echo "ERROR: -hemi can only be used with sph space"
+    exit 1;
+  endif
+  if($#hemi == 0 && $space == sph) set hemi = (lh rh);
+  foreach hs ($hemi)
+    if($hs != lh && $hs != rh) then
+      echo "ERROR: hemi must be either lh or rh ($hs)";
+      exit 1;
+    endif
+  end
+
+  if($space != sph) set hemi = junk;  # need one item for loop #
+
+  if($#spacedir == 0) set spacedir = $space;
+
+
+
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo "USAGE: stxgrinder-sess"
+  echo "Options:";
+  echo "   -analysis  analysisname : name of session-level functional analysis";
+  echo "   -anapend code : sets analysis to analysisname-code"
+  echo "   -contrast  contrastname : contrast name"
+  echo "   <-contrast  contrastname : 2nd contrast name>"
+  echo "   -pxform    xform : <log10>, ln, none";
+  echo "   -space     spacename    : space in which to grind (native, tal, sph)"
+  echo "   -hemi hemisphere : with sph space <lh rh>";
+  echo "   -sf sessidfile  ..."
+  echo "   -df srchdirfile ..."
+  echo "   -s  sessid      ..."
+  echo "   -d  srchdir     ..."
+  echo "   -scriptonly    : don't run, just generate a script"
+  echo "   -version       : print version and exit"
+  echo "   -umask umask   : set unix file permission mask"
+exit 1;
