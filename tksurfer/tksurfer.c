@@ -18,6 +18,8 @@
 #include "version.h"
 #include "fsgdf_wrap.h"
 #include "tiffio.h"
+#include "gcsa.h"
+
 //////////////////////////////////////////////////////
 
 static void resize_brain(float surface_area) ;
@@ -66,6 +68,7 @@ MRI_SURFACE *mris = NULL, *mris2 = NULL ;
 static char *sdir = NULL ;
 static char *sphere_reg ;
 
+static GCSA *Ggcsa = NULL ;
 #define QUAD_FILE_MAGIC_NUMBER      (-1 & 0x00ffffff)
 #define TRIANGLE_FILE_MAGIC_NUMBER  (-2 & 0x00ffffff)
 #define NEW_VERSION_MAGIC_NUMBER  16777215
@@ -917,6 +920,7 @@ void invert_face(int fno) ;
 void orient_sphere(void) ;
 void dump_vertex(int vno) ;
 void dump_faces(int vno) ;
+static void load_gcsa(char *fname) ;
 void left_click(short sx,short sy) ;
 void sample_annotated_image(void) ;
 void restore_zero_position(void) ;
@@ -5296,6 +5300,14 @@ orient_sphere(void)
     }
 }
 
+static void
+load_gcsa(char *fname)
+{
+	Ggcsa = GCSAread(fname) ;
+	if (Ggcsa == NULL)
+		ErrorPrintf(ERROR_NOFILE, "load_gcsa(%s): could not read file", 
+								fname) ;
+}
 void
 dump_faces(int vno)
 {
@@ -16426,6 +16438,7 @@ print_help_surfer(void)
   printf("  read_stds <cond no>                   [script]\n");
   printf("  mask_label                            [script]\n");
   printf("  dump_faces <vno>                      [script]\n");
+  printf("  load_gcsa <fname>                     [script]\n");
   printf("  read_binary_curv                        R\n");
   printf("  read_binary_sulc                        K\n");
   printf("  read_binary_values                      q\n");
@@ -16782,6 +16795,7 @@ int W_read_stds  PARM;
 int W_mark_label  PARM; 
 int W_orient_sphere  PARM; 
 int W_dump_faces  PARM; 
+int W_load_gcsa  PARM; 
 int W_mark_annotation  PARM; 
 int W_mark_face  PARM; 
 int W_invert_face  PARM; 
@@ -17737,6 +17751,10 @@ ERR(1,"Wrong # args: swap_buffers")
      ERR(2,"Wrong # args: dump_faces ")
      dump_faces(atoi(argv[1]));  WEND
      
+     int                  W_load_gcsa  WBEGIN
+     ERR(2,"Wrong # args: load_gcsa ")
+     load_gcsa(argv[1]);  WEND
+     
      int                  W_orient_sphere  WBEGIN
      ERR(1,"Wrong # args: orient_sphere ")
      orient_sphere();  WEND
@@ -18237,7 +18255,7 @@ int main(int argc, char *argv[])   /* new main */
   /* end rkt */
   
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.83 2004/11/06 01:17:52 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.84 2004/11/18 19:56:38 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -18826,6 +18844,8 @@ int main(int argc, char *argv[])   /* new main */
 		    (Tcl_CmdProc*) W_orient_sphere, REND);
   Tcl_CreateCommand(interp, "dump_faces",
 		    (Tcl_CmdProc*) W_dump_faces, REND);
+  Tcl_CreateCommand(interp, "load_gcsa",
+		    (Tcl_CmdProc*) W_load_gcsa, REND);
   Tcl_CreateCommand(interp, "draw_ellipsoid_latlong",
 		    (Tcl_CmdProc*) W_draw_ellipsoid_latlong, REND);
   Tcl_CreateCommand(interp, "left_click", 
@@ -20075,61 +20095,81 @@ print_vertex_data(int vno, FILE *fp, float dmin)
   
   v = &mris->vertices[vno] ;
   if (twocond_flag)
-    {
-      if (!FZERO(v->imag_val))
-	fprintf(fp, "cond %d: %2.3f +- %2.3f, cond %d: %2.3f +- %2.3f, "
-		"scale=%2.0f\n",
-		cond0, v->val, v->valbak, cond1, v->val2, v->val2bak,
-		v->imag_val);
-      else
-	fprintf(fp, "cond %d: %2.3f +- %2.3f, cond %d: %2.3f +- %2.3f\n",
-		cond0, v->val, v->valbak, cond1, v->val2, v->val2bak);
-      PR;
-    }
+	{
+		if (!FZERO(v->imag_val))
+			fprintf(fp, "cond %d: %2.3f +- %2.3f, cond %d: %2.3f +- %2.3f, "
+							"scale=%2.0f\n",
+							cond0, v->val, v->valbak, cond1, v->val2, v->val2bak,
+							v->imag_val);
+		else
+			fprintf(fp, "cond %d: %2.3f +- %2.3f, cond %d: %2.3f +- %2.3f\n",
+							cond0, v->val, v->valbak, cond1, v->val2, v->val2bak);
+		PR;
+	}
   else if (disc_flag)
-    {
-      fprintf(fp, "v %d:\n\tdisc:\t\t%2.3f\n\tmdiff:"
-	      "\t\t%2.3f\n\tthickness:\t%2.3f\n\toffset:\t\t%2.3f\n"
-	      "\tdiff:\t\t%2.3f\n\tproj:\t\t%2.3f\n",
-	      vno, v->imag_val, v->valbak, v->val2, v->val2bak,
-	      v->val2-v->val2bak, v->val); PR;
+	{
+		fprintf(fp, "v %d:\n\tdisc:\t\t%2.3f\n\tmdiff:"
+						"\t\t%2.3f\n\tthickness:\t%2.3f\n\toffset:\t\t%2.3f\n"
+						"\tdiff:\t\t%2.3f\n\tproj:\t\t%2.3f\n",
+						vno, v->imag_val, v->valbak, v->val2, v->val2bak,
+						v->val2-v->val2bak, v->val); PR;
       
-    }
+	}
   else
-    {
+	{
 #if 0
-      fprintf(fp, "surfer: dmin=%3.4f, vno=%d, x=%3.4f, y=%3.4f, z=%3.4f, "
-	      "nz=%3.4f\n", dmin,vno,v->x,
-	      v->y,
-	      v->z,nzs);PR;
+		fprintf(fp, "surfer: dmin=%3.4f, vno=%d, x=%3.4f, y=%3.4f, z=%3.4f, "
+						"nz=%3.4f\n", dmin,vno,v->x,
+						v->y,
+						v->z,nzs);PR;
 #else
-      fprintf(fp, "surfer: dmin=%3.4f, vno=%d, x=%3.4f, y=%3.4f, z=%3.4f\n", 
-	      dmin,vno,v->x, v->y, v->z);PR;
+		fprintf(fp, "surfer: dmin=%3.4f, vno=%d, x=%3.4f, y=%3.4f, z=%3.4f\n", 
+						dmin,vno,v->x, v->y, v->z);PR;
 #endif
-      fprintf(fp, "surfer: curv=%f, fs=%f\n",v->curv,v->fieldsign);PR;
-      fprintf(fp, "surfer: val=%f, val2=%f\n",v->val,v->val2);PR;
-      fprintf(fp, "surfer: amp=%f, angle=%f deg (%f)\n",hypot(v->val,v->val2),
-	      (float)(atan2(v->val2,v->val)*180/M_PI),
-	      (float)(atan2(v->val2,v->val)/(2*M_PI)));PR;
-    }
+		fprintf(fp, "surfer: curv=%f, fs=%f\n",v->curv,v->fieldsign);PR;
+		fprintf(fp, "surfer: val=%f, val2=%f\n",v->val,v->val2);PR;
+		fprintf(fp, "surfer: amp=%f, angle=%f deg (%f)\n",hypot(v->val,v->val2),
+						(float)(atan2(v->val2,v->val)*180/M_PI),
+						(float)(atan2(v->val2,v->val)/(2*M_PI)));PR;
+	}
   if (annotationloaded)
-    {
-      int  r, g, b ;
-      r = v->annotation & 0x00ff ;
-      g = (v->annotation >> 8) & 0x00ff ;
-      b = (v->annotation >> 16) & 0x00ff ;
-      fprintf(fp, "annot = %d (%d, %d, %d)\n", v->annotation, r, g, b) ;
-    }
+	{
+		int  r, g, b ;
+		r = v->annotation & 0x00ff ;
+		g = (v->annotation >> 8) & 0x00ff ;
+		b = (v->annotation >> 16) & 0x00ff ;
+		fprintf(fp, "annot = %d (%d, %d, %d)\n", v->annotation, r, g, b) ;
+	}
   if (MRIflag && MRIloaded)
-    {
-      imnr = (int)((v->y-yy0)/st+0.5);
-      i = (int)((zz1-v->z)/ps+0.5);
-      j = (int)((xx1-v->x)/ps+0.5);
-      fprintf(fp, "surfer: mrival=%d imnr=%d, i=%d, j=%d\n",
-	      im[imnr][i][j],imnr,i,j);PR;
-    }
+	{
+		imnr = (int)((v->y-yy0)/st+0.5);
+		i = (int)((zz1-v->z)/ps+0.5);
+		j = (int)((xx1-v->x)/ps+0.5);
+		fprintf(fp, "surfer: mrival=%d imnr=%d, i=%d, j=%d\n",
+						im[imnr][i][j],imnr,i,j);PR;
+	}
   if (parc_flag && v->val > 0 && parc_names[(int)nint(v->val)])
     fprintf(stderr, "parcellation name: %s\n", parc_names[(int)nint(v->val)]) ;
+	if (Ggcsa != NULL)
+	{
+		VERTEX *v_classifier, *v_prior ;
+		int     vno_classifier, vno_prior ;
+		GCSA_NODE *gcsan ;
+		CP_NODE *cpn ;
+		float   x, y, z ;
+
+		v = &mris->vertices[vno] ;
+		x = v->x ; y = v->y ; z = v->z ;
+		v->x = v->cx ; v->y = v->cy ; v->z = v->cz ;
+    v_prior = GCSAsourceToPriorVertex(Ggcsa, v) ;
+    v_classifier = GCSAsourceToClassifierVertex(Ggcsa, v_prior) ;
+    vno_classifier = v_classifier - Ggcsa->mris_classifiers->vertices ;
+    vno_prior = v_prior - Ggcsa->mris_priors->vertices ;
+		gcsan = &Ggcsa->gc_nodes[vno_classifier] ;
+		cpn = &Ggcsa->cp_nodes[vno_prior] ;
+		dump_gcsan(gcsan, cpn, stdout, 0) ;
+		v->x = x ; v->y = y ; v->z = z ;
+	}
 }
 
 static void 
