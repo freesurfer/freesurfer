@@ -3773,7 +3773,8 @@ static MRI *bvolumeRead(char *fname_passed, int read_volume, int type)
   }
 #endif 
   MRIlimits(mri,&min,&max);
-  printf("INFO: bvolumeRead: min = %g, max = %g\n",min,max);
+	if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+		printf("INFO: bvolumeRead: min = %g, max = %g\n",min,max);
 
   mri->imnr0 = 1;
   mri->imnr1 = mri->depth;
@@ -5048,7 +5049,8 @@ static MRI *analyzeRead(char *fname, int read_volume)
     printf("ERROR: analyzeRead(): cannot find any files for %s\n",fname);
     return(NULL);
   }
-  printf("INFO: analyzeRead(): found %d files for %s\n",nfiles,fname);
+	if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+		printf("INFO: analyzeRead(): found %d files for %s\n",nfiles,fname);
 
   /* Create file names of header and mat files */
   if(N_Zero_Pad_Input > -1){
@@ -5113,9 +5115,12 @@ static MRI *analyzeRead(char *fname, int read_volume)
     /* Convert from 1-based to 0-based */
     Q = MtxCRS1toCRS0(Q);
     T = MatrixMultiply(T1,Q,T);
-    printf("------- Analyze Input Matrix (zero-based) --------\n");
-    MatrixPrint(stdout,T);
-    printf("-------------------------------------\n");
+		if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+		{
+			printf("------- Analyze Input Matrix (zero-based) --------\n");
+			MatrixPrint(stdout,T);
+			printf("-------------------------------------\n");
+		}
     mri->ras_good_flag = 1;
     MatrixFree(&Q);
     MatrixFree(&T1);
