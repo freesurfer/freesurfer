@@ -13,7 +13,7 @@
 #include "macros.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_make_template.c,v 1.14 2005/02/11 23:55:42 segonne Exp $";
+static char vcid[] = "$Id: mris_make_template.c,v 1.15 2005/02/14 04:38:39 segonne Exp $";
  
 int main(int argc, char *argv[]) ;
 
@@ -69,7 +69,7 @@ main(int argc, char *argv[])
   INTEGRATION_PARMS parms ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_make_template.c,v 1.14 2005/02/11 23:55:42 segonne Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_make_template.c,v 1.15 2005/02/14 04:38:39 segonne Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -141,7 +141,7 @@ main(int argc, char *argv[])
   {
 		failed = 0 ;
     subject = argv[ino] ;
-    fprintf(stderr, "processing subject %s (%d of %d)\n", subject,
+    fprintf(stderr, "\nprocessing subject %s (%d of %d)\n", subject,
 						ino+1, argc-1) ;
     sprintf(surf_fname, "%s/%s/surf/%s.%s", 
             subjects_dir, subject, hemi, sphere_name) ;
@@ -196,6 +196,7 @@ main(int argc, char *argv[])
 			for(n = 0 ; n < parms.nfields ; n++){
 				if (ReturnFieldName(parms.fields[n].field)){  /* read in precomputed curvature file */
 					sprintf(surf_fname, "%s/%s/surf/%s.%s", subjects_dir, subject, hemi, ReturnFieldName(parms.fields[n].field)) ;
+					//	fprintf(stderr,"\nreading field %d from %s(type=%d,frame=%d)\n",parms.fields[n].field,surf_fname,parms.fields[n].type,parms.fields[n].frame);
 					if (MRISreadCurvatureFile(mris, surf_fname) != NO_ERROR){
 						fprintf(stderr,"\n\nXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX\n");
 						fprintf(stderr, "%s: could not read curvature file '%s'\n",Progname, surf_fname) ;
@@ -208,8 +209,8 @@ main(int argc, char *argv[])
 											sprintf(fname, "inflated") ;
 											else
 											sprintf(fname, "smoothwm") ;*/
-					
-					MRISsaveVertexPositions(mris, TMP_VERTICES) ;
+					//fprintf(stderr,"\ngenerating field %d(type=%d,frame=%d) (from %s)\n",parms.fields[n].field,parms.fields[n].type,parms.fields[n].frame,surf_fname);
+					//					MRISsaveVertexPositions(mris, TMP_VERTICES) ;
 					if (MRISreadVertexPositions(mris, surf_fname) != NO_ERROR){
 						fprintf(stderr,"\n\nXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX\n");
 						ErrorPrintf(ERROR_NOFILE, "%s: could not read surface file %s",
@@ -219,18 +220,23 @@ main(int argc, char *argv[])
 						failed=1;
 						break;
 					}
-					MRISsetNeighborhoodSize(mris, -1) ;  /* back to max */
+
+					if (nbrs > 1) MRISsetNeighborhoodSize(mris, nbrs) ;
 					MRIScomputeMetricProperties(mris) ;
 					MRIScomputeSecondFundamentalForm(mris) ;
 					MRISuseMeanCurvature(mris) ;
-					MRISresetNeighborhoodSize(mris,1);/*only use nearest neighbor distances*/
-					MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
+					MRISaverageCurvatures(mris, navgs) ;
+					MRISrestoreVertexPositions(mris, CANONICAL_VERTICES) ;
 				}
+				/*				if(parms.fields[n].field!=SULC_CORR_FRAME)*/
 				MRISnormalizeField(mris,parms.fields[n].type); /* normalize values */
 				MRISsetCurvaturesToOrigValues(mris,n);
 				MRISsetCurvaturesToValues(mris,n);
 			}
 			if(failed){
+				fprintf(stderr,"\n\nXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX\n");
+				fprintf(stderr,"Subject %s Failed",subject);
+				fprintf(stderr,"XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX\n\n");
 				/* free cal structure*/
 				for( n = 0; n < mris->nvertices ; n++){
 				v=&mris->vertices[n];
@@ -320,6 +326,9 @@ main(int argc, char *argv[])
 					failed = 1 ;
 					break ;
 					}
+					/* the two next lines were not in the original code */
+					MRISaverageCurvatures(mris, navgs) ;
+					MRISnormalizeCurvature(mris) ;
 				}
 				else                       /* compute curvature of surface */
 				{
