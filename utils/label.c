@@ -1121,4 +1121,27 @@ LabelMarkSurface(LABEL *area, MRI_SURFACE *mris)
   }
   return(NO_ERROR) ;
 }
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+int
+LabelFillUnassignedVertices(MRI_SURFACE *mris, LABEL *area)
+{
+  int    n ;
+  LV     *lv ;
+
+  for (n = 0 ; n < area->n_points ; n++)
+  {
+    lv = &area->lv[n] ;
+    if (lv->vno >= 0 && lv->vno <= mris->nvertices)
+      continue ;
+    lv->vno = MRISfindClosestOriginalVertex(mris, lv->x, lv->y, lv->z) ;
+  }
+  LabelRemoveDuplicates(area) ;
+  return(NO_ERROR) ;
+}
 
