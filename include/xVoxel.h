@@ -3,9 +3,8 @@
 
 #include "xTypes.h"
 
-#ifdef IRIX
-#define inline
-#endif
+/* Enable this to turn on macros, see details below. */
+#define XVOXL_USE_MACROS
 
 typedef struct {
 
@@ -22,32 +21,73 @@ void xVoxl_Copy    ( xVoxelRef ipVoxDest, xVoxelRef ipVoxSrc );
 char xVoxl_IsEqualInt   ( xVoxelRef ipVox1, xVoxelRef ipVox2 );
 char xVoxl_IsEqualFloat ( xVoxelRef ipVox1, xVoxelRef ipVox2 );
 
-inline void xVoxl_Set      ( xVoxelRef this,   int x,   int y,   int z );
-inline void xVoxl_SetFloat ( xVoxelRef this, float x, float y, float z );
+/* These access functions are implemented as functions and macros. The functions are slower but can be turned on for debugging purposes, while the macros should be used for final builds. */
 
-inline void xVoxl_SetX ( xVoxelRef this, int x );
-inline void xVoxl_SetY ( xVoxelRef this, int y );
-inline void xVoxl_SetZ ( xVoxelRef this, int z );
+#ifndef XVOXL_USE_MACROS
 
-inline void xVoxl_SetFloatX ( xVoxelRef this, float x );
-inline void xVoxl_SetFloatY ( xVoxelRef this, float y );
-inline void xVoxl_SetFloatZ ( xVoxelRef this, float z );
+void xVoxl_Set      ( xVoxelRef this,   int x,   int y,   int z );
+void xVoxl_SetFloat ( xVoxelRef this, float x, float y, float z );
 
-inline int xVoxl_GetX ( xVoxelRef this );
-inline int xVoxl_GetY ( xVoxelRef this );
-inline int xVoxl_GetZ ( xVoxelRef this );
+void xVoxl_SetX ( xVoxelRef this, int x );
+void xVoxl_SetY ( xVoxelRef this, int y );
+void xVoxl_SetZ ( xVoxelRef this, int z );
 
-inline int xVoxl_GetRoundX ( xVoxelRef this );
-inline int xVoxl_GetRoundY ( xVoxelRef this );
-inline int xVoxl_GetRoundZ ( xVoxelRef this );
+void xVoxl_SetFloatX ( xVoxelRef this, float x );
+void xVoxl_SetFloatY ( xVoxelRef this, float y );
+void xVoxl_SetFloatZ ( xVoxelRef this, float z );
 
-inline int xVoxl_GetI ( xVoxelRef this );
-inline int xVoxl_GetJ ( xVoxelRef this );
-inline int xVoxl_GetK ( xVoxelRef this );
+int xVoxl_GetX ( xVoxelRef this );
+int xVoxl_GetY ( xVoxelRef this );
+int xVoxl_GetZ ( xVoxelRef this );
 
-inline float xVoxl_GetFloatX ( xVoxelRef this );
-inline float xVoxl_GetFloatY ( xVoxelRef this );
-inline float xVoxl_GetFloatZ ( xVoxelRef this );
+int xVoxl_GetRoundX ( xVoxelRef this );
+int xVoxl_GetRoundY ( xVoxelRef this );
+int xVoxl_GetRoundZ ( xVoxelRef this );
+
+float xVoxl_GetFloatX ( xVoxelRef this );
+float xVoxl_GetFloatY ( xVoxelRef this );
+float xVoxl_GetFloatZ ( xVoxelRef this );
+
+#else /* macros versions */
+
+/* The do/while garbage is to allow the compiler to parse a semicolon
+   after the macro call. */
+
+#define xVoxl_Set(this,x,y,z) \
+  do { \
+    (this)->mfX = (x); \
+    (this)->mfY = (y); \
+    (this)->mfZ = (z); \
+  }while(0)
+
+#define xVoxl_GetX(this) (int)(floor( (this)->mfX + 0.5 ))
+#define xVoxl_GetY(this) (int)(floor( (this)->mfY + 0.5 ))
+#define xVoxl_GetZ(this) (int)(floor( (this)->mfZ + 0.5 ))
+
+#define xVoxl_GetRoundX(this)   rint( (this)->mfX )
+#define xVoxl_GetRoundY(this)   rint( (this)->mfY )
+#define xVoxl_GetRoundZ(this)   rint( (this)->mfZ )
+
+#define xVoxl_SetFloat(this,x,y,z) \
+  do { \
+    (this)->mfX = (x); \
+    (this)->mfY = (y); \
+    (this)->mfZ = (z); \
+  }while(0)
+
+#define xVoxl_SetX(this,x)   (this)->mfX = (x)
+#define xVoxl_SetY(this,y)   (this)->mfY = (y)
+#define xVoxl_SetZ(this,z)   (this)->mfZ = (z)
+
+#define xVoxl_SetFloatX(this,x)   (this)->mfX = (x)
+#define xVoxl_SetFloatY(this,y)   (this)->mfY = (y)
+#define xVoxl_SetFloatZ(this,z)   (this)->mfZ = (z)
+
+#define xVoxl_GetFloatX(this)   (this)->mfX
+#define xVoxl_GetFloatY(this)   (this)->mfY
+#define xVoxl_GetFloatZ(this)   (this)->mfZ
+
+#endif /* end of macro versions */
 
 tBoolean xVoxl_IncrementUntilLimit          ( xVoxelRef this,
 					      float      inLimit );

@@ -52,7 +52,7 @@ char xVoxl_IsEqualFloat ( xVoxelRef ipVox1, xVoxelRef ipVox2 ) {
     return FALSE;
 }
 
-inline
+
 void xVoxl_Set ( xVoxelRef this, int x, int y, int z ) {
   
   this->mfX = x;
@@ -60,58 +60,43 @@ void xVoxl_Set ( xVoxelRef this, int x, int y, int z ) {
   this->mfZ = z;
 }
 
-inline
+
 int xVoxl_GetX ( xVoxelRef this ) {
 
   return (int)(floor( this->mfX + 0.5 ));
 }
 
-inline
+
 int xVoxl_GetY ( xVoxelRef this ) {
 
   return (int)(floor( this->mfY + 0.5 ));
 }
 
-inline
+
 int xVoxl_GetZ ( xVoxelRef this ) {
 
   return (int)(floor( this->mfZ + 0.5 ));
 }
 
-inline
+
 int xVoxl_GetRoundX ( xVoxelRef this ) {
 
   return rint( this->mfX );
 }
 
-inline
+
 int xVoxl_GetRoundY ( xVoxelRef this ) {
 
   return rint( this->mfY );
 }
 
-inline
+
 int xVoxl_GetRoundZ ( xVoxelRef this ) {
 
   return rint( this->mfZ );
 }
 
-inline 
-int xVoxl_GetI ( xVoxelRef this ) {
-  return xVoxl_GetX ( this );
-}
-
-inline 
-int xVoxl_GetJ ( xVoxelRef this ) {
-  return xVoxl_GetY ( this );
-}
-
-inline 
-int xVoxl_GetK ( xVoxelRef this ) {
-  return xVoxl_GetZ ( this );
-}
-
-inline 
+ 
 void xVoxl_SetFloat ( xVoxelRef this, float x, float y, float z ) {
 
   this->mfX = x;
@@ -119,49 +104,49 @@ void xVoxl_SetFloat ( xVoxelRef this, float x, float y, float z ) {
   this->mfZ = z;
 }
 
-inline void xVoxl_SetX ( xVoxelRef this, int x ) {
+ void xVoxl_SetX ( xVoxelRef this, int x ) {
 
   this->mfX = (float)x;
 }
 
-inline void xVoxl_SetY ( xVoxelRef this, int y ) {
+ void xVoxl_SetY ( xVoxelRef this, int y ) {
 
   this->mfY = (float)y;
 }
 
-inline void xVoxl_SetZ ( xVoxelRef this, int z ) {
+ void xVoxl_SetZ ( xVoxelRef this, int z ) {
 
   this->mfZ = (float)z;
 }
 
-inline void xVoxl_SetFloatX ( xVoxelRef this, float x ) {
+ void xVoxl_SetFloatX ( xVoxelRef this, float x ) {
 
   this->mfX = x;
 }
 
-inline void xVoxl_SetFloatY ( xVoxelRef this, float y ) {
+ void xVoxl_SetFloatY ( xVoxelRef this, float y ) {
 
   this->mfY = y;
 }
 
-inline void xVoxl_SetFloatZ ( xVoxelRef this, float z ) {
+ void xVoxl_SetFloatZ ( xVoxelRef this, float z ) {
 
   this->mfZ = z;
 }
 
-inline 
+ 
 float xVoxl_GetFloatX ( xVoxelRef this ) {
 
   return this->mfX;
 }
 
-inline 
+ 
 float xVoxl_GetFloatY ( xVoxelRef this ) {
 
   return this->mfY;
 }
 
-inline
+
 float xVoxl_GetFloatZ ( xVoxelRef this ) {
 
   return this->mfZ;
