@@ -31,5 +31,6 @@ int     ErrorPrintf(int ecode, char *fmt, ...) ;
 #define ERROR_UNSUPPORTED     -3
 #define ERROR_BADPARM         -4
 #define ERROR_BADFILE         -5
+#define ERROR_SIZE            -6
 
 #endif
