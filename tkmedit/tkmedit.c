@@ -140,7 +140,7 @@ int            tk_NumMainWindows = 0;
 #define MOTIF_YFUDGE  32
 #define CVIDBUF 25
 
-// kt - default zoom factor
+// kt - default zoom factor, makes window bigger
 #define kDefaultZoomFactor 2
 
 int selectedpixval = 0;
@@ -298,6 +298,10 @@ typedef struct {
   int mX, mY, mZ;
 } Voxel;
 
+                                       /* irix compiler doesn't like inlines */
+#ifdef IRIX
+#define inline
+#endif
                                        /* silly accessor methods for max
                                           object orientedness */
 inline
@@ -492,11 +496,40 @@ void ToggleCtrlPtDisplayStatus ();
 void ToggleCtrlPtDisplayStyle ();
                                        /* converts screen coords to 
                                           voxel coords and back */
-void ScreenToVoxel ( int j, int i, int im,      // incoming screen coords
+void ScreenToVoxel ( int inPlane,               // what plane we're on
+                     int j, int i, int im,      // incoming screen coords
                      int *x, int *y, int *z);   // outgoing voxel coords
 
+                                       /* there are actually two screen 
+                                          spaces, unzoomed and local zoomed, 
+                                          and when conveting screen to voxel
+                                          and back, the x/y screen coords get
+                                          the local zoomer conversion and the
+                                          z gets the unzoomed conversion, so we
+                                          have seperate inline functions for
+                                          doing everything. */
+inline int ScreenXToVoxelX ( int j );
+inline int LocalZoomXToVoxelX ( int lj );
+inline int ScreenYToVoxelY ( int i );
+inline int LocalZoomYToVoxelY ( int li );
+inline int ScreenZToVoxelZ ( int im );
+inline int LocalZoomZToVoxelZ ( int lim );
+
 void VoxelToScreen ( int x, int y, int z,       // incoming voxel coords
+                     int inPlane,               // what plane we're on
                      int *j, int *i, int *im ); // outgoing screen coords 
+
+inline int VoxelXToScreenX ( int x );
+inline int VoxelXToLocalZoomX ( int x );
+inline int VoxelYToScreenY ( int y );
+inline int VoxelYToLocalZoomY ( int y );
+inline int VoxelZToScreenZ ( int z );
+inline int VoxelZToLocalZoomZ ( int z );
+
+                                       /* returns whether or not screen 
+                                          coords are in window bounds */
+inline
+char ScreenPtInWindow ( int j, int i, int im );   // in screen coords
 
                                        /* converts ras coords to
                                           voxel coords and back */
@@ -549,6 +582,11 @@ void SetCompositePixelInBuffer ( char * inBuffer, int inIndex,
 #define kRGBAColor_Green    0xff00ff00
 #define kRGBAColor_Yellow   0xff00ffff
 
+                                       /* for managing and checking the 
+                                          center point */
+void SetCenterVoxel ( int x, int y, int z );
+void CheckCenterVoxel ();
+
                                        /* global storage for ctrl space. */
 VoxelSpace gCtrlPtList;
 
@@ -570,6 +608,32 @@ char gCtrlPtDrawStyle;
                                           our control pt space. we only want
                                           to add it once. */
 char gParsedCtrlPtFile;
+
+
+                                       /* controls our local zooming, or 
+                                          zooming around the center point. 
+                                          gCenter is the voxel that is at the 
+                                          center of the screen. this should 
+                                          not be such that with the current 
+                                          zoom level, an edge of the window 
+                                          is out of bounds of the voxel space.
+                                          i.e. the only center possible at 
+                                          zoom level 1 is 128, 128. at zoom 
+                                          level 2, anything from 64,64 to 
+                                          196,196 is possible. gLocalZoom is 
+                                          the zoom level _in addition_ to
+                                          the normal zf scaling factor that 
+                                          is set at startup. so with zf = 2
+                                          and gLocalZoom = 1, each voxel is 
+                                          2x2 pixels. at zf=2 gLocalZoom=2,
+                                          each voxel is 4x4 pixels. at zf=1
+                                          and gLocalZoom=2, each voxel is 2x2
+                                          pixels. */
+
+#define kMinLocalZoom                          1
+#define kMaxLocalZoom                          16
+int gCenterX, gCenterY, gCenterZ, gLocalZoom;
+
 
 // end_kt 
 
@@ -2155,13 +2219,13 @@ do_one_gl_event(Tcl_Interp *interp)   /* tcl */
         sy = 1024 - w.y - sy;
         if (current.xbutton.button == 1) {  /** left **/
           select_pixel(sx,sy,TRUE);
-          Tcl_Eval(interp,"unzoomcoords; sendupdate");
           button1pressed = TRUE;
         }
-        if (current.xbutton.button == 2) {  /** middle **/
 
-          // kt - changed button 2 to go to select_pixel. original function
-          // is commented out.
+        // kt - changed buttons to call select_pixel. original functions
+        // are commented out.
+
+        if (current.xbutton.button == 2) {  /** middle **/
 
           /*
           if (drawsecondflag) {
@@ -2172,17 +2236,24 @@ do_one_gl_event(Tcl_Interp *interp)   /* tcl */
             
           button2pressed = TRUE;
           select_pixel ( sx, sy, TRUE );          
-
-          // end_kt
-
         }
         if (current.xbutton.button == 3) {  /** right **/
+
+          /*
           if (drawsecondflag) {
             printf("medit: N.B.: editing image in hidden buffer\n"); PR}
           select_pixel(sx,sy,FALSE);
           edit_pixel(TO_BLACK);
+          */
+
           button3pressed = TRUE;
+          select_pixel ( sx, sy, TRUE );
+
+          // end_kt
         }
+
+        Tcl_Eval(interp,"unzoomcoords; sendupdate");
+
         break;
 
       case MotionNotify:
@@ -3121,7 +3192,7 @@ write_point(char *dir)
   if ( control_points ) {
 
     // get vox coords
-    ScreenToVoxel ( jc, ic, imc, &theVoxX, &theVoxY, &theVoxZ );
+    ScreenToVoxel ( plane, jc, ic, imc, &theVoxX, &theVoxY, &theVoxZ );
     
     // add voxel space pt to list of ctrl pts
     Voxel_Set ( &theVoxel, theVoxX, theVoxY, theVoxZ );
@@ -3931,6 +4002,7 @@ select_pixel( short sx, short sy, int printflag)
   int   xi,yi, zi ;
   char theResult, theValue;
   Voxel theVoxel;
+  int theLeft, theTop, theRight, theBottom;
 
   x = y = z = 0.0;
   getorigin(&ox,&oy);
@@ -3941,19 +4013,28 @@ select_pixel( short sx, short sy, int printflag)
   if (sy<oy || sy>oy+ly) sy = oy+ly/2;
 
   if ( all3flag ) {
+
     if (sx-ox<xdim/2 && sy-oy>ydim/2) {  /* COR */
+
       ic = 2*((sy-oy)-ydim/2);
       jc = 2*(sx-ox);
     }
+
     if (sx-ox<xdim/2 && sy-oy<ydim/2) {/* HOR */
+
       imc = 2*(sy-oy); /* 2*((sy-oy)-ydim/2);*/ /* 2*(sx-ox); */
       jc =  2*(sx-ox); /*2*((sx-ox)-xdim/2);*/
     }
+
     if (sx-ox>xdim/2 && sy-oy>ydim/2) { /* SAG */
+
       imc =2*((sx-ox)-xdim/2); /* 2*((sy-oy)-ydim/2); */ 
       ic = 2*((sy-oy)-ydim/2); /* 2*(sy-oy); */
     }
+
+    // click in the spare area, recenter at 128,128,128
     if (sx-ox>xdim/2 && sy-oy<ydim/2) {  /* max=>center */
+
       ic = jc = imc = xdim/2;
     }
 
@@ -3983,14 +4064,61 @@ select_pixel( short sx, short sy, int printflag)
     }
   }
 
+  // kt
+  
+  // if button2 is down, we want to select control pts.
+  if ( button2pressed )
+    SelectCtrlPt ();
+  
+  // if button3 is down
+  if ( button3pressed ) {
+
+    // get the clicked voxel and set the center
+    ScreenToVoxel ( plane, jc, ic, imc, &xi, &yi, &zi );
+    SetCenterVoxel ( xi, yi, zi );
+
+    // now put the new center back into the cursor coords to make
+    // it the new cursor pt
+    VoxelToScreen ( xi, yi, zi, plane, &jc, &ic, &imc );
+
+    // shift-click zooms in, ctrl-click zooms out.. if we zoom, check
+    // the center again, it may not be good in the new zoom level.
+    if ( shiftkeypressed ) {
+
+      gLocalZoom *= 2;
+      if ( gLocalZoom > kMaxLocalZoom )
+        gLocalZoom = kMaxLocalZoom;
+
+      CheckCenterVoxel ();
+
+    } else if ( ctrlkeypressed ) {
+
+      gLocalZoom /= 2;
+      if ( gLocalZoom < kMinLocalZoom )
+        gLocalZoom = kMinLocalZoom;
+
+      CheckCenterVoxel ();
+
+    }
+
+    // because there were weird dragging effects if you jerked the 
+    // mouse right after clicking. seems the event loop misses a lot 
+    // of key and button releases, so we force them here.
+    button3pressed = FALSE;
+    shiftkeypressed = FALSE;
+ctrlkeypressed = FALSE;
+  }
+
+  // end_kt
+
   if (printflag) {
 
-    printf ( "\nSelected pixel data:\nValue:" );
+    printf ( "\n\nSelected pixel data:\nValue:" );
 
     if ( imc/zf >= 0 && imc/zf < imnr1 ) {
       
       // get our voxel coords
-      ScreenToVoxel ( jc, ic, imc, &xi, &yi, &zi );
+      ScreenToVoxel ( plane, jc, ic, imc, &xi, &yi, &zi );
       
       // find the voxel value.
       selectedpixval = im[zi][yi][xi];
@@ -4010,7 +4138,7 @@ select_pixel( short sx, short sy, int printflag)
     // get the RAS coords
     VoxelToRAS ( xi, yi, zi, &x, &y, &z );
 
-    // kt - print out a bunch of coords
+    // print out a bunch of coords
     printf ( "\nCoords: Voxel (%d, %d, %d) Screen (%d, %d, %d) \n        RAS (%2.1f, %2.1f, %2.1f) ",
              xi,yi,zi, jc,ic,imc, x,y,z );
 
@@ -4031,6 +4159,46 @@ select_pixel( short sx, short sy, int printflag)
       ztalairach = z_tal; 
     }
 
+    // if we're zoomed, print the center point and view rectangle
+    if ( gLocalZoom > 1 ) {
+
+      printf ( "\nZoom: Level: %dx Center voxel: (%d, %d, %d)",
+               gLocalZoom, gCenterX, gCenterY, gCenterZ );
+
+      switch ( plane ) {
+      case CORONAL:
+        theLeft = LocalZoomXToVoxelX ( 0 );
+        theRight = LocalZoomXToVoxelX ( xdim-1 );
+        theTop = LocalZoomYToVoxelY ( 0 );
+        theBottom = LocalZoomYToVoxelY ( ydim-1 );
+
+        printf ( "\n      Viewing voxel rect (x%d, y%d, x%d, y%d)", 
+                 theLeft, theTop, theRight, theBottom);
+      break;
+      
+      case HORIZONTAL:
+        theLeft = LocalZoomXToVoxelX ( 0 );
+        theRight = LocalZoomXToVoxelX ( xdim-1 );
+        theTop = LocalZoomZToVoxelZ ( 0 );
+        theBottom = LocalZoomZToVoxelZ ( ydim-1 );
+
+        printf ( "\n      Viewing voxel rect (x%d, z%d, x%d, z%d)", 
+                 theLeft, theTop, theRight, theBottom);
+        break;
+        
+      case SAGITTAL:
+        theTop = LocalZoomYToVoxelY ( 0 );
+        theBottom = LocalZoomYToVoxelY ( ydim-1 );
+        theLeft = LocalZoomZToVoxelZ ( 0 );
+        theRight = LocalZoomZToVoxelZ ( xdim-1);
+
+        printf ( "\n      Viewing voxel rect (z%d, y%d, z%d, y%d)", 
+                 theLeft, theTop, theRight, theBottom);
+        break;
+      }
+      
+    }
+
     // get the value for this voxel
     Voxel_Set ( &theVoxel, xi, yi, zi );
     theResult = VSpace_IsInList ( &gCtrlPtList, &theVoxel, &theValue );
@@ -4048,13 +4216,6 @@ select_pixel( short sx, short sy, int printflag)
     PR;
 
   }
-  // kt
-  
-  // if button2 is down, we want to select control pts.
-  if ( button2pressed )
-    SelectCtrlPt ();
-  
-  // end_kt
 
   /* twitzels stuff */
   if(statsloaded)
@@ -4155,13 +4316,13 @@ void draw_image(int imc,int ic,int jc)
               continue;
 
             // get the voxel coords
-            ScreenToVoxel ( theScreenX, theScreenY, theScreenZ,
+            ScreenToVoxel ( CORONAL, theScreenX, theScreenY, theScreenZ,
                             &theVoxX, &theVoxY, &theVoxZ );
 
             // get the index into hacked_map from im
             v = im[theVoxZ][theVoxY][theVoxX] + MAPOFFSET;
-
-             // if we're truncating values and the index is below the min
+            
+            // if we're truncating values and the index is below the min
             // or above the max, set it to MAPOFFSET
             if ( truncflag )
               if ( v < white_lolim + MAPOFFSET || 
@@ -4249,24 +4410,28 @@ void draw_image(int imc,int ic,int jc)
               
               // go to screen points
               VoxelToScreen ( Voxel_GetX(&theVoxel), Voxel_GetY(&theVoxel),
-                              Voxel_GetZ(&theVoxel), &theScreenX, 
+                              Voxel_GetZ(&theVoxel), 
+                              CORONAL, &theScreenX, 
                               &theScreenY, &theScreenZ );
 
-              // draw the point.
-              if ( !all3flag ) {
-                
-                DrawCtrlPt ( vidbuf, theScreenX, theScreenY, theColor );
-                
-              } else {
-                
-                // halve our coords in the all3 view. since our final copy is
-                // actually y-flipped, our draw into the upper left corner
-                // is actually a draw into the lower left corner. to make
-                // sure the cursor shows up in the right place, we have to
-                // add hay to the y coord here.
-                DrawCtrlPt ( vidbuf, 
-                             theScreenX/2, hay + theScreenY/2, theColor );
-                
+              // if it's in the window...
+              if ( ScreenPtInWindow ( theScreenX, theScreenY, theScreenZ ) ) {
+
+                // draw the point.
+                if ( !all3flag ) {
+                  
+                  DrawCtrlPt ( vidbuf, theScreenX, theScreenY, theColor );
+                  
+                } else {
+                  
+                  // halve our coords in the all3 view. since our final copy is
+                  // actually y-flipped, our draw into the upper left corner
+                  // is actually a draw into the lower left corner. to make
+                  // sure the cursor shows up in the right place, we have to
+                  // add hay to the y coord here.
+                  DrawCtrlPt ( vidbuf, 
+                               theScreenX/2, hay + theScreenY/2, theColor );
+                }
               }
             }
           }
@@ -4334,7 +4499,7 @@ void draw_image(int imc,int ic,int jc)
             // here we use ic instead of theScreenY becayse we already 
             // flipped theScreenY and we would just be flipping it again
             // here.
-            ScreenToVoxel ( theScreenX, ic, theScreenZ,
+            ScreenToVoxel ( HORIZONTAL, theScreenX, ic, theScreenZ,
                             &theVoxX, &theVoxY, &theVoxZ );
 
             v = im[theVoxZ][theVoxY][theVoxX] + MAPOFFSET;
@@ -4407,13 +4572,16 @@ void draw_image(int imc,int ic,int jc)
                 theColor = kRGBAColor_Green;
               
               VoxelToScreen ( Voxel_GetX(&theVoxel), Voxel_GetY(&theVoxel),
-                              Voxel_GetZ(&theVoxel), &theScreenX, 
+                              Voxel_GetZ(&theVoxel), 
+                              HORIZONTAL, &theScreenX, 
                               &theScreenY, &theScreenZ );
               
-              if ( !all3flag )
-                DrawCtrlPt ( vidbuf, theScreenX, theScreenZ, theColor );
-              else
-                DrawCtrlPt ( vidbuf, theScreenX/2, theScreenZ/2, theColor );
+              if ( ScreenPtInWindow ( theScreenX, theScreenY, theScreenZ ) ) {
+                if ( !all3flag )
+                  DrawCtrlPt ( vidbuf, theScreenX, theScreenZ, theColor );
+                else
+                  DrawCtrlPt ( vidbuf, theScreenX/2, theScreenZ/2, theColor );
+              }
             }
           }
         } // end display control points
@@ -4467,7 +4635,7 @@ void draw_image(int imc,int ic,int jc)
             if ( all3flag && isOdd(theScreenZ) )
               continue;
 
-            ScreenToVoxel ( theScreenX, theScreenY, theScreenZ,
+            ScreenToVoxel ( SAGITTAL, theScreenX, theScreenY, theScreenZ,
                             &theVoxX, &theVoxY, &theVoxZ );
 
             v = im[theVoxZ][theVoxY][theVoxX] + MAPOFFSET;
@@ -4536,15 +4704,18 @@ void draw_image(int imc,int ic,int jc)
                 theColor = kRGBAColor_Green;
               
               VoxelToScreen ( Voxel_GetX(&theVoxel), Voxel_GetY(&theVoxel),
-                              Voxel_GetZ(&theVoxel), &theScreenX, 
+                              Voxel_GetZ(&theVoxel), 
+                              SAGITTAL, &theScreenX, 
                               &theScreenY, &theScreenZ );
               
-              if ( !all3flag )
-                DrawCtrlPt ( vidbuf, theScreenZ, theScreenY, theColor );
-              else
-                DrawCtrlPt ( vidbuf, 
-                             hax + theScreenZ/2, hay + theScreenY/2, 
-                             theColor );
+              if ( ScreenPtInWindow ( theScreenX, theScreenY, theScreenZ ) ) {
+                if ( !all3flag )
+                  DrawCtrlPt ( vidbuf, theScreenZ, theScreenY, theColor );
+                else
+                  DrawCtrlPt ( vidbuf, 
+                               hax + theScreenZ/2, hay + theScreenY/2, 
+                               theColor );
+              }
             }
           }
         } // end dray ctrl pnts          
@@ -5023,6 +5194,7 @@ draw_surface(void)
   face_type *f;
   vertex_type *v,*lv;
   float h,xc,yc,zc,x,y,z,tx,ty,tz,lx,ly,lz,d,ld,vc[10][2];
+  int theVoxX, theVoxY, theVoxZ, theScreenX, theScreenY, theScreenZ;
   float fsf = zf;
 
   if (all3flag) linewidth(surflinewidth/2.0);
@@ -5035,80 +5207,136 @@ draw_surface(void)
   mapcolor(NUMVALS+MAPOFFSET+4, 255,   0,   0);  /* curv red */
   mapcolor(NUMVALS+MAPOFFSET+5,   0, 255,   0);  /* curv green */
 
-  if (plane==CORONAL || all3flag)
-  {
-    ortho2(0.0,xnum-1,0.0,ynum+1);
+  if (plane==CORONAL || all3flag) {
+
+    // kt - changed ortho, added the *zf
+    ortho2 ( 0.0, (xnum-1) * zf, 0.0, (ynum+1) * zf );
+
+    // get the ras coord of the slice we're on
     yc = yy0+st*imc/fsf;
-    for (k=0;k<mris->nfaces;k++)
-    {
+
+    // for each face...
+    for (k=0;k<mris->nfaces;k++) {
+      
+      // get the face
       f = &mris->faces[k];
+
+      // get the last neighboring vertex's y distance from our slice
       ln = VERTICES_PER_FACE-1;
-      ld = mris->vertices[f->v[ln]].y-yc;
+      ld = mris->vertices[f->v[ln]].y - yc;
+
+      // for every vertex...
       num = 0;
-      for (n=0;n<VERTICES_PER_FACE;n++)
-      {
+      for ( n = 0; n < VERTICES_PER_FACE; n++ ) { 
+
+        // get the face's vertex.
         v = &mris->vertices[f->v[n]];
+
+        // get the vertex y distance from this slice
         y = v->y;
-        d = y-yc;
-        if (d*ld<=0)
-        {
+        d = y - yc;
+
+        // if they are on opposite sides of the slice (or one is on
+        // the slice) ...
+        if ( d * ld <= 0 ) {
+
+          // get the last neighboring vertex
           lv = &mris->vertices[f->v[ln]];
+
+          // get the coords of the two vertices
           x = v->x;
           z = v->z;
           lx = lv->x;
           ly = lv->y;
           lz = lv->z;
-          h = (y-ly!=0)?(yc-ly)/(y-ly):1.0;
-          tx = lx+h*(x-lx);
-          tz = lz+h*(z-lz);
-          vc[num][0] = (xx1-tx)/ps;
-          vc[num][1] = ynum-((zz1-tz)/ps);
-          if (all3flag) { 
-            vc[num][0] = vc[num][0]/2.0;
-            vc[num][1] = (vc[num][1] + (float)ynum + 1.0)/2.0;
-          }
-          if (fieldsignflag && fieldsignloaded) {  /* fscontour */
-            if (v->fsmask<fsthresh)     color(NUMVALS+MAPOFFSET+1);
-            else if (v->fieldsign>0.0)  color(NUMVALS+MAPOFFSET+2);
-            else if (v->fieldsign<0.0)  color(NUMVALS+MAPOFFSET+3);
-            else                        color(NUMVALS+MAPOFFSET+1); /*nondef*/
-          }
-          else if (curvflag && curvloaded) {
+
+          // if their y (height) distance is not 0, then set height
+          // to distance from the slice to the last vertex y over the
+          // distance from the vetex y to the last vertex y
+          h = ( y - ly != 0 ) ? ( yc - ly ) / ( y - ly ) : 1.0;
+          
+          // get our point to draw in ras space
+          tx = lx + h * ( x - lx );
+          tz = lz + h * ( z - lz );
+
+          // kt
+          // convert to voxel
+          RASToVoxel ( tx, 0, tz, &theVoxX, &theVoxY, &theVoxZ );
+          
+          // covert to screen
+          VoxelToScreen ( theVoxX, theVoxY, theVoxZ, plane, 
+                          &theScreenX, &theScreenY, &theScreenZ );
+
+          // if this is in our current screen
+          if ( ScreenPtInWindow ( theScreenX, theScreenY, theScreenZ ) ) {
+
+            // set our coords to draw
+            if ( !all3flag ) {
+
+              vc[num][0] = theScreenX;
+              vc[num][1] = theScreenY;
+            
+            } else {
+            
+              // in in all3 view, do the necessary conversion (see 
+              // draw_image() notes)
+              vc[num][0] = theScreenX/2;
+              vc[num][1] = ydim/2 + theScreenY/2;
+            }
+            
+            // end_kt          
+            
+            // choose a color...
+            if (fieldsignflag && fieldsignloaded) {  /* fscontour */
+              if (v->fsmask<fsthresh)     color(NUMVALS+MAPOFFSET+1);
+              else if (v->fieldsign>0.0)  color(NUMVALS+MAPOFFSET+2);
+              else if (v->fieldsign<0.0)  color(NUMVALS+MAPOFFSET+3);
+              else                        color(NUMVALS+MAPOFFSET+1); /*nondef*/
+            }
+            else if (curvflag && curvloaded) {
 #if 0
-            if (v->curv>0.0)  color(NUMVALS+MAPOFFSET+4); /* TODO:colormap */
-            else              color(NUMVALS+MAPOFFSET+5);
+              if (v->curv>0.0)  color(NUMVALS+MAPOFFSET+4); /* TODO:colormap */
+              else              color(NUMVALS+MAPOFFSET+5);
 #else
-            /* should do red-green interpolation here! */
-            if (v->curv>0.0)  
-              glColor3f(1.0, 0.0, 0.0);
-            else              
-              glColor3f(0.0, 1.0, 0.0);
+              /* should do red-green interpolation here! */
+              if (v->curv>0.0)  
+                glColor3f(1.0, 0.0, 0.0);
+              else              
+                glColor3f(0.0, 1.0, 0.0);
 #endif
+            }
+            
+            else /* color(YELLOW); */ /* just surface */
+              glColor3f(1.0,1.0,0.0);
+            
+            // go to next vc point
+            num++;
           }
-          else /* color(YELLOW); */ /* just surface */
-      glColor3f(1.0,1.0,0.0);
-          num++;
         }
+
+        // save the last distance and vertex index
         ld = d;
         ln = n;
       }
-      if (num>0)
-      {
+
+      // if we have points to draw...
+      if ( num > 0 ) {
+        
+        // draw the points in a line
         bgnline();
-        for (n=0;n<num;n++)
-        {
-          v2f(&vc[n][0]);
+        for ( n = 0; n < num; n++ ) {
+
+          v2f ( &vc[n][0] );
         }
         endline();
       }
     }
-    for (k=0;k<npts;k++)
-    {
+
+    for (k=0;k<npts;k++) {
       x = ptx[k]*tm[0][0]+pty[k]*tm[0][1]+ptz[k]*tm[0][2]+tm[0][3];
       y = ptx[k]*tm[1][0]+pty[k]*tm[1][1]+ptz[k]*tm[1][2]+tm[1][3];
       z = ptx[k]*tm[2][0]+pty[k]*tm[2][1]+ptz[k]*tm[2][2]+tm[2][3];
-      if (fabs(y-yc)<st)
-      {
+      if (fabs(y-yc)<st) {
         vc[0][0] = (xx1-x)/ps;
         vc[0][1] = ynum-((zz1-z)/ps);
         bgnpoint();
@@ -5118,9 +5346,11 @@ draw_surface(void)
       }
     }
   }
+
+  // kt - made same changes in this part as in the last
   if (plane==SAGITTAL || all3flag)
   {
-    ortho2(0.0,xnum-1,0.0,ynum+1);
+    ortho2 ( 0.0, (xnum-1) * zf, 0.0, (ynum+1) * zf );
     xc = xx1-ps*jc/fsf;
     for (k=0;k<mris->nfaces;k++)
     {
@@ -5144,26 +5374,33 @@ draw_surface(void)
           h = (x-lx!=0)?(xc-lx)/(x-lx):1.0;
           ty = ly+h*(y-ly);
           tz = lz+h*(z-lz);
-          vc[num][0] = (ty-yy0)/st;
-          vc[num][1] = ynum-((zz1-tz)/ps);
-          if (all3flag) { 
-            /*vc[num][0] = vc[num][0]/2.0;
-        vc[num][1] = vc[num][1]/2.0;*/
-      vc[num][0] = (vc[num][0] + (float)xnum)/2.0;
-            vc[num][1] = (vc[num][1] + (float)ynum)/2.0;
+
+          RASToVoxel ( xc, ty, tz, &theVoxX, &theVoxY, &theVoxZ );
+          VoxelToScreen ( theVoxX, theVoxY, theVoxZ, plane,
+                          &theScreenX, &theScreenY, &theScreenZ );
+          if ( ScreenPtInWindow ( theScreenX, theScreenY, theScreenZ ) ) {
+
+            if ( !all3flag ) {
+              vc[num][0] = theScreenZ;
+              vc[num][1] = theScreenY;
+            } else {
+              vc[num][0] = xdim/2 + theScreenZ/2;
+              vc[num][1] = ydim/2 + theScreenY/2;
+            }
+          
+            if (fieldsignflag && fieldsignloaded) {  /* fscontour */
+              if (v->fsmask<fsthresh)     color(NUMVALS+MAPOFFSET+1);
+              else if (v->fieldsign>0.0)  color(NUMVALS+MAPOFFSET+2);
+              else if (v->fieldsign<0.0)  color(NUMVALS+MAPOFFSET+3);
+              else                        color(NUMVALS+MAPOFFSET+1);
+            }
+            else if (curvflag && curvloaded) {
+              if (v->curv>0.0)  color(NUMVALS+MAPOFFSET+4);
+              else              color(NUMVALS+MAPOFFSET+5);
+            }
+            else color(YELLOW);
+            num++;
           }
-          if (fieldsignflag && fieldsignloaded) {  /* fscontour */
-            if (v->fsmask<fsthresh)     color(NUMVALS+MAPOFFSET+1);
-            else if (v->fieldsign>0.0)  color(NUMVALS+MAPOFFSET+2);
-            else if (v->fieldsign<0.0)  color(NUMVALS+MAPOFFSET+3);
-            else                        color(NUMVALS+MAPOFFSET+1);
-          }
-          else if (curvflag && curvloaded) {
-            if (v->curv>0.0)  color(NUMVALS+MAPOFFSET+4);
-            else              color(NUMVALS+MAPOFFSET+5);
-          }
-          else color(YELLOW);
-          num++;
         }
         ld = d;
         ln = n;
@@ -5196,7 +5433,7 @@ draw_surface(void)
   }
   if (plane==HORIZONTAL || all3flag)
   {
-    ortho2(0.0,xnum-1,0.0,ynum-1);
+    ortho2 ( 0.0, (xnum-1) * zf, 0.0, (ynum-1) * zf );
     zc = zz1-ps*(255.0-ic/fsf);
     for (k=0;k<mris->nfaces;k++)
     {
@@ -5220,26 +5457,31 @@ draw_surface(void)
           h = (z-lz!=0)?(zc-lz)/(z-lz):1.0;
           tx = lx+h*(x-lx);
           ty = ly+h*(y-ly);
-          vc[num][0] = (xx1-tx)/ps;
-          vc[num][1] = ((ty-yy0)/st);
-          if (all3flag) { 
-            /*vc[num][0] = (vc[num][0] + (float)xnum - 1.0)/2.0;
-        vc[num][1] = (vc[num][1] + (float)ynum - 1.0)/2.0;*/
-      vc[num][0] = vc[num][0]/2.0;
-      vc[num][1] = vc[num][1]/2.0;
+
+          RASToVoxel ( tx, ty, zc, &theVoxX, &theVoxY, &theVoxZ );
+          VoxelToScreen ( theVoxX, theVoxY, theVoxZ, plane,
+                          &theScreenX, &theScreenY, &theScreenZ );
+          if ( ScreenPtInWindow ( theScreenX, theScreenY, theScreenZ ) ) {
+            if ( !all3flag ) {
+              vc[num][0] = theScreenX;
+              vc[num][1] = theScreenZ;
+            } else {
+              vc[num][0] = theScreenX/2;
+              vc[num][1] = theScreenZ/2;
+            }            
+            
+            if (fieldsignflag && fieldsignloaded) {  /* fscontour */
+              if (v->fsmask<fsthresh)     color(NUMVALS+MAPOFFSET+1);
+              else if (v->fieldsign>0.0)  color(NUMVALS+MAPOFFSET+2);
+              else if (v->fieldsign<0.0)  color(NUMVALS+MAPOFFSET+3);
+              else                        color(NUMVALS+MAPOFFSET+1);
+            } else if (curvflag && curvloaded) {
+              if (v->curv>0.0)  color(NUMVALS+MAPOFFSET+4);
+              else              color(NUMVALS+MAPOFFSET+5);
+            }
+            else color(YELLOW);
+            num++;
           }
-          if (fieldsignflag && fieldsignloaded) {  /* fscontour */
-            if (v->fsmask<fsthresh)     color(NUMVALS+MAPOFFSET+1);
-            else if (v->fieldsign>0.0)  color(NUMVALS+MAPOFFSET+2);
-            else if (v->fieldsign<0.0)  color(NUMVALS+MAPOFFSET+3);
-            else                        color(NUMVALS+MAPOFFSET+1);
-          }
-          else if (curvflag && curvloaded) {
-            if (v->curv>0.0)  color(NUMVALS+MAPOFFSET+4);
-            else              color(NUMVALS+MAPOFFSET+5);
-          }
-          else color(YELLOW);
-          num++;
         }
         ld = d;
         ln = n;
@@ -6459,7 +6701,10 @@ int W_TclVSpace_PrintDebug WBEGIN
      TclVSpace_PrintDebug ( &gCtrlPtList );
      WEND
 
-
+int TclScreenToVoxel ( ClientData inClientData, Tcl_Interp * inInterp,
+                       int argc, char ** argv );
+int TclVoxelToScreen ( ClientData inClientData, Tcl_Interp * inInterp,
+                       int argc, char ** argv );
 
   // end_kt
 
@@ -6518,6 +6763,10 @@ char **argv;
   // haven't parsed control.dat yet.
   gParsedCtrlPtFile = FALSE;
 
+  // start out in the center, min zoom.
+  gCenterX = gCenterY = gCenterZ = 128;
+  gLocalZoom = kMinLocalZoom;
+
   // end_kt
 
   initmap_hacked();
@@ -6531,7 +6780,8 @@ char **argv;
 #ifdef USE_LICENSE
   checkLicense(envptr);
 #endif
-  sprintf(tkmedit_tcl,"%s/lib/tcl/%s",envptr,"tkmedit.tcl");
+  //  sprintf(tkmedit_tcl,"%s/lib/tcl/%s",envptr,"tkmedit.tcl"); // kt
+  sprintf(tkmedit_tcl,"%s","tkmedit.tcl");
   if ((fp=fopen(tkmedit_tcl,"r"))==NULL) {
     printf("tkmedit: script %s not found\n",tkmedit_tcl);
     exit(1);
@@ -6665,6 +6915,12 @@ char **argv;
                       W_TclVList_PrintDebug, REND );
   Tcl_CreateCommand ( interp, "TclVSpace_PrintDebug", 
                       W_TclVSpace_PrintDebug, REND );
+
+  Tcl_CreateCommand ( interp, "ScreenToVoxel", TclScreenToVoxel,
+                      (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
+  Tcl_CreateCommand ( interp, "VoxelToScreen", TclVoxelToScreen,
+                      (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
+  
   // end_kt
 
   /*=======================================================================*/
@@ -6721,6 +6977,13 @@ char **argv;
   Tcl_LinkVar(interp,"lim1",(char *)&lim1, TCL_LINK_INT);
   Tcl_LinkVar(interp,"lim0",(char *)&lim0, TCL_LINK_INT);
   Tcl_LinkVar(interp,"second_im_full",(char *)&second_im_full, TCL_LINK_INT);
+
+  Tcl_LinkVar(interp, "gCenterX", (char*)&gCenterX, TCL_LINK_INT);
+  Tcl_LinkVar(interp, "gCenterY", (char*)&gCenterY, TCL_LINK_INT);
+  Tcl_LinkVar(interp, "gCenterZ", (char*)&gCenterZ, TCL_LINK_INT);
+  Tcl_LinkVar(interp, "gLocalZoom", (char*)&gLocalZoom, TCL_LINK_INT);
+
+
   /*=======================================================================*/
   /***** link global DOUBLE variables to tcl equivalents (were float) */
   Tcl_LinkVar(interp,"fsquash",(char *)&fsquash, TCL_LINK_DOUBLE);
@@ -7698,18 +7961,28 @@ void DrawCtrlPt ( char * inBuffer,  // video buffer to draw into
 
   switch ( gCtrlPtDrawStyle ) {
 
+    // draw in pixels
   case kCtrlPtStyle_Point:
 
+    // if we're not in all3 view...
     if ( !all3flag ) {
-      FillBoxInBuffer ( inBuffer, inX, inY, zf, inColor );
+
+      // fill in the entire pixel with dimensions of the product of
+      // our two zoom factors.
+      FillBoxInBuffer ( inBuffer, inX, inY, zf*gLocalZoom, inColor );
+
     } else {
-      FillBoxInBuffer ( inBuffer, inX, inY, 1, inColor );
+
+      // otherwise, use half the zoom factor for our pixel size. 
+      FillBoxInBuffer ( inBuffer, inX, inY, (zf/2)*gLocalZoom, inColor );
     }
 
     break;
 
+    // crosshair
   case kCtrlPtStyle_Crosshair:
 
+    // simple crosshair.
     DrawCrosshairInBuffer ( inBuffer, inX, inY, 
                             kCtrlPtCrosshairRadius, inColor );
     break;
@@ -7724,7 +7997,7 @@ void SelectCtrlPt () {
   Voxel theVoxel;
   
   // find the voxel they selected
-  ScreenToVoxel ( jc, ic, imc, &theVoxX, &theVoxY, &theVoxZ );
+  ScreenToVoxel ( plane, jc, ic, imc, &theVoxX, &theVoxY, &theVoxZ );
 
   // make a voxel.
   Voxel_Set ( &theVoxel, theVoxX, theVoxY, theVoxZ );
@@ -7848,31 +8121,118 @@ void DeleteSelectedCtrlPts () {
 
                                        /* converts screen coords to 
                                           255 based voxel coords and back */
-void ScreenToVoxel ( int j, int i, int im,      // incoming screen coords
+void ScreenToVoxel ( int inPlane,               // the plane we're in
+                     int j, int i, int im,      // incoming screen coords
                      int *x, int *y, int *z) {  // outgoing voxel coords
 
 
   // our coords should be in good screen space.
   if ( j < 0 || i < 0 || im < 0 ||
-       j >= xdim || i >= ydim || im > xdim ){  /* should be using something
-                                                  other than x/ydim? */
+       j >= xdim || i >= ydim || im > xdim ) {
     fprintf ( stderr, "!!! ScreenToVoxel: screen coords out of bounds, (j,i,im) = (%d,%d,%d)\n", j, i, im );
     return;
   }
 
-  // scales screen points down according to the zoom level of the 
-  // screen (usually 2). flips the i/y axis.
-  *x = j / zf;
-  *y = ((ydim - 1) - i) / zf;
-  *z = im / zf;
+  // we don't want to convert the coord that currently
+  // represents the z axis in local zoom space - that just gets a normal
+  // zf division. otherwise our 0-255 sliders don't work, since our 
+  // range becomes 0-255*gLocalZoom.
+  switch ( inPlane ) {
+  case CORONAL:
+    *x = LocalZoomXToVoxelX ( j );
+    *y = LocalZoomYToVoxelY ( i );
+    *z = ScreenZToVoxelZ ( im );
+    break;
+
+  case HORIZONTAL:
+    *x = LocalZoomXToVoxelX ( j );
+    *y = ScreenYToVoxelY ( i );
+    *z = LocalZoomZToVoxelZ ( im );
+    break;
+
+  case SAGITTAL:
+    *x = ScreenXToVoxelX ( j );
+    *y = LocalZoomYToVoxelY ( i );
+    *z = LocalZoomZToVoxelZ ( im );
+    break;
+  }
+
+  // final sanity check
+  if ( *x < 0 || *y < 0 || *z < 0 ||
+       *x >= xnum || *y >= ynum || *z >= xnum ) {
+    fprintf ( stderr, "!!! ScreenToVoxel: converted pts out of bounds: (%d, %d, %d) -> (%d, %d, %d)\n", j, i, im, *x, *y, *z );
+    return;
+  }
+}
+
+// screen to voxel and vice versa just switches between the zoomed and 
+// unzoomed coords. when a window is zoomed in to show a particular portion
+// of the model, we are in 'local zoom' mode. that conversion must consider
+// the local zoom factor (different from the normal scale factor) and the 
+// current center point.
+// screen to local zoom: first scale the screen coord
+// to voxel coord by dividing it by zf. then divide it by the local 
+// zoom factor to zoom it up again. that gets us the right scale. then we
+// move over according to the center. to do that we calc the left edge 
+// of the centered display in local zoom mode, which involves subtracting
+// half the number of voxels available in the screen from the central voxel
+inline int ScreenXToVoxelX ( int j ) {
+  return ( j / zf ); }
+
+inline int LocalZoomXToVoxelX ( int j ) {
+  return ( (j/zf) / gLocalZoom ) + ( gCenterX - (xdim/zf/2/gLocalZoom) ); }
+
+inline int ScreenYToVoxelY ( int i ) {
+  return ( ((ydim - 1) - i) / zf ); }
+
+inline int LocalZoomYToVoxelY ( int i ) {
+  return (((ydim-1-i)/zf)/gLocalZoom) + (gCenterY-(ydim/zf/2/gLocalZoom)); } 
+
+inline int ScreenZToVoxelZ ( int im ) {
+  return ( im / zf ); }
+
+inline int LocalZoomZToVoxelZ ( int im ) {
+  return ( (im/zf) / gLocalZoom ) + ( gCenterZ - (xdim/zf/2/gLocalZoom) ); }
+
+int TclScreenToVoxel ( ClientData inClientData, Tcl_Interp * inInterp,
+                       int argc, char ** argv ) {
+
+  int j, i, im, x, y, z, plane;
+  char theNumStr[10];
+  
+  // check the number of args.
+  if ( argc != 5 ) {
+    inInterp->result = "Wrong # of args: ScreenToVoxel plane j i im";
+    return TCL_ERROR;
+  }
+
+  // pull the input out.
+  plane = atoi ( argv[1] );
+  j = atoi ( argv[2] );
+  i = atoi ( argv[3] );
+  im = atoi ( argv[4] );
+
+  // run the function.
+  ScreenToVoxel ( plane, j, i, im, &x, &y, &z );
+
+  // copy the input into the result string.
+  sprintf ( theNumStr, "%d", x );
+  Tcl_AppendElement ( interp, theNumStr );
+  sprintf ( theNumStr, "%d", y );
+  Tcl_AppendElement ( interp, theNumStr );
+  sprintf ( theNumStr, "%d", z );
+  Tcl_AppendElement ( interp, theNumStr );
+
+  return TCL_OK;
 }
 
 void VoxelToScreen ( int x, int y, int z,       // incoming voxel coords
+                     int inPlane,               // the plane we're in
                      int *j, int *i, int *im ){ // outgoing screen coords
 
   // voxel coords should be in good space
   if ( x < 0 || y < 0 || z < 0 ||
-       x >= 256 || y >= 256 || z >= 256 ) {       // !! bounds??
+       x >= xnum || y >= ynum || z >= xnum ) {
 
     fprintf ( stderr, "!!! VoxelToScreen: voxel coords out of bounds, (x,y,z) = (%d,%d,%d)\n", x, y, z );
     return;
@@ -7880,9 +8240,102 @@ void VoxelToScreen ( int x, int y, int z,       // incoming voxel coords
   
   // scales voxel coords up according to zoom level of the screen. flips
   // the i/y axis.
-  *j = x * zf;
-  *i = (ydim - 1) - (zf * y);
-  *im = z * zf;
+  switch ( inPlane ) {
+  case CORONAL:
+    *j = VoxelXToLocalZoomX ( x );
+    *i = VoxelYToLocalZoomY ( y );
+    *im = VoxelZToScreenZ ( z );
+    break;
+
+  case HORIZONTAL:
+    *j = VoxelXToLocalZoomX ( x );
+    *i = VoxelYToScreenY ( y );
+    *im = VoxelZToLocalZoomZ ( z );
+    break;
+
+  case SAGITTAL:
+    *j = VoxelXToScreenX ( x );
+    *i = VoxelYToLocalZoomY ( y );
+    *im = VoxelZToLocalZoomZ ( z );
+    break;
+  }
+
+  // here test upper bounds as the window dim * local zoom, because it's okay
+  // if we get a screen pt out of the window - the calling function will have
+  // to make sure not to draw it.the bounds here represent our larger
+  // 'virtual' screen.
+  /* TODO - lower bounds are wrong
+  if ( *j < 0 || *i < 0 || *im < 0 ||
+       *j >= xdim*gLocalZoom || *i >= ydim*gLocalZoom || *im >= xdim*gLocalZoom ) {
+    fprintf ( stderr, "!!! VoxelToScreen: converted pts out of bounds: (%d, %d, %d) -> (%d, %d, %d)\n", x, y, z, *j, *i, *im );
+    return;
+  }
+  */
+}
+
+inline int VoxelXToScreenX ( int x ) {
+  return ( x * zf ); }
+
+inline int VoxelXToLocalZoomX ( int x ) {
+  return ( gLocalZoom * zf * (x - gCenterX) ) + (xdim/2); }
+
+inline int VoxelYToScreenY ( int y ) {
+  return ( (ydim - 1) - (zf * y) ); }
+
+inline int VoxelYToLocalZoomY ( int y ) {
+  return (ydim-1) - ( gLocalZoom * zf * (y - gCenterY) ) - (ydim/2); }
+
+inline int VoxelZToScreenZ ( int z ) {
+  return ( z * zf ); }
+
+inline int VoxelZToLocalZoomZ ( int z ) {
+  return ( gLocalZoom * zf * (z - gCenterZ) ) + (xdim/2); }
+
+
+int TclVoxelToScreen ( ClientData inClientData, Tcl_Interp * inInterp,
+                       int argc, char ** argv ) {
+
+  int j, i, im, x, y, z, plane;
+  char theNumStr[10];
+  
+  // check the number of args.
+  if ( argc != 5 ) {
+    inInterp->result = "Wrong # of args: VoxelToScreen j i im plane";
+    return TCL_ERROR;
+  }
+
+  // pull the input out.
+  x = atoi ( argv[1] );
+  y = atoi ( argv[2] );
+  z = atoi ( argv[3] );
+  plane = atoi ( argv[4] );
+
+  // run the function.
+  VoxelToScreen ( x, y, z, plane, &j, &i, &im );
+
+  // copy the input into the result string.
+  sprintf ( theNumStr, "%d", j );
+  Tcl_AppendElement ( interp, theNumStr );
+  sprintf ( theNumStr, "%d", i );
+  Tcl_AppendElement ( interp, theNumStr );
+  sprintf ( theNumStr, "%d", im );
+  Tcl_AppendElement ( interp, theNumStr );
+
+  return TCL_OK;
+}
+
+
+
+                                       /* returns whether or not screen 
+                                          coords are in window bounds */
+inline
+char ScreenPtInWindow ( int j, int i, int im ){   // in screen coords
+
+  if ( j < 0 || i < 0 || im < 0 ||
+       j >= xdim || i >= xdim || im >= xdim )
+    return FALSE;
+
+  return TRUE;
 }
 
 void RASToVoxel ( Real x, Real y, Real z,        // incoming ras coords
@@ -7946,7 +8399,7 @@ void DrawCrosshairInBuffer ( char * inBuffer,       // the buffer
 
   // same thing down the y line...
   for ( y = inY - inSize; y <= inY + inSize; y++ ) {
-    if ( y < 0 || x >= ydim ) 
+    if ( y < 0 || y >= ydim ) 
       continue;
     theBufIndex = 4 * ( y*xdim +inX );
     SetCompositePixelInBuffer ( inBuffer, theBufIndex, inColor );
@@ -8021,6 +8474,74 @@ void SetCompositePixelInBuffer ( char * inBuffer, int inIndex,
 }
 
 
+/* ================================================ Center point utilities */
+                                       /* sets the center voxel point */
+void SetCenterVoxel ( int x, int y, int z ) {
+
+  // check the bounds
+  if ( x < 0 || y < 0 || z < 0 ||
+       x >= xnum || y >= ynum || z >= xnum ) {
+    fprintf ( stderr, "SetCenterVoxel(): Invalid voxel: (%d, %d, %d)\n",
+              x, y, z );
+    return;
+  }
+
+  // set the center
+  gCenterX = x;
+  gCenterY = y;
+  gCenterZ = z;
+
+  // make sure it's in bounds.
+  CheckCenterVoxel ();
+}
+
+                                       /* checks for empty space on the  
+                                          outside of the window with the 
+                                          current center and zoom settings,
+                                          and moves the center inward if
+                                          necessary. */
+void CheckCenterVoxel () {
+
+  int theEdge;
+
+  fprintf ( stderr, "Center (%d, %d, %d) -> ",
+            gCenterX, gCenterY, gCenterZ );
+
+  // check left edge.
+  theEdge = gCenterX - (xdim/zf/2/gLocalZoom);
+  if ( theEdge < 0 )
+    gCenterX += 0 - theEdge;
+
+  // check right edge
+  theEdge = gCenterX + (xdim/zf/2/gLocalZoom);
+  if ( theEdge >= xdim/zf )
+    gCenterX -= theEdge - xdim/zf;
+
+  // check top edge.
+  theEdge = gCenterY - (ydim/zf/2/gLocalZoom);
+  if ( theEdge < 0 )
+    gCenterY += 0 - theEdge;
+
+  // check bottom edge
+  theEdge = gCenterY + (ydim/zf/2/gLocalZoom);
+  if ( theEdge >= ydim/zf )
+    gCenterY -= theEdge - ydim/zf;
+
+  // check the z edge.
+  theEdge = gCenterZ - (xdim/zf/2/gLocalZoom);
+  if ( theEdge < 0 )
+    gCenterZ += 0 - theEdge;
+
+  // check the other z edge
+  theEdge = gCenterZ + (xdim/zf/2/gLocalZoom);
+  if ( theEdge >= xdim/zf )
+    gCenterZ -= theEdge - xdim/zf;
+
+  fprintf ( stderr, "(%d, %d, %d)\n",
+            gCenterX, gCenterY, gCenterZ );
+}
+
+
 /* ===================================================== General utilities */
 
 
@@ -8031,7 +8552,7 @@ void PrintScreenPointInformation ( int j, int i, int ic ) {
   int thePixelValue;
 
   // get the voxel coords
-  ScreenToVoxel ( j, i, ic, &theVoxX, &theVoxY, &theVoxZ );
+  ScreenToVoxel ( plane, j, i, ic, &theVoxX, &theVoxY, &theVoxZ );
 
   // grab the value and print it
   thePixelValue = im[theVoxZ][theVoxY][theVoxX];
