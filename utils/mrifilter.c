@@ -3517,7 +3517,75 @@ MRIcomputeClassStatistics(MRI *mri_T1, MRI *mri_labeled, float gray_low,
   return(NO_ERROR) ;
 }
 
-MRI *MRImodeFilter(MRI *mri_src, MRI *mri_dst, int niter) ;
+MRI *
+MRIthreshModeFilter(MRI *mri_src, MRI *mri_dst, int niter, float thresh)
+{
+  int   x, y, z, n, width, height, depth, histo[256], xk, yk, zk, 
+        xi, yi, zi, val, i, max_histo, max_i, changed, orig_label ;
+
+  mri_src = MRIcopy(mri_src, NULL) ;  /* make a copy we can modify */
+
+  if (!mri_dst)
+    mri_dst = MRIclone(mri_src, NULL) ;
+  MRIcopy(mri_src, mri_dst) ;
+
+  width = mri_src->width ; height = mri_src->height ; depth = mri_src->depth;
+
+  for (n = 0 ; n < niter ; n++)
+  {
+    changed = 0 ;
+    for (z = 0 ; z < depth ; z++)
+    {
+      for (y = 0 ; y < height ; y++)
+      {
+        for (x = 0 ; x < width; x++)
+        {
+          memset(histo, 0, sizeof(histo)) ;
+          orig_label = MRIvox(mri_src, x, y, z) ;
+          for (zk = -1 ; zk <= 1 ; zk++)
+          {
+            zi = mri_src->zi[z+zk] ;
+            for (yk = -1 ; yk <= 1 ; yk++)
+            {
+              yi = mri_src->yi[y+yk] ;
+              for (xk = -1 ; xk <= 1 ; xk++)
+              {
+                xi = mri_src->xi[x+xk] ;
+                val = MRIvox(mri_src, xi, yi, zi) ;
+                histo[val]++ ;
+              }
+            }
+          }
+          for (max_histo = max_i = i = 0 ; i < 256 ; i++)
+          {
+            if (histo[i] > max_histo)
+            {
+              max_histo = histo[i] ; max_i = i ;
+            }
+          }
+          if (max_i == orig_label)
+            continue ;  /* current label is already mode of histogram */
+
+          if ((((float)max_histo / (3*3*3)) >= thresh) ||
+              ((float)histo[orig_label]/(3*3*3) < (1-thresh)))
+          {
+            changed++ ;
+            MRIvox(mri_dst, x, y, z) = max_i ;
+          }
+        }
+      }
+    }
+    if (Gdiag & DIAG_SHOW)
+      fprintf(stderr, "mode filter pass %d:  %8d voxels changed (%2.2f%%)\n",
+              n,changed, 100.0f*(float)changed/ (float)(width*height*depth));
+    if (n < niter-1)
+      MRIcopy(mri_dst, mri_src) ;
+  }
+
+  MRIfree(&mri_src) ;
+
+  return(mri_dst) ;
+}
 
 MRI *
 MRImodeFilter(MRI *mri_src, MRI *mri_dst, int niter)
