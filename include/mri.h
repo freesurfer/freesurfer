@@ -136,8 +136,11 @@ MRI   *MRIabs(MRI *mri, MRI *mri_dst) ;
 MRI   *MRIscalarMul(MRI *mri_src, MRI *mri_dst, float scalar) ;
 
 /* filtering */
+MRI   *MRIcentralPlaneOfLeastVarianceNormal(MRI *mri_src, MRI *mri_dst, 
+                                            int wsize);
 MRI   *MRIplaneOfLeastVarianceNormal(MRI *mri_src, MRI *mri_dst, int wsize) ;
 MRI   *MRIpolvMean(MRI *mri_src, MRI *mri_dst, MRI *mri_polv, int wsize) ;
+MRI   *MRIpolvMedian(MRI *mri_src, MRI *mri_dst, MRI *mri_polv, int wsize) ;
 
 MRI   *MRIsobel(MRI *mri_src, MRI *mri_grad, MRI *mri_mag);
 MRI   *MRIxSobel(MRI *mri_src, MRI *mri_x, int frame) ;
@@ -276,7 +279,7 @@ IMAGE *MRItoImageView(MRI *mri, IMAGE *I, int slice, int view, int frame) ;
 #define MRI_AXIAL       MRI_HORIZONTAL
 
 /* vertices of an icasohedron (sp?), used by all POLV functions */
-#define NVERTICES    21
+#define NVERTICES    22
 extern float ic_x_vertices[]  ;
 extern float ic_y_vertices[]  ;
 extern float ic_z_vertices[]  ;
