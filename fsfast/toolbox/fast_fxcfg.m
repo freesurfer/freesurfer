@@ -56,7 +56,7 @@ function rt = fast_fxcfg(DoWhat,thing)
 % fast_fxcfg_poly, fast_fxcfg_fir, fast_fxcfg_extreg, fast_fxcfg_gamma
 %
 %
-% $Id: fast_fxcfg.m,v 1.5 2003/05/22 03:37:47 greve Exp $
+% $Id: fast_fxcfg.m,v 1.6 2003/08/07 06:57:33 greve Exp $
 
 % Things to do:
 %   nregressorstot - total number of regressors
@@ -226,7 +226,7 @@ if(isempty(flacfg.sesscfg))
 end
 nruns = length(flacfg.sesscfg.ntp);
 if(flacfg.nthrun < 1 | flacfg.nthrun > nruns)
-  fprintf('ERROR: nthrun=%d, out of range\n');
+  fprintf('ERROR: get_ntp: nthrun=%d, out of range\n');
   return;
 end
 
@@ -241,20 +241,20 @@ evsch = [];
 % Check here to make sure model is erm?
 
 if(isempty(flacfg.nthrun))
-  fprintf('ERROR: nthrun is empty\n');
+  fprintf('ERROR: get_evsch: nthrun is empty\n');
   return;
 end
 if(isempty(flacfg.sesscfg))
-  fprintf('ERROR: sesscfg is empty\n');
+  fprintf('ERROR: get_evsch: sesscfg is empty\n');
   return;
 end
 if(isempty(flacfg.sesscfg.evschlist))
-  fprintf('ERROR: flacfg.sesscfg.evschlist is empty\n');
+  fprintf('ERROR: get_evsch: flacfg.sesscfg.evschlist is empty\n');
   return;
 end
 nruns = length(flacfg.sesscfg.evschlist);
 if(flacfg.nthrun < 1 | flacfg.nthrun > nruns)
-  fprintf('ERROR: nthrun=%d, out of range\n');
+  fprintf('ERROR: get_evsch: nthrun=%d, out of range\n',flacfg.nthrun);
   return;
 end
 
@@ -287,7 +287,7 @@ if(isempty(flacfg.sesscfg.runweight))
 end
 nruns = length(flacfg.sesscfg.runweight);
 if(flacfg.nthrun < 1 | flacfg.nthrun > nruns)
-  fprintf('ERROR: nthrun=%d, out of range\n');
+  fprintf('ERROR: get_runweight: nthrun=%d, out of range\n',flacfg.nthrun);
   return;
 end
 
@@ -446,7 +446,7 @@ if(isempty(flacfg.sesscfg.evschlist))
 end
 nruns = length(flacfg.sesscfg.evschlist);
 if(flacfg.nthrun < 1 | flacfg.nthrun > nruns)
-  fprintf('ERROR: nthrun=%d, out of range\n');
+  fprintf('ERROR: get_itpx: nthrun=%d, out of range\n',flacfg.nthrun);
   return;
 end
 
