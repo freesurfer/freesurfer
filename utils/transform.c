@@ -1401,6 +1401,7 @@ TransformSample(TRANSFORM *transform, int xv, int yv, int zv, float *px, float *
   float           xt, yt, zt ;
   LTA             *lta ;
   GCA_MORPH       *gcam ;
+  int errCode = NO_ERROR;
 
   *px = *py = *pz = 0 ;
   if (transform->type == MORPH_3D_TYPE)
@@ -1452,7 +1453,8 @@ TransformSample(TRANSFORM *transform, int xv, int yv, int zv, float *px, float *
     }
   }
   *px = xt ; *py = yt ; *pz = zt ;
-  return(NO_ERROR) ;
+
+  return errCode ;
 }
 /*
   take a voxel in gca/gcamorph space and find the MRI voxel to which
@@ -1468,6 +1470,7 @@ TransformSampleInverse(TRANSFORM *transform, int xv, int yv, int zv, float *px, 
   LTA            *lta ;
   GCA_MORPH      *gcam ;
   GCA_MORPH_NODE *gcamn ;
+  int errCode = NO_ERROR;
 
   if (transform->type == MORPH_3D_TYPE)
   {
@@ -1480,7 +1483,10 @@ TransformSampleInverse(TRANSFORM *transform, int xv, int yv, int zv, float *px, 
     if (zn >= gcam->depth)
       yn = gcam->depth-1 ;
     gcamn = &gcam->nodes[xn][yn][zn] ;
-    xt = gcamn->x ; yt = gcamn->y ; zt = gcamn->z ; 
+    xt = gcamn->x ; yt = gcamn->y ; zt = gcamn->z ;
+    // if marked invalid, then return error
+    if (gcamn->invalid)
+      errCode=ERROR_BADPARM;
   }
   else
   {
@@ -1505,27 +1511,59 @@ TransformSampleInverse(TRANSFORM *transform, int xv, int yv, int zv, float *px, 
     MatrixMultiply(lta->inv_xforms[0].m_L, v_canon, v_input) ;
 #endif
     xt = V3_X(v_input) ; yt = V3_Y(v_input) ; zt = V3_Z(v_input) ; 
+    // here I cannot get access to width, height, depth values
+    // thus I cannot judge the point is good or bad
+    // errCode remains to be valid
   }
   *px = xt ; *py = yt ; *pz = zt ;
-  return(NO_ERROR) ;
+
+  return errCode ;
 }
+
 int
 TransformSampleInverseVoxel(TRANSFORM *transform, int width, int height, int depth,
                             int xv, int yv, int zv, 
                             int *px, int *py, int *pz)
 {
   float   xf, yf, zf ;
+  int errCode = NO_ERROR;
 
-  TransformSampleInverse(transform, xv, yv, zv, &xf, &yf, &zf) ;
+  errCode = TransformSampleInverse(transform, xv, yv, zv, &xf, &yf, &zf) ;
+
   xv = nint(xf) ; yv = nint(yf); zv = nint(zf);
-  if (xv < 0) xv = 0 ;
-  if (xv >= width) xv = width-1 ;
-  if (yv < 0) yv = 0 ;
-  if (yv >= height) yv = height-1 ;
-  if (zv < 0) zv = 0 ;
-  if (zv >= depth) zv = depth-1 ;
+  if (xv < 0) 
+  {
+    errCode = ERROR_BADPARM;
+    xv =0; 
+  }
+  if (xv >= width) 
+  {
+    errCode = ERROR_BADPARM;
+    xv = width-1 ;
+  }
+  if (yv < 0)
+  {
+    errCode = ERROR_BADPARM;
+    yv = 0 ;
+  }
+  if (yv >= height)
+  {
+    errCode = ERROR_BADPARM;
+    yv = height-1 ;
+  }
+  if (zv < 0)
+  {
+    errCode = ERROR_BADPARM;
+    zv = 0 ;
+  }
+  if (zv >= depth)
+  {
+    errCode = ERROR_BADPARM;
+    zv = depth-1 ;
+  }
   *px = xv ; *py = yv ; *pz = zv ;
-  return(NO_ERROR) ;
+
+  return errCode;
 }
 
 
