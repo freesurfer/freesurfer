@@ -44,12 +44,52 @@ static char MIfspace[] = "frame space" ;
 
 static void buffer_to_image(BUFTYPE *buf, MRI *mri, int slice) ;
 static void image_to_buffer(BUFTYPE *buf, MRI *mri, int slice) ;
-static MRI *mncRead(char *fname, int read_volume) ;
-static int mncWrite(MRI *mri, char *fname) ;
+static MRI *mncRead(char *fname, int read_volume, int frame) ;
+static int mncWrite(MRI *mri, char *fname, int frame) ;
 
 /*-----------------------------------------------------
                     GLOBAL FUNCTIONS
 -------------------------------------------------------*/
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+int
+MRIunpackFileName(char *inFname, int *pframe, int *ptype, char *outFname)
+{
+  char *number, *dot, buf[100] ;
+
+  strcpy(outFname, inFname) ;
+  number = strrchr(outFname, '#') ;
+  dot = strrchr(outFname, '.') ;
+
+  if (number)   /* '#' in filename indicates frame # */
+  {
+    if (sscanf(number+1, "%d", pframe) < 1)
+      *pframe = -1 ;
+    *number = 0 ;
+  }
+  else
+    *pframe = -1 ;
+
+  if (dot)
+  {
+    dot = StrUpper(strcpy(buf, dot+1)) ;
+    if (!strcmp(dot, "MNC"))
+      *ptype = MRI_MINC_FILE ;
+    else if (!strcmp(dot, "MINC"))
+      *ptype = MRI_MINC_FILE ;
+    else
+      *ptype = MRI_CORONAL_SLICE_DIRECTORY ;
+  }
+  else
+    *ptype = MRI_CORONAL_SLICE_DIRECTORY ;
+
+  return(NO_ERROR) ;
+}
 /*-----------------------------------------------------
         Parameters:
 
@@ -100,16 +140,16 @@ MRI *
 MRIread(char *fpref)
 {
   MRI     *mri ;
-  int     slice, row, type ;
+  int     slice, row, type, frame ;
   char    fname[2*STR_LEN] ;
   long    bytes ;
   BUFTYPE *buf ;   /* tmp space to read in whole buffer */
   FILE    *fp ;
 
-  type = MRIfileType(fpref) ;
+  MRIunpackFileName(fpref, &frame, &type, fname) ;
   if (type == MRI_MINC_FILE)
   {
-    mri = mncRead(fpref, 1) ;
+    mri = mncRead(fname, 1, frame) ;
     if (!mri)
       return(NULL) ;
   }
@@ -193,13 +233,13 @@ MRIreadInfo(char *fpref)
   MRI     *mri ;
   FILE    *fp;
   char    cmd[100], fname[200];
-  int     imnr0, imnr1, width, height, depth, ptype, type ;
+  int     imnr0, imnr1, width, height, depth, ptype, type, frame ;
 
 
-  type = MRIfileType(fpref) ;
+  MRIunpackFileName(fpref, &frame, &type, fname) ;
   if (type == MRI_MINC_FILE)
   {
-    mri = mncRead(fpref, 0) ;
+    mri = mncRead(fname, 0, frame) ;
     if (!mri)
       return(NULL) ;
   }
@@ -294,15 +334,15 @@ MRIreadInfo(char *fpref)
 int
 MRIwrite(MRI *mri, char *fpref)
 {
-  int      slice, type ;
+  int      slice, type, frame ;
   BUFTYPE  *buf ;
   long     bytes ;
   char     fname[2*STR_LEN] ;
   FILE     *fp ;
 
-  type = MRIfileType(fpref) ;
+  MRIunpackFileName(fpref, &frame, &type, fname) ;
   if (type == MRI_MINC_FILE)
-    return(mncWrite(mri, fpref)) ;
+    return(mncWrite(mri, fname, frame)) ;
 
   MRIwriteInfo(mri, fpref) ;
   bytes = (long)mri->width * (long)mri->height ;
@@ -442,11 +482,11 @@ MRIfileType(char *fname)
         Description
 ------------------------------------------------------*/
 MRI *
-MRIfromVolume(Volume volume)
+MRIfromVolume(Volume volume, int start_frame, int end_frame)
 {
   MRI   *mri ;
   int   type, width, height, depth, x, y, z, ystep, y1, ndim, nframes,
-        sizes[4] ;
+        sizes[4], frame ;
   Real  separations[4] ;
 
 /*
@@ -463,19 +503,24 @@ MRIfromVolume(Volume volume)
     nframes = sizes[3] ;
   else
     nframes = 1 ;
+  if (start_frame < 0)
+    start_frame = 0 ;
+  if (end_frame >= nframes)
+    end_frame = nframes - 1 ;
+
   width = sizes[0] ;
   height = sizes[2] ;
   depth = sizes[1] ;
   get_volume_separations(volume, separations) ;
   ystep = nint(separations[2]) ;
-  switch (volume->array.data_type)
+  switch (volume->nc_data_type)
   {
   case NC_BYTE:  type = MRI_UCHAR ; break ;
   case NC_FLOAT: type = MRI_FLOAT ; break ;
   default:  
     ErrorReturn(NULL, 
                 (ERROR_UNSUPPORTED, "mncRead: unsupported MNC type %d",
-                 volume->array.data_type)) ;
+                 volume->nc_data_type)) ;
     break ;
   }
   if (volume_is_alloced(volume))
@@ -489,35 +534,49 @@ MRIfromVolume(Volume volume)
   if (volume_is_alloced(volume)) switch (type)
   {
   case MRI_UCHAR:
-    for (z = 0 ; z < depth ; z++)
+    for (frame = start_frame ; frame <= end_frame ; frame++)
     {
-      for (y = 0 ; y < height ; y++)
+      for (z = 0 ; z < depth ; z++)
       {
-        if (ystep < 0)
-          y1 = y ;
-        else
-          y1 = height - y - 1 ;
-        for (x = 0 ; x < width ; x++)
+        for (y = 0 ; y < height ; y++)
         {
-          MRIvox(mri, x, y1, z) = 
-            GET_MULTIDIM_TYPE_3D(volume->array, BUFTYPE, x, z, y) ;
+          if (ystep < 0)
+            y1 = y ;
+          else
+            y1 = height - y - 1 ;
+          for (x = 0 ; x < width ; x++)
+          {
+            if (ndim <= 3)
+              MRIvox(mri, x, y1, z) = 
+                GET_MULTIDIM_TYPE_3D(volume->array, BUFTYPE, x, z, y) ;
+            else
+              MRIseq_vox(mri, x, y1, z, frame-start_frame) = 
+                GET_MULTIDIM_TYPE_4D(volume->array, BUFTYPE, x, z, y, frame) ;
+          }
         }
       }
     }
     break ;
   case MRI_FLOAT:
-    for (z = 0 ; z < depth ; z++)
+    for (frame = start_frame ; frame <= end_frame ; frame++)
     {
-      for (y = 0 ; y < height ; y++)
+      for (z = 0 ; z < depth ; z++)
       {
-        if (ystep < 0)
-          y1 = y ;
-        else
-          y1 = height - y - 1 ;
-        for (x = 0 ; x < width ; x++)
+        for (y = 0 ; y < height ; y++)
         {
-          MRIFvox(mri, x, y1, z) = 
-            GET_MULTIDIM_TYPE_3D(volume->array, float, x, z, y) ;
+          if (ystep < 0)
+            y1 = y ;
+          else
+            y1 = height - y - 1 ;
+          for (x = 0 ; x < width ; x++)
+          {
+            if (ndim <= 3)
+              MRIFvox(mri, x, y1, z) = 
+                GET_MULTIDIM_TYPE_3D(volume->array, float, x, z, y) ;
+            else
+              MRIFseq_vox(mri, x, y1, z, frame-start_frame) = 
+                GET_MULTIDIM_TYPE_4D(volume->array, float, x, z, y, frame) ;
+          }
         }
       }
     }
@@ -559,19 +618,17 @@ MRItoVolume(MRI *mri)
 {
   Volume        volume ;
   int           ndim, width, height, depth, type, sgned, x, y, z,
-                sizes[4], y1 ;
+                sizes[4], y1, frame ;
   char          *dim_names[4] ;
   Real          separations[4], voxel[4], world_vox[4] ;
   
   if (mri->slice_direction != MRI_CORONAL)
     ErrorReturn(NULL, 
-                (ERROR_UNSUPPORTED,"mncWrite: unsupported slice direction %d", 
-                mri->slice_direction)) ;
+                (ERROR_UNSUPPORTED,
+                 "MRItoVolume: unsupported slice direction %d", 
+                 mri->slice_direction)) ;
 
-  if (mri->nframes > 1)
-    ndim = 4 ;
-  else
-    ndim = 3 ;
+  ndim = 4 ;   /* 3 spatial plus one for multiple frames */
 
   dim_names[0] = MIyspace ;
   dim_names[1] = MIzspace ;
@@ -587,7 +644,7 @@ MRItoVolume(MRI *mri)
   case MRI_FLOAT: type = NC_FLOAT ; sgned = 1 ; break ;
   default:
     ErrorReturn(NULL, 
-                (ERROR_UNSUPPORTED, "mncWrite: unsupported MRI type %d",
+                (ERROR_UNSUPPORTED, "MRItoVolume: unsupported MRI type %d",
                  mri->type)) ;
     break ;
   }
@@ -623,35 +680,41 @@ MRItoVolume(MRI *mri)
   switch (type)
   {
   case NC_BYTE:
-    for (z = 0 ; z < depth ; z++)
+    for (frame = 0 ; frame < mri->nframes ; frame++)
     {
-      for (y = 0 ; y < height ; y++)
+      for (z = 0 ; z < depth ; z++)
       {
-        if (mri->yinvert)
-          y1 = height - y - 1 ;
-        else
-          y1 = y ;
-        for (x = 0 ; x < width ; x++)
+        for (y = 0 ; y < height ; y++)
         {
-          GET_MULTIDIM_TYPE_3D(volume->array, BUFTYPE, z, y, x) =
-            MRIvox(mri, x, y1, z) ; 
+          if (mri->yinvert)
+            y1 = height - y - 1 ;
+          else
+            y1 = y ;
+          for (x = 0 ; x < width ; x++)
+          {
+            GET_MULTIDIM_TYPE_4D(volume->array, BUFTYPE, z, y, x, frame) =
+              MRIseq_vox(mri, x, y1, z, frame) ; 
+          }
         }
       }
     }
     break ;
   case NC_FLOAT:
-    for (z = 0 ; z < depth ; z++)
+    for (frame = 0 ; frame < mri->nframes ; frame++)
     {
-      for (y = 0 ; y < height ; y++)
+      for (z = 0 ; z < depth ; z++)
       {
-        if (mri->yinvert)
-          y1 = height - y - 1 ;
-        else
-          y1 = y ;
-        for (x = 0 ; x < width ; x++)
+        for (y = 0 ; y < height ; y++)
         {
-          GET_MULTIDIM_TYPE_3D(volume->array, float, x, z, y) =
-            MRIFvox(mri, x, y1, z) ;
+          if (mri->yinvert)
+            y1 = height - y - 1 ;
+          else
+            y1 = y ;
+          for (x = 0 ; x < width ; x++)
+          {
+            GET_MULTIDIM_TYPE_4D(volume->array, float, x, z, y, frame) =
+              MRIFseq_vox(mri, x, y1, z, frame) ;
+          }
         }
       }
     }
@@ -725,12 +788,12 @@ buffer_to_image(BUFTYPE *buf, MRI *mri, int slice)
            header.
 ------------------------------------------------------*/
 static MRI *
-mncRead(char *fname, int read_volume)
+mncRead(char *fname, int read_volume, int frame)
 {
   MRI                 *mri ;
   char                *dim_names[4] ;
   Volume              volume ;
-  int                 error ;
+  int                 error, start_frame, end_frame ;
   volume_input_struct input_info ;
 
   dim_names[0] = MIxspace ;
@@ -747,7 +810,14 @@ mncRead(char *fname, int read_volume)
   if (error)
     return(NULL) ;
 
-  mri = MRIfromVolume(volume) ;
+  if (frame < 0)
+  {
+    start_frame = 0 ;
+    end_frame = 0 ;
+  }
+  else
+    start_frame = end_frame = frame ;
+  mri = MRIfromVolume(volume, start_frame, end_frame) ;
   strncpy(mri->fname, fname, STR_LEN-1) ;
   delete_volume(volume) ;
   return(mri) ;
@@ -760,11 +830,19 @@ mncRead(char *fname, int read_volume)
         Description
 ------------------------------------------------------*/
 static int
-mncWrite(MRI *mri, char *fname)
+mncWrite(MRI *mri, char *fname, int frame)
 {
   Volume        volume ;
-  int           type, sgned, error ;
-  
+  int           type, sgned, error, start_frame, end_frame ;
+
+  if (frame < 0)
+  {
+    start_frame = 0 ;
+    end_frame = mri->nframes-1 ;
+  }
+  else
+    start_frame = end_frame = frame ;
+
   if (mri->slice_direction != MRI_CORONAL)
     ErrorReturn(ERROR_UNSUPPORTED, 
                 (ERROR_UNSUPPORTED,"mncWrite: unsupported slice direction %d", 
