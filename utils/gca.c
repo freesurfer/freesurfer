@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/01/12 23:27:23 $
-// Revision       : $Revision: 1.84 $
+// Revision Date  : $Date: 2004/01/13 15:51:33 $
+// Revision       : $Revision: 1.85 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -173,6 +173,9 @@ void GCAcleanup()
 // set up mri's used in GCA
 void GCAsetup(GCA *gca)
 {
+  MATRIX *mnode;
+  MATRIX *mtal;
+  MATRIX *mprior;
   // set up node part ////////////////////////////////////////////////////////////////
   if (mri_node__)
   {
@@ -194,7 +197,7 @@ void GCAsetup(GCA *gca)
   mri_node__->zsize = gca->node_spacing;
 
   fprintf(stderr, "node voxelToRAS\n");
-  MATRIX *mnode = extract_i_to_r(mri_node__);
+  mnode = extract_i_to_r(mri_node__);
   MatrixPrint(stderr, mnode);
   MatrixFree(&mnode);
 
@@ -219,7 +222,7 @@ void GCAsetup(GCA *gca)
   mri_prior__->zsize = gca->prior_spacing;
 
   fprintf(stderr, "prior voxelToRAS\n");
-  MATRIX *mprior = extract_i_to_r(mri_prior__);
+  mprior = extract_i_to_r(mri_prior__);
   MatrixPrint(stderr, mprior);
   MatrixFree(&mprior);
   
@@ -244,7 +247,7 @@ void GCAsetup(GCA *gca)
   mri_tal__->zsize = gca->zsize;
 
   fprintf(stderr, "tal voxelToRAS\n");
-  MATRIX *mtal = extract_i_to_r(mri_tal__);
+  mtal = extract_i_to_r(mri_tal__);
   MatrixPrint(stderr, mtal);
   MatrixFree(&mtal);
 
