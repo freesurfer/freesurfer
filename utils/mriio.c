@@ -62,13 +62,24 @@ extern void swab(const void *from, void *to, size_t n);
 #endif
 
 static MATRIX *MRIxfmCRS2XYZ(MRI *mri, int base);
+static int NormalizeVector(float *v, int n);
 
 static MRI *mri_read(char *fname, int type, int volume_flag, int start_frame, int end_frame);
 static MRI *corRead(char *fname, int read_volume);
 static int corWrite(MRI *mri, char *fname);
 static MRI *siemensRead(char *fname, int read_volume);
+
 static MRI *mincRead(char *fname, int read_volume);
 static int mincWrite(MRI *mri, char *fname);
+static MRI *mincRead2(char *fname, int read_volume);
+static int mincWrite2(MRI *mri, char *fname);
+static int GetMINCInfo(MRI *mri, 
+           char *dim_names[4], 
+           int   dim_sizes[4], 
+           Real separations[4],
+           Real dircos[3][3],
+           Real VolCenterVox[3],
+           Real VolCenterWorld[3]);
 
 static int bvolumeWrite(MRI *vol, char *fname_passed, int type);
 //static int bshortWrite(MRI *mri, char *fname_passed);
@@ -363,6 +374,7 @@ static MRI *mri_read(char *fname, int type, int volume_flag, int start_frame, in
   }
   else if(type == MRI_MINC_FILE)
   {
+    //mri = mincRead2(fname_copy, volume_flag);
     mri = mincRead(fname_copy, volume_flag);
   }
   else if(type == SDT_FILE)
@@ -579,6 +591,7 @@ int MRIwriteType(MRI *mri, char *fname, int type)
   }
   else if(type == MRI_MINC_FILE)
   {
+    //error = mincWrite2(mri, fname);
     error = mincWrite(mri, fname);
   }
   else if(type == BSHORT_FILE)
@@ -1521,7 +1534,7 @@ br = (slice_in_mosaic - bc) / mos_r;
   return(mri);
 
 } /* end siemensRead() */
-
+/*-----------------------------------------------------------*/
 static MRI *mincRead(char *fname, int read_volume)
 {
 
@@ -1541,55 +1554,54 @@ static MRI *mincRead(char *fname, int read_volume)
   float xfov, yfov, zfov;
   Real f;
   BOOLEAN sflag = TRUE ;
+  Transform *pVox2WorldLin;
+  General_transform *pVox2WorldGen;
 
   /* ----- read the volume ----- */
-  dim_names[0] = MIxspace;
+  dim_names[0] = MIzspace;
   dim_names[1] = MIyspace;
-  dim_names[2] = MIzspace;
+  dim_names[2] = MIxspace;
   dim_names[3] = MItime;
 
   if(!FileExists(fname))
   {
     errno = 0;
-    ErrorReturn(NULL, (ERROR_BADFILE, "mincRead(): can't find file %s", fname));
+    ErrorReturn(NULL, (ERROR_BADFILE, 
+           "mincRead(): can't find file %s", fname));
   }
 
   status = start_volume_input(fname, 0, dim_names, NC_UNSPECIFIED, 0, 0, 0, 
             TRUE, &vol, NULL, &input_info);
 
-  if (Gdiag & DIAG_VERBOSE_ON && DIAG_SHOW)
-  {
+  if (Gdiag & DIAG_VERBOSE_ON && DIAG_SHOW){
     printf("status = %d\n", status);
     printf("n_dimensions = %d\n", get_volume_n_dimensions(vol));
     printf("nc_data_type = %d\n", vol->nc_data_type);
   }
-/**/
 
-  if(status != OK)
-  {
+  if(status != OK){
     errno = 0;
-    ErrorReturn(NULL, (ERROR_BADPARM, "mincRead(): error reading volume from file %s", fname));
+    ErrorReturn(NULL, (ERROR_BADPARM, "mincRead(): error reading "
+           "volume from file %s", fname));
   }
 
   /* ----- check the number of dimensions ----- */
   ndims = get_volume_n_dimensions(vol);
-  if(ndims != 3 && ndims != 4)
-  {
+  if(ndims != 3 && ndims != 4){
     errno = 0;
-    ErrorReturn(NULL, (ERROR_BADPARM, "mincRead(): %d dimensions in file; expecting 3 or 4", ndims));
+    ErrorReturn(NULL, (ERROR_BADPARM, "mincRead(): %d dimensions "
+           "in file; expecting 3 or 4", ndims));
   }
 
   /* ----- get the dimension sizes ----- */
   get_volume_sizes(vol, dim_sizes);
 
   /* --- one time point if there are only three dimensions in the file --- */
-  if(ndims == 3)
-    dim_sizes[3] = 1;
+  if(ndims == 3) dim_sizes[3] = 1;
 
-/*
-printf("%d, %d, %d, %d, %d\n", ndims, dim_sizes[0], dim_sizes[1], dim_sizes[2], dim_sizes[3]);
-printf("%d\n", vol->nc_data_type);
-*/
+  printf("DimSizes: %d, %d, %d, %d, %d\n", ndims, dim_sizes[0], 
+   dim_sizes[1], dim_sizes[2], dim_sizes[3]);
+  printf("DataType: %d\n", vol->nc_data_type);
 
   dtype = get_volume_nc_data_type(vol, &sflag) ;
   dtype = orderIntBytes(vol->nc_data_type) ;
@@ -1606,14 +1618,15 @@ printf("%d\n", vol->nc_data_type);
   else
   {
     errno = 0;
-    ErrorReturn(NULL, (ERROR_BADPARM, "mincRead(): bad data type (%d) in input file %s", vol->nc_data_type, fname));
+    ErrorReturn(NULL, (ERROR_BADPARM, "mincRead(): bad data type "
+           "(%d) in input file %s", vol->nc_data_type, fname));
   }
 
   /* ----- allocate the mri structure ----- */
   if(read_volume)
-    mri = MRIallocSequence(dim_sizes[0], dim_sizes[1], dim_sizes[2], dtype, dim_sizes[3]);
-  else
-  {
+    mri = MRIallocSequence(dim_sizes[0], dim_sizes[1], dim_sizes[2], 
+         dtype, dim_sizes[3]);
+  else{
     mri = MRIallocHeader(dim_sizes[0], dim_sizes[1], dim_sizes[2], dtype);
     mri->nframes = dim_sizes[3];
   }
@@ -1638,16 +1651,13 @@ printf("%d\n", vol->nc_data_type);
   mri->z_a = vol->direction_cosines[2][1];  
   mri->z_s = vol->direction_cosines[2][2];
 
-  if(separations[0] < 0)
-  {
+  if(separations[0] < 0){
     mri->x_r = -mri->x_r;  mri->x_a = -mri->x_a;  mri->x_s = -mri->x_s;
   }
-  if(separations[1] < 0)
-  {
+  if(separations[1] < 0){
     mri->y_r = -mri->y_r;  mri->y_a = -mri->y_a;  mri->y_s = -mri->y_s;
   }
-  if(separations[2] < 0)
-  {
+  if(separations[2] < 0){
     mri->z_r = -mri->z_r;  mri->z_a = -mri->z_a;  mri->z_s = -mri->z_s;
   }
 
@@ -1674,20 +1684,17 @@ printf("%d\n", vol->nc_data_type);
 
   strcpy(mri->fname, fname);
 
+  exit(0);
+
   /* ----- copy the data from the file to the mri structure ----- */
-  if(read_volume)
-  {
+  if(read_volume){
 
     while(input_more_of_volume(vol, &input_info, &f));
 
-    for(i = 0;i < mri->width;i++)
-    {
-      for(j = 0;j < mri->height;j++)
-      {
-        for(k = 0;k < mri->depth;k++)
-        {
-          for(t = 0;t < mri->nframes;t++)
-          {
+    for(i = 0;i < mri->width;i++) {
+      for(j = 0;j < mri->height;j++) {
+        for(k = 0;k < mri->depth;k++) {
+          for(t = 0;t < mri->nframes;t++) {
             val = get_volume_voxel_value(vol, i, j, k, t, 0);
             if(mri->type == MRI_UCHAR)
               MRIseq_vox(mri, i, j, k, t) = (unsigned char)val;
@@ -1703,6 +1710,16 @@ printf("%d\n", vol->nc_data_type);
     }
   }
 
+  pVox2WorldGen = get_voxel_to_world_transform(vol);
+  pVox2WorldLin = get_linear_transform_ptr(pVox2WorldGen);
+  printf("Linear Transform\n");
+  for(i=0;i<4;i++){
+    for(j=0;j<4;j++) printf("%7.4f ",pVox2WorldLin->m[i][j]);
+    printf("\n");
+  }
+  printf("General Transform: %d %d\n",pVox2WorldGen->n_dimensions, 
+   pVox2WorldGen->type);
+
   delete_volume_input(&input_info);
 
   delete_volume(vol);
@@ -1711,6 +1728,495 @@ printf("%d\n", vol->nc_data_type);
 
 } /* end mincRead() */
 
+/*-----------------------------------------------------------*/
+static MRI *mincRead2(char *fname, int read_volume)
+{
+
+  MRI *mri;
+  Volume vol;
+  Status status;
+  char *dim_names[4];
+  int dim_sizes[4];
+  int ndims;
+  int dtype;
+  volume_input_struct input_info;
+  Real separations[4];
+  Real voxel[4];
+  Real worldr, worlda, worlds;
+  Real val;
+  int i, j, k, t;
+  float xfov, yfov, zfov;
+  Real f;
+  BOOLEAN sflag = TRUE ;
+  MATRIX *T;
+  Transform *pVox2WorldLin;
+  General_transform *pVox2WorldGen;
+
+  /* Make sure file exists */
+  if(!FileExists(fname)){
+    errno = 0;
+    ErrorReturn(NULL, (ERROR_BADFILE, 
+           "mincRead(): can't find file %s", fname));
+  }
+
+  /* Specify read-in order */
+  dim_names[0] = MIxspace; /* cols */
+  dim_names[1] = MIzspace; /* rows */
+  dim_names[2] = MIyspace; /* slices */
+  dim_names[3] = MItime;   /* time */
+
+  /* Read the header info into vol. input_info needed for further reads */
+  status = start_volume_input(fname, 0, dim_names, NC_UNSPECIFIED, 0, 0, 0, 
+            TRUE, &vol, NULL, &input_info);
+
+  if (Gdiag & DIAG_VERBOSE_ON && DIAG_SHOW){
+    printf("status = %d\n", status);
+    printf("n_dimensions = %d\n", get_volume_n_dimensions(vol));
+    printf("nc_data_type = %d\n", vol->nc_data_type);
+  }
+
+  if(status != OK){
+    errno = 0;
+    ErrorReturn(NULL, (ERROR_BADPARM, "mincRead(): error reading "
+           "volume from file %s", fname));
+  }
+
+  /* ----- check the number of dimensions ----- */
+  ndims = get_volume_n_dimensions(vol);
+  if(ndims != 3 && ndims != 4){
+    errno = 0;
+    ErrorReturn(NULL, (ERROR_BADPARM, "mincRead(): %d dimensions "
+           "in file; expecting 3 or 4", ndims));
+  }
+
+  /* ----- get the dimension sizes ----- */
+  get_volume_sizes(vol, dim_sizes);
+
+  /* --- one time point if there are only three dimensions in the file --- */
+  if(ndims == 3) dim_sizes[3] = 1;
+
+  dtype = get_volume_nc_data_type(vol, &sflag) ;
+  dtype = orderIntBytes(vol->nc_data_type) ;
+  get_volume_separations(vol, separations);
+
+  for(i=0;i<4;i++) 
+    printf("%d %s %3d  %7.3f %6.4f %6.4f %6.4f \n",
+     i,dim_names[i],dim_sizes[i],separations[i],
+     vol->direction_cosines[i][0],vol->direction_cosines[i][1],
+     vol->direction_cosines[i][2]);
+  printf("DataType: %d\n", vol->nc_data_type);
+
+  /* Translate data type to that of mri structure */
+  switch(vol->nc_data_type){
+  case NC_BYTE:   dtype = MRI_UCHAR; break;
+  case NC_CHAR:   dtype = MRI_UCHAR; break;
+  case NC_SHORT:  dtype = MRI_SHORT; break;
+  case NC_LONG:   dtype = MRI_LONG;  break;
+  case NC_FLOAT:  dtype = MRI_FLOAT; break;
+  case NC_DOUBLE: dtype = MRI_FLOAT; break;
+  default:
+    errno = 0;
+    ErrorReturn(NULL, (ERROR_BADPARM, "mincRead(): bad data type "
+           "(%d) in input file %s", vol->nc_data_type, fname));
+    break;
+  }
+
+  /* ----- allocate the mri structure ----- */
+  if(read_volume)
+    mri = MRIallocSequence(dim_sizes[0], dim_sizes[1], dim_sizes[2], 
+         dtype, dim_sizes[3]);
+  else{
+    mri = MRIallocHeader(dim_sizes[0], dim_sizes[1], dim_sizes[2], dtype);
+    mri->nframes = dim_sizes[3];
+  }
+
+  /* ----- set up the mri structure ----- */
+  get_volume_separations(vol, separations);
+  mri->xsize = fabs(separations[0]); /* xsize = col   resolution */
+  mri->ysize = fabs(separations[1]); /* ysize = row   resolution */
+  mri->zsize = fabs(separations[2]); /* zsize = slice resolution */
+  mri->ps    = mri->xsize;
+  mri->thick = mri->zsize;
+
+  /* column direction cosines */
+  mri->x_r = vol->direction_cosines[0][0];  
+  mri->x_a = vol->direction_cosines[0][1];  
+  mri->x_s = vol->direction_cosines[0][2];
+  
+  /* row direction cosines */
+  mri->y_r = vol->direction_cosines[1][0];  
+  mri->y_a = vol->direction_cosines[1][1];  
+  mri->y_s = vol->direction_cosines[1][2];
+
+  /* slice direction cosines */
+  mri->z_r = vol->direction_cosines[2][0];  
+  mri->z_a = vol->direction_cosines[2][1];  
+  mri->z_s = vol->direction_cosines[2][2];
+
+  if(separations[0] < 0){
+    mri->x_r = -mri->x_r;  mri->x_a = -mri->x_a;  mri->x_s = -mri->x_s;
+  }
+  if(separations[1] < 0){
+    mri->y_r = -mri->y_r;  mri->y_a = -mri->y_a;  mri->y_s = -mri->y_s;
+  }
+  if(separations[2] < 0){
+    mri->z_r = -mri->z_r;  mri->z_a = -mri->z_a;  mri->z_s = -mri->z_s;
+  }
+
+  /* Get center point */
+  voxel[0] = (mri->width  - 1) / 2.0;
+  voxel[1] = (mri->height - 1) / 2.0;
+  voxel[2] = (mri->depth  - 1) / 2.0;
+  voxel[3] = 0.0;
+  convert_voxel_to_world(vol, voxel, &worldr, &worlda, &worlds);
+  mri->c_r = worldr;
+  mri->c_a = worlda;
+  mri->c_s = worlds;
+  printf("Center Voxel: %7.3f %7.3f %7.3f\n",voxel[0],voxel[1],voxel[2]);
+  printf("Center World: %7.3f %7.3f %7.3f\n",mri->c_r,mri->c_a,mri->c_s);
+
+  mri->ras_good_flag = 1;
+
+  mri->xend = mri->xsize * mri->width / 2.0; mri->xstart = -mri->xend;
+  mri->yend = mri->ysize * mri->height/ 2.0; mri->ystart = -mri->yend;
+  mri->zend = mri->zsize * mri->depth / 2.0; mri->zstart = -mri->zend;
+
+  xfov = mri->xend - mri->xstart;
+  yfov = mri->yend - mri->ystart;
+  zfov = mri->zend - mri->zstart;
+
+  mri->fov = ( xfov > yfov ? (xfov > zfov ? xfov : zfov ) : (yfov > zfov ? yfov : zfov ) );
+
+  strcpy(mri->fname, fname);
+
+  T = MRIxfmCRS2XYZ(mri,0);
+  printf("Input Coordinate Transform (CRS2XYZ)-------\n");
+  MatrixPrint(stdout,T);
+  MatrixFree(&T);
+  pVox2WorldGen = get_voxel_to_world_transform(vol);
+  pVox2WorldLin = get_linear_transform_ptr(pVox2WorldGen);
+  printf("MINC Linear Transform ----------------------\n");
+  for(i=0;i<4;i++){
+    for(j=0;j<4;j++) printf("%7.4f ",pVox2WorldLin->m[j][i]);
+    printf("\n");
+  }
+  printf("-------------------------------------------\n");
+
+  /* ----- copy the data from the file to the mri structure ----- */
+  if(read_volume){
+
+    while(input_more_of_volume(vol, &input_info, &f));
+
+    for(i = 0;i < mri->width;i++) {
+      for(j = 0;j < mri->height;j++) {
+        for(k = 0;k < mri->depth;k++) {
+          for(t = 0;t < mri->nframes;t++) {
+            val = get_volume_voxel_value(vol, i, j, k, t, 0);
+      switch(mri->type){
+      case MRI_UCHAR: MRIseq_vox(mri,i,j,k,t) = (unsigned char)val;break;
+      case MRI_SHORT: MRISseq_vox(mri,i,j,k,t) = (short)val;break;
+      case MRI_LONG:  MRILseq_vox(mri,i,j,k,t) = (long)val;break;
+      case MRI_FLOAT: MRIFseq_vox(mri,i,j,k,t) = (float)val;break;
+      }
+          }
+        }
+      }
+    }
+  }
+
+  delete_volume_input(&input_info);
+  delete_volume(vol);
+
+  return(mri);
+
+} /* end mincRead2() */
+/*-----------------------------------------------------------*/
+static int GetMINCInfo(MRI *mri, 
+           char *dim_names[4], 
+           int   dim_sizes[4], 
+           Real separations[4],
+           Real dircos[3][3],
+           Real VolCenterVox[3],
+           Real VolCenterWorld[3])
+{
+  int xspacehit, yspacehit, zspacehit;
+  float col_dc_x, col_dc_y, col_dc_z;
+  float row_dc_x, row_dc_y, row_dc_z;
+  float slc_dc_x, slc_dc_y, slc_dc_z;
+  Real col_dc_sign, row_dc_sign, slc_dc_sign;
+  int err,i,j;
+
+  col_dc_x = fabs(mri->x_r);
+  col_dc_y = fabs(mri->x_a);
+  col_dc_z = fabs(mri->x_s);
+  col_dc_sign = 1;
+
+  row_dc_x = fabs(mri->y_r);
+  row_dc_y = fabs(mri->y_a);
+  row_dc_z = fabs(mri->y_s);
+  row_dc_sign = 1;
+
+  slc_dc_x = fabs(mri->z_r);
+  slc_dc_y = fabs(mri->z_a);
+  slc_dc_z = fabs(mri->z_s);
+  slc_dc_sign = 1;
+
+  xspacehit = 0;
+  yspacehit = 0;
+  zspacehit = 0;
+
+  /* Name the Column Axis */
+  if(col_dc_x >= row_dc_x && col_dc_x >= slc_dc_x){
+    dim_names[0] = MIxspace;
+    VolCenterVox[0] = (mri->width-1)/2.0;
+    if(mri->x_r < 0) col_dc_sign = -1;
+    xspacehit = 1;
+  }
+  else if(col_dc_y >= row_dc_y && col_dc_y >= slc_dc_y){
+    dim_names[0] = MIyspace;
+    VolCenterVox[0] = (mri->height-1)/2.0;
+    if(mri->x_a < 0) col_dc_sign = -1;
+    yspacehit = 1;
+  }
+  else if(col_dc_z >= row_dc_z && col_dc_z >= slc_dc_z){
+    dim_names[0] = MIzspace;
+    VolCenterVox[0] = (mri->depth-1)/2.0;
+    if(mri->x_s < 0) col_dc_sign = -1;
+    zspacehit = 1;
+  }
+
+  /* Name the Row Axis */
+  if(!xspacehit && row_dc_x >= slc_dc_x){
+    dim_names[1] = MIxspace;
+    VolCenterVox[1] = (mri->width-1)/2.0;
+    if(mri->y_r < 0) row_dc_sign = -1;
+    xspacehit = 1;
+  }
+  else if(!yspacehit && row_dc_y >= slc_dc_y){
+    dim_names[1] = MIyspace;
+    VolCenterVox[1] = (mri->height-1)/2.0;
+    if(mri->y_a < 0) row_dc_sign = -1;
+    yspacehit = 1;
+  }
+  else if(!zspacehit && row_dc_z >= slc_dc_z){
+    dim_names[1] = MIzspace;
+    VolCenterVox[1] = (mri->depth-1)/2.0;
+    if(mri->y_s < 0) row_dc_sign = -1;
+    zspacehit = 1;
+  }
+
+  /* Name the Slice Axis */
+  if(!xspacehit){
+    dim_names[2] = MIxspace;
+    VolCenterVox[2] = (mri->width-1)/2.0;
+    if(mri->z_r < 0) slc_dc_sign = -1;
+    xspacehit = 1;
+  }
+  else if(!yspacehit){
+    dim_names[2] = MIyspace;
+    VolCenterVox[2] = (mri->height-1)/2.0;
+    if(mri->z_a < 0) slc_dc_sign = -1;
+    yspacehit = 1;
+  }
+  if(!zspacehit){
+    dim_names[2] = MIzspace;
+    VolCenterVox[2] = (mri->depth-1)/2.0;
+    if(mri->z_s < 0) slc_dc_sign = -1;
+    zspacehit = 1;
+  }
+
+  /* Check for errors in the Axis Naming*/
+  err = 0;
+  if(!xspacehit){
+    printf("ERROR: could not assign xspace\n");
+    err = 1;
+  }
+  if(!yspacehit){
+    printf("ERROR: could not assign yspace\n");
+    err = 1;
+  }
+  if(!zspacehit){
+    printf("ERROR: could not assign zspace\n");
+    err = 1;
+  }
+  if(err) return(1);
+
+  /* Name the Frame Axis */
+  dim_names[3] = MItime;   
+
+  /* Set world center */
+  VolCenterWorld[0] = mri->c_r;
+  VolCenterWorld[1] = mri->c_a;
+  VolCenterWorld[2] = mri->c_s;
+
+  /* Set dimension lengths */
+  dim_sizes[0] = mri->width;
+  dim_sizes[1] = mri->height;
+  dim_sizes[2] = mri->depth;
+  dim_sizes[3] = mri->nframes;
+
+  /* Set separations */
+  separations[0] = col_dc_sign * mri->xsize;
+  separations[1] = row_dc_sign * mri->ysize;
+  separations[2] = slc_dc_sign * mri->zsize;
+  separations[3] = mri->tr;
+
+  /* Set direction Cosines */
+  dircos[0][0] = col_dc_sign * mri->x_r;
+  dircos[0][1] = col_dc_sign * mri->x_a;
+  dircos[0][2] = col_dc_sign * mri->x_s;
+
+  dircos[1][0] = row_dc_sign * mri->y_r;
+  dircos[1][1] = row_dc_sign * mri->y_a;
+  dircos[1][2] = row_dc_sign * mri->y_s;
+
+  dircos[2][0] = slc_dc_sign * mri->z_r;
+  dircos[2][1] = slc_dc_sign * mri->z_a;
+  dircos[2][2] = slc_dc_sign * mri->z_s;
+
+  /* This is a hack for the case where the dircos are the default.
+     The MINC routines will not save the direction cosines as
+     NetCDF attriubtes if they correspond to the default. */
+  for(i=0;i<3;i++)
+    for(j=0;j<3;j++) 
+      if(fabs(dircos[i][j] < .00000000001)) dircos[i][j] = .0000000000000001;
+
+  return(0);
+}
+
+/*-----------------------------------------------------------*/
+static int mincWrite2(MRI *mri, char *fname)
+{
+  Volume minc_volume;
+  nc_type nc_data_type = NC_BYTE;
+  int ndim,i,j;
+  Real min, max;
+  float fmin, fmax;
+  char *dim_names[4];
+  int   dim_sizes[4];
+  Real separations[4];
+  Real dircos[3][3];
+  Real VolCenterVox[3];
+  Real VolCenterWorld[3];
+  int signed_flag = 0;
+  int r,c,s,f;
+  Real VoxVal = 0.0;
+  int return_value;
+  Status status;
+  MATRIX *T;
+  Transform *pVox2WorldLin;
+  General_transform *pVox2WorldGen;
+
+  /* Get the min and max for the volume */
+  if((return_value = MRIlimits(mri, &fmin, &fmax)) != NO_ERROR)
+    return(return_value);
+  min = (Real)fmin;
+  max = (Real)fmax;
+
+  /* Translate mri type to NetCDF type */
+  switch(mri->type){
+  case MRI_UCHAR: nc_data_type = NC_BYTE;  signed_flag = 0; break;
+  case MRI_SHORT: nc_data_type = NC_SHORT; signed_flag = 1; break;
+  case MRI_INT:   nc_data_type = NC_LONG;  signed_flag = 1; break;
+  case MRI_LONG:  nc_data_type = NC_LONG;  signed_flag = 1; break;
+  case MRI_FLOAT: nc_data_type = NC_FLOAT; signed_flag = 1; break;
+  }
+
+  /* Assign default direction cosines, if needed */
+  if(mri->ras_good_flag == 0){
+    mri->x_r = -1;  mri->x_a = 0;  mri->x_s =  0;
+    mri->y_r =  0;  mri->y_a = 0;  mri->y_s = -1;
+    mri->z_r =  0;  mri->z_a = 1;  mri->z_s =  0;
+  }
+
+  GetMINCInfo(mri, dim_names, dim_sizes, separations, dircos,  
+        VolCenterVox,VolCenterWorld);
+
+  if(mri->nframes > 1) ndim = 4;
+  else                 ndim = 3;
+
+  minc_volume = create_volume(ndim, dim_names, nc_data_type, 
+            signed_flag, min, max);
+  set_volume_sizes(minc_volume, dim_sizes);
+  alloc_volume_data(minc_volume);
+
+  for(i=0;i<3;i++){
+    printf("%d %s %4d %7.3f  %7.3f %7.3f %7.3f \n",
+     i,dim_names[i],dim_sizes[i],separations[i],
+     dircos[i][0],dircos[i][1],dircos[i][2]);
+    set_volume_direction_cosine(minc_volume, i, dircos[i]);
+  }
+  printf("Center Voxel: %7.3f %7.3f %7.3f\n",
+   VolCenterVox[0],VolCenterVox[1],VolCenterVox[2]);
+  printf("Center World: %7.3f %7.3f %7.3f\n",
+   VolCenterWorld[0],VolCenterWorld[1],VolCenterWorld[2]);
+
+  set_volume_separations(minc_volume, separations);
+  set_volume_translation(minc_volume, VolCenterVox, VolCenterWorld);
+
+  T = MRIxfmCRS2XYZ(mri,0);
+  printf("MRI Transform -----------------------------\n");
+  MatrixPrint(stdout,T);
+  pVox2WorldGen = get_voxel_to_world_transform(minc_volume);
+  pVox2WorldLin = get_linear_transform_ptr(pVox2WorldGen);
+  printf("MINC Linear Transform ----------------------\n");
+  for(i=0;i<4;i++){
+    for(j=0;j<4;j++) printf("%7.4f ",pVox2WorldLin->m[j][i]);
+    printf("\n");
+  }
+  printf("--------------------------------------------\n");
+  MatrixFree(&T);
+
+  printf("Setting Volume Values\n");
+  for(f = 0; f < mri->nframes; f++) {     /* frames */
+    for(c = 0; c < mri->width;   c++) {     /* columns */
+      for(r = 0; r < mri->height;  r++) {     /* rows */
+        for(s = 0; s < mri->depth;   s++) {     /* slices */
+
+    switch(mri->type){
+          case MRI_UCHAR: VoxVal = (Real)MRIseq_vox(mri,  c, r, s, f);break;
+          case MRI_SHORT: VoxVal = (Real)MRISseq_vox(mri, c, r, s, f);break;
+          case MRI_INT:   VoxVal = (Real)MRIIseq_vox(mri, c, r, s, f);break;
+          case MRI_LONG:  VoxVal = (Real)MRILseq_vox(mri, c, r, s, f);break;
+          case MRI_FLOAT: VoxVal = (Real)MRIFseq_vox(mri, c, r, s, f);break;
+    }
+    set_volume_voxel_value(minc_volume, c, r, s, f, 0, VoxVal);
+        }
+      }
+    }
+  }
+
+  printf("Writing Volume\n");
+  status = output_volume((STRING)fname, nc_data_type, signed_flag, min, max, 
+       minc_volume, (STRING)"", NULL);
+  printf("Cleaning Up\n");
+  delete_volume(minc_volume);
+
+  if(status) {
+    printf("ERROR: mincWrite: output_volume exited with %d\n",status);
+    return(1);
+  }
+    
+  printf("mincWrite2: done\n");
+  return(NO_ERROR);
+}
+
+
+/*-------------------------------------------------------
+  NormalizeVector() - in-place vector normalization
+  -------------------------------------------------------*/
+static int NormalizeVector(float *v, int n)
+{
+  float sum2;
+  int i;
+  sum2 = 0;
+  for(i=0;i<n;i++) sum2 += v[i];
+  sum2 = sqrt(sum2);
+  for(i=0;i<n;i++) v[i] /= sum2;
+  return(0);
+}
+
+/*----------------------------------------------------------*/
 /* time course clean */
 static int mincWrite(MRI *mri, char *fname)
 {
@@ -2516,7 +3022,7 @@ static MRI *get_b_info(char *fname_passed, int read_volume, char *directory, cha
 
   MRI *mri, *mri2;
   FILE *fp;
-  int nslices, nt;
+  int nslices=0, nt;
   int nx, ny;
   int result;
   char fname[STRLEN];
@@ -2695,6 +3201,9 @@ static MRI *get_b_info(char *fname_passed, int read_volume, char *directory, cha
 
   }
 
+  mri->imnr0 = 1;
+  mri->imnr1 = nslices;
+
   mri->xend = mri->width  * mri->xsize / 2.0;
   mri->xstart = -mri->xend;
   mri->yend = mri->height * mri->ysize / 2.0;
@@ -2747,7 +3256,7 @@ static MRI *bvolumeRead(char *fname_passed, int read_volume, int type)
     return(NULL);
   }
 
-  /* Get the header info */
+  /* Get the header info (also allocs if needed) */
   mri = get_b_info(fname_passed, read_volume, directory, stem, type);
   if(mri == NULL) return(NULL);
 
@@ -2775,7 +3284,7 @@ static MRI *bvolumeRead(char *fname_passed, int read_volume, int type)
   
   /* Go through each slice */
   for(slice = 0;slice < mri->depth; slice++){
-      
+    
     /* Open the file for this slice */
     sprintf(fname, "%s/%s_%03d.%s", directory, stem, slice, ext);
     if((fp = fopen(fname, "r")) == NULL){
@@ -2788,7 +3297,7 @@ static MRI *bvolumeRead(char *fname_passed, int read_volume, int type)
     /* Loop through the frames */
     for(frame = 0; frame < mri->nframes; frame ++){
       k = slice + mri->depth*frame; 
-
+      
       /* Loop through the rows */
       for(row = 0;row < mri->height; row++){
   
@@ -2818,7 +3327,7 @@ static MRI *bvolumeRead(char *fname_passed, int read_volume, int type)
     
     fclose(fp);
   } /* slice loop */
-
+  
   //printf("--------------------------------\n");
   //MRIdump(mri,stdout);
   //MRIdumpBuffer(mri,stdout);
@@ -2839,6 +3348,9 @@ static MRI *bvolumeRead(char *fname_passed, int read_volume, int type)
   MRIlimits(mri,&min,&max);
   fprintf(stderr,"INFO: bvolumeRead: min = %g, max = %g\n",min,max);
 
+  mri->imnr0 = 1;
+  mri->imnr1 = mri->depth;
+  mri->thick = mri->zsize;
 
   return(mri);
 
@@ -3323,6 +3835,8 @@ int read_bhdr(MRI *mri, FILE *fp)
   mri->ras_good_flag = 1;
 
   mri->slice_direction = MRI_UNDEFINED;
+  mri->thick = mri->zsize;
+  mri->ps = mri->xsize;
 
   return(NO_ERROR);
 
