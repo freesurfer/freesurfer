@@ -68,7 +68,7 @@
 # tkm_MakeDirectorySelector fwFrame "Prompt:" variable default_lcoation_func
 # tkm_UpdateDirectorySelectorVariable fwFrame
 
-set kNormalFont -*-lucida-medium-r-normal-*-13-*-*-*-*-*-*-*
+set kNormalFont -*-lucida-medium-r-normal-*-12-*-*-*-*-*-*-*
 set kSmallFont -*-lucida-medium-i-normal-*-10-*-*-*-*-*-*-*
 set kLabelFont -*-lucida-bold-r-normal-*-14-*-*-*-*-*-*-*
 set kHighlightBgColor white
@@ -78,6 +78,14 @@ catch {
   set kNormalFont -*-lucida-medium-r-normal-*-11-*-*-*-*-*-*-*
   set kSmallFont -*-lucida-medium-i-normal-*-10-*-*-*-*-*-*-*
   set kLabelFont -*-lucida-bold-r-normal-*-11-*-*-*-*-*-*-*
+    }
+}
+
+catch {
+    if { [string compare $env(TKM_FONT_SIZE) large] == 0 } {
+  set kNormalFont -*-lucida-medium-r-normal-*-14-*-*-*-*-*-*-*
+  set kSmallFont -*-lucida-medium-i-normal-*-10-*-*-*-*-*-*-*
+  set kLabelFont -*-lucida-bold-r-normal-*-14-*-*-*-*-*-*-*
     }
 }
 
