@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2004/04/28 16:47:38 $
-// Revision       : $Revision: 1.126 $
+// Revision Date  : $Date: 2004/05/06 15:42:28 $
+// Revision       : $Revision: 1.127 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -6357,7 +6357,7 @@ GCAbuildMostLikelyVolume(GCA *gca, MRI *mri)
 						// prior labels 
 						for (n = 1 ; n < gcap->nlabels ; n++)
 						{
-							if (gcap->priors[n] > max_prior)
+							if (gcap->priors[n] >= max_prior)
 							{
 								max_prior = gcap->priors[n] ; max_label = gcap->labels[n] ;
 							}
@@ -6440,9 +6440,9 @@ GCAbuildMostLikelyVolumeFrame(GCA *gca, MRI *mri, int frame)
 	    max_prior = gcap->priors[0] ; max_label = gcap->labels[0] ; gc_max = NULL ;
 	    for (n = 1 ; n < gcap->nlabels ; n++)
 	    {
-	      if (gcap->priors[n] > max_prior)
+	      if (gcap->priors[n] >= max_prior)
 	      {
-		max_prior = gcap->priors[n] ; max_label = gcap->labels[n] ;
+					max_prior = gcap->priors[n] ; max_label = gcap->labels[n] ;
 	      }
 	    }
 	    for (n = 0 ; n < gcan->nlabels ; n++)
@@ -6608,7 +6608,7 @@ gcaReclassifyVoxel(GCA *gca, MRI *mri_inputs, MRI *mri_labels,
       for (xk = -1 ; xk <= 1 ; xk++)
       {
         xi = mri_labels->xi[x+xk] ;
-	// get the label histogram
+				// get the label histogram
         nbr_labels[MRIvox(mri_labels, xi, yi, zi)]++ ;
       }
     }
@@ -6627,15 +6627,15 @@ gcaReclassifyVoxel(GCA *gca, MRI *mri_inputs, MRI *mri_labels,
       // debug ///////////////////////////////////////
       if (x==Ggca_x && y == Ggca_y && z == Ggca_z)
       {
-	printf("gcaReclassifyVoxel: nbr_labels[%d] = %d\n", i, nbr_labels[i]);
-	printf("gcaReclassifyVoxel:(%d, %d, %d): Label = %s (%d), VoxelGibbsLogLikelihood = %.2f, max_p = %.2f\n",
-	       x, y, z, cma_label_to_name(i), i, p, max_p);
-	if (p > max_p)
-	  printf("   replacing max_p with this p and label from %s(%d) to %s(%d)\n",
-		 cma_label_to_name(old_label), old_label, cma_label_to_name(i), i);
+				printf("gcaReclassifyVoxel: nbr_labels[%d] = %d\n", i, nbr_labels[i]);
+				printf("gcaReclassifyVoxel:(%d, %d, %d): Label = %s (%d), VoxelGibbsLogLikelihood = %.2f, max_p = %.2f\n",
+							 x, y, z, cma_label_to_name(i), i, p, max_p);
+				if (p >= max_p)
+					printf("   replacing max_p with this p and label from %s(%d) to %s(%d)\n",
+								 cma_label_to_name(old_label), old_label, cma_label_to_name(i), i);
       }
       ////////////////////////////////////////////////
-      if (p > max_p)
+      if (p >= max_p)
       {
         max_p = p ;
         new_label = i ;
@@ -7876,7 +7876,7 @@ GCAmaxLikelihoodBorderLabel(GCA *gca, MRI *mri_inputs, MRI *mri_labels,
     p = GCAcomputeConditionalDensity(gc, vals, gca->ninputs, label) ;
     //
     if (((best_label == orig_label && p > min_ratio*max_p) || // starting loop
-				 (best_label != orig_label && p > max_p)) &&          // later in the loop
+				 (best_label != orig_label && p >= max_p)) &&          // later in the loop
 				GCAisPossible(gca, mri_labels, label, transform, x, y, z))
     {
       max_p = p ;
@@ -10204,7 +10204,7 @@ GCAfindAllSamples(GCA *gca, int *pnsamples, int *exclude_list)
         {
           label = gcap->labels[n] ;
           prior = gcap->priors[n] ;
-          if (prior > max_p)
+          if (prior >= max_p)
           {
             max_n = n ;
             max_p = prior ;
@@ -10252,7 +10252,7 @@ GCAfindAllSamples(GCA *gca, int *pnsamples, int *exclude_list)
         {
           label = gcap->labels[n] ;
           prior = gcap->priors[n] ;
-          if (prior > max_p)
+          if (prior >= max_p)
           {
             max_n = n ;
             max_p = prior ;
@@ -12402,13 +12402,13 @@ GCArelabelNonbrain(GCA *gca, MRI *mri_inputs, MRI *mri_src, MRI *mri_dst, TRANSF
     {
       for (z = 0 ; z < depth ; z++)
       {
-	label = MRIvox(mri_src, x, y, z) ;
-	if (label == Epidermis)
-	  label = SC_FAT_MUSCLE ;
-	if (label == Cranium)
-	  label = Bone ;
-	MRIvox(mri_src, x, y, z) = label ;
-	MRIvox(mri_tmp, x, y, z) = label ;
+				label = MRIvox(mri_src, x, y, z) ;
+				if (label == Epidermis)
+					label = SC_FAT_MUSCLE ;
+				if (label == Cranium)
+					label = Bone ;
+				MRIvox(mri_src, x, y, z) = label ;
+				MRIvox(mri_tmp, x, y, z) = label ;
       }
     }
   }
@@ -12420,66 +12420,66 @@ GCArelabelNonbrain(GCA *gca, MRI *mri_inputs, MRI *mri_src, MRI *mri_dst, TRANSF
     {
       for (y = 0 ; y < height ; y++)
       {
-	for (z = 0 ; z < depth ; z++)
-	{
-	  if (x == Ggca_x && y == Ggca_y && z == Ggca_z)
-	    DiagBreak() ;
+				for (z = 0 ; z < depth ; z++)
+				{
+					if (x == Ggca_x && y == Ggca_y && z == Ggca_z)
+						DiagBreak() ;
 	  
-	  label = MRIvox(mri_tmp, x, y, z) ;
+					label = MRIvox(mri_tmp, x, y, z) ;
 	  
-	  if (label == SC_FAT_MUSCLE) /* check to see whether at borders of skull */
-	  {
-	    if (MRIneighborsInWindow(mri_src, x, y, z, 3, Unknown) > 1)
-	      continue ;
-	  }
+					if (label == SC_FAT_MUSCLE) /* check to see whether at borders of skull */
+					{
+						if (MRIneighborsInWindow(mri_src, x, y, z, 3, Unknown) > 1)
+							continue ;
+					}
 	  
-	  if (label != Dura &&
-	      label != Bone &&
-	      label != SC_FAT_MUSCLE &&
-	      label != CSF_SA)
-	    continue ;
-	  if (MRIneighborsInWindow(mri_src, x, y, z, 3, label) >= 24)
-	    continue ;   /* in the body of the label - ignore */
-	  if (MRIneighborsInWindow(mri_src, x, y, z, 5, label) >= 100)
-	    continue ;   /* in the body of the label - ignore */
-	  load_vals(mri_inputs, x, y, z, vals, gca->ninputs) ;
-	  if (!GCAsourceVoxelToNode(gca, mri_inputs, transform, x, y, z, &xn, &yn, &zn))
-	  {
-	    gcan = &gca->nodes[xn][yn][zn] ;
-	    max_i = -1 ; max_p = -1 ;
-	    for (i = 0 ; i < NLABELS ; i++)
-	    {
-	      gcs[i] = GCAfindGC(gca, xn, yn, zn, labels[i]) ;
-	      if (gcs[i] == NULL)
-		gcs[i] = findGCInWindow(gca, xn, yn, zn, labels[i], 3) ;
-	      if (gcs[i] == NULL)
-	      {
-		DiagBreak() ;
-		continue ;
-	      }
-	      for (dist = 0, n = 0 ; n < gca->ninputs ; n++)
-		dist += SQR(vals[n]-means[i][n]) ;
-	      pvals[i] = exp(-dist) ;
-	      if (pvals[i] > max_p)
-	      {
-		max_p = pvals[i] ;
-		max_i = i ;
-	      }
-	    }
-	  }
-	  ///////////////
-	  if ((labels[max_i] == Dura) && 
-	      (MRIneighborsInWindow(mri_tmp, x, y, z, 5, Bone)+MRIneighborsInWindow(mri_tmp, x, y, z, 5, SC_FAT_MUSCLE)>=120))
-	    continue ;
-	  if (labels[max_i] != label && ((x == Ggca_x && y == Ggca_y && z == Ggca_z)))
-	  {
-	    printf("GCArelabelNonbrain: changing label at (%d, %d, %d) from %s (%d) to %s (%d)\n",
-		   x, y, z, cma_label_to_name(label), label, cma_label_to_name(labels[max_i]), labels[max_i]) ;
-	  }
-	  MRIvox(mri_tmp, x, y, z) = labels[max_i] ;
-	  if (labels[max_i] != label)
-	    nchanged++ ;
-	}
+					if (label != Dura &&
+							label != Bone &&
+							label != SC_FAT_MUSCLE &&
+							label != CSF_SA)
+						continue ;
+					if (MRIneighborsInWindow(mri_src, x, y, z, 3, label) >= 24)
+						continue ;   /* in the body of the label - ignore */
+					if (MRIneighborsInWindow(mri_src, x, y, z, 5, label) >= 100)
+						continue ;   /* in the body of the label - ignore */
+					load_vals(mri_inputs, x, y, z, vals, gca->ninputs) ;
+					if (!GCAsourceVoxelToNode(gca, mri_inputs, transform, x, y, z, &xn, &yn, &zn))
+					{
+						gcan = &gca->nodes[xn][yn][zn] ;
+						max_i = -1 ; max_p = -1 ;
+						for (i = 0 ; i < NLABELS ; i++)
+						{
+							gcs[i] = GCAfindGC(gca, xn, yn, zn, labels[i]) ;
+							if (gcs[i] == NULL)
+								gcs[i] = findGCInWindow(gca, xn, yn, zn, labels[i], 3) ;
+							if (gcs[i] == NULL)
+							{
+								DiagBreak() ;
+								continue ;
+							}
+							for (dist = 0, n = 0 ; n < gca->ninputs ; n++)
+								dist += SQR(vals[n]-means[i][n]) ;
+							pvals[i] = exp(-dist) ;
+							if (pvals[i] >= max_p)
+							{
+								max_p = pvals[i] ;
+								max_i = i ;
+							}
+						}
+					}
+					///////////////
+					if ((labels[max_i] == Dura) && 
+							(MRIneighborsInWindow(mri_tmp, x, y, z, 5, Bone)+MRIneighborsInWindow(mri_tmp, x, y, z, 5, SC_FAT_MUSCLE)>=120))
+						continue ;
+					if (labels[max_i] != label && ((x == Ggca_x && y == Ggca_y && z == Ggca_z)))
+					{
+						printf("GCArelabelNonbrain: changing label at (%d, %d, %d) from %s (%d) to %s (%d)\n",
+									 x, y, z, cma_label_to_name(label), label, cma_label_to_name(labels[max_i]), labels[max_i]) ;
+					}
+					MRIvox(mri_tmp, x, y, z) = labels[max_i] ;
+					if (labels[max_i] != label)
+						nchanged++ ;
+				}
       }
     }
     total_changed += nchanged ; break ;
@@ -12493,57 +12493,57 @@ GCArelabelNonbrain(GCA *gca, MRI *mri_inputs, MRI *mri_src, MRI *mri_dst, TRANSF
     {
       for (y = 0 ; y < height ; y++)
       {
-	for (z = 0 ; z < depth ; z++)
-	{
-	  if (x == Ggca_x && y == Ggca_y && z == Ggca_z)
-	    DiagBreak() ;
+				for (z = 0 ; z < depth ; z++)
+				{
+					if (x == Ggca_x && y == Ggca_y && z == Ggca_z)
+						DiagBreak() ;
 	  
-	  label = MRIvox(mri_tmp, x, y, z) ;
+					label = MRIvox(mri_tmp, x, y, z) ;
 	  
-	  if (label != Dura) 
-	    continue ;
-	  if (((MRIneighborsInWindow(mri_tmp, x, y, z, 3, Bone) < 7) ||
-	       (MRIneighborsInWindow(mri_tmp, x, y, z, 3, SC_FAT_MUSCLE) < 7)) &&
-	      ((MRIneighborsInWindow(mri_tmp, x, y, z, 5, Bone) < 30) ||
-	       (MRIneighborsInWindow(mri_tmp, x, y, z, 5, SC_FAT_MUSCLE) < 30)))
-	    continue ;
-	  load_vals(mri_inputs, x, y, z, vals, gca->ninputs) ;
-	  if (!GCAsourceVoxelToNode(gca, mri_inputs, transform, x, y, z, &xn, &yn, &zn))
-	  {
-	    gcan = &gca->nodes[xn][yn][zn] ;
-	    max_i = -1 ; max_p = -1 ;
-	    for (i = 0 ; i < NLABELS ; i++)
-	    {
-	      if (labels[i] != SC_FAT_MUSCLE && labels[i] != Bone)
-		continue ;
-	      gcs[i] = GCAfindGC(gca, xn, yn, zn, labels[i]) ;
-	      if (gcs[i] == NULL)
-		gcs[i] = findGCInWindow(gca, xn, yn, zn, labels[i], 3) ;
-	      if (gcs[i] == NULL)
-	      {
-		DiagBreak() ;
-		continue ;
-	      }
-	      for (dist = 0, n = 0 ; n < gca->ninputs ; n++)
-		dist += SQR(vals[n]-means[i][n]) ;
-	      pvals[i] = exp(-dist) ;
-	      if (pvals[i] > max_p)
-	      {
-		max_p = pvals[i] ;
-		max_i = i ;
-	      }
-	    }
-	  }
-	  /////////////////////////
-	  if (labels[max_i] != label && ((x == Ggca_x && y == Ggca_y && z == Ggca_z)))
-	  {
-	    printf("GCArelabelNonbrain: changing label at (%d, %d, %d) from %s (%d) to %s (%d)\n",
-		   x, y, z, cma_label_to_name(label), label, cma_label_to_name(labels[max_i]), labels[max_i]) ;
-	  }
-	  MRIvox(mri_tmp, x, y, z) = labels[max_i] ;
-	  if (labels[max_i] != label)
-	    nchanged++ ;
-	}
+					if (label != Dura) 
+						continue ;
+					if (((MRIneighborsInWindow(mri_tmp, x, y, z, 3, Bone) < 7) ||
+							 (MRIneighborsInWindow(mri_tmp, x, y, z, 3, SC_FAT_MUSCLE) < 7)) &&
+							((MRIneighborsInWindow(mri_tmp, x, y, z, 5, Bone) < 30) ||
+							 (MRIneighborsInWindow(mri_tmp, x, y, z, 5, SC_FAT_MUSCLE) < 30)))
+						continue ;
+					load_vals(mri_inputs, x, y, z, vals, gca->ninputs) ;
+					if (!GCAsourceVoxelToNode(gca, mri_inputs, transform, x, y, z, &xn, &yn, &zn))
+					{
+						gcan = &gca->nodes[xn][yn][zn] ;
+						max_i = -1 ; max_p = -1 ;
+						for (i = 0 ; i < NLABELS ; i++)
+						{
+							if (labels[i] != SC_FAT_MUSCLE && labels[i] != Bone)
+								continue ;
+							gcs[i] = GCAfindGC(gca, xn, yn, zn, labels[i]) ;
+							if (gcs[i] == NULL)
+								gcs[i] = findGCInWindow(gca, xn, yn, zn, labels[i], 3) ;
+							if (gcs[i] == NULL)
+							{
+								DiagBreak() ;
+								continue ;
+							}
+							for (dist = 0, n = 0 ; n < gca->ninputs ; n++)
+								dist += SQR(vals[n]-means[i][n]) ;
+							pvals[i] = exp(-dist) ;
+							if (pvals[i] >= max_p)
+							{
+								max_p = pvals[i] ;
+								max_i = i ;
+							}
+						}
+					}
+					/////////////////////////
+					if (labels[max_i] != label && ((x == Ggca_x && y == Ggca_y && z == Ggca_z)))
+					{
+						printf("GCArelabelNonbrain: changing label at (%d, %d, %d) from %s (%d) to %s (%d)\n",
+									 x, y, z, cma_label_to_name(label), label, cma_label_to_name(labels[max_i]), labels[max_i]) ;
+					}
+					MRIvox(mri_tmp, x, y, z) = labels[max_i] ;
+					if (labels[max_i] != label)
+						nchanged++ ;
+				}
       }
     }
     total_changed += nchanged ;
@@ -12560,27 +12560,27 @@ GCArelabelNonbrain(GCA *gca, MRI *mri_inputs, MRI *mri_src, MRI *mri_dst, TRANSF
     {
       for (y = 0 ; y < height ; y++)
       {
-	for (z = 0 ; z < depth ; z++)
-	{
-	  if (x == Ggca_x && y == Ggca_y && z == Ggca_z)
-	    DiagBreak() ;
+				for (z = 0 ; z < depth ; z++)
+				{
+					if (x == Ggca_x && y == Ggca_y && z == Ggca_z)
+						DiagBreak() ;
 	  
-	  label = MRIvox(mri_tmp, x, y, z) ;
+					label = MRIvox(mri_tmp, x, y, z) ;
 	  
-	  if (label != Dura && !IS_CORTEX(label)) 
-	    continue ;
-	  if (MRIneighborsInWindow(mri_tmp, x, y, z, 5, SC_FAT_MUSCLE) < 100)
-	    continue ;
-	  label = SC_FAT_MUSCLE ;
-	  if ((label != MRIvox(mri_tmp, x, y, z)) && ((x == Ggca_x && y == Ggca_y && z == Ggca_z)))
-	  {
-	    printf("GCArelabelNonbrain: changing label at (%d, %d, %d) from %s (%d) to %s (%d)\n",
-		   x, y, z, cma_label_to_name(MRIvox(mri_tmp,x,y,z)), MRIvox(mri_tmp,x,y,z), cma_label_to_name(label), label) ;
-	  }
-	  if (label != MRIvox(mri_tmp, x, y, z))
-	    nchanged++ ;
-	  MRIvox(mri_tmp, x, y, z) = label ;
-	}
+					if (label != Dura && !IS_CORTEX(label)) 
+						continue ;
+					if (MRIneighborsInWindow(mri_tmp, x, y, z, 5, SC_FAT_MUSCLE) < 100)
+						continue ;
+					label = SC_FAT_MUSCLE ;
+					if ((label != MRIvox(mri_tmp, x, y, z)) && ((x == Ggca_x && y == Ggca_y && z == Ggca_z)))
+					{
+						printf("GCArelabelNonbrain: changing label at (%d, %d, %d) from %s (%d) to %s (%d)\n",
+									 x, y, z, cma_label_to_name(MRIvox(mri_tmp,x,y,z)), MRIvox(mri_tmp,x,y,z), cma_label_to_name(label), label) ;
+					}
+					if (label != MRIvox(mri_tmp, x, y, z))
+						nchanged++ ;
+					MRIvox(mri_tmp, x, y, z) = label ;
+				}
       }
     }
     total_changed += nchanged ;

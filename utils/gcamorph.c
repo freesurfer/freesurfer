@@ -4,8 +4,8 @@
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2004/04/06 15:36:10 $
-// Revision       : $Revision: 1.25 $
+// Revision Date  : $Date: 2004/05/06 15:42:28 $
+// Revision       : $Revision: 1.26 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -2058,7 +2058,7 @@ GCAMregisterLevel(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth, GCA_MORPH_PARMS *p
 #if 0
         gcamCropNegativeAreaNodeGradient(gcam, 0.9) ;
 #else
-        parms->dt *= 0.9 ;
+        parms->dt *= 0.5 ;
         if (Gdiag & DIAG_SHOW)
           printf("%3.3d: %d negative nodes - reducing timestep to %2.6f...\n", 
                  i+1, gcam->neg, parms->dt) ;

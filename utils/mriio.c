@@ -8283,7 +8283,7 @@ mghRead(char *fname, int read_volume, int frame)
   MRI  *mri ;
   FILE  *fp ;
   int   start_frame, end_frame, width, height, depth, nframes, type, x, y, z,
-    bpv, dof, bytes, version, ival, unused_space_size, good_ras_flag ;
+    bpv, dof, bytes, version, ival, unused_space_size, good_ras_flag, i ;
   BUFTYPE *buf ;
   char   unused_buf[UNUSED_SPACE_SIZE+1] ;
   float  fval, xsize, ysize, zsize, x_r, x_a, x_s, y_r, y_a, y_s,
@@ -8359,64 +8359,61 @@ mghRead(char *fname, int read_volume, int frame)
     }
     else
     {  /* hack - # of frames < -1 means to only read in that
-	  many frames. Otherwise I would have had to change the whole
-	  MRIread interface and that was too much of a pain. Sorry.
+					many frames. Otherwise I would have had to change the whole
+					MRIread interface and that was too much of a pain. Sorry.
        */
       if (frame < -1)  
       { nframes = frame*-1 ; } 
       start_frame = 0 ; end_frame = nframes-1 ;
     }
-    if (type == MRI_UCHAR)
-      buf = (BUFTYPE *)calloc(bytes, sizeof(BUFTYPE)) ;
-    else
-      buf = NULL ;
+		buf = (BUFTYPE *)calloc(bytes, sizeof(BUFTYPE)) ;
     mri = MRIallocSequence(width, height, depth, type, nframes) ;
     mri->dof = dof ;
     for (frame = start_frame ; frame <= end_frame ; frame++)
     {
       for (z = 0 ; z < depth ; z++)
       {
+				if (fread(buf, sizeof(char), bytes, fp) != bytes)
+				{
+					fclose(fp) ;
+					free(buf) ;
+					ErrorReturn(NULL, (ERROR_BADFILE, "mghRead(%s): could not read %d bytes at slice %d",
+														 fname, bytes, z)) ;
+				}
         switch (type)
         {
-	case MRI_INT:
-          for (y = 0 ; y < height ; y++)
+				case MRI_INT:
+          for (i = y = 0 ; y < height ; y++)
           {
-            for (x = 0 ; x < width ; x++)
+            for (x = 0 ; x < width ; x++, i++)
             {
-              ival = freadInt(fp) ; 
+              ival = orderIntBytes(((int *)buf)[i]) ; 
               MRIIseq_vox(mri,x,y,z,frame-start_frame) = ival ;
             }
           }
           break ;
-	case MRI_SHORT:
-          for (y = 0 ; y < height ; y++)
+				case MRI_SHORT:
+          for (i = y = 0 ; y < height ; y++)
           {
-            for (x = 0 ; x < width ; x++)
+            for (x = 0 ; x < width ; x++, i++)
             {
-              sval = freadShort(fp) ; 
+              sval = orderShortBytes(((short *)buf)[i]) ; 
               MRISseq_vox(mri,x,y,z,frame-start_frame) = sval ;
             }
           }
           break ;
-	case MRI_TENSOR:
-	case MRI_FLOAT:
-          for (y = 0 ; y < height ; y++)
+				case MRI_TENSOR:
+				case MRI_FLOAT:
+          for (i = y = 0 ; y < height ; y++)
           {
-            for (x = 0 ; x < width ; x++)
+            for (x = 0 ; x < width ; x++, i++)
             {
-              fval = freadFloat(fp) ; 
+              fval = orderFloatBytes(((float *)buf)[i]) ; 
               MRIFseq_vox(mri,x,y,z,frame-start_frame) = fval ;
             }
           }
           break ;
         case MRI_UCHAR:
-          if (fread(buf, sizeof(BUFTYPE), bytes, fp) != bytes)
-          {
-            errno = 0;
-            ErrorReturn(NULL,
-                        (ERROR_BADFILE, "%s: could not read %dth slice (%d)",
-                         Progname, z, bytes)) ;
-          }
           local_buffer_to_image(buf, mri, z, frame-start_frame) ;
           break ;
         default:
@@ -8459,13 +8456,13 @@ mghRead(char *fname, int read_volume, int frame)
   else
   {
     fprintf(stderr,
-	    "-----------------------------------------------------------------\n"
-	    "Could not find the direction cosine information.\n"
-	    "Will use the CORONAL orientation.\n"
-	    "If not suitable, please provide the information in %s.\n"
-	    "-----------------------------------------------------------------\n",
-	    fname  
-	    );
+						"-----------------------------------------------------------------\n"
+						"Could not find the direction cosine information.\n"
+						"Will use the CORONAL orientation.\n"
+						"If not suitable, please provide the information in %s.\n"
+						"-----------------------------------------------------------------\n",
+						fname  
+						);
     setDirectionCosine(mri, MRI_CORONAL);
   }
 #if 0
