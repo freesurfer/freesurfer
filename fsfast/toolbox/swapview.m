@@ -1,7 +1,7 @@
 function r = swapview(varargin)
 % r = swapview(varargin)
 
-version = '$Id: swapview.m,v 1.8 2003/09/28 21:47:16 greve Exp $';
+version = '$Id: swapview.m,v 1.9 2004/01/25 19:49:02 greve Exp $';
 r = 1;
 
 %% Print usage if there are no arguments %%
@@ -496,7 +496,7 @@ function s = main_struct
   s.displayimg     = [];
   s.displayimg1    = [];
   s.displayimg2    = [];
-  s.contour        = 1;
+  s.contour        = 0;
   s.hcontour       = [];
   s.curpoint       = [1 1]; % current point in the display img
   s.curvox         = [1 1 1 1]; % current vox index [r c s f]
