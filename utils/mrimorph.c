@@ -9,6 +9,10 @@
  *       AUTHOR:      Bruce Fischl
  *       DATE:        1/8/97
  *
+// Warning: Do not edit the following four lines.  CVS maintains them.
+// Revision Author: $Author: tosa $
+// Revision Date  : $Date: 2004/02/06 17:07:30 $
+// Revision       : $Revision: 1.41 $
 */
 
 /*-----------------------------------------------------
@@ -155,13 +159,8 @@ MatrixPrintHires(FILE *fp, MATRIX *mat)
                       (ERROR_BADPARM, 
                        "MatrixPrintHires: unknown type %d\n",mat->type)) ;
       }
-#if 0
-      if (col < cols)
-        fprintf(fp, " | ") ;
-#else
       if (col < cols)
         fprintf(fp, "  ") ;
-#endif
     }
     fprintf(fp, ";\n") ;
   }
@@ -4724,7 +4723,7 @@ MRI3DreadSmall(char *fname)
   {
     fclose(fp) ;
     ErrorReturn(NULL, 
-                (ERROR_BADFILE, "MRI3DreadSmall: file %s not a 3d morph file", 
+                (ERROR_BADFILE, "file %s not an old 3d morph file.  Try a new 3d morph read routine.", 
                  fname)) ;
   }
   version = freadInt(fp) ;
@@ -7423,9 +7422,9 @@ computeEMAlignmentGradient(float *p, float *g)
   }
   m_L->rptr[4][1] = m_L->rptr[4][2] = m_L->rptr[4][3] = 0 ;
   m_L->rptr[4][4] = 1.0 ;
-#if 1
+#ifndef __OPTIMIZE__
   printf("g_mri_in c_(r,a,s) = (%.3f, %.3f, %.3f)\n", mri_in->c_r, mri_in->c_a, mri_in->c_s);
-  printf("transform in EMAlignmentGradient\n");
+  printf("Transform in EMAlignmentGradient\n");
   MatrixPrintHires(stderr, m_L);
 #endif
   width = mri_in->width ; height = mri_in->height ; depth = mri_in->depth ;
@@ -7531,8 +7530,10 @@ computeEMAlignmentErrorFunctional(float *p)
   }
   m_L->rptr[4][1] = m_L->rptr[4][2] = m_L->rptr[4][3] = 0 ;
   m_L->rptr[4][4] = 1.0 ;
+#ifndef __OPTIMIZE__
   printf("Transform at EMAlignmentErrorFunctional:\n");
   MatrixPrintHires(stderr, m_L);
+#endif
   old_lta = (LTA *)parms->transform->xform ;
   parms->transform->xform = (void *)lta ;
   log_p = GCAcomputeLogSampleProbability(gca,parms->gcas,g_mri_in,
@@ -7835,7 +7836,7 @@ mriQuasiNewtonEMAlignPyramidLevel(MRI *mri_in, GCA *gca, MP *parms)
 
   user_call_func = showTran;
 
-  fprintf(stderr, "quasinewton: input matrix\n");
+  fprintf(stderr, "Quasinewton: input matrix\n");
   MatrixPrintHires(stderr, parms->lta->xforms[0].m_L);
 
   /*  user_call_func = integration_step ;*/
