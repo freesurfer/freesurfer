@@ -298,3 +298,7 @@ DrawIntoBuffer with loop=1
 DrawIntoBuffer with loop=8
   togl: 27.2%
   glut: 26.4%
+
+DrawIntoBuffer with loop=4 unrolled
+  togl: 13.4%
+  after making mGrayscaleLUT int : 12.9%
