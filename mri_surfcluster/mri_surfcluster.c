@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Finds clusters on the surface.
-  $Id: mri_surfcluster.c,v 1.4 2002/04/10 22:07:33 greve Exp $
+  $Id: mri_surfcluster.c,v 1.5 2002/06/24 22:49:10 greve Exp $
 */
 
 #include <stdio.h>
@@ -44,7 +44,7 @@ static MATRIX *LoadxfmMatrix(char *xfmfile);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surfcluster.c,v 1.4 2002/04/10 22:07:33 greve Exp $";
+static char vcid[] = "$Id: mri_surfcluster.c,v 1.5 2002/06/24 22:49:10 greve Exp $";
 char *Progname = NULL;
 
 char *subjectdir = NULL;
@@ -336,6 +336,11 @@ static int parse_commandline(int argc, char **argv)
       srcsubjid = pargv[0];
       nargsused = 1;
     }
+    else if (!strcmp(option, "--srcsurf")){
+      if(nargc < 1) argnerr(option,1);
+      srcsurfid = pargv[0];
+      nargsused = 1;
+    }
     else if (!strcmp(option, "--srcframe")){
       if(nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%d",&srcframe);
@@ -509,6 +514,7 @@ static void print_usage(void)
   printf("\n");
   printf("   --src      srcid <fmt> : source of surface values    \n");
   printf("   --srcsubj  subjid    : source surface subject (can be ico)\n");
+  printf("   --srcsurf  surface   : get coorindates from surface (white)\n");
   printf("   --srcframe frameno   : 0-based frame number\n");
   printf("   --thmin    threshold : minimum intensity threshold\n");
   printf("   --thmax    threshold : maximum intensity threshold\n");
@@ -575,10 +581,10 @@ static void print_help(void)
 "This is the input data to the clustering program. Fmt is the format \n"
 "specification. Currently, only paint format is supported.\n"
 "\n"
-"--srcsubject subjectid\n"
+"--srcsurf surface\n"
 "\n"
-"This is the subject identifier as found in the FreeSurfer subjects\n"
-"directory (which can be changed with --sd).\n"
+"This is the surface to use when computing the talairach coordinagtes.\n"
+"Default is white.\n"
 "\n"
 "--srcframe frameno\n"
 "\n"
@@ -675,7 +681,7 @@ static void print_help(void)
 "summary file is shown below.\n"
 "\n"
 "Cluster Growing Summary (mri_surfcluster)\n"
-"$Id: mri_surfcluster.c,v 1.4 2002/04/10 22:07:33 greve Exp $\n"
+"$Id: mri_surfcluster.c,v 1.5 2002/06/24 22:49:10 greve Exp $\n"
 "Input :      minsig-0-lh.w\n"
 "Frame Number:      0\n"
 "Minimum Threshold: 5\n"
@@ -797,6 +803,7 @@ static void dump_options(FILE *fp)
   fprintf(fp,"hemi           = %s\n",hemi);
   fprintf(fp,"srcid          = %s %s\n",srcid,srcfmt);
   fprintf(fp,"srcsubjid      = %s\n",srcsubjid);
+  fprintf(fp,"srcsurf        = %s\n",srcsurfid);
   fprintf(fp,"srcframe       = %d\n",srcframe);
   fprintf(fp,"thsign         = %s\n",thsign);
   fprintf(fp,"thmin          = %g\n",thmin);
