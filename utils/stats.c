@@ -153,6 +153,13 @@ StatReadVolume(char *prefix)
     sv->time_per_event = 0 ;  /* will be filled in later by .dat file */
   }
 
+  if(sv->nevents > MAX_EVENTS){
+    fprintf(stderr,"ERROR: %s, StatReadVolume():\n",Progname);
+    fprintf(stderr,"Number of events (%d) exceeds maximum allowed (%d)\n",
+      sv->nevents, MAX_EVENTS);
+    exit(1);
+  }
+
   /* now read in the dof file */
   sprintf(fname, "%s_000.dof", prefix) ;
   fp = fopen(fname, "r") ;
