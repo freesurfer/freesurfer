@@ -41,6 +41,9 @@ typedef struct
 
 #define MATRIX_REAL        1
 #define MATRIX_COMPLEX     2
+#define MATRIX_SYM    0
+#define MATRIX_UPPER  1
+#define MATRIX_LOWER  2
 
 MATRIX  *MatrixReshape(MATRIX *m_src, MATRIX *m_dst, int rows, int cols) ;
 int     MatrixCheck(MATRIX *m) ;
@@ -79,6 +82,7 @@ MATRIX  *MatrixCopyImagRegion(MATRIX *mSrc, MATRIX *mDst, int start_row,
 MATRIX *MatrixRealToComplex(MATRIX *mReal, MATRIX *mImag, MATRIX *mOut);
 MATRIX *MatrixRegularize(MATRIX *mIn, MATRIX *mOut) ;
 int    MatrixSingular(MATRIX *m) ;
+MATRIX *MatrixToeplitz(VECTOR *v, MATRIX *T, int Type);
 
 /* determinants and eigenvectors */
 float  MatrixDeterminant(MATRIX *m) ;
@@ -88,6 +92,7 @@ MATRIX *MatrixSVDInverse(MATRIX *m, MATRIX *m_inverse) ;
 float  MatrixNSConditionNumber(MATRIX *m);
 float  MatrixConditionNumber(MATRIX *m) ;
 float  MatrixSVDEigenValues(MATRIX *m, float *evalues) ;
+MATRIX *MatrixFactorSqrSVD(MATRIX *M, int Invert, MATRIX *D);
 
 /* statistical stuff */
 MATRIX *MatrixCovariance(MATRIX *mInputs, MATRIX *mCov, VECTOR *mMeans) ;
