@@ -381,7 +381,7 @@ Surf_tErr Surf_SetIteratorPosition ( mriSurfaceRef    this,
 				     xVoxelRef        iPlane ) {
   
   Surf_tErr     eResult = Surf_tErr_NoErr;
-  
+
   eResult = Surf_Verify( this );
   if( Surf_tErr_NoErr != eResult ) 
     goto error;
@@ -1064,6 +1064,10 @@ void Surf_ConvertVoxelToSurfaceSpace ( xVoxelRef       iVoxel,
 				       mriTransformRef iTransform,
 				       xVoxelRef       oSurfVox ) {
   
+  static MATRIX * BtoRAS = NULL;
+  static MATRIX * tmp1   = NULL;
+  static MATRIX * tmp2   = NULL;
+
   /* if we don't have a transform, just copy vertex into voxel */
   if( NULL == iTransform ) {
     xVoxl_Copy( oSurfVox, iVoxel );
@@ -1075,6 +1079,27 @@ void Surf_ConvertVoxelToSurfaceSpace ( xVoxelRef       iVoxel,
     use CovertBRAStoB, so we'll use ConverBtoRAS here. Even though at
     some point we should probably fix this. */
     Trns_ConvertBtoRAS( iTransform, iVoxel, oSurfVox );
+
+
+    /* RKT: This doesn't work because tkmedit.c messes with the BtoRAS
+       of the conversion matrix, so we'll calc it here manually. */
+    if( NULL == BtoRAS ) {
+      BtoRAS = MatrixInverse( iTransform->mRAStoB, NULL );
+      tmp1 = MatrixAlloc( 4, 1, MATRIX_REAL );
+      tmp2 = MatrixAlloc( 4, 1, MATRIX_REAL );
+    }
+
+    *MATRIX_RELT(tmp1,1,1) = xVoxl_GetFloatX( iVoxel );
+    *MATRIX_RELT(tmp1,2,1) = xVoxl_GetFloatY( iVoxel );
+    *MATRIX_RELT(tmp1,3,1) = xVoxl_GetFloatZ( iVoxel );
+    *MATRIX_RELT(tmp1,4,1) = 1.0;
+    
+    MatrixMultiply( BtoRAS, tmp1, tmp2 );
+
+    xVoxl_SetFloat( oSurfVox,
+		    *MATRIX_RELT(tmp2,1,1), 
+		    *MATRIX_RELT(tmp2,2,1), 
+		    *MATRIX_RELT(tmp2,3,1) );
   }
   
 }
