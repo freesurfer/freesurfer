@@ -9,7 +9,7 @@
 %
 % Note: the images are still not flipped up-down
 %
-% $Id: tdr_fidmat2.m,v 1.3 2004/01/16 21:56:03 greve Exp $
+% $Id: tdr_fidmat2.m,v 1.4 2004/01/22 00:50:25 greve Exp $
 
 fidmatversion = 2;
 
@@ -17,6 +17,7 @@ if(0)
   fiddir = '/home/greve/sg1/dng072203/fid1/mgh';
   TE    = 20;     % Echo time in ms
   perev = 0;
+  rorev = 0;
   outmat = '/home/greve/sg1/dng072203/D20.1.B.mat';
   fidfwhm = 0;
 
@@ -37,7 +38,7 @@ if(0)
 
 end
 
-nT2sFit = 5; % number of echoes to use to fit the T2s and B0
+nT2sFit = 3; % number of echoes to use to fit the T2s and B0
 
 nv = nrows*ncols;
 evenrows = [2:2:nrows];
@@ -74,7 +75,8 @@ pedmat = tdr_pedmatrix(TE*1000,epiechospacing,delsamp,tDwell,...
 % Apply the same transforms as will be applied to the EPI kspace data
 % to make it match the first echo of the FID image
 pedmat(evenrows,:) = fliplr(pedmat(evenrows,:));
-if(perev)   pedmat = flipud(pedmat);  end
+if(perev) pedmat = flipud(pedmat);  end
+if(rorev) pedmat = fliplr(pedmat);  end
 
 % Compute the FID echo indices corresponding to the times at which
 % the EPI k-space samples were taken. Weights are for lin interp.
@@ -189,7 +191,7 @@ fprintf('\n');
 fprintf('Saving mat file (%g)\n',toc);
 save(outmat,'fiddir','fidecho1ped','fidechospacing','nfidechoes',...
      'fidfwhm','epiechospacing','delsamp','tDwell','TE',...
-     'perev','D','D0','T2s','B0','epiref_dist','epiref_undist',...
+     'perev','rorev','D','D0','T2s','B0','epiref_dist','epiref_undist',...
      'sliceorder','pedmat','colkeep','nT2sFit','kepiref_dist',...
      'fidmatversion','nkcols');
 
