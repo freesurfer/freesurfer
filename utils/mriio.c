@@ -40,6 +40,7 @@
 #include "analyze.h"
 #include "fio.h"
 #include "mri_identify.h"
+#include "signa.h"
 #include "fio.h"
 #include "matfile.h"
 #include "math.h"
@@ -319,6 +320,10 @@ static MRI *mri_read(char *fname, int type, int volume_flag, int start_frame, in
   else if(type == GENESIS_FILE)
   {
     mri = genesisRead(fname_copy, volume_flag);
+  }
+  else if(type == SIGNA_FILE)
+  {
+    mri = signaRead(fname_copy, volume_flag);
   }
   else if(type == GE_LX_FILE)
   {
@@ -7325,6 +7330,8 @@ MRIunpackFileName(char *inFname, int *pframe, int *ptype, char *outFname)
       *ptype = SIEMENS_FILE;
     else if(is_analyze(outFname))
       *ptype = MRI_ANALYZE_FILE;
+    else if (is_signa(outFname))
+      *ptype = SIGNA_FILE ;
     else if(is_sdt(outFname))
       *ptype = SDT_FILE;
     else if(is_mgh(outFname))
