@@ -4361,15 +4361,88 @@ MRIthreshModeFilter(MRI *mri_src, MRI *mri_dst, int niter, float thresh)
   return(mri_dst) ;
 }
 
+MRI   *
+MRImodeFilterWithControlPoints(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst, int niter)
+{
+  int   x, y, z, n, width, height, depth, histo[256], xk, yk, zk, 
+        xi, yi, zi, val, i, max_histo, max_i, npts ;
+	MRI   *mri_tmp ;
+
+  if (!mri_dst)
+    mri_dst = MRIclone(mri_src, NULL) ;
+
+	mri_tmp = MRIcopy(mri_src, NULL) ;
+  width = mri_src->width ; height = mri_src->height ; depth = mri_src->depth;
+
+  for (n = 0 ; n < niter ; n++)
+  {
+    for (z = 0 ; z < depth ; z++)
+    {
+      for (y = 0 ; y < height ; y++)
+      {
+        for (x = 0 ; x < width; x++)
+        {
+					if (x == Gx && y == Gy && z == Gz)
+						DiagBreak() ;
+					if (MRIvox(mri_ctrl, x, y, z) == 1)  /* an original control point - don't change */
+					{
+						MRIvox(mri_dst,x,y,z) = MRIvox(mri_tmp,x,y,z) ;
+						continue ;
+					}
+
+          memset(histo, 0, sizeof(histo)) ;
+          for (npts = 0, zk = -1 ; zk <= 1 ; zk++)
+          {
+            zi = mri_src->zi[z+zk] ;
+            for (yk = -1 ; yk <= 1 ; yk++)
+            {
+              yi = mri_src->yi[y+yk] ;
+              for (xk = -1 ; xk <= 1 ; xk++)
+              {
+                xi = mri_src->xi[x+xk] ;
+								if (MRIvox(mri_ctrl, xi, yi, zi) == 0)
+									continue ;
+								npts++ ;
+                val = MRIvox(mri_tmp, xi, yi, zi) ;
+                histo[val]++ ;
+              }
+            }
+          }
+					if (npts == 0)
+					{
+						MRIvox(mri_dst, x, y, z) = MRIvox(mri_tmp, x, y,z) ;
+						continue ;
+					}
+          for (max_histo = max_i = i = 0 ; i < 256 ; i++)
+          {
+            if (histo[i] > max_histo)
+            {
+              max_histo = histo[i] ; max_i = i ;
+            }
+          }
+          MRIvox(mri_dst, x, y, z) = max_i ;
+					MRIvox(mri_ctrl, x, y, z) = 2 ;   /* comes from a control point - use it to spread values */
+        }
+      }
+    }
+		MRIcopy(mri_dst, mri_tmp) ;
+  }
+	MRIfree(&mri_tmp) ;
+  return(mri_dst) ;
+}
+
+
 MRI *
 MRImodeFilter(MRI *mri_src, MRI *mri_dst, int niter)
 {
   int   x, y, z, n, width, height, depth, histo[256], xk, yk, zk, 
         xi, yi, zi, val, i, max_histo, max_i ;
+	MRI   *mri_tmp ;
 
   if (!mri_dst)
     mri_dst = MRIclone(mri_src, NULL) ;
 
+	mri_tmp = MRIcopy(mri_src, NULL) ;
   width = mri_src->width ; height = mri_src->height ; depth = mri_src->depth;
 
   for (n = 0 ; n < niter ; n++)
@@ -4390,7 +4463,7 @@ MRImodeFilter(MRI *mri_src, MRI *mri_dst, int niter)
               for (xk = -1 ; xk <= 1 ; xk++)
               {
                 xi = mri_src->xi[x+xk] ;
-                val = MRIvox(mri_src, xi, yi, zi) ;
+                val = MRIvox(mri_tmp, xi, yi, zi) ;
                 histo[val]++ ;
               }
             }
@@ -4406,7 +4479,9 @@ MRImodeFilter(MRI *mri_src, MRI *mri_dst, int niter)
         }
       }
     }
+		MRIcopy(mri_dst, mri_tmp) ;
   }
+	MRIfree(&mri_tmp) ;
   return(mri_dst) ;
 }
 
