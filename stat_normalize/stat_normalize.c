@@ -14,7 +14,7 @@
 #include "stats.h"
 #include "version.h"
 
-static char vcid[] = "$Id: stat_normalize.c,v 1.7 2003/04/14 23:27:01 kteich Exp $";
+static char vcid[] = "$Id: stat_normalize.c,v 1.8 2003/08/12 22:46:07 greve Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -37,19 +37,22 @@ main(int argc, char *argv[])
 {
   char        **av, *in_prefix, *out_prefix, out_fname[100], name[100],
               path[100], *coord_name, fname[100], *cp, subjects_dir[100] ;
-  int         ac, nargs, ino, event ;
+  int         n,ac, nargs, ino, event ;
   SV          *sv, *sv_avg = NULL ;
   MRI_SURFACE *mris ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: stat_normalize.c,v 1.7 2003/04/14 23:27:01 kteich Exp $");
-  if (nargs && argc - nargs == 1)
-    exit (0);
+  nargs = handle_version_option (argc, argv, "$Id: stat_normalize.c,v 1.8 2003/08/12 22:46:07 greve Exp $");
+  if (nargs && argc - nargs == 1) exit (0);
   argc -= nargs;
 
   Progname = argv[0] ;
   ErrorInit(NULL, NULL, NULL) ;
   DiagInit(NULL, NULL, NULL) ;
+
+  /* print out command-line */
+  for(n=0; n < argc; n++) printf("%s ",argv[n]);
+  printf("\n");
 
   ac = argc ;
   av = argv ;
@@ -198,6 +201,10 @@ get_option(int argc, char *argv[])
     printf("INFO: using %s\n",stats_talxfm);
     nargs = 1 ;
     break ;
+  case 'I':
+    stats_fixxfm = 1;
+    printf("INFO: fixing tal xfm\n");
+    break ;
   case 'C':
     statnorm_float2int = float2int_code(argv[2]);
     if(statnorm_float2int < 0){
@@ -242,6 +249,8 @@ print_usage(void)
         "\t-S <hemisphere> <surface>  - average in spherical coordinates\n");
   fprintf(stderr,
         "\t-x xfmfile - use subjid/mri/transforms/xfmfile instead of\n");
+  fprintf(stderr,
+        "\t-i - fix xfm for non-zero center of orig volume\n");
   fprintf(stderr,
         "\t-c float2int - <tkregister>, round\n");
 }
