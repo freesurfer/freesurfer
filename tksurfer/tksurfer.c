@@ -18153,7 +18153,7 @@ int main(int argc, char *argv[])   /* new main */
   /* end rkt */
   
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.66 2004/05/14 20:13:30 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.67 2004/06/10 15:28:46 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -22398,89 +22398,105 @@ int labl_find_and_set_border (int index)
   /* for each vertex in the label... */
   label = labl_labels[index].label;
   for (label_vno = 0; label_vno < label->n_points; label_vno++)
-    {  
-      /* get the vno and look at this vertex in the mris. if it has
-	 any neighbors that are not in the same label AND still not in
-	 the label... */
-      v = &(mris->vertices[label->lv[label_vno].vno]);
-      for (neighbor_vno = 0; neighbor_vno < v->vnum; neighbor_vno++ )
-	{
-	  labl_find_label_by_vno (v->v[neighbor_vno], 0, label_index_array,
-				  LABL_MAX_LABELS, &num_labels_found);
-	  if( num_labels_found > 0 ) 
+	{  
+		/* get the vno and look at this vertex in the mris. if it has
+			 any neighbors that are not in the same label AND still not in
+			 the label... */
+		v = &(mris->vertices[label->lv[label_vno].vno]);
+		for (neighbor_vno = 0; neighbor_vno < v->vnum; neighbor_vno++ )
+		{
+			labl_find_label_by_vno (v->v[neighbor_vno], 0, label_index_array,
+															LABL_MAX_LABELS, &num_labels_found);
+			if( num_labels_found > 0 ) 
 	    {
 	      vno_in_other_label = 0;
 	      vno_in_label = 0;
 	      for (found_label_index = 0; found_label_index < num_labels_found;
-		   found_label_index++)
-		{
-		  if (label_index_array[found_label_index] != index)
-		    vno_in_other_label = 1;
-		  if (label_index_array[found_label_index] == index)
-		    vno_in_label = 1;
-		}
+						 found_label_index++)
+				{
+					if (label_index_array[found_label_index] != index)
+						vno_in_other_label = 1;
+					if (label_index_array[found_label_index] == index)
+						vno_in_label = 1;
+				}
 		  
 	      /* it's a border if this vno is in a different (or no)
-		 label and not in this label. makr it so in the real
-		 border flag array and our temp one. */
+					 label and not in this label. makr it so in the real
+					 border flag array and our temp one. */
 	      if (vno_in_other_label && !vno_in_label)
-		{
-		  border[label->lv[label_vno].vno] = TRUE;
-		  num_borders++;
-		}
+				{
+					border[label->lv[label_vno].vno] = TRUE;
+					num_borders++;
+				}
 	    }
-	  else 
+			else 
 	    {
 	      /* it's also a border if the vno is in no label. */
 	      border[label->lv[label_vno].vno] = TRUE;
 	      num_borders++;
 	    }
+		}
 	}
-    }
 
   /* Go down the label vno list. For each one, if it's a border, check
      its surrounding vertices. For each one, if it's inside the label,
      mark it in the border2 list. */
   for (label_vno = 0; label_vno < label->n_points; label_vno++)
-    {
-      if (border[label->lv[label_vno].vno])
 	{
-	  v = &(mris->vertices[label->lv[label_vno].vno]);
-	  for (neighbor_vno = 0; neighbor_vno < v->vnum; neighbor_vno++ )
+		if (border[label->lv[label_vno].vno])
+		{
+			v = &(mris->vertices[label->lv[label_vno].vno]);
+			for (neighbor_vno = 0; neighbor_vno < v->vnum; neighbor_vno++ )
 	    {
 	      /* If it's inside the label...*/
 	      for (label_vno_check = 0; label_vno_check < label->n_points; 
-		   label_vno_check++)
-		{
-		  if (label->lv[label_vno_check].vno == v->v[neighbor_vno])
-		    {
-		      /* Add it to border2. */
-		      border2[v->v[neighbor_vno]] = 1;
-		    }
-		}
+						 label_vno_check++)
+				{
+					if (label->lv[label_vno_check].vno == v->v[neighbor_vno])
+					{
+						/* Add it to border2. */
+						border2[v->v[neighbor_vno]] = 1;
+					}
+				}
 	    }
+		}
 	}
-    }
 
   /* Allocate the array on the label and go through the border and
      border2 array, writing index numbers to the label array. */
   if (NULL != labl_labels[index].border_vno)
     free (labl_labels[index].border_vno);
 
+#if 0
   labl_labels[index].border_vno = 
     calloc (num_borders + num_borders2, sizeof(int));
+#else
+ {
+	 int num = 0 ;
+	 for (label_vno = 0; label_vno < label->n_points; label_vno++)
+	 {
+		 v = &(mris->vertices[label->lv[label_vno].vno]);
+		 if (border[label->lv[label_vno].vno] ||
+				 border2[label->lv[label_vno].vno])
+		 {
+			 num++ ;
+		 }
+	 }
+  labl_labels[index].border_vno = calloc (num, sizeof(int));
+ }
+#endif
   labl_labels[index].num_border_vnos = 0;
   for (label_vno = 0; label_vno < label->n_points; label_vno++)
-    {
-      v = &(mris->vertices[label->lv[label_vno].vno]);
-      if (border[label->lv[label_vno].vno] ||
-	  border2[label->lv[label_vno].vno])
 	{
-	  labl_labels[index].border_vno[labl_labels[index].num_border_vnos] = 
-	    label->lv[label_vno].vno;
-	  labl_labels[index].num_border_vnos++;
+		v = &(mris->vertices[label->lv[label_vno].vno]);
+		if (border[label->lv[label_vno].vno] ||
+				border2[label->lv[label_vno].vno])
+		{
+			labl_labels[index].border_vno[labl_labels[index].num_border_vnos] = 
+				label->lv[label_vno].vno;
+			labl_labels[index].num_border_vnos++;
+		}
 	}
-    }
   
   free (border);
   free (border2);
