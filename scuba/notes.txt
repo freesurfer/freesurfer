@@ -243,8 +243,6 @@ x  - add 'snake line' parallel to mCurrentLine and begin/end points
 x  - edgeline just makes straight line
 x  - code to draw snake line
 x  - connects first and last points on redraw
- - try on 25cubed.mgh, gets some illegal indices
- - favors diagonals over straights
 
 - live reslicing
  - each view gets a color
