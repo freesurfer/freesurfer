@@ -32,6 +32,8 @@ static float scale = 1.0 ;
 static char *inverse_transform_fname = NULL ;
 static char *transform_fname = NULL ;
 
+static int override_size_flag = 0;
+static double voxel_width, voxel_height, voxel_depth;
 
 int
 main(int argc, char *argv[])
@@ -85,6 +87,7 @@ main(int argc, char *argv[])
     mri->imnr0++ ;
     mri->imnr1++ ;
   }
+
   if (xdim != XDIM || ydim != YDIM || zdim != ZDIM)
   {
     MRI  *mri_tmp ;
@@ -93,6 +96,22 @@ main(int argc, char *argv[])
     mri_tmp = MRIreorder(mri, NULL, xdim, ydim, zdim) ;
     MRIfree(&mri) ;
     mri = mri_tmp ;
+  }
+
+  if(override_size_flag)
+  {
+
+    mri->xsize = (float)voxel_width;
+    mri->ysize = (float)voxel_height;
+    mri->zsize = (float)voxel_depth;
+
+    mri->xend = (mri->xsize * mri->width) / 2;
+    mri->xstart = -mri->xend;
+    mri->yend = (mri->ysize * mri->height) / 2;
+    mri->ystart = -mri->yend;
+    mri->zend = (mri->zsize * mri->depth) / 2;
+    mri->zstart = -mri->zend;
+
   }
 
   if (blur_sigma > 0.0f)
@@ -210,6 +229,7 @@ static void usage(int exit_val)
   fprintf(fout, "  -blur sigma     blur the volume\n");
   fprintf(fout, "  -raw x y z type read a raw data file; type is one of uchar, int,\n");
   fprintf(fout, "                  long, float, or short\n");
+  fprintf(fout, "  -vsize x y z    set voxel dimensions\n");
   fprintf(fout, "  -T transform    apply a transform\n");
   fprintf(fout, "  -x xdim -y ydim -z zdim\n");
   fprintf(fout, "                  reorder the axes\n");
@@ -240,6 +260,14 @@ get_option(int argc, char *argv[])
   }
   else if (!stricmp(option, "conform"))
     conform = 1 ;
+  else if (!strcmp(option, "vsize"))
+  {
+    override_size_flag = 1;
+    voxel_width = atof(argv[2]);
+    voxel_height = atof(argv[3]);
+    voxel_depth = atof(argv[4]);
+    nargs = 3;
+  }
   else if (!stricmp(option, "raw"))
   {
     for(i = 2;i <= 5;i++)
@@ -254,13 +282,13 @@ get_option(int argc, char *argv[])
 
     if(!stricmp(argv[5], "uchar"))
       raw_type = MRI_UCHAR;
-    if(!stricmp(argv[5], "int"))
+    else if(!stricmp(argv[5], "int"))
       raw_type = MRI_INT;
-    if(!stricmp(argv[5], "long"))
+    else if(!stricmp(argv[5], "long"))
       raw_type = MRI_LONG;
-    if(!stricmp(argv[5], "float"))
+    else if(!stricmp(argv[5], "float"))
       raw_type = MRI_FLOAT;
-    if(!stricmp(argv[5], "short"))
+    else if(!stricmp(argv[5], "short"))
       raw_type = MRI_SHORT;
     else
       usage(1);
