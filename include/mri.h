@@ -535,6 +535,7 @@ extern float ic_z_vertices[]  ;
 #include "label.h"
 #include "histo.h"
 
+#define MRI_GZIPPED                  -2
 #define MRI_VOLUME_TYPE_UNKNOWN      -1
 #define MRI_CORONAL_SLICE_DIRECTORY   0
 #define MRI_MINC_FILE                 1
