@@ -4,9 +4,9 @@
 // by Bruce Fischl
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/05/28 17:27:23 $
-// Revision       : $Revision: 1.27 $
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2004/06/03 18:15:01 $
+// Revision       : $Revision: 1.28 $
 
 
 #include <math.h>
@@ -123,7 +123,7 @@ main(int argc, char *argv[])
   parms.l_label = 1.0 ;
   parms.l_map = 0.0 ;
   parms.label_dist = 10.0 ;
-  parms.l_smoothness = .4 ;
+  parms.l_smoothness = 1 ;
   parms.start_t = 0 ;
   parms.max_grad = 0.3 ;
   parms.sigma = 2.0f ;
@@ -140,7 +140,7 @@ main(int argc, char *argv[])
   DiagInit(NULL, NULL, NULL) ;
   ErrorInit(NULL, NULL, NULL) ;
 
-  nargs = handle_version_option (argc, argv, "$Id: mri_ca_register.c,v 1.27 2004/05/28 17:27:23 tosa Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ca_register.c,v 1.28 2004/06/03 18:15:01 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
