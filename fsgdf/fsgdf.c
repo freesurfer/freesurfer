@@ -1,7 +1,7 @@
 /*
   fsgdf.c
   Utilities for reading freesurfer group descriptor file format 
-  $Id: fsgdf.c,v 1.1 2002/11/07 16:26:51 kteich Exp $
+  $Id: fsgdf.c,v 1.2 2002/11/08 21:34:08 kteich Exp $
 
   1. Tags are NOT case sensitive.
   2. Labels are case sensitive.
@@ -77,6 +77,8 @@ int gdfFree(FSGD **ppgd)
 {
   FSGD *gd;
   gd = *ppgd;
+  if(gd->data)
+    MRIfree(&gd->data);
   free(gd);
   *ppgd = NULL;
   return(0);
@@ -177,6 +179,14 @@ FSGD *gdfRead(char *gdfname)
   case 1: gd = gdfReadV1(gdfname); break;
   default:
     printf("ERROR: FSGDF version %d unsupported (%s) \n",version,gdfname);
+    return(NULL);
+  }
+
+  /* load the MRI containing our raw data. */
+  gd->data = MRIread(gd->datafile);
+  if(NULL == gd->data){
+    printf("ERROR: Couldn't read raw data at %s \n",gd->datafile);
+    gdfFree(&gd);
     return(NULL);
   }
 
@@ -551,3 +561,288 @@ MATRIX *gdfMatrixDODS(FSGD *gd, MATRIX *X)
 
   return(X);
 }
+
+/*------------------------------------------------------------
+  gdfGetTitle() - copies the title into the output argument.
+  ------------------------------------------------------------*/
+int gdfGetTitle(FSGD *gd, char *title)
+{
+  if(NULL == gd)
+    return(-1);
+
+  strcpy(title,gd->title);
+
+  return(0);
+}
+
+/*------------------------------------------------------------
+  gdfGetMeasurementName() - copies the measurment name into
+  the output argument.
+  ------------------------------------------------------------*/
+int gdfGetMeasurementName(FSGD *gd, char *name)
+{
+  if(NULL == gd)
+    return(-1);
+
+  strcpy(name,gd->measname);
+
+  return(0);
+}
+
+/*------------------------------------------------------------
+  gdfGetSubjectName() - copies the subject name into the 
+  output argument.
+  ------------------------------------------------------------*/
+int gdfGetSubjectName(FSGD *gd, char *name)
+{
+  if(NULL == gd)
+    return(-1);
+
+  strcpy(name,gd->regsubj);
+
+  return(0);
+}
+
+/*------------------------------------------------------------
+  gdfGetDataFileName() - copies the data file name into the
+  output argument.
+  ------------------------------------------------------------*/
+int gdfGetDataFileName(FSGD *gd, char *filename)
+{
+  if(NULL == gd)
+    return(-1);
+
+  strcpy(filename,gd->datafile);
+
+  return(0);
+}
+
+/*------------------------------------------------------------
+  gdfGetNumClasses() - returns the number of classes in the
+  output argument.
+  ------------------------------------------------------------*/
+int gdfGetNumClasses(FSGD *gd, int *nclasses)
+{
+  if(NULL == gd)
+    return(-1);
+
+  *nclasses = gd->nclasses;
+
+  return(0);
+}
+
+/*------------------------------------------------------------
+  gdfGetNthClassLabel() - copies the nth class label into the
+  output argument where nclass is from 0 -> nclasses.
+  ------------------------------------------------------------*/
+int gdfGetNthClassLabel(FSGD *gd, int nclass, char *label)
+{
+  if(NULL == gd)
+    return(-1);
+  if(nclass < 0 || nclass >= gd->nclasses)
+    return(-1);
+
+  strcpy(label,gd->classlabel[nclass]);
+
+  return(0);
+}
+
+/*------------------------------------------------------------
+  gdfGetNthClassMarker() - copies the nth class marker into the
+  output argument where nclass is from 0 -> nclasses.
+  ------------------------------------------------------------*/
+int gdfGetNthClassMarker(FSGD *gd, int nclass, char *marker)
+{
+  if(NULL == gd)
+    return(-1);
+  if(nclass < 0 || nclass >= gd->nclasses)
+    return(-1);
+
+  strcpy(marker,gd->classmarker[nclass]);
+
+  return(0);
+}
+
+/*------------------------------------------------------------
+  gdfGetNthClassColor() - copies the nth class color into the
+  output argument where nclass is from 0 -> nclasses.
+  ------------------------------------------------------------*/
+int gdfGetNthClassColor(FSGD *gd, int nclass, char *color)
+{
+  if(NULL == gd)
+    return(-1);
+  if(nclass < 0 || nclass >= gd->nclasses)
+    return(-1);
+
+  strcpy(color,gd->classcolor[nclass]);
+
+  return(0);
+}
+
+/*------------------------------------------------------------
+  gdfGetNumVariables() - returns the number of variables in the
+  output argument.
+  ------------------------------------------------------------*/
+int gdfGetNumVariables(FSGD *gd, int *nvariables)
+{
+  if(NULL == gd)
+    return(-1);
+
+  *nvariables = gd->nvariables;
+
+  return(0);
+}
+
+/*------------------------------------------------------------
+  gdfGetNthVariableLabel() - copies the nth variable label into
+  the output argument.
+  ------------------------------------------------------------*/
+int gdfGetNthVariableLabel(FSGD *gd, int nvariable, char *label)
+{
+  if(NULL == gd)
+    return(-1);
+  if(nvariable < 0 || nvariable >= gd->nvariables)
+    return(-1);
+
+  strcpy(label,gd->varlabel[nvariable]);
+
+  return(0);
+}
+
+/*------------------------------------------------------------
+  gdfGetNthVariableDefault() - copies of name of
+  the default variable to the output argument.
+  ------------------------------------------------------------*/
+int gdfGetDefaultVariable(FSGD *gd, char *label)
+{
+  if(NULL == gd)
+    return(-1);
+  
+  strcpy(label,gd->defvarlabel);
+
+  return(0);
+}
+
+/*------------------------------------------------------------
+  gdfGetNthVariableDefaultIndex() - copies of index of
+  the default variable to the output parameter
+  ------------------------------------------------------------*/
+int gdfGetDefaultVariableIndex(FSGD *gd, int *nvariable)
+{
+  if(NULL == gd)
+    return(-1);
+  
+  *nvariable = gdfGetDefVarLabelNo(gd);
+
+  return(0);
+}
+
+/*------------------------------------------------------------
+  gdfGetNumSubjects() - returns the number of subjects in the
+  output parameter.
+  ------------------------------------------------------------*/
+int gdfGetNumSubjects(FSGD *gd, int *nsubjects)
+{
+  if(NULL == gd)
+    return(-1);
+
+  *nsubjects = gd->ninputs;
+
+  return(0);
+}
+
+/*------------------------------------------------------------
+  gdfGetNthSubjectID() - copies the id of the nth subject into
+  the ouput parameter where nsubject is from 0 -> ninputs.
+  ------------------------------------------------------------*/
+int gdfGetNthSubjectID(FSGD *gd, int nsubject, char *id)
+{
+  if(NULL == gd)
+    return(-1);
+  if(nsubject < 0 || nsubject >= gd->ninputs)
+    return(-1);
+
+  strcpy(id,gd->subjid[nsubject]);
+
+  return(0);
+}
+
+/*------------------------------------------------------------
+  gdfGetNthSubjectClass() - returns the index of the nth subject's
+  class in the output parameter where nsubject is from 0 -> ninputs.
+  ------------------------------------------------------------*/
+int gdfGetNthSubjectClass(FSGD *gd, int nsubject, int *class)
+{
+  if(NULL == gd)
+    return(-1);
+  if(nsubject < 0 || nsubject >= gd->ninputs)
+    return(-1);
+
+  *class = gd->subjclassno[nsubject];
+
+  return(0);
+}
+
+/*------------------------------------------------------------
+  gdfGetNthSubjectNthValue() - returns the index of the nth
+  subject's nth variable value where nsubject is from 0 -> ninputs
+  and nvariable is from 0 -> nvariables.
+  ------------------------------------------------------------*/
+int gdfGetNthSubjectNthValue(FSGD *gd, int nsubject, 
+			     int nvariable, float *value)
+{
+  if(NULL == gd)
+    return(-1);
+  if(nsubject < 0 || nsubject >= gd->ninputs)
+    return(-1);
+  if(nvariable < 0 || nvariable >= gd->nvariables)
+    return(-1);
+
+  *value = gd->varvals[nsubject][nvariable];
+
+  return(0);
+}
+
+/*------------------------------------------------------------
+  gdfGetNthSubjectMeasurement() - returns a measurement value
+  in the output paramter for the nth subject where nsubject 
+  is 0 -> nsubjects, getting the data out of the MRI data. the
+  meaning of (x,y,z) is contextual; in a surface x=y=1 and z=vno
+  and in a volume it's a normal anatomical coordinate.
+  ------------------------------------------------------------*/
+int gdfGetNthSubjectMeasurement(FSGD *gd, int nsubject, 
+				int x, int y, int z, float *value)
+{
+  if(NULL == gd)
+    return(-1);
+  if(nsubject < 0 || nsubject >= gd->ninputs)
+    return(-1);
+  if(x < gd->data->xstart || x > gd->data->xend ||
+     y < gd->data->ystart || y > gd->data->yend ||
+     z < gd->data->zstart || z > gd->data->zend ||
+     nsubject < 0 || nsubject >= gd->data->nframes)
+    return(-1);
+    
+  switch( gd->data->type ) {
+    case MRI_UCHAR:
+      *value = MRIseq_vox(gd->data,x,y,z,nsubject);
+      break;
+    case MRI_INT:
+      *value = MRIIseq_vox(gd->data,x,y,z,nsubject);
+      break;
+    case MRI_LONG:
+      *value = MRILseq_vox(gd->data,x,y,z,nsubject);
+      break;
+    case MRI_FLOAT:
+      *value = MRIFseq_vox(gd->data,x,y,z,nsubject);
+      break;
+    case MRI_SHORT:
+      *value = MRISseq_vox(gd->data,x,y,z,nsubject);
+      break;
+    default:
+      break ;
+    }
+
+  return(0);
+}
+
