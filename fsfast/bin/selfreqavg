@@ -1,7 +1,7 @@
 #!/bin/csh -f
 # fMRI selective frequency averaging (for phase-encoding analysis)
 
-set VERSION = '$Id: selfreqavg,v 1.2 2003/04/02 00:29:07 greve Exp $';
+set VERSION = '$Id: selfreqavg,v 1.3 2003/08/05 00:40:02 greve Exp $';
 set cmdargv = "$argv";
 
 set n = `echo $argv | grep version | wc -l` 
@@ -79,6 +79,9 @@ endif
 
 set outdir = `dirname $outstem`;
 mkdir -p $outdir
+mkdir -p $outdir/omnibus
+set foutstem = $outdir/omnibus/f;
+set fsigstem = $outdir/omnibus/fsig;
 
 #---------------------------------------------------------------#
 $TARGET <<EOF
@@ -89,6 +92,8 @@ $TARGET <<EOF
   instems    = splitstring('$instems');
   bext       = '$bext';
   outstem    = '$outstem';
+  foutstem   = '$foutstem';
+  fsigstem   = '$fsigstem';
   firstslice = [$firstslice];
   nslices    = [$nslices];
   slice_delay_file = deblank('$slice_delay_file');
@@ -169,8 +174,10 @@ $TARGET <<EOF
   ph_delay = sfa.delay * (2*pi)* sfa.fundamental;
 
   %%%%--------- Slice Loop ----------------%%%
+  fprintf('Slice ');
   for slice = firstslice:lastslice
-    fprintf('Slice %3d\n',slice);
+    fprintf('%3d ',slice);
+    if(rem(slice,20)==19) fprintf('\n'); end
 
     sum_real_signal = 0;
     sum_imag_signal = 0;
@@ -180,7 +187,7 @@ $TARGET <<EOF
 
     for n = 1:nruns,
       instem = deblank(instems(n,:));
-      fprintf('Input Volume %s\n',instem);
+      %fprintf('Input Volume %s\n',instem);
 
       %%% Load the raw data %%
       [nslices nrows ncols ntrs endian bext] = fmri_bvoldim(instem);
@@ -219,10 +226,10 @@ $TARGET <<EOF
 
       %% Detrend (also removes mean) %%
       if(sfa.detrend > 0)   
-        fprintf('Detrending ...\n');
+        %fprintf('Detrending ...\n');
         [f wtrend] = fmri_detrend(f,[],2,zeros(sfa.ntp,1));
-        fprintf('Mean Offset = %g\n',mean(reshape1d(wtrend(:,:,1))));
-        fprintf('Mean Trend  = %g\n',mean(reshape1d(wtrend(:,:,2))));
+        %fprintf('Mean Offset = %g\n',mean(reshape1d(wtrend(:,:,1))));
+        %fprintf('Mean Trend  = %g\n',mean(reshape1d(wtrend(:,:,2))));
         wtrend = reshape(wtrend, [Nv 2])'; %'
       else
         wtrend = zeros(2, Nv);
@@ -287,7 +294,7 @@ $TARGET <<EOF
     phz = angle(u);
     t = imag(u)./sqrt(var_noise/nruns);
 
-    fprintf('Mean Phase = %g (%g)\n',mean(phz),mean(phz)*180/pi);
+    %fprintf('Mean Phase = %g (%g)\n',mean(phz),mean(phz)*180/pi);
 
     %% Put into appropriate format and save %%
     tmp = zeros(12,Nv);
@@ -307,10 +314,18 @@ $TARGET <<EOF
     ntmp  = size(tmp,1);
     tmp   = reshape(tmp', [sfa.nrows sfa.ncols ntmp]); %'
     fname = sprintf('%s_%03d.bfloat',outstem,slice);
-    fprintf('Saving Data to %s\n',fname);
+    fmri_svbfile(tmp,fname);
+
+    tmp = reshape(F,[sfa.nrows sfa.ncols]);
+    fname = sprintf('%s_%03d.bfloat',foutstem,slice);
+    fmri_svbfile(tmp,fname);
+
+    tmp = reshape(log10sigf,[sfa.nrows sfa.ncols]);
+    fname = sprintf('%s_%03d.bfloat',fsigstem,slice);
     fmri_svbfile(tmp,fname);
 
   end %% loop over slices %%
+  fprintf('\n');
 
   %% Save the data file %%
   fprintf('Saving header to %s\n',outstem);
