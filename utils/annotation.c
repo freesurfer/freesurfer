@@ -5,6 +5,8 @@
 #include "utils.h"
 #include "const.h"
 #include "error.h"
+#include "mrisurf.h"
+#include "label.h"
 
 #define ANNOTATION_SRC
 #include "annotation.h"
@@ -207,4 +209,45 @@ annotation_to_name(int annotation, int *pindex)
   if (pindex)
     *pindex = -1 ;
   return("NOT_FOUND") ;
+}
+/*------------------------------------------------------------
+  annotation2label() - converts an annotation into a label
+  given the annotation identifier. If no vertices with the
+  identifier can be found, returns NULL.
+------------------------------------------------------------*/
+LABEL *annotation2label(int annotid, MRIS *Surf)
+{
+  int npoints, vtxno, annot, vtxannotid;
+  VERTEX *vtx;
+  LABEL *label;
+
+  // Count number of points in the label 
+  npoints = 0;
+  for(vtxno = 0; vtxno < Surf->nvertices; vtxno++){
+    vtx = &(Surf->vertices[vtxno]);
+    annot = Surf->vertices[vtxno].annotation;
+    vtxannotid = annotation_to_index(annot);
+    if(vtxannotid == annotid) npoints++;
+  }
+  if(npoints==0) return(NULL);
+
+  // Allocate the label
+  label = LabelAlloc(npoints,"","");
+  label->n_points = npoints;
+
+  // Fill the label
+  npoints = 0;
+  for(vtxno = 0; vtxno < Surf->nvertices; vtxno++){
+    vtx = &(Surf->vertices[vtxno]);
+    annot = Surf->vertices[vtxno].annotation;
+    vtxannotid = annotation_to_index(annot);
+    if(vtxannotid == annotid){
+      label->lv[npoints].vno = vtxno;
+      label->lv[npoints].x = vtx->x;
+      label->lv[npoints].y = vtx->y;
+      label->lv[npoints].z = vtx->z;
+      npoints++;
+    }
+  }
+  return(label);
 }
