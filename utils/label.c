@@ -526,7 +526,7 @@ LABEL *
 LabelAlloc(int max_points, char *subject_name, char *label_name)
 {
   LABEL  *area ;
-  char   *cp, subjects_dir[100] ;
+  char   *cp, subjects_dir[STRLEN] ;
 
   area = (LABEL *)calloc(1, sizeof(LABEL)) ;
   if (!area)
@@ -978,7 +978,7 @@ LabelRemoveDuplicates(LABEL *area)
     for (n2 = n1+1 ; n2 < area->n_points ; n2++)
     {
       lv2 = &area->lv[n2] ;
-      if (lv1->vno == lv2->vno)
+      if (lv1->vno >= 0 && lv2->vno >= 0 && lv1->vno == lv2->vno)
       {
         deleted++ ;
         lv2->deleted = 1 ;
