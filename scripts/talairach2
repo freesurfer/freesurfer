@@ -1,8 +1,18 @@
 #!/bin/csh -f
 # talairach2
+#
+# USAGE: talairach2 subjectid <mgzflag>
+#  subjectid - name of the subject
+#  mgzflag - if anything is present, then it will assume
+#   that the orig volume is stored as orig.mgz in the mri
+#   directory (ie, the orig dir does not exist and there
+#   is no COR volume).
+#
 ########################################################
 
-set VERSION = '$Id: talairach2,v 1.5 2003/08/28 21:45:48 tosa Exp $';
+set VERSION = '$Id: talairach2,v 1.6 2004/07/15 21:54:06 greve Exp $';
+
+set MGZ = ();
 
 # Look for version #
 set n = `echo $argv | grep version | wc -l` 
@@ -15,13 +25,13 @@ if($n != 0) then
   exit 0;
 endif
 
-if($#argv != 1) then
-  echo "USAGE: talairach2 subjectid"
+if($#argv < 1 || $#argv > 2) then
+  echo "USAGE: talairach2 subjectid <mgzflag>"
   exit 1;
 endif
 
-
-set subject = $1
+set subject = $argv[1]; shift;
+if($#argv != 0) set MGZ = ".mgz"
 
 set base = $SUBJECTS_DIR/$subject/mri
 
@@ -40,7 +50,7 @@ echo "INFO: registering $subject"
 date 
 
 echo "--------------------------------------------"
-set cmd = (mri_convert orig orig/orig.mnc)
+set cmd = (mri_convert orig$MGZ orig.mnc)
 echo $cmd
 $cmd
 if($status) then
@@ -48,25 +58,25 @@ if($status) then
   exit 1;
 endif
 
-if(! -e orig/orig.mnc) then
-  echo "ERROR: cannot find orig/orig.mnc"
+if(! -e orig.mnc) then
+  echo "ERROR: cannot find orig.mnc"
   exit 1;
 endif
 
 echo "--------------------------------------------"
 set cmd = (mritotal -verbose -debug -clobber -protocol icbm \
-           orig/orig.mnc transforms/talairach.xfm)
+           orig.mnc transforms/talairach.xfm)
 echo $cmd
-$cmd > orig/orig.log
+$cmd > ../scripts/mritotal.log
 set st = $status
-rm orig/orig.mnc
+rm orig.mnc
 if($st) then
-  echo "ERROR: mritotal failed"
+  echo "ERROR: mritotal failed, see scripts/mritotal.log"
   exit 1;
 endif
 
 echo "--------------------------------------------"
-set cmd = (mri_add_xform_to_header $transform $base/orig $base/orig)
+set cmd = (mri_add_xform_to_header $transform $base/orig$MGZ $base/orig$MGZ)
 echo $cmd
 $cmd
 if($status) then
