@@ -30420,24 +30420,25 @@ MRI *MRISsmoothMRI(MRIS *Surf, MRI *Src, int nSmoothSteps, MRI *Targ)
 
   SrcTmp = MRIcopy(Src,NULL);
   for(nthstep = 0; nthstep < nSmoothSteps; nthstep ++){
-    printf("Step = %d\n",nthstep); fflush(stdout);
+    //printf("Step = %d\n",nthstep); fflush(stdout);
 
     for(vtx = 0; vtx < Surf->nvertices; vtx++){
+      if(Surf->vertices[vtx].ripflag) continue;
       nnbrs = Surf->vertices[vtx].vnum;
 
       for(frame = 0; frame < Targ->nframes; frame ++){
-  val = MRIFseq_vox(SrcTmp,vtx,0,0,frame);
-
-  for(nthnbr = 0; nthnbr < nnbrs; nthnbr++){
-    nbrvtx = Surf->vertices[vtx].v[nthnbr];
-    val += MRIFseq_vox(SrcTmp,nbrvtx,0,0,frame) ;
-  }/* end loop over neighbor */
-
-  MRIFseq_vox(Targ,vtx,0,0,frame) = (val/(nnbrs+1));
+	val = MRIFseq_vox(SrcTmp,vtx,0,0,frame);
+	
+	for(nthnbr = 0; nthnbr < nnbrs; nthnbr++){
+	  nbrvtx = Surf->vertices[vtx].v[nthnbr];
+	  val += MRIFseq_vox(SrcTmp,nbrvtx,0,0,frame) ;
+	}/* end loop over neighbor */
+	
+	MRIFseq_vox(Targ,vtx,0,0,frame) = (val/(nnbrs+1));
       }/* end loop over frame */
-
+      
     } /* end loop over vertex */
-
+    
     MRIcopy(Targ,SrcTmp);
   }/* end loop over smooth step */
 
