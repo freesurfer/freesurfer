@@ -11,6 +11,7 @@
 #include "classify.h"
 #include "mrisegment.h"
 #include "mri.h"
+#include "mrinorm.h"
 #include "timer.h"
 
 static int extract = 0 ;
@@ -29,6 +30,11 @@ static int thicken = 1 ;
 static int nsegments = 20 ;
 static int fill_bg = 0 ;
 static int fill_ventricles = 0 ;
+
+static int keep_edits = 0 ;
+
+static int auto_detect_stats =  1 ;
+static int log_stats = 1 ;
 
 char *Progname ;
 
@@ -75,17 +81,55 @@ main(int argc, char *argv[])
     ErrorExit(ERROR_NOFILE, "%s: could not read source volume from %s",
               Progname, input_file_name) ;
 
+  if (auto_detect_stats) /* widen range to allow for more variability */
+    wm_low -= 10 ;  
   fprintf(stderr, "doing initial intensity segmentation...\n") ;
   mri_tmp = MRIintensitySegmentation(mri_src, NULL, wm_low, wm_hi, gray_hi);
 
   fprintf(stderr, "using local statistics to label ambiguous voxels...\n") ;
   MRIhistoSegment(mri_src, mri_tmp, wm_low, wm_hi, gray_hi, wsize, 3.0f) ;
 
-  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
-    MRIwrite(mri_tmp, "/tmp/int.mnc") ;
+  if (auto_detect_stats)
+  {
+    float   white_mean, white_sigma, gray_mean, gray_sigma ;
+
+    fprintf(stderr, "computing class statistics for intensity windows...\n") ;
+    MRIcomputeClassStatistics(mri_src, mri_tmp, 30, WHITE_MATTER_MEAN,
+                              &white_mean, &white_sigma, &gray_mean,
+                              &gray_sigma) ;
+    
+
+    wm_low = gray_mean + gray_sigma ;
+    gray_hi = gray_mean + 2*gray_sigma ;
+    fprintf(stderr, "setting bottom of white matter range to %2.1f\n",wm_low);
+    fprintf(stderr, "setting top of gray matter range to %2.1f\n", gray_hi) ;
+
+    if (log_stats)
+    {
+      FILE *fp ;
+
+      fp = fopen("segment.dat", "w") ;
+      if (fp)
+      {
+        fprintf(fp, "WM: %2.1f +- %2.1f\n",white_mean, white_sigma) ;
+        fprintf(fp, "GM: %2.1f +- %2.1f\n",gray_mean, gray_sigma) ;
+        fprintf(fp, "setting bottom of white matter range to %2.1f\n",wm_low);
+        fprintf(fp, "setting top of gray matter range to %2.1f\n", gray_hi) ;
+        fclose(fp) ;
+      }
+    }
+            
+    fprintf(stderr, "doing initial intensity segmentation...\n") ;
+    mri_tmp = MRIintensitySegmentation(mri_src, NULL, wm_low, wm_hi, gray_hi);
+    
+    fprintf(stderr, "using local statistics to label ambiguous voxels...\n") ;
+    MRIhistoSegment(mri_src, mri_tmp, wm_low, wm_hi, gray_hi, wsize, 3.0f) ;
+  }
+
   fprintf(stderr, 
           "using local geometry to label remaining ambiguous voxels...\n") ;
-  mri_labeled = MRIcpolvMedianCurveSegment(mri_src, mri_tmp, NULL, 5, 3);
+  mri_labeled = MRIcpolvMedianCurveSegment(mri_src, mri_tmp, NULL, 5, 3,
+                                           gray_hi, wm_low);
   fprintf(stderr, 
           "\nreclassifying voxels using Gaussian border classifier...\n") ;
 
@@ -131,6 +175,17 @@ main(int argc, char *argv[])
   fprintf(stderr, "white matter segmentation took %2.1f minutes\n",
           (float)msec/(1000.0f*60.0f));
   fprintf(stderr, "writing output to %s...\n", output_file_name) ;
+  if (keep_edits)
+  {
+    MRI *mri_old ;
+
+    mri_old = MRIread(output_file_name) ;
+    if (!mri_old)
+      ErrorExit(ERROR_NOFILE, "%s: could not read file %s to preserve edits",
+                Progname, output_file_name) ;
+    MRIcopyLabel(mri_old, mri_dst, 255) ;
+    MRIfree(&mri_old) ;
+  }
   MRIwrite(mri_dst, output_file_name) ;
 
   MRIfree(&mri_dst) ;
@@ -161,6 +216,22 @@ get_option(int argc, char *argv[])
     pslope = atof(argv[2]) ;
     nargs = 1 ;
     fprintf(stderr, "using curvature pslope = %2.2f\n", pslope) ;
+  }
+  else if (!stricmp(option, "auto"))
+  {
+    auto_detect_stats = !auto_detect_stats ;
+    fprintf(stderr, "%sautomatically detecting class statistics...\n",
+            auto_detect_stats ? "" : "not ") ;
+  }
+  else if (!stricmp(option, "log"))
+  {
+    log_stats = 1 ;
+    fprintf(stderr, "logging class statistics and thresholds...\n") ;
+  }
+  else if (!stricmp(option, "keep"))
+  {
+    keep_edits = 1 ;
+    fprintf(stderr, "preserving editing changes in output volume...\n");
   }
   else if (!stricmp(option, "nslope"))
   {
