@@ -36,6 +36,7 @@ char FunD_ksaErrorString [FunD_tErr_knNumErrorCodes][256] = {
   "Questionable header format (found expected types of values, but keywords were different).",
   "Couldn't find a recognizable data file.",
   "Couldn't allocate storage (memory allocation failed).",
+  "Couldn't allocate MRI.",
   "Data has already been read.",
   "Slice file not found.",
   "Error reading slice data (unexpected EOF or expected data type mismatch).",
@@ -105,6 +106,7 @@ FunD_tErr FunD_New ( mriFunctionalDataRef* outVolume,
   }
 
   /* init values */
+  this->mConvMethod         = FunD_tConversionMethod_FFF;
   this->mData               = NULL;
   this->mDeviations         = NULL;
   this->mCovMtx             = NULL;
@@ -478,6 +480,67 @@ FunD_tErr FunD_ParseRegistrationAndInitMatricies ( mriFunctionalDataRef this ) {
 
   return FunD_tErr_NoError;
 }
+
+FunD_tErr FunD_SmoothData ( mriFunctionalDataRef this,
+          int                  inTimePoint,
+          int                  inCondition,
+          float                ifSigma ) {
+
+  MRI       *kernel = NULL;
+  MRI       *funcData = NULL;
+  int       nWidth = 0;
+  int       nHeight = 0;
+  int       nDepth = 0;
+  xVoxel    funcIdx;
+  float     funcValue;
+
+  DebugNote( ("Allocating gaussian kenrel with MRIgaussian1d") );
+  kernel = MRIgaussian1d( ifSigma, 100 );
+  if( NULL == kernel )
+    return FunD_tErr_CouldntAllocateMRI;
+
+  FunD_GetNumCols( this, &nWidth );
+  FunD_GetNumRows( this, &nHeight );
+  FunD_GetNumSlices( this, &nDepth );
+
+  DebugNote( ("Allocating MRI storage with MRIalloc") );
+  funcData = MRIalloc( nWidth, nHeight, nDepth, MRI_FLOAT);
+  if( NULL == funcData )
+    return FunD_tErr_CouldntAllocateMRI;
+
+  xVoxl_Set( &funcIdx, 0, 0, 0 );
+  while( xVoxl_IncrementUntilLimits( &funcIdx, 
+             nWidth-1, nHeight-1, nDepth-1 ) ) {
+    funcValue = FunD_GetValue ( this, &funcIdx, inTimePoint, inCondition );
+    MRIFvox( funcData, xVoxl_GetX(&funcIdx), 
+       xVoxl_GetY(&funcIdx), xVoxl_GetZ(&funcIdx)) = funcValue;
+  }
+
+  DebugNote( ("Performing convolution with MRIconvolveGaussian") );
+  MRIconvolveGaussian( funcData, funcData, kernel );
+
+  xVoxl_Set( &funcIdx, 0, 0, 0 );
+  while( xVoxl_IncrementUntilLimits( &funcIdx, 
+             nWidth-1, nHeight-1, nDepth-1 ) ) {
+    funcValue = MRIFvox( funcData, xVoxl_GetX(&funcIdx), 
+       xVoxl_GetY(&funcIdx), xVoxl_GetZ(&funcIdx));
+    FunD_SetValue( this, &funcIdx, inTimePoint, inCondition, funcValue );
+  }
+
+  MRIfree( &funcData );
+  MRIfree( &kernel );
+
+  return FunD_tErr_NoError;
+}
+
+FunD_tErr FunD_SetConversionMethod ( mriFunctionalDataRef this,
+             FunD_tConversionMethod iMethod ) {
+
+  this->mConvMethod = iMethod;
+
+  return FunD_tErr_NoError;
+}
+
 
 FunD_tErr FunD_SaveRegistration ( mriFunctionalDataRef this ) {
 
@@ -1644,11 +1707,11 @@ static xVoxel sCoord2;
 void FunD_ConvertAnaIdxToFuncIdx ( mriFunctionalDataRef this,
            xVoxelRef inAnaIdx,
            xVoxelRef outFuncIdx ) {
-
+  
   Trns_tErr eTransform = Trns_tErr_NoErr;
-
+  
   xVoxl_SetFloat( &sCoord1, xVoxl_ExpandFloat(inAnaIdx) );
-
+  
   eTransform = Trns_ConvertAtoB( this->mIdxToIdxTransform, 
          &sCoord1, &sCoord2 );
   if( Trns_tErr_NoErr != eTransform ) {
@@ -1656,7 +1719,27 @@ void FunD_ConvertAnaIdxToFuncIdx ( mriFunctionalDataRef this,
     return;
   }
 
-  xVoxl_SetFloat( outFuncIdx, xVoxl_ExpandFloat(&sCoord2) );
+  /* do the proper conversion method */
+  switch( this->mConvMethod ) {
+  case FunD_tConversionMethod_FFF:
+    xVoxl_SetFloat( outFuncIdx, 
+        floor(xVoxl_GetFloatX(&sCoord2)),
+        floor(xVoxl_GetFloatY(&sCoord2)),
+        floor(xVoxl_GetFloatZ(&sCoord2)) );
+    break;
+  case FunD_tConversionMethod_Round:
+    xVoxl_SetFloat( outFuncIdx, 
+        rint(xVoxl_GetFloatX(&sCoord2)),
+        rint(xVoxl_GetFloatY(&sCoord2)),
+        rint(xVoxl_GetFloatZ(&sCoord2)) );
+    break;
+  case FunD_tConversionMethod_FCF:
+    xVoxl_SetFloat( outFuncIdx, 
+        floor(xVoxl_GetFloatX(&sCoord2)),
+        ceil(xVoxl_GetFloatY(&sCoord2)),
+        floor(xVoxl_GetFloatZ(&sCoord2)) );
+    break;
+  }
 }
 
 void FunD_ConvertFuncIdxToAnaIdx ( mriFunctionalDataRef this,
@@ -1674,12 +1757,12 @@ void FunD_ConvertFuncIdxToAnaIdx ( mriFunctionalDataRef this,
     return;
   }
 
-  xVoxl_SetFloat( outAnaIdx, xVoxl_ExpandFloat(&sCoord2) );
+ xVoxl_SetFloat( outAnaIdx, xVoxl_ExpandFloat(&sCoord2) );
 }
 
 void FunD_ConvertRASToFuncIdx ( mriFunctionalDataRef this,
-         xVoxelRef inRAS,
-         xVoxelRef outFuncIdx ) {
+        xVoxelRef inRAS,
+        xVoxelRef outFuncIdx ) {
 
   Trns_tErr eTransform = Trns_tErr_NoErr;
 
@@ -1692,7 +1775,27 @@ void FunD_ConvertRASToFuncIdx ( mriFunctionalDataRef this,
     return;
   }
 
-  xVoxl_SetFloat( outFuncIdx, xVoxl_ExpandFloat(&sCoord2) );
+  /* do the proper conversion method */
+  switch( this->mConvMethod ) {
+  case FunD_tConversionMethod_FFF:
+    xVoxl_SetFloat( outFuncIdx, 
+        floor(xVoxl_GetFloatX(&sCoord2)),
+        floor(xVoxl_GetFloatY(&sCoord2)),
+        floor(xVoxl_GetFloatZ(&sCoord2)) );
+    break;
+  case FunD_tConversionMethod_Round:
+    xVoxl_SetFloat( outFuncIdx, 
+        rint(xVoxl_GetFloatX(&sCoord2)),
+        rint(xVoxl_GetFloatY(&sCoord2)),
+        rint(xVoxl_GetFloatZ(&sCoord2)) );
+    break;
+  case FunD_tConversionMethod_FCF:
+    xVoxl_SetFloat( outFuncIdx, 
+        floor(xVoxl_GetFloatX(&sCoord2)),
+        ceil(xVoxl_GetFloatY(&sCoord2)),
+        floor(xVoxl_GetFloatZ(&sCoord2)) );
+    break;
+  }
 }
 
 void FunD_ConvertFuncIdxToFuncRAS ( mriFunctionalDataRef this,
@@ -1714,15 +1817,15 @@ void FunD_ConvertFuncIdxToFuncRAS ( mriFunctionalDataRef this,
 }
 
 FunD_tErr FunD_GetBoundsInAnatomical ( mriFunctionalDataRef this, 
-          xVoxelRef  outMin,
-          xVoxelRef  outMax ) {
+               xVoxelRef  outMin,
+               xVoxelRef  outMax ) {
   FunD_tErr theErr         = FunD_tErr_NoError;
- xVoxelRef         theVox         = NULL;
- xVoxelRef         theMin         = NULL;
+  xVoxelRef         theVox         = NULL;
+  xVoxelRef         theMin         = NULL;
  xVoxelRef         theMax         = NULL;
-  int              nX             = 0;
-  int              nY             = 0;
-  int              nZ             = 0;
+ int              nX             = 0;
+ int              nY             = 0;
+ int              nZ             = 0;
 
   xVoxl_New( &theVox );
   xVoxl_New( &theMin );
@@ -1747,13 +1850,13 @@ FunD_tErr FunD_GetBoundsInAnatomical ( mriFunctionalDataRef this,
   
   /* convert to anatomical index. */
   FunD_ConvertFuncIdxToAnaIdx( this, theVox, theVox );
-
+  
   /* set the lesser of each in the min voxel. */
   xVoxl_Set( theMin, 
        min( xVoxl_GetX(theMin), xVoxl_GetX(theVox) ),
        min( xVoxl_GetY(theMin), xVoxl_GetY(theVox) ),
        min( xVoxl_GetZ(theMin), xVoxl_GetZ(theVox) ) );
-
+  
   /* set the greater of each in the max voxel. */
   xVoxl_Set( theMax, 
        max( xVoxl_GetX(theMax), xVoxl_GetX(theVox) ),
@@ -1772,7 +1875,7 @@ FunD_tErr FunD_GetBoundsInAnatomical ( mriFunctionalDataRef this,
  error:
   
   if( FunD_tErr_NoError != theErr ) {
-    DebugPrint( ("Error in FunD_GetBoundsInAnatomicalRAS (%d): %s\n",
+    DebugPrint( ("Error in FunD_GetBoundsInAnatomical (%d): %s\n",
       theErr, FunD_GetErrorString(theErr) ) );
   }
 
@@ -1962,12 +2065,12 @@ void FunD_MakeBFloatSliceFileName ( char* inPath, char* inStem,
 float FunD_GetValue ( mriFunctionalDataRef this,
           xVoxelRef inFunctionalVoxel,
           int inConditionIndex, int inTimePoint ) {
-
+  
   float theValue;
   int theIndex;
   theIndex = FunD_CoordsToIndex ( this, inFunctionalVoxel,
-            inConditionIndex, inTimePoint );
-
+          inConditionIndex, inTimePoint );
+  
   switch ( this->mDataType ) {
   case FunD_tDataType_Short:
     theValue = ((short*)this->mData)[theIndex];

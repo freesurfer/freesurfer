@@ -136,7 +136,7 @@ proc TimeCourse_DrawGraph {} {
     global glErrorData glGraphData gGraphSetting glGraphColors
     global gbErrorBars gbAutoRangeGraph
     global gnMaxNumErrorBars gnNumDataSets
-    global gnTimeResolution
+    global gnTimeResolution gbPreStimOffset gnPreStimPoints
 
     TimeCourse_ClearData
 
@@ -154,7 +154,7 @@ proc TimeCourse_DrawGraph {} {
   if { $gGraphSetting($dataSet,visible) == 0 } {
       continue;
   }
-      
+  
   # get the condition index for this color
   set nCondition $gGraphSetting($dataSet,condition)
   
@@ -167,8 +167,7 @@ proc TimeCourse_DrawGraph {} {
   if { $nLength <= 0 } {
       continue;
   }
-
-
+  
   # try to size the spacing of the ticks on the x axis appropriatly.
   # get the x range of this data and find out how many points we have.
   # then get the width of the graph and divide it by the number
@@ -189,6 +188,30 @@ proc TimeCourse_DrawGraph {} {
       }
       $gwGraph axis configure x -stepsize $nWidthPerTick
   }
+  
+
+  # if we're subtracting the prestim avg..
+  if { $gbPreStimOffset && $gnPreStimPoints > 0 } {
+      
+      # get the sum of all the points before the stim.
+      set fPreStimSum 0
+      for { set nTP 0 } { $nTP < $gnPreStimPoints } { incr nTP } {
+    set nIndex [expr [expr $nTP * 2] + 1];
+    set fPreStimSum [expr double($fPreStimSum) + double([lindex $lGraphData $nIndex])];
+      }
+      
+      # find the avg.
+      set fPreStimAvg [expr double($fPreStimSum) / double($gnPreStimPoints)]
+      # subtract from all points.
+      for { set nTP 0 } { $nTP < $nNumPoints } { incr nTP } {
+    set nIndex [expr [expr $nTP * 2] + 1];
+    set fOldValue [lindex $lGraphData $nIndex]
+    set fNewValue [expr double($fOldValue) - double($fPreStimAvg)]
+    set lGraphData [lreplace $lGraphData $nIndex $nIndex $fNewValue]
+      }
+  }
+  
+
 
   # graph the data
   $gwGraph element create line$dataSet \
@@ -377,24 +400,23 @@ proc Overlay_DoConfigDlog {} {
     set wwDialog .wwOverlayConfigDlog
     
     if { [Dialog_Create $wwDialog "Configure Functional Overlay" {-borderwidth 10}] } {
-
+  
   set lfwLocation       $wwDialog.lfwLocation
   set lfwDisplay        $wwDialog.lfwDisplay
   set lfwThreshold      $wwDialog.lfwThreshold
   set fwButtons         $wwDialog.fwButtons
 
   Overlay_SaveConfiguration;
-
-
+  
   tixLabelFrame $lfwLocation \
     -label "Location" \
     -labelside acrosstop \
     -options { label.padX 5 }
-
+  
   set fwLocationSub    [$lfwLocation subwidget frame]
   set fwTimePoint      $fwLocationSub.fwTimePoint
   set fwCondition      $fwLocationSub.fwCondition
-
+  
   set nMaxCondition [expr $gnOverlayNumConditions - 1]
   set nMaxTimePoint [expr $gnOverlayNumTimePoints - 1]
 
@@ -458,9 +480,9 @@ proc Overlay_DoConfigDlog {} {
 
   tkm_MakeSliders $fwThresholdSliders [list \
     [list {"Threshold minimum"} gfThreshold(min) \
-    $gfOverlayRange(min) $gfOverlayRange(max) 100 {} 1] \
+    $gfOverlayRange(min) $gfOverlayRange(max) 100 {} 1 0.25] \
     [list {"Threshold midpoint"} gfThreshold(mid) \
-    $gfOverlayRange(min) $gfOverlayRange(max) 100 {} 1 ]]
+    $gfOverlayRange(min) $gfOverlayRange(max) 100 {} 1 0.25]]
   tkm_MakeEntry $fwThresholdSlope "Threshold slope" gfThreshold(slope) 6
 
 
@@ -716,7 +738,7 @@ proc TimeCourse_SaveConfiguration {} {
     set gnSavedPreStimPoints $gnPreStimPoints
     set gnSavedTimeResolution $gnTimeResolution
     set gbSavedTimeCourseOffset $gbTimeCourseOffset
-    set gbSavedPreStimOffset $gbPreStimOffset
+#    set gbSavedPreStimOffset $gbPreStimOffset
     foreach color $glGraphColors {
   foreach entry {visible condition} {
       set gSavedGraphSetting($color,$entry) $gGraphSetting($color,$entry)
@@ -736,7 +758,7 @@ proc TimeCourse_RestoreConfiguration {} {
     set gnPreStimPoints $gnSavedPreStimPoints
     set gnTimeResolution $gnSavedTimeResolution
     set gbTimeCourseOffset $gbSavedTimeCourseOffset
-    set gbPreStimOffset $gbSavedPreStimOffset
+#    set gbPreStimOffset $gbSavedPreStimOffset
     foreach color $glGraphColors {
   foreach entry {visible condition} {
       set gGraphSetting($color,$entry) $gSavedGraphSetting($color,$entry)
@@ -756,7 +778,7 @@ proc TimeCourse_SetConfiguration {} {
     TimeCourse_SetNumPreStimPoints $gnPreStimPoints
     TimeCourse_SetTimeResolution $gnTimeResolution
     TimeCourse_SetDisplayFlag $FunV_tDisplayFlag_TC_OffsetValues $gbTimeCourseOffset
-    TimeCourse_SetDisplayFlag $FunV_tDisplayFlag_TC_PreStimOffset $gbPreStimOffset
+#    TimeCourse_SetDisplayFlag $FunV_tDisplayFlag_TC_PreStimOffset $gbPreStimOffset
 }
 # =======================================================================
 
@@ -990,8 +1012,8 @@ HideFunctionalWindow
 
 proc TestData {} {
 
-    set kNumConditions 3
-    set kNumTimePoints 20
+    set kNumConditions 2
+    set kNumTimePoints 10
 
     ShowFunctionalWindow
 
@@ -1003,7 +1025,6 @@ proc TestData {} {
       lappend lData $tp [expr $tp / [expr $cn + 1]]
   }
   TimeCourse_UpdateGraphData $cn $lData
-  puts "$cn: $lData"
     }
     TimeCourse_UpdateNumConditions $kNumConditions
 

@@ -646,7 +646,8 @@ proc tkm_MakeEntryWithIncDecButtons { isFrame isText iVariable iSetFunc ifStep }
       -label $isText \
       -variable $iVariable \
       -step $ifStep \
-      -disablecallback true
+      -disablecallback true \
+      -selectmode immediate
 
     tkm_EnableLater $isFrame.control
 
@@ -884,30 +885,30 @@ proc tkm_DoFileDlog { ilArgs } {
     # allow passed options to override defaults
     array set tArgs $ilArgs
 
-    # dialog name
-    set wwDialog .wwDlogFile
+    # dialog name. make it the name of the title, subbing dashes for spaces.
+    regsub -all { } .wwDlogFile$tArgs(-title) {-} wwDialog
 
     # do percent substitutions in ok command for %s1 thru %s5
     foreach nField $lFields {
   set tArgs(-okCmd) \
     [tkm_DoSubPercent %s$nField $tArgs(-okCmd) \$sFileName$nField]
     }
-
+    
     # if we can bring up the dialog
     if { [Dialog_Create $wwDialog "$tArgs(-title)" {-borderwidth 10}] } {
-
+  
   # for each field...
   foreach nField $lFields {
-
+      
       # create a variable for this prompt. even if we don't use this
       # field, we'll need it later (ugh)
       set fwPrompt$nField  $wwDialog.fwPrompt$nField
-
+      
       # if they didn't enter a prompt, skip this field
       if { [string match "$tArgs(-prompt$nField)" ""] == 1 } {
     continue;
       }
-
+      
       # switch on the type for this field and create the approriate
       # selecter widget. bind it to sFileName[1..5]
       switch $tArgs(-type$nField) {
@@ -963,14 +964,14 @@ proc tkm_DoFileDlog { ilArgs } {
     -fill x         \
     -padx 5         \
     -pady 5
-
+  
   # after the next idle, the window will be mapped. set the min
   # width to our width and the min height to the mapped height.
   after idle [format {
       update idletasks
       wm minsize %s %d [winfo reqheight %s]
   } $wwDialog $knWidth $wwDialog] 
-    }
+  }
 }
 
 

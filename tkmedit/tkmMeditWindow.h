@@ -10,6 +10,7 @@
 #include "tkmFunctionalVolume.h"
 #include "mriSurface.h"
 #include "mriHeadPointList.h"
+#include "vlabels.h"
 
 typedef enum {
 

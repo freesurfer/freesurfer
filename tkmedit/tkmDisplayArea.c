@@ -1462,6 +1462,18 @@ DspA_tErr DspA_SetDisplayFlag ( tkmDisplayAreaRef this,
 
     break;
 
+  case DspA_tDisplayFlag_HistogramPercentChange:
+
+    /* if no VLI data, set to false. */
+    if( NULL == this->mVLI1 ) {
+      bNewValue = FALSE;
+    }
+
+    /* if the flag is different, set dirty flag */
+    if( this->mabDisplayFlags[iWhichFlag] != bNewValue )
+      this->mbSliceChanged = TRUE;
+
+    break;
 
   case DspA_tDisplayFlag_Selection:
   case DspA_tDisplayFlag_MaxIntProj:
@@ -5621,8 +5633,7 @@ DspA_tErr DspA_SendPointInformationToTcl_ ( tkmDisplayAreaRef this,
         inNumValues, n1, n2 ;
     VL *vl ;
     char name1[STRLEN], name2[STRLEN], *cp ;
-    tBoolean  bUsePct         = TRUE ;
-    
+
     FileNameOnly(this->isVLI1_name, name1) ;
     cp = strrchr(name1, '.') ; if (cp) *cp = 0 ;
     FileNameOnly(this->isVLI2_name, name2) ;
@@ -5701,7 +5712,7 @@ DspA_tErr DspA_SendPointInformationToTcl_ ( tkmDisplayAreaRef this,
       /* assign values for the elements */
       histoParams.mafValues1[nValue] = (float)label_counts_c1[index] ;
       histoParams.mafValues2[nValue] = (float)label_counts_c2[index] ;
-      if (bUsePct)
+      if (this->mabDisplayFlags[DspA_tDisplayFlag_HistogramPercentChange])
       {
         xUtil_strncpy( histoParams.msYAxisTitle, "% of voxels with label",
                        sizeof(histoParams.msYAxisTitle) );
@@ -5719,8 +5730,8 @@ DspA_tErr DspA_SendPointInformationToTcl_ ( tkmDisplayAreaRef this,
       xUtil_strncpy( histoParams.masXAxisLabels[nValue], 
                      cma_label_to_name( index ), DspA_knHistoTitleLength );
       nValue++ ;
-    }
-    
+  }
+
     /* draw the thing */
     DspA_DrawHistogram( this, &histoParams );
     

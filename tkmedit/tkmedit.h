@@ -62,6 +62,7 @@ typedef enum {
   tkm_tErr_CouldntWriteFile,
   tkm_tErr_CouldntAllocate,
   tkm_tErr_SurfaceNotLoaded,
+  tkm_tErr_OverlayNotLoaded,
   tkm_tErr_ROIGroupNotLoaded,
   tkm_tErr_CouldntCacheScriptName,
   tkm_tErr_InvalidScriptName,
@@ -128,10 +129,14 @@ typedef enum {
   tkm_tTclCommand_ShowCanonicalSurfaceViewingOptions,
   tkm_tTclCommand_ShowHeadPointLabelEditingOptions,
   tkm_tTclCommand_ShowROIGroupOptions,
+  tkm_tTclCommand_ShowVLIOptions,
   tkm_tTclCommand_ShowOverlayRegistrationOptions,
   tkm_tTclCommand_ShowParcellationOptions,
   tkm_tTclCommand_ClearParcColorTable,
   tkm_tTclCommand_AddParcColorTableEntry,
+
+  /* histogram */
+  tkm_tTclCommand_DrawHistogram,
 
   /* interface configuration */
   tkm_tTclCommand_MoveToolWindow,

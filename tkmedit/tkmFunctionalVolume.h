@@ -99,6 +99,9 @@ struct tkmFunctionalVolume {
 
   tSignature mSignature;
 
+  /* default conversion method */
+  FunD_tConversionMethod mDefaultConvMethod;
+
   /* our volumes.mriFunctionalDataRef is actually tkmFunctionalDataAccess */
   mriFunctionalDataRef  mpOverlayVolume;
   mriFunctionalDataRef  mpTimeCourseVolume;
@@ -140,7 +143,7 @@ typedef tkmFunctionalVolume *tkmFunctionalVolumeRef;
 
 typedef enum {
   FunV_tFindStatsComp_Invalid = -1,
-  FunV_tFindStatsComp_GTE = 0,
+  FunV_tFindStatsComp_GTEoLTE = 0,
   FunV_tFindStatsComp_EQ,
   FunV_knNumFindStatsComp
 } FunV_tFindStatsComp;
@@ -181,6 +184,10 @@ FunV_tErr FunV_LoadFunctionalVolume_ ( tkmFunctionalVolumeRef this,
                char*                  isRegPath,
                tBoolean               ibPrintErrors );
 
+/* sets conversion method in all volumes */
+FunV_tErr FunV_SetConversionMethod ( tkmFunctionalVolumeRef this,
+             FunD_tConversionMethod iMethod );
+
 /* this takes a functional volume and converts it into an anatomical
    space volume, so it can be indexed with anatomical coords. */
 FunV_tErr FunV_InitOverlayCache_ ( tkmFunctionalVolumeRef this );
@@ -206,6 +213,9 @@ FunV_tErr FunV_IsOverlayCacheLoaded ( tkmFunctionalVolumeRef this,
               tBoolean*              obIsLoaded );
 
 
+/* smooths the overlay data */
+FunV_tErr FunV_SmoothOverlayData ( tkmFunctionalVolumeRef this,
+           float                  ifSigma );
 
 /* settors. these check values and if valid, sets internal vars. generates
    proper update msgs for tcl */

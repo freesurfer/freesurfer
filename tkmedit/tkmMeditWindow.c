@@ -354,10 +354,10 @@ MWin_tErr MWin_PositionDisplays_ ( tkmMeditWindowRef this ) {
   goto error;
       }
     }
-
+    
     goto cleanup;
   }
-
+  
   /* get the zoom level, cursor, and orientation of the last clicked pane */
   eDispResult = DspA_GetZoomLevel( this->mapDisplays[this->mnLastClickedArea], 
            &nZoomLevel );

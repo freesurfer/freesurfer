@@ -115,7 +115,8 @@ void xUtil_strncpy ( char* ipDest, char* ipSrc, int inSize ) {
     
     ipDest[inSize-1] = '\0';
 
-    DebugPrint( ("xUtil_strncpy: Buffer overflow\n") );
+    DebugPrint( ("xUtil_strncpy: Buffer overflow while %s (inSize=%d)\n",
+     DebugGetNote, inSize) );
     xDbg_PrintStack();
   }
 }
@@ -148,7 +149,7 @@ void xUtil_snprintf ( char* ipDest, int inSize, char* isFormat, ... ) {
     ipDest[inSize-1] = '\0';
 
     DebugPrint( ("xUtil_snprintf: Buffer overflow while %s (inSize=%d)\n",
-    DebugGetNote, inSize) );
+     DebugGetNote, inSize) );
     DebugPrintStack;
   }
 }

@@ -55,7 +55,9 @@ typedef enum {
   DspA_tDisplayFlag_ControlPoints,
   DspA_tDisplayFlag_Selection,
   DspA_tDisplayFlag_FunctionalOverlay,
+  DspA_tDisplayFlag_FunctionalColorScaleBar,
   DspA_tDisplayFlag_MaskToFunctionalOverlay,
+  DspA_tDisplayFlag_HistogramPercentChange,
   DspA_tDisplayFlag_ROIGroupOverlay,
   DspA_tDisplayFlag_ROIVolumeCount,
   DspA_tDisplayFlag_FocusFrame,
@@ -145,6 +147,22 @@ typedef enum {
   DspA_tDisplaySet_Mouseover,
   DspA_knNumDisplaySets
 } DspA_tDisplaySet;
+
+/* parameters for the tcl histogram bar chart */
+#define DspA_knHistoTitleLength 256
+typedef struct {
+
+  char    msTitle[DspA_knHistoTitleLength];
+  char    msXAxisTitle[DspA_knHistoTitleLength];
+  char    msYAxisTitle[DspA_knHistoTitleLength];
+  char    msLabel1[DspA_knHistoTitleLength];
+  char    msLabel2[DspA_knHistoTitleLength];
+  int     mnNumValues;
+  char**  masXAxisLabels;
+  float*  mafValues1;
+  float*  mafValues2;
+
+} DspA_tHistogramParams, *DspA_tHistogramParamsRef;
 
 #define DspA_kSignature 0x194ffb2
 
@@ -441,6 +459,10 @@ DspA_tErr DspA_GetOrientation   ( tkmDisplayAreaRef this,
 DspA_tErr DspA_GetZoomLevel     ( tkmDisplayAreaRef this, 
           int*              oZoomLevel );
 int DspA_GetCurrentSliceNumber_ ( tkmDisplayAreaRef this );
+
+/* draw data into the histogram window */
+DspA_tErr DspA_DrawHistogram ( tkmDisplayAreaRef        this,
+             DspA_tHistogramParamsRef iParams );
 
 /* tkmedit needs to get the selected head pt */
 DspA_tErr DspA_GetSelectedHeadPt ( tkmDisplayAreaRef   this,

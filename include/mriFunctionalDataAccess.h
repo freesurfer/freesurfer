@@ -20,6 +20,7 @@ typedef enum {
   FunD_tErr_QuestionableHeaderFormat,
   FunD_tErr_CouldntDetermineDataType,
   FunD_tErr_CouldntAllocateStorage,
+  FunD_tErr_CouldntAllocateMRI,
   FunD_tErr_DataAlreadyRead,
   FunD_tErr_SliceFileNotFound,       
   FunD_tErr_ErrorReadingSliceData,
@@ -42,6 +43,14 @@ typedef enum {
   FunD_tDataType_Float
 } FunD_tDataType;
 
+/* methods of func idx conversion. this is the rounding method used
+   to get the functional index from an ras coord. */
+typedef enum {
+  FunD_tConversionMethod_FFF = 0, /* floor, floor, floor */
+  FunD_tConversionMethod_Round,   /* rint */
+  FunD_tConversionMethod_FCF      /* floor, ceil, floor */
+} FunD_tConversionMethod;
+
                                    /* the volume struct. */
 typedef struct {
 
@@ -51,6 +60,9 @@ typedef struct {
     mHeaderStem[256],                  // stem of header
     mRegistration[256],                // location of registration (path)
     mSubjectName[256];                 // the subjects name
+
+  /* conversion method */
+  FunD_tConversionMethod mConvMethod;
 
   // the dimensions of the volume.
   FunD_tDataType mDataType;
@@ -129,6 +141,16 @@ FunD_tErr FunD_ReadKeywordAndValue ( FILE* inFile,
                                    /* reads the register.dat file, allocates
               and initializes matricies */
 FunD_tErr FunD_ParseRegistrationAndInitMatricies ( mriFunctionalDataRef this );
+
+                                   /* smooths the data. uses the MRI lib
+              routines. */
+FunD_tErr FunD_SmoothData ( mriFunctionalDataRef this,
+          int                  inTimePoint,
+          int                  inCondition,
+          float                ifSigma );
+
+FunD_tErr FunD_SetConversionMethod ( mriFunctionalDataRef this,
+             FunD_tConversionMethod iMethod );
 
                                    /* saves the registration to file, making
               a backup if it already exists */
@@ -255,8 +277,8 @@ FunD_tErr FunD_GetValueRange           ( mriFunctionalDataRef this,
               place to start iterating for the 
               in anatomical space. */
 FunD_tErr FunD_GetBoundsInAnatomical ( mriFunctionalDataRef this, 
-              xVoxelRef             outBeginCorner,
-              xVoxelRef             outEndCorner );
+               xVoxelRef             outBeginCorner,
+               xVoxelRef             outEndCorner );
 
 FunD_tErr FunD_DebugPrint ( mriFunctionalDataRef this );
 
@@ -271,17 +293,17 @@ tBoolean FunD_IsErrorDataPresent ( mriFunctionalDataRef this );
                                    /* convertxs between anatomical and 
               functional voxel coordinates. */
 void FunD_ConvertAnaIdxToFuncIdx ( mriFunctionalDataRef this,
-          xVoxelRef             inAnatomicalIdx,
-          xVoxelRef             outFunctionalIdx );
+           xVoxelRef             inAnatomicalIdx,
+           xVoxelRef             outFunctionalIdx );
 void FunD_ConvertFuncIdxToAnaIdx ( mriFunctionalDataRef this,
-          xVoxelRef             inFunctionalIdx,
-          xVoxelRef             outAnatomicalIdx );
+           xVoxelRef             inFunctionalIdx,
+           xVoxelRef             outAnatomicalIdx );
 
                                    /* convert between ras and func idx
               coords */
 void FunD_ConvertRASToFuncIdx    ( mriFunctionalDataRef this,
-          xVoxelRef             inRAS,
-          xVoxelRef             outFunctionalIdx );
+           xVoxelRef             inRAS,
+           xVoxelRef             outFunctionalIdx );
 void FunD_ConvertFuncIdxToFuncRAS ( mriFunctionalDataRef this,
             xVoxelRef            iFuncIdx,
             xVoxelRef            oFuncRAS );

@@ -4451,6 +4451,7 @@ int main ( int argc, char** argv ) {
   tkm_SendTclCommand( tkm_tTclCommand_ShowOriginalSurfaceViewingOptions, "0" );
   tkm_SendTclCommand( tkm_tTclCommand_ShowHeadPointLabel, "0" );
   tkm_SendTclCommand( tkm_tTclCommand_ShowROIGroupOptions, "0" );
+  tkm_SendTclCommand( tkm_tTclCommand_ShowVLIOptions, "0" );
   tkm_SendTclCommand( tkm_tTclCommand_ShowParcellationOptions, "0" );
   tkm_SendTclCommand( tkm_tTclCommand_ShowVolumeDirtyOptions, "0" );
   tkm_SendTclCommand( tkm_tTclCommand_ShowMainTransformLoadedOptions, "0" );
@@ -8873,6 +8874,9 @@ tkm_tErr LoadVLIs ( char* isFileName1, char* isFileName2 ) {
   /* set in window */
   MWin_SetVLIs( gMeditWindow, -1, gVLI1, gVLI2, sFileName1, sFileName2 );
 
+  /* set tcl menu items */
+  tkm_SendTclCommand( tkm_tTclCommand_ShowVLIOptions, (gVLI1!=NULL)?"1":"0" );
+
   DebugCatch;
   DebugCatchError( eResult, tkm_tErr_NoErr, tkm_GetErrorString );
 
@@ -9501,6 +9505,7 @@ char kTclCommands [tkm_knNumTclCommands][256] = {
   "tkm_SetMenuItemGroupStatus tMenuGroup_CanonicalSurfaceViewing",
   "tkm_SetMenuItemGroupStatus tMenuGroup_HeadPoints",
   "tkm_SetMenuItemGroupStatus tMenuGroup_ROIGroupOptions",
+  "tkm_SetMenuItemGroupStatus tMenuGroup_VLIOptions",
   "tkm_SetMenuItemGroupStatus tMenuGroup_Registration",
   "tkm_SetMenuItemGroupStatus tMenuGroup_Parcellation",
   "ClearParcColorTable",
