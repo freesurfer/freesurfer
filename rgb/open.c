@@ -244,20 +244,73 @@ i_seterror(void (*func)(char *))
   i_errfunc = func;
 }
 
+// 
+// swapShort, swapInt (defined in utils/machine.c) creates circular dependency 
+// In order to remove circular dependency, I copied the swap routines here.
+// 
+typedef union
+{
+  short  s ;
+  char   buf[sizeof(short)] ;
+} SSWAP_SHORT ;
+
+typedef union
+{
+  long  l ;
+  float f ;
+  int   i ;
+  char  buf[4] ;
+  short s[2] ;
+} SSWAP_LONG ;
+
+short
+tmpswapShort(short s)
+{
+  SSWAP_SHORT ss ;
+  char       c ;
+
+  /* first swap bytes in word */
+  ss.s = s ;
+  c = ss.buf[0] ;
+  ss.buf[0] = ss.buf[1] ;
+  ss.buf[1] = c ;
+
+  return(ss.s) ;
+}
+
+int
+tmpswapInt(int i)
+{
+  SSWAP_LONG  sl ;
+  short      s ;
+
+  /* first swap bytes in each word */
+  sl.i = i ;
+  sl.s[0] = tmpswapShort(sl.s[0]) ;
+  sl.s[1] = tmpswapShort(sl.s[1]) ;
+
+  /* now swap words */
+  s = sl.s[0] ;
+  sl.s[0] = sl.s[1] ;
+  sl.s[1] = s ;
+
+  return(sl.i) ;
+}
+
 void
 swapImage(RGB_IMAGE *image)
 {
 #if (BYTE_ORDER == LITTLE_ENDIAN)
-  image->imagic = swapShort(image->imagic) ;
-  image->type = swapShort(image->type) ;
-  image->dim = swapShort(image->dim) ;
-  image->xsize = swapShort(image->xsize) ;
-  image->ysize = swapShort(image->ysize) ;
-  image->zsize = swapShort(image->zsize) ;
-  image->min = swapInt(image->min) ;
-  image->max = swapInt(image->max) ;
-  image->wastebytes = swapShort(image->wastebytes) ; 
-  image->colormap = swapInt(image->colormap) ;
+  image->imagic = tmpswapShort(image->imagic) ;
+  image->type = tmpswapShort(image->type) ;
+  image->dim = tmpswapShort(image->dim) ;
+  image->xsize = tmpswapShort(image->xsize) ;
+  image->ysize = tmpswapShort(image->ysize) ;
+  image->zsize = tmpswapShort(image->zsize) ;
+  image->min = tmpswapInt(image->min) ;
+  image->max = tmpswapInt(image->max) ;
+  image->wastebytes = tmpswapShort(image->wastebytes) ; 
+  image->colormap = tmpswapInt(image->colormap) ;
 #endif
 }
 
