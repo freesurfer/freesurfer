@@ -2,7 +2,7 @@
    DICOM 3.0 reading functions
    Author: Sebastien Gicquel and Douglas Greve
    Date: 06/04/2001
-   $Id: DICOMRead.c,v 1.29 2003/03/25 21:30:52 tosa Exp $
+   $Id: DICOMRead.c,v 1.30 2003/06/17 15:00:56 tosa Exp $
 *******************************************************/
 
 #include <stdio.h>
@@ -3672,30 +3672,18 @@ int RASFromOrientation(MRI *mri, DICOMInfo *dcm)
       // (x, y, z) scanner = (z, y, x) image
       centerY+=dcm->ysize*((double)dcm->Rows-0.5);
       centerZ+=dcm->xsize*((double)dcm->Columns-0.5);
-      mri->slice_direction=MRI_SAGITTAL;
-      /*E*
-      fprintf(stderr,"mri->slice_direction=MRI_SAGITTAL\n");
-      *E*/
       break;
     case 1:  
       // slices along the y direction, coronal
       // (x, y, z) scanner = (x, z, y) image
       centerX+=dcm->xsize*((double)dcm->Rows-0.5);
       centerZ+=dcm->ysize*((double)dcm->Columns-0.5);
-      mri->slice_direction=MRI_CORONAL;
-      /*E*
-      fprintf(stderr,"mri->slice_direction=MRI_CORONAL\n");
-      *E*/
       break;
     case 2:  
       // slices along the z direction, transaxial
       // (x, y, z) scanner = (x, y, z) image
       centerX+=dcm->xsize*((double)dcm->Rows-0.5);
       centerY+=dcm->ysize*((double)dcm->Columns-0.5);
-      mri->slice_direction=MRI_HORIZONTAL;
-      /*E*
-      fprintf(stderr,"mri->slice_direction=MRI_HORIZONTAL\n");
-      *E*/
       break;
     }
 
@@ -3734,7 +3722,6 @@ int RASFromOrientation(MRI *mri, DICOMInfo *dcm)
    input: structure MRI, structure DICOMInfo
    output: fill in MRI structure RAS-related fields
    called-by: DICOMInfo2MRI
-   LIMITATIONS: may not set mri->slice_direction = MRI_FOO right yet.
 *******************************************************/
 
 //#define _RASFDEBUG
@@ -3778,7 +3765,6 @@ int RASFromOrientation(MRI *mri, DICOMInfo *dcm)
        mri->x_r, mri->y_r, mri->z_r,
        mri->x_a, mri->y_a, mri->z_a,
        mri->x_s, mri->y_s, mri->z_s,
-       mri->slice_direction,
        mri->c_r, mri->c_a, mri->c_s,
        mri->ras_good_flag=1
 
@@ -3847,7 +3833,7 @@ int RASFromOrientation(MRI *mri, DICOMInfo *dcm)
      */
 {
   float c[3], r[3], s[3], Delta[3], c_ras[3],
-    Mdc[3][3], T3x3[3][3], rms, absIO[6];
+    Mdc[3][3], T3x3[3][3], rms; // absIO[6];
 
   int i,j, n[3];
 
@@ -3985,55 +3971,6 @@ int RASFromOrientation(MRI *mri, DICOMInfo *dcm)
   mri->c_a = c_ras[1];
   mri->c_s = c_ras[2];
   mri->ras_good_flag = 1;
-
-  /*E* It remains to repair: mri->slice_direction = MRI_FOO; is that
-    legacy code, or do things refer to it?  Uh oh...
-  
-    Yeah, this was very broken.  And it appears to matter - things
-    seem to check slice_direction - e.g. tkmedit.
-
-    how about - find maximum of abs(dcm->IO[0..2]) and max of
-    dcm->IO[notmax+3] and see.
-    
-  */
-
-  for (i=0; i<6; i++) { absIO[i] = fabs(dcm->ImageOrientation[i]); }
-  if (absIO[0]>absIO[1])
-    {
-      if (absIO[0]>absIO[2])
-  {
-    mri->slice_direction =
-      absIO[4]>absIO[5] ? MRI_HORIZONTAL : MRI_CORONAL;
-  }
-      else
-  {
-    mri->slice_direction =
-      absIO[3]>absIO[4] ? MRI_CORONAL : MRI_SAGITTAL;
-  }
-    }
-  else
-    {
-      if (absIO[1]>absIO[2])
-  {
-    mri->slice_direction =
-      absIO[3]>absIO[5] ? MRI_HORIZONTAL : MRI_SAGITTAL;
-  }
-      else
-  {
-    mri->slice_direction =
-      absIO[3]>absIO[4] ? MRI_CORONAL : MRI_SAGITTAL;
-  }
-    }
-
-#ifdef _RASFDEBUG
-    fprintf(stderr, "slice_direction = %s\n",
-      mri->slice_direction == 0 ? "MRI_CORONAL" :
-      mri->slice_direction == 1 ? "MRI_SAGITTAL" :
-      mri->slice_direction == 2 ? "MRI_HORIZONTAL" :
-      "MRI_UNDEFINED" );
-
-    MRIdump(mri, stderr);
-#endif
 
   return 0;
 }
