@@ -1,7 +1,7 @@
 #!/bin/csh -f
 # fMRI selective frequency combining of averages (for phase-encoding analysis)
 
-set VERSION = '$Id: selfreqcomb,v 1.2 2003/04/02 00:29:21 greve Exp $';
+set VERSION = '$Id: selfreqcomb,v 1.3 2003/12/16 17:32:03 greve Exp $';
 set cmdargv = "$argv";
 
 set n = `echo $argv | grep version | wc -l` 
@@ -52,6 +52,9 @@ endif
 set outdir = `dirname $outstem`;
 mkdir -p $outdir
 
+set okfile = /tmp/selfreqcomb-$$.ok
+rm -f $okfile
+
 #---------------------------------------------------------------#
 $TARGET <<EOF
 
@@ -63,12 +66,13 @@ $TARGET <<EOF
   firstslice = [$firstslice];
   nslices    = [$nslices];
   dofmax     = $dofmax;
+  okfile     = '$okfile';
 
   %% Get the dimensions from the bfile %%
   [nrows ncols ntp fs ns endian] = fmri_bfiledim(instems(1,:));
-  if(ntp ~= 12) 
+  if(ntp ~= 13) 
     msg = sprintf('Input file %s has wrong number of planes (%d/%d)', ...
-                  instems(1,:),ntp,12);
+                  instems(1,:),ntp,13);
     qoe(msg); error(msg);
   end
   if(isempty(firstslice)) firstslice = fs; end
@@ -96,13 +100,17 @@ $TARGET <<EOF
 
       %%% Load the sfa file %%%
       sfa = fmri_ldsfa(instem);
+      if(isempty(sfa))
+        fprintf('ERROR: loading %s\n',instem);
+	return;
+      end
 
       %%% Load the averages %%%
       fname = sprintf('%s_%03d.bfloat',instem,slice);
       f = fmri_ldbfile(fname);
       sfa.nrows = size(f,1);
       sfa.ncols = size(f,2);
-      f = reshape(f, [Nv 12])'; %'
+      f = reshape(f, [Nv ntp])'; %'
 
       %% Extract Real/Imag of Signal, use the rest to estimate noise %%
       sum_noise_var   = sum_noise_var   + sfa.dof * f(7,:).^2;
@@ -137,7 +145,7 @@ $TARGET <<EOF
     fprintf('Mean Phase = %g (%g)\n',mean(phz),mean(phz)*180/pi);
 
     %% Put into appropriate format and save %%
-    tmp = zeros(12,Nv);
+    tmp = zeros(13,Nv);
     tmp(1,:)  = log10sigf .* sign(t);
     tmp(2,:)  = log10sigf .* sin(phz);
     tmp(3,:)  = log10sigf .* cos(phz);
@@ -150,6 +158,7 @@ $TARGET <<EOF
     tmp(10,:) = phz;
     tmp(11,:) = meanimg;
     tmp(12,:) = trendimg;
+    tmp(13,:) = sqrt( tmp(8,:).^2 + tmp(9,:).^2 ); % magnitude
 
     ntmp  = size(tmp,1);
     tmp   = reshape(tmp', [sfa.nrows sfa.ncols ntmp]); %'
@@ -164,9 +173,18 @@ $TARGET <<EOF
   sfa.dof     = sum_dof;
   fmri_svsfa(sfa,outstem);
 
+  fmri_touch(okfile);
   if(QuitOnError)  quit; end
   
 EOF
+
+if(! $monly) then
+  if(! -e $okfile) then
+    echo "ERROR: selfreqcomb: error with matlab execution"
+    exit 1;
+  endif
+  rm -f $okfile
+endif
 
 set bhdr = $instems[1].bhdr
 if(-e $bhdr) then
