@@ -3515,7 +3515,7 @@ proc LblLst_SendCurrentInfo {} {
     labl_set_info $gnSelectedLabel $gaLabelInfo(name) \
   $gaLabelInfo(structureIndex) $gaLabelInfo(visible) \
   $gaLabelInfo(red) $gaLabelInfo(green) $gaLabelInfo(blue)
-
+    
     # delete the list entry in the list box and reinsert it with the
     # new name
     $glwLabel delete $gnSelectedLabel

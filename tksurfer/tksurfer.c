@@ -16127,7 +16127,7 @@ sprintf(xffname,"%s/%s/%s/%s",subjectsdir,pname,TRANSFORM_DIR,TALAIRACH_FNAME);
 /* ~/morph/curv.rh.1000a2adj: curv (or fill), need hemi */
 sprintf(fifname,"%s/%s/%s.%s.%s/COR-",subjectsdir,pname,FILLDIR_STEM,stem,ext);
 sprintf(cif2name,"%s/%s/%s.%s.%s/COR-",subjectsdir,pname,CURVDIR_STEM,stem,ext);
-
+ 
  if (getenv("USE_WHITE") == NULL) 
    sprintf(orfname,"%s.%s",fpref, orig_suffix);
  else
@@ -18523,7 +18523,7 @@ int main(int argc, char *argv[])   /* new main */
   Tcl_LinkVar(interp,"scalebar_bright",(char *)&scalebar_bright, TCL_LINK_INT);
   Tcl_LinkVar(interp,"project",(char *)&project, TCL_LINK_INT);
   Tcl_LinkVar(interp,"sol_plot_type",(char *)&sol_plot_type, TCL_LINK_INT);
-  Tcl_LinkVar(interp,"phasecnntour_bright",(char *)&phasecontour_bright, 
+  Tcl_LinkVar(interp,"phasecontour_bright",(char *)&phasecontour_bright, 
                                                                TCL_LINK_INT);
   Tcl_LinkVar(interp,"blinkdelay",(char *)&blinkdelay, TCL_LINK_INT);
   Tcl_LinkVar(interp,"blinktime",(char *)&blinktime, TCL_LINK_INT);
