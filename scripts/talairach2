@@ -2,7 +2,7 @@
 # talairach2
 ########################################################
 
-set VERSION = '$Id: talairach2,v 1.3 2003/08/28 20:15:28 tosa Exp $';
+set VERSION = '$Id: talairach2,v 1.4 2003/08/28 21:08:17 tosa Exp $';
 
 # Look for version #
 set n = `echo $argv | grep version | wc -l` 
@@ -15,6 +15,12 @@ if($#argv != 1) then
   echo "USAGE: talairach2 subjectid"
   exit 1;
 endif
+
+## gather version info used by this script
+mri_convert --version
+set prog = `which mritotal`
+strings $prog | grep mritotal.in
+#######################################################
 
 set subject = $1
 
