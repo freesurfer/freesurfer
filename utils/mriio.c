@@ -1308,22 +1308,8 @@ static int corWrite(MRI *mri, char *fname)
     printf("non-standard value for thick (%g, usually 1) in volume structure\n", mri->thick);
   }
 
-  if(mri->ps != 1)
-  {
+  if(mri->ps != 1){
     printf("non-standard value for ps (%g, usually 1) in volume structure\n", mri->ps);
-  }
-
-  /* ----- check that it is a directory we've been passed ----- */
-  if(stat(fname, &stat_buf) < 0)
-  {
-    errno = 0;
-    ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "corWrite(): can't stat %s", fname));
-  }
-
-  if(!S_ISDIR(stat_buf.st_mode))
-  {
-    errno = 0;
-    ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "corWrite(): %s isn't a directory", fname));
   }
 
   /* ----- copy the directory name and remove any trailing '/' ----- */
@@ -1333,6 +1319,25 @@ static int corWrite(MRI *mri, char *fname)
   {
     *fbase = '/';
     fbase++;
+  }
+
+  /* Create the directory */
+  errno = mkdir(fname_use,(mode_t)-1);
+  if(errno != 0 && errno != EEXIST){
+    printf("ERROR: creating directory %s\n",fname_use);
+    perror(NULL);    
+    return(1);
+  }
+
+  /* ----- check that it is a directory we've been passed ----- */
+  if(stat(fname, &stat_buf) < 0){
+    errno = 0;
+    ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "corWrite(): can't stat %s", fname));
+  }
+
+  if(!S_ISDIR(stat_buf.st_mode)){
+    errno = 0;
+    ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "corWrite(): %s isn't a directory", fname));
   }
 
   sprintf(fbase, "COR-.info");
