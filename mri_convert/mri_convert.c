@@ -3,9 +3,9 @@
 // original: written by Bruce Fischl (Apr 16, 1997)
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: greve $
-// Revision Date  : $Date: 2004/05/18 22:01:17 $
-// Revision       : $Revision: 1.90 $
+// Revision Author: $Author: tosa $
+// Revision Date  : $Date: 2004/05/20 17:35:04 $
+// Revision       : $Revision: 1.91 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -220,7 +220,7 @@ int main(int argc, char *argv[])
   nskip = 0;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_convert.c,v 1.90 2004/05/18 22:01:17 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_convert.c,v 1.91 2004/05/20 17:35:04 tosa Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -1476,7 +1476,7 @@ int main(int argc, char *argv[])
     {
       TRANSFORM *tran = TransformRead(transform_fname);
       if (invert_transform_flag == 0)
-	mri_transformed = GCAMmorphToAtlas(mri, (GCA_MORPH *)tran->xform, NULL) ;
+	mri_transformed = GCAMmorphToAtlas(mri, (GCA_MORPH *)tran->xform, NULL, 0) ;
       else // invert 
       {
 	mri_transformed = MRIclone(mri, NULL);
