@@ -531,9 +531,33 @@ ImageCopy(IMAGE *Isrc, IMAGE *Idst)
 
         Description
 ------------------------------------------------------*/
+#define DISCEDGE_VARCRIT  0.0f
+#define DISCEDGE_SIZE     7
+
 IMAGE   *
-ImageEdgeDetect(IMAGE *Isrc, IMAGE *Idst, float thresh)
+ImageEdgeDetect(IMAGE *Isrc, IMAGE *Idst, float sigma, int wsize, float lthresh, float uthresh,
+                int dothin)
 {
+  int    ecode ;
+  IMAGE  *Itmp, *Iout ;
+  char   *command_str = "" ;
+
+  if (!Idst)
+    Idst = ImageAlloc(Isrc->rows, Isrc->cols, PFBYTE, Isrc->num_frame) ;
+
+  ImageScale(Isrc, Isrc, 0.0f, 255.0f) ;
+  if (Idst->pixel_format != PFBYTE)
+    Iout = ImageAlloc(Isrc->rows, Isrc->cols, PFBYTE, Isrc->num_frame) ;
+  else
+    Iout = Idst ;
+
+  ecode = h_canny(Isrc, Iout, sigma, wsize, lthresh, uthresh, dothin) ;
+  if (Iout != Idst)
+  {
+    ImageCopy(Iout, Idst) ;
+    ImageFree(&Iout) ;
+  }
+
   return(Idst) ;
 }
 /*-----------------------------------------------------
@@ -1368,7 +1392,9 @@ ImageScaleUp(IMAGE *inImage, IMAGE *outImage, float scale)
   if (!ImageCheckSize(inImage, outImage, nint(inImage->rows*scale),
                           nint(inImage->cols*scale), 0))
   {
-    fprintf(stderr, "ImageScaleUp: output image not large enough\n") ;
+    fprintf(stderr, 
+          "ImageScaleUp: output image not large enough %d x %d -> %d x %d\n",
+            inImage->rows, inImage->cols, outImage->rows, outImage->cols);
     return(-1) ;
   }
 
