@@ -8,10 +8,10 @@
  *
 */
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2003/04/02 16:25:53 $
-// Revision       : $Revision: 1.220 $
-char *MRI_C_VERSION = "$Revision: 1.220 $";
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2003/05/08 20:55:05 $
+// Revision       : $Revision: 1.221 $
+char *MRI_C_VERSION = "$Revision: 1.221 $";
 
 /*-----------------------------------------------------
                     INCLUDE FILES
@@ -7726,6 +7726,62 @@ MRIneighborsOn3x3(MRI *mri, int x, int y, int z, int min_val)
         if (!zk && !yk && !xk)
           continue ;
         if (MRIvox(mri, xi, yi, zi) > min_val)
+          nbrs++ ;
+      }
+    }
+  }
+  return(nbrs) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+int
+MRIneighbors(MRI *mri, int x0, int y0, int z0, int val)
+{
+  int   nbrs = 0 ;
+
+  if (MRIvox(mri,mri->xi[x0-1],y0,z0) == val)
+    nbrs++ ;
+  if (MRIvox(mri,mri->xi[x0+1],y0,z0) == val)
+    nbrs++ ;
+  if (MRIvox(mri,x0,mri->yi[y0+1],z0) == val)
+    nbrs++ ;
+  if (MRIvox(mri,x0,mri->yi[y0-1],z0) == val)
+    nbrs++ ;
+  if (MRIvox(mri,x0,y0,mri->zi[z0+1]) == val)
+    nbrs++ ;
+  if (MRIvox(mri,x0,y0,mri->zi[z0-1]) == val)
+    nbrs++ ;
+  return(nbrs) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+int
+MRIneighbors3x3(MRI *mri, int x, int y, int z, int val)
+{
+  int   xk, yk, zk, xi, yi, zi, nbrs ;
+
+  for (nbrs = 0, zk = -1 ; zk <= 1 ; zk++)
+  {
+    zi = mri->zi[z+zk] ;
+    for (yk = -1 ; yk <= 1 ; yk++)
+    {
+      yi = mri->yi[y+yk] ;
+      for (xk = -1 ; xk <= 1 ; xk++)
+      {
+        xi = mri->xi[x+xk] ;
+        if (!zk && !yk && !xk)
+          continue ;
+        if (MRIvox(mri, xi, yi, zi) == val)
           nbrs++ ;
       }
     }
