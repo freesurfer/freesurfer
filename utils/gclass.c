@@ -395,7 +395,7 @@ GCinit(GCLASSIFY *gc, int class)
     MatrixMakeDiagonal(gcl->m_covariance, gcl->m_covariance) ;
 
   det = MatrixDeterminant(gcl->m_covariance);
-  if (FZERO(det))  /* matrix is singular or ill-conditioned */
+  if (FZERO(det) || (det < 0.0f))  /* matrix is singular or ill-conditioned */
   {
     gcl->ill_cond = 1 ;
     return(NO_ERROR) ;
