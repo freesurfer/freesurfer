@@ -161,6 +161,7 @@ typedef struct vertex_type_
   float mean_imag ;    /* imaginary part of complex statistic */
   float std_error ;
 	unsigned long flags ;
+	void *vp; /* to store user's information */
 } vertex_type, VERTEX ;
 
 #define VERTEX_SULCAL  0x00000001L
@@ -830,15 +831,33 @@ double MRIScomputeFaceAreaStats(MRI_SURFACE *mris, double *psigma,
 int MRISprintTessellationStats(MRI_SURFACE *mris, FILE *fp) ;
 int MRISmergeIcosahedrons(MRI_SURFACE *mri_src, MRI_SURFACE *mri_dst) ;
 int MRISinverseSphericalMap(MRI_SURFACE *mris, MRI_SURFACE *mris_ico) ;
+
+#define GREEDY_SEARCH 0
+#define GENETIC_SEARCH 1
+#define RANDOM_SEARCH 2
+
 typedef struct
 {
 	int     max_patches ;
 	int     max_unchanged ;
 	int     niters;  /* stop the genetic algorithm after n iterations */
-	int     genetic; /* to use the genetic algorithm */ 
+	int     genetic; /* to use the genetic algorithm */
+	int     search_mode; /* which topology correction (greedy, genetic, random)*/
+	int     retessellation_mode; /* which retessellation (ordering dependent)*/
+	int     vertex_eliminate; /* kill less used vertices */
+	int     initial_selection; /* find set of initial chromosomes */
 	double  l_mri ;
 	double  l_curv ;
+	double  l_qcurv;
 	double  l_unmri ;
+	int volume_resolution; /* used if l_unmri is on */
+	int keep; /* keep every vertex in the defect */
+	char *save_fname; /* save results into folder name save_fname */
+	int defect_number; /* save only for one specific defect */
+	int verbose; /* outputs information */
+	int smooth; /* smoothing the patch */
+	int match; /* matching the patch onto the surface using local parameters */
+	int movie; /* save interesting files for movie purpose */
 } TOPOLOGY_PARMS ;
 
 int MRIScenterSphere(MRI_SURFACE *mris);
