@@ -13,7 +13,7 @@
 #include "mri.h"
 #include "macros.h"
 
-static char vcid[] = "$Id: mris_curvature.c,v 1.9 1998/03/12 22:55:25 fischl Exp $";
+static char vcid[] = "$Id: mris_curvature.c,v 1.10 1998/03/13 22:08:17 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -32,11 +32,16 @@ static char *param_file = NULL ;
 static int normalize = 0 ;
 static int diff_flag = 0 ;
 static int max_flag = 0 ;
+static int patch_flag = 0 ;
+static int neg_flag = 0 ;
+static int param_no = 0 ;
+static int normalize_param = 0 ;
+
 
 int
 main(int argc, char *argv[])
 {
-  char         **av, *in_fname, fname[100], hemi[10], path[100], name[100],*cp;
+  char         **av, *in_fname,fname[100],hemi[10], path[100], name[100],*cp;
   int          ac, nargs, nhandles ;
   MRI_SURFACE  *mris ;
   double       ici, fi, var ;
@@ -59,10 +64,37 @@ main(int argc, char *argv[])
 
   in_fname = argv[1] ;
 
-  mris = MRISread(in_fname) ;
-  if (!mris)
-    ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
-              Progname, in_fname) ;
+  if (patch_flag)  /* read the orig surface, then the patch file */
+  {
+    FileNamePath(in_fname, path) ;
+    cp = strchr(name, '.') ;
+    if (cp)
+    {
+      strncpy(hemi, cp-2, 2) ;
+      hemi[2] = 0 ;
+    }
+    else
+      strcpy(hemi, "lh") ;
+    
+    sprintf(fname, "%s/%s.orig", path, hemi) ;
+    mris = MRISfastRead(fname) ;
+    if (!mris)
+      ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
+                Progname, in_fname) ;
+    if (Gdiag & DIAG_SHOW)
+      fprintf(stderr, "reading patch file %s...\n", in_fname) ;
+    if (MRISreadPatch(mris, in_fname) != NO_ERROR)
+      ErrorExit(ERROR_NOFILE, "%s: could not read patch file %s",
+                Progname, in_fname) ;
+    
+  }
+  else   /* just read the surface normally */
+  {
+    mris = MRISread(in_fname) ;
+    if (!mris)
+      ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
+                Progname, in_fname) ;
+  }
 
   MRISsetNeighborhoodSize(mris, nbrs) ;
 
@@ -70,7 +102,10 @@ main(int argc, char *argv[])
   {
     MRI_SP *mrisp ;
     mrisp = MRISPread(param_file) ;
-    MRISfromParameterization(mrisp, mris, 0) ;
+    if (normalize_param)
+      MRISnormalizeFromParameterization(mrisp, mris, param_no) ;
+    else
+      MRISfromParameterization(mrisp, mris, param_no) ;
     MRISPfree(&mrisp) ;
     if (normalize)
       MRISnormalizeCurvature(mris) ;
@@ -122,6 +157,27 @@ main(int argc, char *argv[])
       MRISwriteCurvature(mris, fname) ;
       fprintf(stderr, "done.\n") ;
     }
+    if (neg_flag)
+    {
+      if (mris->patch)
+        mris->status = MRIS_PLANE ;
+      MRIScomputeMetricProperties(mris) ;
+      FileNamePath(in_fname, path) ;
+      FileNameOnly(in_fname, name) ;
+      cp = strchr(name, '.') ;
+      if (!cp)
+        ErrorExit(ERROR_BADPARM, "%s: could not scan hemisphere from '%s'",
+                  Progname, fname) ;
+      strncpy(hemi, cp-2, 2) ;
+      hemi[2] = 0 ;
+      MRISuseNegCurvature(mris) ;
+      MRISaverageCurvatures(mris, navgs) ;
+      sprintf(fname, "%s/%s.neg", path,name) ; 
+      fprintf(stderr, "writing negative vertex curvature  to %s...", fname) ;
+      MRISwriteCurvature(mris, fname) ;
+      fprintf(stderr, "done.\n") ;
+    }
+
     if (max_flag)
     {
       FileNamePath(in_fname, path) ;
@@ -184,8 +240,29 @@ get_option(int argc, char *argv[])
     print_help() ;
   if (!stricmp(option, "diff"))
     diff_flag = 1 ;
-  if (!stricmp(option, "max"))
+  else if (!stricmp(option, "neg"))
+    neg_flag = 1 ;
+  else if (!stricmp(option, "max"))
     max_flag = 1 ;
+  else if (!stricmp(option, "param"))
+  {
+    param_file = argv[2] ;
+    nargs = 1 ;
+    fprintf(stderr, "using parameterization file %s\n", param_file) ;
+  }
+  else if (!stricmp(option, "nparam"))
+  {
+    char *cp ;
+    cp = strchr(argv[2], '#') ;
+    if (cp)   /* # explicitly given */
+    {
+      param_no = atoi(cp+1) ;
+      *cp = 0 ;
+    }
+    else
+      param_no = 0 ;
+    normalize_param = 1 ;
+  }
   else if (!stricmp(option, "-version"))
     print_version() ;
   else if (!stricmp(option, "nbrs"))
@@ -200,9 +277,7 @@ get_option(int argc, char *argv[])
     normalize = 1 ;
     break ;
   case 'P':
-    param_file = argv[2] ;
-    nargs = 1 ;
-    fprintf(stderr, "using parameterization file %s\n", param_file) ;
+    patch_flag = 1 ;
     break ;
   case 'A':
     navgs = atoi(argv[2]) ;
