@@ -105,7 +105,7 @@ extern long random();
 extern int atoi();
 extern void exit();
 extern long time();
-extern int write();
+/* vicka extern int write();*/
 
 /* CONFIGURE: On some systems, malloc.h doesn't declare these, so we have
 ** to do it.  On other systems, for example HP/UX, it declares them
