@@ -48,7 +48,7 @@ typedef Volm_tValue *Volm_tValueRef;
 #define Volm_kfDefaultBrightness 0.35
 #define Volm_kfDefaultContrast   12.0
 
-#define Volm_knMaxFloodIteration 10000
+#define Volm_knMaxFloodIteration 20000
 
 /* Function definition and return codes for a visit callback. The user
    supplies their own visit function and it is called in the flood and
@@ -92,6 +92,9 @@ typedef struct {
   
   Volm_tVisitFunction  mpFunction;     /* User function, called for each */ 
   void*                mpFunctionData; /* visited. */
+
+  tBoolean   mbFloodIterationMaxReached; /* Set when iterating function
+					    reaches iteration limit. */
 
 } Volm_tFloodParams;
 
