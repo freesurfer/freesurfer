@@ -321,7 +321,7 @@ LogMapForward(LOGMAP_INFO *lmi, IMAGE *tvImage, IMAGE *logImage)
       sring = *ring ;
       sspoke = *spoke ;
 
-      if (sring >= nrings || sspoke >= nspokes)
+      if (sring < 0 || sspoke < 0 || sring >= nrings || sspoke >= nspokes)
         tvPtr += *runl++ ;
       else               /* sum next *runl tv pixels and add to logmap pixel */
         *IMAGEFpix(logImage, sring, sspoke) += 
