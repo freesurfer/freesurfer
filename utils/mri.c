@@ -8,10 +8,10 @@
  *
  */
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/05/13 21:01:51 $
-// Revision       : $Revision: 1.271 $
-char *MRI_C_VERSION = "$Revision: 1.271 $";
+// Revision Author: $Author: segonne $
+// Revision Date  : $Date: 2004/05/19 17:15:38 $
+// Revision       : $Revision: 1.272 $
+char *MRI_C_VERSION = "$Revision: 1.272 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -2272,6 +2272,7 @@ int MRIsurfaceRASToRAS(MRI *mri, Real xsr, Real ysr, Real zsr,
   return (NO_ERROR);
 }
 
+
 int MRIvoxelToSurfaceRAS(MRI *mri, Real xv, Real yv, Real zv, 
 			 Real *xs, Real *ys, Real *zs)
 {
@@ -2300,6 +2301,11 @@ MATRIX *voxelFromSurfaceRAS_(MRI *mri)
   MATRIX *voxelFromSRAS = MatrixInverse(sRASFromVoxel, NULL);
   MatrixFree(&sRASFromVoxel) ;
   return voxelFromSRAS;
+}
+
+/* extract the RASToVoxel Matrix */
+MATRIX *GetSurfaceRASToVoxelMatrix(MRI *mri){
+  return voxelFromSurfaceRAS_(mri);
 }
 
 int MRIsurfaceRASToVoxel(MRI *mri, Real xr, Real yr, Real zr, 
