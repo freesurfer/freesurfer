@@ -55,6 +55,7 @@ static int data_size[] = { 1, 4, 4, 4, 2 };
 -------------------------------------------------------*/
 
 static void short_buffer_to_image(short *buf, MRI *mri, int slice, int frame) ;
+static void image_to_short_buffer(short *buf, MRI *mri, int slice);
 static void buffer_to_image(BUFTYPE *buf, MRI *mri, int slice, int frame) ;
 static void image_to_buffer(BUFTYPE *buf, MRI *mri, int slice) ;
 static MRI *mncRead(char *fname, int read_volume, int frame) ;
@@ -63,7 +64,9 @@ static MRI *genesisRead(char *fname, int read_volume, int frame) ;
 static MRI *siemensRead(char *fname, int read_volume, int frame) ;
 static MRI *gelxRead(char *fname, int read_volume, int frame) ;
 static MRI *brikRead(char *fname, int read_volume, int frame) ;
+static int brikWrite(MRI *mri, char *fname, int frame) ;
 static MRI *bshortRead(char *fname, int read_volume, int frame) ;
+static int bshortWrite(MRI *mri, char *fname, int frame) ;
 static int mghWrite(MRI *mri, char *fname, int frame) ;
 static int mghAppend(MRI *mri, char *fname, int frame) ;
 static int mncWrite(MRI *mri, char *fname, int frame) ;
@@ -503,6 +506,22 @@ MRIwrite(MRI *mri, char *fpref)
     return(analyzeWrite(mri, fname, frame)) ;
   else if (type == MRI_MGH_FILE)
     return(mghWrite(mri, fname, frame)) ;
+  else if (type == BRIK_FILE)
+    return(brikWrite(mri, fname, frame)) ;
+  else if (type == BSHORT_FILE)
+    return(bshortWrite(mri, fname, frame)) ;
+  else if (type == GENESIS_FILE)
+  {
+    ErrorReturn(0, (ERROR_UNSUPPORTED, "Genesis write unsupported"));
+  }
+  else if(type == GE_LX_FILE)
+  {
+    ErrorReturn(0, (ERROR_UNSUPPORTED, "GE LX write unsupported"));
+  }
+  else if(type == SIEMENS_FILE)
+  {
+    ErrorReturn(0, (ERROR_UNSUPPORTED, "Siemens write unsupported"));
+  }
 
   MRIwriteInfo(mri, fpref) ;
   bytes = (long)mri->width * (long)mri->height ;
@@ -968,15 +987,46 @@ buffer_to_image(BUFTYPE *buf, MRI *mri, int slice, int frame)
     buf += width ;
   }
 }
-/*-----------------------------------------------------
-        Parameters:
 
-        Returns value:
+static void
+image_to_short_buffer(short *buf, MRI *mri, int slice)
+{
+  int y, x, width, height, depth ;
 
-        Description
-           Copy the data from a flat buffer to an array
-           of rows in the MRI data structure (after reading)
-------------------------------------------------------*/
+  width = mri->width ;
+  height = mri->height ;
+  depth = mri->depth;
+  for (y=0; y < height ; y++)
+  {
+    if(mri->type == MRI_UCHAR)
+    {
+      for(x = 0;x < depth;x++)
+        buf[x] = (short)MRIvox(mri, x, y, slice);
+    }
+    else if(mri->type == MRI_INT)
+    {
+      for(x = 0;x < depth;x++)
+        buf[x] = (short)MRIIvox(mri, x, y, slice);
+    }
+    else if(mri->type == MRI_LONG)
+    {
+      for(x = 0;x < depth;x++)
+        buf[x] = (short)MRILvox(mri, x, y, slice);
+    }
+    else if(mri->type == MRI_FLOAT)
+    {
+      for(x = 0;x < depth;x++)
+        buf[x] = (short)MRIFvox(mri, x, y, slice);
+    }
+    else
+    {
+      memcpy(buf, mri->slices[slice][y], width*sizeof(short)) ;
+    }
+
+    buf += width ;
+  }
+}
+
 static void
 short_buffer_to_image(short *buf, MRI *mri, int slice, int frame)
 {
@@ -3047,6 +3097,97 @@ brikRead(char *fname, int read_volume, int frame)
 
   strcpy(mri2->fname, fname);
 
+  return(mri2);
+
+} /* end brikRead() */
+
+static int
+brikWrite(MRI *mri, char *fname, int frame)
+{
+
+  char header_name[STRLEN];
+  char *dot;
+  FILE *fp;
+  int i;
+  short *buf;
+  int orient_code[3], mri_dir[3];
+
+  strcpy(header_name, fname);
+  if((dot = strrchr(header_name, '.')) == NULL)
+    ErrorReturn(0, (ERROR_BADPARM, 
+                "brikWrite(): can't find '.' in filename: %s", fname));
+
+  dot++;
+  sprintf(dot, "HEAD");
+
+  if((fp = fopen(fname, "w")) == NULL)
+  {
+    ErrorReturn(0, (ERROR_BADFILE, "brikWrite(): can't open file %s", fname));
+  }
+  buf = (short *)malloc(mri->width * mri->height * sizeof(short));
+  for(i = 0;i <= mri->imnr1 - mri->imnr0;i++)
+  {
+    image_to_short_buffer(buf, mri, i);
+#ifdef Linux
+    swab(buf, buf, mri->height * mri->width * sizeof(short));
+#endif
+    fwrite(buf, 2, mri->width * mri->height, fp);
+  }
+  free(buf);
+  fclose(fp);
+
+  if((fp = fopen(header_name, "w")) == NULL)
+  {
+    ErrorReturn(0, (ERROR_BADFILE, "brikWrite(): can't open file %s", header_name));
+  }
+
+  fprintf(fp, "type = float-attribute\n");
+  fprintf(fp, "name = DELTA\n");
+  fprintf(fp, "count = 3\n");
+  fprintf(fp, "  %g      %g      %g\n\n", mri->xsize, mri->ysize, mri->zsize);
+
+  fprintf(fp, "type = integer-attribute\n");
+  fprintf(fp, "name = DATASET_DIMENSIONS\n");
+  fprintf(fp, "count = 5\n");
+  fprintf(fp, "  %d %d %d %d %d\n\n", mri->width, mri->height, mri->depth, 0, 0);
+
+  fprintf(fp, "type = integer-attribute\n");
+  fprintf(fp, "name = BRICK_TYPES\n");
+  fprintf(fp, "count = 1\n");
+  fprintf(fp, "  1\n\n");
+
+  fprintf(fp, "type = string-attribute\n");
+  fprintf(fp, "name = BYTEORDER_STRING\n");
+  fprintf(fp, "count = 10\n");
+  fprintf(fp, "  'MSB_FIRST~\n\n");
+
+  mri_dir[0] = mri->xdir;
+  mri_dir[1] = mri->ydir;
+  mri_dir[2] = mri->zdir;
+
+  for(i = 0;i < 3;i++)
+  {
+    if(mri_dir[i] == -XDIM)
+      orient_code[i] = 0;
+    if(mri_dir[i] == XDIM)
+      orient_code[i] = 1;
+    if(mri_dir[i] == -ZDIM)
+      orient_code[i] = 2;
+    if(mri_dir[i] == -ZDIM)
+      orient_code[i] = 3;
+    if(mri_dir[i] == -YDIM)
+      orient_code[i] = 4;
+    if(mri_dir[i] == YDIM)
+      orient_code[i] = 5;
+  }
+
+  fprintf(fp, "type = integer-attribute\n");
+  fprintf(fp, "name = ORIENT_SPECIFIC\n");
+  fprintf(fp, "count = 3\n");
+  fprintf(fp, "  %d %d %d\n\n", orient_code[0], orient_code[1], orient_code[2]);
+
+  fclose(fp);
+
   return(1);
 
 } /* end brikWrite() */
@@ -3070,7 +3211,7 @@ bshortRead(char *fname, int read_volume, int frame)
   if((dot = strrchr(fname, '.')) == NULL)
     ErrorReturn(NULL, (ERROR_BADPARM, "bshortRead: bad bshort file name %s", fname));
 
-  norig = strtol(dot, &error, 10);
+  num = dot-3;
 
   if(num < fname)
     ErrorReturn(NULL, (ERROR_BADPARM, "bshortRead: bad bshort file name %s", fname));
@@ -3126,7 +3267,11 @@ bshortRead(char *fname, int read_volume, int frame)
       mri = MRIalloc(height, width, frames, MRI_SHORT);
     else
     {
-        swab(buf, buf, height * width * 2);
+      mri = MRIallocHeader(height, width, frames, MRI_SHORT);
+      for(i = 0;i < frames;i++)
+      {
+        fread(buf, height * width, 2, fin);
+          swab(buf, buf, height * width * 2);
         if(!swap)
           swab(buf, buf, height * width * 2);
 #else
@@ -3152,7 +3297,11 @@ bshortRead(char *fname, int read_volume, int frame)
       for(i = nstart;i <= nend;i++)
       {
         sprintf(fname2, "%s%03d.bshort", fname, i);
-        swab(buf, buf, height * width * 2);
+        if((fin = fopen(fname2, "r")) == NULL)
+          ErrorReturn(NULL, (ERROR_BADPARM, "bshortRead: can't open file %s", fname2));
+
+        fread(buf, height * width, 2, fin);
+          swab(buf, buf, height * width * 2);
         if(!swap)
           swab(buf, buf, height * width * 2);
 #else
@@ -3170,6 +3319,73 @@ bshortRead(char *fname, int read_volume, int frame)
   mri->xdir = XDIM;
   mri->ydir = YDIM;
   mri->zdir = ZDIM;
+
+  strcpy(mri->fname, fname_passed);
+
+  return(mri);
+
+} /* end bshortRead() */
+
+static int
+bshortWrite(MRI *mri, char *fname, int frame)
+{
+
+  FILE *fp;
+  int i;
+  char *dot, *num, *hnum, *error;
+  int norig;
+  char header_fname[STRLEN];
+  short *buf;
+
+  if((dot = strrchr(fname, '.')) == NULL)
+    ErrorReturn(0, (ERROR_BADPARM, "bshortWrite(): bad bshort file name %s", fname));
+
+  if(strcmp(dot+1, "bshort"))
+    ErrorReturn(0, (ERROR_BADPARM, "bshortWrite(): bad bshort file name %s", fname));
+
+  strcpy(header_fname, fname);
+  sprintf((dot - fname) + header_fname, ".hdr");
+
+  num = dot-3;
+
+  if(num < fname)
+    ErrorReturn(0, (ERROR_BADPARM, "bshortWrite(): bad bshort file name %s", fname));
+
+  norig = strtol(num, &error, 10);
+  if(error == NULL)
+    ErrorReturn(0, (ERROR_BADPARM, "bshortWrite(): bad bshort file name %s", fname));
+
+  hnum = (num - fname) + header_fname;
+
+  buf = (short *)malloc(mri->height * mri->width * sizeof(short));
+
+  for(i = mri->imnr0;i <= mri->imnr1;i++)
+  {
+    sprintf(num, "%03d", i - mri->imnr0 + norig);
+    num[3] = '.';
+    if((fp = fopen(fname, "w")) == NULL)
+    {
+      ErrorReturn(0, (ERROR_BADFILE,
+                      "bshortWrite(): can't open file %s for writing", fname));
+    }
+    image_to_short_buffer(buf, mri, i - mri->imnr0);
+#ifdef Linux
+    swab(buf, buf, mri->height * mri->width * sizeof(short));
+#endif
+    fwrite(buf, 2, mri->width * mri->height, fp);
+    fclose(fp);
+
+    sprintf(hnum, "%03d", i - mri->imnr0 + norig);
+    hnum[3] = '.';
+    if((fp = fopen(header_fname, "w")) == NULL)
+    {
+      ErrorReturn(0, (ERROR_BADFILE,
+                      "bshortWrite(): can't open file %s for writing", fname));
+    }
+    fprintf(fp, "%d %d %d %d\n", mri->height, mri->width, 1, 0);
+    fclose(fp);
+
+  }
 
   c = header->hist.originator[4]; header->hist.originator[4] = header->hist.originator[5]; header->hist.originator[5] = c;
   c = header->hist.originator[6]; header->hist.originator[6] = header->hist.originator[7]; header->hist.originator[7] = c;
