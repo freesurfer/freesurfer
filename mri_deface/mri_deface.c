@@ -609,7 +609,7 @@ find_optimal_transform(MRI *mri, GCA *gca, GCA_SAMPLE *gcas, int nsamples,
            delta, mean ;
   int      niter, good_step, done, nscales, min_real_bin, mri_peak, scale_samples ;
   float      min_real_val, fmax, fmin, min_search_scale ;
-  MRI_REGION box ;
+  MRI_REGION box, gca_box ;
   HISTOGRAM *h_mri, *h_smooth ;
 
 
@@ -686,7 +686,22 @@ find_optimal_transform(MRI *mri, GCA *gca, GCA_SAMPLE *gcas, int nsamples,
 		printf("input bounding box (%d, %d, %d) --> (%d, %d, %d)\n",
 					 box.x, box.y, box.z, box.x+box.dx, box.y+box.dy, box.z+box.dz) ;
 		
-		MRIcenterOfMass(mri, in_means, 0) ;
+
+		MRIvalRange(mri_gca, &fmin, &fmax) ;
+		h_mri = MRIhistogram(mri_gca, nint(fmax-fmin+1)) ; h_mri->counts[0] = 0 ; /* ignore background */
+		h_smooth = HISTOsmooth(h_mri, NULL, 2) ;
+		mri_peak = HISTOfindHighestPeakInRegion(h_smooth, 0, h_smooth->nbins/3) ;
+		min_real_bin = HISTOfindEndOfPeak(h_smooth, mri_peak, .25) ;
+		min_real_val = h_smooth->bins[min_real_bin] ;
+		printf("using GCA real data threshold=%2.1f\n", min_real_val) ;
+		MRIfindApproximateSkullBoundingBox(mri_gca, min_real_val, &gca_box) ;
+		HISTOfree(&h_mri) ; HISTOfree(&h_smooth) ;
+		printf("gca bounding box (%d, %d, %d) --> (%d, %d, %d)\n",
+					 box.x, box.y, box.z, box.x+box.dx, box.y+box.dy, box.z+box.dz) ;
+		
+		/*		MRIcenterOfMass(mri, in_means, 0) ;*/
+		in_means[0] = box.x+box.dx*0.5 ;
+		in_means[2] = box.z+box.dz*0.5 ;
 		printf("input centroid (%2.1f, %2.1f, %2.1f), "
 					 "gca centroid (%2.1f, %2.1f, %2.1f)\n",
 					 in_means[0], in_means[1], in_means[2],
@@ -695,7 +710,9 @@ find_optimal_transform(MRI *mri, GCA *gca, GCA_SAMPLE *gcas, int nsamples,
 		printf("resetting superior/inferior centroid to %2.1f\n", in_means[1]) ;
 		
 		/* now apply translation to take in centroid to ref centroid */
-		dx = gca_means[0] - in_means[0] ; dy = gca_means[1] - in_means[1] ;
+		dx = gca_means[0] - in_means[0] ; 
+		/* use top of skull as estimate of superior-inferior offset (about 1.5cm from brain) */
+		dy = gca_box.y-(box.y+15*mri->ysize) ;  
 		dz = gca_means[2] - in_means[2] ;
 		if (passno == 0)
 		{
