@@ -20,7 +20,7 @@
 
 # tkm_MakeEntry fwFrame "Left Text" variable [width] [{function}]
 
-# tkm_MakeButtons fwFrame {button...}
+# tkm_MakeButtons fwFrame {button...} [direction=x|y]
 # button = { text "Label" {function} "Tool tip" }
 # button = { image image_name {function} "Tool tip" }
 
@@ -60,6 +60,7 @@
 # tkm_MakeCancelApplyOKButtons fwFrame wwDlog {ok_fuction} [{cancel_function}]
 # tkm_MakeCloseButton        fwFrame wwDlog [{close_function}]
 # tkm_MakeApplyCloseButtons  fwFrame wwDlog {apply_function} [{close_function}]
+#                            [Apply_button_text]
 # tkm_MakeCancelOKButtons    fwFrame wwDlog {ok_fuction} [{cancel_function}]
 
 # tkm_MakeFileSelector fwFrame "Prompt:" variable default_lcoation_func
@@ -492,7 +493,7 @@ proc tkm_MakeEntry { isFrame isText iVariable {inWidth -1} {iSetFunction ""} } {
 
 }
 
-proc tkm_MakeButtons { isFrame ilButtons } {
+proc tkm_MakeButtons { isFrame ilButtons {isDirection x} } {
 
     global kLabelFont kNormalFont
     global knBalloonWait
@@ -503,41 +504,48 @@ proc tkm_MakeButtons { isFrame ilButtons } {
     # { image image command tooltip }
     
     tixBalloon $isFrame.baw -initwait $knBalloonWait
-
+    
     set nButton 0
     foreach lButton $ilButtons {
   
   set sType [lindex $lButton 0]
-
+  
   if { [string compare $sType "text"] == 0 } {
-
+      
       button $isFrame.bw$nButton \
         -font $kLabelFont \
         -text [lindex $lButton 1] \
         -command [lindex $lButton 2] 
-      
-      pack $isFrame.bw$nButton \
-        -side left \
-        -expand yes
 
   } 
   if { [string compare $sType "image"] == 0 } {
-
+      
       button $isFrame.bw$nButton \
         -image [lindex $lButton 1] \
         -command [lindex $lButton 2]
       
-      pack $isFrame.bw$nButton \
-        -side left \
-        -expand yes
-
   }
   
+  switch $isDirection {
+      h - x {
+    pack $isFrame.bw$nButton \
+      -side left \
+      -expand yes
+      }
+      v - y {
+    pack $isFrame.bw$nButton \
+      -side top \
+      -expand yes \
+      -fill x \
+      -pady 2
+      }
+  }
+
   if { [lindex $lButton 3] != "" } {
       $isFrame.baw bind $isFrame.bw$nButton \
         -balloonmsg [lindex $lButton 3]
   }
-
+  
   incr nButton
     }
 }
@@ -1064,14 +1072,14 @@ proc tkm_MakeCloseButton { isFrame isTop {iCloseCmd ""} } {
 
 }
 
-proc tkm_MakeApplyCloseButtons { isFrame isTop iApplyCmd {iCloseCmd ""} } {
+proc tkm_MakeApplyCloseButtons { isFrame isTop iApplyCmd {iCloseCmd ""} {isApplyText "Apply"}} {
 
     global kLabelFont
 
     frame $isFrame
     
     button $isFrame.bwApply \
-      -text "Apply" \
+      -text $isApplyText \
       -command "$iApplyCmd" \
       -font $kLabelFont
 
