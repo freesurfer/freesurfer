@@ -1,10 +1,10 @@
 /*============================================================================
  Copyright (c) 1996 Martin Sereno and Anders Dale
 =============================================================================*/
-/*   $Id: tkregister2.c,v 1.28 2004/09/13 18:52:11 greve Exp $   */
+/*   $Id: tkregister2.c,v 1.29 2004/11/17 22:48:13 greve Exp $   */
 
 #ifndef lint
-static char vcid[] = "$Id: tkregister2.c,v 1.28 2004/09/13 18:52:11 greve Exp $";
+static char vcid[] = "$Id: tkregister2.c,v 1.29 2004/11/17 22:48:13 greve Exp $";
 #endif /* lint */
 
 #define TCL
@@ -1016,7 +1016,7 @@ static void print_help(void)
 "matrix. It is possible to run tkregister2 without the manual editing\n"
 "stage (ie, it exits immediately) in order to compute and/or convert\n"
 "registration matrices. tkregister2 can also compute registration\n"
-"matrices from two volumes aligned in SPM.\n"
+"matrices from two volumes aligned in SPM or FSL.\n"
 "\n"
 "  \n"
 "FLAGS AND OPTIONS\n"
@@ -1238,25 +1238,41 @@ static void print_help(void)
 "First convert the anatomical (ie, the one in \n"
 "SUBJECTS_DIR/subjectname/mri/orig to analyze format (use mri_convert\n"
 "SUBJECTS_DIR/subjectname/mri/orig cor.img). Convert the functional\n"
-"to analyze format (eg, f.img). Coregister the two volumes. \n"
+"to analyze format (eg, f.img). \n"
 "\n"
-"For SPM, select the functional as the target and the anatomical as \n"
-"the object, and select the 'Coregister only' option. The registration\n"
-"will be written into the functional .mat file. Run tkregister2 \n"
-"with the --regheader option. Use the -noedit option to suppress\n"
+"When using the SPM registration tool, select the functional (f.img) as the target\n"
+"and the anatomical (cor.img) as the object, and select the 'Coregister only' option. \n"
+"The registration will be written into the functional .mat file. Run tkregister2 \n"
+"with the --regheader option. Use the --noedit option to suppress\n"
 "the GUI. Editing the registration will not affect the registration\n"
-"as seen by SPM.\n"
+"as seen by SPM. An example command-line is\n"
 "\n"
-"For FSL, coregister the functional to the anatomical (ie, use the \n"
-"anatomical as the reference). This will produce an FSL registration\n"
+"  tkregister2 --mov f.img --s yoursubject --regheader --noedit --reg register.dat \n"
+"\n"
+"This will create/overwrite register.dat.\n"
+"\n"
+"For FSL, coregister the functional (f.img) to the anatomical (cor.img) (ie, \n"
+"use the anatomical (cor.img) as the reference). This will produce an FSL registration\n"
 "file (an ASCII file with the 4x4 matrix). Run tkregister2 specifying\n"
 "this file as the argument to the --fslreg flag. Note, it is possible\n"
 "to generate an FSL matrix from the headers, which can be useful to\n"
 "initialize the FSL registration routines. To do this, just run\n"
 "tkregister2 with the --fslregout fsl.mat and --regheader flags,\n"
-"where fsl.mat is the name of the FSL matrix file. Use the -noedit \n"
+"where fsl.mat is the name of the FSL matrix file. Use the --noedit \n"
 "option to suppress the GUI. Editing the registration will not affect \n"
 "the registration as seen by FSL unless --fslregout is specfied.\n"
+"An example command-line is\n"
+"\n"
+"  tkregister2 --mov f.img --fslreg fsl.mat --s yoursubject --regheader\n"
+"      --noedit --reg register.dat \n"
+"\n"
+"This will create/overwrite register.dat.\n"
+"\n"
+"If you don't include the --noedit, then the GUI will come up, and you\n"
+"can flip back and forth between the functional and the structural. If\n"
+"they are not well aligned then you are going to see garbage when you\n"
+"when you use tkmedit and tksurfer to view your data. So, CHECK YOUR\n"
+"REGISTRATION!!!\n"
 "\n"
 "BUGS\n"
 "\n"
@@ -3594,7 +3610,7 @@ char **argv;
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tkregister2.c,v 1.28 2004/09/13 18:52:11 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: tkregister2.c,v 1.29 2004/11/17 22:48:13 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
