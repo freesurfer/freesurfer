@@ -15,6 +15,10 @@
 #define MRI_SHORT   4
 #define MRI_BITMAP  5
 
+static int data_size[] = {
+  1, 4, 4, 4, 2
+};
+
 typedef struct
 {
   int  x ;
@@ -388,6 +392,11 @@ extern float ic_z_vertices[]  ;
 #define MRI_MINC_FILE                 1
 #define MRI_ANALYZE_FILE              2
 #define MRI_MGH_FILE                  3
+#define GE_5X_FILE                    4
+#define GE_8X_FILE                    5
+#define SIEMENS_FILE                  6
+#define BRIK_FILE                     7
+
 
 int        MRImatch(MRI *mri1, MRI *mri2) ;
 int        MRIvalRange(MRI *mri, float *pmin, float *pmax) ;
