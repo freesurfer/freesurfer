@@ -2,6 +2,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <string.h>
+#include <ctype.h>
 #include "machine.h"
 #include "fio.h"
 #include "utils.h"
@@ -28,6 +29,7 @@ static void read_siemens_file(char *fname, struct stat stat_buf);
 static void read_minc_file(char *fname, struct stat stat_buf);
 static void read_mgh_file(char *fname, struct stat stat_buf);
 static void read_analyze_file(char *fname, struct stat stat_buf);
+static void read_sdt_file(char *fname, struct stat stat_buf);
 static void read_cor(char *fname);
 static void read_brik_file(char *fname, struct stat stat_buf);
 static void read_short(FILE *fp, int offset, short *val);
@@ -109,6 +111,8 @@ static void do_file(char *fname)
       type = GE_LX_FILE ;
     else if (!strcmp(at, "IMG"))
       type = MRI_ANALYZE_FILE ;
+    else if (!strcmp(at, "SDT"))
+      type = SDT_FILE;
     else if(!strcmp(at, "COR"))
       type = MRI_CORONAL_SLICE_DIRECTORY ;
     else
@@ -142,6 +146,8 @@ static void do_file(char *fname)
       type = BRIK_FILE;
     else if(is_siemens(fname2))
       type = SIEMENS_FILE;
+    else if(is_sdt(fname2))
+      type = SDT_FILE;
     else if(is_analyze(fname2))
       type = MRI_ANALYZE_FILE;
     else if(is_brik(fname2))
@@ -188,6 +194,10 @@ static void do_file(char *fname)
 
     case BRIK_FILE:
       read_brik_file(fname2, stat_buf);
+      break;
+
+    case SDT_FILE:
+      read_sdt_file(fname2, stat_buf);
       break;
 
     case MRI_CORONAL_SLICE_DIRECTORY:
@@ -751,6 +761,108 @@ static void read_analyze_file(char *fname, struct stat stat_buf)
   fclose(fp);
 
 } /* end read_analyze_file() */
+
+static void read_sdt_file(char *fname, struct stat stat_buf)
+{
+
+  char hfname[STR_LEN];
+  char *dot;
+  FILE *fp;
+  char line[STR_LEN], *colon, *tc;
+  float vs;
+
+  printf("file name: %s\n", fname);
+  printf("file size: %d\n", (int)(stat_buf.st_size));
+  printf("file type: SDT\n");
+
+  strcpy(hfname, fname);
+
+  if((dot = strrchr(hfname, '.')))
+    {
+    dot++;
+    sprintf(dot, "spr");
+    }
+  else
+    strcat(hfname, ".spr");
+
+  if((fp = fopen(hfname, "r")) == NULL)
+  {
+    fprintf(stderr, "error opening file %s\n", fname);
+    return;
+  }
+
+  while(!feof(fp))
+  {
+    fgets(line, STR_LEN, fp);
+    if((colon = strchr(line, ':')))
+    {
+
+      if(line[strlen(line)-1] == '\n')
+        line[strlen(line)-1] = '\0';
+
+      *colon = '\0';
+
+      do
+        {
+        colon++;
+        } while(isspace(*colon));
+
+      if(strcmp(line, "numDim") == 0)
+        printf("number of dimensions: %s\n", colon);
+      else if(strcmp(line, "dim") == 0)
+        printf("dimensions: %s\n", colon);
+      else if(strcmp(line, "dataType") == 0)
+      {
+        if(strncmp(colon, "BYTE", 4) == 0)
+          printf("data type: character\n");
+        else if(strncmp(colon, "WORD", 4) == 0)
+          printf("data type: short\n");
+        else if(strncmp(colon, "LWORD", 5) == 0)
+          printf("data type: integer\n");
+        else if(strncmp(colon, "REAL", 4) == 0)
+          printf("data type: float\n");
+        else if(strncmp(colon, "COMPLEX", 7) == 0)
+          printf("data type: complex\n");
+        else
+          printf("unknown data type: %s\n", colon);
+      }
+      else if(strcmp(line, "interval") == 0)
+      {
+        printf("voxel size:");
+        line[strlen(line)+1] = '\0';
+        while(*colon != '\0')
+          {
+          tc = colon;
+          while(isdigit(*colon) || *colon == '-' || *colon == '+' || *colon == '.')
+            colon++;
+          while(isspace(*colon))
+            colon++;
+          *(colon-1) = '\0';
+          sscanf(tc, "%f", &vs);
+          printf(" %g", vs*10.0);
+          }
+        printf("\n");
+      }
+      else if(strcmp(line, "sdtOrient") == 0)
+      {
+        if(strncmp(colon, "sag", 3) == 0)
+          printf("orientation: sagittal\n");
+        else if(strncmp(colon, "ax", 2) == 0)
+          printf("orientation: horizontal\n");
+        else if(strncmp(colon, "cor", 3) == 0)
+          printf("orientation: coronal\n");
+        else
+        printf("orientation: unknown (%s)\n", colon);
+      }
+      else
+      {
+      }
+    }
+  }
+
+  fclose(fp);
+
+}
 
 static void read_cor(char *fname)
 {
