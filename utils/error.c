@@ -33,8 +33,8 @@
 -------------------------------------------------------*/
 
 static char error_fname[100] = ERROR_FNAME ;
-static int (*error_vprintf)(char *fmt, va_list args) = vprintf ;
-static int (*error_vfprintf)(FILE *fp, char *fmt, va_list args) = vfprintf ;
+static int (*error_vprintf)(const char *fmt, va_list args) = vprintf ;
+static int (*error_vfprintf)(FILE *fp,const char *fmt,va_list args) = vfprintf;
 
 /*-----------------------------------------------------
                     GLOBAL FUNCTIONS
@@ -49,8 +49,8 @@ static int (*error_vfprintf)(FILE *fp, char *fmt, va_list args) = vfprintf ;
 ------------------------------------------------------*/
 int
 ErrorInit(char *fname, 
-                  int (*vfprint)(FILE *fp, char *fmt, va_list args),
-                  int (*vprint)(char *fmt, va_list args))
+                  int (*vfprint)(FILE *fp, const char *fmt, va_list args),
+                  int (*vprint)(const char *fmt, va_list args))
 {
   if (fname)
     strcpy(error_fname, fname) ;
