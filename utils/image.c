@@ -2868,6 +2868,198 @@ ImageExponentialFilter(IMAGE *inImage, IMAGE *gradImage,
             Parameters:
 
            Description:
+             calculate an x and a y offset for each point in the image
+             using the Nitzberg-Shiota algorithm.
+----------------------------------------------------------------------*/
+int        
+ImageCalculateOffset(IMAGE *Ix, IMAGE *Iy, int wsize, float mu, 
+                    float c, IMAGE *offsetImage)
+{
+  int    x0, y0, rows, cols, x, y, whalf, xc, yc ;
+  float  sx, sy, sgn, fxpix, fypix, vsq, c1, *g, vx, vy, dot_product,
+         sxneg, sxpos, syneg, sypos, *xpix, *ypix ;
+  static float *gaussian = NULL ;
+  static int   w = 0 ;
+  FILE         *xfp = NULL, *yfp = NULL, *ofp ;
+
+  rows = Ix->rows ;
+  cols = Ix->cols ;
+
+  whalf = (wsize-1)/2 ;
+  c1 = c * (float)whalf ;
+
+  /* create a local gaussian window */
+  if (wsize != w)
+  {
+    free(gaussian) ;
+    gaussian = NULL ;
+    w = wsize ;
+  }
+
+  if (!gaussian)  /* allocate a gaussian bump */
+  {
+    float den, norm ;
+
+    gaussian = (float *)calloc(wsize*wsize, sizeof(float)) ;
+    den = wsize*wsize + wsize + 1 ;
+    norm = 0.0f ;
+    for (g = gaussian, y = 0 ; y < wsize ; y++)
+    {
+      yc = y - whalf ;
+      for (x = 0 ; x < wsize ; x++, g++) 
+      {
+        xc = x - whalf ;
+#if 0
+        /* Nitzberg-Shiota window */
+        *g = exp(-36.0f * sqrt(xc*xc+yc*yc) / den) ;
+#else
+#define SIGMA 0.5f
+
+        /* standard gaussian window with sigma=2 */
+        *g = exp(-sqrt(xc*xc+yc*yc) / (2.0f*SIGMA*SIGMA)) ;
+#endif
+        norm += *g ;
+      }
+    }
+
+    /* normalize gaussian */
+#if 0
+    for (g = gaussian, y = 0 ; y < wsize ; y++)
+    {
+      for (x = 0 ; x < wsize ; x++, g++) 
+        *g /= norm ;
+    }
+#endif
+  }
+
+  if (Gdiag & DIAG_WRITE)
+  {
+    FILE *fp ;
+    fp = fopen("g.dat", "w") ;
+    for (g = gaussian, y = 0 ; y < wsize ; y++)
+    {
+      for (x = 0 ; x < wsize ; x++, g++) 
+        fprintf(fp, "%2.3f  ", *g) ;
+      fprintf(fp, "\n") ;
+    }
+    fclose(fp) ;
+  }
+
+  xpix = IMAGEFpix(offsetImage, 0, 0) ;
+  ypix = IMAGEFseq_pix(offsetImage, 0, 0, 1) ;
+
+  /* for each point in the image */
+  for (y0 = 0 ; y0 < rows ; y0++)
+  {
+    for (x0 = 0 ; x0 < cols ; x0++, xpix++, ypix++)
+    {
+      
+/*
+  x and y are in window coordinates, while x0, y0, xc and yc are in image
+  coordinates.
+*/
+
+      if ((Gdiag & DIAG_WRITE) && (x0 == cols/2 && y0 == rows/2))
+      {
+        xfp = fopen("ix.dat", "w") ;
+        yfp = fopen("iy.dat", "w") ;
+        ofp = fopen("offset.log", "w") ;
+      }
+        
+      vx = vy = sx = sy = sxneg = syneg = sxpos = sypos = 0.0f ;
+      for (g = gaussian, y = -whalf ; y <= whalf ; y++)
+      {
+        /* reflect across the boundary */
+        yc = y + y0 ;
+        if (yc < 0)
+          yc = -yc ;
+        else if (yc >= rows)
+          yc = rows - (yc - rows + 1) ;
+        
+        for (x = -whalf ; x <= whalf ; x++, g++)
+        {
+          xc = x0 + x ;
+          if (xc < 0)
+            xc = -xc ;
+          else if (xc >= cols)
+            xc = cols - (xc - cols + 1) ;
+          
+          fxpix = *IMAGEFpix(Ix, xc, yc) ;
+          fypix = *IMAGEFpix(Iy, xc, yc) ;
+
+          fxpix *= *g ;   /* apply gaussian window */
+          fypix *= *g ;
+
+          /* calculate sign of offset components */
+          /* Nitzberg-Shiota offset */
+          dot_product = x * fxpix + y * fypix ;
+          sx += (dot_product * fxpix) ;
+          sy += (dot_product * fypix) ;
+
+          /* calculate the average gradient direction in the nbd */
+          vx += fxpix ;
+          vy += fypix ;
+          if (xfp)
+          {
+            fprintf(ofp, 
+                    "(%d, %d): Ix %2.2f, Iy, %2.2f, sx = %2.3f, sy = %2.3f\n",
+                    xc, yc, fxpix, fypix, sx, sy) ;
+            fprintf(xfp, "%+2.3f  ", fxpix) ;
+            fprintf(yfp, "%+2.3f  ", fypix) ;
+          }
+        }
+        if (xfp)
+        {
+          fprintf(xfp, "\n") ;
+          fprintf(yfp, "\n") ;
+        }
+      }
+
+      vsq = vx*vx + vy*vy ;
+
+/*  decide whether offset should be in gradient or negative gradient direction
+*/
+#if 1
+/* 
+      ignore magnitude of sx and sy as they are the difference of the two
+      hemifields, and thus not significant.
+*/
+      sx = (sx < 0.0f) ? -1.0f : 1.0f ;
+      sy = (sy < 0.0f) ? -1.0f : 1.0f ;
+#endif
+      sgn = sx*vx + sy*vy ;
+      sgn = (sgn < 0.0f) ? -1.0f : 1.0f ;
+
+      /* calculated phi(V) */
+      vx = vx*c1 / sqrt(mu*mu + vsq) ;
+      vy = vy*c1 / sqrt(mu*mu + vsq) ;
+
+      /* offset should never be larger than half of the window size */
+      if (vx > whalf+1)  vx = whalf+1 ;
+      if (vx < -whalf-1) vx = -whalf-1 ;
+      if (vy > whalf+1)  vy = whalf+1 ;
+      if (vy < -whalf-1) vy = -whalf-1 ;
+
+      *xpix = -sgn * vx ;
+      *ypix = -sgn * vy ;
+      if (xfp)
+      {
+        fclose(xfp) ;
+        fclose(yfp) ;
+        fprintf(ofp, 
+                "vx %2.3f, vy %2.3f, sgn %2.2f, sx %2.2f, sy %2.2f, vx %2.3f, vy %2.3f\n", 
+                vx, vy, sgn, sx, sy, vx, vy) ;
+        fclose(ofp) ;
+      }
+    }
+  }
+
+  return(0) ;
+}
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
 ----------------------------------------------------------------------*/
 int
 ImageCalculateNitShiOffset(IMAGE *Ix, IMAGE *Iy, int wsize, 
