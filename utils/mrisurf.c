@@ -3,9 +3,9 @@
 // written by Bruce Fischl
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: segonne $
-// Revision Date  : $Date: 2005/03/16 19:31:13 $
-// Revision       : $Revision: 1.340 $
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2005/04/04 00:45:41 $
+// Revision       : $Revision: 1.341 $
 //////////////////////////////////////////////////////////////////
 #include <stdio.h>
 #include <string.h>
@@ -2860,7 +2860,8 @@ mrisReadTransform(MRIS *mris, char *mris_fname)
     // first try to get it from surface itself
     if (mris->vg.valid)
     {
-      fprintf(stderr, "INFO: found the orig volume info on %s in the surface data.\n", mris->vg.fname);
+			if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+				fprintf(stderr, "INFO: found the orig volume info on %s in the surface data.\n", mris->vg.fname);
       lt->src.c_r = mris->vg.c_r;
       lt->src.c_a = mris->vg.c_a;
       lt->src.c_s = mris->vg.c_s;
@@ -2872,22 +2873,28 @@ mrisReadTransform(MRIS *mris, char *mris_fname)
       orig = MRIreadHeader(transform_fname, -1);
       if (orig)
       {
-	getVolGeom(orig, &lt->src);
-	getVolGeom(orig, &mris->vg); // add orig volume info in the surface
-	MRIfree(&orig);
-	orig = 0;
-	fprintf(stderr, "INFO: found the orig volume (mri/orig) to get c_(ras) information for src\n");
-	fprintf(stderr, "INFO: added info to the surface.\n");
+				getVolGeom(orig, &lt->src);
+				getVolGeom(orig, &mris->vg); // add orig volume info in the surface
+				MRIfree(&orig);
+				orig = 0;
+				if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+				{
+					fprintf(stderr, "INFO: found the orig volume (mri/orig) to get c_(ras) information for src\n");
+					fprintf(stderr, "INFO: added info to the surface.\n");
+				}
       }
       else
       {
-	fprintf(stderr, "INFO: cannot find mri/orig volume to get c_(ras) information.\n");
-	fprintf(stderr, "INFO: transform src volume information cannot be found. assume c_(ras) = 0\n");
-	fprintf(stderr, "INFO: destination surface points may be shifted in the volume.\n");
-	fprintf(stderr, "INFO: you should put the src info in the transform.\n");
-	lt->src.c_r = 0;
-	lt->src.c_a = 0;
-	lt->src.c_s = 0;
+				if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+				{
+					fprintf(stderr, "INFO: cannot find mri/orig volume to get c_(ras) information.\n");
+					fprintf(stderr, "INFO: transform src volume information cannot be found. assume c_(ras) = 0\n");
+					fprintf(stderr, "INFO: destination surface points may be shifted in the volume.\n");
+					fprintf(stderr, "INFO: you should put the src info in the transform.\n");
+				}
+				lt->src.c_r = 0;
+				lt->src.c_a = 0;
+				lt->src.c_s = 0;
       }
     }
   }
@@ -2897,20 +2904,23 @@ mrisReadTransform(MRIS *mris, char *mris_fname)
     if (mris->vg.valid)
     {
       if (!FZERO(lt->src.c_r - mris->vg.c_r)
-	  || !FZERO(lt->src.c_a - mris->vg.c_a)
-	  || !FZERO(lt->src.c_s - mris->vg.c_s))
+					|| !FZERO(lt->src.c_a - mris->vg.c_a)
+					|| !FZERO(lt->src.c_s - mris->vg.c_s))
       {
-	fprintf(stderr, "WARNING: the source volume info is not consistent between \n");
-	fprintf(stderr, "WARNING: the info contained in the surface data and that of the transform.\n");
+				fprintf(stderr, "WARNING: the source volume info is not consistent between \n");
+				fprintf(stderr, "WARNING: the info contained in the surface data and that of the transform.\n");
       }
     }
   }
   // check dst info
   if (!lt->dst.valid)
   {
-    fprintf(stderr, "INFO: transform dst volume information cannot be found.\n");
-    fprintf(stderr, "INFO: if the target is MNI average_305, then you can do 'setenv USE_AVERAGE305 true'\n");
-    fprintf(stderr, "INFO: otherwise c_(ras) is set to 0. destination surface points may be shifted.\n");
+		if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+		{
+			fprintf(stderr, "INFO: transform dst volume information cannot be found.\n");
+			fprintf(stderr, "INFO: if the target is MNI average_305, then you can do 'setenv USE_AVERAGE305 true'\n");
+			fprintf(stderr, "INFO: otherwise c_(ras) is set to 0. destination surface points may be shifted.\n");
+		}
     if (getenv("USE_AVERAGE305"))
     {
       lt->dst.c_r =  -0.0950; 
