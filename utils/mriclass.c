@@ -40,8 +40,6 @@
 #define LO_LIM               70
 #define HI_LIM               150
 
-#define MAX_INPUTS           4
-
 /*-----------------------------------------------------
                     STATIC DATA
 -------------------------------------------------------*/
@@ -323,7 +321,7 @@ MRICclassify(MRIC *mric, MRI *mri_src, MRI *mri_dst,
   GCLASSIFY  *gc ;
   int        x, y, z, width, depth, height, classno, nclasses, row ;
   BUFTYPE    *psrc, src, *pdst, *pclasses ;
-  float      prob, *pprobs = NULL, obs[10] ;
+  float      prob, *pprobs = NULL, inputs[MAX_INPUTS+1] ;
 
   if (conf < 0.0f || conf >= 1.0f)
     conf = PRETTY_SURE ;
@@ -356,9 +354,9 @@ MRICclassify(MRIC *mric, MRI *mri_src, MRI *mri_dst,
       for (x = 0 ; x < width ; x++)
       {
         src = *psrc++ ;
-        MRICcomputeInputs(mri_src, (float)src, x, y, z, obs, mric->ninputs) ;
+        MRICcomputeInputs(mri_src, x, y, z, inputs, mric->ninputs) ;
         for (row = 1 ; row <= mric->ninputs ; row++)
-          m_inputs->rptr[row][1] = obs[row] ;
+          m_inputs->rptr[row][1] = inputs[row] ;
         
         /* now classify this observation */
         classno = GCclassify(gc, m_inputs, &prob) ;
@@ -394,7 +392,7 @@ MRICupdateMeans(MRIC *mric, MRI *mri_src, MRI *mri_target, BOX *box)
   GCLASS     *gcl ;
   int        x, y, z, classno, nclasses, width, height, depth, row ;
   BUFTYPE    *psrc, *ptarget, src, target ;
-  float      obs[10] ;
+  float      inputs[MAX_INPUTS+1] ;
 
   nclasses = mric->gc->nclasses ;
   gc = mric->gc ;
@@ -441,9 +439,9 @@ MRICupdateMeans(MRIC *mric, MRI *mri_src, MRI *mri_target, BOX *box)
         gcl = &gc->classes[classno] ;
         gcl->nobs++ ;
 
-        MRICcomputeInputs(mri_src, (float)src, x, y, z, obs, mric->ninputs) ;
+        MRICcomputeInputs(mri_src, x, y, z, inputs, mric->ninputs) ;
         for (row = 1 ; row <= mric->ninputs ; row++)
-          gcl->m_u->rptr[row][1] += obs[row] ;
+          gcl->m_u->rptr[row][1] += inputs[row] ;
       }
     }
   }
@@ -501,7 +499,7 @@ MRICupdateCovariances(MRIC *mric, MRI *mri_src, MRI *mri_target, BOX *box)
   int        x, y, z, width, depth, height, classno, 
              nclasses, col, row ;
   BUFTYPE    *psrc, *ptarget, src, target ;
-  float      obs[10], covariance ;
+  float      inputs[MAX_INPUTS+1], covariance ;
 
   gc = mric->gc ;
   nclasses = gc->nclasses ;
@@ -535,14 +533,14 @@ MRICupdateCovariances(MRIC *mric, MRI *mri_src, MRI *mri_target, BOX *box)
 
         gcl = &gc->classes[classno] ;
 
-        MRICcomputeInputs(mri_src, (float)src, x, y, z, obs, mric->ninputs) ;
+        MRICcomputeInputs(mri_src, x, y, z, inputs, mric->ninputs) ;
         for (row = 1 ; row <= mric->ninputs ; row++)  /* subtract means */
-          obs[row] -= gcl->m_u->rptr[row][1] ;
+          inputs[row] -= gcl->m_u->rptr[row][1] ;
         for (row = 1 ; row <= gcl->m_covariance->rows ; row++)
         {
           for (col = 1 ; col <= row ; col++)
           {
-            covariance = obs[row] * obs[col] ;
+            covariance = inputs[row] * inputs[col] ;
             gcl->m_covariance->rptr[row][col] += covariance;
             gcl->m_covariance->rptr[col][row] += covariance;
           }
@@ -600,18 +598,18 @@ MRICcomputeCovariances(MRIC *mric)
 
 ------------------------------------------------------*/
 int
-MRICcomputeInputs(MRI *mri,float src, int x,int y,int z,float *obs,int ninputs)
+MRICcomputeInputs(MRI *mri, int x,int y,int z,float *inputs,int ninputs)
 {
   int   i ;
 
   i = 1 ;
-  obs[i++] = src ;
+  inputs[i++] = (float)MRIvox(mri, x, y, z) ;
   if (ninputs > 1)
-    obs[i++] = MRIvoxelZscore(mri, x, y, z, 3) ;
+    inputs[i++] = MRIvoxelZscore(mri, x, y, z, 3) ;
   if (ninputs > 2)
-    obs[i++] = MRIvoxelZscore(mri, x, y, z, 5) ;
+    inputs[i++] = MRIvoxelZscore(mri, x, y, z, 5) ;
   if (ninputs > 3)
-    obs[i++] = MRIvoxelDirection(mri, x, y, z, 3) ;
+    inputs[i++] = MRIvoxelDirection(mri, x, y, z, 3) ;
 
   return(NO_ERROR) ;
 }
