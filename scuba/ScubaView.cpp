@@ -274,6 +274,31 @@ ScubaView::Set2DInPlane ( ViewState::Plane iPlane ) {
   ScubaViewBroadcaster& broadcaster = ScubaViewBroadcaster::GetBroadcaster();
   broadcaster.SendBroadcast( "2DInPlaneChanged", (void*)&mID );
 
+  // If we're centering around the cursor and we can no longer see it,
+  // change our plane to the cursor.
+  if( mbLockOnCursor && 
+      !mViewState.IsRASVisibleInPlane( mCursor.xyz(), 
+		       mInPlaneMovementIncrements[mViewState.mInPlane] )) {
+
+    float newCenter[3];
+    newCenter[0] = mViewState.mCenterRAS[0];
+    newCenter[1] = mViewState.mCenterRAS[1];
+    newCenter[2] = mViewState.mCenterRAS[2];
+    
+    switch( mViewState.mInPlane ) {
+    case ViewState::X:
+      newCenter[0] = mCursor[0];
+      break;
+    case ViewState::Y:
+      newCenter[1] = mCursor[1];
+      break;
+    case ViewState::Z:
+      newCenter[2] = mCursor[2];
+      break;
+    }
+    Set2DRASCenter( newCenter );
+  }
+
   CalcViewToWindowTransform();
 
   // We changed our orientation so we must recalc all the other views'
