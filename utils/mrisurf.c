@@ -10512,7 +10512,7 @@ MRISaverageEveryOtherVertexPositions(MRI_SURFACE *mris, int navgs, int which)
         Description
 ------------------------------------------------------*/
 
-#define MAX_TOTAL_MOVEMENT 3.0
+#define MAX_TOTAL_MOVEMENT 5.0
 #define MAX_MOVEMENT       .1 
 #define DELTA_M            0.05
 
@@ -10528,7 +10528,7 @@ int
 MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_wm,
                     float nsigma,int where, float dt)
 {
-  char   *cp ;
+  char   *cp, *nstr ;
   int    vno, xv, yv, zv, i, max_v, fno, avgs ;
   VERTEX *v ;
   float  mean, total, delta, max_del, dist, min_error, error, min_dist, 
@@ -10551,12 +10551,15 @@ MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_wm,
   {
   default:
   case WHITE_SURFACE:
+    nstr = "white" ;
     mrisComputeWhiteSurfaceValues(mris, mri_brain, mri_wm, nsigma) ;
     break ;
   case GRAY_SURFACE:
+    nstr = "gray" ;
     mrisComputeGraySurfaceValues(mris, mri_brain, mri_wm, nsigma) ;
     break ;
   case GRAY_MID:
+    nstr = "mid" ;
     mrisComputeGrayMidpointValues(mris, mri_brain, mri_wm, nsigma) ;
     break ;
   }
@@ -10591,8 +10594,8 @@ MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_wm,
     {
       char fname[100], path[100] ;
       FileNamePath(mris->fname, path) ;
-      sprintf(fname, "%s/%s.white%4.4d", path, 
-              mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", i) ;
+      sprintf(fname, "%s/%s.%s%4.4d", path, 
+              mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", nstr, i) ;
       fprintf(stdout, "writing snapshot %s...", fname) ;
       MRISwrite(mris, fname) ;
       fprintf(stdout, "done.\n") ;
@@ -10855,11 +10858,12 @@ mrisFillFace(MRI_SURFACE *mris, MRI *mri, int fno)
 
         Description
 ------------------------------------------------------*/
-#define MIN_GRAY              50
-#define MAX_GRAY              100
 #define MAX_THICKNESS_STEPS   7
 #define MAX_THICKNESS         5.0
 #define STEP_SIZE             0.1   /* sample volume every 0.1mm */
+#define MIN_GRAY              55
+#define MAX_GRAY              100
+
 int
 MRISmeasureCorticalThickness(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_wm,
                              float nsigma)
@@ -11356,19 +11360,17 @@ mrisComputeWhiteSurfaceValues(MRI_SURFACE *mris, MRI *mri_brain,
 
         Description
 ------------------------------------------------------*/
-#define GRAY_MIN_VAL    55
-
 static int
 mrisComputeGraySurfaceValues(MRI_SURFACE *mris, MRI *mri_brain, 
                              MRI *mri_wm, float nsigma)
 {
   Real    val, x, y, z ;
   int     total_vertices, vno, xv, yv, zv, xo, yo, zo, xi, yi, zi, nvox ;
-  float   total, total_sq, sigma, mean_wm, mean_gray, mean ;
+  float   total, total_sq, sigma, mean_gray, mean_pial, mean ;
   VERTEX  *v ;
 
   /* first compute intensity of local gray/white boundary */
-  mean_wm = mean_gray = 0.0f ;
+  mean_gray = mean_pial = 0.0f ;
   
   for (total_vertices = vno = 0 ; vno < mris->nvertices ; vno++)
   {
@@ -11391,13 +11393,15 @@ mrisComputeGraySurfaceValues(MRI_SURFACE *mris, MRI *mri_brain,
         {
           xi = mri_wm->xi[xo] ;
           val = (Real)MRIvox(mri_wm, xi, yi, zi) ;
-          if (val < WM_MIN_VAL && val >= GRAY_MIN_VAL)
+          if (val < WM_MIN_VAL)
           {
+            val = (Real)MRIvox(mri_brain, xi, yi, zi) ;
+            if (val < MIN_GRAY || val > MAX_GRAY)
+              continue ;
 #if 0
             if (MRIneighborsOn(mri_wm, xi, yi, zi, WM_MIN_VAL+1) == 0)
               continue ;   /* not a border voxel */
 #endif
-            val = (Real)MRIvox(mri_brain, xi, yi, zi) ;  /* use smoothed val */
             total += val ;
             total_sq += val * val ;
             nvox++ ;
@@ -11414,20 +11418,20 @@ mrisComputeGraySurfaceValues(MRI_SURFACE *mris, MRI *mri_brain,
       MRISvertexToVoxel(v, mri_wm, &x, &y, &z) ;
       MRIsampleVolume(mri_brain, x, y, z, &val) ;
       v->val = mean - nsigma * sigma ;
-      mean_gray += v->val ;
-      mean_wm += mean ;
+      mean_pial += v->val ;
+      mean_gray += mean ;
       total_vertices++ ;
     }
     
   }
-  mean_wm /= (float)total_vertices ; mean_gray /= (float)total_vertices ;
+  mean_gray /= (float)total_vertices ; mean_pial /= (float)total_vertices ;
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
     v = &mris->vertices[vno] ;
     if (v->ripflag)
       continue ;
     if (FZERO(v->val))   /* no border voxels nearby */
-      v->val = mean_gray ;
+      v->val = mean_pial ;
   }
 
 #if 0
@@ -11436,12 +11440,12 @@ mrisComputeGraySurfaceValues(MRI_SURFACE *mris, MRI *mri_brain,
     v = &mris->vertices[vno] ;
     if (v->ripflag)
       continue ;
-    v->val = mean_gray ;
+    v->val = mean_pial ;
   }
 #endif
 
-  fprintf(stdout, "mean wm=%2.1f, gray=%2.1f, averaging targets and "
-            "smoothing surface...", mean_wm, mean_gray) ;
+  fprintf(stdout, "mean gray=%2.1f, pial surface=%2.1f, averaging targets and "
+            "smoothing surface...", mean_gray, mean_pial) ;
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
@@ -11484,7 +11488,7 @@ mrisComputeGrayMidpointValues(MRI_SURFACE *mris, MRI *mri_brain,
         {
           xi = mri_wm->xi[xo] ;
           val = (Real)MRIvox(mri_wm, xi, yi, zi) ;
-          if (val < WM_MIN_VAL && val >= GRAY_MIN_VAL)
+          if (val < WM_MIN_VAL && val >= MIN_GRAY)
           {
 #if 0
             if (MRIneighborsOn(mri_wm, xi, yi, zi, WM_MIN_VAL+1) == 0)
