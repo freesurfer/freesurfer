@@ -150,7 +150,15 @@ mri_event_handler(XV_FRAME *xvf, Event *event,DIMAGE *dimage,
     if (!event_left_is_down(event))
       return ;
   case MS_LEFT:
-    XVprintf(xvf, 0, "(%d,%d,%d) --> %d",x,y,z,MRIvox(mri, x, y, z));
+    switch (mri->type)
+    {
+    case MRI_UCHAR:
+      XVprintf(xvf, 0, "(%d,%d,%d) --> %d",x,y,z,MRIvox(mri, x, y, z));
+      break ;
+    case MRI_FLOAT:
+      XVprintf(xvf, 0, "(%d,%d,%d) --> %2.3f",x,y,z,MRIFvox(mri, x, y, z));
+      break ;
+    }
     break ;
   default:
     switch ((char)event->ie_code)
