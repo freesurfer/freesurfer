@@ -1,6 +1,6 @@
 /*----------------------------------------------------------
   Name: vol2surf.c
-  $Id: mri_vol2surf.c,v 1.14 2003/07/15 23:58:53 greve Exp $
+  $Id: mri_vol2surf.c,v 1.15 2003/07/16 21:57:03 greve Exp $
   Author: Douglas Greve
   Purpose: Resamples a volume onto a surface. The surface
   may be that of a subject other than the source subject.
@@ -57,7 +57,7 @@ static void dump_options(FILE *fp);
 static int  singledash(char *flag);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2surf.c,v 1.14 2003/07/15 23:58:53 greve Exp $";
+static char vcid[] = "$Id: mri_vol2surf.c,v 1.15 2003/07/16 21:57:03 greve Exp $";
 char *Progname = NULL;
 
 char *defaulttypestring;
@@ -144,7 +144,7 @@ int main(int argc, char **argv)
   int r,c,s,nsrchits;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_vol2surf.c,v 1.14 2003/07/15 23:58:53 greve Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_vol2surf.c,v 1.15 2003/07/16 21:57:03 greve Exp $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -398,7 +398,9 @@ int main(int argc, char **argv)
     printf("nTrg121 = %5d, nTrgMulti = %5d, MnTrgMultiHits = %g\n",
      nTrg121,nTrgMulti,MnTrgMultiHits);
 
-    if(!strcasecmp(outtypestring,"w") || !strcasecmp(outtypestring,"paint"))
+    if(outtypestring != NULL && 
+       (!strcasecmp(outtypestring,"w") || 
+	!strcasecmp(outtypestring,"paint")) )
       SurfOut = TrgSurfReg;
     else
       MRISfree(&TrgSurfReg);
