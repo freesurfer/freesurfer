@@ -6,7 +6,7 @@ function st = fast_ldstf(stf)
 % Col 2: stimulus duration (sec)
 % Col 3: stimulus weight
 %
-% $Id: fast_ldstf.m,v 1.1 2004/10/16 05:30:20 greve Exp $
+% $Id: fast_ldstf.m,v 1.2 2004/10/22 22:01:14 greve Exp $
 
 st = [];
 
@@ -15,14 +15,11 @@ if(nargin ~= 1)
   return;
 end
 
-
 fp = fopen(stf,'r');
 if(fp == -1)
   fprintf('ERROR: could not open %s\n',stf);
   return;
 end
-
-tline = fgetl(fp);
 
 use3col = 0;
 nthpres = 1;  
