@@ -1,5 +1,13 @@
-
-
+//
+// mri_ca_register.c
+// by Bruce Fischl
+// 
+// Warning: Do not edit the following four lines.  CVS maintains them.
+// Revision Author: $Author: tosa $
+// Revision Date  : $Date: 2004/05/11 15:03:46 $
+// Revision       : $Revision: 1.22 $
+//
+////////////////////////////////////////////////////////////////////
 #include <math.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -107,9 +115,9 @@ main(int argc, char *argv[])
   parms.dt = 0.05 ;  /* was 5e-6 */
   parms.momentum = 0.9 ;
   parms.tol = .1 ;  /* at least 1% decrease in sse */
-	/* /\* /\\* /\\\* /\\\\*   parms.l_distance = 0.0 ; *\\\\/ *\\\/ *\\/ *\/ */
-	/* /\* /\\* /\\\* /\\\\*   parms.l_jacobian = 1.0 ; *\\\\/ *\\\/ *\\/ *\/ */
-	/* /\* /\\* /\\\* /\\\\*   parms.l_area = 0 ; *\\\\/ *\\\/ *\\/ *\/ */
+  /* /\* /\\* /\\\* /\\\\*   parms.l_distance = 0.0 ; *\\\\/ *\\\/ *\\/ *\/ */
+  /* /\* /\\* /\\\* /\\\\*   parms.l_jacobian = 1.0 ; *\\\\/ *\\\/ *\\/ *\/ */
+  /* /\* /\\* /\\\* /\\\\*   parms.l_area = 0 ; *\\\\/ *\\\/ *\\/ *\/ */
   parms.l_label = 1.0 ;
   parms.l_map = 0.0 ;
   parms.label_dist = 3.0 ;
@@ -157,6 +165,7 @@ main(int argc, char *argv[])
 
   TimerStart(&start) ;
 
+  /////////////////////////////////////////////////////////////
   // build frames from ninputs ////////////////////////////////
   for (input = 0 ; input < ninputs ; input++)
   {
@@ -166,28 +175,29 @@ main(int argc, char *argv[])
     mri_tmp = MRIread(in_fname) ;
     if (!mri_tmp)
       ErrorExit(ERROR_NOFILE, "%s: could not open input volume %s.\n",
-								Progname, in_fname) ;
+		Progname, in_fname) ;
     
     TRs[input] = mri_tmp->tr ;
     fas[input] = mri_tmp->flip_angle ;
     TEs[input] = mri_tmp->te ;
 #if 0
-		if (mri_tmp->type == MRI_FLOAT)
-			MRIchangeType(mri_tmp, MRI_SHORT, 0, 10000,  1) ;
+    if (mri_tmp->type == MRI_FLOAT)
+      MRIchangeType(mri_tmp, MRI_SHORT, 0, 10000,  1) ;
 #endif
-    
+    // -mask option
     if (mask_fname)
     {
       MRI *mri_mask ;
       
       mri_mask = MRIread(mask_fname) ;
       if (!mri_mask)
-				ErrorExit(ERROR_NOFILE, "%s: could not open mask volume %s.\n",
-									Progname, mask_fname) ;
+	ErrorExit(ERROR_NOFILE, "%s: could not open mask volume %s.\n",
+		  Progname, mask_fname) ;
       // if mask == 0, then set dst as 0
       MRImask(mri_tmp, mri_mask, mri_tmp, 0, 0) ;
       MRIfree(&mri_mask) ;
     }
+    ////////////////////////////////////
     if (alpha > 0)
       mri_tmp->flip_angle = alpha ;
     if (TR > 0)
@@ -197,7 +207,7 @@ main(int argc, char *argv[])
     if (input == 0)
     {
       mri_inputs = MRIallocSequence(mri_tmp->width, mri_tmp->height, mri_tmp->depth,
-																		mri_tmp->type, ninputs+extra) ;
+				    mri_tmp->type, ninputs+extra) ;
       // first one's header is copied
       MRIcopyHeader(mri_tmp, mri_inputs) ;
     }
@@ -211,6 +221,11 @@ main(int argc, char *argv[])
   if (gca == NULL)
     ErrorExit(ERROR_NOFILE, "%s: could not open GCA %s.\n",
               Progname, gca_fname) ;
+
+  /////////////////////////////////////////////////////////////////
+  // Remapping GCA
+  /////////////////////////////////////////////////////////////////
+  // GCA from (T1, PD) needs to map to the current input
   if (map_to_flash || gca->type == GCA_PARAM)
   {
     GCA *gca_tmp ;
@@ -221,11 +236,13 @@ main(int argc, char *argv[])
     gca = gca_tmp ;
     if (ninputs != gca->ninputs)
       ErrorExit(ERROR_BADPARM, "%s: must specify %d inputs, not %d for this atlas\n",
-								Progname, gca->ninputs, ninputs) ;
+		Progname, gca->ninputs, ninputs) ;
     GCAhistoScaleImageIntensities(gca, mri_inputs) ;
+    // default novar = 1
     if (novar)
       GCAunifyVariance(gca) ;
   }
+  // GCA from flash needs to map to the current input
   else if (gca->type == GCA_FLASH)
   {
     GCA *gca_tmp ;
@@ -235,6 +252,7 @@ main(int argc, char *argv[])
     gca = gca_tmp ;
     GCAhistoScaleImageIntensities(gca, mri_inputs) ;// added by tosa
   }
+  /////////////////////////////////////////////////////////////////
   if (gca->flags & GCA_XGRAD)
     extra += ninputs ;
   if (gca->flags & GCA_YGRAD)
@@ -244,13 +262,15 @@ main(int argc, char *argv[])
   
   if ((ninputs+extra) != gca->ninputs)
     ErrorExit(ERROR_BADPARM, "%s: must specify %d inputs, not %d for this atlas\n",
-							Progname, gca->ninputs, ninputs) ;
-  
+	      Progname, gca->ninputs, ninputs) ;
+  /////////////////////////////////////////////////////////////////
+  // clear six neighborhood information 
   printf("freeing gibbs priors...") ;
   GCAfreeGibbs(gca) ;
   printf("done.\n") ;
 
-  
+  //////////////////////////////////////////////////////////////
+  // -renorm fname option 
   if (renormalization_fname)
   {
     FILE   *fp ;
@@ -288,6 +308,7 @@ main(int argc, char *argv[])
   }
 
   ////////////////////////////////////////////////
+  // -example T1 T1seg option
   if (example_T1)
   {
     MRI *mri_T1, *mri_seg ;
@@ -306,19 +327,29 @@ main(int argc, char *argv[])
     MRIfree(&mri_seg) ; MRIfree(&mri_T1) ;
   }
 
+  /////////////////////////////////////////////////
+  // -flash_parms fname option
   if (tissue_parms_fname)   /* use FLASH forward model */
     GCArenormalizeToFlash(gca, tissue_parms_fname, mri_inputs) ;
 
+  /////////////////////////////////////////////////
+  // -T transform option
   // transform is loaded at get_opt() with -T using TransformRead()
   // assumed to be vox-to-vox
   if (!transform_loaded)   /* wasn't preloaded */
     transform = TransformAlloc(LINEAR_VOX_TO_VOX, NULL) ;
-	else
-		TransformInvert(transform, mri_inputs) ;
+  else
+    // calculate inverse and cache it
+    TransformInvert(transform, mri_inputs) ;
 
+  /////////////////////////////////////////////////
+  // -novar option  (default novar = 1)
   if (novar)
     GCAunifyVariance(gca) ;
 
+  /////////////////////////////////////////////////
+  // XGRAD or YGRAD or ZGRAD set
+  // store (x,y,z)gradient info into mri_inputs
   if (gca->flags & GCA_GRAD)
   {
     int i, start = ninputs ;
@@ -329,17 +360,19 @@ main(int argc, char *argv[])
     
     if (mri_inputs->type != MRI_FLOAT)
     {
+      // change data to float
       mri_tmp = MRISeqchangeType(mri_inputs, MRI_FLOAT, 0, 0, 1) ;
       MRIfree(&mri_inputs) ; mri_inputs = mri_tmp ;
     }
+    ////////////////////////////////////////////////
     start = ninputs ;
     if (gca->flags & GCA_XGRAD)
     {
       for (i = 0 ; i < ninputs ; i++)
       {
-				mri_grad = MRIxSobel(mri_smooth, NULL, i) ;
-				MRIcopyFrame(mri_grad, mri_inputs, 0, start+i) ;
-				MRIfree(&mri_grad) ;
+	mri_grad = MRIxSobel(mri_smooth, NULL, i) ;
+	MRIcopyFrame(mri_grad, mri_inputs, 0, start+i) ;
+	MRIfree(&mri_grad) ;
       }
       start += ninputs ;
     }
@@ -347,9 +380,9 @@ main(int argc, char *argv[])
     {
       for (i = 0 ; i < ninputs ; i++)
       {
-				mri_grad = MRIySobel(mri_smooth, NULL, i) ;
-				MRIcopyFrame(mri_grad, mri_inputs, 0, start+i) ;
-				MRIfree(&mri_grad) ;
+	mri_grad = MRIySobel(mri_smooth, NULL, i) ;
+	MRIcopyFrame(mri_grad, mri_inputs, 0, start+i) ;
+	MRIfree(&mri_grad) ;
       }
       start += ninputs ;
     }
@@ -357,19 +390,21 @@ main(int argc, char *argv[])
     {
       for (i = 0 ; i < ninputs ; i++)
       {
-				mri_grad = MRIzSobel(mri_smooth, NULL, i) ;
-				MRIcopyFrame(mri_grad, mri_inputs, 0, start+i) ;
-				MRIfree(&mri_grad) ;
+	mri_grad = MRIzSobel(mri_smooth, NULL, i) ;
+	MRIcopyFrame(mri_grad, mri_inputs, 0, start+i) ;
+	MRIfree(&mri_grad) ;
       }
       start += ninputs ;
     }
-    
     MRIfree(&mri_kernel) ; MRIfree(&mri_smooth) ; 
   }
-  
+  ///////////////////////////////////////////////////////////
+  // -nobright option
   if (remove_bright)
     remove_bright_stuff(mri_inputs, gca, transform) ;
-
+ 
+  ///////////////////////////////////////////////////////////
+  // -B blur option (default = 0)
   if (!FZERO(blur_sigma))
   {
     MRI *mri_tmp, *mri_kernel ;
@@ -379,29 +414,36 @@ main(int argc, char *argv[])
     MRIfree(&mri_inputs) ; mri_inputs = mri_tmp ;
   }
 
-
+  //////////////////////////////////////////////////////////
+  // -debug_voxel Gvx Gvy Gvz option
   if (transform && Gvx > 0)
   {
     float xf, yf, zf ;
     
     TransformSample(transform, Gvx, Gvy, Gvz, &xf, &yf, &zf) ;
     Gsx = nint(xf) ; Gsy = nint(yf) ; Gsz = nint(zf) ;
-    printf("mapping (%d, %d, %d) --> (%d, %d, %d) for rgb writing\n",
-					 Gvx, Gvy, Gvz, Gsx, Gsy, Gsz) ;
+    printf("mapping by transform (%d, %d, %d) --> (%d, %d, %d) for rgb writing\n",
+	   Gvx, Gvy, Gvz, Gsx, Gsy, Gsz) ;
   }
   
+  //////////////////////////////////////////////////////////
+  // -regularize val option (default = 0)
   if (regularize > 0)
     GCAregularizeCovariance(gca, regularize) ;
  
+  //////////////////////////////////////////////////////////
+  // -X prev.m3d option 
   if (xform_name)
   {
     gcam = GCAMread(xform_name) ;
     if (!gcam)
       ErrorExit(ERROR_NOFILE, "%s: could not read transform from %s", Progname, xform_name) ;
   }
-  else
+  else // default is to create one
     gcam = GCAMalloc(gca->prior_width, gca->prior_height, gca->prior_depth) ;
 
+  //////////////////////////////////////////////////////////
+  // -TL temporal_lobe.gca option 
   if (tl_fname)
   {
     GCA *gca_tl ;
@@ -409,8 +451,9 @@ main(int argc, char *argv[])
     gca_tl = GCAread(tl_fname) ;
     if (!gca_tl)
       ErrorExit(ERROR_NOFILE, "%s: could not temporal lobe gca %s",
-								Progname, tl_fname) ;
+		Progname, tl_fname) ;
     GCAMinit(gcam, mri_inputs, gca_tl, transform, 0) ;
+    // debugging
     if (parms.write_iterations != 0)
     {
       char fname[STRLEN] ;
@@ -428,7 +471,8 @@ main(int argc, char *argv[])
     printf("temporal lobe registration complete - registering whole brain...\n") ;
     GCAfree(&gca_tl) ;
   }
-  
+  //////////////////////////////////////////////////////////////////
+  // GCM initialization
   if (!xform_name)  /* only if the transform wasn't previously created */
     GCAMinit(gcam, mri_inputs, gca, transform, parms.relabel_avgs >= parms.navgs) ;
   else
@@ -440,7 +484,9 @@ main(int argc, char *argv[])
     else
       GCAMcomputeMaxPriorLabels(gcam) ;
   }
-#if 0
+
+  // debugging
+  if (parms.write_iterations != 0)
   {
     GCA_SAMPLE *gcas ;
     int  nsamples ;
@@ -450,8 +496,9 @@ main(int argc, char *argv[])
                                 "gcas_fsamples.mgh", transform) ;
     free(gcas) ;
   }
-#endif
 
+  ///////////////////////////////////////////////////////////////////
+  // -wm option (default = 0)
   if (tl_fname == NULL && register_wm_flag)
   {
     GCAMsetStatus(gcam, GCAM_IGNORE_LIKELIHOOD) ; /* disable everything */
@@ -465,9 +512,12 @@ main(int argc, char *argv[])
     GCAMsetStatus(gcam, GCAM_USE_LIKELIHOOD) ; /* disable everything */
     printf("initial white matter registration complete - full registration...\n") ;
   }
+  ///////////////////////////////////////////////////////////////////
+  // -renormalize option
   if (renormalize)
     GCAmapRenormalize(gcam->gca, mri_inputs, transform) ;
 
+  // debugging
   if (parms.write_iterations != 0)
   {
     char fname[STRLEN] ;
@@ -482,11 +532,16 @@ main(int argc, char *argv[])
     MRIfree(&mri_gca) ;
   }
 
+  ///////////////////////////////////////////////////////////////////
+  // -reset option
   if (reset)
   {
     GCAMcopyNodePositions(gcam, CURRENT_POSITIONS, ORIGINAL_POSITIONS) ;
     GCAMstoreMetricProperties(gcam) ;
   }
+
+  //////////////////////////////////////////////////////////////////
+  // here is the main work force
   GCAMregister(gcam, mri_inputs, &parms) ;
   
 #if 0
@@ -527,7 +582,7 @@ main(int argc, char *argv[])
   minutes = seconds / 60 ;
   seconds = seconds % 60 ;
   printf("registration took %d minutes and %d seconds.\n", 
-				 minutes, seconds) ;
+	 minutes, seconds) ;
   if (diag_fp)
     fclose(diag_fp) ;
   exit(0) ;
@@ -548,7 +603,7 @@ get_option(int argc, char *argv[])
   char *option ;
 
   option = argv[1] + 1 ;            /* past '-' */
-	/*  StrUpper(option) ;*/
+  /*  StrUpper(option) ;*/
   if (!stricmp(option, "DIST") || !stricmp(option, "DISTANCE"))
   {
     parms.l_distance = atof(argv[2]) ;
@@ -559,7 +614,7 @@ get_option(int argc, char *argv[])
   {
     regularize = atof(argv[2]) ;
     printf("regularizing variance to be sigma+%2.1fC(noise)\n", regularize) ;
-		nargs = 1 ;
+    nargs = 1 ;
   }
   else if (!stricmp(option, "NOBRIGHT"))
   {
@@ -588,7 +643,7 @@ get_option(int argc, char *argv[])
     parms.nsmall = atoi(argv[2]) ;
     nargs = 1 ;
     printf("allowing %d small steps before terminating integration\n",
-			parms.nsmall) ;
+	   parms.nsmall) ;
   }
   else if (!stricmp(option, "FIXED"))
   {
@@ -605,7 +660,7 @@ get_option(int argc, char *argv[])
     parms.noneg = atoi(argv[2]) ;
     nargs = 1 ;
     printf("%s allowing temporary folds during numerical minimization\n",
-					 parms.noneg ? "not" : "") ;
+	   parms.noneg ? "not" : "") ;
   }
   else if (!stricmp(option, "ISIZE") || !stricmp(option, "IMAGE_SIZE"))
   {
@@ -629,7 +684,7 @@ get_option(int argc, char *argv[])
     parms.relabel = atoi(argv[2]) ;
     nargs = 1 ;
     printf("%srelabeling nodes with MAP estimates\n", 
-					 parms.relabel ? "" : "not ") ;
+	   parms.relabel ? "" : "not ") ;
   }
   else if (!stricmp(option, "RELABEL_AVGS"))
   {
@@ -645,7 +700,7 @@ get_option(int argc, char *argv[])
   }
   else if (!stricmp(option, "RESET"))
   {
-		reset = 1 ;
+    reset = 1 ;
     printf("resetting metric properties...\n") ;
   }
   else if (!stricmp(option, "VF"))
@@ -700,14 +755,14 @@ get_option(int argc, char *argv[])
     transformed_sample_fname = argv[2] ;
     nargs = 1 ;
     printf("writing transformed control points to %s...\n", 
-            transformed_sample_fname) ;
+	   transformed_sample_fname) ;
   }
   else if (!stricmp(option, "NSAMPLES"))
   {
     normalized_transformed_sample_fname = argv[2] ;
     nargs = 1 ;
     printf("writing  transformed normalization control points to %s...\n", 
-            normalized_transformed_sample_fname) ;
+	   normalized_transformed_sample_fname) ;
   }
   else if (!stricmp(option, "CONTRAST"))
   {
@@ -723,7 +778,7 @@ get_option(int argc, char *argv[])
   }
   else if (!stricmp(option, "FLASH"))
   {
-		map_to_flash = 1 ;
+    map_to_flash = 1 ;
     printf("using FLASH forward model to predict intensity values...\n") ;
   }
   else if (!stricmp(option, "FLASH_PARMS"))
@@ -823,7 +878,7 @@ get_option(int argc, char *argv[])
     nreductions = atoi(argv[2]) ;
     nargs = 1 ;
     printf("reducing input images %d times before aligning...\n",
-            nreductions) ;
+	   nreductions) ;
   }
   else if (!stricmp(option, "DEBUG_NODE"))
   {
@@ -849,17 +904,17 @@ get_option(int argc, char *argv[])
   }
   else if (!stricmp(option, "avgs"))
   {
-		avgs = atoi(argv[2]) ;
+    avgs = atoi(argv[2]) ;
     nargs = 1 ;
     fprintf(stderr, "applying mean filter %d times to conditional densities...\n", avgs) ;
   }
   else if (!stricmp(option, "cross-sequence") || !stricmp(option, "cross_sequence"))
   {
     regularize = .5 ;
-		avgs = 2 ;
-		renormalize = 1 ;
+    avgs = 2 ;
+    renormalize = 1 ;
     printf("registering sequences, equivalent to:\n") ;
-		printf("\t-renormalize\n\t-avgs %d\n\t-regularize %2.3f\n",avgs, regularize) ;
+    printf("\t-renormalize\n\t-avgs %d\n\t-regularize %2.3f\n",avgs, regularize) ;
   } 
   else if (!stricmp(option, "area"))
   {
@@ -867,9 +922,9 @@ get_option(int argc, char *argv[])
     nargs = 1 ;
     printf("using l_area=%2.3f\n", parms.l_area) ;
   }
- else if (!stricmp(option, "rthresh"))
+  else if (!stricmp(option, "rthresh"))
   {
-		parms.ratio_thresh = atof(argv[2]) ;
+    parms.ratio_thresh = atof(argv[2]) ;
     nargs = 1 ;
     printf("using compression ratio threshold = %2.3f...\n", parms.ratio_thresh) ;
   }
@@ -881,7 +936,7 @@ get_option(int argc, char *argv[])
     printf("using l_jacobian=%2.3f\n", parms.l_jacobian) ;
     break ;
   case 'A':
-		parms.navgs = atoi(argv[2]) ;
+    parms.navgs = atoi(argv[2]) ;
     nargs = 1 ;
     printf("smoothing gradient with %d averages...\n", parms.navgs) ;
     break ;
@@ -908,7 +963,7 @@ get_option(int argc, char *argv[])
                 Progname, argv[2]) ;
     if (transform->type == LINEAR_RAS_TO_RAS)
       ErrorExit(ERROR_BADPARM, "%s: transform %s is RAS to RAS, cannot be used\n",
-								Progname, argv[2]);
+		Progname, argv[2]);
     nargs = 1 ;
     printf("using previously computed transform %s\n", argv[2]) ;
     transform_loaded = 1 ;
@@ -925,7 +980,7 @@ get_option(int argc, char *argv[])
   case 'S':
     parms.sigma = atof(argv[2]) ;
     printf("using sigma=%2.3f as upper bound on blurring.\n", 
-            parms.sigma) ;
+	   parms.sigma) ;
     nargs = 1 ;
     break ;
   case '?':
