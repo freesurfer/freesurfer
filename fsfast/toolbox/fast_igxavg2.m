@@ -5,11 +5,17 @@ function [tsig, t, cesavg, cesstd, dof] = fast_igxavg2(n1,avg1,var1,n2,avg2,var2
 % is the signed log10 of the signficance and is the same size as the
 % input. The t-test is single-sided.
 %
+% avg1 - average  of sample 1
+% var1 - variance of sample 1 (not the variance of avg1)
+% avg2 - average  of sample 2
+% var2 - variance of sample 2 (not the variance of avg2)
+%
 % For formula, see:
 %  Modern Elementary Statistics (8th), John E. Freund and Gary A. Simon,
-%  1992, Prentice-Hall Englewood Cliffs, New Jersey. (Inside back cover).
+%  1992, Prentice-Hall Englewood Cliffs, New Jersey. (Inside back
+%  cover and page 324).
 %
-% $Id: fast_igxavg2.m,v 1.1 2003/03/04 20:47:38 greve Exp $
+% $Id: fast_igxavg2.m,v 1.2 2003/03/20 20:39:31 greve Exp $
 %
 
 tsig = [];
