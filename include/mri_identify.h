@@ -1,6 +1,9 @@
 #define GE_MAGIC  (0x494d4746)  /* GE magic number
                                    (first four bytes, = "IMGF") */
 
+#define NIFTI1_MAGIC  "ni1\0"
+#define NII_MAGIC  "n+1\0"
+
 /* ge compression codes */
 #define GE_COMPRESSION_ASIS                  0
 #define GE_COMPRESSION_RECTANGULAR           1
@@ -29,6 +32,7 @@ int is_gdf(char *fname);
 int is_otl(char *fname);
 int is_ximg(char *fname);
 int is_nifti1(char *fname);
+int is_nii(char *fname);
 char * bhdr_stem(char *fname);
 char * bhdr_precisionstring(char *fname);
 int bhdr_precision(char *fname);

@@ -569,10 +569,11 @@ extern float ic_z_vertices[]  ;
 #define SIEMENS_DICOM_FILE            17
 #define BRUKER_FILE                   18
 #define XIMG_FILE                     19
-#define NIFTI1_FILE                   20
+#define NIFTI1_FILE                   20 // NIfTI-1 .img + .hdr
 #define IMAGE_FILE                    21
 #define MRI_GCA_FILE                  22
 #define BHDR                          23 // for bshort or bfloat
+#define NII_FILE                      24 // NIfTI-1 .nii (single file)
 
 int        MRImatch(MRI *mri1, MRI *mri2) ;
 int        MRIvalRange(MRI *mri, float *pmin, float *pmax) ;

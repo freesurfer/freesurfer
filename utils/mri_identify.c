@@ -49,6 +49,7 @@ char *type_to_string(int type)
   case BRUKER_FILE: tmpstr = "bruker"; break;
   case XIMG_FILE:   tmpstr = "ximg"; break;
   case NIFTI1_FILE: tmpstr = "nifti1"; break;
+  case NII_FILE:    tmpstr = "nii"; break;
   default: tmpstr = "unknown"; break;
   }
 
@@ -119,6 +120,8 @@ int string_to_type(char *string)
     type = XIMG_FILE;
   if(strcmp(ls, "nifti1") == 0)
     type = NIFTI1_FILE;
+  if(strcmp(ls, "nii") == 0)
+    type = NII_FILE;
   // check for IMAGE file
   if (!strcmp(ls, "mat")
       || !strcmp(ls, "tif") || !strcmp(ls, "tiff")
@@ -263,6 +266,10 @@ int mri_identify(char *fname_passed)
 	  if (is_nifti1(fname))
 	    return type;
 	  break;
+	case NII_FILE:
+	  if (is_nii(fname))
+	    return type;
+	  break;
 	default:
 	  break;
 	}
@@ -311,6 +318,8 @@ int mri_identify(char *fname_passed)
     return(XIMG_FILE);
   else if(is_nifti1(fname))
     return(NIFTI1_FILE);
+  else if(is_nii(fname))
+    return(NII_FILE);
   else
     return(MRI_VOLUME_TYPE_UNKNOWN);
 
@@ -852,8 +861,92 @@ int is_ximg(char *fname)
 int is_nifti1(char *fname)
 {
 
-  return(FALSE);
+  char fname_stem[STRLEN];
+  char hdr_fname[STRLEN];
+  char *dot;
+  FILE *fp;
+  char magic[4];
 
-} /* end is_nifti1() */
+  strcpy(fname_stem, fname);
+  dot = strrchr(fname_stem, '.');
+  if(dot != NULL)
+    if(strcmp(dot, ".img") == 0 || strcmp(dot, ".hdr") == 0)
+      *dot = '\0';
+  sprintf(hdr_fname, "%s.hdr", fname_stem);
+
+  fp = fopen(hdr_fname, "r");
+  if(fp == NULL)
+  {
+    errno = 0;
+    return(FALSE);
+  }
+
+  if(fseek(fp, 344, SEEK_SET) == -1)
+  {
+    errno = 0;
+    fclose(fp);
+    return(FALSE);
+  }
+
+  if(fread(magic, 1, 4, fp) != 4)
+  {
+    errno = 0;
+    fclose(fp);
+    return(FALSE);
+  }
+
+  fclose(fp);
+
+  if(memcmp(magic, NIFTI1_MAGIC, 4) != 0)
+    return(FALSE);
+
+  return(TRUE);
+
+}  /*  end is_nifti1()  */
+
+int is_nii(char *fname)
+{
+
+  char *dot;
+  FILE *fp;
+  char magic[4];
+
+  dot = strrchr(fname, '.');
+
+  if(dot != NULL)
+  {
+    if(strcmp(dot, ".nii") == 0)
+      return(TRUE);
+  }
+
+  fp = fopen(fname, "r");
+  if(fp == NULL)
+  {
+    errno = 0;
+    return(FALSE);
+  }
+
+  if(fseek(fp, 344, SEEK_SET) == -1)
+  {
+    errno = 0;
+    fclose(fp);
+    return(FALSE);
+  }
+
+  if(fread(magic, 1, 4, fp) != 4)
+  {
+    errno = 0;
+    fclose(fp);
+    return(FALSE);
+  }
+
+  fclose(fp);
+
+  if(memcmp(magic, NII_MAGIC, 4) != 0)
+    return(FALSE);
+
+  return(TRUE);
+
+}  /*  end is_nii()  */
 
 /* EOF */

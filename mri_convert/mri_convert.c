@@ -3,9 +3,9 @@
 // original: written by Bruce Fischl (Apr 16, 1997)
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/11/29 19:37:35 $
-// Revision       : $Revision: 1.99 $
+// Revision Author: $Author: ch $
+// Revision Date  : $Date: 2005/01/06 01:39:03 $
+// Revision       : $Revision: 1.100 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -226,7 +226,7 @@ int main(int argc, char *argv[])
   nskip = 0;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_convert.c,v 1.99 2004/11/29 19:37:35 tosa Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_convert.c,v 1.100 2005/01/06 01:39:03 ch Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -2085,6 +2085,8 @@ void usage(FILE *stream)
   "  outline       - MGH-NMR Outline format\n"
   "  otl           - same as outline\n"
   "  gdf           - GDF volume (requires image stem for output; use -gis)\n"
+  "  nifti1        - NIfTI-1 volume (separate image and header files)\n"
+  "  nii           - NIfTI-1 volume (single file)\n"
   "\n"
   "CONVERTING TO SPM-ANALYZE FORMAT \n"
   "\n"
