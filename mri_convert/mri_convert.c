@@ -60,6 +60,9 @@ int main(int argc, char *argv[])
   char subject_name[STRLEN];
   char reslice_like_name[STRLEN];
   int reslice_like_flag;
+  int frame_flag;
+  int frame;
+  char in_name_only[STRLEN];
 
   /* ----- keep the compiler quiet ----- */
   mri2 = NULL;
@@ -106,6 +109,7 @@ int main(int argc, char *argv[])
   force_in_type_flag = force_out_type_flag = FALSE;
   subject_name[0] = '\0';
   reslice_like_flag = FALSE;
+  frame_flag = FALSE;
 
   for(i = 1;i < argc;i++)
   {
@@ -317,11 +321,11 @@ int main(int argc, char *argv[])
       get_string(argc, argv, &i, out_data_type_string);
       if(strcmp(StrLower(out_data_type_string), "uchar") == 0)
         out_data_type = MRI_UCHAR;
-      if(strcmp(StrLower(out_data_type_string), "short") == 0)
+      else if(strcmp(StrLower(out_data_type_string), "short") == 0)
         out_data_type = MRI_SHORT;
-      if(strcmp(StrLower(out_data_type_string), "int") == 0)
+      else if(strcmp(StrLower(out_data_type_string), "int") == 0)
         out_data_type = MRI_INT;
-      if(strcmp(StrLower(out_data_type_string), "float") == 0)
+      else if(strcmp(StrLower(out_data_type_string), "float") == 0)
         out_data_type = MRI_FLOAT;
       else
       {
@@ -366,6 +370,11 @@ int main(int argc, char *argv[])
     {
       get_string(argc, argv, &i, reslice_like_name);
       reslice_like_flag = TRUE;
+    }
+    else if(strcmp(argv[i], "-f") == 0 || strcmp(argv[i], "--frame") == 0)
+    {
+      get_ints(argc, argv, &i, &frame, 1);
+      frame_flag = TRUE;
     }
     else if(strcmp(argv[i], "-u") == 0 || strcmp(argv[i], "--usage") == 0)
     {
@@ -449,6 +458,9 @@ int main(int argc, char *argv[])
     exit(1);
   }
 
+  /* ----- copy file name (only -- strip '@' and '#') ----- */
+  MRIgetVolumeName(in_name, in_name_only);
+
   /* ----- catch unknown volume types ----- */
   if(force_in_type_flag && forced_in_type == MRI_VOLUME_TYPE_UNKNOWN)
   {
@@ -468,6 +480,7 @@ int main(int argc, char *argv[])
   {
 
     printf("input volume name: %s\n", in_name);
+    printf("input name only: %s\n", in_name_only);
     printf("output volume name: %s\n", out_name);
     printf("parse_only_flag = %d\n", parse_only_flag);
     printf("conform_flag = %d\n", conform_flag);
@@ -512,13 +525,13 @@ int main(int argc, char *argv[])
   if(force_in_type_flag)
     in_volume_type = forced_in_type;
   else
-    in_volume_type = mri_identify(in_name);
+    in_volume_type = mri_identify(in_name_only);
   if(in_volume_type == MRI_VOLUME_TYPE_UNKNOWN)
   {
-    ErrorPrintf(ERROR_BADFILE, "unknown file type for file %s", in_name);
+    ErrorPrintf(ERROR_BADFILE, "unknown file type for file %s", in_name_only);
     exit(1);
   }
-  printf("reading from %s...\n", in_name);
+  printf("reading from %s...\n", in_name_only);
   if(read_only_flag && in_info_flag && !in_stats_flag)
     mri = MRIreadInfo(in_name);
   else
