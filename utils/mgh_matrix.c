@@ -468,9 +468,15 @@ static FLOATTYPE at,bt,ct;
 #define PYTHAG(a,b) ((at=fabs(a)) > (bt=fabs(b)) ? \
 (ct=bt/at,at*sqrt(1.0+ct*ct)) : (bt ? (ct=at/bt,bt*sqrt(1.0+ct*ct)):0.0))
 
+#ifdef MAX
+#undef MAX
+#endif
 static FLOATTYPE maxarg1,maxarg2;
 #define MAX(a,b) (maxarg1=(a),maxarg2=(b),(maxarg1) > (maxarg2) ? (maxarg1):(maxarg2))
+
+#ifndef SIGN
 #define SIGN(a,b) ((b) >= 0.0 ? fabs(a) : -fabs(a))
+#endif
 
 void svdcmp(FLOATTYPE **a,FLOATTYPE *w,FLOATTYPE **v,int m,int n)
 {
