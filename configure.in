@@ -47,7 +47,7 @@ case "${host}" in
  OS_CPPFLAGS=
  OS_LDFLAGS=
  ;;
- x86_64-*linux*)
+ x86_64-*)
  OS=Linux64
  OS_CPP_FLAGS="-Wall -fwritable-strings"
  ;; 
@@ -62,6 +62,7 @@ AC_SUBST(OS_LDFLAGS)
 if test "${CC}" = "gcc"; then 
 AC_MSG_NOTICE(Setting CPU optimization ...)
 CPUFLAGS=""
+CPUTYPE="NO"
 AC_MSG_CHECKING(checking for CPU ...)
 #### 
 #### cpu type: we support 
@@ -70,43 +71,100 @@ AC_MSG_CHECKING(checking for CPU ...)
 ####      
 AC_ARG_WITH(cpu,
   [  --with-cpu=CPUTYPE      where CPUTYPE is pentium3, pentium4, athlon-xp, G4, G5,  ....],
-  [  
-    case "$withval" in 
-     pentium3) 
+  [CPUTYPE=$withval],[])
+# --with-cpu not used  automatically figure out
+if test "$CPUTYPE" = "NO"; then
+  case "$OS" in
+  Darwin)
+    maccpu=`maichine`
+    case "$maccpu" in
+      ppc750)
+      CPUTYPE=G3
+      ;;
+      ppc7450)
+      CPUTYPE=G4
+      ;;
+      ppc970)
+      CPUTYPE=G5
+      ;;
+      *)
+      CPUTYPE="NO"
+      echo "unknown mac cpu $maccpu"
+      ;;
+      esac
+    ;;
+  Linux)
+    cpu386=`./x86cpucaps/cpucaps -m`
+    case "$cpu386" in
+      "Pentium 3")
+      CPUTYPE=pentium3
+      ;;
+      "Pentium 4")
+      CPUTYPE=pentium4
+      ;;
+      "AMD Athlon XP*")
+      CPUTYPE=athlon-xp
+      ;;
+      *) 
+      ;;
+    esac
+    ;;
+  Linux64)
+    cpu386=`./x86cpucaps/cpucaps -m`
+    case "$cpu386" in
+      "AMD Athlon64")
+      CPUTYPE=athlon64
+      ;;
+      "AMD Opteron*")
+      CPUTYPE=opteron
+      ;;
+      *)
+      ;;
+    esac
+    ;; 
+  *)
+  ;;
+  esac
+fi
+
+# now set the flag
+case "$CPUTYPE" in 
+  pentium3) 
      CPUFLAGS="-march=pentium3 -mfpmath=sse"
      ;;
-     pentium4)
-     CPUFLAGS="-march=pentium4 -mfpmath=sse"
+  pentium4)
+     CPUFLAGS="-march=pentium4 -mfpmath=sse -msse2"
      ;;
-     athlon-xp)
+  athlon-xp)
      CPUFLGAS="-march=athlon-xp -mfpmath=sse"
      ;;	
-     opteron)
-     CPUFLAGS="-march=opteron -mfpmath=sse"
+  opteron)
+     CPUFLAGS="-march=opteron -mfpmath=sse -msse2"
      ;;
-     athlon64)
-     CPUFLAGS="-march=athlon64 -mfpmath=sse"
+  athlon64)
+     CPUFLAGS="-march=athlon64 -mfpmath=sse -msse2"
      ;;
-     athlon-fx)
+  athlon-fx)
      CPUFLAGS="-march=athlon-fx -mfpmath=sse"
      ;;
-     G4)
+  G4)
      CPUFLAGS="-mtune=G4"
      ;;
-     G5)
+  G5)
      CPUFLAGS="-mtune=G5"
      ;;
-     *)
+  *)
      echo "cpu optimization not set"
      ;;
-    esac
-  ],
-  [ echo "cpu option not set" ]
-  )
+esac
+
 found=$CPUFLAGS 
 # set the value
 CFLAGS="$CPUFLAGS $CFLAGS"
 AC_MSG_RESULT($found)
+#####
+else
+  AC_MSG_NOTICE([cpu optimization not done, since gcc is not used])
 # if gcc
 fi
 ##############################################################
@@ -302,45 +360,44 @@ if test "X$with_apple_tcl_framework" = "Xyes"; then
 else
 ################## other cases
 # here are uni*es
-AC_MSG_NOTICE([unix style...])
-ac_tcl_includes="NO"
-ac_tcl_libraries="NO"
-ac_tcl_bindir="NO"
-tcl_includes=""
-tcl_libraries=""
+  AC_MSG_NOTICE([unix style...])
+  ac_tcl_includes="NO"
+  ac_tcl_libraries="NO"
+  ac_tcl_bindir="NO"
+  tcl_includes=""
+  tcl_libraries=""
 
 # check for MGH style
 # default is to use MGH installation
-if test -d $mghdir/tcl/current ; then
-  ac_tcl_includes=$mghdir/tcl/current/include
-  ac_tcl_libraries=$mghdir/tcl/current/lib
-  ac_tcl_bindir=$mghdir/tcl/current/bin
-fi
+  if test -d $mghdir/tcl/current ; then
+    ac_tcl_includes=$mghdir/tcl/current/include
+    ac_tcl_libraries=$mghdir/tcl/current/lib
+    ac_tcl_bindir=$mghdir/tcl/current/bin
+  
+  fi
 
-AC_ARG_WITH(tcl-dir,
-  [  --with-tcl-dir=DIR      where the root of Tcl/Tk is installed.],
-  [  ac_tcl_includes="$withval"/include
-     ac_tcl_libraries="$withval"/lib
-     ac_tcl_bindir="$withval"/bin
-  ])
+  AC_ARG_WITH(tcl-dir,
+    [  --with-tcl-dir=DIR      where the root of Tcl/Tk is installed.],
+    [  ac_tcl_includes="$withval"/include
+       ac_tcl_libraries="$withval"/lib
+       ac_tcl_bindir="$withval"/bin
+    ])
 
 # modify CXXFLAGS and LDFLAGS
-if test ! "$ac_tcl_includes" = "NO"; then
-  AC_MSG_RESULT(yes)
-  tcl_includes=-I$ac_tcl_includes
-  CPPFLAGS="$CPPFLAGS $tcl_includes"
-else
-  AC_MSG_RESULT(no)
-fi
+  if test ! "$ac_tcl_includes" = "NO"; then
+    AC_MSG_NOTICE([tcl includes set])
+    tcl_includes=-I$ac_tcl_includes
+    CPPFLAGS="$CPPFLAGS $tcl_includes"
+  else
+    AC_MSG_NOTICE([tcl includes not set])
+  fi
 
-if test ! "$ac_tcl_libraries" = "NO"; then 
-  tcl_libraries=-L$ac_tcl_libraries 
+  if test ! "$ac_tcl_libraries" = "NO"; then 
+    tcl_libraries=-L$ac_tcl_libraries 
+  fi
 
-fi
-
-TCL_CFLAGS=""
-TCL_LIBS="-lBLT -ltix -ltk -ltcl"
-
+  TCL_CFLAGS=""
+  TCL_LIBS="-lBLT -ltix -ltk -ltcl"
 fi
 ###### end of uni*es
 AC_SUBST(tcl_includes)
@@ -389,7 +446,7 @@ AC_CHECK_LIB([tcl],[Tcl_Init],[],
   [AC_MSG_ERROR("FATAL: libtcl not found. check config.log. set LDFLAGS or --with-tcl-dir.")] )
 AC_CHECK_LIB([tk],[Tk_Init],[],
   [AC_MSG_ERROR("FATAL: libtk not found.  check config.log. set LDFLAGS or --with-tcl-dir.")] )
-AC_CHECK_LIB([Tix],[Tix_Init],[],
+AC_CHECK_LIB([tix],[Tix_Init],[],
   [AC_MSG_ERROR("FATAL: libtix not found. check config.log. set LDFLAGS or --with-tcl-dir.")] )
 # Darwin libcase
 else 
@@ -413,8 +470,9 @@ fi
 fi
 # endof 
 
-AC_CHECK_LIB([BLT],[Blt_Init],[],
-  [AC_MSG_ERROR("FATAL: libBLT not found. check config.log.  Set LDFLAGS or --with-BLT-dir.")] )
+############# we cannot build BLT in Aqua
+# AC_CHECK_LIB([BLT],[Blt_Init],[],
+#  [AC_MSG_ERROR("FATAL: libBLT not found. check config.log.  Set LDFLAGS or --with-BLT-dir.")] )
 # recover previous one without X and Tcl
 LIBS=$ac_save_libs
 CPPFLAGS=$ac_save_cppflags
