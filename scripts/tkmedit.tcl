@@ -1,6 +1,6 @@
 #! /usr/bin/tixwish
 
-# $Id: tkmedit.tcl,v 1.34 2003/04/09 17:11:27 kteich Exp $
+# $Id: tkmedit.tcl,v 1.35 2003/04/10 20:49:08 kteich Exp $
 
 source $env(MRI_DIR)/lib/tcl/tkm_common.tcl
 
@@ -3240,26 +3240,43 @@ proc CreateMouseoverFrame { ifwTop } {
 proc CreateLabelFrame { ifwTop iSet } {
 
     global glLabel gfwaLabel gsaLabelContents
+    global mri_tCoordSpace_VolumeIdx
+    global mri_tCoordSpace_RAS
+    global mri_tCoordSpace_Talairach
 
     frame $ifwTop
 
     # create the frame names
     foreach label $glLabel {
-  set gfwaLabel($label,$iSet) $ifwTop.fw$label
+	set gfwaLabel($label,$iSet) $ifwTop.fw$label
     }
-
+    
     # create two active labels in each label frame
     foreach label $glLabel {
-  frame $gfwaLabel($label,$iSet)
-  set fwLabel $gfwaLabel($label,$iSet).fwLabel
-  set fwValue $gfwaLabel($label,$iSet).fwValue
-  tkm_MakeActiveLabel $fwLabel "" gsaLabelContents($label,name) 14
-  tkm_MakeActiveLabel $fwValue "" gsaLabelContents($label,value,$iSet) 18
-  pack $fwLabel $fwValue \
-      -side left \
-      -anchor w
-    }
+	frame $gfwaLabel($label,$iSet)
+	set fwLabel $gfwaLabel($label,$iSet).fwLabel
+	set fwValue $gfwaLabel($label,$iSet).fwValue
 
+	tkm_MakeActiveLabel $fwLabel "" gsaLabelContents($label,name) 14
+
+	if { $label == "kLabel_Coords_Vol" && $iSet == "cursor" } {
+	    tkm_MakeEntry $fwValue "" gsaLabelContents($label,value,$iSet) 18 \
+		"set l \[set gsaLabelContents($label,value,$iSet)\]; SetCursor $mri_tCoordSpace_VolumeIdx \[lindex \$l 0\] \[lindex \$l 1\] \[lindex \$l 2\]"
+	} elseif { $label == "kLabel_Coords_Vol_RAS" && $iSet == "cursor" } {
+	    tkm_MakeEntry $fwValue "" gsaLabelContents($label,value,$iSet) 18 \
+		"set l \[set gsaLabelContents($label,value,$iSet)\]; SetCursor $mri_tCoordSpace_RAS \[lindex \$l 0\] \[lindex \$l 1\] \[lindex \$l 2\]"
+	} elseif { $label == "kLabel_Coords_Vol_Tal" && $iSet == "cursor" } {
+	    tkm_MakeEntry $fwValue "" gsaLabelContents($label,value,$iSet) 18 \
+		"set l \[set gsaLabelContents($label,value,$iSet)\]; SetCursor $mri_tCoordSpace_Talairach \[lindex \$l 0\] \[lindex \$l 1\] \[lindex \$l 2\]"
+	} else {
+	    tkm_MakeActiveLabel $fwValue "" gsaLabelContents($label,value,$iSet) 18
+	}
+
+	pack $fwLabel $fwValue \
+	    -side left \
+	    -anchor w
+    }
+    
     ShowLabel kLabel_Coords_Vol_RAS 1
     ShowLabel kLabel_Coords_Vol_Tal 1
     ShowLabel kLabel_Value_Vol 1
