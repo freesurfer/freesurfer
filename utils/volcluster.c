@@ -5,17 +5,13 @@
 
 #include "mri.h"
 #include "resample.h"
+#include "transform.h"
 #include "matrix.h"
 
 #include "volcluster.h"
 
-static int ConvertMNI2Tal(float  xmni, float  ymni, float  zmni,
-        float *xtal, float *ytal, float *ztal);
 static int ConvertCRS2XYZ(int col, int row, int slc, MATRIX *CRS2XYZ,
         float *x, float *y, float *z);
-
-
-
 
 /*----------------------------------------------------------------*/
 VOLCLUSTER *clustAllocCluster(int nmembers)
@@ -577,7 +573,7 @@ int clustComputeXYZ(VOLCLUSTER *vc, MATRIX *CRS2XYZ)
   member of a cluster given the 4x4 matrix that transforms the col, 
   row, and slice into MNI coorinates. The MNI coordinates are 
   transformed into talairach coordinates using a piece-wise linear
-  transformation. See ConvertMNI2Tal.
+  transformation. See FixMNITal in transforms.c.
   ----------------------------------------------------------------*/
 int clustComputeTal(VOLCLUSTER *vc, MATRIX *CRS2MNI)
 {
@@ -586,7 +582,7 @@ int clustComputeTal(VOLCLUSTER *vc, MATRIX *CRS2MNI)
   for(n=0; n < vc->nmembers; n++){
     ConvertCRS2XYZ(vc->col[n],vc->row[n],vc->slc[n], CRS2MNI,
        &(vc->x[n]), &(vc->y[n]), &(vc->z[n]) );
-    ConvertMNI2Tal(  vc->x[n],    vc->y[n],   vc->z[n],
+    FixMNITal(  vc->x[n],    vc->y[n],   vc->z[n],
        &(vc->x[n]), &(vc->y[n]), &(vc->z[n]) );
   }
 
@@ -700,9 +696,6 @@ LABEL *clustCluster2Label(VOLCLUSTER *vc, MRI *vol, int frame,
 
   return(label);
 }
-
-
-
 /*----------------------------------------------------------------*/
 /*--------------- STATIC FUNCTIONS BELOW HERE --------------------*/
 /*----------------------------------------------------------------*/
@@ -731,51 +724,6 @@ static int ConvertCRS2XYZ(int col, int row, int slc, MATRIX *CRS2XYZ,
 
   MatrixFree(&crs);
   MatrixFree(&xyz);
-
-  return(0);
-}
-/*-----------------------------------------------------------
-  ConvertMNI2Tal() - function to compute the "real" talairach
-  coordinates from the MNI talaiarch coordinates. Has nothing
-  to do with clustering.
-  -----------------------------------------------------------*/
-static int ConvertMNI2Tal(float  xmni, float  ymni, float  zmni,
-        float *xtal, float *ytal, float *ztal)
-{
-  MATRIX *T, *xyzMNI, *xyzTal;
-
-
-  T = MatrixAlloc(4, 4, MATRIX_REAL);
-  if(zmni >= 0.0){
-    stuff_four_by_four(T, 
-           .9900,  .0000, .0000, 0,
-           .0000,  .9688, .0460, 0,
-           .0000, -.0485, .9189, 0,
-           .0000,  .0000, .0000, 1);
-  }
-  else {
-    stuff_four_by_four(T, 
-           .9900,  .0000, .0000, 0,
-           .0000,  .9688, .0420, 0,
-           .0000, -.0485, .8390, 0,
-           .0000,  .0000, .0000, 1);
-  }
-
-  xyzMNI = MatrixAlloc(4, 1, MATRIX_REAL);
-  xyzMNI->rptr[1][1] = xmni;
-  xyzMNI->rptr[2][1] = ymni;
-  xyzMNI->rptr[3][1] = zmni;
-  xyzMNI->rptr[4][1] = 1.0;
-
-  xyzTal = MatrixMultiply(T,xyzMNI,NULL);
-
-  *xtal = xyzTal->rptr[1][1];
-  *ytal = xyzTal->rptr[2][1];
-  *ztal = xyzTal->rptr[3][1];
-
-  MatrixFree(&T);
-  MatrixFree(&xyzMNI);
-  MatrixFree(&xyzTal);
 
   return(0);
 }
