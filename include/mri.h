@@ -353,6 +353,9 @@ int   MRIsampleVolumeGradient(MRI *mri, Real x, Real y, Real z,
                               Real *pdx, Real *pdy, Real *pdz) ;
 int   MRIsampleVolumeDerivative(MRI *mri, Real x, Real y, Real z,
                                 Real dx, Real dy, Real dz, Real *pmag) ;
+int   MRIsampleVolumeDerivativeScale(MRI *mri, Real x, Real y, Real z,
+                                     Real dx, Real dy, Real dz, Real *pmag,
+                                     double sigma) ;
 float MRIsampleCardinalDerivative(MRI *mri, int x, int y, int z,
                                   int xk, int yk, int zk) ;
 float MRIsampleXDerivative(MRI *mri, int x, int y, int z, int dir) ;
