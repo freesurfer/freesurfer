@@ -8,6 +8,7 @@
 
 #define VERTICES_PER_FACE    4
 #define TRIANGLES_PER_FACE   2
+#define ANGLES_PER_TRIANGLE  3
 
 /*
   the vertices in the face structure are arranged in 
@@ -21,8 +22,8 @@ typedef struct face_type_
   float  nz[TRIANGLES_PER_FACE] ;
   float  area[TRIANGLES_PER_FACE] ;
   float  orig_area[TRIANGLES_PER_FACE] ;
-  float  angle[TRIANGLES_PER_FACE] ;
-  float  orig_angle[TRIANGLES_PER_FACE] ;
+  float  angle[TRIANGLES_PER_FACE][ANGLES_PER_TRIANGLE] ;
+  float  orig_angle[TRIANGLES_PER_FACE][ANGLES_PER_TRIANGLE]  ;
   int    ripflag;                        /* ripped face */
 #if 0
   float logshear,shearx,sheary;  /* compute_shear */
@@ -34,6 +35,7 @@ typedef struct vertex_type_
   float x,y,z;           /* curr position */
   float nx,ny,nz;        /* curr normal */
   float dx, dy, dz ;     /* current change in position */
+  float odx, ody, odz ; 
   float ox,oy,oz;        /* last position */
   float curv;            /* curr curvature */
 #if 0
@@ -203,7 +205,7 @@ typedef struct
 #endif
 } MRI_SURFACE_PARAMETERIZATION, MRI_SP ;
 
-#define L_ANGLE              0.00f /*was 0.01*/ /* coefficient of angle term */
+#define L_ANGLE              0.25f /*was 0.01*/ /* coefficient of angle term */
 #define L_AREA               1.0f    /* coefficient of angle term */
 #define N_AVERAGES           4096
 #define WRITE_ITERATIONS     10
