@@ -14,7 +14,7 @@
 #include "version.h"
 #include "gcsa.h"
 
-static char vcid[] = "$Id: mris_register.c,v 1.25 2005/02/11 19:34:05 segonne Exp $";
+static char vcid[] = "$Id: mris_register.c,v 1.26 2005/02/11 19:54:29 segonne Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -73,7 +73,7 @@ main(int argc, char *argv[])
   MRI_SP       *mrisp_template ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_register.c,v 1.25 2005/02/11 19:34:05 segonne Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_register.c,v 1.26 2005/02/11 19:54:29 segonne Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -663,10 +663,12 @@ void initParms(void){
 	for(n = 0 ; n < NUMBER_OF_FRAMES;n++){
 		parms.frames[n]=n;
 		parms.l_corrs[n]=parms.l_pcorrs[n]=0.0f;
+		parms.types[n]=IsDistanceField(parms.corrfields[n]);
 	}
-}
+} 
 
 void setParms(void){
+  int n;
 	parms.l_corr=parms.l_pcorr=0.0f; 
 	parms.flags |= IP_USE_MULTIFRAMES; 
 	parms.ncorrs=NUMBER_OF_FRAMES;
@@ -681,4 +683,6 @@ void setParms(void){
 		parms.corrfields[8]=CAUDATE_CORR_FRAME;parms.frames[8]=8;parms.l_corrs[8]=10.0f;parms.l_pcorrs[8]=0.0f;    /* caudate */
 		parms.corrfields[9]=LAT_VENTRICLE_CORR_FRAME;parms.frames[9]=9;parms.l_corrs[9]=1.0f;parms.l_pcorrs[9]=0.0f;
 		parms.corrfields[10]=INF_LAT_VENTRICLE_CORR_FRAME;parms.frames[10]=10;parms.l_corrs[10]=1.0f;parms.l_pcorrs[10]=0.0f;
+		for(n = 0 ; n < NUMBER_OF_FRAMES;n++)
+			parms.types[n]=IsDistanceField(parms.corrfields[n]);
 }
