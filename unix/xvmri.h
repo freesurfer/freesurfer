@@ -39,5 +39,6 @@ int  XVMRIsetView(XV_FRAME *xvf, int which, int view) ;
 extern IMAGE *Idisplay[] ;
 extern int   mri_views[] ;
 extern int   mri_depths[] ;
+extern MRI   *mris[] ;
 
 #endif
