@@ -630,9 +630,6 @@ int   MRIneighborsOff3x3(MRI *mri, int x0, int y0, int z0, int min_val) ;
 
 int MRIvol2Vol(MRI *src, MRI *targ, MATRIX *Vt2s, 
 	       int InterpCode, float param);
-int MRIdimMismatch(MRI *v1, MRI *v2, int frameflag);
-int MRIfdr(MRI *vol, int frame, double fdr, int signid, int log10flag,
-	   MRI *mask, double *fdrthresh, MRI *ovol);
 
 MRI *MRIresampleFill(MRI *src, MRI *template_vol, int resample_type, float fill_val) ;
 MRI   *MRIreplaceValues(MRI *mri_src, MRI *mri_dst, float in_val, float out_val) ;
