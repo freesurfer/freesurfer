@@ -13,8 +13,8 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/06/01 14:30:38 $
-// Revision       : $Revision: 1.37 $
+// Revision Date  : $Date: 2004/06/01 16:32:26 $
+// Revision       : $Revision: 1.38 $
 
 ------------------------------------------------------------------------*/
 
@@ -1005,40 +1005,6 @@ FileNameFromWildcard(char *inStr, char *outStr)
   return(outStr) ;
 }
 
-int getPid()
-{
-  FILE *fp = 0;
-  char buf[256];
-  int pid = 0;
-  int numassigned = 0;
-  sprintf(buf, "ps -C %s -o pid= | sed s/' '//", Progname);
-  errno = 0;
-  fp = popen(buf, "r");
-  if (fp)
-  {
-    numassigned = fscanf(fp, "%d", &pid);
-    if (numassigned == 1)
-    {
-      pclose(fp);
-      return pid;
-    }
-    else
-    {
-      pclose(fp);
-      errno = 0;
-      fprintf(stderr, "getting pid failed");
-      return -1;
-    }
-  }
-  if (errno)
-  {
-    errno = 0;
-    fprintf(stderr, "getting pid failed");
-    return -1;
-  }
-  return -1;  // this should never happen
-}
-
 // return Kbytes memory used
 int getMemoryUsed()
 {
@@ -1047,21 +1013,7 @@ int getMemoryUsed()
   char buf[256];
   int memused = 0;
   int numassigned = 0;
-  static int used = 0;
-
-  // get pid
-  int pid = getPid();
-  if (pid == -1) 
-  {
-    if (!used)
-    {
-      fprintf(stderr, "failed to get pid\n");
-      used = 1;
-    }
-    return -1; // failed
-  }
-  // get the memory used for this pid
-  sprintf(buf, "grep -i vmdata /proc/%d/status | cut -f 2", pid);
+  sprintf(buf, "grep -i vmdata /proc/%d/status | cut -f 2", getpid());
   errno = 0;
   fp = popen(buf, "r");
   if (fp)
