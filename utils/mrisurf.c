@@ -15035,9 +15035,9 @@ MRISsoapBubbleVals(MRI_SURFACE *mris, int navgs)
       if (cmpt>0)   /* had some neighbors with real values */
       {
         v->val = mean / (double)(cmpt) ;
-        v->marked = 2 ;  /* has a real value, but is not fixed */
         if (!v->marked)  /* has never been computed before */
           nmarked++ ;
+        v->marked = 2 ;  /* has a real value, but is not fixed */
       }
     }
     if (!nmarked)
