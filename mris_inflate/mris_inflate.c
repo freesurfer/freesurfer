@@ -13,7 +13,7 @@
 #include "mri.h"
 #include "macros.h"
 
-static char vcid[] = "$Id: mris_inflate.c,v 1.15 1998/04/01 16:00:36 fischl Exp $";
+static char vcid[] = "$Id: mris_inflate.c,v 1.16 1998/11/16 20:23:51 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -41,6 +41,7 @@ main(int argc, char *argv[])
   MRI_SURFACE  *mris ;
   double       radius, scale ;
 
+  Gdiag |= DIAG_SHOW ;
   Progname = argv[0] ;
   ErrorInit(NULL, NULL, NULL) ;
   DiagInit(NULL, NULL, NULL) ;
@@ -100,7 +101,11 @@ main(int argc, char *argv[])
               Progname, in_fname) ;
 
   MRISsetNeighborhoodSize(mris, 2) ;
-  MRISreadOriginalProperties(mris, NULL) ;
+#if 0
+  MRISreadOriginalProperties(mris, "white_ico") ;
+#else
+  MRISstoreMetricProperties(mris) ;  /* use current surface as reference */
+#endif
 
   if (talairach_flag)
     MRIStalairachTransform(mris, mris) ;
@@ -118,6 +123,7 @@ main(int argc, char *argv[])
   sprintf(fname, "%s/%s.sulc", path, 
           mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh") ;
   fprintf(stderr, "writing sulcal depths to %s\n", fname) ;
+  MRISzeroMeanCurvature(mris) ;  /* make sulc zero mean */
   MRISwriteCurvature(mris, fname) ;
 
   exit(0) ;
