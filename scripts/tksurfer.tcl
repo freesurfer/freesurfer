@@ -134,6 +134,7 @@ set gaLinkedVars(mouseoverflag) 0
 set gaLinkedVars(redrawlockflag) 0
 set gaLinkedVars(timeresolution) 0
 set gaLinkedVars(numprestimpoints) 0
+set gaLinkedVars(colortablename) ""
 
     
 # groups of variables that get sent to c code together
@@ -149,9 +150,10 @@ array set gaLinkedVarGroups {
       verticesflag currentvaluefield }
     cvavg { cmid dipavg }
     mouseover { mouseoverflag }
-    all { light0 light1 light2 light3 offset colscale truncphaseflag invphaseflag revphaseflag complexvalflag fthresh foffset fmid fslope cslope cmid angle_offset angle_cycles sulcflag surfcolor vertexset overlayflag scalebarflag colscalebarflag verticesflag cmid dipavg mouseoverflag }
+    all { light0 light1 light2 light3 offset colscale truncphaseflag invphaseflag revphaseflag complexvalflag fthresh foffset fmid fslope cslope cmid angle_offset angle_cycles sulcflag surfcolor vertexset overlayflag scalebarflag colscalebarflag verticesflag cmid dipavg mouseoverflag colortablename }
     redrawlock { redrawlockflag }
     graph { timeresolution numprestimpoints }
+    label { colortablename }
 }
 
 proc SendLinkedVarGroup { iGroup } {
@@ -555,7 +557,9 @@ proc DoConfigOverlayDisplayDlog {} {
 
   # buttons.
   tkm_MakeApplyCloseButtons $fwButtons $wwDialog \
-    { SendLinkedVarGroup overlay; sclv_set_current_timepoint $gaLinkedVars(ftimepoint) $gaLinkedVars(fcondition); UpdateAndRedraw; } {}
+    { SendLinkedVarGroup overlay;  \
+      sclv_set_current_timepoint $gaLinkedVars(ftimepoint) $gaLinkedVars(fcondition); \
+      UpdateAndRedraw; } {}
 
   pack $fwMain $fwTimePoint $fwCondition $fwColorScale \
     $fwFlags $lfwThreshold $fwButtons \
@@ -631,7 +635,7 @@ proc DoConfigCurvatureDisplayDlog {} {
 
   tkm_MakeSliders $fwThresholdSliders [list \
     [list {"Threshold midpoint"} gaLinkedVars(cmid) \
-    0 100 100 {} 1 ]]
+    -1 1 100 {} 1 0.05 ]]
   tkm_MakeEntry $fwThresholdSlope "Threshold slope" \
     gaLinkedVars(cslope) 6
 
@@ -1030,17 +1034,56 @@ proc DoSendToSubjectDlog {} {
   set fwMain             $wwDialog.fwMain
   set fwSubject          $wwDialog.fwSubject
   set fwButtons          $wwDialog.fwButtons
-
+  
   frame $fwMain
-
+  
   # field for subject name
   tkm_MakeEntry $fwSubject "Subject: " sSubject 20
-
+  
   # buttons.
   tkm_MakeApplyCloseButtons $fwButtons $wwDialog \
     { send_to_subject $sSubject } {}
-
+  
   pack $fwMain $fwSubject $fwButtons \
+    -side top       \
+    -expand yes     \
+    -fill x         \
+    -padx 5         \
+    -pady 5
+    }
+}
+
+proc DoCustomFillDlog {} {
+
+    global gDialog
+
+    set wwDialog .wwCustomFillDlog
+
+    if { [Dialog_Create $wwDialog "Custom Fill" {-borderwidth 10}] } {
+  
+  set fwMain             $wwDialog.fwMain
+  set fwText             $wwDialog.fwText
+  set fwFlags            $wwDialog.fwFlags
+  set fwButtons          $wwDialog.fwButtons
+  
+  frame $fwMain
+  
+  # hint text
+  tkm_MakeBigLabel $fwText "Fill:"
+
+  # cbs for flags
+  tkm_MakeCheckboxes $fwFlags y { \
+    {text "Up to and including boundaries" bNoBoundary {} } \
+    {text "Up to other labels" bNoLabel {} } \
+    {text "Up to and including different curvature" bNoCmid {} } \
+    {text "Up to functional values below threshold" bNoFThresh {} } \
+      }
+  
+  # buttons.
+  tkm_MakeApplyCloseButtons $fwButtons $wwDialog \
+    { fill_flood_from_cursor $bNoBoundary $bNoLabel $bNoCmid $bNoFThresh; UpdateAndRedraw } {} "Fill"
+  
+  pack $fwMain $fwText $fwFlags $fwButtons \
     -side top       \
     -expand yes     \
     -fill x         \
@@ -1147,13 +1190,23 @@ proc CreateMenuBar { ifwMenuBar } {
     }   } \
       \
       {cascade "Label" { \
+      { command "Load Color Table..." \
+      { DoFileDlog LoadColorTable } } \
+      \
       {command "Load Label..." \
       {DoFileDlog LoadLabel}} \
       \
-      {command "Save Label..." \
+      {command "Save Selected Label..." \
       {DoFileDlog SaveLabelAs} \
       mg_LabelLoaded } \
-    }   } \
+      \
+      {command "Import Annotation..." \
+      {DoFileDlog ImportAnnotation} } \
+      \
+      {command "Export Annotation..." \
+      {DoFileDlog Export} \
+      mg_LabelLoaded } \
+      }   } \
       \
       {cascade "Field Sign" { \
       {command "Load Field Sign..." \
@@ -1196,10 +1249,6 @@ proc CreateMenuBar { ifwMenuBar } {
       { command \
       "Unmark All Vertices" \
       { clear_all_vertex_marks; UpdateAndRedraw } } \
-      \
-      { command \
-      "Clear Label" \
-      { clear_vertex_marks; UpdateAndRedraw } } \
   }
     
     # view menu
@@ -1431,6 +1480,9 @@ proc CreateMenuBar { ifwMenuBar } {
       { command "Goto Saved Point" \
       DoGotoPoint } \
       \
+      { command "Send to Subject..." \
+      { DoSendToSubjectDlog } } \
+      \
       { separator } \
       \
       { command "Run Script..." \
@@ -1438,6 +1490,19 @@ proc CreateMenuBar { ifwMenuBar } {
       \
       { separator } \
       \
+      { cascade "Labels" { \
+      { command "New Label from Marked Vertices" \
+      { labl_new_from_marked_vertices; UpdateAndRedraw } } \
+      \
+      { command "Mark Seleted Label" \
+      { labl_mark_vertices $gnSelectedLabel; UpdateAndRedraw } \
+      mg_LabelLoaded } \
+      \
+      { command "Delete Selected Label" \
+      { labl_remove $gnSelectedLabel; UpdateAndRedraw } \
+      mg_LabelLoaded } } } \
+      \
+      { cascade "Cut" { \
       { command "Cut Line" \
       { cut_line 0; UpdateAndRedraw } } \
       \
@@ -1447,14 +1512,10 @@ proc CreateMenuBar { ifwMenuBar } {
       { command "Cut Plane" \
       { cut_plane; UpdateAndRedraw } } \
       \
-      { command "Cut Area" \
-      { floodfill_marked_patch 0; UpdateAndRedraw } } \
-      \
       { command "Clear Cuts" \
-      { restore_ripflags 2; UpdateAndRedraw } } \
+      { restore_ripflags 2; UpdateAndRedraw } } } } \
       \
-      { separator } \
-      \
+      { cascade "Graph" { \
       { command "Graph Marked Vertices Avg" \
       { func_select_marked_vertices; func_graph_timecourse_selection} \
       mg_TimeCourseLoaded } \
@@ -1465,23 +1526,22 @@ proc CreateMenuBar { ifwMenuBar } {
       \
       { command "Save Graph to Postscript File" \
       { DoFileDlog SaveGraphToPS } \
-      mg_TimeCourseLoaded } \
+      mg_TimeCourseLoaded } } } \
       \
-      { separator } \
+      { cascade "Fill" { \
+      { command "Make Fill Boundary" \
+      { fbnd_new_line_from_marked_vertices; \
+      clear_all_vertex_marks; UpdateAndRedraw } } \
       \
-      { command "Send to Subject..." \
-      { DoSendToSubjectDlog } } \
+      { command "Delete Selected Boundary" \
+      { fbnd_remove_selected_boundary } } \
       \
-      { command "Write Decimation..." \
-      { DoDecimationDlog } } \
+      { command "Custom Fill..." \
+      { DoCustomFillDlog; } } \
       \
-      {command "Write Dipoles..." \
-      {DoFileDlog SaveDipolesAs}} \
-      \
-      { command "Set Background Midpoint to Average" \
-      { UpdateLinkedVarGroup cvavg; \
-      set gaLinkedVars(cmid) $gaLinkedVars(dipavg); \
-      SendLinkedVarGroup cvavg; UpdateAndRedraw } } \
+      { command "Fill Stats" \
+      { floodfill_marked_patch 1; UpdateAndRedraw } \
+      mg_OverlayLoaded } \
       \
       { command "Fill Stats" \
       { floodfill_marked_patch 1; UpdateAndRedraw } \
@@ -1489,10 +1549,15 @@ proc CreateMenuBar { ifwMenuBar } {
       \
       { command "Fill Curvature" \
       { floodfill_marked_patch 2; UpdateAndRedraw } \
-      mg_CurvatureLoaded } \
+      mg_CurvatureLoaded } } } \
       \
+      { cascade "Surface" { \
       { command "Smooth Curvature..." \
       { DoSmoothCurvatureDlog } \
+      mg_CurvatureLoaded } \
+      \
+      { command "Clear Curvature" \
+      { clear_curvature } \
       mg_CurvatureLoaded } \
       \
       { command "Smooth Overlay..." \
@@ -1505,9 +1570,16 @@ proc CreateMenuBar { ifwMenuBar } {
       { command "Swap Surface Fields..." \
       { DoSwapSurfaceFieldsDlog } } \
       \
-      { command "Clear Curvature" \
-      { clear_curvature } \
-      mg_CurvatureLoaded } \
+      { command "Write Decimation..." \
+      { DoDecimationDlog } } \
+      \
+      {command "Write Dipoles..." \
+      {DoFileDlog SaveDipolesAs}} \
+      \
+      { command "Average Background Midpoint" \
+      { UpdateLinkedVarGroup cvavg; \
+      set gaLinkedVars(cmid) $gaLinkedVars(dipavg); \
+      SendLinkedVarGroup cvavg; UpdateAndRedraw } } } } \
       \
       { separator } \
       \
@@ -2076,27 +2148,43 @@ proc CreateToolBar { ifwToolBar } {
     set fwCut              $gfwaToolBar(main).fwCut
     set fwPoint            $gfwaToolBar(main).fwPoint
     set fwView             $gfwaToolBar(main).fwView
+    set fwFill             $gfwaToolBar(main).fwFill
     
     frame $gfwaToolBar(main) -border 2 -relief raised
     
     tkm_MakeButtons $fwCut { \
-      { image icon_cut_line { cut_line 0; UpdateAndRedraw } "Cut Line" } \
-      { image icon_cut_closed_line { cut_line 1; UpdateAndRedraw } "Cut Closed Line" } \
-      { image icon_cut_plane { cut_plane; UpdateAndRedraw } "Cut Plane" } \
-      { image icon_cut_area { floodfill_marked_patch 0; UpdateAndRedraw } "Cut Area" } \
-      { image icon_cut_clear { restore_ripflags 2; UpdateAndRedraw } "Clear Cuts" } }
+      { image icon_cut_line { cut_line 0; UpdateAndRedraw } \
+      "Cut Line" } \
+      { image icon_cut_closed_line { cut_line 1; UpdateAndRedraw } \
+      "Cut Closed Line" } \
+      { image icon_cut_plane { cut_plane; UpdateAndRedraw } \
+      "Cut Plane" } \
+      { image icon_cut_area { floodfill_marked_patch 0; \
+      UpdateAndRedraw } "Fill Uncut Area" } \
+      { image icon_cut_clear { restore_ripflags 2; UpdateAndRedraw } \
+      "Clear Cuts" } }
     
     tkm_MakeButtons $fwPoint { \
       { image icon_cursor_save { DoSavePoint } "Save Point" } \
       { image icon_cursor_goto { DoGotoPoint } "Goto Saved Point" } }
-
+    
     tkm_MakeButtons $fwView { \
       { image icon_home { RestoreView } "Restore View" } \
       { image icon_redraw { UpdateAndRedraw } "Redraw View" } }
-
+    
+    tkm_MakeButtons $fwFill { \
+      { image icon_draw_line { fbnd_new_line_from_marked_vertices; \
+      UpdateAndRedraw } "Make Fill Boundary" } \
+      { image icon_draw_line_closed { close_marked_vertices; \
+      fbnd_new_line_from_marked_vertices; \
+      UpdateAndRedraw } "Make Closed Fill Boundary" } \
+      { image icon_fill { DoCustomFillDlog } "Custom Fill" } \
+      { image icon_erase_line { fbnd_remove_selected_boundary; } \
+      "Remove Selected Boundary" } }
+    
     bind $fwView.bw1 <B2-ButtonRelease> [list UpdateLockButton $fwView.bw1 gaLinkedVars(redrawlockflag)]
-
-    pack $fwCut $fwPoint $fwView  \
+    
+    pack $fwCut $fwPoint $fwView $fwFill \
       -side left \
       -anchor w \
       -padx 5
@@ -2293,9 +2381,9 @@ proc Graph_Draw {} {
     
     # if there is only one condition, show it (0 is hidden by default)
     if { $gnNumDataSets == 1 } {
-  set $gGraphSetting(Red,visible) 1
+  set gGraphSetting(Red,visible) 1
     }
-
+    
     foreach dataSet $glGraphColors {
   
   # skip if not visible.
@@ -2633,7 +2721,264 @@ proc Graph_DoConfigDlog {} {
     }
 }
 
-# =========================================================COMPATIBILITY LAYER
+proc Graph_ShowOffsetOptions { ibShow } {
+    global gbShowTimeCourseOffsetOptions
+    puts "Graph_ShowOffsetOptions $ibShow"
+    set gbShowTimeCourseOffsetOptions $ibShow
+}
+
+# =============================================================== LABEL WINDOW
+
+set ksLabelListWindowName "Labels"
+# the number of labels we know about
+set gnNumLabels 0
+# the strucutre names we know about
+set glStructures {}
+# structure option widget
+set gowStructures ""
+set gsColorTableFileName ""
+# currently selected label
+set gnSelectedLabel 0
+
+proc LblLst_CreateWindow { iwwTop } {
+
+    global gwwLabelListWindow ksLabelListWindowName
+
+    # creates the window and sets its title and initial size
+    set gwwLabelListWindow $iwwTop
+    toplevel $iwwTop
+    wm title $iwwTop $ksLabelListWindowName
+    wm geometry $iwwTop 450x325
+    wm minsize $iwwTop 450 324
+}
+
+proc LblLst_CreateLabelList { ifwList } {
+
+    global glwLabelList gnNumLabels
+    global gaLabelInfo
+    global glStructures gowStructures
+    global gsColorTableFileName
+    global gaLinkedVars
+
+    set fwTop             $ifwList
+    set fwColorTable      $fwTop.fwColorTable
+    set fwLabelFrame      $fwTop.fwLabelFrame
+    set fwLabelList       $fwLabelFrame.fwLabelList
+    set fwLabelInfo       $fwLabelFrame.fwLabelInfo
+
+    frame $fwTop
+    
+    frame $fwColorTable
+    set fwColorTableFileName $fwColorTable.fwColorTableFileName
+    set fwColorTableLoad     $fwColorTable.fwColorTableLoad
+
+    # make the file selector widget and a load button
+    set sColorTableFileName ""
+    tkm_MakeFileSelector $fwColorTableFileName \
+      "Color Table:" gaLinkedVars(colortablename)
+    tkm_MakeButtons $fwColorTableLoad [list \
+      [list text "Load" {labl_load_color_table $gaLinkedVars(colortablename); UpdateLinkedVarGroup label} ] ]
+
+    pack $fwColorTableFileName \
+      -side left \
+      -fill x \
+      -expand yes
+    pack $fwColorTableLoad \
+      -side left \
+      -anchor e
+
+    # this is the list box of labels
+    frame $fwLabelFrame -relief raised -border 2
+
+    tixScrolledListBox $fwLabelList \
+      -options { listbox.selectmode single } \
+      -browsecmd LblLst_SelectHilitedLabel
+    set glwLabelList [$fwLabelList subwidget listbox]
+    
+
+    # the info area for the selected label
+    frame $fwLabelInfo
+    set fwName     $fwLabelInfo.fwName
+    set fwVisible  $fwLabelInfo.fwVisible
+    set fwLabel    $fwLabelInfo.fwLabel
+    set fwInfoButtons  $fwLabelInfo.fwButtons
+
+    tkm_MakeEntry $fwName "Name" gaLabelInfo(name)
+    tkm_MakeCheckboxes $fwVisible y [list \
+      [list text "Visible" gaLabelInfo(visible)] ]
+    tixOptionMenu $fwLabel -label "Structure" \
+      -variable gaLabelInfo(structure)
+    set gowStructures $fwLabel
+    foreach entry $glStructures {
+  $gowStructures add command $entry -label $entry
+    }
+
+    tkm_MakeButtons $fwInfoButtons [list \
+      [list text "Apply" { LblLst_SendCurrentInfo; redraw } \
+      "Apply these settings to the selected label" ] \
+      [list text "Auto Name" \
+      { labl_set_name_from_table $gnSelectedLabel; redraw } \
+      "Set the label name from the structure" ] \
+      [list text "Mark" { labl_mark_vertices $gnSelectedLabel; redraw } \
+      "Mark vertices in this label" ] \
+      [list text "Quick Save" \
+      { labl_save $gnSelectedLabel [ExpandFileName $gaLabelInfo(name) kFileName_Surface]} \
+      "Save this label to label file" ] \
+      [list text "Delete" { labl_remove $gnSelectedLabel; redraw } \
+      "Delete this label from the list" ] ] y
+   
+    pack $fwName $fwVisible $fwLabel \
+      -side top \
+      -expand yes \
+      -fill x
+    pack  $fwInfoButtons \
+      -side top 
+
+    pack $fwLabelList \
+      -side left \
+      -expand yes \
+      -fill both \
+      -anchor n
+    pack  $fwLabelInfo \
+      -side left \
+      -expand yes \
+      -fill x \
+      -anchor n
+
+    pack $fwColorTable \
+      -side top \
+      -fill x \
+      -expand yes \
+      -pady 5
+
+    pack $fwLabelFrame \
+      -side top \
+      -fill both \
+      -expand yes
+
+    set gnNumLabels 0
+}
+
+
+proc LblLst_ShowWindow {} {
+    global gwwLabelListWindow
+    wm deiconify $gwwLabelListWindow
+}
+
+proc LblLst_HideWindow {} {
+    global gwwLabelListWindow
+    wm withdraw $gwwLabelListWindow
+}
+
+proc LblLst_UpdateCurrentInfo { isName inStructure ibVisible } {
+
+    global gaLabelInfo
+    global glStructures
+
+    # sets the info for the curernt label
+    set gaLabelInfo(name) $isName
+    set gaLabelInfo(structure) [lindex $glStructures $inStructure]
+    set gaLabelInfo(visible) $ibVisible
+}
+
+proc LblLst_UpdateInfo { inIndex isName inStructure ibVisible } {
+
+    global gaLabelInfo
+    global glStructures
+    global gnSelectedLabel
+    global glwLabelList
+
+    # delete the list entry in the list box and reinsert it with the
+    # new name
+    $glwLabelList delete $inIndex
+    $glwLabelList insert $inIndex $isName
+
+    # if this is the label currently selected, update the info area too.
+    if { $inIndex == $gnSelectedLabel } {
+  set gaLabelInfo(name) $isName
+  set gaLabelInfo(structure) [lindex $glStructures $inStructure]
+  set gaLabelInfo(visible) $ibVisible
+    }
+}
+
+proc LblLst_SelectHilitedLabel {} {
+
+    global glwLabelList
+
+    # find the hilighted label in the list box and select it
+    set nSelection [$glwLabelList curselection]
+    if {$nSelection != ""} {
+  LblLst_SelectLabel $nSelection
+    }
+}
+
+proc LblLst_SelectLabel { inIndex } {
+
+    global gnSelectedLabel
+
+    # select this label. this should in turn send us an update 
+    # of its information.
+    set gnSelectedLabel $inIndex
+    labl_select $inIndex
+}
+
+proc LblLst_SendCurrentInfo {} {
+
+    global gnSelectedLabel
+    global glwLabelList
+    global gaLabelInfo
+    global gowStructures
+    
+    # send the contents of the label info.
+    set nSelection $gnSelectedLabel
+    set nStructure [lsearch [$gowStructures entries] $gaLabelInfo(structure)]
+    labl_set_info $nSelection $gaLabelInfo(name) \
+      $nStructure $gaLabelInfo(visible)
+
+    # delete the list entry in the list box and reinsert it with the
+    # new name
+    $glwLabelList delete $nSelection
+    $glwLabelList insert $nSelection $gaLabelInfo(name)
+}
+
+proc LblLst_AddLabel { isName } {
+
+    global glwLabelList
+    global gnNumLabels
+
+    # add a label entry to the end of the list box
+    $glwLabelList insert end $isName
+    incr gnNumLabels
+}
+
+proc LblLst_RemoveLabel { inIndex } {
+
+    global glwLabelList
+
+    # delete the list entry in the list box 
+    $glwLabelList delete $inIndex
+}
+
+proc LblLst_SetStructures { ilStructures } {
+
+    global glStructures gowStructures
+
+    # set our list of structures.
+    set glStructures $ilStructures
+
+    # if we have the widget, delete all the entries and reinsert them.
+    if { $gowStructures != "" } {
+
+  foreach entry [$gowStructures entries] {
+      $gowStructures delete $entry
+  }
+  foreach entry $glStructures {
+      $gowStructures add command $entry -label $entry
+  }
+    }
+}
+
+# ======================================================== COMPATIBILITY LAYER
 
 proc setfile { iVarName isFileName } {
     upvar $iVarName localvar
@@ -2839,6 +3184,7 @@ proc CreateImages {} {
       icon_arrow_rot_x_neg icon_arrow_rot_x_pos \
       icon_cut_area icon_cut_closed_line icon_cut_line \
       icon_cut_plane icon_cut_clear \
+      icon_draw_line icon_draw_line_closed icon_fill icon_erase_line \
       icon_surface_main icon_surface_original icon_surface_pial \
       icon_home icon_redraw } {
 
@@ -2969,20 +3315,39 @@ set tDlogSpecs(SavePatchAs) [list \
   -okCmd {set patch [ExpandFileName %s1 kFileName_Surface]; \
   CheckFileAndDoCmd $patch write_binary_patch} ]
 
+set tDlogSpecs(LoadColorTable) [list \
+  -title "Load Color Table" \
+  -prompt1 "Load Color Table:" \
+  -default1 [list ExpandFileName "" kFileName_Label] \
+  -note1 "The file name of the color table" \
+  -okCmd {labl_load_color_table [ExpandFileName %s1 kFileName_Label]; \
+  UpdateLinkedVarGroup label} ]
 set tDlogSpecs(LoadLabel) [list \
   -title "Load Label" \
   -prompt1 "Load Label:" \
   -default1 [list ExpandFileName "" kFileName_Label] \
   -note1 "The file name of the label data" \
-  -okCmd {set label [ExpandFileName %s1 kFileName_Label]; \
-  read_and_color_labeled_vertices $meshr $meshg $meshb; RestoreView; }]
+  -okCmd {labl_load [ExpandFileName %s1 kFileName_Label] }]
 set tDlogSpecs(SaveLabelAs) [list \
-  -title "Save Label As" \
-  -prompt1 "Save Label:" \
+  -title "Save Selected Label" \
+  -prompt1 "Save Selected Label:" \
   -default1 [list ExpandFileName "" kFileName_Label] \
   -note1 "The file name of the label data to save" \
-  -okCmd {set label [ExpandFileName %s1 kFileName_Label]; \
-  CheckFileAndDoCmd $label write_labeled_vertices} ]
+  -okCmd {labl_save $gnSelectedLabel [ExpandFileName %s1 kFileName_Label] }]
+set tDlogSpecs(ImportAnnotation) [list \
+  -title "Import Annotaion" \
+  -prompt1 "Import Annotation:" \
+  -default1 [list ExpandFileName "" kFileName_Label] \
+  -note1 "The file name of the annotaion" \
+  -okCmd {labl_import_annotation [ExpandFileName %s1 kFileName_Label]; \
+  UpdateAndRedraw;} ]
+set tDlogSpecs(ExportAnnotation) [list \
+  -title "Export Annotaion" \
+  -prompt1 "Export Annotation:" \
+  -default1 [list ExpandFileName "" kFileName_Label] \
+  -note1 "The file name of the annotaion to save" \
+  -okCmd {labl_export_annotation [ExpandFileName %s1 kFileName_Label]} ]
+
 
 set tDlogSpecs(SaveDipolesAs) [list \
   -title "Save Dipoles As" \
@@ -3042,6 +3407,7 @@ set tDlogSpecs(SaveRGBAs) [list \
   -default1 [list ExpandFileName "" kFileName_RGB] \
   -note1 "The file name of the RGB file to save" \
   -okCmd {set rgb [ExpandFileName %s1 kFileName_RGB]; save_rgb} ]
+
 
 proc CheckFileAndDoCmd { iFile iFunction } {
 
@@ -3111,12 +3477,20 @@ pack $wwTop
 ShowToolBar main 1
 
 # set up graph window 
-
 CreateGraphWindow .wwGraph
 CreateGraphFrame .wwGraph.gwGraph
 Graph_UpdateSize
 Graph_HideWindow
 
+# set up label list window
+LblLst_CreateWindow .wwLabelList
+LblLst_CreateLabelList .wwLabelList.lwLabel
+pack .wwLabelList.lwLabel \
+  -fill both \
+  -expand yes
+LblLst_HideWindow
+
+# wacky bindings
 SetKeyBindings
 
 # enable default labels
@@ -3124,8 +3498,14 @@ ShowLabel kLabel_VertexIndex 1
 ShowLabel kLabel_Coords_RAS 1
 ShowLabel kLabel_Coords_Tal 1
 
+# make sure window is shoowing
+MoveToolWindow 0 0
+
+labl_load_color_table $env(CSURF_DIR)/surface_labels.txt
+
+# we did it!
 dputs "Successfully parsed tksurfer.tcl"
 
-#Graph_SetTestData 3 10
 
-MoveToolWindow 0 0
+
+#Graph_SetTestData 3 10
