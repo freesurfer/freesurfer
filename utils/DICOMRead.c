@@ -2,7 +2,7 @@
    DICOM 3.0 reading functions
    Author: Sebastien Gicquel and Douglas Greve
    Date: 06/04/2001
-   $Id: DICOMRead.c,v 1.23 2002/08/21 20:32:19 kteich Exp $
+   $Id: DICOMRead.c,v 1.24 2002/09/10 21:48:48 kteich Exp $
 *******************************************************/
 
 #include <stdio.h>
@@ -330,7 +330,6 @@ int AllocElementData(DCM_ELEMENT *e)
   case DCM_ST: 
   case DCM_TM: 
   case DCM_UI: 
-  case DCM_UNKNOWN: 
     e->d.string = (char *) calloc(e->length+1,sizeof(char));
     e->d.string[e->length] = '\0'; /* add null terminator */
     break;
@@ -394,7 +393,6 @@ int FreeElementData(DCM_ELEMENT *e)
   case DCM_ST: 
   case DCM_TM: 
   case DCM_UI: 
-  case DCM_UNKNOWN: 
     free(e->d.string);
     e->d.string = NULL;
     break;
