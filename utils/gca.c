@@ -280,7 +280,138 @@ dump_gcan(GCA *gca, GCA_NODE *gcan, FILE *fp, int verbose, GCA_PRIOR *gcap)
   return(NO_ERROR) ;
 }
 
+/////////////////////////////////////////////////////////////////////////////
+// the following  assumes that 
+// 1. mri and gca has the same direction cosines and c_(r,a,s).
+// 2. volumes are uniform size
+// 3. only difference is the scale part  
+int
+GCAvoxelToNode(GCA *gca, MRI *mri, int xv, int yv, int zv, int *pxn, 
+               int *pyn, int *pzn)
+{
+  float   xscale, yscale, zscale;
 
+  xscale = mri->xsize / gca->node_spacing ;
+  yscale = mri->ysize / gca->node_spacing ;
+  zscale = mri->zsize / gca->node_spacing ;
+
+  *pxn = nint(xscale*(xv - mri->width/2))+gca->node_width/2;
+  if (*pxn < 0)
+    *pxn = 0 ;
+  else if (*pxn >= gca->node_width)
+    *pxn = gca->node_width-1 ;
+
+  *pyn = nint(yscale*(yv - mri->height/2))+gca->node_height/2;
+  if (*pyn < 0)
+    *pyn = 0 ;
+  else if (*pyn >= gca->node_height)
+    *pyn = gca->node_height-1 ;
+
+  *pzn = nint(zscale*(zv - mri->depth/2))+gca->node_depth/2;
+  if (*pzn < 0)
+    *pzn = 0 ;
+  else if (*pzn >= gca->node_depth)
+    *pzn = gca->node_depth-1 ;
+
+  return(NO_ERROR) ;
+}
+
+int
+GCAvoxelToPrior(GCA *gca, MRI *mri, int xv, int yv, int zv, 
+                    int *pxp, int *pyp, int *pzp)
+{
+  float   xscale, yscale, zscale ;
+
+  xscale = mri->xsize / gca->prior_spacing ;
+  yscale = mri->ysize / gca->prior_spacing ;
+  zscale = mri->zsize / gca->prior_spacing ;
+
+  *pxp = nint(xscale*(xv - mri->width/2))+gca->prior_width/2;
+  if (*pxp < 0)
+    *pxp = 0 ;
+  else if (*pxp >= gca->prior_width)
+    *pxp = gca->prior_width-1 ;
+
+  *pyp = nint(yscale*(yv - mri->height/2))+gca->prior_height/2;
+  if (*pyp < 0)
+    *pyp = 0 ;
+  else if (*pyp >= gca->prior_height)
+    *pyp = gca->prior_height-1 ;
+
+  *pzp = nint(zscale*(zv - mri->depth/2))+gca->prior_depth/2;
+  if (*pzp < 0)
+    *pzp = 0 ;
+  else if (*pzp >= gca->prior_depth)
+    *pzp = gca->prior_depth-1 ;
+
+  return(NO_ERROR) ;
+}
+
+int
+GCAnodeToVoxel(GCA *gca, MRI *mri, int xn, int yn, int zn, int *pxv, 
+               int *pyv, int *pzv)
+{
+  float   xscale, yscale, zscale;
+
+  xscale = mri->xsize / gca->node_spacing ;
+  yscale = mri->ysize / gca->node_spacing ;
+  zscale = mri->zsize / gca->node_spacing ;
+
+  *pxv = nint((xn - gca->node_width/2)/xscale) + mri->width/2;
+  if (*pxv < 0)
+    *pxv = 0 ;
+  else if (*pxv >= mri->width)
+    *pxv = mri->width-1 ;
+
+  *pyv = nint((yn - gca->node_height/2)/yscale) + mri->height/2;
+  if (*pyv < 0)
+    *pyv = 0 ;
+  else if (*pyv >= mri->height)
+    *pyv = mri->height-1 ;
+
+  *pzv = nint((zn - gca->node_depth/2)/ zscale) + mri->depth/2;
+  if (*pzv < 0)
+    *pzv = 0 ;
+  else if (*pzv >= mri->depth)
+    *pzv = mri->depth-1 ;
+
+  return(NO_ERROR) ;
+}
+int
+GCApriorToVoxel(GCA *gca, MRI *mri, int xp, int yp, int zp, int *pxv, 
+               int *pyv, int *pzv)
+{
+  float   xscale, yscale, zscale;
+
+  xscale = mri->xsize / gca->prior_spacing ;
+  yscale = mri->ysize / gca->prior_spacing ;
+  zscale = mri->zsize / gca->prior_spacing ;
+
+  *pxv = nint((xp - gca->prior_width/2)/xscale) + mri->width/2;
+  if (*pxv < 0)
+    *pxv = 0 ;
+  else if (*pxv >= mri->width)
+    *pxv = mri->width-1 ;
+
+  *pyv = nint((yp - gca->prior_height/2)/yscale) + mri->height/2;
+  if (*pyv < 0)
+    *pyv = 0 ;
+  else if (*pyv >= mri->height)
+    *pyv = mri->height-1 ;
+
+  *pzv = nint((zp - gca->prior_depth/2)/ zscale) + mri->depth/2;
+  if (*pzv < 0)
+    *pzv = 0 ;
+  else if (*pzv >= mri->depth)
+    *pzv = mri->depth-1 ;
+
+  return(NO_ERROR) ;
+}
+
+////////////////////////////////////////////////////////////////////////
+// original routines are broken when the voxel size is not
+// 1 mm.
+#if 0
 int
 GCAvoxelToNode(GCA *gca, MRI *mri, int xv, int yv, int zv, int *pxn, 
                int *pyn, int *pzn)
@@ -342,6 +473,7 @@ GCAvoxelToPrior(GCA *gca, MRI *mri, int xv, int yv, int zv, int *pxp,
 
   return(NO_ERROR) ;
 }
+#endif
 
 int
 GCAsourceVoxelToPrior(GCA *gca, MRI *mri, TRANSFORM *transform,
@@ -371,6 +503,7 @@ GCAsourceVoxelToNode(GCA *gca, MRI *mri, TRANSFORM *transform,int xv, int yv, in
   return(NO_ERROR) ;
 }
 
+#if 0
 int
 GCAnodeToVoxel(GCA *gca, MRI *mri, int xn, int yn, int zn, int *pxv, 
                int *pyv, int *pzv)
@@ -437,7 +570,7 @@ GCApriorToVoxel(GCA *gca, MRI *mri, int xp, int yp, int zp, int *pxv,
 
   return(NO_ERROR) ;
 }
-
+#endif
 
 GCA  *
 GCAalloc(int ninputs, float prior_spacing, float node_spacing, int width, int height, int depth, int flags)
