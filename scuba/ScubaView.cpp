@@ -521,6 +521,16 @@ ScubaView::GetWorldToViewTransform () {
   return mWorldToView->GetID();
 }
 
+void
+ScubaView::SetInPlaneIncrement ( ViewState::Plane iInPlane, float iIncrement ){
+  mInPlaneMovementIncrements[iInPlane] = iIncrement;
+}
+
+float
+ScubaView::GetInPlaneIncrement ( ViewState::Plane iInPlane ) {
+  return mInPlaneMovementIncrements[iInPlane];
+}
+
 map<string,string>&
 ScubaView::GetLabelValueMap ( string isSet ) {
   
@@ -1377,8 +1387,11 @@ ScubaView::DoListenToMessage ( string isMessage, void* iData ) {
 
   if( isMessage == "cursorChanged" ) {
 
-    // If we're locked on the cursor, set our view now.
-    if( mbLockOnCursor ) {
+    // If we're locked on the cursor, and the cursor is no longer in
+    // our view plane, set our view now.
+    if( mbLockOnCursor && 
+	!mViewState.IsRASVisibleInPlane( mCursor.xyz(), 
+		     mInPlaneMovementIncrements[mViewState.mInPlane] )) {
       Set2DRASCenter( mCursor.xyz() );
     }
 
