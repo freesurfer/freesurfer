@@ -14,7 +14,7 @@
 #include "macros.h"
 #include "fio.h"
 
-static char vcid[] = "$Id: mris_anatomical_stats.c,v 1.5 2000/02/09 13:42:12 fischl Exp $";
+static char vcid[] = "$Id: mris_anatomical_stats.c,v 1.6 2000/09/19 20:07:32 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -48,6 +48,8 @@ static int histo_flag = 0 ;
 static char *gray_histo_name ;
 static char *mri_name = "T1" ;
 
+static char *log_file_name = NULL ;
+
 int
 main(int argc, char *argv[])
 {
@@ -58,9 +60,11 @@ main(int argc, char *argv[])
   double        gray_volume, wm_volume, thickness_mean, thickness_var,
                 total_abs_curvature, ici, fi ;
   int           mark = 0 ;
+  FILE          *log_fp = NULL ;
   VERTEX        *v ;
   HISTOGRAM     *histo_gray ;
 
+  total_abs_curvature = gray_volume = 0.0 ;
   Progname = argv[0] ;
   ErrorInit(NULL, NULL, NULL) ;
   DiagInit(NULL, NULL, NULL) ;
@@ -170,7 +174,15 @@ main(int argc, char *argv[])
   if (annotation_name)
     MRISreadAnnotFile(mris, annotation_name) ;
   fprintf(stderr, "done.\n") ;
-  
+
+  if (log_file_name)
+  {
+    log_fp = fopen(log_file_name, "a") ;
+    if (!log_fp)
+      ErrorExit(ERROR_NOFILE, "%s: could not open log file %s", Progname, 
+                log_file_name) ;
+  }
+    
   fprintf(stdout, "total white matter volume               = %2.0f mm^3\n", 
           wm_volume) ;
   for (vno = 0 ; vno < mris->nvertices ; vno++)
@@ -208,17 +220,17 @@ main(int argc, char *argv[])
       MRIScopyCurvatureFromImagValues(mris) ;  /* restore thickness measures */
       MRIScomputeCurvatureStats(mris, &thickness_mean, &thickness_var,
                                 ignore_below, ignore_above) ;
-      
-      fprintf(stdout, "total surface area                      = %2.0f mm^2\n", 
+
+      fprintf(stdout, "total surface area                      = %2.0f mm^2\n",
               mris->total_area) ;
       
       gray_volume = MRISmeasureCorticalGrayMatterVolume(mris) ;
-      fprintf(stdout, "total gray matter volume                = %2.0f mm^3\n", 
+      fprintf(stdout, "total gray matter volume                = %2.0f mm^3\n",
               gray_volume) ;
-      
+
       fprintf(stdout, 
-              "average cortical thickness              = %2.3f mm +- %2.3f mm\n",
-              thickness_mean, sqrt(thickness_var)) ;
+            "average cortical thickness              = %2.3f mm +- %2.3f mm\n",
+            thickness_mean, sqrt(thickness_var)) ;
       
       MRISuseMeanCurvature(mris) ;
       total_abs_curvature = MRIScomputeAbsoluteCurvature(mris) ;
@@ -230,7 +242,7 @@ main(int argc, char *argv[])
               total_abs_curvature) ;
       MRIScomputeCurvatureIndices(mris, &ici, &fi) ;
       fprintf(stdout, "folding index                           = %2.3f\n", fi);
-      fprintf(stdout, "intrinsic curvature index               = %2.3f\n", ici);
+      fprintf(stdout, "intrinsic curvature index               = %2.3f\n",ici);
       MRISrestoreSurface(mris) ;
       MRISreplaceMarks(mris, mark, -1) ;
       MRISripVerticesWithMark(mris, -1) ;
@@ -266,6 +278,20 @@ main(int argc, char *argv[])
     fprintf(stdout, "folding index                           = %2.3f\n", fi);
     fprintf(stdout, "intrinsic curvature index               = %2.3f\n", ici);
   }
+  if (log_fp)
+  {
+    fprintf(log_fp, "%% <wm vol> <surf area> <gray vol> <thick mean> <thick var> <integ rect. Gauss curv> <fold index> <intr curv ind>\n") ;
+    fprintf(log_fp, "%2.0f\t%2.0f\t%2.0f\t%2.3f\t%2.3f\t%2.3f\t%2.3f\t%2.3f\n", 
+            wm_volume,
+            mris->total_area,
+            gray_volume,
+            thickness_mean, 
+            sqrt(thickness_var), 
+            total_abs_curvature, 
+            fi, 
+            ici) ;
+    fclose(log_fp) ;
+  }
   if (histo_flag)
   {
     fprintf(stderr, "plotting gray matter histogram to file %s...\n",
@@ -294,6 +320,12 @@ get_option(int argc, char *argv[])
     print_help() ;
   else if (!stricmp(option, "-version"))
     print_version() ;
+  else if (!stricmp(option, "log"))
+  {
+    log_file_name = argv[2] ;
+    nargs = 1 ;
+    fprintf(stderr, "outputting results to %s...\n", log_file_name) ;
+  }
   else switch (toupper(*option))
   {
   case 'T':
