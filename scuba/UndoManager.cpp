@@ -104,11 +104,17 @@ UndoManager::Undo () {
     UndoableAction* undoableAction =  mUndoActions.back();
     if( NULL != undoableAction ) {
       mUndoActions.pop_back();
-      
-      list<UndoAction*>::iterator tActions;
-      for( tActions = undoableAction->mActions.begin();
-	   tActions != undoableAction->mActions.end(); 
+
+      // We use a revers iterator here so that the most recently done
+      // actions are undone first, and the first done are undone
+      // last. This works for an edit where the same voxel is edited
+      // multiple times in the same action, as in a brush action, so
+      // that the first value is restored last.
+      list<UndoAction*>::reverse_iterator tActions;
+      for( tActions = undoableAction->mActions.rbegin();
+	   tActions != undoableAction->mActions.rend(); 
 	   ++tActions ) {
+
 	UndoAction* action = *tActions;
 	action->Undo();
       }
@@ -126,9 +132,9 @@ UndoManager::Redo () {
     if( NULL != redoableAction ) {
       mRedoActions.pop_back();
       
-      list<UndoAction*>::iterator tActions;
-      for( tActions = redoableAction->mActions.begin();
-	   tActions != redoableAction->mActions.end(); 
+      list<UndoAction*>::reverse_iterator tActions;
+      for( tActions = redoableAction->mActions.rbegin();
+	   tActions != redoableAction->mActions.rend(); 
 	   ++tActions ) {
 	UndoAction* action = *tActions;
 	action->Redo();

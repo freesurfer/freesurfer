@@ -17,8 +17,8 @@ using namespace std;
 int const ScubaView::kBytesPerPixel = 4;
 map<int,bool> ScubaView::mViewIDLinkedList;
 Point3<float> ScubaView::mCursor( 0, 0, 0 );
-int ScubaView::mcMarkers = 0;
-int ScubaView::mNextMarker = -1;
+int ScubaView::mcMarkers = 50;
+int ScubaView::mNextMarker = 0;
 std::map<int,Point3<float> > ScubaView::mMarkerRAS;
 std::map<int,bool> ScubaView::mMarkerVisible;
 ScubaViewStaticTclListener ScubaView::mStaticListener;
@@ -1039,7 +1039,7 @@ ScubaView::DoListenToMessage ( string isMessage, void* iData ) {
 void
 ScubaView::DoDraw() {
 
-#if 1
+#ifdef SHOW_FPS
   ::Timer timer;
   timer.Start();
 #endif
@@ -1048,7 +1048,7 @@ ScubaView::DoDraw() {
   DrawFrameBuffer();
   DrawOverlay();
 
-#if 1
+#ifdef SHOW_FPS
   int msec = timer.TimeNow();
   float fps = 1.0 / ((float)msec/1000.0);
 
@@ -1906,6 +1906,27 @@ ScubaView::SetNumberOfMarkers ( int icMarkers ) {
     mNextMarker = 0;
 }
 
+bool
+ScubaView::IsNthMarkerVisible ( int inMarker ) {
+
+  if( inMarker >= 0 && inMarker < mcMarkers ) {
+      return mMarkerVisible[inMarker];
+  } else {
+    throw runtime_error( "Marker index is out of bounds" );
+  }
+}
+
+void
+ScubaView::GetNthMarker ( int inMarker, float oMarkerRAS[3] ) {
+
+  if( inMarker >= 0 && inMarker < mcMarkers ) {
+    oMarkerRAS[0] = mMarkerRAS[inMarker].x();
+    oMarkerRAS[1] = mMarkerRAS[inMarker].y();
+    oMarkerRAS[2] = mMarkerRAS[inMarker].z();
+  } else {
+    throw runtime_error( "Marker index is out of bounds" );
+  }
+}
 
 int
 ScubaView::GetFirstUnusedDrawLevel () {
@@ -2382,7 +2403,6 @@ ScubaViewStaticTclListener::DoListenToTclCommand ( char* isCommand,
       ssReturnValues << ScubaView::GetNumberOfMarkers();
       sReturnValues = ssReturnValues.str();
   }
-
 
   return ok;
 }

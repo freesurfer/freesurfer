@@ -10,7 +10,7 @@ if { $err } {
     load [file dirname [info script]]/libscuba[info sharedlibextension] scuba
 }
 
-DebugOutput "\$Id: scuba.tcl,v 1.52 2004/09/03 21:49:33 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.53 2004/09/10 03:37:52 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -177,6 +177,17 @@ proc GetDefaultFileLocation { iType } {
 	    LUT {
 		if { [info exists env(FREESURFER_HOME)] } {
 		    set gsaDefaultLocation($iType) $env(FREESURFER_HOME)
+		} else {
+		    set gsaDefaultLocation($iType) [exec pwd]
+		}	       
+	    }
+	    ControlPoints {
+		if { [info exists env(SUBJECTS_DIR)] } {
+		    if { [info exists gSubject(homeDir)] } {
+			set gsaDefaultLocation($iType) $gSubject(homeDir)/tmp
+		    } else {
+			set gsaDefaultLocation($iType) $env(SUBJECTS_DIR)
+		    }
 		} else {
 		    set gsaDefaultLocation($iType) [exec pwd]
 		}	       
@@ -432,6 +443,11 @@ proc MakeMenuBar { ifwTop } {
 	{command "Export ROIs as Segmenation..." { DoExportROIsDlog } }
 	{separator}
 	{command "Load Transform..." { DoLoadTransformDlog } }
+	{separator}
+	{command "Import Markers from Control Points..."
+	    { DoImportMarkersFromControlPointsDlog } }
+	{command "Export Markers to Control Points..." 
+	    { DoExportMarkersToControlPointsDlog } }
 	{separator}
 	{command "Save RGB Capture..." { DoSaveRGBDlog } }
 	{separator}
@@ -1191,6 +1207,7 @@ proc MakeDataCollectionsPropertiesPanel { ifwTop } {
     global gaCollection
     global gaROI
     global glShortcutDirs
+    global gaMenuSubscribers
 
     set fwTop        $ifwTop.fwCollectionsProps
     set fwProps      $fwTop.fwProps
@@ -1281,7 +1298,7 @@ proc MakeDataCollectionsPropertiesPanel { ifwTop } {
 	-command { SurfaceTransformVolumeMenuCallback }
     set gaWidget(collectionProperties,surfaceTransformMenu) \
 	$fwPropsSurface.owTransformVolume
-
+    lappend gaMenuSubscribers(collections) $fwPropsSurface.owTransformVolume
     
 
     grid $fwPropsSurface.owTransformVolume -column 0 -row 2 -sticky ew
@@ -1375,6 +1392,8 @@ proc MakeToolsPanel { ifwTop } {
     global gaWidget
     global gaTool
     global gaView
+    global glShortcutDirs
+    global gaMenuSubscribers
 
     set fwTop        $ifwTop.fwToolsProps
     set fwProps      $fwTop.fwProps
@@ -1464,6 +1483,7 @@ proc MakeToolsPanel { ifwTop } {
 	-variable gatool(current,floodSourceCollection) \
 	-command { ToolFloodSourceCollectionMenuCallback }
     set gaWidget(toolProperties,floodSourceCollectionMenu) $fwPropsFillSub.owSourceCollection
+    lappend gaMenuSubscribers(collections) $fwPropsFillSub.owSourceCollection
 
     tkuMakeCheckboxes $fwPropsFillSub.cbFillOptions \
 	-font [tkuNormalFont] \
@@ -1517,7 +1537,7 @@ proc MakeToolsPanel { ifwTop } {
 	-notify 1
     set gaWidget(toolProperties,numMarkersEntry) $fwPropsMarkerSub.ewNumMarkers
 
-    grid $fwPropsMarkerSub.ewNumMarkers -column 0 -row 0 -sticky ew
+    grid $fwPropsMarkerSub.ewNumMarkers          -column 0 -row 0 -sticky ew
 
     set gaWidget(toolProperties,marker) $fwPropsMarker
 
@@ -1837,6 +1857,7 @@ proc MakeTransformsPanel { ifwTop } {
 
     global gaWidget
     global gaTransform
+    global gaMenuSubscribers
 
     set fwTop          $ifwTop.fwTransforms
     set fwProps        $fwTop.fwProps
@@ -1905,6 +1926,7 @@ proc MakeTransformsPanel { ifwTop } {
 	-variable gaTransform(current,regSource) \
 	-command { TransformSourceRegistrationMenuCallback }
     set gaWidget(transformProperties,regSourceMenu) $fwProps.owSource
+    lappend gaMenuSubscribers(collections)  $fwProps.owSource
 
     grid $fwProps.owSource -column 0 -row 9 -columnspan 4 -sticky ew
 
@@ -1913,6 +1935,7 @@ proc MakeTransformsPanel { ifwTop } {
 	-variable gaTransform(current,regDest) \
 	-command { TransformDestRegistrationMenuCallback }
     set gaWidget(transformProperties,regDestMenu) $fwProps.owDest
+    lappend gaMenuSubscribers(collections)  $fwProps.owDest
 
     grid $fwProps.owDest -column 0 -row 10 -columnspan 4 -sticky ew
 
@@ -2071,8 +2094,9 @@ proc UpdateCollectionList {} {
 
     global gaWidget
     global gaCollection
+    global gaMenuSubscribers
 
-    # Get the layer ID list and build the menu.
+    # Get the layer ID list.
     set gaCollection(idList) [GetDataCollectionIDList]
     FillMenuFromList $gaWidget(collectionProperties,menu) \
 	$gaCollection(idList) "GetCollectionLabel %s" {} false
@@ -2083,17 +2107,11 @@ proc UpdateCollectionList {} {
 	SelectCollectionInCollectionProperties $gaCollection(current,id)
     }
 
-    # Build source and dest menus in transforms.
-    FillMenuFromList $gaWidget(transformProperties,regSourceMenu) \
-	$gaCollection(idList) "GetCollectionLabel %s" {} false
-    FillMenuFromList $gaWidget(transformProperties,regDestMenu) \
-	$gaCollection(idList) "GetCollectionLabel %s" {} false
-
-    FillMenuFromList $gaWidget(collectionProperties,surfaceTransformMenu) \
-	$gaCollection(idList) "GetCollectionLabel %s" {} false
-
-    FillMenuFromList $gaWidget(toolProperties,floodSourceCollectionMenu) \
-	$gaCollection(idList) "GetCollectionLabel %s" {} true
+    # Update the menus.
+    foreach ow $gaMenuSubscribers(collections) {
+	FillMenuFromList $ow \
+	    $gaCollection(idList) "GetCollectionLabel %s" {} false
+    }
 
     UpdateROIList
 }
@@ -4015,6 +4033,65 @@ proc DoSaveRGBDlog {} {
 	    CaptureFrameToFile [GetMainFrameID] %s1
 	}
 }
+
+proc DoExportMarkersToControlPointsDlog {} {
+    dputs "DoExportMarkersToControlPointsDlog "
+
+    global gaCollection
+    global glShortcutDirs
+
+    if { [info exists gaCollection(current,id)] &&
+	 $gaCollection(current,id) >= -1 &&
+	 "$gaCollection(current,type)" == "Volume" } {
+	
+	tkuDoFileDlog -title "Export Markers to Control Points" \
+	    -prompt1 "Will save the markers as control points using \n \"$gaCollection(current,label)\":" \
+	    -defaultdir1 [GetDefaultFileLocation ControlPoints] \
+	    -defaultvalue1 [file join [GetDefaultFileLocation ControlPoints] control.dat]\
+	    -shortcuts $glShortcutDirs \
+	    -okCmd { 
+		set err [catch { 
+		    ExportMarkersToControlPoints $gaCollection(current,id) %s1
+		} sResult]
+		if { $err != 0 } { tkuErrorDlog $sResult; return }
+		SetStatusBarText "Exported control points."
+	    }
+	
+    } else {
+	tkuErrorDlog "You must first select a volume. Please select one in the data collections panel."
+    }
+}
+
+proc DoImportMarkersFromControlPointsDlog {} {
+    dputs "DoImportMarkersFromControlPointsDlog  "
+
+    global gaCollection
+    global gaWidget
+    global glShortcutDirs
+
+    if { [info exists gaCollection(current,id)] &&
+	 $gaCollection(current,id) >= -1 &&
+	 "$gaCollection(current,type)" == "Volume" } {
+
+	tkuDoFileDlog -title "Import Markers from Control Points" \
+	    -prompt1 "Will import control points as markers using volume\n \"$gaCollection(current,label)\":" \
+	    -defaultdir1 [GetDefaultFileLocation ControlPoints] \
+	    -defaultvalue1 [file join [GetDefaultFileLocation ControlPoints] control.dat]\
+	    -shortcuts $glShortcutDirs \
+	    -okCmd { 
+		set err [catch {
+		   ImportMarkersFromControlPoints $gaCollection(current,id) %s1
+		} sResult]
+		if { $err != 0 } { tkuErrorDlog $sResult; return }
+		set gaView(numMarkers) [GetNumberOfViewMarkers]
+		tkuRefreshEntryNotify $gaWidget(toolProperties,numMarkersEntry)
+		SetStatusBarText "Imported control points."	    }
+	
+    } else {
+	tkuErrorDlog "You must first select a volume. Please select one in the data collections panel."
+    }
+}
+
 
 
 # MAIN =============================================================

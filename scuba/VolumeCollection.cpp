@@ -4,6 +4,7 @@
 #include <vector>
 extern "C" {
 #include "error.h"
+#include "ctrpoints.h"
 }
 #include "VolumeCollection.h"
 #include "DataManager.h"
@@ -11,6 +12,7 @@ extern "C" {
 #include "Utilities.h"
 #include "PathManager.h"
 #include "VectorOps.h"
+#include "ScubaView.h"
 
 using namespace std;
 
@@ -58,6 +60,12 @@ VolumeCollection::VolumeCollection () :
 			 "collectionID", "Returns whether or not a volume "
 			 "is using its Data to Index transform "
 			 "(usually RAS transform) in displaying data." );
+  commandMgr.AddCommand( *this, "ExportMarkersToControlPoints", 2, 
+			 "collectionID fileName", 
+			 "Writes the markers to a control.dat file." );
+  commandMgr.AddCommand( *this, "ImportMarkersFromControlPoints", 2,
+			 "collectionID fileName", 
+			 "Imports markers from a control.dat file." );
 }
 
 VolumeCollection::~VolumeCollection() {
@@ -618,6 +626,36 @@ VolumeCollection::DoListenToTclCommand ( char* isCommand,
     }
   }
 
+  // ImportMarkersFromControlPoints <collectionID> <fileName>
+  if( 0 == strcmp( isCommand, "ImportMarkersFromControlPoints" ) ) {
+    int collectionID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad collection ID";
+      return error;
+    }
+    
+    if( mID == collectionID ) {
+      
+      string fnControlPoints = iasArgv[2];
+      ImportMarkersFromControlPoints( fnControlPoints );
+    }
+  }
+  
+  // ExportMarkersToControlPoints <collectionID> <fileName>
+  if( 0 == strcmp( isCommand, "ExportMarkersToControlPoints" ) ) {
+    int collectionID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad collection ID";
+      return error;
+    }
+    
+    if( mID == collectionID ) {
+      
+      string fnControlPoints = iasArgv[2];
+      ExportMarkersToControlPoints( fnControlPoints );
+    }
+  }
+  
   return DataCollection::DoListenToTclCommand( isCommand, iArgc, iasArgv );
 }
 
@@ -920,6 +958,29 @@ VolumeCollection::FindRASPointsInSquare ( float iPointA[3], float iPointB[3],
 }
 
 void
+VolumeCollection::FindRASPointsInCircle ( float iPointA[3], float iPointB[3],
+					  float iPointC[3], float iPointD[3],
+					  float iMaxDistance,
+					  float iCenter[3], float iRadius,
+					  list<Point3<float> >& oPoints ) {
+
+  list<Point3<float> > squarePoints;
+  FindRASPointsInSquare( iPointA, iPointB, iPointC, iPointD, 
+			 iMaxDistance, squarePoints );
+
+  Point3<float> center( iCenter );
+  list<Point3<float> >::iterator tPoints;
+  for( tPoints = squarePoints.begin(); tPoints != squarePoints.end();
+       ++tPoints ) {
+
+    Point3<float> point = *tPoints;
+    if( VectorOps::Distance( point, center ) <= iRadius ) {
+      oPoints.push_back( point );
+    }
+  }
+}
+
+void
 VolumeCollection::WriteROIToLabel ( int iROIID, string ifnLabel ) {
   
   map<int,ScubaROI*>::iterator tIDROI;
@@ -1120,6 +1181,100 @@ VolumeCollection::CalcWorldToIndexTransform () {
 
   DataChanged();
 }
+
+void
+VolumeCollection::ImportMarkersFromControlPoints ( string ifnControlPoints ) {
+
+  int cControlPoints;
+  int bUseRealRAS;
+  char* fnControlPoints = strdup( ifnControlPoints.c_str() );
+  MPoint* aControlPoints = 
+    MRIreadControlPoints( fnControlPoints, &cControlPoints, &bUseRealRAS );
+  free( fnControlPoints );
+  if( NULL == aControlPoints ) {
+    throw runtime_error( "Couldn't read control points file." );
+  }
+
+  // Set the number of markers if we don't have enough.
+  int cMarkers = ScubaView::GetNumberOfMarkers();
+  if( cMarkers < cControlPoints ) {
+    ScubaView::SetNumberOfMarkers( cControlPoints );
+  }
+
+  for( int nControlPoint = 0; nControlPoint < cControlPoints; nControlPoint++){
+
+    float newMarker[3];
+    if( !bUseRealRAS ) {
+
+      // We're getting surface RAS points. Need to convert to normal
+      // RAS points.
+      Real surfaceRAS[3];
+      Real ras[3];
+      surfaceRAS[0] = aControlPoints[nControlPoint].x;
+      surfaceRAS[1] = aControlPoints[nControlPoint].y;
+      surfaceRAS[2] = aControlPoints[nControlPoint].z;
+      MRIsurfaceRASToRAS( mMRI, surfaceRAS[0], surfaceRAS[1], surfaceRAS[2],
+			  &ras[0], &ras[1], &ras[2] );
+      newMarker[0] = ras[0];
+      newMarker[1] = ras[1];
+      newMarker[2] = ras[2];
+
+    } else {
+
+      // Already in real ras.
+      newMarker[0] = aControlPoints[nControlPoint].x;
+      newMarker[1] = aControlPoints[nControlPoint].y;
+      newMarker[2] = aControlPoints[nControlPoint].z;
+    }
+
+    ScubaView::SetNextMarker( newMarker );
+  }
+
+  free( aControlPoints );
+}
+
+void
+VolumeCollection::ExportMarkersToControlPoints ( string ifnControlPoints ) {
+
+  int cControlPoints = 0;
+  int cMarkers = ScubaView::GetNumberOfMarkers();
+  for( int nMarker = 0; nMarker < cMarkers; nMarker++ ) {
+    if( ScubaView::IsNthMarkerVisible( nMarker ) ) {
+      cControlPoints++;
+    }
+  }
+  
+  if( 0 == cControlPoints ) {
+    return;
+  }
+  
+  MPoint* aControlPoints = (MPoint*) calloc( sizeof(MPoint), cControlPoints );
+  if( NULL == aControlPoints ) {
+    throw runtime_error( "Couldn't allocate control point storage." );
+  }
+
+  int nControlPoint = 0;
+  float markerRAS[3];
+  for( int nMarker = 0; nMarker < cMarkers; nMarker++ ) {
+    if( ScubaView::IsNthMarkerVisible( nMarker ) ) {
+      ScubaView::GetNthMarker( nMarker, markerRAS );
+      aControlPoints[nControlPoint].x = markerRAS[0];
+      aControlPoints[nControlPoint].y = markerRAS[1];
+      aControlPoints[nControlPoint].z = markerRAS[2];
+      nControlPoint++;
+    }
+  }
+
+  char* fnControlPoints = strdup( ifnControlPoints.c_str() );
+  int rWrite = MRIwriteControlPoints( aControlPoints, cControlPoints, 
+				      true, fnControlPoints );
+  free( fnControlPoints );
+
+  if( NO_ERROR != rWrite ) {
+    throw runtime_error( "Couldn't write control point file." );
+  }
+}
+
 
 
 VolumeCollectionFlooder::VolumeCollectionFlooder () {

@@ -137,7 +137,19 @@ class VolumeCollection : public DataCollection {
 			       float iPointC[3], float iPointD[3],
 			       float iMaxDistance, // optional
 			       std::list<Point3<float> >& oPoints );
+  void FindRASPointsInCircle ( float iPointA[3], float iPointB[3],
+			       float iPointC[3], float iPointD[3],
+			       float iMaxDistance, // optional
+			       float iCenter[3], float iRadius,
+			       std::list<Point3<float> >& oPoints );
 
+  // Import and export markers from a control point file. Import sets
+  // the markers; if there are more than the number of markers, sets
+  // the number of markers to the number of control points. Export
+  // just saves all visible markers to a file.
+  void ImportMarkersFromControlPoints ( std::string ifnControlPoints );
+  void ExportMarkersToControlPoints ( std::string ifnControlPoints );
+  
 protected:
 
   // Gets information from the MRI structure.

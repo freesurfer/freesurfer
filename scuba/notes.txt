@@ -314,7 +314,7 @@ DRAWING TOOLS:::
 x closed line tool
   x click with button 2 to set vertices
   x line is drawn between vertices (no drag required)
-  - use key to close line
+  x use key to close line
 
 x new volume command
   x menu to select volume to use as template
@@ -357,6 +357,12 @@ x fix brush radius
   x be able to set radius < 0.1
   - be able to set by voxel radius instead of mm
 
+- brush
+  - simplify FindRASPointsInSquare/Circle 
+    - pass center and normal instead of square
+    - find square bounds within funtion
+    - should work on oblique view planes
+
 - autosave labels
 
 x button help balloons
@@ -369,7 +375,7 @@ BRUCE'S LIST:::
 x data collection transform 
 x markers
 - b/c controled by mouse, perhaps mod+mouse when nav tool is on
-
+x import/export control points
 
 BUGS:::
 - tabbing when in console switches frame, disable?
@@ -381,8 +387,6 @@ BUGS:::
   - lines not picked up (only first vertex is checked)
   - circle brush doesn't work in proper plane
   - fill not in view plane
-- undo doesn't undo all painted voxels
-  - don't add duplicate voxels to an undo action
 - new value stuff doesn't show up unless you click Tools panel first, then click voxelEditing button
 
 

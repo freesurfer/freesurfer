@@ -94,6 +94,18 @@ public:
   // Get the inplane marker color.
   void GetInPlaneMarkerColor ( float oColor[3] );
 
+  // Sets a marker in the view, wrapping around the number of markers.
+  static void SetNextMarker ( float iRAS[3] );
+  static void HideNearestMarker ( float iRAS[3] );
+  
+  // Sets the number of markers to use, as well as initializes new
+  // markers.
+  static void SetNumberOfMarkers ( int icMarkers );
+  static int GetNumberOfMarkers () { return mcMarkers; }
+
+  static bool IsNthMarkerVisible ( int inMarker );
+  static void GetNthMarker ( int inMarker, float oMarkerRAS[3] );
+
 protected:
 
   // Tells all the layers to draw in the correct order to the frame
@@ -139,15 +151,6 @@ protected:
 
   // Sets the cursor, a single special marker.
   static void SetCursor ( float iRAS[3] );
-
-  // Sets a marker in the view, wrapping around the number of markers.
-  static void SetNextMarker ( float iRAS[3] );
-  static void HideNearestMarker ( float iRAS[3] );
-  
-  // Sets the number of markers to use, as well as initializes new
-  // markers.
-  static void SetNumberOfMarkers ( int icMarkers );
-  static int GetNumberOfMarkers () { return mcMarkers; }
 
   // The different steps in building our display. BuildFrameBuffer()
   // tells all the layers to copy their data to the frame

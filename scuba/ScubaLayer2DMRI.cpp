@@ -996,6 +996,9 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
 
       if( iInput.IsButtonDown() ) {
 
+	// Find a square centered on the point we clicked with the
+	// radius of the brush radius. TODO: make it in the viewing
+	// plane.
 	Point3<float> sq[4];
 	float rad = iTool.GetBrushRadius();
 	switch( iViewState.mInPlane ) {
@@ -1028,9 +1031,9 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
 					  points );
 	  } break;
 	case ScubaToolState::circle:
-	  mVolume->FindRASPointsInSquare( sq[0].xyz(), sq[1].xyz(),
+	  mVolume->FindRASPointsInCircle( sq[0].xyz(), sq[1].xyz(),
 					  sq[2].xyz(), sq[3].xyz(),
-					  0,
+					  0, iRAS, rad,
 					  points );
 	  break;
 	}
