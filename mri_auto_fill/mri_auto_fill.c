@@ -1,3 +1,14 @@
+//
+// mri_auto_fill.c
+//
+// written by Bruce Fischl
+//
+// Warning: Do not edit the following four lines.  CVS maintains them.
+// Revision Author: $Author: tosa $
+// Revision Date  : $Date: 2004/02/09 21:59:37 $
+// Revision       : $Revision: 1.9 $
+//
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -13,6 +24,7 @@
 #include "transform.h"
 #include "timer.h"
 #include "version.h"
+#include "gcamorph.h"
 
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
@@ -46,6 +58,7 @@ static float pct = 95.0f ;
 static float nsigma = 0.1f ;
 static int fix = 0 ;
 static int dilate = 0 ;
+int old_flag = 0; // use M3Dmorph instead of GCAmorph
 
 int
 main(int argc, char *argv[])
@@ -59,11 +72,12 @@ main(int argc, char *argv[])
   char   *filled_fname, *template_fname, *out_fname, *xform_fname, fname[100],
          *T1_fname ;
   M3D    *m3d ;
+  GCAM   *gcam;
   struct  timeb start ;
   int     msec ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_auto_fill.c,v 1.8 2003/09/05 04:45:32 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_auto_fill.c,v 1.9 2004/02/09 21:59:37 tosa Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -89,12 +103,24 @@ main(int argc, char *argv[])
   filled_fname = argv[1] ; T1_fname = argv[2] ; xform_fname = argv[3] ;
   template_fname = argv[4] ; out_fname = argv[5] ;
 
+  /////////////////////////////////////////////////////////////////////
   fprintf(stderr, "reading transform %s...", xform_fname) ;
-  m3d = MRI3DreadSmall(xform_fname) ;
-  if (!m3d)
-    ErrorExit(ERROR_NOFILE, "%s: could not open transform file %s\n",
-              Progname, xform_fname) ;
+  if (old_flag)
+  {
+    m3d = MRI3DreadSmall(xform_fname) ;
+    if (!m3d)
+      ErrorExit(ERROR_NOFILE, "%s: could not open transform file %s\n",
+		Progname, xform_fname) ;
+  }
+  else
+  {
+    gcam = GCAMread(xform_fname);
+    if (!gcam)
+      ErrorExit(ERROR_NOFILE, "%s: could not open transform file %s\n",
+		Progname, xform_fname) ;
+  }
   fprintf(stderr, "done.\n") ;
+  /////////////////////////////////////////////////////////////////////
 
   /* left hemisphere filled volume */
   if (strchr(template_fname, '#') == NULL)
@@ -120,10 +146,17 @@ main(int argc, char *argv[])
   if (!mri_rh_template)
     ErrorExit(ERROR_NOFILE, "%s: could not read rh template volume %s.\n",
               Progname, template_fname) ;
+  /////////////////////////////////////////////////////////////////////////
   fprintf(stderr, "applying inverse transform...\n") ;
-  mri_rh_inverse_template = MRIapplyInverse3DMorph(mri_rh_template,m3d,NULL);
+  if (old_flag)
+    mri_rh_inverse_template = MRIapplyInverse3DMorph(mri_rh_template,m3d,NULL);
+  else
+  {
+    mri_rh_inverse_template = MRIclone(mri_rh_template, NULL);
+    mri_rh_inverse_template = GCAMmorphFromAtlas(mri_rh_template, gcam, mri_rh_inverse_template);
+  }
   MRIfree(&mri_rh_template) ;
-
+  /////////////////////////////////////////////////////////////////////////
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
   {
     fprintf(stderr, "writing inverse image to lh and rh_inverse.mgh\n") ;
@@ -138,25 +171,42 @@ main(int argc, char *argv[])
   if (!mri_tmp)
     ErrorExit(ERROR_NOFILE, "%s: could not read T1 template volume %s.\n",
               Progname, fname) ;
-  mri_inv_T1 = MRIapplyInverse3DMorph(mri_tmp, m3d, NULL);
+  ///////////////////////////////////////////////////////////////////////////
+  if (old_flag)
+    mri_inv_T1 = MRIapplyInverse3DMorph(mri_tmp, m3d, NULL);
+  else
+  {
+    mri_inv_T1 = MRIclone(mri_tmp, NULL);
+    mri_inv_T1 = GCAMmorphFromAtlas(mri_tmp, gcam, mri_inv_T1);
+  }
   MRIfree(&mri_tmp) ;
-
+  //////////////////////////////////////////////////////////////////////////
   if (strchr(template_fname, '#') == NULL)
     sprintf(fname, "%s#%d", template_fname, 1);
   mri_tmp = MRIread(fname) ;
   if (!mri_tmp)
     ErrorExit(ERROR_NOFILE, "%s: could not read T1 template volume %s.\n",
               Progname, fname) ;
-  mri_inv_T1_std = MRIapplyInverse3DMorph(mri_tmp, m3d, NULL);
+  //////////////////////////////////////////////////////////////////////////
+  if (old_flag)
+    mri_inv_T1_std = MRIapplyInverse3DMorph(mri_tmp, m3d, NULL);
+  else
+  {
+    mri_inv_T1_std = MRIclone(mri_tmp, NULL);
+    mri_inv_T1_std = GCAMmorphFromAtlas(mri_tmp, gcam, mri_inv_T1_std);
+  }
   MRIfree(&mri_tmp) ;
-
+  //////////////////////////////////////////////////////////////////////////
   mri_T1 = MRIread(T1_fname) ;
   if (!mri_T1)
     ErrorExit(ERROR_NOFILE, "%s: could not read T1 volume %s.\n",
               Progname, T1_fname) ;
-
-
-  MRI3DmorphFree(&m3d) ;
+  //////////////////////////
+  if (old_flag)
+    MRI3DmorphFree(&m3d) ;
+  else
+    GCAMfree(&gcam);
+  //////////////////////////
 
   mri_filled = MRIread(filled_fname) ;
   if (!mri_filled)
@@ -182,17 +232,36 @@ main(int argc, char *argv[])
   mri_lv = MRIread(ventricle_fname) ;
   if (!mri_lv)
     ErrorExit(ERROR_NOFILE,"%s: could not read %s",Progname,ventricle_fname);
+
+
   fprintf(stderr, "reading transform %s...", xform_fname) ;
-  m3d = MRI3DreadSmall(xform_fname) ;
-  if (!m3d)
-    ErrorExit(ERROR_NOFILE, "%s: could not open transform file %s\n",
-              Progname, xform_fname) ;
+  //////////////////////////////////////////////////////////////////////////
+  if (old_flag)
+  {
+    m3d = MRI3DreadSmall(xform_fname) ;
+    if (!m3d)
+      ErrorExit(ERROR_NOFILE, "%s: could not open transform file %s\n",
+		Progname, xform_fname) ;
+    mri_inv_lv = MRIapplyInverse3DMorph(mri_lv,m3d,NULL);
+    MRI3DmorphFree(&m3d) ;
+  }
+  else
+  {
+    gcam = GCAMread(xform_fname);
+    if (!gcam)
+      ErrorExit(ERROR_NOFILE, "%s: could not open transform file %s\n",
+		Progname, xform_fname) ;
+    mri_inv_lv = MRIclone(mri_lv, NULL);
+    mri_inv_lv = GCAMmorphFromAtlas(mri_lv, gcam, mri_inv_lv);
+    GCAMfree(&gcam);
+  }
   fprintf(stderr, "done.\n") ;
-  mri_inv_lv = MRIapplyInverse3DMorph(mri_lv,m3d,NULL);
-  MRI3DmorphFree(&m3d) ;
+  ///////////////////////////////////////////////////////////////////////////
+
   if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
     MRIwrite(mri_inv_lv, "inv_lv.mgh@mgh") ;
   MRIfree(&mri_lv) ;
+
   mri_lv = MRIfillVentricle(mri_inv_lv,mri_T1,100,MRI_LEFT_HEMISPHERE,NULL);
   if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
     MRIwrite(mri_lv, "lv.mgh@mgh") ;
@@ -210,15 +279,31 @@ main(int argc, char *argv[])
   mri_rv = MRIread(ventricle_fname) ;
   if (!mri_rv)
     ErrorExit(ERROR_NOFILE,"%s: could not read %s",Progname,ventricle_fname);
+
+  /////////////////////////////////////////////////////////
   fprintf(stderr, "reading transform %s...", xform_fname) ;
-  m3d = MRI3DreadSmall(xform_fname) ;
-  if (!m3d)
-    ErrorExit(ERROR_NOFILE, "%s: could not open transform file %s\n",
-              Progname, xform_fname) ;
-  fprintf(stderr, "done.\n") ;
-  mri_inv_rv = MRIapplyInverse3DMorph(mri_rv,m3d,NULL);
-  MRI3DmorphFree(&m3d) ;
+  if (old_flag)
+  {
+    m3d = MRI3DreadSmall(xform_fname) ;
+    if (!m3d)
+      ErrorExit(ERROR_NOFILE, "%s: could not open transform file %s\n",
+		Progname, xform_fname) ;
+    fprintf(stderr, "done.\n") ;
+    mri_inv_rv = MRIapplyInverse3DMorph(mri_rv,m3d,NULL);
+    MRI3DmorphFree(&m3d) ;
+  }
+  else
+  {
+    m3d = MRI3DreadSmall(xform_fname) ;
+    if (!m3d)
+      ErrorExit(ERROR_NOFILE, "%s: could not open transform file %s\n",
+		Progname, xform_fname) ;
+    mri_inv_rv = MRIclone(mri_rv, NULL);
+    mri_inv_rv = GCAMmorphFromAtlas(mri_rv, gcam, mri_inv_rv);
+    GCAMfree(&gcam);
+  }
   MRIfree(&mri_rv) ;
+  /////////////////////////////////////////////////////////
   mri_rv = MRIfillVentricle(mri_inv_rv,mri_T1,100,MRI_RIGHT_HEMISPHERE,NULL);
   MRIfree(&mri_inv_rv) ;
   if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
@@ -284,6 +369,11 @@ get_option(int argc, char *argv[])
     fprintf(stderr, "dilating ventricles %d times before filling\n",dilate);
     nargs = 1 ;
   }
+  if (!strcmp(option, "old"))
+  {
+    fprintf(stderr, "using old m3d morph routine\n");
+    old_flag = 1;
+  }
   else switch (toupper(*option))
   {
   case 'N':
@@ -322,7 +412,7 @@ get_option(int argc, char *argv[])
 static void
 usage_exit(int code)
 {
-  printf("usage: %s <filled volume> <T1 volume> <transform> <template volume> "
+  printf("usage: %s <filled volume> <T1 volume> <m3d transform> <template volume> "
          "<output volume>\n", 
          Progname) ;
   exit(code) ;
