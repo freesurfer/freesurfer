@@ -4,8 +4,8 @@
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/05/11 15:03:46 $
-// Revision       : $Revision: 1.22 $
+// Revision Date  : $Date: 2004/05/12 13:46:16 $
+// Revision       : $Revision: 1.23 $
 //
 ////////////////////////////////////////////////////////////////////
 #include <math.h>
@@ -491,7 +491,7 @@ main(int argc, char *argv[])
     GCA_SAMPLE *gcas ;
     int  nsamples ;
 
-    gcas = GCAfindAllSamples(gca, &nsamples) ;
+    gcas = GCAfindAllSamples(gca, &nsamples, NULL) ;
     GCAtransformAndWriteSamples(gca, mri_inputs, gcas, nsamples, 
                                 "gcas_fsamples.mgh", transform) ;
     free(gcas) ;
