@@ -117,6 +117,30 @@
 #define   Bright_Unknown  190   /* 100 240 240 0 */
 #define   Dark_Unknown    191   /* 20  100  100     0  */
 #define   Corpus_Callosum 192   /* 255 255 255 */
+
+#define  alveus                   201 /*                    254	254	254	0*/
+#define  perforant_pathway	      202 /*	 255	128	128	0*/
+#define  parasubiculum	          203 /*	 255	255	0	0*/
+#define  presubiculum		          204 /*	 64	0	64	0*/
+#define  subiculum		            205 /*	 0	0	255	0*/
+#define  CA1			                206 /*	 255	0	0	0*/
+#define  CA2			                207 /*	 128	128	255	0*/
+#define  CA3			                208 /*	 0	128	0	0*/
+#define  CA4			                209 /*	 196	160	128	0*/
+#define GC_DG		                  210 /*	 255	128	255	0*/
+#define HATA			                211 /*	 128	255	128	0*/
+#define fimbria                   212 /*	 0	0	0	0*/
+#define lateral_ventricle	        213 /*	 255	0	255	0*/
+#define molecular_layer_HP        214 /*  128    0       0       0*/
+#define hippocampal_fissure       215 /*  64	255	196	0*/
+#define entorhinal_cortex         216 /*  255	204	102	0*/
+#define molecular_layer_subiculum 217 /*  0 0 0 0 */
+#define Amygdala                  218 /*  103  255  255    0    */
+#define Cerebral_White_Matter     219 /*  0  225    0     0   */
+#define Cerebral_Cortex           220 /*	 205   62   78     0 */
+#define Inf_Lat_Vent              221 /*  196   58  250     0 */
+
+
 #define   Not_Set         255
 
 
