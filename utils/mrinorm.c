@@ -575,6 +575,9 @@ MRInormFindPeaks(MNI *mni, float *inputs, float *outputs)
   for (i = 0 ; i < npeaks ; i++)
     outputs[i] = (float)mni->desired_wm_value / outputs[i] ;
 
+  if (hsmooth)
+    HISTOfree(&hsmooth);
+
   return(npeaks) ;
 }
 /*-----------------------------------------------------
