@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2003/12/10 21:30:58 $
-// Revision       : $Revision: 1.75 $
+// Revision Date  : $Date: 2003/12/11 15:23:03 $
+// Revision       : $Revision: 1.76 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -213,7 +213,7 @@ int main(int argc, char *argv[])
   nskip = 0;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_convert.c,v 1.75 2003/12/10 21:30:58 tosa Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_convert.c,v 1.76 2003/12/11 15:23:03 tosa Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -893,26 +893,29 @@ int main(int argc, char *argv[])
   if(read_only_flag && (out_info_flag || out_matrix_flag))
     fprintf(stderr, "%s: warning: read only flag is set; no output information will be printed\n", Progname);
 
+
   /* ----- get the type of the output ----- */
-  if(!force_out_type_flag)
+  if (!read_only_flag)
   {
-    // if(!read_only_flag && !no_write_flag)     because conform_flag value changes depending on type below
+    if(!force_out_type_flag)
     {
-      out_volume_type = mri_identify(out_name);
-      if(out_volume_type == MRI_VOLUME_TYPE_UNKNOWN)
+      // if(!read_only_flag && !no_write_flag)     because conform_flag value changes depending on type below
       {
-        fprintf(stderr, "%s: can't determine type of output volume\n", Progname);
-        exit(1);
+	out_volume_type = mri_identify(out_name);
+	if(out_volume_type == MRI_VOLUME_TYPE_UNKNOWN)
+	{
+	  fprintf(stderr, "%s: can't determine type of output volume\n", Progname);
+	  exit(1);
+	}
       }
     }
+    else
+      out_volume_type = forced_out_type;
+
+    // if output type is COR, then it is always conformed
+    if (out_volume_type == MRI_CORONAL_SLICE_DIRECTORY)
+      conform_flag = TRUE;
   }
-  else
-    out_volume_type = forced_out_type;
-
-  // if output type is COR, then it is always conformed
-  if (out_volume_type == MRI_CORONAL_SLICE_DIRECTORY)
-    conform_flag = TRUE;
-
 
   /* ----- catch the parse-only flag ----- */
   if(parse_only_flag)
@@ -948,6 +951,7 @@ int main(int argc, char *argv[])
     exit(0);
 
   }
+
 
   /* ----- check for a gdf image stem if the output type is gdf ----- */
   if(out_volume_type == GDF_FILE && strlen(gdf_image_stem) == 0)
