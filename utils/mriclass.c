@@ -656,9 +656,14 @@ MRICcomputeInputs(MRI *mri, int x,int y,int z,float *inputs,int features)
   static MRI_REGION  region = {0,0, 0, 0,0,0} ;
   static MRI  *mri_prev = NULL, *mri_zscore3 = NULL, *mri_zscore5 = NULL ,
               *mri_direction = NULL, *mri_mean3 = NULL, *mri_mean5 = NULL ;
-  int         i ;
+  int         x0, y0, z0 ;
   MRI_REGION  rbig ;
+  float       *in ;
 
+/* 
+   if the specified point is outside of the precomputed window,
+   update the window and compute a new set of input images.
+   */
   if (!mri_prev || mri_prev != mri || 
       (REGIONinside(&region,x,y,z) == REGION_OUTSIDE))
   {
@@ -670,12 +675,7 @@ MRICcomputeInputs(MRI *mri, int x,int y,int z,float *inputs,int features)
     region.dx = mri->width ;
     region.dy = mri->height ;
     region.dz = REGION_SIZE ;
-    if (x + region.dx > mri->width)
-      region.dx = mri->width - x ;
-    if (y + region.dy > mri->height)
-      region.dy = mri->height - y ;
-    if (z + region.dz > mri->depth)
-      region.dz = mri->depth - z ;
+    MRIclipRegion(mri, &region, &region) ;
     mri_prev = mri ;
     if (mri_zscore3)
       MRIfree(&mri_zscore3) ;
@@ -734,9 +734,6 @@ MRICcomputeInputs(MRI *mri, int x,int y,int z,float *inputs,int features)
       y0 = region.y - rbig.y ;
       z0 = region.z - rbig.z ;
 
-      if (z)
-        DiagBreak() ;
-
       mri_direction = 
         MRIextract(mri_tmp, NULL, x0,y0,z0,region.dx,region.dy, region.dz) ;
       if (Gdiag & DIAG_WRITE && first)
@@ -757,20 +754,21 @@ MRICcomputeInputs(MRI *mri, int x,int y,int z,float *inputs,int features)
       mri_mean5 = MRImeanRegion(mri, NULL, 5, &region) ;
   }
 
-  /* inputs are 1 based because of matrix stuff (because of NRC) */
-  i = 1 ;
+  /* x0,y0,z0 are coordinates in region based images (not input mri) */
+  x0 = x-region.x ; y0 = y - region.y ; z0 = z - region.z ;
+  in = &inputs[1] ;  /* inputs are 1-based because of NRC */
   if (features & FEATURE_INTENSITY)
-    inputs[i++] = (float)MRIvox(mri, x, y, z) ;
+    *in++ = (float)MRIvox(mri, x, y, z) ;
   if (features & FEATURE_ZSCORE3)
-    inputs[i++] = MRIFvox(mri_zscore3, x-region.x, y-region.y, z-region.z) ;
+    *in++ = MRIFvox(mri_zscore3, x0, y0, z0) ;
   if (features & FEATURE_ZSCORE5)
-    inputs[i++] = MRIFvox(mri_zscore5, x-region.x, y-region.y, z-region.z) ;
+    *in++ = MRIFvox(mri_zscore5, x0, y0, z0) ;
   if (features & FEATURE_DIRECTION)
-    inputs[i++] = MRIFvox(mri_direction, x-region.x, y-region.y, z-region.z) ;
+    *in++ = MRIFvox(mri_direction, x0, y0, z0) ;
   if (features & FEATURE_MEAN3)
-    inputs[i++] = MRIFvox(mri_mean3, x-region.x, y-region.y, z-region.z) ;
+    *in++ = MRIFvox(mri_mean3, x0, y0, z0) ;
   if (features & FEATURE_MEAN5)
-    inputs[i++] = MRIFvox(mri_mean5, x-region.x, y-region.y, z-region.z) ;
+    *in++ = MRIFvox(mri_mean5, x0, y0, z0) ;
   
   return(NO_ERROR) ;
 }
