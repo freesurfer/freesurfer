@@ -8,7 +8,6 @@
 
 /* Prototypes     */
 static void four1(float data[],int nn,int isign);
-static void lowpass(float data[],int nn,float hi);
 static void bandpass(float data[], int nn,float lo,float hi);
 void bpfilter(FLOATTYPE **data,int nchan,int nsamp,float lo,float hi);
 /* End prototypes */
@@ -65,6 +64,8 @@ static void four1(float data[],int nn,int isign)
   }
 }
 
+#if 0
+static void lowpass(float data[],int nn,float hi);
 static void lowpass(float data[],int nn,float hi)
 {
   float norm,f,w,wc;
@@ -83,6 +84,7 @@ static void lowpass(float data[],int nn,float hi)
   }
   four1(data-1,nn,-1);
 }
+#endif
 
 static void bandpass(float data[], int nn,float lo,float hi)
 {
