@@ -6,8 +6,8 @@
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/01/28 23:23:56 $
-// Revision       : $Revision: 1.33 $
+// Revision Date  : $Date: 2004/02/02 14:31:39 $
+// Revision       : $Revision: 1.34 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -136,7 +136,7 @@ main(int argc, char *argv[])
   float        old_log_p, log_p ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_em_register.c,v 1.33 2004/01/28 23:23:56 tosa Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_em_register.c,v 1.34 2004/02/02 14:31:39 tosa Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -522,14 +522,12 @@ main(int argc, char *argv[])
   // writing transform section here
   if (!stricmp(out_fname+strlen(out_fname)-3, "XFM"))
   {
-    mri_dst = MRIallocHeader(mri_in->width, mri_in->height, mri_in->depth, mri_in->type);
-    MRIcopyHeader(mri_in, mri_dst);
-    mri_dst->c_r = gca->c_r; mri_dst->c_a = gca->c_a; mri_dst->c_s = gca->c_s;
+    mri_dst = MRIallocHeader(gca->width, gca->height, gca->depth, mri_in->type);
+    GCAcopyDCToMRI(gca, mri_dst);
+    strcpy(mri_dst->fname,gca_fname); // copy gca name
     printf("converting xform to RAS...\n") ; 
     printf("initial:\n") ;
     MatrixPrint(stdout, parms.lta->xforms[0].m_L) ;
-    // MRIvoxelXformToRasXform(mri_in, mri_in, 
-    //                         parms.lta->xforms[0].m_L, parms.lta->xforms[0].m_L) ;
     MRIvoxelXformToRasXform(mri_in, mri_dst, 
                             parms.lta->xforms[0].m_L, parms.lta->xforms[0].m_L) ;
     printf("final:\n") ;
