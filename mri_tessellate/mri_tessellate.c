@@ -263,7 +263,7 @@ make_surface(void)
 
   for (imnr=0;imnr<=numimg;imnr++)
   {
-    if ((vertex_index || face_index) && !(imnr % 5))
+    if ((vertex_index || face_index) && !(imnr % 10))
       printf("slice %d: %d vertices, %d faces\n",imnr,vertex_index,face_index);
     for (i=0;i<=IMGSIZE;i++)
     for (j=0;j<=IMGSIZE;j++)
