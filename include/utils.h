@@ -45,11 +45,12 @@ char *StrLower(char *str) ;
 char *StrSkipNumber(char *str) ;
 char *StrReplace(char *src, char *dst, char csrc, int cdst) ;
 
-char *FileName(char *str) ;
+char *FileName(char *str, char *fname) ;
 int  FileExists(char *fname) ;
 int  FileType(char *fname) ;
 int  FileNumber(char *fname) ;
 int  FileNumberOfEntries(char *fname) ;
+char *FileNameNoExtensions(char *full_name) ;
 char *FileFullName(char *full_name) ;
 char *FileTmpName(char *base) ;
 char *FileTmpName(char *basename) ;
