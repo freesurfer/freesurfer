@@ -15,10 +15,13 @@
 #include "macros.h"
 #include "oglutil.h"
 
-static char vcid[] = "$Id: mris_show.c,v 1.15 1997/11/01 23:58:55 fischl Exp $";
+static char vcid[] = "$Id: mris_show.c,v 1.16 1997/12/10 23:20:53 fischl Exp $";
 
 
 /*-------------------------------- CONSTANTS -----------------------------*/
+
+#define BIG_FOV                 300   /* for unfolded hemispheres */
+#define SMALL_FOV               200
 
 #define FRAME_SIZE         600
 
@@ -92,8 +95,8 @@ static int compile_flags = 0 ;
 static int mean_curvature_flag = 0 ;
 static int gaussian_curvature_flag = 0 ;
 static int fit_flag = 0 ;
-
-static float light_offset = LIGHT_OFFSET ;
+static int fov = -1 ;
+static int noscale = 1 ;
 
 /*-------------------------------- FUNCTIONS ----------------------------*/
 
@@ -102,7 +105,7 @@ main(int argc, char *argv[])
 {
   char         **av, *in_fname, *out_fname, wname[200], fname[100], hemi[10],
                *cp, path[100], name[100] ;
-  int          ac, nargs, i, vno ;
+  int          ac, nargs ;
   float        angle ;
 
   Progname = argv[0] ;
@@ -136,8 +139,7 @@ main(int argc, char *argv[])
   if (patch_flag)   /* read in orig surface before reading in patch */
   {
     FileNamePath(surf_fname, path) ;
-    FileNameOnly(surf_fname, name) ;
-    cp = strchr(name, '.') ;
+    cp = strrchr(surf_fname, '.') ;
     if (cp)
     {
       strncpy(hemi, cp-2, 2) ;
@@ -179,6 +181,27 @@ main(int argc, char *argv[])
   if (talairach_flag)
     MRIStalairachTransform(mris, mris) ;
   MRIScenter(mris, mris) ;
+  if (noscale)
+    OGLUnoscale() ;
+  if (fov > 0)
+    OGLUsetFOV(fov) ;
+  else   /* try and pick an appropriate one */
+  {
+    if (patch_flag)
+    {
+      int   ngood, vno ;
+      float pct_vertices ;
+      
+      for (vno = ngood = 0 ; vno < mris->nvertices ; vno++)
+        if (!mris->vertices[vno].ripflag)
+          ngood++ ;
+      pct_vertices = (float)ngood / (float)mris->nvertices ;
+      if (pct_vertices > 0.75f)
+        OGLUsetFOV(BIG_FOV) ;
+      else if (pct_vertices < 0.4f)
+        OGLUsetFOV(SMALL_FOV) ;
+    }
+  }
 #if 0
   fprintf(stderr, "(%2.1f, %2.1f, %2.1f) --> (%2.1f, %2.1f, %2.1f), ctr "
           "(%2.1f, %2.1f, %2.1f)\n",
@@ -204,12 +227,6 @@ main(int argc, char *argv[])
     oglu_fov = 0.0 ;
 
   /* now compile the surface tessellation */
-  for (i = 0 ; i < nmarked ; i++)
-  {
-    vno = marked_vertices[i] ;
-    if (vno >= 0 && vno < mris->nvertices)
-      mris->vertices[vno].marked = 1 ;
-  }
   glNewList(ORIG_SURFACE_LIST, GL_COMPILE) ;
   OGLUcompile(mris, marked_vertices, compile_flags, cslope) ;
   glEndList() ;
@@ -285,6 +302,18 @@ get_option(int argc, char *argv[])
   }
   else if (!stricmp(option, "tp"))
     compile_flags |= TP_FLAG ;
+  else if (!stricmp(option, "mesh"))
+    compile_flags |= MESH_FLAG ;
+  else if (!stricmp(option, "noscale"))
+    noscale = 1 ;
+  else if (!stricmp(option, "scale"))
+    noscale = 0 ;
+  else if (!stricmp(option, "fov"))
+  {
+    fov = atoi(argv[2]) ;
+    fprintf(stderr, "using fov = %d\n", fov) ;
+    nargs = 1 ;
+  }
   else switch (toupper(*option))
   {
   case 'M':
@@ -426,14 +455,6 @@ keyboard_handler(unsigned char key, int x, int y)
   glMatrixMode(GL_MODELVIEW);
   switch (key)
   {
-  case 'L':
-    light_offset += .5*LIGHT_OFFSET ;
-    OGLUsetLightingModel(-1.0f, -1.0f, -1.0f, -1.0f, light_offset) ;
-    break ;
-  case 'l':
-    light_offset -= .5*LIGHT_OFFSET ;
-    OGLUsetLightingModel(-1.0f, -1.0f, -1.0f, -1.0f, light_offset) ;
-    break ;
   case 'W':  /* write it out */
     if (mris->hemisphere == RIGHT_HEMISPHERE)
       sprintf(wname, "rh.surf") ;
