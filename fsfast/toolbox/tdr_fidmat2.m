@@ -9,7 +9,7 @@
 %
 % Note: the images are still not flipped up-down
 %
-% $Id: tdr_fidmat2.m,v 1.2 2003/12/19 22:16:58 greve Exp $
+% $Id: tdr_fidmat2.m,v 1.3 2004/01/16 21:56:03 greve Exp $
 
 fidmatversion = 2;
 
@@ -68,8 +68,8 @@ Frow = fast_dftmtx(ncols);
 Rrow = transpose(inv(Frow));
 
 % Get the PED of each sample in the EPI
-pedmat = pedmatrix2(TE*1000,epiechospacing,delsamp,tDwell,...
-		    nrows,ncols,perev);
+pedmat = tdr_pedmatrix(TE*1000,epiechospacing,delsamp,tDwell,...
+		       nrows,ncols,perev);
 
 % Apply the same transforms as will be applied to the EPI kspace data
 % to make it match the first echo of the FID image

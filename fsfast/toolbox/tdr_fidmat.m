@@ -2,7 +2,7 @@
 % for use with the time-domain reconstruction method. The
 % reconstruction matrix is not computed here.
 %
-% $Id: tdr_fidmat.m,v 1.6 2003/11/07 00:42:32 greve Exp $
+% $Id: tdr_fidmat.m,v 1.7 2004/01/16 21:55:56 greve Exp $
 
 %addpath /homes/4/greve/sg2/dale-matlab/utils; % for smoother
 
@@ -27,17 +27,22 @@ end
 % Free induction decay (FID) timing parameters
 fidecho1ped = 1810;   % PED of first echo (us)
 fidechospacing = 820; % Time between FID echoes (Actually use double)
-nfidechoes = 99; % But we'll only use half (odd echoes)
+nfidechoes = 81; % But we'll only use half (odd echoes)
 
 % EPI timing parameters - note EPI data not needed here
-epiechospacing = 470; % us
-delsamp = 30;         % us
-tDwell = 3.2;         % us
+%epiechospacing = 470; % us
+%delsamp = 30;         % us
+%tDwell = 3.2;         % us
+% For Martin
+epiechospacing = 530; % us
+delsamp = 60;         % us
+tDwell = 1.6;         % us
+% Echo time is 40 ms - set in tdr-fidmat script
 
 % Dimensions: applies to both EPI and FID - should just get this from data
-nrows = 64;
-ncols = 128;
-nslices = 35;
+nrows = 128;  % martin
+ncols = 256;  % martin
+nslices = 23; % martin 
 nv = nrows*ncols;
 evenrows = [2:2:nrows];
 oddrows  = [1:2:nrows];
@@ -126,6 +131,7 @@ for acqsliceno = 1:nslices
   T2s(:,:,sliceno) = tdr_fidt2star(abs(fid),tfid,nT2sFit);
   
   % Compute the B0 map in radians/sec
+  % Divide by 2*pi*123 to get parts-per-million at 3T
   B0(:,:,sliceno) = tdr_fidb0(fid,tfid/1000,nT2sFit);
   
   %----------------------------------------------------------------%
@@ -136,8 +142,8 @@ for acqsliceno = 1:nslices
 
     % Get the PED of each sample in the EPI
     perev = TEPERevList(nthTE);
-    pedmat = pedmatrix2(TE*1000,epiechospacing,delsamp,tDwell,...
-			nrows,ncols,perev);
+    pedmat = tdr_pedmatrix(TE*1000,epiechospacing,delsamp,tDwell,...
+			   nrows,ncols,perev);
 
     % Apply the same transforms as will be applied to the EPI kspace data
     % to make it match the first echo of the FID 
