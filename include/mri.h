@@ -94,6 +94,7 @@ int   MRIfree(MRI **pmri) ;
 MRI   *MRIalloc(int width, int height, int depth, int type) ;
 MRI   *MRIallocSequence(int width, int height,int depth,int type,int nframes);
 MRI   *MRIallocHeader(int width, int height, int depth, int type) ;
+int   MRIallocIndices(MRI *mri) ;
 
 
 /* correlation routines */
@@ -142,6 +143,12 @@ MRI   *MRIsobel(MRI *mri_src, MRI *mri_grad, MRI *mri_mag);
 MRI   *MRIxSobel(MRI *mri_src, MRI *mri_x, int frame) ;
 MRI   *MRIySobel(MRI *mri_src, MRI *mri_y, int frame) ;
 MRI   *MRIzSobel(MRI *mri_src, MRI *mri_z, int frame) ;
+MRI   *MRIsobelRegion(MRI *mri_src, MRI *mri_grad, int domag, 
+                      MRI_REGION *region);
+MRI   *MRIxSobelRegion(MRI *mri_src, MRI *mri_x, int frame,MRI_REGION *region);
+MRI   *MRIySobelRegion(MRI *mri_src, MRI *mri_y, int frame,MRI_REGION *region);
+MRI   *MRIzSobelRegion(MRI *mri_src, MRI *mri_z, int frame,MRI_REGION *region);
+
 MRI   *MRIreduce(MRI *mri_src, MRI *mri_dst) ;
 MRI   *MRIconvolve1d(MRI *mri_src, MRI *mri_dst, float *kernel, 
                      int len, int axis) ;
@@ -200,10 +207,18 @@ MRI   *MRIxor(MRI *mri1, MRI *mri2, MRI *mri_dst, int t1, int t2) ;
 /* filtering operations */
 MRI   *MRIgaussian1d(float sigma, int max_len) ;
 MRI   *MRIconvolveGaussian(MRI *mri_src, MRI *mri_dst, MRI *mri_gaussian) ;
-MRI   *MRImean(MRI *mri_src, MRI *mri_dst, int wsize) ;
 MRI   *MRImedian(MRI *mri_src, MRI *mri_dst, int wsize) ;
+MRI   *MRImean(MRI *mri_src, MRI *mri_dst, int wsize) ;
 MRI   *MRIstd(MRI *mri_src, MRI*mri_dst, MRI *mri_mean, int wsize) ;
-MRI   *MRInorm(MRI *mri_src, MRI*mri_dst, MRI *mri_mean, MRI *mri_std) ;
+MRI   *MRIzScore(MRI *mri_src, MRI *mri_dst, MRI *mri_mean, MRI *mri_std) ;
+
+MRI   *MRIdirectionMapRegion(MRI *mri_grad, MRI *mri_direction, int wsize,
+                             MRI_REGION *region);
+MRI   *MRImeanRegion(MRI *mri_src, MRI *mri_dst, int wsize,MRI_REGION *region);
+MRI   *MRIstdRegion(MRI *mri_src, MRI*mri_dst, MRI *mri_mean, int wsize,
+              MRI_REGION *region) ;
+MRI   *MRIzScoreRegion(MRI *mri_src, MRI*mri_dst, MRI *mri_mean, MRI *mri_std,
+                       MRI_REGION *region) ;
 
 int   MRIcheckSize(MRI *mri_src, MRI *mri_check, int width, int height,
                    int depth) ;
