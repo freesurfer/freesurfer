@@ -5,8 +5,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: xhan $
-// Revision Date  : $Date: 2005/02/08 16:26:18 $
-// Revision       : $Revision: 1.1 $
+// Revision Date  : $Date: 2005/02/09 15:32:10 $
+// Revision       : $Revision: 1.2 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -106,7 +106,7 @@ main(int argc, char *argv[])
   int count_white, count_gray;
   
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_ms_LDA.c,v 1.1 2005/02/08 16:26:18 xhan Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ms_LDA.c,v 1.2 2005/02/09 15:32:10 xhan Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -583,6 +583,7 @@ usage_exit(int code)
 	 "and performs LDA dimension reduction on the multidimensional\n"
 	 "intensity space.\n");
   printf("Options includes:\n");
+  printf("\t -lda %%d %%d to set the two class labels to optimize for\n");
   printf("\t -mask fname to set the brain mask volume\n");
   printf("\t -label fname to set the brain mask volume\n");
   printf("\t -weight fname for input LDA weights \n");
