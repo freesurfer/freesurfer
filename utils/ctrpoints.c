@@ -5,8 +5,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/03/11 23:02:43 $
-// Revision       : $Revision: 1.1 $
+// Revision Date  : $Date: 2004/03/11 23:14:25 $
+// Revision       : $Revision: 1.2 $
 //
 ////////////////////////////////////////////////////////////////////
 #include <stdio.h>
@@ -99,7 +99,11 @@ int MRIwriteControlPoints(MPoint *pointArray, int count, int useRealRAS, char *f
   if (Gdiag & DIAG_SHOW)
     fprintf(stderr, "Writing control points to %s...\n", fname) ;
 
-  // 
+  if (useRealRAS > 1 || useRealRAS < 0)
+    ErrorReturn(ERROR_BADPARM, 
+                (ERROR_BADPARM, "MRIwriteControlPoints useRealRAS must be 0 (surfaceRAS) or 1 (scannerRAS) but %d\n",
+		useRealRAS))
+
   fp = fopen(fname, "w") ;
   if (!fp)
     ErrorReturn(ERROR_BADPARM, 
