@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: segonne $
-// Revision Date  : $Date: 2005/03/16 19:29:45 $
-// Revision       : $Revision: 1.339 $
+// Revision Date  : $Date: 2005/03/16 19:31:13 $
+// Revision       : $Revision: 1.340 $
 //////////////////////////////////////////////////////////////////
 #include <stdio.h>
 #include <string.h>
@@ -37708,7 +37708,7 @@ mrisComputeOptimalRetessellation(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected,
 		etable.flags = (unsigned char *)calloc(nedges, sizeof(unsigned char)) ;
 		overlap = (int *)calloc(nedges, sizeof(int)) ;
 		if (!etable.edges || !etable.overlapping_edges || !etable.noverlap || !overlap)
-			ErrorExit(ERROR_NOMEMORY, "mrisComputeOptimalRetessellation: could not allocate %d edge table",nedges) ;
+			ErrorExit(ERROR_NOMEMORY, "mrisComputeOptimalRetessellation: Excessive topologic defect encountered: could not allocate %d edge table",nedges) ;
     
 		for (nzero = i = 0 ; i < nedges ; i++)  /* compute overlapping for each edge */
 		{
@@ -37740,7 +37740,7 @@ mrisComputeOptimalRetessellation(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected,
 				etable.overlapping_edges[i] = (int *)calloc(etable.noverlap[i], sizeof(int)) ;
 				if (!etable.overlapping_edges[i])
 					ErrorExit(ERROR_NOMEMORY, 
-										"mrisComputeOptimalRetessellation: could not allocate overlap list %d "
+										"mrisComputeOptimalRetessellation: Excessive topologic defect encountered: could not allocate overlap list %d "
 										"with %d elts",i, etable.noverlap[i]) ;
 				memmove(etable.overlapping_edges[i], overlap, etable.noverlap[i]*sizeof(int)) ;
 			}
@@ -38695,7 +38695,7 @@ mrisComputeRandomRetessellation(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected,
 		etable.flags = (unsigned char *)calloc(nedges, sizeof(unsigned char)) ;
 		overlap = (int *)calloc(nedges, sizeof(int)) ;
 		if (!etable.edges || !etable.overlapping_edges || !etable.noverlap || !overlap)
-			ErrorExit(ERROR_NOMEMORY, "mrisComputeOptimalRetessellation: could not allocate %d edge table",nedges) ;
+			ErrorExit(ERROR_NOMEMORY, "mrisComputeOptimalRetessellation: Excessive topologic defect encountered: could not allocate %d edge table",nedges) ;
     
 		for (i = 0 ; i < nedges ; i++)  /* compute overlapping for each edge */
 		{
@@ -38727,7 +38727,7 @@ mrisComputeRandomRetessellation(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected,
 				etable.overlapping_edges[i] = (int *)calloc(etable.noverlap[i], sizeof(int)) ;
 				if (!etable.overlapping_edges[i])
 					ErrorExit(ERROR_NOMEMORY, 
-										"mrisComputeOptimalRetessellation: could not allocate overlap list %d "
+										"mrisComputeOptimalRetessellation: Excessive topologic defect encountered: could not allocate overlap list %d "
 										"with %d elts",i, etable.noverlap[i]) ;
 				memmove(etable.overlapping_edges[i], overlap, etable.noverlap[i]*sizeof(int)) ;
 			};
