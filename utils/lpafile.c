@@ -68,6 +68,11 @@ LPAFreadImageAnswer(LPAF *lpaf, int current)
     lpb->xp[i] = parms[2+2*i] ;
     lpb->yp[i] = parms[2+2*i+1] ;
   }
+
+  if (lpb->xc < 0 || lpb->xc >= Iheader.cols || 
+      lpb->yc < 0 || lpb->xc >= Iheader.rows )
+    return(0) ;
+
   return(1) ;
 }
 
@@ -340,7 +345,7 @@ LPAFread(LPAF *lpaf, int current)
 }
 #endif
 
-  return(1) ;
+  return(abs(lpb->xc) < INIT_VAL) ;  /* handles garbages as well as unwritten */
 }
 
 int
