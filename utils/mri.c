@@ -8,10 +8,10 @@
  *
 */
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: greve $
-// Revision Date  : $Date: 2004/02/13 00:52:59 $
-// Revision       : $Revision: 1.258 $
-char *MRI_C_VERSION = "$Revision: 1.258 $";
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2004/02/26 19:03:58 $
+// Revision       : $Revision: 1.259 $
+char *MRI_C_VERSION = "$Revision: 1.259 $";
 
 /*-----------------------------------------------------
                     INCLUDE FILES
@@ -9344,12 +9344,12 @@ MRI *MRIresample(MRI *src, MRI *template_vol, int resample_type)
         }
 #endif
 
-        if(resample_type == RESAMPLE_SINC)
+        if(resample_type == SAMPLE_SINC)
         {
           MRIsincSampleVolume(src, si_ff, sj_ff, sk_ff, 5, &pval);
           val = (float)pval;
         }
-        else if(resample_type == RESAMPLE_CUBIC)
+        else if(resample_type == SAMPLE_CUBIC)
         {
           MRIcubicSampleVolume(src, si_ff, sj_ff, sk_ff, &pval);
           val = (float)pval;
@@ -9427,7 +9427,7 @@ MRI *MRIresample(MRI *src, MRI *template_vol, int resample_type)
             val111 = (!i1_good_flag || !j1_good_flag || !k1_good_flag ? 0.0 : (float)MRIFvox(src, si + 1, sj + 1, sk + 1));
           }
 
-          if(resample_type == RESAMPLE_INTERPOLATE)
+          if(resample_type == SAMPLE_TRILINEAR)
           {
             val = (1.0-si_f) * (1.0-sj_f) * (1.0-sk_f) * val000 + 
                   (1.0-si_f) * (1.0-sj_f) * (    sk_f) * val001 + 
@@ -9439,7 +9439,7 @@ MRI *MRIresample(MRI *src, MRI *template_vol, int resample_type)
                   (    si_f) * (    sj_f) * (    sk_f) * val111;
           }
 
-          if(resample_type == RESAMPLE_NEAREST)
+          if(resample_type == SAMPLE_NEAREST)
           {
             if(si_f < 0.5)
             {
@@ -9477,7 +9477,7 @@ MRI *MRIresample(MRI *src, MRI *template_vol, int resample_type)
             }
           }
 
-          if(resample_type == RESAMPLE_WEIGHTED)
+          if(resample_type == SAMPLE_WEIGHTED)
           {
 /* unfinished */
             si_f2 = si_f * si_f;

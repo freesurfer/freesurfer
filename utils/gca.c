@@ -2,9 +2,9 @@
 // originally written by Bruce Fischl
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/02/20 16:24:19 $
-// Revision       : $Revision: 1.97 $
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2004/02/26 19:03:57 $
+// Revision       : $Revision: 1.98 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -10618,7 +10618,188 @@ GCAnormalizePD(GCA *gca, MRI *mri_inputs, TRANSFORM *transform)
   return(NO_ERROR) ;
 }
 GCA *
-GCAcreateFlashGCAfromParameterGCA(GCA *gca_T1PD, double *TR, double *fa, double *TE, int nflash)
+GCAcreateWeightedFlashGCAfromParameterGCA(GCA *gca_T1PD, double *TR, double *fa, double *TE, int nflash, double *wts, double lambda)
+{
+  GCA        *gca_flash ;
+  GCA_PRIOR  *gcap_src, *gcap_dst ;
+  GCA_NODE   *gcan_src, *gcan_dst ;
+  GC1D       *gc_src, *gc_dst ;
+  MATRIX     *m_jacobian, *m_cov_src = NULL, *m_cov_dst = NULL, *m_jacobian_T = NULL, *m_tmp = NULL ;
+	VECTOR     *v_wts, *v_wts_T ;
+  int        n, x, y, z, i, j, v, label_count = 0 ;
+  double     T1, PD, label_means[MAX_GCA_INPUTS] ;
+  
+  if (gca_T1PD->ninputs != 2)
+    ErrorExit(ERROR_BADPARM, 
+	      "GCAcreateFlashGCAfromParameterGCA: input gca must be T1/PD (ninputs=%d, should be 2", 
+	      gca_T1PD->ninputs) ;
+  gca_flash = GCAalloc(nflash, gca_T1PD->prior_spacing, gca_T1PD->node_spacing,
+		       gca_T1PD->node_width*gca_T1PD->node_spacing,
+		       gca_T1PD->node_height*gca_T1PD->node_spacing,
+		       gca_T1PD->node_depth*gca_T1PD->node_spacing, GCA_NO_FLAGS) ;
+  
+  m_jacobian = MatrixAlloc(gca_flash->ninputs, gca_T1PD->ninputs, MATRIX_REAL) ;
+	v_wts = VectorAlloc(nflash, MATRIX_REAL) ;
+	for (i = 1 ; i <= nflash ; i++)
+		VECTOR_ELT(v_wts,i) = wts[i-1] ;
+	v_wts_T = VectorTranspose(v_wts, NULL) ;
+  
+  /* first copy over priors */
+  for (x = 0 ; x < gca_flash->prior_width ; x++)
+  {
+    for (y = 0 ; y < gca_flash->prior_height ; y++)
+    {
+      for (z = 0 ; z < gca_flash->prior_depth ; z++)
+      {
+	gcap_src = &gca_T1PD->priors[x][y][z] ;
+	gcap_dst = &gca_flash->priors[x][y][z] ;
+	gcap_dst->nlabels = gcap_src->nlabels ;
+	if (gcap_src->nlabels > gcap_dst->max_labels)
+	{
+	  free(gcap_dst->priors) ;
+	  free(gcap_dst->labels) ;
+	  
+		gcap_dst->labels = (unsigned char *)calloc(gcap_src->nlabels, sizeof(unsigned char)) ;
+		if (!gcap_dst->labels)
+			ErrorExit(ERROR_NOMEMORY, "GCAcreateFlashGCAfromParameterGCA: couldn't allocate %d labels",
+								gcap_src->nlabels) ;
+		
+		gcap_dst->priors = (float *)calloc(gcap_src->nlabels, sizeof(float)) ;
+		if (!gcap_dst->priors)
+			ErrorExit(ERROR_NOMEMORY,
+								"GCAcreateFlashGCAfromParameterGCA: couldn't allocate %d priors", 
+								gcap_src->nlabels) ;
+	  gcap_dst->max_labels = gcap_dst->nlabels ;
+	}
+	gcap_dst->total_training = gcap_src->total_training ;
+	for (n = 0 ; n < gcap_src->nlabels ; n++)
+	{
+	  gcap_dst->labels[n] = gcap_src->labels[n] ;
+	  gcap_dst->priors[n] = gcap_src->priors[n] ;
+	}
+      }
+    }
+  }
+
+  /* now copy over classifiers and Markov stuff, using Jacobian to map to new image space */
+  for (x = 0 ; x < gca_flash->node_width ; x++)
+  {
+    for (y = 0 ; y < gca_flash->node_height ; y++)
+    {
+      for (z = 0 ; z < gca_flash->node_depth ; z++)
+      {
+	if (x == Gx && y == Gy && z == Gz)
+	  DiagBreak()  ;
+	gcan_src = &gca_T1PD->nodes[x][y][z] ; gcan_dst = &gca_flash->nodes[x][y][z] ;
+	gcan_dst->nlabels = gcan_src->nlabels ;
+	gcan_dst->total_training = gcan_src->total_training ;
+	if (gcan_src->nlabels > gcan_dst->max_labels)
+	{
+	  free(gcan_dst->labels) ;
+	  free_gcs(gcan_dst->gcs, gcan_dst->max_labels, gca_flash->ninputs) ;
+	  
+          gcan_dst->labels = (unsigned char *)calloc(gcan_src->nlabels, sizeof(unsigned char)) ;
+          if (!gcan_dst->labels)
+            ErrorExit(ERROR_NOMEMORY, "GCAcreateFlashGCAfromParameterGCA: couldn't allocate %d labels",
+                      gcan_src->nlabels) ;
+	  
+	  gcan_dst->gcs = alloc_gcs(gcan_src->nlabels, GCA_NO_FLAGS, nflash) ;
+	  gcan_dst->max_labels = gcan_dst->nlabels ;
+	}
+	for (n = 0 ; n < gcan_src->nlabels ; n++)
+	{
+	  gcan_dst->labels[n] = gcan_src->labels[n] ;
+	  gc_src = &gcan_src->gcs[n] ; gc_dst = &gcan_dst->gcs[n] ;
+	  gc_dst->ntraining = gc_src->ntraining ;
+	  gc_dst->n_just_priors = gc_src->n_just_priors ;
+		gc_dst->regularized = gc_src->regularized ;
+	  for (i = 0 ; i < GIBBS_NEIGHBORS ; i++)
+	  {
+	    gc_dst->nlabels[i] = gc_src->nlabels[i] ;
+	    gc_dst->label_priors[i] = (float *)calloc(gc_src->nlabels[i],sizeof(float));
+	    if (!gc_dst->label_priors[i])
+	      ErrorExit(ERROR_NOMEMORY, "GCAcreateFlashGCAfromParameterGCA: to %d",gc_src->nlabels[i]);
+	    gc_dst->labels[i] = (unsigned char *)calloc(gc_src->nlabels[i], sizeof(unsigned char)) ;
+	    if (!gc_dst->labels)
+	      ErrorExit(ERROR_NOMEMORY, "GCAcreateFlashGCAfromParameterGCA: to %d",gc_src->nlabels[i]);
+	    for (j = 0 ; j < gc_src->nlabels[i] ; j++)
+	    {
+	      gc_dst->label_priors[i][j]  = gc_src->label_priors[i][j] ;
+	      gc_dst->labels[i][j]  = gc_src->labels[i][j] ;
+	    }
+	  }
+	  
+	  /* now map intensity and covariance info over */
+	  T1 = gc_src->means[0] ; PD = gc_src->means[1] ;
+	  if (Ggca_label == gcan_dst->labels[n])
+	    label_count++ ; 
+	  for (i = 0 ; i < gca_flash->ninputs ; i++)
+	  {
+	    gc_dst->means[i] = 
+	      FLASHforwardModel(T1, PD, TR[i], fa[i], TE[i]) ;
+	    if (x == Ggca_x && y == Ggca_y && z == Ggca_z &&
+		(Ggca_label < 0 || Ggca_label == gcan_src->labels[n]))
+	      printf("gcan(%d, %d, %d) %s: image[%d] (fa=%2.1f) predicted mean "
+		     "(%2.1f,%2.1f) --> %2.1f\n",
+		     x, y, z, cma_label_to_name(gcan_dst->labels[n]), i, DEGREES(fa[i]),
+		     T1, PD, gc_dst->means[i]) ;
+	    *MATRIX_RELT(m_jacobian, i+1, 1) = dFlash_dT1(T1, PD, TR[i], fa[i], TE[i]) ;
+	    *MATRIX_RELT(m_jacobian, i+1, 2) = dFlash_dPD(T1, PD, TR[i], fa[i], TE[i]) ;
+	    if (gcan_dst->labels[n] == Ggca_label)
+	    {
+	      label_means[i] += gc_dst->means[i] ;
+	    }
+	  }
+#define MIN_T1 50
+	  if (T1 < MIN_T1)
+		{
+			gc_dst->regularized = 1 ;
+	    m_cov_dst = MatrixIdentity(gca_flash->ninputs, m_cov_dst) ;
+		}
+	  else
+	  {
+	    m_cov_src = load_covariance_matrix(gc_src, m_cov_src, gca_T1PD->ninputs) ;
+	    m_jacobian_T = MatrixTranspose(m_jacobian, m_jacobian_T) ;
+	    m_tmp = MatrixMultiply(m_cov_src, m_jacobian_T, m_tmp) ;
+	    m_cov_dst = MatrixMultiply(m_jacobian, m_tmp, m_cov_dst) ;
+	  }
+	  for (v = i = 0 ; i < gca_flash->ninputs ; i++)
+	  {
+	    for (j = i ; j < gca_flash->ninputs ; j++, v++)
+	      gc_dst->covars[v] = *MATRIX_RELT(m_cov_dst, i+1, j+1) ;
+	  }
+	  if (x == Ggca_x && y == Ggca_y && z == Ggca_z &&
+	      (Ggca_label < 0 || Ggca_label == gcan_src->labels[n]))
+	  {
+	    printf("predicted covariance matrix:\n") ; MatrixPrint(stdout, m_cov_dst)  ;
+	  }
+	}
+      }
+    }
+  }
+  
+  if (Ggca_label >= 0)
+  {
+    printf("label %s (%d): means = ", cma_label_to_name(Ggca_label), Ggca_label) ;
+    for (i = 0 ; i < gca_flash->ninputs ; i++)
+    {
+      label_means[i] /= (double)label_count ;
+      printf("%2.1f ", label_means[i]) ;
+    }
+    printf("\n") ;
+  }
+  
+  /* check and fix singular covariance matrixces */
+	GCAregularizeCovarianceMatrices(gca_flash, lambda) ;
+  GCAfixSingularCovarianceMatrices(gca_flash) ;
+  MatrixFree(&m_jacobian) ; MatrixFree(&m_cov_src) ; MatrixFree(&m_cov_dst) ;
+  MatrixFree(&m_jacobian_T) ; MatrixFree(&m_tmp) ;
+	VectorFree(&v_wts) ; VectorFree(&v_wts_T) ;
+  
+  return(gca_flash) ;
+}
+GCA *
+GCAcreateFlashGCAfromParameterGCA(GCA *gca_T1PD, double *TR, double *fa, double *TE, int nflash, double lambda)
 {
   GCA        *gca_flash ;
   GCA_PRIOR  *gcap_src, *gcap_dst ;
@@ -10781,6 +10962,7 @@ GCAcreateFlashGCAfromParameterGCA(GCA *gca_T1PD, double *TR, double *fa, double 
   }
   
   /* check and fix singular covariance matrixces */
+	GCAregularizeCovarianceMatrices(gca_flash, lambda) ;
   GCAfixSingularCovarianceMatrices(gca_flash) ;
   MatrixFree(&m_jacobian) ; MatrixFree(&m_cov_src) ; MatrixFree(&m_cov_dst) ;
   MatrixFree(&m_jacobian_T) ; MatrixFree(&m_tmp) ;
@@ -10812,21 +10994,21 @@ GCAfixSingularCovarianceMatrices(GCA *gca)
         gcan = &gca->nodes[x][y][z] ;
         for (n = 0 ; n < gcan->nlabels ; n++)
         {
-	  if (x == Ggca_x && y == Ggca_y && z == Ggca_z &&
-	      (Ggca_label == gcan->labels[n] || Ggca_label < 0))
-	    DiagBreak() ;
+					if (x == Ggca_x && y == Ggca_y && z == Ggca_z &&
+							(Ggca_label == gcan->labels[n] || Ggca_label < 0))
+						DiagBreak() ;
           gc = &gcan->gcs[n] ;
-	  det = covariance_determinant(gc, gca->ninputs) ;
-	  if ((gc->ntraining == 0 && det > 1) || (gc->ntraining*gca->ninputs > 2.5*nparams))  /* enough to estimate parameters */
-	  {
-	    m_cov = load_covariance_matrix(gc, m_cov, gca->ninputs) ;
-	    for (r = 0 ; r < gca->ninputs ; r++)
-	    {
-	      vars[r] += *MATRIX_RELT(m_cov,r+1, r+1) ;
-	    }
-	    num++ ;
-	  }
-	}
+					det = covariance_determinant(gc, gca->ninputs) ;
+					if ((gc->ntraining == 0 && det > 1) || (gc->ntraining*gca->ninputs > 2.5*nparams))  /* enough to estimate parameters */
+					{
+						m_cov = load_covariance_matrix(gc, m_cov, gca->ninputs) ;
+						for (r = 0 ; r < gca->ninputs ; r++)
+						{
+							vars[r] += *MATRIX_RELT(m_cov,r+1, r+1) ;
+						}
+						num++ ;
+					}
+				}
       }
     }
   }
@@ -10858,93 +11040,196 @@ GCAfixSingularCovarianceMatrices(GCA *gca)
         gcan = &gca->nodes[x][y][z] ;
         for (n = 0 ; n < gcan->nlabels ; n++)
         {
-	  if (x == Ggca_x && y == Ggca_y && z == Ggca_z &&
-	      (Ggca_label == gcan->labels[n] || Ggca_label < 0))
-	    DiagBreak() ;
+					if (x == Ggca_x && y == Ggca_y && z == Ggca_z &&
+							(Ggca_label == gcan->labels[n] || Ggca_label < 0))
+						DiagBreak() ;
           gc = &gcan->gcs[n] ;
-	  det = covariance_determinant(gc, gca->ninputs) ;
-	  m_cov_inv = load_inverse_covariance_matrix(gc, NULL, gca->ninputs) ;
-	  
-	  if (det <= 0 || m_cov_inv == NULL)
-	  {
+					det = covariance_determinant(gc, gca->ninputs) ;
+					m_cov_inv = load_inverse_covariance_matrix(gc, NULL, gca->ninputs) ;
+					
+					if (det <= 0 || m_cov_inv == NULL)
+					{
             fixed++ ;
+						gc->regularized = 1 ;
             gc_nbr = findClosestValidGC(gca, x, y, z, gcan->labels[n], 1) ;
             if (!gc_nbr || 1)     /* always do this this - just to regularization */ 
             {
-	      for (i = r = 0 ; r < gca->ninputs ; r++)
-	      {
-		for (c = r ; c < gca->ninputs ; c++, i++)
-		{
-		  if (r == c)
-		    gc->covars[i] += vars[r] ;  /* mean of other variances at this location */
-		}
-	      }
+							for (i = r = 0 ; r < gca->ninputs ; r++)
+							{
+								for (c = r ; c < gca->ninputs ; c++, i++)
+								{
+									if (r == c)
+										gc->covars[i] += vars[r] ;  /* mean of other variances at this location */
+								}
+							}
             }   /* found another valid gc for this label - use it's covariance matrix */
-	    else
-	    {
-	      for (i = r = 0 ; r < gca->ninputs ; r++)
-	      {
-		gc->means[r] = gc_nbr->means[r] ; 
-		for (c = r ; c < gca->ninputs ; c++, i++)
-		  gc->covars[i] = gc_nbr->covars[i] ;
-	      }
-	    }
-	    if (x == Ggca_x && y == Ggca_y && z == Ggca_z &&
-		(Ggca_label == gcan->labels[n] || Ggca_label < 0))
-	    { 
-	      MATRIX *m ;
-	      printf("fixing singular covariance matrix for %s @ (%d, %d, %d):\n", 
-		     cma_label_to_name(gcan->labels[n]), x, y, z) ; 
-	      m = load_covariance_matrix(gc, NULL, gca->ninputs) ;
-	      MatrixPrint(stdout, m) ;
-	      MatrixFree(&m) ;
-	    }
+						else
+						{
+							for (i = r = 0 ; r < gca->ninputs ; r++)
+							{
+								gc->means[r] = gc_nbr->means[r] ; 
+								for (c = r ; c < gca->ninputs ; c++, i++)
+									gc->covars[i] = gc_nbr->covars[i] ;
+							}
+						}
+						if (x == Ggca_x && y == Ggca_y && z == Ggca_z &&
+								(Ggca_label == gcan->labels[n] || Ggca_label < 0))
+						{ 
+							MATRIX *m ;
+							printf("fixing singular covariance matrix for %s @ (%d, %d, %d):\n", 
+										 cma_label_to_name(gcan->labels[n]), x, y, z) ; 
+							m = load_covariance_matrix(gc, NULL, gca->ninputs) ;
+							MatrixPrint(stdout, m) ;
+							MatrixFree(&m) ;
+						}
           }
-	  else   /* not singular - check if it is ill-conditioned */
-	  {
-	    if ((gc->ntraining*gca->ninputs < 2*nparams && det < 0.1) || (det < min_det))
-	    {
-	      regularized++ ;
-	      for (i = r = 0 ; r < gca->ninputs ; r++)
-	      {
-		for (c = r ; c < gca->ninputs ; c++, i++)
-		{
-		  if (r == c)
-		    gc->covars[i] += vars[r] ;  /* mean of overall variance in this image */
-		}
-	      }
-	      if (x == Ggca_x && y == Ggca_y && z == Ggca_z &&
-		  (Ggca_label == gcan->labels[n] || Ggca_label < 0))
-	      { 
-		MATRIX *m ;
-		printf("fixing ill-conditioned covariance matrix for %s @ (%d, %d, %d):\n", 
-		       cma_label_to_name(gcan->labels[n]), x, y, z) ; 
-		m = load_covariance_matrix(gc, NULL, gca->ninputs) ;
-		MatrixPrint(stdout, m) ;
-		MatrixFree(&m) ;
-	      }
-	    }
-	  }
-	  
-	  if (m_cov_inv)
-	    MatrixFree(&m_cov_inv) ;
-	  det = covariance_determinant(gc, gca->ninputs) ;
-	  m_cov_inv = load_inverse_covariance_matrix(gc, NULL, gca->ninputs) ;
-	  if (det <= min_det || m_cov_inv == NULL)
-	  {
-	    printf("warning: regularization of node (%d, %d, %d) label %s failed\n",
-		   x, y, z, cma_label_to_name(gcan->labels[n])) ;
-	    DiagBreak() ;
-	    
-	  }
-	  if (m_cov_inv)
-	    MatrixFree(&m_cov_inv) ;
+					else   /* not singular - check if it is ill-conditioned */
+					{
+						if (gc->regularized == 0)
+							DiagBreak() ;
+						if ((gc->ntraining*gca->ninputs < 2*nparams && det < 0.1) || (det < min_det))
+						{
+							gc->regularized = 1 ;
+							regularized++ ;
+							for (i = r = 0 ; r < gca->ninputs ; r++)
+							{
+								for (c = r ; c < gca->ninputs ; c++, i++)
+								{
+									if (r == c)
+										gc->covars[i] += vars[r] ;  /* mean of overall variance in this image */
+								}
+							}
+							if (x == Ggca_x && y == Ggca_y && z == Ggca_z &&
+									(Ggca_label == gcan->labels[n] || Ggca_label < 0))
+							{ 
+								MATRIX *m ;
+								printf("fixing ill-conditioned covariance matrix for %s @ (%d, %d, %d):\n", 
+											 cma_label_to_name(gcan->labels[n]), x, y, z) ; 
+								m = load_covariance_matrix(gc, NULL, gca->ninputs) ;
+								MatrixPrint(stdout, m) ;
+								MatrixFree(&m) ;
+							}
+						}
+					}
+					
+					if (m_cov_inv)
+						MatrixFree(&m_cov_inv) ;
+					det = covariance_determinant(gc, gca->ninputs) ;
+					m_cov_inv = load_inverse_covariance_matrix(gc, NULL, gca->ninputs) ;
+					if (det <= min_det || m_cov_inv == NULL)
+					{
+						printf("warning: regularization of node (%d, %d, %d) label %s failed\n",
+									 x, y, z, cma_label_to_name(gcan->labels[n])) ;
+						DiagBreak() ;
+						
+					}
+					if (m_cov_inv)
+						MatrixFree(&m_cov_inv) ;
         }
       }
     }
   }
 
 	printf("%d singular and %d ill-conditioned covariance matrices regularized\n", fixed, regularized) ;
+	return(NO_ERROR) ;
+}
+int
+GCAregularizeCovarianceMatrices(GCA *gca, double lambda)
+{
+  int       x, y, z, r, n, num, nparams ;
+  GCA_NODE  *gcan ;
+  GC1D      *gc ; 
+  double    det, vars[MAX_GCA_INPUTS], min_det ;
+  MATRIX    *m_cov = NULL ;
+  
+  nparams = (gca->ninputs * (gca->ninputs+1))/2 + gca->ninputs ; /* covariance matrix and means */
+  
+  memset(vars, 0, sizeof(vars)) ;
+  
+  for (num = 0, x = 0 ; x < gca->node_width ; x++)
+  {
+    for (y = 0 ; y < gca->node_height ; y++)
+    {
+      for (z = 0 ; z < gca->node_depth ; z++)
+      {
+        if (x == Ggca_x && y == Ggca_y && z == Ggca_z)
+          DiagBreak() ;
+        gcan = &gca->nodes[x][y][z] ;
+        for (n = 0 ; n < gcan->nlabels ; n++)
+        {
+					if (x == Ggca_x && y == Ggca_y && z == Ggca_z &&
+							(Ggca_label == gcan->labels[n] || Ggca_label < 0))
+						DiagBreak() ;
+          gc = &gcan->gcs[n] ;
+					det = covariance_determinant(gc, gca->ninputs) ;
+					if ((gc->ntraining == 0 && det > 1) || (gc->ntraining*gca->ninputs > 2.5*nparams))  /* enough to estimate parameters */
+					{
+						m_cov = load_covariance_matrix(gc, m_cov, gca->ninputs) ;
+						for (r = 0 ; r < gca->ninputs ; r++)
+						{
+							vars[r] += *MATRIX_RELT(m_cov,r+1, r+1) ;
+						}
+						num++ ;
+					}
+				}
+      }
+    }
+  }
+
+  if (num >= 1)
+  {
+    printf("average std = ") ;
+    for (min_det = 1.0, r = 0 ; r < gca->ninputs ; r++)
+    {
+      vars[r] /= (float)num ;
+      printf("%2.1f ", sqrt(vars[r])) ;
+      min_det *= vars[r] ;
+    }
+    min_det = min_det / pow(10.0, gca->ninputs) ;
+    printf("  using min determinant for regularization = %2.1f\n", min_det) ;
+  }
+  else
+    min_det = MIN_DET ;
+
+	/* discard all previous stuff and just regularize by adding a fixed constant independent of variance */
+	for ( r = 0 ; r < gca->ninputs ; r++)
+		vars[r] = lambda ;
+
+  for (x = 0 ; x < gca->node_width ; x++)
+  {
+    for (y = 0 ; y < gca->node_height ; y++)
+    {
+      for (z = 0 ; z < gca->node_depth ; z++)
+      {
+        if (x == Ggca_x && y == Ggca_y && z == Ggca_z)
+          DiagBreak() ;
+        gcan = &gca->nodes[x][y][z] ;
+        for (n = 0 ; n < gcan->nlabels ; n++)
+        {
+					int r, c, v ;
+					MATRIX *m ;
+					
+					if (x == Ggca_x && y == Ggca_y && z == Ggca_z &&
+							(Ggca_label == gcan->labels[n] || Ggca_label < 0))
+						DiagBreak() ;
+          gc = &gcan->gcs[n] ;
+					
+
+					m = load_covariance_matrix(gc, NULL, gca->ninputs) ;
+					for (r = v = 0 ; r < gca->ninputs ; r++)
+						for (c = r ; c < gca->ninputs ; c++, v++)
+						{
+							if (r == c)
+								gc->covars[v] += vars[r] ;
+						}
+					MatrixFree(&m) ;
+					m = load_covariance_matrix(gc, NULL, gca->ninputs) ;
+					v = 0 ;
+        }
+      }
+    }
+  }
+	
 	return(NO_ERROR) ;
 }
 int
@@ -11845,10 +12130,10 @@ GCAreplaceLabels(GCA *gca, int in_label, int out_label)
     {
       for (z = 0 ; z < gca->node_depth ; z++)
       {
-	gcan = &gca->nodes[x][y][z] ;
-	for (n = 0 ; n < gcan->nlabels ; n++)
-	  if (gcan->labels[n] == in_label)
-	    gcan->labels[n] = out_label ;
+				gcan = &gca->nodes[x][y][z] ;
+				for (n = 0 ; n < gcan->nlabels ; n++)
+					if (gcan->labels[n] == in_label)
+						gcan->labels[n] = out_label ;
       }
     }
   }
@@ -11859,13 +12144,41 @@ GCAreplaceLabels(GCA *gca, int in_label, int out_label)
     {
       for (z = 0 ; z < gca->prior_depth ; z++)
       {
-	gcap = &gca->priors[x][y][z] ;
-	for (n = 0 ; n < gcap->nlabels ; n++)
-	  if (gcap->labels[n] == in_label)
-	    gcap->labels[n] = out_label ;
+				gcap = &gca->priors[x][y][z] ;
+				for (n = 0 ; n < gcap->nlabels ; n++)
+					if (gcap->labels[n] == in_label)
+						gcap->labels[n] = out_label ;
       }
     }
   }
   
   return(NO_ERROR) ;
 }
+int
+GCAreplaceRightWithLeft(GCA *gca)
+{
+	GCAreplaceLabels(gca, Right_Cerebral_Exterior, Left_Cerebral_Exterior) ;
+	GCAreplaceLabels(gca, Right_Cerebral_White_Matter, Left_Cerebral_White_Matter) ;
+	GCAreplaceLabels(gca, Right_Cerebral_Cortex, Left_Cerebral_Cortex) ;
+	GCAreplaceLabels(gca, Right_Lateral_Ventricle, Left_Lateral_Ventricle) ;
+	GCAreplaceLabels(gca, Right_Inf_Lat_Vent, Left_Inf_Lat_Vent) ;
+	GCAreplaceLabels(gca, Right_Cerebellum_Exterior, Left_Cerebellum_Exterior) ;
+	GCAreplaceLabels(gca, Right_Cerebellum_White_Matter, Left_Cerebellum_White_Matter) ;
+	GCAreplaceLabels(gca, Right_Cerebellum_Cortex, Left_Cerebellum_Cortex) ;
+	GCAreplaceLabels(gca, Right_Thalamus, Left_Thalamus) ;
+	GCAreplaceLabels(gca, Right_Thalamus_Proper, Left_Thalamus_Proper) ;
+	GCAreplaceLabels(gca, Right_Caudate, Left_Caudate) ;
+	GCAreplaceLabels(gca, Right_Putamen, Left_Putamen) ;
+	GCAreplaceLabels(gca, Right_Pallidum, Left_Pallidum) ;
+	GCAreplaceLabels(gca, Right_Hippocampus, Left_Hippocampus) ;
+	GCAreplaceLabels(gca, Right_Amygdala, Left_Amygdala) ;
+	GCAreplaceLabels(gca, Right_Insula, Left_Insula) ;
+	GCAreplaceLabels(gca, Right_Operculum, Left_Operculum) ;
+	GCAreplaceLabels(gca, Right_Lesion, Left_Lesion) ;
+	GCAreplaceLabels(gca, Right_Accumbens_area, Left_Accumbens_area) ;
+	GCAreplaceLabels(gca, Right_Substancia_Nigra, Left_Substancia_Nigra) ;
+	GCAreplaceLabels(gca, Right_VentralDC, Left_VentralDC) ;
+	GCAreplaceLabels(gca, Right_undetermined, Left_undetermined) ;
+	return(NO_ERROR) ;
+}
+

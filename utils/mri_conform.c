@@ -91,7 +91,7 @@ MRI *MRIconform(MRI *mri)
      res->y_r != templ->y_r || res->y_a != templ->y_a || res->y_s != templ->y_s ||
      res->z_r != templ->z_r || res->z_a != templ->z_a || res->z_s != templ->z_s)
   {
-    mri2 = MRIresample(res, templ, RESAMPLE_INTERPOLATE);
+    mri2 = MRIresample(res, templ, SAMPLE_TRILINEAR);
     MRIfree(&res);
     if(mri2 == NULL)
       return(NULL);
