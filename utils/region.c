@@ -30,6 +30,10 @@
 /*-----------------------------------------------------
                     STATIC PROTOTYPES
 -------------------------------------------------------*/
+
+static int regionCornerCoords(MRI_REGION *r, int which_corner, int *px, 
+                              int *py, int *pz) ;
+
 /*-----------------------------------------------------
                     GLOBAL FUNCTIONS
 -------------------------------------------------------*/
@@ -212,4 +216,91 @@ REGIONexpand(MRI_REGION *rsrc, MRI_REGION *rdst, int n)
   rdst->dy = rsrc->dy + 2*n ;
   rdst->dz = rsrc->dz + 2*n ;
   return(rdst) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+float
+REGIONminCornerDistance(MRI_REGION *r1, MRI_REGION *r2)
+{
+  float       min_dist = 10000.0f, dist, dx, dy, dz ;
+  int         i, j, x0, y0, z0, x1, y1, z1 ;
+  MRI_REGION  r3 ;
+  
+  REGIONintersect(r1, r2, &r3) ;
+  if (r3.dx > 0 && r3.dy > 0)
+    return(0.0) ;
+
+  for (i = 0 ; i < 8 ; i++)   /* each corner of r1 */
+  {
+    regionCornerCoords(r1, i, &x0, &y0, &z0) ;
+    for (j = 0 ; j < 8 ; j++)   /* each corner of r2 */
+    {
+      regionCornerCoords(r2, j, &x1, &y1, &z1) ;
+      dx = (float)(x1 - x0) ; dy = (float)(y1 - y0) ; dz = (float)(z1 - z0) ;
+      dist = sqrt(dx*dx + dy*dy + dz*dz) ;
+      if (dist < min_dist)
+        min_dist = dist ;
+    }
+  }
+  return(min_dist) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+static int
+regionCornerCoords(MRI_REGION *r, int which_corner, int *px, int *py, int *pz)
+{
+  switch (which_corner)
+  {
+  case 0:
+    *px = r->x ; 
+    *py = r->y ; 
+    *pz = r->z ; 
+    break ;
+  case 1:
+    *px = r->x + r->dx - 1 ; 
+    *py = r->y ; 
+    *pz = r->z ; 
+    break ;
+  case 2:
+    *px = r->x ; 
+    *py = r->y + r->dy - 1 ; 
+    *pz = r->z ; 
+    break ;
+  case 3:
+    *px = r->x ; 
+    *py = r->y ; 
+    *pz = r->z + r->dz - 1 ; 
+    break ;
+  case 4:
+    *px = r->x + r->dx - 1 ; 
+    *py = r->y + r->dy - 1 ; 
+    *pz = r->z ; 
+    break ;
+  case 5:
+    *px = r->x + r->dx - 1 ; 
+    *py = r->y ; 
+    *pz = r->z + r->dz - 1 ; 
+    break ;
+  case 6:
+    *px = r->x ; 
+    *py = r->y + r->dy - 1 ;
+    *pz = r->z + r->dz - 1 ; 
+    break ;
+  case 7:
+    *px = r->x + r->dx - 1 ;  
+    *py = r->y + r->dy - 1 ; 
+    *pz = r->z + r->dz - 1 ; 
+    break ;
+  }
+  return(NO_ERROR) ;
 }
