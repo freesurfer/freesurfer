@@ -967,80 +967,81 @@ TiffReadImage(char *fname, int frame0)
     ret = TIFFGetFieldDefaulted(tif, TIFFTAG_SAMPLESPERPIXEL, &nsamples);
     ret = TIFFGetFieldDefaulted(tif, TIFFTAG_BITSPERSAMPLE,&bits_per_sample);
     scanlinesize = TIFFScanlineSize(tif);
-    fprintf(stderr, "flipped the reading order ...\n");
+		if (DIAG_VERBOSE_ON && Gdiag & DIAG_SHOW)
+			fprintf(stderr, "flipped the reading order ...\n");
     for(row=0;row<height;row++)
     {
       // get the pointer at the first column of a row
       // note that the orientation is column, row
       if (nsamples == 1)
       {
-	switch (bits_per_sample)
-	{
-	default:
-	case 8: 
-	  buf = (tdata_t *)IMAGEpix(I,0,height-row-1);
-	  break;
-	case 32:
-	  buf = (tdata_t *)IMAGEFpix(I,0,height-row-1);
-	  break;
-	case 64:
-	  buf = (tdata_t *)IMAGEDpix(I,0,height-row-1);
-	  break;
-	}
-	if (TIFFReadScanline(tif, buf, row, 0) < 0) // row must be sequentially read for compressed data
-	  ErrorReturn(NULL,
-		      (ERROR_BADFILE,
-		       "TiffReadImage:  TIFFReadScanline returned error"));
+				switch (bits_per_sample)
+				{
+				default:
+				case 8: 
+					buf = (tdata_t *)IMAGEpix(I,0,height-row-1);
+					break;
+				case 32:
+					buf = (tdata_t *)IMAGEFpix(I,0,height-row-1);
+					break;
+				case 64:
+					buf = (tdata_t *)IMAGEDpix(I,0,height-row-1);
+					break;
+				}
+				if (TIFFReadScanline(tif, buf, row, 0) < 0) // row must be sequentially read for compressed data
+					ErrorReturn(NULL,
+											(ERROR_BADFILE,
+											 "TiffReadImage:  TIFFReadScanline returned error"));
       }
       else if (nsamples == 3) // RGB model
       {
-	switch(bits_per_sample)
-	{
-	default:
-	case 8:
-	  buf = (tdata_t*) IMAGERGBpix(I, 0, height-row-1);
-	  if (TIFFReadScanline(tif, buf, row, 0) < 0) // row must be sequentially read for compressed data
-	    ErrorReturn(NULL,
-			(ERROR_BADFILE,
-			 "TiffReadImage:  TIFFReadScanline returned error"));
-	}
+				switch(bits_per_sample)
+				{
+				default:
+				case 8:
+					buf = (tdata_t*) IMAGERGBpix(I, 0, height-row-1);
+					if (TIFFReadScanline(tif, buf, row, 0) < 0) // row must be sequentially read for compressed data
+						ErrorReturn(NULL,
+												(ERROR_BADFILE,
+												 "TiffReadImage:  TIFFReadScanline returned error"));
+				}
 
 #if 0
-	////////////////////////////////////////////////////////////
-	// we used to translate into the grey value
-	// now translate it into Y value
-	// RGB range 0 to 1.0
-	// then YIQ is 
-	//     Y   =  0.299  0.587   0.114  R
-	//     I      0.596 -0.275  -0.321  G
-	//     Q      0.212 -0.523   0.311  B
-	// and use Y for grey scale (this is color tv signal into bw tv
-	switch(bits_per_sample)
-	{
-	default:
-	case 8:
-	  skip = 3; // 
-	  for (i = 0; i < width; ++i)
-	  {
-	    r = (float) buffer[i*skip]; g = (float) buffer[i*skip+1]; b = (float) buffer[i*skip+2];
-	    y = (0.299*r + 0.587*g + 0.114*b);
-	    *IMAGEpix(I, i, row) = (unsigned char) y;
-	  }
-	  break; // 3 bytes at a time
-	case 32:
-	  skip = 12; // 3x4 bytes at a time
-	  for (i=0; i < width ; ++i)
-	  {
-	    pf = (float *) &buffer[i*skip]; r = *pf;
-	    pf = (float *) &buffer[i*skip+4]; g = *pf;
-	    pf = (float *) &buffer[i*skip+8]; b = *pf;
-	    y = (0.299*r + 0.587*g + 0.114*b);
-	    *IMAGEFpix(I, i, row) = y;
-	  }
-	case 64:
-	  ErrorExit(ERROR_BADPARM, "At this time we don't support RGB double valued tiff.\n");	  
-	}
-	free(buffer);
+				////////////////////////////////////////////////////////////
+				// we used to translate into the grey value
+				// now translate it into Y value
+				// RGB range 0 to 1.0
+				// then YIQ is 
+				//     Y   =  0.299  0.587   0.114  R
+				//     I      0.596 -0.275  -0.321  G
+				//     Q      0.212 -0.523   0.311  B
+				// and use Y for grey scale (this is color tv signal into bw tv
+				switch(bits_per_sample)
+				{
+				default:
+				case 8:
+					skip = 3; // 
+					for (i = 0; i < width; ++i)
+					{
+						r = (float) buffer[i*skip]; g = (float) buffer[i*skip+1]; b = (float) buffer[i*skip+2];
+						y = (0.299*r + 0.587*g + 0.114*b);
+						*IMAGEpix(I, i, row) = (unsigned char) y;
+					}
+					break; // 3 bytes at a time
+				case 32:
+					skip = 12; // 3x4 bytes at a time
+					for (i=0; i < width ; ++i)
+					{
+						pf = (float *) &buffer[i*skip]; r = *pf;
+						pf = (float *) &buffer[i*skip+4]; g = *pf;
+						pf = (float *) &buffer[i*skip+8]; b = *pf;
+						y = (0.299*r + 0.587*g + 0.114*b);
+						*IMAGEFpix(I, i, row) = y;
+					}
+				case 64:
+					ErrorExit(ERROR_BADPARM, "At this time we don't support RGB double valued tiff.\n");	  
+				}
+				free(buffer);
 #endif
 
       }
