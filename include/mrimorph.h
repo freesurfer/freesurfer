@@ -5,14 +5,26 @@
 #include "mri.h"
 #include "matrix.h"
 #include "transform.h"
+#include "mrisurf.h"
 
+typedef struct
+{
+  float      neck_x0 ;       /* position of neck in original coordinates */
+  float      neck_y0 ;
+  float      neck_z0 ;
+  float      neck_dx ;       /* vector along neck in 'don't care' direction */
+  float      neck_dy ;
+  float      neck_dz ;
+} NECK_PARMS ;
 
 typedef struct
 {
   double     l_intensity ;   /* coefficient of intensity term */
   double     l_area ;        /* coefficient of area term */
   double     l_nlarea ;      /* coefficient of nonlinear area term */
+  double     l_nldist ;      /* coefficient of nonlinear distance term */
   double     l_dist ;        /* coefficient of distance term */
+  double     l_compression ; /* coefficient of distance compression term */
   double     exp_k ;         /* nonlinear area exponent coefficient */
   LTA        *lta ;          /* octree transform */
   double     dt ;
@@ -27,7 +39,10 @@ typedef struct
   int        levels ;
   MRI        *mri_in, *mri_ref ;  /* for diagnostics to get at originals */
   int        navgs ;         /* # of iterations of gradient averaging */
+  NECK_PARMS ref_np ;     /* position and orientation of reference neck */
+  NECK_PARMS in_np ;      /* position and orientation of input neck */
 } MORPH_PARMS, MP ;
+
 
 #define INTEGRATION_TOL    1e-4  /*5e-5*/
 #define NEIGHBORS          6
@@ -80,8 +95,9 @@ int       MRIeraseOtherLabels(MRI *mri_src, MRI *mri_dst, int label) ;
 int       MRIeraseLabel(MRI *mri_src, MRI *mri_dst, int label) ;
 int       MRIfindHorizontalLabelLimits(MRI *mri, int label, 
                                        int *xmins, int *xmaxs) ;
-MRI       *MRIremoveNeck(MRI *mri_src, MRI *mri_dst, int thresh_low, 
-                         int thresh_hi, MORPH_PARMS *parms, int dir) ;
+MRI       *MRIfindNeck(MRI *mri_src, MRI *mri_dst, int thresh_low, 
+                         int thresh_hi, MORPH_PARMS *parms, int dir,
+                         NECK_PARMS *np) ;
 int       MRIlabelAreas(MRI *mri_label, float *areas, int nlabels) ;
 int       MRIlabelCentroid(MRI *mri_label,int l,float *px,float *py,float *pz);
 int       MRIlinearAlign(MRI *mri_in, MRI *mri_ref, MORPH_PARMS *parms);
@@ -100,6 +116,8 @@ MORPH_3D  *MRI3DreadSmall(char *fname) ;
 int       MRIsample3DmorphOrig(MORPH_3D *m3d, float x, float y, float z, 
                                  float *pxd, float *pyd, float *pzd);
 
+MRI_SURFACE   *MRISshrinkWrapSkull(MRI *mri, MORPH_PARMS *parms) ;
+int           MRIeraseNeck(MRI *mri, NECK_PARMS *np) ;
 
 #define M3D_MAGIC  0xabcdef42
 
