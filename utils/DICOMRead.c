@@ -879,9 +879,6 @@ void *ReadDICOMImage(int nfiles, DICOMInfo **aDicomInfo)
    Date: 06/04/2001
    input: array of file names, number of elements
    output: array of structures DICOMInfo sorted by study date and image number, number of studies encountered in the list of files
-   comments: conventional MR scans can usually be sorted by study date, then image number. Other data type (i.e. mosaic functional data)
-             may have different discrimination fields.
-
 *******************************************************/
 
 void SortFiles(char *fNames[], int nFiles, DICOMInfo ***ptrDicomArray, int *nStudies)
@@ -910,7 +907,7 @@ void SortFiles(char *fNames[], int nFiles, DICOMInfo ***ptrDicomArray, int *nStu
       npermut=0;
       for (n=0; n<nFiles-1; n++)
   if (strcmp(dicomArray[n]->AcquisitionTime, dicomArray[n+1]->AcquisitionTime)>0)  // 2nd time inferior to first
-    {
+  {
       storage=dicomArray[n];
       dicomArray[n]=dicomArray[n+1];
       dicomArray[n+1]=storage;
@@ -941,11 +938,6 @@ void SortFiles(char *fNames[], int nFiles, DICOMInfo ***ptrDicomArray, int *nStu
   for (n=0; n<nFiles-1; n++)
     if (strcmp(dicomArray[n]->AcquisitionTime, dicomArray[n+1]->AcquisitionTime)!=0)
       (*nStudies)++;
-
-  if (*nStudies > 1) 
-    {
-      printf("WARNING: DICOM conversion, %d different acquisition times have been identified\n", *nStudies);
-    }
 }
 
 /*******************************************************
@@ -959,19 +951,14 @@ void SortFiles(char *fNames[], int nFiles, DICOMInfo ***ptrDicomArray, int *nStu
 int IsDICOM(char *fname)
 {
 
-  CONDITION cond;
+  unsigned long options=DCM_PART10FILE /*| DCM_ORDERLITTLEENDIAN |  DCM_ORDERBIGENDIAN | DCM_FORMATCONVERSION*/;
+
   DCM_OBJECT** object=(DCM_OBJECT**)calloc(1, sizeof(DCM_OBJECT*));
+  CONDITION cond;
 
+  cond=DCM_OpenFile(fname, options, object);
 
-  cond=DCM_OpenFile(fname, DCM_PART10FILE, object);
-  if (cond != DCM_NORMAL)
-    cond=DCM_OpenFile(fname, DCM_ORDERLITTLEENDIAN, object);
-  if (cond != DCM_NORMAL)
-    cond=DCM_OpenFile(fname, DCM_ORDERBIGENDIAN, object);
-  if (cond != DCM_NORMAL)
-    cond=DCM_OpenFile(fname, DCM_FORMATCONVERSION, object);
-
-#ifdef _DCM_DEBUG
+#ifdef TOTO
   switch (cond)
     {
     case DCM_NORMAL: printf("DCM_NORMAL\n"); break;
@@ -988,16 +975,6 @@ int IsDICOM(char *fname)
 
   return(cond == DCM_NORMAL);
 }
-
-#ifdef Solaris
-
-int alphasort(const struct dirent **a, const struct dirent **b)
-{
-  return(strcmp((*a)->d_name, (*b)->d_name));
-}
-
-#endif
-
 
 /*******************************************************
    ScanDir
@@ -1032,6 +1009,52 @@ int ScanDir(char *PathName, char ***FileNames, int *NumberOfFiles)
   *FileNames=pfn;
   return 0;
 }
+
+#ifdef Solaris
+/* added by kteich for solaris, since it doesn't have them by default. */
+/* these funcs Copyright (c) Joerg-R. Hill, December 2000 */
+
+int scandir(const char *dir, struct dirent ***namelist,
+            int (*select)(const struct dirent *),
+            int (*compar)(const struct dirent **, const struct dirent **))
+{
+  DIR *d;
+  struct dirent *entry;
+  register int i=0;
+  size_t entrysize;
+
+  if ((d=opendir(dir)) == NULL)
+    return(-1);
+
+  *namelist=NULL;
+  while ((entry=readdir(d)) != NULL)
+  {
+    if (select == NULL || (select != NULL && (*select)(entry)))
+    {
+      *namelist=(struct dirent **)realloc((void *)(*namelist),
+                                          (size_t)((i+1)*sizeof(struct dirent *)));
+      if (*namelist == NULL) return(-1);
+      entrysize=sizeof(struct dirent)-sizeof(entry->d_name)+strlen(entry->d_name)+1;
+      (*namelist)[i]=(struct dirent *)malloc(entrysize);
+      if ((*namelist)[i] == NULL) return(-1);
+      memcpy((*namelist)[i], entry, entrysize);
+      i++;
+    }
+  }
+  if (closedir(d)) return(-1);
+  if (i == 0) return(-1);
+  if (compar != NULL)
+    qsort((void *)(*namelist), (size_t)i, sizeof(struct dirent *), compar);
+    
+  return(i);
+}
+
+int alphasort(const struct dirent **a, const struct dirent **b)
+{
+  return(strcmp((*a)->d_name, (*b)->d_name));
+}
+
+#endif
 
 /*******************************************************
    CleanFileNames
@@ -1114,6 +1137,7 @@ M4 = M3.inv(M2).M1
   MATRIX *RasScanner,
     *Scanner2dicom,
     *InvScanner2Dicom,
+    /**Dicom2Mgh,*/
     *RasMgh,
     *VolumeCenterXyz,
     *VolumeCenterRas;
@@ -1263,6 +1287,7 @@ M4 = M3.inv(M2).M1
   MatrixFree(&RasScanner);
   MatrixFree(&Scanner2dicom);
   MatrixFree(&InvScanner2Dicom);
+  //  MatrixFree(&Dicom2Mgh);
   MatrixFree(&RasMgh);
   MatrixFree(&VolumeCenterXyz);
   MatrixFree(&VolumeCenterRas);
@@ -1293,16 +1318,17 @@ unsigned char *DICOM16To8(unsigned short *v16, int nvox)
       exit(1);
     }
   
-  for (i=0, min16=65535, max16=0; i<nvox; i++) {
-    if (v16[i]>max16)
-      max16=(double)v16[i];
-    if (v16[i]<min16)
-      min16=(double)v16[i];
-  }
+  for (i=0, min16=65535, max16=0; i<nvox; i++)  
+    {
+      if (v16[i]>max16)
+  max16=(double)v16[i];
+      if (v16[i]<min16)
+  min16=(double)v16[i];
+    }
 
   ratio = (max8-min8)/(max16-min16); 
   for (i=0; i<nvox; i++)  
-      v8[i]=(unsigned char)((double)(v16[i])*ratio);
+      v8[i]=(unsigned short)((double)(v16[i])*ratio);
   
   return v8;
 }
@@ -1314,12 +1340,9 @@ unsigned char *DICOM16To8(unsigned short *v16, int nvox)
    output: fill in MRI structure, including the image
 *******************************************************/
 
-int DICOMInfo2MRI(DICOMInfo *dcm, void *data, MRI *mri)
+int DICOMInfo2MRI(DICOMInfo *dcm, unsigned char *data, MRI *mri)
 {
-  long n, nvox;
-  int i, j, k;
-  unsigned char *data8;
-  unsigned short *data16;
+  int i, j, k, nvox;
 
   // fill in the fields
   strcpy(mri->fname, dcm->FileName);
@@ -1346,23 +1369,11 @@ int DICOMInfo2MRI(DICOMInfo *dcm, void *data, MRI *mri)
 
   RASFromOrientation(mri, dcm);
   
-  switch (dcm->BitsAllocated) {
-  case 8:
-    data8=(unsigned char *)data;
-    for (k=0, n=0; k<dcm->NumberOfFrames; k++)
-      for (j=0; j<dcm->Columns; j++)
-  for (i=0; i<dcm->Rows; i++, n++)
-    MRIvox(mri, i, j, k) = data8[n];
-    break;
-  case 16:
-    data16=(unsigned short *)data;
-    for (k=0, n=0; k<dcm->NumberOfFrames; k++)
-      for (j=0; j<dcm->Columns; j++)
-  for (i=0; i<dcm->Rows; i++, n++)
-    MRISvox(mri, i, j, k) = data16[n];
-    break;
-  }
- 
+  for (k=0; k<dcm->NumberOfFrames; k++)
+    for (j=0; j<dcm->Columns; j++)
+      for (i=0; i<dcm->Rows; i++)
+  mri->slices[k][j][i]=data[i+j*dcm->Rows+k*dcm->Rows*dcm->Columns];
+
   return 0;
 }
 
@@ -1378,14 +1389,13 @@ int DICOMInfo2MRI(DICOMInfo *dcm, void *data, MRI *mri)
 
 int DICOMRead(char *FileName, MRI **mri, int ReadImage)
 {
-  MRI *pmri=NULL;
+  MRI *pmri;
   char **CleanedFileNames, **FileNames, *c, PathName[256];
   int i, NumberOfFiles, NumberOfDICOMFiles, nStudies, error;
   int length;
   DICOMInfo **aDicomInfo;
   unsigned char *v8=NULL;
   unsigned short *v16=NULL;
-  FILE *fp;
 
   for (i=0; i< NUMBEROFTAGS; i++)
     IsTagPresent[i]=false;
@@ -1423,43 +1433,38 @@ int DICOMRead(char *FileName, MRI **mri, int ReadImage)
 
   // remove non DICOM file names
   CleanFileNames(FileNames, NumberOfDICOMFiles, &CleanedFileNames);
+  //for (i=0; i<NumberOfFiles; i++)
+  //free(FileNames[i]);
+  //free(FileNames);
   
   // sort DICOM files by study date, then image number
   SortFiles(CleanedFileNames, NumberOfDICOMFiles, &aDicomInfo, &nStudies);
   if (nStudies>1)
     {
-      printf("Generating log file dicom.log\n");
-      fp = fopen("dicom.log", "w");
-      if (fp==NULL) {
-  printf("Can not create file dicom.log\n");
-      }
-      else {
-  for (i=0; i<NumberOfDICOMFiles; i++)
-    fprintf(fp, "%s\t%d\n", aDicomInfo[i]->FileName, aDicomInfo[i]->ImageNumber);
-  fclose(fp);
-      }
+      printf("WARNING: %d different studies identified\n", nStudies);
+      printf("Please, clen up directory\n");
+      exit(1);
     }
 
   switch (aDicomInfo[0]->BitsAllocated)
     {
     case 8:
       v8=(unsigned char *)ReadDICOMImage(NumberOfDICOMFiles, aDicomInfo);
-      pmri=MRIallocSequence(aDicomInfo[0]->Columns, aDicomInfo[0]->Rows, aDicomInfo[0]->NumberOfFrames, MRI_UCHAR, 1);
-      DICOMInfo2MRI(aDicomInfo[0], (void *)v8, pmri);
-      free(v8);
       break;
     case 16:
       v16=(unsigned short *)ReadDICOMImage(NumberOfDICOMFiles, aDicomInfo);
-      pmri=MRIallocSequence(aDicomInfo[0]->Columns, aDicomInfo[0]->Rows, aDicomInfo[0]->NumberOfFrames, MRI_SHORT, 1);
-      DICOMInfo2MRI(aDicomInfo[0], (void *)v16, pmri);
+      v8=DICOM16To8(v16, aDicomInfo[0]->Columns*aDicomInfo[0]->Rows*aDicomInfo[0]->NumberOfFrames);
       free(v16);
-      break;
     }
   
   // display only first DICOM header
   PrintDICOMInfo(aDicomInfo[0]);
 
+  pmri=MRIallocSequence(aDicomInfo[0]->Columns, aDicomInfo[0]->Rows, aDicomInfo[0]->NumberOfFrames, MRI_UCHAR, 1);
+  DICOMInfo2MRI(aDicomInfo[0], v8, pmri);
   *mri=pmri;
 
+
   return 0;
+
 }
