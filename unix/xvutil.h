@@ -103,6 +103,7 @@ void XVsetParms(void (*event_handler)(Event *event, DIMAGE *dimage)) ;
 void XVshowVectorImage(XV_FRAME *xvf, int which, int x0, int y0, 
                   int width, int height, int color, IMAGE *image) ;
 void XVsetQuitFunc(void (*quit_func)(void)) ;
+void XVrepaintImage(XV_FRAME *xvf, int which) ;
 
 #define WINDOW_PAD          3
 

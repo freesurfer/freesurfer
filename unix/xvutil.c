@@ -81,7 +81,6 @@ static void xv_dimage_repaint(Canvas canvas, Xv_Window window,
                                        Rectlist *repaint_area) ;
 static DIMAGE *xvGetDimage(int which, int alloc) ;
 static void xv_dimage_event_handler(Xv_Window window, Event *event) ;
-static void xvRepaintImage(XV_FRAME *xvf, int which) ;
 static XImage *xvCreateXimage(XV_FRAME *xvf, IMAGE *image) ;
 static Panel_setting xvHipsCommand(Panel_item item, Event *event) ;
 static void xvHipsCmdFrameInit(void) ;
@@ -493,7 +492,7 @@ XVclearImage(XV_FRAME *xvf, int which, int dotitle)
            Description:
 ----------------------------------------------------------------------*/
 void
-xvRepaintImage(XV_FRAME *xvf, int which)
+XVrepaintImage(XV_FRAME *xvf, int which)
 {
   DIMAGE    *dimage ;
   IMAGE *image ;
@@ -584,7 +583,7 @@ ImageWrite(GtmpByteImage2, "i2.hipl") ;
 ImageWrite(dimage->dispImage, "i3.hipl") ;
 #endif
 
-  xvRepaintImage(xvf, which) ;
+  XVrepaintImage(xvf, which) ;
   XFlush(xvf->display); 
 }
 /*----------------------------------------------------------------------
@@ -611,7 +610,7 @@ xv_dimage_repaint(Canvas canvas, Xv_Window window, Rectlist *repaint_area)
     }
   }
   if (dimage && dimage->used)
-    xvRepaintImage(xvf, which) ;
+    XVrepaintImage(xvf, which) ;
 }
 /*----------------------------------------------------------------------
             Parameters:
@@ -773,9 +772,6 @@ XVshowImageTitle(XV_FRAME *xvf, int which, ...)
   int     len, row, col, i, spaces ;
 
   va_start(args, which) ;
-#if 0
-  which = va_arg(args, int) ;
-#endif
   fmt = va_arg(args, char *) ;
 
   row = which / xvf->cols ;
