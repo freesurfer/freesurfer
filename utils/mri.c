@@ -8,10 +8,10 @@
  *
 */
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2003/05/08 20:55:05 $
-// Revision       : $Revision: 1.221 $
-char *MRI_C_VERSION = "$Revision: 1.221 $";
+// Revision Author: $Author: greve $
+// Revision Date  : $Date: 2003/05/09 20:13:54 $
+// Revision       : $Revision: 1.222 $
+char *MRI_C_VERSION = "$Revision: 1.222 $";
 
 /*-----------------------------------------------------
                     INCLUDE FILES
@@ -456,15 +456,22 @@ MATRIX *MRIfsl2TkReg(MRI *ref, MRI *mov, MATRIX *FSLRegMat)
   -------------------------------------------------------------------*/
 MATRIX *MRItkreg2FSL(MRI *ref, MRI *mov, MATRIX *tkRegMat)
 {
-  MATRIX *FSLRegMat=NULL, *Dmov, *Tmov, *invTmov, *Tref;
+  MATRIX *FSLRegMat=NULL, *Dmov, *Tmov, *invTmov, *Tref, *Dref, *invDref;
 
-  /* R = Tmov * inv(Dmov) * inv(Mfsl) * inv(Ttarg) */
-  /* Mfsl =  inv( Dmov * inv(Tmov) * R * Ttarg ) */
+  /* R = Tmov * inv(Dmov) * inv(Mfsl) * inv(Tref) */
+  /* Mfsl =  inv( Dmov * inv(Tmov) * R * Tref * inv(Dref)) */
   Dmov = MatrixAlloc(4,4,MATRIX_REAL);
   Dmov->rptr[1][1] = mov->xsize;
   Dmov->rptr[2][2] = mov->ysize;
   Dmov->rptr[3][3] = mov->zsize;
   Dmov->rptr[4][4] = 1.0;
+      
+  Dref = MatrixAlloc(4,4,MATRIX_REAL);
+  Dref->rptr[1][1] = ref->xsize;
+  Dref->rptr[2][2] = ref->ysize;
+  Dref->rptr[3][3] = ref->zsize;
+  Dref->rptr[4][4] = 1.0;
+  invDref = MatrixInverse(Dref,NULL);
       
   Tmov = MRIxfmCRS2XYZtkreg(mov);
   invTmov = MatrixInverse(Tmov,NULL);
@@ -473,12 +480,29 @@ MATRIX *MRItkreg2FSL(MRI *ref, MRI *mov, MATRIX *tkRegMat)
   FSLRegMat = MatrixMultiply(Dmov,invTmov,FSLRegMat);
   FSLRegMat = MatrixMultiply(FSLRegMat,tkRegMat,FSLRegMat);
   FSLRegMat = MatrixMultiply(FSLRegMat,Tref,FSLRegMat);
+  FSLRegMat = MatrixMultiply(FSLRegMat,invDref,FSLRegMat);
   FSLRegMat = MatrixInverse(FSLRegMat,FSLRegMat);
+
+  if(0){
+    printf("--- Dmov ---------------------\n");
+    MatrixPrint(stdout,Dmov);
+    printf("--- Tmov ---------------------\n");
+    MatrixPrint(stdout,Tmov);
+    printf("--- R ---------------------\n");
+    MatrixPrint(stdout,tkRegMat);
+    printf("--- Tref ---------------------\n");
+    MatrixPrint(stdout,Tref);
+    printf("--- Dref ---------------------\n");
+    MatrixPrint(stdout,Dref);
+    printf("--- Rfsl ---------------------\n");
+    MatrixPrint(stdout,FSLRegMat);
+  }
 
   MatrixFree(&Dmov);
   MatrixFree(&Tmov);
   MatrixFree(&invTmov);
   MatrixFree(&Tref);
+  MatrixFree(&Dref);
 
   return(FSLRegMat);
 }
