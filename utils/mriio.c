@@ -7353,7 +7353,11 @@ MRI *MRIreadOtl(char *fname, int width, int height, int slices, char *color_file
     ErrorReturn(NULL, (ERROR_BADFILE, "MRIreadOtl(): found at least one file between %s and %s but couldn't open it!", first_name, last_name));
   }
 
-  if(n_unknown_labels > 0)
+  if(n_unknown_labels == 0)
+  {
+    printf("no unknown labels\n");
+  }
+  else
   {
     printf("unknown labels:\n");
     print_unknown_labels("  ");
