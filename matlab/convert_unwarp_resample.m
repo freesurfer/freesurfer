@@ -1,4 +1,4 @@
-% $Id: convert_unwarp_resample.m,v 1.1 2003/07/24 21:10:52 ebeth Exp $
+% $Id: convert_unwarp_resample.m,v 1.2 2003/07/24 22:17:46 ebeth Exp $
 %
 %% convert_unwarp_resample.m contains: 
 % convert_unwarp_resample()
@@ -43,7 +43,7 @@ unwarp_init_globals(called_by_script);
 
 fprintf('GRADWARPPATH=%s\n',GRADWARPPATH);
 fprintf('TABLE=%s\n',TABLE);
-fprintf('QuitOnError=%s\n',QuitOnError);
+fprintf('QuitOnError=%d\n',QuitOnError);
 
 tic;
 % For if you're running matlab interactively instead of calling this
