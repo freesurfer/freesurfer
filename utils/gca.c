@@ -2,9 +2,9 @@
 // originally written by Bruce Fischl
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2005/04/01 20:37:16 $
-// Revision       : $Revision: 1.162 $
+// Revision Author: $Author: xhan $
+// Revision Date  : $Date: 2005/04/04 21:49:05 $
+// Revision       : $Revision: 1.163 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -7247,7 +7247,8 @@ GCAnormalizeSamples(MRI *mri_in, GCA *gca, GCA_SAMPLE *gcas, int nsamples,
     int        r ;
     
     GCAlabelMean(gca, Left_Cerebral_White_Matter, wm_means) ;
-    GCAlabelMean(gca, Left_Cerebral_White_Matter, tmp) ;
+    //    GCAlabelMean(gca, Left_Cerebral_White_Matter, tmp) ;
+    GCAlabelMean(gca, Right_Cerebral_White_Matter, tmp) ;
     max_wm = 0 ;
     for (r = 0 ; r < gca->ninputs ; r++)
     {
@@ -9883,7 +9884,9 @@ GCAhistoScaleImageIntensities(GCA *gca, MRI *mri)
   MRI        *mri_frame ;
 
   GCAlabelMean(gca, Left_Cerebral_White_Matter, wm_means) ;
-  GCAlabelMean(gca, Left_Cerebral_White_Matter, tmp) ;
+  //GCAlabelMean(gca, Left_Cerebral_White_Matter, tmp) ;
+  GCAlabelMean(gca, Right_Cerebral_White_Matter, tmp) ;
+
   max_wm = 0 ;
   for (r = 0 ; r < gca->ninputs ; r++)
   {
