@@ -1292,3 +1292,13 @@ XVsetKBhandler(void (*kb_handler)(Event *event, DIMAGE *dimage))
   XVkb_handler = kb_handler ;
 }
 
+int
+XVsetMessagePosition(XV_FRAME *xvf, int which, int col, int row)
+{
+  if (which < 0 || which > 1)
+    ErrorReturn(-1, (ERROR_BADPARM, "XVsetMessagePosition(%d): out of range", 
+                    which)) ;
+
+  xv_set((Xv_opaque)xvf->msg_item[which], XV_X, col, XV_Y, row, NULL);
+  return(0) ;
+}
