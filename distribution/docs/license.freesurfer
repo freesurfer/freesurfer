@@ -1,0 +1,155 @@
+End-User Licensing Agreement ("EULA") for FreeSurfer
+
+IMPORTANT- READ CAREFULLY: This End-User License Agreement ("EULA") is
+a legal agreement between you, the "licensee" (either an individual or
+a single entity), and CorTechs. For the purposes of this EULA,
+FreeSurfer includes computer software, documentation and sample
+datasets, the associated media, any printed materials, and any online
+or electronic documentation. By installing, copying, or otherwise
+using FreeSurfer, the licensee agrees to be bound by the terms of this
+EULA. If you do not agree to the terms of this EULA, then you may not
+install, copy or otherwise use FreeSurfer, and you are required to
+destroy the CD and remove any files that you may have already
+installed.
+
+1. GRANT OF LICENSE. This EULA grants the licensee the following
+rights: Software. The licensee may install one copy of FreeSurfer on a
+single computer.  Network Use. The licensee may use FreeSurfer over an
+internal network, and the licensee may distribute FreeSurfer to other
+computers over an internal network.  Documentation. The licensee may
+make a copy of the documentation for internal use only.
+
+2. LIMITATIONS Academic Version. FreeSurfer can only be used by
+Colleges, Universities, and other Non-Profit Research
+Organizations. For-profit organizations and companies (including
+hospitals) are explicitly prohibited from using this software.
+Rental. The licensee may not rent or lease FreeSurfer.  Commercial
+Use. The licensee may not charge anyone for any activity that uses
+FreeSurfer. For example, the licensee may not charge for cortical
+surface reconstruction using FreeSurfer. The licensee may not
+incorporate FreeSurfer or any of its parts into any commercial code or
+product of any kind.  Software Transfer. The licensee may not transfer
+FreeSurfer to any third party.  Termination. Without prejudice to any
+other rights, CorTechs may terminate this EULA if the licensee fails
+to comply with the terms and conditions of this EULA. In such an
+event, the licensee must destroy all copies of FreeSurfer and all of
+its component parts.
+
+3. COPYRIGHT and TRADEMARKS.  FreeSurfer. All title and copyrights in
+and to FreeSurfer (including but not limited to any code,
+documentation, images, text or data) are owned by CorTechs. FreeSurfer
+is protected by copyright laws and international copyright treaties,
+as well as other intellectual property laws and treaties. FreeSurfer
+is licensed, not given away or sold.  Trademarks. This License does
+not grant any rights to use the trade names "FreeSurfer", "CorTechs",
+"CSurf," or any other trademarks or trade names belonging to CorTechs
+unless explicitly permitted in writing by CorTechs.
+
+Tck/Tk. Parts of this software are based on the Tcl/Tk software
+copyrighted by the Regents of the University of California, Sun
+Microsystems, Inc., and other parties. The original license terms of
+the Tcl/Tk software distribution is included in the file
+docs/license.tcltk. (Please see Appendix 1)
+
+Tix. Parts of this software are based on the Tix software copyrighted
+by the Ioi Kim Lam, and Expert Interface Technologies. The original
+license terms of the Tix software distribution is included in the file
+docs/license.tix. (Please see Appendix 2)
+
+HTML. Parts of this software are based on the HTML Library software
+copyrighted by Sun Microsystems, Inc. The original license terms of
+the HTML Library software distribution is included in the file
+docs/license.html_lib. (Please see Appendix 2)
+
+Mesa. Parts of this software link to the Mesa library software
+copyrighted by Brian Paul. This software is covered under the GNU
+LIBRARY GENERAL PUBLIC LICENSE, Version 2, which is included in the
+file docs/license.gnu. (Please see Appendix 3)
+
+4. NO SUPPORT OR WARRANTY. FreeSurfer is provided with no support
+whatsoever. CorTechs may, at its own discretion, provide bug reports
+or upgrades at www.nmr.mgh.harvard.edu and/or
+www.cortechs.net. FreeSurfer may contain in whole or in part
+pre-release, untested, or not fully tested works. FreeSurfer may
+contain errors that could cause failures or loss of data, and may be
+incomplete or contain inaccuracies. LICENSEE expressly acknowledges
+and agrees that use of FreeSurfer, or any portion thereof, is at
+LICENSEE's sole and entire risk. FreeSurfer is provided "AS IS" and
+without warranty, upgrades or support of any kind. CorTechs EXPRESSLY
+DISCLAIMS ALL WARRANTIES AND/OR CONDITIONS, EXPRESS OR IMPLIED,
+INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES AND/OR
+CONDITIONS OF MERCHANTABILITY OR SATISFACTORY QUALITY AND FITNESS FOR
+A PARTICULAR PURPOSE AND NONINFRINGEMENT OF THIRD PARTY
+RIGHTS. CORTECHS DOES NOT WARRANT THAT THE FUNCTIONS CONTAINED IN
+FREESURFER WILL MEET LICENSEE'S REQUIREMENTS, OR THAT THE OPERATION OF
+FREESURFER WILL BE UNINTERRUPTED OR ERROR-FREE, OR THAT DEFECTS IN
+FREESURFER WILL BE CORRECTED. NO ORAL OR WRITTEN INFORMATION OR ADVICE
+GIVEN BY CORTECHS OR A CORTECHS AUTHORIZED REPRESENTATIVE SHALL CREATE
+A WARRANTY OR IN ANY WAY INCREASE THE SCOPE OF THIS WARRANTY. LICENSEE
+ACKNOWLEDGES THAT FREESURFER IS NOT INTENDED FOR CLINICAL USE AND
+SHOULD NOT BE USED FOR DIAGNOSIS, TREATMENT PLANNING, OR ANY OTHER
+CLINICAL PURPOSE.
+
+6. INFRINGEMENT. If any portion of, or functionality implemented by,
+FreeSurfer becomes the subject of a claim of infringement, CorTechs
+may, at its option: (a) attempt to procure the rights necessary for
+CorTechs and LICENSEE to continue using the Affected Code; (b) modify
+the Affected Code so that it is no longer infringing; or (c) suspend
+LICENSEE's rights to use, reproduce, modify, sublicense and distribute
+the Affected Code until a final determination of the claim is made by
+a court or governmental administrative agency of competent
+jurisdiction and CorTechs lifts the suspension as set forth
+below. Such suspension of rights will be effective immediately upon
+CorTechs's posting of an email notice to such effect to the
+LICENSEE. Upon such final determination being made, if CorTechs is
+legally able, without the payment of a fee or royalty, to resume use,
+reproduction, modification, sublicensing and distribution of the
+Affected Code, CorTechs will lift the suspension of rights to the
+Affected Code by posting of an email notice to such effect to the
+LICENSEE.
+
+7. LIMITATION OF LIABILITY. UNDER NO CIRCUMSTANCES SHALL CORTECHS BE
+LIABLE FOR ANY INCIDENTAL, SPECIAL, INDIRECT OR CONSEQUENTIAL DAMAGES
+ARISING OUT OF OR RELATING TO THIS LICENSE OR LICENSEE'S USE OR
+INABILITY TO USE FREESURFER, OR ANY PORTION THEREOF, whether under a
+theory of contract, warranty, tort (including negligence), products
+liability or otherwise, even if CORTECHS has been advised of the
+possibility of such damages AND NOTWITHSTANDING THE FAILURE OF
+ESSENTIAL PURPOSE OF ANY REMEDY. In no event shall CorTechs's total
+liability to LICENSEE for all damages under this License exceed the
+amount of fifty dollars ($50.00).
+
+8. MISCELLANEOUS.  U.S. Government End Users. The Covered Code is a
+"commercial item" as defined in FAR 2.101. Government software and
+technical data rights in the Covered Code include only those rights
+customarily provided to the public as defined in this License.  This
+customary commercial license in technical data and software is
+provided in accordance with FAR 12.211 (Technical Data) and 12.212
+(Computer Software) and, for Department of Defense purchases, DFAR
+252.227-7015 (Technical Data -- Commercial Items) and 227.7202-3
+(Rights in Commercial Computer Software or Computer Software
+Documentation). Accordingly, all U.S.  Government End Users acquire
+Covered Code with only those rights set forth herein.  Waiver;
+Construction. Failure by CorTechs to enforce any provision of this
+License will not be deemed a waiver of future enforcement of that or
+any other provision. Any law or regulation which provides that the
+language of a contract shall be construed against the drafter will not
+apply to this License.  Dispute Resolution. Any litigation or other
+dispute resolution between LICENSEE and CorTechs relating to this
+License shall take place in the Commonwealth of Massachusetts, and
+LICENSEE and CorTechs hereby consent to the personal jurisdiction of,
+and venue in, the state and federal courts within that Commonwealth
+with respect to this License. The application of the United Nations
+Convention on Contracts for the International Sale of Goods is
+expressly excluded.  Entire Agreement; Governing Law. This License
+constitutes the entire agreement between the parties with respect to
+the subject matter hereof. This License shall be governed by the laws
+of the United States and the Commonwealth of Massachusetts, except
+that body of Massachusetts law concerning conflicts of law.
+Quebec. Where LICENSEEs are located in the province of Quebec, Canada,
+the following clause applies: The parties hereby confirm that they
+have requested that this License and all related documents be drafted
+in English. Les parties ont exigé que le présent contrat et tous les
+documents connexes soient rédigés en anglais.  Authority. The person
+submitting this registration warrants that he/she has the authority to
+bind to this Agreement the party which he/she represents.

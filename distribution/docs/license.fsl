@@ -1,0 +1,27 @@
+The various programs making up the FMRIB Software Library (FSL) are
+free but copyright software of the University of Oxford, distributed
+under the terms of the GNU General Public License (GPL) as published
+by the Free Software Foundation (either version 2, as given in the
+file "GPL", or at your option, any later version). Further details on
+"copyleft" can be found at http://www.gnu.org/copyleft/.
+
+FSL is distributed in the hope that it will be useful, but in order
+that the University as a charitable foundation protects its assets for
+the benefit of its educational and research purposes, the University
+makes clear that no condition is made or to be implied, nor is any
+warranty given or to be implied, as to the accuracy of FSL, or that it
+will be suitable for any particular purpose or for use under any
+specific conditions.  Furthermore, the University disclaims all
+responsibility for the use which is made of FSL.  See the GNU General
+Public License for more details.
+
+Whilst this package is distributed freely, the authors reserve the
+right to negotiate a nonexclusive licensing fee if this package is
+distributed as part of a larger package which is sold or licensed for
+a fee (the GPL does not give permission for this package to be
+incorporated into a commercial or proprietary package).  If you wish
+to include this software as part of a commercial package permission
+needs to be obtained from the University of Oxford by initially
+contacting Stephen Smith at FMRIB (steve@fmrib.ox.ac.uk).
+
+Information about FSL can be found at www.fmrib.ox.ac.uk/fsl.

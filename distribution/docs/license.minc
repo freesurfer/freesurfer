@@ -1,0 +1,24 @@
+MINC Software
+
+Copyright 1993-2000 Peter Neelin and David MacDonald, McConnell Brain
+Imaging Centre, Montreal Neurological Institute, McGill University.
+Permission to use, copy, modify, and distribute this software and its
+documentation for any purpose and without fee is hereby granted,
+provided that the above copyright notice appear in all copies.  The
+author and McGill University make no representations about the
+suitability of this software for any purpose.  It is provided "as is"
+without express or implied warranty.
+
+Any paper published using the linear registration should reference
+the 1994 JCAT paper:
+
+   D. L.  Collins, P.  Neelin, T.  M.  Peters and A.  C.  Evans,
+   Automatic 3D Inter-Subject Registration of MR Volumetric Data
+        in Standardized Talairach Space,
+   Journal of Computer Assisted Tomography, 18(2) p192-205, 1994     
+
+Any paper using the non-linear registration should ref
+
+   DL Collins, CJ Holmes, TM Peters and AC Evans,
+   Automatic 3D model-based neuro-anatomical segmentation
+   Human Brain Mapping, 3(3) p 190-208, 1995
