@@ -240,7 +240,9 @@ mriHistogramLabel(MRI *mri, int nbins, HISTOGRAM *histo, LABEL *label)
   case MRI_UCHAR:
     for (i = 0 ; i < label->n_points ; i++)
     {
-      MRIworldToVoxel(mri, label->lv[i].x, label->lv[i].y, label->lv[i].z, 
+      // MRIworldToVoxel(mri, label->lv[i].x, label->lv[i].y, label->lv[i].z, 
+      //                 &xv, &yv, &zv) ;
+      MRIsurfaceRASToVoxel(mri, label->lv[i].x, label->lv[i].y, label->lv[i].z, 
                       &xv, &yv, &zv) ;
       x = nint(xv) ; y = nint(yv) ; z = nint(zv) ;
       val = (float)MRIvox(mri, x, y, z) ;
@@ -251,8 +253,10 @@ mriHistogramLabel(MRI *mri, int nbins, HISTOGRAM *histo, LABEL *label)
   case MRI_SHORT:
     for (i = 0 ; i < label->n_points ; i++)
     {
-      MRIworldToVoxel(mri, label->lv[i].x, label->lv[i].y, label->lv[i].z, 
-                      &xv, &yv, &zv) ;
+      // MRIworldToVoxel(mri, label->lv[i].x, label->lv[i].y, label->lv[i].z, 
+      //                &xv, &yv, &zv) ;
+      MRIsurfaceRASToVoxel(mri, label->lv[i].x, label->lv[i].y, label->lv[i].z, 
+			   &xv, &yv, &zv) ;
       x = nint(xv) ; y = nint(yv) ; z = nint(zv) ;
       val = (float)MRISvox(mri, x, y, z) ;
       bin_no = (int)((float)(val - fmin) / (float)bin_size) ;
@@ -262,7 +266,9 @@ mriHistogramLabel(MRI *mri, int nbins, HISTOGRAM *histo, LABEL *label)
   case MRI_FLOAT:
     for (i = 0 ; i < label->n_points ; i++)
     {
-      MRIworldToVoxel(mri, label->lv[i].x, label->lv[i].y, label->lv[i].z, 
+      // MRIworldToVoxel(mri, label->lv[i].x, label->lv[i].y, label->lv[i].z, 
+      //                &xv, &yv, &zv) ;
+      MRIsurfaceRASToVoxel(mri, label->lv[i].x, label->lv[i].y, label->lv[i].z, 
                       &xv, &yv, &zv) ;
       x = nint(xv) ; y = nint(yv) ; z = nint(zv) ;
       val = (float)MRIFvox(mri, x, y, z) ;
