@@ -2506,7 +2506,7 @@ proc CreateMenuBar { ifwMenuBar } {
       { fbnd_remove_selected_boundary } } \
       \
       { command "Custom Fill..." \
-      { DoCustomFillDlogt; } } \
+      { DoCustomFillDlog; } } \
       \
       { command "Fill Stats" \
       { floodfill_marked_patch 1; UpdateAndRedraw } \
