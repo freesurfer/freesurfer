@@ -29,7 +29,7 @@
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_probedicom.c,v 1.8 2003/09/05 04:45:37 kteich Exp $";
+static char vcid[] = "$Id: mri_probedicom.c,v 1.9 2004/09/10 13:52:43 tosa Exp $";
 char *Progname = NULL;
 
 static int  parse_commandline(int argc, char **argv);
@@ -92,13 +92,13 @@ int main(int argc, char **argv)
   CONDITION cond;
   DCM_ELEMENT element;
   DCM_TAG tag;
-  unsigned long rtnLength;
+  unsigned int rtnLength;
   void * Ctx = NULL;
   int nrows, ncols, endian;
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_probedicom.c,v 1.8 2003/09/05 04:45:37 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_probedicom.c,v 1.9 2004/09/10 13:52:43 tosa Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -179,7 +179,7 @@ int main(int argc, char **argv)
   switch(directive){
 
   case QRY_TAG: 
-    printf("%ld\n",element.tag);
+    printf("%d\n",element.tag);
     break;
   case QRY_REPRESENTATION: 
     printf("%s\n",RepString(element.representation));
@@ -191,7 +191,7 @@ int main(int argc, char **argv)
     printf("%ld\n",element.multiplicity);
     break;
   case QRY_LENGTH: 
-    printf("%ld\n",element.length);
+    printf("%d\n",element.length);
     break;
   case QRY_VALUE: 
     if(!GettingPixelData){
@@ -532,12 +532,12 @@ int GetDirective(char *directivestring)
 int DumpElement(FILE *fp, DCM_ELEMENT *e)
 {
   char *s;
-  fprintf(fp,"tag %ld\n",e->tag);
+  fprintf(fp,"tag %d\n",e->tag);
   fprintf(fp,"repcode %d\n",e->representation);
   fprintf(fp,"rep %s\n",RepString(e->representation));
   fprintf(fp,"desc %s\n",e->description);
   fprintf(fp,"mult %ld\n",e->multiplicity);
-  fprintf(fp,"len %ld\n",e->length);
+  fprintf(fp,"len %d\n",e->length);
   s = ElementValueString(e);
   fprintf(fp,"%s\n",s);
   free(&s);
@@ -641,7 +641,7 @@ int GetDimLength(char *dicomfile, int dimtype)
   CONDITION cond;
   DCM_ELEMENT element;
   DCM_TAG tag;
-  unsigned long rtnLength;
+  unsigned int rtnLength;
   void * Ctx = NULL;
 
   object = GetObjectFromFile(dicomfile, 0);
@@ -1076,7 +1076,7 @@ int RenderImage(int argc, char **argv){
   CONDITION cond;
   DCM_ELEMENT element;
   DCM_TAG tag;
-  unsigned long rtnLength;
+  unsigned int rtnLength;
   void * Ctx = NULL;
   short * pixeldata;
   short minpixel, maxpixel;
