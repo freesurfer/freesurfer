@@ -28,6 +28,7 @@ static int total_pruned = 0 ;
 
 #define MIN_VAR  (2*2)   /* should make this configurable */
 #define BIG_AND_NEGATIVE            -10000000.0
+#define VERY_UNLIKELY               1e-10
 #define UNKNOWN_DIST                4  /* within 4 mm of some known label */
 #define GCA_OLD_VERSION              2.0
 #define GCA_VERSION                  4.0
@@ -140,7 +141,12 @@ getPrior(GCA_PRIOR *gcap, int label)
     if (gcap->labels[n] == label)
       break ;
   if (n >= gcap->nlabels)
-    return(0.1f/(float)gcap->total_training) ; /* make it unlikely */
+  {
+    if (gcap->total_training > 0)
+      return(0.1f/(float)gcap->total_training) ; /* make it unlikely */
+    else
+      return(VERY_UNLIKELY) ;
+  }
   return(gcap->priors[n]) ;
 }
 
@@ -4706,7 +4712,12 @@ gcaVoxelGibbsLogLikelihood(GCA *gca, MRI *mri_labels, MRI *mri_inputs, int x,
       break ;
   }
   if (n >= gcan->nlabels)
-    return(log(0.1f/(float)gcan->total_training)) ; /* 10*GIBBS_NEIGHBORS*BIG_AND_NEGATIVE*/
+  {
+    if (gcan->total_training > 0)
+      return(log(0.1f/(float)gcan->total_training)) ; /* 10*GIBBS_NEIGHBORS*BIG_AND_NEGATIVE*/
+    else
+      return(log(VERY_UNLIKELY)) ;
+  }
 
   gc = &gcan->gcs[n] ;
   
@@ -7875,7 +7886,7 @@ GCAfindAllSamples(GCA *gca, int *pnsamples)
             max_label = gcap->labels[n] ;
           }
         }
-#if 1
+#if 0
         if (IS_UNKNOWN(max_label) &&
             (different_nbr_labels(gca, x, y, z, 1, 0) == 0))
           continue ;
@@ -7914,7 +7925,7 @@ GCAfindAllSamples(GCA *gca, int *pnsamples)
             max_label = gcap->labels[n] ;
           }
         }
-#if 1
+#if 0
         if (IS_UNKNOWN(max_label) &&
             (different_nbr_labels(gca, x, y, z, 1, 0) == 0))
           continue ;
