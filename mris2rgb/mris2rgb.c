@@ -29,11 +29,11 @@
 #include "tiffio.h"
 #include "label.h"
 
-static char vcid[] = "$Id: mris2rgb.c,v 1.12 1998/05/14 15:00:43 fischl Exp $";
+static char vcid[] = "$Id: mris2rgb.c,v 1.13 1998/05/20 19:37:53 fischl Exp $";
 
 /*-------------------------------- CONSTANTS -----------------------------*/
 
-#define MAX_MARKED               10000
+#define MAX_MARKED               20000
 #define RIGHT_HEMISPHERE_ANGLE   90.0
 #define LEFT_HEMISPHERE_ANGLE   -90.0
 #define BIG_FOV                 300   /* for unfolded hemispheres */
@@ -543,7 +543,7 @@ get_option(int argc, char *argv[])
     if (nmarked+area->n_points >= MAX_MARKED)
       area->n_points = MAX_MARKED - nmarked ;
     for (i = 0 ; i < area->n_points ; i++)
-      marked_vertices[nmarked++] = area->vno[i] ;
+      marked_vertices[nmarked++] = area->lv[i].vno ;
     LabelFree(&area) ;
   }
   case 'N':

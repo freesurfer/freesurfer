@@ -16,7 +16,7 @@
 #include "oglutil.h"
 #include "label.h"
 
-static char vcid[] = "$Id: mris_show.c,v 1.26 1998/04/23 01:16:26 fischl Exp $";
+static char vcid[] = "$Id: mris_show.c,v 1.27 1998/05/20 19:39:10 fischl Exp $";
 
 
 /*-------------------------------- CONSTANTS -----------------------------*/
@@ -39,7 +39,7 @@ static char vcid[] = "$Id: mris_show.c,v 1.26 1998/04/23 01:16:26 fischl Exp $";
 #define GLUT_ESCAPE_KEY  27
 #endif
 
-#define MAX_MARKED       5000
+#define MAX_MARKED       20000
 
 /*-------------------------------- PROTOTYPES ----------------------------*/
 
@@ -465,7 +465,7 @@ get_option(int argc, char *argv[])
     if (nmarked+area->n_points >= MAX_MARKED)
       area->n_points = MAX_MARKED - nmarked ;
     for (i = 0 ; i < area->n_points ; i++)
-      marked_vertices[nmarked++] = area->vno[i] ;
+      marked_vertices[nmarked++] = area->lv[i].vno ;
     LabelFree(&area) ;
   }
   case 'V':
