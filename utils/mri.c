@@ -3199,6 +3199,7 @@ MRIallocSequence(int width, int height, int depth, int type, int nframes)
     case MRI_UCHAR:
       bpp = 8 ;
       break ;
+    case MRI_TENSOR:
     case MRI_FLOAT:
       bpp = sizeof(float) * 8 ;
       break ;
@@ -3237,6 +3238,7 @@ MRIallocSequence(int width, int height, int depth, int type, int nframes)
       case MRI_UCHAR:
         mri->slices[slice][row] = (BUFTYPE*)calloc(mri->width,sizeof(BUFTYPE));
         break ;
+      case MRI_TENSOR:
       case MRI_FLOAT:
         mri->slices[slice][row] = (BUFTYPE *)calloc(mri->width, sizeof(float));
         break ;

@@ -14,6 +14,7 @@
 #define MRI_FLOAT   3
 #define MRI_SHORT   4
 #define MRI_BITMAP  5
+#define MRI_TENSOR  6
 
 typedef struct
 {
