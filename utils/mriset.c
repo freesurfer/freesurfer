@@ -1148,9 +1148,6 @@ MRImask(MRI *mri_src, MRI *mri_mask, MRI *mri_dst,int mask,float out_val)
   BUFTYPE *pmask, mask_val ;
   float   val ;
 
-  if (mri_mask->type != MRI_UCHAR)
-    ErrorReturn(NULL,
-                (ERROR_UNSUPPORTED, "MRImask: mask voxel type must be UCHAR")) ;
   width = mri_src->width ;
   height = mri_src->height ;
   depth = mri_src->depth ;
@@ -1169,7 +1166,16 @@ MRImask(MRI *mri_src, MRI *mri_mask, MRI *mri_dst,int mask,float out_val)
       pmask = &MRIvox(mri_mask, 0, y, z) ;
       for (x = 0 ; x < width ; x++)
       {
-        mask_val = *pmask++ ;
+				switch (mri_mask->type)
+				{
+				case MRI_UCHAR: mask_val = *pmask++ ; break ;
+				case MRI_SHORT: mask_val = MRISvox(mri_mask, x, y, z) ; break ;
+				default:
+					ErrorReturn(NULL,
+											(ERROR_UNSUPPORTED, "MRImask: unsupported mask voxel type %d",
+											 mri_mask->type)) ;
+				}
+					
         switch (mri_src->type)
         {
         default:
