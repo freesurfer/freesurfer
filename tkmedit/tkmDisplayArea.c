@@ -992,14 +992,17 @@ DspA_tErr DspA_SetCursor ( tkmDisplayAreaRef this,
     this->mbSliceChanged = TRUE;
   }
   
+  // WRONG ===========================================================
+  // the convention is that the pixel center is (*.0, *.0) and thus
+  // no need to add.  
   /* if cursor is .0 .0, change to .5 .5 so that it will draw in the
      center of a voxel on screen */
   DspA_ConvertVolumeToPlane_( this, this->mpCursor, this->mOrientation,
 			      &planePt, &nSlice );
   if( planePt.mfX == (float)(int)planePt.mfX &&
       planePt.mfY == (float)(int)planePt.mfY ) {
-    planePt.mfX += 0.5;
-    planePt.mfY += 0.5;
+    //  planePt.mfX += 0.5;
+    //  planePt.mfY += 0.5;
     DspA_ConvertPlaneToVolume_( this, &planePt, nSlice,
 				this->mOrientation, this->mpCursor );
   }
@@ -1062,7 +1065,8 @@ DspA_tErr DspA_ConvertAndSetCursor ( tkmDisplayAreaRef this,
   /* convert the coord to the right space. */
   switch( iFromSpace ) {
   case mri_tCoordSpace_VolumeIdx:
-    xVoxl_Copy( &anaIdx, ipCoord );
+   // src may not be (256,256,256) so that we convert into "normalized" coords
+    Volm_ConvertMRIIdxToScreenIdx_(this->mpVolume, ipCoord, &anaIdx);
     break;
   case mri_tCoordSpace_RAS:
     Volm_ConvertRASToIdx( this->mpVolume, ipCoord, &anaIdx );
@@ -5998,13 +6002,17 @@ DspA_tErr DspA_SendPointInformationToTcl_ ( tkmDisplayAreaRef this,
   int                   nValue             = 0;
   DspA_tHistogramParams histoParams;
   float                 fDistance          = 0;
-  
-  
+
+  xVoxel MRIIdx;
+
   /* send the anatomical index. */
-  sprintf( sTclArguments, "%s %d %d %d", 
-	   DspA_ksaDisplaySet[iSet], xVoxl_ExpandInt( iAnaIdx ) );
+  // translate the screen idx into the src Idx
+  Volm_ConvertScreenIdxToMRIIdx_(this->mpVolume, iAnaIdx, &MRIIdx);
+  // *****************************************************************************
+  // To be implemented: need to tell whether these values are valid or not.
+  sprintf(sTclArguments, "%s %d %d %d", DspA_ksaDisplaySet[iSet], xVoxl_ExpandInt(&MRIIdx) ); 
   tkm_SendTclCommand( tkm_tTclCommand_UpdateVolumeCursor, sTclArguments );
-  
+
   /* send the slice number */
   nSlice = DspA_GetCurrentSliceNumber_( this );
   sprintf( sTclArguments, "%d", nSlice );
