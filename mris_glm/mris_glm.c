@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Computes glm inferences on the surface.
-  $Id: mris_glm.c,v 1.8 2002/10/30 22:49:50 greve Exp $
+  $Id: mris_glm.c,v 1.9 2002/10/31 21:09:22 greve Exp $
 
 Things to do:
   0. Documentation.
@@ -62,7 +62,7 @@ MATRIX *ReadAsciiMatrix(char *asciimtxfname);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_glm.c,v 1.8 2002/10/30 22:49:50 greve Exp $";
+static char vcid[] = "$Id: mris_glm.c,v 1.9 2002/10/31 21:09:22 greve Exp $";
 char *Progname = NULL;
 
 char *hemi        = NULL;
@@ -145,6 +145,7 @@ float DOF;
 char *SUBJECTS_DIR;
 
 int Force=0;
+int ParseOnly=0;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv)
@@ -167,6 +168,8 @@ int main(int argc, char **argv)
   dump_options(stdout);
 
   printf("%s\n",vcid);
+
+  if(ParseOnly) exit(1);
 
   if(xmatfile != NULL) MatlabWrite(X,xmatfile,"X");
 
@@ -432,6 +435,7 @@ static int parse_commandline(int argc, char **argv)
   int m;
   float fvtmp[1000];
   float Xcondition;
+  MATRIX *Xnorm;
 
   if(argc < 1) usage_exit();
 
@@ -450,6 +454,7 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--version")) print_version() ;
     else if (!strcasecmp(option, "--debug"))   debug = 1;
     else if (!strcasecmp(option, "--force"))   Force = 1;
+    else if (!strcasecmp(option, "--parseonly")) ParseOnly = 1;
 
     else if (!strcmp(option, "--synth")){
       if(nargc < 1) argnerr(option,1);
@@ -504,8 +509,11 @@ static int parse_commandline(int argc, char **argv)
       desmtxfname = pargv[0];
       nargsused = 1;
       ReadDesignMatrix(desmtxfname);
-      Xcondition = MatrixNSConditionNumber(X);
-      printf("INFO: Design Matrix Condition Number is %g\n",Xcondition);
+      Xnorm = MatrixNormalizeCol(X,NULL);
+      Xcondition = sqrt(MatrixNSConditionNumber(Xnorm));
+      MatrixFree(&Xnorm);
+      printf("INFO: Normalized Design Matrix Condition Number is %g\n",
+	     Xcondition);
       if(xmatfile != NULL && debug) {
 	printf("INFO: Writing mat file to %s\n",xmatfile);
 	if(MatlabWrite(X,xmatfile,"X")){
@@ -807,14 +815,16 @@ COMMAND-LINE ARGUMENTS
 File name for design matrix. The design matrix must be in an ASCII
 file. The first column must be the id assigned to the subject during
 FreeSurfer reconstruction. The following columns are the the design
-matrix. It is possible for the design matrix to be
-ill-conditioned. This means that two columns are identical or that one
-column is equal to a weighted sum of any of the other columns.  In
-this case, the matrix cannot be inverted and so the analysis must
-stop. The matrix is judged to be ill-conditioned if its condition
-number is greater than 100000. This threshold is semi-arbitary. It is
-possible to test the condition of a matrix without having to include
-all the command-line options needed for a full analysis. Just run:
+matrix. It is possible for the design matrix to be ill-conditioned.
+This means that two columns are identical or that one column is equal
+to a weighted sum of any of the other columns.  In this case, the
+matrix cannot be inverted and so the analysis must stop. The matrix is
+judged to be ill-conditioned if its condition number of the normalized
+matrix is greater than 100000. The X matrix is normalized such that
+the length of each column vector is 1. The threshold of 100000 is
+somewhat arbitrary. It is possible to test the condition of a matrix
+without having to include all the command-line options needed for a
+full analysis. Just run:
           mris_glm --design fname 
 It will print out an INFO line with the condition number. You can
 force processing with the given design matrix by PRECEDING the
