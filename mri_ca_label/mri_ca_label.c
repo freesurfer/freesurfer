@@ -108,7 +108,7 @@ main(int argc, char *argv[])
   TRANSFORM     *transform ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_ca_label.c,v 1.37 2003/06/13 15:23:36 fischl Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ca_label.c,v 1.38 2003/06/18 19:46:04 fischl Exp $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -669,8 +669,18 @@ get_option(int argc, char *argv[])
   else if (!stricmp(option, "REGULARIZE"))
   {
     regularize = atof(argv[2]) ;
-    printf("regularizing variance to be sigma+%2.1fC(noise)\n", regularize) ;
+    printf("regularizing covariance to be %2.2f Cclass + %2.2f Cpooled\n",(1-regularize),regularize) ;
 		nargs = 1 ;
+  }
+  else if (!stricmp(option, "cross_sequence"))
+  {
+    regularize = .8 ;
+		renormalize_iter = 1 ;
+		renormalize_wsize = 9 ;
+		avgs = 2 ;
+    printf("labeling across sequences, equivalent to:\n") ;
+		printf("\t-renormalize %d %d\n\t-a %d\n\t-regularize %2.3f\n",renormalize_iter, renormalize_wsize,
+					 avgs, regularize) ;
   }
   else if (!stricmp(option, "nohippo"))
   {
