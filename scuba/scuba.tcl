@@ -10,7 +10,7 @@ if { $err } {
     load [file dirname [info script]]/libscuba[info sharedlibextension] scuba
 }
 
-DebugOutput "\$Id: scuba.tcl,v 1.65 2004/10/29 17:44:01 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.66 2005/01/05 23:22:05 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -244,6 +244,24 @@ proc SetSubjectName { isSubject } {
     # Select it in the subjects loader.
     SelectSubjectInSubjectsLoader $isSubject
 	
+}
+
+proc GetSubjectName {} {
+    global gSubject
+    if { [info exists gSubject(name)] } {
+	return $gSubject(name)
+    } else {
+	return "No-Subject-Set"
+    }
+}
+
+proc GetSubjectDir {} {
+    global gSubject
+    if { [info exists gSubject(homeDir)] } {
+	return $gSubject(homeDir)
+    } else {
+	return "No-Subject-Set"
+    }
 }
 
 proc FindFile { ifn } {
@@ -758,44 +776,10 @@ proc MakeScubaFrameBindings { iFrameID } {
     dputs "MakeScubaFrameBindings  $iFrameID  "
 
     global gaWidget
+    global gaPrefs
 
     set fwScuba $gaWidget(scubaFrame,$iFrameID)
 
-    set sKeyInPlaneX [GetPreferencesValue KeyInPlaneX]
-    set sKeyInPlaneY [GetPreferencesValue KeyInPlaneY]
-    set sKeyInPlaneZ [GetPreferencesValue KeyInPlaneZ]
-    set sKeyCycleView [GetPreferencesValue KeyCycleViewsInFrame]
-
-    bind $fwScuba <Key-$sKeyInPlaneX> {
-	set gaView(current,inPlane) x
-	SetViewInPlane [GetSelectedViewID [GetMainFrameID]] $gaView(current,inPlane)
-    }
-    bind $fwScuba <Alt-Key-$sKeyInPlaneX> {
-	set gaView(current,inPlane) x
-	SetViewInPlane [GetSelectedViewID [GetMainFrameID]] $gaView(current,inPlane)
-    }
-    bind $fwScuba <Key-$sKeyInPlaneY> {
-	set gaView(current,inPlane) y
-	SetViewInPlane [GetSelectedViewID [GetMainFrameID]] $gaView(current,inPlane)
-    }
-    bind $fwScuba <Alt-Key-$sKeyInPlaneY> {
-	set gaView(current,inPlane) y
-	SetViewInPlane [GetSelectedViewID [GetMainFrameID]] $gaView(current,inPlane)
-    }
-    bind $fwScuba <Key-$sKeyInPlaneZ> { 
-	set gaView(current,inPlane) z
-	SetViewInPlane [GetSelectedViewID [GetMainFrameID]] $gaView(current,inPlane)
-    }
-    bind $fwScuba <Alt-Key-$sKeyInPlaneZ> { 
-	set gaView(current,inPlane) z
-	SetViewInPlane [GetSelectedViewID [GetMainFrameID]] $gaView(current,inPlane)
-    }
-    bind $fwScuba <Key-$sKeyCycleView> {
-	CycleCurrentViewInFrame [GetMainFrameID]
-	set viewID [GetSelectedViewID [GetMainFrameID]]
-	SelectViewInViewProperties $viewID
-	RedrawFrame [GetMainFrameID]
-    }
     bind $fwScuba <Key-1> {set gaTool(current,radius) 1; SetToolBrushRadius $gaFrame([GetMainFrameID],toolID) $gaTool(current,radius) } 
     bind $fwScuba <Key-2> {set gaTool(current,radius) 2; SetToolBrushRadius $gaFrame([GetMainFrameID],toolID) $gaTool(current,radius) }
     bind $fwScuba <Key-3> {set gaTool(current,radius) 3; SetToolBrushRadius $gaFrame([GetMainFrameID],toolID) $gaTool(current,radius) }
@@ -915,6 +899,7 @@ proc ScubaKeyUpCallback { inX inY iState iKey } {
     
     global gaPrefs
     global gaWidget
+    global gaView
     
     # Check for the mouse key equivs.
     foreach {sKey nButton} {
@@ -925,6 +910,25 @@ proc ScubaKeyUpCallback { inX inY iState iKey } {
 	    $gaWidget(scubaFrame,0) MouseUpCallback $inX $inY $nButton
 	}
     }
+
+    if { "$iKey" == "$gaPrefs(KeyInPlaneX)" } {
+	set gaView(current,inPlane) x
+    }
+    if { "$iKey" == "$gaPrefs(KeyInPlaneY)" } {
+	set gaView(current,inPlane) y
+    }
+    if { "$iKey" == "$gaPrefs(KeyInPlaneZ)" } {
+	set gaView(current,inPlane) z
+    }
+
+    if { "$iKey" == "$gaPrefs(KeyCycleViewsInFrame)" } {
+	CycleCurrentViewInFrame [GetMainFrameID]
+	set viewID [GetSelectedViewID [GetMainFrameID]]
+	SelectViewInViewProperties $viewID
+	RedrawFrame [GetMainFrameID]
+    }
+
+
 }
 
 proc ScubaKeyDownCallback { inX inY iState iKey } {
@@ -959,6 +963,10 @@ proc GetPreferences {} {
     global gaPrefs
 
     foreach sKey {
+	KeyInPlaneX
+	KeyInPlaneY
+	KeyInPlaneZ
+	KeyCycleViewsInFrame
 	KeyMoveViewLeft
 	KeyMoveViewRight
 	KeyMoveViewUp 
@@ -979,6 +987,10 @@ proc SetPreferences {} {
     global gaPrefs
 
     foreach sKey {
+	KeyInPlaneX
+	KeyInPlaneY
+	KeyInPlaneZ
+	KeyCycleViewsInFrame
 	KeyMoveViewLeft
 	KeyMoveViewRight
 	KeyMoveViewUp 
@@ -3442,18 +3454,20 @@ proc DoPrefsDlog {} {
 	    KeyMouseButtonOne "Mouse Click (button one)"
 	    KeyMouseButtonTwo "Mouse Click (button two)"
 	    KeyMouseButtonThree "Mouse Click (button three)"
+	    KeyInPlaneX       "Change view to x axis in-plane"
+	    KeyInPlaneY       "Change view to y axis in-plane"
+	    KeyInPlaneZ       "Change view to z axis in-plane"
 	} {
    
 	    tkuMakeEntry $fwKeys.fw$sKey \
 		-label $sLabel -width 8 -font [tkuNormalFont] \
-		-labelwidth 20 \
+		-labelwidth 30 \
 		-variable gaPrefs($sKey) \
 		-command "SetPreferencesValue $sKey \$gaPrefs($sKey)" \
 		-notify 1
 
 	    pack $fwKeys.fw$sKey \
 		-side top -fill x -expand yes
-	   
 	}
 	
 
@@ -3851,6 +3865,7 @@ proc LoadVolume { ifnVolume ibCreateLayer iFrameIDToAdd } {
 proc LoadSurface { ifnSurface ibCreateLayer iFrameIDToAdd } {
     dputs "LoadSurface  $ifnSurface $ibCreateLayer $iFrameIDToAdd  "
 
+    set layerID -1
 
     set fnSurface [FindFile $ifnSurface]
 
@@ -3880,6 +3895,8 @@ proc LoadSurface { ifnSurface ibCreateLayer iFrameIDToAdd } {
     AddDirToShortcutDirsList [file dirname $ifnSurface]
 
     SetStatusBarText "Loaded $ifnSurface."
+    
+    return layerID
 }
 
 proc LoadTransform { ifnLTA } {
@@ -4303,7 +4320,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.65 2004/10/29 17:44:01 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.66 2005/01/05 23:22:05 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
@@ -4470,6 +4487,17 @@ proc SaveSceneScript { ifnScene } {
     close $f
 
     SetStatusBarText "Saved $ifnScene."
+}
+
+# A little hack to use when you want the screen to update from a
+# script. We schedule a redraw, then use 'after idle' to change a
+# value. We wait for the value to change, letting all events process
+# until we get an idle.
+set DELAY_TIMER 0
+proc UpdateFrame { iFrameID } {
+    RedrawFrame $iFrameID
+    after idle { incr DELAY_TIMER }
+    vwait DELAY_TIMER
 }
 
 # MAIN =============================================================
@@ -4690,28 +4718,6 @@ bind $gaWidget(window) <Alt-Key-n> {
     }
     ShowHideConsole $gaView(tkcon,visible)
 }
-
-
-
-set nRAS -64
-proc UpdateFrame {} {
-    global nRAS
-    
-    if { $nRAS < 64 } {
-	SetViewRASCenter 0 $nRAS 0 0
-	incr nRAS
-	RedrawFrame 0
-	after idle { UpdateFrame }
-    }
-
-}
-
-#after 1000  { UpdateFrame }
-
-
-
-
-
 
 
 proc MakeHistogramFillWindow {} {

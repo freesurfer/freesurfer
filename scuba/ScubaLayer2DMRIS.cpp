@@ -17,6 +17,9 @@ ScubaLayer2DMRIS::ScubaLayer2DMRIS () {
   commandMgr.AddCommand( *this, "Set2DMRISLayerSurfaceCollection", 2, 
 			 "layerID collectionID",
 			 "Sets the surface collection for this layer." );
+  commandMgr.AddCommand( *this, "Get2DMRISLayerSurfaceCollection", 1, 
+			 "layerID",
+			 "Returns the surface collection for this layer." );
   commandMgr.AddCommand( *this, "Set2DMRISLayerLineColor", 4, 
 			 "layerID red green blue",
 			 "Sets the line color for this layer. red, green, "
@@ -232,6 +235,23 @@ ScubaLayer2DMRIS::DoListenToTclCommand ( char* isCommand,
 	sResult = "bad collection ID, collection not found";
 	return error;
       }
+    }
+  }
+
+  // Get2DMRISLayerSurfaceCollection <layerID>
+  if( 0 == strcmp( isCommand, "Get2DMRISLayerSurfaceCollection" ) ) {
+    int layerID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad layer ID";
+      return error;
+    }
+    
+    if( mID == layerID ) {
+
+      stringstream ssReturnValues;
+      ssReturnValues << (int) (mSurface->GetID());
+      sReturnValues = ssReturnValues.str();
+      sReturnFormat = "i";
     }
   }
 

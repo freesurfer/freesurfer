@@ -94,8 +94,24 @@ VolumeCollection::MakeLocationFromRAS ( float const iRAS[3] ) {
 void
 VolumeCollection::SetFileName ( string& ifnMRI ) {
 
+  if( NULL != mMRI ) {
+    
+    DataManager dataMgr = DataManager::GetManager();
+    MRILoader mriLoader = dataMgr.GetMRILoader();
+    try { 
+      mriLoader.ReleaseData( &mMRI );
+    } 
+    catch(...) {
+      cerr << "Couldn't release data"  << endl;
+    }
+    
+    mMRI = NULL;
+  }
+
   mfnMRI = ifnMRI;
   mfnAutosave = MakeAutosaveFileName( mfnMRI );
+
+  GetMRI();
 }
 
 

@@ -408,6 +408,13 @@ BRUCE'S LIST:::
 
 - writeable coords for goto
 
+- alt-c will go through layers making top one visible and the rest
+  hidden, and shuffle the order
+
+- change alt-xyz to match tkmedit behavior
+
+- option to turn cursor off
+
 x data collection transform 
 x markers
 x b/c controled by mouse, perhaps mod+mouse when nav tool is on
@@ -444,3 +451,20 @@ nav tools draw onscreen sliders for feedback
  - on mouse down with right tool, draw scale bar
  - function to translate v position into modifcation value
  - start at mouse point, use expo scale towards edge for min/max values
+
+SCUBA VERSION
+
+- start new project
+ - copy main window from scubatest
+ - get same functionality
+
+- get menus working
+
+- connect keybindings
+
+- make a properties windows stack widget that emulates current scuba
+
+- get the new layers window working
+
+
+

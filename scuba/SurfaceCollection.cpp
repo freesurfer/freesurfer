@@ -58,7 +58,24 @@ SurfaceCollection::~SurfaceCollection() {
 void
 SurfaceCollection::SetSurfaceFileName ( string& ifnMRIS ) {
 
+
+  if( NULL != mMRIS ) {
+    
+    DataManager dataMgr = DataManager::GetManager();
+    MRISLoader mrisLoader = dataMgr.GetMRISLoader();
+    try { 
+      mrisLoader.ReleaseData( &mMRIS );
+    } 
+    catch(...) {
+      cerr << "Couldn't release data"  << endl;
+    }
+
+    mMRIS = NULL;
+  }
+
   mfnMRIS = ifnMRIS;
+
+  GetMRIS();
 }
 
 MRIS*
