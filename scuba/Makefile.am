@@ -101,10 +101,11 @@ scuba_LDFLAGS=
 scuba2_SOURCES=$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS) $(GUI_SRCS) $(LAYER_SRCS) $(MOC_SRCS) $(SCUBA2_SRCS) $(FORMS) $(UICDECLS) $(UICIMPLS) $(SRCMOC) $(OBJMOC) .ui/image_collection.cpp main.cpp
 scuba2_LDFLAGS=-L/$(QTDIR)/lib -lqt-mt
 scuba2_CXXFLAGS=-DQT_SHARED -DQT_NO_DEBUG -DQT_THREAD_SUPPORT -I$(QTDIR)/include -I.ui/ 
+scuba2_DEPENDENCIES=moc_dir ui_dir
 
-if SCUBA_BUNDLE
-scuba2_DEPENDENCIES=scuba2.app
-endif
+#if SCUBA_BUNDLE
+#scuba2_DEPENDENCIES=scuba2.app
+#endif
 
 
 foodir=$(prefix)/lib/tcl
@@ -358,3 +359,9 @@ scuba2.app/Contents/MacOS/scuba2: scuba2
 	@test -d scuba2.app/Contents/MacOS/ || mkdir -p scuba2.app/Contents/MacOS/
 	@rm -f scuba2.app/Contents/MacOS/scuba2
 	@cp scuba2 scuba2.app/Contents/MacOS/
+
+moc_dir:
+	@test -d .moc || mkdir -p .moc
+
+ui_dir:
+	@test -d .ui || mkdir -p .ui
