@@ -35,6 +35,7 @@
 #include "const.h"
 #include "utils.h"
 #include "macros.h"
+#include "proto.h"
 
 /*------------------------------------------------------------------------
                             CONSTANTS
@@ -92,8 +93,8 @@ randomNumber(double low, double hi)
   val = ran1(&idum) * range + low ;
   
   if ((val < low) || (val > hi))
-    fprintf(stderr, "randomNumber(%2.1lf, %2.1lf) - %2.1lf\n",
-               low, hi, val) ;
+    fprintf(stderr, "randomNumber(%2.1f, %2.1f) - %2.1f\n",
+               (float)low, (float)hi, (float)val) ;
 
    return(val) ;
 }
@@ -174,7 +175,7 @@ latan2(double y, double x)
       val -= 2.0 * PI ;
 
    if (oerr != errno)
-      printf("error %d, y %lf, x %lf\n", errno, y, x) ;
+      printf("error %d, y %f, x %f\n", errno, (float)y, (float)x) ;
    return(val) ;
 }
 /*------------------------------------------------------------------------
@@ -347,7 +348,7 @@ StrLower(char *str)
 char *
 FileName(char *full_name)
 {
-  char *fname, *cp ;
+  char *fname ;
 
   fname = strrchr(full_name, '/') ;
   if (!fname)
