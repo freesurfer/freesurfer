@@ -65,4 +65,6 @@
 #define STRALLOC(str)   ((char *)calloc(strlen(str)+1, sizeof(char)))
 #define STRCPALLOC(str) strcpy(STRALLOC(str), str)
 
+#define ISPOW2(n)   (exp2((float)nint(log2((float)n))) == (float)n)
+
 #endif
