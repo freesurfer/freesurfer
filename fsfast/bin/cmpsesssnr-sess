@@ -1,0 +1,323 @@
+#!/bin/csh -f
+# cmpsesssnr-sess - compare snrs across session
+#
+# $Id: cmpsesssnr-sess,v 1.1 2003/12/06 22:53:03 greve Exp $
+set VERSION = '$Id: cmpsesssnr-sess,v 1.1 2003/12/06 22:53:03 greve Exp $';
+
+set inputargs = ($argv);
+set DateStr = "`date '+%y%m%d%H%M'`"
+
+set StudyDir = `pwd`;
+
+set sess1 = ();
+set sess2 = ();
+
+set analysis = ();
+set contrast = ();
+set map = ();
+set sigthresh = 3;
+set mask = brain;
+
+set monly = 0;
+set MLF = ();
+set QuitOnError = 0;
+set PrintHelp = 0;
+
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | grep version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+set n = `echo $argv | grep help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+# get full path for cfg and info files #
+pushd $analysis > /dev/null;
+set analysisdir = `pwd`;
+popd > /dev/null;
+set cfgfile  = $analysisdir/analysis.cfg
+set infofile = $analysisdir/analysis.info
+if(! -e $infofile) then
+  echo "ERROR: cannot find $infofile"
+  exit 1;
+endif
+
+## Get parameters from the info file ##
+set fsd = `cat $infofile | awk '{if($1 == "fsd") print $2}'`;
+
+##### Create a log file ######
+set logdir = `pwd`/log;
+mkdir -p $logdir
+if(! -e $logdir) then
+  echo "WARNING: could not create $logdir"
+  set LF = /dev/null
+else
+  set LF = $logdir/cmpsesssnr-$DateStr.log
+  if(-e $LF) mv $LF $LF.old
+endif
+echo "--------------------------------------------------------------"
+echo "cmpsesssnr-sess logfile is $LF"
+echo "--------------------------------------------------------------"
+
+echo "cmpsesssnr-sess log file" >> $LF
+echo $VERSION >> $LF
+id            >> $LF
+pwd           >> $LF
+echo $0         >> $LF
+echo $inputargs >> $LF
+uname -a        >> $LF
+date            >> $LF
+
+
+set mask     = $sess1/$fsd/masks/$mask
+set con1path = $sess1/$fsd/$analysis/$contrast
+set con2path = $sess2/$fsd/$analysis/$contrast
+set sig1     = $con1path/fsig
+set sig2     = $con2path/fsig
+set snr1     = $con1path/f
+set snr2     = $con2path/f
+set rsnr     = $con2path/rsnr-vs-$sess1
+
+if(! $monly) set MLF = /tmp/cmpsesssnr-$$.m
+rm -f $MLF
+echo "MLF is $MLF" |& tee -a $LF
+
+#-----------------------------------------------------------------#
+tee $MLF>/dev/null <<EOF
+
+clear all;
+maskstem    = '$mask';
+snr1stem    = '$snr1';
+snr2stem    = '$snr2';
+sig1stem    = '$sig1';
+sig2stem    = '$sig2';
+rsnrstem    = '$rsnr';
+sigthresh   = [$sigthresh];
+
+mask = fmri_ldbvolume(maskstem);
+indmask = find(mask);
+indmasknot = find(~mask);
+fprintf('Found %d in mask\n',length(indmask));
+
+sig1 = fmri_ldbvolume(sig1stem);
+sig2 = fmri_ldbvolume(sig2stem);
+
+mristruct = fast_ldbhdr(sig1stem);
+
+indmap = find(abs(sig1) > sigthresh | abs(sig2) > sigthresh);
+indmapnot = find(abs(sig1) < sigthresh & abs(sig2) < sigthresh);
+fprintf('Found %d voxels above threshold\n',length(indmap));
+
+snr1 = fmri_ldbvolume(snr1stem);
+snr2 = fmri_ldbvolume(snr2stem);
+
+indz = find(snr1==0);
+snr1(indz) = 10^10;
+
+dpctsnr = zeros(size(snr1));
+
+indpos = find(snr2 > snr1);
+dpctsnr(indpos) = snr2(indpos) ./ snr1(indpos);
+
+indneg = find(snr2 <= snr1);
+dpctsnr(indneg) = -snr1(indneg) ./ snr2(indneg);
+
+%dpctsnr = 100*(snr2-snr1)./snr1; % increases hot
+dpctsnr(indmasknot) = 0;
+dpctsnr(indmapnot) = 0;
+
+fmri_svbvolume(dpctsnr,rsnrstem);
+fast_svbhdr(mristruct,rsnrstem,1);
+
+EOF
+#-----------------------------------------------------------------#
+
+if(! $monly ) then
+  cat $MLF | matlab -display iconic |& tee -a $LF
+  cp $LF $rsnr.log
+  echo "INFO: output map is $rsnr"
+endif
+
+date |& tee -a $LF
+echo " " |& tee -a $LF
+echo "cmpsesssnr-sess Done" |& tee -a $LF
+echo " " |& tee -a $LF
+
+exit 0;
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-s1":
+    case "-sess1":
+      if ( $#argv < 1) goto arg1err;
+      set sess1 = $argv[1]; shift;
+      set sess1 = `basename $sess1`; # remove trailing /
+      breaksw
+
+    case "-s2":
+    case "-sess2":
+      if ( $#argv < 1) goto arg1err;
+      set sess2 = $argv[1]; shift;
+      set sess2 = `basename $sess2`; # remove trailing /
+      breaksw
+
+    case "-a":
+      if ( $#argv == 0) goto arg1err;
+      set analysis = $argv[1]; shift;
+      breaksw
+
+    case "-c":
+      if ( $#argv == 0) goto arg1err;
+      set contrast = $argv[1]; shift;
+      breaksw
+
+    case "-m":
+      if ( $#argv == 0) goto arg1err;
+      set map = $argv[1]; shift;
+      breaksw
+
+    case "-sigthresh":
+      if ( $#argv == 0) goto arg1err;
+      set sigthresh = $argv[1]; shift;
+      breaksw
+
+    case "-monly":
+      if ( $#argv == 0) goto arg1err;
+      set MLF = $argv[1]; shift;
+      set monly = 1;
+      breaksw
+
+    case "-mask":
+      if ( $#argv == 0) goto arg1err;
+      set mask = $argv[1]; shift;
+      breaksw
+
+    case "-nomask":
+      set mask = ();
+      breaksw
+
+    case "-help":
+      goto help;
+      breaksw
+
+    case "-verbose":
+      set verbose = 1;
+      breaksw
+
+    case "-echo":
+      set echo = 1;
+      breaksw
+
+    case "-debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    case "-umask":
+      if ( $#argv == 0) goto arg1err;
+      umask $1; shift;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+  if($#sess1 == 0) then
+    echo "ERROR: no sess1 name specified"
+    exit 1
+  endif
+
+  if($#sess2 == 0) then
+    echo "ERROR: no sess2 name specified"
+    exit 1
+  endif
+
+  if($#analysis == 0) then
+    echo "ERROR: no analysis specified"
+    exit 1
+  endif
+
+  if($#contrast != 0 && $#map == 0) then
+    if($contrast == omnibus) then
+      set map = fsig;
+    else
+      set map = sig;
+    endif
+  endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+arg2err:
+  echo "ERROR: flag $flag requires two arguments"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "USAGE: cmpsesssnr-sess"
+  echo ""
+  echo "Required Arguments:";
+  echo "   -sess1  sess1"
+  echo "   -sess2  sess2"
+  echo ""
+  echo "Optional Arguments:";
+  echo "   -c contrast : mask snr with union above thresh" 
+  echo "   -sigthresh  sigthresh : -log10(pthresh)"
+  echo "   -mask  stem: default is brain"
+  echo "   -nomask  : do not use a mask"
+  echo ""
+  echo "Other Arguments"
+  echo "   -umask umask   : set unix file permission mask"
+  echo "   -version       : print version and exit"
+  echo ""
+  echo ""
+
+  if($PrintHelp) \
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+Computes a comparison maps between two sessions for the same
+analysis and contrast.
+
