@@ -4,8 +4,11 @@
 
       Description:  
 
-  $Header: /space/repo/1/dev/dev/utils/artmap.c,v 1.1 1997/03/18 18:26:35 fischl Exp $
+  $Header: /space/repo/1/dev/dev/utils/artmap.c,v 1.2 2000/04/04 14:28:18 fischl Exp $
   $Log: artmap.c,v $
+  Revision 1.2  2000/04/04 14:28:18  fischl
+  removed compiler warning.
+
   Revision 1.1  1997/03/18 18:26:35  fischl
   Initial revision
 
@@ -267,7 +270,7 @@ ArtmapProcess(ARTMAP *artmap, double *I)
 int
 artProcess(ARTMAP *artmap, double *I)
 {
-  int     nclass, i, class ;
+  int     nclass, i, class = 0 ;
 
   for (i = 0 ; i < artmap->ninputs ; i++)
     artmap->f0[i] = artmap->f1[i] = I[i] ;
