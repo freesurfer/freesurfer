@@ -15,6 +15,7 @@ static double svm_rbf_dot(int ninputs, float *xi, float *xj, double sigma) ;
 static double svm_linear_dot(int ninputs, float *xi, float *xj) ;
 static double SVMlagrangian(SVM *svm, int ntraining, float **x, 
                             float *y, double **dot_matrix) ;
+#if 0
 SVM   *
 SVMalloc(int ninputs, char *c1_name, char *c2_name)
 {
@@ -537,3 +538,4 @@ SVMconstraint(SVM *svm, float *y, int ntraining)
     constraint += y[i] * svm->alpha[i] ;
   return(constraint) ;
 }
+#endif
