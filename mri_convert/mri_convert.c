@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include <ctype.h>
+#include <unistd.h>
 
 #include "mri.h"
 #include "macros.h"
