@@ -10670,7 +10670,7 @@ MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_wm,
   MRIfree(&mri_filled) ;
 #endif
 
-#define MAX_AVERAGES 1
+#define MAX_AVERAGES 2
   for (i = 0 ; i < MAX_AVERAGES ; i++)
   {
     MRISaverageEveryOtherVertexPositions(mris, 1, 0) ;
