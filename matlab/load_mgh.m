@@ -1,5 +1,5 @@
-function [vol, M, mr_parms, ras_xform] = load_mgh(fname,slices,frames)
-% [vol, M, mr_parms, Mdc] = load_mgh(fname,<slices>,<frames>)
+function [vol, M, mr_parms, volsz] = load_mgh(fname,slices,frames,headeronly)
+% [vol, M, mr_parms, Mdc, volsz] = load_mgh(fname,<slices>,<frames>,<headeronly>)
 %
 % fname - path of the mgh file
 % 
@@ -18,16 +18,19 @@ function [vol, M, mr_parms, ras_xform] = load_mgh(fname,slices,frames)
 %
 % mr_parms = [tr flipangle te ti fov]
 %
+% volsz = size(vol). Helpful when using headeronly as vol is [].
+%
 % See also: save_mgh, vox2ras_0to1
 %
-% $Id: load_mgh.m,v 1.12 2004/06/03 18:14:54 fischl Exp $
+% $Id: load_mgh.m,v 1.13 2004/11/09 19:13:33 greve Exp $
 
 vol = [];
 M = [];
 mr_parms = [];
+volsz = [];
 
-if(nargin < 1 | nargin > 3)
-  msg = 'USAGE: [vol M] = load_mgh(fname,<slices>,<frames>)';
+if(nargin < 1 | nargin > 4)
+  msg = 'USAGE: [vol M] = load_mgh(fname,<slices>,<frames>,<headeronly>)';
   fprintf('%s',msg);
   return;
 end
@@ -52,6 +55,8 @@ if(slices(1) <= 0) slices = 0; end
 if(exist('frames')~=1) frames = []; end
 if(isempty(frames)) frames = 0; end
 if(frames(1) <= 0) frames = 0; end
+
+if(exist('headeronly')~=1) headeronly = 0; end
 
 fid    = fopen(fname, 'rb', 'b') ;
 if(fid == -1)
@@ -106,6 +111,10 @@ if (ras_good_flag)
   unused_space_size = unused_space_size - USED_SPACE_SIZE ;
 end
 
+fseek(fid, unused_space_size, 'cof') ;
+nv = ndim1 * ndim2 * ndim3 * nframes;  
+volsz = [ndim1 ndim2 ndim3 nframes];
+
 MRI_UCHAR =  0 ;
 MRI_INT =    1 ;
 MRI_LONG =   2 ;
@@ -113,12 +122,34 @@ MRI_FLOAT =  3 ;
 MRI_SHORT =  4 ;
 MRI_BITMAP = 5 ;
 
-fseek(fid, unused_space_size, 'cof') ;
+% Determine number of bytes per voxel
+switch type
+ case MRI_FLOAT,
+  nbytespervox = 4;
+ case MRI_UCHAR,
+  nbytespervox = 1;
+ case MRI_SHORT,
+  nbytespervox = 2;
+ case MRI_INT,
+  nbytespervox = 4;
+end
 
+if(headeronly)
+  fseek(fid,nv*nbytespervox,'cof');
+  if(~feof(fid))
+    [mr_parms count] = fread(fid,4,'float32');
+    if(count ~= 4) 
+      fprintf('WARNING: error reading MR params\n');
+    end
+  end
+  fclose(fid);
+  if(gzipped >=0)  unix(sprintf('rm %s', fname));  end
+  return;
+end
+
+
+%------------------ Read in the entire volume ----------------%
 if(slices(1) <= 0 & frames(1) <= 0)
-
-  nv = ndim1 * ndim2 * ndim3 * nframes;  
-
   switch type
    case MRI_FLOAT,
     vol = fread(fid, nv, 'float32') ; 
@@ -136,9 +167,9 @@ if(slices(1) <= 0 & frames(1) <= 0)
       fprintf('WARNING: error reading MR params\n');
     end
   end
-
   fclose(fid) ;
-
+  if(gzipped >=0)  unix(sprintf('rm %s', fname));  end
+  
   nread = prod(size(vol));
   if(nread ~= nv)
     fprintf('ERROR: tried to read %d, actually read %d\n',nv,nread);
@@ -146,31 +177,13 @@ if(slices(1) <= 0 & frames(1) <= 0)
     return;
   end
   vol = reshape(vol,[ndim1 ndim2 ndim3 nframes]);
-	if (gzipped >=0)
-		unix(sprintf('rm %s', fname));
-	end
+
   return;
-
-end
-
-if (gzipped >=0)
-	unix(sprintf('rm %s', fname));
 end
 
 %----- only gets here if a subest of slices/frames are to be loaded ---------%
 
-% Determine number of bytes per voxel
-switch type
- case MRI_FLOAT,
-  nbytespervox = 4;
- case MRI_UCHAR,
-  nbytespervox = 1;
- case MRI_SHORT,
-  nbytespervox = 2;
- case MRI_INT,
-  nbytespervox = 4;
-end
-    
+
 if(frames(1) <= 0) frames = [1:nframes]; end
 if(slices(1) <= 0) slices = [1:ndim3]; end
 
@@ -188,7 +201,7 @@ for frame = frames
     
     switch type
      case MRI_FLOAT,
-      [tmpslice nread] = fread(fid, nvslice, 'float32') ; 
+      [tmpslice nread]  = fread(fid, nvslice, 'float32') ; 
      case MRI_UCHAR,
       [tmpslice nread]  = fread(fid, nvslice, 'uchar') ; 
      case MRI_SHORT,
@@ -201,6 +214,7 @@ for frame = frames
       fprintf('ERROR: load_mgh: reading slice %d, frame %d\n',slice,frame);
       fprintf('  tried to read %d, actually read %d\n',nvslice,nread);
       fclose(fid);
+      if(gzipped >=0) unix(sprintf('rm %s', fname)); end
       return;
     end
 
@@ -223,6 +237,6 @@ if(~feof(fid))
 end
 
 fclose(fid) ;
-
+if(gzipped >=0) unix(sprintf('rm %s', fname)); end
 
 return;
