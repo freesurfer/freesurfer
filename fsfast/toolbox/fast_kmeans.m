@@ -1,24 +1,25 @@
-function [kmeans, kmap, d2min, niters, yhat] = fast_kmeans(y,nc,kmeans0,nitersmax,nfix)
-% [kmeans, kmap, d2min, niters, yhat] = fast_kmeans(y,nc,<kmeans0>,<nitersmax>,<nfix>)
+function [kmeans, kmap, dmin, niters, yhat] = fast_kmeans(y,nc,kmeans0,nitersmax,nfix)
+% [kmeans, kmap, dmin, niters, yhat] = fast_kmeans(y,nc,<kmeans0>,<nitersmax>,<nfix>)
 %
 % nc is number of classes (a better name would have been nk)
 % If nitersmax is not specified, uses 100.
 % If kmeans0 is not specified, uses first nc of y.
-% The mean squared error is mean(d2min) = mean(reshape1d(y-yhat).^2)
+% The mean error is mean(dmin) = mean(abs(y-yhat)). Note
+% that this is an L1, not L2, measure.
 %
 % nfix - fix the first nfix class means as specified in
 % kmeans0. nc-nfix class means are adapted.
 %
-% $Id: fast_kmeans.m,v 1.5 2004/05/17 02:01:11 greve Exp $
+% $Id: fast_kmeans.m,v 1.6 2004/05/27 01:37:32 greve Exp $
 %
 
 kmeans = [];
 kmap = [];
-d2min = [];
+dmin = [];
 niters = 0;
 
 if(nargin < 2 | nargin > 5)
- fprintf('[kmeans, kmap, d2min, niters, yhat] = fast_kmeans(y,nc,<kmeans0>,<nitersmax>,<nfix>)\n');
+ fprintf('[kmeans, kmap, dmin, niters, yhat] = fast_kmeans(y,nc,<kmeans0>,<nitersmax>,<nfix>)\n');
  return;
 end
 
@@ -52,16 +53,17 @@ kmeans = kmeans0;
 while(niters < nitersmax & ndiff ~= 0)
 
   % Compute the distances between each input and each class
+  % Use L1 distance.
   for c=1:nc
     yhatc = repmat(kmeans(:,c),[1 nv]) ;
     r = y - yhatc; % residual
-    if(nf > 1)  d2(c,:) = mean(r.^2, 1 );
-    else        d2(c,:) = r.^2;
+    if(nf > 1)  d(c,:) = mean(abs(r), 1 );
+    else        d(c,:) = abs(r);
     end
   end
 
   % Remap each input to classes
-  [d2min kmap] = min(d2,[],1);
+  [dmin kmap] = min(d,[],1);
 
   % Recompute the class means for unfixed classes
   for c = nfix+1:nc
@@ -82,13 +84,13 @@ while(niters < nitersmax & ndiff ~= 0)
   kmap0 = kmap;
   niters = niters + 1;
   if(1 | mod(niters,10)==0 | niters == 1)
-    %fprintf('%3d %5d %14.13f %g\n',niters,ndiff,mean(d2min),toc);
+    %fprintf('%3d %5d %14.13f %g\n',niters,ndiff,mean(dmin),toc);
   end
 
 end % iteration loop
 
 %fprintf('%3d %5d %14.13f %14.13f %g\n',niters,ndiff,...
-%	mean(d2min),sqrt(mean(d2min)),toc);
+%	mean(dmin),sqrt(mean(dmin)),toc);
 
 %------- Create estimate of the input ----------%
 if(nargout == 5)
