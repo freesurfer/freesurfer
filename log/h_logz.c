@@ -3430,7 +3430,7 @@ LogMapOffset(LOGMAP_INFO *lmi, IMAGE *Isrc, int wsize, IMAGE *Ioffset)
 {
   static IMAGE   *Iorient = NULL ;
   static IMAGE   *Idirection = NULL ;
-  static IMAGE   *Iin ;
+  static IMAGE   *Iin = NULL;
   int            rows, cols ;
   
   rows = Isrc->rows ;
@@ -3440,9 +3440,10 @@ LogMapOffset(LOGMAP_INFO *lmi, IMAGE *Isrc, int wsize, IMAGE *Ioffset)
   {
     if (Iin && (Iin->rows != rows || Iin->cols != cols))
       ImageFree(&Iin) ;
-    Iin = ImageAlloc(rows, cols, PFFLOAT, 1) ;
+    if (!Iin)
+      Iin = ImageAlloc(rows, cols, PFFLOAT, 1) ;
     ImageCopy(Isrc, Iin) ;
-    Isrc = Iin ;
+    Isrc = Iin;
   }
 
   if (Iorient && ((Iorient->rows != rows) || (Iorient->cols != cols)))
@@ -3454,7 +3455,8 @@ LogMapOffset(LOGMAP_INFO *lmi, IMAGE *Isrc, int wsize, IMAGE *Ioffset)
   Iorient = LogMapOffsetOrientation(lmi, wsize, Isrc, Iorient) ;
   Idirection = LogMapOffsetDirection(lmi, Iorient, Idirection) ;
   Ioffset = LogMapOffsetMagnitude(lmi, Idirection, Ioffset, 2) ;
-  return(Ioffset) ; ;
+
+  return(Ioffset);
 }
 /*----------------------------------------------------------------------
             Parameters:
@@ -4540,6 +4542,62 @@ logSobelY(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *Idst, int doweight,
     break ;   /* never used */
   }
 
+  return(Idst) ;
+}
+
+#define LO_VAL  0
+#define HI_VAL  180
+
+IMAGE *
+LogMapAddSaltNoise(LOGMAP_INFO *lmi, IMAGE *Isrc,IMAGE *Idst,float density)
+{
+  float   noise, in ;
+  byte    bin ;
+  int     ring, spoke ;
+
+  if (Isrc->pixel_format != Idst->pixel_format)
+    ErrorReturn(NULL, (ERROR_UNSUPPORTED, 
+                     "ImageAddSaltNoise: unsupported output format %d\n",
+                     Idst->pixel_format)) ;
+
+  switch (Isrc->pixel_format)
+  {
+  case PFFLOAT:
+    for_each_log_pixel(lmi, ring, spoke)
+    {
+      in = *IMAGEFpix(Isrc, ring, spoke) ;
+      noise = (float)randomNumber(0.0, 1.0) ;
+      if (noise < density)
+      {
+        if (noise < density/2.0f)
+          in = 0.0f ;
+        else
+          bin = 1.0f ;
+        *IMAGEFpix(Isrc, ring, spoke) = in ;
+      }
+    }
+    break ;
+  case PFBYTE:
+    for_each_log_pixel(lmi, ring, spoke)
+    {
+      bin = *IMAGEpix(Isrc, ring, spoke) ;
+      noise = (float)randomNumber(0.0, 1.0) ;
+      if (noise < density)
+      {
+        if (noise < density/2.0f)
+          bin = LO_VAL ;
+        else
+          bin = HI_VAL ;
+        *IMAGEpix(Isrc, ring, spoke) = bin ;
+      }
+    }
+    break ;
+  default:
+    ErrorReturn(NULL, (ERROR_UNSUPPORTED, 
+                     "ImageAddSaltNoise: unsupported input format %d\n",
+                     Isrc->pixel_format)) ;
+    break ;
+  }
   return(Idst) ;
 }
 
