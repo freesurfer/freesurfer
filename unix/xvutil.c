@@ -520,8 +520,10 @@ XVshowImage(XV_FRAME *xvf, int which, IMAGE *image, int frame)
     return ;
   dimage->used = DIMAGE_IMAGE ;
   dimage->frame = frame ;
+#if 0
   if (dimage->sync && (image != dimage->sourceImage)) /* not an internal call*/
     dimage->sync = 0 ;
+#endif
 
 /* 
    dimage->oSourceImage is controlled by the user, and hence we cannot
@@ -1454,7 +1456,7 @@ buttonQuit(Panel_item item, Event *event)
 
            Description:
 ----------------------------------------------------------------------*/
-#define POINT_SIZE 2
+#define POINT_SIZE 1
 void
 XVdrawPoint(XV_FRAME *xvf, int which, int x, int y, int color)
 {
@@ -1501,7 +1503,13 @@ XVdrawPoint(XV_FRAME *xvf, int which, int x, int y, int color)
     y = nint((float)(((dimage->sourceImage->rows-1) - 
                       (y-dimage->y0)) + 0.5f) * yscale) ;
   else
-    y = nint(((float)(y-dimage->y0)+0.5f) * yscale) ;
+  {
+    if (dimage->dy)
+      y = nint(((float)(dimage->y0+y+dimage->dy-dimage->sourceImage->rows) 
+                + 0.5f) * yscale) ;
+    else 
+      y = nint(((float)(y-dimage->y0)+0.5f) * yscale) ;
+  }
 
   XSetLineAttributes(display, gc, 0, LineSolid, CapRound, JoinBevel) ;
   
