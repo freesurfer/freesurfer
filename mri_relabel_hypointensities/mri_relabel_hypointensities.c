@@ -16,7 +16,7 @@
 #include "mrishash.h"
 #include "cma.h"
 
-static char vcid[] = "$Id: mri_relabel_hypointensities.c,v 1.1 2003/03/25 16:07:16 fischl Exp $";
+static char vcid[] = "$Id: mri_relabel_hypointensities.c,v 1.2 2003/05/28 15:22:24 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -27,7 +27,6 @@ static void print_help(void) ;
 static void print_version(void) ;
 static int relabel_hypointensities(MRI *mri, MRI_SURFACE *mris, int right) ;
 static int relabel_hypointensities_neighboring_gray(MRI *mri) ;
-int MRIneighbors(MRI *mri, int x0, int y0, int z0, int val) ;
 
 
 char *Progname ;
@@ -274,30 +273,4 @@ relabel_hypointensities_neighboring_gray(MRI *mri)
 	}
 	printf("%d hypointense voxels neighboring cortex changed\n", changed) ;
 	return(NO_ERROR) ;
-}
-/*-----------------------------------------------------
-        Parameters:
-
-        Returns value:
-
-        Description
-------------------------------------------------------*/
-int
-MRIneighbors(MRI *mri, int x0, int y0, int z0, int val)
-{
-  int   nbrs = 0 ;
-
-  if (MRIvox(mri,mri->xi[x0-1],y0,z0) == val)
-    nbrs++ ;
-  if (MRIvox(mri,mri->xi[x0+1],y0,z0) == val)
-    nbrs++ ;
-  if (MRIvox(mri,x0,mri->yi[y0+1],z0) == val)
-    nbrs++ ;
-  if (MRIvox(mri,x0,mri->yi[y0-1],z0) == val)
-    nbrs++ ;
-  if (MRIvox(mri,x0,y0,mri->zi[z0+1]) == val)
-    nbrs++ ;
-  if (MRIvox(mri,x0,y0,mri->zi[z0-1]) == val)
-    nbrs++ ;
-  return(nbrs) ;
 }
