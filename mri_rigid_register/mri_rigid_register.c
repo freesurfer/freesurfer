@@ -14,8 +14,13 @@
 #include "timer.h"
 #include "matrix.h"
 #include "transform.h"
+/*E* for REGIONalloc */
+#include "region.h"
+/*E*/
 
 static int apply_transform(MRI *mri_in, MRI *mri_target, MATRIX *M_reg, MRI *mri_xformed) ;
+/*E*/ int maxabs(int a, int b, int c);
+
 MRI *MRIsadd(MRI *mri1, MRI *mri2, MRI *mri_dst) ;
 MRI *MRIsscalarMul(MRI *mri_src, MRI *mri_dst, float scalar) ;
 MRI *MRIssqrt(MRI *mri_src, MRI *mri_dst) ;
@@ -313,12 +318,59 @@ MRIsadd(MRI *mri1, MRI *mri2, MRI *mri_dst)
 
 #define NSTEP   11
 
+/*E* used to see if brain is more or less MRI_CORONAL or not */
+int
+maxabs(int a, int b, int c)
+  {
+    int A,B,C;
+    A=abs(a); B=abs(b); C=abs(c);
+    if (A>B)
+      if (A>C) return 0;
+      else return 2;
+    else 
+      if (B>C) return 1;
+      else return 2;
+  }
+/*E*/
+
 static void
 estimate_rigid_regmatrix(MRI *mri_source, MRI *mri_target, MATRIX *M_reg)
 {
+  /*E* 14 aug 2002
+    ebeth changing where sample points are chosen - using
+    MRIfindApproximateSkullBoundingBox(mri_source, thresh=50, &bbox);
+    
+    bounding box addition is implemented and tested for things closest
+    to this direction and neither, otherwise:
+    
+    x_ras -1.000000 0.000000 0.000000
+    y_ras 0.000000 0.000000 -1.000000
+    z_ras 0.000000 1.000000 0.000000 
+    
+    1 aug 2002
+    
+    took one MRI_CORONAL test brain and zeroed a grid of pixels from the
+    ApproximateSkullBoundingBox to see where that sits.  Looking at the
+    superior 3/4 of that seems be pretty good.  See
+    ~ebeth/build/mri_rigid_register.c.compare for the comparison between
+    matches for mine and for the prev rev.
+
+    I've mostly tagged these additions w/ *E*
+  */
+  /*E*/ MRI_REGION bbox;
+  /*E*/ int xplusdx,yplusdy,zplusdz;
+  
   double   xf, yf, zf, tx, ty, tz, ax, ay, az, ca, sa, val1, val2, err, sse, best_sse, dt=0.01, da=RADIANS(0.005), tol=0.00001;
   int      x, y, z, txi, tyi, tzi, axi, ayi, azi, indx, stepindx, changed, pass;
-  int      width=mri_source->width, height=mri_source->height, depth=mri_source->depth, dx=10, dy=10, dz=10, nvalues;
+
+  /*E* unused: int width=mri_source->width, height=mri_source->height,
+    depth=mri_source->depth; */
+
+  /*E* We're taking points over a smaller volume, so we might want to
+    lower dx,dy,dz - but so far we're still getting slightly better
+    results even with so few points.  */
+    int dx=10, dy=10, dz=10, nvalues;
+
 #if 1
 /*
   int      nstep=8, step[8]={32,16,8,4,2,1}, scale;
@@ -332,48 +384,145 @@ estimate_rigid_regmatrix(MRI *mri_source, MRI *mri_target, MATRIX *M_reg)
   MATRIX   *voxmat1, *voxmat2;
   double   voxval1[MAX_VOX], voxval2[MAX_VOX];
 
+
   vox2ras_source = MRIgetVoxelToRasXform(mri_source) ;
   vox2ras_target = MRIgetVoxelToRasXform(mri_target) ;
   ras2vox_source = MatrixInverse(vox2ras_source, NULL);
   ras2vox_target = MatrixInverse(vox2ras_target, NULL);
   vox_s2vox_t = MatrixIdentity(4,NULL);
 
-  nvalues = 0;
-  for (z = 0 ; z < depth ; z++)
-  for (y = 0 ; y < height ; y++)
-  for (x = 0 ; x < width ; x++)
-  {
-    if ((x%dx==0)&&(y%dy==0)&&(z%dz==0))
+  /*E*/
+  bbox = *REGIONalloc();
+  if (MRIfindApproximateSkullBoundingBox(mri_source, /*thresh*/ 50, &bbox)
+      != NO_ERROR)
+    exit(1);
+  /*E*/
+
+  fprintf(stderr, "Skull1's ApproximateSkullBoundingBox: bbox.x,y,z;dx,dy,dz = %d,%d,%d;%d,%d,%d\n", bbox.x,bbox.y,bbox.z, bbox.dx,bbox.dy,bbox.dz);
+
+  /*E* Eyeballing it, looks like almost the same LTA output!
+
+    coords are: col/row/slice = width/height/depth.
+
+    Everything in ma_two_point has:
+    
+    x_ras -1.000000 0.000000 0.000000
+    y_ras 0.000000 0.000000 -1.000000
+    z_ras 0.000000 1.000000 0.000000
+    
+    Ick, could check orientation (MRI_CORONAL vs. MRI_HORIZONTAL
+    vs. MRI_SAGITTAL) to see...  Or ImageDirCos?
+  
+    We just care which is inferior->superior direction, and for
+    y_ras=0,0,-1, we want bbox.dy*=.75 (for our test image,
+    $MA2/new/003001-*, this is the top 3/4 of skull bbox - gets most
+    of the top of the head - top corners and edges extend only a
+    little out of the skull into black
+
+    should check *_ras or mri_src->slice_direction = MRI_FOO to
+    decide.
+
+  */
+
+
+  if (mri_source->ras_good_flag>0)
     {
-      nvalues++;
+      switch (maxabs(mri_source->x_s,mri_source->y_s,mri_source->z_s))
+	{
+	case 0:
+	  //	  if (mri_source->x_s>0) bbox.x += bbox.dx/4.;
+	  //	  bbox.dx *= .75;
+	  fprintf(stderr, "Untested case - |mri_source->x_s| greatest of |*_s| - let's just do this the old way\n");
+	  bbox.x = bbox.y = bbox.z = 0;
+	  bbox.dx = mri_source->width;
+	  bbox.dy = mri_source->height;
+	  bbox.dz = mri_source->depth;
+	case 1:
+	  if (mri_source->y_s>0) bbox.y += bbox.dy/4.;  //probably not, for coronal
+	  bbox.dy *=.75;
+	  fprintf(stderr, "Whew.  We're pretty well equipped to handle the case where |mri_source->y_s| is the greatest of the |*_s|\n");
+	  break;
+	case 2:
+	  //	  if (mri_source->x_s>0) bbox.z += bbox.dz/4.; //?
+	  //	  bbox.dx *= .75;
+	  fprintf(stderr, "Untested case - |mri_source->z_s| greatest of |*_s| - let's just do this the old way\n");
+	  bbox.x = bbox.y = bbox.z = 0;
+	  bbox.dx = mri_source->width;
+	  bbox.dy = mri_source->height;
+	  bbox.dz = mri_source->depth;
+	  break;
+	default:
+	  break;
+	}
     }
-  }
+  else
+    {
+      switch (mri_source->slice_direction)
+	{
+	case MRI_CORONAL:
+	  bbox.dy *=.75;
+	  fprintf(stderr, "Whew.  We're pretty well equipped to handle the MRI_CORONAL case\n");  
+	  break;
+	case MRI_SAGITTAL:
+	  //	  bbox.dx *= .75;
+	  //	  fprintf(stderr, "Untested case - MRI_SAGITTAL\n");
+	  fprintf(stderr, "Untested case - MRI_SAGITTAL - let's just do this the old way\n");
+	  bbox.x = bbox.y = bbox.z = 0;
+	  bbox.dx = mri_source->width;
+	  bbox.dy = mri_source->height;
+	  bbox.dz = mri_source->depth;
+	  break;
+	case MRI_HORIZONTAL:
+	  //	  bbox.dz *= .75;
+	  //	  fprintf(stderr, "Untested case - MRI_HORIZONTAL\n");
+	  fprintf(stderr, "Untested case - MRI_HORIZONTAL - let's just do this the old way\n");
+	  bbox.x = bbox.y = bbox.z = 0;
+	  bbox.dx = mri_source->width;
+	  bbox.dy = mri_source->height;
+	  bbox.dz = mri_source->depth;
+	  break;
+	default: //contract in every direction?
+	  fprintf(stderr, "Untested case - let's just do this the old way\n");
+	  bbox.x = bbox.y = bbox.z = 0;
+	  bbox.dx = mri_source->width;
+	  bbox.dy = mri_source->height;
+	  bbox.dz = mri_source->depth;
+	  break;
+	}
+    }
+
+  xplusdx = bbox.x + bbox.dx;
+  yplusdy = bbox.y + bbox.dy;
+  zplusdz = bbox.z + bbox.dz;
+  fprintf(stderr, "x,y,z;xplusdx,yplusdy,zplusdz = %d,%d,%d;%d,%d,%d\n", bbox.x,bbox.y,bbox.z, xplusdx,yplusdy,zplusdz);
+
+  nvalues = 0;
+  for (z = bbox.z ; z < zplusdz ; z+=dz)
+    for (y = bbox.y ; y < yplusdy ; y+=dy)
+      for (x = bbox.x ; x < xplusdx ; x+=dx)
+	nvalues++;
 
   printf("nvalues = %d\n", nvalues);
 
   voxmat1 = MatrixAlloc(4,nvalues,MATRIX_REAL); 
   voxmat2 = MatrixCopy(voxmat1, NULL);
 
+  
   indx = 0; 
-  for (z = 0 ; z < depth ; z++)
-  for (y = 0 ; y < height ; y++)
-  for (x = 0 ; x < width ; x++)
-  { 
-    if ((x%dx==0)&&(y%dy==0)&&(z%dz==0))
-    { 
-      indx++;
-      voxmat1->rptr[1][indx] = x;
-      voxmat1->rptr[2][indx] = y;
-      voxmat1->rptr[3][indx] = z;
-      voxmat1->rptr[4][indx] = 1;
-      xf=x; yf=y; zf=z;
-      MRIsampleVolume(mri_source, xf, yf, zf, &val1) ;
-      voxval1[indx] = val1;
-/*
-      voxval1[indx] = MRISvox(mri_source, x, y, z); 
-*/
-    }
-  }
+  for (z = bbox.z ; z < zplusdz ; z+=dz)
+    for (y = bbox.y ; y < yplusdy ; y+=dy)
+      for (x = bbox.x ; x < xplusdx ; x+=dx)
+	{
+	  indx++;
+	  voxmat1->rptr[1][indx] = x;
+	  voxmat1->rptr[2][indx] = y;
+	  voxmat1->rptr[3][indx] = z;
+	  voxmat1->rptr[4][indx] = 1;
+	  xf=x; yf=y; zf=z;
+	  MRIsampleVolume(mri_source, xf, yf, zf, &val1) ;
+	  voxval1[indx] = val1;
+	  // voxval1[indx] = MRISvox(mri_source, x, y, z); 
+	}
 
   if (Gdiag & DIAG_SHOW)
     printf("M_reg (initial)\n"); MatrixPrint(stdout,M_reg);
@@ -447,6 +596,7 @@ estimate_rigid_regmatrix(MRI *mri_source, MRI *mri_target, MATRIX *M_reg)
         MatrixMultiply(vox_s2vox_t,voxmat1,voxmat2);
         sse = 0;
         for (indx=1; indx<=nvalues; indx++)
+	  /*E* building the table of grid points */
         {
           xf=voxmat2->rptr[1][indx]; yf=voxmat2->rptr[2][indx]; zf=voxmat2->rptr[3][indx];
           MRIsampleVolume(mri_target, xf, yf, zf, &val2) ;
@@ -488,9 +638,7 @@ estimate_rigid_regmatrix(MRI *mri_source, MRI *mri_target, MATRIX *M_reg)
     if (Gdiag & DIAG_SHOW)
     {
       printf("M_reg_opt\n"); MatrixPrint(stdout,M_reg_opt);
-/*
-      printf("vox_s2vox_t\n"); MatrixPrint(stdout,vox_s2vox_t);
-*/
+      //      printf("vox_s2vox_t\n"); MatrixPrint(stdout,vox_s2vox_t);
     }
   }
   if (apply_xform)
@@ -502,7 +650,7 @@ estimate_rigid_regmatrix(MRI *mri_source, MRI *mri_target, MATRIX *M_reg)
     MRIwrite(mri_xformed, "xformed.mgh") ;
     MRIfree(&mri_xformed) ;
   }
-
+  
   MatrixCopy(M_reg_opt, M_reg);
 }
 
@@ -649,3 +797,99 @@ apply_transform(MRI *mri_in, MRI *mri_target, MATRIX *M_reg, MRI *mri_xformed)
   MatrixFree(&m) ;
   return(NO_ERROR) ;
 }
+
+
+/*E*
+
+  So, estimate_rigid_regmatrix-ing - 6-param affine tx with identical
+  pix tilted would be way overdetermined - so Anders's code just takes
+  a grid of points, { (x,y,z) | x%10 = y%10 = z%10 = 0 }
+
+  But we should use mostly middle-of-brain (skull?) points - nothing
+  near jaw or tongue.  So could use existing skull-bbox-approx code
+  /homes/nmrnew/home/fischl/dev/include/mri.h:
+  MRIfindApproximateSkullBoundingBox(MRI *mri, int thresh, MRI_REGION
+  *region) in mri.c
+
+  e.g. with thresh guess about 50 (or pick by mousing across a
+  boundary in Tkmedit).  BTW, an MRI_REGION is a struct
+  w/x,y,z,dx,dy,dz
+
+  and then do something about the jaw, e.g select points from way
+  inside the bbox, although where there's enough contrast.
+
+  m_r_r has include "mri.h" so mri.o or whatever is probably being
+  linked in right already
+
+  *
+
+  or "if you're feeling bold," use this below - fancier - mri30 and
+  stuff - i.e. this piece doesn't belong here at all but it's code to
+  steal from or a function to call(?).
+
+*/
+
+#if 0
+
+MRI *
+MRIsynthesizeWeightedVolume(MRI *mri_T1, MRI *mri_PD, float w5, float TR5,
+                            float w30, float TR30, float target_wm, float TE)
+{
+  MRI *mri_dst ;
+  MRI_REGION box ;
+  float      x0, y0, z0, min_real_val ;
+  HISTOGRAM *h_mri, *h_smooth ;
+  int        mri_peak, n, min_real_bin, x, y, z, width, height, depth ;
+  MRI       *mri30, *mri5 ;
+  double    mean_PD ;
+  Real      val30, val5, val ;
+
+  mean_PD = MRImeanFrame(mri_PD, 0) ;
+  /*  MRIscalarMul(mri_PD, mri_PD, 1000.0f/mean_PD) ;*/
+  mri30 = MRIsynthesize(mri_T1, mri_PD, NULL, TR30, RADIANS(30), TE) ;
+  mri5 = MRIsynthesize(mri_T1, mri_PD, NULL, TR5, RADIANS(5), TE) ;
+  width = mri30->width ; height = mri30->height ; depth = mri30->depth ;
+
+  mri_dst = MRIalloc(width, height, depth, MRI_FLOAT) ;
+  MRIcopyHeader(mri_T1, mri_dst) ;
+
+  h_mri = MRIhistogram(mri30, 100) ;
+  h_smooth = HISTOsmooth(h_mri, NULL, 2) ;
+  mri_peak = HISTOfindHighestPeakInRegion(h_smooth, 0, h_smooth->nbins) ;
+  min_real_bin = HISTOfindNextValley(h_smooth, mri_peak) ;
+  min_real_val = h_smooth->bins[min_real_bin] ;
+
+  MRIfindApproximateSkullBoundingBox(mri30, min_real_val, &box) ;
+  x0 = box.x+box.dx/3 ; y0 = box.y+box.dy/3 ; z0 = box.z+box.dz/2 ;
+  printf("using (%.0f, %.0f, %.0f) as brain centroid...\n",x0, y0, z0) ;
+  box.dx /= 4 ; box.x = x0 - box.dx/2;
+  box.dy /= 4 ; box.y = y0 - box.dy/2;
+  box.dz /= 4 ; box.z = z0 - box.dz/2;
+
+
+  printf("using box (%d,%d,%d) --> (%d, %d,%d) "
+         "to find MRI wm\n", box.x, box.y, box.z, 
+         box.x+box.dx-1,box.y+box.dy-1, box.z+box.dz-1) ;
+  
+  h_mri = MRIhistogramRegion(mri30, 0, NULL, &box) ; 
+  for (n = 0 ; n < h_mri->nbins-1 ; n++)
+    if (h_mri->bins[n+1] > min_real_val)
+      break ;
+  HISTOclearBins(h_mri, h_mri, 0, n) ;
+  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+    HISTOplot(h_mri, "mri.histo") ;
+  mri_peak = HISTOfindLastPeak(h_mri, HISTO_WINDOW_SIZE,MIN_HISTO_PCT);
+  mri_peak = h_mri->bins[mri_peak] ;
+  printf("before smoothing, mri peak at %d\n", mri_peak) ;
+  h_smooth = HISTOsmooth(h_mri, NULL, 2) ;
+  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+    HISTOplot(h_smooth, "mri_smooth.histo") ;
+  mri_peak = HISTOfindLastPeak(h_smooth, HISTO_WINDOW_SIZE,MIN_HISTO_PCT);
+  mri_peak = h_mri->bins[mri_peak] ;
+  printf("after smoothing, mri peak at %d\n", mri_peak) ;
+  HISTOfree(&h_smooth) ; HISTOfree(&h_mri) ;
+
+
+  return(mri_dst) ;
+}
+#endif
