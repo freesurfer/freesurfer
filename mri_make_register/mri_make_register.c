@@ -37,7 +37,7 @@ void set_matrix(MATRIX *m, float e11, float e12, float e13, float e14,
 void usage(int exit_val)
 {
 
-  fprintf(stderr, "usage: %s [options] <subject name> <fct stem> [<structural dir>]\n", Progname);
+  fprintf(stderr, "usage: %s [options] <subject name> <fct stem> <path to T1 dir> [<structural dir>]\n", Progname);
   fprintf(stderr, "       options are:\n");
   fprintf(stderr, "         -r register_fname  defaults to register.dat in the functional directory\n");
   fprintf(stderr, "         -a analyse_fname   defaults to analyse.dat in the functional directory\n");
@@ -54,6 +54,7 @@ int main(int argc, char *argv[])
   char *subjects_dir;
   MATRIX *register_matrix;
   char *subject_name, *fct_stem, structural_dir[STRLEN];
+  char t1_path[STRLEN];
   char file_name[STRLEN];
   FILE *fp;
   char *s;
@@ -67,6 +68,7 @@ int main(int argc, char *argv[])
 
   register_name[0] = '\0';
   analyse_name[0] = '\0';
+  t1_path[0] = '\0';
   subject_name = fct_stem = NULL;
   structural_dir[0] = '\0';
 
@@ -90,13 +92,16 @@ int main(int argc, char *argv[])
       subject_name = argv[i];
     else if(fct_stem == NULL)
       fct_stem = argv[i];
+    else if(strlen(t1_path) == 0)
+      strcpy(t1_path, argv[i]);
     else if(strlen(structural_dir) == 0)
       strcpy(structural_dir, argv[i]);
     else
       usage(1);
   }
 
-  if(fct_stem == NULL)
+  /* ----- check for all required arguments (check the last) ----- */
+  if(t1_path[0] == '\0')
     usage(1);
 
   s = strrchr(fct_stem, '/');
@@ -151,7 +156,7 @@ int main(int argc, char *argv[])
   {
     if((fp = fopen(analyse_name, "w")) == NULL)
       ErrorExit(ERROR_BAD_FILE, "%s: couldn't open file %s for writing", Progname, analyse_name);
-    fprintf(fp, ".\n");
+    fprintf(fp, "%s\n", t1_path);
     s = strrchr(fct_stem, '/');
     s = (s == NULL ? fct_stem : s + 1);
     fprintf(fp, "%s_%%03d.bshort\n", s);
