@@ -16,7 +16,7 @@
 #include "mrimorph.h"
 #include "mrinorm.h"
 
-static char vcid[] = "$Id: mris_make_surfaces.c,v 1.36 2000/03/27 17:13:27 fischl Exp $";
+static char vcid[] = "$Id: mris_make_surfaces.c,v 1.37 2000/08/02 15:04:29 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -74,9 +74,11 @@ static int write_vals = 0 ;
 
 static char *orig_name = ORIG_NAME ;
 static char *suffix = "" ;
+static char *output_suffix = "" ;
 static char *xform_fname = NULL ;
 
 static char pial_name[100] = "pial" ;
+static char white_matter_name[STRLEN] = WHITE_MATTER_NAME ;
 
 static int lh_label = LH_LABEL ;
 static int rh_label = RH_LABEL ;
@@ -289,6 +291,7 @@ main(int argc, char *argv[])
 
     max_gray = white_mean-white_std ;
     max_gray_at_csf_border = gray_mean-0.5*gray_std ;
+    min_gray_at_csf_border = gray_mean - 3*gray_std ;
     fprintf(stderr, "setting MAX_GRAY to %2.1f (was %d)\n",
             max_gray, MAX_GRAY) ;
     fprintf(stderr, "setting MAX_GRAY_AT_CSF_BORDER to %2.1f (was %d)\n",
@@ -314,7 +317,7 @@ main(int argc, char *argv[])
   if (nbrs > 1)
     MRISsetNeighborhoodSize(mris, nbrs) ;
 
-  sprintf(parms.base_name, "%s%s", WHITE_MATTER_NAME, suffix) ;
+  sprintf(parms.base_name, "%s%s", white_matter_name, suffix) ;
   MRIScomputeMetricProperties(mris) ;    /* recompute surface normals */
   MRISstoreMetricProperties(mris) ;
   MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ;
@@ -370,7 +373,7 @@ main(int argc, char *argv[])
     MRIScomputeBorderValues(mris, mri_T1, mri_smooth, 
                             MAX_WHITE, max_border_white, min_border_white,
                             min_gray_at_white_border, current_sigma, 
-                            2*max_thickness, parms.fp) ;
+                            2*max_thickness, parms.fp, GRAY_WHITE) ;
     MRISfindExpansionRegions(mris) ;
     if (vavgs)
     {
@@ -425,8 +428,8 @@ main(int argc, char *argv[])
 
   if (!nowhite)
   {
-    sprintf(fname, "%s/%s/surf/%s.%s%s", sdir, sname,hemi,WHITE_MATTER_NAME,
-            suffix);
+    sprintf(fname, "%s/%s/surf/%s.%s%s%s", sdir, sname,hemi,white_matter_name,
+            output_suffix,suffix);
     fprintf(stderr, "writing white matter surface to %s...\n", fname) ;
     MRISaverageVertexPositions(mris, smoothwm) ;
     MRISwrite(mris, fname) ;
@@ -462,7 +465,7 @@ main(int argc, char *argv[])
   }
   else   /* read in previously generated white matter surface */
   {
-    sprintf(fname, "%s%s", WHITE_MATTER_NAME, suffix) ;
+    sprintf(fname, "%s%s", white_matter_name, suffix) ;
     if (MRISreadVertexPositions(mris, fname) != NO_ERROR)
       ErrorExit(Gerror, "%s: could not read white matter surfaces.",
                 Progname) ;
@@ -529,7 +532,8 @@ main(int argc, char *argv[])
     parms.n_averages = n_averages ; parms.l_tsmooth = l_tsmooth ;
     MRIScomputeBorderValues(mris, mri_T1, mri_smooth, max_gray, 
                             max_gray_at_csf_border, min_gray_at_csf_border,
-                            min_csf,current_sigma, max_thickness+1, parms.fp) ;
+                            min_csf,current_sigma, max_thickness+1, parms.fp,
+                            GRAY_CSF) ;
     if (vavgs)
     {
       fprintf(stderr, "averaging target values for %d iterations...\n",vavgs) ;
@@ -561,13 +565,14 @@ main(int argc, char *argv[])
       break ;
   }
 
-  sprintf(fname, "%s/%s/surf/%s.%s%s", sdir, sname, hemi, pial_name, suffix) ;
+  sprintf(fname, "%s/%s/surf/%s.%s%s%s", sdir, sname, hemi, pial_name, 
+          output_suffix, suffix) ;
   fprintf(stderr, "writing pial surface to %s...\n", fname) ;
   MRISwrite(mris, fname) ;
 
   if (in_out_in_flag)
   {
-    sprintf(parms.base_name, "%s%s", WHITE_MATTER_NAME, suffix) ;
+    sprintf(parms.base_name, "%s%s", white_matter_name, suffix) ;
     MRIScomputeMetricProperties(mris) ;    /* recompute surface normals */
     MRISstoreMetricProperties(mris) ;
     MRISsaveVertexPositions(mris, TMP_VERTICES) ;
@@ -606,9 +611,10 @@ main(int argc, char *argv[])
       parms.n_averages = n_averages ; 
       MRISprintTessellationStats(mris, stderr) ;
       MRIScomputeBorderValues(mris, mri_T1, mri_smooth, MAX_WHITE, 
-                              MAX_BORDER_WHITE, MIN_BORDER_WHITE, 
-                              MIN_GRAY_AT_WHITE_BORDER,
-                              current_sigma, 2*max_thickness, parms.fp) ;
+                              max_border_white, min_border_white, 
+                              min_gray_at_white_border,
+                              current_sigma, 2*max_thickness, parms.fp,
+                              GRAY_WHITE) ;
       MRISfindExpansionRegions(mris) ;
       if (vavgs)
       {
@@ -635,9 +641,9 @@ main(int argc, char *argv[])
     }
     MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ; /* gray/white surface */
     MRISrestoreVertexPositions(mris, TMP_VERTICES) ;  /* pial surface */
-    sprintf(fname, "%s/%s/surf/%s.%s2%s", sdir, sname,hemi,WHITE_MATTER_NAME,
+    sprintf(fname, "%s/%s/surf/%s.%s2%s", sdir, sname,hemi,white_matter_name,
             suffix);
-    fprintf(stderr, "writing pial surface to %s...\n", fname) ;
+    fprintf(stderr, "writing gray/white surface to %s...\n", fname) ;
     MRISwrite(mris, fname) ;
   }
 
@@ -648,7 +654,7 @@ main(int argc, char *argv[])
     MRISmeasureCorticalThickness(mris, nbhd_size, max_thickness) ;
     fprintf(stderr, 
             "writing cortical thickness estimate to 'thickness' file.\n") ;
-    sprintf(fname, "thickness%s", suffix) ;
+    sprintf(fname, "thickness%s%s", output_suffix, suffix) ;
     MRISwriteCurvature(mris, fname) ;
 
     /* at this point, the v->curv slots contain the cortical surface. Now
@@ -808,11 +814,23 @@ get_option(int argc, char *argv[])
     nargs = 1 ;
     fprintf(stderr, "smoothing for %d iterations\n", smooth) ;
   }
+  else if (!stricmp(option, "output"))
+  {
+    output_suffix = argv[2] ;
+    nargs = 1 ;
+    fprintf(stderr, "appending %s to output names...\n", output_suffix) ;
+  }
   else if (!stricmp(option, "vavgs"))
   {
     vavgs = atoi(argv[2]) ;
     nargs = 1 ;
     fprintf(stderr, "smoothing values for %d iterations\n", vavgs) ;
+  }
+  else if (!stricmp(option, "white"))
+  {
+    strcpy(white_matter_name, argv[2]) ;
+    nargs = 1 ;
+    fprintf(stderr, "using %s as white matter name...\n", white_matter_name) ;
   }
   else if (!stricmp(option, "intensity"))
   {
@@ -932,8 +950,9 @@ get_option(int argc, char *argv[])
     nargs = 1 ;
     break ;
   case 'C':
-    create = 1 ;
-    fprintf(stderr, "creating area and curvature files for wm surface...\n") ;
+    create = !create ;
+    fprintf(stderr, "%screating area and curvature files for wm surface...\n",
+            create ? "" : "not ") ;
     break ;
   case 'W':
     sscanf(argv[2], "%d", &parms.write_iterations) ;
@@ -1243,7 +1262,8 @@ MRIsmoothBrightWM(MRI *mri_T1, MRI *mri_wm)
 MRI *
 MRIfindBrightNonWM(MRI *mri_T1, MRI *mri_wm)
 {
-  int     width, height, depth, x, y, z, nlabeled ;
+  int     width, height, depth, x, y, z, nlabeled, nwhite,
+          xk, yk, zk, xi, yi, zi;
   BUFTYPE *pT1, *pwm, val, wm ;
   MRI     *mri_labeled, *mri_tmp ;
 
@@ -1263,9 +1283,30 @@ MRIfindBrightNonWM(MRI *mri_T1, MRI *mri_wm)
         val = *pT1++ ;
         wm = *pwm++ ;
 
+        if (x == 159 && y == 93 && z == 81)  /* T1=127 */
+          DiagBreak() ;
         /* not white matter and bright (e.g. eye sockets) */
         if ((wm < WM_MIN_VAL) && (val > 125))
-          MRIvox(mri_labeled, x, y, z) = BRIGHT_LABEL ;
+        {
+          nwhite = 0 ;
+          for (xk = -1 ; xk <= 1 ; xk++)
+          {
+            xi = mri_T1->xi[x+xk] ;
+            for (yk = -1 ; yk <= 1 ; yk++)
+            {
+              yi = mri_T1->yi[y+yk] ;
+              for (zk = -1 ; zk <= 1 ; zk++)
+              {
+                zi = mri_T1->zi[z+zk] ;
+                if (MRIvox(mri_wm, xi, yi, zi) >= WM_MIN_VAL)
+                  nwhite++ ;
+              }
+            }
+          }
+#define MIN_WHITE  ((3*3*3-1)/2)
+          if (nwhite < MIN_WHITE)
+            MRIvox(mri_labeled, x, y, z) = BRIGHT_LABEL ;
+        }
       }
     }
   }
@@ -1295,4 +1336,3 @@ MRIfindBrightNonWM(MRI *mri_T1, MRI *mri_wm)
   MRIfree(&mri_tmp) ;
   return(mri_labeled) ;
 }
-
