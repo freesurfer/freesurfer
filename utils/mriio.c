@@ -5220,11 +5220,17 @@ static int analyzeWrite4D(MRI *mri, char *fname)
   hdr.dime.bitpix = 8*bytes_per_voxel;
   memcpy(hdr.dime.vox_units,"mm\0",3);
 
-  hdr.dime.dim[0] = 4; /* number of dimensions (??) */
   hdr.dime.dim[1] = mri->width;    /* ncols */
   hdr.dime.dim[2] = mri->height;   /* nrows */
   hdr.dime.dim[3] = mri->depth;    /* nslices */
-  hdr.dime.dim[4] = mri->nframes;  /* nframes */
+  if(mri->nframes > 1){
+    hdr.dime.dim[0] = 4; /* number of dimensions (??) */
+    hdr.dime.dim[4] = mri->nframes;  /* nframes */
+  }
+  else{
+    hdr.dime.dim[4] = 0;  /* nframes */
+    hdr.dime.dim[0] = 3; /* number of dimensions (??) */
+  }
 
   hdr.dime.pixdim[1] = mri->xsize; /* col res */
   hdr.dime.pixdim[2] = mri->ysize; /* row res */
