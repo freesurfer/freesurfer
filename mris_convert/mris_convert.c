@@ -13,7 +13,7 @@
 #include "macros.h"
 #include "fio.h"
 
-static char vcid[] = "$Id: mris_convert.c,v 1.6 1998/08/02 23:10:42 fischl Exp $";
+static char vcid[] = "$Id: mris_convert.c,v 1.7 1998/08/26 19:24:21 fischl Exp $";
 
 
 /*-------------------------------- CONSTANTS -----------------------------*/
@@ -115,7 +115,7 @@ main(int argc, char *argv[])
     {
       if (MRISreadVertexPositions(mris, orig_surf_name) != NO_ERROR)
         ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
-                  Progname, fname) ;
+                  Progname, orig_surf_name) ;
     }
   }
   else
