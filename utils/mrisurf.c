@@ -52,8 +52,15 @@
 
 /*------------------------ STATIC PROTOTYPES -------------------------*/
 
+static int mrisComputeCurvatureValues(MRI_SURFACE *mris) ;
+static int mrisNormalDirectionTriangleIntersection(MRI_SURFACE *mris,VERTEX *v,
+                                                   MHT *mht, double *pdist);
+static int  load_triangle_vertices(MRI_SURFACE *mris, int fno, double U0[3], 
+                                   double U1[3], double U2[3]) ;
+#if 0
 static double mrisFindClosestFilledVoxel(MRI_SURFACE *mris, MRI *mri_filled, 
                                          int vno, double max_dist) ;
+#endif
 static int   mrisCheck(MRI_SURFACE *mris) ;
 static int   mrisClipGradient(MRI_SURFACE *mris, float max_len) ;
 static int   mrisClipMomentumGradient(MRI_SURFACE *mris, float max_len) ;
@@ -152,6 +159,8 @@ static int   mrisLabelVertices(MRI_SURFACE *mris, float cx, float cy,
                                float cz, int label, float radius) ;
 
 
+static double mrisFindNormalDistance(MRI_SURFACE *mris, MHT *mht, int vno, 
+                                      double max_dist);
 
 static int mrisProjectSurface(MRI_SURFACE *mris) ;
 static int mrisOrientSurface(MRI_SURFACE *mris) ;
@@ -11838,6 +11847,7 @@ MRISzeroMeanCurvature(MRI_SURFACE *mris)
     v->curv -= mean ;
   }
 
+  mrisComputeCurvatureValues(mris) ;
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
@@ -11890,6 +11900,7 @@ MRISnormalizeCurvature(MRI_SURFACE *mris)
     v->curv = (v->curv - mean) / std /* + mean*/ ;
   }
 
+  mrisComputeCurvatureValues(mris) ;
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
@@ -11984,6 +11995,7 @@ MRISaverageCurvatures(MRI_SURFACE *mris, int navgs)
       v->curv = v->tdx ;
     }
   }
+  mrisComputeCurvatureValues(mris) ;
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
@@ -13296,26 +13308,34 @@ mrisEraseFace(MRI_SURFACE *mris, MRI *mri, int fno)
 #define MAX_THICKNESS 6.0f
 
 int
-MRISmeasureCorticalThickness(MRI_SURFACE *mris, MRI *mri_brain)
+MRISmeasureCorticalThickness(MRI_SURFACE *mris)
 {
   int     vno ;
   VERTEX  *v ;
-  MRI     *mri_filled ;
   float   max_out_dist ;
+  MHT     *mht ;
 
-  mri_filled = MRISwriteSurfaceIntoVolume(mris, mri_brain, NULL) ;
+  mht = MHTfillTable(mris, NULL) ;  /* fill table with pial surface position */
+  MRISsaveVertexPositions(mris, TMP_VERTICES) ;
+
+  /* compute white matter vertex normals */
   MRISrestoreVertexPositions(mris, ORIGINAL_VERTICES) ;
   mrisComputeNormals(mris);
 
+  /* must restore gray matter surface so self-intersection will work */
+  MRISrestoreVertexPositions(mris, TMP_VERTICES) ; 
+
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
+    if (!(vno%50))
+      DiagHeartbeat((float)vno / (float)(mris->nvertices-1)) ;
     v = &mris->vertices[vno] ;
     if (v->ripflag)
       continue ;
     if (vno == Gdiag_no)
       DiagBreak() ;
     max_out_dist = 
-      mrisFindClosestFilledVoxel(mris, mri_filled, vno, 1.5*MAX_THICKNESS);
+      mrisFindNormalDistance(mris, mht, vno, 1.5*MAX_THICKNESS);
     if (max_out_dist > MAX_THICKNESS)
       v->curv = MAX_THICKNESS ;   /* can't compute it properly */
     else
@@ -13323,6 +13343,136 @@ MRISmeasureCorticalThickness(MRI_SURFACE *mris, MRI *mri_brain)
   }
   return(NO_ERROR) ;
 }
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+static double
+mrisFindNormalDistance(MRI_SURFACE *mris, MHT *mht, int vno, double max_dist)
+{
+  double   dist ;
+  VERTEX   *v ;
+
+  v = &mris->vertices[vno] ;
+  if (v->ripflag)
+    return(0.0) ;
+
+  for (dist = 0.0f ; dist < max_dist ; dist += .25)
+  {
+    if (mrisNormalDirectionTriangleIntersection(mris, v, mht, &dist))
+      return(dist) ;
+  }
+  
+  return(0.0) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+           See if the line in the normal direction passing
+           through vertex v intersects any of the triangles at the
+           given location.
+------------------------------------------------------*/
+#include "tritri.h"
+static int
+mrisNormalDirectionTriangleIntersection(MRI_SURFACE *mris, VERTEX *v, 
+                                        MHT *mht, double *pdist)
+{
+  double  dist, min_dist, U0[3], U1[3], U2[3], pt[3], dir[3], int_pt[3], dot ;
+  float   nx, ny, nz, x, y, z, dx, dy, dz ;
+  MHBT    *bucket ;
+  MHB     *bin ;
+  int     i, found, fno, ret ;
+  static MHBT *last_bucket = NULL ;
+  static VERTEX *last_v = NULL ;
+
+
+  dist = *pdist ;
+  nx = v->nx ; ny = v->ny ; nz = v->nz ; 
+  dir[0] = v->nx ; dir[1] = v->ny ; dir[2] = v->nz ;
+  pt[0] = v->origx  ; pt[1] = v->origy  ; pt[2] = v->origz  ;
+  x = v->origx + nx * dist ;
+  y = v->origy + ny * dist ; 
+  z = v->origz + nz * dist ;
+
+  bucket = MHTgetBucket(mht, x, y, z) ;
+  if (bucket == NULL)
+    return(0) ;
+
+#if 0
+  v->origx = v->origy = .5 ; v->origz = 1 ;
+  v->nx = v->ny = 0 ; v->nz = 1 ;
+  nx = v->nx ; ny = v->ny ; nz = v->nz ; 
+  dir[0] = v->nx ; dir[1] = v->ny ; dir[2] = v->nz ;
+  pt[0] = v->origx  ; pt[1] = v->origy  ; pt[2] = v->origz  ;
+  x = v->origx + nx * dist ;
+  y = v->origy + ny * dist ; 
+  z = v->origz + nz * dist ;
+#endif
+
+  if (last_v == v && bucket == last_bucket)
+    return(0) ;
+  last_v = v ; last_bucket = bucket ;
+
+  min_dist = 10000.0f ;
+  for (bin = bucket->bins, found = i = 0 ; i < bucket->nused ; i++, bin++)
+  {
+    fno = bin->fno ;
+
+#if 0
+    v->origx = v->origy = .5 ; v->origz = 1 ;
+    {
+      FACE   *f = &mris->faces[fno] ;
+      VERTEX *v ;
+      v = &mris->vertices[f->v[0]] ;
+      v->x = v->y = v->z = 0 ;
+      v = &mris->vertices[f->v[1]] ;
+      v->x = 1 ; v->y = v->z = 0 ;
+      v = &mris->vertices[f->v[2]] ;
+      v->x = 0 ; v->y = 1 ; v->z = 0 ;
+    }
+#endif
+
+    load_triangle_vertices(mris, fno, U0, U1, U2) ;
+    ret = triangle_ray_intersect(pt, dir, U0, U1, U2, int_pt) ;
+    if (ret)
+    {
+      dx = int_pt[0] - v->origx ; 
+      dy = int_pt[1] - v->origy ; 
+      dz = int_pt[2] - v->origz ; 
+      dist = sqrt(dx*dx + dy*dy + dz*dz) ;
+      dot = dx*nx + dy*ny + dz*nz ;
+      if (dot >= 0 && dist < min_dist)
+      {
+        found = 1 ;
+        *pdist = min_dist = dist ;
+      }
+    }
+  }
+  return(found) ;
+}
+static int
+load_triangle_vertices(MRI_SURFACE *mris, int fno, double U0[3], double U1[3], 
+                       double U2[3])
+{
+  VERTEX *v ;
+  FACE   *face ;
+  
+  face = &mris->faces[fno] ;
+  v = &mris->vertices[face->v[0]] ;
+  U0[0] = v->x ; U0[1] = v->y ; U0[2] = v->z ; 
+  v = &mris->vertices[face->v[1]] ;
+  U1[0] = v->x ; U1[1] = v->y ; U1[2] = v->z ; 
+  v = &mris->vertices[face->v[2]] ;
+  U2[0] = v->x ; U2[1] = v->y ; U2[2] = v->z ; 
+  return(NO_ERROR) ;
+}
+#if 0
 /*-----------------------------------------------------
         Parameters:
 
@@ -13375,6 +13525,7 @@ mrisFindClosestFilledVoxel(MRI_SURFACE *mris, MRI *mri_filled, int vno,
 
   return(min_dist) ;
 }
+#endif
 /*-----------------------------------------------------
         Parameters:
 
@@ -13681,6 +13832,7 @@ mrisComputeWhiteSurfaceValues(MRI_SURFACE *mris, MRI *mri_brain,
 #else
 #if 1
 #define MAX_CSF   55.0f
+#define STEP_SIZE 0.1
 int
 MRIScomputeWhiteSurfaceValues(MRI_SURFACE *mris,MRI *mri_brain,
                               MRI *mri_smooth, MRI *mri_wm)
@@ -13708,7 +13860,6 @@ MRIScomputeWhiteSurfaceValues(MRI_SURFACE *mris,MRI *mri_brain,
     be the location of the edge.
     */
 
-#define STEP_SIZE 0.1
     /* search in the normal direction to find the min value */
     min_val = -10.0f ; mag = 5.0f ; max_mag = 0.0f ;
     for (dist = -3.0f ; dist < 10.0f ; dist += STEP_SIZE)
@@ -16652,3 +16803,22 @@ VertexReplaceNeighbor(VERTEX *v, int vno_old, int vno_new)
   return(NO_ERROR) ;
 }
 #endif
+
+static int
+mrisComputeCurvatureValues(MRI_SURFACE *mris)
+{
+  int      vno ;
+  VERTEX   *v ;
+
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    if (v->curv > mris->max_curv)
+      mris->max_curv = v->curv ;
+    if (v->curv < mris->min_curv)
+      mris->min_curv = v->curv ;
+  }
+  return(NO_ERROR) ;
+}
