@@ -908,6 +908,7 @@ XVMRIsetView(XV_FRAME *xvf, int which, int view)
   DIMAGE  *dimage, *dimage2 ;
   MRI     *mri, *mri2 ;
   char    *menu_str ;
+  float   xsize, ysize, zsize ;
 
   if (!mris[which])
     return(NO_ERROR) ;
@@ -975,6 +976,9 @@ XVMRIsetView(XV_FRAME *xvf, int which, int view)
         continue ;
       dimage2 = XVgetDimage(xvf, which2, DIMAGE_IMAGE) ;
       mri2 = mris[which2] ;
+      xsize = mri2->xsize / mri->xsize ;
+      ysize = mri2->ysize / mri->ysize ;
+      zsize = mri2->zsize / mri->zsize ;
       if (dimage2 && mri2)
       {
         switch (view)
@@ -982,15 +986,15 @@ XVMRIsetView(XV_FRAME *xvf, int which, int view)
         case MRI_CORONAL:
           offset = mri->zstart - mri2->zstart ;
           slice2 = slice - mri->imnr0 ;  /* turn it into an index */
-          slice2 = (slice2+offset) / mri2->zsize + mri2->imnr0 ;
+          slice2 = (slice2+offset) * zsize + mri2->imnr0 ;
           break ;
         case MRI_SAGITAL:
           offset = mri->xstart - mri2->xstart ;
-          slice2 = (slice+offset) / mri2->xsize ;
+          slice2 = (slice+offset) * xsize ;
           break ;
         case MRI_HORIZONTAL:
           offset = mri->ystart - mri2->ystart ;
-          slice2 = (slice+offset) / mri2->ysize ;
+          slice2 = (slice+offset) * ysize ;
           break ;
         default:
           slice2 = slice ;
