@@ -8,10 +8,10 @@
  *
 */
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2003/10/30 19:51:52 $
-// Revision       : $Revision: 1.245 $
-char *MRI_C_VERSION = "$Revision: 1.245 $";
+// Revision Author: $Author: tosa $
+// Revision Date  : $Date: 2003/11/18 20:35:58 $
+// Revision       : $Revision: 1.246 $
+char *MRI_C_VERSION = "$Revision: 1.246 $";
 
 /*-----------------------------------------------------
                     INCLUDE FILES
@@ -3842,7 +3842,7 @@ MRIcloneRoi(MRI *mri_src, MRI *mri_dst)
         Returns value:
 
         Description
-           Copy one MRI into another (including header info)
+           Copy one MRI into another (including header info and data)
 ------------------------------------------------------*/
 MRI *
 MRIcopy(MRI *mri_src, MRI *mri_dst)
@@ -5316,18 +5316,18 @@ MRItoImageView(MRI *mri, IMAGE *I, int slice, int view, int frame)
         zm = y ;
         break ;
       }
-			MRIsampleVolumeFrame(mri, xm, ym, zm, frame, &val) ;
-			if (val > fmax)
-				fmax = val ;
-			if (val < fmin)
-				fmin = val ;
-		}
-	}
-
-
-	if (FZERO(fmax-fmin))
-		ErrorReturn(I, (ERROR_BADPARM, "MRItoImageView: constant image")) ;
-
+      MRIsampleVolumeFrame(mri, xm, ym, zm, frame, &val) ;
+      if (val > fmax)
+	fmax = val ;
+      if (val < fmin)
+	fmin = val ;
+    }
+  }
+  
+  
+  if (FZERO(fmax-fmin))
+    ErrorReturn(I, (ERROR_BADPARM, "MRItoImageView: constant image")) ;
+  
   for (y = 0 ; y < h ; y++)
   {
     yp = h - (y+1) ;   /* hips coordinate system is inverted */
@@ -5382,8 +5382,8 @@ MRItoImageView(MRI *mri, IMAGE *I, int slice, int view, int frame)
         break ;
       }
 #else
-			MRIsampleVolumeFrame(mri, xm, ym, zm, frame, &val) ;
-			*IMAGEpix(I, x, yp) = (byte)(255.0 * (val - fmin) / (fmax - fmin)) ;
+      MRIsampleVolumeFrame(mri, xm, ym, zm, frame, &val) ;
+      *IMAGEpix(I, x, yp) = (byte)(255.0 * (val - fmin) / (fmax - fmin)) ;
 #endif
     }
   }
@@ -5448,6 +5448,98 @@ MRItoImage(MRI *mri, IMAGE *I, int slice)
 
   return(I) ;
 }
+
+MRI *
+ImageToMRI(IMAGE *I)
+{
+  MRI *mri;
+  int  width, height, depth, type, nframes, y, yp, x ;
+  int frames;
+
+  width = I->ocols;
+  height = I->orows;
+  depth = 1;
+  nframes = I->num_frame;
+
+  switch(I->pixel_format)
+  {
+  case PFBYTE:
+    type = MRI_UCHAR;
+    break;
+  case PFSHORT:
+    type = MRI_SHORT;
+    break;
+  case PFINT:
+    type = MRI_INT;
+    break;
+  case PFFLOAT:
+    type = MRI_FLOAT;
+    break;
+  case PFDOUBLE:
+  case PFCOMPLEX:
+  default:
+    ErrorExit(ERROR_BADPARM, "IMAGE type = %d not supported\n", I->pixel_format);
+    break;
+  }
+  // allocate memory
+  if (nframes <= 1)
+    mri = MRIalloc(width, height, depth, type);
+  else
+    mri = MRIallocSequence(width, height, depth, type, nframes);
+
+  // just fake the size
+  mri->nframes = nframes;
+  mri->imnr0 = 1;
+  mri->imnr1 = 1;
+  mri->thick = mri->ps = 1.0;
+  mri->xsize = mri->ysize = mri->zsize = 1.0;
+  mri->xend = mri->width  * mri->xsize / 2.0;
+  mri->xstart = -mri->xend;
+  mri->yend = mri->height * mri->ysize / 2.0;
+  mri->ystart = -mri->yend;
+  mri->zend = mri->depth  * mri->zsize / 2.0;
+  mri->zstart = -mri->zend;
+  mri->fov = ((mri->xend - mri->xstart) > (mri->yend - mri->ystart) ? 
+        (mri->xend - mri->xstart) : (mri->yend - mri->ystart));
+  // set orientation to be coronal
+  mri->x_r = -1; mri->y_r =  0; mri->z_r =  0; mri->c_r = 0;
+  mri->x_a =  0; mri->y_a =  0; mri->z_a =  1; mri->c_a = 0;
+  mri->x_s =  0; mri->y_s = -1; mri->z_s =  0; mri->c_s = 0;
+
+  // hips coordinate system is inverted
+  for (frames = 0; frames < nframes; ++frames)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      yp = height - (y+1) ;
+      
+      for (x = 0; x < width; ++x)
+      {
+	switch (mri->type)
+	{
+	case MRI_UCHAR:
+	  MRIseq_vox(mri, x, y, 0, frames) = *IMAGEpix(I, x, yp); 
+	  break ;
+	case MRI_SHORT:
+	  MRISseq_vox(mri, x, y, 0, frames) = *IMAGESpix(I, x, yp);
+	  break;
+	case MRI_INT:
+	  MRIIseq_vox(mri, x, y, 0, frames) = *IMAGEIpix(I, x, yp);
+	break ;
+	case MRI_FLOAT:
+	  MRIFseq_vox(mri, x, y, 0, frames) = *IMAGEFpix(I, x, yp);
+	  break ;
+	default:
+	  ErrorReturn(NULL, (ERROR_UNSUPPORTED, "MRItoImage: unsupported type %d",
+			     mri->type)) ;
+	  break ;
+	}
+      }
+    }
+  } // frames
+  return(mri) ;
+}
+
 /*-----------------------------------------------------
         Parameters:
 

@@ -285,7 +285,7 @@ MRI   *MRIoffsetMagnitude(MRI *mri_src, MRI *mri_dst, int maxsteps) ;
 MRI   *MRIapplyOffset(MRI *mri_src, MRI *mri_dst, MRI *mri_offset) ;
 
 
-MRI   *MRIclone(MRI *mri_src, MRI *mri_dst) ;
+MRI   *MRIclone(MRI *mri_src, MRI *mri_dst) ;  // it just copies the header info
 MRI   *MRIcloneRoi(MRI *mri_src, MRI *mri_dst) ;
 MRI   *MRIthreshold(MRI *mri_src, MRI *mri_dst, BUFTYPE threshold) ;
 MRI   *MRIinvertContrast(MRI *mri_src, MRI *mri_dst, float threshold) ;
@@ -477,6 +477,7 @@ int MRIsurfaceRASToRAS(MRI *mri, Real xsr, Real ysr, Real zsr,
 #include "image.h"
 
 IMAGE *MRItoImage(MRI *mri, IMAGE *I, int slice) ;
+MRI *ImageToMRI(IMAGE *I);
 IMAGE *MRItoImageView(MRI *mri, IMAGE *I, int slice, int view, int frame) ;
 
 /* bitmap image access macros */
