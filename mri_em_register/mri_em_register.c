@@ -1,4 +1,15 @@
-
+//
+// mri_em_register.c
+//
+// written by Bruce Fischl
+// Nov. 9th ,2000
+// 
+// Warning: Do not edit the following four lines.  CVS maintains them.
+// Revision Author: $Author: tosa $
+// Revision Date  : $Date: 2004/01/28 23:20:23 $
+// Revision       : $Revision: 1.32 $
+//
+////////////////////////////////////////////////////////////////////
 
 #include <math.h>
 #include <stdlib.h>
@@ -75,11 +86,6 @@ static TRANSFORM *transform = NULL ;
 float compareLogSampleProbability(GCA *gca, GCA_SAMPLE *gcas, 
                                   MRI *mri_inputs, TRANSFORM *transform, 
                                   int nsamples) ;
-#if 0
-static int recompute_labels(MRI *mri, GCA *gca, GCA_SAMPLE *gcas, 
-                              int nsamples, MATRIX *m_L) ;
-static float compare_transform(MRI *mri, GCA *gca, GCA_SAMPLE *gcas, int nsamples, MATRIX *m_L) ;
-#endif
 static int translation_only = 0 ;
 static int get_option(int argc, char *argv[]) ;
 static int register_mri(MRI *mri_in, GCA *gca, MP *parms, int passno, int spacing) ;
@@ -94,14 +100,6 @@ static int num_xforms = 1 ;
 static int transform_loaded = 0 ;
 static char *gca_mean_fname = NULL ;
 
-#if 0
-static double find_optimal_3x4(GCA *gca, GCA_SAMPLE *gcas, MRI *mri, int nsamples, 
-                               MATRIX *m_L, float scale, int nsteps) ;
-static MATRIX *
-update_optimal_transform(MRI *mri, GCA *gca, GCA_SAMPLE *gcas, int nsamples,
-                         MATRIX *m_L, double scale, int write_iterations, int nsteps,
-                         int nreductions) ;
-#endif
 static MATRIX *find_optimal_transform(MRI *mri_in, GCA *gca, GCA_SAMPLE *gcas,
                                       int nsamples, MATRIX *m_L, int passno,
                                       int write_iterations, int spacing) ;
@@ -109,25 +107,6 @@ static double find_optimal_translation(GCA *gca, GCA_SAMPLE *gcas, MRI *mri,
                                        int nsamples, MATRIX *m_L, 
                                        float min_trans, float max_trans, 
                                        float trans_steps, int nreductions) ;
-#if 0
-static double find_optimal_scaling(GCA *gca, GCA_SAMPLE *gcas, MRI *mri, 
-                                   int nsamples, MATRIX *m_L, MATRIX *m_origin,
-                                   float min_scale, float max_scale, 
-                                   float scale_steps, int nreductions) ;
-static double find_optimal_rotation(GCA *gca, GCA_SAMPLE *gcas, MRI *mri, 
-                                 int nsamples, MATRIX *m_L, MATRIX *m_origin,
-                                 float min_angle, float max_angle,
-                                 float angle_steps,
-                                 int nreductions) ;
-static double find_optimal_scaling_and_rotation(GCA *gca, GCA_SAMPLE *gcas, 
-                                                MRI *mri, 
-                                 int nsamples, MATRIX *m_L, MATRIX *m_origin,
-                                 float min_angle, float max_angle,
-                                 float min_scale, float max_scale,
-                                                float angle_steps, 
-                                                float scale_steps,
-                                                int nreductions) ;
-#endif
 static double blur_sigma = 0.0f ;
 double local_GCAcomputeLogSampleProbability(GCA *gca, GCA_SAMPLE *gcas, MRI *mri, MATRIX *m_L, int nsamples);
 
@@ -149,7 +128,7 @@ int
 main(int argc, char *argv[])
 {
   char         *gca_fname, *in_fname, *out_fname, fname[STRLEN], **av ;
-  MRI          *mri_in, *mri_tmp ;
+  MRI          *mri_in, *mri_tmp, *mri_dst ;
   GCA          *gca /*, *gca_tmp, *gca_reduced*/ ;
   int          ac, nargs, i, ninputs, scale, spacing, exclude_list[MAX_CMA_LABEL+1] ;
   int          msec, minutes, seconds, min_left_cbm, min_right_cbm ;
@@ -157,7 +136,7 @@ main(int argc, char *argv[])
   float        old_log_p, log_p ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_em_register.c,v 1.31 2003/09/19 15:10:49 tosa Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_em_register.c,v 1.32 2004/01/28 23:20:23 tosa Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -194,7 +173,7 @@ main(int argc, char *argv[])
 
   if (argc < 4)
     ErrorExit(ERROR_BADPARM, 
-              "usage: %s <in brain> <template> <output file name>\n",
+              "usage: %s <in brain volume> <template gca> <output transform name>\n",
               Progname) ;
 
   ninputs = argc-3 ;
@@ -208,17 +187,20 @@ main(int argc, char *argv[])
   printf("logging results to %s.log\n", parms.base_name) ;
 
   TimerStart(&start) ;
+  ////////////////////  read GCA //////////////////////////////////////////////////
   printf("reading '%s'...\n", gca_fname) ;
   fflush(stdout) ;
   gca = GCAread(gca_fname) ;
   if (gca == NULL)
     ErrorExit(ERROR_NOFILE, "%s: could not open GCA %s.\n",
               Progname, gca_fname) ;
+  ///////////////////  -novar option //////////////////////////////////////////////
   if (novar)
     GCAunifyVariance(gca) ;
 	
   GCAfixSingularCovarianceMatrices(gca) ;
 
+  /////////////////////// -renorm fname ////////////////////////////////////////////
   if (renormalization_fname)
   {
     FILE   *fp ;
@@ -254,6 +236,7 @@ main(int argc, char *argv[])
     GCArenormalizeIntensities(gca, labels, intensities, nlines) ;
     free(labels) ; free(intensities) ;
   }
+  //////////////////////////////////////////////////////////////////////////////////////
   // create a list of MRI volumes
   for (i = 0 ; i < ninputs ; i++)
   {
@@ -288,7 +271,7 @@ main(int argc, char *argv[])
     MRIcopyFrame(mri_tmp, mri_in, 0, i) ;
     MRIfree(&mri_tmp) ;
   }
-
+  //////////////////////////////////////////////////////////////
   if (alpha > 0)
     mri_in->flip_angle = alpha ;
   if (TR > 0)
@@ -296,6 +279,7 @@ main(int argc, char *argv[])
   if (TE > 0)
     mri_in->te = TE ;
 
+  /////////////////////  -flash ////////////////////////////////
   if (map_to_flash)
   {
     GCA *gca_tmp ;
@@ -311,6 +295,7 @@ main(int argc, char *argv[])
     if (novar)
       GCAunifyVariance(gca) ;
   }
+  ///////////////////////////////////////////////////////////////
   if (gca->type == GCA_FLASH)
   {
     GCA *gca_tmp ;
@@ -329,16 +314,14 @@ main(int argc, char *argv[])
       GCAhistoScaleImageIntensities(gca, mri_in) ;
   }
   if (ninputs != gca->ninputs)
-    ErrorExit(ERROR_BADPARM, "%s: must specify %d inputs, not %d for this atlas\n",
+    ErrorExit(ERROR_BADPARM, "%s: must specify %d input volumes, not %d for this atlas\n",
 	      Progname, gca->ninputs, ninputs) ;
   
   parms.vgca = (void *)gca ;
   printf("freeing gibbs priors...") ;
   GCAfreeGibbs(gca) ;
   printf("done.\n") ;
-
-  
-  
+  //////////////////////////// -example option ////////////////////////
   if (example_T1)
   {
     MRI *mri_T1, *mri_seg ;
@@ -359,7 +342,7 @@ main(int argc, char *argv[])
 
   if (tissue_parms_fname)   /* use FLASH forward model */
     GCArenormalizeToFlash(gca, tissue_parms_fname, mri_in) ;
-
+  //////// debugging code /////////////////////////////////////////////
   if (parms.write_iterations != 0)
   {
     char fname[STRLEN] ;
@@ -372,6 +355,7 @@ main(int argc, char *argv[])
     printf("writing target volume to %s...\n", fname) ;
     MRIwrite(mri_gca, fname) ; MRIfree(&mri_gca) ;
   }
+  ////////////////////////// -fsample option //////////////////////////
   if (sample_fname)
   {
     GCAwriteSamples(gca, mri_in, parms.gcas, nsamples, sample_fname) ;
@@ -381,24 +365,29 @@ main(int argc, char *argv[])
   if (gca_reduced != gca)
     GCAfree(&gca_reduced) ;
 #endif
+  /////////////////////////  -d tx ty tz ////////////////////////////////  
   if (!FZERO(tx) || !FZERO(ty) || !FZERO(tz))
   {
     MRI *mri_tmp ;
     
     printf("translating second volume by (%2.1f, %2.1f, %2.1f)\n",
-            tx, ty, tz) ;
+	   tx, ty, tz) ;
     mri_tmp = MRItranslate(mri_in, NULL, tx, ty, tz) ;
     MRIfree(&mri_in) ;
     mri_in = mri_tmp ;
   }
-#if 1
+  ////////////////////////  -r rxrot ryrot rzrot ///////////////////////
+  // note the rotation is only around each axis 
+  // not around the center of the volume
+  // Therefore, the volume may get rotated out.....
+  // Rotation is yRot*xRot*zRot composition applying on the right
   if (!FZERO(rzrot))
   {
     MRI *mri_tmp ;
     
     printf(
-            "rotating second volume by %2.1f degrees around Z axis\n",
-            (float)DEGREES(rzrot)) ;
+	   "rotating second volume by %2.1f degrees around Z axis\n",
+	   (float)DEGREES(rzrot)) ;
     mri_tmp = MRIrotateZ_I(mri_in, NULL, rzrot) ;
     MRIfree(&mri_in) ;
     mri_in = mri_tmp ;
@@ -408,8 +397,8 @@ main(int argc, char *argv[])
     MRI *mri_tmp ;
     
     printf(
-            "rotating second volume by %2.1f degrees around X axis\n",
-            (float)DEGREES(rxrot)) ;
+	   "rotating second volume by %2.1f degrees around X axis\n",
+	   (float)DEGREES(rxrot)) ;
     mri_tmp = MRIrotateX_I(mri_in, NULL, rxrot) ;
     MRIfree(&mri_in) ;
     mri_in = mri_tmp ;
@@ -419,44 +408,23 @@ main(int argc, char *argv[])
     MRI *mri_tmp ;
     
     printf(
-            "rotating second volume by %2.1f degrees around Y axis\n",
-            (float)DEGREES(ryrot)) ;
+	   "rotating second volume by %2.1f degrees around Y axis\n",
+	   (float)DEGREES(ryrot)) ;
     mri_tmp = MRIrotateY_I(mri_in, NULL, ryrot) ;
     MRIfree(&mri_in) ;
     mri_in = mri_tmp ;
   }
-#else
-  if (!FZERO(ryrot) || !FZERO(rxrot) || !FZERO(rzrot))
-  {
-    MRI *mri_tmp ;
-    MATRIX *mX, *mY, *mZ, *mRot, *mTmp ;
-    
-    mX = MatrixAllocRotation(3, x_angle, X_ROTATION) ;
-    mY = MatrixAllocRotation(3, y_angle, Y_ROTATION) ;
-    mZ = MatrixAllocRotation(3, z_angle, Z_ROTATION) ;
-    mTmp = MatrixMultiply(mX, mZ, NULL) ;
-    mRot = MatrixMultiply(mY, mTmp, NULL)
-      printf(
-              "rotating second volume by (%2.1f, %2.1f, %2.1f) degrees\n",
-              (float)DEGREES(rxrot), (float)DEGREES(ryrot)
-              (float)DEGREES(rzrot)) ;
-    
-    mri_tmp = MRIrotate_I(mri_in, NULL, mRot, NULL) ;
-    MRIfree(&mri_in) ;
-    mri_in = mri_tmp ;
-    
-    MatrixFree(&mX) ; MatrixFree(&mY) ; MatrixFree(&mZ) ; 
-    MatrixFree(&mTmp) ; MatrixFree(&mRot) ;
-  }
-#endif
-
+  //////////////////// if -t is not used 
   if (!transform_loaded)   /* wasn't preloaded */
   {
     // allocate only one transform
+    // mri_in is used only to set x0, y0, z0
+    // Note that vox-to-vox transform
     parms.transform = transform = TransformAlloc(LINEAR_VOX_TO_VOX, mri_in) ;
     Glta = parms.lta = (LTA *)transform->xform ;
   }
 
+  ////////////////////  -b option ///////////////////////////////////////////////////
   if (!FZERO(blur_sigma))
   {
     MRI *mri_tmp, *mri_kernel ;
@@ -466,16 +434,22 @@ main(int argc, char *argv[])
     MRIfree(&mri_in) ; mri_in = mri_tmp ;
   }
   /////////////////////////////////////////////////////////////////////////////////////
-  // now start working
+  // now start working (remember this is vox-to-vox transform)
   parms.lta->xforms[0].m_L = MatrixIdentity(4, NULL) ;
   i = 0 ;
+  //goto tosajump;
+  /////////////////////////////////////////////////////////////////////////////////////
+  // change scale up to nscales (spacing is halved)
+  // default nscales = 1
   for (spacing = max_spacing, scale = 0 ; scale < nscales ; scale++, spacing /= 2)
   {
-    if (use_contrast)
+    if (use_contrast) // -contrast option 
       parms.gcas = GCAfindContrastSamples(gca,&nsamples, spacing,min_prior);
     else
       parms.gcas = GCAfindStableSamples(gca, &nsamples,spacing, min_prior, exclude_list); 
+    printf("************************************************\n");
     printf("spacing=%d, using %d sample points, tol=%2.2e...\n", spacing, nsamples, parms.tol) ;
+    printf("************************************************\n");
     parms.nsamples = nsamples ;
     if (sample_fname)
     {
@@ -483,19 +457,24 @@ main(int argc, char *argv[])
       printf("samples written\n") ;
     }
     old_log_p = GCAcomputeLogSampleProbability(gca, parms.gcas, mri_in, transform, nsamples) ;
-    register_mri(mri_in, gca, &parms,i, spacing) ;
+    // real work done here
+    register_mri(mri_in, gca, &parms, i, spacing) ;
+    // calculate log_p
     log_p = GCAcomputeLogSampleProbability(gca, parms.gcas, mri_in, transform, nsamples) ;
-    
     printf("pass %d, spacing %d: log(p) = %2.1f (old=%2.1f)\n", i+1, spacing, log_p, old_log_p) ;
     GCAfreeSamples(&parms.gcas, nsamples) ;
     parms.tol *= 10 ; i++ ;
   } 
+tosajump:
+  // change nsamples to all samples
   parms.gcas = GCAfindAllSamples(gca, &nsamples, NULL) ;
+  {
+    GCAwriteSamples(gca, mri_in, parms.gcas, nsamples, "./big_sample.mgh") ;
+    printf("samples written\n") ;
+  }  
   parms.nsamples = nsamples ;
-  
-  printf("computing final MAP estimate of linear transform using %d samples...\n", nsamples) ;
-	
-  parms.mri_in = mri_in ;  /* for diagnostics */
+
+  //////////////////// diagnostics //////////////////////////////////////////
   if ((Gdiag & DIAG_WRITE) && (parms.write_iterations != 0))
   {
     MRI *mri_aligned ;
@@ -512,28 +491,22 @@ main(int argc, char *argv[])
     sprintf(fname, "%s%3.3d_fsamples.mgh", parms.base_name, parms.start_t++) ;
     GCAtransformAndWriteSamples(gca, mri_in, parms.gcas, nsamples, fname, transform) ;
   }
+  /////////////////////////////////////////////////////////////////////////
   printf("transform before final EM align:\n") ;
   MatrixPrint(stdout, parms.lta->xforms[0].m_L) ;
   printf("\n") ;
+  printf("**************************************************\n");
+  printf(" EM alignment process ...\n");
+  printf(" Computing final MAP estimate using %d samples. \n", nsamples) ;
+  printf("**************************************************\n");
+  parms.mri_in = mri_in ;  /* for diagnostics */
   MRIemAlign(mri_in, gca, &parms, parms.lta->xforms[0].m_L) ;
     
-#if 0
-  printf("final EM transform:\n") ;
-  MatrixPrint(stdout, parms.lta->xforms[0].m_L) ;
-  printf("\n") ;
-  
-#define DELTA_SCALE 0.01
-  update_optimal_transform(mri_in, gca, parms.gcas, nsamples,
-			   parms.lta->xforms[0].m_L, DELTA_SCALE, parms.write_iterations, 3,
-			   3) ;
-  compare_transform(mri_in, gca, parms.gcas, nsamples, parms.lta->xforms[0].m_L) ;
-  recompute_labels(mri_in, gca, parms.gcas, nsamples, parms.lta->xforms[0].m_L) ;
-  compare_transform(mri_in, gca, parms.gcas, nsamples, parms.lta->xforms[0].m_L) ;
-#endif
   printf("final transform:\n") ;
   MatrixPrint(stdout, parms.lta->xforms[0].m_L) ;
   printf("\n") ;
   
+  /////////////////////////diagnostics/////////////////////////////////
   if ((Gdiag & DIAG_WRITE) && (parms.write_iterations != 0))
   {
     MRI *mri_aligned ;
@@ -546,19 +519,20 @@ main(int argc, char *argv[])
     MRIwriteImageViews(mri_aligned, fname, IMAGE_SIZE) ;
     MRIfree(&mri_aligned) ;
   }
-  
+  /////////////////////////////////////////////////////////////////////
   printf("writing output transformation to %s...\n", out_fname) ;
-#if 0
-  MRIvoxelXformToRasXform(mri_in, mri_in, 
-                          parms.lta->xforms[0].m_L, parms.lta->xforms[0].m_L) ;
-#endif
   // writing transform section here
   if (!stricmp(out_fname+strlen(out_fname)-3, "XFM"))
   {
+    mri_dst = MRIallocHeader(mri_in->width, mri_in->height, mri_in->depth, mri_in->type);
+    MRIcopyHeader(mri_in, mri_dst);
+    mri_dst->c_r = gca->c_r; mri_dst->c_a = gca->c_a; mri_dst->c_s = gca->c_s;
     printf("converting xform to RAS...\n") ; 
     printf("initial:\n") ;
     MatrixPrint(stdout, parms.lta->xforms[0].m_L) ;
-    MRIvoxelXformToRasXform(mri_in, mri_in, 
+    // MRIvoxelXformToRasXform(mri_in, mri_in, 
+    //                         parms.lta->xforms[0].m_L, parms.lta->xforms[0].m_L) ;
+    MRIvoxelXformToRasXform(mri_in, mri_dst, 
                             parms.lta->xforms[0].m_L, parms.lta->xforms[0].m_L) ;
     printf("final:\n") ;
     MatrixPrint(stdout, parms.lta->xforms[0].m_L) ;
@@ -569,36 +543,39 @@ main(int argc, char *argv[])
 
   // add src and dst info
   getVolGeom(mri_in, &parms.lta->xforms[0].src);
-  getVolGeom(mri_in, &parms.lta->xforms[0].dst);
+  getVolGeom(mri_dst, &parms.lta->xforms[0].dst);
   LTAwriteEx(parms.lta, out_fname) ;
+
   ///////////////////////////////////////////// end of writing transform
   if (parms.lta->type == LINEAR_RAS_TO_RAS)  /* convert back to voxel */
   {
     printf("converting xform back to voxel...\n") ;
-    MRIrasXformToVoxelXform(mri_in, mri_in, 
+    MRIrasXformToVoxelXform(mri_in, mri_dst, 
                             parms.lta->xforms[0].m_L, parms.lta->xforms[0].m_L) ;
     parms.lta->type = LINEAR_VOX_TO_VOX ;
   }
+  MRIfree(&mri_dst);
+  //////////////////////////////////////////////////////////////////////
   if (transformed_sample_fname)
   {
     printf("writing transformed samples to %s...\n", 
-            transformed_sample_fname) ;
+	   transformed_sample_fname) ;
     GCAtransformAndWriteSamples(gca, mri_in, parms.gcas, nsamples, 
                                 transformed_sample_fname, transform) ;
     printf("samples written\n") ;
   }
-
+  ///////////////////////////////////////////////////////////////////////
   if (norm_fname)
   {
     int   *ordered_indices, i, label, nused, nleft_cbm, nright_cbm, 
-          nleft_used, nright_used ;
+      nleft_used, nright_used ;
     MRI   *mri_norm ;
 
     GCAcomputeLogSampleProbability(gca, parms.gcas, mri_in, 
                                    transform, nsamples) ;
 #if 0
     GCAnormalizedLogSampleProbability(gca, parms.gcas, mri_in, 
-                                     transform, nsamples) ;
+				      transform, nsamples) ;
 #endif
     /* make "unknowns" the bottom of the list */
     for (nleft_cbm = nright_cbm = nused = i = 0 ; i < nsamples ; i++)
@@ -622,7 +599,7 @@ main(int argc, char *argv[])
       }
     }
     GCAremoveOutlyingSamples(gca, parms.gcas, mri_in, 
-                                     transform, nsamples, 2.0) ;
+			     transform, nsamples, 2.0) ;
 
 
     /* rank samples by log probability */
@@ -762,12 +739,14 @@ main(int argc, char *argv[])
 #endif
   if (mri_in)
     MRIfree(&mri_in) ;
+
+  ////////////////////////////////////////////////////////////////////////////////
   msec = TimerStop(&start) ;
   seconds = nint((float)msec/1000.0f) ;
   minutes = seconds / 60 ;
   seconds = seconds % 60 ;
   printf("registration took %d minutes and %d seconds.\n", 
-          minutes, seconds) ;
+	 minutes, seconds) ;
   if (diag_fp)
     fclose(diag_fp) ;
   exit(0) ;
@@ -779,10 +758,11 @@ static int
 register_mri(MRI *mri_in, GCA *gca, MORPH_PARMS *parms, int passno, int spacing)
 {
   MATRIX  *m_L ;
+  // get the stored transform (vox-to-vox transform)
+  m_L = MatrixCopy(parms->lta->xforms[0].m_L, NULL) ;
 
-
-	m_L = MatrixCopy(parms->lta->xforms[0].m_L, NULL) ;
-
+  ////////////////////////////////////////////////////////////////////////
+  fprintf(stderr, "register_mri: find_optimal_transform\n");
   find_optimal_transform(mri_in, gca, parms->gcas, parms->nsamples,m_L,passno,
                          parms->write_iterations, spacing);
 
@@ -805,37 +785,36 @@ register_mri(MRI *mri_in, GCA *gca, MORPH_PARMS *parms, int passno, int spacing)
     MatrixPrint(stdout, m_L) ;
   }
 
-	/*	parms->start_t++ ;*/
-  printf("computing MAP estimate of linear transform...\n") ;
-
+  /*	parms->start_t++ ;*/
+  printf("***********************************************\n");
+  printf("Computing MAP estimate using %d samples...\n", parms->nsamples) ;
+  printf("***********************************************\n");
   parms->mri_in = mri_in ;  /* for diagnostics */
+  //////////////// calling MRIemAlign() //////////////////////////
   MRIemAlign(mri_in, gca, parms, m_L) ;
   MatrixCopy(m_L, parms->lta->xforms[0].m_L) ;
 
-#if 1
-  printf("final transform:\n") ;
+  printf("Resulting transform:\n") ;
   MatrixPrint(stdout, parms->lta->xforms[0].m_L) ;
   printf("\n") ;
 
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
   {
     MRI *mri_aligned ;
-		char fname[STRLEN] ;
+    char fname[STRLEN] ;
 
-		mri_in->nframes = 1 ;
+    mri_in->nframes = 1 ;
     mri_aligned = 
       MRIlinearTransform(mri_in, NULL, parms->lta->xforms[0].m_L) ;
-		mri_in->nframes = gca->ninputs ;
-		sprintf(fname, "%s_after_alignment", parms->base_name) ;
+    mri_in->nframes = gca->ninputs ;
+    sprintf(fname, "%s_after_alignment", parms->base_name) ;
     MRIwriteImageViews(mri_aligned, fname, IMAGE_SIZE) ;
     MRIfree(&mri_aligned) ;
   }
-#endif
 
   return(NO_ERROR) ;
 }
 
-#if 1
 #define DEFAULT_MAX_STEPS 5
 static double MAX_ANGLES = DEFAULT_MAX_STEPS ;
 #define MAX_ANGLE       RADIANS(15)
@@ -857,203 +836,196 @@ find_optimal_transform(MRI *mri, GCA *gca, GCA_SAMPLE *gcas, int nsamples,
   MATRIX   *m_origin ;
   MRI      *mri_gca  ;
   double   gca_means[3], /*in_means[3], dx, dy, dz,*/ max_log_p, old_max,
-           max_angle, angle_steps, min_scale, max_scale, scale_steps, scale,
-           delta, mean ;
+    max_angle, angle_steps, min_scale, max_scale, scale_steps, scale,
+    delta, mean ;
   int      niter, good_step, done, nscales, scale_samples ;
   float      min_search_scale ;
 #if 0
-	int        min_real_bin, mri_peak ;
+  int        min_real_bin, mri_peak ;
   float      min_real_val, fmax, fmin ;
   MRI_REGION box, gca_box ;
   HISTOGRAM *h_mri, *h_smooth ;
 #endif
 
+  fprintf(stderr, "find_optimal_transform: nsampels %d, passno %d, spacing %d\n",
+	  nsamples, passno, spacing);
 
 #define MIN_SEARCH_SCALE 0.1
-	min_search_scale = MIN_SEARCH_SCALE ;
+  min_search_scale = MIN_SEARCH_SCALE ;
 
-	if (spacing >= 16)
-		scale_samples = 5 ;
-	else
-		scale_samples = 3 ;
+  // used by various spacing value
+  if (spacing >= 16)
+    scale_samples = 5 ;
+  else
+    scale_samples = 3 ;
+  
+  if (spacing >= 8)
+    min_search_scale /= 4;
 
-	if (spacing >= 8)
-		min_search_scale /= 4;
-
+  /////////////////////////////////////////////////////////////////////////////
   max_log_p = local_GCAcomputeLogSampleProbability(gca, gcas, mri, m_L,nsamples) ;
 
-	mri_gca = MRIclone(mri, NULL) ;
-	GCAmri(gca, mri_gca) ;
-	MRIcenterOfMass(mri_gca, gca_means, 0) ;
-	m_origin = MatrixIdentity(4, NULL) ;
-	*MATRIX_RELT(m_origin, 1, 4) = gca_means[0]*(float)center ; 
-	*MATRIX_RELT(m_origin, 2, 4) = gca_means[1]*(float)center ;
-	*MATRIX_RELT(m_origin, 3, 4) = gca_means[2]*(float)center ; 
-	*MATRIX_RELT(m_origin, 4, 4) = 1 ;
+  // create volume from gca with the size of input
+  mri_gca = MRIclone(mri, NULL) ;
+  GCAmri(gca, mri_gca) ;// set the values mri_gca has the same DC as gca has
+  // 
+  MRIcenterOfMass(mri_gca, gca_means, 0) ;
+  // unit matrix
+  m_origin = MatrixIdentity(4, NULL) ;
+  // set the translation  (center = 1)
+  *MATRIX_RELT(m_origin, 1, 4) = gca_means[0]*(float)center ; 
+  *MATRIX_RELT(m_origin, 2, 4) = gca_means[1]*(float)center ;
+  *MATRIX_RELT(m_origin, 3, 4) = gca_means[2]*(float)center ; 
+  *MATRIX_RELT(m_origin, 4, 4) = 1 ;
 		
-	if (passno == 0)   /* only first time*/
-	{
+  if (passno == 0)   /* only first time*/
+  {
 #if 0
-		if (Gdiag & DIAG_WRITE && write_iterations > 0)
-		{
-			char fname[STRLEN] ;
-			
-			sprintf(fname, "%s_before_intensity.mgh", parms.base_name) ;
-			printf("writing snapshot to %s...\n", fname) ;
-			MRIwrite(mri, fname) ;
-			/*    MRIwriteImageViews(mri, "before_intensity", IMAGE_SIZE) ;*/
-		}
+    if (Gdiag & DIAG_WRITE && write_iterations > 0)
+    {
+      char fname[STRLEN] ;
+      
+      sprintf(fname, "%s_before_intensity.mgh", parms.base_name) ;
+      printf("writing snapshot to %s...\n", fname) ;
+      MRIwrite(mri, fname) ;
+      /*    MRIwriteImageViews(mri, "before_intensity", IMAGE_SIZE) ;*/
+    }
 #endif
+    // default is noiscale = 0 and thus perform
+    if (!noiscale)
+      GCAhistoScaleImageIntensities(gca, mri) ;
 		
-		if (!noiscale)
-			GCAhistoScaleImageIntensities(gca, mri) ;
-		
-		if (Gdiag & DIAG_WRITE && write_iterations > 0)
-		{
-			char fname[STRLEN] ;
-			
-			Glta->xforms[0].m_L = m_L ;
-			sprintf(fname, "%s_after_intensity.mgh", parms.base_name) ;
-			printf("writing snapshot to %s...\n", fname) ;
-			MRIwrite(mri, fname) ;
-			sprintf(fname, "%s_centering0", parms.base_name) ;
-			MRIwriteImageViews(mri, fname, IMAGE_SIZE) ;
-			sprintf(fname, "%s_fsamples_centering0.mgh", parms.base_name) ;
-			GCAtransformAndWriteSamples(gca, mri, gcas, nsamples, 
-																	fname, transform) ;
-		}
-		/* first align centroids */
-		if (gca_mean_fname)
-		{
-			printf("writing gca volume to %s...\n", gca_mean_fname) ;
-			MRIwrite(mri_gca, gca_mean_fname) ;
-			printf("done\n") ;
-		}
-
-		printf("initial log_p = %2.1f\n", max_log_p) ;
-
+    //////////////// diagnostics ////////////////////////////////
+    if (Gdiag & DIAG_WRITE && write_iterations > 0)
+    {
+      char fname[STRLEN] ;
+      
+      Glta->xforms[0].m_L = m_L ;
+      sprintf(fname, "%s_after_intensity.mgh", parms.base_name) ;
+      printf("writing snapshot to %s...\n", fname) ;
+      MRIwrite(mri, fname) ;
+      sprintf(fname, "%s_centering0", parms.base_name) ;
+      MRIwriteImageViews(mri, fname, IMAGE_SIZE) ;
+      sprintf(fname, "%s_fsamples_centering0.mgh", parms.base_name) ;
+      GCAtransformAndWriteSamples(gca, mri, gcas, nsamples, 
+				  fname, transform) ;
+    }
+    /////////////////////////////////////////////////////////////
+    /* first align centroids */
+    if (gca_mean_fname)
+    {
+      printf("writing gca volume to %s...\n", gca_mean_fname) ;
+      MRIwrite(mri_gca, gca_mean_fname) ;
+      printf("done\n") ;
+    }
+    
+    printf("initial log_p = %2.1f\n", max_log_p) ;
+    
+    ///////////////////////////////////////////////////////////////////////
 #if 0
 #if 1
-		MRIvalRange(mri, &fmin, &fmax) ;
-		h_mri = MRIhistogram(mri, nint(fmax-fmin+1)) ; h_mri->counts[0] = 0 ; /* ignore background */
-		h_smooth = HISTOsmooth(h_mri, NULL, 2) ;
-		mri_peak = HISTOfindHighestPeakInRegion(h_smooth, 0, h_smooth->nbins/3) ;
-		min_real_bin = HISTOfindEndOfPeak(h_smooth, mri_peak, .25) ;
-		min_real_val = h_smooth->bins[min_real_bin] ;
-		printf("using real data threshold=%2.1f\n", min_real_val) ;
-		MRIfindApproximateSkullBoundingBox(mri, min_real_val, &box) ;
-		HISTOfree(&h_mri) ; HISTOfree(&h_smooth) ;
-		printf("input bounding box (%d, %d, %d) --> (%d, %d, %d)\n",
-					 box.x, box.y, box.z, box.x+box.dx, box.y+box.dy, box.z+box.dz) ;
-
-		MRIvalRange(mri_gca, &fmin, &fmax) ;
-		h_mri = MRIhistogram(mri_gca, nint(fmax-fmin+1)) ; h_mri->counts[0] = 0 ; /* ignore background */
-		h_smooth = HISTOsmooth(h_mri, NULL, 2) ;
-		mri_peak = HISTOfindHighestPeakInRegion(h_smooth, 0, h_smooth->nbins/3) ;
-		min_real_bin = HISTOfindEndOfPeak(h_smooth, mri_peak, .25) ;
-		min_real_val = h_smooth->bins[min_real_bin] ;
-		printf("using real data threshold=%2.1f\n", min_real_val) ;
-		MRIfindApproximateSkullBoundingBox(mri_gca, min_real_val, &gca_box) ;
-		HISTOfree(&h_mri) ; HISTOfree(&h_smooth) ;
-		printf("gca bounding box (%d, %d, %d) --> (%d, %d, %d)\n",
-					 gca_box.x, gca_box.y, gca_box.z, gca_box.x+gca_box.dx, gca_box.y+gca_box.dy, gca_box.z+gca_box.dz) ;
-		in_means[0] = box.x + 0.5*box.dx ; in_means[1] = box.y + 0.5*box.dy ; in_means[2] = box.z + 0.5*box.dz ;
-		gca_means[0] = gca_box.x + 0.5*gca_box.dx ; gca_means[1] = gca_box.y + 0.5*gca_box.dy ; 
-		gca_means[2] = gca_box.z + 0.5*gca_box.dz ;
+    MRIvalRange(mri, &fmin, &fmax) ;
+    h_mri = MRIhistogram(mri, nint(fmax-fmin+1)) ; h_mri->counts[0] = 0 ; /* ignore background */
+    h_smooth = HISTOsmooth(h_mri, NULL, 2) ;
+    mri_peak = HISTOfindHighestPeakInRegion(h_smooth, 0, h_smooth->nbins/3) ;
+    min_real_bin = HISTOfindEndOfPeak(h_smooth, mri_peak, .25) ;
+    min_real_val = h_smooth->bins[min_real_bin] ;
+    printf("using real data threshold=%2.1f\n", min_real_val) ;
+    MRIfindApproximateSkullBoundingBox(mri, min_real_val, &box) ;
+    HISTOfree(&h_mri) ; HISTOfree(&h_smooth) ;
+    printf("input bounding box (%d, %d, %d) --> (%d, %d, %d)\n",
+	   box.x, box.y, box.z, box.x+box.dx, box.y+box.dy, box.z+box.dz) ;
+    
+    MRIvalRange(mri_gca, &fmin, &fmax) ;
+    h_mri = MRIhistogram(mri_gca, nint(fmax-fmin+1)) ; h_mri->counts[0] = 0 ; /* ignore background */
+    h_smooth = HISTOsmooth(h_mri, NULL, 2) ;
+    mri_peak = HISTOfindHighestPeakInRegion(h_smooth, 0, h_smooth->nbins/3) ;
+    min_real_bin = HISTOfindEndOfPeak(h_smooth, mri_peak, .25) ;
+    min_real_val = h_smooth->bins[min_real_bin] ;
+    printf("using real data threshold=%2.1f\n", min_real_val) ;
+    MRIfindApproximateSkullBoundingBox(mri_gca, min_real_val, &gca_box) ;
+    HISTOfree(&h_mri) ; HISTOfree(&h_smooth) ;
+    printf("gca bounding box (%d, %d, %d) --> (%d, %d, %d)\n",
+	   gca_box.x, gca_box.y, gca_box.z, gca_box.x+gca_box.dx, gca_box.y+gca_box.dy, gca_box.z+gca_box.dz) ;
+    in_means[0] = box.x + 0.5*box.dx ; in_means[1] = box.y + 0.5*box.dy ; in_means[2] = box.z + 0.5*box.dz ;
+    gca_means[0] = gca_box.x + 0.5*gca_box.dx ; gca_means[1] = gca_box.y + 0.5*gca_box.dy ; 
+    gca_means[2] = gca_box.z + 0.5*gca_box.dz ;
 #else
-		
-		MRIcenterOfMass(mri, in_means, 0) ;
-		printf("input centroid (%2.1f, %2.1f, %2.1f), "
-					 "gca centroid (%2.1f, %2.1f, %2.1f)\n",
-					 in_means[0], in_means[1], in_means[2],
-					 gca_means[0], gca_means[1], gca_means[2]) ;
+    MRIcenterOfMass(mri, in_means, 0) ;
+    printf("input centroid (%2.1f, %2.1f, %2.1f), "
+	   "gca centroid (%2.1f, %2.1f, %2.1f)\n",
+	   in_means[0], in_means[1], in_means[2],
+	   gca_means[0], gca_means[1], gca_means[2]) ;
 #endif
-
+    
 #if 0
-		in_means[1] = box.y+box.dx*0.55 ;
-		printf("resetting superior/inferior centroid to %2.1f\n", in_means[1]) ;
+    in_means[1] = box.y+box.dx*0.55 ;
+    printf("resetting superior/inferior centroid to %2.1f\n", in_means[1]) ;
 #endif
-		
-		/* now apply translation to take in centroid to ref centroid */
-		dx = gca_means[0] - in_means[0] ; dy = gca_means[1] - in_means[1] ;
-		dz = gca_means[2] - in_means[2] ;
-		*MATRIX_RELT(m_L, 1, 4) = dx ; *MATRIX_RELT(m_L, 2, 4) = dy ; *MATRIX_RELT(m_L, 3, 4) = dz ;
-		max_log_p = local_GCAcomputeLogSampleProbability(gca, gcas, mri, m_L,nsamples) ;
-		printf("initial translation: (%2.1f, %2.1f, %2.1f): log p = %2.1f\n",
-					 dx,dy,dz, max_log_p) ;
-#else
+    
+    /* now apply translation to take in centroid to ref centroid */
+    dx = gca_means[0] - in_means[0] ; dy = gca_means[1] - in_means[1] ;
+    dz = gca_means[2] - in_means[2] ;
+    *MATRIX_RELT(m_L, 1, 4) = dx ; *MATRIX_RELT(m_L, 2, 4) = dy ; *MATRIX_RELT(m_L, 3, 4) = dz ;
+    max_log_p = local_GCAcomputeLogSampleProbability(gca, gcas, mri, m_L,nsamples) ;
+    printf("initial translation: (%2.1f, %2.1f, %2.1f): log p = %2.1f\n",
+	   dx,dy,dz, max_log_p) ;
+#else ///////////////this is executed  ////////////////////////////////////
+    fprintf(stderr, "************************************************\n");
+    fprintf(stderr, "First Search limited to translation only.\n",
+    fprintf(stderr, "************************************************\n");
     max_log_p = find_optimal_translation(gca, gcas, mri, nsamples, m_L,
                                          -100, 100, 11, 3) ;
-		max_log_p = local_GCAcomputeLogSampleProbability(gca, gcas, mri, m_L,nsamples) ;
-		printf("after initial translation: (%2.1f, %2.1f, %2.1f): log p = %2.1f\n",
-					 *MATRIX_RELT(m_L, 1, 4),*MATRIX_RELT(m_L, 2, 4), *MATRIX_RELT(m_L, 3, 4), max_log_p) ;
+    max_log_p = local_GCAcomputeLogSampleProbability(gca, gcas, mri, m_L,nsamples) ;
+    fprintf(stderr, "Found translation: (%2.1f, %2.1f, %2.1f): log p = %2.1f\n",
+	   *MATRIX_RELT(m_L, 1, 4),*MATRIX_RELT(m_L, 2, 4), *MATRIX_RELT(m_L, 3, 4), max_log_p) ;
 #endif
-		
-		
-		if (write_iterations != 0)
-		{
-			char fname[STRLEN] ;
-			MRI *mri_aligned ;
-			
-			mri_aligned = MRIlinearTransform(mri, NULL, m_L) ;
-			sprintf(fname, "%s_centering1", parms.base_name) ;
-			MRIwriteImageViews(mri_aligned, fname, IMAGE_SIZE) ;
-			sprintf(fname, "%s_after_centering.mgh", parms.base_name) ;
-			printf("writing image after centering to %s...\n", fname) ;
+    /////////////////////////////////////////////////////////////////////////
+
+    if (write_iterations != 0)
+    {
+      char fname[STRLEN] ;
+      MRI *mri_aligned ;
+      
+      mri_aligned = MRIlinearTransform(mri, NULL, m_L) ;
+      sprintf(fname, "%s_centering1", parms.base_name) ;
+      MRIwriteImageViews(mri_aligned, fname, IMAGE_SIZE) ;
+      sprintf(fname, "%s_after_centering.mgh", parms.base_name) ;
+      printf("writing image after centering to %s...\n", fname) ;
 #if 0
-			MRIwrite(mri_aligned, fname) ;
+      MRIwrite(mri_aligned, fname) ;
 #else
-			Glta->xforms[0].m_L = m_L ;
-			sprintf(fname, "%s_fsamples_centering1.mgh", parms.base_name) ;
-			printf("writing samples after centering to %s...\n", fname) ;
-			GCAtransformAndWriteSamples(gca, mri, gcas, nsamples, 
-																	fname, transform) ;
+      Glta->xforms[0].m_L = m_L ;
+      sprintf(fname, "%s_fsamples_centering1.mgh", parms.base_name) ;
+      printf("writing samples after centering to %s...\n", fname) ;
+      GCAtransformAndWriteSamples(gca, mri, gcas, nsamples, 
+				  fname, transform) ;
 #endif
-			MRIfree(&mri_aligned) ;
-		}
-		MRIfree(&mri_gca) ;
-	}		
+      MRIfree(&mri_aligned) ;
+    }
+    MRIfree(&mri_gca) ;
+  }		
 
 
   max_angle = MAX_ANGLE ; angle_steps = max_angles ;
   max_scale = MAX_SCALE ; min_scale = MIN_SCALE ; scale_steps = max_angles ;
 
 #define MIN_SCALES 2
+  /////////////////////////// loop here ////////////////////////////////////////////
   niter = nscales = 0 ; scale = 1.0 ; good_step = 0 ; done = 0 ;
   do
   {
     old_max = max_log_p ;
-
-		max_log_p = find_optimal_linear_xform(gca, gcas, mri, nsamples, 
-																					m_L, m_origin,
-																					-RADIANS(2*spacing*scale),
-																					RADIANS(2*spacing*scale),
-																					1-.25*(spacing/16.0)*scale, 1+.25*(spacing/16.0)*scale, 
-																					-scale*(spacing/16.0)*MAX_TRANS, scale*(spacing/16.0)*MAX_TRANS,
-																					scale_samples, 3, 3, 2);
-
-#if 0
-		/* it's more likely that there will be large-scale scaling
-			 than large-scale rotations, so look for scaling first */
-		max_log_p = find_optimal_scaling_and_rotation(gca, gcas, mri, nsamples, 
-																									m_L, m_origin,
-																									-RADIANS(5*scale),
-																									RADIANS(5*scale),
-                                                  1-.1*scale, 1+.1*scale, 
-                                                  max_angles/2,max_angles/2,3);
-#if 1
-		max_log_p = find_optimal_scaling(gca, gcas, mri, nsamples, m_L, m_origin,
-                                       min_scale, max_scale, scale_steps, 3) ;
-		max_log_p = find_optimal_rotation(gca, gcas, mri, nsamples, m_L,m_origin,
-																			-scale*max_angle, scale*max_angle, 
-																			angle_steps, 3) ;
-#endif
-
-    max_log_p = find_optimal_translation(gca, gcas, mri, nsamples, m_L,
-                                         -scale*MAX_TRANS, scale*MAX_TRANS, 
-                                         MAX_TRANS_STEPS, 2) ;
-#endif
-
+    printf("****************************************\n");
+    printf("Nine parameter search.  iteration %d nscales = %d ...\n", niter, nscales);
+    printf("****************************************\n");
+    max_log_p = find_optimal_linear_xform(gca, gcas, mri, nsamples, 
+					  m_L, m_origin,
+					  -RADIANS(2*spacing*scale),
+					  RADIANS(2*spacing*scale),
+					  1-.25*(spacing/16.0)*scale, 1+.25*(spacing/16.0)*scale, 
+					  -scale*(spacing/16.0)*MAX_TRANS, scale*(spacing/16.0)*MAX_TRANS,
+					  scale_samples, 3, 3, 2);
     
     if (write_iterations != 0)
     {
@@ -1068,461 +1040,46 @@ find_optimal_transform(MRI *mri, GCA *gca, GCA_SAMPLE *gcas, int nsamples,
       MRIwrite(mri_aligned, fname) ;
 #else
       Glta->xforms[0].m_L = m_L ;
-			sprintf(fname, "%s%3.3d_fsamples.mgh", parms.base_name, parms.start_t+niter+1) ;
+      sprintf(fname, "%s%3.3d_fsamples.mgh", parms.base_name, parms.start_t+niter+1) ;
       GCAtransformAndWriteSamples(gca, mri, gcas, nsamples, fname, transform) ;
 #endif
 
       MRIfree(&mri_aligned) ;
     }
-    printf("scale %2.3f: max=%2.1f, old_max =%2.1f (thresh=%2.1f)\n",
-            scale,max_log_p, old_max, old_max+fabs(tol*old_max)) ;
-
+    fprintf(stderr, "Result so far: scale %2.3f: max_log_p=%2.1f, old_max_log_p =%2.1f (thresh=%2.1f)\n",
+	   scale,max_log_p, old_max, old_max+fabs(tol*old_max)) ;
+    MatrixPrint(stderr, m_L);
     /* search a finer nbhd (if do-while continues) */
-		if ((spacing < 8) || (max_log_p < old_max-tol*old_max)) /* couldn't take a step */
-		{
-			if ((spacing < 8) || good_step)
-			{
-				scale *= 0.25 ;
-				if (scale < min_search_scale)
-					break ;
-				mean = (max_scale + min_scale)/2 ;
-				delta = (max_scale - min_scale)/2 ;
-				max_scale = 1.0 + delta*scale ;
-				min_scale = 1.0 - delta*scale ;
-				good_step = 0 ;
-				printf("reducing scale to %2.4f\n", scale) ;
-				nscales++ ;
-			}
-			else
-				done = 1 ;
-		}
-		else
-			good_step = 1 ; /* took at least one good step at this scale */
-
-		niter++ ;
+    if ((spacing < 8) || (max_log_p < old_max-tol*old_max)) /* couldn't take a step */
+    {
+      if ((spacing < 8) || good_step)
+      {
+	scale *= 0.25 ;
+	if (scale < min_search_scale)
+	  break ;
+	mean = (max_scale + min_scale)/2 ;
+	delta = (max_scale - min_scale)/2 ;
+	max_scale = 1.0 + delta*scale ;
+	min_scale = 1.0 - delta*scale ;
+	good_step = 0 ;
+	printf("reducing scale to %2.4f\n", scale) ;
+	nscales++ ;
+      }
+      else
+	done = 1 ;
+    }
+    else
+      good_step = 1 ; /* took at least one good step at this scale */
+    
+    niter++ ;
   } while (nscales++ < MIN_SCALES || (done == FALSE)) ;
-
-	parms.start_t += niter ;
+  
+  parms.start_t += niter ;
   MatrixFree(&m_origin) ;
   return(m_L) ;
 }
 
-#else
-#define DEFAULT_MAX_STEPS 5
-static double MAX_ANGLES = DEFAULT_MAX_STEPS ;
-#define MAX_ANGLE       RADIANS(30)
-#define MIN_ANGLE       RADIANS(2)
 
-#define MAX_SCALE       1.3
-#define MIN_SCALE       0.7
-
-static int max_angles = DEFAULT_MAX_STEPS ;
-
-
-static int MAX_TRANS_STEPS = DEFAULT_MAX_STEPS ;
-static double MAX_TRANS = 50 ;
-
-static MATRIX *
-find_optimal_transform(MRI *mri, GCA *gca, GCA_SAMPLE *gcas, int nsamples,
-                       MATRIX *m_L, int passno, int write_iterations)
-{
-  MATRIX   *m_origin ;
-  MRI      *mri_gca  ;
-  double   in_means[3], gca_means[3], dx, dy, dz, max_log_p, old_max,
-           max_angle, angle_steps, min_scale, max_scale, scale_steps, scale,
-           delta, mean ;
-  int      niter, good_step, done, nscales ;
-
-
-  if (!passno && Gdiag & DIAG_WRITE && write_iterations > 0)
-  {
-    char fname[STRLEN] ;
-
-    sprintf(fname, "%s_before_intensity.mgh", parms.base_name) ;
-    printf("writing snapshot to %s...\n", fname) ;
-    MRIwrite(mri, fname) ;
-    sprintf(fname, "%s_before_intensity", parms.base_name) ;
-    MRIwriteImageViews(mri, fname, IMAGE_SIZE) ;
-  }
-
-  if (!passno && !noiscale)
-    GCAhistoScaleImageIntensities(gca, mri) ;
-
-  /* first align centroids */
-  mri_gca = MRIclone(mri, NULL) ;
-  GCAmri(gca, mri_gca) ;
-
-  if (!passno && Gdiag & DIAG_WRITE && write_iterations > 0)
-  {
-    char fname[STRLEN] ;
-
-		mri->nframes = 1 ;
-    Glta->xforms[0].m_L = m_L ;
-    sprintf(fname, "%s_after_intensity.mgh", parms.base_name) ;
-    printf("writing snapshot to %s...\n", fname) ;
-    MRIwrite(mri, fname) ;
-    sprintf(fname, "%s_before_centering", parms.base_name) ;
-    MRIwriteImageViews(mri, fname, IMAGE_SIZE) ;
-    sprintf(fname, "%s_before_centering_fsamples.mgh", parms.base_name) ;
-    GCAtransformAndWriteSamples(gca, mri, gcas, nsamples, 
-                                fname, transform) ;
-		mri->nframes = gca->ninputs ;
-  }
-  if (gca_mean_fname)
-  {
-    printf("writing gca volume to %s...\n", gca_mean_fname) ;
-    MRIwrite(mri_gca, gca_mean_fname) ;
-    printf("done\n") ;
-  }
-
-  max_log_p = local_GCAcomputeLogSampleProbability(gca, gcas, mri, m_L,nsamples) ;
-  printf("initial log_p = %2.1f\n", max_log_p) ;
-
-  MRIcenterOfMass(mri, in_means, 0) ;
-  MRIcenterOfMass(mri_gca, gca_means, 0) ;
-  printf("input centroid (%2.1f, %2.1f, %2.1f), "
-          "gca centroid (%2.1f, %2.1f, %2.1f)\n",
-          in_means[0], in_means[1], in_means[2],
-          gca_means[0], gca_means[1], gca_means[2]) ;
-
-
-
-  MRIfree(&mri_gca) ;
-
-
-  /* now apply translation to take in centroid to ref centroid */
-  dx = gca_means[0] - in_means[0] ; dy = gca_means[1] - in_means[1] ;
-  dz = gca_means[2] - in_means[2] ;
-  if (passno == 0)
-  {
-    *MATRIX_RELT(m_L, 1, 4) = dx ; *MATRIX_RELT(m_L, 2, 4) = dy ;
-    *MATRIX_RELT(m_L, 3, 4) = dz ;
-  }
-
-  m_origin = MatrixIdentity(4, NULL) ;
-  *MATRIX_RELT(m_origin, 1, 4) = gca_means[0]*(float)center ; 
-  *MATRIX_RELT(m_origin, 2, 4) = gca_means[1]*(float)center ;
-  *MATRIX_RELT(m_origin, 3, 4) = gca_means[2]*(float)center ; 
-  *MATRIX_RELT(m_origin, 4, 4) = 1 ;
-
-  max_log_p = local_GCAcomputeLogSampleProbability(gca, gcas, mri, m_L,nsamples) ;
-  printf("initial translation: (%2.1f, %2.1f, %2.1f): log p = %2.1f\n",
-          dx,dy,dz, max_log_p) ;
-
-  max_angle = MAX_ANGLE ; angle_steps = max_angles ;
-  max_scale = MAX_SCALE ; min_scale = MIN_SCALE ; scale_steps = max_angles ;
-
-  if (write_iterations != 0)
-  {
-    char fname[STRLEN] ;
-    MRI *mri_aligned ;
-
-    mri_aligned = MRIlinearTransform(mri, NULL, m_L) ;
-    sprintf(fname, "%s_after_centering", parms.base_name) ;
-    MRIwriteImageViews(mri_aligned, fname, IMAGE_SIZE) ;
-    sprintf(fname, "%s_after_centering_fsamples.mgh", parms.base_name) ;
-    printf("writing image after centering to %s...\n", fname) ;
-#if 0
-    MRIwrite(mri_aligned, fname) ;
-#else
-    Glta->xforms[0].m_L = m_L ;
-    GCAtransformAndWriteSamples(gca, mri, gcas, nsamples, 
-                                fname, transform) ;
-#endif
-    MRIfree(&mri_aligned) ;
-    
-  }
-#define MIN_SEARCH_SCALE 0.25
-#define MIN_SCALES 2
-  niter = nscales = 0 ; scale = 1.0 ; good_step = 0 ; done = 0 ;
-  do
-  {
-    old_max = max_log_p ;
-    max_log_p = find_optimal_translation(gca, gcas, mri, nsamples, m_L,
-                                         -scale*MAX_TRANS, scale*MAX_TRANS, 
-                                         MAX_TRANS_STEPS, 2) ;
-
-		/* it's more likely that there will be large-scale scaling
-			 than large-scale rotations, so look for scaling first */
-    if (!noscale && !translation_only)
-    {
-      max_log_p = find_optimal_scaling(gca, gcas, mri, nsamples, m_L, m_origin,
-                                       min_scale, max_scale, scale_steps, 3) ;
-#if 0
-      max_log_p = find_optimal_scaling_and_rotation(gca, gcas, mri, nsamples, 
-                                                    m_L, m_origin,
-                                                    -RADIANS(2*scale),
-                                                    RADIANS(2*scale),
-                                                  1-.025*scale, 1+.025*scale, 
-                                                  max_angles/3,max_angles/3,3);
-#else
-      max_log_p = find_optimal_scaling_and_rotation(gca, gcas, mri, nsamples, 
-                                                    m_L, m_origin,
-                                                    -scale*.1*max_angle,
-                                                    scale*.1*max_angle,
-																										1-scale*.1, 1+scale*.1, 
-																										max_angles/2,max_angles/2,3);
-#endif
-    }
-    if (!translation_only)
-      max_log_p = find_optimal_rotation(gca, gcas, mri, nsamples, m_L,m_origin,
-                                        -scale*max_angle, scale*max_angle, 
-                                        angle_steps, 3) ;
-
-    if (write_iterations != 0)
-    {
-      char fname[STRLEN] ;
-      MRI *mri_aligned ;
-      
-      mri_aligned = MRIlinearTransform(mri, NULL, m_L) ;
-      sprintf(fname, "%s%03d", parms.base_name, niter+1) ;
-      MRIwriteImageViews(mri_aligned, fname, IMAGE_SIZE) ;
-      sprintf(fname, "%s%03d.mgh", parms.base_name, niter+1) ;
-      printf("writing optimal image at scale %f to %s...\n", scale, fname) ;
-#if 0
-      MRIwrite(mri_aligned, fname) ;
-#else
-      Glta->xforms[0].m_L = m_L ;
-      sprintf(fname, "%s%03d_fsamples.mgh", parms.base_name, niter+1) ;
-      GCAtransformAndWriteSamples(gca, mri, gcas, nsamples, fname, transform) ;
-#endif
-
-      MRIfree(&mri_aligned) ;
-    }
-    
-    printf("scale %2.3f: max=%2.1f, old_max =%2.1f (thresh=%2.1f)\n",
-            scale,max_log_p, old_max, old_max+fabs(tol*old_max)) ;
-
-    /* search a finer nbhd (if do-while continues) */
-		if (max_log_p < old_max-tol*old_max) /* couldn't take a step */
-		{
-			if (good_step)
-			{
-				scale *= 0.5 ;
-				if (scale < MIN_SEARCH_SCALE)
-					break ;
-				mean = (max_scale + min_scale)/2 ;
-				delta = (max_scale - min_scale)/2 ;
-				max_scale = 1.0 + delta*scale ;
-				min_scale = 1.0 - delta*scale ;
-				good_step = 0 ;
-				printf("reducing scale to %2.4f, scales %2.5f-->%2.5f, angles %2.3f-->%2.3f\n",
-							 scale, min_scale, max_scale, DEGREES(-scale*max_angle), DEGREES(scale*max_angle)) ;
-				nscales++ ;
-			}
-			else
-				done = 1 ;
-		}
-		else
-			good_step = 1 ; /* took at least one good step at this scale */
-
-		parms.start_t = ++niter ;
-		/*		exit(0) ;*/
-  } while (nscales++ < MIN_SCALES || (done == FALSE)) ;
-
-  MatrixFree(&m_origin) ;
-  return(m_L) ;
-}
-#endif
-
-#if 0
-static double
-find_optimal_rotation(GCA *gca, GCA_SAMPLE *gcas, MRI *mri, int nsamples, 
-                   MATRIX *m_L, MATRIX *m_origin,
-                   float min_angle, float max_angle, float angle_steps,
-                   int nreductions)
-{
-  MATRIX   *m_rot, *m_x_rot, *m_y_rot, *m_z_rot, *m_tmp,*m_L_tmp,*m_origin_inv,
-           *m_tmp2 ;
-  double   x_angle, y_angle, z_angle, x_max, y_max, z_max, delta, 
-           log_p, max_log_p, mean_angle ;
-  int      i ;
-
-  m_origin_inv = MatrixCopy(m_origin, NULL) ;
-  *MATRIX_RELT(m_origin_inv, 1, 4) *= -1 ;
-  *MATRIX_RELT(m_origin_inv, 2, 4) *= -1 ;
-  *MATRIX_RELT(m_origin_inv, 3, 4) *= -1 ;
-  m_L_tmp = m_x_rot = m_y_rot = m_z_rot = m_rot = m_tmp = m_tmp2 = NULL ;
-  x_max = y_max = z_max = 0.0 ;
-  max_log_p = local_GCAcomputeLogSampleProbability(gca, gcas, mri, m_L,nsamples) ;
-  for (i = 0 ; i <= nreductions ; i++)
-  {
-    delta = (max_angle-min_angle) / angle_steps ;
-    if (FZERO(delta))
-      return(max_log_p) ;
-
-    if (Gdiag & DIAG_SHOW)
-      printf(
-              "scanning %2.2f degree nbhd (%2.1f) ",
-              (float)DEGREES(max_angle), (float)DEGREES(delta)) ;
-
-    for (x_angle = min_angle ; x_angle <= max_angle ; x_angle += delta)
-    {
-      m_x_rot = MatrixReallocRotation(4, x_angle, X_ROTATION, m_x_rot) ;
-      for (y_angle = min_angle ; y_angle <= max_angle ; y_angle += delta)
-      {
-        m_y_rot = MatrixReallocRotation(4, y_angle, Y_ROTATION, m_y_rot) ;
-        m_tmp = MatrixMultiply(m_y_rot, m_x_rot, m_tmp) ;
-        for (z_angle= min_angle ; z_angle <= max_angle ; z_angle += delta)
-        {
-          if (nint(DEGREES(x_angle)) == -9 && nint(DEGREES(y_angle)) == -5 &&
-              nint(DEGREES(z_angle)) == -7)
-            DiagBreak() ;
-          m_z_rot = MatrixReallocRotation(4, z_angle, Z_ROTATION, m_z_rot) ;
-          m_rot = MatrixMultiply(m_z_rot, m_tmp, m_rot) ;
-          m_tmp2 = MatrixMultiply(m_rot, m_origin_inv, m_tmp2) ;
-          MatrixMultiply(m_origin, m_tmp2, m_rot) ;
-
-          m_L_tmp = MatrixMultiply(m_rot, m_L, m_L_tmp) ;
-          log_p = 
-            local_GCAcomputeLogSampleProbability(gca, gcas, mri, m_L_tmp,nsamples) ;
-          if (log_p > max_log_p)
-          {
-            max_log_p = log_p ;
-            x_max = x_angle ; y_max = y_angle ; z_max = z_angle ;
-#if 0
-            printf("new max p %2.1f found at (%2.1f, %2.1f, %2.1f)\n",
-                    max_log_p, (float)DEGREES(x_angle), 
-                    (float)DEGREES(y_angle), (float)DEGREES(z_angle)) ;
-#endif
-          }
-        }
-      }
-      
-    }
-
-    if (Gdiag & DIAG_SHOW)
-      printf(
-              "max log p = %2.1f @ (%2.1f, %2.1f, %2.1f)\n", 
-              (float)max_log_p, (float)DEGREES(x_max), (float)DEGREES(y_max), 
-              (float)DEGREES(z_max)) ;
-
-    /* update L to reflect new maximum and search around it */
-    MatrixReallocRotation(4, x_max, X_ROTATION, m_x_rot) ;
-    MatrixReallocRotation(4, y_max, Y_ROTATION, m_y_rot) ;
-    MatrixReallocRotation(4, z_max, Z_ROTATION, m_z_rot) ;
-    MatrixMultiply(m_y_rot, m_x_rot, m_tmp) ;
-    MatrixMultiply(m_z_rot, m_tmp, m_rot) ;
-    m_tmp2 = MatrixMultiply(m_rot, m_origin_inv, m_tmp2) ;
-    MatrixMultiply(m_origin, m_tmp2, m_rot) ;
-    MatrixMultiply(m_rot, m_L, m_L) ;
-
-    x_max = y_max = z_max = 0.0 ;  /* we've rotated transform to old max */
-
-    mean_angle = (max_angle + min_angle) / 2 ;
-    delta = (max_angle-min_angle)/4 ;
-    min_angle = mean_angle - delta ;
-    max_angle = mean_angle + delta ;
-#if 0
-    delta = (max_angle-min_angle) / angle_steps ;
-    min_angle -= delta/2 ; max_angle += delta/2 ;
-#endif
-  }
-
-  printf("\n") ;
-
-  MatrixFree(&m_x_rot) ; MatrixFree(&m_y_rot) ; MatrixFree(&m_z_rot) ;
-  MatrixFree(&m_rot) ;   MatrixFree(&m_tmp) ; MatrixFree(&m_origin_inv) ;
-  MatrixFree(&m_tmp2) ;
-  return(max_log_p) ;
-}
-static double
-find_optimal_scaling(GCA *gca, GCA_SAMPLE *gcas, MRI *mri, int nsamples, 
-                   MATRIX *m_L, MATRIX *m_origin,
-                   float min_scale, float max_scale, float scale_steps,
-                   int nreductions)
-{
-  MATRIX   *m_scale, *m_tmp,*m_L_tmp,*m_origin_inv ;
-  double   x_scale, y_scale, z_scale, x_max, y_max, z_max, delta, 
-           log_p, max_log_p, mean_scale ;
-  int      i ;
-
-  m_origin_inv = MatrixCopy(m_origin, NULL) ;
-  *MATRIX_RELT(m_origin_inv, 1, 4) *= -1 ;
-  *MATRIX_RELT(m_origin_inv, 2, 4) *= -1 ;
-  *MATRIX_RELT(m_origin_inv, 3, 4) *= -1 ;
-  m_scale = MatrixIdentity(4, NULL) ;
-  m_L_tmp = m_tmp = NULL ;
-  x_max = y_max = z_max = 1.0 ;
-  max_log_p = local_GCAcomputeLogSampleProbability(gca, gcas, mri, m_L,nsamples) ;
-  for (i = 0 ; i <= nreductions ; i++)
-  {
-    delta = (max_scale-min_scale) / scale_steps ;
-    if (FZERO(delta))
-      return(max_log_p) ;
-    if (Gdiag & DIAG_SHOW)
-    {
-      printf("scanning scales %2.3f->%2.3f (%2.3f) ",
-              min_scale,max_scale, delta) ;
-      fflush(stdout) ;
-    }
-    for (x_scale = min_scale ; x_scale <= max_scale ; x_scale += delta)
-    {
-      *MATRIX_RELT(m_scale, 1, 1) = x_scale ;
-      for (y_scale = min_scale ; y_scale <= max_scale ; y_scale += delta)
-      {
-        *MATRIX_RELT(m_scale, 2, 2) = y_scale ;
-        for (z_scale= min_scale ; z_scale <= max_scale ; z_scale += delta)
-        {
-          *MATRIX_RELT(m_scale, 3, 3) = z_scale ;
-
-          /* reset translation values */
-          *MATRIX_RELT(m_scale, 1, 4) = 
-            *MATRIX_RELT(m_scale, 2, 4) = *MATRIX_RELT(m_scale, 3, 4) = 0.0f ;
-          if (nint((x_scale)) == -9 && nint((y_scale)) == -5 &&
-              nint((z_scale)) == -7)
-            DiagBreak() ;
-
-          m_tmp = MatrixMultiply(m_scale, m_origin_inv, m_tmp) ;
-          MatrixMultiply(m_origin, m_tmp, m_scale) ;
-
-          m_L_tmp = MatrixMultiply(m_scale, m_L, m_L_tmp) ;
-          log_p = 
-            local_GCAcomputeLogSampleProbability(gca, gcas, mri, m_L_tmp,nsamples) ;
-          if (log_p > max_log_p)
-          {
-            max_log_p = log_p ;
-            x_max = x_scale ; y_max = y_scale ; z_max = z_scale ;
-#if 0
-            printf("new max p %2.1f found at (%2.3f, %2.3f, %2.3f)\n",
-                    max_log_p, x_scale, y_scale, z_scale) ;
-#endif
-          }
-        }
-      }
-      
-    }
-
-    if (Gdiag & DIAG_SHOW)
-      printf("max log p = %2.1f @ (%2.3f, %2.3f, %2.3f)\n", 
-              max_log_p, x_max, y_max, z_max) ;
-
-    /* update L to reflect new maximum and search around it */
-    *MATRIX_RELT(m_scale, 1, 4) = 
-      *MATRIX_RELT(m_scale, 2, 4) = *MATRIX_RELT(m_scale, 3, 4) = 0.0f ;
-    *MATRIX_RELT(m_scale,1,1) = x_max ;
-    *MATRIX_RELT(m_scale,2,2) = y_max ;
-    *MATRIX_RELT(m_scale,3,3) = z_max ;
-    m_tmp = MatrixMultiply(m_scale, m_origin_inv, m_tmp) ;
-    MatrixMultiply(m_origin, m_tmp, m_scale) ;
-    MatrixMultiply(m_scale, m_L, m_L_tmp) ;
-    MatrixCopy(m_L_tmp, m_L) ;
-
-    x_max = y_max = z_max = 1.0 ;  /* we've scaled transform by old maxs */
-
-    mean_scale = (max_scale + min_scale) / 2 ;
-    delta = (max_scale-min_scale)/4 ;
-    min_scale = mean_scale - delta ;
-    max_scale = mean_scale + delta ;
-  }
-
-  printf("\n") ;
-
-  MatrixFree(&m_scale) ;   MatrixFree(&m_tmp) ; MatrixFree(&m_origin_inv) ;
-  return(max_log_p) ;
-}
-
-#endif
 static double
 find_optimal_translation(GCA *gca, GCA_SAMPLE *gcas, MRI *mri, int nsamples, 
                          MATRIX *m_L, float min_trans, float max_trans, 
@@ -1530,7 +1087,7 @@ find_optimal_translation(GCA *gca, GCA_SAMPLE *gcas, MRI *mri, int nsamples,
 {
   MATRIX   *m_trans, *m_L_tmp ;
   double   x_trans, y_trans, z_trans, x_max, y_max, z_max, delta, 
-           log_p, max_log_p, mean_trans ;
+    log_p, max_log_p, mean_trans ;
   int      i ;
 
   delta = (max_trans-min_trans) / trans_steps ;
@@ -1547,8 +1104,8 @@ find_optimal_translation(GCA *gca, GCA_SAMPLE *gcas, MRI *mri, int nsamples,
     if (Gdiag & DIAG_SHOW)
     {
       printf(
-              "scanning translations %2.2f->%2.2f (%2.1f) ",
-              min_trans,max_trans, delta) ;
+	     "scanning translations %2.2f->%2.2f (step %2.1f) ",
+	     min_trans,max_trans, delta) ;
       fflush(stdout) ;
     }
     for (x_trans = min_trans ; x_trans <= max_trans ; x_trans += delta)
@@ -1564,7 +1121,9 @@ find_optimal_translation(GCA *gca, GCA_SAMPLE *gcas, MRI *mri, int nsamples,
               nint((z_trans)) == -7)
             DiagBreak() ;
 
+	  // get the transform
           m_L_tmp = MatrixMultiply(m_trans, m_L, m_L_tmp) ;
+	  // calculate the LogSample probability
           log_p = 
             local_GCAcomputeLogSampleProbability(gca, gcas, mri, m_L_tmp,nsamples) ;
           if (log_p > max_log_p)
@@ -1573,7 +1132,7 @@ find_optimal_translation(GCA *gca, GCA_SAMPLE *gcas, MRI *mri, int nsamples,
             x_max = x_trans ; y_max = y_trans ; z_max = z_trans ;
 #if 0
             printf("new max p %2.1f found at (%2.1f, %2.1f, %2.1f)\n",
-                    max_log_p, x_trans, y_trans, z_trans) ;
+		   max_log_p, x_trans, y_trans, z_trans) ;
 #endif
           }
         }
@@ -1583,13 +1142,14 @@ find_optimal_translation(GCA *gca, GCA_SAMPLE *gcas, MRI *mri, int nsamples,
 
     if (Gdiag & DIAG_SHOW)
       printf(
-              "max log p = %2.1f @ (%2.1f, %2.1f, %2.1f)\n", 
-              max_log_p, x_max, y_max, z_max) ;
+	     "max log p = %2.1f @ (%2.1f, %2.1f, %2.1f)\n", 
+	     max_log_p, x_max, y_max, z_max) ;
 
     /* update L to reflect new maximum and search around it */
     *MATRIX_RELT(m_trans, 1, 4) = x_max ;
     *MATRIX_RELT(m_trans, 2, 4) = y_max ;
     *MATRIX_RELT(m_trans, 3, 4) = z_max ;
+    // create a new transform by multiplying the previous one.
     MatrixMultiply(m_trans, m_L, m_L_tmp) ;
     MatrixCopy(m_L_tmp, m_L) ;
     x_max = y_max = z_max = 0.0 ;  /* we've translated transform by old maxs */
@@ -1606,10 +1166,10 @@ find_optimal_translation(GCA *gca, GCA_SAMPLE *gcas, MRI *mri, int nsamples,
   return(max_log_p) ;
 }
 /*----------------------------------------------------------------------
-            Parameters:
+  Parameters:
 
-           Description:
-----------------------------------------------------------------------*/
+  Description:
+  ----------------------------------------------------------------------*/
 static int
 get_option(int argc, char *argv[])
 {
@@ -1632,11 +1192,11 @@ get_option(int argc, char *argv[])
   }
   else if (!strcmp(option, "NOMAP"))
   {
-		nomap = 1 ;
+    nomap = 1 ;
   }
   else if (!stricmp(option, "FLASH"))
   {
-		map_to_flash = 1 ;
+    map_to_flash = 1 ;
     printf("using FLASH forward model to predict intensity values...\n") ;
   }
   else if (!strcmp(option, "MASK"))
@@ -1685,7 +1245,7 @@ get_option(int argc, char *argv[])
     transformed_sample_fname = argv[2] ;
     nargs = 1 ;
     printf("writing transformed control points to %s...\n", 
-            transformed_sample_fname) ;
+	   transformed_sample_fname) ;
   }
   else if (!strcmp(option, "DEBUG_VOXEL"))
   {
@@ -1697,7 +1257,7 @@ get_option(int argc, char *argv[])
   }
   else if (!strcmp(option, "DEBUG_LABEL"))
   {
-		Ggca_label = atoi(argv[2]) ;
+    Ggca_label = atoi(argv[2]) ;
     nargs = 1 ;
     printf("debugging label %s (%d)\n", cma_label_to_name(Ggca_label), Ggca_label) ;
   }
@@ -1706,7 +1266,7 @@ get_option(int argc, char *argv[])
     normalized_transformed_sample_fname = argv[2] ;
     nargs = 1 ;
     printf("writing  transformed normalization control points to %s...\n", 
-            normalized_transformed_sample_fname) ;
+	   normalized_transformed_sample_fname) ;
   }
   else if (!strcmp(option, "CONTRAST"))
   {
@@ -1752,9 +1312,9 @@ get_option(int argc, char *argv[])
   }
   else if (!stricmp(option, "SCALES") || !stricmp(option, "SCALES"))
   {
-		nscales = atoi(argv[2]) ;
+    nscales = atoi(argv[2]) ;
     nargs = 1 ;
-		printf("finding optimal linear transform over %d scales...\n", nscales);
+    printf("finding optimal linear transform over %d scales...\n", nscales);
   }
   else if (!stricmp(option, "NOVAR"))
   {
@@ -1823,7 +1383,7 @@ get_option(int argc, char *argv[])
     nreductions = atoi(argv[2]) ;
     nargs = 1 ;
     printf("reducing input images %d times before aligning...\n",
-            nreductions) ;
+	   nreductions) ;
   }
   else if (!stricmp(option, "nsamples"))
   {
@@ -1891,7 +1451,7 @@ get_option(int argc, char *argv[])
 #if 0
     parms.sigma = atof(argv[2]) ;
     printf("using sigma=%2.3f as upper bound on blurring.\n", 
-            parms.sigma) ;
+	   parms.sigma) ;
     nargs = 1 ;
 #else
     MAX_ANGLES = MAX_TRANS_STEPS = max_angles = (float)atoi(argv[2]) ;
@@ -1935,162 +1495,6 @@ get_option(int argc, char *argv[])
 
   return(nargs) ;
 }
-#if 0
-static double 
-find_optimal_scaling_and_rotation(GCA *gca, GCA_SAMPLE *gcas, 
-                                  MRI *mri, 
-                                  int nsamples, MATRIX *m_L, MATRIX *m_origin,
-                                  float min_angle, float max_angle,
-                                  float min_scale, float max_scale,
-                                  float angle_steps, float scale_steps,
-                                  int nreductions)
-{
-  MATRIX   *m_rot, *m_x_rot, *m_y_rot, *m_z_rot, *m_tmp,*m_L_tmp,*m_origin_inv,
-           *m_tmp2, *m_scale;
-  double   x_angle, y_angle, z_angle, x_max_rot, y_max_rot, z_max_rot, delta, 
-           x_max_scale, y_max_scale, z_max_scale, delta_scale, 
-           log_p, max_log_p, mean_angle, x_scale, y_scale, z_scale, mean_scale;
-  int      i ;
-
-  m_origin_inv = MatrixCopy(m_origin, NULL) ;
-  *MATRIX_RELT(m_origin_inv, 1, 4) *= -1 ;
-  *MATRIX_RELT(m_origin_inv, 2, 4) *= -1 ;
-  *MATRIX_RELT(m_origin_inv, 3, 4) *= -1 ;
-  m_L_tmp = m_x_rot = m_y_rot = m_z_rot = m_rot = m_tmp = m_tmp2 = NULL ;
-  x_max_rot = y_max_rot = z_max_rot = 0.0 ;
-  x_max_scale = y_max_scale = z_max_scale = 1.0f ;
-  m_scale = MatrixIdentity(4, NULL) ;
-  max_log_p = local_GCAcomputeLogSampleProbability(gca, gcas, mri, m_L,nsamples) ;
-  for (i = 0 ; i <= nreductions ; i++)
-  {
-    delta_scale = (max_scale-min_scale) / scale_steps ;
-    delta = (max_angle-min_angle) / angle_steps ;
-    if (Gdiag & DIAG_SHOW)
-    {
-      printf("scanning %2.2f degree nbhd (%2.1f) and "
-             "scale %2.3f->%2.3f (%2.3f)\n",
-              (float)DEGREES(max_angle), (float)DEGREES(delta),
-             min_scale,max_scale, delta_scale);
-      fflush(stdout) ;
-    }
-
-    for (x_scale = min_scale ; x_scale <= max_scale ; x_scale += delta_scale)
-    {
-      /*      printf("x_scale = %2.3f\n", x_scale) ;*/
-      *MATRIX_RELT(m_scale, 1, 1) = x_scale ;
-      for (y_scale = min_scale ; y_scale <= max_scale ; y_scale += delta_scale)
-      {
-        *MATRIX_RELT(m_scale, 2, 2) = y_scale ;
-        for (z_scale= min_scale ; z_scale <= max_scale; z_scale += delta_scale)
-        {
-          *MATRIX_RELT(m_scale, 3, 3) = z_scale ;
-
-          /* reset translation values */
-          *MATRIX_RELT(m_scale, 1, 4) = 
-            *MATRIX_RELT(m_scale, 2, 4) = *MATRIX_RELT(m_scale, 3, 4) = 0.0f ;
-          if (nint((x_scale)) == -9 && nint((y_scale)) == -5 &&
-              nint((z_scale)) == -7)
-            DiagBreak() ;
-
-          m_tmp = MatrixMultiply(m_scale, m_origin_inv, m_tmp) ;
-          MatrixMultiply(m_origin, m_tmp, m_scale) ;
-
-          for (x_angle = min_angle ; x_angle <= max_angle ; x_angle += delta)
-          {
-            m_x_rot = MatrixReallocRotation(4, x_angle, X_ROTATION, m_x_rot) ;
-            for (y_angle = min_angle ; y_angle <= max_angle ; y_angle += delta)
-            {
-              m_y_rot = MatrixReallocRotation(4, y_angle, Y_ROTATION, m_y_rot);
-              m_tmp = MatrixMultiply(m_y_rot, m_x_rot, m_tmp) ;
-              for (z_angle= min_angle; z_angle <= max_angle; z_angle += delta)
-              {
-                m_z_rot = MatrixReallocRotation(4, z_angle,Z_ROTATION,m_z_rot);
-                m_rot = MatrixMultiply(m_z_rot, m_tmp, m_rot) ;
-                m_tmp2 = MatrixMultiply(m_rot, m_origin_inv, m_tmp2) ;
-                MatrixMultiply(m_origin, m_tmp2, m_rot) ;
-
-                
-                m_tmp2 = MatrixMultiply(m_scale, m_rot, m_tmp2) ;
-                m_L_tmp = MatrixMultiply(m_tmp2, m_L, m_L_tmp) ;
-                log_p = 
-                  local_GCAcomputeLogSampleProbability(gca, gcas, mri, m_L_tmp,
-                                                 nsamples) ;
-                if (log_p > max_log_p)
-                {
-                  max_log_p = log_p ;
-                  x_max_scale = x_scale ; y_max_scale = y_scale ; 
-                  z_max_scale = z_scale ;
-                  x_max_rot = x_angle ; y_max_rot = y_angle ; 
-                  z_max_rot = z_angle ;
-                }
-              }
-            }
-          }
-        }
-      }
-      
-    }
-
-    if (Gdiag & DIAG_SHOW)
-    {
-      printf("\tmax log p = %2.1f @ R=(%2.3f, %2.3f, %2.3f),"
-              "S=(%2.3f,%2.3f,%2.3f)\n", 
-              max_log_p, DEGREES(x_max_rot), DEGREES(y_max_rot),
-              DEGREES(z_max_rot),x_max_scale, y_max_scale, z_max_scale) ;
-    }
-
-    /* update L to reflect new maximum and search around it */
-    *MATRIX_RELT(m_scale, 1, 4) = 
-      *MATRIX_RELT(m_scale, 2, 4) = *MATRIX_RELT(m_scale, 3, 4) = 0.0f ;
-    *MATRIX_RELT(m_scale,1,1) = x_max_scale ;
-    *MATRIX_RELT(m_scale,2,2) = y_max_scale ;
-    *MATRIX_RELT(m_scale,3,3) = z_max_scale ;
-    m_tmp = MatrixMultiply(m_scale, m_origin_inv, m_tmp) ;
-    MatrixMultiply(m_origin, m_tmp, m_scale) ;
-
-
-    x_max_scale = y_max_scale = z_max_scale = 1.0 ;
-
-    mean_scale = (max_scale + min_scale) / 2 ;
-    delta_scale = (max_scale-min_scale)/4 ;
-    min_scale = mean_scale - delta ;
-    max_scale = mean_scale + delta ;
-
-    /* update L to reflect new maximum and search around it */
-    MatrixReallocRotation(4, x_max_rot, X_ROTATION, m_x_rot) ;
-    MatrixReallocRotation(4, y_max_rot, Y_ROTATION, m_y_rot) ;
-    MatrixReallocRotation(4, z_max_rot, Z_ROTATION, m_z_rot) ;
-    MatrixMultiply(m_y_rot, m_x_rot, m_tmp) ;
-    MatrixMultiply(m_z_rot, m_tmp, m_rot) ;
-    m_tmp2 = MatrixMultiply(m_rot, m_origin_inv, m_tmp2) ;
-    MatrixMultiply(m_origin, m_tmp2, m_rot) ;
-
-    m_tmp2 = MatrixMultiply(m_scale, m_rot, m_tmp2) ;
-    m_L_tmp = MatrixMultiply(m_tmp2, m_L, m_L_tmp) ;
-    MatrixCopy(m_L_tmp, m_L) ;
-
-
-    /* we've rotated transform to old max */
-    x_max_rot = y_max_rot = z_max_rot = 0.0 ;
-
-    mean_angle = (max_angle + min_angle) / 2 ;
-    delta = (max_angle-min_angle)/4 ;
-    min_angle = mean_angle - delta ;
-    max_angle = mean_angle + delta ;
-#if 0
-    delta = (max_angle-min_angle) / angle_steps ;
-    min_angle -= delta/2 ; max_angle += delta/2 ;
-#endif
-  }
-
-  printf("\n") ;
-
-  MatrixFree(&m_x_rot) ; MatrixFree(&m_y_rot) ; MatrixFree(&m_z_rot) ;
-  MatrixFree(&m_rot) ;   MatrixFree(&m_tmp) ; MatrixFree(&m_origin_inv) ;
-  MatrixFree(&m_tmp2) ;
-  return(max_log_p) ;
-}
-#endif
 
 double
 local_GCAcomputeLogSampleProbability(GCA *gca, GCA_SAMPLE *gcas, MRI *mri, MATRIX *m_L, int nsamples)
@@ -2103,469 +1507,25 @@ local_GCAcomputeLogSampleProbability(GCA *gca, GCA_SAMPLE *gcas, MRI *mri, MATRI
   return(GCAcomputeLogSampleProbability(gca, gcas, mri, transform, nsamples)) ;
 }
 
-#if 0
-static MATRIX *
-update_optimal_transform(MRI *mri, GCA *gca, GCA_SAMPLE *gcas, int nsamples,
-                         MATRIX *m_L, int write_iterations,
-                         double min_trans, double max_trans,
-                         double min_angle, double max_angle,
-                         double min_scale, double max_scale,
-                         int nsteps)
-{
-  MATRIX   *m_origin ;
-  MRI      *mri_gca  ;
-  double   gca_means[3], max_log_p, old_max, scale, delta, mean ;
-  int      niter ;
-
-
-
-  mri_gca = MRIclone(mri, NULL) ;
-  GCAmri(gca, mri_gca) ;
-
-
-  max_log_p = local_GCAcomputeLogSampleProbability(gca, gcas, mri, m_L,nsamples) ;
-  printf("initial log_p = %2.1f\n", max_log_p) ;
-
-  MRIcenterOfMass(mri_gca, gca_means, 0) ;
-  MRIfree(&mri_gca) ;
-
-  m_origin = MatrixIdentity(4, NULL) ;
-  *MATRIX_RELT(m_origin, 1, 4) = gca_means[0]*(float)center ; 
-  *MATRIX_RELT(m_origin, 2, 4) = gca_means[1]*(float)center ;
-  *MATRIX_RELT(m_origin, 3, 4) = gca_means[2]*(float)center ; 
-  *MATRIX_RELT(m_origin, 4, 4) = 1 ;
-
-  if (write_iterations != 0)
-  {
-    char fname[STRLEN] ;
-    MRI *mri_aligned ;
-
-    mri_aligned = MRIlinearTransform(mri, NULL, m_L) ;
-    sprintf(fname, "%s_after_centering", parms.base_name) ;
-    MRIwriteImageViews(mri_aligned, fname, IMAGE_SIZE) ;
-    sprintf(fname, "%s_after_centering.mgh", parms.base_name) ;
-    printf("writing image after centering to %s...\n", fname) ;
-#if 0
-    MRIwrite(mri_aligned, fname) ;
-#else
-    Glta->xforms[0].m_L = m_L ;
-    GCAtransformAndWriteSamples(gca, mri, gcas, nsamples, 
-                                fname, transform) ;
-#endif
-    MRIfree(&mri_aligned) ;
-    
-  }
-#define MIN_ITER 1
-  niter = 0 ; scale = 1.0 ;
-  do
-  {
-    old_max = max_log_p ;
-    max_log_p = find_optimal_translation(gca, gcas, mri, nsamples, m_L,
-                                         -scale*max_trans, scale*max_trans, 
-                                         nsteps, 2) ;
-
-    if (!translation_only)
-      max_log_p = find_optimal_rotation(gca, gcas, mri, nsamples, m_L,m_origin,
-                                        -scale*max_angle, scale*max_angle, 
-                                        nsteps, 3) ;
-
-    if (!noscale && !translation_only)
-    {
-      max_log_p = find_optimal_scaling(gca, gcas, mri, nsamples, m_L, m_origin,
-                                       min_scale, max_scale, nsteps, 3) ;
-      max_log_p = find_optimal_scaling_and_rotation(gca, gcas, mri, nsamples, 
-                                                    m_L, m_origin,
-                                                    -RADIANS(2*scale),
-                                                    RADIANS(2*scale),
-                                                    1-.025*scale, 1+.025*scale, 
-                                                    nsteps/3,nsteps/3,3);
-    }
-    if (write_iterations != 0)
-    {
-      char fname[STRLEN] ;
-      MRI *mri_aligned ;
-      
-      mri_aligned = MRIlinearTransform(mri, NULL, m_L) ;
-      sprintf(fname, "%s%03d", parms.base_name, niter+1) ;
-      MRIwriteImageViews(mri_aligned, fname, IMAGE_SIZE) ;
-      sprintf(fname, "%s%03d.mgh", parms.base_name, niter+1) ;
-      printf("writing image after centering to %s...\n", fname) ;
-#if 0
-      MRIwrite(mri_aligned, fname) ;
-#else
-      Glta->xforms[0].m_L = m_L ;
-      GCAtransformAndWriteSamples(gca, mri, gcas, nsamples, 
-                                  fname, transform) ;
-#endif
-
-      MRIfree(&mri_aligned) ;
-    }
-    
-    printf("scale %2.3f: max=%2.1f, old_max =%2.1f (thresh=%2.1f)\n",
-            scale,max_log_p, old_max, old_max+fabs(tol*old_max)) ;
-
-    /* search a finer nbhd (if do-while continues) */
-    scale *= 0.5 ;
-    mean = (max_scale + min_scale)/2 ;
-    delta = (max_scale - min_scale)/2 ;
-    max_scale = mean + delta*scale ;
-    min_scale = mean - delta*scale ;
-  } while (niter++ < MIN_ITER || (max_log_p > old_max+fabs(tol*old_max))) ;
-
-  MatrixFree(&m_origin) ;
-  return(m_L) ;
-}
-#else
-#if 0
-static MATRIX *
-update_optimal_transform(MRI *mri, GCA *gca, GCA_SAMPLE *gcas, int nsamples,
-                         MATRIX *m_L, double scale, int write_iterations, int nsteps,
-                         int nreductions)
-{
-  double   max_log_p, old_max ;
-  int      niter ;
-
-  max_log_p = local_GCAcomputeLogSampleProbability(gca, gcas, mri, m_L,nsamples) ;
-  printf("initial log_p = %2.1f\n", max_log_p) ;
-
-
-  if (write_iterations != 0)
-  {
-    char fname[STRLEN] ;
-    MRI *mri_aligned ;
-
-    mri_aligned = MRIlinearTransform(mri, NULL, m_L) ;
-    sprintf(fname, "%s_after_centering", parms.base_name) ;
-    MRIwriteImageViews(mri_aligned, fname, IMAGE_SIZE) ;
-    sprintf(fname, "%s_after_centering.mgh", parms.base_name) ;
-    printf("writing image after centering to %s...\n", fname) ;
-#if 0
-    MRIwrite(mri_aligned, fname) ;
-#else
-    Glta->xforms[0].m_L = m_L ;
-    GCAtransformAndWriteSamples(gca, mri, gcas, nsamples, 
-                                fname, transform) ;
-#endif
-    MRIfree(&mri_aligned) ;
-    
-  }
-
-  niter = 0 ;
-  do
-  {
-    old_max = max_log_p ;
-    max_log_p = find_optimal_3x4(gca, gcas, mri, nsamples, m_L, scale, nsteps) ;
-
-    if (write_iterations != 0)
-    {
-      char fname[STRLEN] ;
-      MRI *mri_aligned ;
-      
-      mri_aligned = MRIlinearTransform(mri, NULL, m_L) ;
-      sprintf(fname, "%s%03d", parms.base_name, niter+1) ;
-      MRIwriteImageViews(mri_aligned, fname, IMAGE_SIZE) ;
-      sprintf(fname, "%s%03d.mgh", parms.base_name, niter+1) ;
-      printf("writing image after centering to %s...\n", fname) ;
-#if 0
-      MRIwrite(mri_aligned, fname) ;
-#else
-      Glta->xforms[0].m_L = m_L ;
-      GCAtransformAndWriteSamples(gca, mri, gcas, nsamples, 
-                                  fname, transform) ;
-#endif
-
-      MRIfree(&mri_aligned) ;
-    }
-    
-    printf("scale %2.3f: max=%2.1f, old_max =%2.1f (thresh=%2.1f)\n",
-            scale,max_log_p, old_max, old_max+fabs(tol*old_max)) ;
-
-    /* search a finer nbhd (if do-while continues) */
-    scale *= 0.5 ;
-  } while (niter++ < nreductions || (max_log_p > old_max+fabs(tol*old_max))) ;
-
-  return(m_L) ;
-}
-
-#define MAX_ITER 10
-#define MAX_DIM  5
-static double
-find_optimal_3x4(GCA *gca, GCA_SAMPLE *gcas, MRI *mri, int nsamples, 
-                 MATRIX *m_L, float scale, int nsteps)
-{
-  MATRIX   *m_L_best, *m_L_tmp ;
-  double   log_p, max_log_p, sf, old_log_p, 
-           min_vals[3*4], max_vals[3*4], best_vals[3*4], deltas[3*4],
-           m11, m12, m13, m14, m21, m22, m23, m24, m31, m32, m33, m34 ;
-  int      row, col, j, i, ndim, indices[4*3], k ;
-
-  m_L_tmp = MatrixCopy(m_L, NULL) ;
-  m_L_best = MatrixCopy(m_L, NULL) ;
-
-  for (i = 0 ; i < MAX_ITER ; i++)
-  {
-    max_log_p = local_GCAcomputeLogSampleProbability(gca, gcas, mri, m_L,nsamples) ;
-    old_log_p = max_log_p ;
-    
-
-    ndim = 0 ;
-    for (j = 0 ; j < 4*3 ; j++)
-      indices[j] = j ;
-
-    /* now permute them */
-    for (j = 0 ; j < 4*3 ; j++)
-    {
-      int tmp ;
-      k = nint(randomNumber(0,4*3-.1)) ;
-      tmp = indices[j] ;
-      indices[j] = k ;
-      indices[k] = tmp ;
-    }
-
-    for (k = 0 ; k < 4*3 ; k++)
-    {
-      j = indices[k] ;
-      col = j%4+1 ;
-      row = j/4+1 ;
-      if (col == 4)   /* translations have much bigger values */
-        sf = 100 ;
-      else
-        sf = 1 ;
-      if (k < MAX_DIM)   /* include this dimension */
-      {
-        best_vals[j] = *MATRIX_RELT(m_L,row,col) ;
-        min_vals[j] = best_vals[j] - sf*scale*fabs(best_vals[j]) ;
-        max_vals[j] = best_vals[j] + sf*scale*fabs(best_vals[j]) ;
-        deltas[j] = (max_vals[j] - min_vals[j]) / (double)nsteps ;
-        if (FZERO(deltas[j]))
-          return(max_log_p) ;
-        ndim++ ;
-      }
-      else   /* leave this dimension out */
-      {
-        best_vals[j] = *MATRIX_RELT(m_L,row,col) ;
-        min_vals[j] = max_vals[j] = best_vals[j] ;
-        deltas[j] = 10000 ;
-      }
-    }
-    
-    printf("computing optimal xform for %d dimensions...\n", ndim) ;
-    for (m11 = min_vals[0] ; m11 <= max_vals[0] ; m11 += deltas[0])
-    {
-      *MATRIX_RELT(m_L_tmp, 1, 1) = m11 ;
-      for (m12 = min_vals[1] ; m12 <= max_vals[1] ; m12 += deltas[1])
-      {
-        *MATRIX_RELT(m_L_tmp, 1, 2) = m12 ;
-        for (m13 = min_vals[2] ; m13 <= max_vals[2] ; m13 += deltas[2])
-        {
-          *MATRIX_RELT(m_L_tmp, 1, 3) = m13 ;
-          for (m14 = min_vals[3] ; m14 <= max_vals[3] ; m14 += deltas[3])
-          {
-            *MATRIX_RELT(m_L_tmp, 1, 4) = m14 ;
-            for (m21 = min_vals[4] ; m21 <= max_vals[4] ; m21 += deltas[4])
-            {
-              *MATRIX_RELT(m_L_tmp, 2, 1) = m21 ;
-              for (m22 = min_vals[5] ; m22 <= max_vals[5] ; m22 += deltas[5])
-              {
-                *MATRIX_RELT(m_L_tmp, 2,2) = m22 ;
-                for (m23 = min_vals[6] ; m23 <= max_vals[6] ; m23 += deltas[6])
-                {
-                  *MATRIX_RELT(m_L_tmp, 2,3) = m23 ;
-                  for (m24 = min_vals[7] ; m24 <= max_vals[7] ; m24 += deltas[7])
-                  {
-                    *MATRIX_RELT(m_L_tmp, 2,4) = m24 ;
-                    for (m31 = min_vals[8] ; m31 <= max_vals[8] ; m31 += deltas[8])
-                    {
-                      *MATRIX_RELT(m_L_tmp, 3,1) = m31 ;
-                      for (m32 = min_vals[9] ; m32 <= max_vals[9] ; m32 += deltas[9])
-                      {
-                        *MATRIX_RELT(m_L_tmp, 3,2) = m32 ;
-                        for (m33 = min_vals[10] ; m33 <= max_vals[10] ; m33 += deltas[10])
-                        {
-                          *MATRIX_RELT(m_L_tmp, 3,3) = m33 ;
-                          for (m34 = min_vals[11] ; m34 <= max_vals[11] ; m34 += deltas[11])
-                          {
-                            *MATRIX_RELT(m_L_tmp, 3,4) = m34 ;
-                            {
-                              log_p = 
-                                local_GCAcomputeLogSampleProbability(gca, gcas, mri, m_L_tmp,nsamples) ;
-                              if (log_p > max_log_p)
-                              {
-                                printf("new optimal matrix found (%2.3f --> %2.3f)\n",
-                                       max_log_p, log_p) ;
-                                max_log_p = log_p ;
-                                MatrixCopy(m_L_tmp, m_L_best) ;
-                                MatrixPrint(stdout, m_L_best) ;
-                              }
-                            }
-                          }
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-    
-    if ((Gdiag & DIAG_SHOW) && (old_log_p < max_log_p))
-    {
-      printf("iter %d, scale %2.3f: max log p = %2.1f with matrix:\n", i, scale, max_log_p) ;
-      MatrixPrint(stdout, m_L_best) ;
-    }
-    
-    MatrixCopy(m_L_best, m_L) ;
-  }
-
-  MatrixFree(&m_L_tmp) ; MatrixCopy(m_L_best, m_L) ; MatrixFree(&m_L_best) ;
-  return(max_log_p) ;
-}
-
-#endif
-#endif
-
-#if 0
-static float
-compare_transform(MRI *mri, GCA *gca, GCA_SAMPLE *gcas, int nsamples, 
-                  MATRIX *m_L)
-{
-  static TRANSFORM *transform = NULL ;
-  double  log_p1, log_p2 ;
-
-  if (!transform)
-    transform = TransformAlloc(LINEAR_VOX_TO_VOX, NULL) ;
-  ((LTA *)transform->xform)->xforms[0].m_L = m_L ;
-
-  log_p1 = GCAcomputeLogSampleProbability(gca, gcas, mri, transform,nsamples);
-  ((LTA *)transform->xform)->xforms[0].m_L = MatrixIdentity(4, NULL) ;
-  log_p2 = compareLogSampleProbability(gca, gcas, mri, transform,nsamples);
-  MatrixFree(&((LTA *)transform->xform)->xforms[0].m_L) ;
-  return(log_p1 - log_p2) ;
-}
-float
-compareLogSampleProbability(GCA *gca, GCA_SAMPLE *gcas, 
-                            MRI *mri_inputs, TRANSFORM *transform, 
-                            int nsamples)
-{
-  int        x, y, z, width, height, depth, val,
-             i, xp, yp, zp, max_i ;
-  float      dist ;
-  double     total_log_p, log_p, max_diff, diff ;
-
-  /* go through each GC in the sample and compute the probability of
-     the image at that point.
-  */
-  width = mri_inputs->width ; height = mri_inputs->height; 
-  depth = mri_inputs->depth ;
-  TransformInvert(transform, mri_inputs) ;
-  max_diff = -1 ; max_i = -1 ;
-  for (total_log_p = 0.0, i = 0 ; i < nsamples ; i++)
-  {
-    if (i == Gdiag_no)
-      DiagBreak() ;
-    if (Gdiag_no == gcas[i].label)
-      DiagBreak() ;
-
-    xp = gcas[i].xp ; yp = gcas[i].yp ; zp = gcas[i].zp ; 
-    GCApriorToSourceVoxel(gca,mri_inputs, transform, xp, yp, zp, &x, &y, &z) ;
-    gcas[i].x = x ; gcas[i].y = y ; gcas[i].z = z ;
-    val = MRIvox(mri_inputs, x, y, z) ;
-
-    dist = (val-gcas[i].mean) ;
-    log_p =
-      -log(sqrt(gcas[i].var)) - 
-      0.5 * (dist*dist/gcas[i].var) +
-      log(gcas[i].prior) ;
-    total_log_p += log_p ;
-    /* current one should be better (bigger) than one in struct */
-    diff = gcas[i].log_p - log_p  ;
-    if (diff > max_diff)
-    {
-      max_diff = diff ;
-      max_i = i ;
-    }
-
-    /*    gcas[i].log_p = log_p ;*/
-
-    if (!check_finite("2", total_log_p))
-    {
-      fprintf(stderr, 
-              "total log p not finite at (%d, %d, %d) var=%2.2f\n", 
-                                    x, y, z, gcas[i].var) ;
-      DiagBreak() ;
-    }
-  }
-
-  return((float)total_log_p) ;
-}
-
-static int 
-recompute_labels(MRI *mri, GCA *gca, GCA_SAMPLE *gcas, 
-                     int nsamples, MATRIX *m_L)
-{
-  int            xp,yp,zp,x, y, z, label, n, i, nchanged = 0 ;
-  Real           val ;
-  GCA_PRIOR      *gcap ;
-  float          log_p ;
-  GC1D           *gc ;
-
-  for (i = 0 ; i < nsamples ; i++)
-  {
-    if (i == Gdiag_no)
-      DiagBreak() ;
-    xp = gcas[i].xp ; yp = gcas[i].yp ; zp = gcas[i].zp ; 
-    GCApriorToSourceVoxel(gca,mri, transform, xp, yp, zp, &x, &y, &z) ;
-    val = MRIvox(mri, x, y, z) ;
-    label = GCAcomputeMAPlabelAtLocation(gca, xp,yp,zp,val,&n,&log_p);
-    gcap = &gca->priors[xp][yp][zp] ;
-    if (n >= 0)
-    {
-      if (label != gcas[i].label)
-        nchanged++ ;
-      gcas[i].label = label ;
-      gcas[i].prior = gcap->priors[n] ;
-      gc = GCAfindPriorGC(gca, xp, yp, zp, label) ;
-      if (gc)
-      {
-        gcas[i].var = sqrt(gc->var) ;
-        gcas[i].mean = gc->mean ;
-      }
-      else   /* probably out of field of view */
-      {
-        gcas[i].var = 1 ;
-        gcas[i].mean = 0 ;
-      }
-
-    }
-  }
-
-  return(NO_ERROR) ;
-}
-
-#endif
-
-/*
-	search 9-dimensional parameter space 
+/*/////////////////////////////////////////////////////////////
+  search 9-dimensional parameter space 
 */
 static double 
 find_optimal_linear_xform(GCA *gca, GCA_SAMPLE *gcas, 
-													MRI *mri, 
-													int nsamples, MATRIX *m_L, MATRIX *m_origin,
-													float min_angle, float max_angle,
-													float min_scale, float max_scale,
-													float min_trans, float max_trans,
-													float angle_steps, float scale_steps, float trans_steps,
-													int nreductions)
+			  MRI *mri, 
+			  int nsamples, MATRIX *m_L, MATRIX *m_origin,
+			  float min_angle, float max_angle,
+			  float min_scale, float max_scale,
+			  float min_trans, float max_trans,
+			  float angle_steps, float scale_steps, float trans_steps,
+			  int nreductions)
 {
   MATRIX   *m_rot, *m_x_rot, *m_y_rot, *m_z_rot, *m_tmp,*m_L_tmp,*m_origin_inv,
-           *m_tmp2, *m_scale, *m_trans, *m_tmp3 = NULL ;
+    *m_tmp2, *m_scale, *m_trans, *m_tmp3 = NULL ;
   double   x_angle, y_angle, z_angle, x_max_rot, y_max_rot, z_max_rot, delta_rot, 
-        	 x_max_scale, y_max_scale, z_max_scale, delta_scale, x_trans, delta_trans, y_trans, z_trans,
-           log_p, max_log_p, mean_angle, x_scale, y_scale, z_scale, mean_scale, x_max_trans,
-		       y_max_trans, z_max_trans, mean_trans ;
+    x_max_scale, y_max_scale, z_max_scale, delta_scale, x_trans, delta_trans, y_trans, z_trans,
+    log_p, max_log_p, mean_angle, x_scale, y_scale, z_scale, mean_scale, x_max_trans,
+    y_max_trans, z_max_trans, mean_trans ;
   int      i ;
 
   m_trans = MatrixIdentity(4, NULL) ;
@@ -2577,17 +1537,17 @@ find_optimal_linear_xform(GCA *gca, GCA_SAMPLE *gcas,
   x_max_trans = y_max_trans = z_max_trans = x_max_rot = y_max_rot = z_max_rot = 0.0 ;
   x_max_scale = y_max_scale = z_max_scale = 1.0f ;
   m_scale = MatrixIdentity(4, NULL) ;
-  max_log_p = local_GCAcomputeLogSampleProbability(gca, gcas, mri, m_L,nsamples) ;
+  max_log_p = local_GCAcomputeLogSampleProbability(gca, gcas, mri, m_L, nsamples) ;
   for (i = 0 ; i < nreductions ; i++)
   {
-		delta_trans = (max_trans-min_trans) / (trans_steps-1) ;
+    delta_trans = (max_trans-min_trans) / (trans_steps-1) ;
     delta_scale = (max_scale-min_scale) / (scale_steps-1) ;
     delta_rot = (max_angle-min_angle) / (angle_steps-1) ;
     if (Gdiag & DIAG_SHOW)
     {
-      printf("scanning %2.2f degree nbhd (%2.1f), "
-             "scale %2.3f->%2.3f (%2.3f), and trans %2.2f->%2.2f (%2.2f)\n",
-              (float)DEGREES(max_angle), (float)DEGREES(delta_rot),
+      printf("  scanning %2.2f degree nbhd (%2.1f)\n"
+             "  scale %2.3f->%2.3f (step %2.3f), trans %2.2f->%2.2f (step %2.2f)\n",
+	     (float)DEGREES(max_angle), (float)DEGREES(delta_rot),
              min_scale,max_scale, delta_scale, min_trans, max_trans, delta_trans);
       fflush(stdout) ;
     }
@@ -2625,33 +1585,33 @@ find_optimal_linear_xform(GCA *gca, GCA_SAMPLE *gcas,
 
                 
                 m_tmp2 = MatrixMultiply(m_scale, m_rot, m_tmp2) ;
-								m_tmp3 = MatrixMultiply(m_tmp2, m_L, m_tmp3) ;
+		m_tmp3 = MatrixMultiply(m_tmp2, m_L, m_tmp3) ;
 
-								for (x_trans = min_trans ; x_trans <= max_trans ; x_trans += delta_trans)
-								{
-									*MATRIX_RELT(m_trans, 1, 4) = x_trans ;
-									for (y_trans = min_trans ; y_trans <= max_trans ; y_trans += delta_trans)
-									{
-										*MATRIX_RELT(m_trans, 2, 4) = y_trans ;
-										for (z_trans= min_trans ; z_trans <= max_trans ; z_trans += delta_trans)
-										{
-											*MATRIX_RELT(m_trans, 3, 4) = z_trans ;
+		for (x_trans = min_trans ; x_trans <= max_trans ; x_trans += delta_trans)
+		{
+		  *MATRIX_RELT(m_trans, 1, 4) = x_trans ;
+		  for (y_trans = min_trans ; y_trans <= max_trans ; y_trans += delta_trans)
+		  {
+		    *MATRIX_RELT(m_trans, 2, 4) = y_trans ;
+		    for (z_trans= min_trans ; z_trans <= max_trans ; z_trans += delta_trans)
+		    {
+		      *MATRIX_RELT(m_trans, 3, 4) = z_trans ;
 
-											m_L_tmp = MatrixMultiply(m_trans, m_tmp3, m_L_tmp) ;
-											log_p = 
-												local_GCAcomputeLogSampleProbability(gca, gcas, mri, m_L_tmp, nsamples) ;
-											if (log_p > max_log_p)
-											{
-												max_log_p = log_p ;
-												x_max_scale = x_scale ; y_max_scale = y_scale ; 
-												z_max_scale = z_scale ;
-												x_max_rot = x_angle ; y_max_rot = y_angle ; 
-												z_max_rot = z_angle ;
-												x_max_trans = x_trans ; y_max_trans = y_trans ; z_max_trans = z_trans ;
-											}
-										}
-									}
-								}
+		      m_L_tmp = MatrixMultiply(m_trans, m_tmp3, m_L_tmp) ;
+		      log_p = 
+			local_GCAcomputeLogSampleProbability(gca, gcas, mri, m_L_tmp, nsamples) ;
+		      if (log_p > max_log_p)
+		      {
+			max_log_p = log_p ;
+			x_max_scale = x_scale ; y_max_scale = y_scale ; 
+			z_max_scale = z_scale ;
+			x_max_rot = x_angle ; y_max_rot = y_angle ; 
+			z_max_rot = z_angle ;
+			x_max_trans = x_trans ; y_max_trans = y_trans ; z_max_trans = z_trans ;
+		      }
+		    }
+		  }
+		}
               }
             }
           }
@@ -2662,11 +1622,11 @@ find_optimal_linear_xform(GCA *gca, GCA_SAMPLE *gcas,
 
     if (Gdiag & DIAG_SHOW)
     {
-      printf("\tmax log p = %2.1f @ R=(%2.3f, %2.3f, %2.3f),"
-              "S=(%2.3f,%2.3f,%2.3f), T=(%2.1f, %2.1f, %2.1f)\n", 
-              max_log_p, DEGREES(x_max_rot), DEGREES(y_max_rot),
-              DEGREES(z_max_rot),x_max_scale, y_max_scale, z_max_scale,
-						 x_max_trans, y_max_trans,z_max_trans) ;
+      printf("  max log p = %2.1f @ R=(%2.3f,%2.3f,%2.3f),"
+	     "S=(%2.3f,%2.3f,%2.3f), T=(%2.1f,%2.1f,%2.1f)\n", 
+	     max_log_p, DEGREES(x_max_rot), DEGREES(y_max_rot),
+	     DEGREES(z_max_rot),x_max_scale, y_max_scale, z_max_scale,
+	     x_max_trans, y_max_trans,z_max_trans) ;
     }
 
     /* update L to reflect new maximum and search around it */
@@ -2702,7 +1662,7 @@ find_optimal_linear_xform(GCA *gca, GCA_SAMPLE *gcas,
     *MATRIX_RELT(m_trans, 1, 4) = x_max_trans ;
     *MATRIX_RELT(m_trans, 2, 4) = y_max_trans ;
     *MATRIX_RELT(m_trans, 3, 4) = z_max_trans ;
-		MatrixMultiply(m_trans, m_tmp3, m_L_tmp) ;
+    MatrixMultiply(m_trans, m_tmp3, m_L_tmp) ;
 
     MatrixCopy(m_L_tmp, m_L) ;
 
@@ -2721,9 +1681,6 @@ find_optimal_linear_xform(GCA *gca, GCA_SAMPLE *gcas,
     min_angle = mean_angle - delta_rot ;
     max_angle = mean_angle + delta_rot ;
   }
-
-  printf("\n") ;
-
   MatrixFree(&m_x_rot) ; MatrixFree(&m_y_rot) ; MatrixFree(&m_z_rot) ;
   MatrixFree(&m_rot) ;   MatrixFree(&m_tmp) ; MatrixFree(&m_origin_inv) ;
   MatrixFree(&m_tmp2) ; MatrixFree(&m_trans) ; MatrixFree(&m_tmp3) ;
