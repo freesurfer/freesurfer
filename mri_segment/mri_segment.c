@@ -18,9 +18,9 @@ static float pct = 0.8 ;
 static float pslope = 1.0f ;
 static float nslope = 1.0f ;
 static float wm_low = 90 ;
-static float wm_hi = 130 ;
+static float wm_hi = 125 ;
 static float gray_hi = 100 ;
-static int niter = 3 ;
+static int niter = 1 ;
 
 char *Progname ;
 
