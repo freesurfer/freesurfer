@@ -9,6 +9,7 @@
 #include "matfile.h"
 #include "matrix.h"
 #include "error.h"
+#include "diag.h"
 #include "proto.h"
 
 static char   *readMatHeader(FILE *fp, MATFILE *mf) ;
@@ -442,14 +443,16 @@ DiagPrintf(DIAG_WRITE, "readMatHeader: fp=%lx, mf=%lx\n",fp,mf);
     nitems = fread(name, sizeof(char), (int)mf->namlen, fp) ;
     if (nitems != mf->namlen)
     {
-      ErrorPrintf(ERROR_BADFILE, "%s: only read %d bytes of name (%ld specified)\n", 
+      ErrorPrintf(ERROR_BADFILE, 
+                  "%s: only read %d bytes of name (%ld specified)\n", 
                         Progname, nitems, mf->namlen) ;
       /*exit(1) ;*/
       return(NULL);
     }
 
 #if 1
-    DiagPrintf(DIAG_WRITE, "MATFILE: %ld x %ld, type %ld, imagf %ld, name '%s'\n",
+    DiagPrintf(DIAG_WRITE, 
+               "MATFILE: %ld x %ld, type %ld, imagf %ld, name '%s'\n",
                  mf->mrows, mf->ncols, mf->type, mf->imagf, name) ;
 #endif
 
