@@ -33,7 +33,7 @@
                     MACROS AND CONSTANTS
 -------------------------------------------------------*/
 
-#define DEBUG_POINT(x,y,z)  (((x) == 22)&&((y)==15)&&((z)==15))
+#define DEBUG_POINT(x,y,z)  (((x) == 7)&&((y)==15)&&((z)==15))
 #define MAXLEN 256
 
 
@@ -96,6 +96,7 @@ MRIpolvMean(MRI *mri_src, MRI *mri_dst, MRI *mri_polv, int wsize)
   float    e1_x, e1_y, e1_z, e2_x, e2_y, e2_z, xbase, ybase, zbase, total ;
   BUFTYPE  *pdst, *pptr ;
 
+  init_basis_vectors() ;
   width = mri_src->width ;
   height = mri_src->height ;
   depth = mri_src->depth ;
@@ -176,6 +177,7 @@ MRIpolvMedian(MRI *mri_src, MRI *mri_dst, MRI *mri_polv, int wsize)
   depth = mri_src->depth ;
   whalf = (wsize-1)/2 ;
 
+  init_basis_vectors() ;
   if (!mri_dst)
     mri_dst = MRIclone(mri_src, NULL) ;
 
@@ -248,6 +250,7 @@ MRIpolvMeanRegion(MRI *mri_src, MRI *mri_dst, MRI *mri_polv, int wsize,
   float    e1_x, e1_y, e1_z, e2_x, e2_y, e2_z, xbase, ybase, zbase, total ;
   BUFTYPE  *pdst, *pptr ;
 
+  init_basis_vectors() ;
   if (mri_src->type != MRI_UCHAR)
     ErrorReturn(mri_dst, 
                 (ERROR_UNSUPPORTED, 
@@ -359,6 +362,7 @@ MRIpolvMedianRegion(MRI *mri_src, MRI *mri_dst,MRI *mri_polv,int wsize,
   float    e1_x, e1_y, e1_z, e2_x, e2_y, e2_z, xbase, ybase, zbase ;
   BUFTYPE  *pdst, *pptr, plane_vals[MAXLEN], *pvals ;
 
+  init_basis_vectors() ;
   if (mri_src->type != MRI_UCHAR)
     ErrorReturn(mri_dst, 
                 (ERROR_UNSUPPORTED, 
@@ -416,6 +420,9 @@ MRIpolvMedianRegion(MRI *mri_src, MRI *mri_dst,MRI *mri_polv,int wsize,
       pptr = &MRIvox(mri_polv, x0, y, z) ;      /* ptr to normal vectors */
       for (x = x0 ; x < width ; x++)
       {
+if (DEBUG_POINT(x,y,z))
+  DiagBreak() ;
+
         vertex = *pptr++ ;
         e1_x = e1_x_v[vertex] ;  /* basis vectors for plane */
         e1_y = e1_y_v[vertex] ;
@@ -469,6 +476,7 @@ MRIextractPlanes(MRI *mri_src, MRI *mri_dst, MRI *mri_polv, int x, int y,
   int      vertex, whalf, xk, yk, zk, pno, xp, yp, xoff ;
   BUFTYPE  *psrc, val ;
 
+  init_basis_vectors() ;
   whalf = (wsize-1)/2 ;
 
   if (!mri_dst)
@@ -626,9 +634,8 @@ MRIcentralPlaneOfLeastVarianceNormal(MRI *mri_src, MRI *mri_dst, int wsize)
   float    xbase, ybase, zbase, *pe1_x, *pe1_y, *pe1_z,
            *pe2_x, *pe2_y, *pe2_z, e1_x, e1_y, e1_z, e2_x, e2_y, e2_z ;
 
-  if (!vertices_initialized)
-    init_basis_vectors() ;
-
+  init_basis_vectors() ;
+    
   pxi = mri_src->xi ; pyi = mri_src->yi ; pzi = mri_src->zi ;
   MRIvalRange(mri_src, &background_val, &fmax) ;
   background_val *= 0.2f ;  /* anything smaller than 20% of peak is bg */
@@ -652,6 +659,7 @@ MRIcentralPlaneOfLeastVarianceNormal(MRI *mri_src, MRI *mri_dst, int wsize)
       pdst = &MRIvox(mri_dst, whalf, y, z) ;
       for (x = whalf ; x < width ; x++)
       {
+#if 0
 /* 
    first check to see whether we are in a background region, and, if so,
    don't process this point.
@@ -672,6 +680,7 @@ MRIcentralPlaneOfLeastVarianceNormal(MRI *mri_src, MRI *mri_dst, int wsize)
         }
         if (max_val < background_val) /* all background */
           break ;
+#endif
         
         /*
           for this point (x,y,z), go through a set of directions on the unit
@@ -778,6 +787,9 @@ init_basis_vectors(void)
   float vx, vy, vz, *px, *py, *pz, *pe1_x, *pe1_y, *pe1_z, *pe2_x, *pe2_y, 
         *pe2_z, e3_x, e3_y, e3_z, e1_x, e1_y, e1_z, e2_x, e2_y, e2_z, len ;
   int   vertex ;
+
+  if (vertices_initialized)
+    return ;
 
   px = ic_x_vertices ; py = ic_y_vertices ; pz = ic_z_vertices ;
   pe1_x = e1_x_v ; pe1_y = e1_y_v ; pe1_z = e1_z_v ;
