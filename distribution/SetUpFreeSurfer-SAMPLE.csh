@@ -10,8 +10,9 @@ if (! $?FREESRFER_HOME) then
 endif    
  
 # Call configuration script.
-cd $FREESURFER_HOME
+pushd $FREESURFER_HOME
 source FreeSurferEnv.csh
+popd
 
 # Set this to your subjects/ dir, usually freesurfer/subjects/
 if (! $?SUBJECTS_DIR) then
