@@ -7,6 +7,8 @@
 #include "mriTransform.h"
 #include "xList.h"
 
+extern tBoolean gScaleUpFlag ;
+
 //#define LINEAR_CORONAL_RAS_TO_CORONAL_RAS       21
 // should be in transform.h if they aren't already
 
@@ -398,6 +400,26 @@ Volm_tErr Volm_ImportData ( mriVolumeRef this,
   mriVolume = MRIread( isSource );
   DebugAssertThrowX( (NULL != mriVolume), 
 		     eResult, Volm_tErr_CouldntReadVolume );
+
+	if (gScaleUpFlag == TRUE)
+	{
+		float scale, fov_x, fov_y, fov_z  ;
+
+		scale = 1.0/MIN(MIN(mriVolume->xsize, mriVolume->ysize),mriVolume->zsize) ;
+		printf("scaling voxel sizes up by %2.2f\n", scale) ;
+		mriVolume->xsize *= scale ; mriVolume->ysize *= scale ; mriVolume->zsize *= scale ;
+    fov_x = mriVolume->xsize * mriVolume->width;
+    fov_y = mriVolume->ysize * mriVolume->height;
+    fov_z = mriVolume->zsize * mriVolume->depth;
+    mriVolume->xend = fov_x / 2.0;
+    mriVolume->xstart = -mriVolume->xend;
+    mriVolume->yend = fov_y / 2.0;
+    mriVolume->ystart = -mriVolume->yend;
+    mriVolume->zend = fov_z / 2.0;
+    mriVolume->zstart = -mriVolume->zend;
+
+    mriVolume->fov = (fov_x > fov_y ? (fov_x > fov_z ? fov_x : fov_z) : (fov_y > fov_z ? fov_y : fov_z) );
+	}
 
   DebugNote( ("Setting from MRI") );
   eResult = Volm_SetFromMRI_( this, mriVolume );
