@@ -87,9 +87,9 @@ static int   GCAmaxLikelihoodBorderLabel(GCA *gca, MRI *mri_inputs,
 
 
 /* arrays for indexing 6-connected neighbors */
-static int xnbr_offset[] = { 1, -1, 0, 0,  0, 0, 0} ;
-static int ynbr_offset[] = { 0, 0,  1, -1, 0, 0, 0} ;
-static int znbr_offset[] = { 0, 0,  0, 0,  1, -1,0} ;
+static int xnbr_offset[] = { 1, -1, 0, 0,  0,  0} ;
+static int ynbr_offset[] = { 0, 0,  1, -1, 0,  0} ;
+static int znbr_offset[] = { 0, 0,  0, 0,  1, -1} ;
 
 static int
 dump_gcan(GCA_NODE *gcan, FILE *fp, int verbose)
@@ -3618,8 +3618,8 @@ GCAanneal(MRI *mri_inputs, GCA *gca, MRI *mri_dst,LTA *lta,
 char *gca_write_fname = NULL ;
 int gca_write_iterations = 0 ;
 
-#define MAX_PRIOR_FACTOR 0.5
-#define MIN_PRIOR_FACTOR 0.2
+#define MAX_PRIOR_FACTOR 1.0
+#define MIN_PRIOR_FACTOR 0.4
 
 MRI  *
 GCAreclassifyUsingGibbsPriors(MRI *mri_inputs, GCA *gca, MRI *mri_dst,LTA *lta,
@@ -3818,7 +3818,7 @@ GCAreclassifyUsingGibbsPriors(MRI *mri_inputs, GCA *gca, MRI *mri_dst,LTA *lta,
         if (label == Right_Caudate)
           DiagBreak() ;
       }
-#if 1
+#if 0
       if (((old_label == Left_Cerebral_White_Matter) && 
           (label == Left_Cerebral_Cortex)) ||
           ((old_label == Right_Cerebral_White_Matter) && 
@@ -4258,7 +4258,7 @@ gcaFindGC(GCA *gca, int x, int y, int z,int label)
 
 #include "mrisegment.h"
 /* each segment must be at least this much of total to be retained */
-#define MIN_SEG_PCT  0.05   
+#define MIN_SEG_PCT  0.15   
 
 static int gcaReclassifySegment(GCA *gca, MRI *mri_inputs, MRI *mri_labels,
                                 MRI_SEGMENT *mseg, int old_label, LTA *lta);
@@ -4275,6 +4275,8 @@ GCAconstrainLabelTopology(GCA *gca, MRI *mri_inputs,MRI *mri_src, MRI *mri_dst,
 
   for (i = 1 ; i <= MAX_CMA_LABEL ; i++)
   {
+    if (!IS_BRAIN(i))
+      continue ;
     nvox = MRIvoxelsInLabel(mri_dst, i) ;
     if (!nvox)
       continue ;
@@ -5488,6 +5490,14 @@ cma_label_to_name(int label)
     return("Right_Porg") ;
   if (label == Right_Aorg)
     return("Right_Aorg") ;
+  if (label == Bone)
+    return("Bone") ;
+  if (label == Fat)
+    return("Fat") ;
+  if (label == Bright_Unknown)
+    return("Bright Unknown") ;
+  if (label == Dark_Unknown)
+    return("Dark Unknown") ;
   sprintf(name, "UNKNOWN (%d)", label) ;
   return(name) ;
 }
@@ -6577,6 +6587,25 @@ gcaCheck(GCA *gca)
   }
   return(ret) ;
 }
+int
+GCAcomputeVoxelLikelihoods(GCA *gca, MRI *mri_in, int x, int y, int z, LTA *lta, int *labels, double *likelihoods)
+{
+  GCA_NODE  *gcan ;
+  int       xn, yn, zn, n, val ;
+  
+  GCAsourceVoxelToNode(gca, mri_in, lta, x, y, z, &xn, &yn, &zn) ;
+  val = MRIvox(mri_in, x, y, z) ;
+  gcan = &gca->nodes[xn][yn][zn] ;
+  for (n = 0 ; n < gcan->nlabels ; n++)
+  {
+    labels[n] = gcan->labels[n] ;
+    likelihoods[n] = 
+      gcaComputeConditionalDensity(&gcan->gcs[n],(float)val,labels[n]);
+  }
+  
+  return(gcan->nlabels) ;
+}
+
 static double
 gcaComputeConditionalDensity(GC1D *gc, float val, int label)
 {
