@@ -13,8 +13,9 @@
 #include "mri.h"
 #include "macros.h"
 #include "fio.h"
+#include "version.h"
 
-static char vcid[] = "$Id: mris_anatomical_stats.c,v 1.9 2003/03/26 17:40:16 fischl Exp $";
+static char vcid[] = "$Id: mris_anatomical_stats.c,v 1.10 2003/04/17 17:23:52 kteich Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -63,6 +64,12 @@ main(int argc, char *argv[])
   FILE          *log_fp = NULL ;
   VERTEX        *v ;
   HISTOGRAM     *histo_gray ;
+
+  /* rkt: check for and handle version tag */
+  nargs = handle_version_option (argc, argv, "$Id: mris_anatomical_stats.c,v 1.10 2003/04/17 17:23:52 kteich Exp $");
+  if (nargs && argc - nargs == 1)
+    exit (0);
+  argc -= nargs;
 
   total_abs_mean_curvature = total_abs_gaussian_curvature = gray_volume = 0.0 ;
   Progname = argv[0] ;
