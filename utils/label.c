@@ -83,7 +83,7 @@ LabelRead(char *subject_name, char *label_name)
   nlines = 0 ;
   while ((cp = fgetl(line, 199, fp)) != NULL)
   {
-    if (sscanf(cp, "%d %f %f %f", &vno, &x, &y, &z, &stat) != 5)
+    if (sscanf(cp, "%d %f %f %f %f", &vno, &x, &y, &z, &stat) != 5)
       ErrorExit(ERROR_BADFILE, "%s: could not parse %dth line in %s",
                 Progname, area->n_points, fname) ;
     area->lv[nlines].x = x ;
