@@ -1,8 +1,8 @@
 #!/bin/csh -f
 # vertavg-sess
 #
-# $Id: vertavg-sess,v 1.1 2003/03/04 21:22:10 greve Exp $
-set VERSION = '$Id: vertavg-sess,v 1.1 2003/03/04 21:22:10 greve Exp $'
+# $Id: vertavg-sess,v 1.2 2003/03/25 01:04:34 greve Exp $
+set VERSION = '$Id: vertavg-sess,v 1.2 2003/03/25 01:04:34 greve Exp $'
 set FASTVER = `cat $FMRI_ANALYSIS_DIR/docs/version`;
 
 #------ Defaults --------#
@@ -112,9 +112,9 @@ foreach sess ($SessList)
     set inputlist = ($inputlist --vol $instem);
   end
   if($#outbext == 0) then
-    outbextuse = $bext
+    set outbextuse = $bext
   else
-    outbextuse = $outbext
+    set outbextuse = $outbext
   endif
 
   set outdir = $outfsd/001;
