@@ -45,6 +45,15 @@
              calculate an x and a y offset for each point in the image
              using a modified Nitzberg-Shiota algorithm.
 ----------------------------------------------------------------------*/
+static IMAGE *imageOffsetFlipOrientations(IMAGE *Isrc, IMAGE *Idst) ;
+
+IMAGE *
+imageOffsetFlipOrientations(IMAGE *Isrc, IMAGE *Idst)
+{
+  /* don't need this */
+  return(Idst) ;
+}
+
 
 IMAGE *
 ImageCalculateOffset(IMAGE *Ix, IMAGE *Iy, int wsize, IMAGE *Ioffset)
@@ -55,7 +64,18 @@ ImageCalculateOffset(IMAGE *Ix, IMAGE *Iy, int wsize, IMAGE *Ioffset)
   rows = Ix->rows ;
   cols = Ix->cols ;
 
+#if 0
   Iorient = ImageOffsetOrientation(Ix, Iy, wsize, Iorient) ;
+#else
+  Iorient = ImageAlloc(rows, cols, PFFLOAT, 2) ;
+  Iorient->num_frame = 1 ;
+  ImageMeanFilter(Ix, 3, Iorient) ;
+  Iorient->image += Iorient->sizeimage ;
+  ImageMeanFilter(Iy, 3, Iorient) ;
+  Iorient->image -= Iorient->sizeimage ;
+  Iorient->num_frame = 2 ;
+  imageOffsetFlipOrientations(Iorient, Iorient) ;
+#endif
   Ioffset = ImageOffsetDirection(Ix, Iy, wsize, Iorient, Ioffset) ;
 
   return(Ioffset) ;
