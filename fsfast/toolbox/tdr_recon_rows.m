@@ -1,11 +1,13 @@
 function [rimg, dgbeta, ncsub] = tdr_recon_rows(kimg,Rrow,PERev)
 % [rimg, dgbeta] = tdr_recon_rows(kimg,Rrow,<PERev>)
 %
-% The rows are reconned by applying Rrow. Includes deghosting.
+% The rows are reconned by applying Rrow. Includes deghosting.  kimg
+% can be any number of slices and frames. Flips even rows prior to
+% recon.
 %
 % See also tdr_recon_cols.
 % 
-% $Id: tdr_recon_rows.m,v 1.5 2004/01/22 00:53:27 greve Exp $
+% $Id: tdr_recon_rows.m,v 1.6 2005/03/19 00:19:38 greve Exp $
 
 rimg = [];
 dgbeta = [];
