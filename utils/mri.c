@@ -5904,6 +5904,26 @@ MRIapplyRASlinearTransform(MRI *mri_src, MRI *mri_dst, MATRIX *m_ras_xform)
         Returns value:
 
         Description
+          Convert a transform from RAS to voxel coordinates, then apply
+          it to an MRI.
+------------------------------------------------------*/
+MRI *
+MRIapplyRASinverseLinearTransform(MRI *mri_src, MRI *mri_dst, 
+                                  MATRIX *m_ras_xform)
+{
+  MATRIX   *m_voxel_xform ;
+
+  m_voxel_xform = MRIrasXformToVoxelXform(mri_src, mri_dst, m_ras_xform, NULL);
+  mri_dst = MRIinverseLinearTransform(mri_src, mri_dst, m_voxel_xform) ;
+  MatrixFree(&m_voxel_xform) ;
+  return(mri_dst) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
           Perform an linear coordinate transformation x' = Ax on
           the MRI image mri_src into mri_dst
 ------------------------------------------------------*/
