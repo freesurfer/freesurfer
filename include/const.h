@@ -31,6 +31,7 @@
 #define INV_SQRTPI      0.56419
 
 #define STR_LEN         100   /* misc. string length */
+#define STRLEN          STR_LEN
 
 /* predefined file descriptors */
 #define FD_STDIN       0
