@@ -1,6 +1,6 @@
 # tkUtils.tcl (tku)
 
-# $Id: tkUtils.tcl,v 1.11 2004/10/15 16:19:07 kteich Exp $
+# $Id: tkUtils.tcl,v 1.12 2004/10/20 21:07:16 kteich Exp $
 
 # tkuMakeMenu isMenuButton "Menu Name" {item...}
 # item = { command   "Item Name" command                [group_name] }
@@ -537,6 +537,7 @@ proc tkuMakeCheckboxes { ifwTop args } {
 #    -length : length of slider
 #    -command : command to call when changed
 #    -entry : whether to include a text entry
+#    -entrywidth : width of entry
 proc tkuMakeSliders { ifwTop args } {
 
     # set default arguments for all fields
@@ -567,6 +568,7 @@ proc tkuMakeSliders { ifwTop args } {
 	set aSlider(-resolution) 1.0
 	set aSlider(-length) 100
 	set aSlider(-entry) 0
+	set aSlider(-entrywidth) 0
 	set aSlider(-command) ""
 	array set aSlider $lSlider
 	foreach arg {-variable} {
@@ -593,7 +595,7 @@ proc tkuMakeSliders { ifwTop args } {
 	if { $aSlider(-entry) } {
 	    entry $ifwTop.ew$nSlider \
 		-textvariable $aSlider(-variable) \
-		-width 4 \
+		-width $aSlider(-entrywidth) \
 		-selectbackground green \
 		-insertbackground black
 	    bind $ifwTop.ew$nSlider <Return> $aSlider(-command)
