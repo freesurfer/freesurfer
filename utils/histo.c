@@ -37,6 +37,8 @@ HISTOfree(HISTOGRAM **phisto)
 
   histo = *phisto ;
   *phisto = NULL ;
+	free(histo->bins) ;
+	free(histo->counts) ;
   if (histo)
     free(histo) ;
   return(NO_ERROR) ;
@@ -68,6 +70,10 @@ HISTOdump(HISTOGRAM *histo, FILE *fp)
 HISTOGRAM *
 HISTOrealloc(HISTOGRAM *histo, int nbins)
 {
+	if (histo->bins)
+		free(histo->bins) ;
+	if (histo->counts)
+		free(histo->counts) ;
   histo->bins = (float *)calloc(nbins, sizeof(float)) ;
   histo->counts = (float *)calloc(nbins, sizeof(float)) ;
   if (!histo->counts || !histo->bins)
@@ -1204,3 +1210,15 @@ HISTOfillHoles(HISTO *h)
 		h->counts[h->nbins-1] = h->counts[h->nbins-2] ;
 	return(NO_ERROR) ;
 }
+int
+HISTOtotalInRegion(HISTO *h, int b0, int b1)
+{
+	int b, total ;
+
+	for (total = 0, b = b0 ; b <= b1 ; b++)
+	{
+		total += h->counts[b] ;
+	}
+	return(total) ;
+}
+

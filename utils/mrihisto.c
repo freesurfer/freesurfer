@@ -110,7 +110,7 @@ MRIhistogramRegion(MRI *mri, int nbins, HISTOGRAM *histo, MRI_REGION *region)
                 (ERROR_UNSUPPORTED,"MRIhistogramRegion: must by type UCHAR"));
 #endif
 
-  fmin = MRIvalRange(mri, &fmin, &fmax) ;
+	MRIvalRangeRegion(mri, &fmin, &fmax, region) ;
   bmin = (BUFTYPE)fmin ; bmax = (BUFTYPE)fmax ;
   if (!nbins)
     nbins = nint(fmax - fmin + 1.5) ;
@@ -142,28 +142,26 @@ MRIhistogramRegion(MRI *mri, int nbins, HISTOGRAM *histo, MRI_REGION *region)
  */
   /* check to see if regions overlap */
   overlap = ((mri == mri_prev) &&
-             (region->x > reg_prev.x) && 
+             ((region->x-region->dx) > reg_prev.x) && 
              (region->y == reg_prev.y) &&
              (region->z == reg_prev.z)) ;
 
-  if (overlap)   /* take advantage of overlapping regions */
+  if (overlap && 0)   /* take advantage of overlapping regions */
   {
     MRI_REGION  reg_left, reg_right ;
-    HISTOGRAM   histo_left, histo_right ;
+    HISTOGRAM   *histo_left, *histo_right ;
 
-    HISTOclear(&histo_left, &histo_left) ;
-    HISTOclear(&histo_right, &histo_right) ;
-    histo_left.nbins = histo_right.nbins = 256 ;
     REGIONcopy(&reg_prev, &reg_left) ;
     reg_left.dx = region->x - reg_left.x ;
-    mriHistogramRegion(mri, 0, &histo_left, &reg_left) ;
+    histo_left = mriHistogramRegion(mri, 0, NULL, &reg_left) ;
     REGIONcopy(&reg_prev, &reg_right) ;
     reg_right.x = reg_prev.x + reg_prev.dx ;
     reg_right.dx = region->x + region->dx - reg_right.x ;
-    mriHistogramRegion(mri, 0, &histo_right, &reg_right) ;
+    histo_right = mriHistogramRegion(mri, 0, NULL, &reg_right) ;
 
-    HISTOsubtract(h_prev, &histo_left, histo) ;
-    HISTOadd(histo, &histo_right, histo) ;
+    HISTOsubtract(h_prev, histo_left, histo) ;
+    HISTOadd(histo, histo_right, histo) ;
+		HISTOfree(&histo_left) ; HISTOfree(&histo_right) ;
   }
   else
     mriHistogramRegion(mri, nbins, histo, region) ;
@@ -314,7 +312,7 @@ mriHistogramRegion(MRI *mri, int nbins, HISTOGRAM *histo, MRI_REGION *region)
     fmin = 0 ; fmax = 255 ;
   }
   else
-    fmin = MRIvalRange(mri, &fmin, &fmax) ;
+		MRIvalRangeRegion(mri, &fmin, &fmax, region) ;
   bmin = (BUFTYPE)fmin ; bmax = (BUFTYPE)fmax ;
   if (!nbins)
     nbins = nint(fmax - fmin + 1.5) ;
@@ -427,10 +425,12 @@ mriHistogramRegion(MRI *mri, int nbins, HISTOGRAM *histo, MRI_REGION *region)
 MRI *
 MRIhistoEqualizeRegion(MRI *mri_src, MRI *mri_dst, int low,MRI_REGION *region)
 {
-  HISTOGRAM  histo_eq ;
+  HISTOGRAM  *histo_eq ;
 
-  MRIgetEqualizeHistoRegion(mri_src, &histo_eq, low, region, 1) ;
-  mri_dst = MRIapplyHistogramToRegion(mri_src, mri_dst, &histo_eq, region) ;
+	histo_eq = HISTOalloc(256) ;
+  MRIgetEqualizeHistoRegion(mri_src, histo_eq, low, region, 1) ;
+  mri_dst = MRIapplyHistogramToRegion(mri_src, mri_dst, histo_eq, region) ;
+	HISTOfree(&histo_eq) ;
   return(mri_dst) ;
 }
 /*-----------------------------------------------------
@@ -499,7 +499,7 @@ MRIgetEqualizeHistoRegion(MRI *mri, HISTOGRAM *histo_eq, int low,
                           MRI_REGION *region, int norm)
 {
   int       i, nbins ;
-  HISTOGRAM histo ;
+  HISTOGRAM *histo ;
   float     *pc, *pdst, total, total_pix ;
 
 
@@ -507,8 +507,8 @@ MRIgetEqualizeHistoRegion(MRI *mri, HISTOGRAM *histo_eq, int low,
     ErrorReturn(NULL,
                 (ERROR_UNSUPPORTED, 
                  "MRIgetEqualizeHistoRegion: unsupported type %d",mri->type));
-  MRIhistogramRegion(mri, 0, &histo, region) ;
-  nbins = histo.nbins ;
+  histo = MRIhistogramRegion(mri, 0, NULL, region) ;
+  nbins = histo->nbins ;
   if (!histo_eq)
     histo_eq = HISTOalloc(nbins) ;
   else
@@ -517,12 +517,12 @@ MRIgetEqualizeHistoRegion(MRI *mri, HISTOGRAM *histo_eq, int low,
     HISTOclear(histo_eq, histo_eq) ;
   }
 
-  for (pc = &histo.counts[0], total_pix = 0, i = low ; i < nbins ; i++)
+  for (pc = &histo->counts[0], total_pix = 0, i = low ; i < nbins ; i++)
     total_pix += *pc++ ;
 
   if (total_pix) 
   {
-    pc = &histo.counts[0] ;
+    pc = &histo->counts[0] ;
     pdst = &histo_eq->counts[0] ;
 
     for (total = 0, i = low ; i < nbins ; i++)
@@ -535,6 +535,7 @@ MRIgetEqualizeHistoRegion(MRI *mri, HISTOGRAM *histo_eq, int low,
     }
   }
 
+	HISTOfree(&histo) ;
   return(histo_eq) ;
 }
 /*-----------------------------------------------------
@@ -596,7 +597,7 @@ MRIgetEqualizeHisto(MRI *mri, HISTOGRAM *histo_eq, int low, int high,int norm)
 MRI *
 MRIhistoEqualize(MRI *mri_src, MRI *mri_template,MRI *mri_dst,int low,int high)
 {
-  HISTOGRAM  histo_src, histo_template ;
+  HISTOGRAM  *histo_src, *histo_template ;
   int       width, height, depth, x, y, z, index ;
   BUFTYPE   *psrc, *pdst, sval, dval ;
   float     pct ;
@@ -604,12 +605,12 @@ MRIhistoEqualize(MRI *mri_src, MRI *mri_template,MRI *mri_dst,int low,int high)
   if (!mri_dst)
     mri_dst = MRIclone(mri_src, NULL) ;
 
-  MRIgetEqualizeHisto(mri_src, &histo_src, low, high, 1) ;
-  MRIgetEqualizeHisto(mri_template, &histo_template, low, high, 1) ;
+  histo_src = MRIgetEqualizeHisto(mri_src, NULL, low, high, 1) ;
+  histo_template = MRIgetEqualizeHisto(mri_template, NULL, low, high, 1) ;
 
 
-  HISTOplot(&histo_src, "cum_src.plt") ;
-  HISTOplot(&histo_template, "cum_template.plt") ;
+  HISTOplot(histo_src, "cum_src.plt") ;
+  HISTOplot(histo_template, "cum_template.plt") ;
   width = mri_src->width ; height = mri_src->height ; depth = mri_src->depth ;
 
   for (z = 0 ; z < depth ; z++)
@@ -630,10 +631,10 @@ MRIhistoEqualize(MRI *mri_src, MRI *mri_template,MRI *mri_dst,int low,int high)
 
         if ((sval >= low) && (sval <= high))
         {
-          pct = histo_src.counts[sval] ;
-          for (index = low ; index < histo_template.nbins ; index++)
+          pct = histo_src->counts[sval] ;
+          for (index = low ; index < histo_template->nbins ; index++)
           {
-            if (histo_template.counts[index] >= pct)
+            if (histo_template->counts[index] >= pct)
             {
               dval = index ;
               break ;
@@ -648,6 +649,8 @@ MRIhistoEqualize(MRI *mri_src, MRI *mri_template,MRI *mri_dst,int low,int high)
       }
     }
   }
+	HISTOfree(&histo_template) ;
+	HISTOfree(&histo_src) ;
   return(mri_dst) ;
 }
 /*-----------------------------------------------------
