@@ -3,7 +3,7 @@
 # Performs motion correction of anatomicals. This should produce
 # the same output as mri_motion_correct
 
-set VERSION = '$Id: mri_motion_correct2,v 1.1 2002/09/16 21:31:29 greve Exp $';
+set VERSION = '$Id: mri_motion_correct2,v 1.2 2003/08/28 20:35:47 tosa Exp $';
 
 set tmpdir      = /tmp;
 set inputlist   = ();
@@ -74,6 +74,8 @@ foreach input ($inputlist)
   rm -f $mncinput
 
   if(0) then
+    # rawtominc is MNI software without --version option, but it is cvs'ed.
+    strings rawtominc | grep rawtominc
     set cmd = (rawtominc)
     set cmd = ($cmd -coronal -byte -xstep 1 -ystep 1 -zstep 1 -xstart)
     set cmd = ($cmd -128 -ystart -128 -zstart -128 )
@@ -88,7 +90,7 @@ foreach input ($inputlist)
     endif
   endif
 
-  set cmd = (mri_convert $input $mncinput)
+  set cmd = (mri_convert --version $input $mncinput)
   pwd >> $LF
   echo $cmd >> $LF
   $cmd |& tee -a $LF
@@ -117,7 +119,8 @@ foreach mncinput ($mncinputlist)
   echo "-----------------------------------------" |& tee -a $LF
   echo "Motion Correcting $mncinput" |& tee -a $LF
   date |& tee -a $LF
-
+  # minctracc is MNI software without version option, but cvs'ed.
+  strings minctracc | grep minctracc.c
   set cmd = (minctracc -lsq6 $mncinput $mnctarget $xfm)
   pwd >> $LF
   echo $cmd >> $LF
@@ -132,6 +135,8 @@ foreach mncinput ($mncinputlist)
   date |& tee -a $LF
 
   rm -f $mncresampled
+  # mincresample is MNI software without version option, but cvs'ed
+  strings mincresample | grep mincresample.c
   set cmd = (mincresample -like $mnctarget -transform $xfm)
   set cmd = ($cmd $mncinput $mncresampled)
   pwd >> $LF
@@ -153,6 +158,7 @@ date |& tee -a $LF
 set avgvol = $tmpdir/avgvol.mnc
 set CleanUpList = ($CleanUpList $avgvol);
 rm -f $avgvol
+strings mincaverage | grep mincaverage.c
 set cmd = (mincaverage $mncinputlist $avgvol);
 pwd >> $LF
 echo $cmd >> $LF
