@@ -37,6 +37,7 @@
 #include "canny.h"
 #include "tiffio.h"
 #include "jpeglib.h"
+#include "rgb_image.h"
 #ifndef IRIX
 #include "pgm.h"
 #include "ppm.h"
@@ -63,6 +64,8 @@ static IMAGE *PPMReadImage(char *fname) ;
 static IMAGE *PPMReadHeader(FILE *fp, IMAGE *) ;
 static IMAGE *PBMReadImage(char *fname) ;
 static IMAGE *PBMReadHeader(FILE *fp, IMAGE *) ;
+static IMAGE *RGBReadImage(char *fname);
+static IMAGE *RGBReadHeader(char *fname, IMAGE *);
 static byte FindMachineEndian(void);
 static void ImageSwapEndian(IMAGE *I);
 
@@ -382,6 +385,9 @@ ImageFReadHeader(FILE *fp, char *fname)
   case TIFF_IMAGE:
     TiffReadHeader(fname, I) ;
     break ;
+  case RGBI_IMAGE:
+    RGBReadHeader(fname, I);
+    break;
   case MATLAB_IMAGE:
   {
     MATFILE mf ;
@@ -504,6 +510,8 @@ ImageRead(char *fname)
   case PBM_IMAGE:
     I = PBMReadImage(fname);
     break;
+  case RGBI_IMAGE:
+    I= RGBReadImage(fname);
   default:
     break ;
   }
@@ -649,6 +657,8 @@ ImageUnpackFileName(char *inFname, int *pframe, int *ptype, char *outFname)
       *ptype = PPM_IMAGE;
     else if (!strcmp(dot, "PBM"))
       *ptype = PBM_IMAGE;
+    else if (!strcmp(dot, "RGB"))
+      *ptype = RGBI_IMAGE;
     else
       *ptype = HIPS_IMAGE ;
   }
@@ -776,6 +786,77 @@ ImageAppend(IMAGE *I, char *fname)
   fclose(fp) ;
   return(NO_ERROR) ;
 }
+
+static IMAGE *
+RGBReadHeader(char *fname, IMAGE *I)
+{
+  RGB_IMAGE *rgb;
+
+  rgb = iopen(fname, "r", 0, 0, 0, 0, 0);
+
+  if (!I)
+    I = ImageAlloc(rgb->ysize, rgb->xsize, PFRGB, 1) ;
+  else
+    init_header(I, "orig", "seq", 1, "today", rgb->ysize,
+    rgb->xsize, PFRGB, 1, "temp");
+  
+  iclose(rgb);
+
+  return(I) ;
+}
+
+static IMAGE *RGBReadImage(char *fname)
+{
+  IMAGE *I;
+  RGB_IMAGE *rgb;
+  unsigned short rows,cols,*r,*g,*b,i,j,*tr,*tg,*tb;
+  byte *iptr;
+
+  rgb = iopen(fname, "r", 0, 0, 0, 0, 0);
+  rows = rgb->ysize;
+  cols = rgb->xsize;
+  
+  if (rgb->zsize>3)
+    ErrorReturn(NULL, (ERROR_BAD_PARM,
+           "Too many color planes in RGBReadImage (%s)\n",fname));
+
+  I = ImageAlloc(rows, cols, PFRGB, 1);
+  
+  if ((r = (unsigned short *)malloc(sizeof(unsigned short)*cols)) == NULL)
+    ErrorExit(ERROR_NO_MEMORY,"Failed to allocate color buffer\n");
+
+  if ((g = (unsigned short *)malloc(sizeof(unsigned short)*cols)) == NULL)
+    ErrorExit(ERROR_NO_MEMORY,"Failed to allocate color buffer\n");
+
+  if ((b = (unsigned short *)malloc(sizeof(unsigned short)*cols)) == NULL)
+    ErrorExit(ERROR_NO_MEMORY,"Failed to allocate color buffer\n");
+
+  iptr = I->image;
+
+  for(i=0;i<rows;i++)
+    {
+      getrow(rgb,r,i,0); /* Red */
+      getrow(rgb,g,i,1); /* Green */
+      getrow(rgb,b,i,2); /* Blue */
+
+      /* Translate color planes to RGB format */
+      tr = r; tg = g; tb = b;
+      for (j=0;j<cols;j++)
+  {
+    *iptr++ = *tr++;
+    *iptr++ = *tg++;
+    *iptr++ = *tb++;
+  }
+    }
+  
+  free(r);
+  free(g);
+  free(b);
+  iclose(rgb);
+
+  return I;
+}
+
 /*----------------------------------------------------------------------
             Parameters:
 
