@@ -20,7 +20,7 @@
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_probe_ima.c,v 1.2 2002/01/30 22:47:30 greve Exp $";
+static char vcid[] = "$Id: mri_probe_ima.c,v 1.3 2002/01/31 00:21:26 greve Exp $";
 char *Progname = NULL;
 
 static int  parse_commandline(int argc, char **argv);
@@ -68,11 +68,6 @@ int main(int argc, char **argv)
 
   parse_commandline(argc, argv);
   check_options();
-
-  //if(!imaHasIMAExtension(imafile)){
-  //  printf("ERROR: file %s does not have extension .ima or .IMA\n",imafile);
-  //  exit(1);
-  //}
 
   if(getattr){
     if(stringmatch(attrname,"isima")){
@@ -349,12 +344,11 @@ static void print_help(void)
 "\n"
 "ATTRIBUTES\n"
 "\n"
-"  isima   : returns 1 if the file is a Siemens IMA file, 0 otherwise \n"
-"  voldim  : number of columns, rows, and slices in the volume. The number of \n"
-"            slices will be wrong if the files does not contain a mosaic \n"
-"  volres  : spacing between columns, rows, and slices in the volume\n"
-"  nframes : number of frames\n"
-"  tr      : repetition time (sec)\n"
+"  isima    : returns 1 if the file is a Siemens IMA file, 0 otherwise \n"
+"  voldim   : number of columns, rows, and slices in the volume. \n"
+"  volres   : spacing between columns, rows, and slices in the volume\n"
+"  nframes  : number of frames\n"
+"  tr       : repetition time (sec)\n"
 "  pulseseq : pulse sequence name\n"
 "  patname  : patient name \n"
 "  patdob   : patient date of birth (YYYYMMDD)\n"
