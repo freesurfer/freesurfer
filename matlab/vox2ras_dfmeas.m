@@ -10,7 +10,7 @@ function [M_V] = vox2ras_dfmeas(str_filename, varargin)
 %%
 %% VERSION
 %%
-%%	Id: vox2ras_dfmeas.m,v 1.2 2004/05/26 20:16:28 rudolph Exp $
+%%	$Id: vox2ras_dfmeas.m,v 1.6 2004/06/08 19:09:08 rudolph Exp $
 %%
 %% SYNOPSIS
 %%
