@@ -2,7 +2,7 @@
    DICOM 3.0 reading functions
    Author: Sebastien Gicquel and Douglas Greve
    Date: 06/04/2001
-   $Id: DICOMRead.c,v 1.55 2004/08/05 20:02:28 tosa Exp $
+   $Id: DICOMRead.c,v 1.56 2004/08/13 19:15:04 tosa Exp $
 *******************************************************/
 
 #include <stdio.h>
@@ -1526,9 +1526,9 @@ char *sdcmExtractNumarisVer(char *e_18_1020, int *Maj, int *Min, int *MinMin)
   strncpy(ver,&e_18_1020[n],m);
 
   /* Now determine major and minor release numbers */
-  if(ver[1] != 'V' || ver[2] != 'A'){
+  if(ver[1] != 'V' || !(ver[2] == 'A' || ver[2] == 'B')){
     printf("ERROR: incorreclty formatted version string %s\n"
-	   "found in dicom tag 18,1020 (VA not in 2nd and 3rd)\n",
+	   "found in dicom tag 18,1020 (VA or VB not in 2nd and 3rd)\n",
 	   e_18_1020);
     return(NULL);
   }
