@@ -30,7 +30,8 @@
 ----------------------------------------------------------------------*/
 
 #define CHAR_WIDTH        8
-#define MAX_TITLE_CHARS   (nint((float)xvf->display_size / (float)CHAR_WIDTH))
+#define MAX_TITLE_CHARS   (MIN(STR_LEN-1, \
+                         (nint((float)xvf->display_size / (float)CHAR_WIDTH))))
 
 #define MAX_DISP_SCALES   4
 
