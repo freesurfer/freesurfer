@@ -302,7 +302,6 @@ x support registration matrix properly
 
 
 menuSubscribers, get filled when idList changes
-
 watch value of ow, when changes, disable menu, set value, enable
 
 SurfaceCollection
@@ -372,6 +371,9 @@ x button help balloons
 
 - change volume min/max to histogram ala tksurfer
 
+- save scene setup script
+  - get and set markers and cursor
+
 BRUCE'S LIST:::
 
 x data collection transform 
@@ -382,7 +384,6 @@ x import/export control points
 BUGS:::
 - tabbing when in console switches frame, disable?
 - brings up tkcon window briefly when booting
-- markers and cursor draw at different slices when zoomed in
 - color picker window, open twice?
 - test_ScubaFrame
 - oblique viewing planes
@@ -393,9 +394,6 @@ BUGS:::
 
 
 FUTURE IDEAS:::
-
-Save Scene
- - save a script file to automatically load in data and set up view state like current one
 
 nav tools draw onscreen sliders for feedback
  - on mouse down with right tool, draw scale bar

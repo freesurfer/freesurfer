@@ -10,7 +10,7 @@ if { $err } {
     load [file dirname [info script]]/libscuba[info sharedlibextension] scuba
 }
 
-DebugOutput "\$Id: scuba.tcl,v 1.54 2004/09/11 05:29:22 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.55 2004/09/12 03:28:18 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -191,6 +191,9 @@ proc GetDefaultFileLocation { iType } {
 		} else {
 		    set gsaDefaultLocation($iType) [exec pwd]
 		}	       
+	    }
+	    Scene {
+		set gsaDefaultLocation($iType) [exec pwd]
 	    }
 	    default { 
 		if { [info exists env(SUBJECTS_DIR)] } {
@@ -450,6 +453,8 @@ proc MakeMenuBar { ifwTop } {
 	    { DoExportMarkersToControlPointsDlog } }
 	{separator}
 	{command "Save RGB Capture..." { DoSaveRGBDlog } }
+	{separator}
+	{command "Save Scene Setup Script..." { DoSaveSceneSetupScriptDlog } }
 	{separator}
 	{command "Quit:Alt Q" { Quit } }
     }
@@ -2702,6 +2707,8 @@ proc SelectToolInToolProperties { iTool } {
 		[GetToolFloodStopAtROIs $gaTool(current,id)]
 	    set gaTool(current,stopPaths) \
 		[GetToolFloodStopAtPaths $gaTool(current,id)]
+	    set gaTool(current,fuzziness) \
+		[GetToolFloodFuzziness $gaTool(current,id)]
 	    set gaTool(current,maxDistance) \
 		[GetToolFloodMaxDistance $gaTool(current,id)]
 	    set gaTool(current,flood3D) \
@@ -2867,11 +2874,14 @@ proc SelectSubjectInSubjectsLoader { isSubject } {
     }
 
     # For volumes, look for all the $sSubject/mri/ subdirs except
-    # transforms.and tmp. Make sure they have COR-.info files in them.
+    # transforms.and tmp. Make sure they have COR-.info files in
+    # them. Or, can be a .mgh or .mgz file.
     set lContents [dir -full $env(SUBJECTS_DIR)/$isSubject/mri]
     foreach sItem $lContents {
-	if { [file isdirectory $env(SUBJECTS_DIR)/$isSubject/mri/$sItem] &&
-	  [file exists $env(SUBJECTS_DIR)/$isSubject/mri/$sItem/COR-.info]} {
+	if { ( [file isdirectory $env(SUBJECTS_DIR)/$isSubject/mri/$sItem] &&
+	       [file exists $env(SUBJECTS_DIR)/$isSubject/mri/$sItem/COR-.info]) ||
+	     [file extension $sItem] == ".mgh"  ||
+	     [file extension $sItem] == ".mgz"} {
 	    set sVolume [string trim $sItem /]
 	    if { "$sVolume" != "transforms" &&
 		 "$sVolume" != "tmp" } {
@@ -4102,7 +4112,201 @@ proc DoImportMarkersFromControlPointsDlog {} {
     }
 }
 
+proc DoSaveSceneSetupScriptDlog {} {
+    dputs "DoSaveSceneSetupScriptDlog  "
 
+    global glShortcutDirs
+
+    tkuDoFileDlog -title "Save Scene Setup Script" \
+	-prompt1 "Save Script: " \
+	-defaultdir1 [GetDefaultFileLocation Scene] \
+	-defaultvalue1 [GetDefaultFileLocation Scene] \
+	-shortcuts $glShortcutDirs \
+	-okCmd { 
+	    SaveSceneScript %s1
+	}
+}
+
+proc SaveSceneScript { ifnScene } {
+
+    global gSubject
+    global gaCollection
+    global gaLayer
+    global gaView
+    global gaFrame
+    global gaTool
+    global gaTransform
+
+    # Open the file
+    set f [open $ifnScene w]
+
+    puts $f "\# Scene file generated "
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.55 2004/09/12 03:28:18 kteich Exp $"
+    puts $f ""
+
+    # Find all the data collections.
+    foreach colID $gaCollection(idList) {
+	set type [GetCollectionType $colID]
+	set sLabel [GetCollectionLabel $colID]
+	switch $type {
+	    Volume {
+		set fnVolume [GetVolumeCollectionFileName $colID]
+		set useTransform [GetUseVolumeDataToIndexTransform  $colID]
+
+		puts $f "\#Collection $colID"
+		puts $f "set colID \[MakeVolumeCollection \"$fnVolume\"\]"
+		puts $f "set layerID \[Make2DMRILayer \"$sLabel\"\]"
+		puts $f "Set2DMRILayerVolumeCollection \$layerID \$colID"
+	       puts $f "SetUseVolumeDataToIndexTransform \$colID $useTransform"
+		puts $f ""
+	    }
+	}
+    }
+
+    if { [info exists gSubject(name)] } {
+	puts $f "SetSubjectName \"$gSubject(name)\""
+	puts $f ""
+    }
+
+    # Get all the layer settings.
+    foreach layerID $gaLayer(idList) {
+	set type [GetLayerType $layerID]
+	set sLabel [GetLayerLabel $layerID]
+	set opacity [GetLayerOpacity $layerID]
+
+	puts $f "\# Layer $layerID"
+	puts $f "SetLayerLabel $layerID \"$sLabel\""
+	puts $f "SetLayerOpacity $layerID $opacity"
+	switch $type {
+	    2DMRI {
+		set colorMapMethod [Get2DMRILayerColorMapMethod $layerID]
+		set clearZero [Get2DMRILayerDrawZeroClear $layerID]
+		set sampleMethod [Get2DMRILayerSampleMethod $layerID]
+		set brightness [Get2DMRILayerBrightness $layerID]
+		set contrast [Get2DMRILayerContrast $layerID]
+		set lutID [Get2DMRILayerColorLUT $layerID]
+		set minVisibleValue [Get2DMRILayerMinVisibleValue $layerID]
+		set maxVisibleValue [Get2DMRILayerMaxVisibleValue $layerID]
+		set editableROI [Get2DMRILayerEditableROI $layerID]
+		set roiOpacity [Get2DMRILayerROIOpacity $layerID]
+		puts $f "Set2DMRILayerColorMapMethod $layerID $colorMapMethod"
+		puts $f "Set2DMRILayerDrawZeroClear $layerID $clearZero"
+		puts $f "Set2DMRILayerSampleMethod $layerID $sampleMethod"
+		puts $f "Set2DMRILayerBrightness $layerID $brightness"
+		puts $f "Set2DMRILayerContrast $layerID $contrast"
+		puts $f "Set2DMRILayerColorLUT $layerID $lutID"
+		puts $f "Set2DMRILayerMinVisibleValue $layerID $minVisibleValue"
+		puts $f "Set2DMRILayerMaxVisibleValue $layerID $maxVisibleValue"
+		puts $f "Set2DMRILayerEditableROI $layerID $editableROI"
+		puts $f "Set2DMRILayerROIOpacity $layerID $roiOpacity"
+		puts $f ""
+	    }
+	}
+    }
+
+    # Get view settings.
+    set viewConfig $gaFrame([GetMainFrameID],viewConfig)
+    set numMarkers [GetNumberOfViewMarkers]
+    puts $f "\# View config"
+    puts $f "SetFrameViewConfiguration [GetMainFrameID]  $viewConfig"
+    puts $f "SetNumberOfViewMarkers $numMarkers"
+    puts $f ""
+
+    foreach viewID $gaView(idList) {
+	puts $f "\# View $viewID"
+	set linked [GetViewLinkedStatus $viewID]
+	set lockedCursor [GetViewLockOnCursor $viewID]
+	set transformID [GetViewTransform $viewID]
+	set inPlane [GetViewInPlane $viewID]
+	set inPlaneIncX [GetViewInPlaneMovementIncrement $viewID x]
+	set inPlaneIncY [GetViewInPlaneMovementIncrement $viewID y]
+	set inPlaneIncZ [GetViewInPlaneMovementIncrement $viewID z]
+	set rasCenter [GetViewRASCenter $viewID]
+	set zoomLevel [GetViewZoomLevel	$viewID]
+	puts $f "SetViewLinkedStatus $viewID $linked"
+	puts $f "SetViewLockOnCursor $viewID $lockedCursor"
+	puts $f "SetViewTransform $viewID $transformID"
+	puts $f "SetViewInPlane $viewID $inPlane"
+	puts $f "SetViewInPlaneMovementIncrement $viewID x $inPlaneIncX"
+	puts $f "SetViewInPlaneMovementIncrement $viewID y $inPlaneIncY"
+	puts $f "SetViewInPlaneMovementIncrement $viewID z $inPlaneIncZ"
+	puts $f "SetViewRASCenter $viewID $rasCenter"
+	puts $f "SetViewZoomLevel $viewID $zoomLevel"
+	for { set nLevel 0 } { $nLevel < 10 } { incr nLevel } {
+	    set layerID [GetLayerInViewAtLevel $viewID $nLevel]
+	    puts $f "SetLayerInViewAtLevel $viewID $layerID $nLevel"
+	}
+	puts $f ""
+    }
+
+    # Transforms.
+    foreach transformID $gaTransform(idList) {
+
+	# If it's not the identity transform (because that is created
+	# automatically)
+	if { $transformID != 0 } {
+	    set sLabel [GetTransformLabel $transformID]
+	    set valueList [GetTransformValues $transformID]
+	    set isRegistration [IsTransformRegistration $transformID]
+	    puts $f "\# Transform $transformID"
+	    puts $f "set transformID \[MakeNewTransform\]"
+	    puts $f "SetTransformLabel \$transformID \"$sLabel\""
+	    puts $f "SetTransformValues \$transformID $valueList"
+	    if { $isRegistration } {
+		set regSource [GetTransformRegistrationSource $transformID]
+		set regDest [GetTransformRegistrationDest $transformID]
+		puts $f "TreatTransformAsRegistration \$transformID $regSource $regDest"
+		
+	    }
+	    puts $f ""
+	}
+    }
+
+    # Tool settings.
+    set toolID $gaFrame([GetMainFrameID],toolID)
+    set target [GetToolLayerTarget $toolID]
+    set brushShape [GetToolBrushShape $toolID]
+    set brushRadius [GetToolBrushRadius $toolID]
+    set brush3D [GetToolBrush3D $toolID]
+    set brushOnlyZero [GetToolOnlyBrushZero $toolID]
+    set floodSourceCollection [GetToolFloodSourceCollection $toolID]
+    set floodStopROIs [GetToolFloodStopAtROIs $toolID]
+    set floodStopPaths [GetToolFloodStopAtPaths $toolID]
+    set floodFuzziness [GetToolFloodFuzziness $toolID]
+    set floodMaxDistance [GetToolFloodMaxDistance $toolID]
+    set flood3D [GetToolFlood3D $toolID]
+    set floodOnlyZero [GetToolOnlyFloodZero $toolID]
+    set newValue [GetToolNewVoxelValue $toolID]
+    set edgeBias [GetToolEdgePathEdgeBias $toolID]
+    puts $f "\# Tool $toolID"
+    puts $f "SetToolLayerTarget $toolID $target"
+    puts $f "SetToolBrushShape $toolID $brushShape"
+    puts $f "SetToolBrushRadius $toolID $brushRadius"
+    puts $f "SetToolBrush3D $toolID $brush3D"
+    puts $f "SetToolOnlyBrushZero $toolID $brushOnlyZero"
+    puts $f "SetToolFloodSourceCollection $toolID $floodSourceCollection"
+    puts $f "SetToolFloodStopAtROIs $toolID $floodStopROIs"
+    puts $f "SetToolFloodStopAtPaths $toolID $floodStopPaths"
+    puts $f "SetToolFloodFuzziness $toolID $floodFuzziness"
+    puts $f "SetToolFloodMaxDistance $toolID $floodMaxDistance"
+    puts $f "SetToolFlood3D $toolID $flood3D"
+    puts $f "SetToolOnlyFloodZero $toolID $floodOnlyZero"
+    puts $f "SetToolNewVoxelValue $toolID $newValue"
+    puts $f "SetToolEdgePathEdgeBias $toolID $edgeBias"
+    puts $f ""
+
+    puts $f "UpdateCollectionList"
+    puts $f "UpdateLayerList"
+    puts $f "UpdateViewList"
+    puts $f "UpdateSubjectList"
+    puts $f "UpdateTransformList"
+    puts $f "UpdateLUTList"
+
+
+    close $f
+
+    SetStatusBarText "Saved $ifnScene."
+}
 
 # MAIN =============================================================
 

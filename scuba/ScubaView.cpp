@@ -95,9 +95,14 @@ ScubaView::ScubaView() {
   commandMgr.AddCommand( *this, "SetViewZoomLevel", 2, "viewID zoomLevel",
 			 "Sets the zoom level in a view. zoomLevel should be "
 			 "a float." );
+  commandMgr.AddCommand( *this, "GetViewZoomLevel", 1, "viewID",
+			 "Returns the zoom level in a view." );
   commandMgr.AddCommand( *this, "SetViewRASCenter", 4, "viewID x y z",
 			 "Sets the view center. x, y, and z should be floats "
 			 "in world RAS coordinates." );
+  commandMgr.AddCommand( *this, "GetViewRASCenter", 1, "viewID",
+			 "Returns the view center as a list of x, y, and z "
+			 "RAS coordinates." );
   commandMgr.AddCommand( *this, "SetLayerInViewAtLevel", 3, 
 			 "viewID layerID level",
 			 "Sets the layer in a view at a given draw level. "
@@ -523,6 +528,24 @@ ScubaView::DoListenToTclCommand( char* isCommand, int iArgc, char** iasArgv ) {
     }
   }
 
+  // GetViewZoomLevel <viewID>
+  if( 0 == strcmp( isCommand, "GetViewZoomLevel" ) ) {
+    int viewID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad view ID";
+      return error;
+    }
+    
+    if( mID == viewID ) {
+      
+      stringstream ssReturn;
+      sReturnFormat = "f";
+      ssReturn << Get2DZoomLevel();
+      sReturnValues = ssReturn.str();
+      return ok;
+    }
+  }
+
   // SetViewRASCenter <viewID> <X> <Y> <Z>
   if( 0 == strcmp( isCommand, "SetViewRASCenter" ) ) {
     int viewID = strtol(iasArgv[1], (char**)NULL, 10);
@@ -552,6 +575,27 @@ ScubaView::DoListenToTclCommand( char* isCommand, int iArgc, char** iasArgv ) {
       float center[3];
       center[0] = x; center[1] = y; center[2] = z;
       Set2DRASCenter( center );
+    }
+  }
+
+  // GetViewRASCenter <viewID> <X> <Y> <Z>
+  if( 0 == strcmp( isCommand, "GetViewRASCenter" ) ) {
+    int viewID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad view ID";
+      return error;
+    }
+
+    if( mID == viewID ) {
+      
+      float center[3];
+      Get2DRASCenter( center );
+      
+      stringstream ssReturn;
+      sReturnFormat = "Lfffl";
+      ssReturn << center[0] << " " << center[1] << " " << center[2];
+      sReturnValues = ssReturn.str();
+      return ok;
     }
   }
 
@@ -2236,7 +2280,8 @@ ScubaView::BuildOverlay () {
   }
 
   for( int nMarker = 0; nMarker < mcMarkers; nMarker++ ) {
-    if( mMarkerVisible[nMarker] ) {
+    if( mMarkerVisible[nMarker] &&
+	mViewState.IsRASVisibleInPlane( mMarkerRAS[nMarker].xyz(), range ) ) {
       int markerWindow[2];
       TranslateRASToWindow( mMarkerRAS[nMarker].xyz(), markerWindow );
       glLineWidth( 1 );
