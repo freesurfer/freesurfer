@@ -336,7 +336,7 @@ puts "Douglas N. Greve, Ph.D., MGH-NMR Center"
 puts ""
 puts "VERSION"
 puts ""
-puts {$Id: unpacksdcmdir,v 1.8 2002/10/21 20:15:54 greve Exp $}
+puts {$Id: unpacksdcmdir,v 1.9 2003/04/14 23:14:18 greve Exp $}
 
 exit 1;
 
@@ -618,6 +618,7 @@ proc CheckUnpackCfgFormat { unpackcfg } {
     set Fmt [string tolower $Fmt0];
 
     if { [string compare $Fmt bshort]  != 0 && \
+         [string compare $Fmt bfloat]  != 0 && \
          [string compare $Fmt cor]     != 0 && \
          [string compare $Fmt spm]     != 0 && \
          [string compare $Fmt analyze] != 0 && \
@@ -802,7 +803,7 @@ if [catch {open $LogFile w} LF] {
 }
 puts "INFO: Logfile is $LogFile"
 puts $LF "Log file created by unpacksdcmdir"
-puts $LF {$Id: unpacksdcmdir,v 1.8 2002/10/21 20:15:54 greve Exp $};
+puts $LF {$Id: unpacksdcmdir,v 1.9 2003/04/14 23:14:18 greve Exp $};
 puts $LF "$LogFile"
 puts $LF [pwd];
 puts $LF [exec date];
@@ -1005,6 +1006,7 @@ if { [info exists SeqCfgList] } {
         minc    {set unpackname [format "%s%03d" $basename $RunNo]}
         mgh     {set unpackname [format "%s%03d" $basename $RunNo]}
         bshort  {set unpackname [format "%s%03d"     $basename $RunNo]}
+        bfloat  {set unpackname [format "%s%03d"     $basename $RunNo]}
         cor     {set unpackname [format "%03d"       $RunNo]}
       }
     }
@@ -1062,6 +1064,8 @@ foreach runcfg $unpackcfg {
   set Fmt [string tolower $Fmt];
   if { ! [string compare $Fmt bshort ] } {
      set OutFile [format "%s/%s_000.bshort" $OutDir $Name];
+  } elseif { ! [string compare $Fmt bfloat] } {
+     set OutFile [format "%s/%s_000.bfloat" $OutDir $Name];
   } elseif { ! [string compare $Fmt spm ] } {
      set OutFile [format "%s/%s" $OutDir $Name];
   } elseif { ! [string compare $Fmt analyze ] } {
