@@ -25,7 +25,11 @@ AC_PROG_LN_S
 AC_PROG_MAKE_SET
 AC_PROG_CPP
 AC_PROG_LIBTOOL
-
+# two programs used for compress/decompress files
+AC_CHECK_PROG([HAS_ZCAT],[zcat],[1],
+      [AC_MSG_ERROR("FATAL: zcat is required in handling mgz etc.")])
+AC_CHECK_PROG([HAS_GZIP],[gzip],[1],
+      [AC_MSG_ERROR("FATAL: gzip is required in creating mgz etc.")])	
 ################################################################
 # define OS
 ################################################################
