@@ -41,6 +41,7 @@ typedef BUFTYPE Volm_tValue;
 typedef Volm_tValue *Volm_tValueRef;
 #define Volm_knMaxValue   255
 #define Volm_knNumValues  256
+#define Volm_knNumColorTableEntries  256
 
 #define Volm_kSignature 0xd9d6b2a9
 
@@ -112,15 +113,17 @@ typedef struct {
   char msVolumeName[mri_knSubjectNameLen];
   char msOriginalPath[mri_knPathLen];
   
-  float mfColorBrightness;                 /* threshold */
-  float mfColorContrast;                   /* squash */
-  xColor3f mafColorTable[Volm_knNumValues]; /* color for each value */
-  xColor3n manColorTable[Volm_knNumValues]; /* color for each value */
-  MATRIX   *m_resample_orig ;              /* 256^3->original volume */
-  MATRIX   *m_resample ;                   /* 256^3->original volume */
-  MATRIX   *m_resample_inv ;               /* original volume->256^3 */
-  float     max_val ;                      /* max value in mpMriValues */
-  float     min_val ;                      /* min value in mpMriValues */
+  float    mfColorBrightness;               /* threshold */
+  float    mfColorContrast;                 /* squash */
+  float    mfColorMin;                      /* min color value for col table */
+  float    mfColorMax;                      /* max color value for col table */
+  xColor3f mafColorTable[Volm_knNumColorTableEntries];
+  xColor3n manColorTable[Volm_knNumColorTableEntries];
+  MATRIX   *m_resample_orig;                /* 256^3->original volume */
+  MATRIX   *m_resample;                     /* 256^3->original volume */
+  MATRIX   *m_resample_inv;                 /* original volume->256^3 */
+  float    mfMinValue;                      /* max value in mpMriValues */
+  float    mfMaxValue;                      /* min value in mpMriValues */
 
   VECTOR* mpTmpScreenIdx;     /* Used as tmp variables in macros. */
   VECTOR* mpTmpMRIIdx;
@@ -175,6 +178,9 @@ Volm_tErr Volm_GetNumberOfFrames    ( mriVolumeRef this,
 				      int*         onDimensionFrames );
 Volm_tErr Volm_GetType              ( mriVolumeRef this,
 				      int*         onType );
+Volm_tErr Volm_GetValueMinMax       ( mriVolumeRef this,
+				      float*       ofMin,
+				      float*       ofMax );
 
 /* Use the GetValue functions when you want the real value of the
    voxel. Before calling the unsafe version, make sure the volume is
@@ -257,6 +263,9 @@ Volm_tErr Volm_MakeColorTable ( mriVolumeRef this );
 Volm_tErr Volm_SetBrightnessAndContrast ( mriVolumeRef this,
 					  float        ifBrightness,
 					  float        ifContrast );
+Volm_tErr Volm_SetColorMinMax           ( mriVolumeRef this,
+					  float        ifMin,
+					  float        ifMax );
 
 Volm_tErr Volm_SaveToSnapshot      ( mriVolumeRef this );
 Volm_tErr Volm_RestoreFromSnapshot ( mriVolumeRef this );
