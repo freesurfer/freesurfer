@@ -14,7 +14,6 @@
 #        SUBJECTS_DIR
 #        MINC_BIN_DIR  
 #        MINC_LIB_DIR  
-#        AFNI_DIR  
 #        FSL_DIR
 #   4. If NO_MINC is set (to anything), then all the MINC stuff is ignored.
 #   5. If NO_FSFAST is set (to anything), then the startup.m stuff is
@@ -31,10 +30,10 @@
 #   script.
 #
 #
-# $Id: FreeSurferEnv.csh,v 1.4 2005/01/21 23:44:16 kteich Exp $
+# $Id: FreeSurferEnv.csh,v 1.5 2005/03/01 18:18:37 kteich Exp $
 #############################################################################
 
-set VERSION = '$Id: FreeSurferEnv.csh,v 1.4 2005/01/21 23:44:16 kteich Exp $'
+set VERSION = '$Id: FreeSurferEnv.csh,v 1.5 2005/03/01 18:18:37 kteich Exp $'
 
 ## Get the name of the operating system
 set os = `uname -s`
@@ -98,10 +97,6 @@ if(! $?NO_MINC && (! $?MINC_LIB_DIR  || $FS_OVERRIDE)) then
   setenv MINC_LIB_DIR $FREESURFER_HOME/minc/lib
 endif
 
-if(! $?AFNI_DIR  || $FS_OVERRIDE) then
-  setenv AFNI_DIR $FREESURFER_HOME/afni
-endif
-
 if(! $?FSL_DIR  || $FS_OVERRIDE) then
   setenv FSL_DIR $FREESURFER_HOME/fsl
 endif
@@ -112,7 +107,7 @@ setenv LOCAL_DIR        $FREESURFER_HOME/local
 setenv FUNCTIONALS_DIR  $FREESURFER_HOME/sessions
 
 ## Make sure these directories exist.
-foreach d ($FSFAST_HOME $SUBJECTS_DIR $AFNI_DIR)
+foreach d ($FSFAST_HOME $SUBJECTS_DIR)
   if(! -e $d ) then
       if( $output ) then
 	  echo "WARNING: $d does not exist"
@@ -128,7 +123,6 @@ setenv TIX_LIBRARY   $LOCAL_DIR/lib/tix4.1
 if( $output ) then
     echo "FREESURFER_HOME $FREESURFER_HOME"
     echo "FSFAST_HOME     $FSFAST_HOME"
-    echo "AFNI_DIR        $AFNI_DIR"
     echo "FSL_DIR         $FSL_DIR"
     echo "SUBJECTS_DIR    $SUBJECTS_DIR"
 endif
@@ -195,14 +189,6 @@ if(! $?NO_MINC) then
   endif
 endif
 
-### ----------- AFNI ------------ ####
-setenv AFNI_BIN $AFNI_DIR/$os
-if(! -d $AFNI_BIN) then
-    if( $output ) then
-	echo "WARNING: $AFNI_BIN does not exist.";
-    endif
-endif
-
 ### ----------- FSL ------------ ####
 setenv FSL_BIN $FSL_DIR/bin
 if(! -d $FSL_BIN) then
@@ -226,7 +212,6 @@ set path = ( $path \
              $FREESURFER_HOME/bin/noarch      \
              $FREESURFER_HOME/bin/         \
              $FSL_BIN                   \
-             $AFNI_BIN                  \
             )
 
 if(! $?NO_MINC) then
