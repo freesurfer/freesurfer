@@ -99,7 +99,7 @@ scuba_SOURCES=$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS) $(GUI_SRCS) $(LAYER
 LDADD= $(addprefix $(top_srcdir)/,$(LIBS_MGH)) $(LIBS_TCL_OPENGL) 
 scuba_LDFLAGS=
 
-scuba2_SOURCES=$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS) $(GUI_SRCS) $(LAYER_SRCS) $(MOC_SRCS) $(SCUBA2_SRCS) $(FORMS) $(UICDECLS) $(UICIMPLS) $(SRCMOC) $(OBJMOC) main.cpp
+scuba2_SOURCES=$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS) $(GUI_SRCS) $(LAYER_SRCS) $(MOC_SRCS) $(SCUBA2_SRCS) $(FORMS) $(UICDECLS) $(UICIMPLS) $(SRCMOC) $(OBJMOC) .ui/image_collection.cpp main.cpp
 scuba2_LDFLAGS=-L/$(QTDIR)/lib -lqt-mt
 scuba2_CXXFLAGS=-DQT_SHARED -DQT_NO_DEBUG -DQT_THREAD_SUPPORT -I$(QTDIR)/include -I.ui/ 
 
@@ -254,3 +254,93 @@ testScubaROIVolume_SOURCES=test_ScubaROIVolume.cpp \
 	$(CXX) $(CXXFLAGS) -o .obj/moc_roisettingsdlog.o
 .moc/moc_roisettingsdlog.cpp: .ui/roisettingsdlog.h
 	$(MOC) .ui/roisettingsdlog.h -o .moc/moc_roisettingsdlog.cpp
+
+.obj/image_collection.o: .ui/image_collection.cpp
+	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o .obj/image_collection.o .ui/image_collection.cpp
+
+.ui/image_collection.cpp: images/filenew \
+		images/fileopen \
+		images/filesave \
+		images/print \
+		images/undo \
+		images/redo \
+		images/editcut \
+		images/editcopy \
+		images/editpaste \
+		images/searchfind \
+		images/icon_arrow_ccw.png \
+		images/icon_arrow_cw.png \
+		images/icon_arrow_down.png \
+		images/icon_arrow_expand_x.png \
+		images/icon_arrow_expand_y.png \
+		images/icon_arrow_left.png \
+		images/icon_arrow_right.png \
+		images/icon_arrow_rot_x_neg.png \
+		images/icon_arrow_rot_x_pos.png \
+		images/icon_arrow_rot_y_neg.png \
+		images/icon_arrow_rot_y_pos.png \
+		images/icon_arrow_rot_z_neg.png \
+		images/icon_arrow_rot_z_pos.png \
+		images/icon_arrow_shrink_x.png \
+		images/icon_arrow_shrink_y.png \
+		images/icon_arrow_up.png \
+		images/icon_aux_volume.png \
+		images/icon_brush_3d.png \
+		images/icon_brush_circle.png \
+		images/icon_brush_square.png \
+		images/icon_color_label.png \
+		images/icon_color_picker.png \
+		images/icon_control_point.png \
+		images/icon_cursor_goto.png \
+		images/icon_cursor_save.png \
+		images/icon_cut_area.png \
+		images/icon_cut_clear.png \
+		images/icon_cut_closed_line.png \
+		images/icon_cut_line.png \
+		images/icon_cut_plane.png \
+		images/icon_disk.png \
+		images/icon_draw_line.png \
+		images/icon_draw_line_closed.png \
+		images/icon_edit_ctrlpts.png \
+		images/icon_edit_custom.png \
+		images/icon_edit_label.png \
+		images/icon_edit_parc.png \
+		images/icon_edit_volume.png \
+		images/icon_erase_label.png \
+		images/icon_erase_line.png \
+		images/icon_fill.png \
+		images/icon_fill_label.png \
+		images/icon_folder.png \
+		images/icon_home.png \
+		images/icon_label_to_marked.png \
+		images/icon_line_tool.png \
+		images/icon_linked_cursors.png \
+		images/icon_main_volume.png \
+		images/icon_marked_to_label.png \
+		images/icon_marker_crosshair.png \
+		images/icon_marker_diamond.png \
+		images/icon_navigate.png \
+		images/icon_orientation_coronal.png \
+		images/icon_orientation_horizontal.png \
+		images/icon_orientation_sagittal.png \
+		images/icon_redraw.png \
+		images/icon_rotate_plane.png \
+		images/icon_snapshot_load.png \
+		images/icon_snapshot_save.png \
+		images/icon_stopwatch.png \
+		images/icon_surface_main.png \
+		images/icon_surface_original.png \
+		images/icon_surface_pial.png \
+		images/icon_view_31.png \
+		images/icon_view_mosaic.png \
+		images/icon_view_multiple.png \
+		images/icon_view_single.png \
+		images/icon_zoom_in.png \
+		images/icon_draw_edge_path.png \
+		images/view_inplane.png \
+		images/view_inplane_x.png \
+		images/view_inplane_y.png \
+		icon_eye.xpm \
+		icon_lock.xpm \
+		icon_pencil.xpm
+	$(UIC)  -embed scuba images/filenew images/fileopen images/filesave images/print images/undo images/redo images/editcut images/editcopy images/editpaste images/searchfind images/icon_arrow_ccw.png images/icon_arrow_cw.png images/icon_arrow_down.png images/icon_arrow_expand_x.png images/icon_arrow_expand_y.png images/icon_arrow_left.png images/icon_arrow_right.png images/icon_arrow_rot_x_neg.png images/icon_arrow_rot_x_pos.png images/icon_arrow_rot_y_neg.png images/icon_arrow_rot_y_pos.png images/icon_arrow_rot_z_neg.png images/icon_arrow_rot_z_pos.png images/icon_arrow_shrink_x.png images/icon_arrow_shrink_y.png images/icon_arrow_up.png images/icon_aux_volume.png images/icon_brush_3d.png images/icon_brush_circle.png images/icon_brush_square.png images/icon_color_label.png images/icon_color_picker.png images/icon_control_point.png images/icon_cursor_goto.png images/icon_cursor_save.png images/icon_cut_area.png images/icon_cut_clear.png images/icon_cut_closed_line.png images/icon_cut_line.png images/icon_cut_plane.png images/icon_disk.png images/icon_draw_line.png images/icon_draw_line_closed.png images/icon_edit_ctrlpts.png images/icon_edit_custom.png images/icon_edit_label.png images/icon_edit_parc.png images/icon_edit_volume.png images/icon_erase_label.png images/icon_erase_line.png images/icon_fill.png images/icon_fill_label.png images/icon_folder.png images/icon_home.png images/icon_label_to_marked.png images/icon_line_tool.png images/icon_linked_cursors.png images/icon_main_volume.png images/icon_marked_to_label.png images/icon_marker_crosshair.png images/icon_marker_diamond.png images/icon_navigate.png images/icon_orientation_coronal.png images/icon_orientation_horizontal.png images/icon_orientation_sagittal.png images/icon_redraw.png images/icon_rotate_plane.png images/icon_snapshot_load.png images/icon_snapshot_save.png images/icon_stopwatch.png images/icon_surface_main.png images/icon_surface_original.png images/icon_surface_pial.png images/icon_view_31.png images/icon_view_mosaic.png images/icon_view_multiple.png images/icon_view_single.png images/icon_zoom_in.png images/icon_draw_edge_path.png images/view_inplane.png images/view_inplane_x.png images/view_inplane_y.png icon_eye.xpm icon_lock.xpm icon_pencil.xpm -o .ui/image_collection.cpp
