@@ -1,0 +1,164 @@
+x86cpucaps is a library, which investigates the various
+information on CPU using 'cpuid' in assembler.
+
+This library can detect CPU IDs (Family-Model-Stepping),
+vender name strings ("GenuineIntel", "AuthenticAMD", and so on),
+and SIMD capabilities.
+
+Furthermore, there are functions, estimating optimal Processor Type
+(building kernel),  and estimating optimization flags for gcc.
+(These functions are experimental)
+
+
+Osamu Kayasono <jacobi@jcom.home.ne.jp>
+http://members.jcom.home.ne.jp/jacobi/linux/softwares.html
+
+
+----------------------------------------------------------------------
+x86cpucaps_simd()
+
+NAME
+    x86cpucaps_simd - detect CPU SIMD capabilities.
+    
+SYNOPSIS
+    #include <x86cpucaps.h>
+	
+    int x86cpucaps_simd(int i);
+	
+DESCRIPTION
+    x86cpucaps_simd() function detects CPU SIMD capabilities.
+    if i=GET_INTELSIMD, detect Intel SIMD (SSE2/SSE/MMX),
+    if i=GET_AMDSIMD, detect AMD 3DNow!.
+
+RETURN VALUE
+    x86cpucaps_simd() functions return an integer, defined
+    HAS_NOSIMD, HAS_MMX, HAS_SSE, HAS_SSE2, HAS_3DNOW
+    
+
+
+x86cpucaps_cpumodel()
+
+NAME
+    x86cpucaps_cpumodel - detect CPU Family, Model, Stepping
+    
+SYNOPSIS
+    #include <x86cpucaps.h>
+	
+    int x86cpucaps_cpumodel(int i);
+	
+DESCRIPTION
+    x86cpucaps_cpumodel() function detects CPU Family, Model, Stepping
+    if i=GET_FAMILY, detect CPU Family.
+    if i=GET_MODEL, detect CPU Model.
+    if i=GET_STEPPING, detect CPU Stepping.
+    if i=GET_ALLID, detect CPU Family, Model, Stepping
+
+RETURN VALUE
+    x86cpucaps_cpumodel() functions return an integer.
+    if getting all values,
+    return value = (Family*256) + (Model*16) + Stepping.
+    
+
+
+x86cpucaps_cpuvendor()
+
+NAME
+    x86cpucaps_cpuvendor - detect CPU Vendor.
+    
+SYNOPSIS
+    #include <x86cpucaps.h>
+	
+    int x86cpucaps_cpuvendor(char *vendorname);
+	
+DESCRIPTION
+    x86cpucaps_cpuvendor() function detects CPU vendor,
+    copying Vendor strings to vendorname[LEN_VENDORNAME].
+
+RETURN VALUE
+    x86cpucaps_cpuvendor() functions return an integer, defined
+    VENDOR_INTEL, VENDOR_AMD, VENDOR_CYRIX, VENDOR_CENTAUR,
+    VENDOR_TRANSMETA, VENDOR_OTHERS
+    
+    
+
+x86cpucaps_getcpuname()
+
+NAME
+    x86cpucaps_getcpuname - get CPU name.
+    
+SYNOPSIS
+    #include <x86cpucaps.h>
+	
+    char *x86cpucaps_getcpuname(int vendor_id, int cpu_id);
+	
+DESCRIPTION
+    x86cpucaps_getcpuname() returns CPU name string, looking for
+    vendor_id and cpu_id at a key.
+
+RETURN VALUE
+    CPU name strings, ex. "Pentium MMX", 
+    returned value is malloc()'ed so free() it after use.
+    Max length of returned value is LEN_CPUNAME.
+    
+
+
+x86cpucaps_getkernelopt()
+
+NAME
+    x86cpucaps_getkernelopt - get best proccessor type for kernel making.
+    
+SYNOPSIS
+    #include <x86cpucaps.h>
+	
+    char *x86cpucaps_getkernelopt(int vendor_id, int cpu_id);
+	
+DESCRIPTION
+    x86cpucaps_getkerelopt() returns Processor Type string, looking for
+    vendor_id and cpu_id at a key.
+
+RETURN VALUE
+    Processor Type strings, ex. "CONFIG_M586MMX", 
+    returned value is malloc()'ed so free() it after use.
+    Max length of returned value is LEN_KERNELOPT.
+
+
+
+x86cpucaps_getgcctarget()
+
+NAME
+    x86cpucaps_getgcctarget - get best target architecture for gcc
+    
+SYNOPSIS
+    #include <x86cpucaps.h>
+	
+    char *x86cpucaps_getgcctarget(int vendor_id, int cpu_id);
+	
+DESCRIPTION
+    x86cpucaps_getgcctarget() returns target architecture string, looking for
+    vendor_id and cpu_id at a key.
+
+RETURN VALUE
+    target architecture strings, ex. "-march=pentium-mmx", 
+    returned value is malloc()'ed so free() it after use.
+    Max length of returned value is LEN_GCCTARGET.
+
+
+
+x86cpucaps_getgccsimdopt()
+
+NAME
+    x86cpucaps_getgccsimdopt - get available SIMD optimization flags for gcc
+    
+SYNOPSIS
+    #include <x86cpucaps.h>
+	
+    char *x86cpucaps_getgcctarget(int vendor_id, int cpu_id);
+	
+DESCRIPTION
+    x86cpucaps_getgccsimdopt() returns SIMD optimization string, looking for
+    vendor_id and cpu_id at a key.
+
+RETURN VALUE
+    SIMD optimization strings, ex. "-mmmx", 
+    returned value is malloc()'ed so free() it after use.
+    Max length of returned value is LEN_GCCSIMDOPT.
