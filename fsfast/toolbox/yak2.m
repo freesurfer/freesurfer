@@ -16,11 +16,11 @@ function yak2(varargin)
 %
 % yak(cbstring) % for callback functions
 %
-% $Id: yak2.m,v 1.2 2003/07/19 00:17:03 greve Exp $
+% $Id: yak2.m,v 1.3 2003/10/04 20:13:29 greve Exp $
 
 if(nargin == 0)
   msg = 'USAGE: hfig = yak2(flag,options)';
-  msg = sprintf('%s\n$Id: yak2.m,v 1.2 2003/07/19 00:17:03 greve Exp $',msg);
+  msg = sprintf('%s\n$Id: yak2.m,v 1.3 2003/10/04 20:13:29 greve Exp $',msg);
   qoe(msg);error(msg);
 end
 
@@ -165,6 +165,7 @@ if(Init)
     fprintf('PMin = %4.2f, PMax = %4.2f\n',ud.PMin,ud.PMax);
     %image(ud.DisplayImg(:,:,ud.CurPlaneNo));
     image(ud.DisplayImg);
+    axis image;
     colormap(ud.CMap);
     ud.hcbar = colorbar;
     set_colorbar_scale(ud.hcbar,ud.CMap,ud.CScale);
@@ -173,6 +174,7 @@ if(Init)
     colormap('gray');
     ud.CMap = colormap;
     imagesc(ud.DisplayImg(:,:,ud.CurPlaneNo));
+    axis image;
     colormap(gray);
     ud.hcbar = colorbar;
   end
@@ -656,6 +658,7 @@ function ud = redraw(ud)
           ud.ActImg(:,:,ud.CurPlaneNo),ovminuse,ovmaxuse,ud.tail,ud.interp);
     if(ud.Mask) ud.DisplayImg = ud.DisplayImg.*ud.MaskImg; end
     image(ud.DisplayImg);
+    axis image;
     colormap(ud.CMap);
     ud.hcbar = colorbar;
     set_colorbar_scale(ud.hcbar,ud.CMap,ud.CScale);
@@ -664,6 +667,7 @@ function ud = redraw(ud)
     tmpimg = ud.DisplayImg(:,:,ud.CurPlaneNo);
     if(ud.Mask) tmpimg = tmpimg.*ud.MaskImg; end
     imagesc(tmpimg);
+    axis image;
     colormap(gray);
     colorbar;
   end
