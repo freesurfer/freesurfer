@@ -779,13 +779,15 @@ ImageCopy(IMAGE *Isrc, IMAGE *Idst)
     Idst = ImageAlloc(Isrc->rows, Isrc->cols, Isrc->pixel_format, 
                       Isrc->num_frame) ;
 
-  if (Idst->numpix != Isrc->numpix || Idst->num_frame < Isrc->num_frame)
+  if (Idst->numpix < Isrc->numpix || Idst->num_frame < Isrc->num_frame)
     ErrorReturn(NULL, (ERROR_BADPARM, "ImageCopy: dst not big enough")) ;
 
   src_image = Isrc->image ;
   dst_image = Idst->image ;
   nframes = Isrc->num_frame ;
   Isrc->num_frame = Idst->num_frame = 1 ;
+  Idst->rows = Isrc->rows ;
+  Idst->cols = Isrc->cols ;
   
   for (frame = 0 ; frame < nframes ; frame++)
   {
