@@ -66,17 +66,6 @@ int main(int argc, char *argv[])
   cout << "xsize= " << xsize << "  ysize = " << ysize  << "  zsize= " << zsize << endl;
   cout << "c_r  = " << c_r   << "  c_a   = " << c_a    << "  c_s  = " << c_s << endl;
   cout << "ras_good_flag = " << mri->ras_good_flag << endl;
-  switch(mri->slice_direction)
-  {
-  case MRI_CORONAL:
-    cout << "slice_direction = MRI_CORONAL " << endl; break;
-  case MRI_SAGITTAL:
-    cout << "slice_direction = MRI_SAGITTAL " << endl; break;
-  case MRI_HORIZONTAL:
-    cout << "slice_direction = MRI_CORONAL " << endl; break;
-  default:
-    cout << "slice_direction = UNKNOWN " << endl; break;
-  }
   cout << endl;
 
   MATRIX *m = extract_i_to_r(mri);
