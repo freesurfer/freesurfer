@@ -1036,7 +1036,9 @@ LabelFromMarkedSurface(MRI_SURFACE *mris)
     area->lv[n].z = v->z ;
     area->lv[n].vno = vno ;
     area->lv[n].stat = v->stat ;
+    n++ ;
   }
+  area->n_points = npoints ;
   return(area) ;
 }
 
