@@ -4,9 +4,9 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2004/01/28 18:33:15 $
-// Revision       : $Revision: 1.197 $
-char *VERSION = "$Revision: 1.197 $";
+// Revision Date  : $Date: 2004/02/20 18:22:32 $
+// Revision       : $Revision: 1.198 $
+char *VERSION = "$Revision: 1.198 $";
 
 #define TCL
 #define TKMEDIT 
@@ -1034,7 +1034,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
      shorten our argc and argv count. If those are the only args we
      had, exit. */
   /* rkt: check for and handle version tag */
-  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.197 2004/01/28 18:33:15 kteich Exp $", "$Name:  $");
+  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.198 2004/02/20 18:22:32 kteich Exp $", "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
   argc -= nNumProcessedVersionArgs;
@@ -2740,8 +2740,14 @@ void WriteVoxelToControlFile ( xVoxelRef iMRIIdx ) {
   DebugAssertThrowX( (NULL != file), eResult, tkm_tErr_ErrorAccessingFile );
   
   /* convert idx to ras */
-  eVolume = Volm_ConvertMRIIdxToRAS( gAnatomicalVolume[tkm_tVolumeType_Main],
-				     iMRIIdx, &ras );
+  if( gbUseRealRAS ) {
+    eVolume = Volm_ConvertMRIIdxToRAS( gAnatomicalVolume[tkm_tVolumeType_Main],
+				       iMRIIdx, &ras );
+  } else {
+    eVolume = 
+      Volm_ConvertMRIIdxToSurfaceRAS( gAnatomicalVolume[tkm_tVolumeType_Main],
+				      iMRIIdx, &ras );
+  }
   DebugAssertThrowX( (Volm_tErr_NoErr == eVolume), 
          eResult, tkm_tErr_ErrorAccessingVolume );
   
@@ -5044,7 +5050,7 @@ int main ( int argc, char** argv ) {
     DebugPrint( ( "%s ", argv[nArg] ) );
   }
   DebugPrint( ( "\n\n" ) );
-  DebugPrint( ( "$Id: tkmedit.c,v 1.197 2004/01/28 18:33:15 kteich Exp $ $Name:  $\n" ) );
+  DebugPrint( ( "$Id: tkmedit.c,v 1.198 2004/02/20 18:22:32 kteich Exp $ $Name:  $\n" ) );
 
   
   /* init glut */
@@ -6014,9 +6020,14 @@ void ProcessControlPointFile ( ) {
       
       /* transform from ras to voxel */
       xVoxl_SetFloat( &ras, rasX, rasY, rasZ );
-      eVolume = 
-	Volm_ConvertRASToMRIIdx( gAnatomicalVolume[tkm_tVolumeType_Main],
-				 &ras, &MRIIdx );
+      if( gbUseRealRAS ) {
+	eVolume = 
+	  Volm_ConvertRASToMRIIdx( gAnatomicalVolume[tkm_tVolumeType_Main],
+				   &ras, &MRIIdx );
+      } else {
+	eVolume = 
+	  Volm_ConvertSurfaceRASToMRIIdx( gSelectionVolume, &ras, &MRIIdx );
+      }
       DebugAssertThrowX( (Volm_tErr_NoErr == eVolume), 
 			 eResult, tkm_tErr_ErrorAccessingVolume );
       
@@ -6102,9 +6113,15 @@ void WriteControlPointFile ( ) {
       if( MRIIdx ) {
 	
 	/* transform to ras space. */
-	eVolume = 
-	  Volm_ConvertMRIIdxToRAS(gAnatomicalVolume[tkm_tVolumeType_Main],
-				  MRIIdx, &ras );
+	if( gbUseRealRAS ) {
+	  eVolume = 
+	    Volm_ConvertMRIIdxToRAS(gAnatomicalVolume[tkm_tVolumeType_Main],
+				    MRIIdx, &ras );
+	} else {
+	  eVolume = 
+     Volm_ConvertMRIIdxToSurfaceRAS( gAnatomicalVolume[tkm_tVolumeType_Main],
+				     MRIIdx, &ras );
+	}
 	DebugAssertThrowX( (Volm_tErr_NoErr == eVolume), 
 			   eResult, tkm_tErr_ErrorAccessingVolume );
 	
