@@ -34725,6 +34725,7 @@ MRI *MRISgaussianSmooth(MRIS *Surf, MRI *Src, double GStd, MRI *Targ,
      coputations light (eg, not allocating XNbrnVtxNo
      and XNbrnDotProd, using a dot product threshold
      instead of a distance threshold, not resetting val2bak).
+  5. The extended neighborhood of a vertex includes itself.
   -------------------------------------------------------------------*/
 int MRISextendedNeighbors(MRIS *SphSurf,int TargVtxNo, int CurVtxNo,
 			  double DotProdThresh, int *XNbrVtxNo, 
