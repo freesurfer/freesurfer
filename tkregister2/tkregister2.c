@@ -1,10 +1,10 @@
 /*============================================================================
  Copyright (c) 1996 Martin Sereno and Anders Dale
 =============================================================================*/
-/*   $Id: tkregister2.c,v 1.18 2003/08/15 00:04:25 greve Exp $   */
+/*   $Id: tkregister2.c,v 1.19 2003/08/29 15:59:52 greve Exp $   */
 
 #ifndef lint
-static char vcid[] = "$Id: tkregister2.c,v 1.18 2003/08/15 00:04:25 greve Exp $";
+static char vcid[] = "$Id: tkregister2.c,v 1.19 2003/08/29 15:59:52 greve Exp $";
 #endif /* lint */
 
 #define TCL
@@ -317,7 +317,7 @@ MATRIX *invDmov, *FSLRegMat, *invFSLRegMat;
 
 int LoadSurf = 0, UseSurf=0;
 char *surfname = "white", surf_path[2000];
-int fstal=0, fixxfm=0; 
+int fstal=0, fixxfm=1; 
 char *talsubject = "talairach";
 char talxfmfile[2000],talxfmdir[2000];
 
@@ -340,6 +340,7 @@ int Register(ClientData clientData,Tcl_Interp *interp, int argc, char *argv[])
   parse_commandline(argc, argv);
   check_options();
   dump_options(stdout);
+  printf("%s\n",vcid);
   printf("Diagnostic Level %d\n",Gdiag_no);
 
   /* read the registration here to get subjectid */
@@ -3403,7 +3404,7 @@ char **argv;
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tkregister2.c,v 1.18 2003/08/15 00:04:25 greve Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: tkregister2.c,v 1.19 2003/08/29 15:59:52 greve Exp $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
