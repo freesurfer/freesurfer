@@ -1116,16 +1116,41 @@ analyzeRead(char *fname, int read_volume, int frame)
   else
     max_dim = height > depth ? height : depth ;
 
+  if (hdr.dime.pixdim[0] > 3.5f)/* hack to support FIL and texas */
+  {
+    width = hdr.dime.dim[1]; depth = hdr.dime.dim[2]; height = hdr.dime.dim[3];
+  }
+
+#if 1
   /* these are the sizes the image 'should' be */
-  width = max_dim / hdr.dime.pixdim[3] ;
-  height = max_dim / hdr.dime.pixdim[2] ;
-  depth = max_dim / hdr.dime.pixdim[1] ;
+  if (hdr.dime.pixdim[0] > 3.5f)/* hack to support FIL and texas */
+  {
+    width = max_dim / hdr.dime.pixdim[1] ;
+    height = max_dim / hdr.dime.pixdim[2] ;
+    depth = max_dim / hdr.dime.pixdim[3] ;
+  }
+  else
+  {
+    width = max_dim / hdr.dime.pixdim[3] ;
+    height = max_dim / hdr.dime.pixdim[2] ;
+    depth = max_dim / hdr.dime.pixdim[1] ;
+  }
+#endif
 
   mri = 
     MRIallocSequence(width, height, depth, type, hdr.dime.dim[4]);
-  mri->xsize = hdr.dime.pixdim[3] ;
-  mri->ysize = hdr.dime.pixdim[2] ;
-  mri->zsize = hdr.dime.pixdim[1] ;
+  if (hdr.dime.pixdim[0] > 3.5f)/* hack to support FIL and texas */
+  {
+    mri->xsize = hdr.dime.pixdim[1] ;
+    mri->ysize = hdr.dime.pixdim[2] ;
+    mri->zsize = hdr.dime.pixdim[3] ;
+  }
+  else
+  {
+    mri->xsize = hdr.dime.pixdim[3] ;
+    mri->ysize = hdr.dime.pixdim[2] ;
+    mri->zsize = hdr.dime.pixdim[1] ;
+  }
 
   if (FEQUAL(mri->xsize, 1))
   {
@@ -1148,9 +1173,13 @@ analyzeRead(char *fname, int read_volume, int frame)
   else
     read_byte_analyze_image(fname, mri, &hdr) ;
 
+#if 1
   mri_dst = MRIinterpolate(mri, NULL) ;
   MRIfree(&mri) ;
   return(mri_dst) ;
+#else
+  return(mri) ;
+#endif
 }
 /*-----------------------------------------------------
         Parameters:
@@ -1362,18 +1391,28 @@ read_byte_analyze_image(char *fname, MRI *mri, dsr *hdr)
   FILE   *fp;
   int    nread, datatype, xoff, yoff, zoff ;
   char   *buf, b ;
-  short  s ;
+  short  s, smin, smax ;
 
   bytes_per_pix = hdr->dime.bitpix/8 ;
   width = hdr->dime.dim[1] ;
   height = hdr->dime.dim[2] ;
   depth = hdr->dime.dim[3] ;
-  xoff = (mri->width - depth) / 2 ;
-  yoff = (mri->height - height) / 2 ;
-  zoff = (mri->depth - width) / 2 ;
+  if (hdr->dime.pixdim[0] > 3.5f)/* hack to support FIL and texas */
+  {
+    xoff = (mri->width - width) / 2 ;
+    yoff = (mri->height - depth) / 2 ;
+    zoff = (mri->depth - height) / 2 ;
+  }
+  else
+  {
+    xoff = (mri->width - depth) / 2 ;
+    yoff = (mri->height - height) / 2 ;
+    zoff = (mri->depth - width) / 2 ;
+  }
   datatype = hdr->dime.datatype ;
   bufsize = width * height ;
 
+  smin = 10000 ; smax = 0 ;
   scale = 255.0f / hdr->dime.glmax ;
   fp = fopen(fname,"rb");
   if (fp==NULL) 
@@ -1420,14 +1459,68 @@ read_byte_analyze_image(char *fname, MRI *mri, dsr *hdr)
 #ifdef Linux
           s = swapShort(s) ;
 #endif
+          if (s > smax)
+            smax = s ;
+          if (s < smin)
+            smin = s ;
           b = (char)(scale * (float)(s-hdr->dime.glmin));
           break;
         }
+#if 0
         xd = z + xoff ; yd = (height-y-1) + yoff ; zd = (width-x-1) + zoff ;
         MRIvox(mri, xd, yd, zd) = b ;
+#endif
       }
     }
   }
+  
+  if (datatype == DT_SIGNED_SHORT)
+  {
+    if (!smax)
+      ErrorReturn(ERROR_BADFILE, 
+                  (ERROR_BADFILE, "read_analyze_image: 0 image\n")) ;
+    scale = 255.0f / smax ;
+    if  (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+      fprintf(stderr, "min = %d, max = %d\n", smin, smax) ;
+    rewind(fp) ;
+
+    for (z = 0 ; z < depth ; z++)
+    {
+      nread = fread(buf, bytes_per_pix, bufsize, fp) ;
+      if (nread != bufsize)
+      {
+        free(buf) ;
+        fclose(fp) ;
+        ErrorReturn(ERROR_BADFILE, 
+                    (ERROR_BADFILE, 
+                     "read_analyze_image: could not slice %d (%d items read)",
+                     z, bufsize)) ;
+      }
+      
+      for (y = 0 ; y < height ; y++)
+      {
+        for (x = 0 ; x < width ; x++)
+        {
+          s = *(short *)(buf+bytes_per_pix*(y*width+x)) ;
+#ifdef Linux
+          s = swapShort(s) ;
+#endif
+          b = (char)(scale * (float)(s-smin));
+          if (hdr->dime.pixdim[0] > 3.5f)/* hack to support FIL and texas */
+          {
+            xd = x + xoff ; yd = z + yoff ; zd = y + zoff;
+          }
+          else
+          {
+            xd = z + xoff ; yd = (height-y-1) + yoff ; zd = (width-x-1) + zoff;
+          }
+          MRIvox(mri, xd, yd, zd) = b ;
+        }
+      }
+    }
+
+  }
+
   fclose(fp);
   free(buf) ;
   return(NO_ERROR) ;
