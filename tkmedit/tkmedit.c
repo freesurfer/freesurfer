@@ -250,6 +250,10 @@ General_transform talairach_transform ; /* the next two are from this struct */
 Transform         *linear_transform = NULL ;
 Transform         *inverse_linear_transform = NULL ;
 int               transform_loaded = 0 ;
+
+static int   control_points = 0 ;
+static int   num_control_points = 0 ;
+
 /*--------------------- prototypes ------------------------------*/
 #ifdef Linux
 extern void scale2x(int, int, unsigned char *);
@@ -267,6 +271,8 @@ int read_second_images(char *imdir2) ;
 void resize_window_intstep(int newzf) ;
 void write_point(char *dir) ;
 void goto_vertex(int vno) ;
+void select_control_points(void) ;
+void reset_control_points(void) ;
 void mark_file_vertices(char *fname) ;
 void unmark_vertices(void) ;
 void goto_point_coords(int imc1,int ic1,int jc1) ;
@@ -2446,6 +2452,18 @@ mark_file_vertices(char *fname)
   fclose(fp) ;
 }
 void
+select_control_points(void)
+{
+  control_points = 1 ;
+}
+
+void
+reset_control_points(void)
+{
+  control_points = -1 ;
+}
+
+void
 goto_vertex(int vno)
 {
   VERTEX *v ;
@@ -2480,8 +2498,22 @@ write_point(char *dir)
   float xpt,ypt,zpt;
   Real  x, y, z, x_tal, y_tal, z_tal ;
 
-  sprintf(fname,"%s/edit.dat",dir);
-  fp=fopen(fname,"w");
+  if (control_points)
+  {
+    sprintf(fname,"%s/control.dat",dir);
+    if (control_points > 0 || num_control_points++ > 0)
+      fp=fopen(fname,"a");
+    else
+    {
+      fprintf(stderr, "opening control point file %s...\n", fname) ;
+      fp=fopen(fname,"w");
+    }
+  }
+  else
+  {
+    sprintf(fname,"%s/edit.dat",dir);
+    fp=fopen(fname,"w");
+  }
   if (fp==NULL) {printf("medit: ### can't create file %s\n",fname);PR return;}
   xpt = xx1-ps*jc/fsf;
   ypt = yy0+st*imc/fsf;
@@ -2489,10 +2521,14 @@ write_point(char *dir)
   fprintf(fp,"%f %f %f\n",xpt,ypt,zpt);
   if (transform_loaded)
   {
-    fprintf(stderr, "writing transformed point to file...\n") ;
+    if (control_points)
+      fprintf(stderr, "writing control point to file...\n") ;
+    else
+      fprintf(stderr, "writing transformed point to file...\n") ;
     x = (Real)xpt ; y = (Real)ypt ; z = (Real)zpt ;
     transform_point(linear_transform, x, y, z, &x_tal, &y_tal, &z_tal) ;
-    fprintf(fp, "%f %f %f\n", x_tal, y_tal, z_tal) ;
+    if (!control_points)
+      fprintf(fp, "%f %f %f\n", x_tal, y_tal, z_tal) ;
     xtalairach = x_tal;  ytalairach = y_tal;  ztalairach = z_tal; 
   }
   /*else { fprintf(stderr, "NOT writing transformed point to file...\n") ; }*/
@@ -5082,6 +5118,14 @@ int                  W_goto_vertex  WBEGIN
   ERR(2,"Wrong # args: goto_vertex")
                        goto_vertex(atoi(argv[1]));  WEND
 
+int                  W_select_control_points  WBEGIN 
+  ERR(1,"Wrong # args: select_control_points")
+                       select_control_points();  WEND
+
+int                  W_reset_control_points  WBEGIN 
+  ERR(1,"Wrong # args: reset_control_points")
+                       reset_control_points();  WEND
+
 int                  W_mark_file_vertices  WBEGIN 
   ERR(2,"Wrong # args: mark_file_vertices")
                        mark_file_vertices(argv[1]);  WEND
@@ -5310,6 +5354,10 @@ char **argv;
   Tcl_CreateCommand(interp, "read_fsmask",        W_read_fsmask,        REND);
   Tcl_CreateCommand(interp, "read_binary_curv",   W_read_binary_curv,   REND);
   Tcl_CreateCommand(interp, "goto_vertex",        W_goto_vertex,        REND);
+  Tcl_CreateCommand(interp, "select_control_points",W_select_control_points,
+                    REND);
+  Tcl_CreateCommand(interp, "reset_control_points",W_reset_control_points,
+                    REND);
   Tcl_CreateCommand(interp, "mark_file_vertices", W_mark_file_vertices, REND);
   Tcl_CreateCommand(interp, "unmark_vertices",    W_unmark_vertices,    REND);
   Tcl_CreateCommand(interp, "smooth_3d",          W_smooth_3d,          REND);
@@ -5323,7 +5371,11 @@ char **argv;
   Tcl_CreateCommand(interp, "norm_slice",         W_norm_slice,         REND);
   Tcl_CreateCommand(interp, "norm_allslices",     W_norm_allslices,     REND);
   /*=======================================================================*/
+
   /***** link global BOOLEAN variables to tcl equivalents */
+  Tcl_LinkVar(interp,"num_control_points",
+              (char *)&num_control_points,TCL_LINK_INT);
+  Tcl_LinkVar(interp,"control_points",(char*)&control_points,TCL_LINK_BOOLEAN);
   Tcl_LinkVar(interp,"maxflag",(char *)&maxflag, TCL_LINK_BOOLEAN);
   Tcl_LinkVar(interp,"surfflag",(char *)&surfflag, TCL_LINK_BOOLEAN);
   Tcl_LinkVar(interp,"editflag",(char *)&editflag, TCL_LINK_BOOLEAN);
