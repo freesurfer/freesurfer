@@ -216,6 +216,7 @@ struct tkmDisplayArea {
   
   /* superpane info */
   struct tkmMeditWindow* mpWindow;
+  int                    mID;
   
   /* our size and location */
   xPoint2n               mLocationInSuper;
@@ -312,6 +313,9 @@ DspA_tErr DspA_SetPosition ( tkmDisplayAreaRef this,
 			     xPoint2n          iLocation,
 			     int               inWidth,
 			     int               inHeight );
+
+/* Super will set this */
+DspA_tErr DspA_SetID ( tkmDisplayAreaRef this, int inID );
 
 /* update window title */
 DspA_tErr DspA_UpdateWindowTitle ( tkmDisplayAreaRef this );

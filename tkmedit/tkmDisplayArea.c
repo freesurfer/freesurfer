@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2003/04/30 21:53:58 $
-// Revision       : $Revision: 1.63 $
+// Revision Date  : $Date: 2003/05/02 19:38:27 $
+// Revision       : $Revision: 1.64 $
 
 #include "tkmDisplayArea.h"
 #include "tkmMeditWindow.h"
@@ -126,6 +126,7 @@ DspA_tErr DspA_New ( tkmDisplayAreaRef* oppWindow,
   
   /* set the parent window. */
   this->mpWindow             = ipWindow;
+  this->mID                  = -1;
   this->mLocationInSuper.mnX = 0;
   this->mLocationInSuper.mnY = 0;
   
@@ -308,6 +309,33 @@ DspA_tErr DspA_SetPosition ( tkmDisplayAreaRef this,
   /* rebuild our current frame and redraw. */
   this->mbSliceChanged = TRUE;
   DspA_Redraw_( this );
+  
+  goto cleanup;
+  
+ error:
+  
+  /* print error message */
+  if( DspA_tErr_NoErr != eResult ) {
+    DebugPrint( ("Error %d in DspA_SetPosition: %s\n",
+		 eResult, DspA_GetErrorString(eResult) ) );
+  }
+  
+ cleanup:
+  
+  return eResult;
+}
+
+DspA_tErr DspA_SetID ( tkmDisplayAreaRef this, int inID ) {
+
+  DspA_tErr eResult = DspA_tErr_NoErr;
+  
+  /* verify us. */
+  eResult = DspA_Verify( this );
+  if( DspA_tErr_NoErr != eResult )
+    goto error;
+  
+  /* set the id */
+  this->mID = inID;
   
   goto cleanup;
   
@@ -1064,7 +1092,6 @@ DspA_tErr DspA_SetCursor ( tkmDisplayAreaRef this,
   eResult = DspA_VerifyVolumeVoxel_( this, ipCursor );
   if( DspA_tErr_NoErr != eResult )
     goto error;
-  
   
   /* allow the functional display to respond. */
   if( NULL != this->mpFunctionalVolume ) {
@@ -2683,8 +2710,8 @@ DspA_tErr DspA_HandleMouseUp_ ( tkmDisplayAreaRef this,
   DebugPrint( ("Mouse up screen x %d y %d buffer x %d y %d volume %f %f %f\n",
 	       ipEvent->mWhere.mnX, ipEvent->mWhere.mnY, bufferPt.mnX, bufferPt.mnY, 
 	       xVoxl_ExpandFloat( pVolumeVox ) ) );
-#endif
-  
+#endif  
+
   /* if nav tool and not ctrl... */
   if( DspA_tTool_Navigate == sTool &&
       !ipEvent->mbCtrlKey ) {
@@ -3936,10 +3963,12 @@ DspA_tErr DspA_HandleDraw_ ( tkmDisplayAreaRef this ) {
   /* we have to send the cursor info again to update the stars around
      the currently active volume or segmentation (which may now be
      different) */
-  DspA_SendPointInformationToTcl_( this, DspA_tDisplaySet_Cursor,
-				   this->mpCursor );
-  DspA_SendPointInformationToTcl_( this, DspA_tDisplaySet_Mouseover,
-				   this->mpMouseLocationAnaIdx );
+  if( sFocusedDisplay == this ) {
+    DspA_SendPointInformationToTcl_( this, DspA_tDisplaySet_Cursor,
+				     this->mpCursor );
+    DspA_SendPointInformationToTcl_( this, DspA_tDisplaySet_Mouseover,
+				     this->mpMouseLocationAnaIdx );
+  }
 
   goto cleanup;
   
