@@ -88,8 +88,8 @@ typedef struct vertex_type_
   int vtotal ;          /* total # of neighbors, will be same as one of above*/
   float d ;              /* for distance calculations */
   int nsize ;            /* size of neighborhood (e.g. 1, 2, 3) */
-  float bnx,bny,obnx,obny;                       /* boundary normal */
 #if 0
+  float bnx,bny,obnx,obny;                       /* boundary normal */
   float *fnx ;           /* face normal - x component */
   float *fny ;           /* face normal - y component */
   float *fnz ;           /* face normal - z component */
@@ -104,19 +104,19 @@ typedef struct vertex_type_
   float smx,smy,smz,osmx,osmy,osmz;              /* smoothed curr,last move */
   int   oripflag,origripflag;  /* cuts flags */
   float coord[3];
+  float ftmp ;          /* temporary floating pt. storage */
+  float theta, phi ;    /* parameterization */
 #endif
   int   marked;            /* for a variety of uses */
   int   ripflag ;
   int   border;            /* flag */
   float area,origarea ;
   int   tethered ;
-  float theta, phi ;    /* parameterization */
   float K ;             /* Gaussian curvature */
   float H ;             /* mean curvature */
-  float ftmp ;          /* temporary floating pt. storage */
   float k1, k2 ;        /* the principal curvatures */
   int   label ;         /* is this vertex part of a labeled region? */
-  float *dist ;         /* distance to neighboring vertices */
+  float *dist ;         /* original distance to neighboring vertices */
   float *dist_orig ;    /* original distance to neighboring vertices */
   int   neg ;           /* 1 if the normal is invertex */
 } vertex_type, VERTEX ;
@@ -151,6 +151,7 @@ typedef struct
   Transform         *linear_transform ;
   Transform         *inverse_linear_transform ;
   int               free_transform ;
+  float        radius ;           /* radius (if status==MRIS_SPHERE) */
   float        a, b, c ;          /* ellipsoid parameters */
   char         fname[100] ;       /* file it was originally loaded from */
   float        Hmin ;             /* min mean curvature */
@@ -206,6 +207,7 @@ typedef struct
   double  ici_desired ;       /* desired intrinsic curvature index */
   double  starting_sse ;
   double  ending_sse ;
+  double  scale ;             /* scale current distances to mimic spring */
 } INTEGRATION_PARMS ;
 
 #define IPFLAG_HVARIABLE           0x0001   /* for parms->flags */
@@ -300,11 +302,13 @@ int          MRISwriteTriangleProperties(MRI_SURFACE *mris, char *mris_fname);
 
 MRI_SURFACE  *MRISalloc(int nvertices, int nfaces) ;
 int          MRISfree(MRI_SURFACE **pmris) ;
+MRI_SURFACE  *MRISprojectOntoSphere(MRI_SURFACE *mris_src, 
+                                       MRI_SURFACE *mris_dst, float r) ;
 MRI_SURFACE  *MRISprojectOntoEllipsoid(MRI_SURFACE *mris_src, 
                                        MRI_SURFACE *mris_dst, 
                                        float a, float b, float c) ;
 int          MRISsetNeighborhoodSize(MRI_SURFACE *mris, int nsize) ;
-int          MRISsampleDistances(MRI_SURFACE *mris, int *nbr_count, int n_nbrs);
+int          MRISsampleDistances(MRI_SURFACE *mris, int *nbr_count,int n_nbrs);
 MRI_SURFACE  *MRISradialProjectOntoEllipsoid(MRI_SURFACE *mris_src, 
                                              MRI_SURFACE *mris_dst, 
                                              float a, float b, float c);
@@ -313,6 +317,7 @@ MRI_SURFACE  *MRIScenter(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst) ;
 MRI_SURFACE  *MRIStalairachTransform(MRI_SURFACE *mris_src, 
                                     MRI_SURFACE *mris_dst);
 MRI_SURFACE  *MRISunfold(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int max_passes) ;
+MRI_SURFACE  *MRISunfoldOnSphere(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int max_passes);
 MRI_SURFACE  *MRISflatten(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) ;
 MRI_SURFACE  *MRISremoveNegativeVertices(MRI_SURFACE *mris, 
                                          INTEGRATION_PARMS *parms,
@@ -372,6 +377,7 @@ int          MRIScomputeMetricProperties(MRI_SURFACE *mris) ;
 int          MRISrestoreOldPositions(MRI_SURFACE *mris) ;
 int          MRISstoreCurrentPositions(MRI_SURFACE *mris) ;
 int          MRISupdateSurface(MRI_SURFACE *mris) ;
+double       MRISpercentDistanceError(MRI_SURFACE *mris) ;
 
 #define ORIGINAL_VERTICES   0
 #define ORIG_VERTICES       ORIGINAL_VERTICES
@@ -403,6 +409,7 @@ int          MRISrestoreVertexPositions(MRI_SURFACE *mris, int which) ;
 #define DEFAULT_B  122.0f
 #define DEFAULT_C  122.0f
 #endif
+#define DEFAULT_RADIUS  128.0f
 
 #define MAX_DIM    DEFAULT_B
 
