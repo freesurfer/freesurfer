@@ -1535,9 +1535,11 @@ Volm_tErr Volm_ConvertIdxToMNITal ( mriVolumeRef this,
   
   Volm_tErr eResult = Volm_tErr_NoErr;
   xVoxel    mriIdx;
+  xVoxel    scannerRAS;
   Real      talX    = 0;
   Real      talY    = 0;
   Real      talZ    = 0;
+  int cVolume;
   
   DebugEnterFunction( ("Volm_ConvertIdxToMNITal( this=%p, iIdx=%p, "
 		       "oMNITal=%p )", this, iIdx, oMNITal) );
@@ -1554,19 +1556,14 @@ Volm_tErr Volm_ConvertIdxToMNITal ( mriVolumeRef this,
   DebugAssertThrow( (eResult == Volm_tErr_NoErr) );
 #endif
   
-  /* First convert the incoming screen idx to our local MRI idx. */
-  DebugNote( ("Converting screen idx to MRI idx") );
-  Volm_ConvertScreenIdxToMRIIdx_( this, iIdx, &mriIdx );
+  /* Convert the index coords to scanner RAS coords. */
+  Volm_ConvertIdxToScanner( this, iIdx, &scannerRAS );
 
-  /* convert idx to tal */
-  DebugNote( ("Converting idx (%.2f, %.2f, %.2f) to mni tal with "
-	      "MRIvoxelToTalairachVoxel", xVoxl_ExpandFloat( &mriIdx )) );
-  MRIvoxelToTalairach( this->mpMriValues, xVoxl_ExpandFloat( &mriIdx ),
-		       &talX, &talY, &talZ );
-  //E/ written for coronal only - might be confusing for .mgh's (they
-  //look coronal (slice_direction is not set, so sometimes 0) but
-  //aren't)
-  
+  /* Transform them to MNI talaiarch with the transform in the MRI. */
+  transform_point( this->mpMriValues->linear_transform, 
+		   xVoxl_ExpandFloat( &scannerRAS ),
+		   &talX, &talY, &talZ );
+
   /* stuff results */
   DebugNote( ("Stuffing result into xVoxel") );
   xVoxl_SetFloat( oMNITal, (float)talX, (float)talY, (float)talZ );
@@ -1586,6 +1583,7 @@ Volm_tErr Volm_ConvertIdxToTal ( mriVolumeRef this,
   
   Volm_tErr eResult = Volm_tErr_NoErr;
   xVoxel    mriIdx;
+  xVoxel    scannerRAS;
   Real      talX    = 0;
   Real      talY    = 0;
   Real      talZ    = 0;
@@ -1605,22 +1603,17 @@ Volm_tErr Volm_ConvertIdxToTal ( mriVolumeRef this,
   eResult = Volm_VerifyIdx_( this, iIdx );
   DebugAssertThrow( (eResult == Volm_tErr_NoErr) );
 #endif
-  
-  /* First convert the incoming screen idx to our local MRI idx. */
-  DebugNote( ("Converting screen idx to MRI idx") );
-  Volm_ConvertScreenIdxToMRIIdx_( this, iIdx, &mriIdx );
 
-  /* convert idx to tal */
-  DebugNote( ("Converting idx (%.2f, %.2f, %.2f) to tal with "
-	      "MRIvoxelToTalairach", xVoxl_ExpandFloat( &mriIdx )) );
-  MRIvoxelToTalairach( this->mpMriValues, xVoxl_ExpandFloat( &mriIdx ),
-		       &talX, &talY, &talZ );
-  
-  /* stuff results */
-  DebugNote( ("Stuffing result into xVoxel") );
-  xVoxl_SetFloat( &tal, (float)talX, (float)talY, (float)talZ );
-  
+  /* Convert the index coords to scanner RAS coords. */
+  Volm_ConvertIdxToScanner( this, iIdx, &scannerRAS );
+
+  /* Transform them to MNI talaiarch with the transform in the MRI. */
+  transform_point( this->mpMriValues->linear_transform, 
+		   xVoxl_ExpandFloat( &scannerRAS ),
+		   &talX, &talY, &talZ );
+
   /* convert to real tal. switch on the z to see which transform to use. */
+  xVoxl_SetFloat( &tal, talX, talY, talZ );
   if( xVoxl_GetFloatZ( &tal ) > 0 ) {
     DebugNote( ("Converting to real tal with >0 transform") );
     Trns_ConvertAtoB( this->mMNITalGtzToRealTalTransform, &tal, oTal );
