@@ -9,7 +9,7 @@
 #include "matrix.h"
 #include "proto.h"
 
-static char vcid[] = "$Id: mri_wmfilter.c,v 1.5 1999/06/06 01:36:05 fischl Exp $";
+static char vcid[] = "$Id: mri_wmfilter.c,v 1.6 1999/07/23 23:29:19 fischl Exp $";
 
 /*-------------------------------------------------------------------
                                 CONSTANTS
@@ -209,16 +209,19 @@ read_image_info(char *fpref)
 static void
 plane_filter(int niter)
 {
-  int i,j,k,di,dj,dk,m,n,u,ws2=2,maxi,mini;
-  float numvox,numnz,numz;
-  float f,f2,a,b,c,s;
+  int    i,j,k,di,dj,dk,m,n,u,ws2=2,maxi,mini, wsize, probably_white ;
+  float  numvox,numnz,numz;
+  float  f,f2,a,b,c,s;
   double sum2,sum,var,avg,tvar,maxvar,minvar;
   double sum2v[MAXLEN],sumv[MAXLEN],avgv[MAXLEN],varv[MAXLEN],nv[MAXLEN];
-  float cfracz = 0.6;
-  float cfracnz = 0.6;
+  float  cfracz = 0.6;
+  float  cfracnz = 0.6;
+  
+  probably_white = (white_lolim + gray_hilim) / 2 ;
 /*
   printf("plane_filter(%d)\n",niter);
 */
+  wsize = 2*ws2+1 ;
   for (k=0;k<numimg;k++)
   {
     fill[k] = (unsigned char **)lcalloc(IMGSIZE,sizeof(char *));
@@ -230,12 +233,18 @@ plane_filter(int niter)
     }
   }
 
+  /*
+    eliminate all voxels that are lower than white_lolim or higher
+    than white_hilim, and place the results in im[][][] and fill[]
+    (im2 is  still original image).
+  */
   for (k=0;k<numimg-1;k++)
   for (i=0;i<IMGSIZE-1;i++)
   for (j=0;j<IMGSIZE-1;j++)
   {
     im2[k][i][j] = im[k][i][j];
-    if (im[k][i][j]>white_hilim || im[k][i][j]<white_lolim) im[k][i][j] = 0;
+    if (im[k][i][j]>white_hilim || im[k][i][j]< probably_white)
+      im[k][i][j] = 0;
     fill[k][i][j] = im[k][i][j];
   }
 
@@ -244,167 +253,197 @@ plane_filter(int niter)
   if (k==106)
 */
   {
+    if (k == 127)
+    {
+      int kk = 0 ;
+      kk++ ;
+    }
     printf("processing slice %d\n",k+1);
     fflush(stdout) ;
     for (i=ws2;i<IMGSIZE-1-ws2;i++)
     for (j=ws2;j<IMGSIZE-1-ws2;j++)
     {
+      if (k == 127 && i == 46 && j == 114)
+      {
+        int kk = 0 ;
+        kk++ ;
+      }
+
+      /* count number of voxels on and off in 5x5x5 cube */
       numvox = numnz = numz = 0;
       for (dk = -ws2;dk<=ws2;dk++)
       for (di = -ws2;di<=ws2;di++)
-      for (dj = -ws2;dj<=ws2;dj++) {
+      for (dj = -ws2;dj<=ws2;dj++) 
+      {
          f = im[k+dk][i+di][j+dj];
          s = dk*c+di*b+dj*a;
          numvox++;
-         if (f!=0) {
+         if (f!=0) 
+         {
            numnz++;
-         } else 
+         } 
+         else 
            numz++;
-       }
-    if ((im[k][i][j]==0 && numnz>=cfracnz*SQR(2*ws2+1)) || 
-        (im[k][i][j]!=0 && numz>=cfracz*SQR(2*ws2+1)))
-    {
-      maxvar = -1000000;
-      minvar = 1000000;
-      maxi = mini = -1;
-      for (m=0;m<ncor;m++)
+      }
+      /* if voxel was off but majority in volume are on, or
+         if voxel was on  but majority in volume are off, take
+         a look at the plane of least variance for classification
+      */
+      if (
+          ((im[k][i][j]==0 && 
+            numnz>=(cfracnz/2)*(wsize*wsize*wsize)) &&
+           (im2[k][i][j] >= white_lolim))
+          || 
+          (im[k][i][j]!=0 && 
+           (numz>=(cfracz/2)*(wsize*wsize*wsize)) &&
+           (im2[k][i][j] <= gray_hilim)))
       {
-        a = xcor[m];
-        b = ycor[m];
-        c = zcor[m];
-        sum = sum2 = n = 0;
-        for (u=0;u<2*ws2+1;u++)
-          sumv[u] = sum2v[u] = nv[u] = 0;
+        maxvar = -1000000;
+        minvar = 1000000;
+        maxi = mini = -1;
+        for (m=0;m<ncor;m++)
+        {
+          a = xcor[m];
+          b = ycor[m];
+          c = zcor[m];
+          sum = sum2 = n = 0;
+          for (u=0;u<wsize;u++)
+            sumv[u] = sum2v[u] = nv[u] = 0;
+          for (dk = -ws2;dk<=ws2;dk++)
+            for (di = -ws2;di<=ws2;di++)
+              for (dj = -ws2;dj<=ws2;dj++)
+              {
+                u = ws2+floor(dk*c+di*b+dj*a+0.5);
+                u = (u<0)?0:(u>2*ws2+1-1)?2*ws2+1-1:u;
+                
+                f = im[k+dk][i+di][j+dj];
+                
+/*
+  f = im2[k+dk][i+di][j+dj];
+*/
+                sum2v[u] += f*f;
+                sumv[u] += f;
+                nv[u] += 1;
+                sum2 += f*f;
+                sum += f;
+                n += 1;
+              }
+          avg = sum/n;
+          var = sum2/n-avg*avg;
+          tvar = 0;
+          for (u=0;u<2*ws2+1;u++)
+          {
+            avgv[u] = sumv[u]/nv[u];
+            varv[u] = sum2v[u]/nv[u]-avgv[u]*avgv[u];
+            tvar += varv[u];
+          }
+          tvar /= (wsize);
+          if (tvar>maxvar) {maxvar=tvar;maxi=m;}
+          if (tvar<minvar) {minvar=tvar;mini=m;}
+        }
+        
+        a = xcor[mini];
+        b = ycor[mini];
+        c = zcor[mini];
+/*
+        printf(" -> %d,%d: (%f,%f) %f, %f, %f\n",mini,maxi,minvar,maxvar,a,b,c);
+*/
+      /*
+        for (m=0;m<3;m++)
+        for (n=0;n<3;n++)
+        mat[m][n] = 0;
+        for (m=0;m<3;m++)
+        vec[m] = 0;
         for (dk = -ws2;dk<=ws2;dk++)
         for (di = -ws2;di<=ws2;di++)
         for (dj = -ws2;dj<=ws2;dj++)
         {
-          u = ws2+floor(dk*c+di*b+dj*a+0.5);
-          u = (u<0)?0:(u>2*ws2+1-1)?2*ws2+1-1:u;
-
-          f = im[k+dk][i+di][j+dj];
-
-/*
-          f = im2[k+dk][i+di][j+dj];
-*/
-          sum2v[u] += f*f;
-          sumv[u] += f;
-          nv[u] += 1;
-          sum2 += f*f;
-          sum += f;
-          n += 1;
-        }
-        avg = sum/n;
-        var = sum2/n-avg*avg;
-        tvar = 0;
-        for (u=0;u<2*ws2+1;u++)
-        {
-          avgv[u] = sumv[u]/nv[u];
-          varv[u] = sum2v[u]/nv[u]-avgv[u]*avgv[u];
-          tvar += varv[u];
-        }
-        tvar /= (2*ws2+1);
-        if (tvar>maxvar) {maxvar=tvar;maxi=m;}
-        if (tvar<minvar) {minvar=tvar;mini=m;}
-      }
-      
-      a = xcor[mini];
-      b = ycor[mini];
-      c = zcor[mini];
-/*
-      printf(" -> %d,%d: (%f,%f) %f, %f, %f\n",mini,maxi,minvar,maxvar,a,b,c);
-*/
-/*
-      for (m=0;m<3;m++)
-      for (n=0;n<3;n++)
-        mat[m][n] = 0;
-      for (m=0;m<3;m++)
-       vec[m] = 0;
-      for (dk = -ws2;dk<=ws2;dk++)
-      for (di = -ws2;di<=ws2;di++)
-      for (dj = -ws2;dj<=ws2;dj++)
-      {
-         f = im2[k+dk][i+di][j+dj];
-         s = dk*c+di*b+dj*a;
-         s2 = s*s;
-         mat[0][0] += s2*s2;
-         mat[0][1] = (mat[1][0] += s2*s);
-         mat[0][2] = (mat[2][0] += s2);
-         mat[1][1] += s*s;
-         mat[1][2] = (mat[2][1] += s);
-         mat[2][2] += 1;
+        f = im2[k+dk][i+di][j+dj];
+        s = dk*c+di*b+dj*a;
+        s2 = s*s;
+        mat[0][0] += s2*s2;
+        mat[0][1] = (mat[1][0] += s2*s);
+        mat[0][2] = (mat[2][0] += s2);
+        mat[1][1] += s*s;
+        mat[1][2] = (mat[2][1] += s);
+        mat[2][2] += 1;
          vec[0] += f*s2;
          vec[1] += f*s;
          vec[2] += f;
-      }
-      inverse(mat,mati,3);
-      vector_multiply(mati,vec,vec2,3,3);
-      f = im[k][i][j];
-      if (vec2[0]>2.0 && f<=gray_hilim) f = 0;
+         }
+         inverse(mat,mati,3);
+         vector_multiply(mati,vec,vec2,3,3);
+         f = im[k][i][j];
+         if (vec2[0]>2.0 && f<=gray_hilim) f = 0;
       f = (f>255)?255:(f<0)?0:f;
       fill[k][i][j] = f;
 */
-      numvox = numnz = numz = sum = sum2 = 0;
-      for (dk = -ws2;dk<=ws2;dk++)
-      for (di = -ws2;di<=ws2;di++)
-      for (dj = -ws2;dj<=ws2;dj++) {
-         f = im[k+dk][i+di][j+dj];
-         f2 = im2[k+dk][i+di][j+dj];
-         s = dk*c+di*b+dj*a;
-         if (fabs(s)<=0.5) {
-           numvox++;
-           sum2 += f2;
-           if (f!=0) {
-             numnz++;
-             sum += f;
-           } else 
-             numz++;
-         }
-      }
-      if (numnz!=0) sum /= numnz;
-      if (numvox!=0) sum2 /= numvox;
-      f = im[k][i][j];
-      f2 = im2[k][i][j];
-/*
-      printf("%d %d %d %d %f\n",
-             k,i,j,(int)f,(int)numvox,(int)numnz,(int)numz,numz/numvox);
-*/
-      if (f!=0 && numz/numvox>cfracz && f<=gray_hilim) 
-      {
+        numvox = numnz = numz = sum = sum2 = 0;
+        for (dk = -ws2;dk<=ws2;dk++)
+          for (di = -ws2;di<=ws2;di++)
+            for (dj = -ws2;dj<=ws2;dj++) 
+            {
+              f = im[k+dk][i+di][j+dj];
+              f2 = im2[k+dk][i+di][j+dj];
+              s = dk*c+di*b+dj*a;
+              if (fabs(s)<=0.5) 
+              {
+                numvox++;
+                sum2 += f2;
+                if (f!=0) 
+                {
+                  numnz++;
+                  sum += f;
+                } 
+                else 
+                  numz++;
+              }
+            }
+        if (numnz!=0) sum /= numnz;
+        if (numvox!=0) sum2 /= numvox;
+        f = im[k][i][j];
+        f2 = im2[k][i][j];
+        /*
+          printf("%d %d %d %d %f\n",
+          k,i,j,(int)f,(int)numvox,(int)numnz,(int)numz,numz/numvox);
+        */
+        if (f!=0 && numz/numvox>cfracz && f<=gray_hilim) 
+        {
 /*
         printf(" *** %d,%d,%d: %d->0 %d %d %d\n",
                k,i,j,(int)f,(int)numvox,(int)numnz,(int)numz);
 */
-        f=0;
-      }
-      else if (f==0 && numnz/numvox>cfracnz) 
+          f=0;
+        }
+        else if (f==0 && numnz/numvox>cfracnz) 
 /*
       else if (f==0 && 
                (numnz/numvox>cfracnz || (vec2[0]<-1.0 && f2>=white_lolim-5))) 
 */
-      {
+        {
 /*
         printf(" !!! %d,%d,%d: %d(%d)->%d %d %d %d %f\n",
                k,i,j,(int)f,(int)f2,(int)sum,
                (int)numvox,(int)numnz,(int)numz,vec2[0]);
 */
-        f=sum;
-      }
+          f=sum;
+        }
 /*
       f = sum2;
 */
-      fill[k][i][j] = f;
-    }
+        fill[k][i][j] = f2 /*f*/;
+      }
     }
   }
   for (k=0;k<numimg-1;k++)
-  for (i=0;i<IMGSIZE-1;i++)
-  for (j=0;j<IMGSIZE-1;j++)
-  {
-    im[k][i][j] = fill[k][i][j];
-    if (im[k][i][j]>white_hilim || im[k][i][j]<white_lolim) im[k][i][j] = 0;
-  }
-
+    for (i=0;i<IMGSIZE-1;i++)
+      for (j=0;j<IMGSIZE-1;j++)
+      {
+        im[k][i][j] = fill[k][i][j];
+        if (im[k][i][j]>white_hilim || im[k][i][j]<white_lolim) 
+          im[k][i][j] = 0;
+      }
+  
 }
 
 static void
