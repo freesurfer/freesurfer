@@ -7208,7 +7208,7 @@ MRISreadAnnotation(MRI_SURFACE *mris, char *sname)
 int
 MRISwriteAnnotation(MRI_SURFACE *mris, char *sname)
 {
-  int   i,j,vno,num;
+  int   i,vno;
   FILE  *fp;
   char  *cp, fname[STRLEN], path[STRLEN];
 
@@ -7230,8 +7230,8 @@ MRISwriteAnnotation(MRI_SURFACE *mris, char *sname)
   if (fp==NULL) 
     ErrorReturn(ERROR_NOFILE, (ERROR_NOFILE, "could not write annot file %s",
                                 fname)) ;
-  fwriteInt(num, fp) ;
-  for (j=0;j<num;j++)
+  fwriteInt(mris->nvertices, fp) ;
+  for (vno=0;vno<mris->nvertices;vno++)
   {
     i = mris->vertices[vno].annotation ;
     fwriteInt(vno,fp) ; i = fwriteInt(i,fp) ;
