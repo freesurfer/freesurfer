@@ -1294,8 +1294,10 @@ MRIS *MRISloadSurfSubject(char *subj, char *hemi, char *surfid,
   return(Surf);
 }
 /*-----------------------------------------------------------------
-  MRISfdr() - performs False Discovery Rate (FDR) thesholding of
-  the the vertex val field. Results are stored in the val2 field.
+  MRISfdr2vwth() - computes the voxel-wise (or vertex-wise) threshold
+    needed to realize the given False Discovery Rate (FDR) based on the
+    values in the val field. The val field is copied to the val2 field,
+    and then the val2 field is thresholded.
 
   fdr - false dicovery rate, between 0 and 1, eg: .05
   signid -  
@@ -1323,8 +1325,9 @@ MRIS *MRISloadSurfSubject(char *subj, char *hemi, char *surfid,
     1 - no vertices met the mask and sign criteria
 
   Ref: http://www.sph.umich.edu/~nichols/FDR/FDR.m
+  See also: fdr2vwth() in sig.c
   ---------------------------------------------------------------*/
-int MRISfdr(MRIS *surf, double fdr, int signid, 
+int MRISfdr2vwth(MRIS *surf, double fdr, int signid, 
 	    int log10flag, int maskflag, double *vwth)
 {
   double *p=NULL, val, val2null;
@@ -1345,11 +1348,12 @@ int MRISfdr(MRIS *surf, double fdr, int signid,
     p[np] = val;
     np++;
   }
-  printf("np = %d, nv = %d\n",np,surf->nvertices);
+  printf("MRISfdr2vwth(): np = %d, nv = %d\n",np,surf->nvertices);
 
   // Check that something met the match criteria, 
   // otherwise return an error
   if(np==0){
+    printf("WARNING: MRISfdr2vwth(): no vertices met threshold\n");
     free(p);
     return(1);
   }
