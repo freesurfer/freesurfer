@@ -920,91 +920,14 @@ VolumeCollection::CalcWorldToIndexTransform () {
   mWorldToIndexTransform =
     mDataToIndexTransform * mDataToWorldTransform->Inverse();
 
+#if 0
+  cerr << "mDataToIndex " << mDataToIndexTransform << endl;
+  cerr << "mDataToWorldTransform inv " << mDataToWorldTransform->Inverse() << endl;
+  cerr << "mWorldToIndexTransform" << mWorldToIndexTransform << endl;
+#endif
+
   DataChanged();
 }
-
-#if 0
-void
-VolumeCollection::CalcDataToIndexCache () {
-
-  float* minBounds = GetMinRASBounds();
-  float* maxBounds = GetMaxRASBounds();
-
-  int zX = (int) ceil((maxBounds[0]-minBounds[0]+1.0) * (1.0/GetVoxelXSize()));
-  int zY = (int) ceil((maxBounds[1]-minBounds[1]+1.0) * (1.0/GetVoxelYSize()));
-  int zZ = (int) ceil((maxBounds[2]-minBounds[2]+1.0) * (1.0/GetVoxelZSize()));
-
-  if( NULL != mDataToIndexCache ) {
-    delete( mDataToIndexCache );
-  }
-
-  mDataToIndexCache = 
-    new Volume3<Point3<int> >( zX, zY, zZ, Point3<int>(0,0,0) );
-
-  DebugOutput( << "Voxel size: " << mVoxelSize[0] << ", " << mVoxelSize[1]
-	       << ", " << mVoxelSize[2] );
-  DebugOutput( << "Cachel volume size: " << zX << ", " << zY << ", " << zZ );
-
-  Point3<int> index;
-  float RAS[3];
-  int cacheIndex[3];
-  for( RAS[2] = minBounds[2]; RAS[2] < maxBounds[2]; 
-       RAS[2] += GetVoxelZSize() ) {
-    for( RAS[1] = minBounds[1]; RAS[1] < maxBounds[1]; 
-	 RAS[1] += GetVoxelYSize() ) {
-      for( RAS[0] = minBounds[0]; RAS[0] < maxBounds[0]; 
-	   RAS[0] += GetVoxelXSize() ) {
-	
-	index.Set( (int) rint(*MATRIX_RELT(mDataToIndexMatrix,1,1) * RAS[0] +
-			      *MATRIX_RELT(mDataToIndexMatrix,1,2) * RAS[1] +
-			      *MATRIX_RELT(mDataToIndexMatrix,1,3) * RAS[2] +
-			      *MATRIX_RELT(mDataToIndexMatrix,1,4) ),
-		   (int) rint(*MATRIX_RELT(mDataToIndexMatrix,2,1) * RAS[0] +
-			      *MATRIX_RELT(mDataToIndexMatrix,2,2) * RAS[1] +
-			      *MATRIX_RELT(mDataToIndexMatrix,2,3) * RAS[2] +
-			      *MATRIX_RELT(mDataToIndexMatrix,2,4) ),
-		   (int) rint(*MATRIX_RELT(mDataToIndexMatrix,3,1) * RAS[0] +
-			      *MATRIX_RELT(mDataToIndexMatrix,3,2) * RAS[1] +
-			      *MATRIX_RELT(mDataToIndexMatrix,3,3) * RAS[2] +
-			      *MATRIX_RELT(mDataToIndexMatrix,3,4) ) );
-
-	DataToIndexCacheIndex( RAS, cacheIndex );
-
-	mDataToIndexCache->Set_Unsafe( cacheIndex[0], cacheIndex[1], 
-					cacheIndex[2], index );
-	
-
-      }
-    }
-  }
-}
-
-void
-VolumeCollection::DataToIndexCacheIndex ( float const iRAS[3],
-					   int oCacheIndex[3] ) const {
-
-  float iRASX = iRAS[0];
-  float iRASY = iRAS[1];
-  float iRASZ = iRAS[2];
-
-  float oneOverVoxelX = mOneOverVoxelSize[0];
-  float oneOverVoxelY = mOneOverVoxelSize[1];
-  float oneOverVoxelZ = mOneOverVoxelSize[2];
-
-  float mMinRASX = mMinRASBounds[0];
-  float mMinRASY = mMinRASBounds[1];
-  float mMinRASZ = mMinRASBounds[2];
-
-  float cacheX = (iRASX - mMinRASX) * oneOverVoxelX;
-  float cacheY = (iRASY - mMinRASY) * oneOverVoxelY;
-  float cacheZ = (iRASZ - mMinRASZ) * oneOverVoxelZ;
-
-  oCacheIndex[0] = (int) cacheX;
-  oCacheIndex[1] = (int) cacheY;
-  oCacheIndex[2] = (int) cacheZ;
-
-}
-#endif
 
 
 VolumeCollectionFlooder::VolumeCollectionFlooder () {

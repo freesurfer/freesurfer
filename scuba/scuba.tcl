@@ -10,7 +10,7 @@ if { $err } {
     load [file dirname [info script]]/libscuba[info sharedlibextension] scuba
 }
 
-DebugOutput "\$Id: scuba.tcl,v 1.39 2004/06/28 02:34:14 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.40 2004/07/23 00:41:53 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -1662,9 +1662,9 @@ proc MakeTransformsPanel { ifwTop } {
     global gaWidget
     global gaTransform
 
-    set fwTop      $ifwTop.fwTransforms
-    set fwProps    $fwTop.fwProps
-    set fwCommands $fwTop.fwCommands
+    set fwTop          $ifwTop.fwTransforms
+    set fwProps        $fwTop.fwProps
+    set fwCommands     $fwTop.fwCommands
  
     frame $fwTop
 
@@ -1713,6 +1713,32 @@ proc MakeTransformsPanel { ifwTop } {
 
     grid $fwProps.bwInvert -column 0 -row 7 -columnspan 4 -sticky ew
 
+
+    tkuMakeCheckboxes $fwProps.cbRegister \
+	-font [tkuNormalFont] \
+	-checkboxes { 
+	    {-type text -label "Treat as registration" 
+		-variable gaTransform(current,isRegistration)
+		-command { SetTransformRegistration; UpdateTransformList }}
+	}
+
+    grid $fwProps.cbRegister -column 0 -row 8 -columnspan 4 -sticky ew
+
+    tixOptionMenu $fwProps.owSource \
+	-label "Source (fixed target):" \
+	-variable gaTransform(current,regSource) \
+	-command { TransformSourceRegistrationMenuCallback }
+    set gaWidget(transformProperties,regSourceMenu) $fwProps.owSource
+
+    grid $fwProps.owSource -column 0 -row 9 -columnspan 4 -sticky ew
+
+    tixOptionMenu $fwProps.owDest \
+	-label "Dest (movable):" \
+	-variable gaTransform(current,regDest) \
+	-command { TransformDestRegistrationMenuCallback }
+    set gaWidget(transformProperties,regDestMenu) $fwProps.owDest
+
+    grid $fwProps.owDest -column 0 -row 10 -columnspan 4 -sticky ew
 
     frame $fwCommands
     button $fwCommands.bwMakeTransform -text "Make New Transform" \
@@ -1858,6 +1884,14 @@ proc UpdateCollectionList {} {
 	 $gaCollection(current,id) >= 0 } {
 	SelectCollectionInCollectionProperties $gaCollection(current,id)
     }
+
+
+    # Build source and dest menus in transforms.
+    FillMenuFromList $gaWidget(transformProperties,regSourceMenu) \
+	$gaCollection(idList) "GetCollectionLabel %s" {} false
+    FillMenuFromList $gaWidget(transformProperties,regDestMenu) \
+	$gaCollection(idList) "GetCollectionLabel %s" {} false
+	
 
     UpdateROIList
 }
@@ -2587,6 +2621,27 @@ proc SelectTransformInTransformProperties { iTransformID } {
     set gaTransform(current,label) [GetTransformLabel $iTransformID]
     set gaTransform(current,valueList) [GetTransformValues $iTransformID]
     tkuRefreshEntryNotify $gaWidget(transformProperties,labelEntry)
+    set gaTransform(current,isRegistration) \
+	[IsTransformRegistration $iTransformID]
+
+    if { $gaTransform(current,isRegistration) } {
+
+	set gaTransform(curernt,regSource) \
+	    [GetTransformRegistrationSource $iTransformID]
+	set gaTransform(curernt,regDest) \
+	    [GetTransformRegistrationDest $iTransformID]
+	
+	# Select the items in the menu.
+	$gaWidget(transformProperties,regSourceMenu) config -disablecallback 1
+	$gaWidget(transformProperties,regSourceMenu) config \
+	    -value $gaTransform(curernt,regSource)
+	$gaWidget(transformProperties,regSourceMenu) config -disablecallback 0
+	
+	$gaWidget(transformProperties,regDestMenu) config -disablecallback 1
+	$gaWidget(transformProperties,regDestMenu) config \
+	    -value $gaTransform(curernt,regDest)
+	$gaWidget(transformProperties,regDestMenu) config -disablecallback 0
+    }
 
     # Set the invidual values from the value list.
     for { set nRow 0 } { $nRow < 4 } { incr nRow } {
@@ -2599,7 +2654,6 @@ proc SelectTransformInTransformProperties { iTransformID } {
 	}
     }
 
-     
     # Make sure that this is the item selected in the menu. Disale the
     # callback and set the value of the menu to the transform ID. Then
     # reenable the callback.
@@ -2668,6 +2722,37 @@ proc ClearSetTransformValuesButton {} {
 
     # Change the set button to normal.
     $gaWidget(transformProperties,setValuesButton) config -fg black
+}
+
+proc TransformSourceRegistrationMenuCallback { iCollectionID } {
+    global gaTransform
+
+    set gaTransform(current,regSource) $iCollectionID
+    SetTransformRegistration
+    UpdateTransformList
+}
+
+proc TransformDestRegistrationMenuCallback { iCollectionID } {
+    global gaTransform
+
+    set gaTransform(current,regDest) $iCollectionID
+    SetTransformRegistration
+    UpdateTransformList
+}
+
+proc SetTransformRegistration {} {
+    
+    global gaTransform
+
+    if { $gaTransform(current,isRegistration) } {
+
+	TreatTransformAsRegistration $gaTransform(current,id) \
+	    $gaTransform(current,regSource) $gaTransform(current,regDest)
+
+    } else {
+
+	TreatTransformAsNative $gaTransform(current,id)
+    }
 }
 
 # COLOR LUT PROPERTIES FUNCTIONS =========================================
@@ -3608,6 +3693,7 @@ proc UpdateFrame {} {
 }
 
 #after 1000  { UpdateFrame }
+
 
 
 

@@ -1,5 +1,6 @@
 #include <iomanip>
 #include "ScubaTransform.h"
+#include "VolumeCollection.h"
 
 using namespace std;
 
@@ -9,6 +10,9 @@ ScubaTransformStaticTclListener ScubaTransform::mStaticListener;
 
 ScubaTransform::ScubaTransform() {
   msLabel = "";
+  mIsRegistration = false;
+  mSourceVolume = NULL;
+  mDestVolume = NULL;
 
   TclCommandManager& commandMgr = TclCommandManager::GetManager();
   commandMgr.AddCommand( *this, "SetTransformLabel", 2, "transformID label",
@@ -27,6 +31,25 @@ ScubaTransform::ScubaTransform() {
 			 "file into an existing transform." );
   commandMgr.AddCommand( *this, "InvertTransform", 1, "transformID",
 			 "Inverts a transform." );
+  commandMgr.AddCommand( *this, "TreatTransformAsRegistration", 3, 
+			 "transformID sourceVolumeID destVolumeID",
+			 "Treats a transform as a tkregistration between "
+			 "two volumes, getting the necessary geometry "
+			 "information from them to register them.." );
+  commandMgr.AddCommand( *this, "TreatTransformAsNative", 1, "transformID",
+			 "If a transform was set to be treated as a "
+			 "registration, this restores it to normal." );
+  commandMgr.AddCommand( *this, "IsTransformRegistration", 1, "transformID",
+			 "Returns whether or not a transform is being "
+			 "treated as a registration." );
+  commandMgr.AddCommand( *this, "GetTransformRegistrationSource", 1,
+			 "transformID",
+			 "Returns the id of the source volume if the "
+			 "transform is being treated as a registration." );
+  commandMgr.AddCommand( *this, "GetTransformRegistrationDest", 1,
+			 "transformID",
+			 "Returns the id of the dest volume if the "
+			 "transform is being treated as a registration." );
 }
 
 ScubaTransform::~ScubaTransform() {
@@ -142,16 +165,137 @@ ScubaTransform::DoListenToTclCommand( char* isCommand, int iArgc, char** iasArgv
     }
   }
   
-  // InvertTransform <transformID>
-  if( 0 == strcmp( isCommand, "InvertTransform" ) ) {
-    int transformID = strtol(iasArgv[1], (char**)NULL, 10);
-    if( ERANGE == errno ) {
-      sResult = "bad transform ID";
+  // TreatTransformAsRegistration <transformID> <sourceVolumeID> <destVolumeID>
+  if( 0 == strcmp( isCommand, "TreatTransformAsRegistration" ) ) {
+
+    int transformID;
+    try { 
+      transformID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
+      }
+    catch( runtime_error e ) {
+      sResult = string("bad transform ID: ") + e.what();
       return error;
     }
     
     if( mID == transformID ) {
-      SetMainTransform( this->Inverse() );
+      
+      try {
+	int sourceVolumeID = 
+	  TclCommandManager::ConvertArgumentToInt( iasArgv[2] );
+
+	DataCollection& sourceCol =
+	  VolumeCollection::FindByID( sourceVolumeID );
+	VolumeCollection& sourceVolume = (VolumeCollection&)sourceCol;
+	  //	  dynamic_cast<VolumeCollection&>( sourceCol );
+	
+	int destVolumeID = 
+	  TclCommandManager::ConvertArgumentToInt( iasArgv[3] );
+
+	DataCollection& destCol = 
+	  VolumeCollection::FindByID( destVolumeID );
+	VolumeCollection& destVolume = (VolumeCollection&)destCol;
+	  //	  dynamic_cast<VolumeCollection&>( destCol );
+	
+	TreatAsRegistration( sourceVolume, destVolume );
+      }
+      catch( runtime_error e ) {
+	sResult = e.what();
+	return error;
+      }
+    }
+  }
+
+  // TreatTransformAsNative <transformID>
+  if( 0 == strcmp( isCommand, "TreatTransformAsNative" ) ) {
+
+    int transformID;
+    try { 
+      transformID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
+      }
+    catch( runtime_error e ) {
+      sResult = string("bad transform ID: ") + e.what();
+      return error;
+    }
+    
+    if( mID == transformID ) {
+      
+      try { 
+	TreatAsNative();
+      }
+      catch( runtime_error e ) {
+	sResult = e.what();
+	return error;
+      }
+    }
+  }
+
+  // IsTransformRegistration <transformID>
+  if( 0 == strcmp( isCommand, "IsTransformRegistration" ) ) {
+
+    int transformID;
+    try { 
+      transformID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
+      }
+    catch( runtime_error e ) {
+      sResult = string("bad transform ID: ") + e.what();
+      return error;
+    }
+    
+    if( mID == transformID ) {
+      
+      sReturnValues = 
+	TclCommandManager::ConvertBooleanToReturnValue( mIsRegistration );
+      sReturnFormat = "i";
+    }
+  }
+
+  // GetTransformRegistrationSource <transformID>
+  if( 0 == strcmp( isCommand, "GetTransformRegistrationSource" ) ) {
+
+    int transformID;
+    try { 
+      transformID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
+      }
+    catch( runtime_error e ) {
+      sResult = string("bad transform ID: ") + e.what();
+      return error;
+    }
+    
+    if( mID == transformID ) {
+      
+      stringstream ssReturnValues;
+      if( NULL != mSourceVolume ) {
+	ssReturnValues << mSourceVolume->GetID();
+      } else {
+	ssReturnValues << 0;
+      }
+      sReturnValues = ssReturnValues.str();
+      sReturnFormat = "i";
+    }
+  }
+
+  // GetTransformRegistrationDest <transformID>
+  if( 0 == strcmp( isCommand, "GetTransformRegistrationDest" ) ) {
+
+    int transformID;
+    try { 
+      transformID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
+      }
+    catch( runtime_error e ) {
+      sResult = string("bad transform ID: ") + e.what();
+      return error;
+    }
+    
+    if( mID == transformID ) {
+      
+      stringstream ssReturnValues;
+      if( NULL != mDestVolume ) {
+	ssReturnValues << mDestVolume->GetID();
+      } else {
+	ssReturnValues << 0;
+      }
+      sReturnValues = ssReturnValues.str();
+      sReturnFormat = "i";
     }
   }
 
@@ -164,6 +308,72 @@ ScubaTransform::ValuesChanged () {
   SendBroadcast( "transformChanged", NULL );
   Transform44::ValuesChanged();
 }
+
+void 
+ScubaTransform::TreatAsRegistration ( VolumeCollection& iSourceVolume,
+				      VolumeCollection& iDestVolume ) {
+
+  if( mIsRegistration ) {
+    if( iSourceVolume.GetID() == mSourceVolume->GetID() &&
+	iDestVolume.GetID()   == mDestVolume->GetID() ) {
+      return;
+    } else {
+      // Undo current regisration first.
+      TreatAsNative();
+    }
+  }
+
+  // Get the MRIs from the volumes.
+  MRI* sourceMRI = iSourceVolume.GetMRI();
+  if( NULL == sourceMRI ) 
+    throw runtime_error( "Couldn't get source MRI." );
+  MRI* destMRI = iDestVolume.GetMRI();
+  if( NULL == destMRI ) 
+    throw runtime_error( "Couldn't get dest MRI." );
+
+  MATRIX* tkReg = GetMainMatrix().GetMatrix();
+  MATRIX* native = MRItkReg2Native( sourceMRI, destMRI, tkReg );
+  if( NULL == native ) 
+    throw runtime_error( "Couldn't get native transform." );
+  native = MatrixInverse( native, NULL );
+  SetMainTransform( native );
+  MatrixFree( &native );
+
+  mIsRegistration = true;
+  mSourceVolume = &iSourceVolume;
+  mDestVolume = &iDestVolume;
+}
+
+void 
+ScubaTransform::TreatAsNative () {
+
+  // Make sure it's not already native.
+  if( !mIsRegistration ) {
+    return;
+  }
+
+  // Get the MRIs from the volumes.
+  MRI* sourceMRI = mSourceVolume->GetMRI();
+  if( NULL == sourceMRI ) 
+    throw runtime_error( "Couldn't get source MRI." );
+  MRI* destMRI = mDestVolume->GetMRI();
+  if( NULL == destMRI ) 
+    throw runtime_error( "Couldn't get dest MRI." );
+
+  // Convert our matrix.
+  MATRIX* native = GetMainMatrix().GetMatrix();
+  native = MatrixInverse( native, NULL );
+  MATRIX* tkReg = MRItkRegMtx( sourceMRI, destMRI, native );
+  if( NULL == tkReg ) 
+    throw runtime_error( "Couldn't get tkReg transform." );
+  SetMainTransform( tkReg );
+  MatrixFree( &tkReg );
+
+  mIsRegistration = false;
+  mSourceVolume = NULL;
+  mDestVolume = NULL;
+}
+
 
 ScubaTransformStaticTclListener::ScubaTransformStaticTclListener () {
 

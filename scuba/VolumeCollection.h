@@ -116,10 +116,7 @@ protected:
   Transform44 mDataToIndexTransform;
   Transform44 mWorldToIndexTransform;
 
-  Volume3<Point3<int> >* mDataToIndexCache;
-  void CalcDataToIndexCache ();
-  inline void DataToIndexCacheIndex ( float const iRAS[3],
-				       int oCacheIndex[3] ) const;
+  // Gets the extract_r_to_i matrix from the MRI. If 
 
   float mVoxelSize[3];
 

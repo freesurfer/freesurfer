@@ -12,6 +12,8 @@ extern "C" {
 #include "Broadcaster.h"
 #include "Point3.h"
 
+class VolumeCollection;
+
 class ScubaTransformStaticTclListener : public DebugReporter, public TclCommandListener {
 
  public:
@@ -21,13 +23,6 @@ class ScubaTransformStaticTclListener : public DebugReporter, public TclCommandL
   virtual TclCommandResult
     DoListenToTclCommand ( char* isCommand, int iArgc, char** iasArgv );
 };
-
-// Note that all 16 element matrices used in this class are in openGL
-// style format:
-// [ 0   4   8  12 ]
-// [ 1   5   9  13 ]
-// [ 2   6  10  14 ]
-// [ 3   7  11  15 ]
 
 class ScubaTransform : public Transform44, public IDTracker<ScubaTransform>, public TclCommandListener, public Broadcaster {
 
@@ -50,6 +45,11 @@ class ScubaTransform : public Transform44, public IDTracker<ScubaTransform>, pub
     return *this;
   }
 
+  // For making this volume a registration volume.
+  void TreatAsRegistration ( VolumeCollection& iSourceVolume, 
+			     VolumeCollection& iDestVolume );
+  void TreatAsNative ();
+
  protected:
 
   virtual void ValuesChanged ();
@@ -57,6 +57,12 @@ class ScubaTransform : public Transform44, public IDTracker<ScubaTransform>, pub
   static ScubaTransformStaticTclListener mStaticListener;
 
   std::string msLabel;
+
+  // For making this a registration transform. Save the source and
+  // dest volume IDs so we can unmake it.
+  bool mIsRegistration;
+  VolumeCollection* mSourceVolume;
+  VolumeCollection* mDestVolume;
 };
 
 std::ostream& operator << ( std::ostream&, ScubaTransform& iTransform  );

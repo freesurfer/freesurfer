@@ -24,6 +24,14 @@ std::map<int,Point3<float> > ScubaView::mMarkerRAS;
 std::map<int,bool> ScubaView::mMarkerVisible;
 ScubaViewStaticTclListener ScubaView::mStaticListener;
 
+GLenum glError;
+#define CheckGLError()  \
+  glError = glGetError(); \
+  while( glError != GL_NO_ERROR ) { \
+    cerr << __LINE__ << " error: " << gluErrorString( glError ) << endl; \
+    glError = glGetError(); \
+  } \
+
 
 int const ScubaView::kcInPlaneMarkerColors = 12;
 float kInPlaneMarkerColors[ScubaView::kcInPlaneMarkerColors][3] = {
@@ -1942,6 +1950,46 @@ ScubaView::BuildFrameBuffer () {
 
 void
 ScubaView::DrawFrameBuffer () {
+
+#if 0
+  glEnable( GL_TEXTURE_2D );
+  CheckGLError();
+
+  glTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA, 
+		mWidth, mHeight, 0,
+		GL_RGBA, GL_UNSIGNED_BYTE,
+		mBuffer );
+  CheckGLError();
+  
+  glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP );
+  CheckGLError();
+  glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP );
+  CheckGLError();
+  glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
+  CheckGLError();
+  glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
+  CheckGLError();
+  glTexEnvf( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_DECAL );
+  CheckGLError();
+
+  glBegin( GL_QUADS );
+  CheckGLError();
+
+  glTexCoord2f( 0.0f, 0.0f );
+  glVertex3f  ( 0.0f, 0.0f, 0.0f );
+
+  glTexCoord2f( 0.0f, 1.0f );
+  glVertex3f  ( 0.0f, (float)mHeight, 0.0f );
+
+  glTexCoord2f( 1.0f, 1.0f );
+  glVertex3f  ( (float)mWidth, (float)mHeight, 0.0f );
+
+  glTexCoord2f( 1.0f, 0.0f );
+  glVertex3f  ( (float)mWidth, 0.0f, 0.0f );
+
+  glEnd();
+  glGetError(); // clear error
+#endif  
 
   glRasterPos2i( 0, 0 );
   glDrawPixels( mWidth, mHeight, GL_RGBA, GL_UNSIGNED_BYTE, mBuffer );

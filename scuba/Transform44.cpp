@@ -3,6 +3,7 @@
 #include "Transform44.h"
 extern "C" {
 #include "transform.h"
+#include "registerio.h"
 }
 
 using namespace std;
@@ -61,31 +62,57 @@ Transform44::MakeRotation ( float iCenterPoint[3],
 void
 Transform44::LoadFromLTAFile ( string ifnLTA ) {
 
-  LTA* lta = LTAreadEx( ifnLTA.c_str() );
-  if( NULL == lta ) {
-    throw runtime_error( "Couldn't load LTA." );
+  LTA* lta = NULL;
+  if( ifnLTA.find("register.dat",0) ) {
+
+    char fnLTA[1000];
+    char* sSubject;
+    float inPlaneResolution;
+    float betweenPlaneResolution;
+    float intensity;
+    MATRIX* registrationMatrix;
+    int intConversionMethod;
+
+    strcpy( fnLTA, ifnLTA.c_str() );
+    regio_read_register( fnLTA,
+			 &sSubject, &inPlaneResolution, 
+			 &betweenPlaneResolution, &intensity,
+			 &registrationMatrix, &intConversionMethod );
+    if( NULL == registrationMatrix ) {
+      throw runtime_error( "Couldn't load registration." );
+    }
+
+    SetMainTransform( registrationMatrix );
+    
+    MatrixFree( &registrationMatrix );
+    free( sSubject );
+
+  } else {
+
+    LTA* lta = LTAreadEx( ifnLTA.c_str() );
+    if( NULL == lta ) {
+      throw runtime_error( "Couldn't load LTA." );
+    }
+    switch( lta->type ) {
+    case LINEAR_VOX_TO_VOX:
+      cerr << "LTA type is LINEAR_VOX_TO_VOX" << endl;
+      break;
+    case LINEAR_RAS_TO_RAS:
+      cerr << "LTA type is LINEAR_RAS_TO_RAS" << endl;
+      break;
+    default:
+      cerr << "LTA type is unkown" << endl;
+      break;
+    }
+    LT* transform = &lta->xforms[0];
+    
+    MATRIX* matrix = transform->m_L;
+
+    SetMainTransform( matrix );
+    
+    LTAfree( &lta );
   }
 
-  switch( lta->type ) {
-  case LINEAR_VOX_TO_VOX:
-    cerr << "LTA type is LINEAR_VOX_TO_VOX" << endl;
-    break;
-  case LINEAR_RAS_TO_RAS:
-    cerr << "LTA type is LINEAR_RAS_TO_RAS" << endl;
-    break;
-  default:
-    cerr << "LTA type is unkown" << endl;
-    break;
-  }
-
-
-  LT* transform = &lta->xforms[0];
-
-  MATRIX* matrix = transform->m_L;
-
-  SetMainTransform( matrix );
-
-  LTAfree( &lta );
 }
 
 void
