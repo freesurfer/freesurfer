@@ -4,13 +4,16 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Computes glm inferences on the surface.
-  $Id: mris_glm.c,v 1.25 2004/03/10 19:54:28 greve Exp $
+  $Id: mris_glm.c,v 1.26 2004/07/02 18:34:16 greve Exp $
 
 Things to do:
   0. Documentation.
   1. More sophisticated derived variable.
   2. Input volume directly.
   3. Add ability to load in y directly
+
+MC Sim:
+  1. Cluster area threshold is in mm^2
 */
 
 
@@ -32,10 +35,12 @@ Things to do:
 #include "mri_identify.h"
 #include "sig.h"
 #include "fmriutils.h"
-#include "fsgdf.h"
 #include "mri2.h"
+#include "volcluster.h"
+#include "surfcluster.h"
 #include "version.h"
 #include "pdf.h"
+#include "fsgdf.h"
 
 #ifdef X
 #undef X
@@ -68,7 +73,7 @@ static char *getstem(char *bfilename);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_glm.c,v 1.25 2004/03/10 19:54:28 greve Exp $";
+static char vcid[] = "$Id: mris_glm.c,v 1.26 2004/07/02 18:34:16 greve Exp $";
 char *Progname = NULL;
 
 char *hemi        = NULL;
@@ -133,7 +138,7 @@ char *tfmt = NULL;
 int   tfmtid = MRI_VOLUME_TYPE_UNKNOWN;
 char *tmaxfile = NULL;
 float tmax;
-int nsim = 1, nthsim;
+int nsim = 1, nthsim, MCSim = 0;
 
 char *sigid  = NULL;
 char *sigfmt = NULL;
@@ -170,6 +175,16 @@ int Force=0;
 int ParseOnly=0;
 char tmpstr[1000];
 
+CHT *cht; // Cluster Hit Table -- for simulations
+int nth_ithr, nth_sthr, NClusters;
+double ithr, sthr;
+SURFCLUSTERSUM *scs;
+char *chtfile=NULL;
+int n_ithr, n_sthr;
+double ithr_lo, ithr_hi, sthr_lo, sthr_hi;
+char *ithr_sign;
+
+
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv)
 {
@@ -181,7 +196,7 @@ int main(int argc, char **argv)
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv, 
-      "$Id: mris_glm.c,v 1.25 2004/03/10 19:54:28 greve Exp $", "$Name:  $");
+      "$Id: mris_glm.c,v 1.26 2004/07/02 18:34:16 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -414,11 +429,6 @@ int main(int argc, char **argv)
   /* ------- Start simulation loop -- only one pass for non-sim runs -------- */
   for(nthsim = 0; nthsim <= nsim; nthsim++){
 
-    if(SynthPDF != 0) {
-      if(nthsim%10==0) {printf(" %d",nthsim); fflush(stdout);}
-      if(nthsim%100==999) {printf("\n");fflush(stdout);}
-    }
-
     /* ------ Synthesize data ------ */
     if(beta_in_id == NULL && SynthPDF != 0){
       if(SynthPDF == 1)
@@ -432,7 +442,7 @@ int main(int argc, char **argv)
     } /*End syntheisze */
     
     /* Save the input data */
-    if(beta_in_id == NULL && yid != NULL){
+    if(beta_in_id == NULL && yid != NULL && MCSim == 0){
       if(MRIwriteAnyFormat(SrcVals,yid,yfmt,-1,NULL)) exit(1);
       if(fsgd != NULL){
 	sprintf(tmpstr,"%s.fsgd",getstem(yid));
@@ -458,15 +468,15 @@ int main(int argc, char **argv)
       
       if(nsim == 1) printf("INFO: computing beta \n");fflush(stdout);
       beta = fMRImatrixMultiply(SrcVals, Q, beta);
-      if(betaid != NULL) 
+      if(betaid != NULL && MCSim == 0) 
 	if(MRIwriteAnyFormat(beta,betaid,betafmt,-1,NULL)) exit(1);
       
       if(nsim == 1) printf("INFO: computing eres \n");fflush(stdout);
       eres = fMRImatrixMultiply(SrcVals, R, eres);
-      if(eresid != NULL)
+      if(eresid != NULL && MCSim == 0)
 	if(MRIwriteAnyFormat(eres,eresid,eresfmt,-1,NULL)) exit(1);
       
-      if(yhatid != NULL){
+      if(yhatid != NULL && MCSim == 0){
 	if(nsim == 1) printf("INFO: computing yhat \n");fflush(stdout);
 	yhat = fMRImatrixMultiply(SrcVals, T, yhat);
 	if(MRIwriteAnyFormat(yhat,yhatid,yhatfmt,-1,NULL)) exit(1);
@@ -475,17 +485,18 @@ int main(int argc, char **argv)
       
       if(nsim == 1) printf("INFO: computing var \n");fflush(stdout);
       eresvar = fMRIvariance(eres,DOF,0,eresvar);
-      if(eresvarid != NULL)
+      if(eresvarid != NULL && MCSim == 0)
 	if(MRIwriteAnyFormat(eresvar,eresvarid,eresvarfmt,0,IcoSurf)) exit(1);
       MRIfree(&eres);
     }/* end compute beta */
     
 
     /* Compute contrast-effect size */
-    if(tid != NULL || sigid != NULL || cesid != NULL ||tmaxfile != NULL){
+    if(tid != NULL || sigid != NULL || cesid != NULL || 
+       tmaxfile != NULL || SynthPDF != 0){
       if(nsim == 1) printf("INFO: computing contrast effect size \n");fflush(stdout);
       ces = fMRImatrixMultiply(beta,C,ces);
-      if(cesid != NULL){
+      if(cesid != NULL && MCSim == 0){
 	if(IsSurfFmt(cesfmt) && IcoSurf == NULL)
 	  IcoSurf = MRISloadSurfSubject(trgsubject,hemi,surfregid,SUBJECTS_DIR);
 	if(MRIwriteAnyFormat(ces,cesid,cesfmt,0,IcoSurf)) exit(1);
@@ -493,15 +504,15 @@ int main(int argc, char **argv)
     }
     
     /* Compute t-ratio  */
-    if(tid != NULL || sigid != NULL || tmaxfile != NULL){
+    if(tid != NULL || sigid != NULL || tmaxfile != NULL || SynthPDF != 0){
       if(nsim == 1) printf("INFO: computing t \n"); fflush(stdout);
       t = fMRIcomputeT(ces, X, C, eresvar, t);
-      if(tid != NULL) {
+      if(tid != NULL && MCSim == 0) {
 	if(IsSurfFmt(tfmt) && IcoSurf == NULL)
 	  IcoSurf = MRISloadSurfSubject(trgsubject,hemi,surfregid,SUBJECTS_DIR);
 	if(MRIwriteAnyFormat(t,tid,tfmt,0,IcoSurf)) exit(1);
       }
-      if(tmaxfile != NULL){
+      if(tmaxfile != NULL && MCSim == 0){
 	tmax = fabs(MRIFseq_vox(t,0,0,0,0));
 	for(vtx = 0; vtx < t->width; vtx++){
 	  if(tmax < fabs(MRIFseq_vox(t,vtx,0,0,0)) )
@@ -514,22 +525,56 @@ int main(int argc, char **argv)
     }
 
     /* Compute significance of t-ratio  */
-    if(sigid != NULL){
+    if(sigid != NULL || SynthPDF != 0){
       if(nsim == 1) printf("INFO: computing t significance \n");fflush(stdout);
       sig = fMRIsigT(t, DOF, sig);
       MRIlog10(sig,sig,1);
-      if(sigfmt != NULL || 1){
+      if(sigfmt != NULL && MCSim == 0){
 	if(IsSurfFmt(sigfmt) && IcoSurf == NULL)
 	  IcoSurf = MRISloadSurfSubject(trgsubject,hemi,surfregid,SUBJECTS_DIR);
 	if(MRIwriteAnyFormat(sig,sigid,sigfmt,0,IcoSurf)) exit(1);
       }
     }
 
-    /* Do clustering here */
+    /* Compute number of clusters for simulation */
+    if(MCSim) {
+      /* Load the log10p-values into the surface */
+      for(vtx = 0; vtx < IcoSurf->nvertices; vtx++)
+	IcoSurf->vertices[vtx].val = MRIFseq_vox(sig,vtx,0,0,0);
 
+      if(nthsim == 0){
+	/* Set up Cluster Hit Table */
+	cht->nsim = 0;
+	cht->nvox = 0;
+	cht->nsmooth = nsmooth;
+	cht->fwhm = 0;
+	cht->totsize = IcoSurf->total_area;
+	cht->seed = SynthSeed;
+	CHTwrite(chtfile,cht); // Immediately create cht file with zeros
+      }
+      else cht = CHTread(chtfile);
+
+      printf("%d Searching for Clusters\n",nthsim+1);
+      for(nth_ithr=0; nth_ithr < cht->n_ithr; nth_ithr++ ){
+	ithr = cht->ithr[nth_ithr];
+	for(nth_sthr=0; nth_sthr < cht->n_sthr; nth_sthr++ ){
+	  sthr = cht->sthr[nth_sthr];
+	  scs = sclustMapSurfClusters(IcoSurf,ithr,-1,cht->ithr_signid,
+				      sthr,&NClusters,NULL);
+	  printf("  %6.2f %6.2f %3d \n",ithr,sthr,NClusters);
+	  if(NClusters > 0) cht->hits[nth_ithr][nth_sthr] ++;
+	  free(scs);
+	}
+      }
+      cht->nsim ++;
+      CHTwrite(chtfile,cht);
+    }
 
   } /*End simulation loop*/
-  if(nsim > 1) printf("%d \n",nthsim);
+  if(nsim > 1){
+    printf("%d \n",nthsim);
+    CHTprint(stdout, cht);
+  }
 
   if(SrcVals) MRIfree(&SrcVals);
 
@@ -673,10 +718,28 @@ static int parse_commandline(int argc, char **argv)
       sscanf(pargv[0],"%d",&frame);
       nargsused = 1;
     }
-    else if (!strcmp(option, "--nsim")){
-      if(nargc < 1) argnerr(option,1);
+    else if (!strcmp(option, "--mcsim")){
+      if(nargc < 9) argnerr(option,9);
+      MCSim = 1; // Monte Carlo Simulation
       sscanf(pargv[0],"%d",&nsim);
-      nargsused = 1;
+      chtfile = pargv[1];
+      sscanf(pargv[2],"%d",&n_ithr);
+      sscanf(pargv[3],"%lf",&ithr_lo);
+      sscanf(pargv[4],"%lf",&ithr_hi);
+      ithr_sign = pargv[5];
+      sscanf(pargv[6],"%d",&n_sthr); // Area threshold is in mm
+      sscanf(pargv[7],"%lf",&sthr_lo);
+      sscanf(pargv[8],"%lf",&sthr_hi);
+      cht = CHTalloc(n_ithr,ithr_lo,ithr_hi, n_sthr,sthr_lo,sthr_hi);
+      if(cht==NULL){
+	printf("ERROR: with mcsim params\n");
+        exit(1);
+      }
+      if(CHTsetSignString(cht, ithr_sign) == -100){
+	printf("ERROR: with mcsim params\n");
+        exit(1);
+      }
+      nargsused = 9;
     }
     else if (!strcmp(option, "--contrast")){
       if(nargc < 1) argnerr(option,1);
@@ -874,7 +937,8 @@ static void print_usage(void)
   printf("   --cdf cdffile : synthesize data with given cdf\n");
   printf("   --seed seed : random number seed when synth data (-1 for auto)\n");
   printf("   --tmax fname : append max t (and min p) to fname \n");
-  printf("   --nsim nsim : run simulation loop nsim times.\n");
+  printf("   --mcsim nsim fname nithr ithrlo ithrhi ithrsign nsthr sthrlo sthrhi: "
+	 "MC Simulation.\n");
   printf("\n");
   printf("   --force              : force processing with badly cond X\n");
   printf("   --sd    subjectsdir : default is env SUBJECTS_DIR\n");
@@ -1382,7 +1446,18 @@ static void check_options(void)
     exit(1);
   }
 
+  if(MCSim && C==NULL){
+    printf("ERROR: contrast vector needed with mcsim\n");
+    exit(1);
+  }
 
+  if(MCSim && SynthPDF == 0){
+    /* Force it to used gaussian (0,1) */
+    SynthPDF = 1;
+    SynthGaussianMean = 0;
+    SynthGaussianStd  = 1;
+    printf("INFO: using gaussian (0,1) for simulation\n");
+  }
 
   return;
 }
