@@ -131,7 +131,11 @@ lower*/
 #define TMP_DIR          "tmp"             /* relative to subjectsdir/pname */
 #define TRANSFORM_DIR    "mri/transforms"  /* ditto */
 #define TALAIRACH_FNAME  "talairach.xfm"   /* relative to TRANSFORM_DIR */
+
+#ifndef WM_EDITED_OFF
 #define WM_EDITED_OFF 1
+#endif
+
 #define WM_MIN_VAL    2  /* 1 is used for voxels that are edited to off */
 #define TO_WHITE  0
 #define TO_BLACK  1
