@@ -5,7 +5,7 @@
 # editing.
 #
 # mkfsdist
-# $Id: mkfsdist,v 1.28 2003/05/16 16:43:25 kteich Exp $
+# $Id: mkfsdist,v 1.29 2003/06/30 20:08:42 kteich Exp $
 #
 # Usage: mkfsdist sourcedir targetdir platform [options]
 #
@@ -71,7 +71,7 @@
 #  files found in tar-exclude-more and tar-exclude-gca.
 #
 # 
-set VERSION = '$Id: mkfsdist,v 1.28 2003/05/16 16:43:25 kteich Exp $';
+set VERSION = '$Id: mkfsdist,v 1.29 2003/06/30 20:08:42 kteich Exp $';
 
 # To include the autoseg in the distribution set environment varible
 # KEEPAUTOSEG to 1 before running mkfsdist (ie, setenv KEEPAUTOSEG 1)
@@ -200,7 +200,7 @@ endif
 
 # Check that source dir is there #
 if(! -e $SOURCE_DIR) then
-  echo "ERROR: cannot find $FSA_DIR"
+  echo "ERROR: cannot find $SOURCE_DIR"
   exit 1;
 endif
 
@@ -291,34 +291,6 @@ echo "$0"    >> $LF
 echo "$argv" >> $LF
 date >> $LF
 
-#----- Tar up average7 --------#
-if ( $AVERAGE ) then
-
-  echo "--------------------------------------------" | tee -a $LF
-  date | tee -a $LF  
-  pushd $AVERAGE7_DIR > /dev/null
-  cd ..
-  echo "Tarring average7 data" | tee -a $LF
-  set TF = $TARGET_DIR/average7.tar.gz
-  rm -f $TF
-  tar cvz -f $TF \
-    ./average7/mri \
-    ./average7/label/??-avg_*.label \
-    ./average7/surf/?h.avg_curv \
-    ./average7/surf/?h.avg_sulc \
-    ./average7/surf/?h.curv \
-    ./average7/surf/?h.inflated \
-    ./average7/surf/?h.orig \
-    ./average7/surf/?h.pial \
-    ./average7/surf/?h.smoothwm \
-    ./average7/surf/?h.sphere \
-    ./average7/surf/?h.sphere.reg \
-    ./average7/surf/lh.rh.sphere.reg \
-    ./average7/surf/?h.sulc >> $LF
-  date | tee -a $LF  
-  
-endif 
-
 # ---- Tar up source dir ------- #
 if( $MAIN_TREE ) then
 
@@ -361,30 +333,31 @@ if( $MAIN_TREE ) then
   # and UPDATE instructions.
   find $SOURCE_DIR_REL -name UpdateFromSnapshot.sh >> $EXCLUDE_FILE
   find $SOURCE_DIR_REL -name UPDATE >> $EXCLUDE_FILE
-  
-  
+
+  # Add on the other exclude files.  
+  if( -e $SOURCE_DIR/tar-exclude ) then
+    cat $SOURCE_DIR/tar-exclude >> $EXCLUDE_FILE
+  endif
+  if( -e $SOURCE_DIR/tar-exclude-more ) then
+    cat $SOURCE_DIR/tar-exclude-more >> $EXCLUDE_FILE
+  endif
+  if( -e $SOURCE_DIR/tar-exclude-gca && ! $KEEPAUTOSEG) then
+    cat $SOURCE_DIR/tar-exclude-gca >> $EXCLUDE_FILE
+  endif
+
+
   echo "--------------------------------------------" | tee -a $LF
   echo "Tarring $SOURCE_DIR" | tee -a $LF
   date | tee -a $LF
   set TF = $TARGET_DIR/freesurfer.tar
   rm -f $TF
   set tarcmd = ( tar cv -f $TF  $SOURCE_DIR_REL --exclude-from $EXCLUDE_FILE )
-  if( -e $SOURCE_DIR/tar-exclude ) then
-    set tarcmd = ($tarcmd --exclude-from $SOURCE_DIR/tar-exclude)
-  endif
-  if( -e $SOURCE_DIR/tar-exclude-more ) then
-    set tarcmd = ($tarcmd --exclude-from $SOURCE_DIR/tar-exclude-more)
-  endif
-  if( -e $SOURCE_DIR/tar-exclude-gca && ! $KEEPAUTOSEG) then
-    set tarcmd = ($tarcmd --exclude-from $SOURCE_DIR/tar-exclude-gca)
-  endif
   echo $tarcmd | tee -a $LF
   $tarcmd  >> $LF
   
   rm -f $EXCLUDE_FILE
   
   date | tee -a $LF
-  
   
   
   #--- Special for tksurfer, tkmedit, and tkregister in freesurfer_alpha ---#
@@ -494,6 +467,34 @@ if( $MAIN_TREE ) then
   gzip $TF
     
 endif
+
+#----- Tar up average7 --------#
+if ( $AVERAGE ) then
+
+  echo "--------------------------------------------" | tee -a $LF
+  date | tee -a $LF  
+  pushd $AVERAGE7_DIR > /dev/null
+  cd ..
+  echo "Tarring average7 data" | tee -a $LF
+  set TF = $TARGET_DIR/average7.tar.gz
+  rm -f $TF
+  tar cvz -f $TF \
+    ./average7/mri \
+    ./average7/label/??-avg_*.label \
+    ./average7/surf/?h.avg_curv \
+    ./average7/surf/?h.avg_sulc \
+    ./average7/surf/?h.curv \
+    ./average7/surf/?h.inflated \
+    ./average7/surf/?h.orig \
+    ./average7/surf/?h.pial \
+    ./average7/surf/?h.smoothwm \
+    ./average7/surf/?h.sphere \
+    ./average7/surf/?h.sphere.reg \
+    ./average7/surf/lh.rh.sphere.reg \
+    ./average7/surf/?h.sulc >> $LF
+  date | tee -a $LF  
+  
+endif 
 
 #-- Tar up the minc bin and libs -------#
 if( $MINC ) then
