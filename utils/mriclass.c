@@ -42,7 +42,7 @@
 -------------------------------------------------------*/
 static char *gaussian_class_names[GAUSSIAN_NCLASSES] =
 {
-  "BACKGROUND",
+  "CSF",
   "GREY MATTER",
   "SUBCORTICAL GREY MATTER",
   "WHITE MATTER",
@@ -865,6 +865,8 @@ MRICupdateStatistics(MRIC *mric, int round, MRI *mri_src, MRI *mri_wm,
   z1 = box->z + box->dz - 1 ;
   for (z = box->z ; z <= z1 ; z++)
   {
+    DiagHeartbeat((float)((z-box->z) + round * box->dz) / 
+                  (float)(box->dz*mric->nrounds)) ;
     for (y = box->y ; y <= y1 ; y++)
     {
       psrc = &MRIvox(mri_src, box->x, y, z) ;
@@ -933,8 +935,9 @@ MRICcomputeStatistics(MRIC *mric, int round)
           gcl->m_covariance->rptr[col][row] = covariance ;
         }
         if (Gdiag & DIAG_SHOW)
-          fprintf(stderr, "mean[%d] = %2.3f, var = %2.3f\n",
-                  row, mean_a, gcl->m_covariance->rptr[row][row]) ;
+          fprintf(stderr, "mean %24.24s, feature %d = %+2.3f, var = %+2.3f\n",
+                  gaussian_class_names[classno], row,
+                  mean_a, gcl->m_covariance->rptr[row][row]) ;
       }
     }
     GCinit(gc, classno) ;
