@@ -162,7 +162,7 @@ main(int argc, char *argv[])
   if (gca == NULL)
     ErrorExit(ERROR_NOFILE, "%s: could not open GCA %s.\n",
               Progname, gca_fname) ;
-  if (map_to_flash)
+  if (map_to_flash || gca->type == GCA_PARAM)
   {
     GCA *gca_tmp ;
     
@@ -177,13 +177,14 @@ main(int argc, char *argv[])
     if (novar)
       GCAunifyVariance(gca) ;
   }
-  if (gca->type == GCA_FLASH)
+  else if (gca->type == GCA_FLASH)
   {
     GCA *gca_tmp ;
     
     gca_tmp = GCAcreateFlashGCAfromFlashGCA(gca, TRs, fas, TEs, mri_inputs->nframes) ;
     GCAfree(&gca) ;
     gca = gca_tmp ;
+    GCAhistoScaleImageIntensities(gca, mri_inputs) ;// added by tosa
   }
   if (gca->flags & GCA_XGRAD)
     extra += ninputs ;
