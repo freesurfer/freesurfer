@@ -37,6 +37,7 @@
 #include "mri_identify.h"
 #include "fio.h"
 #include "mri_conform.h"
+#include "matfile.h"
 
 /*-----------------------------------------------------
                     MACROS AND CONSTANTS
@@ -86,11 +87,9 @@ static int mghAppend(MRI *mri, char *fname, int frame) ;
 static int mncWrite(MRI *mri, char *fname, int frame) ;
 static MRI *analyzeRead(char *fname, int read_volume, int frame) ;
 static int analyzeWrite(MRI *mri, char *fname, int frame) ;
-static int read_analyze_header(char *fpref, dsr *bufptr) ;
+static void flipAnalyzeHeader(dsr *header);
 static int write_analyze_header(char *fpref, MRI *mri) ;
 static int write_analyze_image(char *fpref, MRI *mri) ;
-static int read_float_analyze_image(char *fname, MRI *mri, dsr *hdr) ;
-static int read_byte_analyze_image(char *fname, MRI *mri, dsr *hdr) ;
 static void get_file_limits(char *format_string, int initial, int *min, int *max, int ge_check_flag);
 
 /*-----------------------------------------------------
@@ -1614,6 +1613,7 @@ analyzeWrite(MRI *mri, char *fname, int frame)
 
   return(NO_ERROR) ;
 }
+
 /*-----------------------------------------------------
         Parameters:
 
@@ -1624,523 +1624,306 @@ analyzeWrite(MRI *mri, char *fname, int frame)
 static MRI *
 analyzeRead(char *fname, int read_volume, int frame)
 {
-  MRI    *mri, *mri_dst ;
+  MRI    *mri_dst ;
   dsr    hdr;
-  int    type, width, height, depth ;
-  int    ox, oy, oz;
+  int    type, width, height, depth;
+  FILE   *fp;
+  char   file_name[STRLEN], *c;
+  int    swap_flag;
+  char   *cbuf;
+  short  *sbuf;
+  int    *ibuf;
+  float  *fbuf;
+  double *dbuf;
+  int    i, j, k;
+  float  fval;
+  double dval;
+  MATRIX *omat;
+  int xmax, ymax, zmax, xsign, ysign, zsign;
 
-  read_analyze_header(fname, &hdr) ;
+  strcpy(file_name, fname);
+  c = strrchr(file_name, '.');
+  c = (c == NULL ? &file_name[strlen(file_name)] : c);
+  sprintf(c, ".hdr");
 
-  switch (hdr.dime.datatype)
+  if((fp = fopen(file_name, "r")) == NULL)
+    ErrorReturn(NULL, (ERROR_BADPARM, "analyzeRead(): can't open file %s", file_name));
+  if(!fread(&hdr, sizeof(hdr), 1, fp))
   {
-  case DT_SIGNED_SHORT:
-  case DT_UNSIGNED_CHAR:
-    type = MRI_UCHAR ;
-    break ;
-  case DT_SIGNED_INT:
-  case DT_FLOAT:
-    type = MRI_FLOAT ;
-    break ;
-  default:
+    fclose(fp);
+    ErrorReturn(NULL, (ERROR_BADFILE, "analyzeRead(): error reading from file %s", file_name));
+  }
+  fclose(fp);
+
+  if(hdr.hk.sizeof_hdr == sizeof(hdr))
+    swap_flag = 0;
+  else
+  {
+    flipAnalyzeHeader(&hdr);
+    if(hdr.hk.sizeof_hdr != sizeof(hdr))
+      ErrorReturn(NULL, (ERROR_BADFILE, "analyzeRead(): bad byte ordering in file %s", fname));
+    swap_flag = 1;
+  }
+
+  if(hdr.dime.datatype == DT_UNSIGNED_CHAR)
+    type = MRI_UCHAR;
+  else if(hdr.dime.datatype == DT_SIGNED_SHORT)
+    type = MRI_SHORT;
+  else if(hdr.dime.datatype == DT_SIGNED_INT)
+    type = MRI_INT;
+  else if(hdr.dime.datatype == DT_FLOAT)
+    type = MRI_FLOAT;
+  else if(hdr.dime.datatype == DT_DOUBLE)
+    type = MRI_FLOAT;
+  else
     ErrorReturn(NULL, 
                 (ERROR_UNSUPPORTED, "analyzeRead: unsupported data type %d",
                  hdr.dime.datatype)) ;
-    break ;
-  }
-  width = hdr.dime.dim[1] ; height = hdr.dime.dim[2] ;depth = hdr.dime.dim[3] ;
 
-  if(read_volume)
-    mri = MRIallocSequence(width, height, depth, type, hdr.dime.dim[4]);
-  else
-    mri = MRIallocHeader(width, height, depth, type);
-
-  mri->xsize = hdr.dime.pixdim[1] ;
-  mri->ysize = hdr.dime.pixdim[2] ;
-  mri->zsize = hdr.dime.pixdim[3] ;
-
-#if 1
-
-  ox = mri->width / 2;
-  oy = mri->height / 2;
-  oz = mri->depth / 2;
-
-  mri->xstart = -mri->xsize * ox;
-  mri->ystart = -mri->ysize * oy;
-  mri->zstart = -mri->zsize * oz;
-
-  mri->xend = (mri->width - ox) * mri->xsize;
-  mri->yend = (mri->height - oy) * mri->ysize;
-  mri->zend = (mri->depth - oz) * mri->zsize;
-
-#else
-
-  if (FEQUAL(mri->xsize, 1))
-  {
-    mri->zstart = mri->ystart = mri->xstart ;
-    mri->zend = mri->yend = mri->xend ;
-  }
-  else if (FEQUAL(mri->ysize, 1))
-  {
-    mri->zstart = mri->xstart = mri->ystart ;
-    mri->zend = mri->xend = mri->yend ;
-  }
-  else if (FEQUAL(mri->zsize, 1))
-  {
-    mri->ystart = mri->xstart = mri->zstart ;
-    mri->yend = mri->xend = mri->zend ;
-  }
-
-#endif
-
-  if(read_volume)
-  {
-    if (type == MRI_FLOAT)
-      read_float_analyze_image(fname, mri, &hdr) ;
-    else
-      read_byte_analyze_image(fname, mri, &hdr) ;
-  }
-
-
-/*
-  mri_dst = MRIconform(mri);
-*/
-
-mri_dst = MRIcopy(mri, NULL);
-
-mri_dst->xdir = XDIM;
-mri_dst->ydir = ZDIM;
-mri_dst->zdir = -YDIM;
+  width = hdr.dime.dim[1];
+  height = hdr.dime.dim[2];
+  depth = hdr.dime.dim[3];
 
   if(!read_volume)
-    return(mri_dst);
-
-
-
-/*
-  mri_dst = MRIinterpolate(mri, NULL) ;
-  mri_dst = MRIcopy(mri, NULL);
-*/
-  MRIfree(&mri) ;
-
-/*
-  if (mri_dst->width < 256)
+    mri_dst = MRIallocHeader(width, height, depth, type);
+  else
   {
-    int  x, y, z ;
+    mri_dst = MRIalloc(width, height, depth, type);
 
-    x = (256 - mri_dst->width) / 2 ;
-    y = (256 - mri_dst->height) / 2 ;
-    z = (256 - mri_dst->depth) / 2 ;
-    mri = MRIalloc(256, 256, 256, MRI_UCHAR) ;
-    MRIextractInto(mri_dst, mri, 0, 0, 0, width, height, depth, x, y, z) ;
-    MRIfree(&mri_dst) ;
-    mri_dst = mri ;
+    strcpy(file_name, fname);
+    c = strrchr(file_name, '.');
+    c = (c == NULL ? &file_name[strlen(file_name)] : c);
+    sprintf(c, ".img");
+
+    if((fp = fopen(file_name, "r")) == NULL)
+      ErrorReturn(NULL, (ERROR_BADPARM, "analyzeRead(): can't open file %s", file_name));
+
+    if(hdr.dime.datatype == DT_UNSIGNED_CHAR)
+    {
+      cbuf = (char *)malloc(width * height * depth * sizeof(char));
+
+      if(fread(cbuf, sizeof(char), width * height * depth, fp) != width * height * depth)
+      {
+        fclose(fp);
+        ErrorReturn(NULL, (ERROR_BADFILE, "analyzeRead(): error reading from file %s", file_name));
+      }
+
+      for(i = 0;i < width;i++)
+        for(j = 0;j < height;j++)
+          for(k = 0;k < depth;k++)
+            MRIvox(mri_dst, i, j, k) = cbuf[k * width * height + j * width + i];
+
+      free(cbuf);
+    }
+
+    if(hdr.dime.datatype == DT_SIGNED_SHORT)
+    {
+      sbuf = (short *)malloc(width * height * depth * sizeof(short));
+
+      if(fread(sbuf, sizeof(short), width * height * depth, fp) != width * height * depth)
+      {
+        fclose(fp);
+        ErrorReturn(NULL, (ERROR_BADFILE, "analyzeRead(): error reading from file %s", file_name));
+      }
+
+      if(swap_flag)
+      {
+        for(i = 0;i < width;i++)
+          for(j = 0;j < height;j++)
+            for(k = 0;k < depth;k++)
+              MRISvox(mri_dst, i, j, k) = swapShort(sbuf[k * width * height + j * width + i]);
+      }
+      else
+      {
+        for(i = 0;i < width;i++)
+          for(j = 0;j < height;j++)
+            for(k = 0;k < depth;k++)
+              MRISvox(mri_dst, i, j, k) = sbuf[k * width * height + j * width + i];
+      }
+
+      free(sbuf);
+    }
+
+    if(hdr.dime.datatype == DT_SIGNED_INT)
+    {
+      ibuf = (int *)malloc(width * height * depth * sizeof(int));
+
+      if(fread(ibuf, sizeof(int), width * height * depth, fp) != width * height * depth)
+      {
+        fclose(fp);
+        ErrorReturn(NULL, (ERROR_BADFILE, "analyzeRead(): error reading from file %s", file_name));
+      }
+
+      if(swap_flag)
+      {
+        for(i = 0;i < width;i++)
+          for(j = 0;j < height;j++)
+            for(k = 0;k < depth;k++)
+              MRIIvox(mri_dst, i, j, k) = swapInt(ibuf[k * width * height + j * width + i]);
+      }
+      else
+      {
+        for(i = 0;i < width;i++)
+          for(j = 0;j < height;j++)
+            for(k = 0;k < depth;k++)
+              MRIIvox(mri_dst, i, j, k) = ibuf[k * width * height + j * width + i];
+      }
+
+      free(ibuf);
+    }
+
+    if(hdr.dime.datatype == DT_FLOAT)
+    {
+      fbuf = (float *)malloc(width * height * depth * sizeof(float));
+
+      if(fread(fbuf, sizeof(float), width * height * depth, fp) != width * height * depth)
+      {
+        fclose(fp);
+        ErrorReturn(NULL, (ERROR_BADFILE, "analyzeRead(): error reading from file %s", file_name));
+      }
+
+      if(swap_flag)
+      {
+        for(i = 0;i < width;i++)
+          for(j = 0;j < height;j++)
+            for(k = 0;k < depth;k++)
+            {
+              fval = swapFloat(fbuf[k * width * height + j * width + i]);
+              MRIFvox(mri_dst, i, j, k) = (fval < 0.0 || fval >= 0.0 ? fval : 0.0);
+            }
+      }
+      else
+      {
+        for(i = 0;i < width;i++)
+          for(j = 0;j < height;j++)
+            for(k = 0;k < depth;k++)
+            {
+              fval = fbuf[k * width * height + j * width + i];
+              MRIFvox(mri_dst, i, j, k) = (fval < 0.0 || fval >= 0.0 ? fval : 0.0);
+            }
+      }
+
+      free(fbuf);
+    }
+
+    if(hdr.dime.datatype == DT_DOUBLE)
+    {
+      dbuf = (double *)malloc(width * height * depth * sizeof(double));
+
+      if(fread(dbuf, sizeof(double), width * height * depth, fp) != width * height * depth)
+      {
+        fclose(fp);
+        ErrorReturn(NULL, (ERROR_BADFILE, "analyzeRead(): error reading from file %s", file_name));
+      }
+
+      if(swap_flag)
+      {
+        for(i = 0;i < width;i++)
+          for(j = 0;j < height;j++)
+            for(k = 0;k < depth;k++)
+            {
+              dval = swapDouble(dbuf[k * width * height + j * width + i]);
+              MRIFvox(mri_dst, i, j, k) = (float)(dval < 0.0 || dval >= 0.0 ? dval : 0.0);
+            }
+      }
+      else
+      {
+        for(i = 0;i < width;i++)
+          for(j = 0;j < height;j++)
+            for(k = 0;k < depth;k++)
+            {
+              dval = dbuf[k * width * height + j * width + i];
+              MRIFvox(mri_dst, i, j, k) = (float)(dval < 0.0 || dval >= 0.0 ? dval : 0.0);
+            }
+      }
+
+      free(dbuf);
+    }
+
+    fclose(fp);
+
   }
+
+  mri_dst->xsize = hdr.dime.pixdim[1];
+  mri_dst->ysize = hdr.dime.pixdim[2];
+  mri_dst->zsize = hdr.dime.pixdim[3];
+
+  mri_dst->imnr0 = 0;
+  mri_dst->imnr1 = mri_dst->width - 1;
+
+  mri_dst->xstart = -(mri_dst->width * mri_dst->xsize) / 2;
+  mri_dst->xend = -mri_dst->xstart;
+  mri_dst->ystart = -(mri_dst->height * mri_dst->ysize) / 2;
+  mri_dst->xend = -mri_dst->xstart;
+  mri_dst->zstart = -(mri_dst->depth * mri_dst->zsize) / 2;
+  mri_dst->xend = -mri_dst->xstart;
+
+/* direction */
+
+  mri_dst->xdir = XDIM;
+  mri_dst->ydir = ZDIM;
+  mri_dst->zdir = -YDIM;
+  mri_dst->slice_direction = MRI_UNDEFINED;
+
+  mri_dst->ras_good_flag = 0;
+
+  /* use the mat file for orientation if there is one */
+  strcpy(file_name, fname);
+  c = strrchr(file_name, '.');
+  c = (c == NULL ? &file_name[strlen(file_name)] : c);
+  sprintf(c, ".mat");
+  if((fp = fopen(file_name, "r")) != NULL)
+  {
+    fclose(fp);
+    omat = MatlabRead(file_name);
+
+    xmax = 1 + IMAX3(abs(*MATRIX_RELT(omat, 1, 1)), abs(*MATRIX_RELT(omat, 2, 1)), abs(*MATRIX_RELT(omat, 3, 1)));
+    ymax = 1 + IMAX3(abs(*MATRIX_RELT(omat, 1, 2)), abs(*MATRIX_RELT(omat, 2, 2)), abs(*MATRIX_RELT(omat, 3, 2)));
+    zmax = 1 + IMAX3(abs(*MATRIX_RELT(omat, 1, 3)), abs(*MATRIX_RELT(omat, 2, 3)), abs(*MATRIX_RELT(omat, 3, 3)));
+
+    xsign = SIGN(*MATRIX_RELT(omat, xmax, 1));
+    ysign = SIGN(*MATRIX_RELT(omat, ymax, 2));
+    zsign = SIGN(*MATRIX_RELT(omat, zmax, 3));
+
+    if(xmax == 1)
+      mri_dst->xdir = XDIM * xsign;
+    if(xmax == 2)
+      mri_dst->xdir = ZDIM * xsign;
+    if(xmax == 3)
+      mri_dst->xdir = -YDIM * xsign;
+
+    if(ymax == 1)
+      mri_dst->ydir = XDIM * ysign;
+    if(ymax == 2)
+      mri_dst->ydir = ZDIM * ysign;
+    if(ymax == 3)
+      mri_dst->ydir = -YDIM * ysign;
+
+    if(zmax == 1)
+      mri_dst->zdir = XDIM * zsign;
+    if(zmax == 2)
+      mri_dst->zdir = ZDIM * zsign;
+    if(zmax == 3)
+      mri_dst->zdir = -YDIM * zsign;
+
+    /* sanity check -- have all the axes been used? */
+
+    /* must be each of 1, 2, and 3 in some order */
+    if(xmax + ymax + zmax != 6 || xmax * ymax * zmax != 6)
+      ErrorReturn(NULL, (ERROR_BADPARM, "genesisRead(%s): error interpreting slice direction", fname));
+
+/*
+   first: left-right
+   second: p->a
+   third: i->s
 */
+
+  }
+
   return(mri_dst) ;
 
 }
-/*-----------------------------------------------------
-        Parameters:
 
-        Returns value:
-
-        Description
-------------------------------------------------------*/
-static int
-read_analyze_header(char *fname, dsr *bufptr)
-{
-  FILE *fp;
-  char hdr_fname[STRLEN], *dot ;
-  int  nread, i ;
-
-  strcpy(hdr_fname, fname) ;
-  dot = strrchr(hdr_fname, '.') ;
-  if (dot)
-    *dot = 0 ;
-  strcat(hdr_fname, ".hdr") ;
-  fp = fopen(hdr_fname,"rb");
-  if (fp==NULL) 
-    ErrorReturn(ERROR_NO_FILE, 
-                (ERROR_NO_FILE, "File %s not found\n", hdr_fname)) ;
-
-  nread = fread(bufptr,sizeof(char), sizeof(dsr),fp);
-  fclose(fp);
-  if (nread != sizeof(dsr))
-    ErrorReturn(ERROR_BADFILE, 
-                (ERROR_BADFILE,
-                 "read_analyze_header: could only read %d of %d bytes",
-                 nread, sizeof(dsr))) ;
-#ifdef Linux
-  bufptr->hk.sizeof_hdr = swapInt(bufptr->hk.sizeof_hdr) ;
-  bufptr->hk.extents = swapInt(bufptr->hk.extents) ;
-  bufptr->hk.session_error = swapInt(bufptr->hk.session_error) ;
-  for (i=0;i<8;i++)
-    bufptr->dime.dim[i] = swapShort(bufptr->dime.dim[i]) ;
-
-  bufptr->dime.datatype = swapShort(bufptr->dime.datatype) ;
-  bufptr->dime.bitpix = swapShort(bufptr->dime.bitpix) ;
-  bufptr->dime.dim_un0 = swapShort(bufptr->dime.dim_un0) ;
-  for (i=0;i<8;i++)
-    bufptr->dime.pixdim[i] = swapFloat(bufptr->dime.pixdim[i]) ;
-
-  bufptr->dime.compressed = swapFloat(bufptr->dime.compressed) ;
-  bufptr->dime.verified = swapFloat(bufptr->dime.verified) ;
-  bufptr->dime.glmax = swapInt(bufptr->dime.glmax) ;
-  bufptr->dime.glmin = swapInt(bufptr->dime.glmin) ;
-  bufptr->hist.views = swapInt(bufptr->hist.views) ;
-  bufptr->hist.vols_added = swapInt(bufptr->hist.vols_added) ;
-  bufptr->hist.start_field = swapInt(bufptr->hist.start_field) ;
-  bufptr->hist.field_skip = swapInt(bufptr->hist.field_skip) ;
-  bufptr->hist.omax = swapInt(bufptr->hist.omax) ;
-  bufptr->hist.omin = swapInt(bufptr->hist.omin) ;
-  bufptr->hist.smax = swapInt(bufptr->hist.smax) ;
-  bufptr->hist.smin = swapInt(bufptr->hist.smin) ;
-#endif
-#if 1
-  if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
-#else
-if(1)
-#endif
-  {
-    printf("reading analyze header file %s\n",hdr_fname);
-    printf("\nheader_key\n");
-    printf("sizeof_hdr    = %d\n",bufptr->hk.sizeof_hdr);
-    printf("data_type     = %s\n",bufptr->hk.data_type);
-    printf("db_name       = %s\n",bufptr->hk.db_name);
-    printf("extents       = %d\n",bufptr->hk.extents);
-    printf("session_error = %d\n",bufptr->hk.session_error);
-    printf("regular       = %c\n",bufptr->hk.regular);
-    printf("hkey_un0      = %c\n",bufptr->hk.hkey_un0);
-    printf("\nimage_dimension\n");
-    printf("dim           = ");
-    for (i=0;i<8;i++)
-      printf("%d ",bufptr->dime.dim[i]);
-    printf("\n");
-    printf("datatype      = %d\n",bufptr->dime.datatype);
-    printf("bitpix        = %d\n",bufptr->dime.bitpix);
-    printf("dim_un0       = %d\n",bufptr->dime.dim_un0);
-    printf("pixdim        = ");
-    for (i=0;i<8;i++)
-      printf("%f ",bufptr->dime.pixdim[i]);
-    printf("\n");
-    printf("compressed    = %f\n",bufptr->dime.compressed);
-    printf("verified      = %f\n",bufptr->dime.verified);
-    printf("glmax         = %d\n",bufptr->dime.glmax);
-    printf("glmin         = %d\n",bufptr->dime.glmin);
-    printf("\ndata_history\n");
-    printf("descrip       = %s\n",bufptr->hist.descrip);
-    printf("aux_file      = %s\n",bufptr->hist.aux_file);
-    printf("orient        = %c (%d)\n",bufptr->hist.orient, (int)bufptr->hist.orient);
-    for(i = 0;i < 8;i++)
-      printf("originator[%d] = %d\n", i, (unsigned char)bufptr->hist.originator[i]);
-    printf("generated     = %s\n",bufptr->hist.generated);
-    printf("scannum       = %s\n",bufptr->hist.scannum);
-    printf("patient_id    = %s\n",bufptr->hist.patient_id);
-    printf("exp_date      = %s\n",bufptr->hist.exp_date);
-    printf("exp_time      = %s\n",bufptr->hist.exp_time);
-    printf("hist_un0      = %s\n",bufptr->hist.hist_un0);
-    printf("views         = %d\n",bufptr->hist.views);
-    printf("vols_added    = %d\n",bufptr->hist.vols_added);
-    printf("start_field   = %d\n",bufptr->hist.start_field);
-    printf("field_skip    = %d\n",bufptr->hist.field_skip);
-    printf("omax          = %d\n",bufptr->hist.omax);
-    printf("omin          = %d\n",bufptr->hist.omin);
-    printf("smax          = %d\n",bufptr->hist.smax);
-    printf("smin          = %d\n",bufptr->hist.smin);
-  }
-  return(NO_ERROR) ;
-}
-/*-----------------------------------------------------
-        Parameters:
-
-        Returns value:
-
-        Description
-------------------------------------------------------*/
-static int
-read_float_analyze_image(char *fname, MRI *mri, dsr *hdr)
-{
-  int    x, y, z, bufsize, bytes_per_pix, width, height, depth ;
-  float  f, d;
-  FILE   *fp;
-  int    nread, datatype, i ;
-  char   *buf ;
-
-  bytes_per_pix = hdr->dime.bitpix/8 ;
-  width = hdr->dime.dim[1] ;
-  height = hdr->dime.dim[2] ;
-  depth = hdr->dime.dim[3] ;
-  datatype = hdr->dime.datatype ;
-  bufsize = width * height ;
-
-  fp = fopen(fname,"rb");
-  if (fp==NULL) 
-    ErrorReturn(ERROR_NOFILE, (ERROR_NOFILE, "File %s not found\n",fname)) ;
-
-  buf = (char *)calloc(bufsize, bytes_per_pix) ;
-  if (!buf)
-  {
-    fclose(fp) ;
-    ErrorReturn(ERROR_NOMEMORY, 
-                (ERROR_NOMEMORY, 
-                 "read_analyze_image: could not allocate %d x %d x %d buffer",
-                 width, height, bytes_per_pix)) ;
-  }
-
-  for (z = 0 ; z < depth ; z++)
-  {
-    nread = fread(buf, bytes_per_pix, bufsize, fp) ;
-    if (nread != bufsize)
-    {
-      free(buf) ;
-      fclose(fp) ;
-      ErrorReturn(ERROR_BADFILE, 
-                  (ERROR_BADFILE, 
-                   "read_analyze_image: could not read slice %d (%d items read)",
-                   z, bufsize)) ;
-    }
-
-    for (y = 0 ; y < height ; y++)
-    {
-      for (x = 0 ; x < width ; x++)
-      {
-        switch (datatype)
-        {
-        default:
-          printf("data type %d not supported\n",datatype);
-          exit(1);
-          break;
-        case DT_SIGNED_INT:
-          i = *(int *)(buf+bytes_per_pix*(y*width+x)) ;
-#ifdef Linux
-          i = swapInt(i) ;
-#endif
-          f = (float)i ;
-          break;
-        case DT_FLOAT:
-          f = *(float *)(buf+bytes_per_pix*(y*width+x));
-#ifdef Linux
-          f = swapFloat(f) ;
-#endif
-          break;
-        case DT_DOUBLE:
-          d = *(double *)(buf+bytes_per_pix*(y*width+x));
-#ifdef Linux
-          d = swapDouble(d) ;
-#endif
-          f = (float)d ;
-          break;
-        }
-        MRIFvox(mri, z, height-y-1, width-x-1) = f ;
-      }
-    }
-  }
-  fclose(fp);
-  free(buf) ;
-  return(NO_ERROR) ;
-}
-/*-----------------------------------------------------
-        Parameters:
-
-        Returns value:
-
-        Description
-------------------------------------------------------*/
-static int
-read_byte_analyze_image(char *fname, MRI *mri, dsr *hdr)
-{
-  int    x, y, z, bufsize, bytes_per_pix, width, height, depth, xd, yd, zd ;
-  float  scale ;
-  FILE   *fp;
-  int    nread, datatype, xoff, yoff, zoff ;
-  unsigned char   *buf, b ;
-  short  s, smin, smax ;
-
-  bytes_per_pix = hdr->dime.bitpix/8 ;
-/*
-printf("bpp = %d\n", bytes_per_pix);
-*/
-/*
-  width = hdr->dime.dim[1] ;
-  height = hdr->dime.dim[2] ;
-  depth = hdr->dime.dim[3] ;
-*/
-width = mri->width;
-depth = mri->depth;
-height = mri->height;
-
-#if SUPPORT_TEXAS
-  if (hdr->dime.pixdim[0] > 3.5f)/* hack to support FIL and texas */
-  {
-    xoff = (mri->width - width) / 2 ;
-    yoff = (mri->height - depth) / 2 ;
-    zoff = (mri->depth - height) / 2 ;
-  }
-  else
-#endif
-  {
-    xoff = (mri->width - depth) / 2 ;
-    yoff = (mri->height - height) / 2 ;
-    zoff = (mri->depth - width) / 2 ;
-  }
-  datatype = hdr->dime.datatype ;
-  bufsize = width * height ;
-
-  smin = 10000 ; smax = 0 ;
-  scale = 255.0f / hdr->dime.glmax ;
-  fp = fopen(fname,"rb");
-  if (fp==NULL) 
-    ErrorReturn(ERROR_NOFILE, (ERROR_NOFILE, "File %s not found\n",fname)) ;
-
-  buf = (char *)calloc(bufsize, bytes_per_pix) ;
-  if (!buf)
-  {
-    fclose(fp) ;
-    ErrorReturn(ERROR_NOMEMORY, 
-                (ERROR_NOMEMORY, 
-                "read_analyze_image: could not allocate %d x %d x %d buffer",
-                 width, height, bytes_per_pix)) ;
-  }
-/*
-printf("depth to read is %d\n",depth);
-printf("depth in mri is %d\n", mri->depth);
-*/
-
-  for (z = 0 ; z < depth ; z++)
-  {
-    nread = fread(buf, bytes_per_pix, bufsize, fp) ;
-/*
-printf("%d\n", ftell(fp));
-*/
-    if (nread != bufsize)
-    {
-      free(buf) ;
-      fclose(fp) ;
-      ErrorReturn(ERROR_BADFILE, 
-                  (ERROR_BADFILE, 
-                   "read_analyze_image: could not read slice %d (%d items read)",
-                   z, bufsize)) ;
-    }
-
-    for (y = 0 ; y < height ; y++)
-    {
-      for (x = 0 ; x < width ; x++)
-      {
-/*
-printf("%d\n", (int)(buf[y*width+x]);
-*/
-        switch (datatype)
-        {
-        case DT_UNSIGNED_CHAR:
-          b = (unsigned char)(*(unsigned char *)(buf+bytes_per_pix*(y*width+x)));
-          xd = z + xoff ; yd = (height-y-1) + yoff ; zd = (width-x-1) + zoff;
-xd = x;
-yd = y;
-zd = z;
-/*
-printf("%4d,%4d,%4d: %10p, %10p, %10p, %10p\n", xd, yd, zd, mri, mri->slices, mri->slices[1], mri->slices[1][0]);
-*/
-/*
-printf("%d,%d,%d\n", width, height, depth);
-*/
-          MRIvox(mri, xd, yd, zd) = b ;
-          break;
-        case DT_SIGNED_SHORT:
-          s = *(short *)(buf+bytes_per_pix*(y*width+x)) ;
-#ifdef Linux
-          s = swapShort(s) ;
-#endif
-/*
-printf("val is %hd\n", s);
-*/
-          if (s > smax)
-            smax = s ;
-          if (s < smin)
-            smin = s ;
-          b = (char)(scale * (float)(s-hdr->dime.glmin));
-          break;
-        default:
-          printf("data type %d not supported\n",datatype);
-          exit(1);
-          break;
-        }
-#if 0
-        xd = z + xoff ; yd = (height-y-1) + yoff ; zd = (width-x-1) + zoff ;
-        MRIvox(mri, xd, yd, zd) = b ;
-#endif
-      }
-    }
-  }
-  
-  if (datatype == DT_SIGNED_SHORT)
-  {
-    if (!smax)
-      ErrorReturn(ERROR_BADFILE, 
-                  (ERROR_BADFILE, "read_analyze_image: 0 image\n")) ;
-    scale = 255.0f / (float)smax ;
-    if  (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
-      fprintf(stderr, "min = %d, max = %d\n", smin, smax) ;
-/*
-printf("min = %hd, max = %hd, scale = %g\n", smin, smax, scale) ;
-*/
-    rewind(fp) ;
-/*
-printf("rewound\n");
-*/
-    for (z = 0 ; z < depth ; z++)
-    {
-      nread = fread(buf, bytes_per_pix, bufsize, fp) ;
-      if (nread != bufsize)
-      {
-        free(buf) ;
-        fclose(fp) ;
-        ErrorReturn(ERROR_BADFILE, 
-                    (ERROR_BADFILE, 
-                   "read_analyze_image: could not slice %d (%d items read)",
-                   z, bufsize)) ;
-      }
-      
-      for (y = 0 ; y < height ; y++)
-      {
-        for (x = 0 ; x < width ; x++)
-        {
-          s = *(short *)(buf+bytes_per_pix*(y*width+x)) ;
-#ifdef Linux
-          s = swapShort(s) ;
-#endif
-          b = (unsigned char)(scale * (float)(s-smin));
-
-#ifdef SUPPORT_TEXAS
-          if (hdr->dime.pixdim[0] > 3.5f)/* hack to support FIL and texas */
-          {
-            xd = x + xoff ; yd = z + yoff ; zd = y + zoff;
-          }
-          else
-#endif
-          {
-/*
-            xd = z + xoff ; yd = (height-y-1) + yoff ; zd = (width-x-1) + zoff;
-*/
-xd = x;
-yd = y;
-zd = z;
-          }
-          MRIvox(mri, xd, yd, zd) = b ;
-/*
-printf("mrivox %d, %d, %d, %d, %d\n", xd, yd, zd, (int)b, (int)MRIvox(mri, xd, yd, zd));
-*/
-        }
-      }
-    }
-
-  }
-/*
-MRIdump(mri, stdout);
-*/
-  fclose(fp);
-  free(buf) ;
-  return(NO_ERROR) ;
-}
 /*-----------------------------------------------------
         Parameters:
 
@@ -2348,7 +2131,7 @@ MRIreorder(MRI *mri_src, MRI *mri_dst, int xdim, int ydim, int zdim)
   width = mri_src->width ; height = mri_src->height ; depth = mri_src->depth;
   if (!mri_dst)
     mri_dst = MRIclone(mri_src, NULL) ;
-printf("<%d, %d>\n", mri_src->ras_good_flag, mri_dst->ras_good_flag);
+
   /* check that the source ras coordinates are good and that each direction is used once and only once */
   if(mri_src->ras_good_flag)
     if(abs(xdim) * abs(ydim) * abs(zdim) != 6 || abs(xdim) + abs(ydim) + abs(zdim) != 6)
@@ -2461,15 +2244,6 @@ printf("<%d, %d>\n", mri_src->ras_good_flag, mri_dst->ras_good_flag);
     }
     break ;
   }
-
-printf("mr: %d %d %d\n", xdim, ydim, zdim);      
-printf("mr: %g %g %g\n", mri_src->x_r, mri_src->x_a, mri_src->x_s);
-printf("mr: %g %g %g\n", mri_src->y_r, mri_src->y_a, mri_src->y_s);
-printf("mr: %g %g %g\n", mri_src->z_r, mri_src->z_a, mri_src->z_s);
-printf("mr: %g %g %g\n", mri_dst->x_r, mri_dst->x_a, mri_dst->x_s);
-printf("mr: %g %g %g\n", mri_dst->y_r, mri_dst->y_a, mri_dst->y_s);
-printf("mr: %g %g %g\n", mri_dst->z_r, mri_dst->z_a, mri_dst->z_s);
-
 
   for (zs = 0 ; zs < depth ; zs++)
   {
@@ -4229,6 +4003,47 @@ static MRI *sdtRead(char *fname, int read_volume, int frame)
   mri->te = 0 ;
   mri->ti = 0 ;
 
+  strcpy(mri->fname, fname) ;
+
+  return(mri);
+
+} /* end sdtRead() */
+static void flipAnalyzeHeader(dsr *header)
+  header->hk.sizeof_hdr = orderIntBytes(header->hk.sizeof_hdr);
+  header->hk.extents = orderIntBytes(header->hk.extents);
+  header->hk.session_error = orderShortBytes(header->hk.session_error);
+  char c;
+
+  header->hk.sizeof_hdr = swapInt(header->hk.sizeof_hdr);
+    header->dime.dim[i] = orderShortBytes(header->dime.dim[i]);
+    header->dime.pixdim[i] = orderFloatBytes(header->dime.pixdim[i]);
+
+  for(i = 0;i < 8;i++)
+  header->dime.unused1 = orderShortBytes(header->dime.unused1);
+  header->dime.datatype = orderShortBytes(header->dime.datatype);
+  header->dime.bitpix = orderShortBytes(header->dime.bitpix);
+  header->dime.dim_un0 = orderShortBytes(header->dime.dim_un0);
+  header->dime.vox_offset = orderFloatBytes(header->dime.vox_offset);
+  header->dime.roi_scale = orderFloatBytes(header->dime.roi_scale);
+  header->dime.funused1 = orderFloatBytes(header->dime.funused1);
+  header->dime.funused2 = orderFloatBytes(header->dime.funused2);
+  header->dime.cal_max = orderFloatBytes(header->dime.cal_max);
+  header->dime.cal_min = orderFloatBytes(header->dime.cal_min);
+  header->dime.compressed = orderIntBytes(header->dime.compressed);
+  header->dime.verified = orderIntBytes(header->dime.verified);
+  header->dime.glmax = orderIntBytes(header->dime.glmax);
+  header->dime.glmin = orderIntBytes(header->dime.glmin);
+
+  header->hist.views = orderIntBytes(header->hist.views);
+  header->hist.vols_added = orderIntBytes(header->hist.vols_added);
+  header->hist.start_field = orderIntBytes(header->hist.start_field);
+  header->hist.field_skip = orderIntBytes(header->hist.field_skip);
+  header->hist.omax = orderIntBytes(header->hist.omax);
+  header->hist.omin = orderIntBytes(header->hist.omin);
+  header->hist.smax = orderIntBytes(header->hist.smax);
+  header->hist.smin = orderIntBytes(header->hist.smin);
+  c = header->hist.originator[0]; header->hist.originator[0] = header->hist.originator[1]; header->hist.originator[1] = c;
+  c = header->hist.originator[2]; header->hist.originator[2] = header->hist.originator[3]; header->hist.originator[3] = c;
   c = header->hist.originator[4]; header->hist.originator[4] = header->hist.originator[5]; header->hist.originator[5] = c;
   c = header->hist.originator[6]; header->hist.originator[6] = header->hist.originator[7]; header->hist.originator[7] = c;
   c = header->hist.originator[8]; header->hist.originator[8] = header->hist.originator[9]; header->hist.originator[9] = c;

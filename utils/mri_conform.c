@@ -346,6 +346,8 @@ MRI *conform_size(MRI *mri)
   int pre_x, pre_y, pre_z;
   int i, j;
 
+printf("%d %d %d\n", mri->width, mri->height, mri->depth);
+
   if(mri->slices == NULL)
   {
     mri2 = MRIcopy(mri, NULL);
@@ -359,11 +361,12 @@ MRI *conform_size(MRI *mri)
   pre_y = (int)((256 - mri->height) / 2);
   pre_z = (int)((256 - mri->depth) / 2);
 
+printf("%d %d %d\n", pre_x, pre_y, pre_z);
+
   for(i = 0;i < 256;i++)
     for(j = 0;j < 256;j++)
-      bzero(mri2->slices[i][j], 256);
+      memset(mri2->slices[i][j], 0x00, 256);
 
- 
  for(i = 0;i < mri->depth;i++)
     for(j = 0;j < mri->height;j++)
       memcpy(&(mri2->slices[i+pre_z][j+pre_y][pre_x]), &(mri->slices[i][j][0]), mri->width);
