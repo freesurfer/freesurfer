@@ -422,6 +422,9 @@ double       MRIScurvatureError(MRI_SURFACE *mris, double Kd) ;
 MRI_SURFACE  *MRISscaleBrain(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst, 
                              float scale) ;
 int          MRISstoreMetricProperties(MRI_SURFACE *mris) ;
+int          MRISrestoreMetricProperties(MRI_SURFACE *mris) ;
+double       MRIScomputeAnalyticDistanceError(MRI_SURFACE *mris, int which,
+                                              FILE *fp);
 int          MRISzeroNegativeAreas(MRI_SURFACE *mris) ;
 int          MRIScountNegativeTriangles(MRI_SURFACE *mris) ;
 int          MRISstoreMeanCurvature(MRI_SURFACE *mris) ;
@@ -536,5 +539,6 @@ int   MRISmarkRandomVertices(MRI_SURFACE *mris, float prob_marked) ;
 int   MRISclearMarks(MRI_SURFACE *mris) ;
 int   MRISsequentialAverageVertexPositions(MRI_SURFACE *mris, int navgs) ;
 int   MRISreverse(MRI_SURFACE *mris, int which) ;
+int   MRISdisturbOriginalDistances(MRI_SURFACE *mris, double max_pct) ;
 
 #endif
