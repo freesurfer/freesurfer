@@ -1,0 +1,288 @@
+#!/bin/csh -f
+# swfflac-sess
+#
+
+set VERSION = '$Id: swfflac-sess,v 1.1 2004/11/30 23:54:18 greve Exp $';
+
+set cmdargs = ($argv);
+
+set flacname = ();
+set flacfile = ();
+set monly     = 0;
+set nolog     = 0;
+set PrintHelp = 0;
+set synthtarg = 0;
+set alpha = 0.5;
+set ytikreg = 0.1;
+set outfspec = ();
+set rcslist = ();
+set contrast = ();
+set targflacname = ();
+set targflacfile = ();
+
+if($#argv == 0)  goto usage_exit;
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+  exit 1;
+endif
+
+set SessList = `getsesspath $argv`;
+if($status || $#SessList == 0) then
+  getsesspath $argv 
+  exit 1;
+endif
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+if(! $nolog) then
+  set LF = log/swfflac-sess.$flacname.log
+  if(-e $LF) mv $LF $LF.bak
+else
+  set LF = /dev/null
+endif
+
+date | tee -a $LF
+pwd  | tee -a $LF
+echo $0  | tee -a $LF
+echo $cmdargs | tee -a $LF
+echo $VERSION | tee -a $LF
+hostname  | tee -a $LF
+
+if(! $monly) set MLF = /tmp/swfflac-sess.$$.m
+rm -f $MLF
+
+set okfile = /tmp/swfflac-sess.$$.ok
+
+#------------------------------------------------------------------#
+set StartTime = `date`;
+foreach sess ($SessList)
+  set sessid = `basename $sess`;
+
+#--------------------------#
+tee -a $MLF > /dev/null <<EOF
+
+flacfile = '$flacfile';
+sesspath = '$sess';
+outfspec = '$outfspec';
+alpha = $alpha;
+ytikreg = $ytikreg;
+contrast = '$contrast';
+rcslist = [$rcslist];
+synthtarg = $synthtarg;
+targflacfile = '$targflacfile';
+monly = $monly;
+okfile = '$okfile';
+
+fprintf('-----------------------------------------------------\n');
+fprintf('Session: %s \n',sesspath);
+fprintf('%g ',clock);fprintf('\n');
+
+fast_swfflac_sess;
+tmp = ls(okfile);
+if(isempty(tmp)) 
+  fprintf('ERROR: %s\n',sesspath);
+  if(~monly) quit; end  
+  return;
+end
+
+if(~monly) clear all; end
+
+EOF
+#--------------------------#
+
+end # Loop over sessions #
+
+if(! $monly) then
+  cat $MLF | matlab -display iconic
+  rm -f $MLF
+  if(! -e $okfile) then
+    echo "ERROR: during matlab execution"
+    exit 1;
+  endif
+endif
+
+
+echo "Started at $StartTime" | tee -a $LF
+echo "Ended   at `date`"     | tee -a $LF
+echo "swfflac-sess Done"    | tee -a $LF
+
+exit 0;
+###############################################
+
+
+############--------------##################
+parse_args:
+set cmdline = "$argv";
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-f":
+    case "-flac":
+      if ( $#argv == 0) goto arg1err;
+      set flacname = $argv[1]; shift;
+      set flacfile = flac/$flacname
+      if(! -e $flacfile) then
+        echo "ERROR: cannot find $flacfile"
+        exit 1;
+      endif
+      breaksw
+
+    case "-o":
+      if ( $#argv == 0) goto arg1err;
+      set outfspec = $argv[1]; shift;
+      breaksw
+
+    case "-targflac":
+      if ( $#argv == 0) goto arg1err;
+      set targflacname = $argv[1]; shift;
+      set targflacfile = flac/$targflacname
+      if(! -e $targflacfile) then
+        echo "ERROR: cannot find $targflacfile"
+        exit 1;
+      endif
+      breaksw
+
+    case "-c":
+      if ( $#argv == 0) goto arg1err;
+      set contrast = $argv[1]; shift;
+      breaksw
+
+    case "-alpha":
+      if ( $#argv == 0) goto arg1err;
+      set alpha = $argv[1]; shift;
+      breaksw
+
+    case "-ytikreg":
+      if ( $#argv == 0) goto arg1err;
+      set ytikreg = $argv[1]; shift;
+      breaksw
+
+    case "-rcs":
+      if( $#argv < 3) then
+        echo "ERROR: flac -rcs needs 3 args"
+        exit 1;
+      endif
+      set rcslist = ($rcslist $argv[1]); shift;
+      set rcslist = ($rcslist $argv[1]); shift;
+      set rcslist = ($rcslist $argv[1]); shift;
+      breaksw
+
+    case "-synth":
+      set synthtarg = 1;
+      breaksw
+
+    case "-monly":
+      if ( $#argv == 0) goto arg1err;
+      set MLF = $argv[1]; shift;
+      set monly = 1;
+      breaksw
+
+    case "-nolog":
+      set nolog = 1;
+      breaksw
+
+    case "-debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    case "-g":
+    case "-s":
+    case "-sf":
+    case "-d":
+    case "-df":
+      shift;
+      # ignore getsesspath arguments 
+      breaksw
+
+    case "-cwd":
+      # ignore getsesspath arguments 
+      breaksw
+
+    case "-umask":
+      if ( $#argv == 0) goto arg1err;
+      setenv MRI_UMASK $1; shift;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+  if($#flacfile == 0) then
+    echo "ERROR: must spec flac"
+    exit 1;
+  endif
+  if($#outfspec == 0) then
+    echo "ERROR: must specify output spec"
+    exit 1;
+  endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "USAGE: swfflac-sess"
+  echo ""
+  echo "   -flac flacfile : as found in flac/flacfile "
+  echo "   -o outfspec     : uses same format as flac "
+  echo ""
+  echo "Other Arguments"
+  echo "   -c contrast : optimize wrt contrast"
+  echo "   -alpha alpha : default is $alpha"
+  echo "   -ytikreg ytikreg : tikhonov regularization (def is $ytikreg)"
+  echo "   -targflac flacfile : defaullt is input flac"
+  echo "   -rcs r c s <-rcs r c s> : create outfspec-wrcs-{in,out}"
+  echo "   -synth : synthesize the target with wgn"
+  echo "   -debug"
+  echo "   -umask umask    : set unix file permission mask"
+  echo "   -version        : print version and exit"
+  echo "   -help           : print help and exit"
+  echo ""
+  echo "Session Arguments (Required)"
+  echo "   -sf sessidfile  "
+  echo "   -df srchdirfile "
+  echo "   -s  sessid      "
+  echo "   -d  srchdir     "
+  echo ""
+
+  if(! $PrintHelp) exit 1;
+
+  echo $VERSION
+
+  echo "------------------------------------------------------------"
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+
+  echo "------------------------------------------------------------"
+
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
