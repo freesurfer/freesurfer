@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/01/30 21:29:20 $
-// Revision       : $Revision: 1.81 $
+// Revision Date  : $Date: 2004/01/30 21:37:56 $
+// Revision       : $Revision: 1.82 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -217,7 +217,7 @@ int main(int argc, char *argv[])
   nskip = 0;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_convert.c,v 1.81 2004/01/30 21:29:20 tosa Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_convert.c,v 1.82 2004/01/30 21:37:56 tosa Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -1393,14 +1393,16 @@ int main(int argc, char *argv[])
       /* MRIlinearTransform() calls MRIlinearTransformInterp() */
       if (out_like_flag == 1)
       {
+	MRI *tmp = 0;
 	printf("INFO: transform src into the like-volume\n");
-	MRI *tmp = MRIreadHeader(out_like_name, MRI_VOLUME_TYPE_UNKNOWN);
+	tmp = MRIreadHeader(out_like_name, MRI_VOLUME_TYPE_UNKNOWN);
 	mri_transformed = MRIalloc(tmp->width, tmp->height, tmp->depth, mri->type);
 	if (!mri_transformed)
 	{
 	  ErrorExit(ERROR_NOMEMORY, "could not allocate memory");
 	}
 	MRIcopyHeader(tmp, mri_transformed);
+	MRIfree(&tmp); tmp = 0;
 	mri_transformed = LTAtransform(mri, mri_transformed, lta_transform);
       }
       else
