@@ -3,7 +3,7 @@
 using namespace std;
 
 template <typename T>
-Path<T>::Path<T> () {
+Path<T>::Path () {
 
   mIndexOfSegmentEnd = 0;
 }
