@@ -5,7 +5,6 @@
 #include "mri.h"
 #include "volume_io.h"
 #include "image.h"
-#include "stats.h"
 
 #define TALAIRACH_COORDS     0
 #define SPHERICAL_COORDS     1
@@ -44,6 +43,7 @@ typedef struct vertex_type_
   float ox,oy,oz;        /* last position */
   float curv;            /* curr curvature */
   float val;             /* scalar data value (file: rh.val, sig2-rh.w) */
+  int   cx, cy, cz ;     /* coordinates in canonical coordinate system */
 #if 0
   float mx,my,mz;        /* last movement */
   float dipx,dipy,dipz;  /* dipole position */
@@ -221,7 +221,12 @@ typedef struct
 
 #define TOL                  1e-6  /* minimum error tolerance for unfolding */
 
+/* can't include this before structure, as stats.h includes this file. */
+#include "stats.h"
+
+
 MRI_SURFACE  *MRISread(char *fname) ;
+int          MRISreadCanonicalCoordinates(MRI_SURFACE *mris, char *sname) ;
 int          MRISwrite(MRI_SURFACE *mris, char *fname) ;
 int          MRISwriteCurvature(MRI_SURFACE *mris, char *fname) ;
 int          MRISwriteAreaError(MRI_SURFACE *mris, char *fname) ;
@@ -262,7 +267,8 @@ int          MRISreadTriangleProperties(MRI_SURFACE *mris, char *mris_fname) ;
 int          MRIScomputeTriangleProperties(MRI_SURFACE *mris) ;
 int          MRISreadBinaryCurvature(MRI_SURFACE *mris, char *mris_fname) ;
 int          MRISreadCurvatureFile(MRI_SURFACE *mris, char *fname) ;
-int          MRISsampleStatVolume(MRI_SURFACE *mris, STAT_VOLUME *sv,int time);
+int          MRISsampleStatVolume(MRI_SURFACE *mris, STAT_VOLUME *sv,int time,
+                                  int use_talairach_xform);
 int          MRISwriteValues(MRI_SURFACE *mris, char *fname) ;
 int          MRISreadValues(MRI_SURFACE *mris, char *fname) ;
 
