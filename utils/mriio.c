@@ -8467,6 +8467,116 @@ MRIunpackFileName(char *inFname, int *pframe, int *ptype, char *outFname)
   return(NO_ERROR) ;
 }
 
+/*---------------------------------------------------------------
+  MRIwriteAnyFormat() - saves the data in the given mri structure to
+  "any" format, where "any" is defined as anything writable by
+  MRIwrite and wfile format. If wfile format is used, then mriframe
+  must be a valid frame number. The val field of the surf is
+  preserved. If another format is used, then, if mriframe = -1, then
+  all frames are stored, otherwise the given frame is stored. If
+  fmt is NULL, then it will attempt to infer the format from the
+  name. surf only needs to be supplied when format is wfile. Legal
+  formats include: wfile, paint, w, bshort, bfloat, COR, analyze,
+  analyze4d, spm.
+  ---------------------------------------------------------------*/
+int MRIwriteAnyFormat(MRI *mri, char *fileid, char *fmt, 
+		      int mriframe, MRIS *surf)
+{
+  int fmtid, err, n, r, c, s;
+  float *v=NULL,f;
+  MRI *mritmp=NULL;
+
+  if(fmt != NULL && (!strcmp(fmt,"paint") || !strcmp(fmt,"w") || 
+		     !strcmp(fmt,"wfile")) ){
+
+      /* Save as a wfile */
+      if(surf == NULL){
+	printf("ERROR: MRIwriteAnyFormat: need surf with paint format\n");
+	return(1);
+      }
+      if(mriframe >= mri->nframes){
+	printf("ERROR: MRIwriteAnyFormat: frame (%d) exceeds number of\n"
+	       "       frames\n",mriframe >= mri->nframes);
+	return(1);
+      }
+
+      /* Copy current surf values into v (temp storage) */
+      v = (float *)calloc(surf->nvertices,sizeof(float));
+      for(n=0; n < surf->nvertices; n++) v[n] = surf->vertices[n].val;
+
+      /* Copy the mri values into the surf values */
+      err = MRIScopyMRI(surf, mri, mriframe, "val");
+      if(err){
+	printf("ERROR: MRIwriteAnyFormat: could not copy MRI to MRIS\n");
+	return(1);
+      }
+
+      /* Write the surf values */
+      err = MRISwriteValues(surf,fileid);
+
+      /* Copy v back into surf values */
+      for(n=0; n < surf->nvertices; n++) surf->vertices[n].val = v[n];
+      free(v);
+
+      /* Check for errors from write of values */
+      if(err){
+	printf("ERROR: MRIwriteAnyFormat: MRISwriteValues\n");
+	return(1);
+      }
+
+      return(0);
+  }
+
+  /* Copy the desired frame if necessary */
+  if(mriframe > -1){
+    if(mriframe >= mri->nframes){
+      printf("ERROR: MRIwriteAnyFormat: frame (%d) exceeds number of\n"
+	     "       frames\n",mriframe >= mri->nframes);
+      return(1);
+    }
+    mritmp = MRIallocSequence(mri->width, mri->height, mri->depth, 
+			      mri->type, 1);
+    for(c=0; c < mri->width; c++){
+      for(r=0; r < mri->height; r++){
+	for(s=0; s < mri->depth; s++){
+	  f = MRIgetVoxVal(mri, c, r, s, mriframe);
+	  MRIsetVoxVal(mritmp, c, r, s, 0, f);
+	}
+      }
+    }
+  }
+  else mritmp = mri;
+
+  /*------------ Save using MRIwrite or MRIwriteType ---------*/
+  if(fmt != NULL){
+    /* Save as the given format */
+    fmtid = string_to_type(fmt);
+    if(fmtid == MRI_VOLUME_TYPE_UNKNOWN){
+      printf("ERROR: format string %s unrecognized\n",fmt);
+      return(1);
+    }
+    err = MRIwriteType(mritmp,fileid,fmtid);
+    if(err){
+      printf("ERROR: MRIwriteAnyFormat: could not write to %s\n",fileid);
+      return(1);
+    }
+  }
+  else{
+    /* Try to infer the type and save (format is NULL) */
+    err = MRIwrite(mritmp,fileid); 
+    if(err){
+      printf("ERROR: MRIwriteAnyFormat: could not write to %s\n",fileid);
+      return(1);
+    }
+  }
+  
+  if(mri != mritmp) MRIfree(&mritmp);
+
+  return(0);
+}
+
+
+
 /* EOF */
 
 
