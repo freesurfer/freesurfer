@@ -877,7 +877,7 @@ MRIbuildVoronoiDiagram(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst)
     total -= nchanged ;
     if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
       fprintf(stderr, 
-              "Voronoi: %d voxels assigned, %d remaining.      \r", 
+              "Voronoi: %d voxels assigned, %d remaining.      \n", 
               nchanged, total) ;
   } while (nchanged > 0 && total > 0) ;
 
@@ -915,7 +915,7 @@ MRIsoapBubble(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst,int niter)
   for (i = 0 ; i < niter ; i++)
   {
     if (Gdiag & DIAG_SHOW)
-      fprintf(stderr, "soap bubble iteration %d of %d\r", i+1, niter) ;
+      fprintf(stderr, "soap bubble iteration %d of %d\n", i+1, niter) ;
     for ( z = 0 ; z < depth ; z++)
     {
       for (y = 0 ; y < height ; y++)
@@ -951,9 +951,6 @@ MRIsoapBubble(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst,int niter)
     }
     MRIcopy(mri_tmp, mri_dst) ;
   }
-
-  if (Gdiag & DIAG_SHOW)
-    fprintf(stderr, "\n") ;
 
   MRIfree(&mri_tmp) ;
 
