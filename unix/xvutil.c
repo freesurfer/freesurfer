@@ -639,7 +639,6 @@ xv_dimage_event_handler(Xv_Window xv_window, Event *event)
   int        row, col, which = -1, rows, cols ;
   DIMAGE     *dimage, *dimage2 = NULL ;
   char       fmt[150], buf[100], title[40] ;
-  static int first = 1 ;
   float      aspect = 1.0f, scale = 1.0f ;
 
   window = event_window(event) ;
@@ -929,16 +928,12 @@ xv_dimage_event_handler(Xv_Window xv_window, Event *event)
       break ;
     }
   }
-  if (XVevent_handler)
+  if (XVevent_handler && !event_ctrl_is_down(event))
   {
     event_x(event) = x ;
     event_y(event) = yprint ;
     (*XVevent_handler)(event, dimage) ;
   }
-  if (!event_ctrl_is_down(event))
-    first = 1 ;
-  else
-    first = 0 ;
 }
 /*----------------------------------------------------------------------
             Parameters:
@@ -1689,6 +1684,7 @@ xvCreateImage(XV_FRAME *xvf, DIMAGE *dimage, int x, int y, int which)
   for (i = 0 ; i < MAX_COLORS ; i++)
     dimage->gamma[i] = (float)i ;
 
+  sprintf(dimage->title_string, "?") ;
   dimage->zoom = 1.0f ;
   dimage->which = which ;
   dimage->x = x ;
