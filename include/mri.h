@@ -374,6 +374,7 @@ MRI   *MRIconvolveGaussianMeanAndStdByte(MRI *mri_src, MRI *mri_dst,
 MRI *MRIscaleMeanIntensities(MRI *mri_src, MRI *mri_ref, MRI *mri_dst) ;
 MRI   *MRImedian(MRI *mri_src, MRI *mri_dst, int wsize) ;
 MRI   *MRImean(MRI *mri_src, MRI *mri_dst, int wsize) ;
+double MRImeanInLabel(MRI *mri_src, MRI *mri_labeled, int label) ;
 MRI   *MRImeanByte(MRI *mri_src, MRI *mri_dst, int wsize) ;
 MRI   *MRIstd(MRI *mri_src, MRI*mri_dst, MRI *mri_mean, int wsize) ;
 MRI   *MRIzScore(MRI *mri_src, MRI *mri_dst, MRI *mri_mean, MRI *mri_std) ;
@@ -618,6 +619,7 @@ int   MRIneighborsOff3x3(MRI *mri, int x0, int y0, int z0, int min_val) ;
 
 MRI   *MRIreplaceValues(MRI *mri_src, MRI *mri_dst, 
                        BUFTYPE in_val, BUFTYPE out_val) ;
+MRI   *MRImeanMask(MRI *mri_src, MRI *mri_mask, MRI *mri_dst,int mask, int wsize) ;
 MRI   *MRImask(MRI *mri_src, MRI *mri_mask, MRI *mri_dst, int mask,
                float out_val) ;
 MRI   *MRIthresholdMask(MRI *mri_src, MRI *mri_mask, MRI *mri_dst, 
