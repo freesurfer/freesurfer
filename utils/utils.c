@@ -11,6 +11,11 @@
 
     Description: miscellaneous utility functions
 
+// Warning: Do not edit the following four lines.  CVS maintains them.
+// Revision Author: $Author: tosa $
+// Revision Date  : $Date: 2004/05/28 17:32:24 $
+// Revision       : $Revision: 1.36 $
+
 ------------------------------------------------------------------------*/
 
 #ifdef _HOME_
@@ -998,5 +1003,84 @@ FileNameFromWildcard(char *inStr, char *outStr)
   }
 
   return(outStr) ;
+}
+
+int getPid()
+{
+  FILE *fp = 0;
+  char buf[256];
+  int pid = 0;
+  int numassigned = 0;
+  sprintf(buf, "ps -C %s -o pid= | sed s/' '//", Progname);
+  errno = 0;
+  fp = popen(buf, "r");
+  if (fp)
+  {
+    numassigned = fscanf(fp, "%d", &pid);
+    if (numassigned == 1)
+    {
+      pclose(fp);
+      return pid;
+    }
+    else
+    {
+      pclose(fp);
+      errno = 0;
+      fprintf(stderr, "getting pid failed");
+      return -1;
+    }
+  }
+  if (errno)
+  {
+    errno = 0;
+    fprintf(stderr, "getting pid failed");
+    return -1;
+  }
+  return -1;  // this should never happen
+}
+
+// return Kbytes memory used
+int getMemoryUsed()
+{
+#ifdef Linux
+  FILE *fp = 0;
+  char buf[256];
+  int memused = 0;
+  int numassigned = 0;
+  sprintf(buf, "grep -i vmdata /proc/%d/status | cut -f 2", getPid());
+  errno = 0;
+  fp = popen(buf, "r");
+  if (fp)
+  {
+    numassigned = fscanf(fp, "%d", &memused);
+    if (numassigned == 1)
+    {
+      pclose(fp);
+      return memused;
+    }
+    else
+    {
+      pclose(fp);
+      errno = 0;
+      fprintf(stderr, "getting memoryused failed");
+      return -1;
+    }
+  }
+  if (errno)
+  {
+    errno = 0;
+    fprintf(stderr, "getting memoryused failed");
+    return -1;
+  }
+  return -1;  // this should never happen
+#else
+  static used = 0;
+  if (!used)
+  {
+    fprintf("getMemoryUsed works only under Linux\n");
+    used = 1;
+  }
+  return -1;
+#endif
 }
 
