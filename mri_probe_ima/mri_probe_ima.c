@@ -20,7 +20,7 @@
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_probe_ima.c,v 1.6 2002/03/06 21:28:20 greve Exp $";
+static char vcid[] = "$Id: mri_probe_ima.c,v 1.7 2002/03/09 00:23:18 greve Exp $";
 char *Progname = NULL;
 
 static int  parse_commandline(int argc, char **argv);
@@ -80,8 +80,7 @@ int main(int argc, char **argv)
   }
 
   if(! imaIsSiemensIMA(imafile) ){
-    printf("ERROR: %s is not a Siemens IMA file\n",imafile);
-    exit(1);
+    printf("WARNING: %s does not seem to be a Siemens IMA file\n",imafile);
   }
 
   MkImaDictionary();
