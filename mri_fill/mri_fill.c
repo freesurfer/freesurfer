@@ -12,7 +12,7 @@
 #include "mrimorph.h"
 #include "timer.h"
 
-static char vcid[] = "$Id: mri_fill.c,v 1.40 2000/04/21 15:53:52 fischl Exp $";
+static char vcid[] = "$Id: mri_fill.c,v 1.41 2000/04/25 17:59:06 fischl Exp $";
 
 /*-------------------------------------------------------------------
                                 CONSTANTS
@@ -37,7 +37,7 @@ static char vcid[] = "$Id: mri_fill.c,v 1.40 2000/04/21 15:53:52 fischl Exp $";
 #define WM_MIN_VAL                       2 
 
 /* the min # of neighbors on for a point to be allowed to be a seed point */
-#define MIN_NEIGHBORS                    4
+#define MIN_NEIGHBORS                    5
 
 /* Talairach seed points - only used if heuristics fail */
 #define CORPUS_CALLOSUM_TAL_X            0.0
@@ -87,18 +87,6 @@ static Real pons_tal_x = -2.0 ;
 static Real pons_tal_y = -15.0 /* -22.0 */ ;
 static Real pons_tal_z = -17.0 ;
 
-
-#if 0
-/* test coords - not very close */
-static Real cc_tal_x = -4.0 ;
-static Real cc_tal_y = -32.0 ;
-static Real cc_tal_z = 27.0 ;
-
-static Real pons_tal_x = -10.0 ;
-static Real pons_tal_y = -36.0 ;
-static Real pons_tal_z = -20.0 ;
-
-#endif
 
 static int cc_seed_set = 0 ;
 static int pons_seed_set = 0 ;
@@ -161,7 +149,8 @@ static int MRIfillVolume(MRI *mri_fill, MRI *mri_im, int x_seed, int y_seed,
                          int z_seed, int fill_val) ;
 static int   mriFindBoundingBox(MRI *mri_im) ;
 MRI *MRIcombineHemispheres(MRI *mri_lh_fill, MRI *mri_rh_fill, MRI *mri_dst,
-                      Real cc_tal_x) ;
+                      int wm_lh_x, int wm_lh_y, int wm_lh_z,
+                      int wm_rh_x, int wm_rh_y, int wm_rh_z) ;
 static MRI *mriReadBinaryProbabilities(char *atlas_name, char *suffix, 
                                        M3D *m3d, char *subject_name, 
                                        MRI *mri_dst) ;
@@ -180,7 +169,7 @@ static int MRIfillDegenerateLocations(MRI *mri_fill, int fillval) ;
 int
 main(int argc, char *argv[])
 {
-  int     x, y, z, xd, yd, zd, xnew, ynew, znew, msec, i ;
+  int     x, y, z, xd, yd, zd, xnew, ynew, znew, msec, i, found ;
   int     nargs, wm_rh_x, wm_rh_y, wm_rh_z, wm_lh_x, wm_lh_y, wm_lh_z ;
   char    input_fname[STRLEN],out_fname[STRLEN], fname[STRLEN] ;
   Real    xr, yr, zr, dist, min_dist ;
@@ -326,8 +315,12 @@ main(int argc, char *argv[])
       MRIreplaceValues(mri_mask, mri_mask, 0, 255) ;
       MRIreplaceValues(mri_mask, mri_mask, 1, 0) ;
       for (x = x_cc-64 ; x < x_cc+64 ; x++)
+      {
         MRIeraseTalairachPlaneNew(mri_tmp, mri_mask, MRI_SAGITTAL, x, y_cc, 
                                   z_cc, 2*SLICE_SIZE, 0);
+        MRIeraseTalairachPlaneNew(mri_labels, mri_mask, MRI_SAGITTAL, x, y_cc, 
+                                  z_cc, 2*SLICE_SIZE, 0);
+      }
       if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
       {
         MRIwrite(mri_tmp, "erased.mgh") ;
@@ -363,8 +356,12 @@ main(int argc, char *argv[])
       MRIreplaceValues(mri_mask, mri_mask, 0, 255) ;
       MRIreplaceValues(mri_mask, mri_mask, 1, 0) ;
       for (x = x_cc-64 ; x < x_cc+64 ; x++)
+      {
         MRIeraseTalairachPlaneNew(mri_tmp, mri_mask, MRI_SAGITTAL, x, y_cc, 
                                   z_cc, 2*SLICE_SIZE, 0);
+        MRIeraseTalairachPlaneNew(mri_labels, mri_mask, MRI_SAGITTAL, x, y_cc, 
+                                  z_cc, 2*SLICE_SIZE, 0);
+      }
       if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
       {
         MRIwrite(mri_tmp, "erased.mgh") ;
@@ -434,7 +431,8 @@ main(int argc, char *argv[])
             atlas_name) ;
     mri_p_filled = 
       mriReadBinaryProbabilities(atlas_name, "filled", m3d, sname, NULL);
-    MRIwrite(mri_p_filled, "p_filled.mgh") ;
+    if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+      MRIwrite(mri_p_filled, "p_filled.mgh") ;
 
     MRIprobabilityThresholdNeighborhoodOff(mri_im, mri_p_filled, mri_im,0.0,3);
 #if 1
@@ -442,7 +440,8 @@ main(int argc, char *argv[])
     MRIprobabilityThresholdNeighborhoodOn(mri_im, mri_p_filled, mri_im, 
                                           99.9, 5, 255);
 #endif
-    MRIwrite(mri_im, "filled_thresh.mgh") ;
+    if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+      MRIwrite(mri_im, "filled_thresh.mgh") ;
 
     MRIfree(&mri_p_filled) ;
     MRI3DmorphFree(&m3d) ;
@@ -451,6 +450,10 @@ main(int argc, char *argv[])
   MRIeraseTalairachPlane(mri_im, mri_cc, MRI_SAGITTAL, x_cc, y_cc, z_cc, 
                          SLICE_SIZE, fill_val);
   MRIeraseTalairachPlane(mri_im, mri_pons, MRI_HORIZONTAL, 
+                         x_pons, y_pons, z_pons, SLICE_SIZE, fill_val) ;
+  MRIeraseTalairachPlane(mri_labels, mri_cc, MRI_SAGITTAL, x_cc, y_cc, z_cc, 
+                         SLICE_SIZE, fill_val);
+  MRIeraseTalairachPlane(mri_labels, mri_pons, MRI_HORIZONTAL, 
                          x_pons, y_pons, z_pons, SLICE_SIZE, fill_val) ;
   if (fill_val)
   {
@@ -474,29 +477,30 @@ main(int argc, char *argv[])
   else
   {
     /* find white matter seed point for the right hemisphere */
-    MRItalairachToVoxel(mri_im, cc_tal_x+SEED_SEARCH_SIZE,
+    MRItalairachToVoxel(mri_im, cc_tal_x+2*SEED_SEARCH_SIZE,
                         cc_tal_y,cc_tal_z,&xr,&yr,&zr);
     
     wm_rh_x = nint(xr) ; wm_rh_y = nint(yr) ; wm_rh_z = nint(zr) ;
     if ((MRIvox(mri_im, wm_rh_x, wm_rh_y, wm_rh_z) <= WM_MIN_VAL) ||
         (neighbors_on(mri_im, wm_rh_x, wm_rh_y, wm_rh_z) < MIN_NEIGHBORS))
     {
-      xnew = ynew = znew = 0 ;
+      found = xnew = ynew = znew = 0 ;
       min_dist = 10000.0f ;
       if (Gdiag & DIAG_SHOW)
         fprintf(stderr, "searching for rh wm seed...") ;
       for (z = wm_rh_z-SEED_SEARCH_SIZE ; z <= wm_rh_z+SEED_SEARCH_SIZE ; z++)
       {
         zi = mri_im->zi[z] ;
-        for (y = wm_rh_y-SEED_SEARCH_SIZE ; y <= wm_rh_y+SEED_SEARCH_SIZE ; y++)
+        for (y = wm_rh_y-SEED_SEARCH_SIZE ; y <= wm_rh_y+SEED_SEARCH_SIZE ;y++)
         {
           yi = mri_im->yi[y] ;
-          for (x = wm_rh_x-SEED_SEARCH_SIZE ;x <= wm_rh_x+SEED_SEARCH_SIZE ;x++)
+          for (x = wm_rh_x-SEED_SEARCH_SIZE ;x <= wm_rh_x+SEED_SEARCH_SIZE;x++)
           {
             xi = mri_im->xi[x] ;
             if ((MRIvox(mri_im, xi, yi, zi) >= WM_MIN_VAL) &&
                 neighbors_on(mri_im, xi, yi, zi) >= MIN_NEIGHBORS)
             {
+              found = 1 ;
               xd = (xi - wm_rh_x) ; yd = (yi - wm_rh_y) ; zd = (zi - wm_rh_z) ;
               dist = xd*xd + yd*yd + zd*zd ;
               if (dist < min_dist)
@@ -508,6 +512,10 @@ main(int argc, char *argv[])
           }
         }
       }
+      if (!found)
+        ErrorExit(ERROR_BADPARM, 
+                  "%s: could not find rh seed point around (%d, %d, %d)",
+                  Progname, wm_rh_x, wm_rh_y, wm_rh_z) ;
       wm_rh_x = xnew ; wm_rh_y = ynew ; wm_rh_z = znew ; 
       if (Gdiag & DIAG_SHOW)
         fprintf(stderr, "found at (%d, %d, %d)\n", xnew, ynew, znew) ;
@@ -527,28 +535,29 @@ main(int argc, char *argv[])
   else
   {
     /* find white matter seed point for the left hemisphere */
-    MRItalairachToVoxel(mri_im, cc_tal_x-SEED_SEARCH_SIZE, 
+    MRItalairachToVoxel(mri_im, cc_tal_x-2*SEED_SEARCH_SIZE, 
                         cc_tal_y, cc_tal_z, &xr, &yr, &zr);
     wm_lh_x = nint(xr) ; wm_lh_y = nint(yr) ; wm_lh_z = nint(zr) ;
     if ((MRIvox(mri_im, wm_lh_x, wm_lh_y, wm_lh_z) <= WM_MIN_VAL) ||
       (neighbors_on(mri_im, wm_lh_x, wm_lh_y, wm_lh_z) < MIN_NEIGHBORS))
     {
-      xnew = ynew = znew = 0 ;
+      found = xnew = ynew = znew = 0 ;
       min_dist = 10000.0f ;
       if (Gdiag & DIAG_SHOW)
         fprintf(stderr, "searching for rh wm seed...") ;
       for (z = wm_lh_z-SEED_SEARCH_SIZE ; z <= wm_lh_z+SEED_SEARCH_SIZE ; z++)
       {
         zi = mri_im->zi[z] ;
-        for (y = wm_lh_y-SEED_SEARCH_SIZE ; y <= wm_lh_y+SEED_SEARCH_SIZE ; y++)
+        for (y = wm_lh_y-SEED_SEARCH_SIZE ; y <= wm_lh_y+SEED_SEARCH_SIZE ;y++)
         {
           yi = mri_im->yi[y] ;
-          for (x = wm_lh_x-SEED_SEARCH_SIZE ;x <= wm_lh_x+SEED_SEARCH_SIZE ;x++)
+          for (x = wm_lh_x-SEED_SEARCH_SIZE ;x <= wm_lh_x+SEED_SEARCH_SIZE;x++)
           {
             xi = mri_im->xi[x] ;
             if ((MRIvox(mri_im, xi, yi, zi) >= WM_MIN_VAL) &&
                 (neighbors_on(mri_im, xi, yi, zi) >= MIN_NEIGHBORS))
             {
+              found = 1 ;
               xd = (xi - wm_lh_x) ; yd = (yi - wm_lh_y) ; zd = (zi - wm_lh_z) ;
               dist = xd*xd + yd*yd + zd*zd ;
               if (dist < min_dist)
@@ -560,6 +569,10 @@ main(int argc, char *argv[])
           }
         }
       }
+      if (!found)
+        ErrorExit(ERROR_BADPARM, 
+                  "%s: could not find lh seed point around (%d, %d, %d)",
+                  Progname, wm_lh_x, wm_lh_y, wm_lh_z) ;
       if (Gdiag & DIAG_SHOW)
         fprintf(stderr, "found at (%d, %d, %d)\n", xnew, ynew, znew) ;
       wm_lh_x = xnew ; wm_lh_y = ynew ; wm_lh_z = znew ; 
@@ -571,36 +584,20 @@ main(int argc, char *argv[])
               neighbors_on(mri_im, wm_lh_x, wm_lh_y, wm_lh_z)) ;
   }
 
-#if 0
-  /* initialize the fill with the detected seed points */
-  MRIvox(mri_fill, wm_lh_x, wm_lh_y, wm_lh_z) = lh_fill_val ;
-  MRIvox(mri_fill, wm_rh_x, wm_rh_y, wm_rh_z) = rh_fill_val ;
-#endif
-
   mri_lh_fill = MRIclone(mri_im, NULL) ;
   mri_rh_fill = MRIclone(mri_im, NULL) ;
   mri_lh_im = MRIcopy(mri_im, NULL) ;
   mri_rh_im = MRIcopy(mri_im, NULL) ;
 
-#if 0
-  /* find and eliminate degenerate surface
-     locations caused by diagonal connectivity in which a vertex is
-     simultaneously on both sides of the surface.
-  */
-  fprintf(stderr, "filling degenerate left hemisphere surface locations...\n");
-  MRIfillDegenerateLocations(mri_lh_im, lh_fill_val) ;
-  fprintf(stderr,"filling degenerate right hemisphere surface locations...\n");
-  MRIfillDegenerateLocations(mri_rh_im, rh_fill_val) ;
-#endif
-
+  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+    MRIwrite(mri_im, "fill0.mgh") ;
   fprintf(stderr, "filling left hemisphere...\n") ;
   MRIfillVolume(mri_lh_fill, mri_lh_im, wm_lh_x, wm_lh_y, wm_lh_z,lh_fill_val);
   fprintf(stderr, "filling right hemisphere...\n") ;
   MRIfillVolume(mri_rh_fill, mri_rh_im, wm_rh_x, wm_rh_y, wm_rh_z,rh_fill_val);
+
   MRIfree(&mri_lh_im) ; MRIfree(&mri_rh_im) ; MRIfree(&mri_im) ;
 
-
-#if 1
   /* find and eliminate degenerate surface locations caused by diagonal
      connectivity in which a vertex is simultaneously on both sides of 
      the surface. This might cause bubbles in the volume - seems unlikely,
@@ -610,7 +607,6 @@ main(int argc, char *argv[])
   MRIfillDegenerateLocations(mri_lh_fill, lh_fill_val) ;
   fprintf(stderr,"filling degenerate right hemisphere surface locations...\n");
   MRIfillDegenerateLocations(mri_rh_fill, rh_fill_val) ;
-#endif
 
   fprintf(stderr, "combining hemispheres...\n") ;
   MRIvoxelToTalairach(mri_lh_fill, (Real)wm_lh_x, (Real)wm_lh_y, (Real)wm_lh_z,
@@ -618,9 +614,10 @@ main(int argc, char *argv[])
   MRIvoxelToTalairach(mri_rh_fill, (Real)wm_rh_x, (Real)wm_rh_y, (Real)wm_rh_z,
                       &xr, &yr, &zr) ;
   
-  mri_fill = MRIcombineHemispheres(mri_lh_fill, mri_rh_fill, NULL, cc_tal_x) ;
+  mri_fill = MRIcombineHemispheres(mri_lh_fill, mri_rh_fill, NULL, 
+                                   wm_lh_x, wm_lh_y, wm_lh_z,
+                                   wm_rh_x, wm_rh_y, wm_rh_z) ;
   MRIfree(&mri_lh_fill) ; MRIfree(&mri_rh_fill) ;
-
 
   if (atlas_name)
   {
@@ -669,7 +666,8 @@ main(int argc, char *argv[])
     mri_ventricle = 
       MRIfillVentricle(mri_fill, mri_p_ventricle, mri_T1, NULL, 90.0f, 
                      lh_fill_val, nint(xr), mri_fill->width-1) ;
-    MRIwrite(mri_ventricle, "left_ventricle.mgh") ;
+    if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+      MRIwrite(mri_ventricle, "left_ventricle.mgh") ;
     MRIdilate(mri_ventricle, mri_ventricle) ;
     MRIdilate(mri_ventricle, mri_ventricle) ;
     MRIunion(mri_fill, mri_ventricle, mri_fill) ;
@@ -753,7 +751,7 @@ fill_brain(MRI *mri_fill, MRI *mri_im, int threshold)
       {
         for (j=j0;j!=j1;j+=dir)
         {
-          if ((j == 143) && (i == 106) && (imnr == 128))
+          if ((j == 125) && (i == 108) && (imnr == 128))
               DiagBreak() ;
           if (MRIvox(mri_fill, j, i, imnr) ==0)   /* not filled yet */
           {
@@ -1814,25 +1812,19 @@ mriExtendMaskDownward(MRI *mri)
   and remove exterior islands to ensure that it contains one connected
   mass (this will be one hemisphere).
 */
+
 static int
 MRIfillVolume(MRI *mri_fill, MRI *mri_im, int x_seed, int y_seed, int z_seed,
               int fill_val)
 {
   int   x, y, z ;
 
-#if 0
-  MRIvox(mri_fill, wm_lh_x, wm_lh_y, wm_lh_z) = lh_fill_val ;
-  MRIvox(mri_fill, wm_rh_x, wm_rh_y, wm_rh_z) = rh_fill_val ;
-#else
   MRIvox(mri_fill, x_seed, y_seed, z_seed) = fill_val ;
-#endif
   if (!Gdiag)
     fprintf(stderr, "filling volume: pass 1 of 3...") ;
   /* fill from 2 seeds in wm outwards */
   fill_brain(mri_fill, mri_im, WM_MIN_VAL);
 
-  /*MRIwrite(mri_fill, "fill1.mgh") ;*/
-  
   /* Set im to initial outward fill */
   MRIcopy(mri_fill, mri_im) ;
   MRIclear(mri_fill) ;
@@ -1856,11 +1848,12 @@ MRIfillVolume(MRI *mri_fill, MRI *mri_im, int x_seed, int y_seed, int z_seed,
   if (!Gdiag)
     fprintf(stderr, "\rfilling volume: pass 3 of 3...") ;
   fill_brain(mri_fill, mri_im, -WM_MIN_VAL);   
+
   mriFindBoundingBox(mri_fill) ;
   
   if (fill_holes_flag)
     fill_holes(mri_fill);
-  
+
   if (!Gdiag)
     fprintf(stderr, "done.\n") ;
   for (z = 0 ; z < mri_fill->depth ; z++)
@@ -1915,12 +1908,13 @@ mriFindBoundingBox(MRI *mri_im)
 */
 
 MRI *
-MRIcombineHemispheres(MRI *mri_lh, MRI *mri_rh, MRI *mri_dst, Real cc_tal_x)
+MRIcombineHemispheres(MRI *mri_lh, MRI *mri_rh, MRI *mri_dst,
+                      int wm_lh_x, int wm_lh_y, int wm_lh_z,
+                      int wm_rh_x, int wm_rh_y, int wm_rh_z)
 {
   int     width, height, depth, x, y, z, v, ncorrected, ambiguous, lh, rh,
           nfilled, xi, yi, zi, xk, yk, zk, nleft, nright, nambiguous, i ;
   BUFTYPE *plh, *prh, *pdst, vlh, vrh ;
-  Real    xtal, ytal, ztal, dist ;
 
   width = mri_lh->width ;
   height = mri_lh->height ;
@@ -1930,59 +1924,95 @@ MRIcombineHemispheres(MRI *mri_lh, MRI *mri_rh, MRI *mri_dst, Real cc_tal_x)
     mri_dst = MRIclone(mri_lh, NULL) ;
 
   ambiguous = rh = lh = 0 ;
-  for (ncorrected = z = 0 ; z < depth ; z++)
+  for (ncorrected = z = 0 ; z < depth && !ambiguous ; z++)
   {
-    for (y = 0 ; y < height ; y++)
+    for (y = 0 ; y < height && !ambiguous ; y++)
     {
       pdst = &MRIvox(mri_dst, 0, y, z) ;
       plh = &MRIvox(mri_lh, 0, y, z) ;
       prh = &MRIvox(mri_rh, 0, y, z) ;
-      for (x = 0 ; x < width ; x++)
+      for (x = 0 ; x < width && !ambiguous ; x++)
       {
         vlh = *plh++ ;
         vrh = *prh++ ;
+
+        /* if any are ambiguous, mark them all as ambiguous -
+           will set seed points later */
         if (vlh >= WM_MIN_VAL && vrh >= WM_MIN_VAL)
         {
-          if (ambiguous == 0)
-          {
-            ambiguous = (vlh+vrh) / 2 ;
-            lh = vlh ;
-            rh = vrh ;
-          }
-          /* both on - use talairach coordinate to arbitrate */
-          MRIvoxelToTalairach(mri_lh, (Real)x, (Real)y,(Real)z,
-                              &xtal,&ytal,&ztal) ;
-          if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
-            fprintf(stderr, "arbitrating overlap at (%d,%d,%d) [tal "
-                    "(%2.1f,%2.1f,%2.1f] - ",x,y,z,(float)xtal,(float)ytal,
-                    (float)ztal) ;
-
-          dist = (xtal-cc_tal_x) ;
-          if (fabs(dist) < 30)
-            v = ambiguous ;
-          else if (dist < 0)
-            v = vlh ;
-          else
-            v = vrh ;
-          if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
-            fprintf(stderr, "%s\n", v == vlh ? "lh" : "rh") ;
-          ncorrected++ ;
+          ambiguous = (vlh + vrh)/2 ;
+          lh = vlh ;
+          rh = vrh ;
+          break ;
         }
-        else
-          v = MAX(vlh, vrh) ;
+
+        v = MAX(vlh, vrh) ;
         *pdst++ = v ;
       }
     }
   }
-  if (ncorrected > 0)   /* correct ambiguous voxels using diffusion distance */
+  if (ambiguous)   /* mark whole brain as ambiguous - will fill seeds later */
   {
     MRI *mri_tmp = NULL ;
     int max_on = 0, min_on = (3*3*3)-1 ;
+
+    for (z = 0 ; z < depth ; z++)
+    {
+      for (y = 0 ; y < height ; y++)
+      {
+        pdst = &MRIvox(mri_dst, 0, y, z) ;
+        plh = &MRIvox(mri_lh, 0, y, z) ;
+        prh = &MRIvox(mri_rh, 0, y, z) ;
+        for (x = 0 ; x < width ; x++)
+        {
+          vlh = *plh++ ;
+          vrh = *prh++ ;
+          if (vlh >= WM_MIN_VAL || vrh >= WM_MIN_VAL)
+            v = ambiguous ;
+          else
+            v = 0 ;
+          *pdst++ = v ;
+        }
+      }
+    }
 
     fprintf(stderr, 
             "using variable coefficient diffusion "
             "to correct hemispheric overlap...\n") ;
 
+    /* set left hemisphere seed point and nbrs */
+    for (zk = -3 ; zk <= 3 ; zk++)
+    {
+      zi = mri_dst->zi[wm_lh_z+zk] ;
+      for (yk = -3 ; yk <= 3 ; yk++)
+      {
+        yi = mri_dst->yi[wm_lh_y+yk] ;
+        for (xk = -3 ; xk <= 3 ; xk++)
+        {
+          xi = mri_dst->xi[wm_lh_x+xk] ;
+          v = MRIvox(mri_dst, xi, yi, zi) ;
+          if (v >= WM_MIN_VAL)
+            MRIvox(mri_dst, xi, yi, zi) = lh ;
+        }
+      }
+    }
+    /* set right hemisphere seed point and nbrs */
+    for (zk = -3 ; zk <= 3 ; zk++)
+    {
+      zi = mri_dst->zi[wm_rh_z+zk] ;
+      for (yk = -3 ; yk <= 3 ; yk++)
+      {
+        yi = mri_dst->yi[wm_rh_y+yk] ;
+        for (xk = -3 ; xk <= 3 ; xk++)
+        {
+          xi = mri_dst->xi[wm_rh_x+xk] ;
+          v = MRIvox(mri_dst, xi, yi, zi) ;
+          if (v >= WM_MIN_VAL)
+            MRIvox(mri_dst, xi, yi, zi) = rh ;
+        }
+      }
+    }
+    
     if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
     {
       fprintf(stderr, "writing ambiguous voxel image to amb.mgh\n") ;
@@ -1999,6 +2029,8 @@ MRIcombineHemispheres(MRI *mri_lh, MRI *mri_rh, MRI *mri_dst, Real cc_tal_x)
           pdst = &MRIvox(mri_dst, 0, y, z) ;
           for (x = 0 ; x < width ; x++)
           {
+            if (x == 144 && y == 73 && z == 128)
+              DiagBreak() ;
             v = *pdst++ ;
             if (v == ambiguous)
             {
@@ -2370,7 +2402,7 @@ static int
 fillDiagonals(MRI *mri, int fillval)
 {
   int  nfilled, x, y, z, width, height, depth, block[2][2][2], xk, yk, zk,
-       x1, y1, z1, mxk, myk, mzk, diagonals, min_diagonals ;
+       x1, y1, z1, mxk, myk, mzk, diagonals, min_diagonals, filled ;
 
   nfilled = 0 ;
 
@@ -2399,14 +2431,21 @@ fillDiagonals(MRI *mri, int fillval)
                 if (block[xk][yk][zk])
                 {
                   x1 = x + xk ;
-                  MRIvox(mri, x1, y1, z1) = fillval ;
+                  if (MRIvox(mri, x1, y1, z1) != fillval)
+                  {
+                    MRIvox(mri, x1, y1, z1) = fillval ;
+                    filled = 1 ;
+                  }
+                  else
+                    filled = 0 ;
                   diagonals = count_voxel_diagonals(mri, x1, y1, z1) ;
                   if (diagonals <= min_diagonals)
                   {
                     min_diagonals = diagonals ;
                     mxk = xk ; myk = yk ; mzk = zk ;
                   }
-                  MRIvox(mri, x1, y1, z1) = 0 ;
+                  if (filled)
+                    MRIvox(mri, x1, y1, z1) = 0 ;
                 }
               }
             }
