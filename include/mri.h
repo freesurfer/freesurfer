@@ -101,6 +101,10 @@ MRI   *MRImultiply(MRI *mri1, MRI *mri2, MRI *mri_dst) ;
 MRI   *MRIabs(MRI *mri, MRI *mri_dst) ;
 
 /* filtering */
+MRI   *MRIsobel(MRI *mri_src, MRI *mri_mag, MRI *mri_x,MRI *mri_y,MRI *mri_z);
+MRI   *MRIxSobel(MRI *mri_src, MRI *mri_x) ;
+MRI   *MRIySobel(MRI *mri_src, MRI *mri_y) ;
+MRI   *MRIzSobel(MRI *mri_src, MRI *mri_z) ;
 MRI   *MRIreduce(MRI *mri_src, MRI *mri_dst) ;
 MRI   *MRIconvolve1d(MRI *mri_src, MRI *mri_dst, float *kernel, 
                      int len, int axis) ;
@@ -126,9 +130,15 @@ MRI   *MRIextractInto(MRI *mri_src, MRI *mri_dst, int x0, int y0, int z0,
                   int dx, int dy, int dz, int x1, int y1, int z1) ;
 
 
+/* filtering operations */
+MRI   *MRIgaussian1d(float sigma, int max_len) ;
+MRI   *MRIconvolveGaussian(MRI *mri_src, MRI *mri_dst, MRI *mri_gaussian) ;
 MRI   *MRImean(MRI *mri_src, MRI *mri_dst, int wsize) ;
+MRI   *MRImedian(MRI *mri_src, MRI *mri_dst, int wsize) ;
 MRI   *MRIstd(MRI *mri_src, MRI*mri_dst, MRI *mri_mean, int wsize) ;
 MRI   *MRInorm(MRI *mri_src, MRI*mri_dst, MRI *mri_mean, MRI *mri_std) ;
+
+
 MRI   *MRIreadRaw(FILE *fp, int width, int height, int depth, int type) ;
 int   MRIinitHeader(MRI *mri) ;
 int   MRIvoxelToWorld(MRI *mri, Real xv, Real yv, Real zv, 
