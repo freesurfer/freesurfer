@@ -44,9 +44,9 @@
 ** Intent:		This header defines platform specific values for
 **			MIR CTN software.  This version happens to be for
 **			Windows NT.
-** Last Update:		$Author: kteich $, $Date: 2003/02/10 20:36:24 $
+** Last Update:		$Author: vicka $, $Date: 2003/05/19 19:32:13 $
 ** Source File:		$RCSfile: dicom_platform.h,v $
-** Revision:		$Revision: 1.3 $
+** Revision:		$Revision: 1.4 $
 ** Status:		$State: Exp $
 */
 
@@ -60,7 +60,15 @@ extern "C" {
 #define	LONGSIZE 32
 #define	INTSIZE 32
 #define SHORTSIZE 16
-#define	LITTLE_ENDIAN_ARCHITECTURE
+#ifdef Darwin
+#define BIG_ENDIAN_ARCHITECTURE
+#endif
+#ifdef Linux
+#define LITTLE_ENDIAN_ARCHITECTURE
+#endif
+#ifdef Solaris
+#define BIG_ENDIAN_ARCHITECTURE
+#endif
 #define	TBL_SQLSERVER
 
   /* RKT - commeted this out, we don't want to use threads. */
