@@ -18503,7 +18503,8 @@ MRIScomputeWhiteSurfaceValues(MRI_SURFACE *mris, MRI *mri_brain,
 int
 MRIScomputeBorderValues(MRI_SURFACE *mris,MRI *mri_brain,
                         MRI *mri_smooth, Real inside_hi, Real border_hi,
-                        Real border_low, Real outside_low, double sigma,
+                        Real border_low, Real outside_low, Real outside_hi,
+                        double sigma,
                         float max_thickness, FILE *log_fp, int which)
 {
   Real    val, x, y, z, max_mag_val, xw, yw, zw,mag,max_mag, max_mag_dist=0.0f,
@@ -18715,6 +18716,7 @@ MRIScomputeBorderValues(MRI_SURFACE *mris,MRI *mri_brain,
           */
           if ((next_val >= outside_low) && 
               (next_val <= border_hi) &&
+              (next_val <= outside_hi) &&
 #if 0
               (!local_max_found || (val < max_mag_val)))
 #else
@@ -18744,7 +18746,8 @@ MRIScomputeBorderValues(MRI_SURFACE *mris,MRI *mri_brain,
             z = v->z + v->nz*(dist+1) ;
             MRIworldToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
             MRIsampleVolume(mri_brain, xw, yw, zw, &next_val) ;
-            if (next_val >= outside_low && next_val <= border_hi)
+            if (next_val >= outside_low && next_val <= border_hi &&
+                next_val < outside_hi)
             {          
               max_mag_dist = dist ;
               max_mag = fabs(mag) ;
