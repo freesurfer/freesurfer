@@ -28,7 +28,7 @@ LABEL *
 LabelRead(char *subject_name, char *label_name)
 {
   LABEL  *area ;
-  char   fname[200], *cp, line[200], subjects_dir[100], lname[200] ;
+  char   fname[STRLEN], *cp, line[STRLEN], subjects_dir[STRLEN], lname[STRLEN];
   FILE   *fp ;
   int    vno, nlines ;
   float  x, y, z, stat ;
@@ -37,14 +37,14 @@ LabelRead(char *subject_name, char *label_name)
   if (!area)
     ErrorExit(ERROR_NOMEMORY,"%s: could not allocate LABEL struct.",Progname);
 
-  cp = getenv("SUBJECTS_DIR") ;
-  if (!cp)
-    ErrorExit(ERROR_BADPARM, 
-              "%s: no subject's directory specified in environment "
-              "(SUBJECTS_DIR)", Progname) ;
-  strcpy(subjects_dir, cp) ;
   if (subject_name && !strchr(label_name, '/'))
   {
+    cp = getenv("SUBJECTS_DIR") ;
+    if (!cp)
+      ErrorExit(ERROR_BADPARM, 
+                "%s: no subject's directory specified in environment "
+                "(SUBJECTS_DIR)", Progname) ;
+    strcpy(subjects_dir, cp) ;
     strcpy(lname, label_name) ;
     cp = strstr(lname, ".label") ;
     if (cp)
@@ -59,7 +59,14 @@ LabelRead(char *subject_name, char *label_name)
     strcpy(area->subject_name, subject_name) ;
   }
   else
+  {
     strcpy(fname, label_name) ;
+    cp = getenv("SUBJECTS_DIR") ;
+    if (!cp)
+      strcpy(subjects_dir, ".") ;
+    else
+      strcpy(subjects_dir, cp) ;
+  }
 
   strcpy(area->name, label_name) ;
 
