@@ -107,6 +107,7 @@ void
 TclProgressDisplayManager::EndTask() {
 
   TclCommandManager& manager = TclCommandManager::GetManager();
-  manager.SendCommand( "EndTask" );
+  string sCommand = "EndTask";
+  manager.SendCommand( sCommand );
 }
 
