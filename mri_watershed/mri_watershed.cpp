@@ -5,11 +5,11 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2003/04/02 19:04:39 $
-// Revision       : $Revision: 1.5 $
+// Revision Date  : $Date: 2003/04/03 15:00:22 $
+// Revision       : $Revision: 1.6 $
 //
 ////////////////////////////////////////////////////////////////////
-char *MRI_WATERSHED_VERSION = "$Revision: 1.5 $";
+char *MRI_WATERSHED_VERSION = "$Revision: 1.6 $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -287,6 +287,46 @@ static void MRISscaleFields(MRIS *mris_src,MRIS *mris_dst,MRIS *mris_vdst,int wh
 static void MRISgoToClosestDarkestPoint(MRI_variables *MRI_var);
 /*mri->type correction*/
 
+void usageHelp()
+{
+  fprintf(stderr, "\nUsage: %s [options] input_file output_file", Progname);
+  fprintf(stderr, "\noptions are:");
+  fprintf(stderr, "\n-less                : to shrink the surface");
+  fprintf(stderr, "\n-more                : to expand the surface");
+  fprintf(stderr, "\n-wat                 : only to use the watershed algorithm");
+  fprintf(stderr, "\n-T1                  : to specify T1 input volume");
+  fprintf(stderr, "\n-wat+temp            : watershed algo and first template smoothing");
+  fprintf(stderr, "\n-first_temp          : first template smoothing + local matching"); 
+  fprintf(stderr, "\n-surf_debug          : to visualize the surfaces onto the output volume");
+  fprintf(stderr, "\n-surf surface_name   : to save the BEM surfaces");
+  fprintf(stderr, "\n-brainsurf surface_name: to save the brain surface");
+  fprintf(stderr, "\n-shk_br_surf h_shk surface_name: to save the brain surface shrank inward of h_snk mm");
+  fprintf(stderr, "\n-s int_i int_j int_k : to add a seed point");
+  fprintf(stderr, "\n-c int_i int_j int_k : to specify the center of the brain");
+  fprintf(stderr, "\n-r int_r             : to specify the radius of the brain");
+  fprintf(stderr, "\n-t int_threshold     : to change the threshold in the watershed analyze process");
+  fprintf(stderr, "\n-h int_hpf           : to precize the preflooding height (in percent)");
+  fprintf(stderr, "\n-n                   : not to use the watershed analyze process");
+  fprintf(stderr, "\n-LABEL               : to labelize the output volume into scalp, skull, csf, gray and white");
+  fprintf(stderr, "\n-man int_csf int_trn int_gray: to change the different parameters csf_max, transition_intensity and GM_intensity");
+  fprintf(stderr, "\n-mask                : to mask a volume with the brain mask");
+  fprintf(stderr, "\n-atlas               : to use the atlas information to eventually correct the segmentation");
+  fprintf(stderr, "\n--version            : to show the current version\n\n");
+}
+
+/*-----------------------------------------------------
+        Parameters:message error
+
+        Returns value:void
+
+        Description: Error routine - stop the prog
+------------------------------------------------------*/
+static void Error(char *string)
+{
+  fprintf(stderr, "\nError %s\n",string) ;
+  exit(1) ;
+}
+
 int main(int argc, char *argv[])
 {
   char  *in_fname, *out_fname;
@@ -302,7 +342,7 @@ int main(int argc, char *argv[])
 
   /************* Command line****************/
 
-  nargs = handle_version_option (argc, argv, "$Id: mri_watershed.cpp,v 1.5 2003/04/02 19:04:39 tosa Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_watershed.cpp,v 1.6 2003/04/03 15:00:22 tosa Exp $");
   argc -= nargs ;
   if (1 == argc)
     exit (0);
@@ -318,29 +358,7 @@ int main(int argc, char *argv[])
 
   if(argc<3)
   {
-    fprintf(stderr, "\nUsage: %s [options] input_file output_file", Progname); 
-    fprintf(stderr, "\noptional command -less : to shrink the surface");
-    fprintf(stderr, "\noptional command -more : to expand the surface");
-    fprintf(stderr, "\noptional command -wat : only the watershed algorithm");
-    fprintf(stderr, "\noptional command -T1 : specify T1 input volume");
-    fprintf(stderr, "\noptional command -wat+temp: watershed algo and first template smoothing");
-    fprintf(stderr, "\noptional command -first_temp: first template smoothing + local matching"); 
-    fprintf(stderr, "\noptional command -surf_debug: to visualize the surfaces onto the output volume");
-    fprintf(stderr, "\noptional command -surf surface_name: to save the BEM surfaces");
-    fprintf(stderr, "\noptional command -brainsurf surface_name: to save the brain surface");
-    fprintf(stderr, "\noptional command -shk_br_surf h_shk surface_name: to save the brain surface shrank inward of h_snk mm");
-    fprintf(stderr, "\noptional command -s int_i int_j int_k : to add a seed point");
-    fprintf(stderr, "\noptional command -c int_i int_j int_k : to specify the center of the brain");
-    fprintf(stderr, "\noptional command -r int_r : to specify the radius of the brain");
-    fprintf(stderr, "\noptional command -t int_threshold: to change the threshold in the watershed analyze process");
-    fprintf(stderr, "\noptional command -h int_hpf : to precize the preflooding height (in percent)");
-    fprintf(stderr, "\noptional command -n : not to use the watershed analyze process");
-    fprintf(stderr,"\noptional command -LABEL : to labelize the output volume into scalp, skull, csf, gray and white");
-    fprintf(stderr,"\noptional command -man int_csf int_trn int_gray: to change the different parameters csf_max, transition_intensity and GM_intensity");
-    fprintf(stderr, "\noptional command -mask : to mask a volume with the brain mask");
-    fprintf(stderr,"\noptional command -atlas : to use the atlas information to eventually correct the segmentation");
-    fprintf(stderr,"\noptional command --version : to show the current version\n\n");
-
+    usageHelp();
     exit(1);
   };
 
@@ -354,7 +372,6 @@ int main(int argc, char *argv[])
 
   
   /*************** PROG *********************/
-
 
   /* initialisation */
   mri_with_skull = MRIread(in_fname) ;
@@ -424,19 +441,6 @@ int main(int argc, char *argv[])
   free(parms);
 
   return 0;
-}
-
-/*-----------------------------------------------------
-        Parameters:message error
-
-        Returns value:void
-
-        Description: Error routine - stop the prog
-------------------------------------------------------*/
-static void Error(char *string)
-{
-  fprintf(stderr, "\nError %s\n",string) ;
-  exit(1) ;
 }
 
 /*-----------------------------------------------------
@@ -621,6 +625,7 @@ get_option(int argc, char *argv[],STRIP_PARMS *parms)
       break ;
     default:
       printf("Mode:          unknown option %s\n", argv[1]) ;
+      usageHelp();
       exit(1) ;
       break ;
     }
@@ -628,6 +633,7 @@ get_option(int argc, char *argv[],STRIP_PARMS *parms)
   else
   {
     printf("Mode:          unknown option %s\n", argv[1]) ;
+    usageHelp();
     exit(1) ;
   }
   return(nargs) ;
@@ -1205,6 +1211,7 @@ static int calCOGMAX(MRI_variables *MRI_var, int *x, int *y, int *z)
   return 0;
 }
 
+// using voxels whose value > CSF_intensity to calculate brain radius
 static int calBrainRadius(MRI_variables *MRI_var)
 {
   int m=0;
@@ -1282,7 +1289,7 @@ static int Pre_CharSorting(STRIP_PARMS *parms,MRI_variables *MRI_var)
   fprintf(stderr,"\n      first estimation of the COG coord: x=%d y=%d z=%d r=%d",
           (int)MRI_var->xCOG,(int)MRI_var->yCOG,(int)MRI_var->zCOG,(int)MRI_var->rad_Brain);
  
-
+  // option set by user (-c i j k)
   if(parms->cx!=-1)
   {
     MRI_var->xCOG=parms->cx;
@@ -1294,6 +1301,7 @@ static int Pre_CharSorting(STRIP_PARMS *parms,MRI_variables *MRI_var)
     y=(int)(MRI_var->yCOG+0.5);
     z=(int)(MRI_var->zCOG+0.5);
   }
+  // option set by user (-r radius)
   if(parms->rb!=-1)
   {
     MRI_var->rad_Brain=parms->rb;
@@ -2975,11 +2983,10 @@ static void Template_Deformation(STRIP_PARMS *parms,MRI_variables *MRI_var)
                      "\n      Relevant Information: Non MRI_CORONAL slice direction"
                      "\n      Ignore Information given in this step" 
                      "\n               If Incorrect Segmentation"
-                     "\n      Try convert Input Volume to Cor type"); 
+                     "\n      Tr convert Input Volume to Cor type"); 
     MRI_var->atlas=parms->atlas;
     MRI_var->validation=ValidationSurfaceShape(MRI_var);
     /*scale the fields to the current map*/
-    fprintf(stderr,"\nScaling of atlas fields onto current surface fields");
     MRISsaveVertexPositions(MRI_var->mris, ORIGINAL_VERTICES) ;
     MRISscaleFields(MRI_var->mris,MRI_var->mris_curv,MRI_var->mris_var_curv,CURV_MODE);
     MRISscaleFields(MRI_var->mris,MRI_var->mris_dCOG,MRI_var->mris_var_dCOG,DIST_MODE); 
@@ -5121,14 +5128,18 @@ static int ValidationSurfaceShape(MRI_variables *MRI_var)
   validation=mrisLocalizeErrors(mris_curv,mris_dCOG,MRI_var,mrisphere) ;
 
   if(validation==0)
-    {
-      fprintf(stderr,"\n\n      THE SEGMENTATION IS PROBABLY NOT CORRECT\n");
-      if(!MRI_var->atlas)
   {
-    fprintf(stderr,"      If the final segmentation is not valid,"
-      "\n      we suggest you use the option ' -atlas'\n");
-  }
+    fprintf(stderr,"\n\n      THE SEGMENTATION IS PROBABLY NOT CORRECT\n");
+    if(!MRI_var->atlas)
+    {
+      fprintf(stderr, "********************************************************\n");
+      fprintf(stderr, "********************************************************\n");
+      fprintf(stderr,"      If the final segmentation is not valid,"
+	             "\n      try using the option '-atlas'\n");
+      fprintf(stderr, "********************************************************\n");
+      fprintf(stderr, "********************************************************\n");
     }
+  }
   else
     fprintf(stderr,"\n      Validation of the shape of the surface");
   
