@@ -23,12 +23,16 @@ static MORPH_PARMS  parms ;
 
 static char *norm_fname = NULL ;
 
+static char *example_T1 = NULL ;
+static char *example_segmentation = NULL ;
+
 static double TR = -1 ;
 static double alpha = -1 ;
 static double TE = -1 ;
 
 static char *sample_fname = NULL ;
 static char *transformed_sample_fname = NULL ;
+static char *normalized_transformed_sample_fname = NULL ;
 static int novar = 0 ;
 
 #define MIN_SPACING   2.0
@@ -97,7 +101,8 @@ static double blur_sigma = 0.0f ;
 
 #define NPARMS           12
 #define NSAMPLES        (NPARMS*20)
-#define CTL_POINT_PCT   .2
+#define DEFAULT_CTL_POINT_PCT   .2
+static double ctl_point_pct = DEFAULT_CTL_POINT_PCT ;
 static int nsamples = NSAMPLES ;
 
 int
@@ -241,6 +246,24 @@ main(int argc, char *argv[])
     mri_in->tr = TR ;
   if (TE > 0)
     mri_in->te = TE ;
+
+  if (example_T1)
+  {
+    MRI *mri_T1, *mri_seg ;
+
+    mri_seg = MRIread(example_segmentation) ;
+    if (!mri_seg)
+      ErrorExit(ERROR_NOFILE,"%s: could not read example segmentation from %s",
+                Progname, example_segmentation) ;
+    mri_T1 = MRIread(example_T1) ;
+    if (!mri_T1)
+      ErrorExit(ERROR_NOFILE,"%s: could not read example T1 from %s",
+                Progname, example_T1) ;
+    printf("scaling atlas intensities using specified examples...\n") ;
+    MRIeraseBorderPlanes(mri_seg) ;
+    GCArenormalizeToExample(gca, mri_seg, mri_T1) ;
+    MRIfree(&mri_seg) ; MRIfree(&mri_T1) ;
+  }
 
   if (tissue_parms_fname)   /* use FLASH forward model */
     GCArenormalizeToFlash(gca, tissue_parms_fname, mri_in) ;
@@ -417,7 +440,7 @@ main(int argc, char *argv[])
     /* remove the least likely samples */
     printf("sorting %d (%d/%d l/r cerebellum) white matter points by "
            "likelihood\n", nused, nleft_cbm, nright_cbm) ;
-    for (nleft_used = nright_used = i = 0 ; i < nint(nused*CTL_POINT_PCT); i++)
+    for (nleft_used = nright_used = i = 0 ; i < nint(nused*ctl_point_pct); i++)
     {
       if (parms.gcas[ordered_indices[i]].label == Left_Cerebellum_White_Matter)
         nleft_used++ ;
@@ -434,13 +457,13 @@ main(int argc, char *argv[])
 
     }
 
-    min_left_cbm = nint(nleft_cbm*CTL_POINT_PCT+.9) ;
-    min_right_cbm = nint(nright_cbm*CTL_POINT_PCT+.9) ;
+    min_left_cbm = nint(nleft_cbm*ctl_point_pct+.9) ;
+    min_right_cbm = nint(nright_cbm*ctl_point_pct+.9) ;
     printf("%d/%d (l/r) cerebellar points initially in top %d%%, min (%d,%d)\n"
-           , nleft_used,nright_used, (int)(CTL_POINT_PCT*100.0f),
+           , nleft_used,nright_used, (int)(ctl_point_pct*100.0f),
            min_left_cbm, min_right_cbm) ;
           
-    for (i = nint(nused*CTL_POINT_PCT) ; i < nsamples ; i++)
+    for (i = nint(nused*ctl_point_pct) ; i < nsamples ; i++)
     {
       if ((parms.gcas[ordered_indices[i]].label == 
            Left_Cerebellum_White_Matter) && nleft_used < min_left_cbm)
@@ -460,10 +483,6 @@ main(int argc, char *argv[])
 
     }
 
-#if 0
-    GCAtransformAndWriteSamples(gca, mri_in, parms.gcas, nsamples, 
-                                transformed_sample_fname, parms.lta) ;
-#endif
 
 #if 0
     /* replace sample label with pct rank so that we can write it out easily
@@ -479,12 +498,23 @@ main(int argc, char *argv[])
                                 norm_fname, parms.lta) ;
 #endif
 
-    if (nint(nused*CTL_POINT_PCT) > 0)
+    if (nint(nused*ctl_point_pct) == 0)
+      ErrorPrintf(ERROR_BADPARM, 
+                  "%s: too few control points (%d) for normalization",
+                  Progname, nused) ;
+    else
+    {
+      if (normalized_transformed_sample_fname)
+        GCAtransformAndWriteSamples(gca, mri_in, parms.gcas, nsamples, 
+                                    normalized_transformed_sample_fname, 
+                                    parms.lta) ;
+
       mri_norm = GCAnormalizeSamples(mri_in, gca, parms.gcas, nsamples,
                                      parms.lta) ;
-    printf("writing normalized volume to %s...\n", norm_fname) ;
-    MRIwrite(mri_norm, norm_fname) ;
-    MRIfree(&mri_norm) ;
+      printf("writing normalized volume to %s...\n", norm_fname) ;
+      MRIwrite(mri_norm, norm_fname) ;
+      MRIfree(&mri_norm) ;
+    }
   }
 
 
@@ -1060,6 +1090,14 @@ get_option(int argc, char *argv[])
     nargs = 1 ;
     printf("using TR=%2.1f msec\n", TR) ;
   }
+  else if (!strcmp(option, "EXAMPLE"))
+  {
+    example_T1 = argv[2] ;
+    example_segmentation = argv[3] ;
+    printf("using %s and %s as example T1 and segmentations respectively.\n",
+           example_T1, example_segmentation) ;
+    nargs = 2 ;
+  }
   else if (!strcmp(option, "TE"))
   {
     TE = atof(argv[2]) ;
@@ -1078,6 +1116,13 @@ get_option(int argc, char *argv[])
     nargs = 1 ;
     printf("writing transformed control points to %s...\n", 
             transformed_sample_fname) ;
+  }
+  else if (!strcmp(option, "NSAMPLES"))
+  {
+    normalized_transformed_sample_fname = argv[2] ;
+    nargs = 1 ;
+    printf("writing  transformed normalization control points to %s...\n", 
+            normalized_transformed_sample_fname) ;
   }
   else if (!strcmp(option, "CONTRAST"))
   {
@@ -1261,6 +1306,12 @@ get_option(int argc, char *argv[])
     nargs = 1 ;
     printf("write iterations = %d\n", parms.write_iterations) ;
     Gdiag |= DIAG_WRITE ;
+    break ;
+  case 'P':
+    ctl_point_pct = atof(argv[2]) ;
+    nargs = 1 ;
+    printf("using top %2.1f%% wm points as control points....\n",
+           100.0*ctl_point_pct) ;
     break ;
   case 'M':
     parms.momentum = atof(argv[2]) ;
