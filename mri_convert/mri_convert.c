@@ -3,7 +3,6 @@
 #include <math.h>
 #include <ctype.h>
 #include <unistd.h>
-#include <sys/stat.h>
 
 #include "mri.h"
 #include "macros.h"
@@ -14,10 +13,13 @@
 #include "mrimorph.h"
 #include "fio.h"
 #include "mri_conform.h"
+#include "mri_identify.h"
+#include "matrix.h"
 
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
 static void usage(int exit_val);
+static void make_mat(MRI *orig_mri, MRI *new_mri);
 
 char *Progname ;
 
@@ -36,15 +38,17 @@ static char *transform_fname = NULL ;
 static int override_size_flag = 0;
 static double voxel_width, voxel_height, voxel_depth;
 
+static int make_mat_flag = 0;
+char *mat_file_name;
+
 int
 main(int argc, char *argv[])
 {
   char   **av ;
   int    ac, nargs ;
-  MRI    *mri, *mri2, *mri_kernel ;
+  MRI    *mri, *mri2, *mri_kernel, *orig_mri ;
   char   *in_fname, *out_fname ;
   FILE   *fin;
-  struct stat stat_buf;
 
   Progname = argv[0] ;
   ErrorInit(NULL, NULL, NULL) ;
@@ -84,6 +88,8 @@ main(int argc, char *argv[])
     ErrorExit(ERROR_NO_FILE, "%s: could not open source file %s", 
               Progname, in_fname) ;
 
+  orig_mri = MRIcopy(mri, NULL);
+
   if (!mri->imnr0)
   {
     mri->imnr0++ ;
@@ -121,10 +127,7 @@ main(int argc, char *argv[])
 
   /* force conform if out type is COR- */
 
-
-
-  stat(out_fname, &stat_buf);
-  if(S_ISDIR(stat_buf.st_mode))
+  if(is_cor(out_fname))
     conform = 1;
 
   /* nc flag overrides conform */
@@ -205,6 +208,16 @@ main(int argc, char *argv[])
     mri = mri_tmp ;
   }
 
+  if(make_mat_flag)
+  {
+
+    if(verbose)
+      printf("writing matrix to '%s'...\n", mat_file_name) ;
+
+    make_mat(orig_mri, mri);
+
+  }
+
   if(verbose)
     printf("writing output to '%s'...\n", out_fname) ;
   MRIwrite(mri, out_fname) ;
@@ -233,6 +246,7 @@ static void usage(int exit_val)
   fprintf(fout, "  -T transform    apply a transform\n");
   fprintf(fout, "  -x xdim -y ydim -z zdim\n");
   fprintf(fout, "                  reorder the axes\n");
+  fprintf(fout, "  -m              write index to index matrix file\n");
 
   exit(exit_val) ;
 
@@ -401,6 +415,11 @@ get_option(int argc, char *argv[])
   case 'H':
     usage(0);
     break ;
+  case 'M':
+    make_mat_flag = 1;
+    mat_file_name = argv[2];
+    nargs = 1;
+    break;
   default:
     fprintf(stderr, "unknown option %s\n", argv[1]) ;
     exit(1) ;
@@ -409,5 +428,121 @@ get_option(int argc, char *argv[])
 
   return(nargs) ;
 }
+
+void make_mat(MRI *orig_mri, MRI *new_mri)
+{
+
+  FILE *fout;
+  MATRIX *i_to_ras_orig, *i_to_ras_new, *i_to_i;
+
+  if((fout = fopen(mat_file_name, "w")) == NULL)
+  {
+    fprintf(stderr, "can't open file %s; ignoring matrix\n", mat_file_name);
+    return;
+  }
+
+  if(conform)
+  {
+
+    i_to_ras_orig = MatrixAlloc(4, 4, MATRIX_REAL);
+    i_to_ras_new = MatrixAlloc(4, 4, MATRIX_REAL);
+    i_to_i = MatrixAlloc(4, 4, MATRIX_REAL);
+
+    if(orig_mri->ras_good_flag)
+    {
+
+      *MATRIX_RELT(i_to_ras_orig, 1, 1) = orig_mri->x_r;
+      *MATRIX_RELT(i_to_ras_orig, 1, 2) = orig_mri->y_r;
+      *MATRIX_RELT(i_to_ras_orig, 1, 3) = orig_mri->z_r;
+      *MATRIX_RELT(i_to_ras_orig, 1, 4) = -orig_mri->width / 2 * orig_mri->x_r - orig_mri->height / 2 * orig_mri->y_r - orig_mri->depth / 2 * orig_mri->z_r;
+
+      *MATRIX_RELT(i_to_ras_orig, 2, 1) = orig_mri->x_a;
+      *MATRIX_RELT(i_to_ras_orig, 2, 2) = orig_mri->y_a;
+      *MATRIX_RELT(i_to_ras_orig, 2, 3) = orig_mri->z_a;
+      *MATRIX_RELT(i_to_ras_orig, 2, 4) = -orig_mri->width / 2 * orig_mri->x_a - orig_mri->height / 2 * orig_mri->y_a - orig_mri->depth / 2 * orig_mri->z_a;
+      
+      *MATRIX_RELT(i_to_ras_orig, 3, 1) = orig_mri->x_s;
+      *MATRIX_RELT(i_to_ras_orig, 3, 2) = orig_mri->y_s;
+      *MATRIX_RELT(i_to_ras_orig, 3, 3) = orig_mri->z_s;
+      *MATRIX_RELT(i_to_ras_orig, 3, 4) = -orig_mri->width / 2 * orig_mri->x_s - orig_mri->height / 2 * orig_mri->y_s - orig_mri->depth / 2 * orig_mri->z_s;
+      
+      *MATRIX_RELT(i_to_ras_orig, 4, 1) = 0;
+      *MATRIX_RELT(i_to_ras_orig, 4, 2) = 0;
+      *MATRIX_RELT(i_to_ras_orig, 4, 3) = 0;
+      *MATRIX_RELT(i_to_ras_orig, 4, 4) = 1;
+      
+      printf("good\n");
+    }
+    else
+    {
+/*
+      *MATRIX_RELT(i_to_ras_orig, 1, 1) = 
+      *MATRIX_RELT(i_to_ras_orig, 1, 2) = 
+      *MATRIX_RELT(i_to_ras_orig, 1, 3) = 
+      *MATRIX_RELT(i_to_ras_orig, 1, 4) = 
+
+      *MATRIX_RELT(i_to_ras_orig, 2, 1) = 
+      *MATRIX_RELT(i_to_ras_orig, 2, 2) = 
+      *MATRIX_RELT(i_to_ras_orig, 2, 3) = 
+      *MATRIX_RELT(i_to_ras_orig, 2, 4) = 
+      
+      *MATRIX_RELT(i_to_ras_orig, 3, 1) = 
+      *MATRIX_RELT(i_to_ras_orig, 3, 2) = 
+      *MATRIX_RELT(i_to_ras_orig, 3, 3) = 
+      *MATRIX_RELT(i_to_ras_orig, 3, 4) = 
+      
+      *MATRIX_RELT(i_to_ras_orig, 4, 1) = 0;
+      *MATRIX_RELT(i_to_ras_orig, 4, 2) = 0;
+      *MATRIX_RELT(i_to_ras_orig, 4, 3) = 0;
+      *MATRIX_RELT(i_to_ras_orig, 4, 4) = 1;
+*/      
+      printf("no good\n");
+    }
+
+    *MATRIX_RELT(i_to_ras_new, 1, 1) =    -1;
+    *MATRIX_RELT(i_to_ras_new, 1, 2) =     0;
+    *MATRIX_RELT(i_to_ras_new, 1, 3) =     0;
+    *MATRIX_RELT(i_to_ras_new, 1, 4) =  -128;
+      
+    *MATRIX_RELT(i_to_ras_new, 2, 1) =     0;
+    *MATRIX_RELT(i_to_ras_new, 2, 2) =     0;
+    *MATRIX_RELT(i_to_ras_new, 2, 3) =    -1;
+    *MATRIX_RELT(i_to_ras_new, 2, 4) =  -128;
+      
+    *MATRIX_RELT(i_to_ras_new, 3, 1) =    0;
+    *MATRIX_RELT(i_to_ras_new, 3, 2) =    1;
+    *MATRIX_RELT(i_to_ras_new, 3, 3) =    0;
+    *MATRIX_RELT(i_to_ras_new, 3, 4) = -128;
+      
+    *MATRIX_RELT(i_to_ras_new, 4, 1) = 0;
+    *MATRIX_RELT(i_to_ras_new, 4, 2) = 0;
+    *MATRIX_RELT(i_to_ras_new, 4, 3) = 0;
+    *MATRIX_RELT(i_to_ras_new, 4, 4) = 1;
+
+printf("\n");
+MatrixPrint(stdout, i_to_ras_orig);
+printf("\n");
+MatrixPrint(stdout, i_to_ras_new);
+printf("\n");
+
+    MatrixMultiply(MatrixInverse(i_to_ras_new, NULL), i_to_ras_orig, i_to_i);
+
+MatrixPrint(stdout, i_to_i);
+printf("\n");
+
+    fprintf(fout, "%g %g %g %g\n", *MATRIX_RELT(i_to_i, 1, 1), *MATRIX_RELT(i_to_i, 1, 2), *MATRIX_RELT(i_to_i, 1, 3), *MATRIX_RELT(i_to_i, 1, 4));
+    fprintf(fout, "%g %g %g %g\n", *MATRIX_RELT(i_to_i, 2, 1), *MATRIX_RELT(i_to_i, 2, 2), *MATRIX_RELT(i_to_i, 2, 3), *MATRIX_RELT(i_to_i, 2, 4));
+    fprintf(fout, "%g %g %g %g\n", *MATRIX_RELT(i_to_i, 3, 1), *MATRIX_RELT(i_to_i, 3, 2), *MATRIX_RELT(i_to_i, 3, 3), *MATRIX_RELT(i_to_i, 3, 4));
+    fprintf(fout, "%g %g %g %g\n", *MATRIX_RELT(i_to_i, 4, 1), *MATRIX_RELT(i_to_i, 4, 2), *MATRIX_RELT(i_to_i, 4, 3), *MATRIX_RELT(i_to_i, 4, 4));
+
+  }
+  else
+  {
+    fprintf(stderr, "writing matrix without conform not supported\n");
+  }
+
+  fclose(fout);
+
+} /* end make_mat() */
 
 /* eof */
