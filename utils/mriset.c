@@ -2129,22 +2129,42 @@ MRIcopyLabel(MRI *mri_src, MRI *mri_dst, int label)
   height = mri_src->height ;
   depth = mri_src->depth ;
 
-  for (nvox = z = 0 ; z < depth ; z++)
-  {
-    for (y = 0 ; y < height ; y++)
-    {
-      psrc = &MRIvox(mri_src, 0, y, z) ;
-      pdst = &MRIvox(mri_dst, 0, y, z) ;
-      for (x = 0 ; x < width ; x++, pdst++)
-      {
-        if (*psrc++ == label)
-        {
-          *pdst = label ;
-          nvox++ ;
-        }
-      }
-    }
-  }
+	if (mri_src->type == MRI_UCHAR && mri_dst->type == MRI_UCHAR)
+	{
+		for (nvox = z = 0 ; z < depth ; z++)
+		{
+			for (y = 0 ; y < height ; y++)
+			{
+				psrc = &MRIvox(mri_src, 0, y, z) ;
+				pdst = &MRIvox(mri_dst, 0, y, z) ;
+				for (x = 0 ; x < width ; x++, pdst++)
+				{
+					if (*psrc++ == label)
+					{
+						*pdst = label ;
+						nvox++ ;
+					}
+				}
+			}
+		}
+	}
+	else
+	{
+		for (nvox = z = 0 ; z < depth ; z++)
+		{
+			for (y = 0 ; y < height ; y++)
+			{
+				for (x = 0 ; x < width ; x++, pdst++)
+				{
+					if (MRIgetVoxVal(mri_src, x, y, z, 0) == label)
+					{
+						MRIsetVoxVal(mri_dst, x, y, z, 0, label) ;
+						nvox++ ;
+					}
+				}
+			}
+		}
+	}
   return(nvox) ;
 }
 int
