@@ -788,8 +788,13 @@ int MRIwriteAnyFormat(MRI *mri, char *fileid, char *fmt,
 MRI *MRIreadRaw(FILE *fp, int width, int height, int depth, int type);
 MRI *MRIreorder(MRI *mri_src, MRI *mri_dst, int xdim, int ydim, int zdim);
 MRI *MRIsmoothParcellation(MRI *mri, int smooth_parcellation_count);
-MRI *MRIreadOtl(char *fname, int width, int height, int slices, char *color_file_name, int read_volume_flag, int fill_flag, int translate_labels_flag);
 MRI *MRIreadGeRoi(char *fname, int n_slices);
+
+#define READ_OTL_READ_VOLUME_FLAG	0x01
+#define READ_OTL_FILL_FLAG		0x02
+#define READ_OTL_TRANSLATE_LABELS_FLAG	0x04
+#define READ_OTL_ZERO_OUTLINES_FLAG	0x08
+MRI *MRIreadOtl(char *fname, int width, int height, int slices, char *color_file_name, int flags);
 
 MATRIX *extract_i_to_r(MRI *mri);
 int apply_i_to_r(MRI *mri, MATRIX *m);
