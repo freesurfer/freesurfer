@@ -15,6 +15,7 @@ typedef enum {
   Surf_tErr_AllocationFailed,
   Surf_tErr_ErrorLoadingSurface,
   Surf_tErr_ErrorLoadingVertexSet,
+  Surf_tErr_ErrorLoadingAnnotation,
   Surf_tErr_ErrorAccesssingSurface,
   Surf_tErr_LastFace,
   Surf_tErr_LastVertex,
@@ -109,6 +110,10 @@ Surf_tErr Surf_IsVertexSetLoaded ( mriSurfaceRef   this,
 				   Surf_tVertexSet iSet,
 				   tBoolean*       obIsLoaded );
 
+/* read an annotation file */
+Surf_tErr Surf_LoadAnnotation ( mriSurfaceRef this,
+				char*         isFileName );
+
 /* ======================================================= Vertex iteration */
 
 /* for iterating thru the vertices in the surface. first step is to set the 
@@ -162,6 +167,10 @@ Surf_tErr Surf_GetDistance ( mriSurfaceRef this,
 			     xVoxelRef     iClientVoxel1,
 			     xVoxelRef     iClientVoxel2,
 			     float*        ofDistance );
+
+/* Sometimes it's easier to just give access to the surface. */
+Surf_tErr Surf_GetMRIS ( mriSurfaceRef this,
+			 MRIS**        opSurface );
 
 Surf_tErr Surf_GetSurfaceSetName ( Surf_tVertexSet iSet,
 				   char*           osName );
