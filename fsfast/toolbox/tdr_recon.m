@@ -2,13 +2,46 @@
 % reconstruction according to the time-domain reconstruction
 % algorithm 
 %
-% $Id: tdr_recon.m,v 1.1 2003/09/22 06:00:09 greve Exp $
+% $Id: tdr_recon.m,v 1.2 2003/09/25 02:12:39 greve Exp $
+tic;
 
-rcolmatfile = '/space/greve/2/users/greve/dng072203/R50.nomask.mat';
-kepidir = '/space/greve/2/users/greve/dng072203/de1/mgh';
-epiecho = 2;
 
-usefid = 1;
+if(0)
+  %topdir = '/space/greve/2/users/greve/dng072203';
+  topdir = '/space/greve/2/users/greve/fb-104.2/';
+  run = 2;
+  
+  if(TE0 == 30)
+    kepidir = sprintf('%s/rawk/sing-echo-r%d/mgh',topdir,run);
+    epiecho = 1;
+  else
+    kepidir = sprintf('%s/rawk/dual-echo-r%d/mgh',topdir,run);
+    if(TE0 == 20) epiecho = 1;
+    else          epiecho = 2;
+    end
+  end
+  
+  rcolmatfile = sprintf('%s/R%2d.2.mat',topdir,TE0);
+  usefid = 1;
+  nframes = 85;
+
+  sessdir = sprintf('%s/tdr-te%2d-r%d',topdir,TE0,run);
+  bhdrfile = sprintf('%s/siemens-te30/bold/001/f.bhdr',topdir);
+
+  funcdir = sprintf('%s/bold/001',sessdir);
+  funcstem = sprintf('%s/f',funcdir);
+  mkdirp(funcdir);
+
+  fidoutdir = sprintf('%s/fid/001',sessdir);
+  mkdirp(fidoutdir);
+  fidstem = sprintf('%s/f',fidoutdir);
+end
+
+mristruct = fast_ldbhdr(bhdrfile);
+if(isempty(mristruct))
+  fprintf('ERROR: could not load %s\n',bhdrfile);
+  return;
+end
 
 % EPI gradient and ADC timing
 tDwell     = 3.2; % usec
@@ -19,7 +52,6 @@ tDelSamp   = 30;  % usec
 tdelay     = 1.0;
 
 %----------------------------------------------------%
-tic;
 
 fprintf('Loading rcolmat file ... ');
 load(rcolmatfile);
@@ -28,82 +60,114 @@ fprintf('Done (%g)\n',toc);
 nv = prod([nrows ncols nslices]);
 sliceorder = [1:2:nslices 2:2:nslices];
 
-% Compute the Ideal col and row DFT reconstruction matrices
-Fcol = fast_dftmtx(nrows);
-Rcol = inv(Fcol);
-Frow = fast_dftmtx(ncols);
-Rrow = transpose(inv(Frow));
-
 [kvec0 gvec0] = kspacevector2(ncols,tDwell,tRampUp,tFlat,...
 			      tRampDown,tDelSamp,tdelay);
 kvec = kvec0;
+if(perev) kvec = fliplr(kvec); end
+
+% Compute the Ideal col and row DFT reconstruction matrices
+Frow = fast_dftmtx(kvec);
+Frow = fast_svdregpct(Frow,90);
+Rrow = transpose(inv(Frow));
+Fcol = fast_dftmtx(nrows);
+Rcol = inv(Fcol);
+
 
 nn = 1:ncols;
 nnrev = ncols:-1:1;
 oddrows  = 1:2:nrows;
 evenrows = 2:2:nrows;
 
-kepi_rfile = sprintf('%s/echor%d.mgh',kepidir,epiecho-1);
-kepi_ifile = sprintf('%s/echoi%d.mgh',kepidir,epiecho-1);
+kepi_rfile = sprintf('%s/echo%03dr.mgh',kepidir,epiecho);
+kepi_ifile = sprintf('%s/echo%03di.mgh',kepidir,epiecho);
 
-vol = zeros(nrows,ncols/2,nslices);
+vol = zeros(nrows,ncols/2,nslices,nframes);
 for nthAcqSlice = 1:nslices
   fprintf('nthAcqSlice = %d, toc = %g\n',nthAcqSlice,toc);
+  Rtdrslice = Rtdr(:,:,:,nthAcqSlice);
   
-  kepi_r = load_mgh(kepi_rfile,nthAcqSlice,1);
-  if(isempty(kepi_r)) return; end
-  kepi_r = kepi_r';
+  for frame = 1:nframes
   
-  kepi_i = load_mgh(kepi_ifile,nthAcqSlice,1);
-  if(isempty(kepi_i)) return; end
-  kepi_i = kepi_i';
-  
-  kepi = kepi_r + i * kepi_i;
-  
-  % Apply transforms to make EPI k-space image match the 
-  % that of the first echo of the FID. These same transforms
-  % must have been applied to the PED matrix (see tdr_fidmat).
-  kepi(evenrows,:) = fliplr(kepi(evenrows,:));
-  % Flipud already done in unpack (mri_convert_mdh)
-  %if(perev) kepi = flipud(kepi);  end 
-
-  % Recon the rows %
-  kepi2 = fast_deghost(kepi,kvec,perev);
-  %kepi2 = kepi*Rrow; % without deghosting
-
-  if(~usefid)
-    img = abs(Rcol * kepi2);
-  else
-    img = zeros(64,128);
-    for imgcol = 1:ncols
-      Rcoltdr = Rtdr(:,:,imgcol,nthAcqSlice);
-      img(:,imgcol) = abs(Rcoltdr*kepi2(:,imgcol));
+    kepi_r = load_mgh(kepi_rfile,nthAcqSlice,frame);
+    if(isempty(kepi_r)) return; end
+    kepi_r = kepi_r';
+    
+    kepi_i = load_mgh(kepi_ifile,nthAcqSlice,frame);
+    if(isempty(kepi_i)) return; end
+    kepi_i = kepi_i';
+    
+    kepi = kepi_r + i * kepi_i;
+    
+    % Apply transforms to make EPI k-space image match the 
+    % that of the first echo of the FID. These same transforms
+    % must have been applied to the PED matrix (see tdr_fidmat).
+    kepi(evenrows,:) = fliplr(kepi(evenrows,:));
+    % Flipud already done in unpack (mri_convert_mdh)
+    %if(perev) kepi = flipud(kepi);  end 
+    
+    % Recon the rows %
+    kepi2 = tdr_deghost(kepi,Rcol,Rrow,perev);
+    %kepi2 = kepi*Rrow; % without deghosting
+    
+    if(~usefid)
+      img = abs(Rcol * kepi2);
+    else
+      img = zeros(64,128);
+      for imgcol = 1:ncols
+	Rtdrcol = Rtdrslice(:,:,imgcol);
+	img(:,imgcol) = abs(Rtdrcol*kepi2(:,imgcol));
+      end
     end
-  end
-
-  % Extract the center, and flip
-  img2 = flipud(img(:,33:end-32));
-
-  % Shift so that it matches the siemens recon %
-  img3(2:64,:) = img2(1:63,:);
-  frame = 1;
-  sliceno = sliceorder(nthAcqSlice);
-  vol(:,:,sliceno,frame) = img3;
+    
+    % Extract the center, and flip
+    img2 = flipud(img(:,33:end-32));
+    
+    % Shift so that it matches the siemens recon %
+    img3(2:64,:) = img2(1:63,:);
+    sliceno = sliceorder(nthAcqSlice);
+    vol(:,:,sliceno,frame) = img3;
+  
+  end % frame
   
 end
 
-fidvol10 = fidvol1;
-fidvol1 = fidvol10;
-fidvol1 = flipdim( fidvol1(:,33:end-32,:,:), 1);
-fidvol1(2:64,:,:) = fidvol1(1:63,:,:);
+% Rescale for bshort, save scaling
+volmin = min(reshape1d(vol));
+volmax = max(reshape1d(vol));
+fscale = (2^15-1)/(volmax-volmin);
+vol = fscale*(vol-volmin);
+scalefile = sprintf('%s.scale.dat',funcstem);
+fp = fopen(scalefile,'w');
+fprintf(fp,'%g %g %g\n',volmin,volmax,fscale);
+fclose(fp);
 
-h = ceil(nslices/2);
-a = [1:h]';
-b = [h+1:2*h]';
-c = reshape1d([a b]');
-s = c(1:nslices);
-fidvol1 = fidvol1(:,:,s);
+% Save the functional volume
+fast_svbslice(vol,funcstem,-1,'bshort',mristruct);
 
-swapview('-init','-v1',fidvol1,'-v2',vol(:,:,:,1),'-title','fid-vs-tdr');
+if(~isempty(fidstem))
+  % Prep the fidimg
+  fidvol10 = fidvol1;
+  fidvol1 = fidvol10;
+  fidvol1 = flipdim( fidvol1(:,33:end-32,:,:), 1);
+  fidvol1(2:64,:,:) = fidvol1(1:63,:,:);
+  
+  h = ceil(nslices/2);
+  a = [1:h]';
+  b = [h+1:2*h]';
+  c = reshape1d([a b]');
+  s = c(1:nslices);
+  fidvol1 = fidvol1(:,:,s);
+  
+  % Save the fidimg
+  fast_svbslice(fidvol1,fidstem,-1,[],mristruct);
+end
+
+fprintf('tdr_recon done %g\n',toc);
+
+return;
+
+
+tit = sprintf('tdr-vs-fid: TE=%g, usefid=%d',TE0,usefid);
+swapview('-init','-v1',vol(:,:,:,1),'-v2',fidvol1,'-title',tit);
 
 

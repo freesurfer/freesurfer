@@ -2,21 +2,24 @@
 % columns based on the FID map and according to the time-domain
 % reconstruction method.
 %
-% $Id: tdr_rcolmat.m,v 1.1 2003/09/22 06:00:09 greve Exp $
+% $Id: tdr_rcolmat.m,v 1.2 2003/09/25 02:12:39 greve Exp $
 
-rcolmatfile = '/space/greve/2/users/greve/dng072203/R50.nomask.mat';
-fidmatfile = '/space/greve/2/users/greve/dng072203/D50.mat';
-
-% Normalize FID with abs value at first FID echo
-dnorm = 1;
-
-% Segmentation theshold the first echo of the FID Map
-rthreshfid = 0.0;
-
-% SVD regularization percentage
-regmethod = 2; % tikhonov = 1, svdpct = 2
-svdregpct = 90;
-tikregfact = 0.5; % Tikhonov regularization
+if(0) 
+  % Input and output files
+  fidmatfile  = sprintf('%s/D%2d.2.mat',topdir,TE0);
+  rcolmatfile = sprintf('%s/R%2d.2.mat',topdir,TE0);
+  
+  % Normalize FID with abs value at first FID echo
+  dnorm = 1;
+  
+  % Segmentation theshold the first echo of the FID Map
+  rthreshfid = 0.2;
+  
+  % SVD regularization percentage
+  regmethod = 'svdpct'; % tikhonov or svdpct 
+  svdregpct = 90;
+  tikregfact = 0.5; % Tikhonov regularization
+end
 
 %-----------------------------------------%
 tic; % Start Timer
@@ -73,11 +76,11 @@ for sliceno = 1:nslices
 
     % Regularize and compute reconstruction matrix %
     switch(regmethod)
-     case 1 % Tikonov
+     case 'tikhonov' 
       tmp = FcolTDR'*FcolTDR;
-      RcolTDR = inv( tmp + tikregfact*eye(size(tmp))*mean(diag(tmp)) )*FcolTDR';
+      RcolTDR = inv(tmp + tikregfact*eye(size(tmp))*mean(diag(tmp)))*FcolTDR';
       FcolTDRdim = 0; % just needs to be set to something
-     case 2 % svd
+     case 'svdpct'
       [FcolTDRreg FcolTDRdim] = fast_svdregpct(FcolTDR,svdregpct);
       RcolTDR = inv(FcolTDRreg);
     end
@@ -94,8 +97,9 @@ for sliceno = 1:nslices
 
 end % slice
 
-fprintf('Saving ...\n');
+fprintf('Saving to %s\n',rcolmatfile);
 save(rcolmatfile,'fidmatfile','dnorm','regmethod',...
      'fidvol1mn','fidvol1','TE','perev',...
      'svdregpct','tikregfact','Rtdr','RtdrCond','RtdrDim');
 fprintf('Done (%g)\n',toc);
+

@@ -2,27 +2,31 @@
 % for use with the time-domain reconstruction method. The
 % reconstruction matrix is not computed here.
 %
-% $Id: tdr_fidmat.m,v 1.1 2003/09/22 06:00:09 greve Exp $
+% $Id: tdr_fidmat.m,v 1.2 2003/09/25 02:12:39 greve Exp $
 
 addpath /homes/4/greve/sg2/dale-matlab/utils; % for smoother
 
-fiddirlist = '';
-fiddirlist = strvcat(fiddirlist,'/space/greve/2/users/greve/dng072203/fid1/mgh');
-%fiddirlist = strvcat(fiddirlist,'/space/greve/2/users/greve/dng072203/fid2/mgh');
+if(0)
 
-% Free induction decay (FID) timing parameters
-fidecho1ped = 1810;   % PED of first echo (us)
-fidechospacing = 820; % Time between FID echoes (Actually use double)
-nfidechoes = 99; % But we'll only use half (odd echoes)
+fiddirlist = '';
+fiddirlist = strvcat(fiddirlist,'/space/greve/2/users/greve/fb-104.2/rawk/fid2/mgh');
+
 fidfwhm = 0; % smoothing for fid
 
 % Echo times to generate the FID for 
 TEList      = [20 30 50];     % Echo time in ms
 TEPERevList = [ 0  0  1];  % Flag indicating reversal in PE direction
 outlist = '';
-outlist = strvcat(outlist,'/space/greve/2/users/greve/dng072203/D20.mat');
-outlist = strvcat(outlist,'/space/greve/2/users/greve/dng072203/D30.mat');
-outlist = strvcat(outlist,'/space/greve/2/users/greve/dng072203/D50.mat');
+outlist = strvcat(outlist,'/space/greve/2/users/greve/fb-104.2/D20.2.mat');
+outlist = strvcat(outlist,'/space/greve/2/users/greve/fb-104.2/D30.2.mat');
+outlist = strvcat(outlist,'/space/greve/2/users/greve/fb-104.2/D50.2.mat');
+
+end
+
+% Free induction decay (FID) timing parameters
+fidecho1ped = 1810;   % PED of first echo (us)
+fidechospacing = 820; % Time between FID echoes (Actually use double)
+nfidechoes = 99; % But we'll only use half (odd echoes)
 
 % EPI timing parameters - note EPI data not needed here
 epiechospacing = 470; % us
@@ -72,13 +76,13 @@ for sliceno = 1:nslices
       fiddir = deblank(fiddirlist(nthFIDMap,:));
 
       % Load the real part of this FID echo 
-      mghname = sprintf('%s/echor%d.mgh',fiddir,FIDEcho-1);
+      mghname = sprintf('%s/echo%03dr.mgh',fiddir,FIDEcho);
       kfidrtmp = load_mgh(mghname,sliceno); 
       if(isempty(kfidrtmp)) return; end
       kfidr = kfidr + kfidrtmp';% transpose for row major
     
       % Load the imagniary part of this FID echo 
-      mghname = sprintf('%s/echoi%d.mgh',fiddir,FIDEcho-1);
+      mghname = sprintf('%s/echo%03di.mgh',fiddir,FIDEcho);
       kfiditmp = load_mgh(mghname,sliceno);
       if(isempty(kfiditmp)) return; end
       kfidi = kfidi + kfiditmp'; % transpose for row major
