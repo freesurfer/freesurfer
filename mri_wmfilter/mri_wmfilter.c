@@ -9,7 +9,7 @@
 #include "matrix.h"
 #include "proto.h"
 
-static char vcid[] = "$Id: mri_wmfilter.c,v 1.7 1999/07/25 00:27:07 fischl Exp $";
+static char vcid[] = "$Id: mri_wmfilter.c,v 1.8 1999/07/26 16:55:56 fischl Exp $";
 
 /*-------------------------------------------------------------------
                                 CONSTANTS
@@ -36,7 +36,7 @@ unsigned char **fill[MAXIM];
 unsigned char *buf;  /* scratch memory  */
 int imnr0,imnr1,numimg;
 int wx0=100,wy0=100;
-float white_hilim = 140;
+float white_hilim = 130;
 float white_lolim = 90;
 float gray_hilim = 100;
 float threshold = 30;
@@ -269,6 +269,20 @@ plane_filter(int niter)
         kk++ ;
       }
 
+      /* if the voxel is not in the ambiguous intensity range,
+         just set the output and continue
+      */
+      if ((im2[k][i][j] < white_lolim) || (im2[k][i][j] > white_hilim))
+      {
+        fill[k][i][j] = 0;
+        continue ;
+      }
+      if (im2[k][i][j] > gray_hilim)
+      {
+        fill[k][i][j] = im2[k][i][j] ;
+        continue ;
+      }
+
       /* count number of voxels on and off in 5x5x5 cube */
       numvox = numnz = numz = 0;
       for (dk = -ws2;dk<=ws2;dk++)
@@ -295,7 +309,7 @@ plane_filter(int niter)
            (im2[k][i][j] >= white_lolim))
           || 
           (im[k][i][j]!=0 && 
-           (numz>=(cfracz/2)*(wsize*wsize*wsize)) &&
+           (numz>=(cfracz)*(wsize*wsize)) &&
            (im2[k][i][j] <= gray_hilim)))
       {
         maxvar = -1000000;
