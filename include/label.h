@@ -72,6 +72,7 @@ LABEL *MaskSurfLabel(LABEL *lbl, MRI *SurfMask,
          float thresh, char *masksign, int frame);
 
 int   LabelSetStat(LABEL *area, float stat) ;
+LABEL *LabelFillHoles(LABEL *area_src, MRI_SURFACE *mris) ;
 
 
 
