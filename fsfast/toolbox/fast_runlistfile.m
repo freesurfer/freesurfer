@@ -14,7 +14,7 @@ if(fid == -1)
   qoe(msg);error(msg);
 end
 
-runid = fscanf(fid,'%s',1);
+runid = deblank(fscanf(fid,'%s',1));
 while( ~isempty(runid) )
   runlist = strvcat(runlist,runid);
   runid = fscanf(fid,'%s',1);
