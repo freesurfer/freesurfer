@@ -2282,7 +2282,7 @@ MRIbuildVoronoiDiagram(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst)
     break ;
   }
   ErrorReturn(NULL, 
-              (ERROR_UNSUPPORTED, "MRIbuildVoronoiDiagram: src type %d unsupported"<
+              (ERROR_UNSUPPORTED, "MRIbuildVoronoiDiagram: src type %d unsupported",
                mri_src->type)) ;
 }
 #else
