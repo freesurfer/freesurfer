@@ -43,11 +43,11 @@ AC_ARG_WITH(tixwish,
   [  --with-tixwish=TIXWISH  where you specify the file for tixwish],
   [TIXWISH=$withval],[])
 # if TIXWISH has been set, then it does not do anything
-AC_CHECK_PROG([TIXWISH],[tixwish],[tixwish],[])
+AC_PATH_PROG([TIXWISH],[tixwish],[])
 if test "x$TIXWISH" = "x"; then
-  AC_CHECK_PROG([TIXWISH],[tixwish8.1.8.3],[tixwish8.1.8.3],[])
+  AC_PATH_PROG([TIXWISH],[tixwish8.1.8.3],[])
   if test "x$TIXWISH" = "x"; then
-    AC_CHECK_PROG([TIXWISH],[tixwish8.1.8.4],[tixwish8.1.8.4],[])
+    AC_PATH_PROG([TIXWISH],[tixwish8.1.8.4],[])
   fi
 fi
 # well check
