@@ -12,7 +12,7 @@
 #include "fio.h"
 
 #ifndef lint
-static char vcid[] = "$Id: mri_convert_mdh.c,v 1.2 2003/05/26 06:36:43 greve Exp $";
+static char vcid[] = "$Id: mri_convert_mdh.c,v 1.3 2003/05/31 02:06:10 greve Exp $";
 #endif /* lint */
 
 #define MDH_SIZE_V15    128        //Number of bytes in the V1.5 miniheader
@@ -21,15 +21,17 @@ static char vcid[] = "$Id: mri_convert_mdh.c,v 1.2 2003/05/26 06:36:43 greve Exp
 #define MDH_BM_REFLECT  (1 << 25)
 
 typedef struct tagMDH {
-  unsigned long ulTimeStamp, BitMask1;
+  unsigned long ulTimeStamp, BitMask1, ScanCounter;
   unsigned short Ncols, UsedChannels, Slice, Partition, Echo, Rep,LoopCounterLine;
   float SlicePosSag,SlicePosCor,SlicePosTra;
-  float TimeStamp;
+  float TimeStamp, PED;
   int IsPCN;
 } MDH;
 
 int PrintMiniHeader(FILE *fp, MDH *mdh);
-MDH *ReadMiniHeader(FILE *fp, MDH *mdh);
+MDH *ReadMiniHeader(FILE *fp, MDH *mdh, int mdhversion);
+MDH *ReadMiniHeader15(FILE *fp, MDH *mdh);
+MDH *ReadMiniHeader21(FILE *fp, MDH *mdh);
 float MDHtimeStamp0(char *measoutpath);
 int MDHnSamplesPerLine(char *measoutpath);
 int MDHbytesPerLine(char *measoutpath);
@@ -49,6 +51,7 @@ char *MDHparseMrProt(char *file, char *TagString);
 int MDHversion(char *measoutdir);
 char *MDHascPath(char *measoutdir);
 int AssignFakeDCs(MRI *mri, float dcSag, float dcCor, float dcTra);
+int MDHdump(char *measoutpath);
 
 /*--------------------------------------------------------------------*/
 char *Progname = NULL;
@@ -64,7 +67,11 @@ static int  isflag(char *flag);
 static int  singledash(char *flag);
 static int  stringmatch(char *str1, char *str2);
 char *srcdir, *outdir;
-int rev, infoonly=1, debug=0;
+int rev, infoonly=1, dumpmdh=0, debug=0;
+
+int nSamplesPerLine, nPCNs, nEchos, nPELs, nSlices, nFrames, FastestDim;
+float Thickness, dcSag, dcCor, dcTra, TR, TE[500];
+float PhaseEncodeFOV, ReadoutFOV, FlipAngle;
 
 /*------------------------------------------------------------------*/
 int main(int argc, char **argv)
@@ -72,20 +79,21 @@ int main(int argc, char **argv)
   FILE *fp;
   long offset;
   float adc[10000];
-  MDH *mdh = NULL;
+  //MDH *mdh = NULL;
   int n,d, err;
-  int nSamplesPerLine, nPCNs, nEchos, nPELs, nSlices, nFrames, FastestDim;
-  float Thickness, dcSag, dcCor, dcTra, TR, TE[500];
-  float PhaseEncodeFOV, ReadoutFOV, FlipAngle;
   char *tmpstr;
   MRI *pcnr, *pcni;
   MRI **echor, **echoi;
-  float *rptr, *iptr, TimeStamp0;
+  float *rptr, *iptr;
   int s,f,e,p,l;
   char fname[1000];
   char measoutpath[2000];
   int mdhversion;
   char *mdhascfile;
+
+  /* Preset some values to -1 so that they can be overridden */
+  nEchos  = -1;
+  nFrames = -1;
 
   Progname = argv[0] ;
   argc --;
@@ -123,7 +131,7 @@ int main(int argc, char **argv)
 
   nSamplesPerLine = MDHnSamplesPerLine(measoutpath);
   nPCNs   = MDHnPCNs(measoutpath);
-  nEchos  = MDHnEchos(measoutpath);
+  if(nEchos < 0) nEchos  = MDHnEchos(measoutpath);
   nPELs   = MDHnPhaseEncodeLines(measoutpath);
   nSlices = MDHnSlices(measoutpath);
   nFrames = MDHnFrames(measoutpath);
@@ -152,7 +160,9 @@ int main(int argc, char **argv)
     printf("%2d  %8.4f\n",n,TE[n]);
   }
 
-  if(infoonly) exit(0);
+  if(dumpmdh) MDHdump(measoutpath);
+
+  if(infoonly || dumpmdh) exit(0);
 
   /* Create the output directory */
   err = mkdir(outdir,(mode_t)-1);
@@ -277,27 +287,6 @@ int main(int argc, char **argv)
   return(0);
   /*-----------------------------------------------*/
 
-  fp = fopen(measoutpath,"r");
-  fread(&offset,sizeof(long),1, fp);
-  printf("offset = %ld\n",offset);
-  fseek(fp,offset,SEEK_SET);
-
-  n = 1;
-  while(!feof(fp)){
-    mdh = ReadMiniHeader(fp,mdh);
-    mdh->TimeStamp -= TimeStamp0;
-    if(feof(fp)) break;
-    printf("n = %d ---------------------------------\n",n);
-    PrintMiniHeader(stdout,mdh);
-    fseek(fp,2*mdh->Ncols*sizeof(float),SEEK_CUR);
-    //fread(adc,sizeof(float), 2*mdh->Ncols, fp);
-    n++;
-  }
-
-  fclose(fp);
-
-  printf("n = %d\n",n);
-
   return(0);
 }
 /*----------------------------------------------------------*/
@@ -327,6 +316,7 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--version")) print_version() ;
     else if (!strcasecmp(option, "--debug"))   debug = 1;
     else if (!strcasecmp(option, "--info"))    infoonly = 1;
+    else if (!strcasecmp(option, "--dump"))    dumpmdh = 1;
     else if (!strcasecmp(option, "--rev"))     rev = 1;
 
     else if (stringmatch(option, "--srcdir")){
@@ -338,6 +328,16 @@ static int parse_commandline(int argc, char **argv)
       if(nargc < 1) argnerr(option,1);
       outdir = pargv[0];
       infoonly = 0;
+      nargsused = 1;
+    }
+    else if (stringmatch(option, "--nechos")){
+      if(nargc < 1) argnerr(option,1);
+      sscanf(pargv[0],"%d",&nEchos);
+      nargsused = 1;
+    }
+    else if (stringmatch(option, "--nframes")){
+      if(nargc < 1) argnerr(option,1);
+      sscanf(pargv[0],"%d",&nFrames);
       nargsused = 1;
     }
     else{
@@ -556,9 +556,15 @@ char *MDHascPath(char *measoutdir)
   return(NULL);
 }
 
-
 /*----------------------------------------------------------*/
-MDH *ReadMiniHeader(FILE *fp, MDH *mdh)
+MDH *ReadMiniHeader(FILE *fp, MDH *mdh, int mdhversion)
+{
+  if(mdhversion == 15) return(ReadMiniHeader15(fp,mdh));
+  if(mdhversion == 21) return(ReadMiniHeader21(fp,mdh));
+  return(NULL);
+}
+/*----------------------------------------------------------*/
+MDH *ReadMiniHeader15(FILE *fp, MDH *mdh)
 {
   unsigned long ultmp;
   unsigned short ustmp;
@@ -568,24 +574,24 @@ MDH *ReadMiniHeader(FILE *fp, MDH *mdh)
   
   fread(&ultmp,sizeof(long),1, fp); //DMALength
   fread(&ultmp,sizeof(long),1, fp); //MeasUID (long)
-  fread(&ultmp,sizeof(long),1, fp); //ScanCounter
+  fread(&mdh->ScanCounter,sizeof(long),1, fp); //ScanCounter
   fread(&mdh->ulTimeStamp,sizeof(long),1, fp);
   mdh->TimeStamp = 2.5*mdh->ulTimeStamp; // dont know why its 2.5
   fread(&ultmp,sizeof(long),1, fp); //PMUTimeStamp
   fread(&mdh->BitMask1,sizeof(long),1, fp); 
   //fread(&ultmp,sizeof(long),1, fp); //BitMask2 (VA21)
 
-  fread(&mdh->Ncols,sizeof(short),1, fp); //SamplesInScan
-  fread(&mdh->UsedChannels,sizeof(short),1, fp); 
-  fread(&mdh->LoopCounterLine,sizeof(short),1, fp); //LoopCounter.Line
-  fread(&ustmp,sizeof(short),1, fp); //Acquistion
-  fread(&mdh->Slice,sizeof(short),1, fp); 
-  fread(&mdh->Partition,sizeof(short),1, fp);
-  fread(&mdh->Echo,sizeof(short),1, fp); 
-  fread(&ustmp,sizeof(short),1, fp); // Phase
-  fread(&mdh->Rep,sizeof(short),1, fp); 
-  fread(&ustmp,sizeof(short),1, fp); //Set
-  fread(&ustmp,sizeof(short),1, fp); //Seg
+  fread(&mdh->Ncols,sizeof(short),1, fp);          //SamplesInScan
+  fread(&mdh->UsedChannels,sizeof(short),1, fp);   //Number of used channels
+  fread(&mdh->LoopCounterLine,sizeof(short),1, fp);//LoopCounter.Line
+  fread(&ustmp,sizeof(short),1, fp);          //Acquistion
+  fread(&mdh->Slice,sizeof(short),1, fp);     //Slice number
+  fread(&mdh->Partition,sizeof(short),1, fp); //Partition number
+  fread(&mdh->Echo,sizeof(short),1, fp);      //Echo number
+  fread(&ustmp,sizeof(short),1, fp);          //Phase
+  fread(&mdh->Rep,sizeof(short),1, fp);       //Repetition number (ie,frame)
+  fread(&ustmp,sizeof(short),1, fp);          //Set ??
+  fread(&ustmp,sizeof(short),1, fp);          //Seg ??
   //fread(&ustmp,sizeof(short),1, fp); //Ida (VA21)
   //fread(&ustmp,sizeof(short),1, fp); //Idb (VA21)
   //fread(&ustmp,sizeof(short),1, fp); //Idc (VA21)
@@ -599,6 +605,76 @@ MDH *ReadMiniHeader(FILE *fp, MDH *mdh)
 
   fread(&ftmp,sizeof(float),1, fp); //ReadOutOffCenter
   fread(&ultmp,sizeof(long),1, fp); //TimeSinceLastRF
+  mdh->PED = ultmp * 2.5; // convert to ms
+  
+  fread(&ustmp,sizeof(short),1, fp); //KSpaceCentreLineNo
+  fread(&ustmp,sizeof(short),1, fp); //KSpaceCentrePartitionNo
+  //fread(&ustmp,sizeof(short),1, fp); //IceProgramPara1 (VA21)
+  //fread(&ustmp,sizeof(short),1, fp); //IceProgramPara2 (VA21)
+  //fread(&ustmp,sizeof(short),1, fp); //IceProgramPara3 (VA21)
+  //fread(&ustmp,sizeof(short),1, fp); //IceProgramPara4 (VA21)
+  fseek(fp,14*sizeof(short),SEEK_CUR); // FreePara (VA15)
+  //fseek(fp,4*sizeof(short),SEEK_CUR); // FreePara (VA21)
+
+  fread(&mdh->SlicePosSag,sizeof(float),1, fp);
+  fread(&mdh->SlicePosCor,sizeof(float),1, fp);
+  fread(&mdh->SlicePosTra,sizeof(float),1, fp);
+
+  fread(&ftmp,sizeof(float),1, fp); //Quaternion1
+  fread(&ftmp,sizeof(float),1, fp); //Quaternion2
+  fread(&ftmp,sizeof(float),1, fp); //Quaternion3
+  fread(&ftmp,sizeof(float),1, fp); //Quaternion4
+
+  fread(&ultmp,sizeof(long),1, fp); //ChannelId
+
+  if( (mdh->BitMask1 & MDH_BM_PHASECOR) != 0) mdh->IsPCN = 1;
+  else  mdh->IsPCN = 0;
+
+  return(mdh);
+}
+/*----------------------------------------------------------*/
+MDH *ReadMiniHeader21(FILE *fp, MDH *mdh)
+{
+  unsigned long ultmp;
+  unsigned short ustmp;
+  float ftmp;
+
+  if(mdh == NULL)  mdh = (MDH *) calloc(sizeof(MDH),1);
+  
+  fread(&ultmp,sizeof(long),1, fp); //DMALength
+  fread(&ultmp,sizeof(long),1, fp); //MeasUID (long)
+  fread(&mdh->ScanCounter,sizeof(long),1, fp); //ScanCounter
+  fread(&mdh->ulTimeStamp,sizeof(long),1, fp);
+  mdh->TimeStamp = 2.5*mdh->ulTimeStamp; // dont know why its 2.5
+  fread(&ultmp,sizeof(long),1, fp); //PMUTimeStamp
+  fread(&mdh->BitMask1,sizeof(long),1, fp); 
+  //fread(&ultmp,sizeof(long),1, fp); //BitMask2 (VA21)
+
+  fread(&mdh->Ncols,sizeof(short),1, fp);          //SamplesInScan
+  fread(&mdh->UsedChannels,sizeof(short),1, fp);   //Number of used channels
+  fread(&mdh->LoopCounterLine,sizeof(short),1, fp);//LoopCounter.Line
+  fread(&ustmp,sizeof(short),1, fp);          //Acquistion
+  fread(&mdh->Slice,sizeof(short),1, fp);     //Slice number
+  fread(&mdh->Partition,sizeof(short),1, fp); //Partition number
+  fread(&mdh->Echo,sizeof(short),1, fp);      //Echo number
+  fread(&ustmp,sizeof(short),1, fp);          //Phase
+  fread(&mdh->Rep,sizeof(short),1, fp);       //Repetition number (ie,frame)
+  fread(&ustmp,sizeof(short),1, fp);          //Set ??
+  fread(&ustmp,sizeof(short),1, fp);          //Seg ??
+  //fread(&ustmp,sizeof(short),1, fp); //Ida (VA21)
+  //fread(&ustmp,sizeof(short),1, fp); //Idb (VA21)
+  //fread(&ustmp,sizeof(short),1, fp); //Idc (VA21)
+  //fread(&ustmp,sizeof(short),1, fp); //Idd (VA21)
+  //fread(&ustmp,sizeof(short),1, fp); //Ide (VA21)
+  fread(&ustmp,sizeof(short),1, fp); //LoopCounterFree (VA15)
+  fread(&ustmp,sizeof(short),1, fp); //CutOffData.Pre
+  fread(&ustmp,sizeof(short),1, fp); //CutOffData.Post
+  fread(&ustmp,sizeof(short),1, fp); //KSpaceCenterColumn
+  fread(&ustmp,sizeof(short),1, fp); //Dummy
+
+  fread(&ftmp,sizeof(float),1, fp); //ReadOutOffCenter
+  fread(&ultmp,sizeof(long),1, fp); //TimeSinceLastRF
+  mdh->PED = ultmp * 2.5; // convert to ms
   
   fread(&ustmp,sizeof(short),1, fp); //KSpaceCentreLineNo
   fread(&ustmp,sizeof(short),1, fp); //KSpaceCentrePartitionNo
@@ -628,20 +704,20 @@ MDH *ReadMiniHeader(FILE *fp, MDH *mdh)
 /*---------------------------------------------------*/
 int PrintMiniHeader(FILE *fp, MDH *mdh)
 {
-  fprintf(fp,"TimeStamp    %f\n",mdh->TimeStamp);
-  fprintf(fp,"BitMask1     %lx\n",mdh->BitMask1);
+  fprintf(fp,"TimeStamp    %f, PED = %f\n",mdh->TimeStamp,mdh->PED);
   fprintf(fp,"IsPCN        %d\n",mdh->IsPCN);
-  fprintf(fp,"Reflect      %ld\n",mdh->BitMask1 & MDH_BM_REFLECT);
-  fprintf(fp,"LoopCounter   %d\n",mdh->LoopCounterLine);
-  fprintf(fp,"Ncols        %d\n",mdh->Ncols);
-  fprintf(fp,"UsedChannels %d\n",mdh->UsedChannels);
+  fprintf(fp,"ScanCounter  %ld\n",mdh->ScanCounter);
+  fprintf(fp,"LoopCounter  %d\n",mdh->LoopCounterLine);
   fprintf(fp,"Slice        %d\n",mdh->Slice);
   fprintf(fp,"Echo         %d\n",mdh->Echo);
   fprintf(fp,"Rep          %d\n",mdh->Rep);
-  fprintf(fp,"SPSag        %f\n",mdh->SlicePosSag);
-  fprintf(fp,"SPCor        %f\n",mdh->SlicePosCor);
-  fprintf(fp,"SPTra        %f\n",mdh->SlicePosTra);
+  fprintf(fp,"SP  %7.2f %7.2f %7.2f \n",
+	  mdh->SlicePosSag,mdh->SlicePosCor,mdh->SlicePosTra);
+  fprintf(fp,"Ncols        %d\n",mdh->Ncols);
+  fprintf(fp,"BitMask1     %lx\n",mdh->BitMask1);
   return(0);
+  //fprintf(fp,"Reflect      %ld\n",mdh->BitMask1 & MDH_BM_REFLECT);
+  //fprintf(fp,"UsedChannels %d\n",mdh->UsedChannels);
 }
 /*---------------------------------------------------*/
 float MDHtimeStamp0(char *measoutpath)
@@ -650,6 +726,8 @@ float MDHtimeStamp0(char *measoutpath)
   FILE *fp;
   float TimeStamp0;
   unsigned long offset;
+  int mdhversion;
+  mdhversion = MDHversion(measoutpath);
   
   fp = fopen(measoutpath,"r");
   if(fp == NULL){
@@ -658,7 +736,7 @@ float MDHtimeStamp0(char *measoutpath)
   }
   fread(&offset,sizeof(long),1, fp);
   fseek(fp,offset,SEEK_SET);
-  mdh = ReadMiniHeader(fp,mdh);
+  mdh = ReadMiniHeader(fp,mdh,mdhversion);
   TimeStamp0 = mdh->TimeStamp;
   free(mdh);
   fclose(fp);
@@ -677,7 +755,9 @@ int MDHnSamplesPerLine(char *measoutpath)
   FILE *fp;
   int nSamplesPerLine;
   unsigned long offset;
-  
+  int mdhversion;
+
+  mdhversion = MDHversion(measoutpath);
   fp = fopen(measoutpath,"r");
   if(fp == NULL){
     printf("ERROR: could not open %s\n",measoutpath);
@@ -685,7 +765,7 @@ int MDHnSamplesPerLine(char *measoutpath)
   }
   fread(&offset,sizeof(long),1, fp);
   fseek(fp,offset,SEEK_SET);
-  mdh = ReadMiniHeader(fp,mdh);
+  mdh = ReadMiniHeader(fp,mdh,mdhversion);
   nSamplesPerLine = mdh->Ncols;
   free(mdh);
   fclose(fp);
@@ -725,7 +805,9 @@ int MDHnPCNs(char *measoutpath)
   FILE *fp;
   int nPCNs;
   unsigned long offset;
-  
+  int mdhversion;
+
+  mdhversion = MDHversion(measoutpath);
   fp = fopen(measoutpath,"r");
   if(fp == NULL){
     printf("ERROR: could not open %s\n",measoutpath);
@@ -736,7 +818,7 @@ int MDHnPCNs(char *measoutpath)
 
   nPCNs = 0;
   while(1){
-    mdh = ReadMiniHeader(fp,mdh);
+    mdh = ReadMiniHeader(fp,mdh,mdhversion);
     fseek(fp,2*mdh->Ncols*sizeof(float),SEEK_CUR);
     if(! mdh->IsPCN) break;
     nPCNs ++;
@@ -758,7 +840,9 @@ int MDHnSlices(char *measoutpath)
   unsigned long offset;
   int nSlices, nPCNs, nEchos, nPELs, chunksize;
   int BytesPerSlice, BytesPerSliceB;
-  
+  int mdhversion;
+  mdhversion = MDHversion(measoutpath);
+
   chunksize = MDHbytesPerChunk(measoutpath);
   if(chunksize < 0) return(-1);
   nPCNs   = MDHnPCNs(measoutpath);
@@ -776,7 +860,7 @@ int MDHnSlices(char *measoutpath)
 
   nSlices = 0;
   while(1){
-    mdh = ReadMiniHeader(fp,mdh);
+    mdh = ReadMiniHeader(fp,mdh,mdhversion);
     if(feof(fp)) break;
     if(mdh->Rep != 0) break;
     if(nSlices < mdh->Slice+1) nSlices = mdh->Slice+1;
@@ -800,6 +884,8 @@ int MDHslicePosition(char *measoutpath, int Slice, float *Sag, float *Cor, float
   unsigned long offset;
   int nSlices, nPCNs, nEchos, nPELs, chunksize;
   int BytesPerSlice;
+  int mdhversion;
+  mdhversion = MDHversion(measoutpath);
   
   chunksize = MDHbytesPerChunk(measoutpath);
   if(chunksize < 0) return(1);
@@ -823,7 +909,7 @@ int MDHslicePosition(char *measoutpath, int Slice, float *Sag, float *Cor, float
 
   // Jump to the beginning of the desired slice
   fseek(fp,Slice*BytesPerSlice,SEEK_CUR);
-  mdh = ReadMiniHeader(fp,mdh);
+  mdh = ReadMiniHeader(fp,mdh,mdhversion);
 
   *Sag = mdh->SlicePosSag;
   *Cor = mdh->SlicePosCor;
@@ -879,7 +965,9 @@ int MDHnFrames(char *measoutpath)
   unsigned long offset;
   int nFrames, nSlices, nPCNs, nEchos, nPELs, chunksize;
   int BytesPerFrame, BytesPerFrameB;
-  
+  int mdhversion;
+  mdhversion = MDHversion(measoutpath);
+
   chunksize = MDHbytesPerChunk(measoutpath);
   if(chunksize < 0) return(-1);
   nPCNs    = MDHnPCNs(measoutpath);
@@ -898,7 +986,7 @@ int MDHnFrames(char *measoutpath)
 
   nFrames = 0;
   while(1){
-    mdh = ReadMiniHeader(fp,mdh);
+    mdh = ReadMiniHeader(fp,mdh,mdhversion);
     if(feof(fp)) break;
     if(nFrames < mdh->Rep+1) nFrames = mdh->Rep+1;
     // Jump to the beginning of the next frame/rep
@@ -920,7 +1008,9 @@ int MDHnEchos(char *measoutpath)
   int nEchos;
   unsigned long offset;
   int nPCNs, chunksize;
-  
+  int mdhversion;
+  mdhversion = MDHversion(measoutpath);
+
   chunksize = MDHbytesPerChunk(measoutpath);
   if(chunksize < 0) return(-1);
   fp = fopen(measoutpath,"r");
@@ -933,7 +1023,7 @@ int MDHnEchos(char *measoutpath)
 
   nEchos = -1;
   while(1){
-    mdh = ReadMiniHeader(fp,mdh);
+    mdh = ReadMiniHeader(fp,mdh,mdhversion);
     if(feof(fp)) break;
     if(mdh->Slice != 0) break;
     if(nEchos < mdh->Echo+1) nEchos = mdh->Echo+1;
@@ -955,6 +1045,8 @@ int MDHnPhaseEncodeLines(char *measoutpath)
   int nPhaseEncodeLines;
   unsigned long offset;
   int nPCNs, chunksize;
+  int mdhversion;
+  mdhversion = MDHversion(measoutpath);
   
   chunksize = MDHbytesPerChunk(measoutpath);
   if(chunksize < 0) return(-1);
@@ -968,10 +1060,11 @@ int MDHnPhaseEncodeLines(char *measoutpath)
 
   nPhaseEncodeLines = -1;
   while(1){
-    mdh = ReadMiniHeader(fp,mdh);
+    mdh = ReadMiniHeader(fp,mdh,mdhversion);
     if(feof(fp)) break;
     if(mdh->Slice != 0) break;
-    if(nPhaseEncodeLines < mdh->LoopCounterLine+1) nPhaseEncodeLines = mdh->LoopCounterLine+1;
+    if(nPhaseEncodeLines < mdh->LoopCounterLine+1) 
+      nPhaseEncodeLines = mdh->LoopCounterLine+1;
     fseek(fp,2*mdh->Ncols*sizeof(float),SEEK_CUR);
   }
 
@@ -992,6 +1085,8 @@ float MDHreadTR(char *measoutpath)
   int nFrames, nSlices, nPCNs, nEchos, nPELs, chunksize;
   int BytesPerFrame, BytesPerFrameB;
   float TimeStamp0, TimeStamp1, TR;
+  int mdhversion;
+  mdhversion = MDHversion(measoutpath);
   
   chunksize = MDHbytesPerChunk(measoutpath);
   if(chunksize < 0) return(-1);
@@ -1012,14 +1107,14 @@ float MDHreadTR(char *measoutpath)
   fseek(fp,offset,SEEK_SET);
 
   // Read time stamp from first frame/rep
-  mdh = ReadMiniHeader(fp,mdh);
+  mdh = ReadMiniHeader(fp,mdh,mdhversion);
   TimeStamp0 = mdh->TimeStamp;
 
   // Jump to the beginning of the next frame/rep
   fseek(fp,BytesPerFrameB,SEEK_CUR);
 
   // Read time stamp from second frame/rep
-  mdh = ReadMiniHeader(fp,mdh);
+  mdh = ReadMiniHeader(fp,mdh,mdhversion);
   TimeStamp1 = mdh->TimeStamp;
 
   TR = (TimeStamp1-TimeStamp0)/1000.0;
@@ -1043,6 +1138,8 @@ int MDHfastestDim(char *measoutpath)
   FILE *fp;
   unsigned long offset;
   int nPCNs, FastestDim, chunksize;
+  int mdhversion;
+  mdhversion = MDHversion(measoutpath);
   
   chunksize = MDHbytesPerChunk(measoutpath);
   if(chunksize < 0) return(-1);
@@ -1056,11 +1153,11 @@ int MDHfastestDim(char *measoutpath)
   fseek(fp,nPCNs*chunksize,SEEK_CUR);
 
   // Read the first non-PCN header
-  mdh1 = ReadMiniHeader(fp,NULL);
+  mdh1 = ReadMiniHeader(fp,NULL,mdhversion);
   fseek(fp,2*mdh1->Ncols*sizeof(float),SEEK_CUR);
 
   // Read the second non-PCN header
-  mdh2 = ReadMiniHeader(fp,NULL);
+  mdh2 = ReadMiniHeader(fp,NULL,mdhversion);
 
   if(mdh1->Echo != mdh2->Echo)  FastestDim = 1; // Echo is fastest
   else                          FastestDim = 2; // Phase Encode is fastest
@@ -1084,6 +1181,8 @@ float MDHreadTE(char *measoutpath, int nthEcho)
   unsigned long offset;
   int nPCNs, nEchos, nPELs, chunksize, FastestDim;
   float TimeStamp0, TimeStamp1, TimeStamp1a, TimeStamp1b, TE;
+  int mdhversion;
+  mdhversion = MDHversion(measoutpath);
   
   chunksize = MDHbytesPerChunk(measoutpath);
   if(chunksize < 0) return(-1);
@@ -1101,7 +1200,7 @@ float MDHreadTE(char *measoutpath, int nthEcho)
   fseek(fp,offset,SEEK_SET);
 
   // Get time stamp of first PCN as that closest to RF pulse
-  mdh = ReadMiniHeader(fp,mdh);
+  mdh = ReadMiniHeader(fp,mdh,mdhversion);
   fseek(fp,2*mdh->Ncols*sizeof(float),SEEK_CUR);
   TimeStamp0 = mdh->TimeStamp;
   // Get past remaining PCNs
@@ -1114,7 +1213,7 @@ float MDHreadTE(char *measoutpath, int nthEcho)
 
     // Seek to the nthEcho
     fseek(fp,nthEcho*chunksize,SEEK_CUR);
-    mdh = ReadMiniHeader(fp,mdh);
+    mdh = ReadMiniHeader(fp,mdh,mdhversion);
     TimeStamp1 = mdh->TimeStamp;
 
   }
@@ -1124,13 +1223,13 @@ float MDHreadTE(char *measoutpath, int nthEcho)
 
     // Seek to first PEL for this echo
     fseek(fp,nthEcho*nPELs*chunksize,SEEK_CUR);
-    mdh = ReadMiniHeader(fp,mdh);
+    mdh = ReadMiniHeader(fp,mdh,mdhversion);
     fseek(fp,2*mdh->Ncols*sizeof(float),SEEK_CUR);
     TimeStamp1a = mdh->TimeStamp;
     
     // Seek to last PEL for this echo
     fseek(fp,(nPELs-2)*chunksize,SEEK_CUR);
-    mdh = ReadMiniHeader(fp,mdh);
+    mdh = ReadMiniHeader(fp,mdh,mdhversion);
     TimeStamp1b = mdh->TimeStamp;
     
     TimeStamp1 = (TimeStamp1a + TimeStamp1b)/2;
@@ -1238,6 +1337,44 @@ char *MDHparseMrProt(char *file, char *TagString)
 
   return(VariableValue);
 }
+/*--------------------------------------------------------------
+  MDHdump - dump the miniheader contents of the given meas.out
+  ---------------------------------------------------------------*/
+int MDHdump(char *measoutpath)
+{
+  FILE *fp;
+  unsigned long offset;
+  int n;
+  float TimeStamp0=0.0;
+  MDH *mdh=NULL;
+  int mdhversion;
+  mdhversion = MDHversion(measoutpath);
+
+  fp = fopen(measoutpath,"r");
+  fread(&offset,sizeof(long),1, fp);
+  printf("offset = %ld\n",offset);
+  fseek(fp,offset,SEEK_SET);
+
+  n = 1;
+  while(!feof(fp)){
+    mdh = ReadMiniHeader(fp,mdh,mdhversion);
+    if(n==1) TimeStamp0 = mdh->TimeStamp;
+    mdh->TimeStamp -= TimeStamp0;
+    if(feof(fp)) break;
+    printf("n = %d ---------------------------------\n",n);
+    PrintMiniHeader(stdout,mdh);
+    fseek(fp,2*mdh->Ncols*sizeof(float),SEEK_CUR);
+    //fread(adc,sizeof(float), 2*mdh->Ncols, fp);
+    n++;
+  }
+
+  fclose(fp);
+
+  printf("n = %d\n",n);
+  return(n);
+}
+
+
 /*----------------------------------------------------------------
   AssignFakeDCs() - assigns direction cosines that are orthogonal.
   The z DC is correct, but the x and y are bogus.
