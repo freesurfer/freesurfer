@@ -11234,6 +11234,13 @@ MRISrigidBodyAlignGlobal(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
     {
       for (beta = -degrees ; beta <= degrees ; beta += delta)
       {
+        if (Gdiag & DIAG_SHOW)
+          fprintf(stderr, "\r(%+2.2f, %+2.2f, %+2.2f), "
+                  "min @ (%2.2f, %2.2f, %2.2f) = %2.1f   ",
+                  (float)DEGREES(alpha), (float)DEGREES(beta), (float)
+                  DEGREES(-degrees), (float)DEGREES(mina), 
+                  (float)DEGREES(minb), (float)DEGREES(ming),(float)min_sse);
+
         for (gamma = -degrees ; gamma <= degrees ; gamma += delta)
         {
           MRISsaveVertexPositions(mris, TMP_VERTICES) ;
@@ -11256,14 +11263,14 @@ MRISrigidBodyAlignGlobal(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
               fprintf(stderr, " *** ") ;
 #endif
           }
+#if 0
           if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
             fprintf(stderr, "\r(%+2.2f, %+2.2f, %+2.2f), "
                     "min @ (%2.2f, %2.2f, %2.2f) = %2.1f   ",
                     (float)DEGREES(alpha), (float)DEGREES(beta), (float)
                     DEGREES(gamma), (float)DEGREES(mina), 
                     (float)DEGREES(minb), (float)DEGREES(ming),(float)min_sse);
-
-          MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
+#endif
         }
       }
     }
