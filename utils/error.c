@@ -135,20 +135,23 @@ ErrorPrintf(int ecode, char *fmt, ...)
   Gerror = ecode ;
   va_start(args, fmt) ;
   (*error_vfprintf)(stderr, fmt, args) ;
-  (*error_vfprintf)(stderr, "\n", NULL) ;
+  fprintf(stderr, "\n") ;
+  va_end(args);
   if (errno)
     perror(NULL) ;
   if (hipserrno)
     perr(ecode, "Hips error:") ;
 
+
+  va_start(args, fmt) ;
   fp = fopen(ERROR_FNAME, "a") ;
   if (fp)
   {
     (*error_vfprintf)(fp, fmt, args) ;
-    (*error_vfprintf)(fp, "\n", NULL) ;
+    fprintf(fp, "\n") ;
     fclose(fp) ;     /* close file to flush changes */
   }
-  
+  va_end(args);
   return(ecode) ;
 }
 /*-----------------------------------------------------
