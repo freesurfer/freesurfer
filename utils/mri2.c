@@ -1,7 +1,7 @@
 /*-------------------------------------------------------------------
   Name: mri2.c
   Author: Douglas N. Greve
-  $Id: mri2.c,v 1.3 2002/02/17 23:43:01 greve Exp $
+  $Id: mri2.c,v 1.4 2002/02/18 19:49:45 greve Exp $
   Purpose: more routines for loading, saving, and operating on MRI 
   structures.
   -------------------------------------------------------------------*/
@@ -459,7 +459,7 @@ MRI *mri_load_wfile(char *wfile)
   ------------------------------------------------------------*/
 size_t mri_sizeof(MRI *vol)
 {
-  size_t bytes;
+  size_t bytes = 0;
 
   switch (vol->type){
   case MRI_UCHAR:
