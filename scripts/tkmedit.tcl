@@ -1,6 +1,6 @@
 #! /usr/bin/tixwish
 
-# $Id: tkmedit.tcl,v 1.74 2004/01/22 21:20:06 kteich Exp $
+# $Id: tkmedit.tcl,v 1.75 2004/04/29 21:53:59 kteich Exp $
 
 
 source $env(FREESURFER_HOME)/lib/tcl/tkm_common.tcl
@@ -687,9 +687,17 @@ proc SendUseRealRAS { } {
 
 proc UpdateVolumeValueMinMax { iVolume iMin iMax } {
     global gVolume
+    global gInterface
 
     set gVolume($iVolume,minValue) $iMin
     set gVolume($iVolume,maxValue) $iMax
+
+    # Change slider ranges. (This will fail silently if the dlog is
+    # not open.)
+    catch { $gInterface(colorScaleDlog,minValueSlider,$iVolume) \
+			 config -from $iMin }
+    catch { $gInterface(colorScaleDlog,maxValueSlider,$iVolume) \
+			 config -to $iMax }
 }
 
 # =============================================================== DIALOG BOXES
@@ -2126,7 +2134,7 @@ proc DoEditFloodSelectParamsDlog { } {
 
 
 proc DoVolumeColorScaleInfoDlog { } {
-
+    global gInterface
     global gDialog
     global gVolume
 
@@ -2162,7 +2170,18 @@ proc DoVolumeColorScaleInfoDlog { } {
 		[list {"Aux Max"} gVolume(1,colorScale,max) \
 		     $gVolume(1,minValue) $gVolume(1,maxValue) \
 		     100 "SendVolumeMinMax" 1 ] ]
-	
+
+	# Save these slider var names so we can update them if the
+	# values change.
+	set gInterface(colorScaleDlog,brightnessSlider,0) $fwSliders.sw0
+	set gInterface(colorScaleDlog,contrastSlider,0)   $fwSliders.sw1
+	set gInterface(colorScaleDlog,minValueSlider,0)   $fwSliders.sw2
+	set gInterface(colorScaleDlog,maxValueSlider,0)   $fwSliders.sw3
+	set gInterface(colorScaleDlog,brightnessSlider,1) $fwSliders.sw4
+	set gInterface(colorScaleDlog,contrastSlider,1)   $fwSliders.sw5
+	set gInterface(colorScaleDlog,minValueSlider,1)   $fwSliders.sw6
+	set gInterface(colorScaleDlog,maxValueSlider,1)   $fwSliders.sw7
+
 	# buttons
 	tkm_MakeCloseButton $fwButtons $wwDialog
 	
