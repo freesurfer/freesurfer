@@ -1,9 +1,9 @@
 #!/bin/csh -f
 # acfseg-sess
 #
-# $Id: acfseg-sess,v 1.1 2004/10/30 17:37:56 greve Exp $
+# $Id: acfseg-sess,v 1.2 2004/11/10 23:48:57 greve Exp $
 
-set VERSION = '$Id: acfseg-sess,v 1.1 2004/10/30 17:37:56 greve Exp $';
+set VERSION = '$Id: acfseg-sess,v 1.2 2004/11/10 23:48:57 greve Exp $';
 
 set cmdargs = ($argv);
 
@@ -14,6 +14,8 @@ set maskstem  = brain;
 set nbins     = 10;
 set RunListFile = ();
 set acfsegstem = acfseg
+set fmt       = ();
+set fmtext    = ();
 set monly     = 0;
 set nolog     = 0;
 set PrintHelp = 0;
@@ -99,23 +101,24 @@ foreach sess ($SessList)
 #--------------------------#
 tee -a $MLF > /dev/null <<EOF
 tic;
-funcstem   = '$funcpath';
-maskstem   = '$maskpath';
-acfsegstem = '$acfsegpath';
+funcstem   = '$funcpath$fmtext';
+maskstem   = '$maskpath$fmtext';
+acfsegstem = '$acfsegpath$fmtext';
 nbins = $nbins;
 monly = $monly;
 
 %------- Load the mask -------------%
 if(~isempty(maskstem))
-  mask = fast_ldbslice(maskstem);
+  %mask = fast_ldbslice(maskstem);
+  mask = MRIread(maskstem);
   if(isempty(mask))
     fprintf('ERROR: loading %s\n',maskstem);
     return;
   end
-  indmask = find(mask);
-  indmaskout = find(~mask);
+  indmask = find(mask.vol);
+  indmaskout = find(~mask.vol);
 else
-  mask = [];
+  mask.vol = [];
   indmask = [1:nv];  
   indmaskout = [];
 end
@@ -123,18 +126,18 @@ nmask = length(indmask);
 
 % ------- Load the functional -------- %
 fprintf('Loading the functional t=%g\n',toc);
-[y mri] = fast_ldbslice(funcstem);
+%[y mri] = fast_ldbslice(funcstem);
+y = MRIread(funcstem);
 if(isempty(y)) quit; end
-ymn = mean(y,4);
+ymn = mean(y.vol,4);
 volsz = size(ymn);
-
-%clear y;
 
 % ------- Get the bins of the intensity ----------
 fprintf('Computing bins t=%g\n',toc);
 [hbin xbin] = hist(ymn(indmask),nbins);
 dxbin = xbin(2)-xbin(1);
-binmap = zeros(size(ymn));
+binmap = y;
+binmap.vol = zeros(size(ymn));
 nperbin = zeros(nbins,1);
 for nthbin = 1:nbins
   yminbin = xbin(nthbin)-dxbin/2;
@@ -143,13 +146,14 @@ for nthbin = 1:nbins
   if(nthbin == nbins) ymaxbin = +inf; end
   indbin = find(yminbin < ymn(indmask) & ymn(indmask) < ymaxbin);
   nperbin(nthbin) = length(indbin);
-  binmap(indmask(indbin)) = nthbin;
+  binmap.vol(indmask(indbin)) = nthbin;
   fprintf('bin %2d  %3d  %8.3f %8.3f\n',nthbin,nperbin(nthbin),yminbin,ymaxbin);
 end
 
-%yak2('init',vol2mos(ymn),'-A',vol2mos(binmap),'-pmin',1,'-pmax',nbins);
+%yak2('init',vol2mos(ymn),'-A',vol2mos(binmap.vol),'-pmin',1,'-pmax',nbins);
 
-fast_svbslice(binmap,acfsegstem,[],'bshort',mri);
+%fast_svbslice(binmap,acfsegstem,[],'bshort',mri);
+MRIwrite(binmap,acfsegstem);
 if(~monly) clear all; end
 
 
@@ -208,6 +212,11 @@ while( $#argv != 0 )
       set maskstem = $argv[1]; shift;
       breaksw
 
+    case "-fmt":
+      if ( $#argv == 0) goto arg1err;
+      set fmt = $argv[1]; shift;
+      breaksw
+
     case "-monly":
       if ( $#argv == 0) goto arg1err;
       set MLF = $argv[1]; shift;
@@ -260,6 +269,32 @@ goto parse_args_return;
 
 ############--------------##################
 check_params:
+
+  if($#fmt == 0) then
+    echo "Autodetecting format"
+    if(-e $InStem.mgh) then
+      set fmt = "mgh";
+    else if(-e $InStem.mgz) then
+      set fmt = "mgz";
+    else if(-e $InStem.bhdr) then
+      set fmt = "bhdr";
+    else
+      echo "ERROR: cannot find $Instem"
+      exit 1;
+    endif
+  endif
+
+  echo "Format is $fmt"
+  if("$fmt" == "bvolume") then
+    set fmtext = ();
+  else if("$fmt" == "mgh") then
+    set fmtext = ".mgh";
+  else if("$fmt" == "mgz") then
+    set fmtext = ".mgz";
+  else
+    echo "ERROR: format $fmt unrecognized"
+    exit 1;
+  endif
 
 goto check_params_return;
 ############--------------##################
