@@ -126,6 +126,7 @@ typedef struct
   Transform         *inverse_linear_transform ;
   int               free_transform ;
   float        a, b, c ;          /* ellipsoid parameters */
+  char         fname[100] ;       /* file it was originally loaded from */
 } MRI_SURFACE, MRIS ;
 
 
@@ -197,11 +198,13 @@ typedef struct
 #define PROJECT_ELLIPSOID    1
 #define ELLIPSOID_PROJECTION PROJECT_ELLIPSOID
 
-#define TOL                  1e-5  /* minimum error tolerance for unfolding */
+#define TOL                  1e-6  /* minimum error tolerance for unfolding */
 
 MRI_SURFACE  *MRISread(char *fname) ;
 int          MRISwrite(MRI_SURFACE *mris, char *fname) ;
 int          MRISwriteCurvature(MRI_SURFACE *mris, char *fname) ;
+int          MRISwriteAreaError(MRI_SURFACE *mris, char *fname) ;
+int          MRISwriteAngleError(MRI_SURFACE *mris, char *fname) ;
 MRI_SURFACE  *MRISalloc(int nvertices, int nfaces) ;
 int          MRISfree(MRI_SURFACE **pmris) ;
 MRI_SURFACE  *MRISprojectOntoEllipsoid(MRI_SURFACE *mris_src, 
