@@ -386,18 +386,24 @@ StrReplace(char *src, char *dst, char csrc, int cdst)
         nothing.
 ------------------------------------------------------------------------*/
 char *
-FileName(char *full_name)
+FileName(char *full_name, char *fname)
 {
-  char *fname, *number, *at ;
+  char *slash, *number, *at ;
 
-  fname = strrchr(full_name, '/') ;
-  if (!fname)
+  slash = strrchr(full_name, '/') ;
+
+  if (fname)
+  {
+    if (!slash)
+      strcpy(fname, full_name) ;
+    else
+      strcpy(fname, slash+1) ;
+  }
+  else   /* process it in place */
+  {
     fname = full_name ;
-  else
-    fname++ ;   /* skip '/' */
-
-  if (*fname == '@')
-    fname++ ;
+    *slash = 0 ;
+  }
 
   number = strrchr(fname, '#') ;
   if (number)
@@ -427,6 +433,38 @@ FileExists(char *fname)
     fclose(fp) ;
 
   return(fp != NULL) ;
+}
+/*------------------------------------------------------------------------
+       Parameters:
+
+      Description:
+         extract just the file name (no path) from a string.
+
+    Return Values:
+        nothing.
+------------------------------------------------------------------------*/
+char *
+FileNameNoExtensions(char *full_name)
+{
+  char *fname, *number, *at ;
+
+  fname = strrchr(full_name, '/') ;
+  if (!fname)
+    fname = full_name ;
+  else
+    fname++ ;   /* skip '/' */
+
+  if (*fname == '@')
+    fname++ ;
+
+  number = strrchr(fname, '#') ;
+  if (number)
+    *number = 0 ;
+  at = strrchr(fname, '@') ;
+  if (at)
+    *at = 0 ;
+
+  return(fname) ;
 }
 /*------------------------------------------------------------------------
        Parameters:
@@ -515,11 +553,11 @@ FileNumberOfEntries(char *fname)
     switch (type)
     {
     case LIST_FILE:
-      fp = fopen(FileName(fname), "rb") ;
+      fp = fopen(FileNameNoExtensions(fname), "rb") ;
       if (!fp)
         ErrorReturn(-1, (ERROR_NO_FILE, 
                          "FileNumberOfEntries: could not open %s",
-                         FileName(fname))) ;
+                         FileNameNoExtensions(fname))) ;
       cp = fgetl(line, 199, fp) ;
       nentries = 0 ;
       while (cp)
