@@ -66,7 +66,7 @@ int main(int argc, char *argv[])
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_make_register.c,v 1.6 2003/04/15 21:11:09 kteich Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_make_register.c,v 1.7 2003/09/05 04:45:34 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

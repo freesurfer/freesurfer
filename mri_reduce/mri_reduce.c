@@ -25,7 +25,7 @@ main(int argc, char *argv[])
   char   *in_fname, *out_fname ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_reduce.c,v 1.3 2003/04/15 21:25:21 kteich Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_reduce.c,v 1.4 2003/09/05 04:45:37 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

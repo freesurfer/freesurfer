@@ -2,12 +2,12 @@
 // mri_info.c
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2003/08/04 15:51:43 $
-// Revision       : $Revision: 1.23 $
+// Revision Author: $Author: kteich $
+// Revision Date  : $Date: 2003/09/05 04:45:34 $
+// Revision       : $Revision: 1.24 $
 //
 ////////////////////////////////////////////////////////////////////
-char *MRI_INFO_VERSION = "$Revision: 1.23 $";
+char *MRI_INFO_VERSION = "$Revision: 1.24 $";
 #include <stdio.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -84,7 +84,7 @@ int main(int argc, char *argv[])
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_info.c,v 1.23 2003/08/04 15:51:43 tosa Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_info.c,v 1.24 2003/09/05 04:45:34 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

@@ -43,7 +43,7 @@ main(int argc, char *argv[])
   MRI_SP       *mrisp ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_svm_classify.c,v 1.2 2003/04/17 19:02:23 kteich Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_svm_classify.c,v 1.3 2003/09/05 04:45:44 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

@@ -14,7 +14,7 @@
 #include "mrinorm.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mri_synthesize.c,v 1.7 2003/05/08 20:54:59 fischl Exp $";
+static char vcid[] = "$Id: mri_synthesize.c,v 1.8 2003/09/05 04:45:38 kteich Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -63,7 +63,7 @@ main(int argc, char *argv[])
   float       TR, TE, alpha ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_synthesize.c,v 1.7 2003/05/08 20:54:59 fischl Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_synthesize.c,v 1.8 2003/09/05 04:45:38 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

@@ -25,7 +25,7 @@ main(int argc, char *argv[])
   int    label, nvox ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_copy_values.c,v 1.2 2003/04/15 20:45:52 kteich Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_copy_values.c,v 1.3 2003/09/05 04:45:32 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

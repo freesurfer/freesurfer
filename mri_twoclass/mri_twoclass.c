@@ -21,7 +21,7 @@
 #include "mri_conform.h"
 #include "vlabels.h"
 
-static char vcid[] = "$Id: mri_twoclass.c,v 1.11 2003/07/08 19:28:37 fischl Exp $";
+static char vcid[] = "$Id: mri_twoclass.c,v 1.12 2003/09/05 04:45:39 kteich Exp $";
 
 
 /*-------------------------------- STRUCTURES ----------------------------*/
@@ -126,7 +126,7 @@ main(int argc, char *argv[])
   VLI          *vli1 = NULL, *vli2 = NULL ;
 
 	/* rkt: check for and handle version tag */
-	nargs = handle_version_option (argc, argv, "$Id: mri_twoclass.c,v 1.11 2003/07/08 19:28:37 fischl Exp $");
+	nargs = handle_version_option (argc, argv, "$Id: mri_twoclass.c,v 1.12 2003/09/05 04:45:39 kteich Exp $", "$Name:  $");
 	if (nargs && argc - nargs == 1)
 		exit (0);
 	argc -= nargs;

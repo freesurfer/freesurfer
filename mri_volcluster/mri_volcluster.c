@@ -63,7 +63,7 @@ static void dump_options(FILE *fp);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_volcluster.c,v 1.7 2003/04/16 18:58:33 kteich Exp $";
+static char vcid[] = "$Id: mri_volcluster.c,v 1.8 2003/09/05 04:45:39 kteich Exp $";
 char *Progname = NULL;
 
 static char tmpstr[2000];
@@ -136,7 +136,7 @@ int main(int argc, char **argv)
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_volcluster.c,v 1.7 2003/04/16 18:58:33 kteich Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_volcluster.c,v 1.8 2003/09/05 04:45:39 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -691,192 +691,191 @@ static void print_help(void)
   print_usage() ;
   printf("\n");
 
-  printf("
+  printf(
 
-DESCRIPTION:
-
-This program will find clusters in a volume. A cluster is a set of
-contiguous voxels which meet a threshold criteria. The set may also
-have to reach a certain minimum number of voxels to be considered a
-cluster. The results can be saved in four ways: (1) a text summary
-file, (2) a new volume which is same as the input volume but with all
-the voxels that do not belong to a cluster set to zero, (3) a volume
-with each voxel's value equal to the cluster number in the summary
-file to which the voxel belongs, and (4) one cluster can be saved as a
-label file. The search space within the volume can be restricted to be
-within a mask. Two voxels are considered contiguous if they share a 
-common row, column, or slice (except for --allowdiag).
-
-COMMAND-LINE ARGUMENTS:
-
-  --in input-volid : path/name of the input volume to be clustered.
-
-  --in_type typename : name of the file format type of the input
-    volume. See FILE TYPES below.
-
-  --frame n : perform the cluster analysis on the nth frame. The first
-    frame corresponds to n=0.
-
-  --reg registration-file : registration file created by either tkregister
-    or tkmedit. Note: the subject listed in the registration file must 
-    have an entry under $SUBJECTS_DIR.
-
-  --thmin minthresh : voxel values must exceed this amount to be considered
-    as a candidate for a cluster.
-
-  --thmax maxthresh : the value of a voxel must be less than this
-    amount to be considered as a candidate for a cluster. Default is
-    infinity.
-
-  --sign sign-name : the value of a voxel must be this sign to be considered
-    as a candidate for a cluster. pos = positive, neg = negative, abs = 
-    absolute (ie, ignore sign). Default is abs. When neg is used, the 
-    interpretation of minthreshold and maxthreshold are reversed.
-
-  --minsize volume : minimum volume (in mm^3) of contiguous voxels that
-    meet the threshold criteria needed to become a cluster. See also
-    --minsizevox.
-
-  --minsizevox number : minimum number of contiguous voxels that meet
-    the threshold criteria needed to become a cluster. See also --minsize.
-
-  --mindistance distance : minimum distance (in mm) that the peaks of two
-    clusters must be separated in order for them to be considered two
-    distinct clusters. If two clusters are closer than this amount, the
-    cluster with the lower peak is eliminated.
-
-  --allowdiag : (no argument) allow two voxels that share a corner to 
-    be considered contiguous.
-
-  --mask mask-volid: path/name of a mask used to restrict the region
-    over which clusters will be searched. For example, this could be used
-    to restrict the search space to only the brain (ie, exclude eyeballs).
-    The mask must have the same dimension as the input volume.
-
-  --mask_type typename : name of the file format type of the mask
-    volume. See FILE TYPES below.
-
-  --maskframe n : use the nth frame of the mask volume as the mask,
-    where n = 0 indicates the first frame. Default is 0.
-
-  --maskthresh maskthresh: use only those voxels in the mask whose
-    value exceeds the given threshold (see also --masksign and
-    --maskinvert).
-
-  --masksign sign-name : threshold the mask based on the sign of the
-    value at each mask voxel: pos = positive, neg = negative, abs = 
-    absolute (ie, ignore sign). Default is abs. When neg is used, the 
-    a mask voxel value must be less than -maskthresh.
-
-  --maskinverse : after determining which voxels are in the mask based
-    on the threshold and sign, take only voxels that are outside of the
-    mask.
-
-  --outmask outmask-volid: path/name of the final binary mask after
-    considering thresholding, sign, and inversion. This is mainly useful
-    for debuggin.
-
-  --outmask_type typename : name of the file format type of the outmask
-    volume. See FILE TYPES below.
-
-  --sumfile sumfilename : save a summary of the results in ASCII into 
-    sumfilename. See SUMMARY FILE below.
-
-  --out out-volid: path/name of the output volume after
-    clustering. All voxels that were not part of a cluster have their
-    values set to zero. Otherwise, their values do not change.
-
-  --out_type typename : name of the file format type of the output 
-    volume. See FILE TYPES below.
-
-  --ocn ocn-volid: path/name of the output volume after clustering
-    where the value at each voxel is the cluster number (as found in the
-    summary file). Voxels that did not belong to a cluster have their
-    values set to zero.
-
-  --ocn_type typename : name of the file format type of the output 
-    cluster number volume. See FILE TYPES below.
-
-  --label label-file : save the nth cluster (see -nlabelcluster) as a
-    label file in the subject's anatomical space. Note: make sure that the
-    label file includes a forward slash (/) or the label will be saved
-    into the subjects anatomical direcotry. For example: ./mylabel.label.
-    Requires --nlabelcluster.
-
-  --nlabelcluster n : save the nth cluster (see -label) as a label file.
-
-  --labelbase base : save each cluster in its own label file. The name
-    of the file will be base-NNNN.label, where NNNN is the four digit,
-    zero-padded cluster number. All clusters found will be saved.
-
-SUMMARY FILE
-
-The summary file produced by --sumfile is in ASCII text. The summary
-file will have a short header indicating the conditions underwhich the
-clustering was performed followed by rows of data with 7 columns. Each
-row reprsents a different cluster. Each column has the following
-interpretation: (1) cluster number, (2) number of voxels in the
-cluster, (3) cluster volume in mm^3, (4-6) Talairach X, Y, and Z (mm),
-(7) maximum value inside the cluster. The Talairach coordinates are
-the 'true' coordinates (not MNI). Part of a summary file is 
-shown below as an example:
-
------------------------------------------------------------------------
-Cluster Growing Summary (mri_volcluster)
-Input Volume:      grp-subj-p1p2vlor/bold/sxa-h20/tal-ffx-rfx/novvfix/sig
-Frame Number:      0
-Minimum Threshold: 2
-Maximum Threshold: inifinity
-Threshold Sign:    abs
-Distance Threshold: 10 (mm)
-Size Threshold:    640 mm^3
-Size Threshold:    10 voxels
-Voxel Size:        64 mm^3
-Registration:      grp-subj-p1p2vlor/bold/sxa-h20/tal-ffx-rfx/register.dat
-Mask Vol:          talbrain/mask
-Mask Thresh:       0.500000
-Mask Sign:         pos
-Mask Invert:       0
-AllowDiag:         1
-NClusters          26
-
-Cluster Size(n) Size(mm^3)  TalX   TalY    TalZ     Max
-  1      348      22272.0   59.40 -66.72  -13.48   5.66192
-  2       45       2880.0  -39.60  26.79   -8.07   5.45487
-  3       27       1728.0   55.44  16.60   21.28   4.95684
------------------------------------------------------------------------
-
-
-FILE TYPES/FORMATS:
-
-mri_volcluster can read/write any file format that can be read/written
-by mri_convert. The most relevent ones are: bshort, bfloat, analyze,
-analyze4d. When specifying bshort/bfloat, the volume id is the
-stem. Ie, if the volume is f_000.bshort, f_001.bshort, ..., then the
-volume id is 'f' (no quotes).
-
-KNOWN BUGS:
-
-When specifying a label file, make sure that the label file includes a
-forward slash (/) or the label will be saved into the subjects
-anatomical direcotry. For example: ./mylabel.label.
-
-BUG REPORTS:
-
-Send bug reports to analysis-bugs@nmr.mgh.harvard.edu. Make sure to
-include the version number (--version) , the full command-line used,
-the type of computer operating system, anything printed to the screen,
-a description of what you think is wrong and why, and anything else
-that may be helpful. Users at the NMR Center should also include the
-directory that they ran it from. NOTE: bug reports that do not have
-sufficient information to diagnose the problem will probably be either
-ignored or placed at the bottom of the list. BE CLEAR!
-
-AUTHOR:
-
-Douglas N. Greve, Ph.D; NMR Center, MGH, greve@nmr.mgh.harvard.edu
-
-") ;
+"DESCRIPTION:\n"
+"\n"
+"This program will find clusters in a volume. A cluster is a set of\n"
+"contiguous voxels which meet a threshold criteria. The set may also\n"
+"have to reach a certain minimum number of voxels to be considered a\n"
+"cluster. The results can be saved in four ways: (1) a text summary\n"
+"file, (2) a new volume which is same as the input volume but with all\n"
+"the voxels that do not belong to a cluster set to zero, (3) a volume\n"
+"with each voxel's value equal to the cluster number in the summary\n"
+"file to which the voxel belongs, and (4) one cluster can be saved as a\n"
+"label file. The search space within the volume can be restricted to be\n"
+"within a mask. Two voxels are considered contiguous if they share a \n"
+"common row, column, or slice (except for --allowdiag).\n"
+"\n"
+"COMMAND-LINE ARGUMENTS:\n"
+"\n"
+"  --in input-volid : path/name of the input volume to be clustered.\n"
+"\n"
+"  --in_type typename : name of the file format type of the input\n"
+"    volume. See FILE TYPES below.\n"
+"\n"
+"  --frame n : perform the cluster analysis on the nth frame. The first\n"
+"    frame corresponds to n=0.\n"
+"\n"
+"  --reg registration-file : registration file created by either tkregister\n"
+"    or tkmedit. Note: the subject listed in the registration file must \n"
+"    have an entry under $SUBJECTS_DIR.\n"
+"\n"
+"  --thmin minthresh : voxel values must exceed this amount to be considered\n"
+"    as a candidate for a cluster.\n"
+"\n"
+"  --thmax maxthresh : the value of a voxel must be less than this\n"
+"    amount to be considered as a candidate for a cluster. Default is\n"
+"    infinity.\n"
+"\n"
+"  --sign sign-name : the value of a voxel must be this sign to be considered\n"
+"    as a candidate for a cluster. pos = positive, neg = negative, abs = \n"
+"    absolute (ie, ignore sign). Default is abs. When neg is used, the \n"
+"    interpretation of minthreshold and maxthreshold are reversed.\n"
+"\n"
+"  --minsize volume : minimum volume (in mm^3) of contiguous voxels that\n"
+"    meet the threshold criteria needed to become a cluster. See also\n"
+"    --minsizevox.\n"
+"\n"
+"  --minsizevox number : minimum number of contiguous voxels that meet\n"
+"    the threshold criteria needed to become a cluster. See also --minsize.\n"
+"\n"
+"  --mindistance distance : minimum distance (in mm) that the peaks of two\n"
+"    clusters must be separated in order for them to be considered two\n"
+"    distinct clusters. If two clusters are closer than this amount, the\n"
+"    cluster with the lower peak is eliminated.\n"
+"\n"
+"  --allowdiag : (no argument) allow two voxels that share a corner to \n"
+"    be considered contiguous.\n"
+"\n"
+"  --mask mask-volid: path/name of a mask used to restrict the region\n"
+"    over which clusters will be searched. For example, this could be used\n"
+"    to restrict the search space to only the brain (ie, exclude eyeballs).\n"
+"    The mask must have the same dimension as the input volume.\n"
+"\n"
+"  --mask_type typename : name of the file format type of the mask\n"
+"    volume. See FILE TYPES below.\n"
+"\n"
+"  --maskframe n : use the nth frame of the mask volume as the mask,\n"
+"    where n = 0 indicates the first frame. Default is 0.\n"
+"\n"
+"  --maskthresh maskthresh: use only those voxels in the mask whose\n"
+"    value exceeds the given threshold (see also --masksign and\n"
+"    --maskinvert).\n"
+"\n"
+"  --masksign sign-name : threshold the mask based on the sign of the\n"
+"    value at each mask voxel: pos = positive, neg = negative, abs = \n"
+"    absolute (ie, ignore sign). Default is abs. When neg is used, the \n"
+"    a mask voxel value must be less than -maskthresh.\n"
+"\n"
+"  --maskinverse : after determining which voxels are in the mask based\n"
+"    on the threshold and sign, take only voxels that are outside of the\n"
+"    mask.\n"
+"\n"
+"  --outmask outmask-volid: path/name of the final binary mask after\n"
+"    considering thresholding, sign, and inversion. This is mainly useful\n"
+"    for debuggin.\n"
+"\n"
+"  --outmask_type typename : name of the file format type of the outmask\n"
+"    volume. See FILE TYPES below.\n"
+"\n"
+"  --sumfile sumfilename : save a summary of the results in ASCII into \n"
+"    sumfilename. See SUMMARY FILE below.\n"
+"\n"
+"  --out out-volid: path/name of the output volume after\n"
+"    clustering. All voxels that were not part of a cluster have their\n"
+"    values set to zero. Otherwise, their values do not change.\n"
+"\n"
+"  --out_type typename : name of the file format type of the output \n"
+"    volume. See FILE TYPES below.\n"
+"\n"
+"  --ocn ocn-volid: path/name of the output volume after clustering\n"
+"    where the value at each voxel is the cluster number (as found in the\n"
+"    summary file). Voxels that did not belong to a cluster have their\n"
+"    values set to zero.\n"
+"\n"
+"  --ocn_type typename : name of the file format type of the output \n"
+"    cluster number volume. See FILE TYPES below.\n"
+"\n"
+"  --label label-file : save the nth cluster (see -nlabelcluster) as a\n"
+"    label file in the subject's anatomical space. Note: make sure that the\n"
+"    label file includes a forward slash (/) or the label will be saved\n"
+"    into the subjects anatomical direcotry. For example: ./mylabel.label.\n"
+"    Requires --nlabelcluster.\n"
+"\n"
+"  --nlabelcluster n : save the nth cluster (see -label) as a label file.\n"
+"\n"
+"  --labelbase base : save each cluster in its own label file. The name\n"
+"    of the file will be base-NNNN.label, where NNNN is the four digit,\n"
+"    zero-padded cluster number. All clusters found will be saved.\n"
+"\n"
+"SUMMARY FILE\n"
+"\n"
+"The summary file produced by --sumfile is in ASCII text. The summary\n"
+"file will have a short header indicating the conditions underwhich the\n"
+"clustering was performed followed by rows of data with 7 columns. Each\n"
+"row reprsents a different cluster. Each column has the following\n"
+"interpretation: (1) cluster number, (2) number of voxels in the\n"
+"cluster, (3) cluster volume in mm^3, (4-6) Talairach X, Y, and Z (mm),\n"
+"(7) maximum value inside the cluster. The Talairach coordinates are\n"
+"the 'true' coordinates (not MNI). Part of a summary file is \n"
+"shown below as an example:\n"
+"\n"
+"-----------------------------------------------------------------------\n"
+"Cluster Growing Summary (mri_volcluster)\n"
+"Input Volume:      grp-subj-p1p2vlor/bold/sxa-h20/tal-ffx-rfx/novvfix/sig\n"
+"Frame Number:      0\n"
+"Minimum Threshold: 2\n"
+"Maximum Threshold: inifinity\n"
+"Threshold Sign:    abs\n"
+"Distance Threshold: 10 (mm)\n"
+"Size Threshold:    640 mm^3\n"
+"Size Threshold:    10 voxels\n"
+"Voxel Size:        64 mm^3\n"
+"Registration:      grp-subj-p1p2vlor/bold/sxa-h20/tal-ffx-rfx/register.dat\n"
+"Mask Vol:          talbrain/mask\n"
+"Mask Thresh:       0.500000\n"
+"Mask Sign:         pos\n"
+"Mask Invert:       0\n"
+"AllowDiag:         1\n"
+"NClusters          26\n"
+"\n"
+"Cluster Size(n) Size(mm^3)  TalX   TalY    TalZ     Max\n"
+"  1      348      22272.0   59.40 -66.72  -13.48   5.66192\n"
+"  2       45       2880.0  -39.60  26.79   -8.07   5.45487\n"
+"  3       27       1728.0   55.44  16.60   21.28   4.95684\n"
+"-----------------------------------------------------------------------\n"
+"\n"
+"\n"
+"FILE TYPES/FORMATS:\n"
+"\n"
+"mri_volcluster can read/write any file format that can be read/written\n"
+"by mri_convert. The most relevent ones are: bshort, bfloat, analyze,\n"
+"analyze4d. When specifying bshort/bfloat, the volume id is the\n"
+"stem. Ie, if the volume is f_000.bshort, f_001.bshort, ..., then the\n"
+"volume id is 'f' (no quotes).\n"
+"\n"
+"KNOWN BUGS:\n"
+"\n"
+"When specifying a label file, make sure that the label file includes a\n"
+"forward slash (/) or the label will be saved into the subjects\n"
+"anatomical direcotry. For example: ./mylabel.label.\n"
+"\n"
+"BUG REPORTS:\n"
+"\n"
+"Send bug reports to analysis-bugs@nmr.mgh.harvard.edu. Make sure to\n"
+"include the version number (--version) , the full command-line used,\n"
+"the type of computer operating system, anything printed to the screen,\n"
+"a description of what you think is wrong and why, and anything else\n"
+"that may be helpful. Users at the NMR Center should also include the\n"
+"directory that they ran it from. NOTE: bug reports that do not have\n"
+"sufficient information to diagnose the problem will probably be either\n"
+"ignored or placed at the bottom of the list. BE CLEAR!\n"
+"\n"
+"AUTHOR:\n"
+"\n"
+"Douglas N. Greve, Ph.D; NMR Center, MGH, greve@nmr.mgh.harvard.edu\n"
+) ;
 
   exit(1) ;
 }

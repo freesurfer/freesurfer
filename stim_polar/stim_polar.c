@@ -492,7 +492,7 @@ int main(int argc, char** argv)
   }
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: stim_polar.c,v 1.5 2003/04/15 19:38:49 kteich Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: stim_polar.c,v 1.6 2003/09/05 04:45:47 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

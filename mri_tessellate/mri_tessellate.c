@@ -2,9 +2,9 @@
 // mri_tessellate.c
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2003/07/31 15:03:11 $
-// Revision       : $Revision: 1.16 $
+// Revision Author: $Author: kteich $
+// Revision Date  : $Date: 2003/09/05 04:45:38 $
+// Revision       : $Revision: 1.17 $
 //
 //
 // How it works.
@@ -39,7 +39,7 @@
 //
 //          MRIvoxelToSurfaceRAS()
 //
-char *MRI_TESSELLATE_VERSION = "$Revision: 1.16 $";
+char *MRI_TESSELLATE_VERSION = "$Revision: 1.17 $";
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -133,7 +133,7 @@ main(int argc, char *argv[])
   int  nargs ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_tessellate.c,v 1.16 2003/07/31 15:03:11 tosa Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_tessellate.c,v 1.17 2003/09/05 04:45:38 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

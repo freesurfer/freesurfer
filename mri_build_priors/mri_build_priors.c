@@ -32,7 +32,7 @@ main(int argc, char *argv[])
   MRI    *mri_src, *mri_target, *mri_wm, *mri_priors = NULL ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_build_priors.c,v 1.5 2003/04/15 17:42:27 kteich Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_build_priors.c,v 1.6 2003/09/05 04:45:32 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

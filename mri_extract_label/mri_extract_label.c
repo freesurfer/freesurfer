@@ -13,7 +13,7 @@
 #include "transform.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mri_extract_label.c,v 1.4 2003/07/01 15:19:19 tosa Exp $";
+static char vcid[] = "$Id: mri_extract_label.c,v 1.5 2003/09/05 04:45:33 kteich Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -40,7 +40,7 @@ main(int argc, char *argv[])
   MATRIX      *m ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_extract_label.c,v 1.4 2003/07/01 15:19:19 tosa Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_extract_label.c,v 1.5 2003/09/05 04:45:33 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

@@ -14,7 +14,7 @@
 #include "macros.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_find_flat_regions.c,v 1.1 2003/08/11 20:05:47 fischl Exp $";
+static char vcid[] = "$Id: mris_find_flat_regions.c,v 1.2 2003/09/05 04:45:41 kteich Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -36,7 +36,7 @@ main(int argc, char *argv[])
   VERTEX             *v ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_find_flat_regions.c,v 1.1 2003/08/11 20:05:47 fischl Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_find_flat_regions.c,v 1.2 2003/09/05 04:45:41 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

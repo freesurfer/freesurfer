@@ -21,7 +21,7 @@ int main ( int argc, char** argv ) {
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: test_window_env.c,v 1.3 2003/05/05 16:44:50 kteich Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: test_window_env.c,v 1.4 2003/09/05 04:45:48 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

@@ -13,7 +13,7 @@
 #include "proto.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mri_wmfilter.c,v 1.15 2003/08/05 19:19:17 kteich Exp $";
+static char vcid[] = "$Id: mri_wmfilter.c,v 1.16 2003/09/05 04:45:39 kteich Exp $";
 
 /*-------------------------------------------------------------------
                                 CONSTANTS
@@ -80,7 +80,7 @@ main(int argc,char *argv[])
   MRI   *mri_src, *mri_dst ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_wmfilter.c,v 1.15 2003/08/05 19:19:17 kteich Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_wmfilter.c,v 1.16 2003/09/05 04:45:39 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

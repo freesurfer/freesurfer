@@ -14,7 +14,7 @@
 #include "fio.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_convert.c,v 1.14 2003/04/17 18:16:52 kteich Exp $";
+static char vcid[] = "$Id: mris_convert.c,v 1.15 2003/09/05 04:45:40 kteich Exp $";
 
 
 /*-------------------------------- CONSTANTS -----------------------------*/
@@ -56,7 +56,7 @@ main(int argc, char *argv[])
   int          ac, nargs ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_convert.c,v 1.14 2003/04/17 18:16:52 kteich Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_convert.c,v 1.15 2003/09/05 04:45:40 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

@@ -6,7 +6,7 @@
   Purpose: averages the voxels within an ROI. The ROI
            can be constrained structurally (with a label file)
            and/or functionally (with a volumetric mask)
-  $Id: mri_vol2roi.c,v 1.14 2003/08/29 22:54:23 greve Exp $
+  $Id: mri_vol2roi.c,v 1.15 2003/09/05 04:45:39 kteich Exp $
 */
 
 #include <stdio.h>
@@ -53,7 +53,7 @@ int CountLabelHits(MRI *SrcVol, MATRIX *Qsrc, MATRIX *Fsrc,
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2roi.c,v 1.14 2003/08/29 22:54:23 greve Exp $";
+static char vcid[] = "$Id: mri_vol2roi.c,v 1.15 2003/09/05 04:45:39 kteich Exp $";
 char *Progname = NULL;
 
 char *roifile    = NULL;
@@ -125,7 +125,7 @@ int main(int argc, char **argv)
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_vol2roi.c,v 1.14 2003/08/29 22:54:23 greve Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_vol2roi.c,v 1.15 2003/09/05 04:45:39 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -615,134 +615,133 @@ static void print_help(void)
 {
   print_usage() ;
   printf("\n%s\n\n", vcid) ;
-  printf("
+  printf(
 
-This program will extract a region-of-interest (ROI) from a
-volume. The ROI can be defined in one of three ways: (1) as set of
-voxels in a mask volume the same size as the source volume, (2) as a
-set of label points (defined in a label file), or (3) the intersection
-of (1) and (2).
-
-The result is a text file (argument of --roiavgtxt) with the following 
-rows of information. (1) The number of source voxels in the label (0
-if no label is used). (2) The number of voxels in the final ROI. (3)
-the average of the ROI voxels in the source volume. If the source
-volume has multiple frames, then there will be a row for each frame.
-
-In addition, a final ROI mask volume can be saved. This volume is
-the same size as the source volume (one frame only). The value of
-a voxel is 1 if it was in the final ROI or 0 if it was out.
-
---srcvol srcvolstem
-
-Specify the bfloat/bshort stem of the volume from which the ROI is to
-be extracted.
-
---srcreg regfile
-
-Registration between src volume and subject's anatomical (ie, a
-register.dat). This is only needed when using a label.
-
---label labelfile
-
-Path to FreeSurfer label file. Make sure to give full path. The label
-file has, among other things, xyz coorindates of the points in the
-label. Each point has an extent of 1mm^3. These xyz coorindates have
-to be mapped into the source volume. This is done with the
-registration matrix (--srcreg) and (possibly) with the label
-registration (see --labelreg and --labeltal).
-
---labelreg labelregfile
-
-File with matrix that maps label xyz coordinates to subject's
-anatomical coordinates. Note: this matrix should map to the subject's
-anatomical coordinates in 'tkregister' space. IMPORTANT: passing the
-talairach.xfm file with this option can result in a MISINTERPRETATION
-of the transform.
-
---labeltal
-
-The label is in talairach space. In this case, the talairach.xfm file
-for the subject in the register.dat (--srcreg) is loaded. This matrix
-is modified to make it appropriate for use with the register.dat (ie,
-it will be interpreted correctly). See also --talxfm and --labelreg.
-
---talxfm xfmfile
-
-Use xfmfile in subject/mri/transforms for talairach transfrom
-instead of talairach.xfm. This forces --labeltal.
-
---labelfillthresh thresh
-
-Each label point represents 1mm^3, so it is possible that a source
-voxel is not entirely filled by label points. This option allows the
-user to choose the extent to which a voxel must be filled for it to be
-considered part of the label. thresh is a number between 0 and 1 and
-represents the fraction of the volume of a voxel that must be filled
-in order for that voxel to be part of the label. Setting thresh=0
-will force all voxels to be in the label regardless of what's in
-the label file. Default is a small value just above 0.
-
---mskvol maskstem
-
-Stem of the bshort/bfloat mask volume. This volume should be the
-same dimension as the source volume (the number of frames can differ). 
-The mask volume will be thresholded to determine which voxels will
-be included in the ROI. See --mskthresh, --msktail, --mskframe, and
---mskinvert for thresholding criteria.
-
---mskthresh mskthresh 
-
-Voxels value magnitude must be above mskthresh to be included. Default
-is 0.5.
-
---msktail tail
-
-Tail is the sign that a voxel must have in order to be included.
-Tail can be abs, pos, or neg. Abs means that the sign should be
-ignored (the default), pos means that the sign must be positive,
-neg means that the sign must be negative.
-
---mskframe nthframe
-
-Use the nthframe in the mask volume to derive the mask. nthframe is
-0-based (ie, --mskframe 5 indicates the 6th frame). Default is 0
-(ie, the first frame).
-
---mskinvert 
-
-After selecting voxels based on the threshold criteria (ie, mskthresh,
-msktail, mskframe), invert the mask (ie, the non-selected voxels
-become selected and vise versa).
-
---roiavgtxt fname
-
-Save output in text format. See introduction.
-
---roiavg stem
-
-Save output as a bfloat 'volume'. This flag is actually necessary
-even if you are not going to use this output.
-
---finalmskvol finalmaskstem
-
-Save the final set of voxels selected for the ROI in this volume. See
-introduction for more info.
-
-BUGS
-
-The matrix used with --labelreg must map to the subject's
-anatomical coordinates in 'tkregister' space. IMPORTANT: passing the
-talairach.xfm file with this option can result in a MISINTERPRETATION
-of the transform.
-
-The source, mask, and finalmask volumes must be in bshort/bfloat
-format.
-
-A roiavgstem must be specified even if you do not want this format.
-The roiavgtxt can be specified independently.
-
-") ;
+"This program will extract a region-of-interest (ROI) from a\n"
+"volume. The ROI can be defined in one of three ways: (1) as set of\n"
+"voxels in a mask volume the same size as the source volume, (2) as a\n"
+"set of label points (defined in a label file), or (3) the intersection\n"
+"of (1) and (2).\n"
+"\n"
+"The result is a text file (argument of --roiavgtxt) with the following \n"
+"rows of information. (1) The number of source voxels in the label (0\n"
+"if no label is used). (2) The number of voxels in the final ROI. (3)\n"
+"the average of the ROI voxels in the source volume. If the source\n"
+"volume has multiple frames, then there will be a row for each frame.\n"
+"\n"
+"In addition, a final ROI mask volume can be saved. This volume is\n"
+"the same size as the source volume (one frame only). The value of\n"
+"a voxel is 1 if it was in the final ROI or 0 if it was out.\n"
+"\n"
+"--srcvol srcvolstem\n"
+"\n"
+"Specify the bfloat/bshort stem of the volume from which the ROI is to\n"
+"be extracted.\n"
+"\n"
+"--srcreg regfile\n"
+"\n"
+"Registration between src volume and subject's anatomical (ie, a\n"
+"register.dat). This is only needed when using a label.\n"
+"\n"
+"--label labelfile\n"
+"\n"
+"Path to FreeSurfer label file. Make sure to give full path. The label\n"
+"file has, among other things, xyz coorindates of the points in the\n"
+"label. Each point has an extent of 1mm^3. These xyz coorindates have\n"
+"to be mapped into the source volume. This is done with the\n"
+"registration matrix (--srcreg) and (possibly) with the label\n"
+"registration (see --labelreg and --labeltal).\n"
+"\n"
+"--labelreg labelregfile\n"
+"\n"
+"File with matrix that maps label xyz coordinates to subject's\n"
+"anatomical coordinates. Note: this matrix should map to the subject's\n"
+"anatomical coordinates in 'tkregister' space. IMPORTANT: passing the\n"
+"talairach.xfm file with this option can result in a MISINTERPRETATION\n"
+"of the transform.\n"
+"\n"
+"--labeltal\n"
+"\n"
+"The label is in talairach space. In this case, the talairach.xfm file\n"
+"for the subject in the register.dat (--srcreg) is loaded. This matrix\n"
+"is modified to make it appropriate for use with the register.dat (ie,\n"
+"it will be interpreted correctly). See also --talxfm and --labelreg.\n"
+"\n"
+"--talxfm xfmfile\n"
+"\n"
+"Use xfmfile in subject/mri/transforms for talairach transfrom\n"
+"instead of talairach.xfm. This forces --labeltal.\n"
+"\n"
+"--labelfillthresh thresh\n"
+"\n"
+"Each label point represents 1mm^3, so it is possible that a source\n"
+"voxel is not entirely filled by label points. This option allows the\n"
+"user to choose the extent to which a voxel must be filled for it to be\n"
+"considered part of the label. thresh is a number between 0 and 1 and\n"
+"represents the fraction of the volume of a voxel that must be filled\n"
+"in order for that voxel to be part of the label. Setting thresh=0\n"
+"will force all voxels to be in the label regardless of what's in\n"
+"the label file. Default is a small value just above 0.\n"
+"\n"
+"--mskvol maskstem\n"
+"\n"
+"Stem of the bshort/bfloat mask volume. This volume should be the\n"
+"same dimension as the source volume (the number of frames can differ). \n"
+"The mask volume will be thresholded to determine which voxels will\n"
+"be included in the ROI. See --mskthresh, --msktail, --mskframe, and\n"
+"--mskinvert for thresholding criteria.\n"
+"\n"
+"--mskthresh mskthresh \n"
+"\n"
+"Voxels value magnitude must be above mskthresh to be included. Default\n"
+"is 0.5.\n"
+"\n"
+"--msktail tail\n"
+"\n"
+"Tail is the sign that a voxel must have in order to be included.\n"
+"Tail can be abs, pos, or neg. Abs means that the sign should be\n"
+"ignored (the default), pos means that the sign must be positive,\n"
+"neg means that the sign must be negative.\n"
+"\n"
+"--mskframe nthframe\n"
+"\n"
+"Use the nthframe in the mask volume to derive the mask. nthframe is\n"
+"0-based (ie, --mskframe 5 indicates the 6th frame). Default is 0\n"
+"(ie, the first frame).\n"
+"\n"
+"--mskinvert \n"
+"\n"
+"After selecting voxels based on the threshold criteria (ie, mskthresh,\n"
+"msktail, mskframe), invert the mask (ie, the non-selected voxels\n"
+"become selected and vise versa).\n"
+"\n"
+"--roiavgtxt fname\n"
+"\n"
+"Save output in text format. See introduction.\n"
+"\n"
+"--roiavg stem\n"
+"\n"
+"Save output as a bfloat 'volume'. This flag is actually necessary\n"
+"even if you are not going to use this output.\n"
+"\n"
+"--finalmskvol finalmaskstem\n"
+"\n"
+"Save the final set of voxels selected for the ROI in this volume. See\n"
+"introduction for more info.\n"
+"\n"
+"BUGS\n"
+"\n"
+"The matrix used with --labelreg must map to the subject's\n"
+"anatomical coordinates in 'tkregister' space. IMPORTANT: passing the\n"
+"talairach.xfm file with this option can result in a MISINTERPRETATION\n"
+"of the transform.\n"
+"\n"
+"The source, mask, and finalmask volumes must be in bshort/bfloat\n"
+"format.\n"
+"\n"
+"A roiavgstem must be specified even if you do not want this format.\n"
+"The roiavgtxt can be specified independently.\n"
+) ;
   exit(1) ;
 }
 /* --------------------------------------------- */

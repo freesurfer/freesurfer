@@ -4,13 +4,13 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 //
-// ID             : $Id: mri_segment.c,v 1.22 2003/06/16 18:12:27 fischl Exp $
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2003/06/16 18:12:27 $
-// Revision       : $Revision: 1.22 $
+// ID             : $Id: mri_segment.c,v 1.23 2003/09/05 04:45:37 kteich Exp $
+// Revision Author: $Author: kteich $
+// Revision Date  : $Date: 2003/09/05 04:45:37 $
+// Revision       : $Revision: 1.23 $
 //
 ////////////////////////////////////////////////////////////////////
-char *MRI_SEGMENT_VERSION = "$Revision: 1.22 $";
+char *MRI_SEGMENT_VERSION = "$Revision: 1.23 $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -96,7 +96,7 @@ main(int argc, char *argv[])
   float   white_mean, white_sigma, gray_mean, gray_sigma ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_segment.c,v 1.22 2003/06/16 18:12:27 fischl Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_segment.c,v 1.23 2003/09/05 04:45:37 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

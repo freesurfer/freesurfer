@@ -62,7 +62,7 @@ main(int argc, char *argv[])
   GCSA         *gcsa ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_ca_train.c,v 1.8 2003/05/06 21:43:25 tosa Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_ca_train.c,v 1.9 2003/09/05 04:45:40 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

@@ -19,7 +19,7 @@
 #include "sig.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_twoclass.c,v 1.7 2003/04/17 19:07:36 kteich Exp $";
+static char vcid[] = "$Id: mris_twoclass.c,v 1.8 2003/09/05 04:45:45 kteich Exp $";
 
 
 /*-------------------------------- CONSTANTS -----------------------------*/
@@ -230,7 +230,7 @@ main(int argc, char *argv[])
     fp = fopen("scalespace.dat", "w") ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_twoclass.c,v 1.7 2003/04/17 19:07:36 kteich Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_twoclass.c,v 1.8 2003/09/05 04:45:45 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

@@ -34,7 +34,7 @@ main(int argc, char *argv[])
   MRI    *mri ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_label_vals.c,v 1.1 2003/08/20 14:45:33 fischl Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_label_vals.c,v 1.2 2003/09/05 04:45:34 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

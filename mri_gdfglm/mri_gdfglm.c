@@ -5,7 +5,7 @@
   Date:    4/4/03
   Purpose: performs glm analysis given group descirptor file
            and dependent variable table
-  $Id: mri_gdfglm.c,v 1.3 2003/04/09 23:24:16 greve Exp $
+  $Id: mri_gdfglm.c,v 1.4 2003/09/05 04:45:33 kteich Exp $
 
 Things to do:
   Class-based/Covar-based partial model fit
@@ -29,6 +29,7 @@ Things to do:
 #include "fsgdf.h"
 #include "fio.h"
 #include "sig.h"
+#include "version.h"
 
 #ifdef X
   #undef X
@@ -77,7 +78,7 @@ static int WriteClassDat(char *base, char *Class, FSGD *fsgd,
 //static int  stringmatch(char *str1, char *str2);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_gdfglm.c,v 1.3 2003/04/09 23:24:16 greve Exp $";
+static char vcid[] = "$Id: mri_gdfglm.c,v 1.4 2003/09/05 04:45:33 kteich Exp $";
 char *Progname = NULL;
 
 typedef struct tagCOVARPRUNE{
@@ -136,6 +137,13 @@ int main(int argc, char **argv)
   char DatFile[2000];
   char MatFile[2000];
   char OutGDFile[2000];
+  int nargs;
+
+  /* rkt: check for and handle version tag */
+  nargs = handle_version_option (argc, argv, "$Id: mri_gdfglm.c,v 1.4 2003/09/05 04:45:33 kteich Exp $", "$Name:  $");
+  if (nargs && argc - nargs == 1)
+    exit (0);
+  argc -= nargs;
 
   Progname = argv[0] ;
   argc --;
@@ -468,137 +476,135 @@ static void print_help(void)
 {
   print_usage() ;
   printf(
-  "
-Performs glm analysis given group descriptor file (GDF) and dependent
-variable table (DVT).
-
-
---gdf gdffile
-
-Path to the GDF. See http://surfer.nmr.mgh.harvard.edu/docs/fsgdf.txt
-for more info. This file will have a list of Classes and Variables.
-Hereafter, the Variables are referred to as Covariates.
-
---dvt dvtfile
-
-Path to the dependent variable table (DVT). This is a text file that
-contains the data table. The first column is the list the names of
-each row. The first row is the list of the names of each column. There
-needs to be a text place-holder at the first row/column. The rest
-of the table is filled with numbers. Each column should be a subject, 
-and each row an observation for that subject. The arguments of --depvar
-must come from the row names. A DVT is produced by make-segvol-table.
-
---classes Class1 <Class2 ...>
-
-Use only the subjects that belong to the specfied list of classes.
-The class names must come from the classes as specified in the GDF. If
-unspecfied, all classes are used.
-
---covar Covar1 <Covar2 ...>
-
-Use only the variables that belong to the specfied list. The names
-must come from the variables as specified in the GDF. If unspecfied,
-all variables are used.
-
---depvar DepVar1 <DepVar2 ...>
-
-Select variables from the DVT. The a weighted average of variables
-will be computed as the final dependent variable. If unspecified, all
-variables will be used. See --wdepvar.
-
---wdepvar wDepVar1 wDepVar2 ...
-
-Set the weights of the dependent variables. The final dependent
-variable will be computed as a weighted average of the dependent
-variables. The number of weights must be equal to either the number of
-DepVars listed in --depvar or (if --depvar is unspecfied) the number
-of dependent variables in the DVT. If unspecfied, the weights are set
-to compute a simple average.
-
---wclass WC1 WC2 ...
-
-Class weights for establishing a contrast. The number of weights must
-be equal to the number of classes (ie, the number listed in --classes
-or the number in the GDF). If unspecified, all weights are set to 1.
-This applies only to the contrast; if the weight of a class is set to
-0, that class is still included in the parameter estimation. If
-positive and negative weights are used, they should sum to the same
-value.
-
---wcovar WCV1 WCV2 ...
-
-Covariate weights for establishing a contrast. The number of weights
-must be equal to the number of covariates (ie, the number listed in
---covar or the number in the GDF). If unspecified, all weights are set
-to 1.  This applies only to the contrast; if the weight of a covariate
-is set to 0, that covariate is still included in the parameter
-estimation. If positive and negative weights are used, they should sum
-to the same value.
-
---testoffset
-
-The offset is like a special covariate.
-
---o basename
-
-Base name of output files. There will be four output files created:
-(1) the summary file (basename.sum), (2) the data file (basename.dat),
-(3) the GDF (basename.gdf), and a matrix file (basename.mat). The 
-summary file has a list of the parameters used in the analysis
-as well as the results, including parameter estimates, contrast
-effect size, and signficance. The data file contains a table of 
-the final data with each subject on a different row. The first
-column is the subject number, the next nCV are the nCV covariates,
-the next column is the final dependent variable, and the final column 
-is the best fit of the dependent variable. The GDF is the final
-GDF; this will be the same as the input GDF if no classes, covariates
-or subjects have been excluded. The matfile is a matrix in matlab4
-format that contains the design matrix concatenated with the 
-final dependent variable, the fit of final dependent variable,
-and the residual.
-
-In addition, each class has its own output dat file called 
-outbase-classlabel.dat. The first column is the subject number,
-the next nCV are the nCV covariates, the next column is the final 
-dependent variable, and the final column is the best fit of the 
-dependent variable. This output is best for creating scatter
-plots.
-
-EXAMPLES:
-
-Consider the following Group Descriptor File:
-------------------------------------------
-GroupDescriptorFile 1
-  Title AlbertGroup
-  Class NormMale   
-  Class AlzMale    
-  Class NormFemale 
-  CLASS AlzFemale  
-  DefaultVariable Age
-  Variables   Age MMSE
-Input 003007 AlzMale 75 30 
-...
-------------------------------------------
-
-(1) Test whether the left hippocampal volume signficantly varies 
-with MMSE for the Alzheimer group regressing out the effect of gender 
-and age:
-
-mri_gdfglm --gdf albert.gdf --dvt asegvol.dat --o lhipmmse 
-  --wclass 0.5 -0.5 0.5 -0.5  --wcovar 0 1 
-  --depvar Left-Hippocampus 
-
-(2) Test whether the left-right difference in hippocampal volume 
-signficantly varies across gender using only the normal subjects,
-and regressing out the effect of age but not MMSE.
-
-mri_gdfglm --gdf albert.gdf --dvt asegvol.dat --o hip-lrdiff-mvf 
-  --depvar Left-Hippocampus Right-Hippocampus --wdepvar  1 -1 
-  --classes NormMale NormFemale   --wclass  1 -1  --covar Age 
-  --testoffset 
-
-");
+"Performs glm analysis given group descriptor file (GDF) and dependent\n"
+"variable table (DVT).\n"
+"\n"
+"\n"
+"--gdf gdffile\n"
+"\n"
+"Path to the GDF. See http://surfer.nmr.mgh.harvard.edu/docs/fsgdf.txt\n"
+"for more info. This file will have a list of Classes and Variables.\n"
+"Hereafter, the Variables are referred to as Covariates.\n"
+"\n"
+"--dvt dvtfile\n"
+"\n"
+"Path to the dependent variable table (DVT). This is a text file that\n"
+"contains the data table. The first column is the list the names of\n"
+"each row. The first row is the list of the names of each column. There\n"
+"needs to be a text place-holder at the first row/column. The rest\n"
+"of the table is filled with numbers. Each column should be a subject, \n"
+"and each row an observation for that subject. The arguments of --depvar\n"
+"must come from the row names. A DVT is produced by make-segvol-table.\n"
+"\n"
+"--classes Class1 <Class2 ...>\n"
+"\n"
+"Use only the subjects that belong to the specfied list of classes.\n"
+"The class names must come from the classes as specified in the GDF. If\n"
+"unspecfied, all classes are used.\n"
+"\n"
+"--covar Covar1 <Covar2 ...>\n"
+"\n"
+"Use only the variables that belong to the specfied list. The names\n"
+"must come from the variables as specified in the GDF. If unspecfied,\n"
+"all variables are used.\n"
+"\n"
+"--depvar DepVar1 <DepVar2 ...>\n"
+"\n"
+"Select variables from the DVT. The a weighted average of variables\n"
+"will be computed as the final dependent variable. If unspecified, all\n"
+"variables will be used. See --wdepvar.\n"
+"\n"
+"--wdepvar wDepVar1 wDepVar2 ...\n"
+"\n"
+"Set the weights of the dependent variables. The final dependent\n"
+"variable will be computed as a weighted average of the dependent\n"
+"variables. The number of weights must be equal to either the number of\n"
+"DepVars listed in --depvar or (if --depvar is unspecfied) the number\n"
+"of dependent variables in the DVT. If unspecfied, the weights are set\n"
+"to compute a simple average.\n"
+"\n"
+"--wclass WC1 WC2 ...\n"
+"\n"
+"Class weights for establishing a contrast. The number of weights must\n"
+"be equal to the number of classes (ie, the number listed in --classes\n"
+"or the number in the GDF). If unspecified, all weights are set to 1.\n"
+"This applies only to the contrast; if the weight of a class is set to\n"
+"0, that class is still included in the parameter estimation. If\n"
+"positive and negative weights are used, they should sum to the same\n"
+"value.\n"
+"\n"
+"--wcovar WCV1 WCV2 ...\n"
+"\n"
+"Covariate weights for establishing a contrast. The number of weights\n"
+"must be equal to the number of covariates (ie, the number listed in\n"
+"--covar or the number in the GDF). If unspecified, all weights are set\n"
+"to 1.  This applies only to the contrast; if the weight of a covariate\n"
+"is set to 0, that covariate is still included in the parameter\n"
+"estimation. If positive and negative weights are used, they should sum\n"
+"to the same value.\n"
+"\n"
+"--testoffset\n"
+"\n"
+"The offset is like a special covariate.\n"
+"\n"
+"--o basename\n"
+"\n"
+"Base name of output files. There will be four output files created:\n"
+"(1) the summary file (basename.sum), (2) the data file (basename.dat),\n"
+"(3) the GDF (basename.gdf), and a matrix file (basename.mat). The \n"
+"summary file has a list of the parameters used in the analysis\n"
+"as well as the results, including parameter estimates, contrast\n"
+"effect size, and signficance. The data file contains a table of \n"
+"the final data with each subject on a different row. The first\n"
+"column is the subject number, the next nCV are the nCV covariates,\n"
+"the next column is the final dependent variable, and the final column \n"
+"is the best fit of the dependent variable. The GDF is the final\n"
+"GDF; this will be the same as the input GDF if no classes, covariates\n"
+"or subjects have been excluded. The matfile is a matrix in matlab4\n"
+"format that contains the design matrix concatenated with the \n"
+"final dependent variable, the fit of final dependent variable,\n"
+"and the residual.\n"
+"\n"
+"In addition, each class has its own output dat file called \n"
+"outbase-classlabel.dat. The first column is the subject number,\n"
+"the next nCV are the nCV covariates, the next column is the final \n"
+"dependent variable, and the final column is the best fit of the \n"
+"dependent variable. This output is best for creating scatter\n"
+"plots.\n"
+"\n"
+"EXAMPLES:\n"
+"\n"
+"Consider the following Group Descriptor File:\n"
+"------------------------------------------\n"
+"GroupDescriptorFile 1\n"
+"  Title AlbertGroup\n"
+"  Class NormMale   \n"
+"  Class AlzMale    \n"
+"  Class NormFemale \n"
+"  CLASS AlzFemale  \n"
+"  DefaultVariable Age\n"
+"  Variables   Age MMSE\n"
+"Input 003007 AlzMale 75 30 \n"
+"...\n"
+"------------------------------------------\n"
+"\n"
+"(1) Test whether the left hippocampal volume signficantly varies \n"
+"with MMSE for the Alzheimer group regressing out the effect of gender \n"
+"and age:\n"
+"\n"
+"mri_gdfglm --gdf albert.gdf --dvt asegvol.dat --o lhipmmse \n"
+"  --wclass 0.5 -0.5 0.5 -0.5  --wcovar 0 1 \n"
+"  --depvar Left-Hippocampus \n"
+"\n"
+"(2) Test whether the left-right difference in hippocampal volume \n"
+"signficantly varies across gender using only the normal subjects,\n"
+"and regressing out the effect of age but not MMSE.\n"
+"\n"
+"mri_gdfglm --gdf albert.gdf --dvt asegvol.dat --o hip-lrdiff-mvf \n"
+"  --depvar Left-Hippocampus Right-Hippocampus --wdepvar  1 -1 \n"
+"  --classes NormMale NormFemale   --wclass  1 -1  --covar Age \n"
+"  --testoffset \n"
+);
   exit(1) ;
 }
 /* --------------------------------------------- */

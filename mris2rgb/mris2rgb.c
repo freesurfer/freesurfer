@@ -38,7 +38,7 @@
 #include "macros.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris2rgb.c,v 1.31 2003/04/17 17:16:23 kteich Exp $";
+static char vcid[] = "$Id: mris2rgb.c,v 1.32 2003/09/05 04:45:39 kteich Exp $";
 
 /*-------------------------------- CONSTANTS -----------------------------*/
 
@@ -186,7 +186,7 @@ main(int argc, char *argv[])
   unsigned char   *rgb=NULL;
   
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris2rgb.c,v 1.31 2003/04/17 17:16:23 kteich Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: mris2rgb.c,v 1.32 2003/09/05 04:45:39 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

@@ -1,6 +1,6 @@
 /*----------------------------------------------------------
   Name: mri_label2label.c
-  $Id: mri_label2label.c,v 1.16 2003/08/05 19:19:16 kteich Exp $
+  $Id: mri_label2label.c,v 1.17 2003/09/05 04:45:34 kteich Exp $
   Author: Douglas Greve
   Purpose: Converts a label in one subject's space to a label
   in another subject's space using either talairach or spherical
@@ -59,7 +59,7 @@ static int  nth_is_arg(int nargc, char **argv, int nth);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_label2label.c,v 1.16 2003/08/05 19:19:16 kteich Exp $";
+static char vcid[] = "$Id: mri_label2label.c,v 1.17 2003/09/05 04:45:34 kteich Exp $";
 char *Progname = NULL;
 
 char  *srclabelfile = NULL;
@@ -125,7 +125,7 @@ int main(int argc, char **argv)
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_label2label.c,v 1.16 2003/08/05 19:19:16 kteich Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_label2label.c,v 1.17 2003/09/05 04:45:34 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

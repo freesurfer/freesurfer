@@ -16,7 +16,7 @@
 #include "timer.h"
 #include "version.h"
 
-static char vcid[]="$Id: mris_sphere.c,v 1.26 2003/04/17 19:00:49 kteich Exp $";
+static char vcid[]="$Id: mris_sphere.c,v 1.27 2003/09/05 04:45:44 kteich Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -74,7 +74,7 @@ main(int argc, char *argv[])
   float         max_dim ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_sphere.c,v 1.26 2003/04/17 19:00:49 kteich Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_sphere.c,v 1.27 2003/09/05 04:45:44 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

@@ -19,7 +19,7 @@
 #include "svm.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_svm_train.c,v 1.2 2003/04/17 19:03:49 kteich Exp $";
+static char vcid[] = "$Id: mris_svm_train.c,v 1.3 2003/09/05 04:45:44 kteich Exp $";
 
 
 /*-------------------------------- CONSTANTS -----------------------------*/
@@ -176,7 +176,7 @@ main(int argc, char *argv[])
 #endif
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_svm_train.c,v 1.2 2003/04/17 19:03:49 kteich Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_svm_train.c,v 1.3 2003/09/05 04:45:44 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

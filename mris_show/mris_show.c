@@ -17,7 +17,7 @@
 #include "label.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_show.c,v 1.33 2003/04/17 18:59:13 kteich Exp $";
+static char vcid[] = "$Id: mris_show.c,v 1.34 2003/09/05 04:45:44 kteich Exp $";
 
 
 /*-------------------------------- CONSTANTS -----------------------------*/
@@ -140,7 +140,7 @@ main(int argc, char *argv[])
   float        angle ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_show.c,v 1.33 2003/04/17 18:59:13 kteich Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_show.c,v 1.34 2003/09/05 04:45:44 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

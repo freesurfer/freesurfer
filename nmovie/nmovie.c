@@ -2,11 +2,11 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2003/04/14 23:14:14 $
-// Revision       : $Revision: 1.20 $
+// Revision Date  : $Date: 2003/09/05 04:45:45 $
+// Revision       : $Revision: 1.21 $
 //
 ////////////////////////////////////////////////////////////////////
-char *NMOVIE_VERSION = "$Revision: 1.20 $";
+char *NMOVIE_VERSION = "$Revision: 1.21 $";
 #include <stdio.h>
 #include <image.h>
 #include <stdlib.h>
@@ -581,7 +581,7 @@ int main(int argc, char **argv)
   char    **av ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: nmovie.c,v 1.20 2003/04/14 23:14:14 kteich Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: nmovie.c,v 1.21 2003/09/05 04:45:45 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

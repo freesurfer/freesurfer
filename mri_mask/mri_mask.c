@@ -28,7 +28,7 @@ int main(int argc, char *argv[])
 
   Progname = argv[0];
 
-  nargs = handle_version_option (argc, argv, "$Id: mri_mask.c,v 1.3 2003/03/28 18:14:47 kteich Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_mask.c,v 1.4 2003/09/05 04:45:34 kteich Exp $", "$Name:  $");
   argc -= nargs ;
   if (1 == argc)
     exit (0);

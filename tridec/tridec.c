@@ -17,7 +17,7 @@ main(int argc,char *argv[])
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tridec.c,v 1.3 2003/08/05 19:19:26 kteich Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: tridec.c,v 1.4 2003/09/05 04:45:49 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

@@ -15,7 +15,7 @@
 #include "fio.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_anatomical_stats.c,v 1.11 2003/06/18 17:36:47 ch Exp $";
+static char vcid[] = "$Id: mris_anatomical_stats.c,v 1.12 2003/09/05 04:45:39 kteich Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -75,7 +75,7 @@ main(int argc, char *argv[])
   int           n_vertices = -1;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_anatomical_stats.c,v 1.11 2003/06/18 17:36:47 ch Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_anatomical_stats.c,v 1.12 2003/09/05 04:45:39 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

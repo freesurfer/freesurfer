@@ -15,7 +15,7 @@
 #include "cma.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mri_fill.c,v 1.69 2003/08/19 18:16:29 fischl Exp $";
+static char vcid[] = "$Id: mri_fill.c,v 1.70 2003/09/05 04:45:33 kteich Exp $";
 
 /*-------------------------------------------------------------------
                                 CONSTANTS
@@ -191,7 +191,7 @@ main(int argc, char *argv[])
   struct timeb  then ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_fill.c,v 1.69 2003/08/19 18:16:29 fischl Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_fill.c,v 1.70 2003/09/05 04:45:33 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

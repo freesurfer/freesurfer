@@ -15,7 +15,7 @@
 #define LINEAR_CORONAL_RAS_TO_CORONAL_RAS       21
 //E/ should be in transform.h if it isn't already
 
-static char vcid[] = "$Id: mri_transform.c,v 1.5 2003/04/16 18:47:57 kteich Exp $";
+static char vcid[] = "$Id: mri_transform.c,v 1.6 2003/09/05 04:45:38 kteich Exp $";
 
 //E/ For transformations: for case LINEAR_RAS_TO_RAS, we convert to
 //vox2vox with MRIrasXformToVoxelXform() in mri.c; for case
@@ -55,7 +55,7 @@ main(int argc, char *argv[])
   VECTOR *c;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_transform.c,v 1.5 2003/04/16 18:47:57 kteich Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_transform.c,v 1.6 2003/09/05 04:45:38 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

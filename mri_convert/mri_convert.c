@@ -3,9 +3,9 @@
 // original: written by Bruce Fischl (Apr 16, 1997)
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2003/08/29 16:43:25 $
-// Revision       : $Revision: 1.60 $
+// Revision Author: $Author: kteich $
+// Revision Date  : $Date: 2003/09/05 04:45:32 $
+// Revision       : $Revision: 1.61 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -200,7 +200,7 @@ int main(int argc, char *argv[])
   conform_size = 1.0;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_convert.c,v 1.60 2003/08/29 16:43:25 tosa Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_convert.c,v 1.61 2003/09/05 04:45:32 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

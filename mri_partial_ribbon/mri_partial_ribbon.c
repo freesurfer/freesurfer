@@ -4,12 +4,12 @@
 // originally written by Andre van der Kouwe
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2003/04/22 21:29:57 $
-// Revision       : $Revision: 1.7 $
+// Revision Author: $Author: kteich $
+// Revision Date  : $Date: 2003/09/05 04:45:36 $
+// Revision       : $Revision: 1.8 $
 //
 ////////////////////////////////////////////////////////////////////
-char *MRI_PARTIAL_RIBBON_VERSION = "$Revision: 1.7 $";
+char *MRI_PARTIAL_RIBBON_VERSION = "$Revision: 1.8 $";
 #include <math.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -37,7 +37,7 @@ int main(int argc, char *argv[])
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_partial_ribbon.c,v 1.7 2003/04/22 21:29:57 tosa Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_partial_ribbon.c,v 1.8 2003/09/05 04:45:36 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

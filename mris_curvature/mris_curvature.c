@@ -14,7 +14,7 @@
 #include "macros.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_curvature.c,v 1.17 2003/04/17 18:17:26 kteich Exp $";
+static char vcid[] = "$Id: mris_curvature.c,v 1.18 2003/09/05 04:45:40 kteich Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -56,7 +56,7 @@ main(int argc, char *argv[])
   double       ici, fi, var ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_curvature.c,v 1.17 2003/04/17 18:17:26 kteich Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_curvature.c,v 1.18 2003/09/05 04:45:40 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

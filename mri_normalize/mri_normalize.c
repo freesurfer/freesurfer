@@ -47,7 +47,7 @@ main(int argc, char *argv[])
   struct timeb start ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_normalize.c,v 1.23 2003/06/17 16:41:24 fischl Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_normalize.c,v 1.24 2003/09/05 04:45:35 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

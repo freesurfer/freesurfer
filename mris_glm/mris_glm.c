@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Computes glm inferences on the surface.
-  $Id: mris_glm.c,v 1.19 2003/08/05 22:46:31 greve Exp $
+  $Id: mris_glm.c,v 1.20 2003/09/05 04:45:42 kteich Exp $
 
 Things to do:
   0. Documentation.
@@ -67,7 +67,7 @@ static char *getstem(char *bfilename);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_glm.c,v 1.19 2003/08/05 22:46:31 greve Exp $";
+static char vcid[] = "$Id: mris_glm.c,v 1.20 2003/09/05 04:45:42 kteich Exp $";
 char *Progname = NULL;
 
 char *hemi        = NULL;
@@ -167,7 +167,7 @@ int main(int argc, char **argv)
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv, 
-	  "$Id: mris_glm.c,v 1.19 2003/08/05 22:46:31 greve Exp $");
+      "$Id: mris_glm.c,v 1.20 2003/09/05 04:45:42 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -796,349 +796,344 @@ static void print_help(void)
 {
   print_usage() ;
   printf(
-
-"
-SUMMARY
-
-NOTE: this program replaces mri_surfglm (this is just a name change).
-
-This program performs inter-subject/group averaging and inference on
-the surface by fitting a GLM model at each vertex. The model consists
-of subject parameters (eg, age, gender, etc). The model is the same
-across all vertices, though the fit may be (will be) different. The
-user must supply a matrix that represents the GLM. While estimation
-and inference can be performed in a single call to mris_glm, the tasks
-can also be separated, which can be much more convenient. Inferences
-are not corrected for multiple comparisons.
-
-MATHEMATICAL BACKGROUND
-
-The forward model is given by:
-
-    y = XB + n
-
-where X is the Ns-by-Nb design matrix, y is the Ns-by-Nv raw data set,
-B is the Nb-by-Nv regression parameters, and n is noise. Ns is the
-number of subjects, Nb is the number of regressors, and Nv is the 
-number of vertices. y will have been preprocessed in possibly two
-ways: (1) it will be sampled on the surface of the target subject, 
-and (2) it may be spatially smoothed (prior to resampling) (see
---nsmooth). 
-
-During the estimation stage, the forward model is inverted to
-solve for B:
-
-    B = inv(X'*X)*X'y
-
-This is performed at each vertex, the result of which can be saved
-with the --beta flag.
-
-The signal estimate (which can be saved with --yhat) is computed as 
-
-    yhat = B*X
-
-The residual error (which can be saved with --eres) is computed as 
-
-    eres = y - yhat
-
-The noise variance estimate (computed for each vertex) is computed
-as the sum of the squares of the residual error divided by the DOF.
-The DOF equals the number of rows of X minus the number of columns.
-The noise variance can be saved with --var.
-
-A contrast vector C has as many elements as columns of X. The 
-contrast effect size (--ces) is then computed as:
-
-   G = C*B
-
-The t-ratio (--t) for the contrast is then given by:
-
-   t = G/sqrt(var * C*inv(X'X)*C')
-
-The signifiance of the t-ratio (based on a double-sided t-test
-and uncorrected for multiple comparisons) can be saved with 
-the --sigt flag.
-
-
-COMMAND-LINE ARGUMENTS
-
---fsgd fname <gd2mtx>
-
-Specify the design with a FreeSurfer Group Descriptor File (FSGDF).
-See http://surfer.nmr.mgh.harvard.edu/docs/fsgdf.txt for more info.
-The gd2mtx is the method by which the group description is converted
-into a design matrix. Legal values are doss (Different Offset, Same
-Slope) and dods (Different Offset, Different Slope). doss will create
-a design matrix in which each class has it's own offset but forces all
-classes to have the same slope. dods models each class with it's own
-offset and slope. In either case, you'll need to know the order of the
-regressors in order to correctly specify the contrast vector. For
-doss, the first NClass columns refer to the offset for each class.
-The remaining columns are for the continuous variables. In dods, the
-first NClass columns again refer to the offset for each class.
-However, there will be NClass*NVar more columns (ie, one column for
-each variable for each class). The first NClass columns are for the
-first variable, etc. If neither of these models works for you, you
-will have to specify the design matrix manually. In that case, you can
-still specify an FSGDF but use 'none' as the gd2mtx. It can be
-advantageous to specify an FSGDF because this information will be
-propagated with the output data and can be used by tksurfer to display
-scatter plots.
-
---design fname
-
-File name for design matrix. The design matrix must be in an ASCII
-file. The first column must be the id assigned to the subject during
-FreeSurfer reconstruction. The following columns are the the design
-matrix. It is possible for the design matrix to be ill-conditioned.
-This means that two columns are identical or that one column is equal
-to a weighted sum of any of the other columns.  In this case, the
-matrix cannot be inverted and so the analysis must stop. The matrix is
-judged to be ill-conditioned if its condition number of the normalized
-matrix is greater than 100000. The X matrix is normalized such that
-the length of each column vector is 1. The threshold of 100000 is
-somewhat arbitrary. It is possible to test the condition of a matrix
-without having to include all the command-line options needed for a
-full analysis. Just run:
-          mris_glm --design fname 
-It will print out an INFO line with the condition number. You can
-force processing with the given design matrix by PRECEDING the
---design flag with --force. 
-
---surfmeas name 
-
-This is one of the two ways the user can specify the raw data (ie, the
-input to the estimation stage). This method requires that the data
-file for each subject reside in the FreeSurfer anatomical directory
-under the surf subdirectory. This frees the user from having to list
-all the inputs on the command-line. The name can be one of two things,
-depending upon the format designation (--ifmt). If the format is curv
-(or unspecified), then mris_glm will construct the name of the
-input file as hemi.name (where hemi is either lh or rh as specified 
-by --hemi). If the format is anything else, then it looks for a file
-called name in the surf subdirectory. Only specify a raw data input
-when performing estimation.
-
---i input1 input2 ...
-
-This is second method that the user can specify the raw data (ie, the
-input to the estimation stage). This method allows the user to specify
-all of the input files on the command line. There must be as many
-files listed as there are rows in the design matrix. The format (same
-for all inputs) is as designated with the --ifmt flag. If the format
-is unspecified, mris_glm will attempt to determine the format.
-curv format cannot be used with explicit inputs. Only specify a raw 
-data input when performing estimation.
-
---ifmt format
-
-This flag is used to specify the format of the input raw data files.
-When a surface measure is specified, the default format becomes curv,
-otherwise the mris_glm will attempt to determine the format from
-the file name if a format is not explicitly give. It is not possible
-to use curv format with explicit inputs (ie, --i). Valid formats are:
-bshort, bfloat, COR, analyze, spm, paint (or w or wfile), and curv.
-
---frame M
-
-This allows the user to specify that the Mth frame of the raw data (if 
-the input format supports multiple frames) should be used as input. 
-M is zero-based. Default is 0.
-
---hemi hemisphere
-
-Specify that the input data either the left (lh) or right (rh) hemisphere.
-
---trgsubject subject
-
-Resample each input data set from the individual's surface to that of the
-target subject. 
-
---icoorder order
-
-When the target subject is ico, this specifies the order of the 
-icosahedron. Default is 7 (163842 vertices). 
-
---nsmooth N
-
-Perform N iterations of nearest-neighbor spatial smoothing. Note: 
-smoothing is  performed on the surface of each source subject before 
-resampling to the target subject.
-
---beta_in betaname <fmt>
-
-This flag (with --var_in) allows the user to use a previous estimation 
-as input to the contrast/inference computation. This arguments should 
-be identical to that specified with --beta when doing the estimation.
-Note: the user must also specify a pointer to the residual error
-variance using --var_in.
-
---var_in betaname <fmt>
-
-This flag (with --beta_in) allows the user to use a previous estimation 
-as input to the contrast/inference computation. This arguments should be
-identical to that specified with --var when doing the estimation.
-
---y name <fmt>
-
-Save the raw data (after resampling and smoothing) into a single 'volume'.
-fmt is the format (see OUTPUT FORMATS). If an FSGDF has been specified
-(with --fsgdf), then this file is copied to name.fsgdf. This can be
-useful for displaying scatter plots in tksurfer.
-
---beta name <fmt>
-
-Save the result of estimation (ie, the map regression coefficients). 
-This can be used in subsequent calls to mris_glm to perform.
-inference. fmt is the format (see OUTPUT FORMATS).
-
---var name <fmt>
-
-Save the estimate of the noise variances (estimated as the variance
-of the residual error). This can be used in subsequent calls to 
-mris_glm to perform inference.
-
---yhat name <fmt>
-
-Save the estimate of the signal. This is only good for debugging.
-fmt is the format (see OUTPUT FORMATS).
-
---eres name <fmt>
-
-Save the residual error. This is only good for debugging.
-fmt is the format (see OUTPUT FORMATS).
-
---xmat name 
-
-Save the design matrix in matlab4 format. This is only good for 
-debugging. fmt is the format (see OUTPUT FORMATS).
-
---contrast fname
-
-Load the group contrast vector from the ascii file fname. The 
-contrast vector should have as many entries as there are columns
-in the design matrix. The contrast vector can also be specified 
-on the command-line with --gcv.
-
---gcv c1 ... cN
-
-Specify the group contrast vector (gcv) on the command-line as the
-values c1 ... cN. The contrast vector should have as many entries as 
-there are columns in the design matrix. The contrast vector can also 
-be specified in a file with --contrast.
-
---ces name <fmt>
-
-Save the contrast effect size from the contrast vector specified
-with --contrast or --gcv. fmt is the format (see OUTPUT FORMATS).
-
---t name <fmt>
-
-Save the t-ratio of the contrast.
-
---sigt name <fmt>
-
-Save the signficance (p-value) of the t-ratio of the contrast. The
-value is actually the -log10 of the significance with the same
-sign as the t-ratio from which it was computed. The significance
-is computed from a double-sided t-test and is NOT corrected for
-multiple comparisons across space. fmt is the format (see OUTPUT 
-FORMATS).
-
---force
-
-Force processing eventhough the design matrix condition number 
-exceeds 10000.
-
-
---synth seed
-
-Substitute white gaussian noise for the data. Good for debugging.
-
---sd subjectsdir
-
-Look for FreeSurfer reconstructions in subjectsdir. If unspecified,
-the SUBJECTS_DIR envionment variable will be used.
-
---allowsubjrep
-
-Allow repetitions in the subject name in the fsgdf file. This is
-only usefull for testing purposes.
-
-
-OUTPUT FORMATS:
-
-Output formats can be designated by specifying a format string
-following the the output name. Valid strings include bfloat,
-bshort, spm, analyze, analyze4d, COR, paint, w, and wfile. Paint,
-w, and wfile cannot be used for beta, y, yhat, or eres.
-
-
-EXAMPLES:
-
-1. Analyze thickness maps based on gender and age for 5 hypothetical
-subjects: subj1 (m, 22) , subj2 (m, 57), subj3 (f, 33), subj4 (f, 65), 
-subj5 (m, 27). The design matrix would look something like:
-
-   subj1  1  0  22
-   subj2  1  0  57
-   subj3  0  1  33
-   subj4  0  1  65
-   subj5  1  0  27
-
-The first column is the name of the subject as it appears in the
-FreeSurfer SubjectsDir. The second and third columns categorically
-code gender (first column male, second column female). The last
-column codes age. Assume this matrix is stored in a file called
-genage.mtx
-
-  mris_glm --design genage.mtx --hemi lh --surfmeas thickness 
-    --trgsubj average7 --nsmooth 50 --beta beta bfloat 
-    --var var bfloat 
-
-This will read the thickness maps for each of the subjects, smooth
-it with 50 iterations of nearest-neighbor smoothing, resample to
-the average7 subject and save the regression coeffients and
-noise variance, both in bfloat format No inference was performed.
-
-2. Test the data in Example 1 for an effect of age:
-
-  mris_glm --design genage.mtx --hemi lh --trgsubj average7 
-      --beta_in beta bfloat --var_in var bfloat 
-      --gcv 0 0 1 --sigt ./age-sigt-lh.w paint
-
-3. Test the data in Example 1 for a difference between males 
-and females with age regressed out:
-
-  mris_glm --design genage.mtx --hemi lh --trgsubj average7 
-      --beta_in beta bfloat --var_in var bfloat 
-      --gcv 1 -1 0 --sigt ./gender-sigt-lh.w paint
-
-4. Perform the same analysis as done in Example 1, but use 
-values that have been painted onto the surface of each subject
-(this could have come from an fMRI analysis):
-
-  mris_glm --design genage.mtx --hemi lh
-    --ifmt paint --i ./subj1-data-lh.w ./subj2-data-lh.w 
-    ./subj3-data-lh.w ./subj4-data-lh.w ./subj5-data-lh.w
-    --trgsubj average7 --nsmooth 50 --beta beta bfloat 
-    --var var bfloat 
-
-BUGS
-
-No correction for multiple comparisons.
-
-BUG REPORTING
-
-If you want your bug report or question to have a prayer of being
-answered, make sure to include the following information (send to
-freesurfer@surfer.nmr.mgh.harvard.edu): (1) version of mris_glm
-(run with --version), (2) full command-line used, (3) terminal
-output, (4) description of the problem. 
-
-
-
-"
+"SUMMARY\n"
+"\n"
+"NOTE: this program replaces mri_surfglm (this is just a name change).\n"
+"\n"
+"This program performs inter-subject/group averaging and inference on\n"
+"the surface by fitting a GLM model at each vertex. The model consists\n"
+"of subject parameters (eg, age, gender, etc). The model is the same\n"
+"across all vertices, though the fit may be (will be) different. The\n"
+"user must supply a matrix that represents the GLM. While estimation\n"
+"and inference can be performed in a single call to mris_glm, the tasks\n"
+"can also be separated, which can be much more convenient. Inferences\n"
+"are not corrected for multiple comparisons.\n"
+"\n"
+"MATHEMATICAL BACKGROUND\n"
+"\n"
+"The forward model is given by:\n"
+"\n"
+"    y = XB + n\n"
+"\n"
+"where X is the Ns-by-Nb design matrix, y is the Ns-by-Nv raw data set,\n"
+"B is the Nb-by-Nv regression parameters, and n is noise. Ns is the\n"
+"number of subjects, Nb is the number of regressors, and Nv is the \n"
+"number of vertices. y will have been preprocessed in possibly two\n"
+"ways: (1) it will be sampled on the surface of the target subject, \n"
+"and (2) it may be spatially smoothed (prior to resampling) (see\n"
+"--nsmooth). \n"
+"\n"
+"During the estimation stage, the forward model is inverted to\n"
+"solve for B:\n"
+"\n"
+"    B = inv(X'*X)*X'y\n"
+"\n"
+"This is performed at each vertex, the result of which can be saved\n"
+"with the --beta flag.\n"
+"\n"
+"The signal estimate (which can be saved with --yhat) is computed as \n"
+"\n"
+"    yhat = B*X\n"
+"\n"
+"The residual error (which can be saved with --eres) is computed as \n"
+"\n"
+"    eres = y - yhat\n"
+"\n"
+"The noise variance estimate (computed for each vertex) is computed\n"
+"as the sum of the squares of the residual error divided by the DOF.\n"
+"The DOF equals the number of rows of X minus the number of columns.\n"
+"The noise variance can be saved with --var.\n"
+"\n"
+"A contrast vector C has as many elements as columns of X. The \n"
+"contrast effect size (--ces) is then computed as:\n"
+"\n"
+"   G = C*B\n"
+"\n"
+"The t-ratio (--t) for the contrast is then given by:\n"
+"\n"
+"   t = G/sqrt(var * C*inv(X'X)*C')\n"
+"\n"
+"The signifiance of the t-ratio (based on a double-sided t-test\n"
+"and uncorrected for multiple comparisons) can be saved with \n"
+"the --sigt flag.\n"
+"\n"
+"\n"
+"COMMAND-LINE ARGUMENTS\n"
+"\n"
+"--fsgd fname <gd2mtx>\n"
+"\n"
+"Specify the design with a FreeSurfer Group Descriptor File (FSGDF).\n"
+"See http://surfer.nmr.mgh.harvard.edu/docs/fsgdf.txt for more info.\n"
+"The gd2mtx is the method by which the group description is converted\n"
+"into a design matrix. Legal values are doss (Different Offset, Same\n"
+"Slope) and dods (Different Offset, Different Slope). doss will create\n"
+"a design matrix in which each class has it's own offset but forces all\n"
+"classes to have the same slope. dods models each class with it's own\n"
+"offset and slope. In either case, you'll need to know the order of the\n"
+"regressors in order to correctly specify the contrast vector. For\n"
+"doss, the first NClass columns refer to the offset for each class.\n"
+"The remaining columns are for the continuous variables. In dods, the\n"
+"first NClass columns again refer to the offset for each class.\n"
+"However, there will be NClass*NVar more columns (ie, one column for\n"
+"each variable for each class). The first NClass columns are for the\n"
+"first variable, etc. If neither of these models works for you, you\n"
+"will have to specify the design matrix manually. In that case, you can\n"
+"still specify an FSGDF but use 'none' as the gd2mtx. It can be\n"
+"advantageous to specify an FSGDF because this information will be\n"
+"propagated with the output data and can be used by tksurfer to display\n"
+"scatter plots.\n"
+"\n"
+"--design fname\n"
+"\n"
+"File name for design matrix. The design matrix must be in an ASCII\n"
+"file. The first column must be the id assigned to the subject during\n"
+"FreeSurfer reconstruction. The following columns are the the design\n"
+"matrix. It is possible for the design matrix to be ill-conditioned.\n"
+"This means that two columns are identical or that one column is equal\n"
+"to a weighted sum of any of the other columns.  In this case, the\n"
+"matrix cannot be inverted and so the analysis must stop. The matrix is\n"
+"judged to be ill-conditioned if its condition number of the normalized\n"
+"matrix is greater than 100000. The X matrix is normalized such that\n"
+"the length of each column vector is 1. The threshold of 100000 is\n"
+"somewhat arbitrary. It is possible to test the condition of a matrix\n"
+"without having to include all the command-line options needed for a\n"
+"full analysis. Just run:\n"
+"          mris_glm --design fname \n"
+"It will print out an INFO line with the condition number. You can\n"
+"force processing with the given design matrix by PRECEDING the\n"
+"--design flag with --force. \n"
+"\n"
+"--surfmeas name \n"
+"\n"
+"This is one of the two ways the user can specify the raw data (ie, the\n"
+"input to the estimation stage). This method requires that the data\n"
+"file for each subject reside in the FreeSurfer anatomical directory\n"
+"under the surf subdirectory. This frees the user from having to list\n"
+"all the inputs on the command-line. The name can be one of two things,\n"
+"depending upon the format designation (--ifmt). If the format is curv\n"
+"(or unspecified), then mris_glm will construct the name of the\n"
+"input file as hemi.name (where hemi is either lh or rh as specified \n"
+"by --hemi). If the format is anything else, then it looks for a file\n"
+"called name in the surf subdirectory. Only specify a raw data input\n"
+"when performing estimation.\n"
+"\n"
+"--i input1 input2 ...\n"
+"\n"
+"This is second method that the user can specify the raw data (ie, the\n"
+"input to the estimation stage). This method allows the user to specify\n"
+"all of the input files on the command line. There must be as many\n"
+"files listed as there are rows in the design matrix. The format (same\n"
+"for all inputs) is as designated with the --ifmt flag. If the format\n"
+"is unspecified, mris_glm will attempt to determine the format.\n"
+"curv format cannot be used with explicit inputs. Only specify a raw \n"
+"data input when performing estimation.\n"
+"\n"
+"--ifmt format\n"
+"\n"
+"This flag is used to specify the format of the input raw data files.\n"
+"When a surface measure is specified, the default format becomes curv,\n"
+"otherwise the mris_glm will attempt to determine the format from\n"
+"the file name if a format is not explicitly give. It is not possible\n"
+"to use curv format with explicit inputs (ie, --i). Valid formats are:\n"
+"bshort, bfloat, COR, analyze, spm, paint (or w or wfile), and curv.\n"
+"\n"
+"--frame M\n"
+"\n"
+"This allows the user to specify that the Mth frame of the raw data (if \n"
+"the input format supports multiple frames) should be used as input. \n"
+"M is zero-based. Default is 0.\n"
+"\n"
+"--hemi hemisphere\n"
+"\n"
+"Specify that the input data either the left (lh) or right (rh) hemisphere.\n"
+"\n"
+"--trgsubject subject\n"
+"\n"
+"Resample each input data set from the individual's surface to that of the\n"
+"target subject. \n"
+"\n"
+"--icoorder order\n"
+"\n"
+"When the target subject is ico, this specifies the order of the \n"
+"icosahedron. Default is 7 (163842 vertices). \n"
+"\n"
+"--nsmooth N\n"
+"\n"
+"Perform N iterations of nearest-neighbor spatial smoothing. Note: \n"
+"smoothing is  performed on the surface of each source subject before \n"
+"resampling to the target subject.\n"
+"\n"
+"--beta_in betaname <fmt>\n"
+"\n"
+"This flag (with --var_in) allows the user to use a previous estimation \n"
+"as input to the contrast/inference computation. This arguments should \n"
+"be identical to that specified with --beta when doing the estimation.\n"
+"Note: the user must also specify a pointer to the residual error\n"
+"variance using --var_in.\n"
+"\n"
+"--var_in betaname <fmt>\n"
+"\n"
+"This flag (with --beta_in) allows the user to use a previous estimation \n"
+"as input to the contrast/inference computation. This arguments should be\n"
+"identical to that specified with --var when doing the estimation.\n"
+"\n"
+"--y name <fmt>\n"
+"\n"
+"Save the raw data (after resampling and smoothing) into a single 'volume'.\n"
+"fmt is the format (see OUTPUT FORMATS). If an FSGDF has been specified\n"
+"(with --fsgdf), then this file is copied to name.fsgdf. This can be\n"
+"useful for displaying scatter plots in tksurfer.\n"
+"\n"
+"--beta name <fmt>\n"
+"\n"
+"Save the result of estimation (ie, the map regression coefficients). \n"
+"This can be used in subsequent calls to mris_glm to perform.\n"
+"inference. fmt is the format (see OUTPUT FORMATS).\n"
+"\n"
+"--var name <fmt>\n"
+"\n"
+"Save the estimate of the noise variances (estimated as the variance\n"
+"of the residual error). This can be used in subsequent calls to \n"
+"mris_glm to perform inference.\n"
+"\n"
+"--yhat name <fmt>\n"
+"\n"
+"Save the estimate of the signal. This is only good for debugging.\n"
+"fmt is the format (see OUTPUT FORMATS).\n"
+"\n"
+"--eres name <fmt>\n"
+"\n"
+"Save the residual error. This is only good for debugging.\n"
+"fmt is the format (see OUTPUT FORMATS).\n"
+"\n"
+"--xmat name \n"
+"\n"
+"Save the design matrix in matlab4 format. This is only good for \n"
+"debugging. fmt is the format (see OUTPUT FORMATS).\n"
+"\n"
+"--contrast fname\n"
+"\n"
+"Load the group contrast vector from the ascii file fname. The \n"
+"contrast vector should have as many entries as there are columns\n"
+"in the design matrix. The contrast vector can also be specified \n"
+"on the command-line with --gcv.\n"
+"\n"
+"--gcv c1 ... cN\n"
+"\n"
+"Specify the group contrast vector (gcv) on the command-line as the\n"
+"values c1 ... cN. The contrast vector should have as many entries as \n"
+"there are columns in the design matrix. The contrast vector can also \n"
+"be specified in a file with --contrast.\n"
+"\n"
+"--ces name <fmt>\n"
+"\n"
+"Save the contrast effect size from the contrast vector specified\n"
+"with --contrast or --gcv. fmt is the format (see OUTPUT FORMATS).\n"
+"\n"
+"--t name <fmt>\n"
+"\n"
+"Save the t-ratio of the contrast.\n"
+"\n"
+"--sigt name <fmt>\n"
+"\n"
+"Save the signficance (p-value) of the t-ratio of the contrast. The\n"
+"value is actually the -log10 of the significance with the same\n"
+"sign as the t-ratio from which it was computed. The significance\n"
+"is computed from a double-sided t-test and is NOT corrected for\n"
+"multiple comparisons across space. fmt is the format (see OUTPUT \n"
+"FORMATS).\n"
+"\n"
+"--force\n"
+"\n"
+"Force processing eventhough the design matrix condition number \n"
+"exceeds 10000.\n"
+"\n"
+"\n"
+"--synth seed\n"
+"\n"
+"Substitute white gaussian noise for the data. Good for debugging.\n"
+"\n"
+"--sd subjectsdir\n"
+"\n"
+"Look for FreeSurfer reconstructions in subjectsdir. If unspecified,\n"
+"the SUBJECTS_DIR envionment variable will be used.\n"
+"\n"
+"--allowsubjrep\n"
+"\n"
+"Allow repetitions in the subject name in the fsgdf file. This is\n"
+"only usefull for testing purposes.\n"
+"\n"
+"\n"
+"OUTPUT FORMATS:\n"
+"\n"
+"Output formats can be designated by specifying a format string\n"
+"following the the output name. Valid strings include bfloat,\n"
+"bshort, spm, analyze, analyze4d, COR, paint, w, and wfile. Paint,\n"
+"w, and wfile cannot be used for beta, y, yhat, or eres.\n"
+"\n"
+"\n"
+"EXAMPLES:\n"
+"\n"
+"1. Analyze thickness maps based on gender and age for 5 hypothetical\n"
+"subjects: subj1 (m, 22) , subj2 (m, 57), subj3 (f, 33), subj4 (f, 65), \n"
+"subj5 (m, 27). The design matrix would look something like:\n"
+"\n"
+"   subj1  1  0  22\n"
+"   subj2  1  0  57\n"
+"   subj3  0  1  33\n"
+"   subj4  0  1  65\n"
+"   subj5  1  0  27\n"
+"\n"
+"The first column is the name of the subject as it appears in the\n"
+"FreeSurfer SubjectsDir. The second and third columns categorically\n"
+"code gender (first column male, second column female). The last\n"
+"column codes age. Assume this matrix is stored in a file called\n"
+"genage.mtx\n"
+"\n"
+"  mris_glm --design genage.mtx --hemi lh --surfmeas thickness \n"
+"    --trgsubj average7 --nsmooth 50 --beta beta bfloat \n"
+"    --var var bfloat \n"
+"\n"
+"This will read the thickness maps for each of the subjects, smooth\n"
+"it with 50 iterations of nearest-neighbor smoothing, resample to\n"
+"the average7 subject and save the regression coeffients and\n"
+"noise variance, both in bfloat format No inference was performed.\n"
+"\n"
+"2. Test the data in Example 1 for an effect of age:\n"
+"\n"
+"  mris_glm --design genage.mtx --hemi lh --trgsubj average7 \n"
+"      --beta_in beta bfloat --var_in var bfloat \n"
+"      --gcv 0 0 1 --sigt ./age-sigt-lh.w paint\n"
+"\n"
+"3. Test the data in Example 1 for a difference between males \n"
+"and females with age regressed out:\n"
+"\n"
+"  mris_glm --design genage.mtx --hemi lh --trgsubj average7 \n"
+"      --beta_in beta bfloat --var_in var bfloat \n"
+"      --gcv 1 -1 0 --sigt ./gender-sigt-lh.w paint\n"
+"\n"
+"4. Perform the same analysis as done in Example 1, but use \n"
+"values that have been painted onto the surface of each subject\n"
+"(this could have come from an fMRI analysis):\n"
+"\n"
+"  mris_glm --design genage.mtx --hemi lh\n"
+"    --ifmt paint --i ./subj1-data-lh.w ./subj2-data-lh.w \n"
+"    ./subj3-data-lh.w ./subj4-data-lh.w ./subj5-data-lh.w\n"
+"    --trgsubj average7 --nsmooth 50 --beta beta bfloat \n"
+"    --var var bfloat \n"
+"\n"
+"BUGS\n"
+"\n"
+"No correction for multiple comparisons.\n"
+"\n"
+"BUG REPORTING\n"
+"\n"
+"If you want your bug report or question to have a prayer of being\n"
+"answered, make sure to include the following information (send to\n"
+"freesurfer@surfer.nmr.mgh.harvard.edu): (1) version of mris_glm\n"
+"(run with --version), (2) full command-line used, (3) terminal\n"
+"output, (4) description of the problem. \n"
+"\n"
 
 
 );

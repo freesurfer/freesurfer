@@ -108,7 +108,7 @@ main(int argc, char *argv[])
   TRANSFORM     *transform ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_ca_label.c,v 1.41 2003/07/09 21:40:58 fischl Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ca_label.c,v 1.42 2003/09/05 04:45:32 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

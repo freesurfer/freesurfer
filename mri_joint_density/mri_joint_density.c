@@ -38,7 +38,7 @@ main(int argc, char *argv[])
 	Real         val1, val2 ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_joint_density.c,v 1.2 2003/05/13 19:33:15 fischl Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_joint_density.c,v 1.3 2003/09/05 04:45:34 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

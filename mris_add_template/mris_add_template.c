@@ -13,7 +13,7 @@
 #include "macros.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_add_template.c,v 1.4 2003/04/17 17:23:17 kteich Exp $";
+static char vcid[] = "$Id: mris_add_template.c,v 1.5 2003/09/05 04:45:39 kteich Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -45,7 +45,7 @@ main(int argc, char *argv[])
   MRI_SP       *mrisp, *mrisp_template ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_add_template.c,v 1.4 2003/04/17 17:23:17 kteich Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_add_template.c,v 1.5 2003/09/05 04:45:39 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

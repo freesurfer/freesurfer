@@ -4,7 +4,7 @@
    Date: 8/24/03
    Purpose: Create a new registration matrix that will map a functional
    to the orig of another subject.
-   $Id: mkxsubjreg.c,v 1.1 2003/08/24 22:03:22 greve Exp $
+   $Id: mkxsubjreg.c,v 1.2 2003/09/05 04:45:31 kteich Exp $
 */
 
 #include <stdio.h>
@@ -21,6 +21,7 @@
 #include "mri.h"
 #include "registerio.h"
 #include "fio.h"
+#include "version.h"
 
 static int  parse_commandline(int argc, char **argv);
 static void check_options(void);
@@ -34,7 +35,7 @@ static int  singledash(char *flag);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mkxsubjreg.c,v 1.1 2003/08/24 22:03:22 greve Exp $";
+static char vcid[] = "$Id: mkxsubjreg.c,v 1.2 2003/09/05 04:45:31 kteich Exp $";
 char *Progname = NULL;
 
 char *srcregpath  = NULL;
@@ -141,8 +142,15 @@ static int parse_commandline(int argc, char **argv)
 {
   int  nargc , nargsused;
   char **pargv, *option ;
+  int nargs;
 
   if(argc < 1) usage_exit();
+
+  /* rkt: check for and handle version tag */
+  nargs = handle_version_option (argc, argv, "$Id: mkxsubjreg.c,v 1.2 2003/09/05 04:45:31 kteich Exp $", "$Name:  $");
+  if (nargs && argc - nargs == 1)
+    exit (0);
+  argc -= nargs;
 
   nargc   = argc;
   pargv = argv;

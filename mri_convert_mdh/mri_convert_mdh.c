@@ -10,9 +10,10 @@
 #include "error.h"
 #include "diag.h"
 #include "fio.h"
+#include "version.h"
 
 #ifndef lint
-static char vcid[] = "$Id: mri_convert_mdh.c,v 1.6 2003/07/01 15:23:01 tosa Exp $";
+static char vcid[] = "$Id: mri_convert_mdh.c,v 1.7 2003/09/05 04:45:32 kteich Exp $";
 #endif /* lint */
 
 #define MDH_SIZE    128        //Number of bytes in the miniheader
@@ -99,6 +100,13 @@ int main(int argc, char **argv)
   char *mdhascfile;
   long nHit, nHitTot, nHitPCN, nHitTotExp, nHit10pct;
   MDH *mdh = NULL;
+  int nargs;
+
+  /* rkt: check for and handle version tag */
+  nargs = handle_version_option (argc, argv, "$Id: mri_convert_mdh.c,v 1.7 2003/09/05 04:45:32 kteich Exp $", "$Name:  $");
+  if (nargs && argc - nargs == 1)
+    exit (0);
+  argc -= nargs;
 
   Progname = argv[0] ;
   argc --;
@@ -502,50 +510,50 @@ static void print_help(void)
   printf("\n");
   printf("%s\n", vcid) ;
   printf("\n");
-  printf("
+  printf(
 
-Probes or converts a Siemens proprietary format (MDH) file to MGH format. 
-
-If an output directory is not specified, then the MDH file is probed,
-and the various parameters are printed to stdout.
-
-When an output is specified, the output will have two parts: phase
-correction navigators and echos.  The phase correction navigators will
-be stored in pcnr.mgh (real) and pcni.mgh (imaginary).  The echos will
-be stored in echoNr.mgh (real) and echoNi.mgh (imaginary), where N is
-the echo number (starting with 0).
-
---srcdir dir
-
-Directory with the meas.out file and the ascii file. The meas.out file
-contains the measured k-space data in Siemens MDH format (which includes
-miniheaders). The meas.out file must be accompanied by an ascii file
-called either MrProt.asc or mrprot.asc (NUMARIS 4 VA15) or meas.asc
-(NUMARIS 4 VA21). The version is determined by the name of this file.
-
---outdir dir
-
-Directory where the ouput will be stored. If this directory does not
-exist, it will be created (only for one level). 
-
---rev
-
-Reverse the readouts for even lines. Bug: should reverse lines for
-even number echos, but does not do this yet.
-
-BUGS:
-
-Lines of even-numbered echos are not reversed with --rev.
-
-Does not handle version V21 yet.
-
-Does not handle 3D sequences yet.
-
-Does not handle FLASH  sequences yet.
-
-Does not handle multiple channels yet.
-
-  ");
+"Probes or converts a Siemens proprietary format (MDH) file to MGH format. \n"
+"\n"
+"If an output directory is not specified, then the MDH file is probed,\n"
+"and the various parameters are printed to stdout.\n"
+"\n"
+"When an output is specified, the output will have two parts: phase\n"
+"correction navigators and echos.  The phase correction navigators will\n"
+"be stored in pcnr.mgh (real) and pcni.mgh (imaginary).  The echos will\n"
+"be stored in echoNr.mgh (real) and echoNi.mgh (imaginary), where N is\n"
+"the echo number (starting with 0).\n"
+"\n"
+"--srcdir dir\n"
+"\n"
+"Directory with the meas.out file and the ascii file. The meas.out file\n"
+"contains the measured k-space data in Siemens MDH format (which includes\n"
+"miniheaders). The meas.out file must be accompanied by an ascii file\n"
+"called either MrProt.asc or mrprot.asc (NUMARIS 4 VA15) or meas.asc\n"
+"(NUMARIS 4 VA21). The version is determined by the name of this file.\n"
+"\n"
+"--outdir dir\n"
+"\n"
+"Directory where the ouput will be stored. If this directory does not\n"
+"exist, it will be created (only for one level). \n"
+"\n"
+"--rev\n"
+"\n"
+"Reverse the readouts for even lines. Bug: should reverse lines for\n"
+"even number echos, but does not do this yet.\n"
+"\n"
+"BUGS:\n"
+"\n"
+"Lines of even-numbered echos are not reversed with --rev.\n"
+"\n"
+"Does not handle version V21 yet.\n"
+"\n"
+"Does not handle 3D sequences yet.\n"
+"\n"
+"Does not handle FLASH  sequences yet.\n"
+"\n"
+"Does not handle multiple channels yet.\n"
+"\n"
+  );
   exit(1) ;
 }
 /* --------------------------------------------- */

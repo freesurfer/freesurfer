@@ -44,7 +44,7 @@ main(int argc, char *argv[])
   int     nargs, error, i ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_train.c,v 1.17 2003/04/16 18:01:32 kteich Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_train.c,v 1.18 2003/09/05 04:45:38 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

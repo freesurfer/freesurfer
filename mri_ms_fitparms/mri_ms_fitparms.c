@@ -69,7 +69,7 @@ main(int argc, char *argv[])
   double rms ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_ms_fitparms.c,v 1.13 2003/08/19 20:05:54 ebeth Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ms_fitparms.c,v 1.14 2003/09/05 04:45:34 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

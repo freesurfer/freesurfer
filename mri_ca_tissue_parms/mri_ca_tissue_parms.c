@@ -47,7 +47,7 @@ main(int argc, char *argv[])
   FILE         *fp ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_ca_tissue_parms.c,v 1.5 2003/04/16 19:28:50 fischl Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ca_tissue_parms.c,v 1.6 2003/09/05 04:45:32 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

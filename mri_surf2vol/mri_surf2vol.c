@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: converts values on a surface to a volume
-  $Id: mri_surf2vol.c,v 1.6 2003/05/15 21:11:23 greve Exp $
+  $Id: mri_surf2vol.c,v 1.7 2003/09/05 04:45:38 kteich Exp $
 */
 
 #include <stdio.h>
@@ -42,7 +42,7 @@ static int istringnmatch(char *str1, char *str2, int n);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surf2vol.c,v 1.6 2003/05/15 21:11:23 greve Exp $";
+static char vcid[] = "$Id: mri_surf2vol.c,v 1.7 2003/09/05 04:45:38 kteich Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -96,7 +96,7 @@ int main(int argc, char **argv)
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_surf2vol.c,v 1.6 2003/05/15 21:11:23 greve Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_surf2vol.c,v 1.7 2003/09/05 04:45:38 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
