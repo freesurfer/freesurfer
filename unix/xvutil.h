@@ -100,6 +100,8 @@ void XVdrawArrow(XV_FRAME *xvf, int which, int x, int y, float dx, float dy,
                int color) ;
 void XVdrawPoint(XV_FRAME *xvf, int which, int x, int y, int color) ;
 void XVsetParms(void (*event_handler)(Event *event, DIMAGE *dimage)) ;
+void XVsetKBhandler(void (*kb_handler)(Event *event, DIMAGE *dimage)) ;
+void XVsetRepaintHandler(void (*repaint_handler)(XV_FRAME *xvf,DIMAGE *dimage));
 void XVshowVectorImage(XV_FRAME *xvf, int which, int x0, int y0, 
                   int width, int height, int color, IMAGE *image) ;
 void XVsetQuitFunc(void (*quit_func)(void)) ;

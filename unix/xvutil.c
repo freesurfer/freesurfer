@@ -102,7 +102,9 @@ static Panel           hips_cmd_panel ;
 static char            hips_cmd_str[301] ;
 static int             hips_cmd_source = 0 ;
 static void            (*XVevent_handler)(Event *event, DIMAGE *dimage) = NULL;
+static void            (*XVkb_handler)(Event *event, DIMAGE *dimage) = NULL;
 static void            (*XVquit_func)(void) = NULL;
+static void            (*XVrepaint_handler)(XV_FRAME *xvf, DIMAGE *dimage)=NULL;
 
 /*----------------------------------------------------------------------
             Parameters:
@@ -398,11 +400,8 @@ xvInitImages(XV_FRAME *xvf)
       dimage->ximage = xvCreateXimage(xvf, dimage->dispImage) ;
       xv_set(canvas_paint_window(dimage->canvas),
              WIN_EVENT_PROC, xv_dimage_event_handler,
-             WIN_CONSUME_EVENTS,  MS_LEFT,
-             LOC_DRAG,
-             MS_RIGHT,
-             MS_MIDDLE,
-             NULL,
+             WIN_CONSUME_EVENTS,  MS_LEFT, LOC_DRAG, MS_RIGHT, MS_MIDDLE, 
+                     WIN_ASCII_EVENTS, NULL,
              NULL);
       dimage->window = 
         (Window)xv_get(canvas_paint_window(dimage->canvas),XV_XID);
@@ -503,6 +502,8 @@ XVrepaintImage(XV_FRAME *xvf, int which)
   image = dimage->dispImage ;
   XPutImage(xvf->display, (Drawable)dimage->window, xvf->gc, dimage->ximage, 
             0, 0, 0, 0, image->cols, image->rows);
+  if (XVrepaint_handler)
+    (*XVrepaint_handler)(xvf, dimage) ;
 }
 /*----------------------------------------------------------------------
             Parameters:
@@ -729,7 +730,9 @@ xv_dimage_event_handler(Xv_Window xv_window, Event *event)
       }
     break ;
   default:
-    return ;
+    if (!event_is_ascii(event))
+      return ;
+    break ;
   }
   if (XVevent_handler)
   {
@@ -747,6 +750,16 @@ void
 XVsetParms(void (*event_handler)(Event *event, DIMAGE *dimage))
 {
   XVevent_handler = event_handler ;
+}
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+----------------------------------------------------------------------*/
+void
+XVsetRepaintHandler(void (*repaint_handler)(XV_FRAME *xvf, DIMAGE *dimage))
+{
+  XVrepaint_handler = repaint_handler ;
 }
 /*----------------------------------------------------------------------
             Parameters:
@@ -1259,3 +1272,9 @@ XVshowVectorImage(XV_FRAME *xvf, int which, int xo, int yo,
     }
   }
 }
+void
+XVsetKBhandler(void (*kb_handler)(Event *event, DIMAGE *dimage))
+{
+  XVkb_handler = kb_handler ;
+}
+
