@@ -64,6 +64,7 @@ case "${host}" in
  SHARED_LDFLAGS="-shared"
  ;; 
  powerpc64-*)
+ # not to define Linux
  OS=BIGENDIAN
  OS_CPPFLAGS="-Wall -fwritable-strings"
  OS_LDFLAGS="-all-static"
