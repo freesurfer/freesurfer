@@ -11,7 +11,7 @@ function err = fast_svbslice(y,stem,sliceno,bext,mristruct)
 %
 % See also fast_ldbslice, fast_mri_struct, fast_svbhdr.
 % 
-% $Id: fast_svbslice.m,v 1.10 2003/12/19 22:15:42 greve Exp $
+% $Id: fast_svbslice.m,v 1.11 2004/01/12 02:29:40 greve Exp $
 
 err = 1;
 
@@ -35,10 +35,16 @@ if(sliceno >= 0)
   if(err) return; end
 else
   % Save as an entire volume %
+  nrows = size(y,1);
+  ncols = size(y,2);
   nslices = size(y,3);
+  nframes = size(y,4);
+  yslice = zeros(nrows,ncols,nframes);
   for slice = 0:nslices-1
     fname = sprintf('%s_%03d.%s',stem,slice,bext);
-    err = fmri_svbfile(squeeze(y(:,:,slice+1,:)),fname);
+    % Cant squeeze y in case nrows or ncols == 1
+    yslice = y(:,:,slice+1,:);
+    err = fmri_svbfile(yslice,fname);
     if(err) return; end
   end
 
