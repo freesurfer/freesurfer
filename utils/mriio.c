@@ -4866,9 +4866,11 @@ static MRI *analyzeRead(char *fname, int read_volume)
     /* 4 coronal flipped 	R-L 	S-I 	P-A     */
     /* 5 sagittal flipped 	P-A 	S-I 	R-L     */
     
-    /* "flirt" distributes analyze format image which as a marked LR */
-    /* in fls/etc/standard/avg152T1_LR-marked.img.  The convention */
-    /* is tested with this image for hdr->hist.orient== 0 */
+    /* FLIRT distributes analyze format image which has a marked LR */
+    /* in fls/etc/standard/avg152T1_LR-marked.img.  The convention    */
+    /* is tested with this image for hdr->hist.orient== 0.              */
+    /* note that flirt image has negative pixdim[1], but their software */
+    /* ignores the sign anyway.                                         */
     if (hdr->hist.orient==0)  /* x = - r, y = a, z = s */
     {
       strcpy(direction, "transverse unflipped (default)");
