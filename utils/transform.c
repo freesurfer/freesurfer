@@ -716,6 +716,13 @@ ltaMNIread(char *fname)
   for (row = 1 ; row <= 3 ; row++)
   {
     cp = fgetl(line, 900, fp) ;
+    if (!cp)
+    {
+      LTAfree(&lta) ;
+      ErrorReturn(NULL,
+                  (ERROR_BADFILE, "ltMNIread: could not read row %d from %s",
+                   row, fname)) ;
+    }
     sscanf(cp, "%f %f %f %f",
            MATRIX_RELT(m_L,row,1), MATRIX_RELT(m_L,row,2), 
            MATRIX_RELT(m_L,row,3), MATRIX_RELT(m_L,row,4)) ;
