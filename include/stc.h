@@ -41,7 +41,7 @@ STC *StcRead(char *fname) ;
 STC_FILE *StcOpen(char* fname);
 void StcClose(STC_FILE* stc_file);
 STC_FRAME *StcReadFrame(int fno,STC_FILE* stc_file);
-int StcWriteFrame(int fno,STC_FILE* stc_file);
+int StcWriteFrame(STC_FILE* stc_file,STC_FRAME* cframe);
 int StcWrite(char *fname, MATRIX *m_data, float epoch_begin_lat,
              float sample_period, int *vertices, int nvertices) ;
 void StcFree(STC* stc);
