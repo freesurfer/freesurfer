@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: xhan $
-// Revision Date  : $Date: 2005/01/31 18:55:20 $
-// Revision       : $Revision: 1.320 $
+// Revision Date  : $Date: 2005/01/31 19:20:52 $
+// Revision       : $Revision: 1.321 $
 //////////////////////////////////////////////////////////////////
 #include <stdio.h>
 #include <string.h>
@@ -24172,6 +24172,7 @@ MRIStransform(MRI_SURFACE *mris, MRI *mri, LTA *lta, MRI *mri_dst)
     mri->x_s = lt->src.x_s; mri->y_s = lt->src.y_s; mri->z_s = lt->src.z_s; mri->c_s = lt->src.c_s;
     mri->xsize = lt->src.xsize; mri->ysize = lt->src.ysize; mri->zsize = lt->src.zsize;
     mri->ras_good_flag = 1;
+    MRIreInitCache(mri);
   }
   // if mri is not given, get it from the surface 
   else if (!mri && mris->vg.valid == 1){
@@ -24182,6 +24183,7 @@ MRIStransform(MRI_SURFACE *mris, MRI *mri, LTA *lta, MRI *mri_dst)
     mri->x_s = mris->vg.x_s; mri->y_s = mris->vg.y_s; mri->z_s = mris->vg.z_s; mri->c_s = mris->vg.c_s;
     mri->xsize = mris->vg.xsize; mri->ysize = mris->vg.ysize; mri->zsize = mris->vg.zsize;
     mri->ras_good_flag = 1;
+    MRIreInitCache(mri);
   }
   else if (!mri){
     error = 1;
