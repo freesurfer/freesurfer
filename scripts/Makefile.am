@@ -8,6 +8,7 @@ browse-sessions \
 check_subject \
 cor_to_minc \
 csurf \
+dcmdir-info-mgh \
 findsession \
 fix_subject \
 fix_subject_corrected \
