@@ -384,11 +384,11 @@ static int mrisDivideFace(MRI_SURFACE *mris, int fno, int vno1, int vno2,
 /*-------------------------- STATIC DATA -------------------------------*/
 
 /*-------------------------- FUNCTIONS -------------------------------*/
-int (*gMRISexternalGradient)(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) = NULL ;
+double (*gMRISexternalGradient)(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) = NULL ;
 double (*gMRISexternalSSE)(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) = NULL ;
 double (*gMRISexternalRMS)(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) = NULL ;
 int (*gMRISexternalTimestep)(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) = NULL ;
-
+int (*gMRISexternalRipVertices)(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)=NULL;
 
 /*-----------------------------------------------------
         Parameters:
@@ -2941,40 +2941,18 @@ MRISreadBinaryAreas(MRI_SURFACE *mris, char *mris_fname)
 int
 MRISwriteArea(MRI_SURFACE *mris, char *sname)
 {
-  int   k;
-  FILE  *fp;
-  char  *cp, fname[STRLEN], path[STRLEN] ;
+  float  *curv_save ;
 
-  if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
-    fprintf(stdout, "writing area file...") ;
+  curv_save = (float *)calloc(mris->nvertices, sizeof(float)) ;
+  if (!curv_save)
+    ErrorExit(ERROR_NOMEMORY, "MRISwriteArea: could not alloc %d vertex curv storage",
+              mris->nvertices) ;
 
-  cp = strchr(sname, '/') ;
-  if (!cp)                 /* no path - use same one as mris was read from */
-  {
-    FileNamePath(mris->fname, path) ;
-    sprintf(fname, "%s/%s", path, sname) ;
-  }
-  else   
-    strcpy(fname, sname) ;  /* path specified explcitly */
-
-  /*  mris->orig_area = 0.0f ;*/
-  fp = fopen(fname,"wb");
-  if (fp==NULL) 
-    ErrorReturn(ERROR_BADPARM, 
-              (ERROR_BADPARM,"mrisWriteBinaryAreas: no area file %s\n",fname));
-  fwrite3(mris->nvertices,fp);
-  fwrite3(mris->nfaces,fp);
-
-  for (k=0;k<mris->nvertices;k++)
-    fwriteFloat(mris->vertices[k].origarea, fp);
-  fclose(fp);
-
-  /* hack to correct for overestimation of area in compute_normals */
-#if 0
-  mris->orig_area /= 2; 
-  if (Gdiag & DIAG_SHOW)
-    fprintf(stdout, "total area = %2.0f.\n", mris->orig_area) ;
-#endif
+  MRISextractCurvatureVector(mris, curv_save) ;
+  MRISareaToCurv(mris) ;
+  MRISwriteCurvature(mris, sname) ;
+  MRISimportCurvatureVector(mris, curv_save) ;
+  free(curv_save) ;
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
@@ -5223,10 +5201,7 @@ MRIScomputeSSE(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   if (!FZERO(parms->l_sphere))
     sse_sphere = mrisComputeSphereError(mris, parms->l_sphere, parms->a) ;
 
-  if (gMRISexternalSSE)
-    sse = (*gMRISexternalSSE)(mris, parms) ;
-  else
-    sse = 0 ;
+  sse = 0 ;
 
   sse += 
     (double)parms->l_area      * sse_neg_area + sse_repulse + sse_tsmooth +
@@ -5244,6 +5219,31 @@ MRIScomputeSSE(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 
   if (mht_v_current)
     MHTfree(&mht_v_current) ;
+
+  return(sse) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+          this is the routine actually used for the numerical integration.
+          As such, it must represent the exact error function being
+          minimized (as opposed to computeError above).
+------------------------------------------------------*/
+double
+MRIScomputeSSEExternal(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
+                       double *ext_sse)
+{
+  double  sse ;
+
+  if (gMRISexternalSSE)
+    sse = (*gMRISexternalSSE)(mris, parms) ;
+  else
+    sse = 0 ;
+  *ext_sse = sse ;
+  sse += MRIScomputeSSE(mris, parms) ;
 
   return(sse) ;
 }
@@ -8642,6 +8642,8 @@ mrisComputeQuadraticCurvatureSSE(MRI_SURFACE *mris, double l_curv)
     a = VECTOR_ELT(v_A, 1) ;
     b = VECTOR_ELT(v_A, 2) ;
     sse += b*b ;
+    if (vno == Gdiag_no)
+      printf("v %d: curvature sse %2.2f\n", vno, b*b) ;
     MatrixFree(&m_R) ; VectorFree(&v_Y) ; MatrixFree(&m_R_inv) ;
   }
 
@@ -12800,9 +12802,9 @@ mrisComputeRepulsiveEnergy(MRI_SURFACE *mris, double l_repulse, MHT *mht)
     }
     sse_repulse += v_sse ;
 
-    if (vno == Gdiag_no)
+    if (vno == Gdiag_no && !FZERO(v_sse))
     {
-      printf("v %d repulse term:    min_dist=%2.4f, v_sse %2.4f\n", vno, 
+      printf("v %d: repulse sse:    min_dist=%2.4f, v_sse %2.4f\n", vno, 
               min_d, v_sse) ;
     }
   }
@@ -12929,7 +12931,7 @@ mrisComputeRepulsiveTerm(MRI_SURFACE *mris, double l_repulse, MHT *mht)
   if (FZERO(l_repulse))
     return(NO_ERROR) ;
 
-  min_d = 1000.0 ; min_scale = 1.0 ; min_vno = 0 ;
+  min_d = 100000.0 ; min_scale = 1.0 ; min_vno = 0 ;
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
     v = &mris->vertices[vno] ;
@@ -12976,7 +12978,7 @@ mrisComputeRepulsiveTerm(MRI_SURFACE *mris, double l_repulse, MHT *mht)
       sx *= scale ; sy *= scale ; sz *= scale ;
     }
     v->dx += sx ; v->dy += sy ; v->dz += sz ;
-    if (vno == Gdiag_no)
+    if ((vno == Gdiag_no) && min_d < 1000)
     {
       vn = &mris->vertices[min_vno] ;
       dx = x - vn->x ; dy = y - vn->y ; dz = z - vn->z ; 
@@ -16111,8 +16113,8 @@ int
 MRISpositionSurfaces(MRI_SURFACE *mris, MRI **mri_flash, int nvolumes, INTEGRATION_PARMS *parms)
 {
   /*  char   *cp ;*/
-  int    niterations, n, write_iterations, nreductions = 0, done ;
-  double pial_sse, sse, wm_sse, delta_t = 0.0, dt, l_intensity, base_dt, last_sse, rms,
+  int    niterations, n, write_iterations, nreductions = 0, ripped = 0 ;
+  double pial_sse, sse, wm_sse, delta_t = 0.0, dt, l_intensity, base_dt, last_sse, rms, mle_sse, 
          pct_sse_decrease, l_repulse, l_surf_repulse, last_wm_sse, last_pial_sse ;
   MHT    *mht = NULL ;
   struct timeb  then ; int msec ;
@@ -16154,12 +16156,16 @@ MRISpositionSurfaces(MRI_SURFACE *mris, MRI **mri_flash, int nvolumes, INTEGRATI
 
   MRISrestoreVertexPositions(mris, ORIGINAL_VERTICES) ;
   MRIScomputeMetricProperties(mris) ;
-  wm_sse = MRIScomputeSSE(mris, parms) ;
+  wm_sse = MRIScomputeSSEExternal(mris, parms, &mle_sse) ;
   MRISrestoreVertexPositions(mris, PIAL_VERTICES) ;
   MRIScomputeMetricProperties(mris) ;
   pial_sse = MRIScomputeSSE(mris, parms) ;
   sse = last_sse = wm_sse + pial_sse ;
+#if 0
   rms = (*gMRISexternalRMS)(mris, parms) ;
+#else
+  rms = sqrt(mle_sse/(float)mris->nvertices) ;
+#endif
 
   if (Gdiag & DIAG_SHOW)
     fprintf(stdout, "%3.3d: dt: %2.4f, sse=%2.2f, pial sse=%2.2f, wm sse=%2.2f, rms=%2.2f\n", 
@@ -16182,7 +16188,7 @@ MRISpositionSurfaces(MRI_SURFACE *mris, MRI **mri_flash, int nvolumes, INTEGRATI
     mrisWriteSnapshots(mris, parms, 0) ;
 
   dt = parms->dt ; l_intensity = parms->l_intensity ;
-  mris->noscale = TRUE ; done = 0 ; l_repulse = parms->l_repulse ;
+  mris->noscale = TRUE ; l_repulse = parms->l_repulse ;
   l_surf_repulse = parms->l_surf_repulse ;
   for (n = parms->start_t ; n < parms->start_t+niterations ; n++)
   {
@@ -16193,7 +16199,7 @@ MRISpositionSurfaces(MRI_SURFACE *mris, MRI **mri_flash, int nvolumes, INTEGRATI
     MRISsaveVertexPositions(mris, TMP_VERTICES) ;          /* white->tmp */
     MRIScomputeMetricProperties(mris) ;
     if (gMRISexternalGradient)
-      (*gMRISexternalGradient)(mris, parms) ;
+      mle_sse = (*gMRISexternalGradient)(mris, parms) ;
 
 
     parms->l_repulse = l_repulse ;  /* use self-repulsion for wm surface */
@@ -16201,9 +16207,9 @@ MRISpositionSurfaces(MRI_SURFACE *mris, MRI **mri_flash, int nvolumes, INTEGRATI
     mrisComputePositioningGradients(mris, parms) ;
     if (!(parms->flags & IPFLAG_NO_SELF_INT_TEST))
       mht = MHTfillTable(mris, mht) ;
+    last_wm_sse = MRIScomputeSSE(mris,parms) ;
     delta_t = mrisAsynchronousTimeStepNew(mris, 0, dt, mht, MAX_ASYNCH_NEW_MM) ;
     MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ;
-    last_wm_sse = MRIScomputeSSE(mris,parms) ;
     if (gMRISexternalTimestep)
       (*gMRISexternalTimestep)(mris, parms) ;
     wm_sse = MRIScomputeSSE(mris, parms) ;  /* needs update orig to compute sse */
@@ -16219,13 +16225,13 @@ MRISpositionSurfaces(MRI_SURFACE *mris, MRI **mri_flash, int nvolumes, INTEGRATI
     mrisComputePositioningGradients(mris, parms) ;
     if (!(parms->flags & IPFLAG_NO_SELF_INT_TEST))
       mht = MHTfillTable(mris, mht) ;
+    last_pial_sse = MRIScomputeSSE(mris,parms) + mle_sse ;
     delta_t += mrisAsynchronousTimeStepNew(mris, 0, dt, mht, MAX_ASYNCH_NEW_MM) ;
     MRISsaveVertexPositions(mris, PIAL_VERTICES) ;
-    last_pial_sse = MRIScomputeSSE(mris,parms) ;
     if (gMRISexternalTimestep)
       (*gMRISexternalTimestep)(mris, parms) ;
     delta_t /= 2 ;
-    pial_sse = MRIScomputeSSE(mris, parms) ;  /* needs update orig to compute sse */
+    pial_sse = MRIScomputeSSEExternal(mris, parms, &mle_sse) ;  /* needs update orig to compute sse */
     last_sse = last_wm_sse + last_pial_sse ;
     sse = wm_sse + pial_sse ;
 
@@ -16246,14 +16252,32 @@ MRISpositionSurfaces(MRI_SURFACE *mris, MRI **mri_flash, int nvolumes, INTEGRATI
         if (gMRISexternalTimestep)
           (*gMRISexternalTimestep)(mris, parms) ;
         sse = last_sse ;
-        if (nreductions > MAX_REDUCTIONS || 1)
+        nreductions = MAX_REDUCTIONS+1 ;
+        if (ripped)
           break ;
-        n-- ; continue ;   /* don't count this as a time step */
+        n-- ; /* don't count this as a time step */
       }
       else
       {
         printf("error decreased by %2.4f%% - %dth time step reduction: dt=%2.3f\n",
                100.0f*pct_sse_decrease, nreductions, dt) ;
+      }
+      if ((nreductions > MAX_REDUCTIONS))
+      {
+#if 0
+        if (ripped == 0)
+        {
+          nreductions = 0 ;
+          dt = parms->dt ;
+          ripped = 1 ;
+          nreductions = 0 ;
+          printf("****** ripping vertices that have asymptoted *****\n") ;
+          if (gMRISexternalRipVertices)
+            (*gMRISexternalRipVertices)(mris, parms) ;
+          continue ;
+        }
+#endif
+        n++ ; break ;
       }
     }
 
@@ -16281,13 +16305,18 @@ MRISpositionSurfaces(MRI_SURFACE *mris, MRI **mri_flash, int nvolumes, INTEGRATI
        distances will have changed */
     MRISrestoreVertexPositions(mris, ORIGINAL_VERTICES) ;
     MRIScomputeMetricProperties(mris) ;
+#if 0
     wm_sse = MRIScomputeSSE(mris, parms) ;
     MRISrestoreVertexPositions(mris, PIAL_VERTICES) ;
     MRIScomputeMetricProperties(mris) ;
     pial_sse = MRIScomputeSSE(mris, parms) ;
     sse = last_sse = wm_sse + pial_sse ;
-
+#endif
+#if 0
     rms = (*gMRISexternalRMS)(mris, parms) ;
+#else
+    rms = sqrt(mle_sse/(float)mris->nvertices) ;
+#endif
     if (Gdiag & DIAG_SHOW)
       printf("%3.3d: dt: %2.4f, sse=%2.2f, pial sse=%2.2f, wm sse=%2.2f, rms=%2.2f, (%2.2f%%)\n",
               n+1,(float)delta_t, (float)sse/(float)mris->nvertices, 
@@ -16312,12 +16341,14 @@ MRISpositionSurfaces(MRI_SURFACE *mris, MRI **mri_flash, int nvolumes, INTEGRATI
 
     if ((Gdiag & DIAG_SHOW) && !((n+1)%5))
       MRISprintTessellationStats(mris, stderr) ;
-    if (nreductions > MAX_REDUCTIONS)
+    if ((nreductions > MAX_REDUCTIONS) && ripped)
     {
       n++ ;  /* count this step */
       break ;
     }
   }
+
+  MRISunrip(mris) ;
 
   parms->start_t = n ; parms->dt = base_dt ;
   if (Gdiag & DIAG_SHOW)
@@ -21651,7 +21682,7 @@ mrisDivideFace(MRI_SURFACE *mris, int fno, int vno1, int vno2, int vnew_no)
 {
   FACE   *f1, *f2 ;
   VERTEX *v1, *v2, *v3, *vnew ;
-  int    fnew_no, n, vno3, flist[500], vlist[500], nlist[500] ;
+  int    fnew_no, n, vno3, flist[5000], vlist[5000], nlist[5000] ;
 
   if (vno1 == Gdiag_no || vno2 == Gdiag_no || vnew_no == Gdiag_no)
     DiagBreak() ;
@@ -26464,10 +26495,11 @@ vertexNeighbor(MRI_SURFACE *mris, int vno1, int vno2)
         Description
            Add the edge vnot <--> vno2 to the tessellation
 ------------------------------------------------------*/
+#define MAX_VLIST 10000
 static int
 mrisAddEdge(MRI_SURFACE *mris, int vno1, int vno2)
 {
-  int    vlist[100] ;
+  int    vlist[MAX_VLIST] ;
   VERTEX *v ;
 
   if (vno1 < 0 || vno2 < 0)
@@ -26477,6 +26509,9 @@ mrisAddEdge(MRI_SURFACE *mris, int vno1, int vno2)
 
   if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
     fprintf(stdout, "adding edge %d <--> %d\n", vno1, vno2) ;
+
+  if (v->vnum >= MAX_VLIST-1)
+    ErrorExit(ERROR_NOMEMORY, "mrisAddEdge: too many edges (%d)",v->vnum) ;
 
   /* add v2 link to v1 struct */
   v = &mris->vertices[vno1] ;
@@ -29439,6 +29474,22 @@ MRISorigAreaToCurv(MRI_SURFACE *mris)
     if (v->ripflag)
       continue ;
     v->curv = v->origarea ;
+  }
+  return(NO_ERROR) ;
+}
+
+int
+MRISareaToCurv(MRI_SURFACE *mris)
+{
+  int     vno ;
+  VERTEX  *v ;
+
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    v->curv = v->area ;
   }
   return(NO_ERROR) ;
 }
