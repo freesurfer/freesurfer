@@ -15,7 +15,7 @@
 #include "mrishash.h"
 #include "macros.h"
 
-static char vcid[] = "$Id: mris_make_surfaces.c,v 1.5 1998/11/11 17:30:09 fischl Exp $";
+static char vcid[] = "$Id: mris_make_surfaces.c,v 1.6 1998/11/11 22:09:53 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -28,20 +28,18 @@ static int  mrisFindMiddleOfGray(MRI_SURFACE *mris) ;
 
 char *Progname ;
 
-static float nsigma = 0.0f ;  /* not used for gray matter currently */
 static float sigma = 0.5f ;  /* should be around 1 */
 
 static INTEGRATION_PARMS  parms ;
 #define BASE_DT_SCALE    1.0
 static float base_dt_scale = BASE_DT_SCALE ;
 
-static int nsigma_set = 0 ;
 
 static int smooth = 2 ;
 static int nwhite = 15 /*25*/ ;
 static int ngray = 65 /*100*/ ;
 
-static float gray_surface = 65.0f ;
+static float gray_surface = 55.0f ;
 static int nbrs = 2 ;
 static int write_vals = 0 ;
 
@@ -179,8 +177,6 @@ main(int argc, char *argv[])
     MRISwriteValues(mris, fname) ;
   }
   fprintf(stderr, "repositioning cortical surface to gray/white boundary.\n");
-  if (!nsigma_set)
-    nsigma = 0.1f ;
   strcpy(parms.base_name, WHITE_MATTER_NAME) ;
 
 
@@ -201,8 +197,6 @@ main(int argc, char *argv[])
   else
     mri_smooth = mri_T1 ;
 
-  if (!nsigma_set)
-    nsigma = 1.5f ;
   fprintf(stderr, "repositioning cortical surface to gray/csf boundary.\n") ;
   MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ; /* save white-matter */
   parms.niterations = ngray ;
@@ -214,7 +208,6 @@ main(int argc, char *argv[])
     sprintf(fname, "./%s-gray.w", hemi) ;
     MRISwriteValues(mris, fname) ;
   }
-  MRISwriteValues(mris, fname) ; 
   MRISpositionSurface(mris, mri_T1, mri_smooth,&parms);
 
   sprintf(fname, "%s/%s/surf/%s.%s", sdir, sname, hemi, GRAY_MATTER_NAME) ;
@@ -256,14 +249,6 @@ get_option(int argc, char *argv[])
     print_help() ;
   else if (!stricmp(option, "-version"))
     print_version() ;
-  else if (!stricmp(option, "nsigma"))
-  {
-    nsigma_set = 1 ;
-    nsigma = atof(argv[2]) ;
-    fprintf(stderr,  "searching for boundary %2.1f standard deviations "
-            "from mean\n", nsigma) ;
-    nargs = 1 ;
-  }
   else if (!stricmp(option, "nbrs"))
   {
     nbrs = atoi(argv[2]) ;
