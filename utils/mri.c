@@ -8,10 +8,10 @@
  *
  */
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2004/11/22 21:30:15 $
-// Revision       : $Revision: 1.280 $
-char *MRI_C_VERSION = "$Revision: 1.280 $";
+// Revision Author: $Author: tosa $
+// Revision Date  : $Date: 2004/11/30 16:03:46 $
+// Revision       : $Revision: 1.281 $
+char *MRI_C_VERSION = "$Revision: 1.281 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -24,7 +24,6 @@ char *MRI_C_VERSION = "$Revision: 1.280 $";
 #include <string.h>
 #include <memory.h>
 #include <errno.h>
-
 #include "error.h"
 #include "proto.h"
 #include "mri.h"
@@ -418,6 +417,20 @@ MATRIX *MRIfixTkReg(MRI *mov, MATRIX *R)
   compatible with tkregister.  Note: the FSL matrix is assumed to map
   from the mov to the ref whereas the tkreg matrix maps from the ref
   to the mov.
+
+      mov voxel --(Tmov)--> tkRegXYZ(mov)
+       ^                          ^
+       | inv(Dmov)                |
+       |                          |
+      mov' physvox                |
+       ^                          |
+       | inv(Mfsl)                | R
+       |                          |
+      ref' physvox                |
+       ^                          |
+       | Dref                     |
+       |                          |
+      ref voxel <--inv(Tref)--tkRegXYZ(ref)
   -------------------------------------------------------------------*/
 MATRIX *MRIfsl2TkReg(MRI *ref, MRI *mov, MATRIX *FSLRegMat)
 {
@@ -463,6 +476,21 @@ MATRIX *MRIfsl2TkReg(MRI *ref, MRI *mov, MATRIX *FSLRegMat)
   compatible with FSL. Note: the FSL matrix is assumed to map from the
   mov to the ref whereas the tkreg matrix maps from the ref to the
   mov.
+
+      mov voxel<--inv(Tmov)-- tkRegXYZ(mov)
+       |                           ^
+       |  Dmov                     |
+       V                           |
+      mov' physvox                 |
+       |                           |
+       |  Mfsl                     | R
+       V                           |
+      ref' physvox                 |
+       |                           |
+       |  inv(Dref)                |
+       V                           |
+      ref voxel -- Tref  -->  tkRegXYZ(ref)
+
   -------------------------------------------------------------------*/
 MATRIX *MRItkreg2FSL(MRI *ref, MRI *mov, MATRIX *tkRegMat)
 {
@@ -9522,7 +9550,6 @@ MRI *MRIresampleFill(MRI *src, MRI *template_vol, int resample_type, float fill_
         }
         else
         {
-
           i_good_flag = (si >= 0 && si < src->width);
           i1_good_flag = (si+1 >= 0 && si+1 < src->width);
           j_good_flag = (sj >= 0 && sj < src->height);
@@ -11051,12 +11078,12 @@ MRImakePositive(MRI *mri_src, MRI *mri_dst)
     {
       for (y = 0 ; y < mri_dst->height ; y++)
       {
-				for (z = 0 ; z < mri_dst->depth ; z++)
-				{
-					val = MRIgetVoxVal(mri_src, x, y, z, f) ;
-					val -= fmin ;
-					MRIsetVoxVal(mri_dst, x, y, z, f, val) ;
-				}
+	for (z = 0 ; z < mri_dst->depth ; z++)
+	{
+	  val = MRIgetVoxVal(mri_src, x, y, z, f) ;
+	  val -= fmin ;
+	  MRIsetVoxVal(mri_dst, x, y, z, f, val) ;
+	}
       }
     }
   }
