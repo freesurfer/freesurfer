@@ -60,7 +60,7 @@ HISTOdump(HISTOGRAM *histo, FILE *fp)
     fprintf(fp, "nbins = %d\n", histo->nbins) ;
     for (bin_no = 0 ; bin_no < histo->nbins ; bin_no++)
       if (histo->counts[bin_no])
-        fprintf(fp, "bin[%d] = %d = %d\n",
+        fprintf(fp, "bin[%d] = %2.1f = %2.2f\n",
                 bin_no, histo->bins[bin_no], histo->counts[bin_no]) ;
   }
   return(NO_ERROR) ;
@@ -210,7 +210,7 @@ HISTOnormalize(HISTOGRAM *histo_src, HISTOGRAM *histo_dst, int max_out)
 
   scale = (float)max_out / (float)max_count ;
   for (b = 0 ; b < histo_src->nbins ; b++)
-    histo_dst->counts[b] = nint(scale * (float)histo_src->counts[b]) ;
+    histo_dst->counts[b] = (scale * (float)histo_src->counts[b]) ;
 
   return(histo_dst) ;
 }
@@ -229,6 +229,25 @@ HISTOclear(HISTOGRAM *histo_src, HISTOGRAM *histo_dst)
 
   memset(histo_dst->counts, 0, sizeof(histo_dst->counts)) ;
   memset(histo_dst->bins, 0, sizeof(histo_dst->bins)) ;
+  return(histo_dst) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+HISTOGRAM *
+HISTOclearCounts(HISTOGRAM *histo_src, HISTOGRAM *histo_dst)
+{
+  if (!histo_dst)
+  {
+    histo_dst = HISTOalloc(histo_src->nbins) ;
+    memcpy(histo_dst->bins, histo_src->bins, sizeof(histo_src->bins)) ;
+  }
+
+  memset(histo_dst->counts, 0, sizeof(histo_dst->counts)) ;
   return(histo_dst) ;
 }
 /*-----------------------------------------------------
@@ -359,7 +378,8 @@ HISTOcomposeInvert(HISTOGRAM *histo_fwd, HISTOGRAM *histo_inv,
 HISTOGRAM *
 HISTOadd(HISTOGRAM *h1, HISTOGRAM *h2, HISTOGRAM *histo_dst)
 {
-  int  b, *pc1, *pc2, *pcdst ;
+  int  b ;
+  float *pc1, *pc2, *pcdst ;
 
   if (!histo_dst)
     histo_dst = HISTOalloc(h1->nbins) ;
@@ -380,9 +400,34 @@ HISTOadd(HISTOGRAM *h1, HISTOGRAM *h2, HISTOGRAM *histo_dst)
         Description
 ------------------------------------------------------*/
 HISTOGRAM *
+HISTOmul(HISTOGRAM *h1, HISTOGRAM *h2, HISTOGRAM *histo_dst)
+{
+  int  b ;
+  float *pc1, *pc2, *pcdst ;
+
+  if (!histo_dst)
+    histo_dst = HISTOalloc(h1->nbins) ;
+  else
+    histo_dst->nbins = h1->nbins ;
+
+  pc1 = &h1->counts[0] ; pc2 = &h2->counts[0] ; pcdst = &histo_dst->counts[0];
+  for (b = 0 ; b < h1->nbins ; b++)
+    *pcdst++ = *pc1++ * *pc2++ ;
+
+  return(histo_dst) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+HISTOGRAM *
 HISTOsubtract(HISTOGRAM *h1, HISTOGRAM *h2, HISTOGRAM *histo_dst)
 {
-  int  b, *pc1, *pc2, *pcdst ;
+  int   b ;
+  float *pc1, *pc2, *pcdst ;
 
   if (!histo_dst)
     histo_dst = HISTOalloc(h1->nbins) ;
@@ -487,7 +532,7 @@ HISTOsmooth(HISTOGRAM *histo_src, HISTOGRAM *histo_dst,float sigma)
         continue ;
       total += kernel[x] * (float)histo_src->counts[b1] ;
     }
-    histo_dst->counts[b] = nint(total) ;
+    histo_dst->counts[b] = total ;
     histo_dst->bins[b] = histo_src->bins[b] ;
   }
   return(histo_dst) ;
@@ -780,10 +825,15 @@ HISTOfindFirstPeakInRegion(HISTOGRAM *h, int wsize, float min_pct,
 int
 HISTOfindHighestPeakInRegion(HISTOGRAM *h, int b0, int b1)
 {
-  int  b, nbins, val, max_count, max_count_bin ;
+  int  b, nbins, max_count_bin ;
+  float val, max_count ;
 
   nbins = h->nbins ;
 
+  if (b0 < 0)
+    b0 = 0 ;
+  if (b1 >= h->nbins)
+    b1 = h->nbins-1 ;
 /*
    check to see if the value at b is bigger than anything else within
    a whalfxwhalf window on either side.
@@ -817,7 +867,7 @@ HISTOplot(HISTOGRAM *histo, char *fname)
   fp = fopen(fname, "w") ;
 
   for (bin_no = 0 ; bin_no < histo->nbins ; bin_no++)
-    fprintf(fp, "%d  %d\n", histo->bins[bin_no], histo->counts[bin_no]) ;
+    fprintf(fp, "%2.1f  %2.4f\n", histo->bins[bin_no], histo->counts[bin_no]) ;
   fclose(fp) ;
   return(NO_ERROR) ;
 }
