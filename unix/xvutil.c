@@ -1418,7 +1418,9 @@ debugMenuItem(Menu menu, Menu_item menu_item)
   sprintf(debug_str, "debug: 0x%lx", Gdiag) ;
   xv_set(debug_panel_item, PANEL_LABEL_STRING, debug_str, NULL) ;
   show_diags(Gdiag) ;
+#if 0
   xv_set(debug_frame, FRAME_CMD_PUSHPIN_IN, FALSE, XV_SHOW, FALSE, NULL) ;
+#endif
 }
 /*----------------------------------------------------------------------
             Parameters:
