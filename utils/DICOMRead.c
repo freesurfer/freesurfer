@@ -2,7 +2,7 @@
    DICOM 3.0 reading functions
    Author: Sebastien Gicquel and Douglas Greve
    Date: 06/04/2001
-   $Id: DICOMRead.c,v 1.15 2001/11/15 19:04:11 greve Exp $
+   $Id: DICOMRead.c,v 1.16 2001/11/15 19:08:50 greve Exp $
 *******************************************************/
 
 #include <stdio.h>
@@ -2906,8 +2906,10 @@ CONDITION GetDICOMInfo(char *fname, DICOMInfo *dcminfo, BOOL ReadImage, int Imag
       printf("WARNING: tag FlipAngle not found\n"); 
 #endif  
     }
-  else
+  else{
+    dcminfo->FlipAngle = M_PI*dcminfo->FlipAngle/180.0;
     IsTagPresent[DCM_FlipAngle]=true;
+  }
 
   // inversion time
   tag=DCM_MAKETAG(0x18, 0x82);
