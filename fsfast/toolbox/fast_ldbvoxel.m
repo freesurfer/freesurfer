@@ -5,7 +5,7 @@ function v = fast_ldbvoxel(stem,c,r,s,base)
 % is more than one frame, all frames are read in.
 % crs are assumed to be zero-based, unless base is set to 1.
 %
-% $Id: fast_ldbvoxel.m,v 1.2 2003/04/08 04:49:03 greve Exp $
+% $Id: fast_ldbvoxel.m,v 1.3 2003/09/28 21:46:58 greve Exp $
 
 v=[];
 
@@ -32,7 +32,7 @@ if(c < 0 | c >= ncols)
   return;
 end
 if(r < 0 | r >= nrows)
-  fprintf('ERROR: fast_ldbvoxel: row %d is out of range\n',r);
+  fprintf('ERROR: fast_ldbvoxel: row %d is out of range (%d,%d)\n',r,1,nrows);
   return;
 end
 if(s < 0 | s >= nslices)
