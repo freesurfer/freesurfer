@@ -898,8 +898,10 @@ int   MRISorigAreaToCurv(MRI_SURFACE *mris) ;
 int   MRISareaToCurv(MRI_SURFACE *mris) ;
 int   MRISclear(MRI_SURFACE *mris, int which) ;
 int   MRISnormalize(MRI_SURFACE *mris, int dof, int which) ;
-MRI *MRISsmoothMRI(MRIS *Surf, MRI *Src, int nSmoothSteps, MRI *Targ);
 
+int  MRIScopyMRI(MRIS *Surf, MRI *Src, int Frame, char *Field);
+MRI *MRIcopyMRIS(MRI *mri, MRIS *surf, int Frame, char *Field);
+MRI *MRISsmoothMRI(MRIS *Surf, MRI *Src, int nSmoothSteps, MRI *Targ);
 
 #endif
 

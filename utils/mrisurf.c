@@ -27,7 +27,6 @@
 #include "mri_identify.h"
 #include "selxavgio.h"
 
-
 /*---------------------------- STRUCTURES -------------------------*/
 
 /*---------------------------- CONSTANTS -------------------------*/
@@ -30072,7 +30071,7 @@ MRI *MRISloadSurfVals(char *srcvalfile, char *typestring, MRI_SURFACE *Surf,
 {
   MRI *SrcVals, *mritmp;
   char fname[2000];
-  int vtx, srctype,reshapefactor=0,f;
+  int srctype,reshapefactor=0,f;
   float *framepower = NULL;
   SXADAT *sxa;
   int freesurface = 0;
@@ -30101,23 +30100,25 @@ MRI *MRISloadSurfVals(char *srcvalfile, char *typestring, MRI_SURFACE *Surf,
     if(Surf->hemisphere == LEFT_HEMISPHERE)  hemi = "lh";
     if(Surf->hemisphere == RIGHT_HEMISPHERE) hemi = "rh";
   }
-
+  
   /* ------------------ load the source data ----------------------------*/
   printf("Loading surface source data %s as %s\n",srcvalfile,typestring);
   if(!strcmp(typestring,"curv")){ /* curvature file */
     sprintf(fname,"%s/%s/surf/%s.%s",subjectsdir,subject,hemi,srcvalfile);
     printf("Reading curvature file %s\n",fname);
     MRISreadCurvatureFile(Surf, fname);
-    SrcVals = MRIallocSequence(Surf->nvertices, 1, 1,MRI_FLOAT,1);
-    for(vtx = 0; vtx < Surf->nvertices; vtx++){
-      MRIFseq_vox(SrcVals,vtx,0,0,0) = Surf->vertices[vtx].curv;
-    }
+    SrcVals = MRIcopyMRIS(NULL, Surf, 0, "curv");
+    //SrcVals = MRIallocSequence(Surf->nvertices, 1, 1,MRI_FLOAT,1);
+    //for(vtx = 0; vtx < Surf->nvertices; vtx++){
+    //  MRIFseq_vox(SrcVals,vtx,0,0,0) = Surf->vertices[vtx].curv;
+    //}
   }
   else if(!strcmp(typestring,"paint") || !strcmp(typestring,"w")){
     MRISreadValues(Surf,srcvalfile);
-    SrcVals = MRIallocSequence(Surf->nvertices, 1, 1,MRI_FLOAT,1);
-    for(vtx = 0; vtx < Surf->nvertices; vtx++)
-      MRIFseq_vox(SrcVals,vtx,0,0,0) = Surf->vertices[vtx].val;
+    SrcVals = MRIcopyMRIS(NULL, Surf, 0, "val");
+    //SrcVals = MRIallocSequence(Surf->nvertices, 1, 1,MRI_FLOAT,1);
+    //for(vtx = 0; vtx < Surf->nvertices; vtx++)
+    //  MRIFseq_vox(SrcVals,vtx,0,0,0) = Surf->vertices[vtx].val;
   }
   else { /* Use MRIreadType */
     srctype = string_to_type(typestring);
@@ -30165,8 +30166,196 @@ MRI *MRISloadSurfVals(char *srcvalfile, char *typestring, MRI_SURFACE *Surf,
     return(NULL);
   }
   printf("Done Loading %s\n",srcvalfile);
-
+  
   if(freesurface) MRISfree(&Surf);
 
   return(SrcVals);
 }
+/*-----------------------------------------------------------------
+  MRIScopyMRI() - copies the data from an MRI_VOLUME struct into a
+  field in the MRI_SURFACE vertex struct. The MRI_VOLUME struct is
+  assumed to have the dimension: nvertices X 1 X 1 X nframes.  Frame
+  is the zero-based frame number to copy. Field is a string that
+  indicates which field of the vertex structure the data should be
+  copied to. For example, "val" indicates the val field.  Other
+  supported fields are: val, stat, valbak, val2, val2bak, imag_val,
+  curv, curvbak, fsmask, nc. Others can be easily added. If there
+  is an error, a 1 is returned; otherwise 0.
+  -----------------------------------------------------------------*/
+int MRIScopyMRI(MRIS *Surf, MRI *Src, int Frame, char *Field)
+{
+  int vtx, useval=0, usecurv=0;
+  float val;
+
+  if(Surf->nvertices != Src->width){
+    printf("ERROR: MRIScopyMRI: Surf/Src dimension mismatch.\n");
+    return(1);
+  }
+
+  if(Frame >= Src->nframes){
+    printf("ERROR: MRIScopyMRI: requested frame number is too large.\n");
+    printf("ERROR:   requested = %d, max = %d\n",Frame,Src->nframes);
+    return(1);
+  }
+
+  /* A separate variable is used for val and curv for speed purposes */
+  if(!strcmp(Field,"val")) useval = 1;
+  else                     useval = 0;
+  if(!strcmp(Field,"curv")) usecurv = 1;
+  else                      usecurv = 0;
+
+  /*------------------------------------------------*/
+  for(vtx = 0; vtx < Surf->nvertices; vtx++){
+    val = MRIgetVoxVal(Src, vtx, 0, 0,Frame);
+
+    if(useval)                         Surf->vertices[vtx].val = val;
+    else if(usecurv)                   Surf->vertices[vtx].curv = val;
+    else if(!strcmp(Field,"stat"))     Surf->vertices[vtx].stat = val;
+    else if(!strcmp(Field,"valbak"))   Surf->vertices[vtx].valbak = val;
+    else if(!strcmp(Field,"val2"))     Surf->vertices[vtx].val2 = val;
+    else if(!strcmp(Field,"val2bak"))  Surf->vertices[vtx].val2bak = val;
+    else if(!strcmp(Field,"imag_val")) Surf->vertices[vtx].imag_val = val;
+    else if(!strcmp(Field,"curvbak"))  Surf->vertices[vtx].curvbak = val;
+    else if(!strcmp(Field,"fsmask"))   Surf->vertices[vtx].fsmask = val;
+    else if(!strcmp(Field,"nc"))       Surf->vertices[vtx].nc = val;
+    else printf("ERROR: MRIScopyMRI(): Field %s not supported\n",Field);
+
+  }
+
+  return(0);
+}
+/*-----------------------------------------------------------------
+  MRIcopyMRIS() - copies the data from the given field of an
+  MRI_SURFACE struct into a given frame of an MRI_VOLUME struct. The
+  MRI_VOLUME should have the dimension: nvertices X 1 X 1 X nframes.
+  Frame is the zero-based frame number to copy to. Field is a string
+  that indicates which field of the vertex structure the data should
+  be copied from. For example, "val" indicates the val field.  Other
+  supported fields are: val, stat, valbak, val2, val2bak, imag_val,
+  curv, curvbak, fsmask, nc. If mri is NULL, it will be allocated
+  with nframes=Frame+1 (ie, just enough frames) and type will be
+  MRI_FLOAT. A pointer to mri is returned. If an error occurs, 
+  NULL is returned.
+  -----------------------------------------------------------------*/
+MRI *MRIcopyMRIS(MRI *mri, MRIS *surf, int Frame, char *Field)
+{
+  int vtx, useval=0, usecurv=0;
+  float val;
+
+  if(mri == NULL){
+    mri = MRIallocSequence(surf->nvertices, 1, 1, MRI_FLOAT, Frame+1);
+    if(mri==NULL){
+      printf("ERROR: MRIcopyMRIS: could not alloc\n");
+      return(NULL);
+    }
+  }
+  else{
+    if(surf->nvertices != mri->width){
+      printf("ERROR: MRIcopyMRIS: surf/mri dimension mismatch.\n");
+      return(NULL);
+    }
+    if(Frame >= mri->nframes){
+      printf("ERROR: MRIScopyMRI: requested frame number is too large.\n");
+      printf("ERROR:   requested = %d, max = %d\n",Frame,mri->nframes);
+      return(NULL);
+    }
+  }
+
+  /* A separate variable is used for val and curv for speed purposes */
+  if(!strcmp(Field,"val")) useval = 1;
+  else                     useval = 0;
+  if(!strcmp(Field,"curv")) usecurv = 1;
+  else                      usecurv = 0;
+
+  /*------------------------------------------------*/
+  for(vtx = 0; vtx < surf->nvertices; vtx++){
+
+    if(useval)                         val = surf->vertices[vtx].val;
+    else if(usecurv)                   val = surf->vertices[vtx].curv;
+    else if(!strcmp(Field,"stat"))     val = surf->vertices[vtx].stat;
+    else if(!strcmp(Field,"valbak"))   val = surf->vertices[vtx].valbak;
+    else if(!strcmp(Field,"val2"))     val = surf->vertices[vtx].val2;
+    else if(!strcmp(Field,"val2bak"))  val = surf->vertices[vtx].val2bak;
+    else if(!strcmp(Field,"imag_val")) val = surf->vertices[vtx].imag_val;
+    else if(!strcmp(Field,"curvbak"))  val = surf->vertices[vtx].curvbak;
+    else if(!strcmp(Field,"fsmask"))   val = surf->vertices[vtx].fsmask;
+    else if(!strcmp(Field,"nc"))       val = surf->vertices[vtx].nc;
+    else {
+      printf("ERROR: MRIScopyMRI(): Field %s not supported\n",Field);
+      return(NULL);
+    }
+    MRIsetVoxVal(mri, vtx, 0, 0, Frame, val);
+  }
+
+  return(0);
+}
+/*-------------------------------------------------------------------
+  MRISsmoothMRI() - smooths values on the surface when the surface
+  values are stored in an MRI_VOLUME structure with the number of
+  columns (ie width) equal to the number of nvertices on the
+  surface. The number of rows (height) and slices (depth) in the MRI
+  struct should be 1. Can handle multiple frames. Can be performed
+  in-place. If Targ is NULL, it will automatically allocate a new MRI
+  strucutre.
+  -------------------------------------------------------------------*/
+MRI *MRISsmoothMRI(MRIS *Surf, MRI *Src, int nSmoothSteps, MRI *Targ)
+{
+  int nnbrs, nthstep, frame, vtx, nbrvtx, nthnbr;
+  float val;
+  MRI *SrcTmp;
+
+  if(Surf->nvertices != Src->width){
+    printf("ERROR: MRISsmooth: Surf/Src dimension mismatch\n");
+    return(NULL);
+  }
+
+  if(Targ == NULL){
+    Targ = MRIallocSequence(Src->width, Src->height, Src->depth, 
+            MRI_FLOAT, Src->nframes);
+    if(Targ==NULL){
+      printf("ERROR: MRISsmooth: could not alloc\n");
+      return(NULL);
+    }
+  }
+  else{
+    if(Src->width   != Targ->width  || 
+       Src->height  != Targ->height || 
+       Src->depth   != Targ->depth  ||
+       Src->nframes != Targ->nframes){
+      printf("ERROR: MRISsmooth: output dimension mismatch\n");
+      return(NULL);
+    }
+    if(Targ->type != MRI_FLOAT){
+      printf("ERROR: MRISsmooth: structure passed is not MRI_FLOAT\n");
+      return(NULL);
+    }
+  }
+
+  SrcTmp = MRIcopy(Src,NULL);
+  for(nthstep = 0; nthstep < nSmoothSteps; nthstep ++){
+    printf("Step = %d\n",nthstep); fflush(stdout);
+
+    for(vtx = 0; vtx < Surf->nvertices; vtx++){
+      nnbrs = Surf->vertices[vtx].vnum;
+
+      for(frame = 0; frame < Targ->nframes; frame ++){
+  val = MRIFseq_vox(SrcTmp,vtx,0,0,frame);
+
+  for(nthnbr = 0; nthnbr < nnbrs; nthnbr++){
+    nbrvtx = Surf->vertices[vtx].v[nthnbr];
+    val += MRIFseq_vox(SrcTmp,nbrvtx,0,0,frame) ;
+  }/* end loop over neighbor */
+
+  MRIFseq_vox(Targ,vtx,0,0,frame) = (val/(nnbrs+1));
+      }/* end loop over frame */
+
+    } /* end loop over vertex */
+
+    MRIcopy(Targ,SrcTmp);
+  }/* end loop over smooth step */
+
+  MRIfree(&SrcTmp);
+
+  return(Targ);
+}
+
