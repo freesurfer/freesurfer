@@ -14,10 +14,11 @@
 #include "mrinorm.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mri_synthesize.c,v 1.10 2004/02/09 21:55:21 fischl Exp $";
+static char vcid[] = "$Id: mri_synthesize.c,v 1.11 2004/03/23 16:59:34 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
+static int saturate_PD(MRI *mri_PD, float PDsat) ;
 static int normalize_PD(MRI *mri_PD, float target) ;
 static int discard_PD(MRI *mri_PD, short thresh, short target) ;
 static int  get_option(int argc, char *argv[]) ;
@@ -45,6 +46,7 @@ static float nl_scale = 0.01 ;
 static float nl_mean = 950 ;
 static char *jpdf_name = NULL ;
 static int invert = 0 ;
+static float PDsat = 0.0 ;
 
 static int extract = 0 ;
 
@@ -74,7 +76,7 @@ main(int argc, char *argv[])
   float       TR, TE, alpha ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_synthesize.c,v 1.10 2004/02/09 21:55:21 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_synthesize.c,v 1.11 2004/03/23 16:59:34 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -128,6 +130,8 @@ main(int argc, char *argv[])
     ErrorExit(ERROR_NOFILE, "%s: could not read PD volume %s", Progname, 
               PD_fname) ;
 
+	if (PDsat > 0)
+		saturate_PD(mri_PD, PDsat) ;
 	if (extract)
 	{
 		MRI *mri_tmp ;
@@ -191,6 +195,12 @@ get_option(int argc, char *argv[])
            nl_mean, nl_scale, nl_mean) ;
     nargs = 2 ;
   }
+	else if (!stricmp(option, "PDsat"))
+	{
+		PDsat = atof(argv[2]) ;
+		nargs = 1 ;
+		printf("saturating PD with tanh(PD/(%2.1f*(max-min)))\n", PDsat) ;
+	}
 	else if (!stricmp(option, "bias"))
 	{
 		int i, j ;
@@ -799,3 +809,28 @@ MRIsynthesizeWithFAF(MRI *mri_T1, MRI *mri_PD, MRI *mri_dst, double TR, double a
 
   return(mri_dst) ;
 }
+static int
+saturate_PD(MRI *mri, float PDsat)
+{
+	int  x,y , z ;
+	float mx, mn, val ;
+
+	printf("saturating PD (%2.3f)\n", PDsat) ;
+	MRIvalRange(mri, &mn, &mx) ;
+
+	for (x = 0 ; x < mri->width ; x++)
+	{
+		for (y = 0 ; y < mri->height ; y++)
+		{
+			for (z = 0 ; z < mri->depth ; z++)
+			{
+				val = MRIgetVoxVal(mri, x, y, z, 0) ;
+				val = 1000 * tanh(val / (PDsat * (mx-mn))) ;
+				MRIsetVoxVal(mri, x, y, z, 0, val) ;
+			}
+		}
+	}
+
+	return(NO_ERROR) ;
+}
+
