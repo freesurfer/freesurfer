@@ -10,7 +10,7 @@ if { $err } {
     load [file dirname [info script]]/libscuba[info sharedlibextension] scuba
 }
 
-DebugOutput "\$Id: scuba.tcl,v 1.86 2005/02/24 17:22:47 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.87 2005/02/25 17:19:22 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -3051,7 +3051,7 @@ proc SelectToolInToolProperties { iTool } {
     set gaTool($gaFrame([GetMainFrameID],toolID),mode) $gaTool(current,type)
 
     # Get the target layer.
-    set gaTool(current,targetLayer) [GetToolLayerTarget $gaTool(current,id)]
+    set gaTool(current,targetLayer) [GetToolTargetLayer $gaTool(current,id)]
 
     $gaWidget(toolProperties,targetLayerMenu) config -disablecallback 1
     $gaWidget(toolProperties,targetLayerMenu) config -value $gaTool(current,targetLayer)
@@ -3124,7 +3124,7 @@ proc ToolTargetLayerMenuCallback { iLayer } {
     global gaWidget
     
     set gaTool(current,targetLayer) $iLayer
-    SetToolLayerTarget $gaTool(current,id) $gaTool(current,targetLayer)
+    SetToolTargetLayer $gaTool(current,id) $gaTool(current,targetLayer)
 
     # Update the radius slider.
     set inc [GetLayerPreferredBrushRadiusIncrement $iLayer]
@@ -4606,7 +4606,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.86 2005/02/24 17:22:47 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.87 2005/02/25 17:19:22 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
@@ -4729,7 +4729,7 @@ proc SaveSceneScript { ifnScene } {
 
     # Tool settings.
     set toolID $gaFrame([GetMainFrameID],toolID)
-    set target [GetToolLayerTarget $toolID]
+    set target [GetToolTargetLayer $toolID]
     set brushShape [GetToolBrushShape $toolID]
     set brushRadius [GetToolBrushRadius $toolID]
     set brush3D [GetToolBrush3D $toolID]
@@ -4745,7 +4745,7 @@ proc SaveSceneScript { ifnScene } {
     set eraseValue [GetToolEraseVoxelValue $toolID]
     set edgeBias [GetToolEdgePathEdgeBias $toolID]
     puts $f "\# Tool $toolID"
-    puts $f "SetToolLayerTarget $toolID $target"
+    puts $f "SetToolTargetLayer $toolID $target"
     puts $f "SetToolBrushShape $toolID $brushShape"
     puts $f "SetToolBrushRadius $toolID $brushRadius"
     puts $f "SetToolBrush3D $toolID $brush3D"

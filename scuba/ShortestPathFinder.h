@@ -60,7 +60,7 @@ class ShortestPathFinder : public DebugReporter {
   void FindPath ( Point2<int>& iStartPoint, Point2<int>& iEndPoint,
 		  std::list<Point2<int> >& ioPoints );
   
-  virtual float GetEdgeCost ( Point2<int>& iPoint ) { return 1.0; }
+  virtual float GetEdgeCost ( Point2<int>& ) { return 1.0; }
 
   void SetDebug ( bool iDebug ) { mDebug = iDebug; }
   

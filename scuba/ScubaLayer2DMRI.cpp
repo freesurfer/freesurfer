@@ -1102,7 +1102,7 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
   // handled by the view.
 
   // Only do this if we're the target layer.
-  if( iTool.GetLayerTarget() != GetID() )
+  if( iTool.GetTargetLayer() != GetID() )
     return;
 
   switch( iTool.GetMode() ) {

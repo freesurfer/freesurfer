@@ -188,7 +188,7 @@ TclCommandManager::HandleCommand ( ClientData, Tcl_Interp* iInterp,
 	  }
 	  catch(...) {
 	    finalResult = error;
-	    char sError[1024] = "Unkown error";
+	    char sError[1024] = "Unknown error";
 	    Tcl_SetResult( iInterp, sError, TCL_VOLATILE );
 	  }
 	}

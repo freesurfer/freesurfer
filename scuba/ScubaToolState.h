@@ -20,8 +20,8 @@ class ScubaToolState : public TclCommandListener, public IDTracker<ScubaToolStat
   Mode GetMode () { return mMode; }
 
   // Target.
-  void SetLayerTarget ( int iTarget ) { mLayerTarget = iTarget; }
-  int GetLayerTarget () { return mLayerTarget; }
+  void SetTargetLayer ( int iTarget ) { mTargetLayer = iTarget; }
+  int GetTargetLayer () { return mTargetLayer; }
 
   // voxelEditing
   void SetNewValue ( float iValue ) { mNewValue = iValue; }
@@ -83,7 +83,7 @@ class ScubaToolState : public TclCommandListener, public IDTracker<ScubaToolStat
   Mode mMode;
 
   // Layer target.
-  int mLayerTarget;
+  int mTargetLayer;
 
   // Brush settings.
   float mBrushRadius;

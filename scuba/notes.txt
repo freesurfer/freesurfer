@@ -494,9 +494,6 @@ x default dirs for file dlogs if subject is loaded
   x Save Volume <VolumeName>
   - disable invalid items
 
-- target layer menu
-  - not updating when viewlayers window is opened
-
 - ROI dlog
   - needs to get initial target layer for setup in init()
   - shows 2 ROIs when there is only one
@@ -578,13 +575,17 @@ CurrentViewLayersChanged -> viewLayersDlog.UpdateLayersList
 TransformsListChanged    -> viewLayersDlog.UpdateTransformMenu
 LUTListChanged           -> viewLayersDlog.UpdateLUTMenu
 ToolChanged              -> toolSettingsDlog.UpdateToolSettings
+LayerTargetChanged       -> roiSettingsDlog.UpdateTargetLayer
 
 toolSettingsDlog
 
 viewLayersDlog
 ScubaFrameChanged        -> mainWindow.UpdateScubaFrame
 CurrentViewChanged       -> mainWindow.UpdateCurrentView
-TargetLayerChanged       -> toolSettingsDlog.LayerTargetChanged()
+TargetLayerChanged       -> toolSettingsDlog.UpdateTargetLayer
+TargetLayerChanged       -> roiSettingsDlog.UpdateLayerTarget
 
 scubaFrame
 UpdateLabelArea          -> mainWindow.UpdateLabelArea
+
+roiSettingsDlog

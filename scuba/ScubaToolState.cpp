@@ -20,7 +20,7 @@ ScubaToolState::ScubaToolState() {
   mbFlood3D = false;
   mEdgePathStraightBias = 0.9;
   mEdgePathEdgeBias = 0.9;
-  mLayerTarget = -1;
+  mTargetLayer = -1;
   mFloodSourceCollection = -1;
   mNewValue = 0;
   mEraseValue = 0;
@@ -32,9 +32,9 @@ ScubaToolState::ScubaToolState() {
 			 "Sets the current mode of a tool." );
   commandMgr.AddCommand( *this, "GetToolMode", 1, "toolID",
 			 "Gets the current mode of a tool." );
-  commandMgr.AddCommand( *this, "SetToolLayerTarget", 2, "toolID layerID",
+  commandMgr.AddCommand( *this, "SetToolTargetLayer", 2, "toolID layerID",
 			 "Sets the target layer of a tool." );
-  commandMgr.AddCommand( *this, "GetToolLayerTarget", 1, "toolID",
+  commandMgr.AddCommand( *this, "GetToolTargetLayer", 1, "toolID",
 			 "Gets the target layer of a tool." );
   commandMgr.AddCommand( *this, "SetToolNewVoxelValue", 2, "toolID value",
 			 "Sets the new voxel value of a tool." );
@@ -353,8 +353,8 @@ ScubaToolState::DoListenToTclCommand ( char* isCommand,
     }
   }
 
-  // SetToolLayerTarget <toolID> <layerID>
-  if( 0 == strcmp( isCommand, "SetToolLayerTarget" ) ) {
+  // SetToolTargetLayer <toolID> <layerID>
+  if( 0 == strcmp( isCommand, "SetToolTargetLayer" ) ) {
     int toolID = strtol(iasArgv[1], (char**)NULL, 10);
     if( ERANGE == errno ) {
       sResult = "bad tool ID";
@@ -368,12 +368,12 @@ ScubaToolState::DoListenToTclCommand ( char* isCommand,
 	sResult = "bad layerID";
 	return error;
       }
-      SetLayerTarget( layerID );
+      SetTargetLayer( layerID );
     }
   }
 
-  // GetToolLayerTarget <toolID>
-  if( 0 == strcmp( isCommand, "GetToolLayerTarget" ) ) {
+  // GetToolTargetLayer <toolID>
+  if( 0 == strcmp( isCommand, "GetToolTargetLayer" ) ) {
     int toolID = strtol(iasArgv[1], (char**)NULL, 10);
     if( ERANGE == errno ) {
       sResult = "bad tool ID";
@@ -383,7 +383,7 @@ ScubaToolState::DoListenToTclCommand ( char* isCommand,
     if( GetID() == toolID ) {
 
       stringstream ssValues;
-      ssValues << GetLayerTarget();
+      ssValues << GetTargetLayer();
       sReturnValues = ssValues.str();
       sReturnFormat = "i";
     }
