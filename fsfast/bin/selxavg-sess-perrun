@@ -1,8 +1,8 @@
 #!/bin/csh -f
 # selxavg-sess
 #
-# $Id: selxavg-sess-perrun,v 1.1 2003/03/04 21:22:09 greve Exp $
-set VERSION = '$Id: selxavg-sess-perrun,v 1.1 2003/03/04 21:22:09 greve Exp $'
+# $Id: selxavg-sess-perrun,v 1.2 2003/04/08 04:52:51 greve Exp $
+set VERSION = '$Id: selxavg-sess-perrun,v 1.2 2003/04/08 04:52:51 greve Exp $'
 set FASTVER = `cat $FMRI_ANALYSIS_DIR/docs/version`;
 
 set inputargs = "$argv";
@@ -15,6 +15,7 @@ set synthflag = "";
 set omnibus = 1;
 set svsnr    = 0;
 set sveres   = 0;
+set svacf   = 0;
 set svsignal = 0;
 set svbeta = 0;
 set ffx = 1;
@@ -168,6 +169,7 @@ foreach sess ($SessList)
       set pomnilist = ($pomnilist $analysis-$run/omnibus/fsig)
     endif
     if($sveres)   set cmd = ($cmd -eresdir   $analysis-$run/eres)
+    if($svacf)    set cmd = ($cmd -acfdir    $analysis-$run/acf)
     if($svsignal) set cmd = ($cmd -signaldir $analysis-$run/signal)
     if($svsnr)    set cmd = ($cmd -snrdir    $analysis-$run/estsnr)
     if($svbeta)   set cmd = ($cmd -beta      $analysis-$run/beta)
@@ -296,6 +298,10 @@ while( $#argv != 0 )
 
     case "-sveres":
       set sveres = 1;
+      breaksw
+
+    case "-svacf":
+      set svacf = 1;
       breaksw
 
     case "-nosveres":

@@ -5,7 +5,7 @@
 
 set inputargs = ($argv);
 set fmrianalver = `cat $FSFAST_HOME/docs/version`;
-set VERSION = '$Id: selxavg2,v 1.1 2003/03/04 21:22:09 greve Exp $'
+set VERSION = '$Id: selxavg2,v 1.2 2003/04/08 04:52:51 greve Exp $'
 
 ## If there are no arguments, just print useage and exit ##
 if ( $#argv == 0  )  goto usage_exit;
@@ -32,6 +32,7 @@ set fwhm   = 0;
 set inplaneres = ();
 set baseline = 1;
 set detrend  = 1;
+set nyqreg = 0; 
 set qtrendfit = 1;
 set PolyFitOrder = -1;
 set nskip = 0;
@@ -64,7 +65,9 @@ set TPExclFile = ();
 set fomnibus = ();
 set pomnibus = ();
 set sveres = 0;
+set svacf = 0;
 set eresdir  = ();
+set acfdir  = ();
 set svsignal = 0;
 set signaldir = ();
 set svsnr = 0;
@@ -104,9 +107,13 @@ if($#betastem != 0) then
   set inputargs = ($inputargs -beta $betastem);
 endif
 
-if($sveres)   then 
+if($sveres) then 
   set eresdir   = $outdir/eres
   set inputargs = ($inputargs -eresdir $eresdir);
+endif
+if($svacf) then 
+  set acfdir    = $outdir/acf
+  set inputargs = ($inputargs -acfdir $acfdir);
 endif
 if($svsignal) then
   set signaldir = $outdir/signal
@@ -118,9 +125,12 @@ if($svsnr) then
   set inputargs = ($inputargs -snrdir $snrdir);
 endif
 
+if($nyqreg) set inputargs = ($inputargs -nyqreg);
+
 if($#eresdir   != 0)  mkdir -p $eresdir
+if($#acfdir    != 0)  mkdir -p $acfdir
 if($#signaldir != 0)  mkdir -p $signaldir
-if($#snrdir != 0)     mkdir -p $snrdir
+if($#snrdir    != 0)  mkdir -p $snrdir
 
 # make directory for fominbus and pomnibus #
 if($#fomnibus != 0) then
@@ -357,6 +367,10 @@ while( $#argv != 0 )
       set sveres = 1;
       breaksw
 
+    case "-svacf":
+      set svacf = 1;
+      breaksw
+
     case "-svsignal":
       set svsignal = 1;
       breaksw
@@ -410,6 +424,10 @@ while( $#argv != 0 )
 
     case "-qtrendfit":
       set qtrendfit = 1; 
+      breaksw
+
+    case "-nyqreg":
+      set nyqreg = 1; 
       breaksw
 
     case "-noqtrendfit":
@@ -469,6 +487,11 @@ while( $#argv != 0 )
     case "-eresdir":
       if ( $#argv == 0) goto arg1err;
       set eresdir = $argv[1]; shift;
+      breaksw
+
+    case "-acfdir":
+      if ( $#argv == 0) goto arg1err;
+      set acfdir = $argv[1]; shift;
       breaksw
 
     case "-signaldir":
