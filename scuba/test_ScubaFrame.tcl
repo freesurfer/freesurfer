@@ -12,6 +12,44 @@ proc GetNewWindowID { } {
     return $gCurWindowID;
 }
 
+proc DoGetViewIDFromFrameColRowDlog { iFrameID } {
+
+    set ww       .dlog
+    set fwTop    $ww.fwTop
+    set lwColRow $fwTop.lwColRow
+    set ewCol    $fwTop.ewCol
+    set ewRow    $fwTop.ewRow
+    set bwOK     $fwTop.bwOK
+
+    toplevel .dlog
+    
+    frame $fwTop
+
+    label $lwColRow -text "Col/Row"
+    entry $ewCol -textvariable gCol -width 4
+    entry $ewRow -textvariable gRow -width 4
+    button $bwOK -text "OK" \
+	-command "DoGetViewIDFromFrameColRow $iFrameID \$gCol \$gRow; destroy $ww"
+
+    grid $lwColRow -column 0 -row 0 
+    grid $ewRow    -column 1 -row 0 
+    grid $ewCol    -column 2 -row 0 
+    grid $bwOK     -column 0 -row 1 -sticky e -columnspan 3
+
+    pack $fwTop
+}
+
+proc DoGetViewIDFromFrameColRow { iFrameID iCol iRow } {
+    set ID [GetViewIDFromFrameColRow $iFrameID $iCol $iRow]
+    puts "ID for $iCol $iRow is $ID"
+}
+
+proc DoGetSelectedViewID { iFrameID } {
+    set ID [GetSelectedViewID $iFrameID]
+    puts "ID for selected view is $ID"
+}
+
+
 proc CreateWindow { } {
 
     set windowID [GetNewWindowID]
@@ -27,6 +65,10 @@ proc CreateWindow { } {
     set bw44       $fwControls.bw44
     set bw13       $fwControls.bw13
 
+    set fwTestButtons $ww.fwTestButtons
+    set bwVID      $fwTestButtons.bwVID
+    set bwSVID     $fwTestButtons.bwSVID
+
     toplevel $ww
 
     frame $fwTop
@@ -35,15 +77,20 @@ proc CreateWindow { } {
     frame $fwControls
     button $bwNewWindow -text "New Window" \
 	-command CreateWindow
-
     button $bw11 -text "11" \
-	-command "SetViewConfiguration $windowID c11"
+	-command "SetFrameViewConfiguration $windowID c11"
     button $bw22 -text "22" \
-	-command "SetViewConfiguration $windowID c22"
+	-command "SetFrameViewConfiguration $windowID c22"
     button $bw44 -text "44" \
-	-command "SetViewConfiguration $windowID c44"
+	-command "SetFrameViewConfiguration $windowID c44"
     button $bw13 -text "13" \
-	-command "SetViewConfiguration $windowID c13"
+	-command "SetFrameViewConfiguration $windowID c13"
+
+    frame $fwTestButtons
+    button $bwVID -text "Get ID from Frame Row" \
+	-command "DoGetViewIDFromFrameColRowDlog $windowID"
+    button $bwSVID -text "Get Selected ID" \
+	-command "DoGetSelectedViewID $windowID"
 
 
     bind $twMain <Motion> "%W MouseMotionCallback %x %y %b"
@@ -54,12 +101,15 @@ proc CreateWindow { } {
     bind $twMain <Enter> "focus $twMain"
 
     pack $twMain -fill both -expand true
-    pack $bwNewWindow $bw11 $bw22 $bw44 $bw13 -side left
+    pack $bwNewWindow $bw11 $bw22 $bw44 $bw13 $bwVID $bwSVID -side left
+
 
     pack $fwTop -fill both -expand true
-    pack $fwControls -fill x -expand true
+    pack $fwControls $fwTestButtons -fill x -expand true -side top
 
     puts "tcl: created window $windowID"
+
+    SetFrameViewConfiguration $windowID c11
 }
 
 

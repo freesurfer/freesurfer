@@ -5,6 +5,8 @@ using namespace std;
 
 map<ToglFrame::ID,ToglFrame*> ToglManager::mFrames;
 ToglFrameFactory* ToglManager::mFactory = NULL;
+InputState ToglManager::mState;
+
 
 void
 ToglManager::DrawCallback ( struct Togl* iTogl ) {
@@ -43,7 +45,7 @@ ToglManager::ReshapeCallback ( struct Togl* iTogl ) {
   int height = Togl_Height( iTogl );
   frame->Reshape( width, height );
 
-  /* Post a redisplay if the frame wants one. */
+  // Post a redisplay if the frame wants one. 
   if( frame->WantRedisplay() ) {
     Togl_PostRedisplay( iTogl );
     frame->RedisplayPosted();
@@ -57,7 +59,7 @@ ToglManager::TimerCallback ( struct Togl* iTogl ) {
   ToglFrame* frame = mFrames[id];
   frame->Timer();
 
-  /* Post a redisplay if the frame wants one. */
+  // Post a redisplay if the frame wants one. 
   if( frame->WantRedisplay() ) {
     Togl_PostRedisplay( iTogl );
     frame->RedisplayPosted();
@@ -68,14 +70,15 @@ int
 ToglManager::MouseMotionCallback ( struct Togl* iTogl, 
 				   int iArgc, char* iArgv[] ) {
 
+  // widget MouseMotionCallback x y button
   if( iArgc != 5 ) {
     return TCL_ERROR;
   }
   ToglFrame::ID id = atoi( Togl_Ident( iTogl ));
   ToglFrame* frame = mFrames[id];
-  frame->MouseMoved( atoi(iArgv[2]), atoi(iArgv[3]), atoi(iArgv[4]), 0 );
+  frame->MouseMoved( atoi(iArgv[2]), atoi(iArgv[3]), mState );
 
-  /* Post a redisplay if the frame wants one. */
+  // Post a redisplay if the frame wants one. 
   if( frame->WantRedisplay() ) {
     Togl_PostRedisplay( iTogl );
     frame->RedisplayPosted();
@@ -88,14 +91,19 @@ int
 ToglManager::MouseDownCallback ( struct Togl* iTogl, 
 				 int iArgc, char* iArgv[] ) {
 
+  // widget MouseDownCallback x y button
   if( iArgc != 5 ) {
     return TCL_ERROR;
   }
+
+  // Record this in the keyboard state.
+  mState.mButton = atoi(iArgv[4]);
+
   ToglFrame::ID id = atoi( Togl_Ident( iTogl ));
   ToglFrame* frame = mFrames[id];
-  frame->MouseDown( atoi(iArgv[2]), atoi(iArgv[3]), atoi(iArgv[4]), 0 );
+  frame->MouseDown( atoi(iArgv[2]), atoi(iArgv[3]), mState );
 
-  /* Post a redisplay if the frame wants one. */
+  // Post a redisplay if the frame wants one. 
   if( frame->WantRedisplay() ) {
     Togl_PostRedisplay( iTogl );
     frame->RedisplayPosted();
@@ -107,14 +115,22 @@ ToglManager::MouseDownCallback ( struct Togl* iTogl,
 int
 ToglManager::MouseUpCallback ( struct Togl* iTogl, int iArgc, char* iArgv[] ) {
 
+  // widget MouseUpCallback x y button
   if( iArgc != 5 ) {
     return TCL_ERROR;
   }
+
+  // Record this in the keyboard state.
+  mState.mButton = atoi(iArgv[4]);
+  
   ToglFrame::ID id = atoi( Togl_Ident( iTogl ));
   ToglFrame* frame = mFrames[id];
-  frame->MouseUp( atoi(iArgv[2]), atoi(iArgv[3]), atoi(iArgv[4]), 0 );
+  frame->MouseUp( atoi(iArgv[2]), atoi(iArgv[3]), mState );
 
-  /* Post a redisplay if the frame wants one. */
+  // Clear this in the keyboard state.
+  mState.mButton = 0;
+
+  // Post a redisplay if the frame wants one. 
   if( frame->WantRedisplay() ) {
     Togl_PostRedisplay( iTogl );
     frame->RedisplayPosted();
@@ -126,17 +142,38 @@ ToglManager::MouseUpCallback ( struct Togl* iTogl, int iArgc, char* iArgv[] ) {
 int
 ToglManager::KeyDownCallback ( struct Togl* iTogl, int iArgc, char* iArgv[] ) {
 
+  // widget KeyDownCallback x y key
   if( iArgc != 5 ) {
     return TCL_ERROR;
   }
-  ToglFrame::ID id = atoi( Togl_Ident( iTogl ));
-  ToglFrame* frame = mFrames[id];
-  frame->KeyDown( atoi(iArgv[2]), atoi(iArgv[3]), string(iArgv[4]), 0 );
 
-  /* Post a redisplay if the frame wants one. */
-  if( frame->WantRedisplay() ) {
-    Togl_PostRedisplay( iTogl );
-    frame->RedisplayPosted();
+  // Look for modifiers. If it's shift (Shift_L or Shift_R), alt
+  // (Alt_L or Alt_R), or ctrl (Control_L or Control_R) then just mark
+  // our modifiers but don't pass the key along.
+  string sKey = iArgv[4];
+  if( sKey == "Shift_L" || sKey == "Shift_R" ) {
+    mState.mbShiftKey = true;
+
+  } else if( sKey == "Alt_L" || sKey == "Alt_R" ) {
+    mState.mbAltKey = true;
+
+  } else if( sKey == "Control_L" || sKey == "Control_R" ) {
+    mState.mbControlKey = true;
+
+  } else {
+  
+    // Record the key.
+    mState.msKey = sKey;
+    
+    ToglFrame::ID id = atoi( Togl_Ident( iTogl ));
+    ToglFrame* frame = mFrames[id];
+    frame->KeyDown( atoi(iArgv[2]), atoi(iArgv[3]), mState );
+    
+    // Post a redisplay if the frame wants one. 
+    if( frame->WantRedisplay() ) {
+      Togl_PostRedisplay( iTogl );
+      frame->RedisplayPosted();
+    }
   }
 
   return TCL_OK;
@@ -145,18 +182,59 @@ ToglManager::KeyDownCallback ( struct Togl* iTogl, int iArgc, char* iArgv[] ) {
 int
 ToglManager::KeyUpCallback ( struct Togl* iTogl, int iArgc, char* iArgv[] ) {
 
-  if( iArgc != 5 ) {
+   // widget KeyDownCallback x y key
+ if( iArgc != 5 ) {
     return TCL_ERROR;
   }
-  ToglFrame::ID id = atoi( Togl_Ident( iTogl ));
-  ToglFrame* frame = mFrames[id];
-  frame->KeyUp( atoi(iArgv[2]), atoi(iArgv[3]), string(iArgv[4]), 0 );
+  // Look for modifiers. If it's shift (Shift_L or Shift_R), alt
+  // (Alt_L or Alt_R), or ctrl (Control_L or Control_R) then just mark
+  // our modifiers but don't pass the key along.
+  string sKey = iArgv[4];
+  if( sKey == "Shift_L" || sKey == "Shift_R" ) {
+    mState.mbShiftKey = false;
 
-  /* Post a redisplay if the frame wants one. */
-  if( frame->WantRedisplay() ) {
-    Togl_PostRedisplay( iTogl );
-    frame->RedisplayPosted();
+  } else if( sKey == "Alt_L" || sKey == "Alt_R" ) {
+    mState.mbAltKey = false;
+
+  } else if( sKey == "Control_L" || sKey == "Control_R" ) {
+    mState.mbControlKey = false;
+
+  } else {
+  
+  
+    // Record the key.
+    mState.msKey = sKey;
+    
+    ToglFrame::ID id = atoi( Togl_Ident( iTogl ));
+    ToglFrame* frame = mFrames[id];
+    frame->KeyUp( atoi(iArgv[2]), atoi(iArgv[3]), mState );
+    
+    // Clear this in the keyboard state.
+    mState.msKey = "";
+    
+    // Post a redisplay if the frame wants one.
+    if( frame->WantRedisplay() ) {
+      Togl_PostRedisplay( iTogl );
+      frame->RedisplayPosted();
+    }
   }
+
+  return TCL_OK;
+}
+
+int
+ToglManager::ExitCallback ( struct Togl* iTogl, int iArgc, char* iArgv[] ) {
+
+  if( iArgc != 2 ) {
+    return TCL_ERROR;
+  }
+
+  // Just clear the modifiers.
+  mState.mbShiftKey = false;
+  mState.mbAltKey = false;
+  mState.mbControlKey = false;
+  mState.mButton = 0;
+  mState.msKey = "";
 
   return TCL_OK;
 }
@@ -186,11 +264,12 @@ ToglManager::InitializeTogl ( Tcl_Interp* iInterp ) {
 
   // Create our Tcl commands that will be bound to the Togl object as
   // callbacks.
-  Togl_CreateCommand( "MouseMotionCallback", ToglManager::MouseMotionCallback );
+  Togl_CreateCommand( "MouseMotionCallback", ToglManager::MouseMotionCallback);
   Togl_CreateCommand( "MouseDownCallback", ToglManager::MouseDownCallback );
   Togl_CreateCommand( "MouseUpCallback", ToglManager::MouseUpCallback );
   Togl_CreateCommand( "KeyDownCallback", ToglManager::KeyDownCallback );
   Togl_CreateCommand( "KeyUpCallback", ToglManager::KeyUpCallback );
+  Togl_CreateCommand( "ExitCallback", ToglManager::ExitCallback );
 }
 
 
@@ -232,33 +311,48 @@ ToglFrame::Timer() {
 }
 
 void
-ToglFrame::MouseMoved( int inX, int inY, int iButton, int iModifiers ) {
+ToglFrame::MouseMoved( int inX, int inY, InputState& iState ) {
 
-  this->DoMouseMoved( inX, inY, iButton, iModifiers );
+  if( inX > 0 && inX < mWidth-1 &&
+      inY > 0 && inY < mHeight-1 ) {
+    this->DoMouseMoved( inX, inY, iState );
+  }
 }
 
 void
-ToglFrame::MouseUp( int inX, int inY, int iButton, int iModifers ) {
+ToglFrame::MouseUp( int inX, int inY, InputState& iState ) {
 
-  this->DoMouseUp( inX, inY, iButton, iModifers );
+  if( inX > 0 && inX < mWidth-1 &&
+      inY > 0 && inY < mHeight-1 ) {
+    this->DoMouseUp( inX, inY, iState );
+  }
 }
 
 void
-ToglFrame::MouseDown( int inX, int inY, int iButton, int iModifers ) {
+ToglFrame::MouseDown( int inX, int inY, InputState& iState ) {
 
-  this->DoMouseDown( inX, inY, iButton, iModifers );
+  if( inX > 0 && inX < mWidth-1 &&
+      inY > 0 && inY < mHeight-1 ) {
+    this->DoMouseDown( inX, inY, iState );
+  }
 }
 
 void
-ToglFrame::KeyDown( int inX, int inY, string isKey, int iModifers ) {
+ToglFrame::KeyDown( int inX, int inY, InputState& iState ) {
 
-  this->DoKeyDown( inX, inY, isKey, iModifers );
+  if( inX > 0 && inX < mWidth-1 &&
+      inY > 0 && inY < mHeight-1 ) {
+    this->DoKeyDown( inX, inY, iState );
+  }
 }
 
 void
-ToglFrame::KeyUp( int inX, int inY, string isKey, int iModifers ) {
+ToglFrame::KeyUp( int inX, int inY, InputState& iState ) {
 
-  this->DoKeyUp( inX, inY, isKey, iModifers );
+  if( inX > 0 && inX < mWidth-1 &&
+      inY > 0 && inY < mHeight-1 ) {
+    this->DoKeyUp( inX, inY, iState );
+  }
 }
 
 void
@@ -280,31 +374,31 @@ ToglFrame::DoTimer() {
 }
 
 void
-ToglFrame::DoMouseMoved( int inX, int inY, int iButton, int iModifiers ) {
+ToglFrame::DoMouseMoved( int inX, int inY, InputState& iState ) {
 
   DebugOutput( << "ToglFrame " << mID << ": DoMouseMoved()" );
 }
 
 void
-ToglFrame::DoMouseUp( int inX, int inY, int iButton, int iModifers ) {
+ToglFrame::DoMouseUp( int inX, int inY, InputState& iState ) {
 
   DebugOutput( << "ToglFrame " << mID << ": DoMouseUp()" );
 }
 
 void
-ToglFrame::DoMouseDown( int inX, int inY, int iButton, int iModifers ) {
+ToglFrame::DoMouseDown( int inX, int inY, InputState& iState ) {
 
   DebugOutput( << "ToglFrame " << mID << ": DoMouseDown()" );
 }
 
 void
-ToglFrame::DoKeyDown( int inX, int inY, string isKey, int iModifers ) {
+ToglFrame::DoKeyDown( int inX, int inY, InputState& iState ) {
 
   DebugOutput( << "ToglFrame " << mID << ": DoKeyDown()" );
 }
 
 void
-ToglFrame::DoKeyUp( int inX, int inY, string isKey, int iModifers ) {
+ToglFrame::DoKeyUp( int inX, int inY, InputState& iState ) {
 
   DebugOutput( << "ToglFrame " << mID << ": DoKeyUp()" );
 }

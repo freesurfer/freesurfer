@@ -8,7 +8,6 @@
 #include "View.h"
 
 
-
 class ScubaFrame : public ToglFrame, public TclCommandListener {
 
   friend class ScubaFrameTester;
@@ -36,15 +35,16 @@ protected:
   virtual void DoDraw();
   virtual void DoReshape();
   virtual void DoTimer();
-  virtual void DoMouseMoved( int inX, int inY, int iButton, int iModifiers );
-  virtual void DoMouseUp( int inX, int inY, int iButton, int iModifers );
-  virtual void DoMouseDown( int inX, int inY, int iButton, int iModifers );
-  virtual void DoKeyDown( int inX, int inY, std::string isKey, int iModifers );
-  virtual void DoKeyUp( int inX, int inY, std::string isKey, int iModifers );
+  virtual void DoMouseMoved( int inX, int inY, InputState& iState );
+  virtual void DoMouseUp( int inX, int inY, InputState& iState );
+  virtual void DoMouseDown( int inX, int inY, InputState& iState );
+  virtual void DoKeyDown( int inX, int inY, InputState& iState );
+  virtual void DoKeyUp( int inX, int inY, InputState& iState );
 
   // Given a window location, returns a pointer to a view. Or could
   // throw an exception.
-  View* FindViewAtWindowLoc( int iWindowX, int iWindowY );
+  View* FindViewAtWindowLoc( int iWindowX, int iWindowY,
+			     int* onCol, int* onRow );
 
   // Access functions to get/set views at a col/row position. This can
   // be used even if the current view configuration doesn't have the
@@ -58,6 +58,13 @@ protected:
   ViewConfiguration mViewConfiguration;
   int mcRows;
   std::map<int,int> mcCols;
+
+  // The selected view. Always in ViewConfiguration col/row bounds.
+  int mnSelectedViewCol;
+  int mnSelectedViewRow;
+
+  // Keys.
+  std::string msCycleKey;
 
   // The map of view pointers. The first is a map for columns and the
   // second is a map of those for rows.
@@ -81,5 +88,3 @@ public:
 };
 
 #endif
-
-

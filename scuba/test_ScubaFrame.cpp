@@ -1,4 +1,5 @@
 #include <stdexcept>
+#include <sstream>
 #include "ScubaFrame.h"
 extern "C" {
 #include "glut.h"
@@ -24,11 +25,11 @@ protected:
   virtual void DoDraw();
   virtual void DoReshape( int iWidth, int iHeight );
   virtual void DoTimer();
-  virtual void DoMouseMoved( int inX, int inY, int iButton, int iModifiers );
-  virtual void DoMouseUp( int inX, int inY, int iButton, int iModifers );
-  virtual void DoMouseDown( int inX, int inY, int iButton, int iModifers );
-  virtual void DoKeyDown( int inX, int inY, std::string isKey, int iModifers );
-  virtual void DoKeyUp( int inX, int inY, std::string isKey, int iModifers );
+  virtual void DoMouseMoved( int inX, int inY, InputState& iState );
+  virtual void DoMouseUp( int inX, int inY, InputState& iState );
+  virtual void DoMouseDown( int inX, int inY, InputState& iState );
+  virtual void DoKeyDown( int inX, int inY, InputState& iState );
+  virtual void DoKeyUp( int inX, int inY, InputState& iState );
 };  
 
 TestView::TestView() {
@@ -37,14 +38,26 @@ TestView::TestView() {
 void
 TestView::DoDraw() {
  
-  if( msLabel != "" ) {
-    glRasterPos2i( mWidth / 2, mHeight / 2 - msLabel.length()/2);
-    
-    glColor3f( 1, 0, 1 );
-    for( int nChar = 0; nChar < msLabel.length(); nChar++ ) {
-      glutBitmapCharacter( GLUT_BITMAP_HELVETICA_18, msLabel[nChar] );
-    }
+  stringstream ssLabel;
+  ssLabel << mID << ": " << msLabel;
+  string sLabel = ssLabel.str();
+
+  glColor3f( 1, 1, 1 );
+  
+  glRasterPos2i( mWidth / 2, mHeight / 2 - sLabel.length()/2);
+  
+  glColor3f( 1, 0, 1 );
+  for( int nChar = 0; nChar < sLabel.length(); nChar++ ) {
+    glutBitmapCharacter( GLUT_BITMAP_HELVETICA_18, sLabel[nChar] );
   }
+  
+  glBegin( GL_LINE_STRIP );
+  glVertex2d( 4, 4 );
+  glVertex2d( mWidth-4, 4 );
+  glVertex2d( mWidth-4, mHeight-4 );
+  glVertex2d( 4, mHeight-4 );
+  glVertex2d( 4, 4 );
+  glEnd ();
 }
 
 void
@@ -57,26 +70,26 @@ TestView::DoTimer() {
 }
 
 void
-TestView::DoMouseMoved( int inX, int inY, int iButton, int iModifiers ) {
+TestView::DoMouseMoved( int inX, int inY, InputState& iState ) {
 }
 
 void
-TestView::DoMouseUp( int inX, int inY, int iButton, int iModifers ) {
+TestView::DoMouseUp( int inX, int inY, InputState& iState ) {
 
 }
 
 void
-TestView::DoMouseDown( int inX, int inY, int iButton, int iModifers ) {
+TestView::DoMouseDown( int inX, int inY, InputState& iState ) {
   cerr << msLabel << ": click " << endl;
 }
 
 void
-TestView::DoKeyDown( int inX, int inY, std::string isKey, int iModifers ) {
+TestView::DoKeyDown( int inX, int inY, InputState& iState ) {
 
 }
 
 void
-TestView::DoKeyUp( int inX, int inY, std::string isKey, int iModifers ) {
+TestView::DoKeyUp( int inX, int inY, InputState& iState ) {
 
 }
 

@@ -35,6 +35,12 @@ PreferencesManager::UseFile( string const ifnPrefs ) {
   struct stat info;
   int rStat;
 
+  // If we're already using this file and it's not dirty, don't reread it.
+  if( mfnPrefs == fnPrefs &&
+      mbPrefsFileDirty ) {
+    return;
+  }
+
   // If this is an absolute file name, try it.
   if( fnPrefs[0] == '/' ) {
     rStat = stat( fnPrefs.c_str(), &info );
@@ -70,7 +76,11 @@ PreferencesManager::UseFile( string const ifnPrefs ) {
     }      
   }
 
+
   mfnPrefs = fnPrefs;
+  mbPrefsFileDirty = false;
+
+  DebugOutput( << "Using prefs file " << mfnPrefs );
 
   ReadFile();
 }
@@ -89,14 +99,9 @@ PreferencesManager::RegisterValue( string const isKeyName,
   PreferenceValueMap::iterator tPref = mPrefValues.find(isKeyName);
   if( tPref != mPrefValues.end() ) {
     
-    DebugOutput( << "RegisterValue: pref " << isKeyName << "found" );
-
     PreferenceValue pref = *mPrefValues[isKeyName];
 
   } else {
-
-    DebugOutput( << "RegisterValue: pref " << isKeyName 
-		 << " not found, adding" );
 
     PreferenceValue* pref = new PreferenceValue();
     pref->msKeyName = isKeyName;
@@ -117,6 +122,8 @@ PreferencesManager::SetValue( std::string const isKeyName,
     
     PreferenceValue* pref = mPrefValues[isKeyName];
     pref->msValue = iValue.ValueToString();
+
+    mbPrefsFileDirty = true;
 
   } else {
     throw (char const*) "Value not found.";
@@ -268,6 +275,8 @@ PreferencesManager::WriteFile() {
   }
   
   fPrefs.close();
+
+  mbPrefsFileDirty = false;
 }
 
 

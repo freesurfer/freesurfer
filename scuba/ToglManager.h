@@ -1,12 +1,12 @@
 #ifndef ToglManager_h
 #define ToglManager_h
 
+#include <map>
 extern "C" {
 #include "togl.h"
 }
 #include "DebugReporter.h"
-#include <map>
-
+#include "InputState.h"
 
 class ToglFrame : public DebugReporter {
 
@@ -26,11 +26,11 @@ class ToglFrame : public DebugReporter {
   void Draw();
   void Reshape( int iWidth, int iHeight );
   void Timer();
-  void MouseMoved( int inX, int inY, int iButton, int iModifiers );
-  void MouseUp( int inX, int inY, int iButton, int iModifers );
-  void MouseDown( int inX, int inY, int iButton, int iModifers );
-  void KeyDown( int inX, int inY, std::string isKey, int iModifers );
-  void KeyUp( int inX, int inY, std::string isKey, int iModifers );
+  void MouseMoved( int inX, int inY, InputState& iState );
+  void MouseUp( int inX, int inY, InputState& iState );
+  void MouseDown( int inX, int inY, InputState& iState );
+  void KeyDown( int inX, int inY, InputState& iState );
+  void KeyUp( int inX, int inY, InputState& iState );
   
   // These manage flags that the ToglManager will check to see if the
   // frame wants a redisplay. The frame should call RequestRedisplay()
@@ -48,11 +48,11 @@ class ToglFrame : public DebugReporter {
   virtual void DoDraw();
   virtual void DoReshape();
   virtual void DoTimer();
-  virtual void DoMouseMoved( int inX, int inY, int iButton, int iModifiers );
-  virtual void DoMouseUp( int inX, int inY, int iButton, int iModifers );
-  virtual void DoMouseDown( int inX, int inY, int iButton, int iModifers );
-  virtual void DoKeyDown( int inX, int inY, std::string isKey, int iModifers );
-  virtual void DoKeyUp( int inX, int inY, std::string isKey, int iModifers );
+  virtual void DoMouseMoved( int inX, int inY, InputState& iState  );
+  virtual void DoMouseUp( int inX, int inY, InputState& iState );
+  virtual void DoMouseDown( int inX, int inY, InputState& iState );
+  virtual void DoKeyDown( int inX, int inY, InputState& iState );
+  virtual void DoKeyUp( int inX, int inY, InputState& iState );
 
   // These are set by the Reshape() function. These should not be
   // manually set by subclasses.
@@ -103,6 +103,7 @@ class ToglManager {
   static int MouseUpCallback ( struct Togl* iTogl, int iArgc, char* iArgv[] );
   static int KeyDownCallback ( struct Togl* iTogl, int iArgc, char* iArgv[] );
   static int KeyUpCallback ( struct Togl* iTogl, int iArgc, char* iArgv[] );
+  static int ExitCallback ( struct Togl* iTogl, int iArgc, char* iArgv[] );
 
   // The main entry point should call this function to register all
   // the callbacks.
@@ -121,6 +122,10 @@ class ToglManager {
   static std::map<ToglFrame::ID,ToglFrame*> mFrames;
 
   static ToglFrameFactory* mFactory;
+
+  // Our modifers for shift, contrl, and alt keys.
+  static InputState mState;
+
 };
 
 

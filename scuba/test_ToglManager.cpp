@@ -16,11 +16,11 @@ protected:
   virtual void DoDraw();
   virtual void DoReshape();
   virtual void DoTimer();
-  virtual void DoMouseMoved( int inX, int inY, int iButton, int iModifiers );
-  virtual void DoMouseUp( int inX, int inY, int iButton, int iModifers );
-  virtual void DoMouseDown( int inX, int inY, int iButton, int iModifers );
-  virtual void DoKeyDown( int inX, int inY, string isKey, int iModifers );
-  virtual void DoKeyUp( int inX, int inY, string isKey, int iModifers );
+  virtual void DoMouseMoved( int inX, int inY, InputState& iModifier );
+  virtual void DoMouseUp( int inX, int inY, InputState& iState );
+  virtual void DoMouseDown( int inX, int inY, InputState& iState );
+  virtual void DoKeyDown( int inX, int inY, InputState& iState );
+  virtual void DoKeyUp( int inX, int inY, InputState& iState );
 
   bool bTimerCalled;
 };
@@ -59,38 +59,38 @@ TestFrame::DoTimer() {
 }
 
 void
-TestFrame::DoMouseMoved( int inX, int inY, int iButton, int iModifiers ) {
+TestFrame::DoMouseMoved( int inX, int inY, InputState& iState ) {
 
   DebugOutput( << "TestFrame " << mID << ": DoMouseMoved " 
-	       << inX << ", " << inY << ", " << iButton << ", " << iModifiers);
+	       << inX << ", " << inY << ", " << iState );
 }
 
 void
-TestFrame::DoMouseUp( int inX, int inY, int iButton, int iModifiers ) {
+TestFrame::DoMouseUp( int inX, int inY, InputState& iState ) {
 
   DebugOutput( << "TestFrame " << mID << ": DoMouseUp "
-	       << inX << ", " << inY << ", " << iButton << ", " << iModifiers);
+	       << inX << ", " << inY << ", " << iState );
 }
 
 void
-TestFrame::DoMouseDown( int inX, int inY, int iButton, int iModifiers ) {
+TestFrame::DoMouseDown( int inX, int inY, InputState& iState ) {
 
   DebugOutput( << "TestFrame " << mID << ": DoMouseDown "
-	       << inX << ", " << inY << ", " << iButton << ", " << iModifiers);
+	       << inX << ", " << inY << ", " << iState );
 }
 
 void
-TestFrame::DoKeyDown( int inX, int inY, string isKey, int iModifiers ) {
+TestFrame::DoKeyDown( int inX, int inY, InputState& iState ) {
 
   DebugOutput( << "TestFrame " << mID << ": DoKeyDown "
-	       << inX << ", " << inY << ", " << isKey << ", " << iModifiers);
+	       << inX << ", " << inY << ", " << iState );
 }
 
 void
-TestFrame::DoKeyUp( int inX, int inY, string isKey, int iModifiers ) {
+TestFrame::DoKeyUp( int inX, int inY, InputState& iState ) {
 
   DebugOutput( << "TestFrame " << mID << ": DoKeyUp "
-	       << inX << ", " << inY << ", " << isKey << ", " << iModifiers);
+	       << inX << ", " << inY << ", " << iState );
 }
 
 
@@ -117,4 +117,80 @@ int Test_toglmanager_Init ( Tcl_Interp* iInterp ) {
 
   return TCL_OK;
 }
+}
+
+
+class InputStateTester {
+public:
+  void Test();
+};
+
+void 
+InputStateTester::Test() {
+  
+  try {
+
+    InputState m;
+    if( m.IsShiftKeyDown() || m.IsAltKeyDown() || m.IsControlKeyDown() ) {
+      cerr << "InputState not init'd properly" << endl;
+      throw new logic_error( "InputState not init'd properly" );
+    }
+    
+    m.mbShiftKey = true;
+    if( !m.IsShiftKeyDown() || m.IsAltKeyDown() || m.IsControlKeyDown() ) {
+      cerr << "InputState shift not set properly" << endl;
+      throw new logic_error( "InputState shift not set properly" );
+    }
+
+    m.mbAltKey = true;
+    if( !m.IsShiftKeyDown() || !m.IsAltKeyDown() || m.IsControlKeyDown() ) {
+      cerr << "InputState alt not set properly" << endl;
+      throw new logic_error( "InputState alt not set properly" );
+    }
+
+    m.mbControlKey = true;
+    if( !m.IsShiftKeyDown() || !m.IsAltKeyDown() || !m.IsControlKeyDown() ) {
+      cerr << "InputState control not set properly" << endl;
+      throw new logic_error( "InputState control not set properly" );
+    }
+
+  }
+  catch( exception e ) {
+    cerr << "InputStateTester failed with exception: " << e.what() << endl;
+    exit( 1 );
+  }
+  catch(...) {
+    cerr << "InputStateTester failed" << endl;
+    exit( 1 );
+  }
+  
+}
+
+int main( int argc, char** argv ) {
+
+  cerr << "Beginning test" << endl;
+ 
+  try {
+    for( int nTrial = 0; nTrial < 50; nTrial++ ) {
+
+      InputStateTester mt0;
+      mt0.Test();
+
+      InputStateTester mt1;
+      mt1.Test();
+
+    }
+  }
+  catch( exception e ) {
+    cerr << "failed with exception: " << e.what() << endl;
+    exit( 1 );
+  }
+  catch(...) {
+    cerr << "failed" << endl;
+    exit( 1 );
+  }
+
+  cerr << "Success" << endl;
+
+  exit( 0 );
 }

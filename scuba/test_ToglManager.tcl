@@ -38,6 +38,7 @@ proc CreateWindow { } {
     bind $twMain <KeyRelease> "%W KeyUpCallback %x %y %K"
     bind $twMain <KeyPress> "%W KeyDownCallback %x %y %K"
     bind $twMain <Enter> "focus $twMain"
+    bind $twMain <FocusOut> "%W ExitCallback"
 
     pack $twMain -fill both -expand true
     pack $bwNewWindow -side left

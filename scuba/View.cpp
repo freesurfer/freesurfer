@@ -36,33 +36,38 @@ View::Timer() {
 }
 
 void
-View::MouseMoved( int inX, int inY, int iButton, int iModifiers ) {
+View::MouseMoved( int inX, int inY, InputState& iState ) {
 
-  this->DoMouseMoved( inX, inY, iButton, iModifiers );
+  this->DoMouseMoved( inX, inY, iState );
 }
 
 void
-View::MouseUp( int inX, int inY, int iButton, int iModifers ) {
+View::MouseUp( int inX, int inY, InputState& iState ) {
 
-  this->DoMouseUp( inX, inY, iButton, iModifers );
+  this->DoMouseUp( inX, inY, iState );
 }
 
 void
-View::MouseDown( int inX, int inY, int iButton, int iModifers ) {
+View::MouseDown( int inX, int inY, InputState& iState ) {
 
-  this->DoMouseDown( inX, inY, iButton, iModifers );
+  this->DoMouseDown( inX, inY, iState );
 }
 
 void
-View::KeyDown( int inX, int inY, string isKey, int iModifers ) {
+View::KeyDown( int inX, int inY, InputState& iState ) {
 
-  this->DoKeyDown( inX, inY, isKey, iModifers );
+  this->DoKeyDown( inX, inY, iState );
 }
 
 void
-View::KeyUp( int inX, int inY, string isKey, int iModifers ) {
+View::KeyUp( int inX, int inY, InputState& iState ) {
 
-  this->DoKeyUp( inX, inY, isKey, iModifers );
+  this->DoKeyUp( inX, inY, iState );
+}
+
+void 
+View::DoListenToTclCommand ( char* iCommand, int iArgc, char** iArgv ) {
+
 }
 
 void
@@ -84,31 +89,32 @@ View::DoTimer() {
 }
 
 void
-View::DoMouseMoved( int inX, int inY, int iButton, int iModifiers ) {
+View::DoMouseMoved( int inX, int inY, InputState& iState ) {
 
   DebugOutput( << "View " << msLabel << ": DoMouseMoved()" );
 }
 
 void
-View::DoMouseUp( int inX, int inY, int iButton, int iModifers ) {
+View::DoMouseUp( int inX, int inY, InputState& iState ) {
 
   DebugOutput( << "View " << msLabel << ": DoMouseUp()" );
 }
 
 void
-View::DoMouseDown( int inX, int inY, int iButton, int iModifers ) {
+View::DoMouseDown( int inX, int inY, InputState& iState ) {
 
   DebugOutput( << "View " << msLabel << ": DoMouseDown()" );
 }
 
 void
-View::DoKeyDown( int inX, int inY, string isKey, int iModifers ) {
+View::DoKeyDown( int inX, int inY, InputState& iState ) {
 
   DebugOutput( << "View " << msLabel << ": DoKeyDown()" );
 }
 
 void
-View::DoKeyUp( int inX, int inY, string isKey, int iModifers ) {
+View::DoKeyUp( int inX, int inY, InputState& iState ) {
 
   DebugOutput( << "View " << msLabel << ": DoKeyUp()" );
 }
+

@@ -73,6 +73,9 @@ Frame:
  - other objects can register for idle events
  - tool modes
  - GetInfoAtWindowLocation( iX,iY, ocPairs, oasLabels, oasValues )
+ - one view is selected
+   - SelectThisView() - calls UnselectThisView() on all other vies
+   - UnselectThisView()
 
 View
  - manages 1..n layers
@@ -86,16 +89,13 @@ View
  - SetView()
  - SetMarker()
  - SetLayers( iczLayers, iaLayerIDs ) 
- - one view is selected
-   - SelectThisView() - calls UnselectThisView() on all other vies
-   - UnselectThisView()
 
 Layer
  - static Layer& GetLayer( LayerID );
  - static GetLayerIDList( oczLayers, oaLayerIDs )
  - Layer ( collectionID )
  - GetInfoAtRAS( iX,iY,iZ ocPairs, oasLabels, oasValues )
- - drawing attributes:
+  - drawing attributes:
    - opactiy
    - drawing level : 0 for base, 1 for overlay, or user-settable
    - modes supported : 2D, 3D, graph, etc,
@@ -202,11 +202,9 @@ Frame:
   GetSelectedViewID <frameID>    --- returns View::ID
 
 View:
-  SetViewOrientation <ID> <orientation>
   SetViewZoomLevel <ID> <zoomLevel>
   SetViewInPlane <ID> <plane>
-  SetViewCenter <ID> <X> <Y> <Z>
-  SetViewLinkFlag <ID> <linkFlag>
+  SetViewRASCenter <ID> <X> <Y> <Z>
 
 
   NewVolumeDataCollection <filename>
@@ -216,50 +214,6 @@ View:
     creates 2DMRILayer(collectionID)
     returns layer ID
   
-
-
-all classes
-Class::ID is auto-incrementing and autosetting
-Class() gets next ID, sets, and adds to list
-static map<ID,Class*> keeps track of Classes
-Class* GetByID( Class::ID ) for external use
-
-  Class::Class() {
-    mID = GetNextID();
-    mIDMap[mID] = this;
-  }
-  Class::~Class() {
-    mIDMap[mID] = NULL;
-  }
-
-  ID mID;
-  static ID mNextID;
-  static ID GetNextID () { return mNextID++; }
-  ID GetID() const  { return mID; }
-
-  static Class& GetClass( ID const iID );
-  typedef std::map<Class::ID,Class*> ClassIDMap;
-  static ClassIDMap mIDMap;
-
-  Class& 
-  Class::GetClass( ID const iID ) {
-
-    Class* obj = mIDMap[iID];
-    if( NULL == obj ) {
-      DebugOutputStatic( << "GetDataCollection ID=" << iID << " was null" );
-      throw domain_error( "ID no longer valid" );
-    }
-  
-    return *obj;
-  }
-
-string GetLabel()
-void SetLabel(string)
-
-  ID GetID() const { return mID; }
-  std::string GetLabel() const { return msLabel; }
-  void SetLabel( std::string const isLabel ) { msLabel = isLabel; }
-
 
 
 ToglFrame - doesn't automatically set ID because this is set by the togl stuff

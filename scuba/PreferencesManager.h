@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2003/10/17 16:52:28 $
-// Revision       : $Revision: 1.2 $
+// Revision Date  : $Date: 2003/12/12 01:48:28 $
+// Revision       : $Revision: 1.3 $
 
 #ifndef PreferencesManager_h
 #define PreferencesManager_h
@@ -116,6 +116,8 @@ class PreferencesManager : public DebugReporter {
   int mVersion;
   std::string mfnPrefs;
   std::string msHeader;
+
+  bool mbPrefsFileDirty;
 
   typedef std::map<std::string,PreferenceValue*> PreferenceValueMap;
   PreferenceValueMap mPrefValues;
