@@ -1259,4 +1259,18 @@ mhtDoesFaceVoxelListIntersect(MRIS_HASH_TABLE *mht, MRI_SURFACE *mris,
   return(0) ;
 }
 
+MHBT *
+MHTgetBucket(MRIS_HASH_TABLE *mht, float x, float y, float z)
+{
+  int     xv, yv, zv ;
+  MHBT    *bucket ;
 
+  xv = WORLD_TO_VOXEL(mht,x) ; 
+  yv = WORLD_TO_VOXEL(mht,y) ; 
+  zv = WORLD_TO_VOXEL(mht,z) ;
+  if (!mht->buckets[xv][yv])
+    return(NULL) ;
+  
+  bucket = mht->buckets[xv][yv][zv] ;
+  return(bucket) ;
+}

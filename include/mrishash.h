@@ -46,5 +46,6 @@ int             MHTaddAllFaces(MRIS_HASH_TABLE *mht, MRI_SURFACE *mris,
                                VERTEX *v) ;
 int             MHTremoveAllFaces(MRIS_HASH_TABLE *mht, MRI_SURFACE *mris,
                                   VERTEX *v) ;
+MHBT *MHTgetBucket(MRIS_HASH_TABLE *mht, float x, float y, float z) ;
 
 #endif
