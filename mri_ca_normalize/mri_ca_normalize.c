@@ -26,11 +26,7 @@ static char *sample_fname = NULL ;
 static char *ctl_point_fname = NULL ;
 static int novar = 0 ;
 
-#define MIN_SPACING   2.0
-#define MIN_SAMPLES   3
-static float min_spacing = MIN_SPACING ;
-
-static float min_prior = 0.9 ;
+static float min_prior = 0.6 ;
 static FILE *diag_fp = NULL ;
 
 
@@ -50,6 +46,7 @@ static GCA_SAMPLE *find_control_points(GCA *gca, GCA_SAMPLE *gcas, int total_nsa
 static GCA_SAMPLE *gcas_concatenate(GCA_SAMPLE *gcas1, GCA_SAMPLE *gcas2, int n1, int n2);
 static int  gcas_bounding_box(GCA_SAMPLE *gcas, int nsamples, int *pxmin, int *pymin, int *pzmin, 
                               int *pxmax, int *pymax, int *pzmax, int label) ;
+static int  uniform_region(MRI *mri, int x, int y, int z, int wsize, GCA_SAMPLE *gcas) ;
 
 /* 
    command line consists of three inputs:
@@ -120,6 +117,8 @@ main(int argc, char *argv[])
     ErrorExit(ERROR_NOFILE, "%s: could not open GCA %s.\n",
               Progname, gca_fname) ;
 
+  printf("reading transform from '%s'...\n", xform_fname) ;
+  fflush(stdout) ;
   transform = TransformRead(xform_fname) ;
   if (!transform)
     ErrorExit(ERROR_BADPARM, "%s: could not open xform file %s", Progname,xform_fname) ;
@@ -223,7 +222,7 @@ main(int argc, char *argv[])
     GCAtransformAndWriteSamples(gca, mri_in, gcas, nsamples, sample_fname, transform) ;
   
 
-  for (n = 1 ; n <= nregions ; n++)
+  for (n = 3 ; n <= nregions ; n++)
   {
     for (norm_samples = i = 0 ; i < NSTRUCTURES ; i++)
     {
@@ -287,7 +286,7 @@ main(int argc, char *argv[])
   seconds = nint((float)msec/1000.0f) ;
   minutes = seconds / 60 ;
   seconds = seconds % 60 ;
-  printf("registration took %d minutes and %d seconds.\n", 
+  printf("normalization took %d minutes and %d seconds.\n", 
           minutes, seconds) ;
   if (diag_fp)
     fclose(diag_fp) ;
@@ -329,6 +328,14 @@ get_option(int argc, char *argv[])
                 Progname, argv[2]) ;
     printf("opening diag file %s for writing\n", argv[2]) ;
     nargs = 1 ;
+  }
+  else if (!strcmp(option, "DEBUG_VOXEL"))
+  {
+    Gx = atoi(argv[2]) ;
+    Gy = atoi(argv[3]) ;
+    Gz = atoi(argv[4]) ;
+    printf("debugging voxel (%d, %d, %d)\n", Gx, Gy, Gz) ;
+    nargs = 3 ;
   }
   else if (!strcmp(option, "TR"))
   {
@@ -383,12 +390,6 @@ get_option(int argc, char *argv[])
     nargs = 1 ;
     printf("using prior threshold %2.2f\n", min_prior) ;
   }
-  else if (!strcmp(option, "SPACING"))
-  {
-    min_spacing = atof(argv[2]) ;
-    nargs = 1 ;
-    printf("using min GCA spacing %2.0f...\n", min_spacing) ;
-  }
   else if (!stricmp(option, "NOVAR"))
   {
     novar = 1 ;
@@ -439,7 +440,7 @@ find_control_points(GCA *gca, GCA_SAMPLE *gcas_total,
                     int total_samples, int *pnorm_samples, int nregions, int label,
                     MRI *mri_in, TRANSFORM *transform, double min_prior, double ctl_point_pct)
 {
-  int        i, j, *ordered_indices, nsamples, xmin, ymin, zmin, xmax, ymax, zmax, 
+  int        i, j, *ordered_indices, nsamples, xmin, ymin, zmin, xmax, ymax, zmax, xv,yv,zv,
              x, y, z, xi, yi, zi, region_samples, used_in_region, wsize=3, histo_peak ;
   GCA_SAMPLE *gcas, *gcas_region, *gcas_norm ;
   double     mean, var, val ;
@@ -490,11 +491,17 @@ find_control_points(GCA *gca, GCA_SAMPLE *gcas_total,
               (yi < 0 || yi >= nregions) ||
               (zi < 0 || zi >= nregions))
             DiagBreak() ;
+          xv = gcas[i].x ; yv = gcas[i].y ; zv = gcas[i].z ;
+          if (xv == Gx && yv == Gy && zv == Gz)
+            DiagBreak() ;
+          if (sqrt(SQR(xv-Gx)+SQR(yv-Gy)+SQR(zv-Gz)) < 4)
+            DiagBreak() ;
           if (xi != x || yi != y || zi != z || gcas[i].prior < min_prior)
             continue ;
-          if (gcas[i].x == Gx && gcas[i].y == Gy && gcas[i].z == Gz)
-            DiagBreak() ;
+
           if (min_region_prior(gca, gcas[i].xp, gcas[i].yp, gcas[i].zp, wsize, label) < min_prior)
+            continue ;
+          if (uniform_region(mri_in, xv, yv, zv, wsize, &gcas[i]) == 0)
             continue ;
           memmove(&gcas_region[region_samples], &gcas[i], sizeof(GCA_SAMPLE)) ;
           region_samples++ ;
@@ -519,33 +526,6 @@ find_control_points(GCA *gca, GCA_SAMPLE *gcas_total,
         HISTOsmooth(histo, hsmooth, 2) ;
         histo_peak = HISTOfindLastPeakRelative(hsmooth, 3, .25) ;
 
-#if 0
-        {
-          int total, count ;
-
-          for (total = 0.0, i = 0 ; i <= 255 ; i++)
-            total += histo->counts[i] ;
-
-          /* find 50% quantile */
-          for (count = 0, i = 255 ; i >= 0 ; i--)
-          {
-            if (count > total/2)
-              break ;
-            else
-              count += histo->counts[i] ;
-          }
-
-          /* now compute mean and variance in the upper 50% */
-          for (mean=var=0.0, count=0 ; i < 256 ; i++)
-          {
-            count += histo->counts[i] ;
-            mean += histo->counts[i]*i ;
-            var += (histo->counts[i]*i*i) ;
-          }
-          mean /= (double)count ;
-          var = var / (double)count - mean*mean ;
-        }
-#else
           
         if (histo_peak < 0)
           continue ;
@@ -560,7 +540,6 @@ find_control_points(GCA *gca, GCA_SAMPLE *gcas_total,
         mean /= (double)region_samples ;
         var = var / (double)region_samples - mean*mean ;
         mean = histo_peak ;
-#endif
         printf("\tlabel %s: %2.1f +- %2.1f\n", cma_label_to_name(label), mean, sqrt(var)) ;
 
         /* ignore GCA mean and variance - use image instead (otherwise bias field will mess us up) */
@@ -703,5 +682,38 @@ min_region_prior(GCA *gca, int xp, int yp, int zp, int wsize, int label)
   }
 
   return(min_prior) ;
+}
+
+static int
+uniform_region(MRI *mri, int x, int y, int z, int wsize, GCA_SAMPLE *gcas)
+{
+  int   xk, yk, zk, whalf, xi, yi, zi ;
+  float val0, val, sigma ;
+
+  whalf = (wsize-1)/2 ;
+  sigma = sqrt(gcas->var) ;
+  val0 = (float)MRIvox(mri, x, y, z) ;
+  if (sigma < 0.05*val0)   /* don't let it be too small */
+    sigma = 0.05*val0 ;
+  if (sigma > 0.1*val0)    /* don't let it be too big */
+    sigma = 0.1*val0 ;
+
+  for (xk = -whalf ; xk <= whalf ; xk++)
+  {
+    xi = mri->xi[x+xk] ;
+    for (yk = -whalf ; yk <= whalf ; yk++)
+    {
+      yi = mri->yi[y+yk] ;
+      for (zk = -whalf ; zk <= whalf ; zk++)
+      {
+        zi = mri->zi[z+zk] ;
+        val = MRIvox(mri, xi, yi,  zi) ;
+        if (fabs(val-val0) > 1.5*sigma)
+          return(0) ;
+      }
+    }
+  }
+  
+  return(1) ;
 }
 
