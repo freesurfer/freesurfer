@@ -8,10 +8,10 @@
  *
 */
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2003/02/19 22:12:09 $
-// Revision       : $Revision: 1.216 $
-char *MRI_C_VERSION = "$Revision: 1.216 $";
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2003/02/26 19:42:43 $
+// Revision       : $Revision: 1.217 $
+char *MRI_C_VERSION = "$Revision: 1.217 $";
 
 /*-----------------------------------------------------
                     INCLUDE FILES
@@ -8062,7 +8062,7 @@ MRIcopyFrame(MRI *mri_src, MRI *mri_dst, int src_frame, int dst_frame)
   if (mri_src->type != mri_dst->type)
     ErrorReturn(NULL,(ERROR_UNSUPPORTED,
                       "MRIcopyFrame: src and dst must be same type"));
-
+  MRIcopyHeader(mri_src, mri_dst) ;
 
   switch (mri_src->type)
   {
@@ -9955,4 +9955,51 @@ MRI *MRIdrand48(int ncols, int nrows, int nslices, int nframes,
   }
 
   return(mri);
+}
+int
+MRInormalizeSequence(MRI *mri, float target)
+{
+	int    x, y, z, frame ;
+	double norm ;
+	Real   val ;
+
+	for (x = 0 ; x < mri->width ; x++)
+	{
+		for (y = 0 ; y < mri->height ; y++)
+		{
+			for (z = 0 ; z < mri->depth ; z++)
+			{
+				for (frame = 0, norm = 0 ; frame < mri->nframes ; frame++)
+				{
+					MRIsampleVolumeFrame(mri, x, y, z, frame, &val) ;
+					norm += (val*val) ;
+				}
+				norm = sqrt(norm) / target ;
+				if (FZERO(norm))
+					norm = 1 ;				
+				for (frame = 0 ; frame < mri->nframes ; frame++)
+				{
+					switch (mri->type)
+					{
+					default:
+						ErrorReturn(ERROR_UNSUPPORTED,
+							(ERROR_UNSUPPORTED, "MRInormalizeSequence: unsupported input type %d",
+							mri->type)) ;
+						break ;
+					case MRI_SHORT:
+						MRISseq_vox(mri, x, y, z, frame) = MRISseq_vox(mri, x, y, z, frame) / norm ; 
+						break ;
+					case MRI_FLOAT:
+						MRIFseq_vox(mri, x, y, z, frame) /= norm ; 
+						break ;
+					case MRI_UCHAR:
+						MRIseq_vox(mri, x, y, z, frame) /= norm ; 
+						break ;
+					}
+				}
+			}
+		}
+	}
+
+	return(NO_ERROR) ;
 }
