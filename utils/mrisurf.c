@@ -6875,7 +6875,7 @@ MRISreadValuesBak(MRI_SURFACE *mris, char *fname)
   lat = ilat/10.0;
 
   for (k=0;k<mris->nvertices;k++)
-    mris->vertices[k].val=0;
+    mris->vertices[k].valbak=0;
   fread3(&num,fp);
   for (i=0;i<num;i++)
     {
