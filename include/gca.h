@@ -177,6 +177,9 @@ int   GCAhistogramTissueStatistics(GCA *gca, MRI *mri_T1, MRI *mri_PD,
                                    MRI *mri_parc, LTA *lta, char *fname) ;
 int   GCAnormalizeTissueStatistics(GCA *gca) ;
 char *cma_label_to_name(int label) ;
+int  GCArenormalize(MRI *mri_in, MRI *mri_labeled, GCA *gca, LTA *lta) ;
+int  GCArenormalizeAdaptive(MRI *mri_in, MRI *mri_labeled, GCA *gca, LTA *lta,
+                            int wsize) ;
 int  GCArenormalizeLabels(MRI *mri_in, MRI *mri_labeled, GCA *gca, LTA *lta) ;
 MRI   *GCArelabel_cortical_gray_and_white(GCA *gca, MRI *mri_inputs, 
                                           MRI *mri_src, MRI *mri_dst,LTA *lta);
