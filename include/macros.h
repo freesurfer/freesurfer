@@ -63,6 +63,10 @@
 #define SQR(a)   ((a)*(a))
 #endif
 
+#ifndef ISIGN
+#define ISIGN(a)   (a >= 0 ? 1 : -1)
+#endif
+
 #define FSIGN(f)   (FZERO(f) ? 0.0f : (f < 0.0f) ? -1.0f : 1.0f)
 #include <stdlib.h>
 #include <string.h>
