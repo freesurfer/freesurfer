@@ -45,7 +45,7 @@
 #define NDEGREES(rad) (DEGREES(normAngle(rad)))
 
 #ifndef SPARC
-#define FZERO(f)     (fabs(f) < 0.0000000001F)
+#define FZERO(f)     (fabs(f) < 0.00000001F)
 #define iszero(f)   (FZERO(f))
 #else
 #define FZERO(f)     (iszero(f))
