@@ -529,6 +529,7 @@ int  MRIcountCpolvOffAtVoxel(MRI *mri_src,int x, int y, int z, int wsize,
                              int *pnum) ;
 int  MRIcentralPlaneOfLeastVarianceNormalVoxel(MRI *mri_src, int wsize,
                                                int x, int y, int z) ;
+int  MRIvertexToVector(int vertex, float *pdx, float *pdy, float *pdz) ;
 int MRIcpolvMedianCurveVoxel(MRI *mri, MRI *mri_labeled, int x0, int y0, 
                              int z0, int wsize, float len) ;
 float MRIcpolvMedianAtVoxel(MRI *mri_src, int vertex, 
