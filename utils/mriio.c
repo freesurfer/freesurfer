@@ -8307,6 +8307,7 @@ mghRead(char *fname, int read_volume, int frame)
   char *ext;
   int gzipped=0;
   char command[STRLEN];
+  int nread;
 
   ext = strrchr(fname, '.') ;
   if (ext)
@@ -8319,6 +8320,7 @@ mghRead(char *fname, int read_volume, int frame)
       myclose = pclose;  // assign function pointer for closing
       strcpy(command,"zcat ");
       strcat(command, fname);
+
       errno = 0; 
       fp = popen(command, "r");
       if (!fp)
@@ -8355,7 +8357,11 @@ mghRead(char *fname, int read_volume, int frame)
   z_r = z_a = z_s = 0;
   c_r = c_a = c_s = 0;
 
-  version = freadInt(fp) ;
+  nread = freadIntEx(&version, fp) ;
+  if (!nread)
+    ErrorReturn(NULL, (ERROR_BADPARM,"mghRead(%s, %d): read error",
+		       fname, frame)) ;
+
   width = freadInt(fp) ;
   height = freadInt(fp) ;
   depth =  freadInt(fp) ;
