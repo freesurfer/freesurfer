@@ -1,9 +1,9 @@
 #!/bin/csh -f
 # flacproc-sess
 #
-# $Id: flacproc-sess,v 1.2 2004/11/02 05:16:33 greve Exp $
+# $Id: flacproc-sess,v 1.3 2004/11/09 16:50:41 greve Exp $
 
-set VERSION = '$Id: flacproc-sess,v 1.2 2004/11/02 05:16:33 greve Exp $';
+set VERSION = '$Id: flacproc-sess,v 1.3 2004/11/09 16:50:41 greve Exp $';
 
 set cmdargs = ($argv);
 
@@ -14,8 +14,9 @@ set nolog     = 0;
 set PrintHelp = 0;
 set Synth     = 0;
 set SynthAR1  = 0;
-set nsvd      = 0;
-set nsvdthresh = 1;
+set npca      = 0;
+set npcathresh = 1;
+set svres = 0;
 
 if($#argv == 0)  goto usage_exit;
 set n = `echo $argv | grep -e -help | wc -l` 
@@ -38,7 +39,7 @@ goto check_params;
 check_params_return:
 
 if(! $nolog) then
-  set LF = log/flacproc-sess.log
+  set LF = log/flacproc-sess.$flac.log
   if(-e $LF) mv $LF $LF.bak
 else
   set LF = /dev/null
@@ -68,8 +69,9 @@ sess = '$sess';
 acfsegstem = '$acfsegstem';
 Synth    = $Synth;
 SynthAR1 = $SynthAR1;
-nsvd = $nsvd;
-nsvdthresh = $nsvdthresh;
+npca = $npca;
+npcathresh = $npcathresh;
+svres = $svres;
 monly = $monly;
 
 fprintf('-----------------------------------------------------\n');
@@ -186,9 +188,11 @@ for nthrun = 1:nruns
   tmp = fast_mat2vol(rvar,szvol);
   fast_svbslice(tmp,stem,[],[],mri);
 
-  stem = sprintf('%s/res',outdir);
-  tmp = fast_mat2vol(r,szvol);
-  fast_svbslice(tmp,stem,[],[],mri);
+  if(svres)
+    stem = sprintf('%s/res',outdir);
+    tmp = fast_mat2vol(r,szvol);
+    fast_svbslice(tmp,stem,[],[],mri);
+  end
 
   fprintf('Computing contrasts   (%6.1f)\n',toc);
   ncontrasts = length(flac.con);
@@ -225,7 +229,7 @@ for nthrun = 1:nruns
 
   end % contrasts
 
-  if(nsvd)
+  if(npca)
     fprintf('NSVD   (%6.1f)\n',toc);
 
     % Find task-related voxels
@@ -236,27 +240,27 @@ for nthrun = 1:nruns
     [F dof1 dof2 ces] = fast_fratiow(beta,flac.X,rvar,C,nacfseg,acfseg);
     p = FTest(dof1, dof2, F);
     sig = -log10(p);
-    indnsvd = find(abs(sig) < nsvdthresh);
+    indnpca = find(abs(sig) < npcathresh);
     fprintf('NSVD: Number of task-related voxels: %d (%g)\n',...
-            length(indnsvd),100*length(indnsvd)/Nv);
+            length(indnpca),100*length(indnpca)/Nv);
 
     % Extract non-taskrelated voxels and ortho wrt nuissance
-    ynsvd = y(:,indnsvd);
+    ynpca = y(:,indnpca);
     indnuis = flac_nuisregind(flac);
     Xnuis = flac.X(:,indnuis);
-    ynsvd = (eye(flac.ntp) - Xnuis*inv(Xnuis'*Xnuis)*Xnuis')*ynsvd;
-    [u s v] = fast_svd(ynsvd);
+    ynpca = (eye(flac.ntp) - Xnuis*inv(Xnuis'*Xnuis)*Xnuis')*ynpca;
+    [u s v] = fast_svd(ynpca);
     ds = diag(s);
     cpvs = 100*cumsum(ds)/sum(ds);
     fprintf('CPVS: ');
     fprintf(' %4.1f',cpvs(1:10));
     fprintf('\n');
 
-    % Keep the top nsvdkeep components
-    Xnsvd = u;
-    Xnsvd = permute(Xnsvd,[3 2 4  1]);
-    Xnsvdstem = sprintf('%s/Xnsvd',outdir);
-    fast_svbslice(Xnsvd,Xnsvdstem);
+    % Keep the all components
+    Xnpca = u;
+    Xnpca = permute(Xnpca,[3 2 4  1]);
+    Xnpcastem = sprintf('%s/Xnpca',outdir);
+    fast_svbslice(Xnpca,Xnpcastem);
 
   end
 
@@ -304,8 +308,8 @@ while( $#argv != 0 )
       endif
       breaksw
 
-    case "-nsvd":
-      set nsvd = 1;
+    case "-npca":
+      set npca = 1;
       breaksw
 
     case "-synth":
@@ -316,6 +320,11 @@ while( $#argv != 0 )
       if ( $#argv == 0) goto arg1err;
       set SynthAR1 = $argv[1]; shift;
       set Synth = 1;
+      breaksw
+
+    case "-svres":
+    case "-sveres":
+      set svres = 1;
       breaksw
 
     case "-monly":
@@ -390,6 +399,7 @@ usage_exit:
   echo "   -fsd fsdir      (optional)"
   echo ""
   echo "Other Arguments"
+  echo "   -svres : save residual error as flac/res"
   echo "   -synth"
   echo "   -synthar1 rho"
   echo "   -debug"
