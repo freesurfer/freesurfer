@@ -52,6 +52,8 @@ static MRI *insert_wm_segmentation(MRI *mri_labeled, MRI *mri_wm,
 extern char *gca_write_fname ;
 extern int gca_write_iterations ;
 
+static int expand_flag = TRUE ;
+
 int
 main(int argc, char *argv[])
 {
@@ -284,6 +286,10 @@ get_option(int argc, char *argv[])
     printf("writing out snapshots of gibbs process every %d iterations to %s\n",
            gca_write_iterations, gca_write_fname) ;
     break ;
+  case 'E':
+    expand_flag = atoi(argv[2]) ;
+    nargs = 1 ;
+    break ;
   case 'N':
     max_iter = atoi(argv[2]) ;
     nargs = 1 ;
@@ -438,12 +444,14 @@ static int cma_expandable_labels[] =
 {
   Left_Pallidum,
   Right_Pallidum,
+#if 0
   Left_Putamen,
   Right_Putamen,
   Left_Amygdala,
   Right_Amygdala,
   Left_Caudate,
   Right_Caudate
+#endif
 } ;
 #define NEXPANDABLE_LABELS sizeof(cma_expandable_labels) / sizeof(cma_expandable_labels[0])
 
@@ -453,7 +461,8 @@ preprocess(MRI *mri_in, MRI *mri_labeled, GCA *gca, LTA *lta,
 {
   int i ;
 
-  for (i = 0 ; i < NEXPANDABLE_LABELS ; i++)
+  
+  if (expand_flag) for (i = 0 ; i < NEXPANDABLE_LABELS ; i++)
     GCAexpandLabelIntoWM(gca, mri_in, mri_labeled, mri_labeled, lta,mri_fixed,
                          cma_expandable_labels[i]) ;
   if (hippocampus_flag)
