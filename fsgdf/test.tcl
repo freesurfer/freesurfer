@@ -1,5 +1,5 @@
 #! /usr/bin/tixwish
-source "fsgdfPlot.tcl"
+source "../scripts/fsgdfPlot.tcl"
 
 set fnTestDataDir ""
 if { [info exists env(FSDEV_TEST_DATA)] } {
