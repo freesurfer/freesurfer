@@ -143,4 +143,13 @@ void *findparam(void *hd, char *name) { ErrorExit(ERROR_UNSUPPORTED, "HIPS unsup
 int clearparam(void *hd, char *name) { ErrorExit(ERROR_UNSUPPORTED, "HIPS unsupported") ; return(0) ; }
 
 
+int h_applylut(void *hdi,void *hdo,int count,unsigned char *lut)
+{ ErrorExit(ERROR_UNSUPPORTED, "HIPS unsupported") ; return(0) ; }
 
+
+
+unsigned char *hmalloc(unsigned long i)
+{ ErrorExit(ERROR_UNSUPPORTED, "HIPS unsupported") ; return(0) ; }
+
+int free_header(void) ;
+int free_header(void) {return(-1);}
