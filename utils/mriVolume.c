@@ -1725,6 +1725,37 @@ Volm_tErr Volm_ConvertIdxToScanner ( mriVolumeRef this,
   return eResult;
 }
 
+Volm_tErr Volm_ConvertMRIIdxToScanner ( mriVolumeRef this,
+					xVoxelRef    iMRIIdx,
+					xVoxelRef    oScanner ) {
+  
+  Volm_tErr eResult = Volm_tErr_NoErr;
+  
+  DebugEnterFunction( ("Volm_ConvertIdxToScanner( this=%p, iMRIIdx=%p, "
+		       "oScanner=%p )", this, iMRIIdx, oScanner) );
+  
+  DebugNote( ("Verifying volume") );
+  eResult = Volm_Verify( this );
+  DebugAssertThrow( (eResult == Volm_tErr_NoErr) );
+  
+  /* make sure we have the scanner transform */
+  DebugAssertThrowX( (NULL != this->mScannerTransform),
+		     eResult, Volm_tErr_ScannerTransformNotPresent );
+  
+  /* convert idx to scanner */
+  DebugNote( ("Converting idx (%.2f, %.2f, %.2f) to scanner", 
+	      xVoxl_ExpandFloat( iMRIIdx )) );
+  Trns_ConvertAtoB( this->mScannerTransform, iMRIIdx, oScanner );
+  
+  DebugCatch;
+  DebugCatchError( eResult, Volm_tErr_NoErr, Volm_GetErrorString );
+  EndDebugCatch;
+  
+  DebugExitFunction;
+  
+  return eResult;
+}
+
 Volm_tErr Volm_ConvertIdxToMRIIdx ( mriVolumeRef this,
 				    xVoxelRef    iIdx,
 				    xVoxelRef    oMRIIdx ) {

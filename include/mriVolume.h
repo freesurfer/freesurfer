@@ -288,6 +288,9 @@ Volm_tErr Volm_ConvertTalToIdx     ( mriVolumeRef this,
 Volm_tErr Volm_ConvertIdxToScanner ( mriVolumeRef this,
 				     xVoxelRef    iIdx,
 				     xVoxelRef    oScanner );
+Volm_tErr Volm_ConvertMRIIdxToScanner ( mriVolumeRef this,
+					xVoxelRef    iMRIIdx,
+					xVoxelRef    oScanner );
 Volm_tErr Volm_ConvertIdxToMRIIdx  ( mriVolumeRef this,
 				     xVoxelRef    iIdx,
 				     xVoxelRef    oMRIIdx );
