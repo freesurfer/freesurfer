@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/07/20 15:47:57 $
-// Revision       : $Revision: 1.151 $
+// Revision Date  : $Date: 2004/07/20 15:49:54 $
+// Revision       : $Revision: 1.152 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -25,7 +25,7 @@
 #include "flash.h"
 #include "talairachex.h"
 
-#ifdef DMALLOC
+#if WITH_DMALLOC
 #include <dmalloc.h>
 #endif
 
