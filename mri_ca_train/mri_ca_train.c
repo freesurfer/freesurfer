@@ -20,6 +20,7 @@ static int replaceLabels(MRI *mri_seg) ;
 
 char *Progname ;
 static void usage_exit(int code) ;
+static char *mask_fname = NULL ;
 
 static GCA_PARMS parms ;
 static char *seg_dir = "seg" ;
@@ -138,6 +139,20 @@ main(int argc, char *argv[])
         ErrorExit(ERROR_NOFILE, "%s: could not read T1 data from file %s",
                   Progname, fname) ;
       
+      if (mask_fname)
+      {
+        MRI *mri_mask ;
+        
+        sprintf(fname, "%s/%s/mri/%s", subjects_dir, subject_name, mask_fname);
+        printf("reading volume %s for masking...\n", fname) ;
+        mri_mask = MRIread(fname) ;
+        if (!mri_mask)
+          ErrorExit(ERROR_NOFILE, "%s: could not open mask volume %s.\n",
+                    Progname, fname) ;
+        
+        MRImask(mri_T1, mri_mask, mri_T1, 0, 0) ;
+        MRIfree(&mri_mask) ;
+      }
       if (mri_eq && !noint)
       {
         printf("histogram equalizing input image...\n") ;
@@ -212,6 +227,12 @@ get_option(int argc, char *argv[])
     parms.spacing = atof(argv[2]) ;
     nargs = 1 ;
     printf("spacing nodes every %2.1f mm\n", parms.spacing) ;
+  }
+  else if (!stricmp(option, "MASK"))
+  {
+    mask_fname = argv[2] ;
+    nargs = 1 ;
+    printf("using MR volume %s to mask input volume...\n", mask_fname) ;
   }
   else if (!stricmp(option, "DEBUG_NODE"))
   {
@@ -318,14 +339,14 @@ usage_exit(int code)
 static int input_labels[] = {  
   Left_Cerebral_Exterior,
   Right_Cerebral_Exterior,
-  Left_Cerebellum_Cortex,
-  Right_Cerebellum_Cortex
+  Left_Cerebellum_Exterior,
+  Right_Cerebellum_Exterior
 } ;
 static int output_labels[] = {  
   Left_Cerebral_Cortex,
   Right_Cerebral_Cortex,
-  Left_Cerebellum_Exterior,
-  Right_Cerebellum_Exterior
+  Left_Cerebellum_Cortex,
+  Right_Cerebellum_Cortex
 } ;
   
 static int
