@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Computes glm inferences on the surface.
-  $Id: mris_glm.c,v 1.31 2004/11/04 22:58:03 greve Exp $
+  $Id: mris_glm.c,v 1.32 2004/11/12 21:18:49 greve Exp $
 
 Things to do:
   0. Documentation.
@@ -73,7 +73,7 @@ static char *getstem(char *bfilename);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_glm.c,v 1.31 2004/11/04 22:58:03 greve Exp $";
+static char vcid[] = "$Id: mris_glm.c,v 1.32 2004/11/12 21:18:49 greve Exp $";
 char *Progname = NULL;
 
 char *hemi        = NULL;
@@ -196,7 +196,7 @@ int main(int argc, char **argv)
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv, 
-      "$Id: mris_glm.c,v 1.31 2004/11/04 22:58:03 greve Exp $", "$Name:  $");
+      "$Id: mris_glm.c,v 1.32 2004/11/12 21:18:49 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -436,6 +436,8 @@ int main(int argc, char **argv)
   /* ------- Start simulation loop -- only one pass for non-sim runs -------- */
   for(nthsim = 0; nthsim < nsim; nthsim++){
 
+    if(MCSim) printf("%d/%d\n",nthsim,nsim);
+
     /* ------ Synthesize data ------ */
     if(beta_in_id == NULL && SynthPDF != 0){
       if(SynthPDF == 1)
@@ -475,24 +477,24 @@ int main(int argc, char **argv)
       
       /* Do permutation here. */
       
-      if(nsim == 1) printf("INFO: computing beta \n");fflush(stdout);
+      if(nthsim == 1) printf("INFO: computing beta \n");fflush(stdout);
       beta = fMRImatrixMultiply(SrcVals, Q, beta);
       if(betaid != NULL && MCSim == 0) 
 	if(MRIwriteAnyFormat(beta,betaid,betafmt,-1,NULL)) exit(1);
       
-      if(nsim == 1) printf("INFO: computing eres \n");fflush(stdout);
+      if(nthsim == 1) printf("INFO: computing eres \n");fflush(stdout);
       eres = fMRImatrixMultiply(SrcVals, R, eres);
       if(eresid != NULL && MCSim == 0)
 	if(MRIwriteAnyFormat(eres,eresid,eresfmt,-1,NULL)) exit(1);
       
       if(yhatid != NULL && MCSim == 0){
-	if(nsim == 1) printf("INFO: computing yhat \n");fflush(stdout);
+	if(nthsim == 1) printf("INFO: computing yhat \n");fflush(stdout);
 	yhat = fMRImatrixMultiply(SrcVals, T, yhat);
 	if(MRIwriteAnyFormat(yhat,yhatid,yhatfmt,-1,NULL)) exit(1);
 	MRIfree(&yhat);
       }
       
-      if(nsim == 1) printf("INFO: computing var \n");fflush(stdout);
+      if(nthsim == 1) printf("INFO: computing var \n");fflush(stdout);
       eresvar = fMRIvariance(eres,DOF,0,eresvar);
       if(eresvarid != NULL && MCSim == 0)
 	if(MRIwriteAnyFormat(eresvar,eresvarid,eresvarfmt,0,IcoSurf)) exit(1);
@@ -503,7 +505,7 @@ int main(int argc, char **argv)
     /* Compute contrast-effect size */
     if(tid != NULL || sigid != NULL || cesid != NULL || 
        tmaxfile != NULL || SynthPDF != 0){
-      if(nsim == 1) printf("INFO: computing contrast effect size \n");
+      if(nthsim == 1) printf("INFO: computing contrast effect size \n");
       ces = fMRImatrixMultiply(beta,C,ces);
       if(cesid != NULL && MCSim == 0){
 	if(IsSurfFmt(cesfmt) && IcoSurf == NULL)
@@ -514,7 +516,7 @@ int main(int argc, char **argv)
     
     /* Compute t-ratio  */
     if(tid != NULL || sigid != NULL || tmaxfile != NULL || SynthPDF != 0){
-      if(nsim == 1) printf("INFO: computing t \n");
+      if(nthsim == 1) printf("INFO: computing t \n");
       if(C->rows == 1)
 	t = fMRIcomputeT(ces, X, C, eresvar, t);
       else
@@ -524,7 +526,7 @@ int main(int argc, char **argv)
 	  IcoSurf = MRISloadSurfSubject(trgsubject,hemi,surfregid,SUBJECTS_DIR);
 	if(MRIwriteAnyFormat(t,tid,tfmt,0,IcoSurf)) exit(1);
       }
-      if(tmaxfile != NULL && MCSim == 0){
+      if(tmaxfile != NULL){
 	tmax = fabs(MRIFseq_vox(t,0,0,0,0));
 	for(vtx = 0; vtx < t->width; vtx++){
 	  if(tmax < fabs(MRIFseq_vox(t,vtx,0,0,0)) )
@@ -538,7 +540,7 @@ int main(int argc, char **argv)
 
     /* Compute significance of t-ratio  */
     if(sigid != NULL || SynthPDF != 0){
-      if(nsim == 1) printf("INFO: computing t significance \n");fflush(stdout);
+      if(nthsim == 1) printf("INFO: computing t significance \n");fflush(stdout);
       if(C->rows == 1)
 	sig = fMRIsigT(t, DOF, sig);
       else
