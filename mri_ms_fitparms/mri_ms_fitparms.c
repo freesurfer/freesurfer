@@ -5,8 +5,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2004/06/10 15:28:35 $
-// Revision       : $Revision: 1.33 $
+// Revision Date  : $Date: 2004/08/25 15:46:17 $
+// Revision       : $Revision: 1.34 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -38,6 +38,7 @@ MRI *MRIssqrt(MRI *mri_src, MRI *mri_dst) ;
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
 
+static double scale = 1; 
 static double sigma = 4 ;
 static  double base_dt  = 1e-6;
 static double momentum = 0.9 ;
@@ -120,7 +121,7 @@ main(int argc, char *argv[])
   int    modified;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_ms_fitparms.c,v 1.33 2004/06/10 15:28:35 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ms_fitparms.c,v 1.34 2004/08/25 15:46:17 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -172,6 +173,8 @@ main(int argc, char *argv[])
       ErrorExit(ERROR_NOFILE, "%s: could not read volume %s",
                 Progname, in_fname) ;
 
+		if (!FEQUAL(scale, 1.0))
+			MRIscalarMul(mri_flash[nvolumes], mri_flash[nvolumes], scale) ;
     mri_flash[nvolumes]->register_mat = MRIgetVoxelToRasXform(mri_flash[nvolumes]);
 
     if (tr > 0)
@@ -476,6 +479,12 @@ get_option(int argc, char *argv[])
     conform = 1 ;
     printf("interpolating volume to be isotropic 1mm^3\n") ;
   }
+  else if (!stricmp(option, "scale"))
+  {
+		scale = atof(argv[2]) ;
+    nargs = 1 ;
+    printf("scaling volumes by %2.3f after reading\n", scale) ;
+  }
   else if (!stricmp(option, "window"))
   {
     printf("window option not implemented\n");
@@ -489,9 +498,9 @@ get_option(int argc, char *argv[])
     doesn't.  */
 
   else if (!stricmp(option, "st") ||
-	   !stricmp(option, "sample") ||
-	   !stricmp(option, "sample_type") ||
-	   !stricmp(option, "interp"))
+					 !stricmp(option, "sample") ||
+					 !stricmp(option, "sample_type") ||
+					 !stricmp(option, "interp"))
   {
     InterpMethod = MRIinterpCode(argv[2]) ;
     nargs = 1;
@@ -499,13 +508,13 @@ get_option(int argc, char *argv[])
     {
       if ((argc<4) || !strncmp(argv[3],"-",1)) /*E* i.e. no sinchalfwindow value supplied */
       {
-	printf("using sinc interpolation (default windowwidth is 6)\n");
+				printf("using sinc interpolation (default windowwidth is 6)\n");
       }
       else
       {
-	sinchalfwindow = atoi(argv[3]);
-	nargs = 2;
-	printf("using sinc interpolation with windowwidth of %d\n", 2*sinchalfwindow);
+				sinchalfwindow = atoi(argv[3]);
+				nargs = 2;
+				printf("using sinc interpolation with windowwidth of %d\n", 2*sinchalfwindow);
       }
     }
   }
@@ -524,7 +533,7 @@ get_option(int argc, char *argv[])
     }
   }
   else if (!stricmp(option, "sinchalfwindow") ||
-	   !stricmp(option, "hw"))
+					 !stricmp(option, "hw"))
   {
     /*E* InterpMethod = SAMPLE_SINC; //? */
     sinchalfwindow = atoi(argv[2]);
@@ -607,7 +616,7 @@ get_option(int argc, char *argv[])
     nfaf = atoi(argv[2]) ;
     nargs = 2 ;
     printf("fitting flip angle field to label %s and removing distortion\nusing %d coefficient fourier series\n",
-	   argv[3], nfaf) ;
+					 argv[3], nfaf) ;
     faf_label = LabelRead(NULL, argv[3]) ;
     for (i = 0 ; i < 3 ; i++)
       for (j = 0 ; j < 2 ; j++)
