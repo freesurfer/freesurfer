@@ -1,10 +1,10 @@
 /*============================================================================
  Copyright (c) 1996 Martin Sereno and Anders Dale
 =============================================================================*/
-/*   $Id: tkregister2.c,v 1.13 2003/04/15 16:47:21 kteich Exp $   */
+/*   $Id: tkregister2.c,v 1.14 2003/06/01 05:29:15 greve Exp $   */
 
 #ifndef lint
-static char vcid[] = "$Id: tkregister2.c,v 1.13 2003/04/15 16:47:21 kteich Exp $";
+static char vcid[] = "$Id: tkregister2.c,v 1.14 2003/06/01 05:29:15 greve Exp $";
 #endif /* lint */
 
 #define TCL
@@ -31,6 +31,7 @@ static char vcid[] = "$Id: tkregister2.c,v 1.13 2003/04/15 16:47:21 kteich Exp $
 #include "mri_identify.h"
 #include "registerio.h"
 #include "version.h"
+#include "fio.h"
 
 #define TCL8
 
@@ -316,7 +317,8 @@ MATRIX *invDmov, *FSLRegMat, *invFSLRegMat;
 
 int LoadSurf = 0, UseSurf=0;
 char *surfname = "white", surf_path[2000];
-
+int fstal=0; 
+char talxfmfile[2000],talxfmdir[2000];
 
 /**** ------------------ main ------------------------------- ****/
 int Register(ClientData clientData,Tcl_Interp *interp, int argc, char *argv[])
@@ -340,7 +342,36 @@ int Register(ClientData clientData,Tcl_Interp *interp, int argc, char *argv[])
   printf("Diagnostic Level %d\n",Gdiag_no);
 
   /* read the registration here to get subjectid */
-  if(!mkheaderreg && fslregfname == NULL) read_reg(regfname);
+  if(!mkheaderreg && fslregfname == NULL && !fstal) 
+    read_reg(regfname);
+
+  if(fstal){
+    if(subjectsdir == NULL) subjectsdir = getenv("SUBJECTS_DIR");
+    if(subjectsdir==NULL) {
+      printf("ERROR: SUBJECTS_DIR undefined. Use setenv or -sd\n");
+      exit(1);
+    }
+    sprintf(talxfmdir,"%s/%s/mri/transforms",subjectsdir,subjectid);
+    sprintf(talxfmfile,"%s/talairach.xfm",talxfmdir);
+    if(!mkheaderreg){
+      if(!fio_DirIsWritable(talxfmdir,0)){
+	printf("ERROR: cannot write to %s\n",talxfmdir);
+	exit(1);
+      }
+      if(regio_read_mincxfm(talxfmfile, &RegMat)) exit(1);
+      printf("talairach.xfm ---------------------\n");
+      MatrixPrint(stdout,RegMat);
+      for (i=0;i<4;i++){
+	for (j=0;j<4;j++){
+	  tm[i][j] = RegMat->rptr[i+1][j+1];
+	}
+      }
+    }
+    mov_vol_id = (char *) calloc(sizeof(char),2000);
+    sprintf(mov_vol_id,"%s/talairach/mri/orig",subjectsdir);
+    ps_2 = 1.0;
+    st_2 = 1.0;
+  }
 
   if(fstarg){
     if(subjectsdir == NULL) subjectsdir = getenv("SUBJECTS_DIR");
@@ -610,6 +641,9 @@ int Register(ClientData clientData,Tcl_Interp *interp, int argc, char *argv[])
 
   binbuff = (unsigned char *)calloc(3*xdim*ydim,sizeof(char));
   
+  printf("---- Input registration matrix --------\n");
+  MatrixPrint(stdout,RegMat);
+
   printf("Opening window %s\n",pname);fflush(stdout);
   open_window(pname);
   
@@ -664,6 +698,8 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--inorm"))    use_inorm = 1;
     else if (!strcasecmp(option, "--regheader")) mkheaderreg = 1;
     else if (!strcasecmp(option, "--noedit"))    noedit = 1;
+    else if (!strcasecmp(option, "--fstal")){
+      fstal = 1; LoadSurf = 0; UseSurf = 0; fscale_2 = 1;}
 
     else if (stringmatch(option, "--targ")){
       if(nargc < 1) argnerr(option,1);
@@ -775,6 +811,7 @@ static void print_usage(void)
   printf("   --targ target volume <fmt>\n");
   printf("   --fstarg : target is relative to subjectid/mri\n");
   printf("   --mov  movable volume  <fmt> \n");
+  printf("   --fstal : set mov to be tal and reg to be tal xfm  \n");
   printf("   --movbright  f : brightness of movable volume\n");
   printf("   --surf surfname : display surface as an overlay \n");
   printf("   --reg  register.dat : input/output registration file\n");
@@ -838,8 +875,16 @@ FLAGS AND OPTIONS
   --mov movable-volume-id
   
   This is the path to the target volume. It can read anything readable 
-  by mri_convert. See also --fstarg.
+  by mri_convert. See also --fstal.
   
+  --fstal
+
+  Check and edit the talairach registration at was created during
+  the FreeSurfer reconstruction. Sets the movable volume to be 
+  $SUJBECTS_DIR/talairach/mri/orig and  sets the registration file to be 
+  $SUBJECTS_DIR/subjectid/transforms/talairach.xfm. User must have
+  write permission to this file. Do not specify --reg with this
+  flag. It is ok to specify --regheader with this flag.
 
   --surf <surfacename>
 
@@ -859,7 +904,7 @@ FLAGS AND OPTIONS
   Otherwise, the initial registration will be read from this file
   (it will still be the output file). Note: a FreeSurfer registration
   file must be specified even if you only want the FSL registration
-  file as the output.
+  file as the output. See also --fstal.
   
   --regheader
   
@@ -1071,15 +1116,18 @@ static void check_options(void)
     targ_vol_id = "orig";
     fstarg =1;
   }
-  if(mov_vol_id == NULL){
+  if(mov_vol_id == NULL && !fstal){
     printf("ERROR: no movable volume specified\n");
     exit(1);
   }
-  if(regfname == NULL){
+  if(regfname == NULL && !fstal){
     printf("ERROR: no registration file specified\n");
     exit(1);
   }
-
+  if(subjectid == NULL && fstal){
+    printf("ERROR: must spec subjectid with --fstal\n");
+    exit(1);
+  }
   if(mkheaderreg && fslregfname != NULL){
     printf("ERROR: cannot make reg from header and fslreg \n");
     exit(1);
@@ -2310,11 +2358,24 @@ void  read_fslreg(char *fname)
 void write_reg(char *fname)
 {
   extern char *fslregoutfname;
+  extern int fstal;
+  extern char talxfmfile[2000];
+  extern MATRIX *RegMat;
   int i,j;
   FILE *fp;
 
-  make_backup(fname);
+  editedmatrix = FALSE;
 
+  printf("RegMat ---------------------------\n");
+  MatrixPrint(stdout,RegMat);
+
+  if(fstal){
+    make_backup(talxfmfile);
+    regio_write_mincxfm(talxfmfile,RegMat);
+    return;
+  }
+
+  make_backup(fname);
   fp = fopen(fname,"w");
   if (fp==NULL){
     printf("register: ### can't create file %s\n",fname);
@@ -2326,13 +2387,12 @@ void write_reg(char *fname)
   fprintf(fp,"%f\n",fscale_2);
   for (i=0;i<4;i++) {
     for (j=0;j<4;j++)
-      fprintf(fp,"%13.8f ",tm[i][j]);
+      fprintf(fp,"%e ",tm[i][j]);
     fprintf(fp,"\n");
   }
   fprintf(fp,"round\n");
   printf("register: file %s written\n",fname);PR
   fclose(fp);
-  editedmatrix = FALSE;
 
   if(fslregoutfname != NULL) write_fslreg(fslregoutfname);
 
@@ -3320,7 +3380,7 @@ char **argv;
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tkregister2.c,v 1.13 2003/04/15 16:47:21 kteich Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: tkregister2.c,v 1.14 2003/06/01 05:29:15 greve Exp $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
