@@ -8025,6 +8025,8 @@ read_icosahedron(char *fname)
   int         vno, fno, vno1, vno2, vno3, n, nvertices, nfaces ;
   float       x, y, z ;
   ICOSOHEDRON *ico ;
+  int         count;
+  float       nx, ny, nz;
 
   fp = fopen(fname, "r") ;
   if (!fp)
@@ -8041,13 +8043,26 @@ read_icosahedron(char *fname)
   if (!ico->vertices)
     ErrorExit(ERROR_NOMEMORY, "read_ico: could not allocate vertex list") ;
 
-
   /* first read vertices */
   n = 0 ;
   while ((cp = fgetl(line, 150, fp)) != NULL)
   {
-    if (sscanf(cp, "%d %f %f %f\n", &vno, &x, &y, &z) < 4)
-      break ;
+    // check the first line to see whether mgh or not
+    count = sscanf(cp, "%f %f %f %f %f %f\n", &x, &y, &z, &nx, &ny, &nz);
+    if (count == 4) // mgh tri has vno, x, y, z
+    {
+      vno = (int) x;
+      x = y;
+      y = z;
+      z = nx;
+    }
+    else if (count == 6) // else x, y, z, nx, ny, nz
+    {
+      vno = n+1;
+      // keep x, y, z as is
+    }
+    else
+      break;
     ico->vertices[vno-1].x = x ;
     ico->vertices[vno-1].y = y ;
     ico->vertices[vno-1].z = z ;
@@ -8063,8 +8078,19 @@ read_icosahedron(char *fname)
     ErrorExit(ERROR_NOMEMORY, "read_ico: could not allocate vertex list") ;
   while ((cp = fgetl(line, 150, fp)) != NULL)
   {
-    if (sscanf(cp, "%d %d %d %d\n", &fno, &vno1, &vno2, &vno3) < 4)
-      break ;
+    count = sscanf(cp, "%d %d %d %d\n", &fno, &vno1, &vno2, &vno3);
+    if (count == 3) // another format, non mgh way
+    {
+      // fno ->vno1, vno1->vno2, vno2->vno3
+      vno3 = vno2; // only 3 modified, fno, vno1, vno2 intact
+      vno2 = vno1; // only 2 modified, fno, vno1       intact
+      vno1 = fno;  // only 1 modified, fno             intact
+      fno  = n+1;
+    }
+    // something wrong
+    else if (count != 4)
+      break;
+
     ico->faces[fno-1].vno[0] = vno1 ;
     ico->faces[fno-1].vno[1] = vno2 ;
     ico->faces[fno-1].vno[2] = vno3 ;
