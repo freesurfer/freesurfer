@@ -299,7 +299,6 @@ MatrixAlloc(int rows, int cols, int type)
                     (ERROR_BADPARM, "MatrixAlloc: unknown type %d\n",type)) ;
     }
   }
-  printf("matrix alloc at %x\n",(unsigned int) mat);
   return(mat) ;
 }
 
@@ -314,7 +313,6 @@ MatrixFree(MATRIX **pmat)
   if (!mat)
     ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "MatrixFree: NULL POINTER!\n"));
 
-  printf("matrix free at %x\n", (unsigned int) mat);
   /* silly numerical recipes in C requires 1-based stuff */
   mat->data -= 2 ;
   if (mat->mmapfile)
