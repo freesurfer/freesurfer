@@ -8,7 +8,7 @@ function B = fast_boxcarmat(psdwin)
 %
 % B will be nerfpsdwin by nirfpsdwin
 %
-% $Id: fast_boxcarmat.m,v 1.1 2003/03/21 05:19:06 greve Exp $
+% $Id: fast_boxcarmat.m,v 1.2 2003/04/18 22:08:57 greve Exp $
 
 B = [];
 
@@ -36,14 +36,16 @@ end
 
 % M1 just pads Airf to be long enough to multiply
 % by boxcar matrix
-M1 = [zeros(Nb-1,Na); eye(Na); ];
+M1 = [zeros(Nb,Na); ...
+      eye(Na); ];
 
 % M2 is the transpose of an Xfir for a boxcar
-b = [ones(1,Nb) zeros(1,Na-1)];
-c = zeros(Na+Nb-1,1);
+b = [ones(1,Nb) zeros(1,Na)];
+c = zeros(Na+Nb,1);
 c(1) = 1;
 M2 = toeplitz(c,b);
 
 B = M2*M1;
+
 
 return;
