@@ -117,7 +117,7 @@ MRIhistogramRegion(MRI *mri, int nbins, HISTOGRAM *histo, MRI_REGION *region)
   if (!histo)
     histo = HISTOalloc(nbins) ;
   else
-    histo->nbins = nbins ;
+    HISTOrealloc(histo, nbins) ;
 
   HISTOclear(histo, histo) ;
   bin_size = (fmax - fmin + 1) / (float)nbins ;
