@@ -3267,7 +3267,10 @@ swab(pixel_data, pixel_data, mri->height * mri->width * 2);
 
 } /* end siemensRead() */
 
+
 #define UNUSED_SPACE_SIZE 256
+#define USED_SPACE_SIZE   (3*sizeof(float)+4*3*sizeof(float))
+
 #define MGH_VERSION       1
 
 static MRI *
@@ -3276,10 +3279,11 @@ mghRead(char *fname, int read_volume, int frame)
   MRI  *mri ;
   FILE  *fp ;
   int   start_frame, end_frame, width, height, depth, nframes, type, x, y, z,
-        bpv, dof, bytes, version, ival ;
+        bpv, dof, bytes, version, ival, unused_space_size, good_ras_flag ;
   BUFTYPE *buf ;
   char   unused_buf[UNUSED_SPACE_SIZE+1] ;
-  float  fval ;
+  float  fval, xsize, ysize, zsize, x_r, x_a, x_s, y_r, y_a, y_s,
+         z_r, z_a, z_s, c_r, c_a, c_s ;
   short  sval ;
 
   fp = fopen(fname, "rb") ;
@@ -3294,8 +3298,25 @@ mghRead(char *fname, int read_volume, int frame)
   type = freadInt(fp) ;
   dof = freadInt(fp) ;
 
+  unused_space_size = UNUSED_SPACE_SIZE-sizeof(short) ;
+
+  good_ras_flag = freadShort(fp) ;
+  if (good_ras_flag)     /* has RAS and voxel size info */
+  {
+    unused_space_size -= USED_SPACE_SIZE ;
+    xsize = freadFloat(fp) ;
+    ysize = freadFloat(fp) ;
+    zsize = freadFloat(fp) ;
+    
+    x_r = freadFloat(fp) ; x_a = freadFloat(fp) ; x_s = freadFloat(fp) ;
+    y_r = freadFloat(fp) ; y_a = freadFloat(fp) ; y_s = freadFloat(fp) ;
+    
+    z_r = freadFloat(fp) ; z_a = freadFloat(fp) ; z_s = freadFloat(fp) ;
+    c_r = freadFloat(fp) ; c_a = freadFloat(fp) ; c_s = freadFloat(fp) ;
+  }
+
   /* so stuff can be added to the header in the future */
-  fread(unused_buf, sizeof(char), UNUSED_SPACE_SIZE, fp) ;
+  fread(unused_buf, sizeof(char), unused_space_size, fp) ;
 
   switch (type)
   {
@@ -3390,6 +3411,31 @@ mghRead(char *fname, int read_volume, int frame)
   }
 
   fclose(fp) ;
+
+  if (good_ras_flag)
+  {
+    mri->xsize =     xsize ;
+    mri->ysize =     ysize ;
+    mri->zsize =     zsize ;
+    
+    mri->x_r = x_r  ;
+    mri->x_a = x_a  ;
+    mri->x_s = x_s  ;
+    
+    mri->y_r = y_r  ;
+    mri->y_a = y_a  ;
+    mri->y_s = y_s  ;
+    
+    mri->z_r = z_r  ;
+    mri->z_a = z_a  ;
+    mri->z_s = z_s  ;
+    
+    mri->c_r = c_r  ;
+    mri->c_a = c_a  ;
+    mri->c_s = c_s  ;
+    if (good_ras_flag > 0)
+      mri->ras_good_flag = 1 ;
+  }
   return(mri) ;
 }
 
@@ -3397,7 +3443,8 @@ static int
 mghWrite(MRI *mri, char *fname, int frame)
 {
   FILE  *fp ;
-  int   ival, start_frame, end_frame, x, y, z, width, height, depth ;
+  int   ival, start_frame, end_frame, x, y, z, width, height, depth, 
+        unused_space_size ;
   char  buf[UNUSED_SPACE_SIZE+1] ;
   float fval ;
   short sval ;
@@ -3426,9 +3473,33 @@ mghWrite(MRI *mri, char *fname, int frame)
   fwriteInt(mri->type, fp) ;
   fwriteInt(mri->dof, fp) ;
 
+  unused_space_size = UNUSED_SPACE_SIZE - USED_SPACE_SIZE - sizeof(short) ;
+
+  /* write RAS and voxel size info */
+  fwriteShort(mri->ras_good_flag ? 1 : -1, fp) ;
+  fwriteFloat(mri->xsize, fp) ;
+  fwriteFloat(mri->ysize, fp) ;
+  fwriteFloat(mri->zsize, fp) ;
+
+  fwriteFloat(mri->x_r, fp) ;
+  fwriteFloat(mri->x_a, fp) ;
+  fwriteFloat(mri->x_s, fp) ;
+
+  fwriteFloat(mri->y_r, fp) ;
+  fwriteFloat(mri->y_a, fp) ;
+  fwriteFloat(mri->y_s, fp) ;
+
+  fwriteFloat(mri->z_r, fp) ;
+  fwriteFloat(mri->z_a, fp) ;
+  fwriteFloat(mri->z_s, fp) ;
+
+  fwriteFloat(mri->c_r, fp) ;
+  fwriteFloat(mri->c_a, fp) ;
+  fwriteFloat(mri->c_s, fp) ;
+
   /* so stuff can be added to the header in the future */
   memset(buf, 0, UNUSED_SPACE_SIZE*sizeof(char)) ;
-  fwrite(buf, sizeof(char), UNUSED_SPACE_SIZE, fp) ;
+  fwrite(buf, sizeof(char), unused_space_size, fp) ;
 
   for (frame = start_frame ; frame <= end_frame ; frame++)
   {
