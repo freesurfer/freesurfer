@@ -8,9 +8,11 @@
 #include "MRIio.h"
 /*#include "typedefs.h"*/  /* not needed without matrix stuff */
 #include "matrix.h"
+#include "mri.h"
+#include "error.h"
 #include "proto.h"
 
-static char vcid[] = "$Id: mri_wmfilter.c,v 1.11 1999/08/06 18:47:58 fischl Exp $";
+static char vcid[] = "$Id: mri_wmfilter.c,v 1.12 1999/08/09 22:58:45 fischl Exp $";
 
 /*-------------------------------------------------------------------
                                 CONSTANTS
@@ -19,8 +21,6 @@ static char vcid[] = "$Id: mri_wmfilter.c,v 1.11 1999/08/06 18:47:58 fischl Exp 
 #ifndef SQR
 #define SQR(x) ((x)*(x))
 #endif
-#define IMGSIZE 256
-#define MAXIM 512
 #define MAXCOR 500
 #define MAXLEN 100
 #define DIR_FILE "ic1.tri"
@@ -29,13 +29,6 @@ static char vcid[] = "$Id: mri_wmfilter.c,v 1.11 1999/08/06 18:47:58 fischl Exp 
                                 GLOBAL DATA
 -------------------------------------------------------------------*/
 
-int xnum=256,ynum=256;
-unsigned long bufsize;
-unsigned char **im[MAXIM];  /* image matrix  */
-unsigned char **im2[MAXIM];
-unsigned char **fill[MAXIM]; 
-unsigned char *buf;  /* scratch memory  */
-int imnr0,imnr1,numimg;
 int wx0=100,wy0=100;
 float white_hilim = 125;  /* new smaller range goes with improved */
 float white_lolim = 95;   /* intensity normalization */
@@ -65,10 +58,7 @@ static float lslope = 0.0f ;  /* slope for planar laplacian threshold mod */
 -------------------------------------------------------------------*/
 
 int main(int argc,char *argv[]) ;
-static void read_image_info(char *fpref) ;
-static void plane_filter(int niter) ;
-static void read_images(char *fpref) ;
-static void write_images(char *fpref) ;
+static MRI *plane_filter(MRI *mri_src, MRI *mri_dst, int niter) ;
 static int get_option(int argc, char *argv[]) ;
 static void print_version(void) ;
 static void print_help(void) ;
@@ -86,6 +76,7 @@ main(int argc,char *argv[])
   char  fname[STRLEN],mfname[STRLEN],pfname[STRLEN],dfname[STRLEN];
   char  fpref[STRLEN],pname[STRLEN];
   char  *data_dir,*mri_dir;
+  MRI   *mri_src, *mri_dst ;
 
   Progname = argv[0] ;
   for ( ; argc > 1 && (*argv[1] == '-') ; argc--, argv++)
@@ -128,11 +119,14 @@ main(int argc,char *argv[])
   }
   
   sprintf(fpref,"%s/%s",data_dir,pname);
-  sprintf(mfname,"%s/mri/brain/COR-",fpref);
-  sprintf(pfname,"%s/mri/%s/COR-", fpref,output_name);
+  sprintf(mfname,"%s/mri/brain",fpref);
+  sprintf(pfname,"%s/mri/%s", fpref,output_name);
   sprintf(dfname,"wmfilter.dat");
-  read_image_info(mfname);
-  read_images(mfname);
+  fprintf(stderr, "reading input volume from %s...\n", mfname) ;
+  mri_src = MRIread(mfname) ;
+  if (!mri_src)
+    ErrorExit(ERROR_NOFILE, "%s: could not read input volume %s\n",
+              Progname, mfname) ;
   
   sprintf(fname,"%s",dfname);
   fptr = fopen(fname,"r");
@@ -166,113 +160,62 @@ main(int argc,char *argv[])
   }
   printf("%d unique orientations\n",ncor);
   fflush(stdout) ;
-  plane_filter(option);
+  mri_dst = plane_filter(mri_src, NULL, option);
   fprintf(stderr, "writing output to %s...\n", pfname) ;
-  write_images(pfname);
+  MRIwrite(mri_dst, pfname) ;
   exit(0) ;
   return(0) ;
 }
-
-static void
-read_image_info(char *fpref)
-{
-  FILE *fptr;
-  char fname[STRLEN];
-
-  sprintf(fname,"%s.info",fpref);
-  fptr = fopen(fname,"r");
-  if (fptr==NULL) {printf("File %s not found.\n",fname);exit(1);}
-  fscanf(fptr,"%*s %d",&imnr0);
-  fscanf(fptr,"%*s %d",&imnr1);
-  fscanf(fptr,"%*s %*d");
-  fscanf(fptr,"%*s %d",&xnum);
-  fscanf(fptr,"%*s %d",&ynum);
-  fscanf(fptr,"%*s %f",&fov);
-  fscanf(fptr,"%*s %f",&ps);
-  fscanf(fptr,"%*s %f",&st);
-  fscanf(fptr,"%*s %*f"); /* locatn */
-  fscanf(fptr,"%*s %f",&xx0); /* strtx */
-  fscanf(fptr,"%*s %f",&xx1); /* endx */
-  fscanf(fptr,"%*s %f",&yy0); /* strty */
-  fscanf(fptr,"%*s %f",&yy1); /* endy */
-  fscanf(fptr,"%*s %f",&zz0); /* strtz */
-  fscanf(fptr,"%*s %f",&zz1); /* endz */
-  fov *= 1000;
-  ps *= 1000;
-  st *= 1000;
-  xx0 *= 1000;
-  xx1 *= 1000;
-  yy0 *= 1000;
-  yy1 *= 1000;
-  zz0 *= 1000;
-  zz1 *= 1000;
-  fclose(fptr);
-  numimg = imnr1-imnr0+1;
-  ctrx = (xx0+xx1)/2.0;
-  ctry = (yy0+yy1)/2.0;
-  ctrz = (zz0+zz1)/2.0;
-}
-
 #define DEFAULT_FRAC  0.6
 
-static void
-plane_filter(int niter)
+static MRI *
+plane_filter(MRI *mri_src, MRI *mri_dst, int niter)
 {
-  int    i,j,k,di,dj,dk,m,n,u,ws2=2,maxi,mini, wsize ;
+  int    i,j,k,di,dj,dk,m,n,u,ws2=2,maxi,mini, wsize, width, height, depth ;
   float  numvox,numnz,numz, probably_white ;
   float  f,f2,a,b,c,s;
   double sum2,sum,var,avg,tvar,maxvar,minvar;
   double sum2v[MAXLEN],sumv[MAXLEN],avgv[MAXLEN],varv[MAXLEN],nv[MAXLEN],
          tlaplacian, laplacian ;
   float  cfrac ;
-  
+  MRI    *mri_tmp ;
+
+  width = mri_src->width ; height = mri_src->height ; depth = mri_src->depth ;
+  if (!mri_dst)
+    mri_dst = MRIclone(mri_src, NULL) ;
+
+  mri_tmp = MRIcopy(mri_src, NULL) ;
+
   cfrac = DEFAULT_FRAC ;
   probably_white = (white_lolim + gray_hilim) / 2.0 ;
 /*
   printf("plane_filter(%d)\n",niter);
 */
   wsize = 2*ws2+1 ;
-  for (k=0;k<numimg;k++)
-  {
-    fill[k] = (unsigned char **)lcalloc(IMGSIZE,sizeof(char *));
-    im2[k] = (unsigned char **)lcalloc(IMGSIZE,sizeof(char *));
-    for (i=0;i<IMGSIZE;i++)
-    {
-      fill[k][i] = (unsigned char *)lcalloc(IMGSIZE,sizeof(char));
-      im2[k][i] = (unsigned char *)lcalloc(IMGSIZE,sizeof(char));
-    }
-  }
 
   /*
     eliminate all voxels that are lower than white_lolim or higher
     than white_hilim, and place the results in im[][][] and fill[]
     (im2 is  still original image).
   */
-  for (k=0;k<numimg-1;k++)
-  for (i=0;i<IMGSIZE-1;i++)
-  for (j=0;j<IMGSIZE-1;j++)
+  for (k=0;k<depth-1;k++)
+  for (i=0;i<height-1;i++)
+  for (j=0;j<width-1;j++)
   {
-    im2[k][i][j] = im[k][i][j];
-    if (im[k][i][j]>white_hilim || im[k][i][j]< probably_white)
-      im[k][i][j] = 0;
-    fill[k][i][j] = im[k][i][j];
+    MRIvox(mri_tmp, j, i, k) = MRIvox(mri_src,j,i,k);
+    if (MRIvox(mri_src,j,i,k)>white_hilim || 
+        MRIvox(mri_src,j,i,k)< probably_white)
+      MRIvox(mri_src,j,i,k) = 0;
+    MRIvox(mri_dst,j,i,k) = MRIvox(mri_src,j,i,k);
   }
 
-  for (k=ws2;k<numimg-1-ws2;k++)
-/*
-  if (k==106)
-*/
+  for (k=ws2;k<depth-1-ws2;k++)
   {
-    if (k == 127)
-    {
-      int kk = 0 ;
-      kk++ ;
-    }
     if (!((k+1)%10))
       printf("processing slice %d\n",k+1);
     fflush(stdout) ;
-    for (i=ws2;i<IMGSIZE-1-ws2;i++)
-    for (j=ws2;j<IMGSIZE-1-ws2;j++)
+    for (i=ws2;i<height-1-ws2;i++)
+    for (j=ws2;j<width-1-ws2;j++)
     {
       if (k == 80 && i == 140 && j == 145)
       {
@@ -283,14 +226,15 @@ plane_filter(int niter)
       /* if the voxel is not in the ambiguous intensity range,
          just set the output and continue
       */
-      if ((im2[k][i][j] < white_lolim) || (im2[k][i][j] > white_hilim))
+      if ((MRIvox(mri_tmp, j, i, k) < white_lolim) || 
+          (MRIvox(mri_tmp, j, i, k) > white_hilim))
       {
-        fill[k][i][j] = 0;
+        MRIvox(mri_dst,j,i,k) = 0;
         continue ;
       }
-      if (im2[k][i][j] > gray_hilim)
+      if (MRIvox(mri_tmp, j, i, k) > gray_hilim)
       {
-        fill[k][i][j] = im2[k][i][j] ;
+        MRIvox(mri_dst,j,i,k) = MRIvox(mri_tmp, j, i, k) ;
         continue ;
       }
 
@@ -300,7 +244,7 @@ plane_filter(int niter)
       for (di = -ws2;di<=ws2;di++)
       for (dj = -ws2;dj<=ws2;dj++) 
       {
-         f = im[k+dk][i+di][j+dj];
+         f = MRIvox(mri_src,j+dj,i+di,k+dk);
          s = dk*c+di*b+dj*a;
          numvox++;
          if (f!=0) 
@@ -315,13 +259,13 @@ plane_filter(int niter)
          a look at the plane of least variance for classification
       */
       if (
-          ((im[k][i][j]==0 && 
+          ((MRIvox(mri_src,j,i,k)==0 && 
             numnz>=(DEFAULT_FRAC)*(wsize*wsize)) &&
-           (im2[k][i][j] >= white_lolim))
+           (MRIvox(mri_tmp, j, i, k) >= white_lolim))
           || 
-          (im[k][i][j]!=0 && 
+          (MRIvox(mri_src,j,i,k)!=0 && 
            (numz>=(DEFAULT_FRAC)*(wsize*wsize)) &&
-           (im2[k][i][j] <= gray_hilim)))
+           (MRIvox(mri_tmp, j, i, k) <= gray_hilim)))
       {
         tlaplacian = laplacian = 0.0;
         maxvar = -1000000; minvar = 1000000; maxi = mini = -1; 
@@ -339,9 +283,9 @@ plane_filter(int niter)
                 u = ws2+floor(dk*c+di*b+dj*a+0.5);
                 u = (u<0) ? 0 : (u>=wsize) ? wsize-1 : u ;
                 if (!grayscale_plane)
-                  f = im[k+dk][i+di][j+dj];   /* segmented image */
+                  f = MRIvox(mri_src,j+dj,i+di,k+dk);   /* segmented image */
                 else
-                  f = im2[k+dk][i+di][j+dj];  /* gray-scale image */
+                  f = MRIvox(mri_dst,j+dj,i+di,k+dk);  /* gray-scale image */
                 sum2v[u] += f*f ; sumv[u] += f;
                 nv[u] += 1; n += 1;
                 sum2 += f*f; sum += f;
@@ -396,7 +340,7 @@ plane_filter(int niter)
         for (di = -ws2;di<=ws2;di++)
         for (dj = -ws2;dj<=ws2;dj++)
         {
-        f = im2[k+dk][i+di][j+dj];
+        f = MRIvox(mri_dst,j+dj,i+di,k+dk);
         s = dk*c+di*b+dj*a;
         s2 = s*s;
         mat[0][0] += s2*s2;
@@ -411,10 +355,10 @@ plane_filter(int niter)
          }
          inverse(mat,mati,3);
          vector_multiply(mati,vec,vec2,3,3);
-         f = im[k][i][j];
+         f = MRIvox(mri_src,j,i,k);
          if (vec2[0]>2.0 && f<=gray_hilim) f = 0;
       f = (f>255)?255:(f<0)?0:f;
-      fill[k][i][j] = f;
+      MRIvox(mri_dst,j,i,k) = f;
 */
         /* count # of on voxels and # of off voxels in plane */
         numvox = numnz = numz = sum = sum2 = 0;
@@ -422,8 +366,8 @@ plane_filter(int niter)
           for (di = -ws2;di<=ws2;di++)
             for (dj = -ws2;dj<=ws2;dj++) 
             {
-              f = im[k+dk][i+di][j+dj];
-              f2 = im2[k+dk][i+di][j+dj];
+              f = MRIvox(mri_src,j+dj,i+di,k+dk);
+              f2 = MRIvox(mri_dst,j+dj,i+di,k+dk);
               s = dk*c+di*b+dj*a;
               if (fabs(s)<=0.5)  /* in central plane */
               {
@@ -440,8 +384,8 @@ plane_filter(int niter)
             }
         if (numnz!=0) sum /= numnz;
         if (numvox!=0) sum2 /= numvox;
-        f = im[k][i][j];
-        f2 = im2[k][i][j];
+        f = MRIvox(mri_src,j,i,k);
+        f2 = MRIvox(mri_tmp, j, i, k);
         /*
           printf("%d %d %d %d %f\n",
           k,i,j,(int)f,(int)numvox,(int)numnz,(int)numz,numz/numvox);
@@ -463,74 +407,24 @@ plane_filter(int niter)
           f=0 ;   /* change preliminary classification white --> nonwhite */
         else if (f==0 && numnz/numvox>cfrac) 
           f=f2 ;  /* change preliminary classification nonwhite --> white */
-        fill[k][i][j] = f ;
+        MRIvox(mri_dst,j,i,k) = f ;
       }
     }
   }
-  for (k=0;k<numimg-1;k++)
-    for (i=0;i<IMGSIZE-1;i++)
-      for (j=0;j<IMGSIZE-1;j++)
+  for (k=0;k<depth-1;k++)
+    for (i=0;i<height-1;i++)
+      for (j=0;j<width-1;j++)
       {
-        im[k][i][j] = fill[k][i][j];
-        if (im[k][i][j]>white_hilim || im[k][i][j]<white_lolim) 
-          im[k][i][j] = 0;
+        MRIvox(mri_src,j,i,k) = MRIvox(mri_dst,j,i,k);
+        if (MRIvox(mri_src,j,i,k)>white_hilim || 
+            MRIvox(mri_src,j,i,k)<white_lolim) 
+          MRIvox(mri_src,j,i,k) = 0;
       }
-  
+
+  MRIfree(&mri_tmp) ;
+  return(mri_dst) ;
 }
 
-static void
-read_images(char *fpref)
-{
-  int i,k;                   /* loop counters */
-  FILE *fptr;
-  char fname[STRLEN];
-
-  numimg = imnr1-imnr0+1;
-  bufsize = ((unsigned long)xnum)*ynum;
-  buf = (unsigned char *)lcalloc(bufsize,sizeof(char));
-  for (k=0;k<numimg;k++)
-  {
-    im[k] = (unsigned char **)lcalloc(IMGSIZE,sizeof(char *));
-    for (i=0;i<IMGSIZE;i++)
-    {
-      im[k][i] = (unsigned char *)lcalloc(IMGSIZE,sizeof(char));
-    }
-  }
-  for (k=0;k<numimg;k++)
-  {
-    file_name(fpref,fname,k+imnr0,"%03d");
-    fptr = fopen(fname,"rb");
-    if (fptr==NULL) {printf("File %s not found.\n",fname);exit(1);}
-    fread(buf,sizeof(char),bufsize,fptr);
-    buffer_to_image(buf,im[k],xnum,ynum);
-    fclose(fptr);
-/*
-  printf("file %s read\n",fname);
-*/
-  }
-  printf("images %s read\n",fpref);
-}
-
-static void
-write_images(char *fpref)
-{
-  int imnr;
-  char fname[STRLEN];
-  FILE *fptr;
-
-  for (imnr=0;imnr<numimg;imnr++)
-  {
-    file_name(fpref,fname,imnr+imnr0,"%03d");
-    fptr = fopen(fname,"wb");
-    image_to_buffer(im[imnr],buf,IMGSIZE,IMGSIZE);
-    fwrite(buf,sizeof(char),bufsize,fptr);
-    fclose(fptr);
-/*
-    printf("File %s written\n",fname);
-*/
-  }
-  printf("images %s written\n",fpref);
-}
 /*----------------------------------------------------------------------
             Parameters:
 
