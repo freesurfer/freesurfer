@@ -539,10 +539,12 @@ XVshowImage(XV_FRAME *xvf, int which, IMAGE *image, int frame)
   rows = nint((float)GtmpFloatImage->rows*scale) ;
   cols = nint((float)GtmpFloatImage->cols*scale) ;
 
+#if 0
   if ((rows != dimage->dispImage->rows) || (cols != dimage->dispImage->cols))
     ImageResize(GtmpFloatImage, GtmpScaledFloatImage, srows, scols) ;
   else
-    ImageRescale(GtmpFloatImage, GtmpScaledFloatImage, scale) ;
+#endif
+    ImageRescale(GtmpFloatImage, GtmpScaledFloatImage, MIN(xscale,yscale)) ;
 
   ImageCopy(GtmpScaledFloatImage, GtmpByteImage) ; /* convert to bytes */
   h_invert(GtmpByteImage, dimage->dispImage) ;
