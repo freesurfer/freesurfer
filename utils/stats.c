@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 
 #include "error.h"
 #include "diag.h"
@@ -656,9 +657,8 @@ StatWriteVolume(SV *sv, char *prefix)
     sprintf(fname, "%s_%3.3d.dof", prefix, z) ;
     fp = fopen(fname, "w") ;
     if (!fp)
-      ErrorReturn(ERROR_NOFILE, 
-                  (ERROR_NOFILE, "StatWriteVolume: could not open "
-                   "dof file %s",fname));
+      ErrorReturn(ERROR_NOFILE,(ERROR_NOFILE,"StatWriteVolume: could not open "
+                         "dof file %s",fname));
     for (event_number = 0 ; event_number < sv->nevents ; event_number++)
       fprintf(fp, "%d %2.0f %2.0f\n", event_number, 
               sv->mean_dofs[event_number], sv->std_dofs[event_number]) ;
@@ -757,6 +757,14 @@ StatWriteVolume(SV *sv, char *prefix)
       
       fclose(fp) ;
     }
+  }
+
+  /* now remove old files which may have had more slices */
+  for ( ; z < sv->nslices*4 ; z++)
+  {
+    /* write out .dof file */
+    sprintf(fname, "%s_%3.3d.bfloat", prefix, z) ;
+    unlink(fname) ;
   }
   free(buf) ;
   return(NO_ERROR) ;
