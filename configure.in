@@ -121,13 +121,6 @@ if test "$CPUTYPE" = "NO"; then
       AMDAthlonXP*)
       CPUTYPE=athlon-xp
       ;;
-      *) 
-      ;;
-    esac
-    ;;
-  Linux64)
-    cpu386=`./x86cpucaps/cpucaps -m | sed 's/ //g'`
-    case "$cpu386" in
       AMDAthlon64)
       CPUTYPE=athlon64
       ;;
