@@ -1205,7 +1205,7 @@ LabelMarkSurface(LABEL *area, MRI_SURFACE *mris)
 int
 LabelFillUnassignedVertices(MRI_SURFACE *mris, LABEL *area)
 {
-  int     n, i, vno, min_vno, nfilled ;
+  int     n, i, vno, min_vno, nfilled = 0 ;
   LV      *lv ;
   MHT     *mht ;
   MHBT    *bucket ;
