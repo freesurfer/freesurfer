@@ -6141,12 +6141,16 @@ MRIsampleVolumeDerivativeScale(MRI *mri, Real x, Real y, Real z, Real dx,
   if (z < 0.0)
     z = 0.0 ;
 
-  step_size = MIN(0.5, sigma/2) ;
+  step_size = MAX(.5,sigma/2) ;
   for (ktotal = 0.0,n = 0, len = vp1 = vm1 = 0.0, dist = step_size ; 
-       dist <= 2*sigma; 
+       dist <= MAX(2*sigma,step_size); 
        dist += step_size, n++)
   {
-    k = exp(-dist*dist/(2*sigma*sigma)) ; ktotal += k ;
+    if (FZERO(sigma))
+      k = 1.0 ;
+    else
+      k = exp(-dist*dist/(2*sigma*sigma)) ; 
+    ktotal += k ;
     len += dist ;
     xp1 = x + dist*dx ; yp1 = y + dist*dy ; zp1 = z + dist*dz ;
     MRIsampleVolume(mri, xp1, yp1, zp1, &val) ;
@@ -6155,6 +6159,8 @@ MRIsampleVolumeDerivativeScale(MRI *mri, Real x, Real y, Real z, Real dx,
     xm1 = x - dist*dx ; ym1 = y - dist*dy ; zm1 = z - dist*dz ;
     MRIsampleVolume(mri, xm1, ym1, zm1, &val) ;
     vm1 += k*val ;
+    if (FZERO(step_size))
+      break ;
   }
   vm1 /= (double)ktotal ; vp1 /= (double)ktotal ; len /= (double)ktotal ;
 
@@ -7152,10 +7158,12 @@ MRI *MRIresample(MRI *src, MRI *template_vol, int resample_type)
   val = 0.0;
   val000 = val001 = val010 = val011 = val100 = val101 = val110 = val111 = 0.0;
 
+#if 0
   if(src->type != template_vol->type)
   {
     ErrorReturn(NULL, (ERROR_UNSUPPORTED, "MRIresample(): source and destination types must be identical"));
   }
+#endif
 
   /* ----- fake the ras values if ras_good_flag is not set ----- */
   if(!src->ras_good_flag)
@@ -7288,7 +7296,7 @@ and for dest
     MatrixPrint(stdout, m);
   }
 
-  dest = MRIalloc(template_vol->width, template_vol->height, template_vol->depth, template_vol->type);
+  dest = MRIalloc(template_vol->width, template_vol->height, template_vol->depth, src->type);
   if(dest == NULL)
     return(NULL);
   MRIcopyHeader(template_vol, dest);
