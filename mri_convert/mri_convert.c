@@ -95,6 +95,7 @@ int main(int argc, char *argv[])
   int roi_flag;
   FILE *fptmp;
   int j,translate_labels_flag;
+  int force_ras_good = FALSE;
 
   for(i=0;i<argc;i++) printf("%s ",argv[i]);
   printf("\n");
@@ -206,6 +207,7 @@ int main(int argc, char *argv[])
       read_only_flag = TRUE;
     else if(strcmp(argv[i], "-nw") == 0 || strcmp(argv[i], "--no_write") == 0)
       no_write_flag = TRUE;
+    else if(strcmp(argv[i], "--force_ras_good") == 0) force_ras_good = TRUE;
     else if(strcmp(argv[i], "-at") == 0 || strcmp(argv[i], "--apply_transform") == 0 || strcmp(argv[i], "-T") == 0)
     {
       get_string(argc, argv, &i, transform_fname);
@@ -692,6 +694,12 @@ int main(int argc, char *argv[])
 
     }
   }
+  /**** Finished parsing command line ****/
+  if(force_ras_good && (in_i_direction_flag || in_j_direction_flag ||
+      in_k_direction_flag)){
+    printf("ERROR: cannot use --force_ras_good and --in_?_direction_flag\n");
+    exit(1);
+  }
 
   /* ----- catch zero or negative voxel dimensions ----- */
 
@@ -835,8 +843,7 @@ int main(int argc, char *argv[])
   {
     errno = 0;
     ErrorPrintf(ERROR_BADPARM, "rois must be in GE format");
-    if(in_like_flag)
-      MRIfree(&mri_in_like);
+    if(in_like_flag) MRIfree(&mri_in_like);
     exit(1);
   }
 
@@ -943,8 +950,7 @@ int main(int argc, char *argv[])
 
   if(mri == NULL)
   {
-    if(in_like_flag)
-      MRIfree(&mri_in_like);
+    if(in_like_flag) MRIfree(&mri_in_like);
     exit(1);
   }
 
@@ -1008,12 +1014,19 @@ int main(int argc, char *argv[])
 
   }
 
-  /* ----- check for ras good flag -- warn if it's not set ----- */
-  if(mri->ras_good_flag == 0)
-  {
-    printf("warning: volume may be incorrectly oriented\n");
-    if(in_volume_type == MRI_CORONAL_SLICE_DIRECTORY)
-      printf("(but as a COR- volume, it should be okay...)\n");
+  if(mri->ras_good_flag == 0){
+    printf("WARNING: it does not appear that there was sufficient information\n"
+     "in the input to assign orientation to the volume... \n");
+    if(force_ras_good){
+      printf("However, you have specified that the default orientation should\n"
+       "be used with by adding --force_ras_good on the command-line.\n");
+      mri->ras_good_flag = 1;
+    }
+    if(in_i_direction_flag || in_j_direction_flag || in_k_direction_flag){
+      printf("However, you have specified one or more orientations on the \n"
+       "command-line using -i?d or --in-?-direction (?=i,j,k).\n");
+      mri->ras_good_flag = 1;
+    }
   }
 
   /* ----- apply command-line parameters ----- */
@@ -1574,6 +1587,7 @@ void usage(FILE *stream)
   fprintf(stream, "  -iis, --in_i_size <size>\n");
   fprintf(stream, "  -ijs, --in_j_size <size>\n");
   fprintf(stream, "  -iks, --in_k_size <size>\n");
+  fprintf(stream, "  --force_ras_good : use default when orientation info absent\n");
   fprintf(stream, "\n");
   fprintf(stream, "  -iid, --in_i_direction <R direction> <A direction> <S direction>\n");
   fprintf(stream, "  -ijd, --in_j_direction <R direction> <A direction> <S direction>\n");
