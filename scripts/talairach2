@@ -1,0 +1,65 @@
+#!/bin/csh -f
+
+if($#argv != 1) then
+  echo "USAGE: talairach2 subjectid"
+  exit 1;
+endif
+
+set subject = $1
+
+set base = $SUBJECTS_DIR/$subject/mri
+
+if(! -e $base) then
+  echo "ERROR cannot find $base"
+  exit 1;
+endif
+
+# model=/homes/nmrnew/home/inverse/local/lib/model/average_305.mnc
+# dir=`pwd`
+
+mkdir -p $base/transforms
+set transform = $base/transforms/talairach.xfm
+pushd $base > /dev/null
+echo "INFO: registering $subject"
+date 
+
+echo "--------------------------------------------"
+set cmd = (mri_convert orig orig/orig.mnc)
+echo $cmd
+$cmd
+if($status) then
+  echo "ERROR: mri_convert failed"
+  exit 1;
+endif
+
+if(! -e orig/orig.mnc) then
+  echo "ERROR: cannot find orig/orig.mnc"
+  exit 1;
+endif
+
+echo "--------------------------------------------"
+set cmd = (mritotal -verbose -debug -clobber -protocol icbm \
+           orig/orig.mnc transforms/talairach.xfm)
+echo $cmd
+$cmd > orig/orig.log
+set st = $status
+rm orig/orig.mnc
+if($st) then
+  echo "ERROR: mritotal failed"
+  exit 1;
+endif
+
+echo "--------------------------------------------"
+set cmd = (mri_add_xform_to_header $transform $base/orig $base/orig)
+echo $cmd
+$cmd
+if($status) then
+  echo "ERROR: mri_add_xform_to_header failed"
+  exit 1;
+endif
+
+popd > /dev/null
+
+date
+
+exit 0
