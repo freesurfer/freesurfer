@@ -5496,6 +5496,135 @@ MRIsampleVolume(MRI *mri, Real x, Real y, Real z, Real *pval)
   }
   return(NO_ERROR) ;
 }
+
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+#define IMIN(a,b) (a < b ? a : b)
+#define IMAX(a,b) (a > b ? a : b)
+double ham_sinc(double x,double fullwidth)
+{
+  double ham;
+  if( fabs(x) < 1.0e-5)
+    ham = 1.0;
+  else { 
+    ham = sin(PI*x)/(PI*x);
+    ham *= 0.54 + 0.46 * cos(2.0*PI*x/fullwidth);
+  }
+  return ham;
+}
+
+int
+MRIsincSampleVolume(MRI *mri, Real x, Real y, Real z, int hw, Real *pval)
+{
+  int  width, height, depth ;
+  int nwidth; 
+  int ix_low,ix_high,iy_low,iy_high,iz_low,iz_high;
+  int jx1,jy1,jz1,jx_rel,jy_rel,jz_rel;
+  double coeff_x[128],coeff_y[128],coeff_z[128];
+  double coeff_x_sum,coeff_y_sum,coeff_z_sum;
+  double sum_x,sum_y,sum_z;
+  double xsize,ysize,zsize;
+
+  xsize = mri->xsize; ysize=mri->ysize; zsize=mri->zsize;
+  width = mri->width ; height = mri->height ; depth = mri->depth ; 
+  if (x >= width)
+    x = width - 1.0 ;
+  if (y >= height)
+    y = height - 1.0 ;
+  if (z >= depth)
+    z = depth - 1.0 ;
+  if (x < 0.0)
+    x = 0.0 ;
+  if (y < 0.0)
+    y = 0.0 ;
+  if (z < 0.0)
+    z = 0.0 ;
+
+  nwidth = hw;
+  ix_low = floor((double)x);
+  ix_high = ceil((double)x);
+  iy_low = floor((double)y);
+  iy_high = ceil((double)y);
+  iz_low = floor((double)z);
+  iz_high = ceil((double)z);
+
+  coeff_x_sum = coeff_y_sum = coeff_z_sum = 0; 
+  if(iz_low>=0 && iz_high < depth) {
+    for (jx1=IMAX(ix_high-nwidth,0), jx_rel=0;
+   jx1<IMIN(ix_low+nwidth,width-1); 
+   jx1++,jx_rel++) {
+      coeff_x[jx_rel] = ham_sinc((double)(x-jx1)*xsize,2*xsize*nwidth);
+      coeff_x_sum += coeff_x[jx_rel];
+    }
+    for (jy1=IMAX(iy_high-nwidth,0), jy_rel=0;
+   jy1<IMIN(iy_low+nwidth,height-1); 
+   jy1++,jy_rel++) {
+      coeff_y[jy_rel] = ham_sinc((double)(y-jy1)*ysize,2*nwidth*ysize);
+      coeff_y_sum += coeff_y[jy_rel];
+    }
+    for (jz1=IMAX(iz_high-nwidth,0), jz_rel=0;
+   jz1<IMIN(iz_low+nwidth,depth-1); 
+   jz1++,jz_rel++) {
+      coeff_z[jz_rel] = ham_sinc((double)(z-jz1)*zsize,2*nwidth*zsize);
+      coeff_z_sum += coeff_z[jz_rel];
+    }
+    
+    for(sum_z=0., jz1=IMAX(iz_high-nwidth,0), jz_rel = 0;
+  jz1 < IMIN(iz_low+nwidth,depth-1);
+  jz1++, jz_rel++) {
+      
+      for(sum_y=0., jy1=IMAX(iy_high-nwidth,0), jy_rel = 0;
+    jy1 < IMIN(iy_low+nwidth,height-1);
+    jy1++, jy_rel++) {
+  for(sum_x=0., jx1=IMAX(ix_high-nwidth,0), jx_rel = 0;
+      jx1 < IMIN(ix_low+nwidth,width-1);
+      jx1++, jx_rel++) {
+    
+    switch(mri->type)
+      {
+      case MRI_UCHAR:
+        sum_x += (coeff_x[jx_rel]/coeff_x_sum) 
+    * (double)MRIvox(mri,jx1,jy1,jz1);
+        break;
+      case MRI_FLOAT:
+        sum_x += (coeff_x[jx_rel]/coeff_x_sum) 
+    * (double)MRIFvox(mri,jx1,jy1,jz1);
+        break; 
+      case MRI_SHORT:
+        sum_x += (coeff_x[jx_rel]/coeff_x_sum) 
+    * (double)MRISvox(mri,jx1,jy1,jz1);
+        break;
+      default:
+        ErrorReturn(ERROR_UNSUPPORTED, 
+        (ERROR_UNSUPPORTED, 
+         "MRIsincSampleVolume: unsupported type %d", 
+         mri->type)) ;
+        break;
+      }
+  }
+  sum_y += sum_x * (coeff_y[jy_rel]/coeff_y_sum);
+      }
+      sum_z += sum_y * (coeff_z[jz_rel]/coeff_z_sum); 
+    }
+    if((mri->type == MRI_UCHAR || mri->type == MRI_SHORT) && sum_z<0.0)
+      *pval = 0.0;
+    else if(mri->type == MRI_UCHAR && sum_z >255.0)
+      *pval = 255.0;
+    else if(mri->type == MRI_SHORT && sum_z > 65535.0)
+      *pval = 65535.0;
+    else
+      *pval = sum_z;
+  } else 
+    *pval = 0.0;
+  
+  return(NO_ERROR);
+}
+
 /*-----------------------------------------------------
         Parameters:
 
@@ -5933,6 +6062,84 @@ MRIapplyRASinverseLinearTransform(MRI *mri_src, MRI *mri_dst,
   MatrixFree(&m_voxel_xform) ;
   return(mri_dst) ;
 }
+
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+          Perform an linear coordinate transformation x' = Ax on
+          the MRI image mri_src into mri_dst
+------------------------------------------------------*/
+MRI *
+MRIsincTransform(MRI *mri_src, MRI *mri_dst, MATRIX *mA, int hw)
+{
+  int    y1, y2, y3, width, height, depth ;
+  VECTOR *v_X, *v_Y ;   /* original and transformed coordinate systems */
+  MATRIX *mAinv ;     /* inverse of mA */
+  Real   val, x1, x2, x3 ;
+
+  mAinv = MatrixInverse(mA, NULL) ;      /* will sample from dst back to src */
+  if (!mAinv)
+    ErrorReturn(NULL, (ERROR_BADPARM,
+                       "MRIsincTransform: xform is singular")) ;
+
+  width = mri_src->width ; height = mri_src->height ; depth = mri_src->depth ;
+  if (!mri_dst)
+    mri_dst = MRIclone(mri_src, NULL) ;
+  else
+    MRIclear(mri_dst) ;
+
+  v_X = VectorAlloc(4, MATRIX_REAL) ;  /* input (src) coordinates */
+  v_Y = VectorAlloc(4, MATRIX_REAL) ;  /* transformed (dst) coordinates */
+
+  v_Y->rptr[4][1] = 1.0f ;
+  for (y3 = 0 ; y3 < depth ; y3++)
+  {
+    V3_Z(v_Y) = y3 ;
+    for (y2 = 0 ; y2 < height ; y2++)
+    {
+      V3_Y(v_Y) = y2 ;
+      for (y1 = 0 ; y1 < width ; y1++)
+      {
+        V3_X(v_Y) = y1 ;
+        MatrixMultiply(mAinv, v_Y, v_X) ;
+        
+        x1 = V3_X(v_X) ; x2 = V3_Y(v_X) ; x3 = V3_Z(v_X) ;
+
+        if (nint(y1) == 13 && nint(y2) == 10 && nint(y3) == 7)
+          DiagBreak() ;
+        if (nint(x1) == 13 && nint(x2) == 10 && nint(x3) == 7)
+        {
+#if 0
+          fprintf(stderr, "(%2.1f, %2.1f, %2.1f) --> (%2.1f, %2.1f, %2.1f)\n",
+                  (float)x1, (float)x2, (float)x3, 
+                  (float)y1, (float)y2, (float)y3) ;
+#endif
+          DiagBreak() ;
+        }
+
+        if (x1 > -1 && x1 < width &&
+            x2 > -1 && x2 < height &&
+            x3 > -1 && x3 < depth)
+        {
+          MRIsincSampleVolume(mri_src, x1, x2, x3, hw, &val);
+          MRIvox(mri_dst,y1,y2,y3) = (BUFTYPE)nint(val) ;
+        }
+      }
+    }
+  }
+
+  MatrixFree(&v_X) ;
+  MatrixFree(&mAinv) ;
+  MatrixFree(&v_Y) ;
+
+  mri_dst->ras_good_flag = 0;
+
+  return(mri_dst) ;
+}
+
 /*-----------------------------------------------------
         Parameters:
 
