@@ -8,10 +8,10 @@
  *
  */
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2005/02/24 20:01:49 $
-// Revision       : $Revision: 1.297 $
-char *MRI_C_VERSION = "$Revision: 1.297 $";
+// Revision Author: $Author: tosa $
+// Revision Date  : $Date: 2005/03/02 22:02:44 $
+// Revision       : $Revision: 1.298 $
+char *MRI_C_VERSION = "$Revision: 1.298 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -4547,10 +4547,8 @@ MRIallocHeader(int width, int height, int depth, int type)
   mri->tag_data = NULL;
   mri->tag_data_size = 0;
 
-  if (!mri->i_to_r__)
-    mri->i_to_r__ = extract_i_to_r(mri);
-  if (!mri->r_to_i__)
-    mri->r_to_i__ = extract_r_to_i(mri);
+  mri->i_to_r__ = extract_i_to_r(mri);
+  mri->r_to_i__ = extract_r_to_i(mri);
 
   return(mri) ;
 }
@@ -8978,8 +8976,10 @@ MRIlinearTransformInterp(MRI *mri_src, MRI *mri_dst, MATRIX *mA,
     ErrorReturn(NULL, (ERROR_BADPARM,
                        "MRIlinearTransform: xform is singular")) ;
 
-  if (!mri_dst) mri_dst = MRIclone(mri_src, NULL) ;
-  else          MRIclear(mri_dst) ;
+  if (!mri_dst) 
+    mri_dst = MRIclone(mri_src, NULL) ;
+  else
+    MRIclear(mri_dst) ;
 
   width = mri_dst->width ; height = mri_dst->height ; depth = mri_dst->depth ;
   v_X = VectorAlloc(4, MATRIX_REAL) ;  /* input (src) coordinates */
