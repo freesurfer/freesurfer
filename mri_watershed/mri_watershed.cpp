@@ -5,11 +5,11 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2003/05/21 18:55:44 $
-// Revision       : $Revision: 1.19 $
+// Revision Date  : $Date: 2003/05/21 21:26:34 $
+// Revision       : $Revision: 1.20 $
 //
 ////////////////////////////////////////////////////////////////////
-char *MRI_WATERSHED_VERSION = "$Revision: 1.19 $";
+char *MRI_WATERSHED_VERSION = "$Revision: 1.20 $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -87,8 +87,7 @@ typedef struct Bound
   struct Bound *next;
 } Bound;
 
-typedef unsigned char Coord[3];
-
+typedef unsigned short Coord[3];
 
 typedef struct STRIP_PARMS    
 { 
@@ -540,7 +539,7 @@ int main(int argc, char *argv[])
   /************* Command line****************/
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_watershed.cpp,v 1.19 2003/05/21 18:55:44 tosa Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_watershed.cpp,v 1.20 2003/05/21 21:26:34 tosa Exp $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -1174,6 +1173,7 @@ static int calCOGMAX(MRI_variables *MRI_var, int *x, int *y, int *z)
 
   n=0;
   MRI_var->xCOG = MRI_var->yCOG = MRI_var->zCOG = 0;
+  int maxGrey =0;
   for(k=2;k<MRI_var->depth-2;k++)
     for(j=2;j<MRI_var->height-2;j++)
     {
@@ -1188,6 +1188,8 @@ static int calCOGMAX(MRI_variables *MRI_var, int *x, int *y, int *z)
           MRI_var->xCOG+=i;
           MRI_var->yCOG+=j;
           MRI_var->zCOG+=k;
+	  if (*pb > maxGrey)
+	    maxGrey = *pb;
         }
         pb++;
       }
@@ -1234,7 +1236,7 @@ static int calBrainRadius(MRI_variables *MRI_var)
         if((*pb)>=MRI_var->Imax) 
           *pb=MRI_var->Imax-1;
         if (*pb)      /*don't care about 0 intensity voxel*/
-          MRI_var->tabdim[*pb]++;
+          MRI_var->tabdim[*pb]++; // histogram of non-zero voxels
         if(*pb>MRI_var->CSF_intensity)
         {
           m++;
@@ -1545,7 +1547,8 @@ static int Pre_CharSorting(STRIP_PARMS *parms,MRI_variables *MRI_var)
               y=j;
               z=k;
             }  
-    
+    // mean_val array exists only the square volume of radius size
+    // thus actual voxel index is to add (xmin,ymin,zmin)
     i=xmin+1+x;
     j=ymin+1+y;
     k=zmin+1+z;
@@ -1557,17 +1560,22 @@ static int Pre_CharSorting(STRIP_PARMS *parms,MRI_variables *MRI_var)
       j=MRI_var->j_global_min;
       k=MRI_var->k_global_min;
     }
+    // change the histogram of this particular i,j,k grey value
+    // note that tabdim is the histogram of grey values
     MRI_var->tabdim[MRIvox(MRI_var->mri_src,i,j,k)]--;
     MRI_var->int_global_min=MRIvox(MRI_var->mri_src,i,j,k);
+    // change grey value to be Imax
     MRIvox(MRI_var->mri_src,i,j,k)=MRI_var->Imax;
     MRI_var->i_global_min=i;
     MRI_var->j_global_min=j;
     MRI_var->k_global_min=k;
+    // so the histogram of Imax column should be increased.
     MRI_var->tabdim[MRI_var->Imax]++;
+
+    // this particular one base labeled as 3
     MRI_var->Basin[k][j][i].type=3;
     MRI_var->Basin[k][j][i].next=(BasinCell*)CreateBasinCell(MRI_var->Imax,1,0);
  
-
     ig=MRI_var->i_global_min;
     jg=MRI_var->j_global_min;
     kg=MRI_var->k_global_min;
@@ -1674,7 +1682,8 @@ static int Pre_CharSorting(STRIP_PARMS *parms,MRI_variables *MRI_var)
 
     fprintf(stderr,"\n %d basins created", n+parms->nb_seed_points+1);
 #endif
-  
+
+    // T1 volume is defined to be only 110 grey values
     if (!min && wmint==110 && MRI_var->WM_MAX==110)
     {
       MRI_var->WM_intensity=110;
@@ -1950,19 +1959,24 @@ static int CharSorting(MRI_variables *MRI_var)
   
   for(k=1;k<MRI_var->Imax+1;k++)
   {    
-    l=sqroot(MRI_var->tabdim[k]);
+    l=sqroot(MRI_var->tabdim[k]); // sqrt of the population at grey=k
     MRI_var->sqrdim[k]=l;
-    MRI_var->Table[k]=(Coord**)malloc(l*sizeof(Coord*));
+    MRI_var->Table[k]=(Coord**)malloc(l*sizeof(Coord*));// each Table is a 2d array of Coord
     if(!MRI_var->Table[k]) Error("Allocation first Table Echec");
+    // array is l x l 
     for(u=0;u<l;u++)
     {
-      MRI_var->Table[k][u]=(Coord*)calloc(l,sizeof(Coord));
+      MRI_var->Table[k][u]=(Coord*)calloc(l,sizeof(Coord)); 
       if(!MRI_var->Table[k][u]) Error("Allocation second Table Echec");
     }
   }
 
   /*Sorting itself*/
-
+  // each Table[k] (k=grey value) is a 2D array.  each element of 2D array has
+  // the coordinate of a voxel.
+  // filling 2d array with quot and rem of count
+  // why 2d array?  Maybe this programmer thought that the length of column is
+  // too big to fit in the linear array.  Unnecessary
   for(k=2;k<MRI_var->depth-2;k++)
     for(j=2;j<MRI_var->height-2;j++)
     {
@@ -1973,7 +1987,7 @@ static int CharSorting(MRI_variables *MRI_var)
         val=*pb++;
         if(val)
         {
-          l=MRI_var->count[val]++;
+          l=MRI_var->count[val]++;   // count[] is a histogram of non-zero grey values
           ld=ldiv(l,MRI_var->sqrdim[val]);
           u=ld.quot;
           v=ld.rem;
@@ -1982,7 +1996,7 @@ static int CharSorting(MRI_variables *MRI_var)
           MRI_var->Table[val][u][v][2]=k;
         }
       }
-    }  
+    }
   return 0;
 }
 
@@ -2010,16 +2024,16 @@ static int Analyze(STRIP_PARMS *parms,MRI_variables *MRI_var)
   MRI_var->basinsize=0;
 
 
-  n=MRI_var->sqrdim[MRI_var->Imax];
+  n=MRI_var->sqrdim[MRI_var->Imax]; // the sqrt of the population at Imax
   for(u=0;u<n;u++)
-      free(MRI_var->Table[MRI_var->Imax][u]);
+    free(MRI_var->Table[MRI_var->Imax][u]);
   free(MRI_var->Table[MRI_var->Imax]);
 
   for(pos=MRI_var->Imax-1;pos>0;pos--)
   {
     l=0;
-    d=MRI_var->tabdim[pos];
-    n=MRI_var->sqrdim[pos];
+    d=MRI_var->tabdim[pos];  // the population at pos
+    n=MRI_var->sqrdim[pos];  // the sqrt of the d
     while(l<d)
     {
       ld=ldiv(l,n);
