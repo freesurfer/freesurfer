@@ -1350,6 +1350,8 @@ TransformSample(TRANSFORM *transform, int xv, int yv, int zv, float *px, float *
   else
   {
     lta = (LTA *)transform->xform ;
+    if (lta->type != LINEAR_VOXEL_TO_VOXEL)
+      ErrorExit(ERROR_BADPARM, "Transform was not of voxel-to-voxel type");
     if (!v_canon)
     {
       v_input = VectorAlloc(4, MATRIX_REAL) ;
