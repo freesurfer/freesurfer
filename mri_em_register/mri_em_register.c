@@ -6,8 +6,8 @@
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2004/04/06 15:35:41 $
-// Revision       : $Revision: 1.42 $
+// Revision Date  : $Date: 2004/05/27 18:23:17 $
+// Revision       : $Revision: 1.43 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -47,6 +47,9 @@ static MORPH_PARMS  parms ;
 
 static char *mask_fname = NULL ;
 static char *norm_fname = NULL ;
+
+static char *xform_name = NULL ;
+static char *long_reg_fname = NULL ;
 
 static char *example_T1 = NULL ;
 static char *example_segmentation = NULL ;
@@ -136,7 +139,7 @@ main(int argc, char *argv[])
   float        old_log_p, log_p ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_em_register.c,v 1.42 2004/04/06 15:35:41 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_em_register.c,v 1.43 2004/05/27 18:23:17 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -247,7 +250,7 @@ main(int argc, char *argv[])
     mri_tmp = MRIread(in_fname) ;
     if (!mri_tmp)
       ErrorExit(ERROR_NOFILE, "%s: could not open input volume %s.\n",
-		Progname, in_fname) ;
+								Progname, in_fname) ;
     
     TRs[i] = mri_tmp->tr ;
     fas[i] = mri_tmp->flip_angle ;
@@ -258,7 +261,7 @@ main(int argc, char *argv[])
       
       mri_mask = MRIread(mask_fname) ;
       if (!mri_mask)
-	ErrorExit(ERROR_NOFILE, "%s: could not open mask volume %s.\n",
+				ErrorExit(ERROR_NOFILE, "%s: could not open mask volume %s.\n",
       	          Progname, mask_fname) ;
       MRImask(mri_tmp, mri_mask, mri_tmp, 0, 0) ;
       MRIfree(&mri_mask) ;
@@ -266,7 +269,7 @@ main(int argc, char *argv[])
     if (i == 0)
     {
       mri_in = MRIallocSequence(mri_tmp->width, mri_tmp->height, mri_tmp->depth,
-				mri_tmp->type, ninputs) ;
+																mri_tmp->type, ninputs) ;
       MRIcopyHeader(mri_tmp, mri_in) ;
     }
     MRIcopyFrame(mri_tmp, mri_in, 0, i) ;
@@ -300,7 +303,7 @@ main(int argc, char *argv[])
       GCAhistoScaleImageIntensities(gca, mri_in) ;
     if (ninputs != gca->ninputs)
       ErrorExit(ERROR_BADPARM, "%s: must specify %d inputs, not %d for this atlas\n",
-		Progname, gca->ninputs, ninputs) ;
+								Progname, gca->ninputs, ninputs) ;
     /*		GCAhistoScaleImageIntensities(gca, mri_in) ;*/
     if (novar)
       GCAunifyVariance(gca) ;
@@ -329,7 +332,7 @@ main(int argc, char *argv[])
   }
   if (ninputs != gca->ninputs)
     ErrorExit(ERROR_BADPARM, "%s: must specify %d input volumes, not %d for this atlas\n",
-	      Progname, gca->ninputs, ninputs) ;
+							Progname, gca->ninputs, ninputs) ;
   
   parms.vgca = (void *)gca ;
   printf("freeing gibbs priors...") ;
@@ -385,7 +388,7 @@ main(int argc, char *argv[])
     MRI *mri_tmp ;
     
     printf("translating second volume by (%2.1f, %2.1f, %2.1f)\n",
-	   tx, ty, tz) ;
+					 tx, ty, tz) ;
     mri_tmp = MRItranslate(mri_in, NULL, tx, ty, tz) ;
     MRIfree(&mri_in) ;
     mri_in = mri_tmp ;
@@ -400,8 +403,8 @@ main(int argc, char *argv[])
     MRI *mri_tmp ;
     
     printf(
-	   "rotating second volume by %2.1f degrees around Z axis\n",
-	   (float)DEGREES(rzrot)) ;
+					 "rotating second volume by %2.1f degrees around Z axis\n",
+					 (float)DEGREES(rzrot)) ;
     mri_tmp = MRIrotateZ_I(mri_in, NULL, rzrot) ;
     MRIfree(&mri_in) ;
     mri_in = mri_tmp ;
@@ -411,8 +414,8 @@ main(int argc, char *argv[])
     MRI *mri_tmp ;
     
     printf(
-	   "rotating second volume by %2.1f degrees around X axis\n",
-	   (float)DEGREES(rxrot)) ;
+					 "rotating second volume by %2.1f degrees around X axis\n",
+					 (float)DEGREES(rxrot)) ;
     mri_tmp = MRIrotateX_I(mri_in, NULL, rxrot) ;
     MRIfree(&mri_in) ;
     mri_in = mri_tmp ;
@@ -422,8 +425,8 @@ main(int argc, char *argv[])
     MRI *mri_tmp ;
     
     printf(
-	   "rotating second volume by %2.1f degrees around Y axis\n",
-	   (float)DEGREES(ryrot)) ;
+					 "rotating second volume by %2.1f degrees around Y axis\n",
+					 (float)DEGREES(ryrot)) ;
     mri_tmp = MRIrotateY_I(mri_in, NULL, ryrot) ;
     MRIfree(&mri_in) ;
     mri_in = mri_tmp ;
@@ -567,7 +570,7 @@ main(int argc, char *argv[])
   if (transformed_sample_fname)
   {
     printf("writing transformed samples to %s...\n", 
-	   transformed_sample_fname) ;
+					 transformed_sample_fname) ;
     GCAtransformAndWriteSamples(gca, mri_in, parms.gcas, nsamples, 
                                 transformed_sample_fname, transform) ;
     printf("samples written\n") ;
@@ -583,7 +586,7 @@ main(int argc, char *argv[])
                                    transform, nsamples) ;
 #if 0
     GCAnormalizedLogSampleProbability(gca, parms.gcas, mri_in, 
-				      transform, nsamples) ;
+																			transform, nsamples) ;
 #endif
     /* make "unknowns" the bottom of the list */
     for (nleft_cbm = nright_cbm = nused = i = 0 ; i < nsamples ; i++)
@@ -607,7 +610,7 @@ main(int argc, char *argv[])
       }
     }
     GCAremoveOutlyingSamples(gca, parms.gcas, mri_in, 
-			     transform, nsamples, 2.0) ;
+														 transform, nsamples, 2.0) ;
 
 
     /* rank samples by log probability */
@@ -754,7 +757,7 @@ main(int argc, char *argv[])
   minutes = seconds / 60 ;
   seconds = seconds % 60 ;
   printf("registration took %d minutes and %d seconds.\n", 
-	 minutes, seconds) ;
+				 minutes, seconds) ;
   if (diag_fp)
     fclose(diag_fp) ;
   exit(0) ;
@@ -782,8 +785,10 @@ register_mri(MRI *mri_in, GCA *gca, MORPH_PARMS *parms, int passno, int spacing)
   }
   else
   {
+#if 0
     parms->transform = transform = TransformAlloc(LINEAR_VOX_TO_VOX, NULL) ;
     transform->xform = (void *)parms->lta ;
+#endif
   }
     
   MatrixCopy(m_L, parms->lta->xforms[0].m_L) ;
@@ -885,8 +890,27 @@ find_optimal_transform(MRI *mri, GCA *gca, GCA_SAMPLE *gcas, int nsamples,
   *MATRIX_RELT(m_origin, 2, 4) = gca_means[1]*(float)center ;
   *MATRIX_RELT(m_origin, 3, 4) = gca_means[2]*(float)center ; 
   *MATRIX_RELT(m_origin, 4, 4) = 1 ;
-		
-  if (passno == 0)   /* only first time*/
+
+	if (transform_loaded)
+	{
+    if (!noiscale)
+      GCAhistoScaleImageIntensities(gca, mri) ;
+    //////////////// diagnostics ////////////////////////////////
+    if (Gdiag & DIAG_WRITE && write_iterations > 0)
+    {
+      char fname[STRLEN] ;
+			MRI  *mri_aligned ;
+      
+      Glta->xforms[0].m_L = m_L ;
+      mri_aligned = MRIlinearTransform(mri, NULL, m_L) ;
+      sprintf(fname, "%s_after_intensity.mgh", parms.base_name) ;
+      printf("writing snapshot to %s...\n", fname) ;
+      MRIwrite(mri_aligned, fname) ;
+      MRIwriteImageViews(mri_aligned, fname, IMAGE_SIZE) ;
+			MRIfree(&mri_aligned) ;
+    }
+	}
+  if (passno == 0 && !transform_loaded)   /* only first time*/
   {
 #if 0
     if (Gdiag & DIAG_WRITE && write_iterations > 0)
@@ -1425,6 +1449,29 @@ get_option(int argc, char *argv[])
   }
   else switch (*option)
   {
+	case 'L':   /* for longitudinal analysis */
+		{
+			TRANSFORM *reg_transform ;
+
+			xform_name = argv[2] ;
+			long_reg_fname = argv[3] ;
+			nargs = 2 ;
+			printf("reading previously computed atlas xform %s and applying registration %s\n",
+						 xform_name, long_reg_fname) ;
+			parms.transform = transform = TransformRead(argv[2]) ;
+			if (transform == NULL)
+				ErrorExit(ERROR_NOFILE, "%s: could not read transform from %s", Progname, argv[2]) ;
+			Glta = parms.lta = (LTA *)transform->xform ;
+			reg_transform = TransformRead(argv[3]) ;
+			if (reg_transform == NULL)
+				ErrorExit(ERROR_NOFILE, "%s: could not read registration from %s", Progname, argv[3]) ;
+			transform_loaded = 1 ;
+			TransformInvert(reg_transform, NULL) ;
+			MatrixMultiply(((LTA *)(transform->xform))->xforms[0].m_L, ((LTA *)(reg_transform->xform))->inv_xforms[0].m_L, 
+										 ((LTA *)(transform->xform))->xforms[0].m_L) ;
+			TransformFree(&reg_transform) ;
+		}
+		break ;
   case 'F':
     ctl_point_fname = argv[2] ;
     nargs = 1 ;
