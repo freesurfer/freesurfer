@@ -2716,6 +2716,7 @@ mghRead(char *fname, int read_volume, int frame)
         bpv, dof, bytes, version ;
   BUFTYPE *buf ;
   char   unused_buf[UNUSED_SPACE_SIZE+1] ;
+  float  fval ;
 
   fp = fopen(fname, "rb") ;
   if (!fp)
@@ -2778,7 +2779,8 @@ mghRead(char *fname, int read_volume, int frame)
           {
             for (x = 0 ; x < width ; x++)
             {
-              MRIFseq_vox(mri,x,y,z,frame-start_frame) = freadFloat(fp) ;
+              fval = freadFloat(fp) ; 
+              MRIFseq_vox(mri,x,y,z,frame-start_frame) = fval ;
             }
           }
           break ;
@@ -2811,6 +2813,7 @@ mghWrite(MRI *mri, char *fname, int frame)
   FILE  *fp ;
   int   start_frame, end_frame, x, y, z, width, height, depth ;
   char        buf[UNUSED_SPACE_SIZE+1] ;
+  float fval ;
 
   if (frame >= 0)
     start_frame = end_frame = frame ;
@@ -2851,7 +2854,10 @@ mghWrite(MRI *mri, char *fname, int frame)
         case MRI_FLOAT:
           for (x = 0 ; x < width ; x++)
           {
-            fwriteFloat(MRIFseq_vox(mri,x,y,z,frame), fp) ;
+            if (z == 74 && y == 16 && x == 53)
+              DiagBreak() ;
+            fval = MRIFseq_vox(mri,x,y,z,frame) ;
+            fwriteFloat(fval, fp) ;
           }
           break ;
         case MRI_UCHAR:
