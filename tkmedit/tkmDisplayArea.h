@@ -452,8 +452,7 @@ DspA_tErr DspA_GetSlice    ( tkmDisplayAreaRef this,
 			     int*              onSlice );
 
 /* Sets the cursor to the center of the selection volume. */
-DspA_tErr DspA_SetCursorToCenterOfSpace ( tkmDisplayAreaRef this,
-					  mriVolumeRef      ipVolume );
+DspA_tErr DspA_SetCursorToCenterOfSelectionVolume ( tkmDisplayAreaRef this );
 
 /* routes events to specialized handlers */
 DspA_tErr DspA_HandleEvent ( tkmDisplayAreaRef this, 

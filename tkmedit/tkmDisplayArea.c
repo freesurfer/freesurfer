@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2003/08/04 18:24:01 $
-// Revision       : $Revision: 1.81 $
+// Revision Date  : $Date: 2003/08/11 14:00:31 $
+// Revision       : $Revision: 1.82 $
 
 #include "tkmDisplayArea.h"
 #include "tkmMeditWindow.h"
@@ -925,11 +925,6 @@ DspA_tErr DspA_SetSelectionSpace( tkmDisplayAreaRef this,
   if( NULL != this->mpSelection ) {
     
     eResult = DspA_SetDisplayFlag( this, DspA_tDisplayFlag_Selection, TRUE );
-    if( DspA_tErr_NoErr != eResult )
-      goto error;
-
-    /* find the center of the selection and go there */
-    //    eResult = DspA_SetCursorToCenterOfSpace( this, ipVolume );
     if( DspA_tErr_NoErr != eResult )
       goto error;
   }
@@ -2626,8 +2621,7 @@ DspA_tErr DspA_GetSlice ( tkmDisplayAreaRef this,
   return eResult;
 }
 
-DspA_tErr DspA_SetCursorToCenterOfSpace ( tkmDisplayAreaRef this,
-					  mriVolumeRef      ipVolume ) {
+DspA_tErr DspA_SetCursorToCenterOfSelectionVolume ( tkmDisplayAreaRef this ) {
   
   DspA_tErr  eResult     = DspA_tErr_NoErr;
   tBoolean   bGotLabel   = FALSE;
@@ -2635,17 +2629,17 @@ DspA_tErr DspA_SetCursorToCenterOfSpace ( tkmDisplayAreaRef this,
   int        nDimensionY = 0;
   int        nDimensionZ = 0;
   float      value       = 0;
-  xVoxel     idx;
+  xVoxel     MRIIdx;
+  xVoxel     anaIdx;
   int        nMinX       = 0;
   int        nMaxX       = 0;
   int        nMinY       = 0;
   int        nMaxY       = 0;
   int        nMinZ       = 0;
   int        nMaxZ       = 0;
-  xVoxel     cursor;
 
-  DebugEnterFunction( ("DspA_SetCursorToCenterOfSpace( this=%p, ipVolume=%p )",
-		       this, ipVolume) );
+  DebugEnterFunction( ("DspA_SetCursorToCenterOfSelectionVolume( this=%p )",
+		       this) );
   
   DebugNote( ("Verifying self") );
   eResult = DspA_Verify( this );
@@ -2656,33 +2650,34 @@ DspA_tErr DspA_SetCursorToCenterOfSpace ( tkmDisplayAreaRef this,
   bGotLabel = FALSE;
   nMinX = nMinY = nMinZ = 999999;
   nMaxX = nMaxY = nMaxZ = 0;
-  Volm_GetDimensions( ipVolume, &nDimensionX, 
+  Volm_GetDimensions( this->mpSelection, &nDimensionX, 
 		      &nDimensionY, &nDimensionZ );
-  xVoxl_Set( &idx, 0, 0, 0 );
-  while( xVoxl_IncrementUntilLimits( &idx, nDimensionX-1, 
+  xVoxl_Set( &MRIIdx, 0, 0, 0 );
+  while( xVoxl_IncrementUntilLimits( &MRIIdx, nDimensionX-1, 
 				     nDimensionY-1, nDimensionZ-1 )) {
 
-    Volm_GetValueAtIdx( ipVolume, &idx, &value );
+    Volm_GetValueAtMRIIdx_( this->mpSelection, &MRIIdx, &value );
     if( 0 != value ) {
       
       bGotLabel = TRUE;
-      if( xVoxl_GetZ(&idx) > nMaxZ ) nMaxZ = xVoxl_GetZ(&idx);
-      if( xVoxl_GetY(&idx) > nMaxY ) nMaxY = xVoxl_GetY(&idx);
-      if( xVoxl_GetX(&idx) > nMaxX ) nMaxX = xVoxl_GetX(&idx);
-      if( xVoxl_GetZ(&idx) < nMinZ ) nMinZ = xVoxl_GetZ(&idx);
-      if( xVoxl_GetY(&idx) < nMinY ) nMinY = xVoxl_GetY(&idx);
-      if( xVoxl_GetX(&idx) < nMinX ) nMinX = xVoxl_GetX(&idx);
+      if( xVoxl_GetZ(&MRIIdx) > nMaxZ ) nMaxZ = xVoxl_GetZ(&MRIIdx);
+      if( xVoxl_GetY(&MRIIdx) > nMaxY ) nMaxY = xVoxl_GetY(&MRIIdx);
+      if( xVoxl_GetX(&MRIIdx) > nMaxX ) nMaxX = xVoxl_GetX(&MRIIdx);
+      if( xVoxl_GetZ(&MRIIdx) < nMinZ ) nMinZ = xVoxl_GetZ(&MRIIdx);
+      if( xVoxl_GetY(&MRIIdx) < nMinY ) nMinY = xVoxl_GetY(&MRIIdx);
+      if( xVoxl_GetX(&MRIIdx) < nMinX ) nMinX = xVoxl_GetX(&MRIIdx);
     }
   }  
   
   if( bGotLabel ) {
 
     /* Set the cursor to the center of those bounds. */
-    xVoxl_Set( &cursor, 
+    xVoxl_Set( &MRIIdx, 
 	       nMinX + ((nMaxX - nMinX) / 2),
 	       nMinY + ((nMaxY - nMinY) / 2),
 	       nMinZ + ((nMaxZ - nMinZ) / 2) );
-    DspA_SetCursor( this, &cursor );
+    Volm_ConvertMRIIdxToIdx( this->mpSelection, &MRIIdx, &anaIdx );
+    DspA_SetCursor( this, &anaIdx );
   }
 
   DebugCatch;
