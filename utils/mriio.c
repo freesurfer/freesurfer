@@ -51,6 +51,7 @@
 #include "mriColorLookupTable.h"
 #include "DICOMRead.h"
 #include "imautils.h"
+#include "cma.h"
 
 #include "bfileio.h"
 
@@ -6795,6 +6796,8 @@ static int print_unknown_labels(char *prefix)
 
 } /* end print_unknown_labels() */
 
+/* replaced 25 Feb 2003 ch */
+#if 0
 static int read_otl_file(FILE *fp, MRI *mri, int slice, mriColorLookupTableRef color_table, int fill_flag, int translate_label_flag, int zero_outlines_flag)
 {
 
@@ -7155,6 +7158,384 @@ static int read_otl_file(FILE *fp, MRI *mri, int slice, mriColorLookupTableRef c
         source_y = 511;
       MRISvox(mri, i, j, slice-1) = cma_field[source_x][source_y];
     }
+
+  return(NO_ERROR);
+
+} /* end read_otl_file() */
+#endif
+
+static int read_otl_file(FILE *fp, MRI *mri, int slice, mriColorLookupTableRef color_table, int fill_flag, int translate_label_flag, int zero_outlines_flag)
+{
+
+  int n_outlines = -1;
+  int n_rows, n_cols;
+  char label[STRLEN], label_to_compare[STRLEN];
+  int seed_x, seed_y;
+  char line[STRLEN];
+  int main_header_flag;
+  int i, j;
+  int gdf_header_flag;
+  char type[STRLEN], global_type[STRLEN];
+  char *c;
+  short *points;
+  int n_read;
+  short label_value;
+  float scale_x, scale_y;
+  int source_x, source_y;
+  char alt_compare[STRLEN];
+  int empty_label_flag;
+  int ascii_short_flag;
+  int row;
+  char *translate_start;
+  int internal_structures_flag = FALSE;
+  CMAoutlineField *of;
+
+  fgets(line, STRLEN, fp);
+  if(strncmp(line, "GDF FILE VERSION", 15) != 0)
+  {
+    errno = 0;
+    ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "otl slice %s does not appear to be a GDF file", slice));
+  }
+
+  main_header_flag = FALSE;
+  while(!main_header_flag)
+  {
+    if(feof(fp))
+    {
+      errno = 0;
+      ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "premature EOF () in otl file %d", slice));
+    }
+    fgets(line, STRLEN, fp);
+    if(strncmp(line, "START MAIN HEADER", 17) == 0)
+      main_header_flag = TRUE;
+  }
+
+  n_cols = -1;
+  type[0] = '\0';
+  global_type[0] = '\0';
+
+  while(main_header_flag)
+  {
+    if(feof(fp))
+    {
+      errno = 0;
+      ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "premature EOF (in main header) in otl file %d", slice));
+    }
+    fgets(line, STRLEN, fp);
+    if(strncmp(line, "END MAIN HEADER", 15) == 0)
+      main_header_flag = FALSE;
+    if(strncmp(line, "ONUM ", 5) == 0)
+      sscanf(line, "%*s %d", &n_outlines);
+    if(strncmp(line, "COL_NUM", 7) == 0)
+      sscanf(line, "%*s %d", &n_cols);
+    if(strncmp(line, "TYPE", 4) == 0)
+    {
+      strcpy(global_type, &(line[5]));
+      c = strrchr(global_type, '\n');
+      if(c != NULL)
+        *c = '\0';
+    }
+  }
+
+  if(n_outlines == -1)
+  {
+    errno = 0;
+    ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "bad or undefined ONUM in otl file %d", slice));
+  }
+
+  of = CMAoutlineFieldAlloc(2*mri->width, 2*mri->height);
+  if(of == NULL)
+    return(ERROR_NOMEMORY);
+
+  for(i = 0;i < n_outlines;i++)
+  {
+    if(feof(fp))
+    {
+      CMAfreeOutlineField(&of);
+      errno = 0;
+      ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "premature EOF (ready for next outline) in otl file %d", slice));
+    }
+
+    gdf_header_flag = FALSE;
+
+    while(!gdf_header_flag)
+    {
+      if(feof(fp))
+      {
+        CMAfreeOutlineField(&of);
+        errno = 0;
+        ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "premature EOF (searching for gdf header) in otl file %d", slice));
+      }
+      fgets(line, STRLEN, fp);
+      if(strncmp(line, "START GDF HEADER", 16) == 0)
+        gdf_header_flag = TRUE;
+    }
+
+    n_rows = -1;
+    seed_x = seed_y = -1;
+    label[0] = '\0';
+    type[0] = '\0';
+
+    empty_label_flag = 0;
+
+    while(gdf_header_flag)
+    {
+
+      if(feof(fp))
+      {
+        CMAfreeOutlineField(&of);
+        errno = 0;
+        ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "premature EOF (in gdf header) in otl file %d", slice));
+      }
+      fgets(line, STRLEN, fp);
+      if(strncmp(line, "END GDF HEADER", 14) == 0)
+        gdf_header_flag = FALSE;
+      if(strncmp(line, "ROW_NUM", 7) == 0)
+        sscanf(line, "%*s %d", &n_rows);
+      if(strncmp(line, "COL_NUM", 7) == 0)
+        sscanf(line, "%*s %d", &n_cols);
+      if(strncmp(line, "TYPE", 4) == 0)
+      {
+        strcpy(type, &(line[5]));
+        c = strrchr(type, '\n');
+        if(c != NULL)
+          *c = '\0';
+      }
+      if(strncmp(line, "SEED", 4) == 0)
+        sscanf(line, "%*s %d %d", &seed_x, &seed_y);
+      if(strncmp(line, "LABEL", 5) == 0)
+      {
+
+        strcpy(label, &(line[6]));
+        c = strrchr(label, '\n');
+        if(c != NULL)
+          *c = '\0';
+
+        /* exterior -> cortex, if desired */
+        if(translate_label_flag)
+        {
+          translate_start = strstr(label, "Exterior");
+          if(translate_start != NULL)
+            sprintf(translate_start, "Cortex");
+          else
+          {
+            translate_start = strstr(label, "exterior");
+            if(translate_start != NULL)
+              sprintf(translate_start, "cortex");
+          }
+        }
+
+        /* warning if there's an "exterior" or "cortex" after any other label */
+        if(strstr(label, "Exterior") == 0 || strstr(label, "exterior") == 0 || strstr(label, "Cortex") == 0 || strstr(label, "cortex") == 0)
+        {
+          if(internal_structures_flag)
+            printf("WARNING: label \"%s\" following non-exterior labels in slice %d\n", label, slice);
+          internal_structures_flag = FALSE;
+        }
+        else
+          internal_structures_flag = TRUE;
+
+      }
+
+    }
+
+    if(n_rows < 0)
+    {
+      CMAfreeOutlineField(&of);
+      errno = 0;
+      ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "bad or undefined ROW_NUM in otl file %d", slice));
+    }
+
+    if(n_cols != 2)
+    {
+      CMAfreeOutlineField(&of);
+      errno = 0;
+      ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "bad or undefined COL_NUM in otl file %d", slice));
+    }
+
+    if(label[0] == '\0')
+    {
+      empty_label_flag = 1;
+      CMAfreeOutlineField(&of);
+      errno = 0;
+      ErrorPrintf(ERROR_BADPARM, "empty LABEL in otl file %d (outline %d)", slice, i);
+    }
+
+    if(seed_x < 0 || seed_x >= 512 || seed_y < 0 || seed_y >= 512)
+    {
+      CMAfreeOutlineField(&of);
+      errno = 0;
+      ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "bad or undefined SEED in otl file %d", slice));
+    }
+
+    if(type[0] == '\0')
+      strcpy(type, global_type);
+
+    if(strcmp(type, "ascii short") == 0)
+      ascii_short_flag = TRUE;
+    else if(strcmp(type, "short") == 0)
+      ascii_short_flag = FALSE;
+    else if(type[0] == '\0')
+    {
+      CMAfreeOutlineField(&of);
+      errno = 0;
+      ErrorReturn(ERROR_UNSUPPORTED, (ERROR_UNSUPPORTED, "undefined TYPE in otl file %d", slice));
+    }
+    else
+    {
+      CMAfreeOutlineField(&of);
+      errno = 0;
+      ErrorReturn(ERROR_UNSUPPORTED, (ERROR_UNSUPPORTED, "unsupported TYPE \"%s\" in otl file %d", type, slice));
+    }
+
+    do
+    {
+      fgets(line, STRLEN, fp);
+      if(feof(fp))
+      {
+        CMAfreeOutlineField(&of);
+        errno = 0;
+        ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "premature EOF (searching for points) in otl file %d", slice));
+      }
+    } while(strncmp(line, "START POINTS", 12) != 0);
+
+    points = (short *)malloc(2 * n_rows * sizeof(short));
+    if(points == NULL)
+    {
+      CMAfreeOutlineField(&of);
+      errno = 0;
+      ErrorReturn(ERROR_NOMEMORY, (ERROR_NOMEMORY, "error allocating memory for points in otl file %d", slice));
+    }
+
+    if(ascii_short_flag)
+    {
+      for(row = 0;row < n_rows;row++)
+      {
+        fgets(line, STRLEN, fp);
+        if(feof(fp))
+        {
+          free(points);
+          CMAfreeOutlineField(&of);
+          errno = 0;
+          ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "premature end of file while reading points from otl file %d", slice));
+        }
+        sscanf(line, "%hd %hd", &(points[2*row]), &(points[2*row+1]));
+      }
+    }
+    else
+    {
+      n_read = fread(points, 2, n_rows * 2, fp);
+      if(n_read != n_rows * 2)
+      {
+        free(points);
+        CMAfreeOutlineField(&of);
+        errno = 0;
+        ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "error reading points from otl file %d", slice));
+      }
+#ifdef Linux
+      swab(points, points, 2 * n_rows * sizeof(short));
+#endif
+    }
+
+    fgets(line, STRLEN, fp);
+    if(strncmp(line, "END POINTS", 10) != 0)
+    {
+      free(points);
+      CMAfreeOutlineField(&of);
+      errno = 0;
+      ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "error after points (\"END POINTS\" expected but not found) in otl file %d", slice));
+    }
+
+    if(!empty_label_flag)
+    {
+      strcpy(label_to_compare, label);
+      for(j = 0;label_to_compare[j] != '\0';j++)
+      {
+        if(label_to_compare[j] == '\n')
+          label_to_compare[j] = '\0';
+        if(label_to_compare[j] == ' ')
+          label_to_compare[j] = '-';
+      }
+
+      /* --- strip 'Left' and 'Right'; --- */
+      strcpy(alt_compare, label_to_compare);
+      StrLower(alt_compare);
+      if(strncmp(alt_compare, "left-", 5) == 0)
+        strcpy(alt_compare, &(label_to_compare[5]));
+      else if(strncmp(alt_compare, "right-", 6) == 0)
+        strcpy(alt_compare, &(label_to_compare[6]));
+
+      /* --- strip leading and trailing spaces (now dashes) --- */
+
+      /* leading */
+      for(j = 0;label_to_compare[j] == '-';j++);
+      if(label_to_compare[j] != '\0')
+      {
+        for(c = label_to_compare;*(c+j) != '\0';c++)
+          *c = *(c+j);
+        *c = *(c+j);
+      }
+
+      /* trailing */
+      for(j = strlen(label_to_compare) - 1;j >= 0 && label_to_compare[j] == '-';j--);
+      if(j < 0) /* all dashes! */
+      {
+        /* for now, let this fall through to an unknown label */
+      }
+      else /* j is the index of the last non-dash character */
+      {
+        label_to_compare[j+1] = '\0';
+      }
+
+
+      label_value = -1;
+      for(j = 0;j < color_table->mnNumEntries;j++)
+        if(strcmp(color_table->maEntries[j].msLabel, label_to_compare) == 0 || 
+           strcmp(color_table->maEntries[j].msLabel, alt_compare) == 0)
+          label_value = j;
+
+      if(label_value == -1)
+      {
+        register_unknown_label(label);
+      }
+      else
+      {
+
+        for(j = 0;j < n_rows;j++)
+          cma_field[points[2*j]][points[2*j+1]] = label_value;
+
+        CMAclaimPoints(of, label_value, points, n_rows, seed_x, seed_y);
+
+      }
+
+    }
+
+    free(points);
+
+  }
+
+  CMAassignLabels(of);
+
+  scale_x = 512 / mri->width;
+  scale_y = 512 / mri->height;
+
+  for(i = 0;i < mri->width;i++)
+    for(j = 0;j < mri->height;j++)
+    {
+      source_x = (int)floor(scale_x * (float)i);
+      source_y = (int)floor(scale_y * (float)j);
+      if(source_x < 0)
+        source_x = 0;
+      if(source_x > 511)
+        source_x = 511;
+      if(source_y < 0)
+        source_y = 0;
+      if(source_y > 511)
+        source_y = 511;
+      MRISvox(mri, i, j, slice-1) = of->fill_field[source_y][source_x];
+    }
+
+  CMAfreeOutlineField(&of);
 
   return(NO_ERROR);
 
@@ -9859,6 +10240,5 @@ static void nflip(unsigned char *buf, int b, int n)
   free(copy);
 
 } /* end nflip() */
-
 
 #endif
