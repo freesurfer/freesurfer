@@ -3,9 +3,9 @@
 // original: written by Bruce Fischl (Apr 16, 1997)
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2003/09/05 04:45:32 $
-// Revision       : $Revision: 1.61 $
+// Revision Author: $Author: tosa $
+// Revision Date  : $Date: 2003/09/18 14:13:31 $
+// Revision       : $Revision: 1.62 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -115,6 +115,8 @@ int main(int argc, char *argv[])
   int in_matrix_flag, out_matrix_flag;
   float conform_size;
   int zero_ge_z_offset_flag = FALSE; //E/
+  VOL_GEOM vgtmp;
+  LT *lt = 0;
 
   for(i=0;i<argc;i++) printf("%s ",argv[i]);
   printf("\n");
@@ -200,7 +202,7 @@ int main(int argc, char *argv[])
   conform_size = 1.0;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_convert.c,v 1.61 2003/09/05 04:45:32 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_convert.c,v 1.62 2003/09/18 14:13:31 tosa Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -1259,16 +1261,13 @@ int main(int argc, char *argv[])
        transform_type == TRANSFORM_ARRAY_TYPE)
     {
       printf("Reading transform\n");
-      lta_transform = LTAread(transform_fname);
+      // lta_transform = LTAread(transform_fname);
+      lta_transform = LTAreadEx(transform_fname);
       if(lta_transform  == NULL){
         fprintf(stderr, "ERROR: Reading transform from file %s\n", 
                 transform_fname);
         exit(1);
       }
-      
-      printf("Input Matrix --------------------------\n");
-      MatrixPrint(stdout,lta_transform->xforms[0].m_L);
-      printf("---------------------------------\n");
       
       if(invert_transform_flag)
       {
@@ -1283,6 +1282,14 @@ int main(int argc, char *argv[])
         
         MatrixFree(&(lta_transform->xforms[0].m_L));
         lta_transform->xforms[0].m_L = inverse_transform_matrix;
+	// reverse src and dst target info.
+	// since it affects the c_ras values of the result
+	// in LTAtransform()
+	// question is what to do when transform src info is invalid.
+	lt = &lta_transform->xforms[0];
+	copyVolGeom(&lt->dst, &vgtmp);
+	copyVolGeom(&lt->src, &lt->dst);
+	copyVolGeom(&vgtmp, &lt->src);
       }
       
       /* Think about calling MRIlinearTransform() here; need vox2vox
@@ -1290,28 +1297,15 @@ int main(int argc, char *argv[])
          can handle multiple transforms, but the inverse assumes only
          one. NN is good for ROI*/
       
-      printf("INFO: resampling input volume \n");
       printf("---------------------------------\n");
-      printf("Resampling Matrix input to LTAtransform(): \n");
+      printf("INFO: Transform Matrix \n");
       MatrixPrint(stdout,lta_transform->xforms[0].m_L);
       printf("---------------------------------\n");
-      
-      if (lta_transform->type == LINEAR_RAS_TO_RAS){
-        /* What does this do? M = M*V*W, where V is world2vox
-           transform for COR, and W is vox2world transform for
-           COR. Maybe it changes the center?*/
-        printf("INFO: LTAvoxelTransformToCoronalRasTransform()\n");
-        LTAvoxelTransformToCoronalRasTransform(lta_transform);
-      }
-      
+
 #if 1
       /* LTAtransform() runs either MRIapplyRASlinearTransform() 
-         for RAS2RAS or MRIlinearTransform() for Vox2Vox. Since
-         the matrix is transformed to Vox2Vox, the LTAtransform line
-         should give the same results as the MRIlinearTransfrom().*/
+         for RAS2RAS or MRIlinearTransform() for Vox2Vox. */
       mri_transformed = LTAtransform(mri, NULL, lta_transform);
-      //mri_transformed = MRIlinearTransform(mri, NULL, 
-      //           lta_transform->xforms[0].m_L);
 #else
       /* This part is experimental. The section that uses NEAREST
          can be used for transforming ROIs that need to be resampled
