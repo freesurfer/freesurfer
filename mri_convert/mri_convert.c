@@ -30,7 +30,7 @@ int main(int argc, char *argv[])
   int in_stats_flag, out_stats_flag;
   int read_only_flag, no_write_flag;
   char in_name[STRLEN], out_name[STRLEN];
-  int out_volume_type;
+  int in_volume_type, out_volume_type;
   char resample_type[STRLEN];
   int resample_type_val;
   int in_i_size_flag, in_j_size_flag, in_k_size_flag;
@@ -447,6 +447,12 @@ int main(int argc, char *argv[])
   }
 
   /* ----- read the volume ----- */
+  in_volume_type = mri_identify(in_name);
+  if(in_volume_type < 0)
+  {
+    ErrorPrintf(ERROR_BADFILE, "unknown file type for file %s", in_name);
+    exit(1);
+  }
   printf("reading from %s...\n", in_name);
   if(read_only_flag && in_info_flag && !in_stats_flag)
     mri = MRIreadInfo(in_name);
@@ -540,9 +546,9 @@ int main(int argc, char *argv[])
       template->y_r =  0.0;  template->y_a =  0.0;  template->y_s = -1.0;
       template->z_r =  0.0;  template->z_a =  1.0;  template->z_s =  0.0;
     }
-    else
-      printf("the output volume is not a COR- directory; the --no_conform (-nc) argument is not needed\n");
   }
+  else if(out_volume_type != MRI_CORONAL_SLICE_DIRECTORY)
+      printf("the output volume is not a COR- directory; the --no_conform (-nc) argument is not needed\n");
 
   /* ----- apply command-line parameters ----- */
   if(out_i_size_flag)
