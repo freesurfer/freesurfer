@@ -280,7 +280,7 @@ IMAGE  *ImageUpsample2(IMAGE *Isrc, IMAGE *Idst) ;
 #define IMAG_PIX      1
 
 #define ImageClone(I)  ImageAlloc(I->rows,I->cols,I->pixel_format,I->num_frame)
-#define ImageClear(I)  ImageClearArea(I, 0, 0, I->rows, I->cols, 0.0f)
+#define ImageClear(I)  ImageClearArea(I, 0, 0, I->rows, I->cols, 0.0f,-1)
 
 /* IMAGEpix is for byte size images */
 #define IMAGEpix(im, x, y)           ((im->image) + (((long)y) * im->ocols) \
