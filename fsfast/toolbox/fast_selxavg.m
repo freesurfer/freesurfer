@@ -1,8 +1,8 @@
 function r = fast_selxavg(varargin)
 % r = fast_selxavg(varargin)
-% '$Id: fast_selxavg.m,v 1.2 2003/03/14 18:15:11 greve Exp $'
+% '$Id: fast_selxavg.m,v 1.3 2003/03/28 23:51:31 greve Exp $'
 
-version = '$Id: fast_selxavg.m,v 1.2 2003/03/14 18:15:11 greve Exp $';
+version = '$Id: fast_selxavg.m,v 1.3 2003/03/28 23:51:31 greve Exp $';
 fprintf(1,'%s\n',version);
 r = 1;
 
@@ -193,6 +193,12 @@ for slice = firstslice:lastslice
         fprintf('Check your paradigm file for file for periodicities\n');
         fprintf('or for some event types that all ways follow other\n');
         fprintf('event types (or itself).\n');
+	if(TR ~= TER)
+	  fprintf('It could also be due to the fact that the TER\n');
+	  fprintf('does not equal the TR. SubTR estimation only works\n');
+	  fprintf('when the event schedule has been optimized with\n');
+	  fprintf('SubTR estimation in mind.\n');
+	end
         return;
       end
 
@@ -360,9 +366,12 @@ for slice = firstslice:lastslice
         %fprintf(1,'       Rescaling Global Mean %g,%g,%g\n',...
      	%        MeanVal,RescaleTarget,RescaleFactor);
         y = RescaleFactor * y;
+	%fprintf('MeanVal = %g\n',MeanVal);
       else
         RescaleFactor = 1;
       end
+      %fprintf('RescaleFactor = %g\n',RescaleFactor);
+      %fprintf('RescaleTarget = %g\n',s.RescaleTarget);
 
       if(s.loginput) 
         fprintf('INFO: computing log of input\n');
@@ -618,7 +627,7 @@ TimeWindow = TW;
 fprintf('INFO: saving meta to %s\n',xfile);
 save(xfile,'Xfinal','Nnnc','pfOrder','nExtReg',...
      'nruns','Navgs_per_cond','TimeWindow','tPreStim','TR','TER',...
-     'gfDelta','gfTau','-v4');
+     'gfDelta','gfTau','tpxlist','RescaleFactor','RescaleTarget','-v4');
 
 %-- Save ECovMtx for each run individually --%
 if(s.SaveErrCovMtx) 
@@ -661,7 +670,7 @@ if(s.PFOrder < 0)
 else
   hd.DTOrder = s.PFOrder + 1;
 end
-hd.RescaleFactor = 1.0;
+hd.RescaleFactor = RescaleFactor;
 hd.HanningRadius = 0.0;
 hd.BrainAirSeg = 0;
 hd.GammaFit = GammaFit;
@@ -1077,6 +1086,7 @@ function s = parse_args(varargin)
       case {'-rescale'}
         arg1check(flag,narg,ninputargs);
         s.RescaleTarget = sscanf(inputargs{narg},'%f',1);
+	fprintf('RescaleTarget = %g\n',s.RescaleTarget);
         narg = narg + 1;
 
       case {'-nskip'}
