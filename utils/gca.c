@@ -2,9 +2,9 @@
 // originally written by Bruce Fischl
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/05/25 16:08:10 $
-// Revision       : $Revision: 1.133 $
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2004/05/25 18:20:39 $
+// Revision       : $Revision: 1.134 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -9854,12 +9854,14 @@ GCAhistoScaleImageIntensities(GCA *gca, MRI *mri)
     h_smooth = HISTOsmooth(h_mri, NULL, 2) ;
     if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
       HISTOplot(h_smooth, "mri_smooth.histo") ;
-    /* assume it is the right-most peak of image is T1-weighted */
-    if (gca->ninputs == 1 && (gca->type == GCA_UNKNOWN || (gca->type == GCA_FLASH && (DEGREES(mri->flip_angle)>15))))
+    /* assume it is the right-most peak of image is supposed to be T1-weighted */
+    if (gca->ninputs == 1 && 
+				(gca->type == GCA_UNKNOWN || gca->type == GCA_NORMAL ||
+				 (gca->type == GCA_FLASH && (DEGREES(mri->flip_angle)>15))))
       mri_peak = HISTOfindLastPeak(h_smooth, HISTO_WINDOW_SIZE,MIN_HISTO_PCT);
     else
-      mri_peak = HISTOfindHighestPeakInRegion(h_mri, 1, h_mri->nbins);
-    mri_peak = h_mri->bins[mri_peak] ;
+      mri_peak = HISTOfindHighestPeakInRegion(h_smooth, 1, h_mri->nbins);
+    mri_peak = h_smooth->bins[mri_peak] ;
     printf("after smoothing, mri peak at %d, scaling input intensities "
 	   "by %2.3f\n", mri_peak, wm_means[r]/mri_peak) ;
 #if 0

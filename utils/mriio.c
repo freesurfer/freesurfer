@@ -8418,7 +8418,8 @@ mghRead(char *fname, int read_volume, int frame)
         nframes = frame*-1 ; 
 
       start_frame = 0 ; end_frame = nframes-1 ;
-      fprintf(stderr, "read %d frames\n", nframes);
+			if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+				fprintf(stderr, "read %d frames\n", nframes);
     }
     buf = (BUFTYPE *)calloc(bytes, sizeof(BUFTYPE)) ;
     mri = MRIallocSequence(width, height, depth, type, nframes) ;

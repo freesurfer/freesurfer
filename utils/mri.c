@@ -8,10 +8,10 @@
  *
  */
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: segonne $
-// Revision Date  : $Date: 2004/05/19 17:15:38 $
-// Revision       : $Revision: 1.272 $
-char *MRI_C_VERSION = "$Revision: 1.272 $";
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2004/05/25 18:20:39 $
+// Revision       : $Revision: 1.273 $
+char *MRI_C_VERSION = "$Revision: 1.273 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -10982,15 +10982,37 @@ MRImakePositive(MRI *mri_src, MRI *mri_dst)
     {
       for (y = 0 ; y < mri_dst->height ; y++)
       {
-	for (z = 0 ; z < mri_dst->depth ; z++)
-	{
-	  val = MRIgetVoxVal(mri_src, x, y, z, f) ;
-	  val -= fmin ;
-	  MRIsetVoxVal(mri_dst, x, y, z, f, val) ;
-	}
+				for (z = 0 ; z < mri_dst->depth ; z++)
+				{
+					val = MRIgetVoxVal(mri_src, x, y, z, f) ;
+					val -= fmin ;
+					MRIsetVoxVal(mri_dst, x, y, z, f, val) ;
+				}
       }
     }
   }
 
   return(mri_dst) ;
+}
+MRI *
+MRIeraseNegative(MRI *mri_src, MRI *mri_dst)
+{
+	int  x, y, z ;
+	float  val ;
+
+	mri_dst = MRIcopy(mri_src, mri_dst) ;
+
+	for (x = 0 ; x < mri_src->width ; x++)
+	{
+		for (y = 0 ; y < mri_src->height ; y++)
+		{
+			for (z = 0 ; z < mri_src->depth ; z++)
+			{
+				val = MRIgetVoxVal(mri_src, x, y, z, 0) ;
+				if (val < 0)
+					MRIsetVoxVal(mri_dst, x, y, z, 0, 0) ;
+			}
+		}
+	}
+	return(mri_dst) ;
 }
