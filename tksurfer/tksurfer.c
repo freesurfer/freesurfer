@@ -12603,10 +12603,6 @@ fill_color_array(MRI_SURFACE *mris, float *colors)
 	  g = g_base;
 	  b = b_base;
 	  
-	  /* get any label color for this vertex. this will not apply
-	     any color if there is no label. */
-	  labl_apply_color_to_vertex (n, &r, &g, &b );
-	  
 	  /* if overlay flag is on... */
 	  if (overlayflag)
 	    {
@@ -12643,6 +12639,10 @@ fill_color_array(MRI_SURFACE *mris, float *colors)
 		    }
 		}
 	    } 
+	  
+	  /* get any label color for this vertex. this will not apply
+	     any color if there is no label. */
+	  labl_apply_color_to_vertex (n, &r, &g, &b );
 	  
 	  /* let the boundary code color this vertex, if it wants to. */
 	  fbnd_apply_color_to_vertex (n, &r, &g, &b);
@@ -18163,7 +18163,7 @@ int main(int argc, char *argv[])   /* new main */
   /* end rkt */
   
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.39 2003/04/15 16:48:54 kteich Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.40 2003/04/16 21:11:56 kteich Exp $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
