@@ -438,18 +438,6 @@ MRIgetEqualizeHisto(MRI *mri, HISTOGRAM *histo_eq, int low, int high,int norm)
   HISTOfree(&histo) ;
   return(histo_eq) ;
 }
-#if 1
-MRI *
-MRIhistoEqualize(MRI *mri_src, MRI *mri_dst, int low, int high)
-{
-  HISTOGRAM  histo_eq ;
-
-  MRIgetEqualizeHisto(mri_src, &histo_eq, low, high, 1) ;
-  mri_dst = MRIapplyHistogram(mri_src, mri_dst, &histo_eq) ;
-/*  MRIcrunch(mri_dst, mri_dst) ;*/
-  return(mri_dst) ;
-}
-#else
 /*-----------------------------------------------------
         Parameters:
 
@@ -472,11 +460,8 @@ MRIhistoEqualize(MRI *mri_src, MRI *mri_template,MRI *mri_dst,int low,int high)
   MRIgetEqualizeHisto(mri_template, &histo_template, low, high, 1) ;
 
 
-  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
-  {
-    HISTOplot(&histo_src, "cum_src.plt") ;
-    HISTOplot(&histo_template, "cum_template.plt") ;
-  }
+  HISTOplot(&histo_src, "cum_src.plt") ;
+  HISTOplot(&histo_template, "cum_template.plt") ;
   width = mri_src->width ; height = mri_src->height ; depth = mri_src->depth ;
 
   for (z = 0 ; z < depth ; z++)
@@ -509,7 +494,7 @@ MRIhistoEqualize(MRI *mri_src, MRI *mri_template,MRI *mri_dst,int low,int high)
         }
         if (sval >= 83 && sval <= 85)
           DiagBreak() ;
-        if (dval == 110)
+        if (dval > 246)
           DiagBreak() ;
         *pdst++ = dval ;
       }
@@ -517,7 +502,6 @@ MRIhistoEqualize(MRI *mri_src, MRI *mri_template,MRI *mri_dst,int low,int high)
   }
   return(mri_dst) ;
 }
-#endif
 /*-----------------------------------------------------
         Parameters:
 
