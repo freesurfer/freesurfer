@@ -240,13 +240,14 @@ proc zoomcoords { varName index op } {  ;# trace nice, update real if changed
     # sliders, and use them to set our screen coords, used in the c code.
     # additionally, we need to flip ic here because the slider is in the
     # opposite orientation.
+  # update - i guess we don't anymore. _shrug_
     #puts "zoom before: jc, ic, imc = $jc, $ic, $imc newjc, newic, newimc = $newjc, $newic, $newimc plane = $plane"
     # set gZoomCallNum [expr $gZoomCallNum+1]
-    set theTempNewIC [expr 255 - $newic]
+    # set theTempNewIC [expr 255 - $newic]
     # puts "             tempic = $theTempNewIC"
-    set jc [lindex [VoxelToScreen $newjc $theTempNewIC $newimc $plane] 0]
-    set ic [lindex [VoxelToScreen $newjc $theTempNewIC $newimc $plane] 1]
-    set imc [lindex [VoxelToScreen $newjc $theTempNewIC $newimc $plane] 2]
+    set jc [lindex [VoxelToScreen $newjc $newic $newimc $plane] 0]
+    set ic [lindex [VoxelToScreen $newjc $newic $newimc $plane] 1]
+    set imc [lindex [VoxelToScreen $newjc $newic $newimc $plane] 2]
     # set gZoomCallNum [expr $gZoomCallNum-1]
     #puts "zoom after:  jc, ic, imc = $jc, $ic, $imc newjc, newic, newimc = $newjc, $newic, $newimc plane = $plane"
 
@@ -260,8 +261,8 @@ proc unzoomcoords { } {  ;# update nice (stop loop)
     #set newimc [expr $imc/$zf]
     #set newic [expr $ic/$zf]
     #set newjc [expr $jc/$zf]
-
-    # kt - do the same thing, other way around. set our slider coords
+ 
+   # kt - do the same thing, other way around. set our slider coords
     # to the converted screen coords from our c code.
     #puts "unzoom before: jc, ic, imc = $jc, $ic, $imc newjc, newic, newimc = $newjc, $newic, $newimc plane = $plane"
     # set gZoomCallNum [expr $gZoomCallNum+1]
@@ -289,9 +290,9 @@ proc SetPlane { inNewPlane } {
 #  return;
 #    }
 
-    SaveCursorInVoxel;
+    SaveCursorLocation;
     set plane $inNewPlane;
-    SetCursorToSavedVoxel;
+    RestoreCursorLocation;
     redraw;
     update idletasks;
     sendupdate;
@@ -302,9 +303,9 @@ proc Set3DViewFlag { varName index op } {
 
     global all3flag g3DViewFlag
 
-    SaveCursorInVoxel;
+    SaveCursorLocation;
     set all3flag $g3DViewFlag;
-    SetCursorToSavedVoxel;
+    RestoreCursorLocation;
     redraw;
     update idletasks;
     sendupdate;
@@ -672,11 +673,15 @@ set f .mri.main.left.head.save
 buttons $f "SAVEIMG" \
  { testreplace ${abs_imstem}[format "%03d" $editedimage] write_images } row 1 4
 $f.aSAVEIMG.bu config -font $ffontbb
+
 # brush
+
 edlabval $f "rad" 0 n 4 2 row
 $f.rad.e config -textvariable prad -font $sfont
+
 checks $f "" "3D" inplaneflag row
 $f.a3D.ck config -onvalue 0 -offvalue 1   ;# flip polarity
+
 # point
 set f .mri.main.left.head.pnt
 # async so doesn't wait for answer from running offline tcl script
@@ -687,24 +692,32 @@ checks $f "" "all" g3DViewFlag row
 $f.aall.ck config -command { redraw } ;# kt- unzoom before all3
 
 ### cor: button (x=jc,y=imc,z=ic)
+# on the top of the area...
 set f .mri.main.left.view.pan.cor.top
+# put a button that calls SetPlane
 buttons $f "CORONAL" { SetPlane $cor;} row
+# and an editable value
 edlabval $f "yTal" 0 n 9 5 row
 $f.yTal.e config -textvariable ytalairach -font $sfont
+# when you press return in there, call this string of functions
 bind $f.yTal.e <Return> \
   { SetPlane $cor; talairach_to_coords; redraw; unzoomcoords; sendupdate}
 $f.yTal.la config -text "yTal P/A:"
-### cor: slice
+# on the bottom...
 set f .mri.main.left.view.pan.cor.bot
+# make a slider linked to newimc
 scale $f.sc -from $cormin -to $cormax -length $sclenx -variable newimc \
    -orient horizontal -tickinterval 127 -showvalue false -font $sfont \
    -width 11 -resolution 1
 pack $f.sc -side left
+# when the button goes up, call SetPlane
 bind $f.sc <ButtonRelease> { SetPlane $cor; }
-#bind $f.sc <B1-Motion> { redraw }   ;# too slow
+# put another editable value
 edlabval $f "none" 0 n 0 3 row
 pack $f.none -side top   ;# repack to align with scale
+# link it to newimc
 $f.none.e config -textvariable newimc -font $sfont
+# when you press return in it, call SetPlane
 bind $f.none.e <Return> {SetPlane $cor;}
 
 ### sag: button
@@ -771,7 +784,19 @@ trace variable selectedpixval w pixvaltitle
 ### set all3 view
 trace variable g3DViewFlag w Set3DViewFlag 
 
+## trace the brush vars so we can call nice functions to do the updating
+trace variable circleflag w SendBrushInfo
+trace variable inplaneflag w SendBrushInfo
+trace variable prad w SendBrushInfo
 
+proc SendBrushInfo {  varName index op } {
+
+    global circleflag inplaneflag prad
+
+    SetBrushShape $circleflag
+    SetBrush3DStatus [expr 1 - $inplaneflag]
+    SetBrushRadius $prad
+}
 
 ### misc buttons
 set f .mri.main.left.view.butt.left
