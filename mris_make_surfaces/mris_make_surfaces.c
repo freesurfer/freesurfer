@@ -15,7 +15,7 @@
 #include "mrishash.h"
 #include "macros.h"
 
-static char vcid[] = "$Id: mris_make_surfaces.c,v 1.8 1999/01/07 20:48:06 fischl Exp $";
+static char vcid[] = "$Id: mris_make_surfaces.c,v 1.9 1999/01/10 03:19:46 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -187,6 +187,13 @@ main(int argc, char *argv[])
     sprintf(fname, "%s/%s/surf/%s.%s", sdir, sname, hemi, WHITE_MATTER_NAME) ;
     fprintf(stderr, "writing white matter surface to %s...\n", fname) ;
     MRISwrite(mris, fname) ;
+    if (parms.flags & IPFLAG_NO_SELF_INT_TEST)
+    {
+      msec = TimerStop(&then) ;
+      fprintf(stderr,
+              "refinement took %2.1f minutes\n", (float)msec/(60*1000.0f));
+      exit(0) ;
+    }
   }
   else
   {
@@ -371,6 +378,11 @@ get_option(int argc, char *argv[])
     print_usage() ;
     exit(1) ;
     break ;
+  case 'Q':
+    parms.flags |= IPFLAG_NO_SELF_INT_TEST ;
+    fprintf(stderr, 
+            "doing quick (no self-intersection) white matter refinement.\n") ;
+    break ;
   case 'A':
     parms.n_averages = atoi(argv[2]) ;
     fprintf(stderr, "using n_averages = %d\n", parms.n_averages) ;
@@ -437,7 +449,9 @@ print_help(void)
           "'curvature' file for the cortical thickness, and a surface file\n"
           "which approximates layer IV of the cortical sheet.\n");
   fprintf(stderr, "\nvalid options are:\n\n") ;
-  /*  fprintf(stderr, "-n    normalize output curvatures.\n") ;*/
+  fprintf(stderr, 
+          "-q    omit self-intersection and only generate "
+          "gray/white surface.\n") ;
   exit(1) ;
 }
 
