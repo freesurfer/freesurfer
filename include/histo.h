@@ -17,6 +17,7 @@ typedef struct
 
 int       HISTOfree(HISTOGRAM **phisto) ;
 int       HISTOdump(HISTOGRAM *histo, FILE *fp) ;
+int       HISTOwrite(HISTOGRAM *histo, char *fname) ;
 HISTOGRAM *HISTOalloc(int nbins) ;
 HISTOGRAM *HISTOcrunch(HISTOGRAM *histo_src, HISTOGRAM *histo_dst) ;
 HISTOGRAM *HISTOcopy(HISTOGRAM *histo_src, HISTOGRAM *histo_dst) ;
@@ -46,5 +47,6 @@ int       HISTOfindFirstPeakInRegion(HISTOGRAM *h, int wsize, float min_pct,
                                      int b0, int b1) ;
 int       HISTOfindHighestPeakInRegion(HISTOGRAM *h, int b0, int b1);
 int       HISTOplot(HISTOGRAM *histo, char *fname) ;
+int       HISTOaddSample(HISTOGRAM *histo, float val, float bmin, float bmax) ;
 
 #endif
