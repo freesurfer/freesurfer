@@ -4,9 +4,9 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2004/02/20 19:33:19 $
-// Revision       : $Revision: 1.199 $
-char *VERSION = "$Revision: 1.199 $";
+// Revision Date  : $Date: 2004/03/12 20:42:05 $
+// Revision       : $Revision: 1.200 $
+char *VERSION = "$Revision: 1.200 $";
 
 #define TCL
 #define TKMEDIT 
@@ -25,6 +25,7 @@ char *VERSION = "$Revision: 1.199 $";
 #include "const.h"
 #include "transform.h"
 #include "version.h"
+#include "ctrpoints.h"
 
 #include "tkmedit.h"
 
@@ -864,7 +865,6 @@ extern void scale2x(int, int, unsigned char *);
 
 
 void ParseCmdLineArgs( int argc, char *argv[] );
-void WriteVoxelToControlFile ( xVoxelRef iMRIIdx );
 void WriteVoxelToEditFile    ( xVoxelRef inVolumeVox );
 
 void rotate_brain(float a,char c) ;
@@ -1034,7 +1034,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
      shorten our argc and argv count. If those are the only args we
      had, exit. */
   /* rkt: check for and handle version tag */
-  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.199 2004/02/20 19:33:19 kteich Exp $", "$Name:  $");
+  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.200 2004/03/12 20:42:05 kteich Exp $", "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
   argc -= nNumProcessedVersionArgs;
@@ -2699,74 +2699,6 @@ tkm_tErr CalcAndSetSurfaceClientTransformation ( tkm_tSurfaceType iType ) {
 
 
 
-
-void WriteVoxelToControlFile ( xVoxelRef iMRIIdx ) {
-  
-  tkm_tErr  eResult         = tkm_tErr_NoErr;
-  Volm_tErr eVolume         = Volm_tErr_NoErr;
-  char      sFileName[tkm_knPathLen] = "";
-  FILE*      file         = NULL;
-  xVoxel    ras;
-  
-  DebugEnterFunction( ("WriteVoxelToControlFile ( iMRIIdx=%d,%d,%d )",
-		       xVoxl_ExpandInt( iMRIIdx )) );
-  
-  /* make the file name */
-  MakeFileName( "control.dat", tkm_tFileName_ControlPoints, 
-    sFileName, sizeof(sFileName) );
-  
-  /* If the file name we got is ./control.dat, it means we couldn't
-     find a home directory for the subject and the file will be saved
-     locally. Warn the user of this. */
-  if( 0 == strcmp( sFileName, "./control.dat" )) {
-    if( !gGuessWarningSent ) {
-      gGuessWarningSent = TRUE;
-      tkm_DisplayError( "No Home Directory",
-			"Couldn't guess home directory",
-			"You specified the -f file to load a subject and "
-			"I can't guess the home directory from the "
-			"path. Therefore, I can't automatically save "
-			"the control points file in the proper place. "
-			"It is now in the directory from which you started "
-			"tkmedit. When you're done, you will need to move "
-			"the file control.dat to the appropriate place "
-			"in the subject directory, usually subject/tmp/." );
-    }
-  }
-  
-  /* open it */
-  DebugNote( ("Opening control point file") );
-  file = fopen( sFileName, "a+" );
-  DebugAssertThrowX( (NULL != file), eResult, tkm_tErr_ErrorAccessingFile );
-  
-  /* convert idx to ras */
-  if( gbUseRealRAS ) {
-    eVolume = Volm_ConvertMRIIdxToRAS( gAnatomicalVolume[tkm_tVolumeType_Main],
-				       iMRIIdx, &ras );
-  } else {
-    eVolume = 
-      Volm_ConvertMRIIdxToSurfaceRAS( gAnatomicalVolume[tkm_tVolumeType_Main],
-				      iMRIIdx, &ras );
-  }
-  DebugAssertThrowX( (Volm_tErr_NoErr == eVolume), 
-         eResult, tkm_tErr_ErrorAccessingVolume );
-  
-  /* write RAS space pt to file */
-  DebugNote( ("Writing control point %.2f,%.2f,%.2f to file",
-	      xVoxl_ExpandFloat( &ras ) ));
-  fprintf( file,"%f %f %f\n", xVoxl_ExpandFloat( &ras ) );
-  
-  DebugCatch;
-  DebugCatchError( eResult, tkm_tErr_NoErr, tkm_GetErrorString );
-  EndDebugCatch;
-  
-  if( NULL != file ) {
-    DebugNote( ("Closing control point file") );
-    fclose( file );
-  }
-  
-  DebugExitFunction;
-}
 
 void WriteVoxelToEditFile ( xVoxelRef iAnaIdx ) {
   
@@ -5050,7 +4982,7 @@ int main ( int argc, char** argv ) {
     DebugPrint( ( "%s ", argv[nArg] ) );
   }
   DebugPrint( ( "\n\n" ) );
-  DebugPrint( ( "$Id: tkmedit.c,v 1.199 2004/02/20 19:33:19 kteich Exp $ $Name:  $\n" ) );
+  DebugPrint( ( "$Id: tkmedit.c,v 1.200 2004/03/12 20:42:05 kteich Exp $ $Name:  $\n" ) );
 
   
   /* init glut */
@@ -5980,14 +5912,13 @@ static void Prompt(interp, partial)
    control pts */
 void ProcessControlPointFile ( ) {
   
-  tkm_tErr  eResult         = tkm_tErr_NoErr;
-  Volm_tErr eVolume         = Volm_tErr_NoErr;
+  tkm_tErr  eResult           = tkm_tErr_NoErr;
+  Volm_tErr eVolume           = Volm_tErr_NoErr;
   char      sFileName[tkm_knPathLen] = "";
-  FILE*      file         = NULL;
-  float      rasX         = 0;
-  float      rasY         = 0;
-  float      rasZ         = 0;
-  int      nNumPointsRead       = 0;
+  int       nNumControlPoints = 0;
+  int       bUseRealRAS       = 0;
+  MPoint*   pControlPoints    = NULL;
+  int       nPoint            = 0;
   xVoxel    ras;
   xVoxel    MRIIdx;
   
@@ -6000,52 +5931,45 @@ void ProcessControlPointFile ( ) {
   /* make the file name */
   DebugNote( ("Making file name from control.dat") );
   MakeFileName( "control.dat", tkm_tFileName_ControlPoints, 
-    sFileName, sizeof(sFileName) );
+		sFileName, sizeof(sFileName) );
   
-  /* open for reading. position file ptr at beginning of file. */
-  DebugNote( ("Opening control point file") );
-  file = fopen( sFileName, "r" );
-  DebugAssertThrowX( (NULL != file), eResult, tkm_tErr_ErrorAccessingFile );  
-  
-  /* while we have points left */
-  while ( !feof(file) ) {
+  /* Read the file. */
+  pControlPoints = 
+    MRIreadControlPoints( sFileName, &nNumControlPoints, &bUseRealRAS );
+  DebugAssertThrowX( (NULL != pControlPoints), eResult,
+		     tkm_tErr_ErrorAccessingFile );
+
+  /* Parse the points. */
+  for( nPoint = 0; nPoint < nNumControlPoints; nPoint++ ) {
     
-    /* read in some numbers */
-    DebugNote( ("Reading three floats from control.dat") );
-    nNumPointsRead = fscanf( file, "%f %f %f", &rasX, &rasY, &rasZ );
-    DebugAssertThrowX( (nNumPointsRead == 3 || nNumPointsRead == EOF), 
-           eResult, tkm_tErr_ErrorAccessingFile ); 
+    /* transform from ras to voxel */
+    xVoxl_SetFloat( &ras, pControlPoints[nPoint].x,
+		    pControlPoints[nPoint].y, pControlPoints[nPoint].z );
     
-    if( EOF != nNumPointsRead ) {
-      
-      /* transform from ras to voxel */
-      xVoxl_SetFloat( &ras, rasX, rasY, rasZ );
-      if( gbUseRealRAS ) {
-	eVolume = 
-	  Volm_ConvertRASToMRIIdx( gAnatomicalVolume[tkm_tVolumeType_Main],
-				   &ras, &MRIIdx );
-      } else {
-	eVolume = 
-	  Volm_ConvertSurfaceRASToMRIIdx( gSelectionVolume, &ras, &MRIIdx );
-      }
-      DebugAssertThrowX( (Volm_tErr_NoErr == eVolume), 
-			 eResult, tkm_tErr_ErrorAccessingVolume );
-      
-      /* add it to our cntrl points list */
-      NewControlPoint( &MRIIdx, FALSE );
+    if( bUseRealRAS ) {
+      eVolume = 
+	Volm_ConvertRASToMRIIdx( gAnatomicalVolume[tkm_tVolumeType_Main],
+				 &ras, &MRIIdx );
+    } else {
+      eVolume = 
+	Volm_ConvertSurfaceRASToMRIIdx( gSelectionVolume, &ras, &MRIIdx );
     }
-  }    
-  
+    DebugAssertThrowX( (Volm_tErr_NoErr == eVolume), 
+		       eResult, tkm_tErr_ErrorAccessingVolume );
+    
+    /* add it to our cntrl points list */
+    NewControlPoint( &MRIIdx, FALSE );
+  }
+
   /* mark that we have processed the file, and shouldn't do it again. */
   gbParsedControlPointFile = TRUE;
   
   DebugCatch;
   DebugCatchError( eResult, tkm_tErr_NoErr, tkm_GetErrorString );
   EndDebugCatch;
-  
-  if( NULL != file ) {
-    DebugNote( ("Closing control point file") );
-    fclose( file );
+
+  if( NULL != pControlPoints ) {
+    free( pControlPoints );
   }
   
   DebugExitFunction;
@@ -6060,11 +5984,14 @@ void WriteControlPointFile ( ) {
   x3Lst_tErr e3DList                  = x3Lst_tErr_NoErr;
   xList_tErr eList                    = xList_tErr_NoErr;
   char       sFileName[tkm_knPathLen] = "";
-  FILE*      file                     = NULL;
   int        nPlane                   = 0;
   xListRef   list                     = NULL;
   xVoxelRef  MRIIdx                   = NULL;
   xVoxel     ras;
+  int        nNumControlPointsInPlane = 0;
+  int        nNumControlPoints        = 0;
+  int        nPoint                   = 0;
+  MPoint*    pControlPoints           = NULL;
   
   DebugEnterFunction( ("WriteControlPointFile()") );
 
@@ -6092,10 +6019,6 @@ void WriteControlPointFile ( ) {
     }
   }
   
-  /* open for writing. position file ptr at beginning of file. */
-  DebugNote( ("Opening control point file") );
-  file = fopen( sFileName, "w" );
-  DebugAssertThrowX( (NULL != file), eResult, tkm_tErr_ErrorAccessingFile );  
   
   /* get the ctrl pts in the list... */
   for( nPlane = 0; nPlane < gnAnatomicalDimensionZ; nPlane++ ) {
@@ -6103,12 +6026,36 @@ void WriteControlPointFile ( ) {
     /* get the list for this x value. */
     e3DList = x3Lst_GetItemsInXPlane( gControlPointList, nPlane, &list );
     DebugAssertThrowX( (e3DList == x3Lst_tErr_NoErr),
-           eResult, tkm_tErr_ErrorAccessingList );
+		       eResult, tkm_tErr_ErrorAccessingList );
+
+
+    /* Count the control points. */
+    xList_GetCount( list, &nNumControlPointsInPlane );
+    nNumControlPoints += nNumControlPointsInPlane;
+  }
+
+
+  /* Allocate an MPoints array. */
+  DebugNote( ("Allocating array of size %d for control points",
+	      nNumControlPointsInPlane));
+  pControlPoints = calloc( sizeof(MPoint), nNumControlPoints );
+  DebugAssertThrowX( (NULL != pControlPoints), eResult,
+		     tkm_tErr_CouldntAllocate );
+
+
+  /* get the ctrl pts in the list... */
+  nPoint = 0;
+  for( nPlane = 0; nPlane < gnAnatomicalDimensionZ; nPlane++ ) {
+    
+    /* get the list for this x value. */
+    e3DList = x3Lst_GetItemsInXPlane( gControlPointList, nPlane, &list );
+    DebugAssertThrowX( (e3DList == x3Lst_tErr_NoErr),
+		       eResult, tkm_tErr_ErrorAccessingList );
     
     /* traverse the list */
     eList = xList_ResetPosition( list );
     while( (eList = xList_NextFromPos( list, (void**)&MRIIdx )) 
-     != xList_tErr_EndOfList ) {
+	   != xList_tErr_EndOfList ) {
       
       if( MRIIdx ) {
 	
@@ -6119,28 +6066,34 @@ void WriteControlPointFile ( ) {
 				    MRIIdx, &ras );
 	} else {
 	  eVolume = 
-     Volm_ConvertMRIIdxToSurfaceRAS( gAnatomicalVolume[tkm_tVolumeType_Main],
-				     MRIIdx, &ras );
+	    Volm_ConvertMRIIdxToSurfaceRAS( gAnatomicalVolume[tkm_tVolumeType_Main],
+					    MRIIdx, &ras );
 	}
 	DebugAssertThrowX( (Volm_tErr_NoErr == eVolume), 
 			   eResult, tkm_tErr_ErrorAccessingVolume );
 	
-	/* write to the file */
-	fprintf( file, "%f %f %f\n", xVoxl_ExpandFloat(&ras) );
+	/* Copy it to the array. */
+	pControlPoints[nPoint].x = xVoxl_GetFloatX( &ras );
+	pControlPoints[nPoint].y = xVoxl_GetFloatY( &ras );
+	pControlPoints[nPoint].z = xVoxl_GetFloatZ( &ras );
+	nPoint++;
       }
     }
     
     DebugAssertThrowX( (eList == xList_tErr_EndOfList),
-           eResult, tkm_tErr_ErrorAccessingList );
+		       eResult, tkm_tErr_ErrorAccessingList );
   }
+  
+  /* Write the control points file. */
+  MRIwriteControlPoints( pControlPoints, nNumControlPoints, gbUseRealRAS, 
+			 sFileName );
   
   DebugCatch;
   DebugCatchError( eResult, tkm_tErr_NoErr, tkm_GetErrorString );
   EndDebugCatch;
   
-  if( NULL != file ) {
-    DebugNote( ("Closing control point file") );
-    fclose( file );
+  if( NULL != pControlPoints ) {
+    free( pControlPoints );
   }
   
   DebugExitFunction;
@@ -6259,7 +6212,7 @@ void NewControlPoint ( xVoxelRef iMRIIdx,
   
   /* write it to the control point file. */
   if( ibWriteToFile )
-    WriteVoxelToControlFile( MRIIdx );
+    WriteControlPointFile();
 }
 
 void DeleteControlPoint ( xVoxelRef iMRIIdx ) {
@@ -8621,6 +8574,9 @@ tkm_tErr NewSegmentationVolume ( tkm_tSegType    iVolume,
   eVolume = Volm_SetAllValues( newVolume, 0 );
   DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
 		     eResult, tkm_tErr_ErrorAccessingSegmentationVolume );
+
+  /* Change the file name */
+  
 
   /* Try to load the color table. */
   DebugNote( ("Loading color table.") );
@@ -11404,11 +11360,6 @@ void tkm_GetHeadPoint ( xVoxelRef           iMRIIdx,
   
  cleanup:
   return;
-}
-
-void tkm_WriteVoxelToControlFile ( xVoxelRef inVolumeVox ) {
-  
-  WriteVoxelToControlFile ( inVolumeVox );
 }
 
 void tkm_WriteVoxelToEditFile ( xVoxelRef inVolumeVox ) {
