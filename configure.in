@@ -124,6 +124,70 @@ fi
 AC_SUBST(tcl_includes)
 AC_SUBST(tcl_libraries)
 
+################################################################
+# tiff   Mac does not have this
+################################################################
+ac_tiff_includes="NO"
+ac_tiff_libraries="NO"
+ac_tiff_bindir="NO"
+tiff_includes=""
+tiff_libraries=""
+# default is to use MGH installation
+if [ [ -d $mghdir/tiff/current ] ]; then
+  ac_tiff_includes=$mghdir/tiff/current/include
+  ac_tiff_libraries=$mghdir/tiff/current/lib
+  ac_tiff_bindir=$mghdir/tiff/current/bin
+fi
+
+AC_ARG_WITH(tiff-dir,
+  [  --with-tiff-dir=DIR      where the root of Tiff is installed.],
+  [  ac_tiff_includes="$withval"/include
+     ac_tiff_libraries="$withval"/lib
+     ac_tiff_bindir="$withval"/bin
+  ])
+
+# modify CXXFLAGS and LDFLAGS
+if test ! "$ac_tiff_includes" = "NO"; then
+  tiff_includes=-I$ac_tiff_includes
+  CPPFLAGS="$CPPFLAGS $tiff_includes"
+fi
+if test ! "$ac_tiff_libraries" = "NO"; then 
+  tiff_libraries=-L$ac_tiff_libraries 
+  LDFLAGS="$LDFLAGS $tiff_libraries"
+fi
+
+################################################################
+# jpeg   Mac does not have this
+################################################################
+ac_jpeg_includes="NO"
+ac_jpeg_libraries="NO"
+ac_jpeg_bindir="NO"
+jpeg_includes=""
+jpeg_libraries=""
+# default is to use MGH installation
+if [ [ -d $mghdir/jpeg/current ] ]; then
+  ac_jpeg_includes=$mghdir/jpeg/current/include
+  ac_jpeg_libraries=$mghdir/jpeg/current/lib
+  ac_jpeg_bindir=$mghdir/jpeg/current/bin
+fi
+
+AC_ARG_WITH(jpeg-dir,
+  [  --with-jpeg-dir=DIR      where the root of Jpeg is installed.],
+  [  ac_jpeg_includes="$withval"/include
+     ac_jpeg_libraries="$withval"/lib
+     ac_jpeg_bindir="$withval"/bin
+  ])
+
+# modify CXXFLAGS and LDFLAGS
+if test ! "$ac_jpeg_includes" = "NO"; then
+  jpeg_includes=-I$ac_jpeg_includes
+  CPPFLAGS="$CPPFLAGS $jpeg_includes"
+fi
+if test ! "$ac_jpeg_libraries" = "NO"; then 
+  jpeg_libraries=-L$ac_jpeg_libraries 
+  LDFLAGS="$LDFLAGS $jpeg_libraries"
+fi
+
 # generic mods
 CPPFLAGS="$CPPFLAGS -D$OS -DANSI $OS_CPPFLAGS"
 
@@ -162,11 +226,23 @@ ac_save_cppflags=$CPPFLAGS
 ac_save_ldflags=$LDFLAGS
 ## check Tcl/Tk/BLT
 AC_CHECK_LIB([tcl],[Tcl_Init],[],
-  [AC_MSG_ERROR("FATAL: libtcl not found.  Set LDFLAGS or --with-tcl-dir.")] )
+  [AC_MSG_ERROR("FATAL: libtcl not found. check config.log. set LDFLAGS or --with-tcl-dir.")] )
+# tk needs X for compilation
+if test ! "$OS" = "Darwin"; then
 AC_CHECK_LIB([tk],[Tk_Init],[],
-  [AC_MSG_ERROR("FATAL: libtk not found.  Set LDFLAGS or --with-tcl-dir.")] )
+  [AC_MSG_ERROR("FATAL: libtk not found.  check config.log. set LDFLAGS or --with-tcl-dir.")] )
 AC_CHECK_LIB([tix],[Tix_Init],[],
-  [AC_MSG_ERROR("FATAL: libtix not found.  Set LDFLAGS or --with-tcl-dir.")] )
+  [AC_MSG_ERROR("FATAL: libtix not found. check config.log. set LDFLAGS or --with-tcl-dir.")] )
+else
+LIBS="-lX11 $LIBS"
+CPPFLAGS="$GLUT_CFLAGS $CPPFLAGS"
+LDFLAGS="-L$x_libraries $LDFLAGS"
+AC_CHECK_LIB([tk8.3],[Tk_Init],[],
+  [AC_MSG_ERROR("FATAL: libtk not found.  check config.log. set LDFLAGS or --with-tcl-dir.")] )
+AC_CHECK_LIB([tix4.1.8.3],[Tix_Init],[],
+  [AC_MSG_ERROR("FATAL: libtix not found.  check config.log. Set LDFLAGS or --with-tcl-dir.")] )
+fi
+
 AC_CHECK_LIB([BLT],[Blt_Init],[],
   [AC_MSG_ERROR("FATAL: libBLT not found.  Set LDFLAGS or --with-BLT-dir.")] )
 # recover previous one without X and Tcl
