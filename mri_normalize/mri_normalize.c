@@ -14,6 +14,7 @@
 
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
+static void  usage_exit(void) ;
 
 char *Progname ;
 
@@ -45,8 +46,8 @@ main(int argc, char *argv[])
     argv += nargs ;
   }
 
-  if (argc < 1)
-    argc = 1 ;
+  if (argc < 2)
+    usage_exit() ;
 
   if (argc < 1)
     ErrorExit(ERROR_BADPARM, "%s: no input name specified", Progname) ;
@@ -132,3 +133,13 @@ get_option(int argc, char *argv[])
 
   return(nargs) ;
 }
+static void
+usage_exit(void)
+{
+  fprintf(stderr, "usage: %s [options] <input volume> <output volume>\n", 
+          Progname) ;
+  fprintf(stderr, "\t-n <# of 3d normalization iterations>, default=5\n") ;
+  fprintf(stderr, "\t-g <max intensity/mm gradient>, default=0.6\n") ;
+  exit(0) ;
+}
+
