@@ -13,7 +13,7 @@
 #include "mri.h"
 #include "macros.h"
 
-static char vcid[] = "$Id: mris_curvature.c,v 1.8 1998/01/27 00:46:23 fischl Exp $";
+static char vcid[] = "$Id: mris_curvature.c,v 1.9 1998/03/12 22:55:25 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -30,6 +30,8 @@ static int nbrs = 2 ;
 static int navgs = 0 ;
 static char *param_file = NULL ;
 static int normalize = 0 ;
+static int diff_flag = 0 ;
+static int max_flag = 0 ;
 
 int
 main(int argc, char *argv[])
@@ -103,6 +105,41 @@ main(int argc, char *argv[])
     var = MRIStotalVariation(mris) ;
     fprintf(stderr,"ICI = %2.1f, FI = %2.1f, variation=%2.3f\n", ici, fi, var);
 
+    if (diff_flag)
+    {
+      FileNamePath(in_fname, path) ;
+      FileNameOnly(in_fname, name) ;
+      cp = strchr(name, '.') ;
+      if (!cp)
+        ErrorExit(ERROR_BADPARM, "%s: could not scan hemisphere from '%s'",
+                  Progname, fname) ;
+      strncpy(hemi, cp-2, 2) ;
+      hemi[2] = 0 ;
+      MRISuseCurvatureDifference(mris) ;
+      MRISaverageCurvatures(mris, navgs) ;
+      sprintf(fname, "%s/%s.diff", path,name) ; 
+      fprintf(stderr, "writing curvature difference to %s...", fname) ;
+      MRISwriteCurvature(mris, fname) ;
+      fprintf(stderr, "done.\n") ;
+    }
+    if (max_flag)
+    {
+      FileNamePath(in_fname, path) ;
+      FileNameOnly(in_fname, name) ;
+      cp = strchr(name, '.') ;
+      if (!cp)
+        ErrorExit(ERROR_BADPARM, "%s: could not scan hemisphere from '%s'",
+                  Progname, fname) ;
+      strncpy(hemi, cp-2, 2) ;
+      hemi[2] = 0 ;
+      MRISuseCurvatureMax(mris) ;
+      MRISaverageCurvatures(mris, navgs) ;
+      sprintf(fname, "%s/%s.max", path,name) ; 
+      fprintf(stderr, "writing curvature maxima to %s...", fname) ;
+      MRISwriteCurvature(mris, fname) ;
+      fprintf(stderr, "done.\n") ;
+    }
+
     if (write_flag)
     {
       FileNamePath(in_fname, path) ;
@@ -145,6 +182,10 @@ get_option(int argc, char *argv[])
   option = argv[1] + 1 ;            /* past '-' */
   if (!stricmp(option, "-help"))
     print_help() ;
+  if (!stricmp(option, "diff"))
+    diff_flag = 1 ;
+  if (!stricmp(option, "max"))
+    max_flag = 1 ;
   else if (!stricmp(option, "-version"))
     print_version() ;
   else if (!stricmp(option, "nbrs"))
