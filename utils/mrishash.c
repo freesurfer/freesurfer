@@ -1474,7 +1474,7 @@ mhtDoesFaceVoxelListIntersect(MRIS_HASH_TABLE *mht, MRI_SURFACE *mris,
   }
   return(0) ;
 }
-
+/*-----------------------------------------------------------------*/
 MHBT *
 MHTgetBucket(MRIS_HASH_TABLE *mht, float x, float y, float z)
 {
@@ -1487,12 +1487,14 @@ MHTgetBucket(MRIS_HASH_TABLE *mht, float x, float y, float z)
   if (xv >= FIELD_OF_VIEW || yv >= FIELD_OF_VIEW || zv >= FIELD_OF_VIEW ||
       xv < 0 || yv < 0 || zv < 0)
     return(NULL) ;
-  if (!mht->buckets[xv][yv])
+  else if (!mht->buckets[xv][yv])
     return(NULL) ;
-  
+
   bucket = mht->buckets[xv][yv][zv] ;
+
   return(bucket) ;
 }
+/*--------------------------------------------------------------------*/
 VERTEX *
 MHTfindClosestVertex(MRIS_HASH_TABLE *mht, MRI_SURFACE *mris, VERTEX *v)
 {
@@ -1519,4 +1521,40 @@ MHTfindClosestVertex(MRIS_HASH_TABLE *mht, MRI_SURFACE *mris, VERTEX *v)
 
   return(vmin) ;
 }
+/*--------------------------------------------------------------------
+  MHTfindClosestVertexNo() - basically the same as findClosestVertex
+  except it returns the vertex number instead of a pointer to the
+  vertex. Also, passes the minimum distance found
+  --------------------------------------------------------------------*/
+int MHTfindClosestVertexNo(MRIS_HASH_TABLE *mht, MRI_SURFACE *mris, 
+         VERTEX *v, float *min_dist)
+{
+  VERTEX    *vmin, *vdst ;
+  int       i, vtxno, vtxno_min ;
+  double    dist;
+  MHB       *bin ;
+  MHBT      *bucket ;
 
+  /* get bucket closest to the vertex */
+  bucket = MHTgetBucket(mht, v->x, v->y, v->z) ;
+  if (!bucket) 
+    return(-1) ;
+
+  *min_dist = 10000000 ; 
+  vmin = NULL ;
+
+  /* go through each bin in the bucket */
+  for (i = 0 ; i < bucket->nused ; i++){
+    bin = &(bucket->bins[i]);
+    vtxno = bin->fno;
+    vdst = &mris->vertices[vtxno] ;
+    dist = sqrt(SQR(vdst->x-v->x)+SQR(vdst->y-v->y)+SQR(vdst->z-v->z)) ;
+    if (dist < *min_dist) {
+      vtxno_min = vtxno;
+      *min_dist = dist ;
+      vmin = vdst ;
+    }
+  }
+
+  return(vtxno_min) ;
+}
