@@ -98,7 +98,6 @@ void calcCRASforSampleVolume(MRI *src, MRI *dst, Real *pr, Real *pa, Real *ps)
   if (Gdiag & DIAG_SHOW)
     fprintf(stderr, "c_ras for sample volume is (%f, %f, %f) compared with the src (%f, %f, %f)\n",
 	    *pr, *pa, *ps, src->c_r, src->c_a, src->c_s);
-  MatrixFree(&i2r);
 }
 
 /*-----------------------------------------------------
