@@ -207,7 +207,8 @@ StatReadVolume(char *prefix)
                   which_alloc);
 
   /* read it after nevents */
-  if (stricmp(sv->reg->name, "talairach"))
+  if (stricmp(sv->reg->name, "talairach") && 
+      stricmp(sv->reg->name, "spherical"))
     StatReadTransform(sv, sv->reg->name) ;
 
   /* read in the actual data */
