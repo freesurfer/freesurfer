@@ -83,10 +83,12 @@ typedef struct
 #ifdef _STATS_SRC
   char *stats_talxfm = "talairach.xfm";
   int  statnorm_float2int = FLT2INT_TKREG;
+  int  stats_fixxfm = 0;
   #undef _STATS_SRC
 #else
   extern char *stats_talxfm;
   extern int  statnorm_float2int;
+  extern int  stats_fixxfm;
 #endif
 
 
