@@ -29,6 +29,7 @@
 #include "nr.h"
 #include "mrinorm.h"
 #include "talairachex.h"
+#include "ctrpoints.h"
 
 /*-----------------------------------------------------
                     MACROS AND CONSTANTS
@@ -62,9 +63,9 @@ static MRI *mriBuildVoronoiDiagramShort(MRI *mri_src, MRI *mri_ctrl,
                                         MRI *mri_dst);
 
 static int num_control_points = 0 ;
-static int *xctrl ;
-static int *yctrl ;
-static int *zctrl ;
+static int *xctrl=0 ;
+static int *yctrl=0 ;
+static int *zctrl=0 ;
 
 static char *control_volume_fname = NULL ;
 static char *bias_volume_fname = NULL ;
@@ -3082,60 +3083,46 @@ mriDownsampleCtrl2(MRI *mri_src, MRI *mri_dst)
 int
 MRI3dUseFileControlPoints(MRI *mri, char *fname)
 {
-  FILE *fp ;
-  char *cp, line[STRLEN] ;
   int  i = 0 ;
-  float xw, yw, zw ;
-  int   xv, yv, zv ;
   Real xr, yr, zr;
+  MPoint *pArray = 0;
+  int count = 0;
+  int useRealRAS = 0;
 
-  if (Gdiag & DIAG_SHOW)
-    fprintf(stderr, "reading control points from %s...\n", fname) ;
-  fp = fopen(fname, "r") ;
-  if (!fp)
-    ErrorReturn(ERROR_BADPARM, 
-                (ERROR_BADPARM, "MRI3dUseFileControlPoints(%s): could not"
-                 " open file", fname)) ;
+  pArray = MRIreadControlPoints(fname, &count, &useRealRAS);
 
-  num_control_points = -1 ;
-  do
-  {
-    cp = fgetl(line, 199, fp) ;
-    num_control_points++ ;
-    if (cp)
-      i = sscanf(cp, "%f %f %f", &xw, &yw, &zw) ;
-  } while (cp && i == 3) ;
-
-  fprintf(stderr, "reading %d control points...\n", num_control_points) ;
-  xctrl = (int *)calloc(num_control_points, sizeof(int)) ;
-  yctrl = (int *)calloc(num_control_points, sizeof(int)) ;
-  zctrl = (int *)calloc(num_control_points, sizeof(int)) ;
+  // initialize xctrl, yctrl, zctrl
+  if (xctrl)
+  { free(xctrl); xctrl = 0; }
+  if (yctrl)
+  { free(yctrl); yctrl = 0; }
+  if (zctrl)
+  { free(zctrl); zctrl = 0; }
+  xctrl = (int *)calloc(count, sizeof(int)) ;
+  yctrl = (int *)calloc(count, sizeof(int)) ;
+  zctrl = (int *)calloc(count, sizeof(int)) ;
   if (!xctrl || !yctrl || !zctrl)
     ErrorExit(ERROR_NOMEMORY, 
               "MRI3dUseFileControlPoints: could not allocate %d-sized table",
               num_control_points) ;
-
-  rewind(fp) ;
-  for (i = 0 ; i < num_control_points ; i++)
+  for (i = 0 ; i < count ; i++)
   {
-    xr = yr = zr = 0;
-    cp = fgetl(line, 199, fp) ;
-    sscanf(cp, "%f %f %f", &xw, &yw, &zw) ;
-    // default control points are surfaceRAS
-    // switch(flag)
-    // {
-    //   case scannerRAS:
-    //     MRIworldToVoxelIndex(mri, xw, yw, zw, &xv, &yv, &zv) ;
-    //     break;
-    //   case surfaceRAS:
-    //
-           MRIsurfaceRASToVoxel(mri, xw, yw, zw, &xr, &yr, &zr);
-           xv = (int) xr; yv = (int)yr; zv = (int) zr;
-    //     break;
-    // }
-    xctrl[i] = xv ; yctrl[i] = yv ; zctrl[i] = zv ;
+    switch(useRealRAS)
+    {
+    case 0:
+      MRIsurfaceRASToVoxel(mri, pArray[i].x, pArray[i].y, pArray[i].z, &xr, &yr, &zr);
+      break;
+    case 1:
+      MRIworldToVoxel(mri, pArray[i].x, pArray[i].y, pArray[i].z, &xr, &yr, &zr) ;
+      break;
+    default:
+      ErrorExit(ERROR_BADPARM, 
+                "MRI3dUseFileControlPoints has bad useRealRAS flag %d\n", useRealRAS) ;
+
+    }
+    xctrl[i] = (int) xr ; yctrl[i] = (int) yr ; zctrl[i] = (int) zr ;
   }
-  fclose(fp) ;
+  free(pArray);
   return(NO_ERROR) ;
 }
 
