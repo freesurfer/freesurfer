@@ -82,6 +82,8 @@ handle_version_option (int argc, char** argv,
   int narg = 0;
   int nnarg = 0;
   int num_processed_args = 0;
+  char stripped_version_string[1024];
+  int length;
   char *option = NULL;
   time_t seconds;
   struct tm broken_time;
@@ -105,6 +107,12 @@ handle_version_option (int argc, char** argv,
 	  !strncmp(option,"-version",8))
 	{
 
+#if 0
+	  /* Since BIRN is now using --all-info to get version stuff,
+	     I want to keep this as simple as possible. So I'm
+	     commenting out some of this stuff, let's see if anybody
+	     complains. */
+
 	  /* Print out the entire command line. */
 	  for (nnarg = 0; nnarg < argc; nnarg++)
 	    fprintf (stdout, "%s ", argv[nnarg]);
@@ -112,6 +120,22 @@ handle_version_option (int argc, char** argv,
 	  
 	  fprintf (stdout, "%s Platform: %s C lib: %d\n",
 		   id_string, PLATFORM, COMPILER_VERSION);
+#else
+	  /* Strip the "{Name: " and "}" from the id string. */
+	  if (strlen(version_string) > 7)
+	    {
+	      strcpy (stripped_version_string, &(version_string[5]));
+	      length = strlen (stripped_version_string);
+	      if (length > 2)
+		{
+		  stripped_version_string[length-2] = '\0';
+		}
+	    }
+	  else
+	    {
+	      strcpy (stripped_version_string, version_string);
+	    }
+#endif
 	  
 	  num_processed_args++;
 
