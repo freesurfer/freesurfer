@@ -879,29 +879,29 @@ Volm_tErr Volm_UnloadDisplayTransform ( mriVolumeRef this ) {
 }
 
 
-
 void Volm_GetIntColorAtIdx ( mriVolumeRef this,
 			     xVoxelRef    iIdx,
 			     xColor3nRef  oColor ) {
   
   float  value = 0;
   int    colorIdx = 0;
-
-# if 0 /* ??????? */
-  /* transform idx to display transform */
-  if( NULL != this->mDisplayTransform && 0) {
-    Volm_ApplyDisplayTransform_( this, iIdx, &disp );
-    if( Volm_VerifyIdx_( this, &disp ) == Volm_tErr_NoErr ) 
-      {
-	Volm_GetSincNormValueAtIdx_( this, &disp, &rValue );
-	value = (Volm_tValue)rValue;
-      }
-  }
-#endif
+  xVoxel disp;
   
-  /* Get the sampled value. Cap it to the color min and max. If in
-     between that, calculate the color index between 0 and 255. */
-  Volm_GetSampledValueAtIdx_( this, iIdx, &value );
+  /* transform idx to display transform */
+  if( NULL != this->mDisplayTransform ) {
+
+    Volm_ApplyDisplayTransform_( this, iIdx, &disp );
+    if( Volm_VerifyIdx_( this, &disp ) == Volm_tErr_NoErr ) {
+      Volm_GetSampledValueAtIdx_( this, &disp, &value );
+    }
+    
+  } else {
+
+    /* Get the sampled value. Cap it to the color min and max. If in
+       between that, calculate the color index between 0 and 255. */
+    Volm_GetSampledValueAtIdx_( this, iIdx, &value );
+  }
+
   if( value <= this->mfColorMin ) 
     colorIdx = 0;
   else if( value >= this->mfColorMax ) 
@@ -910,9 +910,9 @@ void Volm_GetIntColorAtIdx ( mriVolumeRef this,
     colorIdx = (int) (Volm_knNumColorTableEntries * 
 		      (value - this->mfColorMin) / 
 		      (this->mfColorMax - this->mfColorMin)) ;
+    
+    *oColor = this->manColorTable[colorIdx];
   }
-
-  *oColor = this->manColorTable[colorIdx];
 }
 
 void Volm_GetColorAtXYSlice ( mriVolumeRef     this,
@@ -3726,4 +3726,3 @@ char* Volm_GetErrorString ( Volm_tErr ieCode ) {
   
   return Volm_ksaErrorStrings[eCode];
 }
-
