@@ -8,10 +8,10 @@
  *
  */
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2005/02/10 20:19:59 $
-// Revision       : $Revision: 1.294 $
-char *MRI_C_VERSION = "$Revision: 1.294 $";
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2005/02/14 16:12:27 $
+// Revision       : $Revision: 1.295 $
+char *MRI_C_VERSION = "$Revision: 1.295 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -11607,7 +11607,7 @@ void MRIcalcCRASforSampledVolume(MRI *src, MRI *dst, Real *pr, Real *pa, Real *p
   }
   TransformWithMatrix(src->i_to_r__, sx, sy, sz, pr, pa, ps);
 
-  if (Gdiag & DIAG_SHOW)
+  if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
     fprintf(stderr, "c_ras for sample volume is (%f, %f, %f) compared with the src (%f, %f, %f)\n",
 	    *pr, *pa, *ps, src->c_r, src->c_a, src->c_s);
 }
@@ -11647,7 +11647,7 @@ void MRIcalcCRASforExtractedVolume(MRI *src, MRI *dst, int x0, int y0, int z0, i
   // we have to translate so that we can get the same value 
   // under the new volume
 
-  if (Gdiag & DIAG_SHOW)
+  if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
     fprintf(stderr, "c_ras for sample volume is (%f, %f, %f) compared with the src (%f, %f, %f)\n",
 	    *pr, *pa, *ps, src->c_r, src->c_a, src->c_s);
 }
@@ -11709,6 +11709,18 @@ MRIsrcTransformedCentered(MRI *src, MRI *dst, MATRIX *stod_voxtovox, int interp_
 // No sample method ////////////////////////////////////////////////////////
 // using the src and orig_dst to modify the direction cosines and c_(ras) value 
 // so that it will be rotated in the RAS space but no pixel is sampled 
+MRI *MRITransformedCenteredMatrix(MRI *src, MRI *orig_dst, MATRIX *m_L)
+{
+	LTA *lta ;
+	MRI *mri_dst ;
+
+	lta = LTAalloc(1, NULL) ;
+	MatrixCopy(m_L, lta->xforms[0].m_L) ;
+	lta->type = LINEAR_VOX_TO_VOX ;
+	mri_dst = MRITransformedCentered(src, orig_dst, lta) ;
+	LTAfree(&lta) ;
+	return(mri_dst) ;
+}
 MRI *MRITransformedCentered(MRI *src, MRI *orig_dst, LTA *lta)
 {
   MRI *dst = 0;
@@ -11880,3 +11892,13 @@ MRI *MRITransformedCentered(MRI *src, MRI *orig_dst, LTA *lta)
 
   return dst;
 }
+int
+MRIcropBoundingBox(MRI *mri, 	MRI_REGION  *box)
+{
+	box->x = MAX(0, box->x) ; box->y = MAX(0, box->y) ;box->z = MAX(0, box->z) ;
+	box->dx = MIN(mri->width-box->x-1, box->dx) ;
+	box->dy = MIN(mri->height-box->y-1, box->dy) ;
+	box->dz = MIN(mri->depth-box->z-1, box->dz) ;
+	return(NO_ERROR) ;
+}
+

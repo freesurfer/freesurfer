@@ -302,6 +302,7 @@ void  MRIcalcCRASforExtractedVolume(MRI *src, MRI *dst, int x0, int y0, int z0, 
 				    Real *pr, Real *pa, Real *ps); // 0 is the src extract position start
                                                                    // 1 is the dst extracted region start
 MRI   *MRIsrcTransformedCentered(MRI *src, MRI *dst, MATRIX *stod_voxtovox, int interp_method);
+MRI   *MRITransformedCenteredMatrix(MRI *src, MRI *orig_dst, MATRIX *m_L) ;
 
 /* offset stuff */
 MRI   *MRIoffsetDirection(MRI *mri_grad, int wsize, MRI *mri_direction,
@@ -908,6 +909,7 @@ int MRIcomputeLabelNbhd(MRI *mri_labels, MRI *mri_vals, int x, int y, int z, int
 												int whalf, int max_labels) ;
 float MRIvoxelsInLabelWithPartialVolumeEffects(MRI *mri, MRI *mri_vals, int label) ;
 MRI   *MRImakeDensityMap(MRI *mri, MRI *mri_vals, int label, MRI *mri_dst) ;
+int MRIcropBoundingBox(MRI *mri, 	MRI_REGION  *box) ;
 
 /* extract the RASToVoxeMatrix from an MRI */
 MATRIX *GetSurfaceRASToVoxelMatrix(MRI *mri);
