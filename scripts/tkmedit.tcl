@@ -140,6 +140,8 @@ set gnZoomLevel 0
 # for tool setting and buttons
 set gTool $DspA_tTool_Select
 
+set gDisplayIntermediateResults 1
+
 # parc edit brush
 set gParcBrush(color) 0
 set gParcBrush(3d) 0
@@ -511,6 +513,23 @@ set tDlogSpecs(LoadAuxVolume) [list \
   -note1 "The directory containing the COR volume files" \
   -default1 [list GetDefaultLocation LoadAuxVolume] \
   -okCmd {LoadAuxVolume %s1; SetDefaultLocation LoadAuxVolume %s1} ]
+set tDlogSpecs(LoadGCA) [list \
+  -title "Load GCA" \
+  -prompt1 "Load Classifier Array:" \
+  -note1 "The GCA file (*.gca)" \
+  -default1 [list GetDefaultLocation LoadGCA_Volume] \
+  -prompt2 "Load Transform:" \
+  -note2 "The file containing the transform to the atlas space" \
+  -default2 [list GetDefaultLocation LoadGCA_Transform] \
+  -okCmd {LoadGCA %s1 %s2; \
+  SetDefaultLocation LoadGCA_Volume %s1; \
+  SetDefaultLocation LoadGCA_Transform %s2} ]
+set tDlogSpecs(SaveGCA) [list \
+  -title "Save GCA" \
+  -prompt1 "Save Classifier Array:" \
+  -note1 "The GCA file (*.gca)" \
+  -default1 [list GetDefaultLocation SaveGCA] \
+  -okCmd {SaveGCA %s1; SetDefaultLocation SaveGCA %s1} ]
 set tDlogSpecs(ImportVolume) [list \
   -title "Import Volume" \
   -prompt1 "Load Volume File:" \
@@ -886,6 +905,49 @@ proc DoROIGroupDisplayInfoDlog { } {
    }
 
 }
+
+proc DoRecomputeSegmentation {} {
+
+    global gDialog
+
+    set wwDialog .wwRecomputeSegmentation
+
+    # try to create the dlog...
+    if { [Dialog_Create $wwDialog "Recompute Segmentation" {-borderwidth 10}] } {
+
+  set fwMain    $wwDialog.fwMain
+  set fwButtons $wwDialog.fwButtons
+  set fwCheckbox $wwDialog.fwCheckbox
+
+
+  # check button
+  tkm_MakeCheckboxes $fwCheckbox h { \
+          { text "Display Intermediate Results" \
+           gDisplayIntermediateResults \
+           { "SetSegmentationDisplayStatus" } \
+           "Will show each iteration of Gibbs ICM algorithm" } \
+       }
+
+  # prompt
+  tkm_MakeNormalLabel $fwMain\
+    "Do you wish to recompute the segmentation?"
+
+  # ok and cancel buttons.
+  tkm_MakeButtons $fwButtons { \
+    {text "Try" {RecomputeSegmentation} } \
+    {text "Revert" {RestorePreviousSegmentation} } \
+    {text "Cancel" { Dialog_Close .wwRecomputeSegmentation }}
+    {text "Update Means" { Dialog_Close .wwRecomputeSegmentation } }}
+
+  pack $fwMain $fwButtons $fwCheckbox \
+    -side top       \
+    -expand yes     \
+    -fill x         \
+    -padx 5         \
+    -pady 5
+    }
+}
+
 
 proc DoCursorInfoDlog { } {
 
@@ -1698,7 +1760,11 @@ proc DoEditHeadPointLabelDlog {} {
 
 
 
+proc SetSegmentationDisplayStatus { } {
 
+    global gDisplayIntermediateResults
+    SetGCADisplayStatus $gDisplayIntermediateResults
+}
 proc SetBrushConfiguration { } {
 
     global gBrushShape
@@ -1958,6 +2024,22 @@ proc CreateMenuBar { ifwMenuBar } {
       "Save Main Volume As..." \
       {DoFileDlog SaveVolumeAs} \
       tMenuGroup_DirtyAnatomicalVolume } \
+      \
+      { separator } \
+      \
+      { command \
+      "Load GCA" \
+      {DoFileDlog LoadGCA} } \
+      \
+      { command \
+      "Save GCA" \
+      {DoFileDlog SaveGCA} \
+      tMenuGroup_GCAOptions }\
+      \
+      { command \
+      "Unload GCA" \
+      {UnloadGCA} \
+      tMenuGroup_GCAOptions }\
       \
       { separator } \
       \
@@ -2482,6 +2564,11 @@ proc CreateMenuBar { ifwMenuBar } {
       "Select Current Label" \
       SelectCurrentROI \
       tMenuGroup_Parcellation } \
+      \
+      { command \
+      "Recompute Segmentation" \
+      DoRecomputeSegmentation \
+      tMenuGroup_GCAOptions } \
       \
       { command \
       "Graph Current Label Average" \
