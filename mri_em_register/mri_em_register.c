@@ -5,9 +5,9 @@
 // Nov. 9th ,2000
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2004/02/26 19:03:28 $
-// Revision       : $Revision: 1.36 $
+// Revision Author: $Author: tosa $
+// Revision Date  : $Date: 2004/03/17 16:58:56 $
+// Revision       : $Revision: 1.37 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -136,7 +136,7 @@ main(int argc, char *argv[])
   float        old_log_p, log_p ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_em_register.c,v 1.36 2004/02/26 19:03:28 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_em_register.c,v 1.37 2004/03/17 16:58:56 tosa Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -280,14 +280,23 @@ main(int argc, char *argv[])
     mri_in->te = TE ;
 
   /////////////////////  -flash ////////////////////////////////
-  if (map_to_flash)
+  if (map_to_flash || gca->type==GCA_PARAM)
   {
     GCA *gca_tmp ;
     
     printf("mapping GCA into %d-dimensional FLASH space...\n", mri_in->nframes) ;
+    // that means gca->ninputs = nframes
     gca_tmp = GCAcreateFlashGCAfromParameterGCA(gca, TRs, fas, TEs, mri_in->nframes, 100) ;
+    // now the type is set gca->type = GCA_FLASH
     GCAfree(&gca) ;
     gca = gca_tmp ;
+    if (gca->ninputs > 1)  /* multispectral - normalize to remove bias field */
+    {
+      GCAnormalizeMeans(gca, 100) ;
+      MRInormalizeSequence(mri_in, 100) ;
+    }
+    else
+      GCAhistoScaleImageIntensities(gca, mri_in) ;
     if (ninputs != gca->ninputs)
       ErrorExit(ERROR_BADPARM, "%s: must specify %d inputs, not %d for this atlas\n",
 		Progname, gca->ninputs, ninputs) ;
@@ -296,7 +305,7 @@ main(int argc, char *argv[])
       GCAunifyVariance(gca) ;
   }
   ///////////////////////////////////////////////////////////////
-  if (gca->type == GCA_FLASH)
+  else if (gca->type == GCA_FLASH)
   {
     GCA *gca_tmp ;
     if (nomap == 0)
@@ -1167,6 +1176,12 @@ find_optimal_translation(GCA *gca, GCA_SAMPLE *gcas, MRI *mri, int nsamples,
 
   Description:
   ----------------------------------------------------------------------*/
+void printUsage()
+{
+  // there are so many options. 
+  printf("usage: mri_em_register [<options>] <in volume> <template volume> <output transform>\n") ;
+}
+
 static int
 get_option(int argc, char *argv[])
 {
@@ -1177,18 +1192,14 @@ get_option(int argc, char *argv[])
   StrUpper(option) ;
   if (!strcmp(option, "DIST") || !strcmp(option, "DISTANCE"))
   {
+    // seems like not used.
     parms.l_dist = atof(argv[2]) ;
     nargs = 1 ;
     printf("l_dist = %2.2f\n", parms.l_dist) ;
   }
-  else if (!strcmp(option, "SAMPLES"))
-  {
-    sample_fname = argv[2] ;
-    nargs = 1 ;
-    printf("writing control points to %s...\n", sample_fname) ;
-  }
   else if (!strcmp(option, "NOMAP"))
   {
+    // seems not used
     nomap = 1 ;
   }
   else if (!stricmp(option, "FLASH"))
@@ -1202,6 +1213,7 @@ get_option(int argc, char *argv[])
     nargs = 1 ;
     printf("using MR volume %s to mask input volume...\n", mask_fname) ;
   }
+  /////// debug options //////////////////////////////////
   else if (!strcmp(option, "DIAG"))
   {
     diag_fp = fopen(argv[2], "w") ;
@@ -1210,39 +1222,6 @@ get_option(int argc, char *argv[])
                 Progname, argv[2]) ;
     printf("opening diag file %s for writing\n", argv[2]) ;
     nargs = 1 ;
-  }
-  else if (!strcmp(option, "TR"))
-  {
-    TR = atof(argv[2]) ;
-    nargs = 1 ;
-    printf("using TR=%2.1f msec\n", TR) ;
-  }
-  else if (!strcmp(option, "EXAMPLE"))
-  {
-    example_T1 = argv[2] ;
-    example_segmentation = argv[3] ;
-    printf("using %s and %s as example T1 and segmentations respectively.\n",
-           example_T1, example_segmentation) ;
-    nargs = 2 ;
-  }
-  else if (!strcmp(option, "TE"))
-  {
-    TE = atof(argv[2]) ;
-    nargs = 1 ;
-    printf("using TE=%2.1f msec\n", TE) ;
-  }
-  else if (!strcmp(option, "ALPHA"))
-  {
-    nargs = 1 ;
-    alpha = RADIANS(atof(argv[2])) ;
-    printf("using alpha=%2.0f degrees\n", DEGREES(alpha)) ;
-  }
-  else if (!strcmp(option, "FSAMPLES") || !strcmp(option, "ISAMPLES"))
-  {
-    transformed_sample_fname = argv[2] ;
-    nargs = 1 ;
-    printf("writing transformed control points to %s...\n", 
-	   transformed_sample_fname) ;
   }
   else if (!strcmp(option, "DEBUG_VOXEL"))
   {
@@ -1258,6 +1237,47 @@ get_option(int argc, char *argv[])
     nargs = 1 ;
     printf("debugging label %s (%d)\n", cma_label_to_name(Ggca_label), Ggca_label) ;
   }
+  ////////// TR, TE, Alpha ////////////////////////////////
+  else if (!strcmp(option, "TR"))
+  {
+    TR = atof(argv[2]) ;
+    nargs = 1 ;
+    printf("using TR=%2.1f msec\n", TR) ;
+  }
+  else if (!strcmp(option, "TE"))
+  {
+    TE = atof(argv[2]) ;
+    nargs = 1 ;
+    printf("using TE=%2.1f msec\n", TE) ;
+  }
+  else if (!strcmp(option, "ALPHA"))
+  {
+    nargs = 1 ;
+    alpha = RADIANS(atof(argv[2])) ;
+    printf("using alpha=%2.0f degrees\n", DEGREES(alpha)) ;
+  }
+  else if (!strcmp(option, "EXAMPLE"))
+  {
+    example_T1 = argv[2] ;
+    example_segmentation = argv[3] ;
+    printf("using %s and %s as example T1 and segmentations respectively.\n",
+           example_T1, example_segmentation) ;
+    nargs = 2 ;
+  }
+  /////////////// writing out various samples /////////////////
+  else if (!strcmp(option, "SAMPLES"))
+  {
+    sample_fname = argv[2] ;
+    nargs = 1 ;
+    printf("writing control points to %s...\n", sample_fname) ;
+  }
+  else if (!strcmp(option, "FSAMPLES") || !strcmp(option, "ISAMPLES"))
+  {
+    transformed_sample_fname = argv[2] ;
+    nargs = 1 ;
+    printf("writing transformed control points to %s...\n", 
+	   transformed_sample_fname) ;
+  }
   else if (!strcmp(option, "NSAMPLES"))
   {
     normalized_transformed_sample_fname = argv[2] ;
@@ -1265,6 +1285,7 @@ get_option(int argc, char *argv[])
     printf("writing  transformed normalization control points to %s...\n", 
 	   normalized_transformed_sample_fname) ;
   }
+  ///////////////////
   else if (!strcmp(option, "CONTRAST"))
   {
     use_contrast = 1 ;
@@ -1458,8 +1479,7 @@ get_option(int argc, char *argv[])
     break ;
   case '?':
   case 'U':
-    printf("usage: %s <in volume> <template volume> <output transform>\n", 
-           argv[0]) ;
+    printUsage();
     exit(1) ;
     break ;
   case 'N':
