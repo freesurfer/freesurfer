@@ -458,6 +458,15 @@ apply_pca(MRI *mri_in, MRI *mri_ref, MRI *mri_reg,
   z_angle = atan2(r21 / cosy, r11 / cosy) ;
   x_angle = atan2(r32 / cosy, r33 / cosy) ;
 
+#define MAX_ANGLE  (RADIANS(30))
+  if (fabs(x_angle) > MAX_ANGLE || fabs(y_angle) > MAX_ANGLE ||
+      fabs(z_angle) > MAX_ANGLE)
+  {
+    MatrixFree(&m_in_T) ; MatrixFree(&mRot) ;
+    fprintf(stderr, "eigenvector swap detected: ignoring PCA...\n") ;
+    return(MatrixIdentity(m_in_evectors->rows, NULL)) ;
+  }
+
   mOrigin = VectorAlloc(3, MATRIX_REAL) ;
   mOrigin->rptr[1][1] = ref_means[0] ;
   mOrigin->rptr[2][1] = ref_means[1] ;
