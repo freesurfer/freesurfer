@@ -60,6 +60,7 @@ static Panel_item     view_panel ;
 static char           image_path[100] = "." ;
 
 static int            talairach = 0 ; /* show image or Talairach coords */
+static int            fixed[MAX_IMAGES] = { 0 } ;
 
 /*----------------------------------------------------------------------
                         STATIC PROTOTYPES
@@ -758,6 +759,9 @@ get_next_slice(IMAGE *Iold, int which, int dir)
   if (!Iold)
     return(NULL) ;
 
+  if (fixed[which])
+    return(Iold) ;
+
   mri = mris[which] ;
   if (mri)
   {
@@ -1021,9 +1025,14 @@ XVMRIsetPoint(XV_FRAME *xvf, int which, int x, int y, int z)
       {
         MRIvoxelToVoxel(mri, mri2, (Real)x, (Real)y, (Real)z, &xr, &yr, &zr);
         x2 = nint(xr) ; y2 = nint(yr) ; z2 = nint(zr) ;
+        if (x2 < 0 || x2 >= mri2->width || y2 < 0 || y2 >= mri2->height ||
+            z2 < 0 || z2 >= mri2->depth)
+          continue ;
+#if 0
         x2 = MAX(0, x2) ; y2 = MAX(0, y2) ; z2 = MAX(0, z2) ;
         x2 = MIN(mri2->width-1, x2) ; y2 = MIN(mri2->height-1, y2) ; 
         z2 = MIN(mri2->depth-1, z2) ;
+#endif
         XVgetTitle(xvf, which2, title, 0) ;
         sprintf(fmt, "%%10.10s: (%%3d, %%3d) --> %%2.%dlf\n",xvf->precision);
         switch (mri2->type)
@@ -1103,7 +1112,6 @@ xvmriRepaintValue(XV_FRAME *xvf, int which, int x, int y, int z)
   XVshowImage(xvf, which, I, 0) ;
   return(NO_ERROR) ;
 }
-
 /*----------------------------------------------------------------------
             Parameters:
 
@@ -1190,3 +1198,17 @@ XVMRIredisplayFrame(XV_FRAME *xvf, MRI *mri, int which, int slice,int frame)
   mris[which] = mri ;
   return(I) ;
 }
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+             Allow user to specify some MRs that shouldn't move in depth
+             with the rest.
+----------------------------------------------------------------------*/
+int
+XVMRIfixDepth(XV_FRAME *xvf, int which, int fix)
+{
+  fixed[which] = fix ;
+  return(NO_ERROR) ;
+}
+
