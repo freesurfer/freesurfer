@@ -1,12 +1,12 @@
 // nmovie.c
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2004/05/06 18:00:55 $
-// Revision       : $Revision: 1.22 $
+// Revision Author: $Author: tosa $
+// Revision Date  : $Date: 2005/02/14 23:00:12 $
+// Revision       : $Revision: 1.23 $
 //
 ////////////////////////////////////////////////////////////////////
-char *NMOVIE_VERSION = "$Revision: 1.22 $";
+char *NMOVIE_VERSION = "$Revision: 1.23 $";
 #include <stdio.h>
 #include <image.h>
 #include <stdlib.h>
@@ -329,24 +329,29 @@ static void XSetupDisplay(int nframes)
 
   xi.depth = DefaultDepthOfScreen(DefaultScreenOfDisplay(xi.disp));
 
+  // give me TrueColor 
   if (!XMatchVisualInfo(xi.disp, xi.screenno, xi.depth, TrueColor, &(xi.vi)))
     ErrorExit(ERROR_BADPARM, "Could not find a TrueColor visual");
 
   xi.vis = xi.vi.visual;
   xi.root = RootWindow(xi.disp, xi.screenno);
 
+  // AllocNone -- clients can allocate the colormap entries
+  // For TrueColor, alloc must be AloocNone
   xi.colormap = XCreateColormap(xi.disp, xi.root, xi.vis, AllocNone);
 
   toplevel = XtVaAppCreateShell("NMovie", "NMovie", 
-        applicationShellWidgetClass,
-        xi.disp, 
-        XtNvisual, xi.vis, 
-        XtNcolormap, xi.colormap, 
-        NULL);
+				applicationShellWidgetClass,
+				xi.disp, 
+				XtNvisual, xi.vis, 
+				XtNcolormap, xi.colormap, 
+				NULL);
 
   XtAppAddActions(xi.context,actions,XtNumber(actions));
 
+  // frame 
   frame = XtVaCreateManagedWidget("Frame", formWidgetClass, toplevel, NULL);
+  // create buttons
   buttons = XtVaCreateManagedWidget("Buttons", formWidgetClass, frame, NULL );
   loop_bt = XtVaCreateManagedWidget("Loop", commandWidgetClass, 
             buttons, NULL); 
@@ -360,6 +365,7 @@ static void XSetupDisplay(int nframes)
             buttons, NULL); 
   quit_bt = XtVaCreateManagedWidget("Quit", commandWidgetClass, 
             buttons, NULL);
+  // canvas
   canvas = XtVaCreateManagedWidget("Canvas", simpleWidgetClass, frame, 
            XtNwidth, cols,
            XtNheight, rows,
@@ -370,15 +376,17 @@ static void XSetupDisplay(int nframes)
 
   xi.theGC = XCreateGC(xi.disp, xi.canvas, 0L, &xgcv);
 
-  xi.rmask = xi.vis->red_mask;
-  xi.gmask = xi.vis->green_mask;
-  xi.bmask = xi.vis->blue_mask;
+  xi.rmask = xi.vis->red_mask;   // 0xFF0000
+  xi.gmask = xi.vis->green_mask; // 0x00FF00
+  xi.bmask = xi.vis->blue_mask;  // 0x0000FF 
 
-  xi.rshift = 7 - highbit(xi.rmask);
-  xi.gshift = 7 - highbit(xi.gmask);
-  xi.bshift = 7 - highbit(xi.bmask);
+  xi.rshift = 7 - highbit(xi.rmask); // -16
+  xi.gshift = 7 - highbit(xi.gmask); //  -8
+  xi.bshift = 7 - highbit(xi.bmask); //   0
 
-  ximg = XCreateImage(xi.disp,xi.vis,xi.depth,ZPixmap, 0, NULL, 
+  // format is ZPixmap                                offset,data
+  ximg = XCreateImage(xi.disp,xi.vis,xi.depth,ZPixmap, 0,    NULL,
+  //                      bytes_per_line = 0 means assume contiguous and calculated
           cols, rows, 32, 0);
 
   if ((imgdata = (byte *)calloc((size_t)(rows*ximg->bytes_per_line*nframes),
@@ -399,84 +407,86 @@ void rgb2xcol(IMAGE *I, byte *ximgdata, int fnum)
   xptr = ximgdata+(fnum+1)*rows*ximg->bytes_per_line-ximg->bytes_per_line;
   for(i=0;i<rows;i++,xptr -= ximg->bytes_per_line)
     for(j=0, ip = xptr; j<cols; j++)
-      {
-        if (nocolor)
-        { r = *bptr; g = *bptr; }
-        else
-        { r = *bptr++; g = *bptr++; }
-        b = *bptr++;
-  
-  if (xi.rshift<0) 
-    r = r << (-xi.rshift);
-  else 
-    r = r >> xi.rshift;
-  if (xi.gshift<0) 
-    g = g << (-xi.gshift);
-  else 
-    g = g >> xi.gshift;
-  if (xi.bshift<0) 
-    b = b << (-xi.bshift);
-  else 
-    b = b >> xi.bshift;
-
-  r = r & xi.rmask;
-  g = g & xi.gmask;
-  b = b & xi.bmask; 
-
-  xcol = r | g | b;
-
-  switch(ximg->bits_per_pixel)
     {
-    case 32:
-      switch(ximg->byte_order)
+      if (nocolor)
+      { r = *bptr; g = *bptr; }  // same values
+      else
+      { r = *bptr++; g = *bptr++; } // next values
+      b = *bptr++;
+  
+      if (xi.rshift<0) 
+	r = r << (-xi.rshift);
+      else 
+	r = r >> xi.rshift;
+
+      if (xi.gshift<0) 
+	g = g << (-xi.gshift);
+      else 
+	g = g >> xi.gshift;
+
+      if (xi.bshift<0) 
+	b = b << (-xi.bshift);
+      else 
+	b = b >> xi.bshift;
+
+      r = r & xi.rmask;
+      g = g & xi.gmask;
+      b = b & xi.bmask; 
+
+      xcol = r | g | b;
+
+      switch(ximg->bits_per_pixel)
+      {
+      case 32:
+	switch(ximg->byte_order)
         {
         case MSBFirst:
-    *ip++ = (xcol>>24) & 0xff;
-    *ip++ = (xcol>>16) & 0xff;
-    *ip++ = (xcol>>8)  & 0xff;
-    *ip++ =  xcol      & 0xff;
-    break;
+	  *ip++ = (xcol>>24) & 0xff;
+	  *ip++ = (xcol>>16) & 0xff;
+	  *ip++ = (xcol>>8)  & 0xff;
+	  *ip++ =  xcol      & 0xff;
+	  break;
         case LSBFirst:
-    *ip++ =  xcol      & 0xff;
-    *ip++ = (xcol>>8)  & 0xff;
-    *ip++ = (xcol>>16) & 0xff;
-    *ip++ = (xcol>>24) & 0xff;
-    break;
+	  *ip++ =  xcol      & 0xff;
+	  *ip++ = (xcol>>8)  & 0xff;
+	  *ip++ = (xcol>>16) & 0xff;
+	  *ip++ = (xcol>>24) & 0xff;
+	  break;
         }
-      break;
-    case 24:
-      switch(ximg->byte_order)
+	break;
+      case 24:
+	switch(ximg->byte_order)
         {
         case MSBFirst:
-    *ip++ = (xcol>>16) & 0xff;
-    *ip++ = (xcol>>8)  & 0xff;
-    *ip++ =  xcol      & 0xff;
-    break;
+	  *ip++ = (xcol>>16) & 0xff;
+	  *ip++ = (xcol>>8)  & 0xff;
+	  *ip++ =  xcol      & 0xff;
+	  break;
         case LSBFirst:
-    *ip++ =  xcol      & 0xff;
-    *ip++ = (xcol>>8)  & 0xff;
-    *ip++ = (xcol>>16) & 0xff;
-    break;
+	  *ip++ =  xcol      & 0xff;
+	  *ip++ = (xcol>>8)  & 0xff;
+	  *ip++ = (xcol>>16) & 0xff;
+	  break;
         }
-      break;
-    case 16:
-      switch(ximg->byte_order)
+	break;
+      case 16:
+	switch(ximg->byte_order)
         {
         case MSBFirst:
-    *ip++ = (xcol>>8) & 0xff;
-    *ip++ =  xcol     & 0xff;
-    break;
+	  *ip++ = (xcol>>8) & 0xff;
+	  *ip++ =  xcol     & 0xff;
+	  break;
         case LSBFirst:
-    *ip++ =  xcol     & 0xff;
-    *ip++ = (xcol>>8) & 0xff;
-    break;
+	  *ip++ =  xcol     & 0xff;
+	  *ip++ = (xcol>>8) & 0xff;
+	  break;
         }
-      break;
-    case 8:
-      *ip++ = xcol & 0xff;
-      break;
-    }
+	break;
+      case 8:
+	*ip++ = xcol & 0xff;
+	break;
       }
+    }
 }
 
 void ConvertImages(int nframes, char **argv)
@@ -485,32 +495,32 @@ void ConvertImages(int nframes, char **argv)
   int i, rows = 0, cols = 0;
 
   for(i=0;i<nframes;i++)
+  {
+        
+    I = ImageRead(argv[i+1]);
+    if (!I)
+      ErrorExit(ERROR_NOFILE, 
+		"%s: could not read image file %s\n", Progname,argv[i+1]);
+    if (i == 0)
     {
-        
-      I = ImageRead(argv[i+1]);
-      if (!I)
-        ErrorExit(ERROR_NOFILE, 
-                  "%s: could not read image file %s\n", Progname,argv[i+1]);
-      if (i == 0)
-      {
-        rows = I->rows ; cols = I->cols ;
-      }
-      else if (rows != I->rows || cols != I->cols)
-      {
-#if 0
-        ErrorExit(ERROR_BADFILE, "%s: image %s dimensions (%d x %d) don't match first image (%d x %d)",
-                  Progname, argv[i+1],I->cols, I->rows, cols, rows) ;
-#else
-        ErrorPrintf(ERROR_BADFILE, "%s: image %s dimensions (%d x %d) don't match first image (%d x %d)",
-                    Progname, argv[i+1],I->cols, I->rows, cols, rows) ;
-#endif
-        argv++ ; nframes-- ; i-- ;
-        continue ;
-      }
-        
-      rgb2xcol(I,imgdata,i);
-      ImageFree(&I);
+      rows = I->rows ; cols = I->cols ;
     }
+    else if (rows != I->rows || cols != I->cols)
+    {
+#if 0
+      ErrorExit(ERROR_BADFILE, "%s: image %s dimensions (%d x %d) don't match first image (%d x %d)",
+		Progname, argv[i+1],I->cols, I->rows, cols, rows) ;
+#else
+      ErrorPrintf(ERROR_BADFILE, "%s: image %s dimensions (%d x %d) don't match first image (%d x %d)",
+		  Progname, argv[i+1],I->cols, I->rows, cols, rows) ;
+#endif
+      argv++ ; nframes-- ; i-- ;
+      continue ;
+    }
+        
+    rgb2xcol(I,imgdata,i);
+    ImageFree(&I);
+  }
 }
 
 void MakeDispNames(int argc, char **argv)
@@ -585,7 +595,7 @@ int main(int argc, char **argv)
 	DiagInit(NULL, NULL, NULL) ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: nmovie.c,v 1.22 2004/05/06 18:00:55 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: nmovie.c,v 1.23 2005/02/14 23:00:12 tosa Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
