@@ -7347,8 +7347,8 @@ computeEMAlignmentGradient(float *p, float *g)
   TransformInvert(transform, NULL) ;
   for (i = 0 ; i < parms->nsamples ; i++)
   {
-    xn = gcas[i].xn ; yn = gcas[i].yn ; zn = gcas[i].zn ; 
-    GCAnodeToSourceVoxel(gca, mri_in, transform, xn, yn, zn, &xv, &yv, &zv) ;
+    xn = gcas[i].xp ; yn = gcas[i].yp ; zn = gcas[i].zp ; 
+    GCApriorToSourceVoxel(gca, mri_in, transform, xn, yn, zn, &xv, &yv, &zv) ;
     
     V3_X(v_X) = xv ; V3_Y(v_X) = yv ; V3_Z(v_X) = zv ;
     in_val = MRIvox(mri_in, xv, yv, zv) ; 
