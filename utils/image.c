@@ -2343,8 +2343,10 @@ ImageValRange(IMAGE *image, float *pfmin, float *pfmax)
   size = image->rows * image->cols * image->num_frame ;
   switch (image->pixel_format)
   {
+  case PFCOMPLEX:
   case PFDBLCOM:
-    *pfmin = *pfmax = 0.0f ;
+    *pfmin = 0.0f ;
+    *pfmax = 1.0f ;
     break ;
   case PFFLOAT:
     fpix = IMAGEFpix(image, 0, 0) ;
@@ -3711,6 +3713,7 @@ ImageSplit(IMAGE *Icomp, IMAGE *Ireal, IMAGE *Iimag)
   int    x, y, rows, cols ;
   float  *real, *imag = NULL ;
   CPIX   *cpix ;
+  DCPIX  *dcpix ;
 
   rows = Icomp->rows ;
   cols = Icomp->cols ;
@@ -3718,25 +3721,47 @@ ImageSplit(IMAGE *Icomp, IMAGE *Ireal, IMAGE *Iimag)
   if (!Ireal)
     Ireal = ImageAlloc(rows, cols, PFFLOAT, 1) ;
 
-  if (Icomp->pixel_format != PFCOMPLEX)
-    ErrorReturn(NULL, (ERROR_UNSUPPORTED, 
-                       "ImageSplit: destination must be complex")) ;
+  if (!COMPLEX_IMAGE(Icomp))
+    ErrorReturn(ImageCopy(Icomp, Ireal), (ERROR_UNSUPPORTED, 
+                       "ImageSplit: source must be complex")) ;
 
-  cpix = IMAGECpix(Icomp, 0, 0) ;
   real = IMAGEFpix(Ireal, 0, 0) ;
   if (Iimag)
     imag = IMAGEFpix(Iimag, 0, 0) ;
 
-  for (y = 0 ; y < rows ; y++)
-  {
-    for (x = 0 ; x < cols ; x++)
+  switch (Icomp->pixel_format)
     {
-      if (Iimag)
-        *imag++ = cpix->imag ;
-      *real++ = cpix->real ;
-      cpix++ ;
+    case PFCOMPLEX:
+      cpix = IMAGECpix(Icomp, 0, 0) ;
+      
+      for (y = 0 ; y < rows ; y++)
+        {
+          for (x = 0 ; x < cols ; x++)
+            {
+              if (Iimag)
+                *imag++ = cpix->imag ;
+              *real++ = cpix->real ;
+              cpix++ ;
+            }
+        }
+      break ;
+    case PFDBLCOM:
+      dcpix = IMAGEDCpix(Icomp, 0, 0) ;
+      
+      for (y = 0 ; y < rows ; y++)
+        {
+          for (x = 0 ; x < cols ; x++)
+            {
+              if (Iimag)
+                *imag++ = (float)dcpix->imag ;
+              *real++ = (float)dcpix->real ;
+              dcpix++ ;
+            }
+        }
+      break ;
+    default:
+      break ;
     }
-  }
 
   return(Ireal) ;
 }
@@ -3866,8 +3891,7 @@ ImageHistoEqualize(IMAGE *Isrc, IMAGE *Idst)
   else
     Iin = Isrc ;
 
-  ImageValRange(Isrc, &fmin, &fmax) ;  /* so that output image is scaled properly */
-
+  ImageValRange(Isrc, &fmin, &fmax) ;   /* scale output image properly*/
 
   if (Idst->pixel_format != PFBYTE)
     Iout = ImageAlloc(Idst->rows, Idst->cols, PFBYTE, 1) ;
