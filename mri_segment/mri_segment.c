@@ -17,7 +17,9 @@ static int wsize = 5 ;
 static float pct = 0.8 ;
 static float pslope = 1.0f ;
 static float nslope = 1.0f ;
-
+static float wm_low = 90 ;
+static float wm_hi = 130 ;
+static float gray_hi = 100 ;
 char *Progname ;
 
 int main(int argc, char *argv[]) ;
@@ -26,9 +28,9 @@ static int get_option(int argc, char *argv[]) ;
 int
 main(int argc, char *argv[])
 {
-  MRI     *mri_src, *mri_dst, *mri_cpolv, *mri_tmp ;
+  MRI     *mri_src, *mri_dst, *mri_tmp, *mri_labeled ;
   char    *input_file_name, *output_file_name ;
-  int     nargs ;
+  int     nargs, i ;
 
   Progname = argv[0] ;
   DiagInit(NULL, NULL, NULL) ;
@@ -53,19 +55,41 @@ main(int argc, char *argv[])
     ErrorExit(ERROR_NOFILE, "%s: could not read source volume from %s",
               Progname, input_file_name) ;
 
-  fprintf(stderr, "computing orientation of gray/white interface...\n") ;
-  mri_cpolv = MRIcentralPlaneOfLeastVarianceNormal(mri_src, NULL, wsize) ;
-  fprintf(stderr, "labelling white matter...\n") ;
-  mri_tmp = MRIwmfilter(mri_src, mri_cpolv, NULL, nslope, pslope) ;
-  mri_dst = MRIremoveHoles(mri_tmp, NULL, 3, pct) ;
+  fprintf(stderr, "doing initial intensity segmentation...\n") ;
+  mri_tmp = MRIintensitySegmentation(mri_src, NULL, wm_low, wm_hi, gray_hi);
 
+  fprintf(stderr, "using local statistics to label ambiguous voxels...\n") ;
+  MRIhistoSegment(mri_src, mri_tmp, wm_low, wm_hi, gray_hi, 11, 3.0f) ;
+
+  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+    MRIwrite(mri_tmp, "/tmp/int.mnc") ;
+  fprintf(stderr, 
+          "using local geometry to label remaining ambiguous voxels...\n") ;
+  mri_labeled = MRIcpolvMedianCurveSegment(mri_src, mri_tmp, NULL, 5, 2.5);
+  fprintf(stderr, 
+          "\nreclassifying voxels using Gaussian border classifier...\n") ;
+
+  /*
+    now use the gray and white mattter border voxels to build a Gaussian
+    classifier at each point in space and reclassify all voxels in the
+    range [wm_low-5,gray_hi+5].
+    */
+  for (i = 0 ; i < 1 ; i++)
+  {
+    MRIreclassify(mri_src, mri_labeled, mri_labeled, wm_low-5, gray_hi+5, 7);
+  }
+  MRIfree(&mri_tmp) ;
+
+  mri_dst = MRImaskLabels(mri_src, mri_labeled, NULL) ;
+
+  MRIfree(&mri_src) ;
+  MRIfree(&mri_labeled) ; 
   fprintf(stderr, "writing output to %s...", output_file_name) ;
   MRIwrite(mri_dst, output_file_name) ;
   fprintf(stderr, "done.\n") ;
 
-  MRIfree(&mri_cpolv) ;
-  MRIfree(&mri_src) ;
   MRIfree(&mri_dst) ;
+
   exit(0) ;
   return(0) ;
 }
