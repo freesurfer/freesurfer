@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/03/17 22:54:22 $
-// Revision       : $Revision: 1.102 $
+// Revision Date  : $Date: 2004/03/18 15:40:26 $
+// Revision       : $Revision: 1.103 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -183,11 +183,17 @@ void GCAcopyDCToMRI(GCA *gca, MRI *mri)
 void GCAcleanup()
 {
   if (mri_node__)
-    MRIfree(&mri_node__);
+  {
+    MRIfree(&mri_node__);mri_node__= 0;
+  }
   if (mri_prior__)
-    MRIfree(&mri_prior__);
+  {
+    MRIfree(&mri_prior__); mri_prior__ = 0;
+  }
   if (mri_tal__)
-    MRIfree(&mri_tal__);
+  {
+    MRIfree(&mri_tal__); mri_tal__ = 0;
+  }
 }
 
 // set up mri's used in GCA
@@ -556,6 +562,8 @@ int GCAvoxelToNodeReal(GCA *gca, MRI *mri, Real xv, Real yv, Real zv,
   //        node   <-----    RAS
   //               r_to_i
   MATRIX *rasFromVoxel = extract_i_to_r(mri);
+  if (!mri_node__)
+    GCAsetup(gca);
   MATRIX *nodeFromRAS = extract_r_to_i(mri_node__);
   MATRIX *voxelToNode = MatrixMultiply(nodeFromRAS, rasFromVoxel, NULL);
 
@@ -583,6 +591,8 @@ GCAvoxelToNode(GCA *gca, MRI *mri, int xv, int yv, int zv, int *pxn,
   iyn = (int) floor(yn);
   izn = (int) floor(zn);
   // if outofbounds, tell it
+  if (!mri_node__)
+    GCAsetup(gca);
   errCode = boundsCheck(&ixn, &iyn, &izn, mri_node__);
   // 
   *pxn = ixn;
@@ -599,6 +609,8 @@ int GCAvoxelToPriorReal(GCA *gca, MRI *mri, Real xv, Real yv, Real zv,
 			 Real *pxp, Real *pyp, Real *pzp)
 {
   MATRIX *rasFromVoxel = extract_i_to_r(mri);
+  if (!mri_prior__)
+    GCAsetup(gca);
   MATRIX *priorFromRAS = extract_r_to_i(mri_prior__);
   MATRIX *voxelToPrior = MatrixMultiply(priorFromRAS, rasFromVoxel, NULL);
 
@@ -626,6 +638,8 @@ GCAvoxelToPrior(GCA *gca, MRI *mri, int xv, int yv, int zv,
   izp = (int) floor(zp);
   // bound check
   // if outofbounds, tell it
+  if (!mri_prior__)
+    GCAsetup(gca);
   errCode = boundsCheck(&ixp, &iyp, &izp, mri_prior__);
   // 
   *pxp = ixp;
@@ -648,6 +662,8 @@ int GCAnodeToVoxelReal(GCA *gca, MRI *mri, Real xn, Real yn, Real zn,
   //         |                |
   //        node   ----->    RAS
   //               i_to_r
+  if (!mri_node__)
+    GCAsetup(gca);
   MATRIX *rasFromNode = extract_i_to_r(mri_node__);
   MATRIX *voxelFromRAS = extract_r_to_i(mri);
   MATRIX *nodeToVoxel = MatrixMultiply(voxelFromRAS, rasFromNode, NULL);
@@ -696,6 +712,8 @@ GCAnodeToVoxel(GCA *gca, MRI *mri, int xn, int yn, int zn,
 int GCApriorToVoxelReal(GCA *gca, MRI *mri, Real xp, Real yp, Real zp, 
 			 Real *pxv, Real *pyv, Real *pzv)
 {
+  if (!mri_prior__)
+    GCAsetup(gca);
   MATRIX *rasFromPrior = extract_i_to_r(mri_prior__);
   MATRIX *voxelFromRAS = extract_r_to_i(mri);
   MATRIX *priorToVoxel = MatrixMultiply(voxelFromRAS, rasFromPrior, NULL);
@@ -765,6 +783,8 @@ GCAsourceVoxelToPrior(GCA *gca, MRI *mri, TRANSFORM *transform,
     TransformSample(transform, xv, yv, zv, &xt, &yt, &zt);
   }  
   // get the position in gca from talairach volume
+  if (!mri_tal__)
+    GCAsetup(gca);
   return GCAvoxelToPrior(gca, mri_tal__, xt, yt, zt, pxp, pyp, pzp) ;
 }
 
@@ -799,6 +819,8 @@ GCAsourceVoxelToNode(GCA *gca, MRI *mri, TRANSFORM *transform,int xv, int yv, in
   if (Ggca_x == xv && Ggca_y == yv && Ggca_z == zv)
     fprintf(stderr, "source (%d, %d, %d) to talposition (%.2f, %.2f, %.2f)\n", xv, yv, zv, xt, yt, zt);
   // get the position in node from the talairach position
+  if (!mri_tal__)
+    GCAsetup(gca);
   return GCAvoxelToNode(gca, mri_tal__, xt, yt, zt, pxn, pyn, pzn) ;
 }
 
@@ -817,6 +839,8 @@ GCApriorToSourceVoxelFloat(GCA *gca, MRI *mri, TRANSFORM *transform, int xp, int
   LTA *lta;
   width = mri->width ; height = mri->height ;  depth = mri->depth ;
   // go to the template voxel position
+  if (!mri_tal__)
+    GCAsetup(gca);
   GCApriorToVoxelReal(gca, mri_tal__, xp, yp, zp, &xt, &yt, &zt);
   // got the point in mri_tal__ position
   if (transform->type != MORPH_3D_TYPE)
@@ -866,6 +890,8 @@ GCAnodeToSourceVoxelFloat(GCA *gca, MRI *mri, TRANSFORM *transform, int xn, int 
   LTA *lta;
   width = mri->width ; height = mri->height ;  depth = mri->depth ;
   // get template voxel position
+  if (!mri_tal__)
+    GCAsetup(gca);
   GCAnodeToVoxelReal(gca, mri_tal__, xn, yn, zn, &xt, &yt, &zt) ;
   if (transform->type != MORPH_3D_TYPE)
   {
