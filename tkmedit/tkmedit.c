@@ -9,9 +9,9 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2004/12/30 19:58:07 $
-// Revision       : $Revision: 1.234 $
-char *VERSION = "$Revision: 1.234 $";
+// Revision Date  : $Date: 2005/01/04 00:06:01 $
+// Revision       : $Revision: 1.235 $
+char *VERSION = "$Revision: 1.235 $";
 
 #define TCL
 #define TKMEDIT 
@@ -1076,7 +1076,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
      shorten our argc and argv count. If those are the only args we
      had, exit. */
   /* rkt: check for and handle version tag */
-  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.234 2004/12/30 19:58:07 kteich Exp $", "$Name:  $");
+  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.235 2005/01/04 00:06:01 kteich Exp $", "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
   argc -= nNumProcessedVersionArgs;
@@ -5173,7 +5173,7 @@ int main ( int argc, char** argv ) {
     DebugPrint( ( "%s ", argv[nArg] ) );
   }
   DebugPrint( ( "\n\n" ) );
-  DebugPrint( ( "$Id: tkmedit.c,v 1.234 2004/12/30 19:58:07 kteich Exp $ $Name:  $\n" ) );
+  DebugPrint( ( "$Id: tkmedit.c,v 1.235 2005/01/04 00:06:01 kteich Exp $ $Name:  $\n" ) );
 
   
   /* init glut */
@@ -7397,6 +7397,7 @@ tkm_tErr LoadVolume ( tkm_tVolumeType iType,
   
   tkm_tErr             eResult                        = tkm_tErr_NoErr;
   Volm_tErr            eVolume                        = Volm_tErr_NoErr;
+  MWin_tErr            eWindow                        = MWin_tErr_NoErr;
   char                 sPath[tkm_knPathLen]           = "";
   char*                pEnd                           = NULL;
   char                 sError[tkm_knErrStringLen]     = "";
@@ -7501,19 +7502,39 @@ tkm_tErr LoadVolume ( tkm_tVolumeType iType,
   /* volume is clean */
   gbAnatomicalVolumeDirty[iType] = FALSE;
 
-  /* Initialize a new control point list. */
-  DebugNote( ("Initializing control point list") );
-  eResult = InitControlPointList();
-  DebugAssertThrow( (eResult == tkm_tErr_NoErr) );
-  
+  /* If this is the main volume, we need to initialize new control
+     point and selection stuff, because they are based on the
+     dimensions of the main volume. Also set them in the window. */
+  if( tkm_tVolumeType_Main == iType ) {
+    DebugNote( ("Initializing control point list") );
+    eResult = InitControlPointList();
+    DebugAssertThrow( (eResult == tkm_tErr_NoErr) );
+
+    DebugNote( ("Setting control points space in window") );
+    eWindow = 
+      MWin_SetControlPointsSpace( gMeditWindow, -1, gControlPointList );
+    DebugAssertThrow( (MWin_tErr_NoErr == eWindow ) );
+
+    DebugNote( ("Allocating selection volume") );
+    eResult = AllocateSelectionVolume();
+    DebugAssertThrow( (eResult == tkm_tErr_NoErr) );
+
+    DebugNote( ("Setting selection list in window.") );
+    eWindow = MWin_SetSelectionSpace( gMeditWindow, -1, gSelectionVolume );
+    DebugAssertThrow( (MWin_tErr_NoErr == eWindow ) );
+  }
+
   /* set data in window */
   if( NULL != gMeditWindow ) {
     DebugNote( ("Setting volume in main window") );
     switch( iType ) {
     case tkm_tVolumeType_Main:
-      MWin_SetVolume( gMeditWindow, -1, gAnatomicalVolume[iType],
-		      gnAnatomicalDimensionX, 
-		      gnAnatomicalDimensionY, gnAnatomicalDimensionZ  );
+      eWindow = MWin_SetVolume( gMeditWindow, -1,
+				gAnatomicalVolume[iType],
+				gnAnatomicalDimensionX, 
+				gnAnatomicalDimensionY, 
+				gnAnatomicalDimensionZ  );
+      DebugAssertThrow( (MWin_tErr_NoErr == eWindow ) );
       
       /* get a ptr to the idx to ras transform */
       DebugNote( ("Getting a pointer to the idx to RAS transform") );
@@ -7521,8 +7542,13 @@ tkm_tErr LoadVolume ( tkm_tVolumeType iType,
 				 &gIdxToRASTransform );
       break;
     case tkm_tVolumeType_Aux:
-      MWin_SetAuxVolume( gMeditWindow, -1, gAnatomicalVolume[iType],
-       gnAnatomicalDimensionX, gnAnatomicalDimensionY, gnAnatomicalDimensionZ );
+      eWindow =  MWin_SetAuxVolume( gMeditWindow, -1,
+				    gAnatomicalVolume[iType],
+				    gnAnatomicalDimensionX,
+				    gnAnatomicalDimensionY, 
+				    gnAnatomicalDimensionZ );
+      DebugAssertThrow( (MWin_tErr_NoErr == eWindow ) );
+      
       break;
     default:
       break;
@@ -7531,10 +7557,6 @@ tkm_tErr LoadVolume ( tkm_tVolumeType iType,
   
   gm_screen2ras = extract_i_to_r( gAnatomicalVolume[iType]->mpMriValues );
   gm_ras2screen = extract_r_to_i( gAnatomicalVolume[iType]->mpMriValues );
-
-  /* Allocate the selection volume now that we have an anatomical
-     volume. */
-  AllocateSelectionVolume();
 
   /* Send info to the tcl window. */
   Volm_GetResampleMethod( gAnatomicalVolume[iType], &resampleMethod );
