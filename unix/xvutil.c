@@ -375,11 +375,9 @@ xvInitImages(XV_FRAME *xvf)
     {
       dimage = &xvf->dimages[row][col] ;
       dimage->which = row * xvf->cols + col ;
+      dimage->x = x ;
+      dimage->y = y ;
 
-
-      /* last canvas has its own colormap */
-/* #ifdef LINUX*/
-#if 1
       dimage->canvas =
         (Canvas)xv_create((Xv_opaque)xvf->frame, CANVAS,
                           XV_X,                  x,
@@ -389,33 +387,8 @@ xvInitImages(XV_FRAME *xvf)
                           CANVAS_X_PAINT_WINDOW, TRUE,
                           CANVAS_REPAINT_PROC,   xv_dimage_repaint,
                           CANVAS_RETAINED,       FALSE,
-                          WIN_CMS,     xvf->cms,
+                          WIN_CMS,               xvf->cms,
                           NULL);
-#else
-      if (row == xvf->rows-1 && col == xvf->cols-1)
-        dimage->canvas =
-          (Canvas)xv_create((Xv_opaque)xvf->frame, CANVAS,
-                            XV_X,                  x,
-                            XV_Y,                  y,
-                            XV_HEIGHT,             xvf->display_rows,
-                            XV_WIDTH,              xvf->display_cols,
-                            CANVAS_X_PAINT_WINDOW, TRUE,
-                            CANVAS_REPAINT_PROC,   xv_dimage_repaint,
-                            CANVAS_RETAINED,       FALSE,
-                            WIN_CMS,     xvf->cms,
-                            NULL);
-      else
-        dimage->canvas =
-          (Canvas)xv_create((Xv_opaque)xvf->frame, CANVAS,
-                            XV_X,                  x,
-                            XV_Y,                  y,
-                            XV_HEIGHT,             xvf->display_rows,
-                            XV_WIDTH,              xvf->display_cols,
-                            CANVAS_X_PAINT_WINDOW, TRUE,
-                            CANVAS_REPAINT_PROC,   xv_dimage_repaint,
-                            CANVAS_RETAINED,       FALSE,
-                            NULL);
-#endif
 
       dimage->title_item = (Panel_item)
         xv_create((Xv_opaque)xvf->panel, PANEL_MESSAGE,
@@ -436,6 +409,7 @@ xvInitImages(XV_FRAME *xvf)
              NULL);
       dimage->window = 
         (Window)xv_get(canvas_paint_window(dimage->canvas),XV_XID);
+
       dimage->clearGC = 
         XCreateGC(xvf->display, dimage->window, (unsigned long )0, &GCvalues);
       XSetFunction(xvf->display, dimage->clearGC, GXclear);
@@ -559,8 +533,8 @@ XVshowImage(XV_FRAME *xvf, int which, IMAGE *image, int frame)
   dimage->frame = frame ;
   dimage->sourceImage = image ;
 
-  xscale = (float)xvf->display_cols / (float)image->cols ;
-  yscale = (float)xvf->display_rows / (float)image->rows ;
+  xscale = (float)dimage->dispImage->cols / (float)image->cols ;
+  yscale = (float)dimage->dispImage->rows / (float)image->rows ;
   dimage->xscale = xscale ;
   dimage->yscale = yscale ;
 
@@ -595,11 +569,15 @@ XVshowImage(XV_FRAME *xvf, int which, IMAGE *image, int frame)
   ImageCopy(GtmpFloatImage, GtmpByteImage) ;
   h_invert(GtmpByteImage, GtmpByteImage2) ;
 
-#if 1
+#if 0
+if (which == 1)
+  ImageWrite(GtmpByteImage2, "disp0.hipl") ;
   ImageResize(GtmpByteImage2, dimage->dispImage, 
               dimage->dispImage->rows, dimage->dispImage->cols) ;
+if (which == 1)
+  ImageWrite(dimage->dispImage, "disp.hipl") ;
 #else
-  ImageRescale(GtmpByteImage2, dimage->dispImage, scale) ;
+  ImageRescale(GtmpByteImage2, dimage->dispImage, xscale) ;
 #endif
 
   substtable = (unsigned long *) xv_get(xvf->cms,CMS_INDEX_TABLE);
@@ -1275,7 +1253,6 @@ XVdrawArrow(XV_FRAME *xvf, int which, int x, int y,float dx,float dy,int color)
   y1 = y0 + nint(ARROW_HEAD_SIZE * sin(theta)) ;
   XDrawLine(display, window, gc, x0, y0, x1, y1) ;
 }
-
 /*----------------------------------------------------------------------
             Parameters:
 
@@ -1321,12 +1298,21 @@ XVshowVectorImage(XV_FRAME *xvf, int which, int xo, int yo,
     }
   }
 }
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+----------------------------------------------------------------------*/
 void
 XVsetKBhandler(void (*kb_handler)(Event *event, DIMAGE *dimage))
 {
   XVkb_handler = kb_handler ;
 }
+/*----------------------------------------------------------------------
+            Parameters:
 
+           Description:
+----------------------------------------------------------------------*/
 int
 XVsetMessagePosition(XV_FRAME *xvf, int which, int col, int row)
 {
@@ -1335,5 +1321,37 @@ XVsetMessagePosition(XV_FRAME *xvf, int which, int col, int row)
                     which)) ;
 
   xv_set((Xv_opaque)xvf->msg_item[which], XV_X, col, XV_Y, row, NULL);
+  return(0) ;
+}
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+----------------------------------------------------------------------*/
+int
+XVsetImageSize(XV_FRAME *xvf, int which, int rows, int cols)
+{
+  DIMAGE    *dimage ;
+
+  dimage = xvGetDimage(which, 1) ;
+  if (!dimage)
+    return(-1) ;
+
+  xv_set(dimage->canvas, CANVAS_WIDTH, cols, CANVAS_HEIGHT, rows, NULL) ;
+  xv_set(dimage->canvas, XV_WIDTH, cols, XV_HEIGHT, rows, NULL) ;
+
+  xv_set(canvas_paint_window(dimage->canvas),
+         WIN_EVENT_PROC, xv_dimage_event_handler,
+         WIN_CONSUME_EVENTS,  MS_LEFT, LOC_DRAG, MS_RIGHT, MS_MIDDLE, 
+         WIN_ASCII_EVENTS, NULL,
+         NULL);
+  dimage->window = 
+    (Window)xv_get(canvas_paint_window(dimage->canvas),XV_XID);
+
+  ImageFree(&dimage->dispImage) ;
+  dimage->dispImage = ImageAlloc(rows, cols, PFBYTE, 1) ;
+
+  /* should free the ximage and the canvas, but don't know how yet */
+  dimage->ximage = xvCreateXimage(xvf, dimage->dispImage) ;
   return(0) ;
 }
