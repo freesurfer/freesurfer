@@ -43,14 +43,14 @@ switch(cbflag)
     ud.nthrun = 1;
     ud.showpmf = 0; % show partial model fit
     ud.perrun = 0;  % analyze on a per-run basis
-    ud.anadir = dirname(ud.hdatfile);
+    ud.anadir = fast_dirname(ud.hdatfile);
     xfile = sprintf('%s/X.mat',ud.anadir);
     ud.XX = load(xfile);
     if(isempty(ud.XX))
       fprintf('ERROR: could not load %s\n',xmatfile);
       return;
     end
-    ud.fsd = dirname(ud.anadir);
+    ud.fsd = fast_dirname(ud.anadir);
     ud = set_stem(ud);
     [ud err] = set_matrices(ud);
     ud.base = 0;
@@ -72,6 +72,7 @@ switch(cbflag)
     h = figure;
     set(gcf,'KeyPressFcn',         'yvpltraw(''kbd'');');
     set(gcf,'WindowButtonDownFcn', 'yvpltraw(''wbd'')');
+    ud.curpostxt = uicontrol('Style', 'text','Position',  [1 1 250 20]);
 
   case 'plot',
     if(nargin ~= 4)
@@ -88,7 +89,6 @@ switch(cbflag)
   case 'wbd',
     figure(gcbo);
     ud = get(gcf,'UserData'); 
-    ud = get(gcf,'UserData'); 
     tvz = get(gca,'CurrentPoint');
     t = tvz(1,1);
     v = tvz(1,2);
@@ -98,6 +98,9 @@ switch(cbflag)
     cond = ud.par(tparind,2);
     fprintf('t=%g, i=%d, v=%g, raw=%g, yhat=%g, cond=%d (%g)\n',...
 	    t,tind,v,ud.raw(tind),ud.yhat(tind),cond,tpar);
+    ud.curpos = [t v];
+    set(gcf,'UserData',ud); 
+    setcurpostxt(ud);
     if(~isempty(ud.hparent)) figure(ud.hparent); end
     return;
 
@@ -497,4 +500,10 @@ end
 err = 0;
 return;
 
+%-------------------------------------------------%
+function setcurpostxt(ud)
 
+cpstring = sprintf('t = %g, v = %g ',ud.curpos(1),ud.curpos(2));
+set(ud.curpostxt,'string',cpstring);
+
+return;

@@ -5,7 +5,7 @@ function mkdirp(path)
 % in matlab.  It has some problems (following links?).
 % Now I just use a unix() command
 %
-% $Id: mkdirp.m,v 1.3 2004/12/07 23:06:55 greve Exp $
+% $Id: mkdirp.m,v 1.4 2004/12/14 22:12:06 greve Exp $
 
 if(nargin ~= 1)
   msg = 'USAGE: mkdirp(path)';
@@ -29,7 +29,7 @@ dirlist = [];
 while(~isempty(path) & ~strcmp(path,'/') & ~strcmp(path,'.'))
   base = basename(path);
   dirlist = strvcat(dirlist,base);
-  path = dirname(path);
+  path = fast_dirname(path);
 end
 
 % Create the appropriate prefix %

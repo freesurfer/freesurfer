@@ -1,7 +1,7 @@
 function flac = fast_ldflac(flacfile,flac)
 % flac = fast_ldflac(flacfile,<flac>)
 %
-% $Id: fast_ldflac.m,v 1.9 2004/11/18 00:00:01 greve Exp $
+% $Id: fast_ldflac.m,v 1.10 2004/12/14 22:09:34 greve Exp $
 
 if(nargin < 0 | nargin > 2)
   fprintf('flac = fast_ldflac(flacfile,<flac>)\n');
@@ -101,7 +101,7 @@ while(1)
    case 'ACFSEG',      flac.acfsegstem  = sscanf(tline,'%*s %s',1);
    case 'INHERIT',     
     inheritflacname  = sscanf(tline,'%*s %s',1);
-    flacdir = dirname(flacfile);
+    flacdir = fast_dirname(flacfile);
     inheritfile = sprintf('%s/%s',flacdir,inheritflacname);
     if(strcmp(flacfile,inheritfile))
       fprintf('ERROR: flac file %s cannot INHERIT itself.\n',flacfile);

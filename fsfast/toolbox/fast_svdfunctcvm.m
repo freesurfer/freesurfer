@@ -1,8 +1,8 @@
 function r = fast_svdfunctcvm(varargin)
 % r = fast_svdfunctcvm(varargin)
-% '$Id: fast_svdfunctcvm.m,v 1.1 2003/03/04 20:47:39 greve Exp $'
+% '$Id: fast_svdfunctcvm.m,v 1.2 2004/12/14 22:06:36 greve Exp $'
 
-version = '$Id: fast_svdfunctcvm.m,v 1.1 2003/03/04 20:47:39 greve Exp $'
+version = '$Id: fast_svdfunctcvm.m,v 1.2 2004/12/14 22:06:36 greve Exp $'
 fprintf(1,'%s\n',version);
 r = 1;
 
@@ -649,7 +649,7 @@ function s = check_params(s)
 
   if( ~isempty(s.parname) ) 
     for n = 1:s.nruns
-      involpath = dirname(deblank(s.invollist(n,:)));
+      involpath = fast_dirname(deblank(s.invollist(n,:)));
       par = sprintf('%s/%s',involpath,s.parname);
       s.parlist = strvcat(s.parlist,par);
     end
@@ -675,7 +675,7 @@ function s = check_params(s)
 
   if( ~isempty(s.svdsubdir) ) 
     for n = 1:s.nruns
-      involpath = dirname(deblank(s.invollist(n,:)));
+      involpath = fast_dirname(deblank(s.invollist(n,:)));
       svddir = sprintf('%s/%s',involpath,s.svdsubdir);
       s.svddirlist = strvcat(s.svddirlist,svddir);
     end
