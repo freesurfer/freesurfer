@@ -2,6 +2,7 @@
 #define MRI_CLASS_H
 
 #include "gclass.h"
+#include "mri.h"
 #include "volume_io.h"
 
 /*
