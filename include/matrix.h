@@ -36,6 +36,7 @@ typedef struct
 #define MATRIX_REAL        1
 #define MATRIX_COMPLEX     2
 
+int     MatrixCheck(MATRIX *m) ;
 MATRIX  *MatrixInverse(MATRIX *mIn, MATRIX *mOut) ;
 MATRIX  *MatrixPseudoInverse(MATRIX *m, MATRIX *m_pseudo_inv) ;
 MATRIX  *MatrixAlloc(int rows, int cols, int type) ;
