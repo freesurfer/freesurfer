@@ -1036,7 +1036,9 @@ void bpfilter(FLOATTYPE **data, int nchan, int nsamp,float lo,float hi);
 
 /* -------------------------------------------------- the window and events */
 
-// #define USE_XGLUT_WINDOW
+#ifdef Darwin
+  #define USE_XGLUT_WINDOW
+#endif
 
 #ifdef USE_XGLUT_WINDOW
 
