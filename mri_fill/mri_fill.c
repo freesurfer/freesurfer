@@ -15,7 +15,7 @@
 #include "cma.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mri_fill.c,v 1.63 2003/07/11 18:47:49 tosa Exp $";
+static char vcid[] = "$Id: mri_fill.c,v 1.64 2003/07/21 14:08:53 tosa Exp $";
 
 /*-------------------------------------------------------------------
                                 CONSTANTS
@@ -189,7 +189,7 @@ main(int argc, char *argv[])
   struct timeb  then ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_fill.c,v 1.63 2003/07/11 18:47:49 tosa Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_fill.c,v 1.64 2003/07/21 14:08:53 tosa Exp $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -230,7 +230,7 @@ main(int argc, char *argv[])
     MRIcopyLabel(mri_im, mri_labels, labels[i]) ;
     MRIreplaceValues(mri_im, mri_im, labels[i], 0) ;
   }
-	mri_saved_labels = MRIcopy(mri_labels, NULL) ;
+        mri_saved_labels = MRIcopy(mri_labels, NULL) ;
 
   if (atlas_name && 0)
   {
@@ -358,7 +358,7 @@ main(int argc, char *argv[])
     {
       MRIfree(&mri_tmp) ;
       if (mri_mask)
-	MRIfree(&mri_mask) ;
+        MRIfree(&mri_mask) ;
     }
   }
   mri_pons = 
@@ -390,14 +390,15 @@ main(int argc, char *argv[])
     }
     else
       mri_tmp = MRIcopy(mri_tal, NULL);
-    MRIfree(&mri_tal) ; mri_tal = MRItoTalairach(mri_tmp, NULL) ;
+    MRIfree(&mri_tal) ; // mri_tal = MRItoTalairach(mri_tmp, NULL) ;
+    mri_tal = MRIcopy(mri_tmp, NULL);
     MRIbinarize(mri_tal, mri_tal, DEFAULT_DESIRED_WHITE_MATTER_VALUE/2-1, 0, 110) ;
     find_pons(mri_tmp, &pons_tal_x, &pons_tal_y, &pons_tal_z,x_cc,y_cc,z_cc,1);
     if (mri_tmp != mri_tal)
     {
       MRIfree(&mri_tmp) ;
       if (mri_mask)
-	MRIfree(&mri_mask) ;
+        MRIfree(&mri_mask) ;
     }
     mri_pons = 
       find_cutting_plane(mri_tal, pons_tal_x,pons_tal_y, pons_tal_z,
@@ -432,16 +433,16 @@ main(int argc, char *argv[])
 
   MRIfree(&mri_tal) ;
 
-	/* make cuts in both image and labels image to avoid introducing a connection
-		 with one of the labels
-	*/
+        /* make cuts in both image and labels image to avoid introducing a connection
+                 with one of the labels
+        */
   MRImask(mri_im, mri_cc, mri_im, 1, fill_val) ;
   MRImask(mri_im, mri_pons, mri_im, 1, fill_val) ;
-	if (mri_saved_labels)
-	{
-		MRImask(mri_saved_labels, mri_cc, mri_saved_labels, 1, 0) ;
-		MRImask(mri_saved_labels, mri_pons, mri_saved_labels, 1, 0) ;
-	}
+  if (mri_saved_labels)
+  {
+    MRImask(mri_saved_labels, mri_cc, mri_saved_labels, 1, 0) ;
+    MRImask(mri_saved_labels, mri_pons, mri_saved_labels, 1, 0) ;
+  }
   if (fill_val)
   {
     fprintf(stderr,"writing out image with cutting planes to 'planes.mgh'.\n");
@@ -450,12 +451,12 @@ main(int argc, char *argv[])
     exit(0) ;
   }
 
-	if (mri_saved_labels)
-	{
-		for (i = 0 ; i < NLABELS ; i++)
-			MRIcopyLabel(mri_saved_labels, mri_im, labels[i]) ;
-		MRIfree(&mri_saved_labels) ;
-	}
+  if (mri_saved_labels)
+  {
+    for (i = 0 ; i < NLABELS ; i++)
+      MRIcopyLabel(mri_saved_labels, mri_im, labels[i]) ;
+    MRIfree(&mri_saved_labels) ;
+  }
   MRIfree(&mri_labels) ; MRIfree(&mri_pons) ; 
   if (!Gdiag)
     fprintf(stderr, "done.\n") ;
@@ -2751,7 +2752,7 @@ edit_segmentation(MRI *mri_wm, MRI *mri_seg)
           yi = mri_wm->yi[y+1] ;
           label = MRIvox(mri_seg, x,yi, z) ;
           if (((label == Left_Cerebral_Cortex || label == Right_Cerebral_Cortex) ||
-							 (label == Left_Cerebral_White_Matter || label == Right_Cerebral_White_Matter))
+                                                         (label == Left_Cerebral_White_Matter || label == Right_Cerebral_White_Matter))
               && (MRIvox(mri_wm, x, yi, z) < WM_MIN_VAL))
           {
             MRIvox(mri_wm, x, yi, z) = 255 ;
