@@ -3,14 +3,15 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2004/01/09 00:12:50 $
-// Revision       : $Revision: 1.96 $
+// Revision Date  : $Date: 2004/01/09 22:33:57 $
+// Revision       : $Revision: 1.97 $
 
 #include "tkmDisplayArea.h"
 #include "tkmMeditWindow.h"
 #include "tkmFunctionalVolume.h"
 #include "xUtilities.h"
 #include "utils.h"
+#include "error.h"
 
 /* i'm not sure what to do about these y flips. it seems that whenever we're
    using a point that's going to go into the buffer to be drawn to the screen,
@@ -7930,54 +7931,100 @@ DspA_tErr DspA_AddLineToSelection ( tkmDisplayAreaRef this ) {
   return eResult;
 }
 
-DspA_tErr DspA_WriteLineReportToFile ( tkmDisplayAreaRef this,
-				       char*             isFileName) {
+DspA_tErr DspA_WriteLineToLabel ( tkmDisplayAreaRef this,
+				  char*             isFileName) {
   
   DspA_tErr eResult   = DspA_tErr_NoErr;
-  xVoxel    MRIIdx;
+  Volm_tErr eVolume   = Volm_tErr_NoErr;
+  char          sFileName[tkm_knPathLen] = "";
+  float         value                    = 0;
+  xVoxel        MRIIdx;
+  xVoxel        ras;
+  LABEL*        pLabel                   = NULL;
+  LABEL_VERTEX* pVertex                  = NULL;
+  int           nVertex                   = 0;
+  int           eLabel                   = 0;
   int       nLineVox  = 0;
-  FILE*     reportFile = NULL;
-  float     value = 0;
 
-  DebugEnterFunction( ("DspA_WriteLineReportToFile( this=%p, isFileName=%s )",
+  DebugEnterFunction( ("DspA_WriteLineToLabel( this=%p, isFileName=%s )",
 		       this, isFileName) );
 
   /* verify us. */
   eResult = DspA_Verify ( this );
   DebugAssertThrow( (eResult == DspA_tErr_NoErr) );
 
-  /* Open or create the file. */
-  reportFile = fopen( isFileName, "w+" );
-  DebugAssertThrowX( (reportFile), eResult, DspA_tErr_ErrorOpeningFile );
+  if( this->mNumLineVoxels <= 0 )
+    goto cleanup;
 
-  /* Write data for each voxel in the selection. */
+  /* make the file name */
+  DebugNote( ("Making file name from %s", isFileName) );
+  tkm_MakeFileName( isFileName, tkm_tFileName_Label, 
+		    sFileName, sizeof(sFileName) );
+  
+  /* allocate a label file with that number of voxels, and the passed
+     in label file name. */
+  DebugNote( ("Allocating label with %d voxels") );  
+  pLabel = LabelAlloc( this->mNumLineVoxels, NULL, sFileName );
+  DebugAssertThrowX( (NULL != pLabel), eResult, tkm_tErr_CouldntAllocate );
+  
+  /* set the number of points in the label */
+  pLabel->n_points = this->mNumLineVoxels;
+  
+  /* Add each line voxel. */
+  nVertex = 0;
   for( nLineVox = 0; nLineVox < this->mNumLineVoxels; nLineVox++ ) {
-    
-    /* Convert to mri idx. */
-    Volm_ConvertIdxToMRIIdx( this->mpVolume[tkm_tVolumeType_Main],
-			     &(this->mLineVoxels[nLineVox]), 
-			     &MRIIdx );
-    
-    /* Get the value. */
-    Volm_GetValueAtMRIIdx_( this->mpVolume[tkm_tVolumeType_Main],
-			    &MRIIdx, &value );
+  
+    /* Get the value */
+    Volm_GetValueAtIdx( this->mpVolume[tkm_tVolumeType_Main],
+			&(this->mLineVoxels[nLineVox]), &value );
 
-    /* Write this line. */
-    fprintf( reportFile, "%d %d %d\t %f\n",
-	     xVoxl_ExpandInt( &MRIIdx ), value );
+    /* convert mri idx to surface ras. note we may use surface ras
+       here because it ignores c_ras, which is what label files
+       should to surfacebe comptaible with tksurfer.  */
+    if( tkm_UseRealRAS() ) {
+      eVolume = 
+	  Volm_ConvertIdxToRAS( this->mpVolume[tkm_tVolumeType_Main],
+				&(this->mLineVoxels[nLineVox]), &ras );
+    } else {
+	eVolume = 
+	  Volm_ConvertIdxToMRIIdx( this->mpVolume[tkm_tVolumeType_Main],
+				   &(this->mLineVoxels[nLineVox]), &MRIIdx );
+	eVolume = 
+	  Volm_ConvertMRIIdxToSurfaceRAS( this->mpVolume[tkm_tVolumeType_Main],
+					  &MRIIdx, &ras );
+    }
+    DebugAssertThrowX( (Volm_tErr_NoErr == eVolume), 
+		       eResult, tkm_tErr_ErrorAccessingVolume );
+    
+    /* get a ptr the vertex in the label file. */
+    DebugNote( ("Geting ptr to vertex %d", nVertex) );
+    pVertex = &(pLabel->lv[nVertex]);
+    
+    /* set the vertex */
+    DebugNote( ("Setting values of vertex %d", nVertex) );
+    pVertex->x = xVoxl_GetFloatX( &ras );
+    pVertex->y = xVoxl_GetFloatY( &ras );
+    pVertex->z = xVoxl_GetFloatZ( &ras );
+    
+    /* set the vno to -1, which is significant somewhere outside
+       the realm of tkmedit. set stat value to the mri value. */
+    pVertex->vno = -1;
+    pVertex->stat = value;
+    pVertex->deleted = FALSE;
+    
+    /* inc our global count. */
+    nVertex++;
   }
 
-  /* Redraw ourselves. */
-  this->mbSliceChanged = TRUE;
-  DspA_Redraw_( this );
+  /* write the file */
+  DebugNote( ("Writing label file to %s", sFileName) );
+  eLabel = LabelWrite( pLabel, sFileName );
+  DebugAssertThrowX( (NO_ERROR == eLabel),
+		     eResult, tkm_tErr_CouldntWriteFile );
 
   DebugCatch;
   DebugCatchError( eResult, DspA_tErr_NoErr, DspA_GetErrorString );
   EndDebugCatch;
-
-  if( NULL != reportFile ) {
-    fclose( reportFile );
-  }
   
   DebugExitFunction;
   

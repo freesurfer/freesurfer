@@ -2955,8 +2955,8 @@ MWin_tErr MWin_RegisterTclCommands ( tkmMeditWindowRef this,
   Tcl_CreateCommand ( ipInterp, "AddLineToSelection",
 		      MWin_TclAddLineToSelection,
 		      (ClientData) this, (Tcl_CmdDeleteProc*) NULL );
-  Tcl_CreateCommand ( ipInterp, "WriteLineReportToFile",
-		      MWin_TclWriteLineReportToFile,
+  Tcl_CreateCommand ( ipInterp, "WriteLineToLabel",
+		      MWin_TclWriteLineToLabel,
 		      (ClientData) this, (Tcl_CmdDeleteProc*) NULL );
   Tcl_CreateCommand ( ipInterp, "SetFuncOverlayAlpha",
 		      MWin_TclSetFuncOverlayAlpha,
@@ -4653,10 +4653,10 @@ int MWin_TclAddLineToSelection ( ClientData  iClientData,
 }
 
 
-int MWin_TclWriteLineReportToFile ( ClientData  iClientData, 
-				    Tcl_Interp* ipInterp,
-				    int         argc,
-				    char*       argv[] ) {
+int MWin_TclWriteLineToLabel ( ClientData  iClientData, 
+			       Tcl_Interp* ipInterp,
+			       int         argc,
+			       char*       argv[] ) {
   
   tkmMeditWindowRef this         = NULL;
   int               eTclResult   = TCL_OK;
@@ -4694,8 +4694,8 @@ int MWin_TclWriteLineReportToFile ( ClientData  iClientData,
 
   /* pass on to the last clicked display. */
   eDispResult = 
-    DspA_WriteLineReportToFile ( this->mapDisplays[this->mnLastClickedArea],
-				 sFileName );
+    DspA_WriteLineToLabel ( this->mapDisplays[this->mnLastClickedArea],
+			    sFileName );
   if ( DspA_tErr_NoErr != eDispResult ) {
     eResult = MWin_tErr_ErrorAccessingDisplay;
     goto error;
@@ -4707,7 +4707,7 @@ int MWin_TclWriteLineReportToFile ( ClientData  iClientData,
   /* print error message */
   if ( MWin_tErr_NoErr != eResult ) {
 
-    sprintf ( sError, "Error %d in MWin_TclWriteLineReportToFile: %s\n",
+    sprintf ( sError, "Error %d in MWin_TclWriteLineToLabel: %s\n",
 	      eResult, MWin_GetErrorString(eResult) );
 
     DebugPrint( (sError ) );

@@ -631,9 +631,9 @@ DspA_tErr DspA_SmartCutAtCursor ( tkmDisplayAreaRef this );
 /* Adds the voxels in the line to the selection. */
 DspA_tErr DspA_AddLineToSelection ( tkmDisplayAreaRef this );
 
-/* Writes a text file report with the values of the voxels in the line. */
-DspA_tErr DspA_WriteLineReportToFile ( tkmDisplayAreaRef this,
-				       char*             isFileName );
+/* Writes a label file with the values of the voxels in the line. */
+DspA_tErr DspA_WriteLineToLabel ( tkmDisplayAreaRef this,
+				  char*             isFileName );
 
 /* tkmedit needs to get the selected head pt */
 DspA_tErr DspA_GetSelectedHeadPt ( tkmDisplayAreaRef   this,
