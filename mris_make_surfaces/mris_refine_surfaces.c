@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/12/16 14:51:08 $
-// Revision       : $Revision: 1.3 $
+// Revision Date  : $Date: 2004/12/16 16:12:22 $
+// Revision       : $Revision: 1.4 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -26,7 +26,7 @@
 #include "version.h"
 #include "label.h"
 
-static char vcid[] = "$Id: mris_refine_surfaces.c,v 1.3 2004/12/16 14:51:08 tosa Exp $";
+static char vcid[] = "$Id: mris_refine_surfaces.c,v 1.4 2004/12/16 16:12:22 tosa Exp $";
 
 int debug__ = 0; /// tosa debug
 
@@ -88,9 +88,8 @@ static int nbrs = 2 ;
 static int write_vals = 0 ;
 
 static char *orig_name = ORIG_NAME ;
-static char *suffix = "" ;
-static char *output_suffix = "hires" ;
 
+static char *output_suffix = "hires" ;
 static char pial_name[STRLEN] = "pial" ;
 static char white_matter_name[STRLEN] = WHITE_MATTER_NAME ;
 
@@ -134,7 +133,9 @@ static  float   max_border_white = MAX_BORDER_WHITE,
   min_gray_at_csf_border = MIN_GRAY_AT_CSF_BORDER,
   min_csf = MIN_CSF,
   max_csf = MAX_CSF ;
+
 static char sdir[STRLEN] = "" ;
+static char suffix[STRLEN] = "" ;
 
 static int MGZ = 0; // for use with MGZ format
 static float check_contrast_direction(MRI_SURFACE *mris,MRI *mri_hires) ; //defined at the end
@@ -142,7 +143,7 @@ static float check_contrast_direction(MRI_SURFACE *mris,MRI *mri_hires) ; //defi
 int
 main(int argc, char *argv[])
 {
-  char          **av, *hemi, *sname, *cp, fname[STRLEN];
+  char          **av, *hemi, *sname, *cp=0, fname[STRLEN];
   int           ac, nargs, i, label_val, replace_val, msec, n_averages, j ;
   MRI_SURFACE   *mris ;
   MRI           *mri_wm, *mri_kernel = NULL, *mri_smooth = NULL, 
@@ -155,7 +156,7 @@ main(int argc, char *argv[])
   LT            *lt =0;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_refine_surfaces.c,v 1.3 2004/12/16 14:51:08 tosa Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_refine_surfaces.c,v 1.4 2004/12/16 16:12:22 tosa Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -193,10 +194,42 @@ main(int argc, char *argv[])
     argc -= nargs ;
     argv += nargs ;
   }
-
-  if (argc < 3)
+  ///////////////////////////////////////////////////////////////////////////////
+  // make sure that subjects_dir is set
+  ///////////////////////////////////////////////////////////////////////////////
+  if (!strlen(sdir))  // -sdir option
+  {
+    cp = getenv("SUBJECTS_DIR") ;
+    if (!cp)
+      ErrorExit(ERROR_BADPARM, 
+                "%s: SUBJECTS_DIR not defined in environment.\n", Progname) ;
+    strcpy(sdir, cp) ;
+  }
+  if (argc < 5)
     usage_exit() ;
-
+  else
+  {
+    printf("\nArguments given are:\n");
+    printf("\tSUBJECTS_DIR = %s\n", sdir);
+    printf("\tsubject_name = %s\n", argv[1]);
+    printf("\themi sphere  = %s\n", argv[2]);
+    printf("\thires volume = %s\n", argv[3]);
+    printf("\tlabel file   = %s\n", argv[4]);
+    if (argc==5)
+      printf("\txfm          = assumes lowres to highres ras-to-ras identity\n");
+    else if (argc==6)
+      printf("\txfm          = %s\n", argv[5]);
+    else
+    {
+      print_usage();
+      ErrorExit(ERROR_BADPARM, "%s: gave too many arguments\n", Progname);
+    }
+    if (MGZ)
+      printf("\t-mgz         = use .mgz extension for reading volumes\n");
+    if (strlen(suffix))
+      printf("\t-suffix      = add suffix %s to the final surfaces\n", suffix);
+    printf("\n");
+  }
   /////////////////////////////////////////////////////////////////////////////
   // arg1 = subject_name, arg2 = hemi, arg3 = hires vol, arg4 = label file
   // arg5 = lowtohires.xfm is an option
@@ -248,17 +281,6 @@ main(int argc, char *argv[])
   if (parms.momentum < 0.0)
     parms.momentum = 0.0 /*0.75*/ ;
 
-  ///////////////////////////////////////////////////////////////////////////////
-  // make sure that subjects_dir is set
-  ///////////////////////////////////////////////////////////////////////////////
-  if (!strlen(sdir))  // -sdir option
-  {
-    cp = getenv("SUBJECTS_DIR") ;
-    if (!cp)
-      ErrorExit(ERROR_BADPARM, 
-                "%s: SUBJECTS_DIR not defined in environment.\n", Progname) ;
-    strcpy(sdir, cp) ;
-  }
   ////////////////////////////////////////////////////////////////////////////////
   // timer starts here
   ////////////////////////////////////////////////////////////////////////////////
@@ -267,8 +289,8 @@ main(int argc, char *argv[])
   // read filled volume (rh = 127 and lh = 255)
   ///////////////////////////////////////////////////////////////////////
   sprintf(fname, "%s/%s/mri/filled", sdir, sname) ;
-  fprintf(stderr, "reading rmi/filled %s...\n", fname) ;
   if(MGZ) sprintf(fname, "%s.mgz",fname);
+  fprintf(stderr, "reading mri/filled %s...\n", fname) ;
   mri_filled = MRIread(fname) ;
   if (!mri_filled)
     ErrorExit(ERROR_NOFILE, "%s: could not read input volume %s",
@@ -285,8 +307,8 @@ main(int argc, char *argv[])
   // read hires volume
   ///////////////////////////////////////////////////////////////////////
   sprintf(fname, "%s/%s/mri/%s", sdir, sname, argv[3]) ;
-  fprintf(stderr, "reading hires volume %s...\n", fname) ;
   if(MGZ) sprintf(fname, "%s.mgz",fname);
+  fprintf(stderr, "reading hires volume %s...\n", fname) ;
   mri_hires = MRIread(fname);
   mri_hires_pial = MRIread(fname); // cached volume
   if (!mri_hires)
@@ -309,9 +331,8 @@ main(int argc, char *argv[])
   // read mri_wm 
   ///////////////////////////////////////////////////////////////
   sprintf(fname, "%s/%s/mri/wm", sdir, sname) ;
-  fprintf(stderr, "reading wm volume %s...\n", fname) ;
   if(MGZ) sprintf(fname, "%s.mgz",fname);
-  fprintf(stderr, "reading volume %s...\n", fname) ;
+  fprintf(stderr, "reading wm volume %s...\n", fname) ;
   mri_wm = MRIread(fname) ;
   if (!mri_wm)
     ErrorExit(ERROR_NOFILE, "%s: could not read input volume %s",
@@ -394,7 +415,7 @@ main(int argc, char *argv[])
   ///////////////////////////////////////////////////////////////////////
   // read orig surface
   ///////////////////////////////////////////////////////////////////////
-  sprintf(fname, "%s/%s/surf/%s.%s%s", sdir, sname, hemi, orig_name, suffix) ;
+  sprintf(fname, "%s/%s/surf/%s.%s", sdir, sname, hemi, orig_name);
   fprintf(stderr, "reading original surface position from %s...\n", fname) ;
   mris = MRISreadOverAlloc(fname, 1.1) ;
   // this tries to get src c_(ras) info
@@ -609,7 +630,7 @@ main(int argc, char *argv[])
   }
   else   /* read in previously generated white matter surface */
   {
-    sprintf(fname, "%s%s", white_matter_name, suffix) ;
+    sprintf(fname, "%s", white_matter_name) ;
     if (MRISreadVertexPositions(mris, fname) != NO_ERROR)
       ErrorExit(Gerror, "%s: could not read white matter surfaces.",
                 Progname) ;
@@ -806,6 +827,15 @@ get_option(int argc, char *argv[])
     printf("using %s as SUBJECTS_DIR...\n", sdir) ;
     nargs = 1 ;
   }
+  else if (!stricmp(option, "MGZ"))
+  {
+    MGZ=1;
+  }
+  else if (!stricmp(option, "SUFFIX"))
+  {
+    strcpy(suffix, argv[2]);
+    nargs = 1 ;
+  }
   return(nargs) ;
 }
 
@@ -819,11 +849,15 @@ usage_exit(void)
 static void
 print_usage(void)
 {
-  fprintf(stderr, "usage: %s <subject_name> <hemi> <hires volume> <label> [<lowtohires.xfm>]\n", 
+  fprintf(stderr, "usage: %s [options] <subject_name> <hemi> <hires volume> <label> [<lowtohires.xfm>]\n", 
           Progname) ;
-  fprintf(stderr, "sample: mris_refine_surface agt rh hires rh_hires.label\n");
+  fprintf(stderr, "options:\n");
+  fprintf(stderr, "       -sdir $(SUBJECTS_DIR) : specifies SUBJECTS_DIR\n");
+  fprintf(stderr, "       -mgz                  : use .mgz volumes\n");
+  fprintf(stderr, "       -suffix $(SUFFIX)     : add $(SUFFIX) to the final surfaces\n");
+  fprintf(stderr, "\nsample: mris_refine_surface agt rh hires rh_hires.label\n");
   fprintf(stderr, "        where hires is located at $(SUBJECTS_DIR)/agt/mri/hires, \n");
-  fprintf(stderr, "              rh_hires.label is located at $(SUBJECTS_DIR)/agt/label/rh_hires.label.\n");
+  fprintf(stderr, "        rh_hires.label is located at $(SUBJECTS_DIR)/agt/label/rh_hires.label.\n");
 }
 
 static void
