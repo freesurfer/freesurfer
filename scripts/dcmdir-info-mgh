@@ -1,0 +1,80 @@
+#!/bin/csh -f
+# dcmdir-info-mgh
+# '$Id: dcmdir-info-mgh,v 1.1 2004/05/12 18:50:05 greve Exp $'
+
+set VERSION = '$Id: dcmdir-info-mgh,v 1.1 2004/05/12 18:50:05 greve Exp $';
+
+if($#argv != 1) then
+  echo "dcmdir-info-mgh dicomdir"
+  echo "dcmdir-info-mgh -help"
+  exit 1;
+endif
+
+if("$argv[1]" == "-help") then
+  echo ""
+  echo "dcmdir-info-mgh dicomdir"
+  echo ""
+  echo $VERSION
+  echo ""
+  echo "Scans a DICOM directory and extracts information about each series."
+  echo "The files in the directory must conform to the following naming"
+  echo "convention:"
+  echo ""
+  echo "        NNNNNN-S-MMMMM.dcm"
+  echo ""
+  echo "where NNNNNN and MMMMM are any strings of any length as long as thay"
+  echo "do not contain dashes (-). S is the series/run number. This is the"
+  echo "naming convention of the data at MGH after being pushed from the scanner"
+  echo "to the network archive. This function will not work on data burned to"
+  echo "CD from the scanner.  Example: 953000-2-9.dcm"
+  echo ""
+  echo "This function is considerably faster than using unpacksdcmdir with"
+  echo "the -scanonly option, but it does require that the files be named"
+  echo "appropriately."
+  echo ""
+  echo "The output is a list of series/runs with the pulse sequence and "
+  echo "protocol used. The Patient Name, Study Date, and Study Time are"
+  echo "also printed out."
+  echo ""
+  exit 1;
+endif
+
+
+set dcmdir = $argv[1];
+
+
+if(! -e $dcmdir) then
+  echo "ERROR: cannot find $dcmdir"
+  exit 1;
+endif
+
+
+set serlist = `ls $dcmdir | sed 's/-/ /g' | awk '{print $2}' | sort -n | uniq`;
+
+set series = $serlist[1];
+set flist = `ls $dcmdir/*-$series-*.dcm`
+set dcm0 = $flist[1];
+set Patient = `mri_probedicom --i $dcm0 | grep PatientName`;
+set Date    = `mri_probedicom --i $dcm0 | grep StudyDate`;
+set Time    = `mri_probedicom --i $dcm0 | grep StudyTime`;
+echo $Patient
+echo $Date
+echo $Time
+
+foreach series ($serlist)
+  set flist = `ls $dcmdir/*-$series-*.dcm`
+  set dcm = $flist[1];
+  #echo $dcm0
+
+  set PulSeq   = `mri_probedicom --i $dcm | grep PulseSequence | awk '{print $2}'`;
+  set Protocol = `mri_probedicom --i $dcm | grep ProtocolName | awk '{print $3}'`;
+  echo "$series $PulSeq $Protocol"
+
+end
+
+
+
+
+
+
+exit 0
