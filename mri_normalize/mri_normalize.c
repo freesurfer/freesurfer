@@ -22,7 +22,8 @@ static MRI_NORM_INFO  mni ;
 static int verbose = 1 ;
 static int num_3d_iter = 5 ;
 
-static float sigma = -1.0f ;  /* <0 means use default */
+static float intensity_above = 25 ;
+static float intensity_below = 10 ;
 
 int
 main(int argc, char *argv[])
@@ -78,7 +79,7 @@ main(int argc, char *argv[])
   {
     fprintf(stderr, "3d normalization pass %d of %d\n", n+1, num_3d_iter) ;
     MRI3dNormalize(mri_dst, NULL, DEFAULT_DESIRED_WHITE_MATTER_VALUE, mri_dst,
-                   sigma);
+                   intensity_above, intensity_below);
   }
 
   if (verbose)
@@ -108,10 +109,16 @@ get_option(int argc, char *argv[])
   option = argv[1] + 1 ;            /* past '-' */
   switch (toupper(*option))
   {
-  case 'S':
-    sigma = atof(argv[2]) ;
-    fprintf(stderr, "using intensity sigma=%2.2f for 3d normalization.\n",
-            sigma) ;
+  case 'A':
+    intensity_above = atof(argv[2]) ;
+    fprintf(stderr, "using control point with intensity %2.1f above target.\n",
+            intensity_above) ;
+    nargs = 1 ;
+    break ;
+  case 'B':
+    intensity_below = atof(argv[2]) ;
+    fprintf(stderr, "using control point with intensity %2.1f below target.\n",
+            intensity_below) ;
     nargs = 1 ;
     break ;
   case 'G':
