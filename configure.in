@@ -162,7 +162,10 @@ esac
 
 found=$CPUFLAGS 
 # set the value
+
 CFLAGS="$CPUFLAGS $CFLAGS"
+CXXFLAGS="$CPUFLAGS $CXXFLAGS"
+
 AC_MSG_RESULT($found)
 #####
 else
@@ -571,7 +574,7 @@ mri_label_histo/Makefile mri_label_vals/Makefile mri_label_volume/Makefile mri_l
 mri_linear_register/Makefile mri_make_bem_surfaces/Makefile mri_make_template/Makefile \
 mri_mark_temporal_lobe/Makefile mri_mask/Makefile mri_ms_fitparms/Makefile \
 mri_nlfilter/Makefile mri_normalize/Makefile mri_partial_ribbon/Makefile mri_paint/Makefile \
-mri_parse_sdcmdir/Makefile mri_polv/Makefile mri_probedicom/Makefile mri_probe_ima/Makefile \
+mri_parselabel/Makefile mri_parse_sdcmdir/Makefile mri_polv/Makefile mri_probedicom/Makefile mri_probe_ima/Makefile \
 mri_reduce/Makefile mri_register/Makefile mri_relabel_hypointensities/Makefile \
 mri_remove_neck/Makefile mri_ribbon/Makefile mri_rigid_register/Makefile \
 mri_segment/Makefile mri_surfacemask/Makefile mri_strip_skull/Makefile \
