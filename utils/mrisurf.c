@@ -4372,7 +4372,7 @@ MRIScomputeTriangleProperties(MRI_SURFACE *mris, int no_angles)
 #if 0
         if (angle < 0.0f || angle >= M_PI)
           fprintf(stderr, "angle [%d][%d][%d] = %2.1f\n",
-                  fno,tno,ano,DEGREES(angle)) ;
+                  fno,tno,ano,(float)DEGREES(angle)) ;
 #endif
       }
     }
@@ -9880,7 +9880,7 @@ MRISrigidBodyAlignGlobal(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
     delta = 2*degrees / (float)nangles ;
     if (Gdiag & DIAG_SHOW)
       fprintf(stderr, "scanning %2.2f degree nbhd, min sse = %2.2f\n", 
-              DEGREES(degrees), min_sse) ;
+              (float)DEGREES(degrees), (float)min_sse) ;
     for (alpha = -degrees ; alpha <= degrees ; alpha += delta)
     {
       for (beta = -degrees ; beta <= degrees ; beta += delta)
@@ -9897,7 +9897,8 @@ MRISrigidBodyAlignGlobal(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
               fprintf(stderr, 
                       "\nrotating brain by (%+2.2f, %+2.2f, %+2.2f), "
                       "sse: %2.2f\n",
-                      DEGREES(alpha), DEGREES(beta), DEGREES(gamma), sse) ;
+                      (float)DEGREES(alpha), (float)DEGREES(beta), 
+                      (float)DEGREES(gamma), (float)sse) ;
 #endif
             mina = alpha ; minb = beta ; ming = gamma ;
             min_sse = sse ;
@@ -9909,8 +9910,9 @@ MRISrigidBodyAlignGlobal(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
           if (Gdiag & DIAG_SHOW)
             fprintf(stderr, "\r(%+2.2f, %+2.2f, %+2.2f), "
                     "min @ (%2.2f, %2.2f, %2.2f) = %2.1f   ",
-                    DEGREES(alpha), DEGREES(beta), DEGREES(gamma),
-                    DEGREES(mina), DEGREES(minb), DEGREES(ming), min_sse) ;
+                    (float)DEGREES(alpha), (float)DEGREES(beta), (float)
+                    DEGREES(gamma), (float)DEGREES(mina), 
+                    (float)DEGREES(minb), (float)DEGREES(ming),(float)min_sse);
 
           MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
         }
@@ -9924,11 +9926,13 @@ MRISrigidBodyAlignGlobal(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
       sse = mrisComputeCorrelationError(mris, parms, 0) ;
       if (Gdiag & DIAG_SHOW)
         fprintf(stderr, "min sse = %2.2f at (%2.2f, %2.2f, %2.2f)\n",
-                sse, DEGREES(mina), DEGREES(minb), DEGREES(ming)) ;
+                sse, (float)DEGREES(mina), (float)DEGREES(minb), 
+                (float)DEGREES(ming)) ;
       if (Gdiag & DIAG_WRITE)
         fprintf(parms->fp, 
                 "rotating brain by (%2.2f, %2.2f, %2.2f), sse: %2.2f\n",
-                DEGREES(mina), DEGREES(minb), DEGREES(ming), sse) ;
+                (float)DEGREES(mina), (float)DEGREES(minb), 
+                (float)DEGREES(ming), (float)sse) ;
       parms->start_t += 1.0f ;
       parms->t += 1.0f ;
       if (Gdiag & DIAG_WRITE && parms->write_iterations > 0)

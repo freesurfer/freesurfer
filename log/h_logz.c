@@ -1870,7 +1870,7 @@ mapCalculateParms(LOGMAP_INFO *lmi)
             "maxr=%2.3f, minlog %2.3f, maxlog %2.3f, logrange %2.3f\n",
             maxr, minlog, maxlog, logrange) ;
     fprintf(stderr, "nspokes=%d, setting nrings = %d (%2.3f)\n", lmi->nspokes,
-            lmi->nrings, (logrange * k) / PI) ;
+            lmi->nrings, (float)((logrange * k) / PI)) ;
 #endif
   }
 }
