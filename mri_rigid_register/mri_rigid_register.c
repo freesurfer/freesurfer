@@ -6,8 +6,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2003/09/22 15:19:04 $
-// Revision       : $Revision: 1.13 $
+// Revision Date  : $Date: 2003/09/22 15:52:12 $
+// Revision       : $Revision: 1.14 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -146,7 +146,7 @@ main(int argc, char *argv[])
   MATRIX *M_reg, *vox_s2vox_t; // *m_coronalras_src2trg;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_rigid_register.c,v 1.13 2003/09/22 15:19:04 tosa Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_rigid_register.c,v 1.14 2003/09/22 15:52:12 tosa Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -240,6 +240,7 @@ main(int argc, char *argv[])
   {
     // keep as it is if ras-to-ras
     lta->type = LINEAR_RAS_TO_RAS;
+    MatrixCopy(M_reg, lta->xforms[0].m_L);
 #if 0 
     lta->type = LINEAR_CORONAL_RAS_TO_CORONAL_RAS ;
     //E/ LTAvoxelTransformToCoronalRasTransform(lta) ;
