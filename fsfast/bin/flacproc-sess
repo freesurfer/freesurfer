@@ -1,9 +1,9 @@
 #!/bin/csh -f
 # flacproc-sess
 #
-# $Id: flacproc-sess,v 1.11 2005/01/24 20:29:11 greve Exp $
+# $Id: flacproc-sess,v 1.12 2005/02/01 19:21:21 greve Exp $
 
-set VERSION = '$Id: flacproc-sess,v 1.11 2005/01/24 20:29:11 greve Exp $';
+set VERSION = '$Id: flacproc-sess,v 1.12 2005/02/01 19:21:21 greve Exp $';
 
 set cmdargs = ($argv);
 
@@ -15,7 +15,9 @@ set Synth     = 0;
 set SynthAR1  = 0;
 set npca      = 0;
 set npcathresh = 1;
-set svres = 0;
+set svres  = 0;
+set svres0 = 0;
+set do_rfx = 1;
 
 if($#argv == 0)  goto usage_exit;
 set n = `echo $argv | grep -e -help | wc -l` 
@@ -69,7 +71,9 @@ Synth    = $Synth;
 SynthAR1 = $SynthAR1;
 npca = $npca;
 npcathresh = $npcathresh;
-svres = $svres;
+svres  = $svres;
+svres0 = $svres0;
+do_rfx = $do_rfx;
 monly = $monly;
 
 fprintf('-----------------------------------------------------\n');
@@ -164,7 +168,16 @@ for nthrun = 1:nruns
   indrvarz = find(rvar==0);
   rvar(indrvarz) = 10e10;
 
-  % Do AMD-SNC here and re-est
+  outdir = sprintf('%s/%s/fla/%s/%s',flac.sess,flac.fsd,...
+                    flac.name,flac.runlist(flac.nthrun,:));
+  mkdirp(outdir);
+
+  if(svres0)
+    stem = sprintf('%s/res0%s',outdir,flac.formatext);
+    tmp = y;
+    tmp.vol = fast_mat2vol(r,szvol);
+    MRIwrite(tmp,stem);
+  end
 
   fprintf('Computing NACF   (%6.1f)\n',toc);
   % Residual forming matrix 
@@ -196,10 +209,6 @@ for nthrun = 1:nruns
   rvar(indrvarz) = mean(rvar(indrvarnz));
 
   fprintf('Saving estimation   (%6.1f)\n',toc);
-  outdir = sprintf('%s/%s/fla/%s/%s',flac.sess,flac.fsd,...
-                    flac.name,flac.runlist(flac.nthrun,:));
-  mkdirp(outdir);
-
   flacmat = sprintf('%s/flac.mat',outdir);  
   if(str2num(version('-release')) < 14)
     save(flacmat,'flac','racfseg','ar1','nacfseg','acfseg','Synth','SynthAR1');
@@ -301,7 +310,7 @@ end % runs
 fprintf('Computing FFX\n');
 flacffx(flac,'',1);
 
-if(nruns > 1)
+if(do_rfx & nruns > 1)
   fprintf('Computing RFX\n');
   flacrfx(flac);
 end
@@ -367,6 +376,15 @@ while( $#argv != 0 )
     case "-svres":
     case "-sveres":
       set svres = 1;
+      breaksw
+
+    case "-svres0":
+    case "-sveres0":
+      set svres0 = 1;
+      breaksw
+
+    case "-norfx":
+      set do_rfx = 0;
       breaksw
 
     case "-monly":
@@ -441,7 +459,8 @@ usage_exit:
   echo "   -fsd fsdir      (optional)"
   echo ""
   echo "Other Arguments"
-  echo "   -svres : save residual error as flac/res"
+  echo "   -svres  : save residual error as flac/res"
+  echo "   -svres0 : save unwhitened residual error as flac/res0"
   echo "   -synth"
   echo "   -synthar1 rho"
   echo "   -debug"
