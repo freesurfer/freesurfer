@@ -6,7 +6,8 @@ function R = fast_acorr(x,scaling,dof)
 %   'none' - returns sum of the cross products at each delay
 %   'biased' - divides none by nf
 %   'unbiased' - divides none by nf-lag
-%   'unbiasedcoeff' - divides unbiased by zero-lag <default>
+%   'unbiasedcoeff' - divides unbiased by zero-lag (careful!)
+%   'coeff' - divides biased by zero-lag <default>
 % dof is the number of degrees of freedom in x. Default is nf.
 %   dof only has an effect when unibasedcoeff is chosen. dof can 
 %   be handy when computing the ACF of residuals. Note: the ACF
@@ -21,10 +22,13 @@ function R = fast_acorr(x,scaling,dof)
 %   2. fast_acorr will compute a separate ACF for each column in x
 %   3. the ACF from fast_acorr will be one-sided, ie, R(1) is for 
 %      zero delay, R(2) is for delay 1, etc. 
-%   4. fast_acorr has an unbiasedcoeff option
+%   4. fast_acorr has an unbiasedcoeff option. Note: this option
+%      can produce acfs that are greater than 1 (eventhough
+%      it is supposed to be a coefficient).
 %   5. fast_acorr can incorporate dof information
 %   6. fast_acorr is much faster because it uses an FFT.
 % 
+% $Id: fast_acorr.m,v 1.2 2003/04/08 04:48:22 greve Exp $
 
 if(nargin ~= 1 & nargin ~= 2 & nargin ~= 3)
   msg = 'USAGE: R = fast_acorr(x,<scaling>)';
@@ -34,8 +38,8 @@ end
 % Get dims of x %
 [ntrs ncols] = size(x);
 
-if(~exist('scaling')) scaling = 'unbiasedcoeff'; end
-if(isempty(scaling))  scaling = 'unbiasedcoeff'; end
+if(~exist('scaling')) scaling = 'coeff'; end
+if(isempty(scaling))  scaling = 'coeff'; end
 if(~exist('dof'))     dof = ntrs; end
 
 
