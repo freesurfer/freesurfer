@@ -986,16 +986,20 @@ GCAtrain(GCA *gca, MRI *mri_inputs, MRI *mri_labels, TRANSFORM *transform, GCA *
   
   if (first_time)
   {
+		GCAsetup() ;
     first_time = 0 ;
     logging = getenv("GCA_LOG") != NULL ;
-    printf("logging image intensities to GCA log file 'gca*.log'\n") ;
-    for (label = 0 ; label <= MAX_CMA_LABEL ; label++)
-    {
-      char fname[STRLEN] ;
-      sprintf(fname, "gca%d.log", label) ;
-      if (FileExists(fname))
-	unlink(fname) ;
-    }
+		if (logging)
+		{
+			printf("logging image intensities to GCA log file 'gca*.log'\n") ;
+			for (label = 0 ; label <= MAX_CMA_LABEL ; label++)
+			{
+				char fname[STRLEN] ;
+				sprintf(fname, "gca%d.log", label) ;
+				if (FileExists(fname))
+					unlink(fname) ;
+			}
+		}
   }
   
 
@@ -1023,8 +1027,8 @@ GCAtrain(GCA *gca, MRI *mri_inputs, MRI *mri_labels, TRANSFORM *transform, GCA *
           continue ;
 #endif
 
-	load_vals(mri_inputs, x, y, z, vals, gca->ninputs) ;
-
+				load_vals(mri_inputs, x, y, z, vals, gca->ninputs) ;
+				
         GCAsourceVoxelToNode(gca, mri_inputs, transform, x, y, z, &xn, &yn, &zn) ;
         GCAsourceVoxelToPrior(gca, mri_inputs, transform, x, y, z, &xp, &yp, &zp) ;
         GCAupdatePrior(gca, mri_inputs, xp, yp, zp, label) ;
@@ -1041,32 +1045,32 @@ GCAtrain(GCA *gca, MRI *mri_inputs, MRI *mri_labels, TRANSFORM *transform, GCA *
 					int  i ;
           gc = GCAfindGC(gca, xn, yn, zn, label) ;
           if (gc)
-	  {
-	    if (logging)
-	    {
-	      char fname[STRLEN] ;
-	      sprintf(fname, "gca%d.log", label) ;
-	      logfp = fopen(fname, "a") ;
-	    }
+					{
+						if (logging)
+						{
+							char fname[STRLEN] ;
+							sprintf(fname, "gca%d.log", label) ;
+							logfp = fopen(fname, "a") ;
+						}
             printf("voxel(%d,%d,%d) = ", x, y, z) ;
-	    for (i = 0 ; i < gca->ninputs ; i++)
-	    {
-	      printf("%2.1f ", (vals[i])) ;
-	      if (logging)
-		fprintf(logfp, "%2.1f ", (vals[i])) ;
-	    }
-	    
+						for (i = 0 ; i < gca->ninputs ; i++)
+						{
+							printf("%2.1f ", (vals[i])) ;
+							if (logging)
+								fprintf(logfp, "%2.1f ", (vals[i])) ;
+						}
+						
             printf(" --> node(%d,%d,%d), "
                    "label %s (%d), mean ",xn, yn, zn, cma_label_to_name(label),label) ;
-	    for (i = 0 ; i < gca->ninputs ; i++)
-	      printf("%2.1f ", gc->means[i] / gc->ntraining) ;
-	    printf("\n") ;
-	    if (logging)
-	    {
-	      fprintf(logfp, "\n") ;
-	      fclose(logfp) ;
-	    }
-	  }
+						for (i = 0 ; i < gca->ninputs ; i++)
+							printf("%2.1f ", gc->means[i] / gc->ntraining) ;
+						printf("\n") ;
+						if (logging)
+						{
+							fprintf(logfp, "\n") ;
+							fclose(logfp) ;
+						}
+					}
         }
         if (gca->flags & GCA_NO_MRF)
           continue ;
