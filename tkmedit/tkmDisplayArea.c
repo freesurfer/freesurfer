@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2003/03/18 17:15:47 $
-// Revision       : $Revision: 1.56 $
+// Revision Date  : $Date: 2003/04/10 20:06:19 $
+// Revision       : $Revision: 1.57 $
 
 #include "tkmDisplayArea.h"
 #include "tkmMeditWindow.h"
@@ -3212,7 +3212,7 @@ DspA_tErr DspA_HandleKeyDown_ ( tkmDisplayAreaRef this,
     }
     
     /* ctrl 2 goes to aux volume */
-    if ( ipEvent->mKey == '1' &&
+    if ( ipEvent->mKey == '2' &&
 	 ipEvent->mbCtrlKey ) {
       eResult = DspA_SetDisplayFlag( this, 
 				     DspA_tDisplayFlag_AuxVolume, TRUE );
@@ -3366,8 +3366,13 @@ DspA_tErr DspA_HandleKeyDown_ ( tkmDisplayAreaRef this,
     break;
     
   case 's':
+    /* alt+s toggles aux segmentation display */
+    if( ipEvent->mbAltKey ) {
+      eResult = 
+	DspA_ToggleDisplayFlag( this,DspA_tDisplayFlag_AuxSegmentationVolume );
+
     /* ctrl+s toggles main suface display */
-    if( ipEvent->mbCtrlKey ) {
+    } else if( ipEvent->mbCtrlKey ) {
       eResult = DspA_ToggleDisplayFlag( this, DspA_tDisplayFlag_MainSurface );
     } else {
       /* s sets tool to select */
