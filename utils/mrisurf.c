@@ -21378,7 +21378,7 @@ mrisMarkRetainedPartOfDefect(MRI_SURFACE *mris, DEFECT *defect,
                              FACE_DEFECT_LIST *fdl, float area_threshold, 
                              int mark_retain, int mark_discard, MHT *mht)
 {
-  int      n, i, j, nfaces, fno, flist[100000], n2, vno ;
+  int      n, i, j, nfaces, fno, flist[100000], n2, vno, retain ;
   FACE     *f ;
   VERTEX   *v, *vn ;
   float    dot, x0, y0, z0, x, y, z, dx, dy, dz, dist, fn, dot0, len ;
@@ -21464,7 +21464,7 @@ mrisMarkRetainedPartOfDefect(MRI_SURFACE *mris, DEFECT *defect,
   }
 
   /* for really big defects throw out 'inside' vertices */
-  if (defect->nvertices > 1000) for (n = 0 ; n < nfaces ; n++)
+  for (n = 0 ; n < nfaces ; n++)
   {
     fno = flist[n] ; f = &mris->faces[fno] ;
     mrisCalculateFaceCentroid(mris, fno, &x0, &y0, &z0) ;
@@ -21472,6 +21472,7 @@ mrisMarkRetainedPartOfDefect(MRI_SURFACE *mris, DEFECT *defect,
     dot0 = dx*defect->nx + dy*defect->ny + dz*defect->nz ;
 
     /* see if there are any faces inside (outside) of this one */
+    retain = 1 ;
     for (n2 = 0 ; n2 < fdl->nfaces[fno] ; n2++)
     {
       if (triangleNeighbors(mris, fno, fdl->faces[fno][n2]) >= 1)
@@ -21479,17 +21480,25 @@ mrisMarkRetainedPartOfDefect(MRI_SURFACE *mris, DEFECT *defect,
       mrisCalculateFaceCentroid(mris, fdl->faces[fno][n2], &x, &y, &z);
       dx = x - defect->cx ; dy = y - defect->cy ; dz = z - defect->cz ; 
       dot = dx*defect->nx + dy*defect->ny + dz*defect->nz ;
-#if 1
-      if (dot > dot0)
+#define HUGE_DEFECT 10000
+#define BIG_DEFECT   5000
+      if ((defect->nvertices > HUGE_DEFECT) && (dot > dot0))
+      {
+        retain = 0 ;
         break ;   /* found a face outside of this one - discard it */
+      }
+      if (defect->nvertices > BIG_DEFECT && defect->nvertices < HUGE_DEFECT)
+      {    
+        if (dot < dot0)  /* found a face inside this one - keep it */
+        {
+          retain = 1 ;
+          break ;
+        }
+        else
+          retain =  0 ;
+      }
     }
-    if (n2 < fdl->nfaces[fno])  /* found a face outside of this one */
-#else
-      if (dot < dot0)
-        break ;   /* found a face inside of this one - keep it */
-    }
-    if (n2 >= fdl->nfaces[fno])  /* no faces outside of this one */
-#endif
+    if (!retain)  /* no faces outside of this one */
     {
       for (n2 = 0 ; n2 < VERTICES_PER_FACE ; n2++)
       {
