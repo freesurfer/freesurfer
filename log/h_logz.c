@@ -2411,6 +2411,7 @@ imageOffsetDirection(IMAGE *Ix, IMAGE *Iy, int wsize, IMAGE *Iorient,
 #if USE_MEDIAN
 static int compare_sort_farray(const void *pf1, const void *pf2) ;
 static int compare_sort_barray(const void *pb1, const void *pb2) ;
+static int compare_sort_array(const void *pf1, const void *pf2) ;
 #endif
 
 
@@ -3373,7 +3374,6 @@ LogMapApplyOffset(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *Ioffset, IMAGE *Idst)
 
            Description:
 ----------------------------------------------------------------------*/
-static int compare_sort_array(const void *pf1, const void *pf2) ;
 IMAGE *
 LogMapMedianFilter(LOGMAP_INFO *lmi, IMAGE *Isrc, int wsize, IMAGE *Ioffset, 
                    IMAGE *Idst)
@@ -3533,6 +3533,7 @@ LogMapMedianFilter(LOGMAP_INFO *lmi, IMAGE *Isrc, int wsize, IMAGE *Ioffset,
 #endif
   return(Idst) ;
 }
+#if USE_MEDIAN
 /*----------------------------------------------------------------------
             Parameters:
 
@@ -3554,6 +3555,7 @@ compare_sort_array(const void *pf1, const void *pf2)
 
   return(0) ;
 }
+#endif
 /*----------------------------------------------------------------------
             Parameters:
 
