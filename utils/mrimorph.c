@@ -5591,7 +5591,7 @@ MRISshrinkWrapSkull(MRI *mri, MORPH_PARMS *parms)
   MRISpositionSurface(mris, mri, mri_smooth, &lparms) ;  /* outer skin */
   if (ncalls == 1 && (Gdiag & DIAG_WRITE) && DIAG_VERBOSE_ON)
     MRISwrite(mris, "outer_skin3.geo") ;
-  MRISexpandSurface(mris, -5) ;
+  MRISexpandSurface(mris, -5, NULL) ;
   if (ncalls == 1 && (Gdiag & DIAG_WRITE) && DIAG_VERBOSE_ON)
     MRISwrite(mris, "outer_skin_expanded.geo") ;
   MRISsetVals(mris, 0) ;
