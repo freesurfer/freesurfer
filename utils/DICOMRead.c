@@ -2,7 +2,7 @@
    DICOM 3.0 reading functions
    Author: Sebastien Gicquel and Douglas Greve
    Date: 06/04/2001
-   $Id: DICOMRead.c,v 1.14 2001/11/14 20:34:00 greve Exp $
+   $Id: DICOMRead.c,v 1.15 2001/11/15 19:04:11 greve Exp $
 *******************************************************/
 
 #include <stdio.h>
@@ -999,7 +999,7 @@ SDCMFILEINFO *GetSDCMFileInfo(char *dcmfile)
 
   tag=DCM_MAKETAG(0x18, 0x1314);
   cond=GetDoubleFromString(&object, tag, &dtmp);
-  sdcmfi->FlipAngle = (float) dtmp;
+  sdcmfi->FlipAngle = (float) M_PI*dtmp/180.0;
 
   tag=DCM_MAKETAG(0x18, 0x81);
   cond=GetDoubleFromString(&object, tag, &dtmp);
