@@ -6,23 +6,9 @@
 #include "error.h"
 #include "mri_conform.h"
 
-/*  if the pixel data is sorted by value, these values tell what
-  fraction of the pixels are to be clipped to the maximum and
-  minimum new pixel values -- the fraction of pixels between
-  the two are scaled linearly
-*/
-#define  BOTTOM_CLIP  0.001
-#define TOP_CLIP  0.999
-
-static int data_size[] = { 1, 4, 4, 4, 2 };
-
-static MRI *interpolate_and_pad(MRI *mri);
-static short s_partial_quicksort(short list[], int n, float cutoff_fraction);
-static unsigned char *s_scale(short list[], int list_length);
-static float f_partial_quicksort(float list[], int n, float cutoff_fraction);
-static unsigned char *f_scale(float list[], int list_length);
-static void short_image_to_buffer(short *buf, MRI *mri);
-static void float_image_to_buffer(float *buf, MRI *mri);
+MRI *conform_type(MRI *mri);
+MRI *conform_voxels(MRI *mri);
+MRI *conform_direction(MRI *mri);
 
 MRI *MRIconform(MRI *mri)
 {
@@ -32,293 +18,197 @@ MRI *MRIconform(MRI *mri)
   int i, j, k;
   MRI *mri2, *mri3, *mri4;
 
-  if(mri->slices == NULL)
-    {
-    mri2 = MRIcopy(mri, NULL);
-
-    mri2->depth = 256;
-    mri2->type = MRI_UCHAR;
-
-    if(mri2 == NULL)
-      ErrorReturn(NULL, (ERROR_NO_MEMORY, "MRIconform: can't allocate sequence"));
-
-    mri2->zsize = mri2->xsize;
-    mri2->zstart = mri2->xstart;
-    mri2->zend = mri2->xend;
-
-    mri2->imnr1 = 256;
-
-    return(mri2);
-
-    }
-  else
-    {
-
-    if(mri->type == MRI_UCHAR)
-    {
-      mri3 = interpolate_and_pad(mri);
-      MRIfree(&mri);
-    }
-    else
-    {
-      p_data = malloc(data_size[mri->type] * mri->height * mri->width * mri->depth);
-
-      if(mri->type == MRI_FLOAT)
-      {
-        float_image_to_buffer((float *)p_data, mri);
-        uchar_list = f_scale((float *)p_data, n_pixels);
-      }
-      else if(mri->type == MRI_SHORT)
-      {
-        short_image_to_buffer((short *)p_data, mri);
-        uchar_list = s_scale((short *)p_data, n_pixels);
-      }
-      else
-        ErrorReturn(NULL, (ERROR_UNSUPPORTED, "MRIconform: unsupported data type %d\n", mri->type));
-
-      mri2 = MRIallocSequence(mri->width, mri->height, mri->depth, MRI_UCHAR, 1);
-      if(mri2 == NULL)
-        ErrorReturn(NULL, (ERROR_NO_MEMORY, "MRIconform: can't allocate sequence"));
-      MRIcopyHeader(mri, mri2);
-      mri2->depth = mri->depth;
-
-      for(i = 0;i < mri->width;i++)
-        for(j = 0;j < mri->height;j++)
-          for(k = 0;k < mri->depth;k++)
-            MRIvox(mri2, i, j, k) = uchar_list[i + mri->width * (j + k*mri->height)];
-
-      mri3 = interpolate_and_pad(mri2);
-      MRIfree(&mri2);
-
-    free(p_data);
-
-    }
-
-    mri4 = MRIreorder(mri3, NULL, mri3->xdir, mri3->ydir, mri3->zdir);
-    mri4->xdir = XDIM;
-    mri4->ydir = YDIM;
-    mri4->zdir = ZDIM;
-    mri4->slice_direction = MRI_CORONAL;
-    MRIfree(&mri3);
-
-    return(mri4);
-
-    free(p_data);
-
-    }
+  mri3 = conform_type(mri);
+  mri4 = conform_voxels(mri3);
+  MRIfree(&mri3);
+  mri2 = conform_direction(mri4);
+  MRIfree(&mri4);
+  return(mri2);
 
 }  /*  end MRIconform()  */
 
-static MRI *interpolate_and_pad(MRI *mri)
+MRI *conform_type(MRI *mri)
 {
 
   MRI *mri2;
-  int i, j, k;
-  float findex, fifract;
-  int fiint;
+  int x, y, z;
+  float min, max;
+  float scale;
+  float this;
 
-  mri2 = MRIallocSequence(mri->width, mri->height, 256, MRI_UCHAR, 1);
+  if(mri->slices == NULL)
+  {
+    mri2 = MRIcopy(mri, NULL);
+    mri2->type = MRI_UCHAR;
+    return(mri2);
+  }
+
+  /* pixel value scaling goes here */
+
+  if(mri->type == MRI_UCHAR)
+    min = max = (float)MRIvox(mri, 0, 0, 0);
+  if(mri->type == MRI_INT)
+    min = max = (float)MRIIvox(mri, 0, 0, 0);
+  if(mri->type == MRI_LONG)
+    min = max = (float)MRILvox(mri, 0, 0, 0);
+  if(mri->type == MRI_FLOAT)
+    min = max = (float)MRIFvox(mri, 0, 0, 0);
+  if(mri->type == MRI_SHORT)
+    min = max = (float)MRISvox(mri, 0, 0, 0);
+
+  for(x = 0;x < mri->width;x++)
+    for(y = 0;y < mri->height;y++)
+      for(z = 0;z < mri->depth;z++)
+      {
+      if(mri->type == MRI_UCHAR)
+        this = (float)MRIvox(mri, x, y, z);
+      if(mri->type == MRI_INT)
+        this = (float)MRIIvox(mri, x, y, z);
+      if(mri->type == MRI_LONG)
+        this = (float)MRILvox(mri, x, y, z);
+      if(mri->type == MRI_FLOAT)
+        this = (float)MRIFvox(mri, x, y, z);
+      if(mri->type == MRI_SHORT)
+        this = (float)MRISvox(mri, x, y, z);
+
+      if(this > max)
+        max = this;
+      if(this < min)
+        min = this;
+        
+      }
+
+  scale = 256.0 / (max - min);
+
+  mri2 = MRIallocSequence(mri->width, mri->height, mri->depth, MRI_UCHAR, 1);
   MRIcopyHeader(mri, mri2);
-  mri2->zsize = mri2->xsize;
-  mri2->zstart = mri2->xstart;
-  mri2->zend = mri2->xend;
-  mri2->imnr1 = 256;
 
-  for(i = 0;i < 256;i++)
-    {
-    findex = (i-128) * mri2->zsize / mri->zsize + mri->depth / 2;
-    fiint = (int)(floor(findex));
-    fifract = findex - floor(findex);
-    if(fiint < 0 || fiint > mri->depth - 2)
+  for(x = 0;x < mri->width;x++)
+    for(y = 0;y < mri->height;y++)
+      for(z = 0;z < mri->depth;z++)
       {
-      for(j = 0;j < mri->height;j++)
-        for(k = 0;k < mri->width;k++)
-          MRIvox(mri2, k, j, i) = 0;
+      if(mri->type == MRI_UCHAR)
+        this = (float)MRIvox(mri, x, y, z);
+      if(mri->type == MRI_INT)
+        this = (float)MRIIvox(mri, x, y, z);
+      if(mri->type == MRI_LONG)
+        this = (float)MRILvox(mri, x, y, z);
+      if(mri->type == MRI_FLOAT)
+        this = (float)MRIFvox(mri, x, y, z);
+      if(mri->type == MRI_SHORT)
+        this = (float)MRISvox(mri, x, y, z);
+
+      MRIvox(mri2, x, y, z) = (unsigned char)(scale * (this - min));
+
       }
-    else
-      {
-      for(j = 0;j < mri->height;j++)
-        for(k = 0;k < mri->width;k++)
-          MRIvox(mri2, k, j, i) = (1. - fifract) * (float)MRIvox(mri, k, j, fiint) + fifract * (float)MRIvox(mri, k, j, fiint+1);
-      }
-    }
 
   return(mri2);
 
-}  /*  end interpolate_and_pad()  */
+} /* end conform_type() */
 
-/*  quicksort algorithm, sorting only the partition needed to find the
-  (n*cutoff_fraction)th value
-  see Sedgewick, Algorithms in C, pp. 126-130
-*/
-static short s_partial_quicksort(short list[], int n, float cutoff_fraction)
+MRI *conform_voxels(MRI *mri)
 {
 
-  int cutoff_index = (int)(cutoff_fraction * n);
+  MRI *mri2;
+  float fovx, fovy, fovz;
+  float max_fov;
+  float min_size;
+  int x, y, z;
+  int x0, y0, z0;
+  float xs, ys, zs;
+  int xi, yi, zi;
+  float xf, yf, zf, xf2, yf2, zf2;
 
-  int i, j, l, r;
-  short v, t;
+  fovx = mri->width * mri->xsize;
+  fovy = mri->height * mri->ysize;
+  fovz = mri->depth * mri->zsize;
 
-  l = 1;
-  r = n-1;
+  max_fov = (fovx > fovy ? fovx : fovy);
+  max_fov = (fovz > max_fov ? fovx : max_fov);
+  min_size = max_fov / 256.0;
 
-  while(r > l)
-    {
-    v = list[r]; i = l-1; j = r;
-    for(;;)
-      {
-      while(list[++i] < v);
-      while(list[--j] > v);
-      if(i >= j)
-        break;
-      t = list[i]; list[i] = list[j]; list[j] = t;
-      }
-    t = list[i]; list[i] = list[r]; list[r] = t;
-    if(i >= cutoff_index)
-      r = i-1;
-    if(i <= cutoff_index)
-      l = i+1;
-    }
-
-  return(list[l-1]);
-
-
-}  /*  end  s_partial_quicksort()  */
-
-static unsigned char *s_scale(short list[], int list_length)
-{
-
-  unsigned char *new_list;
-  int i;
-  short scale_bottom, scale_top;
-  float scale_factor;
-  short *list_copy;
-
-  list_copy = (short *)malloc(list_length * 2);
-  memcpy(list_copy, list, list_length * 2);
-  scale_bottom = s_partial_quicksort(list_copy, list_length, BOTTOM_CLIP);
-  scale_top = s_partial_quicksort(list_copy, list_length, TOP_CLIP);
-  free(list_copy);
-  scale_factor = 255 / (float)(scale_top - scale_bottom);
-
-  new_list = (unsigned char *)malloc(list_length);
-
-  for(i = 0;i < list_length;i++)
-    {
-    if(list[i] > scale_top)
-      list[i] = scale_top;
-    if(list[i] < scale_bottom)
-      list[i] = scale_bottom;
-    new_list[i] = (unsigned char)((list[i] - scale_bottom) * scale_factor);
-    }  
-  return(new_list);
-
-}  /*  end s_scale()  */
-
-/*  quicksort algorithm, sorting only the partition needed to find the
-  (n*cutoff_fraction)th value
-  see Sedgewick, Algorithms in C, pp. 126-130
-*/
-static float f_partial_quicksort(float list[], int n, float cutoff_fraction)
-{
-
-  int cutoff_index = (int)(cutoff_fraction * n);
-
-  int i, j, l, r;
-  float v, t;
-
-  l = 1;
-  r = n-1;
-
-  while(r > l)
-    {
-    v = list[r]; i = l-1; j = r;
-    for(;;)
-      {
-      while(list[++i] < v);
-      while(list[--j] > v);
-      if(i >= j)
-        break;
-      t = list[i]; list[i] = list[j]; list[j] = t;
-      }
-    t = list[i]; list[i] = list[r]; list[r] = t;
-    if(i >= cutoff_index)
-      r = i-1;
-    if(i <= cutoff_index)
-      l = i+1;
-    }
-
-  return(list[l-1]);
-
-
-}  /*  end  f_partial_quicksort()  */
-
-static unsigned char *f_scale(float list[], int list_length)
-{
-
-  unsigned char *new_list;
-  int i;
-  float scale_bottom, scale_top, scale_factor;
-  float *list_copy;
-
-  list_copy = (float *)malloc(list_length * 4);
-  memcpy(list_copy, list, list_length * 4);
-  scale_bottom = f_partial_quicksort(list_copy, list_length, BOTTOM_CLIP);
-  scale_top = f_partial_quicksort(list_copy, list_length, TOP_CLIP);
-  free(list_copy);
-  scale_factor = 255 / (scale_top - scale_bottom);
-
-  new_list = (unsigned char *)malloc(list_length);
-
-  for(i = 0;i < list_length;i++)
-    {
-    if(list[i] > scale_top)
-      list[i] = scale_top;
-    if(list[i] < scale_bottom)
-      list[i] = scale_bottom;
-    new_list[i] = (unsigned char)((list[i] - scale_bottom) * scale_factor);
-    }
-  
-  return(new_list);
-
-}  /*  end f_scale()  */
-
-static void
-float_image_to_buffer(float *buf, MRI *mri)
-{
-  int           y, z, width, height ;
-  BUFTYPE       *pslice ;
-  
-  width = mri->width ;
-  height = mri->height ;
-  for (z = 0;z < mri->depth ; z++)
+  if(mri->slices == NULL)
   {
-    for (y=0; y < height ; y++)
-    {
-      pslice = mri->slices[z][y] ;
-      memcpy(buf, pslice, width*sizeof(float)) ;
-      buf += width;
-    }
+    mri2 = MRIcopy(mri, NULL);
+    mri2->fov = max_fov;
+    mri2->width = mri2->height = mri2->depth = 256;
+    mri2->xsize = mri2->ysize = mri2->zsize = min_size;
+    return(mri2);
   }
-}
 
-static void
-short_image_to_buffer(short *buf, MRI *mri)
+  mri2 = MRIallocSequence(256, 256, 256, MRI_UCHAR, 1);
+
+  mri2->xdir = mri->xdir;
+  mri2->ydir = mri->ydir;
+  mri2->zdir = mri->zdir;
+
+  mri2->fov = max_fov;
+  mri2->xstart = mri2->ystart = mri2->zstart = 128 * min_size;
+  mri2->xend = mri2->yend = mri2->zend = -128 * min_size;
+
+  x0 = (int)(mri->width * (-mri->xstart / fovx));
+  y0 = (int)(mri->height * (-mri->ystart / fovy));
+  z0 = (int)(mri->depth * (-mri->zstart / fovz));
+
+  for(x = 0;x < 256;x++)
+    for(y = 0;y < 256;y++)
+      for(z = 0;z < 256;z++)
+      {
+
+        xs = ((float)(x - 128) * mri2->xsize / mri->xsize + (float)x0);
+        ys = ((float)(y - 128) * mri2->ysize / mri->ysize + (float)y0);
+        zs = ((float)(z - 128) * mri2->zsize / mri->zsize + (float)z0);
+
+        xi = (int)xs;
+        yi = (int)ys;
+        zi = (int)zs;
+
+        if(xi < 1 || yi < 1 || zi < 1 || xi > mri->width - 2 || yi > mri->height - 2 || zi > mri->depth - 2)
+          MRIvox(mri2, x, y, z) = 0;
+        else
+        {
+          xf = xs - xi;
+          yf = ys - yi;
+          zf = zs - zi;
+          xf2 = 1.-xf;
+          yf2 = 1.-yf;
+          zf2 = 1.-zf;
+
+          MRIvox(mri2, x, y, z) = (xf)  * (yf)  * (zf)  *  (float)MRIvox(mri, xi + 1, yi + 1, zi + 1) + 
+                                  (xf)  * (yf)  * (zf2) *  (float)MRIvox(mri, xi + 1, yi + 1, zi    ) + 
+                                  (xf)  * (yf2) * (zf)  *  (float)MRIvox(mri, xi + 1, yi,     zi + 1) + 
+                                  (xf)  * (yf2) * (zf2) *  (float)MRIvox(mri, xi + 1, yi,     zi    ) + 
+                                  (xf2) * (yf)  * (zf)  *  (float)MRIvox(mri, xi,     yi + 1, zi + 1) + 
+                                  (xf2) * (yf)  * (zf2) *  (float)MRIvox(mri, xi,     yi + 1, zi    ) + 
+                                  (xf2) * (yf2) * (zf)  *  (float)MRIvox(mri, xi,     yi,     zi + 1) + 
+                                  (xf2) * (yf2) * (zf2) *  (float)MRIvox(mri, xi,     yi,     zi    );
+        }
+
+      }
+
+  return(mri2);
+
+} /* end conform_voxels() */
+
+MRI *conform_direction(MRI *mri)
 {
-  int           y, z, width, height ;
-  BUFTYPE       *pslice ;
-  
-  width = mri->width ;
-  height = mri->height ;
-  for (z = 0;z < mri->depth ; z++)
+
+  MRI *mri2;
+
+  if(mri->slices == NULL)
+    mri2 = MRIcopy(mri, NULL);
+  else
   {
-    for (y=0; y < height ; y++)
-    {
-      pslice = mri->slices[z][y] ;
-      memcpy(buf, pslice, width*sizeof(short)) ;
-      buf += width;
-    }
+    mri2 = MRIreorder(mri, NULL, mri->xdir, mri->ydir, mri->zdir);
   }
-}
+
+  mri2->xdir = XDIM;
+  mri2->ydir = YDIM;
+  mri2->zdir = ZDIM;
+  mri2->slice_direction = MRI_CORONAL;
+
+  return(mri2);
+
+} /* end conform_direction() */
 
 /*  EOF  */
