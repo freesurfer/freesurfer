@@ -37,7 +37,12 @@ AC_CHECK_PROG([HAS_GZIP],[gzip],[1],
 # SUSE9.0:   host = x86_64-suse-linux          uname -p: x86_64
 # RedHat9.0: host = i686-pc-linux-gnu          uname -p: i686
 # MacOSX10 : host = powerpc-apple-darwin6.8    uname -p: powerpc
+# powerpc    host = powerpc64-suse-linux       uname -p: unknown
 #################################################################
+AC_C_BIGENDIAN_CROSS
+echo "byte order is " $BYTEORDER
+AC_SUBST(BYTEORDER)
+
 AC_MSG_NOTICE(Setitng OS from host ...)
 case "${host}" in
  i*86-*-linux-gnu*)
@@ -51,6 +56,15 @@ case "${host}" in
  ;;
  x86_64-*)
  OS=Linux
+ OS_CPPFLAGS="-Wall -fwritable-strings -m64"
+ OS_LDFLAGS="-all-static"
+ LDFLAGS="-L/usr/lib64 $LDFLAGSA"
+ DYNAMIC_LIB_EXT=".so"
+ SHARED_CFLAGS="-fPIC"
+ SHARED_LDFLAGS="-shared"
+ ;; 
+ powerpc64-*)
+ OS=BIGENDIAN
  OS_CPPFLAGS="-Wall -fwritable-strings -m64"
  OS_LDFLAGS="-all-static"
  LDFLAGS="-L/usr/lib64 $LDFLAGSA"
@@ -114,27 +128,32 @@ if test "$CPUTYPE" = "NO"; then
       esac
     ;;
   Linux)
-    cpu386=`./x86cpucaps/cpucaps -m | sed 's/ //g'`
-    case "$cpu386" in
-      PentiumIII*)
-      CPUTYPE=pentium3
+    case "${host}" in
+    i*86-*-linux-gnu*)	
+      cpu386=`./x86cpucaps/cpucaps -m | sed 's/ //g'`
+      case "$cpu386" in
+        PentiumIII*)
+        CPUTYPE=pentium3
+        ;;
+        Pentium4)
+        CPUTYPE=pentium4
+        ;;
+        AMDAthlonXP*)
+        CPUTYPE=athlonxp
+        ;;
+        AMDAthlon64)
+        CPUTYPE=athlon64
+        ;;
+        AMDOpteron*)
+        CPUTYPE=opteron
+        ;;
+       esac
       ;;
-      Pentium4)
-      CPUTYPE=pentium4
-      ;;
-      AMDAthlonXP*)
-      CPUTYPE=athlonxp
-      ;;
-      AMDAthlon64)
-      CPUTYPE=athlon64
-      ;;
-      AMDOpteron*)
-      CPUTYPE=opteron
-      ;;
-      *)
+    powerpc-*)
+      CPUTYPE=power4
       ;;
     esac
-  ;;
+    ;;
   esac
 fi
 
@@ -163,6 +182,12 @@ case "$CPUTYPE" in
      ;;
   G5)
      CPUFLAGS="-mtune=G5 -mcpu=G5"
+     ;;
+  power4)
+     CPUFLAGS="-mtune=power4 -mcpu=power4"
+     ;;
+  power5)
+     CPUFLAGS="-mtune=power5 -mcpu=power5"
      ;;
   *)
      echo "cpu optimization not set"
