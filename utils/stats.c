@@ -132,11 +132,6 @@ StatReadVolume(char *prefix)
   which_alloc = ALLOC_MEANS ;
   if (fp)  /* means there are time points and means and sigmas */
   {
-#if 0
-    if (!fp)
-      ErrorReturn(NULL, (ERROR_NOFILE, 
-                       "StatReadVolume: could not open dat file %s", fname)) ;
-#endif
     fgetl(line, MAX_LINE_LEN-1, fp) ;
     sscanf(line, "%*s %f", &sv->tr) ;
     fgetl(line, MAX_LINE_LEN-1, fp) ;
@@ -161,11 +156,6 @@ StatReadVolume(char *prefix)
   fp = fopen(fname, "r") ;
   if (fp)
   {
-#if 0
-    if (!fp)
-      ErrorReturn(NULL, (ERROR_NOFILE, 
-                         "StatReadVolume: could not open dof file %s", fname));
-#endif
     while ((cp = fgetl(line, MAX_LINE_LEN-1, fp)) != NULL)
     {
       sscanf(cp, "%d %d %d", &event_number, &dof_mean, &dof_sigma) ;
@@ -561,7 +551,7 @@ StatAccumulateSurfaceVolume(SV *sv_surf, SV *sv, MRI_SURFACE *mris)
 
 /* 
    first build average volume for this subjects. This is to avoid sampling
-   from the volume into the surface which would take forever since it
+   from the volume onto the surface which would take forever since it
    would require searching the entire surface for the nearest point for
    every point in the volume.
    */
