@@ -17882,6 +17882,8 @@ int main(int argc, char *argv[])   /* new main */
 #endif
   /* begin rkt */
   char tcl_cmd[1024];
+  int found_script = FALSE;
+  char* tksurfer_scripts_dir = NULL;
   /* end rkt */
 
   Progname = argv[0] ;
@@ -17912,47 +17914,78 @@ int main(int argc, char *argv[])   /* new main */
 
   /* begin rkt */
 
-  /* check for a local tksurfer.new.tcl */
-  strcpy(tksurfer_tcl,"tksurfer.new.tcl"); 
-  if ((fp=fopen(tksurfer_tcl,"r"))!=NULL) 
+  /* here is the priority of the tksurfer.tcl files:
+     1) tksurfer.new.tcl in local dir
+     2) tksurfer.tcl in local dir
+     3) tksurfer.new.tcl in TKSURFER_SCRIPTS_DIR
+     4) tksurfer.tcl in TKSURFER_SCRIPTS_DIR
+     5) tksurfer.new.tcl in MRI_DIR/lib/tcl
+     6) tksurfer.tcl in MRI_DIR/lib/tcl
+  */
+
+  found_script = FALSE;
+  tksurfer_scripts_dir = getenv ("TKSURFER_SCRIPTS_DIR");
+
+  if (!found_script)
     {
-      printf("tksurfer: using new tksurfer.new.tcl\n");
-      fclose(fp);
-    }
-  else 
-    {
-      /* check for a local tksurfer.tcl */
-      strcpy(tksurfer_tcl,"tksurfer.tcl"); 
-      if ((fp=fopen(tksurfer_tcl,"r"))!=NULL) 
+      strcpy (tksurfer_tcl, "tksurfer.new.tcl");
+      if ((fp=fopen(tksurfer_tcl,"r"))!=NULL)
   {
-    printf("tksurfer: using LOCAL tksurfer.tcl\n");
     fclose(fp);
-  }
-      else 
-  {
-    
-    /* look for tksurfer.new.tcl in mri dir */
-    sprintf(tksurfer_tcl,"%s/lib/tcl/%s",envptr,"tksurfer.new.tcl"); 
-    if ((fp=fopen(tksurfer_tcl,"r"))!=NULL) 
-      {
-        fclose(fp);
-      }
-    else 
-      {
-        
-        /* look for tksurfer.tcl in mri dir */
-        sprintf(tksurfer_tcl,"%s/lib/tcl/%s",envptr,"tksurfer.tcl"); 
-        if ((fp=fopen(tksurfer_tcl,"r"))==NULL) 
-    {
-      printf("tksurfer: script %s not found\n",tksurfer_tcl);
-      exit(0);
-    }
-        else {
-    fclose(fp);
-        }
-      }
+    found_script = TRUE;
   }
     }
+  if (!found_script)
+    {
+      strcpy (tksurfer_tcl, "tksurfer.tcl");
+      if ((fp=fopen(tksurfer_tcl,"r"))!=NULL)
+  {
+    fclose(fp);
+    found_script = TRUE;
+  }
+    }
+  if (!found_script && tksurfer_scripts_dir)
+    {
+      sprintf (tksurfer_tcl, "%s/tksurfer.new.tcl", tksurfer_scripts_dir);
+      if ((fp=fopen(tksurfer_tcl,"r"))!=NULL)
+  {
+    fclose(fp);
+    found_script = TRUE;
+  }
+    }
+  if (!found_script && tksurfer_scripts_dir)
+    {
+      sprintf (tksurfer_tcl, "%s/tksurfer.tcl", tksurfer_scripts_dir);
+      if ((fp=fopen(tksurfer_tcl,"r"))!=NULL)
+  {
+    fclose(fp);
+    found_script = TRUE;
+  }
+    }
+  if (!found_script && envptr)
+    {
+      sprintf (tksurfer_tcl, "%s/lib/tcl/tksurfer.new.tcl", envptr);
+      if ((fp=fopen(tksurfer_tcl,"r"))!=NULL)
+  {
+    fclose(fp);
+    found_script = TRUE;
+  }
+    }
+  if (!found_script && envptr)
+    {
+      sprintf (tksurfer_tcl, "%s/lib/tcl/tksurfer.tcl", envptr);
+      if ((fp=fopen(tksurfer_tcl,"r"))!=NULL)
+  {
+    fclose(fp);
+    found_script = TRUE;
+  }
+    }
+  if (!found_script)
+    {
+      printf ("surfer: cannot find tksurfer.tcl script\n");
+      exit (1);
+    }
+
   /* end rkt */
 
   /* look for script: (1) cwd, (2) MRI_DIR/lib/tcl, (3) [same]/alias.tcl */
@@ -18665,7 +18698,7 @@ int main(int argc, char *argv[])   /* new main */
   }
 
   /* run tcl/tk startup script to set vars, make interface; no display yet */
-  printf("tksurfer: interface: %s\n",tksurfer_tcl);
+  printf("surfer: using interface %s\n",tksurfer_tcl);
   code = Tcl_EvalFile(interp,tksurfer_tcl);
   if (*interp->result != 0 || code != TCL_OK)  
     printf(interp->result);

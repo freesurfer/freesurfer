@@ -6,7 +6,7 @@ source $env(MRI_DIR)/lib/tcl/tkm_common.tcl
 
 foreach sSourceFileName { tkm_wrappers.tcl } {
 
-    set lPath [list "." "$env(MRI_DIR)/lib/tcl"]
+    set lPath [list "." "$env(TKSURFER_SCRIPTS_DIR)" "$env(MRI_DIR)/lib/tcl"]
     set bFound 0
 
     foreach sPath $lPath {
@@ -20,7 +20,7 @@ foreach sSourceFileName { tkm_wrappers.tcl } {
       }
   }
     }
-
+    
     if { $bFound == 0 } {
   dputs "Couldn't load $sSourceFileName: Not found in $lPath"
     }
