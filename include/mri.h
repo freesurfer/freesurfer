@@ -152,6 +152,7 @@ MRI  *MRIreorder(MRI *mri_src, MRI *mri_dst, int xdim, int ydim, int zdim);
 /* I/O functions */
 /* ch ov */ /*
 int    MRIwrite(MRI *mri, char *fpref) ;
+int    MRIwriteFrame(MRI *mri, char *fname, int frame) ;
 */
 int    MRIappend(MRI *mri, char *fpref) ;
 int    MRIwriteInfo(MRI *mri, char *fpref) ;
