@@ -110,9 +110,16 @@ MRI   *MRIzSobel(MRI *mri_src, MRI *mri_z) ;
 MRI   *MRIreduce(MRI *mri_src, MRI *mri_dst) ;
 MRI   *MRIconvolve1d(MRI *mri_src, MRI *mri_dst, float *kernel, 
                      int len, int axis) ;
-MRI   *MRIreduce1d(MRI *mri_src, MRI *mri_dst, float *kernel, 
+MRI   *MRIreduce1d(MRI *mri_src, MRI *mri_dst,float *kernel,int len,int axis);
+MRI   *MRIdiffuse(MRI *mri_src, MRI *mri_dst, double k, 
+                    int niter, int which, double slope) ;
+MRI   *MRIdiffuseCurvature(MRI *mri_src, MRI *mri_dst, 
+                            double A,int niter, double slope) ;
+MRI   *MRIdiffusePerona(MRI *mri_src, MRI *mri_dst, 
+                             double k, int niter,double slope);
 
-                     int len, int axis) ;
+
+
 MRI   *MRIclone(MRI *mri_src, MRI *mri_dst) ;
 MRI   *MRIthreshold(MRI *mri_src, MRI *mri_dst, BUFTYPE threshold) ;
 int   MRIprincipleComponents(MRI *mri, MATRIX *mEvectors, float *evalues,
@@ -140,7 +147,8 @@ MRI   *MRImedian(MRI *mri_src, MRI *mri_dst, int wsize) ;
 MRI   *MRIstd(MRI *mri_src, MRI*mri_dst, MRI *mri_mean, int wsize) ;
 MRI   *MRInorm(MRI *mri_src, MRI*mri_dst, MRI *mri_mean, MRI *mri_std) ;
 
-
+int   MRIcheckSize(MRI *mri_src, MRI *mri_check, int width, int height,
+                   int depth) ;
 MRI   *MRIreadRaw(FILE *fp, int width, int height, int depth, int type) ;
 int   MRIinitHeader(MRI *mri) ;
 int   MRIvoxelToWorld(MRI *mri, Real xv, Real yv, Real zv, 
