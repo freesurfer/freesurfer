@@ -1416,6 +1416,68 @@ GCAcomputeLogSampleProbability(GCA *gca, GCA_SAMPLE *gcas,
   MatrixFree(&m_L_inv) ; MatrixFree(&v_canon) ; MatrixFree(&v_input) ;
   return((float)total_log_p) ;
 }
+float
+GCAcomputeLogSampleProbabilityUsingCoords(GCA *gca, GCA_SAMPLE *gcas, 
+                               MRI *mri_inputs, MATRIX *m_L, int nsamples)
+{
+  int        x, y, z, width, height, depth, val,
+             xn, yn, zn, i ;
+  GCA_NODE   *gcan ;
+  GC1D       *gc ;
+  float      dist ;
+  double     total_log_p, log_p ;
+
+
+  /* go through each GC in the sample and compute the probability of
+     the image at that point.
+  */
+  width = mri_inputs->width ; height = mri_inputs->height; 
+  depth = mri_inputs->depth ;
+  for (total_log_p = 0.0, i = 0 ; i < nsamples ; i++)
+  {
+    if (i == Gdiag_no)
+      DiagBreak() ;
+    if (Gdiag_no == gcas[i].label)
+      DiagBreak() ;
+
+    xn = gcas[i].xn ; yn = gcas[i].yn ; zn = gcas[i].zn ; 
+    x = gcas[i].x ; y = gcas[i].y ; z = gcas[i].z ; 
+    val = MRIvox(mri_inputs, x, y, z) ;
+
+    gcan = &gca->nodes[xn][yn][zn] ;
+    gc = &gcan->gcs[gcas[i].n] ;
+#define TRIM_DISTANCES 0
+#if TRIM_DISTANCES
+         
+    dist = (val-gc->mean) ;
+#define TRIM_DIST 20
+    if (abs(dist) > TRIM_DIST)
+      dist = TRIM_DIST ;
+    log_p =
+      -log(sqrt(gc->var)) - 
+      0.5 * (dist*dist/gc->var) +
+      log(gc->prior) ;
+#else
+    dist = (val-gcas[i].mean) ;
+    log_p =
+      -log(sqrt(gcas[i].var)) - 
+      0.5 * (dist*dist/gcas[i].var) +
+      log(gcas[i].prior) ;
+#endif
+    total_log_p += log_p ;
+    gcas[i].log_p = log_p ;
+
+    if (!finite(total_log_p))
+    {
+      DiagBreak() ;
+      fprintf(stderr, 
+              "total log p not finite at (%d, %d, %d) n = %d, "
+              "var=%2.2f\n", x, y, z, gcas[i].n, gc->var) ;
+    }
+  }
+
+  return((float)total_log_p) ;
+}
 /*
   compute the probability of the image given the transform and the class
   stats.

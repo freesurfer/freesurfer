@@ -106,6 +106,9 @@ float GCAcomputeLogImageProbability(GCA *gca, MRI *mri_inputs, MRI *mri_labels,
 float  GCAcomputeLogSampleProbability(GCA *gca, GCA_SAMPLE *gcas, 
                                       MRI *mri_inputs,
                                       MATRIX *m_L,int nsamples);
+float  GCAcomputeLogSampleProbabilityUsingCoords(GCA *gca, GCA_SAMPLE *gcas, 
+                                      MRI *mri_inputs,
+                                      MATRIX *m_L,int nsamples);
 int   GCArankSamples(GCA *gca, GCA_SAMPLE *gcas, int nsamples, 
                      int *ordered_indices) ;
 MRI  *GCAanneal(MRI *mri_inputs, GCA *gca, MRI *mri_dst,LTA *lta, 
