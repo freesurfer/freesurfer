@@ -1,3 +1,13 @@
+/**
+ * @file   version.c
+ * @author $Author: tosa $
+ * @date   $Date: 2004/11/05 15:49:56 $
+ *         $Revision: 1.13 $
+ * @brief  freesurfer version functions defined here
+ * 
+ * 
+ */
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -12,6 +22,8 @@
 /* Set our compiler name */
 #if defined(__GNUC__)
 #  define COMPILER_NAME "GCC"
+#else
+#  define COMPILER_NAME "Non-GCC"
 #endif
 
 /* If GCC (probably is) get the version number */
@@ -25,7 +37,7 @@
                             + __GNUC_MINOR__ * 100)
 # endif
 #else
-#  define COMPILE_VERSION 0
+#  define COMPILER_VERSION 0
 #endif
 
 /* Figure out the platform. */
