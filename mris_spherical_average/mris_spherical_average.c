@@ -14,8 +14,9 @@
 #include "macros.h"
 #include "mrishash.h"
 #include "icosahedron.h"
+#include "label.h"
 
-static char vcid[] = "$Id: mris_spherical_average.c,v 1.1 2000/12/15 02:52:54 fischl Exp $";
+static char vcid[] = "$Id: mris_spherical_average.c,v 1.2 2001/03/12 23:04:10 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -34,8 +35,9 @@ static char *output_surf_name = NULL ;
 static int navgs = 0 ;
 static char *ohemi = NULL ;
 static char *osurf = NULL ;
+static char *orig_name = "orig" ;
 
-static int which_ic = 5 ;
+static int which_ic = 7 ;
 static char *sdir = NULL ;
 
 int
@@ -47,18 +49,12 @@ main(int argc, char *argv[])
   double          max_len ;
   MRI_SURFACE     *mris, *mris_avg ;
   MRIS_HASH_TABLE *mht = NULL ;
+  LABEL           *area, *area_avg = NULL ;
 
   Progname = argv[0] ;
   ErrorInit(NULL, NULL, NULL) ;
   DiagInit(NULL, NULL, NULL) ;
 
-  if (!sdir)
-  {
-    sdir = getenv("SUBJECTS_DIR") ;
-    if (!sdir)
-      ErrorExit(ERROR_BADPARM, "%s: no SUBJECTS_DIR in envoronment.\n",
-                Progname);
-  }
   ac = argc ;
   av = argv ;
   for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++)
@@ -68,6 +64,13 @@ main(int argc, char *argv[])
     argv += nargs ;
   }
   
+  if (!sdir)
+  {
+    sdir = getenv("SUBJECTS_DIR") ;
+    if (!sdir)
+      ErrorExit(ERROR_BADPARM, "%s: no SUBJECTS_DIR in envoronment.\n",
+                Progname);
+  }
   /* 
      command line: <which> <fname> <hemi> <spherical surf> <subject 1> ... 
                    <output>
@@ -84,6 +87,8 @@ main(int argc, char *argv[])
     which = VERTEX_AREA ;
   else if (!stricmp(argv[1], "curv"))
     which = VERTEX_CURV ;
+  else if (!stricmp(argv[1], "label"))
+    which = VERTEX_LABEL ;
   else
     usage_exit() ;
 
@@ -116,9 +121,10 @@ main(int argc, char *argv[])
     if (!mris)
       ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
               Progname, fname) ;
+    MRISprojectOntoSphere(mris, mris, DEFAULT_RADIUS) ;
     if (i == FIRST_SUBJECT)  /* scale the icosahedron up */
     {
-      MRISprojectOntoSphere(mris_avg, mris_avg, MRISaverageRadius(mris)) ;
+      MRISprojectOntoSphere(mris_avg, mris_avg, DEFAULT_RADIUS) ;
       MRIScomputeVertexSpacingStats(mris_avg, NULL, NULL, &max_len, NULL,NULL);
       mht = MHTfillVertexTableRes(mris_avg, NULL, CURRENT_VERTICES,
                                   2*max_len);
@@ -126,6 +132,19 @@ main(int argc, char *argv[])
 
     switch (which)
     {
+    case VERTEX_LABEL:
+      if (i == FIRST_SUBJECT)
+        area_avg = LabelAlloc(mris_avg->nvertices, NULL, data_fname) ;
+      if (strchr(data_fname, '/') != NULL)
+        strcpy(fname, data_fname) ;
+      else
+        sprintf(fname, "%s/%s/label/%s", sdir, argv[i], data_fname) ;
+      area = LabelRead(NULL, fname) ;
+      if (!area)
+        ErrorExit(ERROR_BADFILE,"%s: could not read label file %s for %s.\n",
+                  Progname, data_fname, argv[i]);
+      area_avg = LabelSphericalCombine(mris, area, mht, mris_avg, area_avg) ;
+      break ;
     case VERTEX_CURVATURE:
       if (MRISreadCurvatureFile(mris, data_fname) != NO_ERROR)
         ErrorExit(ERROR_BADFILE,"%s: could not read curvature file %s.\n",
@@ -147,11 +166,13 @@ main(int argc, char *argv[])
       
       break ;
     }
-    MRIScombine(mris, mris_avg, mht, which) ;
+    if (which != VERTEX_LABEL)
+      MRIScombine(mris, mris_avg, mht, which) ;
     if (i < argc-2)
       MRISfree(&mris) ;
   }
-  MRISnormalize(mris_avg, nsubjects, which) ;
+  if (which != VERTEX_LABEL)
+    MRISnormalize(mris_avg, nsubjects, which) ;
   MHTfree(&mht) ;
 
   if (output_surf_name)
@@ -163,13 +184,21 @@ main(int argc, char *argv[])
     if (!mris)
       ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
               Progname, fname) ;
+    MRISprojectOntoSphere(mris, mris, DEFAULT_RADIUS) ;
   }
 
   MRISclear(mris, which) ;
   MRIScomputeVertexSpacingStats(mris, NULL, NULL, &max_len, NULL,NULL);
   mht = MHTfillVertexTableRes(mris, NULL, CURRENT_VERTICES,
                               2*max_len);
-  MRISsphericalCopy(mris_avg, mris, mht, which) ;
+  if (which != VERTEX_LABEL)
+    MRISsphericalCopy(mris_avg, mris, mht, which) ;
+  else
+  {
+    LabelFree(&area) ;
+    area = LabelSphericalCombine(mris_avg, area_avg, mht, mris, NULL) ;
+    LabelRemoveDuplicates(area) ;
+  }
   MHTfree(&mht) ;
   if (which == VERTEX_AREA)
     MRISorigAreaToCurv(mris) ;
@@ -214,6 +243,11 @@ main(int argc, char *argv[])
       fprintf(stderr,"writing blurred pattern to surface to %s\n",out_fname);
     switch (which)
     {
+    case VERTEX_LABEL:
+      printf("writing label with %d points to %s...\n", area->n_points,
+             out_fname) ;
+      LabelWrite(area, out_fname) ;
+      break ;
     case VERTEX_AREA:
     case VERTEX_CURV:
       MRISwriteCurvature(mris, out_fname) ;
@@ -258,6 +292,11 @@ get_option(int argc, char *argv[])
   else if (!stricmp(option, "sdir"))
   {
     sdir = argv[2] ;
+    nargs = 1 ;
+  }
+  else if (!stricmp(option, "orig"))
+  {
+    orig_name = argv[2] ;
     nargs = 1 ;
   }
   else if (!stricmp(option, "osurf"))
@@ -317,6 +356,7 @@ print_usage(void)
           "<subject 1> ... <output>\n", Progname) ;
   fprintf(stderr, "where which is one of\n"
           "\tcoords\n"
+          "\tlabel\n"
           "\tvals\n"
           "\tcurv\n"
           "\tarea\n") ;
