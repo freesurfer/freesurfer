@@ -108,7 +108,7 @@ main(int argc, char *argv[])
   TRANSFORM     *transform ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_ca_label.c,v 1.48 2004/10/27 20:30:49 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ca_label.c,v 1.49 2004/12/01 21:39:47 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -439,6 +439,10 @@ main(int argc, char *argv[])
     if (!mri_labeled)
       ErrorExit(ERROR_NOFILE, "%s: could not read segmentation from %s",
                 Progname, read_fname) ;
+		if (Ggca_x >= 0)
+			printf("label(%d, %d, %d) = %s (%d)\n",
+						 Ggca_x, Ggca_y, Ggca_z, cma_label_to_name(MRIvox(mri_labeled, Ggca_x, Ggca_y, Ggca_z)),
+						 MRIvox(mri_labeled, Ggca_x, Ggca_y, Ggca_z)) ;
   }
   else
   {
@@ -515,6 +519,13 @@ main(int argc, char *argv[])
 				ErrorExit(ERROR_NOFILE, "%s: could not open registration file %s",
 									Progname, reg_fname) ;
 
+			{
+				LTA *lta = (LTA *)transform->xform ;
+				getVolGeom(mri_labeled, &lta->xforms[0].src) ;
+				getVolGeom(mri_inputs, &lta->xforms[0].dst) ;
+				LTAchangeType(lta, LINEAR_VOX_TO_VOX) ;
+				transform->type = LINEAR_VOX_TO_VOX ;
+			}
 			if (transform->type != LINEAR_VOX_TO_VOX)
 				ErrorExit(ERROR_BADPARM, "%s: transform type (%d) must be LINEAR_VOX_TO_VOX",
 									Progname, transform->type) ;
@@ -522,6 +533,11 @@ main(int argc, char *argv[])
 			MRIfree(&mri_labeled) ;
 			mri_labeled = mri_tmp ;
 
+			if (Ggca_x >= 0)
+				printf("label(%d, %d, %d) = %s (%d)\n",
+							 Ggca_x, Ggca_y, Ggca_z,  
+							 cma_label_to_name(MRIvox(mri_labeled, Ggca_x, Ggca_y, Ggca_z)),
+							 MRIvox(mri_labeled, Ggca_x, Ggca_y, Ggca_z)) ;
 			TransformFree(&transform) ;
 			if (gca_write_iterations != 0)
 			{
