@@ -148,7 +148,7 @@ MRICtrain(MRIC *mric, char *file_name, char *prior_fname)
   char       source_fname[100], target_fname[100], line[300], *cp ;
   FILE       *fp ;
   int        fno, nfiles, round ;
-  MRI        *mri_src, *mri_target, *mri_in ;
+  MRI        *mri_src, *mri_target ;
   MRI_REGION bounding_box ;
 
   if (prior_fname)
@@ -904,3 +904,19 @@ MRICcomputeStatistics(MRIC *mric, int round)
   }
   return(NO_ERROR) ;
 }
+char *
+MRICclassName(MRIC *mric, int round, int classno)
+{
+  char *class_name = "unknown" ;
+
+  switch (mric->type[round])
+  {
+  default:
+  case CLASSIFIER_GAUSSIAN:
+    class_name = gaussian_class_names[classno] ;
+    break ;
+  }
+
+  return(class_name) ;
+}
+
