@@ -111,7 +111,7 @@ LTAwrite(LTA *lta, char *fname)
   time_str = ctime(&tt) ;
   fprintf(fp, "# transform file %s\n# created by %s on %s\n",
           fname, user, time_str) ;
-  fprintf(fp, "type      = %d\n", LTA_TYPE) ;
+  fprintf(fp, "type      = %d\n", lta->type) ;
   fprintf(fp, "nxforms   = %d\n", lta->num_xforms) ;
   for (i = 0 ; i < lta->num_xforms ; i++)
   {
@@ -319,7 +319,12 @@ LTAtransform(MRI *mri_src, MRI *mri_dst, LTA *lta)
   MATRIX      *m_L, *m_L_inv ;
 
   if (lta->num_xforms == 1)
-    return(MRIlinearTransform(mri_src, mri_dst, lta->xforms[0].m_L)) ;
+  {
+    if (lta->type == LINEAR_RAS_TO_RAS)
+      return(MRIapplyRASlinearTransform(mri_src, mri_dst, lta->xforms[0].m_L)) ;
+    else
+      return(MRIlinearTransform(mri_src, mri_dst, lta->xforms[0].m_L)) ;
+  }
 
   fprintf(stderr, "applying octree transform to image...\n") ;
   if (!mri_dst)
