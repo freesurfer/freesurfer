@@ -272,8 +272,16 @@ int is_mnc(char *fname)
   dot = strrchr(fname, '.') ;
   if (dot)
   {
-    if (!stricmp(dot+1, "mnc"))
+    if(!stricmp(dot+1, "mnc"))
       return(1) ;
+  }
+
+  if(!stricmp(dot+1, "gz"))
+  {
+    /* --- get the next to last dot or the beginning of the file name --- */
+    for(dot--;*dot != '.' && dot > fname;dot--);
+    if(stricmp(dot, ".mnc.gz") == 0)
+      return(1);
   }
 
   if((fp = fopen(fname, "r")) == NULL)
