@@ -8,10 +8,10 @@
  *
 */
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2003/10/24 20:53:43 $
-// Revision       : $Revision: 1.244 $
-char *MRI_C_VERSION = "$Revision: 1.244 $";
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2003/10/30 19:51:52 $
+// Revision       : $Revision: 1.245 $
+char *MRI_C_VERSION = "$Revision: 1.245 $";
 
 /*-----------------------------------------------------
                     INCLUDE FILES
@@ -2484,6 +2484,9 @@ MRIextractInto(MRI *mri_src, MRI *mri_dst, int x0, int y0, int z0,
   case MRI_INT:
     bytes *= sizeof(int) ;
     break ;
+  case MRI_SHORT:
+    bytes *= sizeof(short) ;
+    break ;
   default:
     break ;
   }
@@ -2503,6 +2506,14 @@ MRIextractInto(MRI *mri_src, MRI *mri_dst, int x0, int y0, int z0,
         case MRI_FLOAT:
           memcpy(&MRIFseq_vox(mri_dst, x1, yd, zd,frame), 
                  &MRIFseq_vox(mri_src,x0,ys,zs,frame), bytes);
+          break ;
+        case MRI_SHORT:
+          memcpy(&MRISseq_vox(mri_dst, x1, yd, zd,frame), 
+                 &MRISseq_vox(mri_src,x0,ys,zs,frame), bytes);
+          break ;
+        case MRI_LONG:
+          memcpy(&MRILseq_vox(mri_dst, x1, yd, zd,frame), 
+                 &MRILseq_vox(mri_src,x0,ys,zs,frame), bytes);
           break ;
         }
       }
