@@ -5,7 +5,7 @@
 # editing.
 #
 # mkfsdist
-# $Id: mkfsdist,v 1.16 2003/04/24 19:07:01 kteich Exp $
+# $Id: mkfsdist,v 1.17 2003/04/29 18:54:45 kteich Exp $
 #
 # Usage: mkfsdist targetdir
 #
@@ -54,7 +54,7 @@
 #  files found in tar-exclude-more and tar-exclude-gca.
 #
 # 
-set VERSION = '$Id: mkfsdist,v 1.16 2003/04/24 19:07:01 kteich Exp $';
+set VERSION = '$Id: mkfsdist,v 1.17 2003/04/29 18:54:45 kteich Exp $';
 
 # To include the autoseg in the distribution set environment varible
 # KEEPAUTOSEG to 1 before running mkfsdist (ie, setenv KEEPAUTOSEG 1)
@@ -444,7 +444,7 @@ if( $MINC ) then
     echo "Tarring minc" | tee -a $LF
     date | tee -a $LF
     pushd /space/lyon/9/pubsw > /dev/null
-    set TF = `basename $TARGET_DIR`/minc-$PLATFORM.tar
+    set TF = $TARGET_DIR/minc-$PLATFORM.tar.gz
     rm -f $TF
     # Look for the right mni package. If found, tar it.
     set mni_platform = $PLATFORM
@@ -461,9 +461,8 @@ if( $MINC ) then
     if(! -e $mnidir) then
 	echo "WARNING: cannot find $mnidir" | tee -a $LF
     else
-	tar rv -f $TF $mnidir >> $LF
+	tar cvz -f $TF $mnidir >> $LF
     endif
-    gzip $TF
     date | tee -a $LF
 endif
 
