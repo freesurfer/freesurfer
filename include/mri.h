@@ -874,6 +874,9 @@ void setMRIforSurface(MRI *mri); // set c_(r,a,s) = 0 for a conformed volume
 MRI *MRIremoveNaNs(MRI *mri_src, MRI *mri_dst) ;
 MRI *MRImakePositive(MRI *mri_src, MRI *mri_dst);
 
+/* extract the RASToVoxeMatrix from an MRI */
+MATRIX *GetSurfaceRASToVoxelMatrix(MRI *mri);
+
 /* Zero-padding for 3d analyze (ie, spm) format */
 #ifdef _MRIIO_SRC
   int N_Zero_Pad_Input  = -1;
