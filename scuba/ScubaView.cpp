@@ -1388,11 +1388,30 @@ ScubaView::DoListenToMessage ( string isMessage, void* iData ) {
   if( isMessage == "cursorChanged" ) {
 
     // If we're locked on the cursor, and the cursor is no longer in
-    // our view plane, set our view now.
+    // our view plane, set our view now. But only focus on the
+    // cursor's new plane to minimize the view jumping around.
     if( mbLockOnCursor && 
 	!mViewState.IsRASVisibleInPlane( mCursor.xyz(), 
 		     mInPlaneMovementIncrements[mViewState.mInPlane] )) {
-      Set2DRASCenter( mCursor.xyz() );
+
+      float newCenter[3];
+      newCenter[0] = mViewState.mCenterRAS[0];
+      newCenter[1] = mViewState.mCenterRAS[1];
+      newCenter[2] = mViewState.mCenterRAS[2];
+
+      switch( mViewState.mInPlane ) {
+      case ViewState::X:
+	newCenter[0] = mCursor[0];
+	break;
+      case ViewState::Y:
+	newCenter[1] = mCursor[1];
+	break;
+      case ViewState::Z:
+	newCenter[2] = mCursor[2];
+	break;
+      }
+
+      Set2DRASCenter( newCenter );
     }
 
     mbRebuildOverlayDrawList = true;

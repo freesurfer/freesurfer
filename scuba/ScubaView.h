@@ -77,6 +77,15 @@ public:
   void SetWorldToViewTransform ( int iTransformID );
   int GetWorldToViewTransform ();
 
+  void SetInPlaneIncrement ( ViewState::Plane iInPlane, float iIncrement );
+  float GetInPlaneIncrement ( ViewState::Plane iInPlane );
+
+  void SetLinkedStatus ( bool ibLinked ) {mViewIDLinkedList[GetID()]=ibLinked;}
+  bool GetLinkedStatus () { return mViewIDLinkedList[GetID()]; }
+
+  void SetLockOnCursor ( bool ibLock ) { mbLockOnCursor = ibLock; }
+  bool GetLockOnCursor () { return mbLockOnCursor; }
+
   // Get the map of label values.
   std::map<std::string,std::string>& GetLabelValueMap ( std::string isSet );
 
@@ -190,12 +199,6 @@ protected:
 
   // Rebuilds the label-value stuff.
   void RebuildLabelValueInfo ( float iRAS[3], std::string isLabel );
-
-  void SetLinkedStatus ( bool ibLinked ) {mViewIDLinkedList[GetID()]=ibLinked;}
-  bool GetLinkedStatus () { return mViewIDLinkedList[GetID()]; }
-
-  void SetLockOnCursor ( bool ibLock ) { mbLockOnCursor = ibLock; }
-  bool GetLockOnCursor () { return mbLockOnCursor; }
 
   // The draw list for the view overlay and a boolean saying whether
   // it should be rebuilt, usually when the view changes. This view

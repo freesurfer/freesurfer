@@ -10,7 +10,7 @@ if { $err } {
     load [file dirname [info script]]/libscuba[info sharedlibextension] scuba
 }
 
-DebugOutput "\$Id: scuba.tcl,v 1.79 2005/02/09 20:44:48 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.80 2005/02/10 19:09:25 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -2078,7 +2078,7 @@ proc MakeViewPropertiesPanel { ifwTop } {
 		-command {SetViewLockOnCursor $gaView(current,id) $gaView(current,lockedCursor); SetPreferencesValue LockOnCursor $gaView(current,lockedCursor); set gaPrefs(LockOnCursor) [GetPreferencesValue LockOnCursor]} }
 	}
 
-    pack $fw3.cbwLinked $fw3.cbwLinked \
+    pack $fw3.cbwLinked $fw3.cbwLocked \
 	-side left -fill x
 
     # Row 4: The table for draw layers.
@@ -4587,7 +4587,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.79 2005/02/09 20:44:48 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.80 2005/02/10 19:09:25 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.

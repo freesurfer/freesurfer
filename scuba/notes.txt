@@ -482,8 +482,7 @@ x get the new layers window working
   x working on pdmTransform
   x ignore markers for histogram.
   x min/mid/max marker for heat scale
-  - shuffle layers
-    - locked layers
+  x shuffle layers
 
 x default dirs for file dlogs if subject is loaded
 
