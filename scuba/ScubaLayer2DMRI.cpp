@@ -587,8 +587,10 @@ ScubaLayer2DMRI::DoListenToTclCommand ( char* isCommand, int iArgc, char** iasAr
 	return error;
       }
 
-      SetBrightness( brightness );
-      BuildGrayscaleLUT();
+      if( brightness > 0 && brightness < 1 ) {
+	SetBrightness( brightness );
+	BuildGrayscaleLUT();
+      }
     }
   }
 
@@ -625,8 +627,10 @@ ScubaLayer2DMRI::DoListenToTclCommand ( char* isCommand, int iArgc, char** iasAr
 	return error;
       }
 
-      SetContrast( contrast );
-      BuildGrayscaleLUT();
+      if( contrast > 0 && contrast < 30 ) {
+	SetContrast( contrast );
+	BuildGrayscaleLUT();
+      }
     }
   }
 
