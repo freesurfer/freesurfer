@@ -73,7 +73,7 @@
 #define   Right_Stellate  69/*                       120   62   43     0   */
 #define   Right_Porg  70/*                            74  155   60     0   */
 #define   Right_Aorg  71/*                          122  135   50     0*/
-#define   Fifth_Ventricle 72                        156   25  250    0 */
+#define   Fifth_Ventricle 72/*                        156   25  250    0 */
 #define   Left_Interior 73  /*                       122  135   50    0*/
 #define   Right_Interior 74  /*                      122  135   50    0*/
 #define   Left_Lateral_Ventricles 75  /*             120   18  134    0*/
