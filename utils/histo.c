@@ -1219,18 +1219,13 @@ HISTOtotalInRegion(HISTO *h, int b0, int b1)
 int
 HISTOclearZeroBin(HISTOGRAM *h)
 {
-	int b, zero_bin = 0 ;
-	float min_dist ;
+	int b ;
 
-	min_dist = fabs(h->bins[0]) ;
-	for (b = 1 ; b < h->nbins ; b++)
+	for (b = 0 ; b < h->nbins-1 ; b++)
 	{
-		if (fabs(h->bins[b]) < min_dist)
-		{
-			min_dist = fabs(h->bins[b]) ;
-			zero_bin = b ;
-		}
+		if (h->bins[b] > 0)
+			break ;
 	}
-	h->counts[zero_bin] = 0 ;
+	h->counts[b] = 0 ;
 	return(NO_ERROR) ;
 }
