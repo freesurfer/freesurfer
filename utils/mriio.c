@@ -8248,6 +8248,9 @@ mghRead(char *fname, int read_volume, int frame)
   float  fval, xsize, ysize, zsize, x_r, x_a, x_s, y_r, y_a, y_s,
          z_r, z_a, z_s, c_r, c_a, c_s ;
   short  sval ;
+  long tag_data_begin, tag_data_end;
+  size_t tag_data_size;
+
   /* keep the compiler quiet */
   xsize = ysize = zsize = 0;
   x_r = x_a = x_s = 0;
@@ -8443,6 +8446,26 @@ mghRead(char *fname, int read_volume, int frame)
           if (freadFloatEx(&(mri->fov), fp))
             ;
     }
+
+  // At this point there may be tag data between here and the end of
+  // the file. We don't know what it is, so we'll just copy it into a
+  // buffer in the struct and write it out later in mghWrite.  Get our
+  // current position, then skip the end of the file and get the
+  // position there. Anything in between is tag data. If there is
+  // some, allocate the tag buffer to that size and read in the dat.
+  tag_data_begin = ftell( fp );
+  fseek( fp, 0, SEEK_END );
+  tag_data_end = ftell( fp );
+  tag_data_size = tag_data_end - tag_data_begin;
+  mri->tag_data_size = tag_data_size;
+  if( tag_data_size > 0 ) {
+    fseek( fp, SEEK_SET, tag_data_begin );
+    mri->tag_data = malloc( tag_data_size );
+    if( NULL != mri->tag_data ) {
+      fread( mri->tag_data, tag_data_size, 1, fp );
+    }
+  }
+
   fclose(fp) ;
 
   // xstart, xend, ystart, yend, zstart, zend are not stored
@@ -8583,6 +8606,12 @@ mghWrite(MRI *mri, char *fname, int frame)
   fwriteFloat(mri->te, fp) ;
   fwriteFloat(mri->ti, fp) ;
   fwriteFloat(mri->fov, fp); // somebody forgot this
+
+  // If we have any saved tag data, write it.
+  if( NULL != mri->tag_data ) {
+    fwrite( mri->tag_data, mri->tag_data_size, 1, fp );
+  }
+
 
   fclose(fp) ;
   return(NO_ERROR) ;
