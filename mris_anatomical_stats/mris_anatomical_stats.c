@@ -15,7 +15,7 @@
 #include "fio.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_anatomical_stats.c,v 1.15 2004/02/17 20:01:04 greve Exp $";
+static char vcid[] = "$Id: mris_anatomical_stats.c,v 1.16 2004/02/18 18:24:52 greve Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -77,7 +77,7 @@ main(int argc, char *argv[])
   int           n_vertices = -1;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_anatomical_stats.c,v 1.15 2004/02/17 20:01:04 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_anatomical_stats.c,v 1.16 2004/02/18 18:24:52 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -353,6 +353,8 @@ main(int argc, char *argv[])
     MRIScomputeCurvatureStats(mris, &thickness_mean, &thickness_var,
                               ignore_below, ignore_above) ;
     
+    fprintf(stdout, "number of vertices                      = %d\n", 
+	    mris->nvertices);
     fprintf(stdout, "total surface area                      = %2.0f mm^2\n", 
             mris->total_area) ;
     
