@@ -122,8 +122,6 @@ static int nan_inf_check(MRI *mri);
 #ifdef VC_TO_CV
 static int voxel_center_to_center_voxel(MRI *mri, float *x, float *y, float *z);
 #endif
-static int center_voxel_to_voxel_center(MRI *mri, float x, float y, float z);
-static int bad_ras_fill(MRI *mri);
 static MRI *gdfRead(char *fname, int read_volume);
 static int gdfWrite(MRI *mri, char *fname);
 
