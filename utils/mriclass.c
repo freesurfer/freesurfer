@@ -46,6 +46,8 @@ static char *gaussian_class_names[GAUSSIAN_NCLASSES] =
   "BRIGHT MATTER"
 } ;
 
+static int  total = 0, buffered = 0, total_computed = 0 ;
+
 /*-----------------------------------------------------
                     STATIC PROTOTYPES
 -------------------------------------------------------*/
@@ -235,20 +237,6 @@ MRICtrain(MRIC *mric, char *file_name, char *prior_fname)
 
   return(NO_ERROR) ;
 }
-#if 0
-/*-----------------------------------------------------
-        Parameters:
-
-        Returns value:
-
-        Description
-------------------------------------------------------*/
-int
-MRICclassify(MRIC *mric, MRI *mri_src, float *pprob)
-{
-  return(NO_ERROR) ;
-}
-#endif
 /*-----------------------------------------------------
         Parameters:
 
@@ -423,6 +411,10 @@ MRICclassify(MRIC *mric, MRI *mri_src, MRI *mri_dst,
     }
   }
 
+  fprintf(stderr, "total = %d, buffered = %d, computed = %d\n",
+          total, buffered, total_computed);
+  fprintf(stderr, "efficiency = %2.3f%%\n", 
+          100.0f*(float)buffered / (float)total) ;
   MatrixFree(&m_inputs) ;
   if (m_priors)
     MatrixFree(&m_priors) ;
@@ -653,6 +645,7 @@ MRICcomputeCovariances(MRIC *mric)
 int
 MRICcomputeInputs(MRI *mri, int x,int y,int z,float *inputs,int features)
 {
+  static int         old_features = 0 ;
   static MRI_REGION  region = {0,0, 0, 0,0,0} ;
   static MRI  *mri_prev = NULL, *mri_zscore3 = NULL, *mri_zscore5 = NULL ,
               *mri_direction = NULL, *mri_mean3 = NULL, *mri_mean5 = NULL ;
@@ -660,15 +653,17 @@ MRICcomputeInputs(MRI *mri, int x,int y,int z,float *inputs,int features)
   MRI_REGION  rbig ;
   float       *in ;
 
+  total++ ;
 /* 
    if the specified point is outside of the precomputed window,
-   update the window and compute a new set of input images.
+   Update the window and compute a new set of input images.
    */
-  if (!mri_prev || mri_prev != mri || 
+  if (!mri_prev || mri_prev != mri || (old_features != features) ||
       (REGIONinside(&region,x,y,z) == REGION_OUTSIDE))
   {
     MRI *mri_std, *mri_mean, *mri_region, *mri_grad ;
 
+    old_features = features ;
     region.x = x ;
     region.y = y ;
     region.z = z ;
@@ -676,6 +671,7 @@ MRICcomputeInputs(MRI *mri, int x,int y,int z,float *inputs,int features)
     region.dy = mri->height ;
     region.dz = REGION_SIZE ;
     MRIclipRegion(mri, &region, &region) ;
+    total_computed += (region.dx*region.dy*region.dz) ;
     mri_prev = mri ;
     if (mri_zscore3)
       MRIfree(&mri_zscore3) ;
@@ -725,7 +721,7 @@ MRICcomputeInputs(MRI *mri, int x,int y,int z,float *inputs,int features)
       MRI        *mri_tmp ;
       int        x0, y0, z0 ;
 
-      REGIONexpand(&region, &rbig, 1) ; /* expand region by 1 pix */
+      REGIONexpand(&region, &rbig, 1) ; /* expand region by 1 voxel */
       MRIclipRegion(mri, &rbig, &rbig) ;
       mri_region = MRIextractRegion(mri, NULL, &rbig) ;
       mri_grad = MRIsobel(mri_region, NULL, NULL) ;
@@ -753,6 +749,8 @@ MRICcomputeInputs(MRI *mri, int x,int y,int z,float *inputs,int features)
     if (features & FEATURE_MEAN5)
       mri_mean5 = MRImeanRegion(mri, NULL, 5, &region) ;
   }
+  else
+    buffered++ ;
 
   /* x0,y0,z0 are coordinates in region based images (not input mri) */
   x0 = x-region.x ; y0 = y - region.y ; z0 = z - region.z ;
