@@ -1924,22 +1924,39 @@ LTA *ltaMNIreadEx(const char *fname)
   lt->x0 = lt->y0 = lt->z0 = 0 ;
 
   fgetl(line, 900, fp) ;   /* MNI Transform File */
+  if (strncmp("MNI Transform File", line, 18))
+    ErrorReturn(NULL, 
+                (ERROR_NOFILE, "ltMNIreadEx:%s does not start as 'MNI Transform File'",fname));
+
   fgetl(line, 900, fp) ;   /* fileinfo line */
-  // sometimes .xfm does not have any volume info.
-  // then line = "Transform_Type = Linear"
   if (line[0] == '%') 
     strcpy(infoline, line);
   else
+  {
     no_volinfo = 1;
+    if (!strncmp("Transform_Type", line, 14))
+      goto get_transform;
+  }
+  // second line in %
   fgetl(line, 900, fp);
   if (line[0] == '%')
   {  
     strcpy(infoline2, line);
     while (line[0] == '%')
       fgetl(line, 900, fp) ; /* variable # of comments */
-    fgetl(line, 900, fp) ;   /* Transform_Type = Linear */
+    fgetl(line, 900, fp) ; 
+    if (!strncmp("Transform_Type", line, 14))
+      goto get_transform;
+  }
+  else
+  {
+    if (!strncmp("Transform_Type", line, 14))
+      goto get_transform;
+    while (line[0] == '%')
+      fgetl(line, 900, fp) ; /* variable # of comments */
   }
 
+ get_transform:
   m_L = lt->m_L ;
   for (row = 1 ; row <= 3 ; row++)
   {
