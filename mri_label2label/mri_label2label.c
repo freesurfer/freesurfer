@@ -1,6 +1,6 @@
 /*----------------------------------------------------------
   Name: mri_label2label.c
-  $Id: mri_label2label.c,v 1.12 2002/12/05 00:24:16 greve Exp $
+  $Id: mri_label2label.c,v 1.13 2003/02/20 20:29:16 greve Exp $
   Author: Douglas Greve
   Purpose: Converts a label in one subject's space to a label
   in another subject's space using either talairach or spherical
@@ -58,7 +58,7 @@ static int  nth_is_arg(int nargc, char **argv, int nth);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_label2label.c,v 1.12 2002/12/05 00:24:16 greve Exp $";
+static char vcid[] = "$Id: mri_label2label.c,v 1.13 2003/02/20 20:29:16 greve Exp $";
 char *Progname = NULL;
 
 char  *srclabelfile = NULL;
@@ -91,7 +91,7 @@ MATRIX *Src2TrgVolReg;
 
 float IcoRadius = 100.0;
 float hashres = 16;
-int usehash = 0;
+int usehash = 1;
 
 int debug = 0;
 
@@ -108,17 +108,19 @@ MRI *SrcMask;
 
 int useprojabs = 0, useprojfrac = 0; 
 float projabs = 0.0, projfrac = 0.0;
+int reversemap = 1;
 
 /*-------------------------------------------------*/
 int main(int argc, char **argv)
 {
   MATRIX *xyzSrc, *xyzTrg;
-  MHT *TrgHash;
+  MHT *TrgHash, *SrcHash=NULL;
   VERTEX *srcvtx, *trgvtx;
-  int n,err,srcvtxno,trgvtxno,allzero;
+  int n,err,srcvtxno,trgvtxno,allzero,nrevhits;
   float dmin, projdist=0.0, dx, dy, dz;
   float SubjRadius, Scale;
   char fname[2000];
+  int nSrcLabel, nTrgLabel;
   
 
   printf("\n");
@@ -136,7 +138,7 @@ int main(int argc, char **argv)
   dump_options(stdout);
 
   /*--- Get environment variables ------*/
-  SUBJECTS_DIR = getenv("SUBJECTS_DIR");
+  if(SUBJECTS_DIR==NULL) SUBJECTS_DIR = getenv("SUBJECTS_DIR");
   if(SUBJECTS_DIR==NULL){
     fprintf(stderr,"ERROR: SUBJECTS_DIR not defined in environment\n");
     exit(1);
@@ -387,11 +389,79 @@ int main(int argc, char **argv)
       trglabel->lv[n].z = trgvtx->z + dz;
       trglabel->lv[n].stat = srclabel->lv[n].stat;
     }
+    printf("INFO: found  %d nlabel points\n",trglabel->n_points);
 
     /* Do reverse loop here: (1) go through each target vertex
        not already in the label, (2) find closest source vertex, 
        (3) determine if source is in the label, (4) if so add
        the target to the label */
+
+    if(reversemap){
+      printf("Performing mapping from target back to the source label\n");
+      if(usehash){
+	printf("Building source registration hash (res=%g).\n",hashres);
+	SrcHash = MHTfillVertexTableRes(SrcSurfReg, NULL,
+					CURRENT_VERTICES,hashres);
+      }
+
+      nrevhits = 0;
+      for(trgvtxno = 0; trgvtxno < TrgSurf->nvertices; trgvtxno++){
+
+	/* if vertex is already in target label, skip it */
+	nTrgLabel = LabelHasVertex(trgvtxno, trglabel);
+	if(nTrgLabel != -1) continue;
+
+	trgvtx = &(TrgSurfReg->vertices[trgvtxno]);
+
+	/* Find number of closest source vertex */
+	if(usehash){
+	  srcvtxno = MHTfindClosestVertexNo(SrcHash,SrcSurfReg,trgvtx,&dmin);
+	  if(srcvtxno < 0){
+	    printf("ERROR: srcvtxno = %d < 0\n",srcvtxno);
+	    printf("trgvtxno = %d, dmin = %g\n",trgvtxno,dmin);
+	    printf("trgxyz = %g, %g, %g\n",trgvtx->x,trgvtx->y,trgvtx->z);
+	    exit(1);
+	  }
+	}
+	else{
+	  srcvtxno = MRISfindClosestVertex(SrcSurfReg,trgvtx->x,trgvtx->y,
+					   trgvtx->z);
+	}
+	srcvtx = &(SrcSurfReg->vertices[srcvtxno]);
+
+	/* Determine whether src vtx is in the label */
+	nSrcLabel = LabelHasVertex(srcvtxno, srclabel);
+	if(nSrcLabel == -1) continue;
+
+	/* Compute dist to project along normal */
+	if(useprojabs || useprojfrac){
+	  if(useprojabs)  projdist = projabs;
+	  if(useprojfrac) projdist = projfrac * trgvtx->curv;
+	  dx = projdist*trgvtx->nx;
+	  dy = projdist*trgvtx->ny;
+	  dz = projdist*trgvtx->nz;
+	}
+	else {
+	  dx = 0.0;
+	  dy = 0.0;
+	  dz = 0.0;
+	}
+	
+	/* Alloc another vertex to the label */
+	LabelRealloc(trglabel, trglabel->n_points + 1);
+	nTrgLabel = trglabel->n_points;
+	trglabel->lv[nTrgLabel].vno = trgvtxno;
+	trglabel->lv[nTrgLabel].x = trgvtx->x + dx;
+	trglabel->lv[nTrgLabel].y = trgvtx->y + dy;
+	trglabel->lv[nTrgLabel].z = trgvtx->z + dz;
+	trglabel->lv[nTrgLabel].stat = srclabel->lv[nSrcLabel].stat;
+	trglabel->n_points ++;
+
+	nrevhits++;
+      }
+      printf("Number of reverse mapping hits = %d\n",nrevhits);
+      if(usehash) MHTfree(&SrcHash);
+    }
 
     if(allzero){
       printf("---------------------------------------------\n");
@@ -406,9 +476,15 @@ int main(int argc, char **argv)
     if(strcmp(trgsubject,"ico")) MRISfree(&TrgSurf);
 
   }/*---------- done with surface-based mapping -------------*/
+  printf("nlabel points = %d\n",trglabel->n_points);
+  printf("Checking for and removing duplicates\n");
+  LabelRemoveDuplicates(trglabel);
+  //printf("nlabel points = %d\n",trglabel->n_points);
 
-  fprintf(stderr,"Writing label file %s \n",trglabelfile);
-  LabelWrite(trglabel,trglabelfile);
+
+  printf("Writing label file %s \n",trglabelfile);
+  if(LabelWrite(trglabel,trglabelfile))
+    printf("ERROR: writing label file\n");
 
   printf("mri_label2label: Done\n\n");
 
@@ -438,8 +514,15 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--debug"))   debug = 1;
     else if (!strcasecmp(option, "--hash"))   usehash = 1;
     else if (!strcasecmp(option, "--nohash")) usehash = 0;
+    else if (!strcasecmp(option, "--norevmap")) reversemap = 0;
+    else if (!strcasecmp(option, "--revmap")) reversemap = 1;
 
     /* -------- source inputs ------ */
+    else if (!strcmp(option, "--sd")){
+      if(nargc < 1) argnerr(option,1);
+      SUBJECTS_DIR = pargv[0];
+      nargsused = 1;
+    }
     else if (!strcmp(option, "--srcsubject")){
       if(nargc < 1) argnerr(option,1);
       srcsubject = pargv[0];
@@ -607,6 +690,10 @@ static void print_usage(void)
   fprintf(stdout, "\n");
   fprintf(stdout, "   --projabs  dist project dist mm along surf normal\n");
   fprintf(stdout, "   --projfrac frac project frac of thickness along surf normal\n");
+  fprintf(stdout, "\n");
+  printf("   --sd subjectsdir : default is to use env SUBJECTS_DIR\n");
+  printf("   --nohash : don't use hash table when regmethod is surface\n");
+  printf("   --norevmap : don't use reverse mapping regmethod is surface\n");
   fprintf(stdout, "\n");
 }
 /* --------------------------------------------- */
@@ -850,5 +937,4 @@ static int singledash(char *flag)
   if(flag[0] == '-' && flag[1] != '-') return(1);
   return(0);
 }
-
 
