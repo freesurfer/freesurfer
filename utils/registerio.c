@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "resample.h"
 #include "registerio.h"
 
 
@@ -14,7 +15,11 @@
   intensity -- for the register program
   R - matrix to convert from xyz in COR space to xyz in Volume space,
       ie, xyzVol = R*xyzCOR
-  float2int - 0=tkreg.
+  float2int - if the regfile has a line after the matrix, the string
+      is passed to float2int_code(), the result of which is passed
+      back as float2int. If there is no extra line, FLT2INT_TKREG
+      is returned (indicating that the regfile was created by
+      tkregister).
   -------------------------------------------------------------*/
 int regio_read_register(char *regfile, char **subject, float *inplaneres, 
       float *betplaneres, float *intensity,  MATRIX **R,
@@ -90,11 +95,21 @@ int regio_read_register(char *regfile, char **subject, float *inplaneres,
       (*R)->rptr[r+1][c+1] = val;
     }
   }
-
-  n = fscanf(fp,"%d",float2int);
-  if(n == 0) *float2int = 0;
-
+  
+  /* Get the float2int method string */
+  n = fscanf(fp,"%s",&tmp[0]);
   fclose(fp);
+
+  if(n == EOF) 
+    *float2int = FLT2INT_TKREG;
+  else{
+    *float2int = float2int_code(tmp);
+    if( *float2int == -1 ){
+      printf("ERROR: regio_read_register(): float2int method %s from file %s,"
+       " match not found\n",tmp,regfile);
+      return(1);
+    }
+  }
 
   return(0);
 }
