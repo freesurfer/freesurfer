@@ -17,7 +17,7 @@
 #include "oglutil.h"
 
 #if 0
-static char vcid[] = "$Id: oglutil.c,v 1.16 1998/06/02 15:46:44 fischl Exp $";
+static char vcid[] = "$Id: oglutil.c,v 1.17 1998/07/24 19:55:33 fischl Exp $";
 #endif
 
 /*-------------------------------- CONSTANTS -----------------------------*/
@@ -35,8 +35,6 @@ static char vcid[] = "$Id: oglutil.c,v 1.16 1998/06/02 15:46:44 fischl Exp $";
 /*-------------------------------- PROTOTYPES ----------------------------*/
 
 static void load_brain_coords(float x,float y, float z, float v[]) ;
-void   OGLUsetLightingModel(float lite0, float lite1, float lite2, 
-             float lite3, float newoffset) ;
 static int mrisFindMaxExtents(MRI_SURFACE *mris) ;
 static int ogluSetFOV(MRI_SURFACE *mris, double fov) ;
 
@@ -221,11 +219,11 @@ OGLUcompile(MRI_SURFACE *mris, int *marked_vertices, int flags, float cslope)
       /* don't display negative flat stuff */
       if ((flags & PATCH_FLAG) && (v->nz < 0) && !(flags & NEG_FLAG))
         continue ;
-#if 0
+#if 1
       if (flags & COORD_FLAG)
       {
         int    itheta, iphi ;
-        float  phi_dist, theta_dist, dist, xc, yc, zc, radius ;
+        float  phi_dist, theta_dist, dist, xc, yc, zc, radius, theta, phi ;
 
         radius = sqrt(SQR(v->cx)+SQR(v->cy)+SQR(v->cz)) ;
         itheta = 
@@ -288,6 +286,9 @@ OGLUcompile(MRI_SURFACE *mris, int *marked_vertices, int flags, float cslope)
           break ;
           break ;
         case MARK_BLUE:
+          glColor3ub(0,0,255) ;  
+          break ;
+        case MARK_CYAN:
           glColor3ub(0,255,255) ;  
           break ;
         case MARK_YELLOW:
@@ -366,7 +367,7 @@ OGLUcompile(MRI_SURFACE *mris, int *marked_vertices, int flags, float cslope)
   }
 
 
-#if 1
+#if 0
   if (flags & COORD_FLAG)    /* draw canonical coordinate system */
   {
     float  cheight = 15*0.05 ; /* dist edge above surface (0.05 in surfer.c) */
