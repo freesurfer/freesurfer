@@ -589,6 +589,8 @@ MRI *MRIprobabilityThresholdNeighborhoodOn(MRI *mri_src, MRI *mri_prob,
 MRI *MRIprobabilityThreshold(MRI *mri_src, MRI *mri_prob, MRI *mri_dst, 
                              float threshold, int out_label) ;
 MRI *MRIdilateLabel(MRI *mri_src, MRI *mri_dst, int label, int niter) ;
+MRI *MRIdilateThreshLabel(MRI *mri_src, MRI *mri_val, MRI *mri_dst, int label, 
+                          int niter, int thresh) ;
 MRI *MRIsoapBubbleLabel(MRI *mri_src, MRI *mri_label, MRI *mri_dst, int label,
                         int niter);
 int MRIsetValues(MRI *mri, int val) ;
