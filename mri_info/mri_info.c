@@ -2,12 +2,12 @@
 // mri_info.c
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2003/10/15 18:15:12 $
-// Revision       : $Revision: 1.25 $
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2003/12/29 16:02:41 $
+// Revision       : $Revision: 1.26 $
 //
 ////////////////////////////////////////////////////////////////////
-char *MRI_INFO_VERSION = "$Revision: 1.25 $";
+char *MRI_INFO_VERSION = "$Revision: 1.26 $";
 #include <stdio.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -84,7 +84,7 @@ int main(int argc, char *argv[])
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_info.c,v 1.25 2003/10/15 18:15:12 tosa Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_info.c,v 1.26 2003/12/29 16:02:41 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -142,7 +142,10 @@ static void do_file(char *fname)
     return;
   
   printf("Volume information for %s\n", fname);
-  printf("    dimensions: %d x %d x %d\n", mri->width, mri->height, mri->depth) ;
+	if (mri->nframes > 1)
+		printf("    dimensions: %d x %d x %d x %d\n", mri->width, mri->height, mri->depth, mri->nframes) ;
+	else
+		printf("    dimensions: %d x %d x %d\n", mri->width, mri->height, mri->depth) ;
   printf("   voxel sizes: %6.4f, %6.4f, %6.4f\n", mri->xsize, mri->ysize, mri->zsize) ;
   printf("          type: %s (%d)\n",
 	 mri->type == MRI_UCHAR   ? "UCHAR" :

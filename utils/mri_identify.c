@@ -29,6 +29,7 @@ char *type_to_string(int type)
 
   switch(type){
   case MRI_CORONAL_SLICE_DIRECTORY: tmpstr = "COR"; break;
+  case MRI_GCA_FILE: tmpstr = "GCA"; break;
   case MRI_MINC_FILE:      tmpstr = "MINC"; break;
   case MRI_ANALYZE_FILE:   tmpstr = "analyze3d"; break;
   case MRI_ANALYZE4D_FILE: tmpstr = "analyze4d"; break;
@@ -81,6 +82,8 @@ int string_to_type(char *string)
     type = MRI_ANALYZE4D_FILE;
   if(strcmp(ls, "mgh") == 0)
     type = MRI_MGH_FILE;
+  if(strcmp(ls, "gca") == 0)
+    type = MRI_GCA_FILE;
   if(strcmp(ls, "signa") == 0)
     type = SIGNA_FILE;
   if(strcmp(ls, "ge") == 0 || strcmp(ls, "genesis") == 0)
@@ -149,95 +152,98 @@ int mri_identify(char *fname_passed)
       // if type is found then verify
       // IMAGE file uses only extension
       if (type == IMAGE_FILE)
-	return type;
-
+				return type;
+			
       if (type != MRI_VOLUME_TYPE_UNKNOWN)
       {
-	switch(type)
-	{
-	case BRUKER_FILE:          // this cannot be identified by extension
-	  if (is_bruker(fname))
-	    return type;
-	  break;
-	case MRI_CORONAL_SLICE_DIRECTORY:
-	  if (is_cor(fname))
-	    return type;
-	  break;
-	case BSHORT_FILE:
-	  if (is_bshort(fname))
-	    return type;
-	  break;
-	case BFLOAT_FILE:
-	  if (is_bfloat(fname))
-	    return type;
-	  break;
-	case SIEMENS_DICOM_FILE:
-	  if (IsSiemensDICOM(fname))
-	    return type;
-	  break;
-	case DICOM_FILE:
-	  if (IsDICOM(fname))
-	    return type;
-	  break;
-	case GENESIS_FILE:
-	  if (is_genesis(fname))
-	    return type;
-	  break;
-	case SIGNA_FILE:
-	  if (is_signa(fname))
-	    return type;
-	  break;
-	case GE_LX_FILE:
-	  if (is_ge_lx(fname))
-	    return type;
-	  break;
-	case SDT_FILE:
-	  if (is_sdt(fname))
-	    return type;
-	  break;
-	case MRI_MGH_FILE:
-	  if (is_mgh(fname))
-	    return type;
-	  break;
-	case MRI_MINC_FILE:
-	  if (is_mnc(fname))
-	    return type;
-	  break;
-	case MRI_ANALYZE_FILE:
-	  if (is_analyze(fname))
-	    return type;
-	  break;
-	case MRI_ANALYZE4D_FILE:
-	  // must add is_analyze4d().  I have no idea what to do thus return
-	  return type;
-	  break;
-	case SIEMENS_FILE:
-	  if (is_siemens(fname))
-	    return type;
-	  break;
-	case BRIK_FILE:
-	  if (is_brik(fname))
-	    return type;
-	  break;
-	case OTL_FILE:
-	  if (is_otl(fname))
-	    return type;
-	  break;
-	case GDF_FILE:
-	  if (is_gdf(fname))
-	    return type;
-	  break;
-	case XIMG_FILE:
-	  if (is_ximg(fname))
-	    return type;
-	  break;
-	case NIFTI1_FILE:
-	  if (is_nifti1(fname))
-	    return type;
-	  break;
-	default:
-	  break;
-	}
+				switch(type)
+				{
+				case MRI_GCA_FILE:
+					return(type) ;
+					break ;
+				case BRUKER_FILE:          // this cannot be identified by extension
+					if (is_bruker(fname))
+						return type;
+					break;
+				case MRI_CORONAL_SLICE_DIRECTORY:
+					if (is_cor(fname))
+						return type;
+					break;
+				case BSHORT_FILE:
+					if (is_bshort(fname))
+						return type;
+					break;
+				case BFLOAT_FILE:
+					if (is_bfloat(fname))
+						return type;
+					break;
+				case SIEMENS_DICOM_FILE:
+					if (IsSiemensDICOM(fname))
+						return type;
+					break;
+				case DICOM_FILE:
+					if (IsDICOM(fname))
+						return type;
+					break;
+				case GENESIS_FILE:
+					if (is_genesis(fname))
+						return type;
+					break;
+				case SIGNA_FILE:
+					if (is_signa(fname))
+						return type;
+					break;
+				case GE_LX_FILE:
+					if (is_ge_lx(fname))
+						return type;
+					break;
+				case SDT_FILE:
+					if (is_sdt(fname))
+						return type;
+					break;
+				case MRI_MGH_FILE:
+					if (is_mgh(fname))
+						return type;
+					break;
+				case MRI_MINC_FILE:
+					if (is_mnc(fname))
+						return type;
+					break;
+				case MRI_ANALYZE_FILE:
+					if (is_analyze(fname))
+						return type;
+					break;
+				case MRI_ANALYZE4D_FILE:
+					// must add is_analyze4d().  I have no idea what to do thus return
+					return type;
+					break;
+				case SIEMENS_FILE:
+					if (is_siemens(fname))
+						return type;
+					break;
+				case BRIK_FILE:
+					if (is_brik(fname))
+						return type;
+					break;
+				case OTL_FILE:
+					if (is_otl(fname))
+						return type;
+					break;
+				case GDF_FILE:
+					if (is_gdf(fname))
+						return type;
+					break;
+				case XIMG_FILE:
+					if (is_ximg(fname))
+						return type;
+					break;
+				case NIFTI1_FILE:
+					if (is_nifti1(fname))
+						return type;
+					break;
+				default:
+					break;
+				}
       }
     }
   }

@@ -5733,11 +5733,24 @@ GCAbuildMostLikelyVolume(GCA *gca, MRI *mri)
   int       max_label ;
   GC1D      *gc_max ;
 
+	if (!mri)
+	{
+		mri = MRIallocSequence(gca->prior_width, gca->prior_height,
+									 gca->prior_depth, MRI_FLOAT, gca->ninputs) ;
+	}
+
   if (mri->nframes != gca->ninputs)
     ErrorExit(ERROR_BADPARM, "GCAbuildMostLikelyVolume: mri->frames (%d) does not match gca->ninputs (%d)",
 	      mri->nframes, gca->ninputs) ;
   
   width = mri->width ; depth = mri->depth ; height = mri->height ;
+	if (mri_gca)
+		MRIcopyHeader(mri_gca, mri) ;
+	MRIsetResolution(mri, gca->prior_spacing, gca->prior_spacing,gca->prior_spacing);
+	mri->ras_good_flag = 1 ;
+  mri->x_r = -1; mri->y_r =  0; mri->z_r =  0; mri->c_r = 0.0;
+  mri->x_a =  0; mri->y_a =  0; mri->z_a =  1; mri->c_a = 0.0;
+  mri->x_s =  0; mri->y_s = -1; mri->z_s =  0; mri->c_s = 0.0;
   
   for (z = 0 ; z < depth ; z++)
   {
@@ -5765,28 +5778,72 @@ GCAbuildMostLikelyVolume(GCA *gca, MRI *mri)
             gc_max = &gcan->gcs[n] ;
         }
 	
-	if (!gc_max)
-	  continue ;
-	for (r = 0 ; r < gca->ninputs ; r++)
+				if (!gc_max)
+					continue ;
+				for (r = 0 ; r < gca->ninputs ; r++)
+				{
+					MRIsetVoxVal(mri, x, y, z, r, gc_max->means[r]) ;
+				}
+      }
+    }
+  }
+
+  return(mri) ;
+}
+MRI *
+GCAbuildMostLikelyVolumeFrame(GCA *gca, MRI *mri, int frame)
+{
+  int       x,  y, z, xn, yn, zn, width, depth, height, n, xp, yp, zp ;
+  GCA_NODE  *gcan ;
+  GCA_PRIOR *gcap ;
+  double    max_prior ;
+  int       max_label ;
+  GC1D      *gc_max ;
+
+	if (!mri)
 	{
-	  switch (mri->type)
-	  {
-	  default:
-	    ErrorReturn(NULL,
-			(ERROR_UNSUPPORTED, 
-			 "GCAbuildMostLikelyVolume: unsupported image type %d", mri->type)) ;
-	    break ;
-	  case MRI_UCHAR:
-	    MRIseq_vox(mri, x, y, z, r) = nint(gc_max->means[r]) ;
-	    break ;
-	  case MRI_FLOAT:
-	    MRIFseq_vox(mri, x, y, z, r) = gc_max->means[r] ;
-	    break ;
-	  case MRI_SHORT:
-	    MRISseq_vox(mri, x, y, z, r) = gc_max->means[r] ;
-	    break ;
-	  }
+		mri = MRIallocSequence(gca->prior_width, gca->prior_height,
+									 gca->prior_depth, MRI_FLOAT, 1) ;
 	}
+
+  width = mri->width ; depth = mri->depth ; height = mri->height ;
+	if (mri_gca)
+		MRIcopyHeader(mri_gca, mri) ;
+	MRIsetResolution(mri, gca->prior_spacing, gca->prior_spacing,gca->prior_spacing);
+	mri->ras_good_flag = 1 ;
+  mri->x_r = -1; mri->y_r =  0; mri->z_r =  0; mri->c_r = 0.0;
+  mri->x_a =  0; mri->y_a =  0; mri->z_a =  1; mri->c_a = 0.0;
+  mri->x_s =  0; mri->y_s = -1; mri->z_s =  0; mri->c_s = 0.0;
+  
+  for (z = 0 ; z < depth ; z++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      for (x = 0 ; x < width ; x++)
+      {
+        if (x == Gx && y == Gy && z == Gz)
+          DiagBreak() ;
+        GCAvoxelToNode(gca, mri, x, y, z, &xn, &yn, &zn) ;
+        GCAvoxelToPrior(gca, mri, x, y, z, &xp, &yp, &zp) ;
+        gcan = &gca->nodes[xn][yn][zn] ;
+        gcap = &gca->priors[xp][yp][zp] ;
+        max_prior = gcap->priors[0] ; max_label = gcap->labels[0] ; gc_max = NULL ;
+        for (n = 1 ; n < gcap->nlabels ; n++)
+        {
+          if (gcap->priors[n] > max_prior)
+          {
+            max_prior = gcap->priors[n] ; max_label = gcap->labels[n] ;
+          }
+        }
+        for (n = 0 ; n < gcan->nlabels ; n++)
+        {
+          if (gcan->labels[n] == max_label)
+            gc_max = &gcan->gcs[n] ;
+        }
+	
+				if (!gc_max)
+					continue ;
+				MRIsetVoxVal(mri, x, y, z, 0, gc_max->means[frame]) ;
       }
     }
   }

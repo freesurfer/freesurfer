@@ -548,6 +548,7 @@ extern float ic_z_vertices[]  ;
 #define XIMG_FILE                     19
 #define NIFTI1_FILE                   20
 #define IMAGE_FILE                    21
+#define MRI_GCA_FILE                  22
 
 int        MRImatch(MRI *mri1, MRI *mri2) ;
 int        MRIvalRange(MRI *mri, float *pmin, float *pmax) ;

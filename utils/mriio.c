@@ -84,6 +84,7 @@ static MRI *mri_read(char *fname, int type, int volume_flag, int start_frame, in
 static MRI *corRead(char *fname, int read_volume);
 static int corWrite(MRI *mri, char *fname);
 static MRI *siemensRead(char *fname, int read_volume);
+static MRI *readGCA(char *fname) ;
 
 static MRI *mincRead(char *fname, int read_volume);
 static int mincWrite(MRI *mri, char *fname);
@@ -428,6 +429,10 @@ static MRI *mri_read(char *fname, int type, int volume_flag, int start_frame, in
   {
     mri = siemensRead(fname_copy, volume_flag);
   }
+	else if (type == MRI_GCA_FILE)
+	{
+		mri = readGCA(fname_copy) ;
+	}
   else if(type == BSHORT_FILE)
   {
     //mri = bshortRead(fname_copy, volume_flag);
@@ -508,6 +513,9 @@ static MRI *mri_read(char *fname, int type, int volume_flag, int start_frame, in
     ErrorReturn(NULL, (ERROR_BADPARM, "mri_read(): code inconsistency "
            "(file type recognized but not caught)"));
   }
+
+	if (mri == NULL)
+		return(NULL) ;
 
   if(start_frame == -1)
     return(mri);
@@ -10243,3 +10251,18 @@ static void nflip(unsigned char *buf, int b, int n)
 } /* end nflip() */
 
 #endif
+#include "gca.h"
+static MRI *
+readGCA(char *fname)
+{
+	GCA *gca ;
+	MRI *mri ;
+
+	gca = GCAread(fname) ;
+	if (!gca)
+		return(NULL) ;
+	mri = GCAbuildMostLikelyVolume(gca, NULL) ;
+	GCAfree(&gca) ;
+	return(mri) ;
+}
+
