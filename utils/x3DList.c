@@ -131,6 +131,35 @@ x3Lst_tErr x3Lst_Delete ( x3DListRef* iop3DList ) {
   return eResult;
 }
 
+x3Lst_tErr x3Lst_GetPlaneSize ( x3DListRef this,
+				int*       onPlaneSize ) {
+
+  x3Lst_tErr eResult = x3Lst_tErr_NoErr;
+
+  eResult = x3Lst_Verify( this );
+  if( x3Lst_tErr_NoErr != eResult ) 
+    goto error;
+
+  if( NULL == onPlaneSize ) {
+    eResult = x3Lst_tErr_InvalidPtr;
+    goto error;
+  }
+
+  /* Return the value */
+  *onPlaneSize = this->mnPlaneSize;
+
+  goto cleanup;
+  
+ error:
+
+  DebugPrint( ("Error %d in x3Lst_GetPlaneSize: %s\n",
+    eResult, x3Lst_GetErrorString( eResult ) ) );
+
+ cleanup:
+
+  return eResult;
+}
+
 x3Lst_tErr x3Lst_AddItem ( x3DListRef this,
          xVoxelRef  iWhere,
          void*      ipItem ) {

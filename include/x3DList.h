@@ -46,6 +46,9 @@ x3Lst_tErr x3Lst_New ( x3DListRef* op3DList,
                                        /* delete the space */
 x3Lst_tErr x3Lst_Delete ( x3DListRef* iop3DList );
 
+x3Lst_tErr x3Lst_GetPlaneSize ( x3DListRef this,
+				int*       onPlaneSize );
+
                                        /* add an item to the space */
 x3Lst_tErr x3Lst_AddItem ( x3DListRef this,
          xVoxelRef  iWhere,
