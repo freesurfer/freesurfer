@@ -1,7 +1,7 @@
 #!/bin/csh -f
 # fMRI selective frequency averaging (for phase-encoding analysis)
 
-set VERSION = '$Id: selfreqavg,v 1.4 2003/11/18 23:11:25 greve Exp $';
+set VERSION = '$Id: selfreqavg,v 1.5 2003/11/19 00:10:15 greve Exp $';
 set cmdargv = "$argv";
 
 set n = `echo $argv | grep version | wc -l` 
@@ -16,6 +16,7 @@ set instems = ();
 set bext = "bshort";
 set outstem = ();
 set monly = 0;
+set SynthSeed = 0;
 
 set TR = ();
 
@@ -100,6 +101,13 @@ $TARGET <<EOF
   hanrad     = $hanrad;
   fwhm       = $fwhm;
   inplaneres = $inplaneres;
+  SynthSeed  = [$SynthSeed];
+
+  if(SynthSeed < 0) SynthSeed = sum(100*clock); end
+  if(SynthSeed > 0)
+    fprintf('Synthesizing: SynthSeed = %10d\n',SynthSeed);
+    randn('state',SynthSeed); 
+  end
 
   if(fwhm > 0)
     hanrad = pi*fwhm/(2*inplaneres*acos(.5));
@@ -197,6 +205,7 @@ $TARGET <<EOF
       end
       fname = sprintf('%s_%03d.%s',instem,slice,bext);
       f = fmri_ldbfile(fname);
+      if(SynthSeed > 0) f = randn(size(f)); end
 
       %%% Global Rescaling %%%
       if(sfa.rescale_target ~= 0) 
@@ -310,7 +319,7 @@ $TARGET <<EOF
     tmp(10,:) = phz;
     tmp(11,:) = meanimg;
     tmp(12,:) = trendimg;
-    tmp(13,:) = sqrt( sin(phz).^2 + cos(phz).^2 );
+    tmp(13,:) = sqrt( real_signal.^2 + imag_signal.^2 );
 
     ntmp  = size(tmp,1);
     tmp   = reshape(tmp', [sfa.nrows sfa.ncols ntmp]); %'
@@ -385,6 +394,11 @@ while( $#argv != 0 )
     case "-delay":
       if ( $#argv == 0) goto arg1err;
       set delay = $argv[1]; shift;
+      breaksw
+
+    case "-synth":
+      if ( $#argv == 0) goto arg1err;
+      set SynthSeed = $argv[1]; shift;
       breaksw
 
     case "-sdf":
@@ -660,6 +674,7 @@ usage_exit:
   echo "   -fwhm   width     : full-width/half-max (mm)"
   echo "   -ipr resolution   : in-plane resolution (mm)"
   echo "   -rescale target   : rescale so global mean equals target"
+  echo "   -synth seed       : -1 for automatic, 0 for no synth (default)"
   echo "   -firstslice fs    : first anatomical slice"
   echo "   -nslices    ns    : number of anatomical slices"
   echo "   -monly mfile      : just create a matlab file"
