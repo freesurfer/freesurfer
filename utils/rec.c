@@ -157,16 +157,16 @@ RecReadPartially(char *fname, int iop_neeg, int iop_nmeg,int flag)
  
     for (i=0;i<rec->neeg_channels;i++)
       {
-	fscanf(fp,"%f",&f);
-	if (iop_neeg > 0)
-	  *MATRIX_RELT(rec->m_data,i+1,j+1) = f;
+  fscanf(fp,"%f",&f);
+  if (iop_neeg > 0)
+    *MATRIX_RELT(rec->m_data,i+1,j+1) = f;
       }
     
     for (i=0;i<rec->nmeg_channels;i++)
       {
-	fscanf(fp,"%f",&f);
-	if (iop_nmeg > 0)
-	  *MATRIX_RELT(rec->m_data,i+iop_neeg+1,j+1) = f;
+  fscanf(fp,"%f",&f);
+  if (iop_nmeg > 0)
+    *MATRIX_RELT(rec->m_data,i+iop_neeg+1,j+1) = f;
       }
   }
   fclose(fp);
