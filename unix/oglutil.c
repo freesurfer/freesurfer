@@ -17,7 +17,7 @@
 #include "oglutil.h"
 
 #if 0
-static char vcid[] = "$Id: oglutil.c,v 1.11 1998/01/27 21:52:24 fischl Exp $";
+static char vcid[] = "$Id: oglutil.c,v 1.12 1998/02/13 17:48:46 fischl Exp $";
 #endif
 
 /*-------------------------------- CONSTANTS -----------------------------*/
@@ -203,7 +203,7 @@ OGLUcompile(MRI_SURFACE *mris, int *marked_vertices, int flags, float cslope)
         mv = 0 ;
 
       /* don't display negative flat stuff */
-      if (flags & PATCH_FLAG && v->nz < 0) 
+      if ((flags & PATCH_FLAG) && (v->nz < 0) && !(flags & NEG_FLAG))
         continue ;
 #if 1
       if (flags & COORD_FLAG)
