@@ -32,6 +32,11 @@ MatrixCopy(MATRIX *mIn, MATRIX *mOut)
   if (!mOut)
     mOut = MatrixAlloc(rows, cols, mIn->type) ;
 
+  if (!mOut)
+    ErrorReturn(NULL,
+		(ERROR_NO_MEMORY,
+		 "MatrixCopy: couldn't allocate mOut")) ;
+
   for (row = 1 ; row <= rows ; row++)
     memcpy((char *)(mOut->rptr[row]), (char *)mIn->rptr[row], 
            (cols+1)*sizeof(float)) ;
