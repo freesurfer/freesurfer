@@ -12,7 +12,7 @@
 #include "mri.h"
 #include "macros.h"
 
-static char vcid[] = "$Id: mris_register.c,v 1.5 1998/09/30 18:19:56 fischl Exp $";
+static char vcid[] = "$Id: mris_register.c,v 1.6 1998/10/28 15:34:45 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -38,7 +38,7 @@ static INTEGRATION_PARMS  parms ;
 int
 main(int argc, char *argv[])
 {
-  char         **av, *surf_fname, *template_fname, *out_fname, fname[100], *cp;
+  char         **av, *surf_fname, *template_fname, *out_fname, fname[100],*cp;
   int          ac, nargs ;
   MRI_SURFACE  *mris ;
   MRI_SP       *mrisp_template ;
@@ -51,10 +51,16 @@ main(int argc, char *argv[])
   parms.projection = PROJECT_SPHERE ;
   parms.tol = 1e-0 ;
   parms.min_averages = 0 ;
-  parms.l_dist = 0.1 ;
   parms.l_area = 0.0 ;
+#if 0
   parms.l_parea = 0.2f ;
+  parms.l_dist = 0.1 ;
   parms.l_corr = 1.0f ;
+#else
+  parms.l_parea = 0.0f ;
+  parms.l_dist = 0.0 ;
+  parms.l_corr = 0.0f ;
+#endif
   parms.l_pcorr = 0.0f ;
   parms.niterations = 25 ;
   parms.n_averages = 256 ;
@@ -116,27 +122,21 @@ main(int argc, char *argv[])
   }
   fprintf(stderr, "reading template parameterization from %s...\n",
           template_fname) ;
-#if 1
   mrisp_template = MRISPread(template_fname) ;
   if (!mrisp_template)
     ErrorExit(ERROR_NOFILE, "%s: could not open template file %s",
                 Progname, template_fname) ;
-#else
-  MRISsaveVertexPositions(mris, TMP_VERTICES) ;
-  MRISclearCurvature(mris) ;
-  mris->vertices[0].curv = 1.0f ;
-  MRISnormalizeCurvature(mris) ;
-  mrisp_template = MRISPalloc(1, 6) ;
-  MRISrotate(mris, mris, RADIANS(30.0f), RADIANS(30.0f), 0.0f) ;
-  MRIStoParameterization(mris, mrisp_template, 1, 0) ;
-  *IMAGEFseq_pix(mrisp_template->Ip, 0, 0, 2) = 1 ;   /* dof */
-  /*  MRISPwrite(mrisp_template, "temp1.hipl") ;*/
-  MRIStoParameterization(mris, mrisp_template, 1, 3) ;
-  *IMAGEFseq_pix(mrisp_template->Ip, 0, 0, 5) = 1 ;   /* dof */
-  MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
-  /*  MRISPwrite(mrisp_template, "temp.hipl") ;*/
-#endif
-  
+  if (FZERO(parms.l_parea) && FZERO(parms.l_dist) && FZERO(parms.l_corr))
+  {
+    if (*IMAGEFseq_pix(mrisp_template->Ip, 0, 0, 2) <= 1.0)  /* 1st time */
+    {
+      parms.l_dist = 0.5 ; parms.l_corr = 1.0 ; parms.l_parea = 0.1 ;
+    }
+    else   /* subsequent alignments */
+    {
+      parms.l_dist = 0.1 ; parms.l_corr = 1.0 ; parms.l_parea = 0.2 ;
+    }
+  }
 
   if (nbrs > 1)
     MRISsetNeighborhoodSize(mris, nbrs) ;
