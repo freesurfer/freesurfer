@@ -2394,3 +2394,126 @@ float MatrixTrace(MATRIX *M)
 
   return(trace);
 }
+/*------------------------------------------------------------------
+  MatrixHorCat() - horizontally concatenate matrices m1 and m2, store
+  the result in mcat. If mcat is NULL, a new matrix is allocated. A
+  pointer to mcat (or the new matrix) is returned.  If m1 is NULL, m2
+  is copied into mcat. If m2 is NULL, m1 is copied into mcat.
+  -------------------------------------------------------------------*/
+MATRIX *MatrixHorCat(MATRIX *m1, MATRIX *m2, MATRIX *mcat)
+{
+  int r,c1,c2,c;
+
+  if(m1==NULL && m2==NULL){
+    printf("ERROR: MatrixHorCat: both m1 and m2 are NULL\n");
+    return(NULL);
+  }
+
+  if(m1==NULL){
+    mcat = MatrixCopy(m2,mcat);
+    return(mcat);
+  }
+
+  if(m2==NULL){
+    mcat = MatrixCopy(m1,mcat);
+    return(mcat);
+  }
+
+  if(m1->rows != m2->rows){
+    printf("ERROR: MatrixHorCat: rows of m1 (%d) not equal to m2 (%d)\n",
+     m1->rows, m2->rows);
+    return(NULL);
+  }
+
+  if(mcat == NULL)
+    mcat = MatrixAlloc(m1->rows,m1->cols+m2->cols,MATRIX_REAL);
+  else{
+    if(mcat->rows != m1->rows){
+      printf("ERROR: MatrixHorCat: rows of m1 (%d) not equal to mcat (%d)\n",
+       m1->rows, mcat->rows);
+      return(NULL);
+    }
+    if(mcat->cols != (m1->cols+m2->cols)){
+      printf("ERROR: MatrixHorCat: cols of mcat (%d) do not equal to m1+m2 (%d)\n",
+       mcat->cols, m1->cols+m2->cols);
+      return(NULL);
+    }
+  }
+
+  /* Fill in the horizontally concatenated matrix */
+  for(r=0; r < mcat->rows; r++){
+    c = 0;
+    for(c1=0; c1 < m1->cols; c1++){
+      mcat->rptr[r+1][c+1] = m1->rptr[r+1][c1+1];
+      c++;
+    }
+    for(c2=0; c2 < m2->cols; c2++){
+      mcat->rptr[r+1][c+1] = m2->rptr[r+1][c2+1] ;
+      c++;
+    }
+  }
+  
+  return(mcat);
+}
+/*------------------------------------------------------------------
+  MatrixVertCat() - vertically concatenate matrices m1 and m2, store
+  the result in mcat. If mcat is NULL, a new matrix is allocated. A
+  pointer to mcat (or the new matrix) is returned.  If m1 is NULL, m2
+  is copied into mcat. If m2 is NULL, m1 is copied into mcat.
+  -------------------------------------------------------------------*/
+MATRIX *MatrixVertCat(MATRIX *m1, MATRIX *m2, MATRIX *mcat)
+{
+  int r,r1,r2,c;
+
+  if(m1==NULL && m2==NULL){
+    printf("ERROR: MatrixVertCat: both m1 and m2 are NULL\n");
+    return(NULL);
+  }
+
+  if(m1==NULL){
+    mcat = MatrixCopy(m2,mcat);
+    return(mcat);
+  }
+
+  if(m2==NULL){
+    mcat = MatrixCopy(m1,mcat);
+    return(mcat);
+  }
+
+  if(m1->cols != m2->cols){
+    printf("ERROR: MatrixVertCat: cols of m1 (%d) not equal to m2 (%d)\n",
+     m1->cols, m2->cols);
+    return(NULL);
+  }
+
+  if(mcat == NULL)
+    mcat = MatrixAlloc(m1->rows+m2->rows,m1->cols,MATRIX_REAL);
+  else{
+    if(mcat->cols != m1->cols){
+      printf("ERROR: MatrixVertCat: cols of m1 (%d) not equal to mcat (%d)\n",
+       m1->cols, mcat->cols);
+      return(NULL);
+    }
+    if(mcat->rows != (m1->rows+m2->rows)){
+      printf("ERROR: MatrixVertCat: rows of mcat (%d) do not equal to m1+m2 (%d)\n",
+       mcat->rows, m1->rows+m2->rows);
+      return(NULL);
+    }
+  }
+
+  /* Fill in the vertically concatenated matrix */
+  for(c=0; c < mcat->cols; c++){
+    r = 0;
+    for(r1=0; r1 < m1->rows; r1++){
+      mcat->rptr[r+1][c+1] = m1->rptr[r1+1][c+1] ;
+      r++;
+    }
+    for(r2=0; r2 < m2->rows; r2++){
+      mcat->rptr[r+1][c+1] = m2->rptr[r2+1][c+1] ;
+      r++;
+    }
+
+  }
+  
+  return(mcat);
+}
