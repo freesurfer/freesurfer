@@ -13,6 +13,7 @@
 -------------------------------------------------------*/
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <math.h>
 #include <string.h>
 #include <unistd.h>
@@ -2084,7 +2085,7 @@ ge5xRead(char *fname, int read_volume, int frame)
   MRI *mri = NULL, *mri2 = NULL;
   FILE *fp ;
   long magic;
-  int width, height, depth, compression_type, offset_to_pixel_data, offset_to_image_header;
+  int width, height, depth, offset_to_pixel_data, offset_to_image_header;
   int series_header_offset;
   int slice_number, max_slice_number, min_slice_number;
   char fname_format[100], *i_pos, fname_use[100], fname_copy[100];
@@ -2254,8 +2255,7 @@ ge8xRead(char *fname, int read_volume, int frame)
   MRI *mri = NULL, *mri2 = NULL;
   FILE *fp ;
   long magic;
-  int width, height, depth, compression_type, offset_to_pixel_data;
-  int series_header_offset;
+  int width, height, depth, offset_to_pixel_data;
   int slice_number, max_slice_number, min_slice_number;
   char fname_format[100], *i_pos, fname_use[100], fname_copy[100];
   float d_fov_x, d_fov_y, d_fov_z;
@@ -2851,7 +2851,8 @@ brikRead(char *fname, int read_volume, int frame)
       else if(strcmp(name, "BYTEORDER_STRING") == 0)
       {
         fgets(byteorder_string, STRLEN, fin);
-        for(tilde = byteorder_string;tilde = strchr(byteorder_string, '~');)
+        for(tilde = byteorder_string;
+            (tilde = strchr(byteorder_string, '~')) != NULL;)
           *tilde = '\0';
       }
       else if(strcmp(name, "ORIENT_SPECIFIC") == 0)
