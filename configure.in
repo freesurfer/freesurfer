@@ -1,5 +1,6 @@
 # configure.in
 # by y.tosa
+# June 17, 2004
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 #
@@ -47,16 +48,29 @@ AC_SUBST(OS_CPPFLAGS)
 ac_mni_includes=NO 
 ac_mni_libraries=NO 
 ac_mni_bindir=NO
-#initialize empty
+# initialize empty
 mni_libraries=""
 mni_includes=""
-# add --with-mni-dir option
+##############################################################
+# mgh put packages and create softlinks
+# default path for mni tools
+##############################################################
+mghdir=/usr/pubsw/
+if [(-d $mghdir)] then
+  ac_mni_includes=$mghdir/include
+  ac_mni_libraries=$mghdir/lib
+  ac_mni_bin=$mghdir/bin
+fi
+
+# modify when --with-mni-dir option given
+################################################################
 AC_ARG_WITH(mni-dir,
   [  --with-mni-dir=DIR      where the root of MNI is installed.],
   [  ac_mni_includes="$withval"/include
      ac_mni_libraries="$withval"/lib
      ac_mni_bindir="$withval"/bin
   ])
+
 # modify CXXFLAGS and LDFLAGS
 if test ! "$ac_mni_includes" = "NO"; then
   mni_includes=-I$ac_mni_includes
@@ -67,27 +81,26 @@ if test ! "$ac_mni_libraries" = "NO"; then
   LDFLAGS="$LDFLAGS $mni_libraries"
 fi
 
-##############default includes and libraries are #####################
-CXXFLAGS="$CPPFLAGS $(top_srcdir)/include $all_includes"
-LDFLAGS="$LDFLAGS $(top_srcdir)/lib/$(OS) $all_libraries $USER_LDFLAGS"
+# generic mods
+CPPFLAGS="$CPPFLAGS -D$OS -DANSI $OS_CPPFLAGS"
 
 #####################################################
 # Checks for libraries.
 # the order is important
 #####################################################
 AC_CHECK_LIB([pthread], [pthread_create])
-AC_CHECK_LIBM
+AC_CHECK_LIB([m], [floor])
 AC_CHECK_LIB([z], [gzopen])
 AC_CHECK_LIB([crypt], [crypt])
 AC_CHECK_LIB([tiff], [main])
 AC_CHECK_LIB([jpeg], [jpeg_start_compress])
 # three mni libs
 AC_CHECK_LIB([netcdf], [nccreate],[],
-  [AC_MSG_ERROR("FATAL:netcdf lib not found.  Set LDFLAGS or --with-mni-dir."])
+  [AC_MSG_ERROR("FATAL:netcdf lib not found.  Set LDFLAGS or --with-mni-dir.")] )
 AC_CHECK_LIB([volume_io], [transform_point],[],
-  [AC_MSG_ERROR("FATAL:volume_io lib not found.  Set LDFLAGS or --with-mni-dir."])
+  [AC_MSG_ERROR("FATAL:volume_io lib not found.  Set LDFLAGS or --with-mni-dir.")] )
 AC_CHECK_LIB([minc], [main], [],
-  [AC_MSG_ERROR("FATAL:minc lib not found.  Set LDFLAGS or --with-mni-dir."])
+  [AC_MSG_ERROR("FATAL:minc lib not found.  Set LDFLAGS or --with-mni-dir.")] )
 # the entire libs here is passed as LIBS
 
 ###########################################################################################
