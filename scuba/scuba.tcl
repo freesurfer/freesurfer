@@ -10,7 +10,7 @@ if { $err } {
     load [file dirname [info script]]/libscuba[info sharedlibextension] scuba
 }
 
-DebugOutput "\$Id: scuba.tcl,v 1.64 2004/10/27 20:57:33 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.65 2004/10/29 17:44:01 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -1292,15 +1292,18 @@ proc MakeDataCollectionsPropertiesPanel { ifwTop } {
     grid $fwPropsVolume.fwVolume -column 0 -row 0 -sticky ew
     set gaWidget(collectionProperties,volume) $fwPropsVolume
 
-    tkuMakeCheckboxes $fwPropsVolume.cbUseDataToIndexTransform \
+    tkuMakeCheckboxes $fwPropsVolume.cb \
 	-font [tkuNormalFont] \
 	-checkboxes { 
 	    {-type text -label "Use RAS Transform" 
 		-variable gaCollection(current,useDataToIndexTransform)
 		-command { SetUseVolumeDataToIndexTransform $gaCollection(current,id) $gaCollection(current,useDataToIndexTransform) }}
+	    {-type text -label "Autosave" 
+		-variable gaCollection(current,autosave)
+		-command { SetVolumeAutosaveOn $gaCollection(current,id) $gaCollection(current,autosave) }}
 	}
 
-    grid $fwPropsVolume.cbUseDataToIndexTransform -column 0 -row 1 -sticky ew
+    grid $fwPropsVolume.cb -column 0 -row 1 -sticky ew
 
     frame $fwPropsSurface
     tkuMakeFileSelector $fwPropsSurface.fwSurface \
@@ -2133,6 +2136,8 @@ proc UpdateCurrentCollectionInCollectionProperites {} {
 		[GetVolumeCollectionFileName $colID]
 	    set gaCollection(current,useDataToIndexTransform) \
 		[GetUseVolumeDataToIndexTransform $colID]
+	    set gaCollection(current,autosave) \
+		[GetVolumeAutosaveOn $colID]
 	}
 	Surface {
 	    # Pack the type panel.
@@ -4298,7 +4303,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.64 2004/10/27 20:57:33 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.65 2004/10/29 17:44:01 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.

@@ -23,6 +23,7 @@ VolumeCollection::VolumeCollection () :
   mMRI = NULL;
   mMagnitudeMRI = NULL;
   mSelectedVoxels = NULL;
+  mbAutosave = false;
   mbAutosaveDirty = false;
   mfnAutosave = "";
   mVoxelSize[0] = mVoxelSize[1] = mVoxelSize[2] = 0;
@@ -63,6 +64,12 @@ VolumeCollection::VolumeCollection () :
 			 "collectionID", "Returns whether or not a volume "
 			 "is using its Data to Index transform "
 			 "(usually RAS transform) in displaying data." );
+  commandMgr.AddCommand( *this, "SetVolumeAutosaveOn", 2, "collectionID on",
+			 "Set whether or not autosave is on for this "
+			 "volume." );
+  commandMgr.AddCommand( *this, "GetVolumeAutosaveOn", 1, "collectionID",
+			 "Returns whether or not autosave is on for this "
+			 "volume." );
 }
 
 VolumeCollection::~VolumeCollection() {
@@ -647,6 +654,45 @@ VolumeCollection::DoListenToTclCommand ( char* isCommand,
 
       sReturnValues =
 	TclCommandManager::ConvertBooleanToReturnValue( mbUseDataToIndexTransform );
+      sReturnFormat = "i";
+    }
+  }
+
+  // SetVolumeAutosaveOn <collectionID> <on>
+  if( 0 == strcmp( isCommand, "SetVolumeAutosaveOn" ) ) {
+    int collectionID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad collection ID";
+      return error;
+    }
+    
+    if( mID == collectionID ) {
+      
+      try {
+	bool bOn =
+	  TclCommandManager::ConvertArgumentToBoolean( iasArgv[2] );
+	mbAutosave = bOn;
+      }
+      catch( runtime_error e ) {
+	sResult = "bad on \"" + string(iasArgv[2]) + "\"," + e.what();
+	return error;	
+      }
+    }
+  }
+  
+
+  // GetVolumeAutosaveOn <collectionID>
+  if( 0 == strcmp( isCommand, "GetVolumeAutosaveOn" ) ) {
+    int collectionID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad collection ID";
+      return error;
+    }
+    
+    if( mID == collectionID ) {
+
+      sReturnValues =
+	TclCommandManager::ConvertBooleanToReturnValue( mbAutosave );
       sReturnFormat = "i";
     }
   }
@@ -1363,10 +1409,10 @@ VolumeCollection::DeleteAutosave () {
 void
 VolumeCollection::AutosaveIfDirty () {
 
-  if( mbAutosaveDirty ) {
-    cerr << "saving " << mfnAutosave << endl;
+  if( mbAutosave && mbAutosaveDirty ) {
     Save( mfnAutosave );
     mbAutosaveDirty = false;
+    cerr << "saving " << mfnAutosave << endl;
   }
 }
 
@@ -1667,5 +1713,6 @@ VolumeCollectionFlooder::Flood ( VolumeCollection& iVolume,
 VolumeLocation::VolumeLocation ( VolumeCollection& iVolume,
 				 float const iRAS[3] )
   : DataLocation( iRAS ), mVolume( iVolume ) {
+
   mVolume.RASToMRIIndex( iRAS, mIdx );
 }

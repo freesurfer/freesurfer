@@ -213,6 +213,7 @@ protected:
   bool mbUseDataToIndexTransform;
 
   // For the autosave volume.
+  bool mbAutosave;
   std::string MakeAutosaveFileName ( std::string& ifn );
   void DeleteAutosave();
   bool mbAutosaveDirty;
