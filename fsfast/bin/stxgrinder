@@ -5,7 +5,7 @@
 ############################################################
 
 set fmrianalver = `cat $FMRI_ANALYSIS_DIR/docs/version`;
-set STXGRINDER_VER = '\$Id: stxgrinder,v 1.1 2003/03/04 21:22:09 greve Exp $';
+set STXGRINDER_VER = '\$Id: stxgrinder,v 1.2 2003/07/28 13:24:45 greve Exp $';
 
 # Set Default Values #
 set firstslice = ();
@@ -289,7 +289,7 @@ while( $slice < $slice_max)
     echo  ---- matlab output ----- | tee -a $LF
     echo Computing Statistics 
     echo `date`
-    cat $MLF | $MATLAB -display iconic | tee -a $LF
+    cat $MLF | $MATLAB -display iconic -nojvm | tee -a $LF
     if( ! $MKeep ) rm -f $MLF;
 
     ## Check for errors during the matlab execution ##
