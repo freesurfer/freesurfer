@@ -84,6 +84,8 @@ fi
 # generic mods
 CPPFLAGS="$CPPFLAGS -D$OS -DANSI $OS_CPPFLAGS"
 
+# get the path for X includes and X libraries
+AC_PATH_X
 #####################################################
 # Checks for libraries.
 # the order is important
@@ -102,17 +104,43 @@ AC_CHECK_LIB([volume_io], [transform_point],[],
 AC_CHECK_LIB([minc], [main], [],
   [AC_MSG_ERROR("FATAL:minc lib not found.  Set LDFLAGS or --with-mni-dir.")] )
 # the entire libs here is passed as LIBS
+# thus save the current one
+ac_save_libs=$LIBS
+ac_save_cppflags=$CPPFLAGS
+ac_save_ldflags=$LDFLAGS
+## check OpenGL
+AC_CHECK_LIB([GL],[glBegin],[],
+  [AC_MSG_ERROR("FATAL:OpenGL lib (libGL) not found.  Set LDFLAGS or --with-gl-dir.")] )
+AC_CHECK_LIB([GLU],[glBegin],[],
+  [AC_MSG_ERROR("FATAL:OpenGL util lib (libGLU) not found.  Set LDFLAGS or --with-gl-dir.")] )
+LIBS="$LIBS -lXi -lXmu -lX11"
+LDFLAGS="$LDFLAGS -L$ac_x_libraries"
+AC_CHECK_LIB([glut],[glutInit],[],
+  [AC_MSG_ERROR("FATAL:OpenGL util lib (libGLU) not found.  Set LDFLAGS or --with-gl-dir.")] )
+## check Tcl/Tk/BLT
+AC_CHECK_LIB([tcl],[Tcl_Init],[],
+  [AC_MSG_ERROR("FATAL: libtcl not found.  Set LDFLAGS or --with-tcl-dir.")] )
+AC_CHECK_LIB([tk],[Tk_Init],[],
+  [AC_MSG_ERROR("FATAL: libtk not found.  Set LDFLAGS or --with-tcl-dir.")] )
+AC_CHECK_LIB([tix],[Tix_Init],[],
+  [AC_MSG_ERROR("FATAL: libtix not found.  Set LDFLAGS or --with-tcl-dir.")] )
+AC_CHECK_LIB([BLT],[Blt_Init],[],
+  [AC_MSG_ERROR("FATAL: libBLT not found.  Set LDFLAGS or --with-BLT-dir.")] )
+# recover previous one without X and Tcl
+LIBS=$ac_save_libs
+CPPFLAGS=$ac_save_cppflags
+LDFLAGS=$ac_save_ldflags
 
 ###########################################################################################
 # Checks for header files.
 ############################################################################################
-AC_PATH_X
 AC_HEADER_DIRENT
 AC_HEADER_STDC
 AC_HEADER_SYS_WAIT
 AC_CHECK_HEADERS([arpa/inet.h fcntl.h float.h limits.h locale.h malloc.h memory.h netdb.h netinet/in.h stddef.h stdlib.h string.h strings.h sys/file.h sys/ioctl.h sys/param.h sys/socket.h sys/time.h sys/timeb.h unistd.h values.h wctype.h])
 # the following is needed on darwin
 AC_CHECK_HEADERS(sys/types.h stdint.h)
+
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_C_CONST
