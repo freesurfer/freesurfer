@@ -14,7 +14,7 @@
 #include "macros.h"
 #include "utils.h"
 
-static char vcid[]="$Id: mris_sphere.c,v 1.9 1998/11/03 18:17:52 fischl Exp $";
+static char vcid[]="$Id: mris_sphere.c,v 1.10 1999/01/10 03:17:46 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -37,6 +37,7 @@ static int   max_passes = 1 ;
 static int   randomly_project = 0 ;
 static float scale = 1.0 ;
 static int mrisDisturbVertices(MRI_SURFACE *mris, double amount) ;
+static int quick = 0 ;
 
 int
 main(int argc, char *argv[])
@@ -124,7 +125,10 @@ main(int argc, char *argv[])
     fprintf(stderr,"surface projected - minimizing metric distortion...\n");
     MRIStalairachTransform(mris, mris) ;
     MRISprojectOntoSphere(mris, mris, DEFAULT_RADIUS) ;
-    MRISunfold(mris, &parms, max_passes) ;  
+    if (quick)
+      MRISquickSphere(mris, &parms, max_passes) ;  
+    else
+      MRISunfold(mris, &parms, max_passes) ;  
     fprintf(stderr, "writing spherical brain to %s\n", out_fname) ;
     MRISwrite(mris, out_fname) ;
   }
@@ -258,6 +262,14 @@ get_option(int argc, char *argv[])
     max_passes = atoi(argv[2]) ;
     fprintf(stderr, "limitting unfolding to %d passes\n", max_passes) ;
     nargs = 1 ;
+    break ;
+  case 'Q':
+    quick = 1 ;
+    fprintf(stderr, "doing quick spherical unfolding.\n") ;
+    parms.l_spring = parms.l_dist = parms.l_parea = parms.l_area = 0.0 ; 
+    parms.l_narea = 1.0 ;
+    parms.tol = 10 ;
+    parms.n_averages = 32 ;
     break ;
   case 'B':
     base_dt_scale = atof(argv[2]) ;
