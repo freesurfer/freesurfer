@@ -12,6 +12,7 @@
 #include "cluster.h"
 #include "matrix.h"
 #include "rbf.h"
+#include "version.h"
 
 static int  verbose = 0 ;
 
@@ -49,6 +50,12 @@ main(int argc, char *argv[])
   FILE         *fp ;
 /*  CLUSTER_SET  *cs ;*/
   RBF          *rbf ;
+
+  /* rkt: check for and handle version tag */
+  nargs = handle_version_option (argc, argv, "$Id: rbftest.c,v 1.4 2003/04/14 23:20:09 kteich Exp $");
+  if (nargs && argc - nargs == 1)
+    exit (0);
+  argc -= nargs;
 
   Progname = argv[0] ;
   DiagInit(NULL, NULL, NULL) ;
