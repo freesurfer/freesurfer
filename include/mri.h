@@ -173,6 +173,8 @@ MRI   *MRIrotate(MRI *mri_src, MRI *mri_dst, MATRIX *mR, MATRIX *mO) ;
 MRI   *MRIscale(MRI *mri_src, MRI *mri_dst, float sx, float sy, float sz) ;
 MRI   *MRIaffine(MRI *mri_src, MRI *mri_dst, MATRIX *mA, MATRIX *mB) ;
 MRI   *MRIinverseLinearTransform(MRI *mri_src, MRI *mri_dst, MATRIX *mA) ;
+MRI   *MRIlinearTransformInterp(MRI *mri_src, MRI *mri_dst, MATRIX *mA,
+        int InterpMethod);
 MRI   *MRIlinearTransform(MRI *mri_src, MRI *mri_dst, MATRIX *mA) ;
 MRI   *MRIapplyRASlinearTransform(MRI *mri_src, MRI *mri_dst, MATRIX *mA) ;
 MRI   *MRIapplyRASinverseLinearTransform(MRI *mri_src, MRI *mri_dst, 
@@ -398,6 +400,7 @@ int   MRIerasePlane(MRI *mri, float x0, float y0, float z0,
                     float dx, float dy, float dz, int fill_val);
 
 int   MRIeraseBorders(MRI *mri, int width) ;
+int   MRIindexNotInVolume(MRI *mri, Real col, Real row, Real slice) ;
 int   MRIsampleVolume(MRI *mri, Real x, Real y, Real z, Real *pval) ;
 int   MRIsampleVolumeType(MRI *mri, Real x, Real y, Real z, Real *pval, int type) ;
 int   MRIsampleLabeledVolume(MRI *mri, Real x, Real y, Real z, Real *pval, unsigned char ucharLabel);
