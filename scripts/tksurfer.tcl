@@ -383,6 +383,7 @@ proc macro { } {
   pack .draw.mesh.sb     -after .draw.mesh.b
   pack .display          -after .xform
   pack .display.ri
+    pack .display.mie
   pack .shrink           -after .display
   pack .shrink.smooth    -after .shrink.cut
   pack .shrink.head      -after .shrink.smooth
@@ -1178,19 +1179,20 @@ edlabval $f "fmid"    $fmid    n 12 4
 edlabval $f "fslope"  $fslope  n 12 4
 edlabval $f "cslope"  $cslope  n 12 4
 edlabval $f "cmid"    $cmid    n 12 4
-if [info exists env(tksurferinterface)] {
-    if {$env(tksurferinterface) != "csurf"} {
-        edlabval $f "anglecycles" $angle_cycles n 12 4
-        edlabval $f "angleoffset" $angle_offset n 12 4
-        $f.anglecycles.e config -textvariable angle_cycles
-        $f.angleoffset.e config -textvariable angle_offset
-    }
-}
 $f.fslope.e config -textvariable fslope 
 #$f.fcurv.e config -textvariable fcurv
 $f.fmid.e config -textvariable fmid
 $f.cslope.e config -textvariable cslope 
 $f.cmid.e config -textvariable cmid
+
+### display middle extension
+set f .display.mie
+frame .display.mie
+edlabval $f "anglecycles" $angle_cycles n 12 4
+edlabval $f "angleoffset" $angle_offset n 12 4
+$f.anglecycles.e config -textvariable angle_cycles
+$f.angleoffset.e config -textvariable angle_offset
+
 ### display panel right
 set f .display.ri
 edlabval $f "light0" $light0 n 9 4
