@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: segonne $
-// Revision Date  : $Date: 2005/02/04 20:26:52 $
-// Revision       : $Revision: 1.322 $
+// Revision Date  : $Date: 2005/02/04 20:46:37 $
+// Revision       : $Revision: 1.323 $
 //////////////////////////////////////////////////////////////////
 #include <stdio.h>
 #include <string.h>
@@ -35289,8 +35289,10 @@ mrisComputeOptimalRetessellation(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected,
 	char fname[500];
 	SEGMENTATION *segmentation;
 	RP rp;
-	int number_of_patches;
+	int number_of_patches,nbestpatch;
 	static int first_time=1;
+
+	nbestpatch = number_of_patches = 0;
 
 	if(first_time){
 		char *cp;
@@ -35588,6 +35590,7 @@ mrisComputeOptimalRetessellation(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected,
 				printf("new optimal fitness found at %d: %2.4f\n", i, fitness) ;
 
 				nfinalvertices=nremovedvertices;
+				nbestpatch=number_of_patches;
 
 				rp.best_fitness=best_fitness;
 				/* save ordering*/
@@ -35733,6 +35736,7 @@ mrisComputeOptimalRetessellation(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected,
 				printf("new optimal fitness found at %d: %2.4f\n", i, fitness) ;
 
 				nfinalvertices=nremovedvertices;
+				nbestpatch=number_of_patches;
 
 				rp.best_fitness=best_fitness;
 				/* save ordering*/
@@ -35823,6 +35827,7 @@ mrisComputeOptimalRetessellation(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected,
 				best_fitness = fitness ; best_i = next_gen_index-1 ;
 
 				nfinalvertices=nremovedvertices;
+				nbestpatch=number_of_patches;
 
 				rp.best_fitness=best_fitness;
 				/* save ordering*/
@@ -35951,6 +35956,7 @@ mrisComputeOptimalRetessellation(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected,
 				best_fitness = fitness ; best_i = next_gen_index-1 ;
 
 				nfinalvertices=nremovedvertices;
+				nbestpatch=number_of_patches;
 
 				rp.best_fitness=best_fitness;
 				/* save ordering*/
@@ -35999,6 +36005,7 @@ mrisComputeOptimalRetessellation(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected,
 					best_fitness = fitness ; best_i = next_gen_index-1 ;
 					
 					nfinalvertices=nremovedvertices;
+					nbestpatch=number_of_patches;
 
 					rp.best_fitness=best_fitness;
 					/* save ordering*/
@@ -36144,6 +36151,7 @@ mrisComputeOptimalRetessellation(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected,
 	}
 
 	fprintf(stdout,"%d vertices were eliminated from retessellated patch\n",nfinalvertices);
+	fprintf(stdout,"best patch # is %d - total number of generated patches %d\n",nbestpatch,number_of_patches);
 	nkilled += nfinalvertices;
 
 	/* use the best ordering to retessellate the defected patch */
