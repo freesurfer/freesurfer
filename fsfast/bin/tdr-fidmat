@@ -1,22 +1,44 @@
 #!/bin/tcsh -f
-# tdr-fidmat
+# tdr-fidmat2 - used tdr_fidmat2.m
 
-set VERSION = '$Id: tdr-fidmat,v 1.4 2003/11/14 22:57:58 greve Exp $';
+set VERSION = '$Id: tdr-fidmat,v 1.5 2003/12/19 21:55:30 greve Exp $';
 
 set inputargs = ($argv);
 
 set rawkdir    = ();
-set outdir     = ();
+set outmat     = ();
 set fwhm       = 0;
 set monly      = 0;
 set cleanup    = 1;
 set convmdh    = 1;
+set TE         = ();
+set PERev      = ();
 
-# for martin
-set nechoes    = 81; 
+set fidecho1ped = 1810;   # PED of first echo (us)
+set fidechospacing = 820; # Time between FID echoes (Actually use double)
+set nfidechoes = 99; # But we'll only use half (odd echoes), should get from file
+
+set epiechospacing = 470; # us
+set epidelsamp = 30;      # us
+set epitdwell = 3.2;      # us
+
+set nslices    = 35; 
+set nrows      = 64;
+set ncols      = 128;
+
+# for martin: TE = 40
+if(1) then
+echo ""
+echo "INFO: Using martins parameters"
+echo ""
+set nfidechoes = 81; 
 set nslices    = 23; 
-set npelines   = 128; 
+set nrows      = 128; 
 set ncols      = 256;
+set epiechospacing = 530; # us
+set epidelsamp = 60;      # us
+set epitdwell = 1.6;      # us
+endif
 
 set PrintHelp = 0;
 if($#argv == 0) goto usage_exit;
@@ -39,6 +61,12 @@ check_params_return:
 
 set umask = `umask`;
 
+set outdir = `dirname $outmat`;
+mkdir -p $outdir
+pushd $outdir > /dev/null
+set outdir = `pwd`;
+popd > /dev/null
+
 ##### Create a log file ######
 set logdir = $outdir/log;
 mkdir -p $logdir
@@ -50,10 +78,10 @@ else
   if(-e $LF) mv $LF $LF.old
 endif
 echo "--------------------------------------------------------------"
-echo "tdr-fidmat logfile is $LF"
+echo "tdr-fidmat2 logfile is $LF"
 echo "--------------------------------------------------------------"
 
-echo "tdr-fidmat log file" >> $LF
+echo "tdr-fidmat2 log file" >> $LF
 echo $VERSION >> $LF
 id            >> $LF
 pwd           >> $LF
@@ -64,81 +92,89 @@ date          >> $LF
 
 set StartTime = `date`;
 
+if(0) then
 set fidrlf = $rawkdir/fid.rlf
 if(! -e $fidrlf) then
   echo "ERROR: cannot find $fidrlf" |& tee -a $LF
   exit 1;
 endif
 
-@ nthfid = 1;
-foreach fidsubdir (`cat $fidrlf`);
+set tmp = `cat $fidrlf`;
+set fiddir = $rawkdir/$tmp[1];
+if(! -e $fiddir) then
+  echo "ERROR: cannot find $fiddir" |& tee -a $LF
+  exit 1;
+endif
+endif
 
-  set fiddir = $rawkdir/$fidsubdir
-  if(! -e $fiddir) then
-    echo "ERROR: cannot find $fiddir" |& tee -a $LF
+pushd $rawkfiddir > /dev/null
+set rawkfiddir = `pwd`;
+popd > /dev/null
+
+set fidmghdir = $outdir/tmp/fid
+if($convmdh) then
+  mkdir -p $fidmghdir
+  set cmd = (mri_convert_mdh --srcdir $rawkfiddir \
+        --outdir $fidmghdir \
+        --dim 1 $nslices $nfidechoes $nrows $ncols 0 \
+        --fasterdim echo)
+  echo "---------------------------------" |& tee -a $LF
+  date |& tee -a $LF
+  echo $cmd |& tee -a $LF
+  $cmd |& tee -a $LF
+  if($status) exit 1;
+else
+  if(! -e $fidmghdir) then
+    echo "ERROR: $fidmghdir does not exist, run without --noconvmdh"
     exit 1;
   endif
+endif
 
-  pushd $fiddir > /dev/null
-  set fiddir = `pwd`;
-  popd > /dev/null
+date | tee -a $LF
 
-  set fidmghdir = $outdir/tmp/fid$nthfid
-  if($convmdh) then
-    mkdir -p $fidmghdir
-    set cmd = (mri_convert_mdh --srcdir $fiddir --outdir $fidmghdir \
-        --dim 1 $nslices $nechoes $npelines $ncols 0 \
-        --fasterdim echo)
-    echo "---------------------------------" |& tee -a $LF
-    date |& tee -a $LF
-    echo $cmd |& tee -a $LF
-    $cmd |& tee -a $LF
-    if($status) exit 1;
-  else
-    if(! -e $fidmghdir) then
-      echo "ERROR: $fidmghdir does not exist, run without --noconvmdh"
-      exit 1;
-    endif
-  endif
-
-  set MLF = $fidmghdir/run_tdr_fidmat.m
-  rm -f $MLF
+set MLF = $fidmghdir/run_tdr_fidmat-$TE.m
+rm -f $MLF
 
 #---------------------------------------------#
 tee -a > /dev/null $MLF  <<EOF
-  fiddirlist = '$fidmghdir';
+  fidecho1ped = $fidecho1ped;   
+  fidechospacing = $fidechospacing; 
+  nfidechoes = $nfidechoes ; 
+  
+  % EPI timing parameters - note EPI data not needed here
+  epiechospacing = $epiechospacing; 
+  delsamp = $epidelsamp ;
+  tDwell = $epitdwell;
+  
+  % Dimensions: applies to both EPI and FID - should just get this from data
+  nrows = $nrows;
+  ncols = $ncols;
+  nslices = $nslices;
+
+  fiddir = '$fidmghdir';
   fidfwhm = [$fwhm];
-  %TEList      = [20 50 30];  % Echo time in ms
-  %TEPERevList = [ 0  1  0];  % Flag indicating reversal in PE direction
-  %TEList      = [20 50];  % Echo time in ms
-  %TEPERevList = [ 0  1];  % Flag indicating reversal in PE direction
-  TEList      = [40];  % Echo time in ms
-  TEPERevList = [0];  % Flag indicating reversal in PE direction
-  outlist =                 '$outdir/D40.$nthfid.mat';
-  %outlist = strvcat(outlist,'$outdir/D50.$nthfid.mat');
-  %outlist = strvcat(outlist,'$outdir/D30.$nthfid.mat');
-  tdr_fidmat;
+  TE = $TE;
+  perev = $PERev;
+  outmat = '$outmat';
+  tdr_fidmat2;
 EOF
 #---------------------------------------------#
 
-  if(! $monly) then
-    cat $MLF >> $LF
-    cat $MLF | matlab -display iconic -nojvm -nosplash | & tee -a $LF
-  endif
+if(! $monly) then
+  cat $MLF >> $LF
+  cat $MLF | matlab -display iconic -nojvm -nosplash | & tee -a $LF
+endif
 
-  if($cleanup) then
-    echo "Deleting mgh files" |& tee -a $LF
-    set cmd = (rm -r $fidmghdir)
-    echo $cmd |& tee -a $LF
-    $cmd |& tee -a $LF
-  endif
-
-  @ nthfid = $nthfid + 1;
-end
+if($cleanup) then
+  echo "Deleting mgh files" |& tee -a $LF
+  set cmd = (rm -r $fidmghdir)
+  echo $cmd |& tee -a $LF
+  $cmd |& tee -a $LF
+endif
 
 echo "Started at $StartTime" |& tee -a $LF
 echo "Ended   at `date`"     |& tee -a $LF
-echo "tdr-fidmat done"       |& tee -a $LF
+echo "tdr-fidmat2 done"       |& tee -a $LF
 
 
 exit 0
@@ -156,17 +192,27 @@ while( $#argv != 0 )
 
     case "--rawkdir":
       if ( $#argv == 0) goto arg1err;
-      set rawkdir = $argv[1]; shift;
+      set rawkfiddir = $argv[1]; shift;
       breaksw
 
-    case "--outdir":
+    case "--outmat":
       if ( $#argv == 0) goto arg1err;
-      set outdir = $argv[1]; shift;
+      set outmat = $argv[1]; shift;
       breaksw
 
     case "--fwhm":
       if ( $#argv == 0) goto arg1err;
       set fwhm = $argv[1]; shift;
+      breaksw
+
+    case "--TE":
+      if ( $#argv == 0) goto arg1err;
+      set TE = $argv[1]; shift;
+      breaksw
+
+    case "--perev":
+      if ( $#argv == 0) goto arg1err;
+      set PERev = $argv[1]; shift;
       breaksw
 
     case "--nocleanup":
@@ -181,9 +227,6 @@ while( $#argv != 0 )
       set verbose = 1;
       breaksw
 
-    case "--echo":
-      set echo = 1;
-      breaksw
 
     case "--debug":
       set verbose = 1;
@@ -205,23 +248,27 @@ goto parse_args_return;
 ############--------------##################
 check_params:
 
-  if($#rawkdir == 0) then
+  if($#rawkfiddir == 0) then
     echo "ERROR: must specify a rawkdir"
     exit 1;
   endif
-  if(! -e $rawkdir ) then
-    echo "ERROR: $rawkdir does not exist"
+  if(! -e $rawkfiddir ) then
+    echo "ERROR: $rawkfiddir does not exist"
     exit 1;
   endif
 
-  if($#outdir == 0) then
-    echo "ERROR: must specify an outdir"
+  if($#outmat == 0) then
+    echo "ERROR: must specify an output mat file"
     exit 1;
   endif
 
-  mkdir -p $outdir
-  if($status) then
-    echo "ERROR: making $outdir"
+  if($#TE == 0) then
+    echo "ERROR: must specify a TE"
+    exit 1;
+  endif
+
+  if($#PERev == 0) then
+    echo "ERROR: must specify PERev"
     exit 1;
   endif
 
@@ -237,10 +284,12 @@ arg1err:
 ############--------------##################
 usage_exit:
   echo ""
-  echo "USAGE: tdr-fidmat"
+  echo "USAGE: tdr-fidmat2"
   echo ""
   echo "  --rawkdir dir"
-  echo "  --outdir  dir"
+  echo "  --outmat  matfile"
+  echo "  --TE TE"
+  echo "  --perev PERev"
   echo "  --fwhm    fwhm"
   echo "  --nocleanup : do not delete intermediate mgh files"
   echo "  --noconvmdh : do not convert mdh files (already there)"
