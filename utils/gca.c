@@ -6272,6 +6272,8 @@ gcaExtractRegionLabelAsSamples(GCA *gca, MRI *mri_labeled, TRANSFORM *transform,
       break ;
 
   gc = GCAfindPriorGC(gca, xp, yp, zp, label) ;
+  if (!gc)
+    return(NULL) ;
 
   for (nsamples = 0, zk = -whalf  ; zk <= whalf ; zk++)
   {
