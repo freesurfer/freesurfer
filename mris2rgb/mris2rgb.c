@@ -28,7 +28,7 @@
 #include "tiff.h"
 #include "tiffio.h"
 
-static char vcid[] = "$Id: mris2rgb.c,v 1.7 1998/02/24 17:45:42 fischl Exp $";
+static char vcid[] = "$Id: mris2rgb.c,v 1.8 1998/03/12 22:54:05 fischl Exp $";
 
 /*-------------------------------- CONSTANTS -----------------------------*/
 
@@ -69,6 +69,13 @@ static void grabPixels(unsigned int width, unsigned int height,
 static void clear_pixmaps(MRI_SURFACE *mris) ;
 static void xinit(void) ;
 static void xend(void) ;
+
+#define MAX_CENTROIDS  100
+static int centroid_files = 0 ;
+static char *centroid_fnames[MAX_CENTROIDS] ;
+static int centroid_colors[MAX_CENTROIDS] ;
+static int mark_centroids(MRI_SURFACE *mris, char *centroid_fnames[], 
+                          int *centroid_colors, int centroid_files) ;
 
 /*-------------------------------- DATA ----------------------------*/
 
@@ -217,7 +224,11 @@ main(int argc, char *argv[])
       MRISsaveVertexPositions(mris, CANONICAL_VERTICES) ;
 
     if (talairach_flag)
+    {
       MRIStalairachTransform(mris, mris) ;
+      MRISsaveVertexPositions(mris, CANONICAL_VERTICES) ;
+      
+    }
     MRIScenter(mris, mris) ;
     if (noscale)
       OGLUnoscale() ;
@@ -244,6 +255,7 @@ main(int argc, char *argv[])
     if (ino == 1)    /* do initialization first time through */
       OGLUinit(mris, frame_xdim, frame_ydim) ;/* specify lighting and such */
     
+    mark_centroids(mris, centroid_fnames, centroid_colors, centroid_files) ;
     if (mrisp)
     {
       MRISrestoreVertexPositions(mris, CANONICAL_VERTICES) ;
@@ -451,6 +463,15 @@ get_option(int argc, char *argv[])
   }
   else if (!stricmp(option, "-version"))
     print_version() ;
+  else if (!strcmp(option, "centroids"))
+  {
+    centroid_fnames[centroid_files] = argv[2] ; 
+    centroid_colors[centroid_files] = atoi(argv[3]) ;
+    nargs = 2 ;
+    fprintf(stderr, "marking all vertices in file %s with %d\n", 
+            centroid_fnames[centroid_files],centroid_colors[centroid_files]);
+    centroid_files++ ;
+  }
   else if (!stricmp(option, "cslope"))
   {
     sscanf(argv[2], "%f", &cslope) ;
@@ -799,3 +820,47 @@ clear_pixmaps(MRI_SURFACE *mris)
 #endif
   glLoadIdentity();
 }
+static int 
+mark_centroids(MRI_SURFACE *mris, char *centroid_fnames[], 
+               int *centroid_colors, int centroid_files)
+{
+  FILE    *fp ;
+  int     cno, vno, color ;
+  float   x, y, z ;
+  VERTEX  *v ;
+  char    line[100] ;
+
+  for (cno = 0 ; cno < centroid_files ; cno++)
+  {
+    fp = fopen(centroid_fnames[cno], "r") ;
+    if (!fp)
+      ErrorExit(ERROR_NOFILE, "%s: could not open centroid file %s\n",
+                Progname, centroid_fnames[cno]) ;
+
+    fgetl(line, 99, fp) ;
+    if (sscanf(line, "%f  %f  %f\n", &x, &y, &z) != 3)
+      ErrorExit(ERROR_BADFILE, "%s: could not scan area centroid from %s\n",
+                Progname, line) ;
+    vno = MRISfindClosestCannonicalVertex(mris, x, y, z) ;
+    v = &mris->vertices[vno] ;
+    color = centroid_colors[cno] ;
+    v->marked = color ;
+    color++ ;  /* mark the individuals in a different color than the group */
+    while (fgetl(line, 99, fp))
+    {
+      if (sscanf(line, "%f  %f  %f\n", &x, &y, &z) != 3)
+        ErrorExit(ERROR_BADFILE, 
+                  "%s: could not scan area centroid from %s\n",
+                  Progname, line) ;
+      vno = MRISfindClosestCannonicalVertex(mris, x, y, z) ;
+      v = &mris->vertices[vno] ;
+      if (!v->marked)
+        v->marked = color ;
+    }
+
+    fclose(fp) ;
+  }
+
+  return(NO_ERROR) ;
+}
+
