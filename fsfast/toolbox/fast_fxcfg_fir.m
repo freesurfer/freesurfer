@@ -19,11 +19,7 @@ function rt = fast_fxcfg_fir(DoWhat,thing)
 %  3. dPSD
 %  4. PSDMax
 %
-% $Id: fast_fxcfg_fir.m,v 1.3 2003/03/19 07:04:13 greve Exp $
-
-% Things to do:
-% Handle tpx, nskip
-
+% $Id: fast_fxcfg_fir.m,v 1.4 2003/03/21 05:29:08 greve Exp $
 
 rt = [];
 
@@ -68,6 +64,10 @@ switch(DoWhat)
   nreg = fast_fxcfg_fir('nregressors',flacfg);
   if(isempty(nreg)) return; end
   rt = eye(nreg);
+ 
+ case {'irftaxis','erftaxis'}
+  if(isempty(flacfg)) pr_fla_needed(DoWhat); return; end
+  rt = get_taxis(flacfg);
  
  case 'matrix'
   if(isempty(flacfg)) pr_fla_needed(DoWhat); return; end
@@ -239,11 +239,25 @@ X = fast_sched2Xfir(tPresEvId,ntp,flacfg.TR,psd,flacfg.tDelay,wPresEvId);
 
 if(wRun ~= 1) X = wRun * X; end
 
-% Handle tpx, flacfg.usetpexclude
+% tpx and nskip are handled in fast_fxcfg('matrix',flacfg)
 
 return;
-%------------------------------------------------------------%
 
+%------------------------------------------------------------%
+function taxis = get_taxis(flacfg,axistype)
+% Ignore axis type as erf and irf are the same
+taxis = [];
+
+fxcfg = fast_fxcfg('getfxcfg',flacfg);
+if(isempty(fxcfg)) return; end
+
+psdmin = fxcfg.params(2);
+dpsd   = fxcfg.params(3);
+psdmax = fxcfg.params(4);
+
+taxis = fast_psdwin([psdmin dpsd psdmax],'irftaxis');
+
+return;
 
 
 
