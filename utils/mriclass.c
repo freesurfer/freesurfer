@@ -38,16 +38,20 @@
 #define DEBUG_POINT(x,y,z)     (((x) == 40)&&((y)==62)&&((z)==94))
 
 /*-----------------------------------------------------
-                    STATIC DATA
+                      GLOBAL DATA
 -------------------------------------------------------*/
-static char *gaussian_class_names[GAUSSIAN_NCLASSES] =
+
+char *class_names[GAUSSIAN_NCLASSES] =
 {
   "CSF",
   "GREY MATTER",
-  "SUBCORTICAL GREY MATTER",
   "WHITE MATTER",
   "BRIGHT MATTER"
 } ;
+
+/*-----------------------------------------------------
+                    STATIC DATA
+-------------------------------------------------------*/
 
 static int  total = 0, buffered = 0, total_computed = 0 ;
 
@@ -121,7 +125,7 @@ MRICalloc(int nrounds, int *types, int *features, void *parms)
     {
     case CLASSIFIER_GAUSSIAN:
       mric->classifier[round].gc = 
-        GCalloc(GAUSSIAN_NCLASSES, ninputs, gaussian_class_names);
+        GCalloc(GAUSSIAN_NCLASSES, ninputs, class_names);
       if (!mric->classifier[round].gc)
       {
         free(mric) ;
@@ -478,7 +482,7 @@ MRICclassify(MRIC *mric, MRI *mri_src, MRI *mri_dst,
             *pclasses++ = (BUFTYPE)classno*CLASS_SCALE ;
           if (pprobs)
             *pprobs++ = prob ;
-          if ((classno == WHITE_MATTER || classno == SUBCORTICAL_GRAY_MATTER)
+          if ((classno == WHITE_MATTER)
               && prob > conf)
             *pdst++ = src ;
           else
@@ -770,21 +774,8 @@ MRICbuildTargetImage(MRI *mri_src, MRI *mri_target, MRI *mri_wm,
         src = *psrc++ ;
         MRIvoxelToTalairach(mri_target, (Real)x, (Real)y, (Real)z,&xt, &yt,&zt);
         wm = *pwm++ ;
-        if (wm == 255)
-        {
-          if (zt < TALAIRACH_SUBCORTICAL_GRAY_MAX_Z)
-            target = SUBCORTICAL_GRAY_MATTER ;
-          else
-            target = WHITE_MATTER ;
-        }
-        else if (wm)
-        {
-          if ((src < HI_SUBCORTICAL_GRAY) && 
-              (zt < TALAIRACH_SUBCORTICAL_GRAY_MAX_Z))
-            target = SUBCORTICAL_GRAY_MATTER ;
-          else
-            target = WHITE_MATTER ;
-        }
+        if (wm)
+          target = WHITE_MATTER ;
         else if (src > hi_lim)
           target = BRIGHT_MATTER ;
         else if (src < lo_lim)
@@ -1003,7 +994,7 @@ MRICcomputeStatistics(MRIC *mric, int round)
         }
         if (Gdiag & DIAG_SHOW)
           fprintf(stderr, "mean %24.24s, feature %d = %-2.3f, var = %-2.3f\n",
-                  gaussian_class_names[classno], row,
+                  class_names[classno], row,
                   mean_a, gcl->m_covariance->rptr[row][row]) ;
       }
     }
@@ -1028,7 +1019,7 @@ MRICclassName(MRIC *mric, int round, int classno)
   {
   default:
   case CLASSIFIER_GAUSSIAN:
-    class_name = gaussian_class_names[classno] ;
+    class_name = class_names[classno] ;
     break ;
   }
 
@@ -1058,7 +1049,7 @@ MRICdump(FILE *fp, MRIC *mric)
     for (classno = 0 ; classno < nclasses ; classno++)
     {
       gcl = &gc->classes[classno] ;
-      fprintf(stderr, "  %s:\n", gaussian_class_names[classno]) ;
+      fprintf(stderr, "  %s:\n", class_names[classno]) ;
       for (fno = 0 ; fno < mric->ninputs[round] ; fno++)
       {
         fprintf(stderr, "    feature %10.10s, mean = %+2.3f, std = %+2.3f\n",

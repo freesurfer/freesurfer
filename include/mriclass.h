@@ -7,12 +7,11 @@
 #include "artmap.h"
 #include "mri.h"
 
-#define GAUSSIAN_NCLASSES                  5
+#define GAUSSIAN_NCLASSES                  4
 #define BACKGROUND                         0
 #define GREY_MATTER                        1
-#define SUBCORTICAL_GRAY_MATTER            2
-#define WHITE_MATTER                       3
-#define BRIGHT_MATTER                      4
+#define WHITE_MATTER                       2
+#define BRIGHT_MATTER                      3
 #define LO_LIM                             70
 #define HI_LIM                             150
 #define DEFINITELY_BACKGROUND              50
@@ -84,5 +83,7 @@ int    MRICcomputeStatistics(MRIC *mric, int round) ;
 char   *MRICclassName(MRIC *mric, int round, int classno) ;
 int    MRICdump(FILE *fp, MRIC *mric) ;
 char   *MRICfeatureName(MRIC *mric, int round, int feature_number) ;
+
+extern char *class_names[] ;
 
 #endif
