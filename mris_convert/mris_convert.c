@@ -13,7 +13,7 @@
 #include "macros.h"
 #include "fio.h"
 
-static char vcid[] = "$Id: mris_convert.c,v 1.7 1998/08/26 19:24:21 fischl Exp $";
+static char vcid[] = "$Id: mris_convert.c,v 1.8 1998/09/13 16:43:33 fischl Exp $";
 
 
 /*-------------------------------- CONSTANTS -----------------------------*/
@@ -88,21 +88,19 @@ main(int argc, char *argv[])
 
   if (patch_flag)   /* read in orig surface before reading in patch */
   {
+    char name[100] ;
+
     FileNamePath(in_fname, path) ;
-    cp = strrchr(in_fname, '/') ;
+    FileNameOnly(in_fname, name) ;
+    cp = strchr(name, '.') ;
     if (cp)
     {
-      cp = strchr(cp, '.') ;
-      if (cp)
-      {
-        strncpy(hemi, cp-2, 2) ;
-        hemi[2] = 0 ;
-      }
-      else
-        strcpy(hemi, "lh") ;
+      strncpy(hemi, cp-2, 2) ;
+      hemi[2] = 0 ;
     }
     else
       strcpy(hemi, "lh") ;
+
     sprintf(fname, "%s/%s.orig", path, hemi) ;
     mris = MRISread(fname) ;
     if (!mris)
