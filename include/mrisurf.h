@@ -250,6 +250,13 @@ typedef struct
 #define IPFLAG_NO_SELF_INT_TEST    0x0002
 #define IPFLAG_QUICK               0x0004  /* sacrifice quality for speed */
 #define IPFLAG_ADD_VERTICES        0x0008
+#define IP_USE_CURVATURE           0x0010         /* was 0x0001 !!! */
+#define IP_NO_RIGID_ALIGN          0x0020         /* was 0x0002 !!! */
+#define IP_RETRY_INTEGRATION       0x0040         /* was 0x0004 !!! */
+/* VECTORIAL_REGISTRATION*/
+#define IP_USE_MULTIFRAMES         0x0080
+/* MRIScorrectTopology : topology preserving patch deformation */
+#define IPFLAG_PRESERVE_TOPOLOGY   0x0100 /* apply topology preserving gradient */
 
 #define INTEGRATE_LINE_MINIMIZE    0  /* use quadratic fit */
 #define INTEGRATE_MOMENTUM         1
@@ -387,6 +394,24 @@ typedef struct
   int     frame_no ;          /* current frame in template parameterization */
   MRI_SP  *mrisp_template ;   /* parameterization of canonical surface */
   float   sigma ;             /* blurring scale */
+/* VECTORIAL_REGISTRATION
+	 The average template mrisp is assumed to be composed of several 
+	 different fields (most likely 11 different fields: see below). 
+	 MRISvectorRegistration will use ncorrs fields, with their corresponding 
+	 location at frames[n], 0 <= n< ncorrs in the mrisp structure.
+	 The field type is in corrfields[n] (field code is below).
+	 the corresponding correlation terms are in l_corrs[n] and l_pcorrs[n].
+	 MRISvectorRegistration will use the structure VALS_VP in v->vp
+*/	
+#define MAX_NUMBER_OF_FIELDS_IN_VECTORIAL_REGISTRATION	50
+#define MNOFIV MAX_NUMBER_OF_FIELDS_IN_VECTORIAL_REGISTRATION
+	int     ncorrs;             /* the number of fields in mrisp */
+	int     corrfields[MNOFIV];       /* field code (see below) */
+	int     frames[MNOFIV];           /* corresponding frame in mrisp */ 
+	float   l_corrs[MNOFIV];          /* correlation coefficient */
+	float   l_pcorrs[MNOFIV];         /* polar correlation coefficient */
+	float   sses[MNOFIV];             /* corresponding sse */
+
   MRI     *mri_brain ;        /* for settling surfaace to e.g. g/w border */
   MRI     *mri_smooth ;       /* smoothed version of mri_brain */
   void    *user_parms ;       /* arbitrary spot for user to put stuff */
@@ -400,9 +425,73 @@ extern int (*gMRISexternalRipVertices)(MRI_SURFACE *mris, INTEGRATION_PARMS *par
 extern int (*gMRISexternalClearSSEStatus)(MRI_SURFACE *mris) ;
 extern int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris, double pct) ;
 
+
 #define IP_USE_CURVATURE      0x0001
 #define IP_NO_RIGID_ALIGN     0x0002
 #define IP_RETRY_INTEGRATION  0x0004
+
+/* VECTORIAL_REGISTRATION*/
+#define IP_USE_MULTIFRAMES    0x0008
+
+#define NUMBER_OF_FIELDS_IN_VECTORIAL_REGISTRATION 11
+/* field code: definition of the field type*/
+#define INFLATED_CURV_CORR_FRAME       0
+#define SULC_CORR_FRAME                1
+#define CURVATURE_CORR_FRAME           2 
+#define T1MID_CORR_FRAME               3 
+#define T2MID_CORR_FRAME               4
+#define PDMID_CORR_FRAME               5
+#define GRAYMID_CORR_FRAME             6
+#define AMYGDALA_CORR_FRAME            7 
+#define HIPPOCAMPUS_CORR_FRAME         8
+#define PALLIDUM_CORR_FRAME            9
+#define PUTAMEN_CORR_FRAME            10
+#define CAUDATE_CORR_FRAME            11
+#define LAT_VENTRICLE_CORR_FRAME      12
+#define INF_LAT_VENTRICLE_CORR_FRAME  13 
+
+#define IS_DISTANCE_FIELD(n) (((n) < 7 ) ? 0 : 1 )
+
+/* corresponding surface names */
+/* GRAYMID_NAME  has already been defined above */
+#define		T1MID_NAME                   "T1mid"   
+#define		T2MID_NAME                   "T2mid"
+#define		PDMID_NAME                   "PDmid"
+#define		AMYGDALA_DIST_NAME           "amygdala_dist"
+#define		HIPPOCAMPUS_DIST_NAME        "hippocampus_dist"  
+#define		PALLIDUM_DIST_NAME           "pallidum_dist"
+#define		PUTAMEN_DIST_NAME            "putamen_dist"
+#define		CAUDATE_DIST_NAME            "caudate_dist" 
+#define		LAT_VENTRICLE_DIST_NAME      "latventricle_dist"   
+#define		INF_LAT_VENTRICLE_DIST_NAME  "inflatventricle_dist"
+
+/* This structure is used in MRISvectorRegistration 
+	 The original values are loaded in orig_vals
+	 The used values are in vals (for instance the  blurred orig_vals)
+*/
+typedef struct{
+	float *vals;
+	float *orig_vals;
+	int nvals;
+}VALS_VP;
+
+/* new functions */
+int MRISvectorRegister(MRI_SURFACE *mris, 
+											 MRI_SP *mrisp_template, 
+											 INTEGRATION_PARMS *parms, int max_passes, 
+											 float min_degrees, float max_degrees, 
+											 int nangles);
+int MRISrigidBodyAlignVectorLocal(MRI_SURFACE *mris, 
+																	INTEGRATION_PARMS *old_parms);
+int MRISrigidBodyAlignVectorGlobal(MRI_SURFACE *mris, 
+															 INTEGRATION_PARMS *parms,
+															 float min_degrees, 
+															 float max_degrees, int nangles);
+void MRISnormalizeField(MRIS *mris , int distance_field);
+void MRISsetCurvaturesToValues(MRIS *mris,int fno);
+void MRISsetCurvaturesToOrigValues(MRIS *mris,int fno);
+void MRISsetOrigValuesToCurvatures(MRIS *mris,int fno);
+void MRISsetOrigValuesToValues(MRIS *mris,int fno);
 
 /* can't include this before structure, as stats.h includes this file. */
 /*#include "stats.h"*/
@@ -658,6 +747,7 @@ MRI_SP       *MRISPalloc(float scale, int nfuncs) ;
 int          MRISPfree(MRI_SP **pmrisp) ;
 MRI_SP       *MRISPread(char *fname) ;
 int          MRISPwrite(MRI_SP *mrisp, char *fname) ;
+
 int          MRISwriteArea(MRI_SURFACE *mris, char *mris_fname) ;
 
 #include "label.h"
@@ -946,6 +1036,21 @@ MRI   *MRISpartialfloodoutside(MRI *mri_src,MRI *mri_dst); // src is used. dst m
 
 #define MRISPvox(m,u,v)   (*IMAGEFpix(m->Ip,u,v))
 
+
+/* VECTORIAL_REGISTRATION*/
+int MRISPfunctionVectorVals(MRI_SURFACE_PARAMETERIZATION *mrisp, 
+														MRI_SURFACE *mris,
+														float x, float y, float z, 
+														int *frames, int nframes, double *vals);
+MRI_SURFACE * MRISfromParameterizations(MRI_SP *mrisp, 
+																				MRI_SURFACE *mris, int *frames, 
+																				int *indices,int nframes);
+MRI_SP * MRIStoParameterizations(MRI_SURFACE *mris, 
+																 MRI_SP *mrisp, float scale,int *frames,
+																 int *indices,int nframes);
+MRI_SP * MRISPblurFrames(MRI_SP *mrisp_src, 
+												 MRI_SP *mrisp_dst, float sigma, int *frames, 
+												 int nframes);
 
 typedef struct
 {
