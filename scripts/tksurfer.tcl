@@ -1204,7 +1204,7 @@ proc CreateMenuBar { ifwMenuBar } {
       {DoFileDlog ImportAnnotation} } \
       \
       {command "Export Annotation..." \
-      {DoFileDlog Export} \
+      {DoFileDlog ExportAnnotation} \
       mg_LabelLoaded } \
       }   } \
       \
@@ -2734,11 +2734,14 @@ set ksLabelListWindowName "Labels"
 set gnNumLabels 0
 # the strucutre names we know about
 set glStructures {}
-# structure option widget
-set gowStructures ""
+# structure list widget
+set glwStructures ""
+# color table file name
 set gsColorTableFileName ""
 # currently selected label
 set gnSelectedLabel 0
+# currently selected structure
+set gnSelectedStructure 0
 
 proc LblLst_CreateWindow { iwwTop } {
 
@@ -2748,15 +2751,15 @@ proc LblLst_CreateWindow { iwwTop } {
     set gwwLabelListWindow $iwwTop
     toplevel $iwwTop
     wm title $iwwTop $ksLabelListWindowName
-    wm geometry $iwwTop 450x325
-    wm minsize $iwwTop 450 324
+    wm geometry $iwwTop 450x500
+    wm minsize $iwwTop 450 500
 }
 
 proc LblLst_CreateLabelList { ifwList } {
 
-    global glwLabelList gnNumLabels
+    global glwLabel gnNumLabels
     global gaLabelInfo
-    global glStructures gowStructures
+    global glStructures glwStructures
     global gsColorTableFileName
     global gaLinkedVars
 
@@ -2775,7 +2778,7 @@ proc LblLst_CreateLabelList { ifwList } {
     # make the file selector widget and a load button
     set sColorTableFileName ""
     tkm_MakeFileSelector $fwColorTableFileName \
-      "Color Table:" gaLinkedVars(colortablename)
+      "Color Table:" sColorTableFileName
     tkm_MakeButtons $fwColorTableLoad [list \
       [list text "Load" {labl_load_color_table $gaLinkedVars(colortablename); UpdateLinkedVarGroup label} ] ]
 
@@ -2793,25 +2796,27 @@ proc LblLst_CreateLabelList { ifwList } {
     tixScrolledListBox $fwLabelList \
       -options { listbox.selectmode single } \
       -browsecmd LblLst_SelectHilitedLabel
-    set glwLabelList [$fwLabelList subwidget listbox]
+    set glwLabel [$fwLabelList subwidget listbox]
     
 
     # the info area for the selected label
     frame $fwLabelInfo
-    set fwName     $fwLabelInfo.fwName
-    set fwVisible  $fwLabelInfo.fwVisible
-    set fwLabel    $fwLabelInfo.fwLabel
-    set fwInfoButtons  $fwLabelInfo.fwButtons
+    set fwName          $fwLabelInfo.fwName
+    set fwVisible       $fwLabelInfo.fwVisible
+    set fwStructure     $fwLabelInfo.fwStructure
+    set fwStructureList $fwLabelInfo.fwStructureList
+    set fwInfoButtons   $fwLabelInfo.fwButtons
 
     tkm_MakeEntry $fwName "Name" gaLabelInfo(name)
     tkm_MakeCheckboxes $fwVisible y [list \
       [list text "Visible" gaLabelInfo(visible)] ]
-    tixOptionMenu $fwLabel -label "Structure" \
-      -variable gaLabelInfo(structure)
-    set gowStructures $fwLabel
-    foreach entry $glStructures {
-  $gowStructures add command $entry -label $entry
-    }
+
+    # an active label and scrolling list for the structure.
+    tkm_MakeActiveLabel $fwStructure "Structure" gaLabelInfo(structure) 10
+    tixScrolledListBox $fwStructureList \
+      -options { listbox.selectmode single } \
+      -browsecmd LblLst_SetHilitedStructure
+    set glwStructures [$fwStructureList subwidget listbox]
 
     tkm_MakeButtons $fwInfoButtons [list \
       [list text "Apply" { LblLst_SendCurrentInfo; redraw } \
@@ -2827,7 +2832,7 @@ proc LblLst_CreateLabelList { ifwList } {
       [list text "Delete" { labl_remove $gnSelectedLabel; redraw } \
       "Delete this label from the list" ] ] y
    
-    pack $fwName $fwVisible $fwLabel \
+    pack $fwName $fwVisible $fwStructure $fwStructureList \
       -side top \
       -expand yes \
       -fill x
@@ -2854,7 +2859,8 @@ proc LblLst_CreateLabelList { ifwList } {
     pack $fwLabelFrame \
       -side top \
       -fill both \
-      -expand yes
+      -expand yes \
+      -anchor n
 
     set gnNumLabels 0
 }
@@ -2886,27 +2892,31 @@ proc LblLst_UpdateInfo { inIndex isName inStructure ibVisible } {
     global gaLabelInfo
     global glStructures
     global gnSelectedLabel
-    global glwLabelList
+    global glwLabel
+    global glwStructures
+
 
     # delete the list entry in the list box and reinsert it with the
     # new name
-    $glwLabelList delete $inIndex
-    $glwLabelList insert $inIndex $isName
+    $glwLabel delete $inIndex
+    $glwLabel insert $inIndex $isName
+
+    $glwLabel selection set $inIndex
 
     # if this is the label currently selected, update the info area too.
-    if { $inIndex == $gnSelectedLabel } {
-  set gaLabelInfo(name) $isName
-  set gaLabelInfo(structure) [lindex $glStructures $inStructure]
-  set gaLabelInfo(visible) $ibVisible
-    }
+    set gaLabelInfo(name) $isName
+    set gaLabelInfo(structure) [lindex $glStructures $inStructure]
+    set gaLabelInfo(visible) $ibVisible
+    $glwStructures selection set $inStructure
 }
 
 proc LblLst_SelectHilitedLabel {} {
 
-    global glwLabelList
+    global glwLabel
+
 
     # find the hilighted label in the list box and select it
-    set nSelection [$glwLabelList curselection]
+    set nSelection [$glwLabel curselection]
     if {$nSelection != ""} {
   LblLst_SelectLabel $nSelection
     }
@@ -2925,55 +2935,64 @@ proc LblLst_SelectLabel { inIndex } {
 proc LblLst_SendCurrentInfo {} {
 
     global gnSelectedLabel
-    global glwLabelList
+    global glwLabel
     global gaLabelInfo
-    global gowStructures
+    global glwStructures
     
     # send the contents of the label info.
     set nSelection $gnSelectedLabel
-    set nStructure [lsearch [$gowStructures entries] $gaLabelInfo(structure)]
+    set nStructure [$glwStructures curselection]
     labl_set_info $nSelection $gaLabelInfo(name) \
       $nStructure $gaLabelInfo(visible)
 
     # delete the list entry in the list box and reinsert it with the
     # new name
-    $glwLabelList delete $nSelection
-    $glwLabelList insert $nSelection $gaLabelInfo(name)
+    $glwLabel delete $nSelection
+    $glwLabel inser $nSelection $gaLabelInfo(name)
 }
 
 proc LblLst_AddLabel { isName } {
 
-    global glwLabelList
+    global glwLabel
     global gnNumLabels
 
     # add a label entry to the end of the list box
-    $glwLabelList insert end $isName
+    $glwLabel insert end $isName
     incr gnNumLabels
 }
 
 proc LblLst_RemoveLabel { inIndex } {
 
-    global glwLabelList
+    global glwLabel
 
     # delete the list entry in the list box 
-    $glwLabelList delete $inIndex
+    $glwLabel delete $inIndex
+}
+
+proc LblLst_SetHilitedStructure {} {
+
+    global glwStructures gnSelectedStructure
+    global gaLabelInfo glStructures
+
+    # find the hilighted label in the list box and select it
+    set gnSelectedStructure [$glwStructures curselection]
+
+    # update the structure
+    set gaLabelInfo(structure) [lindex $glStructures $gnSelectedStructure]
 }
 
 proc LblLst_SetStructures { ilStructures } {
 
-    global glStructures gowStructures
+    global glStructures glwStructures
 
     # set our list of structures.
     set glStructures $ilStructures
 
     # if we have the widget, delete all the entries and reinsert them.
-    if { $gowStructures != "" } {
-
-  foreach entry [$gowStructures entries] {
-      $gowStructures delete $entry
-  }
-  foreach entry $glStructures {
-      $gowStructures add command $entry -label $entry
+    if { $glwStructures != "" } {
+  $glwStructures delete 0 end
+  foreach structure $ilStructures {
+      $glwStructures insert end $structure
   }
     }
 }
@@ -3502,6 +3521,7 @@ ShowLabel kLabel_Coords_Tal 1
 MoveToolWindow 0 0
 
 labl_load_color_table $env(CSURF_DIR)/surface_labels.txt
+set gsColorTableFileName $env(CSURF_DIR)/surface_labels.txt
 
 # we did it!
 dputs "Successfully parsed tksurfer.tcl"
