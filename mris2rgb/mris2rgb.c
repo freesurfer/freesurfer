@@ -28,7 +28,7 @@
 #include "tiff.h"
 #include "tiffio.h"
 
-static char vcid[] = "$Id: mris2rgb.c,v 1.2 1998/02/09 19:00:58 fischl Exp $";
+static char vcid[] = "$Id: mris2rgb.c,v 1.3 1998/02/11 21:14:55 fischl Exp $";
 
 /*-------------------------------- CONSTANTS -----------------------------*/
 
@@ -627,6 +627,7 @@ save_TIFF(char *fname, int width, int height, unsigned char *rgb)
   TIFFSetField(out, TIFFTAG_PHOTOMETRIC, PHOTOMETRIC_RGB);
   TIFFSetField(out, TIFFTAG_PLANARCONFIG, PLANARCONFIG_CONTIG);
   TIFFSetField(out, TIFFTAG_ROWSPERSTRIP, height);
+  TIFFSetField(out, TIFFTAG_ORIENTATION, ORIENTATION_TOPLEFT);
 
   TIFFWriteEncodedStrip(out, 0, rgb, width*height*3);
 
@@ -639,6 +640,12 @@ grabPixelsTIFF(unsigned int width, unsigned int height, unsigned char *rgb)
 {
   GLint    swapbytes, lsbfirst, rowlength ;
   GLint    skiprows, skippixels, alignment ;
+  unsigned char *tmp, *ttmp, *trgb;
+  int i;
+
+  tmp = (unsigned char *)malloc(sizeof(unsigned char)*width*height*3);
+  if (!tmp)
+    ErrorExit(ERROR_NOMEMORY, "Malloc failed in grabPixelsTIFF\n");
 
   glGetIntegerv(GL_UNPACK_SWAP_BYTES, &swapbytes) ;
   glGetIntegerv(GL_UNPACK_LSB_FIRST, &lsbfirst) ;
@@ -653,7 +660,7 @@ grabPixelsTIFF(unsigned int width, unsigned int height, unsigned char *rgb)
   glPixelStorei(GL_UNPACK_SKIP_PIXELS, 0) ;
   glPixelStorei(GL_UNPACK_ALIGNMENT, 1) ;
 
-  glReadPixels(0, 0, width, height, GL_RGB,GL_UNSIGNED_BYTE, (GLvoid *)rgb);
+  glReadPixels(0, 0, width, height, GL_RGB,GL_UNSIGNED_BYTE, (GLvoid *)tmp);
 
   glPixelStorei(GL_UNPACK_SWAP_BYTES, swapbytes) ;
   glPixelStorei(GL_UNPACK_LSB_FIRST, lsbfirst) ;
@@ -661,6 +668,14 @@ grabPixelsTIFF(unsigned int width, unsigned int height, unsigned char *rgb)
   glPixelStorei(GL_UNPACK_SKIP_ROWS, skiprows) ;
   glPixelStorei(GL_UNPACK_SKIP_PIXELS, skippixels) ;
   glPixelStorei(GL_UNPACK_ALIGNMENT, alignment) ;
+
+  for(i=0;i<height;i++)
+    {
+      ttmp = tmp + (height-(i+1)) * (width*3);
+      trgb = rgb + i*(width*3);
+      memcpy(trgb, ttmp, width*3);
+    }
+  free(tmp);
 }
 
 static void
