@@ -1,6 +1,6 @@
 #! /usr/bin/tixwish
 
-# $Id: tkm_functional.tcl,v 1.19 2003/08/05 19:19:23 kteich Exp $
+# $Id: tkm_functional.tcl,v 1.20 2003/08/27 21:33:57 kteich Exp $
 
 package require BLT;
 
@@ -192,106 +192,106 @@ proc TimeCourse_DrawGraph {} {
 	    }
 	    $gwGraph axis configure x -stepsize $nWidthPerTick
 	}
-  
+	
+	
+	# if we're subtracting the prestim avg..
+	if { $gbPreStimOffset && $gnPreStimPoints > 0 } {
+	    
+	    # get the sum of all the points before the stim.
+	    set fPreStimSum 0
+	    for { set nTP 0 } { $nTP < $gnPreStimPoints } { incr nTP } {
+		set nIndex [expr [expr $nTP * 2] + 1];
+		set fPreStimSum [expr double($fPreStimSum) + double([lindex $lGraphData $nIndex])];
+	    }
+	    
+	    # find the avg.
+	    set fPreStimAvg [expr double($fPreStimSum) / double($gnPreStimPoints)]
+	    # subtract from all points.
+	    for { set nTP 0 } { $nTP < $nNumPoints } { incr nTP } {
+		set nIndex [expr [expr $nTP * 2] + 1];
+		set fOldValue [lindex $lGraphData $nIndex]
+		set fNewValue [expr double($fOldValue) - double($fPreStimAvg)]
+		set lGraphData [lreplace $lGraphData $nIndex $nIndex $fNewValue]
+	    }
+	}
+	
+	
+	# graph the data
+	$gwGraph element create line$dataSet \
+	    -data $lGraphData \
+	    -color $dataSet \
+	    -label $gGraphSetting($dataSet,label) \
+	    -pixels 2 \
+	    -linewidth 2
+	
+	# if we're drawing error bars...
+	if { 1 == $gbErrorBars } {
 
-  # if we're subtracting the prestim avg..
-  if { $gbPreStimOffset && $gnPreStimPoints > 0 } {
-      
-      # get the sum of all the points before the stim.
-      set fPreStimSum 0
-      for { set nTP 0 } { $nTP < $gnPreStimPoints } { incr nTP } {
-    set nIndex [expr [expr $nTP * 2] + 1];
-    set fPreStimSum [expr double($fPreStimSum) + double([lindex $lGraphData $nIndex])];
-      }
-      
-      # find the avg.
-      set fPreStimAvg [expr double($fPreStimSum) / double($gnPreStimPoints)]
-      # subtract from all points.
-      for { set nTP 0 } { $nTP < $nNumPoints } { incr nTP } {
-    set nIndex [expr [expr $nTP * 2] + 1];
-    set fOldValue [lindex $lGraphData $nIndex]
-    set fNewValue [expr double($fOldValue) - double($fPreStimAvg)]
-    set lGraphData [lreplace $lGraphData $nIndex $nIndex $fNewValue]
-      }
-  }
-  
-
-
-  # graph the data
-  $gwGraph element create line$dataSet \
-    -data $lGraphData \
-    -color $dataSet \
-    -label $gGraphSetting($dataSet,label) \
-    -pixels 2 \
-    -linewidth 2
-  
-  # if we're drawing error bars...
-  if { 1 == $gbErrorBars } {
-      
-      # get the errors for this condition
-      if { [catch { set lErrors $glErrorData($nCondition) } sResult] } {
-    # no error data
-    continue;
-      }
-      
-      # for each error...
-      set nLength [llength $lErrors]
-      if { $nLength > $gnMaxNumErrorBars } { 
-    set gnMaxNumErrorBars $nLength
-      }
-      for {set nErrorIndex 0} {$nErrorIndex < $nLength} {incr nErrorIndex} {
-    
-      # get error amt
-    set nError [lindex $lErrors $nErrorIndex]
-    
-    # if 0, continue
-    if { $nError == 0 } {
-        continue
-    }
-    
-    # get the index of the data in the graph data list
-    set nGraphIndex [expr $nErrorIndex * 2]
-    
-    # get the x/y coords at this point on the graph
-    set nX [lindex $lGraphData $nGraphIndex]
-    set nY [lindex $lGraphData [expr $nGraphIndex + 1]];
-    
-    # draw a graph line from the top to the bottom
-    $gwGraph element create error$dataSet$nErrorIndex \
-      -data [list $nX [expr $nY - $nError] \
-      $nX [expr $nY + $nError] ] \
-      -color $dataSet \
-      -symbol splus \
-      -label "" \
-      -pixels 5
-      }
-  }
+	    # get the errors for this condition
+	    if { [catch { set lErrors $glErrorData($nCondition) } sResult] } {
+		# no error data
+		continue;
+	    }
+	    
+	    
+	    # for each error...
+	    set nLength [llength $lErrors]
+	    if { $nLength > $gnMaxNumErrorBars } { 
+		set gnMaxNumErrorBars $nLength
+	    }
+	    for {set nErrorIndex 0} {$nErrorIndex < $nLength} {incr nErrorIndex} {
+		
+		# get error amt
+		set nError [lindex $lErrors $nErrorIndex]
+		
+		# if 0, continue
+		if { $nError == 0 } {
+		    continue
+		}
+		
+		# get the index of the data in the graph data list
+		set nGraphIndex [expr $nErrorIndex * 2]
+		
+		# get the x/y coords at this point on the graph
+		set nX [lindex $lGraphData $nGraphIndex]
+		set nY [lindex $lGraphData [expr $nGraphIndex + 1]];
+		
+		# draw a graph line from the top to the bottom
+		$gwGraph element create error$dataSet$nErrorIndex \
+		    -data [list $nX [expr $nY - $nError] \
+			       $nX [expr $nY + $nError] ] \
+		    -color $dataSet \
+		    -symbol splus \
+		    -label "" \
+		    -pixels 5
+	    }
+	}
     }
     
     # draw some axes
     $gwGraph marker create line \
-      -coords [list 0 -Inf 0 Inf] \
-      -name xAxis
+	-coords [list 0 -Inf 0 Inf] \
+	-name xAxis
     $gwGraph marker create line \
-      -coords [list -Inf 0 Inf 0] \
-      -name yAxis
-
-
+	-coords [list -Inf 0 Inf 0] \
+	-name yAxis
+    
+    
     TimeCourse_DrawCurrentTimePoint
-
+    
     if { $gbAutoRangeGraph == 0 } {
-  $gwGraph axis configure y -min $gnFixedGraphCoords(y1) \
-    -max $gnFixedGraphCoords(y2)
+	$gwGraph axis configure y -min $gnFixedGraphCoords(y1) \
+	    -max $gnFixedGraphCoords(y2)
     }
 }
 
 proc TimeCourse_DrawCurrentTimePoint {} {
-
+    
     global gwGraph gnTimeSecond
-
+    
     # delete the old one
     catch {$gwGraph marker delete currentTimePoint}
-
+    
     # draw a dashed line at current time point
     $gwGraph marker create line \
       -coords [list $gnTimeSecond -Inf $gnTimeSecond Inf] \
@@ -649,7 +649,7 @@ proc TimeCourse_UpdateGraphLabel { isDataSet isLabel } {
 
     set nDataSet [lsearch -exact $glAllColors $isDataSet]
     if { $nDataSet == -1 } {
-	puts "TimeCourse_UpdateGraphLabel: Couldn't find $isDataSet\n"
+	dputs "TimeCourse_UpdateGraphLabel: Couldn't find $isDataSet\n"
 	return;
     }
 
