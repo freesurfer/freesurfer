@@ -14,7 +14,7 @@
 #include "macros.h"
 #include "icosahedron.h"
 
-static char vcid[] = "$Id: mris_make_average_surface.c,v 1.2 2002/01/30 19:36:42 fischl Exp $";
+static char vcid[] = "$Id: mris_make_average_surface.c,v 1.3 2002/11/15 17:21:18 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -171,6 +171,7 @@ get_option(int argc, char *argv[])
     print_usage() ;
     exit(1) ;
     break ;
+	case 'S':
   case 'O':
     orig_name = argv[2] ;
     printf("reading vertex positions from %s...\n", orig_name) ;
@@ -200,8 +201,10 @@ static void
 print_usage(void)
 {
   printf(
-         "usage: %s [options] <hemi> <surf name> <canon surface>\n\t<output subject name> <subject> ... "
-          " <output curv file >\n", Progname) ;
+         "usage: %s [options] <hemi> <output surf name> <canon surface>\n\t<output subject name> <subject> ... "
+          " <output subject name >\n", Progname) ;
+	printf("this program will generate an average of the orig surfaces of all the subjects\n"
+				 "specified (unless the -s <surface name> flag is used)\n") ;
 }
 
 static void
