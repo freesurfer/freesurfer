@@ -12,6 +12,7 @@
 #include "diag.h"
 #include "proto.h"
 #include "fio.h"
+#include "version.h"
 
 void usage(int exit_val);
 MRI *fliplr(MRI *src);
@@ -23,8 +24,15 @@ int main(int argc, char *argv[])
 {
 
   MRI *mri_src, *mri_mask, *mri_dst ;
+  int nargs;
 
   Progname = argv[0];
+
+  nargs = handle_version_option (argc, argv, "$Id: mri_mask.c,v 1.2 2003/03/19 18:01:39 kteich Exp $");
+  argc -= nargs ;
+  argv += nargs ;
+  if (1 == argc)
+    exit (0);
 
   if(argc != 4)
     usage(1);

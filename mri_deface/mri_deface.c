@@ -18,6 +18,7 @@
 #include "gca.h"
 #include "cma.h"
 #include "mrinorm.h"
+#include "version.h"
 
 char         *Progname ;
 static MORPH_PARMS  parms ;
@@ -209,6 +210,12 @@ main(int argc, char *argv[])
   setRandomSeed(-1L) ;
   DiagInit(NULL, NULL, NULL) ;
   ErrorInit(NULL, NULL, NULL) ;
+
+  nargs = handle_version_option (argc, argv, "$Id: mri_deface.c,v 1.5 2003/03/19 18:00:45 kteich Exp $");
+  argc -= nargs ;
+  argv += nargs ;
+  if (1 == argc)
+    exit (0);
 
   ac = argc ;
   av = argv ;
