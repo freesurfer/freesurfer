@@ -12,7 +12,7 @@
 #include "macros.h"
 #include "utils.h"
 
-static char vcid[]="$Id: mris_errors.c,v 1.5 1998/04/18 18:08:09 fischl Exp $";
+static char vcid[]="$Id: mris_errors.c,v 1.6 1998/08/24 17:34:07 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -29,6 +29,9 @@ static MRI_SURFACE  *mris ;
 
 static int patch_flag = 0 ;
 static int write_flag = 0 ;
+static int area_flag = 0 ;
+static int nbhd_size = 7 ;
+static int max_nbrs = 12 ;
 
 int
 main(int argc, char *argv[])
@@ -62,7 +65,8 @@ main(int argc, char *argv[])
   if (patch_flag)   /* read in orig surface before reading in patch */
   {
     FileNamePath(in_fname, path) ;
-    cp = strrchr(in_fname, '.') ;
+    FileNameOnly(in_fname, name) ;
+    cp = strchr(name, '.') ;
     if (cp)
     {
       strncpy(hemi, cp-2, 2) ;
@@ -75,9 +79,9 @@ main(int argc, char *argv[])
     if (!mris)
       ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
                 Progname, fname) ;
-    MRIScomputeMetricProperties(mris) ;
-    MRISstoreMetricProperties(mris) ;
     FileNameOnly(in_fname, name) ;
+    MRISstoreMetricProperties(mris) ;
+    MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ;
     if (MRISreadPatch(mris, name) != NO_ERROR)
       ErrorExit(ERROR_NOFILE, "%s: could not read patch file %s",
                 Progname, name) ;
@@ -89,21 +93,27 @@ main(int argc, char *argv[])
       ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
                 Progname, in_fname) ;
 
-    MRISstoreCurrentPositions(mris) ;
-    MRISreadVertexPositions(mris, "smoothwm") ;
-    MRIScomputeMetricProperties(mris) ;
-    MRISstoreMetricProperties(mris) ;
-    MRISrestoreOldPositions(mris) ;
+    MRISreadOriginalProperties(mris, "smoothwm") ;
   }
 
-  MRIScomputeMetricProperties(mris) ;  /* recompute areas and normals */
+  MRISsaveVertexPositions(mris, TMP_VERTICES) ;
+  MRISrestoreVertexPositions(mris, ORIGINAL_VERTICES) ;
+  MRISsampleAtEachDistance(mris, nbhd_size, max_nbrs) ;
+  MRIScomputeMetricProperties(mris) ;
+  MRISstoreMetricProperties(mris) ;
+
+  MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
+  MRIScomputeMetricProperties(mris) ;
+
+  MRIScomputeDistanceErrors(mris, nbhd_size, max_nbrs) ;
+#if 0
   if (write_flag)
   {
     MRISareaErrors(mris) ;
     MRISangleErrors(mris) ;
   }
 
-  if (1)
+  if (area_flag)
   {
     sprintf(fname, "%s.area_error", in_fname) ;
     printf("writing area errors to %s\n", fname) ;
@@ -112,6 +122,11 @@ main(int argc, char *argv[])
     printf("writing angle errors to %s\n", fname) ;
     MRISwriteAngleError(mris, fname) ;
   }
+#else
+  sprintf(fname, "%s.distance_error", in_fname) ;
+  fprintf(stderr, "writing errors to %s\n", fname) ;
+  MRISwriteValues(mris, fname) ;
+#endif
 
   MRISfree(&mris) ;
 
@@ -135,6 +150,14 @@ get_option(int argc, char *argv[])
     print_help() ;
   else if (!stricmp(option, "-version"))
     print_version() ;
+  else if (!stricmp(option, "vnum") || (!stricmp(option, "distances")))
+  {
+    nbhd_size = atof(argv[2]) ;
+    max_nbrs = atof(argv[3]) ;
+    nargs = 2 ;
+    fprintf(stderr, "sampling %d neighbors out to a distance of %d mm\n",
+            max_nbrs, nbhd_size) ;
+  }
   else switch (toupper(*option))
   {
   case 'W':
@@ -143,6 +166,9 @@ get_option(int argc, char *argv[])
   case 'P':
     patch_flag = 1 ;
     nargs = 0 ;
+    break ;
+  case 'A':
+    area_flag = 1 ;
     break ;
   case '?':
   case 'U':
