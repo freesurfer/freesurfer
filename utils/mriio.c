@@ -58,6 +58,7 @@
 #include "bfileio.h"
 #include "AFNI.h"
 #include "mghendian.h"
+#include "tags.h"
 
 // unix director separator 
 #define DIR_SEPARATOR '/'
@@ -961,22 +962,22 @@ static MRI *corRead(char *fname, int read_volume)
     cur_char = fname_use;
     last_slash = cur_char;
     while( *(cur_char+1) != '\0' )
-      {
-        if(*cur_char == '/') 
-          last_slash = cur_char;
-        cur_char++;
-      }
+    {
+      if(*cur_char == '/') 
+	last_slash = cur_char;
+      cur_char++;
+    }
     *last_slash = '\0';
     if(stat(fname_use, &stat_buf) < 0)
-      {
-        errno = 0;
-        ErrorReturn(NULL, (ERROR_BADFILE, "corRead(): can't stat %s", fname_use));
-      }
+    {
+      errno = 0;
+      ErrorReturn(NULL, (ERROR_BADFILE, "corRead(): can't stat %s", fname_use));
+    }
     if(!S_ISDIR(stat_buf.st_mode))
-      {
-        errno = 0;
-        ErrorReturn(NULL, (ERROR_BADFILE, "corRead(): %s isn't a directory", fname_use));
-      }
+    {
+      errno = 0;
+      ErrorReturn(NULL, (ERROR_BADFILE, "corRead(): %s isn't a directory", fname_use));
+    }
   }
 
   /* ----- copy the directory name and remove any trailing '/' ----- */
@@ -1206,26 +1207,26 @@ static MRI *corRead(char *fname, int read_volume)
   else
     mri = MRIallocHeader(x, y, imnr1 - imnr0 + 1, MRI_UCHAR);
 
-/* hack */
-/*
-printf("%g, %g, %g\n", x_r, x_a, x_s);
-printf("%g, %g, %g\n", y_r, y_a, y_s);
-printf("%g, %g, %g\n", z_r, z_a, z_s);
-*/
-if(x_r == 0.0 && x_a == 0.0 && x_s == 0.0 && y_r == 0.0 && y_a == 0.0 && y_s == 0.0 && z_r == 0.0 && z_a == 0.0 && z_s == 0.0)
-{
-  fprintf(stderr,
-          "-----------------------------------------------------------------\n"
-          "Could not find the direction cosine information.\n"
-          "Will use the CORONAL orientation.\n"
-          "If not suitable, please provide the information in COR-.info file\n"
-          "-----------------------------------------------------------------\n" 
-          );
-  x_r = -1.0;
-  y_s = -1.0;
-  z_a = 1.0;
-  ras_good_flag = 0;
-}
+  /* hack */
+  /*
+    printf("%g, %g, %g\n", x_r, x_a, x_s);
+    printf("%g, %g, %g\n", y_r, y_a, y_s);
+    printf("%g, %g, %g\n", z_r, z_a, z_s);
+  */
+  if(x_r == 0.0 && x_a == 0.0 && x_s == 0.0 && y_r == 0.0 && y_a == 0.0 && y_s == 0.0 && z_r == 0.0 && z_a == 0.0 && z_s == 0.0)
+  {
+    fprintf(stderr,
+	    "-----------------------------------------------------------------\n"
+	    "Could not find the direction cosine information.\n"
+	    "Will use the CORONAL orientation.\n"
+	    "If not suitable, please provide the information in COR-.info file\n"
+	    "-----------------------------------------------------------------\n" 
+	    );
+    x_r = -1.0;
+    y_s = -1.0;
+    z_a = 1.0;
+    ras_good_flag = 0;
+  }
 
   mri->imnr0 = imnr0;
   mri->imnr1 = imnr1;
@@ -1280,6 +1281,7 @@ if(x_r == 0.0 && x_a == 0.0 && x_s == 0.0 && y_r == 0.0 && y_a == 0.0 && y_s == 
         mri->inverse_linear_transform = get_inverse_linear_transform_ptr(&mri->transform);
         mri->free_transform = 1;
         strcpy(mri->transform_fname, xform_use);
+	fprintf(stderr, "INFO: loaded talairach xform : %s\n", mri->transform_fname);
       }
       else
       {
@@ -8346,6 +8348,7 @@ mghRead(char *fname, int read_volume, int frame)
   int gzipped=0;
   char command[STRLEN];
   int nread;
+  int tag;
 
   ext = strrchr(fname, '.') ;
   if (ext)
@@ -8587,6 +8590,45 @@ mghRead(char *fname, int read_volume, int frame)
             ;
     }
 
+  // xform fname
+  if (freadIntEx(&tag, fp))
+  {
+    if (tag == TAG_MGH_XFORM)
+    {
+      int len;
+      if (freadIntEx(&len, fp)) // len includes null character
+      {
+	fgets(mri->transform_fname, len, fp);
+	// if this file exists then read the transform
+	if (FileExists(mri->transform_fname))
+	{
+	  // copied from corRead()
+	  if(input_transform_file(mri->transform_fname, &(mri->transform)) == NO_ERROR)
+	  {
+	    mri->linear_transform = get_linear_transform_ptr(&mri->transform);
+	    mri->inverse_linear_transform = get_inverse_linear_transform_ptr(&mri->transform);
+	    mri->free_transform = 1;
+	    fprintf(stderr, "INFO: loaded talairach xform : %s\n", mri->transform_fname);
+	  }
+	  else
+	  {
+	    errno = 0;
+	    ErrorPrintf(ERROR_BAD_FILE, "error loading transform from %s",mri->transform_fname);
+	    mri->linear_transform = NULL;
+	    mri->inverse_linear_transform = NULL;
+	    mri->free_transform = 1;
+	    (mri->transform_fname)[0] = '\0';
+	  }
+	}
+	else
+	{
+	  fprintf(stderr, "WARNING: can't find the talairach xform '%s'\n", mri->transform_fname);
+	  fprintf(stderr, "WARNING: transform is not loaded into mri\n");
+	}
+      }
+    }
+  }
+  
   if (freadIntEx(&(tag_data_size), fp))
   {
     mri->tag_data_size = tag_data_size;
@@ -8616,13 +8658,13 @@ mghWrite(MRI *mri, char *fname, int frame)
 {
   FILE  *fp =0;
   int   ival, start_frame, end_frame, x, y, z, width, height, depth, 
-        unused_space_size ;
+        unused_space_size, flen ;
   char  buf[UNUSED_SPACE_SIZE+1] ;
   float fval ;
   short sval ;
   int gzipped = 0;
   char *ext;
- 
+  
   if (frame >= 0)
     start_frame = end_frame = frame ;
   else
@@ -8779,6 +8821,15 @@ mghWrite(MRI *mri, char *fname, int frame)
   fwriteFloat(mri->ti, fp) ;
   fwriteFloat(mri->fov, fp); // somebody forgot this
 
+  // if mri->transform_fname has non-zero length
+  // I write a tag with strlength and write it
+  // I increase the tag_datasize with this amount
+  if ((flen=strlen(mri->transform_fname))> 0)
+  {
+    fwriteInt(TAG_MGH_XFORM, fp);
+    fwriteInt(flen+1, fp); // write the size + 1 (for null) of string
+    fputs(mri->transform_fname, fp);
+  }
   // If we have any saved tag data, write it.
   if( NULL != mri->tag_data ) {
     // Int is 32 bit on 32 bit and 64 bit os and thus it is safer
