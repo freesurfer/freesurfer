@@ -11,7 +11,7 @@ function [kimg2, beta] = tdr_deghost(kimg,Rrow,perev)
 %  (perev=0) or even lines (perev=1) will be used as 
 %  reference. If perev is not passed, perev=0 is assumed.
 %
-% $Id: tdr_deghost.m,v 1.4 2003/10/30 19:29:26 greve Exp $
+% $Id: tdr_deghost.m,v 1.5 2003/12/02 23:07:32 greve Exp $
 %
 
 rsubdel = 3; % region around center
@@ -26,7 +26,8 @@ end
 if(exist('perev')==0) perev = []; end
 if(isempty(perev)) perev = 0; end
 
-[nrows ncols] = size(kimg);
+nrows = size(kimg,1);
+ncols = size(Rrow,2);
 
 if(~perev)
   refrows = [1:2:nrows]; % odd
