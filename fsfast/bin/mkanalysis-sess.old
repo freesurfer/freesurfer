@@ -1,0 +1,430 @@
+#!/bin/csh -f
+# mkanalysis-sess -- sets up post-processing environment for 
+# functional analysis
+
+set VERSION = '$Id: mkanalysis-sess.old,v 1.1 2005/01/06 23:09:46 greve Exp $';
+
+set scriptsdir = ();
+set fsd    = ();
+set parname    = ();
+set analysis   = ();
+set funcstem   = f;
+set fmcstem    = fmc;
+set blocked    = 0;
+set inorm      = 0;
+set motioncor  = 0;
+set designtype    = "event-related"
+set tpexclude = ();
+set force = 0;
+set runlistfile = ();
+
+if($#argv == 0) then
+  goto usage_exit;
+  exit 1;
+endif
+
+set GSPArgs = ();
+set sxacfg = "analysis.cfg"
+
+##### Print out version info, if needed ####
+set n = `echo $argv | grep version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+
+set SessList = `getsesspath $argv`;
+if($status || $#SessList == 0) then
+  getsesspath $argv 
+  exit 1;
+endif
+
+goto parse_args;
+parse_args_return:
+
+if($#fsd   == 0)  set fsd = bold
+
+goto check_params;
+check_params_return:
+
+if($motioncor)   set funcstem = $fmcstem;
+
+## File permission masking ###
+if(! $?MRI_UMASK ) set MRI_UMASK = `umask`;
+umask $MRI_UMASK;
+set umaskarg = "-umask $MRI_UMASK"
+
+echo $SessList
+
+# Go through each session, make sure it exists, and check consistency #
+set n = 1;
+foreach sess ($SessList)
+
+  set sifile = $sess/$fsd/seq.info
+  if(! -e $sifile ) then
+    echo "ERROR: cannot find $sifile"
+    exit 1;
+  endif
+
+  # get and check the conistency of the TR #
+  set ln = `grep TR $sifile`;
+  if($#ln != 2) then
+    echo "ERROR: bad format for seq.info file, $sess"
+    exit 1;
+  endif
+  set tmp = $ln[2];
+  if($n == 1) then
+    set TR = $tmp;
+  else
+    if($TR != $tmp) then
+      echo "ERROR: $sess has inconsistent TR"
+      exit 1;
+    endif
+  endif
+
+  # get and check the conistency of the nslices #
+  set ln = `grep nslcs $sifile`;
+  if($#ln != 2) then
+    echo "ERROR: bad format for seq.info file, $sess"
+    exit 1;
+  endif
+  set tmp = $ln[2];
+  if($n == 1) then
+    set nslices = $tmp;
+  else
+    if($nslices != $tmp) then
+      echo "ERROR: $sess has inconsistent nslices"
+      exit 1;
+    endif
+  endif
+
+  ## check that the runlistfile exists ##
+  if($#runlistfile != 0) then
+    set rlf = $sess/$fsd/$runlistfile
+    if(! -e $rlf) then
+      echo "ERROR: cannot find $rlf"
+      exit 1;
+    endif
+  endif
+
+  @ n = $n + 1;
+end # Loop over sessions #
+
+mkdir -p scripts
+
+mkdir -p $analysis
+set scriptsdir = $analysis/scripts
+mkdir -p $scriptsdir
+
+##---- Create the analysis config file ------#
+set sxacfg = $analysis/$sxacfg
+set IdealTW = 24;
+set Nh  = `echo "($IdealTW/$TR +1)" | bc`;
+set TW  = `echo "$TR*$Nh" | bc`;
+set TPS = `echo "2*$TR"   | bc -l`;
+rm -f $sxacfg
+touch $sxacfg
+
+if($blocked) then
+  echo "-gammafit 2.25 1.25" >> $sxacfg
+endif
+echo "-timewindow $TW" >> $sxacfg
+echo "-prestim $TPS" >> $sxacfg
+echo "-detrend" >> $sxacfg
+echo "-baseline" >> $sxacfg
+echo "-nskip 0" >> $sxacfg
+echo "-hanrad 0" >> $sxacfg
+if($inorm) echo "-rescale 1000" >> $sxacfg
+#echo "-interleave"  >> $sxacfg
+#echo "-firstslice 0" >> $sxacfg
+#echo "-nslices    $nslices" >> $sxacfg
+#echo "-timeoffset 0" >> $sxacfg
+#echo "-parname $parname" >> $sxacfg
+#echo "-TR  $TR" >> $sxacfg
+echo "" >> $sxacfg
+
+##---- Create the analysis info file ------#
+set infofile = $analysis/analysis.info
+rm -f $infofile
+touch $infofile
+echo "analysis   $analysis"   >> $infofile
+echo "designtype $designtype"    >> $infofile
+echo "fsd        $fsd"        >> $infofile
+echo "funcstem   $funcstem"   >> $infofile
+echo "parname    $parname"    >> $infofile
+echo "TR         $TR"         >> $infofile
+echo "tpexclude  $tpexclude"  >> $infofile
+if($#runlistfile != 0) echo "runlistfile $runlistfile" >> $infofile
+
+##---- Create default motion correction script ------#
+set scr = scripts/run-mc-sess
+rm -f $scr
+touch $scr
+chmod a+x $scr
+echo "#\!/bin/csh -f "      >> $scr
+echo "# Motion-Correction " >> $scr
+echo "cd .."                >> $scr
+echo "mc-sess -method afni -toff 0 $GSPArgs $umaskarg" >> $scr
+echo ""                     >> $scr
+
+##---- Create default inorm (no motion correction) script ------#
+set scr = scripts/run-inorm-sess
+rm -f $scr
+touch $scr
+chmod a+x $scr
+echo "#\!/bin/csh -f "       >> $scr
+echo "# Intesity Normalization of Raw (ie, Not Motion-Corrected) Data" >> $scr
+echo "cd ../"              >> $scr
+echo "inorm-sess  $umaskarg $GSPArgs " >> $scr
+echo ""                      >> $scr
+
+##---- Create default inorm (motion correction) script ------#
+set scr = scripts/run-inorm-mc-sess
+rm -f $scr
+touch $scr
+chmod a+x $scr
+echo "#\!/bin/csh -f "      >> $scr
+echo "# Intesity Normalization of Motion-Corrected Data" >> $scr
+echo "cd ../"                        >> $scr
+echo "inorm-sess -motioncor $umaskarg $GSPArgs " >> $scr
+echo ""                                >> $scr
+
+##---- Create default selxavg script ------##
+set scr = $scriptsdir/run-selxavg-sess
+rm -f $scr
+touch $scr
+chmod a+x $scr
+echo "#\!/bin/csh -f "      >> $scr
+echo "# Within-Session Averaging of Raw (ie, Not Motion-Corrected) Data" >> $scr
+echo "cd ../.."                >> $scr
+echo "selxavg-sess -analysis $analysis $GSPArgs " >> $scr
+echo ""                     >> $scr
+
+##---- Create default stxgrinder subject script ------#
+set scr = $scriptsdir/run-stxgrinder-subj
+rm -f $scr
+touch $scr
+chmod a+x $scr
+echo "#\!/bin/csh -f "      >> $scr
+echo "# Session-Level Statistical Grinding " >> $scr
+echo "cd ../.."                >> $scr
+echo "stxgrinder-sess -contrast allvfix -analysis $analysis -umask 0 $GSPArgs " >> $scr
+echo ""                     >> $scr
+
+##---- Create default tal script ------#
+set scr = $scriptsdir/run-func2tal-sess
+rm -f $scr
+touch $scr
+chmod a+x $scr
+echo "#\!/bin/csh -f "      >> $scr
+echo "# Resampling of functional averages into Talariach Space" >> $scr
+echo "cd ../.."                >> $scr
+echo "func2tal-sess -res 4 -analysis $analysis $GSPArgs -umask 0" >> $scr
+echo ""                     >> $scr
+
+##---- Create default funcvits script ------#
+set scr = $scriptsdir/run-funcvits-sess
+rm -f $scr
+touch $scr
+chmod a+x $scr
+echo "#\!/bin/csh -f "      >> $scr
+echo "cd ../.."                >> $scr
+echo "funcvits-sess -analysis $analysis $GSPArgs -umask 0">> $scr
+echo ""                     >> $scr
+
+##---- Create default func2sph script ------#
+set scr = $scriptsdir/run-func2sph-sess
+rm -f $scr
+touch $scr
+chmod a+x $scr
+echo "#\!/bin/csh -f "      >> $scr
+echo "# Resampling of functional averages into Spherical Space" >> $scr
+echo "cd ../.."                >> $scr
+echo "func2sph-sess -analysis $analysis $GSPArgs -umask 0">> $scr
+echo ""                     >> $scr
+
+##---- Create default isxavg-fe script ------#
+set scr = $scriptsdir/run-isxavg-fe-sess
+rm -f $scr
+touch $scr
+chmod a+x $scr
+echo "#\!/bin/csh -f "      >> $scr
+echo "# Intersubject Averaging (Fixed-Effects) in  Talariach Space" >> $scr
+echo "cd ../.."                >> $scr
+echo "isxavg-fe-sess -grpname all -analysis $analysis -resamp tal $GSPArgs -umask 0">> $scr
+echo ""                     >> $scr
+
+##---- Create default stxgrinder group script ------#
+set scr = $scriptsdir/run-stxgrinder-grp
+rm -f $scr
+touch $scr
+chmod a+x $scr
+echo "#\!/bin/csh -f "      >> $scr
+echo "# Group-Level Statistical Grinding " >> $scr
+echo "cd ../.."                >> $scr
+echo "stxgrinder-sess -contrast allvfix -analysis $analysis -umask 0 -grpname all -resamp tal" >> $scr
+echo ""                     >> $scr
+
+
+echo "Completed successfully"
+exit 0;
+###############################################
+
+
+############--------------##################
+parse_args:
+
+set cmdline = "$argv";
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-g":
+    case "-s":
+    case "-sf":
+    case "-d":
+    case "-df":
+      if ( $#argv == 0) goto arg1err;
+      set GSPArgs = ($GSPArgs $flag $argv[1]); shift;
+      breaksw
+
+    case "-cwd":
+      set GSPArgs = ($GSPArgs -cwd);
+      breaksw
+
+    case "-sxacfg": # not advertised #
+      if ( $#argv == 0) goto arg1err;
+      set sxacfg = $1; shift;
+      breaksw
+
+    case "-a":
+    case "-analysis":
+      if ( $#argv == 0) goto arg1err;
+      set analysis = $1; shift;
+      breaksw
+
+    case "-p":
+    case "-paradigm":
+      if ( $#argv == 0) goto arg1err;
+      set parname = $1; shift;
+      breaksw
+
+    case "-ssd":
+    case "-fsd":
+      if ( $#argv == 0) goto arg1err;
+      set fsd = $1; shift;
+      breaksw
+
+    case "-fmcstem":
+      if ( $#argv == 0) goto arg1err;
+      set fmcstem = $1; shift;
+      breaksw
+
+    case "-runlistfile":
+    case "-rlf":
+      if ( $#argv == 0) goto arg1err;
+      set runlistfile = $1; shift;
+      breaksw
+
+    case "-tpexclude":
+      if ( $#argv == 0) goto arg1err;
+      set tpexclude = $argv[1]; shift;
+      breaksw
+
+    case "-blocked":
+      set blocked = 1;
+      set designtype    = "blocked"
+      breaksw
+
+    case "-motioncor":
+      set motioncor = 1;
+      breaksw
+
+    case "-force":
+      set force = 1;
+      breaksw
+
+    case "-inorm":
+      set inorm = 1;
+      breaksw
+
+    case "-umask":
+      if ( $#argv == 0) goto arg1err;
+      setenv MRI_UMASK $1; shift;
+      breaksw
+
+    case "-verbose":
+      set verbose = 1;
+      breaksw
+
+    case "-debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized.
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+  if($#analysis == 0) then
+    echo "ERROR: must specify an analysis name"
+    exit 1;
+  endif
+
+  if($#parname == 0) then
+    echo "ERROR: must specify a paradigm file name"
+    exit 1;
+  endif
+
+  if(-e $analysis && ! $force) then
+    echo "ERROR: analysis $analysis already exists. You have three options"
+    echo "  1. Give this analysis a different name"
+    echo "  2. Give delete analysis $analysis and re-run mkanalysis-sess"
+    echo "  3. Re-run mkanalysis-sess with a -force option to overwrite"
+    exit 1;
+  endif
+
+  if(-e $analysis && $force) then
+    echo "INFO:  analysis $analysis exists, but overwrite forced by user."
+  endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo "USAGE: mkanalysis-sess"
+  echo "   -analysis  analysisname : name of session-level functional analysis";
+  echo "   -paradigm  parname      : name of paradigm file"
+  echo "   -runlistfile filename   : file with list of runs to include in analysis"
+  echo "   -tpexclude filename     : time-point exclude file name"
+  echo "   -blocked                : for blocked designs (default is event-related)"
+  echo "   -motioncor              : use motion corrected data (see mc-sess) "
+  echo "   -inorm                  : use intensity normalized data (see inorm-sess)"
+  echo "   -sf  sessidfile  ..."
+  echo "   -df  srchdirfile ..."
+  echo "   -s   sessid      ..."
+  echo "   -d   srchdir     ..."
+  echo "   -fsd dir        : name of functional subdir (bold)"
+  echo "   -fmcstem stem   : stem of motion-corrected volume (fmc), with -motioncor"
+  echo "   -umask umask    : set unix file permission mask"
+  echo "   -version        : print version and exit"
+exit 1;
