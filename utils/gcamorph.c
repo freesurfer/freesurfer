@@ -4,8 +4,8 @@
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/05/21 16:14:23 $
-// Revision       : $Revision: 1.32 $
+// Revision Date  : $Date: 2004/05/25 16:08:22 $
+// Revision       : $Revision: 1.33 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -26,6 +26,11 @@
 #include "cma.h"
 #include "mri.h"
 #include "tags.h"
+
+#ifdef DMALLOC
+#include "/usr/pubsw/packages/dmalloc/5.3.0/include/dmalloc.h"
+#endif
+
 #define GCAM_VERSION   1.0
 #define MIN_STD (2.0)
 #define MIN_VAR (MIN_STD*MIN_STD)
@@ -1563,10 +1568,10 @@ gcamComputeMetricProperties(GCA_MORPH *gcam)
           gcamnk = &gcam->nodes[i][j][k+1] ;
 
           if (gcamn->invalid || gcamni->invalid || gcamnj->invalid || gcamnk->invalid)
-					{
-						gcamn->area = 0.0 ;
+	  {
+	    gcamn->area = 0.0 ;
             continue;
-					}
+	  }
 
           GCAMN_SUB(gcamni, gcamn, v_i) ; 
           GCAMN_SUB(gcamnj, gcamn, v_j) ; 
@@ -1586,10 +1591,10 @@ gcamComputeMetricProperties(GCA_MORPH *gcam)
           gcamnk = &gcam->nodes[i][j][k-1] ;
 
           if (gcamn->invalid || gcamni->invalid || gcamnj->invalid || gcamnk->invalid)
-					{
-						gcamn->area = 0.0 ;
+	  {
+	    gcamn->area = 0.0 ;
             continue;
-					}
+	  }
 
           /* invert v_i so that coordinate system is right-handed */
           GCAMN_SUB(gcamn, gcamni, v_i) ; 
@@ -1603,7 +1608,15 @@ gcamComputeMetricProperties(GCA_MORPH *gcam)
         else
           gcamn->area = 0 ;
         if ((area <= 0) && !FZERO(gcamn->orig_area))
-          gcam->neg++ ;
+        {
+	  fprintf(stderr, "negative area=%f for (%d, %d, %d)\n", area, i, j, k);
+	  fprintf(stderr, "v_j, v_k, v_i are\n");
+	  MatrixPrint(stderr, v_j);
+	  MatrixPrint(stderr, v_k);
+	  MatrixPrint(stderr, v_i);
+
+	  gcam->neg++ ;
+	}
       }
     }
   }

@@ -22,6 +22,10 @@
 #include "transform.h"
 #include "mrisegment.h"
 
+#ifdef DMALLOC
+#include "/usr/pubsw/packages/dmalloc/5.3.0/include/dmalloc.h"
+#endif
+
 static int remove_bright =0 ;
 static int map_to_flash = 0 ;
 static double TRs[MAX_GCA_INPUTS] ;
