@@ -36,15 +36,6 @@ foreach sSourceFileName { tkm_wrappers.tcl fsgdfPlot.tcl } {
 set ksWindowName "TkSurfer Tools"
 set ksImageDir   "$env(MRI_DIR)/lib/images/"
 
-set test_data ""
-if { [info exists env(FSDEV_TEST_DATA)] } {
-    set test_data $env(FSDEV_TEST_DATA)
-}
-set user_data ""
-if { [info exists env(FREESURFER_DATA)] } {
-    set user_data $env(FREESURFER_DATA)
-}
-
 # ===================================================== DEFAULT FILE LOCATIONS
 
 #set home /home/kteich/subjects
@@ -69,6 +60,25 @@ array set gaFileNameDefDirs [list \
     kFileName_PWD       "$env(PWD)" \
     kFileName_CSURF     "$env(CSURF_DIR)" \
 ]
+
+# determine the list of shortcut dirs for the file dlog boxes
+set glShortcutDirs {}
+if { [info exists env(SUBJECTS_DIR)] } {
+    lappend glShortcutDirs $env(SUBJECTS_DIR)
+    lappend glShortcutDirs $env(SUBJECTS_DIR)/$subject
+}
+if { [info exists env(FREESURFER_DATA)] } {
+    lappend glShortcutDirs $env(FREESURFER_DATA)
+}
+if { [info exists env(MRI_DIR)] } {
+    lappend glShortcutDirs $env(MRI_DIR)
+}
+if { [info exists env(PWD)] } {
+    lappend glShortcutDirs $env(PWD)
+}
+if { [info exists env(FSDEV_TEST_DATA)] } {
+    lappend glShortcutDirs $env(FSDEV_TEST_DATA)
+}
 
 # =========================================================== LINKED VARIABLES
 
@@ -1332,8 +1342,9 @@ proc DoLoadOverlayDlog {} {
 
     global gDialog gaLinkedVars
     global gaScalarValueID gsaLabelContents
-    global env test_data user_data
- 
+    global glShortcutDirs
+    global sFileName
+
     set wwDialog .wwLoadOverlayDlog
 
     set knWidth 400
@@ -1347,12 +1358,12 @@ proc DoLoadOverlayDlog {} {
 	set fwFieldNote        $wwDialog.fwFieldNote
 	set fwButtons          $wwDialog.fwButtons
 	
-	set sFileName ""
+	set sFileName [GetDefaultLocation LoadOverlay]
 	tkm_MakeFileSelector $fwFile "Load Overlay:" sFileName \
-	    [list ExpandFileName "" kFileName_Surface] \
-	    [list $env(MRI_DIR) $env(PWD) $user_data $test_data]
+	    [list GetDefaultLocation LoadOverlay] \
+	    $glShortcutDirs
 	
-	tkm_MakeSmallLabel $fwFileNote "The file name of the values" 400
+	tkm_MakeSmallLabel $fwFileNote "The values file (.w) or one of the binary volume files (.bfloat/.bshort/.hdr)" 400
 	
 	tixOptionMenu $fwField -label "Into Field:" \
 	    -variable nFieldIndex \
@@ -1367,8 +1378,9 @@ proc DoLoadOverlayDlog {} {
 	
 	# buttons.
         tkm_MakeCancelOKButtons $fwButtons $wwDialog \
-	    {set val [ExpandFileName $sFileName kFileName_Surface]; \
-		 DoLoadValueFile $nFieldIndex }
+	    {set fnFunctional [ExpandFileName $sFileName kFileName_Surface]; 
+		SetDefaultLocation LoadOverlay $sFileName;
+		DoLoadValueFile $nFieldIndex }
 	
 	pack $fwFile $fwFileNote $fwField $fwFieldNote $fwButtons \
 	    -side top       \
@@ -1387,17 +1399,67 @@ proc DoLoadOverlayDlog {} {
     }
 }
 
+proc DoLoadTimeCourseDlog {} {
+
+    global gDialog gaLinkedVars
+    global glShortcutDirs
+    global sFileName
+
+    set wwDialog .wwLoadTimeCourseDlog
+
+    set knWidth 400
+    
+    # try to create the dlog...
+    if { [Dialog_Create $wwDialog "Load Time Course" {-borderwidth 10}] } {
+	
+	set fwFile             $wwDialog.fwFile
+	set fwFileNote         $wwDialog.fwFileNote
+	set fwButtons          $wwDialog.fwButtons
+	
+	set sFileName [GetDefaultLocation LoadTimeCourse]
+	tkm_MakeFileSelector $fwFile "Load TimeCourse:" sFileName \
+	    [list GetDefaultLocation LoadTimeCourse] \
+	    $glShortcutDirs
+	
+	tkm_MakeSmallLabel $fwFileNote "One of the binary volume files (.bfloat/.bshort/.hdr)" 400
+	
+	# buttons.
+        tkm_MakeCancelOKButtons $fwButtons $wwDialog \
+	    {set fnFunctional [ExpandFileName $sFileName kFileName_Surface]; 
+		SetDefaultLocation LoadTimeCourse $sFileName;
+		DoSpecifyStemAndRegistration -1 }
+	
+	pack $fwFile $fwFileNote $fwButtons \
+	    -side top       \
+	    -expand yes     \
+	    -fill x         \
+	    -padx 5         \
+	    -pady 5
+	
+	# after the next idle, the window will be mapped. set the min
+	# width to our width and the min height to the mapped height.
+	after idle [format {
+	    update idletasks
+	    wm minsize %s %d [winfo reqheight %s]
+	    wm geometry %s =%dx[winfo reqheight %s]
+	} $wwDialog $knWidth $wwDialog $wwDialog $knWidth $wwDialog] 
+    }
+}
+
 proc DoLoadValueFile { inField } {
 
-    global val
+    global fnFunctional val
 
     # if ends in bfloat, pass to DoSpecifyStemAndRegistration
-    set sExtension [file extension $val]
-    if { $sExtension == ".bfloat" || $sExtension == ".bshort" } {
+    set sExtension [file extension $fnFunctional]
+    if { $sExtension == ".bfloat" || 
+	 $sExtension == ".bshort" ||
+	 $sExtension == ".hdr" } {
 	DoSpecifyStemAndRegistration $inField
 	
     } else {
 	# else pass to normal function
+	set val $fnFunctional
 	sclv_read_binary_values $inField
 	sclv_copy_view_settings_from_field $inField 0
 	OverlayLayerChanged
@@ -1405,55 +1467,71 @@ proc DoLoadValueFile { inField } {
     }
 }
 
+# If inFiled is 0-9, we're loading an overlay, if it's -1, we're
+# loading a time course.
 proc DoSpecifyStemAndRegistration { inField } {
 
-    global val sPath sStem sRegistration
+    global fnFunctional nField sPath sStem sRegistration
     global gDialog gaLinkedVars
-    global env user_data test_data
-
+    global glShortcutDirs
+    
     set wwDialog .wwDoSpecifyStemAndRegistration
 
+    set nField $inField
+
     set knWidth 400
-    set sPath [file dirname $val]
-    set sStem [lindex [split [file rootname [file tail $val]] _] 0]
-    set sRegistration ""
+    set sPath [file dirname $fnFunctional]
+    set sStem [lindex [split [file rootname [file tail $fnFunctional]] _] 0]
 
     # try to create the dlog...
     if { [Dialog_Create $wwDialog "Specify Registration" {-borderwidth 10}] } {
 
-  set fwStem             $wwDialog.fwStem
-  set fwStemNote         $wwDialog.fwStemNote
-  set fwReg              $wwDialog.fwReg
-  set fwRegNote          $wwDialog.fwRegNote
-  set fwButtons          $wwDialog.fwButtons
-
-
-  tkm_MakeEntry $fwStem "Stem:" sStem
-
-  tkm_MakeSmallLabel $fwStemNote "The stem of the volume" 400
-
-  tkm_MakeFileSelector $fwReg "Registration file:" sRegistration {} \
-      [list $env(MRI_DIR) $env(PWD) $user_data $test_data]
-
-  tkm_MakeSmallLabel $fwRegNote "The file name of the registration file to load. Leave blank to use register.dat in the same directory." 
-
-  # buttons.
+	set fwStem             $wwDialog.fwStem
+	set fwStemNote         $wwDialog.fwStemNote
+	set fwReg              $wwDialog.fwReg
+	set fwRegNote          $wwDialog.fwRegNote
+	set fwButtons          $wwDialog.fwButtons
+	
+	tkm_MakeEntry $fwStem "Stem:" sStem
+	
+	tkm_MakeSmallLabel $fwStemNote "The stem of the volume" 400
+	
+	set sRegistration [file join $sPath register.dat]
+	SetDefaultLocation SpecifyRegistration $sPath
+	tkm_MakeFileSelector $fwReg "Registration file:" sRegistration \
+	    [list GetDefaultLocation SpecifyRegistration] \
+	    $glShortcutDirs
+	
+	tkm_MakeSmallLabel $fwRegNote \
+	    "The file name of the registration file to load" 
+	
+	# buttons.
         tkm_MakeCancelOKButtons $fwButtons $wwDialog \
-      "sclv_read_bfile_values $inField \$sPath \$sStem \$sRegistration; UpdateAndRedraw; sclv_copy_view_settings_from_field $inField 0; OverlayLayerChanged "
-
-  pack $fwStem $fwStemNote $fwReg $fwRegNote $fwButtons \
-    -side top       \
-    -expand yes     \
-    -fill x         \
-    -padx 5         \
-    -pady 5
-
-  # after the next idle, the window will be mapped. set the min
-  # width to our width and the min height to the mapped height.
-  after idle [format {
-      update idletasks
-      wm minsize %s %d [winfo reqheight %s]
-  } $wwDialog $knWidth $wwDialog] 
+	    { 
+		SetDefaultLocation SpecifyRegistration $sRegistration;
+		if { $nField == -1 } {
+		    func_load_timecourse $sPath $sStem $sRegistration;
+		} else {
+		  sclv_read_bfile_values $nField $sPath $sStem $sRegistration; 
+		    sclv_copy_view_settings_from_field $nField 0; 
+		    OverlayLayerChanged
+		}
+		UpdateAndRedraw; 
+	    }
+	
+	pack $fwStem $fwStemNote $fwReg $fwRegNote $fwButtons \
+	    -side top       \
+	    -expand yes     \
+	    -fill x         \
+	    -padx 5         \
+	    -pady 5
+	
+	# after the next idle, the window will be mapped. set the min
+	# width to our width and the min height to the mapped height.
+	after idle [format {
+	    update idletasks
+	    wm minsize %s %d [winfo reqheight %s]
+	} $wwDialog $knWidth $wwDialog] 
     }
 }
 
@@ -1461,7 +1539,8 @@ proc DoSaveValuesAsDlog {} {
 
     global gDialog
     global gaScalarValueID gsaLabelContents
-    global env user_data test_data
+    global glShortcutDirs
+    global sFileName
 
     set knWidth 400
     set wwDialog .wwSaveValuesAs
@@ -1475,9 +1554,10 @@ proc DoSaveValuesAsDlog {} {
 	set fwFieldNote        $wwDialog.fwFieldNote
 	set fwButtons          $wwDialog.fwButtons
 	
-	set sFileName ""
+	set sFileName [GetDefaultLocation SaveValuesAs]
 	tkm_MakeFileSelector $fwFile "Save Values:" sFileName {} \
-	    [list $env(MRI_DIR) $env(PWD) $user_data $test_data]
+	    [list GetDefaultLocation SaveValuesAs] \
+	    $glShortcutDirs
 	
 	tkm_MakeSmallLabel $fwFileNote "The file name of the values file to create" 400
 	
@@ -1500,8 +1580,9 @@ proc DoSaveValuesAsDlog {} {
 	
 	# buttons.
         tkm_MakeCancelOKButtons $fwButtons $wwDialog \
-	    {set val [ExpandFileName $sFileName kFileName_Surface]; \
-		 sclv_write_binary_values $nFieldIndex}
+	    {set val [ExpandFileName $sFileName kFileName_Surface]; 
+		SetDefaultLocation SaveValuesAs $val;
+		sclv_write_binary_values $nFieldIndex}
 	
 	pack $fwFile $fwFileNote $fwField $fwFieldNote $fwButtons \
 	    -side top       \
@@ -1523,14 +1604,15 @@ proc DoSaveValuesAsDlog {} {
 proc GDF_LoadDlog {} {
     global gDialog gaLinkedVars
     global gaScalarValueID gsaLabelContents
-    global env user_data test_data
+    global sFileName
+    global glShortcutDirs
 
     set wwDialog .wwLoadGDFDlog
 
     set knWidth 400
     
     # try to create the dlog...
-    if { [Dialog_Create $wwDialog "Load Overlay" {-borderwidth 10}] } {
+    if { [Dialog_Create $wwDialog "Load GDF" {-borderwidth 10}] } {
 	
 	set fwFile             $wwDialog.fwFile
 	set fwFileNote         $wwDialog.fwFileNote
@@ -1538,11 +1620,10 @@ proc GDF_LoadDlog {} {
 	set fwFieldNote        $wwDialog.fwFieldNote
 	set fwButtons          $wwDialog.fwButtons
 	
-	set sFileName ""
+	set sFileName [GetDefaultLocation LoadGDF]
 	tkm_MakeFileSelector $fwFile "Load Group Descriptor File:" sFileName \
-	    [list ExpandFileName "" kFileName_Surface] \
-	    [list $env(MRI_DIR) $env(PWD) $user_data $test_data]
-
+	    [list GetDefaultLocation LoadGDF] \
+	    $glShortcutDirs
 
 	
 	tkm_MakeSmallLabel $fwFileNote "The GDF file to load" 400
@@ -1560,7 +1641,8 @@ proc GDF_LoadDlog {} {
 	
 	# buttons.
         tkm_MakeCancelOKButtons $fwButtons $wwDialog \
-	    {GDF_Load $sFileName $nFieldIndex }
+	    {SetDefaultLocation LoadGDF $sFileName;
+		GDF_Load $sFileName $nFieldIndex }
 	
 	pack $fwFile $fwFileNote $fwField $fwFieldNote $fwButtons \
 	    -side top       \
@@ -1730,7 +1812,7 @@ proc DoInflateDlog {} {
 proc DoDecimationDlog {} {
 
     global gDialog
-    global env user_data test_data
+    global glShortcutDirs
 
     set wwDialog .wwDecimationDlog
 
@@ -1744,17 +1826,21 @@ proc DoDecimationDlog {} {
   frame $fwMain
 
   # make file name selector
-  set sFileName ""
+  set sFileName [GetDefaultLocation WriteDecimation]
   tkm_MakeFileSelector $fwFileName \
       "Write Decimation File:" sFileName {} \
-      [list $env(MRI_DIR) $env(PWD) $user_data $test_data]
+      [list GetDefaultLocation WriteDecimation] \
+      $glShortcutDirs
 
 
   # field for spacing
   tkm_MakeEntry $fwSpacing "Spacing: " fSpacing 6 
 
   # buttons.
-  set okCmd { DoDecimation $sFileName $fSpacing; UpdateAndRedraw}
+  set okCmd { 
+      SetDefaultLocation $sFileName;
+      DoDecimation $sFileName $fSpacing;
+      UpdateAndRedraw }
   tkm_MakeCancelOKButtons $fwButtons $wwDialog \
       "$okCmd"
   
@@ -2017,7 +2103,7 @@ proc CreateMenuBar { ifwMenuBar } {
       \
       {command \
       "Load Time Course..." \
-      {DoFileDlog LoadTimeCourse} } \
+      {DoLoadTimeCourseDlog} } \
       \
       { separator } \
       \
@@ -4172,7 +4258,6 @@ proc save_rgb_named { isName } {
 proc update_rgb_filename {} {
     global rgb
     setfile rgb $rgb
-    puts "new rgb = $rgb"
 }
 
 # ======================================================================= MISC 
@@ -4188,6 +4273,67 @@ proc LoadSurface { isFileName } {
     UpdateAndRedraw
     set hemi [file rootname [file tail $insurf]]
     set ext [string trimleft [file tail $insurf] $hemi.]
+}
+
+proc GetDefaultLocation { iType } {
+    global gsaDefaultLocation 
+    global gsSubjectDirectory gsSegmentationColorTable env
+    if { [info exists gsaDefaultLocation($iType)] == 0 } {
+	switch $iType {
+	    LoadSurface - SaveSurfaceAs - LoadMainSurface -
+	    LoadInflatedSurface - LoadWhiteSurface - LoadPialSurface -
+	    LoadOriginalSurface - LoadCurvature - SaveCurvatureAs -
+	    LoadPatch - SavePatchAs {
+		set gsaDefaultLocation($iType) \
+		    [ExpandFileName "" kFileName_Surface]
+	    }
+	    LoadTimeCourse_Volume - LoadTimeCourse_Register -
+	    LoadFieldSign - SaveFieldSignAs -
+	    LoadFieldMask - SaveFieldMaskAs - 
+	    LoadOverlay - LoadTimeCourse {
+		set gsaDefaultLocation($iType) \
+		    [ExpandFileName "" kFileName_FMRI]
+	    }
+	    LoadColorTable {
+		set gsaDefaultLocation($iType) \
+		    [ExpandFileName "" kFileName_CSURF]
+	    }
+	    LoadLabel - SaveLabelAs - ImportAnnotation - ExportAnnotation {
+		set gsaDefaultLocation($iType) \
+		    [ExpandFileName "" kFileName_Label]
+	    }
+	    SaveDipolesAs {
+		set gsaDefaultLocation($iType) \
+		    [ExpandFileName "" kFileName_BEM]
+	    }
+	    RunScript {
+		set gsaDefaultLocation($iType) \
+		    [ExpandFileName "" kFileName_Script]
+	    }
+	    SaveGraphToPS - 
+	    WriteMarkedVerticesTCSummary - WriteLabelTCSummary -
+	    SaveGDFPlotToPS - SaveGDFPlotToTable -
+	    LoadGDF {
+		set gsaDefaultLocation($iType) \
+		    [ExpandFileName "" kFileName_Home]
+	    }
+	    SaveRGBAs {
+		set gsaDefaultLocation($iType) \
+		    [ExpandFileName "" kFileName_RGB]
+	    }
+	    default { 
+		set gsaDefaultLocation($iType) [ExpandFileName "" $iType]
+	    } 
+	}
+    } 
+    return $gsaDefaultLocation($iType)
+}
+
+proc SetDefaultLocation { iType isValue } {
+    global gsaDefaultLocation
+    if { [string range $isValue 0 0] == "/" } {
+	set gsaDefaultLocation($iType) $isValue
+    }
 }
 
 proc ExpandFileName { isFileName {iFileType ""} } {
@@ -4410,285 +4556,384 @@ proc SetKeyBindings {} {
     bind . <Alt-bracketright> { scale_brain 1.05; UpdateAndRedraw }
 }
 
-set tDlogSpecs(LoadSurface) [list \
-  -title "Load Surface" \
-  -prompt1 "Load Surface:" \
-  -default1 [list ExpandFileName "" kFileName_Surface] \
-  -entry1 [list ExpandFileName "" kFileName_Surface] \
-  -presets1 [list $env(MRI_DIR) $env(PWD) $user_data $test_data] \
-  -note1 "The file name of the surface" \
-  -okCmd {LoadSurface %s1} ]
-set tDlogSpecs(SaveSurfaceAs) [list \
-  -title "Save Surface As" \
-  -prompt1 "Save Surface:" \
-  -default1 [list ExpandFileName "" kFileName_Surface] \
-  -entry1 [list ExpandFileName "" kFileName_Surface] \
-  -presets1 [list $env(MRI_DIR) $env(PWD) $user_data $test_data] \
-  -note1 "The file name of the surface to save" \
-  -okCmd {set outsurf [ExpandFileName %s1 kFileName_Surface]; \
-        CheckFileAndDoCmd $outsurf write_binary_surface;} ]
+set tDlogSpecs(LoadSurface) \
+    [list \
+	 -title "Load Surface" \
+	 -prompt1 "Load Surface:" \
+	 -default1 [list GetDefaultLocation LoadSurface] \
+	 -entry1 [list GetDefaultLocation LoadSurface] \
+	 -presets1 $glShortcutDirs \
+	 -note1 "The file name of the surface" \
+	 -okCmd {
+	     LoadSurface %s1; 
+	     SetDefaultLocation LoadSurface %s1} ]
+set tDlogSpecs(SaveSurfaceAs) \
+    [list \
+	 -title "Save Surface As" \
+	 -prompt1 "Save Surface:" \
+	 -default1 [list GetDefaultLocation SaveSurfaceAs] \
+	 -entry1 [list GetDefaultLocation SaveSurfaceAs] \
+	 -presets1 $glShortcutDirs \
+	 -note1 "The file name of the surface to save" \
+	 -okCmd {
+	     set outsurf [ExpandFileName %s1 kFileName_Surface];
+	     CheckFileAndDoCmd $outsurf write_binary_surface;
+	     SetDefaultLocation SaveSurfaceAs %s1} ]
+set tDlogSpecs(LoadMainSurface) \
+    [list \
+	 -title "Load Main Vertices" \
+	 -prompt1 "Load Main Vertices:" \
+	 -default1 [list GetDefaultLocation LoadMainSurface] \
+	 -entry1 [list GetDefaultLocation LoadMainSurface] \
+	 -presets1 $glShortcutDirs \
+	 -note1 "The file name of the surface to load into main vertices" \
+	 -okCmd {
+	     set filename [ExpandFileName %s1 kFileName_Surface];
+	     read_surface_vertex_set 0 $filename;
+	     SetDefaultLocation LoadMainSurface %s1} ]
+set tDlogSpecs(LoadInflatedSurface) \
+    [list \
+	 -title "Load Inflated Vertices" \
+	 -prompt1 "Load Inflated Vertices:" \
+	 -default1 [list GetDefaultLocation LoadInflatedSurface] \
+	 -entry1 [list GetDefaultLocation LoadInflatedSurface] \
+	 -presets1 $glShortcutDirs \
+	 -note1 "The file name of the surface to load into inflated vertices" \
+	 -okCmd {
+	     set filename [ExpandFileName %s1 kFileName_Surface];
+	     read_surface_vertex_set 1 $filename;
+	     SetDefaultLocation LoadInflatedSurface %s1} ]
+set tDlogSpecs(LoadWhiteSurface) \
+    [list \
+	 -title "Load White Vertices" \
+	 -prompt1 "Load White Vertices:" \
+	 -default1 [list GetDefaultLocation LoadWhiteSurface] \
+	 -entry1 [list GetDefaultLocation LoadWhiteSurface] \
+	 -presets1 $glShortcutDirs \
+	 -note1 "The file name of the surface to load into white vertices" \
+	 -okCmd {
+	     set filename [ExpandFileName %s1 kFileName_Surface];
+	     read_surface_vertex_set 2 $filename;
+	     SetDefaultLocation LoadWhiteSurface %s1} ]
+set tDlogSpecs(LoadPialSurface) \
+    [list \
+	 -title "Load Pial Vertices" \
+	 -prompt1 "Load Pial Vertices:" \
+	 -default1 [list GetDefaultLocation LoadPialSurface] \
+	 -entry1 [list GetDefaultLocation LoadPialSurface] \
+	 -presets1 $glShortcutDirs \
+	 -note1 "The file name of the surface to load into pial vertices" \
+	 -okCmd {
+	     set filename [ExpandFileName %s1 kFileName_Surface];
+	     read_surface_vertex_set 3 $filename;
+	     SetDefaultLocation LoadPialSurface %s1} ]
+set tDlogSpecs(LoadOriginalSurface) \
+    [list \
+	 -title "Load Original Vertices" \
+	 -prompt1 "Load Original Vertices:" \
+	 -default1 [list GetDefaultLocation LoadOriginalSurface] \
+	 -entry1 [list GetDefaultLocation LoadOriginalSurface] \
+	 -presets1 $glShortcutDirs \
+	 -note1 "The file name of the surface to load into original vertices" \
+	 -okCmd {
+	     set filename [ExpandFileName %s1 kFileName_Surface];
+	     read_surface_vertex_set 4 $filename;
+	     SetDefaultLocation LoadOriginalSurface %s1} ]
 
-set tDlogSpecs(LoadMainSurface) [list \
-  -title "Load Main Vertices" \
-  -prompt1 "Load Main Vertices:" \
-  -default1 [list ExpandFileName "" kFileName_Surface] \
-  -entry1 [list ExpandFileName "" kFileName_Surface] \
-  -presets1 [list $env(MRI_DIR) $env(PWD) $user_data $test_data] \
-  -note1 "The file name of the surface to load into main vertices" \
-  -okCmd {set filename [ExpandFileName %s1 kFileName_Surface]; \
-  read_surface_vertex_set 0 $filename} ]
-set tDlogSpecs(LoadInflatedSurface) [list \
-  -title "Load Inflated Vertices" \
-  -prompt1 "Load Inflated Vertices:" \
-  -default1 [list ExpandFileName "" kFileName_Surface] \
-  -entry1 [list ExpandFileName "" kFileName_Surface] \
-  -presets1 [list $env(MRI_DIR) $env(PWD) $user_data $test_data] \
-  -note1 "The file name of the surface to load into inflated vertices" \
-  -okCmd {set filename [ExpandFileName %s1 kFileName_Surface]; \
-  read_surface_vertex_set 1 $filename} ]
-set tDlogSpecs(LoadWhiteSurface) [list \
-  -title "Load White Vertices" \
-  -prompt1 "Load White Vertices:" \
-  -default1 [list ExpandFileName "" kFileName_Surface] \
-  -entry1 [list ExpandFileName "" kFileName_Surface] \
-  -presets1 [list $env(MRI_DIR) $env(PWD) $user_data $test_data] \
-  -note1 "The file name of the surface to load into white vertices" \
-  -okCmd {set filename [ExpandFileName %s1 kFileName_Surface]; \
-  read_surface_vertex_set 2 $filename} ]
-set tDlogSpecs(LoadPialSurface) [list \
-  -title "Load Pial Vertices" \
-  -prompt1 "Load Pial Vertices:" \
-  -default1 [list ExpandFileName "" kFileName_Surface] \
-  -entry1 [list ExpandFileName "" kFileName_Surface] \
-  -presets1 [list $env(MRI_DIR) $env(PWD) $user_data $test_data] \
-  -note1 "The file name of the surface to load into pial vertices" \
-  -okCmd {set filename [ExpandFileName %s1 kFileName_Surface]; \
-  read_surface_vertex_set 3 $filename} ]
-set tDlogSpecs(LoadOriginalSurface) [list \
-  -title "Load Original Vertices" \
-  -prompt1 "Load Original Vertices:" \
-  -default1 [list ExpandFileName "" kFileName_Surface] \
-  -entry1 [list ExpandFileName "" kFileName_Surface] \
-  -presets1 [list $env(MRI_DIR) $env(PWD) $user_data $test_data] \
-  -note1 "The file name of the surface to load into original vertices" \
-  -okCmd {set filename [ExpandFileName %s1 kFileName_Surface]; \
-  read_surface_vertex_set 4 $filename} ]
+set tDlogSpecs(LoadTimeCourse) \
+    [list \
+	 -title "Load Time Course" \
+	 -prompt1 "Load Volume:" \
+	 -type1 dir \
+	 -presets1 $glShortcutDirs \
+	 -note1 "The directory containing the binary volume to load" \
+	 -default1 [list GetDefaultLocation LoadTimeCourse_Volume] \
+	 -entry1 [list GetDefaultLocation LoadTimeCourse_Volume] \
+	 -presets1 $glShortcutDirs \
+	 -prompt2 "Stem:" \
+	 -type2 text \
+	 -note2 "The stem of the binary volume" \
+	 -prompt3 "Registration File:" \
+	 -presets3 $glShortcutDirs \
+	 -note3 "The file name of the registration file to load. Leave blank to use register.dat in the same directory." \
+	 -default3 [list GetDefaultLocation LoadTimeCourse_Register] \
+	 -entry3 [list GetDefaultLocation LoadTimeCourse_Register] \
+	 -presets3 $glShortcutDirs \
+	 -okCmd {
+	     set fnVolume [ExpandFileName %s1 kFileName_FMRI];
+	     set fnRegister [ExpandFileName %s3 kFileName_FMRI];
+	     func_load_timecourse $fnVolume %s2 $fnRegister;
+	     SetDefaultLocation LoadTimeCourse_Volume %s1;
+	     SetDefaultLocation LoadTimeCourse_Register %s3}]
 
-set tDlogSpecs(LoadTimeCourse) [list \
-  -title "Load Time Course" \
-  -prompt1 "Load Volume:" \
-  -type1 dir \
-  -presets1 [list $env(PWD)] \
-  -note1 "The directory containing the binary volume to load" \
-  -default1 [list ExpandFileName "" kFileName_Surface] \
-  -entry1 [list ExpandFileName "" kFileName_Surface] \
-  -presets1 [list $env(MRI_DIR) $env(PWD) $user_data $test_data] \
-  -prompt2 "Stem:" \
-  -type2 text \
-  -presets2 [list $env(PWD)] \
-  -note2 "The stem of the binary volume" \
-  -prompt3 "Registration File:" \
-  -presets3 [list $env(PWD)] \
-  -note3 "The file name of the registration file to load. Leave blank to use register.dat in the same directory." \
-  -default3 [list ExpandFileName "" kFileName_Surface] \
-  -entry3 [list ExpandFileName "" kFileName_Surface] \
-  -presets3 [list $env(MRI_DIR) $env(PWD) $user_data $test_data] \
-  -okCmd {func_load_timecourse %s1 %s2 %s3;}]
+set tDlogSpecs(LoadCurvature) \
+    [list \
+	 -title "Load Curvature" \
+	 -prompt1 "Load Curvature:" \
+	 -default1 [list GetDefaultLocation LoadCurvature] \
+	 -entry1 [list GetDefaultLocation LoadCurvature] \
+	 -presets1 $glShortcutDirs \
+	 -note1 "The file name of the curvature data" \
+	 -okCmd {
+	     set curv [ExpandFileName %s1 kFileName_Surface];
+	     read_binary_curv;
+	     SetDefaultLocation LoadCurvature %s1;
+	     UpdateAndRedraw; } ]
+set tDlogSpecs(SaveCurvatureAs) \
+    [list \
+	 -title "Save Curvature As" \
+	 -prompt1 "Save Curvature:" \
+	 -default1 [list GetDefaultLocation SaveCurvatureAs] \
+	 -entry1 [list GetDefaultLocation SaveCurvatureAs] \
+	 -presets1 $glShortcutDirs \
+	 -note1 "The file name of the curvature data to save" \
+	 -okCmd {set curv [ExpandFileName %s1 kFileName_Surface];
+	     SetDefaultLocation SaveCurvatureAs %s1;
+	     CheckFileAndDoCmd $curv write_binary_curv} ]
 
-set tDlogSpecs(LoadCurvature) [list \
-  -title "Load Curvature" \
-  -prompt1 "Load Curvature:" \
-  -default1 [list ExpandFileName "" kFileName_Surface] \
-  -entry1 [list ExpandFileName "" kFileName_Surface] \
-  -presets1 [list $env(MRI_DIR) $env(PWD) $user_data $test_data] \
-  -note1 "The file name of the curvature data" \
-  -okCmd {set curv [ExpandFileName %s1 kFileName_Surface]; \
-  read_binary_curv; UpdateAndRedraw; } ]
-set tDlogSpecs(SaveCurvatureAs) [list \
-  -title "Save Curvature As" \
-  -prompt1 "Save Curvature:" \
-  -default1 [list ExpandFileName "" kFileName_Surface] \
-  -entry1 [list ExpandFileName "" kFileName_Surface] \
-  -presets1 [list $env(MRI_DIR) $env(PWD) $user_data $test_data] \
-  -note1 "The file name of the curvature data to save" \
-  -okCmd {set curv [ExpandFileName %s1 kFileName_Surface]; \
-  CheckFileAndDoCmd $curv write_binary_curv} ]
+set tDlogSpecs(LoadPatch) \
+    [list \
+	 -title "Load Patch" \
+	 -prompt1 "Load Patch:" \
+	 -default1 [list GetDefaultLocation LoadPatch] \
+	 -entry1 [list GetDefaultLocation LoadPatch] \
+	 -presets1 $glShortcutDirs \
+	 -note1 "The file name of the patch data" \
+	 -okCmd {
+	     set patch [ExpandFileName %s1 kFileName_Surface];
+	     SetDefaultLocation LoadPatch %s1;
+	     read_binary_patch; 
+	     RestoreView; 
+	     UpdateAndRedraw; } ]
+set tDlogSpecs(SavePatchAs) \
+    [list \
+	 -title "Save Patch As" \
+	 -prompt1 "Save Patch:" \
+	 -default1 [list GetDefaultLocation SavePatchAs] \
+	 -entry1 [list GetDefaultLocation SavePatchAs] \
+	 -presets1 $glShortcutDirs \
+	 -note1 "The file name of the patch data to save" \
+	 -okCmd {
+	     set patch [ExpandFileName %s1 kFileName_Surface];
+	     SetDefaultLocation SavePatchAs %s1
+	     CheckFileAndDoCmd $patch write_binary_patch} ]
 
-set tDlogSpecs(LoadPatch) [list \
-  -title "Load Patch" \
-  -prompt1 "Load Patch:" \
-  -default1 [list ExpandFileName "" kFileName_Surface] \
-  -entry1 [list ExpandFileName "" kFileName_Surface] \
-  -presets1 [list $env(MRI_DIR) $env(PWD) $user_data $test_data] \
-  -note1 "The file name of the patch data" \
-  -okCmd {set patch [ExpandFileName %s1 kFileName_Surface]; \
-  read_binary_patch; RestoreView; UpdateAndRedraw; } ]
-set tDlogSpecs(SavePatchAs) [list \
-  -title "Save Patch As" \
-  -prompt1 "Save Patch:" \
-  -default1 [list ExpandFileName "" kFileName_Surface] \
-  -entry1 [list ExpandFileName "" kFileName_Surface] \
-  -presets1 [list $env(MRI_DIR) $env(PWD) $user_data $test_data] \
-  -note1 "The file name of the patch data to save" \
-  -okCmd {set patch [ExpandFileName %s1 kFileName_Surface]; \
-  CheckFileAndDoCmd $patch write_binary_patch} ]
-
-set tDlogSpecs(LoadColorTable) [list \
-  -title "Load Color Table" \
-  -prompt1 "Load Color Table:" \
-  -default1 [list ExpandFileName "" kFileName_CSURF] \
-  -entry1 [list ExpandFileName "" kFileName_CSURF] \
-  -presets1 [list $env(MRI_DIR) $env(PWD) $user_data $test_data] \
-  -note1 "The file name of the color table" \
-  -okCmd {labl_load_color_table [ExpandFileName %s1 kFileName_CSURF]; \
-  UpdateLinkedVarGroup label} ]
-set tDlogSpecs(LoadLabel) [list \
-  -title "Load Label" \
-  -prompt1 "Load Label:" \
-  -default1 [list ExpandFileName "" kFileName_Label] \
-  -entry1 [list ExpandFileName "" kFileName_Label] \
-  -presets1 [list $env(MRI_DIR) $env(PWD) $user_data $test_data] \
-  -note1 "The file name of the label data" \
-  -okCmd {labl_load [ExpandFileName %s1 kFileName_Label]; UpdateAndRedraw;  }]
-set tDlogSpecs(SaveLabelAs) [list \
-  -title "Save Selected Label" \
-  -prompt1 "Save Selected Label:" \
-  -default1 [list ExpandFileName "" kFileName_Label] \
-  -entry1 [list ExpandFileName "" kFileName_Label] \
-  -presets1 [list $env(MRI_DIR) $env(PWD) $user_data $test_data] \
-  -note1 "The file name of the label data to save" \
-  -okCmd {labl_save $gnSelectedLabel [ExpandFileName %s1 kFileName_Label] }]
-set tDlogSpecs(ImportAnnotation) [list \
-  -title "Import Annotaion" \
-  -prompt1 "Import Annotation:" \
-  -default1 [list ExpandFileName "" kFileName_Label] \
-  -entry1 [list ExpandFileName "" kFileName_Label] \
-  -presets1 [list $env(MRI_DIR) $env(PWD) $user_data $test_data] \
-  -note1 "The file name of the annotaion" \
-  -okCmd {labl_import_annotation [ExpandFileName %s1 kFileName_Label]; \
-  UpdateAndRedraw;} ]
-set tDlogSpecs(ExportAnnotation) [list \
-  -title "Export Annotaion" \
-  -prompt1 "Export Annotation:" \
-  -default1 [list ExpandFileName "" kFileName_Label] \
-  -entry1 [list ExpandFileName "" kFileName_Label] \
-  -presets1 [list $env(MRI_DIR) $env(PWD) $user_data $test_data] \
-  -note1 "The file name of the annotaion to save" \
-  -okCmd {labl_export_annotation [ExpandFileName %s1 kFileName_Label]} ]
-
+set tDlogSpecs(LoadColorTable) \
+    [list \
+	 -title "Load Color Table" \
+	 -prompt1 "Load Color Table:" \
+	 -default1 [list GetDefaultLocation LoadColorTable] \
+	 -entry1 [list GetDefaultLocation LoadColorTable] \
+	 -presets1 $glShortcutDirs \
+	 -note1 "The file name of the color table" \
+	 -okCmd {
+	     labl_load_color_table [ExpandFileName %s1 kFileName_CSURF];
+	     SetDefaultLocation LoadColorTable %s1;
+	     UpdateLinkedVarGroup label} ]
+set tDlogSpecs(LoadLabel) \
+    [list \
+	 -title "Load Label" \
+	 -prompt1 "Load Label:" \
+	 -default1 [list GetDefaultLocation LoadLabel] \
+	 -entry1 [list GetDefaultLocation LoadLabel] \
+	 -presets1 $glShortcutDirs \
+	 -note1 "The file name of the label data" \
+	 -okCmd {
+	     labl_load [ExpandFileName %s1 kFileName_Label];
+	     SetDefaultLocation LoadLabel %s1;
+	     UpdateAndRedraw;  }]
+set tDlogSpecs(SaveLabelAs) \
+    [list \
+	 -title "Save Selected Label" \
+	 -prompt1 "Save Selected Label:" \
+	 -default1 [list GetDefaultLocation SaveLabelAs] \
+	 -entry1 [list GetDefaultLocation SaveLabelAs] \
+	 -presets1 $glShortcutDirs \
+	 -note1 "The file name of the label data to save" \
+	 -okCmd {
+	     labl_save $gnSelectedLabel [ExpandFileName %s1 kFileName_Label];
+	     SetDefaultLocation SaveLabelAs %s1;
+	     UpdateAndRedraw;  }]
+set tDlogSpecs(ImportAnnotation) \
+    [list \
+	 -title "Import Annotaion" \
+	 -prompt1 "Import Annotation:" \
+	 -default1 [list GetDefaultLocation ImportAnnotation] \
+	 -entry1 [list GetDefaultLocation ImportAnnotation] \
+	 -presets1 $glShortcutDirs \
+	 -note1 "The file name of the annotaion" \
+	 -okCmd {
+	     labl_import_annotation [ExpandFileName %s1 kFileName_Label];
+	     SetDefaultLocation ImportAnnotation %s1;
+	     UpdateAndRedraw;  }]
+set tDlogSpecs(ExportAnnotation) \
+    [list \
+	 -title "Export Annotaion" \
+	 -prompt1 "Export Annotation:" \
+	 -default1 [list GetDefaultLocation ExportAnnotation] \
+	 -entry1 [list GetDefaultLocation ExportAnnotation] \
+	 -presets1 $glShortcutDirs \
+	 -note1 "The file name of the annotaion to save" \
+	 -okCmd {
+	     labl_export_annotation [ExpandFileName %s1 kFileName_Label];
+	     SetDefaultLocation ExpandFileName %s1;
+	     UpdateAndRedraw; }]
 
 set tDlogSpecs(SaveDipolesAs) [list \
   -title "Save Dipoles As" \
   -prompt1 "Save Dipoles As:" \
-  -default1 [list ExpandFileName "" kFileName_BEM] \
-  -entry1 [list ExpandFileName "" kFileName_BEM] \
-  -presets1 [list $env(MRI_DIR) $env(PWD) $user_data $test_data] \
+  -default1 [list GetDefaultLocation SaveDipolesAs] \
+  -entry1 [list GetDefaultLocation SaveDipolesAs] \
+  -presets1 $glShortcutDirs \
   -note1 "The file name of the dipoles data to save" \
-  -okCmd {set dip [ExpandFileName %s1 kFileName_BEM]; \
-  CheckFileAndDoCmd $dip write_binary_dipoles;} ]
+  -okCmd {
+      set dip [ExpandFileName %s1 kFileName_BEM];
+      SetDefaultLocation SaveDipolesAs %s1;
+      CheckFileAndDoCmd $dip write_binary_dipoles;} ]
 
-set tDlogSpecs(LoadFieldSign) [list \
-  -title "Load Field Sign" \
-  -prompt1 "Load Field Sign:" \
-  -default1 [list ExpandFileName "" kFileName_FMRI] \
-  -entry1 [list ExpandFileName "" kFileName_FMRI] \
-  -presets1 [list $env(MRI_DIR) $env(PWD) $user_data $test_data] \
-  -note1 "The file name of the field sign data" \
-  -okCmd {set fs [ExpandFileName %s1 kFileName_FMRI]; \
-  read_fieldsign; RestoreView;} ]
-set tDlogSpecs(SaveFieldSignAs) [list \
-  -title "Save Field Sign As" \
-  -prompt1 "Save Field Sign:" \
-  -default1 [list ExpandFileName "" kFileName_FMRI] \
-  -entry1 [list ExpandFileName "" kFileName_FMRI] \
-  -presets1 [list $env(MRI_DIR) $env(PWD) $user_data $test_data] \
-  -note1 "The file name of the field sign data to save" \
-  -okCmd {set fs [ExpandFileName %s1 kFileName_FMRI]; \
-  CheckFileAndDoCmd $fs write_fieldsign} ]
+set tDlogSpecs(LoadFieldSign) \
+    [list \
+	 -title "Load Field Sign" \
+	 -prompt1 "Load Field Sign:" \
+	 -default1 [list GetDefaultLocation LoadFieldSign] \
+	 -entry1 [list GetDefaultLocation LoadFieldSign] \
+	 -presets1 $glShortcutDirs \
+	 -note1 "The file name of the field sign data" \
+	 -okCmd {
+	     set fs [ExpandFileName %s1 kFileName_FMRI]; 
+	     SetDefaultLocation LoadFieldSign %s1;
+	     read_fieldsign;
+	     RestoreView;  }]
+set tDlogSpecs(SaveFieldSignAs) \
+    [list \
+	 -title "Save Field Sign As" \
+	 -prompt1 "Save Field Sign:" \
+	 -default1 [list GetDefaultLocation SaveFieldSignAs] \
+	 -entry1 [list GetDefaultLocation SaveFieldSignAs] \
+	 -presets1 $glShortcutDirs \
+	 -note1 "The file name of the field sign data to save" \
+	 -okCmd {
+	     SetDefaultLocation SaveFieldSignAs %s1;
+	     set fs [ExpandFileName %s1 kFileName_FMRI]; 
+	     CheckFileAndDoCmd $fs write_fieldsign  }]
 
-set tDlogSpecs(LoadFieldMask) [list \
-  -title "Load Field Mask" \
-  -prompt1 "Load Field Mask:" \
-  -default1 [list ExpandFileName "" kFileName_FMRI] \
-  -entry1 [list ExpandFileName "" kFileName_FMRI] \
-  -presets1 [list $env(MRI_DIR) $env(PWD) $user_data $test_data] \
-  -note1 "The file name of the field mask data" \
-  -okCmd {set fm [ExpandFileName %s1 kFileName_FMRI]; \
-  read_fsmask; RestoreView;} ]
-set tDlogSpecs(SaveFieldMaskAs) [list \
-  -title "Save Field Mask As" \
-  -prompt1 "Save Field Mask:" \
-  -default1 [list ExpandFileName "" kFileName_FMRI] \
-  -entry1 [list ExpandFileName "" kFileName_FMRI] \
-  -presets1 [list $env(MRI_DIR) $env(PWD) $user_data $test_data] \
-  -note1 "The file name of the field mask data to save" \
-  -okCmd {set fm [ExpandFileName %s1 kFileName_FMRI]; \
-  CheckFileAndDoCmd $fm write_fsmask} ]
+set tDlogSpecs(LoadFieldMask) \
+    [list \
+	 -title "Load Field Mask" \
+	 -prompt1 "Load Field Mask:" \
+	 -default1 [list GetDefaultLocation LoadFieldMask] \
+	 -entry1 [list GetDefaultLocation LoadFieldMask] \
+	 -presets1 $glShortcutDirs \
+	 -note1 "The file name of the field mask data" \
+	 -okCmd {
+	     SetDefaultLocation LoadFieldMask %s1;
+	     set fm [ExpandFileName %s1 kFileName_FMRI];
+	     read_fsmask; 
+	     RestoreView;} ]
+set tDlogSpecs(SaveFieldMaskAs) \
+    [list \
+	 -title "Save Field Mask As" \
+	 -prompt1 "Save Field Mask:" \
+	 -default1 [list GetDefaultLocation SaveFieldMaskAs] \
+	 -entry1 [list GetDefaultLocation SaveFieldMaskAs] \
+	 -presets1 $glShortcutDirs \
+	 -note1 "The file name of the field mask data to save" \
+	 -okCmd {
+	     SetDefaultLocation SaveFieldMaskAs %s1;
+	     set fm [ExpandFileName %s1 kFileName_FMRI];
+	     CheckFileAndDoCmd $fm write_fsmask }]
 
-set tDlogSpecs(RunScript) [list \
-  -title "Run Script" \
-  -prompt1 "Run Script:" \
-  -default1 [list ExpandFileName "" kFileName_Script] \
-  -entry1 [list ExpandFileName "" kFileName_Script] \
-  -presets1 [list $env(MRI_DIR) $env(PWD) $user_data $test_data] \
-  -note1 "The file name of the TCL script to run" \
-  -okCmd {source [ExpandFileName %s1 kFileName_Script]} ]
+set tDlogSpecs(RunScript) \
+    [list \
+	 -title "Run Script" \
+	 -prompt1 "Run Script:" \
+	 -default1 [list GetDefaultLocation RunScript] \
+	 -entry1 [list GetDefaultLocation RunScript] \
+	 -presets1 $glShortcutDirs \
+	 -note1 "The file name of the TCL script to run" \
+	 -okCmd {
+	     SetDefaultLocation RunScript %s1
+	     source [ExpandFileName %s1 kFileName_Script] }]
 
-set tDlogSpecs(SaveGraphToPS) [list \
-  -title "Save Time Course" \
-  -prompt1 "Save Time Course As:" \
-  -note1 "The file name of the PostScript file to create" \
-  -default1 [list ExpandFileName "" kFileName_Home] \
-  -entry1 [list ExpandFileName "" kFileName_Home] \
-  -presets1 [list $env(MRI_DIR) $env(PWD) $user_data $test_data] \
-  -okCmd {Graph_SaveToPS [ExpandFileName %s1 kFileName_Home]} ]
+set tDlogSpecs(SaveGraphToPS) \
+    [list \
+	 -title "Save Time Course" \
+	 -prompt1 "Save Time Course As:" \
+	 -note1 "The file name of the PostScript file to create" \
+	 -default1 [list GetDefaultLocation SaveGraphToPS] \
+	 -entry1 [list GetDefaultLocation SaveGraphToPS] \
+	 -presets1 $glShortcutDirs \
+	 -okCmd {
+	     SetDefaultLocation SaveGraphToPS %s1;
+	     Graph_SaveToPS [ExpandFileName %s1 kFileName_Home]} ]
 
-set tDlogSpecs(SaveRGBAs) [list \
-  -title "Save RGB" \
-  -prompt1 "Save RGB As:" \
-  -default1 [list ExpandFileName "" kFileName_RGB] \
-  -entry1 [list ExpandFileName "" kFileName_RGB] \
-  -presets1 [list $env(MRI_DIR) $env(PWD) $user_data $test_data] \
-  -note1 "The file name of the RGB file to save" \
-  -okCmd {set rgb [ExpandFileName %s1 kFileName_RGB]; save_rgb} ]
+set tDlogSpecs(SaveRGBAs) \
+    [list \
+	 -title "Save RGB" \
+	 -prompt1 "Save RGB As:" \
+	 -default1 [list GetDefaultLocation SaveRGBAs] \
+	 -entry1 [list GetDefaultLocation SaveRGBAs] \
+	 -presets1 $glShortcutDirs \
+	 -note1 "The file name of the RGB file to save" \
+	 -okCmd {
+	     SetDefaultLocation SaveRGBAs %s1;
+	     set rgb [ExpandFileName %s1 kFileName_RGB]; save_rgb} ]
 
-set tDlogSpecs(WriteMarkedVerticesTCSummary) [list \
-  -title "Save Marked Vertices Summary" \
-  -prompt1 "Save Summary As:" \
-  -default1 [list ExpandFileName "" kFileName_Home] \
-  -entry1 [list ExpandFileName "" kFileName_Home] \
-  -presets1 [list $env(MRI_DIR) $env(PWD) $user_data $test_data] \
-  -note1 "The file name of the summary text file to create" \
-  -okCmd { func_select_marked_vertices; \
-     func_print_timecourse_selection [ExpandFileName %s1 kFileName_Home] } ]
-set tDlogSpecs(WriteLabelTCSummary) [list \
-  -title "Save Label Summary" \
-  -prompt1 "Save Summary As:" \
-  -default1 [list ExpandFileName "" kFileName_Home] \
-  -entry1 [list ExpandFileName "" kFileName_Home] \
-  -presets1 [list $env(MRI_DIR) $env(PWD) $user_data $test_data] \
-  -note1 "The file name of the summary text file to create" \
-   -okCmd { clear_all_vertex_marks; \
-    labl_mark_vertices $gnSelectedLabel; \
-    func_select_marked_vertices; \
-     func_print_timecourse_selection [ExpandFileName %s1 kFileName_Home] } ]
+set tDlogSpecs(WriteMarkedVerticesTCSummary) \
+    [list \
+	 -title "Save Marked Vertices Summary" \
+	 -prompt1 "Save Summary As:" \
+	 -default1 [list GetDefaultLocation WriteMarkedVerticesTCSummary] \
+	 -entry1 [list GetDefaultLocation WriteMarkedVerticesTCSummary] \
+	 -presets1 $glShortcutDirs \
+	 -note1 "The file name of the summary text file to create" \
+	 -okCmd { 
+	     SetDefaultLocation WriteMarkedVerticesTCSummary %s1;
+	     func_select_marked_vertices;
+	     func_print_timecourse_selection \
+		 [ExpandFileName %s1 kFileName_Home] } ]
+set tDlogSpecs(WriteLabelTCSummary) \
+    [list \
+	 -title "Save Label Summary" \
+	 -prompt1 "Save Summary As:" \
+	 -default1 [list GetDefaultLocation WriteLabelTCSummary] \
+	 -entry1 [list GetDefaultLocation WriteLabelTCSummary] \
+	 -presets1 $glShortcutDirs \
+	 -note1 "The file name of the summary text file to create" \
+	 -okCmd { 
+	     SetDefaultLocation WriteLabelTCSummary %s1;
+	     clear_all_vertex_marks;
+	     labl_mark_vertices $gnSelectedLabel;
+	     func_select_marked_vertices;
+	     func_print_timecourse_selection \
+		 [ExpandFileName %s1 kFileName_Home] } ]
 
-set tDlogSpecs(SaveGDFPlotToPS) [list \
-  -title "Save Group Plot" \
-  -prompt1 "Save Plot As:" \
-  -note1 "The file name of the PostScript file to create" \
-  -default1 [list ExpandFileName "" kFileName_Home] \
-  -entry1 [list ExpandFileName "" kFileName_Home] \
-  -presets1 [list $env(MRI_DIR) $env(PWD) $user_data $test_data] \
-  -okCmd {FsgdfPlot_SaveToPostscript $gGDFID(overlay,$gaLinkedVars(currentvaluefield)) [ExpandFileName %s1 kFileName_Home]} ]
-set tDlogSpecs(SaveGDFPlotToTable) [list \
-  -title "Save Group Data" \
-  -prompt1 "Save Plot As:" \
-  -note1 "The file name of the table to create" \
-  -default1 [list ExpandFileName "" kFileName_Home] \
-  -entry1 [list ExpandFileName "" kFileName_Home] \
-  -presets1 [list $env(MRI_DIR) $env(PWD) $user_data $test_data] \
-  -okCmd {FsgdfPlot_SaveToTable $gGDFID(overlay,$gaLinkedVars(currentvaluefield)) [ExpandFileName %s1 kFileName_Home]} ]
+set tDlogSpecs(SaveGDFPlotToPS) \
+    [list \
+	 -title "Save Group Plot" \
+	 -prompt1 "Save Plot As:" \
+	 -note1 "The file name of the PostScript file to create" \
+	 -default1 [list GetDefaultLocation SaveGDFPlotToPS] \
+	 -entry1 [list GetDefaultLocation SaveGDFPlotToPS] \
+	 -presets1 $glShortcutDirs \
+	 -okCmd {
+	     SetDefaultLocation SaveGDFPlotToPS %s1;
+	     FsgdfPlot_SaveToPostscript \
+		 $gGDFID(overlay,$gaLinkedVars(currentvaluefield)) \
+		 [ExpandFileName %s1 kFileName_Home]  }]
+set tDlogSpecs(SaveGDFPlotToTable) \
+    [list \
+	 -title "Save Group Data" \
+	 -prompt1 "Save Plot As:" \
+	 -note1 "The file name of the table to create" \
+	 -default1 [list GetDefaultLocation SaveGDFPlotToTable] \
+	 -entry1 [list GetDefaultLocation SaveGDFPlotToTable] \
+	 -presets1 $glShortcutDirs \
+	 -okCmd {
+	     SetDefaultLocation SaveGDFPlotToTable %s1;
+	     FsgdfPlot_SaveToTable \
+		 $gGDFID(overlay,$gaLinkedVars(currentvaluefield)) \
+		 [ExpandFileName %s1 kFileName_Home]  }]
 
 
 
