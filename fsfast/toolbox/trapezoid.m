@@ -13,7 +13,7 @@ function y = trapezoid(t,Tru,Tft,Trd,Td)
 % For times before Td and after the end, the result is 0.
 % The amplitude at the flat top is 1.
 %
-% $Id: trapezoid.m,v 1.2 2003/09/16 07:57:06 greve Exp $
+% $Id: trapezoid.m,v 1.3 2005/03/19 00:20:46 greve Exp $
 
 y = [];
 if(nargin ~= 4 & nargin ~= 5)
@@ -24,12 +24,16 @@ end
 if(exist('Td') ~= 1) Td = []; end
 if(isempty(Td)) Td = 0; end
 
-% Subtract delay
-t = t - Td;
-
 tFTStart = Tru; % Start of Flattop
 tRDStart = Tru + Tft; % Start of Ramp Down
 tEnd     = Tru + Tft + Trd; % End of Ramp Down
+
+% Subtract delay
+t = t - Td;
+
+% Make periodic %
+%tCycle = tEnd;
+%t = rem(t,tCycle);
 
 y = zeros(size(t));
 
