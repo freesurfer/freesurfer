@@ -1853,7 +1853,7 @@ proc CheckSourceDirOK {} \
 "$sourceDir is not a directory.  It is possible if this data is over one \
 year old that the archive is no longer online.  You will need to either use \
 the CD made at the time the data was taken or contact \
-support@nmr.mgh.harvard.edu and ask that $sourceDir be recovered from \
+help@nmr.mgh.harvard.edu and ask that $sourceDir be recovered from \
 the archive tapes"
       CreateAlertDialog {ERROR: missing source} $errmsg
                   #tk_messageBox -type ok -default ok -title "Error" \
