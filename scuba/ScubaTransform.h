@@ -44,13 +44,23 @@ class ScubaTransform : public DebugReporter, public IDTracker<ScubaTransform>, p
 		      float i0j2, float i1j2, float i2j2, float i3j2,
 		      float i0j3, float i1j3, float i2j3, float i3j3 );
 
+  void SetTransform ( MATRIX* iMatrix );
+
   void MakeIdentity ();
 
   void SetLabel( std::string isLabel ) { msLabel = isLabel; }
   std::string GetLabel() { return msLabel; }
 
-  void MultiplyVector3 ( float iVector[3], float oVector[3] );
-  void InvMultiplyVector3 ( float iVector[3], float oVector[3] );
+  void MultiplyVector3 ( float const iVector[3], float oVector[3] );
+  void MultiplyVector3 ( int   const iVector[3], float oVector[3] );
+  void MultiplyVector3 ( float const iVector[3], int   oVector[3] );
+  void InvMultiplyVector3 ( float const iVector[3], float oVector[3] );
+  void InvMultiplyVector3 ( int   const iVector[3], float oVector[3] );
+  void InvMultiplyVector3 ( float const iVector[3], int   oVector[3] );
+
+  inline float GetCR ( int iCol, int iRow ) {
+    return *MATRIX_RELT(m,(iRow+1),(iCol+1));
+  }
 
  protected:
 
@@ -60,10 +70,6 @@ class ScubaTransform : public DebugReporter, public IDTracker<ScubaTransform>, p
   // should do this appropriately.
   inline void SetCR ( int iCol, int iRow, float iValue ) {
     *MATRIX_RELT(m,(iRow+1),(iCol+1)) = iValue;
-  }
-
-  inline float GetCR ( int iCol, int iRow ) {
-    return *MATRIX_RELT(m,(iRow+1),(iCol+1));
   }
 
   void ValuesChanged ();
@@ -81,7 +87,7 @@ class ScubaTransform : public DebugReporter, public IDTracker<ScubaTransform>, p
 
 };
 
-
+std::ostream& operator << ( std::ostream&, ScubaTransform iTransform  );
 
 
 #endif

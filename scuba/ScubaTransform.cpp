@@ -45,25 +45,29 @@ ScubaTransform::SetTransform ( float i0j0, float i1j0, float i2j0, float i3j0,
   ValuesChanged();
 }
 
+void
+ScubaTransform::SetTransform ( MATRIX* iMatrix ) {
+
+  for( int nCol = 0; nCol < 4; nCol++ ) {
+    for( int nRow = 0; nRow < 4; nRow++ ) {
+      SetCR(nCol,nRow, *MATRIX_RELT(iMatrix,(nRow+1),(nCol+1)) );
+    }
+  }
+
+  ValuesChanged();
+}
+
 void 
 ScubaTransform::MakeIdentity () {
 
   MatrixIdentity( 4, m );
+
+  ValuesChanged();
 }
 
 void 
-ScubaTransform::MultiplyVector3 ( float iVector[3], float oVector[3] ) {
+ScubaTransform::MultiplyVector3 ( float const iVector[3], float oVector[3] ) {
 
-#if 0
-  VECTOR_ELT( mTmpVec4Src, 1 ) = iVector[0];
-  VECTOR_ELT( mTmpVec4Src, 2 ) = iVector[1];
-  VECTOR_ELT( mTmpVec4Src, 3 ) = iVector[2];
-  VECTOR_ELT( mTmpVec4Src, 4 ) = 1;
-  MatrixMultiply( m, mTmpVec4Src, mTmpVec4Dest );
-  oVector[0] = VECTOR_ELT( mTmpVec4Dest, 1 );
-  oVector[1] = VECTOR_ELT( mTmpVec4Dest, 2 );
-  oVector[2] = VECTOR_ELT( mTmpVec4Dest, 3 );
-#else
   oVector[0] =
     *MATRIX_RELT(m,1,1) * iVector[0] +
     *MATRIX_RELT(m,1,2) * iVector[1] +
@@ -79,23 +83,53 @@ ScubaTransform::MultiplyVector3 ( float iVector[3], float oVector[3] ) {
     *MATRIX_RELT(m,3,2) * iVector[1] +
     *MATRIX_RELT(m,3,3) * iVector[2] +
     *MATRIX_RELT(m,3,4);
-#endif
-
 }
 
 void 
-ScubaTransform::InvMultiplyVector3 ( float iVector[3], float oVector[3] ) {
+ScubaTransform::MultiplyVector3 ( int const iVector[3], float oVector[3] ) {
 
-#if 0
-  VECTOR_ELT( mTmpVec4Src, 1 ) = iVector[0];
-  VECTOR_ELT( mTmpVec4Src, 2 ) = iVector[1];
-  VECTOR_ELT( mTmpVec4Src, 3 ) = iVector[2];
-  VECTOR_ELT( mTmpVec4Src, 4 ) = 1;
-  MatrixMultiply( mInv, mTmpVec4Src, mTmpVec4Dest );
-  oVector[0] = VECTOR_ELT( mTmpVec4Dest, 1 );
-  oVector[1] = VECTOR_ELT( mTmpVec4Dest, 2 );
-  oVector[2] = VECTOR_ELT( mTmpVec4Dest, 3 );
-#else
+  float iVectorF[3];
+  iVectorF[0] = iVector[0];
+  iVectorF[1] = iVector[1];
+  iVectorF[2] = iVector[2];
+
+  oVector[0] =
+    *MATRIX_RELT(m,1,1) * iVectorF[0] +
+    *MATRIX_RELT(m,1,2) * iVectorF[1] +
+    *MATRIX_RELT(m,1,3) * iVectorF[2] +
+    *MATRIX_RELT(m,1,4);
+  oVector[1] =
+    *MATRIX_RELT(m,2,1) * iVectorF[0] +
+    *MATRIX_RELT(m,2,2) * iVectorF[1] +
+    *MATRIX_RELT(m,2,3) * iVectorF[2] +
+    *MATRIX_RELT(m,2,4);
+  oVector[2] =
+    *MATRIX_RELT(m,3,1) * iVectorF[0] +
+    *MATRIX_RELT(m,3,2) * iVectorF[1] +
+    *MATRIX_RELT(m,3,3) * iVectorF[2] +
+    *MATRIX_RELT(m,3,4);
+}
+
+void 
+ScubaTransform::MultiplyVector3 ( float const iVector[3], int oVector[3] ) {
+
+  oVector[0] = (int) ( *MATRIX_RELT(m,1,1) * iVector[0] +
+		       *MATRIX_RELT(m,1,2) * iVector[1] +
+		       *MATRIX_RELT(m,1,3) * iVector[2] +
+		       *MATRIX_RELT(m,1,4) );
+  oVector[1] = (int) ( *MATRIX_RELT(m,2,1) * iVector[0] +
+		       *MATRIX_RELT(m,2,2) * iVector[1] +
+		       *MATRIX_RELT(m,2,3) * iVector[2] +
+		       *MATRIX_RELT(m,2,4) );
+  oVector[2] = (int) ( *MATRIX_RELT(m,3,1) * iVector[0] +
+		       *MATRIX_RELT(m,3,2) * iVector[1] +
+		       *MATRIX_RELT(m,3,3) * iVector[2] +
+		       *MATRIX_RELT(m,3,4) );
+}
+
+void 
+ScubaTransform::InvMultiplyVector3 ( float const iVector[3], float oVector[3] ) {
+
   oVector[0] =
     *MATRIX_RELT(mInv,1,1) * iVector[0] +
     *MATRIX_RELT(mInv,1,2) * iVector[1] +
@@ -111,7 +145,48 @@ ScubaTransform::InvMultiplyVector3 ( float iVector[3], float oVector[3] ) {
     *MATRIX_RELT(mInv,3,2) * iVector[1] +
     *MATRIX_RELT(mInv,3,3) * iVector[2] +
     *MATRIX_RELT(mInv,3,4);
-#endif
+}
+
+void 
+ScubaTransform::InvMultiplyVector3 ( int const iVector[3], float oVector[3] ) {
+
+  float iVectorF[3];
+  iVectorF[0] = iVector[0];
+  iVectorF[1] = iVector[1];
+  iVectorF[2] = iVector[2];
+
+  oVector[0] =
+    *MATRIX_RELT(mInv,1,1) * iVectorF[0] +
+    *MATRIX_RELT(mInv,1,2) * iVectorF[1] +
+    *MATRIX_RELT(mInv,1,3) * iVectorF[2] +
+    *MATRIX_RELT(mInv,1,4);
+  oVector[1] =
+    *MATRIX_RELT(mInv,2,1) * iVectorF[0] +
+    *MATRIX_RELT(mInv,2,2) * iVectorF[1] +
+    *MATRIX_RELT(mInv,2,3) * iVectorF[2] +
+    *MATRIX_RELT(mInv,2,4);
+  oVector[2] =
+    *MATRIX_RELT(mInv,3,1) * iVectorF[0] +
+    *MATRIX_RELT(mInv,3,2) * iVectorF[1] +
+    *MATRIX_RELT(mInv,3,3) * iVectorF[2] +
+    *MATRIX_RELT(mInv,3,4);
+}
+
+void 
+ScubaTransform::InvMultiplyVector3 ( float const iVector[3], int oVector[3] ) {
+
+  oVector[0] = (int) ( *MATRIX_RELT(mInv,1,1) * iVector[0] +
+		       *MATRIX_RELT(mInv,1,2) * iVector[1] +
+		       *MATRIX_RELT(mInv,1,3) * iVector[2] +
+		       *MATRIX_RELT(mInv,1,4) );
+  oVector[1] = (int) ( *MATRIX_RELT(mInv,2,1) * iVector[0] +
+		       *MATRIX_RELT(mInv,2,2) * iVector[1] +
+		       *MATRIX_RELT(mInv,2,3) * iVector[2] +
+		       *MATRIX_RELT(mInv,2,4) );
+  oVector[2] = (int) ( *MATRIX_RELT(mInv,3,1) * iVector[0] +
+		       *MATRIX_RELT(mInv,3,2) * iVector[1] +
+		       *MATRIX_RELT(mInv,3,3) * iVector[2] +
+		       *MATRIX_RELT(mInv,3,4) );
 }
 
 TclCommandListener::TclCommandResult
@@ -266,4 +341,18 @@ ScubaTransformStaticTclListener::DoListenToTclCommand ( char* isCommand,
   }
 
   return ok;
+}
+
+ostream& 
+operator <<  ( ostream& os, ScubaTransform iTransform ) { 
+  os << "Transform " << iTransform.GetLabel() << ":" << endl;
+  os << iTransform.GetCR(0,0) << " " << iTransform.GetCR(1,0) << " "
+     << iTransform.GetCR(2,0) << " " << iTransform.GetCR(3,0) << endl;
+  os << iTransform.GetCR(0,1) << " " << iTransform.GetCR(1,1) << " "
+     << iTransform.GetCR(2,1) << " " << iTransform.GetCR(3,1) << endl;
+  os << iTransform.GetCR(0,2) << " " << iTransform.GetCR(1,2) << " "
+     << iTransform.GetCR(2,2) << " " << iTransform.GetCR(3,2) << endl;
+  os << iTransform.GetCR(0,3) << " " << iTransform.GetCR(1,3) << " "
+     << iTransform.GetCR(2,3) << " " << iTransform.GetCR(3,3) << endl;
+  return os;
 }

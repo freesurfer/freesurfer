@@ -14,13 +14,15 @@ VolumeCollection::VolumeCollection () :
   DataCollection() {
   mMRI = NULL;
   mMagnitudeMRI = NULL;
+#if 0
   mWorldToIndexMatrix = NULL;
   mIndexToWorldMatrix = NULL;
   mWorldCoord = VectorAlloc( 4, MATRIX_REAL );
   mIndexCoord = VectorAlloc( 4, MATRIX_REAL );
+  mWorldToIndexCache = NULL;
+#endif
   mEdgeVoxels = NULL;
   mSelectedVoxels = NULL;
-  mWorldToIndexCache = NULL;
   mVoxelSize[0] = mVoxelSize[1] = mVoxelSize[2] = 0;
   mOneOverVoxelSize[0] = mOneOverVoxelSize[1] = mOneOverVoxelSize[2] = 0;
 
@@ -56,6 +58,7 @@ VolumeCollection::~VolumeCollection() {
     cerr << "Couldn't release data"  << endl;
   }
 
+#if 0
   if( NULL != mWorldCoord ) {
     VectorFree( &mWorldCoord );
   }
@@ -68,6 +71,7 @@ VolumeCollection::~VolumeCollection() {
   if( NULL != mIndexToWorldMatrix ) {
     MatrixFree( &mIndexToWorldMatrix );
   }
+#endif
 }
 
 void
@@ -95,8 +99,14 @@ VolumeCollection::GetMRI() {
       SetLabel( mfnMRI );
     }
 
+#if 0
     mWorldToIndexMatrix = voxelFromSurfaceRAS_( mMRI );
     mIndexToWorldMatrix = surfaceRASFromVoxel_( mMRI );
+#endif
+
+    MATRIX* worldToIndex = voxelFromSurfaceRAS_( mMRI );
+    mWorldToIndexTransform.SetTransform( worldToIndex );
+    MatrixFree( &worldToIndex );
 
     UpdateMRIValueRange();
 
@@ -190,7 +200,7 @@ VolumeCollection::UpdateRASBounds () {
 void
 VolumeCollection::RASToMRIIndex ( float iRAS[3], int oIndex[3] ) {
   
-
+#if 0
   float rasX = iRAS[0];
   float rasY = iRAS[1];
   float rasZ = iRAS[2];
@@ -232,7 +242,7 @@ VolumeCollection::RASToMRIIndex ( float iRAS[3], int oIndex[3] ) {
   oIndex[0] = sumI0;
   oIndex[1] = sumI1;
   oIndex[2] = sumI2;
-
+#endif
 
 #if 0
 
@@ -264,21 +274,14 @@ VolumeCollection::RASToMRIIndex ( float iRAS[3], int oIndex[3] ) {
   oIndex[2] = index.z();
 
 #endif
+
+  mWorldToIndexTransform.MultiplyVector3( iRAS, oIndex );
 }
 
 void
 VolumeCollection::RASToMRIIndex ( float iRAS[3], float oIndex[3] ) {
 
-#if 0  
-  VECTOR_ELT( mWorldCoord, 1 ) = iRAS[0];
-  VECTOR_ELT( mWorldCoord, 2 ) = iRAS[1];
-  VECTOR_ELT( mWorldCoord, 3 ) = iRAS[2];
-  VECTOR_ELT( mWorldCoord, 4 ) = 1.0;
-  MatrixMultiply( mWorldToIndexMatrix, mWorldCoord, mIndexCoord );
-  oIndex[0] = VECTOR_ELT( mIndexCoord, 1 );
-  oIndex[1] = VECTOR_ELT( mIndexCoord, 2 );
-  oIndex[2] = VECTOR_ELT( mIndexCoord, 3 );
-#else
+#if 0
   oIndex[0] = 
     *MATRIX_RELT(mWorldToIndexMatrix,1,1) * iRAS[0] +
     *MATRIX_RELT(mWorldToIndexMatrix,1,2) * iRAS[1] +
@@ -296,21 +299,14 @@ VolumeCollection::RASToMRIIndex ( float iRAS[3], float oIndex[3] ) {
     *MATRIX_RELT(mWorldToIndexMatrix,3,4);
 
 #endif
+
+  mWorldToIndexTransform.MultiplyVector3( iRAS, oIndex );
 }
 
 void
 VolumeCollection::MRIIndexToRAS ( int iIndex[3], float oRAS[3] ) {
   
 #if 0
-  VECTOR_ELT( mIndexCoord, 1 ) = iIndex[0];
-  VECTOR_ELT( mIndexCoord, 2 ) = iIndex[1];
-  VECTOR_ELT( mIndexCoord, 3 ) = iIndex[2];
-  VECTOR_ELT( mIndexCoord, 4 ) = 1.0;
-  MatrixMultiply( mIndexToWorldMatrix, mIndexCoord, mWorldCoord );
-  oRAS[0] = VECTOR_ELT( mWorldCoord, 1 );
-  oRAS[1] = VECTOR_ELT( mWorldCoord, 2 );
-  oRAS[2] = VECTOR_ELT( mWorldCoord, 3 );
-#else
   oRAS[0] = 
     *MATRIX_RELT(mIndexToWorldMatrix,1,1) * iIndex[0] +
     *MATRIX_RELT(mIndexToWorldMatrix,1,2) * iIndex[1] +
@@ -328,21 +324,14 @@ VolumeCollection::MRIIndexToRAS ( int iIndex[3], float oRAS[3] ) {
     *MATRIX_RELT(mIndexToWorldMatrix,3,4);
 
 #endif
+
+  mWorldToIndexTransform.InvMultiplyVector3( iIndex, oRAS );
 }
 
 void
 VolumeCollection::MRIIndexToRAS ( float iIndex[3], float oRAS[3] ) {
   
 #if 0
-  VECTOR_ELT( mIndexCoord, 1 ) = iIndex[0];
-  VECTOR_ELT( mIndexCoord, 2 ) = iIndex[1];
-  VECTOR_ELT( mIndexCoord, 3 ) = iIndex[2];
-  VECTOR_ELT( mIndexCoord, 4 ) = 1.0;
-  MatrixMultiply( mIndexToWorldMatrix, mIndexCoord, mWorldCoord );
-  oRAS[0] = VECTOR_ELT( mWorldCoord, 1 );
-  oRAS[1] = VECTOR_ELT( mWorldCoord, 2 );
-  oRAS[2] = VECTOR_ELT( mWorldCoord, 3 );
-#else
   oRAS[0] = 
     *MATRIX_RELT(mIndexToWorldMatrix,1,1) * iIndex[0] +
     *MATRIX_RELT(mIndexToWorldMatrix,1,2) * iIndex[1] +
@@ -360,6 +349,8 @@ VolumeCollection::MRIIndexToRAS ( float iIndex[3], float oRAS[3] ) {
     *MATRIX_RELT(mIndexToWorldMatrix,3,4);
 
 #endif
+
+  mWorldToIndexTransform.InvMultiplyVector3( iIndex, oRAS );
 }
 
 bool 
@@ -1037,6 +1028,7 @@ VolumeCollection::WriteROIsToSegmentation ( string ifnVolume ) {
   MRIfree( &segVolume );
 }
 
+#if 0
 void
 VolumeCollection::CalcWorldToIndexCache () {
 
@@ -1122,6 +1114,8 @@ VolumeCollection::WorldToIndexCacheIndex ( float const iRAS[3],
   oCacheIndex[2] = (int)((iRAS[2] - mMinRASBounds[2]) * mOneOverVoxelSize[2]);
 #endif
 }
+#endif
+
 
 VolumeCollectionFlooder::VolumeCollectionFlooder () {
   mVolume = NULL;

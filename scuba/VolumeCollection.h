@@ -91,10 +91,14 @@ protected:
   MRI* mMRI;
   MRI* mMagnitudeMRI;
 
+#if 0
   MATRIX* mWorldToIndexMatrix;
   MATRIX* mIndexToWorldMatrix;
   VECTOR* mWorldCoord;
   VECTOR* mIndexCoord;
+#endif
+
+  ScubaTransform mWorldToIndexTransform;
 
   Volume3<Point3<int> >* mWorldToIndexCache;
   void CalcWorldToIndexCache ();
