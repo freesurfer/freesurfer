@@ -424,19 +424,19 @@ FunD_tErr FunD_FindAndParseStemHeader_ ( mriFunctionalDataRef this,
 	DebugAssertThrowX( (NULL != this->mCovMtx),
 			   eResult, FunD_tErr_CouldntAllocateStorage );
 
-	     for( nCovMtxCol = 0; 
-		  nCovMtxCol < this->mNumTimePoints * (this->mNumConditions-1);
-		  nCovMtxCol++ ) {
-
-
-	       DebugNote( ("Reading cov mtx value %d, %d", 
-			   nCovMtxCol, nCovMtxRow) );
-	       nValuesRead = fscanf( pHeader, "%f", 
-				     &this->mCovMtx[nCovMtxRow][nCovMtxCol] );
-	       bGood = (1 == nValuesRead);
-	       DebugAssertThrowX( (bGood), eResult, 
-				  FunD_tErr_UnrecognizedHeaderFormat );
-	     }
+	for( nCovMtxCol = 0; 
+	     nCovMtxCol < this->mNumTimePoints * (this->mNumConditions-1);
+	     nCovMtxCol++ ) {
+	  
+	  
+	  DebugNote( ("Reading cov mtx value %d, %d", 
+		      nCovMtxCol, nCovMtxRow) );
+	  nValuesRead = fscanf( pHeader, "%f", 
+				&this->mCovMtx[nCovMtxRow][nCovMtxCol] );
+	  bGood = (1 == nValuesRead);
+	  DebugAssertThrowX( (bGood), eResult, 
+			     FunD_tErr_UnrecognizedHeaderFormat );
+	}
       }
     }
       
@@ -702,85 +702,6 @@ FunD_tErr FunD_ParseRegistrationAndInitMatricies_ ( mriFunctionalDataRef this,
 }
 
 
-#if 0
-FunD_tErr FunD_CalcDeviations_ ( mriFunctionalDataRef this ) {
-  
-  FunD_tErr eResult        = FunD_tErr_NoError;
-  int       nCondition     = 0;
-  int       nTimePoint     = 0;
-  int       nCovMtx        = 0;
-  float     fCovariance    = 0;
-  float     fSigma         = 0;
-
-  DebugEnterFunction( ("FunD_CalcDeviations_( this=%p )", this) );
-
-  DebugNote( ("Checking parameters") );
-  DebugAssertThrowX( (NULL != this),
-		     eResult, FunD_tErr_InvalidParameter );
-
-  DebugNote( ("Making sure covariance matrix exists") );
-  DebugAssertThrowX( (NULL != this->mCovMtx),
-		     eResult, FunD_tErr_CouldntCalculateDeviations );
-  
-  /* Allocate the deviations array. */
-  DebugNote( ("Allocating %d conditions deviations") );
-  this->mDeviations = (float**) calloc (this->mNumConditions, sizeof(float*));
-  DebugAssertThrowX( (NULL != this->mDeviations),
-		     eResult, FunD_tErr_CouldntAllocateStorage );
-  
-  for ( nCondition = 0; nCondition < this->mNumConditions; nCondition++ ) {
-
-    DebugNote( ("Allocating %d time points of deviations for condition %d",
-		this->mNumTimePoints) );
-    this->mDeviations[nCondition] = 
-      (float*) calloc (this->mNumTimePoints, sizeof(float));
-    DebugAssertThrowX( (NULL != this->mDeviations[nCondition]),
-		       eResult, FunD_tErr_CouldntAllocateStorage );
-  
-    for ( nTimePoint = 0; nTimePoint < this->mNumTimePoints; nTimePoint++ ) {
-      
-      /* Get a value from the covariance matrix. */
-      /* since the cov mtx is based on non-null conditions, use the
-	 cond index - 1 here to calc the cov mtx index. */
-      nCovMtx = 
-	((this->mNumTimePoints * (nCondition-1) + nTimePoint) * 
-	 (this->mNumConditions-1) * this->mNumTimePoints) +
-	(this->mNumTimePoints * (nCondition-1) + nCondition);
-      DebugNote( ("Getting cov mtx for cond %d tp %d\n", 
-		  nCondition, nTimePoint) );
-      fCovariance = this->mCovMtx[(nCondition-1) * nTimePoint]
-	[(nCondition-1) * nTimePoint];
-      
-      /* Get sigma value. */
-      FunD_GetSigma_ ( this, nTimePoint, &fSigma );
-
-      /* Deviation = sigma * sqrt(covariance) */
-      this->mDeviations[nCondition][nTimePoint] = fSigma * sqrt(fCovariance);
-    }
-  }
-
-  DebugCatch;
-  DebugCatchError( eResult, FunD_tErr_NoError, FunD_GetErrorString );
-
-  if( NULL != this->mDeviations ) {
-    for ( nCondition = 0; nCondition < this->mNumConditions; nCondition++ ) {
-      if( NULL != this->mDeviations[nCondition] )
-	DebugNote( ("Freeing deviations for condition %d", nCondition) );
-	free( this->mDeviations[nCondition] );
-    }
-    DebugNote( ("Freeing deviations") );
-    free( this->mDeviations );
-  }
-
-  EndDebugCatch;
-
-  DebugExitFunction;
-  
-  return eResult;
-}
-#endif
-
-
 FunD_tErr FunD_SetClientCoordBounds ( mriFunctionalDataRef this,
 				      int                  inXMin,
 				      int                  inYMin,
@@ -965,6 +886,7 @@ FunD_tErr FunD_GetDataForAllTimePoints ( mriFunctionalDataRef this,
   eResult = FunD_VerifyFuncIdx_( this, &funcIdx );
   DebugAssertQuietThrow( (eResult == FunD_tErr_NoError) );
   
+  
   for( nTimePoint = 0; nTimePoint < this->mNumTimePoints; nTimePoint++ ) {
 
     DebugNote( ("Getting value") );
@@ -992,10 +914,9 @@ FunD_tErr FunD_GetDeviation ( mriFunctionalDataRef this,
   
   FunD_tErr eResult     = FunD_tErr_NoError;
   xVoxel    funcIdx;
-  int       nCovMtx     = 0;
   float     fCovariance = 0;
   float     fSigma      = 0;
-  
+  int       nCovMtx     = 0;
 
   DebugEnterFunction( ("FunD_GetDeviation( this=%p, iCondition=%d, "
 		       "iTimePoint=%d, oValue=%p)", this, iCondition, 
@@ -1024,16 +945,10 @@ FunD_tErr FunD_GetDeviation ( mriFunctionalDataRef this,
 
   } else { 
 
-    DebugNote( ("Calculating cov mtx index") );
-    nCovMtx = 
-      ((this->mNumTimePoints * (iCondition-1) + iTimePoint) * 
-       (this->mNumConditions-1) * this->mNumTimePoints) +
-      (this->mNumTimePoints * (iCondition-1) + iCondition);
-    DebugNote( ("Getting cov mtx value %d\n", nCovMtx) );
     DebugNote( ("Getting cov mtx for cond %d tp %d\n", 
 		iCondition, iTimePoint) );
-    fCovariance = this->mCovMtx[(iCondition-1) * iTimePoint]
-      [(iCondition-1) * iTimePoint];
+    nCovMtx = ((iCondition-1) * this->mNumTimePoints) + iTimePoint;
+    fCovariance = this->mCovMtx[nCovMtx][nCovMtx];
     
     DebugNote( ("Converting client voxel to func idx") );
     FunD_ConvertClientToFuncIdx_( this, iClientVox, &funcIdx );
@@ -1062,10 +977,9 @@ FunD_tErr FunD_GetDeviationForAllTimePoints ( mriFunctionalDataRef this,
   FunD_tErr eResult    = FunD_tErr_NoError;
   int       nTimePoint = 0;
   xVoxel    funcIdx;
-  int       nCovMtx     = 0;
   float     fCovariance = 0;
   float     fSigma      = 0;
-  
+  int       nCovMtx     = 0;
 
   DebugEnterFunction( ("FunD_GetDeviation( this=%p, iCondition=%d, "
 		       "oaValue=%p)", this, iCondition, oaValue) );
@@ -1098,17 +1012,11 @@ FunD_tErr FunD_GetDeviationForAllTimePoints ( mriFunctionalDataRef this,
       DebugNote( ("Getting sigma value") );
       FunD_GetSigma_ ( this, &funcIdx, nTimePoint, &fSigma );
     
-      DebugNote( ("Calculating cov mtx index") );
-      nCovMtx = 
-	((this->mNumTimePoints * (iCondition-1) + nTimePoint) * 
-       (this->mNumConditions-1) * this->mNumTimePoints) +
-	(this->mNumTimePoints * (iCondition-1) + iCondition);
-      DebugNote( ("Getting cov mtx value %d\n", nCovMtx) );
       DebugNote( ("Getting cov mtx for cond %d tp %d\n", 
 		  iCondition, nTimePoint) );
-      fCovariance = this->mCovMtx[(iCondition-1) * nTimePoint]
-	[(iCondition-1) * nTimePoint];
-      
+      nCovMtx = ((iCondition-1) * this->mNumTimePoints) + nTimePoint;
+      fCovariance = this->mCovMtx[nCovMtx][nCovMtx];
+
       DebugNote( ("Setting return value") );
       oaValue[nTimePoint] = sqrt( fSigma*fSigma * fCovariance );
     }
@@ -2466,11 +2374,7 @@ void FunD_GetValue_ ( mriFunctionalDataRef this,
   
   int nFrame = 0;
 
-  if( this->mbErrorDataPresent ) {
-    nFrame = (inCondition * 2 * this->mNumTimePoints) + inTimePoint;
-  } else {
-    nFrame = (inCondition * this->mNumTimePoints) + inTimePoint;
-  }
+  FunD_GetDataFrameNumber(inCondition,inTimePoint,&nFrame);
 
   switch( iData->type ) {
     case MRI_UCHAR:
@@ -2508,12 +2412,7 @@ void FunD_SetValue_ ( mriFunctionalDataRef this,
   
   int nFrame = 0;
 
-  if( this->mbErrorDataPresent ) {
-    nFrame = (inCondition * 2 * this->mNumTimePoints) + 
-      (inTimePoint * 2);
-  } else {
-    nFrame = (inCondition * this->mNumTimePoints) + inTimePoint;
-  }
+  FunD_GetDataFrameNumber(inCondition,inTimePoint,&nFrame);
 
   switch( iData->type ) {
     case MRI_UCHAR:
@@ -2550,12 +2449,8 @@ void FunD_GetSigma_ ( mriFunctionalDataRef this,
   
   int   nFrame         = 0;
 
-  if( this->mbErrorDataPresent ) {
-    nFrame = this->mNumTimePoints + inTimePoint;
-  } else {
-    *oSigma = 0;
-    return;
-  }
+
+  FunD_GetSigmaFrameNumber(inTimePoint, &nFrame);
 
   switch( this->mpData->type ) {
     case MRI_UCHAR:
