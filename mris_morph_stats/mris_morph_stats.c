@@ -15,7 +15,7 @@
 #include "mrishash.h"
 #include "macros.h"
 
-static char vcid[] = "$Id: mris_morph_stats.c,v 1.1 1999/01/08 21:50:16 fischl Exp $";
+static char vcid[] = "$Id: mris_morph_stats.c,v 1.2 1999/02/05 17:06:18 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -38,7 +38,6 @@ main(int argc, char *argv[])
                 *morph_name, *out_name ;
   int           ac, nargs ;
   MRI_SURFACE   *mris ;
-  int           msec ;
 
   Progname = argv[0] ;
   ErrorInit(NULL, NULL, NULL) ;

@@ -62,7 +62,6 @@ static int facep(int im0, int i0, int j0, int im1, int i1, int j1) ;
 static void check_face(int im0, int i0, int j0, int im1, int i1,int j1, 
                        int f, int n, int v_ind, int prev_flag) ;
 static void make_surface(void) ;
-static void test(char *fname) ;
 static void write_binary_surface2(char *fname) ;
 #if 0
 static void write_surface(void) ;
@@ -441,17 +440,5 @@ write_binary_surface2(char *fname)
     for (n=0;n<4;n++)
       fwrite3(face[k].v[n],fp);
   }
-  fclose(fp);
-}
-
-static void
-test(char *fname)
-{
-  FILE *fp;
-
-  fp = fopen(fname,"w");
-  fwrite1(128-1,fp);
-  fwrite2(128*256-1,fp);
-  fwrite3(128*256*256-1,fp);
   fclose(fp);
 }
