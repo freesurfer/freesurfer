@@ -23,3 +23,4 @@ tqli.o: tqli.c
 	$(CCDEPMODE) $(depcomp) \
 	$(COMPILE) -c `test -f '$<' || echo '$(srcdir)/'`$<
 
+SUBDIRS=test
