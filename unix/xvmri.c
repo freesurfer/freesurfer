@@ -84,9 +84,7 @@ mri_event_handler(XV_FRAME *xvf, Event *event,DIMAGE *dimage,
 {
   int       x, y, z, which, depth, view ;
   Real      xr, yr, zr, xt, yt, zt, xv, yv, zv ;
-  HISTOGRAM *histo ;
-  float     fmin, fmax ;
-  XV_FRAME  *xvnew ;
+  float     xf, yf, zf, xft, yft, zft ;
   MRI       *mri ;
   char      fname[100] ;
   FILE      *fp ;
@@ -207,26 +205,68 @@ mri_event_handler(XV_FRAME *xvf, Event *event,DIMAGE *dimage,
         }
       }
       fp = fopen(fname, "r") ;
-      if (fscanf(fp, "%lf %lf %lf", &xr, &yr, &zr) != 3)
+      if (fscanf(fp, "%f %f %f", &xf, &yf, &zf) != 3)
       {
         XVprintf(xvf, 0, "could not scan coordinates out of %s", fname) ;
         fclose(fp) ;
         return ;
       }
-      if (fscanf(fp, "%lf %lf %lf", &xt, &yt, &zt) != 3)
+      if (fscanf(fp, "%f %f %f", &xft, &yft, &zft) != 3)
       {
         XVprintf(xvf,0,"could not scan Talairach coordinates out of %s",fname);
         fclose(fp) ;
         return ;
       }
       fclose(fp) ;
-      MRIworldToVoxel(mris[which_click], xr, yr, zr, &xv, &yv, &zv) ;
-      XVMRIsetPoint(xvf, which_click, nint(xv), nint(yv), nint(zv)) ;
+      if (talairach)
+        MRItalairachToVoxel(mri, (Real)xft, (Real)yft, (Real)zft,&xv, &yv,&zv);
+      else
+        MRIworldToVoxel(mri, (Real)xf, (Real)yf, (Real)zf, &xv, &yv, &zv) ;
+      XVMRIsetPoint(xvf, which, nint(xv), nint(yv), nint(zv)) ;
       XVprintf(xvf, 0, "current point: (%d, %d, %d) --> (%d, %d, %d)",
-               nint(xr), nint(yr), nint(zr), nint(xv), nint(yv), nint(zv)) ;
+               nint(xf), nint(yf), nint(zf), nint(xv), nint(yv), nint(zv)) ;
+#if 0
+fprintf(stderr, "read (%2.3f, %2.3f, %2.3f) and (%2.3f, %2.3f, %2.3f)\n",
+        xf, yf, zf, xft, yft, zft) ;
+fprintf(stderr, "voxel (%d, %d, %d)\n", nint(xv), nint(yv), nint(zv)) ;
+#endif
       break ;
     case 'W':
     case 'w':
+      /* look in 4 places for edit.dat - same dir as image, tmp/edit.dat
+         ../tmp and ../../tmp
+         */
+      sprintf(fname, "%s/edit.dat", image_path) ;
+      if (!FileExists(fname))
+      {
+        sprintf(fname, "%s/../tmp/edit.dat", image_path) ;
+        if (!FileExists(fname))
+        {
+          sprintf(fname, "%s/../../tmp/edit.dat", image_path) ;
+          if (!FileExists(fname))
+          {
+            sprintf(fname, "%s/tmp/edit.dat", image_path) ;
+            if (!FileExists(fname))
+            {
+              XVprintf(xvf, 0, "could not find edit.dat from %s", image_path) ;
+              return ;
+            }
+          }
+        }
+      }
+      fp = fopen(fname, "w") ;
+      MRIvoxelToWorld(mri, (Real)x_click, (Real)y_click, (Real)z_click, 
+                      &xr, &yr, &zr) ;
+      MRIvoxelToTalairach(mri, (Real)x_click, (Real)y_click, (Real)z_click, 
+                          &xt, &yt, &zt) ;
+      fprintf(fp, "%f %f %f\n", (float)xr, (float)yr, (float)zr) ;
+      fprintf(fp, "%f %f %f\n", (float)xt, (float)yt, (float)zt) ;
+      fclose(fp) ;
+#if 0
+fprintf(stderr, "wrote (%2.3f, %2.3f, %2.3f) and (%2.3f, %2.3f, %2.3f)\n",
+        xr, yr, zr, xt, yt, zt) ;
+fprintf(stderr, "voxel (%d, %d, %d)\n", x_click, y_click, z_click) ;
+#endif
       break ;
     case 'x':
     case 'X':
@@ -247,12 +287,20 @@ mri_event_handler(XV_FRAME *xvf, Event *event,DIMAGE *dimage,
       talairach = 0 ;
       break ;
     case 'h':
-      MRIvalRange(mri, &fmin, &fmax) ;
-      histo = MRIhistogram(mri, (int)(fmax - fmin + 1)) ;
-      xvnew = XValloc(1, 1, 2, 200, 200, "histogram tool", NULL) ;
-      XVshowHistogram(xvnew, 0, histo) ;
-      xv_main_loop(xvnew->frame);
-      HISTOfree(&histo) ;
+#if 0
+      {
+        HISTOGRAM *histo ;
+        float     fmin, fmax ;
+        XV_FRAME  *xvnew ;
+
+        MRIvalRange(mri, &fmin, &fmax) ;
+        histo = MRIhistogram(mri, (int)(fmax - fmin + 1)) ;
+        xvnew = XValloc(1, 1, 2, 200, 200, "histogram tool", NULL) ;
+        XVshowHistogram(xvnew, 0, histo) ;
+        xv_main_loop(xvnew->frame);
+        HISTOfree(&histo) ;
+      }
+#endif
       break ;
     }
     break ;
