@@ -17,7 +17,7 @@
 #include "version.h"
 #include "label.h"
 
-static char vcid[] = "$Id: mris_make_surfaces.c,v 1.52 2004/07/19 21:44:53 greve Exp $";
+static char vcid[] = "$Id: mris_make_surfaces.c,v 1.53 2004/11/10 19:40:59 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -148,7 +148,7 @@ main(int argc, char *argv[])
   M3D           *m3d ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_make_surfaces.c,v 1.52 2004/07/19 21:44:53 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_make_surfaces.c,v 1.53 2004/11/10 19:40:59 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -187,7 +187,7 @@ main(int argc, char *argv[])
     argv += nargs ;
   }
 
-  if (argc < 2)
+  if (argc < 3)
     usage_exit() ;
 
   /* set default parameters for white and gray matter surfaces */
