@@ -34,7 +34,6 @@
 #include "utils.h"
 #include "mri_identify.h"
 #include "fio.h"
-#include "mri_conform.h"
 
 /*-----------------------------------------------------
                     MACROS AND CONSTANTS
@@ -55,14 +54,16 @@ static int data_size[] = { 1, 4, 4, 4, 2 };
                     STATIC PROTOTYPES
 -------------------------------------------------------*/
 
+static void short_buffer_to_image(short *buf, MRI *mri, int slice, int frame) ;
 static void buffer_to_image(BUFTYPE *buf, MRI *mri, int slice, int frame) ;
 static void image_to_buffer(BUFTYPE *buf, MRI *mri, int slice) ;
 static MRI *mncRead(char *fname, int read_volume, int frame) ;
 static MRI *mghRead(char *fname, int read_volume, int frame) ;
-static MRI *ge5xRead(char *fname, int read_volume, int frame) ;
+static MRI *genesisRead(char *fname, int read_volume, int frame) ;
 static MRI *siemensRead(char *fname, int read_volume, int frame) ;
-static MRI *ge8xRead(char *fname, int read_volume, int frame) ;
+static MRI *gelxRead(char *fname, int read_volume, int frame) ;
 static MRI *brikRead(char *fname, int read_volume, int frame) ;
+static MRI *bshortRead(char *fname, int read_volume, int frame) ;
 static int mghWrite(MRI *mri, char *fname, int frame) ;
 static int mghAppend(MRI *mri, char *fname, int frame) ;
 static int mncWrite(MRI *mri, char *fname, int frame) ;
@@ -121,13 +122,15 @@ MRIunpackFileName(char *inFname, int *pframe, int *ptype, char *outFname)
     else if (!strcmp(at, "MGH"))
       *ptype = MRI_MGH_FILE ;
     else if (!strcmp(at, "MR"))
-      *ptype = GE_5X_FILE ;
+      *ptype = GENESIS_FILE ;
     else if (!strcmp(at, "GE"))
-      *ptype = GE_8X_FILE ;
+      *ptype = GE_LX_FILE ;
     else if (!strcmp(at, "IMG"))
       *ptype = MRI_ANALYZE_FILE ;
     else if (!strcmp(at, "COR"))
       *ptype = MRI_CORONAL_SLICE_DIRECTORY ;
+    else if (!strcmp(at, "BSHORT"))
+      *ptype = BSHORT_FILE;
     else
       ErrorExit(ERROR_UNSUPPORTED, "unknown file type %s", at);
   }
@@ -137,10 +140,10 @@ MRIunpackFileName(char *inFname, int *pframe, int *ptype, char *outFname)
     *ptype = -1;
 
 
-    if(is_ge(outFname))
-      *ptype = GE_5X_FILE;
-    else if(is_new_ge(outFname))
-      *ptype = GE_8X_FILE;
+    if(is_genesis(outFname))
+      *ptype = GENESIS_FILE;
+    else if(is_ge_lx(outFname))
+      *ptype = GE_LX_FILE;
     else if(is_brik(outFname))
       *ptype = BRIK_FILE;
     else if(is_siemens(outFname))
@@ -151,6 +154,8 @@ MRIunpackFileName(char *inFname, int *pframe, int *ptype, char *outFname)
       *ptype = MRI_MGH_FILE;
     else if(is_mnc(outFname))
       *ptype = MRI_MINC_FILE;
+    else if(is_bshort(outFname))
+      *ptype = BSHORT_FILE;
     else 
     {
       if(stat(outFname, &stat_buf) < 0)
@@ -228,17 +233,20 @@ MRIread(char *fpref)
 
   switch (type)
   {
+  case BSHORT_FILE:
+    mri = bshortRead(fname, 1, frame);
+    break;
   case BRIK_FILE:
     mri = brikRead(fname, 1, frame) ;
     break ;
   case SIEMENS_FILE:
     mri = siemensRead(fname, 1, frame) ;
     break ;
-  case GE_5X_FILE:
-    mri = ge5xRead(fname, 1, frame) ;
+  case GENESIS_FILE:
+    mri = genesisRead(fname, 1, frame) ;
     break ;
-  case GE_8X_FILE:
-    mri = ge8xRead(fname, 1, frame) ;
+  case GE_LX_FILE:
+    mri = gelxRead(fname, 1, frame) ;
     break ;
   case MRI_MGH_FILE:
     mri = mghRead(fname, 1, frame) ;
@@ -346,6 +354,11 @@ MRIreadInfo(char *fpref)
   MRIunpackFileName(fpref, &frame, &type, fname) ;
   switch (type)
   {
+  case BSHORT_FILE:
+    mri = bshortRead(fname, 0, frame) ;
+    if(!mri)
+      return(NULL);
+    break;
   case BRIK_FILE:
     mri = brikRead(fname, 0, frame) ;
     if(!mri)
@@ -356,13 +369,13 @@ MRIreadInfo(char *fpref)
     if(!mri)
       return(NULL);
     break ;
-  case GE_5X_FILE:
-    mri = ge5xRead(fname, 0, frame) ;
+  case GENESIS_FILE:
+    mri = genesisRead(fname, 0, frame) ;
     if (!mri)
       return(NULL) ;
     break ;
-  case GE_8X_FILE:
-    mri = ge8xRead(fname, 0, frame) ;
+  case GE_LX_FILE:
+    mri = gelxRead(fname, 0, frame) ;
     if (!mri)
       return(NULL) ;
     break ;
@@ -952,6 +965,30 @@ buffer_to_image(BUFTYPE *buf, MRI *mri, int slice, int frame)
   {
     pslice = &MRIseq_vox(mri, 0, y, slice, frame) ;
     memcpy(pslice, buf, width*sizeof(BUFTYPE)) ;
+    buf += width ;
+  }
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+           Copy the data from a flat buffer to an array
+           of rows in the MRI data structure (after reading)
+------------------------------------------------------*/
+static void
+short_buffer_to_image(short *buf, MRI *mri, int slice, int frame)
+{
+  int           y, width, height ;
+  short         *pslice ;
+  
+  width = mri->width ;
+  height = mri->height ;
+  for (y = 0 ; y < height ; y++)
+  {
+    pslice = &MRISseq_vox(mri, 0, y, slice, frame) ;
+    memcpy(pslice, buf, width*sizeof(short)) ;
     buf += width ;
   }
 }
@@ -2078,10 +2115,10 @@ static void get_file_limits(char *format_string, int initial, int *min, int *max
 
 
 static MRI *
-ge5xRead(char *fname, int read_volume, int frame)
+genesisRead(char *fname, int read_volume, int frame)
 {
   unsigned char header_header[156], magic_header[4], image_header[116];
-  MRI *mri = NULL, *mri2 = NULL;
+  MRI *mri = NULL;
   FILE *fp ;
   long magic;
   int width, height, depth, offset_to_pixel_data, offset_to_image_header;
@@ -2112,10 +2149,10 @@ ge5xRead(char *fname, int read_volume, int frame)
   depth = max_slice_number - min_slice_number + 1;
 
   if(max_slice_number <= 0)
-    ErrorReturn(NULL, (ERROR_BADPARM, "ge5xRead(%s): error reading files in sequence", fname));
+    ErrorReturn(NULL, (ERROR_BADPARM, "genesisRead(%s): error reading files in sequence", fname));
 
   if((fp = fopen(fname, "rb")) == NULL)
-    ErrorReturn(NULL, (ERROR_BADPARM, "ge5xRead(%s, %d): could not open file (1)",
+    ErrorReturn(NULL, (ERROR_BADPARM, "genesisRead(%s, %d): could not open file (1)",
                        fname, frame)) ;
 
   /* check the magic number of the file */
@@ -2123,7 +2160,7 @@ ge5xRead(char *fname, int read_volume, int frame)
   if(fread(magic_header, 4, 1, fp) < 1)
   {
     fclose(fp) ;
-    ErrorReturn(NULL, (ERROR_BADFILE, "ge5xRead(%s, %d): error reading file",
+    ErrorReturn(NULL, (ERROR_BADFILE, "genesisRead(%s, %d): error reading file",
                        fname, frame)) ;
   }
   magic = orderLongBytes(*((long *)magic_header)) ; 
@@ -2131,7 +2168,7 @@ ge5xRead(char *fname, int read_volume, int frame)
   {
     fclose(fp) ;
     ErrorReturn(NULL, (ERROR_UNSUPPORTED,
-                       "ge5xRead: corrupt file or unknown file type")) ;
+                       "genesisRead: corrupt file or unknown file type")) ;
   }
 
   /* read the control header */
@@ -2139,7 +2176,7 @@ ge5xRead(char *fname, int read_volume, int frame)
   if(fread(header_header, 156, 1, fp) < 1)
   {
     fclose(fp) ;
-    ErrorReturn(NULL, (ERROR_BADFILE, "ge5xRead(%s, %d): error reading file",
+    ErrorReturn(NULL, (ERROR_BADFILE, "genesisRead(%s, %d): error reading file",
                        fname, frame)) ;
   }
 
@@ -2152,11 +2189,14 @@ ge5xRead(char *fname, int read_volume, int frame)
   if(fread(image_header, 116, 1, fp) < 1)
   {
     fclose(fp) ;
-    ErrorReturn(NULL, (ERROR_BADFILE, "ge5xRead(%s, %d): error reading file",
+    ErrorReturn(NULL, (ERROR_BADFILE, "genesisRead(%s, %d): error reading file",
                        fname, frame)) ;
   }
 
-  mri = MRIallocHeader(width, height, depth, MRI_SHORT) ;
+  if(read_volume)
+    mri = MRIalloc(width, height, depth, MRI_SHORT) ;
+  else
+    mri = MRIallocHeader(width, height, depth, MRI_SHORT) ;
 
   mri->zsize = orderFloatBytes(*((float *)(&image_header[26])));
   mri->xsize = orderFloatBytes(*((float *)(&image_header[50])));
@@ -2191,14 +2231,14 @@ ge5xRead(char *fname, int read_volume, int frame)
   if(read_volume)
   {
 
-    pixel_data = (short *)malloc(2 * mri->width * mri->height * mri->depth);
+    pixel_data = (short *)malloc(2 * mri->width * mri->height);
 
     for(slice_number = min_slice_number;slice_number <= max_slice_number;slice_number++)
       {
       sprintf(fname_use, fname_format, slice_number);
       if((fp = fopen(fname_use, "rb")) == NULL)
         ErrorReturn(NULL, (ERROR_BADPARM,
-                    "ge5xRead(%s, %d): could not open file (2)",
+                    "genesisRead(%s, %d): could not open file (2)",
                     fname_mod, frame)) ;
 
       /* check the magic number of the file */
@@ -2206,7 +2246,7 @@ ge5xRead(char *fname, int read_volume, int frame)
       if(fread(header_header, 156, 1, fp) < 1)
       {
         fclose(fp) ;
-        ErrorReturn(NULL, (ERROR_BADFILE, "ge5xRead(%s, %d): error reading file",
+        ErrorReturn(NULL, (ERROR_BADFILE, "genesisRead(%s, %d): error reading file",
                            fname, frame)) ;
       }
       magic = orderLongBytes(*((long *)header_header)) ; 
@@ -2214,44 +2254,55 @@ ge5xRead(char *fname, int read_volume, int frame)
       {
         fclose(fp) ;
         ErrorReturn(NULL, (ERROR_UNSUPPORTED,
-                         "ge5xRead: corrupt file or unknown file type")) ;
+                         "genesisRead: corrupt file or unknown file type")) ;
       }
       offset_to_pixel_data = orderIntBytes(*((int *)(&header_header[4]))) ;
 
       fseek(fp, offset_to_pixel_data, SEEK_SET) ;
-      fread(&(pixel_data[(slice_number - min_slice_number) * mri->height * mri->width]), 1, mri->width * mri->height * 2, fp);
+      fread(pixel_data, 1, mri->width * mri->height * 2, fp);
+#ifdef Linux
+      swab(pixel_data, pixel_data, mri->width*mri->height*2);
+#endif
+
+      short_buffer_to_image(pixel_data, mri, slice_number - min_slice_number, 0);
 
       fclose(fp) ;
     }
 
-
-#ifdef Linux
-      swab(pixel_data, pixel_data, mri->width*mri->height*mri->depth*2);
-#endif
+    free(pixel_data);
 
   } /* end if(read_volume) */
 
+
   if(mri->slice_direction == 2)
-    mri2 = MRIconform(mri, pixel_data, XDIM, -ZDIM, -YDIM);
+  {
+    mri->xdir = XDIM;
+    mri->ydir = -ZDIM;
+    mri->zdir = -YDIM;
+  }
   else if(mri->slice_direction == 4)
-    mri2 = MRIconform(mri, pixel_data, -ZDIM, YDIM, XDIM);
+  {
+    mri->xdir = -ZDIM;
+    mri->ydir = YDIM;
+    mri->zdir = XDIM;
+  }
   else
-    mri2 = MRIconform(mri, pixel_data, XDIM, YDIM, ZDIM);
+  {
+    mri->xdir = XDIM;
+    mri->ydir = YDIM;
+    mri->zdir = ZDIM;
+  }
 
-  if(pixel_data != NULL)
-    free(pixel_data);
+  return(mri);
 
-  MRIfree(&mri);
-  return(mri2);
-
-} /* end ge5xRead() */
+} /* end genesisRead() */
 
 
 static MRI *
-ge8xRead(char *fname, int read_volume, int frame)
+gelxRead(char *fname, int read_volume, int frame)
 {
   unsigned char header_header[24], magic_header[4], image_header[420];
-  MRI *mri = NULL, *mri2 = NULL;
+  MRI *mri = NULL;
   FILE *fp ;
   long magic;
   int width, height, depth, offset_to_pixel_data;
@@ -2275,10 +2326,10 @@ ge8xRead(char *fname, int read_volume, int frame)
   depth = max_slice_number - min_slice_number + 1;
 
   if(max_slice_number <= 0)
-    ErrorReturn(NULL, (ERROR_BADPARM, "ge8xRead(%s): error reading files in sequence", fname));
+    ErrorReturn(NULL, (ERROR_BADPARM, "gelxRead(%s): error reading files in sequence", fname));
 
   if((fp = fopen(fname, "rb")) == NULL)
-    ErrorReturn(NULL, (ERROR_BADPARM, "ge8xRead(%s, %d): could not open file (1)",
+    ErrorReturn(NULL, (ERROR_BADPARM, "gelxRead(%s, %d): could not open file (1)",
                        fname, frame)) ;
 
   /* check the magic number of the file */
@@ -2286,7 +2337,7 @@ ge8xRead(char *fname, int read_volume, int frame)
   if(fread(magic_header, 4, 1, fp) < 1)
   {
     fclose(fp) ;
-    ErrorReturn(NULL, (ERROR_BADFILE, "ge8xRead(%s, %d): error reading file",
+    ErrorReturn(NULL, (ERROR_BADFILE, "gelxRead(%s, %d): error reading file",
                        fname, frame)) ;
   }
   magic = orderLongBytes(*((long *)magic_header)) ; 
@@ -2294,7 +2345,7 @@ ge8xRead(char *fname, int read_volume, int frame)
   {
     fclose(fp) ;
     ErrorReturn(NULL, (ERROR_UNSUPPORTED,
-                       "ge8xRead: corrupt file or unknown file type")) ;
+                       "gelxRead: corrupt file or unknown file type")) ;
   }
 
   /* read the control header */
@@ -2302,7 +2353,7 @@ ge8xRead(char *fname, int read_volume, int frame)
   if(fread(header_header, 24, 1, fp) < 1)
   {
     fclose(fp) ;
-    ErrorReturn(NULL, (ERROR_BADFILE, "ge8xRead(%s, %d): error reading file",
+    ErrorReturn(NULL, (ERROR_BADFILE, "gelxRead(%s, %d): error reading file",
                        fname, frame)) ;
   }
 
@@ -2313,11 +2364,14 @@ ge8xRead(char *fname, int read_volume, int frame)
   if(fread(image_header, 420, 1, fp) < 1)
   {
     fclose(fp) ;
-    ErrorReturn(NULL, (ERROR_BADFILE, "ge8xRead(%s, %d): error reading file",
+    ErrorReturn(NULL, (ERROR_BADFILE, "gelxRead(%s, %d): error reading file",
                        fname, frame)) ;
   }
 
-  mri = MRIallocHeader(width, height, depth, MRI_SHORT) ;
+  if(read_volume)
+    mri = MRIalloc(width, height, depth, MRI_SHORT) ;
+  else
+    mri = MRIallocHeader(width, height, depth, MRI_SHORT) ;
 
   mri->zsize = orderFloatBytes(*((float *)(&image_header[28])));
   mri->xsize = orderFloatBytes(*((float *)(&image_header[52])));
@@ -2354,14 +2408,14 @@ ge8xRead(char *fname, int read_volume, int frame)
   if(read_volume)
   {
 
-    pixel_data = (short *)malloc(2 * mri->width * mri->height * mri->depth);
+    pixel_data = (short *)malloc(2 * mri->width * mri->height);
 
     for(slice_number = min_slice_number;slice_number <= max_slice_number;slice_number++)
       {
       sprintf(fname_use, fname_format, slice_number);
       if((fp = fopen(fname_use, "rb")) == NULL)
         ErrorReturn(NULL, (ERROR_BADPARM,
-                    "ge8xRead(%s, %d): could not open file (2)",
+                    "gelxRead(%s, %d): could not open file (2)",
                     fname_mod, frame)) ;
 
       /* check the magic number of the file */
@@ -2369,7 +2423,7 @@ ge8xRead(char *fname, int read_volume, int frame)
       if(fread(header_header, 24, 1, fp) < 1)
       {
         fclose(fp) ;
-        ErrorReturn(NULL, (ERROR_BADFILE, "ge8xRead(%s, %d): error reading file",
+        ErrorReturn(NULL, (ERROR_BADFILE, "gelxRead(%s, %d): error reading file",
                            fname, frame)) ;
       }
       magic = orderLongBytes(*((long *)header_header)) ; 
@@ -2377,47 +2431,40 @@ ge8xRead(char *fname, int read_volume, int frame)
       {
         fclose(fp) ;
         ErrorReturn(NULL, (ERROR_UNSUPPORTED,
-                         "ge8xRead: corrupt file or unknown file type")) ;
+                         "gelxRead: corrupt file or unknown file type")) ;
       }
 
       offset_to_pixel_data = 8432;
 
       fseek(fp, offset_to_pixel_data, SEEK_SET) ;
-      fread(&(pixel_data[(slice_number - min_slice_number) * mri->height * mri->width]), 1, mri->width * mri->height * 2, fp);
+      fread(pixel_data, 1, mri->width * mri->height * 2, fp);
       fclose(fp) ;
-    }
 
 #ifdef Linux
-      swab(pixel_data, pixel_data, mri->width*mri->height*mri->depth*2);
+      swab(pixel_data, pixel_data, mri->width*mri->height*2);
 #endif
+
+      short_buffer_to_image(pixel_data, mri, slice_number - min_slice_number, 0);
+
+    }
+
+    free(pixel_data);
 
   } /* end if(read_volume) */
 
-printf("conforming...\n");
-  mri2 = MRIconform(mri, pixel_data, XDIM, YDIM, ZDIM);
-printf("done\n");
-/*
-mri->slice_direction = 1;
-  if(mri->slice_direction == 2)
-    mri->slice_direction = GE_AXIAL;
-  else if(mri->slice_direction == 4)
-    mri->slice_direction = GE_SAGITTAL;
-  else
-    mri->slice_direction = GE_CORONAL;
-*/
-  if(pixel_data != NULL)
-    free(pixel_data);
+  mri->xdir = XDIM;
+  mri->ydir = YDIM;
+  mri->zdir = ZDIM;
 
-  MRIfree(&mri);
-  return(mri2);
+  return(mri);
 
-} /* end ge8xRead() */
+} /* end gelxRead() */
 
 static MRI *
 siemensRead(char *fname, int read_volume, int frame)
 {
 
-  MRI *mri = NULL, *mri2 = NULL;
+  MRI *mri = NULL;
   char buf[4];
   FILE *fp;
   int i;
@@ -2427,6 +2474,7 @@ siemensRead(char *fname, int read_volume, int frame)
   char slice_direction[7];
   short *pixel_data;
 
+  frame = 0;
 
   if((dot = strrchr(fname, '.')) == NULL)
     ErrorReturn(NULL,
@@ -2462,13 +2510,15 @@ siemensRead(char *fname, int read_volume, int frame)
     ErrorReturn(NULL, (ERROR_BADFILE, 
                        "siemensRead(%s): error opening file", fname));
 
-
   fseek(fp, 2864, SEEK_SET);
   fread(buf, 4, 1, fp);
   height = width = orderIntBytes(*(int *)buf);
   depth = ino_max - ino_min + 1;
 
-  mri = MRIallocHeader(width, height, depth, MRI_SHORT) ;
+  if(read_volume)
+    mri = MRIalloc(width, height, depth, MRI_SHORT) ;
+  else
+    mri = MRIallocHeader(width, height, depth, MRI_SHORT) ;
 
   mri->xsize = mri->ysize = mri->zsize = 1.0;
   mri->thick = mri->zsize;
@@ -2499,7 +2549,7 @@ siemensRead(char *fname, int read_volume, int frame)
 
   if(read_volume)
     {
-    pixel_data = (short *)malloc(mri->height * mri->width * mri->depth * 2);
+    pixel_data = (short *)malloc(mri->height * mri->width * 2);
     for(i = ino_min;i <= ino_max;i++)
       {
       sprintf(fname_use, fname_format, i);
@@ -2508,32 +2558,48 @@ siemensRead(char *fname, int read_volume, int frame)
                    "siemensRead(%s): bad generated file name", fname_use));
       fseek(fp, 6144, SEEK_SET);
 
-      fread(&(pixel_data[(i-ino_min)*mri->width*mri->height]), 2, m orderIntBytes(*eight, fp);
+      fread(pixel_data, 2, mri->width*mri->height, fp);
+#ifdef Linux
+swab(pixel_data, pixel_data, mri->height * mri->width * 2);
+#endif
+      short_buffer_to_image(pixel_data, mri, i - ino_min, frame) ;
       }
 
-#ifdef Linux
-swab(pixel_data, pixel_data, mri->height * mri->width * mri->depth * 2);
-#endif
+    free(pixel_data);
 
     }
 
-
   if(strncmp(slice_direction, "Sag>Tra", 7) == 0)
-    mri2 = MRIconform(mri, pixel_data, -ZDIM, YDIM, XDIM);
+  {
+    mri->xdir = -ZDIM;
+    mri->ydir = YDIM;
+    mri->zdir = XDIM;
+  }
   else if(strncmp(slice_direction, "Sag>Cor", 7) == 0)
-    mri2 = MRIconform(mri, pixel_data, XDIM, -ZDIM, YDIM);
+  {
+    mri->xdir = XDIM;
+    mri->ydir = YDIM;
+    mri->zdir = ZDIM;
+  }
   else if(strncmp(slice_direction, "Sag", 3) == 0)
-    mri2 = MRIconform(mri, pixel_data, YDIM, ZDIM, XDIM);
+  {
+    mri->xdir = XDIM;
+    mri->ydir = YDIM;
+    mri->zdir = ZDIM;
+  }
   else if(strncmp(slice_direction, "Tra", 3) == 0)
-    mri2 = MRIconform(mri, pixel_data, XDIM, YDIM, -ZDIM);
+  {
+    mri->xdir = YDIM;
+    mri->ydir = ZDIM;
+    mri->zdir = XDIM;
+  }
   else
-    ErrorReturn(NULL, (ERROR_BADFILE, "siemensRead(%s): unknown slice direction in file", fname));
+  {
+    fprintf(stderr, "siemensRead(%s): unknown slice direction in file\n", fname);
+    fprintf(stderr, "                 using an arbitrary direction");
+  }
 
-    if(pixel_data != NULL)
-      free(pixel_data);
-
-    MRIfree(&mri);
-    return(mri2);
+  return(mri);
 
 } /* end siemensRead() */
 
@@ -2774,7 +2840,7 @@ d2440 5
   if(read_volume)
     mri = MRIalloc(hdr.dime.dim[1], hdr.dime.dim[2], hdr.dime.dim[3], dtype);
   else
-MRI *
+    mri = MRIalloc(hdr.dime.dim[1], hdr.dime.dim[2], hdr.dime.dim[3], dtype);
   fclose(fp) ;
   return(NO_ERROR) ;
 }
@@ -2794,6 +2860,8 @@ brikRead(char *fname, int read_volume, int frame)
   char byteorder_string[STRLEN], *tilde;
   int brick_type;
   int i, j, k;
+  char swapbuf[4];
+  int orient_vals[3];
   int orient_code[] = { -XDIM, XDIM, ZDIM, -ZDIM, -YDIM, YDIM };
   char *c;
 
@@ -2900,7 +2968,12 @@ brikRead(char *fname, int read_volume, int frame)
   mri->xstart = -mri->xend;
   mri->ystart = -mri->yend;
   mri->zstart = -mri->zend;
-  if(read_volume)
+  mri->fov = mri->xend - mri->xstart;
+  strcpy(mri->fname, fname);
+
+  buf = NULL;
+
+  if(!read_volume)
   {
     mri2 = MRIallocHeader(mri->width, mri->height, mri->depth, mri->type);
     MRIfree(&mri);
@@ -2945,17 +3018,158 @@ brikRead(char *fname, int read_volume, int frame)
           buf[i + 0] = swapbuf[3];
           buf[i + 1] = swapbuf[2];
           buf[i + 2] = swapbuf[1];
+  mri2 = MRIalloc(mri->width, mri->height, mri->depth, mri->type);
+        }
+  for(i = 0;i < mri->depth;i++)
+  {
+  if(mri2->type == MRI_UCHAR)
+    buffer_to_image(buf, mri2, i, frame);
+  else if(mri2->type == MRI_SHORT)
+    short_buffer_to_image((short *)buf, mri2, i, frame);
+  else
+    ErrorReturn(NULL, (ERROR_UNSUPPORTED, "brikRead(): unsupported type %d", mri->type));
   }
           for(k = 0;k < mri->width;k++)
-  mri2 = MRIconform(mri, buf, orient_code[orient_vals[0]], orient_code[orient_vals[1]], orient_code[orient_vals[2]]);
-    MRIfree(&mri);
-  if(buf != NULL)
-    free(buf);
-  }
   MRIfree(&mri);
+    }
+  free(buf);
+      ErrorReturn(NULL, (ERROR_UNSUPPORTED, "brikRead(): unsupported type %d", mri->type));
+
+    MRIfree(&mri);
+
+    free(buf);
+
+  }
+
   mri2->xdir = orient_code[orient_vals[0]];
   mri2->ydir = orient_code[orient_vals[1]];
   mri2->zdir = orient_code[orient_vals[2]];
+
+  strcpy(mri2->fname, fname);
+
+  return(1);
+
+} /* end brikWrite() */
+
+static MRI *
+bshortRead(char *fname, int read_volume, int frame)
+{
+
+  FILE *fin;
+  char *error, *dot, *num;
+  int nstart, nend, norig, i, keep_going;
+  char fname2[STRLEN], fname_passed[STRLEN];
+  int width, height, frames, swap;
+  MRI *mri;
+  short *buf;
+
+  frame = 0;
+
+  strcpy(fname_passed, fname);
+
+  if((dot = strrchr(fname, '.')) == NULL)
+    ErrorReturn(NULL, (ERROR_BADPARM, "bshortRead: bad bshort file name %s", fname));
+
+  norig = strtol(dot, &error, 10);
+
+  if(num < fname)
+    ErrorReturn(NULL, (ERROR_BADPARM, "bshortRead: bad bshort file name %s", fname));
+
+  norig = strtol(num, &error, 10);
+  if(error == NULL)
+    ErrorReturn(NULL, (ERROR_BADPARM, "bshortRead: bad bshort file name %s", fname));
+
+  *num = '\0';
+
+  /* assume fname is there -- now find the first and last images */
+
+  for(i = norig,keep_going = 1;keep_going;)
+  {
+    i--;
+    sprintf(fname2, "%s%03d.bshort", fname, i);
+    if((fin = fopen(fname2, "r")) == NULL)
+      keep_going = 0;
+    else
+      fclose(fin);
+  }
+
+  nstart = i + 2;
+  
+  for(i = norig,keep_going = 1;keep_going;)
+  {
+    i++;
+    sprintf(fname2, "%s%03d.bshort", fname, i);
+    if((fin = fopen(fname2, "r")) == NULL)
+      keep_going = 0;
+    else
+      fclose(fin);
+  }
+
+  nend = i - 1;
+
+  sprintf(fname2, "%s%03d.hdr", fname, nstart);
+  if((fin = fopen(fname2, "r")) == NULL)
+    ErrorReturn(NULL, (ERROR_BADPARM, "bshortRead: can't open file %s", fname2));
+  fscanf(fin, "%d %d %d %d", &width, &height, &frames, &swap);
+  fclose(fin);
+
+  buf = (short *)malloc(height * width * 2);
+
+  /* support multiple images within a bshort only if there's just the one file */
+  if(nstart == nend)
+  {
+    sprintf(fname2, "%s%03d.bshort", fname, nstart);
+    if((fin = fopen(fname2, "r")) == NULL)
+      ErrorReturn(NULL, (ERROR_BADPARM, "bshortRead: can't open file %s", fname2));
+
+    if(!read_volume)
+      mri = MRIalloc(height, width, frames, MRI_SHORT);
+    else
+    {
+        swab(buf, buf, height * width * 2);
+        if(!swap)
+          swab(buf, buf, height * width * 2);
+#else
+        if(swap)
+          swab((const void *)buf, (void *)buf, height * width * 2);
+#endif
+        short_buffer_to_image((short *)buf, mri, i, frame) ;
+      }
+
+    }
+
+    fclose(fin);
+
+  }
+  else
+  {
+    if(!read_volume)
+      mri = MRIallocHeader(height, width, nend - nstart + 1, MRI_SHORT);
+    else
+    {
+      mri = MRIalloc(height, width, nend - nstart + 1, MRI_SHORT);
+
+      for(i = nstart;i <= nend;i++)
+      {
+        sprintf(fname2, "%s%03d.bshort", fname, i);
+        swab(buf, buf, height * width * 2);
+        if(!swap)
+          swab(buf, buf, height * width * 2);
+#else
+        if(swap)
+          swab((const void *)buf, (void *)buf, height * width * 2);
+#endif
+        short_buffer_to_image((short *)buf, mri, i-nstart, frame) ;
+
+        fclose(fin);
+      }
+    }
+
+  }
+
+  mri->xdir = XDIM;
+  mri->ydir = YDIM;
+  mri->zdir = ZDIM;
 
   c = header->hist.originator[4]; header->hist.originator[4] = header->hist.originator[5]; header->hist.originator[5] = c;
   c = header->hist.originator[6]; header->hist.originator[6] = header->hist.originator[7]; header->hist.originator[7] = c;
