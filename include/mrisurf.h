@@ -271,7 +271,8 @@ typedef struct
   float   l_dist ;            /* coefficient of distance term */
   float   l_neg ;
   float   l_val ;             /* for settling surface at a specified val */
-  float   l_expand ;          /* for expanding the surface */
+  float   l_sphere ;          /* for expanding the surface to a sphere */
+  float   l_expand ;          /* for uniformly expanding the surface */
   int     n_averages ;        /* # of averages */
   int     min_averages ;
   int     nbhd_size ;
@@ -414,7 +415,9 @@ int          MRISremoveTopologicalDefects(MRI_SURFACE *mris,float curv_thresh);
 
 int          MRIScomputeSecondFundamentalForm(MRI_SURFACE *mris) ;
 int          MRISuseCurvatureDifference(MRI_SURFACE *mris) ;
+int          MRISuseCurvatureStretch(MRI_SURFACE *mris) ;
 int          MRISuseCurvatureMax(MRI_SURFACE *mris) ;
+int          MRISuseCurvatureMin(MRI_SURFACE *mris) ;
 int          MRISuseNegCurvature(MRI_SURFACE *mris) ;
 int          MRISuseAreaErrors(MRI_SURFACE *mris) ;
 int          MRISuseGaussianCurvature(MRI_SURFACE *mris) ;
