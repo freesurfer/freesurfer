@@ -33,7 +33,7 @@
                     MACROS AND CONSTANTS
 -------------------------------------------------------*/
 
-#define DEBUG_POINT(x,y,z)  (((x) == 28)&&((y)==18)&&((z)==37))
+#define DEBUG_POINT(x,y,z)  (((x) == 35)&&((y)==24)&&((z)==31))
 #define MAXLEN 256
 
 
@@ -1104,6 +1104,24 @@ MRIcentralPlaneOfLeastVarianceNormal(MRI *mri_src, MRI *mri_dst, int wsize)
   float    xbase, ybase, zbase, *pe1_x, *pe1_y, *pe1_z,
            *pe2_x, *pe2_y, *pe2_z, e1_x, e1_y, e1_z, e2_x, e2_y, e2_z ;
 
+  if (getenv("USE_CACHED_CPOLV"))
+  {
+    char fname[100] ;
+    MRI  *mri_tmp ;
+
+    /* try and read previously computed CPOLV file from disk */
+    sprintf(fname, "%s/cpolv.mnc", mri_src->fname) ;
+    mri_tmp = MRIread(fname) ;
+    if (mri_tmp)
+    {
+      if (Gdiag & DIAG_SHOW)
+        fprintf(stderr, "reading previously calculated cpolv %s\n", fname) ;
+      mri_dst = MRIcopy(mri_tmp, NULL) ;
+      MRIfree(&mri_tmp) ;
+      return(mri_dst) ;
+    }
+  }
+
   init_basis_vectors() ;
     
   pxi = mri_src->xi ; pyi = mri_src->yi ; pzi = mri_src->zi ;
@@ -1361,7 +1379,8 @@ if (DEBUG_POINT(x,y,z))
         if (*psrc++) for (vertex = 0 ; !thin && vertex < NVERTICES ; vertex++)
         {
           was_white = -1 ;
-          black_white = white_black = 0 ;
+          black_white = -wsize-1 ;
+          white_black = 0 ;
           nx = ic_x_vertices[vertex] ;  /* normal vector */
           ny = ic_y_vertices[vertex] ;
           nz = ic_z_vertices[vertex] ;
@@ -1377,9 +1396,11 @@ if (DEBUG_POINT(x,y,z))
             val = (float)MRIvox(mri_src, xi, yi, zi) ;
             if ((was_white > 0) && !val)   /* white to black transition */
             {
-              if (black_white) /* we previously had a b-to-w transition */
+               /* check to see if we previously had a b-to-w transition */
+              if (black_white > -wsize-1)
               {
-                thin = ((yk - black_white) < wsize) ;
+                thin = (((yk - black_white) <= wsize) && 
+                        ((black_white <= 0) && (yk >= 0))) ;
 if (DEBUG_POINT(x,y,z))
     DiagBreak() ;
                 break ;
