@@ -1,7 +1,7 @@
 #!/bin/csh -f
 # tkmedit-sess
 #
-set VERSION = '$Id: tkmedit-sess,v 1.6 2003/09/17 02:08:04 greve Exp $';
+set VERSION = '$Id: tkmedit-sess,v 1.7 2003/10/30 22:10:27 greve Exp $';
 set inputargs = ($argv);
 
 which pawd > /dev/null
@@ -12,6 +12,7 @@ else
 endif
 
 set analysis      = ();
+set anapend       = ();
 set sessid        = ();
 set isxavgmethod  = ();
 
@@ -89,11 +90,8 @@ echo "--------------------------------------------------------------"
 echo "tkmedit-sess logfile is $LF"
 echo "--------------------------------------------------------------"
 
-set FASTVER = `cat $FMRI_ANALYSIS_DIR/docs/version`;
-
 echo "tkmedit-sess log file" >> $LF
 echo $VERSION   >> $LF
-echo "FAST Version $FASTVER"  >> $LF
 id            >> $LF
 echo "$0"     >> $LF
 echo "$argv"  >> $LF
@@ -101,6 +99,8 @@ $PWDCMD           >> $LF
 uname -a      >> $LF
 date          >> $LF
 which tkmedit >> $LF
+
+set StudyDir = `pwd`;
 
 goto parse_args;
 parse_args_return:
@@ -158,7 +158,7 @@ if(! $nohdr) then
     endif
   endif
 
-  set hdrdir = $sess/$fsd/$analysis/$spacesubdir
+  set hdrdir = $sess/$fsd/$analysis$anapend/$spacesubdir
   if(! -e $hdrdir) then
     echo "ERROR: cannot find $hdrdir"
     exit 1;
@@ -167,9 +167,9 @@ if(! $nohdr) then
 
   if($space == native) then
     if(! $talreg) then
-      set regfile = $sess/$fsd/register.dat;
+      set regfile = $StudyDir/$sess/$fsd/register.dat;
     else
-      set regfile = $sess/$fsd/register.tal;
+      set regfile = $StudyDir/$sess/$fsd/register.tal;
     endif
   else
     set regfile = $hdrdir/register.dat;
@@ -201,7 +201,7 @@ if(! $nosig) then
     endif
   endif
 
-  set maphdrdir = $mapsess/$mapfsd/$mapanalysis/$spacesubdir
+  set maphdrdir = $mapsess/$mapfsd/$mapanalysis$anapend/$spacesubdir
   set mapdir = $maphdrdir/$contrast
   if(! -e $mapdir) then
     echo "ERROR: cannot find $mapdir"
@@ -211,9 +211,9 @@ if(! $nosig) then
 
   if($space == native) then
     if(! $talreg) then
-      set regfile = $sess/$fsd/register.dat;
+      set regfile = $StudyDir/$sess/$fsd/register.dat;
     else
-      set regfile = $sess/$fsd/register.tal;
+      set regfile = $StudyDir/$sess/$fsd/register.tal;
     endif
   else
     set regfile = $maphdrdir/register.dat;
@@ -242,7 +242,7 @@ if(! $nohdr ) then
   popd  > /dev/null
 
   ## make sure that dat file exists
-  set hdrdat = $analysis/h.dat
+  set hdrdat = $analysis$anapend/h.dat
   if(! -e $hdrdat ) then
     echo "ERROR: could not find $hdrdat" |& tee -a $LF
     exit 1;
@@ -447,6 +447,11 @@ while( $#argv != 0 )
     case "-analysis":
       if ( $#argv == 0) goto arg1err;
       set analysis = $argv[1]; shift;
+      breaksw
+
+    case "-anapend":
+      if ( $#argv == 0) goto arg1err;
+      set anapend = $argv[1]; shift;
       breaksw
 
     case "-isxavg":
