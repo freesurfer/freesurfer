@@ -10,7 +10,9 @@
 
 char *Progname;
 
+#ifdef Linux
 void swab(const void *from, void *to, size_t n);
+#endif
 
 int repair_file(char *fname);
 
