@@ -15,7 +15,7 @@
 #include "version.h"
 
 
-static char vcid[] = "$Id: spherical_stats.c,v 1.1 2005/02/14 05:18:15 segonne Exp $";
+static char vcid[] = "$Id: spherical_stats.c,v 1.2 2005/02/14 19:38:03 segonne Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -29,6 +29,7 @@ char *Progname ;
 
 static float scale = 1 ;
 static int all=0;
+static int global_stats_per_label=0;
 static int plt=1;
 
 static char subjects_dir[STRLEN] ;
@@ -45,6 +46,7 @@ static char *var_fname ="var_stat";
 static char *alignment_fname = "alignment";
 static char *template_fname=NULL;
 static char* suffix=NULL;
+static char* current_subject=NULL;
 
 
 static int *collapses[50]; /* not freed !!! */ 
@@ -60,7 +62,7 @@ static float mean_global_median_75[100];
 static float mean_max[100];
 static float mean_area[100];
 static float mean_fraction[100];
-
+static FILE* label_file[100];
 
 static int global_count[100];
 static int nlabels;
@@ -276,7 +278,18 @@ static void printStats(MRIS *mris, char *fname){
 						nvertices,100.0*larea,100.0*Efract,100.0*Efract*sqrt(larea));
 		fprintf(f,"Mean Distance Error : %f - Median (25,50,75) = ( %f , %f , %f ) - Max : %f\n",mean_dist,median_25,median_50,median_75,maxv);
 		fprintf(f,"\n");
-	} 
+
+		if(global_stats_per_label){
+			fprintf(label_file[m],"SUBJECT %s\n",current_subject);
+ 			fprintf(label_file[m],"           FRACTION  :       %2.3f\n",100.0*Efract);
+			fprintf(label_file[m],"           MEAN DIST :       %f\n",mean_dist);
+			fprintf(label_file[m],"Vertices# :  %d - Area : %2.3f%% \nFraction : %2.3f%% - Fraction*sqrt(Area) : %2.3f \n" ,
+						nvertices,100.0*larea,100.0*Efract,100.0*Efract*sqrt(larea));
+		fprintf(label_file[m],"Mean Distance Error : %f - Median (25,50,75) = ( %f , %f , %f ) - Max : %f\n",mean_dist,median_25,median_50,median_75,maxv);
+		fprintf(label_file[m],"\n");
+		}
+
+	}
 
 	
 
@@ -420,6 +433,39 @@ static void computeDistances(MRIS *mris){
 		if(vertexlist) free(vertexlist);
 	}
 	fprintf(stderr,"done\n");
+	
+	if(global_stats_per_label && first){ 
+		COLOR_TABLE *ct;
+		CTE* cte;
+		int index;
+		char fname[500];
+		/* allocation */
+		ct = mris->ct;
+		for( m = 0 ; m < nlabels ; m++){
+			index=CTABannotationToIndex(ct,labels[m]) ;
+			if (index >= 0 || index < ct->nbins){
+				cte = &(ct->bins[index]);
+				if(suffix)
+					sprintf(fname,"%s/stats/%s.%s.%s.txt", subjects_dir,hemi,suffix,cte->name);
+				else
+					sprintf(fname,"%s/stats/%s.%s.txt", subjects_dir,hemi,cte->name);
+					
+				label_file[m]=fopen(fname,"w+");
+			}else{
+				if(suffix)
+					sprintf(fname,"%s/stats/%s.%s.%d.txt", subjects_dir,hemi,suffix,labels[m]);
+				else
+					sprintf(fname,"%s/stats/%s.%d.txt", subjects_dir,hemi,labels[m]);
+				label_file[m]=fopen(fname,"w+");
+			}
+			if(label_file[m]==NULL){
+				fprintf(stderr,"could not open file %s\n",fname);
+				global_stats_per_label=0;
+				break;
+			}
+		}
+	}
+
 	first=0;
 }
 
@@ -436,7 +482,7 @@ int main(int argc, char *argv[])
 	//	struct timeb start; 
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: spherical_stats.c,v 1.1 2005/02/14 05:18:15 segonne Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: spherical_stats.c,v 1.2 2005/02/14 19:38:03 segonne Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -493,7 +539,10 @@ int main(int argc, char *argv[])
 	}
 		
 	for(n=0 ; n < nsubjects ; n++){
+		fprintf(stderr,"\n\nPROCESSING SUBJECT %d out of %d subjects\n",n+1,nsubjects);
+
 		subject_fname=subjects_fname[n];
+		current_subject = subject_fname;
 		sprintf(fname,"%s/%s/surf/%s.%s", subjects_dir,subject_fname,hemi,sphere_fname);
 		fprintf(stderr, "reading surface from %s...\n", fname) ;
 		mris = MRISread(fname) ;
@@ -510,7 +559,7 @@ int main(int argc, char *argv[])
 		MRISreadAnnotation(mris,fname);
 
 		checkCollapsing(mris);
-		computeDistances(mris);
+		computeDistances(mris);		
 
 		/* save annotation of manual into val and fieldsign into fsmask */
 		for(m=0;m<mris->nvertices;m++){
@@ -579,8 +628,6 @@ int main(int argc, char *argv[])
 		MRISPcombine(mrisp, mrisp_template, 3) ;
 		MRISPfree(&mrisp) ;
 
-
-
 		if(mrisp_average){
 			/* loading sulcal information */
 			sprintf(fname,"%s/%s/surf/%s.sulc", subjects_dir,subject_fname,hemi);
@@ -622,15 +669,21 @@ int main(int argc, char *argv[])
 		}
 
 		MRISfree(&mris) ;
-	}
 
-	
+	}
+	if(global_stats_per_label){ /* closing files */
+		for(m=0;m<nlabels;m++)
+			fclose(label_file[m]);
+	}
 
 	fprintf(stderr,"\nMean and Variance Information...\n");
 	
 	if (all){
 		for(n=0 ; n < nsubjects ; n++){
+			fprintf(stderr,"\n\nPROCESSING SUBJECT %d out of %d subjects\n",n+1,nsubjects);
+
 			subject_fname=subjects_fname[n];
+			current_subject = subject_fname;
 			sprintf(fname,"%s/%s/surf/%s.%s", subjects_dir,subject_fname,hemi,sphere_fname);
 			fprintf(stderr, "reading surface from %s...\n", fname) ;
 			mris_atlas = MRISread(fname) ;
@@ -640,9 +693,9 @@ int main(int argc, char *argv[])
 				MRISreadAnnotation(mris_atlas,fname);
 				
 				if(suffix)
-					sprintf(fname,"%s/%s.%s.global_stats.txt", subjects_dir,hemi,suffix);
+					sprintf(fname,"%s/stats/%s.%s.global_stats.txt", subjects_dir,hemi,suffix);
 				else
-					sprintf(fname,"%s/%s.global_stats.txt", subjects_dir,hemi);
+					sprintf(fname,"%s/stats/%s.global_stats.txt", subjects_dir,hemi);
 				fprintf(stderr, "writting global stats in %s...\n", fname) ;
 				printGlobalStats(mris_atlas,fname);
 			}
@@ -710,9 +763,9 @@ int main(int argc, char *argv[])
 		sprintf(fname,"%s/%s/label/%s.%s", subjects_dir,subject_fname,hemi,manual_annotation);
 		MRISreadAnnotation(mris_atlas,fname);
 		if(suffix)
-			sprintf(fname,"%s/%s.%s.global_stats.txt", subjects_dir,hemi,suffix);
+			sprintf(fname,"%s/stats/%s.%s.global_stats.txt", subjects_dir,hemi,suffix);
 		else
-			sprintf(fname,"%s/%s.global_stats.txt", subjects_dir,hemi);
+			sprintf(fname,"%s/stats/%s.global_stats.txt", subjects_dir,hemi);
 		fprintf(stderr, "writting global stats in %s...\n", fname) ;
 		printGlobalStats(mris_atlas,fname);
 
@@ -806,10 +859,19 @@ get_option(int argc, char *argv[])
     strcpy(subjects_dir, argv[2]) ;
     nargs = 1 ;
     printf("using %s as subjects directory\n", subjects_dir) ;
-  }else if(!stricmp(option, "all")){
+  }else if(!stricmp(option, "all_stats")){
+		global_stats_per_label=1;
+		fprintf(stderr,"generating global stats file per label\n");
+	}
+	else if(!stricmp(option, "all")){
 		all=1;
 		fprintf(stderr,"projecting mean stats on all brains\n");
-	}else if(!stricmp(option, "suffix")){
+	}else if(!stricmp(option, "sphere")){
+		sphere_fname=argv[2];
+		fprintf(stderr,"using sphere %s\n",sphere_fname);
+		nargs=1;
+	}
+	else if(!stricmp(option, "suffix")){
 		suffix=argv[2];
 		fprintf(stderr,"using suffix %s in all files\n",suffix);
 		nargs=1;
