@@ -21,8 +21,8 @@ int MRIaccumulateMeansAndVariances(MRI *mri, MRI *mri_mean, MRI *mri_std) ;
 int MRIcomputeMeansAndStds(MRI *mri_mean, MRI *mri_std, int ndof) ;
 MRI *MRIfloatToChar(MRI *mri_src, MRI *mri_dst) ;
 
-static int use_wm = 0 ;
-static int use_filled = 0 ;
+static int use_wm = 1 ;
+static int use_filled = 1 ;
 static int make_edit_volume = 0 ;
 static char *transform_fname = NULL ;
 
@@ -65,7 +65,7 @@ main(int argc, char *argv[])
 
   out_fname = argv[argc-1] ;
 
-  for (which = 0 ; which < MAX_VOLUMES ; which++) /* 1st T1, then wm volumes */
+  for (which = 0 ; which < MAX_VOLUMES ; which++) /* for each output volume */
   {
     if ((which > 0 && !use_wm) || (which >= FILLED_VOLUME && !use_filled) ||
         (which >= EDIT_VOLUME  && !make_edit_volume))
@@ -81,11 +81,11 @@ main(int argc, char *argv[])
       { no_transform = 1 ; continue ; }
       dof++ ;
       subject_name = argv[i] ;
-      sprintf(fname, "%s/%s/mri/%s", subjects_dir, subject_name, volume_name) ;
+      sprintf(fname, "%s/%s/mri/%s", subjects_dir, subject_name, volume_name);
       fprintf(stderr, "%d of %d: reading %s...", i, argc-2, fname) ;
       mri = MRIread(fname) ;
       if (!mri)
-        ErrorExit(ERROR_NOFILE, "%s: could not open volume %s",Progname,fname);
+        ErrorExit(ERROR_NOFILE,"%s: could not open volume %s",Progname,fname);
       if (which == WM_VOLUME)  /* labeled white matter volume - binarize it */
         MRIbinarize(mri, mri, 5, 0, 10) ;
       else if (which == FILLED_VOLUME)
@@ -147,15 +147,16 @@ main(int argc, char *argv[])
     }
     MRIcomputeMeansAndStds(mri_mean, mri_std, dof) ;
 #if 1
-    fprintf(stderr, "\nwriting %s means to %s...", volume_name, out_fname) ;
     mri_mean->dof = dof ;
     mri = MRIfloatToChar(mri_mean, NULL) ;
+    fprintf(stderr, "\nwriting %s means with %d dof to %s...", 
+            volume_name, mri->dof, out_fname) ;
     if (!which)
       MRIwrite(mri, out_fname) ;
     else
       MRIappend(mri, out_fname) ;
     MRIfree(&mri_mean) ;
-    fprintf(stderr, "\nwriting %s variances to %s...", volume_name, out_fname);
+    fprintf(stderr, "\nwriting %s variances to %s...", volume_name,out_fname);
     mri = MRIfloatToChar(mri_std, NULL) ;
     if (dof <= 1) /* can't calulate variances - set them to reasonable val */
       MRIreplaceValues(mri, mri, 0, 1) ;
@@ -184,13 +185,12 @@ get_option(int argc, char *argv[])
   switch (toupper(*option))
   {
   case 'E':
-    use_wm = make_edit_volume = 1 ;
+    use_filled = use_wm = make_edit_volume = 1 ;
     fprintf(stderr, 
-            "appending wm volume to template and building auto-edit volue.\n");
+           "appending wm volume to template and building auto-edit volue.\n");
     break ;
   case 'F':
-    use_filled = 1 ;
-    use_wm = 1 ;
+    use_wm = use_filled = 1 ;
     fprintf(stderr, "appending wm and filled volumes to template.\n") ;
     break ;
   case 'W':
@@ -289,7 +289,8 @@ MRIfloatToChar(MRI *mri_src, MRI *mri_dst)
   /*  float fmax, fmin ;*/
   
   width = mri_src->width ; height = mri_src->height ; depth = mri_src->depth ; 
-  mri_dst = MRIalloc(width, height, depth, MRI_UCHAR) ;
+  if (!mri_dst)
+    mri_dst = MRIalloc(width, height, depth, MRI_UCHAR) ;
 #if 1
   MRIcopy(mri_src, mri_dst) ;
 #else
