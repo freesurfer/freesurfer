@@ -822,6 +822,7 @@ static MRI *siemensRead(char *fname, int read_volume_flag)
   int t, s;
   int slice_in_mosaic;
   int file;
+  char ima[4];
 
   /* ----- stop compiler complaints ----- */
   mri = NULL;
@@ -834,11 +835,15 @@ static MRI *siemensRead(char *fname, int read_volume_flag)
 
   if(c < fname_use)
   {
-    ErrorReturn(NULL, (ERROR_BADPARM, "siemensRead(): bad file name %s (must end in '.ima')", fname_use));
+    ErrorReturn(NULL, (ERROR_BADPARM, "siemensRead(): bad file name %s (must end in '.ima' or '.IMA')", fname_use));
   }
-  if(strcmp(".ima", c) != 0)
+  if(strcmp(".ima", c) == 0)
+    sprintf(ima, "ima");
+  else if(strcmp(".IMA", c) == 0)
+    sprintf(ima, "IMA");
+  else
   {
-    ErrorReturn(NULL, (ERROR_BADPARM, "siemensRead(): bad file name %s (must end in '.ima')", fname_use));
+    ErrorReturn(NULL, (ERROR_BADPARM, "siemensRead(): bad file name %s (must end in '.ima' or '.IMA')", fname_use));
   }
 
   c2 = c;
@@ -859,27 +864,27 @@ static MRI *siemensRead(char *fname, int read_volume_flag)
 
   /* --- get the low image number --- */
   n_low = file_n - 1;
-  sprintf(c, "%d.ima", n_low);
+  sprintf(c, "%d.%s", n_low, ima);
   while(FileExists(fname_use))
   {
     n_low--;
-    sprintf(c, "%d.ima", n_low);
+    sprintf(c, "%d.%s", n_low, ima);
   }
   n_low++;
 
   /* --- get the high image number --- */
   n_high = file_n + 1;
-  sprintf(c, "%d.ima", n_high);
+  sprintf(c, "%d.%s", n_high, ima);
   while(FileExists(fname_use))
   {
     n_high++;
-    sprintf(c, "%d.ima", n_high);
+    sprintf(c, "%d.%s", n_high, ima);
   }
   n_high--;
 
   n_files = n_high - n_low + 1;
 
-  sprintf(c, "%d.ima", n_low);
+  sprintf(c, "%d.%s", n_low, ima);
   if((fp = fopen(fname_use, "r")) == NULL)
   {
     ErrorReturn(NULL, (ERROR_BADFILE, "siemensRead(): can't open file %s (low = %d, this = %d, high = %d)", fname_use, n_low, file_n, n_high));
@@ -1081,7 +1086,7 @@ printf("%d, %d, %d, %d\n", mri->width, mri->height, mri->depth, mri->nframes);
     for(file_n = n_low;file_n <= n_high;file_n++)
     {
 
-      sprintf(c, "%d.ima", file_n);
+      sprintf(c, "%d.%s", file_n, ima);
       if((fp = fopen(fname_use, "r")) == NULL)
       {
         MRIfree(&mri);
