@@ -6885,16 +6885,33 @@ MRISaverageRadius(MRI_SURFACE *mris)
   double  radius ;
   int    vno, n ;
   VERTEX *vertex ;
-  double x, y, z ;
+  double x, y, z, xlo, ylo, zlo, xhi, yhi, zhi, x0, y0, z0 ;
 
-  MRIScenter(mris, mris) ;
+  xhi=yhi=zhi= -10000;
+  xlo=ylo=zlo= 10000;
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    vertex = &mris->vertices[vno] ;
+    if (vertex->ripflag)
+      continue ;
+    x = (double)vertex->x ; y = (double)vertex->y ; z = (double)vertex->z ;
+    if (x>xhi) xhi=x;
+    if (x<xlo) xlo=x;
+    if (y>yhi) yhi=y;
+    if (y<ylo) ylo=y;
+    if (z>zhi) zhi=z;
+    if (z<zlo) zlo=z;
+  }
+  x0 = (xlo+xhi)/2.0f ; y0 = (ylo+yhi)/2.0f ; z0 = (zlo+zhi)/2.0f ;
   for (radius = 0.0, n = vno = 0 ; vno < mris->nvertices ; vno++)
   {
     vertex = &mris->vertices[vno] ;
     if (vertex->ripflag)
       continue ;
     n++ ;
-    x = (double)vertex->x ; y = (double)vertex->y ; z = (double)vertex->z ;
+    x = (double)vertex->x-x0 ; 
+    y = (double)vertex->y-y0 ; 
+    z = (double)vertex->z-z0 ;
     radius += sqrt(x*x + y*y + z*z) ;
   }
 
