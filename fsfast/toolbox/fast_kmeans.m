@@ -6,7 +6,7 @@ function [kmeans, kmap, d2min, niters, yhat] = fast_kmeans(y,nc,kmeans0,nitersma
 % If kmeans0 is not specified, uses first nc of y.
 % The mean squared error is mean(d2min) = mean(reshape1d(y-yhat).^2)
 %
-% $Id: fast_kmeans.m,v 1.3 2003/04/15 03:55:01 greve Exp $
+% $Id: fast_kmeans.m,v 1.4 2003/04/22 05:35:13 greve Exp $
 
 kmeans = [];
 kmap = [];
@@ -34,14 +34,18 @@ while(niters < nitersmax & ndiff ~= 0)
   for c=1:nc
     yhatc = repmat(kmeans(:,c),[1 nv]) ;
     % Do weighting here %
-    d2(c,:) = mean( (y - yhatc).^2 );
+    if(nf > 1)  d2(c,:) = mean( ((y - yhatc).^2), 1 );
+    else        d2(c,:) = (y - yhatc).^2;
+    end
   end
 
   [d2min kmap] = min(d2,[],1);
 
   for c=1:nc
     ind = find(kmap==c);
-    kmeans(:,c) = mean(y(:,ind),2);
+    if(~isempty(ind))  kmeans(:,c) = mean(y(:,ind),2);
+    else               kmeans(:,c) = 0;
+    end
   end
 
   if(niters ~= 0 )
@@ -55,7 +59,8 @@ while(niters < nitersmax & ndiff ~= 0)
   end
 
 end
-fprintf('%3d %5d %14.13f %g\n',niters,ndiff,mean(d2min),toc);
+fprintf('%3d %5d %14.13f %14.13f %g\n',niters,ndiff,...
+	mean(d2min),sqrt(mean(d2min)),toc);
 
 %------- Create estimate of the input ----------%
 if(nargout == 5)
