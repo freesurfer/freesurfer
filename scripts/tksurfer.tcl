@@ -1599,13 +1599,21 @@ proc CreateMenuBar { ifwMenuBar } {
       { command "Clear Cuts" \
       { restore_ripflags 2; UpdateAndRedraw } } } } \
       \
-      { cascade "Graph" { \
+      { cascade "Time Course" { \
       { command "Graph Marked Vertices Avg" \
       { func_select_marked_vertices; func_graph_timecourse_selection} \
       mg_TimeCourseLoaded } \
       \
       { command "Graph Label Avg" \
       { func_select_label; func_graph_timecourse_selection } \
+      mg_TimeCourseLoaded } \
+      \
+      { command "Write Summary of Marked Vertices..." \
+      { DoFileDlog WriteMarkedVerticesTCSummary } \
+      mg_TimeCourseLoaded } \
+      \
+      { command "Write Summary of Label..." \
+      { DoFileDlog WriteLabelTCSummary } \
       mg_TimeCourseLoaded } \
       \
       { command "Save Graph to Postscript File" \
@@ -3511,11 +3519,32 @@ set tDlogSpecs(SaveGraphToPS) [list \
   -okCmd {Graph_SaveToPS [ExpandFileName %s1 kFileName_Home]} ]
 
 set tDlogSpecs(SaveRGBAs) [list \
-  -title "Save RGB As" \
-  -prompt1 "Save RGB:" \
+  -title "Save RGB" \
+  -prompt1 "Save RGB As:" \
   -default1 [list ExpandFileName "" kFileName_RGB] \
   -note1 "The file name of the RGB file to save" \
   -okCmd {set rgb [ExpandFileName %s1 kFileName_RGB]; save_rgb} ]
+
+set tDlogSpecs(WriteMarkedVerticesTCSummary) [list \
+  -title "Save Marked Vertices Summary" \
+  -prompt1 "Save Summary As:" \
+  -default1 [list ExpandFileName "" kFileName_Home] \
+  -note1 "The file name of the summary text file to create" \
+  -okCmd { func_select_marked_vertices; \
+     func_print_timecourse_selection [ExpandFileName %s1 kFileName_Home] } ]
+set tDlogSpecs(WriteLabelTCSummary) [list \
+  -title "Save Label Summary" \
+  -prompt1 "Save Summary As:" \
+  -default1 [list ExpandFileName "" kFileName_Home] \
+  -note1 "The file name of the summary text file to create" \
+   -okCmd { clear_all_vertex_marks; \
+    labl_mark_vertices $gnSelectedLabel; \
+    func_select_marked_vertices; \
+     func_print_timecourse_selection [ExpandFileName %s1 kFileName_Home] } ]
+
+
+
+
 
 
 proc CheckFileAndDoCmd { iFile iFunction } {
