@@ -1,0 +1,41 @@
+#!/bin/csh -f
+# getfirstrundir-sess
+# gets first 3 digit, zero-padded directory.
+# $Id: getfirstrundir-sess,v 1.1 2003/03/04 21:22:08 greve Exp $
+
+if($#argv != 1) then
+  echo "USAGE: getfirstrundir-sess directory"
+  exit 1;
+endif
+
+set targdir = $argv[1];
+
+if(! -d $targdir ) then
+  echo "ERROR: $targdir does not exist"
+  exit 1;
+endif
+
+cd $targdir
+set targdir = `pwd`;
+
+ls -d ??? >& /dev/null
+if($status)then
+  echo "ERROR: cannot find any run directories under $targdir"
+  exit 1;
+endif
+
+set run = 0;
+while ( $run < 100)
+  set runstring = `printf %03d $run`;
+  if(-d $runstring) then
+    echo $targdir/$runstring;
+    exit 0;
+  endif
+
+  @ run = $run + 1;
+end
+
+echo "ERROR: cannot find any run directories under $targdir"
+
+exit 1;
+#################################

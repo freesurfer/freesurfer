@@ -1,0 +1,424 @@
+#!/bin/csh -f
+# isxavg-fe-sess
+#
+set VERSION = '$Id: intergroupavg-sess,v 1.1 2003/03/04 21:22:08 greve Exp $'
+set FASTVER = `cat $FMRI_ANALYSIS_DIR/docs/version`;
+
+set inputargs = ($argv);
+
+set group1     = ();
+set group2     = ();
+set intergroup = ();
+set analysis   = ();
+set contrast   = ();
+set space      = ();
+set spacedir   = ();
+set umaskarg   = ();
+set hemi = ();
+set polarity = 0;
+set polarity2 = 0;
+set monly = 0;
+set mfile = ();
+set nolog = 0;
+
+if($#argv == 0) then
+  goto usage_exit;
+  exit 1;
+endif
+
+set n = `echo $argv | grep version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+
+set MATLAB = `getmatlab`;
+if($status) exit 1;
+
+##### Create a log file ######
+if($nolog) then
+  set LF = /dev/null
+else
+  set logdir = `pwd`/log;
+  mkdir -p $logdir
+  if(! -e $logdir | ! -w $logdir) then
+    echo "WARNING: could not create $logdir"
+    set LF = /dev/null
+  else
+    set LF = $logdir/intergroupavg-sess.log
+    if(-e $LF) mv $LF $LF.old
+  endif
+endif
+echo "--------------------------------------------------------------"
+echo "intergroup-sess logfile is $LF"
+echo "--------------------------------------------------------------"
+
+echo "intergroup-sess log file" >> $LF
+echo $VERSION >> $LF
+echo "FAST Version $FASTVER"  >> $LF
+id            >> $LF
+pwd           >> $LF
+echo "$0"     >> $LF
+echo $inputargs  >> $LF
+uname -a      >> $LF
+date          >> $LF
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+## Get functional subdirectory from the info file ##
+set infofile = $analysis/analysis.info
+if(! -e $infofile) then
+  echo "ERROR: cannot find $infofile" |& tee -a $LF
+  exit 1;
+endif
+set fsd = `cat $infofile | awk '{if($1 == "fsd") print $2}'`;
+
+## Create output directory ##
+set outdir = $intergroup/$fsd/$analysis/$spacedir-rfx/$contrast
+mkdir -p $outdir
+if($status) then
+  echo "ERROR creating $outdir"
+  exit 1;
+endif
+if($space == "native") set space = ();
+
+set group1dir = $group1/$fsd/$analysis/$spacedir-rfx/$contrast
+if(! -e $group1dir) then
+  echo "ERROR: cannot find $group1dir"
+  exit 1;
+endif
+
+set group2dir = $group2/$fsd/$analysis/$spacedir-rfx/$contrast
+if(! -e $group2dir) then
+  echo "ERROR: cannot find $group2dir"
+  exit 1;
+endif
+
+## Check that the subjects are correct for this group (or Create file) #
+set sessinfo = $intergroup/session.info  
+if(-e $sessinfo) then
+  @ n1 = `cat $sessinfo | wc -l`;
+  @ n1 = $n1  - 1;
+  if($n1 != 2) then
+    echo "ERROR: session.info inconsistent with previous intergroup average"\
+         |& tee -a $LF
+    exit 1;
+  endif
+  foreach group ($group1 $group2)
+    set n1 = `cat $sessinfo | grep -x $group | wc -l`;
+    if($n1 == 0) then
+      echo "ERROR: $group was not in original intergroup average"
+      exit 1;
+    endif
+  end
+else
+  echo "SessionType: InterGroupAverage" > $sessinfo
+  echo $group1 >> $sessinfo
+  echo $group2 >> $sessinfo
+endif
+
+
+#---------------------------------------------------------------------#
+foreach hs ($hemi)
+
+  if($space == sph) echo "$hemi hemisphere" |& tee -a $LF
+
+  set h1 = $group1/$fsd/$analysis/$spacedir-rfx/h
+  set avg1 = $group1dir/avg;
+  set std1 = $group1dir/std;
+  set h2 = $group2/$fsd/$analysis/$spacedir-rfx/h
+  set avg2 = $group2dir/avg;
+  set std2 = $group2dir/std;
+  set polarity = $polarity;
+
+  set sig    = $outdir/sig
+  set minsig = $outdir/minsig
+  set h = $intergroup/$fsd/$analysis/$spacedir-rfx/h
+
+  if($space == sph) then
+    set h1   = $h1-$hs
+    set avg1 = $avg1-$hs
+    set std1 = $std1-$hs
+    set h2   = $h2-$hs
+    set avg2 = $avg2-$hs
+    set std2 = $std2-$hs
+    set sig    = $sig-$hs
+    set minsig = $minsig-$hs
+    set h      = $h-$hs
+  endif
+  set offset1 = $h1-offset
+  set offset2 = $h2-offset
+  set offset  = $h-offset
+
+  # Check that the input volumes exists, etc #
+  if(! $monly) then
+    foreach volid ($offset1 $avg1 $std1 $offset2 $avg2 $std2)
+      echo "INFO: Checking $volid"
+      bfvcheck $volid
+      if($status) then
+        echo "ERROR: there appears to be a problem with $volid"
+        exit 1;
+      endif
+    end
+  endif
+
+  # Create the matlab file
+  if(! $monly ) then
+    set MLF = "/tmp/$intergroup"$$"_iga.m"
+  else
+    set MLF = $mfile;
+  endif
+  rm -f $MLF
+
+  set curdir = `pwd`;
+
+  echo "%%% --------------------------------- %%"  >> $MLF
+  echo "% temporary matlab script for intergroupavg-sess" >> $MLF
+  echo "% $MLF"                          >> $MLF;
+  if(! $monly) echo "global QuitOnError;"             >> $MLF
+  if(! $monly) echo "QuitOnError = 1;"                >> $MLF
+  if(! $monly) echo "if(exist('fast_intergroupavg')==0)"        >> $MLF;
+  if(! $monly) echo "qoe('ERROR: matlab path incorrect');end;" >> $MLF  
+  echo "cd $curdir;" >> $MLF  
+  echo "fast_intergroupavg(..." >> $MLF
+  echo "   '-avg1', '$avg1', ..." >> $MLF
+  echo "   '-std1', '$std1', ..." >> $MLF
+  echo "   '-avg2', '$avg2', ..." >> $MLF
+  echo "   '-std2', '$std2', ..." >> $MLF
+  echo "   '-tsig', '$sig', ..." >> $MLF
+  echo "   '-tminsig', '$minsig', ..." >> $MLF
+  echo "   '-polarity', '$polarity', ..." >> $MLF
+  echo "   '-polarity2', '$polarity2' ..." >> $MLF
+  echo "   );">> $MLF
+  echo "  " >> $MLF
+
+  if($monly) exit 1;
+
+  cat $MLF | tee -a $LF
+
+  echo "----------- Matlab Output ------------------"
+  cat $MLF | $MATLAB -display iconic | tee -a $LF
+
+  # Now average offsets #
+  meanimg -i $offset1 -i $offset2 -o $offset 
+
+  # Check that the output volumes exists, etc #
+  foreach volid ($sig $minsig $offset)
+    echo "INFO: Checking $volid"
+    bfvcheck $volid
+    if($status) then
+      echo "ERROR: there appears to have been a problem creating $volid"
+      exit 1;
+    endif
+  end
+
+  # Copy the register.dat if talairach #
+  if($space == tal) then
+    set inreg = $group1/$fsd/$analysis/$spacedir-rfx/register.dat
+    if(! -e $inreg) then
+      echo "ERROR: $inreg does not exist"
+      exit 1;
+    endif
+    set outreg = $intergroup/$fsd/$analysis/$spacedir-rfx/register.dat
+    cp $inreg $outreg
+  endif
+
+end
+echo "-----------------------------------------------------"| tee -a $LF
+
+date | tee -a $LF
+echo "intergroup-sess completed SUCCESSFULLY" | tee -a $LF
+echo " "
+echo " "
+
+exit 0;
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-space":
+      if ( $#argv == 0) goto arg1err;
+      set space = $argv[1]; shift;
+      breaksw
+
+    case "-spacedir":
+      if ( $#argv == 0) goto arg1err;
+      set spacedir = $argv[1]; shift;
+      breaksw
+
+    case "-hemi":
+      if ( $#argv == 0) goto arg1err;
+      set hemi = ($hemi $argv[1]); shift;
+      breaksw
+
+    case "-a":
+    case "-analysis":
+      if ( $#argv == 0) goto arg1err;
+      set analysis = $argv[1]; shift;
+      breaksw
+
+    case "-c":
+    case "-contrast":
+      if ( $#argv == 0) goto arg1err;
+      set contrast = $argv[1]; shift;
+      breaksw
+
+    case "-group1":
+    case "-g1":
+      if ( $#argv == 0) goto arg1err;
+      set group1 = $argv[1]; shift;
+      breaksw
+
+    case "-group2":
+    case "-g2":
+      if ( $#argv == 0) goto arg1err;
+      set group2 = $argv[1]; shift;
+      breaksw
+
+    case "-polarity":
+      if ( $#argv == 0) goto arg1err;
+      set polarity = $argv[1]; shift;
+      breaksw
+
+    case "-polarity2":
+      if ( $#argv == 0) goto arg1err;
+      set polarity2 = $argv[1]; shift;
+      breaksw
+
+    case "-intergroup":
+    case "-ig":
+      if ( $#argv == 0) goto arg1err;
+      set intergroup = $argv[1]; shift;
+      breaksw
+
+    case "-monly":
+      if ( $#argv == 0) goto arg1err;
+      set mfile = $argv[1]; shift;
+      set monly = 1;
+      breaksw
+
+    case "-umask":
+      if ( $#argv == 0) goto arg1err;
+      set umaskarg = "-umask $argv[1]";
+      umask $argv[1]; shift;
+      breaksw
+
+    case "-nolog":
+      set nolog = 1;
+      breaksw
+
+    case "-verbose":
+      set verbose = 1;
+      breaksw
+
+    case "-echo":
+      set echo = 1;
+      breaksw
+
+    case "-debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    default:
+      echo WARNING: Flag $flag unrecognized. 
+      #echo $cmdline
+      #exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+  set errs = 0;
+
+  if($#analysis == 0) then
+    echo "ERROR: no analysis specified"|& tee -a $LF 
+    set errs = 1;
+  endif
+
+  if($#group1 == 0) then
+     echo "ERROR: group1 was not specified"|& tee -a $LF 
+     set errs = 1;
+  endif
+
+  if($#group2 == 0) then
+     echo "ERROR: group2 was not specified"|& tee -a $LF 
+     set errs = 1;
+  endif
+
+  if($#intergroup == 0) then
+     echo "ERROR: inter-group name was not specified"|& tee -a $LF 
+     set errs = 1;
+  endif
+
+  if($polarity != 0 & $polarity2 != 0) then
+    echo "ERROR: cannot specify polarity and polarity2"
+    exit 1;
+  endif
+
+  if($#space == 0) then
+     echo "ERROR: must specify a sampling space"|& tee -a $LF 
+     set errs = 1;
+  endif
+
+  if($#hemi != 0 && $space != sph) then
+    echo "ERROR: -hemi can only be used with sph space"
+    set errs = 1;
+  endif
+  if($#hemi == 0 && $space == sph) set hemi = (lh rh);
+  foreach hs ($hemi)
+    if($hs != lh && $hs != rh) then
+      echo "ERROR: hemi must be either lh or rh ($hs)";
+      set errs = 1;
+    endif
+  end
+
+  if($errs) exit 1;
+
+  if($space != sph) set hemi = nohemi;
+
+  if($#spacedir == 0) set spacedir = $space;
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo "USAGE: intergroup-sess"
+  echo "Options:";
+  echo "   -analysis analysisname : session-level functional analysis name"
+  echo "   -contrast contrastname : contrast used in the random effects avg"
+  echo "   -group1    groupname    : name of group1 (positive)"
+  echo "   -group2    groupname    : name of group2 (negative)"
+  echo "   -intergroup intergroupname : name of intergroup average"
+  echo "   -polarity   +1 or -1 : only consider voxels with avg > 0 (or < 0)"
+  echo "   -space    spacename  : space in which to average (native, tal, sph)"
+  echo "   -spacedir  dir : default is spacename"
+  echo "   -hemi     hemisphere   : with sph space <lh rh>";
+  echo "   -umask umask   : set unix file permission mask"
+  echo "   -scriptonly    : don't run, just generate a script"
+  echo "   -version       : print version and exit"
+exit 1;

@@ -1,0 +1,259 @@
+#!/bin/csh -f
+# rawfunc2tal
+#
+# $Id: rawfunc2tal,v 1.1 2003/03/04 21:22:09 greve Exp $
+set VERSION = '$Id: rawfunc2tal,v 1.1 2003/03/04 21:22:09 greve Exp $'
+set FASTVER = `cat $FMRI_ANALYSIS_DIR/docs/version`;
+
+#------ Defaults --------#
+set instem   = ();
+set outstem  = ();
+set voxsize  = ();
+set fov      = ();
+set reg      = ();
+set talxfm   = ();
+
+set inputargs = ($argv);
+
+set n = `echo $argv | grep -e -help | wc -l` 
+if($#argv == 0 || $n != 0)  goto usage_exit;
+
+set n = `echo $argv | grep -e version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+echo $VERSION
+pwd
+echo $0         
+echo $inputargs 
+uname -a        
+date
+
+set outdir = `dirname $outstem`;
+mkdir -p $outdir
+
+set cmd = ( mri_vol2vol --srcvol $instem --srcreg $reg)
+set cmd = ( $cmd --trgvol $outstem );
+set cmd = ( $cmd --trgres $voxsize);
+set cmd = ( $cmd --trgfov $fov);
+if($#talxfm != 0) then
+  set cmd = ( $cmd --src2trg $talxfm --trgsubject talairach);
+else
+  set cmd = ( $cmd --fstalairach);
+endif
+
+echo "---------------------------------------------" 
+pwd        
+echo $cmd  
+echo "---------------------------------------------" 
+
+$cmd 
+if($status) then
+  echo "ERROR: mri_vol2vol failed"
+  exit 1;
+endif
+
+date
+echo "rawfunc2tal: Done"
+
+exit 0;
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-i":
+      if ( $#argv == 0) goto arg1err;
+      set instem = $argv[1]; shift;
+      breaksw
+
+    case "-o":
+      if ( $#argv == 0) goto arg1err;
+      set outstem = $argv[1]; shift;
+      breaksw
+
+    case "-r":
+      if ( $#argv == 0) goto arg1err;
+      set reg = $argv[1]; shift;
+      breaksw
+
+    case "-t":
+      if ( $#argv == 0) goto arg1err;
+      set talxfm = $argv[1]; shift;
+      breaksw
+
+    case "-voxsize":
+      if( $#argv < 3) then
+        echo "ERROR: $flag requires 3 arguments"
+        exit 1;
+      endif
+      set voxsize = ($argv[1] $argv[2] $argv[3]);
+      shift; shift; shift;
+      breaksw
+
+    case "-fov":
+      if( $#argv < 3) then
+        echo "ERROR: $flag requires 3 arguments"
+        exit 1;
+      endif
+      set fov = ($argv[1] $argv[2] $argv[3]);
+      shift; shift; shift;
+      breaksw
+
+    case "-umask":
+      if ( $#argv == 0) goto arg1err;
+      umask $argv[1]; shift;
+      breaksw
+
+    case "-verbose":
+      set verbose = 1;
+      breaksw
+
+    case "-echo":
+      set echo = 1;
+      breaksw
+
+    case "-debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+  if($#instem == 0) then
+    echo "ERROR: need to specify an input stem"
+    exit 1;
+  endif
+
+  if($#outstem == 0) then
+    echo "ERROR: need to specify an output stem"
+    exit 1;
+  endif
+
+  if($#reg == 0) then
+    echo "ERROR: need to specify a registration file"
+    exit 1;
+  endif
+
+  if(! -e $reg ) then
+    echo "ERROR: registration file $reg does not exist"
+    exit 1;
+  endif
+
+  if($#voxsize == 0) then
+    echo "ERROR: need to specify output voxel sizes"
+    exit 1;
+  endif
+
+  if($#fov == 0) then
+    echo "ERROR: need to specify output FOV"
+    exit 1;
+  endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "USAGE: rawfunc2tal"
+  echo ""
+  echo "Required Arguments"
+  echo " -i instem  : input stem"
+  echo " -o outstem : output stem"
+  echo " -r regfile : register.dat file"
+  echo " -voxsize colsize rowsize slicesize : size in mm"
+  echo " -fov     colfov  rowfov  slicefov  : field of view in mm"
+  echo ""
+  echo "Other Arguments"
+  echo " -t talxfm      : talairach.xfm file"
+  echo " -umask umask   : set unix file permission mask"
+  echo " -version       : print version and exit"
+  echo " -help          : get more info"
+
+  set n = `echo $argv | grep -e -help | wc -l` 
+  if($n != 0)  goto help_exit;
+
+  echo ""
+exit 1;
+
+############--------------##################
+help_exit:
+echo "\
+\
+This program will resample a raw data set into talairach space (it can \
+actually transform it into any arbitrary space -- see below). The \
+regfile holds the transform from an anatomical space to the data \
+space.  The talxfm file is the transform from the same anatomical \
+space to talairach space. The output will be centered at the origin of \
+talairach space. The FOV in the col (x) direction will be colfov; the \
+FOV in the row (z) direction will be rowfov; and the FOV in the slice \
+(y) direction will be slicefov.  etc. Each dimension will be divided \
+into voxels according to the -voxsize flag. The data are resampled \
+using nearest-neighbor. If the talairach transform file is not \
+specified, the the subject name is obtained from the registration file \
+and SUBJECTS_DIR/subjectname/mri/transforms/talairach.xfm is used. \
+Note the data set can be resampled to any space if a .xfm file that \
+maps the anatomical space to the target space is available. This \
+program will also produce an output registration file called outstem.reg.\
+\
+Notes:\
+\
+There are no restrictions on the voxel size or FOV, but users should\
+check that the resulting volume encompasses as much of the original\
+volume as desired.\
+\
+column = x, row = z, slice = y\
+\
+Examples:\
+\
+1. This will resample the volume f in the current directory to   \
+   talairach space with isotropic 5 mm voxels +/- 95 mm around  \
+   the center of talairach space in the x and z directions and \
+   +/- 110 mm in the y direction. The resulting volume will have \
+   38 columns and rows, and 44 rows. If the talairach.xfm file \
+   had not been specified, it would have been obtained from the \
+   FreeSurfer recon directory of the subject listed in the \
+   registration file. \
+\
+  rawfunc2tal -i f -o tal/f           \
+     -r ../register.dat                \
+     -t ../../3danat/002/talairach.xfm \
+     -voxsize 5 5 5 -fov 190 190 220   \
+\
+"
+
+exit;

@@ -1,0 +1,341 @@
+#!/bin/csh -f
+
+set VERSION = '$Id: func2label,v 1.1 2003/03/04 21:22:08 greve Exp $'
+
+set cmdargv = "$argv";
+
+set funcvol = ();
+set regfile = ();
+set label   = ();
+set outstem = ();
+set mfile   = ();
+set tal     = ();
+set talxfm  = ();
+
+if($#argv == 0) then
+  goto usage_exit;
+  exit 1;
+endif
+
+set n = `echo $argv | grep version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+######## Registration File ##########
+set funcdir = `dirname $funcvol`;
+if($#regfile == 0) then
+  set regfile = $funcdir/register.dat
+endif
+if(! -e $regfile ) then
+  echo "ERROR: cannot find $regfile"
+  exit 1;
+endif
+
+######## Get subject name #########
+set subject = `head -1 $regfile`;
+echo "Subject: $subject"
+
+####### Check that the talairach.xfm file is there #######
+if($tal) then
+  set talxfm = $SUBJECTS_DIR/$subject/mri/transforms/talairach.xfm
+  if(! -e $talxfm) then
+    echo "ERROR: cannot find $talxfm"
+    exit 1;
+  endif
+endif
+
+############## Check that the label exists ################
+set labelfile = $SUBJECTS_DIR/$subject/label/$label.label
+if(! -e $labelfile ) then
+  echo "ERROR: cannot find label file $labelfile"
+  exit 1;
+endif
+
+######### Check that the input volume exists #########
+set i0 = $funcvol"_000.hdr"
+if(! -e $i0) then
+  echo "ERROR: cannot find functional volume $funcvol"
+  exit 0;
+endif
+
+###### Determine the type of input ########
+set datfile = $funcvol.dat
+if(! -e $datfile ) then
+  set functype = bvolume;
+else
+  set n = `grep Version $datfile | wc -l`;
+  if($n == 0) then
+    set functype = selavg;
+  else
+    set functype = selxavg;
+  endif
+endif
+echo "INFO: functional volume detected as type $functype"
+
+##### get the matlab command #######
+set MATLAB = `getmatlab`;
+if($status) exit 1;
+
+######## Prepare the output directory #########
+set outdir = `dirname $outstem`;
+mkdir -p $outdir
+
+######## Dump the label to an ascii file #########
+set tmplabel = $outdir/tmp-label-$label
+dump-label $subject $label > $tmplabel
+if($status) then
+  echo "ERROR: dump-label exited with an error"
+  exit 1;
+endif
+
+######## Prepare for matlab execution #########
+if ($#mfile != 0) then
+  set QuitOnError = 0;
+  set TARGET = "tee $mfile"
+  rm -f $mfile;
+  set monly = 1;
+else
+  set QuitOnError = 1;
+  set TARGET =  "$MATLAB -display iconic"
+  set monly = 0;
+endif  
+
+#---------------------------------------------------------------#
+$TARGET <<EOF
+
+  global QuitOnError;
+  QuitOnError = $QuitOnError;
+  tmplabel    = '$tmplabel';
+  regfile     = '$regfile';
+  talxfm      = '$talxfm';
+  funcvol     = '$funcvol';
+  functype    = '$functype';
+  outstem     = '$outstem';
+
+  % Load the registration matrix, get pixel size, etc %
+  [regmat subject inres betres intensity] = fmri_readreg(regfile);
+
+  % Get the dimensions of the functional volume - load is later %
+  [nslices nrows ncols nt] = fmri_bvoldim(funcvol);
+  nvoxels = nslices *nrows * ncols ;
+
+  % Construct the quantization matrix %
+  Qf = [-inres   0       0     inres*ncols/2; ...
+         0       0    betres  -betres*nslices/2; ...
+         0     -inres    0     inres*nrows/2; ...
+         0       0       0       1];
+
+  % Load the ascii label file %
+  lb = load(tmplabel);
+
+  % extract structural xyz, add col of 1s for affine xform %
+  Sxyz = [lb(:,2:4) ones(size(lb,1),1)];
+
+  % compute functional xyz %
+  Fxyz = (regmat*Sxyz')';
+
+  % compute functional subscripts ijk (col, slice, row) %
+  Fijk = round(inv(Qf)*Fxyz')'; 
+
+  % only keep ijk that are in the functional volume %
+  ind = find(Fijk(:,1) > 0 & Fijk(:,1) < ncols & ...
+             Fijk(:,2) > 0 & Fijk(:,2) < nrows & ...
+             Fijk(:,3) > 0 & Fijk(:,3) < nslices);
+  Fijk2 = Fijk(ind,:) + 1; % add 1 for matlab %
+
+  % compute the indices for the subscripts %
+  FuncInd = sub2ind([nslices nrows ncols], ...
+                     Fijk2(:,3), Fijk2(:,2), Fijk2(:,1));
+  % get rid of redundant voxels %
+  FuncInd2 = unique(FuncInd);
+
+  % check that there is something there %
+  if(isempty(FuncInd2))
+    msg = sprintf('No functional voxels map to label');
+    qoe(msg); error(msg);
+  end
+
+  nFuncVox = length(FuncInd2);
+  fprintf('Number of functional voxels %d\n',nFuncVox);
+
+  % Load in the functional volume %
+  f = fmri_ldbvolume(funcvol);
+
+  % reshape into a 2-d %
+  f2 = reshape(f, [nvoxels nt]);
+
+  if(strcmp(functype,'bvolume'))
+    froi = mean(f2(FuncInd2,:));
+  else
+    datfile = sprintf('%s.dat',funcvol);
+    hd = fmri_lddat2(datfile);
+    nc = hd.Nc;
+    nh = hd.Nh;
+    tmp = ones(2*nc,nh);
+    tmp(2:2:2*nc,:) = 0;
+    iavg = find(tmp' == 1); %'
+    istd = find(tmp' == 0); %'
+    havg = f2(:,iavg); 
+    hstd = f2(:,istd); 
+    havgroi = mean(havg(FuncInd2,:));
+    hstdroi = sqrt(mean(hstd(FuncInd2,:).^2));
+    froi = zeros(1,1,1,nt);
+    froi(1,1,1,iavg) = havgroi;
+    froi(1,1,1,istd) = hstdroi;
+  end
+
+  fmri_svbvolume(froi, outstem, [1 1 1 nt]);
+
+  if(QuitOnError)  quit; end
+  
+EOF
+#--------------------------------------------------------------#
+
+# get rid of the ascii label file #
+rm -f $tmplabel;
+
+### Copy over dat files, etc, if needed ###
+if($functype == selavg) then
+  set datfile = $funcvol.dat
+  set outdatfile = $outstem.dat
+  cp $datfile $outdatfile
+  set doffile = $funcvol"_000.dof"
+  set outdoffile = $outstem"_000.dof"
+  cp $doffile $outdoffile  
+endif
+if($functype == selxavg) then
+  set datfile = $funcvol.dat
+  set outdatfile = $outstem.dat
+  cp $datfile $outdatfile
+endif
+
+
+echo "func2label completed successfully"
+
+exit 0;
+
+############--------------##################
+parse_args:
+set cmdline = "$argv";
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-f":
+      if ( $#argv == 0) goto arg1err;
+      set funcvol = $argv[1]; shift;
+      breaksw
+
+    case "-r":
+    case "-reg":
+      if ( $#argv == 0) goto arg1err;
+      set regfile = $argv[1]; shift;
+      breaksw
+
+    case "-l":
+    case "-label":
+      if ( $#argv == 0) goto arg1err;
+      set label = $argv[1]; shift;
+      breaksw
+
+    case "-o":
+      if ( $#argv == 0) goto arg1err;
+      set outstem = $argv[1]; shift;
+      breaksw
+
+    case "-monly":
+      if ( $#argv == 0) goto arg1err;
+      set mfile = $argv[1]; shift;
+      breaksw
+
+    case "-tal":
+      if ( $#argv == 0) goto arg1err;
+      set tal = 1;
+      breaksw
+
+    case "-umask":
+      if ( $#argv == 0) goto arg1err;
+      umask $1;
+      setenv MRI_UMASK $1; shift;
+      breaksw
+
+    case "-verbose":
+      set verbose = 1;
+      breaksw
+
+    case "-echo":
+      set echo = 1;
+      breaksw
+
+    case "-debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+  if ($#funcvol == 0) then
+     echo "ERROR: no functional volume specified"
+     exit 1
+  endif
+
+  if ($#label == 0) then
+     echo "ERROR: no label specified"
+     exit 1
+  endif
+
+  if ($#outstem == 0) then
+     echo "ERROR: no outstem specified"
+     exit 1
+  endif
+
+  if (! $?SUBJECTS_DIR) then
+    echo "ERROR: SUBJECTS_DIR undefined"
+    exit 1;
+  endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo "USAGE: func2label"
+  echo "Options:";
+  echo "   -f   stem    : stem of functional volume"
+  echo "   -label label : eg (rh-anterior)"
+  echo "   -tal         : label is defined in talairach space"
+  echo "   -o outstem   : stem of output"
+  echo "   -reg file    : registration file (register.dat in func dir)"
+  echo "   -monly mfile "
+  echo "   -umask umask   : set unix file permission mask"
+  echo "   -version       : print version and exit"
+exit 1;

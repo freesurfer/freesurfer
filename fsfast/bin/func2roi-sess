@@ -1,0 +1,812 @@
+#!/bin/csh -f
+# func2roi-sess 
+
+set VERSION = '$Id: func2roi-sess,v 1.1 2003/03/04 21:22:08 greve Exp $';
+set FASTVER = `cat $FMRI_ANALYSIS_DIR/docs/version`;
+
+set inputargs = ($argv);
+
+set analysis  = ();
+set anapend   = ();
+set roidef    = ();
+set SourceType = 0; # 1 = raw, 2 = avg
+set RawSource = 1;
+set AvgSource = 2;
+set rawfsd = ();
+set rawmc = 0;
+set rawstem = ();
+set rawrunlistfile = ();
+set sesslabel = ();
+set anatlabel = ();
+set uselabel = 0;
+set labelfile = ();
+set labelspace = ();
+set usefsdmask = 0;
+set fsdmask = ();
+set usemask = 0;
+set masksessid = ();
+set maskfsd = ();
+set maskanalysis = ();
+set maskspace = ();
+set maskspacedir = ();
+set maskisxavg = ();
+set maskcontrast = ();
+set maskmap = ();
+set maskframe = ();
+set maskthresh = ();
+set masktail = ();
+set MaskFromGroup = 0;
+set labelargs = ();
+set oldtxtstyle = ();
+set float2int = tkreg;
+set xfmfile = talairach.xfm
+set AverageRaw = 1;
+set labelfillthresh = ();
+
+set runlistfile = ();
+
+
+set umaskarg = ();
+set nolog = 0;
+set volcheck = 1;
+
+if($#argv == 0) then
+  goto usage_exit;
+  exit 1;
+endif
+
+set PWDCMD = `getpwdcmd`;
+
+# look for version string #
+set n = `echo $argv | grep version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+
+## Look for nolog option ##
+set n = `echo $argv | grep nolog | wc -l` 
+if($n != 0) set nolog = 1;
+
+##### Create a log file ######
+if(! $nolog) then
+  set logdir = `pwd`/log;
+  mkdir -p $logdir
+  if(! -e $logdir) then
+    echo "ERROR: could not create $logdir"
+    exit 1;
+  endif
+  set LF = $logdir/func2roi-sess.log
+  if(-e $LF) mv $LF $LF.old
+else
+  echo "No log file"
+  set LF = /dev/null
+endif
+
+echo "----------------------------------------------------------"
+echo "func2roi-sess logfile is $LF"
+echo "----------------------------------------------------------"
+
+echo "fucn2roi-sess log file" >> $LF
+echo $VERSION >> $LF
+echo "FAST Version $FASTVER"  >> $LF
+pwd           >> $LF
+echo $0     >> $LF
+echo $inputargs  >> $LF
+uname -a      >> $LF
+date          >> $LF
+
+set SessList = `getsesspath $argv`;
+if($status || $#SessList == 0) then
+  echo "ERROR: cannot find any sessions" | tee -a $LF
+  exit 1;
+endif
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+if($SourceType == $AvgSource) then
+  ## Get functional subdirectory from the info file ##
+  set infofile = $analysis/analysis.info
+  if(! -e $infofile) then
+    echo "ERROR: cannot find $infofile"
+    exit 1;
+  endif
+  set fsd = `cat $infofile | awk '{if($1 == "fsd") print $2}'`;
+  set funcstem = `cat $infofile | awk '{if($1 == "funcstem") print $2}'`;
+  set runlistfile = `cat $infofile | awk '{if($1 == "runlistfile") print $2}'`;
+endif
+
+# If a mask session was specified, get the full stem to the mask map
+# and it's registration file #
+if($#masksessid != 0) then
+  set infofile = $maskanalysis/analysis.info
+  if(! -e $infofile) then
+    echo "ERROR: cannot find $infofile"
+    exit 1;
+  endif
+  set maskfsd = `cat $infofile | awk '{if($1 == "fsd") print $2}'`;
+
+  set maskstem = `$PWDCMD`/$masksessid/$maskfsd/$maskanalysis/$maskspacedir/$maskcontrast/$maskmap;
+  if($volcheck) then
+    bfvcheck $maskstem;
+    if($status) exit 1;
+  endif
+
+  if($MaskFromGroup) then
+    set maskreg = `$PWDCMD`/$masksessid/$maskfsd/$maskanalysis/$maskspacedir/register.dat;
+  else
+    set maskreg = `$PWDCMD`/$masksessid/$maskfsd/register.dat
+  endif
+
+  if(! -e $maskreg ) then
+    echo "ERROR: cannot find $maskreg"
+    exit 1;
+  endif
+
+endif
+
+
+####### Go through each session ######
+set StartDate = `date`;
+set nth = 1;
+foreach sess ($SessList)
+  pushd $sess > /dev/null
+  set sessid = `basename $sess`;
+
+  echo "-----------------------------------------------------" |& tee -a $LF
+  echo "Session: $sessid $nth/$#SessList" |& tee -a $LF
+  echo $StartDate |& tee -a $LF
+  date |& tee -a $LF
+  @ nth = $nth + 1;
+
+  if(! -e subjectname ) then
+    echo "ERROR: cannot find subjectname in `pwd`"
+    exit 1;
+  endif
+  set subject = `cat subjectname`;
+  if($#subject != 1) then
+    echo "ERROR: subjectname file in `pwd` is not formatted correctly"
+    exit 1;
+  endif
+
+  if($#sesslabel != 0) then
+    set labelfile = labels/$sesslabel.label
+    if(! -e $labelfile) then
+      echo "ERROR ($sessid): cannot find session label file $labelfile... continuing" |& tee -a $LF
+      continue;
+    endif
+  endif
+
+  if($#anatlabel != 0) then
+    set labelfile = $SUBJECTS_DIR/$subject/label/$anatlabel.label
+    if(! -e $labelfile) then
+      echo "ERROR ($sessid): cannot find anat label file $labelfile... continuing" |& tee -a $LF
+      continue;
+    endif
+  endif
+
+  if($#masksessid == 0 && $#maskcontrast != 0) then
+    # Use a local mask #
+    set maskstem = $fsd/$maskanalysis/$maskspacedir/$maskcontrast/$maskmap;
+    if($volcheck) then
+      bfvcheck $maskstem;
+      if($status) then
+        echo "ERROR: reading $maskstem"
+        exit 1;
+      endif
+    endif
+
+    if($maskspace == native) set maskreg = ();
+    if($maskspace == tal) then
+      set maskreg = $fsd/$maskanalysis/$maskspacedir/register.dat
+      if(! -e $maskreg ) then
+        echo "ERROR ($sessid): cannot find mask reg $maskreg" |& tee -a $LF
+        exit 1;
+      endif
+    endif
+  endif
+
+  if($SourceType == $AvgSource) then
+    set srcstem = $fsd/$analysis$anapend/h
+    set offsetstem = $fsd/$analysis$anapend/h-offset
+    set srcreg = $fsd/register.dat
+    set outdir = $fsd/$analysis$anapend/$roidef
+    set finalmaskstem = $outdir/mask
+
+    # check that the source volume is ok #
+    if($volcheck) then
+      foreach invol ($srcstem $offsetstem)
+        bfvcheck $invol;
+        if($status) then
+          echo "ERROR: reading $invol"
+          exit 1;
+        endif
+      end
+    endif
+
+    if(! -e $srcreg) then
+      echo "ERROR ($sessid): cannot find source reg $srcreg" |& tee -a $LF
+      exit 1;
+    endif
+
+    if($uselabel) then
+      if($labelspace == tal) then
+        set labelreg = $SUBJECTS_DIR/$subject/mri/transforms/$xfmfile;
+        if(! -e $labelreg) then
+          echo "ERROR ($sessid): cannot find label reg $labelreg" |& tee -a $LF
+          exit 1;
+        endif
+        set labelargs = (--label $labelfile --labelreg $labelreg)
+      else
+        set labelargs = (--label $labelfile);
+      endif
+    endif
+
+    set maskargs = ()
+    if($usemask) then
+      if($#maskreg != 0) then
+        set maskargs = (--mskvol $maskstem --mskreg $maskreg)
+      else
+        set maskargs = (--mskvol $maskstem --msksamesrc)
+      endif
+      set maskargs = ($maskargs --mskthresh $maskthresh);
+      set maskargs = ($maskargs --msktail   $masktail);
+      set maskargs = ($maskargs --mskframe  $maskframe);
+    endif
+
+    if($usefsdmask) then
+      set maskargs = (--mskvol $fsd/masks/$fsdmask --msksamesrc)
+      set maskargs = ($maskargs --mskthresh 0.5);
+      set maskargs = ($maskargs --msktail   pos);
+    endif
+
+    if($#finalmaskstem != 0) then
+      set maskargs = ($maskargs --finalmskvol  $finalmaskstem);      
+    endif
+
+    set v2rargs = (--srcreg $srcreg)
+    set v2rargs = ($v2rargs $labelargs $maskargs)
+    if($#labelfillthresh > 0) \
+      set v2rargs = ($v2rargs --labelfillthresh $labelfillthresh);
+
+    mkdir -p $outdir
+    if(! -e $outdir) then
+      echo "ERROR ($sessid): could not create $outdir" |& tee -a $LF
+      exit 1;
+    endif
+
+    set outstem = $outdir/h
+    set cmd = (mri_vol2roi --srcvol $srcstem --roiavg $outstem $v2rargs);
+    set cmd = ($cmd --roiavgtxt $outstem.txt $oldtxtstyle);
+    set cmd = ($cmd --float2int $float2int);
+
+    echo "---------------------------------------------------" |& tee -a $LF
+    pwd |& tee -a $LF
+    echo $cmd |& tee -a $LF
+    echo "---------------------------------------------------" |& tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) exit 1;
+
+    set outstem = $outdir/h-offset
+    set cmd = (mri_vol2roi --srcvol $offsetstem --roiavg $outstem $v2rargs);
+    set cmd = ($cmd --roiavgtxt $outstem.txt $oldtxtstyle);
+    set cmd = ($cmd --float2int $float2int);
+
+    echo "---------------------------------------------------" |& tee -a $LF
+    pwd |& tee -a $LF
+    echo $cmd |& tee -a $LF
+    echo "---------------------------------------------------" |& tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) exit 1;
+
+    # Create a more convenient table #
+    set tblfile = $outdir/h.tbl
+    roitxt2tbl $outdir/h.dat $outdir/h.txt $outdir/h-offset.txt $tblfile
+    if($status) exit 1;
+
+    #--------------------------------------------------#
+    # This will average all the raw data used in the 
+    # analysis across the roi on a per-run basis. This
+    # will be stored as both text and bfloat files.
+    if($AverageRaw) then
+      if($#runlistfile == 0) then
+        set runlist = `getrunlist $fsd`;
+        if($#runlist == 0) then
+          echo "ERROR: could not find any runs" |& tee -a $LF
+          pwd |& tee -a $LF
+          exit 1;
+        endif
+      else
+        if( ! -e $fsd/$runlistfile ) then
+          echo "ERROR: cannot find $fsd/$runlistfile" |& tee -a $LF
+          pwd |& tee -a $LF
+        endif
+        set runlist = `cat $fsd/$runlistfile`;
+        if($#runlist == 0) then
+          echo "ERROR: $fsd/$runlistfile is empty" |& tee -a $LF
+          pwd |& tee -a $LF
+          exit 1;
+        endif
+      endif
+
+      echo "RunList: $runlist"
+
+      set outlist = ();
+      foreach run ($runlist)
+        set srcstem = $fsd/$run/$funcstem
+        set outstem = $outdir/$funcstem-$run
+        set outlist = ($outlist $outstem.txt)
+        #set cmd = ~/sg1/build/mri_vol2roi/mri_vol2roi
+        set cmd = mri_vol2roi
+        set cmd = ($cmd --srcvol $srcstem --roiavg $outstem $v2rargs);
+        set cmd = ($cmd --roiavgtxt $outstem.txt $oldtxtstyle);
+        set cmd = ($cmd --float2int $float2int --plaintxtstyle);
+        echo "---------------------------------------------------" |& tee -a $LF
+        pwd |& tee -a $LF
+        echo $cmd |& tee -a $LF
+        echo "---------------------------------------------------" |& tee -a $LF
+        $cmd |& tee -a $LF
+        if($status) exit 1;
+      end
+      paste $outlist > $outdir/$funcstem-all.txt
+
+
+    endif
+
+  endif # Source is Average
+
+  popd > /dev/null;
+end
+
+echo $StartDate | tee -a $LF
+date | tee -a $LF
+echo "func2roi-sess completed SUCCESSFULLY" | tee -a $LF
+echo " "
+echo " "
+
+exit 0;
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-roidef"
+      if ( $#argv == 0) goto arg1err;
+      set roidef = $argv[1]; shift;
+      breaksw
+
+    case "-a":
+    case "-analysis":
+      if ( $#argv == 0) goto arg1err;
+      if($#analysis != 0) then
+        echo "ERROR: cannot specify -analysis more than once"
+        exit 1;
+      endif
+      if($SourceType != 0) then
+        echo "ERROR: cannot specify both -raw and -analysis"
+        exit 1;
+      endif
+      set analysis = $argv[1]; shift;
+      set SourceType = $AvgSource;
+      breaksw
+
+    case "-raw"
+      if($#analysis != 0) then
+        echo "ERROR: cannot specify both -raw and -analysis"
+        exit 1;
+      endif
+      set SourceType = $RawSource;
+      breaksw
+
+    case "-rawfsd"
+      if ( $#argv == 0) goto arg1err;
+      set rawfsd = $argv[1]; shift;
+      breaksw
+
+    case "-motioncor"
+    case "-mc"
+      set rawstem = fmc;
+      breaksw
+
+    case "-rawstem"
+      if ( $#argv == 0) goto arg1err;
+      set rawstem = $argv[1]; shift;
+      breaksw
+
+    case "-rawrunlistfile"
+    case "-rawrlf"
+      if ( $#argv == 0) goto arg1err;
+      set rawrunlistfile = $argv[1]; shift;
+      breaksw
+
+    case "-anatlabel"
+      if ( $#argv == 0) goto arg1err;
+      set anatlabel = $argv[1]; shift;
+      set uselabel = 1;
+      breaksw
+
+    case "-sesslabel"
+      if ( $#argv == 0) goto arg1err;
+      set sesslabel = $argv[1]; shift;
+      set uselabel = 1;
+      breaksw
+
+    case "-labelfile"
+      if ( $#argv == 0) goto arg1err;
+      set labelfile = $argv[1]; shift;
+      set uselabel = 1;
+      breaksw
+
+    case "-labelspace"
+      if ( $#argv == 0) goto arg1err;
+      set labelspace = $argv[1]; shift;
+      set uselabel = 1;
+      breaksw
+
+    case "-labelspacexfm"
+      if ( $#argv == 0) goto arg1err;
+      set xfmfile = $argv[1]; shift;
+      breaksw
+
+    case "-labelfillthresh"
+    case "-lft"
+      if ( $#argv == 0) goto arg1err;
+      set labelfillthresh = $argv[1]; shift;
+      breaksw
+
+    case "-fsdmask"
+      if ( $#argv == 0) goto arg1err;
+      set fsdmask = $argv[1]; shift;
+      set usefsdmask = 1;
+      breaksw
+
+    case "-masksessid"
+      if($#argv == 0) goto arg1err;
+      set masksessid = $argv[1]; shift;
+      breaksw
+
+    case "-maskanalysis"
+      if ( $#argv == 0) goto arg1err;
+      set maskanalysis = $argv[1]; shift;
+      breaksw
+
+    case "-maskspace"
+      if ( $#argv == 0) goto arg1err;
+      set maskspace = $argv[1]; shift;
+      breaksw
+
+    case "-maskspacedir"
+      if ( $#argv == 0) goto arg1err;
+      set maskspacedir = $argv[1]; shift;
+      breaksw
+
+    case "-maskisxavg"
+      if ( $#argv == 0) goto arg1err;
+      set maskisxavg = $argv[1]; shift;
+      breaksw
+
+    case "-maskcontrast"
+    case "-mcontrast"
+    case "-c"
+      if ( $#argv == 0) goto arg1err;
+      set maskcontrast = $argv[1]; shift;
+      breaksw
+
+    case "-maskmap"
+    case "-mmap"
+    case "-map"
+      if ( $#argv == 0) goto arg1err;
+      set maskmap = $argv[1]; shift;
+      breaksw
+
+    case "-maskframe"
+    case "-mframe"
+    case "-frame"
+      if ( $#argv == 0) goto arg1err;
+      set maskframe = $argv[1]; shift;
+      breaksw
+
+    case "-maskthresh"
+    case "-mthresh"
+    case "-thresh"
+      if ( $#argv == 0) goto arg1err;
+      set maskthresh = $argv[1]; shift;
+      breaksw
+
+    case "-masktail"
+    case "-mtail"
+    case "-tail"
+      if ( $#argv == 0) goto arg1err;
+      set masktail = $argv[1]; shift;
+      breaksw
+
+    case "-float2int"
+      if ( $#argv == 0) goto arg1err;
+      set float2int = $argv[1]; shift;
+      if($float2int != tkreg && $float2int != round && \
+         $float2int != floor) then
+        echo "ERROR: float2int must be tkreg, round, or floor"
+        exit 1;
+      endif
+      breaksw
+
+    case "-mruntype"
+    case "-type"
+      if ( $#argv == 0) goto arg1err;
+      shift; # Just ignore this, for compat with func2roi-sess-mrun
+      breaksw
+
+    case "-umask":
+      if ( $#argv == 0) goto arg1err;
+      set umaskarg = "-umask $argv[1]";
+      umask $argv[1]; shift;
+      breaksw
+
+    case "-anapend":
+      if ( $#argv == 0) goto arg1err;
+      set anapend = $argv[1]; shift;
+      breaksw
+
+    case "-noraw":
+      set AverageRaw = 0;
+      breaksw
+
+    case "-verbose":
+      set verbose = 1;
+      breaksw
+
+    case "-oldtxtstyle":
+      set oldtxtstyle = (--oldtxtstyle);
+      breaksw
+
+    case "-nocheck":
+      set volcheck = 0;
+      breaksw
+
+    case "-echo":
+      set echo = 1;
+      breaksw
+
+    case "-debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    case "-scriptonly":
+      set ScriptOnly = 1;
+      breaksw
+
+    case "-cwd":
+    case "-nolog":
+      breaksw
+
+    case "-g":
+    case "-s":
+    case "-sf":
+    case "-df":
+    case "-d":
+      # ignore getsesspath arguments 
+      shift;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+  if ($#roidef == 0) then
+     echo "ERROR: no ROI definition name specified " |& tee -a $LF 
+     exit 1
+  endif
+
+  if($SourceType == 0) then
+     echo "ERROR: no source specified" |& tee -a $LF 
+     exit 1
+  endif
+
+  if($#rawfsd == 0) set rawfsd = bold;
+
+  if($#rawstem == 0) then
+    if($rawmc) then
+      set rawstem = fmc;
+    else
+      set rawstem = f;
+    endif
+  endif
+
+  if($#sesslabel != 0 && $#labelfile != 0) then
+    echo "ERROR: cannot specify both -sesslabel and -labelfile"
+    exit 1;
+  endif
+
+  if($#anatlabel != 0 && $#labelfile != 0) then
+    echo "ERROR: cannot specify both -anatlabel and -labelfile"
+    exit 1;
+  endif
+
+  if($#anatlabel != 0 && $#sesslabel != 0) then
+    echo "ERROR: cannot specify both -anatlabel and -sesslabel"
+    exit 1;
+  endif
+
+  if($#labelfile != 0) then
+    if(! -e $labelfile) then
+      echo "ERROR: cannot find $labelfile"
+      exit 1;
+    endif
+    # get absolute path to label file #
+    set labeldir  = `dirname $labelfile`;
+    set labelbase = `basename $labelfile`;
+    pushd $labeldir > /dev/null;
+    set labeldir = `pwd`;
+    set labelfile = $labeldir/$labelbase;
+    popd > /dev/null;
+  endif
+
+  if($#labelspace == 0) set labelspace = native;
+  if($labelspace != native && $labelspace != tal) then
+    echo "ERROR: label space = $labelspace, must be either native or tal"
+    exit 1;
+  endif
+
+  if($#anatlabel == 0 && $#sesslabel == 0 && $#labelfile == 0 && \
+     $#maskcontrast == 0 && $#fsdmask == 0) then
+    echo "ERROR: neither label nor mask has been specified"
+    exit 1;
+  endif
+
+  if($#maskcontrast != 0) then
+    set usemask = 1;
+
+    if($#maskthresh == 0) then
+      echo "ERROR: no mask threshold specified"
+      exit 1;
+    endif
+
+    if($#maskanalysis == 0 && $SourceType == $RawSource) then
+      echo "ERROR: must specify -maskanalysis with raw data";
+      exit 1;
+    endif
+
+    if($#maskanalysis == 0) then
+      set maskanalysis = $analysis;
+    endif
+
+    if($#maskspace == 0) set maskspace = native;
+    if($maskspace != tal && $maskspace != native) then
+      echo "ERROR: mask space $maskspace not supported"
+      exit 1;
+    endif
+
+    if($#maskspacedir == 0) then
+      if($maskspace == native) set maskspacedir = ();
+      if($maskspace == tal)    set maskspacedir = tal;
+    endif
+
+    if($#maskmap == 0) then
+      echo "ERROR: must specify mask map"
+      exit 1;
+    endif
+
+    if($#maskframe == 0) set maskframe = 0;
+    if($#masktail == 0)  set masktail = abs;
+
+    if($masktail != abs && $masktail != pos && $masktail != neg) then
+      echo "ERROR: mask tail = $masktail, must be either abs, pos, or neg"
+      exit 1;
+    endif
+
+    set MaskFromGroup = 0;
+    if($#masksessid != 0) then
+      if(! -e $masksessid ) then
+        echo "ERROR: cannot find $masksessid in `pwd`";
+        exit 1;
+      endif
+      set sessinfo = $masksessid/session.info
+      set MaskFromGroup = `grep GroupAverage $sessinfo | wc -l`;
+    endif
+
+    if($MaskFromGroup && $#maskisxavg == 0) then
+      echo "ERROR: must specify a mask isxavg method when mask is from a group"
+      exit 1;
+    endif
+
+    if(! $MaskFromGroup && $#maskisxavg != 0) then
+      echo "ERROR: cannot must specify a mask isxavg method when mask is not from a group"
+      exit 1;
+    endif
+
+    if($#maskisxavg != 0) then
+      if($maskisxavg != fixed && $maskisxavg != random) then
+        echo "ERROR: -maskisxavg must be either fixed or random"
+        exit 1;
+      endif
+      if($maskisxavg == fixed)  set maskspacedir = $maskspacedir-ffx;
+      if($maskisxavg == random) set maskspacedir = $maskspacedir-rfx;
+    endif
+
+  endif # if($#maskcontrast != 0) then #
+
+  if($usemask && $usefsdmask) then
+    echo "ERROR: cannot specify contrast and fsd masks"
+    exit 1;
+  endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo "USAGE: func2roi-sess"
+  echo "Options:";
+  echo "   -roidef   name : name of ROI definition"
+
+  echo "   -analysis name : source is averaged data from analysis"
+  echo "   -anapend  code : append code to analysis name"
+  echo "   -raw           : source is raw data "
+  echo "   -rawfsd        : functional subdirectory for raw data (bold)"
+  echo "   -motioncor     : use motion corrected raw data (with -raw)"
+  echo "   -rawstem       : stem of raw data (f or fmc)"
+  echo "   -rawrlf        : run list file for raw data"
+  echo "   -noraw         : don't process raw data"
+
+  echo "   -sesslabel name : use name.label found in sessid/labels"
+  echo "   -anatlabel name : use name.label found in SUBJECTS_DIR/subject/label"
+  echo "   -labelfile file : give full path of label file"
+  echo "   -labelspace space "
+  echo "   -labelspacexfm xfm file found in mri/transforms ($xfmfile)"
+  echo "   -labelfillthresh thresh: fraction of voxel that must be filled with label points"
+  echo "   -maskcontrast contrast: contrast to use for mask"
+  echo "   -maskthresh   threshold "
+  echo "   -masktail     tail : thresholding tail (<abs>, pos, neg) "
+  echo "   -maskmap      map     : map to use for mask <sig>"
+  echo "   -maskframe    frame   : 0-based frame number in map <0>"
+  echo "   -masksessid   sessid : sessid of mask (default is that of source)"
+  echo "   -maskanalysis name : analysis of mask (default is -analysis)"
+  echo "   -maskspace    space : space of mask (<native> or tal)"
+  echo "   -maskisxavg   effect: fixed or random (when masksessid is a group)"
+
+  echo "   -float2int method: method = <tkreg>,round,floor"
+
+  echo "   -sf sessidfile  ..."
+  echo "   -df srchdirfile ..."
+  echo "   -s  sessid      ..."
+  echo "   -d  srchdir     ..."
+
+  echo "   -umask umask   : set unix file permission mask"
+  echo "   -scriptonly    : don't run, just generate a script"
+  echo "   -version       : print version and exit"
+
+  echo "\nNOTE: when running on group data, set the -noraw flag"
+
+  echo ""
+  echo "For more help see $FSFAST_HOME/docs/func2roi-sess.{tex,ps}"
+  echo ""
+
+exit 1;

@@ -1,0 +1,339 @@
+#!/bin/csh -f
+# inorm-sess - 
+#
+# $Id: inorm-sess,v 1.1 2003/03/04 21:22:08 greve Exp $
+
+set cmdargs = ($argv);
+
+set fsd = "bold";
+set ScriptOnly = 0;
+set INormArgs = ();
+set MC = ();
+set funcstem = (); # stem of functional volume
+set RunListFile = ();
+
+set StartTime = `date`;
+
+if($#argv == 0) then
+  goto usage_exit;
+  exit 1;
+endif
+
+set PWDCMD = `getpwdcmd`;
+
+set SessList = `getsesspath $argv`;
+if($status || $#SessList == 0) then
+  getsesspath $argv 
+  exit 1;
+endif
+
+goto parse_args;
+parse_args_return:
+
+if($#funcstem == 0) then
+  if($#MC == 0) then
+    set funcstem = f; 
+  else
+    set funcstem = fmc;
+  endif
+endif
+
+goto check_params;
+check_params_return:
+
+# Create a log file #
+if(-w .) then
+  mkdir -p log
+  set LF = `$PWDCMD`/log/inorm-sess-$fsd.log
+  rm -f $LF
+else
+  set LF = /dev/null
+endif
+
+echo "inorm-sess" >> $LF
+echo '$Id: inorm-sess,v 1.1 2003/03/04 21:22:08 greve Exp $'       >> $LF
+uname -a          >> $LF
+date              >> $LF
+$PWDCMD               >> $LF
+echo "$cmdargs"   >> $LF
+
+## File permission masking ###
+if(! $?MRI_UMASK ) set MRI_UMASK = `umask`;
+umask $MRI_UMASK;
+set umaskarg = "-umask $MRI_UMASK"
+
+foreach sess ($SessList)
+
+  echo "------------------------------------------------" |& tee -a $LF
+  echo "------------------------------------------------" |& tee -a $LF
+  echo "------------------------------------------------" |& tee -a $LF
+  echo "$sess " |& tee -a $LF
+  date |& tee -a $LF
+
+  ### Check that the target directory is there ###
+  if(! -d $sess/$fsd) then
+    echo "ERROR: $sess/$fsd does not exist"   |& tee -a $LF
+    exit 1;
+  endif
+
+  ### Check that the target directory is writable ###
+  if(! -w $sess/$fsd) then
+    echo "ERROR: $sess/$fsd is not writable"   |& tee -a $LF
+    exit 1;
+  endif
+
+  ### Record the disk space ###
+  df $sess |& tee -a $LF
+
+  ### Goto the functional subdirectory ###
+  cd $sess/$fsd
+
+  ## Get the TR ##
+  if(! -e seq.info ) then
+    echo "ERROR($sess): no seq.info file"
+    exit 1;
+  endif
+  set TR = `cat seq.info | awk '{if($1 == "TR") print $2}'`;
+  set inplaneres  = `cat seq.info | awk '{if($1 == "rowpixelsize") print $2}'`;
+  set betplaneres = `cat seq.info | awk '{if($1 == "slcpixelsize") print $2}'`;
+  set seqname = `cat seq.info | awk '{if($1 == "sequencename") print $2}'`;
+  if($#inplaneres == 0) then
+    echo "ERROR: seq.info file does not appear to be formated correctly"
+    echo "       Try running fixseqinfo-sess."
+    exit 1;
+  endif
+
+  ### Get the list of runs in the FSD ###
+  if($#RunListFile == 0) then
+    set RunList = `getrunlist .`;
+    if($status || $#RunList == 0) then
+      echo "ERROR: $sess/$fsd has no runs"  |& tee -a $LF
+      exit 1;
+    endif
+  else
+    if(! -e $RunListFile ) then
+      echo "ERROR: cannot find runlistfile $RunListFile" |& tee -a $LF
+      exit 1;
+    endif
+    set RunList = `cat $RunListFile`; 
+  endif
+  echo "RunList $RunList" |& tee -a $LF
+
+  #### Prepare the script #####
+  if(! -d scripts) mkdir scripts
+  set SF = scripts/run-inorm
+  rm -f $SF
+  touch $SF
+  echo "#\!/bin/csh -f" >> $SF
+  echo "cd .."  >> $SF
+
+  #### Add all the commands to the script ####
+  foreach run ($RunList)  
+    set instem = $run/$funcstem
+    set cmd = "inorm -i $instem $umaskarg $INormArgs -TR $TR -ipr $inplaneres -bpr   $betplaneres -seqname $seqname";
+    echo ---------------------------------------------- |& tee -a $LF
+    $PWDCMD       |& tee -a $LF
+    echo $cmd |& tee -a $LF
+    echo ---------------------------------------------- |& tee -a $LF
+    echo "$cmd" >> $SF
+    echo 'if($status) exit 1' >> $SF
+  end
+  echo "exit 0" >> $SF
+  echo "\n\n" >> $SF
+  chmod a+x $SF
+
+  ############ Cat the script to the log file ######
+  echo "--------- $SF --------------------" >> $LF
+  cat $SF   >> $LF
+  echo "----------------------------------" >> $LF
+  echo "  " >> $LF
+
+  ###### Now, run the script if desired ######
+  if(! $ScriptOnly) then
+    cd scripts
+    ./run-inorm |& tee -a $LF
+    if($status || $#RunList == 0) then
+      echo "ERROR: inorm failed"  |& tee -a $LF
+      exit 1;
+    endif
+  endif
+
+end
+
+
+exit 0;
+###############################################
+
+
+############--------------##################
+parse_args:
+set cmdline = "$argv";
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-funcstem":
+    case "-fmcstem":
+      if ( $#argv < 1) goto arg1err;
+      set funcstem = $argv[1]; shift;
+      breaksw
+
+    case "-fsd":
+      if ( $#argv < 1) goto arg1err;
+      set fsd = $argv[1]; shift;
+      breaksw
+
+    case "-runlistfile":
+    case "-rlf":
+      if ( $#argv < 1) goto arg1err;
+      set RunListFile = $argv[1]; shift;
+      breaksw
+
+    case "-i":
+      echo "ERROR: inorm input stem is set automatically" 
+      exit 1;
+      breaksw
+
+    case "-o":
+      echo "ERROR: inorm output stem is set automatically"
+      exit 1;
+      breaksw
+
+    case "-meanstem":
+      if ( $#argv == 0) goto arg1err;
+      set INormArgs = ($INormArgs -meanstem $argv[1]); shift;
+      breaksw
+
+    case "-segstem":
+      if ( $#argv == 0) goto arg1err;
+      set INormArgs = ($INormArgs -segstem $argv[1]); shift;
+      breaksw
+
+    case "-thresh":
+      if ( $#argv == 0) goto arg1err;
+      set INormArgs = ($INormArgs -thresh $argv[1]); shift;
+      breaksw
+
+    case "-rescale":
+    case "-meanval":
+    case "-mv":
+      if ( $#argv == 0) goto arg1err;
+      set INormArgs = ($INormArgs -rescale $argv[1]); shift;
+      breaksw
+
+    case "-reportonly":
+    case "-ro":
+      set INormArgs = ($INormArgs -reportonly); shift;
+      breaksw
+
+    case "-synthdata":
+      set INormArgs = ($INormArgs -synthdata); shift;
+      breaksw
+
+    case "-bfloat":
+      set INormArgs = ($INormArgs -bfloat); shift;
+      breaksw
+
+    case "-bshort":
+      set INormArgs = ($INormArgs -bshort); shift;
+      breaksw
+
+    case "-monly":
+      if ( $#argv == 0) goto arg1err;
+      set INormArgs = ($INormArgs -monly $argv[1]); shift;
+      breaksw
+
+    case "-verbose":
+      set INormArgs = ($INormArgs -verbose); 
+      breaksw
+
+    case "-echo":
+      set INormArgs = ($INormArgs -echo); 
+      set echo = 1;
+      breaksw
+
+    case "-debug":
+      set INormArgs = ($INormArgs -debug); 
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    case "-umask":
+      if ( $#argv == 0) goto arg1err;
+      setenv MRI_UMASK $1; shift;
+      breaksw
+
+    case "-scriptonly":
+      set ScriptOnly = 1;
+      breaksw
+
+    case "-mc":
+    case "-motioncor":
+      set MC = "mc";
+      breaksw
+
+    case "-g":
+    case "-s":
+    case "-sf":
+    case "-d":
+    case "-df":
+      shift;
+      # ignore getsesspath arguments 
+      breaksw
+
+    case "-cwd":
+      # ignore getsesspath arguments 
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+  if ($#SessList == 0) then
+     echo "ERROR: no sessions specified"
+     exit 1
+  endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "USAGE: inorm-sess"
+  echo ""
+  echo "Optional Arguments"
+  echo "   -thresh  threshold : fraction of global mean to separate brain and air"
+  echo "   -motioncor         : inorm the motion corrected volumes"
+  echo "   -funcstem stem     : stem of functional volume (default: f or fmc)"
+  echo "   -rlf runlistfile   : "
+  echo "   -umask umask       : set unix file permission mask"
+  echo "   -version           : print version and exit"
+  echo ""
+  echo "Session Arguments (Required)"
+  echo "   -sf sessidfile  "
+  echo "   -df srchdirfile "
+  echo "   -s  sessid      "
+  echo "   -d  srchdir     "
+  echo "   -fsd fsdir      (optional)"
+  echo ""
+exit 1;

@@ -1,0 +1,295 @@
+#!/bin/csh -f
+############################################################
+# Name: editmask
+############################################################
+
+set inputargs = ($argv);
+set fmrianalver = `cat $FMRI_ANALYSIS_DIR/docs/version`;
+set VERSION = '$Id: editmask,v 1.1 2003/03/04 21:22:08 greve Exp $';
+set PrintHelp = 0;
+
+## If there are no arguments, just print useage and exit ##
+if ( $#argv == 0  )  goto usage_exit;
+set n = `echo $argv | grep version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+set n = `echo $argv | grep help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+
+set os = `uname -s`;
+if($os == SunOS) then
+  set PWDCMD = pwd;
+  set MATLAB = matlab 
+else
+  set PWDCMD = `getpwdcmd`;
+  set MATLAB = `getmatlab`;
+  if($status) exit 1;
+endif
+
+# Set Default Values #
+set baseid = ();
+set inmask = ();
+set invertinmask = 0;
+set outmask = ();
+set segbase = 0;
+set segthresh = ();
+set heqbase = 0; 
+set monly = 0; 
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+
+if($#outmask != 0) then
+  set outdir = `dirname $outmask`;
+  mkdir -p $outdir;
+  pushd $outdir > /dev/null
+  set outdir = `$PWDCMD`;
+  popd > /dev/null
+else
+  set outdir = `$PWDCMD`;
+endif
+
+## Set path for matlab file ##
+if(! $monly) then
+  set MLF = "/tmp/sxa_$$.m"
+  set QuitOnError = 1;
+else
+  set MLF = $mfile;
+  set QuitOnError = 0;
+endif
+
+#set okfile = $outdir/selxavg.ok.$$
+#rm -f $okfile
+
+set LF = /dev/null
+
+echo matlab file is $MLF | tee -a $LF
+rm -f $MLF;
+echo "% Matlab file for edit `date`" >> $MLF
+echo "% This file may be deleted "     >> $MLF
+echo "% $MLF"                          >> $MLF;
+echo "global QuitOnError;"             >> $MLF;
+echo "QuitOnError = $QuitOnError;"     >> $MLF;
+set c = "";
+echo -n "editmask("     >> $MLF;
+foreach arg ($inputargs)
+  echo -n "$c '$arg'"      >> $MLF;
+  set c = ",";
+end
+echo -n ");" >> $MLF;
+echo " ">> $MLF;
+if(! $monly ) then
+  echo "heditmask = gcf; ">> $MLF;
+  echo "uiwait(heditmask)" >> $MLF;
+endif
+echo "qoe;" >> $MLF;
+
+echo "----------- Matlab file --------------" | tee -a $LF
+cat $MLF | tee -a $LF
+echo " " | tee -a $LF
+echo "-----------------------------------" | tee -a $LF
+
+if(! $monly ) then
+  echo "------------------------------------------" | tee -a $LF
+  echo "------- matlab output --------------------" | tee -a $LF
+  cat $MLF | $MATLAB  # | tee -a $LF
+  echo "------------------------------------------" | tee -a $LF
+  rm $MLF
+  if(-e $baseid.bhdr) cp $baseid.bhdr $outmask.bhdr
+  #if(! -e $okfile) then
+  #  echo "ERROR: editmask() failed\n";
+  #  exit 1;
+  #endif
+  #rm -f $okfile
+endif
+
+echo " " | tee -a $LF
+echo " " | tee -a $LF
+date | tee -a $LF
+echo "editmask: finished" | tee -a $LF
+
+exit 0;
+############################################################
+
+############--------------##################
+parse_args:
+
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-base":
+      if ( $#argv == 0) goto arg1err;
+      set baseid = $argv[1]; shift;
+      breaksw
+
+    case "-inmask":
+      if ( $#argv == 0) goto arg1err;
+      set inmask = $argv[1]; shift;
+      breaksw
+
+    case "-invert":
+      set invertinmask = 1;
+      breaksw
+
+    case "-outmask":
+      if ( $#argv == 0) goto arg1err;
+      set outmask = $argv[1]; shift;
+      breaksw
+
+    case "-segthresh":
+      if ( $#argv == 0) goto arg1err;
+      set segthresh = $argv[1]; shift;
+      set segbase = 1;
+      breaksw
+
+    case "-heqbase":
+      set heqbase = 1;
+      breaksw
+
+    case "-segbase":
+      set segbase = 1;
+      breaksw
+
+    case "-monly":
+      if ( $#argv == 0) goto arg1err;
+      set mfile = $argv[1]; shift;
+      set monly = 1; 
+      breaksw
+
+    case "-debug":
+      set verbose = 1; 
+      set echo = 1;
+      breaksw
+
+    case "-umask":
+      if ( $#argv == 0) goto arg1err;
+      umask $1; shift;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized.
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+  set errs = 0;
+
+  if($#baseid == 0)then
+    echo "ERROR: must specify base volume";
+    set errs = 1;
+  endif
+
+  if($segbase && $#inmask != 0) then
+    echo "ERROR: cannot use inmask and seg base"
+    set errs = 1;
+  endif
+
+  if($errs) exit 1;
+
+goto check_params_return;
+############--------------##################
+
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+#--------------------------------------------------------------------#
+usage_exit:
+  echo ""
+  echo "USAGE: editmask"
+  echo ""
+  echo "Required Arguments"
+  echo "  -base basevol : volume to use as the base for editing"
+  echo "  -outmask maskvol : save mask volume to outmask"
+  echo ""
+  echo "Optional Arguments"
+  echo "  -heqbase : eqalize base volume intensities"
+  echo "  -inmask maskvol  : use mask volume as initial mask"
+  echo "  -segbase         : create mask by segmenting base volume"
+  echo "  -segthresh threshold : create mask by segmenting base volume"
+  echo "                         with given threshold (default = .75)"
+  echo "  -invert          : invert input mask"
+  echo ""
+  echo "  -help : documentation"
+
+  if($PrintHelp) \
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+
+exit 1;
+
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+This program allows the user to create a binary mask by pointing
+and clicking on a base mosaic. The base is specified with the 
+-base option. The mask created is specified with -outmask. These
+are the only two required arguments. The base image can be made
+to look "prettier" by equalizing the intensities with -heqbase.
+
+A previously existing mask can be modified by including it with the 
+-inmask flag. 
+
+All volumes are assumed to be in bshort/bfloat format.
+
+An input mask can also be created by segmenting the base image 
+(-segbase). By default, the absolute intensity threshold is 
+.75 times the average volume intensity. This fraction can be
+changed with -segthresh.
+
+The input mask can also be inverted with -invert.
+
+Once the image is presented, hit 'h' to print a list of keystroke
+commands to the shell. These will look something like this:
+
+b - change brush size (1x1,3x3,5x5,7x7,9x9,11x11,13x13,...)
+h - print help (this message)
+m - change edit mode
+    No Edit - button down does nothing
+    Set     - button down turns on mask at voxel
+    Unset   - button down turns off mask at voxel
+    Toggle  - button down toggels mask at voxel
+q - quit/exit
+s - save mask
+t - toggle mask on and off
+v - print the current state
+z - toggle zoom state. When zoom is on, use left
+    button to zoom in and right to zoom out
+
+It will also print out some stats on the current editing session.
+
+Once you have finished editing, hit 's' to save and then 'q' to exit.
+
+Example:
+
+editmask -base 006/f -heqbase -outmask masks/dlpfc -segthresh 1.5
+
+will use the functional volume from run 6 as the base. This base will
+be intensity equalized (-heqbase) and segmented to create the initial
+mask. The output mask will be stored in masks/dlpfc. If the masks
+directory does not exist, it will automatically be created. Note
+that it was not necessary to specify -segbase explicitly because
+a -segthresh was used.

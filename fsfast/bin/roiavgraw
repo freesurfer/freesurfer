@@ -1,0 +1,378 @@
+#!/bin/csh -f
+
+set ROIAVGRAW_VER = '$Id: roiavgraw,v 1.1 2003/03/04 21:22:09 greve Exp $';
+
+set instem    = ();
+set inext     = bshort;
+set roistem   = ();
+set fmaskstem = ();
+set fframe    =  0;
+set fthresh   =  2;
+set fmasktail = "pos";
+set outstem   = ();
+set monly     = 0;
+set synthfunc = 0;
+set synthroi  = 0;
+set baseline  = 1;
+set percent   = 1;
+set nskip = 0;
+
+if($#argv == 0) then
+  echo "USAGE: roiavgraw -roi stem -i stem -o stem [options]";
+  echo ""
+  echo "Options:"
+  echo "  -fmask     stem    : stem of functional masking volume"
+  echo "  -fframe    frameno : zero-based frame of mask to use ($fframe)"
+  echo "  -fthresh   thresh  : masking threshold ($fthresh)"
+  echo "  -fmasktail sign    : masking sign pos, neg, abs ($fmasktail)"
+  echo "  -nskip     n       : skip the first n samples ($nskip)"
+  echo "  -nobaseline"  
+  echo "  -nopercent"
+  echo "  -synthfunc"
+  echo ""
+  echo "  $ROIAVGRAW_VER"
+  echo "  Comments or questions: analysis-bugs@nmr.mgh.harvard.edu"
+  echo ""
+  exit 1;
+endif
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+set fs = `getfirstsliceno $instem`;
+if($status)then
+  echo "ERROR: cannot find $instem"
+  exit 1;
+endif
+
+set fs = `getfirstsliceno $roistem`;
+if($status)then
+  echo "ERROR: cannot find $roistem"
+  exit 1;
+endif
+
+if($#fmaskstem != 0) then
+  set fs = `getfirstsliceno $fmaskstem`;
+  if($status)then
+    echo "ERROR: cannot find $fmaskstem"
+    exit 1;
+  endif
+endif
+
+set MATLAB = `getmatlab`;
+if($status) exit 1;
+
+#### Output Directory #######
+set OutDir  = `dirname  $outstem`;
+set OutBase = `basename $outstem`;
+mkdir -p $OutDir;
+
+if ($monly) then
+  set QuitOnError = 0;
+  set TARGET = "tee $mfile"
+  rm -f $mfile;
+else
+  set QuitOnError = 1;
+  set TARGET =  "$MATLAB -display iconic"
+endif  
+
+#---------------------------------------------------------------#
+$TARGET <<EOF
+
+  seed = sum(100*clock);
+  rand('state',seed);
+  randn('state',seed);
+
+  global QuitOnError ;
+  QuitOnError = $QuitOnError;
+  InStem      = '$instem';
+  InExt       = '$inext';
+  OutStem     = '$outstem';
+  ROIStem     = '$roistem';
+  FMaskStem   = '$fmaskstem';
+  FFrame      = $fframe;
+  FThresh     = $fthresh;
+  FTail       = deblank('$fmasktail');
+  Percent     = $percent;
+  Baseline    = $baseline;
+  SynthROI    = $synthroi;
+  SynthFunc   = $synthfunc;
+  NSkip       = $nskip;
+
+  %------------------------------------------------%
+  fprintf('Loading ROI Definition Volume\n');
+  roidef = fmri_ldbvolume(ROIStem);
+  [Ns Nr Nc] = size(roidef);
+  Nv = Ns*Nr*Nc;
+  roidef = reshape1d(roidef(:,:,:,1));
+
+  %------------------------------------------------%
+  fprintf('Loading Functional Data Volume\n');
+  fdata = fmri_ldbvolume(InStem);
+  [Nsf Nrf Ncf Nt] = size(fdata);
+  if(NSkip > 0) 
+    fdata = fdata(:,:,:,NSkip+1:Nt);
+    Nt = Nt - NSkip;
+  end
+
+  if(Ns ~= Nsf | Nr ~= Nrf | Nc ~= Ncf)
+    msg = sprintf('Inconsistent dimensions between roidef and input volumes\n');
+    msg = sprintf('%s  %d,%d  %d,%d  %d,%d',msg,Ns,Nsf,Nr,Nrf,Nc,Ncf);
+    qoe(msg);error(msg);
+  end
+  if(SynthFunc) fdata = randn(size(fdata)); end
+  fdata = reshape(fdata, [Nv Nt]);
+
+  %------------------------------------------------%
+  %% Preprocess Functional Data %%
+  if(Percent | Baseline)
+    fdatamean = mean(fdata,2);
+  end
+  if(Baseline)
+    fprintf('Removing Baseline\n');
+    fdata = fdata - repmat(fdatamean, [1 Nt]);
+  end
+  if(Percent)
+    fprintf('Computing Percent Change\n');
+    ind = find(fdatamean==0);
+    fdatamean(ind) = 1;
+    fdata = fdata./repmat(fdatamean, [1 Nt]);
+  end
+
+  %------------------------------------------------%
+  % Find unique ROI identifiers %
+  roiid = unique(roidef);
+  nroi = length(roiid);
+  fprintf('Found %3d ROIs\n',nroi);
+
+  %--------------------------------------------------------%
+  roidef_fmask = roidef;
+  if(~isempty(FMaskStem))
+    fmask = fmri_ldbvolume(FMaskStem);
+    fmask = fmask(:,:,:,FFrame+1);
+    if(strcmp(FTail,'neg')) fmask = -fmask; 
+    elseif(strcmp(FTail,'abs')) fmask = abs(fmask); 
+    end
+    imask0 = find(fmask < FThresh);
+    roidef_fmask(imask0) = 0;
+  end
+   
+  %------------------------------------------------%
+  % Open the log file and write some information   %
+  fname = sprintf('%s.log',OutStem);
+  fid = fopen(fname,'w');
+  if(fid == -1)
+    msg = sprintf('Could not open %s',fname);
+    qoe(msg); error(msg);
+  end
+  fprintf(fid,'ROI Avg Raw Log File %s\n',date);
+  fprintf(fid,'InStem:    %s\n',InStem);
+  fprintf(fid,'ROIStem:   %s\n',ROIStem);
+  fprintf(fid,'FMaskStem: %s\n',FMaskStem);
+  fprintf(fid,'FFrame:    %d\n',FFrame);
+  fprintf(fid,'FThresh:   %g\n',FThresh);
+  fprintf(fid,'FTail:     %s\n',FTail);
+  fprintf(fid,'OutStem:   %s\n',OutStem);
+  fprintf(fid,'Baseline:  %d\n',Baseline);
+  fprintf(fid,'Percent:   %d\n',Percent);
+  fprintf(fid,'nROIs:     %d\n',nroi);
+  fprintf(fid,'Nt        %3d\n',Nt);
+
+  %------------------------------------------------%
+  % Perform within ROI averaging %
+  roiavg = zeros(nroi,Nt);
+  for roi = 1:nroi
+    ind  = find(roidef==roiid(roi));
+    indf = find(roidef_fmask==roiid(roi));
+    fprintf('%3d  %3d  %5d  %5d\n',roi,roiid(roi),length(indf),length(ind));
+    fprintf(fid,'%3d  %3d  %5d  %5d\n',roi,roiid(roi),length(indf),length(ind));
+    if(~isempty(indf))
+      if(length(indf) > 1)
+        roiavg(roi,:) = mean(fdata(indf,:));
+      else
+        roiavg(roi,:) = fdata(indf,:);
+      end
+    else
+      roiavg(roi,:) = 0;
+    end
+  end
+  fclose(fid);
+
+  %------------------------------------------------%
+  % Save results to an ascii file %
+  fmt = repmat('%9.5f ',[1 nroi]);
+  fmt = [fmt '\n'];
+  results = [roiavg];
+  fname = sprintf('%s.dat',OutStem);
+  fid = fopen(fname,'w');
+  if(fid == -1)
+    msg = sprintf('Could not open %s',fname);
+    qoe(msg); error(msg);
+  end
+  fprintf(fid,fmt,results);
+  fclose(fid);
+
+  %------------------------------------------------%
+  % Also save results to a bfloat file %
+  fname = sprintf('%s_000.bfloat',OutStem);
+  fmri_svbfile(reshape(roiavg,[1 nroi Nt]),fname);
+
+
+  if(QuitOnError)  quit; end
+  
+EOF
+
+exit 0;
+
+############--------------##################
+parse_args:
+
+set cmdline = "$argv";
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-i":
+      if ( $#argv == 0) goto arg1err;
+      set instem = ($instem $argv[1]); shift;
+      breaksw
+
+    case "-o":
+      if ( $#argv == 0) goto arg1err;
+      set outstem = $argv[1]; shift;
+      breaksw
+
+    case "-roi":
+      if ( $#argv == 0) goto arg1err;
+      set roistem = $argv[1]; shift;
+      breaksw
+
+    case "-fmask":
+      if ( $#argv == 0) goto arg1err;
+      set fmaskstem = $argv[1]; shift;
+      breaksw
+
+    case "-fthresh":
+      if ( $#argv == 0) goto arg1err;
+      set fthresh = $argv[1]; shift;
+      breaksw
+
+    case "-fframe":
+      if ( $#argv == 0) goto arg1err;
+      set fframe = $argv[1]; shift;
+      breaksw
+
+    case "-nskip":
+      if ( $#argv == 0) goto arg1err;
+      set nskip = $argv[1]; shift;
+      breaksw
+
+    case "-firstslice":
+    case "-fs":
+      if ( $#argv == 0) goto arg1err;
+      set firstslice = $argv[1]; shift;
+      breaksw
+
+    case "-nslices":
+    case "-ns":
+      if ( $#argv == 0) goto arg1err;
+      set Nslices = $argv[1]; shift;
+      breaksw
+
+    case "-nullroi": # not used
+      if ( $#argv == 0) goto arg1err;
+      set nullroi = $argv[1]; shift;
+      breaksw
+
+    case "-TR": # not used
+      if ( $#argv == 0) goto arg1err;
+      set TR = $argv[1]; shift;
+      breaksw
+
+    case "-bfloat":
+      set inext  = bfloat;
+      breaksw
+
+    case "-bshort":
+      set inext  = bshort;
+      breaksw
+
+    case "-percent":
+      set percent = 1;
+      breaksw
+
+    case "-nopercent":
+      set percent = 0;
+      breaksw
+
+    case "-baseline":
+      set baseline = 1;
+      breaksw
+
+    case "-synth":
+      set synthfunc = 1;
+      breaksw
+
+    case "-synthfunc":
+      set synthfunc = 1;
+      breaksw
+
+    case "-nobaseline":
+      set baseline = 0;
+      breaksw
+
+    case "-monly":
+      if ( $#argv == 0) goto arg1err;
+      set mfile = $argv[1]; shift;
+      set monly = 1; 
+      breaksw
+
+    case "-debug":
+    case "-verbose":
+      set verbose = 1;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized.
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+  if ($#instem == 0) then
+     echo "ERROR: must specify an input stem";
+     exit 1
+  endif
+
+  if ($#outstem == 0) then
+     echo "ERROR: must specify an output stem";
+     exit 1
+  endif
+
+  if ($#roistem == 0) then
+     echo "ERROR: must specify a roi stem";
+     exit 1
+  endif
+
+goto check_params_return;
+############--------------##################
+
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+

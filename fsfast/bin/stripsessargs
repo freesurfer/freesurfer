@@ -1,0 +1,40 @@
+#!/bin/csh -f
+# selxavg-sess
+#
+# $Id: stripsessargs,v 1.1 2003/03/04 21:22:09 greve Exp $
+set VERSION = '$Id: stripsessargs,v 1.1 2003/03/04 21:22:09 greve Exp $';
+
+set otherargs = ();
+
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+    case "-s":
+    case "-sf":
+    case "-df":
+    case "-d":
+    case "-g":
+      if( $#argv == 0) goto arg1err;
+      shift;
+      breaksw
+
+    default:
+      set otherargs = ($otherargs $flag);
+      breaksw
+  endsw
+
+end
+
+echo $otherargs
+
+exit 0;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+

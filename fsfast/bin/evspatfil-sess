@@ -1,0 +1,371 @@
+#!/bin/csh -f
+# selxavg-sess
+#
+# $Id: evspatfil-sess,v 1.1 2003/03/04 21:22:08 greve Exp $
+set VERSION = '$Id: evspatfil-sess,v 1.1 2003/03/04 21:22:08 greve Exp $'
+set FASTVER = `cat $FMRI_ANALYSIS_DIR/docs/version`;
+
+set inputargs = ($argv);
+
+set n = `echo $argv | grep -e -help | wc -l` 
+if($#argv == 0 || $n != 0)  goto usage_exit;
+
+set n = `echo $argv | grep version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+
+set PWD = `getpwdcmd`;
+if($status) exit 1;
+
+set SessList = `getsesspath $argv`;
+if($status || $#SessList == 0) then
+  getsesspath $argv 
+  exit 1;
+endif
+
+#------ Defaults --------#
+set sevsubdir   = ();
+set nfilter     = ();
+set instem      = f;
+set outstem     = ();
+set fsd         = bold;
+set runlistfile = ();
+set mask        = ();
+set jackknife   = 0;
+set pveonly     = 0;
+set pforder     = -1;
+set demean      = 1;
+set detrend     = 1;
+set cutends     = 0;
+set sevexcl = ();
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+##### Create a log file ######
+set logdir = `pwd`/log;
+mkdir -p $logdir
+if(! -e $logdir) then
+  echo "WARNING: could not create $logdir"
+  set LF = /dev/null
+else
+  set LF = $logdir/evspatfil-sess.log
+  if(-e $LF) mv $LF $LF.old
+endif
+
+echo "--------------------------------------------------------------"
+echo "evspatfil-sess logfile is $LF"
+echo "--------------------------------------------------------------"
+
+echo "evspatfil-sess log file" >> $LF
+echo $VERSION >> $LF
+echo "FAST Version $FASTVER"  >> $LF
+id            >> $LF
+pwd           >> $LF
+echo $0          >> $LF
+echo $inputargs  >> $LF
+uname -a         >> $LF
+date             >> $LF
+
+set StartDate = `date`;
+
+### Go through each session ###
+foreach sess ($SessList)
+
+  set sessbase = `basename $sess`;
+  echo "-------------------------------------------" |& tee -a $LF
+  echo "$sess " |& tee -a $LF
+  date |& tee -a $LF
+
+  if(! -d $sess) then
+    echo "ERROR: $sess does not exist"   |& tee -a $LF
+    exit 1;
+  endif
+
+  cd $sess/$fsd
+  if($#runlistfile == 0) then
+    set RunList = `getrunlist .`;
+    if($status || $#RunList == 0) then
+      echo "ERROR: $sess/$fsd has no runs"  |& tee -a $LF
+      exit 1;
+    endif
+  else
+    if(! -e $runlistfile) then
+      echo "ERROR: ($sessbase) could not find runlistfile $runlistfile"
+      exit 1;
+    endif
+    set RunList = (`cat $runlistfile`);
+  endif
+
+  echo "INFO ($sessbase): RunList = $RunList"
+
+  #----------- Run Loop -----------------#
+  foreach run ($RunList)  
+
+    set instemuse = $run/$instem;
+
+    # Set the SEV sub directory name #
+    if($jackknife) then
+      set sevsubdiruse = $sevsubdir-jk$run;
+    else
+      set sevsubdiruse = $sevsubdir;
+    endif
+
+    # Build the command line #
+    set cmd = (evspatfil)
+    set cmd = ($cmd -sev $sevsubdiruse/sev);
+    set cmd = ($cmd -i $instemuse);
+    if(! $pveonly) set cmd = ($cmd -o $run/$outstem);
+    set cmd = ($cmd -pve $run/$outstem-pve.dat);
+    set cmd = ($cmd -projtc $run/$outstem-projtc)
+    if($#mask    != 0) set cmd = ($cmd -mask masks/$mask);
+    if($#nfilter != 0) set cmd = ($cmd -nfilter $nfilter);
+    if(! $demean)  set cmd = ($cmd -nodemean);
+    if(! $detrend) set cmd = ($cmd -nodetrend);
+    if($pforder > 0) set cmd = ($cmd -polyfit $pforder);
+    if($cutends)     set cmd = ($cmd -cutends);
+    if($#sevexcl != 0) then
+      foreach n ($sevexcl)
+        set cmd = ($cmd -sevexcl $n )
+      end
+    endif
+
+    echo "---------------------------------------------" |& tee -a $LF
+    pwd        |& tee -a $LF
+    echo $cmd  |& tee -a $LF
+    echo "---------------------------------------------" |& tee -a $LF
+
+    $cmd |& tee -a $LF
+    if($status) then
+      echo "ERROR: evspatfil failed" |& tee -a $LF
+      exit 1;
+    endif
+
+  end # Run Loop #
+
+end # Session Loop #
+
+echo " "
+echo "Start: $StartDate" |& tee -a $LF
+echo "End:   `date`"     |& tee -a $LF
+echo "evspatfil-sess finished" |& tee -a $LF
+echo " "
+
+exit 0;
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-sevsubdir":
+    case "-ssd":
+      if ( $#argv == 0) goto arg1err;
+      set sevsubdir = $argv[1]; shift;
+      breaksw
+
+    case "-fsd":
+      if ( $#argv == 0) goto arg1err;
+      set fsd = $argv[1]; shift;
+      breaksw
+
+    case "-funcstem":
+    case "-instem":
+    case "-i":
+      if ( $#argv == 0) goto arg1err;
+      set instem = $argv[1]; shift;
+      breaksw
+
+    case "-outstem":
+    case "-o":
+      if ( $#argv == 0) goto arg1err;
+      set outstem = $argv[1]; shift;
+      breaksw
+
+    case "-pvefile":
+    case "-pve":
+      if ( $#argv == 0) goto arg1err;
+      set pvefile = $argv[1]; shift;
+      breaksw
+
+    case "-nfilter":
+      if ( $#argv == 0) goto arg1err;
+      set nfilter = $argv[1]; shift;
+      breaksw
+
+    case "-runlistfile":
+    case "-rlf":
+      if ( $#argv == 0) goto arg1err;
+      set runlistfile = $argv[1]; shift;
+      breaksw
+
+    case "-mask":
+      if ( $#argv == 0) goto arg1err;
+      set mask = $argv[1]; shift;
+      breaksw
+
+    case "-jackknife":
+    case "-jk":
+      set jackknife = 1;
+      breaksw
+
+    case "-pveonly":
+      set pveonly = 1;
+      breaksw
+
+    case "-polyfit":
+    case "-pf":
+      if ( $#argv == 0) goto arg1err;
+      set pforder = $argv[1]; shift;
+      breaksw
+    case "-nodetrend":
+      set detrend = 0;
+      breaksw
+    case "-nodemean":
+      set demean = 0;
+      breaksw
+
+    case "-cutends":
+      set cutends = 1;
+      breaksw
+
+    case "-sevexcl":
+      if ( $#argv < 1) goto arg1err;
+      set sevexcl = ($sevexcl $argv[1]); shift;
+      breaksw
+
+    case "-verbose":
+      set verbose = 1;
+      breaksw
+
+    case "-echo":
+      set echo = 1;
+      breaksw
+
+    case "-debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    case "-g":
+    case "-s":
+    case "-sf":
+    case "-d":
+    case "-df":
+      shift;
+      # ignore getsesspath arguments 
+      breaksw
+
+    case "-cwd":
+      # ignore getsesspath arguments 
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+  if($#SessList == 0) then
+    echo "ERROR: no sessions specified"
+    exit 1
+  endif
+
+  if( $#sevsubdir == 0 ) then
+    echo "ERROR: no SEV subdirectory specified"
+    exit 1
+  endif
+
+  if( $#outstem == 0) then
+    echo "ERROR: must specify and output"
+    exit 1;
+  endif
+
+  if( ! $pveonly && $#nfilter == 0 ) then
+    echo "ERROR: must specdify -nfilter if not computing pveonly"
+    exit 1;
+  endif
+
+
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "USAGE: evspatfil-sess"
+  echo ""
+  echo "Required Arguments:";
+  echo "   -sevsubdir  subdir : name of directory with the SEVs (see evfunc-sess)"
+  echo "   -funcstem  instem  : input volume"
+  echo "   -outstem outstem : output stem "
+  echo "   -nfilter n       : number of SEVs to apply (not needed with -pveonly)"
+  echo ""
+  echo "Optional Arguments:"
+  echo "   -fsd funcsubdir  : default = bold"
+  echo "   -rlf runlistfile : default is to use all runs"
+  echo "   -mask       stem : as found in masks/stem"
+  echo "   -jackknife       : leave out one (uses sevsubdir-jkXXX)"
+  echo "   -pveonly         : only compute pve (ie, dont spat filter)"
+  echo "   -polyfit order   : fit an nth order polynomial for drift"
+  echo "   -cutends : dont include end slices"
+  echo "   -sevexcl nth <-sevexcl mth>  : exclude sev components"
+  echo ""
+  echo "Session Arguments (Required)"
+  echo "   -sf sessidfile  ..."
+  echo "   -df srchdirfile ..."
+  echo "   -s  sessid      ..."
+  echo "   -d  srchdir     ..."
+  echo ""
+  echo "Other Arguments"
+  echo "   -umask umask   : set unix file permission mask"
+  echo "   -version       : print version and exit"
+  echo "   -help          : get more info"
+  echo ""
+
+  set n = `echo $argv | grep -e -help | wc -l` 
+  if($n != 0)  goto help_exit;
+
+exit 1;
+
+help_exit:
+echo "\
+\
+This program will spatially filter a functional volume by estimating \
+and cancelling out the noise based on the spatial eigenvectors of the \
+raw data as computed by evfunc-sess. The input is the the same as that \
+specified with -instem. If -pveonly is specified, then only the \
+percent variance explained by all SEVs is computed (ie, there is no \
+filtered output). The SEVs must have been computed by evfunc-sess and \
+are stored in sevsubdir, unless -jackknife is used, in which case the \
+SEVs are obtained from sevsubdir-jkXXX. \
+\
+"
+
+exit;

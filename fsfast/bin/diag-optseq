@@ -1,0 +1,48 @@
+#!/bin/csh -f
+
+set   DIAGOPTSEQ_VER = '$Id: diag-optseq,v 1.1 2003/03/04 21:22:08 greve Exp $';
+echo "$DIAGOPTSEQ_VER"
+
+if($#argv == 0) then
+  set OutDir = ./tmp-diag-data
+else
+  set OutDir = $argv[1];
+endif
+
+mkdir -p $OutDir
+cd $OutDir
+
+set Ntp = 128
+set NpercondList = (128 64 32 16)
+set TER = 1;
+set TR = 2
+set TW = 20
+set Nruns = 5;
+set Seed = 53
+set Nsearch = 100
+set Nnnc = $#NpercondList
+@ Nc = $Nnnc + 1;
+
+rm -f eff.dat
+foreach Nper ( $NpercondList )
+
+  echo -------------- Nper $Nper ---------------------
+  set OutPrefix = par-$Nper
+  set Npercond = ($Nper)
+
+  if(1) then
+    optseq -Ntp $Ntp -npercond $Npercond -TR $TR -TER $TER -tw $TW \
+           -nruns $Nruns -seed $Seed -nsearch $Nsearch -o $OutPrefix
+
+    set rt = $status
+    if($rt)then
+      echo "ERROR: optseq exited with error code $rt"
+      exit $rt;
+    endif
+  endif
+
+  set Eff = `seqefficiency -p $OutPrefix-001.dat -TR $TR -TW $TW -Ntp $Ntp`;
+  echo $Nper $Eff | tee -a eff.dat
+end
+
+exit 0;

@@ -1,0 +1,12 @@
+#!/bin/csh -f
+
+set versionfile = $FSFAST_HOME/docs/version
+
+if(! -e $versionfile) then
+  echo "ERROR: cannot find $versionfile"
+  exit 1;
+endif
+
+cat $versionfile
+
+exit 0

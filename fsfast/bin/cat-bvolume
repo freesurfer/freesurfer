@@ -1,0 +1,188 @@
+#!/bin/csh -f
+# $Id: cat-bvolume,v 1.1 2003/03/04 21:22:08 greve Exp $
+# Name: cat-bvolume
+# Purpose: concatenates multiple bvolumes into one bvolume. The
+# source bvolumes must have the same spatial dimension but can
+# differ in the number of frames. They must have the same precision
+# and the same endianness.  This script assures that the correct
+# values are in the output header files.
+
+set inputargs = ($argv);
+set VERSION = '$Id: cat-bvolume,v 1.1 2003/03/04 21:22:08 greve Exp $';
+
+## Set up defaults ##
+set instemlist  = ();
+set outstem     = ();
+
+## If there are no arguments, just print useage and exit ##
+if ( $#argv == 0  )  goto usage_exit;
+
+set n = `echo $argv | grep version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+
+set PWDCMD = `getpwdcmd`;
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+## ---- Check that all the volumes are consistent ---- ##
+@ nth = 1;
+@ nframes = 0;
+foreach instem ($instemlist)
+  set tmp = `getbfvdim $instem`;
+  if($status) then
+    echo "ERROR: reading $instem"
+    exit 1;
+  endif
+  set ns = $tmp[1];
+  set nr = $tmp[2];
+  set nc = $tmp[3];
+  set nf = $tmp[4];
+  set bext = $tmp[5];
+  set endian = $tmp[6];
+
+  if($nth == 1) then
+    set ns0 = $tmp[1];
+    set nr0 = $tmp[2];
+    set nc0 = $tmp[3];
+    set nf0 = $tmp[4];
+    set bext0 = $tmp[5];
+    set endian0 = $tmp[6];
+  endif
+
+  if($ns != $ns0 || $nr != $nr0 || $nc != $nc0) then
+    echo "ERROR: dimension of volume $instem ($ns $nr $nc) does not match"
+    echo "       that of $instemlist[1] ($ns0 $nr0 $nc0) "
+    exit 1;
+  endif
+
+  if($bext != $bext0) then
+    echo "ERROR: precision of volume $instem ($bext) does not match"
+    echo "       that of $instemlist[1] ($bext0)"
+    exit 1;
+  endif
+
+  if($endian != $endian0) then
+    echo "ERROR: endianness of volume $instem ($endian) does not match"
+    echo "       that of $instemlist[1] ($endian0)"
+    exit 1;
+  endif
+
+  @ nframes = $nframes + $nf;
+  @ nth = $nth + 1;
+end
+
+# Create the output directory #
+set outdir = `dirname $outstem`;
+mkdir -p $outdir;
+pushd $outdir > /dev/null
+set outdir = `$PWDCMD`;
+popd > /dev/null
+
+# Create the output volume 
+set outhdrvals = ($nr $nc $nframes $endian);
+@ slice = 0;
+while($slice < $ns)
+  echo -n "$slice "
+  set outbase = `printf %s_%03d $outstem $slice`;
+  set outfile = $outbase.$bext
+  set outhdr  = $outbase.hdr
+
+  rm -f $outfile $outhdr
+  foreach instem ($instemlist)
+    set inbase = `printf %s_%03d $instem $slice`;
+    set infile = $inbase.$bext
+    cat $infile >> $outfile    
+  end
+
+  echo $outhdrvals > $outhdr
+  @ slice = $slice + 1;
+end
+
+echo " "
+echo " "
+
+exit 0
+##########################################################
+
+############--------------##################
+parse_args:
+
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-i":
+      if ( $#argv == 0) goto arg1err;
+      set instem = $argv[1]; shift;
+      set instemlist = ($instemlist $instem);
+      breaksw
+
+    case "-o":
+      if ( $#argv == 0) goto arg1err;
+      set outstem = $argv[1]; shift;
+      breaksw
+
+    case "-debug":
+      set verbose = 1; 
+      set echo = 1;
+      breaksw
+
+    case "-umask":
+      if ( $#argv == 0) goto arg1err;
+      umask $1; shift;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized.
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+  set errs = 0;
+
+  if($#instemlist == 0)then
+    echo "ERROR: must specify at least 1 input volume";
+    set errs = 1;
+  endif
+
+  if($#outstem == 0)then
+    echo "ERROR: must specify output volume";
+    set errs = 1;
+  endif
+
+  if($errs) exit 1;
+
+goto check_params_return;
+############--------------##################
+
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+#--------------------------------------------------------------------#
+usage_exit:
+  echo ""
+  echo "USAGE: cat-bvolume -i vol1 -i vol2 ... -o outvol"
+  echo ""
+exit 1;
+#--------------------------------------------------------------------#

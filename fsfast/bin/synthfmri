@@ -1,0 +1,425 @@
+#!/bin/csh -f
+############################################################
+
+set SYNTHFMRI_VER = '$Id: synthfmri,v 1.1 2003/03/04 21:22:10 greve Exp $';
+
+if($#argv < 2) then
+  echo "USAGE: synthfmri "
+  echo "  options:"
+  echo "    -dir <string> : directory in which to place the data"
+  echo "    -nruns   <int>"
+  echo "    -npercond n1 <n2 ...> : non-null conditions"
+  echo "    -ntp <int> : number of acquisitions per run"
+  echo "    -nskip <int> : number of acquisitions to corrupt"
+  echo "    -nslices <int>"
+  echo "    -nrows <int>"
+  echo "    -ncols <int>"
+  echo "    -SNR     <float>"
+  echo "    -TR     <float>"
+  echo "    -TER    <float>"
+  echo "    -timewindow   <float>"
+  echo "    -delta   <float>"
+  echo "    -tau    <float>"
+  echo "    -offset <float>"
+  echo "    -trend  <float>"
+  echo "    -psigchange   <float>"
+  echo "    -rnnmaxdelay   <float>"
+  echo "    -alpha   <float>"
+  echo "    -rho   <float>"
+  echo "    -signalroi row1 col1 row2 col2"
+  echo "    -monly mfile"
+  echo ""
+  echo "$SYNTHFMRI_VER"
+  exit 1;
+endif
+
+echo "$SYNTHFMRI_VER"
+set outdir = ();
+set Nruns = 1;
+set Npercond = 64;
+set Nslices = 1;
+set Nrows = 64;
+set Ncols = 64;
+set Ntp   = 128;
+set Nskip = 0;
+set TR    = 2;
+set TER   = ();
+set TimeWindow = 20;
+set Offset   = 1000;
+set Trend    = 0;
+set PercentSigChange = 5;
+set SNR   = -1;
+set Delta = 2.25;
+set Tau   = 1.25;
+set RnnMaxDelay = 0;
+set Alpha = .88;
+set Rho   = .9;
+set sigroi     = ();
+set monly   = 0;
+set mfile   = ();
+set parfiles = ();
+set LoadPar  = 0;
+
+goto parse_args;
+parse_args_return:
+
+if($#TER == 0) set TER = $TR;
+
+if( $#outdir == 0 ) then
+  echo "ERROR: must specify an output directory"
+  exit 1;
+endif
+
+if( $#Npercond == 0 ) then
+  echo "ERROR: must specify at least one condition with npercond flag"
+  exit 1;
+endif
+
+mkdir -p $outdir;
+@ run = 1;
+while($run <= $Nruns)
+  set RunDir = `printf %03d $run`;
+  mkdir -p $outdir/$RunDir
+  @ run = $run + 1;
+end
+
+if(! $LoadPar )  mkdir -p $outdir/par
+
+set MATLAB = `getmatlab`;
+if($status) exit 1;
+
+if ($monly) then
+  set QuitOnError = 0;
+  set TARGET = "tee $mfile"
+  rm -f $mfile;
+else
+  set QuitOnError = 1;
+  set TARGET =  "$MATLAB -display iconic"
+endif  
+
+#---------------------------------------------------------------#
+$TARGET <<EOF
+
+outdir      = '$outdir'; 
+QuitOnError = $QuitOnError;
+Nruns       = $Nruns;     
+srs         = fmri_synthrunstruct; 
+srs.TR      = $TR;     
+srs.TER     = $TER;     
+srs.TimeWindow  = $TimeWindow;     
+srs.delta = $Delta;     
+srs.tau   = $Tau;     
+srs.SNR   = $SNR;     
+srs.Offset  = $Offset;     
+srs.Trend   = $Trend;     
+srs.alpha = $Alpha;     
+srs.rho   = $Rho;     
+srs.Nrows = $Nrows;     
+srs.Ncols = $Ncols;     
+srs.Ntp   = $Ntp;     
+srs.Nskip = $Nskip;     
+srs.Nslices = $Nslices;     
+srs.ROI = [$sigroi];     
+srs.NPerCond = [$Npercond];     
+srs.PercentSigChange = $PercentSigChange;     
+srs.RnnMaxDelay = $RnnMaxDelay;     
+LoadPar = $LoadPar;
+
+ParFiles = splitstring(['$parfiles']);
+
+%cd(outdir);
+
+ExpHdrErr = 0;
+for run = 1:Nruns,
+  RunDir = sprintf('%s/%03d',outdir,run);
+
+  if(LoadPar)
+    srs.Par = fmri_ldpar(ParFiles(run,:));
+  else
+    srs.Par = [];
+  end
+  [srs fSlices] = fmri_synthrun(srs);
+
+  if(~LoadPar)
+    parfile = sprintf('%s/par/par-%03d.dat',outdir,run);
+    fmri_svpar(srs.Par,parfile);
+  end
+
+  for slice = 0:srs.Nslices-1,
+    fname = sprintf('%s/f_%03d.bshort',RunDir,slice);
+    fprintf('Run %2d, Saving Slice %d\n',run,slice);
+    fmri_svbfile(fSlices(:,:,:,slice+1),fname);
+  end
+  
+  srsrun(run) = srs;
+  if(srsrun(run).SNR ~= 0)
+    tmp = srsrun(run).traceiXtX*srsrun(run).SigVar/srsrun(run).SNR;
+    ExpHdrErr = ExpHdrErr + 1/tmp;
+  end
+
+end
+
+if(srsrun(run).SNR ~= 0)
+  ExpHdrErr = 1/ExpHdrErr;
+  fprintf('Expected HDR error over all runs: %g\n',ExpHdrErr);
+  fname = sprintf('%s/exphdrerr.dat',outdir);
+  fp = fopen(fname,'w');
+  fprintf(fp,'%g\n',ExpHdrErr);
+  fclose(fp);
+end
+
+save synthparams ExpHdrErr srsrun;
+
+if(QuitOnError) quit; end
+
+EOF
+#---------------------------------------------------------------#
+
+exit 0;
+
+############--------------##################
+parse_args:
+set npc_hunt = 0;
+set cmdline = "$argv";
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-dir":
+      if( $#argv == 0) goto arg1err;
+      if( $#outdir != 0 ) then
+        echo ERROR: only one output dir is allowed
+        exit 1
+      endif
+      set outdir = $argv[1]; shift;
+      set npc_hunt = 0;
+      breaksw
+
+    case "-roi":
+    case "-sigroi":
+    case "-signalroi":
+      if( $#argv < 4) then
+        echo "ERROR: -sigroi flag requires 4 arguments"
+        exit -1;
+      endif
+      set sigroi = ($argv[1] $argv[2] $argv[3] $argv[4]);
+      shift;shift;shift;shift;
+      set npc_hunt = 0;
+      breaksw
+
+    case "-nruns":
+      if( $#argv == 0) goto arg1err;
+      set Nruns = $argv[1]; shift;
+      set npc_hunt = 0;
+      breaksw
+
+    case "-par":
+      if( $#argv < $Nruns) then 
+        echo "ERROR: need at least nruns ($Nruns) parfiles";
+        exit 1;
+      endif
+      set parfiles = ();
+      @ n = 0;
+      while ($n < $Nruns)
+        set par = $argv[1]; shift;
+        if( ! -e $par ) then
+          pwd
+          echo "ERROR: cannot find parfile $par";
+          exit 1;
+        endif
+        set parfiles = ($parfiles $par);
+        @ n = $n + 1;
+      end
+      set LoadPar = 1;
+      set npc_hunt = 0;
+      breaksw
+
+    case "-nslices":
+      if( $#argv == 0) goto arg1err;
+      set Nslices = $argv[1]; shift;
+      set npc_hunt = 0;
+      breaksw
+
+    case "-nrows":
+      if( $#argv == 0) goto arg1err;
+      set Nrows = $argv[1]; shift;
+      set npc_hunt = 0;
+      breaksw
+
+    case "-ncols":
+      if( $#argv == 0) goto arg1err;
+      set Ncols = $argv[1]; shift;
+      set npc_hunt = 0;
+      breaksw
+
+    case "-ntp":
+      if( $#argv == 0) goto arg1err;
+      set Ntp = $argv[1]; shift;
+      set npc_hunt = 0;
+      breaksw
+
+    case "-nskip":
+      if( $#argv == 0) goto arg1err;
+      set Nskip = $argv[1]; shift;
+      set npc_hunt = 0;
+      breaksw
+
+    case "-SNR":
+    case "-snr":
+      if( $#argv == 0) goto arg1err;
+      set SNR = $argv[1]; shift;
+      set npc_hunt = 0;
+      breaksw
+
+    case "-TR":
+      if( $#argv == 0) goto arg1err;
+      set TR = $argv[1]; shift;
+      set npc_hunt = 0;
+      breaksw
+
+    case "-TER":
+      if( $#argv == 0) goto arg1err;
+      set TER = $argv[1]; shift;
+      set npc_hunt = 0;
+      breaksw
+
+    case "-timewindow":
+    case "-tw":
+      if( $#argv == 0) goto arg1err;
+      set TimeWindow = $argv[1]; shift;
+      set npc_hunt = 0;
+      breaksw
+
+    case "-delta":
+      if( $#argv == 0) goto arg1err;
+      set Delta = $argv[1]; shift;
+      set npc_hunt = 0;
+      breaksw
+
+    case "-tau":
+      if( $#argv == 0) goto arg1err;
+      set Tau = $argv[1]; shift;
+      set npc_hunt = 0;
+      breaksw
+
+    case "-offset":
+      if( $#argv == 0) goto arg1err;
+      set Offset = $argv[1]; shift;
+      set npc_hunt = 0;
+      breaksw
+
+    case "-trend":
+      if( $#argv == 0) goto arg1err;
+      set Trend = $argv[1]; shift;
+      set npc_hunt = 0;
+      breaksw
+
+    case "-psigchange":
+    case "-psch":
+      if( $#argv == 0) goto arg1err;
+      set PercentSigChange = $argv[1]; shift;
+      set npc_hunt = 0;
+      breaksw
+
+    case "-rnnmaxdelay":
+    case "-rnnmax"
+      if( $#argv == 0) goto arg1err;
+      set RnnMaxDelay = $argv[1]; shift;
+      set npc_hunt = 0;
+      breaksw
+
+    case "-alpha"
+      if( $#argv == 0) goto arg1err;
+      set Alpha = $argv[1]; shift;
+      set npc_hunt = 0;
+      breaksw
+
+    case "-rho"
+      if( $#argv == 0) goto arg1err;
+      set Rho = $argv[1]; shift;
+      breaksw
+
+    case "-monly":
+      if( $#argv == 0) goto arg1err;
+      set monly = 1; 
+      set mfile = $argv[1]; shift;
+      set QuitOnError = 0;
+      set npc_hunt = 0;
+      breaksw
+
+    case "-npercond":
+    case "-npc":
+      if( $#argv < 1) then
+        echo "ERROR: there must be at least 1 conditions"
+        exit 1;
+      endif
+      set npc_hunt = 1;
+      set Npercond = ();
+      breaksw
+
+    case "-debug":
+      set verbose = 1; 
+      breaksw
+
+    default:
+      if($npc_hunt) then
+        set Npercond = ($Npercond $flag);
+      else
+        echo ERROR: Flag $flag unrecognized.
+        echo $cmdline
+        exit 1
+      endif
+      breaksw
+  endsw
+
+end
+goto parse_args_return;
+############--------------##################
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+###############--------- Matlab Code -------- ##################
+############--------------------------------------##############
+#M# cd(outdir);
+#M#
+#M# ExpHdrErr = 0;
+#M# for run = 1:Nruns,
+#M#   RunDir = sprintf('%02d',run);
+#M#
+#M#   srs.Par = [];
+#M#   [srs fSlices] = fmri_synthrun(srs);
+#M#
+#M#   parfile = sprintf('par/par-%03d.dat',run);
+#M#   fmri_svpar(srs.Par,parfile);
+#M#
+#M#   for slice = 0:srs.Nslices-1,
+#M#     fname = sprintf('%s/f_%03d.bshort',RunDir,slice);
+#M#     fprintf('Run %2d, Saving Slice %d\n',run,slice);
+#M#     fmri_svbfile(fSlices(:,:,:,slice+1),fname);
+#M#   end
+#M#   
+#M#   srsrun(run) = srs;
+#M#   if(srsrun(run).SNR ~= 0)
+#M#     tmp = srsrun(run).traceiXtX*srsrun(run).SigVar/srsrun(run).SNR;
+#M#   end
+#M#   ExpHdrErr = ExpHdrErr + 1/tmp;
+#M#
+#M# end
+#M# 
+#M# if(srsrun(run).SNR ~= 0)
+#M#   ExpHdrErr = 1/ExpHdrErr;
+#M#   fprintf('Expected HDR error over all runs: %g\n',ExpHdrErr);
+#M#   fp = fopen('exphdrerr.dat','w');
+#M#   fprintf(fp,'%g\n',ExpHdrErr);
+#M#   fclose(fp);
+#M# end
+#M#
+#M# save synthparams ExpHdrErr srsrun;
+#M#
+#M# if(QuitOnError) quit; end
+############--------------------------------------##############

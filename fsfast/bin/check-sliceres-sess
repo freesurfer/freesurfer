@@ -1,0 +1,205 @@
+#!/bin/tcsh -f
+
+set VERSION = '$Id: check-sliceres-sess,v 1.1 2003/03/04 21:22:08 greve Exp $';
+
+set inputargs = ($argv);
+
+set fix = 0;
+set fsdlist = ();
+set PrintHelp = 0;
+
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+set n = `echo $argv | grep -e -version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+
+set PWD = `getpwdcmd`;
+if($status) exit 1;
+
+set SessList = `getsesspath $argv`;
+if($status || $#SessList == 0) then
+  getsesspath $argv 
+  exit 1;
+endif
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+foreach sess ($SessList)
+  set sessid = `basename $sess`;
+  echo "$sessid -----------------------------------"
+
+  foreach fsd ($fsdlist)
+
+    set fsdpath = $sess/$fsd
+    if(! -e $fsdpath) then
+      echo "INFO: $fsd does not exist for this session, skipping"
+      continue;
+    endif
+    cd $fsdpath;
+
+    set RunList = `getrunlist .`;
+    if($#RunList == 0) then
+      echo "INFO: no runs found for FSD $fsd, skipping"
+      continue;
+    endif
+
+    set infodump = $RunList[1]/f-infodump.dat
+    if(! -e $infodump) then
+      echo "INFO: $infodump does not exist for this FSD, skipping"
+      continue;
+    endif
+
+    set tmp = `grep dDistFact $infodump`;
+    if($#tmp == 0) then
+      echo "INFO: no skip factor specified for this data, continuing"
+      continue;
+    endif
+
+    set distfact = $tmp[3];
+
+    set seqinfo = seq.info
+    if(! -e $seqinfo) then
+      echo "ERROR: $seqinfo file does not exist, aborting"
+      exit;
+    endif
+
+    set seqsliceres = `cat $seqinfo | grep slcpixelsize`;
+    if($#seqsliceres == 0) then
+      echo "ERROR: seq.info file is not formatted properly"
+      exit 1;
+    endif
+
+  end
+
+end
+
+
+echo "check-sliceres-sess done"
+
+exit 0
+
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+   case "-fsd"
+      if($#argv < 1) goto arg1err;
+      set fsdlist = ($fsdlist $argv[1]); shift;
+      breaksw
+
+    case "-verbose":
+      set verbose = 1;
+      breaksw
+
+    case "-echo":
+      set echo = 1;
+      breaksw
+
+    case "-debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    case "-g":
+    case "-s":
+    case "-sf":
+    case "-d":
+    case "-df":
+      shift;
+      # ignore getsesspath arguments 
+      breaksw
+
+    case "-cwd":
+      # ignore getsesspath arguments 
+      breaksw
+
+    case "-umask":
+      if ( $#argv == 0) goto arg1err;
+      umask $1; shift;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+  if($#fsdlist == 0) then
+    set fsdlist = (bold t1epi)
+  endif
+ 
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "USAGE: check-sliceres-sess"
+  echo ""
+  echo "Other Arguments (Optional)"
+  echo "   -mask mask     : binary mask (fsd/masks/mask)"
+  echo "   -hpf  cutoff   : high-pass filter cut off (sec), not with -fit"
+  echo "   -meanfit       : fit and remove mean (not with -hpf)"
+  echo "   -trendfit      : fit and remove linear trend (not with -hpf)"
+  echo ""
+  echo "Session Arguments (Required)"
+  echo "   -sf sessidfile  ..."
+  echo "   -df srchdirfile ..."
+  echo "   -s  sessid      ..."
+  echo "   -d  srchdir     ..."
+  echo ""
+  echo "Yet even more options"
+  echo "   -help  : help"
+  echo "   -debug : print out ridiculous amounts of verbiage"
+  echo "   -umask   mask : unix file permission mask"
+  echo ""
+
+  if(! $PrintHelp) exit 1;
+
+  echo $VERSION
+
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+
+exit 1;
+
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+This will go through each functional subdirectory and check whether
+the slice thickness includes the skip.
+
+

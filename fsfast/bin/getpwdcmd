@@ -1,0 +1,24 @@
+#!/bin/csh -f
+# This script returns the pwd command to use. If the command
+# pawd exists, then that is used, otherwise pwd is used.
+# pawd is used with amd and returns the current directory
+# with out all the automounter stuff prepended to it.
+#
+# $Id: getpwdcmd,v 1.1 2003/03/04 21:22:08 greve Exp $
+
+echo pwd;
+exit 0;
+
+which pawd > /dev/null
+if($status) then
+  which pwd > /dev/null
+  if($status) then
+    echo "ERROR: could not find either pwd or pawd commands"
+    exit 1;
+  endif
+  echo pwd
+  exit 0;
+endif
+
+echo pawd
+exit 0;

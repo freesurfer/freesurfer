@@ -1,0 +1,378 @@
+#!/bin/csh -f
+# selxavg-sess
+#
+# $Id: evfunc-sess,v 1.1 2003/03/04 21:22:08 greve Exp $
+set VERSION = '$Id: evfunc-sess,v 1.1 2003/03/04 21:22:08 greve Exp $'
+set FASTVER = `cat $FMRI_ANALYSIS_DIR/docs/version`;
+
+set inputargs = ($argv);
+set nkeep = ();
+set CutEnds = 0;
+
+if($#argv == 0) goto usage_exit;
+
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) goto help_exit;
+
+set n = `echo $argv | grep -e -version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+
+
+set PWD = `getpwdcmd`;
+if($status) exit 1;
+
+set SessList = `getsesspath $argv`;
+if($status || $#SessList == 0) then
+  getsesspath $argv 
+  exit 1;
+endif
+
+#------ Defaults --------#
+set sevsubdir   = ();
+set funcstem    = f;
+set fsd         = bold;
+set runlistfile = ();
+set mask        = ();
+set jackknife   = 0;
+set tsmooth     = 0;
+set demean      = 1;
+set detrend     = 1;
+set pforder     = -1;
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+##### Create a log file ######
+set logdir = `pwd`/log;
+mkdir -p $logdir
+if(! -e $logdir) then
+  echo "WARNING: could not create $logdir"
+  set LF = /dev/null
+else
+  set LF = $logdir/evfunc-sess.log
+  if(-e $LF) mv $LF $LF.old
+endif
+
+echo "--------------------------------------------------------------"
+echo "evfunc-sess logfile is $LF"
+echo "--------------------------------------------------------------"
+
+echo "evfunc-sess log file" >> $LF
+echo $VERSION >> $LF
+echo "FAST Version $FASTVER"  >> $LF
+id            >> $LF
+pwd           >> $LF
+echo $0          >> $LF
+echo $inputargs  >> $LF
+uname -a         >> $LF
+date             >> $LF
+
+set StartTime = `date`;
+
+### Go through each session ###
+foreach sess ($SessList)
+
+  set sessbase = `basename $sess`;
+  echo "-------------------------------------------" |& tee -a $LF
+  echo "$sess " |& tee -a $LF
+  date |& tee -a $LF
+
+  if(! -d $sess) then
+    echo "ERROR: $sess does not exist"   |& tee -a $LF
+    exit 1;
+  endif
+
+  cd $sess/$fsd
+  if($#runlistfile == 0) then
+    set RunList = `getrunlist .`;
+    if($status || $#RunList == 0) then
+      echo "ERROR: $sess/$fsd has no runs"  |& tee -a $LF
+      exit 1;
+    endif
+  else
+    if(! -e $runlistfile) then
+      echo "ERROR: ($sessbase) could not find runlistfile $runlistfile"
+      exit 1;
+    endif
+    set RunList = (`cat $runlistfile`);
+  endif
+
+  echo "INFO ($sessbase): RunList = $RunList"
+
+  #---------- Jackknifing ---------------------#
+  if($jackknife) then
+
+    # Leave out each run #
+    foreach jkrun ($RunList)  
+
+      # Get a list of the other runs #
+      set instems = ();
+      foreach run ($RunList)  
+        if($run == $jkrun) continue;
+        set instem = $run/$funcstem
+        set instems = ($instems -i $instem );
+      end
+
+      # Set the output directory name #
+      set sevsubdirjk = $sevsubdir-jk$jkrun;
+
+      # Build the command line #
+      set cmd = (evfunc)
+      set cmd = ($cmd $instems -o $sevsubdirjk/sev)
+      if($#mask != 0)  set cmd = ($cmd -mask masks/$mask);
+      if($tsmooth > 0) set cmd = ($cmd -tsmooth $tsmooth);
+      if(! $demean)    set cmd = ($cmd -nodemean);
+      if(! $detrend)   set cmd = ($cmd -nodetrend);
+      if($pforder > 0) set cmd = ($cmd -polyfit $pforder);
+      if($#nkeep > 0)  set cmd = ($cmd -nkeep $nkeep);
+      if($CutEnds)     set cmd = ($cmd -cutends);
+
+      echo "---------------------------------------------" |& tee -a $LF
+      pwd        |& tee -a $LF
+      echo $cmd  |& tee -a $LF
+      echo "---------------------------------------------" |& tee -a $LF
+
+      $cmd |& tee -a $LF
+      if($status) then
+        echo "ERROR: evfunc failed" |& tee -a $LF
+        exit 1;
+      endif
+
+    end
+
+  else #------------------- No jackknifing -------------------#
+
+    set instems = ();
+    foreach run ($RunList)  
+      set instem = $run/$funcstem
+      set instems = ($instems -i $instem );
+    end
+
+    set cmd = (evfunc)
+    set cmd = ($cmd $instems -o $sevsubdir/sev)
+    if($#mask != 0)  set cmd = ($cmd -mask masks/$mask);
+    if(! $demean)    set cmd = ($cmd -nodemean);
+    if(! $detrend)   set cmd = ($cmd -nodetrend);
+    if($pforder > 0) set cmd = ($cmd -polyfit $pforder);
+    if($#nkeep > 0)  set cmd = ($cmd -nkeep $nkeep);
+    if($CutEnds)     set cmd = ($cmd -cutends);
+
+    echo "---------------------------------------------" |& tee -a $LF
+    pwd        |& tee -a $LF
+    echo $cmd  |& tee -a $LF
+    echo "---------------------------------------------" |& tee -a $LF
+
+    $cmd |& tee -a $LF
+    if($status) then
+      echo "ERROR: evfunc failed" |& tee -a $LF
+      exit 1;
+    endif
+
+  endif
+
+end
+
+echo " "
+echo "Started at $StartTime"|& tee -a $LF
+echo "Ended   at `date`"    |& tee -a $LF
+echo "evfunc-sess finished" |& tee -a $LF
+echo " "
+
+exit 0;
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-sevsubdir":
+    case "-ssd":
+      if ( $#argv == 0) goto arg1err;
+      set sevsubdir = $argv[1]; shift;
+      breaksw
+
+    case "-fsd":
+      if ( $#argv == 0) goto arg1err;
+      set fsd = $argv[1]; shift;
+      breaksw
+
+    case "-funcstem":
+      if ( $#argv == 0) goto arg1err;
+      set funcstem = $argv[1]; shift;
+      breaksw
+
+    case "-runlistfile":
+    case "-rlf":
+      if ( $#argv == 0) goto arg1err;
+      set runlistfile = $argv[1]; shift;
+      breaksw
+
+    case "-mask":
+      if ( $#argv == 0) goto arg1err;
+      set mask = $argv[1]; shift;
+      breaksw
+
+    case "-tsmooth":
+      if ( $#argv == 0) goto arg1err;
+      set tsmooth = $argv[1]; shift;
+      breaksw
+
+    case "-jackknife":
+    case "-jk":
+      set jackknife = 1;
+      breaksw
+
+    case "-polyfit":
+    case "-pf":
+      if ( $#argv == 0) goto arg1err;
+      set pforder = $argv[1]; shift;
+      breaksw
+
+    case "-nkeep":
+      if ( $#argv == 0) goto arg1err;
+      set nkeep = $argv[1]; shift;
+      breaksw
+
+    case "-cutends":
+      set CutEnds = 1;
+      breaksw
+
+    case "-demean":
+      set demean = 1;
+      breaksw
+    case "-nodemean":
+      set demean = 0;
+      breaksw
+
+    case "-detrend":
+      set detrend = 1;
+      breaksw
+
+    case "-nodetrend":
+      set detrend = 0;
+      breaksw
+
+    case "-verbose":
+      set verbose = 1;
+      breaksw
+
+    case "-echo":
+      set echo = 1;
+      breaksw
+
+    case "-debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    case "-g":
+    case "-s":
+    case "-sf":
+    case "-d":
+    case "-df":
+      shift;
+      # ignore getsesspath arguments 
+      breaksw
+
+    case "-cwd":
+      # ignore getsesspath arguments 
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+  if ($#SessList == 0) then
+     echo "ERROR: no sessions specified"
+     exit 1
+  endif
+
+  if ($#sevsubdir == 0) then
+     echo "ERROR: no SEV subdirectory specified"
+     exit 1
+  endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "USAGE: evfunc-sess"
+  echo ""
+  echo "Required Arguments:";
+  echo "   -sevsubdir  subdir : name of directory to put the SEVs into"
+  echo ""
+  echo "Optional Arguments:"
+  echo "   -fsd funcsubdir  : default = bold"
+  echo "   -funcstem   stem : default = f"
+  echo "   -rlf runlistfile : default is to use all runs"
+  echo "   -mask       stem : as found in masks/stem"
+  echo "   -jackknife       : leave out one (creates sevsubdir-jkXXX)"
+  echo "   -polyfit order   : fit drift using nth order polynomial"
+  echo "   -nkeep n       : keep the n best EVs"
+  echo "   -cutends       : dont include end-slices in processing"
+  echo ""
+  echo "Session Arguments (Required)"
+  echo "   -sf sessidfile  ..."
+  echo "   -df srchdirfile ..."
+  echo "   -s  sessid      ..."
+  echo "   -d  srchdir     ..."
+  echo ""
+  echo "Other Options"
+  echo "   -umask umask   : set unix file permission mask"
+  echo "   -version       : print version and exit"
+  echo "   -help          : get description"
+  echo ""
+exit 1;
+
+############--------------##################
+help_exit:
+  echo "\
+\
+DESCRIPTION: evfunc-sess \
+\
+This program computes the temporal covariance matrices, temporal \
+eigenvectors, and spatial eigenvectors from a given functional \
+session. The results are stored in fsd/sevsubdir, both of which \
+can be controlled from the command-line. The input is fsd/RRR/f, \
+also controlable from the command-line. If a mask is supplied, \
+then fsd/masks/maskstem is used to mask the computation of \
+the temporal covariance matrix. If -jackknife is used, then \
+the results are stored in sevsubdir-jkXXX. The results of this \
+program can be further processed with evspatfil-sess. \
+\
+See also: evspatfil-sess, evfunc-jk-sess, evspatfil-jk-sess \
+\
+"
+
+
+exit 1;

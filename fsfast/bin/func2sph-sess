@@ -1,0 +1,450 @@
+#!/bin/csh -f
+# func2sph-sess -- with version 1.7, the old vss functions are no longer used.
+# Passing "-old" as an argument will invoke the old func2sphere-sess (now called
+# func2sphere-sess-vss).
+
+set VERSION = '$Id: func2sph-sess,v 1.1 2003/03/04 21:22:08 greve Exp $';
+set FASTVER = `cat $FMRI_ANALYSIS_DIR/docs/version`;
+
+set inputargs = ($argv);
+set analysis    = ();
+set ScriptOnly = 0;
+set umaskarg = ();
+set hemilist = ();
+set nolog = 0;
+set sphdir = sph
+
+set IcoOrder = 7;
+set ProjFrac = 0;
+set Surface  = "white";
+set SurfaceReg = "sphere.reg"
+set Float2Int = ();
+set MapMethod = nnfr; # for surf2surf
+set TrgSubject = ico
+
+if($#argv == 0) then
+  goto usage_exit;
+  exit 1;
+endif
+
+# look for "-old" or "-vss" flag #
+foreach a ($argv)
+  if("$a" == "-old" || "$a" == "-vss") then
+    echo "INFO: running old verssion of func2sph-sess"
+    func2sph-sess-vss $argv;
+    exit $status;
+  endif
+end
+
+# look for version string #
+set n = `echo $argv | grep version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+
+## Look for nolog option ##
+set n = `echo $argv | grep nolog | wc -l` 
+if($n != 0) set nolog = 1;
+
+##### Create a log file ######
+if(! $nolog) then
+  set logdir = `pwd`/log;
+  mkdir -p $logdir
+  if(! -e $logdir) then
+    echo "ERROR: could not create $logdir"
+    exit 1;
+  endif
+  set LF = $logdir/func2sph-sess.log
+  if(-e $LF) mv $LF $LF.old
+else
+  echo "No log file"
+  set LF = /dev/null
+endif
+
+echo "----------------------------------------------------------"
+echo "func2sph-sess logfile is $LF"
+echo "----------------------------------------------------------"
+
+echo "fucn2sph-sess log file" >> $LF
+echo $VERSION >> $LF
+echo "FAST Version $FASTVER"  >> $LF
+pwd           >> $LF
+echo "$0"     >> $LF
+echo $inputargs  >> $LF
+uname -a      >> $LF
+date          >> $LF
+which mri_vol2surf >> $LF
+
+set SessList = `getsesspath $argv`;
+if($status || $#SessList == 0) then
+  echo "ERROR: cannot find any sessions" | tee -a $LF
+  exit 1;
+endif
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+## Get functional subdirectory from the info file ##
+set infofile = $analysis/analysis.info
+if(! -e $infofile) then
+  echo "ERROR: cannot find $infofile"
+  exit 1;
+endif
+set fsd = `cat $infofile | awk '{if($1 == "fsd") print $2}'`;
+set designtype = `cat $infofile | awk '{if($1 == "designtype") print $2}'`;
+if($#designtype == 0) then
+  set designtype = `cat $infofile | awk '{if($1 == "avgtype") print $2}'`;
+endif
+
+####### Go through each session ######
+set StartDate = `date`;
+set nth = 1;
+foreach sess ($SessList)
+  set sessid = `basename $sess`;
+
+  echo "-----------------------------------------------------" |& tee -a $LF
+  echo "-----------------------------------------------------" |& tee -a $LF
+  echo "Session: $sessid $nth/$#SessList" |& tee -a $LF
+  echo $StartDate
+  date |& tee -a $LF
+  @ nth = $nth + 1;
+
+  # Make sure the Session Dir exists (redundant) ##
+  if(! -d $sess) then
+    echo "ERROR: $sess does not exist"   |& tee -a $LF
+    exit 1;
+  endif
+
+  ## Go to the functional subdirectory for the session ##
+  pushd $sess/$fsd > /dev/null
+  df . |& tee -a $LF
+
+  ## Prepare the script, if need be ##
+  if($ScriptOnly) then
+    if(! -d scripts) mkdir scripts
+    set scriptfile = scripts/run-func2sph-$analysis
+    rm -f $scriptfile
+    touch $scriptfile
+    echo "#\!/bin/csh -f" >> $scriptfile
+    echo "cd .." >> $scriptfile
+    chmod a+x $scriptfile
+  endif
+
+  set srcreg = register.dat
+  if(! -e $srcreg) then
+    echo "ERROR: $srcreg does not exist, try running autoreg-sess"| tee -a $LF
+    exit 1;
+  endif
+  set regsubject = `cat $srcreg | head -n 1`;
+
+  set snf = ../subjectname
+  if(! -e $snf) then
+    echo "ERROR: cannot find subjectname file for session $sessid"
+    exit 1;
+  endif
+  set subject = `cat $snf`;
+
+  if($regsubject != $subject) then
+    echo "ERROR: $sessid : subject in register.dat ($regsubject)" | tee -a $LF
+    echo "  and subjectname file ($subject) do not match" | tee -a $LF
+    echo "  Try re-running auotreg-sess." | tee -a $LF
+    exit 1;
+  endif
+
+  if(! -e $SUBJECTS_DIR/$subject) then
+    echo "ERROR: cannot find $subject in SUBJECTS_DIR,"
+    echo "       SUBJECTS_DIR = $SUBJECTS_DIR"
+    exit 1;
+  endif  
+
+  # If retinotopy, scroll through both eccen and polar #
+  if("$designtype" != "retinotopy") then
+    set list = ($analysis)
+  else
+    set list = (eccen polar)
+  endif
+
+  foreach item ($list)
+   foreach hemi ($hemilist)
+
+    foreach h (h offset)
+      if("$designtype" != "retinotopy") then
+        mkdir -p $analysis/$sphdir
+        if($h == h) then
+          set funcstem = $analysis/h
+          set sphstem  = `pwd`/$analysis/$sphdir/h-$hemi
+        else
+          set funcstem = $analysis/h-offset
+          set sphstem  = `pwd`/$analysis/$sphdir/h-$hemi-offset
+        endif
+      else
+        mkdir -p $analysis/$sphdir/$item
+        if($h == h) then
+          set funcstem = $analysis/$item/h
+          set sphstem  = `pwd`/$analysis/$sphdir/$item/h-$hemi
+        else
+          set funcstem = $analysis/$item/h-offset
+          set sphstem  = `pwd`/$analysis/$sphdir/$item/h-$hemi-offset
+        endif
+      endif
+
+      if($#Float2Int == 0) then
+        set Float2Int = `cat $srcreg | awk '{if($1 == "round") print "round"; if($1 == "floor") print "floor"; if($1 == "tkregister") print "tkreg";}'`
+      endif
+
+      if($#Float2Int == 0) set Float2Int = tkreg;
+      echo "Using Float2Int = $Float2Int"|& tee -a $LF
+
+      #set v2s = /space/greve/1/users/greve/build/mri_vol2surf/mri_vol2surf
+      set v2s = mri_vol2surf
+      set cmd = ();
+      set cmd = ($cmd $v2s --srcvol $funcstem --src_type bfloat --srcreg $srcreg)
+      set cmd = ($cmd --trgsubject $TrgSubject $IcoOrderOption)
+      set cmd = ($cmd --projfrac $ProjFrac --mapmethod $MapMethod)
+      set cmd = ($cmd --hemi $hemi --surf $Surface --surfreg $SurfaceReg)
+      set cmd = ($cmd --out $sphstem --out_type bfloat --float2int $Float2Int)
+
+      echo "------------------------------------------------" |& tee -a $LF
+      pwd |& tee -a $LF
+      echo $cmd |& tee -a $LF
+      echo "------------------------------------------------" |& tee -a $LF
+      $cmd |& tee -a $LF
+      if($status) then
+        echo "ERROR ($sess): vol2surf failed" |& tee -a $LF
+        exit 1;
+      endif
+
+    end # Loop over hstems #
+
+    if("$designtype" == "abblocked") then
+      # Create the sig map #
+      bfileconvert -i $analysis/$sphdir/h-$hemi \
+                   -o $analysis/$sphdir/avb/sig-$hemi -fp 0 -np 1 |& tee -a $LF
+      if($status) then
+        echo "ERROR: bfileconvert for sig map failed" |& tee -a $LF
+        exit 1;
+      endif
+      cp $analysis/h.sfa $analysis/$sphdir/h-$hemi.sfa
+    endif
+
+    if("$designtype" == "retinotopy") then
+      # Create the h-offset #
+      meanimg -o $analysis/$sphdir/h-offset-$hemi \
+         -i $analysis/$sphdir/eccen/h-$hemi-offset \
+         -i $analysis/$sphdir/polar/h-$hemi-offset |& tee -a $LF
+      if($status) then
+        echo "ERROR: meanimg failed" |& tee -a $LF
+        exit 1;
+      endif
+      cp $analysis/polar/h.sfa $analysis/$sphdir/eccen/h-$hemi.sfa
+      cp $analysis/eccen/h.sfa $analysis/$sphdir/polar/h-$hemi.sfa
+    endif
+
+   end # Loop over hemispheres #
+  end # Loop over items #
+
+  popd > /dev/null
+  echo " " |& tee -a $LF
+  echo " "
+
+end # Loop over sessions #
+
+echo "-----------------------------------------------------" |& tee -a $LF
+
+echo $StartDate | tee -a $LF
+date | tee -a $LF
+echo "func2sph-sess completed SUCCESSFULLY" | tee -a $LF
+echo " "
+echo " "
+
+exit 0;
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-a":
+    case "-analysis":
+      if ( $#argv == 0) goto arg1err;
+      set analysis = $argv[1]; shift;
+      breaksw
+
+    case "-hemi":
+      if ( $#argv == 0) goto arg1err;
+      set hemi = $argv[1]; shift;
+      if($hemi != rh && $hemi != lh) then
+        echo "ERROR: hemi must be either lh or rh ($hemi)"
+        exit 1;
+      endif
+      set hemilist = ($hemilist $hemi)
+      breaksw
+
+    case "--version":
+    case "-version":
+      echo $VERSION
+      exit 0;
+      breaksw
+
+    case "-projfrac"
+      if ( $#argv == 0) goto arg1err;
+      set ProjFrac = $argv[1]; shift;
+      breaksw
+
+    case "-icoorder"
+      if ( $#argv == 0) goto arg1err;
+      set IcoOrder = $argv[1]; shift;
+      breaksw
+
+    case "-surfreg"
+      if ( $#argv == 0) goto arg1err;
+      set SurfaceReg = $argv[1]; shift;
+      breaksw
+
+    case "-float2int"
+      if ( $#argv == 0) goto arg1err;
+      set Float2Int = $argv[1]; shift;
+      breaksw
+
+    case "-trgsubject"
+      if ( $#argv == 0) goto arg1err;
+      set TrgSubject = $argv[1]; shift;
+      breaksw
+
+    case "-paintsurf":
+      if ( $#argv == 0) goto arg1err;
+      set Surface = $argv[1]; shift;
+      breaksw
+
+    case "-mapmethod":
+      if ( $#argv == 0) goto arg1err;
+      set MapMethod = $argv[1]; shift;
+      breaksw
+
+    case "-spacedir":
+    case "-sphdir":
+      if ( $#argv == 0) goto arg1err;
+      set sphdir = $argv[1]; shift;
+      breaksw
+
+    case "-umask":
+      if ( $#argv == 0) goto arg1err;
+      set umaskarg = "-umask $argv[1]";
+      umask $argv[1]; shift;
+      breaksw
+
+    case "-nofuncvit":
+    case "-nofuncvits":
+      # ignored (historical)
+      breaksw
+
+    case "-verbose":
+      set verbose = 1;
+      breaksw
+
+    case "-echo":
+      set echo = 1;
+      breaksw
+
+    case "-debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    case "-scriptonly":
+      set ScriptOnly = 1;
+      breaksw
+
+    case "-cwd":
+    case "-nolog":
+      breaksw
+
+    case "-g":
+    case "-s":
+    case "-sf":
+    case "-df":
+    case "-d":
+      # ignore getsesspath arguments 
+      shift;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+  if ($#SessList == 0) then
+     echo "ERROR: no sessions specified"|& tee -a $LF 
+     exit 1
+  endif
+
+  if ($#analysis == 0) then
+     echo "ERROR: no sxa name specified"|& tee -a $LF 
+     exit 1
+  endif
+
+  if ($#hemilist == 0) set hemilist = (lh rh);
+
+  if($TrgSubject == ico) then
+    set IcoOrderOption = (--icoorder $IcoOrder)
+  else
+    set IcoOrderOption = ();
+  endif
+
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo " "
+  echo "USAGE: func2sph-sess"
+  echo " "
+  echo "Required Arguments:";
+  echo "  -analysis analysisname : session-level functional analysis name"
+  echo " "
+  echo "Optional Arguments:";
+  echo "  -hemi hemilist : lh, rh, or <lh rh>"
+  echo "  -surf  surfacename : resample onto surfacename <white>"
+  echo "  -surfreg surfacename : use surfacename for registration <sphere.reg>"
+  echo "  -trgsubject subjectname : resample onto subject instead of ico"
+  echo "  -icoorder   order   : icosahedron order 0-7 <7>"
+  echo "  -mapmethod method: <nnfr> or nnf "
+  echo "  -float2int  method: <tkreg>, floor, round"
+  echo "  -projfrac   fraction: resample fraction of thickness into gray"
+  echo "  -spacedir      : save data to spacedir (sph)"
+  echo "  -umask umask   : set unix file permission mask"
+  echo "  -version       : print version and exit"
+  echo " "
+  echo "Session Arguments "
+  echo "  -sf sessidfile  ..."
+  echo "  -df srchdirfile ..."
+  echo "  -s  sessid      ..."
+  echo "  -d  srchdir     ..."
+  echo " "
+exit 1;

@@ -1,0 +1,398 @@
+#!/bin/csh -f
+############################################################
+# Name:    fmreigen
+############################################################
+
+set fmrianalver = `cat $FMRI_ANALYSIS_DIR/docs/version`;
+set FMREIGEN_VER = '$Id: fmreigen,v 1.1 2003/03/04 21:22:08 greve Exp $'
+
+set invols = ();
+set outvol = ();
+set cutoffmethod = "nmax";
+set cutoffthresh = 40;
+set pervoxnorm = 0;
+set firstslice = ();
+set nslices    = ();
+set showpve    = 0;
+set segmaskvol = ();
+set segthresh  = -1;
+set seed = 0;
+set baseline = 0;
+set detrend = 0;
+set nskip = 0;
+set monly = 0;
+set bext  = ();
+
+if ( $#argv == 0 ) then
+  echo "USAGE: fmreigen -options -i instem1 <-i instem2 ...> -o outstem";
+  echo "   instem1 - volume id for 1st run";
+  echo "   instem2 - volume id for 2nd run";
+  echo "   ..."
+  echo "   outstem - volume id for output eigen images";
+  echo ""
+  echo "Options:";
+  echo "   -segmask segmaskstem  : volume id of segmentation volume";
+  echo "   -cutoffmethod method  : pve | nmax | lmin   <$cutoffmethod>";
+  echo "   -cutoffthresh thresh  : threshold for given method <$cutoffthresh>";
+  echo "   -showpve              : show graph of percent variance explained"
+  echo "   -baseline             : remove baseline offset "
+  echo "   -firstslice <int>     : first slice to process <autodetect>";
+  echo "   -nslices <int>        : number of slices to process <autodetect>";
+  echo "   -bext extension       : input volume extension (bfloat,bshort) <autodetect>";
+  echo ""
+  echo "  fMRIA Version $fmrianalver";
+  echo "  $FMREIGEN_VER"
+  echo "  Author: Douglas N. Greve."
+  echo "          Massachusetts General Hospital - NMR Center"
+  echo "  Comments or questions: analysis-bugs@nmr.mgh.harvard.edu"
+  echo ""
+  exit 1;
+endif
+
+echo ""
+echo "  fMRIA Version $fmrianalver";
+echo "  $FMREIGEN_VER"
+echo "  Comments or questions: analysis-bugs@nmr.mgh.harvard.edu"
+echo ""
+
+goto parse_args;
+parse_args_return:
+
+goto dump_params;
+dump_params_return:
+
+goto check_params;
+check_params_return:
+
+set MATLAB = `getmatlab`;
+if($status) exit 1;
+
+#### Output Directory #######
+set OutDir = `dirname $outvol`;
+set OutBase = `basename $outvol`;
+if(! -d $OutDir ) mkdir -p $OutDir
+
+# Auto-detect FirstSlice  (if nec) #
+if($#firstslice == 0) then
+  set firstslice =  `getfirstsliceno $invols[1]`;
+  set st = $status;
+  if($st) then
+    echo "ERROR: cannot find any files with $invols[1]";
+    exit;
+  endif
+endif
+
+# Auto-detect Number of Slices (if nec) #
+if($#nslices == 0) then
+  set nslices =  `getnslices $invols[1]`;
+endif
+
+# Auto-detect Extension  (if nec) #
+if($#bext == 0) then
+  set bext =  `getbext $invols[1]`;
+endif
+
+@ lastslice = $firstslice + $nslices - 1;
+
+if ($monly) then
+  set TARGET = "tee $mfile"
+  rm -f $mfile;
+else
+  if($showpve) then
+    set TARGET = "$MATLAB"
+  else
+    set TARGET = "$MATLAB -display iconic"
+  endif
+endif  
+
+#---------------------------------------------------------------#
+$TARGET  <<EOF
+
+  if( ~ $monly ) QuitOnError = 1; 
+  else           QuitOnError = 0; 
+  end
+
+  rand('state',$seed);
+  MOnly  = $monly;
+  InVols0 = '$invols';
+  InVols = splitstring([InVols0]);
+  OutVol = '$outvol';
+  CutOffMethod = '$cutoffmethod';
+  CutOffThresh = $cutoffthresh;
+  FirstSlice   = $firstslice;
+  LastSlice    = $lastslice;
+  NSlices      = $nslices;
+  PerVoxNorm   = $pervoxnorm;
+  ShowPVE      = $showpve;
+  SegMaskVol   = '$segmaskvol';
+  SegThresh    = $segthresh;  
+  BExt         = '$bext';
+
+  if(~isempty(SegMaskVol)) seg = fmri_ldbvolume(SegMaskVol);
+  else                     seg = [];
+  end
+
+  fprintf('Loading input slices and computing temp cov mtx\n');
+  TCovMtx = 0;
+  Nvtot = 0;
+  Nruns = size(InVols,1);
+  for slice = FirstSlice:LastSlice
+
+    if(~isempty(seg))
+      ind = find(squeeze(seg(slice-FirstSlice+1,:,:)));
+    end
+
+    fprintf('Slice %2d: Loading Run: ',slice);
+    fslice = [];
+    for run = 1:Nruns
+      fprintf('%2d ',run);
+      fname = sprintf('%s_%03d.%s',deblank(InVols(run,:)),slice,BExt);
+      y = fmri_ldbfile(fname);
+      [Nrows Ncols Nt] = size(y);
+      Nv = Nrows*Ncols;
+      y = reshape(y, [Nv Nt]);
+      if(~isempty(seg)) y = y(ind,:); end
+      if(run == 1)
+        fslice = zeros(size(y,1),Nt*Nruns);
+      end
+      n1 = (run-1)*Nt + 1;
+      n2 = n1 + Nt -1;
+      fslice(:,n1:n2) = y;
+    end
+
+    fprintf('Computing Temporal Cov Mtx ');
+    tic;
+    TCovMtx = TCovMtx + fslice' * fslice; %'
+    fprintf(' %g\n',toc);
+    Nvtot   = Nvtot + size(fslice,1);
+  end
+
+  TCovMtx = TCovMtx/Nvtot;
+
+  fprintf('Computing SVD of Temporal Cov Mtx\n');
+  [V S2all tmp] = svd(TCovMtx);
+  Sall = sqrt(diag(S2all));
+  clear tmp S2all;
+
+  switch(lower(CutOffMethod))
+    case {'lmin'},
+      lmin = CutOffThresh;
+      ind = find(Sall > lmin);
+    case {'nmax'},
+      nmax = CutOffThresh;
+      Dmaxrank = Nt*Nruns;
+      m = min(nmax,Dmaxrank);
+      ind = [1:m];
+    case {'pctvar'},
+      pctvar = CutOffThresh;
+      if(pctvar > 1) pctvar = pctvar/100; end
+      m = min(find(cumsum(Sall)/sum(Sall) > pctvar));
+      ind = [1:m];
+  end
+
+  neig = length(ind);
+  fprintf('Keeping %d eigenvectors\n',neig);
+  Shat = Sall(ind);
+  Vhat = V(:,ind);
+
+  fprintf('Reloading input slices and computing spatial eigenvectors\n');
+  for slice = FirstSlice:LastSlice
+    fprintf('Slice %2d: Run: ',slice);
+    fslice = [];
+    for run = 1:Nruns
+      fprintf('%2d ',run);
+      fname = sprintf('%s_%03d.%s',deblank(InVols(run,:)),slice,BExt);
+      y = fmri_ldbfile(fname);
+      fslice = [fslice reshape(y, [Nv Nt])];
+    end
+
+    n1 = (slice-FirstSlice)*Nv + 1;
+    n2 = n1 + Nv - 1;
+    U = fslice * (Vhat * (diag(1./Shat)/sqrt(Nvtot)));
+    fname = sprintf('%s_%03d.bfloat',deblank(OutVol),slice);
+    fmri_svbfile(reshape(U,[Nrows Ncols neig]),fname);
+    fprintf('\n');
+  end
+
+  fname = sprintf('%s-eigval.dat',OutVol);
+  fid = fopen(fname,'w');
+  if(fid == -1)
+    msg = sprintf('Could not open %s\n',fname);
+    qoe(msg); error(msg);
+  end
+  fprintf(fid,'%g\n',Sall);
+  fclose(fid);
+
+  if(ShowPVE)
+    hpve = figure;
+    pve = 100*cumsum(Sall)/sum(Sall);
+    eigcomp = [1:length(pve)];
+    plot(eigcomp,pve,neig,pve(neig),'+');
+    xlabel('Number of Eigenvectors');
+    ylabel('Percent Variance Explained');
+  end
+
+  if(ShowPVE & ~MOnly )
+    uiwait(hpve);
+  end
+
+  if(QuitOnError) quit; end
+
+EOF
+exit 0;
+############################################################
+
+############--------------##################
+parse_args:
+
+set cmdline = "$argv";
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-i":
+      if ( $#argv == 0) goto arg1err;
+      set invols = ($invols $argv[1]); shift;
+      breaksw
+
+    case "-o":
+      if ( $#argv == 0) goto arg1err;
+      if ( $#outvol != 0 ) then
+        echo ERROR: only one outstem allowed.
+        exit 1
+      endif
+      set outvol = $argv[1]; shift;
+      breaksw
+
+    case "-firstslice":
+    case "-fs":
+      if ( $#argv == 0) goto arg1err;
+      set firstslice = $argv[1]; shift;
+      breaksw
+
+    case "-nslices":
+    case "-ns":
+      if ( $#argv == 0) goto arg1err;
+      set nslices = $argv[1]; shift;
+      breaksw
+
+    case "-baseline":
+    case "-bl":
+      set baseline = 1;
+      breaksw
+
+    case "-detrend":
+    case "-dt":
+      set detrend = 1; 
+      set baseline = 1; 
+      breaksw
+
+    case "-nskip":
+      if ( $#argv == 0) goto arg1err;
+      set nskip = $argv[1]; shift;
+      breaksw
+
+    case "-monly":
+      if ( $#argv == 0) goto arg1err;
+      set monly = 1; 
+      set mfile = $argv[1]; shift;
+      breaksw
+
+    case "-cutoffmethod":
+      if ( $#argv == 0) goto arg1err;
+      set cutoffmethod = $argv[1]; shift;
+      breaksw
+
+    case "-cutoffthresh":
+      if ( $#argv == 0) goto arg1err;
+      set cutoffthresh = $argv[1]; shift;
+      breaksw
+
+    case "-segmask":
+      if ( $segthresh != -1 ) then
+        echo "ERROR: cannot specify -segmask and -segthresh";
+        exit 1;
+      endif
+      if ( $#argv == 0) goto arg1err;
+      set segmaskvol = $argv[1]; shift;
+      breaksw
+
+    case "-segthresh":
+      if ( $#segmaskvol != 0 ) then
+        echo "ERROR: cannot specify -segmask and -segthresh";
+        exit 1;
+      endif
+      if ( $#argv == 0) goto arg1err;
+      set segthresh = $argv[1]; shift;
+      breaksw
+
+    case "-showpve":
+      set showpve = 1; 
+      breaksw
+
+    case "-pervoxnorm":
+      set pervoxnorm = 1; 
+      breaksw
+
+    case "-debug":
+      set verbose = 1; 
+      breaksw
+
+    case "-synth":
+      if ( $#argv == 0) goto arg1err;
+      set seed = $argv[1]; shift;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized.
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+dump_params:
+echo ------- fmreigen parameters ------------
+echo OutputStem: $outvol
+echo InputStems: $invols
+echo firstslice: $firstslice;
+echo nslices:    $nslices
+echo baseline:   $baseline
+echo detrend:    $detrend
+echo nskip:      $nskip
+echo --------------------------------------
+goto dump_params_return;
+############--------------##################
+
+############--------------##################
+check_params:
+  if ($#invols == 0) then
+     echo "ERROR: must specify at least one input stem";
+     exit 1
+  endif
+
+  if ($#outvol == 0) then
+     echo "ERROR: must specify output stem";
+     exit 1
+  endif
+
+#  if($segthresh < 0 && $#segmaskvol == 0) then
+#    echo "ERROR: must specify a segmentation method"
+#    exit 1;
+#  endif
+
+goto check_params_return;
+############--------------##################
+
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################

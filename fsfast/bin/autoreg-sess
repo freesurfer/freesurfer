@@ -1,0 +1,385 @@
+#!/bin/csh -f
+
+set VERSION = '$Id: autoreg-sess,v 1.1 2003/03/04 21:22:07 greve Exp $';
+set cmdargs = ($argv);
+
+set ScriptOnly = 0;
+set fsd        = "bold";
+set asd        = "3danat";
+set anatrun    = ();
+set funcrun    = ();
+set mridir     = T1;
+set umaskarg = ();
+set SessList = ();
+set regfile  = ();
+set fsdlist = (bold t1epi t2epi t2conv)
+set SameSessOnly = 0;
+set OffsetCorrection = 0;
+
+## print version ##
+set n = `echo $argv | grep version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+
+## print usage ###
+if($#argv == 0) then
+  goto usage_exit;
+  exit 1;
+endif
+
+echo " "
+echo " "
+
+# Create a log file #
+mkdir -p `pwd`/log/
+set LF = `pwd`/log/autoreg-sess.log
+rm -f $LF 
+echo "Logfile is $LF"
+
+echo "autreg-sess log file" >> $LF
+echo '$Id: autoreg-sess,v 1.1 2003/03/04 21:22:07 greve Exp $'   >> $LF
+echo $0     >> $LF
+uname -a      >> $LF
+date          >> $LF
+echo "$argv"  >> $LF
+
+goto parse_args;
+parse_args_return:
+
+set SessList = (`getsesspath $cmdargs`);
+if($status) then
+  echo $SessList  |& tee -a $LF;
+  exit 1;
+endif
+
+goto check_params;
+check_params_return:
+
+## Prepare the script, if need be ##
+if($ScriptOnly) then
+  if(! -d scripts) mkdir scripts
+  set scriptfile = scripts/run-autoreg-sess
+  rm -f $scriptfile
+  touch $scriptfile
+  echo "#\!/bin/csh -f" >> $scriptfile
+  echo "cd .." >> $scriptfile
+  chmod a+x $scriptfile
+endif
+
+set errs = 0;
+foreach sess ($SessList)
+  set sessid = `basename $sess`;
+
+  echo " " | tee -a $LF
+  echo " " | tee -a $LF
+  echo "_______________________________________________________" | tee -a $LF
+  echo "--- $sess -----------" | tee -a $LF
+  echo "_______________________________________________________" | tee -a $LF
+
+  ## Get the subject's anatomical from session ##
+  if($#anatrun == 0) then
+    #set same_sess_anat = `getfirstrundir-sess $sess/$asd |& tee -a $LF`;
+    set same_sess_anat = `getfirstrundir-sess $sess/$asd`;
+    if($status) then
+      echo "ERROR: could not find a run in $sess/$asd"
+      exit 1;
+    endif
+  else
+    set same_sess_anat = $sess/$asd/$anatrun;
+  endif
+  if(! -d $same_sess_anat ) then
+    echo "ERROR: ($sess) cannot find $same_sess_anat" |& tee -a $LF
+    exit 1;
+  endif
+
+  ## Run the offset anatomical correction ##
+  ## This is needed because of a bug in the old minc_to_cor.  If
+  ## offset correction is not necessary, then this should have
+  ## no effect.  It should be possible to remove this by 2001.
+  if( $OffsetCorrection ) then
+    echo "INFO: running offset correction on anatomicals" |& tee -a $LF
+    set tmp = `ls $same_sess_anat/*-mri`;
+    if($#tmp == 0) then
+      echo "ERROR: ($sess) cannot find the MINC header in $same_sess_anat"|& tee -a $LF
+      echo "  ... Continuing" |& tee -a $LF
+      set errs = 1;
+      continue;
+    endif
+    set minchdr = ();
+    foreach f ($tmp)    
+      set n = `head $tmp | grep netcdf | wc -l`;
+      if($n != 0) then
+        set minchdr = $f;
+        break;
+      endif
+    end
+    if($#minchdr == 0) then
+      echo "ERROR: ($sess) cannot find the MINC header in $same_sess_anat"|& tee -a $LF
+      exit 1;
+    endif
+    echo "INFO: using $minchdr for offset correction"|& tee -a $LF
+    set corinfo    = $same_sess_anat/COR-.info
+    set newcorinfo = $same_sess_anat/COR-.info.offsetcorrected
+    correct_offset $minchdr >! $newcorinfo |& tee -a $LF
+    if($status) then
+      echo "ERROR: ($sess) correct_offset failed"|& tee -a $LF
+      exit 1;
+    endif
+    set infodiff = `diff $corinfo $newcorinfo | wc -l`;
+    if($infodiff == 0) then
+      echo "INFO: no offset correction necessary"|& tee -a $LF
+    else
+      cp $corinfo $same_sess_anat/COR-.info.orig
+      cp $newcorinfo $corinfo
+      echo "INFO: offset correction completed"|& tee -a $LF
+    endif
+  endif
+
+  if(! $SameSessOnly) then
+    ## Get the name of the subject ##
+    if(! -e $sess/subjectname ) then
+      echo "ERROR: ($sess) cannot find $sess/subjectname"|& tee -a $LF
+      echo "  ... Continuing" |& tee -a $LF
+      set errs = 1;
+      continue;
+    endif
+    set subject = `cat $sess/subjectname`;
+
+    ## Get the subject's anatomical from data base ##
+    set db_anat = $SUBJECTS_DIR/$subject/mri/$mridir;
+    if(! -d $db_anat ) then
+      echo "ERROR: ($sess) cannot find $db_anat"|& tee -a $LF
+      echo "  ... Continuing" |& tee -a $LF
+      set errs = 1;
+      continue;
+    endif
+
+    ## Name for the cross-session transform file ##
+    set cross_sess_reg = $sess/$asd/cross-sess-reg.xfm
+
+    ## Set up the Cross-Session Registration Commands ##
+    set cmd = "xsanatreg -src $db_anat -targ $same_sess_anat -xfm $cross_sess_reg"  
+    if($ScriptOnly) then
+      echo "rm -f $cross_sess_reg";
+      echo $cmd >> $scriptfile
+      echo " " >> $scriptfile
+    else
+      echo "Cross-Session Registration ($sessid)"|& tee -a $LF 
+      rm -f $cross_sess_reg;
+      $cmd |& tee -a $LF
+      if($status) then
+        echo "ERROR: ($sess) cross-session registration"|& tee -a $LF 
+        echo "  ... Continuing" |& tee -a $LF
+        set errs = 1;
+        continue;
+      endif
+    endif
+  else
+    echo "INFO: Same-session registration only"|& tee -a $LF
+    set subject = "insert-subject-name-here";
+  endif # if(!$SameSessOnly) then
+
+  foreach fsd ($fsdlist)
+
+    if(! -d $sess/$fsd) continue;
+
+    echo " ------------- -- Registering $fsd -- ---------------"|& tee -a $LF
+
+    ## Get the subject's functional from session ##
+    if($#funcrun == 0) then
+      set funcrundir = `getfirstrundir-sess $sess/$fsd |& tee -a $LF`;
+    else
+      set funcrundir = $sess/$fsd/$funcrun;
+    endif
+    set funcstem = $funcrundir/f
+    set i0 = $funcstem"_000.hdr"
+    if(! -e $i0) then
+      echo "ERROR: ($sess) cannot find $i0"|& tee -a $LF
+      exit 1;
+    endif
+
+    set same_sess_reg  = $sess/$fsd/same-sess-reg.dat
+    set regfile        = $sess/$fsd/register.dat
+    set anadat = $funcrundir/analyse.dat
+
+    set cmd1 = (mri_make_register -r $same_sess_reg -a $anadat \
+                $subject $funcstem $same_sess_anat $same_sess_anat)
+
+    if(! $SameSessOnly) then
+      set cmd2 = (mri_matrix_multiply -im $same_sess_reg \
+                  -im $cross_sess_reg -om $regfile)
+    else
+      set cmd2 = (cp $same_sess_reg $regfile);
+    endif
+
+    if($ScriptOnly) then
+      echo $cmd1 >> $scriptfile
+      echo $cmd2 >> $scriptfile
+      echo " " >> $scriptfile
+    else
+      echo "Same-Session Registration $sessid"|& tee -a $LF
+      $cmd1 |& tee -a $LF
+      if($status) then
+        echo "ERROR: ($sess)"|& tee -a $LF
+        echo $cmd1 |& tee -a $LF
+        exit 1;
+      endif
+
+      echo "Final Registration $sessid"|& tee -a $LF
+      $cmd2 |& tee -a $LF
+      if($status) then
+        echo "ERROR: ($sess)"|& tee -a $LF
+        echo "$cmd2" |& tee -a $LF
+        exit 1;
+      endif
+    endif
+    echo " " | tee -a $LF
+  end # loop over fsdlist
+
+  echo " " | tee -a $LF
+  echo " " | tee -a $LF
+
+end # loop over SessList #
+
+date | tee -a $LF
+
+if($errs == 0) then
+  echo "autoreg-sess COMPLETED SUCCESSFULLY" | tee -a $LF
+else
+  echo "autoreg-sess completed with ERRORS" | tee -a $LF
+endif
+
+echo " "
+echo " "
+
+exit 0;
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = "$argv";
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-ssd":
+    case "-fsd":
+      if ( $#argv == 0) goto arg1err;
+      set fsdlist = $argv[1]; shift;
+      breaksw
+
+    case "-asd":
+      if ( $#argv == 0) goto arg1err;
+      set asd = $argv[1]; shift;
+      breaksw
+
+    case "-umask":
+      if ( $#argv == 0) goto arg1err;
+      set umaskarg = "-umask $argv[1]";
+      umask $argv[1]; shift;
+      breaksw
+
+    case "-sd":
+      if ( $#argv == 0) goto arg1err;
+      setenv SUBJECTS_DIR $argv[1]; shift;
+      if( ! -e $SUBJECTS_DIR) then
+        echo "ERROR: $SUBJECTS_DIR does not exist"
+        exit 1;
+      endif
+      breaksw
+
+    case "-nooffcor":
+      set OffsetCorrection = 0;
+      breaksw
+
+    case "-verbose":
+      set verbose = 1;
+      breaksw
+
+    case "-sessanat":
+    case "-samesessanat":
+    case "-samesessonly":
+      set SameSessOnly = 1;
+      breaksw
+
+    case "-echo":
+      set echo = 1;
+      breaksw
+
+    case "-debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    case "-scriptonly":
+      set ScriptOnly = 1;
+      breaksw
+
+    case "-cwd":
+      breaksw;
+
+    case "-s":
+    case "-sf":
+    case "-df":
+    case "-d":
+    case "-g":
+      shift;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+  if ($#SessList == 0) then
+     echo "ERROR: no sessions specified"|& tee -a $LF 
+     exit 1
+  endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo "USAGE: autoreg-sess"
+  echo "Options:";
+  echo "   -sf sessidfile  ..."
+  echo "   -df srchdirfile ..."
+  echo "   -s  sessid      ..."
+  echo "   -d  srchdir     ..."
+#  echo "   -funcrun run  : functional run to use for alignment (auto)"
+  echo "   -fsd dir      : functional subdirectory (bold)"
+  echo "   -asd dir      : anatomical subdirectory (3danat)"
+  echo "   -anatrun run  : anatomical run to use for alignment (auto)"
+  echo "   -sessanat     : register to same session anatomical"
+  echo "   -umask umask  : set unix file permission mask"
+#  echo "   -scriptonly   : don't run, just generate a script"
+  echo "   -version      : print version and exit"
+exit 1;
+
+
+
+
+
+
+

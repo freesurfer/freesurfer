@@ -1,0 +1,519 @@
+#!/bin/csh -f
+# evspatfil-jk-sess
+#
+# $Id: evspatfil-jk-sess,v 1.1 2003/03/04 21:22:08 greve Exp $
+set VERSION = '$Id: evspatfil-jk-sess,v 1.1 2003/03/04 21:22:08 greve Exp $';
+set FASTVER = `cat $FSFAST_HOME/docs/version`;
+
+set inputargs = ($argv);
+set DateStr = "`date '+%y%m%d%H%M'`"
+
+set analysis = ();
+set sevsubdir = ();
+set funcstem = ();
+set outstem  = ();
+set mask = ();
+set nfilter  = ();
+set pveonly = 0;
+set TopDir = `pwd`;
+set useprojmask = 0;
+set projmaskthresh = 2;
+set projmaskcontrast = omnibus;
+set projmaskmap = fsig;
+set svestnoise = 0;
+set sevsrcsessid = ();
+set sevsrcsess = ();
+set sessdirfile = ();
+set sevexcl = ();
+set DoInorm = 1;
+set fwhm = ();
+set smfuncstem = ();
+
+if($#argv == 0) then
+  goto usage_exit;
+  exit 1;
+endif
+
+set n = `echo $argv | grep version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0)  goto help
+
+set PWD = `getpwdcmd`;
+if($status) exit 1;
+
+set StudyDir = `$PWD`;
+
+set SessList = `getsesspath $argv`;
+if($status || $#SessList == 0) then
+  getsesspath $argv 
+  exit 1;
+endif
+
+goto parse_args;
+parse_args_return:
+
+if($#sevsrcsessid != 0) then
+  if($#sessdirfile != 0) then
+    set sevsrcsess = `getsesspath -s $sevsrcsessid -df $sessdirfile`;
+  else
+    set sevsrcsess = `getsesspath -s $sevsrcsessid`;
+  endif
+  if($#sevsrcsess == 0) then
+    echo "ERROR: finding $sevscrsessid"
+    exit 1;
+  endif
+  echo "INFO: sevsrcsess = $sevsrcsess"
+endif
+
+goto check_params;
+check_params_return:
+
+# get full path for cfg and info files #
+pushd $analysis > /dev/null;
+set analysisdir = `pwd`;
+popd > /dev/null;
+set cfgfile  = $analysisdir/analysis.cfg
+set infofile = $analysisdir/analysis.info
+if(! -e $infofile) then
+  echo "ERROR: cannot find $infofile"
+  exit 1;
+endif
+
+## Get parameters from the info file ##
+set fsd         = `cat $infofile | awk '{if($1 == "fsd") print $2}'`;
+set runlistfile = `cat $infofile | awk '{if($1 == "runlistfile") print $2}'`;
+if($#funcstem == 0) then
+  set funcstem = `cat $infofile | awk '{if($1 == "funcstem") print $2}'`;
+endif
+
+set designtype  = `cat $infofile | awk '{if($1 == "designtype") print $2}'`;
+if($#designtype == 0) then
+  set designtype = `cat $infofile | awk '{if($1 == "avgtype") print $2}'`;
+endif
+if($designtype != "event-related" && $designtype != "blocked") then
+  echo "ERROR: the design type of this analysis is $designtype"
+  echo "  evspatfil-jk-sess can only be used to analyse event-related and blocked"
+  exit 1;
+endif
+
+##### Create a log file ######
+set logdir = `pwd`/log;
+mkdir -p $logdir
+if(! -e $logdir) then
+  echo "WARNING: could not create $logdir"
+  set LF = /dev/null
+else
+  set LF = $logdir/evspatfil-jk-sess-$fsd-$analysis-$DateStr.log
+  if(-e $LF) mv $LF $LF.old
+endif
+echo "--------------------------------------------------------------"
+echo "evspatfil-jk-sess logfile is $LF"
+echo "--------------------------------------------------------------"
+
+echo "evspatfil-jk-sess log file" >> $LF
+echo $VERSION >> $LF
+echo "FAST Version $FASTVER"  >> $LF
+id            >> $LF
+pwd           >> $LF
+echo $0         >> $LF
+echo $inputargs >> $LF
+uname -a        >> $LF
+date            >> $LF
+
+### Go through each session ###
+set StartTime = `date`;
+foreach sess ($SessList)
+
+  set sessbase = `basename $sess`;
+  echo "-------------------------------------------" |& tee -a $LF
+  echo "$sess " |& tee -a $LF
+  date |& tee -a $LF
+
+  cd $sess/$fsd
+  if($#runlistfile == 0) then
+    set RunList = `getrunlist .`;
+    if($status || $#RunList == 0) then
+      echo "ERROR: $sess/$fsd has no runs"  |& tee -a $LF
+      exit 1;
+    endif
+  else
+    if(! -e $runlistfile) then
+      echo "ERROR: ($sessbase) could not find runlistfile $runlistfile"
+      exit 1;
+    endif
+    set RunList = (`cat $runlistfile`);
+  endif
+
+  echo "INFO ($sessbase): RunList = $RunList"
+
+  if($#sevsrcsessid == 0)  set sevsrcsess = $sess;
+
+  foreach jkrun ($RunList)  
+    set sevstem  = $sevsrcsess/$fsd/$analysis-jk$jkrun/$sevsubdir/sev
+
+    set instem   = $jkrun/$funcstem
+
+    set cmd = evspatfil
+    set cmd = ($cmd -i $instem)
+    set cmd = ($cmd -sev $sevstem)
+    if(! $pveonly) then
+      set cmd = ($cmd -o $jkrun/$outstem -nfilter $nfilter)
+    endif
+    set cmd = ($cmd -pve $jkrun/$outstem-pve.dat)
+    set cmd = ($cmd -projtc $jkrun/$outstem-projtc)
+    if($#mask != 0) set cmd = ($cmd -mask masks/$mask)
+    if($useprojmask) then
+      set cmd = ($cmd -projmask $sevsrcsess/$fsd/$analysis-jk$jkrun/$projmaskcontrast/$projmaskmap);
+      set cmd = ($cmd -projmaskthresh $projmaskthresh);
+    endif
+    if($svestnoise) set cmd = ($cmd -svestnoise)
+    if($#sevexcl != 0) then
+      foreach n ($sevexcl)
+        set cmd = ($cmd -sevexcl $n )
+      end
+    endif
+    echo "-------------------------------------------------" |& tee -a $LF
+    pwd       |& tee -a $LF
+    echo $cmd |& tee -a $LF
+    echo "---------------------------------------------------" |& tee -a $LF
+
+    $cmd |& tee -a $LF
+    if($status) then
+      echo "ERROR ($sess): evfunc failed"
+      exit 1;
+    endif
+
+    if(! $pveonly) then
+      set bhdr = $instem.bhdr
+      if(-e $bhdr) cp $bhdr $jkrun/$outstem.bhdr
+    endif
+
+  end # End loop over jackknifed runs
+
+end # End loop over sessions
+
+if($#fwhm != 0) then
+  echo "Running Spatial Smoothing" |& tee -a $LF
+  cd $StudyDir;
+  foreach sess ($SessList)
+    set sessbase = `basename $sess`;
+    set sessdir  = `dirname $sess`;
+    set cmd = (spatialsmooth-sess -s $sessbase -d $sessdir)
+    set cmd = ($cmd -i $outstem -o $smfuncstem -fwhm $fwhm);
+    set cmd = ($cmd -fsd $fsd);
+    if($#runlistfile != 0) set cmd = ($cmd -rlf $runlistfile);
+    echo "-------------------------------------------------" |& tee -a $LF
+    pwd       |& tee -a $LF
+    echo $cmd |& tee -a $LF
+    echo "-------------------------------------------------" |& tee -a $LF
+    $cmd |& tee -a $LF
+  end
+endif
+
+if($DoInorm) then
+  echo "Running Inorm" |& tee -a $LF
+  cd $StudyDir;
+  foreach sess ($SessList)
+    set sessbase = `basename $sess`;
+    set sessdir  = `dirname $sess`;
+    set cmd = (inorm-sess -s $sessbase -d $sessdir)
+    if($#fwhm == 0) then
+      set cmd = ($cmd  -funcstem $outstem)
+    else
+      set cmd = ($cmd  -funcstem $smfuncstem)
+    endif
+    set cmd = ($cmd -fsd $fsd);
+    if($#runlistfile != 0) set cmd = ($cmd -rlf $runlistfile);
+    echo "-------------------------------------------------" |& tee -a $LF
+    pwd       |& tee -a $LF
+    echo $cmd |& tee -a $LF
+    echo "-------------------------------------------------" |& tee -a $LF
+    $cmd |& tee -a $LF
+  end
+endif
+
+
+echo " "
+echo "Started at $StartTime "
+echo "Ended   at `date`"
+echo " "
+echo "evspatfil-jk-sess Done"
+echo " "
+
+exit 0;
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-sevsrcsess":
+      if ( $#argv < 1) goto arg1err;
+      set sevsrcsessid = $argv[1]; shift;
+      set sevsrcsessid = `basename $sevsrcsessid`; # remove trailing /
+      breaksw
+
+    case "-a":
+    case "-analysis":
+      if ( $#argv < 1) goto arg1err;
+      set analysis = $argv[1]; shift;
+      set analysis = `basename $analysis`; # remove trailing /
+      breaksw
+
+    case "-funcstem":
+      if ( $#argv == 0) goto arg1err;
+      set funcstem = $argv[1]; shift;
+      breaksw
+
+    case "-outstem":
+    case "-o":
+      if ( $#argv == 0) goto arg1err;
+      set outstem = $argv[1]; shift;
+      breaksw
+
+    case "-nfilter":
+    case "-nf":
+      if ( $#argv == 0) goto arg1err;
+      set nfilter = $argv[1]; shift;
+      breaksw
+
+    case "-mask":
+      if ( $#argv == 0) goto arg1err;
+      set mask = $argv[1]; shift;
+      breaksw
+
+    case "-sevsubdir":
+      if ( $#argv == 0) goto arg1err;
+      set sevsubdir = $argv[1]; shift;
+      breaksw
+
+    case "-projmaskthresh":
+      if ( $#argv == 0) goto arg1err;
+      set projmaskthresh = $argv[1]; shift;
+      set useprojmask = 1;
+      breaksw
+
+    case "-projmaskcontrast":
+      if ( $#argv == 0) goto arg1err;
+      set projmaskcontrast = $argv[1]; shift;
+      set useprojmask = 1;
+      breaksw
+
+    case "-projmaskmap":
+      if ( $#argv == 0) goto arg1err;
+      set projmaskmap = $argv[1]; shift;
+      set useprojmask = 1;
+      breaksw
+
+    case "-noprojmask":
+      set useprojmask = 0;
+      breaksw
+
+    case "-projmask":
+      set useprojmask = 1;
+      breaksw
+
+    case "-svestnoise":
+      set svestnoise = 1;
+      breaksw
+
+    case "-sevexcl":
+      if ( $#argv < 1) goto arg1err;
+      set sevexcl = ($sevexcl $argv[1]); shift;
+      breaksw
+
+    case "-pveonly":
+      set pveonly = 1;
+      set DoInorm = 0;
+      breaksw
+
+    case "-fwhm":
+      if ( $#argv < 2) goto arg2err;
+      set fwhm = $argv[1]; shift;
+      set smfuncstem = $argv[1]; shift;
+      breaksw
+
+    case "-inorm":
+      set DoInorm = 1;
+      breaksw
+
+    case "-noinorm":
+      set DoInorm = 0;
+      breaksw
+
+    case "-help":
+      goto help;
+      breaksw
+
+    case "-verbose":
+      set verbose = 1;
+      breaksw
+
+    case "-echo":
+      set echo = 1;
+      breaksw
+
+    case "-debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    case "-df":
+      set sessdirfile = $argv[1]; shift;
+      break;
+
+    case "-g":
+    case "-s":
+    case "-sf":
+    case "-d":
+    case "-df":
+      shift;
+      # ignore getsesspath arguments 
+      breaksw
+
+    case "-cwd":
+      # ignore getsesspath arguments 
+      breaksw
+
+    case "-umask":
+      if ( $#argv == 0) goto arg1err;
+      umask $1; shift;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+  if ($#SessList == 0) then
+     echo "ERROR: no sessions specified"
+     exit 1
+  endif
+
+  if ($#analysis == 0) then
+     echo "ERROR: no analysis name specified"
+     exit 1
+  endif
+
+  if(! -d $analysis ) then
+    echo "ERROR: analysis $analysis does not exist, see mkanalysis-sess"
+    exit 1;
+  endif
+
+  if($#outstem == 0) then
+    echo "ERROR: no outstem specified"
+    exit 1;
+  endif
+
+  if(! $pveonly && $#nfilter == 0) then
+    echo "ERROR: no filter order specified"
+    exit 1;
+  endif
+
+  if($#sevsubdir == 0) set sevsubdir = severes;
+
+  if($pveonly && $#fwhm != 0) then
+    echo "ERROR: must cannot specify -fwhm with -pveonly"
+    exit 1;
+  endif
+  if($pveonly && $DoInorm) then
+    echo "ERROR: must cannot specify -inorm with -pveonly"
+    exit 1;
+  endif
+
+
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+arg2err:
+  echo "ERROR: flag $flag requires two arguments"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "USAGE: evspatfil-jk-sess"
+  echo ""
+  echo "Required Arguments:";
+  echo "   -analysis analysisname : name of functional analysis"
+  echo "   -nfilter n    : spatial filter order "
+  echo "   -outstem stem "
+  echo ""
+  echo "Optional Arguments:";
+  echo "   -funcstem stem : input, uses that from the analysis by default"
+  echo "   -mask     stem : use mask in FSD/masks/stem"
+  echo "   -pveonly       : only compute percent variance explained"
+  echo "   -sevsubdir dir : gets sevs from analysis-jkXXX/sevsubdir"
+  echo "   -projmask      : use a projection mask"
+  echo "   -projmaskcontrast contrast : use contrast for projection mask"
+  echo "   -projmaskmap map : use map for projection mask"
+  echo "   -projmaskthresh thresh : threshold for projection mask (2)"
+  echo "   -svestnoise    : save the estimated noise"
+  echo "   -sevexcl nth <-sevexcl mth>  : exclude sev components"
+  echo "   -noinorm : do not inorm the resulting functional volume"
+  echo ""
+  echo "   -fwhm  fwhm stem : spatially smooth the resulting functional volume"
+  echo ""
+  echo "Session Arguments (Required)"
+  echo "   -sf sessidfile  ..."
+  echo "   -df srchdirfile ..."
+  echo "   -s  sessid      ..."
+  echo "   -d  srchdir     ..."
+  echo ""
+  echo "Session Arguments (Optional)"
+  echo "   -umask umask   : set unix file permission mask"
+  echo "   -version       : print version and exit"
+  echo ""
+  echo "See also: selxavg-jk-sess and evfunc-jk-sess"
+  echo ""
+exit 1;
+
+
+help:
+
+  echo ""
+  echo "This program will spatially filter a functional volume"
+  echo "by estimating and cancelling out the noise based on"
+  echo "the spatial eigenvectors of the residual error as computed"
+  echo "by selxavg-jk-sess and evfunc-jk-sess. The input is the"
+  echo "the same as that specified in the analysis, unless specified"
+  echo "with -funcstem. If -pveonly is specified, then only the percent"
+  echo "variance explained by all SEVs is computed (ie, there is no"
+  echo "filtered output). With -projmask, a projection mask is obtained"
+  echo "from analysis-jkXXX/omnibus/fsig and used to exclude active"
+  echo "regions when projecting into the spatial eigen space. The"
+  echo "activity threshold is 2 (ie, 10^-2) unless changed with"
+  echo "-projmaskthresh. If -svestnoise is set, then the estimation"
+  echo "of the noise is saved instead of the filtered data."
+  echo ""
+
+exit;

@@ -1,0 +1,35 @@
+#!/bin/csh -f
+
+if($#argv != 1) then
+  echo "USAGE: getlastsliceno stem"
+  echo '$Id: getlastsliceno,v 1.1 2003/03/04 21:22:08 greve Exp $';
+  exit 1;
+endif
+
+set stem = $argv[1];
+set fs = `getfirstsliceno $stem`
+set st = $status;
+if($st) then
+  echo "ERROR: cannot find any files with $stem";
+  exit;
+endif
+
+@ lastslice = $fs;
+while( 1 )
+  set fname = `printf %s_%03d.hdr $stem $lastslice`;
+  if(! -e $fname ) break;
+
+  @ lastslice = $lastslice + 1;
+  if($lastslice > 998) then
+    echo "ERROR: too many slices with $stem";
+    exit 1;
+  endif
+
+end
+
+
+@ lastslice = $lastslice - 1;
+echo $lastslice;
+
+exit 0;
+##########################################

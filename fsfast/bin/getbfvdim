@@ -1,0 +1,33 @@
+#!/bin/csh -f
+# getbfvdim - gets the dimensions of a volume stored in bfile format
+
+if($#argv == 0) then
+  echo "USAGE: getbfvdim stem"
+  echo " returns: nslices nrows ncols nframes bext endian"
+  exit 1;
+endif
+
+set stem = $argv[1];
+
+set nslices = `getnslices $stem`;
+if($status) exit 1;
+
+set nrows = `getnrows $stem`;
+if($status) exit 1;
+
+set ncols = `getncols $stem`;
+if($status) exit 1;
+
+set nframes = `getnframes $stem`;
+if($status) exit 1;
+
+set bext = `getbext $stem`;
+if($status) exit 1;
+
+set endian = `getendian $stem`;
+if($status) exit 1;
+
+echo $nslices $nrows $ncols $nframes $bext $endian
+
+
+exit 0;

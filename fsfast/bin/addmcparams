@@ -1,0 +1,28 @@
+#!/bin/csh -f
+# Computes total displacement from the AFNI motion correction parameter
+# file and prints out the old set of parameters with total distplacement 
+# as the last column (11th)
+# $Id: addmcparams,v 1.1 2003/03/04 21:22:07 greve Exp $
+
+if($#argv != 1) then
+  echo "USAGE: addmcparams mcdatfile"
+  exit 1;
+endif
+
+set mcdatfile = $argv[1];
+
+if(! -e $mcdatfile) then
+  echo "ERROR:$mcdatfile does not exist"
+  exit 1;
+endif
+
+cat $mcdatfile | awk '{printf sprintf("%s   %5.3f\n",$0,sqrt($5*$5+$6*$6+$7*$7))}'
+
+
+
+
+
+
+
+exit 0;
+######################################

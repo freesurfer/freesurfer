@@ -1,0 +1,807 @@
+#!/bin/csh -f
+# surf-sess
+#
+set VERSION = '$Id: surf-sess,v 1.1 2003/03/04 21:22:09 greve Exp $'
+set FASTVER = `cat $FMRI_ANALYSIS_DIR/docs/version`;
+set inputargs = ($argv);
+
+set analysis     = ();
+set contrast     = ();
+set rtopymode    = ();
+set rtopy        = 0;
+set angleoffset  = ();
+set angleoffsetcode = ();
+set map          = sig;
+set imageoffset  = 0;
+set grpname      = ();
+set space        = native;
+set spacedir     = ();
+set norgb        = 0;
+set rgbstem      = ();
+set ScriptOnly   = 0;
+set umaskarg     = ();
+set hemilist     = ();
+set subject      = ();
+set srcsubject   = ();
+set surf         = ();
+set SessList     = ();
+set isxavgmethod = ();
+set nolog = 0;
+set nowait = 0;
+set flat = 0;
+set patch = ();
+set UseAvgCurv = 0;
+set code = (); # a way to uniquely id a paint, issued by paint-sess
+set usenew = ".new";
+set usertcl = ();
+
+set Medial  = 1;
+set Lateral = 1;
+set Ventral = 1;
+
+## tksurfer variables ###
+setenv fthresh   2.0
+setenv fslope    0.1
+setenv fmid      5.0
+setenv smoothsteps 2
+
+if($#argv == 0) then
+  goto usage_exit;
+  exit 1;
+endif
+
+set n = `echo $argv | grep version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+
+## Look for nolog option ##
+set n = `echo $argv | grep nolog | wc -l` 
+if($n != 0) then
+  set nolog = 1;
+endif
+
+##### Create a log file ######
+if(! $nolog) then
+  set logdir = `pwd`/log;
+  mkdir -p $logdir
+  if(! -e $logdir) then
+    echo "ERROR: could not create $logdir"
+    exit 1;
+  endif
+  set LF = $logdir/surf-sess.log
+  if(-w $LF) then
+    mv -f $LF $LF.old 
+  else
+    set LF = /dev/null
+  endif
+else
+  set LF = /dev/null
+endif
+
+echo "-----------------------------------------------------------------"
+echo "surf-sess logfile is $LF"
+echo "-----------------------------------------------------------------"
+
+echo "surf-sess log file" >> $LF
+echo $VERSION >> $LF
+echo "FAST Version $FASTVER"  >> $LF
+id            >> $LF
+pwd           >> $LF
+echo "$0"     >> $LF
+echo $inputargs  >> $LF
+uname -a      >> $LF
+date          >> $LF
+which tksurfer >> $LF
+
+goto parse_args;
+parse_args_return:
+
+set SessList = `getsesspath $inputargs`;
+if($status) then
+  echo "$SessList" |& tee -a $LF
+  exit 1;
+endif
+
+goto check_params;
+check_params_return:
+
+if($#usenew != 0) then
+  echo " "
+  echo " "
+  echo " "
+  echo "---------->>>>>>>>>>>....<<<<<<<<<<<<-------------------- "
+  echo "INFO: You are about to use the NEW version of tksurfer."
+  echo "INFO: If you want to use the OLD version, re-run surf-sess"
+  echo "INFO: with the -old flag."
+  echo "---------->>>>>>>>>>>....<<<<<<<<<<<<-------------------- "
+  echo " "
+  echo " "
+  echo " "
+  sleep 2;
+else
+  echo " "
+  echo " "
+  echo " "
+  echo "---------->>>>>>>>>>>....<<<<<<<<<<<<-------------------- "
+  echo "INFO: You are about to use the OLD version of tksurfer."
+  echo "INFO: If you want to use the NEW version, re-run surf-sess"
+  echo "INFO: WITHOUT the -old flag."
+  echo "---------->>>>>>>>>>>....<<<<<<<<<<<<-------------------- "
+  echo " "
+  echo " "
+  echo " "
+  sleep 1;
+endif
+
+## Prepare the script, if need be ##
+if($ScriptOnly) then
+  mkdir -p scripts
+  set scriptfile = scripts/run-surf-$analysis-$contrast
+  echo "Script File is  $scriptfile" |tee -a $LF
+  rm -f $scriptfile
+  touch $scriptfile
+  echo "#\!/bin/csh -f" >> $scriptfile
+  echo "cd .." >> $scriptfile
+  chmod a+x $scriptfile
+endif
+
+foreach sess ($SessList)
+  set sessid = `basename $sess`;
+  echo "------------------------------------------------------"|tee -a $LF
+  echo "------------------------------------------------------"|tee -a $LF
+  echo "Session: $sessid ----"|tee -a $LF
+
+  ## Loop through each hemi (if needed) ##
+  foreach hemi ($hemilist)
+
+    echo "------ $hemi hemisphere ------" |& tee -a $LF
+
+    set sessinfo = $sess/session.info
+    set IsGroup = `grep GroupAverage $sessinfo | wc -l`;
+
+    if(! $IsGroup) then 
+      #---- It is an individual average ----#
+      set regfile = $sess/$fsd/register.dat
+      if(! -e $regfile) then
+        echo "ERROR: cannot find $regfile"|tee -a $LF
+        exit 1;
+      endif
+      set srcsubject = `head -n 1 $regfile`;
+      if($#subject == 0) then 
+        set subject = $srcsubject;
+        set Stat  = $map-$imageoffset
+      else
+        set Stat  = $map-$imageoffset-$subject
+      endif
+
+      if($space == native) then
+        set spacesubdir = ();
+      else
+        set spacesubdir = $spacedir;
+      endif
+    else 
+      #---- It is a group average ----#
+      set srcsubject   = $subject;
+      if($isxavgmethod == "fixed") then
+        set spacesubdir = $spacedir-ffx
+      else
+        set spacesubdir = $spacedir-rfx
+      endif
+      set Stat  = $map-$imageoffset-$subject
+    endif
+
+    if(! $rtopy ) then
+      set Stat  = $Stat$code
+    else
+      set Stat  = map;
+    endif
+
+    ## Construct the path to the map ##
+    ## contrast will = () for rtopy ##
+    set mapdir = $sess/$fsd/$analysis/$spacesubdir/$contrast
+    if(! -d $mapdir) then
+      echo "ERROR: $mapdir does not exist"   |& tee -a $LF
+      exit 1;
+    endif
+
+    set StatDir = $mapdir;
+    set name    = $subject;
+
+    if(! $rtopy ) then
+      if($srcsubject == $subject) then
+        set wfile = $StatDir/$Stat-$hemi.w
+      else
+        set wfile = $StatDir/$Stat-$subject-$hemi.w
+      endif
+      if(! -e $wfile ) then
+        echo "ERROR: cannot find $wfile"|tee -a $LF
+        exit 1;
+      endif
+      echo "wfile is $wfile" |tee -a $LF
+    else
+      if("$rtopymode" == polar || "$rtopymode" == eccen) then
+        set wfile1 = $StatDir/$rtopymode/map-real-$hemi.w
+        set wfile2 = $StatDir/$rtopymode/map-imag-$hemi.w
+        foreach wfile ($wfile1 $wfile2)
+          if(! -e $wfile) then
+            echo "ERROR: cannot find $wfile"
+            exit 1;
+          endif
+        end
+      endif 
+    endif
+
+    set surffile = $SUBJECTS_DIR/$subject/surf/$hemi.$surf
+    if(! -e $surffile) then
+      echo "ERROR ($sessid): cannot find $surffile" |& tee -a $LF
+      exit 1;
+    endif
+
+##############################################################
+set SURFER = tksurfer$usenew
+
+if(! $nowait ) then
+  setenv noexit
+else
+  unsetenv noexit
+endif
+
+setenv hemi $hemi
+setenv offset 0.4
+
+if($Medial) then
+  setenv med
+else
+  unsetenv med
+endif
+if($Lateral) then
+  setenv lat
+else
+  unsetenv lat
+endif
+if($Ventral) then
+  setenv ven
+else
+  unsetenv ven
+endif
+
+if( $#usenew == 0 ) then
+  setenv statflag 1
+else
+  unsetenv statflag
+endif
+
+setenv statname
+setenv colscale 1
+setenv colscalebarflag 1
+setenv invphaseflag 0
+setenv truncphaseflag 0
+if($UseAvgCurv) then
+  setenv curv $hemi.avg_curv
+  set fname = $SUBJECTS_DIR/$subject/surf/$curv
+  if(! -e $fname ) then
+    echo "ERROR: cannot find average curvature file $curv for $subject"
+    exit 1;
+  endif
+  setenv curvsteps 10
+else
+  setenv curv $hemi.curv
+endif
+setenv floatstem $Stat
+
+pushd $StatDir > /dev/null
+setenv dir .
+
+if($norgb) then
+  setenv nosave 1
+else
+  setenv nosave 0
+  if($#rgbstem == 0) then
+    setenv rgbname $Stat
+  else
+    setenv rgbname $rgbstem
+  endif
+  mkdir -p $dir/rgb
+  if(! -d $dir/rgb) then
+    echo "ERROR: cannot create $dir/rgb"
+    exit 1;
+  endif
+endif
+
+if($rtopy) then
+  if($#angleoffset == 0) set angleoffset = 0;  
+  setenv angle_offset $angleoffset;
+  setenv revpolarflag 0
+  unsetenv flatzrot 
+  unsetenv flatscale 
+  unsetenv statflag 
+  unsetenv statname
+  setenv colscale 0
+  unsetenv colscalebarflag 
+  setenv eccendir eccen
+  setenv polardir polar
+  setenv realname     -real
+  setenv complexname  -imag
+  setenv fs fieldsign/fieldsign$angleoffsetcode-$hemi
+  setenv fm fieldsign/fieldsignmask$angleoffsetcode-$hemi
+  setenv fthresh 0.4
+  setenv fslope 1.3
+  setenv fmid 0.8
+endif
+
+set rmtclcmd = 0;
+
+if(! $flat ) then
+  if(! $rtopy) then
+    if($#usenew == 1) then
+      set tclcmd = /tmp/surf-sess-$$.tcl
+      rm -f $tclcmd
+      if($#usertcl != 0) cat $usertcl >> $tclcmd
+      echo "set val $wfile" >> $tclcmd
+      echo "sclv_read_binary_values 0" >> $tclcmd
+      echo "set curv $curv" >> $tclcmd
+      echo "read_binary_curv; " >> $tclcmd
+      echo "set curvflag 1; " >> $tclcmd
+      echo "source $FREESURFER_HOME/lib/tcl/readenv.tcl" >> $tclcmd
+      echo "open_window" >> $tclcmd
+      echo "rotate_brain_y 90" >> $tclcmd
+      echo "sclv_set_current_field 0" >> $tclcmd
+      echo "redraw" >> $tclcmd
+      set rmtclcmd = 1;
+      echo "------------ tcl file -----------" |& tee -a $LF
+      cat $tclcmd |& tee -a $LF
+      echo "---------------------------------" |& tee -a $LF
+    else
+      if($#usertcl != 0) then
+	set tclcmd = /tmp/surf-sess-$$.tcl
+        cat $usertcl >> $tclcmd
+        echo twocond-views.tcl >> $tclcmd
+        set rmtclcmd = 1;
+      else
+        set tclcmd = twocond-views.tcl
+      endif
+    endif
+  else
+    set tclcmd = $rtopymode-views.tcl
+  endif
+else
+  if(! $rtopy) then
+    set tclcmd0 = twocond-flat.tcl
+  else
+    set tclcmd0 = $rtopymode-flat.tcl
+  endif
+  if($#usertcl != 0) then
+    set tclcmd = /tmp/surf-sess-$$.tcl
+    cat  $usertcl >> $tclcmd
+    echo $tclcmd0 >> $tclcmd
+    set rmtclcmd = 1;
+  else
+    set tclcmd = $tclcmd0;
+  endif
+
+  setenv use_vertex_arrays 0
+  setenv patchname $patch
+endif
+
+# Construct the tksurfer command-line #
+set cmd = ($SURFER -$name $hemi $surf -tcl $tclcmd)
+echo "----------------------------------------------------------" |& tee -a $LF
+pwd |& tee -a $LF
+echo $cmd |& tee -a $LF
+echo "----------------------------------------------------------" |& tee -a $LF
+$cmd |& tee -a $LF
+
+if($rmtclcmd) rm -f $tclcmd;
+
+popd > /dev/null
+    ##############################################################
+
+
+  end # loop over SessList #
+
+end # loop over hemispheres #
+
+date | tee -a $LF
+
+exit 0;
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = "$argv";
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-c":
+    case "-contrast":
+      if ( $#argv == 0) goto arg1err;
+      set contrast = $argv[1]; shift;
+      breaksw
+
+    case "-map":
+      if ( $#argv == 0) goto arg1err;
+      set map = $argv[1]; shift;
+      breaksw
+
+    case "-subject":
+      if ( $#argv == 0) goto arg1err;
+      set subject = $argv[1]; shift;
+      breaksw
+
+    case "-surf":
+      if ( $#argv == 0) goto arg1err;
+      set surf = $argv[1]; shift;
+      breaksw
+
+    case "-new":
+      set usenew = ".new";
+      breaksw
+
+    case "-old":
+      set usenew = ();
+      breaksw
+
+    case "-space":
+      if ( $#argv == 0) goto arg1err;
+      set space = $argv[1]; shift;
+      breaksw
+
+    case "-spacedir":
+      if ( $#argv == 0) goto arg1err;
+      set spacedir = $argv[1]; shift;
+      breaksw
+
+    case "-hemi":
+      if ( $#argv == 0) goto arg1err;
+      set hemilist = ($hemilist $argv[1]); shift;
+      breaksw
+
+    case "-fthresh":
+      if ( $#argv == 0) goto arg1err;
+      setenv fthresh $argv[1]; shift;
+      breaksw
+
+    case "-fmid":
+      if ( $#argv == 0) goto arg1err;
+      setenv fmid $argv[1]; shift;
+      breaksw
+
+    case "-fslope":
+      if ( $#argv == 0) goto arg1err;
+      setenv fslope $argv[1]; shift;
+      breaksw
+
+    case "-smoothsteps":
+      if ( $#argv == 0) goto arg1err;
+      setenv smoothsteps $argv[1]; shift;
+      breaksw
+
+    case "-a":
+    case "-analysis":
+      if ( $#argv == 0) goto arg1err;
+      set analysis = $argv[1]; shift;
+      breaksw
+
+
+    case "-angleoffset":
+    case "-ao":
+      if ( $#argv == 0) goto arg1err;
+      set angleoffset = $argv[1]; shift;
+      breaksw
+
+    case "-angleoffsetcode":
+    case "-aoc":
+      if ( $#argv == 0) goto arg1err;
+      set angleoffsetcode = $argv[1]; shift;
+      breaksw
+
+    case "-isxavg":
+      if ( $#argv == 0) goto arg1err;
+      set isxavgmethod = $argv[1]; shift;
+      set IsGroup = 1;
+      breaksw
+
+    case "-offset":
+      if ( $#argv == 0) goto arg1err;
+      set imageoffset = $argv[1]; shift;
+      breaksw
+
+    case "-umask":
+      if ( $#argv == 0) goto arg1err;
+      set umaskarg = "-umask $argv[1]";
+      umask $argv[1]; shift;
+      breaksw
+
+    case "-patch":
+      if ( $#argv == 0) goto arg1err;
+      set patch = $argv[1]; shift;
+      set flat = 1;
+      breaksw
+
+    case "-flat":
+      set flat = 1;
+      breaksw
+
+    case "-medonly":
+      set Medial  = 1;
+      set Lateral = 0;
+      set Ventral = 0;
+      breaksw
+
+    case "-latonly":
+      set Medial  = 0;
+      set Lateral = 1;
+      set Ventral = 0;
+      breaksw
+
+    case "-venonly":
+      set Medial  = 0;
+      set Lateral = 0;
+      set Ventral = 1;
+      breaksw
+
+    case "-avgcurv":
+      set UseAvgCurv = 1;
+      breaksw
+
+    case "-code":
+      if ( $#argv == 0) goto arg1err;
+      set code = $argv[1]; shift;
+      breaksw
+
+    case "-tcl":
+      if ( $#argv == 0) goto arg1err;
+      set usertcl = $argv[1]; shift;
+      breaksw
+
+    case "-retinotopy":
+    case "-rtopy":
+      if ( $#argv == 0) goto arg1err;
+      set rtopymode = $argv[1]; shift;
+      set rtopy = 1;
+      breaksw
+
+    case "-rgbname":
+      if ( $#argv == 0) goto arg1err;
+      set rgbstem = $argv[1]; shift;
+      breaksw
+
+    case "-norgb":
+      set norgb = 1;
+      breaksw
+
+    case "-nowait":
+      set nowait = 1;
+      breaksw
+
+    case "-verbose":
+      set verbose = 1;
+      breaksw
+
+    case "-echo":
+      set echo = 1;
+      breaksw
+
+    case "-debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    case "-scriptonly":
+      set ScriptOnly = 1;
+      breaksw
+
+    case "-nolog":
+      breaksw
+
+    case "-cwd":
+      set IsSess = 1;  # otherwise, ignore getsesspath arguments 
+      breaksw
+
+    case "-group":
+      echo "ERROR: cannot use -group with surf-sess"
+      exit 1;
+      breaksw
+
+    case "-s":
+    case "-sf":
+    case "-df":
+    case "-d":
+    case "-g":
+      set IsSess = 1;  # otherwise, ignore getsesspath arguments 
+      shift;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+  if ($#analysis == 0) then
+     echo "ERROR: no sxa name specified"|& tee -a $LF 
+     exit 1
+  endif
+  set infofile = $analysis/analysis.info
+  if(! -e $infofile) then
+    echo "ERROR: cannot find $infofile"|tee -a $LF
+    exit 1;
+  endif
+  set fsd = `cat $infofile | awk '{if($1 == "fsd") print $2}'`;
+  set designtype = `cat $infofile | awk '{if($1 == "designtype") print $2}'`;
+  if($#designtype == 0) then
+    set designtype = `cat $infofile | awk '{if($1 == "avgtype") print $2}'`;
+  endif
+
+  if($rtopy && "$designtype" != "retinotopy") then
+    echo "ERROR: the design type of analysis $analysis is $designtype."
+    echo "       -retinotopy can only be used with retinotopy designs"
+    exit 1;
+  endif
+
+  if($rtopy && "$rtopymode" != fieldsign && \
+     "$rtopymode" != eccen  && "$rtopymode" != polar) then
+     echo "ERROR: retinotopy mode must be either fieldsign, eccen, or polar"
+     exit 1;
+  endif
+  if($rtopymode == fieldsign) set rtopymode = fs;
+
+  if($#hemilist == 0) set hemilist = (lh rh);
+  foreach hs ($hemilist)
+    if($hs != lh && $hs != rh) then
+      echo "ERROR: hemi must be either lh or rh ($hs)";
+      exit 1;
+    endif
+  end
+
+  if($#contrast == 0 && ! $rtopy ) then
+    echo "ERROR: no contrast specified"|& tee -a $LF 
+    exit 1
+  endif
+
+  if($#contrast != 0 && $rtopy) then
+    echo "ERROR: do not specify contrast with retinotopic designs"|& tee -a $LF 
+    exit 1
+  endif
+
+  if($space != "tal" && $space != "sph" && $space != "native" ) then
+    echo "ERROR: no surf support for space $space "|& tee -a $LF 
+    exit 1
+  endif
+
+  if($#surf == 0) set surf = inflated;
+
+  ## Determine whether Group or Individual Data ##
+  foreach sess ($SessList)
+    set sessinfo = $sess/session.info
+    set IsGroup = `grep GroupAverage $sessinfo | wc -l`;
+  end
+
+  ## Group Contingencies ##
+  if($IsGroup) then
+    if($space == "native") then
+      echo "ERROR: currently no support for painting group data in native space"\
+           |& tee -a $LF 
+      exit 1;
+    endif
+    if($#subject == 0) then
+      echo "ERROR: $sess is a group average, need -subject"|& tee -a $LF 
+      exit 1;
+    endif
+    if($#isxavgmethod == 0) then
+      echo "ERROR: must supply -isxavg method with group data" |& tee -a $LF 
+      exit 1;
+    endif
+    if($isxavgmethod != "fixed" && $isxavgmethod != "random") then
+      echo "ERROR: -isxavg must be either fixed or random" |& tee -a $LF 
+      exit 1;
+    endif
+  endif
+
+  if($#spacedir == 0) set spacedir = $space;
+
+  if( ($space == sph || $space == tal) && $#subject == 0) then
+    echo "ERROR: space $space needs a subject designation"
+    exit 1;
+  endif
+
+
+  if(! $nowait && $Lateral && $Medial && $Ventral) then
+    set Medial  = 0;
+    set Lateral = 1;
+    set Ventral = 0;
+  endif
+
+  if($#patch == 0) then
+    set patch = patch;
+    if($rtopy) set patch = occip.patch.flat
+  endif
+
+  if( $#angleoffset != 0 && ( ! $rtopy || \
+     ($rtopymode != "polar" && $rtopymode != "eccen") )) then
+    echo "ERROR: can only use -angleoffset with retinotopy designs"
+    echo "       and only with polar or eccen modes"
+    exit 1;
+  endif
+
+  if( $#angleoffsetcode != 0 && $rtopymode != "fs") then
+    echo "ERROR: can only use -angleoffsetcode with retinotopy designs"
+    echo "       and only with fieldsign mode"
+    exit 1;
+  endif
+
+  if($#usertcl != 0) then
+    if(! -e $usertcl) then
+      echo "ERROR: cannot find $usertcl" 
+      exit 1;
+    endif
+    # Get the full path #
+    set tmp1 = `dirname $usertcl`;
+    set tmp2 = `basename $usertcl`;
+    pushd $tmp1 > /dev/null
+    set tmp1 = `pwd`;
+    popd > /dev/null
+    set usertcl = $tmp1/$tmp2;
+  endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "USAGE: surf-sess"
+  echo ""
+  echo "Required Arguments:";
+  echo "   -analysis analysisname : session-level functional analysis name"
+  echo "   -contrast contrastname : contrast name"
+  echo ""
+  echo "Optional Arguments:";
+  echo "   -map      mapname      : <sig>, minsig, iminsig, t"
+  echo "   -offset   n            : 0-based image offset"
+  echo "   -hemi     hemisphere   : <lh rh>";
+  echo "   -space    spacename    : space from which to surf (<native>, tal, sph)"
+  echo "   -spacedir spacedir     : get data from spacedir"
+  echo "   -subject  subjectname  : name of subject on which to paint (with group)"
+  echo "   -surf     surfacename  : name of surface upon which to visualize"
+  echo "   -fthresh  fthreshvalue : color map threshold ($fthresh)"
+  echo "   -fmid     fmidvalue    : middle of the color map ($fmid)";
+  echo "   -fslope   fslopevalue  : slope of the color scale ($fslope)";
+  echo "   -smoothsteps nsteps    : spatial smoothing ($smoothsteps)";
+  echo "   -retinotopy  map       : eccen, polar, fieldsign";
+  echo "   -flat                  : display on flattened cortex "
+  echo "             (hemi.patch or hemi.occip.patch.flat for retinotopy)"
+  echo "   -patch patchname       : display on flattened hemi.patchname"
+  echo "   -old                   : use old version of tksurfer"
+  echo ""
+  echo "Session Arguments (Required)"
+  echo "   -sf sessidfile  "
+  echo "   -df srchdirfile "
+  echo "   -s  sessid      "
+  echo "   -d  srchdir     "
+  echo ""
+  echo "Session Arguments (Optional)"
+  echo "   -umask umask   : set unix file permission mask"
+  echo "   -version       : print version and exit"
+  echo ""
+exit 1;

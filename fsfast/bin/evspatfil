@@ -1,0 +1,231 @@
+#!/bin/csh -f
+# evspatfil - front end for fast_evspatfil.m to filter
+# a functional data set by projecting out the eigenvectors
+# as computed from evfunc (fast_evfunc.m)
+#
+set VERSION = '$Id: evspatfil,v 1.1 2003/03/04 21:22:08 greve Exp $'
+set inputargs = ($argv);
+
+set PWDCMD = `getpwdcmd`;
+
+set mfcmdargs = ();
+set outstem = ();
+set pvefile = ();
+set monly = 0;
+set MLF = ();
+set QuitOnError = 1;
+
+set n = `echo $argv | grep version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+
+if($#argv == 0) then
+  goto usage_exit;
+  exit 1;
+endif
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+set MATLAB = `getmatlab`;
+if($status) exit 1;
+
+if($#outstem != 0) then
+  set LF = $outstem-evspatfil.log
+else
+  set LF = $pvefile-evspatfil.log
+endif
+rm -f $LF
+date >> $LF
+echo $0 $inputargs >> $LF
+
+set okfile = $outdir/evfunc.ok.$$
+rm -f $okfile
+
+if($#MLF == 0) set MLF = evspatfil_$$.m
+echo $MLF
+rm -f $MLF
+
+echo matlab file is $MLF 
+rm -f $MLF;
+echo "% Matlab file for evspatfil `date`" >> $MLF
+echo "% This file may be deleted "     >> $MLF
+echo "% $MLF"                          >> $MLF;
+echo "global QuitOnError;"             >> $MLF;
+echo "QuitOnError = $QuitOnError;"     >> $MLF;
+echo "r=1;"     >> $MLF;
+set c = "";
+echo -n "r = fast_evspatfil("     >> $MLF;
+foreach arg ($mfcmdargs)
+  echo -n "$c '$arg'"      >> $MLF;
+  set c = ",";
+end
+echo -n ");" >> $MLF;
+echo " ">> $MLF;
+echo "if(r==0)" >> $MLF;
+echo "  fmri_touch('$okfile');" >> $MLF;
+echo "end" >> $MLF;
+echo "qoe;" >> $MLF;
+
+echo "----------- Matlab file --------------" | tee -a $LF
+cat $MLF | tee -a $LF
+echo " " | tee -a $LF
+echo "-----------------------------------" | tee -a $LF
+
+if(! $monly ) then
+  set StartDate = `date`;
+  echo "------------------------------------------" | tee -a $LF
+  echo "------- matlab output --------------------" | tee -a $LF
+  cat $MLF | $MATLAB -display iconic | tee -a $LF
+  echo "------------------------------------------" | tee -a $LF
+  rm $MLF
+  if(! -e $okfile) then
+    echo "ERROR: fast_evspatfil() failed\n"| tee -a $LF
+    exit 1;
+  endif
+  rm -f $okfile
+  echo "Started at $StartDate" | tee -a $LF
+  echo "Ended   at `date`"     | tee -a $LF
+endif
+
+echo " " 
+echo " " 
+echo "evspatfil Done" | tee -a $LF
+
+exit 0;
+###--------------------------------------------###
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-o"
+      if ( $#argv == 0) goto arg1err;
+      set outstem = $argv[1]; shift;
+      set mfcmdargs = ($mfcmdargs "-o" "$outstem");
+      breaksw
+
+    case "-pve"
+      if ( $#argv == 0) goto arg1err;
+      set pvefile = $argv[1]; shift;
+      set mfcmdargs = ($mfcmdargs "-pve" "$pvefile");
+      breaksw
+
+    case "-projtc"
+      if ( $#argv == 0) goto arg1err;
+      set mfcmdargs = ($mfcmdargs $flag $argv[1]);
+      set projtcid = $argv[1]; shift;
+      breaksw
+
+    case "-monly":
+      if ( $#argv == 0) goto arg1err;
+      set MLF = $argv[1]; shift;
+      set monly = 1;
+      set QuitOnError = 0;
+      breaksw
+
+    case "-verbose":
+      set verbose = 1;
+      breaksw
+
+    case "-echo":
+      set echo = 1;
+      breaksw
+
+    case "-debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    default:
+      set mfcmdargs = ($mfcmdargs $flag);
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+  if($#outstem == 0 && $#pvefile == 0) then
+    echo "ERROR: must specify an output stem or pve file"
+    exit 1;
+  endif
+
+  if($#pvefile != 0) then
+    # Create the pve file output directory 
+    set pvebase = `basename $pvefile`;
+    set pvedir  = `dirname  $pvefile`;
+    mkdir -p $pvedir
+    pushd $pvedir > /dev/null
+    set pvedir = `$PWDCMD`;
+    popd > /dev/null
+    set pvefile = $pvedir/$pvebase
+  endif
+
+  if($#outstem != 0) then
+    # Create the output directory 
+    set outbase = `basename $outstem`;
+    set outdir  = `dirname  $outstem`;
+    mkdir -p $outdir
+    pushd $outdir > /dev/null
+    set outdir = `$PWDCMD`;
+    popd > /dev/null
+    set outstem = $outdir/$outbase
+  else
+    set outdir = $pvedir
+  endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "USAGE: evspatfil"
+  echo ""
+  echo "   -i   input volid "
+  echo "   -sev sev volid "
+  echo ""
+  echo "   -o   output volid "
+  echo "   -nfilter n"
+  echo ""
+  echo "   -pve pvefile"
+  echo ""
+  echo "Options:";
+  echo ""
+  echo "   -sevexcl nth <-sevexcl mth> : exclude given components "
+  echo "   -polyfit order"
+  echo "   -mask volid"
+  echo "   -maskthresh maskthresh (0.5)"
+  echo "   -masksign sign (<abs>,pos,neg)"
+  echo "   -automaskthresh maskthresh "
+  echo "   -automask volid"
+  echo "   -cutends : dont include end slices"
+  echo ""
+  echo "   -projmask volid"
+  echo "   -projmaskthresh maskthresh (0.5)"
+  echo ""
+  echo "   -umask umask   : set unix file permission mask"
+  echo "   -version       : print version and exit"
+  echo ""
+exit 1;

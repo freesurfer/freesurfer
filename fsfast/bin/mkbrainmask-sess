@@ -1,0 +1,274 @@
+#!/bin/csh -f
+# mkbrainmask-se3ss
+#
+# $Id: mkbrainmask-sess,v 1.1 2003/03/04 21:22:09 greve Exp $
+
+set cmdargs = ($argv);
+
+set fsd = "bold";
+set funcstem = f; # stem of functional volume
+set thresh = 0.1;
+set maskstem = brain;
+set maskdir = masks;
+set run = 1;
+set debug = 0;
+set scratchdir = ();
+set PrintHelp = 0;
+
+set StartTime = `date`;
+
+if($#argv == 0) then
+  goto usage_exit;
+  exit 1;
+endif
+
+set n = `echo $argv | grep version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+  exit 1;
+endif
+
+set PWDCMD = `getpwdcmd`;
+
+set SessList = `getsesspath $argv`;
+if($status || $#SessList == 0) then
+  getsesspath $argv 
+  exit 1;
+endif
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+# Create a log file #
+if(-w .) then
+  mkdir -p log
+  set LF = `$PWDCMD`/log/mkbrainmask-sess-$fsd.log
+  rm -f $LF
+else
+  set LF = /dev/null
+endif
+
+echo "mkbrainmask-sess" >> $LF
+echo '$Id: mkbrainmask-sess,v 1.1 2003/03/04 21:22:09 greve Exp $' >> $LF
+uname -a          >> $LF
+date              >> $LF
+$PWDCMD           >> $LF
+echo $cmdargs     >> $LF
+
+#---------------------------------------------------------------#
+foreach sess ($SessList)
+
+  echo "------------------------------------------------" |& tee -a $LF
+  echo "------------------------------------------------" |& tee -a $LF
+  echo "$sess " |& tee -a $LF
+  date |& tee -a $LF
+
+  ### Check that the target directory is there ###
+  if(! -d $sess/$fsd) then
+    echo "ERROR: $sess/$fsd does not exist"   |& tee -a $LF
+    exit 1;
+  endif
+
+  ### Check that the target directory is writable ###
+  if(! -w $sess/$fsd) then
+    echo "ERROR: $sess/$fsd is not writable"   |& tee -a $LF
+    exit 1;
+  endif
+
+  ### Goto the functional subdirectory ###
+  cd $sess/$fsd
+
+  ### Get the list of runs in the FSD ###
+  set RunList = `getrunlist .`;
+  if($status || $#RunList == 0) then
+    echo "ERROR: $sess/$fsd has no runs"  |& tee -a $LF
+    exit 1;
+  endif
+
+  if($#RunList < $run) then
+    echo "ERROR: number of runs ($#RunList) exceeds specified run $run"
+    exit 1;
+  endif
+
+  set instem = $RunList[$run]/$funcstem;
+  if( ! -e $instem.bhdr ) then
+    set seqinfoopt = (-seqinfo seq.info)
+  else
+    set seqinfoopt = ();
+  endif
+
+  set cmd = (mkbrainmask);
+  set cmd = ($cmd -i $instem);
+  set cmd = ($cmd -o $maskdir/$maskstem);
+  set cmd = ($cmd -thresh $thresh );
+  set cmd = ($cmd -umask `umask` );
+  set cmd = ($cmd $seqinfoopt);
+  if($debug) set cmd = ($cmd -debug);
+  if($#scratchdir != 0) set cmd = ($cmd -scratch $scratchdir);
+
+  echo "--------------------------------------------------"
+  $PWDCMD   |& tee -a $LF
+  echo $cmd |& tee -a $LF
+  echo "--------------------------------------------------"
+
+  $cmd
+  if($status) then
+    echo "ERROR: mkbrainmask failed"  |& tee -a $LF
+    exit 1;
+  endif
+
+end
+
+
+exit 0;
+###############################################
+
+
+############--------------##################
+parse_args:
+set cmdline = "$argv";
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-funcstem":
+    case "-instem":
+    case "-i":
+      if ( $#argv == 0) goto arg1err;
+      set funcstem = $argv[1]; shift;
+      breaksw
+
+    case "-fsd":
+      set fsd = $argv[1]; shift;
+      breaksw
+
+    case "-maskstem":
+    case "-mask":
+    case "-o":
+      if ( $#argv == 0) goto arg1err;
+      set maskstem = $argv[1]; shift;
+      breaksw
+
+    case "-thresh":
+      if ( $#argv == 0) goto arg1err;
+      set thresh = $argv[1]; shift;
+      breaksw
+
+    case "-scratch":
+      if ( $#argv == 0) goto arg1err;
+      set scratchdir = $argv[1]; shift;
+      breaksw
+
+    case "-debug":
+      set debug = 1;
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    case "-umask":
+      if ( $#argv == 0) goto arg1err;
+      umask $1; shift;
+      breaksw
+
+    case "-g":
+    case "-s":
+    case "-sf":
+    case "-d":
+    case "-df":
+      shift;
+      # ignore getsesspath arguments 
+      breaksw
+
+    case "-cwd":
+      # ignore getsesspath arguments 
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+  if ($#SessList == 0) then
+     echo "ERROR: no sessions specified"
+     exit 1
+  endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "USAGE: mkbrainmask-sess"
+  echo ""
+  echo "Optional Arguments"
+  echo "   -fsd   funcsubdir  : functional subdirectory (default: bold)"
+  echo "   -run  nth          : use the nth run (default is 1st)"
+  echo "   -funcstem stem     : stem of functional volume (default: f)"
+  echo "   -thresh  threshold : fraction of global mean to separate "
+  echo "                        brain and air (default is .1)"
+  echo "   -maskstem stem     : stem of binary mask (stored in fsd/masks/stem)"
+  echo "                        default is brain"
+  echo ""
+  echo "Session Arguments (Required)"
+  echo "   -sf sessidfile  "
+  echo "   -df srchdirfile "
+  echo "   -s  sessid      "
+  echo "   -d  srchdir     "
+  echo ""
+  echo "Other Options"
+  echo "   -help              : print help and exit"
+  echo "   -version           : print version and exit"
+  echo ""
+
+  if(! $PrintHelp ) exit 1;
+
+  echo "\
+mkbrainmask-sess\
+\
+This program creates a binary mask of the brain given an input \
+functional volume. It uses the FSL (www.fmrib.ox.ac.uk/fsl) Brain \
+Extraction Tool (BET). By default, the input is the f volume from the \
+first run of the session from the bold directory.  The input volume \
+can be changed with the -funcstem option; the run can be changed with \
+the -run option; and the functional subdirectory can be changed with \
+the -fsd option. The output will be placed in a directory called masks \
+under the FSD. The stem will be brain unless changed with the \
+-maskstem option. The only real parameter is the threshold (controlled \
+with the -thresh option). The absolute threshold is set to thresh \
+times the global mean.\
+\
+Those using this program should cite: Smith, S. (2000).  Robust\
+automated brain extraction.  NeuroImage.  Submitted.\
+\
+"
+
+exit 1;

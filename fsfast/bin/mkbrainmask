@@ -1,0 +1,244 @@
+#!/bin/csh -f
+# mkbrainmask - frontend for FSL's BET (Brain Extraction Tool)
+#
+# $Id: mkbrainmask,v 1.1 2003/03/04 21:22:09 greve Exp $
+#
+
+set VERSION = '$Id: mkbrainmask,v 1.1 2003/03/04 21:22:09 greve Exp $';
+set FASTVER = `cat $FSFAST_HOME/docs/version`;
+
+set inputargs = ($argv);
+
+set instem   = ();
+set outstem  = ();
+set thresh     = 0.5;
+set scratchdir = ();
+set cleanup    = 1;
+set seqinfo = ();
+
+if($#argv == 0) then
+  goto usage_exit;
+  exit 1;
+endif
+
+set n = `echo $argv | grep version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+#---------------------------------------------------#
+set outdir = `dirname $outstem`;
+mkdir -p $outdir
+
+#---------------------------------------------------#
+if($#scratchdir == 0) then
+  set scratchdir = /tmp/mkbrainmask_$$
+else
+  set scratchdir = $scratchdir/mkbrainmask
+endif
+mkdir -p $scratchdir
+echo "Scratch Dir is $scratchdir" 
+
+#---------------------------------------------------#
+set inbase  = `basename $instem`;
+set outbase = `basename $outstem`;
+
+#---------------------------------------------------#
+if( -e $instem"_000.bshort") then
+  set suffix = bshort;
+else
+  if( -e $instem"_000.bfloat") then
+    set suffix = bfloat
+  else
+    echo "ERROR: cannot find $instem"
+    exit 1;
+  endif
+endif
+
+if( $#seqinfo != 0 ) then
+  set inplaneres  = `cat $seqinfo | awk '{if($1=="rowpixelsize") print $2}'`;
+  set betplaneres = `cat $seqinfo | awk '{if($1=="slcpixelsize") print $2}'`;
+  set sizeopts = (--in_i_size $inplaneres)
+  set sizeopts = ($sizeopts --in_j_size $inplaneres)
+  set sizeopts = ($sizeopts --in_k_size $betplaneres)
+else
+  set sizeopts = ();
+endif
+
+echo "# ---------- Converting bvolume to .img ------------------ #"
+set cmd = (mri_convert $instem"_000."$suffix $scratchdir/$inbase.img)
+set cmd = ($cmd $sizeopts);
+$cmd
+if($status) then
+  pwd
+  echo $cmd
+  echo "ERROR: mri_convert failed"
+  exit 1;
+endif
+
+echo "# ---------- Using FSL's BET to Extract Brain------------------ #"
+set cmd = (bet $scratchdir/$inbase $scratchdir/$outbase -m -f $thresh)
+$cmd
+if($status) then
+  pwd
+  echo $cmd
+  echo "ERROR: bet failed"
+  exit 1;
+endif
+
+# Copy .mat file to outbase
+cp $scratchdir/$inbase.mat $scratchdir/$outbase"_mask".mat
+
+# Convert the binary mask back to bshort #
+echo "# ---------- Converting binary mask back to bshort ------------------ #"
+set cmd = (mri_convert $scratchdir/$outbase"_mask".img $outstem"_000.bshort")
+$cmd
+if($status) then
+  pwd
+  echo $cmd
+  echo "ERROR: mri_convert failed"
+  exit 1;
+endif
+
+# Delete temporary files #
+if($cleanup ) then
+  rm -r $scratchdir
+endif
+
+echo " "
+echo "----------------- mkbrainmask Done -----------------------------"
+echo " "
+
+exit 0;
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-i":
+      if ( $#argv == 0) goto arg1err;
+      set instem = $argv[1]; shift;
+      breaksw
+
+    case "-o":
+      if ( $#argv == 0) goto arg1err;
+      set outstem = $argv[1]; shift;
+      breaksw
+
+    case "-thresh":
+      if ( $#argv == 0) goto arg1err;
+      set thresh = $argv[1]; shift;
+      breaksw
+
+    case "-scratch":
+      if ( $#argv == 0) goto arg1err;
+      set scratchdir = $argv[1]; shift;
+      breaksw
+
+    case "-seqinfo":
+      if ( $#argv == 0) goto arg1err;
+      set seqinfo = $argv[1]; shift;
+      breaksw
+
+    case "-umask":
+      if ( $#argv == 0) goto arg1err;
+      umask $1; shift;
+      breaksw
+
+    case "-nocleanup":
+      set cleanup = 0;
+      breaksw
+
+    case "-verbose":
+      set verbose = 1;
+      breaksw
+
+    case "-echo":
+      set echo = 1;
+      breaksw
+
+    case "-debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+  if($#instem == 0) then
+     echo "ERROR: no input specified"
+     exit 1
+  endif
+
+  if($#outstem == 0) then
+     echo "ERROR: no output specified"
+     exit 1
+  endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "USAGE: mkbrainmask"
+  echo ""
+  echo "Required Arguments:";
+  echo "   -i instem"
+  echo "   -o outstem "
+  echo ""
+  echo "Optional Arguments:";
+  echo "   -thresh threshold : between 0 and 1"
+  echo "   -scratch dir : directory to put temporary files"
+  echo "   -nocleanup   : don't delete temporary files"
+  echo "   -seqinfo seqinfofile : use this if there is no .bhdr"
+  echo ""
+  echo "Other Arguments (Optional)"
+  echo "   -umask umask   : set unix file permission mask"
+  echo "   -version       : print version and exit"
+  echo ""
+exit 1;
+
+
+############--------------##################
+print_help:
+
+echo "\
+mkbrainmask\
+\
+Those using this program should cite: Smith, S. (2000).  Robust \
+automated brain extraction.  NeuroImage.  Submitted. \
+\
+"
+

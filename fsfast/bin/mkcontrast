@@ -1,0 +1,425 @@
+#!/bin/csh -f
+############################################################
+# Name:    mkcontrast
+# Purpose: make a contrast matrix
+############################################################
+
+set fmrianalver = `cat $FMRI_ANALYSIS_DIR/docs/version`;
+set MKCONTRAST_VER = '$Id: mkcontrast,v 1.1 2003/03/04 21:22:09 greve Exp $';
+
+set CorrIdeal = 0;
+set monly = 0;
+set mfile = ();
+set cmtxfile = ();
+set nconds  = 0;
+set wcond = ();
+set sumconds = 0;
+set ndelays = 0;
+set wdelay  = ();
+set sumdelays = 0;
+set TER = ();
+set TPreStim = 0;
+set TimeWindow = 0;
+set GammaFit = 0;
+set ShowCMtx = 0;
+set datfile = ();
+set wpsa = (); # weights for pre-stim avg
+set RmPrestim = 0;
+set sxadat = ();
+
+set nircorr = 0;
+set rdelta = ();
+set rtau   = ();
+
+if ( $#argv == 0 ) then
+  echo "USAGE: mkcontrast [-options] -o cmtxmatfile ";
+  echo ""
+  echo "Option Set 1:";
+  echo "   -nconds  nconds       : number of conditions (excl fix)"
+  echo "   -wcond  cw1 cw2 ...   : weight of each condition"
+  echo "   -sumconds             : sum conditions"
+  echo "   -ndelays ndelays      : number of delays points in HDR"
+  echo "   -wdelay dw1 dw2 ...   : weight of each delay"
+  echo "   -wpsa   dw1 dw2 ...   : weight of each delay for pre-stim avg"
+  echo "   -sumdelays            : sum delays"
+  echo "   -showcmtx             : display contrast matrix"
+  echo "   -rmprestim            : remove prestim baseline (ER only)"
+  echo "   -sxadat file          : dat file from selxavg"
+  echo "   -TER TER              : Estimation resolution (sec)"
+  echo "   -prestim TPreStim     : Estimation prestimulus period (0) (sec)"
+  echo ""
+  echo "Option Set 2:";
+  echo "   -rmprestim            : remove prestim baseline (ER only)"
+  echo "   -nconds  nconds       : number of conditions (excl fix)"
+  echo "   -wcond  cw1 cw2 ...   : weight of each condition"
+  echo "   -sumconds             : sum conditions"
+  echo "   -ndelays ndelays      : number of delays points in HDR"
+  echo "   -sumdelays            : sum delays"
+  echo "   -ircorr nircorr       : correlate with nircorr ideal HDIRs"
+  echo "   -deltarange dmin dmax ...  : delta range of ideal HDIR"
+  echo "   -taurange   tmin tmax ...  : tau range of ideal HDIR"
+  echo "   -sxadat file          : dat file from selxavg"
+  echo "   -TER TER              : Estimation resolution (sec)"
+  echo "   -prestim TPreStim     : Estimation prestimulus period (0) (sec)"
+  echo ""
+  echo "  $MKCONTRAST_VER"
+  echo "  fMRIA Version $fmrianalver";
+  echo "  Author: Douglas N. Greve"
+  echo "          Massachusetts General Hospital - NMR Center"
+  echo "  Comments or questions: analysis-bugs@nmr.mgh.harvard.edu"
+  echo "  Nov 3, 1999"
+  echo ""
+  exit 1;
+endif
+
+echo "  $MKCONTRAST_VER"
+echo "  fMRIA Version $fmrianalver";
+echo "  Author: Douglas N. Greve."
+echo "          Massachusetts General Hospital - NMR Center"
+echo "  Comments or questions: analysis-bugs@nmr.mgh.harvard.edu"
+echo ""
+
+set MATLAB = `getmatlab`;
+if($status) exit 1;
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+goto dump_params;
+dump_params_return:
+
+if($#rdelta == 0) set rdelta = (0 0);
+if($#rtau   == 0) set rtau   = (0 0);
+if($#TER    == 0) set TER    = 1;
+
+if ($monly) then
+  set TARGET = "tee $mfile"
+  rm -f $mfile;
+else
+  if(! $ShowCMtx) then 
+    set TARGET =  "$MATLAB -display iconic"
+  else
+    set TARGET = "$MATLAB"
+  endif
+endif  
+
+set OutDir = `dirname $cmtxfile`;
+if("$OutDir" != ".") mkdir -p $OutDir
+#---------------------------------------------------------------#
+$TARGET <<EOF
+
+  if( ~ $monly ) QuitOnError = 1; 
+  else           QuitOnError = 0; 
+  end
+
+  NCond  = $nconds;
+  WCond  = [$wcond];
+  NDelay = $ndelays;
+  WDelay = [$wdelay];
+  WPSA   = [$wpsa];
+  TER        = $TER;
+  TimeWindow = NDelay*TER; % Hack so that it works with gammafit
+  sumconds  = $sumconds;
+  sumdelays = $sumdelays;
+  nircorr = $nircorr;
+
+  if(isempty(WCond))
+    WCond = ones(1,NCond);
+  end
+  if(isempty(WDelay))
+    WDelay = ones(1,NDelay);
+  end
+  if(TimeWindow == 0) TimeWindow = NDelay*TER; end
+
+  if(nircorr == 0)
+    % ---- Do not correlate with assumed response ----- %
+    % ContrastMtx_0 = fmri_mrestriction2(WCond,WDelay,sumconds,sumdelays);
+    ContrastMtx_0 = fast_contrastmtx(TER,TimeWindow,$TPreStim,...
+        NCond,sumconds,WCond,sumdelays,WDelay,$RmPrestim);
+  else
+    % ---- Correlate with assumed response ------- %
+    if(nircorr == 1)
+      delta = ($rdelta[2] + $rdelta[1])/2;
+      tau   = ($rtau[2] + $rtau[1])/2;
+    else
+      ddelta = ($rdelta[2] - $rdelta[1])/(nircorr-1);
+      delta  = $rdelta[1] + ddelta*[0:nircorr-1];
+      dtau   = ($rtau[2] - $rtau[1])/(nircorr-1);
+      tau    = $rtau[1] + dtau*[0:nircorr-1];
+    end
+
+    t = -$TPreStim + $TER * [0:$ndelays-1];
+    h = fmri_hemodyn(t,delta,tau);
+
+    ContrastMtx_0 = [];
+    for n = 1 : nircorr
+      wdelay = h(:,n)'; %'
+      wdelay = wdelay/sum(wdelay);
+      cm = fmri_mrestriction2([WCond],wdelay,sumconds,sumdelays);
+      ContrastMtx_0 = [  ContrastMtx_0; cm ];
+    end
+
+  end
+
+  %size(ContrastMtx_0)
+  save('$cmtxfile','ContrastMtx_0','WCond','WDelay','-V4');
+
+  if($ShowCMtx)
+    hcmtx = figure(1);
+    imagesc(ContrastMtx_0);
+    colorbar;
+    if(~ $monly ) uiwait(hcmtx); end
+  end
+
+  return;
+
+  if(QuitOnError)  quit; end
+  
+EOF
+
+
+exit 0;
+#-------------------------------------------------------------#
+
+############--------------##################
+parse_args:
+
+set cmdline = "$argv";
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-o":
+      if( $#argv == 0) goto arg1err;
+      if( $#cmtxfile != 0 ) then
+        echo ERROR: only one cmtxfile allowed.
+        exit 1
+      endif
+      set cmtxfile = $argv[1]; shift;
+      breaksw
+
+    case "-sxadat":
+      if( $#argv == 0) goto arg1err;
+      set sxadat = $argv[1]; shift;
+      if(! -e $sxadat) then
+         echo "ERROR: cannot find $sxadat"
+         exit 1;
+      endif
+      set tmp = `grep Nh $sxadat`;
+      set ndelays = $tmp[2];
+      set tmp = `grep nCond $sxadat`;
+      @ nconds = $tmp[2] - 1;
+      set tmp = `grep TER $sxadat`;
+      set TER = $tmp[2];
+      set tmp = `grep TPreStim $sxadat`;
+      set TPreStim = $tmp[2];
+      set tmp = `grep TimeWindow $sxadat`;
+      set TimeWindow = $tmp[2];
+      set tmp = `grep GammaFit $sxadat`;
+      set GammaFit = $tmp[2];
+      breaksw
+
+    case "-nconds":
+      if( $#argv == 0) goto arg1err;
+      set nconds = $argv[1]; shift;
+      breaksw
+
+    case "-wcond":
+      if( $#argv < $nconds) then
+        echo "ERROR: need at least $nconds weights for -wcond";
+        exit 1;
+      endif
+      set wcond = ();
+      @ c = 0;
+      while($c < $nconds)
+        set wcond = ($wcond $argv[1]); shift;
+        @ c = $c + 1;
+      end
+      breaksw
+
+    case "-rmprestim"
+      set RmPrestim = 1;
+      breaksw
+
+    case "-sumconds"
+      set sumconds = 1;
+      breaksw
+
+    case "-ndelays":
+      if( $#argv == 0) goto arg1err;
+      set ndelays = $argv[1]; shift;
+      breaksw
+
+    case "-wdelay":
+      if( $#argv < $ndelays) then
+        echo "ERROR: need at least $ndelays weights for -wdelay";
+        exit 1;
+      endif
+      set wdelay = ();
+      @ d = 0;
+      while($d < $ndelays)
+        set wdelay = ($wdelay $argv[1]); shift;
+        @ d = $d + 1;
+      end
+      breaksw
+
+    case "-wpsa":
+      if( $#argv < $ndelays) then
+        echo "ERROR: need at least $ndelays weights for -wpsa";
+        exit 1;
+      endif
+      set wpsa = ();
+      @ d = 0;
+      while($d < $ndelays)
+        set wpsa = ($wpsa $argv[1]); shift;
+        @ d = $d + 1;
+      end
+      breaksw
+
+    case "-sumdelays"
+      set sumdelays = 1;
+      breaksw
+
+    case "-ircorr":
+      if( $#argv == 0) goto arg1err;
+      set nircorr = $argv[1]; shift;
+      set CorrIdeal = 1;
+      breaksw
+
+    case "-TER":
+      if( $#argv == 0) goto arg1err;
+      set TER = $argv[1]; shift;
+      breaksw
+
+    case "-prestim":
+    case "-tprestim":
+    case "-tps":
+      if( $#argv == 0) goto arg1err;
+      set TPreStim = $argv[1]; shift;
+      breaksw
+
+    case "-deltarange":
+    case "-dr":
+      if( $#argv == < 2) then
+        echo "ERROR: -deltarange option requires 2 arguments"
+        exit 1;
+      endif
+      set rdelta = ($argv[1] $argv[2]); shift;shift;
+      breaksw
+
+    case "-taurange":
+    case "-tr":
+      if( $#argv == < 2) then
+        echo "ERROR: -taurange option requires 2 arguments"
+        exit 1;
+      endif
+      set rtau = ($argv[1] $argv[2]); shift;shift;
+      breaksw
+
+    case "-showcmtx":
+    case "-show":
+      set ShowCMtx = 1;
+      breaksw;
+
+    case "-monly":
+      if( $#argv == 0) goto arg1err;
+      set mfile  = $argv[1]; shift;
+      set monly  = 1; 
+      breaksw
+
+    case "-debug":
+    case "-verbose":
+      set verbose = 1;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized.
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+  if($#cmtxfile != 1) then
+     echo "ERROR: must specify an output file";
+     exit 1
+  endif
+
+  if($nconds < 1) then
+     echo "ERROR: must specify the number of conditions"
+     exit 1;
+  endif
+
+  if($ndelays < 1) then
+     echo "ERROR: must specify the number of delays"
+     exit 1;
+  endif
+
+  if( ( $#rdelta != 0 || $#rtau != 0) && $nircorr == 0) then
+    echo "ERROR: must use -ircorr with -deltarange and -taurange";
+    exit 1;
+  endif
+
+  if( $nircorr != 0) then
+    if( $#rdelta != 2 ) then
+      echo "ERROR: must specify -deltarange with ircorr";
+      exit 1;
+    endif
+    if($#rtau != 2) then
+      echo "ERROR: must specify -taurange with ircorr";
+      exit 1;
+    endif
+    if($#TER != 1) then
+      echo "ERROR: must specify TER with ircorr";
+      exit 1;
+    endif
+    if($#TPreStim == 0) then
+      echo "ERROR: must specify TPreStim with ircorr";
+      exit 1;
+    endif
+  endif
+
+  if($RmPrestim != 0 && $#sxadat == 0) then
+    echo "ERROR: need sxadat wiht -rmprestim"
+    exit 1;
+  endif
+
+  if($RmPrestim != 0 && $GammaFit != 0) then
+    echo "ERROR: cannot remove prestim baseline with gamma fit"
+    exit 1;
+  endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+dump_params:
+  echo "cmtxfile  $cmtxfile"
+  echo "nconds    $nconds,  wcond  $wcond"
+  echo "ndelays   $ndelays, wdelay $wdelay"
+  echo "ndelays   $ndelays, wpsa   $wpsa"
+  echo "sumconds  $sumconds"
+  echo "sumdelays $sumdelays"
+  echo "nircorr   $nircorr"
+  echo "TER       $TER"
+  echo "rdelta    $rdelta"
+  echo "rtau      $rtau"
+goto dump_params_return;
+############--------------##################
+

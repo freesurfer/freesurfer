@@ -1,0 +1,241 @@
+#!/bin/csh -f
+# spatev
+#
+set VERSION = '$Id: spatev,v 1.1 2003/03/04 21:22:09 greve Exp $'
+set inputargs = ($argv);
+
+set PWDCMD = `getpwdcmd`;
+
+set svddir = ();
+set instemlist = ();
+set sevstem = ();
+set nkeep = -1;
+set regmethod = ();
+set firstslice = 0;
+set nslices = -1;
+set monly = 0;
+set MLF = ();
+set nocheck = 1;
+set QuitOnError = 1;
+
+set n = `echo $argv | grep version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+
+if($#argv == 0) then
+  goto usage_exit;
+  exit 1;
+endif
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+set MATLAB = `getmatlab`;
+if($status) exit 1;
+
+if(! $nocheck) then
+  foreach instem ($instemlist)
+    echo "Checking Volume $instem"
+    bfvcheck $instem
+    if($status) then
+      echo "ERROR found with $instem"
+      exit 1;
+    endif
+  endif
+endif
+
+set outdir = `dirname $sevstem`;
+mkdir -p $outdir
+
+set LF = $outdir/spatev.log
+
+if($#MLF == 0) set MLF = $outdir/spatev_$$.m
+rm -f $MLF
+
+set okfile = $outdir/spatev.ok.$$
+rm -f $okfile
+
+echo matlab file is $MLF 
+rm -f $MLF;
+echo "% Matlab file for spatev `date`" >> $MLF
+echo "% This file may be deleted "     >> $MLF
+echo "% $MLF"                          >> $MLF;
+echo "global QuitOnError;"             >> $MLF;
+echo "QuitOnError = $QuitOnError;"     >> $MLF;
+echo "r=1;"     >> $MLF;
+set c = "";
+echo -n "r = fast_spatev("     >> $MLF;
+foreach arg ($inputargs)
+  echo -n "$c '$arg'"      >> $MLF;
+  set c = ",";
+end
+echo -n ");" >> $MLF;
+echo " ">> $MLF;
+echo "if(r==0)" >> $MLF;
+echo "  fmri_touch('$okfile');" >> $MLF;
+echo "end" >> $MLF;
+echo "qoe;" >> $MLF;
+
+echo "----------- Matlab file --------------" 
+cat $MLF | tee -a $LF
+echo " " | tee -a $LF
+echo "-----------------------------------" 
+
+if(! $monly ) then
+  echo "------------------------------------------" 
+  echo "------- matlab output --------------------" 
+  cat $MLF | $MATLAB -display iconic 
+  echo "------------------------------------------" 
+  rm $MLF
+  if(! -e $okfile) then
+    echo "ERROR: fast_spatev() failed\n";
+    exit 1;
+  endif
+  rm -f $okfile
+endif
+
+echo " " 
+echo " " 
+date 
+echo "spatev Done" 
+
+exit 0;
+###--------------------------------------------###
+
+############--------------##################
+parse_args:
+set cmdline = "$argv";
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-i":
+      if ( $#argv == 0) goto arg1err;
+      set instemlist = ($instemlist $argv[1]); shift;
+      breaksw
+
+    case "-firstslice":
+    case "-fs":
+      if ( $#argv == 0) goto arg1err;
+      set firstslice = $argv[1]; shift;
+      breaksw
+
+    case "-firstslice":
+    case "-fs":
+      if ( $#argv == 0) goto arg1err;
+      set firstslice = $argv[1]; shift;
+      breaksw
+
+    case "-nslices":
+    case "-ns":
+      if ( $#argv == 0) goto arg1err;
+      set nslices = $argv[1]; shift;
+      breaksw
+
+    case "-sev":
+      if ( $#argv == 0) goto arg1err;
+      set sevstem = $argv[1]; shift;
+      breaksw
+
+    case "-svddir":
+      if ( $#argv == 0) goto arg1err;
+      set svddir = $argv[1]; shift;
+      breaksw
+
+    case "-nkeep":
+      if ( $#argv == 0) goto arg1err;
+      set nkeep = $argv[1]; shift;
+      breaksw
+
+    case "-regmethod":
+      if ( $#argv == 0) goto arg1err;
+      set regmethod = $argv[1]; shift;
+      breaksw
+
+    case "-monly":
+      if ( $#argv == 0) goto arg1err;
+      set MLF = $argv[1]; shift;
+      set monly = 1;
+      set QuitOnError = 0;
+      breaksw
+
+    case "-nocheck":
+      set nocheck = 1;
+      breaksw
+
+    case "-verbose":
+      set verbose = 1;
+      breaksw
+
+    case "-echo":
+      set echo = 1;
+      breaksw
+
+    case "-debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+  if($#instemlist == 0) then
+    echo "ERROR: no input  specified" 
+    exit 1;
+  endif
+
+  if($#sevstem == 0) then
+    echo "ERROR: no sev stem  specified"
+    exit 1;
+  endif
+
+  if($#svddir == 0) then
+    echo "ERROR: no svddir specified" 
+    exit 1;
+  endif
+
+  if(! -e $svddir) then
+    echo "ERROR: $svddir does not exist"
+    exit 1;
+  endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo "USAGE: spatev"
+  echo "Options:";
+  echo "   -svddir    dir "
+  echo "   -i instem <<-i instem> ...>"
+  echo "   -sev sevstem"
+  echo "   -nkeep n"
+  echo "   -regmethod method"
+  echo "   -umask umask   : set unix file permission mask"
+  echo "   -version       : print version and exit"
+exit 1;

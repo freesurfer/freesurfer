@@ -1,0 +1,515 @@
+#!/bin/csh -f
+############################################################
+# Name:  glmstats
+############################################################
+
+set inputargs = ($argv);
+set VERSION = '$Id: glmstats,v 1.1 2003/03/04 21:22:08 greve Exp $';
+
+set PrintHelp = 0;
+set betastem = ();
+set cmtxfile = ();
+set outdir = ();
+set cesstem = ();
+set tstem = ();
+set sigtstem = ();
+set minsigtstem = ();
+set fstem = ();
+set sigfstem = ();
+set tDOFMax = 300;
+
+set monly = 0;
+set MLF = ();
+set LF = ();
+
+## If there are no arguments, just print useage and exit ##
+if ( $#argv == 0  )  goto usage_exit;
+set n = `echo $argv | grep help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+
+set n = `echo $argv | grep version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+set StartDate = `date`;
+set CurDir = `pwd`;
+
+if($#MLF == 0) set MLF = $outdir/glmstats.m
+if(-e $MLF) mv $MLF $MLF.bak
+echo "Matlab file is $MLF"
+
+if($#LF == 0) set LF = $cesstem.log
+if(-e $LF) mv $LF $LF.bak
+echo "Log file is $LF"
+touch $LF
+
+echo "Log file for glmstats" >> $LF
+echo $StartDate >> $LF
+echo $CurDir    >> $LF
+which glmstats  >> $LF
+echo $inputargs >> $LF
+df $outdir      >> $LF
+echo "matlab file $MLF" >> $LF
+
+#---------------------------------------------#
+      #--------------------------------#
+tee $MLF <<EOF
+
+tic;
+cd('$CurDir');
+betastem = '$betastem';
+cmtxfile = '$cmtxfile';
+cesstem      = '$cesstem';
+tstem        = '$tstem';
+sigtstem     = '$sigtstem';
+minsigtstem  = '$minsigtstem';
+fstem        = '$fstem';
+sigfstem     = '$sigfstem';
+tDOFMax      = [$tDOFMax];
+
+resvarstem = sprintf('%s-var',betastem);
+xmatfile = sprintf('%s.X.mat',betastem);
+cesvarstem = sprintf('%s-var',cesstem);
+
+acf = [];
+imask = [];
+fprintf('\n\n');
+
+%--------- Load design matrix ---------------------------%
+XX = load(xmatfile);
+if(isempty(XX))
+  fprintf('ERROR: could not load %s\n',xmatfile);
+  return;
+end
+if(~isfield(XX,'Xfinal'))
+  fprintf('ERROR: %s does not have Xfinal field\n',xmatfile);
+  return;quit;
+end
+if(~isfield(XX,'Nnnc'))
+  fprintf('ERROR: %s does not have Nnnc field\n',xmatfile);
+  return;quit;
+end
+if(~isfield(XX,'Navgs_per_cond'))
+  fprintf('ERROR: %s does not have Navgs_per_cond field\n',xmatfile);
+  return;quit;
+end
+X = XX.Xfinal;
+nbeta = size(X,2);
+% Should check condition here %
+
+%--------- Load contrast matrix ---------------------------%
+CMTX = load(cmtxfile);
+if(isempty(CMTX))
+  fprintf('ERROR: could not load %s\n',cmtxfile);
+  return;
+end
+if(~isfield(CMTX,'ContrastMtx_0'))
+  fprintf('ERROR: %s does not have ContrastMtx_0 field\n',cmtxfile);
+  return;quit;
+end
+C = CMTX.ContrastMtx_0;
+nvar  = size(C,1);
+nCcols =  size(C,2);
+
+if(nCcols > nbeta) 
+  fprintf('ERROR: contrast matrix has more columns than there are params\n');
+  return; quit;
+end
+if(nCcols < nbeta) 
+  fprintf('INFO: contrast matrix has fewer columns than there are params.\n');
+  fprintf('      Filling in the remainder with zeros\n');
+  C = [C zeros(nvar,nbeta-nCcols)];
+end
+
+% Ignore multivariate if C is univariate %
+if(nvar == 1)
+  fprintf('INFO: univariate contrast (not saving minsig, f, or sigf)\n');
+  minsigtstem  = '';
+  fstem        = '';
+  sigfstem     = '';
+end
+
+%--------- Load beta --------------------------------%
+fprintf('Loading %s (%g)\n',betastem,toc);
+beta = fmri_ldbvolume(betastem);
+if(isempty(beta))
+  fprintf('ERROR: could not load %s\n',betastem);
+  return;quit;
+end
+[ns nr nc nbeta] = size(beta);
+nv = ns*nr*nc;
+beta = reshape(beta,[nv nbeta])'; %'
+
+%--------- Load resvar --------------------------------%
+fprintf('Loading %s (%g)\n',resvarstem,toc);
+resvar = fmri_ldbvolume(resvarstem);
+if(isempty(resvar))
+  fprintf('ERROR: could not load %s\n',resvarstem);
+  return;quit;
+end
+[ns nr nc nresvar] = size(resvar);
+nv = ns*nr*nc;
+resvar = reshape(resvar,[nv nresvar])'; %'
+
+%--------- Load acf --------------------------------%
+if(isfield(XX,'acfstem'))
+  acfstem = XX.acfstem;
+  fprintf('Loading %s (%g)\n',acfstem,toc);
+  acf = fmri_ldbvolume(acfstem);
+  if(isempty(acf))
+    fprintf('ERROR: could not load %s\n',acfstem);
+    return;quit;
+  end
+  [ns nr nc nacf] = size(acf);
+  nv = ns*nr*nc;
+  acf = reshape(acf,[nv nacf])'; %'
+end
+
+%----------- masking --------------------------%
+if(isfield(XX,'imask'))
+  imask = XX.imask;
+  nmask = length(imask);
+  beta   = beta(:,imask);
+  resvar = resvar(:,imask);
+  if(~isempty(acf)) acf = acf(:,imask); end
+else
+  nmask = nv;
+end
+
+DOF = size(X,1)-size(X,2);
+
+fprintf('Computing CES (%g)\n',toc);
+ces = C*beta;
+
+if(isempty(acf))
+  fprintf('Begining CES Var without whitening (%g)\n',toc);
+  M = C*inv(X'*X)*C';
+  dM = reshape1d(diag(M));
+  cesvar = dM * resvar;
+else
+  fprintf('Begining CES Var with whitening (%g)\n',toc);
+  cesvar = zeros(nvar,nmask);
+  fprintf('nvoxels = %d\n',nmask);
+  for v = 1:nmask
+    if(mod(v,1000)==0) fprintf('%d %g\n',v,toc); end
+    acfv = acf(:,v);
+    Xv = fast_conv_invirf(X,acfv);
+    M = C*inv(Xv'*Xv)*C';
+    dM = reshape1d(diag(M));
+    cesvar(:,v) = dM*resvar(v);
+  end % end loop over voxel
+end
+fprintf('CES Var finished (%g)\n',toc);
+
+fprintf('Saving CES (%g)\n',toc);
+cessave = fast_unmask(ces, imask, [ns nr nc]);
+fmri_svbvolume(cessave,cesstem);
+clear cessave;
+
+fprintf('Saving CES Var (%g)\n',toc);
+cesvarsave = fast_unmask(cesvar, imask, [ns nr nc]);
+fmri_svbvolume(cesvarsave,cesvarstem);
+clear cesvarsave;
+
+if(~isempty(tstem) | ~isempty(sigtstem) | ~isempty(minsigtstem))
+
+  fprintf('Computing t (%g)\n',toc);
+  t = ces./sqrt(cesvar);
+  if(~isempty(tstem))
+    fprintf('Saving t (%g)\n',toc);
+    tmpsave = fast_unmask(t, imask, [ns nr nc]);
+    fmri_svbvolume(tmpsave,tstem);
+    clear tmpsave;
+  end
+
+  if(~isempty(sigtstem) | ~isempty(minsigtstem))
+    fprintf('Computing sigt (%g)\n',toc);
+    sigt = tTest(DOF,reshape1d(t),tDOFMax);
+    sigt = reshape(sigt,size(t));
+    sigt = sign(t).*sigt;
+
+    if(~isempty(sigtstem))
+      fprintf('Saving sig t (%g)\n',toc);
+      sigtlog10 = -sign(sigt) .* log10(abs(sigt));
+      tmpsave = fast_unmask(sigtlog10, imask, [ns nr nc]);
+      fmri_svbvolume(tmpsave,sigtstem);
+      clear tmpsave;
+    end
+
+    if(~isempty(minsigtstem))
+      fprintf('Computing min sigt (%g)\n',toc);
+      iminsig = min(abs(sigt,[],1));
+      indminsig = sub2ind(size(sigt),iminsig,1:nmask);
+      minsigt = sigt(indminsig) * nvar;
+      minsigtlog10 = -sign(minsigt) .* log10(abs(minsigt));
+      fprintf('Saving min sig t (%g)\n',toc);
+      tmpsave = fast_unmask(minsigtlog10, imask, [ns nr nc]);
+      fmri_svbvolume(tmpsave,minsigtstem);
+      clear tmpsave;
+    end
+
+  end
+
+end
+
+return;
+quit;
+
+
+EOF
+      #--------------------------------#
+#---------------------------------------------#
+
+if(! $monly) then
+  cat $MLF | matlab -display iconic | tee -a $LF
+  rm $MLF
+  if(-e $betastem.bhdr) then
+    cp $betastem.bhdr $cesstem.bhdr
+    cp $betastem.bhdr $cesstem-var.bhdr
+    foreach stem ($tstem $sigtstem $minsigtstem $fstem $sigfstem)
+      cp $betastem.bhdr $stem.bhdr
+    end
+  endif
+  echo "" | tee -a $LF
+  echo "" | tee -a $LF
+endif
+
+
+set EndDate = `date`;
+echo "Started at $StartDate" | tee -a $LF
+echo "Ended   at $EndDate"   | tee -a $LF
+echo " " | tee -a $LF
+echo " " | tee -a $LF
+echo "glmstats: finished" | tee -a $LF
+echo " " | tee -a $LF
+ #--------------------------------#
+
+exit 0;
+############################################################
+
+############--------------##################
+parse_args:
+
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-beta":
+      if ( $#argv == 0) goto arg1err;
+      set betastem = $argv[1]; shift;
+      breaksw
+
+    case "-c":
+      if ( $#argv == 0) goto arg1err;
+      set cmtxfile = $argv[1]; shift;
+      breaksw
+
+    case "-ces":
+      if ( $#argv == 0) goto arg1err;
+      set cesstem = $argv[1]; shift;
+      breaksw
+
+    case "-outdir":
+      if ( $#argv == 0) goto arg1err;
+      set outdir = $argv[1]; shift;
+      breaksw
+
+    case "-t":
+      if ( $#argv == 0) goto arg1err;
+      set tstem = $argv[1]; shift;
+      breaksw
+
+    case "-sigt":
+      if ( $#argv == 0) goto arg1err;
+      set sigtstem = $argv[1]; shift;
+      breaksw
+
+    case "-tdofmax":
+      if ( $#argv == 0) goto arg1err;
+      set tDOFMax = $argv[1]; shift;
+      breaksw
+
+    case "-minsigt":
+      if ( $#argv == 0) goto arg1err;
+      set minsigtstem = $argv[1]; shift;
+      breaksw
+
+    case "-f":
+      echo "ERROR: ftest not implemented yet"
+      exit 1;
+      if ( $#argv == 0) goto arg1err;
+      set fstem = $argv[1]; shift;
+      breaksw
+
+    case "-sigf":
+      echo "ERROR: ftest not implemented yet"
+      exit 1;
+      if ( $#argv == 0) goto arg1err;
+      set sigfstem = $argv[1]; shift;
+      breaksw
+
+    case "-lf":
+      if ( $#argv == 0) goto arg1err;
+      set LF = $argv[1]; shift;
+      breaksw
+
+    case "-monly":
+      if ( $#argv == 0) goto arg1err;
+      set MLF = $argv[1]; shift;
+      set monly = 1; 
+      breaksw
+
+    case "-umask":
+      if ( $#argv == 0) goto arg1err;
+      umask $1; shift;
+      breaksw
+
+    case "-debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized.
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+  if($#betastem == 0) then
+    echo "ERROR: must specify a beta";
+    exit 1
+  endif
+
+  if($#cmtxfile == 0) then
+    echo "ERROR: must specify a contrast matrix file";
+    exit 1
+  endif
+
+  if($#outdir != 0) then
+    if( $#cesstem != 0  || $#tstem != 0 || $#sigtstem != 0 || \
+        $#minsigtstem != 0 || $#fstem != 0 || $#sigfstem != 0) then
+      echo "ERROR: cannot spec outdir and an output stem"
+      exit 1;
+    endif
+  endif
+
+  if($#outdir != 0) then
+    mkdir -p $outdir
+    if($status) then
+      echo "ERROR: could not make $outdir"
+      exit 1;
+    endif
+    set cesstem     = $outdir/ces
+    set tstem       = $outdir/t
+    set sigtstem    = $outdir/sig
+    set minsigtstem = $outdir/minsig
+    #set fstem       = $outdir/f
+    #set sigfstem    = $outdir/sigf
+  else
+    if($#cesstem == 0) then
+      echo "ERROR: must specify ces (at least) "
+      exit 1;
+    endif
+    foreach stem ($cesstem $tstem $sigtstem $minsigtstem $fstem $sigfstem)
+      set outdir = `dirname $stem`;
+      mkdir -p $outdir
+      if($status) then
+        echo "ERROR: could not create $outdir"
+        exit 1;
+      endif
+    end
+    set outdir = `dirname $cesstem`;
+  endif
+
+  if($#LF != 0) then
+    set d = `dirname $LF`;
+    mkdir -p $d
+    if($status) then
+      echo "ERROR: could not create $d"
+      exit 1;
+    endif
+  endif
+
+  if($#MLF != 0) then
+    set d = `dirname $MLF`;
+    mkdir -p $d
+    if($status) then
+      echo "ERROR: could not create $d"
+      exit 1;
+    endif
+  endif
+
+goto check_params_return;
+############--------------##################
+
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+#--------------------------------------------------------------------#
+usage_exit:
+  echo "USAGE: glmstats"
+  echo ""
+  echo " -beta betastem : GLM parameters (from glmest)"
+  echo " -c contrast.mat : contrast matrix file"
+  echo ""
+  echo " -outdir dir    : save all results to outdir"
+  echo ""
+  echo " -ces     cesstem      : contrast effect size stem"
+  echo " -t       tstem        : t stem"
+  echo " -sigt    sigtstem     : sigt stem"
+  echo " -minsigt minsigtstem  : minsigt stem"
+  echo " -f       fstem        : f stem"
+  echo " -sigf    sigfstem     : sigf stem"
+  echo ""
+  echo " -tdofmax dofmax       : assume t is normal at this DOF"
+  echo " -umask umask          : set unix file permission mask"
+  echo " -version              : print version and exit"
+  echo " -lf logfile           : default is betastem.log "
+  echo " -help "
+  echo ""
+
+
+  if($PrintHelp) \
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+
+exit 1;
+#--------------------------------------------------------------------#
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+
+
+
+
+
+
+
+
+

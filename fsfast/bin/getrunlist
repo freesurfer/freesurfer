@@ -1,0 +1,39 @@
+#!/bin/csh -f
+# getrunlist - finds all the subdirectories with name 
+# of the form %03d in the given directory.
+#
+# $Id: getrunlist,v 1.1 2003/03/04 21:22:08 greve Exp $
+
+if($#argv == 0) then
+  echo "USAGE: getrunlist dir"
+  exit 1;
+endif
+
+set dir = $1;
+if(! -d $dir) then
+  echo "ERROR: $dir does not exist"
+  exit 1;
+endif
+
+set RunList = ();
+set run = 1;
+set nohit = 0;
+while($nohit < 100)
+  set runid = `printf %03d $run`;
+  if( -d $dir/$runid ) then
+    set RunList = ($RunList $runid);
+  else
+    @ nohit = $nohit + 1;
+  endif
+  @ run = $run + 1;
+end
+
+if($#RunList == 0) then
+  echo "ERROR: no run directories found"
+  exit 1;
+endif
+
+echo $RunList;
+
+exit 0;
+#####################################################

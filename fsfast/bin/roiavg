@@ -1,0 +1,249 @@
+#!/bin/csh -f
+
+set ROIAVG_VER = '$Id: roiavg,v 1.1 2003/03/04 21:22:09 greve Exp $'
+
+
+if ( $#argv < 4 ) then
+  echo "USAGE: roiavg [-options] -i instem -i -o outstem";
+  echo "   -i instem         : prefix of .bfloat selavg files";
+  echo "   -o outstem        : prefix of .mat hdr average file"
+  echo "   -roi r1 c1 r2 c2  : row,col 1-based from upper-left"
+  echo "Options:";
+  echo "   -firstslice <int> : first slice to process <0>";
+  echo "   -nslices <int>    : number of slices to process <16>";
+  echo "   -p sigstem        : stem of significance map to use as mask";
+  echo "   -f sigfile-format : <ln>,log10,raw";
+  echo "   -th threshold     : significance mask threshold between 0 and 1 <.01>";
+  echo "   -sigsign +,-,+/-  : sign of suprathreshold voxels to use as mask <+>";
+  echo "   -sigframe n       : frame of sig map to use starting at 1 <1>";
+  echo "   -white            : Assume white noise when averaging variances";
+  echo "   -display          : display results to screen using hdrview ";
+  echo "   -report           : save hdrs in text file";
+  echo ""
+  echo "  $ROIAVG_VER"
+  echo "  Comments or questions: analysis-bugs@nmr.mgh.harvard.edu"
+  echo ""
+  exit 1;
+endif
+
+# Set Default Values #
+set instem  = ();
+set outstem = ();
+set roi = ();
+set firstslice = 0;
+set nslices = 16;
+set sigstem  = ();
+set sigformat = 'ln';
+set sigsign    = '+';
+set sigframe   =  1;
+set threshold = .01;
+set monly = 0;
+set QuitOnError = 1;
+set ShowResults = 0;
+set MLDisplay = "-display iconic"
+set report = 0;
+set white = 0;
+
+goto parse_args;
+parse_args_return:
+goto check_args;
+check_args_return:
+
+if($ShowResults != 0) set MLDisplay = ();
+
+echo "Instem:    $instem"
+echo "Outstem:   $outstem"
+echo "ROI:       $roi"
+echo "SigStem:   $sigstem"
+echo "Threshold: $threshold"
+echo "Format:    $sigformat"
+echo "SigSign:   $sigsign"
+echo "SigFrame:  $sigframe"
+
+set OutDir = `dirname $outstem`;
+
+## Set path for matlab file ##
+if( $monly && -w .) then
+  set MLF = roiavg_tmp.m
+else
+  set MLFBase = "roiavg_"$$"_tmp.m"
+  set MLF = /tmp/$MLFBase
+endif
+
+echo ""
+echo "roiavg matlab file is $MLF"
+rm -f $MLF;
+
+
+echo "%%% ----------------- %%"       >> $MLF;
+echo "% matlab file to run roiavg"    >> $MLF;
+echo "% This is a temporary file and may be deleted" >> $MLF;
+echo "% $MLF"                          >> $MLF;
+echo "global QuitOnError;"             >> $MLF;
+echo "QuitOnError = $QuitOnError;"     >> $MLF;
+echo "if(exist('fmri_roiavg')==0)"        >> $MLF;
+echo "   qoe('matlab path is incorrect');end;" >> $MLF  ;
+echo "FirstSlice  = $firstslice;" >> $MLF  ;
+echo "nSlices     = $nslices;"    >> $MLF  ;
+echo "ShowResults = $ShowResults;" >> $MLF  ;
+echo "roi_rowcol  = [$roi];"  >> $MLF  ;
+echo "OutStem     = '$outstem';" >> $MLF  ;
+echo "hdrstem = '$instem';" >> $MLF  ;
+echo "sigstem = '$sigstem';" >> $MLF  ;
+echo "sigformat = '$sigformat';" >> $MLF  ;
+echo "sigsign = '$sigsign';" >> $MLF  ;
+echo "sigframe = $sigframe;" >> $MLF  ;
+echo "threshold = $threshold;" >> $MLF  ;
+echo "report = $report;" >> $MLF  ;
+echo "white = $white;" >> $MLF  ;
+echo "fmri_roiavg;" >> $MLF  ;
+
+if(! $monly) then
+  cat $MLF | matlab $MLDisplay
+  rm -f $MLF;
+endif
+
+
+exit 0;
+
+############--------------##################
+parse_args:
+
+set cmdline = "$argv";
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-i":
+      if( $#argv == 0) goto arg1err;
+      if( $#instem != 0 ) then
+        echo ERROR: only one instem allowed.
+        exit 1
+      endif
+      set instem = $argv[1]; shift;
+      breaksw
+
+    case "-o":
+      if( $#argv == 0) goto arg1err;
+      if( $#outstem != 0 ) then
+        echo ERROR: only one outstem allowed.
+        exit 1
+      endif
+      set outstem = $argv[1]; shift;
+      breaksw
+
+    case "-p":
+      if( $#argv == 0) goto arg1err;
+      if( $#sigstem != 0 ) then
+        echo ERROR: only one sigstem allowed.
+        exit 1
+      endif
+      set sigstem = $argv[1]; shift;
+      breaksw
+
+    case "-roi"
+      if( $#argv < 4) then
+        echo "ERROR: -roi flag requires four arguments";
+        exit 1;
+      endif
+      set roi = ($argv[1] $argv[2] $argv[3] $argv[4]);
+      shift;shift;shift;shift;
+      breaksw
+
+    case "-firstslice":
+    case "-fs":
+      if( $#argv == 0) goto arg1err;
+      set firstslice = $argv[1]; shift;
+      breaksw
+
+    case "-nslices":
+    case "-ns":
+      if( $#argv == 0) goto arg1err;
+      set nslices = $argv[1]; shift;
+      breaksw
+
+    case "-threshold":
+    case "-th":
+      if( $#argv == 0) goto arg1err;
+      set threshold = $argv[1]; shift;
+      breaksw
+
+    case "-sigsign":
+    case "-ss":
+      if( $#argv == 0) goto arg1err;
+      set sigsign = $argv[1]; shift;
+      breaksw
+
+    case "-sigframe":
+    case "-sf":
+      if( $#argv == 0) goto arg1err;
+      set sigframe = $argv[1]; shift;
+      breaksw
+
+    case "-format":
+    case "-f":
+      if( $#argv == 0) goto arg1err;
+      set sigformat = $argv[1]; shift;
+      switch($sigformat)
+        case "ln":    
+        case "log10": 
+        case "raw":      
+          breaksw
+        default:
+          echo "ERROR: output format $format unkown."
+          echo "       use either ln, log10, or raw"
+          exit 1
+          breaksw
+      endsw
+      breaksw
+
+    case "-monly":
+      set monly = 1; 
+      set QuitOnError = 0;
+      breaksw
+
+    case "-report":
+      set report = 1; 
+      breaksw
+
+    case "-white":
+      set white = 1; 
+      breaksw
+
+    case "-display":
+      set ShowResults = 1;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized.
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_args:
+  if($#instem != 1) then
+    echo "ERROR: only one instem is allowed";
+    echo $#instem  $instem
+    exit 1;
+  endif
+
+  if($#outstem == 0) then
+    echo "ERROR: no outstem specified"
+    exit 1;
+  endif
+
+  if($#roi != 4) then
+    echo "ERROR: -roi flag requires four inputs";
+    exit 1;
+  endif
+
+goto check_args_return;
+############--------------##################

@@ -1,0 +1,310 @@
+#!/bin/csh -f
+# mc-sess - motion correction
+#
+# $Id: mc-sess,v 1.1 2003/03/04 21:22:09 greve Exp $
+
+set VERSION    = '$Id: mc-sess,v 1.1 2003/03/04 21:22:09 greve Exp $'
+
+set ScriptOnly = 0;
+set fsd = "bold";
+set mcmethod   = "afni"
+set targoff    = 0;
+set funcstem   = f;  # stem of functional volume
+set funcmcstem = (); # stem of functional motion-corrected volume
+set PWDCMD = `getpwdcmd`;
+set targnthrun = 1;  # use nth run as target
+set nolog = 0;
+set RunListFile = ();
+
+if($#argv == 0) then
+  goto usage_exit;
+  exit 1;
+endif
+
+set n = `echo $argv | grep version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+
+set n = `echo $argv | grep citation | wc -l` 
+if($n != 0) then
+  echo "Those using the AFNI motion correction should cite:"
+  echo "  RW Cox and A Jesmanowicz."
+  echo "  Real-time 3D image registration for functional MRI."
+  echo "  Magnetic Resonance in Medicine, 42: 1014-1018, 1999."
+  exit 0;
+endif
+
+set SessList = `getsesspath $argv`;
+if($status || $#SessList == 0) then
+  echo $SessList
+  exit 1;
+endif
+
+goto parse_args;
+parse_args_return:
+
+if($#funcmcstem == 0) set funcmcstem = fmc;
+
+goto check_params;
+check_params_return:
+
+# Create a log file #
+if(! $nolog ) then
+  mkdir -p log
+  set LF = `pwd`/log/mc-$fsd-sess.log
+  rm -f $LF
+  touch $LF
+else
+  set LF = /dev/null
+endif
+echo Logfile is $LF
+
+echo "mc-sess" >> $LF
+echo $VERSION  >> $LF
+echo $LF       >> $LF
+uname -a          >> $LF
+date              >> $LF
+echo "$argv"      >> $LF
+
+## go through each session ##
+foreach sess ($SessList)
+
+  set sessid = `basename $sess`;
+  echo "-------------------------------------------" |& tee -a $LF
+  echo "$sess " |& tee -a $LF
+
+  if(! -d $sess) then
+    echo "ERROR: $sess does not exist"   |& tee -a $LF
+    exit 1;
+  endif
+
+  cd $sess/$fsd
+
+  ## get resolutions #
+  set inplaneres  = `cat seq.info | awk '{if($1 == "rowpixelsize") print $2}'`;
+  set betplaneres = `cat seq.info | awk '{if($1 == "slcpixelsize") print $2}'`;
+  set TR = `cat seq.info | awk '{if($1 == "TR") print $2}'`;
+
+  if($#inplaneres == 0) then
+    echo "ERROR: seq.info file does not appear to be formated correctly"
+    echo "       Try running fixseqinfo-sess."
+    exit 1;
+  endif
+
+  if($#RunListFile == 0) then
+    set RunList = `getrunlist .`;
+    if($status || $#RunList == 0) then
+      echo "ERROR: $sess/$fsd has no runs"  |& tee -a $LF
+      exit 1;
+    endif
+  else
+    if(! -e $RunListFile) then
+      echo "ERROR: cannot find runlistfile $RunListFile"
+      exit 1;
+    endif
+    set RunList = `cat $RunListFile`;
+  endif
+  echo "RunList: $RunList" |& tee -a $LF
+
+  if($ScriptOnly) then
+    if(! -d scripts) mkdir scripts
+    set scriptfile = scripts/run-mc
+    rm -f $scriptfile
+    touch $scriptfile
+    echo "#\!/bin/csh -f" >> $scriptfile 
+    echo "cd .."          >> $scriptfile 
+    chmod a+x $scriptfile
+  endif
+
+  if($#RunList < $targnthrun) then
+    echo "ERROR: $sessid target run ($targnthrun) exceeds number of runs ($#RunList)"
+    exit 1;
+  endif
+
+  set targstem = $RunList[$targnthrun]/$funcstem
+  foreach run ($RunList)  
+    echo "  ------- ************************** -----------" |& tee -a $LF
+    echo "  ------- Motion Correcting Run $run -----------" |& tee -a $LF
+    echo "  ------- ************************** -----------" |& tee -a $LF
+    date |& tee -a $LF
+    set instem  = $run/$funcstem
+    set outstem = $run/$funcmcstem
+    set cmd = (mc-$mcmethod -i $instem -o $outstem \
+               -t $targstem -toff $targoff);
+    set cmd = ($cmd -ipr $inplaneres -bpr $betplaneres -TR $TR)
+    if(! $ScriptOnly) then
+      echo $cmd |& tee -a $LF
+      $cmd |& tee -a $LF
+      if($status) exit 1;
+    
+      # Create the external regresssor file #
+      echo "INFO: Making external regressor from mc params" |& tee -a $LF
+      set cmd = (mcparams2extreg -mcfile $outstem.mcdat -northog 6)
+      set cmd = ($cmd -extreg $run/mcextreg)
+      echo $cmd |& tee -a $LF
+      $cmd |& tee -a $LF
+      if($status) exit 1;
+
+    else
+      echo $cmd >> $scriptfile
+    endif
+  end
+  echo "\n\n" |& tee -a $LF
+
+  if($ScriptOnly) then
+    echo "\n\n" >> $scriptfile
+  endif
+
+end
+
+date | tee -a $LF
+echo "mc-sess completed SUCCESSFULLY" | tee -a $LF
+
+exit 0;
+###############################################
+
+
+############--------------##################
+parse_args:
+set cmdline = "$argv";
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-ssd":
+    case "-fsd":
+      if ( $#argv == 0) goto arg1err;
+      set fsd = $argv[1]; shift;
+      breaksw
+
+    case "-toff":
+      if ( $#argv == 0) goto arg1err;
+      set targoff = $argv[1]; shift;
+      breaksw
+
+    case "-fstem":
+      if ( $#argv == 0) goto arg1err;
+      set funcstem = $argv[1]; shift;
+      breaksw
+
+    case "-fmcstem":
+      if ( $#argv == 0) goto arg1err;
+      set funcmcstem = $argv[1]; shift;
+      breaksw
+
+    case "-targnthrun":
+      if ( $#argv == 0) goto arg1err;
+      set targnthrun = $argv[1]; shift;
+      breaksw
+
+    case "-runlistfile":
+    case "-rlf":
+      if ( $#argv == 0) goto arg1err;
+      set RunListFile = $argv[1]; shift;
+      breaksw
+
+    case "-method":
+      if ( $#argv == 0) goto arg1err;
+      set mcmethod = $argv[1]; shift;
+      if($mcmethod != "afni") then
+        echo "ERROR: only afni supported"
+        exit 1;
+      endif
+      breaksw
+
+    case "-nolog":
+      set nolog = 1;
+      breaksw
+
+    case "-verbose":
+      set verbose = 1;
+      breaksw
+
+    case "-echo":
+      set echo = 1;
+      breaksw
+
+    case "-debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    case "-scriptonly":
+      set ScriptOnly = 1;
+      breaksw
+
+    case "-umask":
+      if ( $#argv == 0) goto arg1err;
+      set umaskarg = "-umask $argv[1]";
+      umask $argv[1]; shift;
+      breaksw
+
+    case "-s":
+    case "-sf":
+    case "-d":
+    case "-df":
+    case "-g":
+      shift;
+      # ignore getsesspath arguments 
+      breaksw
+
+    case "-cwd":
+      # ignore getsesspath arguments 
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+  if ($#SessList == 0) then
+     echo "ERROR: no sessions specified"
+     exit 1
+  endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "USAGE: mc-sess"
+  echo ""
+  echo "Optional Arguments:";
+  echo "   -method  mcmethod  : afni"
+  echo "   -targnthrun n      : use nth run as target (default=1)"
+  echo "   -toff m            : target image offset ($targoff)"
+  echo "   -fstem stem        : stem of output motion-corrected volume (fmc)"
+  echo "   -fmcstem stem      : stem of output motion-corrected volume (fmc)"
+  echo "   -umask umask       : set unix file permission mask"
+  echo "   -version           : print version and exit"
+  echo "   -rlf  runlistfile  : only process those in the runlist file"
+  echo ""
+  echo "Session Arguments (Required)"
+  echo "   -sf sessidfile  "
+  echo "   -df srchdirfile "
+  echo "   -s  sessid      "
+  echo "   -d  srchdir     "
+  echo "   -fsd dir        (optional - default = bold)"
+  echo ""
+exit 1;

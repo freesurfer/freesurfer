@@ -1,0 +1,310 @@
+#!/bin/csh -f
+# qsurfer - quick surfer
+#
+set VERSION = '$Id: qsurfer,v 1.1 2003/03/04 21:22:09 greve Exp $'
+set cmdargs = ($argv);
+
+set usenew = ".new";
+set flat = 0;
+set patch = ();
+set rtopymode    = ();
+set rtopy        = 0;
+set RGB = 0;
+
+set stat  = ();
+set hemi  = lh;
+set UseAvgCurv = 0;
+setenv fthresh   2.0
+setenv fslope    0.1
+setenv fmid      5.0
+setenv smoothsteps 0
+set Surface = inflated
+
+if($#argv == 0) then
+  goto usage_exit;
+  exit 1;
+endif
+
+set n = `echo $argv | grep version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+set Stat    = `basename $stat`;
+set StatDir = `dirname  $stat`;
+pushd $StatDir > /dev/null
+set StatDir = `pwd`;
+popd > /dev/null
+set name    = $subject;
+
+set wfile = $StatDir/$Stat-$hemi.w
+if(! -e $wfile ) then
+   echo "ERROR: cannot find $wfile"
+   exit 0;
+endif
+
+echo $wfile
+
+    ##############################################################
+#setenv TK_LIBRARY ~inverse/freesurfer_alpha/local/lib/tk8.3
+#setenv TCL_LIBRARY ~inverse/freesurfer_alpha/local/lib/tcl8.3
+set SURFER = tksurfer$usenew
+
+setenv hemi $hemi
+setenv noexit
+setenv med
+setenv ven
+setenv lat
+
+setenv offset 0.4   # this controls contrast
+setenv flatzrot 105
+setenv flatscale 0.7
+setenv statname
+setenv colscale 1
+setenv colscalebarflag 1
+setenv invphaseflag 0
+setenv truncphaseflag 0
+if($UseAvgCurv) then
+  setenv curv $hemi.avg_curv
+else
+  setenv curv $hemi.curv
+endif
+
+if( $#usenew == 0 ) then
+  setenv statflag 1
+else
+  unsetenv statflag
+endif
+
+set rmtclcmd = 0;
+
+if(! $flat ) then
+  if(! $rtopy) then
+    if($#usenew == 1) then
+      if(-e `pwd`) then
+        set tclcmd = `pwd`/qsurfer-$$.tcl
+      else
+        set tclcmd = /tmp/qsurfer-$$.tcl
+      endif
+      rm -f $tclcmd
+      echo "set val $wfile" >> $tclcmd
+      echo "sclv_read_binary_values 0" >> $tclcmd
+      echo "set curv $curv" >> $tclcmd
+      echo "read_binary_curv; " >> $tclcmd
+      echo "set curvflag 1; " >> $tclcmd
+      echo "source $FREESURFER_HOME/lib/tcl/readenv.tcl" >> $tclcmd
+      echo "open_window" >> $tclcmd
+      echo "rotate_brain_y 90" >> $tclcmd
+      echo "sclv_set_current_field 0" >> $tclcmd
+      echo "redraw" >> $tclcmd
+      set rmtclcmd = 1;
+      #echo "------------ tcl file -----------" 
+      #cat $tclcmd
+      #echo "---------------------------------" 
+    else
+      set tclcmd = twocond-views.tcl
+    endif
+  else
+    set tclcmd = $rtopymode-views.tcl
+  endif
+else
+  if(! $rtopy) then
+    set tclcmd = twocond-flat.tcl
+  else
+    set tclcmd = $rtopymode-flat.tcl
+  endif
+  setenv use_vertex_arrays 0
+  setenv patchname $patch
+endif
+
+if($RGB) setenv rgbname $Stat
+
+setenv floatstem $Stat
+pushd $StatDir
+setenv dir .
+mkdir -p $dir/rgb
+#$SURFER -$name $hemi $Surface -tcl twocond-views.tcl
+#popd
+
+set cmd = ($SURFER -$name $hemi $Surface -tcl $tclcmd)
+echo "----------------------------------------------------------" 
+pwd 
+echo $cmd 
+echo "----------------------------------------------------------" 
+$cmd 
+
+if($rmtclcmd) rm -f $tclcmd;
+
+##############################################################
+
+exit 0;
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = "$argv";
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-hemi":
+      if ( $#argv == 0) goto arg1err;
+      set hemi = $argv[1]; shift;
+      breaksw
+
+    case "-stat":
+      if ( $#argv == 0) goto arg1err;
+      set stat = $argv[1]; shift;
+      breaksw
+
+    case "-surf":
+      if ( $#argv == 0) goto arg1err;
+      set Surface = $argv[1]; shift;
+      breaksw
+
+    case "-subject":
+    case "-s":
+      if ( $#argv == 0) goto arg1err;
+      set subject = $argv[1]; shift;
+      breaksw
+
+    case "-subjects_dir":
+    case "-sd":
+      if ( $#argv == 0) goto arg1err;
+      setenv SUBJECTS_DIR $argv[1]; shift;
+      breaksw
+
+    case "-fslope":
+    case "-fs":
+      if ( $#argv == 0) goto arg1err;
+      setenv fslope $argv[1]; shift;
+      breaksw
+
+    case "-fthresh":
+    case "-ft":
+      if ( $#argv == 0) goto arg1err;
+      setenv fthresh $argv[1]; shift;
+      breaksw
+
+    case "-fmid":
+    case "-fm":   
+      if ( $#argv == 0) goto arg1err;
+      setenv fmid $argv[1]; shift;
+      breaksw
+
+    case "-smoothsteps":
+    case "-ss"
+      if ( $#argv == 0) goto arg1err;
+      setenv smoothsteps $argv[1]; shift;
+      breaksw
+
+    case "--version":
+    case "-version":
+      echo $VERSION
+      exit 0;
+      breaksw
+
+    case "-umask":
+      if ( $#argv == 0) goto arg1err;
+      set umaskarg = "-umask $argv[1]";
+      umask $argv[1]; shift;
+      breaksw
+
+    case "-avgcurv":
+      set UseAvgCurv = 1;
+      breaksw
+
+    case "-flat":
+      set flat = 1; # does not work
+      breaksw
+
+    case "-new":
+      set usenew = ".new";
+      breaksw
+
+    case "-old":
+      set usenew = ();
+      breaksw
+
+    case "-rgb":
+      set RGB = 1;
+      breaksw
+
+    case "-verbose":
+      set verbose = 1;
+      breaksw
+
+    case "-echo":
+      set echo = 1;
+      breaksw
+
+    case "-debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    case "-scriptonly":
+      set ScriptOnly = 1;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+  if ($#stat == 0) then
+     echo "ERROR: no stat specified"|& tee -a $LF 
+     exit 1
+  endif
+
+  if ($#subject == 0) then
+     echo "ERROR: no subject specified"|& tee -a $LF 
+     exit 1
+  endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo "USAGE: qsurfer"
+  echo "Options:";
+  echo "   -stat     statname      : wfile minus -?h.w"
+  echo "   -subject  subjectname  "
+  echo "   -hemi     hemisphere   : with sph space <lh> rh";
+  echo "   -fthresh  threshold    : <$fthresh>" 
+  echo "   -fslope   slope        : <$fslope>" 
+  echo "   -fmid     mid          : <$fmid>" 
+  echo "   -smoothsteps  nsteps   : <$smoothsteps>"
+  echo "   -avgcurv               : use average curvature"
+  echo "   -subjects_dir dir      : set subject's dir"
+  echo "   -umask umask   : set unix file permission mask"
+  echo "   -scriptonly    : don't run, just generate a script"
+  echo "   -version       : print version and exit"
+exit 1;
+

@@ -1,0 +1,184 @@
+#!/bin/csh -f
+
+set SYNTHRAWROI_VER = '$Id: synthrawroi,v 1.1 2003/03/04 21:22:10 greve Exp $';
+
+set roistem = ();
+set outstem = ();
+set monly = 0;
+set synthtype = "const";
+set ntp = 0;
+
+if($#argv == 0) then
+  echo "USAGE: synthrawrow -roi stem -ntp ntp -o stem [options]";
+  echo "  -roi stem : stem of roi volume"
+  echo "  -ntp ntp  : number of time points"
+  echo "  -o   stem : stem of synthetic volume"
+  echo ""
+  echo "Options:"
+  echo "  -synthtype : const, sin, white ($synthtype)"
+  echo ""
+  echo "  $SYNTHRAWROI_VER"
+  echo "  Comments or questions: analysis-bugs@nmr.mgh.harvard.edu"
+  echo ""
+  exit 1;
+endif
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+set MATLAB = `getmatlab`;
+if($status) exit 1;
+
+#### Output Directory #######
+set OutDir  = `dirname  $outstem`;
+set OutBase = `basename $outstem`;
+mkdir -p $OutDir;
+
+if ($monly) then
+  set QuitOnError = 0;
+  set TARGET = "tee $mfile"
+  rm -f $mfile;
+else
+  set QuitOnError = 1;
+  set TARGET =  "$MATLAB -display iconic"
+endif  
+
+#---------------------------------------------------------------#
+$TARGET <<EOF
+
+  seed = sum(100*clock);
+  rand('state',seed);
+  randn('state',seed);
+
+  global QuitOnError ;
+  QuitOnError = $QuitOnError;
+  OutStem     = '$outstem';
+  ROIStem     = '$roistem';
+  Ntp         = $ntp;
+  SynthType   = '$synthtype';
+
+  %------------------------------------------------%
+  fprintf('Loading ROI Definition Volume\n');
+  roidef = fmri_ldbvolume(ROIStem);
+  [Ns Nr Nc] = size(roidef);
+  Nv = Ns*Nr*Nc;
+  roidef = reshape1d(roidef(:,:,:,1));
+
+  %------------------------------------------------%
+  % Find unique ROI identifiers %
+  roiid = unique(roidef);
+  nroi = length(roiid);
+  fprintf('Found %3d ROIs\n',nroi);
+
+  %------------------------------------------------%
+  % Create synthetic functional volume %
+  fdata = zeros(Nv, Ntp);
+  for roi = 2:nroi
+    v = roiid(roi);
+    ind = find(roidef==v);
+    nind = length(ind);
+    switch(SynthType)
+    case 'const',  fdata(ind,:) = v;
+    case 'white',  fdata(ind,:) = v*randn(nind,Ntp)+v;
+    case 'sin',  
+      w = 2*pi*v/100;
+      x = sin(w*[1:Ntp]);
+      fdata(ind,:) = repmat(x, [nind 1]);
+    otherwise,
+      msg = sprintf('synthtype %s not recognized',SynthType);
+      qoe(msg);error(msg); 
+    end
+  end
+  fdata = reshape(fdata, [Ns Nr Nc Ntp]);
+
+  fmri_svbvolume(fdata,OutStem);
+
+  if(QuitOnError)  quit; end
+  
+EOF
+
+exit 0;
+
+############--------------##################
+parse_args:
+
+set cmdline = "$argv";
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-o":
+      if ( $#argv == 0) goto arg1err;
+      set outstem = $argv[1]; shift;
+      breaksw
+
+    case "-roi":
+      if ( $#argv == 0) goto arg1err;
+      set roistem = $argv[1]; shift;
+      breaksw
+
+    case "-ntp":
+      if ( $#argv == 0) goto arg1err;
+      set ntp = $argv[1]; shift;
+      breaksw
+
+    case "-synthtype":
+      if ( $#argv == 0) goto arg1err;
+      set synthtype = $argv[1]; shift;
+      breaksw
+
+    case "-monly":
+      if ( $#argv == 0) goto arg1err;
+      set mfile = $argv[1]; shift;
+      set monly = 1; 
+      breaksw
+
+    case "-debug":
+    case "-verbose":
+      set verbose = 1;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized.
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+  if ($#outstem == 0) then
+     echo "ERROR: must specify an output stem";
+     exit 1
+  endif
+
+  if ($#roistem == 0) then
+     echo "ERROR: must specify a roi stem";
+     exit 1
+  endif
+
+  if($ntp < 1) then
+     echo "ERROR: ntp must be greater than 1"
+     exit 1;
+  endif
+
+goto check_params_return;
+############--------------##################
+
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+

@@ -1,0 +1,208 @@
+#!/bin/csh -f
+# mkdesignmtx
+#
+# $Id: mkdesignmtx,v 1.1 2003/03/04 21:22:09 greve Exp $
+set VERSION = '$Id: mkdesignmtx,v 1.1 2003/03/04 21:22:09 greve Exp $';
+set FASTVER = `cat $FMRI_ANALYSIS_DIR/docs/version`;
+
+if($#argv == 0) then
+  goto usage_exit;
+  exit 1;
+endif
+
+set n = `echo $argv | grep version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+
+set PWD = `getpwdcmd`;
+if($status) exit 1;
+
+set inputargs = ($argv);
+set monly = 0;
+set QuitOnError = 1;
+set MLF = ();
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+set MATLAB = `getmatlab`;
+if($status) exit 1;
+
+if($#MLF == 0) set MLF = mkdesignmtx_$$.m
+rm -f $MLF
+
+set okfile = /tmp/evfunc.ok.$$
+rm -f $okfile
+
+echo matlab file is $MLF 
+rm -f $MLF;
+echo "% Matlab file for mkdesignmtx `date`" >> $MLF
+echo "% This file may be deleted "     >> $MLF
+echo "% $MLF"                          >> $MLF;
+echo "global QuitOnError;"             >> $MLF;
+echo "QuitOnError = $QuitOnError;"     >> $MLF;
+echo "r=1;"     >> $MLF;
+set c = "";
+echo -n "r = fast_mkdesignmtx("     >> $MLF;
+foreach arg ($inputargs)
+  echo -n "$c '$arg'"      >> $MLF;
+  set c = ",";
+end
+echo -n ");" >> $MLF;
+echo " ">> $MLF;
+echo "if(r==0)" >> $MLF;
+echo "  fmri_touch('$okfile');" >> $MLF;
+echo "end" >> $MLF;
+echo "qoe;" >> $MLF;
+
+if($?debug) then
+  echo "----------- Matlab file --------------" 
+  cat $MLF 
+  echo " " 
+  echo "-----------------------------------" 
+endif
+
+if(! $monly ) then
+  echo "------------------------------------------"  
+  echo "------- matlab output --------------------" 
+  cat $MLF | $MATLAB -display iconic 
+  echo "------------------------------------------" 
+  rm $MLF
+  if(! -e $okfile) then
+    echo "ERROR: fast_mkdesignmtx() failed\n" 
+    exit 1;
+  endif
+  rm -f $okfile
+endif
+
+
+exit 0;
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-p":
+      if ( $#argv == 0) goto arg1err;
+      set parfile = $argv[1]; shift;
+      if( ! -e $parfile ) then
+        echo "ERROR: $parfile does not exist"
+        exit 1;
+      endif
+      breaksw
+
+    case "-x":
+      if ( $#argv == 0) goto arg1err;
+      set xfile = $argv[1]; shift;
+      set dname = `dirname $xfile`;
+      mkdir -p $dname;
+      breaksw
+
+    case "-xall":
+      if ( $#argv == 0) goto arg1err;
+      set xallfile = $argv[1]; shift;
+      set dname = `dirname $xallfile`;
+      mkdir -p $dname;
+      breaksw
+
+    case "-sall":
+      if ( $#argv == 0) goto arg1err;
+      set sallfile = $argv[1]; shift;
+      set dname = `dirname $sallfile`;
+      mkdir -p $dname;
+      breaksw
+
+    case "-eall":
+      if ( $#argv == 0) goto arg1err;
+      set eallfile = $argv[1]; shift;
+      set dname = `dirname $eallfile`;
+      mkdir -p $dname;
+      breaksw
+
+    case "-monly":
+      if ( $#argv == 0) goto arg1err;
+      set MLF = $argv[1]; shift;
+      set monly = 1;
+      set QuitOnError = 0;
+      breaksw
+
+    case "-verbose":
+      set verbose = 1;
+      breaksw
+
+    case "-echo":
+      set echo = 1;
+      breaksw
+
+    case "-debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    default:
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "USAGE: mkdesignmtx-sess"
+  echo ""
+  echo " -p parfile1 <-p parfile2 ...>"
+  echo " -ntrs ntrs : number of TRs per run (all runs the same)"
+  echo " -TR TR"
+  echo " -TER TER "
+  echo " -tw timewindow"
+  echo " -tprestim prestimwindow"
+  echo " -nomeanfit"
+  echo " -notrendfit"
+  echo ""
+  echo " -x x1 <-x x2>"
+  echo " -xall XAllFile "
+  echo " -eall EAllFile "
+  echo " -sall SAllFile "
+  echo ""
+  echo "This will produce design matrices for each run (indicated by the "
+  echo "presence of a paradigm file for the given signal model). The first"
+  echo "run's design matrix can be stored in x1.mat, etc. All the X's can"
+  echo "be temporally concatenated and stored in XallFile.mat. EAll is"
+  echo "the matrix which converts the raw data (temporally concat) into "
+  echo "the residual error. SAll is a similar matrix but computes "
+  echo "the task-related signal. All matrices are stored in Matlab 4 format."
+  echo "Matrices for individual runs will not include any components"
+  echo "to fit the mean and/or trend."
+  echo ""
+  echo "If Nttr is the total number of TRs (ie, Nttr = Nruns*Ntrs) and"
+  echo "Nh is the number estimates (ie, TW/TER), then Xall will be"
+  echo "Nttr by Nh, and EAll and SAll will be Nttr by Nttr."
+  echo ""
+
+exit 1;

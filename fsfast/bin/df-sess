@@ -1,0 +1,27 @@
+#!/bin/csh -f
+
+if($#argv == 0) then
+  echo "USAGE: df-sess [sesspath args]"
+  exit 1;
+endif
+
+set sesslist = `getsesspath $argv`;
+if($status) then
+  echo $sesslist
+  exit 1;
+endif
+
+echo "  Session      MountPoint                         Total      Used    Avail  %Used"
+foreach sess ($sesslist)
+  set sessid = `basename $sess`;
+  pushd $sess > /dev/null
+  set mountpoint = `df . | head -n 2 | tail -1`;
+  set dfstats = `df . | tail -1 | awk '{print $1" "$2" "$3" "$4}'`;
+  #echo $sessid $mountpoint $dfstats
+  printf "%10s %36s %8d  %8d  %8d  %3s\n" $sessid $mountpoint \
+         $dfstats[1] $dfstats[2] $dfstats[3] $dfstats[4]
+  popd > /dev/null
+end
+
+
+exit 0;

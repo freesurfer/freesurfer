@@ -1,0 +1,443 @@
+#!/bin/csh -f
+# spmimg2bvolume - convert an spm .img series of files into
+# a bvolume (ie, bshort or bfloat)
+#
+set VERSION = '$Id: spmimg2bvolume,v 1.1 2003/03/04 21:22:09 greve Exp $'
+set inputargs = ($argv);
+
+set PWDCMD = `getpwdcmd`;
+
+set spmstem = ();
+set npad = 3;
+set outstem = ();
+set outbext = ();
+set slicedim = 1;
+set swaprowcol = 0;
+set flip = 0;
+set reverse = 0;
+set firstslice = ();
+set nslices = ();
+set monly = 0;
+set MLF = ();
+set QuitOnError = 1;
+set firstframe = ();
+set nframes   = ();
+set lastframe = ();
+set help = 0;
+
+set n = `echo $argv | grep version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+
+set n = `echo $argv | grep help | wc -l` 
+if($n != 0) then
+  set help = 1;
+  goto usage_exit;
+  exit 0;
+endif
+
+if($#argv == 0) then
+  goto usage_exit;
+  exit 1;
+endif
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+set MATLAB = `getmatlab`;
+if($status) exit 1;
+
+if($#MLF == 0) set MLF = spmimg2bvolume_$$.m
+rm -f $MLF
+
+set okfile = $outdir/spmmat2bvolume.ok.$$
+rm -f $okfile
+
+echo matlab file is $MLF 
+rm -f $MLF;
+
+set spmpadfmt = %0$npad"d";
+
+if($#firstframe == 0) set firstframe = 1;
+
+# Count the SPM Files for this stem #
+set NFRAMES = $firstframe;
+set spmfile = `printf "%s$spmpadfmt.img" $spmstem $NFRAMES `;
+if(! -e $spmfile) then
+  echo "ERROR: cannot find $spmfile"
+  exit 1;
+endif
+
+while(-e $spmfile) 
+  @ NFRAMES = $NFRAMES + 1;
+  set spmfile = `printf "%s$spmpadfmt.img" $spmstem $NFRAMES `;
+  #set spmfile = `printf "%s%03d.img" $spmstem $NFRAMES `;
+end
+@ NFRAMES = $NFRAMES - $firstframe;
+echo "INFO: Found $NFRAMES spm files with stem $spmstem"
+
+if($#nframes    == 0) set nframes    = $NFRAMES;
+@ lastframe = $firstframe + $nframes - 1;
+if($firstframe < 1) then
+  echo "ERROR: First TP must be >= 1"
+  exit 1;
+endif
+if($firstframe > $NFRAMES) then
+  echo "ERROR: First TP must be <= NFRAMES ($NFRAMES)"
+  exit 1;
+endif
+if($nframes < 1) then
+  echo "ERROR: Number of TPs must be >= 1"
+  exit 1;
+endif
+if($nframes > $NFRAMES) then
+  echo "ERROR: Number of TPs must be <= NFRAMES ($NFRAMES)"
+  exit 1;
+endif
+#if($lastframe > $NFRAMES) then
+#  echo "ERROR: FirstFrame+NFrames-1 must be <= NFRAMES ($NFRAMES)"
+#  echo "FirstFrame = $firstframe"
+#  echo "nFrames = $NFRAMES"
+#  echo "LastFrame = $lastframe"
+#  exit 1;
+#endif
+
+#-------------------------------------------------------#
+tee $MLF <<EOF
+% Matlab file for spmmat2bvolume
+% This file may be deleted
+% $MLF
+global QuitOnError;
+QuitOnError = $QuitOnError;
+
+spmstem    = '$spmstem';
+spmpadfmt  = '$spmpadfmt';
+outstem    = '$outstem';
+outbext    = '$outbext';
+slicedim   = $slicedim;
+firstslice = [$firstslice];
+nslices    = [$nslices];
+swaprowcol = $swaprowcol;
+flip       = $flip;
+reverse    = $reverse;
+firstframe    = $firstframe;    
+lastframe     = $lastframe;    
+
+if(~exist('spm_type'))
+  msg = 'ERROR: it does not appear that spm99 is in your matlab path';
+  qoe(msg);error(msg);
+end
+
+if(isempty(outbext))
+  fmt = sprintf('%%s%s.img',spmpadfmt);
+  spmfile = sprintf(fmt,spmstem,firstframe);
+  [DIM VOX SCALE TYPE OFFSET ORIGIN DESCRIP] = spm_hread(spmfile);
+  if(isempty(DIM))
+    msg = sprintf('ERROR: reading spm file  %s\n',spmfile);
+    qoe(msg);error(msg);
+  end
+  mltype = spm_type(TYPE);
+  if(strcmp(mltype,'int16'))
+    outbext = 'bshort';
+  else
+    outbext = 'bfloat';
+  end
+end
+
+filelist = [];
+for n = firstframe:lastframe
+  fmt = sprintf('%%s%s.img',spmpadfmt);
+  spmfile = sprintf(fmt,spmstem,n);
+  filelist = strvcat(filelist,spmfile);
+end
+
+volspec = spm_vol(filelist);
+if(isempty(volspec))
+  msg = sprintf('ERROR: reading spm stem %s\n',spmstem);
+  qoe(msg);error(msg);
+end
+
+fprintf('Loading %s\n',spmstem);
+vol = spm_read_vols(volspec);
+if(isempty(vol))
+  msg = sprintf('ERROR: reading spm stem %s\n',spmstem);
+  qoe(msg);error(msg);
+end
+
+if(slicedim == 2)
+  fprintf('INFO: Permuting to make 2nd dim the slice\n');
+  vol = permute(vol,[2 1 3 4]);
+elseif(slicedim == 3)
+  fprintf('INFO: Permuting to make 3rd dim the slice\n');
+  vol = permute(vol,[3 1 2 4]);
+end
+
+if(swaprowcol)
+  fprintf('INFO: Swapping rows and columns\n');
+  vol = permute(vol,[1 3 2 4]);
+end
+
+if(flip) 
+  fprintf('INFO: Flipping\n');
+  vol = flipdim(vol,2);
+end
+
+if(reverse) 
+  fprintf('INFO: Reversing Slice Order\n');
+  n2 = size(vol,1);
+  vol = vol(n2:-1:1,:,:,:);
+end
+
+fprintf('Saving to %s\n',outstem);
+fmri_svbvolume(vol,outstem,[],outbext);
+
+if(QuitOnError) quit; end
+
+EOF
+#-------------------------------------------------------#
+
+if(! $monly ) then
+  set StartDate = `date`;
+  echo "------------------------------------------"
+  echo "------- matlab output --------------------"
+  cat $MLF | $MATLAB -display iconic 
+  echo "------------------------------------------"
+  rm -f $MLF
+  echo "Started at $StartDate" 
+  echo "Ended   at `date`"     
+  echo " " 
+  echo " " 
+  echo "spmimg2bvolume done" 
+  echo " " 
+endif
+
+exit 0;
+###--------------------------------------------###
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-spm"
+      if ( $#argv == 0) goto arg1err;
+      set spmstem = $argv[1]; shift;
+      breaksw
+
+    case "-npad"
+      if ( $#argv == 0) goto arg1err;
+      set npad = $argv[1]; shift;
+      breaksw
+
+    case "-o"
+      if ( $#argv == 0) goto arg1err;
+      set outstem = $argv[1]; shift;
+      breaksw
+
+    case "-outbext"
+    case "-obext"
+      if ( $#argv == 0) goto arg1err;
+      set outbext = $argv[1]; shift;
+      if($outbext != bshort && $outbext != bfloat && $outbext != auto) then
+        echo "ERROR: output bext = %s, must be bshort or bfloat or auto"
+        exit 1;
+      endif
+      if($outbext == auto) set outbext = ();
+      breaksw
+
+    case "-slicedim"
+      if ( $#argv == 0) goto arg1err;
+      set slicedim = $argv[1]; shift;
+      breaksw
+
+    case "-swaprowcol":
+    case "-swap":
+      set swaprowcol = 1;
+      breaksw
+
+    case "-flip":
+      set flip = 1;
+      breaksw
+
+    case "-reverse":
+    case "-rev":
+      set reverse = 1;
+      breaksw
+
+    case "-firstframe"
+    case "-fframe"
+      if ( $#argv == 0) goto arg1err;
+      set firstframe = $argv[1]; shift;
+      breaksw
+
+    case "-nframes"
+      if ( $#argv == 0) goto arg1err;
+      set nframes = $argv[1]; shift;
+      breaksw
+
+    case "-firstslice"
+    case "-fs"
+      if ( $#argv == 0) goto arg1err;
+      set firstslice = $argv[1]; shift;
+      breaksw
+
+    case "-nslices"
+    case "-ns"
+      if ( $#argv == 0) goto arg1err;
+      set nslices = $argv[1]; shift;
+      breaksw
+
+    case "-monly":
+      if ( $#argv == 0) goto arg1err;
+      set MLF = $argv[1]; shift;
+      set monly = 1;
+      set QuitOnError = 0;
+      breaksw
+
+    case "-verbose":
+      set verbose = 1;
+      breaksw
+
+    case "-echo":
+      set echo = 1;
+      breaksw
+
+    case "-debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    default:
+      echo "ERROR: $flag unrecognized"
+      exit 1;
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+  if($#spmstem == 0) then
+    echo "ERROR: must specify an spm stem"
+    exit 1;
+  endif
+
+  if($#outstem == 0) then
+    echo "ERROR: must specify an output stem"
+    exit 1;
+  endif
+
+  # Create the output directory 
+  set outdir = `dirname $outstem`;
+  mkdir -p $outdir
+  pushd $outdir > /dev/null
+  set outdir = `$PWDCMD`;
+  popd > /dev/null
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "USAGE: spmimg2bvolume"
+  echo ""
+  echo "   -spm spmstem  (eg, snaV for snaV001,snaV002,...)"
+  echo "   -o   outstem"
+  echo ""
+  echo "Options:";
+  echo ""
+  echo "   -npad n          : number of zero padding on spm file <3>"
+  echo "   -slicedim   n    : <1>, 2, or 3"
+  echo "   -reverse         : reverse slice order"
+  echo "   -swap            : swap rows and columns"
+  echo "   -flip            : flip images up/down (after swap)"
+  echo "   -firstframe      : first frame to convert <1>"
+  echo "   -nframes         : number of frames to convert <auto>"
+  echo "   -obext extention : <auto>,bshort,bfloat"
+  echo ""
+  echo "   -help          : print out a help message"
+  echo "   -umask umask   : set unix file permission mask"
+  echo "   -version       : print version and exit"
+  echo ""
+  echo "NOTE: requires that spm99 be in your matlab path"
+  echo ""
+
+  if($help) goto print_help;
+
+exit 1;
+
+############--------------##################
+print_help:
+
+set startcode = "#StartHelp"
+set startcode = "$startcode#"
+set endcode = "#EndHelp"
+set endcode = "$endcode#"
+
+cat $0 | awk -v sc=$startcode -v ec=$endcode 'BEGIN{go=0}{if($0==ec) go=0; if(go) print $0;if($0==sc) go=1; }'
+
+echo ""
+exit 1;
+
+#StartHelp#
+
+This is program converts an spm volume into a bshort/bfloat volume. If
+the spm volume has multiple frames, the bvolume will have multiple
+frames (though this can be controlled with the -firstframe and -nframes
+options). The spm files are assumed to be of the form spmstemFFF.img,
+where FFF is a zero-padded frame number. For example, spmT_0017.img
+would be the volume of the 17th frame; the spmstem is spmT_ (include
+the underscore).
+
+npad - controls the width of the frame number field. It is 3 by
+default. For example, if the spm file is snaV001.img, then npad=3
+because 001 has three digits. If the spm file is spmT_0012, then
+npad = 4. Note that the spm stem would be spmT_ (ie, include the 
+underscore).
+
+slicedim - allows user to select which of the space dimensions will
+be used as the slice dimension.
+
+reverse - reverse the order of the slices
+
+swap - swap the rows and columns of each image. Essentially, this
+rotates each image by 90 degrees.
+
+flip - flip each image about the center row. This is done after
+swapping.
+
+firstframe - first frame to convert
+nframes - total number of frames to convert
+
+obext - extension (and precision) of the output bvolume. By default,
+the program looks at the type field in the spm header. If the type is
+16 bit integer (type=4), the bshort is used. Otherwise, bfloat is used. 
+The user can specify explicitly which precision through -obext.
+
+#EndHelp#
+
+
+
+############--------------##################
+
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+

@@ -1,0 +1,444 @@
+#!/bin/tcsh -f
+# acorfunc-sess
+
+set VERSION = '$Id: acorfunc-sess,v 1.1 2003/03/04 21:22:07 greve Exp $';
+
+set inputargs = ($argv);
+set DateStr = "`date '+%y%m%d%H%M'`"
+
+set funcstem = ();
+set fsd = bold;
+set runlistfile = ();
+set maskdir = masks;
+set maskstem = ();
+set acorstem = ();
+set whtstem = ();
+set whtfilter = ();
+set acormeanfile = ();
+set acormeanabsfile = ();
+set meantwffile = ();
+set hpf = ();
+set pforder = -1;
+set monly = 0;
+set QOE = 1;
+set MLF = ();
+set minrho = ();
+set nskip = 0;
+set RunList = ();
+
+set logunique = 0;
+set PrintHelp = 0;
+
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+set n = `echo $argv | grep -e -version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+
+set PWD = `getpwdcmd`;
+if($status) exit 1;
+
+set SessList = `getsesspath $argv`;
+if($status || $#SessList == 0) then
+  getsesspath $argv 
+  exit 1;
+endif
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+##### Create a log file ######
+set logdir = `pwd`/log;
+mkdir -p $logdir
+if(! -e $logdir) then
+  echo "WARNING: could not create $logdir"
+  set LF = /dev/null
+else
+  if($logunique) then
+    set LF = $logdir/acorfunc-sess-$DateStr.log
+  else
+    set LF = $logdir/acorfunc-sess.log
+  endif
+  if(-e $LF) mv $LF $LF.old
+endif
+echo "--------------------------------------------------------------"
+echo "acorfunc-sess logfile is $LF"
+echo "--------------------------------------------------------------"
+
+echo "acorfunc-sess log file" >> $LF
+echo $VERSION >> $LF
+pwd           >> $LF
+echo $0         >> $LF
+echo $inputargs >> $LF
+uname -a        >> $LF
+date            >> $LF
+
+set StartTime = `date`;
+
+foreach sess ($SessList)
+  set sessid = `basename $sess`;
+  echo "$sessid -----------------------------------" |& tee -a $LF
+
+  cd $sess
+  if(! -e $fsd) then
+    echo "ERROR: cannot find FSD $fsd"
+    exit 1;
+  endif
+  cd $fsd
+
+  if(! -e seq.info) then
+    echo "ERROR: cannot find seq.info"
+    exit 1;
+  endif
+  set TR = `cat seq.info | awk '{if($1 == "TR") print $2}'`;
+   
+  if($#runlistfile == 0) then
+    if($#RunList != 0) then
+      set RunList = `getrunlist .`;
+      if($status || $#RunList == 0) then
+        echo "ERROR: $sess/$fsd has no runs"  |& tee -a $LF
+        exit 1;
+      endif
+    endif
+  else
+    if(! -e $runlistfile) then
+      echo "ERROR: ($sessid) could not find runlistfile $runlistfile" |& tee -a $LF
+      exit 1;
+    endif
+    set RunList = (`cat $runlistfile`);
+  endif
+  echo "RunList = $RunList" |& tee -a $LF
+
+  set okfile = acorfunc-sess-$$.ok
+  rm -f $okfile
+  if($#MLF == 0) set MLF = acorfunc-sess-$$.m
+  rm -f $MLF
+  echo "% matlab file for acorfunc-sess " >> $MLF
+  echo "global QuitOnError" >> $MLF
+  echo "QuitOnError = $QOE;" >> $MLF
+  echo "" >> $MLF
+  foreach run ($RunList)
+    echo -n "r = fast_func2acor(" >> $MLF
+
+    set funcpath = $run/$funcstem
+    echo -n "'-f','$funcpath','-tr','$TR'">> $MLF
+
+    if($pforder > -1)   echo -n ",'-polyfit','$pforder'" >> $MLF
+    if($#hpf != 0) echo -n ",'-hpf','$hpf'" >> $MLF
+    if($#minrho != 0) echo -n ",'-minrho','$minrho'" >> $MLF
+    if($nskip > 0)   echo -n ",'-nskip','$nskip'" >> $MLF
+
+    if($#maskstem != 0) then
+      set maskpath = $maskdir/$maskstem
+      echo -n ",'-m','$maskpath'">> $MLF
+    endif
+
+    if($#acorstem != 0) then
+      set acorpath = $run/$acorstem
+      echo -n ",'-acorvol','$acorpath'">> $MLF
+    endif
+
+    if($#acormeanfile != 0) then
+      set acormeanpath = $run/$acormeanfile
+      echo -n ",'-am','$acormeanpath'">> $MLF
+    endif
+
+    if($#acormeanabsfile != 0) then
+      set acormeanabspath = $run/$acormeanabsfile
+      echo -n ",'-ama','$acormeanabspath'">> $MLF
+    endif
+
+    if($#meantwffile != 0) then
+      set meantwfpath = $run/$meantwffile
+      echo -n ",'-mtwf','$meantwfpath'">> $MLF
+    endif
+
+    if($#whtstem != 0) then
+      set whtpath = $run/$whtstem
+      echo -n ",'-whtvol','$whtpath'" >> $MLF
+    endif
+
+    if($#whtfilter != 0) then
+      set whtfilterpath = $run/$whtfilter
+      echo -n ",'-wf','$whtfilterpath'" >> $MLF
+    endif
+
+    echo ");" >> $MLF
+    echo "if(r) return; end" >> $MLF
+    echo "" >> $MLF
+
+    # Create a log file #
+    if($#whtstem != 0 ) then
+      set WLF = $run/$whtstem.log
+      rm -f $WLF
+      echo "Log file for acorfunc-sess" >> $WLF
+      echo "version: $VERSION" >> $WLF
+      date  >> $WLF
+      echo $inputargs >> $WLF
+      echo "funcstem $funcstem " >> $WLF
+      echo "pforder  $pforder " >> $WLF
+      echo "hpf      $hpf "     >> $WLF
+      echo "mask     $maskstem" >> $WLF
+      echo "maskdir  $maskdir"  >> $WLF
+    endif
+
+  end # Loop over runs #
+  
+  if(! $monly) then
+    echo "fmri_touch('$okfile');" >> $MLF
+
+    cat $MLF | matlab -nosplash |& tee -a $LF
+    if(! -e $okfile) then
+      echo "ERROR: in matlab execution" |& tee -a $LF
+      echo "--------- matlab file -----------" |& tee -a $LF
+      cat $MLF |& tee -a $LF
+      exit 1;
+    endif
+
+    rm -f $MLF $okfile
+
+  endif
+
+end
+
+
+set EndTime = `date`;
+
+echo "" |& tee -a $LF
+echo "Started at $StartTime" |& tee -a $LF
+echo "Ended   at $EndTime"   |& tee -a $LF
+
+echo "acorfunc-sess done"
+
+echo ""
+
+exit 0
+
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-funcstem":
+    case "-f":
+      if ( $#argv == 0) goto arg1err;
+      set funcstem = $argv[1]; shift;
+      breaksw
+
+    case "-mask":
+      if ( $#argv == 0) goto arg1err;
+      set maskstem = $argv[1]; shift;
+      breaksw
+
+    case "-acor":
+      if ( $#argv == 0) goto arg1err;
+      set acorstem = $argv[1]; shift;
+      breaksw
+
+    case "-wht":
+      if ( $#argv == 0) goto arg1err;
+      set whtstem = $argv[1]; shift;
+      breaksw
+
+    case "-wf":
+      if ( $#argv == 0) goto arg1err;
+      set whtfilter = $argv[1]; shift;
+      breaksw
+
+    case "-acormean":
+      if ( $#argv == 0) goto arg1err;
+      set acormeanfile = $argv[1]; shift;
+      breaksw
+
+    case "-acormeanabs":
+      if ( $#argv == 0) goto arg1err;
+      set acormeanabsfile = $argv[1]; shift;
+      breaksw
+
+    case "-twfmean":
+      if ( $#argv == 0) goto arg1err;
+      set meantwffile = $argv[1]; shift;
+      breaksw
+
+    case "-hpf":
+      if ( $#argv == 0) goto arg1err;
+      set hpf = $argv[1]; shift;
+      breaksw
+
+    case "-polyfit":
+    case "-pf":
+      if ( $#argv == 0) goto arg1err;
+      set pforder = $argv[1]; shift;
+      breaksw
+
+    case "-nskip":
+      if ( $#argv < 1) goto arg1err;
+      set nskip = $argv[1]; shift;
+      breaksw
+
+    case "-minrho":
+      if ( $#argv == 0) goto arg1err;
+      set minrho = $argv[1]; shift;
+      breaksw
+
+    case "-logunique":
+      set logunique = 1;
+      breaksw
+
+    case "-monly":
+      if ( $#argv == 0) goto arg1err;
+      set MLF = $argv[1]; shift;
+      set monly = 1;
+      set QOE = 0;
+      breaksw
+
+    case "-verbose":
+      set verbose = 1;
+      breaksw
+
+    case "-echo":
+      set echo = 1;
+      breaksw
+
+    case "-debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    case "-rlf":
+      if ( $#argv == 0) goto arg1err;
+      set runlistfile = $argv[1]; shift;
+      breaksw
+
+    case "-run":
+      if ( $#argv == 0) goto arg1err;
+      set RunList = ($RunList $argv[1]); shift;
+      breaksw
+
+    case "-fsd":
+      if ( $#argv == 0) goto arg1err;
+      set fsd = $argv[1]; shift;
+      breaksw
+
+    case "-g":
+    case "-s":
+    case "-sf":
+    case "-d":
+    case "-df":
+      shift;
+      # ignore getsesspath arguments 
+      breaksw
+
+    case "-cwd":
+      # ignore getsesspath arguments 
+      breaksw
+
+    case "-umask":
+      if ( $#argv == 0) goto arg1err;
+      umask $1; shift;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+ 
+  if($#funcstem == 0) then
+    echo "ERROR: must specify funcstem"
+    exit 1;
+  endif
+
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "USAGE: acorfunc-sess"
+  echo ""
+  echo "Required Arguments:";
+  echo "   -f funcstem : input stem"
+  echo ""
+  echo "Output Options"
+  echo "   -acor acorstem : "
+  echo "   -wht  whtstem  : globally whitened"
+  echo "   -wf   matname  : output whitening filter"
+  echo "   -acormean    fname : dat file for average acor"
+  echo "   -acormeanabs fname : dat file for average absolute acor"
+  echo "   -twfmean     fname : dat file for average temporal waveform"
+  echo ""
+  echo "Other Arguments (Optional)"
+  echo "   -mask mask     : binary mask (fsd/masks/mask)"
+  echo "   -hpf  cutoff   : high-pass filter cut off (sec), not with -polyfit"
+  echo "   -polyfit order : fit and remove polynomial of order, not with -hpf"
+  echo "   -minrho rho    : only compute from and apply wht to vox with minrho"
+  echo "   -nskip  n      : only process voxels after the nth TR"
+  echo ""
+  echo "Session Arguments (Required)"
+  echo "   -sf sessidfile  ..."
+  echo "   -df srchdirfile ..."
+  echo "   -s  sessid      ..."
+  echo "   -d  srchdir     ..."
+  echo "   -fsd  FSD : functional subdirectory"
+  echo "   -rlf  RunListFile "
+  echo "   -run  run1 <-run run2 ...>"
+  echo ""
+  echo "Yet even more options"
+  echo "   -help  : I need some info! Not just any info!"
+  echo "   -debug : print out ridiculous amounts of verbiage"
+  echo "   -monly mlf : only create matlab file"
+  echo "   -umask   mask : unix file permission mask"
+  echo "   -logunique : make a unique log file name"
+  echo ""
+
+  if(! $PrintHelp) exit 1;
+
+  echo $VERSION
+
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+
+exit 1;
+
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+This will compute the autocorrelation function at each voxel. It 
+can save this as a new functional volume. It can also save the
+average autocorreation, average absolute autocorreation. It can
+also compute the global whitening filter and whiten the data
+with this filter.
+
+

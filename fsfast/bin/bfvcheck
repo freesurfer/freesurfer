@@ -1,0 +1,108 @@
+#!/bin/csh -f
+# bfvcheck - given the stem of a volume stored in bfile format, this
+# script checks the entire volume to assure that all the sizes and
+# parameters are consistent.
+
+if($#argv == 0) then
+  echo "USAGE: bfvcheck stem"
+  exit 1;
+endif
+
+set stem = $argv[1];
+
+set tmp = `getbfvdim $stem`;
+if($status) exit 1;
+
+if($#tmp != 6) exit 1;
+
+set nslices = $tmp[1];
+set nrows   = $tmp[2];
+set ncols   = $tmp[3];
+set nframes = $tmp[4];
+set bext    = $tmp[5];
+
+if($bext == bshort) set nbytesper = 2;
+if($bext == bfloat) set nbytesper = 4;
+
+@ slice = 0;
+while($slice < $nslices)
+  set fbase = `printf %s_%03d $stem $slice`;
+
+  set hdr = $fbase.hdr
+  if(! -e $hdr ) then
+    echo "Header file for slice $slice of volume $stem does not exist"
+    echo "Cannot find $hdr"
+    exit 1;
+  endif
+
+  set bf  = $fbase.$bext
+  if(! -e $bf ) then
+    echo "Data file for slice $slice of volume $stem does not exist"
+    echo "Cannot find $bf"
+    exit 1;
+  endif
+
+  if($slice == 0) then
+    set hdr0 = $hdr;
+    set tmp = `cat $hdr0`;
+    set ncols0   = $tmp[1];
+    set nrows0   = $tmp[2];
+    set nframes0 = $tmp[3];
+    set endian0  = $tmp[4];
+    set bf0  = $bf;
+    set szbf0 = `ls -l $bf0 | awk '{print $5}'`;
+  endif
+
+  set tmp = `cat $hdr`;
+  set ncols   = $tmp[1];
+  set nrows   = $tmp[2];
+  set nframes = $tmp[3];
+  set endian  = $tmp[4];
+  set szbf = `ls -l $bf | awk '{print $5}'`;
+  set expectedszbf = `echo "$ncols * $nrows * $nframes * $nbytesper" | bc `;
+
+  if($expectedszbf != $szbf) then
+    echo "ERROR: In volume $stem, slice $slice"
+    echo "       Expected size is $expectedszbf, actual size is $szbf"
+    exit 1;
+  endif
+
+  if($ncols != $ncols0) then
+    echo "ERROR: In volume $stem"
+    echo "       Header file for slice $slice differs from that of slice 0"
+    echo "       in the number of columns ($ncols, $ncols0)"
+    exit 1;
+  endif
+
+  if($nrows != $nrows0) then
+    echo "ERROR: In volume $stem"
+    echo "       Header file for slice $slice differs from that of slice 0"
+    echo "       in the number of rows ($nrows, $nrows0)"
+    exit 1;
+  endif
+
+  if($nframes != $nframes0) then
+    echo "ERROR: In volume $stem"
+    echo "       Header file for slice $slice differs from that of slice 0"
+    echo "       in the number of frames ($nframes, $nframes0)"
+    exit 1;
+  endif
+
+  if($endian != $endian0) then
+    echo "ERROR: In volume $stem"
+    echo "       Header file for slice $slice differs from that of slice 0"
+    echo "       in endianness ($endian, $endian0)"
+    exit 1;
+  endif
+
+  if($szbf != $szbf0) then
+    echo "ERROR: In volume $stem"
+    echo "       Size of data file for slice $slice differs from that of slice 0"
+    echo "       ($szbf, $szbf0)"
+    exit 1;
+  endif
+
+  @ slice = $slice + 1;
+end
+
+exit 0;

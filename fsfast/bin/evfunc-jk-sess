@@ -1,0 +1,362 @@
+#!/bin/csh -f
+# evfunc-jk-sess
+#
+# $Id: evfunc-jk-sess,v 1.1 2003/03/04 21:22:08 greve Exp $
+set VERSION = '$Id: evfunc-jk-sess,v 1.1 2003/03/04 21:22:08 greve Exp $';
+set FASTVER = `cat $FSFAST_HOME/docs/version`;
+
+set inputargs = ($argv);
+set DateStr = "`date '+%y%m%d%H%M'`"
+
+set analysis = ();
+set mask = ();
+set sevsubdir = ();
+set TopDir = `pwd`;
+set srcdir = eres;
+set stembase = e;
+set nkeep = ();
+set CutEnds = 0;
+
+if($#argv == 0) then
+  goto usage_exit;
+  exit 1;
+endif
+
+set n = `echo $argv | grep version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+
+set PWD = `getpwdcmd`;
+if($status) exit 1;
+
+set StudyDir = `$PWD`;
+
+set SessList = `getsesspath $argv`;
+if($status || $#SessList == 0) then
+  getsesspath $argv 
+  exit 1;
+endif
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+# get full path for cfg and info files #
+pushd $analysis > /dev/null;
+set analysisdir = `pwd`;
+popd > /dev/null;
+set infofile = $analysisdir/analysis.info
+if(! -e $infofile) then
+  echo "ERROR: cannot find $infofile"
+  exit 1;
+endif
+
+## Get parameters from the info file ##
+set fsd       = `cat $infofile | awk '{if($1 == "fsd") print $2}'`;
+set runlistfile = `cat $infofile | awk '{if($1 == "runlistfile") print $2}'`;
+set designtype = `cat $infofile | awk '{if($1 == "designtype") print $2}'`;
+if($#designtype == 0) then
+  set designtype = `cat $infofile | awk '{if($1 == "avgtype") print $2}'`;
+endif
+
+if($designtype != "event-related" && $designtype != "blocked") then
+  echo "ERROR: the design type of this analysis is $designtype"
+  echo "  evfunc-jk-sess can only be used to analyse event-related and blocked"
+  exit 1;
+endif
+
+##### Create a log file ######
+set logdir = `pwd`/log;
+mkdir -p $logdir
+if(! -e $logdir) then
+  echo "WARNING: could not create $logdir"
+  set LF = /dev/null
+else
+  set LF = $logdir/evfunc-jk-sess-$fsd-$analysis-$DateStr.log
+  if(-e $LF) mv $LF $LF.old
+endif
+echo "--------------------------------------------------------------"
+echo "evfunc-jk-sess logfile is $LF"
+echo "--------------------------------------------------------------"
+
+echo "evfunc-jk-sess log file" >> $LF
+echo $VERSION >> $LF
+echo "FAST Version $FASTVER"  >> $LF
+id            >> $LF
+pwd           >> $LF
+echo $0         >> $LF
+echo $inputargs >> $LF
+uname -a        >> $LF
+date            >> $LF
+
+if($#nkeep == 0) then
+  set datfile = $analysisdir/h.dat
+  if(! -e $datfile ) then
+    echo "ERROR: cannot find $datfile"
+    exit 1;
+  endif
+  set Nh  = `cat $datfile | awk '{if($1 == "Nh") print $2}'`;
+  set NCond0  = `cat $datfile | awk '{if($1 == "nCond") print $2}'`;
+  @ Nc = $NCond0 - 1;
+  @ Nsignal = $Nh * $Nc;
+  echo "Nh = $Nh, Nc = $Nc, Nsignal = $Nsignal" |& tee -a $LF
+endif
+
+### Go through each session ###
+set StartTime = `date`;
+foreach sess ($SessList)
+
+  set sessbase = `basename $sess`;
+  echo "-------------------------------------------" |& tee -a $LF
+  echo "$sess " |& tee -a $LF
+  date |& tee -a $LF
+
+  cd $sess/$fsd
+  if($#runlistfile == 0) then
+    set RunList = `getrunlist .`;
+    if($status || $#RunList == 0) then
+      echo "ERROR: $sess/$fsd has no runs"  |& tee -a $LF
+      exit 1;
+    endif
+  else
+    if(! -e $runlistfile) then
+      echo "ERROR: ($sessbase) could not find runlistfile $runlistfile"
+      exit 1;
+    endif
+    set RunList = (`cat $runlistfile`);
+  endif
+
+  echo "INFO ($sessbase): RunList = $RunList"
+
+  foreach jkrun ($RunList)  
+    set analysisdir = $analysis-jk$jkrun
+    set indir       = $analysisdir/$srcdir
+
+    set instems     = ();
+    set run = 1;
+    while ( $run < $#RunList )
+      set instem = `printf %s/%s%03d $indir $stembase $run`;
+      set instems = ($instems -i $instem );
+      @ run = $run + 1;
+    end
+
+    if($#nkeep == 0) then
+      set instem0 = $instems[2];
+      set tmp = `getbfvdim $instem0`;
+      echo $tmp
+      set ntrs = $tmp[4];
+      if($srcdir == "eres") then
+        @ nkeep = $ntrs - $Nsignal;
+      else
+        @ nkeep = $Nsignal;
+      endif
+    endif
+    echo "nkeep = $nkeep" |& tee -a $LF;
+
+    set cmd = evfunc
+    set cmd = ($cmd $instems)
+    if($#mask != 0) set cmd = ($cmd -mask masks/$mask)
+    set cmd = ($cmd -o $analysisdir/$sevsubdir/sev)
+    set cmd = ($cmd -nodemean -nodetrend);
+    if($#nkeep > 0) set cmd = ($cmd -nkeep $nkeep);
+    if($CutEnds)    set cmd = ($cmd -cutends);
+
+    echo "-------------------------------------------------" |& tee -a $LF
+    pwd |& tee -a $LF
+    echo $cmd |& tee -a $LF
+    echo "---------------------------------------------------" |& tee -a $LF
+
+    $cmd |& tee -a $LF
+    if($status) then
+      echo "ERROR ($sess): evfunc failed"
+      exit 1;
+    endif
+
+  end # End loop over jackknifed runs
+
+end # End loop over sessions
+
+echo " "
+echo "Started at $StartTime "
+echo "Ended   at `date`"
+echo " "
+echo "evfunc-jk-sess Done"
+echo " "
+
+exit 0;
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-a":
+    case "-analysis":
+      if ( $#argv == 0) goto arg1err;
+      set analysis = $argv[1]; shift;
+      set analysis = `basename $analysis`; # remove trailing /
+      breaksw
+
+    case "-mask":
+      if ( $#argv == 0) goto arg1err;
+      set mask = $argv[1]; shift;
+      breaksw
+
+    case "-sevsubdir":
+      if ( $#argv == 0) goto arg1err;
+      set sevsubdir = $argv[1]; shift;
+      breaksw
+
+    case "-srcdir":
+      if ( $#argv == 0) goto arg1err;
+      set srcdir = $argv[1]; shift;
+      if($srcdir != eres && $srcdir != signal) then
+        echo "ERROR: -srcdir must be either eres or signal"
+	exit 1;
+      endif
+      breaksw
+
+    case "-nkeep":
+      if ( $#argv == 0) goto arg1err;
+      set nkeep = $argv[1]; shift;
+      breaksw
+
+    case "-cutends":
+      set CutEnds = 1;
+      breaksw
+
+    case "-verbose":
+      set verbose = 1;
+      breaksw
+
+    case "-echo":
+      set echo = 1;
+      breaksw
+
+    case "-debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    case "-g":
+    case "-s":
+    case "-sf":
+    case "-d":
+    case "-df":
+      shift;
+      # ignore getsesspath arguments 
+      breaksw
+
+    case "-cwd":
+      # ignore getsesspath arguments 
+      breaksw
+
+    case "-umask":
+      if ( $#argv == 0) goto arg1err;
+      umask $1; shift;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+  if ($#SessList == 0) then
+     echo "ERROR: no sessions specified"
+     exit 1
+  endif
+
+  if ($#analysis == 0) then
+     echo "ERROR: no analysis name specified"
+     exit 1
+  endif
+
+  if(! -d $analysis ) then
+    echo "ERROR: analysis $analysis does not exist, see mkanalysis-sess"
+    exit 1;
+  endif
+
+  if($srcdir == eres)   set stembase = "e";
+  if($srcdir == signal) set stembase = "s";
+
+  if($#sevsubdir == 0) then
+    if($srcdir == eres)   set sevsubdir = severes;
+    if($srcdir == signal) set sevsubdir = sevsignal;
+  endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "USAGE: evfunc-jk-sess"
+  echo ""
+  echo "Required Arguments:";
+  echo "   -analysis analysisname : name of functional analysis"
+  echo ""
+  echo "Other Arguments (Optional)"
+  echo "   -mask mask     : binary mask (fsd/masks/mask)"
+  echo "   -sevsubdir dir : put sevs in analysis-jkXXX/sevsubdir"
+  echo "   -srcdir dir    : eres (or signal)"
+  echo "   -nkeep n       : keep the n best EVs"
+  echo "   -cutends       : dont include end-slices in processing"
+  echo ""
+  echo "Session Arguments (Required)"
+  echo "   -sf sessidfile  ..."
+  echo "   -df srchdirfile ..."
+  echo "   -s  sessid      ..."
+  echo "   -d  srchdir     ..."
+  echo ""
+  echo "See also: selxavg-jk-sess and evspatfil-jk-sess"
+  echo ""
+  echo ""
+
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+
+exit 1;
+
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+This will compute the tcvm and sevs based on the results of
+selxavg-jk-sess, which jackknifes through all the runs.
+selxavg-jk-sess will store the residual error in eres/eJJJ and the
+signal in signal/sJJJ, both subdirectories of analysis-jkXXX.  By
+default, this program operates on the residual error and creates
+analysis-jkXXX/severes. The signal can be operated on by specifying
+-srcdir signal, in which case the output will be
+analysis-jkXXX/sevsignal. In any case, the input is neither demeaned
+or detrended. Prior to 3/14/02, the input was both demeaned and
+detrended; this change should have no effect on the SEVs of the
+residual error.
+
+If a binary mask is specified, then the inputs are masked before
+the tcvm is computed; it is also applied when computing the sevs.
+

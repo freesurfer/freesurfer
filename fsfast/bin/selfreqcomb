@@ -1,0 +1,288 @@
+#!/bin/csh -f
+# fMRI selective frequency combining of averages (for phase-encoding analysis)
+
+set VERSION = '$Id: selfreqcomb,v 1.1 2003/03/04 21:22:09 greve Exp $';
+set cmdargv = "$argv";
+
+set n = `echo $argv | grep version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+
+if($#argv == 0) goto usage_exit;
+
+set instems = ();
+set outstem = ();
+set monly = 0;
+set dofmax = 1000;
+
+set firstslice = ();
+set nslices = ();
+
+goto parse_args;
+parse_args_return:
+
+
+goto check_params;
+check_params_return:
+
+if($#firstslice == 0) then
+  set firstslice = `getfirstsliceno $instems[1]`;
+  if($status) exit 1;
+endif
+
+if($#nslices == 0) then
+  set nslices = `getnslices $instems[1]`;
+  if($status) exit 1;
+endif
+
+set MATLAB = `getmatlab`;
+if($status) exit 1;
+
+if ($monly) then
+  set QuitOnError = 0;
+  set TARGET = "tee $mfile"
+  rm -f $mfile;
+else
+  set QuitOnError = 1;
+  set TARGET =  "$MATLAB -display iconic"
+endif  
+
+set outdir = `dirname $outstem`;
+mkdir -p $outdir
+
+#---------------------------------------------------------------#
+$TARGET <<EOF
+
+  global QuitOnError;
+  QuitOnError = $QuitOnError;
+
+  instems    = splitstring('$instems');
+  outstem    = '$outstem';
+  firstslice = [$firstslice];
+  nslices    = [$nslices];
+  dofmax     = $dofmax;
+
+  %% Get the dimensions from the bfile %%
+  [nrows ncols ntp fs ns endian] = fmri_bfiledim(instems(1,:));
+  if(ntp ~= 12) 
+    msg = sprintf('Input file %s has wrong number of planes (%d/%d)', ...
+                  instems(1,:),ntp,12);
+    qoe(msg); error(msg);
+  end
+  if(isempty(firstslice)) firstslice = fs; end
+  if(isempty(nslices))    nslices    = ns; end
+  lastslice = firstslice + nslices - 1;
+  Nv = nrows*ncols;
+
+  %% Number of runs %%
+  nruns = size(instems,1);
+
+  %%%%--------- Slice Loop ----------------%%%
+  for slice = firstslice:lastslice
+    fprintf('Slice %3d\n',slice);
+
+    sum_real_signal = 0;
+    sum_imag_signal = 0;
+    sum_noise_var   = 0;
+    sum_mean        = 0;
+    sum_trend       = 0;
+    sum_dof         = 0;
+
+    for n = 1:nruns,
+      instem = deblank(instems(n,:));
+      fprintf('Input Volume %s\n',instem);
+
+      %%% Load the sfa file %%%
+      sfa = fmri_ldsfa(instem);
+
+      %%% Load the averages %%%
+      fname = sprintf('%s_%03d.bfloat',instem,slice);
+      f = fmri_ldbfile(fname);
+      sfa.nrows = size(f,1);
+      sfa.ncols = size(f,2);
+      f = reshape(f, [Nv 12])'; %'
+
+      %% Extract Real/Imag of Signal, use the rest to estimate noise %%
+      sum_noise_var   = sum_noise_var   + sfa.dof * f(7,:).^2;
+      sum_real_signal = sum_real_signal + sfa.dof * f(8,:);
+      sum_imag_signal = sum_imag_signal + sfa.dof * f(9,:);
+      sum_mean        = sum_mean        + f(11,:);
+      sum_trend       = sum_trend       + f(12,:);
+      sum_dof         = sum_dof         + sfa.dof;
+
+    end %% loop over number of runs %%
+
+    if(sum_dof > dofmax) sum_dof = dofmax; end 
+
+    real_signal = sum_real_signal/sum_dof;
+    imag_signal = sum_imag_signal/sum_dof;
+    meanimg     = sum_mean/sum_dof;
+    trendimg    = sum_trend/sum_dof;
+    var_noise   = sum_noise_var/sum_dof;
+    indz = find(var_noise == 0);
+    var_noise(indz) = 10000000;
+    std_noise   = sqrt(var_noise);
+
+    u = real_signal + sqrt(-1)*imag_signal;
+    F = (abs(u).^2)./(var_noise/nruns);
+    sigf = FTest(2,sum_dof,F);
+    log10sigf = -log10(sigf);
+    phz = angle(u);
+    t = imag(u)./sqrt(var_noise/sum_dof);
+
+    fprintf('Mean Image = %g\n',mean(meanimg));
+    fprintf('Mean Trend = %g\n',mean(trendimg));
+    fprintf('Mean Phase = %g (%g)\n',mean(phz),mean(phz)*180/pi);
+
+    %% Put into appropriate format and save %%
+    tmp = zeros(12,Nv);
+    tmp(1,:)  = log10sigf .* sign(t);
+    tmp(2,:)  = log10sigf .* sin(phz);
+    tmp(3,:)  = log10sigf .* cos(phz);
+    tmp(4,:)  = F;
+    tmp(5,:)  = sqrt(F) .* sin(phz);
+    tmp(6,:)  = sqrt(F) .* cos(phz);
+    tmp(7,:)  = std_noise;
+    tmp(8,:)  = real_signal;
+    tmp(9,:)  = imag_signal;
+    tmp(10,:) = phz;
+    tmp(11,:) = meanimg;
+    tmp(12,:) = trendimg;
+
+    ntmp  = size(tmp,1);
+    tmp   = reshape(tmp', [sfa.nrows sfa.ncols ntmp]); %'
+    fname = sprintf('%s_%03d.bfloat',outstem,slice);
+    fmri_svbfile(tmp,fname);
+
+  end %% loop over slices %%
+
+  %% Save the data file %%
+  sfa.analysistype = 'combavg';
+  sfa.infiles = instems;
+  sfa.dof     = sum_dof;
+  fmri_svsfa(sfa,outstem);
+
+  if(QuitOnError)  quit; end
+  
+EOF
+
+echo "COMPLETED SUCCESSFULLY"
+
+exit 0;
+
+############--------------##################
+parse_args:
+
+set cmdline = "$argv";
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+
+    case "-i":
+      if ( $#argv == 0) goto arg1err;
+      set instems = ($instems $argv[1]); shift;
+      breaksw
+
+    case "-o":
+      if ( $#argv == 0) goto arg1err;
+      if ( $#outstem != 0 ) then
+        echo ERROR: only one outstem allowed.
+        exit 1
+      endif
+      set outstem = $argv[1]; shift;
+      breaksw
+
+    case "-dofmax":
+      if ( $#argv == 0) goto arg1err;
+      set dofmax = $argv[1]; shift;
+      breaksw
+
+    case "-firstslice":
+    case "-fs":
+      if ( $#argv == 0) goto arg1err;
+      set firstslice = $argv[1]; shift;
+      breaksw
+
+    case "-nslices":
+    case "-ns":
+      if ( $#argv == 0) goto arg1err;
+      set nslices = $argv[1]; shift;
+      breaksw
+
+    case "-monly":
+      if ( $#argv == 0) goto arg1err;
+      set mfile = $argv[1]; shift;
+      set monly = 1; 
+      breaksw
+
+    case "-debug":
+      set verbose = 1;
+      breaksw
+
+    case "-echo":
+      set echo = 1;
+      breaksw
+
+    case "-debug":
+      set echo = 1;
+      set verbose = 1;
+      breaksw
+
+    case "-umask":
+      if ( $#argv == 0) goto arg1err;
+      set umaskarg = "-umask $argv[1]";
+      umask $argv[1]; shift;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized.
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+  if($#instems < 2) then
+    echo "ERROR: must specify at least two input volumes";
+    exit 1;
+  endif
+
+  if($#outstem == 0) then
+    echo "ERROR: must specify an output volume";
+    exit 1;
+  endif
+
+goto check_params_return;
+############--------------##################
+
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+
+############--------------##################
+usage_exit:
+  echo "USAGE: selfreqcomb"
+  echo "   -i instems  ...   : input stem(s)"
+  echo "   -o outstem        : output stem"
+  echo "   -dofmax dof       : if(dof>dofmax) dof=dofmax"
+  echo "   -firstslice fs    : first anatomical slice"
+  echo "   -nslices    ns    : number of anatomical slices"
+  echo "   -monly mfile      : just create a matlab file"
+  echo "   -umask umask      : set unix file permission mask"
+  echo "   -version          : print version and exit"
+exit 1;

@@ -1,0 +1,835 @@
+#!/bin/csh -f
+# tkmedit-sess
+#
+set VERSION = '$Id: tkmedit-sess,v 1.1 2003/03/04 21:22:10 greve Exp $';
+set inputargs = ($argv);
+
+which pawd > /dev/null
+if($status) then
+  set PWDCMD = pwd
+else
+  set PWDCMD = pawd
+endif
+
+set analysis      = ();
+set sessid        = ();
+set isxavgmethod  = ();
+
+set mapanalysis   = ();
+set mapsessid     = ();
+set mapisxavgmethod  = ();
+
+set contrast   = ();
+set space      = ();
+set subject    = ();
+set mrivolid   = T1;
+
+set mapdir = ();
+set hdrdir = ();
+set sessdir = ();
+
+set mapmeanimg = 0;
+set map    = ();
+set sessanat = 0;
+set asd = ();
+set ScriptOnly = 0;
+set umaskarg = ();
+set underlay = ();
+set thmin = 2;
+set thmax = 7;
+set nohdr = 0;
+set nosig = 0;
+set rawrun = ();
+set motioncor = 0;
+set mc = "";
+set fsd = ();
+set fthresh = 2;
+set fmid    = 5;
+set fslope  = 1;
+set fsat    = ();
+set group = ();
+set SessIsGroup = 0;
+set spacedir = ();
+set segmentation = ();
+set segcolor = ();
+set segopacity = .3;
+
+set nolog = 0;
+
+set n = `echo $argv | grep version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+
+if($#argv == 0) then
+  goto usage_exit;
+  exit 1;
+endif
+
+##### Create a log file ######
+if(! $nolog) then
+  set logdir = `$PWDCMD`/log;
+  mkdir -p $logdir
+  if(! -e $logdir || ! -w $logdir) then
+    echo "WARNING: could not create $logdir"
+    set LF = /dev/null
+  else
+    set LF = $logdir/tkmedit-sess.log
+    if(-e $LF) mv $LF $LF.old
+  endif
+else
+  set LF = /dev/null
+endif
+
+echo "--------------------------------------------------------------"
+echo "tkmedit-sess logfile is $LF"
+echo "--------------------------------------------------------------"
+
+set FASTVER = `cat $FMRI_ANALYSIS_DIR/docs/version`;
+
+echo "fucn2tal-sess log file" >> $LF
+echo $VERSION   >> $LF
+echo "FAST Version $FASTVER"  >> $LF
+id            >> $LF
+echo "$0"     >> $LF
+echo "$argv"  >> $LF
+$PWDCMD           >> $LF
+uname -a      >> $LF
+date          >> $LF
+which tkmedit >> $LF
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+## Get functional subdirectory from the info file ##
+if($#analysis != 0) then
+  if(! -e $analysis ) then
+    echo "ERROR: $analysis does not exist. Try running mkanalysis-sess" |& tee -a $LF
+    exit 1;
+  endif
+  set infofile = $analysis/analysis.info
+  set fsd = `cat $infofile | awk '{if($1 == "fsd") print $2}'`;
+  set designtype = `cat $infofile | awk '{if($1 == "designtype") print $2}'`;
+  if($#designtype == 0) then
+    set designtype = `cat $infofile | awk '{if($1 == "avgtype") print $2}'`;
+  endif
+else
+  if($#fsd == 0) set fsd = bold;
+  set nohdr = 1;
+  set nosig = 1;
+endif
+
+if("$designtype" != "event-related") set nohdr = 1;
+
+## Get map functional subdirectory from the info file ##
+if($#mapanalysis != 0) then
+  if(! -e $mapanalysis ) then
+    echo "ERROR: $mapanalysis does not exist. Try running mkanalysis-sess" |& tee -a $LF
+    exit 1;
+  endif
+  set mapfsd = `cat $mapanalysis/analysis.info | awk '{if($1 == "fsd") print $2}'`;
+else
+  if($#mapfsd == 0) set mapfsd = bold;
+  set nohdr = 1;
+  set nosig = 1;
+endif
+
+## Prepare the script, if need be --- not used yet ##
+if(0) then
+mkdir -p scripts
+if(! -e scripts) then
+  echo "ERROR: could not create directory scripts" |& tee -a $LF
+  exit 1;
+endif
+set scriptfile = scripts/run-tkmedit-sess
+rm -f $scriptfile
+touch $scriptfile
+echo "#\!/bin/csh -f" >> $scriptfile
+echo "cd .." >> $scriptfile
+chmod a+x $scriptfile
+endif
+
+#----------------------------------------------------#
+if(! $nohdr) then
+
+  if($#isxavgmethod == 0) then
+    if($space == native) then
+      set spacesubdir = ();
+    else
+      set spacesubdir = $spacedir
+    endif
+  else
+    if($isxavgmethod == fixed) then
+      set spacesubdir = $spacedir-ffx
+    else
+      set spacesubdir = $spacedir-rfx
+    endif
+  endif
+
+  set hdrdir = $sess/$fsd/$analysis/$spacesubdir
+  if(! -e $hdrdir) then
+    echo "ERROR: cannot find $hdrdir"
+    exit 1;
+  endif
+  set hdrstem = $hdrdir/h
+
+  if($space == native) then
+    set regfile = $sess/$fsd/register.dat;
+  else
+    set regfile = $hdrdir/register.dat;
+  endif
+
+  if(! -e $regfile ) then
+    echo "ERROR: cannot find $regfile"
+    exit 1;
+  endif
+  #cp $regfile $hdrdir
+  set hdrregfile = $regfile
+
+endif
+
+#----------------------------------------------------#
+if(! $nosig) then
+
+  if($#mapisxavgmethod == 0) then
+    if($space == native) then
+      set spacesubdir = ();
+    else
+      set spacesubdir = $spacedir
+    endif
+  else
+    if($mapisxavgmethod == fixed) then
+      set spacesubdir = $spacedir-ffx
+    else
+      set spacesubdir = $spacedir-rfx
+    endif
+  endif
+
+  set maphdrdir = $mapsess/$mapfsd/$mapanalysis/$spacesubdir
+  set mapdir = $maphdrdir/$contrast
+  if(! -e $mapdir) then
+    echo "ERROR: cannot find $mapdir"
+    exit 1;
+  endif
+  set mapstem = $mapdir/$map
+
+  if($space == native) then
+    set regfile = $mapsess/$mapfsd/register.dat;
+  else
+    set regfile = $maphdrdir/register.dat;
+  endif
+  if(! -e $regfile ) then
+    echo "ERROR: cannot find $regfile"
+    exit 1;
+  endif
+  #cp $regfile $mapdir
+  set mapregfile = $regfile
+  #echo "mapregfile is $mapregfile"
+endif
+
+if($#subject == 0) set subject = `cat $regfile | head -n 1`;
+echo "INFO: subject is $subject"
+
+if($subject != talairach && $space == tal) set mrivolid = talairach
+
+set hdroption  = ""
+set offsetoption = ""
+
+## Get the full path to the hdr dir ##
+if(! $nohdr ) then
+  pushd $hdrdir > /dev/null
+  set hdrdir = `$PWDCMD`;
+  popd  > /dev/null
+
+  ## make sure that dat file exists
+  set hdrdat = $analysis/h.dat
+  if(! -e $hdrdat ) then
+    echo "ERROR: could not find $hdrdat" |& tee -a $LF
+    exit 1;
+  endif
+
+  ## Check whether an IRF was used ##
+  set tmp = `grep Nh $hdrdat`;
+  @ Nh = $tmp[2];
+  if($Nh != 1 && ! $nohdr) then
+    set hdroption  = (-timecourse $hdrdir/h )
+    set hdroption  = ($hdroption -timecourse-reg $hdrregfile)
+    set offsetoption = (-timecourse-offset $hdrdir/h-offset)
+  endif
+endif
+
+## Get the full path to the map dir, set tkmedit option ##
+if($#mapdir != 0) then
+  pushd $mapdir > /dev/null
+  set mapdir = `$PWDCMD`;
+  popd  > /dev/null
+  set mapoption = (-overlay $mapdir/$map )
+  set mapoption = ($mapoption -overlay-reg $mapregfile)
+else
+  set mapoption = ""
+endif
+
+## Get the directory for the anatomicals ##
+if(! $sessanat ) then
+  if($subject != talairach || $SessIsGroup) then
+    echo "INFO: subject is $subject" |& tee -a $LF
+    if(! -e $SUBJECTS_DIR/$subject ) then
+      echo "ERROR: subject $subject does not exist in data base" |& tee -a $LF
+      echo "SUBJECTS_DIR: $SUBJECTS_DIR" |& tee -a $LF
+      exit 1;
+    endif
+    set anatdir = $SUBJECTS_DIR/$subject/mri/$mrivolid
+    set anatoption = "$subject $mrivolid";
+  else
+    set tmpreg = $sess/$fsd/register.dat
+    set tmpsubject = `head -n 1 $tmpreg`;
+    set anatdir = $SUBJECTS_DIR/$tmpsubject/mri/talairach
+    if(-e $anatdir) then
+      set subject    = $tmpsubject;
+      set anatoption = "$subject talairach";
+    else
+      set anatdir = $SUBJECTS_DIR/$subject/mri/$mrivolid
+      set anatoption = "$subject $mrivolid";
+    endif
+  endif
+else
+  set tmp = `ls -d $sess/$asd/???`;
+  if($#tmp == 0) then
+    echo "ERROR: cannot find a run in $sess/$asd" |& tee -a $LF
+    exit 1;
+  endif
+  set anatdir = $tmp[1];
+  set anatoption = "-f $anatdir";
+endif
+
+## Get the full path to the anat dir ##
+pushd $anatdir > /dev/null
+set anatdir = `$PWDCMD`;
+popd > /dev/null
+if(! -d $anatdir ) then
+  echo "ERROR: cannot find $anatdir" |& tee -a $LF
+  exit 1;
+endif
+echo "INFO: Anatomical directory set to $anatdir" |& tee -a $LF
+
+if($#segmentation != 0) then
+
+  if(-e $segmentation) then
+     set segdir = $segmentation
+  else
+    set segdir = $SUBJECTS_DIR/$subject/mri/$segmentation
+    if(! -e $segdir ) then
+      echo "ERROR: cannot find either $segmentation or $segdir"
+      exit 1;
+    endif
+  endif
+
+  if(! -e $segcolor) then
+    set tmp = $segdir/$segcolor
+    if(-e $tmp) then
+      set segcolor = $tmp;
+    else
+      echo "ERROR: cannot find either $tmp or $segcolor"
+      exit 1;
+    endif
+  endif
+  set segoption = (-segmentation $segdir $segcolor )
+  set segoption = ($segoption -segmentation-opacity $segopacity)
+else
+  set segoption = ();
+endif
+
+
+#set TKMEDIT = ~fischl/build/tkmedit/tkmedit
+set TKMEDIT = tkmedit
+
+set cmd = ($TKMEDIT $anatoption $mapoption $hdroption $offsetoption)
+set cmd = ($cmd -fthresh $fthresh -fmid $fmid -fslope $fslope )
+set cmd = ($cmd $segoption);
+echo "------------------------"|& tee -a $LF
+$PWDCMD|& tee -a $LF
+echo $cmd|& tee -a $LF
+echo "------------------------"|& tee -a $LF
+$cmd|& tee -a $LF
+if($status) then
+  echo "tkmedit failed"|& tee -a $LF
+  exit 1;
+endif
+
+exit 0;
+###--------------------------------------------###
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-c":
+    case "-contrast":
+      if ( $#argv == 0) goto arg1err;
+      set contrast = $argv[1]; shift;
+      breaksw
+
+    case "-space":
+      if ( $#argv == 0) goto arg1err;
+      set space = $argv[1]; shift;
+      breaksw
+
+    case "-spacedir":
+      if ( $#argv == 0) goto arg1err;
+      set spacedir = $argv[1]; shift;
+      breaksw
+
+    case "-subject":
+      if ( $#argv == 0) goto arg1err;
+      set subject = $argv[1]; shift;
+      breaksw
+
+    case "-volid":
+      if ( $#argv == 0) goto arg1err;
+      set mrivolid = $argv[1]; shift;
+      breaksw
+
+    case "-mapmeanimg":
+      set mapmeanimg = 1;
+      breaksw
+
+    case "-map":
+      if ( $#argv == 0) goto arg1err;
+      set map = $argv[1]; shift;
+      if($map != sig && $map != minsig && $map != iminsig && $map != t) then
+        #echo "ERROR: map must be either sig, minsig, iminsig, or t"
+        # exit 1;
+      endif
+      breaksw
+
+    case "-s":
+      if ( $#argv == 0) goto arg1err;
+      set sessid = $argv[1]; shift;
+      breaksw
+
+    case "-sf":
+      if ( $#argv == 0) goto arg1err;
+      set sessfile = $argv[1]; shift;            
+      if( ! -e $sessfile ) then
+        echo "ERROR: $sessfile does not exist"
+        exit 1;
+      endif
+      set tmp = `cat $sessfile`;
+      if($#tmp == 0) then
+        echo "ERROR: $sessfile is empty"
+        exit 1;
+      endif
+      set sessid = $tmp[1];
+      if($#tmp > 1) then
+        echo "WARNING: $sessfile has more than one session, using $sessid"
+      endif
+      breaksw
+
+    case "-d":
+      if ( $#argv == 0) goto arg1err;
+      set sessdir = ($sessdir $argv[1]); shift;
+      breaksw
+
+    case "-df":
+      if ( $#argv == 0) goto arg1err;
+      set df = $argv[1]; shift;
+      if(! -e $df) then
+        echo "ERROR: cannot find $df"
+        exit 1;
+      endif
+      set sessdir = ($sessdir `cat $df`);
+      breaksw
+
+    case "-a":
+    case "-analysis":
+      if ( $#argv == 0) goto arg1err;
+      set analysis = $argv[1]; shift;
+      breaksw
+
+    case "-isxavg":
+      if ( $#argv == 0) goto arg1err;
+      set isxavgmethod = $argv[1]; shift;
+      if($isxavgmethod != "fixed" && $isxavgmethod != "random") then
+        echo "ERROR: -isxavg must be either fixed or random" |& tee -a $LF 
+        exit 1;
+      endif
+      breaksw
+
+    case "-mapgroup":
+    case "-group":
+      echo "ERROR: $flag flag is no longer valid. Specify the group "
+      echo "       using the  -s or -sf flag."
+      exit 1;
+      breaksw
+
+    case "-maps":
+    case "-mapsess":
+    case "-mapsessid":
+    case "-mapsession":
+      if ( $#argv == 0) goto arg1err;
+      set mapsessid = $argv[1]; shift;
+      breaksw
+
+    case "-mapanalysis":
+    case "-ma":
+      if ( $#argv == 0) goto arg1err;
+      set mapanalysis = $argv[1]; shift;
+      breaksw
+
+    case "-mapisxavg":
+      if ( $#argv == 0) goto arg1err;
+      set mapisxavgmethod = $argv[1]; shift;
+      if($mapisxavgmethod != "fixed" && $mapisxavgmethod != "random") then
+        echo "ERROR: -mapisxavg must be either fixed or random" |& tee -a $LF 
+        exit 1;
+      endif
+      breaksw
+
+    case "-subjdir":
+      if ( $#argv == 0) goto arg1err;
+      set subjdir = $argv[1]; shift;
+      if(! -e $subjdir) then
+        echo "ERROR: $subjdir does not exist"
+        exit 1;
+      endif
+      pushd $subjdir > /dev/null
+      set subjdir = `$PWDCMD`;
+      popd > /dev/null
+      setenv SUBJECTS_DIR $subjdir
+      echo "INFO: setting SUBJECTS_DIR to $SUBJECTS_DIR"
+      breaksw
+
+    case "-thmin":
+      if ( $#argv == 0) goto arg1err;
+      set thmin = $argv[1]; shift;
+      breaksw
+
+    case "-thmax":
+      if ( $#argv == 0) goto arg1err;
+      set thmax = $argv[1]; shift;
+      breaksw
+
+    case "-fthresh":
+      if ( $#argv == 0) goto arg1err;
+      set fthresh = $argv[1]; shift;
+      breaksw
+
+    case "-fmid":
+      if ( $#argv == 0) goto arg1err;
+      set fmid = $argv[1]; shift;
+      breaksw
+
+    case "-fslope":
+      if ( $#argv == 0) goto arg1err;
+      set fslope = $argv[1]; shift;
+      breaksw
+
+    case "-fsat":
+      if ( $#argv == 0) goto arg1err;
+      set fsat = $argv[1]; shift;
+      breaksw
+
+    case "-fslope":
+      if ( $#argv == 0) goto arg1err;
+      set fslope = $argv[1]; shift;
+      breaksw
+
+    case "-thmask":
+      set fthresh = .1;
+      set fmid    = .2;
+      set fslope  = 1;
+      breaksw
+
+    case "-raw":
+      if ( $#argv == 0) goto arg1err;
+      set rawrun = $argv[1]; shift;
+      breaksw
+
+    case "-fsd":
+      if ( $#argv == 0) goto arg1err;
+      set fsd = $argv[1]; shift;
+      breaksw
+
+    case "-asd":
+      if ( $#argv == 0) goto arg1err;
+      set asd = $argv[1]; shift;
+      set sessanat = 1;
+      breaksw
+
+    case "-seg":
+      if ( $#argv < 2) then
+        echo "ERROR: -seg needs to arguments"
+        exit 1;
+      endif
+      set segmentation = $argv[1]; shift;
+      set segcolor = $argv[1]; shift;
+      breaksw
+
+    case "-segopacity":
+      if ( $#argv == 0) goto arg1err;
+      set segopacity = $argv[1]; shift;
+      breaksw
+
+    case "-aseg":
+      set segmentation = aseg;
+      set segcolor = $FREESURFER_HOME/tkmeditColorsCMA
+      breaksw
+
+    case "-sessanat":
+      set sessanat = 1;
+      breaksw
+
+    case "-nohdr":
+      set nohdr = 1;
+      breaksw
+
+    case "-nosig":
+      set nosig = 1;
+      breaksw
+
+    case "-nolog":
+      set nolog = 1;
+      breaksw
+
+    case "-motioncor":
+      set motioncor = 1;
+      set mc = "mc";
+      breaksw
+
+    case "-umask":
+      if ( $#argv == 0) goto arg1err;
+      set umaskarg = "-umask $argv[1]";
+      umask $argv[1]; shift;
+      breaksw
+
+    case "-verbose":
+      set verbose = 1;
+      breaksw
+
+    case "-echo":
+      set echo = 1;
+      breaksw
+
+    case "-debug":
+      set verbose = 1;
+      set echo = 1;
+      setenv XDEBUG 1
+      breaksw
+
+    case "-scriptonly":
+      set ScriptOnly = 1;
+      breaksw
+
+    case "-cwd":
+      set cwd = `$PWDCMD`;
+      set sessdir = `dirname $cwd`;
+      set sessid  = `basename $cwd`;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+  if($#analysis == 0) then
+    echo "ERROR: no analysis specified" |& tee -a $LF
+    exit 1;
+  endif
+  if($#contrast == 0) then
+    echo "ERROR: no contrast specified" |& tee -a $LF
+    exit 1;
+  endif
+  if($#contrast == 0)  set nosig = 1;
+  if($#analysis == 0)  set nohdr = 1;
+  if($#contrast != 0 && $#analysis == 0 ) then
+     echo "ERROR: must specify an analysis with contrast" |& tee -a $LF
+     exit 1
+  endif
+
+  if($#sessid == 0) then
+    echo "ERROR: no sessions specified" |& tee -a $LF
+    exit 1;
+  endif
+
+  if($mapmeanimg == 1 && $#contrast != 0) then
+    echo "ERROR: cannot map mean image and contrast" |& tee -a $LF
+    exit 1;
+  endif
+
+  # Make sure that everything has a value # 
+  if($#space == 0) set space = native;
+  if($#asd == 0)   set asd   = 3danat;
+  if($#map == 0) then
+    set map = sig;
+    if($contrast == omnibus) set map = fsig;
+  endif
+
+  if($#mapsessid == 0)   set mapsessid   = $sessid;
+  if($#mapanalysis == 0) set mapanalysis = $analysis;
+
+  if($mapmeanimg == 1) then
+    set map = h-offset;
+    set thmin =  500
+    set thmax = 1000
+  endif
+
+  if($mapmeanimg == 1 && $#analysis == 0) then
+    echo "ERROR: must specify analysis when mapping mean image" |& tee -a $LF
+    exit 1;
+  endif
+
+  if($space != "native" && $space != "tal") then
+    echo "ERROR: space must be either native or tal " |& tee -a $LF
+    exit 1;
+  endif
+
+  #--------------------------------------------------------------------#
+  if($#sessdir == 0) set sessdir = ".";
+  set sess = ();
+  foreach d ($sessdir)
+    set tmp = "$d/$sessid"
+    if(-e $tmp) then
+      set sess = ($sess $tmp);
+      echo "INFO: Found session in: $sess" |& tee -a $LF
+    endif
+  end
+  if($#sess == 0) then
+    echo "ERROR: could not find $sessid" |& tee -a $LF
+    exit 1;
+  endif
+  if($#sess > 1) then
+    echo "ERROR: found multiple sessions for $sessid" |& tee -a $LF
+    exit 1;
+  endif
+
+  set sessinfo = $sess/session.info
+  set SessIsGroup = `grep GroupAverage $sessinfo | wc -l`;
+  if($SessIsGroup) then
+    echo "INFO: $sessid is a group average"  |& tee -a $LF
+    if($space != tal) then
+      echo "ERROR: no support for tkmedit of $space space for group" |& tee -a $LF
+      exit 1;
+    endif
+    if($#isxavgmethod == 0) then
+      echo "ERROR: must specify -isxavg with group" |& tee -a $LF
+      exit 1;
+    endif
+    if($isxavgmethod == random) set nohdr = 1;
+  endif
+
+  #--------------------------------------------------------------------#
+  set mapsess = ();
+  foreach d ($sessdir)
+    set tmp = $d/$mapsessid
+    if(-e $tmp) then
+      set mapsess = ($mapsess $tmp);
+      echo "INFO: Found session in: $mapsess" |& tee -a $LF
+    endif
+  end
+  if($#mapsess == 0) then
+    echo "ERROR: could not find $mapsessid" |& tee -a $LF
+    exit 1;
+  endif
+  if($#mapsess > 1) then
+    echo "ERROR: found multiple sessions for $mapsessid" |& tee -a $LF
+    exit 1;
+  endif
+
+  set sessinfo = $mapsess/session.info
+  set MapSessIsGroup = `grep GroupAverage $sessinfo | wc -l`;
+  if($MapSessIsGroup) then
+    echo "INFO: $sessid is a group average"  |& tee -a $LF
+    if($#mapisxavgmethod == 0) set mapisxavgmethod = $isxavgmethod;
+    if($space != tal) then
+      echo "ERROR: no support for tkmedit of $space space for group" |& tee -a $LF
+      exit 1;
+    endif
+    if($#mapisxavgmethod == 0) then
+      echo "ERROR: must specify -mapisxavg with group" |& tee -a $LF
+      exit 1;
+    endif
+  endif
+
+  if($#rawrun != 0 && $space != native ) then
+    echo "ERROR: cannot view raw with space $space" |& tee -a $LF
+    exit 1;
+  endif
+
+  if($space != native && $sessanat ) then
+    echo "ERROR: cannot use -sessanat with space $space" |& tee -a $LF
+    exit 1;
+  endif
+
+  if($#spacedir == 0) set spacedir = $space;
+
+  if($#fsat != 0) then
+    set fmid   = `echo "($fthresh+$fsat)/2.0" | bc -l`;
+    set fslope = `echo "(1.0/($fmid-$fthresh))" | bc -l`;
+    echo "INFO: thresholds: fthresh = $fthresh, fmid = $fmid"
+    echo "                  fsat = $fsat, fslope = $fslope"
+  endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo "USAGE: tkmedit-sess"
+  echo "Options:";
+  echo "   -volid  FSVolId : name of volume under subject/mri"
+  echo "   -analysis  analysisname : name of session-level functional analysis";
+  echo "   -s         sessid   (only one allowed)"
+  echo "   -isxavg    method (fixed or random)"
+  echo "   -contrast  contrastname : contrast name"
+  echo "   -map       mapname      : <sig>, minsig, iminsig, t"
+  echo "   -mapanalysis analysisname : name of session-level functional analysis";
+  echo "   -mapsess     sessid from which to get the map";
+  echo "   -mapisxavg   method "
+
+  echo "   -space       spacename : <native> or tal"
+  echo "   -d          sessdir     ..."
+
+  echo "   -sessanat      : use session 3d anatomical instead of recon"
+  echo "   -fsd dir       : functional subdirectory (bold)"
+  echo "   -asd dir       : anatomical subdirectory (3danat)"
+  echo "   -seg segvol segcolor : segmentation vol and color"
+  echo "   -aseg : show automatic segmentation (must alreay exist)"
+  echo "   -segopacity opacity : between 0 and 1 (def .3)"
+  echo ""
+  echo "   -scriptonly    : don't run, just generate a script"
+  echo "   -umask umask   : set unix file permission mask"
+  echo "   -version       : print version and exit"
+  echo "   -fthresh thresh : minimum threshold for display ($thmin)"
+  echo "   -fsat    thresh : saturation threshold for display "
+#  echo "   -thmax     thresh : maximum threshold for display ($thmax)"
+#  echo "   -nohdr            : do not load/show hemodynamic response"
+#  echo "   -nosig            : do not load/show significance map"
+#  echo "   -raw       run    : display raw MR from run"
+#  echo "   -motioncor        : display motion corrected raw data (with -raw)"
+  echo ""
+exit 1;

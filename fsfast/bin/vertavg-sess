@@ -1,0 +1,338 @@
+#!/bin/csh -f
+# vertavg-sess
+#
+# $Id: vertavg-sess,v 1.1 2003/03/04 21:22:10 greve Exp $
+set VERSION = '$Id: vertavg-sess,v 1.1 2003/03/04 21:22:10 greve Exp $'
+set FASTVER = `cat $FMRI_ANALYSIS_DIR/docs/version`;
+
+#------ Defaults --------#
+set fstem   = ();
+set fsd      = bold;
+set outfsd    = ();
+set outfstem  = ();
+set outbext = ();
+set runlistfile = ();
+set parlist  = ();
+
+set inputargs = ($argv);
+
+set n = `echo $argv | grep -e -help | wc -l` 
+if($#argv == 0 || $n != 0)  goto usage_exit;
+
+set n = `echo $argv | grep version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+
+set PWD = `getpwdcmd`;
+if($status) exit 1;
+
+set SessList = `getsesspath $argv`;
+if($status || $#SessList == 0) then
+  getsesspath $argv 
+  exit 1;
+endif
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+##### Create a log file ######
+set logdir = `pwd`/log;
+mkdir -p $logdir
+if(! -e $logdir) then
+  echo "WARNING: could not create $logdir"
+  set LF = /dev/null
+else
+  set LF = $logdir/vertavg-sess.log
+  if(-e $LF) mv $LF $LF.old
+endif
+
+echo "--------------------------------------------------------------"
+echo "vertavg-sess logfile is $LF"
+echo "--------------------------------------------------------------"
+
+echo "vertavg-sess log file" >> $LF
+echo $VERSION >> $LF
+echo "FAST Version $FASTVER"  >> $LF
+id            >> $LF
+pwd           >> $LF
+echo $0          >> $LF
+echo $inputargs  >> $LF
+uname -a         >> $LF
+date             >> $LF
+
+set StartDate = `date`;
+
+### Go through each session ###
+foreach sess ($SessList)
+
+  set sessbase = `basename $sess`;
+  echo "-------------------------------------------" |& tee -a $LF
+  echo "$sess " |& tee -a $LF
+  date |& tee -a $LF
+
+  if(! -d $sess) then
+    echo "ERROR: $sess does not exist"   |& tee -a $LF
+    exit 1;
+  endif
+  pushd $sess > /dev/null
+
+  #-------------------------------------------------#
+  set seqinfo = $fsd/seq.info
+  if(! -e $seqinfo) then
+    echo "ERROR: cannot find $seqinfo"
+    exit 1;
+  endif
+
+  #-------------------------------------------------#
+  if($#runlistfile == 0) then
+    set RunList = `getrunlist $fsd`;
+    if($status || $#RunList == 0) then
+      echo "ERROR: $sess/$fsd has no runs"  |& tee -a $LF
+      exit 1;
+    endif
+  else
+    if(! -e $fsd/$runlistfile) then
+      echo "ERROR: ($sessbase) could not find runlistfile $runlistfile"
+      exit 1;
+    endif
+    set RunList = (`cat $fsd/$runlistfile`);
+  endif
+
+  #-------------------------------------------------#
+  set inputlist = ();
+  foreach Run ($RunList)
+    set instem = $fsd/$Run/$fstem;
+    set tmp = `getbfvdim $instem`;
+    set bext = $tmp[5];
+    set inputlist = ($inputlist --vol $instem);
+  end
+  if($#outbext == 0) then
+    outbextuse = $bext
+  else
+    outbextuse = $outbext
+  endif
+
+  set outdir = $outfsd/001;
+  mkdir -p $outdir;
+  set outvol = $outdir/$outfstem
+
+  set cmd = (mri_xvolavg $inputlist --vol_type $bext)
+  set cmd = ($cmd --out $outvol --out_type $outbext)
+
+  echo "---------------------------------------------" |& tee -a $LF
+  pwd        |& tee -a $LF
+  echo $cmd  |& tee -a $LF
+  echo "---------------------------------------------" |& tee -a $LF
+
+  $cmd |& tee -a $LF
+  if($status) then
+    echo "ERROR: mri_xvolavg failed" |& tee -a $LF
+    exit 1;
+  endif
+
+  #-------------------------------------------------#
+  if( -e $fsd/register.dat ) then
+    cp $fsd/register.dat $outfsd/register.dat 
+  endif
+  cp $fsd/seq.info $outfsd/seq.info 
+
+  foreach par ($parlist)
+    set parfile = $fsd/$RunList[1]/$par;
+    if(! -e $parfile ) then
+      echo "WARNING: $parfile does not exist" |& tee -a $LF
+      continue;
+    endif
+    echo "INFO: Copying $parfile" |& tee -a $LF
+    cp $parfile $outfsd/001
+  end
+
+end # Session Loop #
+
+echo " "
+echo "Start: $StartDate" |& tee -a $LF
+echo "End:   `date`"     |& tee -a $LF
+echo "vertavg-sess finished" |& tee -a $LF
+echo " "
+
+exit 0;
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-outfstem":
+    case "-o":
+      if ( $#argv == 0) goto arg1err;
+      set outfstem = $argv[1]; shift;
+      breaksw
+
+    case "-outfsd":
+      if ( $#argv == 0) goto arg1err;
+      set outfsd = $argv[1]; shift;
+      breaksw
+
+    case "-outbext":
+      if ( $#argv == 0) goto arg1err;
+      set outbext = $argv[1]; shift;
+      breaksw
+
+    case "-funcstem":
+    case "-fstem":
+    case "-i":
+      if ( $#argv == 0) goto arg1err;
+      set fstem = $argv[1]; shift;
+      breaksw
+
+    case "-fsd":
+      if ( $#argv == 0) goto arg1err;
+      set fsd = $argv[1]; shift;
+      breaksw
+
+    case "-rlf":
+      if ( $#argv == 0) goto arg1err;
+      set runlistfile = $argv[1]; shift;
+      breaksw
+
+    case "-p":
+      if ( $#argv == 0) goto arg1err;
+      set parfile = $argv[1]; shift;
+      set parlist = ($parlist $parfile);
+      breaksw
+
+    case "-umask":
+      if ( $#argv == 0) goto arg1err;
+      umask $argv[1]; shift;
+      breaksw
+
+    case "-verbose":
+      set verbose = 1;
+      breaksw
+
+    case "-echo":
+      set echo = 1;
+      breaksw
+
+    case "-debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    case "-g":
+    case "-s":
+    case "-sf":
+    case "-d":
+    case "-df":
+      shift;
+      # ignore getsesspath arguments 
+      breaksw
+
+    case "-cwd":
+      # ignore getsesspath arguments 
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+  if($#SessList == 0) then
+    echo "ERROR: no sessions specified"
+    exit 1
+  endif
+
+  if($#fstem == 0) then
+    echo "ERROR: need to specify an input functional stem"
+    exit 1;
+  endif
+
+  if($#outfstem == 0) set outfstem = $fstem;
+
+  if($#outfsd == 0) then
+    echo "ERROR: need to specify an output subdir (-outfsd)"
+    exit 1;
+  endif
+
+  if($#outfsd == $fsd) then
+    echo "ERROR: output fsd is the same as the input fsd."
+    exit 1;
+  endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "USAGE: vertavg-sess"
+  echo ""
+  echo "Required Arguments"
+  echo "  -fstem stem      : input volume stem"
+  echo "  -outfsd  dir     : output functional subdir"
+  echo ""
+  echo "Optional Arguments:"
+  echo "  -outfstem stem   : output volume stem (default: same as input)"
+  echo "  -outbext ext     : bshort or bfloat (default: same as input)"
+  echo "  -fsd  subdir     : input functional subdirectory (bold)"
+  echo "  -rlf  runlistfile: file with a list of runs to convert"
+  echo "  -p par1 -p par2  : copy parfiles from first run to new location"
+  echo ""
+  echo "Session Arguments (Required)"
+  echo "   -sf sessidfile  ..."
+  echo "   -df srchdirfile ..."
+  echo "   -s  sessid      ..."
+  echo "   -d  srchdir     ..."
+  echo ""
+  echo "Other Arguments"
+  echo "   -umask umask   : set unix file permission mask"
+  echo "   -version       : print version and exit"
+  echo "   -help          : get more info"
+  echo ""
+
+  set n = `echo $argv | grep -e -help | wc -l` 
+  if($n != 0)  goto help_exit;
+
+exit 1;
+
+help_exit:
+echo "\
+\
+This program will 'vertically average' functional runs.\
+\
+Paradigm files can be copied from the first original functional run \
+directory to the new vertical average directory by specifying them \
+with the -p flag. If the paradigm file does not exist, a warning will \
+be printed but the program will continue to run. As many paradigm files \
+as desired can be included. This is provided only as a convenience.\
+\
+Notes:\
+\
+"
+
+exit;

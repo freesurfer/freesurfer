@@ -1,0 +1,334 @@
+#!/bin/csh -f
+# mkdesmtx-sess
+#
+# $Id: mkdesmtx-sess,v 1.1 2003/03/04 21:22:09 greve Exp $
+set VERSION = '$Id: mkdesmtx-sess,v 1.1 2003/03/04 21:22:09 greve Exp $';
+
+set inputargs = ($argv);
+set DateStr = "`date '+%y%m%d%H%M'`"
+
+set analysis = ();
+set PrintHelp = 0;
+set mktcvm = 0;
+set tcvmmask = ();
+set PerRun = 0;
+
+if($#argv == 0) goto usage_exit;
+
+set n = `echo $argv | grep version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+
+set SessList = `getsesspath $argv`;
+if($status || $#SessList == 0) then
+  getsesspath $argv 
+  exit 1;
+endif
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+# get full path for cfg and info files #
+pushd $analysis > /dev/null;
+set analysisdir = `pwd`;
+popd > /dev/null;
+set cfgfile  = $analysisdir/analysis.cfg
+set infofile = $analysisdir/analysis.info
+if(! -e $infofile) then
+  echo "ERROR: cannot find $infofile"
+  exit 1;
+endif
+
+## Get parameters from the info file ##
+set fsd         = `cat $infofile | awk '{if($1 == "fsd") print $2}'`;
+set runlistfile = `cat $infofile | awk '{if($1 == "runlistfile") print $2}'`;
+set parname     = `cat $infofile | awk '{if($1 == "parname") print $2}'`;
+set TR          = `cat $infofile | awk '{if($1 == "TR") print $2}'`;
+set funcstem    = `cat $infofile | awk '{if($1 == "funcstem") print $2}'`;
+set gammafit    = `cat $cfgfile | awk '{if($1 == "-gammafit") print $2" "$3}'`;
+set timewindow  = `cat $cfgfile | awk '{if($1 == "-timewindow") print $2}'`;
+set tprestim    = `cat $cfgfile | awk '{if($1 == "-prestim") print $2}'`;
+set polyfit     = `cat $cfgfile | awk '{if($1 == "-polyfit") print $2}'`;
+set TER         = `cat $cfgfile  | awk '{if($1 == "-TER") print $2}'`;
+set extreg      = `cat $cfgfile  | awk '{if($1 == "-extreg") print $2}'`;
+set nextreg     = `cat $cfgfile  | awk '{if($1 == "-nextreg") print $2}'`;
+set orthogextreg = `cat $cfgfile  | awk '{if($1 == "-othogextreg") print $2}'`;
+
+##### Create a log file ######
+set logdir = `pwd`/log;
+mkdir -p $logdir
+if(! -e $logdir) then
+  echo "WARNING: could not create $logdir"
+  set LF = /dev/null
+else
+  set LF = $logdir/mkdesmtx-sess-$fsd-$analysis-$DateStr.log
+  if(-e $LF) mv $LF $LF.old
+endif
+echo "--------------------------------------------------------------"
+echo "mkdesmtx-sess logfile is $LF"
+echo "--------------------------------------------------------------"
+
+echo "mkdesmtx-sess log file" >> $LF
+echo $VERSION >> $LF
+id            >> $LF
+pwd           >> $LF
+echo $0         >> $LF
+echo $inputargs >> $LF
+uname -a        >> $LF
+date            >> $LF
+
+### Go through each session ###
+set StartTime = `date`;
+foreach sess ($SessList)
+
+  set sessbase = `basename $sess`;
+  echo "-------------------------------------------" |& tee -a $LF
+  echo "$sess " |& tee -a $LF
+  date |& tee -a $LF
+
+  cd $sess/$fsd
+  if(! -e seq.info) then
+    echo "ERROR: $sessbase: cannot find seq.info"
+    exit 1;
+  endif
+  set TRtmp = `cat seq.info  | awk '{if($1 == "TR") print $2}'`;
+  set ok = `echo "$TR == $TRtmp" | bc -l`;
+  if(! $ok) then
+    echo "ERROR: $sessbase: TR mismatch"
+    exit 1;
+  endif
+  set ntrs = `cat seq.info  | awk '{if($1 == "ntrs") print $2}'`;
+
+  if($#runlistfile == 0) then
+    set RunList = `getrunlist .`;
+    if($status || $#RunList == 0) then
+      echo "ERROR: $sess/$fsd has no runs"  |& tee -a $LF
+      exit 1;
+    endif
+  else
+    if(! -e $runlistfile) then
+      echo "ERROR: ($sessbase) could not find runlistfile $runlistfile"
+      exit 1;
+    endif
+    set RunList = (`cat $runlistfile`);
+  endif
+  echo "INFO ($sessbase): RunList = $RunList"
+
+  set seqeffargs = (-ntp $ntrs -TR $TR -TER $TER -tw $timewindow)
+  if($#tprestim != 0) set seqeffargs = ($seqeffargs -tprestim $tprestim)
+  if($#polyfit  != 0) set seqeffargs = ($seqeffargs -polyfit $polyfit)
+  if($#gammafit != 0) set seqeffargs = ($seqeffargs -gammafit $gammafit)
+
+  set allrunargs = ($seqeffargs);
+  foreach run ($RunList)  
+    set extregargs = ();
+    if($#extreg != 0) then
+      set extregargs = ($extregargs -extreg $run/$extreg)
+      if($#nextreg != 0) set extregargs  = ($extregargs  -nextreg $nextreg)
+      if($#orthogextreg != 0) set extregargs  = ($extregargs  -orthogextreg)
+    endif
+    set parfile = $run/$parname;
+    if(! $PerRun) then
+      set mtxfile  = $analysis/X$run.mat
+      set tcvmfile = $analysis/tcvm$run.mat
+    else
+      set mtxfile  = $analysis-$run/X$run.mat
+      set tcvmfile = $analysis-$run/tcvm$run.mat
+    endif
+
+    set cmd = (seqefficiency $seqeffargs $extregargs \
+                -p $parfile -mtx $mtxfile)
+    echo "-------------------------------------------" |& tee -a $LF
+    date |& tee -a $LF
+    echo $cmd |& tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) exit 1;
+    echo "-------------------------------------------" |& tee -a $LF
+
+    if($mktcvm) then
+      echo "INFO: computing TCVM for run $run" |& tee -a $LF
+      set cmd = (functcvm -y $run/$funcstem -x $mtxfile \
+                   -tcvm $tcvmfile)
+      if($#tcvmmask != 0) set cmd = ($cmd -mask masks/brain)
+      echo "-------------------------------------------" |& tee -a $LF
+      date |& tee -a $LF
+      echo $cmd |& tee -a $LF 
+      $cmd |& tee -a $LF
+      if($status) exit 1;
+      echo "-------------------------------------------" |& tee -a $LF
+    endif
+
+    set allrunargs = ($allrunargs $extregargs -p $parfile)
+
+  end # End loop over runs
+
+  set cmd = (seqefficiency $allrunargs -mtx $analysis/Xall.mat)
+  echo "-------------------------------------------" |& tee -a $LF
+  date |& tee -a $LF
+  echo $cmd |& tee -a $LF
+  $cmd |& tee -a $LF
+  if($status) exit 1;
+  echo "-------------------------------------------" |& tee -a $LF
+
+end # End loop over sessions
+
+echo " "
+echo "Started at $StartTime "
+echo "Ended   at `date`"
+echo " "
+echo "mkdesmtx-sess Done"
+echo " "
+
+exit 0;
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-a":
+    case "-analysis":
+      if ( $#argv < 1) goto arg1err;
+      set analysis = $argv[1]; shift;
+      set analysis = `basename $analysis`; # remove trailing /
+      breaksw
+
+    case "-mktcvm":
+      set mktcvm = 1;
+      breaksw
+
+    case "-mask":
+    case "-m":
+      if ( $#argv < 1) goto arg1err;
+      set tcvmmask = $argv[1]; shift;
+      breaksw
+
+    case "-perrun":
+      set PerRun = 1;
+      breaksw
+
+    case "-help":
+      goto help;
+      breaksw
+
+    case "-verbose":
+      set verbose = 1;
+      breaksw
+
+    case "-echo":
+      set echo = 1;
+      breaksw
+
+    case "-debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    case "-df":
+      set sessdirfile = $argv[1]; shift;
+      break;
+
+    case "-g":
+    case "-s":
+    case "-sf":
+    case "-d":
+    case "-df":
+      shift;
+      # ignore getsesspath arguments 
+      breaksw
+
+    case "-cwd":
+      # ignore getsesspath arguments 
+      breaksw
+
+    case "-umask":
+      if ( $#argv == 0) goto arg1err;
+      umask $1; shift;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+  if($#analysis == 0) then
+     echo "ERROR: no analysis name specified"
+     exit 1
+  endif
+
+  if($mktcvm == 0 && $#tcvmmask != 0) then
+    echo "ERROR: mask only applies when making tcvm"
+    exit 1;
+  endif
+
+  if($mktcvm && $#tcvmmask == 0) set tcvmmask = brain;
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+arg2err:
+  echo "ERROR: flag $flag requires two arguments"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "USAGE: mkdesmtx-sess"
+  echo ""
+  echo "Required Arguments:";
+  echo "   -analysis analysisname : name of functional analysis"
+  echo "   -mktcvm  : compute the temporal cov mtx (optional)"
+  echo ""
+  echo "Session Arguments (Required)"
+  echo "   -sf sessidfile  ..."
+  echo "   -df srchdirfile ..."
+  echo "   -s  sessid      ..."
+  echo "   -d  srchdir     ..."
+  echo ""
+  echo "   -umask umask   : set unix file permission mask"
+  echo "   -version       : print version and exit"
+  echo ""
+  if($PrintHelp) \
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+
+exit 1;
+
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+This creates design matrices for the given analysis.

@@ -1,0 +1,460 @@
+#!/bin/csh -f
+
+set SEQEFF_VER = '$Id: seqefficiency,v 1.1 2003/03/04 21:22:09 greve Exp $';
+
+if ( $#argv < 4 ) then
+  echo ""
+  echo "USAGE: seqefficiency "
+  echo "   -p parfile    : name of the first paradigm file";
+  echo "   <-p parfile>  : name of the second paradigm file ...";
+  echo "   -ntp ntp      : Number of timepoints collected per run";
+  echo "   -o outfile    : output file"
+  echo "Options:";
+  echo "   -TR    <float> : TR to use (2 sec)";
+  echo "   -TER   <float> : Temporal resolution of the estimate (TR)";
+  echo "   -timewindow    <float> : Time Window to use (20 sec)";
+  echo "   -tprestim arg  : prestimulus time window"
+  echo "   -mtx  matfile  : save X"
+  echo "   -polyfit order : fit drift with a polynomial of order"
+  echo "   -lpf cutoff    : low-pass  filter cutoff (sec)"
+  echo "   -hpf cutoff    : high-pass filter cutoff (sec)"
+  echo "   -per period    : period (sec) of periodic regressor"
+  echo "   -extreg xrstem : external regressor"
+  echo "   -nextreg n     : use first n external regressors"
+  echo "   -extregorthog  : orthogonalize external regressors wrt task"
+  echo "   -gammafit delta tau  : fit events to a gamma function"
+  echo "   -monly mfile   : generate matlab file only"
+  echo ""
+  echo "  $SEQEFF_VER"
+  echo "  Comments or questions: analysis-bugs@nmr.mgh.harvard.edu"
+  echo ""
+  exit 1;
+endif
+
+# Set Default Values #
+set parfilelist = ();
+set outfile = ();
+set QuitOnError = 1;
+set TR = 2;
+set TER = ();
+set TW = 20;
+set TPS = 0;
+set Ntp = 0;
+set monly = 0;
+set keepoutfile = 0;
+set pforder  = -1;
+set gammafit = 0;
+set delta = 0;
+set tau = 0;
+set desmtxfile = ();
+set debug = 0;
+set LPFCutoff = ();
+set HPFCutoff = ();
+set PerReg = ();
+set ExtRegList = ();
+set nExtReg = ();
+set ExtRegOrthog = 0;
+
+goto parse_args;
+parse_args_return:
+goto check_args;
+check_args_return:
+
+if( $#TER == 0 ) set TER = $TR;
+
+set MATLAB = `getmatlab`;
+if($status) exit 1;
+
+## Set path for matlab file ##
+if( ! $monly ) set MLF = seqeff_"$$"_tmp.m
+rm -f $MLF;
+
+set okfile = seqeff_"$$"_tmp.ok
+rm -f $okfile;
+
+#---------------------------------------------------#
+tee $MLF > /dev/null <<EOF
+
+  %%% ----------------- %%
+  % This is a temporary file and may be deleted
+  % $MLF
+
+  global QuitOnError;
+  QuitOnError = $QuitOnError;
+  if(exist('fast_selxavg')==0)
+     qoe('matlab path is incorrect');
+  end
+
+  parfilelist = splitstring('$parfilelist');
+  TR    = $TR;
+  TER   = $TER;
+  TimeWindow = $TW;
+  TPS = $TPS;
+  Ntp = $Ntp;
+  outfile = '$outfile';
+  pforder = $pforder;
+  LPFCutoff = [$LPFCutoff];
+  HPFCutoff = [$HPFCutoff];
+  PerReg = [$PerReg];
+  gammafit = $gammafit;
+  gfDelta = $delta;
+  gfTau   = $tau;
+  desmtxfile = '$desmtxfile';
+  okfile = '$okfile';
+  ExtRegList = '$ExtRegList';
+  nExtReg = [$nExtReg];
+  ExtRegOrthog = [$ExtRegOrthog];
+
+  if(~isempty(ExtRegList)) ExtRegList = splitstring(ExtRegList); end
+
+  SubSampRate = TR/TER;
+
+  Nh = round(TimeWindow/TER);
+  nruns = size(parfilelist,1);
+
+  idlistall = [];
+  for run = 1:nruns
+    parfile = deblank(parfilelist(run,:));
+    %fprintf('%2d %s\n',run,parfile);
+    clear par;
+    par = fmri_ldpar(parfile);
+    if ( isempty(par) ) 
+      msg = sprintf('ERROR: loading %s\n',parfile);
+      qoe(msg); error(msg);
+    end
+    idlist = par(:,2);
+    idlistall = [idlistall; idlist];
+  end
+
+  inonnull = find(idlistall ~= 0);
+  nonnulllist = idlistall(inonnull);
+  Nnnc = length(unique(nonnulllist));
+  Nc = Nnnc + 1;
+
+  F = eye(Ntp);
+  if(~isempty(LPFCutoff))
+    LPF = fast_mkgausmtx(LPFCutoff/TR,Ntp);
+    F = LPF;
+  end
+  if(~isempty(HPFCutoff))
+    HPF = eye(Ntp) - fast_mkgausmtx(HPFCutoff/TR,Ntp);
+    F = F*HPF;
+  end
+
+  %save('f.mat','F');
+
+  X = [];
+  for run = 1:nruns
+    parfile = deblank(parfilelist(run,:));
+    par = fmri_ldpar(parfile);
+    Xpar = fmri_par2scm(par,Nc,SubSampRate*Ntp,TER,Nh,TPS);
+    if(TR ~= TER)
+      Xtmp = Xpar;
+      nn = [1:SubSampRate:size(Xtmp,1)];
+      Xpar = Xtmp(nn,:);
+    end
+
+    if(gammafit)
+      Xpar = fmri_scm2gcm(Xpar,Nnnc,TER,TPS,gfDelta,gfTau);
+    end
+    if(pforder >= 0) 
+       Xpf = fast_polytrendmtx(run,Ntp,nruns,pforder); 
+    else
+       Xpf = [];
+    end
+    if(~isempty(PerReg))
+      t = TER*[0:Ntp-1]';%'
+      Xper = [sin(2*pi*t/PerReg) cos(2*pi*t/PerReg)];
+    else
+      Xper = [];
+    end
+
+    Xextregrun = [];
+    if(~isempty(ExtRegList))
+      ExtRegStem = deblank(ExtRegList(run,:));
+      extreg = fmri_ldbvolume(ExtRegStem);
+      if(isempty(extreg))
+        fprintf('ERROR: could not load %s\n',ExtRegStem);
+        return;
+      end
+      if(size(extreg,3)~=1) extreg = squeeze(extreg)'; %'
+      else                  extreg = squeeze(extreg);
+      end
+      if(isempty(nExtReg)) nExtReg = size(extreg,2); end
+      if(nExtReg > size(extreg,2))
+        fprintf('ERROR: %s does not have enough regressors\n',ExtRegStem);
+        return;
+      end
+      extreg = extreg(:,1:nExtReg);
+      extreg = extreg - repmat(mean(extreg), [Ntp 1]);
+      extreg = extreg./repmat(std(extreg), [Ntp 1]);
+      if(ExtRegOrthog)
+        extreg = ( eye(Ntp) - Xpar*inv(Xpar'*Xpar)*Xpar') * extreg;
+      end
+      z = zeros(size(extreg));
+      Xextregrun = [repmat(z,[1 (run-1)]) extreg repmat(z,[1 (nruns-run)])];
+    end
+
+    Xrun = [Xpar Xpf Xper Xextregrun];
+    X = [X; F*Xrun];
+  end
+
+  if(gammafit) Nh = 1; end
+  NTaskAvgs = Nh*Nnnc;
+
+  if(~isempty(desmtxfile))
+    fprintf(2,'Saving design matrix to %s\n',desmtxfile);
+    Xfinal = X;
+    Navgs_per_cond = Nh;
+    pfOrder = pforder;
+    tPreStim = TPS;
+    save(desmtxfile,'Xfinal','Nnnc','pfOrder','nExtReg',...
+     'nruns','Navgs_per_cond','TimeWindow','tPreStim','TR','TER',...
+     'gfDelta','gfTau','-v4');
+
+
+  end
+
+  XtX =  X' * X; %'
+  c = cond(XtX);
+  fid = fopen(outfile,'w');
+  if(c > 10^10)
+    fprintf(fid,'ERROR: sequence is ill-conditioned.\n');
+    fprintf(fid,'       use a larger TER or a different sequence\n');
+  else
+    nXtX = size(XtX,1);
+    %nXtX = nXtX - nruns*(fitmean + fittrend);
+    nXtX = NTaskAvgs;
+    %Cbeta = inv(XtX)*X'*F*F'*X*inv(XtX);
+    Cbeta = inv(XtX)*X'*X*inv(XtX); %'
+    %save('cbeta','Cbeta');
+    iXtX = Cbeta;
+    iXtX = iXtX(1:nXtX,1:nXtX);
+    eff = 1.0/trace(iXtX);
+    avrf = mean(1.0./diag(iXtX));
+    svrf = std(1.0./diag(iXtX));
+    minvrf = min(1.0./diag(iXtX));
+    maxvrf = max(1.0./diag(iXtX));
+    fprintf(fid,'Condition  %g\n',c);
+    fprintf(fid,'Efficiency %g\n',eff);
+    fprintf(fid,'Avg Var Red %g\n',avrf);
+    fprintf(fid,'Std Var Red %g\n',svrf);
+    fprintf(fid,'Min Var Red %g\n',minvrf);
+    fprintf(fid,'Max Var Red %g\n',maxvrf);
+  end
+  fclose(fid);
+
+  fmri_touch(okfile);
+
+  if(QuitOnError) quit; end
+
+EOF
+#---------------------------------------------------#
+
+if(! $monly) then
+
+  if($debug) then
+    cat $MLF
+    cat $MLF | $MATLAB -display iconic 
+  else
+    cat $MLF | $MATLAB -display iconic > /dev/null
+  endif
+
+  if( ! -e $okfile ) then
+    echo "ERROR during matlab execution"
+    exit 1;
+  endif
+  rm -f $okfile
+  if(! -e $outfile) then
+    echo "ERROR; creating $outfile"
+    exit 1;
+  endif
+  rm -f $MLF;
+  cat $outfile
+  if(! $keepoutfile ) rm -f $outfile
+endif
+
+exit 0;
+
+############--------------##################
+parse_args:
+
+set cmdline = "$argv";
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-p":
+      if( $#argv == 0) goto arg1err;
+      set parfile = $argv[1]; shift;
+      if ( ! -e $parfile) then
+        echo "ERROR: $parfile does not exist"
+        exit 1;
+      endif
+      set parfilelist = ($parfilelist $parfile)
+      breaksw
+
+    case "-extreg":
+      if( $#argv == 0) goto arg1err;
+      set extregstem = $argv[1]; shift;
+      set ExtRegList = ($ExtRegList $extregstem);
+      set hdr = $extregstem"_000.hdr"
+      if(! -e $hdr) then
+        echo "ERROR: cannot find $hdr"
+        exit 1;
+      endif
+      breaksw
+
+    case "-nextreg":
+      if( $#argv == 0) goto arg1err;
+      set nExtReg = $argv[1]; shift;
+      breaksw
+
+    case "-extregorthog":
+      set ExtRegOrthog = 1;
+      breaksw
+
+    case "-o":
+      if( $#argv == 0) goto arg1err;
+      set outfile = $argv[1]; shift;
+      set keepoutfile = 1;
+      breaksw
+
+    case "-TR":
+    case "-tr":
+      if( $#argv == 0) goto arg1err;
+      set TR = $argv[1]; shift;
+      breaksw
+
+    case "-TER":
+    case "-ter":
+      if( $#argv == 0) goto arg1err;
+      set TER = $argv[1]; shift;
+      breaksw
+
+    case "-gammafit":
+    case "-gf":
+      if( $#argv < 2) goto arg2err;
+      set gammafit = 1;
+      set delta = $argv[1]; shift;
+      set tau   = $argv[1]; shift;
+      breaksw
+
+    case "-TW":
+    case "-tw":
+    case "-timewindow":
+      if( $#argv == 0) goto arg1err;
+      set TW = $argv[1]; shift;
+      breaksw
+
+    case "-lpf":
+      if( $#argv == 0) goto arg1err;
+      set LPFCutoff = $argv[1]; shift;
+      breaksw
+
+    case "-hpf":
+      if( $#argv == 0) goto arg1err;
+      set HPFCutoff = $argv[1]; shift;
+      breaksw
+
+    case "-per":
+      if( $#argv == 0) goto arg1err;
+      set PerReg = $argv[1]; shift;
+      breaksw
+
+    case "-TPS":
+    case "-tps":
+    case "-prestim":
+    case "-tprestim":
+      if( $#argv == 0) goto arg1err;
+      set TPS = $argv[1]; shift;
+      breaksw
+
+    case "-mtx":
+    case "-desmtx":
+      if( $#argv == 0) goto arg1err;
+      set desmtxfile = $argv[1]; shift;
+      breaksw
+
+    case "-Ntp":
+    case "-ntp":
+      if( $#argv == 0) goto arg1err;
+      set Ntp = $argv[1]; shift;
+      breaksw
+
+   case "-polyfit"
+   case "-pf"
+      if( $#argv == 0) goto arg1err;
+      set pforder = $argv[1]; shift;
+      breaksw
+
+    case "-monly":
+      if( $#argv == 0) goto arg1err;
+      set MLF = $argv[1]; shift;
+      set monly = 1; 
+      set QuitOnError = 0;
+      breaksw
+
+    case "-debug"
+      set debug = 1;
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized.
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_args:
+
+  if($#parfilelist == 0) then
+    echo "ERROR: no paradigm(s) file  specified"
+    exit 1;
+  endif
+
+  if($#ExtRegList != 0 && $#ExtRegList != $#parfilelist) then
+    echo "ERROR: number of parfiles must equal number of extreg files"
+    exit 1;
+  endif
+
+  if($#outfile == 0) then
+    set outfile = /tmp/seqeff.$$
+    set keepoutfile = 0;
+  endif
+
+  mkdir -p `dirname $outfile`;
+  if($status) then
+    echo "ERROR: could not create `dirname $outfile`"; 
+    exit 1;
+  endif
+
+  if($#desmtxfile != 0) then
+    set mtxdir = `dirname $desmtxfile`; 
+    mkdir -p $mtxdir
+    if($status) then
+      echo "ERROR: could not create $mtxdir"; 
+      exit 1;
+    endif
+    if(! -w $mtxdir) then
+      echo "ERROR: $mtxdir is not writable"; 
+      exit 1;
+    endif
+  endif
+
+  if($Ntp == 0) then
+    echo "ERROR: number of timepointes must be > 0"
+    exit 1;
+  endif
+
+goto check_args_return;
+############--------------##################

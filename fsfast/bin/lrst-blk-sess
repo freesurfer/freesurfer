@@ -1,0 +1,709 @@
+#!/bin/tcsh -f
+# lrst-blk-sess
+
+set VERSION = '$Id: lrst-blk-sess,v 1.1 2003/03/04 21:22:09 greve Exp $';
+
+set inputargs = ($argv);
+set DateStr = "`date '+%y%m%d%H%M'`"
+
+set analysis = ();
+set parname = ();
+set FlowTimeConst = ();
+set VolTimeConst   = ();
+set DelayRange = ();
+set DelayRes = ();
+set DetrendMethod = ();
+set NConditions = ();
+set contrast = ();
+set ControlIds = ();
+set ActiveIds = ();
+
+set fsd = ();
+set funcstem = ();
+set runlistfile = ();
+set sliceno = ();
+
+set ForceAnalysis = 0;
+set ForceContrast = 0;
+
+set DoEstimation = 0;
+set DoInference = 0;
+
+set PrintHelp = 0;
+
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+set n = `echo $argv | grep -e -version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+set SessList = `getsesspath $inputargs`;
+if($status || $#SessList == 0) exit 0
+
+##### Create a log file ######
+set logdir = `pwd`/log;
+mkdir -p $logdir
+if(! -e $logdir) then
+  echo "WARNING: could not create $logdir"
+  set LF = /dev/null
+else
+  set LF = $logdir/lrst-blk-sess-$DateStr.log
+  if(-e $LF) mv $LF $LF.old
+endif
+echo "--------------------------------------------------------------"
+echo "lrst-blk-sess logfile is $LF"
+echo "--------------------------------------------------------------"
+
+echo "lrst-sess log file" >> $LF
+echo $VERSION >> $LF
+pwd           >> $LF
+echo $0         >> $LF
+echo $inputargs >> $LF
+uname -a        >> $LF
+date            >> $LF
+
+set StartTime = `date`;
+
+foreach sess ($SessList)
+  set sessid = `basename $sess`;
+  echo "$sessid -----------------------------------" |& tee -a $LF
+
+  cd $sess
+  if(! -e $fsd) then
+    echo "ERROR: cannot find FSD $fsd"
+    exit 1;
+  endif
+  cd $fsd
+
+  if(! -e seq.info) then
+    echo "ERROR: cannot find seq.info"
+    exit 1;
+  endif
+  set TR = `cat seq.info | awk '{if($1 == "TR") print $2}'`;
+   
+  if($#runlistfile == 0) then
+    set RunList = `getrunlist .`;
+    if($status || $#RunList == 0) then
+      echo "ERROR: $sess/$fsd has no runs"  |& tee -a $LF
+      exit 1;
+    endif
+  else
+    if(! -e $runlistfile) then
+      echo "ERROR: ($sessid) could not find runlistfile $runlistfile" \
+            |& tee -a $LF
+      exit 1;
+    endif
+    set RunList = (`cat $runlistfile`);
+  endif
+  echo "RunList = $RunList" |& tee -a $LF
+
+  # Determine whether the estimation must be done #
+  set DoEstimationSess = 0;
+  if($DoEstimation) then
+    set DoEstimationSess = 1;
+  else
+    if(! -e $analysis)  set DoEstimationSess = 1;
+    if($#contrast == 0) set DoEstimationSess = 1;
+  endif
+
+  set inlist = ();
+  set parlist = ();
+  set estlist = ();
+  foreach run ($RunList)
+    set instem = $run/$funcstem
+    if(! -e $instem.bhdr) then
+      echo "ERROR: cannot find $instem.bhdr" |& tee -a $LF
+      exit 1;
+    endif
+    set parfile = $run/$parname
+    if(! -e $parfile) then
+      echo "ERROR: cannot find $parfile" |& tee -a $LF
+      exit 1;
+    endif
+    set estdir = $analysis/est$run
+    if(! $DoEstimationSess && ! -e $estdir) then
+      echo "ERROR: $estdir does not exist" |& tee -a $LF
+      exit 1;
+    endif
+
+    set inlist  = ($inlist  -i $instem);
+    set parlist = ($parlist -p $parfile);
+    set estlist = ($estlist -e $estdir)
+  end
+
+  set cmd = (lrst-blk $inlist $parlist $estlist)
+  set cmd = ($cmd -tr $TR -ftc $FlowTimeConst -vtc $VolTimeConst)  
+  set cmd = ($cmd -drng $DelayRange -dres $DelayRes)
+  set cmd = ($cmd -detrend $DetrendMethod)
+  if($#sliceno != 0) set cmd = ($cmd -slice $sliceno)
+  
+  if(! $DoEstimationSess) then
+    set aifsess = $analysis/analysis.info
+    if(! -e $aifsess) then
+      echo "ERROR: $aifsess does not exist"
+      exit 1;
+    endif
+    set tmp = `diff $aif $aifsess | wc -l`;
+    if($tmp != 0) then
+      echo "ERROR: $aifsess differs from $aif."
+      echo "  This usually means that the analysis parameters were"
+      echo "  changed without re-estimating the model parameters."
+      echo "  If this is the case, try rerunning with -reestimate."
+      exit 1;
+    endif
+  endif
+
+  if($DoEstimationSess) then
+    mkdir -p $analysis
+
+    echo "INFO: computing mean image" |& tee -a $LF
+    set cmdmi = (meanimg -i $RunList[1]/$funcstem -o $analysis/h-offset);
+    if($#sliceno != 0) set cmdmi = ($cmdmi -fs $sliceno -ns 1)
+    date |& tee -a $LF
+    echo "-----------------------------------" |& tee -a $LF
+    echo $cmdmi |& tee -a $LF
+    $cmdmi |& tee -a $LF
+    if($status) exit 1;
+
+    set cmde = ($cmd -d E)
+    echo "INFO: performing estimation" |& tee -a $LF
+    date |& tee -a $LF
+    echo "-----------------------------------" |& tee -a $LF
+    echo $cmde |& tee -a $LF
+    $cmde |& tee -a $LF
+    if($status) exit 1;
+
+    cp $aif $analysis
+  endif
+
+  if($#contrast != 0) then
+    #mkdir -p $analysis
+    #set sigstem = $analysis/fsig
+    set cmdi = ($cmd -d I -c $contrastfile -inf $analysis/$contrast);
+    echo "INFO: performing inference" |& tee -a $LF
+    date |& tee -a $LF
+    echo "-----------------------------------" |& tee -a $LF
+    echo $cmdi |& tee -a $LF
+    $cmdi |& tee -a $LF
+    if($status) exit 1;
+  endif
+
+end
+
+
+set EndTime = `date`;
+
+echo "" |& tee -a $LF
+echo "Started at $StartTime" |& tee -a $LF
+echo "Ended   at $EndTime"   |& tee -a $LF
+
+echo "lrst-blk-sess done"
+
+echo ""
+
+exit 0
+
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-analysis":
+    case "-an":
+      if ( $#argv == 0) goto arg1err;
+      set analysis = $argv[1]; shift;
+      set analysis = `basename $analysis`; # remove trailing /
+      breaksw
+
+    case "-contrast":
+    case "-co":
+      if ( $#argv == 0) goto arg1err;
+      set contrast = $argv[1]; shift;
+      set DoInference = 1;
+      breaksw
+
+    case "-a":
+      if ( $#argv == 0) goto arg1err;
+      set ActiveIds = ($ActiveIds $argv[1]); shift;
+      breaksw
+
+    case "-c":
+      if ( $#argv == 0) goto arg1err;
+      set ControlIds = ($ControlIds $argv[1]); shift;
+      breaksw
+
+    case "-nc":
+      if ( $#argv == 0) goto arg1err;
+      set  NConditions = $argv[1]; shift;
+      breaksw
+
+    case "-p":
+      if ( $#argv == 0) goto arg1err;
+      set  parname = $argv[1]; shift;
+      breaksw
+
+    case "-ftc":
+      if ( $#argv == 0) goto arg1err;
+      set FlowTimeConst = $argv[1]; shift;
+      breaksw
+
+    case "-vtc":
+      if ( $#argv == 0) goto arg1err;
+      set VolTimeConst = $argv[1]; shift;
+      breaksw
+
+    case "-delrng":
+    case "-drng":
+      if ( $#argv == 0) goto arg1err;
+      set DelayRange = $argv[1]; shift;
+      breaksw
+
+    case "-delres":
+    case "-dres":
+      if ( $#argv == 0) goto arg1err;
+      set DelayRes = $argv[1]; shift;
+      breaksw
+
+    case "-detrend":
+      if ( $#argv == 0) goto arg1err;
+      set DetrendMethod = $argv[1]; shift;
+      if($DetrendMethod != none && \
+         $DetrendMethod != linear && \
+         $DetrendMethod != whittle) then
+         echo "ERROR: detrending method must be either: "
+         echo "       none, linear, or whittle"
+         exit 1;
+      endif
+      breaksw
+
+    case "-funcstem":
+    case "-f":
+      if ( $#argv == 0) goto arg1err;
+      set funcstem = $argv[1]; shift;
+      breaksw
+
+    case "-fsd":
+      if ( $#argv == 0) goto arg1err;
+      set fsd = $argv[1]; shift;
+      breaksw
+
+    case "-rlf":
+      if ( $#argv == 0) goto arg1err;
+      set runlistfile = $argv[1]; shift;
+      breaksw
+
+    case "-slice":
+      if ( $#argv == 0) goto arg1err;
+      set sliceno = $argv[1]; shift;
+      breaksw
+
+    case "-aforce":
+      set ForceAnalysis = 1;
+      breaksw
+
+    case "-cforce":
+      set ForceContrast = 1;
+      breaksw
+
+    case "-reestimate":
+    case "-eforce":
+      set DoEstimation = 1;
+      breaksw
+
+    case "-verbose":
+      set verbose = 1;
+      breaksw
+
+    case "-echo":
+      set echo = 1;
+      breaksw
+
+    case "-debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    case "-g":
+    case "-s":
+    case "-sf":
+    case "-d":
+    case "-df":
+      shift;
+      # ignore getsesspath arguments 
+      breaksw
+
+    case "-cwd":
+      # ignore getsesspath arguments 
+      breaksw
+
+    case "-umask":
+      if ( $#argv == 0) goto arg1err;
+      umask $1; shift;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+ 
+  if($#analysis == 0) then
+    echo "ERROR: must specify analysis"
+    exit 1;
+  endif
+
+  if(-e $analysis && ! $ForceAnalysis) then
+
+    if($#parname || $#FlowTimeConst || $#VolTimeConst || \
+       $#DelayRange || $#DelayRes || $#DetrendMethod || $#fsd ||\
+       $#funcstem || $#runlistfile || $#NConditions) then
+      echo " "
+      echo "ERROR: analysis $analysis already exists and analysis"
+      echo "parameters were specfied on the command-line. If you"
+      echo "want to redefine the parameters for this analysis, then"
+      echo "you must: delete the analysis and rerun lrst-blk-sess"
+      echo "or rerun lrst-blk-sess with -aforce. If you want to run"
+      echo "the analysis with the previously defined parameters,"
+      echo "then rerun lrst-blk-sess without any analysis parameters."
+      echo " "
+      exit 1;
+    endif
+
+    set aif = `pwd`/$analysis/analysis.info
+    if(! -e $aif) then
+      echo "ERROR: $aif does not exist"
+      exit 1;
+    endif
+
+    set anatype = `cat $aif | awk '{if($1 == "AnalysisType") print $2}'`;
+    if($anatype != "LRST-BLK") then
+      echo "ERROR: $analysis is not LRST-BLK"
+      exit 1;
+    endif
+
+    set parname = `cat $aif | awk '{if($1 == "parname") print $2}'`;
+    set NConditions = `cat $aif | awk '{if($1 == "NConditions") print $2}'`;
+    set FlowTimeConst = `cat $aif |awk '{if($1 == "FlowTimeConst") print $2}'`;
+    set VolTimeConst = `cat $aif | awk '{if($1 == "VolTimeConst") print $2}'`;
+    set DelayRange = `cat $aif | awk '{if($1 == "DelayRange") print $2}'`;
+    set DelayRes = `cat $aif | awk '{if($1 == "DelayRes") print $2}'`;
+    set DetrendMethod = `cat $aif | awk '{if($1 =="DetrendMethod") print $2}'`;
+    set fsd = `cat $aif | awk '{if($1 == "fsd") print $2}'`;
+    set funcstem = `cat $aif | awk '{if($1 == "funcstem") print $2}'`;
+    set runlistfile = `cat $aif | awk '{if($1 == "runlistfile") print $2}'`;
+  else
+    # Analysis does not exist or a change has been forced #
+    set DoEstimation = 1;
+    if(! -e $analysis) then
+      echo "INFO: $analysis does not exist ... creating"
+    else
+      echo "INFO: $analysis exists but overwrite forced by user"
+    endif
+
+    if(! $#parname) then 
+      echo "ERROR: must specify a paradigm file name"
+      exit 1;
+    endif
+    if(! $#NConditions) then 
+      echo "ERROR: must specify number of non-null conditions"
+      exit 1;
+    endif
+    if(! $#FlowTimeConst) set FlowTimeConst =  2;
+    if(! $#VolTimeConst)  set VolTimeConst  = 11;
+    if(! $#DelayRange)    set DelayRange    = 4;
+    if(! $#DelayRes)      set DelayRes      = .5;
+    if(! $#DetrendMethod) set DetrendMethod = linear;
+    if(! $#fsd)           set fsd           = bold;
+    if(! $#funcstem)      set funcstem      = fmc;
+
+    mkdir -p $analysis
+    set aif = `pwd`/$analysis/analysis.info
+    if(-e $aif) mv $aif $aif.old
+    
+    echo "AnalysisType LRST-BLK" >> $aif
+    echo "parname $parname" >> $aif
+    echo "NConditions $NConditions" >> $aif
+    echo "FlowTimeConst $FlowTimeConst" >> $aif
+    echo "VolTimeConst  $VolTimeConst" >> $aif
+    echo "DelayRange $DelayRange " >> $aif
+    echo "DelayRes $DelayRes " >> $aif
+    echo "DetrendMethod $DetrendMethod" >> $aif
+    echo "fsd $fsd" >> $aif
+    echo "funcstem $funcstem" >> $aif
+    if($#runlistfile) echo "runlistfile $runlistfile" >> $aif
+
+  endif
+
+  if($#contrast != 0) then
+    set contrastfile = `pwd`/$analysis/$contrast.mat;
+    if($#ActiveIds == 0 && $#ControlIds == 0) then
+      if(! -e $contrastfile) then
+        echo "ERROR: contrast $contrast has not been created"
+        exit 1;
+      endif
+    else
+      if(-e $contrastfile && ! $ForceContrast) then
+        echo "ERROR: contrast $contrast already exists. If you want"
+        echo "to respecify the contrast, then rerun with -cforce"
+        exit 1;
+      endif
+      goto make_contrast;
+      make_contrast_return:
+    endif
+  endif  
+
+
+goto check_params_return;
+
+############--------------##################
+make_contrast:
+
+  foreach id ($ActiveIds $ControlIds)
+    if($id > $NConditions) then
+      echo "ERROR: contrast condition $id is greater than the number "
+      echo "       of conditions ($NConditions)."
+      exit 1;
+    endif
+  end
+
+  pushd $analysis > /dev/null
+  set mlf = mk_$contrast.m
+  rm -f $mlf
+
+
+#-++++______-++++______-++++______-++++______-++++______#
+tee $mlf > /dev/null <<EOF
+
+ContrastFile = '$contrast';
+NConditions = [$NConditions];
+ActiveIds   = [$ActiveIds];
+ControlIds  = [$ControlIds];
+
+ContrastMtx_0 = zeros(1,NConditions);
+
+if(~isempty(ActiveIds))
+  indnz = find(ActiveIds ~= 0);
+  ActiveIds  = ActiveIds(indnz);
+  nActive = length(ActiveIds);
+end
+
+if(~isempty(ControlIds))
+  indnz = find(ControlIds ~= 0);
+  ControlIds  = ControlIds(indnz);
+  nControl = length(ControlIds);
+end
+
+if(~isempty(ActiveIds))  ContrastMtx_0(ActiveIds)  = +1/nActive; end
+if(~isempty(ControlIds)) ContrastMtx_0(ControlIds) = -1/nControl; end
+
+save(ContrastFile,'NConditions','ActiveIds','ControlIds','ContrastMtx_0');
+
+EOF
+#-++++______-++++______-++++______-++++______-++++______#
+
+echo "INFO: Creating Contrast $contrast"
+echo "matlab file is $mlf"
+#cat $mlf
+cat $mlf | matlab -nosplash
+popd > /dev/null
+if(! -e $contrastfile) then
+  echo "ERROR: creating $contrast"
+  cat $mlf
+  exit 1;
+endif
+#rm -f $mlf
+echo " "
+
+goto make_contrast_return;
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "USAGE: lrst-blk-sess"
+  echo ""
+  echo "   -analysis analysis : name of the analysis to create or use"
+  echo "   -contrast cname : create and/or compute contrast "
+  echo "   -a id <-a id ...> : active conditions ids"
+  echo "   -c id <-c id ...> : control condition ids"
+  echo ""
+  echo "Analysis Arguments:";
+  echo "   -p  parname  : name of paradigm file to use (required)"
+  echo "   -nc nconditions  : number of conditions (required)"
+  echo "   -ftc FlowTimeConst : sec (default 2 sec)"
+  echo "   -vtc VolTimeConst : sec (default 11 sec)"
+  echo "   -delrng delay-range : TRs (default 4)"
+  echo "   -delres delay-resolution : TRs (default .5)"
+  echo "   -detrend method : detrending method (none, <linear>, whittle)"
+  echo ""
+  echo "Input Arguments"
+  echo "   -fsd FSD : functional subdirectory (bold)"
+  echo "   -funcstem stem  : stem of input functional (fmc)"
+  echo "   -rlf  RunListFile : default is to use all runs"
+  echo "   -slice sliceno    : process only sliceno (default is all slices)"
+  echo ""
+  echo "Session Arguments (not required to create analysis)"
+  echo "   -sf sessidfile  ..."
+  echo "   -df srchdirfile ..."
+  echo "   -s  sessid      ..."
+  echo "   -d  srchdir     ..."
+  echo ""
+  echo "Yet even more options"
+  echo "   -help  : lrst-blk help page"
+  echo "   -debug : print out ridiculous amounts of verbiage"
+  echo "   -umask   mask : unix file permission mask"
+  echo ""
+
+  if(! $PrintHelp) exit 1;
+
+  echo $VERSION
+
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+
+  echo "------------------------------------------------------------"
+  echo "Below is the help page for lrst-blk"
+  lrst-blk -help
+
+exit 1;
+
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+lrst-blk-sess is a front-end for lrst-blk, the program which performs
+Locally Regularised Spatio-Temporal fMRI analysis for blocked designs.
+See lrst-blk -help for more info (the help page for lrst-blk appears
+below). This program can be invoked in one of four ways:
+
+  1. To define an analysis by specifying analysis parameters
+  2. To estimate the model parameters using the LRST algorithm
+  3. To define a contrast matrix by specifying active and control
+     conditions.
+  4. To compute activation maps based on a contrast.
+
+The program is designed with the FS-FAST philosophy that a given model
+or contrast be define only once, then the same model or contrast can
+then be applied to many different data sets.
+
+The "analysis" is the collection of parameters that define the input
+data and all the model parameters. The model parameters are: the name
+of the paradigm file, the number of conditions, the flow time
+constant, the volume time constant, the delay range, the delay
+resolution, and the order of the polynomial to fit drift. These
+parameters are discussed in the help page for lrst-blk (see below).
+The input is determined by the functional subdirectory (FSD), the
+functional stem, and the run list file. In addition, the user may
+select a single slice to process (though this is mainly good for when
+debugging).
+
+(1) An analysis is defined by specifying all the model and input
+parameters.  This will cause a directory with the analysis name to be
+created in the study directory. IT IS NOT NECESSARY, OR EVEN
+DESIRABLE, TO CREATE A DIFFERENT ANALYSIS FOR EACH SESSION. A file
+called analysis.info will be created in the analysis directory with
+all of the model and input parameters. Example:
+
+  lrst-blk-sess -analysis lrst-AB -p AB.par -nc 2 -polyfit 1 
+    -funcstem fmcsm5 -rlf task.rlf
+
+This will create a directory called lrst-AB in the Study Directory
+under which will be a filed called analysis.info with all the
+parameters and input specifications. Note: no sessions were specified
+at this stage.
+
+(2) Once the analysis is created, the data from each session can be
+fit to the model by simply invoking lrst-blk-sess with the analysis
+name and the session ids to be processed. This will create an analysis
+directory in each FSD. Note: it is possible to specify a that a
+contrast be computed along with fitting the parameters; however, if a
+contrast is specified, the model will not be refit if the analysis
+already exists in the session (unless the -reestimate flag is
+inclueded). Example:
+
+  lrst-blk-sess -s fred -s sally -df sessdirfile -analysis lrst-AB
+
+This will get the analysis parameters for the (already defined)
+analysis called lrst-AB and fit the model to the data of subjects fred
+and sally. A directory called lrst-AB will be created in fred and
+sally's FSD under which will be subdirectories for each run. Note that
+no analysis parameters were included on the command-line. Also note
+that a single analysis was applied to both the fred and sally data
+sets.
+
+(3) A contrast is a weighted sum of estimation parameters. The
+contrast embodies a hypothesis to be tested. The contrast is defined
+by specified "active" and "control" conditions. The contrast must be
+defined in the context of an analysis but only needs to be defined
+once (ie, a separate contrast does not need to be defined for each
+session). Example:
+
+  lrst-blk-sess -analysis lrst-AB -contrast Av0 -a 1 -c 0
+
+This creates a contrast called Av0 which will test whether condition
+1 (-a 1) is significantly different than baseline (-c 0). This
+will create two files in the lrst-AB directory, one called mk_Av0.m
+and another called Av0.mat. The former is a matlab file used to
+create the latter. Av0.mat is matlab-foramatted file with the
+contrast matrix. In this case, the matrix will be [1 0]. Note that
+no sessions were specified at this point. Note also that it is
+not necessary for the analysis to have been run for any sessions
+before the contrast is defined.
+
+Example:
+
+  lrst-blk-sess -analysis lrst-AB -contrast ABv0 -a 1 -a 2 -c 0
+
+This creates a contrast called ABv0 which will test whether conditions
+1 and 2 sum to something significantly different than baseline (-c 0). 
+In this case, the matrix will be [0.5 0.5]. Example:
+
+  lrst-blk-sess -analysis lrst-AB -contrast AvB -a 1 -c 2
+
+This creates a contrast called AvB which will test whether condition 1
+is significantly different than condition 2. In this case, the matrix
+will be [1 -1].
+
+(4) Once the contrast has been created, it can be applied to one or
+more sessions. Example:
+
+  lrst-blk-sess -analysis lrst-AB -contrast AvB -s sally -s fred
+
+This will create a directory called AvB in the lrst-AB directory under
+sally and fred's FSD. Note that it was not necessary to specify the
+active and control conditions.
+
+
+
+

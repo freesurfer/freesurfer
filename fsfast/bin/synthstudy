@@ -1,0 +1,99 @@
+#!/bin/csh -f
+# synthstudy
+#
+
+set DoOptSeq = 1;
+
+set amp1 = ( 10 20 20 30)
+set amp2 = ( 10 30 30 40)
+set gamma_delta = (2.25 2.25 2.25 2.25);
+set gamma_tau = (1.25 1.25 1.25 1.25);
+
+set timewindow = 20;
+set TR = 2;
+set ntrs = 100;
+set nslices = 2;
+set nruns = 2;
+set noisestd = 20;
+set npergroup = (5 6)
+set regfile = ();
+
+set nconditions = $#amp1;
+
+# Compute number of stimuli per condition #
+@ ntrstot = $ntrs * $nruns;
+set npc = `echo "$ntrstot/($nconditions + 1)" | bc `;
+set cond = 1;
+set npercond = ();
+set tpercond = ();
+while( $cond <= $nconditions)
+  set npercond = ($npercond $npc);
+  set tpercond = ($tpercond $TR);
+  @ cond = $cond + 1
+end
+
+echo "NPerCond = $npercond"
+
+if($DoOptSeq) then
+  # --------- Create paradigm files --------------------- #
+  echo "----- Create paradigm files --------------------- "
+  optseq -ntp $ntrs -npercond $npercond -tpercond $tpercond \
+         -TR $TR -nruns $nruns -o par
+  if($status) then
+    echo "ERROR: optseq failed"
+    exit 1;
+  endif
+  echo "--------------------------------------------------"
+endif
+
+rm -f sidall
+foreach group (1 2)
+  set ngroup = $npergroup[$group]
+  if($group == 1) then
+    set gamma_amp = ($amp1)
+  else
+    set gamma_amp = ($amp2)
+  endif
+
+  set sidf = sid$group
+  rm -f $sidf
+
+  @ n = 1;
+  while($n <= $ngroup)
+    set sessid = `printf s%d-%02d $group $n`;
+    echo $sessid >> $sidf
+    echo $sessid >> sidall
+
+    set cmd = ();
+    set cmd = ($cmd synth-sess -sessidpath $sessid -ntrs $ntrs )
+    set cmd = ($cmd -TR $TR -nruns $nruns -timewindow $timewindow)
+    set cmd = ($cmd -nconditions $nconditions -parname main.par)
+    set cmd = ($cmd -noisestd $noisestd -nslices $nslices)
+    if($#regfile != 0) set cmd = ($cmd -regfile $regfile)
+
+    @ run = 1;
+    while($run <= $nruns)
+      set par = `printf par-s001-r%03d.dat $run`;
+      set cmd = ($cmd -paradigm $par);
+      @ run = $run + 1;
+    end
+
+    @ cond = 1;
+    while($cond <= $nconditions)
+      set cmd = ($cmd -gamma $gamma_amp[$cond] $gamma_delta[$cond] \
+                 $gamma_tau[$cond] );
+      @ cond = $cond + 1;
+    end
+
+    echo "----------- $group $n/$ngroup ------------------------"
+    echo $cmd
+    $cmd
+    if($status) exit 1;
+
+    @ n = $n + 1;
+  end
+
+end
+
+
+echo Done

@@ -1,0 +1,277 @@
+#!/bin/csh -f
+# mktalxfm-sess
+#
+# $Id: mktalxfm-sess,v 1.1 2003/03/04 21:22:09 greve Exp $
+set VERSION = '$Id: mktalxfm-sess,v 1.1 2003/03/04 21:22:09 greve Exp $'
+set FASTVER = `cat $FMRI_ANALYSIS_DIR/docs/version`;
+
+#------ Defaults --------#
+set protocol  = icbm;
+set asd       = 3danat;  
+set userun    = ();
+
+
+set inputargs = ($argv);
+
+set n = `echo $argv | grep -e -help | wc -l` 
+if($#argv == 0 || $n != 0)  goto usage_exit;
+
+set n = `echo $argv | grep version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+
+set PWD = `getpwdcmd`;
+if($status) exit 1;
+
+set SessList = `getsesspath $argv`;
+if($status || $#SessList == 0) then
+  getsesspath $argv 
+  exit 1;
+endif
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+##### Create a log file ######
+set logdir = `pwd`/log;
+mkdir -p $logdir
+if(! -e $logdir) then
+  echo "WARNING: could not create $logdir"
+  set LF = /dev/null
+else
+  set LF = $logdir/mktalxfm-sess.log
+  if(-e $LF) mv $LF $LF.old
+endif
+
+echo "--------------------------------------------------------------"
+echo "mktalxfm-sess logfile is $LF"
+echo "--------------------------------------------------------------"
+
+echo "mktalxfm-sess log file" >> $LF
+echo $VERSION >> $LF
+echo "FAST Version $FASTVER"  >> $LF
+id            >> $LF
+pwd           >> $LF
+echo $0          >> $LF
+echo $inputargs  >> $LF
+uname -a         >> $LF
+date             >> $LF
+
+set StartDate = `date`;
+
+### Go through each session ###
+foreach sess ($SessList)
+
+  set sessbase = `basename $sess`;
+  echo "-------------------------------------------" |& tee -a $LF
+  echo "$sess " |& tee -a $LF
+  date |& tee -a $LF
+
+  if(! -d $sess) then
+    echo "ERROR: $sess does not exist"   |& tee -a $LF
+    exit 1;
+  endif
+
+  if(! -e $sess/$asd) then
+    echo "ERROR: $sess/$asd does not exist" |& tee -a $LF
+    exit 1;
+  endif
+  cd $sess/$asd
+
+  if($#userun == 0) then
+    set RunList = `getrunlist .`;
+    if($status || $#RunList == 0) then
+      echo "ERROR: $sess/$asd has no runs"  |& tee -a $LF
+      exit 1;
+    endif
+    set run = $RunList[1];
+  else
+    set run = $userun;
+  endif
+
+  if(! -e $run ) then
+    echo "ERROR: $sessbase : Run $run does not exist" |& tee -a $LF
+    exit 1;
+  endif
+
+  echo "INFO: $sessbase : Run = $run" |& tee -a $LF
+
+  # Convert COR to MINC #
+  set cmd = (cor_to_minc $run $run/cor.mnc)
+  $cmd  |& tee -a $LF
+  if($status) then
+    echo "ERROR: cor_to_minc failed" |& tee -a $LF
+    pwd        |& tee -a $LF
+    echo $cmd  |& tee -a $LF
+    exit 1;
+  endif
+
+  set cmd = (mritotal)
+  set cmd = ($cmd -verbose -debug -clobber )
+  set cmd = ($cmd -protocol $protocol )
+  set cmd = ($cmd $run/cor.mnc )
+  set cmd = ($cmd $run/talairach.xfm )
+
+  echo "---------------------------------------------" |& tee -a $LF
+  pwd        |& tee -a $LF
+  echo $cmd  |& tee -a $LF
+  echo "---------------------------------------------" |& tee -a $LF
+
+  $cmd |& tee -a $LF
+  set mritotal_status = $status;
+
+  rm -f $run/cor.mnc
+
+  if($mritotal_status) then
+    echo "ERROR: mritotal failed" |& tee -a $LF
+    exit 1;
+  endif
+
+end # Session Loop #
+
+echo " "
+echo "Start: $StartDate" |& tee -a $LF
+echo "End:   `date`"     |& tee -a $LF
+echo "mktalxfm-sess finished" |& tee -a $LF
+echo " "
+
+exit 0;
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-asd":
+      if ( $#argv == 0) goto arg1err;
+      set asd = $argv[1]; shift;
+      breaksw
+
+    case "-run":
+      if ( $#argv == 0) goto arg1err;
+      set userun = $argv[1]; shift;
+      breaksw
+
+    case "-protocol":
+      if ( $#argv == 0) goto arg1err;
+      set protocol = $argv[1]; shift;
+      breaksw
+
+    case "-umask":
+      if ( $#argv == 0) goto arg1err;
+      umask $argv[1]; shift;
+      breaksw
+
+    case "-verbose":
+      set verbose = 1;
+      breaksw
+
+    case "-echo":
+      set echo = 1;
+      breaksw
+
+    case "-debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    case "-g":
+    case "-s":
+    case "-sf":
+    case "-d":
+    case "-df":
+      shift;
+      # ignore getsesspath arguments 
+      breaksw
+
+    case "-cwd":
+      # ignore getsesspath arguments 
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+  if($#SessList == 0) then
+    echo "ERROR: no sessions specified"
+    exit 1
+  endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "USAGE: mktalxfm-sess"
+  echo ""
+  echo "Optional Arguments:"
+  echo "   -asd anatsubdir  : default = 3danat"
+  echo "   -run n           : run number (XXX); default is first"
+  echo "   -protocol name   : MNI protocol name ($protocol)"
+  echo ""
+  echo "Session Arguments (Required)"
+  echo "   -sf sessidfile  ..."
+  echo "   -df srchdirfile ..."
+  echo "   -s  sessid      ..."
+  echo "   -d  srchdir     ..."
+  echo ""
+  echo "Other Arguments"
+  echo "   -umask umask   : set unix file permission mask"
+  echo "   -version       : print version and exit"
+  echo "   -help          : get more info"
+  echo ""
+
+  set n = `echo $argv | grep -e -help | wc -l` 
+  if($n != 0)  goto help_exit;
+
+exit 1;
+
+help_exit:
+echo "\
+\
+This program creates the transform which will convert XYZ in the \
+subject's same session anatomical to XYZ in MNI305 Talairach space. \
+The purpose of this program is to create a talairach.xfm file wihout \
+having to go through the full freesurfer anatomical processing stream \
+and within the FS-FAST directory structure.\
+\
+The program looks in the first run under 3danat for each subject for a \
+COR volume. This volume is converted to MINC format after which the \
+MNI mritotal program is run with the icbm protocol. The talairach.xfm \
+file is saved in the given run directory. The anatomical subdirectory \
+(3danat) can be changed with the -asd flag. The chosen run can be \
+changed with the -run flag (eg, -run 003); the run must exist for all \
+sessions specified.  The protocol can be changed with the -protocol \
+flag. The MINC version of the COR volume is automatically deleted.\
+\
+"
+
+exit;

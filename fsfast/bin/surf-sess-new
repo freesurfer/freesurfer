@@ -1,0 +1,10 @@
+#!/bin/csh -f
+# Name: surf-sess-new
+# This is just a front end for surf-sess.
+
+surf-sess $argv;
+exit $status
+
+
+
+

@@ -1,0 +1,29 @@
+#!/bin/csh -f
+
+if($#argv != 1) then
+  echo "USAGE: getendian stem "
+  echo '$Id'
+  exit 1;
+endif
+
+set stem = $argv[1];
+set firstslice = `getfirstsliceno $stem`
+set st = $status;
+if($st) then
+  echo "ERROR: cannot find any files with $stem";
+  exit 1;
+endif
+
+set hdr = `printf "%s_%03d.hdr" $stem $firstslice`
+if(! -e $hdr) then
+  echo "ERROR: cannot find $hdr"
+  exit 1;
+endif
+
+set tmp = `cat $hdr`;
+set endian = $tmp[4];
+
+echo $endian;
+
+exit 0;
+##########################################

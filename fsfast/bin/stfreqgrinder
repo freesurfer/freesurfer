@@ -1,0 +1,282 @@
+#!/bin/csh -f
+# fMRI selective frequency grinding (for phase-encoding analysis)
+
+set VERSION = '$Id: stfreqgrinder,v 1.1 2003/03/04 21:22:09 greve Exp $';
+set cmdargv = "$argv";
+
+set n = `echo $argv | grep version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+
+set harmonics    = ();
+set instems      = ();
+set meanh_setm   = (); # sum-harmonics
+set perh_stem    = (); # per-harmonic
+set cummeanh_stem = (); # cumsum-harmonics
+set monly = 0;
+
+if($#argv == 0) goto usage_exit;
+
+set firstslice = ();
+set nslices = ();
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+set MATLAB = `getmatlab`;
+if($status) exit 1;
+
+## Determine the target for stdout ##
+if ($monly) then
+  set QuitOnError = 0;
+  set TARGET = "tee $mfile"
+  rm -f $mfile;
+else
+  set QuitOnError = 1;
+  set TARGET =  "$MATLAB -display iconic"
+endif  
+
+## Set up the output directories ##
+if($#perh_stem != 0) then
+  set outdir = `dirname $perh_stem`;
+  mkdir -p $outdir
+endif
+if($#cummeanh_stem != 0) then
+  set outdir = `dirname $cummeanh_stem`;
+  mkdir -p $outdir
+endif
+if($#meanh_stem != 0) then
+  set outdir = `dirname $meanh_stem`;
+  mkdir -p $outdir
+endif
+
+
+#---------------------------------------------------------------#
+$TARGET <<EOF
+
+  global QuitOnError;
+  QuitOnError = $QuitOnError;
+
+  instems      = splitstring('$instems');
+  harmonics    = [$harmonics] + 1;
+  perh_stem    = '$perh_stem';
+  meanh_stem    = '$meanh_stem';
+  cummeanh_stem = '$cummeanh_stem';
+  firstslice = [$firstslice];
+  nslices    = [$nslices];
+  ninstems   = size(instems,1);
+  nharmonics = length(harmonics);
+
+  %% Get the dimensions from the bfile %%
+  [nrows ncols ntp fs ns endian] = fmri_bfiledim(instems(1,:));
+  if(isempty(firstslice)) firstslice = fs; end
+  if(isempty(nslices))    nslices    = ns; end
+  lastslice = firstslice + nslices - 1;
+  nv = nrows*ncols;
+
+  for slice = firstslice:lastslice
+    fprintf('Slice %3d\n',slice);
+
+    noisepower = 0;
+    signal = 0;
+    dof = 0;
+
+    for n = 1:ninstems,
+      instem = deblank(instems(n,:));
+
+      fprintf('  Loading data from %s\n',instem);
+      sfa = fmri_ldsfa(instem);
+      fname = sprintf('%s_%03d.bfloat',instem,slice);
+      tmp = fmri_ldbfile(fname);
+
+      nsignal = length(sfa.isignal);
+      itmp_real = [2:2+nsignal-1];
+      itmp_imag = itmp_real + nsignal;
+
+      noisepower = noisepower + sfa.dof*(tmp(:,:,1).^2);
+      sigreal = tmp(:,:,itmp_real);
+      sigimag = tmp(:,:,itmp_imag);
+      sig = sigreal + sqrt(-1)*sigimag;
+      signal = signal + sfa.dof * sig(:,:,harmonics);
+      dof = dof + sfa.dof;
+
+    end % loop over input stems %
+
+    noisepower = noisepower/dof;
+    signal     = signal/dof;
+
+    sfa.analysistype = 'stat';
+
+    if(~isempty(meanh_stem))
+      sfa.stattype = 'meanharm';
+      u  = mean(signal,3);
+      s2 = noisepower/(ninstems * nharmonics);
+      F  = (abs(u).^2)./s2;
+      sigf = FTest(2,dof,reshape(F, [nv 1])'); %' 
+      sigf = reshape(sigf, [nrows ncols]);
+      log10sigf = -log10(sigf);
+      phz = angle(u);
+
+      t = imag(u)./sqrt(s2);
+      sigt = tTest(dof, reshape(t, [nv 1])'); %' 
+      sigt = reshape(sigt, [nrows ncols]);
+
+      tmp = zeros(nrows,ncols,12);
+      tmp(:,:,1) = log10sigf .* sign(t);
+      tmp(:,:,2) = log10sigf .* cos(phz);
+      tmp(:,:,3) = log10sigf .* sin(phz);
+      tmp(:,:,4) = F;
+      tmp(:,:,5) = sqrt(F) .* cos(phz);
+      tmp(:,:,6) = sqrt(F) .* sin(phz);
+      tmp(:,:,7) = phz;
+      tmp(:,:,8) = t;
+      tmp(:,:,9) = -log10(sigt).* sign(t);
+      tmp(:,:,10) = real(u);
+      tmp(:,:,11) = imag(u);
+      tmp(:,:,12) = sqrt(s2);
+      fname = sprintf('%s_%03d.bfloat',meanh_stem,slice);
+      fmri_svbfile(tmp,fname);
+      fmri_svsfa(sfa,meanh_stem);
+    end
+
+  end %% loop over slice %%
+
+
+  if(QuitOnError)  quit; end
+  
+EOF
+
+exit 0;
+
+############--------------##################
+parse_args:
+
+set cmdline = "$argv";
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+
+    case "-i":
+      if ( $#argv == 0) goto arg1err;
+      set instems = ($instems $argv[1]); shift;
+      breaksw
+
+    case "-h":
+      if ( $#argv == 0) goto arg1err;
+      set harmonics = ($harmonics $argv[1]); shift;
+      breaksw
+
+    case "-perharm":
+      if ( $#argv == 0) goto arg1err;
+      set perh_stem = $argv[1]; shift;
+      breaksw
+
+    case "-o"
+    case "-meanharm":
+      if ( $#argv == 0) goto arg1err;
+      set meanh_stem = $argv[1]; shift;
+      breaksw
+
+    case "-cummeanharm":
+      if ( $#argv == 0) goto arg1err;
+      set cummeanh_stem = $argv[1]; shift;
+      breaksw
+
+    case "-firstslice":
+    case "-fs":
+      if ( $#argv == 0) goto arg1err;
+      set firstslice = $argv[1]; shift;
+      breaksw
+
+    case "-nslices":
+    case "-ns":
+      if ( $#argv == 0) goto arg1err;
+      set Nslices = $argv[1]; shift;
+      breaksw
+
+    case "-monly":
+      if ( $#argv == 0) goto arg1err;
+      set mfile = $argv[1]; shift;
+      set monly = 1; 
+      breaksw
+
+    case "-debug":
+      set verbose = 1;
+      breaksw
+
+    case "-echo":
+      set echo = 1;
+      breaksw
+
+    case "-debug":
+      set echo = 1;
+      set verbose = 1;
+      breaksw
+
+    case "-umask":
+      if ( $#argv == 0) goto arg1err;
+      umask $argv[1]; shift;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized.
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+  if($#perh_stem == 0 && $#meanh_stem == 0 && $#cummeanh_stem == 0) then
+    echo "ERROR: must specify an output volume";
+    exit 1;
+  endif
+
+  if($#instems == 0) then
+    echo "ERROR: must specify an input volume";
+    exit 1;
+  endif
+
+  if($#harmonics == 0) then
+    set harmonics = 0;
+  endif
+
+goto check_params_return;
+############--------------##################
+
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+
+############--------------##################
+usage_exit:
+  echo "USAGE: stfreqgrinder"
+  echo "   -i instem1 ... "
+  echo "   -o outstem"
+#  echo "   -h harmonic"
+#  echo "   -perharm stem"
+#  echo "   -meanharm stem"
+#  echo "   -cummeanharm stem"
+  echo "   -firstslice fs "
+  echo "   -nslices    ns "
+  echo "   -monly mfile   : just create a matlab file"
+  echo "   -umask umask   : set unix file permission mask"
+  echo "   -version       : print version and exit"
+exit 1;

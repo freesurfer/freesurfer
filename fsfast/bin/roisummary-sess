@@ -1,0 +1,273 @@
+#!/bin/csh -f
+# func2roi-sess 
+
+set VERSION = '$Id: roisummary-sess,v 1.1 2003/03/04 21:22:09 greve Exp $';
+set FASTVER = `cat $FMRI_ANALYSIS_DIR/docs/version`;
+
+set inputargs = ($argv);
+
+set sumfile = ();
+set analysis  = ();
+set roidef    = ();
+set SourceType = 0; # 1 = raw, 2 = avg
+set RawSource = 1;
+set AvgSource = 2;
+set rawfsd = ();
+set rawmc = 0;
+set rawstem = ();
+set rawrunlistfile = ();
+set tbltranspose = 0;
+set includesessid = 1;
+
+set umaskarg = ();
+set nolog = 0;
+
+if($#argv == 0) then
+  goto usage_exit;
+  exit 1;
+endif
+
+# look for version string #
+set n = `echo $argv | grep version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+
+## Look for nolog option ##
+set n = `echo $argv | grep nolog | wc -l` 
+if($n != 0) set nolog = 1;
+
+##### Create a log file ######
+if(! $nolog) then
+  set logdir = `pwd`/log;
+  mkdir -p $logdir
+  if(! -e $logdir) then
+    echo "ERROR: could not create $logdir"
+    exit 1;
+  endif
+  set LF = $logdir/roisummary-sess.log
+  if(-e $LF) mv $LF $LF.old
+else
+  echo "No log file"
+  set LF = /dev/null
+endif
+
+#echo "----------------------------------------------------------"
+#echo "roisummary-sess logfile is $LF"
+#echo "----------------------------------------------------------"
+
+echo "roisummary-sess log file" >> $LF
+echo $VERSION >> $LF
+echo "FAST Version $FASTVER"  >> $LF
+pwd           >> $LF
+echo "$0"     >> $LF
+echo $inputargs  >> $LF
+uname -a      >> $LF
+date          >> $LF
+
+set SessList = `getsesspath $argv`;
+if($status || $#SessList == 0) then
+  echo "ERROR: cannot find any sessions" | tee -a $LF
+  exit 1;
+endif
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+set infofile = $analysis/analysis.info
+if(! -e $infofile) then
+  echo "ERROR: cannot find $infofile"
+  exit 1;
+endif
+set fsd = `cat $infofile | awk '{if($1 == "fsd") print $2}'`;
+
+set outdir = `dirname $sumfile`;
+mkdir -p $outdir
+
+rm -f $sumfile
+touch $sumfile
+set tbllist = ();
+set sessidlist = ();
+foreach sess ($SessList)
+  set sessid = `basename $sess`;
+  set sessidlist = ($sessidlist $sessid)
+
+  set roidir = $sess/$fsd/$analysis/$roidef
+  if(! -e $roidir) then
+    echo "ERROR: cannot find $roidir"
+    exit 1;
+  endif
+
+  set hdat = $roidir/h.dat
+  set htxt = $roidir/h.txt
+  set hoffsettxt = $roidir/h-offset.txt
+  set tblfile = $sess/$fsd/$analysis/$roidef/h.tbl
+
+  roitxt2tbl $hdat $htxt $hoffsettxt $tblfile
+  if($status)then
+    echo "ERROR: running roitxt2tbl"
+    exit 1;
+  endif
+
+  if(! -e $tblfile) then
+    echo "ERROR: cannot find $tblfile"
+    exit 1;
+  endif
+
+  if($tbltranspose) then
+    set tmp = (`cat $tblfile`);
+    echo $sessid $tmp >> $sumfile
+  else
+    set tbllist = ($tbllist $tblfile);
+  endif
+
+end
+
+if($tbltranspose != 1) then
+  paste $tbllist > $sumfile
+  if($includesessid) then
+    set tmpsumfile = /tmp/sumfile_$$
+    set tmpsessidfile = /tmp/sessidfile_$$
+    echo $sessidlist > $tmpsessidfile
+    cat $tmpsessidfile $sumfile > $tmpsumfile
+    cp $tmpsumfile $sumfile
+    rm $tmpsumfile $tmpsessidfile
+  endif
+endif
+
+exit 0;
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-roidef"
+      if ( $#argv == 0) goto arg1err;
+      set roidef = $argv[1]; shift;
+      breaksw
+
+    case "-a":
+    case "-analysis":
+      if ( $#argv == 0) goto arg1err;
+      set analysis = $argv[1]; shift;
+      breaksw
+
+    case "-sumfile":
+    case "-sum"
+      if ( $#argv == 0) goto arg1err;
+      set sumfile = $argv[1]; shift;
+      breaksw
+
+    case "-umask":
+      if ( $#argv == 0) goto arg1err;
+      set umaskarg = "-umask $argv[1]";
+      umask $argv[1]; shift;
+      breaksw
+
+    case "-transpose":
+      set tbltranspose = 1;
+      breaksw
+
+    case "-includesessid":
+      set includesessid = 1;
+      breaksw
+
+    case "-excludesessid":
+      set includesessid = 0;
+      breaksw
+
+    case "-verbose":
+      set verbose = 1;
+      breaksw
+
+    case "-echo":
+      set echo = 1;
+      breaksw
+
+    case "-debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    case "-cwd":
+    case "-nolog":
+      breaksw
+
+    case "-g":
+    case "-s":
+    case "-sf":
+    case "-df":
+    case "-d":
+      # ignore getsesspath arguments 
+      shift;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+  if($#roidef == 0) then
+    echo "ERROR: no ROI definition name specified " |& tee -a $LF 
+    exit 1
+  endif
+
+  if($#sumfile == 0) then
+    echo "ERROR: no summary file specified " |& tee -a $LF 
+    exit 1
+  endif
+
+  if($#analysis == 0) then
+    echo "ERROR: no analysis specified " |& tee -a $LF 
+    exit 1
+  endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo "USAGE: roisummary-sess"
+  echo "Options:";
+  echo "   -sumfile filename : name of file in which to store the summary"
+  echo "   -roidef   name : name of ROI definition"
+
+  echo "   -analysis name : source is averaged data from analysis"
+  echo "   -sf sessidfile  ..."
+  echo "   -df srchdirfile ..."
+  echo "   -s  sessid      ..."
+  echo "   -d  srchdir     ..."
+
+  echo "   -transpose     : put sessid info on a row instead of a col"
+  echo "   -excludesessid : do not include sess id in table"
+
+  echo "   -umask umask   : set unix file permission mask"
+  echo "   -scriptonly    : don't run, just generate a script"
+  echo "   -version       : print version and exit"
+exit 1;

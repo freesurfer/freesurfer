@@ -1,0 +1,570 @@
+#!/bin/tcsh -f
+# recon-all
+
+set VERSION = '$Id: mergeanalyses-sess,v 1.1 2003/03/04 21:22:09 greve Exp $';
+
+set inputargs = ($argv);
+set DateStr = "`date '+%y%m%d%H%M'`"
+
+set analysis1 = ();
+set analysis2 = ();
+set perrun = ();
+set jackknife = ();
+set space = ();
+set spacedir = ();
+set hemi = (); 
+set dhemi = (); # same as hemi but with a dash in front, or null
+set debug = 0;
+
+set amerged = ();
+set fsdmerged = ();
+set force = 0;
+set monly = 0;
+set MFL = ();
+
+set PrintHelp = 0;
+
+if($#argv == 0) goto usage_exit;
+
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+
+set n = `echo $argv | grep -e -version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+
+set PWD = `getpwdcmd`;
+if($status) exit 1;
+
+set StudyDir = `$PWD`;
+set SessList = `getsesspath $argv`;
+if($status || $#SessList == 0) then
+  getsesspath $argv 
+  exit 1;
+endif
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+mkdir -p log
+set LF = `pwd`/log/mergeanalyses-sess.log
+if( -e $LF) mv $LF $LF.old
+echo Log file is $LF
+
+if($#analysis1 != 0) then
+  set infofile1 = $analysis1/analysis.info
+  set infofile2 = $analysis2/analysis.info
+  set fsd1 = `cat $infofile1 | awk '{if($1=="fsd") print $2}'`;
+  set fsd2 = `cat $infofile2 | awk '{if($1=="fsd") print $2}'`;
+  if($#fsdmerged == 0 && $fsd1 != $fsd2 ) then
+    echo "ERROR: the FSDs for analyses 1 and 2 are different. When"
+    echo "this is the case, you must explicitly specify the FSD for the merge"
+    exit 1;
+  endif
+  set TR = `cat $infofile1 | awk '{if($1=="TR") print $2}'`;
+  set designtype = `cat $infofile1 | awk '{if($1 == "designtype") print $2}'`;
+  set funcstem  = `cat $infofile1 | awk '{if($1 == "funcstem") print $2}'`;
+  set fsd = $fsd1;
+endif
+
+if($#perrun != 0 || $#jackknife != 0) then
+  if($#perrun != 0)     set infofile = $perrun/analysis.info 
+  if($#jackknife != 0)  set infofile = $jackknife/analysis.info 
+  set fsd = `cat $infofile | awk '{if($1=="fsd") print $2}'`;
+  set runlistfile = `cat $infofile | awk '{if($1 == "runlistfile") print $2}'`;
+  set TR = `cat $infofile | awk '{if($1=="TR") print $2}'`;
+  set designtype = `cat $infofile | awk '{if($1 == "designtype") print $2}'`;
+  set funcstem  = `cat $infofile | awk '{if($1 == "funcstem") print $2}'`;
+endif
+
+if($#designtype == 0) set designtype = "event-related"
+if($#fsdmerged == 0) set fsdmerged = $fsd;
+
+
+# Make the merged analysis in the study directory #
+mkdir -p $amerged
+
+### Go through each session ###
+foreach sess ($SessList)
+
+  set sessid = `basename $sess`;
+  echo "-------------------------------------------" |& tee -a $LF
+  echo "$sess " |& tee -a $LF
+  date |& tee -a $LF
+  cd $sess
+
+  # Get list of analyses #
+  if($#analysis1 != 0) then
+    set analyses = ($fsd1/$analysis1/$spacedir $fsd2/$analysis2/$spacedir);
+  else # must be perrun or jackknife
+    if($#runlistfile == 0) then
+      set RunList = `getrunlist $fsd`;
+      if($status || $#RunList == 0) then
+        echo "ERROR: $sess/$fsd has no runs"  |& tee -a $LF
+        exit 1;
+      endif
+    else
+      if(! -e $fsd/$runlistfile) then
+        echo "ERROR: ($sessbase) could not find runlistfile  $fsd/$runlistfile"
+        exit 1;
+      endif
+      set RunList = (`cat  $fsd/$runlistfile`);
+    endif
+    set analyses = ();
+    foreach Run ($RunList)
+      if($#perrun != 0) then
+        set analyses = ($analyses $fsd/$perrun-$Run/$spacedir);
+      else
+        set analyses = ($analyses $fsd/$jackknife-jk$Run/$spacedir);
+      endif
+    end
+  endif
+  echo $analyses | tee -a $LF
+
+  set hstem = h$dhemi
+  set ilist = ();
+  foreach a ($analyses)
+    if(! -e $a) then
+      echo "ERROR: cannot find $a"
+      exit 1;
+    endif
+    set c = ",";
+    if($a == $analyses[$#analyses]) set c = "";
+
+    set ilist = ( $ilist "'"$a/$hstem"'" $c );
+  end
+
+  set outdir = $sess/$fsdmerged/$amerged/$spacedir
+  mkdir -p $outdir
+
+  if(! $monly ) set MLF = /tmp/mergeanalyses_sess.$sessid-$$
+  rm -f $MLF
+  set okfile = $outdir/selxavg.ok.$$
+  rm -f $okfile
+
+#------- Construct matlab file -----------------------#
+tee $MLF > /dev/null <<EOF
+  % matlab file for merageanalyses-sess
+  global QuitOnError;
+  if(~ $monly) QuitOnError = 1; end
+  ninputs = $#analyses;
+  outstem = '$outdir/$hstem';
+  r = fast_mergesxa('-nlist','$#analyses','-ilist',$ilist,'-o',outstem);
+  if(r==0) fmri_touch('$okfile'); end
+  if(~ $monly) quit; end
+EOF
+#-----------------------------------------------------#
+
+  echo "---------------------------------------------" >> $LF
+  cat $MLF >> $LF
+  echo "---------------------------------------------">> $LF
+  if($debug) then
+    echo "---------------------------------------------"
+    cat $MLF
+    echo "---------------------------------------------"
+  endif
+
+  if(! $monly ) then
+    cat $MLF | matlab -nosplash -display iconic
+    if(! -e $okfile ) then
+      echo "ERROR: executing fast_mergesxa in matlab"
+      exit 1;
+    endif
+    rm -f $okfile
+    rm -f $MLF
+
+    # Put relevant info into StudyDir
+    set datfile  = $outdir/$hstem.dat;
+    set bhdrfile = $outdir/$hstem.bhdr
+    cp $datfile $StudyDir/$amerged/h.dat
+    set infofile = $StudyDir/$amerged/analysis.info
+    rm -f $infofile
+    echo "analysis $amerged" >> $infofile
+    echo -n "merged-analysis " >> $infofile
+    if($#analysis1 != 0) then
+      echo "$analysis1 $analysis2" >> $infofile
+    else if($#perrun != 0) then
+      echo "perrun $perrun" >> $infofile
+    else
+      echo "jackknife $jackknife" >> $infofile
+    endif
+    echo "TR $TR" >> $infofile
+    echo "designtype $designtype" >> $infofile
+    set Nc = `cat $datfile | awk '{if($1 == "nCond") print $2}'`;
+    @ Nc = $Nc - 1;
+    echo "Nc $Nc" >> $infofile
+    echo "fsd $fsdmerged" >> $infofile
+    echo "funcstem $funcstem" >> $infofile
+
+    # Put appropriate stuff in the output directory #
+    cp $infofile $outdir
+    echo $StudyDir > $outdir/studydir
+    if(-e $analyses[1]/$hstem.bhdr)  cp $analyses[1]/$hstem.bhdr $outdir
+    if(-e $analyses[1]/register.dat) cp $analyses[1]/register.dat $outdir
+    cp $LF $outdir
+
+    if($fsdmerged != $fsd) then
+      cp $fsd/register.dat $fsdmerged
+      cp $fsd/seq.info     $fsdmerged
+    endif
+
+
+  endif
+
+end # Loop over sessions #
+
+exit 0
+
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-monly":
+      if ( $#argv == 0) goto arg1err;
+      set MLF = $argv[1]; shift;
+      set monly = 1;
+      breaksw
+
+    case "-a1":
+      if ( $#argv == 0) goto arg1err;
+      set analysis1 = $argv[1]; shift;
+      set analysis1 = `basename $analysis1`; # remove trailing /
+      breaksw
+
+    case "-a2":
+      if ( $#argv == 0) goto arg1err;
+      set analysis2 = $argv[1]; shift;
+      set analysis2 = `basename $analysis2`; # remove trailing /
+      breaksw
+
+    case "-perrun":
+      if ( $#argv == 0) goto arg1err;
+      set perrun = $argv[1]; shift;
+      set perrun = `basename $perrun`; # remove trailing /
+      breaksw
+
+    case "-jackknife":
+      if ( $#argv == 0) goto arg1err;
+      set jackknife = $argv[1]; shift;
+      set jackknife = `basename $jackknife`; # remove trailing /
+      breaksw
+
+    case "-amerged":
+    case "-am":
+      if ( $#argv == 0) goto arg1err;
+      set amerged = $argv[1]; shift;
+      set amerged = `basename $amerged`; # remove trailing /
+      breaksw
+
+    case "-fsdmerged":
+      if ( $#argv == 0) goto arg1err;
+      set fsdmerged = $argv[1]; shift;
+      breaksw
+
+    case "-space":
+      if ( $#argv == 0) goto arg1err;
+      set space = $argv[1]; shift;
+      if($space != tal && $space != sph) then
+        echo "ERROR: space = $space, must be tal or sph"
+        exit 1;
+      endif
+      breaksw
+
+    case "-spacedir":
+      if ( $#argv == 0) goto arg1err;
+      set spacedir = $argv[1]; shift;
+      breaksw
+
+    case "-hemi":
+      if ( $#argv == 0) goto arg1err;
+      set hemi = $argv[1]; shift;
+      if($hemi != lh && $hemi != rh) then
+        echo "ERROR: hemi = $hemi, must rh or lh"
+        exit 1;
+      endif
+      set dhemi = "-$hemi";
+      breaksw
+
+    case "-force":
+      set force = 1;
+      breaksw
+
+    case "-verbose":
+      set verbose = 1;
+      breaksw
+
+    case "-echo":
+      set echo = 1;
+      breaksw
+
+    case "-debug":
+      set debug = 1;
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    case "-g":
+    case "-s":
+    case "-sf":
+    case "-d":
+    case "-df":
+      shift;
+      # ignore getsesspath arguments 
+      breaksw
+
+    case "-cwd":
+      # ignore getsesspath arguments 
+      breaksw
+
+    case "-umask":
+      if ( $#argv == 0) goto arg1err;
+      umask $1; shift;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+  if( $#amerged == 0) then
+    echo "ERROR: merged analysis name not specified"
+    exit 1;
+  endif
+
+  if($#analysis1 == 0 && $#analysis2 == 0 && \
+     $#perrun == 0 && $#jackknife == 0) then
+    echo "ERROR: no input analyses selected"
+    exit 1;
+  endif
+
+  if( ($#analysis1 == 0 && $#analysis2 != 0)  || \
+      ($#analysis1 != 0 && $#analysis2 == 0) ) then
+    echo "ERROR: must spec analysis 1 and 2 together"
+    exit 1;
+  endif
+
+  if( $#analysis1 != 0 && $#perrun != 0) then
+    echo "ERROR: cannot spec analysis1/2 and perrun"
+    exit 1;
+  endif
+
+  if( $#analysis1 != 0 && $#jackknife != 0) then
+    echo "ERROR: cannot spec analysis1/2 and jackknife"
+    exit 1;
+  endif
+
+  if( $#perrun != 0 && $#jackknife != 0) then
+    echo "ERROR: cannot spec perrun and jackknife"
+    exit 1;
+  endif
+
+  # Make sure that input exists and that output does not overwrite input #
+  if($#perrun != 0) then
+    if(! -e $perrun) then
+      echo "ERROR: perrun analysis $perrun does not exist"
+      exit 1;
+    endif
+    if($amerged == $perrun) then
+      echo "ERROR: perrun analysis is the same as merged "
+      exit 1;
+    endif
+  endif
+  if($#jackknife != 0) then
+    if(! -e $jackknife) then
+      echo "ERROR: jackknife analysis $jackknife does not exist"
+      exit 1;
+    endif
+    if($amerged == $jackknife) then
+      echo "ERROR: jackknife analysis is the same as merged "
+      exit 1;
+    endif
+  endif
+  if($#analysis1 != 0) then # Implies analysis2 != 0 #
+    if(! -e $analysis1) then
+      echo "ERROR: analysis1 $analysis1 does not exist"
+      exit 1;
+    endif
+    if(! -e $analysis2) then
+      echo "ERROR: analysis2 $analysis2 does not exist"
+      exit 1;
+    endif
+    if($amerged == $analysis1) then
+      echo "ERROR: analysis1 is the same as merged "
+      exit 1;
+    endif
+    if($amerged == $analysis2) then
+      echo "ERROR: analysis2 is the same as merged "
+      exit 1;
+    endif
+  endif
+
+  if(-e $amerged && ! $force) then
+    set infofile = $amerged/analysis.info
+    set ismerged = `cat $infofile | awk '{if($1=="merged-analysis") print $0}'`
+    if($#ismerged == 0) then
+      echo "ERROR: analysis $amerged exists already and is not a merged"
+      echo "       analysis. Rename or use -force"
+      exit 1;
+    endif
+    if( ($ismerged[2] != jackknife && $#jackknife != 0) ) then
+      echo "ERROR: merged analysis exists already and is not for a jackknife."
+      echo "       Change the merging directive or use -force."
+      exit 1;
+    endif
+    if( $ismerged[2] != perrun  && $#perrun != 0 ) then
+      echo "ERROR: merged analysis exists already and is not for a perrun."
+      echo "       Change the merging directive or use -force."
+      exit 1;
+    endif
+    if($#analysis1 != 0) then
+      if($ismerged[2] != $analysis1 || $ismerged[3] != $analysis2) then
+        echo "ERROR: merged analysis exists already but does not use the"
+        echo "       analyses you specified.  Rename or use -force"
+        exit 1;
+      endif
+    endif
+    if($#fsdmerged != 0) then
+      set fsdtmp = `cat $infofile | awk '{if($1=="fsd") print $2}'`
+      if($fsdtmp != $fsdmerged) then
+        echo "ERROR: merged analysis exists already and has a different"
+        echo "       FSD. Rename, use -force, or change -fsdmerged."
+        exit 1;
+      endif
+    endif
+  endif
+
+  if(-e $amerged && $force) then
+    echo "INFO: merged analysis exists already, but overwrite forced by user."
+  endif
+
+  if($#hemi != 0 && $space != sph) then
+    echo "ERROR: -hemi can only be used with -space sph"
+    exit 1;
+  endif
+
+  if($#hemi == 0 && $space == sph) then
+    echo "ERROR: must specify -hemi with -space sph"
+    exit 1;
+  endif
+
+  if($#space != 0 && $#spacedir == 0) set spacedir = $space;
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "USAGE: mergeanalyses-sess"
+  echo ""
+  echo "Required Arguments:";
+  echo ""
+  echo "  -a1 analysisname1 : name of functional analysis"
+  echo "  -a2 analysisname2 : name of functional analysis"
+  echo "  -amerged analysisname : name of merged analysis"
+  echo ""
+  echo "Optional Arguments"
+  echo ""
+  echo "  -fsdmerged fsd"
+  echo "  -perrun analysis "
+  echo "  -jackknife analysis "
+  echo "  -space spacename : tal or sph; if sph, need -hemi"
+  echo "  -hemi hemisphere : lh or rh; with -space sph only"
+  echo "  -spacedir spacedir : if other than tal or sph"
+  echo ""
+  echo "Session Arguments (Required)"
+  echo "   -sf sessidfile  ..."
+  echo "   -df srchdirfile ..."
+  echo "   -s  sessid      ..."
+  echo "   -d  srchdir     ..."
+  echo ""
+  echo "Other Arguments (Optional)"
+  echo "   -help : as in H-E-L-P, as in look here FIRST for answers"
+  echo ""
+
+  if(! $PrintHelp) exit 1;
+
+  echo $VERSION
+
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+This will merge two analyses together. While the analyses must be in
+the same session, they do not need to be in the same functional
+subdirectory (FSD). The parameter estimates are concatenated. The
+merged noise variance estimate and covairance matrix is computed as
+the weighted average of the individual analyses. The mean offsets are
+simply averaged together.  The number of non-null conditions in each
+analysis may vary from analysis to analysis.  The number of estimates
+per condition must be the same across analyses. The number of non-null
+conditions in the merged analysis will equal the sum of the number of
+non-null conditions in the input analyses.  The order of the
+conditions in the merged analysis is the same as if the conditions
+from the individual analyses were concatenated together.
+
+If the user specifies spherical space (-space sph), then a hemisphere
+must also be specified using -hemi.
+
+With few exceptions, the merged analysis can be treated as with any
+other analysis (ie, an analysis directory is created in the study
+folder and the session FSD, it can be operated on by mkcontrast-sess,
+stxgrinder-sess, sliceview-sess, func2tal-sess, etc). 
+
+If a new FSD is not specified (with -fsdmerged), then the FSD of the
+first analysis is used (or the single FSD found in the analysis 
+named by -perrun or -jackknife).
+
+The input analyses can be specified in one of three ways. First, by
+specifying them explicitly with -a1 and -a2 (in which case only two
+analyses can be merged). Second and third, with -perrun and -jackknife,
+in which case the argument of either of those flags is the analysis 
+name, and the input analyses will be analysis-RRR (perrun) or 
+analysis-jkRRR (jacknife).
+
+If the analysis named by -amerge already exists, then the parameters
+within the analysis are checked to make sure that they agree with
+those specified on the command-line. If they do not agree, then the
+user is informed and the program exits. The user can then either
+delete or rename the analysis or change the argument of -amerge.
+
+BUGS
+
+BUG REPORTS
+
+Send bug reports to analysis-bugs@nmr.mgh.harvard.edu
+

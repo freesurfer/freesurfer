@@ -1,0 +1,160 @@
+#!/bin/csh -f
+# Contructs a register file to go from tal space to subject #
+
+set VERSION = '$Id: mktalreg,v 1.1 2003/03/04 21:22:09 greve Exp $'
+set FASTVER = `cat $FMRI_ANALYSIS_DIR/docs/version`;
+set inputargs = "$argv";
+
+set subject = ();
+set regfile = ();
+set resolution = ();
+
+if($#argv == 0) then
+  goto usage_exit;
+  exit 1;
+endif
+
+set n = `echo $argv | grep version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+set outdir = `dirname $regfile`;
+mkdir -p $outdir
+if(! -e $outdir) then
+  echo "ERROR: could not create $outdir"
+  exit 1;
+endif
+
+set talxfm = $SUBJECTS_DIR/$subject/mri/transforms/talairach.xfm
+if(! -e $talxfm) then
+  echo "ERROR: could not find $talxfm"
+  exit 1;
+endif
+
+if(-e $regfile) then
+  echo "INFO: moving $regfile to $regfile.bak"
+  mv $regfile $regfile.bak
+endif
+
+echo $subject     >> $regfile
+echo $resolution  >> $regfile
+echo $resolution  >> $regfile
+echo 0.1          >> $regfile
+tail -n 3  $talxfm | sed 's/;//'  >> $regfile
+echo "      0 0 0 1"    >> $regfile
+
+exit 0;
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = "$argv";
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-subject":
+      if ( $#argv == 0) goto arg1err;
+      set subject = $argv[1]; shift;
+      breaksw
+
+    case "-reg":
+      if ( $#argv == 0) goto arg1err;
+      set regfile = $argv[1]; shift;
+      breaksw
+
+    case "-res":
+      if ( $#argv == 0) goto arg1err;
+      set resolution = $argv[1]; shift;
+      breaksw
+
+    case "-umask":
+      if ( $#argv == 0) goto arg1err;
+      set umaskarg = "-umask $argv[1]";
+      umask $argv[1]; shift;
+      breaksw
+
+    case "-verbose":
+      set verbose = 1;
+      breaksw
+
+    case "-echo":
+      set echo = 1;
+      breaksw
+
+    case "-debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+  if($#subject == 0) then
+    echo "ERROR: must specify subject"
+    exit 1;
+  endif
+
+  if(! -e $SUBJECTS_DIR/$subject ) then
+    echo "ERROR: subject $subject is not in the subjects data base"
+    exit 1;
+  endif
+
+  if($#regfile == 0) then
+    echo "ERROR: must specify output register file name"
+    exit 1;
+  endif
+
+  if($#resolution == 0) then
+    echo "ERROR: must specify resolution"
+    exit 1;
+  endif
+
+  set ok = `echo "x=$resolution; if(x==1||x==2||x==4||x==8) 1 else 0" | bc`
+
+  if(! $ok) then
+    echo "ERROR: resolution = $resolution, must be 1, 2, 4, or 8 mm"
+    exit 1;
+  endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo "USAGE: mktalreg -subject subject -reg regfile -res resolution"
+  echo "Options:";
+  echo "   -subject  subjectname  : name of subject "
+  echo "   -reg regfile  : name of output register.dat file"
+  echo "   -res resolution (mm) : 1, 2, 4, 8"
+  echo "   -umask umask   : set unix file permission mask"
+  echo "   -version       : print version and exit"
+exit 1;

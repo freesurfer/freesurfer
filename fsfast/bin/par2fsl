@@ -1,0 +1,216 @@
+#!/usr/bin/tclsh
+
+#------------------------------------------------------------------#
+proc PrintUsage { } {
+  puts "USAGE: par2fsl "
+  puts ""
+  puts "  -p    parfile : FS-FAST style paradigm file"
+  puts "  -ev   evbase: base name for FSL-FEAT custom EVs"
+  puts "  -tr   TR"
+  puts "  -ntrs ntrs : number of TRs or time points"
+  puts ""
+  puts "  -help : print out information about how to run this program"
+  puts ""
+}
+#------------------------------------------------------------------#
+proc HelpExit { } {
+puts ""
+PrintUsage;
+puts ""
+
+puts "DESCRIPTION"
+puts ""
+puts "This program will convert an FS-FAST style paradigm file"
+puts "into a series of files that can be imported into FSL-FEAT"
+puts "as a custom EV. There will be one output file per condition"
+puts "found in the paradigm file, the name of which will be"
+puts "evbaseNNN, where NNN is the zero-padded condition number."
+puts "The zero (0) condition is not included. Any condition number"
+puts "less than zero is excluded as is any entry before t=0 or"
+puts "after (ntrs-1)*tr. "
+puts ""
+
+exit 1;
+
+}
+
+#------------------------------------------------------------------#
+proc ParseCommandLine { argc argv } {
+  global parfile ntrs TR evbase
+
+  set ntharg 0
+  while  { $ntharg < $argc } {
+
+    set option [lindex $argv $ntharg];
+    incr ntharg 1
+
+    set nargrem [expr $argc - $ntharg]; # number or arguments remaining
+
+    switch -exact -- $option {
+
+      -p {
+        if { $nargrem < 1 } { ArgNError $option 1 }
+        set parfile [lindex $argv $ntharg];
+        incr ntharg 1
+      }
+
+      -ntrs {
+        if { $nargrem < 1 } { ArgNError $option 1 }
+        set ntrs [lindex $argv $ntharg];
+        incr ntharg 1
+      }
+
+      -tr -
+      -TR {
+        if { $nargrem < 1 } { ArgNError $option 1 }
+        set TR [lindex $argv $ntharg];
+        incr ntharg 1
+      }
+
+      -ev {
+        if { $nargrem < 1 } { ArgNError $option 1 }
+        set evbase [lindex $argv $ntharg];
+        incr ntharg 1
+      }
+
+
+      default { 
+        puts "ERROR: $option unrecognized";
+        exit 1;
+      }
+    }; # end switch
+  }; # end while
+  return;
+}
+#------------------------------------------------------------------#
+proc CheckArgs { } {
+  global parfile ntrs TR evbase
+
+  if { ! [info exists parfile] } {
+     puts "ERROR: no parfile specified"
+     exit 1;
+  }
+
+  if { ! [info exists ntrs] } {
+     puts "ERROR: number of TRs not specified"
+     exit 1;
+  }
+
+  if { ! [info exists TR] } {
+     puts "ERROR: TR not specified"
+     exit 1;
+  }
+
+  if { ! [info exists evbase] } {
+     puts "ERROR: evbase not specified"
+     exit 1;
+  }
+
+  return;
+}
+#------------------------------------------------------------------#
+proc ArgNError { option n } {
+  if { $n == 1 } {
+    puts "ERROR: flag $option needs 1 argument";
+  } else {
+    puts "ERROR: flag $option needs $n arguments";
+  }
+  exit 1;
+}
+
+#------------------------------------------------------------------#
+#--------------------- Main ---------------------------------------#
+#------------------------------------------------------------------#
+
+if { $argc == 0 } { PrintUsage; exit 1;}
+
+ParseCommandLine $argc $argv;
+CheckArgs;
+
+if [catch {open $parfile r} ParFID] {
+   puts "Cannot open $parfile";
+   exit 1;
+}
+
+set nthline 0;
+while { [gets $ParFID line] >= 0 } {
+  incr nthline;
+  set linelen [llength $line ];
+  if { $linelen == 0  } { continue; }
+  if { $linelen < 2 } {
+     puts "ERROR: $parfile is formatted incorrectly"
+     puts "  Line $nthline has [llength $line ] elements."
+     puts "  Expecting 2 or more elements";
+     puts " $line";
+     exit 1;
+  }
+  set t   [lindex $line 0];
+  set cid [lindex $line 1];
+  if { $cid > 0 } {
+    lappend tPar  $t;
+    lappend idPar $cid;
+  }
+}
+close $ParFID;
+
+set nitems [llength $tPar];
+
+#puts "nitems = $nitems"
+
+# Count number of conditions #
+set idParSorted [lsort $idPar];
+#puts $idParSorted
+set cidprev [lindex $idParSorted 0];
+lappend cidlist $cidprev;
+foreach cid $idParSorted {
+  if { $cidprev != $cid } {
+    lappend cidlist $cid;
+    set cidprev $cid;
+  }
+}
+#puts "$cidlist"
+
+# Put zeros into the vectors for each cid #
+for {set n 0} { $n < $ntrs } {incr n} {
+  foreach cid $cidlist {
+    set evname ev$cid
+    lappend $evname 0
+  }
+}
+
+# Assign 1's from the paradigm #
+set n 0;
+foreach t $tPar {
+  set cid [lindex $idPar $n];
+  set tindex [expr round($t/$TR)];
+  if { $tindex < 0 || $tindex >= $ntrs  } { continue; }
+
+  set evname ev$cid 
+  upvar 0 $evname ev 
+  set $evname [lreplace $ev $tindex $tindex 1];
+
+  # puts "$t $cid $tindex $evname"
+  incr n;
+}
+
+# Print out each EV file #
+foreach cid $cidlist {
+
+  set evfile [format "%s%03d" $evbase $cid];
+  if [catch {open $evfile w} EVFID] {
+     puts "Cannot open $evfile";
+     exit 1;
+  }
+
+  set evname ev$cid 
+  upvar 0 $evname ev 
+  puts $EVFID "$ev"
+  close $EVFID;
+}
+exit 0;
+#---------------- End Main ---------------------------#
+
+
+
+
+

@@ -1,0 +1,515 @@
+#!/bin/csh -f
+# mergecontrasts-sess - AND conjunction of two contrasts
+#
+
+set VERSION = '$Id: mergecontrasts-sess,v 1.1 2003/03/04 21:22:09 greve Exp $';
+set FASTVER = `cat $FMRI_ANALYSIS_DIR/docs/version`;
+
+set inputargs = ($argv);
+
+set mergedcontrast = ();
+set conjunction = ();
+set map = sig;
+set analysis    = ();
+set space = ();
+set spacedir = ();
+set hemi = ();
+set hemisuf = ();
+
+set ncontrasts   = 0;
+set contrastlist = ();
+set threshlist   = ();
+set taillist     = ();
+set complist     = ();
+
+set monly = 0;
+set MLF = ();
+set nolog = 0;
+set checkvolumes = 0;
+
+set PrintHelp = 0;
+
+set SessList     = ();
+
+if($#argv == 0) goto usage_exit;
+
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+
+set n = `echo $argv | grep -e -version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+
+goto parse_args;
+parse_args_return:
+
+set SessList = `getsesspath $inputargs`;
+if($status) then
+  echo "$SessList"
+  exit 1;
+endif
+
+goto check_params;
+check_params_return:
+
+## Get functional subdirectory from the info file ##
+set infofile = $analysis/analysis.info
+if(! -e $infofile) then
+  echo "ERROR: cannot find $infofile"
+  exit 1;
+endif
+set fsd = `cat $analysis/analysis.info | awk '{if($1 == "fsd") print $2}'`;
+
+## Look for nolog option ##
+set n = `echo $inputargs | grep nolog | wc -l` 
+if($n != 0) set nolog = 1;
+
+##### Create a log file ######
+if(! $nolog) then
+  set logdir = `pwd`/log;
+  mkdir -p $logdir
+  if(! -e $logdir) then
+    echo "ERROR: could not create $logdir"
+    exit 1;
+  endif
+  set LF = $logdir/mergecontrasts-sess.log
+  if(-e $LF) mv $LF $LF.old
+else
+  echo "No log file"
+  set LF = /dev/null
+endif
+
+echo "mergecontrasts-sess Logfile is $LF"
+
+echo "mergecontrasts-sess log file" >> $LF
+echo $VERSION >> $LF
+echo "FAST Version $FASTVER"  >> $LF
+id            >> $LF
+pwd           >> $LF
+echo "$0"     >> $LF
+echo $inputargs  >> $LF
+uname -a      >> $LF
+date          >> $LF
+
+foreach sess ($SessList)
+  set sessid = `basename $sess`;
+  echo "-------------------------------------------------------"
+  echo "Session: $sessid "
+
+  set inbhdr  = ();
+  set instems = ();
+  foreach contrast ($contrastlist)
+    set indir = $sess/$fsd/$analysis/$spacedir/$contrast
+    if(! -d $indir) then
+      echo "ERROR: $indir does not exist"   |& tee -a $LF
+      exit 1;
+    endif
+    set instemtmp = $indir/$map$hemisuf;
+    set instems = ($instems $instemtmp);
+    if(-e $instemtmp.bhdr) set inbhdr = $instemtmp.bhdr
+  end
+
+  if($checkvolumes) then
+  foreach invol ($instems)
+    echo "Checking $invol"
+    bfvcheck $invol
+    if($status) then
+      echo "ERROR: there appears to be a problem with input volume $instem1"
+      exit 1;
+    endif
+  end
+  endif
+
+  set outdir = $sess/$fsd/$analysis/$spacedir/$mergedcontrast
+  mkdir -p $outdir
+  if(! -d $outdir) then
+    echo "ERROR: cannot create $outdir"|& tee -a $LF
+    exit 1;
+  endif
+  set outstem = $outdir/$map$hemisuf
+  set ovlpfile = $outstem.ovlp
+
+  if(! $monly ) set MLF = $outdir/mergcon-$$.m
+  rm -f $MLF  
+
+#----------------------------------------------------------#
+tee $MLF > /dev/null <<EOF
+
+  monly = $monly;
+  if(monly) QuitOnError = 0;
+  else      QuitOnError = 1;
+  end
+
+  outstem = '$outstem';
+  conjunction = '$conjunction';
+  ovlpfile = '$ovlpfile';
+
+  instems = splitstring('$instems');
+  threshs = [$threshlist];
+  tails   = splitstring('$taillist');
+  comps   = [$complist];
+
+  fprintf('\n');
+  nover = [];
+  ninputs = size(instems,1);
+  for n = 1:ninputs
+    instem = deblank(instems(n,:));
+    fprintf('Loading %s\n',instem);
+    m = fmri_ldbvolume(instem);
+
+    if(comps(n)) m = sign(m).*(1-10.^(-abs(m))); end
+
+    fprintf('  Tail is %s\n',deblank(tails(n,:)));
+    switch(deblank(tails(n,:)))
+    case 'abs', m = abs(m); 
+    case 'pos', 
+      iunderzero = find(m<0); 
+      m(iunderzero) = 0;
+    case 'neg', 
+      ioverzero = find(m>0); 
+      m(ioverzero) = 0;
+      m = abs(m); 
+    end
+
+    % mthresh is a map of the nth input whose voxels meet thresh %
+    mthresh = m > threshs(n);
+    novertmp = length(find(mthresh > 0.5));
+    nover = [nover novertmp ];
+    fprintf('  Found %d voxels\n',novertmp);
+
+    if(n==1) 
+      mmerged = mthresh;
+    else
+      switch(conjunction)
+      case 'and',   mmerged = mthresh & mmerged;
+      case 'or',    mmerged = mthresh | mmerged;
+      case 'andor', 
+        % This only makes sense for 2 inputs %
+        map_both = mthresh & mmerged;
+	ind_both = find(map_both);
+        indA = find(mmerged);
+        indB = find(mthresh);
+        mmerged_tmp = zeros(size(mmerged));
+        mmerged_tmp(indA)     = +1;
+        mmerged_tmp(indB)     = -1;
+        mmerged_tmp(ind_both) = +2;
+        mmerged = mmerged_tmp;
+      end
+    end
+
+  end
+
+  fmri_svbvolume(mmerged,outstem);
+
+  noverlap = length(find(mmerged > 0.5));
+  fprintf('nfinal = %d\n',noverlap);
+
+  fid = fopen(ovlpfile,'w');
+  if(fid == -1) 
+    fprintf('ERROR: could not open %s\n',ovlpfile);
+  else
+    fprintf(fid,'%d ',[nover noverlap]);
+    fprintf(fid,'\n');
+    fclose(fid);
+  end
+
+  if(~monly) 
+    fprintf('quitting matlab\n');
+    quit; 
+  end
+
+EOF
+#----------------------------------------------------------#
+
+  cat $MLF >> $LF
+
+  if(! $monly ) then
+    echo "Starting matlab"
+    cat $MLF | matlab -display inconic |& tee -a $LF
+    rm -f $MLF  
+    if($#inbhdr != 0) cp $inbhdr $outstem.bhdr
+  endif
+
+end # loop over SessList #
+
+
+echo mergecontrasts-sess Done |& tee -a $LF
+
+exit 0;
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-mergedcontrast":
+    case "-merged":
+    case "-mc":
+      if ( $#argv == 0) goto arg1err;
+      set mergedcontrast = $argv[1]; shift;
+      breaksw
+
+    case "-conjunction":
+    case "-conj":
+      if ( $#argv == 0) goto arg1err;
+      set conjunction = $argv[1]; shift;
+      breaksw
+
+    case "-ncontrasts":
+    case "-n":
+      if ( $#argv == 0) goto arg1err;
+      set ncontrasts = $argv[1]; shift;
+      breaksw
+
+    case "-contrast":
+    case "-c":
+      if( $#argv < 4) then
+        echo "ERROR: -contrast requires 4 arguments:"
+        echo "        contrast name, threshold, tail, and complement"
+        exit;
+      endif
+      set contrastlist = ($contrastlist $argv[1]); shift;
+      set threshlist   = ($threshlist   $argv[1]); shift;
+      set taillist     = ($taillist     $argv[1]); shift;
+      set complist     = ($complist     $argv[1]); shift;
+      breaksw
+
+    case "-map":
+      if ( $#argv == 0) goto arg1err;
+      set map = $argv[1]; shift;
+      breaksw
+
+    case "-a":
+    case "-analysis":
+      if ( $#argv == 0) goto arg1err;
+      set analysis = $argv[1]; shift;
+      breaksw
+
+    case "-space":
+      if ( $#argv == 0) goto arg1err;
+      set space = $argv[1]; shift;
+      if($space != tal && $space != sph) then
+        echo "ERROR: space must be either tal or sph"
+        exit 1;
+      endif
+      breaksw
+
+    case "-spacedir":
+      if ( $#argv == 0) goto arg1err;
+      set spacedir = $argv[1]; shift;
+      breaksw
+
+    case "-hemi":
+      if ( $#argv == 0) goto arg1err;
+      set hemi = $argv[1]; shift;
+      if($hemi != lh && $hemi != rh) then
+        echo "ERROR: hemi must be either lh or rh"
+        exit 1;
+      endif
+      breaksw
+
+    case "-monly":
+      if ( $#argv == 0) goto arg1err;
+      set MLF = $argv[1]; shift;
+      set monly = 1;
+      breaksw
+
+    case "-umask":
+      if ( $#argv == 0) goto arg1err;
+      set umaskarg = "-umask $argv[1]";
+      umask $argv[1]; shift;
+      breaksw
+
+    case "-verbose":
+      set verbose = 1;
+      breaksw
+
+    case "-echo":
+      set echo = 1;
+      breaksw
+
+    case "-debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    case "-nolog"
+    case "-cwd"
+      breaksw
+
+    case "-s":
+    case "-sf":
+    case "-df":
+    case "-d":
+    case "-g":
+      shift;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+arg4err:
+  echo "ERROR: flag $flag requires four arguments"
+  exit 1
+############--------------##################
+
+############--------------##################
+check_params:
+
+  if($#analysis == 0) then
+    echo "ERROR: no analysis specified"
+    exit 1
+  endif
+
+  if($#map == 0) then
+    echo "ERROR: no map specified"
+    exit 1
+  endif
+
+  set ncontrasts = $#contrastlist 
+  if($ncontrasts < 2) then
+    echo "ERROR: must specify at least 2 contrasts"
+    exit 1
+  endif
+
+  if($#mergedcontrast == 0) then
+    echo "ERROR: must specify merged contrast name "
+    exit 1
+  endif
+
+  if($#conjunction == 0) then
+    echo "ERROR: must specify conjunction (and, or, andor) "
+    exit 1
+  endif
+
+  if("$conjunction" != "and" && "$conjunction" != "or" && \
+     "$conjunction" != "andor") then
+    echo "ERROR: conjunction = $conjunction, must be 'and', 'or', or 'andor'"
+    exit 1;
+  endif
+
+
+  if("$conjunction" == "andor" && $ncontrasts != 2) then
+    echo "ERROR: there can only be two inputs for the 'andor' conjunction"
+    exit 1;
+  endif
+
+  foreach tail ($taillist)
+    if($tail != "pos" && $tail != "neg" && $tail != "abs") then
+      echo "ERROR: tail = $tail, must be pos, neg, or abs"
+      exit 1;
+    endif
+  end
+
+  foreach comp ($complist)
+    if($comp != 1 && $comp != 0) then
+      echo "ERROR: complement = $comp, must be 0 or 1"
+      exit 1;
+    endif
+  end
+
+  if($#hemi == 0 && $space == "sph") then
+    echo "ERROR: for space sph, need -hemi "
+    exit 1;
+  endif
+
+  if($#hemi != 0 && $space != "sph") then
+    echo "ERROR: for -hemi, space must be sph"
+    exit 1;
+  endif
+
+  if($#hemi != 0) set hemisuf = "-$hemi";
+
+  if($#space != 0 && $#spacedir == 0) set spacedir = $space;
+
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo "USAGE: mergecontrasts-sess"
+  echo "Options:";
+  echo "   -mergedcontrast name of new contrast"
+  echo "   -conjunction name : and, or, andor"
+  echo "   -analysis analysisname : name of session-level functional analysis";
+  echo "   -contrast   name thresh tail complement"
+  echo "   -map       mapname"
+  echo "   -space  spacename : tal or sph"
+  echo "   -spacedir spacedir : if not tal or sph"
+  echo "   -sf sessidfile  ..."
+  echo "   -df srchdirfile ..."
+  echo "   -s  sessid      ..."
+  echo "   -d  srchdir     ..."
+
+  echo "   -version       : print version and exit"
+  echo "   -help          : print help and exit"
+  echo "   -umask umask   : set unix file permission mask"
+
+  if($PrintHelp) \
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+This progam will merge two or more contrasts. The merging is done by
+comparing each thresholded contrast on a voxel-by-voxel basis. The
+result depends upon the conjunction chosen. For the 'and' conjunction,
+each contrast must meet the threshold criteria at a voxel for the
+voxel to be set to 1.  For the 'or' conjunction, the voxel is set to 1
+if any contrast meets the threshold criteria. Otherwise, the voxel is
+set to zero. For the 'andor' conjunction, a voxel is set to 2 if both
+of the inputs meet the criteria. If the first input meets the criteria,
+then the voxel is set to 1. If the second input meets the criteria,
+then the voxel is set to 2. Otherwise, the voxel is zero. The andor
+only makes sense with two input. The andor conjunction allows four
+distinct areas to be visualized.
+
+The output is a map with the same name as the input map which will be
+placed in a new contrast directory. The merged contrast can be
+accessed in the same was as any other contrast.  However, remember
+that the voxel values of the merged contrast will be either 0 or 1, so
+set thresholds appropriately.
+
+The contrast and threshold criteria are set with the -contrast flag.
+The first argument is the name of the contrast. The second is the
+threshold to apply. If the map is a significance map, then set the
+threshold based on log10(p) (eg, 2 = .01). The third argument is the
+tail, which can be either pos, neg, or abs for positive, negative, or
+ignore sign. The final arugment allows the user to use a
+complement. Ie, if the fourth argument is non-zero and the threshold
+criteria is met, then a 0 is input to the conjunction.
+
+There is a .ovlp file created with the following three numbers:
+ (a) number of voxels in contrast 1 that met threshold criteria
+ (b) number of voxels in contrast 2 that met threshold criteria
+ (c) number of voxels that overlapped
+

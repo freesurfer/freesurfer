@@ -1,0 +1,351 @@
+#!/bin/csh -f
+# func2tal
+# $Id: func2tal,v 1.1 2003/03/04 21:22:08 greve Exp $
+
+set FUNC2TAL_VER = '$Id: func2tal,v 1.1 2003/03/04 21:22:08 greve Exp $';
+
+set inputargs = ($argv)
+
+set funcstem = ();
+set functype = "auto";
+set talstem  = ();
+set talxfm   = ();
+set res      = ();
+set regfile  = ();
+set white    = 0;
+set DontRun  = 0;
+set xfmfile  = talairach.xfm # xfm found in mri/transforms
+
+if($#argv == 0) then
+  goto usage_exit;
+  exit 1;
+endif
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+set taldim = `echo 256/$res | bc`;
+
+# Make sure there is a copy of register.dat in
+# the functional directory (needed by stat_normalize)
+set fregfile = $funcdir/register.dat
+if(! -e $fregfile) then
+  cp $regfile $fregfile;
+  set rmfregfile = 1;
+else
+  set rmfregfile = 0;
+endif
+
+## Create the talairach directory if necessary ##
+set taldir = `dirname $talstem`;
+mkdir -p $taldir;
+if(! -d $taldir ) then
+  echo "ERROR: could not create $taldir"
+  exit 1;
+endif
+
+########### Create a log file ##############
+set LF = $taldir/func2tal.log
+echo "func2tal logfile is $LF"
+rm -f $LF
+touch $LF
+echo "func2tal log file" >> $LF
+echo "$FUNC2TAL_VER"     >> $LF
+pwd                      >> $LF
+echo "$0"                >> $LF
+echo $inputargs          >> $LF
+date                     >> $LF
+uname -a                 >> $LF
+which stat_normalize     >> $LF
+echo "funcstem $funcstem" >> $LF
+echo "functype $functype" >> $LF
+echo "white    $white"    >> $LF
+echo "talstem  $talstem"  >> $LF
+echo "talxfm   $talxfm"   >> $LF
+echo "res      $res"      >> $LF
+echo "taldim   $taldim"   >> $LF
+echo "-----------------"  >> $LF
+echo "regfile  $regfile"  >> $LF
+cat  $regfile             >> $LF
+echo "-----------------"  >> $LF
+if($functype == "selxavg") then
+  echo "$funcstem.dat"   >> $LF
+  head $funcstem.dat     >> $LF
+  echo "-----------------"  >> $LF
+endif
+df $taldir >> $LF
+
+############## Run stat_normalize ###############
+set SN = stat_normalize
+set cmd = ($SN -r $res -x $xfmfile $funcstem $talstem);
+echo $cmd >> $LF
+if(! $DontRun ) then
+  pwd |& tee -a $LF
+  $cmd |& tee -a $LF
+  set st = $status
+  if($st) then
+    echo "ERROR: stat_normalize exited with $st"
+    echo "$cmd"
+    exit $st;
+  endif
+else
+  echo $cmd
+endif
+
+####### for selxavg functional type ... #########
+if($functype == "selxavg") then
+
+  # Remove the .dof files if there
+  set doff0 = $talstem"_000.dof"
+  if(-e $doff0) rm -f $talstem"_"???.dof
+
+  ## Copy the .dat file ##
+  ## Change rows and cols in .dat file (this is a hack) ##
+  set dat1 = $funcstem.dat ;
+  set dat2 = $talstem.dat ;
+  cat $dat1 | awk -v taldim=$taldim \
+    '{if($1 == "Rows" || $1 == "Cols") print $1" "taldim; else print $0}'\
+    > $dat2
+endif
+
+##----- for selective frequency averages ------------#
+if($functype == "sfa") then
+  set sfafile1 = $funcstem.sfa
+  set sfafile2 = $talstem.sfa
+  cp  $sfafile1 $sfafile2
+endif
+
+## Convert the selxavg/sfa offset files ##
+if($functype == "sfa" || $functype == "selxavg") then
+  echo "-- Converting offset files --"
+  set cmd = ($SN -r $res -x $xfmfile $funcstem-offset $talstem-offset);
+  echo $cmd >> $LF
+  if(! $DontRun ) then
+    $cmd |& tee -a $LF
+    set st = $status
+    if($st) then
+      echo "ERROR: stat_normalize exited with $st"
+      echo "$cmd"
+      exit $st;
+    endif
+  else
+    echo $cmd
+  endif
+endif
+
+## Remove the local copy of register.dat, if need be ##
+if($rmfregfile) rm -f $fregfile
+
+## Change the subject name in the talairch register.dat ##
+set talreg    = $taldir/register.dat
+set talregtmp = $taldir/register.dat.tmp
+if($?TALAIRACH_SUBJECT) then
+  echo "$TALAIRACH_SUBJECT" > $talregtmp
+else
+  if(! $?FS_TALAIRACH_SUBJECT ) set FS_TALAIRACH_SUBJECT = talairach;
+  echo "$FS_TALAIRACH_SUBJECT" > $talregtmp
+endif
+tail +2 $talreg >> $talregtmp
+mv $talregtmp $talreg
+
+date >> $LF
+
+exit 0;
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-funcstem":
+      if ( $#argv == 0) goto arg1err;
+      set funcstem = $argv[1]; shift;
+      set funcdir = `dirname $funcstem`;
+      if(! -d $funcdir ) then
+        echo "ERROR: $funcdir does not exist"
+        exit 1;
+      endif
+      breaksw
+
+    case "-functype":
+      if ( $#argv == 0) goto arg1err;
+      set functype = $argv[1]; shift;
+      breaksw
+
+    case "-talstem":
+      if ( $#argv == 0) goto arg1err;
+      set talstem = $argv[1]; shift;
+      breaksw
+
+    case "-res":
+      if ( $#argv == 0) goto arg1err;
+      set res = $argv[1]; shift;
+      breaksw
+
+    case "-reg":
+      if ( $#argv == 0) goto arg1err;
+      set regfile = $argv[1]; shift;
+      breaksw
+
+    case "-talxfm": # Absolute path
+      if ( $#argv == 0) goto arg1err;
+      set talxfmfile = $argv[1]; shift;
+      echo "ERROR: absolute path to tal xfm not supported"
+      exit 1;
+      breaksw
+
+    case "-xfm": # Path relative to mri/transforms
+      if ( $#argv == 0) goto arg1err;
+      set xfmfile = $argv[1]; shift;
+      breaksw
+
+    case "-umask":
+      if ( $#argv == 0) goto arg1err;
+      umask $argv[1]; shift;
+      breaksw
+
+    case "-white":
+      set white = 1;
+      echo "ERROR: -white option not currently supported"
+      exit 1;
+      breaksw
+
+    case "-verbose":
+      set verbose = 1;
+      breaksw
+
+    case "-echo":
+      set echo = 1;
+      breaksw
+
+    case "-debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    case "-dontrun":
+      set DontRun = 1;
+      breaksw
+
+    case "--version":
+    case "-version":
+      echo $FUNC2TAL_VER
+      exit 0;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+  if($#funcstem != 1) then
+    echo "ERROR: must specify a single functional stem"
+    exit 1;
+  endif
+
+  ## Autodetect the type of the functional data if necessary ##
+  if("$functype" == "auto") then
+    set sfafile = $funcstem.sfa
+    if(-e $sfafile) then
+      set functype = sfa;
+    else
+      set datfile = $funcstem.dat
+      if(! -e $datfile) then
+        set functype = "raw";
+      else
+        set tmp = `grep Version $datfile `;
+        if($#tmp == 0) then
+          set functype = "selavg";
+        else
+          set functype = "selxavg";
+        endif
+      endif
+    endif
+    echo "INFO: autodetected functype $functype";
+  endif
+
+  if("$functype" != "selxavg" && "$functype" != "selavg" && \
+     "$functype" != "sfa") then
+    echo "ERROR: only selxavg, selavg, and sfa functypes are currently supported"
+    exit 1;
+  endif
+
+  if("$functype" == "raw" && $white) then
+    echo "ERROR: -white cannot be used with raw functype";
+    exit 1;
+  endif
+
+  if($#talstem != 1) then
+    echo "ERROR: must specify a single talairach stem"
+    exit 1;
+  endif
+
+  if($#res != 1) then
+    echo "ERROR: must specify a talairach resolution"
+    exit 1;
+  endif
+  if($res != 1 && $res != 2 && $res != 4 && $res != 8) then
+    echo "ERROR: res = $res, must be either 1, 2, 4, 8";
+    exit 1;
+  endif
+
+  if($#regfile == 0) then
+    set regfile = $funcdir/register.dat
+  endif
+  if(! -e $regfile ) then
+    echo "ERROR: $regfile does not exist"
+    exit 1;
+  endif
+
+  if($#talxfm == 0) then    
+    set subject = `head -n 1 $regfile`;
+    set talxfm = $SUBJECTS_DIR/$subject/mri/transforms/$xfmfile
+  endif
+  if(! -e $talxfm) then
+    echo "ERROR: $talxfm does not exist. Check that this"
+    echo "       subject has been successfully reconstructed."
+    exit 1;
+  endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo "USAGE: func2tal"
+  echo "Options:";
+  echo "   -funcstem stem : stem of functional volume to convert"
+  echo "   -functype type : type of functional volume (<auto>,selxavg,selavg,raw,sfa)"
+  echo "   -talstem stem  : stem of talairiach volume "
+  echo "   -res   mm      : talairach resolution in mm (1,2,4,8)"
+  echo "   -reg   file    : path of registration file (funcdir/register.dat)"
+  echo "   -xfm   file    : spec xfm file as found in subjid/mri/transforms"
+#  echo "   -talxfm  file  : spec full path to xfm file"
+#  echo "   -white         : assume spatial white noise (selxavg only)"
+  echo "   -umask umask   : set umask"
+  echo "   -version       : print version and exit"
+exit 1;

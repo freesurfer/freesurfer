@@ -1,0 +1,180 @@
+#!/bin/csh -f
+
+set VERSION = '$Id: mkblockpar,v 1.1 2003/03/04 21:22:09 greve Exp $';
+
+##### Print out version info, if needed ####
+set n = `echo $argv | grep version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+
+set TR           = ();
+set nepochs      = ();
+set epoch_idlist = ();
+set nper_epoch   = ();
+set parname      = ();
+set t0 = 0;
+
+if($#argv == 0) then
+  goto usage_exit;
+  exit 1;
+endif
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+# echo $epoch_idlist
+
+rm -f $parname
+touch $parname
+
+@ t = $t0;
+@ epoch = 1
+while($epoch <= $nepochs)
+  @ code = $epoch_idlist[$epoch];
+
+  @ ntr = 0;
+  while($ntr < $nper_epoch)
+    printf "%6.3f  %3d\n" $t $code >> $parname
+    @ t = `echo $t + $TR | bc -l`;
+    @ ntr = $ntr + 1;
+  end
+
+  @ epoch = $epoch + 1;
+end
+
+
+echo "Completed successfully"
+exit 0;
+###############################################
+
+
+############--------------##################
+parse_args:
+
+set cmdline = "$argv";
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-TR":
+      if ( $#argv == 0) goto arg1err;
+      set TR = $1; shift;
+      breaksw
+
+    case "-nepochs"
+    case "-ne"
+      if ( $#argv == 0) goto arg1err;
+      set nepochs = $1; shift;
+      breaksw
+
+    case "-epochid"
+      if($#nepochs == 0) then
+        echo "ERROR: must specify number of epochs before id list"
+        exit 1;
+      endif
+      if ( $#argv < $nepochs) goto arg1err;
+      @ epoch = 0;
+      while($epoch < $nepochs)
+        set epoch_idlist = ($epoch_idlist $1); shift;
+        @ epoch = $epoch + 1;
+      end
+      breaksw
+
+    case "-nperepoch"
+    case "-npe"
+      if ( $#argv == 0) goto arg1err;
+      set nper_epoch = $1; shift;
+      breaksw
+
+    case "-par":
+    case "-paradigm":
+    case "-parname":
+      if ( $#argv == 0) goto arg1err;
+      set parname = $1; shift;
+      breaksw
+
+    case "-umask":
+      if ( $#argv == 0) goto arg1err;
+      umask $1; shift;
+      breaksw
+
+    case "-verbose":
+      set verbose = 1;
+      breaksw
+
+    case "-debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized.
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+  if($#TR == 0) then
+    echo "ERROR: must specify a TR"
+    exit 1;
+  endif
+
+  if($#nepochs == 0) then
+    echo "ERROR: must specify number of epochs"
+    exit 1;
+  endif
+
+  if($#epoch_idlist == 0) then
+    echo "ERROR: must specify epoch id list"
+    exit 1;
+  endif
+
+  if($#nper_epoch == 0) then
+    echo "ERROR: must specify number of TRs per epoch"
+    exit 1;
+  endif
+
+  if($#parname == 0) then
+    echo "ERROR: must specify a paradigm file name"
+    exit 1;
+  endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo "USAGE: mkblockpar"
+  echo "   -TR TR "
+  echo "   -parname name   : name of paradigm file"
+  echo "   -nepochs   n    : number of epochs"
+  echo "   -epochid idlist : nepoch ids"
+  echo "   -nperepoch n    : number TRs per epoch"
+  echo "   -umask umask    : set unix file permission mask"
+  echo "   -version        : print version and exit"
+exit 1;
+
+
+
+
+

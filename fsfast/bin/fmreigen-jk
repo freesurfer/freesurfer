@@ -1,0 +1,412 @@
+#!/bin/csh -f
+############################################################
+# Name:    fmreigen-jk -- jackknifing
+############################################################
+
+set fmrianalver = `cat $FMRI_ANALYSIS_DIR/docs/version`;
+set FMREIGENJK_VER = '$Id: fmreigen-jk,v 1.1 2003/03/04 21:22:08 greve Exp $';
+
+set invols = ();
+set outvols = ();
+set globvol = ();
+set nmax = 40;
+set pervoxnorm = 0;
+set firstslice = ();
+set nslices    = ();
+set showpve    = 0;
+set segmaskvol = ();
+set baseline = 0;
+set detrend = 0;
+set nskip = 0;
+set monly = 0;
+set bext  = ();
+set seed = 0;
+
+if ( $#argv == 0 ) then
+  echo ""
+  echo "USAGE: fmreigen-jk [options] -i instem1 -o oustem1 -i instem2 -o oustem2 -g globstem";
+  echo ""
+  echo "Options:";
+  echo "   -segmask segmaskstem  : volume id of segmentation volume";
+  echo "   -nmax    nmax         : save at most nmax eigenvectors ($nmax)";
+  echo "   -showpve              : show graph of percent variance explained"
+  echo "   -baseline             : remove baseline offset "
+  echo "   -firstslice <int>     : first slice to process <autodetect>";
+  echo "   -nslices <int>        : number of slices to process <autodetect>";
+  echo "   -bext extension       : input volume extension (bfloat,bshort) <autodetect>";
+  echo ""
+  echo "  fMRIA Version $fmrianalver";
+  echo "  $FMREIGENJK_VER"
+  echo "  Author: Douglas N. Greve."
+  echo "          Massachusetts General Hospital - NMR Center"
+  echo "  Comments or questions: analysis-bugs@nmr.mgh.harvard.edu"
+  echo ""
+  exit 1;
+endif
+
+echo ""
+echo "  fMRIA Version $fmrianalver";
+echo "  $FMREIGENJK_VER"
+echo "  Comments or questions: analysis-bugs@nmr.mgh.harvard.edu"
+echo ""
+
+goto parse_args;
+parse_args_return:
+
+goto dump_params;
+dump_params_return:
+
+goto check_params;
+check_params_return:
+
+set MATLAB = `getmatlab`;
+if($status) exit 1;
+
+#### Create Output Directories #######
+foreach outvol ($outvols)
+  set OutDir = `dirname $outvol`;
+  if(! -d $OutDir ) mkdir -p $OutDir
+end
+set OutDir = `dirname $globvol`;
+if(! -d $OutDir ) mkdir -p $OutDir
+
+# Auto-detect FirstSlice  (if nec) #
+if($#firstslice == 0) then
+  set firstslice =  `getfirstsliceno $invols[1]`;
+  set st = $status;
+  if($st) then
+    echo "ERROR: cannot find any files with $invols[1]";
+    exit;
+  endif
+endif
+
+# Auto-detect Number of Slices (if nec) #
+if($#nslices == 0) then
+  set nslices =  `getnslices $invols[1]`;
+endif
+
+# Auto-detect Extension  (if nec) #
+if($#bext == 0) then
+  set bext =  `getbext $invols[1]`;
+endif
+
+@ lastslice = $firstslice + $nslices - 1;
+
+if ($monly) then
+  set TARGET = "tee $mfile"
+  rm -f $mfile;
+else
+  if($showpve) then
+    set TARGET = "$MATLAB"
+  else
+    set TARGET = "$MATLAB -display iconic"
+  endif
+endif  
+
+#---------------------------------------------------------------#
+$TARGET  <<EOF
+
+  if( ~ $monly ) QuitOnError = 1; 
+  else           QuitOnError = 0; 
+  end
+
+  rand('state',$seed);
+  MOnly  = $monly;
+  InVols  = splitstring(['$invols']);
+  OutVols = splitstring(['$outvols']);
+  GlobVol = '$globvol';
+  Nmax    = $nmax;
+  FirstSlice   = $firstslice;
+  LastSlice    = $lastslice;
+  NSlices      = $nslices;
+  ShowPVE      = $showpve;
+  SegMaskVol   = '$segmaskvol';
+  BExt         = '$bext';
+  Baseline     = $baseline;
+
+  if(~isempty(SegMaskVol)) seg = fmri_ldbvolume(SegMaskVol);
+  else                     seg = [];
+  end
+
+  %-------------------------------------------------%
+  % Compute the Temporal Covariance Matrix
+  %-------------------------------------------------%
+  fprintf('Loading input slices and computing temp cov mtx\n');
+  TCovMtx = 0;
+  Nvtot = 0;
+  Nruns = size(InVols,1);
+  for slice = FirstSlice:LastSlice
+
+    if(~isempty(seg))
+      ind = find(squeeze(seg(slice-FirstSlice+1,:,:)));
+    end
+
+    %---- Load all the runs for this slice ------%
+    fprintf('Slice %2d: Loading Run: ',slice);
+    fslice = [];
+    for run = 1:Nruns
+      fprintf('%2d ',run);
+      fname = sprintf('%s_%03d.%s',deblank(InVols(run,:)),slice,BExt);
+      y = fmri_ldbfile(fname);
+      [Nrows Ncols Nt] = size(y);
+      Nv = Nrows*Ncols;
+      y = reshape(y, [Nv Nt]);
+
+      % remove baseline here %
+
+      if(~isempty(seg)) y = y(ind,:); end
+
+      if(run == 1) fslice = zeros(size(y,1),Nt*Nruns); end
+      n1 = (run-1)*Nt + 1;
+      n2 = n1 + Nt -1;
+      fslice(:,n1:n2) = y;
+
+    end
+
+    fprintf('Computing Temporal Cov Mtx ');
+    tic;
+    TCovMtx = TCovMtx + fslice' * fslice; %'
+    fprintf(' %g\n',toc);
+    Nvtot   = Nvtot + size(fslice,1);
+  end
+  TCovMtx = TCovMtx/Nvtot;
+
+  % Computing SVD of Temporal Cov Mtx %
+  [V S2all tmp] = svd(TCovMtx);
+  Sall = sqrt(diag(S2all));
+  clear tmp S2all;
+
+  % Save Global Temporal Eigenvectors %
+  fname = sprintf('%s-tev.bfloat',deblank(GlobVol));
+  fmri_svbfile(V,fname);
+
+  % Save Global Eigenvalues %
+  fname = sprintf('%s-eval.dat',deblank(GlobVol));
+  save(fname,'Sall','-ascii');
+
+  % Save Global Percent Variance Explained %
+  pve = 100*cumsum(Sall.^2)/sum(Sall.^2);
+  fname = sprintf('%s-pve.dat',deblank(GlobVol));
+  save(fname,'pve','-ascii');
+
+  Sgall = Sall;
+  Vg    = V;
+  %-------------------------------------------------%
+  % Compute the Spatial Eigenvectors 
+  %-------------------------------------------------%
+  for slice = FirstSlice:LastSlice
+
+    fprintf('Reloading Slice %2d: Run: ',slice);
+    fslice = zeros(Nv,Nt*Nruns); 
+    for run = 1:Nruns
+      fprintf('%2d ',run);
+      fname = sprintf('%s_%03d.%s',deblank(InVols(run,:)),slice,BExt);
+      y = fmri_ldbfile(fname);
+      n1 = (run-1)*Nt + 1;
+      n2 = n1 + Nt -1;
+      y = reshape(y, [Nv Nt]);
+      fslice(:,n1:n2) = y;
+    end
+    fprintf('\n');
+
+    % Dont process all of the components %
+    Shat = Sgall(1:Nmax);
+    Vhat = Vg(:,1:Nmax);
+
+    %fprintf('Processing Global Spatial Eigenvectors\n');
+    U = fslice * (Vhat * (diag(1./Shat)/sqrt(Nvtot)));
+    fname = sprintf('%s-sev_%03d.bfloat',deblank(GlobVol),slice);
+    fmri_svbfile(reshape(U,[Nrows Ncols Nmax]),fname);
+
+    %fprintf('Processing Jackknifed Spatial Eigenvectors\n');
+    for run = 1:Nruns
+      fprintf('Run %2d \n',run);
+
+      % Get the indicies for the jackknife %
+      n1 = (run-1)*Nt+1;      
+      n2 = n1 + Nt - 1;
+      if(run == 1)         ind = [n2+1:Nruns*Nt];
+      elseif(run == Nruns) ind = [1:n1-1];
+      else                 ind = [1:n1-1 n2+1:Nruns*Nt];
+      end
+
+      % Extract Data for Jackknife %
+      Cjk = TCovMtx(ind,ind);
+      fslicejk = fslice(:,ind);
+
+      % Compute Jackknife SVD %
+      [V S2all tmp] = svd(Cjk);
+      Sall = sqrt(diag(S2all));
+      clear tmp S2all;
+
+      % Save Jackknife Temporal Eigenvectors %
+      fname = sprintf('%s-tev.bfloat',deblank(OutVols(run,:)));
+      fmri_svbfile(V,fname);
+
+      % Save Jackknife Eigenvalues %
+      fname = sprintf('%s-eval.dat',deblank(OutVols(run,:)));
+      save(fname,'Sall','-ascii');
+
+      % Save Global Percent Variance Explained %
+      pve = 100*cumsum(Sall.^2)/sum(Sall.^2);
+      fname = sprintf('%s-pve.dat',deblank(OutVols(run,:)));
+      save(fname,'pve','-ascii');
+
+      % Dont process all of the components %
+      Shat = Sall(1:Nmax);
+      Vhat = V(:,1:Nmax);
+
+      % Process Jackknifed Spatial Eigenvectors %
+      U = fslicejk * (Vhat * (diag(1./Shat)/sqrt(Nvtot)));
+      fname = sprintf('%s-sev_%03d.bfloat',deblank(OutVols(run,:)),slice);
+      fmri_svbfile(reshape(U,[Nrows Ncols Nmax]),fname);
+    end
+
+  end
+  %-------------------------------------------------%
+
+  if(ShowPVE)
+    hpve = figure;
+    pve = 100*cumsum(Sall)/sum(Sall);
+    eigcomp = [1:length(pve)];
+    plot(eigcomp,pve,neig,pve(neig),'+');
+    xlabel('Number of Eigenvectors');
+    ylabel('Percent Variance Explained');
+  end
+
+  if(ShowPVE & ~MOnly )
+    uiwait(hpve);
+  end
+
+  if(QuitOnError) quit; end
+
+EOF
+exit 0;
+############################################################
+
+############--------------##################
+parse_args:
+
+set cmdline = "$argv";
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-i":
+      if ( $#argv == 0) goto arg1err;
+      set invols = ($invols $argv[1]); shift;
+      breaksw
+
+    case "-o":
+      if ( $#argv == 0) goto arg1err;
+      set outvols = ($outvols $argv[1]); shift;
+      breaksw
+
+    case "-g":
+      if ( $#argv == 0) goto arg1err;
+      set globvol = $argv[1]; shift;
+      breaksw
+
+    case "-firstslice":
+    case "-fs":
+      if ( $#argv == 0) goto arg1err;
+      set firstslice = $argv[1]; shift;
+      breaksw
+
+    case "-nslices":
+    case "-ns":
+      if ( $#argv == 0) goto arg1err;
+      set nslices = $argv[1]; shift;
+      breaksw
+
+    case "-baseline":
+    case "-bl":
+      set baseline = 1;
+      breaksw
+
+    case "-nmax":
+      if ( $#argv == 0) goto arg1err;
+      set nmax = $argv[1]; shift;
+      breaksw
+
+    case "-nskip":
+      if ( $#argv == 0) goto arg1err;
+      set nskip = $argv[1]; shift;
+      breaksw
+
+    case "-monly":
+      if ( $#argv == 0) goto arg1err;
+      set monly = 1; 
+      set mfile = $argv[1]; shift;
+      breaksw
+
+    case "-segmask":
+      if ( $#argv == 0) goto arg1err;
+      set segmaskvol = $argv[1]; shift;
+      breaksw
+
+    case "-showpve":
+      set showpve = 1; 
+      breaksw
+
+    case "-debug":
+      set verbose = 1; 
+      breaksw
+
+    case "-synth":
+      if ( $#argv == 0) goto arg1err;
+      set seed = $argv[1]; shift;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized.
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+dump_params:
+echo ------- fmreigen parameters ------------
+echo OutputStems: $outvols
+echo InputStems:  $invols
+echo firstslice:  $firstslice;
+echo nslices:     $nslices
+echo baseline:    $baseline
+echo --------------------------------------
+goto dump_params_return;
+############--------------##################
+
+############--------------##################
+check_params:
+  if ($#invols < 1) then
+     echo "ERROR: must specify at least two input stems";
+     exit 1
+  endif
+
+  if ($#outvols != $#invols) then
+     echo "ERROR: must number of output stems must equal input stems";
+     exit 1
+  endif
+
+  if ($#globvol != 1) then
+     echo "ERROR: must specify a global stem"
+     exit 1;
+  end
+
+  endif
+goto check_params_return;
+############--------------##################
+
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################

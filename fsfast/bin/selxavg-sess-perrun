@@ -1,0 +1,409 @@
+#!/bin/csh -f
+# selxavg-sess
+#
+# $Id: selxavg-sess-perrun,v 1.1 2003/03/04 21:22:09 greve Exp $
+set VERSION = '$Id: selxavg-sess-perrun,v 1.1 2003/03/04 21:22:09 greve Exp $'
+set FASTVER = `cat $FMRI_ANALYSIS_DIR/docs/version`;
+
+set inputargs = "$argv";
+set DateStr = "`date '+%y%m%d%H%M'`"
+
+set analysis = ();
+set ScriptOnly = 0;
+set TopDir = `pwd`;
+set synthflag = "";
+set omnibus = 1;
+set svsnr    = 0;
+set sveres   = 0;
+set svsignal = 0;
+set svbeta = 0;
+set ffx = 1;
+set maskdir = masks
+set firstslice = ();
+set nslices = ();
+
+if($#argv == 0) then
+  goto usage_exit;
+  exit 1;
+endif
+
+set n = `echo $argv | grep version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+
+set PWD = `getpwdcmd`;
+if($status) exit 1;
+
+set StudyDir = `$PWD`;
+
+set SessList = `getsesspath $argv`;
+if($status || $#SessList == 0) then
+  getsesspath $argv 
+  exit 1;
+endif
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+# get full path for cfg and info files #
+pushd $analysis > /dev/null;
+set analysisdir = `pwd`;
+popd > /dev/null;
+set cfgfile  = $analysisdir/analysis.cfg
+set infofile = $analysisdir/analysis.info
+if(! -e $infofile) then
+  echo "ERROR: cannot find $infofile"
+  exit 1;
+endif
+
+## Get parameters from the info file ##
+set fsd       = `cat $infofile | awk '{if($1 == "fsd") print $2}'`;
+set funcstem  = `cat $infofile | awk '{if($1 == "funcstem") print $2}'`;
+set maskstem  = `cat $infofile | awk '{if($1 == "maskstem") print $2}'`;
+set parname   = `cat $infofile | awk '{if($1 == "parname") print $2}'`;
+set TR        = `cat $infofile | awk '{if($1 == "TR") print $2}'`;
+set tpexclude = `cat $infofile | awk '{if($1 == "tpexclude") print $2}'`;
+set runlistfile = `cat $infofile | awk '{if($1 == "runlistfile") print $2}'`;
+
+set WhitenFlag = `cat $cfgfile | awk '{if($1 == "-whiten") print 1}'`;
+if($#WhitenFlag == 0) set WhitenFlag = 0;
+echo "INFO: WhitenFlag = $WhitenFlag"
+
+##### Create a log file ######
+set logdir = `pwd`/log;
+mkdir -p $logdir
+if(! -e $logdir) then
+  echo "WARNING: could not create $logdir"
+  set LF = /dev/null
+else
+  set LF = $logdir/selxavg-sess-pr-$fsd-$analysis-$DateStr.log
+  if(-e $LF) mv $LF $LF.old
+endif
+echo "--------------------------------------------------------------"
+echo "selxavg-sess-perrun logfile is $LF"
+echo "--------------------------------------------------------------"
+
+echo "selxavg-sess log file" >> $LF
+echo $VERSION >> $LF
+echo "FAST Version $FASTVER"  >> $LF
+id            >> $LF
+pwd           >> $LF
+echo "$0"     >> $LF
+echo "$inputargs"  >> $LF
+uname -a      >> $LF
+date          >> $LF
+which selxavg2 >> $LF
+
+### Go through each session ###
+foreach sess ($SessList)
+
+  set sessbase = `basename $sess`;
+  set sessdir  = `dirname  $sess`;
+  echo "-------------------------------------------" |& tee -a $LF
+  echo "$sess " |& tee -a $LF
+  date |& tee -a $LF
+
+  if(! -d $sess) then
+    echo "ERROR: $sess does not exist"   |& tee -a $LF
+    exit 1;
+  endif
+
+  # Check whether to compute the whitening matrix
+  if($WhitenFlag) then
+    echo "INFO: computing whitening filter" |& tee -a $LF
+    date |& tee -a $LF
+    cd $StudyDir
+    set cmd = (mkdesmtx-sess -a $analysis -s $sessbase -d $sessdir)
+    set cmd = ($cmd -mktcvm -mask brain -perrun)
+    echo $cmd |& tee -a $LF
+    $cmd |& tee -a $LF 
+    if($status) exit 1;
+  endif
+
+  cd $sess/$fsd
+  if($#runlistfile == 0) then
+    set RunList = `getrunlist .`;
+    if($status || $#RunList == 0) then
+      echo "ERROR: $sess/$fsd has no runs"  |& tee -a $LF
+      exit 1;
+    endif
+  else
+    if(! -e $runlistfile) then
+      echo "ERROR: ($sessbase) could not find runlistfile $runlistfile"
+      exit 1;
+    endif
+    set RunList = (`cat $runlistfile`);
+  endif
+  echo "INFO ($sessbase): RunList = $RunList"
+  set nruns = $#RunList;
+
+  set pomnilist = ();
+  set ffxlist = ();
+  foreach run ($RunList)  
+    echo "-------- $sessbase, $run ----------"
+
+    set instem = $run/$funcstem
+
+    set tpexarg = ();
+    if($#tpexclude != 0) then
+      set tpexfile = $run/$tpexclude
+      if(-e $tpexfile) then
+        set tpexarg = "-tpexclfile $tpexfile"
+        echo "INFO: adding exclude file $tpexfile"
+      endif
+    endif
+
+    set whtnmtx = ();
+    if($WhitenFlag) set whtnmtx = ($whtnmtx -whtnmtx $analysis-$run/tcvm$run.mat)
+    set cmd = (selxavg2 -TR $TR -parname $parname -o $analysis-$run/h )
+    set cmd = ($cmd -i $instem $tpexarg -cfg $cfgfile $synthflag)
+    if($omnibus) then
+      set cmd = ($cmd -pomnibus $analysis-$run/omnibus/fsig)
+      set cmd = ($cmd -fomnibus $analysis-$run/omnibus/f)
+      set pomnilist = ($pomnilist $analysis-$run/omnibus/fsig)
+    endif
+    if($sveres)   set cmd = ($cmd -eresdir   $analysis-$run/eres)
+    if($svsignal) set cmd = ($cmd -signaldir $analysis-$run/signal)
+    if($svsnr)    set cmd = ($cmd -snrdir    $analysis-$run/estsnr)
+    if($svbeta)   set cmd = ($cmd -beta      $analysis-$run/beta)
+    if($#maskstem) set cmd = ($cmd -mask     $maskdir/$maskstem)
+    if($#firstslice) set cmd = ($cmd -firstslice $firstslice)
+    if($#nslices)    set cmd = ($cmd -nslices    $nslices)
+    set cmd = ($cmd $whtnmtx)
+
+    set ffxlist = ($ffxlist $analysis-$run/h )
+
+    echo "-----------------------------------------------" |& tee -a $LF
+    pwd |& tee -a $LF
+    echo "$cmd" |& tee -a $LF
+    echo "-----------------------------------------------" |& tee -a $LF
+
+    $cmd |& tee -a $LF
+    if($status) then
+      echo "ERROR ($sess,$run): selxavg failed"
+      exit 1;
+    endif
+    cp $analysis-$run/h.dat $analysisdir
+    cp $analysisdir/analysis.cfg $analysis-$run
+    cp $analysisdir/analysis.info $analysis-$run
+    echo $StudyDir > $analysis-$run/studydir
+  end # Loop over runs
+
+  if($ffx && $nruns == 1) then
+    echo "INFO: nruns = 1, cannot compute ffx"
+  endif
+
+  if($ffx && $nruns > 1) then
+    echo "INFO: computing fixed effect average across runs"
+    set cmd = (isxavg-fe -o $analysis-ffx/h);
+    foreach h ($ffxlist)
+      set cmd = ($cmd -i $h)
+    end
+    echo "-----------------------------------------------" |& tee -a $LF
+    pwd |& tee -a $LF
+    echo $cmd |& tee -a $LF
+    echo "-----------------------------------------------" |& tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) then
+      echo "ERROR ($sess): isxavg-fe failed"
+      exit 1;
+    endif
+    set cmd = (meanimg -o $analysis-ffx/h-offset);
+    foreach h ($ffxlist)
+      set cmd = ($cmd -i $h-offset)
+    end
+    echo "-----------------------------------------------" |& tee -a $LF
+    pwd |& tee -a $LF
+    echo $cmd |& tee -a $LF
+    echo "-----------------------------------------------" |& tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) then
+      echo "ERROR ($sess): meanimg failed"
+      exit 1;
+    endif
+  endif
+
+  if($omnibus) then
+    echo "INFO: merging omnibus fsig maps into fsigall"
+    if($ffx && $nruns > 1) then
+      set fsigall = $analysis-ffx/omnibus/fsigall
+    else
+      set fsigall = $analysis-$RunList[1]/omnibus/fsigall
+    endif
+    set cmd = (concat-bvolumes $pomnilist $fsigall)
+    $cmd |& tee -a $LF
+    if($status) then
+      pwd |& tee -a $LF
+      echo $cmd |& tee -a $LF
+      echo "ERROR: merging fsig volumes"
+    endif
+  endif
+
+end # End loop over sessions #
+
+echo " "
+echo "COMPLETED SUCCESSFULLY"
+echo " "
+
+exit 0;
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = "$argv";
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-a":
+    case "-analysis":
+      if ( $#argv == 0) goto arg1err;
+      set analysis = $argv[1]; shift;
+      breaksw
+
+    case "-fs":
+      if ( $#argv == 0) goto arg1err;
+      set firstslice = $argv[1]; shift;
+      breaksw
+
+    case "-ns":
+      if ( $#argv == 0) goto arg1err;
+      set nslices = $argv[1]; shift;
+      breaksw
+
+    case "-ffx":
+      set ffx = 1;
+      breaksw
+
+    case "-noffx":
+      set ffx = 0;
+      breaksw
+
+    case "-omnibus":
+      set omnibus = 1;
+      breaksw
+
+    case "-noomnibus":
+      set omnibus = 0;
+      breaksw
+
+    case "-sveres":
+      set sveres = 1;
+      breaksw
+
+    case "-nosveres":
+      set sveres = 0;
+      breaksw
+
+    case "-svsignal":
+      set svsignal = 1;
+      breaksw
+
+    case "-svbeta":
+      set svbeta = 1;
+      breaksw
+
+    case "-svsnr":
+      set svsnr = 1;
+      breaksw
+
+    case "-umask":
+      if ( $#argv == 0) goto arg1err;
+      umask $1; shift;
+      breaksw
+
+    case "-verbose":
+      set verbose = 1;
+      breaksw
+
+    case "-echo":
+      set echo = 1;
+      breaksw
+
+    case "-debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    case "-synth":
+      set synthflag = "-synth -1";
+      breaksw
+
+    case "-scriptonly":
+      set ScriptOnly = 1;
+      breaksw
+
+    case "-g":
+    case "-s":
+    case "-sf":
+    case "-d":
+    case "-df":
+      shift;
+      # ignore getsesspath arguments 
+      breaksw
+
+    case "-cwd":
+      # ignore getsesspath arguments 
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+  if ($#SessList == 0) then
+     echo "ERROR: no sessions specified"
+     exit 1
+  endif
+
+  if ($#analysis == 0) then
+     echo "ERROR: no analysis name specified"
+     exit 1
+  endif
+
+  if(! -d $analysis ) then
+    echo "ERROR: analysis $analysis does not exist, see mkanalysis-sess"
+    exit 1;
+  endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo "USAGE: selxavg-sess-perrun"
+  echo "Options:";
+  echo "   -analysis analysisname : name of session-level functional analysis"
+  echo "   -noffx : do not compute cross-run fixed effects average"
+  echo "   -noomnibus : do not compute omnibus for each run"
+  echo "   -sf sessidfile  ..."
+  echo "   -df srchdirfile ..."
+  echo "   -s  sessid      ..."
+  echo "   -d  srchdir     ..."
+  echo "   -scriptonly    : don't run, just generate a script"
+  echo "   -umask umask   : set unix file permission mask"
+  echo "   -version       : print version and exit"
+exit 1;

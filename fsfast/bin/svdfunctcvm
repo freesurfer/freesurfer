@@ -1,0 +1,564 @@
+#!/bin/csh -f
+############################################################
+# Name: svdfunctcvm
+############################################################
+
+set inputargs = ($argv);
+set fmrianalver = `cat $FMRI_ANALYSIS_DIR/docs/version`;
+set VERSION = '$Id: svdfunctcvm,v 1.1 2003/03/04 21:22:09 greve Exp $';
+
+## If there are no arguments, just print useage and exit ##
+if ( $#argv == 0  )  goto usage_exit;
+
+set n = `echo $argv | grep version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+
+set PWDCMD = `getpwdcmd`;
+
+# Set Default Values #
+set TR = ();
+set TER = ();
+set timewindow = 20.0;
+set timeoffset =  0.0;
+set baseline = 1;
+set detrend  = 1;
+set nskip = 0;
+set nonwhite = 0;
+set basegment = 1; 
+set tprestim = 0;
+set gammafit = 0;
+set delta = 2.25 
+set tau   = 1.25;
+set monly = 0;
+set mfile = ();
+set synchfile = ();
+set cfgfile = ();
+set tcvmstem = ();
+set svdsubdir = ();
+set svddirlist = ();
+
+set instems  = ();
+set parfiles = ();
+set parname = ();
+set TPExclFile = ();
+
+set usecfg = `echo $argv | egrep -e "-cfg" | wc -l`;
+if($usecfg > 0) then
+  goto parse_cfg;
+  parse_cfg_return:
+endif
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+set MATLAB = `getmatlab`;
+if($status) exit 1;
+
+## Get path for log-file ##
+set LF = $outstem"_svd.log"
+echo "Logfile is $LF"
+rm -f $LF;
+touch $LF;
+echo ------------------------------------------ >> $LF
+echo "svdfunctcvm $VERSION" >> $LF
+echo "Comments or questions: analysis-bugs@nmr.mgh.harvard.edu" >> $LF
+uname -a >> $LF
+hostname >> $LF
+date >> $LF
+pwd >> $LF
+echo $0 >> $LF
+echo $inputargs >> $LF
+
+foreach svddir ($svddirlist)
+  mkdir -p $svddir
+end
+
+## Set path for matlab file ##
+if(! $monly) then
+  set MLF = "/tmp/svd_$$.m"
+  set QuitOnError = 1;
+else
+  set MLF = $mfile;
+  set QuitOnError = 0;
+endif
+
+set okfile = svdfunctcvm.ok.$$
+rm -f $okfile
+
+echo matlab file is $MLF | tee -a $LF
+rm -f $MLF;
+echo "% Matlab file for svdfunctcvm `date`" >> $MLF
+echo "% This file may be deleted "     >> $MLF
+echo "% $MLF"                          >> $MLF;
+echo "global QuitOnError;"             >> $MLF;
+echo "QuitOnError = $QuitOnError;"     >> $MLF;
+set c = "";
+echo -n "r = fast_svdfunctcvm("     >> $MLF;
+foreach arg ($inputargs)
+  echo -n "$c '$arg'"      >> $MLF;
+  set c = ",";
+end
+echo -n ");" >> $MLF;
+echo " ">> $MLF;
+echo "if(r==0)" >> $MLF;
+echo "  fmri_touch('$okfile');" >> $MLF;
+echo "end" >> $MLF;
+echo "qoe;" >> $MLF;
+
+echo "----------- Matlab file --------------" | tee -a $LF
+cat $MLF | tee -a $LF
+echo " " | tee -a $LF
+echo "-----------------------------------" | tee -a $LF
+
+if(! $monly ) then
+  echo "------------------------------------------" | tee -a $LF
+  echo "------- matlab output --------------------" | tee -a $LF
+  cat $MLF | $MATLAB -display iconic # | tee -a $LF
+  echo "------------------------------------------" | tee -a $LF
+  rm $MLF
+  if(! -e $okfile) then
+    echo "ERROR: fast_svdfunctcvm() failed\n";
+    exit 1;
+  endif
+  rm -f $okfile
+endif
+
+echo " " | tee -a $LF
+echo " " | tee -a $LF
+date | tee -a $LF
+echo "svdfunctcvm Done" | tee -a $LF
+
+exit 0;
+############################################################
+
+############--------------##################
+parse_args:
+
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-i":
+      if ( $#argv == 0) goto arg1err;
+      set instems = ($instems $argv[1]); shift;
+      set TPExclFile = ($TPExclFile noexcl);
+      breaksw
+
+    case "-p":
+      if ( $#argv == 0) goto arg1err;
+      set parfiles = ($parfiles $argv[1]); shift;
+      breaksw
+
+    case "-parname":
+      if ( $#argv == 0) goto arg1err;
+      set parname = $argv[1]; shift;
+      breaksw
+
+    case "-tcvm":
+      if ( $#argv == 0) goto arg1err;
+      set tcvmstem = $argv[1]; shift;
+      breaksw
+
+    case "-svddir":
+      if ( $#argv == 0) goto arg1err;
+      set svddir = ($svddir $argv[1]); shift;
+      breaksw
+
+    case "-svdsubdir":
+      if ( $#argv == 0) goto arg1err;
+      set svdsubdir = $argv[1]; shift;
+      breaksw
+
+    case "-tpexclfile":
+    case "-tpx":
+      if ( $#instems == 0 ) then
+        echo "ERROR: instem must preceed tpxeclfile"
+        exit 1
+      endif    
+      if ( $#argv == 0) goto arg1err;
+      set TPExclFile[$#instems] = $argv[1]; shift;
+      breaksw
+
+    case "-o":
+      if ( $#argv == 0) goto arg1err;
+      set outstem = $argv[1]; shift;
+      breaksw
+
+    case "-TR":
+      if ( $#argv == 0) goto arg1err;
+      set TR = $argv[1]; shift;
+      breaksw
+
+    case "-TER":
+      if ( $#argv == 0) goto arg1err;
+      set TER = $argv[1]; shift;
+      breaksw
+
+    case "-timewindow":
+    case "-tw":
+      if ( $#argv == 0) goto arg1err;
+      set timewindow = $argv[1]; shift;
+      breaksw
+
+    case "-prewindow":
+    case "-prestim":
+    case "-ps":
+      if ( $#argv == 0) goto arg1err;
+      set tprestim = $argv[1]; shift;
+      breaksw
+
+    case "-timeoffset":
+    case "-to":
+      if ( $#argv == 0) goto arg1err;
+      set timeoffset = $argv[1]; shift;
+      breaksw
+
+    case "-firstslice":
+    case "-fs":
+      if ( $#argv == 0) goto arg1err;
+      set firstslice = $argv[1]; shift;
+      breaksw
+
+    case "-nslices":
+    case "-ns":
+      if ( $#argv == 0) goto arg1err;
+      set nslices = $argv[1]; shift;
+      breaksw
+
+    case "-nslicesvol":
+      if ( $#argv == 0) goto arg1err;
+      set nslicesvol = $argv[1]; shift;
+      breaksw
+
+    case "-ecovmtx":
+      if ( $#argv == 0) goto arg1err;
+      set ECovMtx = $argv[1]; shift;
+      breaksw
+
+    case "-whtnmtx":
+      if ( $#argv == 0) goto arg1err;
+      set WhtnMtx = $argv[1]; shift;
+      breaksw
+
+    case "-autowhiten":
+      if ( $#argv == 0) goto arg1err;
+      set MinCond = $argv[1]; shift;
+      set autowhiten = 1;
+      breaksw
+
+    case "-noautowhiten":
+      set autowhiten = 0;
+      breaksw
+
+    case "-sverrcovmtx":
+    case "-svecovmtx":
+      breaksw
+
+    case "-sveres":
+      set sveres = 1;
+      breaksw
+
+    case "-svsignal":
+      set svsignal = 1;
+      breaksw
+
+    case "-fomnibus":
+      if ( $#argv == 0) goto arg1err;
+      set fomnibus = $argv[1]; shift;
+      breaksw
+
+    case "-pomnibus":
+      if ( $#argv == 0) goto arg1err;
+      set pomnibus = $argv[1]; shift;
+      breaksw
+
+    case "-baseline":
+    case "-bl":
+      set baseline = 1;
+      breaksw
+
+    case "-nobaseline":
+      set baseline = 0;
+      breaksw
+
+    case "-acqorder"
+      if ( $#argv == 0) goto arg1err;
+      set acqorder = $argv[1]; shift;
+      breaksw
+
+    case "-interleave":
+      set interleave = 1;
+      breaksw
+
+    case "-nointerleave":
+      set interleave = 0;
+      breaksw
+
+    case "-detrend":
+    case "-dt":
+      set detrend = 1; 
+      set baseline = 1; 
+      breaksw
+
+    case "-nskip":
+      if ( $#argv == 0) goto arg1err;
+      set nskip = $argv[1]; shift;
+      breaksw
+
+    case "-hanrad":
+    case "-hr":
+      if ( $#argv == 0) goto arg1err;
+      set hanrad = $argv[1]; shift;
+      breaksw
+
+    case "-rescale":
+      if ( $#argv == 0) goto arg1err;
+      set rescale = $argv[1]; shift;
+      breaksw
+
+    case "-monly":
+      if ( $#argv == 0) goto arg1err;
+      set mfile = $argv[1]; shift;
+      set monly = 1; 
+      breaksw
+
+    case "-cfg":
+      if ( $#argv == 0) goto arg1err;
+      set cfgfile = $argv[1]; shift;
+      if(! -e $cfgfile ) then
+        echo "ERROR: $cfgfile does not exist"
+        exit 1;
+      endif
+      breaksw
+
+    case "-eresdir":
+      if ( $#argv == 0) goto arg1err;
+      set eresdir = $argv[1]; shift;
+      breaksw
+
+    case "-signaldir":
+      if ( $#argv == 0) goto arg1err;
+      set signaldir = $argv[1]; shift;
+      breaksw
+
+    case "-synch":
+    case "-synchfile":
+      if ( $#argv == 0) goto arg1err;
+      set synchfile = $argv[1]; shift;
+      breaksw
+
+    case "-synth":
+      if ( $#argv == 0) goto arg1err;
+      set seed  = $argv[1]; shift;
+      set synth = 1;
+      breaksw
+
+    case "-allvnull":
+    case "-avf":
+      set allvnull = 1;
+      breaksw
+
+    case "-debug":
+      set verbose = 1; 
+      set echo = 1;
+      breaksw
+
+    case "-nonwhite":
+      if ( $#argv == 0) goto arg1err;
+      set nonwhite = 1; 
+      @ nnoise_autocorr = $argv[1];shift;
+      if ($nnoise_autocorr < 2) then
+        echo "INFO: nonwhite=1 will assume white noise";
+        set nonwhite = 0; 
+      endif
+      breaksw
+
+    case "-basegment":
+    case "-baseg":
+      set basegment = 1; 
+      breaksw
+
+    case "-nobasegment":
+    case "-nobaseg":
+      set basegment = 0; 
+      breaksw
+
+    case "-segstem":
+      if ( $#argv == 0) goto arg1err;
+      set segstem = $argv[1]; shift;
+      breaksw
+
+    case "-gammafit":
+    case "-gf":
+      if ( $#argv < 2) then
+        echo "Flag $flag requires two arguments";
+        exit 1;
+      endif
+      set gammafit = 1;
+      set delta = $argv[1];shift;
+      set tau   = $argv[1];shift;
+      breaksw
+
+    case "-umask":
+      if ( $#argv == 0) goto arg1err;
+      umask $1; shift;
+      breaksw
+
+    case "-mail":
+      set mailuser = 1;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized.
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+  if($#instems == 0) then
+    echo "ERROR: must specify at least one input stem";
+    exit 1
+  endif
+
+  if($#TR == 0) then
+    echo "ERROR: must specify TR"
+    exit 1;
+  endif
+
+  if($#parfiles != 0 && $#parname != 0) then
+    echo "ERROR: cannot use both -p and -parname options"
+    exit 1;
+  endif
+
+  if($#parname != 0) then
+     set parfiles = ();
+     foreach i ($instems)
+       set idir = `dirname $i`;
+       set parfiles = ($parfiles $idir/$parname);
+     end
+  endif
+
+  # check that all the parfiles are there #
+  foreach par ($parfiles)
+    if(! -e $par ) then
+      echo "ERROR: cannot find $par"
+      exit 1;
+    endif
+  end
+
+  if($#svddirlist != 0 && $#svdsubdir != 0) then
+    echo "ERROR: cannot use both -svddir and -svdsubdir options"
+    exit 1;
+  endif
+
+  if($#svdsubdir != 0) then
+     set svddirlist = ();
+     foreach i ($instems)
+       set idir = `dirname $i`;
+       set svddirlist = ($svddirlist $idir/$svdsubdir);
+     end
+  endif
+
+  if($#instems != $#parfiles) then
+     echo "ERROR: Number of input stems ($#instems) does not "
+     echo "       match number of parfiles ($#parfile)"
+     exit 1
+  endif
+
+  if($#instems != $#svddirlist) then
+     echo "ERROR: Number of input stems ($#instems) does not "
+     echo "       match number of svddir ($#svddirlist)"
+     exit 1
+  endif
+
+  if($#instems != $#TPExclFile) then
+     echo "ERROR: Number of input stems ($#instems) does not "
+     echo "       match number of tpexcfiles ($#TPExclFile)"
+     exit 1
+  endif
+
+  if($#TER == 0) set TER = $TR;
+
+goto check_params_return;
+############--------------##################
+
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+parse_cfg:
+  @ n = 1;
+  while($n < $#argv)
+    if("$argv[$n]" == "-cfg") then
+      @ m = $n + 1;
+      set cfgfile = $argv[$m];
+      if(! -e $cfgfile ) then
+        echo "ERROR: $cfgfile does not exist"
+        exit 1;
+      endif
+    endif
+    @ n = $n + 1;
+  end
+
+  if($#cfgfile == 0) then
+    echo "ERROR: must specify config file with -cfg flag";
+    exit 1;
+  endif
+
+  echo "--- Parsing Config File: $cfgfile ----"
+  set cfgargs = `cat $cfgfile`;
+  echo $cfgargs
+  set argv = ($cfgargs $argv);
+
+goto parse_cfg_return;
+#--------------------------------------------------------------------#
+
+#--------------------------------------------------------------------#
+usage_exit:
+  echo "USAGE: svdfunctcvm";
+  echo "   instem1   - prefix of input file for 1st run";
+  echo "   parfile1  - path of parfile for 1st run";
+  echo "   [-tpexclfile file1] - file with timepoints of 1st run to exclude"
+  echo "   [instem2] - prefix of input file for 2nd run";
+  echo "   [parfile2]- path of parfile for 2st run";
+  echo "   [-tpexclfile file2] - file with timepoints of 2nd run to exclude"
+  echo "   outstem   - prefix of .bfloat output files"
+  echo "   ";
+  echo "Options:";
+  echo "   -TR <float>           : temporal scanning resolution in seconds ";
+  echo "   -TER <float>          : temporal estimation resolution <TR>";
+  echo "   -timewindow <float>   : length of hemodynamic response in seconds <20>";
+  echo "   -prestim <float>      : part of timewindow before stimulus onset (sec)";
+  echo "   -nobaseline           : do not remove baseline offset "
+  echo "   -detrend              : remove baseline offset and temporal trend"
+  echo "   -nskip <int>          : skip the first n data points in all runs"
+  echo "   -gammafit delta tau   : fit HDR amplitude to a gamma function ";
+  echo "   -timeoffset <float>   : offset added to time in par-file in seconds <0>";
+  echo "   -whtmtx   bfile       : whitening matrix";
+  echo "   -parname name         : use parname in each input directory for paradigm file"
+  echo "   -cfg file             : specify a configuration file";
+  echo "   -umask umask          : set unix file permission mask"
+  echo "   -version              : print version and exit"
+exit 1;
+#--------------------------------------------------------------------#
+
+

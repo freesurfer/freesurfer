@@ -1,0 +1,302 @@
+#!/bin/csh -f
+############################################################
+# Name:    isxavg
+# Purpose: 
+# Usage: isxavg -fs N -ns N -weight <string> -effect <string>
+#                -i instem1 -i instem2 -o outstem
+############################################################
+
+set ISXAVG_FE_VER = '$Id: isxavg-fe,v 1.1 2003/03/04 21:22:08 greve Exp $';
+
+set fmrianalver = `cat $FMRI_ANALYSIS_DIR/docs/version`;
+
+# Set Default Values #
+set instem  = ();
+set outstem = ();
+set firstslice = 0;
+set nslices = ();
+set weighted = 0;
+set weight  = ();
+set monly = 0;
+set pctsigch = 0;
+set truncsign = ();
+
+if ( $#argv < 4 ) then
+  echo "USAGE: isxavg-fe [-options] -i instem1 -i instem2 <...> -o outstem";
+  echo "   instem1   - prefix of first  .bfloat selxavg input files";
+  echo "   instem2   - prefix of second .bfloat selxavg input files";
+  echo "   ... "
+  echo "   outstem   - prefix of .bfloat isxavg-fe output files"
+  echo "Options:";
+  echo "   -firstslice <int>  : first slice to process <$firstslice>";
+  echo "   -nslices <int>     : number of slices to process <auto>";
+  echo "   -trunc sign - pos, neg: truncate contrasted input (neg = zero neg vals)"
+  echo "   -pctsigch          : use percent signal change"
+  echo "   -umask <mask>      : set umask before running"
+  echo "   -monly mfile       : dont run, just create a matlab script file"
+  echo ""
+  echo "  fMRIA Version $fmrianalver";
+  echo "  $ISXAVG_FE_VER"
+  echo "  Comments or questions: analysis-bugs@nmr.mgh.harvard.edu"
+  echo ""
+  exit 1;
+endif
+
+echo "  fMRIA Version $fmrianalver";
+echo "  isxavg-fe $ISXAVG_FE_VER, March 1, 1999" 
+echo "  Author: Douglas N. Greve."
+echo "          Massachusetts General Hospital - NMR Center"
+
+set MATLAB = `getmatlab`;
+if($status) exit 1;
+
+goto parse_args;
+parse_args_return:
+
+goto dump_params;
+dump_params_return:
+
+goto check_params;
+check_params_return:
+
+
+foreach i ($instem)
+  set SADir = `dirname $i`;
+  if( ! -d $SADir) then
+    echo "ERROR: directory $SADir does not exist."
+    exit 3;
+  endif
+
+  ### Check that there are input sxa files #####
+  set SABaseStem = `basename $i`;
+  set t = `ls $SADir`;
+  set nt = `echo $t | grep $SABaseStem | grep bfloat | wc -l`;
+  if( $nt == 0 ) then
+    echo "ERROR: no input files in $SADir matching $i*.bfloat"
+    exit 4;
+  endif
+
+  ## This gets the number of slices and checks consistency, it may need
+  ## to be changed to accomodate non-slice names.
+  set ns = `getnslices $i`;
+  if($status) then
+    echo "ERROR: reading $i"
+    exit 1;
+  endif
+  if($#nslices == 0) then
+    set nslices = $ns;
+    echo "INFO: detected $ns slices"
+  else
+    if($ns < $nslices) then
+      echo "ERROR: $i has inconsistent number of slices ($ns/$nslices)";
+      exit 1;
+    endif
+  endif
+
+end
+set PWDCMD = `getpwdcmd`;
+
+set OutDir = `dirname $outstem`;
+mkdir -p $OutDir
+pushd $OutDir > /dev/null
+set OutDir = `$PWDCMD`;
+popd > /dev/null
+set OutBaseStem = `basename $outstem`;
+mkdir -p $OutDir;
+
+## Get path for log-file ##
+set LF = $outstem"_isxavg.log"
+rm -f $LF;
+touch $LF;
+echo ------------------------------------------ >> $LF
+echo "isxavg-fe $ISXAVG_FE_VER" >> $LF
+echo "Comments or questions: analysis-bugs@nmr.mgh.harvard.edu" >> $LF
+echo `date` >> $LF
+echo "firstslice: $firstslice" >> $LF
+echo "nslices:    $nslices" >> $LF
+echo "outdir:    $OutDir" >> $LF
+echo "weight:    $weight" >> $LF
+
+## Set path for matlab file ##
+if(! $monly) then
+  set MLF = "/tmp/$OutBaseStem"$$"_isxa.m"
+else
+  set MLF = $mfile;
+endif
+rm -f $MLF;
+
+### Create the matlab file ####
+touch $MLF;
+echo "%%% --------------------------------- %%"  >> $MLF
+echo "% temporary matlab file to run isxavg-fe"    >> $MLF;
+echo "% $MLF"                          >> $MLF;
+if(! $monly) echo "global QuitOnError;"             >> $MLF
+if(! $monly) echo "QuitOnError = 1;"                >> $MLF
+if(! $monly) echo "if(exist('fmri_isxavg_fe')==0)"        >> $MLF;
+if(! $monly) echo "qoe('ERROR: matlab path incorrect');end;" >> $MLF  
+echo "InStemList = [];"   >> $MLF
+foreach stem ($instem)
+  echo "InStemList = strvcat(InStemList, '$stem');" >> $MLF
+end
+echo "OutStem    = '$outstem';"    >> $MLF
+echo "FirstSlice = $firstslice;" >>  $MLF
+echo "NSlices    = $nslices;" >>  $MLF
+echo "pctsigch   = $pctsigch;" >>  $MLF
+echo "weight     = [$weight];"   >>  $MLF
+echo "truncsign  = '$truncsign';" >>  $MLF
+echo "fmri_isxavg_fe;" >> $MLF
+
+if(! $monly ) echo "quit;" >> $MLF
+
+echo ----- Matlab File ----- >> $LF
+cat $MLF >> $LF
+echo ----- ------  ----- >> $LF
+ 
+if(! $monly) then
+  echo  ---- matlab output ----- | tee -a $LF
+  cat $MLF | $MATLAB -display iconic | tee -a $LF
+  echo  ---- matlab done ----- >> $LF
+  rm -f $MLF;
+
+  set bhdr0 = $instem[1].bhdr
+  if(-e $bhdr0)  cp $bhdr0 $outstem.bhdr
+endif
+
+echo -----------++++++++++--------------------- | tee -a $LF
+echo `date` | tee -a $LF
+echo Done   | tee -a $LF
+echo -----------++++++++++--------------------- | tee -a $LF
+
+exit 0;
+############################################################
+
+############--------------##################
+parse_args:
+
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-weight"
+    case "-weighted"
+      set weighted = 1;
+      breaksw
+
+    case "-i":
+
+      if( ! $weighted && $#argv == 0) goto arg1err;
+      if( $weighted && $#argv < 2) then
+        echo "ERROR: -i requires two arguments with -weighted"
+        exit 1;
+      endif
+      set instem = ($instem $argv[1]); shift;
+      if( $weighted ) then
+        set weight = ($weight $argv[1]); shift;
+      else
+        set weight = ($weight 1);
+      endif
+      breaksw
+
+    case "-o":
+      if( $#argv == 0) goto arg1err;
+      if( $#outstem != 0 ) then
+        echo ERROR: only one outstem allowed.
+        exit 1
+      endif
+      set outstem = $argv[1]; shift;
+      breaksw
+
+    case "-trunc":
+      if( $#argv == 0) goto arg1err;
+      set truncsign = $argv[1]; shift;
+      breaksw
+
+    #case "-weight":    
+    #case "-w":
+    #  if( $#argv == 0) goto arg1err;
+    #  set weight = $argv[1]; shift;
+    #  breaksw
+
+    case "-firstslice":
+    case "-fs":
+      if( $#argv == 0) goto arg1err;
+      set firstslice = $argv[1]; shift;
+      breaksw
+
+    case "-nslices":
+    case "-ns":
+      if( $#argv == 0) goto arg1err;
+      set nslices = $argv[1]; shift;
+      breaksw
+
+    case "-umask":
+      if( $#argv == 0) goto arg1err;
+      echo INFO: setting umask to $argv[1].
+      umask $argv[1]; shift;
+      breaksw
+
+    case "-monly":
+      if( $#argv == 0) goto arg1err;
+      set mfile = $argv[1]; shift;
+      set monly = 1; 
+      set MKeep = 1; 
+      breaksw
+
+    case "-pctsigch":
+      set pctsigch = 1;
+      breaksw
+
+    case "-debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized.
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+end
+
+#set InStemList = ( $InStemList" );" );
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+dump_params:
+echo ------- isxavg-fe parameters ------------
+echo instem  = $instem
+echo outstem = $outstem
+echo firstslice = $firstslice 
+echo nslices  = $nslices
+echo weight   = $weight
+goto dump_params_return;
+############--------------##################
+
+############--------------##################
+check_params:
+  if($#instem < 2) then
+     echo "ERROR: must specify at least two input stems";
+     exit 1
+  endif
+
+  if($#outstem != 1) then
+     echo "ERROR: must specify an output stem";
+     exit 1
+  endif
+
+goto check_params_return;
+############--------------##################
+
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+

@@ -1,0 +1,487 @@
+#!/bin/csh -f
+# lrst-blk
+#
+# $Id: lrst-blk,v 1.1 2003/03/04 21:22:09 greve Exp $
+set VERSION = '$Id: lrst-blk,v 1.1 2003/03/04 21:22:09 greve Exp $';
+
+set inputargs = ($argv);
+set DateStr = "`date '+%y%m%d%H%M'`"
+
+set TR = ();
+set FlowTimeConst = ();
+set VolTimeConst = ();
+set DelayRange = (); # Samples
+set DelayRes   = (); # Samples
+set Slice = ();
+set DetrendMethod = ();
+set TrendRemoval = ();
+set Directive = (); # E for estimation or I for inference
+set InStemList = ();
+set ParList = ();
+set EstDirList = ();
+set InfOutDir = ();
+set ContrastMat = ();
+set PrintHelp = 0;
+set MLF = ();
+set monly = 0;
+
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | grep version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+set n = `echo $argv | grep help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+##### Create a log file ######
+#set logdir = `pwd`;
+set logdir = $EstDirList[1];
+mkdir -p $logdir
+if(! -e $logdir) then
+  echo "WARNING: could not create $logdir"
+  set LF = /dev/null
+else
+  set LF = $logdir/lrst-$$.log
+  if(-e $LF) mv $LF $LF.old
+endif
+echo "--------------------------------------------------------------"
+echo "lrst-blk logfile is $LF"
+echo "--------------------------------------------------------------"
+
+echo "lrst-blk log file" >> $LF
+echo $VERSION >> $LF
+id            >> $LF
+pwd           >> $LF
+echo $0         >> $LF
+echo $inputargs >> $LF
+uname -a        >> $LF
+date            >> $LF
+
+set StartTime = `date`;
+
+set cfg = /tmp/lrst-blk-$$.cfg
+rm -f $cfg
+
+echo "INFO: cfg file is $cfg"
+
+echo "TR $TR" >> $cfg
+echo "FlowTimeConstant $FlowTimeConst" >> $cfg
+echo "VolumeTimeConstant $VolTimeConst" >> $cfg
+echo "DelayRange(Samples) $DelayRange" >> $cfg
+echo "DelayResolution(Samples) $DelayRes" >> $cfg
+echo "Slice(s) $Slice" >> $cfg
+echo "TrendRemoval $TrendRemoval" >> $cfg
+echo "Task $Directive" >> $cfg
+
+if($Directive == E || 1) then
+  foreach instem ($InStemList)
+    echo "stem $instem" >> $cfg
+  end
+endif
+
+foreach par ($ParList)
+  echo "designfile $par" >> $cfg
+end
+
+foreach est ($EstDirList)
+  echo "EstimationOutput $est" >> $cfg
+  if($Directive == E) mkdir -p $est
+end
+
+if($Directive == I) then
+  echo "InferenceOutput $InfOutDir" >> $cfg
+  echo "ContrastFile $ContrastMat" >> $cfg
+  mkdir -p $InfOutDir
+endif
+
+echo "------------ lrst-blk config file ----------" >> $LF
+cat $cfg >> $LF
+echo "------------ -------------------- ----------" >> $LF
+
+
+if($#MLF == 0) set MLF = /tmp/lrst_blk_$$.m
+rm -f $MLF
+echo "INFO: matlab file is $MLF"
+
+#-----------------------------------------------------------#
+tee $MLF <<EOF
+  cfgfile = '$cfg';
+  which bd_v2
+  bd_v2;
+EOF
+#-----------------------------------------------------------#
+
+if(! $monly ) then
+  cat $MLF | matlab -display iconic | tee -a $LF
+  rm $MLF
+endif
+
+echo " " | tee -a $LF
+echo "Started at $StartTime " | tee -a $LF
+echo "Ended   at `date`" | tee -a $LF
+echo " " | tee -a $LF
+
+#------- Copy the log and cfg files to output directories ---#
+if($Directive == E) then
+  @ nth = 1;
+  foreach est ($EstDirList)
+    cp $LF $est/lrst-blk-$Slice.log
+    cp $cfg $est/lrst-blk-$Slice.cfg
+    set bhdr = $InStemList[$nth].bhdr;
+    if(-e $bhdr) cp $bhdr $est/Cond_1.bhdr # need to do all conds
+    @ nth = $nth + 1;
+  end
+endif
+if($Directive == I) then
+  cp $LF $InfOutDir/lrst-blk-$Slice.log
+  cp $cfg $InfOutDir/lrst-blk-$Slice.cfg
+  cp $ContrastMat $InfOutDir
+  set bhdr = $EstDirList[1]/Cond_1.bhdr;
+  if(-e $bhdr) then
+    cp $bhdr $InfOutDir/f.bhdr # need to get
+    cp $bhdr $InfOutDir/fsig.bhdr # need to get
+  endif
+endif
+
+rm -f $cfg;
+if(! $monly) rm -f $MLF
+
+echo "lrst-blk Done" 
+echo " " 
+
+exit 0;
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-tr":
+    case "-TR":
+      if ( $#argv == 0) goto arg1err;
+      set TR = $argv[1]; shift;
+      breaksw
+
+    case "-ftc":
+      if ( $#argv == 0) goto arg1err;
+      set FlowTimeConst = $argv[1]; shift;
+      breaksw
+
+    case "-vtc":
+      if ( $#argv == 0) goto arg1err;
+      set VolTimeConst = $argv[1]; shift;
+      breaksw
+
+    case "-delayrange":
+    case "-drng":
+      if ( $#argv == 0) goto arg1err;
+      set DelayRange = $argv[1]; shift;
+      breaksw
+
+    case "-delayres":
+    case "-dres":
+      if ( $#argv == 0) goto arg1err;
+      set DelayRes = $argv[1]; shift;
+      breaksw
+
+    case "-slice":
+    case "-s":
+      if ( $#argv == 0) goto arg1err;
+      set Slice = $argv[1]; shift;
+      if($Slice == "all")  set Slice = ALL;
+      breaksw
+
+    case "-detrend":
+      if ( $#argv == 0) goto arg1err;
+      set DetrendMethod = $argv[1]; shift;
+      if($DetrendMethod != none && \
+         $DetrendMethod != linear && \
+         $DetrendMethod != whittle) then
+         echo "ERROR: detrending method must be either: "
+         echo "       none, linear, or whittle"
+         exit 1;
+      endif
+      switch($DetrendMethod)
+        case "none":    
+          set TrendRemoval = 0; breaksw
+        case "linear":  
+          set TrendRemoval = 1; breaksw
+        case "whittle": 
+          set TrendRemoval = 2; breaksw
+      endsw
+      #echo "TrendRemoval $DetrendMethod $TrendRemoval"
+      breaksw
+
+    case "-trend":
+    case "-t":
+      if ( $#argv == 0) goto arg1err;
+      set TrendRemoval = $argv[1]; shift;
+      breaksw
+
+
+    case "-directive":
+    case "-d":
+      if ( $#argv == 0) goto arg1err;
+      set Directive = $argv[1]; shift;
+      if($Directive != E & $Directive != I) then
+        echo "ERROR: Directive = $Directive, must be either E or I"
+        exit 1;
+      endif
+      breaksw
+
+    case "-i":
+      if ( $#argv == 0) goto arg1err;
+      set InStem = $argv[1]; shift;
+      set tmp = $InStem"_000.hdr";
+      if(! -e $tmp) then
+        echo "ERROR: cannot find $tmp"
+        exit 1;
+      endif
+      set InStemList = ($InStemList $InStem);
+      breaksw
+
+    case "-p":
+      if ( $#argv == 0) goto arg1err;
+      set ParFile = $argv[1]; shift;
+      if(! -e $ParFile) then
+        echo "ERROR: cannot find $ParFile"
+        exit 1;
+      endif
+      set ParList = ($ParList $ParFile);
+      breaksw
+
+    case "-e":
+      if ( $#argv == 0) goto arg1err;
+      set EstDirList = ($EstDirList $argv[1]); shift;
+      breaksw
+
+    case "-c":
+      if ( $#argv == 0) goto arg1err;
+      set ContrastMat = $argv[1]; shift;
+      breaksw
+
+    case "-inf":
+      if ( $#argv == 0) goto arg1err;
+      set InfOutDir = $argv[1]; shift;
+      breaksw
+
+    case "-monly":
+      if ( $#argv == 0) goto arg1err;
+      set MLF = $argv[1]; shift;
+      set monly = 1;
+      breaksw
+
+    case "-verbose":
+      set verbose = 1;
+      breaksw
+
+    case "-echo":
+      set echo = 1;
+      breaksw
+
+    case "-debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    case "-umask":
+      if ( $#argv == 0) goto arg1err;
+      umask $1; shift;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+  if($#Directive == 0) then
+    echo "ERROR: must specify a directive"
+    exit 1;
+  endif
+
+  if($#TR == 0) then
+    echo "ERROR: must specify TR"
+    exit 1;
+  endif
+
+  if($#Slice == 0) then
+    echo "INFO: no slice specified, assuming ALL"
+    set Slice = "ALL";
+  endif
+
+  if($#TrendRemoval == 0) then
+    echo "INFO: no trend removal specified, assuming linear"
+    set TrendRemoval = 1;
+  endif
+	
+
+  if($#FlowTimeConst == 0) then
+    echo "ERROR: must specify a flow time constant (-ftc)"
+    exit 1;
+  endif
+
+  if($#VolTimeConst == 0) then
+    echo "ERROR: must specify a volume time constant (-ftc)"
+    exit 1;
+  endif
+
+  if($#DelayRange == 0) then
+    echo "ERROR: must specify a delay range (-drng)"
+    exit 1;
+  endif
+
+  if($#DelayRes == 0) then
+    echo "ERROR: must specify a delay resolution (-dres)"
+    exit 1;
+  endif
+
+  if($#EstDirList == 0) then
+    echo "ERROR: no estimation stems specified"
+    exit 1;
+  endif
+
+  if($#ParList == 0) then
+    echo "ERROR: no paradigm files specified"
+    exit 1;
+  endif
+
+  if($#ParList != $#EstDirList) then
+    echo "ERROR: number of number of inputs does not equal number of est dirs"
+    exit 1;
+  endif
+
+  if($Directive == E || 1) then
+    if($#InStemList == 0) then
+      echo "ERROR: no input stems specified"
+      exit 1;
+    endif
+    if($#InStemList != $#ParList) then
+      echo "ERROR: number of paradigm files does not equal number of inputs"
+      exit 1;
+    endif
+  endif
+
+  if($Directive == I) then
+    if($#ContrastMat == 0) then
+      echo "ERROR: no contrast matrix file specified"
+      exit 1;
+    endif
+    if($#InfOutDir == 0) then
+      echo "ERROR: no inference output directory specified"
+      exit 1;
+    endif
+  endif  
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "USAGE: lrst-blk"
+  echo ""
+  echo "Required Arguments:";
+  echo "   -tr TR "
+  echo "   -ftc FlowTimeConst (sec)"
+  echo "   -vtc VolTimeConst (sec)"
+  echo "   -drng delay-range (TRs)"
+  echo "   -dres delay-resolution (TRs)"
+  echo "   -slice sliceno : slice number to process or ALL"
+  echo "   -detrend method : detrending method (<none>, linear, whittle)"
+  echo "   -d directive : E=estimate, I=inference"
+  echo "   -i instem1  <-i instem2  ...>"
+  echo "   -p parfile1 <-i parfile2 ...>"
+  echo "   -e estdir1  <-e estdir2  ...>"
+  echo "   -c contrast.mat "
+  echo "   -inf infdir : directory for inference output"
+  echo ""
+
+  if($PrintHelp) \
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+
+exit 1;
+
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+  Locally Regularised Spatio-Temporal fMRI analysis for blocked designs.
+
+  Parameter suggestions:
+  For most blocked designs, the following choice of parameters should
+  yield satisfactory results.
+
+     1) FlowTimeConstant 2.
+     2) VolumeTimeConstant 11.
+
+  Both of these parameters are linked to the hemodynamic convolution
+  model and essentially determine the speed at which the exponential
+  basis functions rise and fall. However, unless your experiment is
+  temporally complex, these values should not need to be adjusted.
+
+     3) DelayRange(Samples) 3 or 4.
+     4) DelayResolution(Samples) .5 or 1 for speed, lower if more 
+        exact delay maps are required.
+
+  After each signal estimation, the program slides the new model along
+  the fMRI time course, up to (3 say) TRs ahead, until it finds the
+  best correlation between the latest fit and the time course. The
+  delay resolution allows the steps to be arbitrarily fine, if latency
+  is a feature of interest. Otherwise for speed, a resolution of .5 or
+  1 should be sufficent and will improve signal estimates.
+
+     5) Trend removal method. method = none for no drift
+  estimation. method = linear for simple linear drift correction.
+  Some experiments will require a higher order trend removal for
+  adequate control of Type-1 errors.  The trend removal we have
+  choosen (method = whittle) is based on one of the earliest known
+  smoothing algorithms - that of Whittle (1953) which exacts a
+  penalised estimate of the low frequency trend in a time series,
+  based on its first or second order differences.
+
+  The estimation output will be a volumes with stem Cond_N, where N
+  is the condition number (there will be one for each condition).
+  This volume will have 11 frames:
+
+     1. Amplitude of flow-related gamma function
+     2. Amplitude of volume-related gamma function
+     3. Reserved for later use
+     4. Reserved for later use
+     5. Reserved for later use
+     6. Variance of AR1 noise component
+     7. Variance of white noise component
+     8. Correlation coefficient
+     9. Delay
+    10. Reserved for later use
+    11. Reserved for later use

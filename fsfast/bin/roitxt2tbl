@@ -1,0 +1,91 @@
+#!/bin/csh -f
+#
+# Converts the text files created by func2roi-sess into a table
+# with one column so that it is easier to read into external 
+# statistics programs. Each row has the following meaning:
+#
+# 1. nlabel - number of functional voxels in the label specified
+#      when running func2roi-sess. This number is zero if no label 
+#      is specified.       
+# 2. nroi - number of functional voxels in the final ROI (intersection
+#      of label and mask)
+# 3. offset - mean of the offsets in each voxel of the ROI. This
+#      can be used to compute percent signal change.
+# 4. eresstd - mean of the standard deviations of the residual error
+#      at each voxel in the ROI.
+# 5. DOF - degrees of freedom in eresstd
+# 6. TER - for event-related studies, this is the time between estimates
+#      that come later. This can be helpful for plotting.
+# 7. tPreStim - for event-related studies, this is the prestimulus
+#      window. This can be helpful for plotting.
+# 8. nconditions - number of non-null conditions
+# 9. nestspercond - number of estimates per condition
+# 10-N. These are the estimates for each condition.  There  will be a
+#    block for each condition. Each block is length nestspercond.
+#
+
+if($#argv != 4) then
+  echo "USAGE: roitxt2tbl h.dat h.txt hoffset.txt tablefile"
+  exit 1;
+endif
+
+set hdat    = $argv[1];
+set htxt    = $argv[2];
+set hotxt   = $argv[3];
+set tblfile = $argv[4];
+
+foreach infile ($hdat $htxt $hotxt)
+  if(! -e $infile) then
+    echo "ERROR: cannot find $infile"
+    exit 1;
+  endif
+end
+
+# Get the relevant info from the selxavg dat file #
+set Nh  = `cat $hdat | awk '{if($1=="Nh") print $2}'`;
+set Nc  = `cat $hdat | awk '{if($1=="nCond") print $2}'`;
+set DOF = `cat $hdat | awk '{if($1=="DOF") print $2}'`;
+set TER = `cat $hdat | awk '{if($1=="TER") print $2}'`;
+set TPS = `cat $hdat | awk '{if($1=="TPreStim") print $2}'`;
+foreach v ($Nh $Nc $TER $TPS)
+  if($#v != 1) then
+    echo "ERROR: it appears that $hdat file is not formatted correctly"
+    exit 1;
+  endif
+end
+@ Nc = $Nc - 1;
+
+## Get info from the h-offset txt file #
+set nlabel = `head -n 1 $hotxt`;
+set nroi   = `head -n 2 $hotxt | tail -1`;
+set offset = `head -n 3 $hotxt | tail -1`;
+
+## Get residual error std dev from h.txt file #
+@ n = 3 + $Nh
+set eresstd = `head -n $n $htxt | tail -1`;
+
+set outdir = `dirname $tblfile`;
+mkdir -p $outdir
+rm -f $tblfile
+
+echo $nlabel >> $tblfile
+echo $nroi >> $tblfile
+echo $offset >> $tblfile
+echo $eresstd >> $tblfile
+echo $DOF >> $tblfile
+echo $TER >> $tblfile
+echo $TPS >> $tblfile
+echo $Nc >> $tblfile
+echo $Nh >> $tblfile
+
+@ n = 2 + 3 * $Nh
+@ c = 1;
+while($c <= $Nc)
+  head -n $n $htxt | tail -$Nh >> $tblfile
+  @ n = $n + $Nh * 2;
+  @ c = $c + 1;
+end
+
+
+
+exit 0;

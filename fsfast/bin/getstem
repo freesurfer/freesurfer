@@ -1,0 +1,42 @@
+#!/bin/csh -f
+##########################################
+# Name: getstem
+# Purpose: strips off the _XXX.bxxxx portion
+#   of its argument to obtain the stem.  This
+#   seems like a hokey way to do it, but it
+#   works.
+# '$Id: getstem,v 1.1 2003/03/04 21:22:08 greve Exp $'
+##########################################
+
+set VER = '$Id: getstem,v 1.1 2003/03/04 21:22:08 greve Exp $';
+
+if($#argv != 1) then
+  echo "USAGE getstem bfilename"
+  echo "  version: $VER"
+  exit 1;
+endif
+
+set orig  = `basename $argv[1]`;
+set odir  = `dirname $argv[1]`;
+set fname = $orig
+set c = `printf %c $fname`;
+@ n = 1;
+while("$c" != "_" && "$c" != "")
+  #echo $c
+  set fname = `echo $fname | sed s/$c//`;
+  #echo $fname
+  set c = `printf %c $fname`;
+  @ n = $n + 1;
+end
+
+if("$c" == "_") then
+  @ n = $n - 1;
+  set fmt = `printf %%%d.%ds $n $n`;
+  printf "$odir/$fmt" $orig
+else
+  echo "ERROR: getstem could not parse string"
+  exit 1;
+endif
+
+exit 0;
+#########################################

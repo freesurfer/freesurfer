@@ -1,0 +1,448 @@
+#!/bin/csh -f
+############################################################
+# Name:  func2acf
+############################################################
+
+set inputargs = ($argv);
+set VERSION = '$Id: func2acf,v 1.1 2003/03/04 21:22:08 greve Exp $';
+
+set PrintHelp = 0;
+set instem = ();
+set maskstem = ();
+set xmatfile = ();
+set xname = ();
+set UseAR = 0;
+set AROrder = ();
+set UseSVD = 0;
+set acfstem = ();
+set nmax = ();
+set PolyFitOrder = ();
+set synth = 0;
+set monly = 0;
+set MLF = ();
+set LF = ();
+set fwhm = ();
+
+## If there are no arguments, just print useage and exit ##
+if ( $#argv == 0  )  goto usage_exit;
+set n = `echo $argv | grep help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+
+set n = `echo $argv | grep version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+set StartDate = `date`;
+set CurDir = `pwd`;
+
+if($#MLF == 0) set MLF = $acfdir/func2acf.m
+if(-e $MLF) mv $MLF $MLF.bak
+echo "Matlab file is $MLF"
+
+if($#LF == 0) set LF = $acfstem.log
+if(-e $LF) mv $LF $LF.bak
+echo "Log file is $LF"
+
+echo "Log file for func2acf" >> $LF
+echo $StartDate >> $LF
+echo $CurDir    >> $LF
+which func2acf  >> $LF
+echo $inputargs >> $LF
+df $acfdir      >> $LF
+echo "matlab file $MLF" >> $LF
+
+#---------------------------------------------#
+      #--------------------------------#
+tee $MLF <<EOF
+
+tic;
+ystem   = '$instem';
+maskstem = '$maskstem';
+xmatfile = '$xmatfile';
+pforder  = [$PolyFitOrder];
+UseAR    = $UseAR;
+AROrder  = [$AROrder];
+UseSVD   = $UseSVD;
+acfstem  = '$acfstem';
+nmax = [$nmax];
+
+mask = [];
+fprintf('\n\n');
+
+%--------- Load input --------------------------------%
+fprintf('Loading %s (%g)\n',ystem,toc);
+y = fmri_ldbvolume(ystem);
+if(isempty(y))
+  fprintf('ERROR: could not load %s\n',ystem);
+  return;
+end
+[ns nr nc nf] = size(y);
+nv = ns*nr*nc;
+y = reshape(y,[nv nf])'; %'
+
+% --------- Set the max ACF length ----------------------%
+if(isempty(nmax)) nmax = nf; end
+if(nmax > nf) 
+  fprintf('ERROR: nmax=%d, but cannot exceed %d\n',nmax,nf);
+  return;
+end
+
+% ------------------ Read in mask -----------------------%
+if(~isempty(maskstem))
+  fprintf('Loading %s (%g)\n',maskstem,toc);
+  mask = fmri_ldbvolume(maskstem);
+  if(isempty(mask))
+    fprintf('ERROR: could not load %s\n',maskstem);
+    return;
+  end
+  imask = find(mask);
+  if(isempty(imask))
+    fprintf('ERROR: no voxels found in mask\n');
+    return;
+  end
+  nmask = length(imask);
+  fprintf('Found %d/%d (%4.1f%%) voxels in mask\n',nmask,nv,100*nmask/nv);
+  y = y(:,imask);
+else
+  nmask = nv;
+end
+
+%----------- Create X matrix ----------------------------%
+X = [];
+if(~isempty(xmatfile))
+  XX = load(xmatfile);
+  if(isempty(XX))
+    fprintf('ERROR: could not load %s\n',xmatfile);
+    return;
+  end
+  if(~isfield(XX,'Xfinal'))
+    fprintf('ERROR: %s does not have Xfinal field\n',xmatfile);
+    return;
+  end
+  X = XX.Xfinal;
+end
+if(~isempty(pforder))
+  X = fast_polytrendmtx(1,nf,1,pforder);
+end
+DOF = nf - size(X,2);
+
+if(~isempty(X))
+  fprintf('Detrending  (%g)\n',toc);
+  R = eye(nf) - X*inv(X'*X)*X';
+  y = R*y;
+end
+
+if(UseAR)
+  fprintf('Estimating AR1  (%g)\n',toc);
+  nn1 = 1:nf-1;
+  nn2 = 2:nf;
+  yvar = sum(y.^2)/DOF;
+  rho = (sum(y(nn1,:).*y(nn2,:))/(DOF-1))./yvar;
+
+  fprintf('Computing ACF  (%g)\n',toc);
+  nn = repmat([0:nmax-1]',[1 nmask]); %'
+  rhotmp = repmat(rho,[nmax 1]);
+  acf = rhotmp.^nn;
+  clear nn rhotmp;
+end
+
+if(~UseAR)
+  fprintf('Estimating Raw ACF (%g)\n',toc);
+  acf0 = fast_acorr(y);
+  if(nmax ~= nf) acf0 = acf0(1:nmax,:); end
+
+  if(UseSVD)
+    fprintf('Estimating ACF with SVD (%g)\n',toc);
+    [acf nkeep pva u] = fast_acf_svdreg(acf0);
+    cpva = cumsum(pva);
+    fprintf('INFO: nkeep = %d\n',nkeep);
+    if(nkeep > 0) fprintf('      cpva = %g\n',cpva(nkeep)); end
+  else
+    acf = acf0;
+  end
+
+  clear acf0;
+end
+clear y;
+
+if(~isempty(mask))
+  fprintf('Unmasking ACF  (%g)\n',toc);
+  acfsave = zeros(nmax,nv);
+  acfsave(1,:) = 1;
+  acfsave(:,imask) = acf;
+else
+  acfsave = acf;
+end
+clear acf;
+
+fprintf('Saving ACF  (%g)\n',toc);
+acfsave = reshape(acfsave',[ns nr nc nmax]); %'
+fmri_svbvolume(acfsave,acfstem);
+
+return;
+quit;
+
+EOF
+      #--------------------------------#
+#---------------------------------------------#
+
+if(! $monly) then
+  cat $MLF | matlab -display iconic | tee -a $LF
+  rm $MLF
+  if(-e $instem.bhdr) cp $instem.bhdr $acfstem.bhdr
+
+  if( $#fwhm != 0 ) then
+    echo "Spatially Smoothing --------- " | tee -a $LF
+    date | tee -a $LF
+    set cmd = (ipfsl -i $acfstem -o $acfstem -fwhm $fwhm -pct .1);
+    echo $cmd | tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) exit 1;
+  endif
+
+endif
+
+
+set EndDate = `date`;
+echo "Started at $StartDate" | tee -a $LF
+echo "Ended   at $EndDate"   | tee -a $LF
+echo " " | tee -a $LF
+echo " " | tee -a $LF
+echo "func2acf: finished" | tee -a $LF
+echo " " | tee -a $LF
+ #--------------------------------#
+
+exit 0;
+############################################################
+
+############--------------##################
+parse_args:
+
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-i":
+      if ( $#argv == 0) goto arg1err;
+      set instem = $argv[1]; shift;
+      breaksw
+
+    case "-mask":
+      if ( $#argv == 0) goto arg1err;
+      set maskstem = $argv[1]; shift;
+      breaksw
+
+    case "-x":
+      if ( $#argv == 0) goto arg1err;
+      set xmatfile = $argv[1]; shift;
+      breaksw
+
+    case "-xname":
+      if ( $#argv == 0) goto arg1err;
+      set xname = $argv[1]; shift;
+      breaksw
+
+    case "-ar":
+      if ( $#argv == 0) goto arg1err;
+      set AROrder = $argv[1]; shift;
+      set UseAR = 1;
+      if($AROrder > 1) then
+        echo "ERROR: only AR1 supported"
+        exit 1;
+      endif
+      breaksw
+
+    case "-svd":
+      set UseSVD = 1;
+      #if ( $#argv == 0) goto arg1err;
+      #set SVDVal = $argv[1]; shift;
+      breaksw
+
+    case "-acf":
+      if ( $#argv == 0) goto arg1err;
+      set acfstem = $argv[1]; shift;
+      breaksw
+
+    case "-fwhm":
+      if ( $#argv == 0) goto arg1err;
+      set  fwhm = $argv[1]; shift;
+      breaksw
+
+    case "-lf":
+      if ( $#argv == 0) goto arg1err;
+      set LF = $argv[1]; shift;
+      breaksw
+
+    case "-nmax":
+      if ( $#argv == 0) goto arg1err;
+      set nmax = $argv[1]; shift;
+      breaksw
+
+    case "-pf":
+      if ( $#argv < 1) goto arg1err;
+      set PolyFitOrder = $argv[1]; shift;
+      breaksw
+
+    case "-monly":
+      if ( $#argv == 0) goto arg1err;
+      set MLF = $argv[1]; shift;
+      set monly = 1; 
+      breaksw
+
+    case "-synth":
+      if ( $#argv == 0) goto arg1err;
+      set seed  = $argv[1]; shift;
+      set synth = 1;
+      breaksw
+
+    case "-umask":
+      if ( $#argv == 0) goto arg1err;
+      umask $1; shift;
+      breaksw
+
+    case "-debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized.
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+  if($#instem == 0) then
+    echo "ERROR: must specify an input";
+    exit 1
+  endif
+
+  if($#acfstem == 0) then
+    echo "ERROR: must specify an output (-acf)";
+    exit 1
+  endif
+
+  if($#xmatfile != 0) then
+    if(! -e $xmatfile) then
+      echo "ERROR: cannot find $xmatfile";
+      exit 1
+    endif
+  endif
+
+  if($#xmatfile && $#PolyFitOrder) then
+    echo "ERROR: cannot use both X and PF";
+    exit 1
+  endif
+
+  if($#maskstem != 0) then
+    set tmp = $maskstem"_000.hdr"
+    if(! -e $tmp) then
+      echo "ERROR: cannot find $tmp"
+      exit 1;
+    endif
+  endif
+
+  set acfdir = `dirname $acfstem`;
+  mkdir -p $acfdir
+  if($status) then
+    echo "ERROR: could not create $acfdir"
+    exit 1;
+  endif
+
+  if($#LF != 0) then
+    set d = `dirname $LF`;
+    mkdir -p $d
+    if($status) then
+      echo "ERROR: could not create $d"
+      exit 1;
+    endif
+  endif
+
+  if($#MLF != 0) then
+    set d = `dirname $MLF`;
+    mkdir -p $d
+    if($status) then
+      echo "ERROR: could not create $d"
+      exit 1;
+    endif
+  endif
+
+goto check_params_return;
+############--------------##################
+
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+#--------------------------------------------------------------------#
+usage_exit:
+  echo "USAGE: func2acf"
+  echo ""
+  echo " -i instem"
+  echo " -x matfile"
+  echo " -xname name : variable name in matfile <Xfinal>"
+  echo " -ar N       : compute acf using ar N model"
+  echo " -svd        : average acf using svd "
+  echo " -mask maskstem : for svd"
+  echo " -fwhm fwhm  : spatially filter output ACF"
+  echo ""
+  echo " -acf acfstem : output"
+  echo " -nmax n      : truncate acf at nmax lags"
+  echo ""
+  echo " -umask umask          : set unix file permission mask"
+  echo " -version              : print version and exit"
+  echo " -help "
+  echo ""
+
+
+  if($PrintHelp) \
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+
+exit 1;
+#--------------------------------------------------------------------#
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+Computes the autocorrelation (autocovariance) function. The function
+can be raw (default) or it can be based on some model. The models
+can be svd (ie, spatially smoothing of the raw ACF using singular
+value decomposition). Or it can be AR (-ar). Currently only AR1
+is supported. If an xmatfile is supplied, the raw data will be
+detreneded using a matrix (Xfinal) found in that file. Alternatively,
+the raw data can be detrended using a polynomial model. If nmax is
+set, then the ACF will have at most nmax components (including the
+leading 1 at zero lag).
+
+
+
+
+
+
+
+
+

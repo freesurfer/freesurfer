@@ -1,0 +1,385 @@
+#!/bin/csh -f
+############################################################
+# Name:    spatfiil
+############################################################
+
+set fmrianalver = `cat $FMRI_ANALYSIS_DIR/docs/version`;
+set SPATFIL_VER = '$Id: spatfil,v 1.1 2003/03/04 21:22:09 greve Exp $'
+
+set eigvol = ();
+set invol  = ();
+set outvol = ();
+set firstslice = ();
+set nslices    = ();
+set seed = 0;
+set nskip = 0;
+set monly = 0;
+set inbext  = ();
+set outbext = "bfloat";
+set xform   = "none";
+set nmax    = 100000;
+set flat    = 1;
+set suppress = 1;
+set scalemin = 0;
+set showpve  = 0;
+set nexclude = 0;
+
+if ( $#argv == 0 ) then
+  echo "USAGE: spatfil -options -i instem -e eigstem -o outstem ";
+  echo "   instem  - input volume id ";
+  echo "   eigstem - eigenvector volume id ";
+  echo "   outstem - output volume id ";
+  echo ""
+  echo "Options:";
+  echo "   -showpve "
+  echo "   -noflat            : do not set all eigen values to 1";
+  echo "   -nosuppress        : compute yhat = Fy instead of yhat = y - Fy"
+  echo "   -xform xformstring : none, sqrt, inv, invsqrt, ssp <$xform>" 
+  echo "   -scalemin          : scale eigenvalues by min"
+  echo "   -nmax    nmax      : use at most nmax eigen vectors"
+  echo "   -exclude n         : dont use first n eigen vectors ($nexclude)"
+  echo "   -firstslice <int>  : first slice to process <autodetect>";
+  echo "   -nslices <int>     : number of slices to process <autodetect>";
+  echo "   -inbext extension  : input volume extension (bfloat,bshort) <autodetect>";
+  echo "   -outbext extension : output volume extension ($outbext)";
+  echo ""
+  echo "  fMRIA Version $fmrianalver";
+  echo "  $SPATFIL_VER"
+  echo "  Author: Douglas N. Greve."
+  echo "          Massachusetts General Hospital - NMR Center"
+  echo "  Comments or questions: analysis-bugs@nmr.mgh.harvard.edu"
+  echo ""
+  exit 1;
+endif
+
+echo ""
+echo "  fMRIA Version $fmrianalver";
+echo "  $SPATFIL_VER"
+echo "  Comments or questions: analysis-bugs@nmr.mgh.harvard.edu"
+echo ""
+
+goto parse_args;
+parse_args_return:
+
+goto dump_params;
+dump_params_return:
+
+goto check_params;
+check_params_return:
+
+set MATLAB = `getmatlab`;
+if($status) exit 1;
+
+#### Output Directory #######
+set OutDir  = `dirname  $outvol`;
+set OutBase = `basename $outvol`;
+mkdir -p $OutDir
+
+# Auto-detect FirstSlice  (if nec) #
+if($#firstslice == 0) then
+  set firstslice =  `getfirstsliceno $invol`;
+  set st = $status;
+  if($st) then
+    echo "ERROR: cannot find any files with $invol";
+    exit;
+  endif
+endif
+
+# Auto-detect Number of Slices (if nec) #
+if($#nslices == 0) then
+  set nslices =  `getnslices $invol`;
+endif
+
+# Auto-detect Extension  (if nec) #
+if($#inbext == 0) then
+  set inbext =  `getbext $invol`;
+endif
+
+@ lastslice = $firstslice + $nslices - 1;
+
+if ($monly) then
+  set TARGET = "tee $mfile"
+  rm -f $mfile;
+else
+  if($showpve) then
+    set TARGET = "$MATLAB"
+  else
+    set TARGET = "$MATLAB -display iconic"
+  endif
+endif  
+
+#---------------------------------------------------------------#
+$TARGET  <<EOF
+
+  if( ~ $monly ) QuitOnError = 1; 
+  else           QuitOnError = 0; 
+  end
+
+  rand('state',$seed);
+  MOnly  = $monly;
+  InVol  = '$invol';
+  EigVol = '$eigvol';
+  OutVol = '$outvol';
+  FirstSlice   = $firstslice;
+  LastSlice    = $lastslice;
+  NSlices      = $nslices;
+  InBExt       = '$inbext';
+  OutBExt      = '$outbext';
+  XForm        = '$xform';
+  Flat         = $flat;
+  nmax         = $nmax;
+  nexclude     = $nexclude;
+  ScaleMin     = $scalemin;
+  Suppress     = $suppress;
+  ShowPVE      = $showpve;
+
+  fprintf('Loading Input Volume %s\n',InVol);
+  y = fmri_ldbvolume(InVol);
+  [Nslices Nrows Ncols Ntp] = size(y);
+  Nv    = Nrows * Ncols;
+  Nvtot = Nslices * Nv;
+  y = reshape(y, [Nvtot Ntp]);
+
+  fprintf('Loading Eigen Volume %s\n',EigVol);
+  Uf = fmri_ldbvolume(EigVol);
+  [fNslices fNrows fNcols Nf] = size(Uf);
+  fNvtot = fNslices * fNrows * fNcols ;
+  if(Nvtot ~= fNvtot)
+    msg = 'Input Volume and Eigen Volume have inconsistent dimensions';
+    qoe(msg); error(msg);
+  end
+
+  Uf = reshape(Uf, [Nvtot Nf]);
+  if(~Flat)
+    eigvalfile = sprintf('%s-eigval.dat',EigVol);
+    Sall = load(eigvalfile);
+  else
+    Sall = ones(Nf,1);
+  end
+
+  if(nexclude > 0)
+    Uf   = Uf(:,nexclude+1:Nf);
+    Sall = Sall(nexclude+1:Nf);
+    Nf   = size(Uf,2);
+  end
+
+  nmax = min([Nf nmax]);
+  Sf   = Sall(1:Nf);
+  if(ScaleMin)  Sf = Sf/min(Sf);  end
+
+  switch(lower(XForm))
+    case {'sqrt'},    Sf = sqrt(Sf);
+    case {'inv'},     Sf = 1./Sf;
+    case {'invsqrt'}, Sf = sqrt(1./Sf);
+    case {'ssp'},     Sf = 1 - 1./Sf;
+    case {'none'},    Sf = Sf;
+    otherwise
+      msg = sprintf('XForm %s unrecognized',XForm);
+      qoe(msg); error(msg);
+  end
+
+  fprintf('Filtering (Nf = %d)\n',Nf);
+  yhat = (Uf * diag(Sf)) * (Uf' * y); %'
+  if(~MOnly)  clear Uf; end
+
+  fprintf('Computing Temp Cov Mtx\n');
+  ymean = mean(y,2);
+  dy = y - repmat(ymean, [1 Ntp]);
+  TCovMtx    = dy'*dy;    %'
+  fprintf('Computing EigenValues of Temp Cov Mtx\n');
+  sTCovMtx   = abs(svd(TCovMtx));
+  if(~MOnly)  clear dy; end
+
+  fprintf('Computing Temp Est Cov Mtx\n');
+  yhatmean = mean(yhat,2);
+  dyhat = yhat - repmat(yhatmean, [1 Ntp]);
+  TEstCovMtx = dyhat'*dyhat; %'
+  fprintf('Computing EigenValues of Temp Est Cov Mtx\n');
+  sTEstCovMtx = abs(svd(TEstCovMtx));
+  if(~MOnly)  clear dyhat; end
+
+  % Percent Variance Explained %
+  pve = 100*cumsum(sTEstCovMtx)/sum(sTCovMtx);
+  if(ShowPVE)
+    hpve = figure;
+    plot(pve);
+  end
+
+  if(Suppress) z = y - yhat;
+  else         z = yhat;
+  end
+  if(~MOnly)  clear y yhat; end
+
+  fprintf('Saving Filtered volume to %s\n',OutVol);
+  fmri_svbvolume(z,OutVol, [Nslices Nrows Ncols Ntp],'bfloat');
+  
+  fname = sprintf('%s-pve.dat',OutVol);
+  fid = fopen(fname,'w');
+  if(fid == -1)
+    msg = sprintf('Could not open %s',fname);
+    qoe(msg);error(msg);
+  end
+  fprintf(fid,'%g\n',pve);
+  fclose(fid);
+
+  if(ShowPVE & ~MOnly)
+    uiwait(hpve);
+  end
+
+  if(QuitOnError) quit; end
+
+EOF
+exit 0;
+############################################################
+
+############--------------##################
+parse_args:
+
+set cmdline = "$argv";
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-i":
+      if ( $#argv == 0) goto arg1err;
+      set invol = $argv[1]; shift;
+      breaksw
+
+    case "-e":
+      if ( $#argv == 0) goto arg1err;
+      set eigvol = $argv[1]; shift;
+      breaksw
+
+    case "-nmax":
+      if ( $#argv == 0) goto arg1err;
+      set nmax = $argv[1]; shift;
+      breaksw
+
+    case "-o":
+      if ( $#argv == 0) goto arg1err;
+      if ( $#outvol != 0 ) then
+        echo ERROR: only one outstem allowed.
+        exit 1
+      endif
+      set outvol = $argv[1]; shift;
+      breaksw
+
+    case "-firstslice":
+    case "-fs":
+      if ( $#argv == 0) goto arg1err;
+      set firstslice = $argv[1]; shift;
+      breaksw
+
+    case "-nslices":
+    case "-ns":
+      if ( $#argv == 0) goto arg1err;
+      set nslices = $argv[1]; shift;
+      breaksw
+
+    case "-exclude":
+      if ( $#argv == 0) goto arg1err;
+      set nexclude = $argv[1]; shift;
+      breaksw
+
+    case "-nskip":
+      if ( $#argv == 0) goto arg1err;
+      set nskip = $argv[1]; shift;
+      breaksw
+
+    case "-xform":
+      if ( $#argv == 0) goto arg1err;
+      set xform = $argv[1]; shift;
+      breaksw
+
+    case "-monly":
+      if ( $#argv == 0) goto arg1err;
+      set monly = 1; 
+      set mfile = $argv[1]; shift;
+      breaksw
+
+    case "-debug":
+      set verbose = 1; 
+      breaksw
+
+    case "-showpve":
+      set showpve = 1; 
+      breaksw
+
+    case "-flat":
+      set flat = 1; 
+      breaksw
+
+    case "-noflat":
+      set flat = 0; 
+      breaksw
+
+    case "-suppress":
+    case "-sup":
+      set suppress = 1; 
+      breaksw
+
+    case "-nosuppress":
+    case "-nosup":
+      set suppress = 0; 
+      breaksw
+
+    case "-scalemin":
+      set scalemin = 1; 
+      breaksw
+
+    case "-synth":
+      if ( $#argv == 0) goto arg1err;
+      set seed = $argv[1]; shift;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized.
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+dump_params:
+echo ------- selxavg parameters ------------
+echo OutputStem: $outvol
+echo InputStems: $invol
+echo firstslice: $firstslice;
+echo nslices:    $nslices
+echo nskip:      $nskip
+echo --------------------------------------
+goto dump_params_return;
+############--------------##################
+
+############--------------##################
+check_params:
+  if ($#invol == 0) then
+     echo "ERROR: must specify at least an input stem";
+     exit 1
+  endif
+
+  if ($#outvol == 0) then
+     echo "ERROR: must specify output stem";
+     exit 1
+  endif
+
+  if ($#eigvol == 0) then
+     echo "ERROR: must specify an eigen stem";
+     exit 1
+  endif
+
+goto check_params_return;
+############--------------##################
+
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################

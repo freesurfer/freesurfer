@@ -1,0 +1,369 @@
+#!/bin/tcsh -f
+
+set VERSION = '$Id: autoreg-fsl,v 1.1 2003/03/04 21:22:07 greve Exp $';
+
+set inputargs = ($argv);
+
+set funcstem  = ();
+set t1epistem = ();
+set subjectid = ();
+set regfile   = ();
+set corvol    = orig;
+set tmpdir    = ();
+set cleanup   = 1;
+
+set PrintHelp = 0;
+
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+set n = `echo $argv | grep -e -version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+
+set PWD = `getpwdcmd`;
+if($status) exit 1;
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+##### Create a log file ######
+set logdir = $regdir
+mkdir -p $logdir
+if(! -e $logdir) then
+  echo "WARNING: could not create $logdir"
+  set LF = /dev/null
+else
+  set LF = $logdir/autoreg-fsl.log
+  if(-e $LF) mv $LF $LF.old
+endif
+echo "--------------------------------------------------------------"
+echo "auotreg-fsl logfile is $LF"
+echo "--------------------------------------------------------------"
+
+echo "autoreg-fsl log file" >> $LF
+echo $VERSION >> $LF
+pwd           >> $LF
+echo $0         >> $LF
+echo $inputargs >> $LF
+uname -a        >> $LF
+date            >> $LF
+
+set StartTime = `date`;
+
+# Convert func to .img
+set funcimg = $tmpdir/func
+set cmd = (mri_convert $funcstem --in_type $funcext -f 0 \
+                   $funcimg.img  --out_type analyze4d )
+echo "------------------------------------------------" |& tee -a $LF
+date |& tee -a $LF
+pwd |& tee -a $LF
+echo $cmd |& tee -a $LF
+$cmd |& tee -a $LF
+if($status) then
+  echo "ERROR: mri_convert" |& tee -a $LF
+  exit 1;
+endif
+
+# Convert t1epi to .img
+set t1epiimg = $tmpdir/t1epi
+set cmd = (mri_convert $t1epistem --in_type $t1epiext \
+                   $t1epiimg.img  --out_type analyze4d )
+echo "------------------------------------------------" |& tee -a $LF
+date |& tee -a $LF
+pwd |& tee -a $LF 
+echo $cmd |& tee -a $LF
+$cmd |& tee -a $LF
+if($status) then
+  echo "ERROR: mri_convert" |& tee -a $LF
+  exit 1;
+endif
+
+# Convert COR to .img
+set cordir = $SUBJECTS_DIR/$subjectid/mri/$corvol
+set corimg = $tmpdir/cor
+set cmd = (mri_convert $cordir $corimg.img --out_type analyze4d )
+echo "------------------------------------------------" |& tee -a $LF
+date |& tee -a $LF
+pwd |& tee -a $LF
+echo $cmd |& tee -a $LF
+$cmd |& tee -a $LF
+if($status) then
+  echo "ERROR: mri_convert" |& tee -a $LF
+  exit 1;
+endif
+
+# Extract Brains
+foreach img ($funcimg $t1epiimg $corimg)
+  echo "----------------------------------------" |& tee -a $LF
+  echo "Betting $img" |& tee -a $LF
+  date |& tee -a $LF
+  set cmd = (bet $img.img $img-brain.img);
+  echo $cmd |& tee -a $LF
+  $cmd |& tee -a $LF
+  if($status) then
+    echo "ERROR: bet failed" |& tee -a $LF
+    exit 1;
+  endif
+end
+
+echo "----------------------------------------" |& tee -a $LF
+echo "Registering func to t1epi" |& tee -a $LF
+date |& tee -a $LF
+set cmd = (flirt -in $funcimg-brain.img -ref $t1epiimg-brain.img \
+           -omat $tmpdir/func2t1epi.mat -dof 7)
+echo $cmd |& tee -a $LF
+$cmd |& tee -a $LF
+if($status) then
+  echo "ERROR: flirt failed" |& tee -a $LF
+  exit 1;
+endif
+
+echo "----------------------------------------" |& tee -a $LF
+echo "Registering t1epi to anat ref" |& tee -a $LF
+date |& tee -a $LF
+# To add initialization, -init initreg.mat
+set cmd = (flirt -in $t1epiimg-brain.img -ref $corimg-brain.img \
+           -omat $tmpdir/t1epi2ref.mat -dof 12)
+echo $cmd |& tee -a $LF
+$cmd |& tee -a $LF
+if($status) then
+  echo "ERROR: flirt failed" |& tee -a $LF
+  exit 1;
+endif
+
+echo "----------------------------------------" |& tee -a $LF
+echo "Concatenating" |& tee -a $LF
+date |& tee -a $LF
+set cmd = (convert_xfm -matonly -concat $tmpdir/t1epi2ref.mat \
+           -omat $tmpdir/func2ref.mat $tmpdir/func2t1epi.mat)
+echo $cmd |& tee -a $LF
+$cmd |& tee -a $LF
+if($status) then
+  echo "ERROR: convert_xfm failed" |& tee -a $LF
+  exit 1;
+endif
+
+echo "----------------------------------------" |& tee -a $LF
+echo "Constructing registration file" |& tee -a $LF
+set cmd = (fslmat2register --fvol $funcimg.img \
+           --subject $subjectid --fslmat $tmpdir/func2ref.mat \
+           --o $regfile)
+echo $cmd |& tee -a $LF
+$cmd |& tee -a $LF
+if($status) then
+  echo "ERROR: fslmat2register failed" |& tee -a $LF
+  exit 1;
+endif
+
+if($cleanup) then
+  echo "INFO: cleaning up" |& tee -a $LF
+  rm -r $tmpdir
+endif
+
+set EndTime = `date`;
+
+echo "Started at $StartTime" |& tee -a $LF
+echo "Ended   at $EndTime"   |& tee -a $LF
+
+echo "acorfunc-sess done"
+
+exit 0
+
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-func":
+    case "-f":
+      if ( $#argv < 1) goto arg1err;
+      set funcstem = $argv[1]; shift;
+      breaksw
+
+    case "-t1epi":
+    case "-t":
+      if ( $#argv < 1) goto arg1err;
+      set t1epistem = $argv[1]; shift;
+      breaksw
+
+    case "-s":
+      if ( $#argv < 1) goto arg1err;
+      set subjectid = $argv[1]; shift;
+      breaksw
+
+    case "-r":
+      if ( $#argv < 1) goto arg1err;
+      set regfile = $argv[1]; shift;
+      breaksw
+
+    case "-sd":
+      if ( $#argv < 1) goto arg1err;
+      setenv SUBJECTS_DIR $argv[1]; shift;
+      breaksw
+
+    case "-tmpdir":
+      if ( $#argv < 1) goto arg1err;
+      set tmpdir = $argv[1]; shift;
+      breaksw
+
+    case "-nocleanup":
+      set cleanup = 0;
+      breaksw
+
+    case "-verbose":
+      set verbose = 1;
+      breaksw
+
+    case "-echo":
+      set echo = 1;
+      breaksw
+
+    case "-debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    case "-umask":
+      if ( $#argv == 0) goto arg1err;
+      umask $1; shift;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+ 
+  if($#funcstem == 0) then
+    echo "ERROR: must specify funcstem"
+    exit 1;
+  endif
+  set tmp = $funcstem"_000.hdr"
+  if(! -e $tmp) then
+    echo "ERROR: cannot find $tmp"
+    exit 1;
+  endif
+  set funcbase = `basename $funcstem`;
+
+  if($#t1epistem == 0) then
+    echo "ERROR: must specify funcstem"
+    exit 1;
+  endif
+  set tmp = $t1epistem"_000.hdr"
+  if(! -e $tmp) then
+    echo "ERROR: cannot find $tmp"
+    exit 1;
+  endif
+  set t1epibase = `basename $t1epistem`;
+
+  if($#subjectid == 0) then
+    echo "ERROR: must specify a subject"
+    exit 1;
+  endif
+
+  if($#regfile == 0) then
+    echo "ERROR: must specify an output registration file "
+    exit 1;
+  endif
+
+  if(! -e $SUBJECTS_DIR) then
+    echo "ERROR: $SUBJECTS_DIR does not exist"
+    exit 1;
+  endif
+
+  if(! -e $SUBJECTS_DIR/$subjectid) then
+    echo "ERROR: subject $subjectid does not exist"
+    exit 1;
+  endif
+
+  set cordir = $SUBJECTS_DIR/$subjectid/mri/$corvol
+  if(! -e $cordir) then
+    echo "ERROR: $corvol does not exist for $subjectid"
+    exit 1;
+  endif
+
+  if($#tmpdir == NULL) set tmpdir = /tmp/autoreg-fsl-$$
+  mkdir -p $tmpdir
+  if( ! -e $tmpdir) then
+    echo "ERROR: cannot find tmp dir $tmpdir"
+    exit 1;
+  endif
+
+  # Get extensions (ie, bshort or bfloat) #
+  set funcext  = `getbext $funcstem`;
+  set t1epiext = `getbext $t1epistem`;
+
+  set regdir = `dirname $regfile`;
+  mkdir -p $regdir
+  if( ! -e $regdir ) then
+    echo "ERROR: cannot create $regdir"
+    exit 1;
+  endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "USAGE: autoreg-fsl"
+  echo ""
+  echo "Required Arguments:";
+  echo "   -f funcstem  : functional stem"
+  echo "   -t t1epistem : t1epi stem"
+  echo "   -s subjectid : subject to register to"
+  echo "   -r regfile   : registration file"
+  echo ""
+  echo "More options"
+  echo "   -sd subjectsdir : default is to use env SUBJECTS_DIR"
+  echo "   -tmpdir tmpdir : set directory for temporary file"
+  echo "   -nocleanup     : don't remove temporary files"
+  echo "   -help  : this can even be helpful sometimes"
+  echo "   -debug : print out ridiculous amounts of verbiage"
+  echo "   -umask   mask : unix file permission mask"
+  echo ""
+
+  if(! $PrintHelp) exit 1;
+
+  echo $VERSION
+
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+
+exit 1;
+
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+This will compute the tkregister-style registration matrix
+using FSL tools.

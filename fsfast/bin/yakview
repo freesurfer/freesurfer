@@ -1,0 +1,566 @@
+#!/bin/csh -f
+############################################################
+# Name:    yakview
+# Purpose: allows viewing of structurals with statistical
+# overlays along with a seperate window to view hemodynamic
+# responses.
+############################################################
+
+set fmrianalver = `cat $FMRI_ANALYSIS_DIR/docs/version`;
+set YAKVIEW_VER = '\$Id: yakview,v 1.1 2003/03/04 21:22:10 greve Exp $'
+
+# Set Default Values #
+set imgstem = ();
+set sigstem = ();
+set sigmaskstem = ();
+set sigmaskthresh = 750;
+set hdrstem = ();
+set rawstem = ();
+set rawfunc = ();
+set offstem = ();
+set yvtitle = ();
+set slice   = -1;
+set thresh     = 2;
+set maxthresh  = 7;
+set pformat = log10;
+set monly = 0;
+set mfile = ();
+set QuitOnError = 1;
+set Nskip = 0;
+set IsMosaic = 0;
+set ImgMkMosaic = 0;
+set SigMkMosaic = 0;
+set HDRMkMosaic = 0;
+set OffMkMosaic = 0;
+set RawMkMosaic = 0;
+set MosaicDirection = ();
+set ForceMkMosaic = 0;
+set cutends = ();
+set TR = ();
+
+set ImgHistEQ   = 0;
+set SigFile = ();
+set SigMaskFile = ();
+set HDRFile = ();
+set OffFile = ();
+set RawFile = ();
+set datFile = ();
+set UseVersion = 2;
+
+if ( $#argv < 2 ) then
+  echo "USAGE: -i imgstem -sn slicenum -p sigstem -th threshold -f pformat -h hdrstem ";
+  echo "    -i imgstem: stem of image to view"
+  echo "    -sn slice number"
+  echo "  Options:";
+  echo "    -p sigstem: stem of stat map to overlay"
+  echo "    -thmin threshold: min threshold for stat overlay ($thresh)"
+  echo "    -thmax threshold: max threshold for stat overlay ($maxthresh)"
+#  echo "    -f pformat: format of signficance values (<log10>,ln,raw)"
+  echo "    -h hdrstem: stem of hemodynamic averages"
+  echo "    -r rawstem: stem of raw data to plot"
+  echo "    -rf rawfunc: use matlab function rawfunc to plot raw time courses"
+  echo "    -nskip n  : skip when displaying raw timecourses"
+  echo "    -off offsetstem: stem of offset volume"
+  echo "    -pmask maskstem : stem of mask"
+  echo "    -pmaskthresh threshold: absolute threshold to use for masking"
+  echo "    -cutends val : set first and last slice of overlay to val (mos only)"
+  echo ""
+  echo ""
+  echo "  yakview: $YAKVIEW_VER"
+  echo "  fMRIA Version $fmrianalver";
+  echo "  Author: Douglas N. Greve"
+  echo "          Massachusetts General Hospital - NMR Center"
+  echo "  Comments or questions: analysis-bugs@nmr.mgh.harvard.edu"
+  echo ""
+  exit 1;
+endif
+
+echo "  yakview: $YAKVIEW_VER"
+echo "  fMRIA Version $fmrianalver";
+
+set MATLAB = `getmatlab`;
+if($status) exit 1;
+
+goto parse_args;
+parse_args_return:
+
+if($slice != mos)then
+  set SliceStr = `printf _%03d $slice`;
+else
+  set SliceStr = "_mos";
+endif
+
+#goto dump_params;
+#dump_params_return:
+goto check_params;
+check_params_return:
+
+######## Base Image  ######################
+if( $slice == -1 ) then 
+  # Full file name is specified #
+  set ImgFile = $imgstem
+  if( ! -r $ImgFile) then
+    echo "ERROR: Cannot find file $ImgFile"
+    exit 1;
+  endif
+else
+  # Stem and slice are specified #
+  set bext = `getbext $imgstem`;
+  if($status) then
+    echo "$bext";
+    exit 1;
+  endif
+  set ImgFile = $imgstem$SliceStr.$bext;
+  if(! $IsMosaic && ! -e $ImgFile ) then
+    echo "ERROR: cannot find $ImgFile"
+    exit 1;
+  endif
+  if($IsMosaic && ! -e $ImgFile || $ForceMkMosaic) then
+    echo "INFO: Creating base mosaic on-the-fly"
+    set ImgMkMosaic = 1;
+    set ImgFile = $imgstem;
+  endif
+endif
+
+######## Sig (Overlay) Image  ######################
+if($#sigstem != 0) then
+  if( $slice == -1 ) then 
+    # Full file name is specified #
+    set SigFile = $sigstem
+    if( ! -r $SigFile) then
+      echo "ERROR: Cannot find file $SigFile"
+      exit 1;
+    endif
+  else
+    # Stem and slice are specified #
+    set bext = `getbext $sigstem`;
+    if($status) then
+      echo "$bext";
+      exit 1;
+    endif
+    set SigFile = $sigstem$SliceStr.$bext;
+    if(! $IsMosaic && ! -e $SigFile ) then
+      echo "ERROR: cannot find $SigFile"
+      exit 1;
+    endif
+    if($IsMosaic && ! -e $SigFile || $ForceMkMosaic) then
+      echo "INFO: Creating overlay mosaic on-the-fly"
+      set SigMkMosaic = 1;
+      set SigFile = $sigstem;
+    endif
+  endif
+endif
+
+######## SigMask Image  ######################
+if($#sigmaskstem != 0) then
+  if( $slice == -1 ) then 
+    # Full file name is specified #
+    set SigMaskFile = $sigmaskstem
+    if( ! -r $SigMaskFile) then
+      echo "ERROR: Cannot find file $SigMaskFile"
+      exit 1;
+    endif
+  else
+    # Stem and slice are specified #
+    set bext = `getbext $sigmaskstem`;
+    if($status) then
+      echo "$bext";
+      exit 1;
+    endif
+    set SigMaskFile = $sigmaskstem$SliceStr.$bext;
+    if(! $IsMosaic && ! -e $SigMaskFile ) then
+      echo "ERROR: cannot find $SigMaskFile"
+      exit 1;
+    endif
+    if($IsMosaic && ! -e $SigMaskFile || $ForceMkMosaic) then
+      echo "INFO: Creating overlay mosaic on-the-fly"
+      set SigMkMosaic = 1;
+      set SigMaskFile = $sigmaskstem;
+    endif
+  endif
+endif
+
+######## Raw Image  ######################
+if( $#rawstem == 1 ) then
+  if( $slice == -1 ) then 
+    # Full file name is specified #
+    set RawFile = $rawstem
+    if( ! -r $RawFile) then
+      echo "ERROR: Cannot find file $RawFile"
+      exit 1;
+    endif
+  else
+    # Stem and slice are specified #
+    set bext = `getbext $rawstem`;
+    if($status) then
+      echo "$bext";
+      exit 1;
+    endif
+    set RawFile = $rawstem$SliceStr.$bext;
+    if(! $IsMosaic && ! -e $RawFile ) then
+      echo "ERROR: cannot find $RawFile"
+      exit 1;
+    endif
+    if($IsMosaic && ! -e $RawFile || $ForceMkMosaic) then
+      echo "INFO: Creating raw mosaic on-the-fly"
+      set RawMkMosaic = 1;
+      set RawFile = $rawstem;
+    endif
+  endif
+endif
+
+######## Hemodynamic Response Image  ######################
+if( $#hdrstem == 1 ) then
+  if( $slice == -1 ) then 
+    # Full file name is specified #
+    set HDRFile = $hdrstem
+    if( ! -r $HDRFile) then
+      echo "ERROR: Cannot find file $HDRFile"
+      exit 1;
+    endif
+    set hdrstem = `getstem $HDRFile`;
+    set datFile = $hdrstem.dat
+  else
+    # Stem and slice are specified #
+    set bext = `getbext $hdrstem`;
+    if($status) then
+      echo "$bext";
+      exit 1;
+    endif
+    set HDRFile = $hdrstem$SliceStr.$bext;
+    if(! $IsMosaic && ! -e $HDRFile ) then
+      echo "ERROR: cannot find $HDRFile"
+      exit 1;
+    endif
+    if($IsMosaic && ! -e $HDRFile || $ForceMkMosaic) then
+      echo "INFO: Creating hemodyn mosaic on-the-fly"
+      set HDRMkMosaic = 1;
+      set HDRFile = $hdrstem;
+    endif
+    set datFile = $hdrstem.dat
+  endif
+  if(! -e $datFile ) then
+    echo "ERROR: cannot find $datFile"
+    exit 1;
+  endif
+endif
+
+######## Offset Image  ######################
+if( $#offstem == 0 && $#hdrstem == 1 ) then
+  if($SliceStr != "_mos") then
+    set tmp = $hdrstem-offset$SliceStr.$bext;
+  else
+    set tmp = $hdrstem-offset_000.$bext;
+  endif
+  if(-e $tmp)  set offstem = $hdrstem-offset;
+endif
+if( $#offstem != 0 && $#hdrstem == 0 ) then
+  echo "INFO: ignoring offset image"
+else if( $#offstem != 0) then
+  if( $slice == -1 ) then 
+    # Full file name is specified #
+    set OffFile = $offstem
+    if( ! -r $OffFile) then
+      echo "ERROR: Cannot find file $OffFile"
+      exit 1;
+    endif
+  else
+    # Stem and slice are specified #
+    set bext = `getbext $offstem`;
+    if($status) then
+      echo "$bext";
+      exit 1;
+    endif
+    set OffFile = $offstem$SliceStr.$bext;
+    if(! $IsMosaic && ! -e $OffFile ) then
+      echo "ERROR: cannot find $OffFile"
+      exit 1;
+    endif
+    if($IsMosaic && ! -e $OffFile || $ForceMkMosaic) then
+      echo "INFO: Creating offset mosaic on-the-fly"
+      set OffMkMosaic = 1;
+      set OffFile = $offstem;
+    endif
+  endif
+endif
+
+## Set path for matlab file ##
+if($monly) then
+  set MLF = $mfile;
+else
+  set MLF = /tmp/yakview_$$"_tmp.m"
+endif
+
+#set MLF = "/tmp/yakview_tmp.m"
+echo "yakview matlab file is $MLF"
+
+rm -f $MLF;
+
+  echo "%%% ----------------- %%"       >> $MLF;
+  echo "% matlab file to run yakview"    >> $MLF;
+  echo "% This is a temporary file and may be deleted" >> $MLF;
+  echo "% $MLF"                          >> $MLF;
+  echo "global QuitOnError;"             >> $MLF;
+  echo "QuitOnError = $QuitOnError;"     >> $MLF;
+  echo "if(exist('yakview')==0)"        >> $MLF;
+  echo "   qoe('ERROR: matlab path incorrect');end;" >> $MLF  ;
+  echo "ImgFile   = '$ImgFile';"    >> $MLF;
+  echo "RawFile   = '$RawFile';"    >> $MLF;
+  echo "rawfunc   = '$rawfunc';"    >> $MLF;
+  echo "OffFile   = '$OffFile';"    >> $MLF;
+  echo "SigFile   = '$SigFile';"    >> $MLF;
+  echo "SigMaskFile = '$SigMaskFile';"    >> $MLF;
+  echo "SigMaskThresh = $sigmaskthresh;"    >> $MLF;
+  echo "HDRFile   = '$HDRFile'  ;" >> $MLF;
+
+  echo "ImgMkMosaic   = $ImgMkMosaic;"    >> $MLF;
+  echo "RawMkMosaic   = $RawMkMosaic;"    >> $MLF;
+  echo "OffMkMosaic   = $OffMkMosaic;"    >> $MLF;
+  echo "SigMkMosaic   = $SigMkMosaic;"    >> $MLF;
+  echo "HDRMkMosaic   = $HDRMkMosaic  ;" >> $MLF;
+
+  echo "MosaicDirection  = '$MosaicDirection'  ;" >> $MLF;
+  echo "SliceNo = '$slice';" >> $MLF; # NOTE: string
+
+  echo "ImgHistEQ    = $ImgHistEQ;"    >> $MLF;
+  echo "datFile      = '$datFile';"     >> $MLF;
+  echo "SigThresh    =  $thresh ;" >> $MLF;
+  echo "SigThreshMax =  $maxthresh ;" >> $MLF;
+  if($#TR > 0 )echo "TR = $TR;" >> $MLF;
+  echo "SigFormat = '$pformat' ;" >> $MLF;
+  echo "Nskip = $Nskip;">> $MLF;
+  echo "yvtitle = '$yvtitle'" >> $MLF;
+
+  echo "cutends = [$cutends];" >> $MLF;
+  echo "UseVersion = $UseVersion;" >> $MLF;
+
+  echo "yakview;" >> $MLF;
+  echo "hyak = gcf;" >> $MLF;
+  if(! $monly ) then
+    echo "uiwait(hyak)" >> $MLF;
+    echo "quit;" >> $MLF;
+  endif
+
+  if(! $monly) then
+    cat $MLF | $MATLAB
+    rm -f $MLF;
+  endif
+
+exit 0;
+############################################################
+
+############--------------##################
+parse_args:
+
+set cmdline = "$argv";
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-i":
+      if( $#argv == 0) goto arg1err;
+      if( $#imgstem != 0 ) then
+        echo ERROR: only one imgstem allowed.
+        exit 1;
+      endif
+      set imgstem = $argv[1]; shift;
+      breaksw
+
+    case "-p":
+      if( $#argv == 0) goto arg1err;
+      if( $#sigstem != 0 ) then
+        echo ERROR: only one sigstem allowed.
+        exit 1
+      endif
+      set sigstem = $argv[1]; shift;
+      breaksw
+
+    case "-cutends":
+      if( $#argv < 1) goto arg1err;
+      set cutends = $argv[1]; shift;
+      breaksw
+
+    case "-pmask":
+      if( $#argv == 0) goto arg1err;
+      set sigmaskstem = $argv[1]; shift;
+      breaksw
+
+    case "-pmaskthresh":
+      if( $#argv == 0) goto arg1err;
+      set sigmaskthresh = $argv[1]; shift;
+      breaksw
+
+    case "-h":
+      if( $#argv == 0) goto arg1err;
+      if( $#hdrstem != 0 ) then
+        echo ERROR: only one hdrstem allowed.
+        exit 1
+      endif
+      set hdrstem = $argv[1]; shift;
+      breaksw
+
+    case "-hdat":
+      if( $#argv == 0) goto arg1err;
+      set datFile = $argv[1]; shift;
+      if(! -e $datFile) then
+        echo "ERROR: cannot find $datFile"
+        exit 1;
+      endif
+      breaksw
+
+    case "-r":
+      if( $#argv == 0) goto arg1err;
+      if( $#rawstem != 0 ) then
+        echo ERROR: only one rawstem allowed.
+        exit 1
+      endif
+      set rawstem = $argv[1]; shift;
+      breaksw
+
+    case "-rawfunc":
+    case "-rf":
+      if( $#argv < 1) goto arg1err;
+      set rawfunc = $argv[1]; shift;
+      breaksw
+
+    case "-nskip":
+      if( $#argv == 0) goto arg1err;
+      set Nskip = $argv[1]; shift;
+      breaksw
+
+    case "-off":
+      if( $#argv == 0) goto arg1err;
+      if( $#offstem != 0 ) then
+        echo ERROR: only one offstem allowed.
+        exit 1
+      endif
+      set offstem = $argv[1]; shift;
+      breaksw
+
+    case "-f":
+      if( $#argv == 0) goto arg1err;
+      set pformat = $argv[1]; shift;
+      breaksw
+
+    case "-t":
+    case "-title":
+      if( $#argv == 0) goto arg1err;
+      set yvtitle = $argv[1]; shift;
+      breaksw
+
+    case "-th":
+    case "-thmin":
+      if( $#argv == 0) goto arg1err;
+      set thresh = $argv[1]; shift;
+      breaksw
+
+    case "-thmax":
+      if( $#argv == 0) goto arg1err;
+      set maxthresh = $argv[1]; shift;
+      breaksw
+
+    case "-thmask":
+      set thresh    = .5;
+      set maxthresh = 1;
+      breaksw
+
+    case "-TR":
+    case "-tr":
+      if( $#argv == 0) goto arg1err;
+      set TR = $argv[1]; shift; 
+      breaksw
+
+    case "-sn":
+    case "-slice":
+      if( $#argv == 0) goto arg1err;
+      set slice = $argv[1]; shift;
+      if($slice == mos) then
+        set IsMosaic = 1;
+      else
+        @ slice = $slice;
+      endif
+      breaksw
+
+    case "-mosdir":
+      if( $#argv == 0) goto arg1err;
+      set MosaicDirection = $argv[1]; shift;
+      if($MosaicDirection != slice && $MosaicDirection != row \
+         && $MosaicDirection != col) then
+        echo "ERROR: mosdir must be either slice, row, or col"
+        exit 1;
+      endif
+      breaksw
+
+    case "-monly":
+      if( $#argv == 0) goto arg1err;
+      set mfile = $argv[1]; shift;
+      set monly = 1; 
+      set QuitOnError = 0;
+      breaksw
+
+    case "-heq":
+    case "-imgeq":
+    case "-baseeq":
+      set ImgHistEQ = 1;
+      breaksw
+
+    case "-noimgeq":
+      set ImgHistEQ = 0;
+      breaksw
+
+    case "-v1":
+      set UseVersion = 1;
+      breaksw
+
+    case "-v2":
+      set UseVersion = 2;
+      breaksw
+
+    case "-debug":
+      set verbose
+      set echo
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized.
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+goto parse_args_return;
+############--------------##################
+
+
+############--------------##################
+check_params:
+  if($#imgstem != 1) then
+     echo "ERROR: must specify an img stem";
+     exit 1
+  endif
+
+  if($#offstem == 1 && $#hdrstem == 0) then
+    echo "ERROR: offset must be used with -h option"
+    exit 1;
+  endif
+
+  if($#MosaicDirection != 0 && ! $IsMosaic) then
+    echo "INFO: ignoring mosdir flag"
+  endif
+
+  if($#MosaicDirection == 0) set MosaicDirection = slice;
+
+  if($MosaicDirection != slice) set ForceMkMosaic = 1;
+
+goto check_params_return;
+############--------------##################
+
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################

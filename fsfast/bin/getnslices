@@ -1,0 +1,32 @@
+#!/bin/csh -f
+
+if($#argv != 1 && $#argv != 2) then
+  echo "USAGE: getnslices stem <firstslice>"
+  echo '$Id: getnslices,v 1.1 2003/03/04 21:22:08 greve Exp $';
+  exit 1;
+endif
+
+set stem = $argv[1];
+if($#argv == 2) then
+  set firstslice = $argv[2];
+else
+  set firstslice = `getfirstsliceno $stem`
+  set st = $status;
+  if($st) then
+    echo "ERROR: cannot find any files with $stem";
+    exit 1;
+  endif
+endif
+
+set lastslice = `getlastsliceno $stem`;
+set st = $status;
+if($st) then
+  echo "ERROR: too many slices for  $stem";
+  exit 1;
+endif
+
+@ nslices = 1 + $lastslice - $firstslice;
+echo $nslices;
+
+exit 0;
+##########################################

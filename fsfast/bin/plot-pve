@@ -1,0 +1,523 @@
+#!/bin/csh -f
+############################################################
+# Name:  tevpve
+############################################################
+
+set inputargs = ($argv);
+set VERSION = '$Id: plot-pve,v 1.1 2003/03/04 21:22:09 greve Exp $';
+
+## If there are no arguments, just print useage and exit ##
+if ( $#argv == 0  )  goto usage_exit;
+
+set n = `echo $argv | grep version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+
+# Set Default Values #
+set instem1  = ();
+set pf1      = ();
+set mask1    = ();
+set mask1thr = 0.5;
+set mask1sign = ();
+
+set instem2  = ();
+set pf2      = ();
+set mask2    = ();
+set mask2thr = 0.5;
+set mask2sign = ();
+
+set pveout = ()
+set slice = ();
+set row = ();
+set col = ();
+
+set monly = 0;
+set wait = 1;
+set showpve = 1;
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+set MATLAB = `getmatlab`;
+if($status) exit 1;
+
+if($#pveout != 0) then
+  set outdir = `dirname $pveout`;
+  mkdir -p $outdir;
+  pushd $outdir > /dev/null
+  set outdir = `pwd`;
+  popd > /dev/null
+endif
+
+## Set path for matlab file ##
+if(! $monly) then
+  set MLF = "/tmp/sxa_$$.m"
+  set QuitOnError = 1;
+else
+  set QuitOnError = 0;
+endif
+
+echo matlab file is $MLF 
+rm -f $MLF;
+#---------------------------------------------------------#
+tee $MLF <<EOF
+
+  % Matlab file for plot-pve 
+  global QuitOnError;
+  QuitOnError = $QuitOnError;
+
+  pveout = '$pveout';
+  wait   = $wait;
+  showpve  = $showpve;
+  slice = [$slice];
+  row = [$row];
+  col = [$col];
+
+  instem1 = '$instem1';
+  pf1 = [$pf1];  
+  mask1 = '$mask1';
+  m1thr = [$mask1thr];  
+  m1sign = '$mask1sign';  
+
+  instem2 = '$instem2';
+  pf2 = [$pf2];  
+  mask2 = '$mask2';
+  m2thr = [$mask2thr];  
+  m2sign = '$mask2sign';  
+
+
+  if(~isempty(slice))
+    %----------------- Load as a slice ------------------%
+    fprintf('INFO: loading %s\n',instem1);
+    i1 = fast_ldbslice(instem1,slice);
+    if(isempty(i1))
+      fprintf('ERROR: loading %s, slice %d\n',instem1,slice);
+      qoe;return;
+    end
+    sz = size(i1);
+    nr1 = sz(1);
+    nc1 = sz(2);
+    ntp1 = sz(3);
+    nv1 = nr1*nc1;
+    if(~isempty(mask1))
+      m1 = fast_ldbslice(mask1,slice);
+      if(isempty(m1))
+        fprintf('ERROR: loading %s, slice %d\n',mask1,slice);
+        qoe;return;
+      end
+      m1 = m1(:,:,1);
+    end
+
+    fprintf('INFO: loading %s\n',instem2);
+    i2 = fast_ldbslice(instem2,slice);
+    if(isempty(i2))
+      fprintf('ERROR: loading %s, slice %d\n',instem2,slice);
+      qoe;return;
+    end
+    sz = size(i2);
+    nr2 = sz(1);
+    nc2 = sz(2);
+    ntp2 = sz(3);
+    nv2 = nr2*nc2;
+    if(~isempty(mask2))
+      m2 = fast_ldbslice(mask2,slice);
+      if(isempty(m2))
+        fprintf('ERROR: loading %s, slice %d\n',mask2,slice);
+        qoe;return;
+      end
+      m2 = m2(:,:,1);
+    end
+
+    if(~isempty(row))
+      i1 = i1(row+1,:,:);
+      m1 = m1(row+1,:,:);
+      i2 = i2(row+1,:,:);
+      m2 = m2(row+1,:,:);
+      nr1 = 1; nr2 = 1;
+    end
+    if(~isempty(col))
+      i1 = i1(:,col+1,:);
+      m1 = m1(:,col+1,:);
+      i2 = i2(:,col+1,:);
+      m2 = m2(:,col+1,:);
+      nc1 = 1; nc2 = 1;
+    end
+    i1 = squeeze(i1);
+    m1 = squeeze(m1);
+    i2 = squeeze(i2);
+    m2 = squeeze(m2);
+
+  else
+    %----------------- Load as a volume ------------------%
+    fprintf('INFO: loading %s\n',instem1);
+    i1 = fmri_ldbvolume(instem1);
+    if(isempty(i1))
+      fprintf('ERROR: loading %s\n',instem1);
+      qoe;return;
+    end
+    sz = size(i1);
+    ns1 = sz(1);
+    nr1 = sz(2);
+    nc1 = sz(3);
+    ntp1 = sz(4);
+    nv1 = ns1*nr1*nc1;
+    if(~isempty(mask1))
+      m1 = fmri_ldbvolume(mask1);
+      if(isempty(m1))
+        fprintf('ERROR: loading %s\n',mask1);
+        qoe;return;
+      end
+      m1 = m1(:,:,:,1);
+    end
+
+    fprintf('INFO: loading %s\n',instem2);
+    i2 = fmri_ldbvolume(instem2);
+    if(isempty(i2))
+      fprintf('ERROR: loading %s\n',instem2);
+      qoe;return;
+    end
+    sz = size(i2);
+    ns2 = sz(1);
+    nr2 = sz(2);
+    nc2 = sz(3);
+    ntp2 = sz(4);
+    nv2 = ns2*nr2*nc2;
+    if(~isempty(mask2))
+      m2 = fmri_ldbvolume(mask2);
+      if(isempty(m2))
+        fprintf('ERROR: loading %s\n',mask2);
+        qoe;return;
+      end
+      m2 = m2(:,:,:,1);
+    end
+
+    if(~isempty(row))
+      i1 = i1(:,row+1,:,:);
+      m1 = m1(:,row+1,:,:);
+      i2 = i2(:,row+1,:,:);
+      m2 = m2(:,row+1,:,:);
+      nr1 = 1; nr2 = 1;
+    end
+    if(~isempty(col))
+      i1 = i1(:,:,col+1,:);
+      m1 = m1(:,:,col+1,:);
+      i2 = i2(:,:,col+1,:);
+      m2 = m2(:,:,col+1,:);
+      nc1 = 1; nc2 = 1;
+    end
+    i1 = squeeze(i1);
+    m1 = squeeze(m1);
+    i2 = squeeze(i2);
+    m2 = squeeze(m2);
+
+  end
+
+  %------------- Check dimensions ------------------%
+  if(ntp1 ~= ntp2)
+    fprintf('ERROR: ntp1 = %d, ntp2 = %d\n',ntp1,ntp2);
+    qoe;return;
+  end
+  ntp = ntp1;
+
+  if(~isempty(mask1))
+    if(size(i1,1) ~= size(m1,1) | size(i1,2) ~= size(m1,2))
+      fprintf('ERROR: dim mismatch, instem1 and mask1\n');
+      qoe;return;
+    end
+    indm1 = find(m1 > m1thr);
+    nindm1 = length(indm1);
+    fprintf('INFO: found %d voxels in mask1 above thresh\n',nindm1);
+    if(nindm1 == 0) 
+      fprintf('ERROR: no voxels in mask1 above thresh\n',nindm1);
+      qoe;return;
+    end
+  else
+    indm1 = [];
+  end
+
+  if(~isempty(mask2))
+    if(size(i2,1) ~= size(m2,1) | size(i2,2) ~= size(m2,2))
+      fprintf('ERROR: dim mismatch, instem2 and mask2\n');
+      qoe;return;
+    end
+    indm2 = find(m2 > m2thr);
+    nindm2 = length(indm2);
+    fprintf('INFO: found %d voxels in mask2 above thresh\n',nindm2);
+    if(nindm2 == 0) 
+      fprintf('ERROR: no voxels in mask2 above thresh\n',nindm2);
+      qoe;return;
+    end
+  else
+    indm2 = [];
+  end
+
+  % Decompose input 1 %
+  i1 = reshape(i1, [nv1 ntp])'; %'
+  if(~isempty(indm1)) i1 = i1(:,indm1); end
+  if(pf1 >= 0)
+    X = fast_polytrendmtx(1,ntp,1,pf1);
+    E = eye(ntp) - X*inv(X'*X)*X';
+    i1 = E*i1;
+  end
+  fprintf('INFO: Computing Mi1\n');
+  Mi1 = (i1*i1')/nv1; %'
+  [U1 S1 V1] = svd(Mi1);
+
+  % Decompose input 2 %
+  i2 = reshape(i2, [nv2 ntp])'; %'
+  if(~isempty(indm2)) i2 = i2(:,indm2); end
+  if(pf2 >= 0)
+    X = fast_polytrendmtx(1,ntp,1,pf2);
+    E = eye(ntp) - X*inv(X'*X)*X';
+    i2 = E*i2;
+  end
+  fprintf('INFO: Computing Mi2\n');
+  Mi2 = (i2*i2')/nv2; %'
+  [U2 S2 V2] = svd(Mi2);
+
+  pct_v1_expby2  = 100*diag(U1'*Mi2*U1)/trace(Mi2); %'
+  cpct_v1_expby2 = cumsum(pct_v1_expby2);
+
+  pct_v2_expby1  = 100*diag(U2'*Mi1*U2)/trace(Mi1); %'
+  cpct_v2_expby1 = cumsum(pct_v2_expby1);
+
+  ntev = [1:ntp]'; %'
+  pct0 = 100*ones(ntp,1)/ntp;
+  cpct0 = cumsum(pct0);
+
+  if(~isempty(pveout))
+    tmp = [ntev pct0 cpct0 ...
+           pct_v1_expby2 cpct_v1_expby2 ...
+           pct_v2_expby1 cpct_v2_expby1 ];
+
+    fp = fopen(pveout,'w');
+    if(fp == -1)
+      fprintf('ERROR: could not open %s\n',pveout);
+      qoe;return;
+    end
+    fprintf(fp,'%3d  %6.4f  %6.4f  %6.4f  %6.4f  %6.4f  %6.4f\n',tmp'); %'
+    fclose(fp);
+  end
+
+  if(showpve)
+    %fprintf('INFO: Displaying CPVE curves\n');
+    fighandle = figure(1);
+    plot(ntev,cpct_v1_expby2,ntev,cpct_v2_expby1,ntev,cpct0,'k-.');
+    xlabel('Temporal Eigenvector');
+    legend('Var in 1 spanned by TEVs of 2',...
+           'Var in 2 spanned by TEVs of 1','Indpendent');
+    if(wait) 
+      %fprintf('INFO: waiting\n');
+      uiwait(fighandle); 
+    end
+  end
+
+
+  qoe;return;
+
+EOF
+#-------------------------------------------------------------------#
+
+echo "----------- Matlab file --------------" 
+cat $MLF 
+echo "-----------------------------------" 
+
+if(! $monly ) then
+  echo "------------------------------------------" 
+  echo "------- matlab output --------------------" 
+  if(! $wait) then
+    cat $MLF | $MATLAB -display iconic 
+  else
+    cat $MLF | $MATLAB
+  endif
+  echo "------------------------------------------" 
+  rm $MLF
+
+endif
+
+echo " " 
+
+
+exit 0;
+############################################################
+
+############--------------##################
+parse_args:
+
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-o":
+      if ( $#argv == 0) goto arg1err;
+      set pveout = ($argv[1]); shift;
+      breaksw
+
+    case "-slice":
+      if ( $#argv == 0) goto arg1err;
+      set slice = ($argv[1]); shift;
+      breaksw
+
+    case "-row":
+      if ( $#argv == 0) goto arg1err;
+      set row = ($argv[1]); shift;
+      breaksw
+
+    case "-col":
+      if ( $#argv == 0) goto arg1err;
+      set col = ($argv[1]); shift;
+      breaksw
+
+    case "-pf":
+      if ( $#argv == 0) goto arg1err;
+      set pf = ($argv[1]); shift;
+      set pf1 = $pf
+      set pf2 = $pf
+      breaksw
+
+    case "-mthr":
+      if ( $#argv == 0) goto arg1err;
+      set maskthr = ($argv[1]); shift;
+      set mask1thr = $maskthr;
+      set mask2thr = $maskthr;
+      breaksw
+
+    case "-i1":
+      if ( $#argv == 0) goto arg1err;
+      set instem1 = ($argv[1]); shift;
+      breaksw
+
+    case "-pf1":
+      if ( $#argv == 0) goto arg1err;
+      set pf1 = ($argv[1]); shift;
+      breaksw
+
+    case "-mask1":
+    case "-m1":
+      if ( $#argv == 0) goto arg1err;
+      set mask1 = ($argv[1]); shift;
+      breaksw
+
+    case "-mask1thr":
+    case "-m1thr":
+      if ( $#argv == 0) goto arg1err;
+      set mask1thr = ($argv[1]); shift;
+      breaksw
+
+    case "-mask1sign":
+    case "-m1sign":
+      if ( $#argv == 0) goto arg1err;
+      set mask1sign = ($argv[1]); shift;
+      breaksw
+
+    case "-i2":
+      if ( $#argv == 0) goto arg1err;
+      set instem2 = ($argv[1]); shift;
+      breaksw
+
+    case "-pf2":
+      if ( $#argv == 0) goto arg1err;
+      set pf2 = ($argv[1]); shift;
+      breaksw
+
+    case "-mask2":
+    case "-m2":
+      if ( $#argv == 0) goto arg1err;
+      set mask2 = ($argv[1]); shift;
+      breaksw
+
+    case "-mask2thr":
+    case "-m2thr":
+      if ( $#argv == 0) goto arg1err;
+      set mask2thr = ($argv[1]); shift;
+      breaksw
+
+    case "-mask2sign":
+    case "-m2sign":
+      if ( $#argv == 0) goto arg1err;
+      set mask2sign = ($argv[1]); shift;
+      breaksw
+
+    case "-umask":
+      if ( $#argv == 0) goto arg1err;
+      umask $1; shift;
+      breaksw
+
+    case "-monly":
+      if ( $#argv == 0) goto arg1err;
+      set monly = 1;
+      set wait  = 0;
+      set MLF = $argv[1]; shift;
+      breaksw
+
+    case "-nowait":
+      set wait    = 0;
+      set showpve = 0;
+      breaksw
+
+
+    default:
+      echo ERROR: Flag $flag unrecognized.
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+  if($#instem1 == 0) then
+     echo "ERROR: must specify input stem 1";
+     exit 1
+  endif
+
+  if($#instem2 == 0) then
+     echo "ERROR: must specify input stem 2";
+     exit 1
+  endif
+
+goto check_params_return;
+############--------------##################
+
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+#--------------------------------------------------------------------#
+usage_exit:
+  echo "plot-pve "
+
+  echo "   -i1 instem1 ";
+  echo "   -pf1 pforder"
+  echo "   -m1 mask1 ";
+  echo "   -m1thr mask1threshold ";
+  echo "   -m1sign mask1sign";
+
+  echo "   -i2 instem2 ";
+  echo "   -pf2 pforder"
+  echo "   -m2 mask2 ";
+  echo "   -m2thr mask2threshold ";
+  echo "   -m2sign mask2sign";
+
+  echo "   -slice sliceno : zero-based";
+  echo "   -row rowno     : zero-based";
+  echo "   -col colno     : zero-based";
+  echo "   -o outputfile";
+
+exit 1;
+#--------------------------------------------------------------------#

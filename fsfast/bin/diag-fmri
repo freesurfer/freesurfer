@@ -1,0 +1,495 @@
+#!/bin/csh -f
+# $Id: diag-fmri,v 1.1 2003/03/04 21:22:08 greve Exp $
+# This program is used to stress the fmri analysis software
+# to look for bugs or anything else that might be amiss.
+# It synthesizes and processes data, examining the errors in
+# the hemodynamic estimages and the false-positive rate.
+
+set DIAGFMRI_VER = '$Id: diag-fmri,v 1.1 2003/03/04 21:22:08 greve Exp $';
+echo "$DIAGFMRI_VER"
+
+set StartTime = `date`;
+
+if($#argv == 0) then
+  set TopDir = `pwd`/tmp-diag-data
+else
+  set TopDir = $argv[1];
+endif
+echo $TopDir
+
+set fsd = bold;
+set subject = dougg
+
+mkdir -p $TopDir
+cd $TopDir
+
+set DoCMtx    = 1;
+set DoOptSeq  = 1;
+set DoSynth   = 1;
+set DoMotCor  = 0;
+set UseMotCor = 0;
+set DoINorm  = 1;
+set DoSXA    = 1;
+set DoECM    = 0;
+set DoStXG   = 1;
+set DoHDRErr = 1;
+set DoFPR    = 1;
+set DoISFE     = 1;
+set DoISHDRErr = 1;
+set DoISStXG   = 1;
+set DoISFPR    = 1;
+set DoISRE     = 1;
+set DoISREFPR  = 1;
+
+set IPR = 3.125
+set BPR = 5.000
+
+set MONLY    = 0;
+
+set SXAGammFit = 0;
+
+set Sessions = (sess01)
+set Sessions = (sess01 sess02 sess03 sess04 sess05 sess06)
+set w = (1 1 1 1 1 1);
+
+if(0) then
+set w = ();
+set Sessions = ();
+@ nth = 1;
+while($nth <= 30)
+  set tmp = `printf %02d $nth`;
+  set Sessions = ($Sessions sess$tmp)
+  @ nth = $nth + 1;
+  set w = ($w 1)
+end
+endif
+echo $Sessions
+
+set Runs     = (001)
+
+set Npercond = (64)
+set Tpercond = (2)
+set WCond    = (1)
+set Ntp      = 128;
+set Nskip    = 0;
+
+set NullCondId = 0;
+set SNR      = .1;
+set ROI      = (20 20 40 40);
+#set ROI      = (1 1 64 64);
+set Nslices  = 1;
+set TWSynth = 20;
+set TR      = 2;
+set TWEst   = 20; # Estimate Time Window #
+set TPreStim = 4;
+set TER     = 1;
+set TSR     = $TER;  # Temporal Synth Res, used by optseq and synth
+set Tres    = $TER;
+@ Nh        = $TWEst / $TER;
+#@ Nh        = 10
+set Delta   = 2.25;
+set Tau     = 1.25;
+set fMRIOffset = 1000;
+set fMRITrend  = 0;
+set PercentSigChange = 5;
+set RescaleTarget = 1000;
+set SigAmp = $PercentSigChange;
+#set RnnMaxDelay = 20;
+set RnnMaxDelay = 0;
+#@ Nnac = $RnnMaxDelay / $TR
+@ Nnac = 0;
+
+set Alpha = .5;
+set Rho   = .88;
+
+set Contrast = "-a 1 -c 0  -tt tm"
+set WDelay = ();
+while( $#WDelay < $Nh)
+  set WDelay = ($WDelay 1);
+end
+
+set hdrstem     = $fsd/sxa/h;
+set ecovmtxstem = $fsd/sxa/ecm;
+set eresdir     = $fsd/sxa/eres
+set signaldir   = $fsd/sxa/signal
+set pstem       = $fsd/sxa/p;
+set fsigstem    = $fsd/sxa/fsig
+set Nruns   = $#Runs;
+
+# ------- Contrast matrix --------------- #
+set CMtxFile = $TopDir/cmtx;
+if($DoCMtx) then
+  echo "------- mkcontrast -----------"
+  set cmd = (mkcontrast -o $CMtxFile -nconds $#Npercond)
+  set cmd = ($cmd -wcond $WCond -TER $TER -ndelays $Nh)
+  set cmd = ($cmd -wdelay $WDelay -sumconds) # -sumdelays"
+  $cmd
+  if($status) then
+    echo "mkcontrast failed"
+    echo $cmd
+    pwd
+    exit 1;
+  endif
+  set rt = $status
+  if($rt)then
+    echo "----------------------------------------------"
+    echo "ERROR: mkcontrast exited with $rt"
+    pwd
+    echo "$cmd"
+    echo "----------------------------------------------"
+    exit -1;
+  endif
+endif
+
+############# Generate Sequences ###################
+if($DoOptSeq) then
+  set MF = "";
+  if($MONLY) set MF = "-monly optseq.m"
+
+  echo "-------------------------------------------------------------------"
+  echo "-------------------- optseq ---------------------------------------"
+  set cmd = "optseq -npercond $Npercond -tpercond $Tpercond -o par/par "
+  set cmd = "$cmd -ntp $Ntp -nsessions $#Sessions -nruns $Nruns "
+  set cmd = "$cmd -TR $TR -TER $TSR -Tres $TSR -timewindow $TWEst"
+  set cmd = "$cmd -prestim $TPreStim -nsearch 101 -seed 54 $MF"
+  pwd
+  echo $cmd
+  $cmd
+
+  set rt = $status
+  if($rt)then
+    echo "ERROR: optseq exited with $rt"
+    exit -1;
+  endif
+
+endif
+
+set sessidfile  = sessid;
+set sessdirfile = sessdir;
+
+rm -f $sessidfile
+pwd > $sessdirfile
+
+############ Loop over sessions #####################
+set isstems  = ();
+set wisstems = ();
+@ SessionNo = 1;
+foreach Session ($Sessions)
+
+  echo $Session >> $sessidfile
+
+  set fmristem  = f;
+
+  echo -------- Session $Session ---------------
+  mkdir -p $Session/$fsd
+  pushd $Session >& /dev/null
+  echo $subject > subjectname
+
+  echo "seqencename synthetic" > $fsd/seq.info
+  echo "nrows 64"       >> $fsd/seq.info
+  echo "ncols 64"       >> $fsd/seq.info
+  echo "nslcs $Nslices" >> $fsd/seq.info
+  echo "rowpixelsize $IPR" >> $fsd/seq.info
+  echo "colpixelsize $IPR" >> $fsd/seq.info
+  echo "slcpixelsize $BPR" >> $fsd/seq.info
+  echo "ntrs         $Ntp" >> $fsd/seq.info
+  echo "TR $TR"      >> $fsd/seq.info
+
+  set regfile = $fsd/register.dat
+  rm -f $regfile
+  echo "$subject" >> $regfile
+  echo "$IPR" >> $regfile
+  echo "$BPR" >> $regfile
+  echo "0.100" >> $regfile
+  echo "1 0 0 0 " >> $regfile
+  echo "0 1 0 0 " >> $regfile
+  echo "0 0 1 0 " >> $regfile
+  echo "0 0 0 1 " >> $regfile
+
+
+  ######### Synthesize ############
+  if($DoSynth) then
+    set parstem = `printf ../par/par-s%03d $SessionNo`;
+    set pars = ();
+    @ n = 1;
+    while ( $n <= $Nruns)
+      set par = `printf %s-r%03d.dat $parstem $n`;
+      set pars = ($pars $par);
+      @ n = $n + 1;
+    end
+    echo ------------- Synthesizing ----------------
+    set MF = "";
+    if($MONLY)  set MF = "-monly synthfmri.m"
+
+    synthfmri -dir $fsd -SNR $SNR -signalroi $ROI \
+              -delta $Delta -tau $Tau -TR $TR -TER $TSR \
+              -tw $TWSynth -offset $fMRIOffset -trend $fMRITrend\
+              -psch $PercentSigChange -nskip $Nskip\
+              -nruns $Nruns -nslices $Nslices \
+       	      -rnnmaxdelay $RnnMaxDelay -alpha $Alpha -rho $Rho \
+#              -npercond $Npercond \
+              $MF\
+	      -par $pars 
+
+    set rt = $status
+    if($rt)then
+      echo "ERROR: synthfmri exited with $rt"
+      exit -1;
+    endif
+
+    foreach run ($Runs)
+      set par     = `printf ../par/par-s%03d-r%03d.dat $SessionNo $run`;
+      set par2 = $fsd/$run/par.dat
+      cp $par $par2
+      if($status) then
+        pwd
+        echo "ERROR: cp $par $par2"
+        exit 1;
+      endif
+    end
+
+  endif
+
+  ####### Motion Correction ###########
+  if($DoMotCor) then
+    pwd
+    set ntmp = 1;
+    set targstem = $fsd/001/f
+    while($ntmp <= $Nruns) 
+      set runstr = $fsd/`printf %03d $ntmp`;
+      echo "---------- Motion Correction Run $ntmp -------------"
+      set MF = ();
+      if($MONLY)  set MF = "-scriptonly run-mc-afni-$ntmp"
+      set instem  = $runstr/f
+      set outstem = $runstr/fmc
+      set cmd = "mc-afni -i $instem -o $outstem -t $targstem $MF -ipr $IPR -bpr $BPR"
+      echo "-------------------------------------------- "
+      pwd
+      echo $cmd
+      $cmd
+      echo "-------------------------------------------- "
+      @ ntmp = $ntmp + 1;
+    end
+    if($UseMotCor) set fmristem = fmc;
+  endif
+
+  ######### INorm ############
+  if( $DoINorm ) then
+    echo ---------------- INorm ----------------------
+    set instems = ();
+    foreach run ($Runs)
+      pushd $fsd/$run > /dev/null
+      set MF = "";
+      if($MONLY) set MF = "-monly inorm.m"
+
+      inorm -i $fmristem -TR $TR # -rescale $RescaleTarget $MF
+      set rt = $status
+      if ( $rt ) then
+        echo "ERROR: inorm exited with $rt"
+        exit -1;
+      endif
+      popd > /dev/null;
+    end
+  endif
+
+  ######### SelXAvg ############
+  if($DoSXA) then
+
+    set instems = ();
+    set pars    = ();
+    foreach run ($Runs)
+      set par     = `printf ../par/par-s%03d-r%03d.dat $SessionNo $run`;
+      #set par     = par/par-0$run.dat
+      set pars    = ($pars    -p $par);
+      set instems = ($instems -i $fsd/$run/$fmristem);
+      set par2 = $fsd/$run/par.dat
+      cp $par $par2
+    end
+
+    if($SXAGammFit) then
+      set GammaFit = "-gammafit $Delta $Tau"
+    else
+      set GammaFit = ""
+    endif
+
+    set MF = "";
+    if($MONLY) set MF = "-monly sxa.m"
+
+    set ECM = "";
+    if($DoECM) set ECM = "-ecovmtx $ecovmtxstem";
+
+    set args = ();
+    set args = ($args -TR $TR -TER $TER -tw $TWEst -detrend )
+    set args = ($args $instems $pars -o $hdrstem -basegment)
+    set args = ($args -prestim $TPreStim $GammaFit $MF)
+    set args = ($args -rescale $RescaleTarget -nskip $Nskip)
+    set cmd = (selxavg2 $args)
+    echo "---------------------------------------------------"
+    pwd
+    echo $cmd
+    $cmd
+    set rt = $status
+    if($rt)then
+      echo "ERROR: selxavg2 exited with $rt"
+      exit -1;
+    endif
+  endif
+
+  ########## Stxgrinder ##########
+  if($DoStXG) then
+    set MF = "";
+    if($MONLY) set MF = "-monly stxg.m"
+
+    set cmd = (stxgrinder -i $hdrstem -o $pstem )
+    set cmd = ($cmd -pmin $pstem"min" -fsig $fsigstem $MF )
+    set cmd = ($cmd -cmtx $CMtxFile)
+    $cmd
+    set rt = $status
+    if($rt)then
+      echo "ERROR: stxgrinder exited with $rt"
+      exit -1;
+    endif
+  endif
+
+  ########## HDR Error Evaluation ##########
+  if($DoHDRErr) then
+    set MF = "";
+    if($MONLY) set MF = "-monly hdrerr.m"
+
+    hdrerror -i $fsd/sxa/h_000.bfloat -o hdrerror.dat -roi $ROI \
+           -sigamp $SigAmp -SNR $SNR\
+           -delta $Delta -tau $Tau $MF &
+    set rt = $status
+    if($rt)then
+      echo "ERROR: hdrerror exited with $rt"
+      exit -1;
+    endif
+    set DoHDRErr = 0;
+  endif
+
+  ########## FPR Evaluation ##########
+  if($DoFPR) then
+    set MF = "";
+    if($MONLY) set MF = "-monly fprshow.m"
+    fpr -i $fsigstem"_000.bfloat" -o fpr.dat \
+        -roi $ROI -maxalpha .2  $MF &
+    set rt = $status 
+    if($rt)then
+      echo "ERROR: fpr exited with $rt"
+      pwd
+      exit -1;
+    endif
+    set DoFPR = 0;
+  endif
+
+  popd >& /dev/null
+
+  set isstems = ($isstems -i $Session/$fsd/sxa/h);
+  set wisstems = ($wisstems -i $Session/$fsd/sxa/h $w[$SessionNo]);
+
+  @ SessionNo = $SessionNo + 1;
+end # loop over sessions
+
+############### Inter-Subject Averaging ##################
+if($DoISFE) then
+  set MF = "";
+  if($MONLY) set MF = "-monly isx_fe.m"
+
+  # -weighted $wisstems 
+  set cmd = (isxavg-fe $MF $isstems -o isxavgfe/h)
+  $cmd
+  set rt = $status
+  if($rt)then
+    echo "ERROR: isxavg-fe exited with $rt"
+    pwd
+    echo $cmd
+    exit -1;
+  endif
+endif
+
+########## Stxgrinder ##########
+if($DoISStXG) then
+  set MF = "";
+  if($MONLY) set MF = "-monly stx_fe.m"
+
+  set hdrstem = isxavgfe/h
+  set pstem   = isxavgfe/p
+  stxgrinder -i $hdrstem -o $pstem  $MF\
+               $Contrast  # -cmtx $CMtxFile 
+  set rt = $status
+  if($rt)then
+    echo "ERROR: stxgrinder exited with $rt"
+    exit -1;
+  endif
+endif
+
+########## HDR Error Evaluation ##########
+if($DoISHDRErr) then
+    set MF = "";
+    if($MONLY) set MF = "-monly hdrerr_fe.m"
+
+    hdrerror -i isxavgfe/h_000.bfloat -o isxavgfe/hdrerror.dat -roi $ROI \
+           -sigamp $SigAmp -SNR $SNR\
+           -delta $Delta -tau $Tau $MF &
+    set rt = $status
+    if($rt)then
+      echo "ERROR: hdrerror exited with $rt"
+      exit -1;
+    endif
+endif
+
+########## FPR Evaluation ##########
+if($DoISFPR) then
+    set MF = "";
+    if($MONLY) set MF = "-monly fpr_fe.m"
+
+    fpr -i isxavgfe/p_000.bfloat -o isxavgfe/fpr.dat \
+        -maxalpha 1.0  $MF & #-roi $ROI 
+    set rt = $status
+    if($rt)then
+      echo "ERROR: fpr exited with $rt"
+      exit -1;
+    endif
+endif
+
+############### Inter-Subject Averaging - random effects #########
+if($DoISRE) then
+  echo "-------------- ISAVG-RE -------------------------"
+  set MF = "";
+  if($MONLY) then
+    set MF = "-monly isx_re.m"
+    pwd
+    echo "mfile is isx_re.m"
+  endif
+
+  set cmd = "isxavg-re $isstems $MF -sig isxavgre/p -minsig isxavgre/pmin -t isxavgre/t -avg isxavgre/avg   -cmtx $CMtxFile"
+  $cmd
+  set rt = $status
+  if($rt)then
+    echo "ERROR: isxavg-re exited with $rt"
+    echo $cmd
+    exit -1;
+  endif
+endif
+
+########## FPR Evaluation ##########
+if($DoISREFPR) then
+    echo "-------------- FPR-RE -------------------------"
+    set MF = "";
+    if($MONLY) set MF = "-monly fpr_re.m"
+
+    set cmd = "fpr -i isxavgre/p_000.bfloat -o isxavgre/fpr.dat -roi $ROI -maxalpha 1.0  $MF"
+    $cmd
+    set rt = $status
+    if($rt)then
+      echo "ERROR: fpr exited with $rt"
+      echo $cmd
+      exit -1;
+    endif
+endif
+
+set EndTime = `date`;
+echo "Started at $StartTime"
+echo "Ended   at $EndTime"
+
+exit 0;

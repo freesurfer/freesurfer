@@ -1,0 +1,41 @@
+#!/bin/csh -f
+##########################################
+# Name: getsliceno
+# Purpose: gets XXX portion of stem_XXX.bxxxx
+# $Id
+##########################################
+
+set VER = '$Id: getsliceno,v 1.1 2003/03/04 21:22:08 greve Exp $';
+
+if($#argv != 1) then
+  echo "USAGE getsliceno bfilename"
+  echo "  version: $VER"
+  exit 1;
+endif
+
+set splt = `splitstr $argv[1]`;
+
+@ n = $#splt
+while($n > 0)
+  if($splt[$n] == "_") break;
+  @ n = $n - 1;
+end
+
+if($n == 0) then
+  echo "ERROR: could not find an underscore"
+  exit 1;
+endif
+
+@ a = $n + 1;
+@ b = $n + 2;
+@ c = $n + 3;
+
+if($c > $#splt) then
+  echo "ERROR: not enough characters past underscore"
+  exit 1;
+endif
+
+printf %c%c%c $splt[$a] $splt[$b] $splt[$c]
+
+exit 0;
+#########################################

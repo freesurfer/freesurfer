@@ -1,0 +1,386 @@
+#!/bin/csh -f
+# evpve-sess - 
+#
+# $Id: evpve-sess,v 1.1 2003/03/04 21:22:08 greve Exp $
+
+set inputargs = ($argv);
+set VERSION = '$Id: evpve-sess,v 1.1 2003/03/04 21:22:08 greve Exp $';
+
+set SessList = ();
+set fsd = "bold";
+set funcstem = "f"; # stem of functional volume
+set rlf = ();
+set mask = ();
+set maskmatch = 1;
+set meanfit = 1;
+set trendfit = 1;
+set outsuffix = ();
+set outdir = ();
+set collapse = 0;
+set monly = 0;
+
+if($#argv == 0) then
+  goto usage_exit;
+  exit 1;
+endif
+
+set n = `echo $argv | grep version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+
+set PWDCMD = `getpwdcmd`;
+
+set SessList = `getsesspath $argv`;
+if($status || $#SessList == 0) then
+  echo $SessList
+  exit 1;
+endif
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+set StartTime = `date`;
+
+# Create a log file #
+if(-w .) then
+  mkdir -p log
+  set LF = `$PWDCMD`/log/evpve-sess-$fsd.log
+  rm -f $LF
+else
+  set LF = /dev/null
+endif
+
+echo "evpve-sess" >> $LF
+echo $VERSION     >> $LF
+uname -a          >> $LF
+date              >> $LF
+$PWDCMD           >> $LF
+echo $inputargs   >> $LF
+
+if($monly) then
+  set QuitOnError = 0;
+else
+  set QuitOnError = 1;
+  set MLF = evpve_sess_$$.m
+endif
+rm -f $MLF
+echo "Matlabl file is $MLF"
+
+if($#outdir != 0) then
+  mkdir -p $outdir
+  pushd $outdir > /dev/null
+  set outdir = `$PWDCMD`;
+  popd > /dev/null
+endif
+
+#----------------------------------------------------------------#
+tee $MLF <<EOF
+
+  global QuitOnError;
+  QuitOnError = $QuitOnError;
+  SessList = splitstring('$SessList');
+  funcstem = '$funcstem';
+  fsd = '$fsd';
+  rlf = '$rlf';
+  maskstem = '$mask';
+  maskmatch = $maskmatch;
+  meanfit = $meanfit;
+  trendfit = $trendfit;
+  outsuffix = '$outsuffix';
+  outdir    = '$outdir';
+  collapse  = $collapse;
+
+  tic;
+  nsessions = size(SessList,1);
+  for nthsess = 1:nsessions
+    sess = deblank(SessList(nthsess,:));
+    sessid = basename(sess);
+    fprintf('%3d %s %g\n',nthsess,sessid,toc);
+
+    if(~isempty(maskstem))
+      maskfullstem = sprintf('%s/%s/mask/%s',sess,fsd,maskstem);
+      mask = fmri_ldbvolume(maskfullstem);
+      if(isempty(mask)) 
+        qoe(maskfullstem); error(maskfullstem); 
+      end
+      nmasktot = find(mask == maskmatch);
+      if(nmasktot == 0) 
+        msg = sprintf('No active voxels found in mask');
+        qoe(msg); error(msg);
+      end
+    else
+      mask = [];
+    end
+
+    if(~isempty(outdir))
+      outfile = sprintf('%s/%s-%s-%s-%s',outdir,sessid,funcstem,outsuffix);
+    else
+      outfile = sprintf('%s/%s/%s-%s',sess,fsd,funcstem,outsuffix);
+    end
+    fprintf('outfile = %s\n',outfile);
+
+    if(isempty(rlf))
+      fsdpath = sprintf('%s/%s',sess,fsd);
+      runlist = fast_runlist(fsdpath);
+    else
+      rlfpath = sprintf('%s/%s/%s',sess,fsd,rlf);
+      runlist = fast_runlistfile(rlfpath);      
+    end
+    nruns = size(runlist,1);
+
+    tcvm = 0;
+    %----------------------- Run Loop -------------------------%
+    for nthrun = 1:nruns
+      runid = deblank(runlist(nthrun,:));
+      fprintf('%s ',runid);
+
+      instem = sprintf('%s/%s/%s/%s',sess,fsd,runid,funcstem);
+      [nslices nrows ncols ntrs endian bext] = fmri_bvoldim(instem);
+      nvslice = nrows*ncols;
+    
+      X = [];
+      if(meanfit)   
+        X = [X ones(ntrs,1)]; 
+      end
+      if(trendfit)  
+        xtrend = [1:ntrs]'; %'
+        xtrend = xtrend - mean(xtrend);
+        X = [X xtrend];
+      end
+      if(~isempty(X))
+        T = X*inv(X'*X)*X';
+        E = eye(size(T)) - T;
+      else
+        E = [];
+      end
+
+      %---------------- Slice Loop -------------------------------%
+      for nthslice = 0:nslices-1
+        fprintf('%2d ',nthslice);
+
+        fname = sprintf('%s_%03d.%s',instem,nthslice,bext);
+        f = fmri_ldbfile(fname);
+        if(isempty(f))
+          msg = sprintf('ERROR: reading %s\n',fname);
+          qoe(msg); error(msg);
+        end
+        f = reshape(f,[nvslice ntrs])'; %'
+
+        if(~isempty(mask))
+          imask = find(squeeze(mask(nthslice+1,:,:)==maskmatch));
+          nmask = length(imask);
+          f = f(:,imask);
+        else
+          nmask = nvslice;
+        end
+
+        if(nmask > 0)
+          if(~isempty(E)) f = E*f; end
+          tcvm_slice = f * f'; %'
+          tcvm = tcvm + tcvm_slice;
+        end
+
+      end %---------- Slice Loop ---------------------%
+      fprintf('\n');
+    end %---------- Run Loop ---------------------%
+
+    [U S blah] = svd(tcvm);
+    SingularVals = diag(S);
+    pve = 100*SingularVals/sum(SingularVals);
+    cpve = cumsum(pve);
+    nSingularVals = length(SingularVals);
+    tmp = [ [1:nSingularVals]' pve cpve]';
+    fid = fopen(outfile,'w');
+    if(fid == -1)
+      msg = sprintf('ERROR: could not open %s',outfile);
+      qoe(msg); error(msg);
+    end
+    fprintf(fid,'%3d  %7.2f %7.2f\n',tmp); 
+    fclose(fid);
+
+  end %----------- Session Loop ------------------%
+
+EOF
+#----------------------------------------------------------------#
+
+if(! $monly ) then
+  cat $MLF | matlab -display iconic | tee -a $LF
+endif
+echo " "
+
+exit 0;
+###############################################
+
+
+############--------------##################
+parse_args:
+set cmdline = "$argv";
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-funcstem":
+    case "-f":
+      if( $#argv < 1) goto arg1err;
+      set funcstem = $argv[1]; shift;
+      breaksw
+
+    case "-fsd":
+      if( $#argv < 1) goto arg1err;
+      set fsd = $argv[1]; shift;
+      breaksw
+
+    case "-rlf":
+      if( $#argv < 1) goto arg1err;
+      set rlf = $argv[1]; shift;
+      breaksw
+
+    case "-mask":
+    case "-m":
+      if( $#argv < 1) goto arg1err;
+      set mask = $argv[1]; shift;
+      breaksw
+
+    case "-maskmatch":
+    case "-match":
+    case "-mm":
+      if( $#argv < 1) goto arg1err;
+      set maskmatch = $argv[1]; shift;
+      breaksw
+
+    case "-meanfit":
+      set meanfit = 1;
+      breaksw
+
+    case "-nomeanfit":
+      set meanfit = 0;
+      breaksw
+
+    case "-trendfit":
+      set trendfit = 1;
+      breaksw
+
+    case "-notrendfit":
+      set trendfit = 0;
+      breaksw
+
+    case "-collapse":
+      set collapse = 1;
+      breaksw
+
+    case "-nocollapse":
+      set collapse = 0;
+      breaksw
+
+    case "-os":
+      if( $#argv < 1) goto arg1err;
+      set outsuffix = $argv[1]; shift;
+      breaksw
+
+    case "-od":
+      if( $#argv < 1) goto arg1err;
+      set outdir = $argv[1]; shift;
+      breaksw
+
+    case "-monly":
+      if( $#argv < 1) goto arg1err;
+      set MLF = $argv[1]; shift;
+      set monly = 1;
+      breaksw
+
+    case "-verbose":
+      set verbose = 1;
+      breaksw
+
+    case "-echo":
+      set echo = 1;
+      breaksw
+
+    case "-debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    case "-umask":
+      if( $#argv < 1) goto arg1err;
+      umask $argv[1]; shift;
+      breaksw
+
+    case "-g":
+    case "-s":
+    case "-sf":
+    case "-d":
+    case "-df":
+      shift;
+      # ignore getsesspath arguments 
+      breaksw
+
+    case "-cwd":
+      # ignore getsesspath arguments 
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+  if($#outsuffix == 0) then
+    echo "ERROR: must spec output suffix (-os)"
+    exit 1;
+  endif
+
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "USAGE: evpve-sess"
+  echo "   -os outputsuffix   : output suffix"
+  echo ""
+  echo " Options"
+  echo "   -funcstem stem  <f>"
+  echo "   -fsd      dir   <bold>"
+  echo "   -rlf runlistfile"
+  echo "   -mask     stem     : mask stem found in fsd/mask"
+  echo "   -maskmatch val     : use voxels where mask=val (def: val=1)"
+  echo "   -nomeanfit         : don't fit the mean"
+  echo "   -notrendfit        : don't fit the trend"
+  echo "   -od outputdir      : save as outdir/sessid-fstem-fsd-outsuf"
+  echo ""
+  echo "   -umask umask       : set unix file permission mask"
+  echo "   -version           : print version and exit"
+  echo ""
+  echo "Session Arguments (Required)"
+  echo "   -sf sessidfile  "
+  echo "   -df srchdirfile "
+  echo "   -s  sessid      "
+  echo "   -d  srchdir     "
+  echo "   -fsd fsdir      (optional)"
+  echo ""
+exit 1;
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+

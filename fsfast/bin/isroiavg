@@ -1,0 +1,202 @@
+#!/bin/csh -f
+
+set ISROIAVG_VER = '$Id: isroiavg,v 1.1 2003/03/04 21:22:08 greve Exp $'
+
+if ( $#argv < 4 ) then
+  echo "USAGE: isroiavg [-options] -i infile1 -i infile2 -o outstem";
+  echo "   -i infile1  : prefix of first  .mat roi file";
+  echo "   -i infile2  : prefix of second .mat roi file";
+#  echo "   -o outstem  : prefix of .mat hdr average file"
+  echo "   -constrast -1,0,+1    : indicate active, control and ignored conditions";
+  echo "   -delaysign -1,0,+1    : indicate active, control and ignored delays";
+  echo "Options:";
+  echo "   -dsavg: average delays with like sign before computing the difference";
+  echo "   -report filename : print results to a file";
+  echo "   -display    : display results to screen using hdrview";
+  echo ""
+  echo "  $ISROIAVG_VER"
+  echo "  Comments or questions: analysis-bugs@nmr.mgh.harvard.edu"
+  echo ""
+  exit 1;
+endif
+
+# Set Default Values #
+set infile  = ();
+set outstem = ();
+set QuitOnError = 1;
+set ShowResults = 0;
+set monly = 0;
+set delsign  = ();
+set contrast = ();
+set dsavg = 0;
+set report = 0;
+set reportfile = ();
+
+goto parse_args;
+parse_args_return:
+goto check_args;
+check_args_return:
+
+#echo "Infiles:    $infile"
+#echo "Outstem:   $outstem"
+
+#set OutDir = `dirname $outstem`;
+
+## Set path for matlab file ##
+if( $monly && -w .) then
+  set MLF = isroiavg_tmp.m
+else
+  set MLFBase = "isroiavg_"$$"_tmp.m"
+  set MLF = /tmp/$MLFBase
+endif
+
+echo ""
+echo "roiavg matlab file is $MLF"
+rm -f $MLF;
+
+echo "%%% ----------------- %%"       >> $MLF;
+echo "% matlab file to run isroiavg"    >> $MLF;
+echo "% This is a temporary file and may be deleted" >> $MLF;
+echo "% $MLF"                          >> $MLF;
+echo "% `date`" >> $MLF
+echo "global QuitOnError;"             >> $MLF;
+echo "QuitOnError = $QuitOnError;"     >> $MLF;
+echo "if(exist('fmri_isroiavg')==0)"        >> $MLF;
+echo "   qoe('matlab path is incorrect');end;" >> $MLF  ;
+echo "ShowResults = $ShowResults;" >> $MLF  ;
+echo "DelaySign = [$delsign];" >> $MLF  ;
+echo "DSAvg = $dsavg;" >> $MLF  ;
+echo "Contrast  = [$contrast];"  >> $MLF  ;
+#echo "OutStem   = '$outstem';" >> $MLF  ;
+echo "report = $report;" >> $MLF  ;
+echo "reportfile = '$reportfile';" >> $MLF  ;
+echo "roistem = '$infile';" >> $MLF  ;
+echo "roifile = struct('name','');" >> $MLF  ;
+@ n = 1;
+foreach roihdr ($infile)
+  # echo "Including $roihdr"
+  echo "roifile($n).name = '$roihdr';" >> $MLF
+  @ n = $n + 1;
+end
+echo "fmri_isroiavg;" >> $MLF  ;
+
+if(! $monly) then
+  if($ShowResults) then
+    cat $MLF | matlab
+  else
+    cat $MLF | matlab -display iconic
+  endif
+
+  rm -f $MLF;
+endif
+
+echo " "
+exit 0;
+
+############--------------##################
+parse_args:
+
+set cmdline = "$argv";
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-i":
+      if( $#argv == 0) goto arg1err;
+      set infile = ($infile $argv[1]); shift;
+      breaksw
+
+    case "-report":
+      if( $#argv == 0) goto arg1err;
+      set reportfile = $argv[1]; shift;
+      set report = 1;
+      breaksw
+
+    case "-o":
+      if( $#argv == 0) goto arg1err;
+      if( $#outstem != 0 ) then
+        echo ERROR: only one outstem allowed.
+        exit 1
+      endif
+      set outstem = $argv[1]; shift;
+      breaksw
+
+    case "-contrast":
+    case "-c"
+      if( $#argv == 0) goto arg1err;
+      while( $#argv != 0 )
+        if("$argv[1]" == "-1" || "$argv[1]" == "+1" ||\
+           "$argv[1]" == "1"  || "$argv[1]" == "0") then
+           set contrast = ($contrast $argv[1]);
+           shift;
+        else
+           break;
+        endif
+      end
+      breaksw
+
+    case "-delaysign":
+    case "-ds":
+      if( $#argv == 0) goto arg1err;
+      while( $#argv != 0 )
+        if("$argv[1]" == "-1" || "$argv[1]" == "+1" ||\
+           "$argv[1]" == "1"  || "$argv[1]" == "0") then
+           set delsign = ($delsign $argv[1]);
+           shift;
+        else
+           break;
+        endif
+      end
+      breaksw
+
+    case "-monly":
+      set monly = 1; 
+      set QuitOnError = 0;
+      set ShowResults = 2;
+      breaksw
+
+    case "-dsavg":
+      set dsavg = 1;
+      breaksw
+
+    case "-display":
+      set ShowResults = 1;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized.
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_args:
+  if($#infile < 2) then
+    echo "ERROR: at least two infiles are needed";
+    exit 1;
+  endif
+
+  if($#outstem == 0 && 0) then
+    echo "ERROR: no outstem specified"
+    exit 1;
+  endif
+
+  if($#contrast < 2) then
+    echo "ERROR: at least two contrast conditions are required"
+    exit 1;
+  endif
+
+  if($#delsign == 0) then
+    echo "ERROR: no delaysign specified"
+    exit 1;
+  endif
+
+goto check_args_return;
+############--------------##################

@@ -1,0 +1,189 @@
+#!/bin/csh -f
+# evfunc - front end for fast_evfunc.m to compute the eigen
+# structure of a functional data set.
+#
+set VERSION = '$Id: evfunc,v 1.1 2003/03/04 21:22:08 greve Exp $'
+set inputargs = ($argv);
+
+set PWDCMD = `getpwdcmd`;
+
+set evfunccmd = ();
+set outstem = ();
+set monly = 0;
+set MLF = ();
+set QuitOnError = 1;
+
+set n = `echo $argv | grep version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+
+if($#argv == 0) then
+  goto usage_exit;
+  exit 1;
+endif
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+set MATLAB = `getmatlab`;
+if($status) exit 1;
+
+set LF = $outdir/evfunc.log
+rm -f $LF
+date >> $LF
+echo $0 $inputargs >> $LF
+
+if($#MLF == 0) set MLF = evfunc_$$.m
+rm -f $MLF
+
+set okfile = $outdir/evfunc.ok.$$
+rm -f $okfile
+
+echo matlab file is $MLF 
+rm -f $MLF;
+echo "% Matlab file for evfunc `date`" >> $MLF
+echo "% This file may be deleted "     >> $MLF
+echo "% $MLF"                          >> $MLF;
+echo "global QuitOnError;"             >> $MLF;
+echo "QuitOnError = $QuitOnError;"     >> $MLF;
+echo "r=1;"     >> $MLF;
+set c = "";
+echo -n "r = fast_evfunc("     >> $MLF;
+foreach arg ($evfunccmd)
+  echo -n "$c '$arg'"      >> $MLF;
+  set c = ",";
+end
+echo -n ");" >> $MLF;
+echo " ">> $MLF;
+echo "if(r==0)" >> $MLF;
+echo "  fmri_touch('$okfile');" >> $MLF;
+echo "end" >> $MLF;
+echo "qoe;" >> $MLF;
+
+echo "----------- Matlab file --------------" 
+cat $MLF | tee -a $LF
+echo " " | tee -a $LF
+echo "-----------------------------------" 
+
+if(! $monly ) then
+  set StartDate = `date`;
+  echo "------------------------------------------"  | tee -a $LF
+  echo "------- matlab output --------------------" | tee -a $LF
+  cat $MLF | $MATLAB -display iconic | tee -a $LF
+  echo "------------------------------------------" | tee -a $LF
+  rm $MLF
+  if(! -e $okfile) then
+    echo "ERROR: fast_evfunc() failed\n" | tee -a $LF
+    exit 1;
+  endif
+  rm -f $okfile
+  echo "Started at $StartDate" | tee -a $LF
+  echo "Ended   at `date`"     | tee -a $LF
+endif
+
+echo " " 
+echo " " 
+echo "evfunc Done" 
+echo " " 
+
+exit 0;
+###--------------------------------------------###
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-o"
+      if ( $#argv == 0) goto arg1err;
+      set outstem = $argv[1]; shift;
+      set evfunccmd = ($evfunccmd "-o" "$outstem");
+      breaksw
+
+    case "-monly":
+      if ( $#argv == 0) goto arg1err;
+      set MLF = $argv[1]; shift;
+      set monly = 1;
+      set QuitOnError = 0;
+      breaksw
+
+    case "-verbose":
+      set verbose = 1;
+      breaksw
+
+    case "-echo":
+      set echo = 1;
+      breaksw
+
+    case "-debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    default:
+      set evfunccmd = ($evfunccmd $flag);
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+  if($#outstem == 0) then
+    echo "ERROR: must specify an output prefix"
+    exit 1;
+  endif
+
+  # Create the output directory 
+  set outdir = `dirname $outstem`;
+  mkdir -p $outdir
+  pushd $outdir > /dev/null
+  set outdir = `$PWDCMD`;
+  popd > /dev/null
+
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "USAGE: evfunc"
+  echo ""
+  echo "   -i volid <<-i volid> ...>"
+  echo "   -o prefix"
+  echo ""
+  echo "Options:";
+  echo ""
+  echo "   -nkeep n"
+  echo "   -cutends       : dont include end-slices in processing"
+  echo "   -polyfit order"
+  echo "   -mask volid"
+  echo "   -maskthresh maskthresh (0.5)"
+  echo "   -masksign sign (<abs>,pos,neg)"
+  echo "   -automaskthresh maskthresh "
+  echo "   -automask volid"
+  echo ""
+  echo "   -umask umask   : set unix file permission mask"
+  echo "   -version       : print version and exit"
+  echo ""
+exit 1;

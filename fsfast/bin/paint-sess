@@ -1,0 +1,630 @@
+#!/bin/csh -f
+# paint-sess
+#
+set VERSION = '$Id: paint-sess,v 1.1 2003/03/04 21:22:09 greve Exp $';
+set FASTVER = `cat $FMRI_ANALYSIS_DIR/docs/version`;
+
+set inputargs = ($argv);
+
+set nolog      = 0;
+set map        = sig;
+set outmap     = ();
+set contrast   = ();
+set offsetlist = ();
+set allframes  = 1;
+set analysis   = ();
+set designtype    = ();
+set grpname    = ();
+set space      = native;
+set spacedir   = ();
+set ScriptOnly = 0;
+set umaskarg   = ();
+set hemi       = ();
+set subject    = ();
+set Surface    = ();
+set SessList   = ();
+set isxavgmethod = ();
+set IsGroup = 0;
+set getsubjfromreg = 0;
+set Float2Int = ();
+set ProjFrac = 0;
+set srcsubject = ();
+set code = (); # a way to uniquely id a paint, used in surf-sess too
+set noretinotopy = 0;
+
+if($#argv == 0) then
+  goto usage_exit;
+  exit 1;
+endif
+
+# look for "-old" or "-vss" flag #
+foreach a ($argv)
+  if("$a" == "-old" || "$a" == "-vss") then
+    echo "INFO: running old verssion of paint-sess"
+    paint-sess-old $argv;
+    exit $status;
+  endif
+end
+
+# look for version flag #
+set n = `echo $argv | grep version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+
+# look for nolog flag #
+set n = `echo $argv | grep nolog | wc -l` 
+if($n != 0) set nolog = 1;
+
+##### Create a log file ######
+if(! $nolog) then
+  set logdir = `pwd`/log;
+  mkdir -p $logdir
+  if(! -e $logdir) then
+    echo "WARNING: could not create $logdir"
+    set LF = /dev/null
+  else
+    set LF = $logdir/paint-sess.log
+    if(-e $LF) mv $LF $LF.old
+  endif
+else
+  set LF = /dev/null
+endif
+
+echo "-----------------------------------------------------------------"
+echo "paint-sess logfile is $LF"
+echo "-----------------------------------------------------------------"
+
+echo "paint-sess log file" >> $LF
+echo $VERSION >> $LF
+echo "FAST Version $FASTVER"  >> $LF
+id            >> $LF
+pwd           >> $LF
+echo "$0"     >> $LF
+echo $inputargs  >> $LF
+uname -a      >> $LF
+date          >> $LF
+which mri_vol2surf >> $LF
+which mri_surf2surf >> $LF
+
+goto parse_args;
+parse_args_return:
+
+set SessList = `getsesspath $inputargs`;
+if($status) then
+  echo "$SessList" |& tee -a $LF
+  exit 1;
+endif
+
+goto check_params;
+check_params_return:
+
+#-- Recursive call for retinotopy -----------------------------#
+if($designtype == "retinotopy" && $#outmap == 0) then
+  echo "Starting recursive call for retinotopy " |& tee -a $LF
+  foreach stimtype(polar eccen)
+    echo "-----VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV--------"|& tee -a $LF
+    paint-sess $inputargs -contrast $stimtype -outmap sig-0 -offset 0 \
+             -map h -nolog |& tee -a $LF
+    if($status) exit 1;
+
+    echo "-----VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV--------"|& tee -a $LF
+    paint-sess $inputargs -contrast $stimtype -outmap map-real -offset 1 \
+             -map h -nolog |& tee -a $LF
+    if($status) exit 1;
+
+    echo "-----VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV--------"|& tee -a $LF
+    paint-sess $inputargs -contrast $stimtype -outmap map-imag -offset 2 \
+             -map h -nolog |& tee -a $LF
+    if($status) exit 1;
+
+  end
+  echo "Done: recursive call for retinotopy" |& tee -a $LF
+
+  echo "Painting field sign"|& tee -a $LF
+  paint-fieldsign-sess $inputargs |& tee -a $LF
+  if($status) exit 1;
+
+  exit 0;
+endif
+#---------------------------------------------------------------#
+
+if($#outmap == 0) set outmap = $map;
+
+## Prepare the script, if need be ##
+if($ScriptOnly) then
+  mkdir -p scripts
+  if(! -d scripts) then
+    echo "ERROR ($sess): cannot create `pwd`/scripts"
+    exit 1;
+  endif
+
+  if($IsSess) then
+    set scriptfile = scripts/run-paint-$analysis-$contrast-sess
+  else
+    set scriptfile = scripts/run-paint-$analysis-$contrast-$grpname
+  endif
+  rm -f $scriptfile
+  touch $scriptfile
+  echo "#\!/bin/csh -f" >> $scriptfile
+  echo "cd .." >> $scriptfile
+  chmod a+x $scriptfile
+endif
+
+if($#srcsubject == 0) then
+  if($space == tal) set srcsubject = talairach;
+  if($space == sph) set srcsubject = ico;
+  echo "INFO: setting srcsubject to $srcsubject"
+endif
+
+## Loop through each hemi (if needed) ##
+foreach hs ($hemi)
+
+  if($space == sph ) then 
+     echo "------ $hs hemisphere ------" |& tee -a $LF
+  endif
+
+  date |& tee -a $LF
+
+  ## Go through each session ##
+  foreach sess ($SessList)
+    set sessid = `basename $sess`;
+    set regfile = ();
+
+    echo SpaceDir is $spacedir;
+    set mapdir = $sess/$fsd/$analysis/$spacesubdir/$contrast;
+    if(! -e $mapdir) then
+      echo "ERROR: $mapdir does not exist" |& tee -a $LF
+      exit 1;
+    endif
+    set inmapstem = $mapdir/$map
+
+    if(! $IsGroup ) then
+      set regfile = $sess/$fsd/register.dat;
+      if(! -e $regfile ) then
+        echo "ERROR: cannot find $regfile. Try running"
+        echo "autoreg-sess/tkregister-sess"
+      endif
+      if($#srcsubject == 0) set srcsubject = `head -n 1 $regfile`;
+      if($getsubjfromreg) then
+        set subject = `head -n 1 $regfile`;
+        if(! -e $sess/subjectname ) then
+          echo "ERROR: the subjectname file does not exist in the"|& tee -a $LF
+          echo "       $sessid session"|& tee -a $LF
+          exit 1;
+        endif	
+      endif
+      set tmpsubject = `cat $sess/subjectname`;
+      if($tmpsubject != $subject) then
+        echo "ERROR: the contents of the subjectname file ($tmpsubject)"|& tee -a $LF
+        echo "does not match that of the subject name in the register.dat"|& tee -a $LF
+        echo "file ($subject)"|& tee -a $LF
+        exit 1;
+      endif
+    endif
+
+    if(! -e $SUBJECTS_DIR/$subject) then
+      echo "ERROR: cannot find $subject in SUBJECTS_DIR," |& tee -a $LF
+      echo " SUBJECTS_DIR = $SUBJECTS_DIR" |& tee -a $LF
+    endif
+
+    echo "INFO: Painting onto $subject" |& tee -a $LF
+
+    if(! -e $SUBJECTS_DIR/$subject) then
+      echo "ERROR: cannot find $subject in $SUBJECTS_DIR" |& tee -a $LF
+      exit 1;
+    endif
+
+    if( $space == tal ) then
+      set talres = `gettalres $inmapstem`
+      if($status) then
+        echo "$talres" |& tee -a $LF
+        exit 1;
+      endif
+      set talreg = $mapdir/talreg-$subject.dat
+      mktalreg -subject $subject -reg $talreg -res $talres |& tee -a $LF
+      if($status) exit 1;        
+      set regfile = $talreg;
+    endif
+
+    if($space == sph ) then 
+      set nframes = `getnframes $inmapstem-$hs`;
+      if($status) then
+        echo $nframes;
+        exit 1;
+      endif
+    else  
+      set nframes = `getnframes $inmapstem`;
+      if($status) then
+        echo $nframes;
+        exit 1;
+      endif
+    endif
+    if($allframes) then
+      set offsetlist = ();
+      @ n = 0;
+      while($n < $nframes) 
+        set offsetlist = ($offsetlist $n);
+        @ n = $n + 1;
+      end
+    endif
+
+    foreach offset ($offsetlist)
+      if($IsGroup || ($subject != $srcsubject && $#subject != 0) ) then
+        set outstem  = $mapdir/$outmap-$offset-$subject
+      else if("$designtype" != "retinotopy") then
+        set outstem  = $mapdir/$outmap-$offset
+      else
+        set outstem  = $mapdir/$outmap
+      endif
+      set outstem = $outstem$code
+
+      if($space == native || $space == tal) then
+        set surffile = $SUBJECTS_DIR/$subject/surf/$hs.$Surface
+        if(! -e $surffile) then
+          echo "ERROR: subject $subject does not have a $Surface surface"
+          echo "       could not find $surffile"
+          exit 1;
+        endif
+
+        if($offset > ($nframes - 1)) then
+          echo "ERROR: Offset $offset too large, max =  $nframes -1"|& tee -a $LF
+          exit 1;
+        endif
+
+        if($#Float2Int == 0) then
+	  set Float2Int = `cat $regfile | awk '{if($1 == "round") print "round"; if($1 == "floor") print "floor"; if($1 == "tkregister") print "tkreg";}'`
+        endif
+
+        if($#Float2Int == 0) set Float2Int = tkreg;
+        echo "Using Float2Int = $Float2Int"|& tee -a $LF
+
+	#set v2s = /space/greve/1/users/greve/build/mri_vol2surf/mri_vol2surf
+        set v2s = mri_vol2surf
+        set cmd = ($v2s --srcvol $inmapstem --src_type bfloat )
+        set cmd = ($cmd --srcreg $regfile)
+        set cmd = ($cmd --surf $Surface --hemi $hs --projfrac $ProjFrac)
+        set cmd = ($cmd --frame $offset --out_type paint)
+        set cmd = ($cmd --float2int $Float2Int --mapmethod nnf)
+        if($subject != $srcsubject) then
+          set cmd = ($cmd --trgsubject $subject)
+          set cmd = ($cmd --o $outstem-$hs.w )
+        else
+          set cmd = ($cmd --o $outstem-$hs.w )
+        endif
+
+      else if($space == sph) then
+        set cmd = (mri_surf2surf)
+        set cmd = ($cmd --srcsubject $srcsubject --srcsurfval $inmapstem-$hs)
+        set cmd = ($cmd --trgsubject $subject --trgsurfval $outstem-$hs.w)
+        set cmd = ($cmd --trgfmt paint --hemi $hs --frame $offset);
+        set cmd = ($cmd --mapmethod nnf)
+      endif
+
+      if($ScriptOnly) then
+        echo $cmd >> $scriptfile
+        echo " " >> $scriptfile
+        echo " " >> $scriptfile
+      else
+        echo "----------------------------------------" |& tee -a $LF
+        pwd       |& tee -a $LF
+        echo $cmd |& tee -a $LF
+        echo "----------------------------------------" |& tee -a $LF
+        $cmd |& tee -a $LF
+        if($status) then
+          echo "ERROR: paint failed"
+          exit 1;
+        endif
+      endif
+
+    end # loop over offset list
+
+  end # loop over SessList #
+
+end # loop over hemispheres #
+
+echo "----------------------------------------------------------"
+
+date | tee -a $LF
+echo " "
+echo "paint-sess completed SUCCESSFULLY" | tee -a $LF
+echo " "
+
+exit 0;
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-a":
+    case "-analysis":
+      if ( $#argv == 0) goto arg1err;
+      set analysis = $argv[1]; shift;
+      breaksw
+
+    case "-c":
+    case "-contrast":
+      if ( $#argv == 0) goto arg1err;
+      set contrast = $argv[1]; shift;
+      breaksw
+
+    case "-map":
+      if ( $#argv == 0) goto arg1err;
+      set map = $argv[1]; shift;
+      breaksw
+
+    case "-outmap":
+      if ( $#argv == 0) goto arg1err;
+      set outmap = $argv[1]; shift;
+      breaksw
+
+    case "-frame":
+    case "-offset":
+      # zero-based frame number of the map to paint
+      if ( $#argv == 0) goto arg1err;
+      set offsetlist = $argv[1]; shift;
+      set allframes = 0;
+      breaksw
+
+    case "-surf":
+    case "-surface":
+      # surface on which to paint (white or sphere.reg)
+      if ( $#argv == 0) goto arg1err;
+      set Surface = $argv[1]; shift;
+      breaksw
+
+    case "-hemi":
+      if ( $#argv == 0) goto arg1err;
+      set hemi = ($hemi $argv[1]); shift;
+      breaksw
+
+    case "-space":
+      # sph or tal
+      if ( $#argv == 0) goto arg1err;
+      set space = $argv[1]; shift;
+      breaksw
+
+    case "-spacedir":
+      # put results in $spacedir instead of $space
+      if ( $#argv == 0) goto arg1err;
+      set spacedir = $argv[1]; shift;
+      breaksw
+
+    case "-isxavg":
+      # inter-subject averaging method (fixed or random) #
+      if ( $#argv == 0) goto arg1err;
+      set isxavgmethod = $argv[1]; shift;
+      set IsGroup = 1;
+      breaksw
+
+    case "-subject":
+      # subject on which to paint group data
+      if ( $#argv == 0) goto arg1err;
+      set subject = $argv[1]; shift;
+      breaksw
+
+    case "-projfrac"
+      if ( $#argv == 0) goto arg1err;
+      set ProjFrac = $argv[1]; shift;
+      breaksw
+
+    case "-surfreg"
+      if ( $#argv == 0) goto arg1err;
+      set SurfaceReg = $argv[1]; shift;
+      breaksw
+
+    case "-float2int"
+      if ( $#argv == 0) goto arg1err;
+      set Float2Int = $argv[1]; shift;
+      breaksw
+
+    case "-srcsubject"
+      if ( $#argv == 0) goto arg1err;
+      set srcsubject = $argv[1]; shift;
+      breaksw
+
+    case "-code":
+      # A code for identifying paint files that
+      # would otherwise have identical names
+      if ( $#argv == 0) goto arg1err;
+      set code = $argv[1]; shift;
+      breaksw
+
+    case "-umask":
+      if ( $#argv == 0) goto arg1err;
+      set umaskarg = "-umask $argv[1]";
+      umask $argv[1]; shift;
+      breaksw
+
+    case "-noretinotopy":
+    case "-nortopy":
+      # Don't treat as a retinotopy, eventhough it may be
+      set noretinotopy = 1;
+      breaksw
+
+    case "-verbose":
+      set verbose = 1;
+      breaksw
+
+    case "-echo":
+      set echo = 1;
+      breaksw
+
+    case "-debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    case "-scriptonly":
+      set ScriptOnly = 1;
+      breaksw
+
+    case "-nolog": # this is handled before here
+      breaksw
+
+    case "-cwd":
+      set IsSess = 1;  # otherwise, ignore getsesspath arguments 
+      breaksw
+
+    case "-s":
+    case "-sf":
+    case "-df":
+    case "-d":
+    case "-group":
+      set IsSess = 1;  # otherwise, ignore getsesspath arguments 
+      shift;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+  if($#analysis == 0) then
+    echo "ERROR: no analysis name specified"|& tee -a $LF 
+    exit 1
+  endif
+  set infofile = $analysis/analysis.info
+  if(! -e $infofile) then
+    echo "ERROR: cannot find $infofile" |tee -a $LF
+    exit 1;
+  endif
+  set fsd = `cat $infofile | awk '{if($1 == "fsd") print $2}'`;
+  set designtype = `cat $infofile | awk '{if($1 == "designtype") print $2}'`;
+  if($#designtype == 0) then
+    set designtype = `cat $infofile | awk '{if($1 == "avgtype") print $2}'`;
+  endif
+
+  if($noretinotopy && "$designtype" == "retinotopy") then
+    set designtype = "retinotopy-not"
+  endif
+
+  if($#contrast == 0 && "$designtype" != "retinotopy") then
+     echo "ERROR: no contrast specified"|& tee -a $LF 
+     exit 1
+  endif
+
+  if($#map == 0 && "$designtype" == "retinotopy") set map = h;
+
+  if($space != native && $space != tal && $space != sph) then
+    echo "ERROR: no paint support for space $space"
+    exit 1;
+  endif
+
+  if($#hemi == 0) set hemi = (lh rh);
+  foreach hs ($hemi)
+    if($hs != lh && $hs != rh) then
+      echo "ERROR: hemi must be either lh or rh ($hs)";
+      exit 1;
+    endif
+  end
+
+  if( $#Surface == 0 ) then
+    set Surface = white;
+    echo "INFO: painting onto $Surface" |& tee -a $LF 
+  endif
+
+  if($#spacedir == 0 && $space != native) set spacedir = $space;
+
+  ## Determine whether Group or Individual Data ##
+  @ nGroup = 0;
+  foreach sess ($SessList)
+    set sessinfo = $sess/session.info
+    set IsGroup = `grep GroupAverage $sessinfo | wc -l`;
+    if($IsGroup) @ nGroup = $nGroup + 1;
+  end
+  if($IsGroup && ($nGroup != $#SessList) ) then
+    echo "ERROR: cannot mix individual and group sessions"
+    exit 1;
+  endif
+
+  ## Individual Contingencies ##
+  if(! $IsGroup) then
+    if($space == native) then
+      set spacesubdir = ();
+    else
+      set spacesubdir = $spacedir;
+    endif
+  else 
+    set spacesubdir = $space;
+  endif
+  echo "SpaceDir    is $spacedir";
+  echo "SpaceSubDir is $spacesubdir";
+
+  ## Group Contingencies ##
+  if($IsGroup) then
+    if($#subject == 0) then
+      echo "ERROR: $sess is a group average, need -subject"|& tee -a $LF 
+      exit 1;
+    endif
+    if($#isxavgmethod == 0) then
+      echo "ERROR: must supply -isxavg method with group data" |& tee -a $LF 
+      exit 1;
+    endif
+    if($isxavgmethod != "fixed" && $isxavgmethod != "random") then
+      echo "ERROR: -isxavg must be either fixed or random" |& tee -a $LF 
+      exit 1;
+    endif
+    if($space == "native") then
+      echo "ERROR: currently no support for painting group data in native space"\
+           |& tee -a $LF 
+      exit 1;
+    endif
+    if($isxavgmethod == "fixed") then
+      set spacesubdir = $spacedir-ffx
+    else
+      set spacesubdir = $spacedir-rfx
+    endif
+  endif
+
+  if($#subject == 0) set getsubjfromreg = 1;
+
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo "USAGE: paint-sess"
+  echo "Options:";
+  echo "   -analysis analysisname : session-level functional analysis name"
+  echo "   -contrast contrastname : contrast name"
+  echo "   -map      mapname      : <sig>, minsig, iminsig, t"
+  echo "   -offset   n            : 0-based image offset"
+  echo "   -subject  subjectname  : name of subject on which to paint (with group data)"
+  echo "   -space    spacename    : space from which to paint (native, tal, sph)"
+  echo "   -spacedir spacedir     : get data from spacedir"
+  echo "   -isxavg   method       : fixed or random (with group data)"
+  echo "   -hemi     hemisphere   : with sph space <lh rh>";
+  echo "   -surf     surface      : surface on which to paint (white)"
+  echo "   -sf sessidfile  ..."
+  echo "   -df srchdirfile ..."
+  echo "   -s  sessid      ..."
+  echo "   -d  srchdir     ..."
+  echo "   -umask umask   : set unix file permission mask"
+  echo "   -scriptonly    : don't run, just generate a script"
+  echo "   -version       : print version and exit"
+exit 1;

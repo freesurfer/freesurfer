@@ -1,0 +1,77 @@
+#!/bin/csh -f
+
+if($#argv != 2 && $#argv != 3) then
+  echo "USAGE: difffsfast fs1 fs2 <showdiff>"
+  exit 1;
+endif
+
+set fs1 = $argv[1];
+set fs2 = $argv[2];
+if($#argv == 3) then
+  set showdiff = 1;
+else
+  set showdiff = 0;
+endif
+
+# Check each file in fs1 toolbox against that in fs2
+foreach m1 ($fs1/toolbox/*.m)
+  set b = `basename $m1`;
+  set m2 = $fs2/toolbox/$b
+  if(! -e $m2) then
+    echo "----------------------------------------"
+    echo "$b exists in $fs1 but not in $fs2"
+  else
+    set n = `diff -b -B  $m1 $m2 | wc -l` 
+    if($n != 0) then
+      echo "----------------------------------------"
+      echo "$b differs"
+      if($showdiff) diff -b -B  $m1 $m2 
+    endif
+  endif
+end
+
+# Check each file in fs2 toolbox against that in fs1
+# existence only
+foreach m2 ($fs2/toolbox/*.m)
+  set b = `basename $m2`;
+  set m1 = $fs1/toolbox/$b
+  if(! -e $m1) then
+    echo "----------------------------------------"
+    echo "$b exists in $fs2 but not in $fs1"
+  endif
+end
+
+# Check each file in fs1 bin against that in fs2
+foreach m1 ($fs1/bin/*)
+  if(-d $m1) continue;
+  set b = `basename $m1`;
+  set m2 = $fs2/bin/$b
+  if(! -e $m2) then
+    echo "----------------------------------------"
+    echo "$b exists in $fs1 but not in $fs2"
+  else
+    set n = `diff -b -B  $m1 $m2 | wc -l` 
+    if($n != 0) then
+      echo "----------------------------------------"
+      echo "$b differs"
+      if($showdiff) diff -b -B  $m1 $m2 
+    endif
+  endif
+end
+
+# Check each file in fs2 bin against that in fs1
+# existence only
+foreach m2 ($fs2/bin/*)
+  if(-d $m2) continue;
+  set b = `basename $m2`;
+  set m1 = $fs1/bin/$b
+  if(! -e $m1) then
+    echo "----------------------------------------"
+    echo "$b exists in $fs2 but not in $fs1"
+  endif
+end
+
+echo "----------------------------------------"
+
+
+exit 0

@@ -1,0 +1,72 @@
+#!/bin/csh -f
+# parses space names into space type and averaging method (fx)
+
+set VERSION = '$Id: getspacetype,v 1.1 2003/03/04 21:22:08 greve Exp $';
+
+if($#argv != 1) then
+  echo "USAGE: getspacetype spacename"
+  echo $VERSION
+  exit 1;
+endif
+
+set spacename = $argv[1];
+set spacetype = ();
+set fx = ();
+
+switch ( $spacename )
+  
+  case "tal": 
+    set spacetype = tal;
+    set fx = ();
+    breaksw
+
+  case "tal-ffx": 
+    set spacetype = tal;
+    set fx = ffx;
+    breaksw
+
+  case "tal-rfx": 
+    set spacetype = tal;
+    set fx = rfx;
+    breaksw
+
+
+  case "sph": 
+    set spacetype = sph;
+    set fx = ();
+    breaksw
+
+  case "sph-ffx": 
+    set spacetype = sph;
+    set fx = ffx;
+    breaksw
+
+  case "sph-rfx": 
+    set spacetype = sph;
+    set fx = rfx;
+    breaksw
+
+
+  case "native": 
+    set spacetype = native;
+    set fx = ();
+    breaksw
+
+  case "native-ffx": 
+    set spacetype = native;
+    set fx = ffx;
+    breaksw
+
+  case "native-rfx": 
+    set spacetype = native;
+    set fx = rfx;
+    breaksw
+
+endsw
+
+
+echo $spacetype $fx
+
+
+exit 0;
+##########################################

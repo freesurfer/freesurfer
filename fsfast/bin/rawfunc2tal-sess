@@ -1,0 +1,467 @@
+#!/bin/csh -f
+# rawfunc2tal-sess
+#
+# $Id: rawfunc2tal-sess,v 1.1 2003/03/04 21:22:09 greve Exp $
+set VERSION = '$Id: rawfunc2tal-sess,v 1.1 2003/03/04 21:22:09 greve Exp $'
+set FASTVER = `cat $FMRI_ANALYSIS_DIR/docs/version`;
+
+#------ Defaults --------#
+set instem   = ();
+set fsd      = bold;
+set talstem  = ();
+set talsd    = ();
+set voxsize  = ();
+set fov      = ();
+set samesess = 0;
+set asd      = 3danat;  
+set userun   = ();
+set runlistfile = ();
+set parlist  = ();
+
+set inputargs = ($argv);
+
+set n = `echo $argv | grep -e -help | wc -l` 
+if($#argv == 0 || $n != 0)  goto usage_exit;
+
+set n = `echo $argv | grep version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+
+set PWD = `getpwdcmd`;
+if($status) exit 1;
+
+set SessList = `getsesspath $argv`;
+if($status || $#SessList == 0) then
+  getsesspath $argv 
+  exit 1;
+endif
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+##### Create a log file ######
+set logdir = `pwd`/log;
+mkdir -p $logdir
+if(! -e $logdir) then
+  echo "WARNING: could not create $logdir"
+  set LF = /dev/null
+else
+  set LF = $logdir/rawfunc2tal-sess.log
+  if(-e $LF) mv $LF $LF.old
+endif
+
+echo "--------------------------------------------------------------"
+echo "rawfunc2tal-sess logfile is $LF"
+echo "--------------------------------------------------------------"
+
+echo "rawfunc2tal-sess log file" >> $LF
+echo $VERSION >> $LF
+echo "FAST Version $FASTVER"  >> $LF
+id            >> $LF
+pwd           >> $LF
+echo $0          >> $LF
+echo $inputargs  >> $LF
+uname -a         >> $LF
+date             >> $LF
+
+set StartDate = `date`;
+
+### Go through each session ###
+foreach sess ($SessList)
+
+  set sessbase = `basename $sess`;
+  echo "-------------------------------------------" |& tee -a $LF
+  echo "$sess " |& tee -a $LF
+  date |& tee -a $LF
+
+  if(! -d $sess) then
+    echo "ERROR: $sess does not exist"   |& tee -a $LF
+    exit 1;
+  endif
+  pushd $sess > /dev/null
+
+  #-------------------------------------------------#
+  set talxfm = ();
+  if($samesess) then
+    if(! -e $sess/$asd) then
+      echo "ERROR: $sess/$asd does not exist" |& tee -a $LF
+      exit 1;
+    endif
+    if($#userun == 0) then
+      set RunList = `getrunlist $asd`;
+      if($status || $#RunList == 0) then
+        echo "ERROR: $sess/$asd has no runs"  |& tee -a $LF
+        exit 1;
+      endif
+      set asdrun = $RunList[1];
+    else
+      set asdrun = $userun;
+    endif
+
+    if(! -e $asd/$asdrun ) then
+      echo "ERROR: $sessbase : ASD Run $asdrun does not exist" |& tee -a $LF
+      exit 1;
+    endif
+    echo "INFO: $sessbase : ASD Run = $asdrun" |& tee -a $LF
+    
+    set talxfm = $sess/$asd/$asdrun/talairach.xfm
+    if(! -e $talxfm ) then
+      echo "ERROR: cannot find $talxfm. Try running mktalxfm-sess."
+      exit 1;
+    endif
+  endif
+
+  #-------------------------------------------------#
+  set regfile = $fsd/register.dat
+  if(! -e $regfile) then
+    echo "ERROR: cannot find $regfile"
+    exit 1;
+  endif
+
+  #-------------------------------------------------#
+  set seqinfo = $fsd/seq.info
+  if(! -e $seqinfo) then
+    echo "ERROR: cannot find $seqinfo"
+    exit 1;
+  endif
+  set TR = `cat $seqinfo | awk '{if($1 == "TR") print $2}'`;
+
+  #-------------------------------------------------#
+  if($#runlistfile == 0) then
+    set RunList = `getrunlist $fsd`;
+    if($status || $#RunList == 0) then
+      echo "ERROR: $sess/$fsd has no runs"  |& tee -a $LF
+      exit 1;
+    endif
+  else
+    if(! -e $fsd/$runlistfile) then
+      echo "ERROR: ($sessbase) could not find runlistfile $runlistfile"
+      exit 1;
+    endif
+    set RunList = (`cat $fsd/$runlistfile`);
+  endif
+
+  #-------------------------------------------------#
+  foreach Run ($RunList)
+    set cmd = (rawfunc2tal)
+    set cmd = ($cmd -i $fsd/$Run/$funcstem)
+    set cmd = ($cmd -o $talsd/$Run/$talstem)
+    set cmd = ($cmd -r $regfile)
+    set cmd = ($cmd -voxsize $voxsize)
+    set cmd = ($cmd -fov $fov)
+    if($#talxfm != 0) set cmd = ($cmd -t $talxfm)
+    set cmd = ($cmd -umask `umask`)
+
+    echo "---------------------------------------------" |& tee -a $LF
+    pwd        |& tee -a $LF
+    echo $cmd  |& tee -a $LF
+    echo "---------------------------------------------" |& tee -a $LF
+
+    $cmd |& tee -a $LF
+    if($status) then
+      echo "ERROR: rawfunc2tal failed" |& tee -a $LF
+      exit 1;
+    endif
+
+    set meanvalfile = $fsd/$Run/$funcstem.meanval
+    if(-e $meanvalfile ) cp $meanvalfile $talsd/$Run/$talstem.meanval
+
+    foreach par ($parlist)
+      set parfile = $fsd/$Run/$par
+      if(-e $parfile) then
+        cp $parfile $talsd/$Run
+      else
+        echo "WARNING: $par not found in $Run" |& tee -a $LF
+      endif
+    end
+
+ end # Run Loop #
+ cp $talsd/$Run/$talstem.reg $talsd/register.dat
+
+ set tmp = `getbfvdim $talsd/$Run/$talstem`;
+ set nslices = $tmp[1];
+ set nrows   = $tmp[2];
+ set ncols   = $tmp[3];
+ set ntrs    = $tmp[4];
+
+ set seqinfo = $talsd/seq.info
+ rm -f $seqinfo
+ echo "sequencename unknown" >> $seqinfo
+ echo "nrows $nrows" >> $seqinfo
+ echo "ncols $ncols" >> $seqinfo
+ echo "nslcs $nslices" >> $seqinfo
+ echo "rowpixelsize $voxsize[2]" >> $seqinfo 
+ echo "colpixelsize $voxsize[1]" >> $seqinfo
+ echo "slcpixelsize $voxsize[3]" >> $seqinfo
+ echo "ntrs $ntrs" >> $seqinfo
+ echo "TR   $TR" >> $seqinfo
+
+end # Session Loop #
+
+echo " "
+echo "Start: $StartDate" |& tee -a $LF
+echo "End:   `date`"     |& tee -a $LF
+echo "rawfunc2tal-sess finished" |& tee -a $LF
+echo " "
+
+exit 0;
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-talstem":
+    case "-o":
+      if ( $#argv == 0) goto arg1err;
+      set talstem = $argv[1]; shift;
+      breaksw
+
+    case "-talsd":
+    case "-tsd":
+      if ( $#argv == 0) goto arg1err;
+      set talsd = $argv[1]; shift;
+      breaksw
+
+    case "-voxsize":
+      if( $#argv < 3) then
+        echo "ERROR: $flag requires 3 arguments"
+        exit 1;
+      endif
+      set voxsize = ($argv[1] $argv[2] $argv[3]);
+      shift; shift; shift;
+      breaksw
+
+    case "-fov":
+      if( $#argv < 3) then
+        echo "ERROR: $flag requires 3 arguments"
+        exit 1;
+      endif
+      set fov = ($argv[1] $argv[2] $argv[3]);
+      shift; shift; shift;
+      breaksw
+
+    case "-funcstem":
+    case "-i":
+      if ( $#argv == 0) goto arg1err;
+      set funcstem = $argv[1]; shift;
+      breaksw
+
+    case "-fsd":
+      if ( $#argv == 0) goto arg1err;
+      set fsd = $argv[1]; shift;
+      breaksw
+
+    case "-rlf":
+      if ( $#argv == 0) goto arg1err;
+      set runlistfile = $argv[1]; shift;
+      breaksw
+
+    case "-samesess":
+      set samesess = 1;
+      breaksw
+
+    case "-asd":
+      if ( $#argv == 0) goto arg1err;
+      set asd = $argv[1]; shift;
+      breaksw
+
+    case "-asdrun":
+    case "-run":
+      if ( $#argv == 0) goto arg1err;
+      set userun = $argv[1]; shift;
+      breaksw
+
+    case "-p":
+      if ( $#argv == 0) goto arg1err;
+      set parfile = $argv[1]; shift;
+      set parlist = ($parlist $parfile);
+      breaksw
+
+    case "-umask":
+      if ( $#argv == 0) goto arg1err;
+      umask $argv[1]; shift;
+      breaksw
+
+    case "-verbose":
+      set verbose = 1;
+      breaksw
+
+    case "-echo":
+      set echo = 1;
+      breaksw
+
+    case "-debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    case "-g":
+    case "-s":
+    case "-sf":
+    case "-d":
+    case "-df":
+      shift;
+      # ignore getsesspath arguments 
+      breaksw
+
+    case "-cwd":
+      # ignore getsesspath arguments 
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+  if($#SessList == 0) then
+    echo "ERROR: no sessions specified"
+    exit 1
+  endif
+
+  if($#funcstem == 0) then
+    echo "ERROR: need to specify an input stem"
+    exit 1;
+  endif
+
+  if($#talstem == 0) set talstem = $funcstem;
+
+  if($#talsd == 0) then
+    echo "ERROR: need to specify an output talairach subdir (-talsd)"
+    exit 1;
+  endif
+
+  if($#voxsize == 0) then
+    echo "ERROR: need to specify output voxel sizes"
+    exit 1;
+  endif
+
+  if($#fov == 0) then
+    echo "ERROR: need to specify output FOV"
+    exit 1;
+  endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "USAGE: rawfunc2tal-sess"
+  echo ""
+  echo "Required Arguments"
+  echo "  -funcstem stem   : convert this volume"
+  echo "  -talsd talsubdir : put output volume in this subdirectory"
+  echo "  -voxsize colsize rowsize slicesize : size in mm"
+  echo "  -fov     colfov  rowfov  slicefov  : field of view in mm"
+  echo ""
+  echo "Optional Arguments:"
+  echo "  -talstem talstem : stem to give to output volume (default funcstem)"
+  echo "  -fsd  subdir     : functional subdirectory (bold)"
+  echo "  -rlf  runlistfile: file with a list of runs to convert"
+  echo "  -samesess        : get talairach.xfm from run of asd"
+  echo "  -asd anatsubdir  : default = 3danat "
+  echo "  -asdrun n        : asd run number (XXX); default is first"
+  echo "  -p par1 -p par2  : copy parfiles to new location"
+  echo ""
+  echo "Session Arguments (Required)"
+  echo "   -sf sessidfile  ..."
+  echo "   -df srchdirfile ..."
+  echo "   -s  sessid      ..."
+  echo "   -d  srchdir     ..."
+  echo ""
+  echo "Other Arguments"
+  echo "   -umask umask   : set unix file permission mask"
+  echo "   -version       : print version and exit"
+  echo "   -help          : get more info"
+  echo ""
+
+  set n = `echo $argv | grep -e -help | wc -l` 
+  if($n != 0)  goto help_exit;
+
+exit 1;
+
+help_exit:
+echo "\
+\
+This program will resample the session functionals into talairach \
+space with the given FOV and voxel resolution. By default, all the \
+runs in bold will be converted (unless the -rlf flag is used). The \
+input volume must be specified with the -funcstem flag. The user \
+must specify the output subdirectory for the talairach volumes. The \
+output stem will be that of the input stem unless otherwise specified.\
+The run number will be the same as that of the input. Thus, the path \
+to the output will be talsubdir/RRR/talstem. \
+ \
+By default, the talairach.xfm file is obtained from the subject's \
+FreeSurfer Recon directory. However, if the -samesess flag is used, it \
+will look for talairach.xfm in the first run under 3danat (in which \
+case the subject does not have to be reconstructed). This \
+talairach.xfm can be created with mktalxfm-sess. If a directory other \
+than 3danat is used, it can be specified with the -asd flag. If the \
+talairach.xfm file is in something other than the first run, the run \
+directory can be specified with the -asdrun flag. \
+\
+Paradigm files can be copied from the original functional run directories\
+to the new talairach directories by specifying them with the -p flag. If\
+the paradigm file does not exist, a warning will be printed but the program\
+will continue to run. As many paradigm files as desired can be included.\
+This is provided only as a convenience.\
+\
+Notes:\
+\
+There are no restrictions on the voxel size or FOV, but users should\
+check that the resulting volume encompasses as much of the original\
+volume as desired. An FOV of 190 190 220 seems to work.\
+\
+column = x, row = z, slice = y\
+\
+Examples:\
+\
+1. This will resample the volume fmc in the bold directory to   \
+   talairach space with isotropic 5 mm voxels +/- 95 mm around  \
+   the center of talairach space in the x and z directions and \
+   +/- 110 mm in the y direction. The resulting volume will have \
+   38 columns and rows, and 44 rows. Only the runs listed in \
+   rlf006 will be used. The output will be sh2000614/bold-tal/RRR/fmc \
+   where RRR is the run number. Three paradigm files will be copied \
+   from the original functional directories to the new ones. \
+\
+   rawfunc2tal-sess -s sh20000614 \
+     -funcstem fmc -rlf rlf006 \
+     -talsd bold-tal \
+     -voxsize 5 5 5 -fov 190 190 220 \
+     -p main3.par -p main6.par -p edp.par \
+\
+\
+See Also: rawfunc2tal, mktalxfm-sess\
+\
+"
+
+exit;

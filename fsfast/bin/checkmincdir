@@ -1,0 +1,84 @@
+#!/bin/csh -f
+#
+# Name: checkmincdir
+#
+# Purpose: given a directory with minc files from a single exam
+# and a list of run numbers, determines whether all the expected 
+# minc files are there and if they are about the right size. 
+# This is supposed to help determine if/when ima2mnc has finished 
+# converting all the ima files into minc. If there's something
+# wrong, a message is printed to stdout and a non-zero status is
+# returned. If successful, nothing is printed and 0 is returned.
+#
+# "img-getrunlist' can be used to get the list of run numbers 
+# directly from the ima directory.
+#
+
+if($#argv < 2) then
+  echo "USAGE: checkmincdir mincdir runlist"
+  exit 1;
+endif
+
+set mincdir = $argv[1]; shift;
+set runlist = ($argv);
+
+if( ! -e $mincdir ) exit 1;
+
+pushd $mincdir > /dev/null
+
+foreach run ($runlist)
+
+  # check that the run exists #
+  ls *-$run-mri.mnc >& /dev/null
+  if($status) then
+    echo "ERROR: cannot find a minc file for run $run"
+    exit 2;
+  endif
+
+  # check that only one file exists for the run #
+  set n = `ls *-$run-mri.mnc | wc -l`;
+  if($n > 1) then
+    echo "ERROR: multiple files exist for run $run"
+    exit 3;
+  endif
+
+  # check that the header can be dumped #
+  set mnc = `ls *-$run-mri.mnc`;
+  mincheader $mnc > /dev/null
+  if($status) then
+    echo "ERROR: cannot read the minc header for run $run"
+    exit 4;
+  endif
+
+  # get the number of voxels #
+  @ nvox = 1;
+  foreach dimname (xspace yspace zspace time)
+    set cmd = (mincinfo -dimlength $dimname $mnc)
+    $cmd >& /dev/null
+    if(! $status) then 
+      set n = `$cmd`;
+      @ nvox = $nvox * $n;
+    endif
+  end
+
+  # compute the minimum size (assuming shorts)#
+  @ minsize = $nvox * 2;
+
+  # get the actual size
+  set size = `ls -l $mnc | awk '{print $5}'`;
+
+  if($size < $minsize) then
+    echo "ERROR: file for run $run is not big enough"
+    exit 5;
+  endif
+
+end
+
+
+
+
+
+
+exit 0;
+
+#--------------------------------------------------------#

@@ -1,0 +1,343 @@
+#!/bin/csh -f
+# functcvm-sess
+#
+# $Id: functcvm,v 1.1 2003/03/04 21:22:08 greve Exp $
+
+set inputargs = ($argv);
+set VERSION = '$Id: functcvm,v 1.1 2003/03/04 21:22:08 greve Exp $';
+
+set funcstem = ();
+set xmatfile = ();
+set fmatfile = ();
+set fmatname = "F";
+set PolyFitOrder = ();
+set tcvmfile = ();
+set mask = ();
+set maskval = 1;
+set normalize = 1;
+
+set monly = 0;
+
+if($#argv == 0)   goto usage_exit;
+
+set n = `echo $argv | grep version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+set StartTime = `date`;
+
+set LF = $tcvmdir/functcvm.log
+if(-e $LF) mv $LF $LF.bak
+
+if($monly) then
+  set QuitOnError = 0;
+else
+  set QuitOnError = 1;
+  set MLF = functcvm_sess_$$.m
+endif
+rm -f $MLF
+echo "Matlab file is $MLF"
+
+#----------------------------------------------------------------#
+tee $MLF > /dev/null <<EOF
+  tic;
+  global QuitOnError;
+  QuitOnError = $QuitOnError;
+  funcstem = '$funcstem';
+  xmatfile = '$xmatfile';
+  fmatfile = '$fmatfile';
+  fmatname = '$fmatname';
+  PolyFitOrder = [$PolyFitOrder];
+  tcvmfile = '$tcvmfile';
+  maskstem = '$mask';
+  maskval  = [$maskval];
+  normalize  = [$normalize];
+
+  fprintf('INFO: loading %s (%g)\n',funcstem,toc);
+  y = fmri_ldbvolume(funcstem);
+  if(isempty(y))
+    fprintf('ERROR: could not load %s\n',funcstem);
+    qoe;return;
+  end
+  [ns nr nc nf] = size(y);
+  nv = ns*nc*nr;
+  y = reshape(y,[nv nf])'; %'
+
+  dof = nf;
+  X = [];
+  if(~isempty(xmatfile))
+    fprintf('INFO: loading %s (%g)\n',xmatfile,toc);
+    XX = load(xmatfile);
+    if(isempty(XX))
+      fprintf('ERROR: could not load %s\n',xmatfile);
+      qoe;return;
+    end
+    X = XX.Xfinal;
+    if(size(X,1) ~= nf)
+      fprintf('ERROR: design matrix nframes %s\n',xmatfile);
+      qoe;return;
+    end
+    dof = size(X,1) - size(X,2);
+  end
+
+  if(~isempty(PolyFitOrder))
+    X  = fast_polytrendmtx(1,nf,1,PolyFitOrder);
+  end
+
+  if(~isempty(maskstem))
+    fprintf('INFO: loading %s (%g)\n',maskstem,toc);
+    mask = fmri_ldbvolume(maskstem);
+    if(isempty(mask))
+      fprintf('ERROR: could not load %s\n',maskstem);
+      qoe;return;
+    end
+    sz = size(mask);
+    if(prod(sz(1:3)) ~= nv)
+      fprintf('ERROR: mask dimension mismatch %s\n',maskstem);
+      qoe;return;
+    end
+    imask = find(mask(:,:,:,1) == maskval);
+    nmask = length(imask);
+    fprintf('INFO: found %d voxels in mask\n',nmask);
+    if(nmask == 0)
+      fprintf('ERROR: no voxels found in mask %s\n',maskstem);
+      qoe;return;
+    end
+    fprintf('INFO: masking (%g)\n',toc);
+    y = y(:,imask);
+    nv = nmask;
+  end
+
+  F = [];
+  if(~isempty(fmatfile))
+    fprintf('INFO: loading %s (%g)\n',fmatfile,toc);
+    FF = load(fmatfile);
+    if(isempty(FF))
+      fprintf('ERROR: could not load %s\n',fmatfile);
+      qoe;return;
+    end
+    if(~isfield(FF,fmatname))
+      fprintf('ERROR: fmatname %s is not in %s\n',fmatname,fmatfile);
+      qoe;return;
+    end
+    F = getfield(FF,fmatname);
+    if(size(F,1) ~= nf)
+      fprintf('ERROR: filter nframes %s\n',xmatfile);
+      qoe;return;
+    end
+    fprintf('INFO: filtering (%g)\n',toc);
+    X = F*X;
+    y = F*y;
+  end
+
+  R = [];
+  if(~isempty(X)) 
+    fprintf('INFO: detrending (%g)\n',toc);
+    R = eye(nf) - X*inv(X'*X)*X';
+    y = R*y; 
+  end
+
+  if(normalize)
+    fprintf('INFO: normalizing (%g)\n',toc);
+    ystd = sqrt(sum(y.^2,2)/nv);
+    y = y ./ repmat(ystd,[1 nv]);
+    d = 1;
+  else
+    d = nv;
+  end
+
+  fprintf('INFO: computing tcvm (%g)\n',toc);
+  tcvm = (y*y')/d; %'
+
+  fprintf('INFO: estimating AR1 parameter (%g)\n',toc);  
+  rhoest = mean(sum(y(1:end-1,:).*y(2:end,:))/(dof-1));
+  fprintf('rhoest = %g\n',rhoest);  
+
+  fprintf('INFO: estimating CVM (%g)\n',toc);
+  [alpha rho mse niters] = fast_ar1w_opt(tcvm,R,.01,30);
+  acf = fast_ar1w_acf(alpha,rho,nf);
+  L = toeplitz(acf);
+  W = inv(L);
+
+  save(tcvmfile,'tcvm','X','R','F','normalize','maskstem',...
+    'PolyFitOrder','maskval','ystd','nv','W','-v4');
+
+  fprintf('matlab done (run time = %g min)\n',toc/60);
+  qoe;return;
+EOF
+#----------------------------------------------------------------#
+
+if(! $monly ) then
+  cat $MLF | matlab -display iconic | tee -a $LF
+  rm -f $MLF
+endif
+
+echo " "
+echo "StartTime: $StartTime"
+echo "EndTime:   `date`"
+echo " "
+
+
+exit 0;
+###############################################
+
+
+############--------------##################
+parse_args:
+set cmdline = "$argv";
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-tcvm":
+      if( $#argv < 1) goto arg1err;
+      set tcvmfile = $argv[1]; shift;
+      breaksw
+
+    case "-funcstem":
+    case "-y":
+      if( $#argv < 1) goto arg1err;
+      set funcstem = $argv[1]; shift;
+      breaksw
+
+    case "-x":
+      if( $#argv < 1) goto arg1err;
+      set xmatfile = $argv[1]; shift;
+      if(! -e $xmatfile) then
+        echo "ERROR: cannot find $xmatfile"
+        exit 1;
+      endif
+      breaksw
+
+    case "-f":
+      if( $#argv < 1) goto arg1err;
+      set fmatfile = $argv[1]; shift;
+      if(! -e $fmatfile) then
+        echo "ERROR: cannot find $fmatfile"
+        exit 1;
+      endif
+      if($#argv != 0) then
+        if(! `isargflag $argv[1]`) then
+          set fmatname = $argv[1]; shift;
+        endif      
+      endif      
+      breaksw
+
+    case "-pf":
+      if( $#argv < 1) goto arg1err;
+      set PolyFitOrder = $argv[1]; shift;
+      breaksw
+
+    case "-mask":
+    case "-m":
+      if( $#argv < 1) goto arg1err;
+      set mask = $argv[1]; shift;
+      breaksw
+
+    case "-maskval":
+    case "-mv":
+      if( $#argv < 1) goto arg1err;
+      set maskval = $argv[1]; shift;
+      breaksw
+
+    case "-monly":
+      if( $#argv < 1) goto arg1err;
+      set MLF = $argv[1]; shift;
+      set monly = 1;
+      breaksw
+
+    case "-nonorm":
+      set normalize = 0;
+      breaksw
+
+    case "-verbose":
+      set verbose = 1;
+      breaksw
+
+    case "-echo":
+      set echo = 1;
+      breaksw
+
+    case "-debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    case "-umask":
+      if( $#argv < 1) goto arg1err;
+      umask $argv[1]; shift;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+  if($#tcvmfile == 0) then
+    echo "ERROR: no tcvm file specified"
+    exit 1;
+  endif
+
+  set tcvmdir = `dirname $tcvmfile`;
+  mkdir -p $tcvmdir
+  if(! -w $tcvmdir) then
+    echo "ERROR: $tcvmdir is not writable"
+    exit 1;
+  endif
+
+  if($#funcstem == 0) then
+    echo "ERROR: no input specified"
+    exit 1;
+  endif
+
+  if($#xmatfile != 0 && $#PolyFitOrder) then
+    echo "ERROR: cannot specify both xmatfile and polyfit"
+    exit 1;
+  endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "USAGE: functcvm"
+  echo "   -y ystem   : input stem"
+  echo "   -x xmatfile : detrending/design matrix"
+  echo "   -f fmatfile <varname> : temporal filter (def anme is F)"
+  echo "   -pf polyfitorder "
+  echo "   -mask maskstem : mask"
+  echo "   -maskval val : choose mask based on value (def=1)"
+  echo "   -nonorm : do not spatially normalize variance"
+  echo "   -tcvm  tcvmfile : output file (matlab4)"
+  echo ""
+  echo "   -umask umask       : set unix file permission mask"
+  echo "   -version           : print version and exit"
+exit 1;
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+

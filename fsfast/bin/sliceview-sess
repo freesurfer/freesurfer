@@ -1,0 +1,683 @@
+#!/bin/csh -f
+# sliceview-sess
+#
+set VERSION = '$Id: sliceview-sess,v 1.1 2003/03/04 21:22:09 greve Exp $';
+set FASTVER = `cat $FMRI_ANALYSIS_DIR/docs/version`;
+
+set inputargs = ($argv);
+
+set analysis    = ();
+set append      = ();
+set mapanalysis = ();
+set contrast    = ();
+set map = ();
+set slice     = ();
+set ScriptOnly = 0;
+set umaskarg = ();
+set base = t2epi;
+set thmin = 2;
+set thmax = 7;
+set nohdr = 0;
+set forcehdr = 0;
+set nosig = 0;
+set rawrun = ();
+set motioncor = 0;
+set mc = "";
+set fsd = ();
+set nolog = 0;
+set space = native;
+set spacesubdir = ();
+set mapspacesubdir = ();
+set spacedir = ();
+set hemi = ();
+set isxavgmethod = ();
+set mapisxavgmethod = ();
+set BaseEQFlag = ();
+set background = 0;
+set perrun = ();
+set subject = ();
+set brainmaskthresh = 0;
+set mask = ();
+set rawstem0 = ();
+set UseVersion = "-v1";
+
+## If there are no options, just print the usage ##
+if($#argv == 0) then
+  goto usage_exit;
+  exit 1;
+endif
+
+## Look for version option ##
+set n = `echo $argv | grep version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+
+## Look for nolog option ##
+set n = `echo $argv | grep nolog | wc -l` 
+if($n != 0) then
+  set nolog = 1;
+endif
+
+##### Create a log file ######
+if(! $nolog) then
+  set logdir = `pwd`/log;
+  mkdir -p $logdir
+  if(! -e $logdir) then
+    echo "ERROR: could not create $logdir"
+    exit 1;
+  endif
+  set LF = $logdir/sliceview-sess.log
+  if(-e $LF) mv $LF $LF.old
+else
+  echo "No log file"
+  set LF = /dev/null
+endif
+
+echo "--------------------------------------------------------------"
+echo "sliceview-sess logfile is $LF"
+echo "--------------------------------------------------------------"
+
+echo "sliceview-sess log file" >> $LF
+echo $VERSION >> $LF
+echo "FAST Version $FASTVER"  >> $LF
+pwd           >> $LF
+echo $0     >> $LF
+echo $inputargs  >> $LF
+uname -a      >> $LF
+date          >> $LF
+which yakview >> $LF
+
+goto parse_args;
+parse_args_return:
+
+set SessList = `getsesspath $inputargs`;
+if($status || $#SessList == 0) then
+  getsesspath $inputargs |& tee -a $LF
+  echo "ERROR: cannot find any sessions" |& tee -a $LF
+  exit 1;
+endif
+
+goto check_params;
+check_params_return:
+
+## Get functional subdirectory from the info file ##
+if($#analysis != 0) then
+  set infofile = $analysis/analysis.info
+  set fsd     = `cat $infofile | awk '{if($1 == "fsd") print $2}'`;
+  set designtype = `cat $infofile | awk '{if($1 == "designtype") print $2}'`;
+  if($#designtype == 0) then
+    set designtype = `cat $infofile | awk '{if($1 == "avgtype") print $2}'`;
+  endif
+else
+  if($#fsd == 0) set fsd = bold;
+  set nohdr = 1;
+  set nosig = 1;
+  set designtype = ();
+endif
+
+if($#perrun != 0) then
+  set analysis = $analysis-$perrun;
+  set mapanalysis = $mapanalysis-$perrun;
+endif
+
+if($designtype != "event-related") set nohdr = 1;
+
+if($forcehdr) set nohdr = 0;
+
+## Prepare the script, if need be ##
+if($ScriptOnly) then
+  if(! -d scripts) mkdir scripts
+  set scriptfile = $analysis/scripts/run-sliceview-$contrast
+  rm -f $scriptfile
+  touch $scriptfile
+  echo "#\!/bin/csh -f" >> $scriptfile
+  echo "cd .." >> $scriptfile
+  chmod a+x $scriptfile
+endif
+
+## Setup sliceid for either mosaic or 3 digit, zero-padded slice number ##
+if($slice != "mos") then
+  set sliceid = `printf %03d $slice`;
+else
+  set sliceid = "mos";
+endif
+
+## Loop through each session ##
+foreach sess ($SessList)
+
+  set sessid = `basename $sess`;
+  echo $sessid
+
+  ### Set up for loading underlay image ###
+  if($base != t2epi) then
+    if($space != tal) then
+      set basedir = $sess/$base;
+      if(! -e $basedir ) then
+        echo "ERROR($sess): cannot find $basedir" |& tee -a $LF
+        exit 1;
+      endif
+      set baserundir = `getfirstrundir-sess $basedir`;
+      if( $status) then 
+        echo "ERROR: cannot find any runs under $basedir" |& tee -a $LF
+        exit 1;
+      endif
+      set underlaystem = $baserundir/f
+    else
+      if($#subject == 0 || $subject == talairach) then
+        set bsdir = $SUBJECTS_DIR/talairach/mri/T1/$base
+      else
+        set bsdir = $SUBJECTS_DIR/$subject/mri/talairach/$base
+      endif
+      if(! -e $bsdir) then
+        echo "ERROR ($sessid): cannot find $bsdir"
+        exit 1;
+      endif
+      set underlaystem = $bsdir/f
+    endif
+  else
+    if($#analysis != 0) then
+      set underlaystem = $sess/$fsd/$analysis$append/$spacesubdir/h$hemi-offset
+      #set underlay = `printf %s_%s.bfloat $underlaystem $sliceid`;
+    else
+      set runsubdir = `printf %03d $rawrun`;
+      set underlaystem = $sess/$fsd/$runsubdir/f$mc;
+      #set underlay = `printf %s_%s.bshort $underlaystem $sliceid`;
+    endif
+  endif
+  set underlay = $underlaystem
+
+  ### Set up for loading hemodynamic responses ####
+  if(! $nohdr ) then
+    if($IsGroup && $isxavgmethod == "random") then
+      # This part should set up to use the ffx hdr when
+      # viewing the random effects maps
+      set hdrstem = $sess/$fsd/$analysis$append/$spacedir-ffx/h$hemi
+      set datfile = $hdrstem.dat;
+      if(! -e $datfile) then
+        set hdr = ();
+        goto skip_hdr_goto;
+      endif
+    else
+      set hdrstem = $sess/$fsd/$analysis$append/$spacesubdir/h$hemi
+      set datfile = $hdrstem.dat;
+      if(! -e $datfile ) then
+        echo "ERROR: cannot find $datfile"
+        exit 1;
+      endif
+    endif
+    set tmp = `grep Nh $datfile`;
+    @ Nh = $tmp[2];
+    if($Nh != 1 || $forcehdr) then
+      #set hdr  = "-h `printf %s_%s.bfloat $hdrstem $sliceid`";
+      set hdr  = "-h $hdrstem";
+    else
+      set hdr = ();
+    endif
+  else
+    set hdr = ();
+  endif
+  skip_hdr_goto:
+
+  ### Set up for loading signifiance maps ####
+  if(! $nosig ) then
+    set sigstem = $sess/$fsd/$mapanalysis$append/$mapspacesubdir/$contrast/$map$hemi
+    set sig  = "-p $sigstem" ;
+    if($brainmaskthresh > 0) then
+      set maskopt = "-pmask $sess/$fsd/$mapanalysis$append/$mapspacesubdir/h-offset ";
+      set maskopt = "$maskopt -pmaskthresh $brainmaskthresh"
+    else
+      set maskopt = ();
+    endif
+    if($#mask != 0) then
+      set maskpath = $sess/$fsd/masks/$mask
+      if(! -e $maskpath"_000.hdr") then
+        echo "ERROR: cannot find mask volume $maskpath"
+        exit 1;
+      endif
+      set maskopt = "-pmask $maskpath -pmaskthresh 0.5"
+    endif
+  else
+    set sig = ();
+    set maskopt = ();
+  endif
+
+  ### Set up for loading raw data ###
+  if($#rawrun != 0) then
+    set runsubdir = `printf %03d $rawrun`;
+    set rundir = $sess/$fsd/$runsubdir
+    if(! -d $rundir ) then
+      echo "ERROR: cannot find raw data in $rundir" |& tee -a $LF
+      exit 1;
+    endif
+    if($#rawstem0 == 0) then
+      set rawstem = $rundir/f$mc
+    else
+      set rawstem = $rundir/$rawstem0;
+    endif
+    #set raw = " -r `printf %s_%s.bshort $rawstem$mc $sliceid`";
+    set raw = "-r $rawstem"
+  else
+    set raw = "";
+  endif
+
+  set yvtitle = `basename $sess`;
+  set yvtitle = $yvtitle-`basename $underlay`;
+  if($#hdr != 0 ) set yvtitle = $yvtitle-$analysis$append
+  if($#sig != 0 ) set yvtitle = $yvtitle-$contrast-$map
+  set yvtitle = $yvtitle-$sliceid
+
+  set cmd = (yakview -i $underlay $hdr $sig $raw -sn $sliceid)
+  set cmd = ($cmd -thmin $thmin -thmax $thmax $BaseEQFlag)
+  set cmd = ($cmd -title $yvtitle $maskopt)
+  if($#analysis != 0) then
+   set datfile = $sess/$fsd/$analysis/h.dat;
+   if(-e $datfile) set cmd = ($cmd -hdat $datfile)
+  endif
+  set cmd = ($cmd $UseVersion)
+
+  echo "----------------------------------------------" |& tee -a $LF
+  pwd        |& tee -a $LF
+  echo $cmd  |& tee -a $LF
+  echo "----------------------------------------------" |& tee -a $LF
+
+  if($ScriptOnly) then
+    echo $cmd >> $scriptfile
+    echo " " >> $scriptfile
+    echo " " >> $scriptfile
+  else
+    if(! $background ) then
+      $cmd |& tee -a $LF
+    else
+      $cmd &
+    endif
+  endif
+
+end # loop over SessList #
+
+
+
+exit 0;
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-c":
+    case "-contrast":
+      if ( $#argv == 0) goto arg1err;
+      set contrast = $argv[1]; shift;
+      breaksw
+
+    case "-map":
+      if ( $#argv == 0) goto arg1err;
+      set map = $argv[1]; shift;
+      breaksw
+
+    case "-analysis":
+    case "-a":
+      if ( $#argv == 0) goto arg1err;
+      set analysis = $argv[1]; shift;
+      if(! -d $analysis) then
+        echo "ERROR: analysis $analysis does not exist"
+        exit 1;
+      endif
+      breaksw
+
+    case "-anapend":
+    case "-append":
+    case "-ap":
+      if ( $#argv == 0) goto arg1err;
+      set append = $argv[1]; shift;
+      breaksw
+
+    case "-space":
+      if ( $#argv == 0) goto arg1err;
+      set space = $argv[1]; shift;
+      breaksw
+
+    case "-spacedir":
+      if ( $#argv == 0) goto arg1err;
+      set spacedir = $argv[1]; shift;
+      breaksw
+
+    case "-brainmaskthresh":
+    case "-bmt":
+      if ( $#argv == 0) goto arg1err;
+      set  brainmaskthresh = $argv[1]; shift;
+      breaksw
+
+    case "-isxavg":
+      if ( $#argv == 0) goto arg1err;
+      set isxavgmethod = $argv[1]; shift;
+      if($isxavgmethod != "fixed" && $isxavgmethod != "random") then
+        echo "ERROR: -isxavg must be either fixed or random" |& tee -a $LF 
+        exit 1;
+      endif
+      breaksw
+
+    case "-hemi":
+      if ( $#argv == 0) goto arg1err;
+      set hemi = $argv[1]; shift;
+      if($hemi != lh && $hemi != rh) then
+        echo "ERROR: hemi set to $hemi, must be either lh or rh" |& tee -a $LF
+        exit 1;
+      endif
+      set hemi = "-$hemi"
+      breaksw
+
+    case "-subject":
+      if ( $#argv == 0) goto arg1err;
+      set subject = $argv[1]; shift;
+      breaksw
+
+    case "-mapanalysis":
+    case "-ma":
+      if ( $#argv == 0) goto arg1err;
+      set mapanalysis = $argv[1]; shift;
+      breaksw
+
+    case "-mapisxavg":
+      if ( $#argv == 0) goto arg1err;
+      set mapisxavgmethod = $argv[1]; shift;
+      breaksw
+
+    case "-thmin":
+      if ( $#argv == 0) goto arg1err;
+      set thmin = $argv[1]; shift;
+      breaksw
+
+    case "-thmax":
+      if ( $#argv == 0) goto arg1err;
+      set thmax = $argv[1]; shift;
+      breaksw
+
+    case "-thmask":
+      set thmin = .5;
+      set thmax = 1;
+      breaksw
+
+    case "-slice":
+      if ( $#argv == 0) goto arg1err;
+      set slice = $argv[1]; shift;
+      if($slice != mos) @ slice = $slice;  # this removes leading zeros 
+      breaksw
+
+    case "-raw":
+      if ( $#argv == 0) goto arg1err;
+      set rawrun = $argv[1]; shift;
+      @ rawrun = $rawrun;  # this removes leading zeros 
+      breaksw
+
+    case "-rawstem":
+      if ( $#argv == 0) goto arg1err;
+      set rawstem0 = $argv[1]; shift;
+      breaksw
+
+    case "-fsd":
+      if ( $#argv == 0) goto arg1err;
+      set fsd = $argv[1]; shift;
+      breaksw
+
+    case "-append":
+    case "-perrun":
+      if ( $#argv == 0) goto arg1err;
+      set perrun = $argv[1]; shift;
+      breaksw
+
+    case "-base":
+      if ( $#argv == 0) goto arg1err;
+      set base = $argv[1]; shift;
+      breaksw
+
+    case "-mask":
+      if ( $#argv == 0) goto arg1err;
+      set mask = $argv[1]; shift;
+      breaksw
+
+    case "-nohdr":
+      set nohdr = 1;
+      breaksw
+
+    case "-forcehdr":
+      set forcehdr = 1;
+      breaksw
+
+    case "-nosig":
+      set nosig = 1;
+      breaksw
+
+    case "-bg":
+      set background = 1;
+      breaksw
+
+    case "-motioncor":
+      set motioncor = 1;
+      set mc = "mc";
+      breaksw
+
+    case "--version":
+    case "-version":
+      echo $VERSION
+      exit 0;
+      breaksw
+
+    case "-umask":
+      if ( $#argv == 0) goto arg1err;
+      set umaskarg = "-umask $argv[1]";
+      umask $argv[1]; shift;
+      breaksw
+
+    case "-v1":
+      set UseVersion = "-v1";
+      breaksw
+
+    case "-v2":
+      set UseVersion = "-v2";
+      breaksw
+
+    case "-verbose":
+      set verbose = 1;
+      breaksw
+
+    case "-echo":
+      set echo = 1;
+      breaksw
+
+    case "-debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    case "-nolog":
+      set nolog = 1;
+      breaksw
+
+    case "-heq":
+    case "-imgeq":
+    case "-baseeq":
+      set BaseEQFlag = "-imgeq"
+      breaksw
+
+    case "-scriptonly":
+      set ScriptOnly = 1;
+      breaksw
+
+    case "-cwd":
+      breaksw
+
+    case "-s":
+    case "-sf":
+    case "-df":
+    case "-d":
+    case "-g":
+      shift;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+  if ($#map == 0) then
+    if( $contrast == omnibus) then
+      set map = fsig;
+    else
+      set map = sig;
+    endif
+  endif
+
+  if ($#contrast == 0) then
+     set nosig = 1;
+  endif
+
+  if ($#analysis == 0 && $#contrast != 0) then
+     echo "ERROR: no analysis specified"|& tee -a $LF
+     exit 1
+  endif
+
+  if ($#analysis == 0) then
+    set nohdr = 1;
+  endif
+
+  if ($#mapanalysis == 0) set mapanalysis = $analysis;
+
+  if ($#slice == 0) then
+     set slice = mos;
+     echo "INFO: no slice specified, assuming mosaic"|& tee -a $LF
+     #echo "ERROR: no slice specified"|& tee -a $LF
+     #exit 1
+  endif
+
+  if ($#SessList == 0) then
+    echo "ERROR: no sessions specified" |& tee -a $LF
+    exit 1;
+  endif
+
+  ## Determine whether Group or Individual Data ##
+  @ nGroup = 0;
+  foreach sess ($SessList)
+    set sessinfo = $sess/session.info
+    set IsGroup = `grep GroupAverage $sessinfo | wc -l`;
+    if($IsGroup) @ nGroup = $nGroup + 1;
+  end
+  if($IsGroup && ($nGroup != $#SessList) ) then
+    echo "ERROR: cannot mix individual and group sessions"
+    exit 1;
+  endif
+
+  if($#spacedir == 0) set spacedir = $space;
+  if($#mapisxavgmethod == 0) set mapisxavgmethod = $isxavgmethod ;
+
+  ## Group Contingencies ##
+  if($IsGroup) then
+    if($#isxavgmethod == 0) then
+      echo "ERROR: must supply -isxavg method with group data" |& tee -a $LF 
+      exit 1;
+    endif
+    if($isxavgmethod == "fixed") then
+      set spacesubdir = $spacedir-ffx
+    else
+      set spacesubdir = $spacedir-rfx
+    endif
+    if($#mapisxavgmethod == 0) then
+      set mapspacesubdir = $spacesubdir;
+    else
+      if($mapisxavgmethod == "fixed") then
+        set mapspacesubdir = $spacedir-ffx
+      else
+        set mapspacesubdir = $spacedir-rfx
+      endif
+    endif
+  else
+    if($space == "native") then
+      set spacesubdir = ();
+      set mapspacesubdir = ();
+    else
+      set spacesubdir = $spacedir;
+      set mapspacesubdir = $spacedir;
+    endif
+    if($#isxavgmethod != 0) then
+      echo "ERROR: -isxavg can only be used with group data" |& tee -a $LF 
+      exit 1;
+    endif
+  endif
+
+  if($space == sph && $#hemi == 0) then
+    echo "ERROR: must specify -hemi with spherical space" |& tee -a $LF 
+    exit 1;
+  endif
+
+  if($space != native && $#rawrun != 0) then
+    echo "ERROR: cannot view raw data in non-native space" |& tee -a $LF 
+    exit 1;
+  endif
+
+  if($#subject != 0 && $space != tal) then
+    echo "ERROR: can only use -subject with -space tal"
+    exit 1;
+  endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "USAGE: sliceview-sess"
+  echo ""
+  echo "Options:";
+  echo ""
+  echo "   -slice    number : slice number to display"
+  echo "   -analysis analysisname : name of session-level functional analysis";
+  echo "   -contrast contrastname : contrast name"
+  echo "   -map      mapname      : <sig>, minsig, iminsig, t"
+  echo "   -mapanalysis analysisname : get map/contrast from this analysis"
+  echo "   -thmin     thresh : minimum threshold for display ($thmin)"
+  echo "   -thmax     thresh : maximum threshold for display ($thmax)"
+  echo "   -thmask           : set thmin = .5 and thmax = 1 (good for masks)"
+  echo "   -nohdr            : do not load/show hemodynamic response"
+  echo "   -nosig            : do not load/show significance map"
+  echo "   -raw       run    : display raw MR from run"
+  echo "   -rawstem   stem   : display raw MR from run/stem"
+  echo "   -motioncor        : display motion corrected raw data (with -raw)"
+  echo "   -base      volume : t2epi, t1epi, t2conv"
+  echo "   -mask      maskid : mask using FSD/masks/maskid"
+  echo "   -subject subjectname : display on subject's talairached anatomical."
+  echo "                          only with -space tal; spec -base bshortBI"
+  echo "                          where B = tal res, and I is 1, 2, or 4"
+  echo ""
+  echo "   -sf sessidfile  ..."
+  echo "   -df srchdirfile ..."
+  echo "   -s  sessid      ..."
+  echo "   -d  srchdir     ..."
+  echo "   -fsd dir       : functional subdirectory (bold)"
+  echo ""
+  echo "   -scriptonly    : don't run, just generate a script"
+  echo "   -umask umask   : set unix file permission mask"
+  echo "   -version       : print version and exit"
+  echo ""
+exit 1;

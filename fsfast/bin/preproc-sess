@@ -1,0 +1,373 @@
+#!/bin/tcsh -f
+# preproc-sess - runs preprocessing (mc, spatsmooth, mkbrainmask, inorm)
+
+set VERSION = '$Id: preproc-sess,v 1.1 2003/03/04 21:22:09 greve Exp $';
+
+set inputargs = ($argv);
+set DateStr = "`date '+%y%m%d%H%M'`"
+
+set mcinstem   = f;
+set mcoutstem  = ();
+set sminstem   = ();
+set smoutstem  = ();
+set inormstem  = ();
+set maskdir    = masks
+set maskstem   = brain;
+set fwhm    = ();
+set fsd     = bold;
+set rlf     = ();
+set DoMC     = 1;
+set DoSmooth = 1;
+set DoInorm  = 1;
+set DoMask   = 1;
+
+set PrintHelp = 0;
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+set n = `echo $argv | grep -e -version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+
+set PWD = `getpwdcmd`;
+if($status) exit 1;
+
+set SessList = `getsesspath $argv`;
+if($status || $#SessList == 0) then
+  getsesspath $argv 
+  exit 1;
+endif
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+set umask = `umask`;
+
+##### Create a log file ######
+set logdir = log;
+mkdir -p $logdir
+if(! -e $logdir) then
+  echo "WARNING: could not create $logdir"
+  set LF = /dev/null
+else
+  set LF = $logdir/preproc-sess.log
+  if(-e $LF) mv $LF $LF.old
+endif
+echo "--------------------------------------------------------------"
+echo "preproc-sess logfile is $LF"
+echo "--------------------------------------------------------------"
+
+echo "preproc-sess log file" >> $LF
+echo $VERSION >> $LF
+id            >> $LF
+pwd           >> $LF
+echo $0        >> $LF
+echo $inputargs  >> $LF
+uname -a      >> $LF
+date          >> $LF
+
+set StartTime = `date`;
+
+foreach sess ($SessList)
+  set sessid     = `basename $sess`;
+  set sessparent = `dirname $sess`;
+
+  if($DoMC) then
+    set cmd = (mc-sess -fstem $mcinstem -fmcstem $mcoutstem -umask $umask);
+    set cmd = ($cmd -s $sessid -d $sessparent -fsd $fsd)
+    if($#rlf != 0) set cmd = ($cmd -rlf $rlf);
+    echo "$sessid MC -----------------------------" |& tee -a $LF
+    date      |& tee -a $LF
+    pwd       |& tee -a $LF
+    echo $cmd |& tee -a $LF
+    echo "----------------------------------------" |& tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) then
+      echo "ERROR: mc-sess failed" |& tee -a $LF
+      exit 1;
+    endif
+  endif
+
+  if($DoSmooth) then
+    set cmd = (spatialsmooth-sess -i $sminstem -o $smoutstem -fwhm $fwhm)
+    set cmd = ($cmd  -fsd $fsd -umask $umask);
+    set cmd = ($cmd -s $sessid -d $sessparent)
+    if($#rlf != 0) set cmd = ($cmd -rlf $rlf);
+    echo "$sessid Smooth ------------------------" |& tee -a $LF
+    date      |& tee -a $LF
+    pwd       |& tee -a $LF
+    echo $cmd |& tee -a $LF
+    echo "----------------------------------------" |& tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) then
+      echo "ERROR: spatialsmooth-sess failed" |& tee -a $LF
+      exit 1;
+    endif
+  endif
+
+  if($DoInorm) then
+    set cmd = (inorm-sess -funcstem $inormstem )
+    set cmd = ($cmd  -fsd $fsd -umask $umask);
+    set cmd = ($cmd -s $sessid -d $sessparent)
+    if($#rlf != 0) set cmd = ($cmd -rlf $rlf);
+    echo "$sessid Inorm ------------------------" |& tee -a $LF
+    date      |& tee -a $LF
+    pwd       |& tee -a $LF
+    echo $cmd |& tee -a $LF
+    echo "----------------------------------------" |& tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) then
+      echo "ERROR: inorm-sess failed" |& tee -a $LF
+      exit 1;
+    endif
+  endif
+
+  if($DoMask) then
+    set cmd = (mkbrainmask-sess -maskstem $maskstem)
+    set cmd = ($cmd -fsd $fsd -umask $umask);
+    set cmd = ($cmd -s $sessid -d $sessparent)
+    echo "$sessid Inorm ------------------------" |& tee -a $LF
+    date      |& tee -a $LF
+    pwd       |& tee -a $LF
+    echo $cmd |& tee -a $LF
+    echo "----------------------------------------" |& tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) then
+      echo "ERROR: inorm-sess failed" |& tee -a $LF
+      exit 1;
+    endif
+  endif
+
+end
+
+echo "Started at $StartTime" |& tee -a $LF
+echo "Ended   at `date`"     |& tee -a $LF
+
+echo "done"
+
+
+exit 0
+
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-mcin":
+      if ( $#argv == 0) goto arg1err;
+      set mcinstem = $argv[1]; shift;
+      breaksw
+
+    case "-mcout":
+      if ( $#argv == 0) goto arg1err;
+      set mcoutstem = $argv[1]; shift;
+      breaksw
+
+    case "-smin":
+      if ( $#argv == 0) goto arg1err;
+      set sminstem = $argv[1]; shift;
+      breaksw
+
+    case "-smout":
+      if ( $#argv == 0) goto arg1err;
+      set smoutstem = $argv[1]; shift;
+      breaksw
+
+    case "-inorm":
+      if ( $#argv == 0) goto arg1err;
+      set inormstem = $argv[1]; shift;
+      breaksw
+
+    case "-mask":
+      if ( $#argv == 0) goto arg1err;
+      set maskstem = $argv[1]; shift;
+      breaksw
+
+    case "-maskdir":
+      if ( $#argv == 0) goto arg1err;
+      set maskdir= $argv[1]; shift;
+      breaksw
+
+    case "-fwhm":
+      if ( $#argv == 0) goto arg1err;
+      set fwhm = $argv[1]; shift;
+      breaksw
+
+    case "-fsd":
+      if ( $#argv == 0) goto arg1err;
+      set fsd = $argv[1]; shift;
+      breaksw
+
+    case "-rlf":
+      if ( $#argv == 0) goto arg1err;
+      set rlf = $argv[1]; shift;
+      breaksw
+
+    case "-nomc":
+      set DoMC = 0;
+      breaksw
+
+    case "-nosmooth":
+      set DoSmooth = 0;
+      breaksw
+
+    case "-noinorm":
+      set DoInorm = 0;
+      breaksw
+
+    case "-nomask":
+      set DoMask = 0;
+      breaksw
+
+    case "-verbose":
+      set verbose = 1;
+      breaksw
+
+    case "-echo":
+      set echo = 1;
+      breaksw
+
+    case "-debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    case "-g":
+    case "-s":
+    case "-sf":
+    case "-d":
+    case "-df":
+      shift;
+      # ignore getsesspath arguments 
+      breaksw
+
+    case "-cwd":
+      # ignore getsesspath arguments 
+      breaksw
+
+    case "-umask":
+      if ( $#argv == 0) goto arg1err;
+      umask $1; shift;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+  if($DoMC) then
+    if($#mcinstem == 0)  set mcinstem = f;
+    if($#mcoutstem == 0) set mcoutstem = $mcinstem"mc"
+  endif
+
+  if($DoSmooth) then
+    if($#fwhm == 0) then
+      echo "ERROR: must specify FWHM when doing smoothing"
+      exit 1;
+    endif
+    if($#sminstem == 0) then
+      if(! $DoMC) then
+        echo "ERROR: must specify smin stem if not doing mc"
+        exit 1;
+      endif
+      set sminstem = $mcoutstem;
+    endif
+    if($#smoutstem == 0) set smoutstem = $sminstem"sm"
+  endif
+
+  if($DoInorm && $#inormstem == 0) then
+    if($DoSmooth) then
+      set inormstem = $smoutstem;
+    else if($DoMC) then
+      set inormstem = $mcoutstem;
+    else
+      set inormstem = $mcinstem;
+    endif
+  endif
+
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "USAGE: preproc-sess"
+  echo ""
+  echo "  -mcin   mcinstem    : <f> stem to used as input to MC"
+  echo "  -mcout  mcoutstem   : <instemmc> stem to use as output of MC"
+  echo "  -smin   sminstem    : <mcoutstem>"
+  echo "  -smout  smoutstem   : <sminstemsm>"
+  echo "  -inorm  inormstem   : <smoutstem | mcoutstem | mcinstem>"
+  echo "  -mask   maskstem    : <brain>"
+  echo "  -fwhm   fwhm (mm)"
+  echo "  -fsd    fsd <bold>"
+  echo "  -rlf    rlf  : run list file (default all runs)"
+  echo ""
+  echo "  -nomc     : don't do motion correction"
+  echo "  -nosmooth : don't do smoothing"
+  echo "  -noinorm  : don't do inorm"
+  echo "  -nomask   : don't make brain mask"
+  echo ""
+  echo ""
+  echo "Session Arguments (Required)"
+  echo "   -sf sessidfile  ..."
+  echo "   -df srchdirfile ..."
+  echo "   -s  sessid      ..."
+  echo "   -d  srchdir     ..."
+  echo ""
+  echo ""
+
+  if(! $PrintHelp) exit 1;
+
+  echo $VERSION
+
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+
+exit 1;
+
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+This will run preprocessing steps: motion correction, smoothing,
+intensity normalization, and brain-mask creation.
+
+Basic Usage:
+
+  preproc-sess -sf sessidlist -df sessdirlist -fwhm 5
+
+This will perform the preprocessing steps. The final output will be a 
+volume called fmcsm which will be motion corrected and spatially
+smoothed at 5 mm FWHM. Use this name (i,e fmcsm) as the -funcstem
+argument in mkanalysis-sess.new

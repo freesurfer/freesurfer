@@ -1,0 +1,466 @@
+#!/bin/csh -f
+# fftfunc-sess - 
+#
+# $Id: fftfunc-sess,v 1.1 2003/03/04 21:22:08 greve Exp $
+
+set inputargs = ($argv);
+set VERSION = '$Id: fftfunc-sess,v 1.1 2003/03/04 21:22:08 greve Exp $';
+
+set SessList = ();
+set fsd = "bold";
+set funcstem = "f"; # stem of functional volume
+set rlf = ();
+set mask = ();
+set maskmatch = 1;
+set meanfit = 1;
+set trendfit = 1;
+set outname = ();
+set outdir = ();
+set collapse = 0;
+set monly = 0;
+set TR    = ();
+
+if($#argv == 0) then
+  goto usage_exit;
+  exit 1;
+endif
+
+set n = `echo $argv | grep version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+
+set PWDCMD = `getpwdcmd`;
+
+set SessList = `getsesspath $argv`;
+if($status || $#SessList == 0) then
+  echo $SessList
+  exit 1;
+endif
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+set StartTime = `date`;
+
+# Create a log file #
+if(-w .) then
+  mkdir -p log
+  set LF = `$PWDCMD`/log/evpve-sess-$fsd.log
+  rm -f $LF
+else
+  set LF = /dev/null
+endif
+
+echo "fftfunc-sess" >> $LF
+echo $VERSION     >> $LF
+uname -a          >> $LF
+date              >> $LF
+$PWDCMD           >> $LF
+echo $inputargs   >> $LF
+
+if($monly) then
+  set QuitOnError = 0;
+else
+  set QuitOnError = 1;
+  set MLF = fftfunc_sess_$$.m
+endif
+rm -f $MLF
+echo "Matlab file is $MLF"
+
+if($#outdir != 0) then
+  mkdir -p $outdir
+  pushd $outdir > /dev/null
+  set outdir = `$PWDCMD`;
+  popd > /dev/null
+endif
+
+set seqinfo = $SessList[1]/$fsd/seq.info
+if(! -e $seqinfo) then
+  echo "ERROR: cannot find $seqinfo"
+  exit 1;
+endif
+set TR = `cat $seqinfo | awk '{if($1 == "TR") print $2}'`;
+if($#TR == 0) then
+  echo "ERROR: $seqinfo is not formated correctly, no TR"
+  exit 1;
+endif
+
+#----------------------------------------------------------------#
+tee $MLF > /dev/null <<EOF
+
+  global QuitOnError;
+  QuitOnError = $QuitOnError;
+  SessList = splitstring('$SessList');
+  funcstem = '$funcstem';
+  fsd = '$fsd';
+  rlf = '$rlf';
+  maskstem = '$mask';
+  maskmatch = $maskmatch;
+  meanfit = $meanfit;
+  trendfit = $trendfit;
+  outname   = '$outname';
+  outdir    = '$outdir';
+  collapse  = $collapse;
+  TR = [$TR];
+
+  tic;
+  nsessions = size(SessList,1);
+
+  %-------- Loop over sessions ----------------------%
+  for nthsess = 1:nsessions
+    sess = deblank(SessList(nthsess,:));
+    sessid = basename(sess);
+    fprintf('%3d %s %g\n',nthsess,sessid,toc);
+
+    if(~isempty(maskstem))
+      %--------- Load the mask --------------%
+      maskfullstem = sprintf('%s/%s/masks/%s',sess,fsd,maskstem);
+      mask = fmri_ldbvolume(maskfullstem);
+      if(isempty(mask)) 
+        qoe(maskfullstem); error(maskfullstem); 
+      end
+      %----- Count the voxels in the mask that match target value --%
+      indmask = find(mask == maskmatch);
+      nmasktot = length(indmask);
+      if(nmasktot == 0) 
+        msg = sprintf('No active voxels found in mask');
+        qoe(msg); error(msg);
+      end
+      fprintf('Found %d voxels in mask\n',nmasktot);
+    else
+      mask = [];
+      indmask = [];
+    end
+
+    %---------- Create complete output file name -----------%
+    if(~isempty(outdir))
+      outfile = sprintf('%s/%s-%s',outdir,sessid,outname);
+    else
+      outfile = sprintf('%s/%s/%s',sess,fsd,outname);
+    end
+    fprintf('outfile = %s\n',outfile);
+
+    %--------- Get list of runs -----------------------%
+    if(isempty(rlf))
+      fsdpath = sprintf('%s/%s',sess,fsd);
+      runlist = fast_runlist(fsdpath);
+    else
+      rlfpath = sprintf('%s/%s/%s',sess,fsd,rlf);
+      runlist = fast_runlistfile(rlfpath);      
+    end
+    nruns = size(runlist,1);
+
+    %----------------------- Run Loop -------------------------%
+    funcpwrspect = [];
+    voxvar = [];
+    for nthrun = 1:nruns
+      runid = deblank(runlist(nthrun,:));
+      fprintf('%s %g\n',runid,toc);
+
+      %-------- Get dimensions for data volume  --------------------%
+      instem = sprintf('%s/%s/%s/%s',sess,fsd,runid,funcstem);
+      [nslices nrows ncols ntrs endian bext] = fmri_bvoldim(instem);
+      nvslice = nrows*ncols;
+
+      if(isempty(mask)) nmasktot = nslices*nrows*ncols; end
+    
+      %------- Prepare the matrices to remove mean and/or trend ---%
+      X = [];
+      if(meanfit)   
+        X = [X ones(ntrs,1)]; 
+      end
+      if(trendfit)  
+        xtrend = [1:ntrs]'; %'
+        xtrend = xtrend - mean(xtrend);
+        X = [X xtrend];
+      end
+      if(~isempty(X))
+        T = X*inv(X'*X)*X';
+        E = eye(size(T)) - T;
+      else
+        E = [];
+      end
+
+      %---------------- Slice Loop -------------------------------%
+      sum_funcpwrspect_run = 0; % sum fft.^2 (power spectrum) %
+      sumvar_run = 0;
+      for nthslice = 0:nslices-1
+        fprintf('%2d ',nthslice);
+
+        %------- Load the data for this run/slice ----------%
+        fname = sprintf('%s_%03d.%s',instem,nthslice,bext);
+        f = fmri_ldbfile(fname);
+        if(isempty(f))
+          msg = sprintf('ERROR: reading %s\n',fname);
+          qoe(msg); error(msg);
+        end
+        f = reshape(f,[nvslice ntrs])'; %'
+
+        %------ Mask out unwanted -------%
+        if(~isempty(mask))
+	  % Get the mask for this slice %
+          imask = find(squeeze(mask(nthslice+1,:,:)==maskmatch));
+          nmask = length(imask);
+          f = f(:,imask);
+        else
+          nmask = nvslice;
+        end
+
+        if(nmask > 0)
+          if(~isempty(E)) f = E*f; end
+          sumvar_run = sumvar_run + sum(reshape1d(f.^2))/ntrs;
+          f_fft = fft(f)/ntrs;
+          % sum power spectrum over slices %
+          sum_funcpwrspect_run = sum_funcpwrspect_run + sum(abs(f_fft).^2,2); 
+        end
+
+      end %---------- Slice Loop ---------------------%
+      fprintf('\n');
+
+      % Compute the pwrspect averaged over all slices of the run %
+      funcpwrspect_run = sum_funcpwrspect_run/nmasktot;
+
+      % Only keep half of the two-tailed power spectum, 
+      %   exclude mean if it was fit.%
+      n = length(funcpwrspect_run);
+      indkeep = meanfit+1:round(n/2);
+      funcpwrspect_run = funcpwrspect_run(indkeep);
+
+      % Make a vector for the frequency axis %
+      % This should be the same for all runs %
+      % (ie, all runs should have the same nTR %
+      freqmax = (1/TR)/2;         % Nyquist
+      deltafreq = freqmax/(n/2);  % Measured from 0 to Nyquist
+      freqaxis = indkeep * deltafreq;
+
+      % Keep an array of power spectra for all runs %
+      % Each column is a run
+      funcpwrspect = [funcpwrspect funcpwrspect_run]; 
+
+      voxvar_run = sumvar_run/nmasktot;
+      voxvar = [voxvar voxvar_run];
+
+      % NOTE: voxvar should = 2 * sum(funcpwrspect) %
+      %  2 because only half the spectrum is kept %
+      %  voxvar is the average variance of a voxel
+
+    end %---------- Run Loop ---------------------%
+
+    funcpwrspect_mean = mean(funcpwrspect,2);
+
+    % Save the pwr spectra (all runs represented) %
+    save(outfile,'funcpwrspect_mean',...
+         'funcpwrspect','meanfit','trendfit','indmask','mask',...
+         'maskstem','maskmatch','runlist','collapse','sessid',...
+         'nmasktot','voxvar','TR','freqaxis');
+
+  end %----------- Session Loop ------------------%
+
+EOF
+#----------------------------------------------------------------#
+
+if(! $monly ) then
+  cat $MLF | matlab -display iconic | tee -a $LF
+  rm -f $MLF
+endif
+
+echo " "
+echo "StartTime: $StartTime"
+echo "EndTime:   `date`"
+echo " "
+
+exit 0;
+###############################################
+
+
+############--------------##################
+parse_args:
+set cmdline = "$argv";
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-funcstem":
+    case "-f":
+      if( $#argv < 1) goto arg1err;
+      set funcstem = $argv[1]; shift;
+      breaksw
+
+    case "-fsd":
+      if( $#argv < 1) goto arg1err;
+      set fsd = $argv[1]; shift;
+      breaksw
+
+    case "-rlf":
+      if( $#argv < 1) goto arg1err;
+      set rlf = $argv[1]; shift;
+      breaksw
+
+    case "-mask":
+    case "-m":
+      if( $#argv < 1) goto arg1err;
+      set mask = $argv[1]; shift;
+      breaksw
+
+    case "-maskmatch":
+    case "-match":
+    case "-mm":
+      if( $#argv < 1) goto arg1err;
+      set maskmatch = $argv[1]; shift;
+      breaksw
+
+    case "-meanfit":
+      set meanfit = 1;
+      breaksw
+
+    case "-nomeanfit":
+      set meanfit = 0;
+      breaksw
+
+    case "-trendfit":
+      set trendfit = 1;
+      breaksw
+
+    case "-notrendfit":
+      set trendfit = 0;
+      breaksw
+
+    case "-collapse":
+      set collapse = 1;
+      breaksw
+
+    case "-nocollapse":
+      set collapse = 0;
+      breaksw
+
+    case "-o":
+      if( $#argv < 1) goto arg1err;
+      set outname = $argv[1]; shift;
+      breaksw
+
+    case "-od":
+      if( $#argv < 1) goto arg1err;
+      set outdir = $argv[1]; shift;
+      breaksw
+
+    case "-monly":
+      if( $#argv < 1) goto arg1err;
+      set MLF = $argv[1]; shift;
+      set monly = 1;
+      breaksw
+
+    case "-verbose":
+      set verbose = 1;
+      breaksw
+
+    case "-echo":
+      set echo = 1;
+      breaksw
+
+    case "-debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    case "-umask":
+      if( $#argv < 1) goto arg1err;
+      umask $argv[1]; shift;
+      breaksw
+
+    case "-g":
+    case "-s":
+    case "-sf":
+    case "-d":
+    case "-df":
+      shift;
+      # ignore getsesspath arguments 
+      breaksw
+
+    case "-cwd":
+      # ignore getsesspath arguments 
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+  if($#outname == 0) then
+    echo "ERROR: no output specified"
+    exit 1;
+  endif
+
+  # Make sure suffix ends in .mat #
+  set tmp = `basename $outname .mat`;
+  set outname = $tmp.mat;
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "USAGE: fftfunc-sess"
+  echo "   -o outputname   : name of output file (or outsuffix for -od)"
+  echo ""
+  echo " Options"
+  echo "   -od outputdir      : save as outdir/sessid-fstem-fsd-outsuffix"
+  echo "   -funcstem stem  <f>"
+  echo "   -fsd      dir   <bold>"
+  echo "   -rlf runlistfile"
+  echo "   -mask     stem     : mask volume (fsd/masks/stem)"
+  echo "   -maskmatch val     : use voxels where mask=val (def: val=1)"
+  echo "   -nomeanfit         : don't fit the mean"
+  echo "   -notrendfit        : don't fit the trend"
+  echo ""
+  echo "   -umask umask       : set unix file permission mask"
+  echo "   -version           : print version and exit"
+  echo ""
+  echo "Session Arguments (Required)"
+  echo "   -sf sessidfile  "
+  echo "   -df srchdirfile "
+  echo "   -s  sessid      "
+  echo "   -d  srchdir     "
+  echo "   -fsd fsdir      (optional)"
+  echo ""
+  echo ""
+  echo "Creates outputname.mat in the sessid/fsd (unless -od)."
+  echo "This will have the a variable called funcpwrspect"
+  echo "(NTRs/2-1 by NRuns) which is the average voxel power spectrum."
+  echo "There will also be a variable called funcpwrspect_mean which"
+  echo "is the mean across runs. freqaxis is the frequency axis."
+  echo ""
+  echo "If the mask is specified, it looks for fsd/masks/maskstem,"
+  echo "and uses only those voxels that match the maskmatch value."
+  echo ""
+  echo "By default, it will fit for and remove the mean and trend"
+  echo "before computing the FFT."
+  echo ""
+  echo "All runs should have the same number of TRs"
+  echo ""
+  
+exit 1;
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+

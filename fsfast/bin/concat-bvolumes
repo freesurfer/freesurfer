@@ -1,0 +1,85 @@
+#!/bin/csh -f
+# $Id: concat-bvolumes,v 1.1 2003/03/04 21:22:08 greve Exp $
+
+if($#argv < 2) then
+  echo "USAGE: concat-bvolumes instem1 <<instem2> ...> outstem "
+  exit 1;
+endif
+
+@ ninstems = $#argv - 1;
+set instemlist  = ($argv[1-$ninstems]);
+set outstem = $argv[$#argv];
+
+foreach instem ($instemlist)
+  if($instem == $outstem) then
+    echo "ERROR: instem cannot equal outstem"
+    exit 1;
+  endif
+end
+
+# Get the dimensions from the first instem #
+set dim1 = `getbfvdim $instem[1]`;
+if($status) then
+  echo "ERROR: $instem[1]"
+  exit 1;
+endif
+
+# Check the dimensions from the others against the first #
+@ nframes = 0;
+foreach instem2 ($instemlist)
+  set dim2 = `getbfvdim $instem2`;
+  if($status) then
+    echo "ERROR: $instem2"
+    exit 1;
+  endif
+  @ n = 1
+  while ($n < $#dim1)
+    if( $dim1[$n] != $dim2[$n] && $n != 4) then
+      # note: n = 4 is nframes, which can differ #
+      echo "ERROR: $instem2 dimension mismatch: $dim1[$n] != $dim2[$n]"
+      exit 1;
+    endif
+    @ n = $n + 1
+  end
+  @ nframes = $nframes + $dim2[4];
+end
+
+set nslices = $dim1[1];
+set nrows   = $dim1[2];
+set ncols   = $dim1[3];
+# nframes computed above
+set bext    = $dim1[5];
+set endian  = $dim1[6];
+set outhdr = ($nrows $ncols $nframes $endian)
+
+set outdir = `dirname $outstem`;
+mkdir -p $outdir
+
+@ slice = 0;
+while ($slice < $nslices)
+  echo -n "$slice "
+
+  set infilelist = ();
+  foreach instem ($instemlist)
+
+    set infile = `printf "%s_%03d.%s" $instem $slice $bext`;
+    if(! -e $infile) then
+      echo "ERROR: $infile does not exist"
+      exit 1;
+    endif
+    set infilelist = ($infilelist $infile);
+  end
+
+  set outfile    = `printf "%s_%03d.%s"  $outstem $slice $bext`;
+  set outhdrfile = `printf "%s_%03d.hdr" $outstem $slice `;
+
+  cat $infilelist > $outfile
+  echo $outhdr > $outhdrfile
+
+  @ slice = $slice + 1;
+end
+
+echo " "
+
+exit 0
+##########################################################

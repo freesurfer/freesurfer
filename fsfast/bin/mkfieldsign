@@ -1,0 +1,249 @@
+#!/bin/csh -f
+
+set VERSION = '$Id: mkfieldsign,v 1.1 2003/03/04 21:22:09 greve Exp $';
+set FASTVER = `cat $FMRI_ANALYSIS_DIR/docs/version`;
+
+set inputargs = ($argv);
+
+set eccendir = ();
+set polardir = ();
+set floatstem = ();
+set realinfix = ();
+set imaginfix = ();
+set subject = ();
+set fieldsignpath = ();
+set fieldsignmaskpath = ();
+set hemilist = ();
+set angleoffset = 0;
+
+# Print usage and exit if no args #
+if($#argv == 0) then
+  goto usage_exit;
+  exit 1;
+endif
+
+# look for version flag #
+set n = `echo $argv | grep version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+mkdir -p `dirname $fieldsignpath`;
+mkdir -p `dirname $fieldsignmaskpath`;
+
+setenv name         $subject
+setenv eccendir     $eccendir
+setenv polardir     $polardir
+setenv floatstem    $floatstem
+setenv realname     $realinfix
+setenv complexname  $imaginfix
+
+setenv angle_offset $angleoffset
+unsetenv angle_cycles
+unsetenv noexit
+
+echo ""
+foreach hemisphere ($hemilist)
+  echo "--------.----------- $hemisphere --------.------------"
+  setenv hemi $hemisphere;
+  setenv patch occip.patch.flat
+  setenv patchname occip.patch.flat
+
+  # make sure that all the relevant w files are there #
+  set wfile1 = `pwd`/$eccendir/$floatstem$realinfix-$hemi.w
+  set wfile2 = `pwd`/$eccendir/$floatstem$imaginfix-$hemi.w
+  set wfile3 = `pwd`/$polardir/$floatstem$realinfix-$hemi.w
+  set wfile4 = `pwd`/$polardir/$floatstem$imaginfix-$hemi.w
+  foreach wfile ($wfile1 $wfile2 $wfile3 $wfile4)
+    if(! -e $wfile) then
+      echo "ERROR: cannot find $wfile"
+      exit 1;
+    endif
+  end
+
+  setenv fs $fieldsignpath-$hemi
+  setenv fm $fieldsignmaskpath-$hemi
+  set cmd = (tksurfer.new -$name $hemi inflated -tcl mk-fieldsign.tcl)
+  $cmd
+  if(! -e $fs || ! -e $fm) then
+    echo "ERROR: tksurfer.new failed when creating fieldsign"
+    pwd
+    echo $cmd
+    echo ""
+    exit 1;
+  endif
+  echo ""
+  echo ""
+end
+
+echo "mkfieldsign COMPLETE"
+
+exit 0
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-eccen":
+      if ( $#argv == 0) goto arg1err;
+      set eccendir = $argv[1]; shift;
+      breaksw
+
+    case "-polar":
+      if ( $#argv == 0) goto arg1err;
+      set polardir = $argv[1]; shift;
+      breaksw
+
+    case "-floatstem":
+    case "-float":
+    case "-epbase":
+      if ( $#argv == 0) goto arg1err;
+      set floatstem = $argv[1]; shift;
+      breaksw
+
+    case "-real":
+      if ( $#argv == 0) goto arg1err;
+      set realinfix = $argv[1]; shift;
+      breaksw
+
+    case "-imag":
+      if ( $#argv == 0) goto arg1err;
+      set imaginfix = $argv[1]; shift;
+      breaksw
+
+    case "-subject":
+      if ( $#argv == 0) goto arg1err;
+      set subject = $argv[1]; shift;
+      breaksw
+
+    case "-angleoffset":
+    case "-ao":
+      if ( $#argv == 0) goto arg1err;
+      set angleoffset = $argv[1]; shift;
+      breaksw
+
+    case "-fieldsign":
+    case "-fs":
+      if ( $#argv == 0) goto arg1err;
+      set fieldsignpath = $argv[1]; shift;
+      breaksw
+
+    case "-fieldsignmask":
+    case "-fsm":
+      if ( $#argv == 0) goto arg1err;
+      set fieldsignmaskpath = $argv[1]; shift;
+      breaksw
+
+    case "-hemi":
+      if ( $#argv == 0) goto arg1err;
+      set hemilist = ($hemilist $argv[1]); shift;
+      breaksw
+
+    case "-umask":
+      if ( $#argv == 0) goto arg1err;
+      umask $argv[1]; shift;
+      breaksw
+
+    case "-verbose":
+      set verbose = 1;
+      breaksw
+
+    case "-echo":
+      set echo = 1;
+      breaksw
+
+    case "-debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+  set errs = 0;
+
+  if($#eccendir == 0) then
+    echo "ERROR: no eccen dir specified"
+    set errs = 1;
+  endif
+  if($#polardir == 0) then
+    echo "ERROR: no polar dir specified"
+    set errs = 1;
+  endif
+  if($#floatstem == 0) then
+    echo "ERROR: no float stem specified"
+    set errs = 1;
+  endif
+  if($#realinfix == 0) then
+    echo "ERROR: no real infix specified"
+    set errs = 1;
+  endif
+  if($#imaginfix == 0) then
+    echo "ERROR: no imaginary infix specified"
+    set errs = 1;
+  endif
+  if($#subject == 0) then
+    echo "ERROR: no subject specified"
+    set errs = 1;
+  endif
+  if($#fieldsignpath == 0) then
+    echo "ERROR: no field sign path specified"
+    set errs = 1;
+  endif
+  if($#fieldsignmaskpath == 0) then
+    echo "ERROR: no field sign mask path specified"
+    set errs = 1;
+  endif
+  if($#hemilist == 0) set hemilist = (lh rh);
+
+  if($errs) exit 1;
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo "USAGE: mkfieldsign"
+  echo "Options:";
+  echo "   -eccen     dir"
+  echo "   -polar     dir"
+  echo "   -epbase    basename"
+  echo "   -real      infix"
+  echo "   -imag      infix"
+  echo "   -subject   name"
+  echo "   -angleoffset offset (0 to 1)"
+  echo "   -fieldsign  path"
+  echo "   -fieldsignmask  path"
+  echo "   -umask umask   : set unix file permission mask"
+  echo "   -version       : print version and exit"
+exit 1;

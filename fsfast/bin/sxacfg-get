@@ -1,0 +1,51 @@
+#!/bin/csh -f
+# $Id: sxacfg-get,v 1.1 2003/03/04 21:22:10 greve Exp $
+# Extracts variable values from a selxavg configuration file.
+
+if($#argv != 2) then
+  echo "USAGE: sxacfg-get cfgfile varname"
+  exit 1;
+endif
+
+set cfg     = $1;
+set varname = $2;
+
+if(! -e $cfg) then
+  echo "ERROR: configuration file $cfg does not exist"
+  exit 1;
+endif
+
+set varline = `cat $cfg | grep $varname`;
+
+if($#varline == 0) exit 0;
+
+switch ( $varname )
+  case "baseline":
+  case "detrend":
+  case "basegment":
+  case "mail":
+    echo 1;
+    exit 0;
+    breaksw
+
+  case "gammafit":
+    if($#varline != 3) then
+      echo "ERROR: $varname variable missing value in cfg file"
+      exit 1;
+    endif
+    echo $varline[2] $varline[3];
+    exit 0;
+    breaksw
+
+  default:
+    if($#varline != 2) then
+      echo "ERROR: $varname variable missing value in cfg file"
+      exit 1;
+    endif
+    echo $varline[2];
+    exit 0;
+    breaksw
+endsw
+
+exit 0
+############################################

@@ -1,0 +1,753 @@
+#!/bin/csh -f
+############################################################
+# Name:    selxavg2
+############################################################
+
+set inputargs = ($argv);
+set fmrianalver = `cat $FSFAST_HOME/docs/version`;
+set VERSION = '$Id: selxavg2,v 1.1 2003/03/04 21:22:09 greve Exp $'
+
+## If there are no arguments, just print useage and exit ##
+if ( $#argv == 0  )  goto usage_exit;
+
+set n = `echo $argv | grep version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+
+set PWDCMD = `getpwdcmd`;
+
+# Set Default Values #
+set TR = ();
+set TER = ();
+set timewindow = 20.0;
+set timeoffset =  0.0;
+set firstslice = ();
+set nslices = ();    # number of slices to process
+set nslicesvol = (); # number of slices in the volume
+set UseSpatialFilter = 0;
+set hanrad = 0;
+set fwhm   = 0;
+set inplaneres = ();
+set baseline = 1;
+set detrend  = 1;
+set qtrendfit = 1;
+set PolyFitOrder = -1;
+set nskip = 0;
+set rescale = 0;
+set nonwhite = 0;
+set nnoise_autocorr = 1;
+set basegment = 1; 
+set tprestim = 0;
+set gammafit = 0;
+set delta = ();
+set tau   = ();
+set monly = 0;
+set mfile = ();
+set synchfile = ();
+set synth = 0;
+set autowhiten = 0;
+set WhitenFlag = 0;
+set WhtnMtx = ();
+set mincond = 1;
+set seed  = -1;
+set cfgfile = ();
+
+set instems  = ();
+set parfiles = ();
+set parname = ();
+set outstem = ();
+set segstem = ();
+set betastem = ();
+set TPExclFile = ();
+set fomnibus = ();
+set pomnibus = ();
+set sveres = 0;
+set eresdir  = ();
+set svsignal = 0;
+set signaldir = ();
+set svsnr = 0;
+set snrdir = ();
+set extregfile = ();
+set extregorthog = 0;
+set mask = ();
+set loginput = 0; 
+
+set usecfg = `echo $argv | egrep -e "-cfg" | wc -l`;
+if($usecfg > 0) then
+  goto parse_cfg;
+  parse_cfg_return:
+endif
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+set MATLAB = `getmatlab`;
+if($status) exit 1;
+
+set outdir = `dirname $outstem`;
+mkdir -p $outdir;
+pushd $outdir > /dev/null
+set outdir = `$PWDCMD`;
+popd > /dev/null
+
+if($#betastem != 0) then
+  set betadir = `dirname $betastem`;
+  mkdir -p $betadir;
+  pushd $betadir > /dev/null
+  set betadir = `$PWDCMD`;
+  popd > /dev/null
+  set inputargs = ($inputargs -beta $betastem);
+endif
+
+if($sveres)   then 
+  set eresdir   = $outdir/eres
+  set inputargs = ($inputargs -eresdir $eresdir);
+endif
+if($svsignal) then
+  set signaldir = $outdir/signal
+  set inputargs = ($inputargs -signaldir $signaldir);
+endif
+
+if($svsnr) then
+  set snrdir = $outdir/estsnr
+  set inputargs = ($inputargs -snrdir $snrdir);
+endif
+
+if($#eresdir   != 0)  mkdir -p $eresdir
+if($#signaldir != 0)  mkdir -p $signaldir
+if($#snrdir != 0)     mkdir -p $snrdir
+
+# make directory for fominbus and pomnibus #
+if($#fomnibus != 0) then
+  set tmpdir = `dirname $fomnibus`;
+  mkdir -p $tmpdir
+endif
+if($#pomnibus != 0) then
+  set tmpdir = `dirname $pomnibus`;
+  mkdir -p $tmpdir
+endif
+
+## Get path for log-file ##
+set LF = $outstem"_sxa.log"
+echo "Logfile is $LF"
+rm -f $LF;
+touch $LF;
+echo ------------------------------------------ >> $LF
+echo "selxavg $VERSION" >> $LF
+echo "Comments or questions: analysis-bugs@nmr.mgh.harvard.edu" >> $LF
+uname -a >> $LF
+hostname >> $LF
+date >> $LF
+pwd >> $LF
+echo $0 >> $LF
+echo $inputargs >> $LF
+
+## Set path for matlab file ##
+if(! $monly) then
+  set MLF = "/tmp/sxa_$$.m"
+  set QuitOnError = 1;
+else
+  set MLF = $mfile;
+  set QuitOnError = 0;
+endif
+
+set okfile = $outdir/selxavg.ok.$$
+rm -f $okfile
+
+echo matlab file is $MLF | tee -a $LF
+rm -f $MLF;
+echo "% Matlab file for selxavg2 `date`" >> $MLF
+echo "% This file may be deleted "     >> $MLF
+echo "% $MLF"                          >> $MLF;
+echo "global QuitOnError;"             >> $MLF;
+echo "QuitOnError = $QuitOnError;"     >> $MLF;
+set c = "";
+echo -n "r = fast_selxavg("     >> $MLF;
+foreach arg ($inputargs)
+  echo -n "$c '$arg'"      >> $MLF;
+  set c = ",";
+end
+echo -n ");" >> $MLF;
+echo " ">> $MLF;
+echo "if(r==0)" >> $MLF;
+echo "  fmri_touch('$okfile');" >> $MLF;
+echo "end" >> $MLF;
+echo "qoe;" >> $MLF;
+
+echo "----------- Matlab file --------------" | tee -a $LF
+cat $MLF | tee -a $LF
+echo " " | tee -a $LF
+echo "-----------------------------------" | tee -a $LF
+
+if(! $monly ) then
+  echo "------------------------------------------" | tee -a $LF
+  echo "------- matlab output --------------------" | tee -a $LF
+  cat $MLF | $MATLAB -display iconic | tee -a $LF
+  echo "------------------------------------------" | tee -a $LF
+  rm $MLF
+  if(! -e $okfile) then
+    echo "ERROR: fast_selxavg() failed\n";
+    exit 1;
+  endif
+  rm -f $okfile
+
+  set inbhdr = $instems[1].bhdr
+  if(-e $inbhdr) then
+    cp $inbhdr $outstem.bhdr
+    cp $inbhdr $outstem-offset.bhdr
+    if($#pomnibus != 0)  cp $inbhdr $pomnibus.bhdr
+    if($#fomnibus != 0)  cp $inbhdr $fomnibus.bhdr
+  endif
+
+endif
+
+echo " " | tee -a $LF
+echo " " | tee -a $LF
+date | tee -a $LF
+echo "selxavg2: finished" | tee -a $LF
+
+exit 0;
+############################################################
+
+############--------------##################
+parse_args:
+
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-i":
+      if ( $#argv == 0) goto arg1err;
+      set instems = ($instems $argv[1]); shift;
+      set TPExclFile = ($TPExclFile noexcl);
+      breaksw
+
+    case "-p":
+      if ( $#argv == 0) goto arg1err;
+      set parfiles = ($parfiles $argv[1]); shift;
+      breaksw
+
+    case "-parname":
+      if ( $#argv == 0) goto arg1err;
+      set parname = $argv[1]; shift;
+      breaksw
+
+    case "-extreg":
+      if ( $#argv == 0) goto arg1err;
+      set extregfile = $argv[1]; shift;
+      breaksw
+
+    case "-nextreg":
+      if ( $#argv == 0) goto arg1err;
+      set nextreg = $argv[1]; shift;
+      breaksw
+
+    case "-extregorthog":
+      set extregorthog = 1;
+      breaksw
+
+    case "-tpexclfile":
+    case "-tpx":
+      if ( $#instems == 0 ) then
+        echo "ERROR: instem must preceed tpxeclfile"
+        exit 1
+      endif    
+      if ( $#argv == 0) goto arg1err;
+      set TPExclFile[$#instems] = $argv[1]; shift;
+      breaksw
+
+    case "-o":
+      if ( $#argv == 0) goto arg1err;
+      set outstem = $argv[1]; shift;
+      breaksw
+
+    case "-beta":
+      if ( $#argv == 0) goto arg1err;
+      set betastem = $argv[1]; shift;
+      breaksw
+
+    case "-TR":
+      if ( $#argv == 0) goto arg1err;
+      set TR = $argv[1]; shift;
+      breaksw
+
+    case "-TER":
+      if ( $#argv == 0) goto arg1err;
+      set TER = $argv[1]; shift;
+      breaksw
+
+    case "-timewindow":
+    case "-tw":
+      if ( $#argv == 0) goto arg1err;
+      set timewindow = $argv[1]; shift;
+      breaksw
+
+    case "-prewindow":
+    case "-prestim":
+    case "-ps":
+      if ( $#argv == 0) goto arg1err;
+      set tprestim = $argv[1]; shift;
+      breaksw
+
+    case "-timeoffset":
+    case "-to":
+      if ( $#argv == 0) goto arg1err;
+      set timeoffset = $argv[1]; shift;
+      breaksw
+
+    case "-firstslice":
+    case "-fs":
+      if ( $#argv == 0) goto arg1err;
+      set firstslice = $argv[1]; shift;
+      breaksw
+
+    case "-nslices":
+    case "-ns":
+      if ( $#argv == 0) goto arg1err;
+      set nslices = $argv[1]; shift;
+      breaksw
+
+    case "-nslicesvol":
+      if ( $#argv == 0) goto arg1err;
+      set nslicesvol = $argv[1]; shift;
+      breaksw
+
+    case "-ecovmtx":
+      if ( $#argv == 0) goto arg1err;
+      set ECovMtx = $argv[1]; shift;
+      breaksw
+
+    case "-whtnmtx":
+      if ( $#argv == 0) goto arg1err;
+      set WhtnMtx = ($WhtnMtx $argv[1]); shift;
+      breaksw
+
+    case "-autowhiten":
+      if ( $#argv == 0) goto arg1err;
+      set MinCond = $argv[1]; shift;
+      set autowhiten = 1;
+      breaksw
+
+    case "-whiten":
+      set WhitenFlag = 1;
+      breaksw
+
+    case "-mask":
+      if ( $#argv < 1) goto arg1err;
+      set mask = $argv[1]; shift;
+      breaksw
+
+    case "-noautowhiten":
+      set autowhiten = 0;
+      breaksw
+
+    case "-sverrcovmtx":
+    case "-svecovmtx":
+      breaksw
+
+    case "-sveres":
+      set sveres = 1;
+      breaksw
+
+    case "-svsignal":
+      set svsignal = 1;
+      breaksw
+
+    case "-svsnr":
+      set svsnr = 1;
+      breaksw
+
+    case "-snrdir":
+      if ( $#argv == 0) goto arg1err;
+      set snrdir = $argv[1]; shift;
+      breaksw
+
+    case "-fomnibus":
+      if ( $#argv == 0) goto arg1err;
+      set fomnibus = $argv[1]; shift;
+      breaksw
+
+    case "-pomnibus":
+      if ( $#argv == 0) goto arg1err;
+      set pomnibus = $argv[1]; shift;
+      breaksw
+
+    case "-baseline":
+    case "-bl":
+      set baseline = 1;
+      breaksw
+
+    case "-nobaseline":
+      set baseline = 0;
+      breaksw
+
+    case "-acqorder"
+      if ( $#argv == 0) goto arg1err;
+      set acqorder = $argv[1]; shift;
+      breaksw
+
+    case "-interleave":
+      set interleave = 1;
+      breaksw
+
+    case "-nointerleave":
+      set interleave = 0;
+      breaksw
+
+    case "-detrend":
+    case "-dt":
+      set detrend = 1; 
+      set baseline = 1; 
+      breaksw
+
+    case "-qtrendfit":
+      set qtrendfit = 1; 
+      breaksw
+
+    case "-noqtrendfit":
+      set noqtrendfit = 1; 
+      breaksw
+
+    case "-polyfit":
+      if ( $#argv < 1) goto arg1err;
+      set PolyFitOrder = $argv[1]; shift;
+      breaksw
+
+    case "-nopolyfit":
+      set PolyFitOrder = -1;
+      breaksw
+
+    case "-nskip":
+      if ( $#argv == 0) goto arg1err;
+      set nskip = $argv[1]; shift;
+      breaksw
+
+    case "-hanrad":
+    case "-hr":
+      if ( $#argv == 0) goto arg1err;
+      set hanrad = $argv[1]; shift;
+      breaksw
+
+    case "-fwhm":
+      if ( $#argv == 0) goto arg1err;
+      set fwhm = $argv[1]; shift;
+      breaksw
+
+    case "-ipr":
+      if ( $#argv == 0) goto arg1err;
+      set inplaneres = $argv[1]; shift;
+      breaksw
+
+    case "-rescale":
+      if ( $#argv == 0) goto arg1err;
+      set rescale = $argv[1]; shift;
+      breaksw
+
+    case "-monly":
+      if ( $#argv == 0) goto arg1err;
+      set mfile = $argv[1]; shift;
+      set monly = 1; 
+      breaksw
+
+    case "-cfg":
+      if ( $#argv == 0) goto arg1err;
+      set cfgfile = $argv[1]; shift;
+      if(! -e $cfgfile ) then
+        echo "ERROR: $cfgfile does not exist"
+        exit 1;
+      endif
+      breaksw
+
+    case "-eresdir":
+      if ( $#argv == 0) goto arg1err;
+      set eresdir = $argv[1]; shift;
+      breaksw
+
+    case "-signaldir":
+      if ( $#argv == 0) goto arg1err;
+      set signaldir = $argv[1]; shift;
+      breaksw
+
+    case "-synch":
+    case "-synchfile":
+      if ( $#argv == 0) goto arg1err;
+      set synchfile = $argv[1]; shift;
+      breaksw
+
+    case "-synth":
+      if ( $#argv == 0) goto arg1err;
+      set seed  = $argv[1]; shift;
+      set synth = 1;
+      breaksw
+
+    case "-allvnull":
+    case "-avf":
+      set allvnull = 1;
+      breaksw
+
+    case "-log":
+      set loginput = 1; 
+      breaksw
+
+    case "-debug":
+      set verbose = 1; 
+      set echo = 1;
+      breaksw
+
+    case "-nonwhite":
+      if ( $#argv == 0) goto arg1err;
+      set nonwhite = 1; 
+      @ nnoise_autocorr = $argv[1];shift;
+      if ($nnoise_autocorr < 2) then
+        echo "INFO: nonwhite=1 will assume white noise";
+        set nonwhite = 0; 
+      endif
+      breaksw
+
+    case "-basegment":
+    case "-baseg":
+      set basegment = 1; 
+      breaksw
+
+    case "-nobasegment":
+    case "-nobaseg":
+      set basegment = 0; 
+      breaksw
+
+    case "-segstem":
+      if ( $#argv == 0) goto arg1err;
+      set segstem = $argv[1]; shift;
+      breaksw
+
+    case "-gammafit":
+    case "-gf":
+      if ( $#argv < 2) then
+        echo "Flag $flag requires two arguments";
+        exit 1;
+      endif
+      set gammafit = 1;
+      set delta = $argv[1];shift;
+      set tau   = $argv[1];shift;
+      breaksw
+
+    case "-umask":
+      if ( $#argv == 0) goto arg1err;
+      umask $1; shift;
+      breaksw
+
+    case "-mail":
+      set mailuser = 1;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized.
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+  if ($#instems == 0) then
+     echo "ERROR: must specify at least one input stem";
+     exit 1
+  endif
+
+  if($rescale > 0) then
+    foreach stem ($instems)
+      set mvfile = $stem.meanval
+      if(! -e $mvfile) then
+        echo "ERROR: $stem does not have a .meanval file, run inorm"
+        exit 1;
+      endif
+    end
+  endif
+
+  if($#TR == 0) then
+    echo "ERROR: must specify TR"
+    exit 1;
+  endif
+
+  if ($#outstem == 0) then
+     echo "ERROR: must specify output stem";
+     exit 1
+  endif
+
+  if($#parfiles != 0 && $#parname != 0) then
+    echo "ERROR: cannot use both -p and -parname options"
+    exit 1;
+  endif
+
+  if($#parname != 0) then
+     set parfiles = ();
+     foreach i ($instems)
+       set idir = `dirname $i`;
+       set parfiles = ($parfiles $idir/$parname);
+     end
+  endif
+
+  # check that all the parfiles are there #
+  foreach par ($parfiles)
+    if(! -e $par ) then
+      echo "ERROR: cannot find $par"
+      exit 1;
+    endif
+  end
+
+  if ($#instems != $#parfiles) then
+     echo "ERROR: Number of input stems ($#instems) does not "
+     echo "       match number of parfiles ($#parfile)"
+     exit 1
+  endif
+
+  if ($#instems != $#TPExclFile) then
+     echo "ERROR: Number of input stems ($#instems) does not "
+     echo "       match number of tpexcfiles ($#TPExclFile)"
+     exit 1
+  endif
+
+  if($#extregfile != 0) then
+    set extregfiles = ();
+    foreach i ($instems)
+      set idir = `dirname $i`;
+      set tmp = $idir/$extregfile"_000.hdr"
+      if(! -e $tmp) then
+        echo "ERROR: cannot find $tmp"
+        exit 1;
+      endif
+    end
+  endif
+
+  if($#TER == 0) set TER = $TR;
+
+  if($svsignal && $#signaldir != 0) then
+    echo "ERROR: cannot use -svsignal and -signaldir"
+    exit 1;
+  endif
+
+  if($sveres && $#eresdir != 0) then
+    echo "ERROR: cannot use -sveres and -eresdir"
+    exit 1;
+  endif
+ 
+  if($hanrad != "0" && $fwhm != "0") then
+    echo "ERROR: cannot specify hanrad and fwhm"
+    exit 1;
+  endif
+
+  if($fwhm != "0" && $#inplaneres == 0) then
+    echo "ERROR: must specify -ipr with fwhm"
+    exit 1;
+  endif
+
+  if($#mask != 0) then
+    set tmp = $mask"_000.hdr"
+    if(! -e $tmp) then
+      echo "ERROR: cannot find $tmp"
+      exit 1;
+    endif
+  endif
+
+  if($WhitenFlag && $#WhtnMtx != $#instems) then
+    echo "ERROR: with -whiten, must -whtmtx for each run"
+    exit 1;
+  endif
+
+
+goto check_params_return;
+############--------------##################
+
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+parse_cfg:
+  @ n = 1;
+  while($n < $#argv)
+    if("$argv[$n]" == "-cfg") then
+      @ m = $n + 1;
+      set cfgfile = $argv[$m];
+      if(! -e $cfgfile ) then
+        echo "ERROR: $cfgfile does not exist"
+        exit 1;
+      endif
+    endif
+    @ n = $n + 1;
+  end
+
+  if($#cfgfile == 0) then
+    echo "ERROR: must specify config file with -cfg flag";
+    exit 1;
+  endif
+
+  echo "--- Parsing Config File: $cfgfile ----"
+  set cfgargs = `cat $cfgfile`;
+  echo $cfgargs
+  set argv = ($cfgargs $argv);
+
+goto parse_cfg_return;
+#--------------------------------------------------------------------#
+
+#--------------------------------------------------------------------#
+usage_exit:
+  echo "USAGE: selxavg2 [-options] -i instem1 -p parfile 1 [-i instem2 -p parfile2 ...] -o outstem";
+  echo "   instem1   - prefix of input file for 1st run";
+  echo "   parfile1  - path of parfile for 1st run";
+  echo "   [-tpexclfile file1] - file with timepoints of 1st run to exclude"
+  echo "   [instem2] - prefix of input file for 2nd run";
+  echo "   [parfile2]- path of parfile for 2st run";
+  echo "   [-tpexclfile file2] - file with timepoints of 2nd run to exclude"
+  echo "   outstem   - prefix of .bfloat output files"
+  echo "      NOTE: you must specify all runs to process now";
+  echo "Options:";
+  echo "   -TR <float>           : temporal scanning resolution in seconds ";
+  echo "   -TER <float>          : temporal estimation resolution <TR>";
+  echo "   -timewindow <float>   : length of hemodynamic response in seconds <20>";
+  echo "   -prestim <float>      : part of timewindow before stimulus onset (sec)";
+  echo "   -nobaseline           : do not remove baseline offset "
+  echo "   -detrend              : remove baseline offset and temporal trend"
+  echo "   -polyfit order        : fit drift with a polynomial"
+  echo "   -<no>qtrendfit        : <don't> remove quadratic temporal trend"
+  echo "   -rescale <float>      : rescale target (must run inorm first)";
+  echo "   -nskip <int>          : skip the first n data points in all runs"
+  echo "   -hanrad <float>       : radius of Hanning spatial filter (must be >= 1)"
+  echo "   -fwhm  <float>        : full-width/half-max of in-plane smoother (mm)"
+  echo "   -ipr   <float>        : in-plane resolution (mm)"
+  echo "   -gammafit delta tau   : fit HDR amplitude to a gamma function ";
+  echo "   -timeoffset <float>   : offset added to time in par-file in seconds <0>";
+  echo "   -nullcondid <int>     : Number given to the null condition <0>";
+  echo "   -firstslice <int>     : first slice to process <auto>";
+  echo "   -nslices <int>        : number of slices to process <auto>";
+  echo "   -percent pscstem      : compute and save percent signal change in pscstem";
+  echo "   -taumax  float        : don't assume white noise (spec max delay)";
+  echo "   -ecovmtx  stem        : compute and save residual error covariance";
+  echo "   -ecovmsn  stem        : residual error covariance, with spat norm";
+  echo "   -whtmtx   bfile       : whitening matrix";
+  echo "   -basegment            : force segmentation brain and air (with nonwhite)";
+  echo "   -mail                 : send mail to user when finished"
+  echo "   -eresdir dir          : directory in which to save eres vols";
+  echo "   -signaldir  dir       : directory in which to save signal vols";
+  echo "   -monly mfile          : don't run, just generate a matlab file";
+  echo "   -synth seed           : synthesize data with white noise (seed = -1 for auto)";
+  echo "   -parname name         : use parname in each input directory for paradigm file"
+  echo "   -cfg file             : specify a configuration file";
+  echo "   -umask umask          : set unix file permission mask"
+  echo "   -version              : print version and exit"
+exit 1;
+#--------------------------------------------------------------------#

@@ -1,0 +1,24 @@
+#!/bin/csh -f
+
+if($#argv != 1) then
+  echo "USAGE: getfullpath fname"
+  exit 1;
+endif
+
+set fname = $argv[1];
+
+set d = `dirname $fname`;
+if(! -e $d) then
+  echo "ERROR: $d does not exist"
+  exit 1;
+endif
+
+set b = `basename $fname`;
+pushd $d > /dev/null
+set d = `pwd`;
+set fname = $d/$b
+
+echo $fname
+
+exit 0
+

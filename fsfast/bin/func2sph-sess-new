@@ -1,0 +1,10 @@
+#!/bin/csh -f
+# Name: func2sph-sess-new
+# This is just a front end for func2sph-sess.
+
+func2sph-sess $argv;
+exit $status
+
+
+
+

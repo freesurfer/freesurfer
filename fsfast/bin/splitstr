@@ -1,0 +1,31 @@
+#!/bin/csh -f
+##########################################
+# Name: splitstr
+# Purpose: splits the argument string with spaces
+# $Id
+##########################################
+
+set VER = '$Id: splitstr,v 1.1 2003/03/04 21:22:09 greve Exp $';
+
+if($#argv != 1) then
+  echo "USAGE splitstr string"
+  echo "  version: $VER"
+  exit 1;
+endif
+
+set orig  = `basename $argv[1]`;
+set fname = $orig
+set lenf  = `echo $fname | awk '{print length($1)}'`;
+set splt  = ();
+@ n = 1;
+while($#splt < $lenf)
+  set c = `printf %c $fname`;
+  set splt = ($splt $c);
+  @ n = $n + 1;
+  set fname = `echo $fname | sed s/$c//`;
+end
+
+echo $splt
+
+exit 0;
+#########################################

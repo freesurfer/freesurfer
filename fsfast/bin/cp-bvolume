@@ -1,0 +1,72 @@
+#!/bin/csh -f
+# $Id: cp-bvolume,v 1.1 2003/03/04 21:22:08 greve Exp $
+
+if($#argv != 2 && $#argv != 3) then
+  echo "USAGE: cp-bvolume instem outstem <infix>"
+  exit 1;
+endif
+
+set instem  = $argv[1];
+set outstem = $argv[2];
+if($#argv == 3) then
+  set infix  = $argv[3];
+else
+  set infix = "";
+endif
+
+set bext = bshort;
+set i0 = $instem"_000$infix."$bext
+if(! -e $i0) then
+  set bext = bfloat;
+  set i0 = $instem"_000$infix."$bext
+  if(! -e $i0) then
+      echo "ERROR: cannot find any input slice ($instem)"
+      exit 1;
+  endif
+endif
+set inext  = $bext;
+set outext = $bext;
+
+set outdir = `dirname $outstem`;
+echo $outstem $outdir
+
+mkdir -p $outdir
+
+set slice = 0;
+set inbase = `printf %s_%03d $instem $slice `;
+set infile = $inbase$infix.$inext
+set inhdr  = $inbase$infix.hdr
+while( -e $infile )
+  echo -n "  $slice"
+
+  set outbase = `printf %s_%03d $outstem $slice `;
+  set outfile = $outbase.$outext
+  set outhdr  = $outbase.hdr
+
+  cp $inhdr  $outhdr
+  if($status) then
+    echo " "
+    echo "ERROR while copying header $inhdr"
+    exit 1;
+  endif
+
+  cp $infile $outfile
+  if($status) then
+    echo " "
+    echo "ERROR while copying bfile $infile"
+    exit 1;
+  endif
+
+  @ slice = $slice + 1;
+  set inbase = `printf %s_%03d $instem $slice `;
+  set infile = $inbase$infix.$inext
+  set inhdr  = $inbase$infix.hdr
+
+end
+
+if(-e $instem.bhdr) cp $instem.bhdr $outstem.bhdr 
+
+echo " "
+
+exit 0
+##########################################################

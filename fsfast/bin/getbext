@@ -1,0 +1,33 @@
+#!/bin/csh -f
+
+if($#argv != 1) then
+  echo "USAGE: getbext stem"
+  echo '$Id: getbext,v 1.1 2003/03/04 21:22:08 greve Exp $';
+  exit 1;
+endif
+
+set stem = $argv[1];
+set firstslice = `getfirstsliceno $stem`
+set st = $status;
+if($st) then
+  echo "ERROR: cannot find any files with $stem";
+  exit 1;
+endif
+
+set ext = 'bshort';
+set fname = `printf %s_%03d.%s $stem $firstslice $ext`;
+if( -e $fname ) then
+  echo $ext;
+  exit 0;
+endif
+
+set ext = 'bfloat';
+set fname = `printf %s_%03d.%s $stem $firstslice $ext`;
+if( -e $fname ) then
+  echo $ext;
+  exit 0;
+endif
+
+echo "ERROR: cannot find bshort or bfloat for $stem"
+exit 1;
+##########################################

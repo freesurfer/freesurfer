@@ -1,0 +1,460 @@
+#!/bin/csh -f
+# isxavg-fe-sess
+#
+set VERSION = '$Id: isxavg-fe-sess,v 1.1 2003/03/04 21:22:08 greve Exp $';
+set FASTVER = `cat $FMRI_ANALYSIS_DIR/docs/version`;
+
+set inputargs = ($argv);
+
+set analysis    = ();
+set grpname    = ();
+set space     = ();
+set spacedir  = ();
+set srcspacedir  = ();
+set ScriptOnly = 0;
+set umaskarg = ();
+set hemi = ();
+set pctsigch = 0;
+set weightflag = ();
+set weights    = ();
+set DontRun = 0;
+set truncsign = ();
+set logcode = ();
+
+if($#argv == 0) then
+  goto usage_exit;
+  exit 1;
+endif
+
+set n = `echo $argv | grep version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+
+##### Create a log file ######
+set logdir = `pwd`/log;
+mkdir -p $logdir
+if(! -e $logdir | ! -w $logdir) then
+  echo "WARNING: could not create $logdir"
+  set LF = /dev/null
+else
+  set LF = $logdir/isxavg-sess$logcode.log
+  if(-e $LF) mv $LF $LF.old
+endif
+echo "--------------------------------------------------------------"
+echo "isxavg-fe-sess logfile is $LF"
+echo "--------------------------------------------------------------"
+
+echo "isxavg-fe-sess log file" >> $LF
+echo $VERSION >> $LF
+echo "FAST Version $FASTVER"  >> $LF
+id            >> $LF
+pwd           >> $LF
+echo "$0"     >> $LF
+echo $inputargs  >> $LF
+uname -a      >> $LF
+date          >> $LF
+which isxavg-fe >> $LF
+
+set SessList = `getsesspath $inputargs`;
+if($status || $#SessList == 0) then
+  echo "ERROR: finding sessions" |& tee -a $LF
+  echo "       $SessList" |& tee -a $LF
+  exit 1;
+endif
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+## Get functional subdirectory from the info file ##
+set infofile = $analysis/analysis.info
+if(! -e $infofile) then
+  echo "ERROR: cannot find $infofile" |& tee -a $LF
+  exit 1;
+endif
+set fsd = `cat $infofile | awk '{if($1 == "fsd") print $2}'`;
+set designtype = `cat $infofile | awk '{if($1 == "designtype") print $2}'`;
+if($#designtype == 0) then
+  set designtype = `cat $infofile | awk '{if($1 == "avgtype") print $2}'`;
+endif
+
+## Check that the subjects are correct for this group (or Create file) #
+mkdir -p $grpname
+set sessinfo = $grpname/session.info  
+if(-e $sessinfo) then
+  @ n1 = `cat $sessinfo | wc -l`;
+  @ n1 = $n1  - 1;
+  if($n1 != $#SessList) then
+    echo "ERROR: Current Session List is inconistent with previous group average"\
+         |& tee -a $LF
+    exit 1;
+  endif
+  foreach sess ($SessList)
+    set sessid = `basename $sess`
+    set n1 = `cat $sessinfo | grep -x $sessid | wc -l`;
+    if($n1 == 0) then
+      echo "ERROR: $sessid was not in original group average"
+      exit 1;
+    endif
+  end
+else
+  echo "SessionType: GroupAverage" > $sessinfo
+  foreach sess ($SessList)
+    set sessid = `basename $sess`
+    echo $sessid >> $sessinfo
+  end
+endif
+
+## Prepare the script, if need be ##
+if($ScriptOnly) then
+  mkdir -p scripts
+  if(! -d scripts) then
+    echo "ERROR: cannot create `pwd`/scripts"
+    exit 1;
+  endif
+
+  set scriptfile = scripts/run-isxavg-fe-$analysis
+  rm -f $scriptfile
+  touch $scriptfile
+  echo "#\!/bin/csh -f" >> $scriptfile
+  echo "cd .." >> $scriptfile
+  chmod a+x $scriptfile
+endif
+
+## Create output directory ##
+set outdir = $grpname/$fsd/$analysis/$spacedir-ffx
+mkdir -p $outdir
+if($status) then
+  echo "ERROR creating $outdir"
+  exit 1;
+endif
+
+if($space == "native") set space = ();
+
+#---------------------------------------------------------------------#
+foreach hs ($hemi)
+
+  if($space == sph) echo "$hemi hemisphere" |& tee -a $LF
+  date |& tee -a $LF
+  set instems = ();
+  set inoffstems = ();
+
+  ### Go through each session ###
+  @ sessno = 1;
+  foreach sess ($SessList)
+
+    if(! -d $sess/$fsd/$analysis/$srcspacedir) then
+      echo "ERROR: $sess/$fsd/$analysis/$spacedir does not exist" |& tee -a $LF
+      exit 1;
+    endif
+  
+    if($space == tal) then
+      set inregfile = $sess/$fsd/$analysis/$srcspacedir/register.dat
+      if(! -e $inregfile) then
+        echo "ERROR: $inregfile does not exist"|& tee -a $LF
+        exit 1;
+      endif
+    endif
+
+    if($space != sph) then
+      set instem = $sess/$fsd/$analysis/$srcspacedir/h
+    else
+      set instem = $sess/$fsd/$analysis/$srcspacedir/h-$hs
+    endif
+
+    if($#weights != 0) then
+      set instems    = ($instems    -i $instem $weights[$sessno]);
+    else
+      set instems    = ($instems    -i $instem );
+    endif
+
+    set inoffstems = ($inoffstems -i $instem-offset);
+
+    @ sessno = $sessno + 1;
+  end # loop over SessList #
+
+  if($space != sph) then
+    # set outstem = $analysis/$grpname/$space/h
+    set outstem = $outdir/h
+  else
+    #set outstem = $analysis/$grpname/$space/h-$hs
+    set outstem = $outdir/h-$hs
+  endif
+  set outoffstem = $outstem-offset
+
+  if($space == tal) then
+    set outregfile = $outdir/register.dat
+    set cpregcmd = "cp $inregfile $outregfile"
+  else
+    set cpregcmd = ();
+  endif
+
+  set cmd1 = (isxavg-fe $weightflag $umaskarg $instems -o $outstem)
+  if($pctsigch)        set cmd1 = ($cmd1 -pctsigch)
+  if($#truncsign != 0) set cmd1 = ($cmd1 -trunc $truncsign)
+
+  set cmd2 = (meanimg $umaskarg $inoffstems -o $outoffstem)
+
+  if($ScriptOnly) then
+    echo $cmd1 >> $scriptfile
+    echo $cmd2 >> $scriptfile
+    echo $cpregcmd >> $scriptfile
+    echo "\n\n" >> $scriptfile
+  else
+
+    echo "----- Averaging Statistics ------" |& tee -a $LF
+    pwd        |& tee -a $LF
+    echo $cmd1 |& tee -a $LF
+    if(! $DontRun) then
+      $cmd1      |& tee -a $LF
+      if($status) then
+        echo "ERROR: isxavg-fe failed" |& tee -a $LF
+        exit 1;
+      endif
+    endif
+
+    echo "----- Averaging Offsets ------" |& tee -a $LF
+    pwd        |& tee -a $LF
+    echo $cmd2 |& tee -a $LF
+    if(! $DontRun) then
+      $cmd2 |& tee -a $LF
+      if($status) then
+        echo "ERROR: meanimg failed" |& tee -a $LF
+        exit 1;
+      endif
+
+      if($#cpregcmd != 0) then
+        echo "INFO: coping register.dat file to output directory"
+        pwd            |& tee -a $LF
+        echo $cpregcmd |& tee -a $LF
+        $cpregcmd      |& tee -a $LF
+      endif
+    endif
+  endif
+
+end
+echo "-----------------------------------------------------"| tee -a $LF
+
+date | tee -a $LF
+echo "isxavg-fe-sess completed SUCCESSFULLY" | tee -a $LF
+echo " "
+echo " "
+
+exit 0;
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-w"
+      if ( $#argv == 0) goto arg1err;
+      set weights = ($weights $argv[1]);
+      shift;
+      set weightflag = "-weighted";
+      breaksw
+
+    case "-weights"
+      if ( $#argv == 0) goto arg1err;
+      set weights = ();
+      while($#argv != 0 && ! `isargflag $argv[1]`)
+        set weights = ($weights $argv[1]);
+        shift;
+      end
+      if($#weights == 0) then
+        echo "ERROR: no weights specified"
+        exit 1;
+      endif
+      echo "INFO: Weights $weights"
+      set weightflag = "-weighted";
+      breaksw
+
+    case "-space":
+      if ( $#argv == 0) goto arg1err;
+      set space = $argv[1]; shift;
+      breaksw
+
+    case "-spacedir":
+      if ( $#argv == 0) goto arg1err;
+      set spacedir = $argv[1]; shift;
+      breaksw
+
+    case "-hemi":
+      if ( $#argv == 0) goto arg1err;
+      set hemi = ($hemi $argv[1]); shift;
+      breaksw
+
+    case "-a":
+    case "-analysis":
+      if ( $#argv == 0) goto arg1err;
+      set analysis = $argv[1]; shift;
+      breaksw
+
+    case "-grpname":
+    case "-group":
+      if ( $#argv == 0) goto arg1err;
+      set grpname = $argv[1]; shift;
+      breaksw
+
+    case "-trunc":
+      if( $#argv == 0) goto arg1err;
+      set truncsign = $argv[1]; shift;
+      breaksw
+
+    case "-umask":
+      if ( $#argv == 0) goto arg1err;
+      set umaskarg = "-umask $argv[1]";
+      umask $argv[1]; shift;
+      breaksw
+
+    case "-pctsigch":
+      set pctsigch = 1;
+      breaksw
+
+    case "-logcode":
+      set logcode = $$;
+      breaksw
+
+    case "-dontrun":
+      set DontRun = 1;
+      breaksw
+
+    case "-verbose":
+      set verbose = 1;
+      breaksw
+
+    case "-echo":
+      set echo = 1;
+      breaksw
+
+    case "-debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    case "-scriptonly":
+      set ScriptOnly = 1;
+      breaksw
+
+    case "-cwd":
+      breaksw
+
+    case "-g":
+    case "-s":
+    case "-sf":
+    case "-df":
+    case "-d":
+      # ignore getsesspath arguments 
+      shift;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+  set errs = 0;
+
+  if ($#SessList == 0) then
+     echo "ERROR: no sessions specified"|& tee -a $LF 
+     set errs = 1;
+  endif
+
+  if($#weights != 0 && $#weights != $#SessList) then
+    echo "ERROR: the number of sessions ($#SessList) does not equal"
+    echo "       the number of weights  ($#weights)"
+    set errs = 1;
+  endif
+
+  if ($#analysis == 0) then
+     echo "ERROR: no analysis specified"|& tee -a $LF 
+     set errs = 1;
+  endif
+
+  if ($#grpname == 0) then
+     echo "ERROR: no group name specified"|& tee -a $LF 
+     set errs = 1;
+  endif
+
+  if($#truncsign != 0) then
+    if($truncsign != pos && $truncsign != neg) then
+      echo "ERROR: trunc = $truncsign, must be either pos or neg"
+      exit 1
+    endif
+  endif
+
+  if ($#space == 0) then
+     echo "ERROR: must specify a sampling space"|& tee -a $LF 
+     set errs = 1;
+  endif
+
+  if($#hemi != 0 && $space != sph) then
+    echo "ERROR: -hemi can only be used with sph space"
+    set errs = 1;
+  endif
+  if($#hemi == 0 && $space == sph) set hemi = (lh rh);
+  foreach hs ($hemi)
+    if($hs != lh && $hs != rh) then
+      echo "ERROR: hemi must be either lh or rh ($hs)";
+      set errs = 1;
+    endif
+  end
+
+  if($errs) exit 1;
+
+  if($space != sph) set hemi = nohemi;
+
+  if($#spacedir == 0) set spacedir = $space;
+
+  if($space == native) then
+    set srcspacedir = ();
+  else
+    set srcspacedir = $spacedir;
+  endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo "USAGE: isxavg-fe-sess"
+  echo "Options:";
+  echo "   -analysis analysisname : session-level functional analysis name"
+  echo "   -group    groupname    : name of group"
+  echo "   -space    spacename    : space in which to average (native, tal, sph)"
+  echo "   -hemi     hemisphere   : with sph space <lh rh>";
+  echo "   -trunc  sign : truncation (pos or neg; neg = set neg vals to 0)";
+  echo "   -sf sessidfile  ..."
+  echo "   -df srchdirfile ..."
+  echo "   -s  sessid      ..."
+  echo "   -d  srchdir     ..."
+  echo "   -logcode       : add a unique suffix to log file"
+  echo "   -umask umask   : set unix file permission mask"
+  echo "   -scriptonly    : don't run, just generate a script"
+  echo "   -version       : print version and exit"
+exit 1;

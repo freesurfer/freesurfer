@@ -1,0 +1,391 @@
+#!/bin/csh -f
+# paint-fieldsign-sess
+#
+set VERSION = '$Id: paint-fieldsign-sess,v 1.1 2003/03/04 21:22:09 greve Exp $'
+set FASTVER = `cat $FMRI_ANALYSIS_DIR/docs/version`;
+
+set inputargs = ($argv);
+
+set nolog      = 0;
+set analysis   = ();
+set designtype    = ();
+set grpname    = ();
+set angleoffset = ();
+set angleoffsetcode = ();
+set space      = native;
+set spacedir   = ();
+set hemi       = ();
+set subject    = ();
+set Surface    = ();
+set SessList   = ();
+set isxavgmethod = ();
+set IsGroup = 0;
+set epbase  = map;
+set realinfix = "-real"
+set imaginfix = "-imag"
+
+if($#argv == 0) then
+  goto usage_exit;
+  exit 1;
+endif
+
+# look for version flag #
+set n = `echo $argv | grep version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+
+# look for nolog flag #
+set n = `echo $argv | grep nolog | wc -l` 
+if($n != 0) set nolog = 1;
+
+##### Create a log file ######
+if(! $nolog) then
+  set logdir = `pwd`/log;
+  mkdir -p $logdir
+  if(! -e $logdir) then
+    echo "WARNING: could not create $logdir"
+    set LF = /dev/null
+  else
+    set LF = $logdir/paint-fieldsign-sess.log
+    if(-e $LF) mv $LF $LF.old
+  endif
+else
+  set LF = /dev/null
+endif
+
+echo "-----------------------------------------------------------------"
+echo "paint-fieldsign-sess logfile is $LF"
+echo "-----------------------------------------------------------------"
+
+echo "paint-fieldsign-sess log file" >> $LF
+echo $VERSION >> $LF
+echo "FAST Version $FASTVER"  >> $LF
+pwd           >> $LF
+echo "$0"     >> $LF
+echo $inputargs  >> $LF
+uname -a      >> $LF
+date          >> $LF
+
+goto parse_args;
+parse_args_return:
+
+set SessList = `getsesspath $inputargs`;
+if($status) then
+  echo "$SessList" |& tee -a $LF
+  exit 1;
+endif
+
+goto check_params;
+check_params_return:
+
+## Loop through each hemi (if needed) ##
+foreach hs ($hemi)
+
+  if($space == sph ) then 
+     echo "------ $hs hemisphere ------" |& tee -a $LF
+  endif
+
+  date |& tee -a $LF
+
+  ## Go through each session ##
+  foreach sess ($SessList)
+    set sessid = `basename $sess`;
+
+    if(! $IsGroup) then
+      set subjnamefile = $sess/subjectname
+      if(! -e $subjnamefile) then
+        echo "ERROR: cannot find $subjnamefile"
+        exit 1;
+      endif
+      set subject = `cat $subjnamefile`;
+    endif
+
+    pushd $sess/$fsd/$analysis/$spacesubdir > /dev/null
+
+    set eccendir = eccen
+    if(! -e $eccendir) then
+      echo "ERROR: $eccendir does not exist" |& tee -a $LF
+      exit 1;
+    endif
+
+    set polardir = polar
+    if(! -e $polardir) then
+      echo "ERROR: $polardir does not exist" |& tee -a $LF
+      exit 1;
+    endif
+
+    set fieldsigndir      = fieldsign
+    set fieldsignpath     = $fieldsigndir/fieldsign$angleoffsetcode
+    set fieldsignmaskpath = $fieldsigndir/fieldsignmask$angleoffsetcode
+
+    # Create the command line #
+    set cmd = (mkfieldsign -eccen $eccendir -polar $polardir);
+    set cmd = ($cmd -epbase $epbase -real $realinfix -imag $imaginfix)
+    set cmd = ($cmd -subject $subject -fieldsign $fieldsignpath)
+    set cmd = ($cmd -fieldsignmask $fieldsignmaskpath -hemi $hs)
+    set cmd = ($cmd -angleoffset $angleoffset)
+
+    echo "----------------------------------------" |& tee -a $LF
+    pwd |& tee -a $LF
+    echo $cmd |& tee -a $LF
+    echo "----------------------------------------" |& tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) then
+      echo "ERROR: ($sessid) mkfieldsign failed"|& tee -a $LF
+      exit 1;
+    endif
+
+    popd > /dev/null
+
+  end # loop over SessList #
+
+end # loop over hemispheres #
+
+echo "----------------------------------------------------------"
+
+date | tee -a $LF
+echo " "
+echo "paint-fieldsign-sess completed SUCCESSFULLY" | tee -a $LF
+echo " "
+
+exit 0;
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-a":
+    case "-analysis":
+      if ( $#argv == 0) goto arg1err;
+      set analysis = $argv[1]; shift;
+      breaksw
+
+    case "-angleoffset":
+    case "-ao":
+      if ( $#argv == 0) goto arg1err;
+      set angleoffset = $argv[1]; shift;
+      breaksw
+
+    case "-angleoffsetcode":
+    case "-aoc":
+      if ( $#argv == 0) goto arg1err;
+      set angleoffsetcode = $argv[1]; shift;
+      breaksw
+
+    case "-hemi":
+      if ( $#argv == 0) goto arg1err;
+      set hemi = ($hemi $argv[1]); shift;
+      breaksw
+
+    case "-space":
+      # sph or tal
+      if ( $#argv == 0) goto arg1err;
+      set space = $argv[1]; shift;
+      breaksw
+
+    case "-spacedir":
+      # put results in $spacedir instead of $space
+      if ( $#argv == 0) goto arg1err;
+      set spacedir = $argv[1]; shift;
+      breaksw
+
+    case "-isxavg":
+      # inter-subject averaging method (fixed or random) #
+      if ( $#argv == 0) goto arg1err;
+      set isxavgmethod = $argv[1]; shift;
+      set IsGroup = 1;
+      breaksw
+
+    case "-subject":
+      # subject on which to paint group data
+      if ( $#argv == 0) goto arg1err;
+      set subject = $argv[1]; shift;
+      breaksw
+
+    case "-umask":
+      if ( $#argv == 0) goto arg1err;
+      umask $argv[1]; shift;
+      breaksw
+
+    case "-verbose":
+      set verbose = 1;
+      breaksw
+
+    case "-echo":
+      set echo = 1;
+      breaksw
+
+    case "-debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    case "-nolog": # this is handled before here
+      breaksw
+
+    case "-cwd":
+      set IsSess = 1;  # otherwise, ignore getsesspath arguments 
+      breaksw
+
+    case "-s":
+    case "-sf":
+    case "-df":
+    case "-d":
+    case "-group":
+      set IsSess = 1;  # otherwise, ignore getsesspath arguments 
+      shift;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+  if($#analysis == 0) then
+    echo "ERROR: no analysis name specified"|& tee -a $LF 
+    exit 1
+  endif
+  set infofile = $analysis/analysis.info
+  if(! -e $infofile) then
+    echo "ERROR: cannot find $infofile" |tee -a $LF
+    exit 1;
+  endif
+  set fsd = `cat $infofile | awk '{if($1 == "fsd") print $2}'`;
+  set designtype = `cat $infofile | awk '{if($1 == "designtype") print $2}'`;
+  if($#designtype == 0) then
+    set designtype = `cat $infofile | awk '{if($1 == "avgtype") print $2}'`;
+  endif
+
+  if("$designtype" != "retinotopy") then
+    echo "ERROR: this analysis is for a $designtype design, but this"
+    echo "       program can only be used with a retinotopy design"
+    exit 1;
+  endif
+
+  if($space != native && $space != tal && $space != sph) then
+    echo "ERROR: no paint support for space $space"
+    exit 1;
+  endif
+
+  if($#hemi == 0) set hemi = (lh rh);
+  foreach hs ($hemi)
+    if($hs != lh && $hs != rh) then
+      echo "ERROR: hemi must be either lh or rh ($hs)";
+      exit 1;
+    endif
+  end
+
+  if( $#Surface == 0 ) then
+    set Surface = white;
+    echo "INFO: painting onto $Surface" |& tee -a $LF 
+  endif
+
+  if($#spacedir == 0 && $space != native) set spacedir = $space;
+
+  ## Determine whether Group or Individual Data ##
+  @ nGroup = 0;
+  foreach sess ($SessList)
+    set sessinfo = $sess/session.info
+    if(! -e $sessinfo) then
+      set IsGroup = 0;
+    else
+      set IsGroup = `grep GroupAverage $sessinfo | wc -l`;
+    endif
+    if($IsGroup) @ nGroup = $nGroup + 1;
+  end
+  if($IsGroup && ($nGroup != $#SessList) ) then
+    echo "ERROR: cannot mix individual and group sessions"
+    exit 1;
+  endif
+
+  ## Individual Contingencies ##
+  if(! $IsGroup) then
+    if($space == native) then
+      set spacesubdir = ();
+    else
+      set spacesubdir = $spacedir;
+    endif
+  else 
+    set spacesubdir = $space;
+  endif
+  echo "SpaceDir    is $spacedir";
+  echo "SpaceSubDir is $spacesubdir";
+
+  ## Group Contingencies ##
+  if($IsGroup) then
+    set errs = 0;
+    if($#subject == 0) then
+      echo "ERROR: $sess is a group average, need -subject"|& tee -a $LF 
+      set errs = 1;
+    endif
+    if($space == "native") then
+      echo "ERROR: currently no support for painting group data in native space"\
+           |& tee -a $LF 
+      set errs = 1;
+    endif
+    if($#isxavgmethod == 0) then
+      echo "ERROR: must supply -isxavg method with group data" |& tee -a $LF 
+      exit 1;
+    endif
+    if($isxavgmethod != "fixed") then
+      echo "ERROR: -isxavg must be either fixed " |& tee -a $LF 
+      set errs = 1;
+    endif
+    if($errs) exit 1;
+    set spacesubdir = $spacedir-ffx
+  endif
+
+  if($#subject == 0) set getsubjfromreg = 1;
+  if($#angleoffset == 0) set angleoffset = 0;
+
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo "USAGE: paint-fieldsign-sess"
+  echo ""
+  echo "Required Arguments:";
+  echo "   -analysis analysisname : session-level functional analysis name"
+  echo ""
+  echo "Optional Arguments:";
+  echo "   -subject  subjectname  : name of subject on which to paint (with group data)"
+  echo "   -space    spacename    : space from which to paint (native, tal, sph)"
+  echo "   -spacedir spacedir     : get data from spacedir"
+  echo "   -isxavg   method       : fixed or random (with group data)"
+  echo "   -hemi     hemisphere   : with sph space <lh rh>";
+  echo ""
+  echo "Session Arguments (Required)"
+  echo "   -sf sessidfile  "
+  echo "   -df srchdirfile "
+  echo "   -s  sessid      "
+  echo "   -d  srchdir     "
+  echo ""
+  echo "   -umask umask   : set unix file permission mask"
+  echo "   -version       : print version and exit"
+exit 1;

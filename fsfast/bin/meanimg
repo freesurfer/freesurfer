@@ -1,0 +1,443 @@
+#!/bin/csh -f
+
+set VERSION = '$Id: meanimg,v 1.1 2003/03/04 21:22:09 greve Exp $';
+
+set firstslice =  0;
+set instems  = ();
+set outstem = ();
+set rangestem = ();
+set inext   = ();
+set NSlices = ();
+set outext  = ();
+set monly = 0;
+set mfile = ();
+set stdstem = ();
+set varstem = ();
+set ComputeVar   = 0;
+set ComputeRange = 0;
+set tpx = ();
+set TR = ();
+set nskip = 0;
+set pforder = 0;
+set weights = ();
+
+if($#argv == 0) then
+  echo "USAGE:  meanimg -i instem1 <-i instem2 <...>> -o outstem"
+  echo "  OPTIONS:"
+  echo "    -w w1 <-w w2> : weights, one for each instem"
+  echo "    -firstslice n1   first slice to process       0"
+  echo "    -nslices    ns   number of slices to process <autodetect>"
+  echo "    -nskip      n    skip the first n"
+  echo "    -polyfit    order : default (0)"
+  echo "    -tpx        file file with time point exclusions"
+  echo "    -TR         TR   (needed with -tpx)"
+  echo "    -inext      ext  input bfile extension     <autodetect>"
+  echo "    -outext     ext  output bfile extension    <input extension>"
+  echo "    -std        stem save standard dev image"
+  echo "    -var        stem save standard dev image"
+  echo "    -range      stem save range image"
+  echo "    -monly      mfile"
+  echo "    -umask      newumask"
+  echo "    -verbose  print out a lot of information"
+  echo "    -echo     print out a lot of information"
+  exit 1;
+endif
+
+set n = `echo $argv | grep version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+
+set MATLAB = `getmatlab`;
+if($status) exit 1;
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+foreach i ($instems)
+  set InDir = `dirname $i`;
+  if( ! -d $InDir) then
+    echo "ERROR: directory $InDir does not exist."
+    exit 3;
+  endif
+end
+
+if($#NSlices == 0) then
+  set NSlices = `getnslices $instems[1]`;
+  if($status) exit 1;
+endif
+
+set OutDir = `dirname $outstem`;
+if( ! -d $OutDir) then
+  echo "INFO: output directory $OutDir does not exist, creating."
+  mkdir -p $OutDir;
+endif
+set OutBaseStem = `basename $outstem`;
+
+if($#stdstem != 0) then
+  set OutDir = `dirname $stdstem`;
+  if( ! -d $OutDir) then
+    echo "INFO: output directory $OutDir does not exist, creating."
+    mkdir -p $OutDir;
+  endif
+endif
+
+if($#varstem != 0) then
+  set OutDir = `dirname $varstem`;
+  if( ! -d $OutDir) then
+    echo "INFO: output directory $OutDir does not exist, creating."
+    mkdir -p $OutDir;
+  endif
+endif
+
+if ($monly) then
+  set TARGET = "tee $mfile"
+  rm -f $mfile;
+else
+  set TARGET = "$MATLAB -display iconic"
+endif  
+
+if( $#inext == 0) then
+  set inext =  `getbext $instems[1]`;
+  echo "Input Extension: $inext"; 
+endif
+
+if( $#outext == 0) then
+  set outext = $inext;
+endif
+
+if($#TR == 0) set TR = 0;
+
+set instemfile = $OutDir/instemfile.tmp
+rm -f $instemfile
+foreach i ($instems)
+  echo $i >> $instemfile
+end
+
+set ninstems = $#instems;
+
+if($#weights) echo "weights: $weights"
+
+#--------------------------------------------------------#
+$TARGET <<EOF
+
+  global QuitOnError;
+  if( ~ $monly ) QuitOnError = 1; end
+
+  NSkip    = $nskip;
+  TPExFile = '$tpx';
+  TR       = $TR;
+  InStemFile = '$instemfile';
+  nInStems   = $ninstems;
+  FirstSlice = $firstslice;
+  LastSlice = $firstslice + $NSlices  - 1 ;
+  pforder = $pforder;
+  weights = [$weights];
+
+  fid = fopen(InStemFile,'r');
+  if(fid == -1)
+    msg = sprintf('Could not open %s',InStemFile);
+    qoe(msg);error(msg);
+  end
+  InStems = [];
+  for i = 1:nInStems
+    tmp = fscanf(fid,'%s',1);
+    InStems = strvcat(InStems,tmp);
+  end
+  fclose(fid);
+
+  IndExcl = [];
+  if(NSkip > 0)  IndExcl = reshape1d([1:NSkip]); end
+  if(~isempty(TPExFile)) 
+    fid = fopen(TPExFile,'r')
+    if(fid == -1) 
+      msg = sprintf('Could not open %s',TPExFile);
+      qoe(msg); error(msg);
+    end
+    tpex = reshape1d(fscanf(fid,'%f'));
+    if(~isempty(tpex))
+      IndExcl = [IndExcl; round(tpex/TR)];
+      IndExcl = unique(IndExcl);
+    end
+  end
+
+  fprintf('Slice: ');
+  for slice = FirstSlice : LastSlice
+
+    fprintf('%2d ',slice);
+    sum = 0;
+    sumvar = 0;
+    ymax = [];
+    ymin = [];
+
+    for n = 1:nInStems
+      instem = deblank(InStems(n,:));
+      % fprintf('  instem = %s\n',instem);
+      infile = sprintf('%s_%03d.%s',instem,slice,'$inext');
+      y = fmri_ldbfile(infile);
+      if(~isempty(weights)) y = y * weights(n); end
+      [nrows ncols ntp] = size(y);
+      nvoxs = nrows*ncols;
+
+      if(pforder > 0)
+        X = fast_polytrendmtx(1,ntp,1,pforder);
+        X = X(:,2:pforder+1); % mean will be removed later
+        D = eye(ntp) - X*inv(X'*X)*X';
+        y = reshape(y,[nvoxs ntp])';%'
+        y = D*y;
+        y = reshape(y', [nrows ncols ntp]); %'
+      end
+
+      if(isempty(IndExcl))
+        y2 = y;
+      else
+        tmp = find(IndExcl > 0 & IndExcl <= ntp);
+        IndExcl = IndExcl(tmp);
+        IndInclVect = ones(ntp,1);
+        IndInclVect(IndExcl) = 0;
+        IndIncl = find(IndInclVect == 1);
+        y2 = y(:,:,IndIncl);
+      end
+      sum = sum + mean(y2,3);
+      if($ComputeVar) sumvar = sumvar + std(y2,[],3).^2;  end
+      if($ComputeRange)
+        if(isempty(ymax)) 
+          ymax = zeros(size(y(:,:,1)));
+          ymin = 1000000*ones(size(y(:,:,1)));
+        end
+        amax = max(y2,[],3);
+        ymax = max(ymax,amax);
+        amin = min(y2,[],3);
+        ymin = min(ymin,amin);
+      end
+    end  
+
+    tavg = sum/$#instems;
+    outfile = sprintf('%s_%03d.%s','$outstem',slice,'$outext');
+    fmri_svbfile(tavg,outfile);
+    if($ComputeVar)
+      tvar = sumvar/$#instems;
+      if(~isempty('$stdstem'))
+        outfile = sprintf('%s_%03d.bfloat','$stdstem',slice);
+        fmri_svbfile(sqrt(tvar),outfile);
+      end
+      if(~isempty('$varstem'))
+        outfile = sprintf('%s_%03d.bfloat','$varstem',slice);
+        fmri_svbfile(tvar,outfile);
+      end
+    end
+    if($ComputeRange)
+      yrange = ymax-ymin;
+      outfile = sprintf('%s_%03d.bfloat','$rangestem',slice);
+      fmri_svbfile(yrange,outfile);
+    end
+  end
+  fprintf('------- matlab done ----------\n');
+
+  if( ~ $monly ) quit; end
+  return;
+
+EOF
+#--------------------------------------------------------------#
+
+if(! $monly) then
+  rm -f $instemfile
+  set bhdr0 = $instems[1].bhdr
+  if(-e $bhdr0) then
+    cp $bhdr0 $outstem.bhdr
+    if($#rangestem) cp $bhdr0 $rangestem.bhdr
+    if($#stdstem)   cp $bhdr0 $stdstem.bhdr
+    if($#varstem)   cp $bhdr0 $varstem.bhdr
+  endif
+endif
+
+echo ""
+echo "meanimg completed SUCCESSFULLY"
+echo ""
+
+exit 0;
+
+############--------------##################
+parse_args:
+
+#set InStemList = "strvcat(";
+#set c = "";
+
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-i":
+      if( $#argv == 0) goto arg1err;
+      set instems = ($instems $argv[1]); 
+      #set InStemList = ($InStemList $c $argv[1]);
+      #set c = ",";
+      shift;
+      breaksw
+
+    case "-w":
+      if( $#argv < 1) goto arg1err;
+      set weights = ($weights $argv[1]); 
+      shift;
+      breaksw
+
+    case "-o":
+      if( $#argv == 0) goto arg1err;
+      if( $#outstem != 0 ) then
+        echo ERROR: only one outstem allowed.
+        exit 1
+      endif
+      set outstem = $argv[1]; shift;
+      breaksw
+
+    case "-std":
+      if( $#argv == 0) goto arg1err;
+      set stdstem = $argv[1]; shift;
+      set ComputeVar = 1;
+      breaksw
+
+    case "-var":
+      if( $#argv == 0) goto arg1err;
+      set varstem = $argv[1]; shift;
+      set ComputeVar = 1;
+      breaksw
+
+    case "-range":
+      if( $#argv == 0) goto arg1err;
+      set rangestem = $argv[1]; shift;
+      set ComputeRange = 1;
+      breaksw
+
+    case "-polyfit":
+    case "-pf":
+    case "-pforder":
+      if( $#argv == 0) goto arg1err;
+      set pforder = $argv[1]; shift;
+      breaksw
+
+    case "-firstslice":
+    case "-fs":
+      if( $#argv == 0) goto arg1err;
+      set firstslice = $argv[1]; shift;
+      breaksw
+
+    case "-nslices":
+    case "-ns":
+      if( $#argv == 0) goto arg1err;
+      set NSlices = $argv[1]; shift;
+      breaksw
+
+    case "-nskip":
+      if( $#argv == 0) goto arg1err;
+      set nskip = $argv[1]; shift;
+      breaksw
+
+    case "-tpx":
+      if( $#argv == 0) goto arg1err;
+      set tpx = $argv[1]; shift;
+      breaksw
+
+    case "-TR":
+      if( $#argv == 0) goto arg1err;
+      set TR = $argv[1]; shift;
+      breaksw
+
+    case "-umask":
+      if( $#argv == 0) goto arg1err;
+      echo INFO: setting umask to $argv[1].
+      umask $argv[1]; shift;
+      breaksw
+
+    case "-monly":
+      if( $#argv == 0) goto arg1err;
+      set mfile = $argv[1]; shift;
+      set monly = 1; 
+      breaksw
+
+    case "-inext":
+      if( $#argv == 0) goto arg1err;
+      set inext = $argv[1]; shift;
+      breaksw
+
+    case "-outext":
+      if( $#argv == 0) goto arg1err;
+      set outext = $argv[1]; shift;
+      breaksw
+
+    case "-verbose":
+      set verbose = 1;
+      breaksw
+
+    case "-echo":
+      set echo = 1;
+      breaksw
+
+    case "-debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    case "--version":
+    case "-version":
+      echo $VERSION
+      exit 0;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized.
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+end
+
+#set InStemList = ($InStemList ")");
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+  if($#instems < 1) then
+     echo "ERROR: must specify at least one input stem";
+     exit 1
+  endif
+
+  if($#outstem != 1) then
+     echo "ERROR: must specify an output stem";
+     exit 1
+  endif
+
+  if($#tpx != 0) then
+    if(! -e $tpx ) then
+      echo "ERROR: $tpx does not exist"
+      exit 1;
+    endif
+    if($#TR == 0) then
+      echo "ERROR: must specify TR with -tpx"
+      exit 1;
+    endif
+  endif
+
+  if($#weights != 0) then
+    if($#weights != $#instems) then
+      echo "ERROR: there must be the same number of weights as inputs"
+      exit 1;
+    endif
+  endif
+
+goto check_params_return;
+############--------------##################
+
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################

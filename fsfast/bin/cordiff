@@ -1,0 +1,46 @@
+#!/bin/csh -f
+
+if($#argv != 2 ) then
+  echo "USAGE: cordiff cor1dir cor2dir"
+  exit 1;
+endif
+
+set cor1dir = $argv[1];
+set cor2dir = $argv[2];
+
+if(! -e $cor1dir) then
+  echo "ERROR: cannot find $cor1dir"
+  exit 1;
+endif
+
+if(! -e $cor2dir) then
+  echo "ERROR: cannot find $cor2dir"
+  exit 1;
+endif
+
+@ s = 1;
+while ( $s <= 256 )
+  set corfile = `printf "COR-%03d" $s`;
+  set cor1file = $cor1dir/$corfile
+  set cor2file = $cor2dir/$corfile
+
+  if(! -e $cor1file) then
+    echo "ERROR: cannot find $cor1file"
+    exit 1;
+  endif
+
+  if(! -e $cor2file) then
+    echo "ERROR: cannot find $cor2file"
+    exit 1;
+  endif
+
+  set n = `diff $cor1file $cor2file`;
+  if($#n != 0) echo "Slices $s differ"
+
+  @ s = $s + 1;
+end
+
+
+
+
+exit 0

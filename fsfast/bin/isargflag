@@ -1,0 +1,25 @@
+#!/bin/csh -f
+# USAGE: isargflag string
+#
+# Returns 1 if string begins with a "-" otherwise returns 0. If the
+# string = -1, returns 0.
+# 
+# $Id: isargflag,v 1.1 2003/03/04 21:22:08 greve Exp $
+
+if($#argv != 1) then
+  echo "USAGE: isargflag string"
+  exit 1;
+endif
+
+set tmp = `splitstr $argv[1]`;
+if("$tmp[1]" == "-") then
+  set r = 1;
+else
+  set r = 0;
+endif
+
+if($argv[1] == "-1") set r = 0;
+
+echo $r;
+
+exit 0;

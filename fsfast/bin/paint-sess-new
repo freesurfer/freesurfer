@@ -1,0 +1,10 @@
+#!/bin/csh -f
+# Name: paint-sess-new
+# This is just a front end for paint-sess.
+
+paint-sess $argv;
+exit $status
+
+
+
+

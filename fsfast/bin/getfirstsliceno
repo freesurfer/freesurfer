@@ -1,0 +1,27 @@
+#!/bin/csh -f
+
+if($#argv != 1) then
+  echo "USAGE: getfirstsliceno stem"
+  echo '$Id: getfirstsliceno,v 1.1 2003/03/04 21:22:08 greve Exp $';
+  exit 1;
+endif
+
+set stem = $argv[1];
+@ fs = 0;
+set stop = 0;
+while( ! $stop)
+  set fname = `printf %s_%03d.hdr $stem $fs`;
+  if( -e $fname ) break;
+
+  @ fs = $fs + 1;
+  if($fs > 50) then
+    echo "ERROR: cannot find any files with $stem";
+    exit 1;
+  endif
+
+end
+
+echo $fs
+
+exit 0;
+##########################################

@@ -1,0 +1,273 @@
+#!/bin/csh -f
+#
+# Creates a weightd mask from a list of cluster specs. Each cluster
+# is a rectangular solid. The values in the mask can be floating
+# point. 
+#
+# The cluster spec consists of 8 numbers:
+#  1. amplitude - base value for the cluster
+#  2. hanrad    - hanning radius for off-center voxels in the cluster
+#  3-5. rowmin, colmin, slicemin - lower corner of the bounding box
+#  6-8. rowmax, colmax, slicemax - upper corner of the bounding box
+#
+# Notes: 
+#  1. hanrad is not implemented yet.
+#  2. if clusters overlap, the value is set by the last cluster.
+#
+
+set VERSION = '$Id: clusterspec2mask,v 1.1 2003/03/04 21:22:08 greve Exp $'
+set inputargs = ($argv);
+
+set PWDCMD = `getpwdcmd`;
+
+set amplist = ();
+set hrlist = ();
+set rminlist = ();
+set cminlist = ();
+set sminlist = ();
+set rmaxlist = ();
+set cmaxlist = ();
+set smaxlist = ();
+set outstem = ();
+set nrows   = 64;
+set ncols   = 64;
+set nslices = ();
+set monly = 0;
+set MLF = ();
+set QuitOnError = 1;
+
+set n = `echo $argv | grep version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+
+if($#argv == 0) then
+  goto usage_exit;
+  exit 1;
+endif
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+set MATLAB = `getmatlab`;
+if($status) exit 1;
+
+set LF = $outdir/clusterspce2mask.log
+rm -f $LF
+date >> $LF
+echo $0 $inputargs >> $LF
+
+if($#MLF == 0) set MLF = clusterspce2mask_$$.m
+rm -f $MLF
+
+#---------------------------------------------------------------#
+tee $MLF <<EOF
+  QuitOnError = $QuitOnError;
+  outstem = '$outstem';
+  nrows    = $nrows;
+  ncols    = $ncols;
+  nslices  = $nslices;
+  amplist  = [$amplist];
+  hrlist   = [$hrlist];
+  rminlist = [$rminlist] + 1;
+  cminlist = [$cminlist] + 1;
+  sminlist = [$sminlist] + 1;
+  rmaxlist = [$rmaxlist] + 1;
+  cmaxlist = [$cmaxlist] + 1;
+  smaxlist = [$smaxlist] + 1;
+  
+  nclusters = length(amplist);
+
+  m = zeros(nslices,nrows,ncols);
+
+  for nthcluster = 1:nclusters
+    amp  = amplist(nthcluster);
+    hr   = hrlist(nthcluster);
+
+    smin = sminlist(nthcluster);
+    smax = smaxlist(nthcluster);
+    rmin = rminlist(nthcluster);
+    rmax = rmaxlist(nthcluster);
+    cmin = cminlist(nthcluster);
+    cmax = cmaxlist(nthcluster);
+
+    dimerr = 0;
+    if(smin < 1 | smin > nslices) dimerr = 1; end
+    if(smax < 1 | smax > nslices) dimerr = 1; end
+    if(smin > smax)               dimerr = 1; end
+
+    if(rmin < 1 | rmin > nrows) dimerr = 1; end
+    if(rmax < 1 | rmax > nrows) dimerr = 1; end
+    if(rmin > rmax)             dimerr = 1; end
+
+    if(cmin < 1 | cmin > ncols) dimerr = 1; end
+    if(cmax < 1 | cmax > ncols) dimerr = 1; end
+    if(cmin > cmax)             dimerr = 1; end
+
+    if(dimerr)
+      fprintf('ERROR: dimension\n');
+      qoe('ERROR: dimension\n'); 
+      error('ERROR: dimension\n');
+    end
+
+    m(smin:smax,rmin:rmax,cmin:cmax) = amp;
+  end
+
+  fmri_svbvolume(m,outstem);
+
+  fprintf('clusterspec2mask.m done\n');
+
+EOF
+#---------------------------------------------------------------#
+
+
+echo "----------- Matlab file --------------" 
+cat $MLF | tee -a $LF
+echo " " | tee -a $LF
+echo "-----------------------------------" 
+
+if(! $monly ) then
+  echo "------------------------------------------"  | tee -a $LF
+  echo "------- matlab output --------------------" | tee -a $LF
+  cat $MLF | $MATLAB -display iconic | tee -a $LF
+  echo "------------------------------------------" | tee -a $LF
+  rm $MLF
+endif
+
+echo " " 
+echo " " 
+echo "clusterspec2mask Done" 
+echo " " 
+
+exit 0
+
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-o"
+      if ( $#argv == 0) goto arg1err;
+      set outstem = $argv[1]; shift;
+      breaksw
+
+    case "-cs"
+      if( $#argv < 8) then
+        echo "ERROR: -cs needs 8 arguments"
+        exit 1;
+      endif
+      set amplist   = ($amplist  $argv[1]); shift;
+      set hrlist    = ($hrlist   $argv[1]); shift;
+      set rminlist  = ($rminlist $argv[1]); shift;
+      set cminlist  = ($cminlist $argv[1]); shift;
+      set sminlist  = ($sminlist $argv[1]); shift;
+      set rmaxlist  = ($rmaxlist $argv[1]); shift;
+      set cmaxlist  = ($cmaxlist $argv[1]); shift;
+      set smaxlist  = ($smaxlist $argv[1]); shift;
+      breaksw
+
+    case "-nrows":
+    case "-nr":
+      if ( $#argv == 0) goto arg1err;
+      set nrows = $argv[1]; shift;
+      breaksw
+
+    case "-ncols":
+    case "-nc":
+      if ( $#argv == 0) goto arg1err;
+      set ncols = $argv[1]; shift;
+      breaksw
+
+    case "-nslices":
+    case "-ns":
+      if ( $#argv == 0) goto arg1err;
+      set nslices = $argv[1]; shift;
+      breaksw
+
+    case "-monly":
+      if ( $#argv == 0) goto arg1err;
+      set MLF = $argv[1]; shift;
+      set monly = 1;
+      set QuitOnError = 0;
+      breaksw
+
+    case "-verbose":
+      set verbose = 1;
+      breaksw
+
+    case "-echo":
+      set echo = 1;
+      breaksw
+
+    case "-debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    default:
+      echo "ERROR: $flag unrecognized"
+      exit 1;
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+  if($#outstem == 0) then
+    echo "ERROR: must specify an outstem"
+    exit 1;
+  endif
+
+  # Create the output directory 
+  set outdir = `dirname $outstem`;
+  mkdir -p $outdir
+  pushd $outdir > /dev/null
+  set outdir = `$PWDCMD`;
+  popd > /dev/null
+
+  if($#amplist == 0) then
+    echo "ERROR: no cluster specs found"
+    exit 1;
+  endif
+
+  if($#nslices == 0) then
+    echo "ERROR: must spec nslices"
+    exit 1;
+  endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "USAGE: clusterspec2mask"
+  echo ""
+  echo "   -cs amp hanrad MinRCS MaxRCS"
+  echo "   -nr nrows  <64>"
+  echo "   -nc ncols  <64>"
+  echo "   -ns nslices"
+  echo "   -o  outstem"
+  echo ""
+exit 1;
+

@@ -1,0 +1,369 @@
+#!/bin/csh -f
+# vertavg-group
+#
+# $Id: vertavg-group,v 1.1 2003/03/04 21:22:10 greve Exp $
+set VERSION = '$Id: vertavg-group,v 1.1 2003/03/04 21:22:10 greve Exp $'
+set FASTVER = `cat $FMRI_ANALYSIS_DIR/docs/version`;
+
+#------ Defaults --------#
+set group   = ();
+set fstem   = ();
+set fsd      = bold;
+set outfstem  = ();
+set outfsd    = ();
+set runlistfile = ();
+set parlist  = ();
+set anat = 0;
+
+set inputargs = ($argv);
+
+set n = `echo $argv | grep -e -help | wc -l` 
+if($#argv == 0 || $n != 0)  goto usage_exit;
+
+set n = `echo $argv | grep version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+
+set PWD = `getpwdcmd`;
+if($status) exit 1;
+
+set SessList = `getsesspath $argv`;
+if($status || $#SessList == 0) then
+  getsesspath $argv 
+  exit 1;
+endif
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+##### Create a log file ######
+set logdir = `pwd`/log;
+mkdir -p $logdir
+if(! -e $logdir) then
+  echo "WARNING: could not create $logdir"
+  set LF = /dev/null
+else
+  set LF = $logdir/vertavg-group.log
+  if(-e $LF) mv $LF $LF.old
+endif
+
+echo "--------------------------------------------------------------"
+echo "vertavg-group logfile is $LF"
+echo "--------------------------------------------------------------"
+
+echo "vertavg-group log file" >> $LF
+echo $VERSION >> $LF
+echo "FAST Version $FASTVER"  >> $LF
+id            >> $LF
+pwd           >> $LF
+echo $0          >> $LF
+echo $inputargs  >> $LF
+uname -a         >> $LF
+date             >> $LF
+
+set StartDate = `date`;
+
+### Go through each session ###
+set inputlist = ();
+foreach sess ($SessList)
+
+  set sessbase = `basename $sess`;
+  echo "-------------------------------------------" |& tee -a $LF
+  echo "$sess " |& tee -a $LF
+  date |& tee -a $LF
+
+  if(! -d $sess) then
+    echo "ERROR: $sess does not exist"   |& tee -a $LF
+    exit 1;
+  endif
+  pushd $sess > /dev/null
+
+  #-------------------------------------------------#
+  if(! $anat ) then
+    set seqinfo = $fsd/seq.info
+    if(! -e $seqinfo) then
+      echo "ERROR: cannot find $seqinfo"
+      exit 1;
+    endif
+  endif
+
+  #-------------------------------------------------#
+  if($#runlistfile == 0) then
+    set RunList = `getrunlist $fsd`;
+    if($status || $#RunList == 0) then
+      echo "ERROR: $sess/$fsd has no runs"  |& tee -a $LF
+      exit 1;
+    endif
+  else
+    if(! -e $fsd/$runlistfile) then
+      echo "ERROR: ($sessbase) could not find runlistfile $runlistfile"
+      exit 1;
+    endif
+    set RunList = (`cat $fsd/$runlistfile`);
+  endif
+
+  #-------------------------------------------------#
+  foreach Run ($RunList)
+    if(! $anat ) then
+      set instem = $sess/$fsd/$Run/$fstem;
+      set tmp = `getbfvdim $instem`;
+      set bext = $tmp[5];
+    else
+      set instem = $sess/$fsd/$Run;
+      set bext   = COR;
+    endif
+    set inputlist = ($inputlist --vol $instem);
+  end
+
+  if(! $anat ) then
+    set parfilelist = ();
+    foreach par ($parlist)
+      set parfile = $sess/$fsd/$RunList[1]/$par
+      if(-e $parfile) set parfilelist = ($parfilelist $parfile);
+    end
+  endif
+
+  popd > /dev/null
+
+end # Loop over sessions (just used to get the input list) #
+
+#-- Average inputs together -------------------------------#
+set outdir = $group/$outfsd/001;
+mkdir -p $outdir;
+
+if(! $anat ) then
+  set outvol = $outdir/$outfstem
+else
+  set outvol = $outdir
+endif
+
+set cmd = (mri_xvolavg $inputlist --out $outvol --vol_type $bext)
+echo "---------------------------------------------" |& tee -a $LF
+pwd        |& tee -a $LF
+echo $cmd  |& tee -a $LF
+echo "---------------------------------------------" |& tee -a $LF
+
+$cmd |& tee -a $LF
+if($status) then
+  echo "ERROR: mri_xvolavg failed" |& tee -a $LF
+  exit 1;
+endif
+
+#- Copy register.dat, seq.info, and parfiles -------------#
+if(! $anat ) then
+  set sess0 = $SessList[1];
+  if( -e $sess0/$fsd/register.dat ) then
+    cp $sess0/$fsd/register.dat $group/$outfsd/register.dat 
+  endif
+  cp $sess0/$fsd/seq.info $group/$outfsd/seq.info 
+
+  foreach parfile ($parfilelist)
+    cp $parfile $group/$outfsd/001
+  end
+
+endif
+
+#-------------------------------------------------#
+echo " "
+echo "Start: $StartDate" |& tee -a $LF
+echo "End:   `date`"     |& tee -a $LF
+echo "vertavg-group finished" |& tee -a $LF
+echo " "
+
+exit 0;
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-group":
+      if ( $#argv == 0) goto arg1err;
+      set group = $argv[1]; shift;
+      breaksw
+
+    case "-outfstem":
+    case "-o":
+      if ( $#argv == 0) goto arg1err;
+      set outfstem = $argv[1]; shift;
+      breaksw
+
+    case "-outfsd":
+      if ( $#argv == 0) goto arg1err;
+      set outfsd = $argv[1]; shift;
+      breaksw
+
+    case "-funcstem":
+    case "-fstem":
+    case "-i":
+      if ( $#argv == 0) goto arg1err;
+      set fstem = $argv[1]; shift;
+      breaksw
+
+    case "-fsd":
+      if ( $#argv == 0) goto arg1err;
+      set fsd = $argv[1]; shift;
+      breaksw
+
+    case "-rlf":
+      if ( $#argv == 0) goto arg1err;
+      set runlistfile = $argv[1]; shift;
+      breaksw
+
+    case "-p":
+      if ( $#argv == 0) goto arg1err;
+      set parfile = $argv[1]; shift;
+      set parlist = ($parlist $parfile);
+      breaksw
+
+    case "-anat":
+      set anat = 1;
+      breaksw
+
+    case "-umask":
+      if ( $#argv == 0) goto arg1err;
+      umask $argv[1]; shift;
+      breaksw
+
+    case "-verbose":
+      set verbose = 1;
+      breaksw
+
+    case "-echo":
+      set echo = 1;
+      breaksw
+
+    case "-debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    case "-g":
+    case "-s":
+    case "-sf":
+    case "-d":
+    case "-df":
+      shift;
+      # ignore getsesspath arguments 
+      breaksw
+
+    case "-cwd":
+      # ignore getsesspath arguments 
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+  if($#SessList == 0) then
+    echo "ERROR: no sessions specified"
+    exit 1
+  endif
+
+  if($#group == 0) then
+    echo "ERROR: need to specify a group name"
+    exit 1;
+  endif
+
+  if(! $anat) then
+    if($#fstem == 0) then
+      echo "ERROR: need to specify an input functional stem"
+      exit 1;
+    endif
+    if($#outfstem == 0) set outfstem = $fstem;
+  endif
+
+  if($#outfsd == 0)   set outfsd = $fsd;
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "USAGE: vertavg-group"
+  echo ""
+  echo "Required Arguments"
+  echo "  -group groupname : name of group"
+  echo "  -fstem stem      : input volume stem"
+  echo ""
+  echo "Optional Arguments:"
+  echo "  -fsd  subdir     : input functional subdirectory (bold)"
+  echo "  -outfsd  dir     : output functional subdir (same as input)"
+  echo "  -outfstem stem   : output volume stem (default: same as input)"
+  echo "  -rlf  runlistfile: file with a list of runs to convert"
+  echo "  -p par1 -p par2  : copy parfiles from first run to new location"
+  echo "  -anat : average anatomicals; fsd becomes asd, stem ignored"
+  echo ""
+  echo "Session Arguments (Required)"
+  echo "   -sf sessidfile  ..."
+  echo "   -df srchdirfile ..."
+  echo "   -s  sessid      ..."
+  echo "   -d  srchdir     ..."
+  echo ""
+  echo "Other Arguments"
+  echo "   -umask umask   : set unix file permission mask"
+  echo "   -version       : print version and exit"
+  echo "   -help          : get more info"
+  echo ""
+
+  set n = `echo $argv | grep -e -help | wc -l` 
+  if($n != 0)  goto help_exit;
+
+exit 1;
+
+help_exit:
+echo "\
+\
+This program will 'vertically average' raw functional runs across \
+sessions. The functional volumes must have been registered in some \
+way (see rawfunc2tal-sess).\
+\
+If the -anat flag is included the value of the fsd is interpreted\
+as the anatomical subdirectory (asd) and all stems are ignored.\
+The anatomical must also have been resampled to a common space.\
+This can be done with the command:\
+\
+  mri_convert -T talairach.xfm 3danat/XXX 3danat-tal/XXX \
+\
+In this case, add '-anat -fsd 3danat-tal' to the command-line\
+\
+Paradigm files can be copied from the first original functional run \
+directory to the new vertical average directory by specifying them \
+with the -p flag. If the paradigm file does not exist, a warning will \
+be printed but the program will continue to run. As many paradigm files \
+as desired can be included. This is provided only as a convenience.\
+\
+See also: vertavg-sess, rawfunc2tal-sess, mktalxfm-sess \
+\
+\
+"
+
+exit;

@@ -1,0 +1,21 @@
+#!/bin/csh -f
+# $Id: getmatlab,v 1.1 2003/03/04 21:22:08 greve Exp $
+
+#set MATLAB = /autofs/space/lyon_009/pubsw/common/matlab/6.5/bin/matlab
+#echo $MATLAB
+#exit 0;
+
+set MATLAB = `which matlab`;
+if ( ! -e "$MATLAB"  ) then
+  set MATLAB = `which matlab5`;
+  if ( ! -e "$MATLAB"  ) then
+    echo "ERROR: Cannot find matlab."
+    echo "        Does not exist or is not in path."
+    exit 1;
+  endif
+endif
+echo $MATLAB
+
+
+exit 0;
+################################################

@@ -1,0 +1,434 @@
+#!/bin/csh -f
+# cmpanalyses-sess - simple program to compare two analyses
+#
+set VERSION = '$Id: cmpanalyses-sess,v 1.1 2003/03/04 21:22:08 greve Exp $'
+set FASTVER = `cat $FMRI_ANALYSIS_DIR/docs/version`;
+
+set inputargs = ($argv);
+
+set analysis1   = ();
+set analysis2   = ();
+set contrast    = ();
+set sigmin      = ();
+set sigmax      = ();
+set sigstep     = ();
+set outbase     = ();
+set mask        = ();
+set MLF       = ();
+set monly       = 0;
+
+set SessList    = ();
+
+set nolog = 0;
+
+set n = `echo $argv | grep version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+
+if($#argv == 0) then
+  goto usage_exit;
+  exit 1;
+endif
+
+goto parse_args;
+parse_args_return:
+
+set SessList = `getsesspath $inputargs`;
+if($status) then
+  echo "$SessList"
+  exit 1;
+endif
+
+goto check_params;
+check_params_return:
+
+## Get functional subdirectory from the info file ##
+set infofile = $analysis1/analysis.info
+if(! -e $infofile) then
+  echo "ERROR: cannot find $infofile"
+  exit 1;
+endif
+set fsd1 = `cat $infofile | awk '{if($1 == "fsd") print $2}'`;
+
+set infofile = $analysis2/analysis.info
+if(! -e $infofile) then
+  echo "ERROR: cannot find $infofile"
+  exit 1;
+endif
+set fsd2 = `cat $infofile | awk '{if($1 == "fsd") print $2}'`;
+
+## Look for nolog option ##
+set n = `echo $inputargs | grep nolog | wc -l` 
+if($n != 0) set nolog = 1;
+
+##### Create a log file ######
+if(! $nolog) then
+  set logdir = `pwd`/log;
+  mkdir -p $logdir
+  if(! -e $logdir) then
+    echo "ERROR: could not create $logdir"
+    exit 1;
+  endif
+  set LF = $logdir/cmpanalyses-sess.log
+  if(-e $LF) mv $LF $LF.old
+else
+  echo "No log file"
+  set LF = /dev/null
+endif
+
+echo "cmpanalysis-sess Logfile is $LF"
+
+echo "cmpanalysis-sess log file" >> $LF
+echo $VERSION >> $LF
+echo "FAST Version $FASTVER"  >> $LF
+id            >> $LF
+pwd           >> $LF
+echo $0     >> $LF
+echo $inputargs  >> $LF
+uname -a      >> $LF
+date          >> $LF
+
+if(! $monly) set MLF = cmpanalyses-$$.m
+
+set outdir = `dirname $outbase`;
+mkdir -p $outdir
+
+#--------------------------------------------------------------#
+foreach sess ($SessList)
+  set sessbase = `basename $sess`;
+  echo "-------------------------------------------------------"
+  echo "Session: $sessbase "
+
+  set maskid = ();
+  if($#mask != 0) set maskid  = $sess/$fsd1/masks/$mask
+
+  set h1id    = $sess/$fsd1/$analysis1/h
+  set snr1id  = $sess/$fsd1/$analysis1/$contrast/f
+  set fsig1id = $sess/$fsd1/$analysis1/$contrast/fsig
+  set h2id    = $sess/$fsd2/$analysis2/h
+  set fsig2id = $sess/$fsd2/$analysis2/$contrast/fsig
+  set snr2id  = $sess/$fsd2/$analysis2/$contrast/f
+
+  set outfile = $outbase-$sessbase.dat
+
+  set okfile  = $MLF.ok
+  rm -f $MLF;
+  rm -f $okfile;
+
+#--------mmmmmmmmmmmmmmmmmmmmmmmmmmmmmm--------#
+tee $MLF > /dev/null <<EOF
+
+maskid  = '$maskid';
+h1id    = '$h1id';
+fsig1id = '$fsig1id';
+snr1id  = '$snr1id';
+h2id    = '$h2id';
+fsig2id = '$fsig2id';
+snr2id  = '$snr2id';
+sigmin  = $sigmin;
+sigmax  = $sigmax;
+sigstep = $sigstep;
+
+outfile = '$outfile';
+okfile  = '$okfile';
+
+fidout = fopen(outfile,'w');
+if(fidout == -1)
+  fprintf('ERROR: could not open %s\n',outfile);
+  return;
+end
+
+fprintf(fidout,'Session %s\n','$sessbase');
+fprintf(fidout,'Analysis1 %s\n','$analysis1');
+fprintf(fidout,'Analysis2 %s\n','$analysis2');
+fprintf(fidout,'Contrast  %s\n','$contrast');
+if(~isempty(maskid)) 
+  fprintf(fidout,'Mask  %s\n','$mask');
+end
+
+% ----- Load Mask ------- %
+mask = [];
+if(~isempty(maskid)) 
+  mask = fmri_ldbvolume(maskid); 
+  if(isempty(mask))
+    fprintf('ERROR: could not load %s\n',maskid);
+    return;
+  end
+end
+
+fprintf('Loading Analysis 1\n');
+[h1 nvar1 sxadat1] = fast_ldsxabvolume(h1id);
+clear h1 sxadat1;
+fsig1 = fmri_ldbvolume(fsig1id); 
+snr1  = fmri_ldbvolume(snr1id); 
+
+if(isempty(nvar1)) fprintf('ERROR: could not load %s\n',h1id); return; end
+if(isempty(fsig1)) fprintf('ERROR: could not load %s\n',fsig1id); return; end
+if(isempty(snr1))  fprintf('ERROR: could not load %s\n',snr1id); return; end
+
+fprintf('Loading Analysis 2\n');
+[h2 nvar2 sxadat2] = fast_ldsxabvolume(h2id);
+clear h2 sxadat2;
+fsig2 = fmri_ldbvolume(fsig2id); 
+snr2 = fmri_ldbvolume(snr2id); 
+
+if(isempty(nvar2)) fprintf('ERROR: could not load %s\n',h2id); return; end
+if(isempty(fsig2)) fprintf('ERROR: could not load %s\n',fsig2id);  return; end
+if(isempty(snr2))  fprintf('ERROR: could not load %s\n',snr2id); return; end
+
+fprintf('Processing \n');
+
+if(~isempty(mask))
+  indnonmask = find(mask < 0.5);
+  fsig1(indnonmask) = 0;
+  fsig2(indnonmask) = 0;
+  indmask = find(mask < 0.5);
+  fprintf('nmask = %d\n',length(indmask));
+  fprintf(fidout,'nmask = %d\n',length(indmask));
+end
+
+fsig1 = abs(fsig1);
+snr1  = abs(snr1);
+svar1 = snr1 .* nvar1; % signal power
+
+fsig2 = abs(fsig2);
+snr2  = abs(snr2);
+svar2 = snr2 .* nvar2; % signal power
+
+%---- Loop over significance threshold ----%
+fprintf(fidout,'Thsh  Nsup1 Nsup2  DNsup DNsub  DSNR   DNVAR   DSVAR     DP\n');
+siglist = [sigmin : sigstep : sigmax];
+for sigthresh = siglist,
+
+  % The number from analysis1 greater than threshold %
+  Nsup1 = length(find( fsig1 >= sigthresh ));
+
+  % The number from analysis1 greater than threshold %
+  Nsup2 = length(find( fsig2 >= sigthresh ));
+
+  % The number of voxels that were below thresh in analysis1 that
+  % were also above threshold in analysis2 %
+  DeltaNsup = (length(find( fsig1 <  sigthresh & fsig2 >= sigthresh )));
+
+  % The number of voxels that were above thresh in analysis1 that
+  % were also below threshold in analysis2 %
+  DeltaNsub = (length(find( fsig1 >= sigthresh & fsig2 <  sigthresh )));
+
+  % Voxels that were over threshold in either analysis %
+  indeither = find( fsig1 >= sigthresh | fsig2 >= sigthresh );
+
+  if(isempty(indeither)) 
+    fprintf('No more voxels above threshold\n');
+    fprintf(fidout,'No more voxels above threshold\n');
+    break; 
+  end
+  % Average Percent change of SNR at each voxel %
+  PctDeltaSNR = 100*mean(( snr2(indeither)-snr1(indeither)) ./ snr1(indeither) );
+
+  % Average Percent change of Noise Power at each voxel %
+  PctDeltaNVar = 100*mean((nvar2(indeither)-nvar1(indeither))./nvar1(indeither));
+
+  % Average Percent change of Signal Power at each voxel %
+  PctDeltaSVar = 100*mean((svar2(indeither)-svar1(indeither))./svar1(indeither));
+
+  % Average change of log10 Significance at each voxel %
+  DeltaP = mean( fsig2(indeither)-fsig1(indeither) );
+
+  fmt = '%4.1f   %4d  %4d    %3d   %3d  %4.1f   %4.1f   %4.1f   %4.1f\n';
+  fprintf(fmt,sigthresh,Nsup1,Nsup2,DeltaNsup,DeltaNsub,...
+          PctDeltaSNR,PctDeltaNVar,PctDeltaSVar,DeltaP);
+  fprintf(fidout,fmt,sigthresh,Nsup1,Nsup2,DeltaNsup,DeltaNsub,...
+          PctDeltaSNR,PctDeltaNVar,PctDeltaSVar,DeltaP);
+
+end
+
+fclose(fidout);
+ 
+fmri_touch(okfile);
+fprintf('matlab done\n');
+return;
+
+EOF
+#--------mmmmmmmmmmmmmmmmmmmmmmmmmmmmmm--------#
+
+  if(! $monly ) then
+    cat $MLF | matlab -display iconic
+    if(! -e $okfile) then
+      echo "ERROR: matlab failed"
+      exit 1;
+    endif
+    rm -f $okfile
+    rm -f $MLF
+  endif
+
+end # loop over SessList #
+
+date | tee -a $LF
+echo " "
+echo "cmpanalyses-sess completed " | tee -a $LF
+echo " "
+
+exit 0;
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-c":
+    case "-contrast":
+      if ( $#argv == 0) goto arg1err;
+      set contrast = $argv[1]; shift;
+      breaksw
+
+    case "-analysis1":
+    case "-a1":
+      if ( $#argv == 0) goto arg1err;
+      set analysis1 = $argv[1]; shift;
+      breaksw
+
+    case "-analysis2":
+    case "-a2":
+      if ( $#argv == 0) goto arg1err;
+      set analysis2 = $argv[1]; shift;
+      breaksw
+
+    case "-mask":
+    case "-m":
+      if ( $#argv == 0) goto arg1err;
+      set mask = $argv[1]; shift;
+      breaksw
+
+    case "-monly":
+      if ( $#argv == 0) goto arg1err;
+      set MLF = $argv[1]; shift;
+      set monly = 1;
+      breaksw
+
+    case "-sigrange":
+      if( $#argv < 3) then
+        echo "ERROR: $flag requires 3 arguments"
+        exit 1;
+      endif
+      set sigmin  = $argv[1]; shift;
+      set sigmax  = $argv[1]; shift;
+      set sigstep = $argv[1]; shift;
+      breaksw
+
+    case "-o":
+      if ( $#argv == 0) goto arg1err;
+      set outbase = $argv[1]; shift;
+      breaksw
+
+    case "-verbose":
+      set verbose = 1;
+      breaksw
+
+    case "-echo":
+      set echo = 1;
+      breaksw
+
+    case "-debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    case "-nolog"
+      breaksw
+
+    case "-cwd"
+      breaksw
+
+    case "-s":
+    case "-sf":
+    case "-df":
+    case "-d":
+    case "-g":
+      shift;
+      breaksw
+
+    case "-umask":
+      if ( $#argv == 0) goto arg1err;
+      umask $argv[1]; shift;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+  if($#contrast == 0) then
+    echo "ERROR: no contrast specified"
+    exit 1
+  endif
+
+  if($#analysis1 == 0) then
+    echo "ERROR: no analysis1 specified"
+    exit 1
+  endif
+
+  if($#analysis2 == 0) then
+    echo "ERROR: no analysis2 specified"
+    exit 1
+  endif
+
+  if($#outbase == 0) then
+    echo "ERROR: no output base specified"
+    exit 1
+  endif
+
+  if($#sigmin  == 0) set sigmin  =  5;
+  if($#sigmax  == 0) set sigmax  = 10;
+  if($#sigstep == 0) set sigstep =  1;
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo "USAGE: cmpanalyses-sess"
+  echo ""
+  echo "Options:";
+  echo "   -analysis1 analysisname : name of first analysis";
+  echo "   -analysis2 analysisname : name of second analysis";
+  echo "   -contrast  contrastname : contrast name"
+  echo "   -mask      maskname     : fsd/mask/maskname"
+  echo "   -sigrange  min max step : log10(p)"
+  echo "   -o         base         : report file base name"
+  echo ""
+  echo "   -sf sessidfile  ..."
+  echo "   -df srchdirfile ..."
+  echo "   -s  sessid      ..."
+  echo "   -d  srchdir     ..."
+  echo ""
+  echo "   -version       : print version and exit"
+  echo "   -umask umask   : set unix file permission mask"
+  echo ""
+  echo "This will produce an output file called outbase-sessid.dat"
+  echo "which will have 9 columns: sigthresh, Nsup1, Nsup2, DeltaNsup"
+  echo "DeltaNsub, PctDeltaSNR, PctDeltaNVar, PctDeltaSVAR, DeltaP."
+  echo ""
+exit 1;

@@ -1,0 +1,612 @@
+#!/bin/csh -f
+############################################################
+# Name:    stxgrinder
+# Purpose: uses the same command-line args as stxgrinder
+############################################################
+
+set fmrianalver = `cat $FMRI_ANALYSIS_DIR/docs/version`;
+set STXGRINDER_VER = '\$Id: stxgrinder,v 1.1 2003/03/04 21:22:09 greve Exp $';
+
+# Set Default Values #
+set firstslice = ();
+set nslices = ();
+set CorrIdeal = 0;
+set CmpIdeal = 0;
+set TestType = tm;
+set UseDelRange = 0;
+set StatFormat = 1;
+set StatFormatString = "log10p";
+set MKeep = 0; # keep matlab file around #
+set monly = 0;
+set mfile = ();
+set mailuser = 0;
+set allvnull = 0;
+
+set UsePMin = 0; # find pmin from multiple-p test
+set pminstem  = ();# for t-test
+set ipminstem = ();# for t-test
+set statstem = () ;# for t-test
+set cesstem = ();  # for contrast-effect size
+set outstem = ();  # for sig of t-test
+
+set fstatstem = (); # for value of f-test
+set fsigstem = (); # for sig of f-test
+
+set ihDelta = 2.25;
+set ihTau   = 1.25;
+
+set instem  = ( );
+
+set ActiveCond = ( );
+set ControlCond = ( );
+set CMtxFile = ();
+set nolog = 0;
+
+set n = `echo $argv | grep version | wc -l` 
+if($n != 0) then
+  echo $STXGRINDER_VER
+  exit 0;
+endif
+
+if ( $#argv < 4 ) then
+  echo "USAGE: stxgrinder [-options] -i instem -o outstem";
+  echo "   instem   - stem of .bfloat selxavg input volume";
+  echo "   outstem  - stem of .bfloat signficance map volume"
+  echo "Options:";
+  echo "   -cmtx cmtxfile        : contrast matrix file (see mkcontrast)"
+  echo "   -a a1 [-a a2 ...]     : active condition(s)";
+  echo "   -c c1 [-c c2 ...]     : control condition(s)";
+  echo "   -allvnull             : all vs condition 0 (instead of -a and -c) "
+  echo "   -delrange dmin dmax   : delay range to test <prestim,timewindow> (sec)";
+  echo "   -ircorr               : correlate with ideal HDIR"
+  echo "   -delta                : delta of ideal HDIR"
+  echo "   -tau                  : tau of ideal HDIR"
+  echo "   -testtype             : stat test type (t,<tm>,Fd,Fc,Fcd)";
+  echo "   -pmin   stem          : stem for min p value from tm test over delrange";
+  echo "   -ipmin  stem          : stem for index of min p value (with -pmin)";
+  echo "   -statstem stem        : store t-statistic in volume stem "
+  echo "   -cesstem stem         : store contrast effect size in volume stem "
+  echo "   -fstat    stem        : store f-statistic in volume stem "
+  echo "   -fsig     stem        : store significance of f-test in volume stem "
+  echo "   -pxform string        : lnp, <log10p>, p"
+  echo "   -monly mfile          : do not run, just create matlab file"
+  echo "   -firstslice <int>     : first slice to process <auto>";
+  echo "   -nslices <int>        : number of slices to process <auto>";
+  echo "   -version              : print version and exit"
+  echo ""
+  echo "  $STXGRINDER_VER"
+  echo "  fMRIA Version $fmrianalver";
+  echo "  Author: Douglas N. Greve"
+  echo "          Massachusetts General Hospital - NMR Center"
+  echo "  Comments or questions: analysis-bugs@nmr.mgh.harvard.edu"
+  echo "  March 1, 1999"
+  echo ""
+  exit 1;
+endif
+
+echo "  stxgrinder $STXGRINDER_VER, March 1, 1999" 
+echo "  fMRIA Version $fmrianalver";
+echo "  Author: Douglas N. Greve."
+echo "          Massachusetts General Hospital - NMR Center"
+echo "  Comments or questions: analysis-bugs@nmr.mgh.harvard.edu"
+echo ""
+
+set MATLAB = `getmatlab`;
+if($status) exit 1;
+
+goto parse_args;
+parse_args_return:
+
+## Autodetect First and Number of Slices ##
+if($#firstslice == 0) then
+  set firstslice = `getfirstsliceno $instem`;
+  if($status) then
+    echo "ERROR: detecting slice $firstslice of $instem"
+    exit 1;
+  endif
+endif
+if($#nslices == 0) then
+  set nslices = `getnslices $instem $firstslice`;
+  if($status) then
+    echo "ERROR: nslices of $instem"
+    exit 1;
+  endif
+endif
+
+goto dump_params;
+dump_params_return:
+
+goto check_params;
+check_params_return:
+
+### Check that the selxavg directory exists ###
+set SADir = `dirname $instem`;
+if( ! -d $SADir) then
+  echo "ERROR: directory $SADir does not exist."
+  exit 3;
+endif
+
+### Check that there are input sax files #####
+set SABaseStem = `basename $instem`;
+set t = `ls $SADir`;
+set nt = `echo $t | grep $SABaseStem | grep bfloat | wc -l`;
+if( $nt == 0 ) then
+  echo "ERROR: no input files in $SADir matching $instem*.bfloat"
+  exit 4;
+endif
+
+set StDir = `dirname $outstem`;
+echo $StDir;
+if( ! -d $StDir) then
+  echo "INFO: output directory $StDir does not exist, creating."
+  mkdir -p $StDir;
+endif
+
+##### construct the all-vs-null contrast #########
+if($allvnull) then
+  set datfile = $instem.dat
+  if(! -e $instem.dat ) then
+    echo "ERROR: cannot find $datfile"
+    exit 1;
+  endif
+  set tmp = `grep nCond $datfile`;
+  set Nc = $tmp[2];
+
+  set ControlCond = 0;
+  set ActivCond = ();
+  @ n = 1;
+  while($n < $Nc) 
+    set ActiveCond = ($ActiveCond $n);
+    @ n = $n + 1;
+  end
+endif
+
+#### Create file to track whether an error has occured ####
+set okfile    = $outstem"_t_m_p.ok";
+
+## Get path for log-file ##
+if($nolog) then
+  set LF = /dev/null
+else
+  set LF = $outstem"_stxg.log"
+  rm -f $LF;
+  touch $LF;
+endif
+echo ------------------------------------------ >> $LF
+echo "stxgrinder $STXGRINDER_VER" >> $LF
+echo "Comments or questions: analysis-bugs@nmr.mgh.harvard.edu" >> $LF
+echo `date` >> $LF
+echo "firstslice: $firstslice" >> $LF
+echo "nslices:    $nslices" >> $LF
+echo "testtype $TestType" >> $LF
+echo "Active Conditions:  $ActiveCond" >> $LF
+echo "Control Conditions: $ControlCond" >> $LF
+echo "SelAvgDir:  $SADir" >> $LF
+echo "StatDir:    $StDir" >> $LF
+
+#### Create datfile name #####
+set datFile = $instem".dat";
+if( ! -r $datFile ) then
+  echo "ERROR: $datFile does not exist or is unreadable"
+  exit 5;
+endif
+echo datFile = $datFile;
+
+## Set path for matlab file ##
+if( ! $monly ) then
+  if(-e /tmp) then
+    set MLF = /tmp/stxg"_$$_".m
+  else
+    set StBaseStem = `basename $outstem`;
+    set MLF = $StBaseStem"_$$_""_stxg.m"
+  endif
+else
+  set MLF = $mfile;
+endif
+echo matlab file $MLF
+rm -f $MLF;
+
+############ Go through each slice ##############
+@ slice     = $firstslice;
+@ slice_max = $firstslice + $nslices;
+while( $slice < $slice_max)
+  echo -----------------------------------------------------------| tee -a $LF
+  echo -----------------------------------------------------------| tee -a $LF
+  echo ------------------- Stxgrinder Slice $slice -------------- | tee -a $LF
+  echo -----------------------------------------------------------| tee -a $LF
+  echo -----------------------------------------------------------| tee -a $LF
+  date   | tee -a $LF
+
+  set SliceStr = `printf "%03d" $slice`;
+
+  ## Create the output stat name ##
+  set StatFile = $outstem"_"$SliceStr".bfloat";
+  echo OutputFile = $StatFile
+
+  ### Create the hAvg and hcov names for this slice ###
+  set hAvgFile = $instem"_"$SliceStr".bfloat";
+  if( ! -r $hAvgFile ) then
+    echo "ERROR: $hAvgFile does not exist or is unreadable"
+    exit 6;
+  endif
+#  set hcovFile = $instem"_hcov_"$SliceStr".bfloat";
+#  if( ! -r $hcovFile ) then
+#    echo "ERROR: $hcovFile does not exist or is unreadable"
+#    exit 7;
+#  endif
+
+  ### Create the matlab file ####
+  touch $MLF;
+  echo "%%% ----------------- %%"       >> $MLF
+  echo "% matlab file to run stxgrinder, slice $slice"    >> $MLF;
+  echo "% $MLF"                          >> $MLF;
+  if(! $monly) echo "global QuitOnError;"             >> $MLF
+  if(! $monly) echo "QuitOnError = 1;"                >> $MLF
+  if(! $monly) echo "if(exist('fmri_stxgslice')==0)"        >> $MLF;
+  if(! $monly) echo "qoe('ERROR: matlab path incorrect');end;" >> $MLF  
+  echo "outstem   = '$outstem';" >> $MLF  
+  echo "pminstem  = '$pminstem';" >> $MLF  
+  echo "ipminstem = '$ipminstem';" >> $MLF  
+  echo "statstem  = '$statstem';" >> $MLF  
+  echo "cesstem   = '$cesstem';" >> $MLF  
+  echo "fstatstem  = '$fstatstem';" >> $MLF  
+  echo "fsigstem  = '$fsigstem';" >> $MLF  
+  echo "sliceno = $slice;" >> $MLF  
+  echo "hAvgFile   = '$hAvgFile';"    >> $MLF
+#  echo "hcovFile   = '$hcovFile';"    >> $MLF
+  echo "datFile    = '$datFile';"     >> $MLF
+  echo "CMtxFile    = '$CMtxFile';"     >> $MLF
+  echo " StatFile   = '$StatFile'  ;" >> $MLF
+  echo " TestType   = '$TestType'  ;" >> $MLF
+  echo " UsePMin   =  $UsePMin  ;" >> $MLF
+  echo " OutputFormat   = $StatFormat ;" >> $MLF
+  echo " ActiveCond  = [$ActiveCond];" >> $MLF
+  echo " ControlCond = [ $ControlCond ];" >> $MLF
+  if($UseDelRange) then
+    echo " HDelMin    = $HDelMin   ;" >> $MLF
+    echo " HDelMax    = $HDelMax   ;" >> $MLF
+  endif
+  echo " CorrIdeal   = $CorrIdeal  ;" >> $MLF
+  if($CorrIdeal) then
+    echo " ihDelta  = $ihDelta ;" >> $MLF
+    echo " ihTau    = $ihTau   ;" >> $MLF
+  endif
+  echo " CmpIdeal   = $CmpIdeal  ;" >> $MLF
+  if($CmpIdeal) then
+    echo " ihMag    = $ihMag   ;" >> $MLF
+    echo " ihDelta  = $ihDelta ;" >> $MLF
+    echo " ihTau    = $ihTau   ;" >> $MLF
+  endif
+  echo "fmri_stxgslice;" >> $MLF
+  if(! $monly) echo "fmri_touch('$okfile');"        >> $MLF
+  if(! $monly ) echo "quit;" >> $MLF
+
+  echo ----- Matlab File ----- >> $LF
+  cat $MLF >> $LF
+  echo ----- ------  ----- >> $LF
+
+  if(! $monly) then
+    echo  ---- matlab output ----- | tee -a $LF
+    echo Computing Statistics 
+    echo `date`
+    cat $MLF | $MATLAB -display iconic | tee -a $LF
+    if( ! $MKeep ) rm -f $MLF;
+
+    ## Check for errors during the matlab execution ##
+    if ( ! -f $okfile ) then
+      echo " "
+      echo " "
+      echo "-----------------------------------------------" |tee -a $LF
+      echo "ERROR: during matlab execution"             | tee -a $LF
+      echo "stxgrinder aborted at `date`"         | tee -a $LF
+      echo "See log file $LF for more detail"
+      echo "-------------------------------------------------" |tee -a $LF
+      echo " "
+      exit 8;
+    endif
+    rm -f $okfile;
+    echo  ---- matlab done ----- >> $LF
+  endif
+
+  @ slice = $slice + 1;
+
+end
+
+if(! $monly ) then
+  rm -f $MLF
+  set inbhdr = $instem.bhdr
+  if(-e $inbhdr) then
+    if($#outstem != 0)   cp $inbhdr $outstem.bhdr
+    if($#pminstem != 0)  cp $inbhdr $pminstem.bhdr
+    if($#ipminstem != 0) cp $inbhdr $ipminstem.bhdr
+    if($#statstem != 0)  cp $inbhdr $statstem.bhdr
+    if($#fstatstem != 0) cp $inbhdr $fstatstem.bhdr
+    if($#fsigstem != 0)  cp $inbhdr $fsigstem.bhdr
+    if($#cesstem != 0)   then
+      cp $inbhdr $cesstem.bhdr
+      cp $inbhdr $cesstem"pct".bhdr
+    endif
+  endif
+endif
+
+echo -----------++++++++++--------------------- | tee -a $LF
+echo `date` | tee -a $LF
+echo Done   | tee -a $LF
+echo -----------++++++++++--------------------- | tee -a $LF
+
+if( $mailuser ) then
+  echo "stxgrinder done at `date`" | mail -s "stxgrinder done" $user
+endif
+
+exit 0;
+############################################################
+
+############--------------##################
+parse_args:
+
+set cmdline = "$argv";
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-i":
+      if( $#argv == 0) goto arg1err;
+      if( $#instem != 0 ) then
+        echo ERROR: only one instem allowed.
+        exit 1;
+      endif
+      set instem = $argv[1]; shift;
+      breaksw
+
+    case "-o":
+      if( $#argv == 0) goto arg1err;
+      if( $#outstem != 0 ) then
+        echo ERROR: only one outstem allowed.
+        exit 1
+      endif
+      set outstem = $argv[1]; shift;
+      breaksw
+
+    case "-a":
+      if( $#argv == 0) goto arg1err;
+      set ActiveCond = ($ActiveCond $argv[1]); shift;
+      breaksw
+
+    case "-c":
+      if( $#argv == 0) goto arg1err;
+      set ControlCond = ($ControlCond $argv[1]); shift;
+      breaksw
+
+    case "-testtype":
+    case "-tt":
+      if( $#argv == 0) goto arg1err;
+      set TestType = $argv[1]; shift;
+      breaksw
+
+    case "-cmtx":
+    case "-cmtxfile":
+      if( $#argv == 0) goto arg1err;
+      set CMtxFile = $argv[1]; shift;
+      if( ! -e $CMtxFile && ! -e $CMtxFile.mat ) then
+        echo "ERROR: cannot find $CMtxFile or $CMtxFile.mat"
+        exit 1;
+      endif
+      breaksw
+
+    case "-pmin":
+      if( $#argv == 0) goto arg1err;
+      set pminstem = $argv[1]; shift; 
+      breaksw
+
+    case "-ipmin":
+      if( $#argv == 0) goto arg1err;
+      set ipminstem = $argv[1]; shift; 
+      breaksw
+
+    case "-statstem":
+      if( $#argv == 0) goto arg1err;
+      set statstem = $argv[1]; shift; 
+      breaksw
+
+    case "-cesstem":
+      if( $#argv == 0) goto arg1err;
+      set cesstem = $argv[1]; shift; 
+      breaksw
+
+    case "-fstat":
+    case "-fstatstem":
+      if( $#argv == 0) goto arg1err;
+      set fstatstem = $argv[1]; shift; 
+      breaksw
+
+    case "-fsig":
+    case "-fsigstem":
+      if( $#argv == 0) goto arg1err;
+      set fsigstem = $argv[1]; shift; 
+      breaksw
+
+    case "-delrange":
+    case "-dr":
+      if( $#argv < 2) then
+        echo ERROR: $flag option requires two arguments.
+        exit 1
+      endif
+      set HDelMin = $argv[1]; shift;
+      set HDelMax = $argv[1]; shift;
+      set UseDelRange = 1;
+      breaksw
+
+    case "-firstslice":
+    case "-fs":
+      if( $#argv == 0) goto arg1err;
+      set firstslice = $argv[1]; shift;
+      breaksw
+
+    case "-nslices":
+    case "-ns":
+      if( $#argv == 0) goto arg1err;
+      set nslices = $argv[1]; shift;
+      breaksw
+
+    case "-ircorr":
+      set CorrIdeal = 1;
+      breaksw
+
+    case "-delta":
+      if( $#argv == 0) goto arg1err;
+      if(! $CorrIdeal) then
+        echo "ERROR: use -ircorr flag before -delta flag";
+        exit 1
+      endif
+      set ihDelta = $argv[1]; shift;
+      breaksw
+
+    case "-tau":
+      if( $#argv == 0) goto arg1err;
+      if( ! $CorrIdeal) then
+        echo "ERROR: use -ircorr flag before -tau flag";
+        exit 1
+      endif
+      set ihTau   = $argv[1]; shift;
+      breaksw
+
+    case "-pxform":
+    case "-format":
+      if( $#argv == 0) goto arg1err;
+      set StatFormatString = $argv[1]; shift;
+      switch($StatFormatString)
+        case "lnp":    
+          set StatFormat = 0; 
+        breaksw
+        case "log10p": 
+          set StatFormat = 1; 
+        breaksw
+        case "p":      
+          set StatFormat = 2; 
+        breaksw
+        case "tF":     
+        case "tf":     
+          set StatFormat = 3; 
+          breaksw
+        default:
+          echo "ERROR: output format $format unkown."
+          echo "       use either lnp, log10p, p, or tF"
+          exit 1
+          breaksw
+      endsw
+      breaksw
+
+    case "-mkeep":
+      set MKeep = 1; 
+      breaksw
+
+    case "-allvnull":
+      set allvnull = 1; 
+      breaksw
+
+    case "-monly":
+      if( $#argv == 0) goto arg1err;
+      set monly = 1; 
+      set MKeep = 1; 
+      set mfile = $argv[1]; shift;
+      breaksw
+
+    case "-umask":
+      if( $#argv == 0) goto arg1err;
+      umask $argv[1]; shift;
+      breaksw
+
+    case "-nolog":
+      set nolog = 1; 
+      breaksw
+
+    case "-debug":
+      set verbose = 1; 
+      breaksw
+
+    case "-mail":
+      set mailuser = 1;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized.
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+dump_params:
+echo ------- stxgrinder parameters ------------
+echo instem  = $instem
+echo outstem = $outstem
+echo firstslice = $firstslice 
+echo nslices  = $nslices
+echo Active   = $ActiveCond;
+echo Control  = $ControlCond;
+echo TestType = $TestType;
+echo UsePMin  = $UsePMin
+echo UseDelRange = $UseDelRange
+if($UseDelRange) then
+  echo DelRange = $HDelMin $HDelMax
+endif
+echo CorrIdeal = $CorrIdeal;
+if($CorrIdeal) then
+  echo Correlate with HDIR: Delta=$ihDelta Tau=$ihTau
+endif
+echo StatFormatString = $StatFormatString
+echo StatFormat = $StatFormat
+goto dump_params_return;
+############--------------##################
+
+############--------------##################
+check_params:
+  if($#instem != 1) then
+     echo "ERROR: must specify an input stem";
+     exit 1
+  endif
+
+  set i0 = `printf %s_%03d.hdr $instem $firstslice`;
+  if(! -e $i0) then
+     echo "ERROR: cannot find $i0"
+     exit 1;
+  endif
+
+  if($#outstem != 1) then
+     echo "ERROR: must specify an output stem";
+     exit 1
+  endif
+
+  if( $#CMtxFile == 0) then
+
+    if( $#ActiveCond == 0 && ! $allvnull) then
+      echo "ERROR: must specify at least one active condition";
+      exit 1
+    endif
+
+    if( $#ControlCond == 0 && ! $allvnull) then
+      echo "ERROR: must specify at least one control condition";
+      exit 1
+    endif
+    
+    if( $UsePMin && ("$TestType" != "tm" && "$TestType" != "fm" )) then
+      echo "ERROR: pmin must be use with testtype tm";
+      exit 1
+    endif
+  endif
+
+goto check_params_return;
+############--------------##################
+
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################

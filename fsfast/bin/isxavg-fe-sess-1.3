@@ -1,0 +1,339 @@
+#!/bin/csh -f
+# isxavg-fe-sess
+#
+set VERSION = '$Id: isxavg-fe-sess-1.3,v 1.1 2003/03/04 21:22:08 greve Exp $';
+set FASTVER = `cat $FMRI_ANALYSIS_DIR/docs/version`;
+
+set inputargs = "$argv";
+
+set analysis    = ();
+set grpname    = ();
+set space     = ();
+set ScriptOnly = 0;
+set umaskarg = ();
+set hemi = ();
+
+if($#argv == 0) then
+  goto usage_exit;
+  exit 1;
+endif
+
+set n = `echo $argv | grep version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+
+##### Create a log file ######
+set logdir = `pwd`/log;
+mkdir -p $logdir
+if(! -e $logdir) then
+  echo "ERROR: could not create $logdir"
+  exit 1;
+endif
+set LF = $logdir/isxavg-sess.log
+if(-e $LF) mv $LF $LF.old
+echo "--------------------------------------------------------------"
+echo "isxavg-fe-sess logfile is $LF"
+echo "--------------------------------------------------------------"
+
+echo "isxavg-fe-sess log file" >> $LF
+echo $VERSION >> $LF
+echo "FAST Version $FASTVER"  >> $LF
+pwd           >> $LF
+echo "$0"     >> $LF
+echo "$inputargs"  >> $LF
+uname -a      >> $LF
+date          >> $LF
+which isxavg-fe >> $LF
+
+set SessList = `getsesspath $inputargs`;
+if($status || $#SessList == 0) then
+  echo "ERROR: finding sessions" |& tee -a $LF
+  echo "       $SessList" |& tee -a $LF
+  exit 1;
+endif
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+## Get functional subdirectory from the info file ##
+set infofile = $analysis/analysis.info
+if(! -e $infofile) then
+  echo "ERROR: cannot find $infofile" |& tee -a $LF
+  exit 1;
+endif
+set fsd = `cat $infofile | awk '{if($1 == "fsd") print $2}'`;
+
+## Prepare the script, if need be ##
+if($ScriptOnly) then
+  mkdir -p scripts
+  if(! -d scripts) then
+    echo "ERROR: cannot create `pwd`/scripts"
+    exit 1;
+  endif
+
+  set scriptfile = scripts/run-isxavg-fe-$analysis
+  rm -f $scriptfile
+  touch $scriptfile
+  echo "#\!/bin/csh -f" >> $scriptfile
+  echo "cd .." >> $scriptfile
+  chmod a+x $scriptfile
+endif
+
+foreach hs ($hemi)
+
+  if($space == sph) echo "$hemi hemisphere" |& tee -a $LF
+  date |& tee -a $LF
+  set instems = ();
+  set inoffstems = ();
+
+  ### Go through each session ###
+  foreach sess ($SessList)
+
+    # Make sure the Session Dir exists (redundant) ##
+    if(! -d $sess/$fsd) then
+      echo "ERROR: $sess/$fsd does not exist"   |& tee -a $LF
+      exit 1;
+    endif
+    if(! -d $sess/$fsd/$analysis) then
+      echo "ERROR: $sess/$fsd/$analysis does not exist"   |& tee -a $LF
+      exit 1;
+    endif
+    if(! -d $sess/$fsd/$analysis/$space) then
+      echo "ERROR: $sess/$fsd/$analysis/$space does not exist" |& tee -a $LF
+      exit 1;
+    endif
+  
+    if($space != sph) then
+      set instem = $sess/$fsd/$analysis/$space/h
+    else
+      set instem = $sess/$fsd/$analysis/$space/h-$hs
+    endif
+
+    if($space == tal) then
+      set inregfile = $sess/$fsd/$analysis/$space/register.dat
+      if(! -e $inregfile) then
+        echo "ERROR: $inregfile does not exist"|& tee -a $LF
+        exit 1;
+      endif
+    endif
+
+    set instems    = ($instems    -i $instem);
+    set inoffstems = ($inoffstems -i $instem-offset);
+
+  end # loop over SessList #
+
+  if($space != sph) then
+    set outstem = $analysis/$grpname/$space/h
+  else
+    set outstem = $analysis/$grpname/$space/h-$hs
+  endif
+  set outoffstem = $outstem-offset
+
+  if($space == tal) then
+    set outregfile = $analysis/$grpname/$space/register.dat
+    set cpregcmd = "cp $inregfile $outregfile"
+  else
+    set cpregcmd = ();
+  endif
+
+  set cmd1 = (isxavg-fe $umaskarg $instems -o $outstem)
+  set cmd2 = (meanimg $umaskarg $inoffstems -o $outoffstem)
+
+  if($ScriptOnly) then
+    echo $cmd1 >> $scriptfile
+    echo $cmd2 >> $scriptfile
+    echo $cpregcmd >> $scriptfile
+    echo "\n\n" >> $scriptfile
+  else
+
+    echo "----- Averaging Statistics ------" |& tee -a $LF
+    pwd        |& tee -a $LF
+    echo $cmd1 |& tee -a $LF
+    $cmd1      |& tee -a $LF
+    if($status) then
+      echo "ERROR: isxavg-fe failed" |& tee -a $LF
+      exit 1;
+    endif
+
+    echo "----- Averaging Offsets ------" |& tee -a $LF
+    pwd        |& tee -a $LF
+    echo $cmd2 |& tee -a $LF
+    $cmd2 |& tee -a $LF
+    if($status) then
+      echo "ERROR: meanimg failed" |& tee -a $LF
+      exit 1;
+    endif
+
+    if($#cpregcmd != 0) then
+      echo "INFO: coping register.dat file to output directory"
+      pwd            |& tee -a $LF
+      echo $cpregcmd |& tee -a $LF
+      $cpregcmd      |& tee -a $LF
+    endif
+  endif
+
+end
+echo "-----------------------------------------------------"| tee -a $LF
+
+date | tee -a $LF
+echo "isxavg-fe-sess completed SUCCESSFULLY" | tee -a $LF
+echo " "
+echo " "
+
+exit 0;
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = "$argv";
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-resamp":
+    case "-space":
+      if ( $#argv == 0) goto arg1err;
+      set space = $argv[1]; shift;
+      breaksw
+
+    case "-hemi":
+      if ( $#argv == 0) goto arg1err;
+      set hemi = ($hemi $argv[1]); shift;
+      breaksw
+
+    case "-sxaname":
+    case "-analysis":
+      if ( $#argv == 0) goto arg1err;
+      set analysis = $argv[1]; shift;
+      breaksw
+
+    case "-grpname":
+    case "-group":
+      if ( $#argv == 0) goto arg1err;
+      set grpname = $argv[1]; shift;
+      breaksw
+
+    case "-umask":
+      if ( $#argv == 0) goto arg1err;
+      set umaskarg = "-umask $argv[1]";
+      umask $argv[1]; shift;
+      breaksw
+
+    case "-verbose":
+      set verbose = 1;
+      breaksw
+
+    case "-echo":
+      set echo = 1;
+      breaksw
+
+    case "-debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    case "-scriptonly":
+      set ScriptOnly = 1;
+      breaksw
+
+    case "-cwd":
+      breaksw
+
+    case "-g":
+    case "-s":
+    case "-sf":
+    case "-df":
+    case "-d":
+      # ignore getsesspath arguments 
+      shift;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+  if ($#SessList == 0) then
+     echo "ERROR: no sessions specified"|& tee -a $LF 
+     exit 1
+  endif
+
+  if ($#analysis == 0) then
+     echo "ERROR: no sxa name specified"|& tee -a $LF 
+     exit 1
+  endif
+
+  if ($#grpname == 0) then
+     echo "ERROR: no group name specified"|& tee -a $LF 
+     exit 1
+  endif
+
+  if ($#space == 0) then
+     echo "ERROR: must specify a sampling space"|& tee -a $LF 
+     exit 1
+  endif
+
+  if($space != "tal" && $space != "sph" && $space != "native") then
+     echo "ERROR: no support for resampling into $space space"|& tee -a $LF 
+     exit 1
+  endif
+  if($space == native) set space = ();
+
+
+  if($#hemi != 0 && $space != sph) then
+    echo "ERROR: -hemi can only be used with sph space"
+    exit 1;
+  endif
+  if($#hemi == 0 && $space == sph) set hemi = (lh rh);
+  foreach hs ($hemi)
+    if($hs != lh && $hs != rh) then
+      echo "ERROR: hemi must be either lh or rh ($hs)";
+      exit 1;
+    endif
+  end
+
+  if($space != sph) set hemi = nohemi;
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo "USAGE: isxavg-fe-sess"
+  echo "Options:";
+  echo "   -analysis analysisname : session-level functional analysis name"
+  echo "   -group    groupname    : name of group"
+  echo "   -space    spacename    : space in which to average (native, tal, sph)"
+  echo "   -hemi     hemisphere   : with sph space <lh rh>";
+  echo "   -sf sessidfile  ..."
+  echo "   -df srchdirfile ..."
+  echo "   -s  sessid      ..."
+  echo "   -d  srchdir     ..."
+#  echo "   -fsd dir       : session subdirectory ($fsd)"
+  echo "   -umask umask   : set unix file permission mask"
+  echo "   -scriptonly    : don't run, just generate a script"
+  echo "   -version       : print version and exit"
+exit 1;

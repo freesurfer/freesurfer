@@ -1,0 +1,25 @@
+#!/bin/csh -f
+
+if($#argv == 0) then
+  echo "USAGE: du-sess [sesspath args]"
+  exit 1;
+endif
+
+set sesslist = `getsesspath $argv`;
+if($status) then
+  echo $sesslist
+  exit 1;
+endif
+
+foreach sess ($sesslist)
+  set sessid = `basename $sess`;
+  pushd $sess > /dev/null
+  cd ..
+  set tmp = `du -s $sessid`;
+  set dudat = $tmp[1];
+  echo $sessid $dudat
+  popd > /dev/null
+end
+
+
+exit 0;

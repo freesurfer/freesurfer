@@ -1,0 +1,227 @@
+#!/bin/csh -f
+# getsesspath - gets the full paths of the sessions
+# listed in groupdef files.  The candidate paths are
+# given in a searchdir file.
+#
+# $Id: getsesspath,v 1.1 2003/03/04 21:22:08 greve Exp $
+
+if($#argv == 0) then
+  goto usage_exit;
+  exit 1;
+endif
+
+set PWDCMD = pwd;
+
+set grpdefs     = ();
+set srchdirfile = ();
+set SessList    = ();
+set SearchPathList = ();
+
+if(! $?AllowRedundant ) then
+  set  AllowRedundant = 0;   # 1 for testing purposes only
+endif
+
+goto parse_args;
+parse_args_return:
+
+foreach grp ($grpdefs)
+  set SessList = ($SessList `cat $grp`);
+end
+
+goto check_params;
+check_params_return:
+
+# Check for existence, Remove redunant paths from SearchPathList #
+set UniqueList = ();
+foreach d ($SearchPathList)
+  if(! -e $d) then
+    echo "ERROR: path $d does not exist"
+    exit 1;
+  endif
+
+  set IsUnique = 1;
+  foreach u ($UniqueList)
+    if($d == $u) then
+      set IsUnique = 0;
+      break;
+    endif
+  end
+  if($IsUnique) set UniqueList = ($UniqueList $d);
+end
+
+set SearchPathList = ($UniqueList);
+
+set errs = 0;
+
+# Find each session in the search path list
+set SessPath = ();
+foreach sess ($SessList)
+  set tmp = ();
+  foreach d ($SearchPathList)
+    set stst = $d/$sess
+    if(-d $stst) then
+      if(! -r $stst) then
+        echo "ERROR: cannot read $stst"
+        set errs = 1;
+      endif
+      pushd $stst > /dev/null; # disallows multiple links
+      set tmp = ($tmp `$PWDCMD`);
+      popd  > /dev/null;
+    endif
+  end
+  set nfound = ($#tmp);
+  if($nfound == 0) then
+    echo "ERROR: cound not find session $sess"
+    set errs = 1;
+  endif
+  if($nfound > 1) then
+    echo "ERROR: found multiple sessions  for $sess"
+    foreach d ($tmp)
+      echo "$d"
+    end
+    set errs = 1;
+  endif
+  set SessPath = ($SessPath $tmp);
+end
+
+# Check for redunant sessions #
+set UniqueList = ();
+foreach s ($SessPath)
+  set IsUnique = 1;
+  foreach u ($UniqueList)
+    if($s == $u) then
+      set IsUnique = 0;
+      break;
+    endif
+  end
+  if(! $IsUnique && ! $AllowRedundant) then
+    echo "ERROR: $s is specified multiple times"
+    set errs = 1;
+  else
+    set UniqueList = ($UniqueList $s);
+  endif
+end
+
+
+echo $SessPath
+
+exit $errs;
+###############################################
+
+
+############--------------##################
+parse_args:
+
+set cmdline = "$argv";
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-sf":
+      if ( $#argv == 0) goto arg1err;
+      set grpdef = $argv[1];
+      if(! -e $grpdef) then
+        echo "ERROR: $grpdef does not exist"
+        exit 1;
+      endif
+      set grpdefs = ($grpdefs $grpdef); shift;
+      breaksw
+
+    case "-g":
+    case "-s":
+      if ( $#argv == 0) goto arg1err;
+      set SessList = ($SessList $argv[1]); shift;
+      breaksw
+
+    case "-df":
+      if ( $#argv == 0) goto arg1err;
+      if(! -e $argv[1]) then
+        echo "ERROR: $argv[1] does not exist"
+        exit 1;
+      endif
+      set srchdirfile = $argv[1]; shift;
+      set SearchPathList = ($SearchPathList `cat $srchdirfile`);
+      breaksw
+
+    case "-d":
+      if ( $#argv == 0) goto arg1err;
+      if(! -d $argv[1]) then
+        echo "ERROR: $argv[1] does not exist"
+        exit 1;
+      endif
+      if(! -r $argv[1]) then
+        echo "ERROR: cannot read $argv[1] "
+        exit 1;
+      endif
+      set srchdir = $argv[1]; shift;
+      set SearchPathList = ($SearchPathList $srchdir);
+      breaksw
+
+    case "-cwd":
+      set cwd = `$PWDCMD`;
+      set SearchPathList = ($SearchPathList `dirname $cwd`);
+      set SessList = ($SessList `basename $cwd`);
+      breaksw
+
+    case "-debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    case "-verbose":
+      set verbose = 1;
+      breaksw
+
+    case "-echo":
+      set echo = 1;
+      breaksw
+
+
+    case "-redund" # 1 for testing purposes only
+    case "-redundant" # 1 for testing purposes only
+      set AllowRedundant = 1;   
+      breaksw
+
+#    default:
+#      echo ERROR: Flag $flag unrecognized.
+#      echo $cmdline
+#      exit 1
+#      breaksw
+  endsw
+
+end
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+  if ($#SessList == 0) then
+     echo "ERROR: no sessions specified";
+     exit 1
+  endif
+
+  if ($#SearchPathList == 0) then
+     set SearchPathList = ".";
+  endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo "USAGE: getsesspath"
+  echo "   -s  sessid      ..."
+  echo "   -sf sessidfile  ..."
+  echo "   -d  srchdir     ..."
+  echo "   -df srchdirfile ..."
+  echo "   -cwd : use current working directory"
+exit 1;
