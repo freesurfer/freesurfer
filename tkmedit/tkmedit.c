@@ -936,14 +936,21 @@ void getPlane(char* fbuffer, int zf, int xoff, int yoff)
     scale2x(512,512,dhcache);
 #endif
 }
-
-void getMaximumProjection(int zf, int xoff, int yoff)
+void getMaximumProjection(int zf, int xoff, int yoff, int dir)
 {
   int w, h;
   
-  for(h=0; h<256; h++) {
-    for(w=0; w<256; w++) {
-      dhcache[(h+yoff)*512+w+xoff] = sim[2][255-h][w];
+  if(!dir) {
+    for(h=0; h<256; h++) {
+      for(w=0; w<256; w++) {
+  dhcache[(h+yoff)*512+w+xoff] = sim[2][255-h][w];
+      }
+    }
+  } else {
+    for(h=0; h<256; h++) {
+      for(w=0; w<256; w++) {
+  dhcache[(h+yoff)*512+w+xoff] = sim[2][255-h][255-w];
+      }
     }
   }
 }
@@ -1064,7 +1071,6 @@ void compose(unsigned char* stbuffer, unsigned char* outbuffer)
   if (truncflag)
     if (stbuffer[h*512+w]<white_lolim+MAPOFFSET || stbuffer[h*512+w]>white_hilim+MAPOFFSET)
       red = green = blue = hacked_map[MAPOFFSET];
-  
       }
       outbuffer[4*h*xdim+4*w]=red;
       outbuffer[4*h*xdim+4*w+1]=green;
@@ -1076,7 +1082,7 @@ void compose(unsigned char* stbuffer, unsigned char* outbuffer)
   if(all3flag || plane==SAGITTAL) {
     for (i=ic-curs;i<=ic+curs;i++) {
       if (all3flag) 
-  k = 4*(i/2*xdim/2+imc/2 + i/2*hax);
+  k = 4*(xdim*hay + hax + i/2*xdim/2+imc/2 + i/2*hax);
       else if(plane==SAGITTAL)        
   k = 4*(i*xdim+imc);
       outbuffer[k] = ccolor1 ; outbuffer[k+1] = ccolor2;
@@ -1084,7 +1090,7 @@ void compose(unsigned char* stbuffer, unsigned char* outbuffer)
       outbuffer[k+3]=255;
     }
     for (imnr=imc-curs;imnr<=imc+curs;imnr++) {
-      if (all3flag) k = 4*(ic/2*xdim/2+imnr/2 + ic/2*hax);
+      if (all3flag) k = 4*(xdim*hay + hax + ic/2*xdim/2+imnr/2 + ic/2*hax);
       else if(plane==SAGITTAL)
   k = 4*(ic*xdim+imnr);
       outbuffer[k] = ccolor1; 
@@ -1111,14 +1117,14 @@ void compose(unsigned char* stbuffer, unsigned char* outbuffer)
   }
   if(all3flag || plane==HORIZONTAL) {
     for (imnr=imc-curs;imnr<=imc+curs;imnr++) {
-      if (all3flag) k = 4*(xdim*hay+hax + imnr/2*xdim/2+jc/2 + imnr/2*hax);
+      if (all3flag) k = 4*(imnr/2*xdim/2+jc/2 + imnr/2*hax);
       else if(plane == HORIZONTAL)
   k = 4*(imnr*xdim+jc);
       vidbuf[k] = ccolor1; vidbuf[k+1] = vidbuf[k+2] = ccolor2;
       vidbuf[k+3]=255;
     }
     for (j=jc-curs;j<=jc+curs;j++) {
-      if (all3flag) k = 4*(xdim*hay + hax + imc/2*xdim/2+j/2 + imc/2*hax);
+      if (all3flag) k = 4*(imc/2*xdim/2+j/2 + imc/2*hax);
       else if(plane == HORIZONTAL)
   k = 4*(imc*xdim+j);
       vidbuf[k] = ccolor1; vidbuf[k+1] = vidbuf[k+2] = ccolor2;
@@ -1150,10 +1156,13 @@ void draw_image_hacked(int imc, int ic, int jc)
     setupCoronal(imc/zf);
     getPlane(NULL,1,0,256);
     setupSagittal(jc/zf);
-    getPlane(NULL,1,0,0);
-    setupHorizontal(ic/zf);
     getPlane(NULL,1,256,256);
-    getMaximumProjection(1,256,0);
+    setupHorizontal(ic/zf);
+    getPlane(NULL,1,0,0);
+    if(jc>255)
+      getMaximumProjection(1,256,0,0);
+    else 
+      getMaximumProjection(1,256,0,1);
   }
   
   compose(dhcache,vidbuf);
@@ -3277,13 +3286,13 @@ select_pixel( short sx, short sy, int printflag)
       ic = 2*((sy-oy)-ydim/2);
       jc = 2*(sx-ox);
     }
-    if (sx-ox>xdim/2 && sy-oy>ydim/2) {  /* HOR */
-      imc = 2*((sy-oy)-ydim/2);
-      jc =  2*((sx-ox)-xdim/2);
+    if (sx-ox<xdim/2 && sy-oy<ydim/2) {/* HOR */
+      imc = 2*(sy-oy); /* 2*((sy-oy)-ydim/2);*/ /* 2*(sx-ox); */
+      jc =  2*(sx-ox); /*2*((sx-ox)-xdim/2);*/
     }
-    if (sx-ox<xdim/2 && sy-oy<ydim/2) {  /* SAG */
-      imc = 2*(sx-ox);
-      ic = 2*(sy-oy);
+    if (sx-ox>xdim/2 && sy-oy>ydim/2) { /* SAG */
+      imc =2*((sx-ox)-xdim/2); /* 2*((sy-oy)-ydim/2); */ 
+      ic = 2*((sy-oy)-ydim/2); /* 2*(sy-oy); */
     }
     if (sx-ox>xdim/2 && sy-oy<ydim/2) {  /* max=>center */
       ic = jc = imc = xdim/2;
@@ -3459,7 +3468,8 @@ void draw_image(int imc,int ic,int jc)
               v=0 /*NUMVALS+MAPOFFSET*/;
             if (all3flag) 
             {
-              idx_buf = 4*((xdim*hay) + hax + k + ((imnr/2)*hax)) ;
+              /* idx_buf = 4*((xdim*hay) + hax + k + ((imnr/2)*hax)) ; */
+        idx_buf = 4*(k + ((imnr/2)*hax));
               vidbuf[idx_buf] = vidbuf[idx_buf+1] = vidbuf[idx_buf + 2] = hacked_map[v];
               vidbuf[idx_buf + 3]=255;
               k++;
@@ -3473,13 +3483,16 @@ void draw_image(int imc,int ic,int jc)
             
           }
         for (imnr=imc-curs;imnr<=imc+curs;imnr++) {
-          if (all3flag) k = 4*(xdim*hay+hax + imnr/2*xdim/2+jc/2 + imnr/2*hax);
-          else          k = 4*(imnr*xdim+jc);
+          if (all3flag) 
+      /* k = 4*(xdim*hay+hax + imnr/2*xdim/2+jc/2 + imnr/2*hax); */
+      k = 4*(imnr/2*xdim/2+jc/2 + imnr/2*hax);
+    else          k = 4*(imnr*xdim+jc);
           vidbuf[k] = 255 ; vidbuf[k+1] = vidbuf[k+2] = 0;
           vidbuf[k+3]=255;
         }
         for (j=jc-curs;j<=jc+curs;j++) {
-          if (all3flag) k = 4*(xdim*hay + hax + imc/2*xdim/2+j/2 + imc/2*hax);
+          if (all3flag) /*k = 4*(xdim*hay + hax + imc/2*xdim/2+j/2 + imc/2*hax); */
+      k = 4*(imc/2*xdim/2+j/2 + imc/2*hax);
           else          k = 4*(imc*xdim+j);
           vidbuf[k] = 255 ; vidbuf[k+1] = vidbuf[k+2] = 0;
           vidbuf[k+3]=255;
@@ -3508,7 +3521,8 @@ void draw_image(int imc,int ic,int jc)
                 v=MAPOFFSET;
             if (all3flag) 
             {
-              idx_buf = 4*(k + ((i/2)*hax));
+              /*idx_buf = 4*(k + ((i/2)*hax));*/
+        idx_buf = 4*((xdim*hay) + hax + k + ((i/2)*hax)) ;
               vidbuf[idx_buf] = vidbuf[idx_buf+1] = vidbuf[idx_buf + 2] = hacked_map[v];
               vidbuf[idx_buf + 3]=255;
               k++;
@@ -3521,13 +3535,15 @@ void draw_image(int imc,int ic,int jc)
             }
           }
         for (i=ic-curs;i<=ic+curs;i++) {
-          if (all3flag) k = 4*(i/2*xdim/2+imc/2 + i/2*hax);
+          if (all3flag) /* k = 4*(i/2*xdim/2+imc/2 + i/2*hax);*/
+      k = 4*(xdim*hay+hax + i/2*xdim/2+imc/2 + i/2*hax);
           else          k = 4*(i*xdim+imc);
           vidbuf[k] = 255 ; vidbuf[k+1] = vidbuf[k+2] = 0;
           vidbuf[k+3]=255;
         }
         for (imnr=imc-curs;imnr<=imc+curs;imnr++) {
-          if (all3flag) k = 4*(ic/2*xdim/2+imnr/2 + ic/2*hax);
+          if (all3flag) /*k = 4*(ic/2*xdim/2+imnr/2 + ic/2*hax);*/
+      k = 4*(xdim*hay + hax + ic/2*xdim/2+imnr/2 + ic/2*hax);
           else          k = 4*(ic*xdim+imnr);
           vidbuf[k] = 255 ; vidbuf[k+1] = vidbuf[k+2] = 0;
           vidbuf[k+3]=255;
@@ -3627,12 +3643,12 @@ draw_second_image(int imc, int ic, int jc)
         idx_buf = 4*((xdim*hay) + k + ((i/2)*hax)) ;
         
         vidbuf[idx_buf] = vidbuf[idx_buf+1] = vidbuf[idx_buf + 2] = hacked_map[v];
-      /*
-  #else
-  vidbuf[idx_buf] = vidbuf[idx_buf+1] = vidbuf[idx_buf + 2] = v;
-  #endif
-  vidbuf[idx_buf + 3]=255;
-      */
+        /*
+    #else
+    vidbuf[idx_buf] = vidbuf[idx_buf+1] = vidbuf[idx_buf + 2] = v;
+    #endif
+    vidbuf[idx_buf + 3]=255;
+        */
         k++;
       }
           else
@@ -3641,8 +3657,8 @@ draw_second_image(int imc, int ic, int jc)
         vidbuf[k] = vidbuf[k+1] = vidbuf[k+2]= hacked_map[v]; 
         /*
     #else 
-      vidbuf[k] = vidbuf[k+1] = vidbuf[k+2]= v; 
-      #endif
+    vidbuf[k] = vidbuf[k+1] = vidbuf[k+2]= v; 
+    #endif
         */
         vidbuf[k+3]=255;
         k+=4;
@@ -3650,7 +3666,7 @@ draw_second_image(int imc, int ic, int jc)
         }
     } 
     if (plane==HORIZONTAL || all3flag)
-    {
+      {
       k = 0;
       for (imnr=0;imnr<ydim;imnr++)
         for (j=0;j<xdim;j++)
@@ -3667,7 +3683,8 @@ draw_second_image(int imc, int ic, int jc)
               (j==jc&&abs(imnr-imc)<=curs))
       {
         if (all3flag) {
-    idx_buf = 4*((xdim*hay) + hax + k + ((imnr/2)*hax)) ;
+    /*idx_buf = 4*((xdim*hay) + hax + k + ((imnr/2)*hax)) ;*/
+    idx_buf = 4*(k + ((imnr/2)*hax));
     vidbuf[idx_buf] = 255;
     vidbuf[idx_buf+1] = vidbuf[idx_buf + 2] = 0;
     k++;
@@ -3678,64 +3695,10 @@ draw_second_image(int imc, int ic, int jc)
         }
       }
     else if (all3flag)
-          {
-            idx_buf = 4*((xdim*hay) + hax + k + ((imnr/2)*hax)) ;
-
-            vidbuf[idx_buf] = vidbuf[idx_buf+1] = vidbuf[idx_buf + 2] = hacked_map[v];
-      /*
-#else
-      vidbuf[idx_buf] = vidbuf[idx_buf+1] = vidbuf[idx_buf + 2] = v;
-#endif
-      */
-            vidbuf[idx_buf + 3]=255;
-            k++;
-          }
-          else
-          {
-      
-            vidbuf[k] = vidbuf[k+1] = vidbuf[k+2]= hacked_map[v];
-      /*
-#else
-      vidbuf[k] = vidbuf[k+1] = vidbuf[k+2]= v;
-#endif
-      */
-            vidbuf[k+3]=255;
-            k+=4;
-          }
-        }
-    } /*else*/
-    if (plane==SAGITTAL || all3flag)
-    {
-      k = 0;
-      for (i=0;i<ydim;i++)
-        for (imnr=0;imnr<xdim;imnr++)
-        {
-          if (all3flag && (i%2 || imnr%2)) continue;
-          if (imnr/zf>=0&&imnr/zf<imnr1)
-            v = im2[imnr/zf][(ydim-1-i)/zf][jc/zf]+MAPOFFSET;  
-          else v=MAPOFFSET;
-          if (truncflag)
-            if (v<white_lolim+MAPOFFSET || v>white_hilim+MAPOFFSET)
-              v=MAPOFFSET;
-          if (imnr==impt||i==ipt) v=255-(v-MAPOFFSET)+MAPOFFSET;
-          if ((imnr==imc&&abs(i-ic)<=curs)||
-              (i==ic&&abs(imnr-imc)<=curs)) {
-      if (all3flag) {
-        idx_buf = 4*(k + ((i/2)*hax));
-        vidbuf[idx_buf] = 255;
-        vidbuf[idx_buf+1] = vidbuf[idx_buf + 2] = 0;
-        k++;
-      } else {
-        vidbuf[k]=255;
-        vidbuf[k+1] = vidbuf[k+2]= 0;
-        k+=4;
-      }
-    }
-          else if (all3flag) 
       {
-        idx_buf = 4*(k + ((i/2)*hax));
-
-        vidbuf[idx_buf] = vidbuf[idx_buf+1] = vidbuf[idx_buf + 2] = hacked_map[v]; 
+        /* idx_buf = 4*((xdim*hay) + hax + k + ((imnr/2)*hax)) ; */
+        idx_buf = 4*(k + ((imnr/2)*hax));
+        vidbuf[idx_buf] = vidbuf[idx_buf+1] = vidbuf[idx_buf + 2] = hacked_map[v];
         /*
     #else
     vidbuf[idx_buf] = vidbuf[idx_buf+1] = vidbuf[idx_buf + 2] = v;
@@ -3747,16 +3710,71 @@ draw_second_image(int imc, int ic, int jc)
           else
       {
         
-        vidbuf[k] = vidbuf[k+1] = vidbuf[k+2]= hacked_map[v];   
+        vidbuf[k] = vidbuf[k+1] = vidbuf[k+2]= hacked_map[v];
         /*
     #else
-    vidbuf[k] = vidbuf[k+1] = vidbuf[k+2]= v; 
+    vidbuf[k] = vidbuf[k+1] = vidbuf[k+2]= v;
     #endif
         */
         vidbuf[k+3]=255;
         k+=4;
       }
         }
+    } /*else*/
+    if (plane==SAGITTAL || all3flag)
+    {
+      k = 0;
+      for (i=0;i<ydim;i++)
+        for (imnr=0;imnr<xdim;imnr++)
+    {
+      if (all3flag && (i%2 || imnr%2)) continue;
+      if (imnr/zf>=0&&imnr/zf<imnr1)
+        v = im2[imnr/zf][(ydim-1-i)/zf][jc/zf]+MAPOFFSET;  
+      else v=MAPOFFSET;
+      if (truncflag)
+        if (v<white_lolim+MAPOFFSET || v>white_hilim+MAPOFFSET)
+    v=MAPOFFSET;
+      if (imnr==impt||i==ipt) v=255-(v-MAPOFFSET)+MAPOFFSET;
+      if ((imnr==imc&&abs(i-ic)<=curs)||
+    (i==ic&&abs(imnr-imc)<=curs)) {
+        if (all3flag) {
+    /*idx_buf = 4*(k + ((i/2)*hax));*/
+    idx_buf = 4*((xdim*hay) + hax + k + ((i/2)*hax)) ;
+    vidbuf[idx_buf] = 255;
+    vidbuf[idx_buf+1] = vidbuf[idx_buf + 2] = 0;
+    k++;
+        } else {
+    vidbuf[k]=255;
+    vidbuf[k+1] = vidbuf[k+2]= 0;
+    k+=4;
+        }
+      }
+      else if (all3flag) 
+        {
+    /* idx_buf = 4*(k + ((i/2)*hax)); */
+    idx_buf = 4*((xdim*hay) + hax + k + ((i/2)*hax)) ;
+    vidbuf[idx_buf] = vidbuf[idx_buf+1] = vidbuf[idx_buf + 2] = hacked_map[v]; 
+    /*
+      #else
+      vidbuf[idx_buf] = vidbuf[idx_buf+1] = vidbuf[idx_buf + 2] = v;
+      #endif
+    */
+    vidbuf[idx_buf + 3]=255;
+    k++;
+        }
+      else
+        {
+    
+    vidbuf[k] = vidbuf[k+1] = vidbuf[k+2]= hacked_map[v];   
+    /*
+      #else
+      vidbuf[k] = vidbuf[k+1] = vidbuf[k+2]= v; 
+      #endif
+    */
+    vidbuf[k+3]=255;
+    k+=4;
+        }
+    }
     }
     if (all3flag) 
     {
@@ -4035,8 +4053,10 @@ draw_surface(void)
           vc[num][0] = (ty-yy0)/st;
           vc[num][1] = ynum-((zz1-tz)/ps);
           if (all3flag) { 
-            vc[num][0] = vc[num][0]/2.0;
-            vc[num][1] = vc[num][1]/2.0;
+            /*vc[num][0] = vc[num][0]/2.0;
+        vc[num][1] = vc[num][1]/2.0;*/
+      vc[num][0] = (vc[num][0] + (float)xnum)/2.0;
+            vc[num][1] = (vc[num][1] + (float)ynum)/2.0;
           }
           if (fieldsignflag && fieldsignloaded) {  /* fscontour */
             if (v->fsmask<fsthresh)     color(NUMVALS+MAPOFFSET+1);
@@ -4109,8 +4129,10 @@ draw_surface(void)
           vc[num][0] = (xx1-tx)/ps;
           vc[num][1] = ((ty-yy0)/st);
           if (all3flag) { 
-            vc[num][0] = (vc[num][0] + (float)xnum - 1.0)/2.0;
-            vc[num][1] = (vc[num][1] + (float)ynum - 1.0)/2.0;
+            /*vc[num][0] = (vc[num][0] + (float)xnum - 1.0)/2.0;
+        vc[num][1] = (vc[num][1] + (float)ynum - 1.0)/2.0;*/
+      vc[num][0] = vc[num][0]/2.0;
+      vc[num][1] = vc[num][1]/2.0;
           }
           if (fieldsignflag && fieldsignloaded) {  /* fscontour */
             if (v->fsmask<fsthresh)     color(NUMVALS+MAPOFFSET+1);
