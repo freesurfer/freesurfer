@@ -4,8 +4,8 @@
 /*                                                                     */
 /* Warning: Do not edit the following four lines.  CVS maintains them. */
 /* Revision Author: $Author: tosa $                                           */
-/* Revision Date  : $Date: 2003/08/15 13:43:44 $                                             */
-/* Revision       : $Revision: 1.16 $                                         */
+/* Revision Date  : $Date: 2003/10/30 15:49:41 $                                             */
+/* Revision       : $Revision: 1.17 $                                         */
 /***********************************************************************/
 
 #include <stdio.h>
@@ -28,6 +28,7 @@
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
 static int replaceLabels(MRI *mri_seg) ;
+static void modify_transform(TRANSFORM *transform, MRI *mri);
 
 static int flash = 0 ;
 static int binarize = 0 ;
@@ -73,8 +74,8 @@ main(int argc, char *argv[])
   GCA          *gca, *gca_prune = NULL ;
   MRI          *mri_seg, *mri_tmp, *mri_eq = NULL, *mri_inputs ;
   TRANSFORM    *transform ;
-
   Progname = argv[0] ;
+
   ErrorInit(NULL, NULL, NULL) ;
   DiagInit(NULL, NULL, NULL) ;
 
@@ -230,6 +231,29 @@ main(int argc, char *argv[])
         mri_tmp = MRIread(fname) ;
         if (!mri_tmp)
           ErrorExit(ERROR_NOFILE, "%s: could not read image from file %s", Progname, fname) ;
+	// input check 1
+	if (getSliceDirection(mri_tmp) != MRI_CORONAL)
+	{
+	  ErrorExit(ERROR_BADPARM,"%s: must be in coronal direction, but it is not\n", 
+		    fname);
+	}
+	// input check 2
+	if (mri_tmp->xsize != 1 || mri_tmp->ysize != 1 || mri_tmp->zsize != 1)
+	{
+	  ErrorExit(ERROR_BADPARM,"%s: must have 1mm voxel size, but have (%f, %f, %f)\n", 
+		    fname, mri_tmp->xsize, mri_tmp->ysize, mri_tmp->ysize);
+	}
+	// input check 3
+	if (mri_tmp->c_r != 0 || mri_tmp->c_a != 0 || mri_tmp->c_s != 0)
+	{
+	  printf("INFO: make input volume c_(r,a,s) = 0\n");
+	  printf("INFO: %s has c_r = %f, c_a = %f, c_s = %f\n", fname, 
+		 mri_tmp->c_r, mri_tmp->c_a, mri_tmp->c_s);
+	  mri_tmp->c_r = 0;
+	  mri_tmp->c_a = 0;
+	  mri_tmp->c_s = 0;
+	}
+	// input check 4
         if (i == 0)
         {
           TRs[input] = mri_tmp->tr ;
@@ -293,15 +317,21 @@ main(int argc, char *argv[])
       
       if (xform_name)
       {
+	// we read talairach.xfm which is a RAS-to-RAS
         sprintf(fname, "%s/%s/mri/transforms/%s", 
                 subjects_dir, subject_name, xform_name) ;
         if (DIAG_VERBOSE_ON)
           printf("reading transform from %s...\n", fname) ;
-        transform = TransformRead(fname) ;
+        transform = TransformRead(fname);
         if (!transform)
           ErrorExit(ERROR_NOFILE, "%s: could not read transform from file %s",
-                    Progname, fname) ;
-        TransformInvert(transform, mri_inputs) ;
+                    Progname, fname);
+	// change the transform to vox-to-vox
+	if (transform->type == LINEAR_RAS_TO_RAS)
+	{
+	  modify_transform(transform, mri_inputs);
+	}
+	// TransformInvert(transform, mri_inputs) ;
       }
       else
         transform = TransformAlloc(LINEAR_VOXEL_TO_VOXEL, NULL) ;
@@ -480,7 +510,18 @@ main(int argc, char *argv[])
         if (!transform)
           ErrorExit(ERROR_NOFILE, "%s: could not read transform from file %s",
                     Progname, fname) ;
-        TransformInvert(transform, mri_inputs) ;
+        if (DIAG_VERBOSE_ON)
+          printf("reading transform from %s...\n", fname) ;
+        transform = TransformRead(fname);
+        if (!transform)
+          ErrorExit(ERROR_NOFILE, "%s: could not read transform from file %s",
+                    Progname, fname);
+	// change the transform to vox-to-vox
+	if (transform->type == LINEAR_RAS_TO_RAS)
+	{
+	  modify_transform(transform, mri_inputs);
+	}
+        // TransformInvert(transform, mri_inputs) ;
       }
       else
         transform = TransformAlloc(LINEAR_VOXEL_TO_VOXEL, NULL) ;
@@ -864,3 +905,71 @@ replaceLabels(MRI *mri_seg)
   return(NO_ERROR) ;
 }
 
+// modify transform to vox-to-vox
+static void modify_transform(TRANSFORM *transform, MRI *mri_inputs)
+{
+  LTA *lta=0;
+  MATRIX *i_to_r=0, *r_to_i=0, *tmpmat=0, *vox2vox;
+  MRI *mri_buf = 0;
+  static int warned = 0;
+
+  // we have to know the transform target c_(r,a,s) to do
+  // the right thing.  
+  // we can read the target info from lta
+  lta = (LTA *) (transform->xform);
+
+  // if the transform is not rastoras, then don't do anything
+  if (lta->type != LINEAR_RAS_TO_RAS)
+    return;
+
+  i_to_r = extract_i_to_r(mri_inputs);
+  // temp buf to get the transform
+  mri_buf = MRIallocHeader(mri_inputs->width, mri_inputs->height, mri_inputs->depth, mri_inputs->type);
+  MRIcopyHeader(mri_inputs, mri_buf);
+  // modify using the xform dst
+  if (lta->xforms[0].dst.valid)
+  {
+    mri_buf->c_r = lta->xforms[0].dst.c_r;
+    mri_buf->c_a = lta->xforms[0].dst.c_a;
+    mri_buf->c_s = lta->xforms[0].dst.c_s;
+    if (warned == 0)
+    {
+      fprintf(stderr, "INFO: modified c_(r,a,s) using the xform dst\n");
+      warned = 1;
+    }
+  }
+  else if (getenv("NO_AVERAGE305"))
+  {
+    if (warned == 0)
+      fprintf(stderr, "INFO: did not modify c_(r,a,s).\n");
+    return;
+  }
+  else // use average_305 value
+  {
+    mri_buf->c_r = -0.095;
+    mri_buf->c_a = -16.51;
+    mri_buf->c_s =   9.75;
+    if (warned == 0)
+    {
+      fprintf(stderr, "INFO: modified c_(r,a,s) using average_305 value\n");
+      warned = 1;
+    }
+  }
+  printf("INFO: original RAS-to-RAS transform\n");
+  MatrixPrint(stdout, lta->xforms[0].m_L);
+  // going from vox->RAS->TalRAS
+  tmpmat = MatrixMultiply(lta->xforms[0].m_L, i_to_r, NULL);
+  r_to_i = extract_r_to_i(mri_buf);
+  // going from TalRAS -> voxel
+  vox2vox = MatrixMultiply(r_to_i, tmpmat,NULL );
+  printf("INFO: modified VOX-to-VOX transform\n");
+  MatrixPrint(stdout, vox2vox);
+  // store it
+  MatrixCopy(vox2vox, lta->xforms[0].m_L);
+  // free up memory
+  MatrixFree(&r_to_i);
+  MatrixFree(&i_to_r);
+  MatrixFree(&tmpmat);
+  MatrixFree(&vox2vox);
+  MRIfree(&mri_buf);
+}
