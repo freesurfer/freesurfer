@@ -4609,9 +4609,12 @@ static MRI *analyzeRead(char *fname, int read_volume)
   else {
     mri->ras_good_flag = 0;
     T = MatrixIdentity(4,NULL);
-    T->rptr[1][1] = mri->xsize;
-    T->rptr[2][2] = mri->ysize;
-    T->rptr[3][3] = mri->zsize;
+    T->rptr[1][1] =  mri->xsize;
+    T->rptr[1][4] = -mri->xsize*((mri->width-1)/2.0 + 1); /* +1 for 1-based spm */
+    T->rptr[2][2] =  mri->ysize;
+    T->rptr[2][4] = -mri->ysize*((mri->height-1)/2.0 + 1);
+    T->rptr[3][3] =  mri->zsize;
+    T->rptr[3][4] = -mri->zsize*((mri->depth-1)/2.0 + 1);
   }
 
   /* ---- Assign the Geometric Paramaters -----*/
