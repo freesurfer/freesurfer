@@ -2695,10 +2695,16 @@ MRISreadCurvatureFile(MRI_SURFACE *mris, char *sname)
   fp = fopen(fname,"r");
   if (fp==NULL) 
     ErrorReturn(ERROR_NOFILE, 
-                (ERROR_NOFILE, "MRISreadBinaryCurvature: could not open %s", 
+                (ERROR_NOFILE, "MRISreadCurvature: could not open %s", 
                  fname)) ;
 
   fread3(&vnum,fp);
+  if (vnum == NEW_VERSION_MAGIC_NUMBER)
+  {
+    fclose(fp) ;
+    return(MRISreadNewCurvatureFile(mris, fname)) ;
+  }
+  
   fread3(&fnum,fp);
   if (vnum!= mris->nvertices)
   {
@@ -6618,7 +6624,7 @@ MRISscaleBrain(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst, float scale)
 int
 MRISwriteCurvature(MRI_SURFACE *mris, char *sname)
 {
-  int    k,i ;
+  int    k ;
   float  curv;
   char   fname[STRLEN], *cp, path[STRLEN], name[STRLEN] ;
   FILE   *fp;
@@ -6654,13 +6660,14 @@ MRISwriteCurvature(MRI_SURFACE *mris, char *sname)
                 (ERROR_NOFILE, "MRISwriteCurvature: could not open %s", 
                  fname)) ;
 
-  fwrite3(mris->nvertices,fp);
-  fwrite3(mris->nfaces,fp);
+  fwrite3(-1, fp) ;   /* same old trick - mark it as new format */
+  fwriteInt(mris->nvertices,fp);
+  fwriteInt(mris->nfaces,fp);
+  fwriteInt(1, fp) ;    /* 1 value per vertex */
   for (k=0;k<mris->nvertices;k++)
   {
     curv = mris->vertices[k].curv ;
-    i = nint(curv * 100.0) ;
-    fwrite2((int)i,fp);
+    fwriteFloat(curv, fp) ;
   }
   fclose(fp);
   return(NO_ERROR) ;
@@ -28683,3 +28690,128 @@ mrisFindGrayWhiteBorderMean(MRI_SURFACE *mris, MRI *mri)
   return(NO_ERROR) ;
 }
 
+int
+MRISreadNewCurvatureFile(MRI_SURFACE *mris, char *sname)
+{
+  int    k,vnum,fnum, vals_per_vertex ;
+  float  curv, curvmin, curvmax;
+  FILE   *fp;
+  char   *cp, path[STRLEN], fname[STRLEN] ;
+  
+  cp = strchr(sname, '/') ;
+  if (!cp)                 /* no path - use same one as mris was read from */
+  {
+    cp = strchr(sname, '.') ;
+    FileNamePath(mris->fname, path) ;
+    if (cp)
+      sprintf(fname, "%s/%s", path, sname) ;
+    else   /* no hemisphere specified */
+      sprintf(fname, "%s/%s.%s", path, 
+              mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", sname) ;
+  }
+  else   
+    strcpy(fname, sname) ;  /* path specified explcitly */
+
+  if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON) 
+    fprintf(stdout, "reading curvature file...") ;
+
+  fp = fopen(fname,"r");
+  if (fp==NULL) 
+    ErrorReturn(ERROR_NOFILE, 
+                (ERROR_NOFILE, "MRISreadBinaryCurvature: could not open %s", 
+                 fname)) ;
+
+  fread3(&vnum,fp);
+  if (vnum != NEW_VERSION_MAGIC_NUMBER)
+  {
+    fclose(fp) ;
+    return(MRISreadCurvatureFile(mris, fname)) ;
+  }
+  
+  vnum = freadInt(fp);
+  fnum = freadInt(fp);
+  if (vnum!= mris->nvertices)
+  {
+    fclose(fp) ;
+    ErrorReturn(ERROR_NOFILE, 
+                (ERROR_NOFILE, "MRISreadNewCurvature: incompatible vertex "
+                 "number in file %s", fname)) ;
+  }
+  vals_per_vertex = freadInt(fp) ;
+  if (vals_per_vertex != 1)
+  {
+    fclose(fp) ;
+    ErrorReturn(ERROR_NOFILE, 
+                (ERROR_NOFILE, "MRISreadNewCurvature(%s): vals/vertex %d unsupported (must be 1) ",
+                 fname, vals_per_vertex)) ;
+  }
+
+  curvmin = 10000.0f ; curvmax = -10000.0f ;  /* for compiler warnings */
+  for (k=0;k<vnum;k++)
+  {
+    curv = freadFloat(fp) ;
+    if (k==0) curvmin=curvmax=curv;
+    if (curv>curvmax) curvmax=curv;
+    if (curv<curvmin) curvmin=curv;
+    mris->vertices[k].curv = curv;
+  }
+  mris->max_curv = curvmax ;
+  mris->min_curv = curvmin ;
+  if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+    fprintf(stdout, "done. min=%2.3f max=%2.3f\n", curvmin, curvmax) ;
+  fclose(fp);
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+int
+MRISpaintVolume(MRI_SURFACE *mris, LTA *lta, MRI *mri)
+{
+  VERTEX   *v ;
+  int      vno, width, height, depth ;
+  Real     x, y, z, val ;
+  MATRIX   *m_L, *m_ras_to_voxel ;
+  VECTOR   *v_surf, *v_vol ;
+
+  if (lta->type != LINEAR_RAS_TO_RAS)
+    ErrorReturn(ERROR_UNSUPPORTED, (ERROR_UNSUPPORTED, 
+                                    "MRISsampleVolume: unsupported transform type %d",
+                                    lta->type)) ;
+
+  v_surf = VectorAlloc(4, MATRIX_REAL) ;
+  v_vol = VectorAlloc(4, MATRIX_REAL) ;
+  *MATRIX_RELT(v_surf, 4, 1) = 1.0 ;
+  *MATRIX_RELT(v_vol, 4, 1) = 1.0 ;
+  m_ras_to_voxel = MRIgetRasToVoxelXform(mri) ;
+
+  m_L = MatrixMultiply(m_ras_to_voxel, lta->xforms[0].m_L, NULL) ;
+  width  = mri->width ; height  = mri->height ; depth  = mri->depth ;
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    if (vno == Gdiag_no)
+      DiagBreak() ;
+    v = &mris->vertices[vno] ;
+    V3_X(v_surf) = v->x+.5*v->curv*v->nx ; 
+    V3_Y(v_surf) = v->y+.5*v->curv*v->ny ; 
+    V3_Z(v_surf) = v->z+.5*v->curv*v->nz ; 
+
+    MatrixMultiply(m_L, v_surf, v_vol) ;
+    x = V3_X(v_vol) ; y = V3_Y(v_vol) ; z = V3_Z(v_vol) ;
+
+    MRIsampleVolume(mri, x, y, z, &val) ;
+    v->val = val ;
+    if (Gdiag_no == vno)
+      printf("vertex %d at (%2.1f, %2.1f, %2.1f) --> voxel (%2.1f, %2.1f, %2.1f) = %2.2f\n",
+             vno, v->x+.5*v->curv*v->nx, 
+             v->y+.5*v->curv*v->ny, v->z+.5*v->curv*v->nz, x, y, z, val) ;
+  }
+
+  MatrixFree(&v_surf) ; MatrixFree(&v_vol) ; MatrixFree(&m_L) ; 
+  MatrixFree(&m_ras_to_voxel) ;
+  return(NO_ERROR) ;
+}
