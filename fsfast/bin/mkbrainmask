@@ -1,10 +1,10 @@
 #!/bin/csh -f
 # mkbrainmask - frontend for FSL's BET (Brain Extraction Tool)
 #
-# $Id: mkbrainmask,v 1.1 2003/03/04 21:22:09 greve Exp $
+# $Id: mkbrainmask,v 1.2 2004/04/26 18:10:33 greve Exp $
 #
 
-set VERSION = '$Id: mkbrainmask,v 1.1 2003/03/04 21:22:09 greve Exp $';
+set VERSION = '$Id: mkbrainmask,v 1.2 2004/04/26 18:10:33 greve Exp $';
 set FASTVER = `cat $FSFAST_HOME/docs/version`;
 
 set inputargs = ($argv);
@@ -75,20 +75,20 @@ endif
 echo "# ---------- Converting bvolume to .img ------------------ #"
 set cmd = (mri_convert $instem"_000."$suffix $scratchdir/$inbase.img)
 set cmd = ($cmd $sizeopts);
+pwd
+echo $cmd
 $cmd
 if($status) then
-  pwd
-  echo $cmd
   echo "ERROR: mri_convert failed"
   exit 1;
 endif
 
 echo "# ---------- Using FSL's BET to Extract Brain------------------ #"
 set cmd = (bet $scratchdir/$inbase $scratchdir/$outbase -m -f $thresh)
+pwd
+echo $cmd
 $cmd
 if($status) then
-  pwd
-  echo $cmd
   echo "ERROR: bet failed"
   exit 1;
 endif
@@ -99,10 +99,10 @@ cp $scratchdir/$inbase.mat $scratchdir/$outbase"_mask".mat
 # Convert the binary mask back to bshort #
 echo "# ---------- Converting binary mask back to bshort ------------------ #"
 set cmd = (mri_convert $scratchdir/$outbase"_mask".img $outstem"_000.bshort")
+pwd
+echo $cmd
 $cmd
 if($status) then
-  pwd
-  echo $cmd
   echo "ERROR: mri_convert failed"
   exit 1;
 endif
