@@ -7,10 +7,9 @@
 AC_PREREQ(2.57)
 AC_INIT(Freesurfer, 0.1, tosa@nmr.mgh.harvard.edu)
 AC_CONFIG_AUX_DIR([config])
-AC_MSG_NOTICE(Setting libtool ...)
-AC_PROG_LIBTOOL 
 # create specifal dir for intermediate files
 AC_MSG_NOTICE(Setting System ...)
+# set target, build, host etc. 
 AC_CANONICAL_SYSTEM
 AM_INIT_AUTOMAKE
 AC_CONFIG_SRCDIR([config.h.in])
@@ -24,7 +23,8 @@ AC_PROG_INSTALL
 AC_PROG_LN_S
 AC_PROG_MAKE_SET
 AC_PROG_CPP
-AC_PROG_LIBTOOL
+AC_PROG_LIBTOOL 
+
 # two programs used for compress/decompress files
 # cannot make AC_MSG_ERROR work inside the AC_CHECK_PROG so that I took it out.
 AC_CHECK_PROG([HAS_ZCAT],[zcat],[1],[])
@@ -130,6 +130,8 @@ AC_SUBST(DYNAMIC_LIB_EXT)
 AC_SUBST(SHARED_CFLAGS)
 AC_SUBST(SHARED_LDFLAGS)
 
+AC_MSG_NOTICE(OS is $OS)
+
 ##############################################################
 # cpu optimization
 ##############################################################
@@ -137,7 +139,6 @@ if test "${CC}" = "gcc"; then
 AC_MSG_NOTICE(Setting CPU optimization ...)
 CPUFLAGS=""
 CPUTYPE="NO"
-AC_MSG_CHECKING(CPU optimization ...)
 #### 
 #### cpu type: we support 
 ####     pentium3, pentium4,  
@@ -205,6 +206,9 @@ if test "$CPUTYPE" = "NO"; then
   esac
 fi
 
+AC_MSG_NOTICE(CPUTYPE is $CPUTYPE)
+AC_MSG_CHECKING(CPU optimization ...)
+
 # now set the flag
 case "$CPUTYPE" in 
   pentium3) 
@@ -214,7 +218,7 @@ case "$CPUTYPE" in
      CPUFLAGS="-march=pentium4 -msse2 -mfpmath=sse"
      ;;
   athlonxp)
-     CPUFLGAS="-march=athlon-xp -msse -mfpmath=sse"
+     CPUFLAGS="-march=pentium3 -msse -mfpmath=sse"
      ;;	
   opteron)
      CPUFLAGS="-march=x86-64 -msse2"
@@ -369,9 +373,13 @@ if test ! "$ac_mni_libraries" = "NO"; then
   LDFLAGS="$LDFLAGS $mni_libraries"
 fi
 
+if test ! "$ac_mni_bindir" = "NO"; then 
+  mni_bindir=$ac_mni_bindir 
+fi
+
+AC_SUBST(mni_bindir)
 AC_SUBST(mni_includes)
 AC_SUBST(mni_libraries)
-
 
 ################################################################
 # BLT
@@ -554,6 +562,15 @@ else
   TCL_CFLAGS="$blt_includes $tcl_includes"
 fi
 ###### end of uni*es
+
+# set tcl_libdir
+if test ! tcl_libraries =="NO"; then
+   tcl_libdir=`echo $tcl_libraries | sed "s/-L//g"`
+else
+   tcl_libdir=/usr/lib
+fi
+
+AC_SUBST(tcl_libdir)
 AC_SUBST(tcl_includes)
 AC_SUBST(tcl_libraries)
 
