@@ -61,13 +61,13 @@ main(int argc, char *argv[])
   char   **av, *cp ;
   int    ac, nargs, i, dof, no_transform, which, sno = 0, nsubjects = 0 ;
   MRI    *mri, *mri_mean = NULL, *mri_std, *mri_T1,*mri_binary,*mri_dof=NULL,
-		*mri_priors = NULL ;
+    *mri_priors = NULL ;
   char   *subject_name, *out_fname, fname[STRLEN] ;
-	/*  LTA    *lta;*/
+  /*  LTA    *lta;*/
   MRI *mri_tmp ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_make_template.c,v 1.18 2004/06/08 14:11:32 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_make_template.c,v 1.19 2005/02/25 20:09:42 tosa Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -135,28 +135,28 @@ main(int argc, char *argv[])
                   subjects_dir, subject_name, transform_fname) ;
           
           fprintf(stderr, "reading transform %s...\n", fname) ;
-					////////////////////////////////////////////////////////
+	  ////////////////////////////////////////////////////////
 #if 1
-					{
-						TRANSFORM *transform ;
-						transform = TransformRead(fname) ;
-						if (transform == NULL)
-							ErrorExit(ERROR_NOFILE, "%s: could not open transform file %s\n",Progname, fname) ;
-						mri_tmp = TransformApply(transform, mri_T1, NULL) ;
-						TransformFree(&transform) ;
-					}
+	  {
+	    TRANSFORM *transform ;
+	    transform = TransformRead(fname) ;
+	    if (transform == NULL)
+	      ErrorExit(ERROR_NOFILE, "%s: could not open transform file %s\n",Progname, fname) ;
+	    mri_tmp = TransformApply(transform, mri_T1, NULL) ;
+	    TransformFree(&transform) ;
+	  }
 #else
-					lta = LTAreadEx(fname);
-					if (lta == NULL)
-						ErrorExit(ERROR_NOFILE, 
-											"%s: could not open transform file %s\n",
-											Progname, fname) ;
-					/* LTAtransform() runs either MRIapplyRASlinearTransform() 
-						 for RAS2RAS or MRIlinearTransform() for Vox2Vox. */
-					/* MRIlinearTransform() calls MRIlinearTransformInterp() */
-					mri_tmp = LTAtransform(mri_T1, NULL, lta);
+	  lta = LTAreadEx(fname);
+	  if (lta == NULL)
+	    ErrorExit(ERROR_NOFILE, 
+		      "%s: could not open transform file %s\n",
+		      Progname, fname) ;
+	  /* LTAtransform() runs either MRIapplyRASlinearTransform() 
+	     for RAS2RAS or MRIlinearTransform() for Vox2Vox. */
+	  /* MRIlinearTransform() calls MRIlinearTransformInterp() */
+	  mri_tmp = LTAtransform(mri_T1, NULL, lta);
           MRIfree(&mri_T1) ; mri_T1 = mri_tmp ;
-					LTAfree(&lta); lta = NULL;
+	  LTAfree(&lta); lta = NULL;
 #endif
           fprintf(stderr, "transform application complete.\n") ;
         }
@@ -220,8 +220,8 @@ main(int argc, char *argv[])
         fprintf(stderr, "writing T1 variances to %s...\n", out_fname);
         if (dof <= 1)
           MRIreplaceValues(mri_std, mri_std, 0, 1) ;
-				mri = mri_std ;
-			}
+	mri = mri_std ;
+      }
 
       if (!which)
         MRIwrite(mri, out_fname) ;
@@ -243,9 +243,9 @@ main(int argc, char *argv[])
     for (i = 1 ; i < argc-1 ; i++) {
 
       if (*argv[i] == '-'){   
-				/* don't do transform for next subject */
-				no_transform = 1 ; 
-				continue ; 
+	/* don't do transform for next subject */
+	no_transform = 1 ; 
+	continue ; 
       }
       dof++ ;
 
@@ -262,33 +262,33 @@ main(int argc, char *argv[])
                 subjects_dir, subject_name, transform_fname) ;
         
         fprintf(stderr, "reading transform %s...\n", fname) ;
-				////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////
 #if 1
-					{
-						TRANSFORM *transform ;
-						transform = TransformRead(fname) ;
-						if (transform == NULL)
-							ErrorExit(ERROR_NOFILE, "%s: could not open transform file %s\n",Progname, fname) ;
-						mri_tmp = TransformApply(transform, mri_T1, NULL) ;
-						TransformFree(&transform) ;
-					}
+	{
+	  TRANSFORM *transform ;
+	  transform = TransformRead(fname) ;
+	  if (transform == NULL)
+	    ErrorExit(ERROR_NOFILE, "%s: could not open transform file %s\n",Progname, fname) ;
+	  mri_tmp = TransformApply(transform, mri_T1, NULL) ;
+	  TransformFree(&transform) ;
+	}
 #else
-				lta = LTAreadEx(fname);
-				if (lta == NULL)
-					ErrorExit(ERROR_NOFILE, 
-										"%s: could not open transform file %s\n",
-										Progname, fname) ;
-				printf("transform matrix -----------------------\n");
-				MatrixPrint(stdout,lta->xforms[0].m_L);
-				/* LTAtransform() runs either MRIapplyRASlinearTransform() 
-					 for RAS2RAS or MRIlinearTransform() for Vox2Vox. */
-				/* MRIlinearTransform() calls MRIlinearTransformInterp() */
-				mri_tmp = LTAtransform(mri_T1, NULL, lta);
-				printf("----- -----------------------\n");
+	lta = LTAreadEx(fname);
+	if (lta == NULL)
+	  ErrorExit(ERROR_NOFILE, 
+		    "%s: could not open transform file %s\n",
+		    Progname, fname) ;
+	printf("transform matrix -----------------------\n");
+	MatrixPrint(stdout,lta->xforms[0].m_L);
+	/* LTAtransform() runs either MRIapplyRASlinearTransform() 
+	   for RAS2RAS or MRIlinearTransform() for Vox2Vox. */
+	/* MRIlinearTransform() calls MRIlinearTransformInterp() */
+	mri_tmp = LTAtransform(mri_T1, NULL, lta);
+	printf("----- -----------------------\n");
         MRIfree(&mri_T1) ; 
-				LTAfree(&lta);
+	LTAfree(&lta);
 #endif
-				mri_T1 = mri_tmp ;
+	mri_T1 = mri_tmp ;
         fprintf(stderr, "transform application complete.\n") ;
       }
 
@@ -301,11 +301,11 @@ main(int argc, char *argv[])
         if (!mri_mean || !mri_std)
           ErrorExit(ERROR_NOMEMORY, "%s: could not allocate templates.\n",
                     Progname) ;
-				// if(transform_fname == NULL){
-				printf("Copying geometry\n");
-				MRIcopy(mri_T1,mri_mean);
-				MRIcopy(mri_T1,mri_std);
-				// }
+	// if(transform_fname == NULL){
+	printf("Copying geometry\n");
+	MRIcopy(mri_T1,mri_mean);
+	MRIcopy(mri_T1,mri_std);
+	// }
       }
 
       if(!stats_only){
