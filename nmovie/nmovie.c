@@ -492,14 +492,32 @@ void rgb2xcol(IMAGE *I, byte *ximgdata, int fnum)
 void ConvertImages(int nframes, char **argv)
 {
   IMAGE *I;
-  int i;
+  int i, rows = 0, cols = 0;
 
   for(i=0;i<nframes;i++)
     {
+        
       I = ImageRead(argv[i+1]);
       if (!I)
         ErrorExit(ERROR_NOFILE, 
                   "%s: could not read image file %s\n", Progname,argv[i+1]);
+      if (i == 0)
+      {
+        rows = I->rows ; cols = I->cols ;
+      }
+      else if (rows != I->rows || cols != I->cols)
+      {
+#if 0
+        ErrorExit(ERROR_BADFILE, "%s: image %s dimensions (%d x %d) don't match first image (%d x %d)",
+                  Progname, argv[i+1],I->cols, I->rows, cols, rows) ;
+#else
+        ErrorPrintf(ERROR_BADFILE, "%s: image %s dimensions (%d x %d) don't match first image (%d x %d)",
+                    Progname, argv[i+1],I->cols, I->rows, cols, rows) ;
+#endif
+        argv++ ; nframes-- ; i-- ;
+        continue ;
+      }
+        
       rgb2xcol(I,imgdata,i);
       ImageFree(&I);
     }
@@ -584,25 +602,34 @@ int main(int argc, char **argv)
     useage();
 
   for(i=1;i<argc;i++)
+  {
+    I = ImageReadHeader(argv[i]);
+    if (!I)
+      ErrorExit(ERROR_NOFILE, 
+                "%s: could not read image file %s\n",Progname,argv[i]);
+    switch (I->pixel_format)
     {
-      I = ImageReadHeader(argv[i]);
-      if (!I)
-        ErrorExit(ERROR_NOFILE, 
-                  "%s: could not read image file %s\n",Progname,argv[i]);
-      switch (I->pixel_format)
-      {
-      case PFBYTE:
-      case PFFLOAT:
-        nocolor = 1 ;
+    case PFBYTE:
+    case PFFLOAT:
+      nocolor = 1 ;
+      break ;
+    default:
         break ;
-      default:
-        break ;
-      }
-      pfmt = MAX(pfmt,I->pixel_format);
-      rows = MAX(rows,I->orows);
-      cols = MAX(cols,I->ocols);
-      ImageFree(&I);
     }
+    if ((rows && (I->orows != rows)) || (cols && (I->ocols != cols)))
+    {
+      ErrorPrintf(ERROR_BADFILE, "%s: image %s dimensions (%d x %d) don't match first image (%d x %d)",
+                  Progname, argv[i],I->ocols, I->orows, cols, rows) ;
+      ImageFree(&I) ;
+      memmove(&argv[i], &argv[i+1], argc-i) ;
+      i-- ; argc-- ;
+      continue ;
+    }
+    pfmt = MAX(pfmt,I->pixel_format);
+    rows = MAX(rows,I->orows);
+    cols = MAX(cols,I->ocols);
+    ImageFree(&I);
+  }
 
 
   nframes = argc-1;
