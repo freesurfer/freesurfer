@@ -230,7 +230,7 @@ GCarrayTrainAll(GCARRAY *gcarray, char *training_file_name, int scale, int ninpu
 
     mri_mean = MRImean(mri_src, NULL, 3) ;
     mri_std = MRIstd(mri_src, NULL, mri_mean, 3) ;
-    mri_zscore = MRInorm(mri_src, NULL, mri_mean, mri_std) ;
+    mri_zscore = MRIzScore(mri_src, NULL, mri_mean, mri_std) ;
 
     mris[0] = mri_src ;
     mris[1] = mri_zscore ;
@@ -274,7 +274,7 @@ GCarrayTrainAll(GCARRAY *gcarray, char *training_file_name, int scale, int ninpu
 
     mri_mean = MRImean(mri_src, NULL, 3) ;
     mri_std = MRIstd(mri_src, NULL, mri_mean, 3) ;
-    mri_zscore = MRInorm(mri_src, NULL, mri_mean, mri_std) ;
+    mri_zscore = MRIzScore(mri_src, NULL, mri_mean, mri_std) ;
     mris[0] = mri_src ;
     mris[1] = mri_zscore ;
     MRIfree(&mri_mean) ;
@@ -496,7 +496,7 @@ GCarrayClassify(GCARRAY *gcarray, MRI *mri_src, MRI *mri_dst,
 
   mri_mean = MRImean(mri_src, NULL, 3) ;
   mri_std = MRIstd(mri_src, mri_std, NULL, 3) ;
-  mri_zscore = MRInorm(mri_src, NULL, mri_mean, mri_std) ;
+  mri_zscore = MRIzScore(mri_src, NULL, mri_mean, mri_std) ;
   MRIfree(&mri_std) ;
   MRIfree(&mri_mean) ;
   if (conf < 0.0f || conf >= 1.0f)
