@@ -9,7 +9,7 @@
 #include "matrix.h"
 #include "proto.h"
 
-static char vcid[] = "$Id: mri_wmfilter.c,v 1.3 1997/12/15 20:33:02 fischl Exp $";
+static char vcid[] = "$Id: mri_wmfilter.c,v 1.4 1998/06/16 22:05:48 fischl Exp $";
 
 /*-------------------------------------------------------------------
                                 CONSTANTS
@@ -58,7 +58,7 @@ char *Progname ;
                              STATIC PROTOTYPES
 -------------------------------------------------------------------*/
 
-void main(int argc,char *argv[]) ;
+int main(int argc,char *argv[]) ;
 static void read_image_info(char *fpref) ;
 static void plane_filter(int niter) ;
 static void read_images(char *fpref) ;
@@ -71,7 +71,7 @@ static void print_help(void) ;
                                 FUNCTIONS
 -------------------------------------------------------------------*/
 
-void
+int
 main(int argc,char *argv[])
 {
   int   i,j,option=1, nargs;
@@ -161,6 +161,7 @@ main(int argc,char *argv[])
   plane_filter(option);
   write_images(pfname);
   exit(0) ;
+  return(0) ;
 }
 
 static void

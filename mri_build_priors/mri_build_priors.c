@@ -11,7 +11,7 @@
 #include "mrinorm.h"
 #include "mriclass.h"
 
-void main(int argc, char *argv[]) ;
+int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
 
 char *Progname ;
@@ -19,7 +19,7 @@ char *Progname ;
 static int verbose = 1 ;
 #define PRIOR_SCALE 3
 
-void
+int
 main(int argc, char *argv[])
 {
   char   **av ;
@@ -101,8 +101,8 @@ main(int argc, char *argv[])
   MRIwrite(mri_priors, output_file_name) ;
   fclose(fp) ;
   exit(0) ;
+  return(0) ;
 }
-
 /*----------------------------------------------------------------------
             Parameters:
 

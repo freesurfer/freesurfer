@@ -10,13 +10,13 @@
 #include "proto.h"
 
 
-void main(int argc, char *argv[]) ;
+int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
 
 char *Progname ;
 int reductions = 1 ;
 
-void
+int
 main(int argc, char *argv[])
 {
   char   **av ;
@@ -66,6 +66,7 @@ main(int argc, char *argv[])
   MRIwrite(mri_dst, out_fname) ;
   fprintf(stderr, "\n") ;
   exit(0) ;
+  return(0) ;
 }
 
 /*----------------------------------------------------------------------

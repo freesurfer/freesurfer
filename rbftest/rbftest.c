@@ -17,7 +17,7 @@ static int  verbose = 0 ;
 
 char *Progname ;
 
-void main(int argc, char *argv[]) ;
+int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
 /*static int readAllData(FILE *fp, CLUSTER_SET *cs) ;*/
 static int read_line(VECTOR *v_obs, int obs_no, void *vfp, int same_class,
@@ -41,7 +41,7 @@ static char *class_names[MAX_CLASSES] = { "gray", "white" , "two", "three",
                                             "four"} ;
 static int max_clusters[MAX_CLASSES] = { NCLUSTERS, NCLUSTERS, NCLUSTERS } ;
 
-void 
+int
 main(int argc, char *argv[])
 {
   char         *input_file_name ;
@@ -88,6 +88,7 @@ main(int argc, char *argv[])
   fclose(fp) ;
 
   exit(0) ;
+  return(0) ;
 }
 /*----------------------------------------------------------------------
             Parameters:

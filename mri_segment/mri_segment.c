@@ -20,10 +20,10 @@ static float nslope = 1.0f ;
 
 char *Progname ;
 
-void main(int argc, char *argv[]) ;
+int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
 
-void 
+int
 main(int argc, char *argv[])
 {
   MRI     *mri_src, *mri_dst, *mri_cpolv, *mri_tmp ;
@@ -67,6 +67,7 @@ main(int argc, char *argv[])
   MRIfree(&mri_src) ;
   MRIfree(&mri_dst) ;
   exit(0) ;
+  return(0) ;
 }
 /*----------------------------------------------------------------------
             Parameters:

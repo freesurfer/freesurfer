@@ -10,14 +10,14 @@
 #include "diag.h"
 #include "proto.h"
 
-void main(int argc, char *argv[]) ;
+int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
 
 char *Progname ;
 
 static int verbose = 0 ;
 
-void
+int
 main(int argc, char *argv[])
 {
   char   **av ;
@@ -74,6 +74,7 @@ main(int argc, char *argv[])
     fprintf(stderr, "done.\n") ;
   MRIfree(&mri) ;
   exit(0) ;
+  return(0) ;
 }
 
 /*----------------------------------------------------------------------

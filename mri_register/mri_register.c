@@ -32,7 +32,7 @@ typedef struct
 static MRI  *register_mri(MRI *mri_in, MRI *mri_ref, MRI *mri_reg,
                           REG_PARMS *ref_parms, REG_PARMS *in_parms);
 static int get_option(int argc, char *argv[]) ;
-void main(int argc, char *argv[]) ;
+int main(int argc, char *argv[]) ;
 static int load_parms(char *dir_name, REG_PARMS *parms) ;
 static int write_parms(char *dir_name, REG_PARMS *parms) ;
 static int free_parms(REG_PARMS *parms) ;
@@ -44,7 +44,7 @@ static int free_parms(REG_PARMS *parms) ;
    argv[2]  - directory containing brain to be registered
    argv[3]  - directory in which to write out registered brain.
 */
-void
+int
 main(int argc, char *argv[])
 {
   char       ref_dir_name[STR_LEN], in_dir_name[STR_LEN],out_dir_name[STR_LEN];
@@ -146,6 +146,7 @@ main(int argc, char *argv[])
   if (mri_in)
     MRIfree(&mri_in) ;
   exit(0) ;
+  return(0) ;
 }
 
 static MRI *

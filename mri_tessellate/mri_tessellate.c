@@ -53,7 +53,7 @@ int jmax=255;
 
 int value;
 
-void main(int argc, char *argv[]) ;
+int main(int argc, char *argv[]) ;
 static void read_images(char *fpref) ;
 static void add_face(int imnr, int i, int j, int f, int prev_flag) ;
 static int add_vertex(int imnr, int i, int j) ;
@@ -70,7 +70,7 @@ static void write_binary_surface(char *fname) ;
 
 char *Progname ;
 
-void
+int
 main(int argc, char *argv[])
 {
     char ifpref[80],ofpref[80] /*,*data_dir*/;
@@ -115,7 +115,8 @@ main(int argc, char *argv[])
     write_binary_surface(ofpref);
 #endif
     write_binary_surface2(ofpref);
-
+    exit(0) ;
+    return(0) ;
 }
 
 static void
