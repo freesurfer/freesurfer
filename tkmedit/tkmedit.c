@@ -2531,7 +2531,8 @@ void talairach_to_coords(void)
 void set_cursor(float xpt, float ypt, float zpt)
 {
   double dzf;
-  Real  x, y, z, x_tal, y_tal, z_tal ;
+  Real   x, y, z, x_tal, y_tal, z_tal ;
+  int    secondpixelval, xi, yi, zi ;
 
   x = y = z = 0.0;
   if (ptype==0) /* Horizontal */
@@ -2560,38 +2561,38 @@ void set_cursor(float xpt, float ypt, float zpt)
   /*imc = impt;*/
   jpt=ipt=impt = -1;  /* crosshair off */
 
-  if (imc/zf>=0 && imc/zf<imnr1) {
-    if (drawsecondflag && second_im_allocated) {
-      selectedpixval = im2[(int)(imc/zf)][(int)((ydim-1-ic)/zf)][(int)(jc/zf)];
-      printf("val=%d ",selectedpixval);
-    }
-    else {
-      selectedpixval = im[(int)(imc/zf)][(int)((ydim-1-ic)/zf)][(int)(jc/zf)];
-      printf("val=%d ",selectedpixval);
+  if (imc/zf>=0 && imc/zf<imnr1) 
+  {
+    xi = (int)(jc/zf) ; yi = (int)((ydim-1-ic)/zf) ; zi = (int)(imc/zf) ;
+    selectedpixval = im[zi][yi][xi];
+    printf("val=%d ",selectedpixval);
+    if (second_im_allocated) 
+    {
+      secondpixelval = im2[zi][yi][xi];
+      printf("(2nd val=%d ",secondpixelval);
     }
   }
   if (ptype==0) /* Horizontal */
   {
     printf(
-    "imnr(P/A)=%2.1f, i(I/S)=%2.1f, j(R/L)=%2.1f (x=%2.1f y=%2.1f z=%2.1f)\n",
-       imc/fsf,ic/fsf,jc/fsf,xx1-ps*jc/fsf,yy0+ps*ic/fsf,zz0+st*imc/fsf);
+    "imnr(P/A)=%d, i(I/S)=%df, j(R/L)=%d (x=%2.1f y=%2.1f z=%2.1f)\n",
+       zi,yi,xi,xx1-ps*jc/fsf,yy0+ps*ic/fsf,zz0+st*imc/fsf);
     x = (Real)(xx1-ps*jc/fsf) ;
     y = (Real)(yy0+ps*ic/fsf) ;
     z = (Real)(zz0+st*imc/fsf) ;
   } else if (ptype==2) /* Coronal */
   {
     printf(
-    "imnr(P/A)=%2.1f, i(I/S)=%2.1f, j(R/L)=%2.1f (x=%2.1f y=%2.1f z=%2.1f)\n",
-            imc/fsf,ic/fsf,jc/fsf,
-            xx1-ps*jc/fsf,yy0+st*imc/fsf,zz1-ps*(255.0-ic/fsf));
+    "imnr(P/A)=%d, i(I/S)=%d, j(R/L)=%d (x=%2.1f y=%2.1f z=%2.1f)\n",
+            zi,yi,xi,xx1-ps*jc/fsf,yy0+st*imc/fsf,zz1-ps*(255.0-ic/fsf));
     x = (Real)(xx1-ps*jc/fsf) ;
     y = (Real)(yy0+st*imc/fsf) ;
     z = (Real)(zz1-ps*(255.0-ic/fsf)) ;
   } else if (ptype==1) /* Sagittal */
   {
     printf(
-    "imnr(P/A)=%2.1f, i(I/S)=%2.1f, j(R/L)=%2.1f (x=%2.1f y=%2.1f z=%2.1f)\n",
-         imc/fsf,ic/fsf,jc/fsf,xx1-ps*jc/fsf,yy0+ps*ic/fsf,zz0+st*imc/fsf);
+    "imnr(P/A)=%d, i(I/S)=%d, j(R/L)=%d (x=%2.1f y=%2.1f z=%2.1f)\n",
+         zi,yi,xi,xx1-ps*jc/fsf,yy0+ps*ic/fsf,zz0+st*imc/fsf);
     x = (Real)(xx1-ps*jc/fsf) ;
     y = (Real)(yy0+ps*ic/fsf) ;
     z = (Real)(zz0+st*imc/fsf) ;
@@ -3163,6 +3164,7 @@ select_pixel( short sx, short sy, int printflag)
 {
   long ox,oy,lx,ly;
   Real  x, y, z, x_tal, y_tal, z_tal ;
+  int   xi,yi, zi ;
 
   x = y = z = 0.0;
   getorigin(&ox,&oy);
@@ -3209,40 +3211,35 @@ select_pixel( short sx, short sy, int printflag)
   }
   if (printflag)
   {
-    if (imc/zf>=0 && imc/zf<imnr1) {
-      if (drawsecondflag && second_im_allocated) {
-  selectedpixval =im2[(int)(imc/zf)][(int)((ydim-1-ic)/zf)]
-    [(int)(jc/zf)];        
-  printf("val=%d ",selectedpixval); 
-      }
-      else {
-        selectedpixval = im[(int)(imc/zf)][(int)((ydim-1-ic)/zf)]
-    [(int)(jc/zf)];        
-  printf("val=%d ",selectedpixval);
+    if (imc/zf>=0 && imc/zf<imnr1) 
+    {
+      xi = (int)(jc/zf) ; yi = (int)((ydim-1-ic)/zf) ; zi = (int)(imc/zf) ;
+      selectedpixval = im[zi][yi][xi];
+      printf("val=%d ",selectedpixval);
+      if (second_im_allocated) 
+      {
+        selectedpixval =im2[zi][yi][xi];        
+        printf("2nd val=%d ",selectedpixval); 
       }
     }
     if (ptype==0) /* Horizontal */
     {
-      printf(
-   "imnr(P/A)=%2.1f, i(I/S)=%2.1f, j(R/L)=%2.1f (x=%2.1f y=%2.1f z=%2.1f)\n",
-         imc/fsf,ic/fsf,jc/fsf,xx1-ps*jc/fsf,yy0+ps*ic/fsf,zz0+st*imc/fsf);
+      printf("imnr(P/A)=%d, i(I/S)=%d, j(R/L)=%d (x=%2.1f y=%2.1f z=%2.1f)\n",
+         zi,yi,yi,xx1-ps*jc/fsf,yy0+ps*ic/fsf,zz0+st*imc/fsf);
       x = (Real)(xx1-ps*jc/fsf) ;
       y = (Real)(yy0+ps*ic/fsf) ;
       z = (Real)(zz0+st*imc/fsf) ;
     } else if (ptype==2) /* Coronal */
     {
-      printf(
-   "imnr(P/A)=%2.1f, i(I/S)=%2.1f, j(R/L)=%2.1f (x=%2.1f y=%2.1f z=%2.1f)\n",
-              imc/fsf,ic/fsf,jc/fsf,
-              xx1-ps*jc/fsf,yy0+st*imc/fsf,zz1-ps*(255.0-ic/fsf));
+      printf("imnr(P/A)=%d, i(I/S)=%d, j(R/L)=%d (x=%2.1f y=%2.1f z=%2.1f)\n",
+             zi, yi, xi,xx1-ps*jc/fsf,yy0+st*imc/fsf,zz1-ps*(255.0-ic/fsf));
       x = (Real)(xx1-ps*jc/fsf) ;
       y = (Real)(yy0+st*imc/fsf) ;
       z = (Real)(zz1-ps*(255.0-ic/fsf)) ;
     } else if (ptype==1) /* Sagittal */
     {
-      printf(
-   "imnr(P/A)=%2.1f, i(I/S)=%2.1f, j(R/L)=%2.1f (x=%2.1f y=%2.1f z=%2.1f)\n",
-           imc/fsf,ic/fsf,jc/fsf,xx1-ps*jc/fsf,yy0+ps*ic/fsf,zz0+st*imc/fsf);
+      printf("imnr(P/A)=%d, i(I/S)=%d, j(R/L)=%d (x=%2.1f y=%2.1f z=%2.1f)\n",
+             zi, yi, xi, xx1-ps*jc/fsf,yy0+ps*ic/fsf,zz0+st*imc/fsf);
       x = (Real)(xx1-ps*jc/fsf) ;
       y = (Real)(yy0+ps*ic/fsf) ;
       z = (Real)(zz0+st*imc/fsf) ;
