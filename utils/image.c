@@ -1629,7 +1629,7 @@ ImageRescale(IMAGE *inImage, IMAGE *outImage, float scale)
   cols = nint((float)inImage->cols * scale) ;
   rows = nint((float)inImage->rows * scale) ;
   if (!outImage)
-    outImage = ImageAlloc(rows, cols, inImage->pixel_format,inImage->num_frame);
+   outImage = ImageAlloc(rows, cols, inImage->pixel_format,inImage->num_frame);
 
   if (scale == 1)
     ImageCopy(inImage, outImage) ;
@@ -1655,11 +1655,9 @@ ImageScaleDown(IMAGE *inImage, IMAGE *outImage, float scale)
   float  *foutPix ;
 
   if (!ImageCheckSize(inImage, outImage, nint((float)inImage->rows*scale),
-                          nint((float)inImage->cols*scale), inImage->num_frame) )
-  {
-    fprintf(stderr, "ImageScaleDown: output image not big enough\n") ;
-    return(-1) ;
-  }
+                        nint((float)inImage->cols*scale), inImage->num_frame))
+    ErrorReturn(-1, (ERROR_NO_MEMORY,
+                     "ImageScaleDown: output image not big enough\n")) ;
 
   outImage->cols = nint((float)inImage->cols * scale) ;
   outImage->rows = nint((float)inImage->rows * scale) ;
@@ -1707,9 +1705,9 @@ ImageScaleDown(IMAGE *inImage, IMAGE *outImage, float scale)
           }
         break ;
       default:
-        fprintf(stderr, "ImageScaleDown: unsupported output pixel format %d\n",
-                outImage->pixel_format) ;
-        return(-1) ;
+        ErrorReturn(-1, (ERROR_UNSUPPORTED,
+                       "ImageScaleDown: unsupported output pixel format %d\n", 
+                         outImage->pixel_format)) ;
         break ;
       }
       break ;
@@ -1739,18 +1737,18 @@ ImageScaleDown(IMAGE *inImage, IMAGE *outImage, float scale)
           }
         break ;
       default:
-        fprintf(stderr, "ImageScaleDown: unsupported output pixel format %d\n",
-                outImage->pixel_format) ;
-        return(-1) ;
+        ErrorReturn(-1, (ERROR_UNSUPPORTED,
+                       "ImageScaleDown: unsupported output pixel format %d\n", 
+                         outImage->pixel_format)) ;
         break ;
       }
       break ;
     case PFINT:
       
     default:
-      fprintf(stderr, "ImageScaleDown: unsupported pixel format %d\n", 
-              inImage->pixel_format) ;
-      return(-2) ;
+      ErrorReturn(-2, (ERROR_UNSUPPORTED,
+                       "ImageScaleDown: unsupported pixel format %d\n", 
+                       inImage->pixel_format)) ;
     }
     inImage->image += inImage->sizeimage ;
     inImage->firstpix += inImage->sizeimage ;
