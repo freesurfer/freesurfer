@@ -39,6 +39,8 @@
 
 #define EVEN(n)      ((((n) / 2) * 2) == n)
 #define ODD(n)       (!EVEN(n))
+#define ISEVEN       EVEN
+#define ISODD        ODD
 
 #define RADIANS(deg) (2.0 * PI * (double)(deg)) / (360.0)
 #define DEGREES(rad) ((360.0 * (double)(rad)) / (2.0 * PI))
