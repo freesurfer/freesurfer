@@ -597,8 +597,11 @@ MRInormCheckPeaks(MNI *mni, float *inputs, float *outputs, int npeaks)
 {
   int        starting_slice, slice, deleted[MAX_SPLINE_POINTS], old_slice,n ;
   float      Iup, I, Idown, dI, dy, grad, max_gradient ;
+  int i;
 
-
+  for (i=0; i < MAX_SPLINE_POINTS; ++i)
+    deleted[i] = 0;
+  
   /* rule of thumb - at least a third of the coefficients must be valid */
   if (npeaks < (mni->windows_above_t0+mni->windows_below_t0)/3) 
     return(0) ;
@@ -3122,6 +3125,8 @@ MRI3dUseFileControlPoints(MRI *mri, char *fname)
 
     }
     xctrl[i] = (int) xr ; yctrl[i] = (int) yr ; zctrl[i] = (int) zr ;
+    // if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+      fprintf(stderr, "( %5d, %5d, %5d )\n", xctrl[i], yctrl[i], zctrl[i]);
   }
   free(pArray);
   return(NO_ERROR) ;
