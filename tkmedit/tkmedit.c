@@ -207,6 +207,7 @@ double ffrac3=1.0,ffrac2=1.0,ffrac1=1.0,ffrac0=1.0;
 
 int imc=0,ic=0,jc=0;
 int impt = -1,ipt = -1,jpt = -1;
+float x_click, y_click, z_click ;
 
 char *subjectsdir;   /* SUBJECTS_DIR */
 char *srname;        /* sessiondir--from cwd */
@@ -278,6 +279,7 @@ int read_binary_surface(char *fname) ;
 int read_surface(char *fname) ;
 int read_binary_surf(char *fname) ;
 int show_vertex(void) ;
+int dump_vertex(int vno) ;
 int write_images(char *fpref) ;
 int read_images(char *fpref) ;
 void select_pixel(short sx, short sy, int printflag) ;
@@ -3101,6 +3103,59 @@ write_images(char *fpref)
   editedimage = FALSE;
   return(0);
 }
+int
+dump_vertex(int vno)
+{
+  VERTEX *v, *vn ;
+  int    n ;
+  float  dx, dy, dz, dist ;
+
+  if (!mris)
+    ErrorReturn(ERROR_BADPARM, 
+                (ERROR_BADPARM, "%s: surface must be loaded\n", Progname)) ;
+
+  v = &mris->vertices[vno] ;
+  fprintf(stderr, 
+          "v %d: x = (%2.2f, %2.2f, %2.2f), n = (%2.2f, %2.2f, %2.2f)\n",
+          vno, v->x, v->y, v->z, v->nx, v->ny, v->nz) ;
+  fprintf(stderr, "nbrs:\n") ;
+  for (n = 0 ; n < v->vnum ; n++)
+  {
+    vn = &mris->vertices[v->v[n]] ;
+    dx = vn->x - v->x ; dy = vn->y - v->y ; dz = vn->z - v->z ;
+    dist = sqrt(dx*dx + dy*dy + dz*dz) ;
+    fprintf(stderr, "\tvn %d, dist = %2.2f\n", v->v[n], dist) ;
+  }
+}
+
+int
+show_vertex(void)
+{
+  VERTEX   *v ;
+  int      vno, min_vno ;
+  float    dx, dy, dz, dist = 0.0, min_dist ;
+
+  if (!mris)
+    ErrorReturn(ERROR_BADPARM, 
+                (ERROR_BADPARM, "%s: surface must be loaded\n", Progname)) ;
+
+  min_vno = -1 ; min_dist = 1e9 ;
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    dx = v->x - x_click ; dy = v->y - y_click ; dz = v->z - z_click ; 
+    dist = dx*dx + dy*dy + dz*dz ;
+    if (dist < min_dist)
+    {
+      min_dist = dist ;
+      min_vno = vno ;
+    }
+  }
+  v = &mris->vertices[min_vno] ;
+  fprintf(stderr, "vno %d @ (%2.1f, %2.1f, %2.1f), %2.1f mm away\n",
+          min_vno, v->x, v->y, v->z, sqrt(min_dist)) ;
+  return(NO_ERROR) ;
+}
 
 void
 select_pixel( short sx, short sy, int printflag)
@@ -3191,6 +3246,9 @@ select_pixel( short sx, short sy, int printflag)
       y = (Real)(yy0+ps*ic/fsf) ;
       z = (Real)(zz0+st*imc/fsf) ;
     }
+    x_click = x ; y_click = y ; z_click = z ;
+    fprintf(stderr, "setting click to (%2.2f,%2.2f,%2.2f)\n",
+            x_click,y_click,z_click) ;
     if (transform_loaded)
     {
       transform_point(linear_transform, x, y, z, &x_tal, &y_tal, &z_tal) ;
@@ -5009,6 +5067,14 @@ int                  W_read_binary_surf  WBEGIN
   ERR(1,"Wrong # args: read_binary_surf")
                        read_binary_surface(sfname); WEND
 
+int                  W_show_vertex  WBEGIN
+  ERR(1,"Wrong # args: show_vertex")
+                       show_vertex(); WEND
+
+int                  W_dump_vertex  WBEGIN
+  ERR(2,"Wrong # args: dump_vertex")
+                       dump_vertex(atoi(argv[1])); WEND
+
 int                  W_read_surface  WBEGIN
   ERR(2,"Wrong # args: read_surface <surface file>")
                        read_surface(argv[1]); WEND
@@ -5153,6 +5219,8 @@ char **argv;
   Tcl_CreateCommand(interp, "smooth_3d",          W_smooth_3d,          REND);
   Tcl_CreateCommand(interp, "flip_corview_xyz",   W_flip_corview_xyz,   REND);
   Tcl_CreateCommand(interp, "read_second_images", W_read_second_images, REND);
+  Tcl_CreateCommand(interp, "show_vertex",        W_show_vertex,   REND);
+  Tcl_CreateCommand(interp, "dump_vertex",        W_dump_vertex,   REND);
   Tcl_CreateCommand(interp, "read_binary_surf",   W_read_binary_surf,   REND);
   Tcl_CreateCommand(interp, "read_surface",       W_read_surface,   REND);
   Tcl_CreateCommand(interp, "wmfilter_corslice",  W_wmfilter_corslice,  REND);
