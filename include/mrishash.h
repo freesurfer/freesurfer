@@ -3,6 +3,17 @@
 
 #include "mrisurf.h"
 
+/* kt - wasn't defined? */
+#ifndef CURRENT_VERTICES
+  #define CURRENT_VERTICES   1
+#endif
+#ifndef ORIGINAL_VERTICES
+  #define ORIGINAL_VERTICES  2
+#endif
+#ifndef CANONICAL_VERTICES
+  #define CANONICAL_VERTICES 3
+#endif
+
 typedef struct
 {
   int     fno ;
@@ -29,10 +40,14 @@ typedef struct
   float            vres ;        /* resolution of discretization */
   int              nbuckets ;    /* total # of buckets */
   MRIS_HASH_BUCKET **buckets[TABLE_SIZE][TABLE_SIZE] ;
+  int              which_vertices ;       /* ORIGINAL, CANONICAL, CURRENT */
 } MRIS_HASH_TABLE, MHT ;
 
 
 MRIS_HASH_TABLE *MHTfillTable(MRI_SURFACE *mris,MRIS_HASH_TABLE *mht) ;
+MRIS_HASH_TABLE *MHTfillTableAtResolution(MRI_SURFACE *mris,
+            MRIS_HASH_TABLE *mht,
+            int which, float res) ;
 MRIS_HASH_TABLE *MHTfillVertexTable(MRI_SURFACE *mris,MRIS_HASH_TABLE *mht,
                                     int which) ;
 MRIS_HASH_TABLE *MHTfillVertexTableRes(MRI_SURFACE *mris,MRIS_HASH_TABLE *mht,
