@@ -4,9 +4,9 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2003/06/05 20:39:23 $
-// Revision       : $Revision: 1.154 $
-char *VERSION = "$Revision: 1.154 $";
+// Revision Date  : $Date: 2003/06/06 15:30:59 $
+// Revision       : $Revision: 1.155 $
+char *VERSION = "$Revision: 1.155 $";
 
 #define TCL
 #define TKMEDIT 
@@ -1027,7 +1027,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
      shorten our argc and argv count. If those are the only args we
      had, exit. */
   /* rkt: check for and handle version tag */
-  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.154 2003/06/05 20:39:23 kteich Exp $");
+  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.155 2003/06/06 15:30:59 kteich Exp $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
   argc -= nNumProcessedVersionArgs;
@@ -5976,19 +5976,18 @@ void DeleteSelectionModule () {
 tkm_tErr AllocateSelectionVolume () {
 
   tkm_tErr   eResult     = tkm_tErr_NoErr;
-  Volm_tErr  eVolume     = Volm_tErr_NoErr;
   int        nZ          = 0;
   int        nY          = 0;
   
   DebugEnterFunction( ("AllocateSelectionVolume()") );
 
-  if( NULL == gAnatomicalVolume[tkm_tVolumeType_Main] )
-     return;
+  DebugAssertThrow( (NULL != gAnatomicalVolume[tkm_tVolumeType_Main]) );
 
   /* If the volume already exists, delete it. */
   if( NULL != gSelectionVolume ) 
     free( gSelectionVolume );
 
+#if 0
   /* Get the dimensions of the anatomical volume. */
   eVolume = Volm_GetDimensions( gAnatomicalVolume[tkm_tVolumeType_Main],
 				&gSelectionVolumeXDimension, 
@@ -5996,6 +5995,17 @@ tkm_tErr AllocateSelectionVolume () {
 				&gSelectionVolumeZDimension );
   DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
 		     eResult, tkm_tErr_ErrorAccessingVolume );
+#else
+
+  /* RKT - that's what it _should_ be able to do, but since we use
+     'screen space' coordinates for anatomical index bounds in here
+     (i.e. see where it sets gnAnatomicalDimension{X,Y,Z} to 256, not
+     the volume dimensions), we do that here too. */
+  gSelectionVolumeXDimension = 256;
+  gSelectionVolumeYDimension = 256;
+  gSelectionVolumeZDimension = 256;
+
+#endif
 
   /* We increment the dimensions by a fudge factor to allow for
      rounding errors in the drawing code when converting to anatomical
@@ -6915,15 +6925,23 @@ tkm_tErr LoadVolume ( tkm_tVolumeType iType,
       tkm_SendTclCommand( tkm_tTclCommand_ShowRASCoords, "1" );
     }
   
+#if 0
   /* save the volume size */
   DebugNote( ("Getting dimension of volume") );
   Volm_GetDimensions( gAnatomicalVolume[iType], &gnAnatomicalDimensionX, 
           &gnAnatomicalDimensionY, &gnAnatomicalDimensionZ  );
-  
-  /* Actually screen dimensions. */
-  gnAnatomicalDimensionX = 
-    gnAnatomicalDimensionY = gnAnatomicalDimensionZ = 256 ;
-  
+#else  
+
+  /* RKT - that's what it _should_ be able to do, but too much of
+     tkmedit depends on the anatomical dimensions being
+     256^3. mriVolume.c, as well. So we define an intermediate 'screen
+     space' as 256^3. tkmedit uses this screen space for
+     everything. */
+  gnAnatomicalDimensionX = 256;
+  gnAnatomicalDimensionY = 256;
+  gnAnatomicalDimensionZ = 256 ;
+#endif
+
   /*  if (Gdiag & DIAG_SHOW)
   printf("setting anatomical dimensions to %d, %d, %d\n",
    gnAnatomicalDimensionX, gnAnatomicalDimensionY, gnAnatomicalDimensionZ  );
