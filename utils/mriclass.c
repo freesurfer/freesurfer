@@ -185,7 +185,7 @@ MRIclassTrainAll(MRIC *mric, char *training_file_name)
   char  source_fname[100], target_fname[100], line[300], *cp ;
   FILE  *fp ;
   int   fno, nfiles ;
-  MRI   *mri_src, *mri_target, *mri_std, *mri_zscore, *mri_mean ;
+  MRI   *mri_src, *mri_target, *mri_std, *mri_zscore, *mri_mean, *mris[10] ;
 
   /* first figure out the total # of files */
   fp = fopen(training_file_name, "r") ;
@@ -202,6 +202,7 @@ MRIclassTrainAll(MRIC *mric, char *training_file_name)
   rewind(fp) ;
 
   /* now calculate means */
+  fprintf(stderr, "computing means...\n") ;
   fno = 0 ;
   while ((cp = fgetl(line, 299, fp)) != NULL)
   {
@@ -224,6 +225,9 @@ MRIclassTrainAll(MRIC *mric, char *training_file_name)
     mri_mean = MRImean(mri_src, NULL, 3) ;
     mri_std = MRIstd(mri_src, NULL, mri_mean, 3) ;
     mri_zscore = MRInorm(mri_src, NULL, mri_mean, mri_std) ;
+    mris[0] = mri_src ;
+    mris[1] = mri_zscore ;
+    MRIclassUpdateMeans(mric, mris, mri_target, 2) ;
 
     MRIfree(&mri_src) ;
     MRIfree(&mri_target) ;
@@ -233,9 +237,46 @@ MRIclassTrainAll(MRIC *mric, char *training_file_name)
     fno++ ;
   }
 
+  MRIclassComputeMeans(mric) ;  /* divide by # of observations */
   rewind(fp) ;
-  /* now calculate covariances */
 
+  /* now calculate covariances */
+  fprintf(stderr, "computing covariance matrices...\n") ;
+  fno = 0 ;
+  while ((cp = fgetl(line, 299, fp)) != NULL)
+  {
+    sscanf(cp, "%s %s", source_fname, target_fname) ;
+    fprintf(stderr, "file[%d]: %s --> %s\n", fno, source_fname, target_fname);
+    mri_src = MRIread(source_fname) ;
+    if (!mri_src)
+    {
+      fprintf(stderr, "could not read MR image %s\n", source_fname) ;
+      continue ;
+    }
+    mri_target = MRIread(target_fname) ;
+    if (!mri_target)
+    {
+      fprintf(stderr, "could not read MR image %s\n", target_fname) ;
+      MRIfree(&mri_src) ;
+      continue ;
+    }
+
+    mri_mean = MRImean(mri_src, NULL, 3) ;
+    mri_std = MRIstd(mri_src, NULL, mri_mean, 3) ;
+    mri_zscore = MRInorm(mri_src, NULL, mri_mean, mri_std) ;
+    mris[0] = mri_src ;
+    mris[1] = mri_zscore ;
+    MRIclassUpdateCovariances(mric, mris, mri_target, 2) ;
+
+    MRIfree(&mri_src) ;
+    MRIfree(&mri_target) ;
+    MRIfree(&mri_zscore) ;
+    MRIfree(&mri_std) ;
+    MRIfree(&mri_mean) ;
+    fno++ ;
+  }
+
+  MRIclassComputeCovariances(mric) ;
 
   fclose(fp) ;
   return(NO_ERROR) ;
@@ -776,5 +817,325 @@ fprintf(stderr,
 #endif
 
   return(gc) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+          update the means using this set of images
+------------------------------------------------------*/
+int
+MRIclassUpdateMeans(MRIC *mric, MRI *mris[], MRI *mri_target, int nimages)
+{
+  GCLASSIFY  *gc ;
+  GCLASS     *gcl ;
+  int        x, y, z, xc, yc, zc, width, depth, height, scale, classno, 
+             nclasses, swidth, sheight, sdepth, overlap ;
+  BUFTYPE    *psrc, *ptarget, src, target ;
+  float      *pzscore ;
+  Real       xt, yt, zt ;
+  MRI        *mri_src ;
+
+  mri_src = mris[0] ;
+
+  scale = mric->scale ;
+  overlap = MAX(1, scale/4) ;
+
+  width = mric->width ;
+  height = mric->height ;
+  depth = mric->depth ;
+  nclasses = NCLASSES ;
+
+  swidth = mri_src->width ;
+  sheight = mri_src->height ;
+  sdepth = mri_src->depth ;
+
+/*
+   the classifiers are distributed in Talairach space, whereas the
+   input MR images are not (necessarily). Therefore we have to
+   transform the voxel coordinates into Tal. space before selecting
+   the training values.
+*/
+
+/* 
+   for each point in the image, find the its Talairach coordinates and
+   therefore the classifier responsible for it, and update it's mean.
+*/
+  for (z = 0 ; z < sdepth ; z++)
+  {
+    for (y = 0 ; y < sheight ; y++)
+    {
+      psrc = &MRIvox(mris[0], 0, y, z) ;
+      ptarget = &MRIvox(mri_target, 0, y, z) ;
+      pzscore = &MRIFvox(mris[1], 0, y, z) ;
+      for (x = 0 ; x < swidth ; x++)
+      {
+        /* find the appropriate classifier for this location */
+        MRIvoxelToTalairachVoxel(mri_src, (Real)x, (Real)y, (Real)z,
+                                 &xt, &yt, &zt) ;
+        xc = nint((xt - scale/2) / scale) ;
+        if (xc < 0)
+          xc = 0 ;
+        else if (xc >= width)
+          xc = width - 1 ;
+        yc = nint((yt - scale/2) / scale) ;
+        if (yc < 0)
+          yc = 0 ;
+        else if (yc >= height)
+          yc = height-1 ;
+        zc = nint((zt - scale/2) / scale) ;
+        if (zc < 0)
+          zc = 0 ;
+        else if (zc >= depth)
+          zc = depth-1 ;
+
+        src = *psrc++ ;
+        target = *ptarget++ ;
+              /* decide what class it is */
+        if (target)
+          classno = WHITE_MATTER ;
+        else
+        {
+          if (src < LO_LIM)
+            classno = BACKGROUND ;
+          else if (src > HI_LIM)
+            classno = BRIGHT_MATTER ;
+          else
+            classno = GREY_MATTER ;
+        }
+        
+        gc = mric->gcs[zc][yc][xc] ;
+        gcl = &gc->classes[classno] ;
+        gcl->nobs++ ;
+        gcl->m_u->rptr[1][1] += (float)src ;
+        gcl->m_u->rptr[2][1] += *pzscore++ ;
+        if (mric->nvars > 2)
+        {
+          gcl->m_u->rptr[3][1] += (float)x ;
+          gcl->m_u->rptr[4][1] += (float)y ;
+          gcl->m_u->rptr[5][1] += (float)z ;
+        }
+      }
+    }
+  }
+
+  return(ERROR_NONE) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+           update the covariance estimates based on new observations
+------------------------------------------------------*/
+int
+MRIclassUpdateCovariances(MRIC *mric, MRI *mris[],MRI *mri_target,int nimages)
+{
+  GCLASSIFY  *gc ;
+  GCLASS     *gcl ;
+  int        x, y, z, xc, yc, zc, width, depth, height, scale, classno, 
+             nclasses, swidth, sheight, sdepth, overlap, col, row ;
+  BUFTYPE    *psrc, *ptarget, src, target ;
+  float      *pzscore, obs[6] ;
+  Real       xt, yt, zt ;
+  MRI        *mri_src ;
+
+  mri_src = mris[0] ;
+
+  scale = mric->scale ;
+  overlap = MAX(1, scale/4) ;
+
+  width = mric->width ;
+  height = mric->height ;
+  depth = mric->depth ;
+  nclasses = NCLASSES ;
+
+  swidth = mri_src->width ;
+  sheight = mri_src->height ;
+  sdepth = mri_src->depth ;
+
+/*
+   the classifiers are distributed in Talairach space, whereas the
+   input MR images are not (necessarily). Therefore we have to
+   transform the voxel coordinates into Tal. space before selecting
+   the training values.
+*/
+
+/* 
+   for each point in the image, find the its Talairach coordinates and
+   therefore the classifier responsible for it, and update it's mean.
+*/
+  for (z = 0 ; z < sdepth ; z++)
+  {
+    for (y = 0 ; y < sheight ; y++)
+    {
+      psrc = &MRIvox(mris[0], 0, y, z) ;
+      ptarget = &MRIvox(mri_target, 0, y, z) ;
+      pzscore = &MRIFvox(mris[1], 0, y, z) ;
+      for (x = 0 ; x < swidth ; x++)
+      {
+        /* find the appropriate classifier for this location */
+        MRIvoxelToTalairachVoxel(mri_src, (Real)x, (Real)y, (Real)z,
+                                 &xt, &yt, &zt) ;
+        xc = nint((xt - scale/2) / scale) ;
+        if (xc < 0)
+          xc = 0 ;
+        else if (xc >= width)
+          xc = width - 1 ;
+        yc = nint((yt - scale/2) / scale) ;
+        if (yc < 0)
+          yc = 0 ;
+        else if (yc >= height)
+          yc = height-1 ;
+        zc = nint((zt - scale/2) / scale) ;
+        if (zc < 0)
+          zc = 0 ;
+        else if (zc >= depth)
+          zc = depth-1 ;
+
+        src = *psrc++ ;
+        target = *ptarget++ ;
+              /* decide what class it is */
+        if (target)
+          classno = WHITE_MATTER ;
+        else
+        {
+          if (src < LO_LIM)
+            classno = BACKGROUND ;
+          else if (src > HI_LIM)
+            classno = BRIGHT_MATTER ;
+          else
+            classno = GREY_MATTER ;
+        }
+        
+        gc = mric->gcs[zc][yc][xc] ;
+        gcl = &gc->classes[classno] ;
+        obs[1] = (float)src - gcl->m_u->rptr[1][1] ;
+        obs[2] = *pzscore++ - gcl->m_u->rptr[2][1] ;
+        if (mric->nvars > 2)
+        {
+          obs[3] = (float)x - gcl->m_u->rptr[3][1] ;
+          obs[4] = (float)y - gcl->m_u->rptr[4][1] ;
+          obs[5] = (float)z - gcl->m_u->rptr[5][1] ;
+        }
+        for (row = 1 ; row <= gcl->m_covariance->rows ; row++)
+        {
+          for (col = 1 ; col <= gcl->m_covariance->cols ; col++)
+            gcl->m_covariance->rptr[row][col] += obs[row] * obs[col] ;
+        }
+      }
+    }
+  }
+
+  return(ERROR_NONE) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+           compute the means for each class
+------------------------------------------------------*/
+int
+MRIclassComputeMeans(MRIC *mric)
+{
+  GCLASSIFY  *gc, **pgc ;
+  GCLASS     *gcl ;
+  int        x, y, z, width, depth, height, classno, nclasses, nobs, row ;
+
+  width = mric->width ;
+  height = mric->height ;
+  depth = mric->depth ;
+
+/*
+   the classifiers are distributed in Talairach space, whereas the
+   input MR images are not (necessarily). Therefore we have to
+   transform the voxel coordinates into Tal. space before selecting
+   the training values.
+*/
+  /* train each classifier, x,y,z are in classifier space */
+  for (z = 0 ; z < depth ; z++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      pgc = mric->gcs[z][y] ;
+      for (x = 0 ; x < width ; x++)
+      {
+        gc = *pgc++ ;
+        nclasses = gc->nclasses ;
+        for (classno = 0 ; classno < nclasses ; classno++)
+        {
+          gcl = &gc->classes[classno] ;
+          nobs = gcl->nobs ;
+          if (nobs)
+          {
+            for (row = 1 ; row <= gcl->m_u->rows ; row++)
+              gcl->m_u->rptr[row][1] /= (float)nobs ;
+          }
+        }
+      }
+    }
+  }
+  return(NO_ERROR) ;
+}
+
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+           compute the means for each class
+------------------------------------------------------*/
+int
+MRIclassComputeCovariances(MRIC *mric)
+{
+  GCLASSIFY  *gc, **pgc ;
+  GCLASS     *gcl ;
+  int        x, y, z, width, depth, height, classno, nclasses, row,col ;
+  float      nobs ;
+
+  width = mric->width ;
+  height = mric->height ;
+  depth = mric->depth ;
+
+/*
+   the classifiers are distributed in Talairach space, whereas the
+   input MR images are not (necessarily). Therefore we have to
+   transform the voxel coordinates into Tal. space before selecting
+   the training values.
+*/
+  /* train each classifier, x,y,z are in classifier space */
+  for (z = 0 ; z < depth ; z++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      pgc = mric->gcs[z][y] ;
+      for (x = 0 ; x < width ; x++)
+      {
+        gc = *pgc++ ;
+        nclasses = gc->nclasses ;
+        for (classno = 0 ; classno < nclasses ; classno++)
+        {
+          gcl = &gc->classes[classno] ;
+          nobs = (float)(gcl->nobs-1) ;  /* ML estimate of covariance */
+          if (nobs > 0.0f)
+          {
+            for (row = 1 ; row <= gcl->m_covariance->rows ; row++)
+            {
+              for (col = 1 ; col <= gcl->m_covariance->cols ; col++)
+                gcl->m_covariance->rptr[row][col] /= nobs ;
+            }
+          }
+          GCinit(gc, classno) ;
+        }
+      }
+    }
+  }
+  return(NO_ERROR) ;
 }
 
