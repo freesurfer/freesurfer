@@ -1,4 +1,4 @@
-function [vol, M, dcminfo, mr_parms] = load_dicom_series(seriesno,dcmdir,dcmfile)
+function [vol, M, tmpdcminfo, mr_parms] = load_dicom_series(seriesno,dcmdir,dcmfile)
 % [vol, M, dcminfo] = load_dicom_series(seriesno,<dcmdir>,<dcmfile>)
 %
 % Reads in a dicom series given:
@@ -16,7 +16,7 @@ function [vol, M, dcminfo, mr_parms] = load_dicom_series(seriesno,dcmdir,dcmfile
 %
 % Bugs: will not load multiple frames or mosaics properly.
 %
-% $Id: load_dicom_series.m,v 1.2 2003/04/30 19:32:53 greve Exp $
+% $Id: load_dicom_series.m,v 1.3 2003/07/21 16:12:44 ebeth Exp $
 
 if(nargin < 1 | nargin > 3)
   fprintf('[vol, M, dcminfo] = load_dicom_series(seriesno,<dcmdir>,<dcmfile>)\n');
@@ -76,7 +76,7 @@ dcminfo = dcminfo0;
 
 fprintf('INFO: search time %g sec\n',toc);
 nfilesseries = size(seriesflist,1);
-fprintf('INFO: Found %d files in series %d\n',nfiles,seriesno);
+fprintf('INFO: Found %d files in series %d\n',nfilesseries,seriesno);
 if(nfilesseries == 0)
   fprintf('ERROR: no files in series\n');
   return;
