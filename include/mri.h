@@ -107,6 +107,7 @@ float MRIvoxelGradient(MRI *mri, int x, int y, int z, float *pdx, float *pdy,
 float MRIvoxelDirection(MRI *mri, int x, int y, int z, int wsize) ;
 float MRIvoxelGradientDir2ndDerivative(MRI *mri, int x0, int y0, int z0, 
                                        int wsize) ;
+MRI  * MRIgradientDir2ndDerivative(MRI *mri_src, MRI *mri_dst, int wsize) ;
 
 /* use these constants for MRIreorder */
 #define XDIM  1
@@ -182,6 +183,7 @@ MRI   *MRIadd(MRI *mri1, MRI *mri2, MRI *mri_dst) ;
 MRI   *MRIaverage(MRI *mri_src, int dof, MRI *mri_dst) ;
 MRI   *MRIdivide(MRI *mri1, MRI *mri2, MRI *mri_dst) ;
 MRI   *MRImultiply(MRI *mri1, MRI *mri2, MRI *mri_dst) ;
+MRI   *MRIscaleAndmultiply(MRI *mri1, float scale, MRI *mri2, MRI *mri_dst) ;
 MRI   *MRIabs(MRI *mri, MRI *mri_dst) ;
 MRI   *MRIscalarMul(MRI *mri_src, MRI *mri_dst, float scalar) ;
 
