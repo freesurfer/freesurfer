@@ -175,6 +175,7 @@ main(int argc, char *argv[])
 
   if (mask_fname)
   {
+		int i ;
     MRI *mri_mask ;
 
     mri_mask = MRIread(mask_fname) ;
@@ -182,6 +183,9 @@ main(int argc, char *argv[])
       ErrorExit(ERROR_NOFILE, "%s: could not open mask volume %s.\n",
                 Progname, mask_fname) ;
 
+		
+		for (i = 1 ; i < WM_MIN_VAL ; i++)
+			MRIreplaceValues(mri_mask, mri_mask, i, 0) ;
     MRImask(mri_in, mri_mask, mri_in, 0, 0) ;
     MRIfree(&mri_mask) ;
   }
