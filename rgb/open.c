@@ -1,3 +1,4 @@
+#define OPEN_GL_CODE  1
 /*
  *  iopen -
  *
@@ -107,8 +108,8 @@ IMAGE *imgopen(int f, char *file, char *mode,
       image->flags = _IOREAD;
   if(ISRLE(image->type)) {
       tablesize = image->ysize*image->zsize*sizeof(long);
-      image->rowstart = (unsigned long *)malloc(tablesize);
-      image->rowsize = (long *)malloc(tablesize);
+      image->rowstart = (unsigned int *)malloc(tablesize);
+      image->rowsize = (int *)malloc(tablesize);
       if( image->rowstart == 0 || image->rowsize == 0 ) {
     i_errhdlr("iopen: error on table alloc\n");
     return NULL;
