@@ -453,6 +453,16 @@ int checkSNbh(MRI *mri,int i,int j,int k,int label,int connectivity)
   return 0;
 }
 
+int checkSimple(Nbh *nbh,int connectivity)
+{
+  Nbh bnbh,dnbh;
+  reverseNbh(nbh,&bnbh);
+  if(checkTn(nbh,&dnbh,connectivity)==1
+&&checkTn(&bnbh,&dnbh,associatedConnectivity(connectivity))==1)
+    return 1;
+  return 0;
+}
+
 //compute the topological number associated with a Nbh and a certain connectivity
 int checkTn(Nbh *nbh_src,Nbh *nbh_dst,int connectivity)
 {
@@ -793,6 +803,9 @@ typedef struct CCSorting
 /*parameters used by the process*/
 typedef struct TC_PARMS    
 { 
+  //to allow the printing of the errors
+  int verbose_mode;
+
   /*volume with orig values*/
   MRI *mri_orig;
   /*volume with labels*/
@@ -1352,20 +1365,32 @@ static int TC_PARMSfree(TC_PARMS **parms)
   TC_PARMS *p=*parms;
   *parms=NULL;
 
-  if(p->list)
-    listFree(&p->list);
+  if(p->list) listFree(&p->list);
 
-  if(p->segmentation)
-    segmentationFree(&p->segmentation);
+  if(p->F_Bseg) segmentationFree(&p->F_Bseg);
+  if(p->F_Rseg) segmentationFree(&p->F_Rseg);
+  if(p->B_Bseg) segmentationFree(&p->B_Bseg);
+  if(p->B_Rseg) segmentationFree(&p->B_Rseg);
+  
+  if(p->F_Bccs) CCSfree(&p->F_Bccs);
+  if(p->F_Rccs) CCSfree(&p->F_Rccs);
+  if(p->B_Bccs) CCSfree(&p->B_Bccs);
+  if(p->B_Rccs) CCSfree(&p->B_Rccs);
 
-  if(p->ccs)
-    CCSfree(&p->ccs);
+  if(p->mri_bin) MRIfree(&p->mri_bin);
+  if(p->mri_dist) MRIfree(&p->mri_dist);
+  if(p->mri_prob) MRIfree(&p->mri_prob);
+  if(p->mri_cprob) MRIfree(&p->mri_cprob);
+  if(p->mri_fcost) MRIfree(&p->mri_fcost);
+  if(p->mri_bcost) MRIfree(&p->mri_bcost);
+  if(p->mri_fprior) MRIfree(&p->mri_fprior);
+  if(p->mri_bprior) MRIfree(&p->mri_bprior);
+  if(p->mri_labeled) MRIfree(&p->mri_labeled);
 
   free(p);
 
   return NO_ERROR;
 }
-
 
 static void setBorderValueToSegmentation(TC_PARMS *parms,int s,int dst)
 {
@@ -1801,10 +1826,12 @@ static int computeNLabels(TC_PARMS *parms)
 	    count++;
 	}
 
-  fprintf(stderr,"\n**********************************************************"
+  if(parms->verbose_mode)
+    fprintf(stderr,"\n**********************************************************"
 	         "\n**********************************************************"
 	  "\n%d voxels have been changed: %3.3f for the label %d\n"
-	  ,nb,100.*nb/count,parms->labels[0]);
+	    ,nb,100.*nb/count,parms->labels[0]);
+
 
   return nb;
 }
@@ -2400,9 +2427,11 @@ static void initImages(TC_PARMS* parms)
   
   nlabels=parms->nblabels;
   
-  fprintf(stderr,"\n****************************************************");
-  fprintf(stderr,"\nINITIALIZATION OF THE IMAGES");
-
+  if(parms->verbose_mode)
+    {
+      fprintf(stderr,"\n****************************************************");
+      fprintf(stderr,"\nINITIALIZATION OF THE IMAGES");
+    }
   if(parms->guess)
     guessSegmentation(parms);
 
@@ -3176,7 +3205,8 @@ static void CTExpansion(TC_PARMS *parms)
     while(findMLVoxel(parms,&pt)) //find the max of the list
     {
       count++;
-      fprintf(stderr,"\r   iteration n=%5d: ",count);
+      if(parms->verbose_mode)
+	fprintf(stderr,"\r   iteration n=%5d: ",count);
       //merge this voxel
       x=pt.x;y=pt.y;z=pt.z;
       addCellToComponent(&parms->segmentation->components[parms->current_label]
@@ -3524,7 +3554,7 @@ static int mergeRCC(TC_PARMS *parms,SEGMENTATION *segmentation)
 
   for(count=0,k=nrcccomponents-1;k>=0;k--)
     {
-      if(!parms->multiplemode)
+      if(!parms->multiplemode && parms->verbose_mode)
 	fprintf(stderr,"\r   iteration %5d:",nrcccomponents-k);
       component=&parms->segmentation->components[k];
       //analyze the current rcc with the ones, which indice is smaller
@@ -3556,7 +3586,7 @@ static int mergeRCC(TC_PARMS *parms,SEGMENTATION *segmentation)
     }
 
   free(border_labels);
-  if(nrcccomponents && !parms->multiplemode)
+  if(nrcccomponents && !parms->multiplemode && parms->verbose_mode)
     fprintf(stderr," %d components merged together: %d RCC components\n"
 	    ,count,parms->segmentation->ncomponents);
 
@@ -3792,11 +3822,14 @@ static void SaveInitMaps(TC_PARMS *parms)
 
 static int initSegmentation(TC_PARMS *parms)
 { 
-  fprintf(stderr,"\n***********************************************");
-  fprintf(stderr,"\nINITIALIZATION OF THE SEGMENTATION");
+  if(parms->verbose_mode)
+    {
+      fprintf(stderr,"\n***********************************************");
+      fprintf(stderr,"\nINITIALIZATION OF THE SEGMENTATION");
   //FOREGROUND SEGMENTATION
   //BODY
-  fprintf(stderr,"\n   FOREGROUND SEGMENTATION:      BODY\n");
+      fprintf(stderr,"\n   FOREGROUND SEGMENTATION:      BODY\n");
+    }
   parms->c_c=parms->f_c;
   mriChangeLabel(parms->mri_bin,F_R,RESIDUE);  
   initCCSSEG(parms);
@@ -3804,21 +3837,24 @@ static int initSegmentation(TC_PARMS *parms)
   ccsSortComponents(parms->ccs);
   parms->F_Bseg=parms->segmentation;
   parms->F_Bccs=parms->ccs;
-
-  fprintf(stderr,"\r   %d component(s)                       "
-	  ,parms->segmentation->ncomponents);
-  //PrintSurfaceStatistics(parms->mri_bin,parms->c_c);
-  //PrintStatistics(parms->segmentation);
+  if(parms->verbose_mode)
+    {
+      fprintf(stderr,"\r   %d component(s)                       "
+	      ,parms->segmentation->ncomponents);
+      //PrintSurfaceStatistics(parms->mri_bin,parms->c_c);
+      //PrintStatistics(parms->segmentation);
       
-  //RESIDUE
-  fprintf(stderr,"\n   FOREGROUND SEGMENTATION:      RESIDUE\n");
+      //RESIDUE
+      fprintf(stderr,"\n   FOREGROUND SEGMENTATION:      RESIDUE\n");
+    }
   initCCSSEG(parms);
   computeResidualSegmentation(parms);
   ccsSortComponents(parms->ccs);
   parms->F_Rseg=parms->segmentation;
   parms->F_Rccs=parms->ccs;
-
-  fprintf(stderr,"   %d component(s)     "
+  
+  if(parms->verbose_mode)
+    fprintf(stderr,"   %d component(s)     "
 	  ,parms->segmentation->ncomponents);
   //  PrintStatistics(parms->segmentation);
 
@@ -3827,7 +3863,8 @@ static int initSegmentation(TC_PARMS *parms)
   
   //BACKGROUND SEGMENTATION
   //BODY
-  fprintf(stderr,"\n   BACKGROUND SEGMENTATION:      BODY\n");
+  if(parms->verbose_mode)
+    fprintf(stderr,"\n   BACKGROUND SEGMENTATION:      BODY\n");
   parms->c_c=parms->b_c;
   mriChangeLabel(parms->mri_bin,B_R,RESIDUE);
   initCCSSEG(parms);
@@ -3836,22 +3873,23 @@ static int initSegmentation(TC_PARMS *parms)
   ccsSortComponents(parms->ccs);
   parms->B_Bseg=parms->segmentation;
   parms->B_Bccs=parms->ccs;
-  
-  fprintf(stderr,"\r   %d component(s)                      "
-	  ,parms->segmentation->ncomponents);  
+  if(parms->verbose_mode)
+    fprintf(stderr,"\r   %d component(s)                      "
+	    ,parms->segmentation->ncomponents);  
   //PrintSurfaceStatistics(parms->mri_bin,parms->c_c)
   //PrintStatistics(parms->segmentation);
   
  //RESIDUE
-  fprintf(stderr,"\n   FOREGROUND SEGMENTATION:      RESIDUE\n");
+  if(parms->verbose_mode)
+    fprintf(stderr,"\n   FOREGROUND SEGMENTATION:      RESIDUE\n");
   initCCSSEG(parms);
   computeResidualSegmentation(parms);
   ccsSortComponents(parms->ccs);
   parms->B_Rseg=parms->segmentation;
   parms->B_Rccs=parms->ccs;
-  
-  fprintf(stderr,"   %d component(s)     "
-	  ,parms->segmentation->ncomponents);
+  if(parms->verbose_mode)
+    fprintf(stderr,"   %d component(s)     "
+	    ,parms->segmentation->ncomponents);
   //PrintStatistics(parms->segmentation);
 
   mriChangeLabel(parms->mri_bin,BODY,B_B);
@@ -4199,9 +4237,11 @@ static float updateThreshold(TC_PARMS *parms,int type)
 static int correctSegmentation(TC_PARMS *parms)
 {
   float threshold,th1,th2;
-  fprintf(stderr,"\n****************************************************");
-  fprintf(stderr,"\nCORRECTION OF THE SEGMENTATION");
-
+  if(parms->verbose_mode)
+    {
+      fprintf(stderr,"\n****************************************************");
+      fprintf(stderr,"\nCORRECTION OF THE SEGMENTATION");
+    }
   computeMap(parms);
   //initialization step
   parms->multiplemode=1;
@@ -4226,31 +4266,36 @@ static int correctSegmentation(TC_PARMS *parms)
 	parms->c_c=parms->b_c;
       parms->threshold=threshold;
     }
-
-  fprintf(stderr,"\nThreshold Mode  F/B   F/R   B/B   B/R  MAP\n"); 
+  if(parms->verbose_mode)
+    fprintf(stderr,"\nThreshold Mode  F/B   F/R   B/B   B/R  MAP\n"); 
   while(parms->F_Rseg->ncomponents || parms->B_Rseg->ncomponents)
   {
-    fprintf(stderr,"\r");
-    fprintf(stderr,"%5.5f   ",parms->threshold);
-    if(parms->c_c==parms->b_c)
-      fprintf(stderr,"bgd ");
-    else
-      fprintf(stderr,"fgd ");
-
+    if(parms->verbose_mode)
+      {
+	fprintf(stderr,"\r");
+	fprintf(stderr,"%5.5f   ",parms->threshold);
+	if(parms->c_c==parms->b_c)
+	  fprintf(stderr,"bgd ");
+	else
+	  fprintf(stderr,"fgd ");
+      }
     //find the components smaller than threshold and remove them
     if(findandRemoveComponents(parms))   //we stop the segmentation process!
       {
-	fprintf(stderr,"    1     0     1     0  ");
+	if(parms->verbose_mode)
+	  fprintf(stderr,"    1     0     1     0  ");
 	if(parms->c_c==parms->b_c)
 	  mriChangeLabel(parms->mri_bin,B_R,B_B);
 	else
 	  mriChangeLabel(parms->mri_bin,F_R,F_B);
 
-	if(parms->priors)
-	  fprintf(stderr," %5.5f    (forced exit)          ",computeMap(parms));
-	else
-	  fprintf(stderr," (forced exit)       ");
-
+	if(parms->verbose_mode)
+	  {
+	    if(parms->priors)
+	      fprintf(stderr," %5.5f    (forced exit)          ",computeMap(parms));
+	    else
+	      fprintf(stderr," (forced exit)       ");
+	  }
 	  break;
       }
      
@@ -4267,16 +4312,18 @@ static int correctSegmentation(TC_PARMS *parms)
 
     //back to orig volume
     resetVolume(parms);
-    
-    fprintf(stderr," %4d  %4d  %4d  %4d  "
+    if(parms->verbose_mode)
+      fprintf(stderr," %4d  %4d  %4d  %4d  "
 	    ,parms->F_Bseg->ncomponents,parms->F_Rseg->ncomponents
 	    ,parms->B_Bseg->ncomponents,parms->B_Rseg->ncomponents);
 
-    if(parms->priors)
-      fprintf(stderr," %5.5f              ",computeMap(parms));
-    else
-      fprintf(stderr,"               ");
-
+    if(parms->verbose_mode)
+      {
+	if(parms->priors)
+	  fprintf(stderr," %5.5f              ",computeMap(parms));
+	else
+	  fprintf(stderr,"               ");
+      }
     if(parms->only)
       parms->threshold=updateThreshold(parms,parms->c_c);
     else 
@@ -4294,7 +4341,8 @@ static int correctSegmentation(TC_PARMS *parms)
 	  //parms->threshold+=THRESHOLD_INCREASE;//updateThreshold(parms)
       }
   }
-  fprintf(stderr,"\n");
+  if(parms->verbose_mode)
+    fprintf(stderr,"\n");
   return NO_ERROR;
 }
 
@@ -4310,8 +4358,11 @@ static int finalConditionalExpansion(TC_PARMS *parms)
   List *list=parms->list;
   Cell ***table=parms->list->table;
 
-  fprintf(stderr,"\n****************************************************");
-  fprintf(stderr,"\nFINAL TOPOLOGICAL EXPANSION");
+  if(parms->verbose_mode)
+    {
+      fprintf(stderr,"\n****************************************************");
+      fprintf(stderr,"\nFINAL TOPOLOGICAL EXPANSION");
+    }
 
   parms->multiplemode=0;
   label=parms->labels[0];
@@ -4324,7 +4375,8 @@ static int finalConditionalExpansion(TC_PARMS *parms)
   depth=mri->depth;
 
   //foreground
-  fprintf(stderr,"\n   FOREGROUND\n");
+  if(parms->verbose_mode)
+    fprintf(stderr,"\n   FOREGROUND\n");
   mriChangeLabel(mri,F_B,BODY);
   parms->c_c=parms->f_c;
   ref=parms->F_Bccs->reference_max_component;
@@ -4359,7 +4411,8 @@ static int finalConditionalExpansion(TC_PARMS *parms)
   mriChangeLabel(mri,BODY,F_B);
   mriChangeLabel(mri,RESIDUE,B_B);
   //background
-  fprintf(stderr,"\r   BACKGROUND                   \n");
+  if(parms->verbose_mode)
+    fprintf(stderr,"\r   BACKGROUND                   \n");
   mriChangeLabel(mri,B_B,BODY);
   parms->c_c=parms->b_c;
   parms->current_label=0;
@@ -4421,6 +4474,8 @@ static TC_PARMS* initTC_PARMSfromMRITOPOLOGY_PARMS(MRI_TOPOLOGY_PARMS *parms)
     p->labels[n]=parms->labels[n];
   p->nblabels=parms->nlabels;
 
+  p->verbose_mode=parms->verbose_mode;
+
   return p;
 }
 
@@ -4430,7 +4485,6 @@ MRI *MRIcorrectTopology(MRI *mri_orig,MRI *mri_seg, MRI*mri_output,MRI_TOPOLOGY_
 {
   
   TC_PARMS *parms;
-  
   
   parms=initTC_PARMSfromMRITOPOLOGY_PARMS(mritopparms);
 
@@ -4458,13 +4512,12 @@ MRI *MRIcorrectTopology(MRI *mri_orig,MRI *mri_seg, MRI*mri_output,MRI_TOPOLOGY_
     computeMap(parms);
   
   modifyImage(parms);
-
-  fprintf(stderr,"\r****************************************************\n");
+  if(parms->verbose_mode)
+    fprintf(stderr,"\r****************************************************\n");
 
   mri_output=parms->mri_output;
-
   TC_PARMSfree(&parms);
-
+  
   return mri_output;
 }
 

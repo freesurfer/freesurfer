@@ -195,7 +195,7 @@ int main(int argc, char *argv[])
   char  *in_orig_fname=NULL, *in_seg_fname=NULL,*out_fname=NULL;
   MRI *mri_orig=NULL,*mri_seg=NULL,*mri_out=NULL;
   int nargs,n;
-  char fname[100];
+  char fname[512];
   
   Progname=argv[0];
   fprintf(stderr,"\n");

@@ -8,6 +8,7 @@ int connectivityNumber(int connectivity);
 int associatedConnectivity(int connectivity);
 
 typedef unsigned char Nbh[3][3][3];
+typedef unsigned char LGNBH[5][5][5];
 
 Nbh* loadNbh2(unsigned char*** im,int x,int y, int z,int label);
 Nbh* loadNbh(MRI* mri,Nbh* nbh_dst,int i,int j, int k,int label);
@@ -20,6 +21,7 @@ Nbh *N_18_1(Nbh* nbh_src,Nbh* nbh_dst);
 Nbh* N_18_2(Nbh* nbh_src,Nbh* nbh_dst);
 Nbh *N_26_1(Nbh* nbh_src,Nbh* nbh_dst);
 int checkTn(Nbh *nbh_src,Nbh *nbh_dst,int connectivity);
+int checkSimple(Nbh *nbh,int connectivity);
 int checkSC(MRI* mri,int i0, int j0, int k0,int i1,int j1,int k1,int inside_label,int outside_label,int connectivity);
 int checkWC(MRI* mri,int i0, int j0, int k0,int i1,int j1,int k1,int inside_label,int outside_label,int connectivity);
 int checkNbh(MRI *mri,int i,int j,int k,int label,int connectivity);
@@ -63,6 +65,7 @@ typedef struct MRI_TOPOLOGY_PARMS
   //debugging information
   char *debugging_map_folder;
 
+  int verbose_mode;
 
 }MRI_TOPOLOGY_PARMS;
 
@@ -70,3 +73,6 @@ MRI_TOPOLOGY_PARMS* MRI_TOPOLOGY_PARMSalloc(void);
 MRI *MRIcorrectTopology(MRI *mri_orig,MRI *mri_seg, MRI*mri_output,MRI_TOPOLOGY_PARMS *mritopparms);
 
 #endif
+
+
+

@@ -13,7 +13,7 @@
 #include "proto.h"
 #include "macros.h"
 #include "error.h"
-#include "MRIio.h"
+//#include "MRIio.h"
 #include "mri.h"
 #include "mrisurf.h"
 #include "matrix.h"
