@@ -15,9 +15,14 @@
 #define BRIGHT_MATTER                      4
 #define LO_LIM                             70
 #define HI_LIM                             150
-#define HI_SUBCORTICAL_GRAY                100
-#define TALAIRACH_SUBCORTICAL_GRAY_MAX_Z   20
 #define DEFINITELY_BACKGROUND              50
+
+/* all stuff classified as white below this value is assigned to
+   the subcortical gray class, as long as its Talairach coordinate is
+   less than TALAIRACH_SUBCORTICAL_GRAY_MAX_Z.
+   */
+#define HI_SUBCORTICAL_GRAY                85
+#define TALAIRACH_SUBCORTICAL_GRAY_MAX_Z   35
 
 #define MAX_INPUTS             10
 
