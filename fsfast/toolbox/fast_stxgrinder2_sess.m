@@ -1,5 +1,5 @@
 % fast_stxgrinder2_sess
-% $Id: fast_stxgrinder2_sess.m,v 1.4 2003/11/19 19:14:56 greve Exp $
+% $Id: fast_stxgrinder2_sess.m,v 1.5 2003/12/16 18:12:18 greve Exp $
 
 % These variables must be defined previously
 % SessList = splitstring('$SessList');
@@ -14,6 +14,7 @@
 % tTestSave = $tTestSave;
 % IsGroup = [$IsGroupList];
 % UseBetaVol = 1;
+% OutDir = [];
 
 tic;
 nsess = size(SessList,1);
@@ -24,7 +25,8 @@ fprintf('\n\n');
 
 for nthsess = 1:nsess
   sessdir = deblank(SessList(nthsess,:));
-  fprintf('nthsess = %d  time=%g -----------------\n',nthsess,toc);
+  sessid = basename(sessdir);
+  fprintf('nthsess = %d  %s time=%g --------\n',nthsess,sessid,toc);
   fprintf('%s\n',sessdir);
 
   for nthhemi = 1:nhemi
@@ -58,8 +60,14 @@ for nthsess = 1:nsess
     for c = 1:ncontrasts
       contrast = deblank(contrasts(c,:));
       fprintf('  contrast %s  (time=%g)\n',contrast,toc);
-      condir = sprintf('%s/%s',sessanadir,contrast);
-
+      if(isempty(OutDir))
+	condir = sprintf('%s/%s',sessanadir,contrast);
+      else
+	condir = sprintf('%s/%s/%s/%s/%s',...
+			 OutDir,sessid,fsd,analysis,contrast);
+	fprintf('condir %s\n',condir);
+      end
+      
       cmat = sprintf('%s/%s.mat',analysis,contrast);
       tmp = load(cmat);
       if(isempty(tmp))
@@ -124,8 +132,12 @@ for nthsess = 1:nsess
 	  fprintf('ERROR: size mismatch between analysis %s and contrast %s.\n',...
                   analysis,contrast);
           fprintf('This usually happens when the parameters of an analysis\n');
-          fprintf('have been changed without re-creating the contrast.\n');
-          fprintf('Try re-running mkcontrast-sess for this contrast.\n');
+          fprintf('have been changed without re-creating the contrast,\n');
+          fprintf('or the analysis was changed and the contrast updated\n');
+          fprintf('but selxavg was not re-run for this subject.\n');
+          fprintf('\n');
+          fprintf('Try re-running mkcontrast-sess for this contrast\n');
+          fprintf('and/or re-running selxavg-sess for this subject.\n');
 	  fprintf('\n');
           return;
         end
