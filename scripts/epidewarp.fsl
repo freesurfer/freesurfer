@@ -2,7 +2,7 @@
 # epidewarp.fsl
 #
 
-set VERSION = '$Id: epidewarp.fsl,v 1.6 2004/11/29 21:20:37 greve Exp $'
+set VERSION = '$Id: epidewarp.fsl,v 1.7 2004/12/02 18:52:59 greve Exp $'
 set inputargs = ($argv);
 
 set dph = ();
@@ -516,6 +516,18 @@ exit 1;
 #---- Everything below here is printed out as part of help -----#
 BEGINHELP
 
+Help Outline:
+  SUMMARY
+  ALGORITHM OVERVIEW
+  ARGUMENTS
+  SUGGESTED FIELD MAP PARAMETERS
+  NOTES
+  SEE ALSO
+  BUGS
+  BUG REPORTING
+  AUTHORS
+
+
 SUMMARY
 
 Front end for FSLs PRELUDE and FUGUE programs to correct for B0
@@ -523,9 +535,8 @@ distortion in functional EPI scans. The programs use a B0 fieldmap.
 This is assumed to be two conventional GREs collected at two different
 echo times (TEs). The field map should be acquired with the same slice
 prescription, slice thickness, slice skip, voxel resolution, and
-field-of-view as the EPI. The field map can have a higher in-plane
-resolution.  This script uses only FSL commands (ie, FreeSurfer not
-needed).
+field-of-view as the EPI. This script uses only FSL commands (ie,
+FreeSurfer not needed).
 
 For the stock Siemens field map, two field maps are required, one to
 get the phase and another to get the magnitude (this will change with
@@ -540,18 +551,18 @@ this will be propagated to the outputs.
 
 ALGORITHM OVERVIEW
 
-1. Create a brain mask from the mag volume (BET)
-2. Create a head mask by dilating the brain mask 3 times
-3. Rescale the phase image to -pi to pi
-4. Unwrap the phase (PRELUDE)
-5. Create and smooth the voxel shift map (VSM) (FUGUE)
-6. Remove in-brain mean from VSM
-7. Forward warp the mag volume (FUGUE)
-8. Register the forward warped mag with the example func (FLIRT)
-9. Resample the VSM into EPI space (FLIRT)
+1.  Create a brain mask from the mag volume (BET)
+2.  Create a head mask by dilating the brain mask 3 times
+3.  Rescale the phase image to -pi to pi
+4.  Unwrap the phase (PRELUDE)
+5.  Create and smooth the voxel shift map (VSM) (FUGUE)
+6.  Remove in-brain mean from VSM
+7.  Forward warp the mag volume (FUGUE)
+8.  Register the forward warped mag with the example func (FLIRT)
+9.  Resample the VSM into EPI space (FLIRT)
 10. Dewarp the EPI and/or Example Func (FUGUE).
 
-ARGUMENTS:
+ARGUMENTS
 
 --mag magvolid
 
@@ -591,7 +602,12 @@ rephase. The rephase time scales with field strength.
 Time (ms) between the start of the readout of two successive lines in
 k-space during the EPI acquisition.  This can also be thought of as
 the time between rows.  This parameter is not available in the Siemens
-DICOM header. If one saves the raw kspace data, then the echo spacing
+DICOM header. However, it can be obtained from the console.  Open the
+protocol for the functional scan (NOT the field map). Go to the
+Sequence tab. Go to Part 1. The Echo Spacing is displayed on the
+bottom right. It will also be on the protocol print out (select the
+functional protocol in the Exam Explorer, right click, and select
+Print...).  If one saves the raw kspace data, then the echo spacing
 can be found next to the m_lEchoSpacing tag in the meas.asc and is in
 usec. Note that the echo spacing is not the same as the time to read
 out a line of k-space and it cannot be computed from the bandwidth
@@ -642,6 +658,24 @@ Forces deleting of the tmp dir regardless of whether --tmpdir or
 
 Prints copious amounts to the screen.
 
+SUGGESTED FIELD MAP PARAMETERS
+
+TR = 500ms (1000ms with phased-array)
+TE1: Minimum possible
+TE2 = TE1 + DeltaTE
+
+DeltaTE = 4.92ms for 1.5T
+Flip Angle: 65 for 1.5T
+DeltaTE = 2.46ms for 3T 
+Flip Angle: 55 for 3T 
+DeltaTE = 1.845ms for 4T
+Flip Angle: 55 for 4T 
+
+FatSat: Off
+Bandwidth: Maximum
+Slice Prescription, FOV, Thickness, Skip, Pixel Resolution, Matrix Size: 
+same as functional
+
 NOTES
 
 The output will not necessarily be registered with the mag volume. To
@@ -658,10 +692,19 @@ BUGS
 1. Currently does not work when the B0 field map has a different
 in-plane resolution than the EPI.
 
+BUG REPORTING
+
+This software is offered as is with no promise or implication that it
+will be supported. However, if you have a problem or question, you can
+send it to analysis-bugs@nmr.mgh.harvard.edu and we will get to as we
+can. If you want your question to have a chance of being answered,
+include all of the following: your command-line, text printed out by
+the program, log file, and a description of the problem.
+
 AUTHORS
 
-Doug Greve and Dave Tuch (help@nmr.mgh.harvard.edu) with generous 
-help from the FSL crew.
+Doug Greve, Dave Tuch, Tom Liu, and Bryon Mueller with generous help
+from the FSL crew.
 
 
 
