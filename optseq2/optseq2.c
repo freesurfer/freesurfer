@@ -41,7 +41,7 @@ Can something be done to affect the off-diagonals?
   #undef X
 #endif
 
-static char vcid[] = "$Id: optseq2.c,v 1.1 2002/08/21 23:47:51 greve Exp $";
+static char vcid[] = "$Id: optseq2.c,v 1.2 2002/08/22 00:05:45 greve Exp $";
 char *Progname = NULL;
 
 static int  parse_commandline(int argc, char **argv);
@@ -127,7 +127,7 @@ int main(int argc, char **argv)
   FILE *fpsum, *fplog;
   struct timeval tod;
   long tNow, tStart;
-  float ftmp;
+  float ftmp=0;
   int Singular;
 
   infilelist[0] = NULL;
