@@ -1,10 +1,10 @@
 /*============================================================================
  Copyright (c) 1996 Martin Sereno and Anders Dale
 =============================================================================*/
-/*   $Id: tkregister2.c,v 1.17 2003/08/12 21:34:55 greve Exp $   */
+/*   $Id: tkregister2.c,v 1.18 2003/08/15 00:04:25 greve Exp $   */
 
 #ifndef lint
-static char vcid[] = "$Id: tkregister2.c,v 1.17 2003/08/12 21:34:55 greve Exp $";
+static char vcid[] = "$Id: tkregister2.c,v 1.18 2003/08/15 00:04:25 greve Exp $";
 #endif /* lint */
 
 #define TCL
@@ -1358,7 +1358,12 @@ void draw_image2(int imc,int ic,int jc)
 	 isTarg < 0 || isTarg >= targ_vol->depth)  continue;
 
       /* Could interp here, but why bother? */
-      targimg[r][c] = MRIFseq_vox(targ_vol,icTarg,irTarg,isTarg,0);
+      //targimg[r][c] = MRIFseq_vox(targ_vol,icTarg,irTarg,isTarg,0);
+      /* This implements the trilinear interp - makes it so that
+	 when the same volume is loaded as targ and mov, the
+	 registration is perfect */
+      MRIsampleVolume(targ_vol,fcTarg,frTarg,fsTarg,&rVoxVal);
+      targimg[r][c] = rVoxVal;
 
       if(UseSurf) surfimg[r][c] = MRIvox(mrisurf,icTarg,irTarg,isTarg);
       
@@ -3398,7 +3403,7 @@ char **argv;
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tkregister2.c,v 1.17 2003/08/12 21:34:55 greve Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: tkregister2.c,v 1.18 2003/08/15 00:04:25 greve Exp $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
