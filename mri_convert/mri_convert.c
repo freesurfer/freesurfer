@@ -82,7 +82,8 @@ int main(int argc, char *argv[])
   int color_file_flag;
   char color_file_name[STRLEN];
   int no_scale_flag;
-int temp_type;
+  int temp_type;
+  int roi_flag;
 
   /* ----- keep the compiler quiet ----- */
   mri2 = NULL;
@@ -138,6 +139,7 @@ int temp_type;
   fill_parcellation_flag = FALSE;
   color_file_flag = FALSE;
   no_scale_flag = FALSE;
+  roi_flag = FALSE;
 
   for(i = 1;i < argc;i++)
   {
@@ -439,6 +441,10 @@ int temp_type;
       get_string(argc, argv, &i, in_like_name);
       in_like_flag = TRUE;
     }
+    else if(strcmp(argv[i], "-roi") == 0 || strcmp(argv[i], "--roi") == 0)
+    {
+      roi_flag = TRUE;
+    }
     else if(strcmp(argv[i], "-fp") == 0 || strcmp(argv[i], "--fill_parcellation") == 0)
     {
       fill_parcellation_flag = TRUE;
@@ -632,6 +638,14 @@ int temp_type;
     exit(1);
   }
 
+  if(roi_flag && in_volume_type != GENESIS_FILE)
+  {
+    ErrorPrintf(ERROR_BADPARM, "rois must be in GE format");
+    if(in_like_flag)
+      MRIfree(&mri_in_like);
+    exit(1);
+  }
+
   printf("reading from %s...\n", in_name_only);
 
   if(in_volume_type == OTL_FILE)
@@ -640,12 +654,16 @@ int temp_type;
     if(!in_like_flag && !in_n_k_flag)
     {
       ErrorPrintf(ERROR_BADPARM, "parcellation read: must specify a volume depth with either in_like or in_k_count");
+      if(in_like_flag)
+        MRIfree(&mri_in_like);
       exit(1);
     }
 
     if(!color_file_flag)
     {
       ErrorPrintf(ERROR_BADPARM, "parcellation read: must specify a color file name");
+      if(in_like_flag)
+        MRIfree(&mri_in_like);
       exit(1);
     }
 
@@ -658,15 +676,53 @@ int temp_type;
     else
       mri = MRIreadOtl(in_name, 0, 0, in_n_k, color_file_name, read_parcellation_volume_flag, fill_parcellation_flag);
 
+    if(mri == NULL)
+    {
+      if(in_like_flag)
+        MRIfree(&mri_in_like);
+      exit(1);
+    }
+
     /* ----- smooth the parcellation if requested ----- */
     if(smooth_parcellation_flag)
     {
       printf("smoothing parcellation...\n");
       mri2 = MRIsmoothParcellation(mri, smooth_parcellation_count);
       if(mri2 == NULL)
+      {
+        if(in_like_flag)
+          MRIfree(&mri_in_like);
         exit(1);
+      }
       MRIfree(&mri);
       mri = mri2;
+    }
+
+    resample_type_val = RESAMPLE_NEAREST;
+    no_scale_flag = TRUE;
+
+  }
+  else if(roi_flag)
+  {
+
+    if(!in_like_flag && !in_n_k_flag)
+    {
+      ErrorPrintf(ERROR_BADPARM, "roi read: must specify a volume depth with either in_like or in_k_count");
+      if(in_like_flag)
+        MRIfree(&mri_in_like);
+      exit(1);
+    }
+
+    if(in_like_flag)
+      mri = MRIreadGeRoi(in_name, mri_in_like->depth);
+    else
+      mri = MRIreadGeRoi(in_name, in_n_k);
+
+    if(mri == NULL)
+    {
+      if(in_like_flag)
+        MRIfree(&mri_in_like);
+      exit(1);
     }
 
     resample_type_val = RESAMPLE_NEAREST;
