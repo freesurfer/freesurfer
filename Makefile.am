@@ -20,7 +20,7 @@ mri_segment mri_seghead mri_surfacemask mri_strip_skull mri_strip_subject_info m
 mri_surf2vol mri_surfcluster mri_synthesize \
 mri_tessellate mri_transform mri_train mri_twoclass \
 mri_volcluster mri_volsynth mri_vol2roi mri_vol2surf mri_watershed mri_wmfilter \
-mri_xvolavg mri_threshold mri_edit_wm_with_aseg 
+mri_xvolavg mri_threshold mri_edit_wm_with_aseg mri_bc_sc_bias_correct
 MRISSUBDIRS=stim stim_polar tridec \
 mris_add_template mris_anatomical_stats mris_annot_to_segmentation mris_average_curvature \
 mris_ca_label mris_ca_train mris_classify_thickness mris_compute_acorr mris_compute_overlap mris_convert \
@@ -35,7 +35,7 @@ mris_sample_label mris_sample_parc mris_segment_vals mris_smooth mris_sphere \
 mris_spherical_average mris_surface_to_vol_distances mrisp_paint \
 mris_talairach mris_thickness mris_thickness_comparison mris_transform \
 mris_translate_annotation mris_twoclass \
-mris_w_to_curv spherical_stats
+mris_w_to_curv spherical_stats 
 
 FSGDF=mri_gdfglm mris_glm
 

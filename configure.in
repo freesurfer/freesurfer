@@ -801,6 +801,7 @@ dngtester/Makefile \
 mri_threshold/Makefile \
 dummy/Makefile \
 spherical_stats/Makefile \
+mri_bc_sc_bias_correct/Makefile \
  ) 
 
 
