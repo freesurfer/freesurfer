@@ -6,8 +6,8 @@
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2005/01/31 21:12:13 $
-// Revision       : $Revision: 1.4 $
+// Revision Date  : $Date: 2005/01/31 21:16:25 $
+// Revision       : $Revision: 1.5 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -261,7 +261,7 @@ main(int argc, char *argv[])
 		LTA       *lta ;
 
 		lta = ((LTA *)(transform->xform)) ;
-    m_L = MRIrasXformToVoxelXform(mri_hires, mri_lowres, lta->xforms[i].m_L, NULL) ;
+    m_L = MRIrasXformToVoxelXform(mri_hires, mri_lowres, lta->xforms[0].m_L, NULL) ;
     MatrixFree(&lta->xforms[0].m_L) ;
 
 		if (MatrixDeterminant(m_L) < 0)
@@ -469,7 +469,6 @@ compute_optimal_transform(VOXEL_LIST *vl_lowres, VOXEL_LIST *vl_hires,
 		}
 		parms->start_t++ ;
 		MatrixFree(&m_trans) ; MatrixFree(&m_tmp) ; VectorFree(&v_cl) ; VectorFree(&v_ch) ;
-		trans = MAX(MAX(mri_hires->width,mri_hires->height),mri_hires->depth)/8 ;
 		if (Gdiag & DIAG_WRITE && parms->write_iterations > 0)
 		{
 			write_snapshot(mri_lowres, mri_hires, m_vox_xform, parms, parms->start_t,1,NULL);
@@ -480,6 +479,7 @@ compute_optimal_transform(VOXEL_LIST *vl_lowres, VOXEL_LIST *vl_hires,
 		m_vox_xform = ((LTA *)(transform->xform))->xforms[0].m_L ;
 
 
+	trans = MAX(MAX(mri_hires->width,mri_hires->height),mri_hires->depth)/8 ;
 	max_overlap = find_optimal_translation(vl_lowres, vl_hires, m_vox_xform, 
 																				 -trans, trans, 5, 4) ;
 		
