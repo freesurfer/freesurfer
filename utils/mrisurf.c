@@ -7461,16 +7461,19 @@ MRISreadPatchNoRemove(MRI_SURFACE *mris, char *pname)
     if (i<0)
     {
       k = -i-1;
+      if (k < 0 || k >= mris->nvertices)
+        ErrorExit(ERROR_BADFILE, 
+                  "MRISreadPatch: bad vertex # (%d) found in patch file", k) ;
       mris->vertices[k].border = TRUE;
     } 
     else
     {
       k = i-1;
+      if (k < 0 || k >= mris->nvertices)
+        ErrorExit(ERROR_BADFILE, 
+                  "MRISreadPatch: bad vertex # (%d) found in patch file", k) ;
       mris->vertices[k].border = FALSE;
     }
-    if (k >= mris->nvertices)
-      ErrorExit(ERROR_BADFILE, 
-                "MRISreadPatch: bad vertex # (%d) found in patch file", k) ;
     mris->vertices[k].ripflag = FALSE;
     fread2(&ix,fp);
     fread2(&iy,fp);
