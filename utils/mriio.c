@@ -655,12 +655,11 @@ MRI *MRIread(char *fname)
 
   if (mri->depth==1)
   {
-    MRIfree(&mri);
-    ErrorReturn(NULL, (ERROR_BADPARM, 
-                       "Read one slice only. Did you put all the slices in the same directory?"));
+		/*    MRIfree(&mri);*/
+    ErrorPrintf(ERROR_BADPARM, 
+                       "Read one slice only. Did you put all the slices in the same directory?");
   }
-  else
-    return(mri);
+	return(mri);
 
 } /* end MRIread() */
 

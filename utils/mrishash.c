@@ -1414,7 +1414,7 @@ mhtDoesFaceVoxelListIntersect(MRIS_HASH_TABLE *mht, MRI_SURFACE *mris,
       return(0) ;
     bucket = mht->buckets[xv][yv][zv] ;
     if (!bucket)
-      return(0) ;
+			continue ;
 #endif
     bin = bucket->bins ;
     for (i = 0 ; i < bucket->nused ; i++, bin++)
