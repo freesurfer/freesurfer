@@ -13,7 +13,7 @@ function [vol, M, dcminfo] = load_dicom_fl(flist)
 %
 % Does not handle multiple frames correctly yet.
 %
-% $Id: load_dicom_fl.m,v 1.4 2003/01/10 02:22:39 greve Exp $
+% $Id: load_dicom_fl.m,v 1.5 2003/01/23 19:57:34 greve Exp $
 
 vol=[];
 M=[];
@@ -26,10 +26,10 @@ end
 nfiles = size(flist,1);
 
 tic
-fprintf('Loading info\n');
+fprintf('Loading dicom info foreach file \n');
 for n = 1:nfiles
   fname = deblank(flist(n,:));
-  fprintf('n = %d, %s   %g\n',n,fname,toc);
+  % fprintf('n = %d/%d, %s   %g\n',n,nfiles,fname,toc);
   tmpinfo = dicominfo(fname);
   if(isempty(tmpinfo)) 
     fprintf('ERROR: reading %s\n',fname);
@@ -54,7 +54,7 @@ sdc = dcminfo(nfiles).ImagePositionPatient-dcminfo(1).ImagePositionPatient;
 sdc = sdc /sqrt(sum(sdc.^2));
 
 % Distance between slices %
-dslice = sqrt(sum(dcminfo(2).ImagePositionPatient-dcminfo(1).ImagePositionPatient).^2);
+dslice = sqrt(sum((dcminfo(2).ImagePositionPatient-dcminfo(1).ImagePositionPatient).^2));
 
 % Matrix of direction cosines %
 Mdc = zeros(3,3);
@@ -68,7 +68,6 @@ D = diag(delta);
 
 % XYZ of first voxel in first slice %
 P0 = dcminfo(1).ImagePositionPatient;
-P00 = P0;
 
 % Change Siemens to be RAS %
 Manufacturer = dcminfo(1).Manufacturer;
@@ -94,9 +93,9 @@ ndim2 = dcminfo(1).Rows;
 ndim3 = nfiles;
 vol = zeros(ndim1,ndim2,ndim3);
 
-fprintf('Loading data\n');
+fprintf('Loading data from each file.\n');
 for n = 1:nfiles
-  fprintf('n = %d, %g\n',n,toc);
+  %fprintf('n = %d, %g\n',n,toc);
   fname = dcminfo(n).fname;
   x = dicomread(fname);
   if(isempty(x))
