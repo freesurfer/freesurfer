@@ -1,8 +1,17 @@
-function m = fast_mri_struct
-% create a default structure for an mri. Note: all values
-% assume zero-based indexing.
+function m = fast_mri_struct(orientation)
+% m = fast_mri_struct(<orientation>)
 %
-% $Id: fast_mri_struct.m,v 1.1 2003/08/02 00:58:37 greve Exp $
+% Create a default structure for an mri. Note: all values
+% assume zero-based indexing. Without any inputs, none of 
+% the values are set.
+%
+% If The direction cosines can be set with orientation:
+%   LRAPSI
+%   LRAPIS
+%   LRPASI
+%   LRPAIS
+%
+% $Id: fast_mri_struct.m,v 1.2 2004/10/06 20:46:30 greve Exp $
 
 m.te         = 0; % msec
 m.tr         = 0; % sec
@@ -20,6 +29,30 @@ m.rdc = [];    % row direction cos
 m.sdc = [];    % slice direction cos
 m.P0  = [];    % position at center of voxel 0,0,0
 m.c   = [];    % The "center" of the volume as def by FreeSurfer
+
+if(~exist('orientation','var')) return; end
+
+switch(orientation)
+ case 'LRAPSI'
+  m.cdc = [-1  0  0]';
+  m.rdc = [ 0 -1  0]';
+  m.sdc = [ 0  0 -1]';
+ case 'LRAPIS'
+  m.cdc = [-1  0  0]';
+  m.rdc = [ 0 -1  0]';
+  m.sdc = [ 0  0 +1]';
+ case 'LRPASI'
+  m.cdc = [-1  0  0]';
+  m.rdc = [ 0 +1  0]';
+  m.sdc = [ 0  0 -1]';
+ case 'LRPAIS'
+  m.cdc = [-1  0  0]';
+  m.rdc = [ 0 +1  0]';
+  m.sdc = [ 0  0 +1]';
+ otherwise
+  fprintf('ERROR: unrecognized orientation %s\n',orientation);
+end
+
 
 return;
 
