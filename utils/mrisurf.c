@@ -62,7 +62,8 @@ static double mrisComputeSSE(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) ;
 static double mrisComputeSpringEnergy(MRI_SURFACE *mris) ;
 static double mrisComputeDistanceError(MRI_SURFACE *mris) ;
 static double mrisComputeCorrelationError(MRI_SURFACE *mris, 
-                                          INTEGRATION_PARMS *parms) ;
+                                          INTEGRATION_PARMS *parms, 
+                                          int use_stds) ;
 static int    mrisComputeVertexDistances(MRI_SURFACE *mris) ;
 static double mrisComputeError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
                                 float *parea_rms, float *pangle_rms,
@@ -676,10 +677,10 @@ MRISfree(MRI_SURFACE **pmris)
   mris = *pmris ;
   *pmris = NULL ;
 
+  if (mris->labels)
+    free(mris->labels) ;
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
-    if (mris->labels)
-      free(mris->labels) ;
     if (mris->vertices[vno].f)
       free(mris->vertices[vno].f) ;
     if (mris->vertices[vno].n)
@@ -688,12 +689,15 @@ MRISfree(MRI_SURFACE **pmris)
       free(mris->vertices[vno].dist) ;
     if (mris->vertices[vno].dist_orig)
       free(mris->vertices[vno].dist_orig) ;
+    if (mris->vertices[vno].v)
+      free(mris->vertices[vno].v) ;
   }
 
   if (mris->vertices)
     free(mris->vertices) ;
   if (mris->faces)
     free(mris->faces) ;
+  free(mris) ;
   return(NO_ERROR) ;
 }
 
@@ -2599,12 +2603,12 @@ MRISflatten(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     done = 0 ;
     mrisClearMomentum(mris) ;
     starting_sse = mrisComputeSSE(mris, parms) ;
-    for (total_steps = 0, n_averages = base_averages ; !done ; n_averages /= 2)
+    for (total_steps = 0, n_averages = base_averages; !done ;n_averages /= 2)
     {
       steps = mrisIntegrate(mris, parms, n_averages) ;
       parms->start_t += steps ;
       total_steps += steps ;
-      done = n_averages == 0 ;    /* finished integrating at smallest scale */
+      done = n_averages == 0 ;   /* finished integrating at smallest scale */
     }
     parms->dt = parms->base_dt ;         /* reset time step */
     ending_sse = mrisComputeSSE(mris, parms) ;
@@ -2625,7 +2629,7 @@ MRISflatten(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 
         Description
 ------------------------------------------------------*/
-static float sigmas[] = { 4.0f, 2.0f, 1.0f, 0.5f } ;
+static float sigmas[] = { 2.0f, 1.0f, 0.5f, 0.25 } ;
 #define NSIGMAS  (sizeof(sigmas)  / sizeof(sigmas[0]))
 
 static char *surface_names[] = 
@@ -2652,7 +2656,7 @@ MRISregister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
              INTEGRATION_PARMS *parms, int max_passes)
 {
   float   sigma ;
-  int     i, steps, done, sno, ino, msec ;
+  int     i, /*steps,*/ done, sno, ino, msec ;
   MRI_SP  *mrisp ;
   char    fname[100], base_name[100], path[100] ;
   double  base_dt ;
@@ -2714,15 +2718,15 @@ MRISregister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
       fprintf(stderr, "calculating curvature of %s surface\n",fname) ;
     if (Gdiag & DIAG_WRITE)
       fprintf(parms->fp,"calculating curvature of %s surface\n",fname);
-#if 0
+#if 1
     if (Gdiag & DIAG_SHOW)
       fprintf(stderr, "finding optimal rigid alignment\n") ;
     if (Gdiag & DIAG_WRITE)
       fprintf(parms->fp, "finding optimal rigid alignment\n") ;
     parms->mrisp = MRIStoParameterization(mris, NULL, 1, 0) ;
     parms->mrisp_template = mrisp_template ;
-    MRISrigidBodyAlign(mris, parms) ;
-    MRISPfree(&mrisp) ;
+    MRISrigidBodyAlignGlobal(mris, parms, 4.0f, 16.0f, 8) ;
+    MRISPfree(&parms->mrisp) ;
 #endif
 
     for (i = 0 ; i < NSIGMAS ; i++)
@@ -2738,6 +2742,7 @@ MRISregister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
       mrisp = MRIStoParameterization(mris, NULL, 1, 0) ;
       parms->mrisp = MRISPblur(mrisp, NULL, sigma, 0) ;
       parms->mrisp_template = MRISPblur(mrisp_template, NULL, sigma, ino) ;
+      MRISPblur(parms->mrisp_template, NULL, sigma, ino+1) ; /* variances */
       if (Gdiag & DIAG_SHOW)
         fprintf(stderr, "done.\n") ;
       /* normalize curvature intensities for both source and target */
@@ -2784,13 +2789,25 @@ MRISregister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
         if (Gdiag & DIAG_SHOW)
           fprintf(stderr, "done.\n") ;
       }
-#if 1
-      MRISrigidBodyAlign(mris, parms) ;
+#if 0
+      if (i == 10)
+      {
+        if (Gdiag & DIAG_SHOW)
+          fprintf(stderr, "finding optimal rigid alignment\n") ;
+        if (Gdiag & DIAG_WRITE)
+          fprintf(parms->fp, "finding optimal rigid alignment\n") ;
+        MRISrigidBodyAlignGlobal(mris, parms, 4.0f, 16.0f, 8) ;
+      }
+      MRISrigidBodyAlignLocal(mris, parms) ;
 #endif
       mrisClearMomentum(mris) ;
       done = 0 ;
+#if 0
       steps = mrisIntegrate(mris, parms, parms->n_averages) ;
       parms->start_t += steps ;
+#else
+       mrisIntegrationEpoch(mris, parms, parms->n_averages) ;
+#endif
     }
   }
 
@@ -3181,7 +3198,11 @@ mrisRemoveNegativeArea(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
   if (!FZERO(l_area))
   { snum = "area" ;   pnum = &parms->l_area ; }
   else if (!FZERO(l_parea))
+#if 0
   { snum = "parea" ;  pnum = &parms->l_parea  ; }
+#else
+  { snum = "area" ;  pnum = &parms->l_area  ; }
+#endif
   else
   { snum = "spring" ; pnum = &parms->l_spring  ; }
 
@@ -3238,12 +3259,26 @@ static int
 mrisIntegrationEpoch(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,int base_averages)
 {
   int   total_steps, done, steps, n_averages, old_averages ;
-  float ratio = (float)parms->l_area / (float)parms->l_dist  ;
+  char  *snum, *sdenom ;
+  float ratio, *pdenom, *pnum ;
 
+  if (!FZERO(parms->l_corr))
+  { sdenom = "corr" ; pdenom = &parms->l_corr  ; }
+  else
+  { sdenom = "dist" ; pdenom = &parms->l_dist  ; }
+
+  if (!FZERO(parms->l_area))
+  { snum = "area" ;   pnum = &parms->l_area ; }
+  else if (!FZERO(parms->l_parea))
+  { snum = "parea" ;  pnum = &parms->l_parea  ; }
+  else
+  { snum = "spring" ; pnum = &parms->l_spring  ; }
+
+  ratio = *pnum / *pdenom ;
   if (Gdiag & DIAG_SHOW)
-    fprintf(stderr, "area/dist = %2.3f\n", ratio) ;
+    fprintf(stderr, "%s/%s = %2.3f\n", snum, sdenom, ratio) ;
   if (Gdiag & DIAG_WRITE)
-    fprintf(parms->fp, "area/dist = %2.3f\n", ratio) ;
+    fprintf(parms->fp, "%s/%s = %2.3f\n", snum, sdenom, ratio) ;
 
   old_averages = parms->n_averages ;
   for (done = total_steps = 0, n_averages = base_averages ; !done ; 
@@ -3414,7 +3449,8 @@ mrisIntegrate(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int n_averages)
 
     if (FZERO(sse))
       break ;
-    if (parms->integration_type == INTEGRATE_LINE_MINIMIZE)
+    if ((parms->integration_type == INTEGRATE_LINE_MINIMIZE) ||
+        (parms->integration_type == INTEGRATE_LM_SEARCH))
     {
       if ((100*(old_sse - sse) / sse) < parms->tol)
         break ;
@@ -3485,7 +3521,7 @@ if (face->area[tno] >= 0.0f)
     }
   }
 
-  sse_corr = mrisComputeCorrelationError(mris, parms) ;
+  sse_corr = mrisComputeCorrelationError(mris, parms, 1) ;
   sse_dist = mrisComputeDistanceError(mris) ;
   sse_spring = mrisComputeSpringEnergy(mris) ;
   sse_curv = MRIStotalVariation(mris) ;
@@ -3579,7 +3615,7 @@ mrisComputeSSE(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     sse_curv = MRIScomputeFolding(mris) ;
   l_corr = (double)(parms->l_corr + parms->l_pcorr) ;
   if (!FZERO(l_corr))
-    sse_corr = mrisComputeCorrelationError(mris, parms) ;
+    sse_corr = mrisComputeCorrelationError(mris, parms, 1) ;
 
   sse = 
     (double)parms->l_area   * sse_neg_area + 
@@ -4930,13 +4966,20 @@ MRISrotate(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst,
   int      vno ;
   VERTEX   *vertex ;
   float    x, y, z, ca, cb, cg, sa, sb, sg, xp, yp, zp ;
+  float    cacb, cacgsb, sasg, cgsa ;
+  float    casbsg, cbsa, cgsasb, casg ;
+  float    cacg, sasbsg, cbcg, cbsg ;
 
   if (!mris_dst)
     mris_dst = MRISclone(mris_src) ;
 
   sa = sin(alpha) ; sb = sin(beta) ; sg = sin(gamma) ;
   ca = cos(alpha) ; cb = cos(beta) ; cg = cos(gamma) ;
-
+  cacb = ca*cb ; cacgsb = ca*cg*sb ; sasg = sa*sg ; cgsa = cg*sa ;
+  casbsg = ca*sb*sg ; cbsa = cb*sa ; cgsasb = cg*sa*sb ; casg = ca*sg ;
+  cacg = ca*cg ; sasbsg = sa*sb*sg ; cbcg = cb*cg ; cbsg = cb*sg ;
+  
+  
   for (vno = 0 ; vno < mris_src->nvertices ; vno++)
   {
     if (vno == Gdiag_no)
@@ -4944,9 +4987,9 @@ MRISrotate(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst,
 
     vertex = &mris_src->vertices[vno] ;
     x = vertex->x ; y = vertex->y ; z = vertex->z ;
-    xp = x*ca*cb + z*(-ca*cg*sb - sa*sg) + y*(cg*sa-ca*sb*sg) ;
-    yp = -x*cb*sa + z*(cg*sa*sb-ca*sg) + y*(ca*cg+sa*sb*sg) ;
-    zp = z*cb*cg + x*sb + y*cb*sg ;
+    xp = x*cacb + z*(-cacgsb - sasg) + y*(cgsa-casbsg) ;
+    yp = -x*cbsa + z*(cgsasb-casg) + y*(cacg+sasbsg) ;
+    zp = z*cbcg + x*sb + y*cbsg ;
     vertex->x = xp ; vertex->y = yp ; vertex->z = zp ;
   }
   return(mris_dst) ;
@@ -9063,7 +9106,7 @@ MRIScomputeCorrelationError(MRI_SURFACE *mris,MRI_SP *mrisp_template,int fno)
   parms.mrisp_template = mrisp_template ;
   parms.l_corr = 1.0f ;
   parms.frame_no = fno ;
-  error = mrisComputeCorrelationError(mris, &parms) ;
+  error = mrisComputeCorrelationError(mris, &parms, 1) ;
   return(sqrt(error / (double)mrisValidVertices(mris))) ;
 }
 /*-----------------------------------------------------
@@ -9074,7 +9117,8 @@ MRIScomputeCorrelationError(MRI_SURFACE *mris,MRI_SP *mrisp_template,int fno)
         Description
 ------------------------------------------------------*/
 static double
-mrisComputeCorrelationError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
+mrisComputeCorrelationError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
+                            int use_stds)
 {
   double   src, target, sse, delta, std ;
   VERTEX   *v ;
@@ -9099,10 +9143,17 @@ mrisComputeCorrelationError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 #endif
     target = MRISPfunctionVal(parms->mrisp_template, mris, x, y, z, 
                               parms->frame_no) ;
+#define DISABLE_STDS  1
+#if DISABLE_STDS
+std = 1.0f ;
+#else
     std = MRISPfunctionVal(parms->mrisp_template,mris,x,y,z,parms->frame_no+1);
     std = sqrt(std) ;
     if (FZERO(std))
       std = FSMALL ;
+    if (!use_stds)
+      std = 1.0f ;
+#endif
     delta = (src - target) / std ;
     if (!finite(target) || !finite(delta))
       DiagBreak() ;
@@ -9159,6 +9210,9 @@ mrisComputeCorrelationTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     std = sqrt(std) ;
     if (FZERO(std))
       std = FSMALL ;
+#if DISABLE_STDS
+std = 1.0f ;
+#endif
     delta = (target-src) ; coef = delta * l_corr / std ;
 
     /* now compute gradient of template w.r.t. a change in vertex position */
@@ -9257,6 +9311,9 @@ mrisComputePolarCorrelationTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     std = sqrt(std) ;
     if (FZERO(std))
       std = FSMALL ;
+#if DISABLE_STDS
+std = 1.0f ;
+#endif
     delta = (target-src) ; coef = delta / std ;
 
     /* now compute gradient of template w.r.t. a change in vertex position */
@@ -9628,7 +9685,6 @@ MRISclearCurvature(MRI_SURFACE *mris)
   }
   return(NO_ERROR) ;
 }
-#if 1
 /*-----------------------------------------------------
         Parameters:
 
@@ -9637,7 +9693,7 @@ MRISclearCurvature(MRI_SURFACE *mris)
         Description
 ------------------------------------------------------*/
 int
-MRISrigidBodyAlign(MRI_SURFACE *mris, INTEGRATION_PARMS *old_parms)
+MRISrigidBodyAlignLocal(MRI_SURFACE *mris, INTEGRATION_PARMS *old_parms)
 {
   int                old_status, steps ;
   INTEGRATION_PARMS  parms ;
@@ -9646,8 +9702,8 @@ MRISrigidBodyAlign(MRI_SURFACE *mris, INTEGRATION_PARMS *old_parms)
   old_status = mris->status ;   /* okay, okay, this is a hack too... */
   mris->status = MRIS_RIGID_BODY ; 
   memset(&parms, 0, sizeof(parms)) ;
-  parms.integration_type = INTEGRATE_LINE_MINIMIZE ;
   parms.integration_type = INTEGRATE_LM_SEARCH ;
+  parms.integration_type = INTEGRATE_LINE_MINIMIZE ;
 
   parms.mrisp_template = old_parms->mrisp_template ;
   parms.fp = old_parms->fp ;
@@ -9684,7 +9740,6 @@ MRISrigidBodyAlign(MRI_SURFACE *mris, INTEGRATION_PARMS *old_parms)
   }
   return(NO_ERROR) ;
 }
-#else
 /*-----------------------------------------------------
         Parameters:
 
@@ -9693,16 +9748,19 @@ MRISrigidBodyAlign(MRI_SURFACE *mris, INTEGRATION_PARMS *old_parms)
         Description
 ------------------------------------------------------*/
 #define STARTING_ANGLE   RADIANS(16.0f)
-#define ENDING_ANGLE     RADIANS(2.0f)
-#define NANGLES          16
+#define ENDING_ANGLE     RADIANS(4.0f)
+#define NANGLES          8
 
 int
-MRISrigidBodyAlign(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
+MRISrigidBodyAlignGlobal(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
+                         float min_degrees, float max_degrees, int nangles)
 {
   double   alpha, beta, gamma, degrees, delta, mina, minb, ming,
            sse, min_sse ;
   int      old_status = mris->status ;
 
+  min_degrees = RADIANS(min_degrees) ; max_degrees = RADIANS(max_degrees) ;
+  mrisOrientSurface(mris) ;
   mris->status = MRIS_RIGID_BODY ; 
   if (!parms->start_t)
   {
@@ -9714,11 +9772,11 @@ MRISrigidBodyAlign(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
         mrisWriteSnapshot(mris, parms, 0) ;
     }
   }
-  min_sse = mrisComputeCorrelationError(mris, parms) ;
-  mina = minb = ming = 0.0 ;
-  for (degrees = STARTING_ANGLE ; degrees >= ENDING_ANGLE ; degrees /= 2.0f)
+  for (degrees = max_degrees ; degrees >= min_degrees ; degrees /= 2.0f)
   {
-    delta = 2*degrees / NANGLES ;
+    mina = minb = ming = 0.0 ;
+    min_sse = mrisComputeCorrelationError(mris, parms, 1) ;
+    delta = 2*degrees / (float)nangles ;
     if (Gdiag & DIAG_SHOW)
       fprintf(stderr, "scanning %2.2f degree nbhd, min sse = %2.2f\n", 
               DEGREES(degrees), min_sse) ;
@@ -9730,14 +9788,16 @@ MRISrigidBodyAlign(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
         {
           MRISsaveVertexPositions(mris, TMP_VERTICES) ;
           MRISrotate(mris, mris, alpha, beta, gamma) ;
-          sse = mrisComputeCorrelationError(mris, parms) ;
+          sse = mrisComputeCorrelationError(mris, parms, 1) ;
           if (sse < min_sse)
           {
+#if 0
             if (Gdiag & DIAG_SHOW)
               fprintf(stderr, 
                       "\nrotating brain by (%+2.2f, %+2.2f, %+2.2f), "
                       "sse: %2.2f\n",
                       DEGREES(alpha), DEGREES(beta), DEGREES(gamma), sse) ;
+#endif
             mina = alpha ; minb = beta ; ming = gamma ;
             min_sse = sse ;
 #if 0
@@ -9746,8 +9806,10 @@ MRISrigidBodyAlign(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 #endif
           }
           if (Gdiag & DIAG_SHOW)
-            fprintf(stderr, "\r(%+2.2f, %+2.2f, %+2.2f)   ",
-                    DEGREES(alpha), DEGREES(beta), DEGREES(gamma)) ;
+            fprintf(stderr, "\r(%+2.2f, %+2.2f, %+2.2f), "
+                    "min @ (%2.2f, %2.2f, %2.2f) = %2.1f   ",
+                    DEGREES(alpha), DEGREES(beta), DEGREES(gamma),
+                    DEGREES(mina), DEGREES(minb), DEGREES(ming), min_sse) ;
 
           MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
         }
@@ -9755,29 +9817,31 @@ MRISrigidBodyAlign(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     }
     if (Gdiag & DIAG_SHOW)
       fprintf(stderr, "\n") ;
-    MRISrotate(mris, mris, mina, minb, ming) ;
-    sse = mrisComputeCorrelationError(mris, parms) ;
-    if (Gdiag & DIAG_SHOW)
-      fprintf(stderr, "min sse = %2.2f at (%2.2f, %2.2f, %2.2f)\n",
-              sse, DEGREES(mina), DEGREES(minb), DEGREES(ming)) ;
-    if (Gdiag & DIAG_WRITE)
-      fprintf(parms->fp, 
-              "rotating brain by (%2.2f, %2.2f, %2.2f), sse: %2.2f\n",
-              DEGREES(mina), DEGREES(minb), DEGREES(ming), sse) ;
-    parms->start_t += 1.0f ;
-    parms->t += 1.0f ;
-    if (Gdiag & DIAG_WRITE && parms->write_iterations > 0)
-      mrisWriteSnapshot(mris, parms, parms->start_t) ;
-    if (Gdiag & DIAG_WRITE)
+    if (!FZERO(mina) || !FZERO(minb) || !FZERO(ming))
+    {
+      MRISrotate(mris, mris, mina, minb, ming) ;
+      sse = mrisComputeCorrelationError(mris, parms, 1) ;
+      if (Gdiag & DIAG_SHOW)
+        fprintf(stderr, "min sse = %2.2f at (%2.2f, %2.2f, %2.2f)\n",
+                sse, DEGREES(mina), DEGREES(minb), DEGREES(ming)) ;
+      if (Gdiag & DIAG_WRITE)
+        fprintf(parms->fp, 
+                "rotating brain by (%2.2f, %2.2f, %2.2f), sse: %2.2f\n",
+                DEGREES(mina), DEGREES(minb), DEGREES(ming), sse) ;
+      parms->start_t += 1.0f ;
+      parms->t += 1.0f ;
+      if (Gdiag & DIAG_WRITE && parms->write_iterations > 0)
+        mrisWriteSnapshot(mris, parms, parms->start_t) ;
+      if (Gdiag & DIAG_WRITE)
       mrisLogStatus(mris, parms, parms->fp, 0.0f) ;
-    if (Gdiag & DIAG_SHOW)
-      mrisLogStatus(mris, parms, stderr, 0.0f) ;
+      if (Gdiag & DIAG_SHOW)
+        mrisLogStatus(mris, parms, stderr, 0.0f) ;
+    }
   }
 
   mris->status = old_status ;
   return(NO_ERROR) ;
 }
-#endif
 /*-----------------------------------------------------
         Parameters:
 
