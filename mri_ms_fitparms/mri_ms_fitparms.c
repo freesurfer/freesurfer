@@ -339,7 +339,7 @@ get_option(int argc, char *argv[])
   }
   else if (!stricmp(option, "fa"))
   {
-    fa = atof(argv[2]) ;
+    fa = RADIANS(atof(argv[2])) ;
     nargs = 1;
   }
   else if (!stricmp(option, "trilinear"))
