@@ -6,7 +6,7 @@
 #include "gclass.h"
 #include "artmap.h"
 #include "box.h"
-
+#include "mri.h"
 
 typedef struct
 {
