@@ -17,39 +17,38 @@ static int get_option(int argc, char *argv[]) ;
 char *Progname ;
 
 static void usage_exit(int code) ;
+static MRI *MRIcomputePriors(MRI *mri_priors, int ndof, MRI *mri_char_priors);
 int MRIaccumulateMeansAndVariances(MRI *mri, MRI *mri_mean, MRI *mri_std) ;
 int MRIcomputeMeansAndStds(MRI *mri_mean, MRI *mri_std, int ndof) ;
+int MRIcomputeMaskedMeansAndStds(MRI *mri_mean, MRI *mri_std, MRI *mri_dof) ;
 MRI *MRIfloatToChar(MRI *mri_src, MRI *mri_dst) ;
+int MRIaccumulateMaskedMeansAndVariances(MRI *mri, MRI *mri_mask,MRI *mri_dof,
+                                         float low_val, float hi_val, 
+                                         MRI *mri_mean, MRI *mri_std) ;
+static MRI *MRIupdatePriors(MRI *mri_binary, MRI *mri_priors) ;
+static MRI *MRIcomputePriors(MRI *mri_priors, int ndof, MRI *mri_char_priors);
 
-static char *wm_name = "wm" ;
-static char *filled_name = "filled" ;
-
-static int use_wm = 1 ;
-static int use_filled = 1 ;
-static int make_edit_volume = 0 ;
 static char *transform_fname = NULL ;
 static char *T1_name = "T1" ;
+static char *binary_name = NULL ;
 
-/* reading the filled volumes twice to do left and right hemisphere is a 
-   hack, but I don't have enough memory to hold two means and stds at the
-   same time.
-   */
-#define T1_VOLUME        0
-#define WM_VOLUME        1
-#define LH_FILLED_VOLUME 2
-#define RH_FILLED_VOLUME 3
-#define FILLED_VOLUME    RH_FILLED_VOLUME
-#define MAX_VOLUMES      4
-#define EDIT_VOLUME      5
+/* just for T1 volume */
+#define T1_MEAN_VOLUME        0
+#define T1_STD_VOLUME         1
 
 static int first_transform = 0 ;
+
+#define BUILD_PRIORS             0
+#define ON_STATS                 1
+#define OFF_STATS                2
 
 int
 main(int argc, char *argv[])
 {
-  char   **av, *volume_name, subjects_dir[100], *cp ;
-  int    ac, nargs, i, which, dof, no_transform ;
-  MRI    *mri, *mri_mean = NULL, *mri_std ;
+  char   **av, subjects_dir[100], *cp ;
+  int    ac, nargs, i, dof, no_transform, which ;
+  MRI    *mri, *mri_mean = NULL, *mri_std, *mri_T1,*mri_binary,*mri_dof=NULL,
+         *mri_priors = NULL ;
   char   *subject_name, *out_fname, fname[100] ;
 
   Progname = argv[0] ;
@@ -75,45 +74,172 @@ main(int argc, char *argv[])
 
   out_fname = argv[argc-1] ;
 
-  for (which = 0 ; which < MAX_VOLUMES ; which++) /* for each output volume */
-  {
-    if ((which > 0 && !use_wm) || (which >= FILLED_VOLUME && !use_filled) ||
-        (which >= EDIT_VOLUME  && !make_edit_volume))
-      break ;
-    volume_name = which == T1_VOLUME ? T1_name : 
-      (which == LH_FILLED_VOLUME || which == RH_FILLED_VOLUME) ? 
-      filled_name : wm_name ;
+  no_transform = first_transform ;
+  if (binary_name)   /* generate binarized volume with priors and */
+  {                  /* separate means and variances */
+    for (which = BUILD_PRIORS ; which <= OFF_STATS ; which++)
+    {
+      /* for each subject specified on cmd line */
+      for (dof = 0, i = 1 ; i < argc-1 ; i++) 
+      {
+        if (*argv[i] == '-')   /* don't do transform for next subject */
+        { no_transform = 1 ; continue ; }
+        dof++ ;
+        subject_name = argv[i] ;
+        if (which != BUILD_PRIORS)
+        {
+          sprintf(fname, "%s/%s/mri/%s", subjects_dir, subject_name, T1_name);
+          fprintf(stderr, "%d of %d: reading %s...\n", i, argc-2, fname) ;
+          mri_T1 = MRIread(fname) ;
+          if (!mri_T1)
+            ErrorExit(ERROR_NOFILE,"%s: could not open volume %s",
+                      Progname,fname);
+        }
+        
+        sprintf(fname, "%s/%s/mri/%s",subjects_dir,subject_name,binary_name);
+        fprintf(stderr, "%d of %d: reading %s...\n", i, argc-2, fname) ;
+        mri_binary = MRIread(fname) ;
+        if (!mri_binary)
+          ErrorExit(ERROR_NOFILE,"%s: could not open volume %s",
+                    Progname,fname);
 
+        /* only count voxels which are mostly labeled */
+        MRIbinarize(mri_binary, mri_binary, WM_MIN_VAL, 0, 100) ;
+        if (transform_fname && no_transform-- <= 0)
+        {
+          int       type ;
+          MORPH_3D  *m3d ;
+          LTA       *lta ;
+          MRI       *mri_tmp ;
+          
+          sprintf(fname, "%s/%s/mri/transforms/%s", 
+                  subjects_dir, subject_name, transform_fname) ;
+          
+          fprintf(stderr, "reading transform %s...\n", fname) ;
+          type = TransformFileNameType(fname) ;
+          switch (type)
+          {
+          default:
+          case TRANSFORM_ARRAY_TYPE:
+            lta = LTAread(fname) ;
+            if (!lta)
+              ErrorExit(ERROR_NOFILE, 
+                        "%s: could not open transform file %s\n",
+                        Progname, fname) ;
+            if (which != BUILD_PRIORS)
+            {
+              mri_tmp = LTAtransform(mri_T1, NULL, lta) ;
+              MRIfree(&mri_T1) ; mri_T1 = mri_tmp ;
+            }
+            mri_tmp = LTAtransform(mri_binary, NULL, lta) ;
+            MRIfree(&mri_binary) ; mri_binary = mri_tmp ;
+            LTAfree(&lta) ;
+            break ;
+          case MORPH_3D_TYPE:
+            m3d = MRI3DreadSmall(fname) ;
+            if (!m3d)
+              ErrorExit(ERROR_NOFILE, 
+                        "%s: could not open transform file %s\n",
+                        Progname, transform_fname) ;
+            fprintf(stderr, "applying transform...\n") ;
+            if (which != BUILD_PRIORS)
+            {
+              mri_tmp = MRIapply3DMorph(mri_T1, m3d, NULL) ;
+              MRIfree(&mri_T1) ; mri_T1 = mri_tmp ;
+            }
+            mri_tmp = MRIapply3DMorph(mri_binary, m3d, NULL) ;
+            MRIfree(&mri_binary) ; mri_binary = mri_tmp ;
+            MRI3DmorphFree(&m3d) ;
+            break ;
+          }
+          fprintf(stderr, "transform application complete.\n") ;
+        }
+        if (which == BUILD_PRIORS)
+        {
+          mri_priors = 
+            MRIupdatePriors(mri_binary, mri_priors) ;
+        }
+        else
+        {
+          if (!mri_mean)
+          {
+            mri_dof = MRIalloc(mri_T1->width, mri_T1->height, mri_T1->depth, 
+                               MRI_UCHAR) ;
+            mri_mean = 
+              MRIalloc(mri_T1->width, mri_T1->height,mri_T1->depth,MRI_FLOAT);
+            mri_std = 
+              MRIalloc(mri_T1->width,mri_T1->height,mri_T1->depth,MRI_FLOAT);
+            if (!mri_mean || !mri_std)
+              ErrorExit(ERROR_NOMEMORY, "%s: could not allocate templates.\n",
+                        Progname) ;
+          }
+        
+          fprintf(stderr, "updating mean and variance estimates...\n") ;
+          if (which == ON_STATS)
+          {
+            MRIaccumulateMaskedMeansAndVariances(mri_T1, mri_binary, mri_dof,
+                                                 90, 100, mri_mean, mri_std) ;
+            fprintf(stderr, "T1 = %d, binary = %d, mean = %2.1f\n",
+                    MRIvox(mri_T1, 141,100,127), 
+                    MRIvox(mri_binary, 141,100,127),
+                    MRIFvox(mri_mean, 141,100,127)) ;
+          }
+          else  /* computing means and vars for off */
+            MRIaccumulateMaskedMeansAndVariances(mri_T1, mri_binary, mri_dof,
+                                                 0, WM_MIN_VAL-1, 
+                                                 mri_mean, mri_std) ;
+          MRIfree(&mri_T1) ; 
+        }
+        MRIfree(&mri_binary) ;
+      }
+
+      if (which == BUILD_PRIORS)
+      {
+        mri = MRIcomputePriors(mri_priors, dof, NULL) ;
+        MRIfree(&mri_priors) ;
+        fprintf(stderr, "writing priors to %s...\n", out_fname) ;
+      }
+      else
+      {
+        MRIcomputeMaskedMeansAndStds(mri_mean, mri_std, mri_dof) ;
+        mri_mean->dof = dof ;
+        mri = MRIfloatToChar(mri_mean, NULL) ;
+        
+        fprintf(stderr, "writing T1 means with %d dof to %s...\n", mri->dof, 
+                out_fname) ;
+        if (!which)
+          MRIwrite(mri, out_fname) ;
+        else
+          MRIappend(mri, out_fname) ;
+        MRIfree(&mri_mean) ; MRIfree(&mri) ;
+        fprintf(stderr, "writing T1 variances to %s...\n", out_fname);
+        mri = MRIfloatToChar(mri_std, NULL) ;
+        MRIfree(&mri_std) ; 
+        if (dof <= 1)
+          MRIreplaceValues(mri, mri, 0, 1) ;
+      }
+
+      if (!which)
+        MRIwrite(mri, out_fname) ;
+      else
+        MRIappend(mri, out_fname) ;
+      MRIfree(&mri) ;
+    }
+  }
+  else
+  {
     /* for each subject specified on cmd line */
-    no_transform = first_transform ;
     for (dof = 0, i = 1 ; i < argc-1 ; i++) 
     {
       if (*argv[i] == '-')   /* don't do transform for next subject */
       { no_transform = 1 ; continue ; }
       dof++ ;
       subject_name = argv[i] ;
-      sprintf(fname, "%s/%s/mri/%s", subjects_dir, subject_name, volume_name);
-      fprintf(stderr, "%d of %d: reading %s...", i, argc-2, fname) ;
-      mri = MRIread(fname) ;
-      if (!mri)
+      sprintf(fname, "%s/%s/mri/%s", subjects_dir, subject_name, T1_name);
+      fprintf(stderr, "%d of %d: reading %s...\n", i, argc-2, fname) ;
+      mri_T1 = MRIread(fname) ;
+      if (!mri_T1)
         ErrorExit(ERROR_NOFILE,"%s: could not open volume %s",Progname,fname);
-      switch (which)
-      {
-      case WM_VOLUME:  /* labeled white matter volume - binarize it */
-        MRIbinarize(mri, mri, 5, 0, 100) ;
-        break ;
-      case LH_FILLED_VOLUME:
-        MRIreplaceValues(mri, mri, MRI_LEFT_HEMISPHERE, 100) ;
-        MRIreplaceValues(mri, mri, MRI_RIGHT_HEMISPHERE, 0) ;
-        break ;
-      case RH_FILLED_VOLUME:
-        MRIreplaceValues(mri, mri, MRI_RIGHT_HEMISPHERE, 100) ;
-        MRIreplaceValues(mri, mri, MRI_LEFT_HEMISPHERE, 0) ;
-        break ;
-      default:
-        break ;
-      }
-      fprintf(stderr, "done.\n") ;
       if (transform_fname && no_transform-- <= 0)
       {
         int       type ;
@@ -123,8 +249,8 @@ main(int argc, char *argv[])
         
         sprintf(fname, "%s/%s/mri/transforms/%s", 
                 subjects_dir, subject_name, transform_fname) ;
-
-        fprintf(stderr, "reading transform %s...", fname) ;
+        
+        fprintf(stderr, "reading transform %s...\n", fname) ;
         type = TransformFileNameType(fname) ;
         switch (type)
         {
@@ -134,7 +260,7 @@ main(int argc, char *argv[])
           if (!lta)
             ErrorExit(ERROR_NOFILE, "%s: could not open transform file %s\n",
                       Progname, fname) ;
-          mri_tmp = LTAtransform(mri, NULL, lta) ;
+          mri_tmp = LTAtransform(mri_T1, NULL, lta) ;
           LTAfree(&lta) ;
           break ;
         case MORPH_3D_TYPE:
@@ -142,55 +268,46 @@ main(int argc, char *argv[])
           if (!m3d)
             ErrorExit(ERROR_NOFILE, "%s: could not open transform file %s\n",
                       Progname, transform_fname) ;
-          fprintf(stderr, "done.\napplying transform...") ;
-          mri_tmp = MRIapply3DMorph(mri, m3d, NULL) ;
+          fprintf(stderr, "applying transform...\n") ;
+          mri_tmp = MRIapply3DMorph(mri_T1, m3d, NULL) ;
           MRI3DmorphFree(&m3d) ;
           break ;
         }
-        MRIfree(&mri) ; mri = mri_tmp ;
+        MRIfree(&mri_T1) ; mri_T1 = mri_tmp ;
         fprintf(stderr, "transform application complete.\n") ;
       }
       if (!mri_mean)
       {
-        fprintf(stderr, "allocating mean and standard deviation volumes...") ;
-        mri_mean = MRIalloc(mri->width, mri->height, mri->depth, MRI_FLOAT) ;
-        mri_std = MRIalloc(mri->width, mri->height, mri->depth, MRI_FLOAT) ;
+        mri_mean = 
+          MRIalloc(mri_T1->width, mri_T1->height, mri_T1->depth, MRI_FLOAT) ;
+        mri_std = 
+          MRIalloc(mri_T1->width, mri_T1->height, mri_T1->depth, MRI_FLOAT) ;
         if (!mri_mean || !mri_std)
           ErrorExit(ERROR_NOMEMORY, "%s: could not allocate templates.\n",
                     Progname) ;
-        fprintf(stderr, "done.\n") ;
       }
-
-      fprintf(stderr, "updating mean and variance estimates...") ;
-      MRIaccumulateMeansAndVariances(mri, mri_mean, mri_std) ;
-      fprintf(stderr, "done.\n") ;
-      MRIfree(&mri) ;
+    
+      fprintf(stderr, "updating mean and variance estimates...\n") ;
+      MRIaccumulateMeansAndVariances(mri_T1, mri_mean, mri_std) ;
+      MRIfree(&mri_T1) ;
     }
     MRIcomputeMeansAndStds(mri_mean, mri_std, dof) ;
+
     mri_mean->dof = dof ;
     mri = MRIfloatToChar(mri_mean, NULL) ;
-    if (which == LH_FILLED_VOLUME)
-      volume_name = "lh filled" ;
-    else if (which == RH_FILLED_VOLUME)
-      volume_name = "rh filled" ;
       
-    fprintf(stderr, "\nwriting %s means with %d dof to %s...", 
-            volume_name, mri->dof, out_fname) ;
-    if (!which)
-      MRIwrite(mri, out_fname) ;
-    else
-      MRIappend(mri, out_fname) ;
+    fprintf(stderr, "\nwriting T1 means with %d dof to %s...\n", mri->dof, 
+            out_fname) ;
+    MRIwrite(mri, out_fname) ;
     MRIfree(&mri_mean) ; MRIfree(&mri) ;
-    fprintf(stderr, "\nwriting %s variances to %s...", volume_name,out_fname);
+    fprintf(stderr, "\nwriting T1 variances to %s...\n", out_fname);
     mri = MRIfloatToChar(mri_std, NULL) ;
     if (dof <= 1) /* can't calulate variances - set them to reasonable val */
       MRIreplaceValues(mri, mri, 0, 1) ;
     MRIappend(mri, out_fname) ;
-    fprintf(stderr, "done.\n") ;
     MRIfree(&mri_std) ; MRIfree(&mri) ;
   }
 
-  fprintf(stderr, "done.\n") ;
   exit(0) ;
   return(0) ;
 }
@@ -206,43 +323,19 @@ get_option(int argc, char *argv[])
   char *option ;
   
   option = argv[1] + 1 ;            /* past '-' */
-  if (!stricmp(option, "single"))
-  {
-    use_filled = use_wm = make_edit_volume = 0 ;
-    fprintf(stderr, "making single mean/variance image\n") ;
-  }
-  else if (!stricmp(option, "filled"))
-  {
-    filled_name = argv[2] ;
-    fprintf(stderr,"reading filled volume from directory '%s'\n",filled_name) ;
-    nargs = 1 ;
-  }
-  else if (!stricmp(option, "T1"))
+  if (!stricmp(option, "T1"))
   {
     T1_name = argv[2] ;
     fprintf(stderr,"reading T1 volume from directory '%s'\n",T1_name) ;
     nargs = 1 ;
   }
-  else if (!stricmp(option, "wm"))
-  {
-    wm_name = argv[2] ;
-    fprintf(stderr, "reading wm volume from directory '%s'\n", wm_name) ;
-    nargs = 1 ;
-  }
   else switch (toupper(*option))
   {
-  case 'E':
-    use_filled = use_wm = make_edit_volume = 1 ;
-    fprintf(stderr, 
-           "appending wm volume to template and building auto-edit volue.\n");
-    break ;
-  case 'F':
-    use_wm = use_filled = 1 ;
-    fprintf(stderr, "appending wm and filled volumes to template.\n") ;
-    break ;
-  case 'W':
-    use_wm = 1 ;
-    fprintf(stderr, "appending wm volume to template.\n") ;
+  case 'B':
+    binary_name = argv[2] ;
+    fprintf(stderr, "generating binary template from %s volume\n", 
+            binary_name) ;
+    nargs = 1 ;
     break ;
   case 'N':
     first_transform = 1 ;  /* don't use transform on first volume */
@@ -335,6 +428,35 @@ MRIcomputeMeansAndStds(MRI *mri_mean, MRI *mri_std, int ndof)
   }
   return(NO_ERROR) ;
 }
+int
+MRIcomputeMaskedMeansAndStds(MRI *mri_mean, MRI *mri_std, MRI *mri_dof)
+{
+  int    x, y, z, width, height, depth, ndof ;
+  float  sum, sum_sq, mean, var ;
+  
+  width = mri_std->width ; height = mri_std->height ; depth = mri_std->depth ;
+
+  for (z = 0 ; z < depth ; z++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      for (x = 0 ; x < width ; x++)
+      {
+        if (x == 128 && y == 128 && z == 128)
+          DiagBreak() ;
+        sum = MRIFvox(mri_mean,x,y,z) ;
+        ndof = MRIvox(mri_dof, x, y, z) ;
+        if (!ndof)   /* variance will be 0 in any case */
+          ndof = 1 ;
+        sum_sq = MRIFvox(mri_std,x,y,z) / ndof ;
+        mean = MRIFvox(mri_mean,x,y,z) = sum / ndof ; 
+        var = sum_sq - mean*mean; 
+        MRIFvox(mri_std,x,y,z) = sqrt(var) ;
+      }
+    }
+  }
+  return(NO_ERROR) ;
+}
 
 MRI *
 MRIfloatToChar(MRI *mri_src, MRI *mri_dst)
@@ -388,3 +510,107 @@ MRIbinarizeEditting(MRI *mri_src, MRI *mri_dst)
   return(mri_dst) ;
 }
 #endif
+int
+MRIaccumulateMaskedMeansAndVariances(MRI *mri, MRI *mri_mask, MRI *mri_dof,
+                                     float low_val, 
+                                     float hi_val,MRI *mri_mean,MRI *mri_std)
+{
+  int     x, y, z, width, height, depth ;
+  float   val ;
+  BUFTYPE *pmask, mask ;
+  
+  width = mri->width ; height = mri->height ; depth = mri->depth ;
+
+  for (z = 0 ; z < depth ; z++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      pmask = &MRIvox(mri_mask, 0, y, z) ;
+      for (x = 0 ; x < width ; x++)
+      {
+        if (x == 128 && y == 128 && z == 128)
+          DiagBreak() ;
+        mask = *pmask++ ;
+        if (mask >= low_val && mask <= hi_val)
+        {
+          val = MRIvox(mri,x,y,z) ;
+          MRIFvox(mri_mean,x,y,z) += val ;
+          MRIFvox(mri_std,x,y,z) += val*val ;
+          MRIvox(mri_dof,x,y,z)++ ;
+        }
+      }
+    }
+  }
+  return(NO_ERROR) ;
+}
+static MRI *
+MRIupdatePriors(MRI *mri_binary, MRI *mri_priors)
+{
+  int     width, height, depth, x, y, z ;
+  BUFTYPE *pbin ;
+  float   prob ;
+
+  width = mri_binary->width ; 
+  height = mri_binary->height ; 
+  depth = mri_binary->depth ;
+  if (!mri_priors)
+  {
+    mri_priors = MRIalloc(width, height, depth, MRI_FLOAT) ;
+  }
+  
+  for (z = 0 ; z < depth ; z++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      pbin = &MRIvox(mri_binary, 0, y, z) ;
+      for (x = 0 ; x < width ; x++)
+      {
+        if (x == 128 && y == 128 && z == 128)
+          DiagBreak() ;
+        prob = *pbin++ / 100.0f ;
+        MRIFvox(mri_priors, x, y, z) += prob ;
+      }
+    }
+  }
+  return(mri_priors) ;
+}
+
+static MRI *
+MRIcomputePriors(MRI *mri_priors, int ndof, MRI *mri_char_priors)
+{
+  int     width, height, depth, x, y, z ;
+  BUFTYPE *pchar_prior, char_prior ;
+  float   *pprior, prior ;
+
+  width = mri_priors->width ; 
+  height = mri_priors->height ; 
+  depth = mri_priors->depth ;
+  if (!mri_char_priors)
+  {
+    mri_char_priors = MRIalloc(width, height, depth, MRI_UCHAR) ;
+  }
+  
+  for (z = 0 ; z < depth ; z++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      pprior = &MRIFvox(mri_priors, 0, y, z) ;
+      pchar_prior = &MRIvox(mri_char_priors, 0, y, z) ;
+      for (x = 0 ; x < width ; x++)
+      {
+        if (x == 128 && y == 128 && z == 128)
+          DiagBreak() ;
+        prior = *pprior++ ;
+        if (prior > 0)
+          DiagBreak() ;
+        if (prior > 10)
+          DiagBreak() ;
+        char_prior = (BUFTYPE)nint(100.0f*prior/(float)ndof) ;
+        if (char_prior > 101)
+          DiagBreak() ;
+        *pchar_prior++ = char_prior ;
+      }
+    }
+  }
+  return(mri_char_priors) ;
+}
