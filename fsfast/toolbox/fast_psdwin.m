@@ -5,9 +5,6 @@ function rt = fast_psdwin(psdwin,DoWhat)
 %
 % psdwin = [psdmin dpsd psdmax <bcw>]
 %
-% DoWhat = 'check', 'npsdwin', 'erfpsdwin'
-%  If DoWhat is null or does not exist, then 'check'
-% 
 % psdmin is the time (sec) at which the window starts
 %   This is similar to the "prestim" time, except that
 %   psdmin = -prestim.
@@ -18,32 +15,42 @@ function rt = fast_psdwin(psdwin,DoWhat)
 %
 % psdmax is the maximum post-stimulus delay of the Impulse 
 %   Response Window. This is related to "TimeWindow" :
-%   TimeWindow = psdmax - psdmin - dpsd
-%   The '-dpsd' is needed because it is assumed that each
-%   point in the window spans dpsd seconds, so the last
-%   point ends at psdmax.
+%   TimeWindow = psdmax - psdmin. This is the post-stimulus
+%   delay at the END of the last point.
 %
 % bcw - length of box car (in seconds) to convolve the
-%   impulse response. This will lengthen the length of the
-%   window. If not present, then bcw = 0.
+%   impulse response. This will lengthen the window by bcw-dpsd
+%   seconds. If not present, then bcw = 0.
 %
 % DoWhat can be:
 %   not present - same as 'check'
 %   empty - same as 'check'
 %   'check' - checks window, returns 1 if ok, 0 otherwise
 %   'erfpsdmax' - max PSD of the Event Response Function,
-%      computed as erfpsdmax = psdmax + bcw, ie the IRF max
-%      after convolving with a boxcar of length bcw.
-%   'npsdwin' - the number of dpsds in the window, computed
+%      computed as erfpsdmax = psdmax + bcw - dpsd, ie the 
+%      IRF max after convolving with a boxcar of length bcw.
+%      See also the matlab conv() function.
+%   'nirfpsdwin' - the number of dpsds in the IRF window
+%   'nerfpsdwin' - the number of dpsds in the ERF window
 %   'irftaxis' - time axis for IRF 
 %   'erftaxis' - time axis for ERF 
 %   DoWhat is not case sensitive.
 %  
+% The number of points in the IRF or ERF window is computed as 
+%   nirfpsdwin = (psdmax-psdmin)/dpsd;
+%   nerfpsdwin = (erfpsdmax-psdmin-dpsd)/dpsd;
+%
+% The first element of the time axis vector will be psdmin, the
+% second will be psdmin+dsd.  The last component will be 
+% psdmax-dpsd (or erfpsdmax-dpsd) NOT psdmax (or erfpsdmax).
+% It is assumed that the last point will start at max-dpsd and 
+% span the time to the max.
+%
 % The psd window is checked regardless of what DoWhat is. If
 % there is an error and DoWhat is not 'check', then an empty
 % matrix is returned.
 %  
-% $Id: fast_psdwin.m,v 1.2 2003/03/19 07:02:09 greve Exp $
+% $Id: fast_psdwin.m,v 1.3 2003/03/21 05:20:25 greve Exp $
 
 rt = [];
 
@@ -103,14 +110,17 @@ else
   ok = 1;
 end
 
-erfpsdmax = psdmax + bcw;
-npsdwin = (erfpsdmax-psdmin-dpsd)/dpsd;
+nirfpsdwin = round((psdmax-psdmin)/dpsd);
+erfpsdmax = psdmax + bcw - dpsd;
+nerfpsdwin = round((erfpsdmax-psdmin)/dpsd);
 
 switch(DoWhat)
   case 'check'
    rt = ok;
-  case 'npsdwin'
-   rt = npsdwin;
+  case {'npsdwin','nerfpsdwin'}
+   rt = nerfpsdwin;
+  case 'nirfpsdwin'
+   rt = nirfpsdwin;
   case 'erfpsdmax'
    rt = erfpsdmax;
   case 'irftaxis'
