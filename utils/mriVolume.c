@@ -645,7 +645,7 @@ Volm_tErr Volm_LoadDisplayTransform ( mriVolumeRef this,
 
   MRI *pmri = 0;         // use as convenience
   LT *tran = 0;          // use as convenience
-
+  mriTransformRef dispTran;
 
   DebugEnterFunction( ("Volm_LoadDisplayTransform( this=%p, isFileName=%s )", 
 		       this, isFileName) );
@@ -755,7 +755,7 @@ Volm_tErr Volm_LoadDisplayTransform ( mriVolumeRef this,
   //
   ////////////////////////////////////////////////////////////////////////////
   // I had to copy Trns_NewFromLTA verbatim //////////////////////////////////
-  mriTransformRef dispTran;
+
   dispTran = (mriTransformRef) malloc(sizeof(mriTransform));
   if( NULL == dispTran ) 
   {
