@@ -17,7 +17,7 @@
 #include "macros.h"
 #include "oglutil.h"
 
-static char vcid[] = "$Id: oglutil.c,v 1.6 1997/12/10 23:14:42 fischl Exp $";
+static char vcid[] = "$Id: oglutil.c,v 1.7 1997/12/11 00:32:38 fischl Exp $";
 
 
 /*-------------------------------- CONSTANTS -----------------------------*/
@@ -373,7 +373,6 @@ load_brain_coords(float x,float y, float z, float v[])
 
 
 
-#endif
 static int
 mrisFindMaxExtents(MRI_SURFACE *mris)
 {
@@ -419,7 +418,7 @@ ogluSetFOV(MRI_SURFACE *mris, double fov)
 #if 0
     if (3*max_dim < FOV)
       oglu_fov = 3*max_dim ;
-    else if (max_dim > FOV)  /* try and keep it constant for a range of sizes */
+    else if (max_dim > FOV) /* try and keep it constant for a range of sizes */
     {
       oglu_fov = FOV*1.5 ;
       while (oglu_fov < max_dim)
@@ -464,3 +463,4 @@ OGLUsetFOV(int fov)
   return(NO_ERROR) ;
 }
 
+#endif
