@@ -12,7 +12,7 @@
 #include "mrimorph.h"
 #include "timer.h"
 
-static char vcid[] = "$Id: mri_fill.c,v 1.41 2000/04/25 17:59:06 fischl Exp $";
+static char vcid[] = "$Id: mri_fill.c,v 1.42 2000/07/17 14:14:33 fischl Exp $";
 
 /*-------------------------------------------------------------------
                                 CONSTANTS
@@ -32,9 +32,6 @@ static char vcid[] = "$Id: mri_fill.c,v 1.41 2000/04/25 17:59:06 fischl Exp $";
 
 /* size of various orthogonal slices */
 #define SLICE_SIZE                      128
-
-/* anything below this is not white matter */
-#define WM_MIN_VAL                       2 
 
 /* the min # of neighbors on for a point to be allowed to be a seed point */
 #define MIN_NEIGHBORS                    5
