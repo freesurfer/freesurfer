@@ -402,6 +402,76 @@ MATRIX *MRIfixTkReg(MRI *mov, MATRIX *R)
   return(Rfix);
 }
 
+/*-------------------------------------------------------------------
+  MRIfsl2TkReg() - converts an FSL registration matrix to one
+  compatible with tkregister.  Note: the FSL matrix is assumed to map
+  from the mov to the ref whereas the tkreg matrix maps from the ref
+  to the mov.
+  -------------------------------------------------------------------*/
+MATRIX *MRIfsl2TkReg(MRI *ref, MRI *mov, MATRIX *FSLRegMat)
+{
+  MATRIX *RegMat=NULL, *invDmov, *Tmov;
+  MATRIX *invFSLRegMat, *invTref, *Tref;
+
+  /* R = Tmov * inv(Dmov) * inv(Mfsl) * inv(Ttarg) */
+  invDmov = MatrixAlloc(4,4,MATRIX_REAL);
+  invDmov->rptr[1][1] = 1.0/mov->xsize;
+  invDmov->rptr[2][2] = 1.0/mov->ysize;
+  invDmov->rptr[3][3] = 1.0/mov->zsize;
+  invDmov->rptr[4][4] = 1.0;
+  invFSLRegMat = MatrixInverse(FSLRegMat,NULL);
+      
+  Tmov = MRIxfmCRS2XYZtkreg(mov);
+  Tref = MRIxfmCRS2XYZtkreg(ref);
+  invTref = MatrixInverse(Tref,NULL);
+
+  RegMat = MatrixMultiply(Tmov,invDmov,RegMat);
+  RegMat = MatrixMultiply(RegMat,invFSLRegMat,RegMat);
+  RegMat = MatrixMultiply(RegMat,invTref,RegMat);
+
+  MatrixFree(&invDmov);
+  MatrixFree(&FSLRegMat);
+  MatrixFree(&invFSLRegMat);
+  MatrixFree(&Tmov);
+  MatrixFree(&Tref);
+  MatrixFree(&invTref);
+
+  return(RegMat);
+}
+/*-------------------------------------------------------------------
+  MRItkreg2FSL() - converts tkregister registration matrix to one
+  compatible with FSL. Note: the FSL matrix is assumed to map from the
+  mov to the ref whereas the tkreg matrix maps from the ref to the
+  mov.
+  -------------------------------------------------------------------*/
+MATRIX *MRItkreg2FSL(MRI *ref, MRI *mov, MATRIX *tkRegMat)
+{
+  MATRIX *FSLRegMat=NULL, *Dmov, *Tmov, *invTmov, *Tref;
+
+  /* R = Tmov * inv(Dmov) * inv(Mfsl) * inv(Ttarg) */
+  /* Mfsl =  inv( Dmov * inv(Tmov) * R * Ttarg ) */
+  Dmov = MatrixAlloc(4,4,MATRIX_REAL);
+  Dmov->rptr[1][1] = mov->xsize;
+  Dmov->rptr[2][2] = mov->ysize;
+  Dmov->rptr[3][3] = mov->zsize;
+  Dmov->rptr[4][4] = 1.0;
+      
+  Tmov = MRIxfmCRS2XYZtkreg(mov);
+  invTmov = MatrixInverse(Tmov,NULL);
+  Tref = MRIxfmCRS2XYZtkreg(ref);
+
+  FSLRegMat = MatrixMultiply(Dmov,invTmov,FSLRegMat);
+  FSLRegMat = MatrixMultiply(FSLRegMat,tkRegMat,FSLRegMat);
+  FSLRegMat = MatrixMultiply(FSLRegMat,Tref,FSLRegMat);
+  FSLRegMat = MatrixInverse(FSLRegMat,FSLRegMat);
+
+  MatrixFree(&Dmov);
+  MatrixFree(&Tmov);
+  MatrixFree(&invTmov);
+  MatrixFree(&Tref);
+
+  return(FSLRegMat);
+}
 
 /*-------------------------------------------------------------------
   MRIgetVoxVal() - returns voxel value as a float regardless of
