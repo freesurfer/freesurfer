@@ -26,5 +26,6 @@ int     ErrorPrintf(int ecode, char *fmt, ...) ;
 #define ERROR_NO_MEMORY       -2
 #define ERROR_UNSUPPORTED     -3
 #define ERROR_BADPARM         -4
+#define ERROR_BADFILE         -5
 
 #endif
