@@ -12,7 +12,7 @@
 #include "mrimorph.h"
 #include "timer.h"
 
-static char vcid[] = "$Id: mri_fill.c,v 1.36 1999/09/02 23:08:41 fischl Exp $";
+static char vcid[] = "$Id: mri_fill.c,v 1.37 1999/11/05 00:17:39 fischl Exp $";
 
 /*-------------------------------------------------------------------
                                 CONSTANTS
@@ -140,7 +140,7 @@ static MRI *find_cutting_plane(MRI *mri, Real x_tal, Real y_tal,Real z_tal,
 static int find_slice_center(MRI *mri,  int *pxo, int *pyo) ;
 static int find_corpus_callosum(MRI *mri, Real *ccx, Real *ccy, Real *ccz) ;
 static int find_pons(MRI *mri, Real *p_ponsx, Real *p_ponsy, Real *p_ponsz,
-                     int mid_x) ;
+                     int x_cc, int y_cc, int z_cc, int which) ;
 static int find_cc_slice(MRI *mri, Real *pccx, Real *pccy, Real *pccz) ;
 static int neighbors_on(MRI *mri, int x0, int y0, int z0) ;
 static int MRIfillVolume(MRI *mri_fill, MRI *mri_im, int x_seed, int y_seed, 
@@ -280,7 +280,9 @@ main(int argc, char *argv[])
     if (!mri_cc)
       ErrorExit(ERROR_BADPARM, "%s: could not find corpus callosum", Progname);
   }
-
+  
+  if ((Gdiag & DIAG_WRITE) && DIAG_VERBOSE_ON)
+    MRIwrite(mri_cc, "cc.mgh") ;
   if (log_fp)
     fprintf(log_fp, "CC:   %d, %d, %d (TAL: %2.1f, %2.1f, %2.1f)\n",
             x_cc, y_cc, z_cc, cc_tal_x, cc_tal_y, cc_tal_z) ;
@@ -308,7 +310,7 @@ main(int argc, char *argv[])
     }
     else
       mri_tmp = mri_im ;
-    find_pons(mri_tmp, &pons_tal_x, &pons_tal_y, &pons_tal_z, x_cc) ;
+    find_pons(mri_tmp, &pons_tal_x, &pons_tal_y, &pons_tal_z,x_cc,y_cc,z_cc,0);
     if (mri_tmp != mri_im)
     {
       MRIfree(&mri_tmp) ;
@@ -319,6 +321,45 @@ main(int argc, char *argv[])
     find_cutting_plane(mri_im, pons_tal_x,pons_tal_y, pons_tal_z,
                        MRI_HORIZONTAL, &x_pons, &y_pons, &z_pons,
                        pons_seed_set);
+
+  if (!pons_seed_set && !mri_pons)  /* first attempt failed - try different */
+  {
+    MRI  *mri_mask ;
+
+    fprintf(stderr, 
+            "initial attempt at finding brainstem failed - initiating backup "
+            "plan A....\n") ;
+    if (cc_mask)
+    {
+      mri_tmp = MRIcopy(mri_im, NULL) ;
+      mri_mask = MRIcopy(mri_cc, NULL) ;
+      MRIdilate(mri_mask, mri_mask) ; MRIdilate(mri_mask, mri_mask) ;
+      MRIreplaceValues(mri_mask, mri_mask, 0, 255) ;
+      MRIreplaceValues(mri_mask, mri_mask, 1, 0) ;
+      for (x = x_cc-64 ; x < x_cc+64 ; x++)
+        MRIeraseTalairachPlaneNew(mri_tmp, mri_mask, MRI_SAGITTAL, x, y_cc, 
+                                  z_cc, 2*SLICE_SIZE, 0);
+      if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+      {
+        MRIwrite(mri_tmp, "erased.mgh") ;
+        MRIwrite(mri_mask, "mask.mgh") ;
+      }
+    }
+    else
+      mri_tmp = mri_im ;
+    find_pons(mri_tmp, &pons_tal_x, &pons_tal_y, &pons_tal_z,x_cc,y_cc,z_cc,1);
+    if (mri_tmp != mri_im)
+    {
+      MRIfree(&mri_tmp) ;
+      MRIfree(&mri_mask) ;
+    }
+    mri_pons = 
+      find_cutting_plane(mri_im, pons_tal_x,pons_tal_y, pons_tal_z,
+                         MRI_HORIZONTAL, &x_pons, &y_pons, &z_pons,
+                         pons_seed_set);
+  }
+
+
   if (!mri_pons) /* heuristic failed to find the pons - try Talairach coords */
   {
     pons_tal_x = PONS_TAL_X ; pons_tal_y = PONS_TAL_Y; pons_tal_z = PONS_TAL_Z;
@@ -608,11 +649,8 @@ main(int argc, char *argv[])
     MRIturnOffBG(mri_fill, mri_bg) ;
   }
   
-  if (!Gdiag)
-    fprintf(stderr, "writing output to %s...", out_fname) ;
+  fprintf(stderr, "writing output to %s...\n", out_fname) ;
   MRIwrite(mri_fill, out_fname) ;
-  if (!Gdiag)
-    fprintf(stderr, "done.\n") ;
   msec = TimerStop(&then) ;
   fprintf(stderr,"filling took %2.1f minutes\n", (float)msec/(60*1000.0f));
   exit(0) ;
@@ -882,7 +920,7 @@ print_help(void)
 
 #define MIN_PONS_AREA     350  /* smallest I've seen is 385 */
 #define MAX_PONS_AREA     700  /* biggest I've seen is 620 */  
-#define MIN_PONS_ASPECT   0.8
+#define MIN_PONS_ASPECT   0.6  /* was .8 */
 #define MAX_PONS_ASPECT   1.2
 
 
@@ -1016,9 +1054,7 @@ find_cutting_plane(MRI *mri, Real x_tal, Real y_tal,Real z_tal,int orientation,
   {
     offset += SEARCH_STEP ;   /* search at a greater radius */
     if (offset >= MAX_OFFSET)
-      ErrorReturn(NULL,
-                  (ERROR_BADPARM, "%s: could not find valid seed for the %s",
-                   Progname, name)) ;
+      return(NULL) ;
     for (z0 = zv-offset ; !done && z0 <= zv+offset ; z0 += offset)
     {
       zi = mri->zi[z0] ;
@@ -1187,9 +1223,8 @@ find_cutting_plane(MRI *mri, Real x_tal, Real y_tal,Real z_tal,int orientation,
     }
     
     if (min_slice < 0)
-      ErrorReturn(NULL, 
-                  (ERROR_BADPARM, "%s: could not find valid seed for the %s",
-                   Progname, name));
+      return(NULL) ;
+
     if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
     {
       sprintf(fname, "%s_slice.mgh", 
@@ -1366,15 +1401,22 @@ find_corpus_callosum(MRI *mri, Real *pccx, Real *pccy, Real *pccz)
   return(NO_ERROR) ;
 }
 
-#define MIN_BRAINSTEM_THICKNESS    15
-#define MAX_BRAINSTEM_THICKNESS    35
-#define MIN_DELTA_THICKNESS         6
-#define MIN_BRAINSTEM_HEIGHT       25
+#define MIN_BRAINSTEM_THICKNESS         15
+#define MAX_BRAINSTEM_THICKNESS         35
+#define MIN_DELTA_THICKNESS             6
+#define MIN_BRAINSTEM_HEIGHT            25
+
+/* if can't find a really thick piece of brainstem (15 voxels wide),
+   then try to find some contiguous slices that are fairly wide.
+*/
+#define MIN_CONT_BRAINSTEM_THICKNESS    8
+#define MIN_CONT_BRAINSTEM_HEIGHT       3
 
 static int
-find_pons(MRI *mri, Real *p_ponsx, Real *p_ponsy, Real *p_ponsz, int x_cc)
+find_pons(MRI *mri, Real *p_ponsx, Real *p_ponsy, Real *p_ponsz, 
+          int x_cc, int y_cc, int z_cc, int method)
 {
-  MRI   *mri_slice, *mri_filled ;
+  MRI   *mri_slice, *mri_filled, *mri_closed ;
   Real  xr, yr, zr ;
   int   xv, yv, zv, x, y, width, height, thickness, xstart, xo, yo, area,xmax,
         bheight ;
@@ -1382,70 +1424,105 @@ find_pons(MRI *mri, Real *p_ponsx, Real *p_ponsy, Real *p_ponsz, int x_cc)
 
   thickness = xstart = -1 ;
   MRIboundingBox(mri, 10, &region) ;
-#if 0
-  MRItalairachToVoxel(mri, 0.0, 0.0, 0.0, &xr, &yr, &zr);
-  xv = nint(xr) ; yv = nint(yr) ; zv = nint(zr) ;
-  mri_slice = 
-    MRIextractTalairachPlane(mri, NULL, MRI_SAGITTAL,xv,yv,zv,SLICE_SIZE) ;
-#else
   xr = (Real)(region.x+region.dx/2) ;
   yr = (Real)(region.y+region.dy/2) ;
   zr = (Real)(region.z+region.dz/2) ;
   xv = (int)xr ; yv = (int)yr ; zv = (int)zr ;
-  xv = x_cc ;   /* use corpus callosum!! */
+  xv = x_cc ; yv = y_cc ; zv = z_cc ;  /* use corpus callosum!! */
+  
   MRIvoxelToTalairach(mri, xr, yr, zr, &xr, &yr, &zr);
 
-#if 0
-  fprintf(stderr, "central sagittal slice found at (%2.1f, %2.1f, %2.f1)\n",
-          xr, yr, zr) ;
-  if (xr < -20 || xr > 20)
-  {
-    fprintf(stderr, 
-            "using Talairach to update left-right estimate of center\n") ;
-    MRItalairachToVoxel(mri, 0.0, 0.0, 0.0, &xr, &yr, &zr);
-    xv = nint(xr) ; yv = nint(yr) ; zv = nint(zr) ;
-  }
-#endif
 
   mri_slice = 
     MRIextractTalairachPlane(mri, NULL, MRI_SAGITTAL,xv,yv,zv,SLICE_SIZE) ;
-#endif
+
 
   /* (xv,yv,zv) are the coordinates of the center of the slice */
 
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
-    MRIwrite(mri_slice, "pons.mgh") ;
+    MRIwrite(mri_slice, "brainstem_slice.mgh") ;
+
+  switch (method)
+  {
+  case 1:
+    mri_closed = MRIclose(mri_slice, NULL) ;  /* remove small holes */
+    if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+      MRIwrite(mri_closed, "brainstem_closed.mgh") ;
 
 /*
-   search from the front of the head at the bottom of a sagittal slice
-   for the first significantly thick slice of white matter, which will
-   be the brainstem. Then, follow the contour of the brainstem upwards
-   until the first 'backwards' indentation which is about where we
-   want to make the cut.
+  search from the front of the head at the bottom of a sagittal slice
+  for the first set of contiguous slices that are significantly thick, 
+  this will (hopefully) be the brainstem. 
 */
-
-  /* first find the brainstem */
-  width = mri_slice->width ; height = mri_slice->height ;
-  for (y = height-1 ; y >= 0 ; y--)
-  {
-    for (x = width-1 ; x >= 0 ; x--)
+    
+    /* first find the brainstem */
+    width = mri_slice->width ; height = mri_slice->height ;
+    bheight = 0 ;
+    for (y = height-1 ; y >= 0 ; y--)
     {
-      thickness = 0 ;
-      while (MRIvox(mri_slice, x, y, 0) && x >= 0)
+      for (x = width-1 ; x >= 0 ; x--)
       {
-        if (!thickness)
-          xstart = x ;
-        thickness++ ; x-- ;
-      }
-      if (thickness >= MIN_BRAINSTEM_THICKNESS && 
-          thickness <= MAX_BRAINSTEM_THICKNESS)
-        break ;
-      else
         thickness = 0 ;
+        while (MRIvox(mri_closed, x, y, 0) && x >= 0)
+        {
+          if (!thickness)
+            xstart = x ;
+          thickness++ ; x-- ;
+        }
+        if (thickness >= MIN_CONT_BRAINSTEM_THICKNESS && 
+            thickness <= MAX_BRAINSTEM_THICKNESS)
+          break ;
+        else
+          thickness = 0 ;
+      }
+      if (thickness > 0)   /* found the slice */
+        bheight++ ;
+      else
+        bheight = 0 ;
+      if (bheight >= MIN_CONT_BRAINSTEM_HEIGHT)
+        break ;  /* found it */
     }
-    if (thickness > 0)   /* found the slice */
-      break ;
+    MRIfree(&mri_closed) ;
+    break ;
+  default:
+  case 0:
+/*
+  search from the front of the head at the bottom of a sagittal slice
+  for the first significantly thick slice of white matter, which will
+  be the brainstem. Then, follow the contour of the brainstem upwards
+  until the first 'backwards' indentation which is about where we
+  want to make the cut.
+*/
+    
+    /* first find the brainstem */
+    width = mri_slice->width ; height = mri_slice->height ;
+    for (y = height-1 ; y >= 0 ; y--)
+    {
+      for (x = width-1 ; x >= 0 ; x--)
+      {
+        thickness = 0 ;
+        while (MRIvox(mri_slice, x, y, 0) && x >= 0)
+        {
+          if (!thickness)
+            xstart = x ;
+          thickness++ ; x-- ;
+        }
+        if (thickness >= MIN_BRAINSTEM_THICKNESS && 
+            thickness <= MAX_BRAINSTEM_THICKNESS)
+          break ;
+        else
+          thickness = 0 ;
+      }
+      if (thickness > 0)   /* found the slice */
+        break ;
+    }
+    break ;
   }
+
+  /*
+    Then, follow the contour of the brainstem upwards until the first 
+    'backwards' indentation which is about where we want to make the cut.
+  */
 
   mri_filled = 
     MRIfillFG(mri_slice, NULL,xstart-(thickness-1)/2,y,0,WM_MIN_VAL,127,&area);
@@ -1455,7 +1532,7 @@ find_pons(MRI *mri, Real *p_ponsx, Real *p_ponsy, Real *p_ponsz, int x_cc)
             y, xstart, xstart-thickness+1, area) ;
 
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
-    MRIwrite(mri_filled, "pons_filled.mgh") ;
+    MRIwrite(mri_filled, "brainstem_filled.mgh") ;
 
 /* 
    now, starting from that slice, proceed upwards until we find a
@@ -1470,8 +1547,13 @@ find_pons(MRI *mri, Real *p_ponsx, Real *p_ponsy, Real *p_ponsz, int x_cc)
     for (x = width-1 ; !MRIvox(mri_filled,x,y,0) && (x >= 0) ; x--)
     {}
 
-    if (x < 0)   /* sometimes pons is disconnected at cleft */
-      x = (xstart-thickness) / 2 ;
+    if (x < 0)/* sometimes pons is disconnected at cleft: assume prior slice */
+    {
+      y++ ; bheight-- ;
+      for (x = width-1 ; !MRIvox(mri_filled,x,y,0) && (x >= 0) ; x--)
+      {}
+      break ;
+    }
 
     if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
       fprintf(stderr, "slice %d, xstart %d\n", y, x) ;
@@ -1500,7 +1582,7 @@ find_pons(MRI *mri, Real *p_ponsx, Real *p_ponsy, Real *p_ponsz, int x_cc)
   xr = (Real)xv ; yr = (Real)yv ; zr = (Real)zv ;
   MRIvoxelToTalairach(mri, xr, yr, zr, p_ponsx, p_ponsy, p_ponsz) ;
   if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
-    fprintf(stderr, "pons found at (%d, %d) --> (%d, %d, %d)\n", 
+    fprintf(stderr, "putative pons found at (%d, %d) --> (%d, %d, %d)\n", 
             xstart-thickness/2, y, xv, yv, zv) ;
 
   MRIfree(&mri_slice) ;
@@ -1656,7 +1738,7 @@ MRIfillVolume(MRI *mri_fill, MRI *mri_im, int x_seed, int y_seed, int z_seed,
 
   /*MRIwrite(mri_fill, "fill1.mgh") ;*/
   
-  /* set im to initial outward fill */
+  /* Set im to initial outward fill */
   MRIcopy(mri_fill, mri_im) ;
   MRIclear(mri_fill) ;
   MRIvox(mri_fill,1,1,1) = 255;              /* seed for background */
