@@ -1,6 +1,6 @@
 #include "fsgdf.h"
 
-//char *Progname="fsgdf test app";
+char *Progname="fsgdf test app";
 
 int main (int argc, char** argv)
 {
@@ -46,7 +46,7 @@ int main (int argc, char** argv)
     }
   gdfFree(&gd);
 
-  printf("Test successful.");
+  printf("Test successful.\n\n");
 
   return(0);
 }
