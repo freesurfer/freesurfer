@@ -5,7 +5,7 @@
 # editing.
 #
 # mkfsdist
-# $Id: mkfsdist,v 1.9 2002/05/11 17:55:26 greve Exp $
+# $Id: mkfsdist,v 1.10 2003/03/13 18:50:32 kteich Exp $
 #
 # Usage: mkfsdist targetdir
 #
@@ -50,7 +50,7 @@
 #  files found in tar-exclude-more and tar-exclude-gca.
 #
 # 
-set VERSION = '$Id: mkfsdist,v 1.9 2002/05/11 17:55:26 greve Exp $';
+set VERSION = '$Id: mkfsdist,v 1.10 2003/03/13 18:50:32 kteich Exp $';
 
 # To include the autoseg in the distribution set environment varible
 # KEEPAUTOSEG to 1 before running mkfsdist (ie, setenv KEEPAUTOSEG 1)
@@ -60,9 +60,6 @@ if($KEEPAUTOSEG) then
 else
    echo "INFO: NOT keeping autoseg"
 endif
-
-# This is where freesurfer_alpha lives #
-set FSA_DIR = ~inverse/freesurfer_alpha;
 
 # This is where the 3 runs of the test subject live #
 set BERT_ANAT_DIR = $SUBJECTS_DIR/bert
@@ -74,14 +71,35 @@ set AVERAGE7_DIR = $SUBJECTS_DIR/average7
 set BERT_FUNC_DIR = /space/sake/5/tutorial/JUL01/bert-functional
 
 #------------------------------------------------------#
-if($#argv != 1) then
-  echo "USAGE: mkfsdist targetdir"
+if($#argv != 3) then
+  echo "USAGE: mkfsdist sourcedir targetdir platform=[Linux|Darwin]"
+  echo ""
+  echo "   sourcedir: usually freesurfer_alpha or freesurfer_dev"
+  echo "   targetdir: dir in which to create archive"
+  echo "    platform: platform for whose binaries will be included"
+  echo ""
+  echo "Ex: mkfsdist $FREESURFER_HOME ~/work Linux"
+  echo ""
   exit 1;
 endif
-set TARGET_DIR = $argv[1];
 
-# Check that freesurfer_alpha is there #
-if(! -e $FSA_DIR) then
+set SOURCE_DIR = $argv[1];
+set TARGET_DIR = $argv[2];
+set PLATFORM = $argv[3];
+
+# Check the platform argument #
+if( "$PLATFORM" != "Linux" && "$PLATFORM" != "Darwin" ) then
+  echo "ERROR: this platform not supported."
+  exit 1;
+endif
+
+# Check if the source dir is freesurfer_dev or freesurfer_alpha #
+if( "`basename $SOURCE_DIR`" != "freesurfer_alpha" && "`basename $SOURCE_DIR`" != "freesurfer_dev" ) then
+  echo "WARNING: source dir is not freesurfer_alpha or freesurfer_dev."
+endif
+
+# Check that source dir is there #
+if(! -e $SOURCE_DIR) then
   echo "ERROR: cannot find $FSA_DIR"
   exit 1;
 endif
@@ -135,13 +153,13 @@ endif
 
 # Get the full path of the target directory #
 pushd $TARGET_DIR  > /dev/null
-set TARGET_DIR = `pawd`;
+set TARGET_DIR = `pwd`;
 popd > /dev/null
 
 # Make sure the target dir is not inadvertently set to 
 # freesurfer_alpha
-if("$TARGET_DIR" == "$FSA_DIR") then
-  echo "ERROR: target dir == freesurfer_alpha source tree"
+if("$TARGET_DIR" == "$SOURCE_DIR") then
+  echo "ERROR: target dir == source dir"
   exit 1;
 endif
 
@@ -184,23 +202,43 @@ tar cvz -f $TF \
   ./average7/surf/?h.sulc >> $LF
 date | tee -a $LF  
 
-# ---- Tar up freesurfer_alpha ------- #
-cd $FSA_DIR
+# Create the exclude file. Basically we want to exclude
+# platform-specific binary and lib directories and any backup or temp
+# files (i.e. README~, tkmedit.031402)
+set EXCLUDE_FILE = /tmp/exclude
+rm -f $EXCLUDE_FILE
+if( "$PLATFORM" != "Linux" ) then
+  find $SOURCE_DIR | grep Linux >> $EXCLUDE_FILE
+endif
+if( "$PLATFORM" != "Darwin" ) then
+  find $SOURCE_DIR | grep Darwin >> $EXCLUDE_FILE
+endif
+find $SOURCE_DIR | grep IRIX >> $EXCLUDE_FILE
+find $SOURCE_DIR | grep SunOS >> $EXCLUDE_FILE
+find $SOURCE_DIR | grep Solaris >> $EXCLUDE_FILE
+find $SOURCE_DIR -name \*.\*03 >> $EXCLUDE_FILE
+find $SOURCE_DIR -name \*.~ >> $EXCLUDE_FILE
+
+# ---- Tar up source dir ------- #
+pushd $SOURCE_DIR > /dev/null
 cd ..
 echo "--------------------------------------------" | tee -a $LF
-echo "Tarring $FSA_DIR" | tee -a $LF
+echo "Tarring $SOURCE_DIR" | tee -a $LF
 date | tee -a $LF
-set TF = $TARGET_DIR/fsa.tar
+set TF = $TARGET_DIR/FreeSurfer-${PLATFORM}.tar
 rm -f $TF
-set tarcmd = ( tar cv -f $TF --exclude-from $FSA_DIR/tar-exclude \
-    --exclude-from $FSA_DIR/tar-exclude-more ./freesurfer_alpha)
-if(! $KEEPAUTOSEG) set tarcmd = ($tarcmd --exclude-from $FSA_DIR/tar-exclude-gca)
+set tarcmd = ( tar cv -f $TF --exclude-from $SOURCE_DIR/tar-exclude \
+    --exclude-from $SOURCE_DIR/tar-exclude-more --exclude-from $EXCLUDE_FILE \
+    `basename $SOURCE_DIR` )
+if(! $KEEPAUTOSEG) set tarcmd = ($tarcmd --exclude-from $SOURCE_DIR/tar-exclude-gca)
 echo $tarcmd | tee -a $LF
 $tarcmd  >> $LF
 
+rm -f $EXCLUDE_FILE
+
 date | tee -a $LF
 
-#------ Special for tksurfer, tkmedit, and tkregister -----------#
+#--- Special for tksurfer, tkmedit, and tkregister in freesurfer_alpha ---#
 # Note: static vs dynamic only applies to Linux.
 # This part assures that the statically linked versions of tksurfer,
 # tkmedit, and tkregister are the default in the Linux distribution. 
@@ -230,6 +268,8 @@ date | tee -a $LF
 # When the distribution is extracted, the static versions will 
 # overwrite the dynamic version (though there will be .dynamic and
 # .static files there).
+if( "`basename $SOURCE_DIR`" == "freesurfer_alpha" ) then
+
 echo "------------------------------------------" | tee -a $LF
 echo "Handling tkmedit, tksurfer, and tkregister" | tee -a $LF
 date | tee -a $LF
@@ -244,14 +284,14 @@ foreach OS (Linux)
   mkdir -p $FSA_TMP_DIR/bin/$OS
   foreach binary (tkmedit tkregister)
     # Copy dynamic #
-    set fdynamic = $FSA_DIR/bin/$OS/$binary
+    set fdynamic = $SOURCE_DIR/bin/$OS/$binary
     if(! -e $fdynamic) then
       echo "ERROR: cannot find $fdynamic"| tee -a $LF
       exit 1;
     endif
     cp $fdynamic $FSA_TMP_DIR/bin/$OS/$binary.dynamic
     # Copy static #
-    set fstatic = $FSA_DIR/bin/$OS/$binary.static
+    set fstatic = $SOURCE_DIR/bin/$OS/$binary.static
     if(! -e $fstatic) then
       echo "ERROR: cannot find $fstatic"| tee -a $LF
       exit 1;
@@ -266,7 +306,7 @@ foreach OS (Linux Solaris IRIX)
   mkdir -p $FSA_TMP_DIR/bin/$OS
 
   # Get path to tksurfer.new
-  set tksurfernew = $FSA_DIR/bin/$OS/tksurfer.new
+  set tksurfernew = $SOURCE_DIR/bin/$OS/tksurfer.new
   if(! -e $tksurfernew) then
     echo "ERROR: cannot find $tksurfernew"| tee -a $LF
     exit 1;
@@ -282,7 +322,7 @@ foreach OS (Linux Solaris IRIX)
     cp $tksurfernew $FSA_TMP_DIR/bin/$OS/tksurfer.dynamic
     cp $tksurfernew $FSA_TMP_DIR/bin/$OS/tksurfer.new.dynamic
     # Copy tksurfer.new.static to tksurfer (Linux only)#
-    set tksurfernew_static = $FSA_DIR/bin/$OS/tksurfer.new.static
+    set tksurfernew_static = $SOURCE_DIR/bin/$OS/tksurfer.new.static
     if(! -e $tksurfernew_static) then
       echo "ERROR: cannot find $tksurfernew_static"| tee -a $LF
       exit 1;
@@ -296,35 +336,44 @@ end#foreach OS
 echo "Appending temporary freesurfer_alpha to tar `date`"| tee -a $LF
 tar rv -f $TF ./$FSA_TMP_DIR >> $LF
 
+echo "Removing temporary directory `date`"| tee -a $LF
+rm -rf $FSA_TMP_DIR
+
+endif # specials for freesurfer_alpha #
+
+
 echo "Compressing tar file `date`"| tee -a $LF
 gzip $TF
 
-echo "Removing temporary directory `date`"| tee -a $LF
-rm -rf $FSA_TMP_DIR
 
 #-- Tar up the minc bin and libs -------#
 echo "--------------------------------------------" | tee -a $LF
 echo "Tarring minc" | tee -a $LF
 date | tee -a $LF
-cd /space/lyon/9/pubsw
-set TF = $TARGET_DIR/minc.tar
+pushd /space/lyon/9/pubsw > /dev/null
+set TF = `basename $TARGET_DIR`/minc-$PLATFORM.tar
 rm -f $TF
-foreach os (IRIX SolSparc SunOS5 Linux2 Solaris)
-  echo $os | tee -a $LF
-  set mnidir = ./$os/packages/mni
-  if(! -e $mnidir) then
-    echo "WARNING: cannot find $mnidir" | tee -a $LF
-    continue;
-  endif
-  tar rv -f $TF ./$os/packages/mni >> $LF
-end
+# Look for the right mni package. If found, tar it.
+set mni_platform = $PLATFORM
+if( "$PLATFORM" == "Linux" ) then
+  set mni_platform = Linux2
+endif
+if( "$PLATFORM" == "Darwin" ) then
+  set mni_platform = MacOS10.2
+endif
+set mnidir = ./$mni_platform/packages/mni
+if(! -e $mnidir) then
+  echo "WARNING: cannot find $mnidir" | tee -a $LF
+else
+  tar rv -f $TF $mnidir >> $LF
+endif
 gzip $TF
 date | tee -a $LF
 
 #----- Tar up the talairach (MNI305) subject --------#
 echo "--------------------------------------------" | tee -a $LF
 echo "Tarring talairach subject" | tee -a $LF
-cd $SUBJECTS_DIR/talairach
+pushd $SUBJECTS_DIR/talairach > /dev/null
 cd ..
 date | tee -a $LF
 set TF = $TARGET_DIR/talairach.tar.gz
@@ -365,10 +414,10 @@ date | tee -a $LF
 echo "------------------------------------------" | tee -a $LF
 
 # Copy the INSTALL File
-cp $FSA_DIR/INSTALL $TARGET_DIR
+cp $SOURCE_DIR/INSTALL $TARGET_DIR
 
 # Copy the License Agreement File
-cp $FSA_DIR/docs/license.freesurfer $TARGET_DIR
+cp $SOURCE_DIR/docs/license.freesurfer $TARGET_DIR
 
 echo "$0 done"
 
