@@ -1,6 +1,6 @@
 # tkUtils.tcl (tku)
 
-# $Id: tkUtils.tcl,v 1.8 2004/03/29 02:00:00 kteich Exp $
+# $Id: tkUtils.tcl,v 1.9 2004/08/23 03:26:47 kteich Exp $
 
 # tkuMakeMenu isMenuButton "Menu Name" {item...}
 # item = { command   "Item Name" command                [group_name] }
@@ -20,6 +20,10 @@ proc tkuLabelFont {} {
 proc tkuNormalFont {} {
     global kNormalFont
     return $kNormalFont
+}
+
+proc tkuBalloonWait {} {
+    return 500
 }
 
 # tkuMakeActiveLabel
@@ -658,6 +662,7 @@ proc tkuUpdateSlidersRange { ifwTop iMin iMax } {
 #    -label : text label for text button
 #    -image : image for image button
 #    -font : font for this button
+#    -balloon : balloon tip for this button
 proc tkuMakeToolbar { ifwTop args } {
     
     # set default arguments for all fields
@@ -676,6 +681,8 @@ proc tkuMakeToolbar { ifwTop args } {
     }
 
     frame $ifwTop
+
+    tixBalloon $ifwTop.balloon -initwait [tkuBalloonWait]
     
     tixSelect $ifwTop.tbw \
 	-allowzero $aArgs(-allowzero) \
@@ -716,6 +723,12 @@ proc tkuMakeToolbar { ifwTop args } {
 		puts "didn't handle type $aButton(-type)"
 	    }
 	} 
+
+	if { [info exists aButton(-balloon)] } {
+	    set button [$ifwTop.tbw subwidget $aButton(-name)]
+	    $ifwTop.balloon bind $button \
+		-balloonmsg $aButton(-balloon)
+	}
     }
     
     $ifwTop.tbw config -variable $aArgs(-variable)
