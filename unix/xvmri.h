@@ -29,6 +29,8 @@ void XVMRIdrawPoint(XV_FRAME *xvf, int which, int view, int depth, MRI *mri,
 void XVMRIdrawRegion(XV_FRAME *xvf, int which, int view, int depth, MRI *mri,
                 MRI_REGION *reg, int color) ;
 IMAGE *XVMRIshow(XV_FRAME *xvf, MRI *mri, int which, int slice) ;
+IMAGE *XVMRIshowRange(XV_FRAME *xvf, MRI *mri, int which, int slice,
+                      float fmin, float fmax) ;
 IMAGE *XVMRIshowFrame(XV_FRAME *xvf, MRI *mri, int which, int slice,int frame);
 IMAGE *XVMRIredisplayFrame(XV_FRAME *xvf, MRI *mri, int which, int slice,
                            int frame);
