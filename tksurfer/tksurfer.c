@@ -1611,8 +1611,8 @@ int labl_remove (int index);
 int labl_remove_all ();
 
 /* checks if this vno is in a label. passes back the label index. */
-int labl_find_label_by_vno (int vno, int* index_array, int array_size, 
-			    int* num_found);
+int labl_find_label_by_vno (int vno, int min_label,
+			    int* index_array, int array_size, int* num_found);
 
 /* figures out if a click is in a label. if so, selects it. */
 int labl_select_label_by_vno (int vno);
@@ -18143,7 +18143,7 @@ int main(int argc, char *argv[])   /* new main */
   /* end rkt */
   
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.64 2004/04/30 22:48:52 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.65 2004/05/01 19:25:43 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -20062,7 +20062,7 @@ update_labels(int label_set, int vno, float dmin)
   Tcl_Eval(g_interp, command);
   
   /* send label update. */
-  err = labl_find_label_by_vno( vno, label_index_array, 
+  err = labl_find_label_by_vno( vno, 0, label_index_array, 
 				LABL_MAX_LABELS, &num_labels_found );
   if (err == ERROR_NONE && num_labels_found > 0)
     {
@@ -22330,7 +22330,7 @@ int labl_find_and_set_border (int index)
       v = &(mris->vertices[label->lv[label_vno].vno]);
       for (neighbor_vno = 0; neighbor_vno < v->vnum; neighbor_vno++ )
 	{
-	  labl_find_label_by_vno (v->v[neighbor_vno], label_index_array,
+	  labl_find_label_by_vno (v->v[neighbor_vno], 0, label_index_array,
 				  LABL_MAX_LABELS, &num_labels_found);
 	  if( num_labels_found > 0 ) 
 	    {
@@ -22418,6 +22418,9 @@ int labl_vno_is_border (int index, int vno)
   int border_index;
 
   if (index < 0 || index >= labl_num_labels)
+    return 0;
+
+  if (NULL == labl_labels[index].border_vno)
     return 0;
 
   for (border_index = 0; 
@@ -23228,8 +23231,8 @@ int labl_remove_all () {
   return (ERROR_NONE);
 }
 
-int labl_find_label_by_vno (int vno, int* index_array, int array_size, 
-			    int* out_num_found)
+int labl_find_label_by_vno (int vno, int min_label, int* index_array,
+			    int array_size, int* out_num_found)
 {
   int label_index;
   int label_vno;
@@ -23244,8 +23247,12 @@ int labl_find_label_by_vno (int vno, int* index_array, int array_size,
 
   num_found = 0;
   
+  /* if they passed -1 for min_label, they really want 0. (ugh) */
+  if (min_label < 0) 
+    min_label = 0;
+
   /* go through each label looking for this vno... */
-  for (label_index = 0; label_index < labl_num_labels; label_index++)
+  for (label_index = min_label; label_index < labl_num_labels; label_index++)
     {
       /* check the bounds here. */
       if (x >= labl_labels[label_index].min_x &&
@@ -23302,7 +23309,8 @@ int labl_select_label_by_vno (int vno)
   
   /* try and find a label. if found, select it. */
   labl_debug = 1;
-  labl_find_label_by_vno (vno, &label_index, 1, &num_found);
+  labl_find_label_by_vno (vno, labl_selected_label+1, 
+			  &label_index, 1, &num_found);
   labl_debug = 0;
   if (num_found > 0)
     labl_select (label_index);
@@ -23327,7 +23335,7 @@ int labl_apply_color_to_vertex (int vno, GLubyte* r, GLubyte* g, GLubyte* b )
   }
   
   /* try and find a label. if found... */
-  labl_find_label_by_vno (vno, label_index_array, 
+  labl_find_label_by_vno (vno, 0, label_index_array, 
 			  LABL_MAX_LABELS, &num_labels_found);
   if (num_labels_found > 0)
     {
@@ -24059,7 +24067,7 @@ int fill_flood_from_seed (int seed_vno, FILL_PARAMETERS* params)
 		  if (params->dont_cross_label)
 		    {
 
-		      labl_find_label_by_vno (neighbor_vno, 
+		      labl_find_label_by_vno (neighbor_vno, 0,
 					      label_index_array,
 					      LABL_MAX_LABELS,
 					      &num_labels_found);
