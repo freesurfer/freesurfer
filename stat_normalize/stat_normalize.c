@@ -8,14 +8,12 @@
 #include "error.h"
 #include "diag.h"
 #include "proto.h"
-#include "mrisurf.h"
 #include "volume_io.h"
 
+#include "mrisurf.h"
 #include "stats.h"
 
-extern int float2int_code(char *float2int_string);
-
-static char vcid[] = "$Id: stat_normalize.c,v 1.5 2002/04/03 21:01:08 greve Exp $";
+static char vcid[] = "$Id: stat_normalize.c,v 1.6 2002/04/03 21:15:23 greve Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -160,9 +158,7 @@ get_option(int argc, char *argv[])
 {
   int  nargs = 0 ;
   char *option ;
-  extern char *stats_talxfm;
-  extern int  statnorm_float2int;
-  
+
   option = argv[1] + 1 ;            /* past '-' */
   if (!stricmp(option, "-help"))         print_help() ;
   else if (!stricmp(option, "-version")) print_version() ;

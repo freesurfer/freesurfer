@@ -1,3 +1,5 @@
+#define _STATS_SRC
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -13,10 +15,7 @@
 #include "mrinorm.h"
 #include "transform.h"
 
-#define _STATS_SRC
 #include "stats.h"
-#undef _STATS_SRC
-
 
 #define REG_ROWS      4
 #define REG_COLS      4
@@ -729,7 +728,6 @@ StatAccumulateSurfaceVolume(SV *sv_surf, SV *sv, MRI_SURFACE *mris)
 int
 StatAccumulateTalairachVolume(SV *sv_tal, SV *sv)
 {
-  //extern int  statnorm_float2int;
   int    x, y, z, width, height, depth, event, t, xv, yv, zv, swidth, sheight,
          sdepth ;
   //Real   xf, yf, zf ;
