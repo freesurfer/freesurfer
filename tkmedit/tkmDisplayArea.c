@@ -6007,7 +6007,7 @@ DspA_tErr DspA_SendPointInformationToTcl_ ( tkmDisplayAreaRef this,
 
   /* send the anatomical index. */
   // translate the screen idx into the src Idx
-  Volm_ConvertScreenIdxToMRIIdx_(this->mpVolume, iAnaIdx, &MRIIdx);
+  Volm_ConvertIdxToMRIIdx(this->mpVolume, iAnaIdx, &MRIIdx);
   // *****************************************************************************
   // To be implemented: need to tell whether these values are valid or not.
   sprintf(sTclArguments, "%s %d %d %d", DspA_ksaDisplaySet[iSet], xVoxl_ExpandInt(&MRIIdx) ); 
