@@ -1,8 +1,8 @@
 #!/bin/csh -f
 # func2tal
-# $Id: func2tal,v 1.1 2003/03/04 21:22:08 greve Exp $
+# $Id: func2tal,v 1.2 2003/08/11 18:39:14 greve Exp $
 
-set FUNC2TAL_VER = '$Id: func2tal,v 1.1 2003/03/04 21:22:08 greve Exp $';
+set FUNC2TAL_VER = '$Id: func2tal,v 1.2 2003/08/11 18:39:14 greve Exp $';
 
 set inputargs = ($argv)
 
@@ -95,6 +95,37 @@ else
   echo $cmd
 endif
 
+set dim = `getbfvdim $talstem`;
+set nslices = $dim[1];
+set nrows   = $dim[2];
+set ncols   = $dim[3];
+set nframes = $dim[4];
+
+# Create the bhdr file, sort of a hack #
+set bhdr = $talstem.bhdr
+rm -f $bhdr
+echo "          cols: $ncols" >> $bhdr
+echo "          rows: $nrows" >> $bhdr
+echo "          nslices: $nslices" >> $bhdr
+echo "      n_time_points: $nframes" >> $bhdr
+echo "        slice_thick: $res" >> $bhdr
+echo "         top_left_r: 128.000000" >> $bhdr
+echo "         top_left_a: -128.000000" >> $bhdr
+echo "         top_left_s: 128.000000" >> $bhdr
+echo "        top_right_r: -128.000000" >> $bhdr
+echo "        top_right_a: -128.000000" >> $bhdr
+echo "        top_right_s: 128.000000" >> $bhdr
+echo "     bottom_right_r: -128.000000" >> $bhdr
+echo "     bottom_right_a: -128.000000" >> $bhdr
+echo "     bottom_right_s: -128.000000" >> $bhdr
+echo "           normal_r: 0.000000" >> $bhdr
+echo "           normal_a: 1.000000" >> $bhdr
+echo "           normal_s: 0.000000" >> $bhdr
+echo "           image_te: 0.000000" >> $bhdr
+echo "           image_tr: 0.000000" >> $bhdr
+echo "           image_ti: 0.000000" >> $bhdr
+echo "         flip_angle: 0.000000" >> $bhdr
+
 ####### for selxavg functional type ... #########
 if($functype == "selxavg") then
 
@@ -131,6 +162,30 @@ if($functype == "sfa" || $functype == "selxavg") then
       echo "$cmd"
       exit $st;
     endif
+    # Create the bhdr file, sort of a hack #
+    set bhdr = $talstem-offset.bhdr
+    rm -f $bhdr
+    echo "          cols: $ncols" >> $bhdr
+    echo "          rows: $nrows" >> $bhdr
+    echo "          nslices: $nslices" >> $bhdr
+    echo "      n_time_points: 1" >> $bhdr
+    echo "        slice_thick: $res" >> $bhdr
+    echo "         top_left_r: 128.000000" >> $bhdr
+    echo "         top_left_a: -128.000000" >> $bhdr
+    echo "         top_left_s: 128.000000" >> $bhdr
+    echo "        top_right_r: -128.000000" >> $bhdr
+    echo "        top_right_a: -128.000000" >> $bhdr
+    echo "        top_right_s: 128.000000" >> $bhdr
+    echo "     bottom_right_r: -128.000000" >> $bhdr
+    echo "     bottom_right_a: -128.000000" >> $bhdr
+    echo "     bottom_right_s: -128.000000" >> $bhdr
+    echo "           normal_r: 0.000000" >> $bhdr
+    echo "           normal_a: 1.000000" >> $bhdr
+    echo "           normal_s: 0.000000" >> $bhdr
+    echo "           image_te: 0.000000" >> $bhdr
+    echo "           image_tr: 0.000000" >> $bhdr
+    echo "           image_ti: 0.000000" >> $bhdr
+    echo "         flip_angle: 0.000000" >> $bhdr
   else
     echo $cmd
   endif
