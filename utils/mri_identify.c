@@ -69,6 +69,8 @@ int mri_identify(char *fname_passed)
     return(MRI_CORONAL_SLICE_DIRECTORY);
   else if(is_genesis(fname))
     return(GENESIS_FILE);
+  else if(is_signa(fname))
+    return(SIGNA_FILE);
   else if(is_ge_lx(fname))
     return(GE_LX_FILE);
   else if(is_sdt(fname))
@@ -89,8 +91,6 @@ int mri_identify(char *fname_passed)
     return(OTL_FILE);
   else if(is_gdf(fname))
     return(GDF_FILE);
-  else if(is_signa(fname))
-    return(SIGNA_FILE);
   else
     return(MRI_VOLUME_TYPE_UNKNOWN);
 
