@@ -4,8 +4,8 @@
 /*                                                                     */
 /* Warning: Do not edit the following four lines.  CVS maintains them. */
 /* Revision Author: $Author: fischl $                                           */
-/* Revision Date  : $Date: 2004/04/02 22:07:17 $                                             */
-/* Revision       : $Revision: 1.30 $                                         */
+/* Revision Date  : $Date: 2004/04/08 14:51:32 $                                             */
+/* Revision       : $Revision: 1.31 $                                         */
 /***********************************************************************/
 
 #include <stdio.h>
@@ -642,15 +642,18 @@ main(int argc, char *argv[])
 					// after this  transform->type = LINEAR_VOX_TO_VOX
 				}
         TransformInvert(transform, mri_inputs) ;
-				// verify inverse
-				lta = (LTA *) transform->xform;
+				if (transform->type != MORPH_3D_TYPE)
 				{
-					MATRIX *go = lta->xforms[0].m_L;
-					MATRIX *back = lta->inv_xforms[0].m_L;
-					MATRIX *seki = MatrixMultiply(back, go, NULL);
-					fprintf(stderr, "You should see the unit matrix to verify the inverse.\n");
-					MatrixPrint(stderr, seki);
-					MatrixFree(&seki);
+					// verify inverse
+					lta = (LTA *) transform->xform;
+					{
+						MATRIX *go = lta->xforms[0].m_L;
+						MATRIX *back = lta->inv_xforms[0].m_L;
+						MATRIX *seki = MatrixMultiply(back, go, NULL);
+						fprintf(stderr, "You should see the unit matrix to verify the inverse.\n");
+						MatrixPrint(stderr, seki);
+						MatrixFree(&seki);
+					}
 				}
       }
       else
