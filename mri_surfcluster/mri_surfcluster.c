@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Finds clusters on the surface.
-  $Id: mri_surfcluster.c,v 1.8 2003/09/05 04:45:38 kteich Exp $
+  $Id: mri_surfcluster.c,v 1.9 2003/09/12 20:16:27 greve Exp $
 */
 
 #include <stdio.h>
@@ -45,7 +45,7 @@ static MATRIX *LoadxfmMatrix(char *xfmfile);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surfcluster.c,v 1.8 2003/09/05 04:45:38 kteich Exp $";
+static char vcid[] = "$Id: mri_surfcluster.c,v 1.9 2003/09/12 20:16:27 greve Exp $";
 char *Progname = NULL;
 
 char *subjectdir = NULL;
@@ -112,7 +112,7 @@ int main(int argc, char **argv)
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_surfcluster.c,v 1.8 2003/09/05 04:45:38 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_surfcluster.c,v 1.9 2003/09/12 20:16:27 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -131,8 +131,10 @@ int main(int argc, char **argv)
   dump_options(stdout);
 
   sprintf(xfmpath,"%s/%s/mri/transforms/%s",subjectsdir,srcsubjid,xfmfile);
-  XFM = LoadxfmMatrix(xfmpath);
+  //XFM = LoadxfmMatrix(xfmpath);
+  XFM = DevolveXFM(srcsubjid, NULL, xfmfile);
   if(XFM == NULL) exit(1);
+
   printf("------------- XFM matrix (RAS2RAS) ---------------\n");
   printf("%s\n",xfmpath);
   MatrixPrint(stdout,XFM);
@@ -689,7 +691,7 @@ static void print_help(void)
 "summary file is shown below.\n"
 "\n"
 "Cluster Growing Summary (mri_surfcluster)\n"
-"$Id: mri_surfcluster.c,v 1.8 2003/09/05 04:45:38 kteich Exp $\n"
+"$Id: mri_surfcluster.c,v 1.9 2003/09/12 20:16:27 greve Exp $\n"
 "Input :      minsig-0-lh.w\n"
 "Frame Number:      0\n"
 "Minimum Threshold: 5\n"

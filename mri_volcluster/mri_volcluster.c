@@ -63,7 +63,7 @@ static void dump_options(FILE *fp);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_volcluster.c,v 1.8 2003/09/05 04:45:39 kteich Exp $";
+static char vcid[] = "$Id: mri_volcluster.c,v 1.9 2003/09/12 20:15:39 greve Exp $";
 char *Progname = NULL;
 
 static char tmpstr[2000];
@@ -136,7 +136,7 @@ int main(int argc, char **argv)
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_volcluster.c,v 1.8 2003/09/05 04:45:39 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_volcluster.c,v 1.9 2003/09/12 20:15:39 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -1032,7 +1032,7 @@ static MATRIX *LoadMNITransform(char *regfile, int ncols, int nrows,
   float ipr, bpr, intensity;
   MATRIX *Rtmp, *R, *iR, *T, *iQ;
   MATRIX *CRS2MNI;
-  char talxfmfile[1000];
+  //char talxfmfile[1000];
     
   err = regio_read_register(regfile, &subject, &ipr, &bpr, 
             &intensity, &R, &float2int);
@@ -1066,11 +1066,12 @@ static MATRIX *LoadMNITransform(char *regfile, int ncols, int nrows,
   }
   printf("INFO: subject = %s\n",subject);
 
-  /* get the MINC talairach.xfm file name */
-  sprintf(talxfmfile,"%s/%s/mri/transforms/talairach.xfm",
-    SUBJECTS_DIR,subject);
-  err = regio_read_mincxfm(talxfmfile, &T);
-  if(err) exit(1);
+  /* Load the talairach.xfm */
+  T = DevolveXFM(subject, NULL, NULL);
+  if(T==NULL) exit(1);
+  //sprintf(talxfmfile,"%s/%s/mri/transforms/talairach.xfm",SUBJECTS_DIR,subject);
+  //err = regio_read_mincxfm(talxfmfile, &T);
+  //if(err) exit(1);
 
   iQ =   MRIxfmCRS2XYZtkreg(vol);
   printf("Input volume FOV xfm Matrix: ----------------\n");
