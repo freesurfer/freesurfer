@@ -24,6 +24,9 @@ static float wm_low = 90 ;
 static float wm_hi = 125 ;
 static float gray_hi = 100 ;
 static int niter = 1 ;
+static int gray_hi_set = 0 ;
+static int wm_hi_set = 0 ;
+static int wm_low_set = 0 ;
 
 static int thickness = 4 ;
 static int thicken = 1 ;
@@ -98,9 +101,12 @@ main(int argc, char *argv[])
                               &white_mean, &white_sigma, &gray_mean,
                               &gray_sigma) ;
     
-
-    wm_low = gray_mean + gray_sigma ;
-    gray_hi = gray_mean + 2*gray_sigma ;
+    if (!wm_low_set)
+      wm_low = gray_mean + gray_sigma ;
+    else
+      wm_low += 10 ;   /* set it back to it's original value */
+    if (!gray_hi_set)
+      gray_hi = gray_mean + 2*gray_sigma ;
     fprintf(stderr, "setting bottom of white matter range to %2.1f\n",wm_low);
     fprintf(stderr, "setting top of gray matter range to %2.1f\n", gray_hi) ;
 
@@ -252,18 +258,21 @@ get_option(int argc, char *argv[])
   else if (!stricmp(option, "ghi") || !stricmp(option, "gray_hi"))
   {
     gray_hi = atof(argv[2]) ;
+    gray_hi_set = 1 ;
     nargs = 1 ;
     fprintf(stderr, "using gray hilim = %2.1f\n", gray_hi) ;
   }
   else if (!stricmp(option, "wlo") || !stricmp(option, "wm_low"))
   {
     wm_low = atof(argv[2]) ;
+    wm_low_set = 1 ;
     nargs = 1 ;
     fprintf(stderr, "using white lolim = %2.1f\n", wm_low) ;
   }
   else if (!stricmp(option, "whi") || !stricmp(option, "wm_hi"))
   {
     wm_hi = atof(argv[2]) ;
+    wm_hi_set = 1 ;
     nargs = 1 ;
     fprintf(stderr, "using white hilim = %2.1f\n", wm_hi) ;
   }
