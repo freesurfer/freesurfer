@@ -486,7 +486,7 @@ MRIextractPlane(MRI *mri_src, MRI *mri_dst, MRI *mri_polv, int x, int y,
     mri_dst->yend = mri_dst->ystart + wsize*mri_dst->ysize ;
     mri_dst->zend = mri_dst->zstart + wsize*mri_dst->zsize ;
     mri_dst->imnr0 = z + mri_src->imnr0 ;
-    mri_dst->imnr1 = mri_dst->imnr0 + wsize - 1 ;
+    mri_dst->imnr1 = mri_dst->imnr0 ;
   }
 
   vertex = (int)MRIvox(mri_polv, x, y, z) ;
@@ -508,6 +508,10 @@ MRIextractPlane(MRI *mri_src, MRI *mri_dst, MRI *mri_polv, int x, int y,
       xi = mri_src->xi[nint(xbase + xk*e1_x)] ;
       yi = mri_src->yi[nint(ybase + xk*e1_y)] ;
       zi = mri_src->zi[nint(zbase + xk*e1_z)] ;
+#if 0
+if (x == 8 && y == 15 && z == 15 && (xi < 7 || !MRIvox(mri_src,xi,yi,zi)))
+  DiagBreak() ;
+#endif
       MRIvox(mri_dst, xk+whalf,yk+whalf,0) = MRIvox(mri_src, xi, yi, zi) ;
     }
   }
