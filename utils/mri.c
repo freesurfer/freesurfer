@@ -55,12 +55,190 @@ static long mris_alloced = 0 ;
 /*-----------------------------------------------------
                     GLOBAL FUNCTIONS
 -------------------------------------------------------*/
+
+/*----------------------------------------------------------
+  MRIxfmCRS2XYZ() - computes the matrix needed to compute the
+  XYZ of the center of a voxel at a given Col, Row, and Slice
+  from the native geometry of the volume:
+
+              x         col
+              y  = T *  row
+              z        slice
+              1          1
+
+  T = [Mdc*D Pxyz0]
+      [0 0 0   1  ]
+
+  Mdc = [Vcol Vrow Vslice]
+  V<dim> = the direction cosine pointing from the center of one voxel
+    to the center of an adjacent voxel in the next dim, where
+    dim is either colum, row, or slice. Vcol = [x_r x_a x_s],
+    Vrow = [y_r y_a y_s], Vslice = [z_r z_a z_s]. Vcol can also
+    be described as the vector normal to the plane formed by
+    the rows and slices of a given column (ie, the column normal).       
+
+  D = diag([colres rowres sliceres])
+  dimres = the distance between adjacent dim, where colres = mri->xsize,
+  rowres = mri->ysize, and sliceres = mri->zsize.
+
+  Pxyz0 = the XYZ location at CRS=0. This number is not part of the
+  mri structure, so it is computed here according to the formula:
+    Pxyz0 = PxyzCenter - Mdc*D*PcrsCenter
+
+  PcrsCenter = the col, row, and slice at the center of the volume,
+             = [ ncols/2 nrows/2 nslices/2 ]
+
+  PxyzCenter = the X, Y, and Z at the center of the volume and does
+    exist in the header as mri->c_r, mri->c_a, and mri->c_s, 
+    respectively.
+
+  Note: to compute the matrix with respect to the first voxel being
+  at CRS 1,1,1 instead of 0,0,0, then set base = 1. This is 
+  necessary with SPM matrices.
+
+  See also: MRIxfmCRS2XYZtkreg, MRIfixTkReg
+  ------------------------------------------------------*/
+MATRIX *MRIxfmCRS2XYZ(MRI *mri, int base)
+{
+  MATRIX *m;
+  MATRIX *Pcrs, *PxyzOffset;
+
+  m = MatrixAlloc(4, 4, MATRIX_REAL);
+
+  /* direction cosine between columns scaled by 
+     distance between colums */
+  *MATRIX_RELT(m, 1, 1) = mri->x_r * mri->xsize;  
+  *MATRIX_RELT(m, 2, 1) = mri->x_a * mri->xsize;  
+  *MATRIX_RELT(m, 3, 1) = mri->x_s * mri->xsize;  
+
+  /* direction cosine between rows scaled by 
+     distance between rows */
+  *MATRIX_RELT(m, 1, 2) = mri->y_r * mri->ysize;  
+  *MATRIX_RELT(m, 2, 2) = mri->y_a * mri->ysize;  
+  *MATRIX_RELT(m, 3, 2) = mri->y_s * mri->ysize;  
+
+  /* direction cosine between slices scaled by 
+     distance between slices */
+  *MATRIX_RELT(m, 1, 3) = mri->z_r * mri->zsize;  
+  *MATRIX_RELT(m, 2, 3) = mri->z_a * mri->zsize;  
+  *MATRIX_RELT(m, 3, 3) = mri->z_s * mri->zsize;  
+
+  /* Preset the offsets to 0 */
+  *MATRIX_RELT(m, 1, 4) = 0.0;
+  *MATRIX_RELT(m, 2, 4) = 0.0;
+  *MATRIX_RELT(m, 3, 4) = 0.0;
+
+  /* Last row of matrix */
+  *MATRIX_RELT(m, 4, 1) = 0.0;                    
+  *MATRIX_RELT(m, 4, 2) = 0.0;                    
+  *MATRIX_RELT(m, 4, 3) = 0.0;                    
+  *MATRIX_RELT(m, 4, 4) = 1.0;
+
+  /* At this point, m = Mdc * D */
+
+  /* Col, Row, Slice at the Center of the Volume */
+  Pcrs = MatrixAlloc(4, 1, MATRIX_REAL);
+  *MATRIX_RELT(Pcrs, 1, 1) = mri->width/2.0  + base;
+  *MATRIX_RELT(Pcrs, 2, 1) = mri->height/2.0 + base;
+  *MATRIX_RELT(Pcrs, 3, 1) = mri->depth/2.0  + base;
+  *MATRIX_RELT(Pcrs, 4, 1) = 1.0;
+
+  /* XYZ offset the first Col, Row, and Slice from Center */
+  /* PxyzOffset = Mdc*D*PcrsCenter */
+  PxyzOffset = MatrixMultiply(m,Pcrs,NULL);
+
+  /* XYZ at the Center of the Volume is mri->c_r, c_a, c_s  */
+
+  /* The location of the center of the voxel at CRS = (0,0,0)*/
+  *MATRIX_RELT(m, 1, 4) = mri->c_r - PxyzOffset->rptr[1][1];
+  *MATRIX_RELT(m, 2, 4) = mri->c_a - PxyzOffset->rptr[2][1];
+  *MATRIX_RELT(m, 3, 4) = mri->c_s - PxyzOffset->rptr[3][1];
+
+  MatrixFree(&Pcrs);
+  MatrixFree(&PxyzOffset);
+
+  return(m);
+}
+/*-------------------------------------------------------------
+  MRIxfmCRS2XYZtkreg() - computes the linear transform between the
+  column, row, and slice of a voxel and the x, y, z of that voxel as
+  expected by tkregister (or for when using a tkregister compatible
+  matrix). For tkregister, the column DC points in the "x" direction,
+  the row DC points in the "z" direction, and the slice DC points in
+  the "y" direction. The center of the coordinates is set to the
+  center of the FOV. These definitions are arbitrary (and more than a
+  little confusing). Since they are arbitrary, they must be applied
+  consistently.
+  -------------------------------------------------------------*/
+MATRIX *MRIxfmCRS2XYZtkreg(MRI *mri)
+{
+  MRI *tmp;
+  MATRIX *K;
+
+  tmp = MRIallocHeader(mri->width, mri->height, 
+           mri->depth, mri->type);
+
+  /* Set tkregister defaults */
+  /* column         row           slice          center      */
+  tmp->x_r = -1; tmp->y_r =  0; tmp->z_r =  0; tmp->c_r = 0.0;
+  tmp->x_a =  0; tmp->y_a =  0; tmp->z_a =  1; tmp->c_a = 0.0;
+  tmp->x_s =  0; tmp->y_s = -1; tmp->z_s =  0; tmp->c_s = 0.0;
+
+  /* Copy the voxel resolutions */
+  tmp->xsize = mri->xsize;
+  tmp->ysize = mri->ysize;
+  tmp->zsize = mri->zsize;
+
+  K = MRIxfmCRS2XYZ(tmp,0);
+
+  MRIfree(&tmp);
+
+  return(K);
+}
+/*-------------------------------------------------------------------
+  MRIfixTkReg() - "fixes" a tkregister-compatible registration matrix
+  R so that it works with the geometry native to the two volumes. The
+  matrix R maps tkXYZ of the ref volume to tkXYZ of the mov volume. In
+  a typical application, ref is the anatomical volume and mov is the
+  functional volume. The purpose of this function is to be able to use
+  registration matrices computed by (or compatible with) tkregister
+  without losing the geometries native to the volumes.
+
+  See also: MRIxfmCRS2XYZtkreg, MRIxfmCRS2XYZ
+  -------------------------------------------------------------------*/
+MATRIX *MRIfixTkReg(MRI *ref, MRI *mov, MATRIX *R)
+{
+  MATRIX *Kref, *Kmov;
+  MATRIX *Tref, *Tmov, *D;
+  MATRIX *invKmov, *invTref;
+
+  Tref = MRIxfmCRS2XYZ(ref,0);
+  Tmov = MRIxfmCRS2XYZ(mov,0);
+
+  Kref = MRIxfmCRS2XYZtkreg(ref);
+  Kmov = MRIxfmCRS2XYZtkreg(mov);
+
+  /* D = Tmov * inv(Kmov) * R * Kref *inv(Tref) */
+  invKmov = MatrixInverse(Kmov,NULL);
+  invTref = MatrixInverse(Tref,NULL);
+
+  D = MatrixMultiply(Tmov,invKmov,NULL);
+  MatrixMultiply(D,R,D);
+  MatrixMultiply(D,Kref,D);
+  MatrixMultiply(D,invTref,D);
+
+  MatrixFree(&Kref);
+  MatrixFree(&Tref);
+  MatrixFree(&Kmov);
+  MatrixFree(&Tmov);
+  MatrixFree(&invKmov);
+  MatrixFree(&invTref);
+
+  return(D);
+}
+
+
 /*-----------------------------------------------------
-        Parameters:
-
-        Returns value:
-
-        Description
 ------------------------------------------------------*/
 int
 MRImatch(MRI *mri1, MRI *mri2)
@@ -73,11 +251,6 @@ MRImatch(MRI *mri1, MRI *mri2)
          ) ;
 }
 /*-----------------------------------------------------
-        Parameters:
-
-        Returns value:
-
-        Description
 ------------------------------------------------------*/
 MRI *
 MRIscalarMul(MRI *mri_src, MRI *mri_dst, float scalar)
@@ -137,11 +310,6 @@ MRIscalarMul(MRI *mri_src, MRI *mri_dst, float scalar)
   return(mri_dst) ;
 }
 /*-----------------------------------------------------
-        Parameters:
-
-        Returns value:
-
-        Description
 ------------------------------------------------------*/
 int
 MRIvalRange(MRI *mri, float *pmin, float *pmax)
@@ -235,11 +403,6 @@ MRIvalRange(MRI *mri, float *pmin, float *pmax)
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
-        Parameters:
-
-        Returns value:
-
-        Description
 ------------------------------------------------------*/
 int
 MRIvalRangeRegion(MRI *mri, float *pmin, float *pmax, MRI_REGION *region)
@@ -316,11 +479,6 @@ MRIvalRangeRegion(MRI *mri, float *pmin, float *pmax, MRI_REGION *region)
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
-        Parameters:
-
-        Returns value:
-
-        Description
 ------------------------------------------------------*/
 MRI_REGION *
 MRIclipRegion(MRI *mri, MRI_REGION *reg_src, MRI_REGION *reg_clip)
@@ -339,11 +497,6 @@ MRIclipRegion(MRI *mri, MRI_REGION *reg_src, MRI_REGION *reg_clip)
   return(reg_clip) ;
 }
 /*-----------------------------------------------------
-        Parameters:
-
-        Returns value:
-
-        Description
 ------------------------------------------------------*/
 MRI *
 MRIvalScale(MRI *mri_src, MRI *mri_dst, float flo, float fhi) 
@@ -419,11 +572,6 @@ MRIvalScale(MRI *mri_src, MRI *mri_dst, float flo, float fhi)
   return(mri_dst) ;
 }
 /*-----------------------------------------------------
-        Parameters:
-
-        Returns value:
-
-        Description
 ------------------------------------------------------*/
 MRI *
 MRIconfThresh(MRI *mri_src, MRI *mri_probs, MRI *mri_classes, MRI *mri_dst, 
@@ -465,11 +613,6 @@ MRIconfThresh(MRI *mri_src, MRI *mri_probs, MRI *mri_classes, MRI *mri_dst,
   return(mri_dst) ;
 }
 /*-----------------------------------------------------
-        Parameters:
-
-        Returns value:
-
-        Description
 ------------------------------------------------------*/
 int
 MRIboundingBoxNbhd(MRI *mri, int thresh, int wsize,MRI_REGION *box)
@@ -642,11 +785,6 @@ MRIboundingBoxNbhd(MRI *mri, int thresh, int wsize,MRI_REGION *box)
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
-        Parameters:
-
-        Returns value:
-
-        Description
 ------------------------------------------------------*/
 #define MIN_DARK 10
 
@@ -838,11 +976,6 @@ MRIfindApproximateSkullBoundingBox(MRI *mri, int thresh,MRI_REGION *box)
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
-        Parameters:
-
-        Returns value:
-
-        Description
 ------------------------------------------------------*/
 int
 MRIboundingBox(MRI *mri, int thresh, MRI_REGION *box)
@@ -927,11 +1060,6 @@ MRIboundingBox(MRI *mri, int thresh, MRI_REGION *box)
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
-        Parameters:
-
-        Returns value:
-
-        Description
 ------------------------------------------------------*/
 int
 MRIcheckSize(MRI *mri_src, MRI *mri_check, int width, int height, int depth)
@@ -954,11 +1082,6 @@ MRIcheckSize(MRI *mri_src, MRI *mri_check, int width, int height, int depth)
   return(1) ;
 }
 /*-----------------------------------------------------
-        Parameters:
-
-        Returns value:
-
-        Description
 ------------------------------------------------------*/
 int
 MRItransformRegion(MRI *mri_src, MRI *mri_dst, MRI_REGION *src_region,
@@ -1024,11 +1147,6 @@ MRItransformRegion(MRI *mri_src, MRI *mri_dst, MRI_REGION *src_region,
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
-        Parameters:
-
-        Returns value:
-
-        Description
 ------------------------------------------------------*/
 int
 MRIvoxelToVoxel(MRI *mri_src, MRI *mri_dst, Real xv, Real yv, Real zv,
@@ -1089,11 +1207,6 @@ MRIvoxelToVoxel(MRI *mri_src, MRI *mri_dst, Real xv, Real yv, Real zv,
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
-        Parameters:
-
-        Returns value:
-
-        Description
 ------------------------------------------------------*/
 int
 MRIvoxelToTalairachVoxel(MRI *mri, Real xv, Real yv, Real zv,
@@ -1134,11 +1247,6 @@ MRIvoxelToTalairachVoxel(MRI *mri, Real xv, Real yv, Real zv,
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
-        Parameters:
-
-        Returns value:
-
-        Description
 ------------------------------------------------------*/
 int
 MRIvoxelToTalairach(MRI *mri, Real xv, Real yv, Real zv,
@@ -1180,11 +1288,6 @@ MRIvoxelToTalairach(MRI *mri, Real xv, Real yv, Real zv,
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
-        Parameters:
-
-        Returns value:
-
-        Description
 ------------------------------------------------------*/
 int
 MRItalairachToVoxel(MRI *mri, Real xt, Real yt, Real zt,
@@ -1226,11 +1329,6 @@ MRItalairachToVoxel(MRI *mri, Real xt, Real yt, Real zt,
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
-        Parameters:
-
-        Returns value:
-
-        Description
 ------------------------------------------------------*/
 int
 MRItalairachVoxelToVoxel(MRI *mri, Real xtv, Real ytv, Real ztv,
@@ -1273,11 +1371,6 @@ MRItalairachVoxelToVoxel(MRI *mri, Real xtv, Real ytv, Real ztv,
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
-        Parameters:
-
-        Returns value:
-
-        Description
 ------------------------------------------------------*/
 int
 MRItalairachVoxelToWorld(MRI *mri, Real xtv, Real ytv, Real ztv,
@@ -1320,11 +1413,6 @@ MRItalairachVoxelToWorld(MRI *mri, Real xtv, Real ytv, Real ztv,
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
-        Parameters:
-
-        Returns value:
-
-        Description
 ------------------------------------------------------*/
 int
 MRIvoxelToWorld(MRI *mri, Real xv, Real yv, Real zv, 
@@ -1385,11 +1473,6 @@ MRIvoxelToWorld(MRI *mri, Real xv, Real yv, Real zv,
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
-        Parameters:
-
-        Returns value:
-
-        Description
 ------------------------------------------------------*/
 int
 MRIworldToTalairachVoxel(MRI *mri, Real xw, Real yw, Real zw,
@@ -1402,11 +1485,6 @@ MRIworldToTalairachVoxel(MRI *mri, Real xw, Real yw, Real zw,
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
-        Parameters:
-
-        Returns value:
-
-        Description
 ------------------------------------------------------*/
 int   MRIworldToVoxelIndex(MRI *mri, Real xw, Real yw, Real zw,
                 int *pxv, int *pyv, int *pzv)
@@ -1435,11 +1513,6 @@ int   MRIworldToVoxelIndex(MRI *mri, Real xw, Real yw, Real zw,
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
-        Parameters:
-
-        Returns value:
-
-        Description
 ------------------------------------------------------*/
 int
 MRIworldToVoxel(MRI *mri, Real xw, Real yw, Real zw, 
@@ -1525,11 +1598,6 @@ MRIworldToVoxel(MRI *mri, Real xw, Real yw, Real zw,
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
-        Parameters:
-
-        Returns value:
-
-        Description
 ------------------------------------------------------*/
 int
 MRIinitHeader(MRI *mri)
@@ -4683,6 +4751,39 @@ MRIdownsample2(MRI *mri_src, MRI *mri_dst)
   mri_dst->ras_good_flag = 0;
 
   return(mri_dst) ;
+}
+/*-------------------------------------------------------------
+  MRI MRIvalueFill(MRI *mri, float value) -- fills an mri volume
+  with the given value. Type of mri can be anything.
+  -------------------------------------------------------------*/
+int MRIvalueFill(MRI *mri, float value)
+{
+  int c,r,s,f;
+
+  for(c=0; c < mri->width; c++){
+    for(r=0; r < mri->height; r++){
+      for(s=0; s < mri->depth; s++){
+  for(f=0; f < mri->nframes; f++){
+    switch(mri->type){
+    case MRI_UCHAR: 
+      MRIseq_vox(mri,c,r,s,f) = (unsigned char) (nint(value));
+      break;
+    case MRI_SHORT: 
+      MRISseq_vox(mri,c,r,s,f) = (short) (nint(value));
+      break;
+    case MRI_INT: 
+      MRIIseq_vox(mri,c,r,s,f) = (int) (nint(value));
+      break;
+    case MRI_FLOAT: 
+      MRIFseq_vox(mri,c,r,s,f) = value;
+      break;
+    }
+  }
+      }
+    }
+  }
+
+  return(0);
 }
 /*-----------------------------------------------------
         Parameters:
