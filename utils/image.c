@@ -700,8 +700,8 @@ ImageCopy(IMAGE *Isrc, IMAGE *Idst)
 #define DISCEDGE_SIZE     7
 
 IMAGE   *
-ImageEdgeDetect(IMAGE *Isrc, IMAGE *Idst, float sigma, int wsize, float lthresh, float uthresh,
-                int dothin)
+ImageEdgeDetect(IMAGE *Isrc, IMAGE *Idst, float sigma, int wsize, 
+                float lthresh, float uthresh, int dothin)
 {
   int    ecode ;
   IMAGE  *Iout ;
@@ -1545,9 +1545,12 @@ ImageWriteFrames(IMAGE *image, char *fname, int start, int nframes)
 IMAGE *
 ImageRescale(IMAGE *inImage, IMAGE *outImage, float scale)
 {
+  int rows, cols ;
+
+  cols = nint((float)inImage->cols * scale) ;
+  rows = nint((float)inImage->rows * scale) ;
   if (!outImage)
-    outImage = ImageAlloc(inImage->rows, inImage->cols, inImage->pixel_format, 
-                          inImage->num_frame) ;
+    outImage = ImageAlloc(rows, cols, inImage->pixel_format,inImage->num_frame);
 
   if (scale == 1)
     ImageCopy(inImage, outImage) ;
@@ -3428,6 +3431,509 @@ ImageConvolve3x3(IMAGE *inImage, float kernel[], IMAGE *outImage)
             inImage->pixel_format) ;
     exit(-1);
     break ;
+  }
+
+  return(0) ;
+}
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+----------------------------------------------------------------------*/
+IMAGE *
+ImageAdd(IMAGE *Is1, IMAGE *Is2, IMAGE *Idst)
+{
+  int ecode ;
+
+  if (!Idst)
+    Idst = ImageAlloc(Is1->rows, Is1->cols,Is1->pixel_format, Is1->num_frame);
+
+  ecode = h_add(Is1, Is2, Idst) ;
+  if (ecode != HIPS_OK)
+    ErrorPrintf(ecode, "ImageAdd: h_add failed (%d)", ecode) ;
+
+  return(Idst) ;
+}
+
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+----------------------------------------------------------------------*/
+static int xoffsets[] = { 0, -1, 0, 1, 0 } ;
+static int yoffsets[] = { -1, 0, 0, 0, 1 } ;
+#define ONE_EIGHTH (1.0f/8.0f)
+static float weights[] = 
+{          ONE_EIGHTH, 
+    ONE_EIGHTH, -0.5f, ONE_EIGHTH, 
+            ONE_EIGHTH 
+} ;
+#define LAPLACIAN_POINTS   (sizeof(xoffsets) / sizeof(xoffsets[0]))
+
+IMAGE  *
+ImageLaplacian(IMAGE *inImage, IMAGE *outImage)
+{
+  int     rows, cols, x, y, xi, yi, i ;
+  float   *fkpix, sum, *fopix, fival ;
+
+  rows = inImage->rows ;
+  cols = outImage->cols ;
+
+  if (!outImage)
+  {
+    outImage = ImageAlloc(cols, rows, 1, PFFLOAT) ;
+  }
+
+  switch (inImage->pixel_format)
+  {
+  case PFFLOAT:
+    fopix = (float *)IMAGEFpix(outImage, 0, 0) ;
+    for (y = 0 ; y < rows ; y++)
+    {
+      for (x = 0 ; x < cols ; x++, fopix++)
+      {
+        fkpix = weights ;
+        for (sum = 0.0f, i = 0 ; i < LAPLACIAN_POINTS ; i++)
+        {
+          yi = y + yoffsets[i] ;    /* image coordinate */
+          if (yi < 0)
+            yi = 0 ;
+          else if (yi >= rows)
+            yi = rows-1 ;
+
+          xi = x + xoffsets[i] ;   /* image coordinate */
+          if (xi < 0)
+            xi = 0 ;
+          else if (xi >= cols)
+            xi = cols-1 ;
+          fival = *IMAGEFpix(inImage, xi, yi) ;
+          sum += fival * *fkpix++ ;
+        }
+        *fopix = sum ;
+      }
+    }
+    break ;
+  default:
+    fprintf(stderr, "ImageLaplacian: unsupported pixel format %d\n",
+            inImage->pixel_format) ;
+    exit(-1);
+    break ;
+  }
+
+  return(outImage) ;
+}
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+----------------------------------------------------------------------*/
+IMAGE *
+ImageConvolveGaussian(IMAGE *inImage,IMAGE *gImage, IMAGE *outImage,
+                     int dst_frameno)
+{
+  static IMAGE     *tmpImage = NULL ;
+  int              ksize ;
+  float            *kernel, *buf ;
+
+  if (!ImageCheckSize(inImage, tmpImage, 0, 0, 0))
+  {
+    if (tmpImage)
+      ImageFree(&tmpImage) ;
+    tmpImage = ImageAlloc(inImage->cols, inImage->rows, PFFLOAT, 1) ;
+  }
+  if (!outImage)
+    outImage = ImageAlloc(inImage->cols, inImage->rows, PFFLOAT, 1) ;
+
+  tmpImage->rows = inImage->rows ;
+  tmpImage->cols = inImage->cols ;
+
+  kernel = IMAGEFpix(gImage, 0, 0) ;
+  ksize = gImage->cols ;
+  ImageConvolve1d(inImage, tmpImage, kernel, ksize, IMAGE_VERTICAL) ;
+  buf = IMAGEFpix(outImage, 0, 0) ;
+  outImage->image = (UCHAR *)IMAGEFseq_pix(outImage, 0, 0, dst_frameno) ;
+  ImageConvolve1d(tmpImage, outImage, kernel, ksize, IMAGE_HORIZONTAL) ;
+  outImage->image = (UCHAR *)buf ;
+  return(outImage) ;
+}
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+----------------------------------------------------------------------*/
+void
+ImageConvolve1d(IMAGE *I, IMAGE *J, float k[], int len, int axis)
+{
+  int    x, y, i, width, height, xi,yi, halflen ;
+  float  total ;
+
+  width = I->cols ;
+  height = I->rows ;
+
+  halflen = len/2 ;
+  if (axis == IMAGE_HORIZONTAL)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      for (x = 0 ; x < width ; x++)
+      {
+        total = 0.0f ;
+
+        for (i = 0 ; i < len ; i++)
+        {
+          xi = x + i - halflen ;
+#if 0
+          /* Neumann boundary conditions */
+          if (xi < 0)
+            xi = -xi ;
+          else if (xi >= width)
+            xi = width - (xi - width+1) ;
+#else
+          if (xi < 0)
+            xi = 0 ;
+          else if (xi >= width)
+            xi = width - 1 ;
+#endif
+          
+          total = total + k[i] * *IMAGEFpix(I, xi, y) ;
+        }
+        *IMAGEFpix(J, x, y) = total ;
+      }
+    }
+  }
+  else
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      for (x = 0 ; x < width ; x++)
+      {
+        total = 0.0f ;
+
+        for (i = 0 ; i < len ; i++)
+        {
+          yi = y + i - halflen ;
+#if 0
+          /* Neumann boundary conditions */
+          if (yi < 0)
+            yi = -yi ;
+          else if (yi >= height)
+            yi = height - (yi - height+1) ;
+#else
+          if (yi < 0)
+            yi = 0 ;
+          else if (yi >= height)
+            yi = height - 1 ;
+#endif          
+          total = total + k[i] * *IMAGEFpix(I, x, yi) ;
+        }
+        *IMAGEFpix(J, x, y) = total ;
+      }
+    }
+  }
+}
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+             use k[] to scale the image down by 2.
+----------------------------------------------------------------------*/
+void
+ImageReduce1d(IMAGE *I, IMAGE *J, float k[], int len, int axis)
+{
+  int    x, y, i, Jwidth, Jheight, xi,yi, halflen, Iwidth, Iheight ;
+  float  total ;
+
+  Jwidth = J->cols ;
+  Jheight = J->rows ;
+  Iwidth = I->cols ;
+  Iheight = I->rows ;
+
+  halflen = (len-1)/2 ;
+  if (axis == IMAGE_HORIZONTAL)
+  {
+    for (y = 0 ; y < Jheight ; y++)
+    {
+      yi = 2*y ;
+      for (x = 0 ; x < Jwidth ; x++)
+      {
+        total = 0.0f ;
+
+        if (x >= 3 && x <= 6)
+          i = 0 ;
+
+        for (i = 0 ; i < len ; i++)
+        {
+          /* Neumann boundary conditions */
+          xi = 2*x + i - halflen ;
+#if 0
+          if (xi < 0)
+            xi = -xi ;
+          else if (xi >= Iwidth)
+            xi = Iwidth - (xi - Iwidth+1) ;
+#else
+          if (xi < 0)
+            xi = 0 ;
+          else if (xi >= Iwidth)
+            xi = Iwidth - 1 ;
+#endif
+          
+          total = total + k[i] * *IMAGEFpix(I, xi, yi) ;
+        }
+        *IMAGEFpix(J, x, y) = total ;
+      }
+    }
+  }
+  else
+  {
+    for (y = 0 ; y < Jheight ; y++)
+    {
+      for (x = 0 ; x < Jwidth ; x++)
+      {
+        total = 0.0f ;
+        xi = 2*x ;
+
+#if 0
+        if (((x == 9) && (y == 127)) ||
+            ((y == 9) && (x == 127)))
+          i = 0 ;
+#endif
+
+        for (i = 0 ; i < len ; i++)
+        {
+          /* Neumann boundary conditions */
+          yi = 2*y + i - halflen ;
+#if 0
+          if (yi < 0)
+            yi = -yi ;
+          else if (yi >= Iheight)
+            yi = Iheight - (yi - Iheight+1) ;
+#else
+          if (yi < 0)
+            yi = 0 ;
+          else if (yi >= Iheight)
+            yi = Iheight - 1 ;
+#endif
+          
+          total = total + k[i] * *IMAGEFpix(I, xi, yi) ;
+        }
+        *IMAGEFpix(J, x, y) = total ;
+      }
+    }
+  }
+}
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+             construct a gaussian bump which tails to 0. Returns
+             an image which is ((4*xsigma)+1) x ((4*ysigma)+1)
+----------------------------------------------------------------------*/
+IMAGE *
+ImageGaussian(float xsigma, float ysigma)
+{
+  IMAGE *image ;
+  float     norm, ytwo_sigma, xtwo_sigma, fx, fy, k ;
+  int       x, y, xlen, ylen, xhalf, yhalf ;
+
+  /* build the kernel in k */
+  xlen = (int)nint(8.0f * xsigma)+1 ;
+  ylen = (int)nint(8.0f * ysigma)+1 ;
+  xhalf = xlen/2 ;
+  yhalf = ylen/2 ;
+  image = ImageAlloc(xlen, ylen, PFFLOAT, 1) ;
+
+  norm = 0.0f ;
+  xtwo_sigma = 2.0f * xsigma ;
+  ytwo_sigma = 2.0f * ysigma ;
+
+  for (x = 0 ; x < xlen ; x++)
+  {
+    fx = (float)(x-xhalf) ;
+    if (fabs(fx) <= xtwo_sigma)
+      k = exp(-fx*fx/(xtwo_sigma*xsigma)) ;  /* parens added!! */
+    else if (xtwo_sigma < fabs(fx) && fabs(fx) <= 4*xsigma)
+      k = 1.0f / (16.0f * M_E * M_E) * pow(4.0f - fabs(fx)/xsigma, 4.0) ;
+    else
+      k = 0 ;
+
+    for (y = 0 ; y < ylen ; y++)
+      *IMAGEFpix(image, x, y) = k ;
+  }
+
+  for (y = 0 ; y < ylen ; y++)
+  {
+    fy = (float)(y-yhalf) ;
+    if (fabs(fy) <= ytwo_sigma)
+      k = exp(-fy*fy/(ytwo_sigma*ysigma)) ;  /* parens added!! */
+    else if (ytwo_sigma < fabs(fy) && fabs(fy) <= 4*ysigma)
+      k = 1.0f / (16.0f * M_E * M_E) * pow(4.0f - fabs(fy)/ysigma, 4.0) ;
+    else
+      k = 0 ;
+
+    for (x = 0 ; x < xlen ; x++)
+    {
+      *IMAGEFpix(image, x, y) *= k ;
+      norm += *IMAGEFpix(image, x, y) ;
+    }
+  }
+
+  /* normalize kernel to sum to 1 */
+  for (x = 0 ; x < xlen ; x++)
+  {
+    for (y = 0 ; y < ylen ; y++)
+      *IMAGEFpix(image, x, y) /= norm ;
+  }
+
+  return(image) ;
+}
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+             construct a gaussian bump which tails to 0. Returns
+             an image which is (4*sigma)+1
+----------------------------------------------------------------------*/
+IMAGE *
+ImageGaussian1d(float sigma)
+{
+  IMAGE *image ;
+  float     norm, two_sigma, fx, k ;
+  int       x, half, len ;
+
+  /* build the kernel in k */
+  len = (int)nint(8.0f * sigma)+1 ;
+  half = len/2 ;
+  image = ImageAlloc(len, 1, PFFLOAT, 1) ;
+
+  norm = 0.0f ;
+  two_sigma = 2.0f * sigma ;
+
+  for (norm = 0.0f, x = 0 ; x < len ; x++)
+  {
+    fx = (float)(x-half) ;
+    if (fabs(fx) <= two_sigma)
+      k = exp(-fx*fx/(two_sigma*sigma)) ;  /* parens added!! */
+    else if (two_sigma < fabs(fx) && fabs(fx) <= 4*sigma)
+      k = 1.0f / (16.0f * M_E * M_E) * pow(4.0f - fabs(fx)/sigma, 4.0) ;
+    else
+      k = 0 ;
+
+    *IMAGEFpix(image, x, 0) = k ;
+    norm += k ;
+  }
+
+  /* normalize kernel to sum to 1 */
+  for (x = 0 ; x < len ; x++)
+    *IMAGEFpix(image, x, 0) /= norm ;
+
+  return(image) ;
+}
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+----------------------------------------------------------------------*/
+int
+ImageExtractInto(IMAGE *inImage, IMAGE *outImage, int x0, int y0, 
+                     int dx, int dy, int xdst, int ydst)
+{
+  UCHAR    *csrc, *cdst ;
+  float    *fsrc, *fdst ;
+  int      xin, yin, yout, x1, y1, yend, xend ;
+
+  if (inImage->pixel_format != outImage->pixel_format)
+  {
+    fprintf(stderr, "ImageExtractInto: out format must match input format\n");
+    return(-1) ;
+  }
+
+  x1 = x0 + dx ;
+  y1 = y0 + dy ;
+  xend = inImage->cols-1 ;
+  yend = inImage->rows-1 ;
+
+  switch (inImage->pixel_format)
+  {
+  case PFBYTE:
+    yout = ydst ;
+    cdst = IMAGEpix(outImage, xdst, ydst) ;
+    for (yin = y0 ; yin < y1 ; yin++, yout++)
+    {
+      csrc = IMAGEpix(inImage, x0, yin) ;
+      cdst = IMAGEpix(outImage, xdst, yout) ;
+      for (xin = x0 ; xin < x1 ; xin++, cdst++, csrc++)
+      {
+        if (xin < 0 || xin > xend || yin < 0 || yin > yend)
+          *cdst = 0 ;
+        else
+          *cdst = *csrc ;
+      }
+    }
+    break ;
+  case PFFLOAT:
+    yout = ydst ;
+    fdst = IMAGEFpix(outImage, xdst, ydst) ;
+    for (yin = y0 ; yin < y1 ; yin++, yout++)
+    {
+      fsrc = IMAGEFpix(inImage, x0, yin) ;
+      fdst = IMAGEFpix(outImage, xdst, yout) ;
+      for (xin = x0 ; xin < x1 ; xin++, fdst++, fsrc++)
+      {
+        if (xin < 0 || xin > xend || yin < 0 || yin > yend)
+          *fdst = 0.0f ;
+        else
+          *fdst = *fsrc ;
+      }
+    }
+    break ;
+  default:
+    fprintf(stderr,"ImageExtractInto: unsupported image format %d\n", 
+            inImage->pixel_format) ;
+    return(-1) ;
+  }
+
+  return(0) ;
+}
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+----------------------------------------------------------------------*/
+int
+ImageExtract(IMAGE *inImage, IMAGE *outImage, int x0, int y0,int dx,
+            int dy)
+{
+  UCHAR    *csrc, *cdst ;
+  int      xin, yin, xout, yout, x1, y1, yend, xend ;
+
+  x1 = x0 + dx ;
+  y1 = y0 + dy ;
+  xend = inImage->cols-1 ;
+  yend = inImage->rows-1 ;
+
+  switch (inImage->pixel_format)
+  {
+  case PFBYTE:
+    yout = xout = 0 ;
+    cdst = IMAGEpix(outImage, 0, 0) ;
+    for (yin = y0 ; yin < y1 ; yin++, yout++)
+    {
+      csrc = IMAGEpix(inImage, x0, yin) ;
+      cdst = IMAGEpix(outImage, 0, yout) ;
+      for (xout = 0, xin = x0 ; xin < x1 ; xin++, xout++, cdst++, csrc++)
+      {
+        if (xin < 0 || xin > xend || yin < 0 || yin > yend)
+          *cdst = 0 ;
+        else
+          *cdst = *csrc ;
+      }
+    }
+    break ;
+
+  default:
+    fprintf(stderr,"ImageExtract: unsupported image format %d\n", 
+            inImage->pixel_format) ;
+    return(-1) ;
   }
 
   return(0) ;
