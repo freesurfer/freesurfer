@@ -1311,6 +1311,12 @@ Volm_tErr Volm_SetValueAtIdx ( mriVolumeRef this,
   /* set the value */
   DebugNote( ("Setting the norm value") );
   Volm_SetValueAtIdx_( this, iIdx, iValue );
+
+  /* update our min max. */
+  if( iValue > this->mfMaxValue )
+    this->mfMaxValue = iValue;
+  if( iValue < this->mfMinValue )
+    this->mfMinValue = iValue;
   
   DebugCatch;
   DebugCatchError( eResult, Volm_tErr_NoErr, Volm_GetErrorString );
@@ -1453,6 +1459,12 @@ Volm_tErr Volm_SetValueAtMRIIdx ( mriVolumeRef this,
   
   /* set the value */
   Volm_SetValueAtMRIIdx_( this, iMRIIdx, iValue );
+  
+  /* update our min max. */
+  if( iValue > this->mfMaxValue )
+    this->mfMaxValue = iValue;
+  if( iValue < this->mfMinValue )
+    this->mfMinValue = iValue;
   
   DebugCatch;
   DebugCatchError( eResult, Volm_tErr_NoErr, Volm_GetErrorString );
