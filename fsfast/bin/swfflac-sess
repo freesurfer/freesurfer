@@ -2,7 +2,7 @@
 # swfflac-sess
 #
 
-set VERSION = '$Id: swfflac-sess,v 1.1 2004/11/30 23:54:18 greve Exp $';
+set VERSION = '$Id: swfflac-sess,v 1.2 2004/12/08 23:35:52 greve Exp $';
 
 set cmdargs = ($argv);
 
@@ -12,7 +12,8 @@ set monly     = 0;
 set nolog     = 0;
 set PrintHelp = 0;
 set synthtarg = 0;
-set alpha = 0.5;
+set alpha   = 0.5;
+set pthresh =   1;  # -log10(thresh)
 set ytikreg = 0.1;
 set outfspec = ();
 set rcslist = ();
@@ -71,6 +72,7 @@ flacfile = '$flacfile';
 sesspath = '$sess';
 outfspec = '$outfspec';
 alpha = $alpha;
+pthresh = $pthresh;
 ytikreg = $ytikreg;
 contrast = '$contrast';
 rcslist = [$rcslist];
@@ -235,6 +237,10 @@ check_params:
     echo "ERROR: must specify output spec"
     exit 1;
   endif
+  if($#contrast == 0) then
+    echo "ERROR: must specify contrast"
+    exit 1;
+  endif
 
 goto check_params_return;
 ############--------------##################
@@ -251,11 +257,12 @@ usage_exit:
   echo "USAGE: swfflac-sess"
   echo ""
   echo "   -flac flacfile : as found in flac/flacfile "
-  echo "   -o outfspec     : uses same format as flac "
+  echo "   -o outfspec    : uses same format as flac "
+  echo "   -c contrast    : optimize wrt contrast"
   echo ""
   echo "Other Arguments"
-  echo "   -c contrast : optimize wrt contrast"
   echo "   -alpha alpha : default is $alpha"
+  echo "   -pthresh pthresh : -log10(p), default is $pthresh"
   echo "   -ytikreg ytikreg : tikhonov regularization (def is $ytikreg)"
   echo "   -targflac flacfile : defaullt is input flac"
   echo "   -rcs r c s <-rcs r c s> : create outfspec-wrcs-{in,out}"
