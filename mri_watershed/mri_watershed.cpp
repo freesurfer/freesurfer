@@ -4,12 +4,12 @@
 // mri_watershed.cpp
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: segonne $
-// Revision Date  : $Date: 2004/09/03 15:14:47 $
-// Revision       : $Revision: 1.28 $
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2004/11/15 20:58:25 $
+// Revision       : $Revision: 1.29 $
 //
 ////////////////////////////////////////////////////////////////////
-char *MRI_WATERSHED_VERSION = "$Revision: 1.28 $";
+char *MRI_WATERSHED_VERSION = "$Revision: 1.29 $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -583,7 +583,7 @@ int main(int argc, char *argv[])
   /************* Command line****************/
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_watershed.cpp,v 1.28 2004/09/03 15:14:47 segonne Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_watershed.cpp,v 1.29 2004/11/15 20:58:25 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -639,7 +639,7 @@ int main(int argc, char *argv[])
   if (mri_without_skull == NULL)
   {
     printf("\n**************************************************************\n");
-    printf("         MRIstipSkull failed.\n");
+    printf("         MRIstripSkull failed.\n");
     printf("**************************************************************\n");
     free(parms);
     return -1;
