@@ -19,7 +19,7 @@
 #include "cma.h"
 #include "mrisegment.h"
 
-static char vcid[] = "$Id: mris_shrinkwrap.c,v 1.1 2004/01/22 20:31:28 fischl Exp $";
+static char vcid[] = "$Id: mris_shrinkwrap.c,v 1.2 2005/01/21 15:58:14 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -70,7 +70,7 @@ main(int argc, char *argv[])
 	double        l_spring ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_shrinkwrap.c,v 1.1 2004/01/22 20:31:28 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_shrinkwrap.c,v 1.2 2005/01/21 15:58:14 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -109,9 +109,9 @@ main(int argc, char *argv[])
     argv += nargs ;
   }
 
-	mdir = getenv("MRI_DIR") ;
+	mdir = getenv("FREESURFER_HOME") ;
 	if (!mdir)
-		ErrorExit(ERROR_BADPARM, "MRI_DIR not defined in environment") ;
+		ErrorExit(ERROR_BADPARM, "FREESURFER_HOME not defined in environment") ;
 
   if (argc < 3)
     usage_exit() ;
