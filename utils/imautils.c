@@ -387,6 +387,7 @@ IMAFILEINFO *imaLoadFileInfo(char *imafile)
   long  ltmp, Year, Month, Day, Hour, Min, Sec;
   short stmp;
   char tmpstr[1000];
+  int FirstImageNo;
 
   fp = fopen(imafile,"r");
   if(fp == NULL){
@@ -405,6 +406,8 @@ IMAFILEINFO *imaLoadFileInfo(char *imafile)
   len = strlen(imafile);
   ifi->FileName = (char *) calloc(sizeof(char),len+1);
   memcpy(ifi->FileName,imafile,len);
+
+  ifi->NFilesInSeries = imaCountFilesInSeries(imafile, &FirstImageNo);
 
   ifi->PatientName = imaLoadValFromKey(fp,"G10_Pat_PatientName",NULL);
   ifi->PulseSequence = imaLoadValFromKey(fp,"G19_Acq4_CM_SequenceFileName",NULL);
@@ -459,7 +462,7 @@ IMAFILEINFO *imaLoadFileInfo(char *imafile)
 
   /* If its not a mosaic, there is no way to tell the number of slices
      from the info in the file. If it is a mosaic, use the nominal */
-  if(! ifi->IsMosaic) ifi->VolDim[2] = -1;
+  if(! ifi->IsMosaic) ifi->VolDim[2] = ifi->NFilesInSeries;
   else{
     imaLoadValFromKey(fp,"G21_Rel2_Mr_NumberOfSlicesNom",&ltmp);
     ifi->VolDim[2] = (int)ltmp;
@@ -547,6 +550,7 @@ int imaDumpFileInfo(FILE *fp, IMAFILEINFO *ifi)
   //fprintf(fp,"ReadoutFOV        %g\n",ifi->ReadoutFOV);
  
   fprintf(fp,"SeriesNo          %d\n",ifi->SeriesNo);
+  fprintf(fp,"NFilesInSeries    %d\n",ifi->NFilesInSeries);
   fprintf(fp,"ImageNo           %d\n",ifi->ImageNo);
   fprintf(fp,"NImageRows        %d\n",ifi->NImageRows);
   fprintf(fp,"NImageCols        %d\n",ifi->NImageCols);
@@ -650,7 +654,6 @@ int imaHasIMAExtension(char *filename)
 
   return(0);
 }
-
 /*--------------------------------------------------------------------
   imaIsSiemensIMA() - returns 1 if the given file is a Siemens IMA
   file. Returns 0 if it is not a Siemens IMA file or if the file does
@@ -678,6 +681,63 @@ int imaIsSiemensIMA(char *imafile)
   free(Manufacturer);
   return(0);
 }
+/*--------------------------------------------------------------------
+  imaCountFilesInSeries() - Assuming that the IMA file name is
+  studyno-seriesno-imageno.ima, this will look for files 
+  down from imageno to determine the image number of the first
+  file in the series, and up to determine the last. The number
+  in the series is then last-first+1. 
+  --------------------------------------------------------------------*/
+int imaCountFilesInSeries(char *imafile, int *FirstImageNo)
+{
+  int StudyNo, SeriesNo, ImageNo, LastImageNo;
+  char *imadir= NULL, *imaext;
+  int err, n;
+  FILE *fp;
+  char filename[1000];
+
+  fp = fopen(imafile,"r");
+  if(fp == NULL){
+    printf("ERROR: could not open %s\n",imafile);
+    return(0);
+  }
+
+  err = imaParseName(imafile,&StudyNo,&SeriesNo,&ImageNo);
+  if(err) return(-1);
+
+  imadir = fio_dirname(imafile);
+  imaext = fio_extension(imafile);
+
+  /* Count down */
+  n = ImageNo;
+  while(1){
+    n--;
+    sprintf(filename,"%s/%d-%d-%d.%s",imadir,StudyNo,SeriesNo,n,imaext);
+    //printf("%s\n",filename);
+    fp = fopen(filename,"r");
+    if(fp == NULL) break;
+    fclose(fp);
+  }
+  *FirstImageNo = n+1;
+
+  /* Count up */
+  n = ImageNo;
+  while(1){
+    n++;
+    sprintf(filename,"%s/%d-%d-%d.%s",imadir,StudyNo,SeriesNo,n,imaext);
+    //printf("%s\n",filename);
+    fp = fopen(filename,"r");
+    if(fp == NULL) break;
+    fclose(fp);
+  }
+  LastImageNo = n-1;
+
+  free(imadir);
+  free(imaext);
+
+  return(LastImageNo - *FirstImageNo + 1);
+}
+
 /*--------------------------------------------------------------------*/
 /*--------------------------------------------------------------------*/
 /*--------------------------------------------------------------------*/

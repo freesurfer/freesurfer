@@ -24,6 +24,7 @@ typedef struct {
 
   int  StudyNo;
   int  SeriesNo;
+  int  NFilesInSeries;
   int  ImageNo;    /* within the study, not series */
   int  NImageRows;
   int  NImageCols;
@@ -63,7 +64,7 @@ typedef struct {
   int nImaDictionary = 0, ImaDictionaryGood = 0;
   char *imaTypeString[6] = {"short","int","long","float","double","string"};
   int imaTypeSize[6] = {sizeof(short),sizeof(int),sizeof(long),
-  		        sizeof(float),sizeof(double),sizeof(char)};
+              sizeof(float),sizeof(double),sizeof(char)};
 #else
   extern IMA_DICTIONARY_ENTRY ImaDictionary[NMAX_IMA_DICTIONARY];
   extern int   nImaDictionary, ImaDictionaryGood;
@@ -85,6 +86,7 @@ int imaTypeFromKey(char *key);
 int imaIsSiemensIMA(char *imafile);
 int imaParseName(char *imafile, int *StudyNo, int *SeriesNo, int *ImageNo);
 int imaHasIMAExtension(char *filename);
+int imaCountFilesInSeries(char *imafile, int *FirstImageNo);
 
 IMAFILEINFO *imaLoadFileInfo(char *imafile);
 int imaDumpFileInfo(FILE *fp, IMAFILEINFO *ifi);
@@ -118,7 +120,7 @@ int imaFreeElement(IMAELEMENT **ppe);
 IMAELEMENT *imaMakeElement(char *descr, int offset, int type, int nitems);
 IMAELEMENT *imaCopyElement(IMAELEMENT *esrc);
 IMAELEMENT *imaLoadElement(FILE *imafp, int offset, int type, char *descr,
-			   int nitems);
+         int nitems);
 int imaLoadElementVal(FILE *imafp, IMAELEMENT *e);
 int imaAddElement(IMAFILEINFO *ifi, IMAELEMENT *e);
 int imaDumpFileInfo(FILE *fp, IMAFILEINFO *ifi);
