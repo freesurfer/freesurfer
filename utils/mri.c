@@ -8,10 +8,10 @@
  *
 */
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2003/02/19 19:45:00 $
-// Revision       : $Revision: 1.215 $
-char *MRI_C_VERSION = "$Revision: 1.215 $";
+// Revision Author: $Author: tosa $
+// Revision Date  : $Date: 2003/02/19 22:12:09 $
+// Revision       : $Revision: 1.216 $
+char *MRI_C_VERSION = "$Revision: 1.216 $";
 
 /*-----------------------------------------------------
                     INCLUDE FILES
@@ -2014,15 +2014,11 @@ MRIvoxelToWorld(MRI *mri, Real xv, Real yv, Real zv,
 {
   Real   rip, rjp, rkp ; // Real is "double" in volume_io/basic.h
 
-  switch (mri->slice_direction)
-  {
-  default:
-  case MRI_UNDEFINED:
     /*      ras for MRIvox(mri, i, j, k)    */
     // W = M * V, C = M * Cv -> W - C = M * (V - Cv) -> W = M *(V - Cv) + C
-    rip = xv - (mri->width-1) / 2.0; 
-    rjp = yv - (mri->height-1) / 2.0;
-    rkp = zv - (mri->depth-1) / 2.0;
+    rip = xv - (mri->width) / 2.0; 
+    rjp = yv - (mri->height) / 2.0;
+    rkp = zv - (mri->depth) / 2.0;
 
     *pxw = 
       mri->x_r * mri->xsize * rip + 
@@ -2036,34 +2032,6 @@ MRIvoxelToWorld(MRI *mri, Real xv, Real yv, Real zv,
       mri->x_s * mri->xsize * rip + 
       mri->y_s * mri->ysize * rjp + 
       mri->z_s * mri->zsize * rkp + mri->c_s;
-    break ;
-
-  case MRI_CORONAL:
-    /* z coordinate system is inverted relative to Talairach space */
-    
-    /* transform to new origin */
-#if 0
-    *pxw = (Real)mri->xend - xv * mri->xsize ;
-    *pyw = zv * mri->zsize + (Real)mri->zstart ;
-    *pzw = -(yv * mri->ysize + (Real)mri->ystart) ;
-#else
-    trans_SetBounds ( mri->xstart, mri->xend, mri->ystart, mri->yend, 
-                      mri->zstart, mri->zend );
-    trans_SetResolution ( mri->xsize, mri->ysize, mri->zsize );
-    trans_VoxelToRAS(xv, yv, zv, pxw, pyw, pzw) ;
-#endif
-    /*  fprintf(stderr, "zw = (%d - %2.0f + 1) + %2.1f = %2.1f\n",
-        mri->depth, zv, mri->zstart, *pzw) ;*/
-    break ;
-#if 0
-  default:
-    ErrorReturn(ERROR_UNSUPPORTED, 
-                (ERROR_UNSUPPORTED,
-                 "MRIvoxelToWorld: unsupported slice direction %d", 
-                 mri->slice_direction)) ;
-    break ;
-#endif
-  }
 
   return(NO_ERROR) ;
 }
@@ -2145,9 +2113,9 @@ MRIworldToVoxel(MRI *mri, Real xw, Real yw, Real zw,
       V3_LOAD(v_w, xw - mri->c_r, yw - mri->c_a, zw - mri->c_s) ;
       v_v = MatrixMultiply(m_R_inv, v_w, NULL) ;
 
-      *pxv = V3_X(v_v) + (mri->width-1)/2.0 ; // don't use 2 but 2.0 to get double promotion
-      *pyv = V3_Y(v_v) + (mri->height-1)/2.0 ;
-      *pzv = V3_Z(v_v) + (mri->depth-1)/2.0 ;
+      *pxv = V3_X(v_v) + (mri->width)/2.0 ; // don't use 2 but 2.0 to get double promotion
+      *pyv = V3_Y(v_v) + (mri->height)/2.0 ;
+      *pzv = V3_Z(v_v) + (mri->depth)/2.0 ;
       VectorFree(&v_v) ; VectorFree(&v_w) ; MatrixFree(&m_R_inv) ;
     }
     break;
@@ -7993,7 +7961,6 @@ MRIlinearTransformInterp(MRI *mri_src, MRI *mri_dst, MATRIX *mA,
 
         //MRIsampleVolume(mri_src, x1, x2, x3, &val);
         MRIsampleVolumeType(mri_src, x1, x2, x3, &val, InterpMethod);
-
         switch (mri_dst->type)
         {
         case MRI_UCHAR:
@@ -8484,94 +8451,53 @@ MATRIX *MRIgetResampleMatrix(MRI *src, MRI *template_vol)
 {
 
   MATRIX *src_mat, *dest_mat; /* from i to ras */
-  float src_center_x, src_center_y, src_center_z;
-  float dest_center_x, dest_center_y, dest_center_z;
-  float s14, s24, s34;
-  float d14, d24, d34;
   float src_det, dest_det;
   MATRIX *src_inv, *m;
 
   /* ----- fake the ras values if ras_good_flag is not set ----- */
-  if(!src->ras_good_flag)
-  {
-    if(src->slice_direction == MRI_CORONAL)
-    {
-      src->x_r = -1; src->x_a =  0; src->x_s =  0;
-      src->y_r =  0; src->y_a =  0; src->y_s = -1;
-      src->z_r =  0; src->z_a =  1; src->z_s =  0;
-    }
-    else if(src->slice_direction == MRI_SAGITTAL)
-    {
-      src->x_r =  0; src->x_a =  1; src->x_s =  0;
-      src->y_r =  0; src->y_a =  0; src->y_s = -1;
-      src->z_r =  1; src->z_a =  0; src->z_s =  0;
-    }
-    else if(src->slice_direction == MRI_HORIZONTAL)
-    {
-      src->x_r = -1; src->x_a =  0; src->x_s =  0;
-      src->y_r =  0; src->y_a = -1; src->y_s =  0;
-      src->z_r =  0; src->z_a =  0; src->z_s = -1;
-    }
-    else
-    {
-      ErrorReturn(NULL, (ERROR_BADPARM, "MRIresample(): source volume orientation is unknown"));
-    }
-  }
 
-  src_mat = MatrixAlloc(4, 4, MATRIX_REAL);
-  if(src_mat == NULL)
+  if(!src->ras_good_flag 
+     && (src->slice_direction != MRI_CORONAL)
+     && (src->slice_direction != MRI_SAGITTAL)
+     && (src->slice_direction == MRI_HORIZONTAL))
   {
-    ErrorReturn(NULL, (ERROR_NOMEMORY, "MRIresample(): can't allocate source volume matrix"));
-  }
-
-  dest_mat = MatrixAlloc(4, 4, MATRIX_REAL);
-  if(dest_mat == NULL)
-  {
-    MatrixFree(&src_mat);
-    ErrorReturn(NULL, (ERROR_NOMEMORY, "MRIresample(): can't allocate destination volume matrix"));
+    ErrorReturn(NULL, (ERROR_BADPARM, "MRIresample(): source volume orientation is unknown"));
   }
 
 /*
 
-below: solve each row of src_mat * [midx;midy;midz;1] = centerr, centera, centers
-and for dest
+: solve each row of src_mat * [midx;midy;midz;1] = centerr, centera, centers
+  and for dest
 
-  src->x_r * src->xsize * src_center_x + src->y_r * src->ysize * src_center_y + src->z_r * src->zsize * src_center_z + s14 = src->c_r;
-  src->x_a * src->xsize * src_center_x + src->y_a * src->ysize * src_center_y + src->z_a * src->zsize * src_center_z + s24 = src->c_a;
-  src->x_s * src->xsize * src_center_x + src->y_s * src->ysize * src_center_y + src->z_s * src->zsize * src_center_z + s34 = src->c_s;
+   S = M * s_v 
 
-  dest->x_r * dest->xsize * dest_center_x + dest->y_r * dest->ysize * dest_center_y + dest->z_r * dest->zsize * dest_center_z + d14 = dest->c_r;
-  dest->x_a * dest->xsize * dest_center_x + dest->y_a * dest->ysize * dest_center_y + dest->z_a * dest->zsize * dest_center_z + d24 = dest->c_a;
-  dest->x_s * dest->xsize * dest_center_x + dest->y_s * dest->ysize * dest_center_y + dest->z_s * dest->zsize * dest_center_z + d34 = dest->c_s;
+   where M = [(x_r y_r z_r)(xsize  0     0  )  s14]  s_v = (center_x)   S = (c_r)   etc.
+             [(x_a y_a z_a)(  0  ysize   0  )  s24]        (center_y)       (c_a)   
+             [(x_s y_s z_s)(  0    0   zsize)  s34]        (center_z)       (c_s)
+             [       0        0       0         1 ]        (    1   )       ( 1 )
 
+   Write M = [  m    s],  s_v = (c_v), S = (c_R), then  c_R = m * c_v + s or
+             [ 0 0 0 1]         ( 1 )      ( 1 )
+
+   The translation s is given by   s = c_R - m*c_v
+
+   Note the convention c_(r,a,s) being defined in terms of c_v = (width/2., height/2, depth/2.),
+   not ((width-1)/2, (height-1)/2, (depth-1)/2).
+   
 */
 
-  src_center_x = (float)(src->width - 1) / 2.0;
-  src_center_y = (float)(src->height - 1) / 2.0;
-  src_center_z = (float)(src->depth - 1) / 2.0;
+  src_mat = extract_i_to_r(src); // error when allocation fails
+  if(src_mat == NULL)
+    return NULL; // did ErrorPrintf in extract_i_to_r()
 
-  dest_center_x = (float)(template_vol->width - 1) / 2.0;
-  dest_center_y = (float)(template_vol->height - 1) / 2.0;
-  dest_center_z = (float)(template_vol->depth - 1) / 2.0;
+  dest_mat = extract_i_to_r(template_vol); // error when allocation fails
+  if(dest_mat == NULL)
+  {
+    MatrixFree(&src_mat);
+    return NULL; // did ErrorPrintf in extract_i_to_r()
+  }
 
-  s14 = src->c_r - (src->x_r * src->xsize * src_center_x + src->y_r * src->ysize * src_center_y + src->z_r * src->zsize * src_center_z);
-  s24 = src->c_a - (src->x_a * src->xsize * src_center_x + src->y_a * src->ysize * src_center_y + src->z_a * src->zsize * src_center_z);
-  s34 = src->c_s - (src->x_s * src->xsize * src_center_x + src->y_s * src->ysize * src_center_y + src->z_s * src->zsize * src_center_z);
-
-  d14 = template_vol->c_r - (template_vol->x_r * template_vol->xsize * dest_center_x + template_vol->y_r * template_vol->ysize * dest_center_y + template_vol->z_r * template_vol->zsize * dest_center_z);
-  d24 = template_vol->c_a - (template_vol->x_a * template_vol->xsize * dest_center_x + template_vol->y_a * template_vol->ysize * dest_center_y + template_vol->z_a * template_vol->zsize * dest_center_z);
-  d34 = template_vol->c_s - (template_vol->x_s * template_vol->xsize * dest_center_x + template_vol->y_s * template_vol->ysize * dest_center_y + template_vol->z_s * template_vol->zsize * dest_center_z);
-
-  stuff_four_by_four(src_mat, src->x_r * src->xsize, src->y_r * src->ysize, src->z_r * src->zsize, s14, 
-                              src->x_a * src->xsize, src->y_a * src->ysize, src->z_a * src->zsize, s24, 
-                              src->x_s * src->xsize, src->y_s * src->ysize, src->z_s * src->zsize, s34, 
-                                                0.0,                   0.0,                   0.0, 1.0);
-
-  stuff_four_by_four(dest_mat, template_vol->x_r * template_vol->xsize, template_vol->y_r * template_vol->ysize, template_vol->z_r * template_vol->zsize, d14, 
-                               template_vol->x_a * template_vol->xsize, template_vol->y_a * template_vol->ysize, template_vol->z_a * template_vol->zsize, d24, 
-                               template_vol->x_s * template_vol->xsize, template_vol->y_s * template_vol->ysize, template_vol->z_s * template_vol->zsize, d34, 
-                                                                   0.0,                                     0.0,                                     0.0, 1.0);
-
+  // error check
   src_det = MatrixDeterminant(src_mat);
   dest_det = MatrixDeterminant(dest_mat);
 
@@ -8628,13 +8554,7 @@ MRI *MRIresample(MRI *src, MRI *template_vol, int resample_type)
 {
 
   MRI *dest = NULL;
-  MATRIX *src_mat, *dest_mat; /* from i to ras */
-  float src_center_x, src_center_y, src_center_z;
-  float dest_center_x, dest_center_y, dest_center_z;
-  float s14, s24, s34;
-  float d14, d24, d34;
-  float src_det, dest_det;
-  MATRIX *src_inv, *m;
+  MATRIX *m;
   int di, dj, dk;
   int si, sj, sk;
   float si_f, sj_f, sk_f;
@@ -8662,143 +8582,13 @@ MRI *MRIresample(MRI *src, MRI *template_vol, int resample_type)
 
   /* ----- fake the ras values if ras_good_flag is not set ----- */
   if(!src->ras_good_flag)
-  {
-    int warn = 0;
-    if(src->slice_direction == MRI_CORONAL)
-    {
-      if(src->x_r != -1 || src->x_a != 0 || src->x_s !=  0 ||
-   src->y_r !=  0 || src->y_a != 0 || src->y_s != -1 ||
-   src->z_r !=  0 || src->z_a != 1 || src->z_s !=  0) warn = 1;
-      src->x_r = -1; src->x_a =  0; src->x_s =  0;
-      src->y_r =  0; src->y_a =  0; src->y_s = -1;
-      src->z_r =  0; src->z_a =  1; src->z_s =  0;
-    }
-    else if(src->slice_direction == MRI_SAGITTAL)
-    {
-      if(src->x_r !=  0 || src->x_a != 1 || src->x_s !=  0 ||
-   src->y_r !=  0 || src->y_a != 0 || src->y_s != -1 ||
-   src->z_r !=  1 || src->z_a != 0 || src->z_s !=  0) warn = 1;
-      src->x_r =  0; src->x_a =  1; src->x_s =  0;
-      src->y_r =  0; src->y_a =  0; src->y_s = -1;
-      src->z_r =  1; src->z_a =  0; src->z_s =  0;
-    }
-    else if(src->slice_direction == MRI_HORIZONTAL)
-    {
-      if(src->x_r != -1 || src->x_a !=  0 || src->x_s !=  0 ||
-   src->y_r !=  0 || src->y_a != -1 || src->y_s !=  0 ||
-   src->z_r !=  0 || src->z_a !=  0 || src->z_s != -1) warn = 1;
-      src->x_r = -1; src->x_a =  0; src->x_s =  0;
-      src->y_r =  0; src->y_a = -1; src->y_s =  0;
-      src->z_r =  0; src->z_a =  0; src->z_s = -1;
-    }
-    else
-    {
-      ErrorReturn(NULL, (ERROR_BADPARM, "MRIresample(): source volume orientation is unknown"));
-    }
-    if(warn){
-      printf("MRIresample(): WARNING: ras_good_flag is not set, changing orientation\n"
-       "to default.\n");
-    }
+    printf("MRIresample(): WARNING: ras_good_flag is not set, changing orientation\n"
+	   "to default.\n");
 
-  }
-
-  src_mat = MatrixAlloc(4, 4, MATRIX_REAL);
-  if(src_mat == NULL)
-  {
-    ErrorReturn(NULL, (ERROR_NOMEMORY, "MRIresample(): can't allocate source volume matrix"));
-  }
-
-  dest_mat = MatrixAlloc(4, 4, MATRIX_REAL);
-  if(dest_mat == NULL)
-  {
-    MatrixFree(&src_mat);
-    ErrorReturn(NULL, (ERROR_NOMEMORY, "MRIresample(): can't allocate destination volume matrix"));
-  }
-
-/*
-
-below: solve each row of src_mat * [midx;midy;midz;1] = centerr, centera, centers
-and for dest
-
-  src->x_r * src->xsize * src_center_x + src->y_r * src->ysize * src_center_y + src->z_r * src->zsize * src_center_z + s14 = src->c_r;
-  src->x_a * src->xsize * src_center_x + src->y_a * src->ysize * src_center_y + src->z_a * src->zsize * src_center_z + s24 = src->c_a;
-  src->x_s * src->xsize * src_center_x + src->y_s * src->ysize * src_center_y + src->z_s * src->zsize * src_center_z + s34 = src->c_s;
-
-  dest->x_r * dest->xsize * dest_center_x + dest->y_r * dest->ysize * dest_center_y + dest->z_r * dest->zsize * dest_center_z + d14 = dest->c_r;
-  dest->x_a * dest->xsize * dest_center_x + dest->y_a * dest->ysize * dest_center_y + dest->z_a * dest->zsize * dest_center_z + d24 = dest->c_a;
-  dest->x_s * dest->xsize * dest_center_x + dest->y_s * dest->ysize * dest_center_y + dest->z_s * dest->zsize * dest_center_z + d34 = dest->c_s;
-
-*/
-
-  src_center_x = (float)(src->width - 1) / 2.0;
-  src_center_y = (float)(src->height - 1) / 2.0;
-  src_center_z = (float)(src->depth - 1) / 2.0;
-
-  dest_center_x = (float)(template_vol->width - 1) / 2.0;
-  dest_center_y = (float)(template_vol->height - 1) / 2.0;
-  dest_center_z = (float)(template_vol->depth - 1) / 2.0;
-
-  s14 = src->c_r - (src->x_r * src->xsize * src_center_x + src->y_r * src->ysize * src_center_y + src->z_r * src->zsize * src_center_z);
-  s24 = src->c_a - (src->x_a * src->xsize * src_center_x + src->y_a * src->ysize * src_center_y + src->z_a * src->zsize * src_center_z);
-  s34 = src->c_s - (src->x_s * src->xsize * src_center_x + src->y_s * src->ysize * src_center_y + src->z_s * src->zsize * src_center_z);
-
-  d14 = template_vol->c_r - (template_vol->x_r * template_vol->xsize * dest_center_x + template_vol->y_r * template_vol->ysize * dest_center_y + template_vol->z_r * template_vol->zsize * dest_center_z);
-  d24 = template_vol->c_a - (template_vol->x_a * template_vol->xsize * dest_center_x + template_vol->y_a * template_vol->ysize * dest_center_y + template_vol->z_a * template_vol->zsize * dest_center_z);
-  d34 = template_vol->c_s - (template_vol->x_s * template_vol->xsize * dest_center_x + template_vol->y_s * template_vol->ysize * dest_center_y + template_vol->z_s * template_vol->zsize * dest_center_z);
-
-  stuff_four_by_four(src_mat, src->x_r * src->xsize, src->y_r * src->ysize, src->z_r * src->zsize, s14, 
-                              src->x_a * src->xsize, src->y_a * src->ysize, src->z_a * src->zsize, s24, 
-                              src->x_s * src->xsize, src->y_s * src->ysize, src->z_s * src->zsize, s34, 
-                                                0.0,                   0.0,                   0.0, 1.0);
-
-  stuff_four_by_four(dest_mat, template_vol->x_r * template_vol->xsize, template_vol->y_r * template_vol->ysize, template_vol->z_r * template_vol->zsize, d14, 
-                               template_vol->x_a * template_vol->xsize, template_vol->y_a * template_vol->ysize, template_vol->z_a * template_vol->zsize, d24, 
-                               template_vol->x_s * template_vol->xsize, template_vol->y_s * template_vol->ysize, template_vol->z_s * template_vol->zsize, d34, 
-                                                                   0.0,                                     0.0,                                     0.0, 1.0);
-
-  src_det = MatrixDeterminant(src_mat);
-  dest_det = MatrixDeterminant(dest_mat);
-
-  if(src_det == 0.0)
-  {
-    errno = 0;
-    ErrorPrintf(ERROR_BADPARM, "MRIresample(): source matrix has zero determinant; matrix is:");
-    MatrixPrint(stderr, src_mat);
-    MatrixFree(&src_mat);
-    MatrixFree(&dest_mat);
-    return(NULL);
-  }
-
-  if(dest_det == 0.0)
-  {
-    errno = 0;
-    ErrorPrintf(ERROR_BADPARM, "MRIresample(): destination matrix has zero determinant; matrix is:");
-    MatrixPrint(stderr, dest_mat);
-    MatrixFree(&src_mat);
-    MatrixFree(&dest_mat);
-    return(NULL);
-  }
-
-  src_inv = MatrixInverse(src_mat, NULL);
-
-  if(src_inv == NULL)
-  {
-    errno = 0;
-    ErrorPrintf(ERROR_BADPARM, "MRIresample(): error inverting matrix; determinant is %g, matrix is:", src_det);
-    MatrixPrint(stderr, src_mat);
-    MatrixFree(&src_mat);
-    MatrixFree(&dest_mat);
-    return(NULL);
-  }
-
-  m = MatrixMultiply(src_inv, dest_mat, NULL);
+  // get dst voxel -> src voxel transform
+  m = MRIgetResampleMatrix(src, template_vol);
   if(m == NULL)
-  {
-    MatrixFree(&src_inv);
-    MatrixFree(&src_mat);
-    MatrixFree(&dest_mat);
     return(NULL);
-  }
 
   if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
   {
@@ -8809,6 +8599,7 @@ and for dest
   dest = MRIalloc(template_vol->width, template_vol->height, template_vol->depth, src->type);
   if(dest == NULL)
     return(NULL);
+
   MRIcopyHeader(template_vol, dest);
 
   sp = MatrixAlloc(4, 1, MATRIX_REAL);
@@ -9138,6 +8929,7 @@ and for dest
     m_old_voxel_to_ras = MRIgetVoxelToRasXform(src) ;
 
     m_voxel_to_ras = MatrixMultiply(m_old_voxel_to_ras, m, NULL) ;
+
     dest->x_r = *MATRIX_RELT(m_voxel_to_ras,1,1)/dest->xsize;
     dest->x_a = *MATRIX_RELT(m_voxel_to_ras,2,1)/dest->xsize;
     dest->x_s = *MATRIX_RELT(m_voxel_to_ras,3,1)/dest->xsize;
@@ -9152,14 +8944,16 @@ and for dest
 
     /* compute the RAS coordinates of the center of the dest. image
        and put them in c_r, c_a, and c_s.
+
+       C = M * c_v
     */
     v_vox = VectorAlloc(4, MATRIX_REAL) ;
 
     /* voxel coords of center of dest image */
     VECTOR_ELT(v_vox,4) = 1.0 ;
-    VECTOR_ELT(v_vox,1) = (dest->width-1)/2.0 ;
-    VECTOR_ELT(v_vox,2) = (dest->height-1)/2.0 ;
-    VECTOR_ELT(v_vox,3) = (dest->depth-1)/2.0 ;
+    VECTOR_ELT(v_vox,1) = (dest->width)/2.0 ;
+    VECTOR_ELT(v_vox,2) = (dest->height)/2.0 ;
+    VECTOR_ELT(v_vox,3) = (dest->depth)/2.0 ;
 
     v_vox2 = MatrixMultiply(m, v_vox, NULL) ; /* voxel coords in source image */
     v_ras = MatrixMultiply(m_old_voxel_to_ras, v_vox2, NULL) ; /* ras cntr of dest */
@@ -9183,7 +8977,6 @@ and for dest
       MatrixFree(&m_new_ras_to_voxel) ; MatrixFree(&m_old_ras_to_voxel) ;
     }
 
-
     MatrixFree(&v_vox) ; MatrixFree(&v_vox2) ; MatrixFree(&v_ras) ;
     MatrixFree(&m_voxel_to_ras) ; MatrixFree(&m_old_voxel_to_ras) ;
   }
@@ -9191,11 +8984,7 @@ and for dest
 
   MatrixFree(&dp);
   MatrixFree(&sp);
-
-  MatrixFree(&src_inv);
   MatrixFree(&m);
-  MatrixFree(&src_mat);
-  MatrixFree(&dest_mat);
 
   return(dest);
 
@@ -9648,9 +9437,9 @@ MATRIX *extract_i_to_r(MRI *mri)
     m21 = mri->xsize * mri->x_a;  m22 = mri->ysize * mri->y_a;  m23 = mri->zsize * mri->z_a;
     m31 = mri->xsize * mri->x_s;  m32 = mri->ysize * mri->y_s;  m33 = mri->zsize * mri->z_s;
 
-    ci = (mri->width - 1.0) / 2.0;
-    cj = (mri->height - 1.0) / 2.0;
-    ck = (mri->depth - 1.0) / 2.0;
+    ci = (mri->width) / 2.0;
+    cj = (mri->height) / 2.0;
+    ck = (mri->depth) / 2.0;
 
     m14 = mri->c_r - (m11 * ci + m12 * cj + m13 * ck);
     m24 = mri->c_a - (m21 * ci + m22 * cj + m23 * ck);
