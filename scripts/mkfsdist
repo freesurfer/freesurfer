@@ -5,7 +5,7 @@
 # editing.
 #
 # mkfsdist
-# $Id: mkfsdist,v 1.26 2003/05/16 16:12:01 kteich Exp $
+# $Id: mkfsdist,v 1.27 2003/05/16 16:20:17 kteich Exp $
 #
 # Usage: mkfsdist sourcedir targetdir platform [options]
 #
@@ -71,7 +71,7 @@
 #  files found in tar-exclude-more and tar-exclude-gca.
 #
 # 
-set VERSION = '$Id: mkfsdist,v 1.26 2003/05/16 16:12:01 kteich Exp $';
+set VERSION = '$Id: mkfsdist,v 1.27 2003/05/16 16:20:17 kteich Exp $';
 
 # To include the autoseg in the distribution set environment varible
 # KEEPAUTOSEG to 1 before running mkfsdist (ie, setenv KEEPAUTOSEG 1)
@@ -167,7 +167,6 @@ foreach option ($argv)
       breaksw
     case "--no-data":
       set AVERAGE = 0
-      set MINC = 0
       set TALAIRACH = 0
       set BERT_FUNC = 0
       set BERT_RAW = 0
