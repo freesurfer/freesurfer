@@ -938,6 +938,35 @@ Volm_tErr Volm_UnloadDisplayTransform ( mriVolumeRef this ) {
 }
 
 
+Volm_tErr Volm_CopyGeometryInformation ( mriVolumeRef this,
+					 VOL_GEOM*    ioVolumeGeometry ) {
+  
+  Volm_tErr eResult   = Volm_tErr_NoErr;
+  
+  DebugEnterFunction( ("Volm_CopyGeometryInformation( this=%p, "
+		       "ioVolumeGeometry=%p )", this, ioVolumeGeometry) );
+  
+  DebugNote( ("Verifying volume") );
+  eResult = Volm_Verify( this );
+  DebugAssertThrow( (eResult == Volm_tErr_NoErr) );
+  
+  DebugNote( ("Checking parameters") );
+  DebugAssertThrowX( (NULL != ioVolumeGeometry),
+		     eResult, Volm_tErr_InvalidParamater );
+
+  /* Copy the information out. */
+  getVolGeom( this->mpMriValues, ioVolumeGeometry );
+
+  DebugCatch;
+  DebugCatchError( eResult, Volm_tErr_NoErr, Volm_GetErrorString );
+  EndDebugCatch;
+  
+  DebugExitFunction;
+  
+  return eResult;
+}
+
+
 void Volm_GetIntColorAtIdx ( mriVolumeRef this,
 			     xVoxelRef    iIdx,
 			     xColor3nRef  oColor ) {
