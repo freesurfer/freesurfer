@@ -5827,6 +5827,65 @@ MRIsampleLabeledVolume(MRI *mri, Real x, Real y, Real z, Real *pval, unsigned ch
         Description
 ------------------------------------------------------*/
 int
+MRIsampleVolumeType(MRI *mri, Real x, Real y, Real z, Real *pval, int type)
+{
+  int   xv, yv, zv ;
+
+  switch (type)
+  {
+  default:
+  case SAMPLE_NEAREST:
+    break ;
+  case SAMPLE_TRILINEAR:
+    return(MRIsampleVolume(mri, x, y, z, pval)) ;
+  case SAMPLE_SINC:
+    return(MRIsincSampleVolume(mri, x, y, z, 5, pval)) ;
+  }
+
+  xv = nint(x) ; yv = nint(y) ; zv = nint(z) ; 
+  if (xv < 0)
+    xv = 0 ;
+  if (xv >= mri->width)
+    xv = mri->width-1 ;
+  if (yv < 0)
+    yv = 0 ;
+  if (yv >= mri->height)
+    yv = mri->height-1 ;
+  if (zv < 0)
+    zv = 0 ;
+  if (zv >= mri->depth)
+    zv = mri->depth-1 ;
+
+  switch (mri->type)
+  {
+  case MRI_UCHAR:
+    *pval = (float)MRIvox(mri, xv, yv, zv) ;
+    break ;
+  case MRI_SHORT:
+    *pval = (float)MRISvox(mri, xv, yv, zv) ;
+    break ;
+  case MRI_INT:
+    *pval = (float)MRIIvox(mri, xv, yv, zv) ;
+    break ;
+  case MRI_FLOAT:
+    *pval = MRIFvox(mri, xv, yv, zv) ;
+    break ;
+  default:
+    *pval = 0 ;
+    ErrorReturn(ERROR_UNSUPPORTED,
+                (ERROR_UNSUPPORTED, "MRIsampleVolumeType: unsupported volume type %d",
+                 mri->type)) ;
+  }
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+int
 MRIsampleVolume(MRI *mri, Real x, Real y, Real z, Real *pval)
 {
   int  xm, xp, ym, yp, zm, zp, width, height, depth ;

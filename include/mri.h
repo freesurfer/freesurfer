@@ -8,6 +8,10 @@
 
 #define BUFTYPE  unsigned char
 
+#define SAMPLE_NEAREST       0
+#define SAMPLE_TRILINEAR     1
+#define SAMPLE_SINC          2
+
 #define MRI_UCHAR   0
 #define MRI_INT     1
 #define MRI_LONG    2
@@ -392,6 +396,7 @@ int   MRIerasePlane(MRI *mri, float x0, float y0, float z0,
 
 int   MRIeraseBorders(MRI *mri, int width) ;
 int   MRIsampleVolume(MRI *mri, Real x, Real y, Real z, Real *pval) ;
+int   MRIsampleVolumeType(MRI *mri, Real x, Real y, Real z, Real *pval, int type) ;
 int   MRIsampleLabeledVolume(MRI *mri, Real x, Real y, Real z, Real *pval, unsigned char ucharLabel);
 int   MRIsampleVolumeFrame(MRI *mri,Real x,Real y,Real z,int frame,Real *pval);
 int   MRIsampleVolumeGradient(MRI *mri, Real x, Real y, Real z, 
