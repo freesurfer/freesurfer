@@ -5,8 +5,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2004/11/22 21:29:11 $
-// Revision       : $Revision: 1.37 $
+// Revision Date  : $Date: 2005/02/18 18:07:06 $
+// Revision       : $Revision: 1.38 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -29,6 +29,7 @@
 #include "version.h"
 #include "label.h"
 #include "mrinorm.h"
+#include "tukey.h"
 
 //E/ Maybe should update these three to not demand MRI_SHORT - but they're never called.
 MRI *MRIsadd(MRI *mri1, MRI *mri2, MRI *mri_dst) ;
@@ -38,6 +39,7 @@ MRI *MRIssqrt(MRI *mri_src, MRI *mri_dst) ;
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
 
+static int use_tukey = 0 ;
 static LTA *Glta = NULL ;
 static int invert_flag = 0 ;
 static double scale = 1; 
@@ -124,7 +126,7 @@ main(int argc, char *argv[])
   int    modified;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_ms_fitparms.c,v 1.37 2004/11/22 21:29:11 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ms_fitparms.c,v 1.38 2005/02/18 18:07:06 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -251,7 +253,21 @@ main(int argc, char *argv[])
     }
   }
   
-
+	
+	if (Glta)
+	{
+		getVolGeom(mri_flash[0], &Glta->xforms[0].src) ;
+		LTAchangeType(Glta, LINEAR_VOX_TO_VOX) ;
+		if (invert_flag)
+		{
+			MATRIX *m ;
+			
+			printf("inverting transform...\n") ;
+			m = MatrixInverse(Glta->xforms[0].m_L, NULL) ;
+			MatrixCopy(m, Glta->xforms[0].m_L) ;
+			MatrixFree(&m) ;
+		}
+	}
   if (nvolumes > 1)
   {
     int j, iter ; /* should exit when M_reg's converge. */
@@ -487,6 +503,11 @@ get_option(int argc, char *argv[])
     nargs = 1 ;
     printf("setting dt = %e\n", base_dt) ;
   }
+  else if (!stricmp(option, "tukey"))
+  {
+		use_tukey = 1 ;
+    printf("using tukey biweight of residuals...\n") ;
+  }
   else if (!stricmp(option, "max"))
   {
     max_T2star = atof(argv[2]) ;
@@ -698,15 +719,6 @@ get_option(int argc, char *argv[])
 			Glta = (LTA *)(transform->xform) ;
 			nargs = 2 ;
 			printf("applying transform %s to output volumes...\n", argv[2]) ; 
-			if (invert_flag)
-			{
-				MATRIX *m ;
-
-				printf("inverting transform...\n") ;
-				m = MatrixInverse(Glta->xforms[0].m_L, NULL) ;
-				MatrixCopy(m, Glta->xforms[0].m_L) ;
-				MatrixFree(&m) ;
-			}
 			printf("reading output volume geometry from %s...\n", argv[3]) ;
 			mri = MRIread(argv[3]) ;
 			if (mri == NULL)
@@ -717,15 +729,6 @@ get_option(int argc, char *argv[])
     break ;
 	case 'I':
 		invert_flag = 1 ;
-		if (Glta)
-		{
-			MATRIX *m ;
-
-			printf("inverting transform...\n") ;
-			m = MatrixInverse(Glta->xforms[0].m_L, NULL) ;
-			MatrixCopy(m, Glta->xforms[0].m_L) ;
-			MatrixFree(&m) ;
-		}
 		break ;
   case 'A':
     align = 1 ;
@@ -1494,7 +1497,7 @@ estimate_rigid_regmatrix(MRI *mri_source, MRI *mri_target, MATRIX *M_reg)
   MATRIX   *vox2ras_source, *ras2vox_source, *vox2ras_target, *ras2vox_target, *vox_s2vox_t;
   MATRIX   *M_reg_bak, *M_reg_opt, *M_tmp, *M_delta, *M_delta1, *M_delta2, *M_delta3, *M_delta4, *M_delta5, *M_delta6;
   MATRIX   *voxmat1, *voxmat2;
-  double   voxval1[MAX_VOX], voxval2[MAX_VOX];
+  double   voxval1[MAX_VOX], voxval2[MAX_VOX], tukey_thresh = 100 ;
 
   vox2ras_source = MatrixCopy(mri_source->register_mat, NULL);
   vox2ras_target = MatrixCopy(mri_target->register_mat, NULL);
@@ -1543,6 +1546,29 @@ estimate_rigid_regmatrix(MRI *mri_source, MRI *mri_target, MATRIX *M_reg)
   M_reg_opt = MatrixCopy(M_reg, NULL);
   M_reg_bak = MatrixCopy(M_reg_opt, NULL);
   M_tmp = MatrixCopy(M_reg, NULL);
+
+	if (use_tukey)
+	{
+		double total_error ;
+		
+		MatrixMultiply(M_reg,vox2ras_source,M_tmp);
+		MatrixMultiply(ras2vox_target,M_tmp,vox_s2vox_t);
+  
+		MatrixMultiply(vox_s2vox_t,voxmat1,voxmat2);
+		for (total_error = 0.0, indx=1; indx<=nvalues; indx++)
+		{
+			xf=voxmat2->rptr[1][indx]; yf=voxmat2->rptr[2][indx]; zf=voxmat2->rptr[3][indx];
+			if(InterpMethod==SAMPLE_SINC)
+				MRIsincSampleVolume(mri_target, xf, yf, zf, sinchalfwindow, &val2) ;
+			else
+				MRIsampleVolumeType(mri_target, xf, yf, zf, &val2, InterpMethod) ;
+			val1 = voxval1[indx];
+			err = val1-val2;
+			total_error += abs(err) ;
+		}
+		tukey_thresh = total_error / (float)nvalues ;
+		printf("setting tukey threshold to %2.3f\n", tukey_thresh) ;
+	}
 
   best_sse = 10000000;
   for (stepindx=0; stepindx<nstep; stepindx++) 
@@ -1608,7 +1634,10 @@ estimate_rigid_regmatrix(MRI *mri_source, MRI *mri_target, MATRIX *M_reg)
 						MRIsampleVolumeType(mri_target, xf, yf, zf, &val2, InterpMethod) ;
           voxval2[indx] = val2;
           val1 = voxval1[indx];
-          err = val1-val2;
+					if (use_tukey)
+						err = tukey_biweight(val1-val2, tukey_thresh);
+					else
+						err = val1-val2;
           sse += err*err;
         }
         sse /= nvalues;
