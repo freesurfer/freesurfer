@@ -750,7 +750,7 @@ mris2rgb/Makefile nmovie/Makefile mris_show/Makefile tkmedit/Makefile tkregister
 tkregister2/Makefile tksurfer/Makefile \
 check_siemens_dir/Makefile repair_siemens_file/Makefile mkxsubjreg/Makefile \
 rbftest/Makefile rawtocor/Makefile \
-mri_add_xform_to_header/Makefile mri_annotation2label/Makefile mri_auto_fill/Makefile \
+mri_add_xform_to_header/Makefile mri_annotation2label/Makefile mri_auto_fill/Makefile mri_edit_wm_with_aseg/Makefile \
 mri_average/Makefile mri_build_priors/Makefile mri_ca_label/Makefile mri_ca_normalize/Makefile \
 mri_ca_tissue_parms/Makefile mri_ca_register/Makefile mri_ca_train/Makefile mri_cc/Makefile mri_cor2label/Makefile \
 mri_cnr/Makefile mri_compute_overlap/Makefile mri_convert/Makefile mri_convert_mdh/Makefile \
