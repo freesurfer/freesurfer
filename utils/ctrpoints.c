@@ -5,8 +5,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/03/11 23:14:25 $
-// Revision       : $Revision: 1.2 $
+// Revision Date  : $Date: 2004/03/16 19:27:43 $
+// Revision       : $Revision: 1.3 $
 //
 ////////////////////////////////////////////////////////////////////
 #include <stdio.h>
@@ -37,8 +37,9 @@ MPoint *MRIreadControlPoints(const char *fname, int *count, int *useRealRAS)
   // 
   fp = fopen(fname, "r") ;
   if (!fp)
-    ErrorExit(ERROR_BADPARM, 
-                "MRIreadControlPoints could not open file %s", fname) ;
+    ErrorReturn(NULL, 
+		(ERROR_BADPARM, 
+		 "cannot open control point file", fname)) ;
 
   // get number of points
   num_control_points = 0;
