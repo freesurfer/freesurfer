@@ -104,6 +104,8 @@ typedef struct {
   char *PulseSequence;
   char *ProtocolName;
   char *PhEncDir;
+  char *NumarisVer;
+  char *ScannerModel;
 
   int   EchoNo;
   float FlipAngle;
@@ -202,6 +204,7 @@ int *sdfiRunNoList(SDCMFILEINFO **sdfi_list, int nlist, int *NRuns);
 char **ScanSiemensSeries(char *dcmfile, int *nList);
 char **ReadSiemensSeries(char *ListFile, int *nList, char *dcmfile);
 SDCMFILEINFO **LoadSiemensSeriesInfo(char **SeriesList, int nList);
+char *sdcmExtractNumarisVer(char *e_18_1020, int *Maj, int *Min, int *MinMin);
 
 #ifdef SunOS
 /* kteich - this typedef is to keep the compiler from complaining
