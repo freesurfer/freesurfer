@@ -15,7 +15,7 @@
 #include "utils.h"
 #include "timer.h"
 
-static char vcid[]="$Id: mris_sphere.c,v 1.23 2002/03/29 20:48:52 fischl Exp $";
+static char vcid[]="$Id: mris_sphere.c,v 1.24 2002/08/01 21:52:56 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -36,7 +36,7 @@ static int inflate = 0 ;
 static double disturb = 0 ;
 static int   max_passes = 1 ;
 static int   randomly_project = 0 ;
-static int   talairach = 1 ;
+static int   talairach = 0 ;
 static float scale = 1.0 ;
 static int mrisDisturbVertices(MRI_SURFACE *mris, double amount) ;
 static int quick = 0 ;
@@ -267,6 +267,11 @@ get_option(int argc, char *argv[])
   else if (!stricmp(option, "talairach"))
   {
     talairach = 1 ;
+    fprintf(stderr, "transforming surface into Talairach space.\n") ;
+  }
+  else if (!stricmp(option, "notal"))
+  {
+    talairach = 0 ;
     fprintf(stderr, "transforming surface into Talairach space.\n") ;
   }
   else if (!stricmp(option, "dt"))
