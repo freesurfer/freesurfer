@@ -6,6 +6,8 @@
 #ifndef ctrpoints_h
 #define ctrpoints_h
 
+#include "volume_io/basic.h" /* defines Real */
+
 typedef struct { Real x; Real y; Real z ;} MPoint;
 
 // reading control points 
