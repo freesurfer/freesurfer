@@ -86,11 +86,29 @@
 #define   Right_non_WM_hypointensities 82  /*        164  108  226    0*/
 #define   Left_F1 83  /*                             255  218  185    0*/
 #define   Right_F1 84  /*                            255  218  185    0*/
-#define   Optic_Chiasm 85  /*                        234  169   30    0*/
+#define   Optic_Chiasm   85  /*                        234  169   30    0*/
+#define   Dura           98
+#define   Epidermis      118
+#define   Conn_Tissue    119
+#define   SC_FAT_MUSCLE  120
+#define   Cranium        121
+#define   CSF_SA         122
+#define   Muscle         123
+#define   Ear            124
+#define   Fatty_Tissue   125
+#define   Spinal_Cord    126
+#define   Soft_Tissue    127
+#define   Nerve          128
+#define   Bone           129                            
+#define   Air            130
+#define   Orbit          131
+#define   Tongue         132
+#define   Nasal_Structures 133
+#define   Globe          134
+#define   Teeth          135
 
 #define   Right_Temporal_Cerebral_White_Matter  186      /*  240  240  240     0 */
 #define   Left_Temporal_Cerebral_White_Matter  187       /* 240  240  240     0 */
-#define   Bone        188 /*  100 100 100 0 */                         
 #define   Fat         189 /*  255 255 255 0 */
 #define   Bright_Unknown  190   /* 100 240 240 0 */
 #define   Dark_Unknown    191   /* 20  100  100     0  */
@@ -125,6 +143,11 @@
    ((l) == Left_WM_hypointensities) || \
    ((l) == Right_WM_hypointensities) || \
    ((l) == WM_hypointensities) || \
+   ((l) == Dura) || \
+   ((l) == Bone) || \
+   ((l) == CSF_SA) || \
+   ((l) == Epidermis) || \
+   ((l) == SC_FAT_MUSCLE) || \
    ((l) == non_WM_hypointensities))
 
 /* --- below: see cma.c --- */

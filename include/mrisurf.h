@@ -327,7 +327,8 @@ typedef struct
   float   l_corr ;            /* coefficient of correlation term */
   float   l_pcorr ;           /* polar correlation for rigid body */
   float   l_curv ;            /* coefficient of curvature term */
-  float   l_scurv ;            /* coefficient of curvature term */
+  float   l_scurv ;           /* coefficient of curvature term */
+	float   l_link ;            /* coefficient of link term to keep white and pial vertices approximately along normal */
   float   l_spring ;          /* coefficient of spring term */
   float   l_spring_norm ;     /* coefficient of normalize spring term */
   float   l_tspring ;         /* coefficient of tangential spring term */
@@ -387,6 +388,8 @@ extern double (*gMRISexternalSSE)(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) ;
 extern double (*gMRISexternalRMS)(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) ;
 extern int (*gMRISexternalTimestep)(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) ;
 extern int (*gMRISexternalRipVertices)(MRI_SURFACE *mris, INTEGRATION_PARMS *parms);
+extern int (*gMRISexternalClearSSEStatus)(MRI_SURFACE *mris) ;
+extern int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris, double pct) ;
 
 #define IP_USE_CURVATURE      0x0001
 #define IP_NO_RIGID_ALIGN     0x0002

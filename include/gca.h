@@ -290,6 +290,8 @@ int GCAregularizeCovariance(GCA *gca, float regularize) ;
 int GCAnormalizeMeans(GCA *gca, float target) ;
 double GCAcomputeConditionalLogDensity(GC1D *gc, float *vals, int ninputs, int label) ;
 double GCAcomputeNormalizedConditionalDensity(GCA *gca, int xp, int yp, int zp, float *vals, int label);
+MRI    *GCArelabelNonbrain(GCA *gca, MRI *mri_inputs, MRI *mri_src, MRI *mri_dst, TRANSFORM *transform) ;
+int    GCAreplaceLabels(GCA *gca, int in_label, int out_label) ;
 
 
 
