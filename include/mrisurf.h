@@ -218,6 +218,8 @@ MRI_SURFACE  *MRISunfold(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) ;
 int          MRIScomputeFaceAreas(MRI_SURFACE *mris) ;
 int          MRISupdateEllipsoidSurface(MRI_SURFACE *mris) ;
 int          MRISwriteTriangleProperties(MRI_SURFACE *mris, char *mris_fname);
+MRI_SURFACE  *MRISrotate(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst, 
+                         float dphi, float dtheta) ;
 
 MRI          *MRISwriteIntoVolume(MRI_SURFACE *mris, MRI *mri) ;
 MRI_SURFACE  *MRISreadFromVolume(MRI *mri, MRI_SURFACE *mris) ;
