@@ -1,8 +1,8 @@
 function r = fast_selxavg(varargin)
 % r = fast_selxavg(varargin)
-% '$Id: fast_selxavg.m,v 1.6 2003/05/22 19:37:12 greve Exp $'
+% '$Id: fast_selxavg.m,v 1.7 2003/08/12 05:30:21 greve Exp $'
 
-version = '$Id: fast_selxavg.m,v 1.6 2003/05/22 19:37:12 greve Exp $';
+version = '$Id: fast_selxavg.m,v 1.7 2003/08/12 05:30:21 greve Exp $';
 fprintf(1,'%s\n',version);
 r = 1;
 
@@ -528,6 +528,8 @@ for slice = firstslice:lastslice
   % Save the mean image %
   if(RmBaseline)
     hoffset = reshape(hhat(NTaskAvgs+1,:), [nrows ncols]); % From 1st Run
+    indz = find(hoffset==0);
+    hoffset(indz) = 1;
     fname = sprintf('%s-offset_%03d.bfloat',hstem,slice);
     if(slice == firstslice | s.debug)
       fprintf(1,'  Saving offset to %s \n',fname);
@@ -619,6 +621,8 @@ for slice = firstslice:lastslice
     fmri_svbfile(resvar,fname);
     fname = sprintf('%s/resstd_%03d.bfloat',s.snrdir,slice);
     fmri_svbfile(sqrt(resvar),fname);
+    fname = sprintf('%s/resstdpct_%03d.bfloat',s.snrdir,slice);
+    fmri_svbfile(100*sqrt(resvar)./hoffset,fname);
 
     ind0 = find(resvar==0);
     resvar(ind0) = 1;
