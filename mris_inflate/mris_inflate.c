@@ -13,7 +13,7 @@
 #include "mri.h"
 #include "macros.h"
 
-static char vcid[] = "$Id: mris_inflate.c,v 1.13 1998/02/13 23:13:22 fischl Exp $";
+static char vcid[] = "$Id: mris_inflate.c,v 1.14 1998/04/01 15:44:13 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -54,7 +54,7 @@ main(int argc, char *argv[])
   parms.base_dt = BASE_DT_SCALE*parms.dt ;
   parms.n_averages = 32 ; /*N_AVERAGES*/ ;
   parms.l_angle = 0.0 /* L_ANGLE */ ;
-  parms.l_dist = .5 ;
+  parms.l_dist = .1 ;
   parms.l_area = 0.0 /* L_AREA */ ;
   parms.l_spring = 1.0 ;
   parms.l_curv = 0.0 ;
