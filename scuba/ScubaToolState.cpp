@@ -84,6 +84,8 @@ ScubaToolState::DoListenToTclCommand ( char* isCommand,
       Mode newMode;
       if( 0 == strcmp( iasArgv[2], "navigation" )) {
 	newMode = navigation;
+      } else if ( 0 == strcmp( iasArgv[2], "marker" )) {
+	newMode = marker;
       } else if ( 0 == strcmp( iasArgv[2], "voxelEditing" )) {
 	newMode = voxelEditing;
       } else if ( 0 == strcmp( iasArgv[2], "roiEditing" )) {
@@ -94,7 +96,7 @@ ScubaToolState::DoListenToTclCommand ( char* isCommand,
 	newMode = edgeLine;
       } else {
 	sResult = "bad mode \"" + string(iasArgv[2]) + 
-	  "\", should be navigation, voxelEditing, roiEditing, " +
+	  "\", should be navigation, marker, voxelEditing, roiEditing, " +
 	  "straightLine, edgeLine.";
 	return error;
       }
@@ -115,6 +117,9 @@ ScubaToolState::DoListenToTclCommand ( char* isCommand,
       switch( GetMode() ) {
       case navigation:
 	sReturnValues = "navigation";
+	break;
+      case marker:
+	sReturnValues = "marker";
 	break;
       case voxelEditing:
 	sReturnValues = "voxelEditing";

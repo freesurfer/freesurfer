@@ -10,7 +10,7 @@ if { $err } {
     load [file dirname [info script]]/libscuba[info sharedlibextension] scuba
 }
 
-DebugOutput "\$Id: scuba.tcl,v 1.32 2004/06/10 23:15:06 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.33 2004/06/11 00:19:04 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -485,6 +485,7 @@ proc MakeToolBar { ifwTop } {
 	-command {ToolBarWrapper} \
 	-buttons {
 	    { -type image -name navigation -image icon_navigate } 
+	    { -type image -name marker -image icon_marker_crosshair } 
 	    { -type image -name voxelEditing -image icon_edit_volume } 
 	    { -type image -name roiEditing -image icon_edit_label } 
 	    { -type image -name straightLine -image icon_line_tool } 
@@ -536,7 +537,8 @@ proc ToolBarWrapper { isName iValue } {
 
     if { $iValue == 1 } {
 	switch $isName {
-	    navigation - voxelEditing - roiEditing - straightLine - edgeLine {
+	    navigation - marker - voxelEditing - roiEditing - \
+		straightLine - edgeLine {
 		SetToolMode $gaFrame([GetMainFrameID],toolID) $isName
 		SelectToolInToolProperties $isName
 	    }
@@ -1229,8 +1231,8 @@ proc MakeToolsPanel { ifwTop } {
     set gaWidget(toolProperties,menu) $fwMenu
 
     FillMenuFromList $fwMenu \
-	{ navigation voxelEditing roiEditing straightLine edgeLine }  "" \
-	{ "Navigation" "Voxel Editing" "ROI Editing" "Straight Line" "Edge Line"} false
+	{ navigation marker voxelEditing roiEditing straightLine edgeLine }  "" \
+	{ "Navigation" "Marker" "Voxel Editing" "ROI Editing" "Straight Line" "Edge Line"} false
 
 
     frame $fwPropsCommon

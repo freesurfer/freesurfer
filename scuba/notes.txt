@@ -268,16 +268,24 @@ x     - display text, progress, have buttons on right
   x interface for setting transform in VolumeCollection
   x split ScubaTransform and Transform
   x Transform::ApplyTransform 
-  x since mWorldToIndexTransform is composed of two ScubaTransforms, it should be a normal Matrix, but since it's used like a ScubaTransform, it should be a Transform
-    x secondary class Transform with InvMultiply stuff?  so have Matrix44, Transform44, and ScubaTransform
+  x Matrix44 and Transform44
   - make test_ stuff work
-  x add changed messages to DataCollection, Layer, View, so that one message can propogate RequestRedisplays up to Frame and cause a redraw
-  - volume still not updating when its transform is changed
+  x add changed messages to DataCollection, Layer, View
+  x volume still not updating when its transform is changed
   x clean up a few ScubaTransforms
   x Load Transform
   x button to Invert scuba transform
   - need to duplicate the stuff in mriVolume.c:736?
 
+- markers
+  - tool: 1 set cursor, 2 add marker, 3 delete nearest marker
+  - ScubaView has list of markers with MaxNumMarkers
+    - SetCursor() sets cursor marker
+    - SetMarker() sets next marker, wrapping around
+
+
+- edge line
+  - parameters for favoring straightness, edge values
 
 DRAWING TOOLS:::
 
@@ -289,7 +297,7 @@ DRAWING TOOLS:::
 
 BRUCE'S LIST:::
 
-- data collection transform 
+x data collection transform 
 - markers
 - b/c controled by mouse, perhaps mod+mouse when nav tool is on
 

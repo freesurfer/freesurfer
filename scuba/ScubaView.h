@@ -114,8 +114,18 @@ protected:
   float ConvertRASToWindow ( float iRAS, float iRASCenter, 
 			     float iWindowDimension );
 
-  // Sets a marker in the view.
-  void SetMarker ();
+
+  // Markers are shared between views so these are static functions.
+
+  // Sets the cursor, a single special marker.
+  static void SetCursor ( float iRAS[3] );
+
+  // Sets a marker in the view, wrapping around the number of markers.
+  static void SetNextMarker ( float iRAS[3] );
+
+  // Sets the number of markers to use, as well as initializes new
+  // markers.
+  static void SetNumberOfMarkers ( int icMarkers );
 
   // The different steps in building our display. BuildFrameBuffer()
   // tells all the layers to copy their data to the frame
@@ -181,6 +191,12 @@ protected:
 
   // The color to use when drawing this view's inplane on another view.
   float mInPlaneMarkerColor[3];
+
+  // Markers.
+  static Point3<float> mCursor;
+  static int mcMarkers;
+  static std::map<int,Point3<float> > mMarkerRAS;  // index from 0 - mcMarkers
+  static std::map<int,bool> mMarkerVisible;
 
 };  
 

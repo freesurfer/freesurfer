@@ -14,6 +14,12 @@ using namespace std;
 int const ScubaView::kBytesPerPixel = 4;
 map<int,bool> ScubaView::mViewIDLinkedList;
 
+Point3<float> ScubaView::mCursor( 0, 0, 0 );
+int ScubaView::mcMarkers = 0;
+std::map<int,Point3<float> > ScubaView::mMarkerRAS;
+std::map<int,bool> ScubaView::mMarkerVisible;
+
+
 int const ScubaView::kcInPlaneMarkerColors = 12;
 float kInPlaneMarkerColors[ScubaView::kcInPlaneMarkerColors][3] = {
   { 1, 0, 0 }, { 0, 1, 0 }, { 0, 0, 1 },
@@ -781,6 +787,11 @@ ScubaView::DoListenToMessage ( string isMessage, void* iData ) {
     SendBroadcast( "viewChanged", NULL );
   }
 
+  if( isMessage == "cursorChanged" ) {
+    mbRebuildOverlayDrawList = true;
+    RequestRedisplay();
+  }
+
   if( isMessage == "DrawCoordinateOverlay" ||
       isMessage == "DrawCenterCrosshairOverlay" ) {
     RebuildOverlayDrawList(); // our overlay will be different
@@ -1047,6 +1058,22 @@ ScubaView::DoMouseUp( int iWindow[2],
 
     mbRebuildOverlayDrawList = true;
     RequestRedisplay();
+  }
+
+  // Handle marker tool.
+  if( iTool.GetMode() == ScubaToolState::marker ) {
+
+    float world[3];
+    TranslateWindowToRAS( iWindow, world );
+
+    switch( iInput.Button() ) {
+    case 1:
+      SetCursor( world );
+      break;
+    }
+
+    ScubaViewBroadcaster& broadcaster = ScubaViewBroadcaster::GetBroadcaster();
+    broadcaster.SendBroadcast( "cursorChanged", NULL );
   }
 
 
@@ -1325,6 +1352,23 @@ ScubaView::ConvertRASToWindow ( float iRAS, float iRASCenter,
     (iWindowDimension / 2.0);
 }
 
+void
+ScubaView::SetCursor ( float iRAS[3] ) {
+  
+  // Set the cursor;
+  mCursor.Set( iRAS );
+}
+
+void
+ScubaView::SetNextMarker ( float iRAS[3] ) {
+
+}
+
+void
+ScubaView::SetNumberOfMarkers ( int icMarkers ) {
+
+}
+
 
 int
 ScubaView::GetFirstUnusedDrawLevel () {
@@ -1567,6 +1611,35 @@ ScubaView::BuildOverlay () {
     }
   }
 
+
+  // Draw our markers.
+  float range = 1.0;
+  switch( mViewState.mInPlane ) {
+  case ViewState::X:
+    range = mInPlaneMovementIncrements[0] / 2.0;
+    break;
+  case ViewState::Y:
+    range = mInPlaneMovementIncrements[1] / 2.0;
+    break;
+  case ViewState::Z:
+    range = mInPlaneMovementIncrements[2] / 2.0;
+    break;
+  }
+
+  if( mViewState.IsRASVisibleInPlane( mCursor.xyz(), range ) ) {
+
+    int cursorWindow[2];
+    TranslateRASToWindow( mCursor.xyz(), cursorWindow );
+    glColor3f( 1,0,0 );
+    glBegin( GL_LINES );
+    glVertex2d( cursorWindow[0] - 5, cursorWindow[1] );
+    glVertex2d( cursorWindow[0] + 6, cursorWindow[1] );
+    glVertex2d( cursorWindow[0], cursorWindow[1] - 5 );
+    glVertex2d( cursorWindow[0], cursorWindow[1] + 6 );
+    glEnd();
+  }
+
+
   glEndList();
 
   mbRebuildOverlayDrawList = false;
@@ -1660,5 +1733,11 @@ ScubaViewBroadcaster::SendBroadcast ( std::string isMessage, void* iData ) {
 
       mCurrentBroadcaster = -1;
     }
+
+
+    // Pass on other kinds of messages.
+  } else {
+    
+    Broadcaster::SendBroadcast( isMessage, iData );
   }
 }
