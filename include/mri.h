@@ -104,6 +104,9 @@ float MRIvoxelDz(MRI *mri, int x, int y, int z) ;
 float MRIvoxelGradient(MRI *mri, int x, int y, int z, float *pdx, float *pdy, 
                        float *pdz) ;
 float MRIvoxelDirection(MRI *mri, int x, int y, int z, int wsize) ;
+float MRIvoxelGradientDir2ndDerivative(MRI *mri, int x0, int y0, int z0, 
+                                       int wsize) ;
+
 /* use these constants for MRIreorder */
 #define XDIM  1
 #define YDIM  2
