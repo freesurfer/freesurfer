@@ -9062,8 +9062,12 @@ MRISaverageRadius(MRI_SURFACE *mris)
     if (x<xlo) xlo=x;
     if (y>yhi) yhi=y;
     if (y<ylo) ylo=y;
-    if (z>zhi) zhi=z;
-    if (z<zlo) zlo=z;
+    if (z>zhi) 
+      zhi=z;
+    if (z<zlo) 
+      zlo=z;
+    if (zlo < -1000)
+      DiagBreak() ;
   }
   x0 = (xlo+xhi)/2.0f ; y0 = (ylo+yhi)/2.0f ; z0 = (zlo+zhi)/2.0f ;
   for (radius = 0.0, n = vno = 0 ; vno < mris->nvertices ; vno++)
@@ -18741,6 +18745,8 @@ mrisReadTriangleFile(char *fname, double pct_over)
   for (vno = 0 ; vno < nvertices ; vno++)
   {
     v = &mris->vertices[vno] ;
+    if (vno == Gdiag_no)
+      DiagBreak() ;
     v->x = freadFloat(fp);
     v->y = freadFloat(fp);
     v->z = freadFloat(fp);
@@ -18748,6 +18754,15 @@ mrisReadTriangleFile(char *fname, double pct_over)
     v->label = NO_LABEL ;
 #endif
     v->num = 0;   /* will figure it out */
+    if (fabs(v->x) > 10000 || !finite(v->x))
+      ErrorExit(ERROR_BADFILE, "%s: vertex %d x coordinate %f!",
+                Progname, vno, v->x) ;
+    if (fabs(v->y) > 10000 || !finite(v->y))
+      ErrorExit(ERROR_BADFILE, "%s: vertex %d y coordinate %f!",
+                Progname, vno, v->y) ;
+    if (fabs(v->z) > 10000 || !finite(v->z))
+      ErrorExit(ERROR_BADFILE, "%s: vertex %d z coordinate %f!",
+                Progname, vno, v->z) ;
   }
   
   for (fno = 0 ; fno < mris->nfaces ; fno++)
