@@ -1288,3 +1288,68 @@ ImageConvolve3x3(IMAGE *Isrc, float kernel[], IMAGE *outImage)
 
   return(0) ;
 }
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+----------------------------------------------------------------------*/
+static int xoffsets[] = { 0, -1, 0, 1, 0 } ;
+static int yoffsets[] = { -1, 0, 0, 0, 1 } ;
+#define ONE_EIGHTH (1.0f/8.0f)
+static float weights[] = 
+{          ONE_EIGHTH, 
+    ONE_EIGHTH, -0.5f, ONE_EIGHTH, 
+            ONE_EIGHTH 
+} ;
+#define LAPLACIAN_POINTS   (sizeof(xoffsets) / sizeof(xoffsets[0]))
+
+IMAGE  *
+ImageLaplacian(IMAGE *Isrc, IMAGE *outImage)
+{
+  int     rows, cols, x, y, xi, yi, i ;
+  float   *fkpix, sum, *fopix, fival ;
+
+  rows = Isrc->rows ;
+  cols = outImage->cols ;
+
+  if (!outImage)
+    outImage = ImageAlloc(rows, cols, 1, PFFLOAT) ;
+
+  switch (Isrc->pixel_format)
+  {
+  case PFFLOAT:
+    fopix = (float *)IMAGEFpix(outImage, 0, 0) ;
+    for (y = 0 ; y < rows ; y++)
+    {
+      for (x = 0 ; x < cols ; x++, fopix++)
+      {
+        fkpix = weights ;
+        for (sum = 0.0f, i = 0 ; i < LAPLACIAN_POINTS ; i++)
+        {
+          yi = y + yoffsets[i] ;    /* image coordinate */
+          if (yi < 0)
+            yi = 0 ;
+          else if (yi >= rows)
+            yi = rows-1 ;
+
+          xi = x + xoffsets[i] ;   /* image coordinate */
+          if (xi < 0)
+            xi = 0 ;
+          else if (xi >= cols)
+            xi = cols-1 ;
+          fival = *IMAGEFpix(Isrc, xi, yi) ;
+          sum += fival * *fkpix++ ;
+        }
+        *fopix = sum ;
+      }
+    }
+    break ;
+  default:
+    fprintf(stderr, "ImageLaplacian: unsupported pixel format %d\n",
+            Isrc->pixel_format) ;
+    exit(-1);
+    break ;
+  }
+
+  return(outImage) ;
+}
