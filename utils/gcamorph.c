@@ -4,8 +4,8 @@
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/05/20 17:40:19 $
-// Revision       : $Revision: 1.31 $
+// Revision Date  : $Date: 2004/05/21 16:14:23 $
+// Revision       : $Revision: 1.32 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -215,6 +215,7 @@ GCAMwrite(GCA_MORPH *gcam, char *fname)
   }
   else
   {
+    myclose=fclose;
     fp = fopen(fname, "wb") ;
   }
   if (!fp)
