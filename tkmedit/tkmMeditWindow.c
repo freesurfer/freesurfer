@@ -3821,6 +3821,8 @@ int MWin_TclSetBrushInfo ( ClientData  ipClientData,
   Volm_tValue       low          = 0;
   Volm_tValue       high         = 0;
   Volm_tValue       newValue     = 0;
+  DspA_tBrushMode   brushMode    = 0;
+  tkm_tVolumeType   cloneSource  = 0;
   DspA_tBrushInfo   brushInfo;
 
   /* grab us from the client data ptr */
@@ -3841,26 +3843,30 @@ int MWin_TclSetBrushInfo ( ClientData  ipClientData,
     goto error;
 
   /* verify the number of arguments. */
-  if ( argc < 5 ) {
+  if ( argc < 7 ) {
     eResult = MWin_tErr_WrongNumberArgs;
     goto error;
   }
 
   /* parse the args and get a low, high, and new value */
-  brush     = (int) atoi( argv[1] );
-  low       = (Volm_tValue) atof( argv[2] );
-  high      = (Volm_tValue) atof( argv[3] );
-  newValue  = (Volm_tValue) atof( argv[4] );
+  brush       = (int) atoi( argv[1] );
+  low         = (Volm_tValue) atof( argv[2] );
+  high        = (Volm_tValue) atof( argv[3] );
+  newValue    = (Volm_tValue) atof( argv[4] );
+  brushMode   = (DspA_tBrushMode) atoi( argv[5] );
+  cloneSource = (tkm_tVolumeType) atoi( argv[6] );
 
   /* make a struct */
-  brushInfo.mLow      = low;
-  brushInfo.mHigh     = high;
-  brushInfo.mNewValue = newValue;
+  brushInfo.mLow         = low;
+  brushInfo.mHigh        = high;
+  brushInfo.mMode        = brushMode;
+  brushInfo.mNewValue    = newValue;
+  brushInfo.mCloneSource = cloneSource;
 
   /* set the brush of the last clicked display. */
   eDispResult = 
     DspA_SetBrushInfo ( this->mapDisplays[this->mnLastClickedArea],
-      brush, &brushInfo );
+			brush, &brushInfo );
   if ( DspA_tErr_NoErr != eDispResult ) {
     eResult = MWin_tErr_ErrorAccessingDisplay;
     goto error;
