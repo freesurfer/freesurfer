@@ -2,7 +2,7 @@
    DICOM 3.0 reading functions
    Author: Sebastien Gicquel and Douglas Greve
    Date: 06/04/2001
-   $Id: DICOMRead.c,v 1.67 2004/09/30 15:11:13 tosa Exp $
+   $Id: DICOMRead.c,v 1.68 2004/09/30 20:36:55 tosa Exp $
 *******************************************************/
 
 #include <stdio.h>
@@ -3806,7 +3806,7 @@ int IsDICOM(char *fname)
   int d;
   FILE *fp;
   CONDITION cond;
-  DCM_OBJECT *object;
+  DCM_OBJECT *object = 0;
   static int yes = 0;          // statically initialized
   static char file[1024] = ""; // statically initialized
   
@@ -3850,7 +3850,8 @@ int IsDICOM(char *fname)
     if(d) printf("Opening as littleendian\n");
     cond=DCM_OpenFile(fname, DCM_ORDERLITTLEENDIAN|DCM_ACCEPTVRMISMATCH, 
 		      &object);
-    if (cond != DCM_NORMAL && d) DCMPrintCond(cond);
+    if (cond != DCM_NORMAL && d) 
+      DCMPrintCond(cond);
   }
 
   if (cond != DCM_NORMAL){
@@ -3858,7 +3859,8 @@ int IsDICOM(char *fname)
     if(d) printf("Opening as bigendian\n");
     cond=DCM_OpenFile(fname, DCM_ORDERBIGENDIAN|DCM_ACCEPTVRMISMATCH, 
 		      &object);
-    if (cond != DCM_NORMAL && d) DCMPrintCond(cond);
+    if (cond != DCM_NORMAL && d) 
+      DCMPrintCond(cond);
   }
 
   if (cond != DCM_NORMAL){
@@ -3866,11 +3868,11 @@ int IsDICOM(char *fname)
     if(d) printf("Opening as format conversion\n");
     cond=DCM_OpenFile(fname, DCM_FORMATCONVERSION|DCM_ACCEPTVRMISMATCH, 
 		      &object);
-    if (cond != DCM_NORMAL && d) DCMPrintCond(cond);
+    if (cond != DCM_NORMAL && d) 
+      DCMPrintCond(cond);
   }
-
-  if(cond == DCM_NORMAL) 
-    DCM_CloseObject(&object);
+  // if(cond == DCM_NORMAL) 
+  DCM_CloseObject(&object);
 
   fflush(stdout);fflush(stderr);
 
