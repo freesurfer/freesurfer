@@ -929,9 +929,11 @@ int main(int argc, char *argv[])
 
     if(zero_outlines_flag)
     {
+/*
       printf("notice: zero outlines currently unimplemented\n");
       printf("notice: outlines won't be cleared\n");
-/*      read_otl_flags |= READ_OTL_ZERO_OUTLINES_FLAG;*/
+*/
+      read_otl_flags |= READ_OTL_ZERO_OUTLINES_FLAG;
     }
 
     if(in_like_flag)
