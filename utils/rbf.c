@@ -34,7 +34,7 @@
 #define TRATE_INCREASE  1.05f
 #define ERROR_RATIO     1.05f
 #define MIN_TRATE       0.000001f
-#define DEFAULT_TRATE   0.05f
+#define DEFAULT_TRATE   0.001f
 #define MOMENTUM        0.8f
 #define MAX_EPOCHS      4000   /* maximum # of training iterations */
 
@@ -44,7 +44,7 @@
 */
 #define MIN_DELTA_SSE   0.001f    /* 0.01 % change in sse */
 #define MAX_SMALL       5
-#define MAX_POSITIVE    10
+#define MAX_POSITIVE    5
 
 #define TRAIN_OUTPUTS   0x001
 #define TRAIN_SPREADS   0x002
@@ -76,7 +76,6 @@ static int   rbfComputeHiddenActivations(RBF *rbf, VECTOR *v_obs) ;
 static float rbfGaussian(MATRIX *m_sigma_inverse,VECTOR *v_means,
                          VECTOR *v_obs, VECTOR *v_z);
 static int   rbfShowClusterCenters(RBF *rbf, FILE *fp) ;
-static float rbfComputeErrors(RBF *rbf, int class, VECTOR *v_error) ;
 static int   rbfAdjustOutputWeights(RBF *rbf, VECTOR *v_error) ;
 static int   rbfAdjustHiddenCenters(RBF *rbf, VECTOR *v_error) ;
 static int   rbfAdjustHiddenSpreads(RBF *rbf, VECTOR *v_error) ;
@@ -94,6 +93,7 @@ static float rbfComputeCurrentError(RBF *rbf, int (*get_observation_func)
 static int   rbfCalculateOutputWeights(RBF *rbf, int (*get_observation_func)
                (VECTOR *v_obs, int no, void *parm,int same_class,int *pclass),
                       void *parm) ;
+static int   rbfAllocateTrainingParameters(RBF *rbf) ;
 
 /*-----------------------------------------------------
                     GLOBAL FUNCTIONS
@@ -202,47 +202,38 @@ RBFtrain(RBF *rbf, int (*get_observation_func)
   if ((momentum < 1.0f) && (momentum >= 0.0f))
     rbf->base_momentum = rbf->momentum = momentum ;
 
-  /* do allocation of trainig-specific stuff */
+  /* must examine training set before allocating training set data, because
+     we need to know how many observations are in the training set.
+     */
   rbfExamineTrainingSet(rbf, get_observation_func, parm) ;
-  rbf->observed = (unsigned char *)calloc(rbf->nobs, sizeof(unsigned char)) ;
-  if (!rbf->observed)
-    ErrorExit(ERROR_NO_MEMORY,"RBFtrain: could not allocate observed array") ;
-  rbf->m_delta_sigma_inv = (MATRIX **)calloc(rbf->nhidden, sizeof(MATRIX *));
-  if (!rbf->m_delta_sigma_inv)
-    ErrorExit(ERROR_NO_MEMORY,"RBFtrain: could not allocate delta sigma") ;
-  rbf->v_delta_means = (VECTOR **)calloc(rbf->nhidden, sizeof(VECTOR *));
-  if (!rbf->v_delta_means)
-    ErrorExit(ERROR_NO_MEMORY,"RBFtrain: could not allocate delta means") ;
-  for (i = 0 ; i < rbf->nhidden ; i++)
-  {
-    rbf->m_delta_sigma_inv[i] = 
-      MatrixAlloc(rbf->ninputs, rbf->ninputs, MATRIX_REAL) ;
-    if (!rbf->m_delta_sigma_inv[i])
-      ErrorExit(ERROR_NO_MEMORY,"RBFtrain: could not allocate delta sigma %d", 
-                i) ;
-    rbf->v_delta_means[i] = VectorAlloc(rbf->ninputs, MATRIX_REAL) ;
-    if (!rbf->v_delta_means[i])
-      ErrorExit(ERROR_NO_MEMORY,"RBFtrain: could not allocate delta means %d", 
-                i) ;
-  }
-  rbf->m_delta_wij = MatrixAlloc(rbf->nhidden+1, rbf->noutputs, MATRIX_REAL) ;
-  if (!rbf->m_delta_wij)
-    ErrorExit(ERROR_NO_MEMORY, "RBFtrain: could not allocate m_delta_wij") ;
+
+  /* do allocation of training-specific stuff */
+  if (rbfAllocateTrainingParameters(rbf) != NO_ERROR)
+    return(Gerror) ;
 
   cp.parm = parm ;
   cp.get_observation_func = get_observation_func ;
 
-  if (Gdiag & DIAG_SHOW)
-    fprintf(stderr, "finding initial clusters...") ;
   for (i = 0 ; i < rbf->noutputs ; i++)
   {
+    if (Gdiag & DIAG_SHOW)
+      fprintf(stderr, "finding %d clusters for class %s...", 
+              rbf->cs[i]->max_clusters, rbf->class_names[i]) ;
     cp.current_class = i ;
     if (CScluster(rbf->cs[i], rbf_get_obs_func, (void *)&cp) != NO_ERROR)
       ErrorReturn(Gerror, (Gerror, "RBFtrain: clustering failed for class %s",
                           rbf->class_names[i])) ;
+    {
+      char fname[100] ;
+      FILE *fp ;
+      sprintf(fname, "cluster.%s.dat", rbf->class_names[i]) ;
+      fp = fopen(fname, "w") ;
+      CSwriteInto(fp, rbf->cs[i]) ;
+      fclose(fp) ;
+    }
+    if (Gdiag & DIAG_SHOW)
+      fprintf(stderr, "done.\n") ;
   }
-  if (Gdiag & DIAG_SHOW)
-    fprintf(stderr, "done.\n") ;
 
   /* fill in cluster pointers in rbf struct for convenience sake */
   for (cno = class = 0 ; class < rbf->noutputs ; class++)
@@ -378,20 +369,48 @@ RBFprint(RBF *rbf, FILE *fp)
         Description
           Function called by clustering software. It must sift out
           only those inputs which have the appropriate class.
+
+          Note that obs_no refers to the total # of observations,
+          while class_obs refers to the # of observations for the
+          given class.
 ------------------------------------------------------*/
 static int
-rbf_get_obs_func(VECTOR *v_obs, int obs_no, void *vcp)
+rbf_get_obs_func(VECTOR *v_obs, int desired_class_obs_no, void *vcp)
 {
   CLUSTERING_PARM *cp ;
-  int             ret, classno ;
+  int             ret, classno, obs_no, class_obs_no ;
+  static int      last_class = -1 ;
+  static int      last_class_obs = -1 ;
+  static int      last_obs = -1 ;
   
   cp = (CLUSTERING_PARM *)vcp ;
 
+  desired_class_obs_no++ ;     /* it is a count - not an index */
   classno = cp->current_class ;
+  if (classno == last_class && desired_class_obs_no > last_class_obs)
+  {
+    /* start at one past previous observation, not at start */
+    class_obs_no = last_class_obs ;
+    obs_no = last_obs+1 ;
+  }
+  else
+    class_obs_no = obs_no = 0 ;
+
   do
   {
-    ret = (*cp->get_observation_func)(v_obs, obs_no++, cp->parm, 1, &classno) ;
-  } while ((ret == NO_ERROR) && (classno != cp->current_class)) ;
+    ret = (*cp->get_observation_func)(v_obs, obs_no++, cp->parm, 1, &classno);
+    if ((ret == NO_ERROR) && (classno == cp->current_class))
+      class_obs_no++ ;
+  } while ((ret == NO_ERROR) && (class_obs_no < desired_class_obs_no)) ;
+
+  if (ret == NO_ERROR)
+  {
+    last_class = classno ;
+    last_obs = obs_no-1 ;
+    last_class_obs = desired_class_obs_no ;
+  }
+  else
+    last_class = last_obs = last_class_obs = -1 ;
 
   return(ret) ;
 }
@@ -443,7 +462,7 @@ rbfGradientDescent(RBF *rbf, int (*get_observation_func)
     rbfComputeOutputs(rbf) ;
     if (Gdiag & DIAG_SHOW)
     {
-      sse += rbfComputeErrors(rbf, class, v_error) ;
+      sse += RBFcomputeErrors(rbf, class, v_error) ;
       RBFprintActivations(rbf, v_obs, v_error, class, stderr) ;
     }
   }
@@ -535,23 +554,27 @@ static float
 rbfGaussian(MATRIX *m_sigma_inverse,VECTOR *v_means,VECTOR *v_obs, VECTOR *v_z)
 {
   float   val = 0.0f ;
-  VECTOR  *v_zT ;
-  MATRIX  *m_tmp1, *m_tmp2 ;
+  static VECTOR  *v_zT = NULL ;
+  static MATRIX  *m_tmp1 = NULL, *m_tmp2 = NULL ;
 
   VectorSubtract(v_obs, v_means, v_z) ;
-  v_zT = VectorTranspose(v_z, NULL) ;
+  v_zT = VectorTranspose(v_z, v_zT) ;
 
-  m_tmp1 = MatrixMultiply(m_sigma_inverse, v_z, NULL) ;
-  m_tmp2 = MatrixMultiply(v_zT, m_tmp1, NULL) ;
+  m_tmp1 = MatrixMultiply(m_sigma_inverse, v_z, m_tmp1) ;
+  m_tmp2 = MatrixMultiply(v_zT, m_tmp1, m_tmp2) ;
   val = -.5f * m_tmp2->rptr[1][1] ;
   if (val < -15.0f)   /* prevent underflow */
     val = 0.0f ;   
+  else if (val > 0.0f)   /* error - shouldn't happen, but can because of lms */
+    val = 0.0f ;
   else
     val = exp(val) ;
 
+#if 0
   MatrixFree(&m_tmp1) ;
   MatrixFree(&m_tmp2) ;
   VectorFree(&v_zT) ;
+#endif
   return(val) ;
 }
 /*-----------------------------------------------------
@@ -564,8 +587,8 @@ rbfGaussian(MATRIX *m_sigma_inverse,VECTOR *v_means,VECTOR *v_obs, VECTOR *v_z)
           inverse covariance matrix m_sigma_inverse given the
           input v_obs.
 ------------------------------------------------------*/
-static float
-rbfComputeErrors(RBF *rbf, int class, VECTOR *v_error)
+float
+RBFcomputeErrors(RBF *rbf, int class, VECTOR *v_error)
 {
   int  i ;
   float target, error, total_error ;
@@ -577,9 +600,14 @@ rbfComputeErrors(RBF *rbf, int class, VECTOR *v_error)
     else
       target = 0.0f ;
     error = target - RVECTOR_ELT(rbf->v_outputs, i) ;
+if (!finite(error))
+  DiagBreak() ;
+
     VECTOR_ELT(v_error,i) = error ;
     total_error += error*error ;
   }
+if (!finite(total_error))
+  DiagBreak() ;
   return(total_error) ;
 }
 /*-----------------------------------------------------
@@ -664,15 +692,13 @@ rbfAdjustHiddenCenters(RBF *rbf, VECTOR *v_error)
 {
   int     i, j ;
   float   Gi, one_minus_momentum, trate, momentum, total, delta ;
-  VECTOR  *v_dE_dui, *v_means, *v_delta_means, *v_z ;
+  VECTOR  *v_means, *v_delta_means, *v_z ;
   CLUSTER *cluster ;
+  static VECTOR *v_dE_dui = NULL ;
 
   momentum = rbf->momentum ;
   trate = rbf->trate ;
   one_minus_momentum = trate * (1.0f - rbf->momentum) ;
-
-  /* derivative of SSE function w.r.t. the ith mean vector */
-  v_dE_dui = VectorAlloc(rbf->ninputs, MATRIX_REAL) ;
 
   /* i refers to the hidden unit, while j is the output unit */
   for (i = 1 ; i <= rbf->nhidden ; i++)
@@ -689,7 +715,7 @@ rbfAdjustHiddenCenters(RBF *rbf, VECTOR *v_error)
       delta = rbf->m_wij->rptr[i][j] * VECTOR_ELT(v_error, j) ;
       total += delta ;
     }
-    MatrixMultiply(cluster->m_inverse, v_z, v_dE_dui) ;
+    v_dE_dui = MatrixMultiply(cluster->m_inverse, v_z, v_dE_dui) ;
     VectorScalarMul(v_dE_dui, Gi * one_minus_momentum * total, v_dE_dui) ;
 
     /* at this point v_dE_dui is the  gradient (except for the momentum turn), 
@@ -721,17 +747,15 @@ static int
 rbfAdjustHiddenSpreads(RBF *rbf, VECTOR *v_error)
 {
   int     i, j ;
-  float   Gi, one_minus_momentum, trate, momentum, total, delta ;
+  float   Gi, one_minus_momentum, trate, momentum, total, delta, det ;
   VECTOR  *v_z ;
-  MATRIX  *m_dE_dsigma_inv, *m_sigma_inv, *m_delta_sigma_inv ;
+  MATRIX  *m_sigma_inv, *m_delta_sigma_inv ;
   CLUSTER *cluster ;
+  static MATRIX *m_sigma_inv_save = NULL, *m_dE_dsigma_inv = NULL ;
 
   momentum = rbf->momentum ;
   trate = rbf->trate ;
   one_minus_momentum = -0.5f * trate * (1.0f - rbf->momentum) ;
-
-  /* derivative of SSE function w.r.t. the ith mean vector */
-  m_dE_dsigma_inv = MatrixAlloc(rbf->ninputs, rbf->ninputs, MATRIX_REAL) ;
 
   /* i refers to the hidden unit, while j is the output unit */
   for (i = 1 ; i <= rbf->nhidden ; i++)
@@ -741,6 +765,9 @@ rbfAdjustHiddenSpreads(RBF *rbf, VECTOR *v_error)
     m_delta_sigma_inv = rbf->m_delta_sigma_inv[i-1] ;
     m_sigma_inv = cluster->m_inverse ;
     v_z = rbf->v_z[i-1] ;
+    det = MatrixDeterminant(m_sigma_inv) ;
+    if (det < 0.0f)
+      continue ;   /* shouldn't happen, something wrong - don't bother with it */
 
     /* adjust the weight connected to each output node for this hidden unit */
     for (total = 0.0f, j = 1 ; j <= rbf->noutputs ; j++)
@@ -748,7 +775,7 @@ rbfAdjustHiddenSpreads(RBF *rbf, VECTOR *v_error)
       delta = rbf->m_wij->rptr[i][j] * VECTOR_ELT(v_error, j) ;
       total += delta ;
     }
-    VectorOuterProduct(v_z, v_z, m_dE_dsigma_inv) ;
+    m_dE_dsigma_inv = VectorOuterProduct(v_z, v_z, m_dE_dsigma_inv) ;
     MatrixScalarMul(m_dE_dsigma_inv, Gi * one_minus_momentum * total, 
                     m_dE_dsigma_inv) ;
 
@@ -757,10 +784,18 @@ rbfAdjustHiddenSpreads(RBF *rbf, VECTOR *v_error)
        */
     MatrixScalarMul(m_delta_sigma_inv, momentum, m_delta_sigma_inv) ;
     MatrixAdd(m_delta_sigma_inv, m_dE_dsigma_inv, m_delta_sigma_inv) ;
+    m_sigma_inv_save = MatrixCopy(m_sigma_inv, m_sigma_inv_save) ;
     MatrixAdd(m_delta_sigma_inv, m_sigma_inv, m_sigma_inv) ;
+    det = MatrixDeterminant(m_sigma_inv) ;
+    while (det < 0.0f)  /* step was too large, matrix should be positive def. */
+    {
+      MatrixCopy(m_sigma_inv_save, m_sigma_inv) ;
+      MatrixScalarMul(m_delta_sigma_inv, 0.1f, m_delta_sigma_inv) ;
+      MatrixAdd(m_delta_sigma_inv, m_sigma_inv, m_sigma_inv) ;
+      det = MatrixDeterminant(m_sigma_inv) ;
+    }
   }
 
-  MatrixFree(&m_dE_dsigma_inv) ;
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
@@ -905,8 +940,12 @@ if (which & TRAIN_CENTERS)
       rbfNormalizeObservation(rbf, v_obs, v_obs) ;
       rbfComputeHiddenActivations(rbf, v_obs) ;
       rbfComputeOutputs(rbf) ;
-      error = rbfComputeErrors(rbf, class, v_error) ;
+      error = RBFcomputeErrors(rbf, class, v_error) ;
+if (!finite(error))
+  DiagBreak() ;
       sse += error ;
+if (!finite(sse))
+  DiagBreak() ;
       if (which & TRAIN_CENTERS)
         rbfAdjustHiddenCenters(rbf, v_error) ;
 #if 1
@@ -945,8 +984,8 @@ if (Gdiag & DIAG_SHOW)
       break ;
 
     rms = sqrt(sse / (float)rbf->nobs) ;
-    fprintf(stderr, "\rerror: %2.5f (trate %2.6f) (nsmall %d)", 
-            rms, rbf->trate, nsmall) ;
+    fprintf(stderr, "\repoch %d, error: %2.5f (trate %2.6f) (nsmall %d)", 
+            epoch, rms, rbf->trate, nsmall) ;
     if (delta_sse < 0)
     {
       nnegative++ ;
@@ -1087,32 +1126,67 @@ rbfExamineTrainingSet(RBF *rbf, int (*get_observation_func)
                       (VECTOR *v_obs, int no, void *parm, int same_class,
                        int *pclass), void *parm)
 {
-  int    obs_no = 0, class, row ;
+  int    obs_no = 0, class, row, c, i ;
   VECTOR *v_obs ;
+  float  *means, *stds, v, mean ;
 
   v_obs = VectorAlloc(rbf->ninputs, MATRIX_REAL) ;
 
   if ((*get_observation_func)(v_obs, obs_no++, parm, 0,&class) != NO_ERROR)
     ErrorExit(ERROR_BADPARM, "rbfExamineTrainingSet: no samples in set") ;
 
+  /* not really a good idea to be messing with the CS internal parameters,
+     but it's much easier than the alternative, because all the other CS stuff
+     is class-specific, but the means and stds for normalizing the inputs 
+     should be across all classes.
+     */
+  means = rbf->cs[0]->means ;
+  stds = rbf->cs[0]->stds ;
+
   /* initialize min and max to 1st elt in training set. */
   for (row = 1 ; row <= rbf->ninputs ; row++)
   {
-    rbf->max_inputs[row-1] = VECTOR_ELT(v_obs, row) ;
-    rbf->max_inputs[row-1] = VECTOR_ELT(v_obs, row) ;
+    v = VECTOR_ELT(v_obs, row) ;
+    rbf->max_inputs[row-1] = v ;
+    rbf->max_inputs[row-1] = v ;
+    means[row-1] = v ;
+    stds[row-1] = v*v ;
   }
-  while ((*get_observation_func)(v_obs, obs_no++, parm, 0,&class) == NO_ERROR)
+
+  while ((*get_observation_func)(v_obs, obs_no++, parm, 0, &class) == NO_ERROR)
   {
-    for (row = 1 ; row <= rbf->ninputs ; row++)
+    for (i = 0 ; i < rbf->ninputs ; i++)
     {
-      if (VECTOR_ELT(v_obs, row) > rbf->max_inputs[row-1])
-        rbf->max_inputs[row-1] = VECTOR_ELT(v_obs, row) ;
-      else if (VECTOR_ELT(v_obs, row) < rbf->min_inputs[row-1])
-        rbf->max_inputs[row-1] = VECTOR_ELT(v_obs, row) ;
+      v = VECTOR_ELT(v_obs, i+1) ;
+      if (v > rbf->max_inputs[i])
+        rbf->max_inputs[i] = v ;
+      else if (v < rbf->min_inputs[i])
+        rbf->max_inputs[i] = v ;
+      means[i] += v ;
+      stds[i] += (v*v) ;
     }
   }
 
   rbf->nobs = obs_no-1 ;
+  for (i = 0 ; i < rbf->ninputs ; i++)
+  {
+    mean = means[i] ;
+    if (obs_no)
+      mean /= (float)rbf->nobs ;
+    means[i] = mean ;
+    stds[i] = sqrt(stds[i] / rbf->nobs - mean*mean) ;
+  }
+
+  /* copy means from 0th CLUSTER_SET to all other CLUSTER_SETs */
+  for (c = 0 ; c < rbf->noutputs ; c++)
+  {
+    for (i = 0 ; i < rbf->ninputs ; i++)
+    {
+      rbf->cs[c]->means[i] = means[i] ;
+      rbf->cs[c]->stds[i] = stds[i] ;
+    }
+  }
+
   VectorFree(&v_obs) ;
   return(NO_ERROR) ;
 }
@@ -1215,7 +1289,7 @@ rbfComputeCurrentError(RBF *rbf, int (*get_observation_func)
     rbfNormalizeObservation(rbf, v_obs, v_obs) ;
     rbfComputeHiddenActivations(rbf, v_obs) ;
     rbfComputeOutputs(rbf) ;
-    error = rbfComputeErrors(rbf, class, v_error) ;
+    error = RBFcomputeErrors(rbf, class, v_error) ;
     sse += error ;
   }
   rms = sqrt(sse / (float)rbf->nobs) ;
@@ -1334,3 +1408,48 @@ rbfCalculateOutputWeights(RBF *rbf, int (*get_observation_func)
   VectorFree(&v_obs) ;
   return(NO_ERROR) ;
 }
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+          Allocate training-specific parameters.
+------------------------------------------------------*/
+static int
+rbfAllocateTrainingParameters(RBF *rbf)
+{
+  int i ;
+
+  rbf->observed = (unsigned char *)calloc(rbf->nobs, sizeof(unsigned char)) ;
+  if (!rbf->observed)
+    ErrorExit(ERROR_NO_MEMORY,
+              "rbfAllocateTrainingParms: could not allocate observed array") ;
+  rbf->m_delta_sigma_inv = (MATRIX **)calloc(rbf->nhidden, sizeof(MATRIX *));
+  if (!rbf->m_delta_sigma_inv)
+    ErrorExit(ERROR_NO_MEMORY,
+              "rbfAllocateTrainingParms: could not allocate delta sigma") ;
+  rbf->v_delta_means = (VECTOR **)calloc(rbf->nhidden, sizeof(VECTOR *));
+  if (!rbf->v_delta_means)
+    ErrorExit(ERROR_NO_MEMORY,
+              "rbfAllocateTrainingParms: could not allocate delta means") ;
+  for (i = 0 ; i < rbf->nhidden ; i++)
+  {
+    rbf->m_delta_sigma_inv[i] = 
+      MatrixAlloc(rbf->ninputs, rbf->ninputs, MATRIX_REAL) ;
+    if (!rbf->m_delta_sigma_inv[i])
+      ErrorExit(ERROR_NO_MEMORY,
+              "rbfAllocateTrainingParms: could not allocate delta sigma %d",i);
+    rbf->v_delta_means[i] = VectorAlloc(rbf->ninputs, MATRIX_REAL) ;
+    if (!rbf->v_delta_means[i])
+      ErrorExit(ERROR_NO_MEMORY,
+              "rbfAllocateTrainingParms: could not allocate delta means %d",i);
+  }
+  rbf->m_delta_wij = MatrixAlloc(rbf->nhidden+1, rbf->noutputs, MATRIX_REAL) ;
+  if (!rbf->m_delta_wij)
+    ErrorExit(ERROR_NO_MEMORY, 
+              "rbfAllocateTrainingParms: could not allocate m_delta_wij") ;
+
+  return(NO_ERROR) ;
+}
+
