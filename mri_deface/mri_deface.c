@@ -23,6 +23,7 @@
 char         *Progname ;
 static MORPH_PARMS  parms ;
 
+static int mean_flag = 0 ;
 static int fill_val = 0 ;
 static int radius = 7 ;
 static char *mask_fname = NULL ;
@@ -215,7 +216,7 @@ main(int argc, char *argv[])
   DiagInit(NULL, NULL, NULL) ;
   ErrorInit(NULL, NULL, NULL) ;
 
-  nargs = handle_version_option (argc, argv, "$Id: mri_deface.c,v 1.14 2004/02/26 19:03:05 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_deface.c,v 1.15 2004/04/21 21:53:29 fischl Exp $", "$Name:  $");
   argc -= nargs ;
   if (1 == argc)
     ErrorExit(ERROR_BADPARM, 
@@ -514,12 +515,16 @@ main(int argc, char *argv[])
 
     printf("resampling to original coordinate system...\n");
     mri_tmp = MRIresample(mri_out, mri_orig, SAMPLE_NEAREST) ;
+		MRIcopyHeader(mri_orig, mri_tmp) ;
     MRIfree(&mri_out) ; mri_out = mri_tmp ;
     if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
       MRIwrite(mri_out, "after_resampling.mgh") ;
   }
 
-  MRImask(mri_orig, mri_out, mri_orig, 255, fill_val) ;
+	if (mean_flag > 0)
+		MRImeanMask(mri_orig, mri_out, mri_orig, 255, mean_flag) ;
+	else
+		MRImask(mri_orig, mri_out, mri_orig, 255, fill_val) ;
   printf("writing anonymized volume to %s...\n", out_fname) ;
   MRIwrite(mri_orig, out_fname) ;
 
@@ -1189,6 +1194,12 @@ get_option(int argc, char *argv[])
     mask_fname = argv[2] ;
     nargs = 1 ;
     printf("using MR volume %s to mask input volume...\n", mask_fname) ;
+  }
+  else if (!stricmp(option, "MEAN"))
+  {
+		mean_flag = atoi(argv[2]) ;
+		nargs = 1 ;
+    printf("replacing values with local %dx%dx%d mean\n", mean_flag, mean_flag, mean_flag) ;
   }
   else if (!stricmp(option, "DEBUG_LABEL"))
   {
