@@ -62,8 +62,10 @@ switch(cbflag)
     ud.showlegend = 1;
     ud.fixaxes = 0;
     ud.axis = [];
-    ud = load_voxel(ud);
     [ud err] = load_parfile(ud);
+    [ud err] = load_tpx(ud);
+    ud = load_rescale(ud);
+    ud = load_voxel(ud);
     h = figure;
     set(gcf,'KeyPressFcn',         'yvpltraw(''kbd'');');
     set(gcf,'WindowButtonDownFcn', 'yvpltraw(''wbd'')');
@@ -207,6 +209,13 @@ else
   ud.resvar = sum((ud.vall - yhatall).^2)/trace(ud.R);
 end
 
+if(~isempty(ud.tpx(ud.nthrun).incl))
+  ud.t = ud.t(ud.tpx(ud.nthrun).incl);
+  ud.raw = ud.raw(ud.tpx(ud.nthrun).incl);
+  ud.yhat = ud.yhat(ud.tpx(ud.nthrun).incl);
+end
+
+
 if(~ud.showpar)
   plot(ud.t,ud.raw,'r-',ud.t,ud.yhat,'b-');
   if(ud.showlegend) 
@@ -347,6 +356,11 @@ function [ud, err] = load_voxel_allruns(ud)
       err = 1;
       return;
     end
+    if(~isempty(ud.tpx(nthrun).excl))
+      v(ud.tpx(nthrun).excl) = 0;
+    end
+    v = v*ud.rescale(nthrun);
+    
     vall = [vall; v];
   end
   ud.vall = vall;
@@ -390,3 +404,55 @@ function [ud, err] = set_matrices(ud)
   %if(ud.nthrun ~= 1) keyboard; end
 
 return;
+%----------------------------------------------------------%
+function [ud, err] = load_tpx(ud)
+
+err = 0;
+if(isempty(ud.XX.tpxlist)) return; end
+
+for nthrun = 1:ud.ad.Nruns,
+  tpxfile = deblank(ud.XX.tpxlist(nthrun,:));
+  if(~strcmp(tpxfile,'noexcl'))
+    run = ud.ad.runlist(nthrun);
+    stem = sprintf('%s/%03d/%s',ud.fsd,run,ud.ad.funcstem);
+    [nslices nrows ncols ntrs] = fmri_bvoldim(stem);
+    tpxfile = sprintf('%s/%s',ud.fsd,tpxfile);
+    %fprintf('loading %s\n',tpxfile);			  
+    [indTPExcl indTPIncl] = fast_ldtpexcl(tpxfile,ud.ad.TR,...
+					  ntrs,ud.ad.Nskip);
+  else
+    indTPExcl = [];
+    indTPIncl = [];
+  end
+  
+  ud.tpx(nthrun).incl = indTPIncl;
+  ud.tpx(nthrun).excl = indTPExcl;
+  
+end
+
+return;
+%----------------------------------------------------------%
+function [ud, err] = load_rescale(ud)
+
+err = 1;
+
+for nthrun = 1:ud.ad.Nruns,
+  if(~isempty(ud.XX.RescaleTarget))
+    run = ud.ad.runlist(nthrun);
+    mvf= sprintf('%s/%03d/%s.meanval',ud.fsd,run,ud.ad.funcstem);
+    fid = fopen(mvf,'r');
+    if(fid == -1) 
+      fprintf('ERROR: loading meanval %s \n',mvf);
+      return;
+    end
+    ud.meanval(nthrun) = fscanf(fid,'%f');
+    ud.rescale(nthrun) = ud.XX.RescaleTarget/ud.meanval(nthrun);
+  else
+    ud.rescale(nthrun) = 1;
+  end
+end
+
+err = 0;
+return;
+
+
