@@ -915,7 +915,8 @@ ScubaView::DoMouseMoved( int iWindow[2],
   // Handle the navigation tool.
   if( iTool.GetMode() == ScubaToolState::navigation ) {
 
-    if( iInput.Button() && !iInput.IsControlKeyDown() ) {
+    if( iInput.Button() && 
+	!iInput.IsControlKeyDown() && !iInput.IsShiftKeyDown() ) {
       
       float delta[2];
       delta[0] = (float)(mLastMouseMoved[0] - iWindow[0]) / 

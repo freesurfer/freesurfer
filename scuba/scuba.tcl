@@ -10,7 +10,7 @@ if { $err } {
     load [file dirname [info script]]/libscuba[info sharedlibextension] scuba
 }
 
-DebugOutput "\$Id: scuba.tcl,v 1.29 2004/05/10 21:38:56 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.30 2004/05/11 00:42:49 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -616,9 +616,9 @@ proc MakeScubaFrame { ifwTop } {
     togl $fwScuba -width 512 -height 512 -rgba true -ident $frameID -time 1
 
     bind $fwScuba <Motion> \
-	"%W MouseMotionCallback %x %y %b; ScubaMouseMotionCallback %x %y %b"
+	"%W MouseMotionCallback %x %y %b; ScubaMouseMotionCallback %x %y %s %b"
     bind $fwScuba <ButtonPress> \
-	"%W MouseDownCallback %x %y %b; ScubaMouseDownCallback %x %y %b"
+	"%W MouseDownCallback %x %y %b; ScubaMouseDownCallback %x %y %s %b"
     bind $fwScuba <ButtonRelease> "%W MouseUpCallback %x %y %b"
     bind $fwScuba <KeyRelease> "%W KeyUpCallback %x %y %K"
     bind $fwScuba <KeyPress> \
@@ -678,9 +678,48 @@ proc MakeScubaFrameBindings { iFrameID } {
     }
 }
 
-proc ScubaMouseMotionCallback { inX inY iButton } {
-    dputs "ScubaMouseMotionCallback  $inX $inY $iButton  "
+proc ScubaMouseMotionCallback { inX inY iState iButton } {
+    dputs "ScubaMouseMotionCallback  $inX $inY $iState $iButton  "
 
+    global gaChangeBC
+    global gaFrame
+    global gaLayer
+    global gaTool
+
+    # state 257 = mouse 1 + shift
+    if { $gaTool($gaFrame([GetMainFrameID],toolID),mode) == "navigation" &&
+	 $iState == 257 } {
+
+	set deltaX [expr $inX - $gaChangeBC(mouseDown,x)]
+	set deltaY [expr $inY - $gaChangeBC(mouseDown,y)]
+	set deltaBrightness 0
+	set deltaContrast 0
+	if { [expr abs($deltaX) > abs($deltaY)] } {
+	    set deltaBrightness [expr -$deltaX / 512.0]
+	} else {
+	    set deltaContrast [expr $deltaY / 512.0 * 30.0]
+	}
+
+	foreach layerID $gaLayer(idList) {
+	    if { [GetLayerType $layerID] == "2DMRI" } {
+		if { $deltaContrast != 0 } {
+		    Set2DMRILayerContrast $layerID \
+	     [expr $gaChangeBC($layerID,origContrast) + $deltaContrast]
+		}
+		if { $deltaBrightness != 0 } {
+		    Set2DMRILayerBrightness $layerID \
+	     [expr $gaChangeBC($layerID,origBrightness) + $deltaBrightness]
+		}
+		if { $layerID == $gaLayer(current,id) } {
+		    set gaLayer(current,brightness) \
+			[Get2DMRILayerBrightness $layerID]
+		    set gaLayer(current,contrast) \
+			[Get2DMRILayerContrast $layerID]
+		}
+	    }
+	    RedrawFrame [GetMainFrameID]
+	}
+    }
 
     set err [catch { 
 	set viewID [GetViewIDAtFrameLocation [GetMainFrameID] $inX $inY] 
@@ -694,10 +733,33 @@ proc ScubaMouseMotionCallback { inX inY iButton } {
     UpdateLabelArea $labelValues
 }
 
-proc ScubaMouseDownCallback { inX inY iButton } {
-    dputs "ScubaMouseDownCallback  $inX $inY $iButton  "
+proc ScubaMouseDownCallback { inX inY iState iButton } {
+    dputs "ScubaMouseDownCallback  $inX $inY $iState $iButton  "
 
     global gaView
+    global gaTool
+    global gaChangeBC
+    global gaFrame
+    global gaLayer
+
+    # If navigation and if shift is down, set up the change brightness
+    # contrast tool.
+    if { $gaTool($gaFrame([GetMainFrameID],toolID),mode) == "navigation" &&
+	 $iState == 1} {
+
+	set gaChangeBC(viewID) \
+	    [GetViewIDAtFrameLocation [GetMainFrameID] $inX $inY] 
+	set gaChangeBC(mouseDown,x) $inX
+	set gaChangeBC(mouseDown,y) $inY
+	foreach layerID $gaLayer(idList) {
+	    if { [GetLayerType $layerID] == "2DMRI" } {
+		set gaChangeBC($layerID,origBrightness) \
+		    [Get2DMRILayerBrightness $layerID]
+		set gaChangeBC($layerID,origContrast) \
+		    [Get2DMRILayerContrast $layerID]
+	    }
+	}
+    }
 
     set viewID [GetSelectedViewID [GetMainFrameID]]
     if { $viewID != $gaView(current,id) } {

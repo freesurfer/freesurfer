@@ -288,4 +288,4 @@ nav tools draw onscreen sliders for feedback
  
 
 optimization
- - replace if's in DrawIntoBuffer with function pointers, i.e. GetValueAtRASForSampleMethod and GetColorOfValueForColorMapMethod
+ - replace if's in DrawIntoBuffer with function pointers, i.e. GetValueAtRASForSampleMethod and GetColorOfValueForColorMapMethod - woudn't matter much

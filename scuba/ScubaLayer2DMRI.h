@@ -128,7 +128,6 @@ class ScubaLayer2DMRI : public Layer {
   PointList3<float>*             mCurrentLine;
   Point3<float>                  mFirstLineRAS;
   Point3<float>                  mLastLineMoveRAS;
-
 };
 
 
