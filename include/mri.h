@@ -122,10 +122,11 @@ MRI   *MRImultiply(MRI *mri1, MRI *mri2, MRI *mri_dst) ;
 MRI   *MRIabs(MRI *mri, MRI *mri_dst) ;
 
 /* filtering */
-MRI   *MRIsobel(MRI *mri_src, MRI *mri_mag, MRI *mri_x,MRI *mri_y,MRI *mri_z);
-MRI   *MRIxSobel(MRI *mri_src, MRI *mri_x) ;
-MRI   *MRIySobel(MRI *mri_src, MRI *mri_y) ;
-MRI   *MRIzSobel(MRI *mri_src, MRI *mri_z) ;
+MRI   *MRIplaneOfLeastVarianceNormal(MRI *mri_src, MRI *mri_dst, int wsize) ;
+MRI   *MRIsobel(MRI *mri_src, MRI *mri_grad, MRI *mri_mag);
+MRI   *MRIxSobel(MRI *mri_src, MRI *mri_x, int frame) ;
+MRI   *MRIySobel(MRI *mri_src, MRI *mri_y, int frame) ;
+MRI   *MRIzSobel(MRI *mri_src, MRI *mri_z, int frame) ;
 MRI   *MRIreduce(MRI *mri_src, MRI *mri_dst) ;
 MRI   *MRIconvolve1d(MRI *mri_src, MRI *mri_dst, float *kernel, 
                      int len, int axis) ;
@@ -136,12 +137,10 @@ MRI   *MRIdiffuseCurvature(MRI *mri_src, MRI *mri_dst,
                             double A,int niter, double slope) ;
 MRI   *MRIdiffusePerona(MRI *mri_src, MRI *mri_dst, 
                              double k, int niter,double slope);
-MRI   *MRIdirectionMap(MRI *mri_x, MRI *mri_y, MRI *mri_z, 
-                          MRI *mri_direction, int wsize);
+MRI   *MRIdirectionMap(MRI *mri_grad, MRI *mri_direction, int wsize);
 
 /* offset stuff */
-MRI   *MRIoffsetDirection(MRI *mri_x, MRI *mri_y, MRI *mri_z, int wsize, 
-                          MRI *mri_direction);
+MRI   *MRIoffsetDirection(MRI *mri_grad, int wsize, MRI *mri_direction);
 MRI   *MRIoffsetMagnitude(MRI *mri_src, MRI *mri_dst, int maxsteps) ;
 MRI   *MRIapplyOffset(MRI *mri_src, MRI *mri_dst, MRI *mri_offset) ;
 
@@ -209,7 +208,7 @@ int   MRItalairachToVoxel(MRI *mri, Real xt, Real yt, Real zt,
 #include "image.h"
 
 IMAGE *MRItoImage(MRI *mri, IMAGE *I, int slice) ;
-IMAGE *MRItoImageView(MRI *mri, IMAGE *I, int slice, int view) ;
+IMAGE *MRItoImageView(MRI *mri, IMAGE *I, int slice, int view, int frame) ;
 
 
 
@@ -219,9 +218,10 @@ IMAGE *MRItoImageView(MRI *mri, IMAGE *I, int slice, int view) ;
 #define MRIIvox(mri,x,y,z)  (((int *)mri->slices[z][y])[x])
 #define MRILvox(mri,x,y,z)  (((long *)mri->slices[z][y])[x])
 
-#define MRISseq_vox(mri,x,y,z,n)  (((short *)mri->slices[z+n*mri->depth][y])[x])
-#define MRIFseq_vox(mri,x,y,z,n)  (((float *)mri->slices[z+n*mri->depth][y])[x])
-#define MRIseq_vox(mri,x,y,z,n)   (((BUFTYPE *)mri->slices[z+n*mri->depth][y])[x])
+#define MRISseq_vox(mri,x,y,z,n)  (((short*)mri->slices[z+n*mri->depth][y])[x])
+#define MRIFseq_vox(mri,x,y,z,n)  (((float*)mri->slices[z+n*mri->depth][y])[x])
+#define MRIseq_vox(mri,x,y,z,n)   (((BUFTYPE *)\
+                                    mri->slices[z+n*mri->depth][y])[x])
 #define MRIIseq_vox(mri,x,y,z,n)  (((int *)mri->slices[z+n*mri->depth][y])[x])
 #define MRILseq_vox(mri,x,y,z,n)  (((long *)mri->slices[z+n*mri->depth][y])[x])
 
