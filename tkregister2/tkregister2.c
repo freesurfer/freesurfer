@@ -1,10 +1,10 @@
 /*============================================================================
  Copyright (c) 1996 Martin Sereno and Anders Dale
 =============================================================================*/
-/*   $Id: tkregister2.c,v 1.3 2002/08/20 16:59:23 greve Exp $   */
+/*   $Id: tkregister2.c,v 1.4 2002/09/09 20:32:26 greve Exp $   */
 
 #ifndef lint
-static char vcid[] = "$Id: tkregister2.c,v 1.3 2002/08/20 16:59:23 greve Exp $";
+static char vcid[] = "$Id: tkregister2.c,v 1.4 2002/09/09 20:32:26 greve Exp $";
 #endif /* lint */
 
 #define TCL
@@ -715,6 +715,7 @@ static int parse_commandline(int argc, char **argv)
     else if ( !strcmp(option, "--subject") ||
 	      !strcmp(option, "--s") ){
       if(nargc < 1) argnerr(option,1);
+      memset(subjectid,'\0',1000);
       memcpy(subjectid,pargv[0],strlen(pargv[0]));
       nargsused = 1;
     }
