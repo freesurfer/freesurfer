@@ -55,6 +55,60 @@ static int compare_sort_array(const void *pc1, const void *pc2) ;
 #define NORM  1.0f
 
 MRI *
+MRIdirectionMapUchar(MRI *mri_grad, MRI *mri_dst, int wsize)
+{
+  int     width, height, depth, x, y, z, whalf, x0, y0, z0 ;
+  float   dir, dot, *xpix, *ypix, *zpix, dx, dy, dz, ox, oy, oz, norm ;
+  BUFTYPE *dir_pix ;
+
+  whalf = wsize/2 ;
+  norm = (float)(wsize*wsize*wsize)*NORM ;
+  norm *= norm ;
+  width = mri_grad->width ;
+  height = mri_grad->height ;
+  depth = mri_grad->depth ;
+
+  if (!mri_dst)
+  {
+    mri_dst = MRIalloc(width, height, depth, MRI_UCHAR) ;
+    MRIcopyHeader(mri_grad, mri_dst) ;
+  }
+
+  for (z = whalf ; z < depth-whalf ; z++)
+  {
+    for (y = whalf ; y < height-whalf ; y++)
+    {
+      dir_pix = &MRIvox(mri_dst, whalf, y, z) ;
+      for (x = whalf ; x < width-whalf ; x++)
+      {
+        ox = MRIFvox(mri_grad, x, y, z) ;
+        oy = MRIFseq_vox(mri_grad, x, y, z, 1) ;
+        oz = MRIFseq_vox(mri_grad, x, y, z, 2) ;
+        for (dir = 0.0f, z0 = -whalf ; z0 <= whalf ; z0++)
+        {
+          for (y0 = -whalf ; y0 <= whalf ; y0++)
+          {
+            xpix = &MRIFvox(mri_grad, x-whalf, y+y0, z+z0) ;
+            ypix = &MRIFseq_vox(mri_grad, x-whalf, y+y0, z+z0, 1) ;
+            zpix = &MRIFseq_vox(mri_grad, x-whalf, y+y0, z+z0, 2) ;
+            for (x0 = -whalf ; x0 <= whalf ; x0++)
+            {
+              dx = *xpix++ ;
+              dy = *ypix++ ;
+              dz = *zpix++ ;
+              dot = dx*ox + dy*oy + dz*oz ;
+              dir += (x0*ox + y0*oy + z0*oz) * dot ;
+            }
+          }
+        }
+        *dir_pix++ = (BUFTYPE)nint(127*(1+tanh(dir/norm))) ;
+      }
+    }
+  }
+
+  return(mri_dst) ;
+}
+MRI *
 MRIdirectionMap(MRI *mri_grad, MRI *mri_dst, int wsize)
 {
   int     width, height, depth, x, y, z, whalf, x0, y0, z0 ;
@@ -3733,6 +3787,32 @@ MRImodeFilter(MRI *mri_src, MRI *mri_dst, int niter)
       }
     }
   }
+  return(mri_dst) ;
+}
+
+MRI  *
+MRIgradientDir2ndDerivative(MRI *mri_src, MRI *mri_dst, int wsize)
+{
+  float  dI_d2 ;
+  int    x, y, z, width, height, depth ;
+
+  mri_dst = MRIclone(mri_src, mri_dst) ;
+
+  width = mri_dst->width ; height = mri_dst->height ; depth = mri_dst->depth ; 
+
+  for (z = 0 ; z < depth ; z++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      for (x = 0 ; x < width ; x++)
+      {
+        dI_d2 = MRIvoxelGradientDir2ndDerivative(mri_src, x, y, z, wsize) ;
+        MRIvox(mri_dst, x, y, z) = (BUFTYPE)nint(127*(1+tanh(dI_d2/30))) ;
+
+      }
+    }
+  }
+
   return(mri_dst) ;
 }
 
