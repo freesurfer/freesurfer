@@ -91,7 +91,6 @@ static void do_file(char *fname)
   int type;
   char *at;
   char fname2[STRLEN];
-  int i;
 	MRI *mri ;
 	MATRIX *m ;
 
