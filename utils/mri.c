@@ -8,10 +8,10 @@
  *
 */
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: ebeth $
-// Revision Date  : $Date: 2004/01/23 22:31:04 $
-// Revision       : $Revision: 1.252 $
-char *MRI_C_VERSION = "$Revision: 1.252 $";
+// Revision Author: $Author: ch $
+// Revision Date  : $Date: 2004/01/23 22:49:28 $
+// Revision       : $Revision: 1.253 $
+char *MRI_C_VERSION = "$Revision: 1.253 $";
 
 /*-----------------------------------------------------
                     INCLUDE FILES
@@ -9809,6 +9809,7 @@ int MRIprintStats(MRI *mri, FILE *stream)
 
   float min, max, mean, std;
   int n;
+  double com[3];
 
   MRIstats(mri, &min, &max, &n, &mean, &std);
 
@@ -9817,6 +9818,10 @@ int MRIprintStats(MRI *mri, FILE *stream)
   fprintf(stream, "max = %g\n", max);
   fprintf(stream, "mean = %g\n", mean);
   fprintf(stream, "std = %g\n", std);
+
+  MRIcenterOfMass(mri, com, 0);
+
+  fprintf(stream, "com = %g %g %g\n", com[0], com[1], com[2]);
 
   return(NO_ERROR);
 
