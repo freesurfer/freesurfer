@@ -1922,6 +1922,9 @@ insert_thin_temporal_white_matter(MRI *mri_in, MRI *mri_labeled,
 #endif
       for (y = ymin-1 ; y <= ymax+1 ; y++)
       {
+        if (y < 0 || y >= height)
+          continue ;
+
         if (x == Ggca_x && y == Ggca_y && z == Ggca_z)
           DiagBreak() ;
 
