@@ -13,7 +13,7 @@
 #include "macros.h"
 #include "fio.h"
 
-static char vcid[] = "$Id: mris_convert.c,v 1.9 2000/06/30 14:55:35 fischl Exp $";
+static char vcid[] = "$Id: mris_convert.c,v 1.10 2000/11/20 19:14:08 fischl Exp $";
 
 
 /*-------------------------------- CONSTANTS -----------------------------*/
@@ -241,7 +241,7 @@ convertToWFile(char *in_fname, char *out_fname)
 {
   FILE   *infp, *outfp ;
   char   line[300], *cp ;
-  int    vno, l = 0, num ;
+  int    vno, l = 0, num, ilat ;
   float  val ;
 
   fprintf(stderr, "writing w file %s...\n", out_fname) ;
@@ -254,6 +254,8 @@ convertToWFile(char *in_fname, char *out_fname)
     ErrorExit(ERROR_NOFILE, "%s: Can't create file %s\n",Progname,in_fname) ;
 
 
+  cp = fgetl(line, 299, infp) ;
+  ilat = atoi(cp) ; /* not used at the moment */
   cp = fgetl(line, 299, infp) ;
   num = atoi(cp) ;
   fwrite2(0,outfp);
