@@ -14,7 +14,7 @@
 #include "mrisurf.h"
 #include "macros.h"
 
-static char vcid[] = "$Id: mris_show.c,v 1.3 1997/07/14 18:27:05 fischl Exp $";
+static char vcid[] = "$Id: mris_show.c,v 1.4 1997/07/25 22:15:38 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -56,12 +56,15 @@ static float delta_angle = 2*DELTA_ANGLE ;
 #define LEFT_HEMISPHERE_ANGLE   -90.0
 
 #define ORIG_SURFACE_LIST   1
-#define ELLIPSOID_LIST      2
+#define ELLIPSOID_LIST      1
 
 static int current_list = ORIG_SURFACE_LIST ;
 
 #define SCALE_FACTOR   0.55f
 #define FOV            (256.0f*SCALE_FACTOR)
+
+static float momentum = -1.0f ;
+static int niterations = 50 ;
 
 int
 main(int argc, char *argv[])
@@ -89,11 +92,13 @@ main(int argc, char *argv[])
   surf_fname = in_fname = argv[1] ;
   out_fname = argv[2] ;
   mris_orig = mris = MRISread(in_fname) ;
+  if (!mris)
+    ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
+              Progname, in_fname) ;
+
   if (talairach_flag)
     MRIStalairachTransform(mris_orig, mris_orig) ;
   MRIScenter(mris_orig, mris_orig) ;
-  if (!mris)
-    exit(Gerror) ;
 #if 0
   fprintf(stderr, "(%2.1f, %2.1f, %2.1f) --> (%2.1f, %2.1f, %2.1f), ctr "
           "(%2.1f, %2.1f, %2.1f)\n",
@@ -139,6 +144,7 @@ main(int argc, char *argv[])
 #endif
 
   glutShowWindow() ;
+
   glutMainLoop() ;               /* enter event handling loop */
   MRISfree(&mris) ;
 
@@ -171,6 +177,19 @@ get_option(int argc, char *argv[])
   case 'U':
     print_usage() ;
     exit(1) ;
+    break ;
+  case 'N':
+    sscanf(argv[2], "%d", &niterations) ;
+    nargs = 1 ;
+    fprintf(stderr, "using niterations = %d\n", niterations) ;
+    break ;
+  case 'M':
+    sscanf(argv[2], "%f", &momentum) ;
+    if (momentum >= 1.0f)
+      ErrorExit(ERROR_BADPARM, "%s: invalid momentum %2.3f",
+                Progname, momentum) ;
+    nargs = 1 ;
+    fprintf(stderr, "using momentum = %2.3f\n", momentum) ;
     break ;
   default:
     fprintf(stderr, "unknown option %s\n", argv[1]) ;
@@ -224,7 +243,7 @@ float pup = 0.07;  /* dist point above surface */
 int
 MRISGLcompile(MRI_SURFACE *mris)
 {
-  int          k,n, red, green, blue ;
+  int          k,n, red, green, blue, error ;
   face_type    *f;
   vertex_type  *v ;
   float        v1[3], xf, yf, zf, xt, yt, zt, xo, yo, zo, xd, yd, zd,td,fd,od,
@@ -237,6 +256,7 @@ MRISGLcompile(MRI_SURFACE *mris)
   xf = mris->v_frontal_pole->x ;
   yf = mris->v_frontal_pole->y ;
   zf = mris->v_frontal_pole->z ;
+  mris->v_temporal_pole = &mris->vertices[79891] ;
   if (mris->v_temporal_pole)
   {
     xt = mris->v_temporal_pole->x ;
@@ -277,8 +297,12 @@ MRISGLcompile(MRI_SURFACE *mris)
         x = (Real)v->x ; y = (Real)v->y ; z = (Real)v->z ;
         transform_point(mris->linear_transform, -x, z, y, &xtal, &ytal,&ztal);
       }
+#if 0
+      if (f->v[n] == 79891)
+        glColor3ub(0,0,200) ;      /* paint the temporal pole blue */
+#endif
       if (ytal < MAX_TALAIRACH_Y)
-          glColor3ub(0,0,meshb) ;      /* paint the temporal pole blue */
+        glColor3ub(0,0,meshb) ;      /* paint the temporal pole blue */
       else if (td < POLE_DISTANCE)
         glColor3ub(0,0,255) ;          /* paint the temporal pole blue */
       else if (fd < POLE_DISTANCE)
@@ -317,6 +341,15 @@ MRISGLcompile(MRI_SURFACE *mris)
   if (Gdiag & DIAG_SHOW)
     fprintf(stderr, "done.\n") ;
 
+  error = glGetError() ;
+  if (error != GL_NO_ERROR)
+  {
+    const char *errstr ;
+
+    errstr = gluErrorString(error) ;
+    fprintf(stderr, "GL error %d: %s\n", error, errstr) ;
+    exit(1) ;
+  }
   return(NO_ERROR) ;
 }
 
@@ -391,41 +424,55 @@ gfxinit(MRI_SURFACE *mris)
   }
 }
 
-
-
 static void
 keyboard_handler(unsigned char key, int x, int y)
 {
-  int   redraw = 1 ;
+  int   redraw = 1, niter = 1 ;
   char  wname[100] ;
   float angle ;
 
   glMatrixMode(GL_MODELVIEW);
   switch (key)
   {
+  case 'W':  /* write it out */
+    if (mris->hemisphere == RIGHT_HEMISPHERE)
+      sprintf(wname, "rh.surf") ;
+    else
+      sprintf(wname, "lh.surf") ;
+    fprintf(stderr, "writing surface to %s\n", wname) ;
+    MRISwrite(mris, wname) ;
+    break ;
   case '7':
-    glTranslatef(0.0f, 10.0f, 10.0f) ;
+    glMatrixMode(GL_PROJECTION);
+    glTranslatef(-10.0f, 10.0f, 10.0f) ;
     break ;
   case '9':
-    glTranslatef(0.0f, 10.0f, -10.0f) ;
+    glMatrixMode(GL_PROJECTION);
+    glTranslatef(10.0f, 10.0f, 0.0f) ;
     break ;
   case '1':
-    glTranslatef(0.0f, -10.0f, 10.0f) ;
+    glMatrixMode(GL_PROJECTION);
+    glTranslatef(-10.0f, -10.0f, 0.0f) ;
     break ;
   case '3':
-    glTranslatef(0.0f, -10.0f, -10.0f) ;
+    glMatrixMode(GL_PROJECTION);
+    glTranslatef(10.0f, -10.0f, 0.0f) ;
     break ;
   case '8':
+    glMatrixMode(GL_PROJECTION);
     glTranslatef(0.0f, 10.0f, 0.0f) ;
     break ;
   case '2':
+    glMatrixMode(GL_PROJECTION);
     glTranslatef(0.0f, -10.0f, 0.0f) ;
     break ;
   case '4':
-    glTranslatef(0.0f, 0.0f, 10.0f) ;
+    glMatrixMode(GL_PROJECTION);
+    glTranslatef(-10.0f, 0.0f, 0.0f) ;
     break ;
   case '6':
-    glTranslatef(0.0f, 0.0f, -10.0f) ;
+    glMatrixMode(GL_PROJECTION);
+    glTranslatef(10.0f, 0.0f, 0.0f) ;
     break ;
   case '+':
     delta_angle *= 2.0f ;
@@ -441,6 +488,7 @@ keyboard_handler(unsigned char key, int x, int y)
   case 'h':
     home(mris) ;
     break ;
+#if 0
   case 'x':   /* local x axis is reversed */
     glRotatef(-delta_angle, 1.0f, 0.0f, 0.0f) ;
     break ;
@@ -459,8 +507,10 @@ keyboard_handler(unsigned char key, int x, int y)
   case 'Z':
     glRotatef(-delta_angle, 0.0f, 1.0f, 0.0f) ;
     break ;
+#endif
   case 'D':
   case 'd':
+  case 'r':
     redraw = 1 ;
     break ;
   case 'T':
@@ -479,8 +529,10 @@ keyboard_handler(unsigned char key, int x, int y)
   case 'P':
   case 'p':
     mris_ellipsoid = MRISprojectOntoEllipsoid(mris, NULL, 0.0f, 0.0f, 0.0f);
+    MRISfree(&mris_orig) ;
     mris = mris_ellipsoid ;
 #if COMPILE_SURFACE
+    glDeleteLists(ORIG_SURFACE_LIST, 1) ;
     glNewList(ELLIPSOID_LIST, GL_COMPILE) ;
     MRISGLcompile(mris) ;
     glEndList() ;
@@ -493,6 +545,18 @@ keyboard_handler(unsigned char key, int x, int y)
     else
       angle = LEFT_HEMISPHERE_ANGLE ;
     glRotatef(angle, 0.0f, 1.0f, 0.0f) ;
+    break ;
+  case 'u':
+    niter = niterations ;
+  case 'U':
+    MRISunfold(mris, niter, momentum, 1.0f, 0.0f, 0.0f) ;
+    /*    MRISprojectOntoEllipsoid(mris_ellipsoid, mris_ellipsoid, 0.0f, 0.0f, 0.0f);*/
+#if COMPILE_SURFACE
+    glDeleteLists(ELLIPSOID_LIST, 1) ;
+    glNewList(ELLIPSOID_LIST, GL_COMPILE) ;
+    MRISGLcompile(mris) ;
+    glEndList() ;
+#endif
     break ;
   default:
     redraw = 0 ;
@@ -670,37 +734,40 @@ mouse_handler(int button, int state, int x, int y)
 static void
 special_key_handler(int key, int x, int y)
 {
-  int redraw = 1, kb_state ;
+  int   redraw = 1, kb_state ;
+  float angle ;
 
   kb_state = glutGetModifiers() ;
 
   glMatrixMode(GL_MODELVIEW);
   if (kb_state & GLUT_ACTIVE_SHIFT)
-    delta_angle = 180.0f ;
+    angle = 180.0f ;
+  else
+    angle = delta_angle ;
 
   switch (key)
   {
   case GLUT_KEY_F1:
     break ;
   case GLUT_KEY_LEFT:
-    glRotatef(delta_angle, 0.0f, 1.0f, 0.0f) ;
+    glRotatef(angle, 0.0f, 1.0f, 0.0f) ;
     break ;
   case GLUT_KEY_RIGHT:
-    glRotatef(-delta_angle, 0.0f, 1.0f, 0.0f) ;
+    glRotatef(-angle, 0.0f, 1.0f, 0.0f) ;
     break ;
   case GLUT_KEY_DOWN:
-    glRotatef(-delta_angle, 1.0f, 0.0f, 0.0f) ;
+    glRotatef(-angle, 1.0f, 0.0f, 0.0f) ;
     break ;
   case GLUT_KEY_UP:
-    glRotatef(delta_angle, 1.0f, 0.0f, 0.0f) ;
+    glRotatef(angle, 1.0f, 0.0f, 0.0f) ;
     break ;
 #define GLUT_KEY_DELETE (GLUT_KEY_INSERT+1)
   case GLUT_KEY_DELETE:
   case GLUT_KEY_PAGE_UP:
-    glRotatef(delta_angle, 0.0f, 0.0f, 1.0f) ;
+    glRotatef(angle, 0.0f, 0.0f, 1.0f) ;
     break ;
   case GLUT_KEY_PAGE_DOWN:
-    glRotatef(-delta_angle, 0.0f, 0.0f, 1.0f) ;
+    glRotatef(-angle, 0.0f, 0.0f, 1.0f) ;
     break ;
   case GLUT_KEY_INSERT:
     break ;
