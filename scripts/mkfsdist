@@ -5,22 +5,39 @@
 # editing.
 #
 # mkfsdist
-# $Id: mkfsdist,v 1.18 2003/05/09 16:49:32 kteich Exp $
+# $Id: mkfsdist,v 1.19 2003/05/09 19:24:22 kteich Exp $
 #
-# Usage: mkfsdist targetdir
+# Usage: mkfsdist sourcedir targetdir platform [options]
 #
-# Purpose: creates a FreeSurfer distribution in the directory 
+# Purpose: creates a FreeSurfer distribution from sourcedir in the targetdir 
 # specified on the command-line. The distribution can be installed 
 # by following the instructions in freesurfer/INSTALL.
-#
-# Note that the source directory can be any freesurfer installation,
-# but will probably be freesurfer_alpha or freesurfer_dev. Here we
-# will just use 'freesurfer' to refer to the destination directory.
+
+
+# TO MAKE THE DISTRO:
+
+# - Create the target directory, something like freesurfer-VERSION/. this
+#   is the destination directory. For example, ~/work/freesurfer-0.8.2/.
+
+# - Copy freesurfer_dev or freesurfer_alpha to a new directory called
+#   freesurfer/. For example, ~/work/freesurfer/.
+
+# - Run mkfsdist:
+#    $ mkfsdist ~/work/freesurfer freesurfer-0.8.2 PLATFORM
+#   with appropriate substitutions. PLATFORM can be Linux or Darwin 
+#   or Solaris.
+
+# - mkfsdist will fill ~/work/freesurfer with tarballs and other
+#   files. Tar up this directory:
+#    $ tar cfzv freesurfer-0.8.2-Linux.tar.gz ~/work/freesurfer
+#   with appropriate OS name in the tarball name.
+
+
 #
 # These files are created in the target directory:
 #  INSTALL -- installation instructions (copied from source dir);
 #  license.freesurfer -- license agreement (copied from source dir);
-#  FreeSurfer-PLATOFORM.tar.gz -- the freesurfer tree
+#  freesurfer.tar.gz -- the freesurfer tree
 #  minc.tar.gz -- ~inverse/minc (for running functional autoreg)
 #  talairach.tar.gz -- $SUBJECTS_DIR/talairach (MNI 305)
 #  bert.001.tar.gz -- anatomical tutorial data, run 1
@@ -54,7 +71,7 @@
 #  files found in tar-exclude-more and tar-exclude-gca.
 #
 # 
-set VERSION = '$Id: mkfsdist,v 1.18 2003/05/09 16:49:32 kteich Exp $';
+set VERSION = '$Id: mkfsdist,v 1.19 2003/05/09 19:24:22 kteich Exp $';
 
 # To include the autoseg in the distribution set environment varible
 # KEEPAUTOSEG to 1 before running mkfsdist (ie, setenv KEEPAUTOSEG 1)
@@ -95,7 +112,7 @@ if($#argv < 3) then
   echo "     --no-bert-func, --bert-func (default yes)"
   echo "     --no-data: equivalent to --no-average, --no-minc, --no-talairach, --no-bert-*"
   echo ""
-  echo "Ex: mkfsdist ~inverse/freesurfer_alpha ~/work Linux --no-data"
+  echo "Ex: mkfsdist ~/work/freesurfer ~/work/freesurfer-0.8.2 Linux --no-data"
   echo ""
   exit 1;
 endif
@@ -156,9 +173,20 @@ if( "$PLATFORM" != "Linux" && "$PLATFORM" != "Darwin" && "$PLATFORM" != "Solaris
   exit 1;
 endif
 
-# Check if the source dir is freesurfer_dev or freesurfer_alpha #
-if( "`basename $SOURCE_DIR`" != "freesurfer_alpha" && "`basename $SOURCE_DIR`" != "freesurfer_dev" ) then
-  echo "WARNING: source dir is not freesurfer_alpha or freesurfer_dev."
+# Check if the source dir's name is freesurfer #
+if( "`basename $SOURCE_DIR`" != "freesurfer" ) then
+    echo "ERROR: Source dir is not */freesurfer"
+    echo "       This means that the tarball created will not have the"
+    echo "       directory name, and the INSTALL instructions will be"
+    echo "       incorrect."
+    echo ""
+    echo "       To make a distribution, copy freesurfer_dev or _alpha"
+    echo "       to a directory called freesurfer/, and run this script"
+    echo "       on that directory."
+    echo ""
+    echo "       For more instructions, look at the source for this"
+    echo "       script."
+    exit 1;
 endif
 
 # Check that source dir is there #
@@ -313,7 +341,7 @@ find $SOURCE_DIR_REL -name tar-exclude-more >> $EXCLUDE_FILE
 echo "--------------------------------------------" | tee -a $LF
 echo "Tarring $SOURCE_DIR" | tee -a $LF
 date | tee -a $LF
-set TF = $TARGET_DIR/FreeSurfer-${PLATFORM}.tar
+set TF = $TARGET_DIR/freesurfer.tar
 rm -f $TF
 set tarcmd = ( tar cv -f $TF  $SOURCE_DIR_REL --exclude-from $EXCLUDE_FILE )
 if( -e $SOURCE_DIR/tar-exclude ) then
