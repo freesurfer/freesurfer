@@ -1,8 +1,8 @@
 #!/bin/csh -f
 # cmpsesssnr-sess - compare snrs across session
 #
-# $Id: cmpsesssnr-sess,v 1.1 2003/12/06 22:53:03 greve Exp $
-set VERSION = '$Id: cmpsesssnr-sess,v 1.1 2003/12/06 22:53:03 greve Exp $';
+# $Id: cmpsesssnr-sess,v 1.2 2003/12/19 21:52:22 greve Exp $
+set VERSION = '$Id: cmpsesssnr-sess,v 1.2 2003/12/19 21:52:22 greve Exp $';
 
 set inputargs = ($argv);
 set DateStr = "`date '+%y%m%d%H%M'`"
@@ -110,9 +110,25 @@ indmasknot = find(~mask);
 fprintf('Found %d in mask\n',length(indmask));
 
 sig1 = fmri_ldbvolume(sig1stem);
+sig1(indmasknot) = 0;
 sig2 = fmri_ldbvolume(sig2stem);
+sig2(indmasknot) = 0;
 
 mristruct = fast_ldbhdr(sig1stem);
+
+fprintf('\n\n\nthresh  N1 N1not2 N2 N2not1 N1and2 N1or2\n');
+for th = 5:20
+  N1 = length(find(abs(sig1) >= th));
+  N1not2 = length(find(abs(sig1) >= th & abs(sig2) < th));
+  N2 = length(find(abs(sig2) >= th));
+  N2not1 = length(find(abs(sig2) >= th & abs(sig1) < th));
+  N1and2 = length(find(abs(sig1) >= th & abs(sig2) >= th));
+  N1or2  = length(find(abs(sig1) >= th | abs(sig2) >= th));
+  fprintf('%2g  %4d  %4d  %4d  %4d  %4d %4d\n',...
+    th,N1,N1not2,N2,N2not1,N1and2,N1or2);
+end
+
+
 
 indmap = find(abs(sig1) > sigthresh | abs(sig2) > sigthresh);
 indmapnot = find(abs(sig1) < sigthresh & abs(sig2) < sigthresh);
@@ -133,7 +149,7 @@ indneg = find(snr2 <= snr1);
 dpctsnr(indneg) = -snr1(indneg) ./ snr2(indneg);
 
 %dpctsnr = 100*(snr2-snr1)./snr1; % increases hot
-dpctsnr(indmasknot) = 0;
+%dpctsnr(indmasknot) = 0; % now done above
 dpctsnr(indmapnot) = 0;
 
 fmri_svbvolume(dpctsnr,rsnrstem);
