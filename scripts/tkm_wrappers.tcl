@@ -1157,9 +1157,14 @@ proc tkm_BrowseFile { iVariable {iDefaultFunc ""} {ilDirectories ""} } {
     # create the dialog box if it doesn't already exist
     set wwDirDlog [tix filedialog tixFileSelectDialog]
     
-    # set the default location 
+    # set the default location. if it's actually returning a file
+    # name, get just the directory portion instead.
     if { $iDefaultFunc != "" } {
-	[$wwDirDlog subwidget fsbox] configure -directory [eval $iDefaultFunc]
+	set fnDefault [eval $iDefaultFunc]
+	if { [file isfile $fnDefault] } {
+	    set fnDefault [file dirname $fnDefault]
+	}
+	[$wwDirDlog subwidget fsbox] configure -directory $fnDefault
     }
     
     foreach sDirectory $ilDirectories {
@@ -1216,9 +1221,14 @@ proc tkm_BrowseDirectory { iVariable {iDefaultFunc ""} {ilDirectories ""} } {
 	tixDirSelectDialog $wwDirDlog
     }
     
-    # set the default location 
+    # set the default location. if it's actually returning a file
+    # name, get just the directory portion instead.
     if { $iDefaultFunc != "" } {
-	[$wwDirDlog subwidget dirbox] configure -value [eval $iDefaultFunc]
+	set fnDefault [eval $iDefaultFunc]
+	if { [file isfile $fnDefault] } {
+	    set fnDefault [file dirname $fnDefault]
+	}
+	[$wwDirDlog subwidget dirbox] configure -value $fnDefault
     }
     
     foreach sDirectory $ilDirectories {
