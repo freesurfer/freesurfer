@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <string.h>
 #include "xGrowableArray.h"
 #include "xDebug.h"
 

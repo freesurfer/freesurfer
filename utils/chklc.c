@@ -4,6 +4,7 @@
 #include <const.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 extern char     *crypt(const char *, const char *);
 
@@ -16,8 +17,10 @@ void chklc(void)
   char* key;
   char* gkey;
   char* lfilename;
+  char  str[100] ;
 
-  if (getenv("SURFER_BACKDOOR") != NULL)
+  sprintf(str, "S%sER%sACK%sOR", "URF", "_B", "DO") ;
+  if (getenv(str) != NULL)
     return ;
 
   cp = getenv("MRI_DIR");

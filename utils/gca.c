@@ -2730,7 +2730,7 @@ GCAlabelMri(GCA *gca, MRI *mri, int label, LTA *lta)
 {
   int      width, height, depth, x, y, z, xn, yn, zn, n ;
   float    val ;
-  GC1D     *gc ;
+  GC1D     *gc = NULL ;
   GCA_NODE *gcan ;
   MRI      *mri_norm ;
 
