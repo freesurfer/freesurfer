@@ -2402,11 +2402,14 @@ Volm_tErr Volm_SetColorMinMax ( mriVolumeRef this,
   eResult = Volm_Verify( this );
   DebugAssertThrow( (eResult == Volm_tErr_NoErr) );
   
-  DebugNote( ("Checking parameters") );
-  DebugAssertThrowX( (ifMin >= this->mfMinValue && ifMin <= this->mfMaxValue),
+  DebugNote( ("Checking if min is okay") );
+  DebugAssertThrowX( (rint(ifMin) >= rint(this->mfMinValue) && 
+		      rint(ifMin) <= rint(this->mfMaxValue)),
 		     eResult, Volm_tErr_InvalidParamater );
-  DebugAssertThrowX( (ifMax >= this->mfMinValue && ifMax <= this->mfMaxValue),
-		     eResult, Volm_tErr_InvalidParamater );
+  DebugNote( ("Checking if max is okay") );
+  DebugAssertThrowX( (rint(ifMax) >= rint(this->mfMinValue) && 
+		      rint(ifMax) <= rint(this->mfMaxValue)),
+		      eResult, Volm_tErr_InvalidParamater );
   
   /* set the values */
   this->mfColorMin = ifMin;
