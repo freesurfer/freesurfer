@@ -13,7 +13,7 @@
 #include "mri.h"
 #include "macros.h"
 
-static char vcid[] = "$Id: mris_smooth.c,v 1.6 1999/11/22 13:16:02 fischl Exp $";
+static char vcid[] = "$Id: mris_smooth.c,v 1.7 2003/01/22 01:05:20 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -25,8 +25,8 @@ static void print_version(void) ;
 char *Progname ;
 
 static int normalize_flag = 0 ;
-static char curvature_fname[100] = "curv" ;
-static char area_fname[100] = "area" ;
+static char curvature_fname[STRLEN] = "curv" ;
+static char area_fname[STRLEN] = "area" ;
 static int nbrs = 2 ;
 static int navgs = 10 ;
 static int niterations = 10 ;
@@ -35,7 +35,7 @@ static int rescale = 0 ;
 int
 main(int argc, char *argv[])
 {
-  char               **av, *in_fname, *out_fname, fname[100], path[100] ;
+  char               **av, *in_fname, *out_fname, fname[STRLEN], path[STRLEN] ;
   int                ac, nargs ;
   MRI_SURFACE        *mris ;
 
