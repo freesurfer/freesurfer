@@ -10,11 +10,17 @@
 #include "macros.h"
 #include "proto.h"
 
-static char vcid[] = "$Id: mri_fill.c,v 1.23 1999/06/19 21:31:01 fischl Exp $";
+static char vcid[] = "$Id: mri_fill.c,v 1.24 1999/06/19 21:47:44 fischl Exp $";
 
 /*-------------------------------------------------------------------
                                 CONSTANTS
 -------------------------------------------------------------------*/
+
+/*
+  sorry, but RH and LH are messed up in this file. By the time I discovered it, it was 
+  too late to fix. Maybe someday I'll have the time, in which case I'll remove this
+  comment....
+*/
 
 #define PONS_LOG_FILE                   "pons.log"
 #define CC_LOG_FILE                     "cc.log"
@@ -241,36 +247,36 @@ main(int argc, char *argv[])
   }
 
   if (!pons_seed_set)
-	{
-		MRI  *mri_tmp, *mri_mask ;
+  {
+    MRI  *mri_tmp, *mri_mask ;
 
-		if (cc_mask)
-		{
-			fprintf(stderr, 
-							"masking possible pons locations using cc cutting plane\n") ;
-			mri_tmp = MRIcopy(mri_im, NULL) ;
-			mri_mask = MRIcopy(mri_cc, NULL) ;
-			MRIdilate(mri_mask, mri_mask) ; MRIdilate(mri_mask, mri_mask) ;
-			MRIreplaceValues(mri_mask, mri_mask, 0, 255) ;
-			MRIreplaceValues(mri_mask, mri_mask, 1, 0) ;
-			for (x = x_cc-64 ; x < x_cc+64 ; x++)
-				MRIeraseTalairachPlaneNew(mri_tmp, mri_mask, MRI_SAGITTAL, x, y_cc, 
-																	z_cc, 2*SLICE_SIZE, 0);
-			if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
-			{
-				MRIwrite(mri_tmp, "erased.mnc") ;
-				MRIwrite(mri_mask, "mask.mnc") ;
-			}
-		}
-		else
-			mri_tmp = mri_im ;
+    if (cc_mask)
+    {
+      fprintf(stderr, 
+              "masking possible pons locations using cc cutting plane\n") ;
+      mri_tmp = MRIcopy(mri_im, NULL) ;
+      mri_mask = MRIcopy(mri_cc, NULL) ;
+      MRIdilate(mri_mask, mri_mask) ; MRIdilate(mri_mask, mri_mask) ;
+      MRIreplaceValues(mri_mask, mri_mask, 0, 255) ;
+      MRIreplaceValues(mri_mask, mri_mask, 1, 0) ;
+      for (x = x_cc-64 ; x < x_cc+64 ; x++)
+        MRIeraseTalairachPlaneNew(mri_tmp, mri_mask, MRI_SAGITTAL, x, y_cc, 
+                                  z_cc, 2*SLICE_SIZE, 0);
+      if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+      {
+        MRIwrite(mri_tmp, "erased.mnc") ;
+        MRIwrite(mri_mask, "mask.mnc") ;
+      }
+    }
+    else
+      mri_tmp = mri_im ;
     find_pons(mri_tmp, &pons_tal_x, &pons_tal_y, &pons_tal_z) ;
-		if (mri_tmp != mri_im)
-		{
-			MRIfree(&mri_tmp) ;
-			MRIfree(&mri_mask) ;
-		}
-	}
+    if (mri_tmp != mri_im)
+    {
+      MRIfree(&mri_tmp) ;
+      MRIfree(&mri_mask) ;
+    }
+  }
   mri_pons = 
     find_cutting_plane(mri_im, pons_tal_x,pons_tal_y, pons_tal_z,
                        MRI_HORIZONTAL, &x_pons, &y_pons, &z_pons,
@@ -635,9 +641,9 @@ get_option(int argc, char *argv[])
   }
   else if (!strcmp(option, "ccmask"))
   {
-		cc_mask = 1 /*!cc_mask*/ ;
+    cc_mask = 1 /*!cc_mask*/ ;
     fprintf(stderr,"%susing corpus callosum to mask possible location of "
-						"pons.\n", cc_mask ? "" : "not ");
+            "pons.\n", cc_mask ? "" : "not ");
   }
   else switch (toupper(*option))
   {
@@ -1536,13 +1542,13 @@ mriExtendMaskDownward(MRI *mri)
       {
         if ((val = *psrc++) > 0)
         {
-					for (y1 = y ; y1 < mri->height ; y1++)
-						MRIvox(mri, x, y1, z) = val ;
+          for (y1 = y ; y1 < mri->height ; y1++)
+            MRIvox(mri, x, y1, z) = val ;
         }
       }
     }
   }
-	return(NO_ERROR) ;
+  return(NO_ERROR) ;
 }
 
 #endif
