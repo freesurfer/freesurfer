@@ -392,7 +392,7 @@ LabelWrite(LABEL *area, char *label_name)
 {
   FILE   *fp ;
   int    n, num ;
-  char   fname[200], *cp, subjects_dir[100], lname[200] ;
+  char   fname[STRLEN], *cp, subjects_dir[STRLEN], lname[STRLEN] ;
 
   strcpy(lname, label_name) ;
   cp = strstr(lname, ".label") ;
@@ -756,7 +756,7 @@ LabelFillAll(LABEL *area, int *vertex_list, int nvertices,
 static Transform *
 labelLoadTransform(char *subject_name, char *sdir,General_transform *transform)
 {
-  char xform_fname[200] ;
+  char xform_fname[STRLEN] ;
 
   sprintf(xform_fname, "%s/%s/mri/transforms/talairach.xfm",
           sdir, subject_name) ;
