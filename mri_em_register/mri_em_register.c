@@ -6,8 +6,8 @@
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/02/02 14:31:39 $
-// Revision       : $Revision: 1.34 $
+// Revision Date  : $Date: 2004/02/04 14:49:17 $
+// Revision       : $Revision: 1.35 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -136,7 +136,7 @@ main(int argc, char *argv[])
   float        old_log_p, log_p ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_em_register.c,v 1.34 2004/02/02 14:31:39 tosa Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_em_register.c,v 1.35 2004/02/04 14:49:17 tosa Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -520,11 +520,12 @@ main(int argc, char *argv[])
   /////////////////////////////////////////////////////////////////////
   printf("writing output transformation to %s...\n", out_fname) ;
   // writing transform section here
+  // create gca volume for outputting dirction cosines and c_(ras)
+  mri_dst = MRIallocHeader(gca->width, gca->height, gca->depth, mri_in->type);
+  GCAcopyDCToMRI(gca, mri_dst);
+  strcpy(mri_dst->fname,gca_fname); // copy gca name
   if (!stricmp(out_fname+strlen(out_fname)-3, "XFM"))
   {
-    mri_dst = MRIallocHeader(gca->width, gca->height, gca->depth, mri_in->type);
-    GCAcopyDCToMRI(gca, mri_dst);
-    strcpy(mri_dst->fname,gca_fname); // copy gca name
     printf("converting xform to RAS...\n") ; 
     printf("initial:\n") ;
     MatrixPrint(stdout, parms.lta->xforms[0].m_L) ;
@@ -1548,6 +1549,7 @@ find_optimal_linear_xform(GCA *gca, GCA_SAMPLE *gcas,
       fflush(stdout) ;
     }
 
+    // scale /////////////////////////////////////////////////////////////
     for (x_scale = min_scale ; x_scale <= max_scale ; x_scale += delta_scale)
     {
       /*      printf("x_scale = %2.3f\n", x_scale) ;*/
@@ -1565,6 +1567,7 @@ find_optimal_linear_xform(GCA *gca, GCA_SAMPLE *gcas,
           m_tmp = MatrixMultiply(m_scale, m_origin_inv, m_tmp) ;
           MatrixMultiply(m_origin, m_tmp, m_scale) ;
 
+	  // angle /////////////////////////////////////////////////////////////
           for (x_angle = min_angle ; x_angle <= max_angle ; x_angle += delta_rot)
           {
             m_x_rot = MatrixReallocRotation(4, x_angle, X_ROTATION, m_x_rot) ;
@@ -1583,6 +1586,7 @@ find_optimal_linear_xform(GCA *gca, GCA_SAMPLE *gcas,
                 m_tmp2 = MatrixMultiply(m_scale, m_rot, m_tmp2) ;
 		m_tmp3 = MatrixMultiply(m_tmp2, m_L, m_tmp3) ;
 
+		// translation //////////////////////////////////////////////////////
 		for (x_trans = min_trans ; x_trans <= max_trans ; x_trans += delta_trans)
 		{
 		  *MATRIX_RELT(m_trans, 1, 4) = x_trans ;
@@ -1596,6 +1600,7 @@ find_optimal_linear_xform(GCA *gca, GCA_SAMPLE *gcas,
 		      m_L_tmp = MatrixMultiply(m_trans, m_tmp3, m_L_tmp) ;
 		      log_p = 
 			local_GCAcomputeLogSampleProbability(gca, gcas, mri, m_L_tmp, nsamples) ;
+		      
 		      if (log_p > max_log_p)
 		      {
 			max_log_p = log_p ;
