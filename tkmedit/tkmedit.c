@@ -275,6 +275,8 @@ void edit_pixel(int action);
 int open_window(char *name) ;
 void draw_surface(void) ;
 int read_binary_surface(char *fname) ;
+int read_surface(char *fname) ;
+int read_binary_surf(char *fname) ;
 int show_vertex(void) ;
 int write_images(char *fpref) ;
 int read_images(char *fpref) ;
@@ -2361,6 +2363,74 @@ goto_point(char *dir)
   fclose(fp);
   set_cursor(xpt,ypt,zpt);
 }
+void
+unmark_vertices(void)
+{
+  int vno ;
+
+  if (!mris)
+  {
+    fprintf(stderr, "no surface loaded.\n") ;
+    return ;
+  }
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+    mris->vertices[vno].marked = 0 ;
+  redraw() ;
+}
+void
+mark_file_vertices(char *fname)
+{
+  FILE  *fp ;
+  char  line[200], *cp ;
+  int   vno, nvertices, nargs ;
+  float area ;
+
+  if (!mris)
+  {
+    fprintf(stderr, "no surface loaded.\n") ;
+    return ;
+  }
+  fp = fopen(fname, "r") ;
+  if (!fp)
+  {
+    fprintf(stderr, "could not open file %s.\n", fname) ;
+    return ;
+  }
+
+  fgetl(line, 150, fp) ;
+  nargs = sscanf(line, "%d %f", &nvertices, &area) ;
+  if (nargs == 2)
+    fprintf(stderr, "marking %d vertices, %2.3f mm^2 surface area\n",
+            nvertices, area) ;
+  else if (nargs == 1)
+    fprintf(stderr, "marking %d vertices\n", nvertices) ;
+
+  while  ((cp = fgetl(line, 150, fp)) != NULL)
+  {
+    sscanf(cp, "%d", &vno) ;
+    if (vno >= 0 && vno < mris->nvertices)
+    {
+      mris->vertices[vno].marked = 1 ;
+    }
+  }
+  goto_vertex(vno) ;
+  fclose(fp) ;
+}
+void
+goto_vertex(int vno)
+{
+  VERTEX *v ;
+
+  if (!mris)
+  {
+    fprintf(stderr, "surface not loaded.\n") ;
+    return ;
+  }
+  v = &mris->vertices[vno] ;
+  set_cursor(v->x, v->y, v->z);
+  redraw() ;
+}
+
 
 void
 goto_point_coords(int imc1, int ic1,int jc1)
@@ -3474,6 +3544,23 @@ draw_second_image(int imc, int ic, int jc)
 }
 
 int
+read_surface(char *name)
+{
+  char fname[STRLEN], *cp ;
+
+  cp = strchr(name, '/') ;
+  if (!cp)  /* no path specified - put the path into it */
+  {
+    strcpy(surface, name) ;
+    sprintf(sfname,"%s/%s/surf/%s",subjectsdir,pname,name);
+    strcpy(fname, sfname) ;
+  }
+  else
+    strcpy(fname, name) ;
+  return(read_binary_surface(fname)) ;
+}
+
+int
 read_binary_surface(char *fname)
 {
 #if 1
@@ -3481,7 +3568,15 @@ read_binary_surface(char *fname)
     MRISfree(&mris) ;
   mris = MRISread(fname) ;
   if (!mris)
+  {
+    surfflag = FALSE;
+    surfloaded = FALSE;
+    curvflag = FALSE;
+    curvloaded = FALSE;
+    fieldsignflag = FALSE;
+    fieldsignloaded = FALSE;
     return(ERROR_NOFILE) ;
+  }
 #else
 
   int k,n;                   /* loop counters */
@@ -4830,6 +4925,18 @@ int                  W_write_decimation  WBEGIN
   ERR(1,"Wrong # args: write_decimation")
                        write_decimation(decfname); WEND
 
+int                  W_goto_vertex  WBEGIN 
+  ERR(2,"Wrong # args: goto_vertex")
+                       goto_vertex(atoi(argv[1]));  WEND
+
+int                  W_mark_file_vertices  WBEGIN 
+  ERR(2,"Wrong # args: mark_file_vertices")
+                       mark_file_vertices(argv[1]);  WEND
+
+int                  W_unmark_vertices  WBEGIN 
+  ERR(1,"Wrong # args: unmark_vertices")
+                       unmark_vertices();  WEND
+
 int                  W_goto_point  WBEGIN
   ERR(1,"Wrong # args: goto_point")
                        goto_point(tfname); WEND
@@ -4901,6 +5008,10 @@ int                  W_read_second_images  WBEGIN
 int                  W_read_binary_surf  WBEGIN
   ERR(1,"Wrong # args: read_binary_surf")
                        read_binary_surface(sfname); WEND
+
+int                  W_read_surface  WBEGIN
+  ERR(2,"Wrong # args: read_surface <surface file>")
+                       read_surface(argv[1]); WEND
 
 int                  W_wmfilter_corslice  WBEGIN
   ERR(1,"Wrong # args: wmfilter_corslice")
@@ -5036,10 +5147,14 @@ char **argv;
   Tcl_CreateCommand(interp, "read_fieldsign",     W_read_fieldsign,     REND);
   Tcl_CreateCommand(interp, "read_fsmask",        W_read_fsmask,        REND);
   Tcl_CreateCommand(interp, "read_binary_curv",   W_read_binary_curv,   REND);
+  Tcl_CreateCommand(interp, "goto_vertex",        W_goto_vertex,        REND);
+  Tcl_CreateCommand(interp, "mark_file_vertices", W_mark_file_vertices, REND);
+  Tcl_CreateCommand(interp, "unmark_vertices",    W_unmark_vertices,    REND);
   Tcl_CreateCommand(interp, "smooth_3d",          W_smooth_3d,          REND);
   Tcl_CreateCommand(interp, "flip_corview_xyz",   W_flip_corview_xyz,   REND);
   Tcl_CreateCommand(interp, "read_second_images", W_read_second_images, REND);
   Tcl_CreateCommand(interp, "read_binary_surf",   W_read_binary_surf,   REND);
+  Tcl_CreateCommand(interp, "read_surface",       W_read_surface,   REND);
   Tcl_CreateCommand(interp, "wmfilter_corslice",  W_wmfilter_corslice,  REND);
   Tcl_CreateCommand(interp, "norm_slice",         W_norm_slice,         REND);
   Tcl_CreateCommand(interp, "norm_allslices",     W_norm_allslices,     REND);
