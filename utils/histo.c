@@ -21,6 +21,7 @@
 #include "proto.h"
 #include "histo.h"
 #include "diag.h"
+#include "macros.h"
 
 /*-----------------------------------------------------
         Parameters:
@@ -297,11 +298,13 @@ HISTOfillZeros(HISTOGRAM *histo_src, HISTOGRAM *histo_dst)
           histogram of the source image, and the inverse is
           the equalization histogram of the template image.
 ------------------------------------------------------*/
+#define MAX_STRETCH 2
+
 HISTOGRAM *
 HISTOcomposeInvert(HISTOGRAM *histo_fwd, HISTOGRAM *histo_inv, 
                    HISTOGRAM *histo_dst)
 {
-  int   b, binv, val, max_fwd, max_inv ;
+  int   b, binv, val, max_fwd, max_inv, stretch ;
   float ffwd, next = 0.0f, prev ;
 
   if (!histo_dst)
@@ -327,7 +330,8 @@ HISTOcomposeInvert(HISTOGRAM *histo_fwd, HISTOGRAM *histo_inv,
     val = histo_fwd->counts[b] ;
     ffwd = (float)val / (float)max_fwd ;
 
-    for ( ; binv < histo_dst->nbins ; binv++)
+    for (stretch = 0 ; stretch < MAX_STRETCH && binv < histo_dst->nbins ; 
+         stretch++, binv++)
     {
       next = (float)histo_inv->counts[binv] / (float)max_inv ;
       if (next >= ffwd)
@@ -389,5 +393,149 @@ HISTOsubtract(HISTOGRAM *h1, HISTOGRAM *h2, HISTOGRAM *histo_dst)
     *pcdst++ = *pc1++ - *pc2++ ;
 
   return(histo_dst) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+HISTOGRAM *
+HISTOclearBins(HISTOGRAM *histo_src, HISTOGRAM *histo_dst, int b0, int b1)
+{
+  int b ;
+
+  if (!histo_src)
+    return(NULL) ;
+
+  if (!histo_dst || histo_dst != histo_src)
+    histo_dst = HISTOcopy(histo_src, histo_dst) ;
+
+  if (b0 < 0)
+    b0 = 0 ;
+  if (b1 >= histo_src->nbins)
+    b1 = histo_src->nbins-1 ;
+
+  for (b = b0 ; b <= b1 ; b++)
+  {
+    histo_dst->counts[b] = 0 ;
+    histo_dst->bins[b] = 0 ;
+  }
+
+  if (b1 == histo_dst->nbins-1)
+    histo_dst->nbins = b0 ;
+
+  return(histo_dst) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+#define MAX_LEN 9
+HISTOGRAM *
+HISTOsmooth(HISTOGRAM *histo_src, HISTOGRAM *histo_dst,float sigma)
+{
+  float     norm, two_sigma, fx, k, kernel[MAX_LEN], total ;
+  int       x, half, len, b, kx, b1, nbins ;
+
+  nbins = histo_src->nbins ;
+  if (!histo_dst)
+    histo_dst = HISTOalloc(nbins) ;
+  else
+    histo_dst->nbins = nbins ;
+
+  /* build the kernel in k */
+  len = (int)nint(8.0f * sigma)+1 ;
+  if (ISEVEN(len))   /* ensure it's even */
+    len++ ;
+  if (MAX_LEN && (MAX_LEN < len))
+    len = MAX_LEN ;
+  half = len/2 ;
+
+  norm = 0.0f ;
+  two_sigma = 2.0f * sigma ;
+
+  for (norm = 0.0f, x = 0 ; x < len ; x++)
+  {
+    fx = (float)(x-half) ;
+    if (fabs(fx) <= two_sigma)
+      k = (float)exp((double)(-fx*fx/(two_sigma*sigma))) ;
+    else if (two_sigma < fabs(fx) && fabs(fx) <= 4.0f*sigma)
+      k = 1.0f / (16.0f * (float)(M_E * M_E)) * 
+        (float)pow(4.0f - fabs(fx)/(double)sigma, 4.0) ;
+    else
+      k = 0 ;
+
+    kernel[x] = k ;
+    norm += k ;
+  }
+  for (x = 0 ; x < len ; x++)
+    kernel[x] /= norm ;
+
+  for (b = 0 ; b < nbins ; b++)
+  {
+    for (total = 0.0f, x = 0 ; x < len ; x++)
+    {
+      kx = x - half ;
+      b1 = b + kx ;
+      if (b1 >= nbins || b1 < 0)
+        continue ;
+      total += kernel[x] * (float)histo_src->counts[b1] ;
+    }
+    histo_dst->counts[b] = nint(total) ;
+  }
+  return(histo_dst) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+int
+HISTOfindLastPeak(HISTOGRAM *h, int wsize, float min_pct)
+{
+  int  peak, b, bw, nbins, whalf, val, max_count, count, min_count ;
+
+  for (max_count = b = 0 ; b < h->nbins ; b++)
+  {
+    val = h->counts[b];
+    if (val > max_count)
+      max_count = val ;
+  }
+
+  if (!max_count)
+    return(-1) ;
+
+  min_count = nint(min_pct * (float)max_count) ;
+  whalf = (wsize-1)/2 ;
+  nbins = h->nbins ;
+
+/*
+   check to see if the value at b is bigger than anything else within
+   a whalfxwhalf window on either side.
+*/
+  for (b = nbins-1 ; b >= 0 ; b--)
+  {
+    val = h->counts[b] ;
+    peak = 1 ;
+    for (bw = b-whalf ; bw <= b+whalf ; bw++)
+    {
+      if (bw < 0 || bw >= nbins)
+        continue ;
+      count = h->counts[bw] ;
+      if (count > val || (count < min_count))
+        peak = 0 ;
+    }
+    if (peak)
+      return(b) ;
+  }
+
+  return(-1) ;
 }
 
