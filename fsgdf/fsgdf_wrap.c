@@ -157,6 +157,7 @@ SWIG_TypeCast(swig_type_info *ty, void *ptr)
 }
 
 /* Dynamic pointer casting. Down an inheritance hierarchy */
+#if 0
 SWIGRUNTIME(swig_type_info *) 
 SWIG_TypeDynamicCast(swig_type_info *ty, void **ptr) 
 {
@@ -168,6 +169,7 @@ SWIG_TypeDynamicCast(swig_type_info *ty, void **ptr)
   }
   return lastty;
 }
+#endif
 
 /* Search for a swig_type_info structure */
 SWIGRUNTIME(swig_type_info *)
@@ -208,7 +210,7 @@ SWIG_TypeClientData(swig_type_info *ti, void *clientdata) {
 #endif
 
 /*
- * $Header: /space/repo/1/dev/dev/fsgdf/fsgdf_wrap.c,v 1.5 2004/05/27 18:14:48 tosa Exp $
+ * $Header: /space/repo/1/dev/dev/fsgdf/fsgdf_wrap.c,v 1.6 2004/09/23 21:16:46 kteich Exp $
  * 
  * swigtcl8.swg
  */
@@ -385,6 +387,7 @@ SWIG_PointerTypeFromString(char *c) {
 }
 
 /* Convert a packed value value */
+#if 0
 SWIGRUNTIME(int)
 SWIG_ConvertPacked(Tcl_Interp *interp, Tcl_Obj *obj, void *ptr, int sz, swig_type_info *ty, int flags) {
   swig_type_info *tc;
@@ -416,7 +419,7 @@ type_error:
   }
   return TCL_ERROR;
 }
-
+#endif
 
 /* Take a pointer and convert it to a string */
 SWIGRUNTIME(void) 
@@ -808,6 +811,7 @@ SWIG_MethodCommand(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj 
 }
 
 /* Function to create objects */
+#if 0
 SWIGRUNTIME(int)
 SWIG_ObjectConstructor(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[])
 {
@@ -885,7 +889,7 @@ SWIG_ObjectConstructor(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_
     newinst->cmdtok = Tcl_CreateObjCommand(interp,name, (swig_wrapper) SWIG_MethodCommand, (ClientData) newinst, (swig_delete_func) SWIG_ObjectDelete);
     return TCL_OK;
 }
-
+#endif
 
 /* This function takes the current result and turns it into an object command */
 SWIGRUNTIME(Tcl_Obj *)
@@ -975,7 +979,7 @@ SWIGEXPORT(int) SWIG_init(Tcl_Interp *);
 
 
 
-  #include "fsgdf.h"
+#include "fsgdf.h"
 
 extern FSGD *gdfRead(char *,int);
 extern int gdfPrintStdout(FSGD *);
