@@ -27,6 +27,7 @@ char *fio_dirname(char *pathname);
 char *fio_extension(char *pathname);
 int fio_DirIsWritable(char *dirname, int fname);
 int fio_FileExistsReadable(char *fname);
+int fio_IsDirectory(char *fname);
 
 #define fwriteLong(l, fp)   fwrite4((int)l, fp)
 
