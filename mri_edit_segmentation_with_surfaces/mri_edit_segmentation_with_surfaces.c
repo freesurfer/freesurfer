@@ -19,7 +19,7 @@
 #include "colortab.h"
 #include "gca.h"
 
-static char vcid[] = "$Id: mri_edit_segmentation_with_surfaces.c,v 1.5 2003/05/08 20:54:35 fischl Exp $";
+static char vcid[] = "$Id: mri_edit_segmentation_with_surfaces.c,v 1.6 2003/06/13 15:28:46 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -34,7 +34,6 @@ static int relabel_hypointensities(MRI *mri, MRI_SURFACE *mris, int right) ;
 /*static int relabel_hypointensities_neighboring_gray(MRI *mri) ;*/
 static int edit_hippocampal_complex(MRI *mri, MRI_SURFACE *mris, int right, char *annot_name, float *thickness) ;
 /*static int edit_hippocampus(MRI *mri) ;*/
-int MRIneighbors(MRI *mri, int x0, int y0, int z0, int val) ;
 static int edit_calcarine(MRI *mri, MRI_SURFACE *mris, int right) ;
 
 static char *annot_name = "aparc.annot" ;
