@@ -853,7 +853,7 @@ StatAccumulateTalairachVolume(SV *sv_tal, SV *sv)
                             (Real)V3_Y(v_func), (Real)V3_Z(v_func), 
                             &xf, &yf, &zf) ;
       printf("slicedir = %d (Undef=%d)\n",
-       sv->mri_avgs[event]->slice_direction,MRI_UNDEFINED);
+       getSliceDirectin(sv->mri_avgs[event]),MRI_UNDEFINED);
       printf("xbounds: %g %g\n",sv->mri_avgs[event]->xstart,
        sv->mri_avgs[event]->xend);
       printf("ybounds: %g %g\n",sv->mri_avgs[event]->ystart,
