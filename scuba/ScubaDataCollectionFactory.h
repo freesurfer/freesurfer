@@ -14,7 +14,9 @@ class ScubaDataCollectionFactory : public DebugReporter, public TclCommandListen
   // Gets the static reference to this class.
   static ScubaDataCollectionFactory& GetFactory();
 
-  virtual void DoListenToTclCommand ( char* iCommand, int iArgc, char** iArgv );
+  virtual TclCommandResult
+    DoListenToTclCommand ( char* iCommand, int iArgc, char** iArgv );
+
   DataCollection& MakeDataCollection ( std::string iType );
   
 

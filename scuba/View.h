@@ -35,7 +35,8 @@ public:
   void SetLabel( std::string isLabel ) { msLabel = isLabel; }
   std::string GetLabel() { return msLabel; }
 
-  virtual void DoListenToTclCommand ( char* iCommand, int iArgc, char** iArgv );
+  virtual TclCommandResult
+    DoListenToTclCommand ( char* iCommand, int iArgc, char** iArgv );
 
   // Redisplay posters.
   void RequestRedisplay() { mbPostRedisplay = true; }

@@ -8,7 +8,8 @@ class ScubaWindowToRASTranslator {
 				     float& oXRAS, float& oYRAS,
 				     float& oZRAS );
   
-  void TranslateWindowToRAS( int iXWindow, int iYWindow, float oRAS[3] );
+  virtual void TranslateWindowToRAS( int iXWindow, int iYWindow,
+				     float oRAS[3] );
 };
 
 

@@ -14,7 +14,9 @@ class ScubaLayerFactory : public DebugReporter, public TclCommandListener {
   // Gets the static reference to this class.
   static ScubaLayerFactory& GetFactory();
 
-  virtual void DoListenToTclCommand ( char* iCommand, int iArgc, char** iArgv );
+  virtual TclCommandResult
+    DoListenToTclCommand ( char* iCommand, int iArgc, char** iArgv );
+
   Layer& MakeLayer ( std::string iType );
   
 

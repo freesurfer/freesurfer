@@ -66,9 +66,9 @@ View::KeyUp( int inX, int inY, InputState& iState ) {
   this->DoKeyUp( inX, inY, iState );
 }
 
-void 
+TclCommandListener::TclCommandResult 
 View::DoListenToTclCommand ( char* iCommand, int iArgc, char** iArgv ) {
-
+  return ok;
 }
 
 void

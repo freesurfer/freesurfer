@@ -62,7 +62,7 @@ proc CreateWindow { } {
     button $bwNewWindow -text "New Window" \
 	-command CreateWindow
     button $bw11 -text "11" \
-	-command "SetFrameViewConfiguration $windowID c11; SetLayersInViews"
+	-command "SetFrameViewConfiguration $windowID c1; SetLayersInViews"
     button $bw22 -text "22" \
 	-command "SetFrameViewConfiguration $windowID c22; SetLayersInViews"
     button $bw13 -text "13" \
@@ -115,8 +115,12 @@ set err [catch { SetVolumeCollection $layerID $volumeID } sResult]
 if { 0 != $err } { puts $sResult; exit }
 puts "Set layer $layerID volume to $volumeID"
 
+set err [catch { SetLayerLabel $layerID "bert T1" } sResult]
+if { 0 != $err } { puts $sResult; exit }
+puts "Set layer $layerID label to bert T1"
 
-SetFrameViewConfiguration $frameID c11
+
+SetFrameViewConfiguration $frameID c1
 SetLayersInViews
 
 

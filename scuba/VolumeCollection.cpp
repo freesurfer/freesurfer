@@ -10,7 +10,9 @@ VolumeCollection::VolumeCollection () :
   mMRI = NULL;
 
   TclCommandManager& commandMgr = TclCommandManager::GetManager();
-  commandMgr.AddCommand( *this, "SetVolumeCollectionFileName" );
+  commandMgr.AddCommand( *this, "SetVolumeCollectionFileName", 2, 
+			 "collectionID fileName", 
+			 "Sets the file name for a given volume collection.");
 }
 
 VolumeCollection::~VolumeCollection() {
@@ -54,31 +56,24 @@ VolumeCollection::GetMRI() {
   return mMRI; 
 }
 
-void 
+TclCommandListener::TclCommandResult 
 VolumeCollection::DoListenToTclCommand ( char* isCommand, int iArgc, char** iasArgv ) {
 
   // SetVolumeCollectionFileName <collectionID> <fileName>
   if( 0 == strcmp( isCommand, "SetVolumeCollectionFileName" ) ) {
-    if( 3 == iArgc ) {
-      int collectionID = strtol(iasArgv[1], (char**)NULL, 10);
-      if( ERANGE == errno ) {
-	sResult = "bad collection ID";
-	return;
-      }
-
-      if( mID == collectionID ) {
-
-	string fnVolume = iasArgv[2];
-	SetFileName( fnVolume );
-      }
-    } else {
-      sResult = "wrong # args: should be \"SetVolumeCollectionFileName "
-	"collectionID fileName\"";
-      DebugOutput( << sResult );
-      return;
+    int collectionID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad collection ID";
+      return error;
+    }
+    
+    if( mID == collectionID ) {
+      
+      string fnVolume = iasArgv[2];
+      SetFileName( fnVolume );
     }
   }
-
-  DataCollection::DoListenToTclCommand( isCommand, iArgc, iasArgv );
+  
+  return DataCollection::DoListenToTclCommand( isCommand, iArgc, iasArgv );
 }
 

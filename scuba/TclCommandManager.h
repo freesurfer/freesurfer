@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2004/01/17 00:06:30 $
-// Revision       : $Revision: 1.4 $
+// Revision Date  : $Date: 2004/01/30 07:15:56 $
+// Revision       : $Revision: 1.5 $
 
 #ifndef TclCommandManager_h
 #define TclCommandManager_h
@@ -13,7 +13,7 @@
 #include <list>
 #include <tcl.h>
 #include <string>
-#include <sstream>
+#include <iostream>
 #include <stdexcept>
 #include <sstream>
 #include "DebugReporter.h"
@@ -26,8 +26,12 @@ class TclCommandListener {
   friend class TclCommandManager;
   
  public:
-  void ListenToTclCommand  ( char* iCommand, int iArgc, char** iArgv );
-  virtual void DoListenToTclCommand ( char* iCommand, int iArgc, char** iArgv ) = 0;
+  enum TclCommandResult { ok, error };
+
+  TclCommandResult 
+    ListenToTclCommand ( char* iCommand, int iArgc, char** iArgv );
+  virtual TclCommandResult
+    DoListenToTclCommand ( char* iCommand, int iArgc, char** iArgv ) = 0;
   
   ~TclCommandListener();
 
@@ -43,7 +47,7 @@ class TclCommandListener {
   std::string sResult;
 };
 
-class TclCommandManager : public DebugReporter {
+class TclCommandManager : public DebugReporter, public TclCommandListener {
 
   friend class TclCommandManagerTester;
 
@@ -52,7 +56,10 @@ class TclCommandManager : public DebugReporter {
   // A command being managed. Contains the command name and a list of
   // listeners for that command.
   struct Command {
-    char msCommand[1024];
+    std::string msCommand;
+    std::string msArgHints;
+    std::string msDescription;
+    int mcArgs;
     std::list<TclCommandListener*> mlListeners;
   };
   
@@ -65,7 +72,9 @@ class TclCommandManager : public DebugReporter {
   // Adds a TclCommandListener the list of listeners for a
   // command. When the command is called in Tcl, the Listener's
   // ListenToTclCommand() function will be called.
-  void AddCommand ( TclCommandListener& iListener, char const* isCommand );
+  void AddCommand ( TclCommandListener& iListener, char const* isCommand,
+		    int icArgs, char const* isArgHints,
+		    char const* isDescription );
   
   // Start managing commands for the given Tcl interp context.
   void Start ( Tcl_Interp const* iInterp );
@@ -81,6 +90,12 @@ class TclCommandManager : public DebugReporter {
   void RemoveListener ( TclCommandListener& iListener );
 
   bool Started () const { return mbStarted; }
+
+  // We listen to commands too.
+  TclCommandResult
+    DoListenToTclCommand ( char* iCommand, int iArgc, char** iArgv );
+
+  std::string PrintAllCommands ();
 
  protected:
 

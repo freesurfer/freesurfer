@@ -26,7 +26,8 @@ class DataCollection : public DebugReporter, public IDTracker<DataCollection>, p
   std::string GetLabel() const { return msLabel; }
   void SetLabel( std::string const isLabel ) { msLabel = isLabel; }
   
-  virtual void DoListenToTclCommand ( char* isCommand, int iArgc, char** iasArgv );
+  virtual TclCommandResult
+    DoListenToTclCommand ( char* isCommand, int iArgc, char** iasArgv );
 protected:
   std::string msLabel;
 

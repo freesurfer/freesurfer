@@ -19,10 +19,11 @@ public:
   // View configurations. The cxx numbers spec the number of columns
   // in each row. So c22 is 2 columns in row 0, and 2 in row 1, while
   // c13 is 1 view in row 0 and 3 in row 1.
-  enum ViewConfiguration { c11, c22, c44, c13 };
+  enum ViewConfiguration { c1, c22, c44, c13 };
   void SetViewConfiguration( ViewConfiguration iConfig );
 
-  virtual void DoListenToTclCommand( char* iCommand, int iArgc, char** iArgv );
+  virtual TclCommandResult
+    DoListenToTclCommand( char* iCommand, int iArgc, char** iArgv );
 
   // Sets the factory to use for creating new frames.
   static void SetViewFactory( ViewFactory* const iFactory ) { 

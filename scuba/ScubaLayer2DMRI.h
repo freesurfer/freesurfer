@@ -16,7 +16,8 @@ class ScubaLayer2DMRI : public Layer {
   void SetVolumeCollection ( VolumeCollection& iVolume );
 
   // Tell the layer to draw its contents into a GL frame buffer.
-  virtual void DrawIntoBuffer ( GLubyte* iBuffer, ViewState& iViewState,
+  virtual void DrawIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
+				ViewState& iViewState,
 				ScubaWindowToRASTranslator& iTranslator );
   
   // Asks the layer to describe a point of data by adding pairs of
@@ -27,7 +28,8 @@ class ScubaLayer2DMRI : public Layer {
   // Should return a type description unique to the subclass.
   virtual std::string GetTypeDescription () { return "2DMRI"; }
 
-  virtual void DoListenToTclCommand ( char* iCommand, int iArgc, char** iArgv );
+  virtual TclCommandResult
+    DoListenToTclCommand ( char* iCommand, int iArgc, char** iArgv );
 
  protected:
   VolumeCollection* mVolume;

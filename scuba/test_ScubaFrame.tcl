@@ -78,7 +78,7 @@ proc CreateWindow { } {
     button $bwNewWindow -text "New Window" \
 	-command CreateWindow
     button $bw11 -text "11" \
-	-command "SetFrameViewConfiguration $windowID c11"
+	-command "SetFrameViewConfiguration $windowID c1"
     button $bw22 -text "22" \
 	-command "SetFrameViewConfiguration $windowID c22"
     button $bw44 -text "44" \
@@ -109,7 +109,7 @@ proc CreateWindow { } {
 
     puts "tcl: created window $windowID"
 
-    SetFrameViewConfiguration $windowID c11
+    SetFrameViewConfiguration $windowID c1
 }
 
 

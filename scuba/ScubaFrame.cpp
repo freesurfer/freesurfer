@@ -17,14 +17,29 @@ ScubaFrame::ScubaFrame( ToglFrame::ID iID )
   mnSelectedViewCol = 0;
   mnSelectedViewRow = 0;
 
-  SetViewConfiguration( c11 );
+  SetViewConfiguration( c1 );
 
   TclCommandManager& commandMgr = TclCommandManager::GetManager();
-  commandMgr.AddCommand( *this, "SetFrameViewConfiguration" );
-  commandMgr.AddCommand( *this, "GetViewIDFromFrameColRow" );
-  commandMgr.AddCommand( *this, "GetSelectedViewID" );
-  commandMgr.AddCommand( *this, "GetNumberOfRowsInFrame" );
-  commandMgr.AddCommand( *this, "GetNumberOfColsAtRowInFrame" );
+  commandMgr.AddCommand( *this, "SetFrameViewConfiguration", 2, 
+			 "frameID, configuration", 
+			 "Sets a frame's view configuration. Supported "
+			 "configurations, where each number is the number "
+			 "of columns in a row: c1 c22 c44 c13" );
+  commandMgr.AddCommand( *this, "GetViewIDFromFrameColRow", 3, 
+			 "frameID col row",
+			 "Return the viewID from a view at a certain "
+			 "location. col and row must be valid for the current "
+			 "view configuration." );
+  commandMgr.AddCommand( *this, "GetSelectedViewID", 1, "frameID",
+			 "Return the viewID of the selected view." );
+  commandMgr.AddCommand( *this, "GetNumberOfRowsInFrame", 1, "frameID",
+			 "Return the number of rows in a frame." );
+  commandMgr.AddCommand( *this, "GetNumberOfColsAtRowInFrame", 2, 
+			 "frameID row", "Return the number of columns in a"
+			 "row." );
+  commandMgr.AddCommand( *this, "GetViewIDAtFrameLocation", 3, 
+			 "frameID windowX windowY", 
+			 "Return the view ID at a window location." );
 
   PreferencesManager& prefsMgr = PreferencesManager::GetManager();
   prefsMgr.UseFile( ".scuba" );
@@ -37,202 +52,222 @@ ScubaFrame::ScubaFrame( ToglFrame::ID iID )
 ScubaFrame::~ScubaFrame() {
 }
 
-void
+TclCommandListener::TclCommandResult
 ScubaFrame::DoListenToTclCommand( char* isCommand, int iArgc, char** iasArgv ) {
 
   // SetFrameViewConfiguration <frameID> <configuration>
   if( 0 == strcmp( isCommand, "SetFrameViewConfiguration" ) ) {
-    if( 3 == iArgc ) {
-      int frameID = strtol(iasArgv[1], (char**)NULL, 10);
-      if( ERANGE == errno ) {
-	sResult = "bad frame ID";
-	return;
+    int frameID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad frame ID";
+      return error;
+    }
+    
+    if( mID == frameID ) {
+      
+      ViewConfiguration config;
+      if( 0 == strcmp( iasArgv[2], "c1" ) ) {
+	config = c1;
+      } else if( 0 == strcmp( iasArgv[2], "c22" ) ) {
+	config = c22;
+      } else if( 0 == strcmp( iasArgv[2], "c44" ) ) {
+	config = c44;
+      } else if( 0 == strcmp( iasArgv[2], "c13" ) ) {
+	config = c13;
+      } else {
+	sResult = "bad configuration \"" + string(iasArgv[2]) + 
+	  "\", should be c1, c22, c44, or c13";
+	return error;
       }
       
-      if( mID == frameID ) {
-	
-	ViewConfiguration config;
-	if( 0 == strcmp( iasArgv[2], "c11" ) ) {
-	  config = c11;
-	} else if( 0 == strcmp( iasArgv[2], "c22" ) ) {
-	  config = c22;
-	} else if( 0 == strcmp( iasArgv[2], "c44" ) ) {
-	  config = c44;
-	} else if( 0 == strcmp( iasArgv[2], "c13" ) ) {
-	  config = c13;
-	} else {
-	  sResult = "bad configuration \"" + string(iasArgv[2]) + 
-	    "\", should be c11, c22, c44, or c13";
-	  return;
-	}
-      
-	SetViewConfiguration( config );
-      }
-    } else {
-      sResult = "wrong # args: should be \"SetViewConfiguration "
-	"frameID configuration\"";
-      DebugOutput( << sResult );
-      return;
+      SetViewConfiguration( config );
     }
   }
 
   // GetViewIDFromFrameColRow <frameID> <col> <row>
   if( 0 == strcmp( isCommand, "GetViewIDFromFrameColRow" ) ) {
-    if( 4 == iArgc ) {
-      int frameID = strtol(iasArgv[1], (char**)NULL, 10);
+    int frameID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad frame ID";
+      return error;
+    }
+    
+    if( mID == frameID ) {
+      
+      int nCol = strtol(iasArgv[2], (char**)NULL, 10);
       if( ERANGE == errno ) {
-	sResult = "bad frame ID";
-	return;
+	sResult = "bad row";
+	return error;
       }
       
-      if( mID == frameID ) {
-	
-	int nCol = strtol(iasArgv[2], (char**)NULL, 10);
-	if( ERANGE == errno ) {
-	  sResult = "bad row";
-	  return;
-	}
-	
-	int nRow = strtol(iasArgv[3], (char**)NULL, 10);
-	if( ERANGE == errno ) {
-	  sResult = "bad col";
-	  return;
-	}
+      int nRow = strtol(iasArgv[3], (char**)NULL, 10);
+      if( ERANGE == errno ) {
+	sResult = "bad col";
+	return error;
+      }
       
-	if( nRow >= 0 && nRow < mcRows ) {
-
-	  if( nCol >= 0 && nCol < mcCols[nRow] ) {
-
-	    try { 
-	      View* view = GetViewAtColRow( nCol, nRow );
-	      int id = view->GetID();
-	      stringstream sID;
-	      sID << id;
-	      sReturnFormat = "i";
-	      sReturnValues = sID.str();
-	      return;
-	    }
-	    catch(...) {
-	      stringstream sError;
-	      sError << "couldn't get view at col " << nCol <<
-		" row " << nRow;
-	      sResult = sError.str();
-	      DebugOutput( << sResult );
-	      return;
-	    }
-
-	  } else {
+      if( nRow >= 0 && nRow < mcRows ) {
+	
+	if( nCol >= 0 && nCol < mcCols[nRow] ) {
+	  
+	  try { 
+	    View* view = GetViewAtColRow( nCol, nRow );
+	    int id = view->GetID();
+	    stringstream sID;
+	    sID << id;
+	    sReturnFormat = "i";
+	    sReturnValues = sID.str();
+	    return ok;
+	  }
+	  catch(...) {
 	    stringstream sError;
-	    sError << "bad col \"" << string(iasArgv[1]) << 
-	      "\", should be between 0 and " << mcCols[nRow];
+	    sError << "couldn't get view at col " << nCol <<
+	      " row " << nRow;
 	    sResult = sError.str();
 	    DebugOutput( << sResult );
-	    return;
+	    return error;
 	  }
 	  
 	} else {
 	  stringstream sError;
-	  sError << "bad row \"" << string(iasArgv[1]) <<
-	    "\", should be between 0 and " << mcRows;
+	  sError << "bad col \"" << string(iasArgv[1]) << 
+	    "\", should be between 0 and " << mcCols[nRow];
 	  sResult = sError.str();
 	  DebugOutput( << sResult );
-	  return;
+	  return error;
 	}
-      
+	
+      } else {
+	stringstream sError;
+	sError << "bad row \"" << string(iasArgv[1]) <<
+	  "\", should be between 0 and " << mcRows;
+	sResult = sError.str();
+	DebugOutput( << sResult );
+	return error;
       }
-    } else {
-      sResult = "wrong # args: should be \"GetViewIDFromFrameColRow "
-	"frameID row col\"";
-      DebugOutput( << sResult << " (iArgc = " << iArgc << ")" );
-      return;
+      
     }
   }
 
 
   // GetSelectedViewID <frameID>
   if( 0 == strcmp( isCommand, "GetSelectedViewID" ) ) {
-    if( 2 == iArgc ) {
-      int frameID = strtol(iasArgv[1], (char**)NULL, 10);
-      if( ERANGE == errno ) {
-	sResult = "bad frame ID";
-	return;
-      }
+    int frameID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad frame ID";
+      return error;
+    }
+    
+    if( mID == frameID ) {
       
-      if( mID == frameID ) {
-	
-	try { 
-	  View* view = GetViewAtColRow( mnSelectedViewCol, mnSelectedViewRow );
-	  int id = view->GetID();
-	  stringstream sID;
-	  sID << id;
-	  sReturnFormat = "i";
-	  sReturnValues = sID.str();
-	  return;
-	}
-	catch(...) {
-	  stringstream sError;
-	  sError << "couldn't get selected view at col " 
-		 << mnSelectedViewCol << " row " << mnSelectedViewRow;
-	  sResult = sError.str();
-	  return;
-	}
+      try { 
+	View* view = GetViewAtColRow( mnSelectedViewCol, mnSelectedViewRow );
+	int id = view->GetID();
+	stringstream sID;
+	sID << id;
+	sReturnFormat = "i";
+	sReturnValues = sID.str();
+	return ok;
+      }
+      catch(...) {
+	stringstream sError;
+	sError << "couldn't get selected view at col " 
+	       << mnSelectedViewCol << " row " << mnSelectedViewRow;
+	sResult = sError.str();
+	return error;
       }
     }
   }
-
+  
   // GetNumberOfRowsInFrame <frameID>
   if( 0 == strcmp( isCommand, "GetNumberOfRowsInFrame" ) ) {
-    if( 2 == iArgc ) {
-      int frameID = strtol(iasArgv[1], (char**)NULL, 10);
-      if( ERANGE == errno ) {
-	sResult = "bad frame ID";
-	return;
-      }
-      if( mID == frameID ) {
-	stringstream cRows;
-	cRows << mcRows;
-	sReturnFormat = "i";
-	sReturnValues = cRows.str();
-	return;
-      }
-    } else {
-      sResult = "wrong # args: should be \"GetNumberOfRowsInFrame frameID\"";
-      DebugOutput( << sResult );
-      return;
+    int frameID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad frame ID";
+      return error;
+    }
+    if( mID == frameID ) {
+      stringstream cRows;
+      cRows << mcRows;
+      sReturnFormat = "i";
+      sReturnValues = cRows.str();
+      return ok;
     }
   }
 
   // GetNumberOfColsAtRowInFrame <frameID> <row>
   if( 0 == strcmp( isCommand, "GetNumberOfColsAtRowInFrame" ) ) {
-    if( 3 == iArgc ) {
-      int frameID = strtol(iasArgv[1], (char**)NULL, 10);
-      if( ERANGE == errno ) {
-	sResult = "bad frame ID";
-	return;
+    int frameID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad frame ID";
+      return error;
+    }
+    
+    if( mID == frameID ) {
+      int row = strtol(iasArgv[2], (char**)NULL, 10);
+      if( row >= 0 && row < mcRows ) {
+	stringstream cCols;
+	cCols << mcCols[row];
+	sReturnFormat = "i";
+	sReturnValues = cCols.str();
+	return ok;
+      } else {
+	sResult = "bad row";
+	DebugOutput( << sResult );
+	return error;
       }
-
-      if( mID == frameID ) {
-	int row = strtol(iasArgv[2], (char**)NULL, 10);
-	if( row >= 0 && row < mcRows ) {
-	  stringstream cCols;
-	  cCols << mcCols[row];
-	  sReturnFormat = "i";
-	  sReturnValues = cCols.str();
-	  return;
-	} else {
-	  sResult = "bad row";
-	  DebugOutput( << sResult );
-	  return;
-	}
-	
-      }
-    } else {
-      sResult = "wrong # args: should be \"GetNumberOfColsAtRowInFrame "
-	"frameID row\"";
-      DebugOutput( << sResult );
-      return;
+      
     }
   }
+
+  // GetViewIDAtFrameLocation <frameID> <windowX> <windowY>
+  if( 0 == strcmp( isCommand, "GetViewIDAtFrameLocation" ) ) {
+    int frameID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad frame ID";
+      return error;
+    }
+    
+    if( mID == frameID ) {
+      
+      int windowX = strtol(iasArgv[2], (char**)NULL, 10);
+      if( ERANGE == errno ) {
+	sResult = "bad x";
+	return error;
+      }
+      
+      int windowY = strtol(iasArgv[3], (char**)NULL, 10);
+      if( ERANGE == errno ) {
+	sResult = "bad y";
+	return error;
+      }
+      
+      if( windowX < 0 || windowX >= GetWidth() ||
+	  windowY < 0 || windowY >= GetHeight() ) {
+	sResult = "location is out of bounds";
+	return error;
+      }
+	
+      try { 
+	View* view = FindViewAtWindowLoc( windowX, windowY, NULL, NULL );
+	int id = view->GetID();
+	stringstream sID;
+	sID << id;
+	sReturnFormat = "i";
+	sReturnValues = sID.str();
+	return ok;
+      }
+      catch(...) {
+	stringstream sError;
+	sError << "couldn't find view at x " << windowX <<
+	  " y " << windowY;
+	sResult = sError.str();
+	DebugOutput( << sResult );
+	return error;
+      }
+    }
+  }
+
 }
 
 void
@@ -265,7 +300,8 @@ ScubaFrame::DoDraw() {
 
       glMatrixMode( GL_PROJECTION );
       glLoadIdentity();
-      glOrtho( 0, mWidth, 0, mHeight, -1.0, 1.0 );
+      //      glOrtho( 0, mWidth, 0, mHeight, -1.0, 1.0 );
+      glOrtho( 0, mWidth/cCols, 0, mHeight/mcRows, -1.0, 1.0 );
       glMatrixMode( GL_MODELVIEW );
 
       // We change the y position so that the 0,0 view is in the top
@@ -279,7 +315,8 @@ ScubaFrame::DoDraw() {
       // views can start drawing at 0,0. However leave the width and
       // height at the frame's width and height, otherwise we'll mess
       // up the proportions.
-      glViewport( x, y, mWidth, mHeight );
+      //      glViewport( x, y, mWidth, mHeight );
+      glViewport( x, y, mWidth/cCols, mHeight/mcRows );
       glRasterPos2i( 0, 0 );
 
       // Tell the view to draw.
@@ -294,6 +331,10 @@ ScubaFrame::DoDraw() {
       if( nRow == mnSelectedViewRow && 
 	  nCol == mnSelectedViewCol ) {
 
+	glMatrixMode( GL_PROJECTION );
+	glLoadIdentity();
+	glOrtho( 0, mWidth, 0, mHeight, -1.0, 1.0 );
+	glMatrixMode( GL_MODELVIEW );
 	glColor3f ( 0.0, 1.0, 0.0 );
 	glViewport( 0, 0, mWidth, mHeight );
 	glBegin( GL_LINE_STRIP );
@@ -313,43 +354,37 @@ ScubaFrame::DoReshape() {
 
   SizeViewsToConfiguration();
 
-  // Check for redraw requests.
-  ViewRowMap::iterator tRow;
-  for( tRow = mViews.begin(); tRow != mViews.end(); ++tRow ) {
-    
-    ViewColMap::iterator tCol;
-    ViewColMap viewCols = (*tRow).second;
-    for( tCol = viewCols.begin(); tCol != viewCols.end(); ++tCol ) {
-
-      View* view = (*tCol).second;
-
-      // Post a redisplay if the view wants one.
-      if( view->WantRedisplay() ) {
-	RequestRedisplay();
-	view->RedisplayPosted();
-      }
-    }
-  }
 }
 
 void
 ScubaFrame::DoTimer() {
 
+  // In our timer function we scan our views and ask if they want
+  // redisplays.
+  for( int nRow = 0; nRow < mcRows; nRow++ ) {
+    int cCols = mcCols[nRow];
+    for( int nCol = 0; nCol < cCols; nCol++ ) {
+      
+      View* view;
+      try {
+	view = GetViewAtColRow( nCol, nRow );
+	if( view->WantRedisplay() ) {
+	  RequestRedisplay();
+	  view->RedisplayPosted();
+	}
+      } 
+      catch(...) {
+      }
+    }
+  }  
 }
 
 void
 ScubaFrame::DoMouseMoved( int inX, int inY, InputState& iState ) {
 
   try {
-    
     View* view = FindViewAtWindowLoc( inX, inY, NULL, NULL );
     view->MouseMoved( inX, inY, iState );
-
-    // Post a redisplay if the view wants one. 
-    if( view->WantRedisplay() ) {
-      RequestRedisplay();
-      view->RedisplayPosted();
-    }
   }
   catch(...) {
   }
@@ -361,12 +396,6 @@ ScubaFrame::DoMouseUp( int inX, int inY, InputState& iState ) {
   try {
     View* view = FindViewAtWindowLoc( inX, inY, NULL, NULL );
     view->MouseUp( inX, inY, iState );
-
-    // Post a redisplay if the view wants one. 
-    if( view->WantRedisplay() ) {
-      RequestRedisplay();
-      view->RedisplayPosted();
-    }
   }
   catch(...) {
   } 
@@ -380,19 +409,14 @@ ScubaFrame::DoMouseDown( int inX, int inY, InputState& iState ) {
     int nCol;
     View* view = FindViewAtWindowLoc( inX, inY, &nCol, &nRow );
 
-    // Select this view.
+    // Select this view and request a redisplay that we can draw our
+    // frame around it.
     mnSelectedViewCol = nCol;
     mnSelectedViewRow = nRow;
 
     RequestRedisplay();
 
     view->MouseDown( inX, inY, iState );
-
-    // Post a redisplay if the view wants one. 
-    if( view->WantRedisplay() ) {
-      RequestRedisplay();
-      view->RedisplayPosted();
-    }
   }
   catch(...) {
   } 
@@ -414,18 +438,13 @@ ScubaFrame::DoKeyDown( int inX, int inY, InputState& iState ) {
 	mnSelectedViewRow = 0;
 	mnSelectedViewCol = 0;
       }
+
+      // Redraw the frame.
+      RequestRedisplay();  
     }
-    
-    RequestRedisplay();  
 
     View* view = FindViewAtWindowLoc( inX, inY, NULL, NULL );
     view->KeyDown( inX, inY, iState );
-
-    // Post a redisplay if the view wants one. 
-    if( view->WantRedisplay() ) {
-      RequestRedisplay();
-      view->RedisplayPosted();
-    }
   }
   catch(...) {
   } 
@@ -437,12 +456,6 @@ ScubaFrame::DoKeyUp( int inX, int inY, InputState& iState ) {
   try {
     View* view = FindViewAtWindowLoc( inX, inY, NULL, NULL );
     view->KeyUp( inX, inY, iState );
-
-    // Post a redisplay if the view wants one. 
-    if( view->WantRedisplay() ) {
-      RequestRedisplay();
-      view->RedisplayPosted();
-    }
   }
   catch(...) {
   } 
@@ -454,7 +467,7 @@ ScubaFrame::SetViewConfiguration( ScubaFrame::ViewConfiguration iConfig ) {
   mViewConfiguration = iConfig;
 
   switch( mViewConfiguration ) {
-    case c11:
+    case c1:
       mcRows = 1;
       mcCols[0] = 1;
       break;

@@ -14,7 +14,8 @@ class LayerStaticTclListener : public DebugReporter, public TclCommandListener {
   public :
     ~LayerStaticTclListener ();
 
-    virtual void DoListenToTclCommand ( char* iCommand, int iArgc, char** iArgv );
+    virtual TclCommandResult
+      DoListenToTclCommand ( char* iCommand, int iArgc, char** iArgv );
 };
 
 
@@ -28,7 +29,8 @@ class Layer : public DebugReporter, public IDTracker<Layer>, public TclCommandLi
   virtual ~Layer();
 
   // Tell the layer to draw its contents into a GL frame buffer.
-  virtual void DrawIntoBuffer( GLubyte* iBuffer, ViewState& iViewState,
+  virtual void DrawIntoBuffer( GLubyte* iBuffer, int iWidth, int iHeight,
+			       ViewState& iViewState,
 			       ScubaWindowToRASTranslator& iTranslator );
   
   // Asks the layer to describe a point of data by adding pairs of
@@ -39,7 +41,9 @@ class Layer : public DebugReporter, public IDTracker<Layer>, public TclCommandLi
   // Should return a type description unique to the subclass.
   virtual std::string GetTypeDescription() { return "BaseLayer"; }
 
-  virtual void DoListenToTclCommand ( char* isCommand, int iArgc, char** iasArgv );
+  virtual TclCommandResult
+    DoListenToTclCommand ( char* isCommand, int iArgc, char** iasArgv );
+
   void SetLabel( std::string isLabel ) { msLabel = isLabel; }
   std::string GetLabel() { return msLabel; }
 

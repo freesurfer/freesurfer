@@ -12,7 +12,9 @@ ScubaLayer2DMRI::ScubaLayer2DMRI () {
   mIndexCoord = VectorAlloc( 4, MATRIX_REAL );
 
   TclCommandManager& commandMgr = TclCommandManager::GetManager();
-  commandMgr.AddCommand( *this, "SetVolumeCollection" );
+  commandMgr.AddCommand( *this, "SetVolumeCollection", 2, 
+			 "layerID collectionID",
+			 "Sets the volume collection for this layer." );
 }
 
 ScubaLayer2DMRI::~ScubaLayer2DMRI () {
@@ -35,7 +37,8 @@ ScubaLayer2DMRI::SetVolumeCollection ( VolumeCollection& iVolume ) {
 }
 
 void 
-ScubaLayer2DMRI::DrawIntoBuffer ( GLubyte* iBuffer, ViewState& iViewState,
+ScubaLayer2DMRI::DrawIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
+				  ViewState& iViewState,
 				  ScubaWindowToRASTranslator& iTranslator ) {
 
   if( NULL == mVolume ) {
@@ -53,13 +56,13 @@ ScubaLayer2DMRI::DrawIntoBuffer ( GLubyte* iBuffer, ViewState& iViewState,
   MRIvalRange( mri, &minValue, &maxValue );
   GLubyte* dest = iBuffer;
 
-  float halfWidth  = ((float)mWidth / 2.0);
-  float halfHeight = ((float)mHeight / 2.0);
+  float halfWidth  = ((float)iWidth / 2.0);
+  float halfHeight = ((float)iHeight / 2.0);
 
   // Point to the beginning of the buffer. For each pixel in the
   // buffer...
-  for( int nY = 0; nY < mHeight; nY++ ) {
-    for( int nX = 0; nX < mWidth; nX++ ) {
+  for( int nY = 0; nY < iHeight; nY++ ) {
+    for( int nX = 0; nX < iWidth; nX++ ) {
 
       // Use our translator to get an RAS point.
       float world[3];
@@ -206,60 +209,53 @@ ScubaLayer2DMRI::GetInfoAtRAS ( float inX, float inY, float inZ,
     }
 
     stringstream ssValue;
-    ssValue << anaValue << " ";
+    ssValue << anaValue;
     
-    iLabelValues[msLabel] = ssValue.str();
+    iLabelValues[mVolume->GetLabel()] = ssValue.str();
   }
 }
   
-void 
+TclCommandListener::TclCommandResult 
 ScubaLayer2DMRI::DoListenToTclCommand ( char* isCommand, int iArgc, char** iasArgv ) {
 
   // SetVolumeCollection <layerID> <collectionID>
   if( 0 == strcmp( isCommand, "SetVolumeCollection" ) ) {
-    if( 3 == iArgc ) {
-      int layerID = strtol(iasArgv[1], (char**)NULL, 10);
+    int layerID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad layer ID";
+      return error;
+    }
+    
+    if( mID == layerID ) {
+      
+      int collectionID = strtol(iasArgv[2], (char**)NULL, 10);
       if( ERANGE == errno ) {
-	sResult = "bad layer ID";
-	return;
+	sResult = "bad collection ID";
+	return error;
       }
-
-      if( mID == layerID ) {
 	
-	int collectionID = strtol(iasArgv[2], (char**)NULL, 10);
-	if( ERANGE == errno ) {
-	  sResult = "bad collection ID";
-	  return;
+      try { 
+	DataCollection& data = DataCollection::FindByID( collectionID );
+	if( data.GetID() != collectionID ) {
+	  cerr << "IDs didn't match" << endl;
 	}
+	VolumeCollection& volume = (VolumeCollection&)data;
+	// VolumeCollection& volume = dynamic_cast<VolumeCollection&>(data);
 	
-	try { 
-	  DataCollection& data = DataCollection::FindByID( collectionID );
-	  if( data.GetID() != collectionID ) {
-	    cerr << "IDs didn't match" << endl;
-	  }
-	  VolumeCollection& volume = (VolumeCollection&)data;
-	  // VolumeCollection& volume = dynamic_cast<VolumeCollection&>(data);
-
-	  SetVolumeCollection( volume );
-	}
-	catch( std::bad_cast& e ) {
-	  DebugOutput( << "Bad cast from DataCollection" );
-	  sResult = "bad collection ID, collection not a volume collection";
-	  return;
-	}
-	catch(...) {
-	  sResult = "bad collection ID, collection not found";
-	  return;
-	}
+	SetVolumeCollection( volume );
       }
-    } else {
-      sResult = "wrong # args: should be \"SetVolumeCollection "
-	"layerID collectionID\"";
-      DebugOutput( << sResult );
-      return;
+      catch( std::bad_cast& e ) {
+	DebugOutput( << "Bad cast from DataCollection" );
+	sResult = "bad collection ID, collection not a volume collection";
+	return error;
+      }
+      catch(...) {
+	sResult = "bad collection ID, collection not found";
+	return error;
+      }
     }
   }
 
-  Layer::DoListenToTclCommand( isCommand, iArgc, iasArgv );
+  return Layer::DoListenToTclCommand( isCommand, iArgc, iasArgv );
 }
 

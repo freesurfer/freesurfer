@@ -22,7 +22,8 @@ class VolumeCollection : public DataCollection {
 
   MRI* GetMRI ();
   
-  virtual void DoListenToTclCommand ( char* isCommand, int iArgc, char** iasArgv );
+  virtual TclCommandResult
+    DoListenToTclCommand ( char* isCommand, int iArgc, char** iasArgv );
 
 protected:
   std::string mfnMRI;

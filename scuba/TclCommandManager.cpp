@@ -4,14 +4,14 @@
 
 using namespace std;
 
-void
+TclCommandListener::TclCommandResult
 TclCommandListener::ListenToTclCommand ( char* iCommand, 
 					 int iArgc, char** iArgv ) {
   sReturnFormat.clear();
   sReturnValues.clear();
   sResult.clear();
 
-  this->DoListenToTclCommand( iCommand, iArgc, iArgv );
+  return this->DoListenToTclCommand( iCommand, iArgc, iArgv );
 }
 
 TclCommandListener::~TclCommandListener () {
@@ -32,6 +32,9 @@ TclCommandManager::GetManager() {
   static TclCommandManager* sManager = NULL;
   if( NULL == sManager ) {
     sManager = new TclCommandManager();
+
+    sManager->AddCommand( *sManager, "PrintAllCommands", 0, "", 
+			 "Print all registered commands." );
   }
 
   return *sManager;
@@ -39,14 +42,17 @@ TclCommandManager::GetManager() {
 
 void
 TclCommandManager::AddCommand (  TclCommandListener& iListener,
-				 char const* isCommand ) {
+				 char const* isCommand,
+				 int  icArgs,
+				 char const* isArgHints, 
+				 char const* isDescription ) {
 
   std::list<Command*>::iterator tCommand;
   for( tCommand = mlCommands.begin(); 
        tCommand != mlCommands.end(); ++tCommand ) {
 
     Command* command = *tCommand;
-    if( strcmp( command->msCommand, isCommand ) == 0 ) {
+    if( command->msCommand.compare( string(isCommand) ) == 0 ) {
       
       command->mlListeners.push_back( &iListener );
       return;
@@ -54,7 +60,11 @@ TclCommandManager::AddCommand (  TclCommandListener& iListener,
   }
 
   struct Command* command = new Command;
-  strcpy( command->msCommand, isCommand );
+  command->msCommand = isCommand;
+  command->mcArgs = icArgs;
+  command->msArgHints = isArgHints;
+  command->msDescription = isDescription;
+
   command->mlListeners.push_back( &iListener );
   mlCommands.push_back( command );
 
@@ -86,8 +96,10 @@ TclCommandManager::CreateCommand( Command& iCommand ) {
     DebugOutput( << "CreateCommand() called with mInterp NULL" );
     throw std::logic_error( "Tried to CreateCommand without an interpretor" );
   }
-  
-  Tcl_CreateCommand( mInterp, iCommand.msCommand, 
+
+  char sCommand[1024];
+  strcpy( sCommand,  iCommand.msCommand.c_str() );
+  Tcl_CreateCommand( mInterp, sCommand,
 		     TclCommandManager::HandleCommand,
 		     (ClientData)NULL, (Tcl_CmdDeleteProc*)NULL );
 }
@@ -97,6 +109,7 @@ TclCommandManager::HandleCommand ( ClientData iClientData, Tcl_Interp* iInterp,
 				   int argc, char** argv ) {
 
   int rTcl = TCL_OK;
+  TclCommandListener::TclCommandResult finalResult = ok;
   TclCommandManager& commandMgr = TclCommandManager::GetManager(); 
 
   std::list<Command*>::iterator tCommand;
@@ -104,31 +117,69 @@ TclCommandManager::HandleCommand ( ClientData iClientData, Tcl_Interp* iInterp,
        tCommand != commandMgr.mlCommands.end(); ++tCommand ) {
 
     Command* command = *tCommand;
-    if( strcmp( command->msCommand, argv[0] ) == 0 ) {
+    if( command->msCommand.compare( string(argv[0]) ) == 0 ) {
 
-      std::list<TclCommandListener*>::iterator tListener;
-      for( tListener = command->mlListeners.begin(); 
-	   tListener != command->mlListeners.end(); ++tListener ) {
+      // Check for right number of args. mcArgs should be argc-1
+      // because argc also includes the command name.
+      if( command->mcArgs != argc - 1 ) {
+	stringstream ssError;
+	ssError << "wrong # args: should be " << command->msCommand << " "
+		<< command->msArgHints;
+	char* sResult = strdup( ssError.str().c_str() );
+	Tcl_SetResult( iInterp, sResult, TCL_VOLATILE );
+	free( sResult );
+	finalResult = error;
 
-	TclCommandListener* listener = *tListener;
-	listener->ListenToTclCommand( argv[0], argc, argv );
+      } else {
+	
+	// For each listener to this command...
+	std::list<TclCommandListener*>::iterator tListener;
+	for( tListener = command->mlListeners.begin(); 
+	     tListener != command->mlListeners.end(); ++tListener ) {
+	  
+	  // Give the listener a chance to listen to this command.
+	  TclCommandListener* listener = *tListener;
+	  TclCommandListener::TclCommandResult result =
+	    listener->ListenToTclCommand( argv[0], argc, argv );
+	  
+	  // If they gave us a return format string, convert the
+	  // format string and values string into a tcl object, which
+	  // could be a single value object or a list.
+	  if( listener->sReturnFormat.length() != 0 ) {
+	    stringstream sFormat( listener->sReturnFormat );
+	    stringstream sValues( listener->sReturnValues );
+	    Tcl_Obj* rObj = 
+	      commandMgr.ConvertFStringToTclObj( sFormat, sValues, iInterp );
+	    Tcl_SetObjResult( iInterp, rObj );
+	  }
 
-	if( listener->sReturnFormat.length() != 0 ) {
-	  stringstream sFormat( listener->sReturnFormat );
-	  stringstream sValues( listener->sReturnValues );
-
-	  Tcl_Obj* rObj = 
-	    commandMgr.ConvertFStringToTclObj( sFormat, sValues, iInterp );
-	  Tcl_SetObjResult( iInterp, rObj );
-	}
-
-	if( listener->sResult.length() != 0 ) {
-	  char* sResult = strdup( listener->sResult.c_str() );
-	  Tcl_SetResult( iInterp, sResult, TCL_VOLATILE );
-	  free( sResult );
+	  // If they gave us a result string, change that into a
+	  // string and set the result to that.
+	  if( listener->sResult.length() != 0 ) {
+	    char* sResult = strdup( listener->sResult.c_str() );
+	    Tcl_SetResult( iInterp, sResult, TCL_VOLATILE );
+	    free( sResult );
+	  }
+	  
+	  // If the result was not ok, save that in the final
+	  // result. This way many objects can respond to the command
+	  // but an error will be returned if any of them return an
+	  // error.
+	  if( result != ok ) {
+	    finalResult = result;
+	  }
 	}
       }
     }
+  }
+  
+  switch( finalResult ) {
+  case ok:
+    rTcl = TCL_OK;
+    break;
+  case error:
+    rTcl = TCL_ERROR;
+    break;
   }
   
   return rTcl;
@@ -245,4 +296,35 @@ TclCommandManager::RemoveListener ( TclCommandListener& iListener ) {
     Command* command = *tCommand;
     command->mlListeners.remove( &iListener );
   }
+}
+
+TclCommandListener::TclCommandResult
+TclCommandManager::DoListenToTclCommand ( char* isCommand, 
+					  int iArgc, char** iasArgv ) {
+
+  // PrintAllCommands
+  if( 0 == strcmp( isCommand, "PrintAllCommands" ) ) {
+    sResult = PrintAllCommands();
+  }
+
+  return ok;
+}
+
+
+string
+TclCommandManager::PrintAllCommands () {
+
+  stringstream ssResult;
+
+  std::list<Command*>::iterator tCommand;
+  for( tCommand = mlCommands.begin(); 
+       tCommand != mlCommands.end(); ++tCommand ) {
+    
+    Command* command = *tCommand;
+
+    ssResult << command->msCommand << " " << command->msArgHints << endl;
+    ssResult << command->msDescription << endl << endl;
+  }
+
+  return ssResult.str();
 }

@@ -13,12 +13,25 @@ ScubaView::ScubaView() {
   mbRebuildOverlayDrawList = true;
 
   TclCommandManager& commandMgr = TclCommandManager::GetManager();
-  commandMgr.AddCommand( *this, "SetViewInPlane" );
-  commandMgr.AddCommand( *this, "SetViewZoomLevel" );
-  commandMgr.AddCommand( *this, "SetViewRASCenter" );
-  commandMgr.AddCommand( *this, "AddLayerToView" );
-  commandMgr.AddCommand( *this, "RemoveAllLayersFromView" );
-  commandMgr.AddCommand( *this, "RemoveLayerFromViewAtLevel" );
+  commandMgr.AddCommand( *this, "SetViewInPlane", 2, "viewID inPlane",
+			 "Sets the in plane in a view. inPlane should be "
+			 "one of the following: x y z" );
+  commandMgr.AddCommand( *this, "SetViewZoomLevel", 2, "viewID zoomLevel",
+			 "Sets the zoom level in a view. zoomLevel should be "
+			 "a float." );
+  commandMgr.AddCommand( *this, "SetViewRASCenter", 4, "viewID x y z",
+			 "Sets the view center. x, y, and z should be floats "
+			 "in world RAS coordinates." );
+  commandMgr.AddCommand( *this, "AddLayerToView", 3, "viewID layerID level",
+			 "Sets the layer in a view at a given draw level. "
+			 "Higher draw levels will draw later." );
+  commandMgr.AddCommand( *this, "RemoveAllLayersFromView", 1, "viewID",
+			 "Remove all layers from a view." );
+  commandMgr.AddCommand( *this, "RemoveLayerFromViewAtLevel", 2, 
+			 "viewID layer",
+			 "Remove a layer from a view." );
+  commandMgr.AddCommand( *this, "GetLabelValuesSet", 2, "viewID setName",
+			 "Get a set of label value pairs." );
 
   PreferencesManager& prefsMgr = PreferencesManager::GetManager();
   prefsMgr.UseFile( ".scuba" );
@@ -89,7 +102,8 @@ ScubaView::ScubaView() {
 			  inPlaneZ );
   msInPlaneZKey = prefsMgr.GetValue( "key-InPlaneZ" );
 
-  
+  map<string,string> labelValueMap;
+  mLabelValueMaps["cursor"] = labelValueMap;
 }
 
 ScubaView::~ScubaView() {
@@ -130,6 +144,8 @@ ScubaView::AddLayer ( int iLayerID, int iLevel ) {
   catch(...) {
     DebugOutput( << "Couldn't find layer " << iLayerID );
   }
+
+  RequestRedisplay();
 }
 
 void 
@@ -144,191 +160,193 @@ ScubaView::RemoveLayerAtLevel ( int iLevel ) {
   mLevelLayerIDMap.erase( iLevel );
 }
 
-void
+TclCommandListener::TclCommandResult
 ScubaView::DoListenToTclCommand( char* isCommand, int iArgc, char** iasArgv ) {
 
   // SetViewInPlane <viewID> <inPlane>
   if( 0 == strcmp( isCommand, "SetViewInPlane" ) ) {
-    if( 3 == iArgc ) {
-      int viewID = strtol(iasArgv[1], (char**)NULL, 10);
-      if( ERANGE == errno ) {
-	sResult = "bad view ID";
-	return;
+    int viewID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad view ID";
+      return error;
+    }
+    
+    if( mID == viewID ) {
+      
+      ViewState::Plane inPlane;
+      if( 0 == strcmp( iasArgv[2], "X" )  || 
+	  0 == strcmp( iasArgv[2], "x" ) ) {
+	inPlane = ViewState::X;
+      } else if( 0 == strcmp( iasArgv[2], "Y" )  || 
+		 0 == strcmp( iasArgv[2], "y" ) ) {
+	inPlane = ViewState::Y;
+      } else if( 0 == strcmp( iasArgv[2], "Z" )  || 
+		 0 == strcmp( iasArgv[2], "z" ) ) {
+	inPlane = ViewState::Z;
+      } else {
+	sResult = "bad inPlane \"" + string(iasArgv[2]) + 
+	  "\", should be x, y, or z";
+	return error;
       }
-
-      if( mID == viewID ) {
-	
-	ViewState::Plane inPlane;
-	if( 0 == strcmp( iasArgv[2], "X" )  || 
-	    0 == strcmp( iasArgv[2], "x" ) ) {
-	  inPlane = ViewState::X;
-	} else if( 0 == strcmp( iasArgv[2], "Y" )  || 
-	    0 == strcmp( iasArgv[2], "y" ) ) {
-	  inPlane = ViewState::Y;
-	} else if( 0 == strcmp( iasArgv[2], "Z" )  || 
-	    0 == strcmp( iasArgv[2], "z" ) ) {
-	  inPlane = ViewState::Z;
-	} else {
-	  sResult = "bad inPlane \"" + string(iasArgv[2]) + 
-	    "\", should be x, y, or z";
-	  return;
-	}
-
-	Set2DInPlane( inPlane );
-      }
-    } else {
-      sResult = "wrong # args: should be \"SetViewInPlane "
-	"viewID inPlane\"";
-      DebugOutput( << sResult );
-      return;
+      
+      Set2DInPlane( inPlane );
     }
   }
 
   // SetViewZoomLevel <viewID> <zoomLevel>
   if( 0 == strcmp( isCommand, "SetViewZoomLevel" ) ) {
-    if( 3 == iArgc ) {
-      int viewID = strtol(iasArgv[1], (char**)NULL, 10);
+    int viewID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad view ID";
+      return error;
+    }
+    
+    if( mID == viewID ) {
+      
+      float zoomLevel = strtof( iasArgv[2], (char**)NULL );
       if( ERANGE == errno ) {
-	sResult = "bad view ID";
-	return;
+	sResult = "bad zoom level";
+	return error;
       }
-
-      if( mID == viewID ) {
-	
-	float zoomLevel = strtof( iasArgv[2], (char**)NULL );
-	if( ERANGE == errno ) {
-	  sResult = "bad zoom level";
-	  return;
-	}
-	  
-	Set2DZoomLevel( zoomLevel );
-      }
-    } else {
-      sResult = "wrong # args: should be \"SetViewZoomLevel "
-	"viewID zoomLevel\"";
-      DebugOutput( << sResult );
-      return;
+      
+      Set2DZoomLevel( zoomLevel );
     }
   }
 
   // SetViewRASCenter <viewID> <X> <Y> <Z>
   if( 0 == strcmp( isCommand, "SetViewRASCenter" ) ) {
-    if( 5 == iArgc ) {
-      int viewID = strtol(iasArgv[1], (char**)NULL, 10);
-      if( ERANGE == errno ) {
-	sResult = "bad view ID";
-	return;
-      }
+    int viewID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad view ID";
+      return error;
+    }
 
-      if( mID == viewID ) {
-	
-	float x = strtof( iasArgv[2], (char**)NULL );
-	if( ERANGE == errno ) {
-	  sResult = "bad x coordinate";
-	  return;
-	}
-	float y = strtof( iasArgv[3], (char**)NULL );
-	if( ERANGE == errno ) {
-	  sResult = "bad y coordinate";
-	  return;
-	}
-	float z = strtof( iasArgv[4], (char**)NULL );
-	if( ERANGE == errno ) {
-	  sResult = "bad z coordinate";
-	  return;
-	}
-	
-	float center[3];
-	center[0] = x; center[1] = y; center[2] = z;
-	Set2DRASCenter( center );
+    if( mID == viewID ) {
+      
+      float x = strtof( iasArgv[2], (char**)NULL );
+      if( ERANGE == errno ) {
+	sResult = "bad x coordinate";
+	return error;
       }
-    } else {
-      sResult = "wrong # args: should be \"SetViewRASCenter "
-	"viewID X Y Z\"";
-      DebugOutput( << sResult );
-      return;
+      float y = strtof( iasArgv[3], (char**)NULL );
+      if( ERANGE == errno ) {
+	sResult = "bad y coordinate";
+	return error;
+      }
+      float z = strtof( iasArgv[4], (char**)NULL );
+      if( ERANGE == errno ) {
+	sResult = "bad z coordinate";
+	return error;
+      }
+      
+      float center[3];
+      center[0] = x; center[1] = y; center[2] = z;
+      Set2DRASCenter( center );
     }
   }
 
   // AddLayerToView <viewID> <layerID> <level>
   if( 0 == strcmp( isCommand, "AddLayerToView" ) ) {
-    if( 4 == iArgc ) {
-      int viewID = strtol(iasArgv[1], (char**)NULL, 10);
+    int viewID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad view ID";
+      return error;
+    }
+    
+    if( mID == viewID ) {
+      
+      int layerID = strtol( iasArgv[2], (char**)NULL, 10 );
       if( ERANGE == errno ) {
-	sResult = "bad view ID";
-	return;
+	sResult = "bad layer ID";
+	return error;
       }
-
-      if( mID == viewID ) {
-	
-	int layerID = strtol( iasArgv[2], (char**)NULL, 10 );
-	if( ERANGE == errno ) {
-	  sResult = "bad layer ID";
-	  return;
-	}
-	int level = strtol( iasArgv[3], (char**)NULL, 10 );
-	if( ERANGE == errno ) {
-	  sResult = "bad level";
-	  return;
-	}
-
-	AddLayer( layerID, level );
+      int level = strtol( iasArgv[3], (char**)NULL, 10 );
+      if( ERANGE == errno ) {
+	sResult = "bad level";
+	return error;
       }
-    } else {
-      sResult = "wrong # args: should be \"AddLayerToView "
-	"viewID layerID level\"";
-      DebugOutput( << sResult );
-      return;
+      
+      AddLayer( layerID, level );
     }
   }
 
   // RemoveLayerFromViewAtLevel <viewID> <level>
   if( 0 == strcmp( isCommand, "RemoveLayerFromViewAtLevel" ) ) {
-    if( 3 == iArgc ) {
-      int viewID = strtol(iasArgv[1], (char**)NULL, 10);
+    int viewID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad view ID";
+      return error;
+    }
+    
+    if( mID == viewID ) {
+      
+      int level = strtol( iasArgv[2], (char**)NULL, 10 );
       if( ERANGE == errno ) {
-	sResult = "bad view ID";
-	return;
+	sResult = "bad level";
+	return error;
       }
-
-      if( mID == viewID ) {
-	
-	int level = strtol( iasArgv[2], (char**)NULL, 10 );
-	if( ERANGE == errno ) {
-	  sResult = "bad level";
-	  return;
-	}
-
-	RemoveLayerAtLevel( level );
-      }
-    } else {
-      sResult = "wrong # args: should be \"RemoveLayerFromViewAtLevel "
-	"viewID level\"";
-      DebugOutput( << sResult );
-      return;
+      
+      RemoveLayerAtLevel( level );
     }
   }
 
   // RemoveAllLayersFromView <viewID>
   if( 0 == strcmp( isCommand, "RemoveAllLayersFromView" ) ) {
-    if( 2 == iArgc ) {
-      int viewID = strtol(iasArgv[1], (char**)NULL, 10);
-      if( ERANGE == errno ) {
-	sResult = "bad view ID";
-	return;
-      }
-
-      if( mID == viewID ) {
-	
-	RemoveAllLayers();
-      }
-    } else {
-      sResult = "wrong # args: should be \"RemoveAllLayersFromView viewID\"";
-      DebugOutput( << sResult );
-      return;
+    int viewID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad view ID";
+      return error;
+    }
+    
+    if( mID == viewID ) {
+      
+      RemoveAllLayers();
     }
   }
 
+  // GetLabelValuesSet <viewID> <setName>
+  if( 0 == strcmp( isCommand, "GetLabelValuesSet" ) ) {
+    int viewID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad view ID";
+      return error;
+    }
+    
+    if( mID == viewID ) {
+
+      string sSetName = iasArgv[2];
+
+      map<string,map<string,string> >::iterator tMap = 
+	mLabelValueMaps.find( sSetName );
+      if( tMap == mLabelValueMaps.end() ) {
+	stringstream ssResult;
+	ssResult << "Set name " << sSetName << " doesn't exist.";
+	sResult = ssResult.str();
+	return error;
+      }
+
+      map<string,string> labelValueMap = mLabelValueMaps[sSetName];
+      map<string,string>::iterator tLabelValue;
+
+      stringstream ssFormat;
+      stringstream ssResult;
+      ssFormat << "L";
+
+      for( tLabelValue = labelValueMap.begin(); 
+	   tLabelValue != labelValueMap.end(); ++tLabelValue ) {
+	
+	ssFormat << "Lssl";
+	ssResult << "\"" << (*tLabelValue).first << "\" \"" 
+		 << (*tLabelValue).second << "\" ";
+      }
+      ssFormat << "l";
+      
+      sReturnFormat = ssFormat.str();
+      sReturnValues = ssResult.str();
+    }
+  }
+
+  return ok;
 }
 
 void
@@ -401,6 +419,15 @@ ScubaView::DoMouseMoved( int inX, int inY, InputState& iState ) {
 
   map<string,string> labelValueMap;
 
+  stringstream sID;
+  sID << GetID();
+  labelValueMap["View ID"] = sID.str();
+
+  // Get the RAS coords into a string and set that label/value.
+  stringstream ssRASCoords;
+  ssRASCoords << rasX << " " << rasY << " " << rasZ;
+  labelValueMap["RAS"] = ssRASCoords.str();
+
   // Go through our draw levels. For each one, get the Layer.
   map<int,int>::iterator tLevelLayerID;
   for( tLevelLayerID = mLevelLayerIDMap.begin(); 
@@ -418,16 +445,24 @@ ScubaView::DoMouseMoved( int inX, int inY, InputState& iState ) {
     }
   }
 
-  DrawFrameBuffer();
-  DrawOverlay();
+  RequestRedisplay();
 
+  //  DrawFrameBuffer();
+  //  DrawOverlay();
+
+  // Set this labelValueMap in the array of label values under the
+  // name 'cursor'.
+  mLabelValueMaps["cursor"] = labelValueMap;
+
+
+#if 0
   // For each one, get the strings.
   int nLine = 0;
   map<string,string>::iterator tLabelValue;
   for( tLabelValue = labelValueMap.begin(); 
        tLabelValue != labelValueMap.end(); ++tLabelValue ) {
 
-    string sLabel = (*tLabelValue).first;
+    string sLabel = (*tLabelValue).first + ": ";
     string sValue = (*tLabelValue).second;
 
     // Draw them to the screen.
@@ -439,11 +474,45 @@ ScubaView::DoMouseMoved( int inX, int inY, InputState& iState ) {
     for( int nChar = 0; nChar < sValue.length(); nChar++ ) {
       glutBitmapCharacter( GLUT_BITMAP_8_BY_13, sValue[nChar] );
     }
+    // I don't know why, but the last char in sValue gets overdrawn,
+    // so draw this last space to make sure sValue is there.
+    glutBitmapCharacter( GLUT_BITMAP_8_BY_13, ' ' );
+
+    nLine++;
   }
+#endif
 }
 
 void
 ScubaView::DoMouseUp( int inX, int inY, InputState& iState ) {
+
+  // No matter what tool we're on, look for ctrl-b{1,2,3} and do some
+  // navigation stuff.
+  if( iState.IsControlKeyDown() && 
+      !iState.IsShiftKeyDown() && !iState.IsAltKeyDown() ) {
+    
+    // Set the new view center to this point. If they also hit b1 or
+    // b3, zoom in or out accordingly.
+    float world[3];
+    TranslateWindowToRAS( inX, inY, world );
+    Set2DRASCenter( world );
+
+    switch( iState.Button() ) {
+    case 1:
+      mViewState.mZoomLevel *= 2.0;
+      break;
+    case 3:
+      mViewState.mZoomLevel /= 2.0;
+      if( mViewState.mZoomLevel < 0.25 ) {
+	mViewState.mZoomLevel = 0.25;
+      }
+      break;
+    }
+
+    mbRebuildOverlayDrawList = true;
+    RequestRedisplay();
+  }
+
 }
 
 void
@@ -580,7 +649,7 @@ ScubaView::BuildFrameBuffer () {
       Layer& layer = Layer::FindByID( layerID );
     
       // tell it to draw into our buffer with our view state information.
-      layer.DrawIntoBuffer( mBuffer, mViewState, *this );
+      layer.DrawIntoBuffer( mBuffer, mWidth, mHeight, mViewState, *this );
     }
     catch(...) {
       DebugOutput( << "Couldn't find layer " << layerID );
@@ -628,7 +697,7 @@ ScubaView::BuildOverlay () {
   }
 
 
-  glNewList( kOverlayDrawListID, GL_COMPILE );
+  glNewList( kOverlayDrawListID + mID, GL_COMPILE );
 
   glColor3f( 1, 1, 1 );
 
@@ -677,6 +746,6 @@ ScubaView::DrawOverlay () {
   if( mbRebuildOverlayDrawList )
     BuildOverlay();
 
-  glCallList( kOverlayDrawListID );
+  glCallList( kOverlayDrawListID + mID );
 }
 

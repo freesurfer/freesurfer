@@ -77,3 +77,27 @@ if { [lindex $lValue 0] != 5 ||
     puts "Error on ReturnNestedList:"
     puts "Return value was incorrect: $lValue"
 }
+
+set lValue {}
+set err [catch { set lValue [ReturnNestedList2] } sResult]
+if { $err != 0 } {
+    puts "Error on ReturnNestedList2:: $sResult"
+}
+set lNested1 [lindex $lValue 0]
+set lNested2 [lindex $lValue 1]
+if { [lindex $lNested1 0] != "Label 1" || 
+     [lindex $lNested1 1] != "Value 1" || 
+     [lindex $lNested2 0] != "Label 2" || 
+     [lindex $lNested2 1] != "Value 2" } {
+    puts "Error on ReturnNestedList2:"
+    puts "Return value was incorrect: $lValue"
+}
+
+set err [catch { ReturnError } sResult]
+if { $err == 0 } {
+    puts "ReturnError did not return an error: $sResult"
+}
+if { $sResult != "This is an error string." } {
+    puts "Error on ReturnError:"
+    puts "Result value was incorrect: $sResult"
+}

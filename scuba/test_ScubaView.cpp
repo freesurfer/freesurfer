@@ -63,7 +63,9 @@ class TestLayer : public Layer {
 
 public:
   TestLayer();
-  virtual void DrawIntoBuffer( GLubyte* iBuffer, ViewState& iViewState );
+  virtual void DrawIntoBuffer( GLubyte* iBuffer, int iWidth, int iHeight,
+			       ViewState& iViewState,
+			       ScubaWindowToRASTranslator& iTranslator );
   virtual void GetInfoAtRAS ( float inX, float inY, float inZ,
 			    std::map<std::string,std::string>& iLabelValues );
   virtual string GetTypeDescription() { return "TestLayer"; }
@@ -79,7 +81,9 @@ TestLayer::TestLayer() {
 }
 
 void
-TestLayer::DrawIntoBuffer( GLubyte* iBuffer, ViewState& iViewState ) {
+TestLayer::DrawIntoBuffer( GLubyte* iBuffer, int iWidth, int iHeight,
+			   ViewState& iViewState,
+			   ScubaWindowToRASTranslator& iTranslator ) {
   mbWasDrawn = true;
 }
 

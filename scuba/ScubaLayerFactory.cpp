@@ -14,42 +14,38 @@ ScubaLayerFactory::GetFactory() {
 
     mbAddedTclCommands = true;
     TclCommandManager& commandMgr = TclCommandManager::GetManager();
-    commandMgr.AddCommand( sFactory, "MakeLayer" );
+    commandMgr.AddCommand( sFactory, "MakeLayer", 1, "layerType",
+			   "Makes a new layer of the given type and returns "
+			   "the layerID.");
 
   }
 
   return sFactory;
 }
 
-void
+TclCommandListener::TclCommandResult
 ScubaLayerFactory::DoListenToTclCommand( char* isCommand, int iArgc, char** iasArgv ) {
-
+  
   // MakeLayer <layerType>   -- returns layer ID
   if( 0 == strcmp( isCommand, "MakeLayer" ) ) {
-    if( 2 == iArgc ) {
-
-      string sType = iasArgv[1];
-
-      try {
-	Layer& layer = MakeLayer( sType );
-	int id = layer.GetID();
-	stringstream ssResult;
-	ssResult << id;
-	sReturnFormat = "i";
-	sReturnValues = ssResult.str();
-      }
-      catch( runtime_error e ) {
-	DebugOutput( << "Bad layer type name" );
-	sResult = "bad layer type";
-	return;
-      }
-
-    } else {
-      sResult = "wrong # args: should be \"MakeLayer layerType\"";
-      DebugOutput( << sResult );
-      return;
+    string sType = iasArgv[1];
+    
+    try {
+      Layer& layer = MakeLayer( sType );
+      int id = layer.GetID();
+      stringstream ssResult;
+      ssResult << id;
+      sReturnFormat = "i";
+      sReturnValues = ssResult.str();
+    }
+    catch( runtime_error e ) {
+      DebugOutput( << "Bad layer type name" );
+      sResult = "bad layer type";
+      return error;
     }
   }
+
+  return ok;
 }
 
 Layer&

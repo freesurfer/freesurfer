@@ -15,43 +15,40 @@ ScubaDataCollectionFactory::GetFactory() {
 
     mbAddedTclCommands = true;
     TclCommandManager& commandMgr = TclCommandManager::GetManager();
-    commandMgr.AddCommand( sFactory, "MakeDataCollection" );
+    commandMgr.AddCommand( sFactory, "MakeDataCollection", 1, "collectionType",
+			   "Make a new data collection of the given type "
+			   "and return the collectionID." );
 
   }
 
   return sFactory;
 }
 
-void
+TclCommandListener::TclCommandResult
 ScubaDataCollectionFactory::DoListenToTclCommand( char* isCommand, int iArgc, char** iasArgv ) {
 
   // MakeDataCollection <collectionType>   -- returns collection ID
   if( 0 == strcmp( isCommand, "MakeDataCollection" ) ) {
-    if( 2 == iArgc ) {
 
-      string sType = iasArgv[1];
-      
-      try {
-	DataCollection& collection = MakeDataCollection( sType );
-	int id = collection.GetID();
-	stringstream ssResult;
-	ssResult << id;
-	sReturnFormat = "i";
-	sReturnValues = ssResult.str();
-      }
-      catch( runtime_error e ) {
-	DebugOutput( << "Bad collection type name" );
-	sResult = "bad collection type";
-	return;
-      }
-
-    } else {
-      sResult = "wrong # args: should be \"MakeDataCollection "
-	"collectionType\"";
-      DebugOutput( << sResult );
-      return;
+    string sType = iasArgv[1];
+    
+    try {
+      DataCollection& collection = MakeDataCollection( sType );
+      int id = collection.GetID();
+      stringstream ssResult;
+      ssResult << id;
+      sReturnFormat = "i";
+      sReturnValues = ssResult.str();
     }
+    catch( runtime_error e ) {
+      DebugOutput( << "Bad collection type name" );
+      sResult = "bad collection type";
+      return error;
+    }
+    
   }
+
+  return ok;
 }
 
 DataCollection&

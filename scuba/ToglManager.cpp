@@ -76,8 +76,7 @@ ToglManager::MouseMotionCallback ( struct Togl* iTogl,
   }
   ToglFrame::ID id = atoi( Togl_Ident( iTogl ));
   ToglFrame* frame = mFrames[id];
-  frame->MouseMoved( atoi(iArgv[2]), 
-		     (frame->GetHeight() - atoi(iArgv[3])), mState );
+  frame->MouseMoved( atoi(iArgv[2]), YFlip(frame, atoi(iArgv[3])), mState );
 
   // Post a redisplay if the frame wants one. 
   if( frame->WantRedisplay() ) {
@@ -102,8 +101,7 @@ ToglManager::MouseDownCallback ( struct Togl* iTogl,
 
   ToglFrame::ID id = atoi( Togl_Ident( iTogl ));
   ToglFrame* frame = mFrames[id];
-  frame->MouseDown( atoi(iArgv[2]),  
-		     (frame->GetHeight() - atoi(iArgv[3])), mState );
+  frame->MouseDown( atoi(iArgv[2]),  YFlip(frame, atoi(iArgv[3])), mState );
 
   // Post a redisplay if the frame wants one. 
   if( frame->WantRedisplay() ) {
@@ -127,8 +125,7 @@ ToglManager::MouseUpCallback ( struct Togl* iTogl, int iArgc, char* iArgv[] ) {
   
   ToglFrame::ID id = atoi( Togl_Ident( iTogl ));
   ToglFrame* frame = mFrames[id];
-  frame->MouseUp( atoi(iArgv[2]),  
-		     (frame->GetHeight() - atoi(iArgv[3])), mState );
+  frame->MouseUp( atoi(iArgv[2]),  YFlip(frame, atoi(iArgv[3])), mState );
 
   // Clear this in the keyboard state.
   mState.mButton = 0;
@@ -170,8 +167,7 @@ ToglManager::KeyDownCallback ( struct Togl* iTogl, int iArgc, char* iArgv[] ) {
     
     ToglFrame::ID id = atoi( Togl_Ident( iTogl ));
     ToglFrame* frame = mFrames[id];
-    frame->KeyDown( atoi(iArgv[2]),  
-		     (frame->GetHeight() - atoi(iArgv[3])), mState );
+    frame->KeyDown( atoi(iArgv[2]),  YFlip(frame, atoi(iArgv[3])), mState );
     
     // Post a redisplay if the frame wants one. 
     if( frame->WantRedisplay() ) {
@@ -211,8 +207,7 @@ ToglManager::KeyUpCallback ( struct Togl* iTogl, int iArgc, char* iArgv[] ) {
     
     ToglFrame::ID id = atoi( Togl_Ident( iTogl ));
     ToglFrame* frame = mFrames[id];
-    frame->KeyUp( atoi(iArgv[2]),  
-		     (frame->GetHeight() - atoi(iArgv[3])), mState );
+    frame->KeyUp( atoi(iArgv[2]),  YFlip(frame, atoi(iArgv[3])), mState );
     
     // Clear this in the keyboard state.
     mState.msKey = "";
@@ -262,7 +257,7 @@ ToglManager::InitializeTogl ( Tcl_Interp* iInterp ) {
 
   // Register our Togl callbacks.
   Togl_CreateFunc( ToglManager::CreateCallback );
-  Togl_DestroyFunc( ToglManager::CreateCallback );
+  Togl_DestroyFunc( ToglManager::DestroyCallback );
   Togl_DisplayFunc( ToglManager::DrawCallback );
   Togl_ReshapeFunc( ToglManager::ReshapeCallback );
   Togl_TimerFunc( ToglManager::TimerCallback );

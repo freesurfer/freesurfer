@@ -237,18 +237,31 @@ Volume Info: change color map
 plan :
 
 test_ScubaLayers
-- report info at RAS
- - set label properly
- - ScubaView not drawing last character
+x report info at RAS
+ x set label properly
+ x ScubaView not drawing last character
 
-main scuba interface window
-frame->view config
+
+x main scuba interface window
+x fix file selectors
+x make load volume dlog nice
+x fix crash on load volume without redraw
+x error dialogs
+x frame->view config
+x make label/value display panel
+x fix overlay drawing bugs
 set view state dlog
-Load Volume dialog
-output display
+
 
 b/c, LUT color map support
 opacity
+
+
+label/value display panel
+   function takes an array of stuff
+   for each, puts the key in the left column and value in the right
+   if new key, create a new row
+   if key exists, replace value
 
 Volume Info interface
  - change b/c or LUT
@@ -325,5 +338,16 @@ Frame Info
  - special views like mosaic
 
 
+future ideas:
 
-CURRENT : test_ScubaView is failing because view.DoDraw() is not calling the Layer's subclass DrawIntoBuffer function, just the Layer function
+Load Subject
+ - punch in a subject name and presents a dlog with all available volumes, functional, surfaces, etc, and load buttons for quick loading
+
+Save Scene
+ - save a script file to automatically load in data and set up view state like current one
+
+tkconn pull out window
+
+nav tools draw onscreen sliders for feedback
+
+

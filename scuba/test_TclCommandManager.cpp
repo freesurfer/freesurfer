@@ -24,7 +24,8 @@ protected:
 public:
   TestListenerCounter( int const iID ) : mID( iID ) { }
 
-  void DoListenToTclCommand ( char* isCommand, int iArgc, char** iArgv ) {
+  TclCommandResult
+  DoListenToTclCommand ( char* isCommand, int iArgc, char** iArgv ) {
     list<ListenCount*>::iterator tListenCount;
     for( tListenCount = mlListenCounts.begin();
 	 tListenCount != mlListenCounts.end(); ++tListenCount ) {
@@ -33,6 +34,7 @@ public:
 	listenCount->mcHeard++;
       }
     }
+    return ok;
   }
 
   void CountCommand ( char* isCommand ) {
@@ -58,7 +60,8 @@ public:
 class TestListenerReturner : public TclCommandListener {
 
 public:
-  void DoListenToTclCommand( char *isCommand, int iArgc, char** iArgv ) {
+  TclCommandResult
+  DoListenToTclCommand( char *isCommand, int iArgc, char** iArgv ) {
 
     // These test the functionality of returning Tcl objects to the
     // Tcl context. Used in conjunction with test_TclCommandManager.tcl.
@@ -83,9 +86,16 @@ public:
     } else if( 0 == strcmp( isCommand, "ReturnNestedList" ) ) {
       sReturnFormat = "LifsLifsll";
       sReturnValues = "5 5.5 hello 6 6.6 \"hello world\"";
+    } else if( 0 == strcmp( isCommand, "ReturnNestedList2" ) ) {
+      sReturnFormat = "LLsslLssll";
+      sReturnValues = "\"Label 1\" \"Value 1\" \"Label 2\" \"Value 2\"";
     } else if( 0 == strcmp( isCommand, "ReturnMessage" ) ) {
       sResult = "This is a result string.";
+    } else if( 0 == strcmp( isCommand, "ReturnError" ) ) {
+      sResult = "This is an error string.";
+      return error;
     }
+    return ok;
   }
 };
 
@@ -122,12 +132,13 @@ public:
 	for( int nCommand = 0; nCommand < kzCommands/2; nCommand++ ) {
 	  aListener[nListener]->CountCommand( asCommandNames[nCommand] );
 	  commandMgr.AddCommand( *aListener[nListener], 
-				 asCommandNames[nCommand] );
+				 asCommandNames[nCommand], 3, 
+				 "arg1 arg2 arg3", "" );
 	}
       }
     }
     
-    
+
     // Call start.
     cerr << "TclCommandManager::Start()" << endl;
     commandMgr.Start( iInterp );
@@ -175,7 +186,8 @@ public:
 	for( int nCommand = kzCommands/2; nCommand < kzCommands; nCommand++ ) {
 	  aListener[nListener]->CountCommand( asCommandNames[nCommand] );
 	  commandMgr.AddCommand( *aListener[nListener], 
-				 asCommandNames[nCommand] );
+				 asCommandNames[nCommand], 
+				 3, "arg1 arg2 arg3", "" );
 	}
       }
     }
@@ -212,19 +224,21 @@ public:
 	}
       }
     }
-    
+
     
     // Add the return testing commands.
     TestListenerReturner* listener = new TestListenerReturner();
-    commandMgr.AddCommand( *listener, "ReturnSingleInt" );
-    commandMgr.AddCommand( *listener, "ReturnSingleFloat" );
-    commandMgr.AddCommand( *listener, "ReturnSingleString" );
-    commandMgr.AddCommand( *listener, "ReturnSingleTwoWordString" );
-    commandMgr.AddCommand( *listener, "ReturnSingleLongString" );
-    commandMgr.AddCommand( *listener, "ReturnSingleList" );
-    commandMgr.AddCommand( *listener, "ReturnNestedList" );
-    commandMgr.AddCommand( *listener, "ReturnMessage" );
-    
+    commandMgr.AddCommand( *listener, "ReturnSingleInt", 0, "", "" );
+    commandMgr.AddCommand( *listener, "ReturnSingleFloat", 0, "", "" );
+    commandMgr.AddCommand( *listener, "ReturnSingleString", 0, "", "" );
+    commandMgr.AddCommand( *listener, "ReturnSingleTwoWordString", 0, "", "" );
+    commandMgr.AddCommand( *listener, "ReturnSingleLongString", 0, "", "" );
+    commandMgr.AddCommand( *listener, "ReturnSingleList", 0, "", "" );
+    commandMgr.AddCommand( *listener, "ReturnNestedList", 0, "", "" );
+    commandMgr.AddCommand( *listener, "ReturnNestedList2", 0, "", "" );
+    commandMgr.AddCommand( *listener, "ReturnMessage", 0, "", "" );  
+    commandMgr.AddCommand( *listener, "ReturnError", 0, "", "" );
+  
     // Run the script that will test tcl return stuff.
     cerr << "Running tcl script..." << endl;
     rTcl = Tcl_EvalFile( iInterp, "test_TclCommandManager.tcl" );
@@ -251,7 +265,7 @@ public:
 	 tCommand != commandMgr.mlCommands.end(); ++tCommand ) {
       TclCommandManager::Command* command = *tCommand;
       if( 0 != command->mlListeners.size() ) {
-	cerr << "Not all listeners removedm size = " 
+	cerr << "Not all listeners removed size = " 
 	     << command->mlListeners.size() << endl;
       }
     }
@@ -282,7 +296,7 @@ int main ( int iArgc, char** iArgv ) {
     cerr << msg << " failed" << endl;
     exit( 1 );
   }
-  catch( exception e ) {
+  catch( logic_error e ) {
     cerr << "failed: " << e.what() << endl;
     exit( 1 );
   }

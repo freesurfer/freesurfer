@@ -36,11 +36,15 @@ class ScubaView : public View, public ScubaWindowToRASTranslator {
   void RemoveAllLayers ();
   void RemoveLayerAtLevel ( int iLevel );
 
-  virtual void DoListenToTclCommand ( char* iCommand, int iArgc, char** iArgv );
+  virtual TclCommandResult
+    DoListenToTclCommand ( char* iCommand, int iArgc, char** iArgv );
 
   // Implement ScubaWindowToRASTranslator.
   void TranslateWindowToRAS ( int iXWindow, int iYWindow,
 			      float& oXRAS, float& oYRAS, float& oZRAS );
+  void TranslateWindowToRAS ( int iXWindow, int iYWindow, float oRAS[3] ) {
+    TranslateWindowToRAS( iXWindow, iYWindow, oRAS[0], oRAS[1], oRAS[2] ); 
+  }
 
 protected:
 
@@ -86,9 +90,12 @@ protected:
   void DrawOverlay ();
 
   // Tee draw list for the view overlay and a boolean saying whether
-  // it should be rebuilt, usually when the view changes.
+  // it should be rebuilt, usually when the view changes. This view
+  // will actually use list kOverlayDrawListID + mID.
   #define kOverlayDrawListID 1
   bool mbRebuildOverlayDrawList;
+
+  std::map<std::string,std::map<std::string,std::string> > mLabelValueMaps;
 
   // List of layers and their levels (level, layerID).
   std::map<int,int> mLevelLayerIDMap;

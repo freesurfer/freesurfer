@@ -121,6 +121,15 @@ class ToglManager {
   }
 
  protected:
+
+#if 0
+  static inline int YFlip ( ToglFrame* iFrame, int iY ) {
+    return (iFrame->GetHeight() - iY); }
+#else
+  static inline int YFlip ( ToglFrame* iFrame, int iY ) {
+    return iY; }
+#endif  
+
   // Maps Window IDs to frames.
   static std::map<ToglFrame::ID,ToglFrame*> mFrames;
 
