@@ -3,10 +3,10 @@
   ===========================================================================*/
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2003/05/16 19:40:20 $
-// Revision       : $Revision: 1.147 $
-char *VERSION = "$Revision: 1.147 $";
+// Revision Author: $Author: tosa $
+// Revision Date  : $Date: 2003/05/16 22:26:56 $
+// Revision       : $Revision: 1.148 $
+char *VERSION = "$Revision: 1.148 $";
 
 #define TCL
 #define TKMEDIT 
@@ -1004,7 +1004,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
      shorten our argc and argv count. If those are the only args we
      had, exit. */
   /* rkt: check for and handle version tag */
-  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.147 2003/05/16 19:40:20 kteich Exp $");
+  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.148 2003/05/16 22:26:56 tosa Exp $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
   argc -= nNumProcessedVersionArgs;
@@ -2700,9 +2700,7 @@ tkm_tErr LoadSurface ( tkm_tSurfaceType iType,
   char      sName[tkm_knPathLen]       = "";
   char      sError[tkm_knErrStringLen] = "";
   mriTransformRef surfaceTransform = NULL;
-#if 0
   MATRIX *tmp1, *tmp2;
-#endif
 
   DebugEnterFunction( ("LoadSurface( iType=%d, isName=%s )", 
            (int)iType, isName) );
@@ -2721,33 +2719,53 @@ tkm_tErr LoadSurface ( tkm_tSurfaceType iType,
     Surf_Delete( &gSurface[iType] );
   }
 
-
+  // gIdxToRASTransform keeps track of
+  //        src ---> RAS
+  //  non-   |        |
+  //  triv   |        |identity
+  //         V        V
+  //    conformed --> RAS
+  //      256^3          
   DebugNote( ("Cloning gIdxToRASTransform to get surfaceTransform") );
   eTrns = Trns_DeepClone( gIdxToRASTransform, &surfaceTransform );
   DebugAssertThrowX( (Trns_tErr_NoErr == eTrns),
 		     eResult, tkm_tErr_CouldntAllocate );
 
+  // surfaceTransform keeps track of
+  //
+  //           known
+  //        src ---> RAS
+  //         |        |
+  // non-    |        | non-trivial
+  // triv    V        V
+  //   conformed---> RAS  (c_(r,a,s) = 0)
+  //    256^3  standard 
+  //
+  Trns_GetBtoRAS(surfaceTransform, &tmp1); 
+  *MATRIX_RELT(tmp1, 1, 1) = -1;
+  *MATRIX_RELT(tmp1, 2, 1) =  0;
+  *MATRIX_RELT(tmp1, 3, 1) =  0;
 
-  /* RKT: Why was this happening? This makes BtoRAS be _not_ the
-     inverse of RAStoB, which is bad. It seems necessary to make it
-     work, but this should be fixed some times soon. */
+  *MATRIX_RELT(tmp1, 1, 2) =  0;
+  *MATRIX_RELT(tmp1, 2, 2) =  0;
+  *MATRIX_RELT(tmp1, 3, 2) = -1;
 
-  // modify surfaceTransform->mBtoRAS
-  *MATRIX_RELT(surfaceTransform->mBtoRAS, 1, 4) = 128;
-  *MATRIX_RELT(surfaceTransform->mBtoRAS, 2, 4) = -128;
-  *MATRIX_RELT(surfaceTransform->mBtoRAS, 3, 4) = 128;
+  *MATRIX_RELT(tmp1, 1, 3) =  0;
+  *MATRIX_RELT(tmp1, 2, 3) =  1;
+  *MATRIX_RELT(tmp1, 3, 3) =  0;
 
-  /* RKT: We don't need to do this any more because mriSurface only
-     uses BtoRAS and BRAStoB. I don't know why this stuff was being
-     done anyway. */
+  *MATRIX_RELT(tmp1, 1, 4) = 128;
+  *MATRIX_RELT(tmp1, 2, 4) = -128;
+  *MATRIX_RELT(tmp1, 3, 4) = 128;
 
-  // modify surfaceTransform->mARAStoBRAS
-#if 0
-  tmp1 = MatrixInverse(surfaceTransform->mAtoRAS, NULL);
-  tmp2 = MatrixMultiply(surfaceTransform->mAtoB, tmp1, NULL);
-  surfaceTransform->mARAStoBRAS = 
-    MatrixMultiply(surfaceTransform->mBtoRAS, tmp2,
-		   surfaceTransform->mARAStoBRAS);
+  Trns_CopyBtoRAS(surfaceTransform, tmp1);
+
+  // in order to calculate ARAStoBRAS,
+  // we use   ( RAS-> src ) then  ( src -> conformed )  then ( B->RAS )
+  tmp1 = MatrixInverse(gIdxToRASTransform->mAtoRAS, NULL);
+  tmp2 = MatrixMultiply(gIdxToRASTransform->mAtoB, tmp1, NULL);
+  tmp1 = MatrixMultiply(surfaceTransform->mBtoRAS, tmp2, NULL);
+  Trns_CopyARAStoBRAS(surfaceTransform, tmp1);
 
 #if 0
   DebugPrint(("AtoRAS-1\n"));
@@ -2764,25 +2782,6 @@ tkm_tErr LoadSurface ( tkm_tSurfaceType iType,
 
   MatrixFree(&tmp1);
   MatrixFree(&tmp2);
-#endif
-
-  /* RKT: So at this point, AtoRAS is the same as it was in
-     gIdxToRASTransform, which is extract_i_to_r. BtoRAS is almost the
-     same as it was, except the transformation part of the matrix is
-     128, -128, 128. ARAStoBRAS is all weird. BUT, much of this
-     doesn't matter, since in mriSurface, only ConvertBtoRAS and
-     ConvertBRAStoB is called on this transform, so we're only really
-     using BtoRAS and BRAStoB. BRAStoB is still the calculated inverse
-     of the original BtoRAS.
-
-     Note that at this point, surfaceTransform is in an invalid
-     state. Whenever Trns_CopyAtoRAS, Trns_CopyBtoRAS, or
-     Trns_CopyARAStoBRAS are called, mriTransform automatically
-     calculates the inverse and compositions of these matrices (namely
-     ARAStoA, BRAStoB, BRAStoARAS, AtoB, and BtoA). But, since this
-     code modified the member matrices directly, that automatic
-     calculation has never been done. */
-
 
   /* create the surface */
   DebugNote( ("Creating surface") );
