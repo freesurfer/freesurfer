@@ -9,9 +9,9 @@
 */
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: ebeth $
-// Revision Date  : $Date: 2003/07/08 01:17:27 $
-// Revision       : $Revision: 1.232 $
-char *MRI_C_VERSION = "$Revision: 1.232 $";
+// Revision Date  : $Date: 2003/07/08 19:29:01 $
+// Revision       : $Revision: 1.233 $
+char *MRI_C_VERSION = "$Revision: 1.233 $";
 
 /*-----------------------------------------------------
                     INCLUDE FILES
@@ -7221,9 +7221,16 @@ MRIcubicSampleVolume(MRI *mri, Real x, Real y, Real z, Real *pval)
   width = mri->width ; height = mri->height ; depth = mri->depth ; 
 
   /*E* I suppose these are for "ambiguously out of bounds" - within .5vox */
-  if (x >= width)    x = width - 1.0 ;
-  if (y >= height)   y = height - 1.0 ;
-  if (z >= depth)    z = depth - 1.0 ;
+  /*E* I think this needs an edit - x is Real, whatever that is, so
+       any x>= width-1 should be set to width-1.
+    if (x >= width)    x = width - 1.0 ;
+    if (y >= height)   y = height - 1.0 ;
+    if (z >= depth)    z = depth - 1.0 ;
+  */
+
+  if (x >= width-1.0)    x = width - 1.0 ;
+  if (y >= height-1.0)   y = height - 1.0 ;
+  if (z >= depth-1.0)    z = depth - 1.0 ;
   if (x < 0.0)       x = 0.0 ;
   if (y < 0.0)       y = 0.0 ;
   if (z < 0.0)       z = 0.0 ;
@@ -7258,53 +7265,42 @@ MRIcubicSampleVolume(MRI *mri, Real x, Real y, Real z, Real *pval)
 
   /*E* in next rev,  incorporate the vv bounds in the for limits */
 
+  /*E*
   for(iz=0; iz<4; iz++)
     {
       for(iy=0; iy<4; iy++)
 	{
 	  for(ix=0; ix<4; ix++)
 	    {
+  */
+
+  for(iz= MAX(0,1-iz_low); iz<MIN(4,depth+1-iz_low); iz++)
+    {
+      for(iy= MAX(0,1-iy_low); iy<MIN(4,height+1-iy_low); iy++)
+	{
+	  for(ix= MAX(0,1-ix_low); ix<MIN(4,width+1-ix_low); ix++)
+	    {
 	      switch (mri->type)
 		{
 		case MRI_UCHAR:
-		  if ((ix_low-1+ix >= 0) && (ix_low-1+ix <width) &&
-		      (iy_low-1+iy >= 0) && (iy_low-1+iy <height) &&
-		      (iz_low-1+iz >= 0) && (iz_low-1+iz <depth))
-		    vv[ix][iy][iz] =
-		      (double)MRIvox(mri,ix_low-1+ix,iy_low-1+iy,iz_low-1+iz);
-		  else vv[ix][iy][iz] = 0.;
+		  vv[ix][iy][iz] =
+		    (double)MRIvox(mri,ix_low-1+ix,iy_low-1+iy,iz_low-1+iz);
 		  break;
 		case MRI_FLOAT:
-		  if ((ix_low-1+ix >= 0) && (ix_low-1+ix <width) &&
-		      (iy_low-1+iy >= 0) && (iy_low-1+iy <height) &&
-		      (iz_low-1+iz >= 0) && (iz_low-1+iz <depth))
-		    vv[ix][iy][iz] =
-		      (double)MRIFvox(mri,ix_low-1+ix,iy_low-1+iy,iz_low-1+iz);
-		  else vv[ix][iy][iz] = 0.;
+		  vv[ix][iy][iz] =
+		    (double)MRIFvox(mri,ix_low-1+ix,iy_low-1+iy,iz_low-1+iz);
 		  break;
 		case MRI_SHORT:
-		  if ((ix_low-1+ix >= 0) && (ix_low-1+ix <width) &&
-		      (iy_low-1+iy >= 0) && (iy_low-1+iy <height) &&
-		      (iz_low-1+iz >= 0) && (iz_low-1+iz <depth))
-		    vv[ix][iy][iz] =
-		      (double)MRISvox(mri,ix_low-1+ix,iy_low-1+iy,iz_low-1+iz);
-		  else vv[ix][iy][iz] = 0.;
+		  vv[ix][iy][iz] =
+		    (double)MRISvox(mri,ix_low-1+ix,iy_low-1+iy,iz_low-1+iz);
 		  break;
 		case MRI_INT:
-		  if ((ix_low-1+ix >= 0) && (ix_low-1+ix <width) &&
-		      (iy_low-1+iy >= 0) && (iy_low-1+iy <height) &&
-		      (iz_low-1+iz >= 0) && (iz_low-1+iz <depth))
-		    vv[ix][iy][iz] =
-		      (double)MRIIvox(mri,ix_low-1+ix,iy_low-1+iy,iz_low-1+iz);
-		  else vv[ix][iy][iz] = 0.;
+		  vv[ix][iy][iz] =
+		    (double)MRIIvox(mri,ix_low-1+ix,iy_low-1+iy,iz_low-1+iz);
 		  break;
 		case MRI_LONG:
-		  if ((ix_low-1+ix >= 0) && (ix_low-1+ix <width) &&
-		      (iy_low-1+iy >= 0) && (iy_low-1+iy <height) &&
-		      (iz_low-1+iz >= 0) && (iz_low-1+iz <depth))
-		    vv[ix][iy][iz] =
-		      (double)MRILvox(mri,ix_low-1+ix,iy_low-1+iy,iz_low-1+iz);
-		  else vv[ix][iy][iz] = 0.;
+		  vv[ix][iy][iz] =
+		    (double)MRILvox(mri,ix_low-1+ix,iy_low-1+iy,iz_low-1+iz);
 		  break;
 		default:
 		  ErrorReturn(ERROR_UNSUPPORTED, 
