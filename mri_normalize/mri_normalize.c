@@ -24,7 +24,7 @@ static char *mask_fname ;
 char *Progname ;
 
 static int prune = 0 ;  /* off by default */
-static MRI_NORM_INFO  mni ;
+static MRI_NORM_INFO  mni ={};
 static int verbose = 1 ;
 static int num_3d_iter = 2 ;
 
@@ -51,7 +51,7 @@ main(int argc, char *argv[])
   struct timeb start ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_normalize.c,v 1.30 2004/07/22 17:46:51 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_normalize.c,v 1.31 2004/07/27 14:57:52 tosa Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
