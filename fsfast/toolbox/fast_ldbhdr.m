@@ -8,6 +8,7 @@ function m = fast_ldbhdr(bhdrfile);
 %
 % bhdrfile is the name of the bhdr file. If this cannot be opened,
 % then bhdrfile.bhdr is tried (ie, it treats bhdrfile as the stem).
+% If this cannot be opened, then it retuns null.
 %
 % top_left_?:     RAS at Top-Left  Edge = T*[0 0 0 1]'
 % top_right_?:    RAS at Top-Right Edge = T*[ncols 0 0 1]'
@@ -15,7 +16,7 @@ function m = fast_ldbhdr(bhdrfile);
 %
 % See also fast_svbhdr and fast_mri_struct.
 %
-% $Id: fast_ldbhdr.m,v 1.3 2003/08/11 23:43:02 greve Exp $
+% $Id: fast_ldbhdr.m,v 1.4 2003/08/13 20:10:21 greve Exp $
 
 m = [];
 
@@ -28,10 +29,7 @@ fid = fopen(bhdrfile,'r');
 if(fid == -1)
   bhdrfilebhdr = sprintf('%s.bhdr',bhdrfile);
   fid = fopen(bhdrfilebhdr,'r');
-  if(fid == -1)
-    msg = sprintf('Could not open %s or %s',bhdrfile,bhdrfilebhdr);
-    qoe(msg); error(msg);
-  end    
+  if(fid == -1) return; end    
 end
 
 m = fast_mri_struct;
