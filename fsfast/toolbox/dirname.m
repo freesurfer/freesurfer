@@ -3,7 +3,7 @@ function name = dirname(path)
 % 
 % This is an attempt to recreate the unix dirname command
 % in matlab.
-% $Id: dirname.m,v 1.1 2003/03/04 20:47:33 greve Exp $
+% $Id: dirname.m,v 1.2 2004/12/14 21:59:33 greve Exp $
 
 if(nargin ~= 1)
   msg = 'USAGE: name = dirname(path)'
@@ -34,7 +34,8 @@ if(size(tmp2,1) == 1)
   % (2) Trailing slash
   % (3) Both Leading and Trailing slashs
   if(path(1) == '/' )        name = '/'; % Handles 1 and 3
-  else if(path(len) == '/' ) name = '.'; end % Handles 2
+  else 
+    if(path(len) == '/' ) name = '.'; end % Handles 2
   end
   return;
 end
