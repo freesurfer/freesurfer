@@ -204,7 +204,6 @@ typedef struct
   double  epsilon ;           /* constant in Sethian inflation */
   double  fi_desired ;        /* desired folding index */
   double  ici_desired ;       /* desired intrinsic curvature index */
-  double  shrink ;
   double  starting_sse ;
   double  ending_sse ;
 } INTEGRATION_PARMS ;
