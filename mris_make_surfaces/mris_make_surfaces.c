@@ -15,7 +15,7 @@
 #include "mrishash.h"
 #include "macros.h"
 
-static char vcid[] = "$Id: mris_make_surfaces.c,v 1.10 1999/01/21 00:18:56 fischl Exp $";
+static char vcid[] = "$Id: mris_make_surfaces.c,v 1.11 1999/02/01 20:51:59 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -58,6 +58,7 @@ main(int argc, char *argv[])
   int           msec ;
   struct timeb  then ;
 
+  Gdiag |= DIAG_SHOW ;
   Progname = argv[0] ;
   ErrorInit(NULL, NULL, NULL) ;
   DiagInit(NULL, NULL, NULL) ;
@@ -472,6 +473,9 @@ print_help(void)
   fprintf(stderr, 
           "-q    omit self-intersection and only generate "
           "gray/white surface.\n") ;
+  fprintf(stderr, 
+          "-c    create curvature and area files from white matter surface\n"
+          );
   exit(1) ;
 }
 
