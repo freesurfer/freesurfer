@@ -26,6 +26,7 @@ unsigned long  DiagInit(char *fname,
                   int (*vprint)(const char *fmt, va_list args)) ;
 
 int  DiagPrintf(unsigned long diag_bits, char *fmt, ...) ;
+int  DiagFprintf(unsigned long diag_bits, char *fmt, ...) ;
 void DiagBreak(void) ;  /* dummy for break points in debugger */
 void DiagHeartbeat(float pct_done) ;
 
