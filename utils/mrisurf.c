@@ -15538,6 +15538,40 @@ MRIScomputeGraySurfaceValues(MRI_SURFACE *mris,MRI *mri_brain,MRI *mri_smooth,
 
         Description
 ------------------------------------------------------*/
+static int mrisSetVertexFaceIndex(MRI_SURFACE *mris, int vno, int fno) ;
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+          Search the face for vno and set the v->n[] field
+          appropriately.
+------------------------------------------------------*/
+static int
+mrisSetVertexFaceIndex(MRI_SURFACE *mris, int vno, int fno)
+{
+  VERTEX  *v ;
+  FACE    *f ;
+  int     n, i ;
+
+  v = &mris->vertices[vno] ;
+  f = &mris->faces[fno] ;
+
+  for (n = 0 ; n < VERTICES_PER_FACE ; n++)
+  {
+    if (f->v[n] == vno)
+      break ;
+  }
+  if (n >= VERTICES_PER_FACE)
+    return(ERROR_BADPARM) ;
+
+  for (i = 0 ; i < v->num ; i++)
+    if (v->f[i] == fno)
+      v->n[i] = n ;
+
+  return(n) ;
+}
 int
 MRISreverse(MRI_SURFACE *mris, int which)
 {
@@ -15563,6 +15597,21 @@ MRISreverse(MRI_SURFACE *mris, int which)
     v->x = x ;
     v->y = y ;
     v->z = z ;
+  }
+  if (which == REVERSE_X)   /* swap order of faces */
+  {
+    int  fno, vno0, vno1, vno2 ;
+    FACE *f ;
+
+    for (fno = 0 ; fno < mris->nfaces ; fno++)
+    {
+      f = &mris->faces[fno] ;
+      vno0 = f->v[0] ; vno1 = f->v[1] ; vno2 = f->v[2] ;
+      f->v[0] = vno2 ; f->v[1] = vno1 ; f->v[2] = vno0 ;
+      mrisSetVertexFaceIndex(mris, vno0, fno) ;
+      mrisSetVertexFaceIndex(mris, vno1, fno) ;
+      mrisSetVertexFaceIndex(mris, vno2, fno) ;
+    }
   }
   return(NO_ERROR) ;
 }
