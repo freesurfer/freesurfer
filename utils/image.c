@@ -33,6 +33,7 @@
 #include "hmem.h"
 #include "machine.h"
 #include "proto.h"
+#include "diag.h"
 
 /*-----------------------------------------------------
                     MACROS AND CONSTANTS
@@ -84,8 +85,8 @@ alloc_image_buffer(struct header *hd)
     hd->imdealloc = (h_boolean) FALSE; /*dng*/
     return(HIPS_OK);
   }
-  if((hd->image = hcalloc(hd->sizeimage*hd->num_frame,sizeof(byte))) == (byte *)NULL)/*dng*/
-    return(HIPS_ERROR);
+  if((hd->image = hcalloc(hd->sizeimage*hd->num_frame,sizeof(byte))) == 
+     (byte *)NULL)    return(HIPS_ERROR);
   if (hd->pixel_format == PFMSBF || hd->pixel_format == PFLSBF) 
   {
     fcb = hd->fcol/8;
@@ -251,10 +252,14 @@ ImageRead(char *fname)
   strcpy(buf, fname) ;   /* don't destroy callers string */
   fname = buf ;
   ImageUnpackFileName(fname, &frame, &type, fname) ;
+  DiagPrintf(DIAG_WRITE, "ImageRead: unpacking filename\n");
 
   switch (type)
   {
   case MATLAB_IMAGE:
+    DiagPrintf(DIAG_WRITE, 
+               "ImageRead: fname=%s, frame=%d, type=%d (M=%d,H=%d)\n",
+               fname, frame, type , MATLAB_IMAGE, HIPS_IMAGE);
     mat = MatlabRead(fname) ;
     if (!mat)
       ErrorReturn(NULL, (ERROR_NO_FILE, "ImageRead(%s) failed\n", fname)) ;
@@ -1234,12 +1239,12 @@ ImageCopyFrames(IMAGE *inImage, IMAGE *outImage,int start, int nframes,
             *fdst++ = (float)*cIn++ ;
           break ;
         case PFBYTE:
-          cOut = IMAGEseq_pix(outImage, 0, 0, frameno) ;
+          cOut = (byte *)IMAGEseq_pix(outImage, 0, 0, frameno) ;
           while (size--)
             *cOut++ = *cIn++ ;
           break ;
         case PFINT:
-          iOut = IMAGEIseq_pix(outImage, 0, 0, frameno) ;
+          iOut = (unsigned int *)IMAGEIseq_pix(outImage, 0, 0, frameno) ;
           while (size--)
             *iOut++ = (UINT)*cIn++ ;
           break ;
@@ -1312,7 +1317,7 @@ ImageScaleRange(IMAGE *image, float fmin, float fmax, int low, int high)
     {
       cval = *csrc ;
       fval = (float)(cval - cmin_val) * norm ;
-      cval = (byte)fval +(byte)low ;
+      cval = (byte)((byte)fval +(byte)low) ;
       *csrc++ = cval ;
     }
     break ;
@@ -2135,7 +2140,7 @@ ImageUnpackFileName(char *inFname, int *pframe, int *ptype, char *outFname)
 
   strcpy(outFname, inFname) ;
   colon = strrchr(outFname, ':') ;
-  dot = strchr(outFname, '.') ;
+  dot = strrchr(outFname, '.') ;
 
   if (colon)   /* : in filename indicates frame # */
   {
