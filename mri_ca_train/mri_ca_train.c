@@ -4,8 +4,8 @@
 /*                                                                     */
 /* Warning: Do not edit the following four lines.  CVS maintains them. */
 /* Revision Author: $Author: tosa $                                           */
-/* Revision Date  : $Date: 2004/01/13 21:39:34 $                                             */
-/* Revision       : $Revision: 1.23 $                                         */
+/* Revision Date  : $Date: 2004/01/22 15:08:30 $                                             */
+/* Revision       : $Revision: 1.24 $                                         */
 /***********************************************************************/
 
 #include <stdio.h>
@@ -50,7 +50,7 @@ static GCA_PARMS parms ;
 static char *seg_dir = "seg" ;
 static char T1_name[STRLEN] = "orig" ;
 static char *PD_name = NULL ;
-static char *xform_name = "talairach.xfm" ;
+static char *xform_name = NULL;
 static int prune = 0 ;
 static float smooth = -1 ;
 static int gca_inputs = 0 ;
