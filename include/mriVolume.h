@@ -47,7 +47,9 @@ typedef struct {
   
   long mSignature;
 
-  int mnDimension;
+  int mnDimensionX;
+  int mnDimensionY;
+  int mnDimensionZ;
 
   MRI*           mpMriValues;    /* normalized color values (0-255) */
   BUFTYPE*       mpSnapshot;      /* copy of normalized values */
@@ -118,8 +120,8 @@ void Volm_GetMaxColorAtXYSlice ( mriVolumeRef     this,
          int              inSlice,
          xColor3fRef      oColor );
 
-Volm_tErr Volm_GetDimension        ( mriVolumeRef this,
-             int*         onDimension );
+Volm_tErr Volm_GetDimensions        ( mriVolumeRef this,
+             int*         onDimensionX, int*         onDimensionY, int*         onDimensionZ );
 
 /* get a normal value. before calling the unsafe version, make sure
    the volume is valid, the index is in bounds, and you're passing
@@ -330,11 +332,11 @@ float       Volm_GetRawValueAtIdx_      ( mriVolumeRef     this,
             xVoxelRef        iIdx );
 
 #define Volm_GetMaxValueAtXYSlice_(this,iOrientation,iPoint) \
-    this->mpMaxValues[(iOrientation * this->mnDimension * this->mnDimension) \
-                       + ((iPoint)->mnY * this->mnDimension) + (iPoint)->mnX]
+    this->mpMaxValues[(iOrientation * this->mnDimensionX * this->mnDimensionY) \
+                       + ((iPoint)->mnY * this->mnDimensionX) + (iPoint)->mnX]
 #define Volm_SetMaxValueAtXYSlice_(this,iOrientation,iPoint,iValue ) \
-    this->mpMaxValues[(iOrientation * this->mnDimension * this->mnDimension) \
-               + ((iPoint)->mnY * this->mnDimension) + (iPoint)->mnX] = iValue
+    this->mpMaxValues[(iOrientation * this->mnDimensionX * this->mnDimensionY) \
+               + ((iPoint)->mnY * this->mnDimensionX) + (iPoint)->mnX] = iValue
 
 #define Volm_ApplyDisplayTransform_(this,iIdx,oIdx) \
     Trns_ConvertBtoA( this->mDisplayTransform, iIdx, oIdx )
