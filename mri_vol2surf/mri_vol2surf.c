@@ -1,6 +1,6 @@
 /*----------------------------------------------------------
   Name: vol2surf.c
-  $Id: mri_vol2surf.c,v 1.18 2003/09/05 04:45:39 kteich Exp $
+  $Id: mri_vol2surf.c,v 1.19 2004/02/11 22:10:34 greve Exp $
   Author: Douglas Greve
   Purpose: Resamples a volume onto a surface. The surface
   may be that of a subject other than the source subject.
@@ -28,6 +28,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include <string.h>
+#include <sys/time.h>
 
 #include "icosahedron.h"
 
@@ -57,7 +58,7 @@ static void dump_options(FILE *fp);
 static int  singledash(char *flag);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2surf.c,v 1.18 2003/09/05 04:45:39 kteich Exp $";
+static char vcid[] = "$Id: mri_vol2surf.c,v 1.19 2004/02/11 22:10:34 greve Exp $";
 char *Progname = NULL;
 
 char *defaulttypestring;
@@ -128,6 +129,12 @@ int ReverseMapFlag = 0;
 
 int framesave = 0;
 
+float fwhm = 0, gstd = 0;
+
+int  srcsynth = 0;
+long seed = -1; /* < 0 for auto */
+char *seedfile = NULL;
+
 /*------------------------------------------------------------------*/
 /*------------------------------------------------------------------*/
 /*------------------------------------------------------------------*/
@@ -146,7 +153,7 @@ int main(int argc, char **argv)
   int r,c,s,nsrchits;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_vol2surf.c,v 1.18 2003/09/05 04:45:39 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_vol2surf.c,v 1.19 2004/02/11 22:10:34 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -185,18 +192,36 @@ int main(int argc, char **argv)
   }
   printf("INFO: float2int code = %d\n",float2int);
 
-  /* Load the Source Volume */
-  SrcVol =  MRIreadType(srcvolid,srctype);
-  if(SrcVol == NULL){
-    printf("ERROR: could not read %s as type %d\n",srcvolid,srctype);
-    exit(1);
+  if(srcsynth == 0){
+    /* Load the Source Volume */
+    SrcVol =  MRIreadType(srcvolid,srctype);
+    if(SrcVol == NULL){
+      printf("ERROR: could not read %s as type %d\n",srcvolid,srctype);
+      exit(1);
+    }
+    if(SrcVol->type != MRI_FLOAT){
+      printf("INFO: chaning type to float\n");
+      SrcVol = MRISeqchangeType(SrcVol,MRI_FLOAT,0,0,0);
+    }
+    printf("Done loading volume\n");
   }
-  if(SrcVol->type != MRI_FLOAT){
-    printf("INFO: chaning type to float\n");
-    SrcVol = MRISeqchangeType(SrcVol,MRI_FLOAT,0,0,0);
+  else {
+    /* Synth the Source Volume */
+    printf("Synthesizing, seed = %ld\n",seed);
+    srand48(seed);
+    //srcfmtid = checkfmt(srctype);
+    mritmp =  MRIreadType(srcvolid,srctype);
+    if(mritmp == NULL){
+      printf("ERROR: could not read %s as type %d\n",srcvolid,srctype);
+      exit(1);
+    }
+    SrcVol = MRIrandn(mritmp->width, mritmp->height, 
+		      mritmp->depth, mritmp->nframes, 0, 1, NULL);
+    MRIcopyHeader(mritmp, SrcVol);
+    SrcVol->type = MRI_FLOAT;
+    MRIfree(&mritmp);
   }
 
-  printf("Done loading volume\n");
   ncols_src = SrcVol->width;
   nrows_src = SrcVol->height;
   nslcs_src = SrcVol->depth;
@@ -262,6 +287,11 @@ int main(int argc, char **argv)
   }
   fflush(stdout);
 
+  if(fwhm > 0){
+    printf("INFO: smoothing volume at fwhm = %g mm (std = %g)\n",fwhm,gstd);
+    MRIgaussianSmooth(SrcVol, gstd, 1, SrcVol); /* 1 = normalize */
+  }
+  
   /* Load the surface for subject indicated by registration file*/
   sprintf(fname,"%s/%s/surf/%s.%s",SUBJECTS_DIR,srcsubject,hemi,surfname);
   printf("Reading surface %s\n",fname);
@@ -665,10 +695,27 @@ static int parse_commandline(int argc, char **argv)
       trghitfile = pargv[0];
       nargsused = 1;
     }
+    else if ( !strcmp(option, "--fwhm") ) {
+      if(nargc < 1) argnerr(option,1);
+      sscanf(pargv[0],"%f",&fwhm);
+      gstd = fwhm/sqrt(log(256.0));
+      nargsused = 1;
+    }
+    else if (!strcmp(option, "--srcsynth")){
+      if(nargc < 1) argnerr(option,1);
+      sscanf(pargv[0],"%ld",&seed);
+      srcsynth = 1;
+      nargsused = 1;
+    }
+    else if (!strcmp(option, "--seedfile")){
+      if(nargc < 1) argnerr(option,1);
+      seedfile = pargv[0];
+      nargsused = 1;
+    }
     else{
       fprintf(stderr,"ERROR: Option %s unknown\n",option);
       if(singledash(option))
-  fprintf(stderr,"       Did you really mean -%s ?\n",option);
+	fprintf(stderr,"       Did you really mean -%s ?\n",option);
       exit(-1);
     }
     nargc -= nargsused;
@@ -693,6 +740,7 @@ static void print_usage(void)
   printf("   --float2int float-to-int conversion method "
    "(<round>, tkregister )\n");
   printf("   --fixtkreg : make make registration matrix round-compatible\n");
+  printf("   --fwhm fwhm : smooth input volume (mm)\n");
   printf("\n");
   printf("   --trgsubject target subject (if different than reg)\n");
   printf("   --hemi       hemisphere (lh or rh) \n");
@@ -718,6 +766,8 @@ static void print_usage(void)
   printf("   --nvox nvoxfile : write number of voxels intersecting surface\n");
   printf("\n");
   printf(" Other Options\n");
+  printf("   --srcsynth seed : synthesize source volume\n");
+  printf("   --seedfile fname : save synth seed to fname\n");
   printf("   --help      print out information on how to use this program\n");
   printf("   --version   print out version and exit\n");
   printf("\n");
@@ -779,6 +829,10 @@ static void print_help(void)
 "    an effect if the float2int method is tkregister. It will 'fix' the \n"
 "    matrix and change the float2int method to round. Don't use this flag \n"
 "    unless you know what you are doing. \n"
+"\n"
+"  --fwhm FWHM\n"
+"\n"
+"    Smooth input volume with a gaussian kernal with FWHM mm.\n"
 "\n"
 "  --trgsubject target subject name : resample volume onto this subject \n"
 "    instead of the one found in the registration file. The target subject \n"
@@ -849,6 +903,20 @@ static void print_help(void)
 "    nvoxfile.\n"
 "\n"
 "  --version : print version and exit.\n"
+"\n"
+"\n"
+"  --srcsynth seed\n"
+"\n"
+"    Synthesize the source volume with white gaussian noise. seed\n"
+"    is the seed to the random generator. Use -1 to have the seed\n"
+"    automatically chosen based on time-of-day. See also --seedfile\n"
+"\n"
+"  --seedfile fname\n"
+"\n"
+"    Save random number generator seed in fname. Has no effect without\n"
+"    --srcsynth. This is only useful for keeping track of the distribution\n"
+"    of seeds for debugging purposes.\n"
+"\n"
 "\n"
 "SPECIFYING THE INPUT/OUTPUT PATH and TYPE\n"
 "\n"
@@ -936,6 +1004,9 @@ static void argnerr(char *option, int n)
 /* --------------------------------------------- */
 static void check_options(void)
 {
+  struct timeval tv;
+  FILE *fp;
+
   if(srcvolid == NULL){
     fprintf(stderr,"A source volume path must be supplied\n");
     exit(1);
@@ -1022,7 +1093,19 @@ static void check_options(void)
     exit(1);    
   }
 
-
+  if(seed < 0){
+    gettimeofday(&tv, NULL);
+    seed = tv.tv_sec + tv.tv_usec;
+  }
+  if(seedfile != NULL){
+    fp = fopen(seedfile,"w");
+    if(fp == NULL){
+      printf("ERROR: cannot open seed file %s\n",seedfile);
+      exit(1);
+    }
+    fprintf(fp,"%ld\n",seed);
+    fclose(fp);
+  }
 
   return;
 }
