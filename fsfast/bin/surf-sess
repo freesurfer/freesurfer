@@ -1,7 +1,7 @@
 #!/bin/csh -f
 # surf-sess
 #
-set VERSION = '$Id: surf-sess,v 1.2 2004/02/10 22:33:56 greve Exp $'
+set VERSION = '$Id: surf-sess,v 1.3 2004/04/02 21:29:04 greve Exp $'
 set FASTVER = `cat $FMRI_ANALYSIS_DIR/docs/version`;
 set inputargs = ($argv);
 
@@ -27,6 +27,8 @@ set srcsubject   = ();
 set surf         = ();
 set SessList     = ();
 set isxavgmethod = ();
+set IsGroup = 0;
+set getsubjfromreg = 0;
 set nolog = 0;
 set nowait = 0;
 set flat = 0;
@@ -170,7 +172,8 @@ foreach sess ($SessList)
         exit 1;
       endif
       set srcsubject = `head -n 1 $regfile`;
-      if($#subject == 0) then 
+      if($getsubjfromreg == 0) then 
+        # No subject specified, use srcsubject
         set subject = $srcsubject;
         set Stat  = $map-$imageoffset
       else
@@ -763,6 +766,8 @@ check_params:
     popd > /dev/null
     set usertcl = $tmp1/$tmp2;
   endif
+
+  if($#subject == 0) set getsubjfromreg = 1;
 
 goto check_params_return;
 ############--------------##################
