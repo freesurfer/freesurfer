@@ -5,14 +5,18 @@
 # it with just a few modiciations.
 
 # Set this to the location of freesrfer/.
-setenv FREESURFER_HOME <full path to freesurfer/>
-     
+if (! $?FREESRFER_HOME) then 
+    setenv FREESURFER_HOME <full path to freesurfer/>
+endif    
+ 
 # Call configuration script.
 cd $FREESURFER_HOME
 source FreeSurferEnv.csh
 
 # Set this to your subjects/ dir, usually freesurfer/subjects/
-setenv SUBJECTS_DIR $FREESURFER_HOME/subjects
+if (! $?SUBJECTS_DIR) then
+    setenv SUBJECTS_DIR $FREESURFER_HOME/subjects
+endif
 
 # Specify the location of the MINC tools...
 #setenv MINC_BIN_DIR /usr/pubsw/packages/mni/current/bin
