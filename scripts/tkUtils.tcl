@@ -1,6 +1,6 @@
 # tkUtils.tcl (tku)
 
-# $Id: tkUtils.tcl,v 1.5 2004/02/09 17:17:38 kteich Exp $
+# $Id: tkUtils.tcl,v 1.6 2004/03/05 20:22:22 kteich Exp $
 
 # tkuMakeMenu isMenuButton "Menu Name" {item...}
 # item = { command   "Item Name" command                [group_name] }
@@ -129,8 +129,19 @@ proc tkuMakeNormalLabel { ifwTop args } {
       -anchor w
 }
 
+# The -notify action here is really cool. If you want to remind the
+# user that they have to press return to trigger the -command action,
+# use the -notify option. Whenever the value in the field is different
+# from the initial value or the value when return was last pressed,
+# the text willl become red. When return is pressed, the text goes
+# back to black. HOWEVER, note that if you change the data in the
+# variable linked to the entry outside of typing it into the entry,
+# you must use the tkuRefreshEntryNotify command to tell the entry to
+# update its saved value.
+
 proc tkuMakeEntry { ifwTop args } {
     global kLabelFont
+    global gaEntryValue
     
     # set default arguments for all fields
     set aArgs(-label) ""
@@ -138,6 +149,7 @@ proc tkuMakeEntry { ifwTop args } {
     set aArgs(-font) $kLabelFont
     set aArgs(-labelwidth) 0
     set aArgs(-command) ""
+    set aArgs(-notify) 0
 
     # Set arg items and make sure we have the ones we require,
     array set aArgs $args
@@ -166,18 +178,46 @@ proc tkuMakeEntry { ifwTop args } {
       -textvariable $aArgs(-variable) \
       -width $aArgs(-width)
     
+
     pack $ifwTop.ewEntry \
       -side right \
       -anchor e \
       -expand yes \
       -fill x
 
-    if { $aArgs(-command) != "" } {
+    if { $aArgs(-notify) } {
+
+	set gaEntryValue($ifwTop.ewEntry,variable) $aArgs(-variable)
+	set gaEntryValue($ifwTop.ewEntry,value) [uplevel set $aArgs(-variable)]
+
+	bind $ifwTop.ewEntry <KeyRelease> "tkuColorEntry $ifwTop.ewEntry"
+
+	bind $ifwTop.ewEntry <Return> "$aArgs(-command); set gaEntryValue($ifwTop.ewEntry,value) \[set $aArgs(-variable)\]; tkuColorEntry $ifwTop.ewEntry"
+
+    } else {
+
 	bind $ifwTop.ewEntry <Return> "$aArgs(-command)"
     }
 
 }
 
+proc tkuColorEntry { iew } {
+    global gaEntryValue
+
+    if { "$gaEntryValue($iew,value)" != "[$iew get]" } {
+	$iew config -fg red
+    } else {
+	$iew config -fg black
+    }
+    
+}
+
+proc tkuRefreshEntryNotify { ifwTop } {
+    global gaEntryValue
+
+    set gaEntryValue($ifwTop.ewEntry,value) [uplevel set $gaEntryValue($ifwTop.ewEntry,variable)]
+
+}
 
 # tkuMakeMenu
 # -menu : location of the new menu button widget (required)
@@ -1325,4 +1365,240 @@ proc tkuAlertDlog { isMsg } {
       -message $isMsg \
       -title "Note"
 }
+
+# tkuMakeColorPickers
+# -font : font for all picker labels
+# -pickers
+#   -font : font for picker label
+#   -label : label for picker
+#   -redVariable : variable for red component from 0 - 255 (required)
+#   -blueVariable : variable for blue component from 0 - 255 (required)
+#   -greenVariable : variable for green component from 0 - 255 (required)
+#   -command : command to execute when color is selected
+set gColorPickerInfo(id) 0
+proc tkuMakeColorPickers { ifwTop args } {
+    global gColorPickerInfo
+
+    # set default arguments for all fields
+    set aArgs(-font) [tkuLabelFont]
+
+    # Set arg items and make sure we have the ones we require,
+    array set aArgs $args
+    foreach arg {-pickers} {
+	if {![info exists aArgs($arg)]} {
+	    puts "tkuMakeColorPickers: no $arg specified"
+	    return
+	}
+    }
+
+    frame $ifwTop
+    
+    # for each picker...
+    set nPicker 0
+    foreach lPicker $aArgs(-pickers) {
+	
+	# Set arg items and make sure we have the ones we require,
+	set aPicker(-font) $aArgs(-font)
+	set aPicker(-label) ""
+	set aPicker(-command) ""
+	array set aPicker $lPicker
+	foreach arg {-redVariable -blueVariable -greenVariable} {
+	    if {![info exists aPicker($arg)]} {
+    	     puts "tkuMakeColorPickers:: no $arg specified in picker $nPicker"
+		return
+	    }
+	}
+	
+	upvar #0 $aPicker(-redVariable) red
+	upvar #0 $aPicker(-greenVariable) green
+	upvar #0 $aPicker(-blueVariable) blue
+
+	set id $gColorPickerInfo(id)
+	incr gColorPickerInfo(id)
+
+	lappend gColorPickerInfo($ifwTop,idList) $id
+
+	tkuMakeNormalLabel $ifwTop.fwLabel-$nPicker -label $aPicker(-label) \
+	    -font $aPicker(-font)
+	
+	canvas $ifwTop.fwColor-$nPicker -height 20 -width 20
+	
+	button $ifwTop.bwChange-$nPicker \
+	    -font $aPicker(-font) \
+	    -text "Select color..." \
+	    -command "tkuColorPicker_CreateWindow $id tkuColorPickerCallback"
+	
+	$ifwTop.fwColor-$nPicker create rectangle 0 0 20 20 \
+	    -fill [format "#%.2x%.2x%.2x" $red $green $blue] \
+	    -tag color
+	
+	set gColorPickerInfo($id,canvas) $ifwTop.fwColor-$nPicker
+	set gColorPickerInfo($id,command) $aPicker(-command)
+	set gColorPickerInfo($id,redVar) $aPicker(-redVariable)
+	set gColorPickerInfo($id,greenVar) $aPicker(-greenVariable)
+	set gColorPickerInfo($id,blueVar) $aPicker(-blueVariable)
+
+	grid $ifwTop.fwLabel-$nPicker  -column 0 -row $nPicker -sticky w
+	grid $ifwTop.fwColor-$nPicker  -column 1 -row $nPicker -sticky we
+	grid $ifwTop.bwChange-$nPicker -column 2 -row $nPicker -sticky e
+
+	incr nPicker
+    }
+
+    grid columnconfigure $ifwTop 0 -weight 0
+    grid columnconfigure $ifwTop 1 -weight 1
+    grid columnconfigure $ifwTop 2 -weight 0
+
+}
+
+proc tkuUpdateColorPickerValues { ifwTop } {
+    global gColorPickerInfo
+
+    if { ![info exists gColorPickerInfo($ifwTop,idList)] } { 
+	puts "tkuUpdateColorPickerValues: no idList for $ifwTop"
+	return
+    }
+    
+    foreach id $gColorPickerInfo($ifwTop,idList) {
+	
+	upvar #0 $gColorPickerInfo($id,redVar) red
+	upvar #0 $gColorPickerInfo($id,greenVar) green
+	upvar #0 $gColorPickerInfo($id,blueVar) blue
+	
+	$gColorPickerInfo($id,canvas) delete color
+	
+	$gColorPickerInfo($id,canvas) create rectangle 0 0 20 20 \
+	    -fill [format "#%.2x%.2x%.2x" $red $green $blue]
+    }
+}
+
+proc tkuColorPickerCallback { iID iRed iGreen iBlue } {
+    global gColorPickerInfo
+
+    upvar #0 $gColorPickerInfo($iID,redVar) red
+    upvar #0 $gColorPickerInfo($iID,greenVar) green
+    upvar #0 $gColorPickerInfo($iID,blueVar) blue
+
+    set red $iRed
+    set green $iGreen
+    set blue $iBlue
+
+    set gColorPickerInfo(callback) $gColorPickerInfo($iID,command)
+    uplevel #0 eval {$gColorPickerInfo(callback)}
+
+    $gColorPickerInfo($iID,canvas) delete color
+
+    $gColorPickerInfo($iID,canvas) create rectangle 0 0 20 20 \
+	-fill [format "#%.2x%.2x%.2x" $iRed $iGreen $iBlue]
+}
+
+proc tkuColorPicker_CreatePicker { iwTop iID iCallbackFunction {izSquare 16}} {
+    global gColorPickerCB
+
+    # Picker config.
+    set kzSquareX $izSquare
+    set kzSquareY $izSquare
+    set klSquaresX 25
+    set klSquaresY 9
+    
+    # 216 colors
+    set kcReds 4
+    set kcGreens 4
+    set kcBlues 8
+
+    set gColorPickerCB $iCallbackFunction
+
+    frame $iwTop
+
+    set cwPicker       $iwTop.cwPicker
+
+    # Create the canvas with the right width and height
+    canvas $cwPicker \
+	-width [expr $kzSquareX * $klSquaresX] \
+	-height [expr $kzSquareY * $klSquaresY]
+
+    # Find the color increments for each next square.
+    set redInc   [expr 256 / $kcReds]
+    set greenInc [expr 256 / $kcGreens]
+    set blueInc  [expr 256 / $kcBlues]
+
+    # Start off with color 0,0,0.
+    set r 0
+    set g 0
+    set b 0
+
+    # For each square...
+    for { set nY 0 } { $nY < $klSquaresY } { incr nY } {
+	for { set nX 0 } { $nX < $klSquaresX } { incr nX } {
+	    
+	    # Create a square in the current color, converting our
+	    # numerical values to a hex color value. Also give it the
+	    # common tag 'color' and a tag made out of its numerical
+	    # color components.
+	    $cwPicker create rectangle \
+		[expr $nX * $kzSquareX] [expr $nY * $kzSquareY] \
+		[expr ($nX+1) * $kzSquareX] [expr ($nY+1) * $kzSquareY] \
+		-fill [format "#%.2x%.2x%.2x" $r $g $b] \
+		-tags "color $r-$g-$b"
+
+	    # Increment our numerical color values in the order of r,
+	    # g, and then b. With the increments we have, we'll
+	    # actually get to 256, but we really want a top value of
+	    # 255, so check for the 256 and bump it down to
+	    # 255. (Dividing with 255 when finding the increments
+	    # doesn't give us the full 0-255 range.
+	    incr r $redInc
+	    if { $r == 256 } { set r 255 }
+	    if { $r > 255 } {
+		set r 0
+		incr g $greenInc
+		if { $g == 256 } { set g 255 }
+		if { $g > 255 } {
+		    set g 0
+		    incr b $blueInc
+		    if { $b == 256 } { set b 255 }
+		    if { $b > 255 } {
+			set b 0
+		    }
+		}
+	    }
+	}
+    }
+
+    # When we click on a color square, call the function.
+    $cwPicker bind color <Button-1> "tkuColorPicker_HandleClick $iID %W"
+
+    pack $cwPicker -fill both
+}
+
+proc tkuColorPicker_HandleClick { iID icwPicker } {
+    global gColorPickerCB
+
+    # Get the numerical tag from the current element, the one the
+    # mouse is in. This is our r-g-b tag. Extract the numerical elements.
+    set color [lindex [$icwPicker gettags current] 1]
+    scan $color "%d-%d-%d" r g b
+
+    # Detroy the color picker dlog.
+    destroy .wwColorPicker
+
+    # Call the callback function.
+    $gColorPickerCB $iID $r $g $b
+}
+
+proc tkuColorPicker_CreateWindow { iID iCallbuckFunction } {
+
+    # Make a new window, put a color picker inside it with our given
+    # callback function, and pack it.
+    toplevel .wwColorPicker 
+    wm title .wwColorPicker "Choose a color..."
+    tkuMakeNormalLabel .wwColorPicker.lwInstructions \
+	-label "Chose a color..."
+    tkuColorPicker_CreatePicker .wwColorPicker.cpwColor $iID $iCallbuckFunction
+    pack .wwColorPicker.lwInstructions .wwColorPicker.cpwColor \
+	-side top
+}
+
+
+
 
