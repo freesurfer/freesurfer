@@ -2,7 +2,7 @@
    DICOM 3.0 reading functions
    Author: Sebastien Gicquel and Douglas Greve
    Date: 06/04/2001
-   $Id: DICOMRead.c,v 1.36 2003/08/14 15:50:55 tosa Exp $
+   $Id: DICOMRead.c,v 1.37 2003/08/15 14:29:03 tosa Exp $
 *******************************************************/
 
 #include <stdio.h>
@@ -916,30 +916,30 @@ int sdcmIsMosaic(char *dcmfile, int *pNcols, int *pNrows, int *pNslices, int *pN
   int err, IsMosaic;
   char *tmpstr;
 
-  if(! IsSiemensDICOM(dcmfile) ) return(-1);
+  if(! IsSiemensDICOM(dcmfile) ) return(0);
 
   IsMosaic = 0;
 
   /* Get the phase encode direction: should be COL or ROW */
   /* COL means that each row is a different phase encode */
   e = GetElementFromFile(dcmfile, 0x18, 0x1312);
-  if(e == NULL) return(-1);
+  if(e == NULL) return(0);
   memcpy(PhEncDir,e->d.string,3);
   FreeElementData(e); free(e);
 
   Nrows = dcmGetNRows(dcmfile);
-  if(Nrows == -1) return(-1);
+  if(Nrows == -1) return(0);
 
   Ncols = dcmGetNCols(dcmfile);
-  if(Ncols == -1) return(-1);
+  if(Ncols == -1) return(0);
 
   tmpstr = SiemensAsciiTag(dcmfile, "sSliceArray.asSlice[0].dPhaseFOV");
-  if(tmpstr == NULL) return(-1);
+  if(tmpstr == NULL) return(0);
   sscanf(tmpstr,"%f",&PhEncFOV);
   free(tmpstr);
 
   tmpstr = SiemensAsciiTag(dcmfile, "sSliceArray.asSlice[0].dReadoutFOV");
-  if(tmpstr == NULL) return(-1);
+  if(tmpstr == NULL) return(0);
   sscanf(tmpstr,"%f",&ReadOutFOV);
   free(tmpstr);
 
@@ -963,13 +963,13 @@ int sdcmIsMosaic(char *dcmfile, int *pNcols, int *pNrows, int *pNslices, int *pN
     if(pNcols != NULL) *pNcols = NcolsExp;
     if(pNslices != NULL){
       tmpstr = SiemensAsciiTag(dcmfile, "sSliceArray.lSize");
-      if(tmpstr == NULL) return(-1);
+      if(tmpstr == NULL) return(0);
       sscanf(tmpstr,"%d",pNslices);
       free(tmpstr);
     }
     if(pNframes != NULL){
       tmpstr = SiemensAsciiTag(dcmfile, "lRepetitions");
-      if(tmpstr == NULL) return(-1);
+      if(tmpstr == NULL) return(0);
       sscanf(tmpstr,"%d",pNframes);
       (*pNframes)++;
       free(tmpstr);
