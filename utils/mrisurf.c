@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: greve $
-// Revision Date  : $Date: 2004/11/12 22:08:52 $
-// Revision       : $Revision: 1.306 $
+// Revision Date  : $Date: 2004/11/12 22:13:12 $
+// Revision       : $Revision: 1.307 $
 //////////////////////////////////////////////////////////////////
 #include <stdio.h>
 #include <string.h>
@@ -2529,7 +2529,9 @@ MRIScomputeNormals(MRI_SURFACE *mris)
       continue ;
     mrisNormalize(snorm);
 
-    v->area /= 2 ;
+    // DNG Changed from /=2 to /=3. 
+    // See also MRIScomputeTriangleProperties()
+    v->area /= 3.0 ;
     if (v->origarea<0)        /* has never been set */
       v->origarea = v->area;
 
