@@ -6,7 +6,7 @@
 
 void xVoxl_New ( xVoxelRef* oppVoxel ) {
 
-  xVoxelRef this = (xVoxelRef) malloc (sizeof(xVoxel));
+  xVoxelRef this = (xVoxelRef) calloc (1,sizeof(xVoxel));
   *oppVoxel = this;
 }
 
