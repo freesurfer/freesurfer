@@ -12,6 +12,7 @@
 #include "signa.h"
 #include "fio.h"
 #include "dicom.h"
+#include "DICOMRead.h"
 
 extern int errno;
 
@@ -45,6 +46,10 @@ int string_to_type(char *string)
     type = GE_LX_FILE;
   if(strcmp(ls, "siemens") == 0 || strcmp(ls, "ima") == 0)
     type = SIEMENS_FILE;
+  if(strcmp(ls, "dicom") == 0)
+    type = DICOM_FILE;
+  if(strcmp(ls, "siemens_dicom") == 0)
+    type = SIEMENS_DICOM_FILE;
   if(strcmp(ls, "brik") == 0 || strcmp(ls, "afni") == 0)
     type = BRIK_FILE;
   if(strcmp(ls, "bshort") == 0)
@@ -71,6 +76,8 @@ int mri_identify(char *fname_passed)
 
   if(is_cor(fname))
     return(MRI_CORONAL_SLICE_DIRECTORY);
+  else if (IsSiemensDICOM(fname))
+    return(SIEMENS_DICOM_FILE);
   else if (IsDICOM(fname))
     return(DICOM_FILE);
   else if(is_genesis(fname))
@@ -93,6 +100,8 @@ int mri_identify(char *fname_passed)
     return(BRIK_FILE);
   else if(is_bshort(fname))
     return(BSHORT_FILE);
+  else if(is_bfloat(fname))
+    return(BFLOAT_FILE);
   else if(is_otl(fname))
     return(OTL_FILE);
   else if(is_gdf(fname))
@@ -422,6 +431,23 @@ int is_bshort(char *fname)
   return(0);
 
 }  /*  end is_bshort()  */
+
+int is_bfloat(char *fname)
+{
+
+  char *dot;
+
+  dot = strrchr(fname, '.');
+  if(dot)
+  {
+    dot++;
+    if(!strcmp(dot, "bfloat"))
+      return(1);
+  }
+
+  return(0);
+
+}  /*  end is_bfloat()  */
 
 int is_sdt(char *fname)
 {
