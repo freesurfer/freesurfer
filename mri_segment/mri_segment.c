@@ -1,3 +1,17 @@
+//
+// mri_segment.c
+//
+//
+// Warning: Do not edit the following four lines.  CVS maintains them.
+//
+// ID             : $Id: mri_segment.c,v 1.20 2003/01/21 20:36:33 tosa Exp $
+// Revision Author: $Author: tosa $
+// Revision Date  : $Date: 2003/01/21 20:36:33 $
+// Revision       : $Revision: 1.20 $
+//
+////////////////////////////////////////////////////////////////////
+char *MRI_SEGMENT_VERSION = "$Revision: 1.20 $";
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -260,7 +274,12 @@ get_option(int argc, char *argv[])
   char *option ;
   
   option = argv[1] + 1 ;            /* past '-' */
-  if (!stricmp(option, "slope"))
+  if (!strcasecmp(option, "-version"))
+  {
+    fprintf(stderr, "Version: %s\n", MRI_SEGMENT_VERSION);
+    exit(0);
+  }
+  else if (!stricmp(option, "slope"))
   {
     nslope = pslope = atof(argv[2]) ;
     nargs = 1 ;
