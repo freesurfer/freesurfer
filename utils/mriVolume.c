@@ -629,14 +629,24 @@ Volm_tErr Volm_ExportNormToCOR ( mriVolumeRef this,
   return eResult;
 }
 
-//#define _VLDT_DEBUG
-
+////////////////////////////////////////////////////////////////////////////////
 Volm_tErr Volm_LoadDisplayTransform ( mriVolumeRef this,
-				      char*        isFileName ) {
-  
+				      char*        isFileName ) 
+{
   Volm_tErr eResult   = Volm_tErr_NoErr;
   Trns_tErr eTransform = Trns_tErr_NoErr;
-  
+  MATRIX *srcToRAS = 0;  // must deallocate
+  MATRIX *rasToDst = 0;  // must deallocate
+  MATRIX *srcToDst = 0;  // must deallocate
+  MATRIX *tmpMat = 0;    // must deallocate
+  LTA *lta = 0;          // must deallocate
+  MRI *tmpMRI = 0;       // must deallocate
+  MATRIX *identity = 0;  // must deallocate
+
+  MRI *pmri = 0;         // use as convenience
+  LT *tran = 0;          // use as convenience
+
+
   DebugEnterFunction( ("Volm_LoadDisplayTransform( this=%p, isFileName=%s )", 
 		       this, isFileName) );
   
@@ -650,121 +660,140 @@ Volm_tErr Volm_LoadDisplayTransform ( mriVolumeRef this,
   
   /* try to read a transform and make sure we got it */
   DebugNote( ("Creating transform from lta transform file %s", isFileName) );
-  eTransform = Trns_NewFromLTA( &(this->mDisplayTransform), isFileName );
+  //
+  // I cannot use Trns_NewFromLTA, since lta contains more info
+  // in particular dst info
+  lta = LTAreadEx(isFileName);
+  DebugAssertThrowX( (NULL != lta),
+		     eResult, Trns_tErr_LTAImportFailed );
+  tran = &lta->xforms[0];
+
   //E/ Trns_NewFromLTA copies the matrix right out of
   //LTATransform->xforms[0].m_L and notes type
   DebugAssertThrowX( (Trns_tErr_NoErr == eTransform),
 		     eResult, Volm_tErr_CouldntReadTransform );
   
   /* convert (VOX->VOX xform to) RAS->RAS transform to screen->voxel coords */
-  switch (this->mDisplayTransform->type)
+  switch (tran->type)
+  {
+  case LINEAR_VOX_TO_VOX:
     {
-    case LINEAR_CORONAL_RAS_TO_CORONAL_RAS:
-      {
-	extern MATRIX *gm_screen2ras ;
-        MATRIX *m_coronalras2coronalras, *m_ras2ras, *m_ras2ras_inverse, *m_tmp, *m_ras2vox,
-	  *m_thisorientation2coronal, *m_coronal2thisorientation;
-
-        Trns_GetARAStoBRAS(this->mDisplayTransform, &m_coronalras2coronalras) ;
-	m_thisorientation2coronal = MRIgetConformMatrix(this->mpMriValues);
-	//E/ = MRIgetResampleMatrix(mri, templ) = src_inv*m_templ
-	m_coronal2thisorientation = MatrixInverse(m_thisorientation2coronal, NULL);
-
-	//E/ want m_ras2ras = m_coronal2thisorientation_src * m_coronalras_t2coronalras_s
-
-	//E/ NOT * m_thisorientation2coronal_targ - leave that end
-	//coronal - we don't have any noncoronal targ orientation in
-	//mind.
-
-	m_ras2ras = MatrixMultiply(m_coronal2thisorientation, m_coronalras2coronalras, NULL); //m_ras_c2ras_s
-	
-        m_ras2vox = extract_r_to_i(this->mpMriValues);
-        m_ras2ras_inverse = MatrixInverse(m_ras2ras, NULL) ; // ras_s2ras_c
-        m_tmp = MatrixMultiply(m_ras2ras_inverse, gm_screen2ras, NULL) ;
-        MatrixMultiply(m_ras2vox, m_tmp, this->m_resample) ;
-	// m_resample_t2s = m_ras2vox_s * m_ras_t2ras_s * gm_screen2ras_t
-        DebugNote( ("Calculating inverse of resample matrix") );
-        MatrixInverse( this->m_resample, this->m_resample_inv );
-#if 0
-        printf("resample matrix is:\n") ;
-        MatrixPrint(stdout, this->m_resample) ;
-#endif
-        MatrixFree(&m_ras2vox) ; MatrixFree(&m_tmp);MatrixFree(&m_ras2ras_inverse);
-        break ;
-      }
-    case LINEAR_VOX_TO_VOX:
-      {
-        MATRIX *m_ras2ras, *m_vox2vox ;
-
-        /* assume it's in coronal->coronal coordinates */
-        Trns_GetARAStoBRAS(this->mDisplayTransform, &m_vox2vox) ;
-        m_ras2ras = MRIvoxelXformToRasXform(this->mpMriValues, this->mpMriValues, m_vox2vox, NULL);
-
-        Trns_CopyARAStoBRAS(this->mDisplayTransform, m_ras2ras) ;
-        MatrixFree(&m_vox2vox) ; MatrixFree(&m_ras2ras) ;
-#ifdef _VLDT_DEBUG
-	fprintf(stderr, "Volm_LoadDisplayTransform: case LINEAR_VOX_TO_VOX\n");
-#endif
-      }
-      /*  NOBREAK!!  break ;*/
-
-    case LINEAR_RAS_TO_RAS:
-      //E/ could probably fix it for this case
-      //    case LINEAR_RAS_TO_CORONAL_RAS:
-      //E/ this case was probably a mistake
-      {
-	extern MATRIX *gm_screen2ras ;
-	MATRIX *m_ras2ras, *m_ras2ras_inverse, *m_tmp, *m_ras2vox ;
-	
-	if (this->mDisplayTransform->type == LINEAR_VOX_TO_VOX)
-	  fprintf(stderr, "Don't really know what to do with a LTA of type LINEAR_VOX_TO_VOX - we'll pretend it's LINEAR_VOX_TO_CONFORM_VOX and see what happens.\n");
-	//	if (this->mDisplayTransform->type == LINEAR_RAS_TO_CORONAL_RAS)
-	//	  fprintf(stderr, "Don't really know what to do with a LTA of type LINEAR_RAS_TO_CORONAL_RAS - we'll pretend it's LINEAR_CORONAL_RAS_TO_CORONAL_RAS and see what happens.\n");
-	if (this->mDisplayTransform->type == LINEAR_RAS_TO_RAS)
-	  fprintf(stderr, "Don't really know what to do with a LTA of type LINEAR_RAS_TO_RAS - we'll pretend it's LINEAR_CORONAL_RAS_TO_CORONAL_RAS and see what happens.\n");
-
-	Trns_GetARAStoBRAS(this->mDisplayTransform, &m_ras2ras) ;
-	//E/ m_ras2ras is either from v2v case above or what mri_rigid_register wrote out, i.e. ras_c2ras_s
-
-	m_ras2vox = extract_r_to_i(this->mpMriValues) ;
-	m_ras2ras_inverse = MatrixInverse(m_ras2ras, NULL) ;
-	m_tmp = MatrixMultiply(m_ras2ras_inverse, gm_screen2ras, NULL) ;
-	MatrixMultiply(m_ras2vox, m_tmp, this->m_resample) ;
-	//E/ m_resample = m_ras2vox_s * m_ras_c2ras_s * gm_screen2ras_c
-	//E/ the value of gm_screen2ras is hardcoded in tkmedit.c = "W"
-	DebugNote( ("Calculating inverse of resample matrix") );
-	MatrixInverse( this->m_resample, this->m_resample_inv );
-
-	//E/ now m_resample_inv = gm_ras_c2screen * m_ras_s2ras_c * m_vox2ras_s
-
-	// Trns_GetARAStoBRAS() delivers whatever you wrote out to the
-	// lta file, in e.g. mri_rigid_register, which is ras_s2ras_c.
-	// Or ras_c2ras_s.  Uhh..
-
-#ifdef _VLDT_DEBUG
-	fprintf(stderr, "Volm_LoadDisplayTransform: case LINEAR_RAS_TO_RAS or fell through\n");
-	fprintf(stderr, "m_ras2ras (= m_ras_s2ras_c, I think) = \n");
-	MatrixPrint(stderr, m_ras2ras) ;
-	fprintf(stderr, "m_ras2vox (= m_ras2vox_s) = \n");
-	MatrixPrint(stderr, m_ras2vox) ;
-	fprintf(stderr, "m_ras2ras_inverse (= m_ras_c2ras_s, I think) = \n");
-	MatrixPrint(stderr, m_ras2ras_inverse ) ;
-	fprintf(stderr, "gm_screen2ras(_c) = \n");
-	MatrixPrint(stderr, gm_screen2ras) ;
-	fprintf(stderr, "m_tmp = m_ras2ras_inverse * gm_screen2ras = \n");
-	MatrixPrint(stderr, m_tmp) ;
-	fprintf(stderr, "this->m_resample = m_ras2vox * m_ras2ras_inverse * gm_screen2ras = m_ras2vox(_s) * m_ras_c2ras_s * gm_screen2ras(_c) = ");
-	MatrixPrint(stderr, this->m_resample);
-#endif
-	MatrixFree(&m_ras2vox) ; MatrixFree(&m_tmp);MatrixFree(&m_ras2ras_inverse);
-	break ;
-      }
-    default:   /* don't know what to do yet */
-      fprintf(stderr, "LTA type isn't LINEAR_VOX_TO_VOX, LINEAR_RAS_TO_RAS, nor LINEAR_CORONAL_RAS_TO_CORONAL_RAS or the new ones - don't know what to do.\n");
-      break ;
+      // use ARStoBRAS as the src volume to the dst volume
+      srcToDst = MatrixCopy(tran->m_L, NULL);
     }
-  
-  
+    break;
+  case LINEAR_RAS_TO_RAS:
+    {
+      // convert into vox-to-vox transform
+      //      srcToRas
+      //    src ---> RAS
+      //     |        |
+      //     |this    | this is given as eTransform
+      //     V        V
+      //    dst <--- RAS
+      //      rasToDst
+      //////////////////////////////////////////
+      fprintf(stderr, "INFO: rasToRas transform read:\n");
+      MatrixPrint(stderr, tran->m_L);
+      pmri = this->mpMriValues;
+      srcToRAS = extract_i_to_r(pmri);
+      // we need only header to calculate the transform
+      tmpMRI=MRIallocHeader(pmri->width, pmri->height, pmri->depth, MRI_UCHAR);
+      MRIcopyHeader(pmri, tmpMRI);
+      if (tran->dst.valid == 1)
+      {
+	fprintf(stderr, "INFO: Transform has the target information.\n");
+	tmpMRI->c_r = tran->dst.c_r;
+	tmpMRI->c_a = tran->dst.c_a;
+	tmpMRI->c_s = tran->dst.c_s;
+	tmpMRI->ras_good_flag = 1;
+      }
+      else if (getenv("USE_AVERAGE305"))
+      {
+	fprintf(stderr, "INFO: Environmental variable USE_AVERAGE305 set\n");
+	fprintf(stderr, "INFO: Modifying dst c_(r,a,s), using average_305 values\n");
+	tmpMRI->c_r = -0.0950;
+	tmpMRI->c_a = -16.5100;
+	tmpMRI->c_s = 9.7500;
+	tmpMRI->ras_good_flag = 1;
+      }
+      else
+      {
+	fprintf(stderr, "INFO: Destination c_(ras) is assumed to be the same as that of src\n");
+	fprintf(stderr, "INFO: If not correct, edit transform to give destination info.\n");
+      }  
+      rasToDst = extract_r_to_i(tmpMRI);
+      tmpMat = MatrixMultiply(tran->m_L, srcToRAS, NULL); // tran->m_L is rasToRAS
+      srcToDst = MatrixMultiply(rasToDst, tmpMat, NULL);
+      fprintf(stderr, "INFO: srcToDst voxel-to-voxel transform\n");
+      MatrixPrint(stderr, srcToDst);
+    }
+    break;
+  default:   /* don't know what to do yet */
+    fprintf(stderr, "LTA type isn't LINEAR_VOX_TO_VOX, LINEAR_RAS_TO_RAS - don't know what to do.\n");
+    LTAfree(&lta);
+    return Volm_tErr_InvalidParamater;
+    break ;
+  }
+  // cleanup memory
+  if (tmpMat)
+    MatrixFree(&tmpMat); 
+  if (srcToRAS)
+    MatrixFree(&srcToRAS); 
+  if (rasToDst)
+    MatrixFree(&rasToDst);
+  if (tmpMRI)
+    MRIfree(&tmpMRI);
+  LTAfree(&lta);
+
+  /////////////////////////////////////////////////////////////////////////////////////
+  // set up this->mDisplayTransform
+  //
+  // assuming that mDisplayTransform is the src vox to dst vox transform
+  //
+  // Kevin, please verify!
+  //
+  ////////////////////////////////////////////////////////////////////////////
+  // I had to copy Trns_NewFromLTA verbatim //////////////////////////////////
+  mriTransformRef dispTran;
+  dispTran = (mriTransformRef) malloc(sizeof(mriTransform));
+  if( NULL == dispTran ) 
+  {
+    eResult = Trns_tErr_AllocationFailed;
+    goto error;
+  }
+  dispTran->mSignature = Trns_kSignature;
+  /* set our matrices to null. */
+  dispTran->mAtoRAS     = NULL;
+  dispTran->mBtoRAS     = NULL;
+  dispTran->mARAStoBRAS = NULL;
+  dispTran->mRAStoA     = NULL;
+  dispTran->mRAStoB     = NULL;
+  dispTran->mBRAStoARAS = NULL;
+  dispTran->mAtoB       = NULL;
+  dispTran->mBtoA       = NULL;
+
+  /* copy the matrix out of it */
+  Trns_CopyARAStoBRAS( dispTran, srcToDst );
+  // now we can free this matrix
+  MatrixFree(&srcToDst);
+
+  /* copy identities for the rest */
+  identity = MatrixIdentity( 4, NULL );
+  Trns_CopyAtoRAS( dispTran, identity );
+  Trns_CopyBtoRAS( dispTran, identity );
+  MatrixFree(&identity);
+
+  /* allocate our temp matricies */
+  dispTran->mCoord1 = MatrixAlloc( 4, 1, MATRIX_REAL );
+  dispTran->mCoord2 = MatrixAlloc( 4, 1, MATRIX_REAL );
+
+  // now copy the transform
+  if (this->mDisplayTransform)
+    free(this->mDisplayTransform);
+  this->mDisplayTransform = dispTran;
+
+  //////////////////////////////////////////////////////////////////////////////  
   DebugCatch;
   DebugCatchError( eResult, Volm_tErr_NoErr, Volm_GetErrorString );
   EndDebugCatch;
