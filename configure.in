@@ -6,9 +6,11 @@
 #
 AC_PREREQ(2.57)
 AC_INIT(Freesurfer, 0.1, tosa@nmr.mgh.harvard.edu)
-AC_CONFIG_AUX_DIR(config)
-AC_PROG_LIBTOOL
+AC_CONFIG_AUX_DIR([config])
+AC_MSG_NOTICE(Setting libtool ...)
+AC_PROG_LIBTOOL 
 # create specifal dir for intermediate files
+AC_MSG_NOTICE(Setting System ...)
 AC_CANONICAL_SYSTEM
 AM_INIT_AUTOMAKE(Freesurfer, 0.1)
 AC_CONFIG_SRCDIR([config.h.in])
@@ -17,11 +19,12 @@ AM_CONFIG_HEADER([config.h])
 # Checks for programs.
 AC_PROG_AWK
 AC_PROG_CXX
-AC_PROG_CC
+AC_PROG_CC_STDC
 AC_PROG_INSTALL
 AC_PROG_LN_S
 AC_PROG_MAKE_SET
 AC_PROG_CPP
+AC_PROG_LIBTOOL
 
 ################################################################
 # define OS
@@ -114,7 +117,7 @@ fi
 AC_PATH_X
 ACX_PTHREAD
 
-AC_MSG_NOTICE(Checking directories for MNI Tcl/Tk BLT Tiff Jpeg ...)
+AC_MSG_NOTICE(Checking directories for MNI Tiff Jpeg ...)
 mghdir=/usr/pubsw/packages
 #############################################################
 # MNI
@@ -156,44 +159,6 @@ fi
 AC_SUBST(mni_includes)
 AC_SUBST(mni_libraries)
 
-###############################################################
-# Tcl/Tk
-###############################################################
-ac_tcl_includes="NO"
-ac_tcl_libraries="NO"
-ac_tcl_bindir="NO"
-tcl_includes=""
-tcl_libraries=""
-AC_MSG_CHECKING(cheking Tcl/Tk directory)
-# default is to use MGH installation
-if test -d $mghdir/tcl/current ; then
-  ac_tcl_includes=$mghdir/tcl/current/include
-  ac_tcl_libraries=$mghdir/tcl/current/lib
-  ac_tcl_bindir=$mghdir/tcl/current/bin
-fi
-
-AC_ARG_WITH(tcl-dir,
-  [  --with-tcl-dir=DIR      where the root of Tcl/Tk is installed.],
-  [  ac_tcl_includes="$withval"/include
-     ac_tcl_libraries="$withval"/lib
-     ac_tcl_bindir="$withval"/bin
-  ])
-
-# modify CXXFLAGS and LDFLAGS
-if test ! "$ac_tcl_includes" = "NO"; then
-  AC_MSG_RESULT(yes)
-  tcl_includes=-I$ac_tcl_includes
-  CPPFLAGS="$CPPFLAGS $tcl_includes"
-else
-  AC_MSG_RESULT(no)
-fi
-if test ! "$ac_tcl_libraries" = "NO"; then 
-  tcl_libraries=-L$ac_tcl_libraries 
-  LDFLAGS="$LDFLAGS $tcl_libraries"
-fi
-
-AC_SUBST(tcl_includes)
-AC_SUBST(tcl_libraries)
 
 ################################################################
 # BLT
@@ -317,8 +282,74 @@ AC_MSG_NOTICE(Get OpenGL info ...)
 AX_CHECK_GLUT
 #####################################################
 # produces GLUT_CFLAGS GLUT_LIBS
-LIBS_TCL_OPENGL="$GLUT_LIBS -lBLT -ltix -ltk -ltcl"
+LIBS_OPENGL="$GLUT_LIBS"
+
+#####################################################
+# Tcl/Tk
+####################################################
+AC_MSG_NOTICE(checking Tcl/Tk directory)
+################# apple
+AC_ARG_WITH([apple-tcl-framework],
+	[AC_HELP_STRING([--with-apple-tcl-framework])])
+if test "X$with_apple_tcl_framework" = "Xyes"; then
+  AC_MSG_NOTICE([Apple framework way ...])
+  AC_DEFINE([HAVE_APPLE_TCL_FRAMEWORK],[1],
+            [Use the Apple Tcl framework,])
+  TCL_CFLAGS="-framework Tcl -framework Tk"
+  TCL_LIBS="-lTix8.4"
+  tcl_libraries="-L/Library/Tcl/Tix8.4"
+  tcl_includes=""
+else
+################## other cases
+# here are uni*es
+AC_MSG_NOTICE([unix style...])
+ac_tcl_includes="NO"
+ac_tcl_libraries="NO"
+ac_tcl_bindir="NO"
+tcl_includes=""
+tcl_libraries=""
+
+# check for MGH style
+# default is to use MGH installation
+if test -d $mghdir/tcl/current ; then
+  ac_tcl_includes=$mghdir/tcl/current/include
+  ac_tcl_libraries=$mghdir/tcl/current/lib
+  ac_tcl_bindir=$mghdir/tcl/current/bin
+fi
+
+AC_ARG_WITH(tcl-dir,
+  [  --with-tcl-dir=DIR      where the root of Tcl/Tk is installed.],
+  [  ac_tcl_includes="$withval"/include
+     ac_tcl_libraries="$withval"/lib
+     ac_tcl_bindir="$withval"/bin
+  ])
+
+# modify CXXFLAGS and LDFLAGS
+if test ! "$ac_tcl_includes" = "NO"; then
+  AC_MSG_RESULT(yes)
+  tcl_includes=-I$ac_tcl_includes
+  CPPFLAGS="$CPPFLAGS $tcl_includes"
+else
+  AC_MSG_RESULT(no)
+fi
+
+if test ! "$ac_tcl_libraries" = "NO"; then 
+  tcl_libraries=-L$ac_tcl_libraries 
+
+fi
+
+TCL_CFLAGS=""
+TCL_LIBS="-lBLT -ltix -ltk -ltcl"
+
+fi
+###### end of uni*es
+AC_SUBST(tcl_includes)
+AC_SUBST(tcl_libraries)
+
+################################################
+LIBS_TCL_OPENGL="$LIBS_OPENGL $TCL_LIBS"
 AC_SUBST(LIBS_TCL_OPENGL)
+AC_SUBST(TCL_CFLAGS)
 
 LIBDIRS_MGH="utils rgb unix dicom hipsstubs"
 AC_SUBST(LIBDIRS_MGH)
@@ -348,24 +379,39 @@ AC_CHECK_LIB([volume_io], [transform_point],[],
 ac_save_libs=$LIBS
 ac_save_cppflags=$CPPFLAGS
 ac_save_ldflags=$LDFLAGS
+
 ## check Tcl/Tk/BLT
+CPPFLAGS="$CPPFLAGS $TCL_CFLAGS"
+LDFLAGS="$LDFLAGS $tcl_libraries"	
+# uni*es way
+if test ! "$OS" = "Darwin"; then
 AC_CHECK_LIB([tcl],[Tcl_Init],[],
   [AC_MSG_ERROR("FATAL: libtcl not found. check config.log. set LDFLAGS or --with-tcl-dir.")] )
-# tk needs X for compilation
-if test ! "$OS" = "Darwin"; then
 AC_CHECK_LIB([tk],[Tk_Init],[],
   [AC_MSG_ERROR("FATAL: libtk not found.  check config.log. set LDFLAGS or --with-tcl-dir.")] )
-AC_CHECK_LIB([tix],[Tix_Init],[],
+AC_CHECK_LIB([Tix],[Tix_Init],[],
   [AC_MSG_ERROR("FATAL: libtix not found. check config.log. set LDFLAGS or --with-tcl-dir.")] )
+# Darwin libcase
+else 
+# apple way
+if test "X$with_apple_tcl_framework" = "Xyes"; then
+AC_CHECK_LIB([Tix8.4],[Tix_Init],[],
+              [AC_MSG_ERROR("FATAL: libTix8.4 not found.")])
+# non-apple way (but still Darwin)  needed X lib
 else
 LIBS="-lX11 $LIBS"
 CPPFLAGS="$GLUT_CFLAGS $CPPFLAGS"
 LDFLAGS="-L$x_libraries $LDFLAGS"
+AC_CHECK_LIB([tcl],[Tcl_Init],[],
+  [AC_MSG_ERROR("FATAL: libtcl not found. check config.log. set LDFLAGS or --with-tcl-dir.")] )
 AC_CHECK_LIB([tk8.3],[Tk_Init],[],
-  [AC_MSG_ERROR("FATAL: libtk not found.  check config.log. set LDFLAGS or --with-tcl-dir.")] )
+             [AC_MSG_ERROR("FATAL: libtk not found.  check config.log. set LDFLAGS or --with-tcl-dir.")])
 AC_CHECK_LIB([tix4.1.8.3],[Tix_Init],[],
-  [AC_MSG_ERROR("FATAL: libtix not found.  check config.log. Set LDFLAGS or --with-tcl-dir.")] )
+             [AC_MSG_ERROR("FATAL: libtix not found.  check config.log. Set LDFLAGS or --with-tcl-dir.")])
 fi
+# endof Darwin
+fi
+# endof 
 
 AC_CHECK_LIB([BLT],[Blt_Init],[],
   [AC_MSG_ERROR("FATAL: libBLT not found. check config.log.  Set LDFLAGS or --with-BLT-dir.")] )
