@@ -1,15 +1,19 @@
 #!/bin/tcsh
 #
-# $Id: mkfsdistall,v 1.1 2003/07/22 19:12:48 kteich Exp $
+# $Id: mkfsdistall,v 1.2 2003/07/23 22:23:45 kteich Exp $
 
 
 if ( $#argv < 2 ) then
-    echo "USAGE: mkfsdistall freesurfer_dir dest_dir"
+    echo "USAGE: mkfsdistall freesurfer_dir dest_dir [options]"
     echo ""
     echo "freesurfer_dir should be something like freesurfer_dev/."
     echo ""
     echo "A directory called freesurfer-DATE will be created in the"
-    echo "dest_dir. It needs about a gig of space."
+    echo "dest_dir. It needs about 3 gigs of space."
+    echo ""
+    echo "Options:"
+    echo "  --skip-copy, -s: Don't do the copy portion. assumes that "
+    echo "                   dest_dir/freesurfer exists."
     echo ""
     echo "Ex: mkfsdistall /space/lyon/1/fsdev/freesurfer_dev ~/work"
     exit 1
@@ -17,6 +21,17 @@ endif
 
 set FREESURFER_DIR = $1
 set TOP_DEST_DIR = $2
+
+set DO_COPY = 1
+
+foreach option ($argv)
+    switch ("$option")
+    case "--skip-copy":
+    case "-s":
+	set DO_COPY = 0
+	breaksw
+    endsw
+end
 
 # Make sure the directories exist.
 if(! -er $FREESURFER_DIR) then
@@ -35,15 +50,23 @@ set DATE = "`date '+%Y%m%d'`"
 
 # Make sure we have the mkfs* scripts for making the distro and
 # snapshot below. If not, exit.
-set MKFSDIST = mkfsdist
-set MKFSSNAPSHOT = mkfssnapshot
+set MKFSDIST = $PWD/mkfsdist
 which $MKFSDIST > /dev/null
 if ( $? != 0 ) then
     set MKFSDIST = $DEV/scripts/mkfsdist
-    set MKFSSNAPSHOT = $DEV/scripts/mkfssnapshot
     which $MKFSDIST  > /dev/null
     if ( $? != 0 ) then
 	echo "Couldn't find mkfsdist. Please add to path."
+	exit 1
+    endif
+endif
+set MKFSSNAPSHOT = $PWD/mkfssnapshot
+which $MKFSSNAPSHOT > /dev/null
+if ( $? != 0 ) then
+    set MKFSSNAPSHOT = $DEV/scripts/mkfssnapshot
+    which $MKFSSNAPSHOT  > /dev/null
+    if ( $? != 0 ) then
+	echo "Couldn't find mkfssnapshot. Please add to path."
 	exit 1
     endif
 endif
@@ -85,34 +108,41 @@ end
 
 # Build the exclude file and copy freesurfer/. The exclude file keeps
 # us from copying old backup files and other stuff.
-echo Building exclude file...
+if ( $DO_COPY ) then
+    echo Building exclude file...
 
-set EXCLUDE_FILE = /tmp/copyfreesurfer-exclude-$OS-$DATE
-rm -f $EXCLUDE_FILE
+    set EXCLUDE_FILE = /tmp/copyfreesurfer-exclude-$OS-$DATE
+    rm -f $EXCLUDE_FILE
 
-pushd $FREESURFER_DIR > /dev/null
-cd ..
+    pushd $FREESURFER_DIR > /dev/null
+    cd ..
 
-set FREESURFER_DIR_REL = `basename $FREESURFER_DIR`
+    set FREESURFER_DIR_REL = `basename $FREESURFER_DIR`
 
-find $FREESURFER_DIR_REL -name \*.03\* >> $EXCLUDE_FILE
-find $FREESURFER_DIR_REL -name \*.02\* >> $EXCLUDE_FILE
-find $FREESURFER_DIR_REL -name \*.01\* >> $EXCLUDE_FILE
-find $FREESURFER_DIR_REL -name \*~ >> $EXCLUDE_FILE
-find $FREESURFER_DIR_REL -name \#\*\# >> $EXCLUDE_FILE
-find $FREESURFER_DIR_REL -name \*.bu >> $EXCLUDE_FILE
-find $FREESURFER_DIR_REL -name \*.bak >> $EXCLUDE_FILE
-find $FREESURFER_DIR_REL -name \*.log >> $EXCLUDE_FILE
-find $FREESURFER_DIR_REL -name \*.old >> $EXCLUDE_FILE
-find $FREESURFER_DIR_REL -name .xdebug\* >> $EXCLUDE_FILE
+    find $FREESURFER_DIR_REL -name \*.03\* >> $EXCLUDE_FILE
+    find $FREESURFER_DIR_REL -name \*.02\* >> $EXCLUDE_FILE
+    find $FREESURFER_DIR_REL -name \*.01\* >> $EXCLUDE_FILE
+    find $FREESURFER_DIR_REL -name \*~ >> $EXCLUDE_FILE
+    find $FREESURFER_DIR_REL -name \#\*\# >> $EXCLUDE_FILE
+    find $FREESURFER_DIR_REL -name \*.bu >> $EXCLUDE_FILE
+    find $FREESURFER_DIR_REL -name \*.bak >> $EXCLUDE_FILE
+    find $FREESURFER_DIR_REL -name \*.log >> $EXCLUDE_FILE
+    find $FREESURFER_DIR_REL -name \*.old >> $EXCLUDE_FILE
+    find $FREESURFER_DIR_REL -name .xdebug\* >> $EXCLUDE_FILE
 
-# Copy the freesurfer directory given into the freesurfer/ part above.
-echo Copying $FREESURFER_DIR to $DISTRO_DIR/freesurfer...
+    # Copy the freesurfer directory given into the freesurfer/ part above.
+    echo Copying $FREESURFER_DIR to $DISTRO_DIR/freesurfer...
 
-rsync --recursive --copy-links --exclude-from $EXCLUDE_FILE $FREESURFER_DIR/ $DISTRO_DIR/freesurfer
+    rsync --recursive --copy-links --exclude-from $EXCLUDE_FILE $FREESURFER_DIR/ $DISTRO_DIR/freesurfer
 
-rm -f $EXCLUDE_FILE
-
+    rm -f $EXCLUDE_FILE
+else
+    if ( ! -e $DISTRO_DIR/freesurfer ) then
+	echo "$DISTRO_DIR/freesurfer doesn't not exist; run "
+	echo "without --skip-copy option to create it."
+	exit 1
+    endif
+endif
 
 # For each OS, run the mkfsdit and mkfssnapshot scripts. Tar each
 # result and put the tarball in the fsdistro-DATE directory.
