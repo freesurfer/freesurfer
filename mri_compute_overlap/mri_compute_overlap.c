@@ -13,6 +13,8 @@
 #include "utils.h"
 #include "timer.h"
 #include "version.h"
+#include "gca.h"
+#include "cma.h"
 
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
@@ -39,7 +41,7 @@ main(int argc, char *argv[])
   float  nvox_mean ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_compute_overlap.c,v 1.8 2003/09/05 04:45:32 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_compute_overlap.c,v 1.9 2004/05/14 17:43:23 tosa Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -91,10 +93,18 @@ main(int argc, char *argv[])
   if (all_flag)
   {
     MRI *mri1_label = NULL, *mri2_label = NULL ;
+    int lnoLimit = 1000;
+    int isSeg = 0;
+
+    if (strstr(argv[1], "seg"))  // if segmented label volume
+    {
+      lnoLimit = MAX_CMA_LABEL;
+      isSeg = 1;
+    }
 
     mri1_label = MRIclone(mri1, NULL) ;
     mri2_label = MRIclone(mri2, NULL) ;
-    for (lno = 0 ; lno < 1000 ; lno++)
+    for (lno = 0 ; lno < lnoLimit ; lno++)
     {
 #if 1
       nvox1 = MRIvoxelsInLabel(mri1, lno) ;
@@ -103,11 +113,21 @@ main(int argc, char *argv[])
         continue ;
       nvox_mean = (float)(nvox1+nvox2)/2.0f ;
       nshared = MRIlabelOverlap(mri1, mri2, lno) ;
-      
-      printf("volume diff = |(%d - %d)| / %2.1f = %2.2f\n",
-             nvox1, nvox2, nvox_mean,100.0f*(float)abs(nvox1-nvox2)/nvox_mean);
-      printf("volume overlap = %d / %2.1f = %2.2f\n",
-             nshared, nvox_mean, 100.0f*(float)nshared/nvox_mean) ;
+
+      if (isSeg)
+      {
+	printf("label = %d (%s), volume diff = |(%d - %d)| / %2.1f = %2.2f\n",
+	       lno, cma_label_to_name(lno), nvox1, nvox2, nvox_mean,100.0f*(float)abs(nvox1-nvox2)/nvox_mean);
+	printf("label = %d (%s), volume overlap = %d / %2.1f = %2.2f\n",
+	       lno, cma_label_to_name(lno), nshared, nvox_mean, 100.0f*(float)nshared/nvox_mean) ;
+      }
+      else
+      {
+	printf("volume diff = |(%d - %d)| / %2.1f = %2.2f\n",
+	        nvox1, nvox2, nvox_mean,100.0f*(float)abs(nvox1-nvox2)/nvox_mean);
+	printf("volume overlap = %d / %2.1f = %2.2f\n",
+	        nshared, nvox_mean, 100.0f*(float)nshared/nvox_mean) ;
+      }
       if (log_fp)
       {
         fprintf(log_fp, "%d  %2.2f  %2.2f\n", lno,
@@ -143,9 +163,11 @@ main(int argc, char *argv[])
       float volume_overlap, volume_diff ;
 
       lno = atoi(argv[i]) ;
+      // only counts number of lno label
       nvox1 = MRIvoxelsInLabel(mri1, lno) ;
       nvox2 = MRIvoxelsInLabel(mri2, lno) ;
       nvox_mean = (float)(nvox1+nvox2)/2 ;
+      // if both mri1 and mri2 has the same label, count it.
       nshared = MRIlabelOverlap(mri1, mri2, lno) ;
       volume_diff = 100.0f*(float)abs(nvox1-nvox2)/nvox_mean ;
       volume_overlap = 100.0f*(float)nshared/nvox_mean ;
