@@ -137,6 +137,27 @@ static int ynbr_offset[] = { 0, 0,  1, -1, 0,  0} ;
 static int znbr_offset[] = { 0, 0,  0, 0,  1, -1} ;
 int check_finite(char *where, double what) ;
 
+static MRI *mri_gca =0;
+
+void GCAcleanup()
+{
+  MRIfree(&mri_gca);
+}
+
+void GCAsetup()
+{
+  mri_gca = MRIallocHeader(256, 256, 256, MRI_UCHAR);
+
+  mri_gca->x_r = -1; mri_gca->y_r =  0; mri_gca->z_r =  0; mri_gca->c_r = 0.0;
+  mri_gca->x_a =  0; mri_gca->y_a =  0; mri_gca->z_a =  1; mri_gca->c_a = 0.0;
+  mri_gca->x_s =  0; mri_gca->y_s = -1; mri_gca->z_s =  0; mri_gca->c_s = 0.0;
+
+  /* Copy the voxel resolutions */
+  mri_gca->xsize = 1.;
+  mri_gca->ysize = 1.;
+  mri_gca->zsize = 1.;
+}
+
 GCA_PRIOR *
 getGCAP(GCA *gca, MRI *mri, TRANSFORM *transform, int xv, int yv, int zv)
 {
@@ -170,16 +191,16 @@ int
 GCAisPossible(GCA *gca, MRI *mri, int label, TRANSFORM *transform, int x, int y, int z) 
 {
   int       n ;
-	GCA_PRIOR *gcap ;
+  GCA_PRIOR *gcap ;
 
-	gcap = getGCAP(gca, mri, transform, x, y, z) ;
-	if (gcap == NULL)
-		return(0) ;
-
+  gcap = getGCAP(gca, mri, transform, x, y, z) ;
+  if (gcap == NULL)
+    return(0) ;
+  
   for (n = 0 ; n < gcap->nlabels ; n++)
     if (gcap->labels[n] == label)
-			return(1) ;
-	return(0) ;
+      return(1) ;
+  return(0) ;
 }
 
 #if 0
@@ -235,56 +256,72 @@ dump_gcan(GCA *gca, GCA_NODE *gcan, FILE *fp, int verbose, GCA_PRIOR *gcap)
 
   for (n = 0 ; n < gcan->nlabels ; n++)
   {
-		for (n1 = 0 ; n1 < gcap->nlabels ; n1++)
-			if (gcap->labels[n1] == gcan->labels[n])
-				break ;
-		if (n1 >= gcap->nlabels)
-			continue ;
+    for (n1 = 0 ; n1 < gcap->nlabels ; n1++)
+      if (gcap->labels[n1] == gcan->labels[n])
+	break ;
+    if (n1 >= gcap->nlabels)
+      continue ;
     prior = getPrior(gcap, gcan->labels[n]) ;
     if (FZERO(prior))
       continue ;
     gc = &gcan->gcs[n] ;
-		v_means = load_mean_vector(gc, v_means, gca->ninputs) ;
-		m_cov = load_covariance_matrix(gc, m_cov, gca->ninputs) ;
+    v_means = load_mean_vector(gc, v_means, gca->ninputs) ;
+    m_cov = load_covariance_matrix(gc, m_cov, gca->ninputs) ;
     fprintf(fp, "%d: label %-30.30s, prior %2.3f, ntr %d, means " ,
             n, cma_label_to_name(gcan->labels[n]), prior, gc->ntraining) ;
-		for (i = 0 ; i < gca->ninputs ; i++)
-			fprintf(fp, "%2.1f ", VECTOR_ELT(v_means,i+1)) ;
-		fprintf(fp, ", cov:\n") ; MatrixPrint(fp, m_cov) ;
+    for (i = 0 ; i < gca->ninputs ; i++)
+      fprintf(fp, "%2.1f ", VECTOR_ELT(v_means,i+1)) ;
+    fprintf(fp, ", cov:\n") ; MatrixPrint(fp, m_cov) ;
     if (verbose) 
-		{
-			for (i = 0 ; i < gca->ninputs ; i++)
-			{
-				for (j = 0 ; j < gca->ninputs ; j++)
-				{
-					fprintf(fp, "%2.1f\t", *MATRIX_RELT(m_cov,i+1,j+1)) ;
-				}
-				fprintf(fp, "\n") ;
-			}
-
-			for (i = 0 ; i < GIBBS_NEIGHBORS ; i++)
-			{
-				fprintf(fp, "\tnbr %d (%d,%d,%d): %d labels\n",
-								i, xnbr_offset[i], ynbr_offset[i], znbr_offset[i], 
-								gc->nlabels[i]) ;
-				for (j = 0 ; j < gc->nlabels[i] ; j++)
-				{
-					fprintf(fp, "\t\tlabel %s, prior %2.3f\n", 
-									cma_label_to_name(gc->labels[i][j]),
-									gc->label_priors[i][j]) ;
-				}
-			}
-		}
+    {
+      for (i = 0 ; i < gca->ninputs ; i++)
+      {
+	for (j = 0 ; j < gca->ninputs ; j++)
+	{
+	  fprintf(fp, "%2.1f\t", *MATRIX_RELT(m_cov,i+1,j+1)) ;
+	}
+	fprintf(fp, "\n") ;
+      }
+      
+      for (i = 0 ; i < GIBBS_NEIGHBORS ; i++)
+      {
+	fprintf(fp, "\tnbr %d (%d,%d,%d): %d labels\n",
+		i, xnbr_offset[i], ynbr_offset[i], znbr_offset[i], 
+		gc->nlabels[i]) ;
+	for (j = 0 ; j < gc->nlabels[i] ; j++)
+	{
+	  fprintf(fp, "\t\tlabel %s, prior %2.3f\n", 
+		  cma_label_to_name(gc->labels[i][j]),
+		  gc->label_priors[i][j]) ;
+	}
+      }
+    }
   }
-	MatrixFree(&m_cov) ; VectorFree(&v_means);
+  MatrixFree(&m_cov) ; VectorFree(&v_means);
   return(NO_ERROR) ;
 }
 
 /////////////////////////////////////////////////////////////////////////////
 // the following  assumes that 
-// 1. mri and gca has the same direction cosines and c_(r,a,s).
-// 2. volumes are uniform size
-// 3. only difference is the scale part  
+//      
+// mri and gca has the same direction cosines and c_(r,a,s).
+// 
+// if not cras the same (still direction cosines the same), we have to use
+//
+//     (node - V') = S'^(-1)*S*( src - V ) + S'^(-1)*M^(-1)*(C - C')
+//
+// where 
+//   C  = (c_r, c_a, c_s)
+//   C' = (c'_r, c'_a, c'_s)
+//   V  = (width/2, height/2, depth/2)
+//   V' = (node_width/2, node_height/2, node_depth/2)
+//   S  = (xsize, ysize, zsize)
+//   S' = (node_xsize, node_ysize, node_zsize)
+//   M  = (direction cosines)
+
+////////////////////////////////////////////////////////////////
+// transform from template -> node
+////////////////////////////////////////////////////////////////
 int
 GCAvoxelToNode(GCA *gca, MRI *mri, int xv, int yv, int zv, int *pxn, 
                int *pyn, int *pzn)
@@ -316,6 +353,9 @@ GCAvoxelToNode(GCA *gca, MRI *mri, int xv, int yv, int zv, int *pxn,
   return(NO_ERROR) ;
 }
 
+////////////////////////////////////////////////////////////////////
+// transform from template -> prior
+////////////////////////////////////////////////////////////////////
 int
 GCAvoxelToPrior(GCA *gca, MRI *mri, int xv, int yv, int zv, 
                     int *pxp, int *pyp, int *pzp)
@@ -347,6 +387,9 @@ GCAvoxelToPrior(GCA *gca, MRI *mri, int xv, int yv, int zv,
   return(NO_ERROR) ;
 }
 
+/////////////////////////////////////////////////////////////////////
+// transform node->template
+/////////////////////////////////////////////////////////////////////
 int
 GCAnodeToVoxel(GCA *gca, MRI *mri, int xn, int yn, int zn, int *pxv, 
                int *pyv, int *pzv)
@@ -377,6 +420,10 @@ GCAnodeToVoxel(GCA *gca, MRI *mri, int xn, int yn, int zn, int *pxv,
 
   return(NO_ERROR) ;
 }
+
+//////////////////////////////////////////////////////////////////////
+// transform from prior-> template
+//////////////////////////////////////////////////////////////////////
 int
 GCApriorToVoxel(GCA *gca, MRI *mri, int xp, int yp, int zp, int *pxv, 
                int *pyv, int *pzv)
@@ -407,6 +454,7 @@ GCApriorToVoxel(GCA *gca, MRI *mri, int xp, int yp, int zp, int *pxv,
 
   return(NO_ERROR) ;
 }
+
 
 ////////////////////////////////////////////////////////////////////////
 // original routines are broken when the voxel size is not
@@ -475,17 +523,33 @@ GCAvoxelToPrior(GCA *gca, MRI *mri, int xv, int yv, int zv, int *pxp,
 }
 #endif
 
+/////////////////////////////////////////////////////////////////////////////////////////
+// transform from source -> conformed -> template -> prior -> node
+/////////////////////////////////////////////////////////////////////////////////////////
 int
 GCAsourceVoxelToPrior(GCA *gca, MRI *mri, TRANSFORM *transform,
                       int xv, int yv, int zv, int *pxp, int *pyp, int *pzp)
 {
   float   xt, yt, zt ;
-
-  TransformSample(transform, xv*mri->xsize, yv*mri->ysize, zv*mri->zsize, &xt, &yt, &zt) ;
-
-  /* should change this to remove cast, but backwards comp for now */
-  xt = nint(xt/mri->xsize) ; yt = nint(yt/mri->ysize) ; zt = nint(zt/mri->zsize) ; 
-  GCAvoxelToPrior(gca, mri, xt, yt, zt, pxp, pyp, pzp) ;
+  float   xc, yc, zc ;
+  if (transform->type != MORPH_3D_TYPE)
+  {
+    // transform must be vox-to-vox type
+    // go from source to conformed space (1 mm 256^3) 
+    xc = mri->xsize*(xv - mri->width/2) + 256/2;
+    yc = mri->ysize*(yv - mri->height/2) + 256/2;
+    zc = mri->zsize*(zv - mri->depth/2) + 256/2;
+    // transform is vox-to-vox in conformed space -> template voxel
+    TransformSample(transform, xc, yc, zc, &xt, &yt, &zt) ;
+    // original agrees with when mri width = 256 and xsize = 1
+    // TransformSample(transform, xv*mri->xsize, yv*mri->ysize, zv*mri->zsize, &xt, &yt, &zt) ;
+  }
+  else // morph 3d type can go directly from source to template
+  {
+    TransformSample(transform, xv, yv, zv, &xt, &yt, &zt);
+  }  
+  // got the value in template voxel
+  GCAvoxelToPrior(gca, mri_gca, xt, yt, zt, pxp, pyp, pzp) ;
   return(NO_ERROR) ;
 }
 
@@ -494,15 +558,121 @@ GCAsourceVoxelToNode(GCA *gca, MRI *mri, TRANSFORM *transform,int xv, int yv, in
                      int *pxn, int *pyn, int *pzn)
 {
   float   xt, yt, zt ;
-
-  TransformSample(transform, xv*mri->xsize, yv*mri->ysize, zv*mri->zsize, &xt, &yt, &zt) ;
-
-  /* should change this to remove cast, but backwards comp for now */
-  xt = nint(xt/mri->xsize) ; yt = nint(yt/mri->ysize) ; zt = nint(zt/mri->zsize); 
-  GCAvoxelToNode(gca, mri, xt, yt, zt, pxn, pyn, pzn) ;
+  float   xc, yc, zc ;
+  if (transform->type != MORPH_3D_TYPE)
+  {
+    // go from source to conformed space (1 mm 256^3) 
+    xc = mri->xsize*(xv - mri->width/2) + 256/2;
+    yc = mri->ysize*(yv - mri->height/2) + 256/2;
+    zc = mri->zsize*(zv - mri->depth/2) + 256/2;
+    TransformSample(transform, xc, yc, zc, &xt, &yt, &zt) ;
+  }
+  else
+  {
+    TransformSample(transform, xv, yv, zv, &xt, &yt, &zt);
+  }
+  // TransformSample(transform, xv*mri->xsize, yv*mri->ysize, zv*mri->zsize, &xt, &yt, &zt) ;
+  GCAvoxelToNode(gca, mri_gca, xt, yt, zt, pxn, pyn, pzn) ;
   return(NO_ERROR) ;
 }
 
+///////////////////////////////////////////////////////////////////////////////////////////
+// transform from node->prior->template->conformed->source
+//////////////////////////////////////////////////////////////////////////////////////////
+int
+GCApriorToSourceVoxelFloat(GCA *gca, MRI *mri, TRANSFORM *transform, int xp, int yp, int zp, 
+                    float *pxv, float *pyv, float *pzv)
+{
+  int   width, height, depth, xt, yt, zt ;
+  float  xv, yv, zv ;
+  float  xc, yc, zc;
+
+  width = mri->width ; height = mri->height ;  depth = mri->depth ;
+  // go to the template voxel position
+  GCApriorToVoxel(gca, mri_gca, xp, yp, zp, &xt, &yt, &zt) ;
+  if (transform->type != MORPH_3D_TYPE)
+  {
+    // get the conformed position
+    TransformSampleInverse(transform, xt, yt, zt, &xc, &yc, &zc);
+    // TransformSampleInverse(transform, xt*mri->xsize, yt*mri->ysize, zt*mri->zsize, &xv, &yv, &zv) ;
+    
+    // translate into src position
+    xv = (xc - 256/2)/mri->xsize + mri->width/2;
+    yv = (yc - 256/2)/mri->ysize + mri->height/2;
+    zv = (zc - 256/2)/mri->zsize + mri->depth/2;
+  }
+  else // go directly from template to source
+  {
+    TransformSampleInverse(transform, xt, yt, zt, &xv, &yv, &zv);
+  }
+  *pxv = xv ; *pyv = yv ; *pzv = zv ;
+  return(NO_ERROR) ;
+}
+
+int
+GCAnodeToSourceVoxelFloat(GCA *gca, MRI *mri, TRANSFORM *transform, int xn, int yn, int zn, 
+                    float *pxv, float *pyv, float *pzv)
+{
+  int   width, height, depth, xt, yt, zt ;
+  float  xv, yv, zv ;
+  float  xc, yc, zc ;
+  width = mri->width ; height = mri->height ;  depth = mri->depth ;
+  // got template voxel position
+  GCAnodeToVoxel(gca, mri_gca, xn, yn, zn, &xt, &yt, &zt) ;
+  if (transform->type != MORPH_3D_TYPE)
+  {
+    // template voxel position to conformed position
+    TransformSampleInverse(transform, xt, yt, zt, &xc, &yc, &zc);
+    // TransformSampleInverse(transform, xt*mri->xsize, yt*mri->ysize, zt*mri->zsize, &xv, &yv, &zv) ;
+    
+    // translate into src position
+    xv = (xc - 256/2)/mri->xsize + mri->width/2;
+    yv = (yc - 256/2)/mri->ysize + mri->height/2;
+    zv = (zc - 256/2)/mri->zsize + mri->depth/2;
+  }
+  else  // template to source
+  {
+    TransformSampleInverse(transform, xt, yt, zt, &xv, &yv, &zv);
+  }
+  *pxv = xv ; *pyv = yv ; *pzv = zv ;
+  return(NO_ERROR) ;
+}
+
+int
+GCAnodeToSourceVoxel(GCA *gca, MRI *mri, TRANSFORM *transform, int xn, int yn, int zn, 
+                    int *pxv, int *pyv, int *pzv)
+{
+  float  xf, yf, zf ;
+
+  GCAnodeToSourceVoxelFloat(gca, mri, transform, xn, yn, zn, &xf, &yf, &zf) ;
+  if (xf < 0) xf = 0 ;
+  if (yf < 0) yf = 0 ;
+  if (zf < 0) zf = 0 ;
+  if (xf >= mri->width-1)  xf = mri->width-1 ;
+  if (yf >= mri->height-1) yf = mri->height-1 ;
+  if (zf >= mri->depth-1)  zf = mri->depth-1 ;
+  *pxv = nint(xf) ; *pyv = nint(yf) ; *pzv = nint(zf) ;
+  return(NO_ERROR) ;
+}
+
+int
+GCApriorToSourceVoxel(GCA *gca, MRI *mri, TRANSFORM *transform, int xp, int yp, int zp, 
+                    int *pxv, int *pyv, int *pzv)
+{
+  float  xf, yf, zf ;
+
+  GCApriorToSourceVoxelFloat(gca, mri, transform, xp, yp, zp, &xf, &yf, &zf) ;
+  if (xf < 0) xf = 0 ;
+  if (yf < 0) yf = 0 ;
+  if (zf < 0) zf = 0 ;
+  if (xf >= mri->width-1)  xf = mri->width-1 ;
+  if (yf >= mri->height-1) yf = mri->height-1 ;
+  if (zf >= mri->depth-1)  zf = mri->depth-1 ;
+  *pxv = nint(xf) ; *pyv = nint(yf) ; *pzv = nint(zf) ;
+  return(NO_ERROR) ;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
 #if 0
 int
 GCAnodeToVoxel(GCA *gca, MRI *mri, int xn, int yn, int zn, int *pxv, 
@@ -720,6 +890,8 @@ GCAfree(GCA **pgca)
 
   free(gca->priors) ;
   free(gca) ;
+  // tosa special
+  GCAcleanup();
   return(NO_ERROR) ;
 }
 
@@ -762,7 +934,7 @@ GCAtrainCovariances(GCA *gca, MRI *mri_inputs, MRI *mri_labels, TRANSFORM *trans
           continue ;
 #endif
 
-				load_vals(mri_inputs, x, y, z, vals, gca->ninputs) ;
+	load_vals(mri_inputs, x, y, z, vals, gca->ninputs) ;
 
         GCAsourceVoxelToNode(gca, mri_inputs, transform, x, y, z, &xn, &yn, &zn) ;
 
@@ -775,24 +947,24 @@ GCAtrainCovariances(GCA *gca, MRI *mri_inputs, MRI *mri_labels, TRANSFORM *trans
 					MATRIX *m ;
           gc = GCAfindGC(gca, xn, yn, zn, label) ;
           if (gc)
-					{
-						nsamples = gc->ntraining - gc->n_just_priors ;  /* for no-intensity training */
-						if (nsamples < 1)
-							nsamples = 1  ;
+	  {
+	    nsamples = gc->ntraining - gc->n_just_priors ;  /* for no-intensity training */
+	    if (nsamples < 1)
+	      nsamples = 1  ;
             printf("voxel(%d,%d,%d) = ", x, y, z) ;
-						for (i = 0 ; i < gca->ninputs ; i++)
-							printf("%d ", nint(vals[i])) ;
-						
+	    for (i = 0 ; i < gca->ninputs ; i++)
+	      printf("%d ", nint(vals[i])) ;
+	    
             printf(" --> node(%d,%d,%d), "
                    "label %s (%d), mean ",xn, yn, zn, cma_label_to_name(label),label) ;
-						for (i = 0 ; i < gca->ninputs ; i++)
-							printf("%2.1f ", gc->means[i]) ;
-						printf("\ncovariances (det=%f):\n",covariance_determinant(gc, gca->ninputs)/pow((double)nsamples,(double)gca->ninputs)) ;
-						m = load_covariance_matrix(gc, NULL, gca->ninputs) ;
-						MatrixScalarMul(m, 1.0/(nsamples), m) ;
-						MatrixPrint(stdout, m) ;
-						MatrixFree(&m) ;
-					}
+	    for (i = 0 ; i < gca->ninputs ; i++)
+	      printf("%2.1f ", gc->means[i]) ;
+	    printf("\ncovariances (det=%f):\n",covariance_determinant(gc, gca->ninputs)/pow((double)nsamples,(double)gca->ninputs)) ;
+	    m = load_covariance_matrix(gc, NULL, gca->ninputs) ;
+	    MatrixScalarMul(m, 1.0/(nsamples), m) ;
+	    MatrixPrint(stdout, m) ;
+	    MatrixFree(&m) ;
+	  }
         }
       }
     }
@@ -807,25 +979,25 @@ GCAtrain(GCA *gca, MRI *mri_inputs, MRI *mri_labels, TRANSFORM *transform, GCA *
 {
   int    x, y, z, width, height, depth, label, xn, yn, zn,
     /*i, xnbr, ynbr, znbr, xn_nbr, yn_nbr, zn_nbr,*/ xp, yp, zp ;
-	float  vals[MAX_GCA_INPUTS] ;
-	static int first_time = 1 ;
-	FILE *logfp = NULL ;
-	static int logging = 0 ;
-
-	if (first_time)
-	{
-		first_time = 0 ;
-		logging = getenv("GCA_LOG") != NULL ;
-		printf("logging image intensities to GCA log file 'gca*.log'\n") ;
-		for (label = 0 ; label <= MAX_CMA_LABEL ; label++)
-		{
-			char fname[STRLEN] ;
-			sprintf(fname, "gca%d.log", label) ;
-			if (FileExists(fname))
-				unlink(fname) ;
-		}
-	}
-
+  float  vals[MAX_GCA_INPUTS] ;
+  static int first_time = 1 ;
+  FILE *logfp = NULL ;
+  static int logging = 0 ;
+  
+  if (first_time)
+  {
+    first_time = 0 ;
+    logging = getenv("GCA_LOG") != NULL ;
+    printf("logging image intensities to GCA log file 'gca*.log'\n") ;
+    for (label = 0 ; label <= MAX_CMA_LABEL ; label++)
+    {
+      char fname[STRLEN] ;
+      sprintf(fname, "gca%d.log", label) ;
+      if (FileExists(fname))
+	unlink(fname) ;
+    }
+  }
+  
 
   /* convert transform to voxel coordinates */
 
@@ -851,7 +1023,7 @@ GCAtrain(GCA *gca, MRI *mri_inputs, MRI *mri_labels, TRANSFORM *transform, GCA *
           continue ;
 #endif
 
-				load_vals(mri_inputs, x, y, z, vals, gca->ninputs) ;
+	load_vals(mri_inputs, x, y, z, vals, gca->ninputs) ;
 
         GCAsourceVoxelToNode(gca, mri_inputs, transform, x, y, z, &xn, &yn, &zn) ;
         GCAsourceVoxelToPrior(gca, mri_inputs, transform, x, y, z, &xp, &yp, &zp) ;
@@ -869,32 +1041,32 @@ GCAtrain(GCA *gca, MRI *mri_inputs, MRI *mri_labels, TRANSFORM *transform, GCA *
 					int  i ;
           gc = GCAfindGC(gca, xn, yn, zn, label) ;
           if (gc)
-					{
-						if (logging)
-						{
-							char fname[STRLEN] ;
-							sprintf(fname, "gca%d.log", label) ;
-							logfp = fopen(fname, "a") ;
-						}
+	  {
+	    if (logging)
+	    {
+	      char fname[STRLEN] ;
+	      sprintf(fname, "gca%d.log", label) ;
+	      logfp = fopen(fname, "a") ;
+	    }
             printf("voxel(%d,%d,%d) = ", x, y, z) ;
-						for (i = 0 ; i < gca->ninputs ; i++)
-						{
-							printf("%2.1f ", (vals[i])) ;
-							if (logging)
-								fprintf(logfp, "%2.1f ", (vals[i])) ;
-						}
-						
+	    for (i = 0 ; i < gca->ninputs ; i++)
+	    {
+	      printf("%2.1f ", (vals[i])) ;
+	      if (logging)
+		fprintf(logfp, "%2.1f ", (vals[i])) ;
+	    }
+	    
             printf(" --> node(%d,%d,%d), "
                    "label %s (%d), mean ",xn, yn, zn, cma_label_to_name(label),label) ;
-						for (i = 0 ; i < gca->ninputs ; i++)
-							printf("%2.1f ", gc->means[i] / gc->ntraining) ;
-						printf("\n") ;
-						if (logging)
-						{
-							fprintf(logfp, "\n") ;
-							fclose(logfp) ;
-						}
-					}
+	    for (i = 0 ; i < gca->ninputs ; i++)
+	      printf("%2.1f ", gc->means[i] / gc->ntraining) ;
+	    printf("\n") ;
+	    if (logging)
+	    {
+	      fprintf(logfp, "\n") ;
+	      fclose(logfp) ;
+	    }
+	  }
         }
         if (gca->flags & GCA_NO_MRF)
           continue ;
@@ -960,11 +1132,11 @@ GCAwrite(GCA *gca, char *fname)
 					int  r, c ;
           gc = &gcan->gcs[n] ;
           fputc((int)gcan->labels[n],fp) ;
-					for (r = 0 ; r < gca->ninputs ; r++)
-						fwriteFloat(gc->means[r], fp) ;
-					for (r = i = 0 ; r < gca->ninputs ; r++)
-						for (c = r ;  c < gca->ninputs ; c++, i++)
-							fwriteFloat(gc->covars[i], fp) ;
+	  for (r = 0 ; r < gca->ninputs ; r++)
+	    fwriteFloat(gc->means[r], fp) ;
+	  for (r = i = 0 ; r < gca->ninputs ; r++)
+	    for (c = r ;  c < gca->ninputs ; c++, i++)
+	      fwriteFloat(gc->covars[i], fp) ;
 
           if (gca->flags & GCA_NO_MRF)
             continue ;
@@ -1002,27 +1174,27 @@ GCAwrite(GCA *gca, char *fname)
     }
   }
 
-	if (gca->type == GCA_FLASH)
-	{
-		int  n ;
-
-		fwriteInt(FILE_TAG, fp) ;  /* beginning of tagged section */
-
-		/* all tags are format: <int: tag> <int: num> <parm> <parm> .... */
-		fwriteInt(TAG_GCA_TYPE, fp) ;
-		fwriteInt(1, fp) ;   
-		fwriteInt(gca->type, fp) ;   
-
-		fwriteInt(TAG_PARAMETERS, fp) ;
-		fwriteInt(3, fp) ;   /* currently only storing 3 parameters */
-		for (n = 0 ; n < gca->ninputs ; n++)
-		{
-			fwriteFloat(gca->TRs[n], fp) ;
-			fwriteFloat(gca->FAs[n], fp) ;
-			fwriteFloat(gca->TEs[n], fp) ;
-		}
-	}
-
+  if (gca->type == GCA_FLASH)
+  {
+    int  n ;
+    
+    fwriteInt(FILE_TAG, fp) ;  /* beginning of tagged section */
+    
+    /* all tags are format: <int: tag> <int: num> <parm> <parm> .... */
+    fwriteInt(TAG_GCA_TYPE, fp) ;
+    fwriteInt(1, fp) ;   
+    fwriteInt(gca->type, fp) ;   
+    
+    fwriteInt(TAG_PARAMETERS, fp) ;
+    fwriteInt(3, fp) ;   /* currently only storing 3 parameters */
+    for (n = 0 ; n < gca->ninputs ; n++)
+    {
+      fwriteFloat(gca->TRs[n], fp) ;
+      fwriteFloat(gca->FAs[n], fp) ;
+      fwriteFloat(gca->TEs[n], fp) ;
+    }
+  }
+  
   fclose(fp) ;
   return(NO_ERROR) ;
 }
@@ -1087,11 +1259,11 @@ GCAread(char *fname)
 						int r, c;
             gc = &gcan->gcs[n] ;
             gcan->labels[n] = (unsigned char)fgetc(fp) ;
-						for (r = 0 ; r < gca->ninputs ; r++)
-							gc->means[r] = freadFloat(fp) ;
-						for (i = r = 0 ; r < gca->ninputs ; r++)
-							for (c = r ; c < gca->ninputs ; c++, i++)
-								gc->covars[i] = freadFloat(fp) ;
+	    for (r = 0 ; r < gca->ninputs ; r++)
+	      gc->means[r] = freadFloat(fp) ;
+	    for (i = r = 0 ; r < gca->ninputs ; r++)
+	      for (c = r ; c < gca->ninputs ; c++, i++)
+		gc->covars[i] = freadFloat(fp) ;
             if (gca->flags & GCA_NO_MRF)
               continue ;
             for (i = 0 ; i < GIBBS_NEIGHBORS ; i++)
@@ -1169,11 +1341,11 @@ GCAread(char *fname)
 						
             gcan->labels[n] = (unsigned char)fgetc(fp) ;
 						
-						for (r = 0 ; r < gca->ninputs ; r++)
-							gc->means[r] = freadFloat(fp) ;
-						for (i = r = 0 ; r < gca->ninputs ; r++)
-							for (c = r ; c < gca->ninputs ; c++, i++)
-								gc->covars[i] = freadFloat(fp) ;
+	    for (r = 0 ; r < gca->ninputs ; r++)
+	      gc->means[r] = freadFloat(fp) ;
+	    for (i = r = 0 ; r < gca->ninputs ; r++)
+	      for (c = r ; c < gca->ninputs ; c++, i++)
+		gc->covars[i] = freadFloat(fp) ;
             if (gca->flags & GCA_NO_MRF)
               continue ;
             for (i = 0 ; i < GIBBS_NEIGHBORS ; i++)
@@ -1233,68 +1405,70 @@ GCAread(char *fname)
     
   }
 
-	for (x = 0 ; x < gca->node_width ; x++)
+  for (x = 0 ; x < gca->node_width ; x++)
+  {
+    for (y = 0 ; y < gca->node_height ; y++)
+    {
+      for (z = 0 ; z < gca->node_depth ; z++)
+      {
+	int xp, yp, zp ;
+	
+	if (x == Ggca_x && y == Ggca_y && z == Ggca_z)
+	  DiagBreak() ;
+	gcan = &gca->nodes[x][y][z] ;
+	gcaNodeToPrior(gca, x, y, z, &xp, &yp, &zp) ;
+	gcap = &gca->priors[xp][yp][zp] ;
+	for (n = 0 ; n < gcan->nlabels ; n++)
 	{
-		for (y = 0 ; y < gca->node_height ; y++)
-		{
-			for (z = 0 ; z < gca->node_depth ; z++)
-			{
-				int xp, yp, zp ;
-				
-				if (x == Ggca_x && y == Ggca_y && z == Ggca_z)
-					DiagBreak() ;
-				gcan = &gca->nodes[x][y][z] ;
-				gcaNodeToPrior(gca, x, y, z, &xp, &yp, &zp) ;
-				gcap = &gca->priors[xp][yp][zp] ;
-				for (n = 0 ; n < gcan->nlabels ; n++)
-				{
-					gc = &gcan->gcs[n] ;
-					gc->ntraining = gcan->total_training * getPrior(gcap,gcan->labels[n]) ;
-				}
-			}
-		}
+	  gc = &gcan->gcs[n] ;
+	  gc->ntraining = gcan->total_training * getPrior(gcap,gcan->labels[n]) ;
 	}
-
-	if (!feof(fp))
+      }
+    }
+  }
+  
+  if (!feof(fp))
+  {
+    int  n, tag, nparms ;
+    
+    tag = freadInt(fp) ;
+    
+    if (tag == FILE_TAG) /* beginning of tagged section */
+    {
+      while (!feof(fp))
+      {
+	/* all tags are format: <int: tag> <int: num> <parm> <parm> .... */
+	tag = freadInt(fp) ;
+	switch (tag)
 	{
-		int  n, tag, nparms ;
-
-		tag = freadInt(fp) ;
-		
-		if (tag == FILE_TAG) /* beginning of tagged section */
-		{
-			while (!feof(fp))
-			{
-				/* all tags are format: <int: tag> <int: num> <parm> <parm> .... */
-				tag = freadInt(fp) ;
-				switch (tag)
-				{
-				case TAG_GCA_TYPE:
-					freadInt(fp) ;   /* skip num=1 */
-					gca->type = freadInt(fp) ;   
-					printf("setting gca type = %d\n", gca->type) ;
-					break ;
-				case TAG_PARAMETERS:
-					nparms = freadInt(fp) ;   /* how many MR parameters are stored */
-					printf("reading %d MR parameters out of GCA header...\n", nparms) ;
-					for (n = 0 ; n < gca->ninputs ; n++)
-					{
-						gca->TRs[n] = freadFloat(fp) ;
-						gca->FAs[n] = freadFloat(fp) ;
-						gca->TEs[n] = freadFloat(fp) ;
-						printf("input %d: TR=%2.1f msec, FA=%2.1f deg, TE=%2.1f msec\n",
-									 n, gca->TRs[n], DEGREES(gca->FAs[n]), gca->TEs[n]) ;
-					}
-					break ;
-				default:
-					ErrorPrintf(ERROR_BADFILE, "GCAread(%s): unknown tag %x\n", fname, tag) ;
-					break ;
-				}
-			}
-		}
+	case TAG_GCA_TYPE:
+	  freadInt(fp) ;   /* skip num=1 */
+	  gca->type = freadInt(fp) ;   
+	  printf("setting gca type = %d\n", gca->type) ;
+	  break ;
+	case TAG_PARAMETERS:
+	  nparms = freadInt(fp) ;   /* how many MR parameters are stored */
+	  printf("reading %d MR parameters out of GCA header...\n", nparms) ;
+	  for (n = 0 ; n < gca->ninputs ; n++)
+	  {
+	    gca->TRs[n] = freadFloat(fp) ;
+	    gca->FAs[n] = freadFloat(fp) ;
+	    gca->TEs[n] = freadFloat(fp) ;
+	    printf("input %d: TR=%2.1f msec, FA=%2.1f deg, TE=%2.1f msec\n",
+		   n, gca->TRs[n], DEGREES(gca->FAs[n]), gca->TEs[n]) ;
+	  }
+	  break ;
+	default:
+	  ErrorPrintf(ERROR_BADFILE, "GCAread(%s): unknown tag %x\n", fname, tag) ;
+	  break ;
 	}
-
+      }
+    }
+  }
+  
   fclose(fp) ;
+  // tosa special
+  GCAsetup(); 
   return(gca) ;
 }
 
@@ -1392,25 +1566,25 @@ GCAupdateNodeCovariance(GCA *gca, MRI *mri, int xn, int yn, int zn, float *vals,
       break ;
   }
   if (n >= gcan->nlabels)
-		ErrorExit(ERROR_BADPARM, "GCAupdateNodeCovariance(%d, %d, %d, %d): could not find label",
-							xn, yn, zn, label) ;
+    ErrorExit(ERROR_BADPARM, "GCAupdateNodeCovariance(%d, %d, %d, %d): could not find label",
+	      xn, yn, zn, label) ;
 
   gc = &gcan->gcs[n] ;
 
-	/* remove means from vals */
-	for (r = 0 ; r < gca->ninputs ; r++)
-		vals[r] -= gc->means[r] ;
-
+  /* remove means from vals */
+  for (r = 0 ; r < gca->ninputs ; r++)
+    vals[r] -= gc->means[r] ;
+  
   /* these will be normalized when training is complete */
-	for (v = r = 0 ; r < gca->ninputs ; r++)
-	{
-		for (c = r ; c < gca->ninputs ; c++, v++)
-			gc->covars[v] += vals[r]*vals[c] ; 
-	}
+  for (v = r = 0 ; r < gca->ninputs ; r++)
+  {
+    for (c = r ; c < gca->ninputs ; c++, v++)
+      gc->covars[v] += vals[r]*vals[c] ; 
+  }
 
-	/* put means back in vals so caller isn't confused */
-	for (r = 0 ; r < gca->ninputs ; r++)
-		vals[r] += gc->means[r] ;
+  /* put means back in vals so caller isn't confused */
+  for (r = 0 ; r < gca->ninputs ; r++)
+    vals[r] += gc->means[r] ;
 
   return(NO_ERROR) ;
 }
@@ -1588,17 +1762,17 @@ GCAcompleteMeanTraining(GCA *gca)
           nsamples -= gc->n_just_priors ;  /* for no-intensity training */
           if (nsamples > 0)
           {
-						for (r = 0 ; r < gca->ninputs ; r++)
-						{
-							gc->means[r] /= nsamples ;
-							check_finite("GCAcompleteMeanTraining: mean", gc->means[r]) ;
-						}
+	    for (r = 0 ; r < gca->ninputs ; r++)
+	    {
+	      gc->means[r] /= nsamples ;
+	      check_finite("GCAcompleteMeanTraining: mean", gc->means[r]) ;
+	    }
           }
           else
           {
-						int r ;
-						for (r = 0 ; r < gca->ninputs ; r++)
-							gc->means[r] = -1 ;  /* mark it for later processing */
+	    int r ;
+	    for (r = 0 ; r < gca->ninputs ; r++)
+	      gc->means[r] = -1 ;  /* mark it for later processing */
           }
         }
       }
@@ -1651,10 +1825,10 @@ GCAcompleteMeanTraining(GCA *gca)
               continue ;
             }
             holes_filled++ ;
-						for (i = r = 0 ; r < gca->ninputs ; r++)
-						{
-							gc->means[r] = gc_nbr->means[r] ; 
-						}
+	    for (i = r = 0 ; r < gca->ninputs ; r++)
+	    {
+	      gc->means[r] = gc_nbr->means[r] ; 
+	    }
             if (x == Ggca_x && y == Ggca_y && z == Ggca_z)
               printf("filling hole @ (%d, %d, %d)\n", x, y, z) ;
           }
@@ -1694,44 +1868,44 @@ GCAcompleteCovarianceTraining(GCA *gca)
           DiagBreak() ;
         for (n = 0 ; n < gcan->nlabels ; n++)
         {
-					if (x == Ggca_x && y == Ggca_y && z == Ggca_z &&
-							(Ggca_label == gcan->labels[n] || Ggca_label < 0))
-						DiagBreak() ;
+	  if (x == Ggca_x && y == Ggca_y && z == Ggca_z &&
+	      (Ggca_label == gcan->labels[n] || Ggca_label < 0))
+	    DiagBreak() ;
           gc = &gcan->gcs[n] ;
           nsamples = gc->ntraining - gc->n_just_priors ;  /* for no-intensity training */
           if (nsamples > 0)
           {
-						for (r = v = 0 ; r < gca->ninputs ; r++)
-						{
-							check_finite("GCAcompleteCovarianceTraining: mean", gc->means[r]) ;
-							if (nsamples > 1)
-							{
-								for (c = r ; c < gca->ninputs ; c++, v++)
-								{
-									gc->covars[v] /= (float)(nsamples-1) ;
-									check_finite("GCAcompleteCovarianceTraining: covar", gc->covars[v]) ;
-									if (r == c)  /* diagonal should be positive definite */
-									{
-										if (gc->covars[v] < -0.1)
-											DiagBreak() ;
-									}
-								}
-							}
-						}
+	    for (r = v = 0 ; r < gca->ninputs ; r++)
+	    {
+	      check_finite("GCAcompleteCovarianceTraining: mean", gc->means[r]) ;
+	      if (nsamples > 1)
+	      {
+		for (c = r ; c < gca->ninputs ; c++, v++)
+		{
+		  gc->covars[v] /= (float)(nsamples-1) ;
+		  check_finite("GCAcompleteCovarianceTraining: covar", gc->covars[v]) ;
+		  if (r == c)  /* diagonal should be positive definite */
+		  {
+		    if (gc->covars[v] < -0.1)
+		      DiagBreak() ;
+		  }
+		}
+	      }
+	    }
           }
-					if (x == Ggca_x && y == Ggca_y && z == Ggca_z &&
-							(gcan->labels[n] == Ggca_label || Ggca_label < 0))
-					{
-						MATRIX *m ;
-						double det ;
-
-						det = covariance_determinant(gc, gca->ninputs) ;
-						printf("final covariance matrix for %s (nsamples=%d, det=%f):\n", cma_label_to_name(gcan->labels[n]), 
-									 nsamples, det) ;
-						m = load_covariance_matrix(gc, NULL, gca->ninputs) ;
-						MatrixPrint(stdout, m) ;
-						MatrixFree(&m) ;
-					}
+	  if (x == Ggca_x && y == Ggca_y && z == Ggca_z &&
+	      (gcan->labels[n] == Ggca_label || Ggca_label < 0))
+	  {
+	    MATRIX *m ;
+	    double det ;
+	    
+	    det = covariance_determinant(gc, gca->ninputs) ;
+	    printf("final covariance matrix for %s (nsamples=%d, det=%f):\n", cma_label_to_name(gcan->labels[n]), 
+		   nsamples, det) ;
+	    m = load_covariance_matrix(gc, NULL, gca->ninputs) ;
+	    MatrixPrint(stdout, m) ;
+	    MatrixFree(&m) ;
+	  }
         }
       }
     }
@@ -1751,16 +1925,16 @@ GCAcompleteCovarianceTraining(GCA *gca)
         gcan = &gca->nodes[x][y][z] ;
         for (n = 0 ; n < gcan->nlabels ; n++)
         {
-					if (x == Ggca_x && y == Ggca_y && z == Ggca_z &&
-							(Ggca_label == gcan->labels[n] || Ggca_label < 0))
-						DiagBreak() ;
+	  if (x == Ggca_x && y == Ggca_y && z == Ggca_z &&
+	      (Ggca_label == gcan->labels[n] || Ggca_label < 0))
+	    DiagBreak() ;
           gc = &gcan->gcs[n] ;
           nsamples = gc->ntraining - gc->n_just_priors ;  /* for no-intensity training */
 #define MIN_GC_SAMPLES(gca) ((gca->ninputs*(gca->ninputs+1))/2)
           if (gc->means[0] < 0 || nsamples < MIN_GC_SAMPLES(gca))
           {
             GC1D *gc_nbr ;
-						int  r, c, i ;
+	    int  r, c, i ;
 
             gc_nbr = findClosestValidGC(gca, x, y, z, gcan->labels[n], 1) ;
             if (!gc_nbr)
@@ -1773,14 +1947,14 @@ GCAcompleteCovarianceTraining(GCA *gca)
               continue ;
             }
             holes_filled++ ;
-						for (i = r = 0 ; r < gca->ninputs ; r++)
-						{
-							gc->means[r] = gc_nbr->means[r] ; 
-							for (c = r ; c < gca->ninputs ; c++, i++)
-								gc->covars[i] = gc_nbr->covars[i] ;
-						}
+	    for (i = r = 0 ; r < gca->ninputs ; r++)
+	    {
+	      gc->means[r] = gc_nbr->means[r] ; 
+	      for (c = r ; c < gca->ninputs ; c++, i++)
+		gc->covars[i] = gc_nbr->covars[i] ;
+	    }
             if (x == Ggca_x && y == Ggca_y && z == Ggca_z &&
-								(Ggca_label == gcan->labels[n] || Ggca_label < 0))
+		(Ggca_label == gcan->labels[n] || Ggca_label < 0))
               printf("filling hole @ (%d, %d, %d)\n", x, y, z) ;
           }
         }
@@ -1789,9 +1963,9 @@ GCAcompleteCovarianceTraining(GCA *gca)
   }
 #endif
 
-	GCAfixSingularCovarianceMatrices(gca) ;   /* shouldn't need the code that follows, but haven't made sure yet */
-
-	/* find and fix singular covariance matrices */
+  GCAfixSingularCovarianceMatrices(gca) ;   /* shouldn't need the code that follows, but haven't made sure yet */
+  
+  /* find and fix singular covariance matrices */
   for (x = 0 ; x < gca->node_width ; x++)
   {
     for (y = 0 ; y < gca->node_height ; y++)
@@ -1801,46 +1975,46 @@ GCAcompleteCovarianceTraining(GCA *gca)
         gcan = &gca->nodes[x][y][z] ;
         for (n = 0 ; n < gcan->nlabels ; n++)
         {
-					MATRIX *m_cov, *m_cov_inv ;
-					double det ;
-
-					if (x == Ggca_x && y == Ggca_y && z == Ggca_z &&
-							(Ggca_label == gcan->labels[n] || Ggca_label < 0))
-						DiagBreak() ;
+	  MATRIX *m_cov, *m_cov_inv ;
+	  double det ;
+	  
+	  if (x == Ggca_x && y == Ggca_y && z == Ggca_z &&
+	      (Ggca_label == gcan->labels[n] || Ggca_label < 0))
+	    DiagBreak() ;
           gc = &gcan->gcs[n] ;
-					m_cov = load_covariance_matrix(gc, NULL, gca->ninputs) ;
-					m_cov_inv = MatrixInverse(m_cov, NULL) ;
-					det = covariance_determinant(gc, gca->ninputs) ;
-					if (det <= 0 )
-					{
-						MatrixFree(&m_cov_inv) ; m_cov_inv = NULL ;
-					}
-					if (m_cov_inv == NULL)  /* singular */
-					{
-						MATRIX *m_I ;
-						m_I = MatrixIdentity(gca->ninputs, NULL) ;
-						MatrixScalarMul(m_I, MIN_VAR, m_I) ;
-						MatrixAdd(m_cov, m_I, m_cov) ;
-						m_cov_inv = MatrixInverse(m_cov, NULL) ;
-						if (m_cov_inv == NULL)
-							ErrorExit(ERROR_BADPARM, "GCAcompleteCovarianceTraining: cannot regularize singular covariance matrix at (%d,%d,%d):%d",
-												x, y, z, n) ;
-						det = covariance_determinant(gc, gca->ninputs) ; 
-						if (det < 0)
-							DiagBreak() ;
-						for (v = r = 0 ; r < gca->ninputs ; r++)
-							for (c = r ; c < gca->ninputs ; c++, v++)
-								gc->covars[v] = *MATRIX_RELT(m_cov, r+1, c+1) ;
-						MatrixFree(&m_I) ;
-						nregs++ ;
-					}
-
-					MatrixFree(&m_cov_inv) ;
-					MatrixFree(&m_cov) ;
-				}
-			}
-		}
+	  m_cov = load_covariance_matrix(gc, NULL, gca->ninputs) ;
+	  m_cov_inv = MatrixInverse(m_cov, NULL) ;
+	  det = covariance_determinant(gc, gca->ninputs) ;
+	  if (det <= 0 )
+	  {
+	    MatrixFree(&m_cov_inv) ; m_cov_inv = NULL ;
+	  }
+	  if (m_cov_inv == NULL)  /* singular */
+	  {
+	    MATRIX *m_I ;
+	    m_I = MatrixIdentity(gca->ninputs, NULL) ;
+	    MatrixScalarMul(m_I, MIN_VAR, m_I) ;
+	    MatrixAdd(m_cov, m_I, m_cov) ;
+	    m_cov_inv = MatrixInverse(m_cov, NULL) ;
+	    if (m_cov_inv == NULL)
+	      ErrorExit(ERROR_BADPARM, "GCAcompleteCovarianceTraining: cannot regularize singular covariance matrix at (%d,%d,%d):%d",
+			x, y, z, n) ;
+	    det = covariance_determinant(gc, gca->ninputs) ; 
+	    if (det < 0)
+	      DiagBreak() ;
+	    for (v = r = 0 ; r < gca->ninputs ; r++)
+	      for (c = r ; c < gca->ninputs ; c++, v++)
+		gc->covars[v] = *MATRIX_RELT(m_cov, r+1, c+1) ;
+	    MatrixFree(&m_I) ;
+	    nregs++ ;
+	  }
+	  
+	  MatrixFree(&m_cov_inv) ;
+	  MatrixFree(&m_cov) ;
 	}
+      }
+    }
+  }
   gcaCheck(gca) ;
 
   if (total_pruned > 0)
@@ -1904,12 +2078,12 @@ GCAlabel(MRI *mri_inputs, GCA *gca, MRI *mri_dst, TRANSFORM *transform)
         for (n = 0 ; n < gcap->nlabels ; n++)
         {
 #if 0
-					p = GCAcomputePosteriorDensity(gcap, gcan, n, vals, gca->ninputs) ;
+	  p = GCAcomputePosteriorDensity(gcap, gcan, n, vals, gca->ninputs) ;
 #else
           gc = GCAfindGC(gca, xn, yn, zn, gcap->labels[n]) ;
-					if (gc == NULL)
-						continue ;
-					p = gcaComputeLogDensity(gc, vals, gca->ninputs, gcap->priors[n],gcap->labels[n]) ;
+	  if (gc == NULL)
+	    continue ;
+	  p = gcaComputeLogDensity(gc, vals, gca->ninputs, gcap->priors[n],gcap->labels[n]) ;
 #endif
           if (p > max_p)
           {
@@ -1972,7 +2146,7 @@ GCAlabelProbabilities(MRI *mri_inputs, GCA *gca, MRI *mri_dst, TRANSFORM *transf
         if (x == 63 && y == 107 && z == 120)
           DiagBreak() ; 
 
-				load_vals(mri_inputs, x, y, z, vals, gca->ninputs) ;
+	load_vals(mri_inputs, x, y, z, vals, gca->ninputs) ;
         GCAsourceVoxelToNode(gca, mri_inputs, transform, x, y, z, &xn, &yn, &zn) ;
         
         gcan = &gca->nodes[xn][yn][zn] ;
@@ -1983,7 +2157,7 @@ GCAlabelProbabilities(MRI *mri_inputs, GCA *gca, MRI *mri_dst, TRANSFORM *transf
           gc = &gcan->gcs[n] ;
           
           /* compute 1-d Mahalanobis distance */
-					p = GCAcomputePosteriorDensity(gcap, gcan, n, vals, gca->ninputs) ;
+	  p = GCAcomputePosteriorDensity(gcap, gcan, n, vals, gca->ninputs) ;
           if (p > max_p)
           {
             max_p = p ;
@@ -2047,7 +2221,7 @@ GCAcomputeProbabilities(MRI *mri_inputs, GCA *gca, MRI *mri_labels,
         {
           gc = &gcan->gcs[n] ;
           
-					p = GCAcomputePosteriorDensity(gcap, gcan, n, vals, gca->ninputs) ;
+	  p = GCAcomputePosteriorDensity(gcap, gcan, n, vals, gca->ninputs) ;
           if (label == gcan->labels[n])
           {
             label_p = p ;
@@ -2375,7 +2549,7 @@ GCAclassify(MRI *mri_inputs,GCA *gca,MRI *mri_dst,TRANSFORM *transform,int max_l
         {
           gc = &gcan->gcs[n] ;
 
-					p = GCAcomputePosteriorDensity(gcap, gcan, n, vals, gca->ninputs) ;
+	  p = GCAcomputePosteriorDensity(gcap, gcan, n, vals, gca->ninputs) ;
           total_p += p ;
           label_probs[n].prob = p ; label_probs[n].label = gcan->labels[n] ;
         }
@@ -2473,8 +2647,8 @@ GCAremoveOutlyingSamples(GCA *gca, GCA_SAMPLE *gcas, MRI *mri_inputs,
 
   }
 
-	if (DIAG_VERBOSE_ON)
-		printf("%d outlying samples removed...\n", nremoved) ;
+  if (DIAG_VERBOSE_ON)
+    printf("%d outlying samples removed...\n", nremoved) ;
 
   return(NO_ERROR) ;
 }
@@ -2558,10 +2732,10 @@ GCAcomputeLogSampleProbability(GCA *gca, GCA_SAMPLE *gcas,
       DiagBreak() ;
     if (Gdiag_no == gcas[i].label)
       DiagBreak() ;
-		if (i == Gdiag_no || 
- 				(gcas[i].xp == Gx && gcas[i].yp == Gy && gcas[i].zp == Gz))
- 			DiagBreak() ;
-		
+    if (i == Gdiag_no || 
+	(gcas[i].xp == Gx && gcas[i].yp == Gy && gcas[i].zp == Gz))
+      DiagBreak() ;
+    
 
     xp = gcas[i].xp ; yp = gcas[i].yp ; zp = gcas[i].zp ; 
     GCApriorToSourceVoxel(gca,mri_inputs, transform, xp, yp, zp, &x, &y, &z) ;
@@ -2608,9 +2782,9 @@ GCAcomputeLogSampleProbabilityUsingCoords(GCA *gca, GCA_SAMPLE *gcas,
     xp = gcas[i].xp ; yp = gcas[i].yp ; zp = gcas[i].zp ; 
     GCApriorToNode(gca, xp, yp, zp, &xn, &yn, &zn) ;
     x = gcas[i].x ; y = gcas[i].y ; z = gcas[i].z ; 
-		load_vals(mri_inputs, x, y, z, vals, gca->ninputs) ;
+    load_vals(mri_inputs, x, y, z, vals, gca->ninputs) ;
 
-		log_p = gcaComputeSampleLogDensity(&gcas[i], vals, gca->ninputs) ;
+    log_p = gcaComputeSampleLogDensity(&gcas[i], vals, gca->ninputs) ;
     total_log_p += log_p ;
     gcas[i].log_p = log_p ;
 
@@ -3060,11 +3234,11 @@ GCAfindStableSamplesByLabel(GCA *gca, int nsamples, float min_prior)
       {
         i = ordered_label_counts[label] ;
         ordered_label_counts[label]++ ;
-				ordered_labels[label][i].means = (float *)calloc(gca->ninputs, sizeof(float)) ;
-				ordered_labels[label][i].covars = (float *)calloc((gca->ninputs*(gca->ninputs+1))/2, sizeof(float)) ;
-				if (!ordered_labels[label][i].means || !ordered_labels[label][i].covars)
-					ErrorExit(ERROR_NOMEMORY, "could not allocate mean (%d) and covariance (%d) matrices",
-										gca->ninputs, gca->ninputs*(gca->ninputs+1)/2) ;
+	ordered_labels[label][i].means = (float *)calloc(gca->ninputs, sizeof(float)) ;
+	ordered_labels[label][i].covars = (float *)calloc((gca->ninputs*(gca->ninputs+1))/2, sizeof(float)) ;
+	if (!ordered_labels[label][i].means || !ordered_labels[label][i].covars)
+	  ErrorExit(ERROR_NOMEMORY, "could not allocate mean (%d) and covariance (%d) matrices",
+		    gca->ninputs, gca->ninputs*(gca->ninputs+1)/2) ;
         ordered_labels[label][i].xp = x ;
         ordered_labels[label][i].yp = y ;
         ordered_labels[label][i].zp = z ;
@@ -3072,30 +3246,30 @@ GCAfindStableSamplesByLabel(GCA *gca, int nsamples, float min_prior)
         ordered_labels[label][i].prior = getPrior(gcap, label) ;
         if (!gc)
         {
-					int  r, c, v ;
-					for (v = r = 0 ; r < gca->ninputs ; r++)
-					{
-						ordered_labels[label][i].means[r] = 0.0 ;
-						for (c = r ; c < gca->ninputs ; c++, v++)
-						{
-							if (c==r)
-								ordered_labels[label][i].covars[v] = 1.0 ;
-							else
-								ordered_labels[label][i].covars[v] = 0 ;
-						}
-					}
+	  int  r, c, v ;
+	  for (v = r = 0 ; r < gca->ninputs ; r++)
+	  {
+	    ordered_labels[label][i].means[r] = 0.0 ;
+	    for (c = r ; c < gca->ninputs ; c++, v++)
+	    {
+	      if (c==r)
+		ordered_labels[label][i].covars[v] = 1.0 ;
+	      else
+		ordered_labels[label][i].covars[v] = 0 ;
+	    }
+	  }
         }
         else
         {
-					int  r, c, v ;
-					for (v = r = 0 ; r < gca->ninputs ; r++)
-					{
-						ordered_labels[label][i].means[r] = gc->means[r] ;
-						for (c = r ; c < gca->ninputs ; c++, v++)
-						{
-							ordered_labels[label][i].covars[v] = gc->covars[v] ;
-						}
-					}
+	  int  r, c, v ;
+	  for (v = r = 0 ; r < gca->ninputs ; r++)
+	  {
+	    ordered_labels[label][i].means[r] = gc->means[r] ;
+	    for (c = r ; c < gca->ninputs ; c++, v++)
+	    {
+	      ordered_labels[label][i].covars[v] = gc->covars[v] ;
+	    }
+	  }
         }
       }
     }
@@ -3747,40 +3921,40 @@ GCAmri(GCA *gca, MRI *mri)
     mri = MRIallocSequence(gca->node_width, gca->node_height, gca->node_depth, MRI_UCHAR, gca->ninputs) ;
   width = mri->width ; height = mri->height ; depth = mri->depth ;
 
-	for (frame = 0 ; frame < gca->ninputs ; frame++)
+  for (frame = 0 ; frame < gca->ninputs ; frame++)
+  {
+    for (x = 0 ; x < width ; x++)
+    {
+      for (y = 0 ; y < height ; y++)
+      {
+	for (z = 0 ; z < depth ; z++)
 	{
-		for (x = 0 ; x < width ; x++)
-		{
-			for (y = 0 ; y < height ; y++)
-			{
-				for (z = 0 ; z < depth ; z++)
-				{
-					GCAvoxelToPrior(gca, mri, x, y, z, &xp, &yp, &zp) ;
-					GCAvoxelToNode(gca, mri, x, y, z, &xn, &yn, &zn) ;
-					gcap = &gca->priors[xp][yp][zp] ;
-					for (val = 0.0, n = 0 ; n < gcap->nlabels ; n++)
-					{
-						gc = GCAfindGC(gca, xn, yn, zn, gcap->labels[n]) ;
-						if (gc)
-							val += gc->means[frame] * gcap->priors[n] ;
-					}
-					switch (mri->type)
-					{
-					default:
-						ErrorReturn(NULL,
-												(ERROR_UNSUPPORTED, 
-												 "GCAmri: unsupported image type %d", mri->type)) ;
-					case MRI_UCHAR:
-						MRIseq_vox(mri, x, y, z, frame) = (unsigned char)val ;
-						break ;
-					case MRI_SHORT:
-						MRISseq_vox(mri, x, y, z, frame) = (short)val ;
-						break ;
-					}
-				}
-			}
-		}
+	  GCAvoxelToPrior(gca, mri, x, y, z, &xp, &yp, &zp) ;
+	  GCAvoxelToNode(gca, mri, x, y, z, &xn, &yn, &zn) ;
+	  gcap = &gca->priors[xp][yp][zp] ;
+	  for (val = 0.0, n = 0 ; n < gcap->nlabels ; n++)
+	  {
+	    gc = GCAfindGC(gca, xn, yn, zn, gcap->labels[n]) ;
+	    if (gc)
+	      val += gc->means[frame] * gcap->priors[n] ;
+	  }
+	  switch (mri->type)
+	  {
+	  default:
+	    ErrorReturn(NULL,
+			(ERROR_UNSUPPORTED, 
+			 "GCAmri: unsupported image type %d", mri->type)) ;
+	  case MRI_UCHAR:
+	    MRIseq_vox(mri, x, y, z, frame) = (unsigned char)val ;
+	    break ;
+	  case MRI_SHORT:
+	    MRISseq_vox(mri, x, y, z, frame) = (short)val ;
+	    break ;
+	  }
 	}
+      }
+    }
+  }
   return(mri) ;
 }
 MRI *
@@ -3797,66 +3971,66 @@ GCAlabelMri(GCA *gca, MRI *mri, int label, TRANSFORM *transform)
   width = mri->width ; height = mri->height ; depth = mri->depth ;
   mri_norm = MRIalloc(width, height, depth, MRI_SHORT) ;
 
-	for (frame = 0 ; frame < gca->ninputs ; frame++)
+  for (frame = 0 ; frame < gca->ninputs ; frame++)
+  {
+    MRIclear(mri_norm) ;
+    for (x = 0 ; x < width ; x++)
+    {
+      for (y = 0 ; y < height ; y++)
+      {
+	for (z = 0 ; z < depth ; z++)
 	{
-		MRIclear(mri_norm) ;
-		for (x = 0 ; x < width ; x++)
-		{
-			for (y = 0 ; y < height ; y++)
-			{
-				for (z = 0 ; z < depth ; z++)
-				{
-					if (x == width/2 && y == height/2 && z == depth/2)
-						DiagBreak() ;
-					if (x == 19 && y == 14 && z == 15)
-						DiagBreak() ;
-					
-					GCAsourceVoxelToNode(gca, mri, transform, x, y, z, &xn, &yn, &zn) ;
-					gcan = &gca->nodes[xn][yn][zn] ;
-					if (gcan->nlabels < 1)
-						continue ;
-					for (n = 0 ; n < gcan->nlabels ; n++)
-					{
-						gc = &gcan->gcs[n] ;
-						if (gcan->labels[n] == label)
-							break ;
-					}
-					if (n >= gcan->nlabels)
-						continue ;
-					val = gc->means[frame] ;
-					switch (mri->type)
-					{
-					default:
-						ErrorReturn(NULL,
-												(ERROR_UNSUPPORTED, 
-												 "GCAlabelMri: unsupported image type %d", mri->type)) ;
-					case MRI_UCHAR:
-						MRIseq_vox(mri, x, y, z,frame) = (unsigned char)val ;
-						break ;
-					case MRI_SHORT:
-						MRISseq_vox(mri, x, y, z,frame) = (short)val ;
-						break ;
-					case MRI_FLOAT:
-						MRIFseq_vox(mri, x, y, z, frame) = (float)val ;
-						break ;
-					}
-					MRISvox(mri_norm, x, y, z) += 1 ;
-				}
-			}
-		}
-		for (x = 0 ; x < width ; x++)
-		{
-			for (y = 0 ; y < height ; y++)
-			{
-				for (z = 0 ; z < depth ; z++)
-				{
-					if (MRISvox(mri_norm, x, y, z) > 0)
-						MRISseq_vox(mri, x, y, z, frame) = 
-							nint((float)MRISseq_vox(mri,x,y,z,frame)/(float)MRISvox(mri_norm,x,y,z)) ;
-				}
-			}
-		}
+	  if (x == width/2 && y == height/2 && z == depth/2)
+	    DiagBreak() ;
+	  if (x == 19 && y == 14 && z == 15)
+	    DiagBreak() ;
+	  
+	  GCAsourceVoxelToNode(gca, mri, transform, x, y, z, &xn, &yn, &zn) ;
+	  gcan = &gca->nodes[xn][yn][zn] ;
+	  if (gcan->nlabels < 1)
+	    continue ;
+	  for (n = 0 ; n < gcan->nlabels ; n++)
+	  {
+	    gc = &gcan->gcs[n] ;
+	    if (gcan->labels[n] == label)
+	      break ;
+	  }
+	  if (n >= gcan->nlabels)
+	    continue ;
+	  val = gc->means[frame] ;
+	  switch (mri->type)
+	  {
+	  default:
+	    ErrorReturn(NULL,
+			(ERROR_UNSUPPORTED, 
+			 "GCAlabelMri: unsupported image type %d", mri->type)) ;
+	  case MRI_UCHAR:
+	    MRIseq_vox(mri, x, y, z,frame) = (unsigned char)val ;
+	    break ;
+	  case MRI_SHORT:
+	    MRISseq_vox(mri, x, y, z,frame) = (short)val ;
+	    break ;
+	  case MRI_FLOAT:
+	    MRIFseq_vox(mri, x, y, z, frame) = (float)val ;
+	    break ;
+	  }
+	  MRISvox(mri_norm, x, y, z) += 1 ;
 	}
+      }
+    }
+    for (x = 0 ; x < width ; x++)
+    {
+      for (y = 0 ; y < height ; y++)
+      {
+	for (z = 0 ; z < depth ; z++)
+	{
+	  if (MRISvox(mri_norm, x, y, z) > 0)
+	    MRISseq_vox(mri, x, y, z, frame) = 
+	      nint((float)MRISseq_vox(mri,x,y,z,frame)/(float)MRISvox(mri_norm,x,y,z)) ;
+	}
+      }
+    }
+  }
   MRIfree(&mri_norm) ;
   return(mri) ;
 }
@@ -3987,12 +4161,15 @@ gcaRegionStats(GCA *gca, int x, int y, int z, int wsize,
           if (label == Gdiag_no)
             DiagBreak() ;
           gc = GCAfindPriorGC(gca, xi, yi, zi, label) ;
-          dof = (gcap->priors[n] * (float)gcap->total_training) ;
-          
-          vars[label] +=  dof * covariance_determinant(gc, gca->ninputs) ;
-					for (r = 0 ; r < gca->ninputs ; r++)
-						means[label][r] += dof * gc->means[r] ;
-          priors[label] += dof ;
+          if (gc)
+	  {
+	    dof = (gcap->priors[n] * (float)gcap->total_training) ;
+	    
+	    vars[label] +=  dof * covariance_determinant(gc, gca->ninputs) ;
+	    for (r = 0 ; r < gca->ninputs ; r++)
+	      means[label][r] += dof * gc->means[r] ;
+	    priors[label] += dof ;
+	  }
         }
       }
     }
@@ -4322,23 +4499,23 @@ gcaFindIntensityBounds(GCA *gca, float *pmin, float *pmax)
           if (get_node_prior(gca, label, x, y, z) < 0.1)
             continue ;  /* exclude unlikely stuff (errors in labeling) */
           offset = 0.5*pow(covariance_determinant(gc, gca->ninputs),1.0/(double)gca->ninputs) ;
-					for (r = 0 ; r < gca->ninputs ; r++)
-					{
-						if (gc->means[r] + offset > mx[r])
-						{
-							mx[r] = gc->means[r] + offset ;
-						}
-						if (gc->means[r]  < mn[r])
-						{
-							mn[r] = gc->means[r] ;
-						}
+	  for (r = 0 ; r < gca->ninputs ; r++)
+	  {
+	    if (gc->means[r] + offset > mx[r])
+	    {
+	      mx[r] = gc->means[r] + offset ;
+	    }
+	    if (gc->means[r]  < mn[r])
+	    {
+	      mn[r] = gc->means[r] ;
+	    }
 #if 0						
-						if (mn[r] < 5)
-							mn = 5 ;
-						if (mx[r] > 225)
-							mx[r] = 225 ;
+	    if (mn[r] < 5)
+	      mn = 5 ;
+	    if (mx[r] > 225)
+	      mx[r] = 225 ;
 #endif
-					}
+	  }
         }
       }
     }
@@ -4369,11 +4546,11 @@ gcaFindMaxPriors(GCA *gca, float *max_priors)
         {
           label = gcap->labels[n] ;
           if (gcap->priors[n] > max_priors[label])
-					{
-						if (label == Ggca_label)
-							DiagBreak() ;
-						if ((gcap->priors[n] > 0.89) && (label == Ggca_label))
-							DiagBreak() ;
+	  {
+	    if (label == Ggca_label)
+	      DiagBreak() ;
+	    if ((gcap->priors[n] > 0.89) && (label == Ggca_label))
+	      DiagBreak() ;
             max_priors[label] = gcap->priors[n] ;
 					}
         }
@@ -4949,17 +5126,17 @@ GCAreclassifyUsingGibbsPriors(MRI *mri_inputs, GCA *gca, MRI *mri_dst,TRANSFORM 
   */
   for (x = 0 ; x < width ; x++)
     for (y = 0 ; y < height ; y++)
-        for (z = 0 ; z < depth ; z++)
-        {
-          if (restart && mri_fixed)
-          {
-            if (MRIvox(mri_fixed, x, y, z))
-              MRIvox(mri_changed,x,y,z) = 1 ;
-          }
-          else
-            MRIvox(mri_changed,x,y,z) = 1 ;
-        }
-
+      for (z = 0 ; z < depth ; z++)
+      {
+	if (restart && mri_fixed)
+	{
+	  if (MRIvox(mri_fixed, x, y, z))
+	    MRIvox(mri_changed,x,y,z) = 1 ;
+	}
+	else
+	  MRIvox(mri_changed,x,y,z) = 1 ;
+      }
+  
   if (restart && mri_fixed)
     MRIdilate(mri_changed, mri_changed) ;
 
@@ -5560,14 +5737,14 @@ GCAbuildMostLikelyVolume(GCA *gca, MRI *mri)
   GCA_PRIOR *gcap ;
   double    max_prior ;
   int       max_label ;
-	GC1D      *gc_max ;
+  GC1D      *gc_max ;
 
-	if (mri->nframes != gca->ninputs)
-		ErrorExit(ERROR_BADPARM, "GCAbuildMostLikelyVolume: mri->frames (%d) does not match gca->ninputs (%d)",
-							mri->nframes, gca->ninputs) ;
-
+  if (mri->nframes != gca->ninputs)
+    ErrorExit(ERROR_BADPARM, "GCAbuildMostLikelyVolume: mri->frames (%d) does not match gca->ninputs (%d)",
+	      mri->nframes, gca->ninputs) ;
+  
   width = mri->width ; depth = mri->depth ; height = mri->height ;
-
+  
   for (z = 0 ; z < depth ; z++)
   {
     for (y = 0 ; y < height ; y++)
@@ -5593,29 +5770,29 @@ GCAbuildMostLikelyVolume(GCA *gca, MRI *mri)
           if (gcan->labels[n] == max_label)
             gc_max = &gcan->gcs[n] ;
         }
-
-				if (!gc_max)
-					continue ;
-				for (r = 0 ; r < gca->ninputs ; r++)
-				{
-					switch (mri->type)
-					{
-					default:
-						ErrorReturn(NULL,
-												(ERROR_UNSUPPORTED, 
-												 "GCAbuildMostLikelyVolume: unsupported image type %d", mri->type)) ;
-						break ;
-					case MRI_UCHAR:
-						MRIseq_vox(mri, x, y, z, r) = nint(gc_max->means[r]) ;
-						break ;
-					case MRI_FLOAT:
-						MRIFseq_vox(mri, x, y, z, r) = gc_max->means[r] ;
-						break ;
-					case MRI_SHORT:
-						MRISseq_vox(mri, x, y, z, r) = gc_max->means[r] ;
-						break ;
-					}
-				}
+	
+	if (!gc_max)
+	  continue ;
+	for (r = 0 ; r < gca->ninputs ; r++)
+	{
+	  switch (mri->type)
+	  {
+	  default:
+	    ErrorReturn(NULL,
+			(ERROR_UNSUPPORTED, 
+			 "GCAbuildMostLikelyVolume: unsupported image type %d", mri->type)) ;
+	    break ;
+	  case MRI_UCHAR:
+	    MRIseq_vox(mri, x, y, z, r) = nint(gc_max->means[r]) ;
+	    break ;
+	  case MRI_FLOAT:
+	    MRIFseq_vox(mri, x, y, z, r) = gc_max->means[r] ;
+	    break ;
+	  case MRI_SHORT:
+	    MRISseq_vox(mri, x, y, z, r) = gc_max->means[r] ;
+	    break ;
+	  }
+	}
       }
     }
   }
@@ -5670,13 +5847,16 @@ GCAconstrainLabelTopology(GCA *gca, MRI *mri_inputs,MRI *mri_src, MRI *mri_dst,
 
   for (i = 1 ; i <= MAX_CMA_LABEL ; i++)
   {
-    if (!IS_BRAIN(i))
+    if (!IS_BRAIN(i)) // label is not brain, ignore
       continue ;
+    // count number of label i in dst
     nvox = MRIvoxelsInLabel(mri_dst, i) ;
+    // no such label, continue
     if (!nvox)
       continue ;
-		if (LABEL_WITH_NO_TOPOLOGY_CONSTRAINT(i))
-			continue ;
+    // if hypointensities, continue
+    if (LABEL_WITH_NO_TOPOLOGY_CONSTRAINT(i))
+      continue ;
     /*    printf("label %03d: %d voxels\n", i, nvox) ;*/
     mriseg = MRIsegment(mri_src, (float)i, (float)i) ;
     if (!mriseg)
@@ -5694,11 +5874,11 @@ GCAconstrainLabelTopology(GCA *gca, MRI *mri_inputs,MRI *mri_src, MRI *mri_dst,
       /*      printf("\t\t%02d: %d voxels", j, mriseg->segments[j].nvoxels) ;*/
       if ((float)mriseg->segments[j].nvoxels / (float)nvox < MIN_SEG_PCT)
       {
-        /*        printf(" - reclassifying...") ;*/
+        // printf(" - reclassifying...") ;
         gcaReclassifySegment(gca,mri_inputs,mri_dst, &mriseg->segments[j], i,
                              transform);
       }
-      /*      printf("\n") ;*/
+      // printf("\n") ;
     }
     MRIsegmentFree(&mriseg) ;
   }
@@ -5837,10 +6017,10 @@ GCAexpandVentricle(GCA *gca, MRI *mri_inputs, MRI *mri_src,
           if (x == Ggca_x && y == Ggca_y && z == Ggca_z)
             DiagBreak() ; 
           
-					GCAsourceVoxelToNode(gca, mri_dst, transform, x, y, z, &xn, &yn, &zn) ;
-					gc_vent = GCAfindGC(gca, xn, yn, zn, target_label) ;
-					if (gc_vent == NULL)
-						continue ;
+	  GCAsourceVoxelToNode(gca, mri_dst, transform, x, y, z, &xn, &yn, &zn) ;
+	  gc_vent = GCAfindGC(gca, xn, yn, zn, target_label) ;
+	  if (gc_vent == NULL)
+	    continue ;
           label = MRIvox(mri_dst, x, y, z) ;
           
           if (label == target_label)
@@ -5865,17 +6045,17 @@ GCAexpandVentricle(GCA *gca, MRI *mri_inputs, MRI *mri_src,
             
                     if (xi == Ggca_x && yi == Ggca_y && zi == Ggca_z)
                       DiagBreak() ; 
-
-										load_vals(mri_inputs, xi, yi, zi, vals, gca->ninputs) ;
-										gc = GCAfindGC(gca, xn, yn, zn, label) ;
-										if (gc == NULL)
-											plabel = 0.0 ;
-										else
-											plabel = GCAcomputeConditionalDensity(gc, vals, gca->ninputs, label) ;
-										gc = GCAfindGC(gca, xn, yn, zn, target_label) ;
-										if (gc == NULL)   /* use neighboring gc to allow for variability in ventricles */
-											gc = gc_vent ;
-										pv = GCAcomputeConditionalDensity(gc, vals, gca->ninputs, target_label) ;
+		    
+		    load_vals(mri_inputs, xi, yi, zi, vals, gca->ninputs) ;
+		    gc = GCAfindGC(gca, xn, yn, zn, label) ;
+		    if (gc == NULL)
+		      plabel = 0.0 ;
+		    else
+		      plabel = GCAcomputeConditionalDensity(gc, vals, gca->ninputs, label) ;
+		    gc = GCAfindGC(gca, xn, yn, zn, target_label) ;
+		    if (gc == NULL)   /* use neighboring gc to allow for variability in ventricles */
+		      gc = gc_vent ;
+		    pv = GCAcomputeConditionalDensity(gc, vals, gca->ninputs, target_label) ;
                     if (pv > 5*plabel)
                     {
                       if (xi == Ggca_x && yi == Ggca_y && zi == Ggca_z)
@@ -5920,8 +6100,8 @@ GCAexpandCortex(GCA *gca, MRI *mri_inputs, MRI *mri_src,
   GCA_NODE *gcan ;
   float    wm_means[MAX_GCA_INPUTS], wm_var, gray_means[MAX_GCA_INPUTS], gray_var, ldist, wdist, gdist ;
   MRI      *mri_tmp ;
-	float    vals[MAX_GCA_INPUTS] ;
-	GC1D     *gc_wm, *gc_gm, *gc_label ;
+  float    vals[MAX_GCA_INPUTS] ;
+  GC1D     *gc_wm, *gc_gm, *gc_label ;
 
 
   /* compute label mean and variance */
@@ -5929,12 +6109,12 @@ GCAexpandCortex(GCA *gca, MRI *mri_inputs, MRI *mri_src,
   gcaComputeLabelStats(gca, Left_Cerebral_White_Matter, &wm_var, wm_means) ;
   gcaComputeLabelStats(gca, Left_Cerebral_Cortex, &gray_var, gray_means) ;
   printf("cortex mean - gray ") ;
-	for (i = 0 ; i < gca->ninputs ; i++)
-		printf("%2.1f ", gray_means[i]) ;
-	printf("+- %2.1f, white ", sqrt(gray_var)) ;
-	for (i = 0 ; i < gca->ninputs ; i++)
-		printf("%2.1f ", wm_means[i]) ;
-	printf("+- %2.1f\n", sqrt(wm_var)) ;
+  for (i = 0 ; i < gca->ninputs ; i++)
+    printf("%2.1f ", gray_means[i]) ;
+  printf("+- %2.1f, white ", sqrt(gray_var)) ;
+  for (i = 0 ; i < gca->ninputs ; i++)
+    printf("%2.1f ", wm_means[i]) ;
+  printf("+- %2.1f\n", sqrt(wm_var)) ;
 
   if (mri_src != mri_dst)
     mri_dst = MRIcopy(mri_src, mri_dst) ;
@@ -5965,39 +6145,39 @@ GCAexpandCortex(GCA *gca, MRI *mri_inputs, MRI *mri_src,
               label == Right_Cerebral_White_Matter
               )
           {
-						if (label != Unknown)
-							left = (label == Left_Cerebral_Cortex || label == Left_Cerebral_White_Matter) ;
-						else
-						{
-							left = -1 ;
-							for (zk = -1 ; left < 0 && zk <= 1 ; zk++)
-							{
-								for (yk = -1 ; left < 0 && yk <= 1 ; yk++)
-								{
-									for (xk = -1 ; left < 0 && xk <= 1 ; xk++)
-									{
-										xi = mri_src->xi[x+xk] ;
-										yi = mri_src->yi[y+yk] ;
-										zi = mri_src->zi[z+zk] ;
-										label = MRIvox(mri_dst, xi, yi, zi) ;
-										if (label == Left_Cerebral_Cortex || label == Left_Cerebral_White_Matter)
-											left = 1 ;
-										else if (label == Right_Cerebral_Cortex || label == Right_Cerebral_White_Matter)
-											left = 0 ;
-									}
-								}
-							}
-						}
-
+	    if (label != Unknown)
+	      left = (label == Left_Cerebral_Cortex || label == Left_Cerebral_White_Matter) ;
+	    else
+	    {
+	      left = -1 ;
+	      for (zk = -1 ; left < 0 && zk <= 1 ; zk++)
+	      {
+		for (yk = -1 ; left < 0 && yk <= 1 ; yk++)
+		{
+		  for (xk = -1 ; left < 0 && xk <= 1 ; xk++)
+		  {
+		    xi = mri_src->xi[x+xk] ;
+		    yi = mri_src->yi[y+yk] ;
+		    zi = mri_src->zi[z+zk] ;
+		    label = MRIvox(mri_dst, xi, yi, zi) ;
+		    if (label == Left_Cerebral_Cortex || label == Left_Cerebral_White_Matter)
+		      left = 1 ;
+		    else if (label == Right_Cerebral_Cortex || label == Right_Cerebral_White_Matter)
+		      left = 0 ;
+		  }
+		}
+	      }
+	    }
+	    
             gray_nbr = wm_nbr = 0 ;
-						gc_wm = GCAfindSourceGC(gca, mri_src, transform, x, y, z, 
-																		left ? Left_Cerebral_White_Matter : Right_Cerebral_White_Matter) ;
-						gc_gm = GCAfindSourceGC(gca, mri_src, transform, x, y, z, 
-																		left ? Left_Cerebral_Cortex : Right_Cerebral_Cortex) ;
-						if (gc_gm)
-							gray_nbr = left ? Left_Cerebral_Cortex : Right_Cerebral_Cortex ;
-						if (gc_wm)
-							wm_nbr = left ? Left_Cerebral_White_Matter : Right_Cerebral_White_Matter ;
+	    gc_wm = GCAfindSourceGC(gca, mri_src, transform, x, y, z, 
+				    left ? Left_Cerebral_White_Matter : Right_Cerebral_White_Matter) ;
+	    gc_gm = GCAfindSourceGC(gca, mri_src, transform, x, y, z, 
+				    left ? Left_Cerebral_Cortex : Right_Cerebral_Cortex) ;
+	    if (gc_gm)
+	      gray_nbr = left ? Left_Cerebral_Cortex : Right_Cerebral_Cortex ;
+	    if (gc_wm)
+	      wm_nbr = left ? Left_Cerebral_White_Matter : Right_Cerebral_White_Matter ;
             if (gc_gm == NULL || gc_wm == NULL) for (zk = -1 ; zk <= 1 ; zk++)
             {
               for (yk = -1 ; yk <= 1 ; yk++)
@@ -6011,29 +6191,29 @@ GCAexpandCortex(GCA *gca, MRI *mri_inputs, MRI *mri_src,
                   zi = mri_src->zi[z+zk] ;
                   label = MRIvox(mri_dst, xi, yi, zi) ;
                   if ((label ==  Left_Cerebral_Cortex ||
-											 label ==  Right_Cerebral_Cortex) && (gc_gm == NULL))
-									{
-										gray_nbr = label ;
+		       label ==  Right_Cerebral_Cortex) && (gc_gm == NULL))
+		  {
+		    gray_nbr = label ;
                     gc_gm = GCAfindSourceGC(gca, mri_src, transform, xi, yi, zi, label) ;
-										if (!gc_gm)
-											gray_nbr = 0 ;  /* shouldn't ever happen */
-									}
+		    if (!gc_gm)
+		      gray_nbr = 0 ;  /* shouldn't ever happen */
+		  }
                   else
-                  if ((label ==  Left_Cerebral_White_Matter ||
-											 label ==  Right_Cerebral_White_Matter) && (gc_wm == NULL))
-									{
-                    wm_nbr = label ;
-                    gc_wm = GCAfindSourceGC(gca, mri_src, transform, xi, yi, zi, label) ;
-										if (!gc_wm)
-											wm_nbr = 0 ;  /* shouldn't ever happen */
-									}
+		    if ((label ==  Left_Cerebral_White_Matter ||
+			 label ==  Right_Cerebral_White_Matter) && (gc_wm == NULL))
+		    {
+		      wm_nbr = label ;
+		      gc_wm = GCAfindSourceGC(gca, mri_src, transform, xi, yi, zi, label) ;
+		      if (!gc_wm)
+			wm_nbr = 0 ;  /* shouldn't ever happen */
+		    }
                 }
               }
             }
             if (!wm_nbr && !gray_nbr)
               continue ;
-
-						load_vals(mri_inputs, x, y, z, vals, gca->ninputs) ;
+	    
+	    load_vals(mri_inputs, x, y, z, vals, gca->ninputs) ;
             if (wm_nbr)
               wdist = sqrt(GCAmahDistIdentityCovariance(gc_wm, vals, gca->ninputs)) ;
             else
@@ -6050,11 +6230,11 @@ GCAexpandCortex(GCA *gca, MRI *mri_inputs, MRI *mri_src,
             
             GCAsourceVoxelToNode(gca, mri_dst, transform, x, y, z,  &xn, &yn, &zn) ;
             gcan = &gca->nodes[xn][yn][zn] ;
-						gc_label = GCAfindGC(gca, xn, yn, zn, label) ;
-						if (gc_label)
-							ldist = sqrt(GCAmahDistIdentityCovariance(gc_label, vals, gca->ninputs)) ;
-						else
-							ldist = 1e10 ;
+	    gc_label = GCAfindGC(gca, xn, yn, zn, label) ;
+	    if (gc_label)
+	      ldist = sqrt(GCAmahDistIdentityCovariance(gc_label, vals, gca->ninputs)) ;
+	    else
+	      ldist = 1e10 ;
             ldist *= .75 ;  /* bias towards retaining label */
 
             if ((wdist < gdist) && gc_wm)   /* might change to wm */
@@ -6087,8 +6267,8 @@ GCAexpandCortex(GCA *gca, MRI *mri_inputs, MRI *mri_src,
                            cma_label_to_name(olabel), olabel,
                            cma_label_to_name(gray_nbr), gray_nbr);
                 }
-								if (olabel != gray_nbr)
-									nchanged++ ;
+		if (olabel != gray_nbr)
+		  nchanged++ ;
 
                 MRIvox(mri_tmp, x, y, z) = gray_nbr ;
               }
@@ -6114,10 +6294,10 @@ GCAexpandLabelIntoWM(GCA *gca, MRI *mri_inputs, MRI *mri_src,
   int      nchanged, x, y, z, width, height, depth, xn, yn, zn, xi, yi, zi,
            xk, yk, zk, nbr_label, n, label, total_changed, i ;
   GCA_NODE *gcan, *gcan_nbr ;
-	GC1D     *gc_label, *gc_wm ;
+  GC1D     *gc_label, *gc_wm ;
   MRI      *mri_tmp ;
-	float    vals[MAX_GCA_INPUTS] ;
-	double   prior ;
+  float    vals[MAX_GCA_INPUTS] ;
+  double   prior ;
 
   if (mri_src != mri_dst)
     mri_dst = MRIcopy(mri_src, mri_dst) ;
@@ -6147,14 +6327,14 @@ GCAexpandLabelIntoWM(GCA *gca, MRI *mri_inputs, MRI *mri_src,
           
           if (label == target_label)
           {
-						gc_label = GCAfindGC(gca, xn, yn, zn, label) ;
-						gc_wm = NULL ;
+	    gc_label = GCAfindGC(gca, xn, yn, zn, label) ;
+	    gc_wm = NULL ;
             for (n = 0 ; n < gcan->nlabels ; n++)
             {
-							if
-                ((gcan->labels[n] == Left_Cerebral_White_Matter) ||
+	      if
+		((gcan->labels[n] == Left_Cerebral_White_Matter) ||
                  (gcan->labels[n] == Right_Cerebral_White_Matter))
-								gc_wm = GCAfindGC(gca, xn, yn, zn, gcan->labels[n]) ;
+		gc_wm = GCAfindGC(gca, xn, yn, zn, gcan->labels[n]) ;
             }
             
             for (zk = -1 ; zk <= 1 ; zk++)
@@ -6166,20 +6346,20 @@ GCAexpandLabelIntoWM(GCA *gca, MRI *mri_inputs, MRI *mri_src,
                   if (fabs(xk) + fabs(yk) + fabs(zk) > 1)
                     continue ;
                   xi = mri_src->xi[x+xk] ; yi = mri_src->yi[y+yk] ; zi = mri_src->zi[z+zk] ;
-									if (xi == Ggca_x && yi == Ggca_y && zi == Ggca_z)
-										DiagBreak() ;
+		  if (xi == Ggca_x && yi == Ggca_y && zi == Ggca_z)
+		    DiagBreak() ;
                   nbr_label = MRIvox(mri_dst, xi, yi, zi) ;
                   if ((nbr_label == Right_Cerebral_White_Matter) ||
                       (nbr_label == Left_Cerebral_White_Matter))
                   {
-										load_vals(mri_inputs, xi, yi, zi, vals, gca->ninputs) ;
-										GCAsourceVoxelToNode(gca, mri_dst, transform, xi, yi, zi, &xn, &yn, &zn) ;
-										gc_wm = GCAfindGC(gca, xn, yn, zn, nbr_label) ;
-										gc_label = GCAfindGC(gca, xn, yn, zn, target_label) ;
-										if (!gc_wm || !gc_label)
-											continue ;
-										if (GCAmahDistIdentityCovariance(gc_wm, vals, gca->ninputs) > 
-												GCAmahDistIdentityCovariance(gc_label, vals, gca->ninputs))
+		    load_vals(mri_inputs, xi, yi, zi, vals, gca->ninputs) ;
+		    GCAsourceVoxelToNode(gca, mri_dst, transform, xi, yi, zi, &xn, &yn, &zn) ;
+		    gc_wm = GCAfindGC(gca, xn, yn, zn, nbr_label) ;
+		    gc_label = GCAfindGC(gca, xn, yn, zn, target_label) ;
+		    if (!gc_wm || !gc_label)
+		      continue ;
+		    if (GCAmahDistIdentityCovariance(gc_wm, vals, gca->ninputs) > 
+			GCAmahDistIdentityCovariance(gc_label, vals, gca->ninputs))
                     {
                       gcan_nbr = &gca->nodes[xn][yn][zn] ;
                       for (prior = 0.0f, n = 0 ; n < gcan_nbr->nlabels ; n++)
@@ -6253,34 +6433,34 @@ GCAnormalizeSamples(MRI *mri_in, GCA *gca, GCA_SAMPLE *gcas, int nsamples,
          T1_index = 0 ;
   float   bias ;
   double  mean, sigma ;
-	Real    val ;
+  Real    val ;
  
-	if (nsamples == 0)   /* only using control points from file */
-	{
-	  float      wm_means[MAX_GCA_INPUTS], tmp[MAX_GCA_INPUTS], max_wm ;
-		int        r ;
-
-	  GCAlabelMean(gca, Left_Cerebral_White_Matter, wm_means) ;
-  	GCAlabelMean(gca, Left_Cerebral_White_Matter, tmp) ;
-		max_wm = 0 ;
-		for (r = 0 ; r < gca->ninputs ; r++)
-		{
-			wm_means[r] = (wm_means[r] + tmp[r]) / 2 ;
-			if (wm_means[r] > max_wm)
-			{
-				T1_index = r ; max_wm = wm_means[r] ;
-			}
-		}
-		printf("using volume %d as most T1-weighted for normalization\n",T1_index) ;
-	}
+  if (nsamples == 0)   /* only using control points from file */
+  {
+    float      wm_means[MAX_GCA_INPUTS], tmp[MAX_GCA_INPUTS], max_wm ;
+    int        r ;
+    
+    GCAlabelMean(gca, Left_Cerebral_White_Matter, wm_means) ;
+    GCAlabelMean(gca, Left_Cerebral_White_Matter, tmp) ;
+    max_wm = 0 ;
+    for (r = 0 ; r < gca->ninputs ; r++)
+    {
+      wm_means[r] = (wm_means[r] + tmp[r]) / 2 ;
+      if (wm_means[r] > max_wm)
+      {
+	T1_index = r ; max_wm = wm_means[r] ;
+      }
+    }
+    printf("using volume %d as most T1-weighted for normalization\n",T1_index) ;
+  }
   width = mri_in->width ; height = mri_in->height ; depth = mri_in->depth ;
   mri_dst = MRIclone(mri_in, NULL) ;
   mri_ctrl = MRIalloc(width, height, depth, MRI_UCHAR) ;
   mri_bias = MRIalloc(mri_in->width,mri_in->height,mri_in->depth,MRI_SHORT);
   if (!mri_bias)    
-	ErrorExit(ERROR_NOMEMORY, 
-            "GCAnormalizeSamples: could not allocate (%d,%d,%d,2) bias image",
-             mri_in->width,mri_in->height,mri_in->depth) ;
+    ErrorExit(ERROR_NOMEMORY, 
+	      "GCAnormalizeSamples: could not allocate (%d,%d,%d,2) bias image",
+	      mri_in->width,mri_in->height,mri_in->depth) ;
               
 
 #define MAX_BIAS 1250
@@ -6304,15 +6484,15 @@ GCAnormalizeSamples(MRI *mri_in, GCA *gca, GCA_SAMPLE *gcas, int nsamples,
           DiagBreak() ;
         MRISvox(mri_bias, x,y,z) = NO_BIAS ;  /* by default */
         if (MRIvox(mri_ctrl, x, y, z) != CONTROL_MARKED)  /* not read from file */
-					continue ;
-
-				if (nsamples == 0)   /* only using file control points */
-				{
-					MRIsampleVolumeFrame(mri_in, x, y, z, T1_index, &val) ;
-					bias = NO_BIAS*DEFAULT_DESIRED_WHITE_MATTER_VALUE / val ;          
+	  continue ;
+	
+	if (nsamples == 0)   /* only using file control points */
+	{
+	  MRIsampleVolumeFrame(mri_in, x, y, z, T1_index, &val) ;
+	  bias = NO_BIAS*DEFAULT_DESIRED_WHITE_MATTER_VALUE / val ;          
           MRISvox(mri_bias, x, y, z) = (short)nint(bias) ;
-				}
-				else    /* find atlas point this maps to */
+	}
+	else    /* find atlas point this maps to */
         {
           int       n, max_n ;
           GC1D      *gc ;
@@ -6328,7 +6508,7 @@ GCAnormalizeSamples(MRI *mri_in, GCA *gca, GCA_SAMPLE *gcas, int nsamples,
           {
             if ((0 == IS_WM(gcan->labels[n])) &&
                 (0 == IS_CEREBELLAR_WM(gcan->labels[n])) &&
-								(gcan->labels[n] != Brain_Stem))
+		(gcan->labels[n] != Brain_Stem))
               continue ;
             gc = &gcan->gcs[n] ;
             if (getPrior(gcap, gcan->labels[n]) >= max_p)
@@ -6341,14 +6521,14 @@ GCAnormalizeSamples(MRI *mri_in, GCA *gca, GCA_SAMPLE *gcas, int nsamples,
             continue ;
           gc = &gcan->gcs[max_n] ;
 
-					for (bias = 0.0, input = 0 ; input < gca->ninputs ; input++)
-					{	
-						MRIsampleVolumeFrame(mri_in, x, y, z, input, &val) ;
-						if (FZERO(val))
-							val = 1 ;
-	          bias += (float)NO_BIAS*((float)gc->means[input]/val) ;
-					}
-					bias /= (float)gca->ninputs ;
+	  for (bias = 0.0, input = 0 ; input < gca->ninputs ; input++)
+	  {	
+	    MRIsampleVolumeFrame(mri_in, x, y, z, input, &val) ;
+	    if (FZERO(val))
+	      val = 1 ;
+	    bias += (float)NO_BIAS*((float)gc->means[input]/val) ;
+	  }
+	  bias /= (float)gca->ninputs ;
           if (bias < 100 || bias > 5000)
             DiagBreak() ;
           if (bias < MIN_BIAS)
@@ -6384,14 +6564,14 @@ GCAnormalizeSamples(MRI *mri_in, GCA *gca, GCA_SAMPLE *gcas, int nsamples,
     {
       MRIvox(mri_ctrl, xv, yv, zv) = CONTROL_MARKED ;
 	
-			for (bias = 0.0, input = 0 ; input < gca->ninputs ; input++)
-			{	
-				MRIsampleVolumeFrame(mri_in, xv, yv, zv, input, &val) ;
-				if (FZERO(val))
-					val = 1 ;
+      for (bias = 0.0, input = 0 ; input < gca->ninputs ; input++)
+      {	
+	MRIsampleVolumeFrame(mri_in, xv, yv, zv, input, &val) ;
+	if (FZERO(val))
+	  val = 1 ;
         bias += (float)NO_BIAS*((float)gcas[n].means[input]/val) ;
-			}
-			bias /= (float)gca->ninputs ;
+      }
+      bias /= (float)gca->ninputs ;
       if (bias < 100 || bias > 5000)
         DiagBreak() ;
 #if 0
@@ -6493,32 +6673,32 @@ GCAnormalizeSamples(MRI *mri_in, GCA *gca, GCA_SAMPLE *gcas, int nsamples,
         bias = (float)MRISvox(mri_bias, x, y, z)/NO_BIAS ;
         if (bias < 0)
           DiagBreak() ;
-				for (input = 0 ; input < gca->ninputs ; input++)
-				{
-					MRIsampleVolumeFrame(mri_in, x, y, z, input, &val) ;
-					val *= bias ;   /* corrected value */
-					switch (mri_in->type)
-					{
-					case MRI_UCHAR: 
-	  	      if (val < 0)
-  	  	      val = 0 ;
-        		else if (val > 255)
-		          val = 255 ;
-						MRIseq_vox(mri_dst, x, y, z, input) = (BUFTYPE)nint(val) ; 
-						break ;
-					case MRI_SHORT: 
-						MRISseq_vox(mri_dst, x, y, z, input) = (short)nint(val) ; 
-						break ;
-					case MRI_FLOAT: 
-						MRIFseq_vox(mri_dst, x, y, z, input) = val ; 
-						break ;
-					default:
-						ErrorReturn(NULL,
-												(ERROR_UNSUPPORTED, 
-												"GCAnormalizeSamples: unsupported input type %d",mri_in->type));
-						break ;
-					}
-				}
+	for (input = 0 ; input < gca->ninputs ; input++)
+	{
+	  MRIsampleVolumeFrame(mri_in, x, y, z, input, &val) ;
+	  val *= bias ;   /* corrected value */
+	  switch (mri_in->type)
+	  {
+	  case MRI_UCHAR: 
+	    if (val < 0)
+	      val = 0 ;
+	    else if (val > 255)
+	      val = 255 ;
+	    MRIseq_vox(mri_dst, x, y, z, input) = (BUFTYPE)nint(val) ; 
+	    break ;
+	  case MRI_SHORT: 
+	    MRISseq_vox(mri_dst, x, y, z, input) = (short)nint(val) ; 
+	    break ;
+	  case MRI_FLOAT: 
+	    MRIFseq_vox(mri_dst, x, y, z, input) = val ; 
+	    break ;
+	  default:
+	    ErrorReturn(NULL,
+			(ERROR_UNSUPPORTED, 
+			 "GCAnormalizeSamples: unsupported input type %d",mri_in->type));
+	    break ;
+	  }
+	}
       }
     }
   }
@@ -6528,7 +6708,7 @@ GCAnormalizeSamples(MRI *mri_in, GCA *gca, GCA_SAMPLE *gcas, int nsamples,
 }
 MRI *
 GCAnormalizeSamplesT1PD(MRI *mri_in, GCA *gca, GCA_SAMPLE *gcas, int nsamples, 
-												TRANSFORM *transform, char *ctl_point_fname)
+			TRANSFORM *transform, char *ctl_point_fname)
 {
   MRI    *mri_dst, *mri_ctrl, *mri_bias ;
   int    xv, yv, zv, n, x, y, z, width, height, depth, out_val, xn, yn, zn, num, total ;
@@ -6539,9 +6719,10 @@ GCAnormalizeSamplesT1PD(MRI *mri_in, GCA *gca, GCA_SAMPLE *gcas, int nsamples,
   mri_dst = MRIclone(mri_in, NULL) ;
   mri_ctrl = MRIalloc(mri_in->width,mri_in->height,mri_in->depth,MRI_UCHAR);
   mri_bias = MRIalloc(mri_in->width,mri_in->height,mri_in->depth,MRI_SHORT);
-  if (!mri_bias)    ErrorExit(ERROR_NOMEMORY, 
-              "GCAnormalize: could not allocate (%d,%d,%d,2) bias image",
-              mri_in->width,mri_in->height,mri_in->depth) ;
+  if (!mri_bias)    
+    ErrorExit(ERROR_NOMEMORY, 
+	      "GCAnormalize: could not allocate (%d,%d,%d,2) bias image",
+	      mri_in->width,mri_in->height,mri_in->depth) ;
               
 
 #define MAX_BIAS 1250
@@ -6593,9 +6774,9 @@ GCAnormalizeSamplesT1PD(MRI *mri_in, GCA *gca, GCA_SAMPLE *gcas, int nsamples,
             continue ;
           gc = &gcan->gcs[max_n] ;
 
-					MRIsampleVolumeFrameType(mri_in, x, y, z, 1, SAMPLE_NEAREST, &val) ;
-					if (FZERO(val))
-						val = 1 ;
+	  MRIsampleVolumeFrameType(mri_in, x, y, z, 1, SAMPLE_NEAREST, &val) ;
+	  if (FZERO(val))
+	    val = 1 ;
           bias = (float)NO_BIAS*((float)gc->means[1]/val) ;
           if (bias < 100 || bias > 5000)
             DiagBreak() ;
@@ -6632,8 +6813,8 @@ GCAnormalizeSamplesT1PD(MRI *mri_in, GCA *gca, GCA_SAMPLE *gcas, int nsamples,
     if (gcas[n].label > 0)
     {
       MRIvox(mri_ctrl, xv, yv, zv) = CONTROL_MARKED ;
-			MRIsampleVolumeFrameType(mri_in, xv, yv, zv, 1, SAMPLE_NEAREST, &val) ;
-			if (FZERO(val))
+      MRIsampleVolumeFrameType(mri_in, xv, yv, zv, 1, SAMPLE_NEAREST, &val) ;
+      if (FZERO(val))
 				val = 1 ;
       bias = (float)NO_BIAS*((float)gcas[n].means[1]/val) ;
       if (bias < 100 || bias > 5000)
@@ -6730,79 +6911,16 @@ GCAnormalizeSamplesT1PD(MRI *mri_in, GCA *gca, GCA_SAMPLE *gcas, int nsamples,
         bias = (float)MRISvox(mri_bias, x, y, z)/NO_BIAS ;
         if (bias < 0)
           DiagBreak() ;
-				MRIsampleVolumeFrameType(mri_in, x, y, z, 1, SAMPLE_NEAREST, &val) ;
+	MRIsampleVolumeFrameType(mri_in, x, y, z, 1, SAMPLE_NEAREST, &val) ;
         out_val = nint((float)val*bias) ;
         MRISseq_vox(mri_dst, x, y, z, 1) = (short)nint(out_val) ;
       }
     }
   }
 
-	MRIcopyFrame(mri_in, mri_dst, 0, 0) ;  /* copy over T1 frame */
+  MRIcopyFrame(mri_in, mri_dst, 0, 0) ;  /* copy over T1 frame */
   MRIfree(&mri_bias) ; MRIfree(&mri_ctrl) ;
   return(mri_dst) ;
-}
-int
-GCAnodeToSourceVoxelFloat(GCA *gca, MRI *mri, TRANSFORM *transform, int xn, int yn, int zn, 
-                    float *pxv, float *pyv, float *pzv)
-{
-  int   width, height, depth, xt, yt, zt ;
-  float  xv, yv, zv ;
-
-  width = mri->width ; height = mri->height ;  depth = mri->depth ;
-  GCAnodeToVoxel(gca, mri, xn, yn, zn, &xt, &yt, &zt) ;
-  TransformSampleInverse(transform, xt*mri->xsize, yt*mri->ysize, zt*mri->zsize, &xv, &yv, &zv) ;
-
-  *pxv = xv ; *pyv = yv ; *pzv = zv ;
-  return(NO_ERROR) ;
-}
-
-int
-GCAnodeToSourceVoxel(GCA *gca, MRI *mri, TRANSFORM *transform, int xn, int yn, int zn, 
-                    int *pxv, int *pyv, int *pzv)
-{
-  float  xf, yf, zf ;
-
-  GCAnodeToSourceVoxelFloat(gca, mri, transform, xn, yn, zn, &xf, &yf, &zf) ;
-  if (xf < 0) xf = 0 ;
-  if (yf < 0) yf = 0 ;
-  if (zf < 0) zf = 0 ;
-  if (xf >= mri->width-1)  xf = mri->width-1 ;
-  if (yf >= mri->height-1) yf = mri->height-1 ;
-  if (zf >= mri->depth-1)  zf = mri->depth-1 ;
-  *pxv = nint(xf) ; *pyv = nint(yf) ; *pzv = nint(zf) ;
-  return(NO_ERROR) ;
-}
-
-int
-GCApriorToSourceVoxelFloat(GCA *gca, MRI *mri, TRANSFORM *transform, int xp, int yp, int zp, 
-                    float *pxv, float *pyv, float *pzv)
-{
-  int   width, height, depth, xt, yt, zt ;
-  float  xv, yv, zv ;
-
-  width = mri->width ; height = mri->height ;  depth = mri->depth ;
-  GCApriorToVoxel(gca, mri, xp, yp, zp, &xt, &yt, &zt) ;
-  TransformSampleInverse(transform, xt*mri->xsize, yt*mri->ysize, zt*mri->zsize, &xv, &yv, &zv) ;
-
-  *pxv = xv ; *pyv = yv ; *pzv = zv ;
-  return(NO_ERROR) ;
-}
-
-int
-GCApriorToSourceVoxel(GCA *gca, MRI *mri, TRANSFORM *transform, int xp, int yp, int zp, 
-                    int *pxv, int *pyv, int *pzv)
-{
-  float  xf, yf, zf ;
-
-  GCApriorToSourceVoxelFloat(gca, mri, transform, xp, yp, zp, &xf, &yf, &zf) ;
-  if (xf < 0) xf = 0 ;
-  if (yf < 0) yf = 0 ;
-  if (zf < 0) zf = 0 ;
-  if (xf >= mri->width-1)  xf = mri->width-1 ;
-  if (yf >= mri->height-1) yf = mri->height-1 ;
-  if (zf >= mri->depth-1)  zf = mri->depth-1 ;
-  *pxv = nint(xf) ; *pyv = nint(yf) ; *pzv = nint(zf) ;
-  return(NO_ERROR) ;
 }
 
 float 
@@ -6820,12 +6938,12 @@ GCAlabelProbability(MRI *mri_src, GCA *gca, TRANSFORM *transform,
   GCAsourceVoxelToNode(gca, mri_src, transform, x, y, z, &xn, &yn, &zn) ;
   gcan = &gca->nodes[xn][yn][zn] ;
 
-	load_vals(mri_src, x, y, z, vals, gca->ninputs) ;
-	gc = GCAfindGC(gca, xn, yn, zn, label) ;
-	if (gc == NULL)
-		plabel = 0.0 ;
-	else
-		plabel = GCAcomputeConditionalDensity(gc, vals, gca->ninputs, label) ;
+  load_vals(mri_src, x, y, z, vals, gca->ninputs) ;
+  gc = GCAfindGC(gca, xn, yn, zn, label) ;
+  if (gc == NULL)
+    plabel = 0.0 ;
+  else
+    plabel = GCAcomputeConditionalDensity(gc, vals, gca->ninputs, label) ;
   return(plabel) ;
 }
 
@@ -6852,8 +6970,8 @@ getLabelMean(GCA_NODE *gcan, int label, float *pvar, float *means, int ninputs)
   {
     if (gcan->labels[n] == label)
     {
-			for (r = 0 ; r < ninputs ; r++)
-				mean = gcan->gcs[n].means[r] ;
+      for (r = 0 ; r < ninputs ; r++)
+	mean = gcan->gcs[n].means[r] ;
       if (pvar)
         *pvar = covariance_determinant(&gcan->gcs[n], ninputs) ; ;
       break ;
@@ -6885,8 +7003,8 @@ GCAmaxLikelihoodBorders(GCA *gca, MRI *mri_inputs, MRI *mri_src,
       {
         for (x = 0 ; x < width ; x++)
         {
-					if (x == Ggca_x && y == Ggca_y && z == Ggca_z)
-						DiagBreak() ;
+	  if (x == Ggca_x && y == Ggca_y && z == Ggca_z)
+	    DiagBreak() ;
           if (x == 99 && y == 129 && z == 127)
             DiagBreak() ;  /* gray should be wm */
           if (x == 98 && y == 124 && z == 127)
@@ -6903,7 +7021,7 @@ GCAmaxLikelihoodBorders(GCA *gca, MRI *mri_inputs, MRI *mri_src,
               DiagBreak() ;
               
               if (label != MRIvox(mri_dst, x, y, z))
-                printf(
+		printf(
                        "MLE (%d, %d, %d): old label %s (%d), new label %s (%d)\n",
                        x, y, z, cma_label_to_name(MRIvox(mri_tmp,x,y,z)),
                        MRIvox(mri_tmp,x,y,z), cma_label_to_name(label),
@@ -6961,30 +7079,31 @@ GCAmaxLikelihoodBorderLabel(GCA *gca, MRI *mri_inputs, MRI *mri_labels,
   float    p, max_p, vals[MAX_GCA_INPUTS] ;
   int      label, i, xi, yi, zi, best_label, orig_label, n ;
   GCA_NODE *gcan ;
-	GC1D     *gc ;
+  GC1D     *gc ;
 
   if (x == Ggca_x && y == Ggca_y && z == Ggca_z)
     DiagBreak() ;  
 
-	load_vals(mri_inputs, x, y, z, vals, gca->ninputs) ;
+  load_vals(mri_inputs, x, y, z, vals, gca->ninputs) ;
   gcan = findSourceGCAN(gca, mri_inputs, transform, x, y, z) ;
   orig_label = best_label = MRIvox(mri_labels, x, y, z) ;
   gc = NULL ;
-	for (n = 0 ; n < gcan->nlabels ; n++)
-		if (gcan->labels[n] == best_label)
-		{
-			gc  = &gcan->gcs[n] ;
-			break ;
-		}
-
-	if (gc == NULL)
-	{
-		ErrorPrintf(ERROR_BADPARM, "GCAmaxLikelihoodBorderLabel(%d, %d, %d): couldn't find gc for label %d", 
-							x, y, z, best_label) ;
-		max_p = 0.0 ;
-	}
-	else
-		max_p = GCAcomputeConditionalDensity(gc, vals, gca->ninputs, best_label) ;
+  for (n = 0 ; n < gcan->nlabels ; n++)
+    if (gcan->labels[n] == best_label)
+    {
+      gc  = &gcan->gcs[n] ;
+      break ;
+    }
+  
+  if (gc == NULL)
+  {
+    ErrorPrintf(ERROR_BADPARM, 
+		"GCAmaxLikelihoodBorderLabel(%d, %d, %d): couldn't find gc for label %d", 
+		x, y, z, best_label) ;
+    max_p = 0.0 ;
+  }
+  else
+    max_p = GCAcomputeConditionalDensity(gc, vals, gca->ninputs, best_label) ;
   for (i = 0 ; i < GIBBS_NEIGHBORS ; i++)
   {
     xi = mri_inputs->xi[x+xnbr_offset[i]] ;
@@ -6992,16 +7111,16 @@ GCAmaxLikelihoodBorderLabel(GCA *gca, MRI *mri_inputs, MRI *mri_labels,
     zi = mri_inputs->zi[z+znbr_offset[i]] ;
     gcan = findSourceGCAN(gca, mri_inputs, transform, xi, yi, zi) ;
     label = MRIvox(mri_labels, xi, yi, zi) ;
-		gc = NULL ;
-		for (n = 0 ; n < gcan->nlabels ; n++)
-			if (gcan->labels[n] == label)
-			{
-				gc  = &gcan->gcs[n] ;
-				break ;
-			}
-		if (gc == NULL)
-			continue ;  /* label can't occur here */
-
+    gc = NULL ;
+    for (n = 0 ; n < gcan->nlabels ; n++)
+      if (gcan->labels[n] == label)
+      {
+	gc  = &gcan->gcs[n] ;
+	break ;
+      }
+    if (gc == NULL)
+      continue ;  /* label can't occur here */
+    
     MRIvox(mri_labels, x, y, z) = label ;
     if (gcaGibbsImpossibleConfiguration(gca, mri_labels, x, y, z, transform))
       continue ;
@@ -7368,30 +7487,30 @@ cma_label_to_name(int label)
   if (label == Dark_Unknown)
     return("Dark Unknown") ;
 
-	if (label == Left_Interior)
-		return("Left_Interior") ; 
-	if (label == Right_Interior)
-		return("Right_Interior") ; 
-	if (label == Left_Lateral_Ventricles)
-		return("Left_Lateral_Ventricles") ; 
-	if (label == Right_Lateral_Ventricles)
-		return("Right_Lateral_Ventricles") ; 
-	if (label == WM_hypointensities)
-		return("WM_hypointensities") ; 
-	if (label == Left_WM_hypointensities)
-		return("Left_WM_hypointensities") ; 
-	if (label == Right_WM_hypointensities)
-		return("Right_WM_hypointensities") ; 
-	if (label == non_WM_hypointensities)
-		return("non_WM_hypointensities") ; 
-	if (label == Left_non_WM_hypointensities)
-		return("Left_non_WM_hypointensities") ; 
-	if (label == Right_non_WM_hypointensities)
-		return("Right_non_WM_hypointensities") ; 
-	if (label == Fifth_Ventricle)
-		return("Fifth_Ventricle") ; 
-	if (label == Optic_Chiasm)
-		return("Optic_Chiasm") ; 
+  if (label == Left_Interior)
+    return("Left_Interior") ; 
+  if (label == Right_Interior)
+    return("Right_Interior") ; 
+  if (label == Left_Lateral_Ventricles)
+    return("Left_Lateral_Ventricles") ; 
+  if (label == Right_Lateral_Ventricles)
+    return("Right_Lateral_Ventricles") ; 
+  if (label == WM_hypointensities)
+    return("WM_hypointensities") ; 
+  if (label == Left_WM_hypointensities)
+    return("Left_WM_hypointensities") ; 
+  if (label == Right_WM_hypointensities)
+    return("Right_WM_hypointensities") ; 
+  if (label == non_WM_hypointensities)
+    return("non_WM_hypointensities") ; 
+  if (label == Left_non_WM_hypointensities)
+    return("Left_non_WM_hypointensities") ; 
+  if (label == Right_non_WM_hypointensities)
+    return("Right_non_WM_hypointensities") ; 
+  if (label == Fifth_Ventricle)
+    return("Fifth_Ventricle") ; 
+  if (label == Optic_Chiasm)
+    return("Optic_Chiasm") ; 
   return(name) ;
 }
 MRI *
@@ -7432,25 +7551,25 @@ GCArelabel_cortical_gray_and_white(GCA *gca, MRI *mri_inputs,
               label != Right_Cerebral_White_Matter)
             continue ;
 
-					load_vals(mri_inputs, x, y, z, vals, gca->ninputs) ;
+	  load_vals(mri_inputs, x, y, z, vals, gca->ninputs) ;
           GCAsourceVoxelToNode(gca, mri_dst, transform, x, y, z, &xn, &yn, &zn) ;
           gcan = &gca->nodes[xn][yn][zn] ;
           if (label == Left_Cerebral_Cortex || 
               label == Left_Cerebral_White_Matter)
           {
             left = 1 ;
-						gc_gray = GCAfindGC(gca, xn, yn, zn, Left_Cerebral_Cortex) ;
-						gc_wm = GCAfindGC(gca, xn, yn, zn, Left_Cerebral_White_Matter) ;
+	    gc_gray = GCAfindGC(gca, xn, yn, zn, Left_Cerebral_Cortex) ;
+	    gc_wm = GCAfindGC(gca, xn, yn, zn, Left_Cerebral_White_Matter) ;
           }
           else
           {
-						gc_gray = GCAfindGC(gca, xn, yn, zn, Right_Cerebral_Cortex) ;
-						gc_wm = GCAfindGC(gca, xn, yn, zn, Right_Cerebral_White_Matter) ;
+	    gc_gray = GCAfindGC(gca, xn, yn, zn, Right_Cerebral_Cortex) ;
+	    gc_wm = GCAfindGC(gca, xn, yn, zn, Right_Cerebral_White_Matter) ;
             left = 0 ;
           }
-
-					if (!gc_wm || !gc_gray)
-						continue ;
+	  
+	  if (!gc_wm || !gc_gray)
+	    continue ;
           gray_dist = sqrt(GCAmahDistIdentityCovariance(gc_gray, vals, gca->ninputs)) ;
           wm_dist = sqrt(GCAmahDistIdentityCovariance(gc_wm, vals, gca->ninputs)) ;
           if (gray_dist < wm_dist)
@@ -7462,15 +7581,15 @@ GCArelabel_cortical_gray_and_white(GCA *gca, MRI *mri_inputs,
           {
             if (x == Ggca_x && y == Ggca_y && z == Ggca_z && 
                 (label == Ggca_label || Ggca_label < 0))
-						{
-							int in ;
-
+	    {
+	      int in ;
+	      
               printf("voxel(%d,%d,%d), inputs=", x, y, z) ;
-							for (in = 0 ;in < gca->ninputs ; in++)
-								printf("%2.1f ", vals[in]) ;
+	      for (in = 0 ;in < gca->ninputs ; in++)
+		printf("%2.1f ", vals[in]) ;
               printf("label=%s (%d)\n",cma_label_to_name(label),label);
-						}
-
+	    }
+	    
             if (label == Left_Cerebral_Cortex ||label == Right_Cerebral_Cortex)
               new_gray++ ;
             else
@@ -7674,17 +7793,17 @@ gcaExtractThresholdedRegionLabelAsSamples(GCA *gca, MRI *mri_labeled,
         gcas[i].label = label ;
         gcas[i].xp = xp ; gcas[i].yp = yp ; gcas[i].zp = zp ; 
         gcas[i].x = xi ;   gcas[i].y = yi ;   gcas[i].z = zi ; 
-				gcas[i].means = (float *)calloc(gca->ninputs, sizeof(float)) ;
-				gcas[i].covars = (float *)calloc((gca->ninputs*(gca->ninputs+1))/2, sizeof(float)) ;
-				if (!gcas[i].means || !gcas[i].covars)
-					ErrorExit(ERROR_NOMEMORY, "GCArenormalizeAdapative: could not allocate mean (%d) and covariance (%d) matrices",
-										gca->ninputs, gca->ninputs*(gca->ninputs+1)/2) ;
-				for (r = v = 0 ; r < gca->ninputs ; r++)
-				{
-					gcas[i].means[r] = gc->means[r] ;
-					for (c = r ; c < gca->ninputs ; c++)
-						gcas[i].covars[v] = gc->covars[v] ;
-				}
+	gcas[i].means = (float *)calloc(gca->ninputs, sizeof(float)) ;
+	gcas[i].covars = (float *)calloc((gca->ninputs*(gca->ninputs+1))/2, sizeof(float)) ;
+	if (!gcas[i].means || !gcas[i].covars)
+	  ErrorExit(ERROR_NOMEMORY, "GCArenormalizeAdapative: could not allocate mean (%d) and covariance (%d) matrices",
+		    gca->ninputs, gca->ninputs*(gca->ninputs+1)/2) ;
+	for (r = v = 0 ; r < gca->ninputs ; r++)
+	{
+	  gcas[i].means[r] = gc->means[r] ;
+	  for (c = r ; c < gca->ninputs ; c++)
+	    gcas[i].covars[v] = gc->covars[v] ;
+	}
         gcas[i].prior = prior ;
         if (FZERO(gcas[i].prior))
           DiagBreak() ;
@@ -7756,12 +7875,12 @@ gcaExtractLabelAsSamples(GCA *gca, MRI *mri_labeled, TRANSFORM *transform,
         gcas[i].label = label ;
         gcas[i].xp = xp ; gcas[i].yp = yp ; gcas[i].zp = zp ; 
         gcas[i].x = x ;   gcas[i].y = y ;   gcas[i].z = z ; 
-				for (r = v = 0 ; r < gca->ninputs ; r++)
-				{
-					gcas[i].means[r] = gc->means[r] ;
-					for (c = r ; c < gca->ninputs ; c++)
-						gcas[i].covars[v] = gc->covars[v] ;
-				}
+	for (r = v = 0 ; r < gca->ninputs ; r++)
+	{
+	  gcas[i].means[r] = gc->means[r] ;
+	  for (c = r ; c < gca->ninputs ; c++)
+	    gcas[i].covars[v] = gc->covars[v] ;
+	}
         gcas[i].prior = getPrior(gcap, label) ;
         if (FZERO(gcas[i].prior))
           DiagBreak() ;
@@ -7788,7 +7907,7 @@ GCArenormalize(MRI *mri_in, MRI *mri_labeled, GCA *gca, TRANSFORM *transform)
   GC1D             *gc ;
   
   if (gca->ninputs > 1)
-		ErrorExit(ERROR_UNSUPPORTED, "GCArenormalize: can only renormalize scalars") ;
+    ErrorExit(ERROR_UNSUPPORTED, "GCArenormalize: can only renormalize scalars") ;
 
   /* first build a list of all labels that exist */
   for (nsamples = biggest_label = x = 0 ; x < gca->node_width ; x++)
@@ -7949,7 +8068,7 @@ GCArenormalizeAdaptive(MRI *mri_in, MRI *mri_labeled, GCA *gca, TRANSFORM *trans
 	float            fmin, fmax ;
 
   orig_wsize = wsize ;
-	MRIvalRange(mri_in, &fmin, &fmax) ;
+  MRIvalRange(mri_in, &fmin, &fmax) ;
   histo = HISTOalloc((int)(fmax-fmin+1)) ; hsmooth = HISTOalloc((int)(fmax-fmin+1)) ;
 
   /* go through GCA renormalizing each entry */
@@ -7990,52 +8109,52 @@ GCArenormalizeAdaptive(MRI *mri_in, MRI *mri_labeled, GCA *gca, TRANSFORM *trans
           if (nsamples < MIN_SAMPLES) /* couldn't find any in this nbhd */
             continue ;
 
-					for (frame = 0 ; frame < gca->ninputs ; frame++)
-					{
-						gcaHistogramSamples(gca, gcas, mri_in, transform, nsamples, histo, frame);
-						HISTOsmooth(histo, hsmooth, 2) ;
-						if (IS_WM(label) && gca->ninputs == 1)
-							peak = HISTOfindLastPeakRelative(hsmooth, HISTO_WINDOW_SIZE,.3);
-						else if (IS_LAT_VENT(label) && gca->ninputs == 1)
-							peak = HISTOfindFirstPeakRelative(hsmooth, HISTO_WINDOW_SIZE,.3);
-						else
-							peak = HISTOfindHighestPeakInRegion(hsmooth, fmin, fmax) ;
-						if (peak < 0)
-							continue ;
+	  for (frame = 0 ; frame < gca->ninputs ; frame++)
+	  {
+	    gcaHistogramSamples(gca, gcas, mri_in, transform, nsamples, histo, frame);
+	    HISTOsmooth(histo, hsmooth, 2) ;
+	    if (IS_WM(label) && gca->ninputs == 1)
+	      peak = HISTOfindLastPeakRelative(hsmooth, HISTO_WINDOW_SIZE,.3);
+	    else if (IS_LAT_VENT(label) && gca->ninputs == 1)
+	      peak = HISTOfindFirstPeakRelative(hsmooth, HISTO_WINDOW_SIZE,.3);
+	    else
+	      peak = HISTOfindHighestPeakInRegion(hsmooth, fmin, fmax) ;
+	    if (peak < 0)
+	      continue ;
 #if 0
-						ordered_indices = (int *)calloc(nsamples, sizeof(int)) ;
-						GCAcomputeLogSampleProbability(gca, gcas, mri_in, transform, nsamples) ;
-						GCArankSamples(gca, gcas, nsamples, ordered_indices) ;
-						
-						if (nsamples > MIN_SAMPLES)
-						{
-							if (nint(nsamples*SAMPLE_PCT) < MIN_SAMPLES)
+	    ordered_indices = (int *)calloc(nsamples, sizeof(int)) ;
+	    GCAcomputeLogSampleProbability(gca, gcas, mri_in, transform, nsamples) ;
+	    GCArankSamples(gca, gcas, nsamples, ordered_indices) ;
+	    
+	    if (nsamples > MIN_SAMPLES)
+	    {
+	      if (nint(nsamples*SAMPLE_PCT) < MIN_SAMPLES)
 								nsamples = MIN_SAMPLES ;
-							else
-								nsamples = nint(SAMPLE_PCT * (float)nsamples) ;
-						}
-						
-						
-						/* compute mean and variance of image intensities in this label */
-						for (var = mean = 0.0f, i = 0 ; i < nsamples ; i++)
-						{
-							index = ordered_indices[i] ;
-							MRIsampleVolumeFrame(mri_in, gcas[index].x, gcas[index].y, gcas[index].z,
-								frame, &val);
-							mean += val ;
-							var += val*val ;
-							if (gcas[index].x == Ggca_x &&  gcas[index].y == Ggca_y &&
-									gcas[index].z == Ggca_z)
-								DiagBreak() ;
-						}
-						mean /= (float)nsamples ; var = var / nsamples - mean*mean ; 
-						var = sqrt(var);
-						free(ordered_indices) ;
-						gc->means[0] = mean ;
+	      else
+		nsamples = nint(SAMPLE_PCT * (float)nsamples) ;
+	    }
+	    
+	    
+	    /* compute mean and variance of image intensities in this label */
+	    for (var = mean = 0.0f, i = 0 ; i < nsamples ; i++)
+	    {
+	      index = ordered_indices[i] ;
+	      MRIsampleVolumeFrame(mri_in, gcas[index].x, gcas[index].y, gcas[index].z,
+				   frame, &val);
+	      mean += val ;
+	      var += val*val ;
+	      if (gcas[index].x == Ggca_x &&  gcas[index].y == Ggca_y &&
+		  gcas[index].z == Ggca_z)
+		DiagBreak() ;
+	    }
+	    mean /= (float)nsamples ; var = var / nsamples - mean*mean ; 
+	    var = sqrt(var);
+	    free(ordered_indices) ;
+	    gc->means[0] = mean ;
 #endif
-						gc->means[frame] = (float)peak ;
-					}
-					GCAfreeSamples(&gcas, nsamples) ; 
+	    gc->means[frame] = (float)peak ;
+	  }
+	  GCAfreeSamples(&gcas, nsamples) ; 
         }
       }
     }
@@ -8061,7 +8180,7 @@ GCArenormalizeLabels(MRI *mri_in, MRI *mri_labeled, GCA *gca, TRANSFORM *transfo
   char             fname[STRLEN] ;
 
   if (gca->ninputs > 1)
-		ErrorExit(ERROR_UNSUPPORTED, "GCArenormalizeLabels: can only renormalize scalars") ;
+    ErrorExit(ERROR_UNSUPPORTED, "GCArenormalizeLabels: can only renormalize scalars") ;
 
   /* first build a list of all labels that exist */
   for (biggest_label = x = 0 ; x < gca->node_width ; x++)
@@ -8265,8 +8384,8 @@ GCArenormalizeIntensities(GCA *gca, int *labels, float *intensities, int num)
   GC1D      *gc ;
   double    *means, *wts ;
 
-	if (gca->ninputs > 1)
-		ErrorExit(ERROR_UNSUPPORTED, "GCArenormalizeIntensities: can only renormalize scalars") ;
+  if (gca->ninputs > 1)
+    ErrorExit(ERROR_UNSUPPORTED, "GCArenormalizeIntensities: can only renormalize scalars") ;
 
   means = (double *)calloc(num, sizeof(double)) ;
   wts = (double *)calloc(num, sizeof(double)) ;
@@ -8378,16 +8497,16 @@ GCAunifyVariance(GCA *gca)
         for (n = 0 ; n < gcan->nlabels ; n++)
         {
           gc = &gcan->gcs[n] ;
-					for (r = v = 0 ; r < gca->ninputs ; r++)
-					{
-						for (c = r ; c < gca->ninputs ; c++, v++)
-						{
-							if (r == c)
-								gc->covars[v] = MIN_VAR ;
-							else
-								gc->covars[v] = 0.0 ;
-						}
-					}
+	  for (r = v = 0 ; r < gca->ninputs ; r++)
+	  {
+	    for (c = r ; c < gca->ninputs ; c++, v++)
+	    {
+	      if (r == c)
+		gc->covars[v] = MIN_VAR ;
+	      else
+		gc->covars[v] = 0.0 ;
+	    }
+	  }
         }
       }
     }
@@ -8423,21 +8542,21 @@ GCAlabelMean(GCA *gca, int label, float *means)
           gc = &gcan->gcs[n] ;
           prior = get_node_prior(gca, label, xn, yn, zn) ;
           wt += prior ;
-					for (r = 0 ; r < gca->ninputs ; r++)
-					{
-						means[r] += gc->means[r]*prior ;
-						if (!finite(gc->means[r]))
-							DiagBreak() ;
-					}
-                           
+	  for (r = 0 ; r < gca->ninputs ; r++)
+	  {
+	    means[r] += gc->means[r]*prior ;
+	    if (!finite(gc->means[r]))
+	      DiagBreak() ;
+	  }
+	  
         }
       }
     }
   }
-	if (FZERO(wt))
-		return(NO_ERROR) ;
-	for (r = 0 ; r < gca->ninputs ; r++)
-		means[r] /= wt ;
+  if (FZERO(wt))
+    return(NO_ERROR) ;
+  for (r = 0 ; r < gca->ninputs ; r++)
+    means[r] /= wt ;
   return(NO_ERROR) ;
 }
 int
@@ -8454,14 +8573,14 @@ GCAregularizeConditionalDensities(GCA *gca, float smooth)
   if (!means || !wts)
     ErrorExit(ERROR_NOMEMORY, "%s: could not allocate %d wt and mean vectors",
               Progname, MAX_GCA_LABELS) ;
-	for (r = 0 ; r < gca->ninputs ; r++)
-	{
-		means[r] = (double *)calloc(MAX_GCA_LABELS, sizeof(double)) ;
-		if (!means[r])
-			ErrorExit(ERROR_NOMEMORY, "%s: could not allocate %d wt and mean vectors",
-								Progname, MAX_GCA_LABELS) ;
-	}
-
+  for (r = 0 ; r < gca->ninputs ; r++)
+  {
+    means[r] = (double *)calloc(MAX_GCA_LABELS, sizeof(double)) ;
+    if (!means[r])
+      ErrorExit(ERROR_NOMEMORY, "%s: could not allocate %d wt and mean vectors",
+		Progname, MAX_GCA_LABELS) ;
+  }
+  
   /* compute overall mean for each class */
   for (max_label = 1, zn = 0 ; zn < gca->node_depth ; zn++)
   {
@@ -8478,8 +8597,8 @@ GCAregularizeConditionalDensities(GCA *gca, float smooth)
           gc = &gcan->gcs[n] ;
           prior = get_node_prior(gca, label, xn, yn, zn) ;
           wts[label] += prior ;
-					for (r = 0 ; r < gca->ninputs ; r++)
-						means[r][label] += gc->means[r]*prior ;
+	  for (r = 0 ; r < gca->ninputs ; r++)
+	    means[r][label] += gc->means[r]*prior ;
           if (label > max_label)
             max_label = label ;
         }
@@ -8490,10 +8609,10 @@ GCAregularizeConditionalDensities(GCA *gca, float smooth)
   for (i = 0 ; i <= max_label ; i++)
   {
     if (!FZERO(wts[i]))
-		{
-			for (r = 0 ; r < gca->ninputs ; r++)
-				means[r][i] /= wts[i] ;
-		}
+    {
+      for (r = 0 ; r < gca->ninputs ; r++)
+	means[r][i] /= wts[i] ;
+    }
   }
 
   /* now impose regularization */
@@ -8512,15 +8631,15 @@ GCAregularizeConditionalDensities(GCA *gca, float smooth)
             continue ;
 
           gc = &gcan->gcs[n] ;
-					for (r = 0 ; r < gca->ninputs ; r++)
-						gc->means[r] = means[r][label]*smooth + gc->means[r]*(1.0f-smooth) ;
+	  for (r = 0 ; r < gca->ninputs ; r++)
+	    gc->means[r] = means[r][label]*smooth + gc->means[r]*(1.0f-smooth) ;
         }
       }
     }
   }
 
-	for (r = 0 ; r < gca->ninputs ; r++)
-		free(means[r]) ;
+  for (r = 0 ; r < gca->ninputs ; r++)
+    free(means[r]) ;
   free(wts) ; free(means) ;
   return(NO_ERROR) ;
 }
@@ -8547,9 +8666,9 @@ GCArenormalizeToFlash(GCA *gca, char *tissue_parms_fname, MRI *mri)
     if (sscanf(cp, "%d %f %f", &labels[nlabels], &T1, &PD)
         != 3)
       ErrorReturn(ERROR_BADFILE,
-                (ERROR_BADFILE, 
-                 "GCArenormalizeToFlash: could not parse %dth line %s in %s",
-                 nlabels+1, cp, tissue_parms_fname)) ;
+		  (ERROR_BADFILE, 
+		   "GCArenormalizeToFlash: could not parse %dth line %s in %s",
+		   nlabels+1, cp, tissue_parms_fname)) ;
                 
     intensities[nlabels] = FLASHforwardModel(T1, PD, TR, alpha, 3) ;
 
@@ -8612,11 +8731,11 @@ GCAmeanFilterConditionalDensities(GCA *gca, float navgs)
         {
           for (xn = 0 ; xn < gca->node_width ; xn++)
           {
-						if (xn == Gx && yn == Gy && zn == Gz)
-							DiagBreak() ;
-						wt = 0.0 ;
-						for (f = 0 ; f < gca->ninputs ; f++)
-							means[f] = 0 ;
+	    if (xn == Gx && yn == Gy && zn == Gz)
+	      DiagBreak() ;
+	    wt = 0.0 ;
+	    for (f = 0 ; f < gca->ninputs ; f++)
+	      means[f] = 0 ;
             for (xn1 = xn-1 ; xn1 <= xn+1 ; xn1++)
             {
               if (xn1 < 0 || xn1 >= gca->node_width)
@@ -8640,12 +8759,12 @@ GCAmeanFilterConditionalDensities(GCA *gca, float navgs)
                   
                     gc = &gcan->gcs[n] ;
                     prior = get_node_prior(gca, label, xn1, yn1, zn1) ;
-										for (f = 0 ; f < gca->ninputs ; f++)
-										{
-											means[f] += prior*gc->means[f] ;
-											if (!finite(means[f] / wt))
-												DiagBreak() ;
-										}
+		    for (f = 0 ; f < gca->ninputs ; f++)
+		    {
+		      means[f] += prior*gc->means[f] ;
+		      if (!finite(means[f] / wt))
+			DiagBreak() ;
+		    }
                     wt += prior ;
                     break ;
                   }
@@ -8654,14 +8773,14 @@ GCAmeanFilterConditionalDensities(GCA *gca, float navgs)
             }
             if (FZERO(wt))
               continue ;   /* label didn't occur here */
-						for (f = 0 ; f < gca->ninputs ; f++)
-						{
-							if (!finite(means[f] / wt))
-								DiagBreak() ;
-							MRIFseq_vox(mri_means, xn, yn, zn, f) = means[f] / wt ;
-							if (!finite(MRIFseq_vox(mri_means,xn,yn,zn,f)))
-								DiagBreak() ;
-						}
+	    for (f = 0 ; f < gca->ninputs ; f++)
+	    {
+	      if (!finite(means[f] / wt))
+		DiagBreak() ;
+	      MRIFseq_vox(mri_means, xn, yn, zn, f) = means[f] / wt ;
+	      if (!finite(MRIFseq_vox(mri_means,xn,yn,zn,f)))
+		DiagBreak() ;
+	    }
           }
         }
       }
@@ -8678,14 +8797,14 @@ GCAmeanFilterConditionalDensities(GCA *gca, float navgs)
               if (gcan->labels[n] != label)
                 continue ;
               gc = &gcan->gcs[n] ;
-							if (xn == Gx && yn == Gy && zn == Gz)
-								DiagBreak() ;
-							for (f = 0 ; f < gca->ninputs ; f++)
-							{
-								gc->means[f] = MRIFseq_vox(mri_means, xn, yn, zn, f) ;
-								if (!finite(gc->means[f]))
-									DiagBreak() ;
-							}
+	      if (xn == Gx && yn == Gy && zn == Gz)
+		DiagBreak() ;
+	      for (f = 0 ; f < gca->ninputs ; f++)
+	      {
+		gc->means[f] = MRIFseq_vox(mri_means, xn, yn, zn, f) ;
+		if (!finite(gc->means[f]))
+		  DiagBreak() ;
+	      }
               break ;
             }
           }
@@ -8752,48 +8871,48 @@ GCAhistoScaleImageIntensities(GCA *gca, MRI *mri)
   box.dz /= 4 ; box.z = z0 - box.dz/2;
 #endif
   for (r = 0 ; r < gca->ninputs ; r++)
-	{
-		mri_frame = MRIcopyFrame(mri, NULL, r, 0) ;
-		printf("mean wm in atlas = %2.0f, using box (%d,%d,%d) --> (%d, %d,%d) "
-					 "to find MRI wm\n", wm_means[r], box.x, box.y, box.z, 
-					 box.x+box.dx-1,box.y+box.dy-1, box.z+box.dz-1) ;
-
-		h_mri = MRIhistogramRegion(mri_frame, 0, NULL, &box) ; 
-		if (gca->ninputs == 1)
-			HISTOclearBins(h_mri, h_mri, 0, min_real_val) ;
-		if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
-			HISTOplot(h_mri, "mri.histo") ;
-		if (gca->ninputs == 1)   /* assume it is T1-weighted */
-			mri_peak = HISTOfindLastPeak(h_mri, 2*HISTO_WINDOW_SIZE,MIN_HISTO_PCT);
-		else
-			mri_peak = HISTOfindHighestPeakInRegion(h_mri, 1, h_mri->nbins * h_mri->bin_size);
-		mri_peak = h_mri->bins[mri_peak] ;
- 		printf("before smoothing, mri peak at %d\n", mri_peak) ;
-		h_smooth = HISTOsmooth(h_mri, NULL, 2) ;
-		if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
-			HISTOplot(h_smooth, "mri_smooth.histo") ;
-		if (gca->ninputs == 1)   /* assume it is T1-weighted */
-			mri_peak = HISTOfindLastPeak(h_smooth, HISTO_WINDOW_SIZE,MIN_HISTO_PCT);
-		else
-			mri_peak = HISTOfindHighestPeakInRegion(h_mri, 1, h_mri->nbins * h_mri->bin_size);
-		mri_peak = h_mri->bins[mri_peak] ;
-		printf("after smoothing, mri peak at %d, scaling input intensities "
-					 "by %2.3f\n", mri_peak, wm_means[r]/mri_peak) ;
+  {
+    mri_frame = MRIcopyFrame(mri, NULL, r, 0) ;
+    printf("mean wm in atlas = %2.0f, using box (%d,%d,%d) --> (%d, %d,%d) "
+	   "to find MRI wm\n", wm_means[r], box.x, box.y, box.z, 
+	   box.x+box.dx-1,box.y+box.dy-1, box.z+box.dz-1) ;
+    
+    h_mri = MRIhistogramRegion(mri_frame, 0, NULL, &box) ; 
+    if (gca->ninputs == 1)
+      HISTOclearBins(h_mri, h_mri, 0, min_real_val) ;
+    if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+      HISTOplot(h_mri, "mri.histo") ;
+    if (gca->ninputs == 1)   /* assume it is T1-weighted */
+      mri_peak = HISTOfindLastPeak(h_mri, 2*HISTO_WINDOW_SIZE,MIN_HISTO_PCT);
+    else
+      mri_peak = HISTOfindHighestPeakInRegion(h_mri, 1, h_mri->nbins * h_mri->bin_size);
+    mri_peak = h_mri->bins[mri_peak] ;
+    printf("before smoothing, mri peak at %d\n", mri_peak) ;
+    h_smooth = HISTOsmooth(h_mri, NULL, 2) ;
+    if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+      HISTOplot(h_smooth, "mri_smooth.histo") ;
+    if (gca->ninputs == 1)   /* assume it is T1-weighted */
+      mri_peak = HISTOfindLastPeak(h_smooth, HISTO_WINDOW_SIZE,MIN_HISTO_PCT);
+    else
+      mri_peak = HISTOfindHighestPeakInRegion(h_mri, 1, h_mri->nbins * h_mri->bin_size);
+    mri_peak = h_mri->bins[mri_peak] ;
+    printf("after smoothing, mri peak at %d, scaling input intensities "
+	   "by %2.3f\n", mri_peak, wm_means[r]/mri_peak) ;
 #if 0
-		MRIscalarMul(mri_frame, mri_frame, wm_means[r]/mri_peak) ;
-		MRIcopyFrame(mri_frame, mri, 0, r) ;   /* put it back in multi-frame image */
+    MRIscalarMul(mri_frame, mri_frame, wm_means[r]/mri_peak) ;
+    MRIcopyFrame(mri_frame, mri, 0, r) ;   /* put it back in multi-frame image */
 #endif
-		if (mri_peak == 0)
-			ErrorExit(ERROR_BADPARM, "GCAhistoScaleImageIntensities: could not find wm peak") ;
-		scales[r] = wm_means[r]/mri_peak ;
-		MRIfree(&mri_frame) ;
-		HISTOfree(&h_smooth) ; HISTOfree(&h_mri) ;
-	}
-	for (scale = 0.0, r = 0 ; r < gca->ninputs ; r++)
-		scale += scales[r] ;
-	scale /= (double)gca->ninputs ;
-	printf("scaling all frames by %2.3f\n", scale) ;
-	MRIscalarMul(mri, mri, scale) ;
+    if (mri_peak == 0)
+      ErrorExit(ERROR_BADPARM, "GCAhistoScaleImageIntensities: could not find wm peak") ;
+    scales[r] = wm_means[r]/mri_peak ;
+    MRIfree(&mri_frame) ;
+    HISTOfree(&h_smooth) ; HISTOfree(&h_mri) ;
+  }
+  for (scale = 0.0, r = 0 ; r < gca->ninputs ; r++)
+    scale += scales[r] ;
+  scale /= (double)gca->ninputs ;
+  printf("scaling all frames by %2.3f\n", scale) ;
+  MRIscalarMul(mri, mri, scale) ;
   return(NO_ERROR) ;
 }
 
@@ -8898,14 +9017,14 @@ findClosestValidGC(GCA *gca, int x0, int y0, int z0, int label, int check_var)
           if (gcan->labels[n] != label)
             continue ;
           gc = &gcan->gcs[n] ;
-					det = covariance_determinant(gc, gca->ninputs) ;
-					m_cov_inv = load_inverse_covariance_matrix(gc, NULL, gca->ninputs) ;
-					if (m_cov_inv == NULL)
-						det = -1 ;
-					else
-						MatrixFree(&m_cov_inv) ;
-					if (check_var && det <= MIN_DET)
-						continue ;
+	  det = covariance_determinant(gc, gca->ninputs) ;
+	  m_cov_inv = load_inverse_covariance_matrix(gc, NULL, gca->ninputs) ;
+	  if (m_cov_inv == NULL)
+	    det = -1 ;
+	  else
+	    MatrixFree(&m_cov_inv) ;
+	  if (check_var && det <= MIN_DET)
+	    continue ;
           dist = sqrt(SQR(x-x0)+SQR(y-y0)+SQR(z-z0)) ;
           if (dist < min_dist)
           {
@@ -8932,8 +9051,8 @@ findClosestValidGC(GCA *gca, int x0, int y0, int z0, int label, int check_var)
           if (gcan->labels[n] != label)
             continue ;
           gc = &gcan->gcs[n] ;
-					det = covariance_determinant(gc, gca->ninputs) ;
-					if (check_var && det <= 0)
+	  det = covariance_determinant(gc, gca->ninputs) ;
+	  if (check_var && det <= 0)
 						continue ;
           dist = sqrt(SQR(x-x0)+SQR(y-y0)+SQR(z-z0)) ;
           if (dist < min_dist)
@@ -8967,15 +9086,15 @@ gcaCheck(GCA *gca)
         for (n = 0 ; n < gcan->nlabels ; n++)
         {
           gc = &gcan->gcs[n] ;
-					for (v = r = 0 ; r < gca->ninputs ; r++)
-					{
-						for (c = r ; c < gca->ninputs ; c++, v++)
-							if (!finite(gc->means[r]) || !finite(gc->covars[v]))
-							{
-								ret = ERROR_BADPARM ;
-								DiagBreak() ;
-							}
-					}
+	  for (v = r = 0 ; r < gca->ninputs ; r++)
+	  {
+	    for (c = r ; c < gca->ninputs ; c++, v++)
+	      if (!finite(gc->means[r]) || !finite(gc->covars[v]))
+	      {
+		ret = ERROR_BADPARM ;
+		DiagBreak() ;
+	      }
+	  }
         }
       }
     }
@@ -9102,8 +9221,8 @@ GCAfindAllSamples(GCA *gca, int *pnsamples, int *exclude_list)
       {
         gcap = &gca->priors[x][y][z] ;
         max_p = 0 ;  max_n = -1 ; max_label = 0 ;
-				if (gcap->nlabels == 0)
-					continue ;
+	if (gcap->nlabels == 0)
+	  continue ;
 
         if (x*gca->prior_spacing == Gx && y*gca->prior_spacing == Gy && 
             z*gca->prior_spacing == Gz)
@@ -9121,8 +9240,8 @@ GCAfindAllSamples(GCA *gca, int *pnsamples, int *exclude_list)
             max_label = gcap->labels[n] ;
           }
         }
-				if (exclude_list && exclude_list[max_label] > 0)
-					continue ;
+	if (exclude_list && exclude_list[max_label] > 0)
+	  continue ;
         if (IS_UNKNOWN(max_label) &&
             (different_nbr_max_labels(gca, x, y, z, 1, 0) == 0))
           continue ;
@@ -9143,8 +9262,8 @@ GCAfindAllSamples(GCA *gca, int *pnsamples, int *exclude_list)
       {
         gcap = &gca->priors[x][y][z] ;
         max_p = 0 ;  max_n = -1 ; max_label = 0 ;
-				if (gcap->nlabels == 0)
-					continue ;
+	if (gcap->nlabels == 0)
+	  continue ;
 
         for (n = 0 ; n < gcap->nlabels ; n++)
         {
@@ -9159,8 +9278,8 @@ GCAfindAllSamples(GCA *gca, int *pnsamples, int *exclude_list)
             max_label = gcap->labels[n] ;
           }
         }
-				if (exclude_list && exclude_list[max_label] > 0)
-					continue ;
+	if (exclude_list && exclude_list[max_label] > 0)
+	  continue ;
         if (IS_UNKNOWN(max_label) &&
             (different_nbr_max_labels(gca, x, y, z, 1, 0) == 0))
           continue ;
@@ -9171,40 +9290,40 @@ GCAfindAllSamples(GCA *gca, int *pnsamples, int *exclude_list)
         gcas[i].y = y*gca->prior_spacing ; 
         gcas[i].z = z*gca->prior_spacing ;
         gcas[i].label = max_label ;
-				if (FZERO(max_p))
-				{
-					max_p = 0.1 ;
-					DiagBreak() ;
-				}
+	if (FZERO(max_p))
+	{
+	  max_p = 0.1 ;
+	  DiagBreak() ;
+	}
         gcas[i].prior = max_p ;
-				gcas[i].means = (float *)calloc(gca->ninputs, sizeof(float)) ;
-				gcas[i].covars = (float *)calloc((gca->ninputs*(gca->ninputs+1))/2, sizeof(float)) ;
-				if (!gcas[i].means || !gcas[i].covars)
-					ErrorExit(ERROR_NOMEMORY, "GCAfindStableSamples: could not allocate mean (%d) and covariance (%d) matrices",
-								gca->ninputs, gca->ninputs*(gca->ninputs+1)/2) ;
+	gcas[i].means = (float *)calloc(gca->ninputs, sizeof(float)) ;
+	gcas[i].covars = (float *)calloc((gca->ninputs*(gca->ninputs+1))/2, sizeof(float)) ;
+	if (!gcas[i].means || !gcas[i].covars)
+	  ErrorExit(ERROR_NOMEMORY, "GCAfindStableSamples: could not allocate mean (%d) and covariance (%d) matrices",
+		    gca->ninputs, gca->ninputs*(gca->ninputs+1)/2) ;
         gc = GCAfindPriorGC(gca, x, y, z, max_label) ;
         if (gc)
         {
-					for (v = r = 0 ; r < gca->ninputs ; r++)
-					{
-						gcas[i].means[r] = gc->means[r] ;
-						for (c = r ; c < gca->ninputs ; c++, v++)
-							gcas[i].covars[v] = gc->covars[v] ;
-					}
+	  for (v = r = 0 ; r < gca->ninputs ; r++)
+	  {
+	    gcas[i].means[r] = gc->means[r] ;
+	    for (c = r ; c < gca->ninputs ; c++, v++)
+	      gcas[i].covars[v] = gc->covars[v] ;
+	  }
         }
         else
         {
-					for (v = r = 0 ; r < gca->ninputs ; r++)
-					{
-						gcas[i].means[r] = 0.0 ;
-						for (c = r ; c < gca->ninputs ; c++, v++)
-						{
-							if (c == r)
-								gcas[i].covars[v] = 1.0 ;
-							else
-								gcas[i].covars[v] = 0.0 ;
-						}
-					}
+	  for (v = r = 0 ; r < gca->ninputs ; r++)
+	  {
+	    gcas[i].means[r] = 0.0 ;
+	    for (c = r ; c < gca->ninputs ; c++, v++)
+	    {
+	      if (c == r)
+		gcas[i].covars[v] = 1.0 ;
+	      else
+		gcas[i].covars[v] = 0.0 ;
+	    }
+	  }
         }
         gcas[i].log_p = 0 ;
         i++ ;
@@ -9470,16 +9589,16 @@ gcaHistogramSamples(GCA *gca, GCA_SAMPLE *gcas, MRI *mri,
 	float  fmin, fmax ;
 
   if (!histo)
-	{
-		MRIvalRangeFrame(mri, &fmin, &fmax, frame) ;
+  {
+    MRIvalRangeFrame(mri, &fmin, &fmax, frame) ;
     histo = HISTOalloc(nint(fmax-fmin+1)) ;
-	}
+  }
   else
     HISTOclear(histo, histo) ;
 
   for (mean = var = 0.0, i = 0 ; i < nsamples ; i++)
   {
-		MRIsampleVolumeFrame(mri, gcas[i].x,gcas[i].y,gcas[i].z, frame, &val) ;
+    MRIsampleVolumeFrame(mri, gcas[i].x,gcas[i].y,gcas[i].z, frame, &val) ;
     histo->counts[(int)val]++ ;
     mean += val ;
     var += (val*val) ;
@@ -9520,8 +9639,8 @@ GCArenormalizeFromAtlas(GCA *gca, GCA *gca_template)
           gct = GCAfindGC(gca_template, xt, yt, zt, label) ;
           if (gct == NULL)
             continue ;    /* label not in template GCA */
-					for (v = 0 ; v < gca->ninputs ; v++)
-						gc->means[v] = gct->means[v] ;
+	  for (v = 0 ; v < gca->ninputs ; v++)
+	    gc->means[v] = gct->means[v] ;
         }
       }
     }
@@ -9533,58 +9652,58 @@ GCArenormalizeFromAtlas(GCA *gca, GCA *gca_template)
 void
 load_vals(MRI *mri_inputs, float x, float y, float z, float *vals, int ninputs)
 {
-	int  n ;
-	Real val ;
-
-	for (n = 0 ; n < ninputs ; n++)
-	{
-		MRIsampleVolumeFrame(mri_inputs, x, y, z, n, &val) ;
-		vals[n] = val ;
-	}
+  int  n ;
+  Real val ;
+  
+  for (n = 0 ; n < ninputs ; n++)
+  {
+    MRIsampleVolumeFrame(mri_inputs, x, y, z, n, &val) ;
+    vals[n] = val ;
+  }
 }
 
 double
 GCAmahDist(GC1D *gc, float *vals, int ninputs)
 {
-	static VECTOR *v_means = NULL, *v_vals = NULL ;
-	static MATRIX *m_cov = NULL, *m_cov_inv ;
-	int    i ;
-	double dsq ;
-
-	if (ninputs == 1)
-	{
-		float  v ;
-		v = vals[0] - gc->means[0] ;
-		dsq = v*v / gc->covars[0] ;
-		return(dsq) ;
-	}
-
-	if (v_vals && ninputs != v_vals->rows)
-		VectorFree(&v_vals) ;
-	if (v_means && ninputs != v_means->rows)
-		VectorFree(&v_means) ;
-	if (m_cov && (ninputs != m_cov->rows || ninputs != m_cov->cols))
-	{
-		MatrixFree(&m_cov) ;
-		MatrixFree(&m_cov_inv) ;
-	}
-	v_means = load_mean_vector(gc, v_means, ninputs) ;
-	m_cov = load_covariance_matrix(gc, m_cov, ninputs) ;
-	if (v_vals == NULL)
-		v_vals = VectorClone(v_means) ;
-	for (i = 0 ; i < ninputs ; i++)
-		VECTOR_ELT(v_vals, i+1) = vals[i] ;
-
-	VectorSubtract(v_means, v_vals, v_vals) ;  /* v_vals now has mean removed */
-	m_cov_inv = MatrixInverse(m_cov, m_cov_inv) ;
-	if (!m_cov_inv)
-		ErrorExit(ERROR_BADPARM, "singular covariance matrix!") ;
-	MatrixSVDInverse(m_cov, m_cov_inv) ;
-
-	MatrixMultiply(m_cov_inv, v_vals, v_means) ;  /* v_means is now inverse(cov) * v_vals */
-	dsq = VectorDot(v_vals, v_means) ;
-
-	return(dsq);
+  static VECTOR *v_means = NULL, *v_vals = NULL ;
+  static MATRIX *m_cov = NULL, *m_cov_inv ;
+  int    i ;
+  double dsq ;
+  
+  if (ninputs == 1)
+  {
+    float  v ;
+    v = vals[0] - gc->means[0] ;
+    dsq = v*v / gc->covars[0] ;
+    return(dsq) ;
+  }
+  
+  if (v_vals && ninputs != v_vals->rows)
+    VectorFree(&v_vals) ;
+  if (v_means && ninputs != v_means->rows)
+    VectorFree(&v_means) ;
+  if (m_cov && (ninputs != m_cov->rows || ninputs != m_cov->cols))
+  {
+    MatrixFree(&m_cov) ;
+    MatrixFree(&m_cov_inv) ;
+  }
+  v_means = load_mean_vector(gc, v_means, ninputs) ;
+  m_cov = load_covariance_matrix(gc, m_cov, ninputs) ;
+  if (v_vals == NULL)
+    v_vals = VectorClone(v_means) ;
+  for (i = 0 ; i < ninputs ; i++)
+    VECTOR_ELT(v_vals, i+1) = vals[i] ;
+  
+  VectorSubtract(v_means, v_vals, v_vals) ;  /* v_vals now has mean removed */
+  m_cov_inv = MatrixInverse(m_cov, m_cov_inv) ;
+  if (!m_cov_inv)
+    ErrorExit(ERROR_BADPARM, "singular covariance matrix!") ;
+  MatrixSVDInverse(m_cov, m_cov_inv) ;
+  
+  MatrixMultiply(m_cov_inv, v_vals, v_means) ;  /* v_means is now inverse(cov) * v_vals */
+  dsq = VectorDot(v_vals, v_means) ;
+  
+  return(dsq);
 }
 double
 GCAmahDistIdentityCovariance(GC1D *gc, float *vals, int ninputs)
@@ -9831,129 +9950,132 @@ int
 GCAlabelExists(GCA *gca, MRI *mri, TRANSFORM *transform, int x, int y, int z, int label)
 {
 #if 0
-	int  xn, yn, zn ;
+  int  xn, yn, zn ;
 
-	GCAsourceVoxelToNode(gca, mri, transform, x, y, z, &xn, &yn, &zn) ;
-	if (GCAfindGC(gca, xn, yn, zn, label) == NULL)
-		return(0) ;
-	return(1) ;
+  GCAsourceVoxelToNode(gca, mri, transform, x, y, z, &xn, &yn, &zn) ;
+  if (GCAfindGC(gca, xn, yn, zn, label) == NULL)
+    return(0) ;
+  return(1) ;
 #else
-	return(GCAisPossible(gca, mri, label, transform, x, y, z)) ;
+  return(GCAisPossible(gca, mri, label, transform, x, y, z)) ;
 #endif
 }
 
 GC1D *
 GCAfindSourceGC(GCA *gca, MRI *mri, TRANSFORM *transform, int x, int y, int z, int label)
 {
-	int  xn, yn, zn ;
-	GC1D *gc ;
-
-	GCAsourceVoxelToNode(gca, mri, transform, x, y, z, &xn, &yn, &zn) ;
-	gc = GCAfindGC(gca, xn, yn, zn, label) ;
-	return(gc) ;
+  int  xn, yn, zn ;
+  GC1D *gc ;
+  
+  GCAsourceVoxelToNode(gca, mri, transform, x, y, z, &xn, &yn, &zn) ;
+  gc = GCAfindGC(gca, xn, yn, zn, label) ;
+  return(gc) ;
 }
 int
 GCAfreeSamples(GCA_SAMPLE **pgcas, int nsamples)
 {
-	GCA_SAMPLE *gcas ;
-	int         i ;
-	
-	gcas = *pgcas ; *pgcas = NULL ;
-
-	if (gcas == NULL)
-		return(NO_ERROR) ;
-
-	for (i = 0 ; i < nsamples ; i++)
-	{
-		if (gcas[i].means)
-			free(gcas[i].means) ;
-		if (gcas[i].covars)
-			free(gcas[i].covars) ;
-	}
-	free(gcas) ;
-	return(NO_ERROR) ;
+  GCA_SAMPLE *gcas ;
+  int         i ;
+  
+  gcas = *pgcas ; *pgcas = NULL ;
+  
+  if (gcas == NULL)
+    return(NO_ERROR) ;
+  
+  for (i = 0 ; i < nsamples ; i++)
+  {
+    if (gcas[i].means)
+      free(gcas[i].means) ;
+    if (gcas[i].covars)
+      free(gcas[i].covars) ;
+  }
+  free(gcas) ;
+  return(NO_ERROR) ;
 }
 int
 GCAnormalizePD(GCA *gca, MRI *mri_inputs, TRANSFORM *transform)
 {
-	double     mri_PD  = 0.0, gca_PD = 0.0 ;
-	int        n, x, y, z, brain_node, nvals, label ;
-	GCA_PRIOR  *gcap ;
-	GC1D       *gc ;
-	Real      val ;
+  double     mri_PD  = 0.0, gca_PD = 0.0 ;
+  int        n, x, y, z, brain_node, nvals, label ;
+  GCA_PRIOR  *gcap ;
+  GC1D       *gc ;
+  Real      val ;
+  
+  if (mri_inputs->nframes != 2 || gca->ninputs != 2)
+    ErrorReturn(ERROR_BADPARM,
+		(ERROR_BADPARM, "GCAnormalizePD: invalid input size (%d) or gca size (%d)",
+		 mri_inputs->nframes, gca->ninputs)) ;
 
-	if (mri_inputs->nframes != 2 || gca->ninputs != 2)
-		ErrorReturn(ERROR_BADPARM,
-								(ERROR_BADPARM, "GCAnormalizePD: invalid input size (%d) or gca size (%d)",
-								 mri_inputs->nframes, gca->ninputs)) ;
-
-	for (nvals = x = 0 ;  x < mri_inputs->width ; x++)
+  for (nvals = x = 0 ;  x < mri_inputs->width ; x++)
+  {
+    for (y = 0 ; y < mri_inputs->height ; y++)
+    {
+      for (z = 0 ; z < mri_inputs->depth ; z++)
+      {
+	gcap = getGCAP(gca, mri_inputs, transform, x, y, z) ;
+	for (label = brain_node = 0, n = 0 ; !brain_node && n < gcap->nlabels ; n++)
+	  if (IS_WM(gcap->labels[n]) && gcap->priors[n] > 0.5)
+	  {
+	    brain_node = 1 ; 
+	    label = gcap->labels[n] ;
+	  }
+	if (!brain_node)
+	  continue ;   /* no valid data here */
+	gc = GCAfindSourceGC(gca, mri_inputs, transform, x, y, z, label) ;
+	if (gc)
 	{
-		for (y = 0 ; y < mri_inputs->height ; y++)
-		{
-			for (z = 0 ; z < mri_inputs->depth ; z++)
-			{
-				gcap = getGCAP(gca, mri_inputs, transform, x, y, z) ;
-				for (label = brain_node = 0, n = 0 ; !brain_node && n < gcap->nlabels ; n++)
-					if (IS_WM(gcap->labels[n]) && gcap->priors[n] > 0.5)
-					{
-						brain_node = 1 ; 
-						label = gcap->labels[n] ;
-					}
-				if (!brain_node)
-					continue ;   /* no valid data here */
-				gc = GCAfindSourceGC(gca, mri_inputs, transform, x, y, z, label) ;
-				MRIsampleVolumeFrameType(mri_inputs, x, y, z, 1, SAMPLE_NEAREST, &val) ;
-				nvals++ ;
-				mri_PD += val ;
-				gca_PD += gc->means[1] ;
-			}
-		}
-	} 
-	mri_PD /= (double)nvals ; gca_PD /= (double)nvals ;
-	printf("mean PD in volume %2.1f, mean GCA PD %2.1f - scaling by %2.3f\n",
-				 mri_PD, gca_PD, gca_PD / mri_PD) ;
-	MRIscalarMulFrame(mri_inputs, mri_inputs, gca_PD / mri_PD, 1) ;
-
-	return(NO_ERROR) ;
+	  MRIsampleVolumeFrameType(mri_inputs, x, y, z, 1, SAMPLE_NEAREST, &val) ;
+	  nvals++ ;
+	  mri_PD += val ;
+	  gca_PD += gc->means[1] ;
+	}
+      }
+    }
+  } 
+  mri_PD /= (double)nvals ; gca_PD /= (double)nvals ;
+  printf("mean PD in volume %2.1f, mean GCA PD %2.1f - scaling by %2.3f\n",
+	 mri_PD, gca_PD, gca_PD / mri_PD) ;
+  MRIscalarMulFrame(mri_inputs, mri_inputs, gca_PD / mri_PD, 1) ;
+  
+  return(NO_ERROR) ;
 }
 GCA *
 GCAcreateFlashGCAfromParameterGCA(GCA *gca_T1PD, double *TR, double *fa, double *TE, int nflash)
 {
-	GCA        *gca_flash ;
-	GCA_PRIOR  *gcap_src, *gcap_dst ;
-	GCA_NODE   *gcan_src, *gcan_dst ;
-	GC1D       *gc_src, *gc_dst ;
-	MATRIX     *m_jacobian, *m_cov_src = NULL, *m_cov_dst = NULL, *m_jacobian_T = NULL, *m_tmp = NULL ;
-	int        n, x, y, z, i, j, v, label_count = 0 ;
-	double     T1, PD, label_means[MAX_GCA_INPUTS] ;
-
-	if (gca_T1PD->ninputs != 2)
-		ErrorExit(ERROR_BADPARM, 
-							"GCAcreateFlashGCAfromParameterGCA: input gca must be T1/PD (ninputs=%d, should be 2", 
-							gca_T1PD->ninputs) ;
-	gca_flash = GCAalloc(nflash, gca_T1PD->prior_spacing, gca_T1PD->node_spacing,
-											 gca_T1PD->node_width*gca_T1PD->node_spacing,
-											 gca_T1PD->node_height*gca_T1PD->node_spacing,
-											 gca_T1PD->node_depth*gca_T1PD->node_spacing, GCA_NO_FLAGS) ;
-
-	m_jacobian = MatrixAlloc(gca_flash->ninputs, gca_T1PD->ninputs, MATRIX_REAL) ;
-
-	/* first copy over priors */
-	for (x = 0 ; x < gca_flash->prior_width ; x++)
+  GCA        *gca_flash ;
+  GCA_PRIOR  *gcap_src, *gcap_dst ;
+  GCA_NODE   *gcan_src, *gcan_dst ;
+  GC1D       *gc_src, *gc_dst ;
+  MATRIX     *m_jacobian, *m_cov_src = NULL, *m_cov_dst = NULL, *m_jacobian_T = NULL, *m_tmp = NULL ;
+  int        n, x, y, z, i, j, v, label_count = 0 ;
+  double     T1, PD, label_means[MAX_GCA_INPUTS] ;
+  
+  if (gca_T1PD->ninputs != 2)
+    ErrorExit(ERROR_BADPARM, 
+	      "GCAcreateFlashGCAfromParameterGCA: input gca must be T1/PD (ninputs=%d, should be 2", 
+	      gca_T1PD->ninputs) ;
+  gca_flash = GCAalloc(nflash, gca_T1PD->prior_spacing, gca_T1PD->node_spacing,
+		       gca_T1PD->node_width*gca_T1PD->node_spacing,
+		       gca_T1PD->node_height*gca_T1PD->node_spacing,
+		       gca_T1PD->node_depth*gca_T1PD->node_spacing, GCA_NO_FLAGS) ;
+  
+  m_jacobian = MatrixAlloc(gca_flash->ninputs, gca_T1PD->ninputs, MATRIX_REAL) ;
+  
+  /* first copy over priors */
+  for (x = 0 ; x < gca_flash->prior_width ; x++)
+  {
+    for (y = 0 ; y < gca_flash->prior_height ; y++)
+    {
+      for (z = 0 ; z < gca_flash->prior_depth ; z++)
+      {
+	gcap_src = &gca_T1PD->priors[x][y][z] ;
+	gcap_dst = &gca_flash->priors[x][y][z] ;
+	gcap_dst->nlabels = gcap_src->nlabels ;
+	if (gcap_src->nlabels > gcap_dst->max_labels)
 	{
-		for (y = 0 ; y < gca_flash->prior_height ; y++)
-		{
-			for (z = 0 ; z < gca_flash->prior_depth ; z++)
-			{
-				gcap_src = &gca_T1PD->priors[x][y][z] ;
-				gcap_dst = &gca_flash->priors[x][y][z] ;
-				gcap_dst->nlabels = gcap_src->nlabels ;
-				if (gcap_src->nlabels > gcap_dst->max_labels)
-				{
-					free(gcap_dst->priors) ;
-					free(gcap_dst->labels) ;
-
+	  free(gcap_dst->priors) ;
+	  free(gcap_dst->labels) ;
+	  
           gcap_dst->labels = (unsigned char *)calloc(gcap_src->nlabels, sizeof(unsigned char)) ;
           if (!gcap_dst->labels)
             ErrorExit(ERROR_NOMEMORY, "GCAcreateFlashGCAfromParameterGCA: couldn't allocate %d labels",
@@ -9963,144 +10085,144 @@ GCAcreateFlashGCAfromParameterGCA(GCA *gca_T1PD, double *TR, double *fa, double 
           if (!gcap_dst->priors)
             ErrorExit(ERROR_NOMEMORY,
                       "GCAcreateFlashGCAfromParameterGCA: couldn't allocate %d priors", 
-											 gcap_src->nlabels) ;
-					gcap_dst->max_labels = gcap_dst->nlabels ;
-				}
-				gcap_dst->total_training = gcap_src->total_training ;
-				for (n = 0 ; n < gcap_src->nlabels ; n++)
-				{
-					gcap_dst->labels[n] = gcap_src->labels[n] ;
-					gcap_dst->priors[n] = gcap_src->priors[n] ;
-				}
-			}
-		}
+		      gcap_src->nlabels) ;
+	  gcap_dst->max_labels = gcap_dst->nlabels ;
 	}
-
-	/* now copy over classifiers and Markov stuff, using Jacobian to map to new image space */
-	for (x = 0 ; x < gca_flash->node_width ; x++)
+	gcap_dst->total_training = gcap_src->total_training ;
+	for (n = 0 ; n < gcap_src->nlabels ; n++)
 	{
-		for (y = 0 ; y < gca_flash->node_height ; y++)
-		{
-			for (z = 0 ; z < gca_flash->node_depth ; z++)
-			{
-				if (x == Gx && y == Gy && z == Gz)
-					DiagBreak()  ;
-				gcan_src = &gca_T1PD->nodes[x][y][z] ; gcan_dst = &gca_flash->nodes[x][y][z] ;
-				gcan_dst->nlabels = gcan_src->nlabels ;
-				gcan_dst->total_training = gcan_src->total_training ;
-				if (gcan_src->nlabels > gcan_dst->max_labels)
-				{
-					free(gcan_dst->labels) ;
-					free_gcs(gcan_dst->gcs, gcan_dst->max_labels, gca_flash->ninputs) ;
+	  gcap_dst->labels[n] = gcap_src->labels[n] ;
+	  gcap_dst->priors[n] = gcap_src->priors[n] ;
+	}
+      }
+    }
+  }
 
+  /* now copy over classifiers and Markov stuff, using Jacobian to map to new image space */
+  for (x = 0 ; x < gca_flash->node_width ; x++)
+  {
+    for (y = 0 ; y < gca_flash->node_height ; y++)
+    {
+      for (z = 0 ; z < gca_flash->node_depth ; z++)
+      {
+	if (x == Gx && y == Gy && z == Gz)
+	  DiagBreak()  ;
+	gcan_src = &gca_T1PD->nodes[x][y][z] ; gcan_dst = &gca_flash->nodes[x][y][z] ;
+	gcan_dst->nlabels = gcan_src->nlabels ;
+	gcan_dst->total_training = gcan_src->total_training ;
+	if (gcan_src->nlabels > gcan_dst->max_labels)
+	{
+	  free(gcan_dst->labels) ;
+	  free_gcs(gcan_dst->gcs, gcan_dst->max_labels, gca_flash->ninputs) ;
+	  
           gcan_dst->labels = (unsigned char *)calloc(gcan_src->nlabels, sizeof(unsigned char)) ;
           if (!gcan_dst->labels)
             ErrorExit(ERROR_NOMEMORY, "GCAcreateFlashGCAfromParameterGCA: couldn't allocate %d labels",
                       gcan_src->nlabels) ;
-
-					gcan_dst->gcs = alloc_gcs(gcan_src->nlabels, GCA_NO_FLAGS, nflash) ;
-					gcan_dst->max_labels = gcan_dst->nlabels ;
-				}
-				for (n = 0 ; n < gcan_src->nlabels ; n++)
-				{
-					gcan_dst->labels[n] = gcan_src->labels[n] ;
-					gc_src = &gcan_src->gcs[n] ; gc_dst = &gcan_dst->gcs[n] ;
-					gc_dst->ntraining = gc_src->ntraining ;
-					gc_dst->n_just_priors = gc_src->n_just_priors ;
-					for (i = 0 ; i < GIBBS_NEIGHBORS ; i++)
-					{
-						gc_dst->nlabels[i] = gc_src->nlabels[i] ;
-						gc_dst->label_priors[i] = (float *)calloc(gc_src->nlabels[i],sizeof(float));
-						if (!gc_dst->label_priors[i])
-							ErrorExit(ERROR_NOMEMORY, "GCAcreateFlashGCAfromParameterGCA: to %d",gc_src->nlabels[i]);
-						gc_dst->labels[i] = (unsigned char *)calloc(gc_src->nlabels[i], sizeof(unsigned char)) ;
-						if (!gc_dst->labels)
-							ErrorExit(ERROR_NOMEMORY, "GCAcreateFlashGCAfromParameterGCA: to %d",gc_src->nlabels[i]);
-						for (j = 0 ; j < gc_src->nlabels[i] ; j++)
-						{
-							gc_dst->label_priors[i][j]  = gc_src->label_priors[i][j] ;
-							gc_dst->labels[i][j]  = gc_src->labels[i][j] ;
-						}
-					}
-
-					/* now map intensity and covariance info over */
-					T1 = gc_src->means[0] ; PD = gc_src->means[1] ;
-					if (Ggca_label == gcan_dst->labels[n])
-						label_count++ ; 
-					for (i = 0 ; i < gca_flash->ninputs ; i++)
-					{
-						gc_dst->means[i] = 
-							FLASHforwardModel(T1, PD, TR[i], fa[i], TE[i]) ;
-						if (x == Ggca_x && y == Ggca_y && z == Ggca_z &&
-								(Ggca_label < 0 || Ggca_label == gcan_src->labels[n]))
-							printf("gcan(%d, %d, %d) %s: image[%d] (fa=%2.1f) predicted mean "
-										 "(%2.1f,%2.1f) --> %2.1f\n",
-										 x, y, z, cma_label_to_name(gcan_dst->labels[n]), i, DEGREES(fa[i]),
-										 T1, PD, gc_dst->means[i]) ;
-						*MATRIX_RELT(m_jacobian, i+1, 1) = dFlash_dT1(T1, PD, TR[i], fa[i], TE[i]) ;
-						*MATRIX_RELT(m_jacobian, i+1, 2) = dFlash_dPD(T1, PD, TR[i], fa[i], TE[i]) ;
-						if (gcan_dst->labels[n] == Ggca_label)
-						{
-							label_means[i] += gc_dst->means[i] ;
-						}
-					}
-#define MIN_T1 50
-					if (T1 < MIN_T1)
-						m_cov_dst = MatrixIdentity(gca_flash->ninputs, m_cov_dst) ;
-					else
-					{
-						m_cov_src = load_covariance_matrix(gc_src, m_cov_src, gca_T1PD->ninputs) ;
-						m_jacobian_T = MatrixTranspose(m_jacobian, m_jacobian_T) ;
-						m_tmp = MatrixMultiply(m_cov_src, m_jacobian_T, m_tmp) ;
-						m_cov_dst = MatrixMultiply(m_jacobian, m_tmp, m_cov_dst) ;
-					}
-					for (v = i = 0 ; i < gca_flash->ninputs ; i++)
-					{
-						for (j = i ; j < gca_flash->ninputs ; j++, v++)
-							gc_dst->covars[v] = *MATRIX_RELT(m_cov_dst, i+1, j+1) ;
-					}
-					if (x == Ggca_x && y == Ggca_y && z == Ggca_z &&
-							(Ggca_label < 0 || Ggca_label == gcan_src->labels[n]))
-					{
-						printf("predicted covariance matrix:\n") ; MatrixPrint(stdout, m_cov_dst)  ;
-					}
-				}
-			}
-		}
+	  
+	  gcan_dst->gcs = alloc_gcs(gcan_src->nlabels, GCA_NO_FLAGS, nflash) ;
+	  gcan_dst->max_labels = gcan_dst->nlabels ;
 	}
-
-	if (Ggca_label >= 0)
+	for (n = 0 ; n < gcan_src->nlabels ; n++)
 	{
-		printf("label %s (%d): means = ", cma_label_to_name(Ggca_label), Ggca_label) ;
-		for (i = 0 ; i < gca_flash->ninputs ; i++)
-		{
-			label_means[i] /= (double)label_count ;
-			printf("%2.1f ", label_means[i]) ;
-		}
-		printf("\n") ;
+	  gcan_dst->labels[n] = gcan_src->labels[n] ;
+	  gc_src = &gcan_src->gcs[n] ; gc_dst = &gcan_dst->gcs[n] ;
+	  gc_dst->ntraining = gc_src->ntraining ;
+	  gc_dst->n_just_priors = gc_src->n_just_priors ;
+	  for (i = 0 ; i < GIBBS_NEIGHBORS ; i++)
+	  {
+	    gc_dst->nlabels[i] = gc_src->nlabels[i] ;
+	    gc_dst->label_priors[i] = (float *)calloc(gc_src->nlabels[i],sizeof(float));
+	    if (!gc_dst->label_priors[i])
+	      ErrorExit(ERROR_NOMEMORY, "GCAcreateFlashGCAfromParameterGCA: to %d",gc_src->nlabels[i]);
+	    gc_dst->labels[i] = (unsigned char *)calloc(gc_src->nlabels[i], sizeof(unsigned char)) ;
+	    if (!gc_dst->labels)
+	      ErrorExit(ERROR_NOMEMORY, "GCAcreateFlashGCAfromParameterGCA: to %d",gc_src->nlabels[i]);
+	    for (j = 0 ; j < gc_src->nlabels[i] ; j++)
+	    {
+	      gc_dst->label_priors[i][j]  = gc_src->label_priors[i][j] ;
+	      gc_dst->labels[i][j]  = gc_src->labels[i][j] ;
+	    }
+	  }
+	  
+	  /* now map intensity and covariance info over */
+	  T1 = gc_src->means[0] ; PD = gc_src->means[1] ;
+	  if (Ggca_label == gcan_dst->labels[n])
+	    label_count++ ; 
+	  for (i = 0 ; i < gca_flash->ninputs ; i++)
+	  {
+	    gc_dst->means[i] = 
+	      FLASHforwardModel(T1, PD, TR[i], fa[i], TE[i]) ;
+	    if (x == Ggca_x && y == Ggca_y && z == Ggca_z &&
+		(Ggca_label < 0 || Ggca_label == gcan_src->labels[n]))
+	      printf("gcan(%d, %d, %d) %s: image[%d] (fa=%2.1f) predicted mean "
+		     "(%2.1f,%2.1f) --> %2.1f\n",
+		     x, y, z, cma_label_to_name(gcan_dst->labels[n]), i, DEGREES(fa[i]),
+		     T1, PD, gc_dst->means[i]) ;
+	    *MATRIX_RELT(m_jacobian, i+1, 1) = dFlash_dT1(T1, PD, TR[i], fa[i], TE[i]) ;
+	    *MATRIX_RELT(m_jacobian, i+1, 2) = dFlash_dPD(T1, PD, TR[i], fa[i], TE[i]) ;
+	    if (gcan_dst->labels[n] == Ggca_label)
+	    {
+	      label_means[i] += gc_dst->means[i] ;
+	    }
+	  }
+#define MIN_T1 50
+	  if (T1 < MIN_T1)
+	    m_cov_dst = MatrixIdentity(gca_flash->ninputs, m_cov_dst) ;
+	  else
+	  {
+	    m_cov_src = load_covariance_matrix(gc_src, m_cov_src, gca_T1PD->ninputs) ;
+	    m_jacobian_T = MatrixTranspose(m_jacobian, m_jacobian_T) ;
+	    m_tmp = MatrixMultiply(m_cov_src, m_jacobian_T, m_tmp) ;
+	    m_cov_dst = MatrixMultiply(m_jacobian, m_tmp, m_cov_dst) ;
+	  }
+	  for (v = i = 0 ; i < gca_flash->ninputs ; i++)
+	  {
+	    for (j = i ; j < gca_flash->ninputs ; j++, v++)
+	      gc_dst->covars[v] = *MATRIX_RELT(m_cov_dst, i+1, j+1) ;
+	  }
+	  if (x == Ggca_x && y == Ggca_y && z == Ggca_z &&
+	      (Ggca_label < 0 || Ggca_label == gcan_src->labels[n]))
+	  {
+	    printf("predicted covariance matrix:\n") ; MatrixPrint(stdout, m_cov_dst)  ;
+	  }
 	}
-
-	/* check and fix singular covariance matrixces */
-	GCAfixSingularCovarianceMatrices(gca_flash) ;
-	MatrixFree(&m_jacobian) ; MatrixFree(&m_cov_src) ; MatrixFree(&m_cov_dst) ;
-	MatrixFree(&m_jacobian_T) ; MatrixFree(&m_tmp) ;
-
-	return(gca_flash) ;
+      }
+    }
+  }
+  
+  if (Ggca_label >= 0)
+  {
+    printf("label %s (%d): means = ", cma_label_to_name(Ggca_label), Ggca_label) ;
+    for (i = 0 ; i < gca_flash->ninputs ; i++)
+    {
+      label_means[i] /= (double)label_count ;
+      printf("%2.1f ", label_means[i]) ;
+    }
+    printf("\n") ;
+  }
+  
+  /* check and fix singular covariance matrixces */
+  GCAfixSingularCovarianceMatrices(gca_flash) ;
+  MatrixFree(&m_jacobian) ; MatrixFree(&m_cov_src) ; MatrixFree(&m_cov_dst) ;
+  MatrixFree(&m_jacobian_T) ; MatrixFree(&m_tmp) ;
+  
+  return(gca_flash) ;
 }
 
 int
 GCAfixSingularCovarianceMatrices(GCA *gca)
 {
-	int       x, y, z, fixed = 0, i, r, c, n, num, nparams, regularized = 0 ;
-	GCA_NODE  *gcan ;
-	GC1D      *gc, *gc_nbr ; 
-	double    det, vars[MAX_GCA_INPUTS], min_det ;
-	MATRIX    *m_cov_inv, *m_cov = NULL ;
-
-	nparams = (gca->ninputs * (gca->ninputs+1))/2 + gca->ninputs ; /* covariance matrix and means */
-
-	memset(vars, 0, sizeof(vars)) ;
-	
+  int       x, y, z, fixed = 0, i, r, c, n, num, nparams, regularized = 0 ;
+  GCA_NODE  *gcan ;
+  GC1D      *gc, *gc_nbr ; 
+  double    det, vars[MAX_GCA_INPUTS], min_det ;
+  MATRIX    *m_cov_inv, *m_cov = NULL ;
+  
+  nparams = (gca->ninputs * (gca->ninputs+1))/2 + gca->ninputs ; /* covariance matrix and means */
+  
+  memset(vars, 0, sizeof(vars)) ;
+  
   for (num = 0, x = 0 ; x < gca->node_width ; x++)
   {
     for (y = 0 ; y < gca->node_height ; y++)
@@ -10112,40 +10234,40 @@ GCAfixSingularCovarianceMatrices(GCA *gca)
         gcan = &gca->nodes[x][y][z] ;
         for (n = 0 ; n < gcan->nlabels ; n++)
         {
-					if (x == Ggca_x && y == Ggca_y && z == Ggca_z &&
-							(Ggca_label == gcan->labels[n] || Ggca_label < 0))
-						DiagBreak() ;
+	  if (x == Ggca_x && y == Ggca_y && z == Ggca_z &&
+	      (Ggca_label == gcan->labels[n] || Ggca_label < 0))
+	    DiagBreak() ;
           gc = &gcan->gcs[n] ;
-					det = covariance_determinant(gc, gca->ninputs) ;
-					if ((gc->ntraining == 0 && det > 1) || (gc->ntraining*gca->ninputs > 2.5*nparams))  /* enough to estimate parameters */
-					{
-						m_cov = load_covariance_matrix(gc, m_cov, gca->ninputs) ;
-						for (r = 0 ; r < gca->ninputs ; r++)
-						{
-							vars[r] += *MATRIX_RELT(m_cov,r+1, r+1) ;
-						}
-						num++ ;
-					}
-				}
-			}
-		}
+	  det = covariance_determinant(gc, gca->ninputs) ;
+	  if ((gc->ntraining == 0 && det > 1) || (gc->ntraining*gca->ninputs > 2.5*nparams))  /* enough to estimate parameters */
+	  {
+	    m_cov = load_covariance_matrix(gc, m_cov, gca->ninputs) ;
+	    for (r = 0 ; r < gca->ninputs ; r++)
+	    {
+	      vars[r] += *MATRIX_RELT(m_cov,r+1, r+1) ;
+	    }
+	    num++ ;
+	  }
 	}
-	if (m_cov)
-		MatrixFree(&m_cov) ;
-	if (num >= 1)
-	{
-		printf("average std = ") ;
-		for (min_det = 1.0, r = 0 ; r < gca->ninputs ; r++)
-		{
-			vars[r] /= (float)num ;
-			printf("%2.1f ", sqrt(vars[r])) ;
-			min_det *= vars[r] ;
-		}
-		min_det = min_det / pow(10.0, gca->ninputs) ;
-		printf("  using min determinant for regularization = %2.1f\n", min_det) ;
-	}
-	else
-		min_det = MIN_DET ;
+      }
+    }
+  }
+  if (m_cov)
+    MatrixFree(&m_cov) ;
+  if (num >= 1)
+  {
+    printf("average std = ") ;
+    for (min_det = 1.0, r = 0 ; r < gca->ninputs ; r++)
+    {
+      vars[r] /= (float)num ;
+      printf("%2.1f ", sqrt(vars[r])) ;
+      min_det *= vars[r] ;
+    }
+    min_det = min_det / pow(10.0, gca->ninputs) ;
+    printf("  using min determinant for regularization = %2.1f\n", min_det) ;
+  }
+  else
+    min_det = MIN_DET ;
 
   for (regularized = fixed = x = 0 ; x < gca->node_width ; x++)
   {
@@ -10158,87 +10280,87 @@ GCAfixSingularCovarianceMatrices(GCA *gca)
         gcan = &gca->nodes[x][y][z] ;
         for (n = 0 ; n < gcan->nlabels ; n++)
         {
-					if (x == Ggca_x && y == Ggca_y && z == Ggca_z &&
-							(Ggca_label == gcan->labels[n] || Ggca_label < 0))
-						DiagBreak() ;
+	  if (x == Ggca_x && y == Ggca_y && z == Ggca_z &&
+	      (Ggca_label == gcan->labels[n] || Ggca_label < 0))
+	    DiagBreak() ;
           gc = &gcan->gcs[n] ;
-					det = covariance_determinant(gc, gca->ninputs) ;
-					m_cov_inv = load_inverse_covariance_matrix(gc, NULL, gca->ninputs) ;
-					
-					if (det <= 0 || m_cov_inv == NULL)
-					{
+	  det = covariance_determinant(gc, gca->ninputs) ;
+	  m_cov_inv = load_inverse_covariance_matrix(gc, NULL, gca->ninputs) ;
+	  
+	  if (det <= 0 || m_cov_inv == NULL)
+	  {
             fixed++ ;
             gc_nbr = findClosestValidGC(gca, x, y, z, gcan->labels[n], 1) ;
             if (!gc_nbr || 1)     /* always do this this - just to regularization */ 
             {
-							for (i = r = 0 ; r < gca->ninputs ; r++)
-							{
-								for (c = r ; c < gca->ninputs ; c++, i++)
-								{
-									if (r == c)
-										gc->covars[i] += vars[r] ;  /* mean of other variances at this location */
-								}
-							}
+	      for (i = r = 0 ; r < gca->ninputs ; r++)
+	      {
+		for (c = r ; c < gca->ninputs ; c++, i++)
+		{
+		  if (r == c)
+		    gc->covars[i] += vars[r] ;  /* mean of other variances at this location */
+		}
+	      }
             }   /* found another valid gc for this label - use it's covariance matrix */
-						else
-						{
-							for (i = r = 0 ; r < gca->ninputs ; r++)
-							{
-								gc->means[r] = gc_nbr->means[r] ; 
-								for (c = r ; c < gca->ninputs ; c++, i++)
-									gc->covars[i] = gc_nbr->covars[i] ;
-							}
-						}
-						if (x == Ggca_x && y == Ggca_y && z == Ggca_z &&
-								(Ggca_label == gcan->labels[n] || Ggca_label < 0))
-						{ 
-							MATRIX *m ;
-							printf("fixing singular covariance matrix for %s @ (%d, %d, %d):\n", 
-										 cma_label_to_name(gcan->labels[n]), x, y, z) ; 
-							m = load_covariance_matrix(gc, NULL, gca->ninputs) ;
-							MatrixPrint(stdout, m) ;
-							MatrixFree(&m) ;
-						}
+	    else
+	    {
+	      for (i = r = 0 ; r < gca->ninputs ; r++)
+	      {
+		gc->means[r] = gc_nbr->means[r] ; 
+		for (c = r ; c < gca->ninputs ; c++, i++)
+		  gc->covars[i] = gc_nbr->covars[i] ;
+	      }
+	    }
+	    if (x == Ggca_x && y == Ggca_y && z == Ggca_z &&
+		(Ggca_label == gcan->labels[n] || Ggca_label < 0))
+	    { 
+	      MATRIX *m ;
+	      printf("fixing singular covariance matrix for %s @ (%d, %d, %d):\n", 
+		     cma_label_to_name(gcan->labels[n]), x, y, z) ; 
+	      m = load_covariance_matrix(gc, NULL, gca->ninputs) ;
+	      MatrixPrint(stdout, m) ;
+	      MatrixFree(&m) ;
+	    }
           }
-					else   /* not singular - check if it is ill-conditioned */
-					{
-						if ((gc->ntraining*gca->ninputs < 2*nparams && det < 0.1) || (det < min_det))
-						{
-							regularized++ ;
-							for (i = r = 0 ; r < gca->ninputs ; r++)
-							{
-								for (c = r ; c < gca->ninputs ; c++, i++)
-								{
-									if (r == c)
-										gc->covars[i] += vars[r] ;  /* mean of overall variance in this image */
-								}
-							}
-							if (x == Ggca_x && y == Ggca_y && z == Ggca_z &&
-									(Ggca_label == gcan->labels[n] || Ggca_label < 0))
-							{ 
-								MATRIX *m ;
-								printf("fixing ill-conditioned covariance matrix for %s @ (%d, %d, %d):\n", 
-											 cma_label_to_name(gcan->labels[n]), x, y, z) ; 
-								m = load_covariance_matrix(gc, NULL, gca->ninputs) ;
-								MatrixPrint(stdout, m) ;
-								MatrixFree(&m) ;
-							}
-						}
-					}
-
-					if (m_cov_inv)
-						MatrixFree(&m_cov_inv) ;
-					det = covariance_determinant(gc, gca->ninputs) ;
-					m_cov_inv = load_inverse_covariance_matrix(gc, NULL, gca->ninputs) ;
-					if (det <= min_det || m_cov_inv == NULL)
-					{
-						printf("warning: regularization of node (%d, %d, %d) label %s failed\n",
-									 x, y, z, cma_label_to_name(gcan->labels[n])) ;
-						DiagBreak() ;
-						
-					}
-					if (m_cov_inv)
-						MatrixFree(&m_cov_inv) ;
+	  else   /* not singular - check if it is ill-conditioned */
+	  {
+	    if ((gc->ntraining*gca->ninputs < 2*nparams && det < 0.1) || (det < min_det))
+	    {
+	      regularized++ ;
+	      for (i = r = 0 ; r < gca->ninputs ; r++)
+	      {
+		for (c = r ; c < gca->ninputs ; c++, i++)
+		{
+		  if (r == c)
+		    gc->covars[i] += vars[r] ;  /* mean of overall variance in this image */
+		}
+	      }
+	      if (x == Ggca_x && y == Ggca_y && z == Ggca_z &&
+		  (Ggca_label == gcan->labels[n] || Ggca_label < 0))
+	      { 
+		MATRIX *m ;
+		printf("fixing ill-conditioned covariance matrix for %s @ (%d, %d, %d):\n", 
+		       cma_label_to_name(gcan->labels[n]), x, y, z) ; 
+		m = load_covariance_matrix(gc, NULL, gca->ninputs) ;
+		MatrixPrint(stdout, m) ;
+		MatrixFree(&m) ;
+	      }
+	    }
+	  }
+	  
+	  if (m_cov_inv)
+	    MatrixFree(&m_cov_inv) ;
+	  det = covariance_determinant(gc, gca->ninputs) ;
+	  m_cov_inv = load_inverse_covariance_matrix(gc, NULL, gca->ninputs) ;
+	  if (det <= min_det || m_cov_inv == NULL)
+	  {
+	    printf("warning: regularization of node (%d, %d, %d) label %s failed\n",
+		   x, y, z, cma_label_to_name(gcan->labels[n])) ;
+	    DiagBreak() ;
+	    
+	  }
+	  if (m_cov_inv)
+	    MatrixFree(&m_cov_inv) ;
         }
       }
     }
@@ -10267,220 +10389,220 @@ GCAsetFlashParameters(GCA *gca, double *TRs, double *FAs, double *TEs)
 GCA *
 GCAcreateFlashGCAfromFlashGCA(GCA *gca_flash_src, double *TR, double *fa, double *TE, int nflash)
 {
-	GCA        *gca_flash_dst ;
-	GCA_PRIOR  *gcap_src, *gcap_dst ;
-	GCA_NODE   *gcan_src, *gcan_dst ;
-	GC1D       *gc_src, *gc_dst ;
-	MATRIX     *m_jac_dst, *m_jac_src, *m_cov_src, *m_cov_dst, *m_pinv_src, *m_cov_T1PD ;
-	int        n, x, y, z, i, j, v, label_count = 0 ;
-	double     T1, PD, label_means[MAX_GCA_INPUTS] ;
-
-	m_cov_T1PD = m_cov_dst = m_pinv_src = m_cov_src = NULL ;
-	FlashBuildLookupTables(gca_flash_src->ninputs, gca_flash_src->TRs, gca_flash_src->FAs, gca_flash_src->TEs) ;
-
-	gca_flash_dst = GCAalloc(nflash, gca_flash_src->prior_spacing, gca_flash_src->node_spacing,
-											 gca_flash_src->node_width*gca_flash_src->node_spacing,
-											 gca_flash_src->node_height*gca_flash_src->node_spacing,
-											 gca_flash_src->node_depth*gca_flash_src->node_spacing, GCA_NO_FLAGS) ;
-
-	for (n = 0 ; n < nflash ; n++)
+  GCA        *gca_flash_dst ;
+  GCA_PRIOR  *gcap_src, *gcap_dst ;
+  GCA_NODE   *gcan_src, *gcan_dst ;
+  GC1D       *gc_src, *gc_dst ;
+  MATRIX     *m_jac_dst, *m_jac_src, *m_cov_src, *m_cov_dst, *m_pinv_src, *m_cov_T1PD ;
+  int        n, x, y, z, i, j, v, label_count = 0 ;
+  double     T1, PD, label_means[MAX_GCA_INPUTS] ;
+  
+  m_cov_T1PD = m_cov_dst = m_pinv_src = m_cov_src = NULL ;
+  FlashBuildLookupTables(gca_flash_src->ninputs, gca_flash_src->TRs, gca_flash_src->FAs, gca_flash_src->TEs) ;
+  
+  gca_flash_dst = GCAalloc(nflash, gca_flash_src->prior_spacing, gca_flash_src->node_spacing,
+			   gca_flash_src->node_width*gca_flash_src->node_spacing,
+			   gca_flash_src->node_height*gca_flash_src->node_spacing,
+			   gca_flash_src->node_depth*gca_flash_src->node_spacing, GCA_NO_FLAGS) ;
+  
+  for (n = 0 ; n < nflash ; n++)
+  {
+    gca_flash_dst->TRs[n] = TR[n] ;
+    gca_flash_dst->FAs[n] = fa[n] ;
+    gca_flash_dst->TEs[n] = TE[n] ;
+  }
+  
+  m_jac_src = MatrixAlloc(gca_flash_src->ninputs, 2, MATRIX_REAL) ;  /* T1/PD --> src jacobian */
+  m_jac_dst = MatrixAlloc(gca_flash_dst->ninputs, 2, MATRIX_REAL) ;  /* T1/PD --> dst jacobian */
+  
+  /* first copy over priors */
+  for (x = 0 ; x < gca_flash_dst->prior_width ; x++)
+  {
+    for (y = 0 ; y < gca_flash_dst->prior_height ; y++)
+    {
+      for (z = 0 ; z < gca_flash_dst->prior_depth ; z++)
+      {
+	gcap_src = &gca_flash_src->priors[x][y][z] ;
+	gcap_dst = &gca_flash_dst->priors[x][y][z] ;
+	gcap_dst->nlabels = gcap_src->nlabels ;
+	if (gcap_src->nlabels > gcap_dst->max_labels)
 	{
-		gca_flash_dst->TRs[n] = TR[n] ;
-		gca_flash_dst->FAs[n] = fa[n] ;
-		gca_flash_dst->TEs[n] = TE[n] ;
-	}
-
-	m_jac_src = MatrixAlloc(gca_flash_src->ninputs, 2, MATRIX_REAL) ;  /* T1/PD --> src jacobian */
-	m_jac_dst = MatrixAlloc(gca_flash_dst->ninputs, 2, MATRIX_REAL) ;  /* T1/PD --> dst jacobian */
-
-	/* first copy over priors */
-	for (x = 0 ; x < gca_flash_dst->prior_width ; x++)
-	{
-		for (y = 0 ; y < gca_flash_dst->prior_height ; y++)
-		{
-			for (z = 0 ; z < gca_flash_dst->prior_depth ; z++)
-			{
-				gcap_src = &gca_flash_src->priors[x][y][z] ;
-				gcap_dst = &gca_flash_dst->priors[x][y][z] ;
-				gcap_dst->nlabels = gcap_src->nlabels ;
-				if (gcap_src->nlabels > gcap_dst->max_labels)
-				{
-					free(gcap_dst->priors) ;
-					free(gcap_dst->labels) ;
-
+	  free(gcap_dst->priors) ;
+	  free(gcap_dst->labels) ;
+	  
           gcap_dst->labels = (unsigned char *)calloc(gcap_src->nlabels, sizeof(unsigned char)) ;
           if (!gcap_dst->labels)
             ErrorExit(ERROR_NOMEMORY, "GCAcreateFlashGCAfromFlashGCA: couldn't allocate %d labels",
                       gcap_src->nlabels) ;
-
-					gcap_dst->priors = (float *)calloc(gcap_src->nlabels, sizeof(float)) ;
+	  
+	  gcap_dst->priors = (float *)calloc(gcap_src->nlabels, sizeof(float)) ;
           if (!gcap_dst->priors)
             ErrorExit(ERROR_NOMEMORY,
                       "GCAcreateFlashGCAfromFlashGCA: couldn't allocate %d priors", 
-											 gcap_src->nlabels) ;
-					gcap_dst->max_labels = gcap_dst->nlabels ;
-				}
-				gcap_dst->total_training = gcap_src->total_training ;
-				for (n = 0 ; n < gcap_src->nlabels ; n++)
-				{
-					gcap_dst->labels[n] = gcap_src->labels[n] ;
-					gcap_dst->priors[n] = gcap_src->priors[n] ;
-				}
-			}
-		}
+		      gcap_src->nlabels) ;
+	  gcap_dst->max_labels = gcap_dst->nlabels ;
 	}
-
-	/* now copy over classifiers and Markov stuff, using Jacobian to map to new image space */
-	for (x = 0 ; x < gca_flash_dst->node_width ; x++)
+	gcap_dst->total_training = gcap_src->total_training ;
+	for (n = 0 ; n < gcap_src->nlabels ; n++)
 	{
-		for (y = 0 ; y < gca_flash_dst->node_height ; y++)
-		{
-			for (z = 0 ; z < gca_flash_dst->node_depth ; z++)
-			{
-				if (x == Gx && y == Gy && z == Gz)
-					DiagBreak()  ;
-				gcan_src = &gca_flash_src->nodes[x][y][z] ; gcan_dst = &gca_flash_dst->nodes[x][y][z] ;
-				gcan_dst->nlabels = gcan_src->nlabels ;
-				gcan_dst->total_training = gcan_src->total_training ;
-				if (gcan_src->nlabels > gcan_dst->max_labels)
-				{
-					free(gcan_dst->labels) ;
-					for (n = 0 ; n < gcan_dst->max_labels ; n++)
-					{
-						gc_dst = &gcan_dst->gcs[n] ;
-						for (i = 0 ; i < GIBBS_NEIGHBORS ; i++)
-						{
-							if (gc_dst->label_priors[i])
-								free(gc_dst->label_priors[i]) ;
-							if (gc_dst->labels[i])
-								free(gc_dst->labels[i]) ;
-						}
-						if (gc_dst->nlabels)
-							free(gc_dst->nlabels) ;
-						if (gc_dst->labels)
-							free(gc_dst->labels) ;
-						if (gc_dst->label_priors)
-							free(gc_dst->label_priors) ;
-					}
+	  gcap_dst->labels[n] = gcap_src->labels[n] ;
+	  gcap_dst->priors[n] = gcap_src->priors[n] ;
+	}
+      }
+    }
+  }
 
+  /* now copy over classifiers and Markov stuff, using Jacobian to map to new image space */
+  for (x = 0 ; x < gca_flash_dst->node_width ; x++)
+  {
+    for (y = 0 ; y < gca_flash_dst->node_height ; y++)
+    {
+      for (z = 0 ; z < gca_flash_dst->node_depth ; z++)
+      {
+	if (x == Gx && y == Gy && z == Gz)
+	  DiagBreak()  ;
+	gcan_src = &gca_flash_src->nodes[x][y][z] ; gcan_dst = &gca_flash_dst->nodes[x][y][z] ;
+	gcan_dst->nlabels = gcan_src->nlabels ;
+	gcan_dst->total_training = gcan_src->total_training ;
+	if (gcan_src->nlabels > gcan_dst->max_labels)
+	{
+	  free(gcan_dst->labels) ;
+	  for (n = 0 ; n < gcan_dst->max_labels ; n++)
+	  {
+	    gc_dst = &gcan_dst->gcs[n] ;
+	    for (i = 0 ; i < GIBBS_NEIGHBORS ; i++)
+	    {
+	      if (gc_dst->label_priors[i])
+		free(gc_dst->label_priors[i]) ;
+	      if (gc_dst->labels[i])
+		free(gc_dst->labels[i]) ;
+	    }
+	    if (gc_dst->nlabels)
+	      free(gc_dst->nlabels) ;
+	    if (gc_dst->labels)
+	      free(gc_dst->labels) ;
+	    if (gc_dst->label_priors)
+	      free(gc_dst->label_priors) ;
+	  }
+	  
           gcan_dst->labels = (unsigned char *)calloc(gcan_src->nlabels, sizeof(unsigned char)) ;
           if (!gcan_dst->labels)
             ErrorExit(ERROR_NOMEMORY, "GCAcreateFlashGCAfromFlashGCA: couldn't allocate %d labels",
                       gcan_src->nlabels) ;
-
-					gcan_dst->gcs = alloc_gcs(gcan_src->nlabels, GCA_NO_FLAGS, nflash) ;
-				}
-				for (n = 0 ; n < gcan_src->nlabels ; n++)
-				{
-					gcan_dst->labels[n] = gcan_src->labels[n] ;
-					gc_src = &gcan_src->gcs[n] ; gc_dst = &gcan_dst->gcs[n] ;
-					gc_dst->ntraining = gc_src->ntraining ;
-					gc_dst->n_just_priors = gc_src->n_just_priors ;
-					for (i = 0 ; i < GIBBS_NEIGHBORS ; i++)
-					{
-						gc_dst->nlabels[i] = gc_src->nlabels[i] ;
-						gc_dst->label_priors[i] = (float *)calloc(gc_src->nlabels[i],sizeof(float));
-						if (!gc_dst->label_priors[i])
-							ErrorExit(ERROR_NOMEMORY, "GCAcreateFlashGCAfromFlashGCA: to %d",gc_src->nlabels[i]);
-						gc_dst->labels[i] = (unsigned char *)calloc(gc_src->nlabels[i], sizeof(unsigned char)) ;
-						if (!gc_dst->labels)
-							ErrorExit(ERROR_NOMEMORY, "GCAcreateFlashGCAfromFlashGCA: to %d",gc_src->nlabels[i]);
-						for (j = 0 ; j < gc_src->nlabels[i] ; j++)
-						{
-							gc_dst->label_priors[i][j]  = gc_src->label_priors[i][j] ;
-							gc_dst->labels[i][j]  = gc_src->labels[i][j] ;
-						}
-					}
-
-					/* now map intensity and covariance info over */
-					compute_T1_PD(gca_flash_src->ninputs, gc_src->means, gca_flash_src->TRs, gca_flash_src->FAs, gca_flash_src->TEs, 
-												&T1, &PD) ;
-					if (x == Ggca_x && y == Ggca_y && z == Ggca_z &&
-							(Ggca_label < 0 || Ggca_label == gcan_src->labels[n]))
-					{
-						int j ;
-						printf("gcan(%d, %d, %d) %s: means=[", x, y, z, cma_label_to_name(gcan_src->labels[n])) ;
-						for (j = 0 ; j < gca_flash_src->ninputs ; j++)
-							printf(" %2.1f", gc_src->means[j]) ;
-						printf("] T1/PD=%2.1f/%2.1f\n", T1, PD) ;
-					}
-					if (Ggca_label == gcan_dst->labels[n])
-						label_count++ ; 
-					for (i = 0 ; i < gca_flash_dst->ninputs ; i++)
-					{
-						gc_dst->means[i] = 
-							FLASHforwardModel(T1, PD, TR[i], fa[i], TE[i]) ;
-						if (x == Ggca_x && y == Ggca_y && z == Ggca_z &&
-								(Ggca_label < 0 || Ggca_label == gcan_src->labels[n]))
-							printf("gcan(%d, %d, %d) %s: image[%d] (fa=%2.1f) predicted mean "
-										 "(%2.1f,%2.1f) --> %2.1f\n",
-										 x, y, z, cma_label_to_name(gcan_dst->labels[n]), i, DEGREES(fa[i]),
-										 T1, PD, gc_dst->means[i]) ;
-						*MATRIX_RELT(m_jac_dst, i+1, 1) = 
-							dFlash_dT1(T1, PD, gca_flash_dst->TRs[i], gca_flash_dst->FAs[i], gca_flash_dst->TEs[i]) ;
-						*MATRIX_RELT(m_jac_dst, i+1, 2) = 
-							dFlash_dPD(T1, PD, gca_flash_dst->TRs[i], gca_flash_dst->FAs[i], gca_flash_dst->TEs[i]) ;
-
-						*MATRIX_RELT(m_jac_src, i+1, 1) = 
-							dFlash_dT1(T1, PD, gca_flash_src->TRs[i], gca_flash_src->FAs[i], gca_flash_src->TEs[i]) ;
-						*MATRIX_RELT(m_jac_src, i+1, 2) = 
-							dFlash_dPD(T1, PD, gca_flash_src->TRs[i], gca_flash_src->FAs[i], gca_flash_src->TEs[i]) ;
-						if (gcan_dst->labels[n] == Ggca_label)
-						{
-							label_means[i] += gc_dst->means[i] ;
-						}
-					}
-#define MIN_T1 50
-					if (x == Gx && y == Gy && z == Gz)
-						DiagBreak()  ;
-					if (T1 < MIN_T1)
-						m_cov_dst = MatrixIdentity(gca_flash_dst->ninputs, m_cov_dst) ;
-					else
-					{
-						m_cov_src = load_covariance_matrix(gc_src, m_cov_src, gca_flash_src->ninputs) ;
-						m_pinv_src = MatrixPseudoInverse(m_jac_src, m_pinv_src) ;
-						m_cov_T1PD = MatrixSimilarityTransform(m_cov_src, m_pinv_src, m_cov_T1PD) ;
-						m_cov_dst = MatrixSimilarityTransform(m_cov_T1PD, m_jac_dst, m_cov_dst) ;
-					}
-					for (v = i = 0 ; i < gca_flash_dst->ninputs ; i++)
-					{
-						for (j = i ; j < gca_flash_dst->ninputs ; j++, v++)
-							gc_dst->covars[v] = *MATRIX_RELT(m_cov_dst, i+1, j+1) ;
-					}
-					if (x == Ggca_x && y == Ggca_y && z == Ggca_z &&
-							(Ggca_label < 0 || Ggca_label == gcan_src->labels[n]))
-					{
-						printf("predicted covariance matrix:\n") ; MatrixPrint(stdout, m_cov_dst)  ;
-					}
-				}
-			}
-		}
+	  
+	  gcan_dst->gcs = alloc_gcs(gcan_src->nlabels, GCA_NO_FLAGS, nflash) ;
 	}
-
-	if (Ggca_label >= 0)
+	for (n = 0 ; n < gcan_src->nlabels ; n++)
 	{
-		printf("label %s (%d): means = ", cma_label_to_name(Ggca_label), Ggca_label) ;
-		for (i = 0 ; i < gca_flash_dst->ninputs ; i++)
-		{
-			label_means[i] /= (double)label_count ;
-			printf("%2.1f ", label_means[i]) ;
-		}
-		printf("\n") ;
+	  gcan_dst->labels[n] = gcan_src->labels[n] ;
+	  gc_src = &gcan_src->gcs[n] ; gc_dst = &gcan_dst->gcs[n] ;
+	  gc_dst->ntraining = gc_src->ntraining ;
+	  gc_dst->n_just_priors = gc_src->n_just_priors ;
+	  for (i = 0 ; i < GIBBS_NEIGHBORS ; i++)
+	  {
+	    gc_dst->nlabels[i] = gc_src->nlabels[i] ;
+	    gc_dst->label_priors[i] = (float *)calloc(gc_src->nlabels[i],sizeof(float));
+	    if (!gc_dst->label_priors[i])
+	      ErrorExit(ERROR_NOMEMORY, "GCAcreateFlashGCAfromFlashGCA: to %d",gc_src->nlabels[i]);
+	    gc_dst->labels[i] = (unsigned char *)calloc(gc_src->nlabels[i], sizeof(unsigned char)) ;
+	    if (!gc_dst->labels)
+	      ErrorExit(ERROR_NOMEMORY, "GCAcreateFlashGCAfromFlashGCA: to %d",gc_src->nlabels[i]);
+	    for (j = 0 ; j < gc_src->nlabels[i] ; j++)
+	    {
+	      gc_dst->label_priors[i][j]  = gc_src->label_priors[i][j] ;
+	      gc_dst->labels[i][j]  = gc_src->labels[i][j] ;
+	    }
+	  }
+	  
+	  /* now map intensity and covariance info over */
+	  compute_T1_PD(gca_flash_src->ninputs, gc_src->means, gca_flash_src->TRs, gca_flash_src->FAs, gca_flash_src->TEs, 
+			&T1, &PD) ;
+	  if (x == Ggca_x && y == Ggca_y && z == Ggca_z &&
+	      (Ggca_label < 0 || Ggca_label == gcan_src->labels[n]))
+	  {
+	    int j ;
+	    printf("gcan(%d, %d, %d) %s: means=[", x, y, z, cma_label_to_name(gcan_src->labels[n])) ;
+	    for (j = 0 ; j < gca_flash_src->ninputs ; j++)
+	      printf(" %2.1f", gc_src->means[j]) ;
+	    printf("] T1/PD=%2.1f/%2.1f\n", T1, PD) ;
+	  }
+	  if (Ggca_label == gcan_dst->labels[n])
+	    label_count++ ; 
+	  for (i = 0 ; i < gca_flash_dst->ninputs ; i++)
+	  {
+	    gc_dst->means[i] = 
+	      FLASHforwardModel(T1, PD, TR[i], fa[i], TE[i]) ;
+	    if (x == Ggca_x && y == Ggca_y && z == Ggca_z &&
+		(Ggca_label < 0 || Ggca_label == gcan_src->labels[n]))
+	      printf("gcan(%d, %d, %d) %s: image[%d] (fa=%2.1f) predicted mean "
+		     "(%2.1f,%2.1f) --> %2.1f\n",
+		     x, y, z, cma_label_to_name(gcan_dst->labels[n]), i, DEGREES(fa[i]),
+		     T1, PD, gc_dst->means[i]) ;
+	    *MATRIX_RELT(m_jac_dst, i+1, 1) = 
+	      dFlash_dT1(T1, PD, gca_flash_dst->TRs[i], gca_flash_dst->FAs[i], gca_flash_dst->TEs[i]) ;
+	    *MATRIX_RELT(m_jac_dst, i+1, 2) = 
+	      dFlash_dPD(T1, PD, gca_flash_dst->TRs[i], gca_flash_dst->FAs[i], gca_flash_dst->TEs[i]) ;
+	    
+	    *MATRIX_RELT(m_jac_src, i+1, 1) = 
+	      dFlash_dT1(T1, PD, gca_flash_src->TRs[i], gca_flash_src->FAs[i], gca_flash_src->TEs[i]) ;
+	    *MATRIX_RELT(m_jac_src, i+1, 2) = 
+	      dFlash_dPD(T1, PD, gca_flash_src->TRs[i], gca_flash_src->FAs[i], gca_flash_src->TEs[i]) ;
+	    if (gcan_dst->labels[n] == Ggca_label)
+	    {
+	      label_means[i] += gc_dst->means[i] ;
+	    }
+	  }
+#define MIN_T1 50
+	  if (x == Gx && y == Gy && z == Gz)
+	    DiagBreak()  ;
+	  if (T1 < MIN_T1)
+	    m_cov_dst = MatrixIdentity(gca_flash_dst->ninputs, m_cov_dst) ;
+	  else
+	  {
+	    m_cov_src = load_covariance_matrix(gc_src, m_cov_src, gca_flash_src->ninputs) ;
+	    m_pinv_src = MatrixPseudoInverse(m_jac_src, m_pinv_src) ;
+	    m_cov_T1PD = MatrixSimilarityTransform(m_cov_src, m_pinv_src, m_cov_T1PD) ;
+	    m_cov_dst = MatrixSimilarityTransform(m_cov_T1PD, m_jac_dst, m_cov_dst) ;
+	  }
+	  for (v = i = 0 ; i < gca_flash_dst->ninputs ; i++)
+	  {
+	    for (j = i ; j < gca_flash_dst->ninputs ; j++, v++)
+	      gc_dst->covars[v] = *MATRIX_RELT(m_cov_dst, i+1, j+1) ;
+	  }
+	  if (x == Ggca_x && y == Ggca_y && z == Ggca_z &&
+	      (Ggca_label < 0 || Ggca_label == gcan_src->labels[n]))
+	  {
+	    printf("predicted covariance matrix:\n") ; MatrixPrint(stdout, m_cov_dst)  ;
+	  }
 	}
+      }
+    }
+  }
 
-	/* check and fix singular covariance matrixces */
-	GCAfixSingularCovarianceMatrices(gca_flash_dst) ;
-	MatrixFree(&m_jac_dst) ; 
-	MatrixFree(&m_jac_src) ; 
-	if (m_cov_src)
-		MatrixFree(&m_cov_src) ; 
-	MatrixFree(&m_cov_dst) ;
-	if (m_pinv_src)
-		MatrixFree(&m_pinv_src) ;
-	if (m_cov_T1PD)
-		MatrixFree(&m_cov_T1PD) ;
-
-	return(gca_flash_dst) ;
+  if (Ggca_label >= 0)
+  {
+    printf("label %s (%d): means = ", cma_label_to_name(Ggca_label), Ggca_label) ;
+    for (i = 0 ; i < gca_flash_dst->ninputs ; i++)
+    {
+      label_means[i] /= (double)label_count ;
+      printf("%2.1f ", label_means[i]) ;
+    }
+    printf("\n") ;
+  }
+  
+  /* check and fix singular covariance matrixces */
+  GCAfixSingularCovarianceMatrices(gca_flash_dst) ;
+  MatrixFree(&m_jac_dst) ; 
+  MatrixFree(&m_jac_src) ; 
+  if (m_cov_src)
+    MatrixFree(&m_cov_src) ; 
+  MatrixFree(&m_cov_dst) ;
+  if (m_pinv_src)
+    MatrixFree(&m_pinv_src) ;
+  if (m_cov_T1PD)
+    MatrixFree(&m_cov_T1PD) ;
+  
+  return(gca_flash_dst) ;
 }
 		 
 int
@@ -10541,34 +10663,34 @@ GCAregularizeCovariance(GCA *gca, float regularize)
         gcan = &gca->nodes[x][y][z] ;
         for (n = 0 ; n < gcan->nlabels ; n++)
         {
-					if (x == Ggca_x && y == Ggca_y && z == Ggca_z &&
-							(Ggca_label == gcan->labels[n] || Ggca_label < 0))
-						DiagBreak() ;
+	  if (x == Ggca_x && y == Ggca_y && z == Ggca_z &&
+	      (Ggca_label == gcan->labels[n] || Ggca_label < 0))
+	    DiagBreak() ;
           gc = &gcan->gcs[n] ;
-					det = covariance_determinant(gc, gca->ninputs) ;
-					if ((gc->ntraining == 0 && det > 1) || (gc->ntraining*gca->ninputs > 2.5*nparams))  /* enough to estimate parameters */
-					{
-						m_cov = load_covariance_matrix(gc, m_cov, gca->ninputs) ;
-						for (r = 0 ; r < gca->ninputs ; r++)
-						{
-							vars[r] += *MATRIX_RELT(m_cov,r+1, r+1) ;
-						}
-						num++ ;
-					}
-				}
-			}
-		}
+	  det = covariance_determinant(gc, gca->ninputs) ;
+	  if ((gc->ntraining == 0 && det > 1) || (gc->ntraining*gca->ninputs > 2.5*nparams))  /* enough to estimate parameters */
+	  {
+	    m_cov = load_covariance_matrix(gc, m_cov, gca->ninputs) ;
+	    for (r = 0 ; r < gca->ninputs ; r++)
+	    {
+	      vars[r] += *MATRIX_RELT(m_cov,r+1, r+1) ;
+	    }
+	    num++ ;
+	  }
 	}
-	if (m_cov)
-		MatrixFree(&m_cov) ;
-	if (num >= 1)
-	{
-		for (r = 0 ; r < gca->ninputs ; r++)
-		{
-			vars[r] /= (float)num ;
-			printf("average std[%d] = %2.1f\n", r, sqrt(vars[r])) ;
-		}
-	}
+      }
+    }
+  }
+  if (m_cov)
+    MatrixFree(&m_cov) ;
+  if (num >= 1)
+  {
+    for (r = 0 ; r < gca->ninputs ; r++)
+    {
+      vars[r] /= (float)num ;
+      printf("average std[%d] = %2.1f\n", r, sqrt(vars[r])) ;
+    }
+  }
   for (x = 0 ; x < gca->node_width ; x++)
   {
     for (y = 0 ; y < gca->node_height ; y++)
@@ -10580,29 +10702,29 @@ GCAregularizeCovariance(GCA *gca, float regularize)
         gcan = &gca->nodes[x][y][z] ;
         for (n = 0 ; n < gcan->nlabels ; n++)
         {
-					if (x == Ggca_x && y == Ggca_y && z == Ggca_z &&
-							(Ggca_label == gcan->labels[n] || Ggca_label < 0))
-						DiagBreak() ;
+	  if (x == Ggca_x && y == Ggca_y && z == Ggca_z &&
+	      (Ggca_label == gcan->labels[n] || Ggca_label < 0))
+	    DiagBreak() ;
           gc = &gcan->gcs[n] ;
-					for (i = r = 0 ; r < gca->ninputs ; r++)
-					{
-						for (c = r ; c < gca->ninputs ; c++, i++)
-						{
-							gc->covars[i] = (1-regularize)*gc->covars[i] ;
-							if (r == c)
-								gc->covars[i] += regularize*vars[r] ;  
-						}
-					}
-					if (x == Ggca_x && y == Ggca_y && z == Ggca_z &&
-							(Ggca_label == gcan->labels[n] || Ggca_label < 0))
-					{ 
-						MATRIX *m ;
-						printf("regularizing covariance matrix for %s @ (%d, %d, %d):\n", 
-									 cma_label_to_name(gcan->labels[n]), x, y, z) ; 
-						m = load_covariance_matrix(gc, NULL, gca->ninputs) ;
-						MatrixPrint(stdout, m) ;
-						MatrixFree(&m) ;
-					}
+	  for (i = r = 0 ; r < gca->ninputs ; r++)
+	  {
+	    for (c = r ; c < gca->ninputs ; c++, i++)
+	    {
+	      gc->covars[i] = (1-regularize)*gc->covars[i] ;
+	      if (r == c)
+		gc->covars[i] += regularize*vars[r] ;  
+	    }
+	  }
+	  if (x == Ggca_x && y == Ggca_y && z == Ggca_z &&
+	      (Ggca_label == gcan->labels[n] || Ggca_label < 0))
+	  { 
+	    MATRIX *m ;
+	    printf("regularizing covariance matrix for %s @ (%d, %d, %d):\n", 
+		   cma_label_to_name(gcan->labels[n]), x, y, z) ; 
+	    m = load_covariance_matrix(gc, NULL, gca->ninputs) ;
+	    MatrixPrint(stdout, m) ;
+	    MatrixFree(&m) ;
+	  }
         }
       }
     }
@@ -10636,24 +10758,24 @@ GCAlabelCovariance(GCA *gca, int label, MATRIX *m_total)
           gc = &gcan->gcs[n] ;
           prior = get_node_prior(gca, label, xn, yn, zn) ;
           wt += prior ;
-					m_cov = load_covariance_matrix(gc, m_cov, gca->ninputs) ;
-					MatrixScalarMul(m_cov, prior, m_cov) ;
-					if (m_total == NULL)
-						m_total = MatrixCopy(m_cov, NULL) ;
-					else
-						MatrixAdd(m_cov, m_total, m_total) ;
+	  m_cov = load_covariance_matrix(gc, m_cov, gca->ninputs) ;
+	  MatrixScalarMul(m_cov, prior, m_cov) ;
+	  if (m_total == NULL)
+	    m_total = MatrixCopy(m_cov, NULL) ;
+	  else
+	    MatrixAdd(m_cov, m_total, m_total) ;
         }
       }
     }
   }
 
-	if (m_total == NULL)
-		return(NULL) ;
-
-	if (FZERO(wt))
-		wt = 1 ;
-	MatrixScalarMul(m_total, 1/wt, m_total) ;
-	MatrixFree(&m_cov) ;
+  if (m_total == NULL)
+    return(NULL) ;
+  
+  if (FZERO(wt))
+    wt = 1 ;
+  MatrixScalarMul(m_total, 1/wt, m_total) ;
+  MatrixFree(&m_cov) ;
   return(m_total) ;
 }
 
@@ -10684,17 +10806,17 @@ GCAlabelMeanFromImage(GCA *gca, TRANSFORM *transform, MRI *mri, int label, float
             continue ;
           gc = &gcan->gcs[n] ;
           prior = get_node_prior(gca, label, xn, yn, zn) ;
-					if (prior < MIN_MEAN_PRIOR)
-						continue ;
+	  if (prior < MIN_MEAN_PRIOR)
+	    continue ;
           wt += prior ;
-					for (r = 0 ; r < gca->ninputs ; r++)
-					{
-						MRIsampleVolumeFrame(mri, xv, yv, zv, r, &val) ;
-						means[r] += val*prior ;
-						if (!finite(gc->means[r]))
-							DiagBreak() ;
-					}
-                           
+	  for (r = 0 ; r < gca->ninputs ; r++)
+	  {
+	    MRIsampleVolumeFrame(mri, xv, yv, zv, r, &val) ;
+	    means[r] += val*prior ;
+	    if (!finite(gc->means[r]))
+	      DiagBreak() ;
+	  }
+	  
         }
       }
     }
@@ -10708,195 +10830,195 @@ static double pthresh = 0.5 ;
 int
 GCAmapRenormalize(GCA *gca, MRI *mri, TRANSFORM *transform)
 {
-	HISTOGRAM *h, *hsmooth ;
-	int       l, xp, yp, zp, x, y, z, nbins, i, xn, yn, zn, num, frame, bin ;
-	float     fmin, fmax, prior, label_scales[MAX_GCA_LABELS], label_means[MAX_GCA_LABELS], 
-            means[MAX_GCA_INPUTS],std, peak, smooth_peak ;
-	Real      val/*, scale*/ ;
-	GCA_PRIOR *gcap ;
-	GCA_NODE  *gcan ;
-	GC1D      *gc ;
-	MATRIX    *m_cov ;
-
-	/* for each class, build a histogram of values (weighted by priors) to determine
-		 p(I|u,c) p(c).
-	*/
-
-
+  HISTOGRAM *h, *hsmooth ;
+  int       l, xp, yp, zp, x, y, z, nbins, i, xn, yn, zn, num, frame, bin ;
+  float     fmin, fmax, prior, label_scales[MAX_GCA_LABELS], label_means[MAX_GCA_LABELS], 
+    means[MAX_GCA_INPUTS],std, peak, smooth_peak ;
+  Real      val/*, scale*/ ;
+  GCA_PRIOR *gcap ;
+  GCA_NODE  *gcan ;
+  GC1D      *gc ;
+  MATRIX    *m_cov ;
+  
+  /* for each class, build a histogram of values (weighted by priors) to determine
+     p(I|u,c) p(c).
+  */
+  
+  
 #if 0
-	if (gca->ninputs > 1)
-		ErrorReturn(ERROR_UNSUPPORTED, 
-								(ERROR_UNSUPPORTED, "GCAmapRenormalize: not implemented for ninputs > 1")) ;
+  if (gca->ninputs > 1)
+    ErrorReturn(ERROR_UNSUPPORTED, 
+		(ERROR_UNSUPPORTED, "GCAmapRenormalize: not implemented for ninputs > 1")) ;
 #endif
-
-	for (frame = 0 ; frame < mri->nframes ; frame++)
+  
+  for (frame = 0 ; frame < mri->nframes ; frame++)
+  {
+    printf("renormalizing input #%d\n", frame) ;
+    MRIvalRangeFrame(mri, &fmin, &fmax, frame) ;
+    nbins = 256 ; h = HISTOalloc(nbins) ;
+    
+    hsmooth = HISTOcopy(h, NULL) ;
+    for (l = 0 ; l <= MAX_GCA_LABELS ; l++)  /* don't do Unknown class */
+    {
+      label_scales[l] = 1 ;  /* mark it as unusable */
+      GCAlabelMean(gca, l, means) ;
+      m_cov = GCAlabelCovariance(gca, l, NULL) ;
+      if (m_cov == NULL)
+	continue ;
+      std = 4*sqrt(*MATRIX_RELT(m_cov, frame+1,frame+1)) ;
+      MatrixFree(&m_cov) ;
+      label_means[l] = means[frame] ;
+      if (IS_UNKNOWN(l))
+	continue ;
+      printf("label %s (%d): mean = %2.3f +- %2.1f\n", cma_label_to_name(l), l, label_means[l], std) ;
+      if (l == Gdiag_no)
+	DiagBreak() ;
+      if (FZERO(label_means[l]))
+	continue ;
+      HISTOclear(h, h) ;
+      h->bin_size = (fmax-fmin)/255.0 ;
+      if (h->bin_size < 1 && (mri->type == MRI_UCHAR || mri->type == MRI_SHORT))
+	h->bin_size = 1 ;
+      for (i = 0 ; i < nbins ; i++)
+	h->bins[i] = (i+1)*h->bin_size ;
+      
+      for (num = xp = 0 ; xp < gca->prior_width ; xp++)
+      {
+	for (yp = 0 ; yp < gca->prior_height ; yp++)
 	{
-		printf("renormalizing input #%d\n", frame) ;
-		MRIvalRangeFrame(mri, &fmin, &fmax, frame) ;
-		nbins = 256 ; h = HISTOalloc(nbins) ;
-		
-		hsmooth = HISTOcopy(h, NULL) ;
-		for (l = 0 ; l <= MAX_GCA_LABELS ; l++)  /* don't do Unknown class */
-		{
-			label_scales[l] = 1 ;  /* mark it as unusable */
-			GCAlabelMean(gca, l, means) ;
-			m_cov = GCAlabelCovariance(gca, l, NULL) ;
-			if (m_cov == NULL)
-				continue ;
-			std = 4*sqrt(*MATRIX_RELT(m_cov, frame+1,frame+1)) ;
-			MatrixFree(&m_cov) ;
-			label_means[l] = means[frame] ;
-			if (IS_UNKNOWN(l))
-				continue ;
-			printf("label %s (%d): mean = %2.3f +- %2.1f\n", cma_label_to_name(l), l, label_means[l], std) ;
-			if (l == Gdiag_no)
-				DiagBreak() ;
-			if (FZERO(label_means[l]))
-				continue ;
-			HISTOclear(h, h) ;
-			h->bin_size = (fmax-fmin)/255.0 ;
-			if (h->bin_size < 1 && (mri->type == MRI_UCHAR || mri->type == MRI_SHORT))
-				h->bin_size = 1 ;
-			for (i = 0 ; i < nbins ; i++)
-				h->bins[i] = (i+1)*h->bin_size ;
-
-			for (num = xp = 0 ; xp < gca->prior_width ; xp++)
-			{
-				for (yp = 0 ; yp < gca->prior_height ; yp++)
-				{
-					for (zp = 0 ; zp < gca->prior_depth ; zp++)
-					{
-						if (xp == Gx && yp == Gy && zp == Gz)
-							DiagBreak() ;
-						gcap = &gca->priors[xp][yp][zp] ;
-						prior = getPrior(gcap, l) ;
-						if (prior < pthresh)
-							continue ;
-						GCApriorToSourceVoxel(gca, mri, transform, xp, yp, zp, &x, &y, &z) ;
-						MRIsampleVolumeFrame(mri, x, y, z, frame, &val) ;
-						bin = nint((val - fmin)/h->bin_size) ;
-						if (bin >= h->nbins)
-							bin = h->nbins-1 ;
-						else if (bin < 0)
-							bin = 0 ;
-							
-						h->counts[bin] += prior ; num++ ;
-					}
-				}
-			}
-			if (num <= 50)  /* not enough to reliably estimate density */
-				continue ;
-			HISTOfillHoles(h) ;
-			if (l == Gdiag_no)
-				DiagBreak() ;
-			HISTOsmooth(h, hsmooth, 1) ;
-			peak = h->bins[HISTOfindHighestPeakInRegion(h, 0, h->nbins)] ;
-			smooth_peak = hsmooth->bins[HISTOfindHighestPeakInRegion(hsmooth, 0, hsmooth->nbins)] ;
-			label_scales[l] = (float)smooth_peak / label_means[l] ;
-			printf("%s (%d): peak at %2.2f, smooth at %2.2f (%d voxels), scaling by %2.2f\n", 
-						 cma_label_to_name(l), l, peak, smooth_peak, num,
-						 label_scales[l]) ;
-			bin = nint((means[frame] - fmin)/hsmooth->bin_size) ;
-			bin = HISTOfindCurrentPeak(hsmooth, bin, 11, .2) ;
-			smooth_peak = hsmooth->bins[bin] ;
-			if (bin < 0 || smooth_peak <= 0)
-				continue ;
-			label_scales[l] = (float)smooth_peak / label_means[l] ;
-			printf("%s (%d): AFTER PRIOR: peak at %2.2f, smooth at %2.2f (%d voxels), scaling by %2.2f\n", 
-						 cma_label_to_name(l), l, peak, smooth_peak, num,
-						 label_scales[l]) ;
-
-			if (l == Gdiag_no)
-				DiagBreak() ;
-			if (l >100)
-				break ;
-		}
-
-		for (xn = 0 ; xn < gca->node_width ; xn++)
-		{
-			double     means_before[100], means_after[100], scales[100] ;
-			int        labels[100], niter ;
-			LABEL_PROB ranks_before[100], ranks_after[100] ;
-
-			for (yn = 0 ; yn < gca->node_height ; yn++)
-			{
-				for (zn = 0 ; zn < gca->node_depth ; zn++)
-				{
-					if (xn == Ggca_x && yn == Ggca_y && zn == Ggca_z)
-						DiagBreak() ;
-					gcan = &gca->nodes[xn][yn][zn] ;
-					if (gcan->nlabels <= 0)
-						continue ;
-
-					for (i = 0 ; i < gcan->nlabels ; i++)
-					{
-						gc = &gcan->gcs[i] ;
-						l = gcan->labels[i] ;
-						labels[i] = l ;
-						scales[i] = label_scales[l] ;
-						means_before[i] = gc->means[frame] ;
-						ranks_before[i].label = l ;
-						ranks_before[i].prob = means_before[i] ;
-						ranks_before[i].index = i ;
-					}
-					qsort(ranks_before, gcan->nlabels, sizeof(LABEL_PROB), compare_sort_probabilities) ;
-					niter = 0 ;
-					for (i = 0 ; i < gcan->nlabels ; i++)
-					{
-						gc = &gcan->gcs[i] ;
-						l = gcan->labels[i] ;
-						means_after[i] = means_before[i]*scales[i] ;
-						ranks_after[i].label = l ;
-						ranks_after[i].prob = means_after[i] ;
-						ranks_after[i].index = i ;
-					}
-					qsort(ranks_after, gcan->nlabels, sizeof(LABEL_PROB), compare_sort_probabilities) ;
-					for (i = 0 ; i < gcan->nlabels ; i++)
-					{
-						if (ranks_before[i].label != ranks_after[i].label)
-						{
-							double diff, avg ;
-							int    j ;
-
-							/* two have swapped position - put them back in the right order */
-							for (j = 0 ; j < gcan->nlabels ; j++)
-								if (ranks_after[j].label == ranks_before[i].label)
-									break ;
-							diff = means_before[ranks_after[i].index] - means_before[ranks_before[i].index];
-							avg = (means_after[ranks_after[i].index] + means_after[ranks_before[i].index]) / 2 ;
-							ranks_after[i].prob = means_after[ranks_after[i].index] = avg+diff/4 ;
-							ranks_after[j].prob = means_after[ranks_after[j].index] = avg-diff/4 ;
-							qsort(ranks_after, gcan->nlabels, sizeof(LABEL_PROB), compare_sort_probabilities) ;
-							i = -1 ;   /* start loop over */
-							if (niter++ > 9)
-							{
-								DiagBreak() ;
-								break ;
-							}
-							continue ;
-						}
-					}
-
-					for (i = 0 ; i < gcan->nlabels ; i++)
-					{
-						if (FZERO(label_scales[gcan->labels[i]]))
-							continue ;
-						gc = &gcan->gcs[i] ;
-						if ((xn == Ggca_x && yn == Ggca_y && zn == Ggca_z) &&
-								(Ggca_label == gcan->labels[i] || Ggca_label < 0))
-						{
-							printf("scaling gc for label %s at (%d, %d, %d) from %2.1f to %2.1f\n",
-										 cma_label_to_name(gcan->labels[i]), xn, yn, zn,
-										 means_before[i], means_after[i]) ;
-							DiagBreak() ;
-						}
-						gc->means[frame] = means_after[i] ;
-					}
-				}
-			}
-		}
+	  for (zp = 0 ; zp < gca->prior_depth ; zp++)
+	  {
+	    if (xp == Gx && yp == Gy && zp == Gz)
+	      DiagBreak() ;
+	    gcap = &gca->priors[xp][yp][zp] ;
+	    prior = getPrior(gcap, l) ;
+	    if (prior < pthresh)
+	      continue ;
+	    GCApriorToSourceVoxel(gca, mri, transform, xp, yp, zp, &x, &y, &z) ;
+	    MRIsampleVolumeFrame(mri, x, y, z, frame, &val) ;
+	    bin = nint((val - fmin)/h->bin_size) ;
+	    if (bin >= h->nbins)
+	      bin = h->nbins-1 ;
+	    else if (bin < 0)
+	      bin = 0 ;
+	    
+	    h->counts[bin] += prior ; num++ ;
+	  }
 	}
-
-	return(NO_ERROR) ;
+      }
+      if (num <= 50)  /* not enough to reliably estimate density */
+	continue ;
+      HISTOfillHoles(h) ;
+      if (l == Gdiag_no)
+	DiagBreak() ;
+      HISTOsmooth(h, hsmooth, 1) ;
+      peak = h->bins[HISTOfindHighestPeakInRegion(h, 0, h->nbins)] ;
+      smooth_peak = hsmooth->bins[HISTOfindHighestPeakInRegion(hsmooth, 0, hsmooth->nbins)] ;
+      label_scales[l] = (float)smooth_peak / label_means[l] ;
+      printf("%s (%d): peak at %2.2f, smooth at %2.2f (%d voxels), scaling by %2.2f\n", 
+	     cma_label_to_name(l), l, peak, smooth_peak, num,
+	     label_scales[l]) ;
+      bin = nint((means[frame] - fmin)/hsmooth->bin_size) ;
+      bin = HISTOfindCurrentPeak(hsmooth, bin, 11, .2) ;
+      smooth_peak = hsmooth->bins[bin] ;
+      if (bin < 0 || smooth_peak <= 0)
+	continue ;
+      label_scales[l] = (float)smooth_peak / label_means[l] ;
+      printf("%s (%d): AFTER PRIOR: peak at %2.2f, smooth at %2.2f (%d voxels), scaling by %2.2f\n", 
+	     cma_label_to_name(l), l, peak, smooth_peak, num,
+	     label_scales[l]) ;
+      
+      if (l == Gdiag_no)
+	DiagBreak() ;
+      if (l >100)
+	break ;
+    }
+    
+    for (xn = 0 ; xn < gca->node_width ; xn++)
+    {
+      double     means_before[100], means_after[100], scales[100] ;
+      int        labels[100], niter ;
+      LABEL_PROB ranks_before[100], ranks_after[100] ;
+      
+      for (yn = 0 ; yn < gca->node_height ; yn++)
+      {
+	for (zn = 0 ; zn < gca->node_depth ; zn++)
+	{
+	  if (xn == Ggca_x && yn == Ggca_y && zn == Ggca_z)
+	    DiagBreak() ;
+	  gcan = &gca->nodes[xn][yn][zn] ;
+	  if (gcan->nlabels <= 0)
+	    continue ;
+	  
+	  for (i = 0 ; i < gcan->nlabels ; i++)
+	  {
+	    gc = &gcan->gcs[i] ;
+	    l = gcan->labels[i] ;
+	    labels[i] = l ;
+	    scales[i] = label_scales[l] ;
+	    means_before[i] = gc->means[frame] ;
+	    ranks_before[i].label = l ;
+	    ranks_before[i].prob = means_before[i] ;
+	    ranks_before[i].index = i ;
+	  }
+	  qsort(ranks_before, gcan->nlabels, sizeof(LABEL_PROB), compare_sort_probabilities) ;
+	  niter = 0 ;
+	  for (i = 0 ; i < gcan->nlabels ; i++)
+	  {
+	    gc = &gcan->gcs[i] ;
+	    l = gcan->labels[i] ;
+	    means_after[i] = means_before[i]*scales[i] ;
+	    ranks_after[i].label = l ;
+	    ranks_after[i].prob = means_after[i] ;
+	    ranks_after[i].index = i ;
+	  }
+	  qsort(ranks_after, gcan->nlabels, sizeof(LABEL_PROB), compare_sort_probabilities) ;
+	  for (i = 0 ; i < gcan->nlabels ; i++)
+	  {
+	    if (ranks_before[i].label != ranks_after[i].label)
+	    {
+	      double diff, avg ;
+	      int    j ;
+	      
+	      /* two have swapped position - put them back in the right order */
+	      for (j = 0 ; j < gcan->nlabels ; j++)
+		if (ranks_after[j].label == ranks_before[i].label)
+		  break ;
+	      diff = means_before[ranks_after[i].index] - means_before[ranks_before[i].index];
+	      avg = (means_after[ranks_after[i].index] + means_after[ranks_before[i].index]) / 2 ;
+	      ranks_after[i].prob = means_after[ranks_after[i].index] = avg+diff/4 ;
+	      ranks_after[j].prob = means_after[ranks_after[j].index] = avg-diff/4 ;
+	      qsort(ranks_after, gcan->nlabels, sizeof(LABEL_PROB), compare_sort_probabilities) ;
+	      i = -1 ;   /* start loop over */
+	      if (niter++ > 9)
+	      {
+		DiagBreak() ;
+		break ;
+	      }
+	      continue ;
+	    }
+	  }
+	  
+	  for (i = 0 ; i < gcan->nlabels ; i++)
+	  {
+	    if (FZERO(label_scales[gcan->labels[i]]))
+	      continue ;
+	    gc = &gcan->gcs[i] ;
+	    if ((xn == Ggca_x && yn == Ggca_y && zn == Ggca_z) &&
+		(Ggca_label == gcan->labels[i] || Ggca_label < 0))
+	    {
+	      printf("scaling gc for label %s at (%d, %d, %d) from %2.1f to %2.1f\n",
+		     cma_label_to_name(gcan->labels[i]), xn, yn, zn,
+		     means_before[i], means_after[i]) ;
+	      DiagBreak() ;
+	    }
+	    gc->means[frame] = means_after[i] ;
+	  }
+	}
+      }
+    }
+  }
+  
+  return(NO_ERROR) ;
 }
 
