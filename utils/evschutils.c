@@ -164,6 +164,7 @@ int EVSPrint(FILE *fp, EVENT_SCHEDULE *EvSch)
   for(n=0; n < EvSch->nevents; n++){
     //fprintf(fp,"%3d %8.4f  %3d ",n,EvSch->tevent[n],EvSch->eventid[n]);
     fprintf(fp,"%8.4f  %3d ",EvSch->tevent[n],EvSch->eventid[n]);
+    fprintf(fp,"%6.2f ",EvSch->EvDur[EvSch->eventid[n]-1]);
     if(EvSch->weight != 0) fprintf(fp,"  %8.4f",EvSch->weight[n]);
     fprintf(fp,"\n");
   }
@@ -192,17 +193,23 @@ int EVSwritePar(char *parfile, EVENT_SCHEDULE *EvSch, char **labels,
     NullDur = EvSch->tevent[0] - (-tPreScan); 
     if( fabs(tPreScan) < .0000000001) t = 0.0; /* purely for cosmetic reasons */
     else                                  t = -tPreScan;
-    fprintf(fp,"%8.4f  %3d   %6.3f    %s \n",t,0,NullDur,"NULL");
+    fprintf(fp,"%8.4f  %3d   %6.3f    %10s ",t,0,NullDur,"NULL");
+    fprintf(fp,"   %5.4f ",1.0);
+    fprintf(fp,"\n");
   }
+
   for(n=0; n < EvSch->nevents; n++){
     id = EvSch->eventid[n];
     if(id == 0) continue;
 
     /* Print the time, id, duration, label of current event */
     if(fabs(EvSch->tevent[n]) < .0000000001) t = 0.0;
-    else                                         t = EvSch->tevent[n];
-    fprintf(fp,"%8.4f  %3d   %6.3f    %s \n",t, EvSch->eventid[n], 
+    else                                     t = EvSch->tevent[n];
+    fprintf(fp,"%8.4f  %3d   %6.3f    %10s ",t, EvSch->eventid[n], 
 	    EvSch->EvDur[id-1],labels[id-1]);
+    if(EvSch->weight) fprintf(fp,"   %5.4f ",EvSch->weight[n]);
+    else              fprintf(fp,"   %5.4f ",1.0);
+    fprintf(fp,"\n");
 
     /* Compute duration of null event following this event (may be zero)*/
     if(n == EvSch->nevents-1)
@@ -215,7 +222,9 @@ int EVSwritePar(char *parfile, EVENT_SCHEDULE *EvSch, char **labels,
       tNull = EvSch->tevent[n] + EvSch->EvDur[id-1]; 
       if(fabs(tNull) < .0000000001) t = 0.0;
       else                              t = tNull;
-      fprintf(fp,"%8.4f  %3d   %6.3f    %s \n",t,0,NullDur,"NULL");
+      fprintf(fp,"%8.4f  %3d   %6.3f    %10s ",t,0,NullDur,"NULL");
+      fprintf(fp,"   %5.4f ",1.0);
+      fprintf(fp,"\n");
     }
 
   }
@@ -724,7 +733,7 @@ float EVScost(EVSCH *EvSch, int CostId, float *params)
   modified to compute the VRF differently when there are different
   numbers of stimuli in each event type.x
   -------------------------------------------------------------------*/
-int EVSdesignMtxStats(MATRIX *Xtask, MATRIX *Xnuis, EVSCH *EvSch, MATRIX *C)
+int EVSdesignMtxStats(MATRIX *Xtask, MATRIX *Xnuis, EVSCH *EvSch, MATRIX *C, MATRIX *W)
 {
   MATRIX *X=NULL, *Xt=NULL, *XtX=NULL;
   MATRIX *iXtX=NULL, *VRF=NULL, *Ct=NULL, *CiXtX=NULL, *CiXtXCt=NULL;
@@ -737,6 +746,8 @@ int EVSdesignMtxStats(MATRIX *Xtask, MATRIX *Xnuis, EVSCH *EvSch, MATRIX *C)
   if(Xnuis != NULL) nNuisAvgs = Xnuis->cols;
   else              nNuisAvgs = 0;
   nAvgs     = X->cols;
+
+  if(W != NULL) X = MatrixMultiply(W,X,NULL);
 
   Xt = MatrixTranspose(X,Xt);
   XtX = MatrixMultiply(Xt,X,XtX);
@@ -868,6 +879,38 @@ MATRIX *EVSfirXtXIdeal(int nEvTypes, int *nEvReps, float *EvDur,
 
   free(EvDur_dPSD);
   return(XtX);
+}
+/*--------------------------------------------------------
+  EVSrefractory() - compute the weight for each event based
+  on the amount of time since the end of the last event.
+  This penalizes based on a refractory model.
+  --------------------------------------------------------*/
+int EVSrefractory(EVSCH *sch, double alpha, double T, double dtmin)
+{
+  int n, idprev;
+  double tonprev, durprev, tonev, dt=0.0, toffprev;
+
+  if(sch->weight == NULL) 
+    sch->weight = (float *) calloc(sizeof(float),sch->nevents);
+
+  sch->weight[0] = 1;
+  for(n=1; n < sch->nevents; n++){
+    idprev   = sch->eventid[n-1];
+    tonprev  = sch->tevent[n-1];
+    durprev  = sch->EvDur[idprev-1];
+    toffprev = tonprev+durprev;
+    tonev    = sch->tevent[n];
+    dt = tonev - toffprev + dtmin;
+    if(dt < 0) dt = 0;
+    sch->weight[n] = 1 - alpha*exp(-dt/T);    
+    //printf("%2d %d %g %g %g  %g %g %g\n",n,idprev,
+    //   tonprev,durprev,toffprev,tonev,dt,sch->weight[n]);
+  }
+
+  //EVSPrint(stdout,sch);
+  //exit(1);
+
+  return(0);
 }
 
 
