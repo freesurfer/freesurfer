@@ -57,6 +57,10 @@ int Tix_SafeInit ( Tcl_Interp* interp );
 
 #include "proto.h"
 #include "macros.h"
+#include "matrix.h"
+
+MATRIX *gm_screen2ras = NULL ;
+MATRIX *gm_ras2screen = NULL ;
 
 char tkm_ksaErrorStrings [tkm_knNumErrorCodes][tkm_knErrStringLen] = {
   "No error.",
@@ -96,35 +100,12 @@ char tkm_ksaErrorStrings [tkm_knNumErrorCodes][tkm_knErrStringLen] = {
 };
 
 
-#define CURSOR_VAL   255
 
-/* #define SQR(x)       ((x)*(x)) */
+#define NUM_UNDOS   257
+
 #define MATCH(A,B)   (!strcmp(A,B))
 #define MATCH_STR(S) (!strcmp(str,S))
 
-#define NUMVALS 256
-#define MAXIM 256
-#define MAXPTS 10000
-#define MAXPARS 10
-#define MAPOFFSET 0
-#define CORONAL    0
-#define HORIZONTAL 1
-#define SAGITTAL   2
-#define POSTANT   0
-#define INFSUP    1
-#define RIGHTLEFT 2  /* radiol */
-#define NAME_LENGTH  STRLEN
-#define MAX_DIR_DEPTH  30
-#define TMP_DIR          "tmp"             /* relative to subjectsdir/pname */
-#define TRANSFORM_DIR    "mri/transforms"  /* ditto */
-#define TALAIRACH_FNAME  "talairach.xfm"   /* relative to TRANSFORM_DIR */
-#define DIR_FILE "ic1.tri"
-#define MAXCOR 500
-#define MAXLEN 100
-#define kDefaultWindowLocationX 0
-#define kDefaultWindowLocationY 0
-#define kWindowBottomBorderHeight 32
-#define CVIDBUF 25
 
 #ifdef IRIX
 int __new_cfgetospeed () {
@@ -145,52 +126,13 @@ int __new_tcsetattr () {
 #endif
 
 
-int xnum=256,ynum=256;
-int ptype;
-float ps,st,xx0,xx1,yy0,yy1,zz0,zz1;
-int zf, ozf;
-float fsf;
-unsigned long bufsize;
-unsigned char **im_b[MAXIM];
-unsigned char **fill[MAXIM];
-unsigned char **dummy_im[MAXIM];
-unsigned char **sim[6]; 
-unsigned char **sim2[6]; 
-int second_im_allocated = FALSE;
-int dummy_im_allocated = FALSE;
-int wmfilter_ims_allocated = FALSE;
-// int changed[MAXIM];
-int imnr0,imnr1,numimg;
-int wx0=114,wy0=302;  /* (100,100), (117,90), (556,90) */
-int ptsflag = FALSE;
-int surfloaded = FALSE;
-int editflag = TRUE;
-int fieldsignflag = FALSE; /* overrides curvflag */
-int surflinewidth = 1;
-int curvloaded = FALSE;
-int curvflag = FALSE;
+static int zf, ozf;
+static float fsf;
+
+static int editflag = TRUE;
+static int surflinewidth = 1;
 // int editedimage = FALSE;
-int inplaneflag = TRUE;
-int linearflag = FALSE;
-int bwflag = FALSE;
-int truncflag = FALSE;
-int second_im_full = FALSE;
-int npts = 0;
-int ndip = 0;
-int dip_spacing = 10; /* voxels */
-float tm[4][4];
-int jold[MAXPTS],iold[MAXPTS],imold[MAXPTS];
-float ptx[MAXPTS],pty[MAXPTS],ptz[MAXPTS];
 
-float par[MAXPARS],dpar[MAXPARS];
-
-int white_lolim = 80;
-int white_hilim = 140;
-int gray_hilim = 100;
-int flossflag = TRUE;
-int spackleflag = TRUE;
-int lim3=170,lim2=145,lim1=95,lim0=75;
-double ffrac3=1.0,ffrac2=1.0,ffrac1=1.0,ffrac0=1.0;
 
 #include "xDebug.h"
 #include "xTypes.h"
@@ -203,14 +145,13 @@ double ffrac3=1.0,ffrac2=1.0,ffrac1=1.0,ffrac0=1.0;
 
 // ============================================================= FILENAME MGMT
 
-char gsSubjectDir[tkm_knPathLen]     = ""; /* $SUBJECTS_DIR */
+static char *gsCommandLineSubjectsDir = NULL ;
 /* is $SUBJECTS_DIR/subject_name if they used the "subject image" argument, 
    or the -f arg if they used that, or the cwd */
-char gsSubjectHomeDir[tkm_knPathLen] = ""; 
-char gsUserHomeDir[tkm_knPathLen]    = ""; /* cwd from shell */
-char gsTclScriptDir[tkm_knPathLen]   = ""; /* $MRI_DIR */
+static char gsSubjectHomeDir[tkm_knPathLen] = ""; 
+static char gsUserHomeDir[tkm_knPathLen]    = ""; /* cwd from shell */
 
-char gsTkTimerFileName[tkm_knPathLen] = "tktimer.data";
+static char gsTkTimerFileName[tkm_knPathLen] = "tktimer.data";
 
 tkm_tErr SetSubjectHomeDirFromEnv ( char* isSubject );
 tkm_tErr SetSubjectHomeDir        ( char* isHomeDir );
@@ -714,14 +655,9 @@ extern void scale2x(int, int, unsigned char *);
 void ParseCmdLineArgs( int argc, char *argv[] );
 void WriteVoxelToControlFile ( xVoxelRef inVolumeVox );
 void WriteVoxelToEditFile    ( xVoxelRef inVolumeVox );
-void mri2pix(float xpt, float ypt, float zpt, int *jpt, int *ipt,int *impt);
 
 void rotate_brain(float a,char c) ;
 void translate_brain(float a,char c) ;
-void optimize2(void) ;
-void optimize(int maxiter) ;
-float Error(int p,float dp) ;
-int  imval(float px,float py,float pz) ; // get value of im
 void UpdateAndRedraw ();
 void pix_to_rgb(char *fname) ; // another method of saving a screenshot
 void scrsave_to_rgb(char *fname) ; // use scrsave to save a screen shot
@@ -734,8 +670,6 @@ void read_htrans(char *fname) ;
 void write_htrans(char *fname) ;
 void smooth_3d(int niter) ;
 void wmfilter_corslice(int imc) ;
-void sagnorm_allslices(void) ;
-void sagnorm_corslice(int imc) ;
 void alloc_second_im(void) ;
 void smooth_surface(int niter) ;
 
@@ -896,6 +830,7 @@ printf("-revphaseflag <1|0>         : reverses phase display in overlay (default
 printf("-truncphaseflag <1|0>       : truncates overlay values below 0 (default off)\n");
 printf("-overlaycache <1|0>         : uses overlay cache (default off)\n");
 printf("\n");
+printf("-sdir <subjects dir>         : (default is getenv(SUBJECTS_DIR)\n");
 printf("-timecourse <path/stem>         : load functional timecourse volume\n");
 printf("-timecourse-reg <registration>  : load registration file for timecourse  \n");
 printf("                                : volume (default is register.dat in\n");
@@ -1255,6 +1190,25 @@ printf("-interface script    : scecify interface script (default is tkmedit.tcl)
       nCurrentArg += 1;
     }
 
+  } else if( MATCH( sArg, "-sdir" ) ) {
+    /* check for the value following the switch */
+    if( argc > nCurrentArg + 1 &&
+        '-' != argv[nCurrentArg+1][0] ) {
+
+      /* get the value */
+      DebugNote( ("Parsing -sdir option") );
+      gsCommandLineSubjectsDir = argv[nCurrentArg+1] ;
+      nCurrentArg +=2 ;
+
+    } else { 
+      
+      /* misuse of that switch */
+      tkm_DisplayError( "Parsing -fslope option",
+            "Expected an argument",
+            "This option needs an argument: the threshold "
+            "value to use." );
+      nCurrentArg += 1;
+    }
   } else if( MATCH( sArg, "-fslope" ) ) {
 
     /* check for the value following the switch */
@@ -1733,35 +1687,35 @@ printf("-interface script    : scecify interface script (default is tkmedit.tcl)
       DebugNote( ("Loading volume %s", sSubject) );
       eResult = LoadVolume( tkm_tVolumeType_Main, sSubject );
       if( tkm_tErr_NoErr != eResult ) {
-  PrintCachedTclErrorDlogsToShell();
-  exit( 1 );
+        PrintCachedTclErrorDlogsToShell();
+        exit( 1 );
       }
     } else {
       DebugNote( ("Loading volume %s", sImageDir) );
       eResult = LoadVolume( tkm_tVolumeType_Main, sImageDir );
       if( tkm_tErr_NoErr != eResult ) {
-  PrintCachedTclErrorDlogsToShell();
-  exit( 1 );
+        PrintCachedTclErrorDlogsToShell();
+        exit( 1 );
       }
-
+      
       /* check to see if we don't have a subject */
       Volm_CopySubjectName( gAnatomicalVolume[tkm_tVolumeType_Main],
-          sSubjectTest, sizeof(sSubjectTest) );
+                            sSubjectTest, sizeof(sSubjectTest) );
       if( strcmp( sSubjectTest, "" ) == 0 ) {
-  /* manually set the subject and image name */
-  Volm_SetSubjectName( gAnatomicalVolume[tkm_tVolumeType_Main], 
-           sSubject );
-  Volm_SetVolumeName( gAnatomicalVolume[tkm_tVolumeType_Main], 
-          sImageDir );
+        /* manually set the subject and image name */
+        Volm_SetSubjectName( gAnatomicalVolume[tkm_tVolumeType_Main], 
+                             sSubject );
+        Volm_SetVolumeName( gAnatomicalVolume[tkm_tVolumeType_Main], 
+                            sImageDir );
       }
     }
-
+    
     /* if reading in an aux image... */
     if( bLoadingAuxVolume ) {
       DebugNote( ("Loading aux volume %s", sAuxVolume) );
       eResult = LoadVolume( tkm_tVolumeType_Aux, sAuxVolume );
     }
-
+    
     /* load in the display transforms. */
     if( bLoadingMainTransform ) {
       DebugNote( ("Loading main display transform %s", sMainTransform) );
@@ -2005,8 +1959,8 @@ void FindNearestSurfaceVertex ( Surf_tVertexSet iSurface ) {
   MWin_tErr eWindow  = MWin_tErr_NoErr;
   xVoxel    cursor;
   xVoxel    anaIdx;
-  char      sResult[256];
-  char      sSetName[256];
+  char      sResult[STRLEN];
+  char      sSetName[STRLEN];
 
   /* get the cursor */
   eWindow = MWin_GetCursor ( gMeditWindow, &cursor );
@@ -2379,659 +2333,6 @@ void UnloadSurface () {
 // ===========================================================================
 
 
-#if 0
-
-
-void
-write_dipoles(char *fname)
-{
-  int i,j,k,di,dj,dk;
-  float x,y,z;
-  FILE *fptr;
-  int ***neighindex,index,nneighbors;
-
-  ndip = 0;
-/*
-  ndip=2;
-*/
-  neighindex=(int ***)malloc((numimg/dip_spacing+1)*sizeof(int **));
-  for (k=0;k<numimg;k+=dip_spacing)
-  { 
-    neighindex[k/dip_spacing]=(int **)malloc((ynum/dip_spacing+1)*sizeof(int *));
-    for (i=0;i<ynum;i+=dip_spacing)
-      neighindex[k/dip_spacing][i/dip_spacing]=(int *)malloc((xnum/dip_spacing+1)*
-                                                             sizeof(int));
-  }
-
-  for (k=0;k<numimg;k+=dip_spacing)
-  for (i=0;i<ynum;i+=dip_spacing)
-  for (j=0;j<xnum;j+=dip_spacing)
-
-    if ( GetVoxelValue ( gAnatomicalVolume, j, i, k ) != 0 )
-      //  if (im[k][i][j]!=0)
-
-/*
-  if (sqrt(0.0+SQR(k-numimg/2)+SQR(i-ynum/2)+SQR(j-xnum/2))<=100)
-*/
-  {
-    neighindex[k/dip_spacing][i/dip_spacing][j/dip_spacing] = ndip;
-    ndip++;
-  } else
-   neighindex[k/dip_spacing][i/dip_spacing][j/dip_spacing] = -1;
-
-  fptr = fopen(fname,"w");
-  if (fptr==NULL) {printf("medit: ### can't create file %s\n",fname); return;}
-  fprintf(fptr,"#!ascii\n");
-  fprintf(fptr,"%d\n",ndip);
-/*
-  fprintf(fptr,"%6.2f %6.2f %6.2f %6.2f %6.2f %6.2f\n",
-          30.0,-75.0,40.0,0.0,0.0,0.0);
-  fprintf(fptr,"%6.2f %6.2f %6.2f %6.2f %6.2f %6.2f\n",
-          45.0,10.0,70.0,0.0,0.0,0.0);
-*/
-  for (k=0;k<numimg;k+=dip_spacing)
-  for (i=0;i<ynum;i+=dip_spacing)
-  for (j=0;j<xnum;j+=dip_spacing)
-  if (neighindex[(k)/dip_spacing][(i)/dip_spacing][(j)/dip_spacing]>=0)
-  {
-    x = xx1-ps*j;
-    y = yy0+st*k;
-    z = zz1-ps*i;
-    fprintf(fptr,"%6.2f %6.2f %6.2f %6.2f %6.2f %6.2f\n",x,y,z,0.0,0.0,0.0);
-  }
-/*
-  fprintf(fptr,"%d \n",0);
-  fprintf(fptr,"%d \n",0);
-*/
-  for (k=0;k<numimg;k+=dip_spacing)
-  for (i=0;i<ynum;i+=dip_spacing)
-  for (j=0;j<xnum;j+=dip_spacing)
-  if (neighindex[(k)/dip_spacing][(i)/dip_spacing][(j)/dip_spacing]>=0)
-  {
-    nneighbors = 0;
-    for (dk= -dip_spacing;dk<=dip_spacing;dk+=2*dip_spacing)
-      if (dk>0)
-      if (neighindex[(k+dk)/dip_spacing][(i)/dip_spacing][(j)/dip_spacing]>=0)
-        nneighbors++;
-    for (di= -dip_spacing;di<=dip_spacing;di+=2*dip_spacing)
-      if (di>0)
-      if (neighindex[(k)/dip_spacing][(i+di)/dip_spacing][(j)/dip_spacing]>=0)
-        nneighbors++;
-    for (dj= -dip_spacing;dj<=dip_spacing;dj+=2*dip_spacing)
-      if (dj>0)
-      if (neighindex[(k)/dip_spacing][(i)/dip_spacing][(j+dj)/dip_spacing]>=0)
-        nneighbors++;
-    fprintf(fptr,"%d ",nneighbors);
-    for (dk= -dip_spacing;dk<=dip_spacing;dk+=2*dip_spacing)
-      if (dk>0)
-      if ((index=neighindex[(k+dk)/dip_spacing][(i)/dip_spacing][(j)/dip_spacing])>=0)
-        fprintf(fptr,"%d ",index);
-    for (di= -dip_spacing;di<=dip_spacing;di+=2*dip_spacing)
-      if (di>0)
-      if ((index=neighindex[(k)/dip_spacing][(i+di)/dip_spacing][(j)/dip_spacing])>=0)
-        fprintf(fptr,"%d ",index);
-    for (dj= -dip_spacing;dj<=dip_spacing;dj+=2*dip_spacing)
-      if (dj>0)
-      if ((index=neighindex[(k)/dip_spacing][(i)/dip_spacing][(j+dj)/dip_spacing])>=0)
-        fprintf(fptr,"%d ",index);
-    fprintf(fptr,"\n");
-  }
-  fclose(fptr);
-  printf("medit: dipole file %s written\n",fname);
-}
-
-void
-write_decimation(char *fname)
-{
-  int k;
-  FILE *fptr;
-
-  fptr = fopen(fname,"w");
-  if (fptr==NULL) {printf("medit: ### can't create file %s\n",fname); return;}
-  fprintf(fptr,"#!ascii\n");
-  fprintf(fptr,"%d\n",ndip);
-  for (k=0;k<ndip;k++)
-  {
-    fprintf(fptr,"1\n");
-  }
-  fclose(fptr);
-  printf("medit: decimation file %s written\n",fname);
-}
-
-void
-smooth_3d(int niter)
-{
-  int iter,i,j,k;
-  int i2,j2,k2;
-  int n;
-  float sum;
-  tVolumeValue theIntensity;
-
-  if (!dummy_im_allocated) {
-    for (k=0;k<numimg;k++) {
-      dummy_im[k] = (tVolumeValue **)lcalloc(ynum,sizeof(char *));
-      for (i=0;i<ynum;i++) {
-        dummy_im[k][i] = (tVolumeValue *)lcalloc(xnum,sizeof(char));
-      }
-    }
-    dummy_im_allocated = TRUE;
-  }
-
-  for (iter=0;iter<niter;iter++) {  /* smooth */
-    for (j=1;j<xnum-1;j++) {
-      printf(".");
-      for (k=1;k<numimg-1;k++)
-      for (i=1;i<ynum-1;i++) {
-        sum = 0;
-        n = 0;
-        for(k2=k-1;k2<k+2;k2++)  /* 27 */
-        for(i2=i-1;i2<i+2;i2++)
-        for(j2=j-1;j2<j+2;j2++) {
-    sum += GetVoxelValue ( gAnatomicalVolume, j2, i2, k2 );
-    //          sum += im[k2][i2][j2];
-          n++;
-        }
-        /*dummy_im[k][i][j] = (sum+im[k][i][j])/(float)(n+1);*/
-        dummy_im[k][i][j] = (sum + 27*GetVoxelValue(gAnatomicalVolume,j,i,k))/
-    (float)(n+27);
-      }
-      fflush(stdout);
-    }
-  }
-
-  /* update view */
-  for (k=0;k<numimg;k++)
-    for (i=0;i<ynum;i++)
-      for (j=0;j<xnum;j++)
-  SetVoxelValue ( gAnatomicalVolume, j, i, k, dummy_im[k][i][j] );
-
-  for (k=0;k<numimg;k++)
-    changed[k] = TRUE;
-  editedimage = TRUE;
-
-  for (k=0;k<6;k++)
-  for (i=0;i<ynum;i++)
-  for (j=0;j<xnum;j++)
-    sim[k][i][j] = 0;
-
-  for (k=0;k<numimg;k++)
-    for (i=0;i<ynum;i++)
-      for (j=0;j<xnum;j++) {
-
-  theIntensity = GetVoxelValue ( gAnatomicalVolume, j, i, k ) / 2;
-
-  if ( theIntensity > sim[3][i][j]) 
-    sim[3][i][j] = theIntensity;
-  
-  if ( theIntensity > sim[4][k][j]) 
-    sim[4][k][j] = theIntensity;
-  
-  if ( theIntensity > sim[5][i][k]) 
-    sim[5][i][k] = theIntensity;
-      }
-
-  for (i=0;i<ynum;i++)
-    for (j=0;j<xnum;j++)
-      for (k=0;k<3;k++)
-  sim[k][i][j] = sim[k+3][i][j];
-
-  printf("\nmedit: finished %d smooth_3d steps\n",niter);
-}
-
-void
-wmfilter_corslice(int imc)
-{
-  char *getenv(),*mri_dir,fname[NAME_LENGTH];
-  int nver,ncor;
-  int i,j,k,k2,di,dj,dk,m,n,u,ws2=2,maxi,mini;
-  float xcor[MAXCOR],ycor[MAXCOR],zcor[MAXCOR];
-  float fwhite_hilim=140,fwhite_lolim=80,fgray_hilim=100;
-  float numvox,numnz,numz;
-  float f,f2,a,b,c,x,y,z,s;
-  float cfracz = 0.6;
-  float cfracnz = 0.6;
-  double sum2,sum,var,avg,tvar,maxvar,minvar;
-  double sum2v[MAXLEN],sumv[MAXLEN],avgv[MAXLEN],varv[MAXLEN],nv[MAXLEN];
-  FILE *fptr;
-  mri_tOrientation theOrientation;
-  int plane;
-
-  // get the plane.
-  MWin_GetOrientation ( gMeditWindow, &theOrientation );
-  plane = (int)theOrientation;
-
-  k2 = imc/zf;
-  if (plane!=CORONAL) {
-    printf("medit: ### can only wmfilter CORONAL slice\n"); return; }
-  if(k2<ws2 || k2>numimg-ws2) {
-    printf("medit: ### slice too close to edge\n"); return; }
-  mri_dir = getenv("MRI_DIR");
-  if (mri_dir==NULL) {
-    printf("medit: ### env var MRI_DIR undefined (setenv, restart)\n");return;}
-  if (!flossflag && !spackleflag) { 
-    printf("medit: ### no spackle or floss  ...skipping wmfilter\n"); return; }
-
-  sprintf(fname,"%s/lib/bem/%s",mri_dir,DIR_FILE);
-  fptr = fopen(fname,"r");
-  if (fptr==NULL) {printf("medit: ### File %s not found\n",fname); return;}
-  fscanf(fptr,"%d",&nver);
-  for (i=0,ncor=0;i<nver;i++) {
-    fscanf(fptr,"%*d %f %f %f",&x,&y,&z);
-    for (j=0;j<ncor;j++)
-      if ((x==-xcor[j]) && (y==-ycor[j]) && (z==-zcor[j])) goto L1;
-    xcor[ncor] = x;
-    ycor[ncor] = y;
-    zcor[ncor] = z;
-    ncor++;
-  L1:;
-  }
-  fwhite_hilim = (float)white_hilim;
-  fwhite_lolim = (float)white_lolim;
-  fgray_hilim = (float)gray_hilim;
-
-  if (!wmfilter_ims_allocated) {
-    for (k=0;k<numimg;k++) {
-      fill[k] = (tVolumeValue **)lcalloc(ynum,sizeof(char *));
-      im_b[k] = (tVolumeValue **)lcalloc(ynum,sizeof(char *));
-      for (i=0;i<ynum;i++) {
-        fill[k][i] = (tVolumeValue *)lcalloc(xnum,sizeof(char));
-        im_b[k][i] = (tVolumeValue *)lcalloc(xnum,sizeof(char));
-      }
-    }
-    wmfilter_ims_allocated = TRUE;
-  }
-
-  if (!second_im_allocated)
-    alloc_second_im();
-
-  /*for (k=0;k<numimg-1;k++)*/
-  for (k=k2-ws2;k<=k2+ws2;k++)
-    for (i=0;i<ynum-1;i++)
-      for (j=0;j<xnum-1;j++) {
-  im_b[k][i][j] = GetVoxelValue ( gAnatomicalVolume, j, i, k );
-  SetVoxelValue ( gAuxAnatomicalVolume, j, i, k,
-      GetVoxelValue ( gAnatomicalVolume, j, i, k ) );
-  if (im_b[k][i][j]>fwhite_hilim || im_b[k][i][j]<fwhite_lolim)
-    im_b[k][i][j] = 0;
-  fill[k][i][j] = im_b[k][i][j];
-      }
-
-  k = k2;
-  printf("medit: %d unique orientations\n",ncor);
-  printf("medit: white_lolim = %d   white_hilim = %d   gray_hilim = %d\n",
-                 white_lolim,white_hilim,gray_hilim);
-  printf("medit: wmfiltering coronal slice %d\n",k2);
-  if (flossflag)   printf("medit:   floss => '.'\n");
-  if (spackleflag) printf("medit:   spackle => '#'\n");
-  printf("medit:    ...\n"); 
-
-  for (i=ws2;i<ynum-1-ws2;i++)
-  for (j=ws2;j<xnum-1-ws2;j++) {
-    numvox = numnz = numz = 0;
-    for (dk = -ws2;dk<=ws2;dk++)
-    for (di = -ws2;di<=ws2;di++)
-    for (dj = -ws2;dj<=ws2;dj++) {
-      f = im_b[k+dk][i+di][j+dj];
-      s = dk*c+di*b+dj*a;
-      numvox++;
-      if (f!=0) numnz++;
-      else      numz++;
-    }
-    if ((im_b[k][i][j]==0 && numnz>=cfracnz*SQR(2*ws2+1)) ||
-        (im_b[k][i][j]!=0 && numz>=cfracz*SQR(2*ws2+1))) {
-      maxvar = -1000000;
-      minvar = 1000000;
-      maxi = mini = -1;
-      for (m=0;m<ncor;m++) {
-        a = xcor[m];
-        b = ycor[m];
-        c = zcor[m];
-        sum = sum2 = n = 0;
-        for (u=0;u<2*ws2+1;u++)
-          sumv[u] = sum2v[u] = nv[u] = 0;
-        for (dk = -ws2;dk<=ws2;dk++)
-        for (di = -ws2;di<=ws2;di++)
-        for (dj = -ws2;dj<=ws2;dj++) {
-          u = ws2+floor(dk*c+di*b+dj*a+0.5);
-          u = (u<0)?0:(u>2*ws2+1-1)?2*ws2+1-1:u;
-          f = im_b[k+dk][i+di][j+dj];
-          sum2v[u] += f*f;
-          sumv[u] += f;
-          nv[u] += 1;
-          sum2 += f*f;
-          sum += f;
-          n += 1;
-        }
-        avg = sum/n;
-        var = sum2/n-avg*avg;
-        tvar = 0;
-        for (u=0;u<2*ws2+1;u++) {
-          avgv[u] = sumv[u]/nv[u];
-          varv[u] = sum2v[u]/nv[u]-avgv[u]*avgv[u];
-          tvar += varv[u];
-        }
-        tvar /= (2*ws2+1);
-        if (tvar>maxvar) {maxvar=tvar;maxi=m;}
-        if (tvar<minvar) {minvar=tvar;mini=m;}
-      }
-      a = xcor[mini];
-      b = ycor[mini];
-      c = zcor[mini];
-
-      numvox = numnz = numz = sum = sum2 = 0;
-      for (dk = -ws2;dk<=ws2;dk++)
-      for (di = -ws2;di<=ws2;di++)
-      for (dj = -ws2;dj<=ws2;dj++) {
-        f = im_b[k+dk][i+di][j+dj];
-        f2 = GetVoxelValue ( gAuxAnatomicalVolume, j+dj, i+di, k+dk );
-        s = dk*c+di*b+dj*a;
-        if (fabs(s)<=0.5) {
-          numvox++;
-          sum2 += f2;
-          if (f!=0) { numnz++; sum += f; }
-          else      { numz++; }
-        }
-      }
-      if (numnz!=0) sum /= numnz;
-      if (numvox!=0) sum2 /= numvox;
-      f = im_b[k][i][j];
-      f2 = GetVoxelValue ( gAuxAnatomicalVolume, j, i, k );
-      if (flossflag && f!=0 && numz/numvox>cfracz && f<=fgray_hilim) {
-        f=0; printf("."); }
-      else if (spackleflag && f==0 && numnz/numvox>cfracnz) {
-        f=sum; printf("#"); }
-      fill[k][i][j] = f;
-    }
-  }
-  printf("\n");
-  /*for (k=0;k<numimg-1;k++)*/
-  k = k2;
-  for (i=0;i<ynum-1;i++)
-  for (j=0;j<xnum-1;j++) {
-    im_b[k][i][j] = fill[k][i][j];
-    if (im_b[k][i][j]>fwhite_hilim || im_b[k][i][j]<fwhite_lolim)
-      im_b[k][i][j]=0;
-  }
-
-  /*for (k=0;k<numimg-1;k++)*/
-  k = k2;
-  for (k=k2-ws2;k<=k2+ws2;k++)
-  for (i=0;i<ynum-1;i++)
-  for (j=0;j<xnum-1;j++) {
-    if ( k == k2 ) 
-      SetVoxelValue ( gAuxAnatomicalVolume, j, i, k, im_b[k][i][j] );
-    else       
-      SetVoxelValue ( gAuxAnatomicalVolume, j, i, k, 0 );
-  }
-  printf("medit: wmfiltered slice put in 2nd image set (can't be saved)\n");
-  UpdateAndRedraw();
-}
-
-void
-norm_allslices(int normdir)
-{
-  int i,j,k;
-  int x,y;
-  float imf[256][256];
-  float flim0,flim1,flim2,flim3;
-  mri_tOrientation theOrientation;
-  int plane;
-
-  // get the plane.
-  MWin_GetOrientation ( gMeditWindow, &theOrientation );
-  plane = (int)theOrientation;
-
-  x = y = 0;
-  if ((plane==CORONAL && normdir==POSTANT) ||
-      (plane==SAGITTAL && normdir==RIGHTLEFT) ||
-      (plane==HORIZONTAL && normdir==INFSUP)) {
-    printf("medit: ### N.B.: norm gradient not visible in this view\n");
-  }
-  printf("medit: normalizing all slices...\n");
-  flim0 = (float)lim0;
-  flim1 = (float)lim1;
-  flim2 = (float)lim2;
-  flim3 = (float)lim3;
-  for (k=0;k<numimg;k++) {
-    printf(".");
-    for (i=0;i<256;i++)
-    for (j=0;j<256;j++) {
-      if (normdir==POSTANT)   {x=i; y=255-k;}  /* SAG:x */
-      if (normdir==INFSUP)    {x=j;     y=i;}  /* COR:y */
-      if (normdir==RIGHTLEFT) {x=k; y=255-j;}  /* HOR:x */
-      imf[y][x] = GetVoxelValue ( gAnatomicalVolume, j, i, k );
-      if ((255-y)<=flim0)
-        imf[y][x]*=ffrac0;
-      else if ((255-y)<=flim1)
-        imf[y][x]*=(ffrac0+((255-y)-flim0)*(ffrac1-ffrac0)/(flim1-flim0));
-      else if ((255-y)<=flim2)
-        imf[y][x]*=(ffrac1+((255-y)-flim1)*(ffrac2-ffrac1)/(flim2-flim1));
-      else if ((255-y)<=flim3)
-        imf[y][x]*=(ffrac2+((255-y)-flim2)*(ffrac3-ffrac2)/(flim3-flim2));
-      else
-        imf[y][x]*=ffrac3;
-      if (imf[y][x]>255) imf[y][x]=255;
-      SetVoxelValue ( gAnatomicalVolume, j, i, k, floor(imf[y][x]+0.5) );
-    }
-    fflush(stdout);
-  }
-  printf("\n");
-  printf("medit: done (to undo: quit w/o SAVEIMG)\n");
-  for (k=0;k<numimg;k++)
-    changed[k] = TRUE;
-  editedimage = TRUE;
-  UpdateAndRedraw();
-}
-
-void norm_slice(int imc, int ic,int jc, int normdir)
-{
-  int k,i,j;
-  int x,y;
-  int k0,k1,i0,i1,j0,j1;
-  int imc0,ic0,jc0;
-  float imf[256][256];
-  float flim0,flim1,flim2,flim3;
-  mri_tOrientation theOrientation;
-  int plane;
-
-  // get the plane.
-  MWin_GetOrientation ( gMeditWindow, &theOrientation );
-  plane = (int)theOrientation;
-
-  x = y = 0;
-  k0 = k1 = i0 = i1 = j0 = j1 = 0;
-  if ((plane==CORONAL && normdir==POSTANT) ||
-      (plane==SAGITTAL && normdir==RIGHTLEFT) ||
-      (plane==HORIZONTAL && normdir==INFSUP)) {
-    printf("medit: ### N.B.: norm gradient not visible in this view\n");
-  }
-
-  if (!second_im_allocated)
-    alloc_second_im();
-
-  flim0 = (float)lim0;
-  flim1 = (float)lim1;
-  flim2 = (float)lim2;
-  flim3 = (float)lim3;
-  imc0 = imc/zf;
-  ic0 = (ydim-1-ic)/zf;
-  jc0 = jc/zf;
-  if (plane==CORONAL)   {k0=imc0; k1=imc0+1; i0=0;   i1=256;   j0=0;  j1=256;}
-  if (plane==SAGITTAL)  {k0=0;    k1=numimg; i0=0;   i1=256;   j0=jc0;j1=jc0+1;}
-  if (plane==HORIZONTAL){k0=0;    k1=numimg; i0=ic0; i1=ic0+1; j0=0;  j1=256;}
-  /*printf("k0=%d k1=%d i0=%d i1=%d j0=%d j1=%d\n",k0,k1,i0,i1,j0,j1);*/
-  for (k=k0;k<k1;k++)
-  for (i=i0;i<i1;i++)
-  for (j=j0;j<j1;j++) {
-    if (normdir==POSTANT)   {x=i; y=255-k;}  /* SAG:x */
-    if (normdir==INFSUP)    {x=j;     y=i;}  /* COR:y */
-    if (normdir==RIGHTLEFT) {x=k; y=255-j;}  /* HOR:x */
-    imf[y][x] = GetVoxelValue ( gAnatomicalVolume, j, i, k );
-    if ((255-y)<=flim0)
-      imf[y][x]*=ffrac0;
-    else if ((255-y)<=flim1)
-      imf[y][x]*=(ffrac0+((255-y)-flim0)*(ffrac1-ffrac0)/(flim1-flim0));
-    else if ((255-y)<=flim2)
-      imf[y][x]*=(ffrac1+((255-y)-flim1)*(ffrac2-ffrac1)/(flim2-flim1));
-    else if ((255-y)<=flim3)
-      imf[y][x]*=(ffrac2+((255-y)-flim2)*(ffrac3-ffrac2)/(flim3-flim2));
-    else
-      imf[y][x]*=ffrac3;
-    if (imf[y][x]>255) imf[y][x]=255;
-    SetVoxelValue ( gAuxAnatomicalVolume, j, i, k, floor(imf[y][x]+0.5) );
-  }
-  printf("medit: normalized slice put in 2nd image set (can't be saved)\n");
-  UpdateAndRedraw();
-}
-
-void
-mri2pix(float xpt, float ypt, float zpt, int *jpt, int *ipt,int *impt)
-{
-  if (ptype==0) /* Horizontal */
-  {
-    *jpt = (int)((xx1-xpt)/ps+0.5);
-    *ipt = (int)((ypt-yy0)/ps+0.5);
-    *impt = (int)((zpt-zz0)/st+0.5);
-  } else if (ptype==2) /* Coronal */
-  {
-    *jpt = (int)((xx1-xpt)/ps+0.5);
-    *ipt = (int)((255.0-(zz1-zpt)/ps)+0.5);
-    *impt = (int)((ypt-yy0)/st+0.5);
-  } else if (ptype==1) /* Sagittal */
-  {
-    *jpt = (int)((xx1-xpt)/ps+0.5);
-    *ipt = (int)((ypt-yy0)/ps+0.5);
-    *impt = (int)((zpt-zz0)/st+0.5);
-  }
-}
-
-int 
-imval(float px,float py,float pz)
-{
-  float x,y,z;
-  int j,i,imn;
-
-  x = px*tm[0][0]+py*tm[0][1]+pz*tm[0][2]+tm[0][3];
-  y = px*tm[1][0]+py*tm[1][1]+pz*tm[1][2]+tm[1][3];
-  z = px*tm[2][0]+py*tm[2][1]+pz*tm[2][2]+tm[2][3];
-  mri2pix(x,y,z,&j,&i,&imn);
-  if (imn>=0&&imn<numimg&&i>=0&&i<ynum&&j>=0&&j<xnum) {
-
-    return ( GetVoxelValue ( gAnatomicalVolume, 
-           j, ynum-1-i, imn ) );
-  }
-  else
-    return 0;
-}
-
-float
-Error(int p,float dp)
-{
-  int i,num;
-  float mu,error,sum;
-  float mu1,mu2,sum1,sum2;
-
-  if (p>=0)
-    par[p] += dp;
-  mu = mu1 = mu2 = 0;
-  num = 0;
-  for (i=0;i<npts;i++)
-  {
-    mu += imval(ptx[i],pty[i],ptz[i]);
-    mu1 += imval(ptx[i]*0.9,pty[i]*0.9,ptz[i]*0.9);
-    mu2 += imval(ptx[i]*1.05,pty[i]*1.05,ptz[i]*1.05);
-    num ++;
-  }
-  mu /= num;
-  mu1 /= num;
-  mu2 /= num;
-  sum = sum1 = sum2 = 0;
-  num = 0;
-  for (i=0;i<npts;i++)
-  {
-    error = imval(ptx[i],pty[i],ptz[i])-mu;
-    sum += error*error;
-    error = imval(ptx[i]*0.9,pty[i]*0.9,ptz[i]*0.9)-mu1;
-    sum1 += error*error;
-    error = imval(ptx[i]*1.05,pty[i]*1.05,ptz[i]*1.05)-mu2;
-    sum2 += error*error;
-    num ++;
-  }
-  sum = sqrt((sum+sum2)/num);
-  if (p>=0)
-    par[p] -= dp;
-  return sum;
-}
-
-void
-optimize(int maxiter)
-{
-  float lambda = 0.03;
-  float epsilon = 0.1;
-  float momentum = 0.8;
-  int iter,p;
-  float dE[3];
-  float error;
-
-  for (iter=0;iter<maxiter;iter++)
-  {
-    error = Error(-1,0);
-    printf("%d: %5.2f %5.2f %5.2f %7.3f\n",
-           iter,par[0],par[1],par[2],error);
-    for (p=0;p<3;p++)
-    {
-      dE[p] = tanh((Error(p,epsilon/2)-Error(p,-epsilon/2))/epsilon);
-    }
-    for (p=0;p<3;p++)
-    {
-      par[p] += (dpar[p] = momentum*dpar[p] - lambda*dE[p]);
-    }
-  }
-  error = Error(-1,0);
-  printf("%d: %5.2f %5.2f %5.2f %7.3f\n",
-         iter,par[0],par[1],par[2],error);
-}
-void
-optimize2(void)
-{
-  float epsilon = 0.5;
-  float p0,p1,p2,p0min,p1min,p2min;
-  float error,minerror;
-
-  p0min = p1min = p2min = 0.0f;
-  error = Error(-1,0);
-  minerror = error;
-  printf("%5.2f %5.2f %5.2f %7.3f\n",
-         par[0],par[1],par[2],error);
-  for (p0 = -10;p0 <= 10;p0 += epsilon)
-  for (p1 = -10;p1 <= 10;p1 += epsilon)
-  for (p2 = -10;p2 <= 10;p2 += epsilon)
-  {
-    par[0] = p0;
-    par[1] = p1;
-    par[2] = p2;
-    error = Error(-1,0);
-    if (error<minerror)
-    {
-      printf("%5.2f %5.2f %5.2f %7.3f\n",
-             par[0],par[1],par[2],error);
-      minerror = error;
-      p0min = p0;
-      p1min = p1;
-      p2min = p2;
-    }
-  }
-  par[0] = p0min;
-  par[1] = p1min;
-  par[2] = p2min;
-  error = Error(-1,0);
-  printf("%5.2f %5.2f %5.2f %7.3f\n",
-         par[0],par[1],par[2],error);
-}
-
-
-#endif
-
 
 /* =========================================================== TCL WRAPPERS */
 
@@ -3284,73 +2585,6 @@ int TclSaveRGB ( ClientData inClientData, Tcl_Interp* inInterp,
   return TCL_OK;
 }
 
-#if 0
-
-int TclWMFilterCorSlice ( ClientData inClientData, Tcl_Interp* inInterp,
-        int argc, char* argv[] ) {
-
- xVoxelRef theCursor = NULL;
-
-  if ( argc != 1 ) {
-    Tcl_SetResult ( inInterp, "wrong # args: WMFilterCorSlice",
-        TCL_VOLATILE );
-    return TCL_ERROR;
-  }
-
-  if( gbAcceptingTclCommands ) {
-    xVoxl_New ( &theCursor );
-    MWin_GetCursor ( gMeditWindow, theCursor );
-    wmfilter_corslice ( xVoxl_GetZ(theCursor) );
-    xVoxl_Delete ( &theCursor );
-  }
-
-  return TCL_OK;
-}
-
-int TclNormSlice ( ClientData inClientData, Tcl_Interp* inInterp,
-       int argc, char* argv[] ) {
-
- xVoxelRef theCursor = NULL;
-
-  if ( argc != 2 ) {
-    Tcl_SetResult ( inInterp, 
-        "wrong # args: NormSlice {0=PostAnt,1=InfSup,2=LeftRight}",
-        TCL_VOLATILE );
-    return TCL_ERROR;
-  }
-
-  if( gbAcceptingTclCommands ) {
-    xVoxl_New ( &theCursor );
-    MWin_GetCursor ( gMeditWindow, theCursor );
-    norm_slice ( xVoxl_GetZ(theCursor), 
-     xVoxl_GetY(theCursor),
-     xVoxl_GetX(theCursor),
-     atoi(argv[1]) ); 
-    xVoxl_Delete ( &theCursor );
-  }
-
-  return TCL_OK;
-}
-
-int TclNormAllSlices ( ClientData inClientData, Tcl_Interp* inInterp,
-           int argc, char* argv[] ) {
-
-  if ( argc != 2 ) {
-    Tcl_SetResult ( inInterp, 
-         "wrong # args: NormAllSlices {0=PostAnt,1=InfSup,2=LeftRight}",
-        TCL_VOLATILE );
-    return TCL_ERROR;
-  }
-
-  if( gbAcceptingTclCommands ) {
-    norm_allslices ( atoi(argv[1]) );
-  }  
-
-  return TCL_OK;
-}
-
-#endif
-
 int TclThresholdVolume ( ClientData inClientData, Tcl_Interp* inInterp,
        int argc, char* argv[] ) {
 
@@ -3511,8 +2745,8 @@ int TclLoadVolumeDisplayTransform ( ClientData inClientData,
        and contrast for it. */
     if( volume == tkm_tVolumeType_Main || volume == tkm_tVolumeType_Aux ) {
       if( NULL != gAnatomicalVolume[ volume ] ) {
-
-  LoadDisplayTransform( volume, argv[2] );
+        
+        LoadDisplayTransform( volume, argv[2] );
       }
     }
   }
@@ -3541,8 +2775,8 @@ int TclUnloadVolumeDisplayTransform ( ClientData inClientData,
        and contrast for it. */
     if( volume == tkm_tVolumeType_Main || volume == tkm_tVolumeType_Aux ) {
       if( NULL != gAnatomicalVolume[ volume ] ) {
-
-  UnloadDisplayTransform( volume );
+        
+        UnloadDisplayTransform( volume );
       }
     }
   }
@@ -3620,8 +2854,8 @@ int TclSetVolumeColorScale ( ClientData inClientData, Tcl_Interp* inInterp,
        and contrast for it. */
     if( volume == tkm_tVolumeType_Main || volume == tkm_tVolumeType_Aux ) {
       if( NULL != gAnatomicalVolume[ volume ] ) {
-  SetVolumeBrightnessAndContrast( volume,
-          atof( argv[2] ), atof( argv[3] ));
+        SetVolumeBrightnessAndContrast( volume,
+                                        atof( argv[2] ), atof( argv[3] ));
       }
     }
   }
@@ -4348,8 +3582,8 @@ static Tcl_Interp *interp;
 static Tcl_DString command;
 static int tty;
 
-static char sTclEnvVar[256] = "";
-static char sTkEnvVar[256] = "";
+static char sTclEnvVar[STRLEN] = "";
+static char sTkEnvVar[STRLEN] = "";
 
 
 int main ( int argc, char** argv ) {
@@ -4370,13 +3604,13 @@ int main ( int argc, char** argv ) {
 #ifdef SET_TCL_ENV_VAR
   tBoolean  bChangedEnvVar    = FALSE;
   char*     sTclLib           = NULL;
-  char      sSavedTclLib[256] = "";
+  char      sSavedTclLib[STRLEN] = "";
   int       nTclLength        = 0;
-  char      sNewTclLib[256]   = "";
+  char      sNewTclLib[STRLEN]   = "";
   char*     sTkLib            = NULL;
-  char      sSavedTkLib[256]  = "";
+  char      sSavedTkLib[STRLEN]  = "";
   int       nTkLength         = 0;
-  char      sNewTkLib[256]    = "";
+  char      sNewTkLib[STRLEN]    = "";
 #endif
 
   /* init our debugging macro code, if any. */
@@ -4390,6 +3624,19 @@ int main ( int argc, char** argv ) {
 
   DebugEnterFunction( ("main()") );
 
+  gm_screen2ras = MatrixAlloc(4,4,MATRIX_REAL) ;
+  *MATRIX_RELT(gm_screen2ras, 1, 1) = -1 ;
+  *MATRIX_RELT(gm_screen2ras, 2, 3) = 1 ;
+  *MATRIX_RELT(gm_screen2ras, 3, 2) = -1 ;
+
+  *MATRIX_RELT(gm_screen2ras, 1, 4) = 128 ;
+  *MATRIX_RELT(gm_screen2ras, 2, 4) = -128 ;
+  *MATRIX_RELT(gm_screen2ras, 3, 4) = 128 ;
+
+  *MATRIX_RELT(gm_screen2ras, 4, 4) = 1 ;
+
+
+  gm_ras2screen = MatrixInverse(gm_screen2ras, NULL) ;
   /* write the time started, progam name, and arguments to the debug output */
   time( &theTime );
   DebugPrint( ( "tkmedit started: %s\n\t", ctime( &theTime ) ) );
@@ -4410,16 +3657,13 @@ int main ( int argc, char** argv ) {
 
   /* init our control pt list */
   DebugNote( ("Initializing control point list") );
-  e3DList = x3Lst_New( &gControlPointList, 256 );
+  e3DList = x3Lst_New( &gControlPointList, NUM_UNDOS );
   DebugAssertThrow( (x3Lst_tErr_NoErr == e3DList) );
   x3Lst_SetComparator( gControlPointList, CompareVoxels );
 
   /* init other things */
   DebugNote( ("Initalizing undo list") );
   eResult = InitUndoList();
-  DebugAssertThrow( (eResult == tkm_tErr_NoErr) );
-  DebugNote( ("Initalizing undo volume") );
-  eResult = InitUndoVolume();
   DebugAssertThrow( (eResult == tkm_tErr_NoErr) );
   DebugNote( ("Initalizing selection module") );
   eResult = InitSelectionModule();
@@ -4549,6 +3793,10 @@ int main ( int argc, char** argv ) {
   Volm_CopySubjectName( gAnatomicalVolume[tkm_tVolumeType_Main], 
       sSubjectName, sizeof(sSubjectName) );
   MWin_SetWindowTitle( gMeditWindow, sSubjectName );
+
+  DebugNote( ("Initalizing undo volume") );
+  eResult = InitUndoVolume();
+  DebugAssertThrow( (eResult == tkm_tErr_NoErr) );
 
   /* don't accept tcl commands yet. */
   gbAcceptingTclCommands = FALSE;
@@ -4760,21 +4008,6 @@ int main ( int argc, char** argv ) {
   Tcl_CreateCommand ( interp, "SaveRGB",
           TclSaveRGB,
           (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
-#if 0  
-
-  Tcl_CreateCommand ( interp, "WMFilterCorSlice",
-          TclWMFilterCorSlice,
-          (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
-  
-  Tcl_CreateCommand ( interp, "NormSlice",
-          TclNormSlice,
-          (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
-  
-  Tcl_CreateCommand ( interp, "NormAllSlices",
-          TclNormAllSlices,
-          (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
-  
-#endif
 
   Tcl_CreateCommand ( interp, "ThresholdVolume",
           TclThresholdVolume,
@@ -5476,7 +4709,7 @@ tkm_tErr InitSelectionModule () {
   DebugEnterFunction( ("InitSelectionModule()") );
 
   DebugNote( ("Creating selction space") );
-  e3DList = x3Lst_New( &gSelectedVoxels, 256 );
+  e3DList = x3Lst_New( &gSelectedVoxels, NUM_UNDOS );
   DebugAssertThrowX( (x3Lst_tErr_NoErr == e3DList),
          eResult, tkm_tErr_Unrecoverable );
 
@@ -5873,7 +5106,10 @@ tkm_tErr SetSubjectHomeDirFromEnv ( char* isSubject ) {
   DebugEnterFunction( ("SetSubjectHomeDirFromEnv( isSubject=%s )",
            isSubject) );
 
-  sEnvVar = getenv( "SUBJECTS_DIR" );
+  if (NULL != gsCommandLineSubjectsDir)
+    sEnvVar = gsCommandLineSubjectsDir ;
+  else
+    sEnvVar = getenv( "SUBJECTS_DIR" );
   DebugAssertThrowX( (NULL != sEnvVar), 
          eResult, tkm_tErr_SUBJECTSDIRNotDefined );
 
@@ -6010,7 +5246,7 @@ void ExtractSubjectName ( char* isDataSource,
   int   nChar      = 0;
   int   nWordChar  = 0;
   char* sWord      = NULL;
-  char  sName[256] = "";
+  char  sName[STRLEN] = "";
   int   nLastSlash = 0;
 
   /* look for 'subjects' in the title */
@@ -6182,6 +5418,7 @@ tkm_tErr LoadVolume ( tkm_tVolumeType iType,
 
   /* if the volume exists, delete it */
   if( NULL != gAnatomicalVolume[iType] ) {
+    UnloadDisplayTransform( iType );
     Volm_Delete( &gAnatomicalVolume[iType] );
   }
 
@@ -6201,11 +5438,6 @@ tkm_tErr LoadVolume ( tkm_tVolumeType iType,
   Volm_GetDimension( gAnatomicalVolume[iType], 
          &gnAnatomicalDimension );
 
-  /* get a ptr to the idx to ras transform */
-  DebugNote( ("Getting a pointer to the idx to RAS transform") );
-  Volm_GetIdxToRASTransform( gAnatomicalVolume[iType],
-           &gIdxToRASTransform );
-
   /* set the default color scale */
   SetVolumeBrightnessAndContrast( iType, 
           Volm_kfDefaultBrightness,
@@ -6218,9 +5450,14 @@ tkm_tErr LoadVolume ( tkm_tVolumeType iType,
   if( NULL != gMeditWindow ) {
     DebugNote( ("Setting volume in main window") );
     switch( iType ) {
-    case tkm_tVolumeType_Main:
+    case tkm_tVolumeType_Main:  /* idx to ras xform always comes from main volume */
       MWin_SetVolume( gMeditWindow, -1, gAnatomicalVolume[iType],
           gnAnatomicalDimension );
+
+      /* get a ptr to the idx to ras transform */
+      DebugNote( ("Getting a pointer to the idx to RAS transform") );
+      Volm_GetIdxToRASTransform( gAnatomicalVolume[iType],
+                                 &gIdxToRASTransform );
       break;
     case tkm_tVolumeType_Aux:
       MWin_SetAuxVolume( gMeditWindow, -1, gAnatomicalVolume[iType],
@@ -6939,85 +6176,6 @@ void RotateOverlayRegistration ( float ifDegrees,
  cleanup:
   return;
 
-#if 0
-
-  MATRIX*   mRotation    = NULL;
-  FunV_tErr eFunctional  = FunV_tErr_NoError;
-  float     fRadians     = 0;
-  mri_tOrientation orientation;
-
-  /* convert to radians */
-  fRadians = ifDegrees * (PI / 180.0);
-
-  /* get the orientation */
-  MWin_GetOrientation ( gMeditWindow, &orientation );
-
-  /* create the proper rotate matrix for this orientation */
-  switch( isAxis ) {
-  case 'x':
-    switch( orientation ) {
-    case mri_tOrientation_Coronal:
-      mRotation = MatrixAllocRotation( 4, fRadians, X_ROTATION );
-      break;
-    case mri_tOrientation_Horizontal:
-      mRotation = MatrixAllocRotation( 4, fRadians, X_ROTATION );
-      break;
-    case mri_tOrientation_Sagittal:
-      mRotation = MatrixAllocRotation( 4, -fRadians, Y_ROTATION );
-      break;
-    default: goto cleanup;
-      break;
-    }
-    break;
-  case 'y':
-    switch( orientation ) {
-    case mri_tOrientation_Coronal:
-      mRotation = MatrixAllocRotation( 4, fRadians, Z_ROTATION );
-      break;
-    case mri_tOrientation_Horizontal:
-      mRotation = MatrixAllocRotation( 4, -fRadians, Y_ROTATION );
-      break;
-    case mri_tOrientation_Sagittal:
-       mRotation = MatrixAllocRotation( 4, fRadians, Z_ROTATION );
-      break;
-    default: goto cleanup;
-      break;
-    }
-    break;
-  case 'z':
-    switch( orientation ) {
-    case mri_tOrientation_Coronal:
-      mRotation = MatrixAllocRotation( 4, -fRadians, Y_ROTATION );
-      break;
-    case mri_tOrientation_Horizontal:
-      mRotation = MatrixAllocRotation( 4, -fRadians, Z_ROTATION );
-      break;
-    case mri_tOrientation_Sagittal:
-      mRotation = MatrixAllocRotation( 4, -fRadians, X_ROTATION );
-      break;
-    default: goto cleanup;
-      break;
-    }
-    break;
-  default:
-    goto cleanup;
-  }
-
-  /* apply the transformation */
-  eFunctional = FunV_ApplyTransformToOverlay( gFunctionalVolume, mRotation );
-  if ( FunV_tErr_NoError != eFunctional ) {
-    DebugPrint( ( "HPtL error %d in RotateOverlayRegistration: %s\n",
-      eFunctional, FunV_GetErrorString( eFunctional ) ) );
-    goto cleanup;
-  }
-
-  UpdateAndRedraw();
-
- cleanup:
-
-  if( NULL != mRotation ) 
-    MatrixFree( &mRotation );
-#endif
 }
 
 void TranslateOverlayRegisgtration ( float ifDistance, 
@@ -7089,84 +6247,6 @@ void TranslateOverlayRegisgtration ( float ifDistance,
  cleanup:
   return;
 
-#if 0
-
-  MATRIX*   mTranslation = NULL;
-  FunV_tErr eFunctional  = FunV_tErr_NoError;
-  mri_tOrientation orientation;
-
-  mTranslation = MatrixIdentity( 4, NULL );
-
-  /* get the orientation */
-  MWin_GetOrientation ( gMeditWindow, &orientation );
-
-  /* create the proper translation matrix for this orientation */
-  switch( isDirection ) {
-  case 'x':
-    switch( orientation ) {
-    case mri_tOrientation_Coronal:
-      *MATRIX_RELT(mTranslation,1,4) = ifDistance; /* ana x */
-      break;
-    case mri_tOrientation_Horizontal:
-      *MATRIX_RELT(mTranslation,1,4) = ifDistance; /* ana x */
-      break;
-    case mri_tOrientation_Sagittal:
-      *MATRIX_RELT(mTranslation,2,4) = -ifDistance; /* ana y */
-      break;
-    default: goto cleanup;
-      break;
-    }
-    break;
-  case 'y':
-    switch( orientation ) {
-    case mri_tOrientation_Coronal:
-      *MATRIX_RELT(mTranslation,3,4) = ifDistance; /* ana z */
-      break;
-    case mri_tOrientation_Horizontal:
-      *MATRIX_RELT(mTranslation,2,4) = ifDistance; /* ana y */
-      break;
-    case mri_tOrientation_Sagittal:
-      *MATRIX_RELT(mTranslation,3,4) = ifDistance; /* ana z */
-      break;
-    default: goto cleanup;
-      break;
-    }
-    break;
-  case 'z':
-    switch( orientation ) {
-    case mri_tOrientation_Coronal:
-      *MATRIX_RELT(mTranslation,2,4) = -ifDistance; /* ana y */
-      break;
-    case mri_tOrientation_Horizontal:
-      *MATRIX_RELT(mTranslation,3,4) = -ifDistance; /* ana z */
-      break;
-    case mri_tOrientation_Sagittal:
-      *MATRIX_RELT(mTranslation,1,4) = -ifDistance; /* ana x */
-      break;
-    default: goto cleanup;
-      break;
-    }
-    break;
-  default:
-    goto cleanup;
-  }
-  
-  /* apply the transformation */
-  eFunctional = FunV_ApplyTransformToOverlay( gFunctionalVolume, 
-                mTranslation );
-  if ( FunV_tErr_NoError != eFunctional ) {
-    DebugPrint( ( "FunV error %d in TranslateOverlayRegisgtration: %s\n",
-      eFunctional, FunV_GetErrorString( eFunctional ) ) );
-    goto cleanup;
-  }
-
-  UpdateAndRedraw();
-
- cleanup:
-
-  if( NULL != mTranslation ) 
-    MatrixFree( &mTranslation );
-#endif
 }
 
 void ScaleOverlayRegisgtration ( float ifFactor, 
@@ -7240,84 +6320,6 @@ void ScaleOverlayRegisgtration ( float ifFactor,
  cleanup:
   return;
 
-#if 0
-
-  MATRIX*   mScale        = NULL;
-  FunV_tErr eFunctional  = FunV_tErr_NoError;
-  mri_tOrientation orientation;
-
-  mScale = MatrixIdentity( 4, NULL );
-
-  /* get the orientation */
-  MWin_GetOrientation ( gMeditWindow, &orientation );
-
-  /* create the proper translation matrix for this orientation */
-  switch( isDirection ) {
-  case 'x':
-    switch( orientation ) {
-    case mri_tOrientation_Coronal:
-      *MATRIX_RELT(mScale,1,1) = ifFactor; /* ana x */
-      break;
-    case mri_tOrientation_Horizontal:
-      *MATRIX_RELT(mScale,1,1) = ifFactor; /* ana x */
-      break;
-    case mri_tOrientation_Sagittal:
-      *MATRIX_RELT(mScale,2,2) = /*-*/ifFactor; /* ana y */
-      break;
-    default: goto cleanup;
-      break;
-    }
-    break;
-  case 'y':
-    switch( orientation ) {
-    case mri_tOrientation_Coronal:
-      *MATRIX_RELT(mScale,3,3) = ifFactor; /* ana z */
-      break;
-    case mri_tOrientation_Horizontal:
-      *MATRIX_RELT(mScale,2,2) = ifFactor; /* ana y */
-      break;
-    case mri_tOrientation_Sagittal:
-      *MATRIX_RELT(mScale,3,3) = ifFactor; /* ana z */
-      break;
-    default: goto cleanup;
-      break;
-    }
-    break;
-  case 'z':
-    switch( orientation ) {
-    case mri_tOrientation_Coronal:
-      *MATRIX_RELT(mScale,2,2) = /*-*/ifFactor; /* ana y */
-      break;
-    case mri_tOrientation_Horizontal:
-      *MATRIX_RELT(mScale,3,3) = /*-*/ifFactor; /* ana z */
-      break;
-    case mri_tOrientation_Sagittal:
-      *MATRIX_RELT(mScale,1,1) = /*-*/ifFactor; /* ana x */
-      break;
-    default: goto cleanup;
-      break;
-    }
-    break;
-  default:
-    goto cleanup;
-  }
-  
-  /* apply the transformation */
-  eFunctional = FunV_ApplyTransformToOverlay( gFunctionalVolume, 
-                mScale );
-  if ( FunV_tErr_NoError != eFunctional ) {
-    DebugPrint( ( "FunV error %d in ScaleOverlayRegisgtration: %s\n",
-      eFunctional, FunV_GetErrorString( eFunctional ) ) );
-    goto cleanup;
-  }
-
-  UpdateAndRedraw();
-
- cleanup:
-
-  if( NULL != mScale ) 
-    MatrixFree( &mScale );
-#endif
 }
 
 
@@ -7457,7 +6459,7 @@ void SaveParcellationVolume ( char* isVolumeDirWithPrefix ) {
 
 void SetROIGroupAlpha ( float ifAlpha ) {
 
-  char sTclArguments[256] = "";
+  char sTclArguments[STRLEN] = "";
 
   if( ifAlpha >= 0 && ifAlpha <= 1.0 ) {
     gfROIAlpha = ifAlpha;
@@ -8289,6 +7291,9 @@ tkm_tErr InitUndoVolume () {
 
   tkm_tErr   eResult = tkm_tErr_NoErr;
   xSVol_tErr eVolume = xSVol_tErr_NoErr;
+  MRI        *mri_main ;
+
+  mri_main = gAnatomicalVolume[tkm_tVolumeType_Main]->mpMriValues ;
 
   DebugEnterFunction( ("InitUndoVolume()") );
 
@@ -8298,7 +7303,8 @@ tkm_tErr InitUndoVolume () {
 
   /* allocate the volume */
   DebugNote( ("Creating undo volume") );
-  eVolume = xSVol_New( &gUndoVolume, 256, 256, 256 );
+  eVolume = xSVol_New( &gUndoVolume, mri_main->width, mri_main->height, 
+                       mri_main->depth );
   DebugAssertThrowX( (xSVol_tErr_NoErr == eVolume),
          eResult, tkm_tErr_Unrecoverable );
 
@@ -9449,7 +8455,7 @@ void tkm_FloodFillParcellation ( xVoxelRef       iAnaIdx,
   return;
 }
 
-char kTclCommands [tkm_knNumTclCommands][256] = {
+char kTclCommands [tkm_knNumTclCommands][STRLEN] = {
 
   "UpdateLinkedCursorFlag",
   "UpdateVolumeCursor",
