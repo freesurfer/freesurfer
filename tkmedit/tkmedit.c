@@ -4,9 +4,9 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2003/02/28 22:46:28 $
-// Revision       : $Revision: 1.129 $
-char *VERSION = "$Revision: 1.129 $";
+// Revision Date  : $Date: 2003/03/06 21:20:17 $
+// Revision       : $Revision: 1.130 $
+char *VERSION = "$Revision: 1.130 $";
 
 #define TCL
 #define TKMEDIT 
@@ -2594,9 +2594,13 @@ tkm_tErr LoadSurface ( tkm_tSurfaceType iType,
   
   tkm_tErr  eResult           = tkm_tErr_NoErr;
   Surf_tErr eSurface           = Surf_tErr_NoErr;
+  Trns_tErr eTrns             = Trns_tErr_NoErr;
   tBoolean  bLoaded           = FALSE;
   char      sName[tkm_knPathLen]       = "";
   char      sError[tkm_knErrStringLen] = "";
+  MATRIX*   conformMatrix = NULL;
+  mriTransformRef surfaceTransform = NULL;
+
   
   DebugEnterFunction( ("LoadSurface( iType=%d, isName=%s )", 
            (int)iType, isName) );
@@ -2615,9 +2619,30 @@ tkm_tErr LoadSurface ( tkm_tSurfaceType iType,
     Surf_Delete( &gSurface[iType] );
   }
 
+  /* make the transformation for the surface. it's the composition of
+     idxtoras and the conform matrix. */
+  DebugNote( ("Getting conform matrix") );
+  conformMatrix = 
+    MRIgetConformMatrix(gAnatomicalVolume[tkm_tVolumeType_Main]->mpMriValues);
+  DebugAssertThrowX( (NULL != conformMatrix),
+		     eResult, tkm_tErr_CouldntAllocate );
+  // MatrixInverse( conformMatrix, conformMatrix );
+  MatrixPrint( stderr, conformMatrix );
+
+  DebugNote( ("Cloning gIdxToRASTransform to surfaceTransform") );
+  eTrns = Trns_DeepClone( gIdxToRASTransform, &surfaceTransform );
+  DebugAssertThrowX( (Trns_tErr_NoErr == eTrns),
+		     eResult, tkm_tErr_CouldntAllocate );
+
+
+  DebugNote( ("Copying conformMatrix to BtoRAS in surfaceTransform") );
+  eTrns = Trns_CopyBtoRAS( surfaceTransform, conformMatrix );
+  DebugAssertThrowX( (Trns_tErr_NoErr == eTrns),
+		     eResult, tkm_tErr_CouldntAllocate );
+
   /* create the surface */
   DebugNote( ("Creating surface") );
-  eSurface = Surf_New( &gSurface[iType], sName, gIdxToRASTransform);
+  eSurface = Surf_New( &gSurface[iType], sName, surfaceTransform);
   DebugAssertThrowX( (Surf_tErr_NoErr == eSurface),
          eResult, tkm_tErr_CouldntLoadSurface );
   
@@ -2663,6 +2688,9 @@ tkm_tErr LoadSurface ( tkm_tSurfaceType iType,
         "or the file was unreadable due to permissions." );
   EndDebugCatch;
   
+  MatrixFree( &conformMatrix );
+  Trns_Delete( &surfaceTransform );
+
   DebugExitFunction;
   
   return eResult;
