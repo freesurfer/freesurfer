@@ -1,0 +1,49 @@
+#! /bin/csh -f
+# $Id: mksubjdirs,v 1.1 2003/07/18 17:30:10 greve Exp $
+
+if ($#argv != 1) then
+  echo "usage: mksubjdirs <subj_name>"
+  exit
+endif
+
+if(-e $1) then
+  echo "ERROR: $1 already exists"
+  exit 1;
+endif
+
+mkdir $1
+if($status) then
+  echo "ERROR: creating directory $1"
+  exit 1;
+endif
+
+
+chmod g+rws $1
+cd $1
+mkdir -p bem mri rgb scripts surf tmp label morph mpg tiff
+mkdir -p mri/transforms mri/aseg mri/fsamples mri/norm mri/T1 \
+         mri/brain mri/filled mri/orig mri/tmp mri/wm mri/flash \
+         mri/flash/parameter_maps
+chmod -R g+rw .
+
+echo " "
+echo "REMEMBER to do a 'chgrp -R r_group' for the right group if needed."
+echo "    All directories where just created as group writable."
+echo "    Use the 'id' command to get a list of your groups."
+echo " "
+
+
+set um=`umask`
+if ($um != 2) then
+  echo " "
+  echo "WARNING: your umask is not 002! New files will not be group writable."
+  echo "This is a warning only, it is not an error."
+  echo " "
+endif
+
+echo "Creation of subject directory complete."
+echo "See recon-all -help for more info on how to proceed."
+echo " "
+
+
+exit 0;
