@@ -8278,6 +8278,21 @@ local_buffer_to_image(BUFTYPE *buf, MRI *mri, int slice, int frame)
 
 #define MGH_VERSION       1
 
+// imitate behavior of fread()
+size_t 
+freadFloatEx(float *pf, FILE *fp)
+{
+  int   ret ;
+
+  ret = fread(pf,4,1,fp); // cannot distinguish feof nor ferror.  caller must check
+#ifdef Linux
+  *pf = swapFloat(*pf) ;
+#endif
+  if (ret != 4)  // if it could not read all four bytes, then error
+    ret = 0;
+  return ret;
+}
+
 static MRI *
 mghRead(char *fname, int read_volume, int frame)
 {
@@ -8290,7 +8305,6 @@ mghRead(char *fname, int read_volume, int frame)
   float  fval, xsize, ysize, zsize, x_r, x_a, x_s, y_r, y_a, y_s,
          z_r, z_a, z_s, c_r, c_a, c_s ;
   short  sval ;
-
   /* keep the compiler quiet */
   xsize = ysize = zsize = 0;
   x_r = x_a = x_s = 0;
@@ -8456,6 +8470,8 @@ mghRead(char *fname, int read_volume, int frame)
     if (good_ras_flag > 0)
       mri->ras_good_flag = 1 ;
   }
+#if 0
+  // feof(fp) check does not work, since feof is not signaled until you read
   if (!feof(fp))
   {
     mri->tr = freadFloat(fp) ;
@@ -8463,7 +8479,14 @@ mghRead(char *fname, int read_volume, int frame)
     mri->te = freadFloat(fp) ;
     mri->ti = freadFloat(fp) ;
   }
-
+#endif
+  if (freadFloatEx(&(mri->tr), fp))
+    if (freadFloatEx(&fval, fp))
+    {
+      mri->flip_angle = fval; // flip_angle is double. I cannot use the same trick.
+      if (freadFloatEx(&(mri->te), fp))
+	freadFloatEx(&(mri->ti), fp);
+    }
   fclose(fp) ;
 
   return(mri) ;
