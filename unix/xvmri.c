@@ -133,7 +133,7 @@ mri_event_handler(XV_FRAME *xvf, Event *event,DIMAGE *dimage,
     else
       z = event_y(event) ;
     break ;
-  case MRI_SAGITAL:
+  case MRI_SAGITTAL:
     x = depth ;
     if (xvf->ydir < 0)
       y = mri->height - (event_y(event)+1) ;
@@ -348,7 +348,7 @@ fprintf(stderr, "voxel (%d, %d, %d)\n", x_click, y_click, z_click) ;
       break ;
     case 'x':
     case 'X':
-      XVMRIsetView(xvf, which, MRI_SAGITAL) ;
+      XVMRIsetView(xvf, which, MRI_SAGITTAL) ;
       break ;
     case 'y':
     case 'Y':
@@ -400,7 +400,7 @@ fprintf(stderr, "voxel (%d, %d, %d)\n", x_click, y_click, z_click) ;
       view = mri_views[which] ;
       sprintf(view_str, "view: %s", 
               view == MRI_CORONAL ? "CORONAL" :
-              view == MRI_SAGITAL ? "SAGITAL" : "HORIZONTAL") ;
+              view == MRI_SAGITTAL ? "SAGITTAL" : "HORIZONTAL") ;
       xv_set(view_panel, PANEL_LABEL_STRING, view_str, NULL) ;
     }
 
@@ -435,7 +435,7 @@ XVMRIdrawPoint(XV_FRAME *xvf, int which, int view, int depth, MRI *mri,
     xi = x ;
     yi = z ;
     break ;
-  case MRI_SAGITAL:
+  case MRI_SAGITTAL:
     xi = z ;
     yi = y ;
     break ;
@@ -472,7 +472,7 @@ XVMRIdraw3DPoint(XV_FRAME *xvf, int which, int x,int y,int z,int color)
     if (y != mri_slices[which])
       return(0) ;
     break ;
-  case MRI_SAGITAL:
+  case MRI_SAGITTAL:
     xi = z ;
     yi = y ;
     if (x != mri_slices[which])
@@ -513,7 +513,7 @@ XVMRIdrawRegion(XV_FRAME *xvf, int which, int view, int depth, MRI *mri,
     dx = reg->dx ;
     dy = reg->dz ;
     break ;
-  case MRI_SAGITAL:
+  case MRI_SAGITTAL:
     xi = reg->z ;
     dx = reg->dz ;
     yi = reg->y ;
@@ -551,7 +551,7 @@ XVMRIshowFrame(XV_FRAME *xvf, MRI *mri, int which, int slice,int frame)
     case MRI_CORONAL:
       slice = (mri->imnr0 + mri->imnr1) / 2 ;
       break ;
-    case MRI_SAGITAL:
+    case MRI_SAGITTAL:
       slice = mri->width / 2 ;
       break ;
     case MRI_HORIZONTAL:
@@ -570,7 +570,7 @@ XVMRIshowFrame(XV_FRAME *xvf, MRI *mri, int which, int slice,int frame)
     if (slice < 0)
       slice = 0 ;
     break ;
-  case MRI_SAGITAL:
+  case MRI_SAGITTAL:
     if (slice >= mri->width)
       slice = mri->width-1 ;
     break ;
@@ -645,7 +645,7 @@ XVMRIshowRange(XV_FRAME *xvf, MRI *mri, int which, int slice,
     case MRI_CORONAL:
       slice = (mri->imnr0 + mri->imnr1) / 2 ;
       break ;
-    case MRI_SAGITAL:
+    case MRI_SAGITTAL:
       slice = mri->width / 2 ;
       break ;
     case MRI_HORIZONTAL:
@@ -664,7 +664,7 @@ XVMRIshowRange(XV_FRAME *xvf, MRI *mri, int which, int slice,
     if (slice < 0)
       slice = 0 ;
     break ;
-  case MRI_SAGITAL:
+  case MRI_SAGITTAL:
     if (slice >= mri->width)
       slice = mri->width-1 ;
     break ;
@@ -743,7 +743,7 @@ XVMRIinit(XV_FRAME *xvf_init, int view_row, int view_col)
   view_menu = (Menu)
     xv_create((Xv_opaque)NULL, MENU,
               MENU_NOTIFY_PROC,    viewMenuItem,
-              MENU_STRINGS,        "CORONAL", "SAGITAL", "HORIZONTAL", NULL,
+              MENU_STRINGS,        "CORONAL", "SAGITTAL", "HORIZONTAL", NULL,
               NULL) ;
 
   view_panel = (Panel_item)
@@ -781,8 +781,8 @@ viewMenuItem(Menu menu, Menu_item menu_item)
 
   if (!stricmp(menu_str, "CORONAL"))
     view = MRI_CORONAL ;
-  else if (!stricmp(menu_str, "SAGITAL"))
-    view = MRI_SAGITAL ;
+  else if (!stricmp(menu_str, "SAGITTAL"))
+    view = MRI_SAGITTAL ;
   else
     view = MRI_HORIZONTAL ;
 
@@ -839,7 +839,7 @@ get_next_slice(IMAGE *Iold, int which, int dir)
       case MRI_CORONAL:
         z_click = depth - mri->imnr0 ;
         break ;
-      case MRI_SAGITAL:
+      case MRI_SAGITTAL:
         x_click = depth ;
         break ;
       case MRI_HORIZONTAL:
@@ -922,9 +922,9 @@ XVMRIsetView(XV_FRAME *xvf, int which, int view)
     slice = z_click + mri->imnr0 ;
     menu_str = "CORONAL" ;
     break ;
-  case MRI_SAGITAL:
+  case MRI_SAGITTAL:
     slice = x_click ;
-    menu_str = "SAGITAL" ;
+    menu_str = "SAGITTAL" ;
     break ;
   case MRI_HORIZONTAL:
     slice = y_click ;
@@ -946,9 +946,9 @@ XVMRIsetView(XV_FRAME *xvf, int which, int view)
       dimage->y0 = mri->height - (y_click + dimage->dy/2) ;
       menu_str = "CORONAL" ;
       break ;
-    case MRI_SAGITAL:
+    case MRI_SAGITTAL:
       slice = x_click ;
-      menu_str = "SAGITAL" ;
+      menu_str = "SAGITTAL" ;
       dimage->x0 = z_click - dimage->dx/2 ;
       dimage->y0 = mri->height - (y_click + dimage->dy/2) ;
       break ;
@@ -988,7 +988,7 @@ XVMRIsetView(XV_FRAME *xvf, int which, int view)
           slice2 = slice - mri->imnr0 ;  /* turn it into an index */
           slice2 = (slice2+offset) * zsize + mri2->imnr0 ;
           break ;
-        case MRI_SAGITAL:
+        case MRI_SAGITTAL:
           offset = mri->xstart - mri2->xstart ;
           slice2 = (slice+offset) * xsize ;
           break ;
@@ -1080,7 +1080,7 @@ XVMRIsetPoint(XV_FRAME *xvf, int which, int x, int y, int z)
   case MRI_CORONAL:
     slice = z + mri->imnr0 ;
     break ;
-  case MRI_SAGITAL:
+  case MRI_SAGITTAL:
     slice = x ;
     break ;
   case MRI_HORIZONTAL:
@@ -1169,7 +1169,7 @@ xvmriRepaintValue(XV_FRAME *xvf, int which, int x, int y, int z)
     xp = x ;
     yp = y ;
     break ;
-  case MRI_SAGITAL:
+  case MRI_SAGITTAL:
     xp = z - mri->imnr0 ;
     yp = y ;
     break ;
@@ -1221,7 +1221,7 @@ XVMRIredisplayFrame(XV_FRAME *xvf, MRI *mri, int which, int slice,int frame)
     case MRI_CORONAL:
       slice = (mri->imnr0 + mri->imnr1) / 2 ;
       break ;
-    case MRI_SAGITAL:
+    case MRI_SAGITTAL:
       slice = mri->width / 2 ;
       break ;
     case MRI_HORIZONTAL:
@@ -1240,7 +1240,7 @@ XVMRIredisplayFrame(XV_FRAME *xvf, MRI *mri, int which, int slice,int frame)
     if (slice < 0)
       slice = 0 ;
     break ;
-  case MRI_SAGITAL:
+  case MRI_SAGITTAL:
     if (slice >= mri->width)
       slice = mri->width-1 ;
     break ;
