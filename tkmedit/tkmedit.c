@@ -9794,6 +9794,7 @@ char *kTclCommands [tkm_knNumTclCommands] = {
   "UpdateLinkedCursorFlag",
   "UpdateVolumeCursor",
   "UpdateVolumeSlice",
+  "UpdateMRICursor",
   "UpdateRASCursor",
   "UpdateTalCursor",
   "UpdateScannerCursor",
