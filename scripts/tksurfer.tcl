@@ -6,7 +6,12 @@ source $env(MRI_DIR)/lib/tcl/tkm_common.tcl
 
 foreach sSourceFileName { tkm_wrappers.tcl } {
 
-    set lPath [list "." "$env(TKSURFER_SCRIPTS_DIR)" "$env(MRI_DIR)/lib/tcl"]
+    set sScriptsDir ""
+    catch { set sScriptsDir "$env(TKSURFER_SCRIPTS_DIR)" }
+    set sMRIDir ""
+    catch { set sMRIDir "$env(MRI_DIR)/lib/tcl" }
+
+    set lPath [list "." $sScriptsDir $sMRIDir]
     set bFound 0
 
     foreach sPath $lPath {
