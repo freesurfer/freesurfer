@@ -2321,9 +2321,9 @@ writeTimes(char *fname, LOGMAP_INFO *lmi, int niter)
     fclose(fp) ;
 }
 
-#define FSCALE  100000.0f
+#define FSCALE  1000.0f
 
-#define ISZERO(f)   FZERO(f*10000000.0f)
+#define ISZERO(f)   FZERO(f*10.0f*FSCALE)
 
 static int imageOffsetDirection(IMAGE *Ix, IMAGE *Iy, int wsize, 
                                 IMAGE *Iorient, int x0,int y0) ;
@@ -2987,7 +2987,7 @@ LogMapOffsetOrientation(LOGMAP_INFO *lmi, int wsize,IMAGE *Isrc,IMAGE *Iorient)
   Ix->image = Iorient->image ;
   Iy->image = Iorient->image + Ix->sizeimage ;
 
-  LogMapSobel(lmi, Isrc, NULL, Ix, Iy, 1, 0, lmi->nrings-1) ;
+  LogMapSobel(lmi, Isrc, NULL, Ix, Iy, 0, 0, lmi->nrings-1) ;
 
   ImageFree(&Ix) ;
   ImageFree(&Iy) ;
@@ -3068,6 +3068,7 @@ LogMapOffsetDirection(LOGMAP_INFO *lmi, IMAGE *Iorient, IMAGE *Ioffset)
       ox = e_to_the_rho * (lox * cos_phi - loy * sin_phi) ;
       oy = e_to_the_rho * (lox * sin_phi + loy * cos_phi) ;
       dir = 0.0f ;
+
       for (k = 0, y = -whalf ; y <= whalf ; y++)
       {
         for (x = -whalf ; x <= whalf ; x++, k++)
@@ -3089,8 +3090,10 @@ LogMapOffsetDirection(LOGMAP_INFO *lmi, IMAGE *Iorient, IMAGE *Ioffset)
           dx = e_to_the_nrho * (ldx * cos_nphi - ldy * sin_nphi) ;
           dy = e_to_the_nrho * (ldx * sin_nphi + ldy * cos_nphi) ;
           dot = dx*ox + dy*oy ;
+#if 1
           if (dot < 0.0f)
             dot = 0.0f ;
+#endif
           dir += (x*ox + y*oy) * dot ;
         }
       }
@@ -3152,9 +3155,6 @@ LogMapOffsetMagnitude(LOGMAP_INFO *lmi,IMAGE *Isrc,IMAGE *Idst,int maxsteps)
       sx = SGN(dx) ;
       ay = ABS(dy) << 1 ;
       sy = SGN(dy) ;
-      
-      if (x1 == 31 && y1 == 22)
-        DiagBreak() ;
 
       pix = LOG_PIX(lmi, x1, y1) ;
       if (ax > ay)  /* x dominant, move sx in x each time step, check for y */
