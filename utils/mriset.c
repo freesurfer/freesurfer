@@ -1586,3 +1586,36 @@ MRIsoapBubbleLabel(MRI *mri_src, MRI *mri_label, MRI *mri_dst, int label,
 
   return(mri_dst) ;
 }
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+           Count and return the # of voxels with a given label.
+------------------------------------------------------*/
+int
+MRIvoxelsInLabel(MRI *mri, int label)
+{
+  int     width, height, depth, x, y, z, nvox ;
+  BUFTYPE *pbuf ;
+
+  width = mri->width ;
+  height = mri->height ;
+  depth = mri->depth ;
+
+  for (nvox = z = 0 ; z < depth ; z++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      pbuf = &MRIvox(mri, 0, y, z) ;
+      for (x = 0 ; x < width ; x++)
+      {
+        if (*pbuf++ == label)
+          nvox++ ;
+      }
+    }
+  }
+  return(nvox) ;
+}
+
