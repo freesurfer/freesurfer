@@ -8012,11 +8012,277 @@ MRI *MRIreadOtl(char *fname, int width, int height, int slices, char *color_file
 
 } /* end MRIreadOtl() */
 
+#define XIMG_PIXEL_DATA_OFFSET    8432
+#define XIMG_IMAGE_HEADER_OFFSET  2308
+
 static MRI *ximgRead(char *fname, int read_volume)
 {
+/**/
+  char fname_format[STRLEN];
+  char fname_dir[STRLEN];
+  char fname_base[STRLEN];
+  char *c;
+  MRI *mri = NULL;
+  int im_init;
+  int im_low, im_high;
+  char fname_use[STRLEN];
+  char temp_string[STRLEN];
+  FILE *fp;
+  int width, height;
+  int pixel_data_offset;
+  int image_header_offset;
+  float tl_r, tl_a, tl_s;
+  float tr_r, tr_a, tr_s;
+  float br_r, br_a, br_s;
+  float c_r, c_a, c_s;
+  float n_r, n_a, n_s;
+  float xlength, ylength, zlength;
+  int i, y;
+  MRI *header;
+  float xfov, yfov, zfov;
+  float nlength;
 
-  errno = 0;
-  ErrorReturn(NULL, (ERROR_UNSUPPORTED, "ximgRead(): unsupported"));
+  printf("XIMG: using XIMG header corrections\n");
+
+  /* ----- check the first (passed) file ----- */
+  if(!FileExists(fname))
+  {
+    errno = 0;
+    ErrorReturn(NULL, (ERROR_BADFILE, "genesisRead(): error opening file %s", fname));
+  }
+
+  /* ----- split the file name into name and directory ----- */
+  c = strrchr(fname, '/');
+  if(c == NULL)
+  {
+    fname_dir[0] = '\0';
+    strcpy(fname_base, fname);
+  }
+  else
+  {
+    strncpy(fname_dir, fname, (c - fname + 1));
+    fname_dir[c-fname+1] = '\0';
+    strcpy(fname_base, c+1);
+  }
+
+  /* ----- derive the file name format (for sprintf) ----- */
+  if(strncmp(fname_base, "I.", 2) == 0)
+  {
+    im_init = atoi(&fname_base[2]);
+    sprintf(fname_format, "I.%%03d");
+  }
+  else if(strlen(fname_base) >= 3) /* avoid core dumps below... */
+  {
+    c = &fname_base[strlen(fname_base)-3];
+    if(strcmp(c, ".MR") == 0)
+    {
+      *c = '\0';
+      for(c--;isdigit(*c) && c >= fname_base;c--);
+      c++;
+      im_init = atoi(c);
+      *c = '\0';
+      sprintf(fname_format, "%s%%d.MR", fname_base);
+    }
+    else
+    {
+      errno = 0;
+      ErrorReturn(NULL, (ERROR_BADPARM, "genesisRead(): can't determine file name format for %s", fname));
+    }
+  }
+  else
+  {
+    errno = 0;
+    ErrorReturn(NULL, (ERROR_BADPARM, "genesisRead(): can't determine file name format for %s", fname));
+  }
+
+  strcpy(temp_string, fname_format);
+  sprintf(fname_format, "%s%s", fname_dir, temp_string);
+
+  /* ----- find the low and high files ----- */
+  im_low = im_init;
+  do
+  {
+    im_low--;
+    sprintf(fname_use, fname_format, im_low);
+  } while(FileExists(fname_use));
+  im_low++;
+
+  im_high = im_init;
+  do
+  {
+    im_high++;
+    sprintf(fname_use, fname_format, im_high);
+  } while(FileExists(fname_use));
+  im_high--;
+
+  /* ----- allocate the mri structure ----- */
+  header = MRIallocHeader(1, 1, 1, MRI_SHORT);
+
+  header->depth = im_high - im_low + 1;
+  header->imnr0 = 1;
+  header->imnr1 = header->depth;
+
+  /* ----- get the header information from the first file ----- */
+  sprintf(fname_use, fname_format, im_low);
+  if((fp = fopen(fname_use, "r")) == NULL)
+  {
+    MRIfree(&header);
+    errno = 0;
+    ErrorReturn(NULL, (ERROR_BADFILE, "genesisRead(): error opening file %s\n", fname_use));
+  }
+
+  fseek(fp, 4, SEEK_SET);
+  fread(&pixel_data_offset, 4, 1, fp);  pixel_data_offset = orderIntBytes(pixel_data_offset);
+  printf("XIMG: pixel data offset is %d, ", pixel_data_offset);
+  if(pixel_data_offset != XIMG_PIXEL_DATA_OFFSET)
+    pixel_data_offset = XIMG_PIXEL_DATA_OFFSET;
+  printf("using offset %d\n", pixel_data_offset);
+
+  fseek(fp, 8, SEEK_SET);
+  fread(&width, 4, 1, fp);  width = orderIntBytes(width);
+  fread(&height, 4, 1, fp);  height = orderIntBytes(height);
+
+  fseek(fp, 148, SEEK_SET);
+  fread(&image_header_offset, 4, 1, fp);  image_header_offset = orderIntBytes(image_header_offset);
+  printf("XIMG: image header offset is %d, ", image_header_offset);
+  if(image_header_offset != XIMG_IMAGE_HEADER_OFFSET)
+    image_header_offset = XIMG_IMAGE_HEADER_OFFSET;
+  printf("using offset %d\n", image_header_offset);
+
+  header->width = width;
+  header->height = height;
+
+  strcpy(header->fname, fname);
+
+  fseek(fp, image_header_offset + 26 + 2, SEEK_SET);
+  fread(&(header->thick), 4, 1, fp);  header->thick = orderFloatBytes(header->thick);
+  header->zsize = header->thick;
+
+  fseek(fp, image_header_offset + 50 + 2, SEEK_SET);
+  fread(&(header->xsize), 4, 1, fp);  header->xsize = orderFloatBytes(header->xsize);
+  fread(&(header->ysize), 4, 1, fp);  header->ysize = orderFloatBytes(header->ysize);
+  header->ps = header->xsize;
+
+  /* all in micro-seconds */
+#define MICROSECONDS_PER_MILLISECOND 1e3
+  fseek(fp, image_header_offset + 194 + 6, SEEK_SET);
+  header->tr = freadInt(fp)/MICROSECONDS_PER_MILLISECOND ;
+  fseek(fp, image_header_offset + 198, SEEK_SET);
+  header->ti = freadInt(fp)/MICROSECONDS_PER_MILLISECOND  ;
+  fseek(fp, image_header_offset + 202, SEEK_SET);
+  header->te = freadInt(fp)/MICROSECONDS_PER_MILLISECOND  ;
+  fseek(fp, image_header_offset + 254, SEEK_SET);
+  header->flip_angle = RADIANS(freadShort(fp)) ;  /* was in degrees */
+
+  fseek(fp, image_header_offset + 130 + 6, SEEK_SET);
+  fread(&c_r,  4, 1, fp);  c_r  = orderFloatBytes(c_r);
+  fread(&c_a,  4, 1, fp);  c_a  = orderFloatBytes(c_a);
+  fread(&c_s,  4, 1, fp);  c_s  = orderFloatBytes(c_s);
+  fread(&n_r,  4, 1, fp);  n_r  = orderFloatBytes(n_r);
+  fread(&n_a,  4, 1, fp);  n_a  = orderFloatBytes(n_a);
+  fread(&n_s,  4, 1, fp);  n_s  = orderFloatBytes(n_s);
+  fread(&tl_r, 4, 1, fp);  tl_r = orderFloatBytes(tl_r);
+  fread(&tl_a, 4, 1, fp);  tl_a = orderFloatBytes(tl_a);
+  fread(&tl_s, 4, 1, fp);  tl_s = orderFloatBytes(tl_s);
+  fread(&tr_r, 4, 1, fp);  tr_r = orderFloatBytes(tr_r);
+  fread(&tr_a, 4, 1, fp);  tr_a = orderFloatBytes(tr_a);
+  fread(&tr_s, 4, 1, fp);  tr_s = orderFloatBytes(tr_s);
+  fread(&br_r, 4, 1, fp);  br_r = orderFloatBytes(br_r);
+  fread(&br_a, 4, 1, fp);  br_a = orderFloatBytes(br_a);
+  fread(&br_s, 4, 1, fp);  br_s = orderFloatBytes(br_s);
+
+  nlength = sqrt(n_r*n_r + n_a*n_a + n_s*n_s);
+  n_r = n_r / nlength;
+  n_a = n_a / nlength;
+  n_s = n_s / nlength;
+
+  if (getenv("KILLIANY_SWAP") != NULL)
+  {
+    printf("WARNING - swapping normal direction!\n") ;
+    n_a *= -1 ;
+  }
+
+  header->x_r = (tr_r - tl_r);  header->x_a = (tr_a - tl_a);  header->x_s = (tr_s - tl_s);
+  header->y_r = (br_r - tr_r);  header->y_a = (br_a - tr_a);  header->y_s = (br_s - tr_s);
+
+  /* --- normalize -- the normal vector from the file should have length 1, but just in case... --- */
+  xlength = sqrt(header->x_r*header->x_r + header->x_a*header->x_a + header->x_s*header->x_s);
+  ylength = sqrt(header->y_r*header->y_r + header->y_a*header->y_a + header->y_s*header->y_s);
+  zlength = sqrt(n_r*n_r + n_a*n_a + n_s*n_s);
+
+  header->x_r = header->x_r / xlength;  header->x_a = header->x_a / xlength;  header->x_s = header->x_s / xlength;
+  header->y_r = header->y_r / ylength;  header->y_a = header->y_a / ylength;  header->y_s = header->y_s / ylength;
+  header->z_r = n_r / zlength;          header->z_a = n_a / zlength;          header->z_s = n_s / zlength;
+
+  header->c_r = (tl_r + br_r) / 2.0 + n_r * header->zsize * (header->depth - 1.0) / 2.0;
+  header->c_a = (tl_a + br_a) / 2.0 + n_a * header->zsize * (header->depth - 1.0) / 2.0;
+  header->c_s = (tl_s + br_s) / 2.0 + n_s * header->zsize * (header->depth - 1.0) / 2.0;
+
+  header->ras_good_flag = 1;
+
+  header->xend = header->xsize * header->width / 2;   header->xstart = -header->xend;
+  header->yend = header->ysize * header->height / 2;  header->ystart = -header->yend;
+  header->zend = header->zsize * header->depth / 2;   header->zstart = -header->zend;
+
+  xfov = header->xend - header->xstart;
+  yfov = header->yend - header->ystart;
+  zfov = header->zend - header->zstart;
+
+  header->fov = ( xfov > yfov ? (xfov > zfov ? xfov : zfov ) : (yfov > zfov ? yfov : zfov ) );
+
+  fclose(fp);
+
+  if(read_volume)
+    mri = MRIalloc(header->width, header->height, header->depth, header->type);
+  else
+    mri = MRIallocHeader(header->width, header->height, header->depth, header->type);
+
+  MRIcopyHeader(header, mri);
+  MRIfree(&header);
+
+  /* ----- read the volume if required ----- */
+  if(read_volume)
+  {
+
+    for(i = im_low;i <= im_high;i++)
+    {
+
+      sprintf(fname_use, fname_format, i);
+      if((fp = fopen(fname_use, "r")) == NULL)
+      {
+        MRIfree(&mri);
+        errno = 0;
+        ErrorReturn(NULL, (ERROR_BADFILE, "genesisRead(): error opening file %s", fname_use));
+      }
+
+/*
+      fseek(fp, 4, SEEK_SET);
+      fread(&pixel_data_offset, 4, 1, fp);  pixel_data_offset = orderIntBytes(pixel_data_offset);
+*/
+      pixel_data_offset = XIMG_PIXEL_DATA_OFFSET;
+      fseek(fp, pixel_data_offset, SEEK_SET);
+
+      for(y = 0;y < mri->height;y++)
+      {
+        if(fread(mri->slices[i-im_low][y], 2, mri->width, fp) != mri->width)
+        {
+          fclose(fp);
+          MRIfree(&mri);
+          errno = 0;
+          ErrorReturn(NULL, (ERROR_BADFILE, "genesisRead(): error reading from file file %s", fname_use));
+        }
+#ifdef Linux
+        swab(mri->slices[i-im_low][y], mri->slices[i-im_low][y], 2 * mri->width);
+#endif
+      }
+
+      fclose(fp);
+
+    }
+
+  }
+
+  return(mri);
 
 } /* end ximgRead() */
 
