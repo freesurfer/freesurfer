@@ -4764,6 +4764,7 @@ static MRI *analyzeRead(char *fname, int read_volume)
   struct stat StatBuf;
   int nv,nreal;
   char direction[64];
+  int signX, signY, signZ;
 
   fp = NULL;
 
@@ -4823,10 +4824,14 @@ static MRI *analyzeRead(char *fname, int read_volume)
   else            mri = MRIallocHeader(ncols, nrows, nslcs, mritype);
 
   /* Load Variables into header */
-  mri->xsize = hdr->dime.pixdim[1];  /* col res */
-  mri->ysize = hdr->dime.pixdim[2];  /* row res */
-  mri->zsize = hdr->dime.pixdim[3];  /* slice res */
+  mri->xsize = fabs(hdr->dime.pixdim[1]);  /* col res */
+  mri->ysize = fabs(hdr->dime.pixdim[2]);  /* row res */
+  mri->zsize = fabs(hdr->dime.pixdim[3]);  /* slice res */
   mri->tr    = hdr->dime.pixdim[4];  /* time  res */
+
+  signX = (hdr->dime.pixdim[1] > 0) ? 1 : -1;
+  signY = (hdr->dime.pixdim[2] > 0) ? 1 : -1;
+  signZ = (hdr->dime.pixdim[3] > 0) ? 1 : -1;
 
   /* Read the matfile, if there */
   if(FileExists(matfile)){
@@ -4860,6 +4865,10 @@ static MRI *analyzeRead(char *fname, int read_volume)
     /* 3 transverse flipped 	R-L 	A-P 	I-S     */
     /* 4 coronal flipped 	R-L 	S-I 	P-A     */
     /* 5 sagittal flipped 	P-A 	S-I 	R-L     */
+    
+    /* "flirt" distributes analyze format image which as a marked LR */
+    /* in fls/etc/standard/avg152T1_LR-marked.img.  The convention */
+    /* is tested with this image for hdr->hist.orient== 0 */
     if (hdr->hist.orient==0)  /* x = - r, y = a, z = s */
     {
       strcpy(direction, "transverse unflipped (default)");
