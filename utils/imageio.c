@@ -819,6 +819,7 @@ TiffReadImage(char *fname, int frame0)
   int      photometric;
   int      fillorder;
   int      compression;
+  short    orientation;
 #if 0 // we used to translate RGB image into grey scale
   unsigned char     *buffer;
   int      skip;
@@ -847,16 +848,32 @@ TiffReadImage(char *fname, int frame0)
   ret = TIFFGetFieldDefaulted(tif, TIFFTAG_SAMPLESPERPIXEL, &nsamples);
   ret = TIFFGetFieldDefaulted(tif, TIFFTAG_BITSPERSAMPLE, &bits_per_sample);
   ret = TIFFGetFieldDefaulted(tif, TIFFTAG_PHOTOMETRIC, &photometric);
-  // we don't handle fillorder at this time ;-)
+  // fill order is LSB or MSB TIFFReadScanLine() handles it automatically
   ret = TIFFGetFieldDefaulted(tif, TIFFTAG_FILLORDER, &fillorder);
   ret = TIFFGetFieldDefaulted(tif, TIFFTAG_COMPRESSION, &compression);
-
+  if (compression > 34677)
+  {
+    compression = COMPRESSION_NONE;
+    ret = TIFFSetField(tif, TIFFTAG_COMPRESSION, compression);
+  }
+  // orientation
+  // #define TIFFTAG_ORIENTATION             274     /* +image orientation */
+  //    ORIENTATION_TOPLEFT         1       /* row 0 top, col 0 lhs */
+  //    ORIENTATION_TOPRIGHT        2       /* row 0 top, col 0 rhs */
+  //    ORIENTATION_BOTRIGHT        3       /* row 0 bottom, col 0 rhs */
+  //    ORIENTATION_BOTLEFT         4       /* row 0 bottom, col 0 lhs */
+  //    ORIENTATION_LEFTTOP         5       /* row 0 lhs, col 0 top */
+  //    ORIENTATION_RIGHTTOP        6       /* row 0 rhs, col 0 top */
+  //    ORIENTATION_RIGHTBOT        7       /* row 0 rhs, col 0 bottom */
+  //    ORIENTATION_LEFTBOT         8       /* row 0 lhs, col 0 bottom */
+  ret = TIFFGetFieldDefaulted(tif, TIFFTAG_ORIENTATION, &orientation);
   if (DIAG_VERBOSE_ON)
   {
     fprintf(stderr, "\ntiff info\n");
     fprintf(stderr, "         size: (%d, %d)\n", width, height);
     fprintf(stderr, "samples/pixel: %d\n", nsamples);
     fprintf(stderr, "  bits/sample: %d\n", bits_per_sample);
+    fprintf(stderr, "  orientation: %d\n", orientation);
     switch(photometric)
     {
     case PHOTOMETRIC_MINISWHITE:
@@ -884,6 +901,7 @@ TiffReadImage(char *fname, int frame0)
     default:
       fprintf(stderr, "  photometric: unknown type\n"); break;
     }
+    // we are not supporting compression at this time
     switch(compression)
     {
     case COMPRESSION_NONE:
@@ -949,6 +967,7 @@ TiffReadImage(char *fname, int frame0)
     ret = TIFFGetFieldDefaulted(tif, TIFFTAG_SAMPLESPERPIXEL, &nsamples);
     ret = TIFFGetFieldDefaulted(tif, TIFFTAG_BITSPERSAMPLE,&bits_per_sample);
     scanlinesize = TIFFScanlineSize(tif);
+    fprintf(stderr, "flipped the reading order ...\n");
     for(row=0;row<height;row++)
     {
       // get the pointer at the first column of a row
@@ -958,17 +977,17 @@ TiffReadImage(char *fname, int frame0)
 	switch (bits_per_sample)
 	{
 	default:
-	case 8:
-	  buf = (tdata_t *)IMAGEpix(I,0,row);
+	case 8: 
+	  buf = (tdata_t *)IMAGEpix(I,0,height-row-1);
 	  break;
 	case 32:
-	  buf = (tdata_t *)IMAGEFpix(I,0,row);
+	  buf = (tdata_t *)IMAGEFpix(I,0,height-row-1);
 	  break;
 	case 64:
-	  buf = (tdata_t *)IMAGEDpix(I,0,row);
+	  buf = (tdata_t *)IMAGEDpix(I,0,height-row-1);
 	  break;
 	}
-	if (TIFFReadScanline(tif, buf, row, 0) < 0)
+	if (TIFFReadScanline(tif, buf, row, 0) < 0) // row must be sequentially read for compressed data
 	  ErrorReturn(NULL,
 		      (ERROR_BADFILE,
 		       "TiffReadImage:  TIFFReadScanline returned error"));
@@ -979,8 +998,8 @@ TiffReadImage(char *fname, int frame0)
 	{
 	default:
 	case 8:
-	  buf = (tdata_t*) IMAGERGBpix(I, 0, row);
-	  if (TIFFReadScanline(tif, buf, row, 0) < 0)
+	  buf = (tdata_t*) IMAGERGBpix(I, 0, height-row-1);
+	  if (TIFFReadScanline(tif, buf, row, 0) < 0) // row must be sequentially read for compressed data
 	    ErrorReturn(NULL,
 			(ERROR_BADFILE,
 			 "TiffReadImage:  TIFFReadScanline returned error"));
