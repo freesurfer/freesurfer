@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Finds clusters on the surface.
-  $Id: mri_surfcluster.c,v 1.3 2002/04/09 23:48:38 greve Exp $
+  $Id: mri_surfcluster.c,v 1.4 2002/04/10 22:07:33 greve Exp $
 */
 
 #include <stdio.h>
@@ -44,7 +44,7 @@ static MATRIX *LoadxfmMatrix(char *xfmfile);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surfcluster.c,v 1.3 2002/04/09 23:48:38 greve Exp $";
+static char vcid[] = "$Id: mri_surfcluster.c,v 1.4 2002/04/10 22:07:33 greve Exp $";
 char *Progname = NULL;
 
 char *subjectdir = NULL;
@@ -512,7 +512,7 @@ static void print_usage(void)
   printf("   --srcframe frameno   : 0-based frame number\n");
   printf("   --thmin    threshold : minimum intensity threshold\n");
   printf("   --thmax    threshold : maximum intensity threshold\n");
-  printf("   --sign     sign      : <abs>, pos, neg\n");
+  printf("   --thsign   sign      : <abs>, pos, neg\n");
   printf("   --minarea  area      : area threshold for a cluster (mm^2)\n");
   printf("\n");
   //  printf("   --mask       maskid <fmt> \n");
@@ -620,7 +620,7 @@ static void print_help(void)
 "of outputid or else it will attempt to write the output to the\n"
 "subject's surf directory.\n"
 "\n"
-"--o outputid <fmt>\n"
+"--ocn ocnid <fmt>\n"
 "\n"
 "File in which to store the cluster number of each vertex. This can be\n"
 "useful for determining to which cluster a particular vertex\n"
@@ -675,7 +675,7 @@ static void print_help(void)
 "summary file is shown below.\n"
 "\n"
 "Cluster Growing Summary (mri_surfcluster)\n"
-"$Id: mri_surfcluster.c,v 1.3 2002/04/09 23:48:38 greve Exp $\n"
+"$Id: mri_surfcluster.c,v 1.4 2002/04/10 22:07:33 greve Exp $\n"
 "Input :      minsig-0-lh.w\n"
 "Frame Number:      0\n"
 "Minimum Threshold: 5\n"
