@@ -102,6 +102,8 @@ static int   mrisComputeDistanceTerm(MRI_SURFACE *mris,
                                               INTEGRATION_PARMS *parms) ;
 static int   mrisComputeCorrelationTerm(MRI_SURFACE *mris, 
                                               INTEGRATION_PARMS *parms) ;
+static int   mrisComputePolarCorrelationTerm(MRI_SURFACE *mris, 
+                                              INTEGRATION_PARMS *parms) ;
 static int   mrisComputeAngleAreaTerms(MRI_SURFACE *mris, 
                                        INTEGRATION_PARMS *parms) ;
 static int   mrisClearGradient(MRI_SURFACE *mris) ;
@@ -607,7 +609,7 @@ MRISwrite(MRI_SURFACE *mris, char *fname)
   fp = fopen(fname,"w");
   if (fp==NULL) 
     ErrorReturn(ERROR_BADFILE,
-                (ERROR_BADFILE,"MRISwrite(%s): can't create file %s\n",fname));
+                (ERROR_BADFILE,"MRISwrite(%s): can't create file\n",fname));
   fwrite3(-1,fp);
   fwrite3(mris->nvertices,fp);
   fwrite3(mris->nfaces,fp);
@@ -2613,11 +2615,7 @@ MRISflatten(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 
         Description
 ------------------------------------------------------*/
-#if 0
-static float sigmas[] = { 4.0f, 2.0f, 1.0f, 0.5f } ;
-#else
-static float sigmas[] = { 8.0f, 4.0f, 2.0f, 1.0f, 0.5f, 0.25f } ;
-#endif
+static float sigmas[] = { 2.0f, 1.0f, 0.5f, 0.25f } ;
 #define NSIGMAS  (sizeof(sigmas)  / sizeof(sigmas[0]))
 
 static char *curv_names[] = { INFLATED_NAME, SMOOTH_NAME } ;
@@ -2745,6 +2743,8 @@ MRISregister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
         if (Gdiag & DIAG_SHOW)
           fprintf(stderr, "done.\n") ;
       }
+      MRISrigidBodyAlign(mris, mrisp_template, parms) ;
+#if 1
       mrisClearMomentum(mris) ;
       done = 0 ;
       do
@@ -2770,6 +2770,7 @@ MRISregister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
         }
         passno++ ;
       } while (!done) ;
+#endif
     }
   }
 
@@ -2785,15 +2786,8 @@ MRISregister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
 
         Description
 ------------------------------------------------------*/
-#if 0
-static float area_coefs[] = 
-    { 1.0f,    1.0f,   1.0f,  1.0f, 1.0f, 0.1f, 0.01f, 0.001f };
-static float dist_coefs[] = 
-    { 0.0001f, 0.001f, 0.01f, 0.1f, 1.0f, 1.0f, 1.0f,  1.0f } ;
-#else
-static float area_coefs[] = { 1.0f,   1.0f,  1.0f,  1.0f, 0.1f, 0.01f } ;
-static float dist_coefs[] = { 0.001f, 0.01f, 0.1f,  1.0f, 1.0f, 1.0f } ;
-#endif
+static float area_coefs[] = { 1.0f,   1.0f,  1.0f,  1.0f } ;
+static float dist_coefs[] = { 0.001f, 0.01f, 0.1f,  1.0f } ;
 
 #define NCOEFS  sizeof(area_coefs) / sizeof(area_coefs[0])
 
@@ -3115,7 +3109,7 @@ MRISunfoldOnSphere(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int max_passes)
 
 ------------------------------------------------------*/
 static float neg_area_ratios[] = { 0.01f, 0.001f, 0.0001f } ;
-#define MAX_PASSES 4
+#define MAX_PASSES (sizeof(neg_area_ratios) / sizeof(neg_area_ratios[0]))
 static int
 mrisRemoveNegativeArea(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, 
                        int base_averages, float min_area_pct, int max_passes)
@@ -3305,7 +3299,7 @@ mrisIntegrate(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int n_averages)
   pct_neg_area = 
     (float)mris->neg_area / (float)(mris->total_area+mris->neg_area) ;
   /*  mrisClearMomentum(mris) ;*/
-  for (t = parms->start_t ; t < niterations ; t++)
+  for (parms->t = t = parms->start_t ; t < niterations ; t++)
   {
     if (!FZERO(parms->l_curv))
       MRIScomputeSecondFundamentalForm(mris) ;
@@ -3314,6 +3308,7 @@ mrisIntegrate(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int n_averages)
     mrisComputeDistanceTerm(mris, parms) ;
     mrisComputeAngleAreaTerms(mris, parms) ;
     mrisComputeCorrelationTerm(mris, parms) ;
+    mrisComputePolarCorrelationTerm(mris, parms) ;
     mrisComputeSpringTerm(mris, parms) ;
 #if 0
     mrisComputeCurvatureTerm(mris, parms) ;
@@ -3322,7 +3317,6 @@ mrisIntegrate(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int n_averages)
 #endif
 
     mrisAverageGradients(mris, n_averages) ;
-    parms->t = t ;
     switch (parms->integration_type)
     {
     case INTEGRATE_LM_SEARCH:
@@ -3340,6 +3334,16 @@ mrisIntegrate(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int n_averages)
       break ;
     }
       
+    if (!FZERO(parms->l_pcorr) && (Gdiag & DIAG_SHOW))
+    {
+      float  alpha, beta, gamma ;
+
+      alpha = DEGREES(delta_t*mris->alpha) ;
+      beta = DEGREES(delta_t*mris->beta) ;
+      gamma = DEGREES(delta_t*mris->gamma) ;
+      fprintf(stderr, "rotating brain by (%2.1f, %2.1f, %2.1f)\n",
+              alpha, beta, gamma) ;
+    }
     mrisProjectSurface(mris) ;
     MRIScomputeMetricProperties(mris) ;
     if (Gdiag_no >= 0)
@@ -3376,6 +3380,13 @@ mrisIntegrate(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int n_averages)
       MRIScomputeMetricProperties(mris) ;
     }
 
+    if (FZERO(sse))
+      break ;
+    if (parms->integration_type == INTEGRATE_LINE_MINIMIZE)
+    {
+      if ((100*(old_sse - sse) / sse) < parms->tol)
+        break ;
+    }
     old_sse = sse ;
     if (FZERO(delta_t))   /* reached the minimum */
       break ;
@@ -3384,12 +3395,7 @@ mrisIntegrate(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int n_averages)
   parms->ending_sse = mrisComputeSSE(mris, parms) ;
   /*  mrisProjectSurface(mris) ;*/
 
-#if 0
-  if (t > 14)
-    exit(0) ;
-#endif
-
-  return(t-parms->start_t) ;  /* return actual # of steps taken */
+  return(parms->t-parms->start_t) ;  /* return actual # of steps taken */
 }
 /*-----------------------------------------------------
         Parameters:
@@ -3488,7 +3494,7 @@ double
 mrisComputeSSE(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 {
   double  sse, sse_area, sse_angle, delta, sse_curv, sse_spring, sse_dist,
-          area_scale, sse_corr, sse_neg_area ;
+          area_scale, sse_corr, sse_neg_area, l_corr ;
   int     ano, tno, fno ;
   FACE    *face ;
 
@@ -3538,17 +3544,18 @@ mrisComputeSSE(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     sse_spring = mrisComputeSpringEnergy(mris) ;
   if (!FZERO(parms->l_curv))
     sse_curv = MRIScomputeFolding(mris) ;
-  if (!FZERO(parms->l_corr))
+  l_corr = (double)(parms->l_corr + parms->l_pcorr) ;
+  if (!FZERO(l_corr))
     sse_corr = mrisComputeCorrelationError(mris, parms) ;
 
   sse = 
-    (double)parms->l_area * sse_neg_area + 
-    (double)parms->l_parea * sse_area + 
-    (double)parms->l_angle * sse_angle + 
-    (double)parms->l_dist * sse_dist + 
+    (double)parms->l_area   * sse_neg_area + 
+    (double)parms->l_parea  * sse_area + 
+    (double)parms->l_angle  * sse_angle + 
+    (double)parms->l_dist   * sse_dist + 
     (double)parms->l_spring * sse_spring + 
-    (double)parms->l_corr * sse_corr + 
-    (double)parms->l_curv * CURV_SCALE * sse_curv ;
+    (double)l_corr          * sse_corr + 
+    (double)parms->l_curv   * CURV_SCALE * sse_curv ;
   return(sse) ;
 }
 /*-----------------------------------------------------
@@ -4286,7 +4293,7 @@ MRIScomputeTriangleProperties(MRI_SURFACE *mris, int no_angles)
 #endif
 #define MAX_PLANE_MM     100*10.0f
 #define MAX_MOMENTUM_MM  1
-#define MIN_MM           0.001
+#define MIN_MM           0.05
 
 static double
 mrisAdaptiveTimeStep(MRI_SURFACE *mris,INTEGRATION_PARMS *parms)
@@ -4368,7 +4375,14 @@ mrisMomentumTimeStep(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 #endif
 
   /* take a step in the gradient direction modulated by momentum */
-  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  if (mris->status == MRIS_RIGID_BODY)
+  {
+    mris->da = delta_t * mris->alpha + momentum * mris->da ;
+    mris->db = delta_t * mris->beta + momentum * mris->db ;
+    mris->dg = delta_t * mris->gamma + momentum * mris->dg ;
+    MRISrotate(mris, mris, mris->da, mris->db, mris->dg) ;
+  }
+  else for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
     vertex = &mris->vertices[vno] ;
     if (vertex->ripflag)
@@ -4397,22 +4411,6 @@ mrisMomentumTimeStep(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     vertex->z += vertex->odz ;
   }
 
-#if 0
-  if (mris->patch)
-  {
-    float scale ;
-
-    MRIScomputeMetricProperties(mris) ;
-    scale = sqrt(mris->orig_area / (mris->total_area+mris->neg_area)) ;
-    MRISscaleBrain(mris, mris, scale) ;
-    MRIScomputeMetricProperties(mris) ;
-  }
-#endif
-
-#if 0
-  mrisProjectSurface(mris) ;
-  mrisOrientSurface(mris) ;
-#endif
 
   return(delta_t) ;
 }
@@ -4623,7 +4621,7 @@ mrisLineMinimize(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   {
     fprintf(stderr, "singular matrix in quadratic form\n") ;
     MatrixFree(&mX) ; VectorFree(&vY) ;
-    MatrixFree(&m_xT) ; MatrixFree(&m_xTx) ; MatrixFree(&m_xTx_inv) ;
+    MatrixFree(&m_xT) ; MatrixFree(&m_xTx) ; 
   }
   
   if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
@@ -6895,7 +6893,7 @@ int
 MRISinflateBrain(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 {
   int     n_averages, n, write_iterations, niterations ;
-  double  delta_t = 0.0, fi, ici, fi_desired;
+  double  delta_t = 0.0, rms_height, desired_rms_height ;
 
   write_iterations = parms->write_iterations ;
   n_averages = parms->n_averages ;
@@ -6915,29 +6913,29 @@ MRISinflateBrain(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   MRIScomputeSecondFundamentalForm(mris) ;
   parms->start_t = 0 ;
   niterations = parms->niterations ;
-  MRIScomputeCurvatureIndices(mris, &ici, &fi) ;
   MRISstoreMetricProperties(mris) ;
+  rms_height = MRISrmsTPHeight(mris) ;
   if (parms->scale > 0)
-    parms->fi_desired = fi_desired = parms->scale * fi ;
+    desired_rms_height = parms->scale * rms_height ;
   else
-    fi_desired = parms->fi_desired ;
-  fprintf(stderr, "inflating to desired folding index = %2.3f\n", 
-          parms->fi_desired);
+    desired_rms_height = parms->desired_rms_height ;
+  fprintf(stderr, "inflating to desired rms height = %2.3f\n", 
+          desired_rms_height);
 
   /* write out initial surface */
   if ((parms->write_iterations > 0) && (Gdiag&DIAG_WRITE))
     mrisWriteSnapshot(mris, parms, 0) ;
   
   if (Gdiag & DIAG_SHOW)
-    fprintf(stderr, "%3.3d: dt: %2.4f, ici=%2.2f, fi=%2.2f, avgs=%d\n", 
-            0, 0.0f, (float)ici,(float)fi, n_averages) ;
+    fprintf(stderr, "%3.3d: dt: %2.4f, rms height=%2.3f, avgs=%d\n", 
+            0, 0.0f, (float)rms_height, n_averages) ;
   else
-    fprintf(stderr, "\rstep %3.3d: FI=%2.1f (target=%2.1f)   ", 0, 
-            fi, fi_desired);
+    fprintf(stderr, "\rstep %3.3d: RMS=%2.3f (target=%2.3f)   ", 0, 
+            rms_height, desired_rms_height);
   if (Gdiag & DIAG_WRITE)
   {
-    fprintf(parms->fp, "%3.3d: dt: %2.4f, ici=%2.2f, fi=%2.2f, avgs=%d\n", 
-            0, 0.0f, (float)ici, (float)fi, n_averages) ;
+    fprintf(parms->fp, "%3.3d: dt: %2.4f, rms height=%2.3f, avgs=%d\n", 
+            0, 0.0f, (float)rms_height, n_averages) ;
     fflush(parms->fp) ;
   }
 
@@ -6971,32 +6969,28 @@ MRISinflateBrain(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
       MRISupdateSurface) every 5th iteration as it is the most
       expensive part of the inflation.
       */
+    MRIScomputeMetricProperties(mris) ; 
     if (!((n+1) % 5))   /* compute curvature also */
     {
-      MRISupdateSurface(mris) ;
-      MRIScomputeCurvatureIndices(mris, &ici, &fi) ;
+      rms_height = MRISrmsTPHeight(mris) ;
       if (Gdiag & DIAG_SHOW)
         fprintf(stderr, 
-                "%3.3d: dt: %2.4f, ici=%2.2f, fi=%2.2f, avgs=%d\n", 
-                n+1,(float)delta_t, (float)ici,(float)fi,
-                n_averages);
+                "%3.3d: dt: %2.4f, rms height=%2.3f, avgs=%d\n", 
+                n+1,(float)delta_t, (float)rms_height, n_averages);
       else
-        fprintf(stderr, "\rstep %3.3d: FI=%2.1f (target=%2.1f)   ", 
-                n+1, fi, fi_desired) ;
+        fprintf(stderr, "\rstep %3.3d: RMS=%2.3f (target=%2.3f)   ", 
+                n+1, rms_height, desired_rms_height) ;
       if (Gdiag & DIAG_WRITE)
       {
-        fprintf(parms->fp,
-                "%3.3d: dt: %2.4f, ici=%2.2f, fi=%2.2f, avgs=%d\n",
-                n+1,(float)delta_t,(float)ici,(float)fi,
-                n_averages);
+        fprintf(parms->fp, 
+                "%3.3d: dt: %2.4f, rms height=%2.3f, avgs=%d\n", 
+                n+1,(float)delta_t, (float)rms_height, n_averages);
         fflush(parms->fp) ;
       }
       
-      if (fi < fi_desired)
+      if (rms_height < desired_rms_height)
         break ;
     }
-    else
-      MRIScomputeMetricProperties(mris) ;  /* don't compute curvature */
 
     if (parms->scale > 0)
       MRISscaleBrainArea(mris) ;
@@ -7026,7 +7020,9 @@ mrisApplyGradient(MRI_SURFACE *mris, double dt)
 
   nvertices = mris->nvertices ;
   MRISstoreCurrentPositions(mris) ;
-  for (vno = 0 ; vno < nvertices ; vno++)
+  if (mris->status == MRIS_RIGID_BODY)
+    MRISrotate(mris, mris, dt*mris->alpha, dt*mris->beta, dt*mris->gamma) ;
+  else for (vno = 0 ; vno < nvertices ; vno++)
   {
     v = &mris->vertices[vno] ;
     if (v->ripflag)
@@ -7870,9 +7866,8 @@ mrisLogIntegrationParms(FILE *fp, MRI_SURFACE *mris,INTEGRATION_PARMS *parms)
 #if 0
   fprintf(fp, "nbhd_size=%d, max_nbrs=%d ", parms->nbhd_size,parms->max_nbrs);
 #endif
-  if (parms->fi_desired >= 0.0)
-    fprintf(fp, "fi_des=%2.3f, ici_des=%2.3f",
-            parms->fi_desired, parms->ici_desired) ;
+  if (parms->desired_rms_height > 0.0)
+    fprintf(fp, "desired rms height=%2.3f", parms->desired_rms_height) ;
   fprintf(fp, "\n") ;
   fflush(fp) ;
   return(NO_ERROR) ;
@@ -8305,6 +8300,10 @@ mrisProjectSurface(MRI_SURFACE *mris)
   case PROJECT_PLANE:
     /*    mrisOrientPlane(mris) ;*/
     break ;
+  case MRIS_RIGID_BODY:
+    /*    MRISprojectOntoSphere(mris, mris, mris->radius) ;*/
+    mris->status = MRIS_RIGID_BODY ;
+    break ;
   default:
     break ;
   }
@@ -8322,6 +8321,7 @@ mrisOrientSurface(MRI_SURFACE *mris)
 {
   switch (mris->status)
   {
+  case MRIS_RIGID_BODY:
   case MRIS_PARAMETERIZED_SPHERE:
   case MRIS_SPHERE:
   case MRIS_ELLIPSOID:
@@ -8360,7 +8360,7 @@ mrisLogStatus(MRI_SURFACE *mris,INTEGRATION_PARMS *parms,FILE *fp, float dt)
   mse /= (float)mrisValidVertices(mris) ;
   mse = sqrt(mse) ;
 #endif
-  if (FZERO(parms->l_corr))
+  if (FZERO(parms->l_corr) && FZERO(parms->l_pcorr))
     fprintf(fp, "%3.3d: dt: %2.1f, mse: %2.3f (%2.3f, %2.1f, %2.3f), "
             "neg: %d (%%%2.2f), avgs: %d\n", 
             parms->t, dt, mse, area_rms, (float)DEGREES(angle_rms), dist_rms,
@@ -8468,7 +8468,8 @@ MRIScomputeMetricProperties(MRI_SURFACE *mris)
   mrisComputeVertexDistances(mris) ;
   MRIScomputeTriangleProperties(mris,0) ;  /* compute areas and normals */
   mrisOrientSurface(mris) ;
-  if (mris->status == MRIS_PARAMETERIZED_SPHERE)
+  if (mris->status == MRIS_PARAMETERIZED_SPHERE || 
+      mris->status == MRIS_RIGID_BODY)
   {
     double old_area ;
     old_area = mris->total_area ;
@@ -9031,9 +9032,10 @@ mrisComputeCorrelationError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   double   src, target, sse, delta ;
   VERTEX   *v ;
   int      vno ;
-  float    x, y, z ;
+  float    x, y, z, l_corr ;
 
-  if (FZERO(parms->l_corr))
+  l_corr = parms->l_corr + parms->l_pcorr ;  /* only one will be nonzero */
+  if (FZERO(l_corr))
     return(0.0) ;
 
   for (sse = 0.0f, vno = 0 ; vno < mris->nvertices ; vno++)
@@ -9104,7 +9106,7 @@ mrisComputeCorrelationTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     std = MRISPfunctionVal(parms->mrisp_template,mris,x,y,z,parms->frame_no+1);
     std = sqrt(std) ;
     if (FZERO(std))
-      std = FSMALL ;
+      std = .1f /*FSMALL*/ ;
     delta = (target-src) ; coef = delta * l_corr / std ;
 
     /* now compute gradient of template w.r.t. a change in vertex position */
@@ -9150,6 +9152,113 @@ mrisComputeCorrelationTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
                 "mrisComputeCorrelationTerm: delta is not finite at vno %d", 
                 vno) ;
     }
+  }
+
+  if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+    fprintf(stderr, "max gradient magnitude = %2.5f\n", max_mag) ;
+
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+#define D_ANGLE  RADIANS(0.25)
+
+static int
+mrisComputePolarCorrelationTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
+{
+  double   ap1, am1, da, bp1, bm1, db, gp1, gm1, dg, delta, src, target, mag, 
+           max_mag ;
+  VERTEX   *v ;
+  int      vno, fno ;
+  float    x, y, z, std, coef, dx, dy, dz, nv, r ;
+
+  if (FZERO(parms->l_pcorr))
+    return(NO_ERROR) ;
+  fno = parms->frame_no ;
+  max_mag = 0.0f ;
+  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+  {
+    MRISPwrite(parms->mrisp_template, "temp.hipl") ;
+    /*    MRISPwrite(parms->mrisp, "srf.hipl") ;*/
+  }
+  mris->gamma = mris->beta = mris->alpha = 0 ;
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+
+    x = v->x ; y = v->y ; z = v->z ;
+#if 0
+    src = MRISPfunctionVal(parms->mrisp, mris, x, y, z, 0) ;
+#else
+    src = v->curv ;
+#endif
+    target = MRISPfunctionVal(parms->mrisp_template,mris,x,y,z,
+                              parms->frame_no);
+    std = MRISPfunctionVal(parms->mrisp_template,mris,x,y,z,parms->frame_no+1);
+    std = sqrt(std) ;
+    if (FZERO(std))
+      std = FSMALL ;
+    delta = (target-src) ; coef = delta/* / std*/ ;
+
+    /* now compute gradient of template w.r.t. a change in vertex position */
+
+    /* 
+       compute the gradient by using differential rotations in the 3 
+       rotational directions using the associated skew-symmetric
+       differential rotation matrices
+       */
+    /* compute alpha term - differential rotation around z axis */
+    dx = y*D_ANGLE ; dy = -x*D_ANGLE ; dz = 0 ;
+    am1 = MRISPfunctionVal(parms->mrisp_template, mris, x-dx, y-dy, z-dz, 0) ;
+    ap1 = MRISPfunctionVal(parms->mrisp_template, mris, x+dx, y+dy, z+dz, 0) ;
+    da = (ap1 - am1) / (2*D_ANGLE);
+
+    /* compute beta term - differential rotation around y axis */
+    dx = -z*D_ANGLE ; dy = 0 ; dz = x*D_ANGLE ;
+    bm1 = MRISPfunctionVal(parms->mrisp_template, mris, x-dx, y-dy, z-dz, 0) ;
+    bp1 = MRISPfunctionVal(parms->mrisp_template, mris, x+dx, y+dy, z+dz, 0) ;
+    db = (bp1 - bm1) / (2*D_ANGLE);
+
+    /* compute gamma term - differential rotation around x axis */
+    dx = 0 ; dy = -z*D_ANGLE ; dz = y*D_ANGLE ;
+    gm1 = MRISPfunctionVal(parms->mrisp_template, mris, x-dx, y-dy, z-dz, 0) ;
+    gp1 = MRISPfunctionVal(parms->mrisp_template, mris, x+dx, y+dy, z+dz, 0) ;
+    dg = (gp1 - gm1) / (2*D_ANGLE);
+
+    mris->gamma -= coef * dg ;   /* around x-axis */
+    mris->beta  -= coef * db ;   /* around y-axis */
+    mris->alpha -= coef * da ;   /* around z-axis */
+
+    mag = sqrt(v->dx*v->dx + v->dy*v->dy + v->dz*v->dz) ;
+    if (mag > max_mag)
+      max_mag = mag ;
+    if (!finite(v->dx) || !finite(v->dy) || !finite(v->dz))
+    {
+      DiagBreak() ;
+      ErrorExit(ERROR_BADPARM, 
+             "mrisComputePolarCorrelationTerm: delta is not finite at vno %d", 
+                vno) ;
+    }
+  }
+
+  nv = mrisValidVertices(mris) ;
+  r = mris->radius ;
+  mris->alpha /= nv ;
+  mris->beta /= nv ;
+  mris->gamma /= nv ;
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    v->dx = r*mris->alpha ; v->dy = r*mris->beta ; v->dz = r*mris->gamma ;
   }
 
   if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
@@ -9467,3 +9576,99 @@ MRISclearCurvature(MRI_SURFACE *mris)
   }
   return(NO_ERROR) ;
 }
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+int
+MRISrigidBodyAlign(MRI_SURFACE *mris, MRI_SP *mrisp_template, 
+                   INTEGRATION_PARMS *old_parms)
+{
+  int                old_status, steps ;
+  INTEGRATION_PARMS  parms ;
+
+  /* dx,dy,dz interpreted as rotations in applyGradient when status is rigid */
+  old_status = mris->status ;   /* okay, okay, this is a hack too... */
+  mris->status = MRIS_RIGID_BODY ; 
+  memset(&parms, 0, sizeof(parms)) ;
+  parms.integration_type = INTEGRATE_LINE_MINIMIZE ;
+  parms.mrisp_template = mrisp_template ;
+  parms.fp = old_parms->fp ;
+  parms.niterations =  100 ;
+  parms.frame_no = old_parms->frame_no ;
+  parms.mrisp = old_parms->mrisp ;
+  parms.tol = old_parms->tol ;
+  parms.l_pcorr = 1.0f ;
+  parms.dt = old_parms->dt ;
+  /*  parms.integration_type = old_parms->integration_type ;*/
+  parms.momentum = old_parms->momentum ;
+  parms.write_iterations = old_parms->write_iterations ;
+  parms.start_t = old_parms->start_t ;
+  strcpy(parms.base_name, old_parms->base_name) ;
+
+  steps = mrisIntegrate(mris, &parms, 0) ;
+  old_parms->start_t += steps ;
+  mris->status = old_status ;
+  fprintf(stderr, "rigid alignment complete\n") ;
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+double
+MRISrmsTPHeight(MRI_SURFACE *mris)
+{
+  int    vno, i, total_nbrs ;
+  VERTEX *vertex, *vnb ;
+  double avg_height, dot, nx, ny, nz, x, y, z, d ;
+
+  if (mris->status == MRIS_PLANE)
+    return(NO_ERROR) ;
+
+  avg_height = 0.0 ; total_nbrs = 0 ;
+  mrisComputeTangentPlanes(mris) ;
+
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    vertex = &mris->vertices[vno] ;
+    if (vertex->ripflag)
+      continue ;
+
+    nx = vertex->nx ; ny = vertex->ny ; nz = vertex->nz ;
+
+    if (vertex->vtotal <= 0)
+      continue ;
+    
+
+    if (vno == Gdiag_no)
+      DiagBreak() ;
+
+    /* fit a quadratic form to the surface at this vertex */
+    for (i = 0 ; i < vertex->vtotal ; i++)
+    {
+      vnb = &mris->vertices[vertex->v[i]] ;
+      if (vnb->ripflag)
+        continue ;
+      x = vnb->x-vertex->x ; y = vnb->y-vertex->y ; z = vnb->z-vertex->z ;
+      d = (x*x+y*y+z*z) ;
+      if (FZERO(d))
+        continue ;
+/* 
+   calculate the projection of this vertex onto the local tangent plane 
+*/
+      dot = nx*x + ny*y + nz*z ;  /* height above TpS */
+      avg_height += dot*dot / d ;
+      total_nbrs++ ;
+    }
+  }
+
+  return(sqrt(avg_height / (double)total_nbrs)) ;
+}
+
