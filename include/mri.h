@@ -529,7 +529,6 @@ int   MRIreclassify(MRI *mri_src, MRI *mri_labeled,
 
 MRI *MRImaskThreshold(MRI *mri_src, MRI *mri_mask, MRI *mri_dst,
                              float threshold, int out_label) ;
-int MRIfillVolume(MRI *mri) ;
 int MRIgrowLabel(MRI *mri, MRI *mri_bg, int in_label, int out_label) ;
 int MRIturnOnFG(MRI *mri, MRI *mri_fg) ;
 int MRIturnOffBG(MRI *mri, MRI *mri_bg) ;
