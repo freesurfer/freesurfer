@@ -8,6 +8,7 @@
 #include "error.h"
 #include "mri_identify.h"
 #include "machine.h"
+#include "version.h"
 
 char *get_base_name(char *fullpath);
 int fix_genesis(char *fname, char *dname);
@@ -28,6 +29,13 @@ int main(int argc, char *argv[])
 
   struct stat stat_buf;
   int i;
+  int nargs;
+
+  /* rkt: check for and handle version tag */
+  nargs = handle_version_option (argc, argv, "$Id: mri_strip_subject_info.c,v 1.3 2003/04/16 17:47:54 kteich Exp $");
+  if (nargs && argc - nargs == 1)
+    exit (0);
+  argc -= nargs;
 
   Progname = get_base_name(argv[0]);
 
