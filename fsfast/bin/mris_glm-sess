@@ -2,7 +2,7 @@
 # mris_glm-sess
 #
 
-set VERSION = '$Id: mris_glm-sess,v 1.2 2004/08/25 03:13:44 greve Exp $';
+set VERSION = '$Id: mris_glm-sess,v 1.3 2004/10/04 20:15:42 greve Exp $';
 set fsgdf = ();
 set analysis = ();
 set contrast = ();
@@ -13,6 +13,7 @@ set mris_glm_args = ();
 set frame = 0;
 set projfrac = 0.5;
 set ForcePaint = 1;
+set nolog = 0;
 
 set cmdargs = ($argv);
 
@@ -46,8 +47,13 @@ endif
 ## Get parameters from the info file ##
 set fsd = `cat $infofile | awk '{if($1 == "fsd") print $2}'`;
 
-set LF = log/mris_glm-$analysis-$contrast.log
-if(-e $LF) mv $LF $LF.bak
+if(! $nolog) then
+  set LF = log/mris_glm-$analysis-$contrast.log
+  if(-e $LF) mv $LF $LF.bak
+else
+  set LF = /dev/null
+endif
+
 
 date | tee -a $LF
 pwd  | tee -a $LF
@@ -55,6 +61,7 @@ echo $0  | tee -a $LF
 echo $cmdargs | tee -a $LF
 echo $VERSION | tee -a $LF
 hostname  | tee -a $LF
+echo SUBJECTS_DIR $SUBJECTS_DIR | tee -a $LF
 
 #------------------------------------------------------------------#
 set StartTime = `date`;
@@ -236,6 +243,10 @@ while( $#argv != 0 )
     case "-debug":
       set verbose = 1;
       set echo = 1; # turns on terminal echoing
+      breaksw
+
+    case "-nolog":
+      set nolog = 1;
       breaksw
 
     default:
