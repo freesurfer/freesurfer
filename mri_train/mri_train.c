@@ -46,7 +46,7 @@ main(int argc, char *argv[])
   training_file_name = argv[1] ;
   output_file_name = argv[2] ;
 
-  mric = MRIclassTrainAll(mric, training_file_name, scale, ninputs) ;
+  mric = MRIclassTrainAll(NULL, training_file_name, scale, ninputs) ;
   MRIclassWrite(mric, output_file_name) ;
   exit(0) ;
 }
