@@ -3,8 +3,8 @@
 //
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Date  : $Date: 2005/03/05 16:12:23 $
-// Revision       : $Revision: 1.63 $
+// Revision Date  : $Date: 2005/03/06 13:20:13 $
+// Revision       : $Revision: 1.64 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -239,6 +239,7 @@ GCAMwrite(GCA_MORPH *gcam, char *fname)
   else
   {
     fp = fopen(fname, "wb") ;
+		myclose = fclose ;
   }
   if (!fp)
     ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "GCAMwrite(%s): could not open file",
