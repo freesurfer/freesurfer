@@ -5,14 +5,14 @@
 
 #include "macros.h"
 #include "const.h"
-#include "MRIio.h"
+#include "MRIio_old.h"
 /*#include "typedefs.h"*/  /* not needed without matrix stuff */
 #include "matrix.h"
 #include "mri.h"
 #include "error.h"
 #include "proto.h"
 
-static char vcid[] = "$Id: mri_wmfilter.c,v 1.12 1999/08/09 22:58:45 fischl Exp $";
+static char vcid[] = "$Id: mri_wmfilter.c,v 1.13 2002/10/23 15:57:20 fischl Exp $";
 
 /*-------------------------------------------------------------------
                                 CONSTANTS
