@@ -45,6 +45,7 @@
 #include "matrix.h"
 #include "diag.h"
 #include "chklc.h"
+#include "mriColorLookupTable.h"
 
 #define MM_PER_METER  1000.0f
 #define INFO_FNAME    "COR-.info"
@@ -66,7 +67,7 @@ static int write_bhdr(MRI *mri, FILE *fp);
 static int read_bhdr(MRI *mri, FILE *fp);
 #endif
 static MRI *bshortRead(char *fname_passed, int read_volume);
-static MRI *bfloatRead(char *stem, int read_volume);
+static MRI *bfloatRead(char *fname_passed, int read_volume);
 static MRI *genesisRead(char *stem, int read_volume);
 static MRI *gelxRead(char *stem, int read_volume);
 static MRI *analyzeRead(char *fname, int read_volume);
@@ -115,6 +116,12 @@ static float afni_orientations[][3] = { { -1.0,  0.0,  0.0 },
                                         {  0.0, -1.0,  0.0 }, 
                                         {  0.0,  0.0,  1.0 }, 
                                         {  0.0,  0.0, -1.0 } };
+
+#define MAX_UNKNOWN_LABELS  100
+
+static short cma_field[512][512];
+static char unknown_labels[MAX_UNKNOWN_LABELS][STRLEN];
+static int n_unknown_labels;
 
 int mriio_command_line(int argc, char *argv[])
 {
@@ -888,13 +895,12 @@ if(x_r == 0.0 && x_a == 0.0 && x_s == 0.0 && y_r == 0.0 && y_a == 0.0 && y_s == 
 
     if(!FileExists(xform_use))
     {
-      printf("can't find talairach file %s\n", xform_use);
+
       sprintf(xform_use, "%s/../transforms/talairach.xfm", fname);
-      printf("trying %s instead...\n", xform_use);
+
       if(!FileExists(xform_use))
-        printf("can't find that either, proceeding without...\n");
-      else
-        printf("found that and using it\n");
+        printf("can't talairach file\n");
+
     }
 
     if(FileExists(xform_use))
@@ -904,6 +910,7 @@ if(x_r == 0.0 && x_a == 0.0 && x_s == 0.0 && y_r == 0.0 && y_a == 0.0 && y_s == 
         mri->linear_transform = get_linear_transform_ptr(&mri->transform);
         mri->inverse_linear_transform = get_inverse_linear_transform_ptr(&mri->transform);
         mri->free_transform = 1;
+        strcpy(mri->transform_fname, xform_use);
       }
       else
       {
@@ -911,6 +918,7 @@ if(x_r == 0.0 && x_a == 0.0 && x_s == 0.0 && y_r == 0.0 && y_a == 0.0 && y_s == 
         mri->linear_transform = NULL;
         mri->inverse_linear_transform = NULL;
         mri->free_transform = 1;
+        (mri->transform_fname)[0] = '\0';
       }
     }
 
@@ -2380,17 +2388,11 @@ static int bfloatWrite(MRI *mri, char *stem)
 
 } /* end bfloatWrite() */
 
-static MRI *bshortRead(char *fname_passed, int read_volume)
+static MRI *get_b_info(char *fname_passed, int read_volume, char *directory, char *stem, int type)
 {
 
-  MRI *mri;
+  MRI *mri, *mri2;
   FILE *fp;
-  char fname[STRLEN];
-  char directory[STRLEN];
-  char stem[STRLEN];
-  int result;
-  char register_fname[STRLEN], analyse_fname[STRLEN];
-  char sn[STRLEN];
   float ipr, st, intensity;
   float m11, m12, m13, m14;
   float m21, m22, m23, m24;
@@ -2400,11 +2402,26 @@ static MRI *bshortRead(char *fname_passed, int read_volume)
   char fname_descrip[STRLEN];
   int nslices, nt;
   int nx, ny;
-  int i, j;
-  int swap_bytes_flag;
   float fov_x, fov_y, fov_z;
   MATRIX *m;
   int res;
+  int result;
+  char register_fname[STRLEN], analyse_fname[STRLEN];
+  char sn[STRLEN];
+  char fname[STRLEN];
+  char extension[STRLEN];
+/*
+  char bhdr_name[STRLEN];
+*/
+
+  if(type == MRI_SHORT)
+    sprintf(extension, "bshort");
+  else if(type == MRI_FLOAT)
+    sprintf(extension, "bfloat");
+  else
+  {
+    ErrorReturn(NULL, (ERROR_UNSUPPORTED, "internal error: get_b_info() passed type %d", type));
+  }
 
   result = decompose_b_fname(fname_passed, directory, stem);
   if(result != NO_ERROR)
@@ -2413,12 +2430,14 @@ static MRI *bshortRead(char *fname_passed, int read_volume)
   if(directory[0] == '\0')
     sprintf(directory, ".");
 
-  /* ----- start by looking for a register.dat and analyse.dat ----- */
+  /* ----- try register.dat and analyse.dat, then bhdr, then defaults ----- */
+
   sprintf(register_fname, "%s/register.dat", directory);
   sprintf(analyse_fname, "%s/analyse.dat", directory);
 
   if((fp = fopen(register_fname, "r")) != NULL)
   {
+
     fscanf(fp, "%s", sn);
     fscanf(fp, "%f", &ipr);
     fscanf(fp, "%f", &st);
@@ -2428,76 +2447,171 @@ static MRI *bshortRead(char *fname_passed, int read_volume)
     fscanf(fp, "%f %f %f %f", &m31, &m32, &m33, &m34);
     fscanf(fp, "%f %f %f %f", &m41, &m42, &m43, &m44);
     fclose(fp);
-  }
-  else
-  {
-    ErrorReturn(NULL, (ERROR_BADFILE, "bshortRead(): can't read file %s", register_fname));
+
+    if((fp = fopen(analyse_fname, "r")) != NULL)
+    {
+
+      fscanf(fp, "%s", t1_path);
+      fscanf(fp, "%s", fname_descrip);
+      fscanf(fp, "%d %d", &nslices, &nt);
+      fscanf(fp, "%d %d", &nx, &ny);
+      fclose(fp);
+
+      if(read_volume)
+      {
+        mri = MRIallocSequence(nx, ny, nslices, MRI_SHORT, nt);
+      }
+      else
+      {
+        mri = MRIallocHeader(nx, ny, nslices, MRI_SHORT);
+        mri->nframes = nt;
+      }
+
+      strcpy(mri->fname, fname_passed);
+      mri->slice_direction = MRI_UNDEFINED;
+      mri->imnr0 = 1;
+      mri->imnr1 = nslices;
+      mri->xsize = mri->ysize = mri->ps = ipr;
+      mri->zsize = mri->thick = st;
+
+      fov_x = mri->xsize * mri->width;
+      fov_y = mri->ysize * mri->height;
+      fov_z = mri->zsize * mri->depth;
+
+      mri->fov = (fov_x > fov_y ? (fov_x > fov_z ? fov_x : fov_z) : (fov_y > fov_z ? fov_y : fov_z));
+
+      mri->xend = fov_x / 2.0;
+      mri->xstart = -mri->xend;
+      mri->yend = fov_y / 2.0;
+      mri->ystart = -mri->yend;
+      mri->zend = fov_z / 2.0;
+      mri->zstart = -mri->zend;
+
+      mri->brightness = intensity;
+      strcpy(mri->subject_name, sn);
+      strcpy(mri->path_to_t1, t1_path);
+      strcpy(mri->fname_format, fname_descrip);
+
+      m = MatrixAlloc(4, 4, MATRIX_REAL);
+      if(m == NULL)
+      {
+        MRIfree(&mri);
+        ErrorReturn(NULL, (ERROR_NO_MEMORY, "error allocating matrix in %s read", extension));
+      }
+
+      stuff_four_by_four(m, m11, m12, m13, m14, 
+                            m21, m22, m23, m24, 
+                            m31, m32, m33, m34, 
+                            m41, m42, m43, m44);
+
+      mri->register_mat = m;
+
+      res = orient_with_register(mri);
+      if(res != NO_ERROR)
+      {
+        MRIfree(&mri);
+        return(NULL);
+      }
+
+      return(mri);
+
+    }
+
   }
 
-  if((fp = fopen(analyse_fname, "r")) != NULL)
+
+  /* ----- now try reading the bhdr ----- */
+
+  mri = MRIallocHeader(1, 1, 1, type);
+/*
+  sprintf(bhdr_name, "%s/%s.bhdr", directory, stem);
+  if((fp = fopen(bhdr_name, "r")) != NULL)
   {
-    fscanf(fp, "%s", t1_path);
-    fscanf(fp, "%s", fname_descrip);
-    fscanf(fp, "%d %d", &nslices, &nt);
-    fscanf(fp, "%d %d", &nx, &ny);
-    fclose(fp);
+    read_bhdr(mri, fp);
   }
-  else
+*/
+  if(FALSE)
   {
-    ErrorReturn(NULL, (ERROR_BADFILE, "bshortRead(): can't read file %s", analyse_fname));
+  }
+  else  /* ----- failed -- defaults ----- */
+  {
+
+    fprintf(stderr, "can't find %s.bhdr or register.dat and analyse.dat; using defaults\n", stem);
+
+    sprintf(fname, "%s/%s_000.hdr", directory, stem);
+    if((fp = fopen(fname, "r")) == NULL)
+    {
+      MRIfree(&mri);
+      ErrorReturn(NULL, (ERROR_BADFILE, "can't find file %s (last resort); bailing out on read", fname));
+    }
+    fscanf(fp, "%d %d %d %*d", &nx, &ny, &nt);
+    fclose(fp);
+
+    /* --- get the number of slices --- */
+
+    
+    sprintf(fname, "%s/%s_000.%s", directory, stem, extension);
+    if(!FileExists(fname))
+    {
+      MRIfree(&mri);
+      ErrorReturn(NULL, (ERROR_BADFILE, "can't find file %s; bailing out on read", fname));
+    }
+    for(nslices = 0;FileExists(fname);nslices++)
+      sprintf(fname, "%s/%s_%03d.%s", directory, stem, nslices, extension);
+
+    nslices--;
+
+    mri->width   = nx;
+    mri->height  = ny;
+    mri->depth   = nslices;
+    mri->nframes = nt;
+
+    mri->imnr0 = 1;
+    mri->imnr1 = nslices;
+    mri->slice_direction = MRI_HORIZONTAL;
+
+    mri->thick = mri->ps = 1.0;
+    mri->xsize = mri->ysize = mri->zsize = 1.0;
+
+    mri->xend = mri->width  * mri->xsize / 2.0;
+    mri->xstart = -mri->xend;
+    mri->yend = mri->height * mri->ysize / 2.0;
+    mri->ystart = -mri->yend;
+    mri->zend = mri->depth  * mri->zsize / 2.0;
+    mri->zstart = -mri->zend;
+
+    mri->fov = ((mri->xend - mri->xstart) > (mri->yend - mri->ystart) ? (mri->xend - mri->xstart) : (mri->yend - mri->ystart));
+
+    mri->ras_good_flag = 0;
+    strcpy(mri->fname, fname_passed);
+
   }
 
   if(read_volume)
   {
-    mri = MRIallocSequence(nx, ny, nslices, MRI_SHORT, nt);
-  }
-  else
-  {
-    mri = MRIallocHeader(nx, ny, nslices, MRI_SHORT);
-    mri->nframes = nt;
-  }
-
-  strcpy(mri->fname, fname_passed);
-  mri->slice_direction = MRI_UNDEFINED;
-  mri->imnr0 = 1;
-  mri->imnr1 = nslices;
-  mri->xsize = mri->ysize = mri->ps = ipr;
-  mri->zsize = mri->thick = st;
-
-  fov_x = mri->xsize * mri->width;
-  fov_y = mri->ysize * mri->height;
-  fov_z = mri->zsize * mri->depth;
-
-  mri->fov = (fov_x > fov_y ? (fov_x > fov_z ? fov_x : fov_z) : (fov_y > fov_z ? fov_y : fov_z));
-
-  mri->xend = fov_x / 2.0;
-  mri->xstart = -mri->xend;
-  mri->yend = fov_y / 2.0;
-  mri->ystart = -mri->yend;
-  mri->zend = fov_z / 2.0;
-  mri->zstart = -mri->zend;
-
-  mri->brightness = intensity;
-  strcpy(mri->subject_name, sn);
-  strcpy(mri->path_to_t1, t1_path);
-  strcpy(mri->fname_format, fname_descrip);
-
-  m = MatrixAlloc(4, 4, MATRIX_REAL);
-  if(m == NULL)
-  {
+    mri2 = MRIallocSequence(mri->width, mri->height, mri->depth, mri->type, mri->nframes);
+    MRIcopyHeader(mri, mri2);
     MRIfree(&mri);
-    ErrorReturn(NULL, (ERROR_NO_MEMORY, "bshortRead(): error allocating matrix"));
+    mri = mri2;
   }
 
-  stuff_four_by_four(m, m11, m12, m13, m14, 
-                        m21, m22, m23, m24, 
-                        m31, m32, m33, m34, 
-                        m41, m42, m43, m44);
+  return(mri);
 
-  mri->register_mat = m;
+} /* end get_b_info() */
 
-  res = orient_with_register(mri);
-  if(res != NO_ERROR)
+static MRI *bshortRead(char *fname_passed, int read_volume)
+{
+
+  MRI *mri;
+  FILE *fp;
+  char fname[STRLEN];
+  char directory[STRLEN];
+  char stem[STRLEN];
+  int swap_bytes_flag;
+  int i, j;
+
+  mri = get_b_info(fname_passed, read_volume, directory, stem, MRI_SHORT);
+  if(mri == NULL)
     return(NULL);
 
   if(read_volume)
@@ -2518,7 +2632,7 @@ static MRI *bshortRead(char *fname_passed, int read_volume)
       fclose(fp);
     }
 
-    for(i = 0;i < nslices;i++)
+    for(i = 0;i < mri->depth;i++)
     {
 
       sprintf(fname, "%s/%s_%03d.bshort", directory, stem, i);
@@ -2529,16 +2643,16 @@ static MRI *bshortRead(char *fname_passed, int read_volume)
         ErrorReturn(NULL, (ERROR_BADFILE, "bshortRead(): error opening file %s", fname));
       }
 
-      for(j = 0;j < ny;j++)
+      for(j = 0;j < mri->height;j++)
       {
-        if(fread(mri->slices[i][j], sizeof(short), nx, fp) != nx)
+        if(fread(mri->slices[i][j], sizeof(short), mri->width, fp) != mri->width)
         {
           fclose(fp);
           MRIfree(&mri);
           ErrorReturn(NULL, (ERROR_BADFILE, "bshortRead(): error reading from file %s", fname));
         }
         if(swap_bytes_flag)
-          swab(mri->slices[i][j], mri->slices[i][j], nx * sizeof(short));
+          swab(mri->slices[i][j], mri->slices[i][j], mri->width * sizeof(short));
       }
 
       fclose(fp);
@@ -2778,12 +2892,71 @@ static int decompose_b_fname(char *fname, char *dir, char *stem)
 
 } /* end decompose_b_fname() */
 
-static MRI *bfloatRead(char *sten, int read_volume)
+static MRI *bfloatRead(char *fname_passed, int read_volume)
 {
 
   MRI *mri;
+  FILE *fp;
+  char fname[STRLEN];
+  char directory[STRLEN];
+  char stem[STRLEN];
+  int swap_bytes_flag;
+  int i, j, k;
 
-ErrorReturn(NULL, (ERROR_UNSUPPORTED, "no bfloat read yet..."));
+  mri = get_b_info(fname_passed, read_volume, directory, stem, MRI_FLOAT);
+  if(mri == NULL)
+    return(NULL);
+
+  if(read_volume)
+  {
+
+    sprintf(fname, "%s/%s_%03d.hdr", directory, stem, 0);
+    if((fp = fopen(fname, "r")) == NULL)
+    {
+      fprintf(stderr, "can't open file %s; assuming big-endian bshorts\n", fname);
+      swap_bytes_flag = 0;
+    }
+    else
+    {
+      fscanf(fp, "%*d %*d %*d %d", &swap_bytes_flag);
+#ifdef Linux
+      swap_bytes_flag = !swap_bytes_flag;
+#endif
+      fclose(fp);
+    }
+
+    for(i = 0;i < mri->depth;i++)
+    {
+
+      sprintf(fname, "%s/%s_%03d.bfloat", directory, stem, i);
+
+      if((fp = fopen(fname, "r")) == NULL)
+      {
+        MRIfree(&mri);
+        ErrorReturn(NULL, (ERROR_BADFILE, "bfloatRead(): error opening file %s", fname));
+      }
+
+      for(j = 0;j < mri->height;j++)
+      {
+        if(fread(mri->slices[i][j], sizeof(float), mri->width, fp) != mri->width)
+        {
+          fclose(fp);
+          MRIfree(&mri);
+          ErrorReturn(NULL, (ERROR_BADFILE, "bfloatRead(): error reading from file %s", fname));
+        }
+        if(swap_bytes_flag)
+        {
+          for(k = 0;k < mri->depth;k++)
+            mri->slices[i][j][k] = swapFloat(mri->slices[i][j][k]);
+        }
+      }
+
+      fclose(fp);
+
+    }
+
+  }
+
   return(mri);
 
 } /* end bfloatRead() */
@@ -2986,6 +3159,10 @@ int read_bhdr(MRI *mri, FILE *fp)
   mri->c_r = (brr - tlr) / 2.0 + (mri->depth - 1) / 2.0 * mri->z_r * mri->zsize;
   mri->c_a = (bra - tla) / 2.0 + (mri->depth - 1) / 2.0 * mri->z_a * mri->zsize;
   mri->c_s = (brs - tls) / 2.0 + (mri->depth - 1) / 2.0 * mri->z_s * mri->zsize;
+
+  mri->ras_good_flag = 1;
+
+  mri->slice_direction = MRI_UNDEFINED;
 
   return(NO_ERROR);
 
@@ -4912,15 +5089,15 @@ static MRI *gdfRead(char *fname, int read_volume)
   {
     ErrorPrintf(ERROR_BADPARM, "gdfRead(): missing field(s) from %s:", fname);
     if(!path_d)
-      ErrorPrintf(ERROR_BADPARM, "  IMAGE_FILE_PATH\n");
+      ErrorPrintf(ERROR_BADPARM, "  IMAGE_FILE_PATH");
     if(!ipr_d)
-      ErrorPrintf(ERROR_BADPARM, "  IP_RES\n");
+      ErrorPrintf(ERROR_BADPARM, "  IP_RES");
     if(!st_d)
-      ErrorPrintf(ERROR_BADPARM, "  SL_THICK\n");
+      ErrorPrintf(ERROR_BADPARM, "  SL_THICK");
     if(!s_d)
-      ErrorPrintf(ERROR_BADPARM, "  SIZE\n");
+      ErrorPrintf(ERROR_BADPARM, "  SIZE");
     if(!o_d)
-      ErrorPrintf(ERROR_BADPARM, "  ORIENTATION\n");
+      ErrorPrintf(ERROR_BADPARM, "  ORIENTATION");
     return(NULL);
   }
 
@@ -5188,6 +5365,419 @@ static int gdfWrite(MRI *mri, char *fname)
   ErrorReturn(ERROR_UNSUPPORTED, (ERROR_UNSUPPORTED, "GDF read unsupported"));
 
 }
+
+static int parc_fill(short label_value, short seed_x, short seed_y)
+{
+
+  if(seed_x < 0 || seed_x >= 512 || seed_y < 0 || seed_y >= 512)
+    return(NO_ERROR);
+
+  if(cma_field[seed_x][seed_y] == label_value)
+    return(NO_ERROR);
+
+  cma_field[seed_x][seed_y] = label_value;
+
+  parc_fill(label_value, seed_x + 1, seed_y    );
+  parc_fill(label_value, seed_x - 1, seed_y    );
+  parc_fill(label_value, seed_x    , seed_y + 1);
+  parc_fill(label_value, seed_x    , seed_y - 1);
+
+  return(NO_ERROR);
+
+} /* end parc_fill() */
+
+static int register_unknown_label(char *label)
+{
+
+  int i;
+
+  if(n_unknown_labels == MAX_UNKNOWN_LABELS)
+    return(NO_ERROR);
+
+  for(i = 0;i < n_unknown_labels;i++)
+  {
+    if(strcmp(unknown_labels[i], label) == 0)
+      return(NO_ERROR);
+  }
+
+  strcpy(unknown_labels[n_unknown_labels], label);
+  n_unknown_labels++;
+
+  return(NO_ERROR);
+
+} /* end register_unknown_label() */
+
+static int clear_unknown_labels(void)
+{
+
+  n_unknown_labels = 0;
+
+  return(NO_ERROR);
+
+} /* end clear_unknown_labels() */
+
+static int print_unknown_labels(char *prefix)
+{
+
+  int i;
+
+  for(i = 0;i < n_unknown_labels;i++)
+    printf("%s%s\n", prefix, unknown_labels[i]);
+
+  return(NO_ERROR);
+
+} /* end print_unknown_labels() */
+
+static int read_otl_file(FILE *fp, MRI *mri, int slice, mriColorLookupTableRef color_table, int fill_flag)
+{
+
+  int n_outlines = -1;
+  int n_rows, n_cols;
+  char label[STRLEN], label_to_compare[STRLEN];
+  int seed_x, seed_y;
+  char line[STRLEN];
+  int main_header_flag;
+  int i, j;
+  int gdf_header_flag;
+  char type[STRLEN];
+  char *c;
+  short *points;
+  int n_read;
+  short label_value;
+  float scale_x, scale_y;
+  int source_x, source_y;
+  char alt_compare[STRLEN];
+
+  for(i = 0;i < 512;i++)
+    memset(cma_field[i], 0x00, 512 * 2);
+
+  fgets(line, STRLEN, fp);
+  if(strncmp(line, "GDF FILE VERSION", 15) != 0)
+  {
+    ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "otl slice %s does not appear to be a GDF file", slice));
+  }
+
+  main_header_flag = FALSE;
+  while(!main_header_flag)
+  {
+    if(feof(fp))
+    {
+      ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "premature EOF () in otl file %d", slice));
+    }
+    fgets(line, STRLEN, fp);
+    if(strncmp(line, "START MAIN HEADER", 17) == 0)
+      main_header_flag = TRUE;
+  }
+
+  n_cols = -1;
+  type[0] = '\0';
+
+  while(main_header_flag)
+  {
+    if(feof(fp))
+    {
+      ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "premature EOF (in main header) in otl file %d", slice));
+    }
+    fgets(line, STRLEN, fp);
+    if(strncmp(line, "END MAIN HEADER", 15) == 0)
+      main_header_flag = FALSE;
+    if(strncmp(line, "ONUM ", 5) == 0)
+      sscanf(line, "%*s %d", &n_outlines);
+    if(strncmp(line, "COL_NUM", 7) == 0)
+      sscanf(line, "%*s %d", &n_cols);
+    if(strncmp(line, "TYPE", 4) == 0)
+    {
+      strcpy(type, &(line[5]));
+      c = strrchr(type, '\n');
+      if(c != NULL)
+        *c = '\0';
+    }
+  }
+
+  if(n_outlines == -1)
+  {
+    ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "bad or undefined ONUM in otl file %d", slice));
+  }
+
+  for(i = 0;i < n_outlines;i++)
+  {
+    if(feof(fp))
+    {
+      ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "premature EOF (ready for next outline) in otl file %d", slice));
+    }
+
+    gdf_header_flag = FALSE;
+
+    while(!gdf_header_flag)
+    {
+      if(feof(fp))
+      {
+        ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "premature EOF (searching for gdf header) in otl file %d", slice));
+      }
+      fgets(line, STRLEN, fp);
+      if(strncmp(line, "START GDF HEADER", 16) == 0)
+        gdf_header_flag = TRUE;
+    }
+
+    n_rows = -1;
+    seed_x = seed_y = -1;
+    label[0] = '\0';
+
+    while(gdf_header_flag)
+    {
+
+      if(feof(fp))
+      {
+        ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "premature EOF (in gdf header) in otl file %d", slice));
+      }
+      fgets(line, STRLEN, fp);
+      if(strncmp(line, "END GDF HEADER", 14) == 0)
+        gdf_header_flag = FALSE;
+      if(strncmp(line, "ROW_NUM", 7) == 0)
+        sscanf(line, "%*s %d", &n_rows);
+      if(strncmp(line, "COL_NUM", 7) == 0)
+        sscanf(line, "%*s %d", &n_cols);
+      if(strncmp(line, "TYPE", 4) == 0)
+      {
+        strcpy(type, &(line[5]));
+        c = strrchr(type, '\n');
+        if(c != NULL)
+          *c = '\0';
+      }
+      if(strncmp(line, "SEED", 4) == 0)
+        sscanf(line, "%*s %d %d", &seed_x, &seed_y);
+      if(strncmp(line, "LABEL", 5) == 0)
+      {
+        strcpy(label, &(line[6]));
+        c = strrchr(label, '\n');
+        if(c != NULL)
+          *c = '\0';
+      }
+
+    }
+
+    if(n_rows < 0)
+    {
+      ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "bad or undefined ROW_NUM in otl file %d", slice));
+    }
+
+    if(n_cols != 2)
+    {
+      ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "bad or undefined COL_NUM in otl file %d", slice));
+    }
+
+    if(label[0] == '\0')
+    {
+      ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "bad or undefined LABEL in otl file %d", slice));
+    }
+
+    if(seed_x < 0 || seed_x >= 512 || seed_y < 0 || seed_y >= 512)
+    {
+      ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "bad or undefined SEED in otl file %d", slice));
+    }
+
+    if(strcmp(type, "short") != 0 && type[0] != '\0')
+    {
+      ErrorReturn(ERROR_UNSUPPORTED, (ERROR_UNSUPPORTED, "unsupported TYPE \"%s\"in otl file %d", type, slice));
+    }
+
+    do
+    {
+      fgets(line, STRLEN, fp);
+      if(feof(fp))
+      {
+        ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "premature EOF (searching for points) in otl file %d", slice));
+      }
+    } while(strncmp(line, "START POINTS", 12) != 0);
+
+    points = (short *)malloc(2 * n_rows * sizeof(short));
+    if(points == NULL)
+    {
+      ErrorReturn(ERROR_NOMEMORY, (ERROR_NOMEMORY, "error allocating memory for points in otl file %d", slice));
+    }
+
+    n_read = fread(points, 2, n_rows * 2, fp);
+    if(n_read != n_rows * 2)
+    {
+      free(points);
+      ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "error reading points from otl file %d", slice));
+    }
+
+    fgets(line, STRLEN, fp);
+    if(strncmp(line, "END POINTS", 10) != 0)
+    {
+      free(points);
+      ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "error after points (\"END POINTS\" expected but not found) in otl file %d", slice));
+    }
+
+#ifdef Linux
+    swab(points, points, 2 * n_rows * sizeof(short));
+#endif
+
+    strcpy(label_to_compare, label);
+    for(j = 0;label_to_compare[j] != '\0';j++)
+    {
+      if(label_to_compare[j] == '\n')
+        label_to_compare[j] = '\0';
+      if(label_to_compare[j] == ' ')
+        label_to_compare[j] = '-';
+    }
+
+    /* --- strip 'Left' and 'Right'; --- */
+    strcpy(alt_compare, label_to_compare);
+    StrLower(alt_compare);
+    if(strncmp(alt_compare, "left-", 5) == 0)
+      strcpy(alt_compare, &(label_to_compare[5]));
+    else if(strncmp(alt_compare, "right-", 6) == 0)
+      strcpy(alt_compare, &(label_to_compare[6]));
+
+    label_value = -1;
+    for(j = 0;j < color_table->mnNumEntries;j++)
+      if(strcmp(color_table->maEntries[j].msLabel, label_to_compare) == 0 || 
+         strcmp(color_table->maEntries[j].msLabel, alt_compare) == 0)
+        label_value = j;
+
+    if(label_value == -1)
+    {
+      register_unknown_label(label);
+    }
+    else
+    {
+
+      for(j = 0;j < n_rows;j++)
+        cma_field[points[2*j]][points[2*j+1]] = label_value;
+
+      if(fill_flag && label_value != 0)
+        parc_fill(label_value, seed_x, seed_y);
+
+    }
+
+    free(points);
+
+  }
+
+  scale_x = 512 / mri->width;
+  scale_y = 512 / mri->height;
+
+  for(i = 0;i < mri->width;i++)
+    for(j = 0;j < mri->height;j++)
+    {
+      source_x = (int)floor(scale_x * (float)i);
+      source_y = (int)floor(scale_y * (float)j);
+      if(source_x < 0)
+        source_x = 0;
+      if(source_x > 511)
+        source_x = 511;
+      if(source_y < 0)
+        source_y = 0;
+      if(source_y > 511)
+        source_y = 511;
+      MRISvox(mri, i, j, slice-1) = cma_field[source_x][source_y];
+    }
+
+  return(NO_ERROR);
+
+} /* end read_otl_file() */
+
+MRI *MRIreadOtl(char *fname, int width, int height, int slices, char *color_file_name, int read_volume_flag, int fill_flag)
+{
+
+  char stem[STRLEN];
+  int i;
+  MRI *mri;
+  char *c;
+  int one_file_exists;
+  char first_name[STRLEN], last_name[STRLEN];
+  FILE *fp;
+  mriColorLookupTableRef color_table;
+
+  clear_unknown_labels();
+
+  /* ----- defaults to width and height ----- */
+  if(width <= 0)
+    width = 512;
+  if(height <= 0)
+    height = 512;
+
+  /* ----- strip the stem of the otl file name ----- */
+  strcpy(stem, fname);
+  c = strrchr(stem, '.');
+  if(c == NULL)
+  {
+    ErrorReturn(NULL, (ERROR_BADPARM, "MRIreadOtl(): bad file name: %s", fname));
+  }
+
+  for(c--;c >= stem && isdigit(*c);c--);
+
+  if(c < stem)
+  {
+    ErrorReturn(NULL, (ERROR_BADPARM, "MRIreadOtl(): bad file name: %s", fname));
+  }
+
+  c++;
+
+  one_file_exists = FALSE;
+  for(i = 1;i <= slices;i++)
+  {
+    sprintf(c, "%d.otl", i);
+    if(FileExists(stem))
+      one_file_exists = TRUE;
+    if(i == 1)
+      strcpy(first_name, stem);
+  }
+
+  strcpy(last_name, stem);
+
+  if(!one_file_exists)
+  {
+    ErrorReturn(NULL, (ERROR_BADPARM, "MRIreadOtl(): couldn't find any file between %s and %s", first_name, last_name));
+  }
+
+  mri = MRIalloc(width, height, slices, MRI_SHORT);
+  if(mri == NULL)
+  {
+    ErrorReturn(NULL, (ERROR_NOMEMORY, "MRIreadOtl(): error allocating MRI structure"));
+  }
+
+  if(CLUT_New(&color_table, color_file_name) != CLUT_tErr_NoErr)
+  {
+    MRIfree(&mri);
+    ErrorReturn(NULL, (ERROR_BADFILE, "MRIreadOtl(): error reading color file %s", color_file_name));
+  }
+
+  one_file_exists = FALSE;
+  for(i = 1;i <= slices;i++)
+  {
+    sprintf(c, "%d.otl", i);
+    if((fp = fopen(stem, "r")) != NULL)
+    {
+      if(read_otl_file(fp, mri, i, color_table, fill_flag) != NO_ERROR)
+      {
+        MRIfree(&mri);
+        return(NULL);
+      }
+      one_file_exists = TRUE;
+    }
+  }
+
+  if(!one_file_exists)
+  {
+    MRIfree(&mri);
+    ErrorReturn(NULL, (ERROR_BADFILE, "MRIreadOtl(): found at least one file between %s and %s but couldn't open it!", first_name, last_name));
+  }
+
+  CLUT_Delete(&color_table);
+
+  if(n_unknown_labels > 0)
+  {
+    printf("unknown labels:\n");
+    print_unknown_labels("  ");
+  }
+  clear_unknown_labels();
+
+  return(mri);
+
+} /* end MRIreadOtl() */
 
 /*******************************************************************/
 /*******************************************************************/
