@@ -19,6 +19,10 @@
 #define HI_LIM                             150
 #define DEFINITELY_BACKGROUND              50
 
+/* range for scatter matrix plotting */
+#define MAX_SIGMA                          2.0f
+
+
 /* all stuff classified as white below this value is assigned to
    the subcortical gray class, as long as its Talairach coordinate is
    less than TALAIRACH_SUBCORTICAL_GRAY_MAX_Z.
@@ -26,7 +30,7 @@
 #define HI_SUBCORTICAL_GRAY                85
 #define TALAIRACH_SUBCORTICAL_GRAY_MAX_Z   35
 
-#define MAX_INPUTS             10
+#define MAX_INPUTS             40
 
 typedef struct
 {
@@ -52,11 +56,11 @@ typedef struct
 #define FEATURE_Z_POSITION     0x10000
 #define FEATURE_PRIORS         0x20000
 #define FEATURE_POSITION       (FEATURE_X_POSITION | \
-                                FEATURE_Y_POSITION | FEATURE_Z_POSITION)
+                                FEATURE_Y_POSITION | FEATURE_Y_POSITION)
 
 #define FEATURE_CPOLV          (FEATURE_CPOLV_MEAN3 | FEATURE_CPOLV_MEAN5 | \
                                 FEATURE_CPOLV_MEDIAN3 | FEATURE_CPOLV_MEDIAN5)
-#define MAX_FEATURE            0x80000000
+#define MAX_FEATURE            FEATURE_MIN7
 
 #define MAX_ROUNDS             5
 
@@ -100,6 +104,9 @@ int    MRICcomputeStatistics(MRIC *mric, int round) ;
 char   *MRICclassName(MRIC *mric, int round, int classno) ;
 int    MRICdump(FILE *fp, MRIC *mric) ;
 char   *MRICfeatureName(MRIC *mric, int round, int feature_number) ;
+int    MRICexamineTrainingSet(MRIC *mric, char *file_name, int round) ;
+int    MRICbuildScatterPlot(MRIC *mric, int class, MATRIX *m_scatter,
+                 char *training_file_name) ;
 
 extern char *class_names[] ;
 
