@@ -244,6 +244,7 @@ set glLabel { \
   kLabel_VertexIndex \
   kLabel_Distance \
   kLabel_Coords_RAS \
+  kLabel_Coords_MniTal \
   kLabel_Coords_Tal \
   kLabel_Coords_Index \
   kLabel_Coords_Normal \
@@ -270,6 +271,7 @@ foreach label $glLabel {
 set gsaLabelContents(kLabel_VertexIndex,name)       "Vertex Index"
 set gsaLabelContents(kLabel_Distance,name)          "Distance"
 set gsaLabelContents(kLabel_Coords_RAS,name)        "Vertex RAS"
+set gsaLabelContents(kLabel_Coords_MniTal,name)     "Vertex MNI Talairach"
 set gsaLabelContents(kLabel_Coords_Tal,name)        "Vertex Talairach"
 set gsaLabelContents(kLabel_Coords_Index,name)      "MRI Index"
 set gsaLabelContents(kLabel_Coords_Normal,name)     "Vertex Normal"
@@ -1196,6 +1198,10 @@ proc CreateMenuBar { ifwMenuBar } {
       "ShowLabel kLabel_Coords_RAS $gbShowLabel(kLabel_Coords_RAS)"\
       gbShowLabel(kLabel_Coords_RAS) } \
       { check \
+      "Vertex MNI Talairach" \
+           "ShowLabel kLabel_Coords_MniTal $gbShowLabel(kLabel_Coords_MniTal)"\
+      gbShowLabel(kLabel_Coords_MniTal) } \
+      { check \
       "Vertex Talairach" \
       "ShowLabel kLabel_Coords_Tal $gbShowLabel(kLabel_Coords_Tal)"\
       gbShowLabel(kLabel_Coords_Tal) } \
@@ -1205,7 +1211,7 @@ proc CreateMenuBar { ifwMenuBar } {
       gbShowLabel(kLabel_Coords_Index) } \
       { check \
       "Vertex Normal" \
-     "ShowLabel kLabel_Coords_Normal $gbShowLabel(kLabel_Coords_Normal)"\
+    "ShowLabel kLabel_Coords_Normal $gbShowLabel(kLabel_Coords_Normal)"\
       gbShowLabel(kLabel_Coords_Normal) } \
       { check \
       "Spherical X, Y, Z" \
@@ -2235,7 +2241,7 @@ proc Graph_SetPointsData { inCondition ilPoints } {
     global gConditionData gnNumDataSets
     # save the data. update the number of data sets. 
     set gConditionData($inCondition,points) $ilPoints
-    set gnNumDataSets [expr $inCondition + 1]
+  set gnNumDataSets [expr $inCondition + 1]
 }
 
 proc Graph_SetErrorData { inCondition ilErrors } {
@@ -2822,7 +2828,7 @@ proc SetKeyBindings {} {
 
     # redraw
     bind . <Alt-r> { UpdateAndRedraw }
-    
+
     # movement 
     bind . <Alt-Up>    { rotate_brain_x 18.0; UpdateAndRedraw }
     bind . <Alt-Down>  { rotate_brain_x -18.0; UpdateAndRedraw }
@@ -3096,9 +3102,3 @@ dputs "Successfully parsed tksurfer.tcl"
 #Graph_SetTestData 3 10
 
 MoveToolWindow 0 0
-
-
-proc pf {} {
-    global gaLinkedVars
-    puts "tp $gaLinkedVars(ftimepoint) cn $gaLinkedVars(fcondition) ntps $gaLinkedVars(fnumtimepoints) ncns $gaLinkedVars(fnumconditions)"
-}
