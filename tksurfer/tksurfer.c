@@ -1364,16 +1364,16 @@ static mriTransformRef sclv_client_transform = NULL;
 static MATRIX *sclv_register_transform = NULL;
 
 #define sclv_set_value(v,i,n) \
- switch(i) { \
-     case SCLV_VAL: (v)->val = n; break; \
-     case SCLV_VAL2: (v)->val2 = n; break; \
-     case SCLV_VALBAK: (v)->valbak = n; break; \
-     case SCLV_VAL2BAK: (v)->val2bak = n; break; \
-     case SCLV_VALSTAT: (v)->stat = n; break; \
-     case SCLV_IMAG_VAL: (v)->imag_val = n; break; \
-     case SCLV_MEAN: (v)->mean = n; break; \
-     case SCLV_MEAN_IMAG: (v)->mean_imag = n; break; \
-     case SCLV_STD_ERROR: (v)->std_error = n; break; \
+ switch((i)) { \
+     case SCLV_VAL: (v)->val = (n); break; \
+     case SCLV_VAL2: (v)->val2 = (n); break; \
+     case SCLV_VALBAK: (v)->valbak = (n); break; \
+     case SCLV_VAL2BAK: (v)->val2bak = (n); break; \
+     case SCLV_VALSTAT: (v)->stat = (n); break; \
+     case SCLV_IMAG_VAL: (v)->imag_val = (n); break; \
+     case SCLV_MEAN: (v)->mean = (n); break; \
+     case SCLV_MEAN_IMAG: (v)->mean_imag = (n); break; \
+     case SCLV_STD_ERROR: (v)->std_error = (n); break; \
  }
 
 #define sclv_get_value(v,i,n) \
@@ -9302,7 +9302,7 @@ sclv_smooth(int niter, int field)
 {
   int iter,k,m,n;
   VERTEX *v;
-  float sum;
+  float sum, average;
   
   surface_compiled = 0 ;
   printf("surfer: sclv_smooth(%d,%s)\n",niter,sclv_field_names[field]);
@@ -9310,25 +9310,28 @@ sclv_smooth(int niter, int field)
     {
       printf(".");fflush(stdout);
       for (k=0;k<mris->nvertices;k++)
-	sclv_get_value( (&(mris->vertices[k])), field, &(mris->vertices[k].tdx));
+	sclv_get_value( (&(mris->vertices[k])), 
+			field, &(mris->vertices[k].tdx));
       for (k=0;k<mris->nvertices;k++)
 	{
 	  v = &mris->vertices[k];
 	  sum=v->tdx;
 	  if (k == Gdiag_no)
 	    DiagBreak() ;
-	  n = 1;
+	  n = 0;
 	  for (m=0;m<v->vnum;m++)
 	    {
 	      sum += mris->vertices[v->v[m]].tdx;
 	      n++;
 	    }
+	  average = 0;
+	  if( n != 0 ) 
+	    average = sum / (float)n;
 	  if (!finite(sum))
 	    DiagBreak() ;
-	  if (n>0) 
-	    sclv_set_value (v, field, sum/n);
-	  if (!finite(sum/n))
+	  if (!finite(average))
 	    DiagBreak() ;
+	  sclv_set_value (v, field, average);
 	}
     }
   printf("\n");PR;
@@ -18105,7 +18108,7 @@ int main(int argc, char *argv[])   /* new main */
   /* end rkt */
   
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.45 2003/07/15 17:18:35 kteich Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.46 2003/07/24 20:35:31 kteich Exp $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -21438,11 +21441,6 @@ sclv_calc_frequencies(int field)
 		sclv_field_info[field].min_value);
   valPerBin = num_values / (float)sclv_field_info[field].num_freq_bins;
 	  
-  fprintf (stderr, 
-	   "field %d min %.2f max %.2f num_values %.2f valPerBin %.2f\n",
-	   field, sclv_field_info[field].min_value, 
-	   sclv_field_info[field].max_value, num_values, valPerBin);
-
   /* allocate storage for each time point and condition... */
   sclv_field_info[field].frequencies = 
     calloc( sclv_field_info[field].num_conditions, sizeof(int**) );
@@ -21472,7 +21470,9 @@ sclv_calc_frequencies(int field)
 	      v = &mris->vertices[vno] ;
 	      sclv_get_value (v, field, &value);
 	      bin = (float)(value - sclv_field_info[field].min_value) / (float)valPerBin;
-	      sclv_field_info[field].frequencies[condition][timepoint][bin]++;
+	      if (bin >= 0 && bin < sclv_field_info[field].num_freq_bins)
+		sclv_field_info[field].frequencies[condition][timepoint][bin]++;
+	      
 	    }
 	}
     }
@@ -24049,16 +24049,19 @@ label_to_stat(int which_overlay)
   mn = mx = 0.0 ;
   for (n = 0  ; n < area->n_points ; n++)
     {
-      v = &mris->vertices[area->lv[n].vno] ;
-      f = area->lv[n].stat ;
-      if (n == 0)
-	mn = mx = f ;
-      sclv_set_value(v, field, f) ;
-      /*    v->stat = f ;*/
-      if (f > mx)
-	mx = f ;
-      if (f < mn)
-	mn = f ;
+      if (area->lv[n].vno > 0 && area->lv[n].vno < mris->nvertices)
+	{
+	  v = &mris->vertices[area->lv[n].vno] ;
+	  f = area->lv[n].stat ;
+	  if (n == 0)
+	    mn = mx = f ;
+	  sclv_set_value(v, field, f) ;
+	  /*    v->stat = f ;*/
+	  if (f > mx)
+	    mx = f ;
+	  if (f < mn)
+	    mn = f ;
+	}
     }
   if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
     printf("min = %f, max = %f\n", mn, mx) ;
