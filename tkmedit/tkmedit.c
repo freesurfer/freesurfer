@@ -5740,8 +5740,20 @@ tkm_tErr LoadVolume ( tkm_tVolumeType iType,
   Volm_GetDimensions( gAnatomicalVolume[iType], 
          &gnAnatomicalDimensionX, &gnAnatomicalDimensionY, &gnAnatomicalDimensionZ  );
 
+
+#if 0
   /* is this right (BRF)? Are they supposed to be screen dimensions? */
   gnAnatomicalDimensionX = gnAnatomicalDimensionY = gnAnatomicalDimensionZ = 256 ;
+#else
+  gnAnatomicalDimensionX = gAnatomicalVolume[iType]->mpMriValues->width ;
+  gnAnatomicalDimensionY = gAnatomicalVolume[iType]->mpMriValues->height ;
+  gnAnatomicalDimensionZ = gAnatomicalVolume[iType]->mpMriValues->depth ;
+#endif
+
+  if (Gdiag & DIAG_SHOW)
+    printf("setting anatomical dimensions to %d, %d, %d\n",
+           gnAnatomicalDimensionX, gnAnatomicalDimensionY, gnAnatomicalDimensionZ  );
+
   /* set the default color scale */
   SetVolumeBrightnessAndContrast( iType, 
           Volm_kfDefaultBrightness,
