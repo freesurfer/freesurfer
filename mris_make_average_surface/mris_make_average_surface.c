@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2005/02/28 17:03:02 $
-// Revision       : $Revision: 1.12 $
+// Revision Date  : $Date: 2005/02/28 21:58:23 $
+// Revision       : $Revision: 1.13 $
 //
 ////////////////////////////////////////////////////////////////////
 #include <stdio.h>
@@ -25,7 +25,7 @@
 #include "transform.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_make_average_surface.c,v 1.12 2005/02/28 17:03:02 tosa Exp $";
+static char vcid[] = "$Id: mris_make_average_surface.c,v 1.13 2005/02/28 21:58:23 tosa Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -57,7 +57,7 @@ main(int argc, char *argv[])
   VOL_GEOM      vg;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_make_average_surface.c,v 1.12 2005/02/28 17:03:02 tosa Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_make_average_surface.c,v 1.13 2005/02/28 21:58:23 tosa Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -97,26 +97,31 @@ main(int argc, char *argv[])
   {
     fprintf(stderr, "processing subject %s...\n", argv[i]) ;
     sprintf(fname, "%s/%s/surf/%s.%s", sdir, argv[i], hemi, canon_surf_name) ;
+    // read sphere.reg
     mris = MRISread(fname) ;
     if (!mris)
       ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
 		Progname, fname) ;
+    // get "pial" surface vertex into ->origx, origy, origz
     if (MRISreadOriginalProperties(mris, orig_name) != NO_ERROR)
       ErrorExit(ERROR_BADFILE,"%s: could not read orig file for %s.\n",
                 Progname, argv[1]);
-
+    // read transform
     sprintf(fname, "%s/%s/mri/transforms/%s", sdir, argv[i], xform_name) ;
     lta = LTAreadEx(fname) ;
     if (!lta)
       ErrorExit(ERROR_BADPARM, "%s: could not read transform from %s", Progname, fname) ;
-
+    // read T1 volume
     sprintf(fname, "%s/%s/mri/T1", sdir, argv[i]) ;
     mri = MRIreadHeader(fname, MRI_UCHAR); // MRI_CORONAL_SLICE_DIRECTORY) ;
     if (!mri)
       ErrorExit(ERROR_BADPARM, "%s: could not read reference MRI volume from %s", Progname, fname) ;
 
+    // save current vertex position into ->cx
     MRISsaveVertexPositions(mris, CANONICAL_VERTICES) ;
+    // get the vertex position from ->origx, ... (get the "pial" vertex position)
     MRISrestoreVertexPositions(mris, ORIGINAL_VERTICES) ;
+    // this means that we transform "pial" surface
 #if 0
     MRIStalairachTransform(mris, mris, lta) ;
 #else
@@ -124,8 +129,12 @@ main(int argc, char *argv[])
     // copy volume geometry of the transformed volume
     memcpy((void *) &vg, (void *) &(mris->vg), sizeof(VOL_GEOM)); 
 #endif
+    // save transformed position in ->orig (store "pial" vertices position in orig)
     MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ;
+    // get the vertex position from ->cx (note that this is not transformed)  sphere.reg vertices
     MRISrestoreVertexPositions(mris, CANONICAL_VERTICES) ;
+    // mris contains sphere.reg in vertex and pial vertices in orig
+    // map to a theta-phi space and accumulate values
     mrisp = MRIScoordsToParameterization(mris, NULL, SCALE) ;
     MRISPaccumulate(mrisp, mrisp_total, 0) ;
     MRISPaccumulate(mrisp, mrisp_total, 1) ;
@@ -142,7 +151,9 @@ main(int argc, char *argv[])
               Progname,ico_fname) ;
   MRISscaleBrain(mris_ico, mris_ico, 
                  DEFAULT_RADIUS/MRISaverageRadius(mris_ico)) ;
+  // save current ico position to ->cx, cy, cz
   MRISsaveVertexPositions(mris_ico, CANONICAL_VERTICES) ;
+  // using mrisp_total to calculate position into ->origx, origy, origz (orig is the "pial" vertices)
   MRIScoordsFromParameterization(mrisp_total, mris_ico) ;
   // copy geometry info
   memcpy((void *) &mris_ico->vg, (void *) &vg, sizeof (VOL_GEOM));
@@ -162,15 +173,18 @@ main(int argc, char *argv[])
               v->v[n], vn->origx, vn->origy, vn->origz) ;
     }
   }
+  // write *h.sphere.reg
   sprintf(fname, "%s/%s/surf/%s.%s", sdir, out_sname, hemi, canon_surf_name) ;
   if (Gdiag & DIAG_SHOW)
     fprintf(stderr,"writing average canonical surface to to %s\n", fname);
   MRISwrite(mris_ico, fname) ;
 
+  // get "pial vertices" from orig
   MRISrestoreVertexPositions(mris_ico, ORIG_VERTICES);
   for (vno = 0 ; vno < mris_ico->nvertices ; vno++)
   {
     v = &mris_ico->vertices[vno] ;
+    // n = number of subjects
     v->x /= (float)n ;
     v->y /= (float)n ;
     v->z /= (float)n ;
