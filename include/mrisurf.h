@@ -200,7 +200,7 @@ typedef struct
   int          zeros ;
   int          hemisphere ;            /* which hemisphere */
   int          initialized ;
-  General_transform transform ;   /* the next two are from this struct */
+  General_transform transform ;   /* the next two are from this struct (MNI transform) */
   Transform         *linear_transform ;
   Transform         *inverse_linear_transform ;
   int               free_transform ;
