@@ -5082,12 +5082,12 @@ static MRI *analyzeRead(char *fname, int read_volume)
     /* I will follow his advise                                   */
     /* hist.orient  Mayo name  	Voxel[Index0, Index1, Index2] */
     /*                          Index0 	Index1 	Index2              */
-    /* 0 transverse unflipped 	R-L 	P-A 	I-S     */
-    /* 1 coronal unflipped 	R-L 	I-S 	P-A     */
-    /* 2 sagittal unflipped 	P-A 	I-S 	R-L     */
-    /* 3 transverse flipped 	R-L 	A-P 	I-S     */
-    /* 4 coronal flipped 	R-L 	S-I 	P-A     */
-    /* 5 sagittal flipped 	P-A 	S-I 	R-L     */ //   P->A I->S L->R
+    /* 0 transverse unflipped 	R-L 	P-A 	I-S     LAS */
+    /* 3 transverse flipped 	R-L 	A-P 	I-S     LPS */
+    /* 1 coronal unflipped 	R-L 	I-S 	P-A     LSA */
+    /* 4 coronal flipped 	R-L 	S-I 	P-A     LIA */
+    /* 2 sagittal unflipped 	P-A 	I-S 	R-L     ASL */
+    /* 5 sagittal flipped 	P-A 	S-I 	R-L     AIL */ //   P->A I->S L->R
     
     /* FLIRT distributes analyze format image which has a marked LR */
     /* in fls/etc/standard/avg152T1_LR-marked.img.  The convention    */
@@ -5475,18 +5475,18 @@ static int analyzeWriteFrame(MRI *mri, char *fname, int frame)
   /* see http://wideman-one.com/gw/brain/analyze/formatdoc.htm  */
   if(fabs(mri->z_s) > fabs(mri->z_r) && fabs(mri->z_s) > fabs(mri->z_a)){
     // Transverse: Superior/Inferior > both Right and Anterior
-    if(mri->x_r > 0) hdr.hist.orient = 0; // transverse unflipped
-    else             hdr.hist.orient = 3; // transverse flipped
+    if(mri->y_a > 0) hdr.hist.orient = 0; // transverse unflipped  LAS
+    else             hdr.hist.orient = 3; // transverse flipped    LPS
   }
   if(fabs(mri->z_a) > fabs(mri->z_r) && fabs(mri->z_a) > fabs(mri->z_s)){
     // Cor: Anterior/Post > both Right and Superior
-    if(mri->x_r > 0) hdr.hist.orient = 1; // cor unflipped
-    else             hdr.hist.orient = 4; // cor flipped
+    if(mri->z_a > 0) hdr.hist.orient = 1; // cor unflipped   LSA
+    else             hdr.hist.orient = 4; // cor flipped     LIA
   }
   if(fabs(mri->z_r) > fabs(mri->z_a) && fabs(mri->z_r) > fabs(mri->z_s)){
     // Sag: Righ/Left > both Anterior and Superior
-    if(mri->x_r > 0) hdr.hist.orient = 2; // sag unflipped
-    else             hdr.hist.orient = 5; // sag flipped
+    if(mri->z_a > 0) hdr.hist.orient = 2; // sag unflipped   ASL
+    else             hdr.hist.orient = 5; // sag flipped     AIL
   }
   printf("INFO: set hdr.hist.orient to %d\n",hdr.hist.orient);
 
