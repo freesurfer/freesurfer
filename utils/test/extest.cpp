@@ -9,13 +9,14 @@
 #include <cstdio>
 #include <cstdlib>
 #include <typeinfo>
-#include <values.h>
 
 extern "C" {
 #include "fio.h"
 }
 
 const int MAX = 5;
+const double MAXD=1.7976931348623157e+308;
+const double MIND=2.2250738585072014e-308;
 
 using namespace std;
 
@@ -92,7 +93,7 @@ int main(int argc, char *argv[])
   s[0] = 1, s[1] = 256*256, s[2] = 256*256*256-1;
   f[0] = 1.; f[1] = 1.-0.001; f[2] = 1./3.;
   d[0] = 1.; d[1] = 1.-0.001; d[2] = 1./3.;
-  d[3] = MAXDOUBLE; d[4] = MINDOUBLE;
+  d[3] = MAXD; d[4] = MIND;
 
   fwriteInt(i[0], out);
   fwriteShort(s[0], out);
