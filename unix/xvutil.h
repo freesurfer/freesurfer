@@ -82,6 +82,7 @@ typedef struct
 
   IMAGE       *zoomImage ;  /* zoomed image */
   int         sync ;        /* sync zooming and stuff with other images */
+  HISTOGRAM   *histo ;
 } DISPLAY_IMAGE, DIMAGE ;
 
 typedef struct
