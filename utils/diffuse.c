@@ -182,8 +182,10 @@ ImageDiffuseCurvature(IMAGE *inImage,IMAGE *outImage, double A,
 
   for (i = 0 ; i < niter ; i++)
   {
+#if 0
     if (Gdiag & DIAG_WRITE)
       fprintf(stdout, "iteration %d\n", i) ;
+#endif
 
     if (kimage)
       KernelImageCopy(kimage, ksrc) ;
@@ -448,8 +450,10 @@ ImageDiffuseHV(IMAGE *inImage, IMAGE *outImage, double k, int niter,
 
   for (i = 0 ; i < niter ; i++)
   {
+#if 0
     if (Gdiag & DIAG_WRITE)
       fprintf(stdout, "iteration %d\n", i) ;
+#endif
 
     if (kimage)
       KernelImageCopy(kimage, ksrc) ;
@@ -647,8 +651,10 @@ ImageDiffusePerona(IMAGE *inImage, IMAGE *outImage, double k, int niter,
 #endif
   for (i = 0 ; i < niter ; i++)
   {
+#if 0
     if (Gdiag & DIAG_WRITE)
       fprintf(stdout, "iteration %d\n", i) ;
+#endif
 
     if (kimage)
       KernelImageCopy(kimage, ksrc) ;
