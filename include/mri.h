@@ -194,7 +194,7 @@ MRI   *MRIextract(MRI *mri_src, MRI *mri_dst, int x0, int y0, int z0,
 MRI   *MRIextractInto(MRI *mri_src, MRI *mri_dst, int x0, int y0, int z0,
                   int dx, int dy, int dz, int x1, int y1, int z1) ;
 
-MRI   *MRIextractPlanes(MRI *mri_src, MRI *mri_dst, MRI *mri_polv, int wsize,
+MRI   *MRIextractPlane(MRI *mri_src, MRI *mri_dst, MRI *mri_polv, int wsize,
                         int x, int y, int z);
 MRI   *MRIextractValues(MRI *mri_src, MRI *mri_dst, float min_val, 
                         float max_val) ;
