@@ -1578,6 +1578,12 @@ static MRI *siemensRead(char *fname, int read_volume_flag)
   fseek(fp, 4004, SEEK_SET);
   fread(&n_slices, 4, 1, fp);
   n_slices = orderIntBytes(n_slices);
+  if (n_slices==0)
+  {
+    errno = 0;
+    ErrorReturn(NULL, (ERROR_BADFILE, 
+		       "\n\nPlease try with the option '-it siemens_dicom'.\n The handling failed assuming the old siemens format.\n"))
+  }
   fseek(fp, 2864, SEEK_SET);
   fread(&base_raw_matrix_size, 4, 1, fp);
   base_raw_matrix_size = orderIntBytes(base_raw_matrix_size);
