@@ -1,6 +1,6 @@
 /*----------------------------------------------------------
   Name: mri_vol2surf.c
-  $Id: mri_surf2surf.c,v 1.3 2001/02/07 22:42:07 greve Exp $
+  $Id: mri_surf2surf.c,v 1.4 2001/09/25 23:09:04 greve Exp $
   Author: Douglas Greve
   Purpose: Resamples data from one surface onto another. If
   both the source and target subjects are the same, this is
@@ -43,7 +43,7 @@ int GetNVtxsFromValFile(char *filename, char *fmt);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surf2surf.c,v 1.3 2001/02/07 22:42:07 greve Exp $";
+static char vcid[] = "$Id: mri_surf2surf.c,v 1.4 2001/09/25 23:09:04 greve Exp $";
 char *Progname = NULL;
 
 char *surfreg = "sphere.reg";
@@ -62,7 +62,7 @@ int SrcIcoOrder;
 char *trgsubject = NULL;
 char *trgvalfile = NULL;
 char *trgfmt     = "bvolume";
-MRI  *TrgVals, *TrgHits, *TrgDist;
+MRI  *TrgVals, *TrgValsSmth, *TrgHits, *TrgDist;
 MRI_SURFACE *TrgSurfReg;
 char *TrgHitFile = NULL;
 char *TrgDistFile = NULL;
@@ -73,6 +73,8 @@ char *mapmethod = "nnfr";
 int UseHash = 1;
 int framesave = 0;
 float IcoRadius = 100.0;
+int nSmoothSteps = 0;
+int nthstep, nnbrs, nthnbr, nbrvtx, frame;
 
 int debug = 0;
 
@@ -93,7 +95,7 @@ int main(int argc, char **argv)
   char fname[2000];
   int nTrg121,nSrc121,nSrcLost;
   int nTrgMulti,nSrcMulti;
-  float MnTrgMultiHits,MnSrcMultiHits;
+  float MnTrgMultiHits,MnSrcMultiHits, val;
 
   Progname = argv[0] ;
   argc --;
@@ -187,6 +189,7 @@ int main(int argc, char **argv)
   printf("Done\n");
 
   if(strcmp(srcsubject,trgsubject)){
+    /* ------- Source and Target Subjects are different -------------- */
     /* ------- Load the registration surface for target subject ------- */
     if(!strcmp(trgsubject,"ico")){
       sprintf(fname,"%s/lib/bem/ic%d.tri",MRI_DIR,TrgIcoOrder);
@@ -212,7 +215,8 @@ int main(int argc, char **argv)
            ReverseMapFlag,UseHash);
     
     
-    /* Compute some stats on the mapping number of srcvtx mapping to a target vtx*/
+    /* Compute some stats on the mapping number of srcvtx mapping to a 
+       target vtx*/
     nTrg121 = 0;
     MnTrgMultiHits = 0.0;
     for(tvtx = 0; tvtx < TrgSurfReg->nvertices; tvtx++){
@@ -226,7 +230,8 @@ int main(int argc, char **argv)
     printf("nTrg121 = %5d, nTrgMulti = %5d, MnTrgMultiHits = %g\n",
      nTrg121,nTrgMulti,MnTrgMultiHits);
     
-    /* Compute some stats on the mapping number of trgvtxs mapped from a source vtx*/
+    /* Compute some stats on the mapping number of trgvtxs mapped from a 
+       source vtx*/
     nSrc121 = 0;
     nSrcLost = 0;
     MnSrcMultiHits = 0.0;
@@ -273,11 +278,40 @@ int main(int argc, char **argv)
     }
   }
   else{
-    printf("INFO: trgsubject = srcsubject, just converting format\n");
+    /* --- Source and Target Subjects are the same --- */
+    printf("INFO: trgsubject = srcsubject\n");
     TrgSurfReg = SrcSurfReg;
     TrgVals = SrcVals;
   }
        
+  /* Smooth if desired */
+  if(nSmoothSteps > 0){
+    nnbrs = TrgSurfReg->vertices[0].vnum;
+    printf("INFO: Smoothing, NSteps = %d, NNbrs = %d\n",nSmoothSteps,nnbrs);
+
+    TrgValsSmth = MRIcopy(TrgVals,NULL);
+
+    for(nthstep = 0; nthstep < nSmoothSteps; nthstep ++){
+      printf("Step = %d\n",nthstep);
+      fflush(stdout);
+      for(vtx = 0; vtx < TrgSurfReg->nvertices; vtx++){
+  nnbrs = TrgSurfReg->vertices[vtx].vnum;
+  //if(nnbrs != 5) printf("%4d %d\n",vtx,nnbrs);
+  for(frame = 0; frame < TrgVals->nframes; frame ++){
+    val = MRIFseq_vox(TrgVals,vtx,0,0,frame);
+    for(nthnbr = 0; nthnbr < nnbrs; nthnbr++){
+      nbrvtx = TrgSurfReg->vertices[vtx].v[nthnbr];
+      val += MRIFseq_vox(TrgVals,nbrvtx,0,0,frame) ;
+    }/* end loop over neighbor */
+    MRIFseq_vox(TrgValsSmth,vtx,0,0,frame) = (val/(nnbrs+1));
+  }/* end loop over frame */
+      } /* end loop over vertex */
+      MRIcopy(TrgValsSmth,TrgVals);
+    }/* end loop over smooth step */
+    MRIfree(&TrgValsSmth);
+  }
+
+
   /* readjust frame power if necessary */
   if(is_sxa_volume(srcvalfile)){
     printf("INFO: Readjusting Frame Power\n");  fflush(stdout);
@@ -344,6 +378,15 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcmp(option, "--srcfmt")){
       if(nargc < 1) argnerr(option,1);
       srcfmt = pargv[0];
+      nargsused = 1;
+    }
+    else if (!strcmp(option, "--nsmooth")){
+      if(nargc < 1) argnerr(option,1);
+      sscanf(pargv[0],"%d",&nSmoothSteps);
+      if(nSmoothSteps < 1){
+  fprintf(stderr,"ERROR: number of smooth steps (%d) must be >= 1\n",
+    nSmoothSteps);
+      }
       nargsused = 1;
     }
 
@@ -451,6 +494,8 @@ static void print_usage(void)
   fprintf(stderr, "   --mapmethod  nnfr or nnf\n");
   fprintf(stderr, "   --hemi       hemisphere (lh or rh) \n");
   fprintf(stderr, "   --frame      save only nth frame (with --ofmt paint)\n");
+  fprintf(stderr, "   --nsmooth    number of smoothing steps\n");  
+
   fprintf(stderr, "\n");
 }
 /* --------------------------------------------- */
