@@ -579,6 +579,99 @@ XVMRIshowFrame(XV_FRAME *xvf, MRI *mri, int which, int slice,int frame)
            Description:
 ----------------------------------------------------------------------*/
 IMAGE *
+XVMRIshowRange(XV_FRAME *xvf, MRI *mri, int which, int slice,
+                      float fmin, float fmax)
+{
+  IMAGE  *I ;
+  float  mag ;
+
+  if (which_click == which && mri != mris[which])
+    which_click = -1 ;  /* a new MR image shown */
+
+  if (!mri)
+    return(NULL) ;
+
+  mri_frames[which] = 0 ;
+
+  if (slice < 0)  /* set slice to middle of slice direction */
+  {
+    switch (mri_views[which])
+    {
+    case MRI_CORONAL:
+      slice = (mri->imnr0 + mri->imnr1) / 2 ;
+      break ;
+    case MRI_SAGITAL:
+      slice = mri->width / 2 ;
+      break ;
+    case MRI_HORIZONTAL:
+      slice = mri->height / 2 ;
+      break ;
+    }
+  }
+
+  mri_depths[which] = slice ;
+  switch (mri_views[which])
+  {
+  case MRI_CORONAL:
+    slice -= mri->imnr0 ;
+    if (slice >= mri->depth)
+      slice = mri->depth-1 ;
+    if (slice < 0)
+      slice = 0 ;
+    break ;
+  case MRI_SAGITAL:
+    if (slice >= mri->width)
+      slice = mri->width-1 ;
+    break ;
+  case MRI_HORIZONTAL:
+    if (slice >= mri->height)
+      slice = mri->height-1 ;
+    break ;
+  }
+
+
+  mri_slices[which] = slice ;
+  I = MRItoImageView(mri, Idisplay[which], slice, mri_views[which], 0) ;
+  if (!I)
+    return(NULL) ;
+
+
+  mag = MIN((float)xvf->orig_disp_rows / (float)I->rows,
+            (float)xvf->orig_disp_cols / (float)I->cols) ;
+
+  XVsetImageSize(xvf, which, nint((float)I->rows*mag), 
+                 nint((float)I->cols*mag));
+  XVresize(xvf) ;
+
+  /* must be done before XVshowImage to draw point properly */
+  if (which_click < 0)  /* reset current click point */
+  {
+    which_click = which ;
+    z_click = slice ;
+    y_click = mri->height / 2 ;
+    x_click = mri->width / 2 ;
+#if 0
+    XVMRIdrawPoint(xvf, which, mri_views[which], 0, mri, x_click,
+                   y_click, z_click, XXOR);
+#endif
+  }
+  XVshowImageRange(xvf, which, I, 0, fmin, fmax) ;
+
+
+  if (Idisplay[which] && (I != Idisplay[which]))
+    ImageFree(&Idisplay[which]) ;
+
+  Idisplay[which] = I ;
+
+  mris[which] = mri ;
+  return(I) ;
+}
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+----------------------------------------------------------------------*/
+IMAGE *
 XVMRIshow(XV_FRAME *xvf, MRI *mri, int which, int slice)
 {
   return(XVMRIshowFrame(xvf, mri, which, slice, 0)) ;
