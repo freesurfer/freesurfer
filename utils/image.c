@@ -3608,5 +3608,6 @@ fprintf(stderr,
     ImageCopy(Iout, Idst) ;
     ImageFree(&Iout) ;
   }
+  ImageFree(&Igaussian) ;
   return(Idst) ;
 }
