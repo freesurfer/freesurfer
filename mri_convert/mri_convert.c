@@ -3,9 +3,9 @@
 // original: written by Bruce Fischl (Apr 16, 1997)
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2003/11/03 23:10:13 $
-// Revision       : $Revision: 1.72 $
+// Revision Author: $Author: greve $
+// Revision Date  : $Date: 2003/12/04 23:44:53 $
+// Revision       : $Revision: 1.73 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -124,6 +124,9 @@ int main(int argc, char *argv[])
   int nskip = 0; // number of frames to skip 
   VOL_GEOM vgtmp;
   LT *lt = 0;
+  int DevXFM = 0;
+  char devxfm_subject[STRLEN];
+  MATRIX *T;
 
   for(i=0;i<argc;i++) printf("%s ",argv[i]);
   printf("\n");
@@ -210,7 +213,7 @@ int main(int argc, char *argv[])
   nskip = 0;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_convert.c,v 1.72 2003/11/03 23:10:13 tosa Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_convert.c,v 1.73 2003/12/04 23:44:53 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -265,14 +268,21 @@ int main(int argc, char *argv[])
       out_matrix_flag = TRUE;
     else if(strcmp(argv[i], "--force_ras_good") == 0) 
       force_ras_good = TRUE;
-    else if(strcmp(argv[i], "-at") == 0 || strcmp(argv[i], "--apply_transform") == 0 || strcmp(argv[i], "-T") == 0)
-    {
+    else if(strcmp(argv[i], "-at") == 0 || 
+	    strcmp(argv[i], "--apply_transform") == 0 || 
+	    strcmp(argv[i], "-T") == 0){
       get_string(argc, argv, &i, transform_fname);
       transform_flag = TRUE;
       invert_transform_flag = FALSE;
     }
-    else if(strcmp(argv[i], "-ait") == 0 || strcmp(argv[i], "--apply_inverse_transform") == 0)
-    {
+    else if(strcmp(argv[i], "--devolvexfm") == 0){
+      /* devolve xfm to account for cras != 0 */
+      get_string(argc, argv, &i, devxfm_subject);
+      DevXFM = 1;
+    }
+
+    else if(strcmp(argv[i], "-ait") == 0 || 
+	    strcmp(argv[i], "--apply_inverse_transform") == 0){
       get_string(argc, argv, &i, transform_fname);
       transform_flag = TRUE;
       invert_transform_flag = TRUE;
@@ -1310,6 +1320,17 @@ int main(int argc, char *argv[])
                 transform_fname);
         exit(1);
       }
+
+      if(DevXFM){
+	printf("INFO: devolving XFM (%s)\n",devxfm_subject);
+	printf("-------- before ---------\n");
+	MatrixPrint(stdout,lta_transform->xforms[0].m_L);
+	T = DevolveXFM(devxfm_subject, lta_transform->xforms[0].m_L, NULL);
+	if(T==NULL) exit(1);
+	printf("-------- after ---------\n");
+	MatrixPrint(stdout,lta_transform->xforms[0].m_L);
+	printf("-----------------\n");
+      }
       
       if(invert_transform_flag)
       {
@@ -1813,6 +1834,7 @@ void usage(FILE *stream)
   fprintf(stream, "  -ois, --out_i_size <size>\n");
   fprintf(stream, "  -ojs, --out_j_size <size>\n");
   fprintf(stream, "  -oks, --out_k_size <size>\n");
+  fprintf(stream, " --nskip n : skip the first n frames\n");
   fprintf(stream, "\n");
   fprintf(stream, "  -oid, --out_i_direction <R direction> <A direction> <S direction>\n");
   fprintf(stream, "  -ojd, --out_j_direction <R direction> <A direction> <S direction>\n");
@@ -1836,9 +1858,38 @@ void usage(FILE *stream)
                   "      <linear | sinc> \n"
             "      <sincInterpHW>  \n"); 
   fprintf(stream, "\n");
-  fprintf(stream, "--apply_transform xfmfile (-T or -at)\n");
-  fprintf(stream, "--apply_inverse_transform xfmfile (-ait)\n");
-  fprintf(stream, "--nskip n : skip the first n frames\n");
+  fprintf(stream, "APPLYING TRANSFORMS (INCLUDING TALAIRACH)\n");
+  fprintf(stream, "\n");
+  fprintf(stream, "  --apply_transform xfmfile (-T or -at)\n");
+  fprintf(stream, "  --apply_inverse_transform xfmfile (-ait)\n");
+  fprintf(stream, "  --devolvexfm subjectid : \n");
+  fprintf(stream, "\n");
+
+  fprintf(stream,
+  " The volume can be resampled into another space by supplying a \n"
+  " transform using the --apply_transform flag. This reads the \n"
+  " transform file and applies the transform (when --apply_inverse_transform \n"
+  " is used, the transform is inverted and then applied). An example of a \n"
+  " transform file is talairach.xfm as found in subjectid/mri/transforms. To \n"
+  " convert a subject's orig volume to talairach space, execute the \n"
+  " following lines:\n"
+  "\n"
+  "  cd subjectid/mri\n"
+  "  mkdir talairach\n"
+  "  mri_convert --apply_transform transforms/talariach.xfm \n"
+  "     --devolvexfm subjectid --ic 0 0 0 \n"
+  "     orig talairach\n"
+  "\n"
+  " This properly accounts for the case where the input volume does not \n"
+  " have it's coordinate center at 0.\n"
+  "\n"
+  " To evaluate the result, run:\n"
+  "\n"
+  "    tkmedit -f $SUBJECTS_DIR/talairach/mri/orig -aux talairach\n"
+  "\n"
+  " The main and aux volumes should overlap very closely. If they do not, \n"
+  " use tkregister2 to fix it (run tkregister --help for docs).\n"
+  "\n");
 
   fprintf(stream, 
 
