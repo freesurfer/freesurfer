@@ -113,6 +113,10 @@ ScubaLayer2DMRI::ScubaLayer2DMRI () {
   commandMgr.AddCommand( *this, "Get2DMRILayerEditableROI", 1, "layerID",
 			 "Returns whether or not this layer's ROI is "
 			 "editable." );
+  commandMgr.AddCommand( *this, "Get2DMRIRASCoordsFromIndex", 4, 
+			 "layerID x y z", "Returns a list of RAS coords "
+			 "converted from the input index coords." );
+
   
 }
 
@@ -930,6 +934,36 @@ ScubaLayer2DMRI::DoListenToTclCommand ( char* isCommand, int iArgc, char** iasAr
       sReturnValues =
 	TclCommandManager::ConvertBooleanToReturnValue( mbEditableROI );
       sReturnFormat = "i";
+    }
+  }
+
+  // Get2DMRIRASCoordsFromIndex <layerID x y z>
+  if( 0 == strcmp( isCommand, "Get2DMRIRASCoordsFromIndex" ) ) {
+    int layerID;
+    try {
+      layerID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
+    }
+    catch( runtime_error e ) {
+      sResult = string("bad layerID: ") + e.what();
+      return error;
+    }
+    
+    if( mID == layerID ) {
+
+      float ras[3];
+      ras[0] = TclCommandManager::ConvertArgumentToFloat( iasArgv[2] );
+      ras[1] = TclCommandManager::ConvertArgumentToFloat( iasArgv[3] );
+      ras[2] = TclCommandManager::ConvertArgumentToFloat( iasArgv[4] );
+
+      int index[3];
+      mVolume->RASToMRIIndex( ras, index );
+
+      stringstream ssReturnValues;
+      ssReturnValues << index[0] << " " << index[1] << " " << index[2];
+      sReturnValues = ssReturnValues.str();
+      sReturnFormat = "Liiil";
+
+      return ok;
     }
   }
 

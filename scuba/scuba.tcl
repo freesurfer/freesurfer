@@ -10,7 +10,7 @@ if { $err } {
     load [file dirname [info script]]/libscuba[info sharedlibextension] scuba
 }
 
-DebugOutput "\$Id: scuba.tcl,v 1.77 2005/02/07 22:04:28 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.78 2005/02/08 19:58:52 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -616,26 +616,28 @@ proc MakeToolBar { ifwTop } {
     button $fwToolBar.bwZoomIn   -image icon_zoom_in \
 	-command { ZoomViewIn; RedrawFrame [GetMainFrameID] }
 
-    frame $fwToolBar.fwCoordsInput
+    frame $fwToolBar.fwCoordsInput -relief raised -border 2
     tkuMakeEntry $fwToolBar.fwCoordsInput.ew \
 	-variable gCoordsInput(entry) \
 	-command { GotoCoordsInputCallback } \
-	-width 20
+	-width 16
     set gCoordsInput(entry) "Enter RAS Coords"
-    bind $fwToolBar.fwCoordsInput.ew { }
     set gaWidget(coordsEntry) $fwToolBar.fwCoordsInput.ew.ewEntry
+    bind $gaWidget(coordsEntry) <Button> "after idle {$gaWidget(coordsEntry) selection range 0 end}"
     menubutton $fwToolBar.fwCoordsInput.bw \
 	-text "V" \
 	-menu $fwToolBar.fwCoordsInput.bw.menu
     set gaWidget(coordsMenuPopup) [menu $fwToolBar.fwCoordsInput.bw.menu]
     $gaWidget(coordsMenuPopup) add command -label "RAS Coords" \
 	-command { 
-	    set gCoordsInput(system) ras ;
-	    set gCoordsInput(entry) "Enter RAS Coords" }
+	    set gCoordsInput(system) ras;
+	    set gCoordsInput(entry) "Enter RAS Coords";
+	    $gaWidget(coordsEntry) selection range 0 end }
     $gaWidget(coordsMenuPopup) add command -label "Index Coords" \
 	-command { 
-	    set gCoordsInput(system) index ;
-	    set gCoordsInput(entry) "Enter Index Coords" }
+	    set gCoordsInput(system) index;
+	    set gCoordsInput(entry) "Enter Index Coords";
+	    $gaWidget(coordsEntry) selection range 0 end }
     set gaWidget(coordsMenuButton) $fwToolBar.fwCoordsInput.bw
     pack $fwToolBar.fwCoordsInput.ew $fwToolBar.fwCoordsInput.bw \
 	-side left \
@@ -1040,6 +1042,7 @@ proc GotoCoordsInputCallback {} {
     global gaView
     global gCoordsInput
     global gaTool
+    global gaWidget
 
     # Get the input string.
     set sCoords $gCoordsInput(entry)
@@ -1064,28 +1067,33 @@ proc GotoCoordsInputCallback {} {
 	    RedrawFrame [GetMainFrameID]
 	    
 	    set gCoordsInput(entry) "Enter RAS Coords"
+	    $gaWidget(coordsEntry) selection range 0 end
 
 	} elseif { "$gCoordsInput(system)" == "index" } {
 
 	    if { $gaTool(current,targetLayer) < 0 } {
 		tkuErrorDlog "Please specify a target volume layer."
+		$gaWidget(coordsEntry) selection range 0 end
 		return;
 	    }
 
 	    if { [GetLayerType $gaTool(current,targetLayer)] != "2DMRI" } {
 		tkuErrorDlog "A volume layer must be targetted."
+		$gaWidget(coordsEntry) selection range 0 end
 		return;
 	    }
 	    
 	    set lRAS [Get2DMRIRASCoordsFromIndex $gaTool(current,targetLayer) \
 			  [lindex $sFiltered 0] [lindex $sFiltered 1] \
 			  [lindex $sFiltered 2]]
-	    puts "Got $lRAS"
 	    SetViewRASCenter $gaView(current,id) \
 		[lindex $lRAS 0] [lindex $lRAS 1] [lindex $lRAS 2]
 	    RedrawFrame [GetMainFrameID]
  
 	    set gCoordsInput(entry) "Enter Index Coords"
+	    $gaWidget(coordsEntry) selection range 0 end
+	} else {
+	    puts "UH OH"
 	}
     }
 }
@@ -4560,7 +4568,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.77 2005/02/07 22:04:28 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.78 2005/02/08 19:58:52 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
