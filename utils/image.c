@@ -3379,6 +3379,7 @@ ImageExtractInto(IMAGE *Isrc, IMAGE *Idst, int x0, int y0,
   CPIX     *cpsrc, *cpdst ;
   UCHAR    *csrc, *cdst ;
   float    *fsrc, *fdst ;
+  double   *dsrc, *ddst;
   int      xin, yin, yout, x1, y1, yend, xend ;
 
   if ((dx <= 0) || (dy <= 0))
@@ -3443,6 +3444,21 @@ ImageExtractInto(IMAGE *Isrc, IMAGE *Idst, int x0, int y0,
           *fdst = 0.0f ;
         else
           *fdst = *fsrc ;
+      }
+    }
+    break ;
+  case PFDOUBLE:
+    yout = ydst ;
+    for (yin = y0 ; yin < y1 ; yin++, yout++)
+    {
+      dsrc = IMAGEDpix(Isrc, x0, yin) ;
+      ddst = IMAGEDpix(Idst, xdst, yout) ;
+      for (xin = x0 ; xin < x1 ; xin++, fdst++, fsrc++)
+      {
+        if (xin < 0 || xin > xend || yin < 0 || yin > yend)
+          *ddst = 0.0 ;
+        else
+          *ddst = *dsrc ;
       }
     }
     break ;
