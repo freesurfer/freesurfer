@@ -931,12 +931,15 @@ MRISread(char *fname)
         Description
 ------------------------------------------------------*/
 int
-MRISwrite(MRI_SURFACE *mris, char *fname)
+MRISwrite(MRI_SURFACE *mris, char *name)
 {
   int   k, type ;
   float x,y,z;
   FILE  *fp;
 
+  char  fname[STRLEN] ;
+
+  MRISbuildFileName(mris, name, fname) ;
   type = mrisFileNameType(fname) ;
   if (type == MRIS_ASCII_QUADRANGLE_FILE)
     return(MRISwriteAscii(mris, fname)) ;
@@ -6986,7 +6989,6 @@ MRISreadCanonicalCoordinates(MRI_SURFACE *mris, char *sname)
   MRIScomputeCanonicalCoordinates(mris) ;
   return(NO_ERROR) ;
 }
-
 /*-----------------------------------------------------
         Parameters:
 
@@ -6995,8 +6997,9 @@ MRISreadCanonicalCoordinates(MRI_SURFACE *mris, char *sname)
         Description
 ------------------------------------------------------*/
 int
-MRISreadPatch(MRI_SURFACE *mris, char *pname)
+MRISreadPatchNoRemove(MRI_SURFACE *mris, char *pname)
 {
+
   int         ix, iy, iz, k, i, j, npts ;
   FILE        *fp ;
   char        fname[STRLEN], path[STRLEN], *cp ;
@@ -7059,17 +7062,28 @@ MRISreadPatch(MRI_SURFACE *mris, char *pname)
   mris->patch = 1 ;
   mris->status = MRIS_CUT ;
 
-  MRISremoveRipped(mris) ;
-  MRISupdateSurface(mris) ;
-
   mrisComputeBoundaryNormals(mris);
   mrisSmoothBoundaryNormals(mris,10);
-#if 0
-  computed_shear_flag = FALSE;
-  for (k=0;k<mris->nvertices;k++)
-    mris->vertices[k].origripflag = mris->vertices[k].ripflag;
-  flag2d = TRUE;
-#endif
+  MRISupdateSurface(mris) ;
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+int
+MRISreadPatch(MRI_SURFACE *mris, char *pname)
+{
+  int ret  ;
+
+  ret = MRISreadPatchNoRemove(mris, pname) ;
+  if (ret != NO_ERROR)
+    return(ret) ;
+  MRISremoveRipped(mris) ;
+  MRISupdateSurface(mris) ;
 
   return(NO_ERROR) ;
 }
@@ -20598,6 +20612,7 @@ mrisFindAllOverlappingFaces(MRI_SURFACE *mris, MHT *mht,int fno, int *flist)
         Returns value:
 
         Description
+          restore ripflag to 0 (NOTE: Won't undo MRISremoveRipped!!)
 ------------------------------------------------------*/
 int
 MRISunrip(MRI_SURFACE *mris)
@@ -24416,6 +24431,40 @@ mrisInitializeNeighborhood(MRI_SURFACE *mris, int vno)
       fprintf(stderr, "v[%d] = %d\n", n, v->v[n]) ;
   }
 
-return(NO_ERROR) ;
+  return(NO_ERROR) ;
+}
+int
+MRISmarkNegativeVertices(MRI_SURFACE *mris, int mark) 
+{
+  int    fno, n ;
+  FACE   *f ;
+
+  for (fno = 0 ; fno < mris->nfaces ; fno++)
+  {
+    f = &mris->faces[fno] ;
+    if (f->area < 0)
+      for (n = 0 ; n < VERTICES_PER_FACE ; n++)
+        mris->vertices[f->v[n]].marked = mark ;
+  }
+  return(NO_ERROR) ;
+}
+
+int
+MRISripNegativeVertices(MRI_SURFACE *mris) 
+{
+  int    fno, n ;
+  FACE   *f ;
+
+  for (fno = 0 ; fno < mris->nfaces ; fno++)
+  {
+    f = &mris->faces[fno] ;
+    if (f->area < 0)
+    {
+      for (n = 0 ; n < VERTICES_PER_FACE ; n++)
+        mris->vertices[f->v[n]].ripflag = 1 ;
+      f->ripflag = 1 ;
+    }
+  }
+  return(NO_ERROR) ;
 }
 

@@ -356,6 +356,7 @@ int          MRIScomputeCanonicalCoordinates(MRI_SURFACE *mris) ;
 int          MRIScanonicalToWorld(MRI_SURFACE *mris, Real phi, Real theta,
                                   Real *pxw, Real *pyw, Real *pzw) ;
 int          MRISreadPatch(MRI_SURFACE *mris, char *pname) ;
+int          MRISreadPatchNoRemove(MRI_SURFACE *mris, char *pname) ;
 int          MRISreadTriangleProperties(MRI_SURFACE *mris, char *mris_fname) ;
 int          MRISreadBinaryCurvature(MRI_SURFACE *mris, char *mris_fname) ;
 int          MRISreadCurvatureFile(MRI_SURFACE *mris, char *fname) ;
@@ -618,6 +619,8 @@ int   MRISmeasureCorticalThickness(MRI_SURFACE *mris) ;
 #endif
 
 int   MRISmarkRandomVertices(MRI_SURFACE *mris, float prob_marked) ;
+int   MRISmarkNegativeVertices(MRI_SURFACE *mris, int mark) ;
+int   MRISripNegativeVertices(MRI_SURFACE *mris) ;
 int   MRISclearMarks(MRI_SURFACE *mris) ;
 int   MRISclearAnnotations(MRI_SURFACE *mris) ;
 int   MRISsetMarks(MRI_SURFACE *mris, int mark) ;
