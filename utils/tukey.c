@@ -5,7 +5,7 @@ tukey_biweight(double residual, double C)
 {
 	double p ;
 
-	if (residual > C)
+	if (abs(residual) > C)
 		return(C*C/2) ;
 	else
 	{
