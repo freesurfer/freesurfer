@@ -1,6 +1,6 @@
 #! /usr/bin/tixwish
 
-# $Id: tkmedit.tcl,v 1.39 2003/04/21 20:09:06 kteich Exp $
+# $Id: tkmedit.tcl,v 1.40 2003/04/23 21:17:11 kteich Exp $
 
 source $env(MRI_DIR)/lib/tcl/tkm_common.tcl
 
@@ -625,7 +625,7 @@ proc SetDefaultLocation { iType isValue } {
 }
 set tDlogSpecs(LoadVolume) [list \
   -title "Load Volume" \
-  -prompt1 "Load COR Volume:" \
+  -prompt1 "Load Volume:" \
   -note1 "The volume file (or COR-.info for COR volumes)" \
   -entry1 [list GetDefaultLocation LoadVolume] \
   -default1 [list GetDefaultLocation LoadVolume] \
@@ -633,7 +633,7 @@ set tDlogSpecs(LoadVolume) [list \
   -okCmd {LoadVolume %s1; SetDefaultLocation LoadVolume %s1} ]
 set tDlogSpecs(LoadAuxVolume) [list \
   -title "Load Aux Volume" \
-  -prompt1 "Load COR Volume:" \
+  -prompt1 "Load Volume:" \
   -note1 "The volume file (or COR-.info for COR volumes)" \
   -entry1 [list GetDefaultLocation LoadAuxVolume] \
   -default1 [list GetDefaultLocation LoadAuxVolume] \
@@ -828,7 +828,7 @@ set tDlogSpecs(NewAuxSegmentation) [list \
   SetDefaultLocation Segmentation_ColorTable %s1} ]
 set tDlogSpecs(LoadSegmentation) [list \
   -title "Load Segmentation" \
-  -prompt1 "Load COR Volume:" \
+  -prompt1 "Load Volume:" \
   -note1 "The volume file (or COR-.info for COR volumes)" \
   -entry1 [list GetDefaultLocation LoadSegmentation] \
   -default1 [list GetDefaultLocation LoadSegmentation] \
@@ -843,7 +843,7 @@ set tDlogSpecs(LoadSegmentation) [list \
   SetDefaultLocation Segmentation_ColorTable %s2} ]
 set tDlogSpecs(LoadAuxSegmentation) [list \
   -title "Load Aux Segmentation" \
-  -prompt1 "Load COR Volume:" \
+  -prompt1 "Load Volume:" \
   -note1 "The volume file (or COR-.info for COR volumes)" \
   -entry1 [list GetDefaultLocation LoadAuxSegmentation] \
   -default1 [list GetDefaultLocation LoadAuxSegmentation] \
