@@ -11,6 +11,7 @@
 #ifndef ERROR_H
 #define ERROR_H
 
+#include <stdio.h>
 #include <stdarg.h>
 
 int     ErrorInit(char *fname, 
