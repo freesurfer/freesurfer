@@ -8341,8 +8341,7 @@ mghRead(char *fname, int read_volume, int frame)
   float  fval, xsize, ysize, zsize, x_r, x_a, x_s, y_r, y_a, y_s,
     z_r, z_a, z_s, c_r, c_a, c_s ;
   short  sval ;
-  long tag_data_begin, tag_data_end;
-  size_t tag_data_size;
+  int tag_data_size;
   char *ext;
   int gzipped=0;
   char command[STRLEN];
@@ -8364,16 +8363,16 @@ mghRead(char *fname, int read_volume, int frame)
       fp = popen(command, "r");
       if (!fp)
       {
-				errno = 0;
-				ErrorReturn(NULL, (ERROR_BADPARM,"mghRead(%s, %d): could not open gzipped file",
-													 fname, frame)) ;
+	errno = 0;
+	ErrorReturn(NULL, (ERROR_BADPARM,"mghRead(%s, %d): could not open gzipped file",
+			   fname, frame)) ;
       }
       if (errno)
       {
-				pclose(fp);
-				errno = 0;
-				ErrorReturn(NULL, (ERROR_BADPARM,"mghRead(%s, %d): zcat encountered error",
-													 fname, frame)) ;
+	pclose(fp);
+	errno = 0;
+	ErrorReturn(NULL, (ERROR_BADPARM,"mghRead(%s, %d): zcat encountered error",
+			   fname, frame)) ;
       }
     }
     else if (!stricmp(ext, "mgh"))
@@ -8382,9 +8381,9 @@ mghRead(char *fname, int read_volume, int frame)
       fp = fopen(fname, "rb") ;
       if (!fp)
       {
-				errno = 0;
-				ErrorReturn(NULL, (ERROR_BADPARM,"mghRead(%s, %d): could not open file",
-													 fname, frame)) ;
+	errno = 0;
+	ErrorReturn(NULL, (ERROR_BADPARM,"mghRead(%s, %d): could not open file",
+			   fname, frame)) ;
       }
     }
   }
@@ -8399,7 +8398,7 @@ mghRead(char *fname, int read_volume, int frame)
   nread = freadIntEx(&version, fp) ;
   if (!nread)
     ErrorReturn(NULL, (ERROR_BADPARM,"mghRead(%s, %d): read error",
-											 fname, frame)) ;
+		       fname, frame)) ;
 
   width = freadInt(fp) ;
   height = freadInt(fp) ;
@@ -8445,7 +8444,7 @@ mghRead(char *fname, int read_volume, int frame)
     {
       int count;
       for (count=0; count < mri->nframes*width*height*depth*bpv; count++)
-				fgetc(fp);
+	fgetc(fp);
     }
     else
       fseek(fp, mri->nframes*width*height*depth*bpv, SEEK_CUR) ;
@@ -8457,25 +8456,25 @@ mghRead(char *fname, int read_volume, int frame)
       start_frame = end_frame = frame ;
       if (gzipped) // pipe cannot seek
       {
-				int count;
-				for (count=0; count < frame*width*height*depth*bpv; count++)
-					fgetc(fp);
+	int count;
+	for (count=0; count < frame*width*height*depth*bpv; count++)
+	  fgetc(fp);
       }
       else
-				fseek(fp, frame*width*height*depth*bpv, SEEK_CUR) ;
+	fseek(fp, frame*width*height*depth*bpv, SEEK_CUR) ;
       nframes = 1 ;
     }
     else
     {  /* hack - # of frames < -1 means to only read in that
-					many frames. Otherwise I would have had to change the whole
-					MRIread interface and that was too much of a pain. Sorry.
+	  many frames. Otherwise I would have had to change the whole
+	  MRIread interface and that was too much of a pain. Sorry.
        */
       if (frame < -1)  
         nframes = frame*-1 ; 
 
       start_frame = 0 ; end_frame = nframes-1 ;
-			if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
-				fprintf(stderr, "read %d frames\n", nframes);
+      if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+	fprintf(stderr, "read %d frames\n", nframes);
     }
     buf = (BUFTYPE *)calloc(bytes, sizeof(BUFTYPE)) ;
     mri = MRIallocSequence(width, height, depth, type, nframes) ;
@@ -8484,17 +8483,17 @@ mghRead(char *fname, int read_volume, int frame)
     {
       for (z = 0 ; z < depth ; z++)
       {
-				if (fread(buf, sizeof(char), bytes, fp) != bytes)
-				{
-					// fclose(fp) ;
-					myclose(fp); 
-					free(buf) ;
-					ErrorReturn(NULL, (ERROR_BADFILE, "mghRead(%s): could not read %d bytes at slice %d",
-														 fname, bytes, z)) ;
-				}
+	if (fread(buf, sizeof(char), bytes, fp) != bytes)
+	{
+	  // fclose(fp) ;
+	  myclose(fp); 
+	  free(buf) ;
+	  ErrorReturn(NULL, (ERROR_BADFILE, "mghRead(%s): could not read %d bytes at slice %d",
+			     fname, bytes, z)) ;
+	}
         switch (type)
         {
-				case MRI_INT:
+	case MRI_INT:
           for (i = y = 0 ; y < height ; y++)
           {
             for (x = 0 ; x < width ; x++, i++)
@@ -8504,7 +8503,7 @@ mghRead(char *fname, int read_volume, int frame)
             }
           }
           break ;
-				case MRI_SHORT:
+	case MRI_SHORT:
           for (i = y = 0 ; y < height ; y++)
           {
             for (x = 0 ; x < width ; x++, i++)
@@ -8514,8 +8513,8 @@ mghRead(char *fname, int read_volume, int frame)
             }
           }
           break ;
-				case MRI_TENSOR:
-				case MRI_FLOAT:
+	case MRI_TENSOR:
+	case MRI_FLOAT:
           for (i = y = 0 ; y < height ; y++)
           {
             for (x = 0 ; x < width ; x++, i++)
@@ -8568,13 +8567,13 @@ mghRead(char *fname, int read_volume, int frame)
   else
   {
     fprintf(stderr,
-						"-----------------------------------------------------------------\n"
-						"Could not find the direction cosine information.\n"
-						"Will use the CORONAL orientation.\n"
-						"If not suitable, please provide the information in %s.\n"
-						"-----------------------------------------------------------------\n",
-						fname  
-						);
+	    "-----------------------------------------------------------------\n"
+	    "Could not find the direction cosine information.\n"
+	    "Will use the CORONAL orientation.\n"
+	    "If not suitable, please provide the information in %s.\n"
+	    "-----------------------------------------------------------------\n",
+	    fname  
+	    );
     setDirectionCosine(mri, MRI_CORONAL);
   }
   // read TR, Flip, TE, TI, FOV
@@ -8594,21 +8593,14 @@ mghRead(char *fname, int read_volume, int frame)
   // current position, then skip the end of the file and get the
   // position there. Anything in between is tag data. If there is
   // some, allocate the tag buffer to that size and read in the dat.
-  if (gzipped)
-    fprintf(stderr, "not reading the tag data at this time\n");
-  else
+  if (freadIntEx(&(tag_data_size), fp))
   {
-    tag_data_begin = ftell( fp );
-    fseek( fp, 0, SEEK_END );
-    tag_data_end = ftell( fp );
-    tag_data_size = tag_data_end - tag_data_begin;
     mri->tag_data_size = tag_data_size;
     if( tag_data_size > 0 ) 
     {
-      fseek( fp, SEEK_SET, tag_data_begin );
-      mri->tag_data = malloc( tag_data_size );
+      mri->tag_data = calloc(mri->tag_data_size, 1 );
       if( NULL != mri->tag_data ) 
-				fread( mri->tag_data, tag_data_size, 1, fp );
+	fread( mri->tag_data, tag_data_size, 1, fp );
     }
   }
   // fclose(fp) ;
@@ -8795,6 +8787,8 @@ mghWrite(MRI *mri, char *fname, int frame)
 
   // If we have any saved tag data, write it.
   if( NULL != mri->tag_data ) {
+    // Int is 32 bit on 32 bit and 64 bit os and thus it is safer
+    fwriteInt(mri->tag_data_size, fp);
     fwrite( mri->tag_data, mri->tag_data_size, 1, fp );
   }
   // fclose(fp) ;
