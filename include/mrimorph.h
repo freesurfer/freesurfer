@@ -60,6 +60,8 @@ typedef struct
   int        scout_flag ;
   MRI        *mri_classified ;
   float      factor ;               /* for stabilizing integration */
+  GCAS       *gcas ;
+  int        nsamples ;
 } MORPH_PARMS, MP ;
 
 
