@@ -2,7 +2,7 @@
 # talairach2
 ########################################################
 
-set VERSION = '$Id';
+set VERSION = '$Id: talairach2,v 1.3 2003/08/28 20:15:28 tosa Exp $';
 
 # Look for version #
 set n = `echo $argv | grep version | wc -l` 
