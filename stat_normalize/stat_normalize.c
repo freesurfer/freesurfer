@@ -12,8 +12,9 @@
 
 #include "mrisurf.h"
 #include "stats.h"
+#include "version.h"
 
-static char vcid[] = "$Id: stat_normalize.c,v 1.6 2002/04/03 21:15:23 greve Exp $";
+static char vcid[] = "$Id: stat_normalize.c,v 1.7 2003/04/14 23:27:01 kteich Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -39,6 +40,12 @@ main(int argc, char *argv[])
   int         ac, nargs, ino, event ;
   SV          *sv, *sv_avg = NULL ;
   MRI_SURFACE *mris ;
+
+  /* rkt: check for and handle version tag */
+  nargs = handle_version_option (argc, argv, "$Id: stat_normalize.c,v 1.7 2003/04/14 23:27:01 kteich Exp $");
+  if (nargs && argc - nargs == 1)
+    exit (0);
+  argc -= nargs;
 
   Progname = argv[0] ;
   ErrorInit(NULL, NULL, NULL) ;

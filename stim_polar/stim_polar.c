@@ -9,6 +9,7 @@
 #include "const.h"
 #include "macros.h"
 #include "diag.h"
+#include "version.h"
 
 #define EPS 1.0e-6
 
@@ -489,6 +490,12 @@ int main(int argc, char** argv)
     printf("c = %c\n", c) ;
     exit(0) ;
   }
+
+  /* rkt: check for and handle version tag */
+  nargs = handle_version_option (argc, argv, "$Id: stim_polar.c,v 1.3 2003/04/14 23:29:29 kteich Exp $");
+  if (nargs && argc - nargs == 1)
+    exit (0);
+  argc -= nargs;
 
   Progname = argv[0] ;
   ErrorInit(NULL, NULL, NULL) ;
