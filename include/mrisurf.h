@@ -394,6 +394,8 @@ int          MRISreadPatchNoRemove(MRI_SURFACE *mris, char *pname) ;
 int          MRISreadTriangleProperties(MRI_SURFACE *mris, char *mris_fname) ;
 int          MRISreadBinaryCurvature(MRI_SURFACE *mris, char *mris_fname) ;
 int          MRISreadCurvatureFile(MRI_SURFACE *mris, char *fname) ;
+float        *MRISreadNewCurvatureFileVector(MRI_SURFACE *mris, char *sname) ;
+float        *MRISreadCurvatureVector(MRI_SURFACE *mris, char *sname) ;
 int          MRISreadFloatFile(MRI_SURFACE *mris, char *fname) ;
 #define MRISreadCurvature MRISreadCurvatureFile
 
