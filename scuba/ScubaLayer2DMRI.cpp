@@ -122,9 +122,6 @@ ScubaLayer2DMRI::DrawIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
     return;
   }
 
-  float midValue;
-  midValue = (mMaxVisibleValue - mMinVisibleValue) / 2.0 + mMinVisibleValue;
-
   // Get window begininng and ending.
   int winBoundsA[2], winBoundsB[2], windowMin[2], windowMax[2];
   iTranslator.TranslateRASToWindow( mVolume->GetMinRASBounds(), winBoundsA );
@@ -135,138 +132,122 @@ ScubaLayer2DMRI::DrawIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
   windowMax[1] = MIN( iHeight, MAX( winBoundsA[1], winBoundsB[1] ) );
 
   GLubyte* dest;
-  int const kLoop = 1;
+  int const kLoop = 4;
   float value[kLoop];
-  float RAS[3];
+  float RAS[kLoop][3];
   int color[kLoop][3];
+  Point2<int> windowLoop[kLoop];
 
   // For each pixel in our relevant window bounds...
   int window[2];
-  Point2<int> windowLoop;
   for( window[1] = windowMin[1]; window[1] < windowMax[1]; window[1]++ ) {
     dest = iBuffer + (window[1] * iWidth * 4) + (windowMin[0] * 4);
     for( window[0] = windowMin[0]; 
 	 window[0] + kLoop <= windowMax[0]; window[0] += kLoop ) {
 
-      windowLoop.Set( window );
-      for( int nLoop = 0; nLoop < kLoop; nLoop++ ) {
-
-	// Use our translator to get an RAS point.
-	iTranslator.TranslateWindowToRAS( windowLoop.xy(), RAS );
+      
+      // Get a run of translated RAS points.
+      windowLoop[0].Set( window[0] + 0, window[1] );
+      iTranslator.TranslateWindowToRAS( windowLoop[0].xy(), RAS[0] );
+      windowLoop[1].Set( window[0] + 1, window[1] );
+      iTranslator.TranslateWindowToRAS( windowLoop[1].xy(), RAS[1] );
+      windowLoop[2].Set( window[0] + 2, window[1] );
+      iTranslator.TranslateWindowToRAS( windowLoop[2].xy(), RAS[2] );
+      windowLoop[3].Set( window[0] + 3, window[1] );
+      iTranslator.TranslateWindowToRAS( windowLoop[3].xy(), RAS[3] );
 	
-	switch( mSampleMethod ) {
-	case nearest:  
-	  value[nLoop] = mVolume->GetMRINearestValueAtRAS( RAS );  break;
-	case trilinear:
-	  value[nLoop] = mVolume->GetMRITrilinearValueAtRAS( RAS );break;
-	case sinc:     
-	  value[nLoop] = mVolume->GetMRISincValueAtRAS( RAS );     break;
-	case magnitude:
-	  value[nLoop] = mVolume->GetMRIMagnitudeValueAtRAS( RAS );break;
-	}
 
-	windowLoop.Set( windowLoop.x()+1, windowLoop.y() );
+      // Get a run of values.      
+      switch( mSampleMethod ) {
+      case nearest:  
+	value[0] = mVolume->GetMRINearestValueAtRAS( RAS[0] );
+	value[1] = mVolume->GetMRINearestValueAtRAS( RAS[1] );
+	value[2] = mVolume->GetMRINearestValueAtRAS( RAS[2] );
+	value[3] = mVolume->GetMRINearestValueAtRAS( RAS[3] );
+	break;
+      case trilinear:
+	value[0] = mVolume->GetMRITrilinearValueAtRAS( RAS[0] );
+	value[1] = mVolume->GetMRITrilinearValueAtRAS( RAS[1] );
+	value[2] = mVolume->GetMRITrilinearValueAtRAS( RAS[2] );
+	value[3] = mVolume->GetMRITrilinearValueAtRAS( RAS[3] );
+	break;
+      case sinc:     
+	value[0] = mVolume->GetMRISincValueAtRAS( RAS[0] );
+	value[1] = mVolume->GetMRISincValueAtRAS( RAS[1] );
+	value[2] = mVolume->GetMRISincValueAtRAS( RAS[2] );
+	value[3] = mVolume->GetMRISincValueAtRAS( RAS[3] );
+	break;
+      case magnitude:
+	value[0] = mVolume->GetMRIMagnitudeValueAtRAS( RAS[0] );
+	value[1] = mVolume->GetMRIMagnitudeValueAtRAS( RAS[1] );
+	value[2] = mVolume->GetMRIMagnitudeValueAtRAS( RAS[2] );
+	value[3] = mVolume->GetMRIMagnitudeValueAtRAS( RAS[3] );
+	break;
       }
 
       
-      for( int nLoop = 0; nLoop < kLoop; nLoop++ ) {
-
-	if( (mColorMapMethod==heatScale || value[nLoop]>=mMinVisibleValue) &&
-	    (mColorMapMethod==heatScale || value[nLoop]<=mMaxVisibleValue) &&
-	    ((value[nLoop] != 0 && mbClearZero) || !mbClearZero) ) {
-	  
-	  switch( mColorMapMethod ) { 
-	  case grayscale: {
-	    
-	    int nLUT = (int) floor( (cGrayscaleLUTEntries-1) * 
-				    ((value[nLoop] - mMinVisibleValue) /
-				     (mMaxVisibleValue - mMinVisibleValue)) );
-	    if( nLUT < 0 ) nLUT = 0;
-	    if( nLUT > cGrayscaleLUTEntries ) nLUT = cGrayscaleLUTEntries-1;
-	    color[nLoop][0] = (int) mGrayscaleLUT[nLUT];
-	    color[nLoop][1] = color[nLoop][2] = color[nLoop][0];
-	  }
-	    break;
-	  case heatScale:
-	    
-	    if( fabs(value[nLoop]) >= mMinVisibleValue &&
-		fabs(value[nLoop]) <= mMaxVisibleValue ) {
-	    
-	      float tmp;
-	      if ( fabs(value[nLoop]) > mMinVisibleValue &&
-		   fabs(value[nLoop]) < midValue ) {
-		tmp = fabs(value[nLoop]);
-		tmp = (1.0/(midValue-mMinVisibleValue)) *
-		  (tmp-mMinVisibleValue)*(tmp-mMinVisibleValue) + 
-		  mMinVisibleValue;
-		value[nLoop] = (value[nLoop]<0) ? -tmp : tmp;
-	      }
-	      
-	      /* calc the color */
-	      float red, green, blue;
-	      if( value[nLoop] >= 0 ) {
-		red = ((value[nLoop]<mMinVisibleValue) ? 0.0 : 
-		     (value[nLoop]<midValue) ? 
-		       (value[nLoop]-mMinVisibleValue)/
-		       (midValue-mMinVisibleValue) :
-		       1.0);
-		green = ((value[nLoop]<midValue) ? 0.0 :
-			 (value[nLoop]<mMaxVisibleValue) ? 
-			 (value[nLoop]-midValue)/
-			 (mMaxVisibleValue-midValue) : 1.0);
-		blue = 0.0; 
-	      } else {
-		value[nLoop] = -value[nLoop];
-		red = 0.0;
-		green = ((value[nLoop]<midValue) ? 0.0 :
-			 (value[nLoop]<mMaxVisibleValue) ? 
-			 (value[nLoop]-midValue)/
-			 (mMaxVisibleValue-midValue) : 1.0);
-		blue = ((value[nLoop]<mMinVisibleValue) ? 0.0 :
-			(value[nLoop]<midValue) ? 
-			(value[nLoop]-mMinVisibleValue)/
-			(midValue-mMinVisibleValue) : 
-			1.0);
-	      }
-	      
-	      if( red > 1.0 )   red = 1.0;
-	      if( green > 1.0 ) green = 1.0;
-	      if( blue > 1.0 )  blue = 1.0;
-	      
-	      color[nLoop][0] = (int) (red * (float)kMaxPixelComponentValue);
-	      color[nLoop][1] = (int) (green * (float)kMaxPixelComponentValue);
-	      color[nLoop][2] = (int) (blue * (float)kMaxPixelComponentValue);
-	    } else {
-	      color[nLoop][0] = (int) dest[0];
-	      color[nLoop][1] = (int) dest[1];
-	      color[nLoop][2] = (int) dest[2];
-	    }
-	    break;
-	  case LUT:
-	    if( NULL != mColorLUT ) {
-	      mColorLUT->GetColorAtIndex( (int)value[nLoop], color[nLoop] );
-	    }
-	    break;
-	  }
-	}
-      }      
+      // Clear the colors.
+      memset (color, 0, sizeof(int) * 3 * kLoop);
       
-      
-      for( int nLoop = 0; nLoop < kLoop; nLoop++ ) {
-	
-	// Write the RGB value to the buffer. Write a 255 in the
-	// alpha byte.
-	dest[0] = (GLubyte) (((float)dest[0] * (1.0 - mOpacity)) +
-			     ((float)color[nLoop][0] * mOpacity));
-	dest[1] = (GLubyte) (((float)dest[1] * (1.0 - mOpacity)) +
-			     ((float)color[nLoop][1] * mOpacity));
-	dest[2] = (GLubyte) (((float)dest[2] * (1.0 - mOpacity)) +
-			     ((float)color[nLoop][2] * mOpacity));
-	dest[3] = (GLubyte)255;
-	
-	// Advance our pixel buffer pointer.
-	dest += 4;
+      // Get a run of colors.
+      switch( mColorMapMethod ) { 
+      case grayscale: 
+	GetGrayscaleColorForValue( value[0], dest, color[0] );
+	GetGrayscaleColorForValue( value[1], dest+4, color[1] );
+	GetGrayscaleColorForValue( value[2], dest+8, color[2] );
+	GetGrayscaleColorForValue( value[3], dest+12, color[3] );
+	break;
+      case heatScale:
+	GetHeatscaleColorForValue( value[0], dest, color[0] );
+	GetHeatscaleColorForValue( value[1], dest+4, color[1] );
+	GetHeatscaleColorForValue( value[2], dest+8, color[2] );
+	GetHeatscaleColorForValue( value[3], dest+12, color[3] );
+	break;
+      case LUT:
+	GetColorLUTColorForValue( value[0], dest, color[0] );
+	GetColorLUTColorForValue( value[1], dest+4, color[1] );
+	GetColorLUTColorForValue( value[2], dest+8, color[2] );
+	GetColorLUTColorForValue( value[3], dest+12, color[3] );
+	break;
       }
+      
+      
+      // Drop the colors in the buffer.
+      // Write the RGB value to the buffer. Write a 255 in the
+      // alpha byte.
+      dest[0] = (GLubyte) (((float)dest[0] * (1.0 - mOpacity)) +
+			   ((float)color[0][0] * mOpacity));
+      dest[1] = (GLubyte) (((float)dest[1] * (1.0 - mOpacity)) +
+			   ((float)color[0][1] * mOpacity));
+      dest[2] = (GLubyte) (((float)dest[2] * (1.0 - mOpacity)) +
+			   ((float)color[0][2] * mOpacity));
+      dest[3] = (GLubyte)255;
+      dest += 4;
+      dest[0] = (GLubyte) (((float)dest[0] * (1.0 - mOpacity)) +
+			   ((float)color[1][0] * mOpacity));
+      dest[1] = (GLubyte) (((float)dest[1] * (1.0 - mOpacity)) +
+			   ((float)color[1][1] * mOpacity));
+      dest[2] = (GLubyte) (((float)dest[2] * (1.0 - mOpacity)) +
+			   ((float)color[1][2] * mOpacity));
+      dest[3] = (GLubyte)255;
+      dest += 4;
+      dest[0] = (GLubyte) (((float)dest[0] * (1.0 - mOpacity)) +
+			   ((float)color[2][0] * mOpacity));
+      dest[1] = (GLubyte) (((float)dest[1] * (1.0 - mOpacity)) +
+			   ((float)color[2][1] * mOpacity));
+      dest[2] = (GLubyte) (((float)dest[2] * (1.0 - mOpacity)) +
+			   ((float)color[2][2] * mOpacity));
+      dest[3] = (GLubyte)255;
+      dest += 4;
+      dest[0] = (GLubyte) (((float)dest[0] * (1.0 - mOpacity)) +
+			   ((float)color[3][0] * mOpacity));
+      dest[1] = (GLubyte) (((float)dest[1] * (1.0 - mOpacity)) +
+			   ((float)color[3][1] * mOpacity));
+      dest[2] = (GLubyte) (((float)dest[2] * (1.0 - mOpacity)) +
+			   ((float)color[3][2] * mOpacity));
+      dest[3] = (GLubyte)255;
+      dest += 4;
+      
     }
   }
   
@@ -327,6 +308,114 @@ ScubaLayer2DMRI::DrawIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
   }
 
 }
+
+void
+ScubaLayer2DMRI::GetGrayscaleColorForValue ( float iValue,
+					     GLubyte* iBase, int* oColor ) {
+
+  if( iValue < mMinVisibleValue || iValue > mMaxVisibleValue ||
+      (mbClearZero && iValue == 0) ) {
+
+    oColor[0] = iBase[0]; oColor[1] = iBase[1]; oColor[2] = iBase[2];
+
+  } else {
+    
+    int nLUT = (int) floor( (cGrayscaleLUTEntries-1) * 
+			    ((iValue - mMinVisibleValue) /
+			     (mMaxVisibleValue - mMinVisibleValue)) );
+
+    oColor[0] = mGrayscaleLUT[nLUT];
+    oColor[1] = oColor[2] = oColor[0];
+  }
+}
+
+void
+ScubaLayer2DMRI::GetHeatscaleColorForValue ( float iValue, 
+					     GLubyte* iBase, int* oColor ) {
+
+  if( iValue < mMinVisibleValue || iValue > mMaxVisibleValue ||
+      (mbClearZero && iValue == 0) ) {
+
+    oColor[0] = iBase[0]; oColor[1] = iBase[1]; oColor[2] = iBase[2];
+
+  } else {
+    
+    float midValue;
+    midValue = (mMaxVisibleValue - mMinVisibleValue) / 2.0 + mMinVisibleValue;
+    
+    if( fabs(iValue) >= mMinVisibleValue &&
+	fabs(iValue) <= mMaxVisibleValue ) {
+      
+      float tmp;
+      if ( fabs(iValue) > mMinVisibleValue &&
+	   fabs(iValue) < midValue ) {
+      tmp = fabs(iValue);
+      tmp = (1.0/(midValue-mMinVisibleValue)) *
+	(tmp-mMinVisibleValue)*(tmp-mMinVisibleValue) + 
+	mMinVisibleValue;
+      iValue = (iValue<0) ? -tmp : tmp;
+      }
+      
+      /* calc the color */
+      float red, green, blue;
+      if( iValue >= 0 ) {
+	red = ((iValue<mMinVisibleValue) ? 0.0 : 
+	       (iValue<midValue) ? 
+	       (iValue-mMinVisibleValue)/
+	       (midValue-mMinVisibleValue) :
+	       1.0);
+	green = ((iValue<midValue) ? 0.0 :
+		 (iValue<mMaxVisibleValue) ? 
+		 (iValue-midValue)/
+		 (mMaxVisibleValue-midValue) : 1.0);
+	blue = 0.0; 
+      } else {
+	iValue = -iValue;
+	red = 0.0;
+	green = ((iValue<midValue) ? 0.0 :
+		 (iValue<mMaxVisibleValue) ? 
+		 (iValue-midValue)/
+		 (mMaxVisibleValue-midValue) : 1.0);
+	blue = ((iValue<mMinVisibleValue) ? 0.0 :
+		(iValue<midValue) ? 
+		(iValue-mMinVisibleValue)/
+		(midValue-mMinVisibleValue) : 
+		1.0);
+      }
+      
+      if( red > 1.0 )   red = 1.0;
+      if( green > 1.0 ) green = 1.0;
+      if( blue > 1.0 )  blue = 1.0;
+      
+      oColor[0] = (int) (red * (float)kMaxPixelComponentValue);
+      oColor[1] = (int) (green * (float)kMaxPixelComponentValue);
+      oColor[2] = (int) (blue * (float)kMaxPixelComponentValue);
+    } else {
+      oColor[0] = (int) iBase[0];
+      oColor[1] = (int) iBase[1];
+      oColor[2] = (int) iBase[2];
+    }
+  }
+}
+
+void
+ScubaLayer2DMRI::GetColorLUTColorForValue ( float iValue, 
+					    GLubyte* iBase, int* oColor ) {
+  
+  if( iValue < mMinVisibleValue || iValue > mMaxVisibleValue ||
+      (mbClearZero && iValue == 0) ) {
+
+    oColor[0] = iBase[0]; oColor[1] = iBase[1]; oColor[2] = iBase[2];
+
+  } else {
+    
+    if( NULL != mColorLUT ) {
+      mColorLUT->GetColorAtIndex( (int)iValue, oColor );
+    }
+  }
+}
+  
+
   
 void 
 ScubaLayer2DMRI::GetInfoAtRAS ( float iRAS[3], 
@@ -1042,7 +1131,7 @@ ScubaLayer2DMRI::BuildGrayscaleLUT () {
     float normValue = bcdValue * (float)kMaxPixelComponentValue;
 
     // Assign in table.
-    mGrayscaleLUT[(int)nEntry] = normValue;
+    mGrayscaleLUT[(int)nEntry] = (int) floor( normValue );
   }
 }
 

@@ -24,6 +24,10 @@ class ScubaLayer2DMRI : public Layer {
   virtual void DrawIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
 				ViewState& iViewState,
 				ScubaWindowToRASTranslator& iTranslator );
+
+  void GetGrayscaleColorForValue ( float iValue, GLubyte* iBase, int* oColor );
+  void GetHeatscaleColorForValue ( float iValue, GLubyte* iBase, int* oColor );
+  void GetColorLUTColorForValue  ( float iValue, GLubyte* iBase, int* oColor );
   
   // Asks the layer to describe a point of data by adding pairs of
   // labels and values.
@@ -105,7 +109,7 @@ class ScubaLayer2DMRI : public Layer {
 
   float mBrightness, mContrast;
   //  std::map<int,float> mGrayscaleLUT; // 0-255
-  float mGrayscaleLUT[256]; // 0-255
+  int mGrayscaleLUT[256]; // 0-255
 
   ScubaColorLUT* mColorLUT;
   
