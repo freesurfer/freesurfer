@@ -1,10 +1,10 @@
 /*============================================================================
  Copyright (c) 1996 Martin Sereno and Anders Dale
 =============================================================================*/
-/*   $Id: tkregister2.c,v 1.9 2003/03/15 22:15:26 greve Exp $   */
+/*   $Id: tkregister2.c,v 1.10 2003/03/17 03:32:32 greve Exp $   */
 
 #ifndef lint
-static char vcid[] = "$Id: tkregister2.c,v 1.9 2003/03/15 22:15:26 greve Exp $";
+static char vcid[] = "$Id: tkregister2.c,v 1.10 2003/03/17 03:32:32 greve Exp $";
 #endif /* lint */
 
 #define TCL
@@ -986,6 +986,8 @@ p translate up
 . translate down
 l translate left
 ; translate right
+g translate into screen
+h translate out of screen
 [ rotate counter-clockwise about image normal
 ] rotate clockwise about image normal
 q rotate about horiztonal image axis (neg)
@@ -1946,7 +1948,7 @@ int do_one_gl_event(Tcl_Interp *interp)   /* tcl */
 	case XK_t: interpmethod = SAMPLE_TRILINEAR; updateflag = TRUE; break;
 	case XK_x: plane=SAGITTAL;   updateflag = TRUE; break;
 
-	  /* translate up or down */
+	  /* translate in-plane up or down */
 	case XK_p: 
 	case '.':
 	  if(plane == SAGITTAL)   c = 'z';
@@ -1966,6 +1968,17 @@ int do_one_gl_event(Tcl_Interp *interp)   /* tcl */
 	  if(plane == HORIZONTAL) c = 'x';
 	  if(ks == ';') translate_brain(+d,c);
 	  if(ks == 'l') translate_brain(-d,c);
+	  updateflag = TRUE; 
+	  break;
+
+	  /* translate thru-plane in or out */
+	case 'g': 
+	case 'h':
+	  if(plane == SAGITTAL)   c = 'x';
+	  if(plane == CORONAL)    c = 'y';
+	  if(plane == HORIZONTAL) c = 'z';
+	  if(ks == 'g') translate_brain(-.5,c);
+	  if(ks == 'h') translate_brain(+.5,c);
 	  updateflag = TRUE; 
 	  break;
 
