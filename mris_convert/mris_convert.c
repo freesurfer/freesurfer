@@ -13,7 +13,7 @@
 #include "macros.h"
 #include "fio.h"
 
-static char vcid[] = "$Id: mris_convert.c,v 1.4 1998/07/02 22:57:18 fischl Exp $";
+static char vcid[] = "$Id: mris_convert.c,v 1.5 1998/07/21 21:37:50 fischl Exp $";
 
 
 /*-------------------------------- CONSTANTS -----------------------------*/
@@ -37,6 +37,7 @@ static int talairach_flag = 0 ;
 static int patch_flag = 0 ;
 static int read_orig_positions = 0 ;
 static int w_file_flag = 0 ;
+static char *orig_name ;
 
 /*-------------------------------- FUNCTIONS ----------------------------*/
 
@@ -109,9 +110,15 @@ main(int argc, char *argv[])
                 Progname, in_fname) ;
     if (read_orig_positions)
     {
+#if 0
       if (MRISreadVertexPositions(mris, "smoothwm") != NO_ERROR)
         ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
                   Progname, fname) ;
+#else
+      if (MRISreadVertexPositions(mris, orig_name) != NO_ERROR)
+        ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
+                  Progname, fname) ;
+#endif
     }
   }
   else
@@ -153,6 +160,10 @@ get_option(int argc, char *argv[])
   {
   case 'O':
     read_orig_positions = 1 ;
+    orig_name = argv[2] ;
+    fprintf(stderr, "reading original vertex positions from '%s' surface.\n",
+            orig_name) ;
+    nargs = 1 ;
     break ;
   case 'P':
     patch_flag = 1 ;
