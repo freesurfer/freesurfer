@@ -54,6 +54,12 @@ int useLuminanceAlpha = 0;
                  ((char *) (x))[0] = ((char *) (x))[1];\
                  ((char *) (x))[1] = n; }
 
+
+/* sorry if I messed this up for you Denis -- Bruce */
+#ifndef GL_INTENSITY4
+#define GL_INTENSITY4 GL_INTENSITY4_EXT
+#endif
+
 static TexGlyphVertexInfo *
 getTCVI(TexFont * txf, int c)
 {
