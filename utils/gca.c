@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/01/14 18:31:21 $
-// Revision       : $Revision: 1.88 $
+// Revision Date  : $Date: 2004/01/20 18:27:54 $
+// Revision       : $Revision: 1.89 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -160,6 +160,15 @@ static MRI *mri_node__  = 0;
 static MRI *mri_prior__ = 0;
 static MRI *mri_tal__ = 0;
 
+void GCAcopyDSToMRI(GCA *gca, MRI *mri)
+{
+  mri->x_r = gca->x_r; mri->y_r = gca->y_r; mri->z_r = gca->z_r;
+  mri->x_a = gca->x_a; mri->y_a = gca->y_a; mri->z_a = gca->z_a;
+  mri->x_s = gca->x_s; mri->y_s = gca->y_s; mri->z_s = gca->z_s;
+  mri->c_r = gca->c_r; mri->c_a = gca->c_a; mri->c_s = gca->c_s;
+  mri->ras_good_flag = 1;
+}
+
 void GCAcleanup()
 {
   if (mri_node__)
@@ -182,15 +191,7 @@ void GCAsetup(GCA *gca)
     MRIfree(&mri_node__); mri_node__ = 0;
   }
   mri_node__ = MRIallocHeader(gca->node_width, gca->node_height, gca->node_depth, MRI_UCHAR);
-  mri_node__->ras_good_flag = 1;
-  mri_node__->x_r = gca->x_r; mri_node__->y_r = gca->y_r; mri_node__->z_r = gca->z_r; 
-  mri_node__->x_a = gca->x_a; mri_node__->y_a = gca->y_a; mri_node__->z_a = gca->z_a; 
-  mri_node__->x_s = gca->x_s; mri_node__->y_s = gca->y_s; mri_node__->z_s = gca->z_s; 
-
-  mri_node__->c_r = gca->c_r;
-  mri_node__->c_a = gca->c_a;
-  mri_node__->c_s = gca->c_s;
-
+  GCAcopyDSToMRI(gca, mri_node__);
   /* Copy the voxel resolutions.  Set the defaults */
   mri_node__->xsize = gca->node_spacing;
   mri_node__->ysize = gca->node_spacing;
@@ -207,15 +208,7 @@ void GCAsetup(GCA *gca)
     MRIfree(&mri_prior__); mri_prior__ = 0;
   }
   mri_prior__ = MRIallocHeader(gca->prior_width, gca->prior_height, gca->prior_depth, MRI_UCHAR);
-  mri_prior__->ras_good_flag = 1;
-  mri_prior__->x_r = gca->x_r; mri_prior__->y_r = gca->y_r; mri_prior__->z_r = gca->z_r; 
-  mri_prior__->x_a = gca->x_a; mri_prior__->y_a = gca->y_a; mri_prior__->z_a = gca->z_a; 
-  mri_prior__->x_s = gca->x_s; mri_prior__->y_s = gca->y_s; mri_prior__->z_s = gca->z_s; 
-
-  mri_prior__->c_r = gca->c_r;
-  mri_prior__->c_a = gca->c_a;
-  mri_prior__->c_s = gca->c_s;
-
+  GCAcopyDSToMRI(gca, mri_prior__);
   /* Copy the voxel resolutions.  Set the defaults */
   mri_prior__->xsize = gca->prior_spacing;
   mri_prior__->ysize = gca->prior_spacing;
@@ -232,15 +225,7 @@ void GCAsetup(GCA *gca)
     MRIfree(&mri_tal__); mri_tal__ = 0;
   }
   mri_tal__ = MRIallocHeader(gca->width, gca->height, gca->depth, MRI_UCHAR);
-  mri_tal__->ras_good_flag = 1;
-  mri_tal__->x_r = gca->x_r; mri_tal__->y_r = gca->y_r; mri_tal__->z_r = gca->z_r; 
-  mri_tal__->x_a = gca->x_a; mri_tal__->y_a = gca->y_a; mri_tal__->z_a = gca->z_a; 
-  mri_tal__->x_s = gca->x_s; mri_tal__->y_s = gca->y_s; mri_tal__->z_s = gca->z_s; 
-
-  mri_tal__->c_r = gca->c_r;
-  mri_tal__->c_a = gca->c_a;
-  mri_tal__->c_s = gca->c_s;
-
+  GCAcopyDSToMRI(gca, mri_tal__);
   /* Copy the voxel resolutions.  Set the defaults */
   mri_tal__->xsize = gca->xsize; 
   mri_tal__->ysize = gca->ysize;
@@ -2642,7 +2627,7 @@ GCAannealUnlikelyVoxels(MRI *mri_inputs, GCA *gca, MRI *mri_dst,TRANSFORM *trans
   width = mri_inputs->width ; height = mri_inputs->height ; 
   depth = mri_inputs->depth ;
   mri_bad = MRIalloc(width, height, depth, MRI_UCHAR) ;
-
+  MRIcopyHeader(mri_inputs, mri_bad);
 
   for (nindices = x = 0 ; x < width ; x++)
   {
@@ -3354,6 +3339,12 @@ GCAtransformSamples(GCA *gca_src, GCA *gca_dst, GCA_SAMPLE *gcas, int nsamples)
   vscale = 1 ;
   mri_found = MRIalloc(gca_dst->node_width*vscale, gca_dst->node_height*vscale, 
                        gca_dst->node_depth*vscale, MRI_UCHAR) ;
+  // copy direction cosines
+  GCAcopyDSToMRI(gca_dst, mri_found);
+  // change the voxel size
+  mri_found->xsize = gca_dst->node_spacing*vscale;
+  mri_found->ysize = gca_dst->node_spacing*vscale;
+  mri_found->zsize = gca_dst->node_spacing*vscale;
 
   scale = gca_src->prior_spacing / gca_dst->prior_spacing ;
   min_y = 10000 ; min_y_i = -1 ;
@@ -3703,7 +3694,13 @@ GCAfindStableSamplesByLabel(GCA *gca, int nsamples, float min_prior)
 
     scale = gca->prior_spacing / spacing ;
     mri_found = MRIalloc(width*scale, height*scale, depth*scale, MRI_UCHAR);
-    for (i = 0 ; i < total_found ; i++)
+    GCAcopyDSToMRI(gca, mri_found);
+    // change the size
+    mri_found->xsize = gca->prior_spacing*scale;
+    mri_found->ysize = gca->prior_spacing*scale;
+    mri_found->zsize = gca->prior_spacing*scale;
+
+   for (i = 0 ; i < total_found ; i++)
     {
       xv = gcas[i].xp*scale ; yv = gcas[i].yp*scale ; zv = gcas[i].zp*scale ;
       MRIvox(mri_found, xv, yv, zv) = 1 ;
@@ -3995,6 +3992,11 @@ GCAfindStableSamples(GCA *gca, int *pnsamples, int min_spacing,float min_prior, 
 #else
   mri_filled = MRIalloc(width*gca->prior_spacing,height*gca->prior_spacing, 
                         depth*gca->prior_spacing,MRI_UCHAR);
+  // use the mri_prior_ header
+  GCAcopyDSToMRI(gca, mri_filled);
+  mri_filled->xsize = gca->prior_spacing;
+  mri_filled->ysize = gca->prior_spacing;
+  mri_filled->zsize = gca->prior_spacing;
 #endif
 
   prior_stride = (float)min_spacing / (float)gca->prior_spacing ;
@@ -4298,6 +4300,8 @@ GCAwriteSamples(GCA *gca, MRI *mri, GCA_SAMPLE *gcas, int nsamples,
   MRI    *mri_dst ;
 
   mri_dst = MRIalloc(mri->width, mri->height, mri->depth, MRI_UCHAR) ;
+  // add header information
+  MRIcopyHeader(mri, mri_dst);
 
   for (n = 0 ; n < nsamples ; n++)
   {
@@ -4328,7 +4332,13 @@ GCAmri(GCA *gca, MRI *mri)
   GCA_PRIOR *gcap ;
 
   if (!mri)
+  {
     mri = MRIallocSequence(gca->node_width, gca->node_height, gca->node_depth, MRI_UCHAR, gca->ninputs) ;
+    GCAcopyDSToMRI(gca, mri);
+    mri->xsize = gca->node_spacing;
+    mri->ysize = gca->node_spacing;
+    mri->zsize = gca->node_spacing;
+  }
   width = mri->width ; height = mri->height ; depth = mri->depth ;
 
   for (frame = 0 ; frame < gca->ninputs ; frame++)
@@ -4367,9 +4377,16 @@ GCAlabelMri(GCA *gca, MRI *mri, int label, TRANSFORM *transform)
   MRI      *mri_norm ;
 
   if (!mri)
+  {
     mri = MRIallocSequence(gca->node_width, gca->node_height, gca->node_depth, MRI_UCHAR, gca->ninputs) ;
+    GCAcopyDSToMRI(gca, mri);
+    mri->xsize = gca->node_spacing;
+    mri->ysize = gca->node_spacing;
+    mri->zsize = gca->node_spacing;
+  }
   width = mri->width ; height = mri->height ; depth = mri->depth ;
   mri_norm = MRIalloc(width, height, depth, MRI_SHORT) ;
+  MRIcopyHeader(mri, mri_norm);
 
   for (frame = 0 ; frame < gca->ninputs ; frame++)
   {
@@ -6149,7 +6166,10 @@ GCAbuildMostLikelyVolume(GCA *gca, MRI *mri)
     mri = MRIallocSequence(gca->prior_width, gca->prior_height,
 			   gca->prior_depth, MRI_FLOAT, gca->ninputs) ;
     // hey create gca volume and thus copies gca prior values  
-    MRIcopyHeader(mri_prior__, mri) ;
+    GCAcopyDSToMRI(gca, mri);
+    mri->xsize = gca->prior_spacing;
+    mri->ysize = gca->prior_spacing;
+    mri->zsize = gca->prior_spacing;
   }
   
   if (mri->nframes != gca->ninputs)
@@ -6219,7 +6239,10 @@ GCAbuildMostLikelyVolumeFrame(GCA *gca, MRI *mri, int frame)
   {
     mri = MRIallocSequence(gca->prior_width, gca->prior_height,
 			   gca->prior_depth, MRI_FLOAT, 1) ;
-    MRIcopyHeader(mri_prior__, mri);
+    GCAcopyDSToMRI(gca, mri);
+    mri->xsize = gca->prior_spacing;
+    mri->ysize = gca->prior_spacing;
+    mri->zsize = gca->prior_spacing;
   }
 
   width = mri->width ; depth = mri->depth ; height = mri->height ;
@@ -6935,12 +6958,13 @@ GCAnormalizeSamples(MRI *mri_in, GCA *gca, GCA_SAMPLE *gcas, int nsamples,
   width = mri_in->width ; height = mri_in->height ; depth = mri_in->depth ;
   mri_dst = MRIclone(mri_in, NULL) ;
   mri_ctrl = MRIalloc(width, height, depth, MRI_UCHAR) ;
+  MRIcopyHeader(mri_in, mri_ctrl);
   mri_bias = MRIalloc(mri_in->width,mri_in->height,mri_in->depth,MRI_SHORT);
   if (!mri_bias)    
     ErrorExit(ERROR_NOMEMORY, 
 	      "GCAnormalizeSamples: could not allocate (%d,%d,%d,2) bias image",
 	      mri_in->width,mri_in->height,mri_in->depth) ;
-              
+  MRIcopyHeader(mri_in, mri_bias);
 
 #define MAX_BIAS 1250
 #define NO_BIAS  1000
@@ -7201,12 +7225,13 @@ GCAnormalizeSamplesT1PD(MRI *mri_in, GCA *gca, GCA_SAMPLE *gcas, int nsamples,
 
   mri_dst = MRIclone(mri_in, NULL) ;
   mri_ctrl = MRIalloc(mri_in->width,mri_in->height,mri_in->depth,MRI_UCHAR);
+  MRIcopyHeader(mri_in, mri_ctrl);
   mri_bias = MRIalloc(mri_in->width,mri_in->height,mri_in->depth,MRI_SHORT);
   if (!mri_bias)    
     ErrorExit(ERROR_NOMEMORY, 
 	      "GCAnormalize: could not allocate (%d,%d,%d,2) bias image",
 	      mri_in->width,mri_in->height,mri_in->depth) ;
-              
+  MRIcopyHeader(mri_in, mri_bias);
 
 #define MAX_BIAS 1250
 #define NO_BIAS  1000
@@ -8796,7 +8821,9 @@ GCArenormalizeLabels(MRI *mri_in, MRI *mri_labeled, GCA *gca, TRANSFORM *transfo
     height = nint(mri_in->height / MEAN_RESOLUTION) ;
     depth = nint(mri_in->depth / MEAN_RESOLUTION) ;
     mri_means = MRIalloc(width, height, depth, MRI_FLOAT) ;
+    MRIcopyHeader(mri_in, mri_means);
     mri_control = MRIalloc(width, height, depth, MRI_SHORT) ;
+    MRIcopyHeader(mri_in, mri_control);
     MRIsetResolution(mri_means, 
                      MEAN_RESOLUTION,MEAN_RESOLUTION,MEAN_RESOLUTION) ;
     MRIsetResolution(mri_control, 
@@ -8884,11 +8911,11 @@ GCArenormalizeLabels(MRI *mri_in, MRI *mri_labeled, GCA *gca, TRANSFORM *transfo
     }
 
     mri_tmp = MRIalloc(width, height, depth, MRI_SHORT) ;
-    MRIcopy(mri_means, mri_tmp) ;
+    MRIcopy(mri_means, mri_tmp) ; 
     MRIfree(&mri_means) ; mri_means = mri_tmp ;
 
     mri_tmp = MRIalloc(width, height, depth, MRI_UCHAR) ;
-    MRIcopy(mri_control, mri_tmp) ;
+    MRIcopy(mri_control, mri_tmp) ;  
     MRIfree(&mri_control) ; mri_control = mri_tmp ;
 
     MRIsoapBubble(mri_means, mri_control, mri_means, 10) ;
@@ -9263,6 +9290,10 @@ GCAmeanFilterConditionalDensities(GCA *gca, float navgs)
   float     prior ;
 
   mri_means = MRIallocSequence(gca->node_width, gca->node_height, gca->node_depth, MRI_FLOAT, gca->ninputs) ;
+  GCAcopyDSToMRI(gca, mri_means);
+  mri_means->xsize = gca->node_spacing;
+  mri_means->ysize = gca->node_spacing;
+  mri_means->zsize = gca->node_spacing;
 
   /* compute overall mean for each class */
   for (max_label = 1, zn = 0 ; zn < gca->node_depth ; zn++)
