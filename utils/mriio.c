@@ -2583,6 +2583,13 @@ static int mincWrite(MRI *mri, char *fname)
 
   alloc_volume_data(minc_volume);
 
+  separations[di_x] = (Real)(mri->xsize);
+  separations[di_y] = (Real)(mri->ysize);
+  separations[di_z] = (Real)(mri->zsize);
+  separations[3] = 1.0;
+  set_volume_separations(minc_volume, separations); 
+  /* has side effect to change transform and thus must be set first */
+
   dir_cos[0] = (Real)mri->x_r;
   dir_cos[1] = (Real)mri->x_a;
   dir_cos[2] = (Real)mri->x_s;
@@ -2607,13 +2614,6 @@ static int mincWrite(MRI *mri, char *fname)
   world[2] = (Real)(mri->c_s);
   world[3] = 0.0;
   set_volume_translation(minc_volume, voxel, world);
-
-  separations[di_x] = (Real)(mri->xsize);
-  separations[di_y] = (Real)(mri->ysize);
-  separations[di_z] = (Real)(mri->zsize);
-  separations[3] = 1.0;
-  set_volume_separations(minc_volume, separations);
-
 
   /* get the position from (vi[di_x], vi[di_y], vi[di_z]) orig position     */
   /*      put the value to (vi[0], vi[1], vi[2]) minc volume                */
