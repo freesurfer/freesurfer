@@ -1028,7 +1028,7 @@ find_pons(MRI *mri, Real *p_ponsx, Real *p_ponsy, Real *p_ponsz)
   Real  xr, yr, zr ;
   int   xv, yv, zv, x, y, width, height, thickness, xstart, xo, yo, area ;
 
-  thickness = xstart = 0 ;  /* for compiler warning */
+  thickness = xstart = -1 ;
   MRItalairachToVoxel(mri, 0.0, 0.0, 0.0, &xr, &yr, &zr);
   xv = nint(xr) ; yv = nint(yr) ; zv = nint(zr) ;
   mri_slice = 
@@ -1046,7 +1046,7 @@ find_pons(MRI *mri, Real *p_ponsx, Real *p_ponsy, Real *p_ponsz)
 */
 
   /* first find the brainstem */
-  width = mri->width ; height = mri->height ;
+  width = mri_slice->width ; height = mri_slice->height ;
   for (y = height-1 ; y >= 0 ; y--)
   {
     for (x = width-1 ; x >= 0 ; x--)
