@@ -119,10 +119,12 @@ main(int argc, char *argv[])
     printf("reading %s...", in_fname) ;
 
     mri_flash[nvolumes] = MRIread(in_fname) ;
+    if (mri_flash[nvolumes] == NULL)
+      ErrorExit(ERROR_NOFILE, "%s: could not read volume %s",
+                Progname, in_fname) ;
+
     mri_flash[nvolumes]->register_mat = MRIgetVoxelToRasXform(mri_flash[nvolumes]);
 
-    if (!mri_flash[nvolumes])
-      ErrorExit(Gerror, "%s: MRIread(%s) failed", Progname, in_fname) ;
     if (tr > 0)
     {
       mri_flash[nvolumes]->tr = tr ;
