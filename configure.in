@@ -179,7 +179,7 @@ if test "$CPUTYPE" = "NO"; then
         Pentium4)
         CPUTYPE=pentium4
         ;;
-	PentiumM)
+	PentiumM*)
 	CPUTYPE=pentium4
 	;;
         AMDAthlonXP*)
