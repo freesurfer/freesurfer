@@ -45,7 +45,7 @@ char *StrLower(char *str) ;
 char *StrSkipNumber(char *str) ;
 char *StrReplace(char *src, char *dst, char csrc, int cdst) ;
 
-char *FileNameNoExtensions(char *str, char *fname) ;
+char *FileNameOnly(char *str, char *fname) ;
 int  FileExists(char *fname) ;
 int  FileType(char *fname) ;
 int  FileNumber(char *fname) ;
