@@ -122,7 +122,7 @@ typedef struct vertex_type_
   int   label ;         /* is this vertex part of a labeled region? */
   float *dist ;         /* original distance to neighboring vertices */
   float *dist_orig ;    /* original distance to neighboring vertices */
-  int   neg ;           /* 1 if the normal is invertex */
+  int   neg ;           /* 1 if the normal vector is inverted */
 } vertex_type, VERTEX ;
 
 typedef struct
@@ -175,9 +175,10 @@ typedef struct
 
 #define IPFLAG_HVARIABLE           0x0001   /* for parms->flags */
 
-#define INTEGRATE_LINE_MINIMIZE    0
+#define INTEGRATE_LINE_MINIMIZE    0  /* use quadratic fit */
 #define INTEGRATE_MOMENTUM         1
 #define INTEGRATE_ADAPTIVE         2
+#define INTEGRATE_LM_SEARCH        3  /* binary search for minimum */
 
 #define MRIS_SURFACE               0
 #define MRIS_PATCH                 1
@@ -300,6 +301,7 @@ typedef struct
 
 
 MRI_SURFACE  *MRISread(char *fname) ;
+MRI_SURFACE  *MRISfastRead(char *fname) ;
 int          MRISreadOriginalProperties(MRI_SURFACE *mris, char *sname) ;
 int          MRISreadCanonicalCoordinates(MRI_SURFACE *mris, char *sname) ;
 int          MRISreadPatch(MRI_SURFACE *mris, char *pname) ;
@@ -313,6 +315,9 @@ int          MRISwriteAscii(MRI_SURFACE *mris, char *fname) ;
 int          MRISwritePatchAscii(MRI_SURFACE *mris, char *fname) ;
 int          MRISwriteCurvature(MRI_SURFACE *mris, char *fname) ;
 int          MRISnormalizeCurvature(MRI_SURFACE *mris) ;
+int          MRISnonmaxSuppress(MRI_SURFACE *mris) ;
+int          MRISscaleCurvatures(MRI_SURFACE *mris, 
+                                 float min_curv, float max_curv) ;
 int          MRISwriteAreaError(MRI_SURFACE *mris, char *fname) ;
 int          MRISwriteAngleError(MRI_SURFACE *mris, char *fname) ;
 int          MRISwritePatch(MRI_SURFACE *mris, char *fname) ;
@@ -407,6 +412,9 @@ MRI_SP       *MRIStoParameterization(MRI_SURFACE *mris, MRI_SP *mrisp,
                                      float scale, int fno) ;
 MRI_SURFACE  *MRISfromParameterization(MRI_SP *mrisp, MRI_SURFACE *mris,
                                        int fno) ;
+MRI_SP       *MRISgradientToParameterization(MRI_SURFACE *mris, MRI_SP *mrisp, 
+                                     float scale) ;
+MRI_SURFACE  *MRISgradientFromParameterization(MRI_SP*mrisp,MRI_SURFACE *mris);
 MRI_SP       *MRISPblur(MRI_SP *mrisp_src, MRI_SP *mrisp_dst, float sigma,
                         int fno) ;
 MRI_SP       *MRISPalign(MRI_SP *mrisp_orig, MRI_SP *mrisp_src, 
@@ -424,6 +432,7 @@ int          MRISPwrite(MRI_SP *mrisp, char *fname) ;
 #define ORIG_VERTICES       ORIGINAL_VERTICES
 #define GOOD_VERTICES       1
 #define TMP_VERTICES        2
+#define CANONICAL_VERTICES  3
 
 
 int          MRISsaveVertexPositions(MRI_SURFACE *mris, int which) ;
