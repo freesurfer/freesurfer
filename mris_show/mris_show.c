@@ -16,7 +16,7 @@
 #include "oglutil.h"
 #include "label.h"
 
-static char vcid[] = "$Id: mris_show.c,v 1.30 1998/11/17 20:37:31 fischl Exp $";
+static char vcid[] = "$Id: mris_show.c,v 1.31 2001/03/12 16:15:44 fischl Exp $";
 
 
 /*-------------------------------- CONSTANTS -----------------------------*/
@@ -299,6 +299,12 @@ main(int argc, char *argv[])
   if (!FZERO(light))
     OGLUsetLightingModel(-1.0f, -1.0f, -1.0f, -1.0f, light) ;
 
+  if (compile_flags & TP_FLAG)
+  {
+    MRISsetNeighborhoodSize(mris, 2) ;
+    MRIScomputeSecondFundamentalForm(mris) ;
+  }
+    
   /* now compile the surface tessellation */
   glNewList(current_list, GL_COMPILE) ;
   compiled[current_list] = 1 ;
