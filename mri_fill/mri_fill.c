@@ -13,7 +13,7 @@
 #include "timer.h"
 #include "cma.h"
 
-static char vcid[] = "$Id: mri_fill.c,v 1.51 2001/06/20 17:31:30 fischl Exp $";
+static char vcid[] = "$Id: mri_fill.c,v 1.52 2002/02/07 18:23:28 fischl Exp $";
 
 /*-------------------------------------------------------------------
                                 CONSTANTS
@@ -32,7 +32,7 @@ static char vcid[] = "$Id: mri_fill.c,v 1.51 2001/06/20 17:31:30 fischl Exp $";
 #define SEED_SEARCH_SIZE                9
 
 /* size of various orthogonal slices */
-#define SLICE_SIZE                      128
+#define SLICE_SIZE                      256
 
 /* the min # of neighbors on for a point to be allowed to be a seed point */
 #define MIN_NEIGHBORS                    5
@@ -473,7 +473,7 @@ main(int argc, char *argv[])
 
   for (i = 0 ; i < NLABELS ; i++)
     MRIcopyLabel(mri_labels, mri_im, labels[i]) ;
-  MRIfree(&mri_labels) ; MRIfree(&mri_cc) ; MRIfree(&mri_pons) ;
+  MRIfree(&mri_labels) ; MRIfree(&mri_pons) ;
   if (!Gdiag)
     fprintf(stderr, "done.\n") ;
 
@@ -601,9 +601,14 @@ main(int argc, char *argv[])
     if (!mri_seg)
       ErrorExit(ERROR_NOFILE, "%s: could not read segmentation from %s",
                 Progname, segmentation_fname) ;
+    MRIeraseTalairachPlane(mri_seg, mri_cc, MRI_SAGITTAL, x_cc, y_cc, z_cc, 
+                         SLICE_SIZE, fill_val);
     edit_segmentation(mri_im, mri_seg) ;
+    MRIeraseTalairachPlane(mri_im, mri_cc, MRI_SAGITTAL, x_cc, y_cc, z_cc, 
+                         SLICE_SIZE, fill_val);
   }
 
+  MRIfree(&mri_cc) ;
   mri_lh_fill = MRIclone(mri_im, NULL) ;
   mri_rh_fill = MRIclone(mri_im, NULL) ;
   mri_lh_im = MRIcopy(mri_im, NULL) ;
@@ -868,14 +873,14 @@ get_option(int argc, char *argv[])
     print_help() ;
   else if (!strcmp(option, "-version"))
     print_version() ;
-  else if (!strcmp(option, "rval"))   /* sorry */
+  else if (!strcmp(option, "rval"))
   {
     rh_fill_val = atoi(argv[2]) ;
     nargs = 1 ;
     fprintf(stderr,"using %d as fill val for right hemisphere.\n",
             rh_fill_val);
   }
-  else if (!strcmp(option, "lval"))   /* sorry */
+  else if (!strcmp(option, "lval"))
   {
     lh_fill_val = atoi(argv[2]) ;
     nargs = 1 ;
@@ -1079,6 +1084,12 @@ find_cutting_plane(MRI *mri, Real x_tal, Real y_tal,Real z_tal,int orientation,
   /* search for valid seed point */
   MRItalairachToVoxel(mri, x_tal, y_tal,  z_tal, &x, &y, &z) ;
   xv = nint(x) ; yv = nint(y) ; zv = nint(z) ;
+  if (MRIvox(mri, xv, yv, zv) < WM_MIN_VAL)  /* seed not on?? Try and fix it */
+  {
+    printf("seed point not in structure! Searching neighborhood...\n") ;
+    MRIfindNearestNonzeroLocation(mri, 9, xv, yv, zv, &xv, &yv, &zv) ;
+  }
+
   mri_slices[0] = 
     MRIextractTalairachPlane(mri, NULL, orientation, xv, yv, zv, SLICE_SIZE);
   mri_filled[0] =MRIfillFG(mri_slices[0],NULL,xo,yo,0,WM_MIN_VAL,127,&area[0]);
@@ -2713,6 +2724,11 @@ edit_segmentation(MRI *mri_wm, MRI *mri_seg)
         case Right_Cerebellum_Exterior:
         case Right_Cerebellum_Cortex:
         case Right_Cerebral_Cortex:
+        case Brain_Stem:
+        case Left_VentralDC:
+        case Right_VentralDC:
+        case Left_Substancia_Nigra:
+        case Right_Substancia_Nigra:
           if ((neighborLabel(mri_seg, x,y,z,1,Left_Cerebral_Cortex) == 0) &&
               (neighborLabel(mri_seg, x,y,z,1,Right_Cerebral_Cortex) == 0))
           {
