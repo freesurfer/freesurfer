@@ -113,10 +113,12 @@ int main ( int argc, char** argv ) {
    struct stat info;
    string fnScuba( "./scuba.tcl" );
    int rStat = stat( fnScuba.c_str(), &info );
-   if( !S_ISREG(info.st_mode) ) {
+   if( 0 != rStat ||
+       !S_ISREG(info.st_mode) ) {
      fnScuba = "../scripts/scuba.tcl";
      rStat = stat( fnScuba.c_str(), &info );
-     if( !S_ISREG(info.st_mode) ) {
+     if( 0 != rStat ||
+	 !S_ISREG(info.st_mode) ) {
        char* sFressurferHome = getenv( "FREESURFER_HOME" );
        if( NULL != sFressurferHome ) {
 	 fnScuba = sFressurferHome + string("/lib/tcl/scuba.tcl");
@@ -126,13 +128,13 @@ int main ( int argc, char** argv ) {
    }
 
    // If we haven't found one by now, bail.
-   if( !S_ISREG(info.st_mode) ) {
+   if( 0 != rStat ||
+       !S_ISREG(info.st_mode) ) {
       stringstream ssError;
       ssError <<  "Couldn't find scuba.tcl file.";
       throw runtime_error( ssError.str() );
    }
 
-   
    char* fnScubaC = strdup( fnScuba.c_str() );
    rTcl = Tcl_EvalFile( interp, fnScubaC );
    if( TCL_OK != rTcl ) {
