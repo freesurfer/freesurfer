@@ -24,6 +24,8 @@ static void usage_exit(int code) ;
 
 static  int spread_sheet = 0 ;
 
+static int partial_volume = 0 ;
+static MRI *mri_vals ;  /* for use in partial volume calculation */
 static int in_label = -1 ;
 static int out_label = -1 ;
 
@@ -48,7 +50,7 @@ main(int argc, char *argv[])
 	double  vox_volume, brain_volume ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_label_volume.c,v 1.16 2004/02/09 21:46:14 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_label_volume.c,v 1.17 2004/11/22 21:27:44 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -148,7 +150,10 @@ main(int argc, char *argv[])
     printf("processing label %d...\n", label) ;
 
 
-    volume = MRIvoxelsInLabel(mri, label) ;
+		if (partial_volume)
+			volume = MRIvoxelsInLabelWithPartialVolumeEffects(mri, mri_vals, label) ;
+		else
+			volume = MRIvoxelsInLabel(mri, label) ;
     if (log_fname)
     {
       char fname[STRLEN] ;
@@ -230,6 +235,22 @@ get_option(int argc, char *argv[])
 		printf("reading ICV from %s\n", icv_fname) ;
 		nargs = 1 ;
 	}
+	else if (!stricmp(option, "PV"))
+	{
+		partial_volume = 1 ;
+		nargs = 1 ;
+		mri_vals = MRIread(argv[2]) ;
+		if (mri_vals == NULL)
+			ErrorExit(ERROR_NOFILE, "%s: could not read intensity volume %s", Progname, argv[3]) ;
+		printf("including partial volume effects in calculations\n") ;
+	}
+	else if (!stricmp(option, "debug_voxel"))
+	{
+		Gx = atoi(argv[2]) ;
+		Gy = atoi(argv[3]) ;
+		Gz = atoi(argv[4]) ;
+		nargs = 3 ;
+	}
 	else switch (toupper(*option))
   {
 	case 'C':
@@ -287,6 +308,15 @@ get_option(int argc, char *argv[])
 static void
 usage_exit(int code)
 {
-  printf("usage: %s [options] <volume> <label 1> <label 2> ...", Progname) ;
+  printf("usage: %s [options] <volume> <label 1> <label 2> ...\n", Progname) ;
+	printf("valid options are:\n") ;
+	printf("\t-pv <fname>   - compute partial volume effects using intensity volume <fname>\n") ;
+	printf("\t-icv <fname>  - normalize by the intracranial volume in <fname>\n") ;
+	printf("\t-s <subject>  - output in spreadsheet mode, including <subject> name in file\n") ;
+	printf("\t-a            - compute volume of all non-zero voxels (e.g. for computing brain volume)\n") ;
+	printf("\t-t <in> <out> - replace label <in> with label <out>. Useful for compute e.g. whole hippo vol\n") ;
+	printf("\t-b <brain vol>- compute the brain volume from <brain vol> and normalize by it\n") ;
+	printf("\t-p            - compute volume as a %% of all non-zero labels\n") ;
+	printf("\t-l <fname>    - log results to <fname>\n") ;
   exit(code) ;
 }
