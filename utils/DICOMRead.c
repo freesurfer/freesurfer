@@ -2,7 +2,7 @@
    DICOM 3.0 reading functions
    Author: Sebastien Gicquel and Douglas Greve
    Date: 06/04/2001
-   $Id: DICOMRead.c,v 1.12 2001/09/20 18:02:36 greve Exp $
+   $Id: DICOMRead.c,v 1.13 2001/09/26 20:55:07 greve Exp $
 *******************************************************/
 
 #include <stdio.h>
@@ -24,9 +24,15 @@
 #include "condition.h"
 #include "mri.h"
 #include "mri_identify.h"
-#include "DICOMRead.h"
 #include "fio.h"
 #include "mosaic.h"
+
+#define _DICOMRead_SRC
+#include "DICOMRead.h"
+
+static bool IsTagPresent[NUMBEROFTAGS];
+
+
 
 //#define _DEBUG
 
@@ -49,15 +55,17 @@
     3. It assumes that slices within a mosaic are sorted in 
        anatomical order.
     4. It handles multiple frames for mosaics and non-mosaics.
+
+  SDCMListFile is a file with a list of Siemens DICOM files to
+  be unpacked as one run. If using mri_convert, it can be passed
+  with the --sdcmlist.
   -----------------------------------------------------------------*/
 MRI * sdcmLoadVolume(char *dcmfile, int LoadVolume)
 {
-  char *dcmpath;
   SDCMFILEINFO *sdfi;
   DCM_ELEMENT *element;
   SDCMFILEINFO **sdfi_list;
   int nthfile;
-  int NRuns, *RunList, NRunList;
   int nlist;
   int ncols, nrows, nslices, nframes;
   int nmoscols, nmosrows;
@@ -66,43 +74,33 @@ MRI * sdcmLoadVolume(char *dcmfile, int LoadVolume)
   int row, col, slice, frame;
   unsigned short *pixeldata;
   MRI *vol;
+  char **SeriesList;
 
   slice = 0; frame = 0; /* to avoid compiler warnings */
 
-  /* Get the directory of the DICOM data from dcmfile */
-  dcmpath = fio_dirname(dcmfile);  
+  if(SDCMListFile != NULL)
+    SeriesList = ReadSiemensSeries(SDCMListFile, &nlist, dcmfile);
+  else
+    SeriesList = ScanSiemensSeries(dcmfile,&nlist);
 
-  /* Get all the Siemens DICOM files from this directory */
-  printf("INFO: scanning path to Siemens DICOM DIR:\n   %s\n",dcmpath);
-  sdfi_list = ScanSiemensDCMDir(dcmpath, &nlist);
-  if(sdfi_list == NULL){
-    printf("ERROR: scanning directory %s\n",dcmpath);
+  if(nlist == 0){
+    fprintf(stderr,"ERROR: could not find any files\n");
     return(NULL);
   }
-  printf("INFO: found %d Siemens files\n",nlist);
 
-  /* Sort the files by Series, Slice Position, and Image Number */
-  printf("Sorting\n");
+  //for(n=0; n<nlist; n++) printf("%3d  %s\n",n,SeriesList[n]);
+  //fflush(stdout);
+
+  fprintf(stderr,"INFO: loading series header info.\n");
+  sdfi_list = LoadSiemensSeriesInfo(SeriesList, nlist);
+
+  fprintf(stderr,"INFO: sorting.\n");
   SortSDCMFileInfo(sdfi_list,nlist);
-
-  /* Assign run numbers to each file (count number of runs)*/
-  printf("Assigning Run Numbers\n");
-  NRuns = sdfiAssignRunNo(sdfi_list, nlist);
-  if(NRunList == 0){
-    printf("ERROR: sorting runs\n");
-    return(NULL);
-  }
-
-  /* Get a list of indices in sdfi_list of files that belong to dcmfile */
-  RunList = sdfiRunFileList(dcmfile, sdfi_list, nlist, &NRunList);
-  if(RunList == NULL) return(NULL);
-
-  printf("INFO: found %d runs\n",NRuns);
-  printf("INFO: RunNo %d\n",sdfiRunNo(dcmfile,sdfi_list,nlist));
-  printf("INFO: found %d files in run\n",NRunList);
+  
+  sdfiAssignRunNo2(sdfi_list, nlist);
 
   /* First File in the Run */
-  sdfi = sdfi_list[RunList[0]];
+  sdfi = sdfi_list[0];
   sdfiFixImagePosition(sdfi);
   sdfiVolCenter(sdfi);
 
@@ -113,11 +111,17 @@ MRI * sdcmLoadVolume(char *dcmfile, int LoadVolume)
   nframes = sdfi->NFrames;
   IsMosaic = sdfi->IsMosaic;
 
+  printf("INFO: (%3d %3d %3d), nframes = %d, ismosaic=%d\n",
+   ncols,nrows,nslices,nframes,IsMosaic);
+  fflush(stdout);
+  fflush(stdout);
+
   /** Allocate an MRI structure **/
   if(LoadVolume){
     vol = MRIallocSequence(ncols,nrows,nslices,MRI_SHORT,nframes);
     if(vol==NULL){
       fprintf(stderr,"ERROR: could not alloc MRI volume\n");
+      fflush(stderr);
       return(NULL);
     }
   }
@@ -125,6 +129,7 @@ MRI * sdcmLoadVolume(char *dcmfile, int LoadVolume)
     vol = MRIallocHeader(ncols,nrows,nslices,MRI_SHORT);
     if(vol==NULL){
       fprintf(stderr,"ERROR: could not alloc MRI header \n");
+      fflush(stderr);
       return(NULL);
     }
   }
@@ -152,21 +157,18 @@ MRI * sdcmLoadVolume(char *dcmfile, int LoadVolume)
   if(! sdfi->IsMosaic )
     vol->tr    = sdfi->RepetitionTime;
   else
-    vol->tr    = sdfi->RepetitionTime * sdfi->VolDim[2] / 1000.0;
+    vol->tr    = sdfi->RepetitionTime * (sdfi->VolDim[2]+1) / 1000.0;
 
   /* Return now if we're not loading pixel data */
-  if(!LoadVolume) {
-    free(RunList);
-    return(vol);
-  }
+  if(!LoadVolume) return(vol);
 
-  /* Dump info to stdout */
+  /* Dump info about the first file to stdout */
   DumpSDCMFileInfo(stdout,sdfi);
 
   /* ------- Go through each file in the Run ---------*/
-  for(nthfile = 0; nthfile < NRunList; nthfile ++){
+  for(nthfile = 0; nthfile < nlist; nthfile ++){
 
-    sdfi = sdfi_list[RunList[nthfile]];
+    sdfi = sdfi_list[nthfile];
 
     /* Get the pixel data */
     element = GetElementFromFile(sdfi->FileName,0x7FE0,0x10);
@@ -184,6 +186,7 @@ MRI * sdcmLoadVolume(char *dcmfile, int LoadVolume)
       }
 #ifdef _DEBUG      
       printf("%3d %3d %3d %s \n",nthfile,slice,frame,sdfi->FileName);
+      fflush(stdout);
 #endif
       for(row=0; row < nrows; row++){
   for(col=0; col < ncols; col++){
@@ -213,7 +216,6 @@ MRI * sdcmLoadVolume(char *dcmfile, int LoadVolume)
       if(err || OutOfBounds){
         FreeElementData(element);
         free(element);
-        free(RunList);
         MRIfree(&vol);
         exit(1);
       }
@@ -224,13 +226,11 @@ MRI * sdcmLoadVolume(char *dcmfile, int LoadVolume)
   }
       }
     }
-
+    
     FreeElementData(element);
     free(element);
 
   }/* for nthfile */
-
-  free(RunList);
 
   return(vol);
 }
@@ -337,7 +337,8 @@ int AllocElementData(DCM_ELEMENT *e)
     e->d.sl = (long *) calloc(e->length,sizeof(long));
     break;
   case DCM_SQ: 
-    e->d.sq = (LST_HEAD *) calloc(e->length,sizeof(LST_HEAD));
+    fprintf(stderr,"Element is of type dcm_sq, not supported\n");
+    return(1);
     break;
   case DCM_UL: 
     e->d.ul = (unsigned long *) calloc(e->length,sizeof(unsigned long));
@@ -558,7 +559,8 @@ char *SiemensAsciiTag(char *dcmfile, char *TagString)
   dcmGetVolRes - Gets the volume resolution (mm) from a DICOM File. The
   column and row resolution is obtained from tag (28,30). This tag is stored 
   as a string of the form "ColRes\RowRes". The slice resolution is obtained
-  from tag (18,50).
+  from tag (18,50). The slice thickness may not be correct for mosaics.
+  See sdcmMosaicSliceRes().
   Author: Douglas N. Greve, 9/6/2001
   -----------------------------------------------------------------------*/
 int dcmGetVolRes(char *dcmfile, float *ColRes, float *RowRes, float *SliceRes)
@@ -595,7 +597,7 @@ int dcmGetVolRes(char *dcmfile, float *ColRes, float *RowRes, float *SliceRes)
 
   FreeElementData(e); free(e);
 
-  /* Load the Slice Thickness */
+  /* Load the Slice Thickness - this may not be correct for mosaics*/
   e = GetElementFromFile(dcmfile, 0x18, 0x50);
   if(e == NULL){
     FreeElementData(e); free(e);
@@ -605,6 +607,92 @@ int dcmGetVolRes(char *dcmfile, float *ColRes, float *RowRes, float *SliceRes)
   FreeElementData(e); free(e);
 
   return(0);
+}
+/*-----------------------------------------------------------------------
+  sdcmMosaicSliceRes() - computes the slice resolution as the distance
+  between the first two slices. The slice locations are obtained from
+  the Siemens ASCII header. One can get the slice thickness from tag
+  (18,50), but this will not include a skip. See also dcmGetVolRes().
+  -----------------------------------------------------------------------*/
+float sdcmMosaicSliceRes(char *dcmfile)
+{
+  char * strtmp;
+  float x0, y0, z0;
+  float x1, y1, z1;
+  float thickness;
+
+  /* --- First Slice ---- */
+  strtmp = SiemensAsciiTag(dcmfile,"sSliceArray.asSlice[0].sPosition.dSag");
+  if(strtmp != NULL){
+    sscanf(strtmp,"%f",&x0);
+    free(strtmp);
+  }
+  else x0 = 0;
+
+  strtmp = SiemensAsciiTag(dcmfile,"sSliceArray.asSlice[0].sPosition.dCor");
+  if(strtmp != NULL){
+    sscanf(strtmp,"%f",&y0);
+    free(strtmp);
+  }
+  else y0 = 0;
+
+  strtmp = SiemensAsciiTag(dcmfile,"sSliceArray.asSlice[0].sPosition.dTra");
+  if(strtmp != NULL){
+    sscanf(strtmp,"%f",&z0);
+    free(strtmp);
+  }
+  else z0 = 0;
+
+  /* --- Second Slice ---- */
+  strtmp = SiemensAsciiTag(dcmfile,"sSliceArray.asSlice[1].sPosition.dSag");
+  if(strtmp != NULL){
+    sscanf(strtmp,"%f",&x1);
+    free(strtmp);
+  }
+  else x1 = 0;
+
+  strtmp = SiemensAsciiTag(dcmfile,"sSliceArray.asSlice[1].sPosition.dCor");
+  if(strtmp != NULL){
+    sscanf(strtmp,"%f",&y1);
+    free(strtmp);
+  }
+  else y1 = 0;
+
+  strtmp = SiemensAsciiTag(dcmfile,"sSliceArray.asSlice[1].sPosition.dTra");
+  if(strtmp != NULL){
+    sscanf(strtmp,"%f",&z1);
+    free(strtmp);
+  }
+  else z1 = 0;
+
+  /* Compute distance between slices */
+  thickness = sqrt( (x0-x1)*(x0-x1) + (y0-y1)*(y0-y1) + (z0-z1)*(z0-z1) );
+
+  return(thickness);
+}
+
+/*-----------------------------------------------------------------------
+  dcmGetSeriesNo - Gets the series number from tag (20,11). 
+  Returns -1 if error.
+  Author: Douglas N. Greve, 9/25/2001
+  -----------------------------------------------------------------------*/
+int dcmGetSeriesNo(char *dcmfile)
+{
+  DCM_ELEMENT *e;
+  int SeriesNo;
+
+  e = GetElementFromFile(dcmfile, 0x20, 0x11);
+  if(e == NULL){
+    FreeElementData(e); free(e);
+    return(-1);
+  }
+
+  sscanf(e->d.string,"%d",&SeriesNo);
+
+  FreeElementData(e); 
+  free(e);
+
+  return(SeriesNo);
 }
 /*-----------------------------------------------------------------------
   dcmGetNRows - Gets the number of rows in the image from tag (28,10). 
@@ -954,6 +1042,7 @@ SDCMFILEINFO *GetSDCMFileInfo(char *dcmfile)
   tag=DCM_MAKETAG(0x20, 0x11);
   cond=GetUSFromString(&object, tag, &ustmp);
   sdcmfi->SeriesNo = (int) ustmp;
+  sdcmfi->RunNo = sdcmfi->SeriesNo - 1;
 
   tag=DCM_MAKETAG(0x20, 0x13);
   cond=GetUSFromString(&object, tag, &ustmp);
@@ -1013,20 +1102,29 @@ SDCMFILEINFO *GetSDCMFileInfo(char *dcmfile)
   else sdcmfi->ReadoutFOV = 0;
 
   sdcmfi->NImageRows = dcmGetNRows(dcmfile);
-
   sdcmfi->NImageCols = dcmGetNCols(dcmfile);
 
   dcmImagePosition(dcmfile, &(sdcmfi->ImgPos[0]), &(sdcmfi->ImgPos[1]), 
        &(sdcmfi->ImgPos[2]) );
-
-  dcmGetVolRes(dcmfile,&(sdcmfi->VolRes[0]),&(sdcmfi->VolRes[1]),
-         &(sdcmfi->VolRes[2]));
 
   dcmImageDirCos(dcmfile,&(sdcmfi->Vc[0]),&(sdcmfi->Vc[1]),&(sdcmfi->Vc[2]),
              &(sdcmfi->Vr[0]),&(sdcmfi->Vr[1]),&(sdcmfi->Vr[2]));
   sdcmSliceDirCos(dcmfile,&(sdcmfi->Vs[0]),&(sdcmfi->Vs[1]),&(sdcmfi->Vs[2]));
 
   sdcmfi->IsMosaic = sdcmIsMosaic(dcmfile, NULL, NULL, NULL, NULL);
+
+  dcmGetVolRes(dcmfile,&(sdcmfi->VolRes[0]),&(sdcmfi->VolRes[1]),
+         &(sdcmfi->VolRes[2]));
+
+  if(sdcmfi->IsMosaic){
+    sdcmfi->VolRes[2] = sdcmMosaicSliceRes(dcmfile);
+    sdcmIsMosaic(dcmfile, &(sdcmfi->VolDim[0]), &(sdcmfi->VolDim[1]),
+     &(sdcmfi->VolDim[2]), &(sdcmfi->NFrames));
+  }
+  else{
+    sdcmfi->VolDim[0] = sdcmfi->NImageCols;
+    sdcmfi->VolDim[1] = sdcmfi->NImageRows;
+  }
 
   cond=DCM_CloseObject(&object);
 
@@ -1117,6 +1215,7 @@ SDCMFILEINFO **ScanSiemensDCMDir(char *PathName, int *NSDCMFiles)
   char tmpstr[1000];
   SDCMFILEINFO **sdcmfi_list;
   int pct, sumpct;
+  FILE *fp;
 
   /* Remove all trailing forward slashes from PathName */
   pathlength=strlen(PathName);
@@ -1154,6 +1253,10 @@ SDCMFILEINFO **ScanSiemensDCMDir(char *PathName, int *NSDCMFiles)
   sdcmfi_list = (SDCMFILEINFO **)calloc(*NSDCMFiles, sizeof(SDCMFILEINFO *));
 
   fprintf(stderr,"INFO: scanning info from Siemens Files\n");
+
+  if(SDCMStatusFile != NULL)
+    fprintf(stderr,"INFO: status file is %s\n",SDCMStatusFile);
+
   fprintf(stderr,"%2d ",0);
   sumpct = 0;
   (*NSDCMFiles) = 0;
@@ -1161,10 +1264,17 @@ SDCMFILEINFO **ScanSiemensDCMDir(char *PathName, int *NSDCMFiles)
 
     //fprintf(stderr,"%4d ",i);
     pct = rint(100*(i+1)/NFiles) - sumpct;
-    if(pct >= 10) {
+    if(pct >= 2) {
       sumpct += pct;
       fprintf(stderr,"%3d ",sumpct);
       fflush(stderr);
+      if(SDCMStatusFile != NULL){
+  fp = fopen(SDCMStatusFile,"w");
+  if(fp != NULL){
+    fprintf(fp,"%3d\n",sumpct);
+    fclose(fp);
+  }
+      }
     }
 
     sprintf(tmpstr,"%s/%s", PathName, NameList[i]->d_name);
@@ -1179,6 +1289,195 @@ SDCMFILEINFO **ScanSiemensDCMDir(char *PathName, int *NSDCMFiles)
   free(NameList);
 
   return( sdcmfi_list );
+}
+/*--------------------------------------------------------------------
+  LoadSiemensSeriesInfo() - loads header info from each of the nList 
+  files listed in SeriesList. This list is obtained from either
+  ReadSiemensSeries() or ScanSiemensSeries().
+  Author: Douglas Greve.
+  Date: 09/10/2001
+ *------------------------------------------------------------------*/
+SDCMFILEINFO **LoadSiemensSeriesInfo(char **SeriesList, int nList)
+{
+  SDCMFILEINFO **sdfi_list;
+  int n;
+
+  sdfi_list = (SDCMFILEINFO **)calloc(nList, sizeof(SDCMFILEINFO *));
+
+  for(n = 0; n < nList; n++){
+
+    if(! IsSiemensDICOM(SeriesList[n]) ) {
+      fprintf(stderr,"ERROR: %s is not a Siemens DICOM File\n",
+        SeriesList[n]);
+      fflush(stderr);
+      free(sdfi_list);
+      return(NULL);
+    }
+
+    sdfi_list[n] = GetSDCMFileInfo(SeriesList[n]);
+    if(sdfi_list[n] == NULL) {
+      fprintf(stderr,"ERROR: reading %s \n",SeriesList[n]);
+      fflush(stderr);
+      free(sdfi_list);
+      return(NULL);
+    }
+
+  }
+  fprintf(stderr,"\n");
+  fflush(stderr);
+
+  return( sdfi_list );
+}
+/*--------------------------------------------------------------------
+  ReadSiemensSeries() - returns a list of file names as found in the
+  given ListFile. This file should contain a list of file names
+  separated by white space. Any directory names are stripped off and
+  replaced with the dirname of dcmfile. If dcmfile is not part of the
+  list, it is added to the list.  No attempt is made to assure that
+  the files are Siemens DICOM files or that they even exist. The
+  resulting list is of the same form produced by ScanSiemensSeries();
+
+  Author: Douglas Greve.
+  Date: 09/25/2001
+ *------------------------------------------------------------------*/
+char **ReadSiemensSeries(char *ListFile, int *nList, char *dcmfile)
+{
+  FILE *fp;
+  char **SeriesList;
+  char tmpstr[1000];
+  int n;
+  char *dcmbase, *dcmdir, *fbase;
+  int AddDCMFile;
+
+  if(!IsSiemensDICOM(dcmfile)){
+    fprintf(stderr,"ERROR: %s is not a siemens DICOM file\n",dcmfile);
+    return(NULL);
+  }
+
+  dcmdir  = fio_dirname(dcmfile);
+  dcmbase = fio_basename(dcmfile,NULL);
+
+  fp = fopen(ListFile,"r");
+  if(fp == NULL){
+    fprintf(stderr,"ERROR: could not open %s for reading\n",ListFile);
+    return(NULL);
+  }
+
+  /* Count the numer of files in the list. Look for dcmfile and
+     turn off the flag if it is found.*/
+  AddDCMFile = 1;
+  (*nList) = 0;
+  while( fscanf(fp,"%s",tmpstr) != EOF ){
+    fbase = fio_basename(tmpstr,NULL);
+    if(strcmp(dcmbase,fbase)==0) AddDCMFile = 0;
+    (*nList) ++;
+    free(fbase);
+  }
+
+  if( (*nList) == 0 ){
+    fprintf(stderr,"ERROR: no files found in %s\n",ListFile);
+    fflush(stderr);
+    return(NULL);
+  }
+  fseek(fp,0,SEEK_SET); /* go back to the begining */
+
+  if(AddDCMFile){
+    fprintf(stderr,"INFO: adding dcmfile to list.\n");
+    fflush(stderr);
+    (*nList) ++;
+  }
+
+  fprintf(stderr,"INFO: found %d files in list file\n",(*nList));
+  fflush(stderr);
+
+  SeriesList = (char **) calloc((*nList), sizeof(char *));
+
+  for(n=0; n < ((*nList)-AddDCMFile) ; n++){
+    fscanf(fp,"%s",tmpstr);
+    fbase = fio_basename(tmpstr,NULL);
+    sprintf(tmpstr,"%s/%s",dcmdir,fbase);
+    SeriesList[n] = (char *) calloc(strlen(tmpstr)+1,sizeof(char));
+    memcpy(SeriesList[n],tmpstr,strlen(tmpstr));
+    free(fbase);
+  }
+  if(AddDCMFile){
+    SeriesList[n] = (char *) calloc(strlen(dcmfile)+1,sizeof(char));
+    memcpy(SeriesList[n],dcmfile,strlen(dcmfile));
+  }
+
+  fclose(fp);
+  free(dcmdir);
+  free(dcmbase);
+  return(SeriesList);
+}
+/*--------------------------------------------------------------------
+  ScanSiemensSeries() - scans a directory for Siemens DICOM files with
+  the same Series Number as the given Siemens DICOM file. Returns a
+  list of file names (including dcmfile), including the path. The
+  resulting list is of the same form produced by ReadSiemensSeries();
+
+  Author: Douglas Greve.
+  Date: 09/25/2001
+ *------------------------------------------------------------------*/
+char **ScanSiemensSeries(char *dcmfile, int *nList)
+{
+  int SeriesNo, SeriesNoTest;
+  char *PathName;
+  int NFiles,i;
+  struct dirent **NameList;
+  char **SeriesList;
+  char tmpstr[1000];
+
+  if(!IsSiemensDICOM(dcmfile)){
+    fprintf(stderr,"ERROR: %s is not a siemens DICOM file\n",dcmfile);
+    fflush(stderr);
+    return(NULL);
+  }
+
+  SeriesNo = dcmGetSeriesNo(dcmfile);
+  if(SeriesNo == -1){
+    fprintf(stderr,"ERROR: reading series number from %s\n",dcmfile);
+    fflush(stderr);
+    return(NULL);
+  }
+
+  /* select all directory entries, and sort them by name */
+  PathName = fio_dirname(dcmfile);  
+  NFiles = scandir(PathName, &NameList, 0, alphasort);
+
+  if( NFiles < 0 ){
+    fprintf(stderr,"WARNING: No files found in %s\n",PathName);
+    fflush(stderr);
+    return(NULL);
+  }
+  fprintf(stderr,"INFO: Found %d files in %s\n",NFiles,PathName);
+  fprintf(stderr,"INFO: Scanning for Series Number %d\n",SeriesNo);
+  fflush(stderr);
+
+  /* Alloc enough memory for everyone */
+  SeriesList = (char **) calloc(NFiles, sizeof(char *));
+  (*nList) = 0;
+  for(i = 0; i < NFiles; i++){
+    sprintf(tmpstr,"%s/%s", PathName, NameList[i]->d_name);
+    if(IsSiemensDICOM(tmpstr)){
+      SeriesNoTest = dcmGetSeriesNo(tmpstr);
+      if(SeriesNoTest == SeriesNo){
+  SeriesList[*nList] = (char *) calloc(strlen(tmpstr)+1,sizeof(char));
+  memcpy(SeriesList[*nList], tmpstr, strlen(tmpstr));
+  //printf("%3d  %s\n",*nList,SeriesList[*nList]);
+  (*nList)++;
+      }
+    }
+  }
+  fprintf(stderr,"INFO: found %d files in series\n",*nList);
+  fflush(stderr);
+
+  if(*nList == 0){
+    free(SeriesList);
+    return(NULL);
+  }
+
+  return( SeriesList );
 }
 
 /*-----------------------------------------------------------*/
@@ -1292,7 +1591,173 @@ int CompareSDCMFileInfo(const void *a, const void *b)
 
   return(0);
 }
+/*-----------------------------------------------------------
+  sdfiAssignRunNo2() - assigns run number based on series number
+  -----------------------------------------------------------*/
+int sdfiAssignRunNo2(SDCMFILEINFO **sdfi_list, int nlist)
+{
+  SDCMFILEINFO *sdfi, *sdfitmp, *sdfi0;
+  int nthfile, NRuns, nthrun, nthslice, nthframe;
+  int nfilesperrun, firstpass, nframes;
+  char *FirstFileName;
+  int *RunList, *RunNoList;
 
+  RunNoList = sdfiRunNoList(sdfi_list,nlist,&NRuns);
+  if(NRuns==0) return(NRuns);
+
+  for(nthrun = 0; nthrun < NRuns; nthrun ++){
+
+    FirstFileName = sdfiFirstFileInRun(RunNoList[nthrun], sdfi_list, nlist);
+    RunList = sdfiRunFileList(FirstFileName,sdfi_list, nlist, &nfilesperrun);
+
+    sdfi0 = sdfi_list[RunList[0]];
+
+    if(sdfi0->IsMosaic){ /* It is a mosaic */
+      sdfi0->NFrames = nfilesperrun;
+      if(nfilesperrun != (sdfi0->lRepetitions+1)){
+  fprintf(stderr,"WARNING: Run %d appears to be truncated\n",nthrun+1);
+  fprintf(stderr,"nfilesperrun = %d, lRep+1 = %d\n",
+    nfilesperrun, (sdfi0->lRepetitions+1));
+  fflush(stderr);
+  sdfi0->ErrorFlag = 1;
+      }
+    }
+
+    else { /* It is NOT a mosaic */
+
+      nthfile = 0;
+      nthslice = 0;
+      firstpass = 1;
+
+      while(nthfile < nfilesperrun){
+  sdfi    = sdfi_list[RunList[nthfile]];
+  sdfitmp = sdfi_list[RunList[nthfile]];
+  nthframe = 0;
+  while(sdfiSameSlicePos(sdfi,sdfitmp)){
+    nthframe++;
+    nthfile++;
+    if(nthfile < nfilesperrun) 
+      sdfitmp = sdfi_list[RunList[nthfile]];
+    else                   
+      break;
+  }
+  if(firstpass){
+    firstpass = 0;
+    nframes = nthframe;
+  }
+  if(nthframe != nframes){
+    fprintf(stderr,"WARNING: Run %d appears to be truncated\n",
+      RunNoList[nthrun]);
+    fprintf(stderr,"  Slice = %d, nthframe = %d, nframes = %d, %d\n",
+      nthslice,nthframe,nframes,firstpass);
+    fflush(stderr);
+    sdfi0->ErrorFlag = 1;
+    break;
+  }
+  nthslice++;
+      }/* end loop over files in the run */
+
+      sdfi0->VolDim[2] = nthslice;
+      sdfi0->NFrames   = nframes;
+    }/* end if it is NOT a mosaic */
+
+    /* Update the parameters for all files in the run */
+    for(nthfile = 0; nthfile < nfilesperrun; nthfile ++){
+      sdfi = sdfi_list[RunList[nthfile]];
+      sdfi->VolDim[2] = sdfi0->VolDim[2];
+      sdfi->NFrames   = sdfi0->NFrames;
+      sdfi->ErrorFlag = sdfi0->ErrorFlag;
+    }
+
+    free(RunList);
+    free(FirstFileName);
+  } /* end loop over runs */
+
+  return(NRuns);
+}
+/*-----------------------------------------------------------
+  sdfiRunNoList() - returns a list of run numbers
+  -----------------------------------------------------------*/
+int *sdfiRunNoList(SDCMFILEINFO **sdfi_list, int nlist, int *NRuns)
+{
+  SDCMFILEINFO *sdfi;
+  int nthfile, PrevRunNo;
+  int *RunNoList;
+  int nthrun;
+
+  *NRuns = sdfiCountRuns(sdfi_list, nlist);
+  if(*NRuns == 0) return(NULL);
+
+  RunNoList = (int *) calloc(*NRuns, sizeof(int));
+
+  nthrun = 0;
+  PrevRunNo = -1;
+  for(nthfile = 0; nthfile < nlist; nthfile ++){
+    sdfi = sdfi_list[nthfile];
+    if(PrevRunNo == sdfi->RunNo) continue;
+    PrevRunNo = sdfi->RunNo;
+    RunNoList[nthrun] = sdfi->RunNo;
+    nthrun++;
+  }
+  return(RunNoList);
+}
+/*-----------------------------------------------------------
+  sdfiCountRuns() - counts the number of runs in the list
+  -----------------------------------------------------------*/
+int sdfiCountRuns(SDCMFILEINFO **sdfi_list, int nlist)
+{
+  SDCMFILEINFO *sdfi;
+  int nthfile, NRuns, PrevRunNo;
+
+  NRuns = 0;
+  PrevRunNo = -1;
+  for(nthfile = 0; nthfile < nlist; nthfile ++){
+    sdfi = sdfi_list[nthfile];
+    if(PrevRunNo == sdfi->RunNo) continue;
+    PrevRunNo = sdfi->RunNo;
+    NRuns ++;
+  }
+  return(NRuns);
+}
+/*-----------------------------------------------------------
+  sdfiCountFilesInRun() - counts the number of files in a 
+  given run. This differs from sdfiNFilesInRun() in that
+  this takes a run number instead of a file name.
+  -----------------------------------------------------------*/
+int sdfiCountFilesInRun(int RunNo, SDCMFILEINFO **sdfi_list, int nlist)
+{
+  SDCMFILEINFO *sdfi;
+  int nthfile, NFilesInRun;
+
+  NFilesInRun = 0;
+  for(nthfile = 0; nthfile < nlist; nthfile ++){
+    sdfi = sdfi_list[nthfile];
+    if(sdfi->RunNo == RunNo) NFilesInRun ++;
+  }
+  return(NFilesInRun);
+}
+/*-----------------------------------------------------------
+  sdfiFirstFileInRun() - returns the name of the first file
+  in the given run.
+  -----------------------------------------------------------*/
+char *sdfiFirstFileInRun(int RunNo, SDCMFILEINFO **sdfi_list, int nlist)
+{
+  SDCMFILEINFO *sdfi;
+  int nthfile, len;
+  char *FirstFileName;
+
+  for(nthfile = 0; nthfile < nlist; nthfile ++){
+    sdfi = sdfi_list[nthfile];
+    if(sdfi->RunNo == RunNo){
+      len = strlen(sdfi->FileName);
+      FirstFileName = (char *) calloc(len+1,sizeof(char));
+      memcpy(FirstFileName,sdfi->FileName,len);
+      return(FirstFileName);
+    }
+  }
+  fprintf(stderr,"WARNING: could not find Run %d in list\n",RunNo);
+  return(NULL);
+}
 /*-----------------------------------------------------------
   sdfiAssignRunNo() - assigns a run number to each file. It is assumed
   that the list has already been ordered by SortSDCMFileInfo(), which
@@ -1365,7 +1830,7 @@ int sdfiAssignRunNo(SDCMFILEINFO **sdcmfi_list, int nfiles)
       while(sernotest == serno){
   sdfitmp = sdfi;
   nthframe = 0;
-
+  
   while(sdfiSameSlicePos(sdfitmp,sdfi)){
     sdfi->RunNo = nthrun;
 #ifdef _DEBUG
@@ -1419,21 +1884,21 @@ int sdfiAssignRunNo(SDCMFILEINFO **sdcmfi_list, int nfiles)
   }
   sdfi = sdcmfi_list[nthfile];
   sdfi->RunNo = nthrun;
-
+  
 #ifdef _DEBUG
-    tmpstr = fio_basename(sdfi->FileName,NULL);
-    printf("%10s %4d  %2d  %3d  %3d   %3d   %3d \n",
-     tmpstr, nthfile, sdfi->SeriesNo, sdfi->ImageNo, 
-     sdfi->NFrames, sdfi->RunNo, nthfileperrun+1);
-    fflush(stdout);
-    free(tmpstr);
+  tmpstr = fio_basename(sdfi->FileName,NULL);
+  printf("%10s %4d  %2d  %3d  %3d   %3d   %3d \n",
+         tmpstr, nthfile, sdfi->SeriesNo, sdfi->ImageNo, 
+         sdfi->NFrames, sdfi->RunNo, nthfileperrun+1);
+  fflush(stdout);
+  free(tmpstr);
 #endif
-
+  
   nthfileperrun ++;
   nthfile ++;
       }
     }/* if(not mosaic) */
-
+    
     /* Make sure each fileinfo in the run has a complete
        set of volume dimension information */
     for(n=FirstFileNo; n < FirstFileNo+nfilesperrun; n++){
@@ -1447,11 +1912,11 @@ int sdfiAssignRunNo(SDCMFILEINFO **sdcmfi_list, int nfiles)
 #ifdef _DEBUG
     tmpstr = fio_basename(FirstFile,NULL);
     printf("%2d %10s %3d   (%3d %3d %3d %3d)\n",
-    nthrun, tmpstr, nfilesperrun, ncols, nrows, 
-         nslices, sdfi->NFrames);
+     nthrun, tmpstr, nfilesperrun, ncols, nrows, 
+     nslices, sdfi->NFrames);
     free(tmpstr);
 #endif
-
+    
     nthrun ++;
   }
 
@@ -1595,7 +2060,7 @@ MRI * sdcmLoadVolume(char *dcmfile, int LoadVolume)
   SortSDCMFileInfo(sdfi_list,nlist);
 
   /* Assign run numbers to each file (count number of runs)*/
-  NRuns = sdfiAssignRunNo(sdfi_list, nlist);
+  NRuns = sdfiAssignRunNo2(sdfi_list, nlist);
   if(NRunList == 0){
     printf("ERROR: sorting runs\n");
     return(NULL);
@@ -1760,7 +2225,7 @@ int sdfiFixImagePosition(SDCMFILEINFO *sdfi)
   float ImgCenter[3], NewImgPos[3];
   int n, nctmos, nrtmos;
 
-  //if(!sdfi->IsMosaic) return(0);
+  if(!sdfi->IsMosaic) return(0);
 
   /* Field-of-View, Center-to-Center, of a single slice */
   ColFoV = (sdfi->VolDim[0]-1)*sdfi->VolRes[0];
@@ -1819,7 +2284,7 @@ int sdfiVolCenter(SDCMFILEINFO *sdfi)
     sdfi->VolCenter[r] = sdfi->ImgPos[r];
     for(c=0;c<3;c++){
       sdfi->VolCenter[r] += Mdc[r][c] * FoV[c]/2.0;
-      }
+    }
   }
   return(0);
 }
@@ -3309,3 +3774,196 @@ int DICOMRead(char *FileName, MRI **mri, int ReadImage)
 
   return 0;
 }
+
+#if 0
+/* 9/25/01 This version does not assume that the series number is good */
+MRI * sdcmLoadVolume(char *dcmfile, int LoadVolume)
+{
+  char *dcmpath;
+  SDCMFILEINFO *sdfi;
+  DCM_ELEMENT *element;
+  SDCMFILEINFO **sdfi_list;
+  int nthfile;
+  int NRuns, *RunList, NRunList;
+  int nlist,n;
+  int ncols, nrows, nslices, nframes;
+  int nmoscols, nmosrows;
+  int mosrow, moscol, mosindex;
+  int err,OutOfBounds,IsMosaic;
+  int row, col, slice, frame;
+  unsigned short *pixeldata;
+  MRI *vol;
+  char **SeriesList;
+
+  slice = 0; frame = 0; /* to avoid compiler warnings */
+
+  /* Get the directory of the DICOM data from dcmfile */
+  dcmpath = fio_dirname(dcmfile);  
+
+  /* Get all the Siemens DICOM files from this directory */
+  printf("INFO: scanning path to Siemens DICOM DIR:\n   %s\n",dcmpath);
+  sdfi_list = ScanSiemensDCMDir(dcmpath, &nlist);
+  if(sdfi_list == NULL){
+    printf("ERROR: scanning directory %s\n",dcmpath);
+    return(NULL);
+  }
+  printf("INFO: found %d Siemens files\n",nlist);
+
+  /* Sort the files by Series, Slice Position, and Image Number */
+
+  /* Assign run numbers to each file (count number of runs)*/
+  printf("Assigning Run Numbers\n");
+  NRuns = sdfiAssignRunNo2(sdfi_list, nlist);
+  if(NRunList == 0){
+    printf("ERROR: sorting runs\n");
+    return(NULL);
+  }
+
+  /* Get a list of indices in sdfi_list of files that belong to dcmfile */
+  RunList = sdfiRunFileList(dcmfile, sdfi_list, nlist, &NRunList);
+  if(RunList == NULL) return(NULL);
+
+  printf("INFO: found %d runs\n",NRuns);
+  printf("INFO: RunNo %d\n",sdfiRunNo(dcmfile,sdfi_list,nlist));
+  printf("INFO: found %d files in run\n",NRunList);
+  fflush(stdout);
+
+  /* First File in the Run */
+  sdfi = sdfi_list[RunList[0]];
+  sdfiFixImagePosition(sdfi);
+  sdfiVolCenter(sdfi);
+
+  /* for easy access */
+  ncols   = sdfi->VolDim[0];
+  nrows   = sdfi->VolDim[1];
+  nslices = sdfi->VolDim[2];
+  nframes = sdfi->NFrames;
+  IsMosaic = sdfi->IsMosaic;
+
+  printf("INFO: (%3d %3d %3d), nframes = %d, ismosaic=%d\n",
+   ncols,nrows,nslices,nframes,IsMosaic);
+  fflush(stdout);
+  fflush(stdout);
+
+  /** Allocate an MRI structure **/
+  if(LoadVolume){
+    vol = MRIallocSequence(ncols,nrows,nslices,MRI_SHORT,nframes);
+    if(vol==NULL){
+      fprintf(stderr,"ERROR: could not alloc MRI volume\n");
+      return(NULL);
+    }
+  }
+  else{
+    vol = MRIallocHeader(ncols,nrows,nslices,MRI_SHORT);
+    if(vol==NULL){
+      fprintf(stderr,"ERROR: could not alloc MRI header \n");
+      return(NULL);
+    }
+  }
+
+  /* set the various paramters for the mri structure */
+  vol->xsize = sdfi->VolRes[0];
+  vol->ysize = sdfi->VolRes[1];
+  vol->zsize = sdfi->VolRes[2];
+  vol->x_r   = sdfi->Vc[0];
+  vol->x_a   = sdfi->Vc[1];
+  vol->x_s   = sdfi->Vc[2];
+  vol->y_r   = sdfi->Vr[0];
+  vol->y_a   = sdfi->Vr[1];
+  vol->y_s   = sdfi->Vr[2];
+  vol->z_r   = sdfi->Vs[0];
+  vol->z_a   = sdfi->Vs[1];
+  vol->z_s   = sdfi->Vs[2];
+  vol->c_r   = sdfi->VolCenter[0];
+  vol->c_a   = sdfi->VolCenter[1];
+  vol->c_s   = sdfi->VolCenter[2];
+  vol->ras_good_flag = 1;
+  vol->te    = sdfi->EchoTime;
+  vol->ti    = sdfi->InversionTime;
+  vol->flip_angle  = sdfi->FlipAngle;
+  if(! sdfi->IsMosaic )
+    vol->tr    = sdfi->RepetitionTime;
+  else
+    vol->tr    = sdfi->RepetitionTime * (sdfi->VolDim[2]+1) / 1000.0;
+
+  /* Return now if we're not loading pixel data */
+  if(!LoadVolume) {
+    free(RunList);
+    return(vol);
+  }
+
+  /* Dump info to stdout */
+  DumpSDCMFileInfo(stdout,sdfi);
+
+  /* ------- Go through each file in the Run ---------*/
+  for(nthfile = 0; nthfile < NRunList; nthfile ++){
+
+    sdfi = sdfi_list[RunList[nthfile]];
+
+    /* Get the pixel data */
+    element = GetElementFromFile(sdfi->FileName,0x7FE0,0x10);
+    if(element == NULL){
+      fprintf(stderr,"ERROR: reading pixel data from %s\n",sdfi->FileName);
+      MRIfree(&vol);
+    }
+    pixeldata = (unsigned short *)(element->d.string);
+
+    if(!IsMosaic){/*---------------------------------------------*/
+      /* It's not a mosaic -- load rows and cols from pixel data */
+      if(nthfile == 0){
+  frame = 0;
+  slice = 0;
+      }
+#ifdef _DEBUG      
+      printf("%3d %3d %3d %s \n",nthfile,slice,frame,sdfi->FileName);
+#endif
+      for(row=0; row < nrows; row++){
+  for(col=0; col < ncols; col++){
+    MRISseq_vox(vol,col,row,slice,frame) = *(pixeldata++);
+  }
+      }
+      frame ++;
+      if(frame >= nframes){
+  frame = 0;
+  slice ++;
+      }
+    }
+    else{/*---------------------------------------------*/
+      /* It is a mosaic -- load entire volume for this frame from pixel data */
+      frame = nthfile;
+      nmoscols = sdfi->NImageCols;
+      nmosrows = sdfi->NImageRows;
+      for(row=0; row < nrows; row++){
+  for(col=0; col < ncols; col++){
+    for(slice=0; slice < nslices; slice++){
+      /* compute the mosaic col and row from the volume
+         col, row , and slice */
+      err = VolSS2MosSS(col, row, slice, 
+            ncols, nrows, 
+            nmoscols, nmosrows,
+            &moscol, &mosrow, &OutOfBounds);
+      if(err || OutOfBounds){
+        FreeElementData(element);
+        free(element);
+        free(RunList);
+        MRIfree(&vol);
+        exit(1);
+      }
+      /* Compute the linear index into the block of pixel data */
+      mosindex = moscol + mosrow * nmoscols;
+      MRISseq_vox(vol,col,row,slice,frame) = *(pixeldata + mosindex);
+    }
+  }
+      }
+    }
+    
+    FreeElementData(element);
+    free(element);
+
+  }/* for nthfile */
+
+  free(RunList);
+
+  return(vol);
+}
+#endif
