@@ -14,7 +14,7 @@
 #include "macros.h"
 #include "fio.h"
 
-static char vcid[] = "$Id: mris_anatomical_stats.c,v 1.2 1998/11/05 21:17:46 fischl Exp $";
+static char vcid[] = "$Id: mris_anatomical_stats.c,v 1.3 1999/01/29 22:57:19 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -42,6 +42,7 @@ static float ignore_above = 20 ;
 
 static char *label_name = NULL ;
 static char *annotation_name = NULL ;
+static char *thickness_name = "thickness" ;
 
 int
 main(int argc, char *argv[])
@@ -121,7 +122,7 @@ main(int argc, char *argv[])
   fprintf(stderr, "reading pial surface position from %s...\n", fname) ;
   MRISreadVertexPositions(mris, fname) ;
 #else
-  MRISreadCurvatureFile(mris, "thickness") ;
+  MRISreadCurvatureFile(mris, thickness_name) ;
   
 #endif
 
@@ -175,7 +176,8 @@ main(int argc, char *argv[])
     fprintf(stdout, "total gray matter volume                = %2.0f mm^3\n", 
             gray_volume) ;
     
-    fprintf(stdout, "average cortical thickness              = %2.3f mm +- %2.3f mm\n",
+    fprintf(stdout, 
+          "average cortical thickness              = %2.3f mm +- %2.3f mm\n",
             thickness_mean, sqrt(thickness_var)) ;
     
     MRISuseMeanCurvature(mris) ;
@@ -220,6 +222,11 @@ get_option(int argc, char *argv[])
     print_version() ;
   else switch (toupper(*option))
   {
+  case 'T':
+    thickness_name = argv[2] ;
+    nargs = 1 ;
+    fprintf(stderr, "using thickness file %s.\n", thickness_name) ;
+    break ;
   case 'L':
     label_name = argv[2] ;
     nargs = 1 ;
@@ -281,6 +288,9 @@ print_help(void)
   fprintf(stderr,
           "-l <label file>              - limit calculations to specified "
           "label\n") ;
+  fprintf(stderr,
+          "-t <thickness file>          - use specified file for computing "
+          "thickness statistics\n") ;
   fprintf(stderr,
           "-a <annotation file>         - compute properties for each label\n"
           "                               in the annotation file separately"
