@@ -13,8 +13,8 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/05/28 17:32:24 $
-// Revision       : $Revision: 1.36 $
+// Revision Date  : $Date: 2004/06/01 14:30:38 $
+// Revision       : $Revision: 1.37 $
 
 ------------------------------------------------------------------------*/
 
@@ -1047,7 +1047,21 @@ int getMemoryUsed()
   char buf[256];
   int memused = 0;
   int numassigned = 0;
-  sprintf(buf, "grep -i vmdata /proc/%d/status | cut -f 2", getPid());
+  static int used = 0;
+
+  // get pid
+  int pid = getPid();
+  if (pid == -1) 
+  {
+    if (!used)
+    {
+      fprintf(stderr, "failed to get pid\n");
+      used = 1;
+    }
+    return -1; // failed
+  }
+  // get the memory used for this pid
+  sprintf(buf, "grep -i vmdata /proc/%d/status | cut -f 2", pid);
   errno = 0;
   fp = popen(buf, "r");
   if (fp)
@@ -1074,7 +1088,6 @@ int getMemoryUsed()
   }
   return -1;  // this should never happen
 #else
-  static used = 0;
   if (!used)
   {
     fprintf("getMemoryUsed works only under Linux\n");
