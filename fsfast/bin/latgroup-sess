@@ -1,0 +1,558 @@
+#!/bin/csh -f
+# latgrinder-sess
+#
+set VERSION = '$Id: latgroup-sess,v 1.1 2004/06/07 00:15:11 greve Exp $';
+
+set inputargs = ($argv);
+
+set analysis = ();
+set hemi     = ();
+set ActConds  = ();
+set CtrlConds = ();
+set latdir   = ();
+set instem   = latm;
+set outstem  = ();
+set targetsubject = margaret
+set GroupDesMat = ();
+set synth = 0;
+
+set MLF = ();
+set monly = 0;
+set PrintHelp = 0;
+set DateStr = "`date '+%y%m%d%H%M%S'`"
+
+if($#argv == 0)  goto usage_exit;
+set n = `echo $argv | grep version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;  
+  goto usage_exit;
+endif
+
+set SessList = `getsesspath $inputargs`;
+if($status || $#SessList == 0) then
+  echo "ERROR: finding sessions"
+  echo "       $SessList" 
+  exit 1;
+endif
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+## Get functional subdirectory from the info file ##
+set infofile = $analysis/analysis.info
+set cfgfile = $analysis/analysis.cfg
+if(! -e $infofile) then
+  echo "ERROR: cannot find $infofile" 
+  exit 1;
+endif
+set fsd = `cat $infofile | awk '{if($1 == "fsd") print $2}'`;
+set designtype = `cat $infofile | awk '{if($1 == "designtype") print $2}'`;
+set spmhrf = `cat $cfgfile | awk '{if($1 == "-spmhrf") print $2}'`;
+if($#spmhrf == 0) then
+  echo "ERROR: analysis must use spmhrf"
+  exit 1;
+endif
+if($spmhrf != 1) then
+  echo "ERROR: spmhrf must have one derivative"
+  exit 1;
+endif
+
+# Make sure each input is there
+echo latdir $latdir
+foreach sess ($SessList)
+  set inpath = $sess/$fsd/$analysis/$latdir/$instem-average7-$hemi.mgh
+  if(! -e $inpath) then
+    echo "ERROR: cannot find $inpath"
+    exit 1;
+  endif
+end
+
+##### Create a log file ######
+set LF = $outstem-$targetsubject-$hemi.log
+if(-e $LF) mv $LF $LF.old
+
+echo "--------------------------------------------------------------"
+echo "latgroup-sess logfile is $LF"
+echo "--------------------------------------------------------------"
+
+echo "latgroup-sess log file" >> $LF
+echo $VERSION >> $LF
+id            >> $LF
+pwd           >> $LF
+echo $0     >> $LF
+echo $inputargs  >> $LF
+uname -a      >> $LF
+date          >> $LF
+
+echo $SessList >> $LF
+
+if(! $monly) set MLF = /tmp/latgroup-sess-$$.m
+echo MLF is $MLF | tee -a $LF
+rm -f $MLF
+
+set okfile = /tmp/latgroup-sess-$$.ok
+rm -f $okfile
+
+set matfile = $outstem-$targetsubject-$hemi.mat
+rm -f $matfile
+
+#--------------------------------------------------------------#
+tee $MLF > /dev/null <<EOF
+tic;
+SessList = splitstring('$SessList');
+fsd      = '$fsd';
+analysis = '$analysis';
+latdir   = '$latdir';
+instem   = '$instem';
+hemi     = '$hemi';
+outstem  = '$outstem';
+ActConds  = [$ActConds];
+CtrlConds = [$CtrlConds];
+GroupDesMat = '$GroupDesMat';
+matfile = '$matfile';
+okfile = '$okfile';
+synth = $synth;
+
+nsessions = size(SessList,1);
+
+if(~isempty(GroupDesMat))
+  X = load(GroupDesMat);
+  if(isempty(X))
+    fprintf('ERROR: loading %s\n',GroupDesMat);
+    return;
+  end
+  if(size(X,1) ~= nsessions)
+    fprintf('ERROR: wrong number of inputs in GDM file\n');
+    return;
+  end
+  if(size(X,2) ~= 2)
+    fprintf('ERROR: GDM must have two columns.\n');
+    return;
+  end
+  Cgroup = [1 -1];
+else
+  X = ones(nsessions,1);
+  Cgroup = 1;
+end
+
+% Just remove 0 from Control Conditions now
+if(~isempty(CtrlConds))
+  indnz = find(CtrlConds ~= 0);
+  CtrlConds = CtrlConds(indnz);
+end
+
+tic;
+for nthsess = 1:nsessions
+  fprintf('%2d  %g\n',nthsess,toc);
+  sess = deblank(SessList(nthsess,:));
+
+  statmgh = sprintf('%s/%s/%s/%s/%s-average7-%s.mgh',...
+		    sess,fsd,analysis,latdir,instem,hemi); 
+  stat = load_mgh(statmgh);
+  if(isempty(stat))
+    fprintf('ERROR: loading %s\n',statmgh);
+    return;
+  end
+  if(strcmp(instem,'h')) stat = stat(:,:,:,5:4:end); end
+  [nr nc ns nf] = size(stat);
+
+  nv = nr*nc*ns;
+  if(nthsess == 1) 
+    ncond = nf;
+    Ccond = zeros(1,ncond);
+    Ccond(ActConds)  = 1/length(ActConds);
+    if(~isempty(CtrlConds))
+      Ccond(CtrlConds) = -1/length(CtrlConds);
+    end
+    sess_stat = zeros(nsessions,nv); 
+  end
+  
+  sess_stat(nthsess,:) = Ccond*fast_vol2mat(stat);
+end
+
+if(synth)
+  fprintf('INFO: synthesizing\n');
+  sess_stat = randn(size(sess_stat));
+end
+
+[beta, rvar, vdof] = fast_glmfitw(sess_stat,X);
+[F dof1 dof2 ces] = fast_fratiow(beta,X,rvar,Cgroup);
+Fsig = FTest(dof1, dof2, F);
+Fsig = -log10(Fsig) .* sign(ces);
+
+ces  = fast_mat2vol(ces,[nr nc ns]);
+Fsig = fast_mat2vol(Fsig,[nr nc ns]);
+
+outstemhemi = sprintf('%s-ces-%s',outstem,hemi);
+fast_svbslice(ces,outstemhemi);
+
+outstemhemi = sprintf('%s-fsig-%s',outstem,hemi);
+fast_svbslice(Fsig,outstemhemi);
+
+save(matfile,'SessList','fsd','analysis','latdir','instem',...
+     'hemi','outstem','ActConds','CtrlConds','GroupDesMat',...
+     'X','Cgroup','nr','nc','ns','nf','Ccond');
+
+fmri_touch(okfile);
+fprintf('matlab: latgroup-sess done\n');
+
+EOF
+#--------------------------------------------------------------#
+
+echo "-----------------------------------------------------"| tee -a $LF
+
+set StartTime = `date`;
+if(! $monly) then
+  cat $MLF | matlab -nojvm -nosplash -display iconic | tee -a $LF
+  rm -f $MLF
+  if(! -e $okfile) then
+    echo "ERROR: problem with matlab execution" | tee -a $LF
+    exit 1;
+  endif
+  rm -f $okfile
+endif
+
+if($monly) exit 0;
+
+set outw = $outstem-fsig-$targetsubject-$hemi.w
+set cmd = (mri_surf2surf \
+  --srcsubject average7 \
+  --srcsurfval $outstem-fsig-$hemi --src_type bfloat \
+  --trgsubject $targetsubject \
+  --trgsurfval ./$outw --trg_type paint \
+  --hemi $hemi)
+echo "--------------------------------------------------" | tee -a $LF
+echo $SUBJECTS_DIR | tee -a $LF
+pwd | tee -a $LF
+echo $cmd | tee -a $LF
+$cmd | tee -a $LF
+if($status) then
+  echo "ERROR: mri_surf2surf failed"
+  exit 1;
+endif
+rm $outstem-fsig-$hemi"_"???.*
+rm $outstem-fsig-$hemi.bhdr
+
+set outw = $outstem-ces-$targetsubject-$hemi.w
+set cmd = (mri_surf2surf \
+  --srcsubject average7 \
+  --srcsurfval $outstem-ces-$hemi --src_type bfloat \
+  --trgsubject $targetsubject \
+  --trgsurfval ./$outw --trg_type paint \
+  --hemi $hemi)
+echo "--------------------------------------------------" | tee -a $LF
+echo $SUBJECTS_DIR | tee -a $LF
+pwd | tee -a $LF
+echo $cmd | tee -a $LF
+$cmd | tee -a $LF
+if($status) then
+  echo "ERROR: mri_surf2surf failed"
+  exit 1;
+endif
+rm $outstem-ces-$hemi"_"???.*
+rm $outstem-ces-$hemi.bhdr
+
+
+echo "" | tee -a $LF
+echo "" | tee -a $LF
+echo "Started at $StartTime" | tee -a $LF
+echo "Ended   at `date`"     | tee -a $LF
+echo "latgroup-sess completed" | tee -a $LF
+echo " "
+echo " "
+
+exit 0;
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-a":
+    case "-analysis":
+      if ( $#argv == 0) goto arg1err;
+      set analysis = $argv[1]; shift;
+      breaksw
+
+    case "-ca":
+      if ( $#argv == 0) goto arg1err;
+      set ActConds = ($ActConds $argv[1]); shift;
+      breaksw
+
+    case "-cc":
+      if ( $#argv == 0) goto arg1err;
+      set CtrlConds = ($CtrlConds $argv[1]); shift;
+      breaksw
+
+    case "-latdir":
+      if ( $#argv == 0) goto arg1err;
+      set latdir = $argv[1]; shift;
+      breaksw
+
+    case "-hemi":
+      if ( $#argv == 0) goto arg1err;
+      set hemi = $argv[1]; shift;
+      breaksw
+
+    case "-instem":
+      if ( $#argv == 0) goto arg1err;
+      set instem = $argv[1]; shift;
+      breaksw
+
+    case "-gdm":
+      if ( $#argv == 0) goto arg1err;
+      set GroupDesMat = $argv[1]; shift;
+      if(! -e $GroupDesMat) then
+        echo "ERROR: cannot find $GroupDesMat"
+        exit 1;
+      endif
+      breaksw
+
+    case "-o":
+      if ( $#argv == 0) goto arg1err;
+      set outstem = $argv[1]; shift;
+      breaksw
+
+    case "-targ":
+      if ( $#argv == 0) goto arg1err;
+      set targetsubject = $argv[1]; shift;
+      breaksw
+
+    case "-synth":
+      set synth = 1;
+      breaksw
+
+    case "-monly":
+      if ( $#argv == 0) goto arg1err;
+      set MLF = $argv[1]; shift;
+      set monly = 1;
+      breaksw
+
+    case "-umask":
+      if ( $#argv == 0) goto arg1err;
+      umask $argv[1]; shift;
+      breaksw
+
+    case "-debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    case "-cwd":
+      breaksw
+
+    case "-g":
+    case "-s":
+    case "-sf":
+    case "-df":
+    case "-d":
+      # ignore getsesspath arguments 
+      shift;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+  set errs = 0;
+
+  if($#analysis == 0) then
+    echo "ERROR: no analysis specified"
+    set errs = 1;
+  endif
+
+  if($#latdir == 0) then
+    echo "ERROR: no latency directory specified"
+    set errs = 1;
+  endif
+
+  if($#hemi == 0) then
+    echo "ERROR: no hemi specified"
+    set errs = 1;
+  endif
+
+  if($#ActConds == 0) then
+    echo "ERROR: no active conditions specified"
+    set errs = 1;
+  endif
+
+  if($#outstem == 0) then
+    echo "ERROR: no output specified"
+    set errs = 1;
+  endif
+
+  set outdir = `dirname $outstem`;
+  mkdir -p $outdir
+
+  if($errs) exit 1;
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo " "
+  echo "USAGE: latgroup-sess"
+  echo ""
+  echo "   -a analysis : session-level functional analysis name"
+  echo "   -ca A1 <-ca A2> : active condition in condition contrast"
+  echo "   -cc C1 <-cc C2> : control condition in condition contrast"
+  echo "   -latdir latdir  : latency contrast directory"
+  echo "   -hemi hemi : lh or rh"
+  echo "   -instem instem : default is latm"
+  echo "   -o outstem : output will be outstem-fsig-targsubj-?h.w"
+  echo "   -targ targetsubject : default is $targetsubject"
+  echo "   -gdm gdmfile : group design matrix file"
+  echo ""
+  echo "   -sf sessidfile  ..."
+  echo "   -df srchdirfile ..."
+  echo "   -s  sessid      ..."
+  echo "   -d  srchdir     ..."
+  echo ""
+  echo "   -help"
+  echo "   -umask umask   : set unix file permission mask"
+  echo "   -version       : print version and exit"
+  echo " "
+
+  if(! $PrintHelp ) exit 1;
+
+  echo " "
+  echo "$VERSION "
+  echo " "
+
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+Group and intergroup analysis using the results of first-level latency 
+analysis (see latgrinder-sess).
+
+-a analysis
+
+Name of the first-level latency analysis as created by mkanalysis-sess
+
+-ca A1 <-ca A2>
+
+Active conditions in the condition contrast. At least one active
+condition must be specified.
+
+-cc C1 <-cc C2>
+
+Control conditions in the condition contrast. If no control conditions
+are specified, then baseline (ie, 0) is assumed.
+
+-latdir latdir
+
+Latency contrast directory as specified in latgrinder-sess.
+
+-instem instem
+
+Stem to use as input to the group/intergroup analysis. Default is latm.
+Other possibilties include h and lat. latm will perform the analysis 
+on the masked latency. h will perform the analysis on the average
+hemodynamic response. In this case, the results should look similar
+to using isxavg-re-sess and intergroupavg-sess.
+
+-o outstem
+
+Output stem. The results will be stored as outstem-fsig-targsubj-?h.w
+and outstem-ces-targsubj-?h.w. fsig is the significance and ces
+is the contrast effects size. The sign of fsig will be based on ces.
+
+-targ targetsubject
+
+Render results on targetsubject.
+
+-gdm gdmfile
+
+Group design matrix (GDM) file. This is the matrix that assigns group 
+membership. Each row corresponds to a different session. The order
+of the rows corresponds to the order of the sessions as listed in
+the -sf file(s). Each column in the matrix corresponds to a group.
+Currently, only two columns (groups) are allowed. The values in
+the matrix must be either 1 or 0 and code group membership, ie,
+if the subject belongs to a group, then the group column for that
+subject should be 1 and all other columns should be 0. If no gdm
+file is specified, then it is assumed that all subjects belong
+to the same group. 
+
+Example:  if the -sf file looks like:
+
+fred
+margaret
+ziggy
+marcus
+
+and the GDM file looked like:
+
+1 0
+1 0
+0 1
+0 1
+
+Then fred and margaret belong to Group1 and ziggy and marcus 
+belong to Group2.
+
+
+HOW IT WORKS
+
+When the results from latgrinder-sess are initially read in, there
+will be a value at each voxel for each condition. These values are
+distilled down to one value by computing a weighted average of the
+values. The weights are determined by the CONDITION CONTRAST.  The
+values for the CONTROL CONDITIONS are averaged together and subtracted
+from the values for the ACTIVE CONDITIONS. This gives one value at
+each voxel for each subject. This value is referred to as the
+CONDITION CONTRAST (CC).
+
+When a GDM file is specified, then there will be two groups. The
+CCs for each group are averaged separately, and then Group2 is
+subtracted from Group1 to obtain the CONTRAST EFFECT SIZE (CES):
+
+  CES = CCGroup1 - CCGroup2
+
+This is what is stored in the outstem-ces-targsubj-?h.w file. The
+significance of this difference is also computed and stored in
+outstem-fsig-targsubj-?h.w file. Positive values indicate that
+CCGroup1 > CCGroup2.
+
+IF a GDM file is not used, then all subjects are assumed to be
+in Group1, and CCGroup2=0.
+
+
+There are two other files created: outstem-ces-targsubj-?h.log
+and outstem-ces-targsubj-?h.mat. These are just their for
+bookkeeping purposes.
+
+
