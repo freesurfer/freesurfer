@@ -67,14 +67,13 @@
 **			The stack is maintained as a simple stack array.  If
 **			it overflows, we dump the stack to stdout and reset it.
 **
-** Last Update:		$Author: tosa $, $Date: 2004/06/22 14:33:46 $
+** Last Update:		$Author: tosa $, $Date: 2004/06/23 14:04:20 $
 ** Source File:		$RCSfile: condition.c,v $
-** Revision:		$Revision: 1.5 $
+** Revision:		$Revision: 1.6 $
 ** Status:		$State: Exp $
 */
 
-static char rcsid[] = "$Revision: 1.5 $ $RCSfile: condition.c,v $";
-
+char rcsid[] = "$Revision: 1.6 $ $RCSfile: condition.c,v $";
 
 /*
 **
@@ -556,3 +555,4 @@ COND_WriteConditions(FILE * lfp)
     }
 #endif
 }
+
