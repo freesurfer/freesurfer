@@ -3,8 +3,8 @@
 //
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Date  : $Date: 2004/06/30 19:05:55 $
-// Revision       : $Revision: 1.51 $
+// Revision Date  : $Date: 2004/07/20 15:50:15 $
+// Revision       : $Revision: 1.52 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -27,6 +27,10 @@
 #include "mri.h"
 #include "tags.h"
 #include "utils.h"
+
+#if WITH_DMALLOC
+#include <dmalloc.h>
+#endif
 
 #define GCAM_VERSION   1.0
 #define MIN_STD (2.0)
