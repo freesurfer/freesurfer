@@ -19,13 +19,15 @@ char         *Progname ;
 static MORPH_PARMS  parms ;
 
 static int get_option(int argc, char *argv[]) ;
-static LTA  *register_mri(MRI *mri_in, MRI *mri_ref) ;
+static LTA  *register_mri(MRI *mri_in, MRI *mri_ref, MORPH_PARMS *parms) ;
 static unsigned char thresh_low = 90 ;
 static unsigned char thresh_hi = 120 ;
 char *FileNameRemoveExtension(char *in_fname, char *out_fname) ;
+static int  MRIsetFrame(MRI *mri, int frame, float val) ;
 
 static int linear = 0 ;
 static char *transform_fname = NULL ;
+static int unit_variance = 1 ;
 
 /* 
    command line consists of three inputs:
@@ -44,19 +46,18 @@ main(int argc, char *argv[])
   int          msec, minutes, seconds ;
   struct timeb start ;
   MORPH_3D     *m3d ;
-  MRI          *mri_in_reduced, *mri_ref_reduced/*, *mri_reg*/ ;
+  MRI          *mri_in_reduced, *mri_ref_reduced ;
 
   parms.niterations = 100 ;
-  parms.l_intensity = 0.05 ;
+  parms.l_intensity = 1.0 ;
   parms.levels = -1 ;   /* use default */
   parms.l_dist = 1.0 ; 
-  parms.l_area = 0.00 ;
+  parms.l_area = 0.05 ;
   parms.l_nlarea = 100 ;
-  parms.sigma = 8 ;
-  parms.dt = 5 ;
-  parms.tol = 0.2 /*1.5e-2*/ ;
-  parms.navgs = 64 ;
-  parms.exp_k = 10.0 ;
+  parms.sigma = 4 ;
+  parms.dt = .25 ;
+  parms.tol = 0.1 /*1.5e-2*/ ;
+  parms.exp_k = 25.0 ;
   Progname = argv[0] ;
 
   DiagInit(NULL, NULL, NULL) ;
@@ -97,6 +98,8 @@ main(int argc, char *argv[])
   if (!mri_ref)
     ErrorExit(ERROR_NOFILE, "%s: could not open reference volume %s.\n",
               Progname, ref_fname) ;
+  if (unit_variance)
+    MRIsetFrame(mri_ref, 1, 1.0) ;
 #if 0
   if (mri_ref->nframes > 2)
     MRIfreeFrames(mri_ref, 2) ;
@@ -115,56 +118,49 @@ main(int argc, char *argv[])
 
   if (linear || !parms.lta)    /* find optimal linear transformation */
   {
+    MRI *mri_in_red, *mri_ref_red ;
+    char fname[100], *cp ;
+
+    mri_in_red = MRIcopy(mri_in_reduced, NULL) ;
+    mri_ref_red = MRIcopy(mri_ref_reduced, NULL) ;
     fprintf(stderr, "computing optimal linear transformation...\n") ;
-    parms.lta = register_mri(mri_in, mri_ref) ;
-    
-    fprintf(stderr, "writing output transformation to %s...\n", out_fname) ;
-    LTAwrite(parms.lta, out_fname) ;
+    parms.lta = register_mri(mri_in_red, mri_ref_red, &parms) ;
+    MRIfree(&mri_in_red) ; MRIfree(&mri_ref_red) ;
+    strcpy(fname, out_fname) ;
+    cp = strrchr(fname, '.') ;
+    if (!cp)
+      cp = fname+strlen(fname) ;
+    strcpy(cp, ".lta") ;
+    fprintf(stderr, "writing output transformation to %s...\n", fname) ;
+    LTAwrite(parms.lta, fname) ;
   }
 
 #if 1
   if (mri_in->width > 128)
   {
     mri_in_reduced = MRIreduceByte(mri_in, NULL) ;
-    MRIfree(&mri_in) ;
+    /*    MRIfree(&mri_in) ;*/
   }
   else
     mri_in_reduced = mri_in ;
   if (mri_ref->width > 128)
   {
     mri_ref_reduced = MRIreduceMeanAndStdByte(mri_ref, NULL) ;
-    MRIfree(&mri_ref) ;
+    /*    MRIfree(&mri_ref) ;*/
   }
   else
     mri_ref_reduced = mri_ref ;
 
+  parms.mri_ref = mri_ref ; parms.mri_in = mri_in ;
   m3d = MRI3Dmorph(mri_in_reduced, mri_ref_reduced, &parms) ;
-  MRIfree(&mri_ref_reduced) ;
-  MRIfree(&mri_in_reduced) ;
+  MRIfree(&mri_ref_reduced) ; MRIfree(&mri_in_reduced) ;
 #else
   m3d = MRI3Dmorph(mri_in, mri_ref, &parms) ;
 #endif
 
-#if 1
   if (Gdiag & DIAG_SHOW)
     fprintf(stderr, "writing 3d morph transform to %s...\n", out_fname) ;
   MRI3Dwrite(m3d, out_fname) ;
-#else
-  if (Gdiag & DIAG_SHOW)
-    fprintf(stderr, "applying 3d morph...\n") ;
-  mri_reg = MRIapply3DMorph(mri_in, mri_ref, m3d, NULL) ;
-  
-  fprintf(stderr, "writing transformed volume to %s...\n", out_fname) ;
-  MRI3DmorphFree(&m3d) ;
-  MRIwrite(mri_reg, out_fname) ;
-
-  if (mri_reg)
-    MRIfree(&mri_reg) ;
-  if (mri_ref)
-    MRIfree(&mri_ref) ;
-  if (mri_in)
-    MRIfree(&mri_in) ;
-#endif
   LTAfree(&parms.lta) ;
   msec = TimerStop(&start) ;
   seconds = nint((float)msec/1000.0f) ;
@@ -201,11 +197,28 @@ get_option(int argc, char *argv[])
     nargs = 1 ;
     fprintf(stderr, "l_dist = %2.2f\n", parms.l_dist) ;
   }
+  else if (!strcmp(option, "COMP") || !strcmp(option, "COMPRESS") || 
+           !strcmp(option, "COMPRESSION"))
+  {
+    parms.l_compression = atof(argv[2]) ;
+    nargs = 1 ;
+    fprintf(stderr, "l_compression = %2.2f\n", parms.l_compression) ;
+  }
   else if (!strcmp(option, "DT"))
   {
     parms.dt = atof(argv[2]) ;
     nargs = 1 ;
     fprintf(stderr, "dt = %2.2e\n", parms.dt) ;
+  }
+  else if (!strcmp(option, "NOVAR"))
+  {
+    unit_variance = 1 ;
+    fprintf(stderr, "disabling use of variance in morph\n") ;
+  }
+  else if (!strcmp(option, "USEVAR"))
+  {
+    unit_variance = 0 ;
+    fprintf(stderr, "enabling use of variance in morph\n") ;
   }
   else if (!strcmp(option, "AREA"))
   {
@@ -218,6 +231,12 @@ get_option(int argc, char *argv[])
     parms.l_nlarea = atof(argv[2]) ;
     nargs = 1 ;
     fprintf(stderr, "l_nlarea = %2.2f\n", parms.l_nlarea) ;
+  }
+  else if (!strcmp(option, "NLDIST"))
+  {
+    parms.l_nldist = atof(argv[2]) ;
+    nargs = 1 ;
+    fprintf(stderr, "l_nldist = %2.2f\n", parms.l_nldist) ;
   }
   else if (!strcmp(option, "LEVELS"))
   {
@@ -313,27 +332,27 @@ get_option(int argc, char *argv[])
 }
 
 static LTA *
-register_mri(MRI *mri_in, MRI *mri_ref)
+register_mri(MRI *mri_in, MRI *mri_ref, MORPH_PARMS *parms)
 {
-  MORPH_PARMS parms ;
-  int         wi = parms.write_iterations ;
+  MORPH_PARMS lparms ;
 
-  memset(&parms, 0, sizeof(parms)) ;
-  parms.write_iterations = wi ;
-  parms.mri_ref = mri_ref ; parms.mri_in = mri_in ;
-  parms.dt = 5e-6 ; parms.tol = 1e-2 ; parms.niterations = 10 ;
-  parms.l_intensity = 1.0f ;
-  parms.lta = LTAalloc(1, mri_in) ;
-  if (MRIremoveNeck(mri_ref, mri_ref, thresh_low, thresh_hi, &parms, 1) == 
-      NULL)
+  memset(&lparms, 0, sizeof(lparms)) ;
+  lparms.write_iterations = parms->write_iterations ;
+  lparms.mri_ref = mri_ref ; lparms.mri_in = mri_in ;
+  lparms.dt = 5e-6 ; lparms.tol = 1e-3 ; lparms.niterations = 25 ;
+  lparms.momentum = 0.8 ;
+  lparms.l_intensity = 1.0f ;
+  lparms.lta = LTAalloc(1, mri_in) ;
+  if (MRIfindNeck(mri_ref, mri_ref, thresh_low, thresh_hi, &lparms, 1, 
+                  &lparms.ref_np) == NULL)
     ErrorExit(ERROR_BADPARM, "%s: registration failed", Progname) ;
-  if (MRIremoveNeck(mri_in, mri_in, thresh_low, thresh_hi, &parms, -1)  == 
-      NULL)
+  if (MRIfindNeck(mri_in, mri_in, thresh_low, thresh_hi, &lparms, 
+                  -1,&lparms.in_np)  == NULL)
     ErrorExit(ERROR_BADPARM, "%s: registration failed", Progname) ;
 
-  MRIlinearAlign(mri_in, mri_ref, &parms) ;
+  MRIlinearAlign(mri_in, mri_ref, &lparms) ;
 
-  return(parms.lta) ;
+  return(lparms.lta) ;
 }
 char *
 FileNameRemoveExtension(char *in_fname, char *out_fname)
@@ -348,3 +367,24 @@ FileNameRemoveExtension(char *in_fname, char *out_fname)
   return(out_fname) ;
 }
 
+static int
+MRIsetFrame(MRI *mri, int frame, float val)
+{
+  int     width, height, depth, x, y, z ;
+  BUFTYPE *psrc ;
+  
+  width = mri->width ; height = mri->height ; depth = mri->depth ;
+
+  for (z = 0 ; z < depth ; z++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      psrc = &MRIseq_vox(mri, 0, y, z, frame) ;
+      for (x = 0 ; x < width ; x++)
+      {
+        *psrc++ = val ;
+      }
+    }
+  }
+  return(NO_ERROR) ;
+}
