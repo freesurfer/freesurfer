@@ -636,6 +636,7 @@ int  MRISbuildFileName(MRI_SURFACE *mris, char *sname, char *fname) ;
 int  MRISsmoothSurfaceNormals(MRI_SURFACE *mris, int niter) ;
 int  MRISsoapBubbleVals(MRI_SURFACE *mris, int niter) ;
 int  MRISreadBinaryAreas(MRI_SURFACE *mris, char *mris_fname) ;
+int  MRISwriteAreaErrorToValFile(MRI_SURFACE *mris, char *name) ;
 
 #define MRIS_BINARY_QUADRANGLE_FILE    0    /* homegrown */
 #define MRIS_ASCII_QUADRANGLE_FILE     1    /* homegrown */

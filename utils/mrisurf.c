@@ -6078,14 +6078,16 @@ MRISrotate(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst,
         Description
 ------------------------------------------------------*/
 int
-MRISwriteAreaError(MRI_SURFACE *mris, char *fname)
+MRISwriteAreaError(MRI_SURFACE *mris, char *name)
 {
-  int    vno, fno, i, n ;
+  int    vno, fno, i ;
   float  area, orig_area ;
   FACE   *face ;
   VERTEX *vertex ;
   FILE   *fp;
+  char   fname[200] ;
   
+  MRISbuildFileName(mris, name, fname) ;
   if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
     fprintf(stderr, "writing area error file %s...", fname) ;
 
@@ -6106,19 +6108,58 @@ MRISwriteAreaError(MRI_SURFACE *mris, char *fname)
        this is not really correct, but should be good enough for
        visualization purposes.
        */
-    for (n = fno = 0 ; fno < vertex->num ; fno++)
+    for (fno = 0 ; fno < vertex->num ; fno++)
     {
       face = &mris->faces[vertex->f[fno]] ;
       area += face->area ;
       orig_area += face->orig_area ;
     }
-    i = nint((area-orig_area) * 100.0f / (float)n) ;
+    i = nint((area-orig_area) * 100.0f / (float)(vertex->num)) ;
     fwrite2((int)i,fp);
   }
   fclose(fp);
   if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
     fprintf(stderr, "done.\n") ;
 
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+int
+MRISwriteAreaErrorToValFile(MRI_SURFACE *mris, char *name)
+{
+  int    vno, fno, i ;
+  float  area, orig_area ;
+  FACE   *face ;
+  VERTEX *v ;
+  
+  for (vno = 0 ; vno < mris->nvertices; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+
+    area = orig_area = 0.0f ;
+
+    /* use average area of all faces this vertex is part of -
+       this is not really correct, but should be good enough for
+       visualization purposes.
+       */
+    for (fno = 0 ; fno < v->num ; fno++)
+    {
+      face = &mris->faces[v->f[fno]] ;
+      area += face->area ;
+      orig_area += face->orig_area ;
+    }
+    v->val = (area-orig_area) / (float)(v->num) ;
+  }
+
+  MRISwriteValues(mris, name) ;
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
@@ -6365,6 +6406,9 @@ MRISwriteValues(MRI_SURFACE *mris, char *sname)
   FILE *fp;
   double sum=0,sum2=0,max= -1000,min=1000;
 
+#if 1
+  MRISbuildFileName(mris, sname, fname) ;
+#else
   cp = strchr(sname, '/') ;
   if (!cp)                 /* no path - use same one as mris was read from */
   {
@@ -6387,6 +6431,7 @@ MRISwriteValues(MRI_SURFACE *mris, char *sname)
     else
       sprintf(fname, "%s/%s", path, name) ;
   }
+#endif
   cp = strrchr(fname, '.') ;
   if (!cp || *(cp+1) != 'w')
     strcat(fname, ".w") ;
@@ -10697,7 +10742,8 @@ MRISreadVertexPositions(MRI_SURFACE *mris, char *name)
   if (!fp)
     ErrorReturn(ERROR_NOFILE,
                 (ERROR_NOFILE,
-                 "MRISreadVertexPosition(%s): could not open file", name));
+                 "MRISreadVertexPosition(%s): could not open file %s", 
+                 name, fname));
 
   fread3(&magic, fp) ;
   if (magic == QUAD_FILE_MAGIC_NUMBER) 
@@ -16172,14 +16218,15 @@ mrisRemoveNeighborGradientComponent(MRI_SURFACE *mris, int vno)
 int
 MRISbuildFileName(MRI_SURFACE *mris, char *sname, char *fname)
 {
-  char   *cp, path[200] ;
+  char   path[200], *slash, *dot ;
   
-  cp = strchr(sname, '/') ;
-  if (!cp)                 /* no path - use same one as mris was read from */
+  slash = strchr(sname, '/') ;
+  if (!slash)              /* no path - use same one as mris was read from */
   {
-    cp = strchr(sname, '.') ;
+    dot = strchr(sname, '.') ;
     FileNamePath(mris->fname, path) ;
-    if (cp)
+    if (dot && ((dot-slash) == 3) && (*(dot-1) == 'h') &&
+        (*(dot-2) == 'l' || *(dot-2) == 'r'))
       sprintf(fname, "%s/%s", path, sname) ;
     else   /* no hemisphere specified */
       sprintf(fname, "%s/%s.%s", path, 
