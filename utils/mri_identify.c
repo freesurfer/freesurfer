@@ -14,7 +14,6 @@
 #include "dicom.h"
 
 extern int errno;
-extern int IsDICOM(char *fname);
 
 #ifdef SunOS
 int stricmp(char *str1, char *str2) ;
@@ -33,8 +32,11 @@ int string_to_type(char *string)
     type = MRI_CORONAL_SLICE_DIRECTORY;
   if(strcmp(ls, "minc") == 0 || strcmp(ls, "mnc") == 0)
     type = MRI_MINC_FILE;
-  if(strcmp(ls, "spm") == 0 || strcmp(ls, "analyze") == 0)
+  if(strcmp(ls, "spm") == 0 || strcmp(ls, "analyze") == 0 ||
+     strcmp(ls, "analyze3d") == 0)
     type = MRI_ANALYZE_FILE;
+  if(strcmp(ls, "analyze4d") == 0)
+    type = MRI_ANALYZE4D_FILE;
   if(strcmp(ls, "mgh") == 0)
     type = MRI_MGH_FILE;
   if(strcmp(ls, "ge") == 0 || strcmp(ls, "genesis") == 0)
