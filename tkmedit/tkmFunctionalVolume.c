@@ -4439,43 +4439,43 @@ FunV_tErr FunV_RegisterTclCommands ( tkmFunctionalVolumeRef this,
   
   /* register all our commands. */
   Tcl_CreateCommand( pInterp, "Overlay_SaveRegistration",
-		     FunV_TclOlSaveRegistration,
+		     (Tcl_CmdProc*) FunV_TclOlSaveRegistration,
 		     (ClientData) this, (Tcl_CmdDeleteProc *) NULL );
   Tcl_CreateCommand( pInterp, "Overlay_RestoreRegistration",
-		     FunV_TclOlRestoreRegistration,
+		     (Tcl_CmdProc*) FunV_TclOlRestoreRegistration,
 		     (ClientData) this, (Tcl_CmdDeleteProc *) NULL );
   Tcl_CreateCommand( pInterp, "Overlay_SetRegistrationToIdentity",
-		     FunV_TclOlSetRegistrationToIdentity,
+		     (Tcl_CmdProc*) FunV_TclOlSetRegistrationToIdentity,
 		     (ClientData) this, (Tcl_CmdDeleteProc *) NULL );
   Tcl_CreateCommand( pInterp, "Overlay_SetTimePoint",
-		     FunV_TclOlSetTimePoint,
+		     (Tcl_CmdProc*) FunV_TclOlSetTimePoint,
 		     (ClientData) this, (Tcl_CmdDeleteProc *) NULL );
   Tcl_CreateCommand( pInterp, "Overlay_SetCondition",
-		     FunV_TclOlSetCondition,
+		     (Tcl_CmdProc*) FunV_TclOlSetCondition,
 		     (ClientData) this, (Tcl_CmdDeleteProc *) NULL );
   Tcl_CreateCommand( pInterp, "Overlay_SetDisplayFlag",
-		     FunV_TclOlSetDisplayFlag,
+		     (Tcl_CmdProc*) FunV_TclOlSetDisplayFlag,
 		     (ClientData) this, (Tcl_CmdDeleteProc *) NULL );
   Tcl_CreateCommand( pInterp, "Overlay_SetThreshold",
-		     FunV_TclOlSetThreshold,
+		     (Tcl_CmdProc*) FunV_TclOlSetThreshold,
 		     (ClientData) this, (Tcl_CmdDeleteProc *) NULL );
   Tcl_CreateCommand( pInterp, "Overlay_SetVolumeSampleType",
-		     FunV_TclOlSetSampleType,
+		     (Tcl_CmdProc*) FunV_TclOlSetSampleType,
 		     (ClientData) this, (Tcl_CmdDeleteProc *) NULL );
   Tcl_CreateCommand( pInterp, "TimeCourse_SetNumPreStimPoints",
-		     FunV_TclTCSetNumPreStimPoints,
+		     (Tcl_CmdProc*) FunV_TclTCSetNumPreStimPoints,
 		     (ClientData) this, (Tcl_CmdDeleteProc *) NULL );
   Tcl_CreateCommand( pInterp, "TimeCourse_SetTimeResolution",
-		     FunV_TclTCSetTimeResolution,
+		     (Tcl_CmdProc*) FunV_TclTCSetTimeResolution,
 		     (ClientData) this, (Tcl_CmdDeleteProc *) NULL );
   Tcl_CreateCommand( pInterp, "TimeCourse_SetDisplayFlag",
-		     FunV_TclTCSetDisplayFlag,
+		     (Tcl_CmdProc*) FunV_TclTCSetDisplayFlag,
 		     (ClientData) this, (Tcl_CmdDeleteProc *) NULL );
   Tcl_CreateCommand( pInterp, "TimeCourse_PrintSelectionRangeToFile",
-		     FunV_TclTCPrintSelectionRangeToFile,
+		     (Tcl_CmdProc*) FunV_TclTCPrintSelectionRangeToFile,
 		     (ClientData) this, (Tcl_CmdDeleteProc *) NULL );
   Tcl_CreateCommand( pInterp, "TimeCourse_PrintTimeCourseData",
-		     FunV_TclTCPrintTimeCourseData,
+		     (Tcl_CmdProc*) FunV_TclTCPrintTimeCourseData,
 		     (ClientData) this, (Tcl_CmdDeleteProc *) NULL );
   
   /* send view state for good measure */

@@ -2887,85 +2887,85 @@ MWin_tErr MWin_RegisterTclCommands ( tkmMeditWindowRef this,
 
   /* register our tcl commands */
   Tcl_CreateCommand ( ipInterp, "SetLinkedCursorFlag",
-		      MWin_TclSetLinkedCursorFlag,
+		      (Tcl_CmdProc*) MWin_TclSetLinkedCursorFlag,
 		      (ClientData) this, (Tcl_CmdDeleteProc*) NULL );
   Tcl_CreateCommand ( ipInterp, "SetCursor",
-		      MWin_TclSetCursor,
+		      (Tcl_CmdProc*) MWin_TclSetCursor,
 		      (ClientData) this, (Tcl_CmdDeleteProc*) NULL );
   Tcl_CreateCommand ( ipInterp, "SetSlice",
-		      MWin_TclSetSlice,
+		      (Tcl_CmdProc*) MWin_TclSetSlice,
 		      (ClientData) this, (Tcl_CmdDeleteProc*) NULL );
   Tcl_CreateCommand ( ipInterp, "SetOrientation",
-		      MWin_TclSetOrientation,
+		      (Tcl_CmdProc*) MWin_TclSetOrientation,
 		      (ClientData) this, (Tcl_CmdDeleteProc*) NULL );
   Tcl_CreateCommand ( ipInterp, "SetZoomLevel",
-		      MWin_TclSetZoomLevel,
+		      (Tcl_CmdProc*) MWin_TclSetZoomLevel,
 		      (ClientData) this, (Tcl_CmdDeleteProc*) NULL );
   Tcl_CreateCommand ( ipInterp, "SetZoomCenter",
-		      MWin_TclSetZoomCenter,
+		      (Tcl_CmdProc*) MWin_TclSetZoomCenter,
 		      (ClientData) this, (Tcl_CmdDeleteProc*) NULL );
   Tcl_CreateCommand ( ipInterp, "SetDisplayConfig",
-		      MWin_TclSetDisplayConfig,
+		      (Tcl_CmdProc*) MWin_TclSetDisplayConfig,
 		      (ClientData) this, (Tcl_CmdDeleteProc*) NULL );
   Tcl_CreateCommand ( ipInterp, "SetDisplayFlag",
-		      MWin_TclSetDisplayFlag,
+		      (Tcl_CmdProc*) MWin_TclSetDisplayFlag,
 		      (ClientData) this, (Tcl_CmdDeleteProc*) NULL );
   Tcl_CreateCommand ( ipInterp, "SetTool",
-		      MWin_TclSetTool,
+		      (Tcl_CmdProc*) MWin_TclSetTool,
 		      (ClientData) this, (Tcl_CmdDeleteProc*) NULL );
   Tcl_CreateCommand ( ipInterp, "SetBrushTarget",
-		      MWin_TclSetBrushTarget,
+		      (Tcl_CmdProc*) MWin_TclSetBrushTarget,
 		      (ClientData) this, (Tcl_CmdDeleteProc*) NULL );
   Tcl_CreateCommand ( ipInterp, "SetBrushShape",
-		      MWin_TclSetBrushShape,
+		      (Tcl_CmdProc*) MWin_TclSetBrushShape,
 		      (ClientData) this, (Tcl_CmdDeleteProc*) NULL );
   Tcl_CreateCommand ( ipInterp, "SetAnatomicalFillInfo",
-		      MWin_TclSetAnatomicalFillInfo,
+		      (Tcl_CmdProc*) MWin_TclSetAnatomicalFillInfo,
 		      (ClientData) this, (Tcl_CmdDeleteProc*) NULL );
   Tcl_CreateCommand ( ipInterp, "SetBrushInfo",
-		      MWin_TclSetBrushInfo,
+		      (Tcl_CmdProc*) MWin_TclSetBrushInfo,
 		      (ClientData) this, (Tcl_CmdDeleteProc*) NULL );
   Tcl_CreateCommand ( ipInterp, "SetBrushInfoToDefaults",
-		      MWin_TclSetBrushInfoToDefaults,
+		      (Tcl_CmdProc*) MWin_TclSetBrushInfoToDefaults,
 		      (ClientData) this, (Tcl_CmdDeleteProc*) NULL );
   Tcl_CreateCommand ( ipInterp, "SetCursorColor",
-		      MWin_TclSetCursorColor,
+		      (Tcl_CmdProc*) MWin_TclSetCursorColor,
 		      (ClientData) this, (Tcl_CmdDeleteProc*) NULL );
   Tcl_CreateCommand ( ipInterp, "SetCursorShape",
-		      MWin_TclSetCursorShape,
+		      (Tcl_CmdProc*) MWin_TclSetCursorShape,
 		      (ClientData) this, (Tcl_CmdDeleteProc*) NULL );
   Tcl_CreateCommand ( ipInterp, "SetSurfaceLineWidth",
-		      MWin_TclSetSurfaceLineWidth,
+		      (Tcl_CmdProc*) MWin_TclSetSurfaceLineWidth,
 		      (ClientData) this, (Tcl_CmdDeleteProc*) NULL );
   Tcl_CreateCommand ( ipInterp, "SetSurfaceLineColor",
-		      MWin_TclSetSurfaceLineColor,
+		      (Tcl_CmdProc*) MWin_TclSetSurfaceLineColor,
 		      (ClientData) this, (Tcl_CmdDeleteProc*) NULL );
   Tcl_CreateCommand ( ipInterp, "SetFloodSelectParams",
-		      MWin_TclSetFloodSelectParams,
+		      (Tcl_CmdProc*) MWin_TclSetFloodSelectParams,
 		      (ClientData) this, (Tcl_CmdDeleteProc*) NULL );
   Tcl_CreateCommand ( ipInterp, "SetSegBrushInfo",
-		      MWin_TclSetSegBrushInfo,
+		      (Tcl_CmdProc*) MWin_TclSetSegBrushInfo,
 		      (ClientData) this, (Tcl_CmdDeleteProc*) NULL );
   Tcl_CreateCommand ( ipInterp, "SetSurfaceDistanceAtCursor",
-		      MWin_TclSetSurfaceDistanceAtCursor,
+		      (Tcl_CmdProc*) MWin_TclSetSurfaceDistanceAtCursor,
 		      (ClientData) this, (Tcl_CmdDeleteProc*) NULL );
   Tcl_CreateCommand ( ipInterp, "SetCursorToCenterOfSelection",
-		      MWin_TclSetCursorToCenterOfSelectionVolume,
+		      (Tcl_CmdProc*)MWin_TclSetCursorToCenterOfSelectionVolume,
 		      (ClientData) this, (Tcl_CmdDeleteProc*) NULL );
   Tcl_CreateCommand ( ipInterp, "SmartCutAtCursor",
-		      MWin_TclSmartCutAtCursor,
+		      (Tcl_CmdProc*) MWin_TclSmartCutAtCursor,
 		      (ClientData) this, (Tcl_CmdDeleteProc*) NULL );
   Tcl_CreateCommand ( ipInterp, "AddLineToSelection",
-		      MWin_TclAddLineToSelection,
+		      (Tcl_CmdProc*) MWin_TclAddLineToSelection,
 		      (ClientData) this, (Tcl_CmdDeleteProc*) NULL );
   Tcl_CreateCommand ( ipInterp, "WriteLineToLabel",
-		      MWin_TclWriteLineToLabel,
+		      (Tcl_CmdProc*) MWin_TclWriteLineToLabel,
 		      (ClientData) this, (Tcl_CmdDeleteProc*) NULL );
   Tcl_CreateCommand ( ipInterp, "SetFuncOverlayAlpha",
-		      MWin_TclSetFuncOverlayAlpha,
+		      (Tcl_CmdProc*) MWin_TclSetFuncOverlayAlpha,
 		      (ClientData) this, (Tcl_CmdDeleteProc*) NULL );
   Tcl_CreateCommand ( ipInterp, "RedrawAll",
-		      MWin_TclRedrawAll,
+		      (Tcl_CmdProc*) MWin_TclRedrawAll,
 		      (ClientData) this, (Tcl_CmdDeleteProc*) NULL );
 
   goto cleanup;
