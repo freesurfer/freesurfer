@@ -17,7 +17,7 @@
 #include "macros.h"
 #include "oglutil.h"
 
-static char vcid[] = "$Id: oglutil.c,v 1.5 1997/12/03 21:56:31 fischl Exp $";
+static char vcid[] = "$Id: oglutil.c,v 1.6 1997/12/10 23:14:42 fischl Exp $";
 
 
 /*-------------------------------- CONSTANTS -----------------------------*/
@@ -38,7 +38,7 @@ static void load_brain_coords(float x,float y, float z, float v[]) ;
 void   OGLUsetLightingModel(float lite0, float lite1, float lite2, 
              float lite3, float newoffset) ;
 static int mrisFindMaxExtents(MRI_SURFACE *mris) ;
-static int ogluSetFOV(MRI_SURFACE *mris) ;
+static int ogluSetFOV(MRI_SURFACE *mris, double fov) ;
 
 double oglu_fov = FOV ;
 
@@ -53,7 +53,7 @@ OGLUinit(MRI_SURFACE *mris, long frame_xdim, long frame_ydim)
   glLoadIdentity();
   glMatrixMode(GL_PROJECTION);
 
-  ogluSetFOV(mris) ;
+  ogluSetFOV(mris, oglu_fov) ;
   glClearColor(0.0, 0.0, 0.0, 1.0);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   OGLUsetLightingModel(-1.0f, -1.0f, -1.0f, -1.0f, -1.0f) ;
@@ -405,12 +405,12 @@ mrisFindMaxExtents(MRI_SURFACE *mris)
 }
 
 static int
-ogluSetFOV(MRI_SURFACE *mris)
+ogluSetFOV(MRI_SURFACE *mris, double fov)
 {
   double zfov, max_dim ;
 
   mrisFindMaxExtents(mris) ;
-  oglu_fov = FOV ;
+  oglu_fov = fov ;
   if (oglu_scale)
   {
     max_dim = MAX(mris->xhi, MAX(mris->yhi, mris->zhi)) ;
@@ -453,6 +453,14 @@ int
 OGLUnoscale(void)
 {
   oglu_scale = 0 ;
+  return(NO_ERROR) ;
+}
+
+int
+OGLUsetFOV(int fov)
+{
+  OGLUnoscale() ;
+  oglu_fov = (double)fov*SCALE_FACTOR ;
   return(NO_ERROR) ;
 }
 
