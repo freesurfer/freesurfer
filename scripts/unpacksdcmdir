@@ -16,6 +16,7 @@ proc PrintUsage { } {
   puts ""
   puts "  -scanonly file : only scan the directory and put result in file"
   puts "  -nspmzeropad N : set frame number zero padding width for SPM"
+  puts "  -unpackerr     : try to unpack runs with errors"
   puts ""
   puts "  -help : print out information about how to run this program"
   puts ""
@@ -90,6 +91,12 @@ puts "     can be useful for specifying the unpacking rules and for checking"
 puts "     the error status of each run. It is not necessary to specify "
 puts "     unpacking rules (though source and target directories are still"
 puts "     necessary)."
+puts ""
+puts "  -unpackerr"
+puts ""
+puts "     Try to unpack a run even if the error flag is set. This "
+puts "     may be possible if the run was simply truncated."
+puts ""
 puts ""
 puts "SPECIFYING UNPACKING RULES:"
 puts "
@@ -329,7 +336,7 @@ puts "Douglas N. Greve, Ph.D., MGH-NMR Center"
 puts ""
 puts "VERSION"
 puts ""
-puts {$Id: unpacksdcmdir,v 1.3 2002/03/13 21:38:24 greve Exp $}
+puts {$Id: unpacksdcmdir,v 1.4 2002/03/14 23:42:40 greve Exp $}
 
 exit 1;
 
@@ -338,7 +345,7 @@ exit 1;
 #------------------------------------------------------------------#
 proc ParseCommandLine { argc argv } {
   global dicomdir targdir sortmethod cfgfile unpackcfg noexec scanonly;
-  global scanfile nspmzeropad seqcfgfile;
+  global scanfile nspmzeropad seqcfgfile unpackerr;
 
   set ntharg 0
   while  { $ntharg < $argc } {
@@ -397,10 +404,11 @@ proc ParseCommandLine { argc argv } {
         incr ntharg 1
       }
 
-      -fsfast  { set sortmethod fsfast; }
-      -generic { set sortmethod generic; }
-      -noexec  { set noexec 1; }
-      -help    { HelpExit;} 
+      -fsfast    { set sortmethod fsfast; }
+      -generic   { set sortmethod generic; }
+      -unpackerr { set unpackerr 1; }
+      -noexec    { set noexec 1; }
+      -help      { HelpExit;} 
 
       default { 
         puts "ERROR: $option unrecognized";
@@ -750,6 +758,7 @@ set sortmethod fsfast
 set noexec 0
 set scanonly 0
 set nspmzeropad 3
+set unpackerr 0
 
 if { $argc == 0 } { PrintUsage; exit 1;}
 
@@ -794,7 +803,7 @@ if [catch {open $LogFile w} LF] {
 }
 puts "INFO: Logfile is $LogFile"
 puts $LF "Log file created by unpacksdcmdir"
-puts $LF {$Id: unpacksdcmdir,v 1.3 2002/03/13 21:38:24 greve Exp $};
+puts $LF {$Id: unpacksdcmdir,v 1.4 2002/03/14 23:42:40 greve Exp $};
 puts $LF "$LogFile"
 puts $LF [pwd];
 puts $LF [exec date];
@@ -960,7 +969,7 @@ if { [info exists SeqCfgList] } {
   puts "Automatically configuring unpack ..."
   foreach Series $SeriesLeaders {
     set ErrFlag  [lindex $Series  3];
-    if { $ErrFlag } { continue; }
+    if { $ErrFlag && ! $unpackerr} { continue; }
 
     set RunNo    [lindex $Series  2];
     set Protocol [lindex $Series 12];
@@ -1049,8 +1058,18 @@ foreach runcfg $unpackcfg {
   }
 
   set Series   [GetRunSeries $RunNo $SeriesLeaders];
+
   set ErrFlag  [lindex $Series  3];
-  if { $ErrFlag } { continue; }
+  if { $ErrFlag  && ! $unpackerr } { 
+    puts $LF "INFO: this run has an error, skipping";
+    puts "INFO: this run has an error, skipping";
+    continue; 
+  }
+
+  if { $ErrFlag } { 
+    puts $LF "INFO: this run has an error, but trying anyway";
+    puts "INFO: this run has an error, but trying anyway";
+  }
 
   set DCMFile  [lindex $Series  1];
   set NRows    [lindex $Series  6];
@@ -1160,6 +1179,8 @@ puts $LF "unpacksdcmdir Done"
 
 close $LF;
 
+puts " "
+puts " "
 puts "StartTime: $StartTime"
 puts "EndTime:   [exec date]"
 puts "unpacksdcmdir Done"
