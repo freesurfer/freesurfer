@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: converts values in one volume to another volume
-  $Id: mri_vol2vol.c,v 1.2 2004/07/23 15:43:18 greve Exp $
+  $Id: mri_vol2vol.c,v 1.3 2004/08/11 23:24:06 greve Exp $
 
   Things to do:
     1. Add ability to spec output center XYZ.
@@ -38,10 +38,6 @@
 #undef X
 #endif
 
-int MRIvol2Vol(MRI *src, MRI *targ, MATRIX *Vt2s, int InterpCode, 
-	       int firstframe, int lastframe, float param);
-
-
 static int  parse_commandline(int argc, char **argv);
 static void check_options(void);
 static void print_usage(void) ;
@@ -57,7 +53,7 @@ static int istringnmatch(char *str1, char *str2, int n);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2vol.c,v 1.2 2004/07/23 15:43:18 greve Exp $";
+static char vcid[] = "$Id: mri_vol2vol.c,v 1.3 2004/08/11 23:24:06 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -280,7 +276,8 @@ int main(int argc, char **argv)
   printf("--------------------------------------------------\n");
 
   printf("INFO: resampling volume to volume\n");  
-  MRIvol2Vol(InVol,OutVol,Vt2s,interpcode,-1,-1,sinchw);
+  //MRIvol2Vol(InVol,OutVol,Vt2s,interpcode,-1,-1,sinchw);
+  MRIvol2Vol(InVol,OutVol,Vt2s,interpcode,sinchw);
   OutVol->imnr0 = 1;
   OutVol->imnr1 = OutVol->depth;
 
@@ -646,6 +643,18 @@ EXAMPLES:
                --temp func_000.bshort
                --xfm  register.dat
                --interp nearest
+
+MORE NOTES
+
+mri_vol2vol --in vol.mgh --out vol2.mgh --temp temp.mgh --xfm register.dat
+
+where vol.mgh is the targ and temp.mgh is the mov (in tkregister-speak). 
+If you want to go the other way, add --invxfm.
+
+So, vol.mgh  and temp.mgh should be in register when you run:
+
+tkregister2 --targ vol.mgh --mov temp.mgh --reg register.dat
+
 "
 "\n"
 "FORMATS\n"
@@ -666,7 +675,7 @@ EXAMPLES:
 "\n"
 "SEE ALSO \n"
 "\n"
-"mri_convert\n");
+"mri_convert, tkregister2\n");
 
   exit(1) ;
 }
@@ -844,115 +853,3 @@ static int istringnmatch(char *str1, char *str2, int n)
   if(n <= 0 && ! strcasecmp(str1,str2)) return(1);
   return(0);
 }
-
-/*---------------------------------------------------------------
-  MRIvol2Vol() - samples the values of one volume into that of
-  another. Handles multiple frames. Can do nearest-neighbor,
-  trilinear, and sinc interpolation (sinc may be flaky).
-
-  Vt2s is the 4x4 matrix which converts CRS in the target to
-  CRS in the source.
-
-  InterpCode is either: SAMPLE_NEAREST, SAMPLE_TRILINEAR, or
-  SAMPLE_SINC.
-
-  If either firstframe or lastframe are less than zero, then all
-  frames are resampled. Regarless of the values of first and last
-  frame, the target volume must have the same number of frames as the
-  source volume. If a subset of frames are resampled, the only the
-  corresponding output frames are affected. Ie, if only the 3rd frame
-  is resampled, the output will go into the 3rd frame of the target
-  volume (not the first frame). The first and last frames are
-  specifiable for applications that maybe time sensative.
-
-  param is a generic parameter. For sinc, param is the hw parameter,
-  otherwise, it currently has no meaning.
-  ---------------------------------------------------------------*/
-int MRIvol2Vol(MRI *src, MRI *targ, MATRIX *Vt2s, int InterpCode, 
-	       int firstframe, int lastframe, float param)
-{
-  int   ct,  rt,  st,  f;
-  int   ics, irs, iss;
-  float fcs, frs, fss;
-  float *valvect;
-  int sinchw;
-  Real rval;
-
-  if(src->nframes != targ->nframes){
-    printf("ERROR: MRIvol2vol: source and target have different number "
-	   "of frames\n");
-    return(1);
-  }
-
-  if(firstframe < 0 || lastframe < 0){
-    firstframe = 0;
-    lastframe = src->nframes-1;
-  }
-  if(firstframe >= src->nframes){
-    printf("ERROR: MRIvol2vol: fristframe = %d exceeds number of frames\n",
-	   firstframe);
-    return(1);
-  }
-  if(lastframe >= src->nframes){
-    printf("ERROR: MRIvol2vol: lastframe = %d exceeds number of frames\n",
-	   lastframe);
-    return(1);
-  }
-
-  sinchw = nint(param);
-
-  valvect = (float *) calloc(sizeof(float),src->nframes);
-
-  for(ct=0; ct < targ->width; ct++){
-    for(rt=0; rt < targ->height; rt++){
-      for(st=0; st < targ->depth; st++){
-	
-	/* Column in source corresponding to CRS in Target */
-	fcs = Vt2s->rptr[1][1] * ct + Vt2s->rptr[1][2] * rt +
-	      Vt2s->rptr[1][3] * st + Vt2s->rptr[1][4] ;
-	ics = nint(fcs);
-	if(ics < 0 || ics >= src->width) continue;
-
-	/* Row in source corresponding to CRS in Target */
-	frs = Vt2s->rptr[2][1] * ct + Vt2s->rptr[2][2] * rt +
-	      Vt2s->rptr[2][3] * st + Vt2s->rptr[2][4] ;
-	irs = nint(frs);
-	if(irs < 0 || irs >= src->height) continue;
-
-	/* Slice in source corresponding to CRS in Target */
-	fss = Vt2s->rptr[3][1] * ct + Vt2s->rptr[3][2] * rt +
-	      Vt2s->rptr[3][3] * st + Vt2s->rptr[3][4] ;
-	iss = nint(fss);
-	if(iss < 0 || iss >= src->depth) continue;
-
-	/* Assign output volume values */
-	if(InterpCode == SAMPLE_TRILINEAR)
-	  MRIsampleSeqVolume(src, fcs, frs, fss, valvect, 
-			     firstframe, lastframe) ;
-	else{
-	  for(f=firstframe; f <= lastframe ; f++){
-	    switch(InterpCode){
-	    case SAMPLE_NEAREST:
-	      valvect[f] = MRIgetVoxVal(src,ics,irs,iss,f);
-	      break ;
-	    case SAMPLE_SINC:      /* no multi-frame */
-	      MRIsincSampleVolume(src, fcs, frs, fss, sinchw, &rval) ;
-	      valvect[f] = rval;
-	      break ;
-	    }
-	  }
-	}
-
-	for(f=0; f < src->nframes; f++)
-	  MRIsetVoxVal(targ,ct,rt,st,f,valvect[f]);
-
-      } /* target col */
-    } /* target row */
-  } /* target slice */
-
-  free(valvect);
-
-  return(0);
-}
-
-
