@@ -2,7 +2,7 @@
    DICOM 3.0 reading functions
    Author: Sebastien Gicquel and Douglas Greve
    Date: 06/04/2001
-   $Id: DICOMRead.c,v 1.39 2003/08/20 18:32:06 tosa Exp $
+   $Id: DICOMRead.c,v 1.40 2003/08/25 19:56:35 tosa Exp $
 *******************************************************/
 
 #include <stdio.h>
@@ -1156,7 +1156,7 @@ SDCMFILEINFO *GetSDCMFileInfo(char *dcmfile)
   {
     if (warn == 0)
     {
-      fprintf(stderr, "INFO: slice direction info could not be found. reconstructed.\n");
+      fprintf(stderr, "INFO: slice direction constructed from image direction cosines.\n");
       warn = 1;
     }
     /* we have x_(r,a,s) and y_(r,a,s).  z_(r,a,s) must be orthogonal to these */
