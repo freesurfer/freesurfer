@@ -4631,8 +4631,12 @@ MRIfillPlanarHoles(MRI *mri_src, MRI *mri_segment, MRI *mri_dst,
     point doesn't neighbor a non-segment voxel, turn it on.
   */
   total_filled =  0 ;
-  MRIwrite(mri_binary_strand, "binary_strand.mgh") ;
-  MRIwrite(mri_strand_border, "strand_border.mgh") ;
+  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+  {
+    fprintf(stderr, "writing binary strand and border images...\n") ;
+    MRIwrite(mri_binary_strand, "binary_strand.mgh") ;
+    MRIwrite(mri_strand_border, "strand_border.mgh") ;
+  }
   do
   {
     nfilled = 0 ;
