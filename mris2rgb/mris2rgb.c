@@ -28,7 +28,7 @@
 #include "tiff.h"
 #include "tiffio.h"
 
-static char vcid[] = "$Id: mris2rgb.c,v 1.4 1998/02/13 17:48:15 fischl Exp $";
+static char vcid[] = "$Id: mris2rgb.c,v 1.5 1998/02/13 22:53:41 fischl Exp $";
 
 /*-------------------------------- CONSTANTS -----------------------------*/
 
@@ -86,6 +86,8 @@ static float angle_offset = 0.0f ;
 static float x_angle = 0.0f ;
 static float y_angle = 0.0f ;
 static float z_angle = 0.0f ;
+
+static float scale = 1.0f ;
 
 static int current_list = ORIG_SURFACE_LIST ;
 
@@ -443,6 +445,12 @@ get_option(int argc, char *argv[])
     tiff_flag = 1;
   else switch (toupper(*option))
   {
+  case 'S':
+    scale = atof(argv[2]) ;
+    fprintf(stderr, "scaling window by %2.1f\n", scale) ;
+    frame_xdim *= scale ; frame_ydim *= scale ;
+    nargs = 1 ;
+    break ;
   case 'G':
     curvature_flag = GAUSSIAN_CURVATURE ;
     break ;
