@@ -5659,10 +5659,43 @@ MRIsampleVolumeFrame(MRI *mri,Real x,Real y,Real z,int frame,Real *pval)
       xmd * ymd * zpd * (Real)MRIFseq_vox(mri, xp, yp, zm, frame) +
       xmd * ymd * zmd * (Real)MRIFseq_vox(mri, xp, yp, zp, frame) ;
     break ;
-  default:
+   case MRI_SHORT:
+    *pval = val = 
+      xpd * ypd * zpd * (Real)MRISseq_vox(mri, xm, ym, zm, frame) +
+      xpd * ypd * zmd * (Real)MRISseq_vox(mri, xm, ym, zp, frame) +
+      xpd * ymd * zpd * (Real)MRISseq_vox(mri, xm, yp, zm, frame) +
+      xpd * ymd * zmd * (Real)MRISseq_vox(mri, xm, yp, zp, frame) +
+      xmd * ypd * zpd * (Real)MRISseq_vox(mri, xp, ym, zm, frame) +
+      xmd * ypd * zmd * (Real)MRISseq_vox(mri, xp, ym, zp, frame) +
+      xmd * ymd * zpd * (Real)MRISseq_vox(mri, xp, yp, zm, frame) +
+      xmd * ymd * zmd * (Real)MRISseq_vox(mri, xp, yp, zp, frame) ;
+    break ;
+  case MRI_INT:
+    *pval = val = 
+      xpd * ypd * zpd * (Real)MRIIseq_vox(mri, xm, ym, zm, frame) +
+      xpd * ypd * zmd * (Real)MRIIseq_vox(mri, xm, ym, zp, frame) +
+      xpd * ymd * zpd * (Real)MRIIseq_vox(mri, xm, yp, zm, frame) +
+      xpd * ymd * zmd * (Real)MRIIseq_vox(mri, xm, yp, zp, frame) +
+      xmd * ypd * zpd * (Real)MRIIseq_vox(mri, xp, ym, zm, frame) +
+      xmd * ypd * zmd * (Real)MRIIseq_vox(mri, xp, ym, zp, frame) +
+      xmd * ymd * zpd * (Real)MRIIseq_vox(mri, xp, yp, zm, frame) +
+      xmd * ymd * zmd * (Real)MRIIseq_vox(mri, xp, yp, zp, frame) ;
+    break ;
+  case MRI_LONG:
+    *pval = val = 
+      xpd * ypd * zpd * (Real)MRILseq_vox(mri, xm, ym, zm, frame) +
+      xpd * ypd * zmd * (Real)MRILseq_vox(mri, xm, ym, zp, frame) +
+      xpd * ymd * zpd * (Real)MRILseq_vox(mri, xm, yp, zm, frame) +
+      xpd * ymd * zmd * (Real)MRILseq_vox(mri, xm, yp, zp, frame) +
+      xmd * ypd * zpd * (Real)MRILseq_vox(mri, xp, ym, zm, frame) +
+      xmd * ypd * zmd * (Real)MRILseq_vox(mri, xp, ym, zp, frame) +
+      xmd * ymd * zpd * (Real)MRILseq_vox(mri, xp, yp, zm, frame) +
+      xmd * ymd * zmd * (Real)MRILseq_vox(mri, xp, yp, zp, frame) ;
+    break ;
+ default:
     ErrorReturn(ERROR_UNSUPPORTED, 
                 (ERROR_UNSUPPORTED, 
-                 "MRIsampleVolume: unsupported type %d", mri->type)) ;
+                 "MRIsampleVolumeFrame: unsupported type %d", mri->type)) ;
     break ;
   }
   return(NO_ERROR) ;
@@ -5861,6 +5894,28 @@ MRIsampleVolume(MRI *mri, Real x, Real y, Real z, Real *pval)
       xmd * ypd * zmd * (Real)MRISvox(mri, xp, ym, zp) +
       xmd * ymd * zpd * (Real)MRISvox(mri, xp, yp, zm) +
       xmd * ymd * zmd * (Real)MRISvox(mri, xp, yp, zp) ;
+    break ;
+  case MRI_INT:
+    *pval = val = 
+      xpd * ypd * zpd * (Real)MRIIvox(mri, xm, ym, zm) +
+      xpd * ypd * zmd * (Real)MRIIvox(mri, xm, ym, zp) +
+      xpd * ymd * zpd * (Real)MRIIvox(mri, xm, yp, zm) +
+      xpd * ymd * zmd * (Real)MRIIvox(mri, xm, yp, zp) +
+      xmd * ypd * zpd * (Real)MRIIvox(mri, xp, ym, zm) +
+      xmd * ypd * zmd * (Real)MRIIvox(mri, xp, ym, zp) +
+      xmd * ymd * zpd * (Real)MRIIvox(mri, xp, yp, zm) +
+      xmd * ymd * zmd * (Real)MRIIvox(mri, xp, yp, zp) ;
+    break ;
+  case MRI_LONG:
+    *pval = val = 
+      xpd * ypd * zpd * (Real)MRILvox(mri, xm, ym, zm) +
+      xpd * ypd * zmd * (Real)MRILvox(mri, xm, ym, zp) +
+      xpd * ymd * zpd * (Real)MRILvox(mri, xm, yp, zm) +
+      xpd * ymd * zmd * (Real)MRILvox(mri, xm, yp, zp) +
+      xmd * ypd * zpd * (Real)MRILvox(mri, xp, ym, zm) +
+      xmd * ypd * zmd * (Real)MRILvox(mri, xp, ym, zp) +
+      xmd * ymd * zpd * (Real)MRILvox(mri, xp, yp, zm) +
+      xmd * ymd * zmd * (Real)MRILvox(mri, xp, yp, zp) ;
     break ;
   default:
     ErrorReturn(ERROR_UNSUPPORTED, 
