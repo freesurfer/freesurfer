@@ -15,6 +15,7 @@
 #include <stdarg.h>
 #include <string.h>
 #include <errno.h>
+#include <unistd.h>
 
 #include <hips_error.h>
 
@@ -59,6 +60,9 @@ ErrorInit(char *fname,
   if (vprint)
     error_vprintf = vprint ;
 
+  unlink(error_fname) ; /* start with a fresh log file */
+
+  /* probably should be some info into log file like date/user etc... */
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
