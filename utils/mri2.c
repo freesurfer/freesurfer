@@ -1,7 +1,7 @@
 /*-------------------------------------------------------------------
   Name: mri2.c
   Author: Douglas N. Greve
-  $Id: mri2.c,v 1.2 2001/02/24 00:26:28 greve Exp $
+  $Id: mri2.c,v 1.3 2002/02/17 23:43:01 greve Exp $
   Purpose: more routines for loading, saving, and operating on MRI 
   structures.
   -------------------------------------------------------------------*/
@@ -453,3 +453,113 @@ MRI *mri_load_wfile(char *wfile)
   free(wval);
   return(w);
 }
+/*------------------------------------------------------------
+  mri_sizeof() - returns the size of the data type of the MRI
+  volume (in number of bytes).
+  ------------------------------------------------------------*/
+size_t mri_sizeof(MRI *vol)
+{
+  size_t bytes;
+
+  switch (vol->type){
+  case MRI_UCHAR:
+    bytes = sizeof(BUFTYPE) ;
+    break ;
+  case MRI_SHORT:
+    bytes = sizeof(short);
+    break;
+  case MRI_FLOAT:
+    bytes = sizeof(float) ;
+    break ;
+  case MRI_INT:
+    bytes = sizeof(int) ;
+    break ;
+  case MRI_LONG:
+    bytes = sizeof(long) ;
+    break ;
+  }
+
+  return(bytes);
+}
+/*------------------------------------------------------------
+  mri_reshape() -- 
+  ------------------------------------------------------------*/
+MRI *mri_reshape(MRI *vol, int ncols, int nrows, int nslices, int nframes)
+{
+  MRI *outvol;
+  int r,c,s,f, nv1, nv2;
+  int r2,c2,s2,f2;
+
+  if(vol->nframes == 0) vol->nframes = 1;
+
+  nv1 = vol->width * vol->height * vol->depth * vol->nframes;
+  nv2 = ncols*nrows*nslices*nframes;
+
+  if(nv1 != nv2){
+    printf("ERROR: mri_reshape: number of elements cannot change\n");
+    printf("  nv1 = %d, nv1 = %d\n",nv1,nv2);
+    return(NULL);
+  }
+
+  outvol = MRIallocSequence(ncols,nrows,nslices,vol->type,nframes);
+  if(outvol == NULL) return(NULL);
+
+  MRIcopyHeader(vol, outvol); /* does not change dimensions */
+
+  //printf("vol1: %d %d %d %d %d\n",vol->width,vol->height,
+  // vol->depth,vol->nframes,mri_sizeof(vol));
+  //printf("vol2: %d %d %d %d %d\n",outvol->width,outvol->height,
+  // outvol->depth,outvol->nframes,mri_sizeof(outvol));
+
+  c2 = 0; r2 = 0; s2 = 0; f2 = 0;
+  for(f = 0; f < vol->nframes; f++){
+    for(s = 0; s < vol->depth;   s++){
+      for(r = 0; r < vol->height;  r++){
+  for(c = 0; c < vol->width;   c++){
+
+    switch (vol->type){
+    case MRI_UCHAR:
+      MRIseq_vox(outvol,c2,r2,s2,f2) = MRIseq_vox(vol,c,r,s,f);
+      break ;
+    case MRI_SHORT:
+      MRISseq_vox(outvol,c2,r2,s2,f2) = MRISseq_vox(vol,c,r,s,f);
+      break;
+    case MRI_FLOAT:
+      MRIFseq_vox(outvol,c2,r2,s2,f2) = MRIFseq_vox(vol,c,r,s,f);
+      break ;
+    case MRI_INT:
+      MRIIseq_vox(outvol,c2,r2,s2,f2) = MRIIseq_vox(vol,c,r,s,f);
+      break ;
+    case MRI_LONG:
+      MRILseq_vox(outvol,c2,r2,s2,f2) = MRILseq_vox(vol,c,r,s,f);
+      break ;
+    }
+
+    c2++;
+    if(c2 == ncols){
+      c2 = 0; r2++;
+      if(r2 == nrows){
+        r2 = 0;  s2++;
+        if(s2 == nslices){
+    s2 = 0; f2++;
+        }
+      }
+    }
+
+  }
+      }
+    }
+  }
+
+  return(outvol);
+}
+
+
+
+
+
+
+
+
+
+
