@@ -44,7 +44,7 @@
 #include "math.h"
 #include "matrix.h"
 #include "diag.h"
-#include "anders.h"
+#include "chklc.h"
 
 #define MM_PER_METER  1000.0f
 #define INFO_FNAME    "COR-.info"
@@ -53,6 +53,7 @@
 extern void swab(const void *from, void *to, size_t n);
 #endif
 
+static MRI *mri_read(char *fname, int type, int volume_flag, int start_frame, int end_frame);
 static MRI *corRead(char *fname, int read_volume);
 static int corWrite(MRI *mri, char *fname);
 static MRI *siemensRead(char *fname, int read_volume);
@@ -80,6 +81,7 @@ static int *get_afni_int(FILE *fp, int count, char *name);
 static float *get_afni_float(FILE *fp, int count, char *name);
 static int decompose_b_fname(char *fname_passed, char *directory, char *stem);
 static int orient_with_register(MRI *mri);
+static int nan_inf_check(MRI *mri);
 
 /********************************************/
 
@@ -157,86 +159,305 @@ int mriio_set_subject_name(char *name)
 
 } /* end mriio_set_subject_name() */
 
+int MRIgetVolumeName(char *string, char *name_only)
+{
+
+  char *at, *pound;
+
+  strcpy(name_only, string);
+
+  if((at = strrchr(name_only, '@')) != NULL)
+    *at = '\0';
+
+  if((pound = strrchr(name_only, '#')) != NULL)
+    *pound = '\0';
+
+  return(NO_ERROR);
+
+} /* end MRIgetVolumeName() */
+
+static MRI *mri_read(char *fname, int type, int volume_flag, int start_frame, int end_frame)
+{
+
+  MRI *mri, *mri2;
+  char fname_copy[STRLEN];
+  char *at, *pound, *colon;
+  char *ep;
+  int i, j, k, t;
+  int volume_frames;
+
+  strcpy(fname_copy, fname);
+
+  at = strrchr(fname_copy, '@');
+  pound = strrchr(fname_copy, '#');
+
+  if(at != NULL)
+  {
+    *at = '\0';
+    at++;
+  }
+
+  if(pound != NULL)
+  {
+    *pound = '\0';
+    pound++;
+  }
+
+  if(at != NULL)
+  {
+    type = string_to_type(at);
+    if(type == MRI_VOLUME_TYPE_UNKNOWN)
+    {
+      ErrorReturn(NULL, (ERROR_BADPARM, "mri_read(): unknown type '%s'\n", at));
+    }
+  }
+  else if(type == MRI_VOLUME_TYPE_UNKNOWN)
+  {
+    type = mri_identify(fname_copy);
+    if(type == MRI_VOLUME_TYPE_UNKNOWN)
+    {
+      ErrorReturn(NULL, (ERROR_BADPARM, "mri_read(): couldn't determine type of file %s", fname_copy));
+    }
+  }
+
+  if(pound != NULL)
+  {
+    colon = strchr(pound, ':');
+    if(colon != NULL)
+    {
+      *colon = '\0';
+      colon++;
+      if(*colon == '\0')
+      {
+        ErrorReturn(NULL, (ERROR_BADPARM, "mri_read(): bad frame specification ('%s:')\n", pound));
+      }
+
+      start_frame = strtol(pound, &ep, 10);
+      if(*ep != '\0')
+      {
+        ErrorReturn(NULL, (ERROR_BADPARM, "mri_read(): bad start frame ('%s')\n", pound));
+      }
+
+      end_frame = strtol(colon, &ep, 10);
+      if(*ep != '\0')
+      {
+        ErrorReturn(NULL, (ERROR_BADPARM, "mri_read(): bad end frame ('%s')\n", colon));
+      }
+
+    }
+    else
+    {
+      start_frame = end_frame = strtol(pound, &ep, 10);
+      if(*ep != '\0')
+      {
+        ErrorReturn(NULL, (ERROR_BADPARM, "mri_read(): bad frame ('%s')\n", pound));
+      }
+    }
+
+    if(start_frame < 0)
+    {
+      ErrorReturn(NULL, (ERROR_BADPARM, "mri_read(): frame (%d) is less than zero\n", start_frame));
+    }
+
+    if(end_frame < 0)
+    {
+      ErrorReturn(NULL, (ERROR_BADPARM, "mri_read(): frame (%d) is less than zero\n", end_frame));
+    }
+
+    if(start_frame > end_frame)
+    {
+      ErrorReturn(NULL, (ERROR_BADPARM, "mri_read(): the start frame (%d) is greater than the end frame (%d)\n", start_frame, end_frame));
+    }
+
+  }
+
+  if(type == MRI_CORONAL_SLICE_DIRECTORY)
+  {
+    mri = corRead(fname_copy, volume_flag);
+  }
+  else if(type == SIEMENS_FILE)
+  {
+    mri = siemensRead(fname_copy, volume_flag);
+  }
+  else if(type == BSHORT_FILE)
+  {
+    mri = bshortRead(fname_copy, volume_flag);
+  }
+  else if(type == BFLOAT_FILE)
+  {
+    mri = bfloatRead(fname_copy, volume_flag);
+  }
+  else if(type == GENESIS_FILE)
+  {
+    mri = genesisRead(fname_copy, volume_flag);
+  }
+  else if(type == GE_LX_FILE)
+  {
+    mri = gelxRead(fname_copy, volume_flag);
+  }
+  else if(type == MRI_ANALYZE_FILE)
+  {
+    mri = analyzeRead(fname_copy, volume_flag);
+  }
+  else if(type == BRIK_FILE)
+  {
+    mri = afniRead(fname_copy, volume_flag);
+  }
+  else if(type == MRI_MINC_FILE)
+  {
+    mri = mincRead(fname_copy, volume_flag);
+  }
+  else if(type == SDT_FILE)
+  {
+    mri = sdtRead(fname_copy, volume_flag);
+  }
+  else if(type == MRI_MGH_FILE)
+  {
+    mri = mghRead(fname_copy, volume_flag, -1);
+  }
+  else
+  {
+    ErrorReturn(NULL, (ERROR_BADPARM, "mri_read(): code inconsistency (file type recognized but not caught)"));
+  }
+
+  if(start_frame == -1)
+    return(mri);
+
+  /* --- select frames --- */
+
+  if(start_frame >= mri->nframes)
+  {
+    volume_frames = mri->nframes;
+    MRIfree(&mri);
+    ErrorReturn(NULL, (ERROR_BADPARM, "mri_read(): start frame (%d) is out of range (%d frames in volume)", start_frame, volume_frames));
+  }
+
+  if(end_frame >= mri->nframes)
+  {
+    volume_frames = mri->nframes;
+    MRIfree(&mri);
+    ErrorReturn(NULL, (ERROR_BADPARM, "mri_read(): end frame (%d) is out of range (%d frames in volume)", end_frame, volume_frames));
+  }
+
+  if(!volume_flag)
+  {
+
+    if(nan_inf_check(mri) != NO_ERROR)
+    {
+      MRIfree(&mri);
+      return(NULL);
+    }
+    mri2 = MRIcopy(mri, NULL);
+    MRIfree(&mri);
+    mri2->nframes = (end_frame - start_frame + 1);
+    return(mri2);
+
+  }
+
+  if(start_frame == 0 && end_frame == mri->nframes-1)
+  {
+    if(nan_inf_check(mri) != NO_ERROR)
+    {
+      MRIfree(&mri);
+      return(NULL);
+    }
+    return(mri);
+  }
+
+  /* reading the whole volume and then copying only some frames is a bit inelegant, but it's easier for now
+     to do this than to insert the appropriate code into the read function for each format... */
+
+  mri2 = MRIallocSequence(mri->width, mri->height, mri->depth, mri->type, (end_frame - start_frame + 1));
+  MRIcopyHeader(mri, mri2);
+  mri2->nframes = (end_frame - start_frame + 1);
+  mri2->imnr0 = 1;
+  mri2->imnr0 = mri2->nframes;
+
+  if(mri2->type == MRI_UCHAR)
+    for(t = 0;t < mri2->nframes;t++)
+      for(i = 0;i < mri2->width;i++)
+        for(j = 0;j < mri2->height;j++)
+          for(k = 0;k < mri2->depth;k++)
+            MRIseq_vox(mri2, i, j, k, t) = MRIseq_vox(mri, i, j, k, t + start_frame);
+
+  if(mri2->type == MRI_SHORT)
+    for(t = 0;t < mri2->nframes;t++)
+      for(i = 0;i < mri2->width;i++)
+        for(j = 0;j < mri2->height;j++)
+          for(k = 0;k < mri2->depth;k++)
+            MRISseq_vox(mri2, i, j, k, t) = MRISseq_vox(mri, i, j, k, t + start_frame);
+
+  if(mri2->type == MRI_INT)
+    for(t = 0;t < mri2->nframes;t++)
+      for(i = 0;i < mri2->width;i++)
+        for(j = 0;j < mri2->height;j++)
+          for(k = 0;k < mri2->depth;k++)
+            MRIIseq_vox(mri2, i, j, k, t) = MRIIseq_vox(mri, i, j, k, t + start_frame);
+
+  if(mri2->type == MRI_LONG)
+    for(t = 0;t < mri2->nframes;t++)
+      for(i = 0;i < mri2->width;i++)
+        for(j = 0;j < mri2->height;j++)
+          for(k = 0;k < mri2->depth;k++)
+            MRILseq_vox(mri2, i, j, k, t) = MRILseq_vox(mri, i, j, k, t + start_frame);
+
+  if(mri2->type == MRI_FLOAT)
+    for(t = 0;t < mri2->nframes;t++)
+      for(i = 0;i < mri2->width;i++)
+        for(j = 0;j < mri2->height;j++)
+          for(k = 0;k < mri2->depth;k++)
+            MRIFseq_vox(mri2, i, j, k, t) = MRIFseq_vox(mri, i, j, k, t + start_frame);
+
+  if(nan_inf_check(mri) != NO_ERROR)
+  {
+    MRIfree(&mri);
+    return(NULL);
+  }
+
+  MRIfree(&mri);
+
+  return(mri2);
+
+} /* end mri_read() */
+
+static int nan_inf_check(MRI *mri)
+{
+
+  int i, j, k, t;
+
+  if(mri->type != MRI_FLOAT)
+    return(NO_ERROR);
+
+    for(i = 0;i < mri->width;i++)
+      for(j = 0;j < mri->height;j++)
+        for(k = 0;k < mri->depth;k++)
+          for(t = 0;t < mri->nframes;t++)
+            if(!devFinite((MRIFseq_vox(mri, i, j, k, t))))
+            {
+              if(devIsinf((MRIFseq_vox(mri, i, j, k, t))) != 0)
+              {
+                ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "MRIreadType(): Inf at voxel %d, %d, %d, %d", i, j, k, t));
+              }
+              else if(devIsnan((MRIFseq_vox(mri, i, j, k, t))))
+              {
+                ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "MRIreadType(): NaN at voxel %d, %d, %d, %d", i, j, k, t));
+              }
+              else
+              {
+                ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "MRIreadType(): bizarre value (not Inf, not NaN, but not finite) at %d, %d, %d, %d", i, j, k, t));
+              }
+          }
+
+  return(NO_ERROR);
+
+} /* end nan_inf_check() */
+
 MRI *MRIreadType(char *fname, int type)
 {
 
   MRI *mri;
-  int i, j, k;
 
-  if(type == MRI_CORONAL_SLICE_DIRECTORY)
-  {
-    mri = corRead(fname, 1);
-  }
-  else if(type == SIEMENS_FILE)
-  {
-    mri = siemensRead(fname, 1);
-  }
-  else if(type == BSHORT_FILE)
-  {
-    mri = bshortRead(fname, 1);
-  }
-  else if(type == BFLOAT_FILE)
-  {
-    mri = bfloatRead(fname, 1);
-  }
-  else if(type == GENESIS_FILE)
-  {
-    mri = genesisRead(fname, 1);
-  }
-  else if(type == GE_LX_FILE)
-  {
-    mri = gelxRead(fname, 1);
-  }
-  else if(type == MRI_ANALYZE_FILE)
-  {
-    mri = analyzeRead(fname, 1);
-  }
-  else if(type == BRIK_FILE)
-  {
-    mri = afniRead(fname, 1);
-  }
-  else if(type == MRI_MINC_FILE)
-  {
-    mri = mincRead(fname, 1);
-  }
-  else if(type == SDT_FILE)
-  {
-    mri = sdtRead(fname, 1);
-  }
-  else if(type == MRI_MGH_FILE)
-  {
-    mri = mghRead(fname, 1, 0);
-  }
-  else
-  {
-    ErrorReturn(NULL, (ERROR_BADPARM, "MRIreadType(): code inconsistency (file type recognized but not caught)"));
-  }
-
-  if(mri == NULL)
-    return(mri);
-
-  /* ----- check for NaNs and Infs ----- */
-  if(mri->type == MRI_FLOAT)
-  {
-    for(i = 0;i < mri->width;i++)
-      for(j = 0;j < mri->height;j++)
-        for(k = 0;k < mri->depth;k++)
-          if(!devFinite((MRIFvox(mri, i, j, k))))
-          {
-            if(devIsinf((MRIFvox(mri, i, j, k))) != 0)
-            {
-              ErrorReturn(NULL, (ERROR_BADPARM, "MRIreadType(): Inf at voxel %d, %d, %d", i, j, k));
-            }
-            else if(devIsnan((MRIFvox(mri, i, j, k))))
-            {
-              ErrorReturn(NULL, (ERROR_BADPARM, "MRIreadType(): NaN at voxel %d, %d, %d", i, j, k));
-            }
-            else
-            {
-              ErrorReturn(NULL, (ERROR_BADPARM, "MRIreadType(): bizarre value (not Inf, not NaN, but not finite) at %d, %d, %d", i, j, k));
-            }
-          }
-  }
+  mri = mri_read(fname, type, TRUE, -1, -1);
 
   return(mri);
 
@@ -246,15 +467,10 @@ MRI *MRIread(char *fname)
 {
 
   MRI *mri = NULL;
-  int int_type;
 
-  anders() ;
-  if((int_type = mri_identify(fname)) < 0)
-  {
-    ErrorReturn(NULL, (ERROR_BADFILE, "unknown file type for file (%s)", fname));
-  }
+  chklc() ;
 
-  mri = MRIreadType(fname, int_type);
+  mri = mri_read(fname, MRI_VOLUME_TYPE_UNKNOWN, TRUE, -1, -1);
 
   return(mri);
 
@@ -264,61 +480,8 @@ MRI *MRIreadInfo(char *fname)
 {
 
   MRI *mri = NULL;
-  int int_type;
 
-  if((int_type = mri_identify(fname)) < 0)
-  {
-    ErrorReturn(NULL, (ERROR_BADFILE, "unknown file type for file (%s)", fname));
-  }
-
-  if(int_type == MRI_CORONAL_SLICE_DIRECTORY)
-  {
-    mri = corRead(fname, 0);
-  }
-  else if(int_type == SIEMENS_FILE)
-  {
-    mri = siemensRead(fname, 0);
-  }
-  else if(int_type == BSHORT_FILE)
-  {
-    mri = bshortRead(fname, 0);
-  }
-  else if(int_type == BFLOAT_FILE)
-  {
-    mri = bfloatRead(fname, 0);
-  }
-  else if(int_type == GENESIS_FILE)
-  {
-    mri = genesisRead(fname, 0);
-  }
-  else if(int_type == GE_LX_FILE)
-  {
-    mri = gelxRead(fname, 0);
-  }
-  else if(int_type == MRI_ANALYZE_FILE)
-  {
-    mri = analyzeRead(fname, 0);
-  }
-  else if(int_type == BRIK_FILE)
-  {
-    mri = afniRead(fname, 0);
-  }
-  else if(int_type == MRI_MINC_FILE)
-  {
-    mri = mincRead(fname, 0);
-  }
-  else if(int_type == SDT_FILE)
-  {
-    mri = sdtRead(fname, 0);
-  }
-  else if(int_type == MRI_MGH_FILE)
-  {
-    mri = mghRead(fname, 0, 0);
-  }
-  else
-  {
-    ErrorReturn(NULL, (ERROR_BADPARM, "MRIreadInfo(): code inconsistency (file type recognized but not caught)"));
-  }
+  mri = mri_read(fname, MRI_VOLUME_TYPE_UNKNOWN, TRUE, -1, -1);
 
   return(mri);
 
@@ -372,7 +535,7 @@ int MRIwrite(MRI *mri, char *fname)
   int int_type = -1;
   int error;
 
-  anders() ;
+  chklc() ;
   if((int_type = mri_identify(fname)) < 0)
   {
     ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "unknown file type for file (%s)", fname));
@@ -1816,7 +1979,7 @@ other possibles:
   }
 
   cf = bf = ibf = af = iaf = as = bs = cs = ics = r = NULL;
-  r1 = r2 = r3 = r4;
+  r1 = r2 = r3 = r4 = NULL;
 
   /* ----- write the register.dat and analyse.dat  or bhdr files ----- */
   if(subject_info != NULL)
