@@ -12,8 +12,4 @@ M = fast_kjw_mtx(R,nf);
 yacf = inv(M)*racf;
 yacf = yacf./repmat(yacf(1,:),[nf 1]);
 
-
-toc
-
-
 return;
