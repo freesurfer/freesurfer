@@ -9,9 +9,9 @@
 */
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2004/04/21 21:53:52 $
-// Revision       : $Revision: 1.266 $
-char *MRI_C_VERSION = "$Revision: 1.266 $";
+// Revision Date  : $Date: 2004/04/28 16:47:38 $
+// Revision       : $Revision: 1.267 $
+char *MRI_C_VERSION = "$Revision: 1.267 $";
 
 /*-----------------------------------------------------
                     INCLUDE FILES
@@ -10914,3 +10914,32 @@ MRImeanInLabel(MRI *mri_src, MRI *mri_labeled, int label)
 	return(mean/nvox) ;
 }
 
+MRI *
+MRImakePositive(MRI *mri_src, MRI *mri_dst)
+{
+	float   fmin, fmax, val ;
+	int     x, y, z,f  ;
+
+	MRIvalRange(mri_src, &fmin, &fmax) ;
+	mri_dst = MRIcopy(mri_src, mri_dst) ;
+	if (fmin >= 0)
+		return(mri_dst) ;
+
+	for (f = 0 ; f < mri_dst->nframes ; f++)
+	{
+		for (x = 0 ; x < mri_dst->width ; x++)
+		{
+			for (y = 0 ; y < mri_dst->height ; y++)
+			{
+				for (z = 0 ; z < mri_dst->depth ; z++)
+				{
+					val = MRIgetVoxVal(mri_src, x, y, z, f) ;
+					val -= fmin ;
+					MRIsetVoxVal(mri_dst, x, y, z, f, val) ;
+				}
+			}
+		}
+	}
+
+	return(mri_dst) ;
+}

@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2004/04/09 19:26:59 $
-// Revision       : $Revision: 1.125 $
+// Revision Date  : $Date: 2004/04/28 16:47:38 $
+// Revision       : $Revision: 1.126 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -7157,7 +7157,7 @@ GCAnormalizeSamples(MRI *mri_in, GCA *gca, GCA_SAMPLE *gcas, int nsamples,
       wm_means[r] = (wm_means[r] + tmp[r]) / 2 ;
       if (wm_means[r] > max_wm)
       {
-	T1_index = r ; max_wm = wm_means[r] ;
+				T1_index = r ; max_wm = wm_means[r] ;
       }
     }
     printf("using volume %d as most T1-weighted for normalization\n",T1_index) ;
@@ -7169,8 +7169,8 @@ GCAnormalizeSamples(MRI *mri_in, GCA *gca, GCA_SAMPLE *gcas, int nsamples,
   mri_bias = MRIalloc(mri_in->width,mri_in->height,mri_in->depth,MRI_SHORT);
   if (!mri_bias)    
     ErrorExit(ERROR_NOMEMORY, 
-	      "GCAnormalizeSamples: could not allocate (%d,%d,%d,2) bias image",
-	      mri_in->width,mri_in->height,mri_in->depth) ;
+							"GCAnormalizeSamples: could not allocate (%d,%d,%d,2) bias image",
+							mri_in->width,mri_in->height,mri_in->depth) ;
   MRIcopyHeader(mri_in, mri_bias);
 
 #define MAX_BIAS 1250
@@ -7194,15 +7194,15 @@ GCAnormalizeSamples(MRI *mri_in, GCA *gca, GCA_SAMPLE *gcas, int nsamples,
           DiagBreak() ;
         MRISvox(mri_bias, x,y,z) = NO_BIAS ;  /* by default */
         if (MRIvox(mri_ctrl, x, y, z) != CONTROL_MARKED)  /* not read from file */
-	  continue ;
+					continue ;
 	
-	if (nsamples == 0)   /* only using file control points */
-	{
-	  MRIsampleVolumeFrame(mri_in, x, y, z, T1_index, &val) ;
-	  bias = NO_BIAS*DEFAULT_DESIRED_WHITE_MATTER_VALUE / val ;          
+				if (nsamples == 0)   /* only using file control points */
+				{
+					MRIsampleVolumeFrame(mri_in, x, y, z, T1_index, &val) ;
+					bias = NO_BIAS*DEFAULT_DESIRED_WHITE_MATTER_VALUE / val ;          
           MRISvox(mri_bias, x, y, z) = (short)nint(bias) ;
-	}
-	else    /* find atlas point this maps to */
+				}
+				else    /* find atlas point this maps to */
         {
           int       n, max_n ;
           GC1D      *gc ;
@@ -7211,47 +7211,47 @@ GCAnormalizeSamples(MRI *mri_in, GCA *gca, GCA_SAMPLE *gcas, int nsamples,
           double    max_p ;
 
           if (!GCAsourceVoxelToNode(gca, mri_dst, transform,  x, y, z, &xn, &yn, &zn))
-	  {
-	    gcan = &gca->nodes[xn][yn][zn] ;
-	    gcap = getGCAP(gca, mri_dst, transform, x, y, z) ;
-	    if (gcap==NULL)
-	      continue;
-	    max_p = 0 ;
-	    for (max_n = -1, n = 0 ; n < gcan->nlabels ; n++)
-	    {
-	      if ((0 == IS_WM(gcan->labels[n])) &&
-		  (0 == IS_CEREBELLAR_WM(gcan->labels[n])) &&
-		  (gcan->labels[n] != Brain_Stem))
-		continue ;
-	      gc = &gcan->gcs[n] ;
-	      if (getPrior(gcap, gcan->labels[n]) >= max_p)
-	      {
-		max_p = getPrior(gcap, gcan->labels[n]) ;
-		max_n = n ;
-	      }
-	    }
-	    if (max_n < 0)  /* couldn't find any valid label at this location */
-	      continue ;
-	    gc = &gcan->gcs[max_n] ;
+					{
+						gcan = &gca->nodes[xn][yn][zn] ;
+						gcap = getGCAP(gca, mri_dst, transform, x, y, z) ;
+						if (gcap==NULL)
+							continue;
+						max_p = 0 ;
+						for (max_n = -1, n = 0 ; n < gcan->nlabels ; n++)
+						{
+							if ((0 == IS_WM(gcan->labels[n])) &&
+									(0 == IS_CEREBELLAR_WM(gcan->labels[n])) &&
+									(gcan->labels[n] != Brain_Stem))
+								continue ;
+							gc = &gcan->gcs[n] ;
+							if (getPrior(gcap, gcan->labels[n]) >= max_p)
+							{
+								max_p = getPrior(gcap, gcan->labels[n]) ;
+								max_n = n ;
+							}
+						}
+						if (max_n < 0)  /* couldn't find any valid label at this location */
+							continue ;
+						gc = &gcan->gcs[max_n] ;
 	    
-	    for (bias = 0.0, input = 0 ; input < gca->ninputs ; input++)
-	    {	
-	      MRIsampleVolumeFrame(mri_in, x, y, z, input, &val) ;
-	      if (FZERO(val))
-		val = 1 ;
-	      bias += (float)NO_BIAS*((float)gc->means[input]/val) ;
-	    }
-	    bias /= (float)gca->ninputs ;
-	    if (bias < 100 || bias > 5000)
-	      DiagBreak() ;
-	    if (bias < MIN_BIAS)
-	      bias = MIN_BIAS ;
-	    if (bias > MAX_BIAS)
-	      bias = MAX_BIAS ;
+						for (bias = 0.0, input = 0 ; input < gca->ninputs ; input++)
+						{	
+							MRIsampleVolumeFrame(mri_in, x, y, z, input, &val) ;
+							if (FZERO(val))
+								val = 1 ;
+							bias += (float)NO_BIAS*((float)gc->means[input]/val) ;
+						}
+						bias /= (float)gca->ninputs ;
+						if (bias < 100 || bias > 5000)
+							DiagBreak() ;
+						if (bias < MIN_BIAS)
+							bias = MIN_BIAS ;
+						if (bias > MAX_BIAS)
+							bias = MAX_BIAS ;
           
-	    MRISvox(mri_bias, x, y, z) = (short)nint(bias) ;
-	  }
-	  /////////////////////////////////////////////////////
+						MRISvox(mri_bias, x, y, z) = (short)nint(bias) ;
+					}
+					/////////////////////////////////////////////////////
         }
       }
     }
@@ -7264,42 +7264,42 @@ GCAnormalizeSamples(MRI *mri_in, GCA *gca, GCA_SAMPLE *gcas, int nsamples,
       DiagBreak() ;
 
     if (!GCApriorToSourceVoxel(gca, mri_dst, transform, 
-			       gcas[n].xp, gcas[n].yp, gcas[n].zp, &xv, &yv, &zv))
+															 gcas[n].xp, gcas[n].yp, gcas[n].zp, &xv, &yv, &zv))
     {
       if (xv == 181 && yv == 146 && zv == 128)
-	DiagBreak() ;
+				DiagBreak() ;
       if (xv == Ggca_x && yv == Ggca_y && zv == Ggca_z)
-	DiagBreak() ;
+				DiagBreak() ;
       if (gcas[n].label == 29 || gcas[n].label == 61)
       {
-	gcas[n].label = 0 ;
-	DiagBreak() ;
+				gcas[n].label = 0 ;
+				DiagBreak() ;
       }
       if (gcas[n].label > 0)
       {
-	MRIvox(mri_ctrl, xv, yv, zv) = CONTROL_MARKED ;
+				MRIvox(mri_ctrl, xv, yv, zv) = CONTROL_MARKED ;
 	
-	for (bias = 0.0, input = 0 ; input < gca->ninputs ; input++)
-	{	
-	  MRIsampleVolumeFrame(mri_in, xv, yv, zv, input, &val) ;
-	  if (FZERO(val))
-	    val = 1 ;
-	  bias += (float)NO_BIAS*((float)gcas[n].means[input]/val) ;
-	}
-	bias /= (float)gca->ninputs ;
-	if (bias < 100 || bias > 5000)
-	  DiagBreak() ;
+				for (bias = 0.0, input = 0 ; input < gca->ninputs ; input++)
+				{	
+					MRIsampleVolumeFrame(mri_in, xv, yv, zv, input, &val) ;
+					if (FZERO(val))
+						val = 1 ;
+					bias += (float)NO_BIAS*((float)gcas[n].means[input]/val) ;
+				}
+				bias /= (float)gca->ninputs ;
+				if (bias < 100 || bias > 5000)
+					DiagBreak() ;
 #if 0
-	if (bias < MIN_BIAS)
-	  bias = MIN_BIAS ;
-	if (bias > MAX_BIAS)
-	  bias = MAX_BIAS ;
+				if (bias < MIN_BIAS)
+					bias = MIN_BIAS ;
+				if (bias > MAX_BIAS)
+					bias = MAX_BIAS ;
 #endif
 	
-	MRISvox(mri_bias, xv, yv, zv) = (short)nint(bias) ;
+				MRISvox(mri_bias, xv, yv, zv) = (short)nint(bias) ;
       }
       else
-	MRIvox(mri_ctrl, xv, yv, zv) = CONTROL_NONE ;
+				MRIvox(mri_ctrl, xv, yv, zv) = CONTROL_NONE ;
     }
   }
 
@@ -7389,32 +7389,32 @@ GCAnormalizeSamples(MRI *mri_in, GCA *gca, GCA_SAMPLE *gcas, int nsamples,
         bias = (float)MRISvox(mri_bias, x, y, z)/NO_BIAS ;
         if (bias < 0)
           DiagBreak() ;
-	for (input = 0 ; input < gca->ninputs ; input++)
-	{
-	  MRIsampleVolumeFrame(mri_in, x, y, z, input, &val) ;
-	  val *= bias ;   /* corrected value */
-	  switch (mri_in->type)
-	  {
-	  case MRI_UCHAR: 
-	    if (val < 0)
-	      val = 0 ;
-	    else if (val > 255)
-	      val = 255 ;
-	    MRIseq_vox(mri_dst, x, y, z, input) = (BUFTYPE)nint(val) ; 
-	    break ;
-	  case MRI_SHORT: 
-	    MRISseq_vox(mri_dst, x, y, z, input) = (short)nint(val) ; 
-	    break ;
-	  case MRI_FLOAT: 
-	    MRIFseq_vox(mri_dst, x, y, z, input) = val ; 
-	    break ;
-	  default:
-	    ErrorReturn(NULL,
-			(ERROR_UNSUPPORTED, 
-			 "GCAnormalizeSamples: unsupported input type %d",mri_in->type));
-	    break ;
-	  }
-	}
+				for (input = 0 ; input < gca->ninputs ; input++)
+				{
+					MRIsampleVolumeFrame(mri_in, x, y, z, input, &val) ;
+					val *= bias ;   /* corrected value */
+					switch (mri_in->type)
+					{
+					case MRI_UCHAR: 
+						if (val < 0)
+							val = 0 ;
+						else if (val > 255)
+							val = 255 ;
+						MRIseq_vox(mri_dst, x, y, z, input) = (BUFTYPE)nint(val) ; 
+						break ;
+					case MRI_SHORT: 
+						MRISseq_vox(mri_dst, x, y, z, input) = (short)nint(val) ; 
+						break ;
+					case MRI_FLOAT: 
+						MRIFseq_vox(mri_dst, x, y, z, input) = val ; 
+						break ;
+					default:
+						ErrorReturn(NULL,
+												(ERROR_UNSUPPORTED, 
+												 "GCAnormalizeSamples: unsupported input type %d",mri_in->type));
+						break ;
+					}
+				}
       }
     }
   }
