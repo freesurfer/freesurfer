@@ -13,7 +13,7 @@
 #include "mri.h"
 #include "macros.h"
 
-static char vcid[] = "$Id: mris_average_curvature.c,v 1.4 2000/01/11 20:21:37 fischl Exp $";
+static char vcid[] = "$Id: mris_average_curvature.c,v 1.5 2000/02/07 15:53:14 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -30,6 +30,8 @@ static int condition_no = 0 ;
 static int stat_flag = 0 ;
 static char *output_surf_name = NULL ;
 static int navgs = 0 ;
+static char *ohemi = NULL ;
+static char *osurf = NULL ;
 
 int
 main(int argc, char *argv[])
@@ -46,7 +48,7 @@ main(int argc, char *argv[])
 
   sdir = getenv("SUBJECTS_DIR") ;
   if (!sdir)
-    ErrorExit(ERROR_BADPARM, "%s: no SUBJECTS_DIR in envoronment.\n", Progname);
+    ErrorExit(ERROR_BADPARM, "%s: no SUBJECTS_DIR in envoronment.\n",Progname);
   ac = argc ;
   av = argv ;
   for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++)
@@ -61,7 +63,11 @@ main(int argc, char *argv[])
 
   in_fname = argv[1] ;
   hemi = argv[2] ;
+  if (!ohemi)
+    ohemi = hemi ;
   surf_name = argv[3] ;
+  if (!osurf)
+    osurf = surf_name ;
   out_fname = argv[argc-1] ;
 
   mrisp_total = MRISPalloc(1, 3) ;
@@ -104,7 +110,7 @@ main(int argc, char *argv[])
 
   if (output_surf_name)
   {
-    sprintf(fname, "%s/%s/surf/%s.%s", sdir,output_surf_name,hemi,surf_name);
+    sprintf(fname, "%s/%s/surf/%s.%s", sdir,output_surf_name,ohemi,osurf);
     fprintf(stderr, "reading output surface %s...\n", fname) ;
     MRISfree(&mris) ;
     mris = MRISread(fname) ;
@@ -120,7 +126,7 @@ main(int argc, char *argv[])
     float  dof ;
     FILE   *fp ;
 
-    sprintf(fname, "%s/sigavg%d-%s.w", out_fname, condition_no, hemi);
+    sprintf(fname, "%s/sigavg%d-%s.w", out_fname, condition_no, ohemi);
     fprintf(stderr, "writing output means to %s\n", fname) ;
     MRISwriteCurvatureToWFile(mris, fname) ;
 
@@ -136,7 +142,7 @@ main(int argc, char *argv[])
         v->curv /= dof ;   /* turn it into a standard error */
       }
 
-    sprintf(fname, "%s/sigvar%d-%s.w", out_fname, condition_no, hemi);
+    sprintf(fname, "%s/sigvar%d-%s.w", out_fname, condition_no, ohemi);
     fprintf(stderr, "writing output variances to %s\n", fname) ;
     MRISwriteCurvatureToWFile(mris, fname) ;
 
@@ -179,6 +185,18 @@ get_option(int argc, char *argv[])
     print_help() ;
   else if (!stricmp(option, "-version"))
     print_version() ;
+  else if (!stricmp(option, "ohemi"))
+  {
+    ohemi = argv[2] ;
+    fprintf(stderr, "output hemisphere = %s\n", ohemi) ;
+    nargs = 1 ;
+  }
+  else if (!stricmp(option, "osurf"))
+  {
+    osurf = argv[2] ;
+    fprintf(stderr, "output surface = %s\n", osurf) ;
+    nargs = 1 ;
+  }
   else switch (toupper(*option))
   {
   case 'A':
