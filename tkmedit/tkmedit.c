@@ -4,9 +4,9 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2003/09/25 17:47:10 $
-// Revision       : $Revision: 1.179 $
-char *VERSION = "$Revision: 1.179 $";
+// Revision Date  : $Date: 2003/09/26 20:42:32 $
+// Revision       : $Revision: 1.180 $
+char *VERSION = "$Revision: 1.180 $";
 
 #define TCL
 #define TKMEDIT 
@@ -1027,7 +1027,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
      shorten our argc and argv count. If those are the only args we
      had, exit. */
   /* rkt: check for and handle version tag */
-  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.179 2003/09/25 17:47:10 kteich Exp $", "$Name:  $");
+  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.180 2003/09/26 20:42:32 kteich Exp $", "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
   argc -= nNumProcessedVersionArgs;
@@ -9259,8 +9259,9 @@ void CalcSegLabelVolume ( tkm_tSegType iVolume,
   
   tkm_tErr  eResult = tkm_tErr_NoErr;
   Volm_tErr eVolume = Volm_tErr_NoErr;
+  Volm_tFloodParams           params;
   int       index   = 0;
-  tkm_tSumSimilarSegmentationParams params;
+  tkm_tSumSimilarSegmentationParams callbackData;
 
   DebugEnterFunction( ("CalcSegLabelVolume( iMRIIdx=%p, oCount=%p )",
 		       iMRIIdx, oCount) );
@@ -9273,25 +9274,36 @@ void CalcSegLabelVolume ( tkm_tSegType iVolume,
   GetSegLabel( iVolume, iMRIIdx, &index, NULL );
   DebugAssertQuietThrow( (0 != index) );
 
-  /* Initialize params */
-  params.mCount = 0;
-  params.mSourceLabel = index;
+  xVoxl_Copy( &params.mSourceIdx, iMRIIdx );
+  params.mfSourceValue           = index;
+  params.mfFuzziness             = 0;
+  params.mComparatorType         = Volm_tValueComparator_EQ;
+  params.mComparatorFunc         = NULL;
+  params.mfMaxDistance           = pow(256,3);
+  params.mb3D                    = TRUE;
+  MWin_GetOrientation ( gMeditWindow, &params.mOrientation );
+
+  /* Initialize callback data */
+  callbackData.mCount = 0;
+  callbackData.mSourceLabel = index;
   
-  /* Export the thing to a COR volume. */
+  /* SEt the callback data. */
+  params.mpFunction = SumSimilarValues;
+  params.mpFunctionData = (void*)&callbackData;
+
+  /* Run the flood. */
   DebugNote( ("Running compare") );
   eVolume = 
-    Volm_VisitAllVoxels( gSegmentationVolume[iVolume],
-			 &SetChangedSegmentationValue, (void*)&params );
+    Volm_Flood( gSegmentationVolume[iVolume], &params );
   DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
 		     eResult, tkm_tErr_ErrorAccessingSegmentationVolume );
 
   DebugNote( ("Setting return value") );
-  *oCount = params.mCount;
+  *oCount = callbackData.mCount;
   
   DebugCatch;
   DebugCatchError( eResult, tkm_tErr_NoErr, tkm_GetErrorString );
   EndDebugCatch;
-  
   
   DebugExitFunction;
 }
