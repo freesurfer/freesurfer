@@ -78,6 +78,7 @@ void swab(const void *from, void *to, size_t n);
 int ftime(struct timeb *tp) ;
 #define nint(f)   ((int)(rint((double)f)))
 #include <ieeefp.h>
+void bzero(void *s, int n);
 
 #endif
 
