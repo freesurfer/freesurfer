@@ -482,7 +482,7 @@ proc DoConfigLightingDlog {} {
   # buttons.
   tkm_MakeApplyCloseButtons $fwButtons $wwDialog \
     { SendLinkedVarGroup scene; \
-    do_lighting_model $gaLinkedVars(light0) $gaLinkedVars(light1) $gaLinkedVars(light2) $gaLinkedVars(light3) $offset; \
+    do_lighting_model $gaLinkedVars(light0) $gaLinkedVars(light1) $gaLinkedVars(light2) $gaLinkedVars(light3) $gaLinkedVars(offset); \
     UpdateAndRedraw } {}
 
   pack $fwMain $fwLights $fwBrightness $fwButtons \
@@ -619,19 +619,22 @@ proc UpdateOverlayDlogInfo {} {
     -label "Condition (0-$nMaxCondition)"
     }
   
-    # change the range of the threshold sliders.
-    catch {
-  [.wwConfigOverlayDisplayDlog.lfwThreshold subwidget frame].fwThresholdSliders.sw0 config \
-    -from $gaLinkedVars(fmin)
-  [.wwConfigOverlayDisplayDlog.lfwThreshold subwidget frame].fwThresholdSliders.sw0 config \
+    # change the range of the threshold sliders. commented out because
+    # it doesn't work for bruce that well.
+    if { 0 } {
+  catch {
+      [.wwConfigOverlayDisplayDlog.lfwThreshold subwidget frame].fwThresholdSliders.sw0 config \
+        -from $gaLinkedVars(fmin)
+      [.wwConfigOverlayDisplayDlog.lfwThreshold subwidget frame].fwThresholdSliders.sw0 config \
+        -to $gaLinkedVars(fmax)
+  }
+  
+  catch {
+      [.wwConfigOverlayDisplayDlog.lfwThreshold subwidget frame].fwThresholdSliders.sw1 config \
+        -from $gaLinkedVars(fmin)
+      [.wwConfigOverlayDisplayDlog.lfwThreshold subwidget frame].fwThresholdSliders.sw1 config \
     -to $gaLinkedVars(fmax)
-    }
-
-    catch {
-  [.wwConfigOverlayDisplayDlog.lfwThreshold subwidget frame].fwThresholdSliders.sw1 config \
-    -from $gaLinkedVars(fmin)
-  [.wwConfigOverlayDisplayDlog.lfwThreshold subwidget frame].fwThresholdSliders.sw1 config \
-    -to $gaLinkedVars(fmax)
+  }
     }
 }
 
