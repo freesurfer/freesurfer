@@ -141,7 +141,7 @@ main(int argc, char *argv[])
         nparcs = add_to_ptable(mris, ptable, nparcs) ;
 
       if (MRISreadCanonicalCoordinates(mris, canon_surf_name) != NO_ERROR)
-        ErrorExit(ERROR_NOFILE, "%s: could not read annot file %s for %s",
+        ErrorExit(ERROR_NOFILE, "%s: could not read spherical registration file %s for %s",
                   Progname, canon_surf_name, subject_name) ;
       if (ninputs > 2)
       {
