@@ -14,7 +14,7 @@
 #include "macros.h"
 #include "utils.h"
 
-static char vcid[] = "$Id: mris_sphere.c,v 1.1 1997/12/18 16:34:42 fischl Exp $";
+static char vcid[] = "$Id: mris_sphere.c,v 1.2 1997/12/19 19:36:21 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -37,6 +37,7 @@ static int mrisDisturbVertices(MRI_SURFACE *mris, double amount) ;
 static float min_neg_pct = 0.05f/100.0f ;  /* less than 0.05% negative */
 static int   min_neg = 20 ;
 static int   nospring = 0 ;
+static int   max_passes = 3 ;
 
 int
 main(int argc, char *argv[])
@@ -124,7 +125,7 @@ main(int argc, char *argv[])
     /*      MRISscaleUp(mris) ;*/
     MRIStalairachTransform(mris, mris) ;
     MRISprojectOntoEllipsoid(mris, mris, 0.0f, 0.0f, 0.0f) ;
-    MRISunfold(mris, &parms) ;  /* optimize metric properties of flat map */
+    MRISunfold(mris, &parms, max_passes) ;  /* optimize metric properties of flat map */
     if (Gdiag & DIAG_SHOW)
       fprintf(stderr, "writing spherical brain to %s\n", out_fname) ;
     MRISwrite(mris, out_fname) ;
@@ -288,6 +289,11 @@ get_option(int argc, char *argv[])
   }
   else switch (toupper(*option))
   {
+  case 'P':
+    max_passes = atoi(argv[2]) ;
+    fprintf(stderr, "limitting unfolding to %d passes\n", max_passes) ;
+    nargs = 1 ;
+    break ;
   case 'B':
     base_dt_scale = atof(argv[2]) ;
     parms.base_dt = base_dt_scale*parms.dt ;
