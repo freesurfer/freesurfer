@@ -80,9 +80,9 @@ int
 main(int argc, char *argv[])
 {
   char         *gca_fname, *in_fname, *out_fname, **av, *xform_fname ;
-  MRI          *mri_in, *mri_norm ;
+  MRI          *mri_in, *mri_norm = NULL ;
   GCA          *gca ;
-  int          ac, nargs, nsamples, msec, minutes, seconds, i, struct_samples, norm_samples ;
+  int          ac, nargs, nsamples, msec, minutes, seconds, i, struct_samples, norm_samples, n ;
   struct timeb start ;
   GCA_SAMPLE   *gcas, *gcas_norm = NULL, *gcas_struct ;
   TRANSFORM    *transform = NULL ;
@@ -122,7 +122,7 @@ main(int argc, char *argv[])
 
   transform = TransformRead(xform_fname) ;
   if (!transform)
-    ErrorExit(ERROR_BADPARM, "%s: could not open xform file %s", xform_fname) ;
+    ErrorExit(ERROR_BADPARM, "%s: could not open xform file %s", Progname,xform_fname) ;
 
   if (novar)
     GCAunifyVariance(gca) ;
@@ -223,39 +223,57 @@ main(int argc, char *argv[])
     GCAtransformAndWriteSamples(gca, mri_in, gcas, nsamples, sample_fname, transform) ;
   
 
-  for (norm_samples = i = 0 ; i < NSTRUCTURES ; i++)
+  for (n = 1 ; n <= nregions ; n++)
   {
-    printf("finding control points in %s....\n", cma_label_to_name(normalization_structures[i])) ;
-    gcas_struct = find_control_points(gca, gcas, nsamples, &struct_samples, nregions,
-                                      normalization_structures[i], mri_in, transform, min_prior,
-                                      ctl_point_pct) ;
-    if (i)
+    for (norm_samples = i = 0 ; i < NSTRUCTURES ; i++)
     {
-      GCA_SAMPLE *gcas_tmp ;
-      gcas_tmp = gcas_concatenate(gcas_norm, gcas_struct, norm_samples, struct_samples) ;
-      free(gcas_norm) ;
-      norm_samples += struct_samples ;
-      gcas_norm = gcas_tmp ;
+      printf("finding control points in %s....\n", cma_label_to_name(normalization_structures[i])) ;
+      gcas_struct = find_control_points(gca, gcas, nsamples, &struct_samples, n,
+                                        normalization_structures[i], mri_in, transform, min_prior,
+                                        ctl_point_pct) ;
+      if (i)
+      {
+        GCA_SAMPLE *gcas_tmp ;
+        gcas_tmp = gcas_concatenate(gcas_norm, gcas_struct, norm_samples, struct_samples) ;
+        free(gcas_norm) ;
+        norm_samples += struct_samples ;
+        gcas_norm = gcas_tmp ;
+      }
+      else
+      {
+        gcas_norm = gcas_struct ; norm_samples = struct_samples ;
+      }
     }
-    else
+    
+    printf("using %d total control points for intensity normalization...\n", norm_samples) ;
+    if (normalized_transformed_sample_fname)
+      GCAtransformAndWriteSamples(gca, mri_in, gcas_norm, norm_samples, 
+                                  normalized_transformed_sample_fname, 
+                                  transform) ;
+
+    if (mri_norm)
+      MRIfree(&mri_norm) ;
+    mri_norm = GCAnormalizeSamples(mri_in, gca, gcas_norm, norm_samples,
+                                   transform, ctl_point_fname) ;
+    if (Gdiag & DIAG_WRITE)
     {
-      gcas_norm = gcas_struct ; norm_samples = struct_samples ;
+      char fname[STRLEN] ;
+      sprintf(fname, "norm%d.mgh", n) ;
+      printf("writing normalized volume to %s...\n", fname) ;
+      MRIwrite(mri_norm, fname) ;
+      sprintf(fname, "norm_samples%d.mgh", n) ;
+      GCAtransformAndWriteSamples(gca, mri_in, gcas_norm, norm_samples, 
+                                  fname, transform) ;
+
     }
+    MRIcopy(mri_norm, mri_in) ;
   }
 
-  printf("using %d total control points for intensity normalization...\n", norm_samples) ;
-  if (normalized_transformed_sample_fname)
-    GCAtransformAndWriteSamples(gca, mri_in, gcas_norm, norm_samples, 
-                                normalized_transformed_sample_fname, 
-                                transform) ;
-
-  mri_norm = GCAnormalizeSamples(mri_in, gca, gcas_norm, norm_samples,
-                                 transform, ctl_point_fname) ;
   printf("writing normalized volume to %s...\n", out_fname) ;
   if (MRIwrite(mri_norm, out_fname)  != NO_ERROR)
     ErrorExit(ERROR_BADFILE, "%s: could not write normalized volume to %s",
               Progname, out_fname);
-  
+
   MRIfree(&mri_norm) ;
 
 
@@ -378,6 +396,9 @@ get_option(int argc, char *argv[])
   }
   else switch (*option)
   {
+  case 'W':
+    Gdiag |= DIAG_WRITE ;
+    break ;
   case 'N':
     nregions = atoi(argv[2]) ;
     printf("using %d regions/struct for normalization\n", nregions) ;
@@ -481,8 +502,9 @@ find_control_points(GCA *gca, GCA_SAMPLE *gcas_total,
             DiagBreak() ;
         }
 
-        printf("\t%d total samples found in region (%d, %d, %d)\n", region_samples,x, y,z) ;
-        if (region_samples == 0)
+        printf("\t%d total samples found in region (%d, %d, %d)\n", 
+               region_samples,x, y,z) ;
+        if (region_samples < 8) /* can't reliably estimate statistics */
           continue ;
         HISTOclear(histo, histo) ;
         /* compute mean and variance of label within this region */
@@ -545,12 +567,21 @@ find_control_points(GCA *gca, GCA_SAMPLE *gcas_total,
         for (i = 0 ; i < region_samples ; i++)
         {
           gcas_region[i].mean = mean ;
-          gcas_region[i].var = var ;
+          /*          gcas_region[i].var = var ;*/
         }
 
         GCAcomputeLogSampleProbability(gca, gcas_region, mri_in, transform, region_samples) ;
         GCArankSamples(gca, gcas_region, region_samples, ordered_indices) ;
-        GCAremoveOutlyingSamples(gca, gcas_region, mri_in, transform, region_samples, 1.5) ;
+#if 0
+        /* use detected peak as normalization value for whole region */
+        used_in_region = 1 ; j = ordered_indices[0] ;
+        MRIvox(mri_in, gcas_region[j].x, gcas_region[j].y, gcas_region[j].z) = histo_peak ;
+        memmove(&gcas_norm[*pnorm_samples], &gcas_region[j], sizeof(GCA_SAMPLE)) ;
+        (*pnorm_samples)++ ;
+#else
+#if 1
+        GCAremoveOutlyingSamples(gca, gcas_region, mri_in, transform, region_samples, 2.0) ;
+#endif
         for (used_in_region = i = 0 ; i < region_samples ; i++)
         {
           j = ordered_indices[i] ;
@@ -568,6 +599,7 @@ find_control_points(GCA *gca, GCA_SAMPLE *gcas_total,
           memmove(&gcas_norm[*pnorm_samples], &gcas_region[j], sizeof(GCA_SAMPLE)) ;
           (*pnorm_samples)++ ; used_in_region++ ;
         }
+#endif
         printf("\t%d samples used in region\n", used_in_region) ;
       }
     }
