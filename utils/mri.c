@@ -1962,7 +1962,7 @@ MRIclear(MRI *mri)
   switch (mri->type)
   {
   case MRI_UCHAR:
-    bytes = sizeof(unsigned char) ;
+    bytes *= sizeof(unsigned char) ;
     break ;
   case MRI_BITMAP:
     bytes /= 8 ;
