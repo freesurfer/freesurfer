@@ -16,7 +16,7 @@
 #include "icosahedron.h"
 #include "mrishash.h"
 
-static char vcid[] = "$Id: mris_fix_topology.c,v 1.13 2002/10/23 15:57:46 fischl Exp $";
+static char vcid[] = "$Id: mris_fix_topology.c,v 1.14 2002/10/29 22:57:02 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -31,6 +31,7 @@ char *Progname ;
 static int exit_after_diag = 0 ;
 
 static char *T1_name = "T1" ;
+static char *wm_name = "wm" ;
 static char *sphere_name = "qsphere" ;
 static char *inflated_name = "inflated" ;
 static char *orig_name = "orig" ;
@@ -48,7 +49,7 @@ main(int argc, char *argv[])
   char          **av, *hemi, *sname, *cp, fname[STRLEN] ;
   int           ac, nargs ;
   MRI_SURFACE   *mris, *mris_corrected ;
-  MRI           *mri ;
+  MRI           *mri, *mri_wm ;
   int           msec, nvert, nfaces, nedges, eno ;
   float         max_len ;
   struct timeb  then ;
@@ -106,7 +107,14 @@ main(int argc, char *argv[])
   mri = MRIread(fname) ;
   if (!mri)
     ErrorExit(ERROR_NOFILE,
-              "%s: could not read T1 volume from %s", Progname, T1_name) ;
+              "%s: could not read T1 volume from %s", Progname, fname) ;
+
+  sprintf(fname, "%s/%s/mri/%s", sdir, sname, wm_name) ;
+  printf("reading wm segmentation from %s...\n", wm_name) ;
+  mri_wm = MRIread(fname) ;
+  if (!mri_wm)
+    ErrorExit(ERROR_NOFILE,
+              "%s: could not read T1 volume from %s", Progname, fname) ;
 
   if (MRISreadOriginalProperties(mris, orig_name) != NO_ERROR)
     ErrorExit(ERROR_NOFILE, "%s: could not read original surface %s",
@@ -123,7 +131,7 @@ main(int argc, char *argv[])
   fprintf(stderr, "using quasi-homeomorphic spherical map to tessellate "
           "cortical surface...\n") ;
 
-  mris_corrected = MRIScorrectTopology(mris, NULL, mri, nsmooth, &parms) ;
+  mris_corrected = MRIScorrectTopology(mris, NULL, mri, mri_wm, nsmooth, &parms) ;
   MRISfree(&mris) ;
   eno = MRIScomputeEulerNumber(mris_corrected, &nvert, &nfaces, &nedges) ;
   fprintf(stderr, "after topology correction, eno=%d (nv=%d, nf=%d, ne=%d,"
