@@ -2,6 +2,7 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <errno.h>
 #include "mri.h"
 #include "proto.h"
 #include "mri_identify.h"
@@ -9,6 +10,8 @@
 #include "volume_io.h"
 #include "machine.h"
 #include "fio.h"
+
+extern int errno;
 
 int mri_identify(char *fname)
 {
@@ -85,10 +88,18 @@ int is_siemens(char *fname)
   }
 
   if((fp = fopen(fname, "r")) == NULL)
+  {
+    errno = 0;
     return(0);
+  }
 
   fseek(fp, 5790, SEEK_SET);
-  fread(string, 2, 1, fp);
+  if(fread(string, 2, 1, fp) < 1)
+  {
+    errno = 0;
+    fclose(fp);
+    return(0);
+  }
   string[2] = '\0';
   if(strcmp(string, "SL"))
     {
@@ -96,7 +107,12 @@ int is_siemens(char *fname)
     return(0);
     }
   fseek(fp, 5802, SEEK_SET);
-  fread(string, 2, 1, fp);
+  if(fread(string, 2, 1, fp) < 1)
+  {
+    errno = 0;
+    fclose(fp);
+    return(0);
+  }
   string[2] = '\0';
   if(strcmp(string, "SP"))
     {
@@ -104,7 +120,12 @@ int is_siemens(char *fname)
     return(0);
     }
   fseek(fp, 5838, SEEK_SET);
-  fread(string, 3, 1, fp);
+  if(fread(string, 3, 1, fp) < 1)
+  {
+    errno = 0;
+    fclose(fp);
+    return(0);
+  }
   string[3] = '\0';
   if(strcmp(string, "FoV"))
     {
@@ -136,9 +157,17 @@ int is_genesis(char *fname)
   }
 
   if((fp = fopen(fname, "r")) == NULL)
+  {
+    errno = 0;
     return(0);
+  }
 
-  fread(&magic, 4, 1, fp);
+  if(fread(&magic, 4, 1, fp) < 1)
+  {
+    errno = 0;
+    fclose(fp);
+    return(0);
+  }
   magic = orderLongBytes(magic);
 
   fclose(fp);
@@ -157,10 +186,18 @@ int is_ge_lx(char *fname)
   long magic;
 
   if((fp = fopen(fname, "r")) == NULL)
+  {
+    errno = 0;
     return(0);
+  }
 
   fseek(fp, 3228, SEEK_CUR);
-  fread(&magic, 4, 1, fp);
+  if(fread(&magic, 4, 1, fp) < 0)
+  {
+    errno = 0;
+    fclose(fp);
+    return(0);
+  }
   magic = orderLongBytes(magic);
 
   fclose(fp);
@@ -194,10 +231,14 @@ int is_analyze(char *fname)
   sprintf(hfname, "%s.hdr", hfname);
 
   if((fp = fopen(hfname, "r")) == NULL)
+  {
+    errno = 0;
     return(0);
+  }
 
   if(fread(&hdr, sizeof(hdr), 1, fp) < 1)
   {
+    errno = 0;
     fclose(fp);
     return(0);
   }
@@ -232,9 +273,17 @@ int is_mnc(char *fname)
   }
 
   if((fp = fopen(fname, "r")) == NULL)
+  {
+    errno = 0;
     return(0);
+  }
 
-  fread(buf, 1, 3, fp);
+  if(fread(buf, 1, 3, fp) < 3)
+  {
+    errno = 0;
+    fclose(fp);
+    return(0);
+  }
 
   fclose(fp);
 
@@ -259,7 +308,10 @@ int is_mgh(char *fname)
   }
 
   if((fp = fopen(fname, "r")) == NULL)
+  {
+    errno = 0;
     return(0);
+  }
 
   version = freadInt(fp) ;
   width = freadInt(fp) ;
@@ -308,7 +360,10 @@ int is_sdt(char *fname)
   FILE *fp;
 
   if((fp = fopen(fname, "r")) == NULL)
+  {
+    errno = 0;
     return(0);
+  }
 
   fclose(fp);
 
@@ -320,7 +375,10 @@ int is_sdt(char *fname)
     strcat(header_fname, ".spr");
 
   if((fp = fopen(header_fname, "r")) == NULL)
+  {
+    errno = 0;
     return(0);
+  }
 
   fclose(fp);
 
