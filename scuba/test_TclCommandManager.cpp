@@ -2,9 +2,10 @@
 #include <string>
 #include <iostream>
 #include <tcl.h>
+#include <stdexcept>
 #include "TclCommandManager.h"
 
-#define Assert(x,s)   if(!(x)) { throw (char*) s; }
+#define Assert(x,s)   if(!(x)) { throw logic_error( s ); }
 
 using namespace std;
 
@@ -75,6 +76,7 @@ int main ( int iArgc, char** iArgv ) {
 
     cerr << "TclCommandListener::GetManager()" << endl;
     TclCommandManager& commandMgr = TclCommandManager::GetManager();
+    commandMgr.SetOutputStreamToCerr();
     
     cerr << "Tcl_CreateInterp()" << endl;
     Tcl_Interp* interp = Tcl_CreateInterp();
@@ -127,11 +129,11 @@ int main ( int iArgc, char** iArgv ) {
 	  aListener[nListener]->GetCountForCommand( asCommandNames[nCommand]);
 	if( nListener % 2 == 0 ) {
 	  if( kNumberOfCallsToMake != cCalls ) {
-	    throw (char*) "Count mismatch";
+	    throw logic_error( "Count mismatch" );
 	  }
 	} else {
 	  if( 0 != cCalls ) {
-	    throw (char*) "Count mismatch";
+	    throw logic_error( "Count mismatch" );
 	  }
 	}
       }
@@ -175,11 +177,11 @@ int main ( int iArgc, char** iArgv ) {
 	  aListener[nListener]->GetCountForCommand( asCommandNames[nCommand]);
 	if( nListener % 2 == 0 ) {
 	  if( kNumberOfCallsToMake != cCalls ) {
-	    throw (char*) "Count mismatch";
+	    throw logic_error( "Count mismatch" );
 	  }
 	} else {
 	  if( 0 != cCalls ) {
-	    throw (char*) "Count mismatch";
+	    throw logic_error( "Count mismatch" );
 	  }
 	}
       }
@@ -191,6 +193,14 @@ int main ( int iArgc, char** iArgv ) {
     if( TCL_OK != rTcl ) {
       cerr << "rTcl is " << rTcl << endl;
     }
+    exit( 1 );
+  }
+  catch( exception e ) {
+    cerr << "failed: " << e.what() << endl;
+    exit( 1 );
+  }
+  catch(...) {
+    cerr << "failed." << endl;
     exit( 1 );
   }
 

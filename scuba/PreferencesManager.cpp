@@ -1,12 +1,22 @@
 #include <iostream>
+#include <fstream>
 #include <string>
 #include <list>
-#include "DataManager.h"
+#include <stdexcept>
+#include <sstream>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#include "PreferencesManager.h"
 
 using namespace std;
 
-PreferencesManager::PreferencesManager() {
+PreferencesManager::PreferencesManager() 
+  : DebugReporter() {
 
+  SetOutputStreamToCerr();
+  
+  mVersion = 1;
 }
 
 PreferencesManager& 
@@ -19,29 +29,323 @@ PreferencesManager::GetManager() {
 
 
 void 
-PreferencesManager::UseFile( std::string ifnPrefs ) {
-  
+PreferencesManager::UseFile( string const ifnPrefs ) {
+
+  string fnPrefs = ifnPrefs;
+  struct stat info;
+  int rStat;
+
+  // If this is an absolute file name, try it.
+  if( fnPrefs[0] == '/' ) {
+    rStat = stat( fnPrefs.c_str(), &info );
+  }
+
+  // If that didn't work and this is not an absolute file name, try a
+  // few search paths.
+  if( !S_ISREG(info.st_mode) && fnPrefs[0] != '/' ) {
+    
+    // Local file first, then in home dir, then in usr/share.
+    fnPrefs = "./" + ifnPrefs;
+    
+    rStat = stat( fnPrefs.c_str(), &info );
+    if( !S_ISREG(info.st_mode) ) {
+      char* homeDir = getenv("HOME");
+      if( NULL != homeDir ) {
+	fnPrefs = string(homeDir) + "/" + ifnPrefs;
+	rStat = stat( fnPrefs.c_str(), &info );
+      }
+    }
+
+    if( !S_ISREG(info.st_mode) ) {
+      fnPrefs = "/usr/share" + ifnPrefs;
+      rStat = stat( fnPrefs.c_str(), &info );
+    }
+
+    // If still nothing, we'll write it in their home dir.
+    char* homeDir = getenv("HOME");
+    if( NULL != homeDir ) {
+      fnPrefs = string(homeDir) + "/" + ifnPrefs;
+    } else {
+      fnPrefs = "./" +  ifnPrefs;
+    }      
+  }
+
+  mfnPrefs = fnPrefs;
+
+  ReadFile();
 }
 
 void 
-PreferencesManager::SetHeader( std::string isHeader ) {
+PreferencesManager::SetHeader( string const isHeader ) {
 
+  msHeader = isHeader;
 }
 
-template <class T> void 
-PreferencesManager::RegisterValue( std::string isKeyName,
-				   std::string isDescription,
-				   T iDefaultValue ) {
+void 
+PreferencesManager::RegisterValue( string const isKeyName,
+				   string const isDescription,
+				   SimplePreferenceValue& iValue ) {
 
+  PreferenceValueMap::iterator tPref = mPrefValues.find(isKeyName);
+  if( tPref != mPrefValues.end() ) {
+    
+    DebugOutput( << "RegisterValue: pref " << isKeyName << "found" );
+
+    PreferenceValue pref = *mPrefValues[isKeyName];
+
+  } else {
+
+    DebugOutput( << "RegisterValue: pref " << isKeyName 
+		 << " not found, adding" );
+
+    PreferenceValue* pref = new PreferenceValue();
+    pref->msKeyName = isKeyName;
+    pref->msDescription = isDescription;
+    pref->msDefaultValue = iValue.ValueToString();
+    pref->msValue = iValue.ValueToString();
+
+    mPrefValues[isKeyName] = pref;
+  }
 }
 
-template <class T> T 
-PreferencesManager::GetValue( std::string isKeyName ) {
+void 
+PreferencesManager::SetValue( std::string const isKeyName,
+			      SimplePreferenceValue& iValue ) {
 
+  PreferenceValueMap::iterator tPref = mPrefValues.find(isKeyName);
+  if( tPref != mPrefValues.end() ) {
+    
+    PreferenceValue* pref = mPrefValues[isKeyName];
+    pref->msValue = iValue.ValueToString();
+
+  } else {
+    throw (char const*) "Value not found.";
+  }
 }
 
-template <class T> void 
-PreferencesManager::SetValue( std::string isKeyName, T iValue ) {
+string
+PreferencesManager::GetValue( std::string const isKeyName )  {
 
+  PreferenceValueMap::iterator tPref = mPrefValues.find(isKeyName);
+  if( tPref != mPrefValues.end() ) {
+    
+    PreferenceValue* pref = mPrefValues[isKeyName];
+    return pref->msValue;
+
+  } else {
+    throw (char const*) "Value not found.";
+  }
+}
+
+void
+PreferencesManager::Clear() {
+  mPrefValues.clear();
+}
+
+
+void
+PreferencesManager::ReadFile() {
+
+  ifstream fPrefs( mfnPrefs.c_str(), ios::in );
+  if( !fPrefs || fPrefs.bad() ) {
+    //    throw logic_error("Can't open prefs file");
+    return;
+  }
+
+  string sKeyword;
+  char c;
+  while( !fPrefs.eof() ) {
+    getline( fPrefs, sKeyword );
+
+    if( sKeyword == "begin-version" ) {
+      fPrefs >> mVersion;
+      fPrefs >> sKeyword;
+      if( sKeyword != "end-version" ) {
+	stringstream sError;
+	sError << "Bad prefs file: expected end-version, got " << sKeyword;
+	throw( logic_error(sError.str()) );
+      }
+      DebugOutput( << "SET VERSION TO " << mVersion );
+
+    } else if( sKeyword == "begin-header" ) {
+      stringstream sHeader;
+      while( !fPrefs.eof() ) {
+	getline( fPrefs, sKeyword );
+	if( sKeyword == "end-header" ) {
+	  msHeader = sHeader.str();
+	  DebugOutput( << "SET HEADER TO " << msHeader );
+	  break;
+	} else {
+	  sHeader << sKeyword;
+	}
+      }
+
+    } else if( sKeyword == "begin-pref" ) {
+
+      PreferenceValue* pref = new PreferenceValue();
+      DebugOutput( << "NEW PREF" );
+
+      while( !fPrefs.eof() ) {
+	getline( fPrefs, sKeyword );
+
+	if( sKeyword == "begin-description" ) {
+	  stringstream sDescription;
+	  while( !fPrefs.eof() ) {
+	    getline( fPrefs, sKeyword );
+	    if( sKeyword == "end-description" ) {
+	      pref->msDescription = sDescription.str();
+	      DebugOutput( << "\tSET DESC TO " <<pref->msDescription );
+	      break;
+	    } else {
+	      sDescription << sKeyword;
+	    }
+	  }
+
+	} else if( sKeyword == "begin-name" ) {
+	  fPrefs >> pref->msKeyName;
+	  fPrefs >> sKeyword;
+	  if( sKeyword != "end-name" ) {
+	    stringstream sError;
+	    sError << "Bad prefs file: expected end-name, got " << sKeyword;
+	    throw( logic_error(sError.str()) );
+	  }
+	  DebugOutput( << "\tSET NAME TO " << pref->msKeyName );
+
+	} else if( sKeyword == "begin-value" ) {
+	  stringstream sValue;
+	  while( !fPrefs.eof() ) {
+	    getline( fPrefs, sKeyword );
+	    if( sKeyword == "end-value" ) {
+	      pref->msValue = sValue.str();
+	      DebugOutput( << "\tSET VALUE TO " << pref->msValue );
+	      break;
+	    } else {
+	      sValue << sKeyword;
+	    }
+	  }
+
+	} else if( sKeyword == "end-pref" ) {
+	  break;
+	}
+      }
+      
+      mPrefValues[pref->msKeyName] = pref;
+    }
+  }
+
+  fPrefs.close();
+}
+
+void
+PreferencesManager::WriteFile() {
+
+  ofstream fPrefs( mfnPrefs.c_str(), ios::out );
+  if( fPrefs.bad() ) {
+    throw logic_error("Can't open prefs file");
+  }
+
+  fPrefs << "begin-version" << endl;
+  fPrefs << mVersion << endl;
+  fPrefs << "end-version" << endl << endl;
+
+  fPrefs << "begin-header" << endl;
+  fPrefs << msHeader << endl << endl;
+  fPrefs << "end-header" << endl;
+
+  PreferenceValueMap::iterator tPref;
+  for( tPref = mPrefValues.begin(); tPref != mPrefValues.end(); ++tPref ) {
+    
+    PreferenceValue* pref = (*tPref).second;
+
+    fPrefs << "begin-pref" << endl;
+    fPrefs << "begin-description" << endl
+	   << pref->msDescription << endl << "end-description" << endl;
+    fPrefs << "begin-name" << endl 
+	   << pref->msKeyName << endl << "end-name" << endl;
+    fPrefs << "begin-value" << endl
+	   << pref->msValue << endl << "end-value" << endl;
+    fPrefs << "end-pref" << endl << endl;
+  }
+  
+  fPrefs.close();
+}
+
+
+
+
+
+PreferencesManager::IntPrefValue::IntPrefValue( int const i ) { 
+  mValue = i; 
+}
+
+PreferencesManager::IntPrefValue::IntPrefValue( string const i ) { 
+  mValue = atoi(i.c_str()); 
+  mValue = strtol(i.c_str(), (char**)NULL, 10); 
+}
+    
+void
+PreferencesManager::IntPrefValue::SetFromString( string const isValue ) { 
+  mValue = atoi(isValue.c_str());
+}
+
+string
+PreferencesManager::IntPrefValue::ValueToString() {
+  char sValue[256] = "";
+  sprintf( sValue, "%d", mValue );
+  return string(sValue);
+}
+
+int 
+PreferencesManager::IntPrefValue::GetValue() const { 
+  return mValue;
+}
+
+
+    
+PreferencesManager::FloatPrefValue::FloatPrefValue( float const i ) { 
+  mValue = i; 
+}
+
+PreferencesManager::FloatPrefValue::FloatPrefValue( string const i ) { 
+  mValue = atof(i.c_str()); 
+}
+    
+void
+PreferencesManager::FloatPrefValue::SetFromString( string const isValue ) { 
+  mValue = atof(isValue.c_str());
+}
+
+string
+PreferencesManager::FloatPrefValue::ValueToString() {
+  char sValue[256] = "";
+  sprintf( sValue, "%f", mValue );
+  return string(sValue);
+}
+
+float 
+PreferencesManager::FloatPrefValue::GetValue() const { 
+  return mValue;
+}
+    
+
+
+
+PreferencesManager::StringPrefValue::StringPrefValue( string const i ) { 
+  msValue = i; 
+}
+    
+void
+PreferencesManager::StringPrefValue::SetFromString( string const isValue ) { 
+  msValue = isValue;
+}
+
+string
+PreferencesManager::StringPrefValue::ValueToString() {
+  return msValue;
+}
+
+string
+PreferencesManager::StringPrefValue::GetValue() const { 
+  return msValue;
 }
     

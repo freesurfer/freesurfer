@@ -1,7 +1,8 @@
 #include <string>
+#include <stdexcept>
 #include "TclCommandManager.h"
 
-TclCommandManager::TclCommandManager() {
+TclCommandManager::TclCommandManager() : DebugReporter() {
 
   mbStarted = false;
   mInterp = 0;
@@ -61,7 +62,8 @@ void
 TclCommandManager::CreateCommand( Command& iCommand ) {
 
   if( 0 == mInterp ) {
-    throw;
+    DebugOutput( << "CreateCommand() called with mInterp NULL" );
+    throw std::logic_error( "Tried to CreateCommand without an interpretor" );
   }
   
   Tcl_CreateCommand( mInterp, iCommand.msCommand, 

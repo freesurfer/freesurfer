@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2003/10/06 00:52:03 $
-// Revision       : $Revision: 1.1 $
+// Revision Date  : $Date: 2003/10/17 16:52:28 $
+// Revision       : $Revision: 1.2 $
 
 #ifndef TclCommandManager_h
 #define TclCommandManager_h
@@ -12,13 +12,14 @@
 #include <stdlib.h>
 #include <list>
 #include <tcl.h>
+#include "DebugReporter.h"
 
 class TclCommandListener {
  public:
   virtual void ListenToTclCommand ( char* iCommand, int iArgc, char** iArgv ) = 0;
 };
 
-class TclCommandManager {
+class TclCommandManager : public DebugReporter {
 
  protected:
 

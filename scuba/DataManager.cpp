@@ -1,10 +1,14 @@
 #include <iostream>
 #include <string>
 #include <list>
+#include <stdexcept>
 #include "DataManager.h"
 
 using namespace std;
 
+template <typename T>
+DataLoader<T>::DataLoader() : DebugReporter() {
+}
 
 template <typename T>
 T DataLoader<T>::GetData( string const& ifnData ) {
@@ -52,14 +56,14 @@ DataLoader<T>::ReleaseData( T* ioData ) {
     }
   }
 
-  throw (char const*) "Couldn't find data";
+  throw logic_error("Couldn't find data");
 }
 
 
 MRILoader DataManager::mMRILoader;
 MRISLoader DataManager::mMRISLoader;
 
-DataManager::DataManager() {
+DataManager::DataManager() : DebugReporter() {
 }
 
 DataManager& 
@@ -80,7 +84,8 @@ MRILoader::LoadData( std::string& ifnData ) {
   MRI* mri = MRIread( fnMRI ); 
   free( fnMRI );
   if( NULL == mri ) {
-    throw (char const*) "Couldn't load MRI.";
+    DebugOutput( << "MRIread() failed for " << fnMRI );
+    throw logic_error("Couldn't load MRI.");
   }
   return mri;
 }
@@ -114,7 +119,8 @@ MRISLoader::LoadData( std::string& ifnData ) {
   MRIS* mris = MRISread( fnMRIS ); 
   free( fnMRIS );
   if( NULL == mris ) {
-    throw (char const*) "Couldn't load MRIS.";
+    DebugOutput( << "MRISread() failed for " << fnMRIS );
+    throw logic_error("Couldn't load MRIS.");
   }
   return mris;
 }

@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2003/10/13 15:11:21 $
-// Revision       : $Revision: 1.3 $
+// Revision Date  : $Date: 2003/10/17 16:52:28 $
+// Revision       : $Revision: 1.4 $
 
 #ifndef DataManager_h
 #define DataManager_h
@@ -13,7 +13,7 @@
 #include <list>
 #include <map>
 #include <string>
-
+#include "DebugReporter.h"
 
 
 extern "C" { 
@@ -26,7 +26,7 @@ extern "C" {
 // keeping references to loaded data of this type, and virtual functions
 // for actually loading the data and freeing it.
 template <typename T> 
-class DataLoader { 
+class DataLoader : public DebugReporter { 
  public:
 
   // Returns an instance to the data for the given file name, or
@@ -42,6 +42,7 @@ class DataLoader {
   int CountLoaded() const { return mlData.size(); }
 
  protected:
+  DataLoader();
 
   // Override this function to load a specfic type of data given a
   // file name. Should throw an error if it's not loadable.
@@ -77,7 +78,7 @@ class MRISLoader : public DataLoader<MRIS*> {
 
 
 
-class DataManager {
+class DataManager : public DebugReporter {
 
  public: 
 

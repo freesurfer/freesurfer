@@ -14,6 +14,8 @@ template <typename LoaderType, typename DataType>
 void TestLoader ( string const& ifnData,
 		  DataLoader<DataType>& loader ) {
 
+  loader.SetOutputStreamToCerr();
+
   cerr << "GetData( " << ifnData << " )" << endl;
   DataType data = loader.GetData( ifnData );
   Assert( 1 == loader.CountLoaded(), "CountLoaded didn't return 1" );
@@ -52,9 +54,18 @@ int main ( int argc, char** argv ) {
   string fnMRI = "/Users/kteich/work/subjects/bert/mri/T1";
   string fnMRIS = "/Users/kteich/work/subjects/bert/surf/lh.white";
 
+  char* sSubjectsDir = getenv("SUBJECTS_DIR");
+
+  if( NULL != sSubjectsDir ) {
+    fnMRI = string(sSubjectsDir) + "/bert/mri/T1";
+    fnMRIS = string(sSubjectsDir) + "/bert/surf/lh.white";
+  }
+
+
   try { 
  
     DataManager& dataMgr = DataManager::GetManager();
+    dataMgr.SetOutputStreamToCerr();
 
     cerr << "Testing MRILoader" << endl;
     TestLoader<MRILoader,MRI*>( fnMRI, dataMgr.GetMRILoader() );
@@ -65,6 +76,10 @@ int main ( int argc, char** argv ) {
   }
   catch( char const* iMsg ) {
     cerr << "failed: " << iMsg << endl;
+    exit( 1 );
+  }
+  catch( exception e ) {
+    cerr << "failed: " << e.what() << endl;
     exit( 1 );
   }
 
