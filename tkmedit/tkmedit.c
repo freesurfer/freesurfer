@@ -790,7 +790,9 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
   int                     nTruncPhaseFlag                       = 0;
   tBoolean                bUseOverlayCacheFlag                  = FALSE;
   int                     nUseOverlayCacheFlag                  = 0;
+#if 0
   tBoolean                bSetConversionMethod                  = FALSE;
+#endif
   FunD_tConversionMethod  convMethod       = FunD_tConversionMethod_FFF;
   tBoolean                bLoadingHeadPts                       = FALSE;
   tBoolean                bHaveHeadPtsTransform                 = FALSE;
@@ -1512,6 +1514,10 @@ printf("-interface script    : scecify interface script (default is tkmedit.tcl)
       nCurrentArg += 1;
     }
 
+  /* rkt - commented out because the functional volume should no
+     longer set the conversion method explicitly. it should only be
+     set when parsing the register.dat file. */
+#if 0
   } else if( MATCH( sArg, "-float2int" ) ) {
 
     /* check for the value following the switch */
@@ -1521,25 +1527,25 @@ printf("-interface script    : scecify interface script (default is tkmedit.tcl)
       /* get the value */
       DebugNote( ("Parsing -float2int option") );
       if( MATCH( argv[nCurrentArg+1], "tkreg" ) ) {
-  convMethod = FunD_tConversionMethod_FCF;
-  bSetConversionMethod = TRUE;
-  nCurrentArg +=2;
+        convMethod = FunD_tConversionMethod_FCF;
+        bSetConversionMethod = TRUE;
+        nCurrentArg +=2;
       }
       else if( MATCH( argv[nCurrentArg+1], "floor" ) ) {
-  convMethod = FunD_tConversionMethod_FFF;
-  bSetConversionMethod = TRUE;
-  nCurrentArg +=2;
+        convMethod = FunD_tConversionMethod_FFF;
+        bSetConversionMethod = TRUE;
+        nCurrentArg +=2;
       }
       else if( MATCH( argv[nCurrentArg+1], "round" ) ) {
-  convMethod = FunD_tConversionMethod_Round;
-  bSetConversionMethod = TRUE;
-  nCurrentArg +=2;
+        convMethod = FunD_tConversionMethod_Round;
+        bSetConversionMethod = TRUE;
+        nCurrentArg +=2;
       } else {
-  tkm_DisplayError( "Parsing -float2int option",
-        "Argument not recognized",
-        "Please specify tkreg, floor, or round "
-        "as the conversion method." );
-  nCurrentArg +=1;
+        tkm_DisplayError( "Parsing -float2int option",
+                          "Argument not recognized",
+                          "Please specify tkreg, floor, or round "
+                          "as the conversion method." );
+        nCurrentArg +=1;
       }
 
     } else { 
@@ -1551,6 +1557,7 @@ printf("-interface script    : scecify interface script (default is tkmedit.tcl)
             "turn the option on or off." );
       nCurrentArg += 1;
     }
+#endif
 
   } else if( MATCH( sArg, "-interface" ) ) {
     
@@ -1847,10 +1854,16 @@ printf("-interface script    : scecify interface script (default is tkmedit.tcl)
       eFunctional = FunV_UseOverlayCache( gFunctionalVolume,
             (tBoolean) nUseOverlayCacheFlag );
     }
+
+  /* rkt - commented out because the functional volume should no
+     longer set the conversion method explicitly. it should only be
+     set when parsing the register.dat file. */
+#if 0
     if( bSetConversionMethod ) {
       DebugNote( ("Setting conversion method to %d", convMethod) );
       eFunctional = FunV_SetConversionMethod( gFunctionalVolume, convMethod );
     }
+#endif
 
     /* clear error flag because if we get here we've already handled it
      with an error message. */
