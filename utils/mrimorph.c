@@ -26,6 +26,7 @@
 #include "error.h"
 #include "macros.h"
 #include "fio.h"
+#include "proto.h"
 
 static MRI    *find_midline(MRI *mri_src, MRI *mri_thresh, float *px) ;
 static int    find_spinal_fusion(MRI *mri_thresh) ;
