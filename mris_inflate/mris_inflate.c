@@ -13,7 +13,7 @@
 #include "mri.h"
 #include "macros.h"
 
-static char vcid[] = "$Id: mris_inflate.c,v 1.3 1997/11/06 21:46:55 fischl Exp $";
+static char vcid[] = "$Id: mris_inflate.c,v 1.4 1997/12/15 20:34:32 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -94,12 +94,10 @@ main(int argc, char *argv[])
       ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
                 Progname, fname) ;
 
-    MRISreadTriangleProperties(mris, fname) ;
     FileNameOnly(in_fname, fname) ;
     if (MRISreadPatch(mris, fname) != NO_ERROR)
       ErrorExit(ERROR_NOFILE, "%s: could not read patch file %s",
                 Progname, in_fname) ;
-    MRIScomputeTriangleProperties(mris) ;  /* recompute areas and normals */
   }
   else
   {
@@ -107,10 +105,9 @@ main(int argc, char *argv[])
     if (!mris)
       ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
                 Progname, in_fname) ;
-
-    MRISreadTriangleProperties(mris, in_fname) ;
   }
 
+  MRIScomputeMetricProperties(mris) ;
   MRIStalairachTransform(mris, mris) ;
   radius = MRISaverageRadius(mris) ;
   scale = DESIRED_RADIUS/radius ;
