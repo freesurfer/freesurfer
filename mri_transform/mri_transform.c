@@ -16,7 +16,7 @@
 //E/ should be in transform.h if it isn't already
 
 double MRIcomputeLinearTransformLabelDist(MRI *mri_src, MATRIX *mA, int label) ;
-static char vcid[] = "$Id: mri_transform.c,v 1.9 2004/11/22 21:16:08 fischl Exp $";
+static char vcid[] = "$Id: mri_transform.c,v 1.10 2004/11/23 18:46:38 tosa Exp $";
 
 //E/ For transformations: for case LINEAR_RAS_TO_RAS, we convert to
 //vox2vox with MRIrasXformToVoxelXform() in mri.c; for case
@@ -60,8 +60,11 @@ main(int argc, char *argv[])
   VECTOR *mine;
   VECTOR *c;
 
+  fprintf(stderr, "Please use 'mri_convert -at xfm.'  mri_transform contains too many bugs.\n");
+  exit(1);
+
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_transform.c,v 1.9 2004/11/22 21:16:08 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_transform.c,v 1.10 2004/11/23 18:46:38 tosa Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
