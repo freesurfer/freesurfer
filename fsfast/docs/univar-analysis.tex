@@ -1,0 +1,437 @@
+%\documentclass[12pt]{article}
+\documentclass{article}
+\usepackage{amsmath}
+
+\setlength{\oddsidemargin}{-.5in}
+\setlength{\textwidth}{6.5in}
+\setlength{\topmargin}{-.5in}
+\setlength{\textheight}{9.5in}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%% begin document %%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{document}
+
+\begin{LARGE}
+\begin{center}
+fMRI Analysis 101 - Univariate Analysis\\
+Douglas N. Greve\\
+\begin{verbatim}
+ $Id: univar-analysis.tex,v 1.1 2003/08/11 21:18:05 greve Exp $
+\end{verbatim}
+\end{center}
+\end{LARGE}
+
+\section{Introduction}
+
+This document gives a terse description of how to perform linear
+univariate analysis of fMRI data (though the techniques generalize to
+other modalities). The name {\em univariate} is somewhat of a misnomer
+that has been adopted in fMRI.  In this context, univariate refers to
+all the processing done on the time course from a {\em single} voxel,
+and {\em multivariate} refers to analysis done on multiple voxels (eg,
+Gaussian Random Fields). In this discussion, the {\em observable} is
+the raw data after any preprocessing (eg, slice-timing correction,
+motion correction, spatial smoothing). The techniques described are
+all {\em linear}\footnote{This is sometimes referred to as a {\em
+General Linear Model}, or GLM. This is a slight exaggeration because
+the GLM allows for several types of noise distributions, whereas, in
+the fMRI literature, almost exclusively assumes Gaussian.} in that the
+observable is modeled as a linear combination of regressors. The {\em
+design matrix} is the matrix whose columns are the regressors and
+contains information about the stimulus {\em schedule}, i.e., which
+stimulus was presented when. It may also have {\em nuisance}
+regressors (e.g., linear drift).
+
+\section{Forward Model}
+
+\begin{equation}
+y = X \beta + n, n: N(0,\sigma_n^2 \Sigma)
+\end{equation}
+
+\noindent
+$y$ is the $N_t \times 1$ observable (1 = ``univariate'')\\
+$X$ is the $N_t \times N_\beta$ design matrix (stimulus convolution matrix) \\
+$\beta$ is the $N_\beta \times 1$ vector of regression coefficients (1 = ``univariate'')\\
+$\sigma_n^2$ is the noise variance \\
+$\Sigma$ is $N_t \times N_t$ noise covariance matrix; identity for
+white noise.\\
+$N_t$ is the number of time points\\
+$N_\beta$ is the number of regression coefficients\\
+
+\noindent
+The forward model represents a set of $N_t$ linear equations with
+$N_\beta$ unknowns (the $\beta$s).
+
+\section{Ordinary Least Squares (OLS) Solution}
+
+Assume white noise  ($\Sigma = I$).
+
+\begin{equation}
+\hat{\beta} = (X^T X)^{-1}  X^T y
+\end{equation}
+$(X^T X)^{-1}  X^T$ is the pseudo-inverse of $X$ (aka $X^+$)\\
+
+\noindent
+Signal Estimate:
+\begin{equation}
+\hat{y} = X\hat{\beta} = X (X^T X)^{-1}  X^T y
+\end{equation}
+
+\noindent
+Residual Error:
+\begin{equation}
+r = y - \hat{y} = y - X\hat{\beta} = (I - X (X^T X)^{-1}  X^T) y = R y
+\end{equation}
+$R$ is the {\em residual error forming matrix}. Idempotent: $R R=R$.\\
+
+\noindent
+Degrees of Freedom:
+\begin{equation}
+\nu = DOF = trace(R) = N_t - N_\beta
+\end{equation}
+
+\noindent
+Residual Error Variance:
+\begin{equation}
+\sigma_r^2 = \frac{r^t r}{DOF} \approx \sigma_n^2
+\end{equation}
+
+\noindent
+Covariance of $\hat{\beta}$ under Null Hypothesis ($\beta = 0$):
+\begin{equation}
+Cov(\hat{\beta}) = E(\hat{\beta} \hat{\beta}^T) =
+\sigma_r^2 (X^T X)^{-1}  X^T \Sigma X (X^T X)^{-1} 
+\end{equation}
+Under the assumption of white noise ($\Sigma = I$)
+\begin{equation}
+Cov(\hat{\beta}) = \sigma_r^2 (X^T X)^{-1}
+\end{equation}
+
+\noindent
+Contrast Effect Size:
+\begin{equation}
+\gamma = C \hat\beta
+\end{equation}
+$C$ is the $J \times N_\beta$ {\em Contrast Matrix}.\\
+
+\noindent
+t-Test ($J=1$):
+\begin{equation}
+t_{DOF} = \frac{ C \hat\beta } { Cov(C \hat\beta) }
+\end{equation}
+
+\noindent
+F-Test:
+\begin{equation}
+F_{J,DOF} = \frac{ (C\hat\beta)^T (Cov(C \hat\beta))^{-1} (C\hat\beta)}{J}
+\end{equation}
+where
+\begin{equation}
+Cov(C \hat\beta) = C Cov(\hat\beta) C^T
+\end{equation}
+Under the assumption of white noise ($\Sigma = I$), this becomes
+\begin{equation}
+Cov(C \hat\beta) = \sigma_r^2 C (X^TX)^{-1} C^T
+\end{equation}
+
+\noindent
+Note: if a white noise model is assumed but the noise is not really
+white, then the statistics are said to be ``invalid'', meaning that
+the false positive rate (FPR) is not ideal. In fMRI, the FPR usually
+becomes ``liberal'' (ie, there are too many false positives).
+
+\section{Generalized Least Squares (GLS) Solution}
+
+Non-white noise and temporal filtering.\\
+
+\noindent
+Forward Model with temporal filtering of the residuals:
+\begin{equation}
+Fy = FX \beta + Fn, n: N(0,\sigma_n^2 \Sigma)
+\end{equation}
+$F$ is the $N_t \times N_t$ filter matrix. Note: the equations
+below will simplify a lot when $F = \Sigma^{-\frac{1}{2}}$, a special
+case which is discussed below. \\
+
+\noindent
+New solution:
+\begin{equation}
+\hat{\beta} = (X^T F^T F X)^{-1}  X^T F^T  F y
+\end{equation}
+if $\tilde{X} = F X$, $\tilde{y} = F y$, then
+\begin{equation}
+\hat{\beta} = (\tilde{X}^T \tilde{X})^{-1}  \tilde{X}^T \tilde{y}
+\end{equation}
+Note: $\hat\beta$ is still unbiased. Proof: solving the above equation
+with $n=0$ shows that $\hat\beta = \beta$.\\
+
+\noindent
+Residual Error forming Matrix:
+\begin{equation}
+R = I - F X (X^T F^T F X)^{-1}  X^T F^T  F
+\end{equation}
+where the residual error is still $r = Ry$.\\
+
+\noindent
+Degrees of Freedom (Statistics):
+\begin{equation}
+\nu = DOF = \frac{(trace(R F \Sigma F^T))^2} {trace((R F \Sigma F^T)^2)}
+\end{equation}
+
+\noindent
+Degrees of Freedom (Variance):
+\begin{equation}
+\eta = trace(R F \Sigma F^T)
+\end{equation}
+Note: this parameter has no name in the literature.\\
+
+\noindent
+Residual Error Variance:
+\begin{equation}
+\sigma_r^2 = \frac{r^t r}{\eta} 
+\end{equation}
+
+\noindent
+Covariance of $\hat{\beta}$ under Null Hypothesis ($\beta = 0$):
+\begin{equation}
+Cov(\hat{\beta}) = 
+\sigma_r^2 (X^T F^T F X)^{-1}  X^T F^T \Sigma F X (X^T F^T F X)^{-1} 
+\end{equation}
+Problem: $\Sigma$ is unknown.
+
+\section{How to set the Filter Matrix F? What about $\Sigma$?}
+
+\subsection{SPM}
+
+\noindent
+Make $F >> \Sigma^{\frac{1}{2}}$, make the smoothing induced by the
+temporal filter much more than the inherent smoothness of the noise,
+in which case:
+\begin{equation}
+F \Sigma F^T \approx F F^T
+\end{equation}
+One only needs some vague knowledge about $\Sigma$, enough to be able
+to produce an $F$ that will overwhelm it.  This approximation allows
+$Cov(\hat\beta)$ to be computed in a way that sort of takes the
+inherent noise covariance into account and so makes the false-positive
+rate closer to the ideal. This is inefficient, but not bad for blocked
+designs. For event-related designs, this can cause a massive loss in
+efficiency. 
+
+\subsection{Whitening}
+
+Set $F$ to the inverse of the Cholesky decomposition of $\Sigma$:
+\begin{equation}
+F = \Sigma^{-\frac{1}{2}}
+\end{equation}
+\begin{equation}
+F \Sigma F^T = I
+\end{equation}
+This is a {\em fully efficient estimator} (ie, $DOF = N_t - N_\beta$).\\
+
+\noindent
+Where does $\Sigma$ come from in order to compute $F$? Estimate $\Sigma$
+from the residuals. E.g., build $\Sigma$ from the autocorrelation
+function of the residuals (AR(1), AR(N), non-parametric). May need to
+compensate for coloring of the residuals. Usually some spatial
+regularization is a good idea.
+
+\section{Efficiency and Design Optimization}
+
+\noindent
+Goal: choose an event schedule (ie, an $X$) that will minimize the
+expected sum-square error (SSE) of the estimates ($\hat\beta$). \\
+
+\noindent
+The error in $\hat\beta$ is given by:
+\begin{equation}
+\hat\beta_e = \beta - \hat\beta = (X^T X)^{-1} X^T n
+\end{equation}
+under the white noise assumption. Note: this is different than the
+residual error.\\
+
+\noindent
+The expected SSE is then
+\begin{equation}
+E\{SSE\} = E\{\hat\beta_e^T \hat\beta_e\} = 
+  E\{trace(\hat\beta_e \hat\beta_e^T)\} =
+  \sigma_n^2 trace((X^T X)^{-1})
+\end{equation}
+again under the white noise assumption. The SSE can be minimized by
+minimizing $trace((X^T X)^{-1})$. The {\em efficiency} is defined as:
+\begin{equation}
+eff = \frac{1}{trace((X^T X)^{-1})}
+\end{equation}
+
+\noindent
+Algorithm: randomly select a stimulus schedule, compute $X$, compute
+the efficiency, do this a million times, keep the schedules that give
+the largest efficiencies. 
+
+\section{Exploring Signal Models}
+
+\subsection{The Forward Model Revisited}
+
+\noindent
+The forward equation is
+\begin{equation}
+y = X \beta + n, n: N(0,\sigma_n^2 \Sigma)
+\end{equation}
+Each column of $X$ is a regressor, and each component of $\beta$ is a
+regression coefficient. The interpretation of each $\beta$ depends
+upon how its corresponding regressor was constructed.  All the
+assumptions about the signal are embedded in $X$. $X$ may actually be
+made up of many different explanatory variables. For example, several
+event-related stimuli, periodic stimuli, polynomial drift components,
+physiological regressors, etc.
+
+\subsection{Event-Related Models (includes Block too)}
+
+
+\subsubsection{Finite-Impulse Response (FIR)}
+
+\noindent
+The event-related model (ERM) is best understood by first considering
+a Finite-Impulse Response (FIR) model. The FIR makes no assumptions
+about the shape of the hemodynamic response. In this model, a {\em
+time window} is hypothesized to exist around and event. The response
+to the event is zero outside the window but can be anything in the
+window (discretized to some sampling time). In the $X$ for the FIR,
+the number of rows equals $N_t$ (this is always the case) and the
+number of columns equals the number of samples in the window
+($N_w$). This causes $n^{th}$ $\beta$ to be interpreted as the value
+of the response at the $n^{th}$ sample in the window. Example: for a
+short event, the response may last for 20 sec, so one could start the
+time window at $t=0$ (ie, stimulus onset) and end it at $t=20$
+sampling at the TR (eg, TR=2). In this case, $N_w = 10$. Note that if
+the duration of the event is non-trivial, just extend the time window
+to be long enough to capture the entire response. A blocked design is
+just an event-related design with long events.\\
+
+\noindent
+The FIR $X$ is built in the following way. The components are either 0
+or 1. The fist column is built by putting a 1 everywhere a stimulus
+appears and a 0 everywhere else. The next column is the same as the
+first but shifted down by one, filling the first row with a 0. Each
+additional column constructed in the same way.
+
+\subsubsection{Modeling an Assumed Response Shape}
+
+\noindent
+Often one wants to make assumptions about the shape of the hemodynamic
+response. Such assumptions can greatly increase the statistical power,
+though there are some risks. In general, the $X$ matrix can be
+computed as:
+\begin{equation}
+X = X_{fir} A
+\end{equation}
+where $X_{fir}$ is the FIR design matrix as described above, and $A$
+is the matrix that holds the assumptions about the hemodynamic
+response sampled at the points in the time window. For example, $A$
+could be a single column representing a gamma function. In this case
+there would be only one $\beta$ and it would represent the amplitude
+of the best-fit gamma function. One could make a second column
+representing the derivative of the gamma function (this is what SPM
+usually does).
+
+\subsubsection{Benefits to Assuming a Shape}
+
+\noindent
+Assuming a shape will usually increase the statistical power,
+sometimes dramatically so. To see why, consider assuming the shape
+using a simple gamma function. This model only has one free parameter:
+the amplitude. The equivalent FIR model may have 10 free
+parameters. Thus, for the gamma model, each event gives us an
+opportunity to observe that one parameter 10 times (approximately)
+whereas in the FIR, each parameter is only observed once. One
+roughly expects the variance of an estimated parameter to be reduced
+by a factor equal to the number of observations, so, all other things
+being equal, one expects the gamma parameter to have one tenth the
+variance of the FIR parameters. Note: this is why there is a penalty
+in the FIR model for extending the time window.
+
+\subsubsection{Risks to Assuming a Shape}
+
+\noindent
+There are three main risks to assuming a shape to the hemodynamic
+response; all have to due with mis-characterizing the shape. First, if
+the true response is in the null space of $A$, then $\beta$ will be
+zero, even in the case where there is no noise. In this case, all
+statistical tests will report that there is no effect even though the
+effect can be huge. The closer to the null space of $A$ the true
+response is, the lower the final significance will be. Second,
+mis-specifying the shape will cause the residual error to be larger;
+but this is usually a small effect. The third risk is more difficult
+to explain. If the assumed shape is wrong, then it cannot explain
+all the signal associated with an event type. If the event schedules
+are not thoroughly randomized, then the regressors from a second event
+type can soak up some of the signal left by the first. This can make
+the effect of the second event type appear to be larger than it
+is. This can cause a false positive when compared to baseline or a
+false negative when compared to the first stimulus. It is not known
+how large this effect is.
+
+\subsubsection{Multiple Event-Types}
+
+\noindent
+If there are multiple event types, then build the $X = X_{fir} A$
+matrix for each one and horizontally concatenate them together.
+
+\section{Nuisance Variables}
+
+A {\em nuisance} variable is generally considered to be any systematic
+effect that is not part of the experimental paradigm. For example,
+fMRI time courses always have a mean offset. Others include motion
+artifacts and drift due to scanner heating. These effects can be
+modeled by adding regressors to the design matrix. Ideally, the
+nuisance regressors span the noise, thereby reducing the residual
+variance and improving the statistical power. However, it is possible
+(and likely) that the nuisance regressor will not be orthogonal to the
+task-related components. When this happens, the task effect size may
+drop significantly when the nuisance regressor is added. It is not
+possible to say which task effect size is ``correct''.\\
+
+\subsection{Polynomial Drift Models}
+
+\noindent
+The BOLD signal always has a mean offset that must be taken into
+account when estimating the task-related effects. There can also be
+slow increases/decreases due to amplifiers heating up, etc.
+These effects can be accounted for in several ways. Here, we show how 
+to include polynomial regressors. The $X$ matrix will have $N_t$ rows
+(always) and a number of columns equal to the $order+1$ of the
+polynomial, where $order=0$ is a constant (models the mean
+offset). The first column will be all ones, the next will be linear
+from 1 to $N_t$, the next will be quadratic, etc. Note that this will
+be different than simply subtracting the mean from the raw time course
+unless you also subtract the mean from the (non-polynomial) design
+matrix. Once you have the $X$ for the polynomial regressors,
+horizontally concatenate it with the design matrices from other
+explanatory components.
+
+\subsection{Motion Correction Regressors}
+
+\noindent
+When a functional volume is motion corrected, the program performing
+the correction will output the six ``motion correction parameters''
+for each volume in the series. These parameters are the translation
+(3) and rotation at each time point. Together, they make an $N_t
+\times 6$ matrix. This matrix can be included as nuisance variables
+(though it is best to do data reduction by taking the three largest
+singular vectors). Given that the volume has been motion corrected,
+why would you want to include motion correction regressors? The motion
+correction algorithm cannot remove all the effects of motion. For
+example, it cannot remove the {\em spin history} effect, which is when
+tissue not in the original slice plane gets moved into the slice
+plane. This tissue was not excited by the RF pulse and so will have no
+signal. Note: using motion correction regressors can be tricky because
+it is often the canse that the subject moves in time to the stimulus,
+which causes the motion correction regressors to span the space of the
+task-related signal. This can cause a drop in the task-related effect
+size. On the other hand, if there is stimulus-locked motion, one does
+not know whether an effect is due to motion or to stimulus. This is
+much more likely to happen during a blocked design.
+
+
+\end{document}
