@@ -18,7 +18,7 @@
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_parse_sdcmdir.c,v 1.9 2004/09/30 20:02:53 tosa Exp $";
+static char vcid[] = "$Id: mri_parse_sdcmdir.c,v 1.10 2004/11/02 18:03:30 greve Exp $";
 char *Progname = NULL;
 
 static int  parse_commandline(int argc, char **argv);
@@ -39,6 +39,7 @@ char *outfile;
 FILE *outstream;
 int summarize = 0;
 int sortbyrun = 0;
+int TRSlice = 0;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv)
@@ -108,7 +109,12 @@ int main(int argc, char **argv)
     PrevRunNo = sdfi->RunNo;
 
     sdfi->RepetitionTime /= 1000.0;
-    if(sdfi->IsMosaic )  sdfi->RepetitionTime *= sdfi->VolDim[2];
+
+    // Old version of Siemens software had reptime as time between
+    // slices. New has reptime as time between volumes. When unpacking
+    // old version, use --tr-slice to make TRSlice=1. The default
+    // is for TRSlice=0. This is also the behavior with --tr-vol
+    if(sdfi->IsMosaic && TRSlice) sdfi->RepetitionTime *= sdfi->VolDim[2];
 
     fname     = fio_basename(sdfi->FileName,NULL);
     psname    = strip_white_space(sdfi->PulseSequence);
@@ -164,7 +170,7 @@ static int parse_commandline(int argc, char **argv)
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_parse_sdcmdir.c,v 1.9 2004/09/30 20:02:53 tosa Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_parse_sdcmdir.c,v 1.10 2004/11/02 18:03:30 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -186,6 +192,8 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--version")) print_version() ;
     else if (!strcasecmp(option, "--debug"))   debug = 1;
     else if (!strcasecmp(option, "--verbose")) verbose = 1;
+    else if (!strcasecmp(option, "--tr-slice")) TRSlice = 1;
+    else if (!strcasecmp(option, "--tr-vol"))   TRSlice = 0;
     else if (!strcmp(option, "--d")){
       if(nargc < 1) argnerr(option,1);
       sdicomdir = pargv[0];
@@ -243,6 +251,8 @@ static void print_usage(void)
   fprintf(stdout, "   --sortbyrun    : assign run numbers\n");
   fprintf(stdout, "   --summarize    : only print out info for run leaders\n");
   fprintf(stdout, "   --help         : how to use this program \n");
+  fprintf(stdout, "   --tr-vol       : TR defined to be time bet volumes (default)\n");
+  fprintf(stdout, "   --tr-slice     : TR defined to be time bet slices\n");
   fprintf(stdout, "\n");
 }
 /* --------------------------------------------- */
@@ -291,6 +301,17 @@ static void print_help(void)
 
   printf("\n");
   printf("  --summarize : forces print out of information for the first file in the run.\n");
+  printf("\n");
+  printf("--tr-slice : interpret the repetition time for mosaics as the \n");
+  printf("  time between slices. This was the case for older NUMARIS \n");
+  printf("  versions. Default is to interpret as time between volumes. \n");
+  printf("  Note: this only applies to mosaics.\n");
+  printf("\n");
+  printf("--tr-vol : interpret the repetition time for mosaics as the \n");
+  printf("  time between volumes. See --tr-slice for more info. Only \n");
+  printf("  applies to mosaics.\n");
+  printf("\n");
+
 
   printf("\n");
 
