@@ -2,7 +2,7 @@
    DICOM 3.0 reading functions
    Author: Sebastien Gicquel and Douglas Greve
    Date: 06/04/2001
-   $Id: DICOMRead.c,v 1.47 2003/10/01 21:15:23 tosa Exp $
+   $Id: DICOMRead.c,v 1.48 2003/10/21 17:06:14 tosa Exp $
 *******************************************************/
 
 #include <stdio.h>
@@ -109,7 +109,6 @@ MRI * sdcmLoadVolume(char *dcmfile, int LoadVolume)
 
   /* First File in the Run */
   sdfi = sdfi_list[0];
-  /* decide the sign ambiguity here by comparing two files   */
   /* there are some Siemens files don't have the slice dircos */
   {
     xs = sdfi_list[0]->ImgPos[0]; ys = sdfi_list[0]->ImgPos[1]; zs = sdfi_list[0]->ImgPos[2];
@@ -122,8 +121,7 @@ MRI * sdcmLoadVolume(char *dcmfile, int LoadVolume)
     sign = sdfi->Vs[0]*(xs-xe) + sdfi->Vs[1]*(ys-ye) + sdfi->Vs[2]*(ze-zs);
     if (sign < 0)
     {
-      // warn
-      fprintf(stderr, "INFO: c_s sign is flipped (this should not happen).\n");
+      // fprintf(stderr, "INFO: weird (this should not happen).\n");
     }
   }
 
