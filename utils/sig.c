@@ -4,6 +4,8 @@
 
 #include "error.h"
 #include "sig.h"
+#include "proto.h"
+
 
 
 #define ITMAX 100
