@@ -1,6 +1,6 @@
 #! /usr/bin/tixwish
 
-# $Id: tkmedit.tcl,v 1.79 2004/07/07 22:16:07 kteich Exp $
+# $Id: tkmedit.tcl,v 1.80 2004/08/12 21:29:57 kteich Exp $
 
 
 source $env(FREESURFER_HOME)/lib/tcl/tkm_common.tcl
@@ -520,11 +520,11 @@ proc UpdateBrushInfo { inBrush inLow inHigh inNewValue inMode inCloneSource } {
     set gEditBrush($inBrush,cloneSource)  $inCloneSource
 }
 
-proc UpdateAnatomicalFillInfo { ib3D inFuzzy inDistance } {
+proc UpdateAnatomicalFillInfo { ib3D iFuzzy iDistance } {
     global gBrushInfo
     set gBrushInfo(3dfill)   $ib3D
-    set gBrushInfo(fuzzy)    $inFuzzy
-    set gBrushInfo(distance) $inDistance
+    set gBrushInfo(fuzzy)    $iFuzzy
+    set gBrushInfo(distance) $iDistance
 }
 
 proc UpdateCursorColor { ifRed ifGreen ifBlue } {
@@ -561,7 +561,7 @@ proc UpdateUseRealRAS { ibUseRealRAS } {
     set gbUseRealRAS $ibUseRealRAS
 }
 
-proc UpdateSegBrushInfo { inColor ib3D iSrc inFuzzy inDistance } {
+proc UpdateSegBrushInfo { inColor ib3D iSrc iFuzzy iDistance } {
     global gSegBrush
 
     set oldSelection  $gSegBrush(color)
@@ -569,8 +569,8 @@ proc UpdateSegBrushInfo { inColor ib3D iSrc inFuzzy inDistance } {
     set gSegBrush(color)   $inColor
     set gSegBrush(3d)      $ib3D
     set gSegBrush(src)     $iSrc
-    set gSegBrush(fuzzy)   $inFuzzy
-    set gSegBrush(sitance) $inDistance
+    set gSegBrush(fuzzy)   $iFuzzy
+    set gSegBrush(sitance) $iDistance
 
     # if the seg brush info dialog box is open, we want to select the
     # item with the index of the seg brush color. do all this in a catch
@@ -588,13 +588,13 @@ proc UpdateSegmentationVolumeAlpha { ifAlpha } {
     set gfSegmentationVolumeAlpha $ifAlpha
 }
 
-proc UpdateFloodSelectParams { ib3D iSrc inFuzzy inDistance } {
+proc UpdateFloodSelectParams { ib3D iSrc iFuzzy iDistance } {
     global gFloodSelectParams
 
     set gFloodSelectParams(3d) $ib3D
     set gFloodSelectParams(src) $iSrc
-    set gFloodSelectParams(fuzzy) $inFuzzy
-    set gFloodSelectParams(distance) $inDistance
+    set gFloodSelectParams(fuzzy) $iFuzzy
+    set gFloodSelectParams(distance) $iDistance
 }
 
 proc UpdateVolumeColorScaleInfo { inVolume inBrightness inContrast
@@ -1119,7 +1119,7 @@ set tDlogSpecs(SaveSegmentationAs) [list \
   -entry1 [list GetDefaultLocation SaveSegmentationAs] \
   -default1 [list GetDefaultLocation SaveSegmentationAs] \
   -presets1 $glShortcutDirs \
-  -okCmd {SaveSegmentation 0 %s1; \
+  -okCmd {SaveSegmentationVolume 0 %s1; \
   SetDefaultLocation SaveSegmentationAs %s1} ]
 set tDlogSpecs(SaveAuxSegmentationAs) [list \
   -title "Save Aux Segmenation As" \
@@ -1129,7 +1129,7 @@ set tDlogSpecs(SaveAuxSegmentationAs) [list \
   -entry1 [list GetDefaultLocation SaveSegmentationAs] \
   -default1 [list GetDefaultLocation SaveSegmentationAs] \
   -presets1 $glShortcutDirs \
-  -okCmd {SaveSegmentation 1 %s1; \
+  -okCmd {SaveSegmentationVolume 1 %s1; \
   SetDefaultLocation SaveSegmentationAs %s1} ]
 set tDlogSpecs(ExportChangedSegmentationVolume) [list \
   -title "Save Changed Segmenation Values As" \
@@ -1704,9 +1704,9 @@ proc DoEditBrushInfoDlog {} {
 	# fuzziness and max distance
 	tkm_MakeSliders $fwSliders { 
 	    { "Fuzziness" gBrushInfo(fuzzy) 
-		0 255 50 "SendFillAnatomicalInfo" 1 } 
+		0 255 50 "SendFillAnatomicalInfo" 1 0.1 } 
 	    {  "\"Max Distance\"" gBrushInfo(distance) 
-		0 255 50 "SendFillAnatomicalInfo" 1 } }
+		0 255 50 "SendFillAnatomicalInfo" 1 0.1 } }
 	tkm_MakeSmallLabel $fwNote "enter 0 for no limit"
 	
 	pack $fw3D $fwSliders $fwNote $fwFill \
@@ -2101,9 +2101,9 @@ proc DoEditSegBrushInfoDlog { } {
   # fuzziness and max distance
   tkm_MakeSliders $fwSliders { \
     { "Fuzziness" gSegBrush(fuzzy) \
-    0 255 50 "SendSegBrushInfo" 1 } \
+    0 255 50 "SendSegBrushInfo" 1 0.1 } \
     {  "\"Max Distance\"" gSegBrush(distance) \
-    0 255 50 "SendSegBrushInfo" 1 } }
+    0 255 50 "SendSegBrushInfo" 1 0.1 } }
   tkm_MakeSmallLabel $fwDistanceNote "enter 0 for no limit"
   
 
@@ -2175,9 +2175,9 @@ proc DoEditFloodSelectParamsDlog { } {
 	# fuzziness and max distance
 	tkm_MakeSliders $fwSliders { 
 	    { "Fuzziness" gFloodSelectParams(fuzzy) 
-		0 255 50 "SendFloodSelectParams" 1 } 
+		0 255 50 "SendFloodSelectParams" 1 0.1 } 
 	    {  "\"Max Distance\"" gFloodSelectParams(distance) 
-		0 255 50 "SendFloodSelectParams" 1 } }
+		0 255 50 "SendFloodSelectParams" 1 0.1 } }
 	tkm_MakeSmallLabel $fwDistanceNote "enter 0 for no limit"
 	
 	
@@ -2746,8 +2746,12 @@ proc DoSaveRGBSeriesDlog {} {
 
 proc DoLabelWriterHelperDlog {} {
 
-    global gDialog
+    global gDialog glShortcutDirs
     global sDir sPrefix sNumber sSuffix
+    global sNamingMethod
+    global bClearLabel
+    global bSelectLine
+    global nLabelFileNameLine sNextLabelName
 
     set sDir [GetDefaultLocation SaveLabelAs]
     set sPrefix "line-"
@@ -2760,55 +2764,128 @@ proc DoLabelWriterHelperDlog {} {
     if { [Dialog_Create $wwDialog "Label Writer Helper" {-borderwidth 10}] } {
 
 	set fwDir       $wwDialog.fwDir
-	set fwFileName  $wwDialog.fwFileName
-	set fwPrefix    $fwFileName.fwPrefix
-	set fwNumber    $fwFileName.fwNumber
-	set fwSuffix    $fwFileName.fwSuffix
+
 	set fwOptions   $wwDialog.fwOptions
+
+	set fwUseAutoInc   $wwDialog.fwUseAutoInc
+	set fwUseAutoIncCB $fwUseAutoInc.fwUseAutoIncCB
+	set fwAutoIncFileName $fwUseAutoInc.fwAutoIncFileName
+	set fwPrefix       $fwAutoIncFileName.fwPrefix
+	set fwNumber       $fwAutoIncFileName.fwNumber
+	set fwSuffix       $fwAutoIncFileName.fwSuffix
+
+	set fwUseFile          $wwDialog.fwUseFile
+	set fwUseFileCB        $fwUseFile.fwUseFileCB
+	set fwUseFileSelector  $fwUseFile.fwUseFileSelector
+	set fwNextFileName     $fwUseFile.fwNextFileName
 	set fwButtons   $wwDialog.fwButtons
 
-	frame $fwFileName
-	
 	# the directory field
 	tkm_MakeDirectorySelector $fwDir \
 	    "Directory to save files in:" sDir
-	
-	# the file prefix
-	tkm_MakeEntry $fwPrefix "File Name:" sPrefix 10
-	
-	# next number
-	tkm_MakeEntry $fwNumber "" sNumber 4
 
-	# the file suffix
-	tkm_MakeEntry $fwSuffix "" sSuffix 10
-	
-	
+	# Options.
 	tkm_MakeCheckboxes $fwOptions y {
 	    { text "Select Line Before Writing" bSelectLine {} }
 	    { text "Clear Label After Writing" bClearLabel {} }
-	    { text "Auto-increment Number After Writing" bAutoIncrement {} }
 	}
-	    
+
+	# For using an auto incrementing file name.
+	frame $fwUseAutoInc -bd 1 -relief ridge
+	tkm_MakeRadioButtons $fwUseAutoIncCB y "" sNamingMethod {
+	    { text "Use Incrementing Number for Label Name" autoInc {} }
+	}
+	frame $fwAutoIncFileName
+	tkm_MakeEntry $fwPrefix "File Name:" sPrefix 10
+	tkm_MakeEntry $fwNumber "" sNumber 4
+	tkm_MakeEntry $fwSuffix "" sSuffix 10
+	
+
+	# For getting label names from a file.
+	set nLabelFileNameLine 0
+	frame $fwUseFile -bd 1 -relief ridge
+	tkm_MakeRadioButtons $fwUseFileCB y "" sNamingMethod {
+	    { text "Get Label Names from File" useFile {} }
+	}
+	tkm_MakeFileSelector $fwUseFileSelector "File" fnLabelSource \
+	    [list GetDefaultLocation LoadLabel] $glShortcutDirs
+	tkm_MakeActiveLabel $fwNextFileName "Next name" sNextLabelName 30
+
 	# ok and cancel buttons.
 	tkm_MakeApplyCloseButtons $fwButtons $wwDialog {
 	    if { $bSelectLine } { AddLineToSelection }
-	    set fnLabel $sDir/$sPrefix$sNumber$sSuffix
+	    set fnLabel ""
+	    if { "$sNamingMethod" == "autoInc" } {
+		set fnLabel $sDir/$sPrefix$sNumber$sSuffix
+		set sNumber [expr $sNumber + 1]
+ 	    } elseif { "$sNamingMethod" == "useFile" } {
+		if { "$fnLabelSource" == "" } {
+		    ErrorDlog "Please specify a source file first."
+		    return
+		} else {
+		    set r [catch { 
+			set fnLabel [GetNthLineFromFile \
+					 $fnLabelSource $nLabelFileNameLine]
+			incr nLabelFileNameLine
+			set sNextLabelName [GetNthLineFromFile \
+					 $fnLabelSource $nLabelFileNameLine]
+		    } sError]
+		    if { $r != 0 } { ErrorDlog "$sError" }
+		}
+	    }
 	    SaveLabel $fnLabel
 	    if { $bClearLabel } { ClearSelection }
-	    if { $bAutoIncrement } { set sNumber [expr $sNumber + 1] }
 	    RedrawAll
 	}
 
-	
+	# Set the initial naming method.
+	set sNamingMethod autoInc
+
 	pack $fwPrefix $fwNumber $fwSuffix -side left
 
-	pack $fwDir $fwFileName $fwOptions $fwButtons \
+	pack $fwUseAutoIncCB $fwAutoIncFileName \
+	    -side top       \
+	    -expand yes     \
+	    -fill x         \
+
+	pack $fwUseFileCB $fwUseFileSelector $fwNextFileName \
+	    -side top       \
+	    -expand yes     \
+	    -fill x         \
+
+	pack $fwDir  $fwOptions $fwUseAutoInc $fwUseFile $fwButtons \
 	    -side top       \
 	    -expand yes     \
 	    -fill x         \
 	    -padx 5         \
 	    -pady 5
     }
+}
+
+proc GetNthLineFromFile { ifn inLine } {
+
+    # Try to open the file.
+    set rOpen [catch {set fp [open $ifn r]} sError]
+    if { $rOpen != 0 } {
+	error "Couldn't open file $ifn."
+    }
+
+    # Go through the file up to inLine, rewinding to the beginning if
+    # we need to.
+    set nLine 0
+    set sLine ""
+    while { $nLine <= $inLine } {
+	gets $fp sLine
+	if { [eof $fp] } {
+	    seek $fp 0 start
+	    gets $fp sLine
+	}
+	incr nLine
+    }
+	
+    close $fp
+
+    return $sLine
 }
 
 proc DoGotoPointDlog {} {
@@ -4672,6 +4749,3 @@ foreach fnUserScript [list $env(FREESURFER_HOME)/lib/tcl/tkmedit_init.tcl $env(S
 	}
     }
 }
-
-
-
