@@ -1,4 +1,3 @@
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -14,10 +13,11 @@
 #include "proto.h"
 #include "mrisurf.h"
 #include "macros.h"
+#include "TexFont.h"
 #include "oglutil.h"
 
 #if 0
-static char vcid[] = "$Id: oglutil.c,v 1.18 1998/09/22 02:45:38 fischl Exp $";
+static char vcid[] = "$Id: oglutil.c,v 1.19 1998/11/09 21:32:00 fischl Exp $";
 #endif
 
 /*-------------------------------- CONSTANTS -----------------------------*/
@@ -31,13 +31,28 @@ static char vcid[] = "$Id: oglutil.c,v 1.18 1998/09/22 02:45:38 fischl Exp $";
 #define MARKED             7 
 
 #define FOV                (256.0f*SCALE_FACTOR)
+#define COLSCALEBAR_XPOS    1.7
+#define COLSCALEBAR_YPOS   -1.3
+#define COLSCALEBAR_WIDTH   0.15
+#define COLSCALEBAR_HEIGHT  1.0
+
+static float fov = FOV ;
+static float colscalebar_xpos  = COLSCALEBAR_XPOS ;
+static float colscalebar_ypos = COLSCALEBAR_YPOS ;
+static float colscalebar_width = COLSCALEBAR_WIDTH ;
+static float colscalebar_height = COLSCALEBAR_HEIGHT ;
+static float sf=0.55;      /* initial scale factor */
 
 
 /*-------------------------------- PROTOTYPES ----------------------------*/
 
+static void draw_colscalebar(void) ;
+static void draw_colscalebar_time(int flags) ;
 static int  read_environment_variables(void) ;
 static int set_color(float val,float curv, int flags) ;
 static int set_stat_color(float f, float *rp, float *gp, float *bp, 
+                          float tmpoffset) ;
+static int set_stat_color_time(float f, float *rp, float *gp, float *bp, 
                           float tmpoffset) ;
 static void load_brain_coords(float x,float y, float z, float v[]) ;
 static int mrisFindMaxExtents(MRI_SURFACE *mris) ;
@@ -48,6 +63,16 @@ static double oglu_coord_thickness = 1.0 ;   /* sigma of coord line */
 static double oglu_coord_spacing = 18.0 ;    /* spacing between coord lines */
 
 static int oglu_scale = 1 ;
+
+static double cvfact = 1.5;
+static double offset = 0.25 ;
+static double fcurv = 0.0f ;
+
+double  fthresh = 0.0;
+double  pre_fthresh = 0.0 ;
+double  fmid = 1.0 ;
+double  fslope = 1.0 ;
+double  time_fthresh = 0.9 ;
 
 int
 OGLUinit(MRI_SURFACE *mris, long frame_xdim, long frame_ydim)
@@ -172,38 +197,52 @@ OGLUcompile(MRI_SURFACE *mris, int *marked_vertices, int flags, float cslope)
   face_type    *f;
   VERTEX       *v, *vn ;
   float        v1[3], min_curv, max_curv, coord_coef = 0.0, color_val;
-#if 0
-  float        phi, theta ;
-#endif
+
+  TexFont *txf;
+  char text[256] ;
 
   read_environment_variables() ;
-/*  ogluSetFOV(mris) ;*/
+
   if (Gdiag & DIAG_SHOW)
     fprintf(stderr, "compiling surface tessellation...") ;
-
+  
   min_curv = mris->min_curv ;
   max_curv = mris->max_curv ;
   if (-min_curv > max_curv)
     max_curv = -min_curv ;
 
+  /** Pre-processing to paint MEG/EEG activation/temporal information **/
   if (flags & VAL_FLAG)
+    {
+      int find_flag = 0 ;
+      /* find range of values */
+      min_curv = 1000000.0f ; max_curv = -min_curv ;
+      for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
-    /* find range of values */
-    min_curv = 1000.0f ; max_curv = -min_curv ;
-    for (vno = 0 ; vno < mris->nvertices ; vno++)
+    v = &mris->vertices[vno] ;
+    if (v->ripflag || v->val == 0.0)
+      continue ;
+    find_flag = 1 ;
+    if (v->val > max_curv)
+      max_curv = v->val ;
+    if (v->val < min_curv)
+      min_curv = v->val ;
+  }
+      if (!find_flag) min_curv = max_curv = 0.0 ;
+      fprintf(stderr, "min val = %2.3f, max val = %2.3f\n",
+        min_curv, max_curv) ;
+  
+      if((flags & TIME_FLAG) || (flags & STAN_FLAG)) {
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
     {
       v = &mris->vertices[vno] ;
-      if (v->ripflag)
+      if (v->ripflag || v->val == 0.0)
         continue ;
-      if (v->val > max_curv)
-        max_curv = v->val ;
-      if (v->val < min_curv)
-        min_curv = v->val ;
+      v->val = (v->val - (min_curv)) / (max_curv-(min_curv)) ;
+    }   
+      }
     }
-    fprintf(stderr, "min val = %2.3f, max val = %2.3f\n",
-            min_curv, max_curv) ;
-  }
-
+      
   for (k=0;k<mris->nfaces;k++) if (!mris->faces[k].ripflag)
   {
     f = &mris->faces[k];
@@ -247,6 +286,7 @@ OGLUcompile(MRI_SURFACE *mris, int *marked_vertices, int flags, float cslope)
       /* don't display negative flat stuff */
       if ((flags & PATCH_FLAG) && (v->nz < 0) && !(flags & NEG_FLAG))
         continue ;
+
 #if 1
       if (flags & COORD_FLAG)
       {
@@ -280,7 +320,6 @@ OGLUcompile(MRI_SURFACE *mris, int *marked_vertices, int flags, float cslope)
           DiagBreak() ;
         if (zc >126 && dist < oglu_coord_thickness/2)
           DiagBreak() ;
-
 #if 0
         if (dist > oglu_coord_thickness)
           coord_coef = 0.0f ;
@@ -336,9 +375,9 @@ OGLUcompile(MRI_SURFACE *mris, int *marked_vertices, int flags, float cslope)
       else if (v->border && !(flags & BW_FLAG) && !(flags & NOBORDER_FLAG))
         glColor3f(240,240,0.0);
       else   /* color it depending on curvature */
-      {
-#define DARK_GRAY    (brightness - (brightness / 4.0f))
-#define BRIGHT_GRAY  (brightness + (brightness / 4.0f))
+  {
+#define DARK_GRAY    (brightness - (brightness / 3.0f))
+#define BRIGHT_GRAY  (brightness + (brightness / 3.0f))
 #define MIN_GRAY     min_gray
 #define BRIGHTNESS   brightness
 
@@ -346,10 +385,13 @@ OGLUcompile(MRI_SURFACE *mris, int *marked_vertices, int flags, float cslope)
         if (FZERO(max_curv))  /* no curvature info */
           red = green = blue = GRAY ;    /* paint it gray */
 
-        if (flags & VAL_FLAG)
+        if (f->v[n] == 62152)
+          DiagBreak() ;
+
+        if (flags & VAL_FLAG && (fabs(v->val) >= fthresh))
         {
           color_val = v->val ;
-          set_color(v->val, 0.0f, flags) ;
+          set_color(v->val, v->curv, flags) ;
         }
         else
         {
@@ -384,9 +426,9 @@ OGLUcompile(MRI_SURFACE *mris, int *marked_vertices, int flags, float cslope)
           if (flags & BW_FLAG)
           {
             if (v->curv > 0)
-              red = green = blue = DARK_GRAY ;
-            else
               red = green = blue = BRIGHT_GRAY ;
+            else
+              red = green = blue = DARK_GRAY ;
             
           }
           red += (COORD_RED - red) * coord_coef ;
@@ -399,11 +441,11 @@ OGLUcompile(MRI_SURFACE *mris, int *marked_vertices, int flags, float cslope)
       glNormal3fv(v1);                /* specify the normal for lighting */
       load_brain_coords(v->x,v->y,v->z,v1);
       glVertex3fv(v1);                /* specify the position of the vertex*/
+      }
+      glEnd() ;   /* done specifying this polygon */
     }
-    glEnd() ;   /* done specifying this polygon */
-  }
 
-
+    
 #if 0
   if (flags & COORD_FLAG)    /* draw canonical coordinate system */
   {
@@ -579,7 +621,6 @@ OGLUcompile(MRI_SURFACE *mris, int *marked_vertices, int flags, float cslope)
       glVertex3fv(v3);
       glEnd() ;
       
-#if 1
       glBegin(GL_LINES);
       glColor3ub(255,255,0);
       load_brain_coords(v->nx,v->ny,v->nz,v1);
@@ -601,13 +642,123 @@ OGLUcompile(MRI_SURFACE *mris, int *marked_vertices, int flags, float cslope)
       glVertex3fv(v2);
       glVertex3fv(v3);
       glEnd() ;
-#endif
     }
   }
 
+
+  /** DS Color Scale and writing ... **/
+
+
+  /** Then draw the color scale (stolen from tksurfer) **/
+#if 1
+  if(flags & CSCALE_FLAG) {
+    if((flags & STAN_FLAG) || (flags & TIME_FLAG)) {
+      draw_colscalebar_time(flags) ;
+    } 
+    else {
+      draw_colscalebar() ;
+    }
+  }
+#else
+  for (i=0;i<100-1;i++) 
+  {
+    stat = i/(100.0-1.0);
+    set_color(stat,0.0, flags);
+    glBegin(GL_POLYGON);
+    v1[0] = FOV*SCALE_FACTOR*(COLSCALEBAR_XPOS-COLSCALEBAR_WIDTH/2);
+    v1[1] = FOV*SCALE_FACTOR*(COLSCALEBAR_YPOS+COLSCALEBAR_HEIGHT*(i/(100-1.0)-0.5));
+    v1[2] = FOV*SCALE_FACTOR*9.99;
+    glVertex3fv(v1);
+    v1[0] = FOV*SCALE_FACTOR*(COLSCALEBAR_XPOS+COLSCALEBAR_WIDTH/2);
+    glVertex3fv(v1);
+    v1[1] = FOV*SCALE_FACTOR*(COLSCALEBAR_YPOS+COLSCALEBAR_HEIGHT*((i+1)/(100-1.0)-0.5));
+    glVertex3fv(v1);
+    v1[0] = FOV*SCALE_FACTOR*(COLSCALEBAR_XPOS-COLSCALEBAR_WIDTH/2);
+    glVertex3fv(v1);
+    glEnd() ;
+  }
+#endif
+
+  if(flags & LEG_FLAG) {
+    /** All the following mess is just to write 2 numbers using a package 
+      found on the net DS. **/
+    
+    /** ** First load the texture corresponding to a given font, i.e. 
+      default in this case ** **/
+    txf = txfLoadFont("/space/raid/2/users/inverse/build/mris2rgb/default.txf");
+    if (txf == NULL) {
+      fprintf(stderr, "Problem loading %s, %s\n",
+        "default.txf", txfErrorString());
+      exit(1);
+    }
+    
+    glLoadIdentity() ;
+    v1[0] = v1[1] = 0;
+    v1[2] = 1.0 ;
+    glNormal3fv(v1) ;
+    
+    set_color(0.01,0.0, flags);
+    
+    /** ** Texture computation ** **/
+    txfEstablishTexture(txf, 0, GL_TRUE);
+    
+    glEnable(GL_TEXTURE_2D);
+    glAlphaFunc(GL_GEQUAL, 0.0625);
+    glEnable(GL_ALPHA_TEST);
+    
+    /** ** put here the text you want to render ... ** **/
+    if(flags & TIME_FLAG) {
+      sprintf(text, "%.0fms", min_curv) ;
+    }
+    else {
+      sprintf(text, "%.2f", min_curv) ;
+    }
+
+    /** ** Text positioning and scaling ** **/
+    glMatrixMode(GL_MODELVIEW) ;
+
+    if(flags & STAN_FLAG) {
+      glTranslatef(100.0, -137, 1.0); 
+    }
+    else {
+      glTranslatef(90.0, -137, 1.0);
+    }
+    glScalef(0.2, 0.2, 0.2); 
+    
+    /** ** and finally render "text" ** **/
+    txfRenderString(txf, text, strlen(text));
+    
+    
+    /** ** Once again for the second number ** **/
+    glLoadIdentity() ;
+    glNormal3fv(v1) ;
+    glMatrixMode(GL_MODELVIEW);
+
+    if(flags & STAN_FLAG) {
+      glTranslatef(100.0, -67, 1.0);
+    }
+    else {
+      glTranslatef(90.0, -67, 1.0);
+    }
+    glScalef(0.2, 0.2, 0.2); 
+    
+    if(flags & TIME_FLAG) {
+      sprintf(text, "%.0fms", max_curv) ;
+    }
+    else {
+      sprintf(text, "%.2f", max_curv) ;
+    }
+    txfRenderString(txf, text, strlen(text));
+    
+    /** Restore geometrical information **/
+    glPopMatrix();
+    
+    /** End of the text rendering ... **/
+  }
+  
   if (Gdiag & DIAG_SHOW)
     fprintf(stderr, "done.\n") ;
-
+  
   error = glGetError() ;
   if (error != GL_NO_ERROR)
   {
@@ -708,31 +859,7 @@ ogluSetFOV(MRI_SURFACE *mris, double fov)
     max_dim = MAX(mris->xhi, MAX(mris->yhi, mris->zhi)) ;
     max_dim = MAX(max_dim, MAX(-mris->xlo, MAX(-mris->ylo, -mris->zlo))) ;
     max_dim *= 2 ;
-#if 0
-    if (3*max_dim < FOV)
-      oglu_fov = 3*max_dim ;
-    else if (max_dim > FOV) /* try and keep it constant for a range of sizes */
-    {
-      oglu_fov = FOV*1.5 ;
-      while (oglu_fov < max_dim)
-        oglu_fov *= 2.0 ;
-    }
-    else
-      oglu_fov = FOV ;
-#else
     oglu_fov = max_dim*1.1 ;
-#endif
-    
-#if 0
-    if (mris->xlo < -oglu_fov)
-      oglu_fov = -1.1f * mris->xlo ;
-    if (mris->ylo < -oglu_fov)
-      oglu_fov = -1.1f * mris->ylo ;
-    if (mris->xhi > oglu_fov)
-      oglu_fov = 1.1f * mris->xhi ;
-    if (mris->yhi > oglu_fov)
-      oglu_fov = 1.1f * mris->yhi ;
-#endif
   }
 
   zfov = 10.0f*oglu_fov ; 
@@ -764,13 +891,6 @@ OGLUsetCoordParms(double coord_thickness, double coord_spacing)
   return(NO_ERROR) ;
 }
 
-static double cvfact = 1.5;
-/*static double fadef = 0.7;*/
-static double fthresh = 0.0f ;
-static double fslope = 30.0f ;
-static double offset = 0.25 ;
-static double fcurv = 0.0f ;
-static double fmid = 0.01f ;
 
 static int
 set_color(float val,float curv, int flags)
@@ -783,141 +903,27 @@ set_color(float val,float curv, int flags)
 
   if (flags & VAL_FLAG)
   {
-    set_stat_color(val,&fr,&fg,&fb,tmpoffset);
+    if (flags & TIME_FLAG) {
+      set_stat_color_time(val,&fr,&fg,&fb,tmpoffset);
+    }
+    else { 
+      set_stat_color(val,&fr,&fg,&fb,tmpoffset);
+    }
     r=fr; g=fg; b=fb;
     r = (r<0)?0:(r>255)?255:r;
     g = (g<0)?0:(g>255)?255:g;
     b = (b<0)?0:(b>255)?255:b;
     RGBcolor(r,g,b);
   }
-
-#if 0
-  if (mode==GREEN_RED_CURV)
-  {
-    f = tanh(cslope*(curv-cmid));
-    if (f>0) {
-      r = 255 * (offset/blufact + 0.95*(1-offset/blufact)*fabs(f));
-      g = 255 * (offset/blufact*(1 - fabs(f)));
-    }
-    else {
-      r = 255 * (offset/blufact*(1 - fabs(f)));
-      g = 255 * (offset/blufact + 0.95*(1-offset/blufact)*fabs(f));
-    }
-    b = 255 * (offset*blufact*(1 - fabs(f)));
-  }
-
-  if (mode==REAL_VAL)   /* single val positive or signed */
-  {
-    if (colscale==HEAT_SCALE)  /* stat */
-    {
-      set_stat_color(val,&fr,&fg,&fb,tmpoffset);
-      r=fr; g=fg; b=fb;
-    }
-    else  /* positive */
-    if (colscale==CYAN_TO_RED || colscale==BLU_GRE_RED || colscale==JUST_GRAY)
-    {
-      if (val<fthresh) 
-      {
-        r = g = 255 * (tmpoffset/blufact);
-        b =     255 * (tmpoffset*blufact);
-      }
-      else 
-      {
-        if (fslope!=0)
-          f = (tanh(fslope*fmid)+tanh(fslope*(val-fmid)))/(2-tanh(fslope*fmid));
-        else
-          f = (val<0)?0:((val>1)?1:val);
-        set_positive_color(f,&fr,&fg,&fb,tmpoffset);
-        r=fr; g=fg; b=fb;
-      }
-    }
-    else /* signed */
-    {
-      if (fabs(val)<fthresh) 
-      {
-        r = g = 255 * (tmpoffset/blufact);
-        b =     255 * (tmpoffset*blufact);
-      }
-      else 
-      {
-        if (fslope!=0)
-        {
-          if (fmid==0)
-            f = tanh(fslope*(val));
-          else
-          {
-            if (val<0)
-              f = -(tanh(fslope*fmid) + tanh(fslope*(-val-fmid)))/
-                   (2-tanh(fslope*fmid));
-            else
-              f = (tanh(fslope*fmid) + tanh(fslope*( val-fmid)))/
-                  (2-tanh(fslope*fmid));
-          }
-        }
-        else
-          f = (val<-1)?-1:((val>1)?1:val);
-        if (revphaseflag)
-          f = -f;
-        set_signed_color(f,&fr,&fg,&fb,tmpoffset);
-        r=fr; g=fg; b=fb;
-      }
-    }
-  }
-
-  if (mode==FIELDSIGN_POS || mode==FIELDSIGN_NEG) {
-    if (val<fthresh) {
-      r = g = 255 * (tmpoffset/blufact);
-      b =     255 * (tmpoffset*blufact);
-    }
-    else {
-      f = (1.0 + tanh(fslope*(val-fmid)))/2.0;
-      if (mode==FIELDSIGN_POS) {
-        b = 255 * (tmpoffset + 0.95*(1-tmpoffset)*fabs(f));
-        r = g = 255* (tmpoffset*(1 - fabs(f)));
-      }
-      else {
-        b = 255 * (tmpoffset*(1 - fabs(f)));
-        r = g = 255 * (tmpoffset + 0.95*(1-tmpoffset)*fabs(f));
-      }
-    }
-  }
-
-  if (mode==BORDER)  /* AMD 5/27/95 */
-  {
-    r = 255;
-    g = 255;
-    b = 0;
-  }
-
-  if (mode==MARKED)
-  {
-    r = 255;
-    g = 255;
-    b = 255;
-  }
-  r = (r<0)?0:(r>255)?255:r;
-  g = (g<0)?0:(g>255)?255:g;
-  b = (b<0)?0:(b>255)?255:b;
-  RGBcolor(r,g,b);
-#endif
   return(NO_ERROR) ;
 }
 
-
+/** Table color used to paint activation (linest, sptf) **/
 static int
 set_stat_color(float f, float *rp, float *gp, float *bp, float tmpoffset)
 {
   float r,g,b;
   float ftmp,c1,c2;
-
-#if 0
-  if (invphaseflag)
-     f = -f;
-  if (truncphaseflag && f<0)
-    f = 0;
-  if (rectphaseflag)
-     f = fabs(f);
-#endif
 
   if (fabs(f)>fthresh && fabs(f)<fmid)
   {
@@ -952,332 +958,20 @@ set_stat_color(float f, float *rp, float *gp, float *bp, float tmpoffset)
   g = g*255;
   b = b*255;
 
-#if 0
-  if (colscale==HEAT_SCALE)
-  {
-    if (f>=0)
-    {
-      r = tmpoffset*((f<fthresh)?1:(f<fmid)?1-(f-fthresh)/(fmid-fthresh):0) +
-          ((f<fthresh)?0:(f<fmid)?(f-fthresh)/(fmid-fthresh):1);
-      g = tmpoffset*((f<fthresh)?1:(f<fmid)?1-(f-fthresh)/(fmid-fthresh):0) +
-          ((f<fmid)?0:(f<fmid+1.00/fslope)?1*(f-fmid)*fslope:1);
-      b = tmpoffset*((f<fthresh)?1:(f<fmid)?1-(f-fthresh)/(fmid-fthresh):0);
-    } else
-    {
-      f = -f;
-      b = tmpoffset*((f<fthresh)?1:(f<fmid)?1-(f-fthresh)/(fmid-fthresh):0) +
-          ((f<fthresh)?0:(f<fmid)?(f-fthresh)/(fmid-fthresh):1);
-      g = tmpoffset*((f<fthresh)?1:(f<fmid)?1-(f-fthresh)/(fmid-fthresh):0) +
-          ((f<fmid)?0:(f<fmid+1.00/fslope)?1*(f-fmid)*fslope:1);
-      r = tmpoffset*((f<fthresh)?1:(f<fmid)?1-(f-fthresh)/(fmid-fthresh):0);
-    }
-    r = r*255;
-    g = g*255;
-    b = b*255;
-  }
-  else if (colscale==BLU_GRE_RED)
-  {
-/*
-    if (f<0) f = -f;
-    b = tmpoffset*((f<fthresh)?1:(f<fmid)?1-(f-fthresh)/(fmid-fthresh):0) +
-        ((f<fthresh)?0:(f<fmid)?(f-fthresh)/(fmid-fthresh):
-         (f<fmid+0.25/fslope)?1-4*(f-fmid)*fslope:
-         (f<fmid+0.75/fslope)?0:
-         (f<fmid+1.00/fslope)?4*(f-(fmid+0.75/fslope))*fslope:1);
-    g = tmpoffset*((f<fthresh)?1:(f<fmid)?1-(f-fthresh)/(fmid-fthresh):0) +
-        ((f<fmid)?0:(f<fmid+0.25/fslope)?4*(f-fmid)*fslope:
-         (f<fmid+0.50/fslope)?1-4*(f-(fmid+0.25/fslope))*fslope:
-         (f<fmid+0.75/fslope)?4*(f-(fmid+0.50/fslope))*fslope:1);
-    r = tmpoffset*((f<fthresh)?1:(f<fmid)?1-(f-fthresh)/(fmid-fthresh):0) +
-         ((f<fmid+0.25/fslope)?0:(f<fmid+0.50/fslope)?4*(f-(fmid+0.25/fslope))
-                                                                    *fslope:1);
-*/
-    if (f>=0)
-    {
-      r = tmpoffset*((f<fthresh)?1:(f<fmid)?1-(f-fthresh)/(fmid-fthresh):0) +
-          ((f<fthresh)?0:(f<fmid)?(f-fthresh)/(fmid-fthresh):1);
-      g = tmpoffset*((f<fthresh)?1:(f<fmid)?1-(f-fthresh)/(fmid-fthresh):0) +
-          ((f<fmid)?0:(f<fmid+1.00/fslope)?1*(f-fmid)*fslope:1);
-      b = tmpoffset*((f<fthresh)?1:(f<fmid)?1-(f-fthresh)/(fmid-fthresh):0) +
-          ((f<fmid)?0:(f<fmid+1.00/fslope)?1*(f-fmid)*fslope:1);
-    } else
-    {
-      f = -f;
-      b = tmpoffset*((f<fthresh)?1:(f<fmid)?1-(f-fthresh)/(fmid-fthresh):0) +
-          ((f<fthresh)?0:(f<fmid)?(f-fthresh)/(fmid-fthresh):1);
-      g = tmpoffset*((f<fthresh)?1:(f<fmid)?1-(f-fthresh)/(fmid-fthresh):0) +
-          ((f<fmid)?0:(f<fmid+1.00/fslope)?1*(f-fmid)*fslope:1);
-      r = tmpoffset*((f<fthresh)?1:(f<fmid)?1-(f-fthresh)/(fmid-fthresh):0) +
-          ((f<fmid)?0:(f<fmid+1.00/fslope)?1*(f-fmid)*fslope:1);
-    }
-    r = r*255;
-    g = g*255;
-    b = b*255;
-  }
-  else if (colscale==JUST_GRAY)
-  {
-    if (f<0) f = -f;
-    r = g = b = f*255;
-  }
-#endif
   *rp = r;
   *gp = g;
   *bp = b;
   return(NO_ERROR) ;
 }
-#if 0
-set_complexval_color(x,y,stat,curv)
-float x,y,stat,curv;
-{
-  short sr,sg,sb;
-  float f,a,r,g,b;
-  float tmpoffset,fscale;
-  float a_cycles, oa;
 
-  if (statflag)
-    f = stat;
-  else
-    f = sqrt(x*x+y*y);
-
-  if (curv<0.0) tmpoffset = cvfact*offset;
-  else          tmpoffset = offset;
-
-  if (fabs(f)<fthresh)  /* trunc */
-  {
-    r = g = 255 * (tmpoffset/blufact);
-    b =     255 * (tmpoffset*blufact);
-  }
-  else  /* use complex (or stat vals which ignore complex!!) */
-  {
-    if (!statflag)
-    {
-      if (fslope!=0)
-        f = (1.0 + tanh(fslope*(f-fmid)))/2.0;
-      else
-        f = (f<0)?0:((f>1)?1:f);
-
-      if (truncphaseflag) 
-      {
-        a = atan2(y,x)/(2*M_PI);
-        if (revphaseflag)
-          a = -a;
-        if (invphaseflag)
-          a += 0.5;
-        a -= angle_offset;
-        a = fmod(a,1.0);
-        if (a<0) a += 1;
-        if (a>0.5)
-          f = 0;
-      }
-    }
-
-    fscale = f;
-
-    if (colscale==HEAT_SCALE || colscale==CYAN_TO_RED ||
-        colscale==BLU_GRE_RED || colscale==JUST_GRAY)
-    {
-      if (statflag)
-        set_stat_color(f,&r,&g,&b,tmpoffset);
-      else
-        set_positive_color(f,&r,&g,&b,tmpoffset);
-    }
-
-    else if (colscale==TWOCOND_GREEN_RED)
-    {
-      a = atan2(y,x)/(2*M_PI);
-      if (revphaseflag)
-        a = -a;
-      if (invphaseflag)
-        a += 0.5;
-      a -= angle_offset;       /* pos num cancels delay */
-      a = fmod(a,1.0);         /* -1 to 1 */
-      if (a<0) a += 1;         /* make positive */
-      r = g = b = 0;
-      f = sin(a*2*M_PI);
-      if (f>0.0)
-        r = 1;
-      else
-        g = 1;
-      f = fabs(f)*fscale;
-      r = 255 * (tmpoffset/blufact*(1-f)+f*r);
-      g = 255 * (tmpoffset/blufact*(1-f)+f*g);
-      b = 255 * (tmpoffset*blufact*(1-f));
-    }
-
-    else if (colscale==COLOR_WHEEL)
-    {
-      a = atan2(y,x)/(2*M_PI);
-      if (revphaseflag)
-        a = -a;
-      if (invphaseflag)
-        a += 0.5;
-      a_cycles = angle_cycles;
-      oa = a;
-
-      if (fmod(angle_cycles,1.0)==0.0)  /* integral cycles (eccentricity) */
-      {
-        a -= angle_offset;
-        a = fmod(a,1.0);
-        if (a<0) a += 1;
-        a -= 0.333333;           /* center on blue (1/3)*/
-        a = a_cycles*a;          /* allow multiple */
-        a = fmod(a,1.0);
-        if (a<0) a += 1;
-        a = 3*a;
-        r = g = b = 0;
-        if (a<1.0)
-        {
-          r = 1-a;
-          b = a;
-        }
-        else if (a<2.0)
-        {
-          b = 1-(a-1);
-          g = a-1;
-        }
-        else
-        {
-          r = a-2;
-          g = 1-(a-2);
-        }
-      }
-      else /* non-integral cycles (polar angle) */
-      {
-        a -= angle_offset;
-        a = fmod(a,1.0);
-        if (a<0) a += 1;
-        a -= 0.5;          /* center on blue (1/2) */
-        a = a_cycles*a;
-        r = g = b = 0;
-        if (a<-0.33333)
-        {
-          r = 1;
-        }
-        else if (a<0.0)
-        {
-          r = 1-(a-(-0.33333))/(0.0-(-0.33333));
-          b = (a-(-0.33333))/(0.0-(-0.33333));
-        }
-        else if (a<0.33333)
-        {
-          b = 1-(a)/(0.33333);
-          g = (a)/(0.33333);
-        }
-        else
-        {
-          g = 1;
-        }
-
-        if (a>fadef*a_cycles/2)
-        {
-           f = 1-(a-fadef*a_cycles/2)/(a_cycles/2-fadef*a_cycles/2);
-           r = (tmpoffset*(1-f)+f*r);
-           g = (tmpoffset*(1-f)+f*g);
-           b = (tmpoffset*(1-f)+f*b);
-        }
-        if (a<-fadef*a_cycles/2)
-        {
-           f = (a-(-a_cycles/2))/(a_cycles/2-fadef*a_cycles/2);
-           r = (tmpoffset*(1-f)+f*r);
-           g = (tmpoffset*(1-f)+f*g);
-           b = (tmpoffset*(1-f)+f*b);
-        }
-
-      } /* end non-integral */
-      r = (tmpoffset*(1-fscale)+fscale*r)*255;
-      b = (tmpoffset*(1-fscale)+fscale*b)*255;
-      g = (tmpoffset*(1-fscale)+fscale*g)*255;
-    }  /* end color wheel */
-
-    else if (colscale==RYGB_WHEEL)
-    {
-      a = atan2(y,x)/(2*M_PI);
-      if (revphaseflag)
-        a = -a;
-      if (invphaseflag)
-        a += 0.5;
-      a_cycles = angle_cycles;
-      oa = a;
-
-      a -= angle_offset;
-      a = fmod(a,1.0);
-      if (a<0) a += 1;
-      a -= 0.25;           /* center on blue (1/4)*/
-      a = a_cycles*a;          /* allow multiple */
-      a = fmod(a,1.0);
-      if (a<0) a += 1;
-      a = 4*a;
-      r = g = b = 0;
-      if (a<1.0)
-      {
-        r = 1.0;
-        g = a;
-      }
-      else if (a<2.0)
-      {
-        r = 1-(a-1);
-        g = 1.0;
-      }
-      else if (a<3.0)
-      {
-        g = 1-(a-2);
-        b = a-2;
-      }
-      else
-      {
-        r = a-3;
-        b = 1-(a-3);
-      }
-      r = (tmpoffset*(1-fscale)+fscale*r)*255;
-      b = (tmpoffset*(1-fscale)+fscale*b)*255;
-      g = (tmpoffset*(1-fscale)+fscale*g)*255;
-    }  /* end RYGB wheel */
-
-    if (phasecontourflag) {
-      if (phasecontour_min < phasecontour_max) {
-        if (oa>phasecontour_min&&oa<phasecontour_max) {
-          if (phasecontourmodflag)
-            r = g = b = (tmpoffset*(1-fscale)+fscale*1.0)*255;
-          else
-            r = g = b = phasecontour_bright;
-        }
-      }
-      else { /* wrap */
-        if (oa>phasecontour_min||oa<phasecontour_max) {
-          if (phasecontourmodflag)
-            r = g = b = (tmpoffset*(1-fscale)+fscale*1.0)*255;
-          else
-            r = g = b = phasecontour_bright;
-        }
-      }
-    }
-  }
-  sr = (r<0)?0:(r>255)?255:r;
-  sg = (g<0)?0:(g>255)?255:g;
-  sb = (b<0)?0:(b>255)?255:b;
-  RGBcolor(sr,sg,sb);
-}
-#endif
 static int
 read_environment_variables(void)
 {
   char *cp ;
 
-  cp = getenv("FTHRESH") ;
-  if (cp)
-    fthresh = atof(cp) ;
-
-  cp = getenv("FSLOPE") ;
-  if (cp)
-    fslope = atof(cp) ;
-
   cp = getenv("FCURV") ;
   if (cp)
     fcurv = atof(cp) ;
-
-  cp = getenv("FMID") ;
-  if (cp)
-    fmid = atof(cp) ;
 
   cp = getenv("MIN_GRAY") ;
   if (cp)
@@ -1289,4 +983,119 @@ read_environment_variables(void)
 
   return(NO_ERROR) ;
 }
+
+/****************************************************************************/
+
+
+/** Color table used to paint temporal map **/
+static int
+set_stat_color_time(float f, float *rp, float *gp, float *bp, float tmpoffset)
+{
+  float r,g,b;
+#if 0
+  float fr,fg,fb;
+  float ftmp,c1,c2;
+  double blufact = 1.0;
+#endif
+
+  if (f>0.0) {
+    f = 1.0-f ;
+    b = tmpoffset/5.0 + ((f<0.25)?f:((f<0.50)?(0.25)*(1-(f-0.25)/(1-0.25)):0));
+    g = tmpoffset/5.0 + ((f<0.25)?0:((f<0.50)?2*(f-0.25):(f<time_fthresh)?2*(0.50-0.25)*(1-(f-0.50)/(1-0.50)):0));
+    r = ((f<0.50)?0:(f<time_fthresh)?(f-0.50)/(time_fthresh-0.50):10.0);
+  }
+  else {
+    r = g = b = tmpoffset ;
+  }
+
+  r = r*255;
+  g = g*255;
+  b = b*255;
+  
+  *rp = r;
+  *gp = g;
+  *bp = b;
+  return(NO_ERROR) ;
+}
+
+static void
+draw_colscalebar(void)
+{
+  int i;
+  float v[3], stat, maxval, v1[3] ;
+  int NSEGMENTS = 100;
+
+  /** Save geometry / set starting point ... **/
+  maxval = fmid+1.0/fslope;
+  glPushMatrix();
+  glLoadIdentity() ;
+  v1[0] = v1[1] = 0;
+  v1[2] = 1.0 ;
+  glNormal3fv(v1) ;
+
+  for (i=0;i<NSEGMENTS-1;i++)
+  {
+/*
+    stat = fthresh+i*(maxval-fthresh)/(NSEGMENTS-1.0);
+*/
+    stat = -maxval+i*(2*maxval)/(NSEGMENTS-1.0);
+    set_color(stat,0.0,VAL_FLAG /*REAL_VAL*/);
+    glBegin(GL_POLYGON);
+    v[0] = fov*sf*(colscalebar_xpos-colscalebar_width/2);
+    v[1] = fov*sf*(colscalebar_ypos+colscalebar_height*(i/(NSEGMENTS-1.0)-0.5));
+    v[2] = fov*sf*9.99;
+    glVertex3fv(v);
+    v[0] = fov*sf*(colscalebar_xpos+colscalebar_width/2);
+    glVertex3fv(v);
+    v[1] = 
+      fov*sf*(colscalebar_ypos+colscalebar_height*((i+1)/(NSEGMENTS-1.0)-0.5));
+    glVertex3fv(v);
+    v[0] = fov*sf*(colscalebar_xpos-colscalebar_width/2);
+    glVertex3fv(v);
+    glEnd();
+  }
+  glPopMatrix();
+}
+
+
+static void
+draw_colscalebar_time(int flags)
+{
+  int i;
+  float v[3], stat, maxval, v1[3] ;
+  int NSEGMENTS = 100;
+
+  /** Save geometry / set starting point ... **/
+  maxval = fmid+1.0/fslope;
+  glPushMatrix();
+  glLoadIdentity() ;
+  v1[0] = v1[1] = 0;
+  v1[2] = 1.0 ;
+  glNormal3fv(v1) ;
+
+  for (i=0;i<NSEGMENTS-1;i++)
+  {
+    stat = fthresh+i*(maxval-fthresh)/(NSEGMENTS-1.0);
+    set_color(stat, 0.0, flags);
+    glBegin(GL_POLYGON);
+    v[0] = fov*sf*(colscalebar_xpos-colscalebar_width/2);
+    v[1] = fov*sf*(colscalebar_ypos+colscalebar_height*(i/(NSEGMENTS-1.0)-0.5));
+    v[2] = fov*sf*9.99;
+    glVertex3fv(v);
+    v[0] = fov*sf*(colscalebar_xpos+colscalebar_width/2);
+    glVertex3fv(v);
+    v[1] = 
+      fov*sf*(colscalebar_ypos+colscalebar_height*((i+1)/(NSEGMENTS-1.0)-0.5));
+    glVertex3fv(v);
+    v[0] = fov*sf*(colscalebar_xpos-colscalebar_width/2);
+    glVertex3fv(v);
+    glEnd();
+  }
+  glPopMatrix();
+}
+
+
+
+
+
 
