@@ -15115,6 +15115,52 @@ MRISaverageCurvatures(MRI_SURFACE *mris, int navgs)
         Description
 ------------------------------------------------------*/
 int
+MRISaverageMarkedCurvatures(MRI_SURFACE *mris, int navgs)
+{
+  int    i, vno, vnb, *pnb, vnum ;
+  float  curv, num ;
+  VERTEX *v, *vn ;
+
+  for (i = 0 ; i < navgs ; i++)
+  {
+    for (vno = 0 ; vno < mris->nvertices ; vno++)
+    {
+      v = &mris->vertices[vno] ;
+      if (v->ripflag || !v->marked)
+        continue ;
+      curv = v->curv ;
+      pnb = v->v ;
+      vnum = v->vnum ;
+      for (num = 0.0f, vnb = 0 ; vnb < vnum ; vnb++)
+      {
+        vn = &mris->vertices[*pnb++] ;    /* neighboring vertex pointer */
+        if (vn->ripflag)
+          continue ;
+        num++ ;
+        curv += vn->curv ;
+      }
+      num++ ;  /*  account for central vertex */
+      v->tdx = curv / num ;
+    }
+    for (vno = 0 ; vno < mris->nvertices ; vno++)
+    {
+      v = &mris->vertices[vno] ;
+      if (v->ripflag || v->marked == 0)
+        continue ;
+      v->curv = v->tdx ;
+    }
+  }
+  mrisComputeCurvatureValues(mris) ;
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+int
 MRISaverageMarkedVals(MRI_SURFACE *mris, int navgs)
 {
   int    i, vno, vnb, *pnb, vnum ;
@@ -16067,7 +16113,7 @@ MRISpositionSurfaces(MRI_SURFACE *mris, MRI **mri_flash, int nvolumes, INTEGRATI
   /*  char   *cp ;*/
   int    niterations, n, write_iterations, nreductions = 0, done ;
   double pial_sse, sse, wm_sse, delta_t = 0.0, dt, l_intensity, base_dt, last_sse, rms,
-         pct_sse_decrease, l_repulse, l_surf_repulse ;
+         pct_sse_decrease, l_repulse, l_surf_repulse, last_wm_sse, last_pial_sse ;
   MHT    *mht = NULL ;
   struct timeb  then ; int msec ;
   MRI    *mri_brain = mri_flash[0] ;
@@ -16148,6 +16194,8 @@ MRISpositionSurfaces(MRI_SURFACE *mris, MRI **mri_flash, int nvolumes, INTEGRATI
     MRIScomputeMetricProperties(mris) ;
     if (gMRISexternalGradient)
       (*gMRISexternalGradient)(mris, parms) ;
+
+
     parms->l_repulse = l_repulse ;  /* use self-repulsion for wm surface */
     parms->l_surf_repulse = 0    ;  /* don't repel wm surface outwards from itself */
     mrisComputePositioningGradients(mris, parms) ;
@@ -16155,6 +16203,7 @@ MRISpositionSurfaces(MRI_SURFACE *mris, MRI **mri_flash, int nvolumes, INTEGRATI
       mht = MHTfillTable(mris, mht) ;
     delta_t = mrisAsynchronousTimeStepNew(mris, 0, dt, mht, MAX_ASYNCH_NEW_MM) ;
     MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ;
+    last_wm_sse = MRIScomputeSSE(mris,parms) ;
     if (gMRISexternalTimestep)
       (*gMRISexternalTimestep)(mris, parms) ;
     wm_sse = MRIScomputeSSE(mris, parms) ;  /* needs update orig to compute sse */
@@ -16172,10 +16221,12 @@ MRISpositionSurfaces(MRI_SURFACE *mris, MRI **mri_flash, int nvolumes, INTEGRATI
       mht = MHTfillTable(mris, mht) ;
     delta_t += mrisAsynchronousTimeStepNew(mris, 0, dt, mht, MAX_ASYNCH_NEW_MM) ;
     MRISsaveVertexPositions(mris, PIAL_VERTICES) ;
+    last_pial_sse = MRIScomputeSSE(mris,parms) ;
     if (gMRISexternalTimestep)
       (*gMRISexternalTimestep)(mris, parms) ;
     delta_t /= 2 ;
     pial_sse = MRIScomputeSSE(mris, parms) ;  /* needs update orig to compute sse */
+    last_sse = last_wm_sse + last_pial_sse ;
     sse = wm_sse + pial_sse ;
 
     pct_sse_decrease = 1 - sse/last_sse ;
@@ -29760,3 +29811,17 @@ MRISrestoreExtraGradients(MRI_SURFACE *mris)
   return(NO_ERROR) ;
 }
 
+int
+MRISclearDistances(MRI_SURFACE *mris)
+{
+  int   vno ;
+  VERTEX *v ;
+
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    v->d = 0.0 ;
+  }
+  
+  return(NO_ERROR) ;
+}
