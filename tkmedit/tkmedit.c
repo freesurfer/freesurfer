@@ -4,9 +4,9 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2003/04/04 17:34:54 $
-// Revision       : $Revision: 1.138 $
-char *VERSION = "$Revision: 1.138 $";
+// Revision Date  : $Date: 2003/04/18 22:47:08 $
+// Revision       : $Revision: 1.139 $
+char *VERSION = "$Revision: 1.139 $";
 
 #define TCL
 #define TKMEDIT 
@@ -993,12 +993,11 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
   /* First look for the version option and handle that. If found,
      shorten our argc and argv count. If those are the only args we
      had, exit. */
-  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.138 2003/04/04 17:34:54 kteich Exp $");
+  /* rkt: check for and handle version tag */
+  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.139 2003/04/18 22:47:08 kteich Exp $");
+  if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
+    exit (0);
   argc -= nNumProcessedVersionArgs;
-  argv += nNumProcessedVersionArgs;
-  if( 1 == argc ) {
-    exit( 0 );
-  }
 
   if (argc<2) {
     

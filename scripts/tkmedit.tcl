@@ -1,6 +1,6 @@
 #! /usr/bin/tixwish
 
-# $Id: tkmedit.tcl,v 1.35 2003/04/10 20:49:08 kteich Exp $
+# $Id: tkmedit.tcl,v 1.36 2003/04/18 22:47:42 kteich Exp $
 
 source $env(MRI_DIR)/lib/tcl/tkm_common.tcl
 
@@ -2532,6 +2532,61 @@ proc CreateWindow { iwwTop } {
     wm withdraw .
 }
 
+proc ToggleAndSendDisplayFlag { iFlag } {
+    global gbDisplayFlag
+
+    set gbDisplayFlag($iFlag) [expr 1 - $gbDisplayFlag($iFlag)]
+    SendDisplayFlagValue $iFlag
+}
+
+proc SetAndSendDisplayFlag { iFlag iValue } {
+    global gbDisplayFlag
+
+    set gbDisplayFlag($iFlag) $iValue
+    SendDisplayFlagValue $iFlag
+}
+
+proc MakeKeyBindings { iwTop } {
+
+    bind $iwTop <Control-Key-1> \
+	{SetAndSendDisplayFlag flag_AuxVolume 0}
+    bind $iwTop <Control-Key-2> \
+	{SetAndSendDisplayFlag flag_AuxVolume 1}
+    bind $iwTop <Control-Key-m> \
+	{ToggleAndSendDisplayFlag flag_MainSurace}
+    bind $iwTop <Control-Key-o> \
+	{ToggleAndSendDisplayFlag flag_OriginalSurface}
+    bind $iwTop <Control-Key-p> \
+	{ToggleAndSendDisplayFlag flag_CanonicalSurface}
+    bind $iwTop <Control-Key-v> \
+	{ToggleAndSendDisplayFlag flag_DisplaySurfaceVertices}
+    bind $iwTop <Control-Key-i> \
+	{ToggleAndSendDisplayFlag flag_InterpolateSurfaceVertices}
+    bind $iwTop <Control-Key-f> \
+	{ToggleAndSendDisplayFlag flag_FunctionalColorScaleBar}
+    bind $iwTop <Control-Key-g> \
+	{ToggleAndSendDisplayFlag flag_SegmentationVolumeOverlay}
+    bind $iwTop <Alt-Key-g> \
+	{ToggleAndSendDisplayFlag flag_AuxSegmentationVolumeOverlay}
+    bind $iwTop <Control-Key-s> \
+	{ToggleAndSendDisplayFlag flag_Selection}
+    bind $iwTop <Control-Key-t> \
+	{ToggleAndSendDisplayFlag flag_ControlPoints}
+    bind $iwTop <Control-Key-c> \
+	{ToggleAndSendDisplayFlag flag_Cursor}
+
+    bind $iwTop <Key-n> \
+	{SetTool $DspA_tTool_Navigate}
+    bind $iwTop <Key-s> \
+	{SetTool $DspA_tTool_Select}
+    bind $iwTop <Key-a> \
+	{SetTool $DspA_tTool_Edit}
+    bind $iwTop <Key-g> \
+	{SetTool $DspA_tTool_EditParc}
+    bind $iwTop <Key-t> \
+	{SetTool $DspA_tTool_CtrlPts}
+}
+
 proc CreateMenuBar { ifwMenuBar } {
 
     global mri_tOrientation_Sagittal mri_tOrientation_Horizontal 
@@ -2748,7 +2803,7 @@ proc CreateMenuBar { ifwMenuBar } {
     # edit menu 
     tkm_MakeMenu $mbwEdit "Edit" {
 	{ command
-	    "Undo Last Edit"
+	    "Undo Last Edit:Ctrl Z"
 	    UndoLastEdit }
 	{ separator }
 	{ command
@@ -2901,12 +2956,12 @@ proc CreateMenuBar { ifwMenuBar } {
 	    "SendDisplayFlagValue flag_Anatomical"
 	    gbDisplayFlag(flag_Anatomical) }
 	{ radio 
-	    "Main Volume"
+	    "Main Volume:Ctrl 1"
 	    "SendDisplayFlagValue flag_AuxVolume"
 	    gbDisplayFlag(flag_AuxVolume) 
 	    0 }
 	{ radio
-	    "Aux Volume"
+	    "Aux Volume:Ctrl 2"
 	    "SendDisplayFlagValue flag_AuxVolume"
 	    gbDisplayFlag(flag_AuxVolume)
 	    1
@@ -2918,32 +2973,32 @@ proc CreateMenuBar { ifwMenuBar } {
 	    gbDisplayFlag(flag_MaxIntProj) 
 	}
 	{ check
-	    "Main Surface"
+	    "Main Surface:Ctrl M"
 	    "SendDisplayFlagValue flag_MainSurface"
 	    gbDisplayFlag(flag_MainSurface) 
 	    tMenuGroup_SurfaceViewing }
 	{ check
-	    "Original Surface"
+	    "Original Surface:Ctrl O"
 	    "SendDisplayFlagValue flag_OriginalSurface"
 	    gbDisplayFlag(flag_OriginalSurface) 
 	    tMenuGroup_OriginalSurfaceViewing }
 	{ check
-	    "Pial Surface"
+	    "Pial Surface:Ctrl P"
 	    "SendDisplayFlagValue flag_CanonicalSurface"
 	    gbDisplayFlag(flag_CanonicalSurface) 
 	    tMenuGroup_CanonicalSurfaceViewing }
 	{ check
-	    "Surface Vertices"
+	    "Surface Vertices:Ctrl V"
 		"SendDisplayFlagValue flag_DisplaySurfaceVertices"
 	    gbDisplayFlag(flag_DisplaySurfaceVertices) 
 	    tMenuGroup_SurfaceViewing }
 	{ check
-	    "Interpolate Surface Vertices"
+	    "Interpolate Surface Vertices:Ctrl I"
 	    "SendDisplayFlagValue flag_InterpolateSurfaceVertices"
 	    gbDisplayFlag(flag_InterpolateSurfaceVertices) 
 	    tMenuGroup_SurfaceViewing }
 	{ check
-	    "Functional Overlay"
+	    "Functional Overlay:Ctrl F"
 	    "SendDisplayFlagValue flag_FunctionalOverlay"
 	    gbDisplayFlag(flag_FunctionalOverlay) 
 	    tMenuGroup_OverlayOptions }
@@ -2963,12 +3018,12 @@ proc CreateMenuBar { ifwMenuBar } {
 	    gbDisplayFlag(flag_HistogramPercentChange) 
 	    tMenuGroup_VLIOptions }
 	{ check
-	    "Segmentation Overlay"
+	    "Segmentation Overlay:Ctrl G"
 	    "SendDisplayFlagValue flag_SegmentationVolumeOverlay"
 	    gbDisplayFlag(flag_SegmentationVolumeOverlay) 
 	    tMenuGroup_SegmentationOptions }
 	{ check
-	    "Aux Segmentation Overlay"
+	    "Aux Segmentation Overlay:Alt G"
 	    "SendDisplayFlagValue flag_AuxSegmentationVolumeOverlay"
 	    gbDisplayFlag(flag_AuxSegmentationVolumeOverlay) 
 	    tMenuGroup_AuxSegmentationOptions }
@@ -2983,7 +3038,7 @@ proc CreateMenuBar { ifwMenuBar } {
 	    gbDisplayFlag(flag_DTIOverlay) 
 	    tMenuGroup_DTIOptions }
 	{ check
-	    "Selection / Label"
+	    "Selection / Label:Ctrl S"
 	    "SendDisplayFlagValue flag_Selection"
 	    gbDisplayFlag(flag_Selection) }
 	{ check
@@ -2992,11 +3047,11 @@ proc CreateMenuBar { ifwMenuBar } {
 	    gbDisplayFlag(flag_HeadPoints) 
 	    tMenuGroup_HeadPoints }
 	{ check
-	    "Control Points"
+	    "Control Points:Ctrl T"
 	    "SendDisplayFlagValue flag_ControlPoints"
 	    gbDisplayFlag(flag_ControlPoints) }
 	{ check
-	    "Cursor"
+	    "Cursor:Ctrl C"
 	    "SendDisplayFlagValue flag_Cursor"
 	    gbDisplayFlag(flag_Cursor) }
 	{ check
@@ -3012,27 +3067,27 @@ proc CreateMenuBar { ifwMenuBar } {
     # tools menu
     tkm_MakeMenu $mbwTools "Tools" {
 	{ radio
-	    "Navigate"
+	    "Navigate:N"
 	    "SetTool $DspA_tTool_Navigate"
 	    gTool
 	    0 }
 	{ radio
-	    "Select Voxels"
+	    "Select Voxels:S"
 	    "SetTool $DspA_tTool_Select"
 	    gTool
 	    1 }
 	{ radio
-	    "Edit Voxels"
+	    "Edit Voxels:A"
 	    "SetTool $DspA_tTool_Edit"
 	    gTool
 	    2 }
 	{ radio
-	    "Edit Segmentation"
+	    "Edit Segmentation:G"
 	    "SetTool $DspA_tTool_EditParc"
 	    gTool
 	    3 }
 	{ radio
-	    "Edit Ctrl Pts"
+	    "Edit Ctrl Pts:T"
 	    "SetTool $DspA_tTool_CtrlPts"
 	    gTool
 	    4 }
@@ -3754,6 +3809,7 @@ set fwRight      $wwTop.fwRight
 set fwCursor     $fwLeft.fwCursor
 
 CreateWindow         $wwTop
+MakeKeyBindings      .
 
 frame $fwLeft
 
@@ -3761,7 +3817,6 @@ CreateMenuBar        $fwMenuBar
 CreateToolBar        $fwToolBar
 CreateCursorFrame    $fwCursor
 CreateMouseoverFrame $fwRight
-# CreateDisplayFrame   $fwRight
 
 # pack the window
 pack $fwMenuBar $fwToolBar \
@@ -3802,6 +3857,7 @@ foreach toolbar {main nav recon} {
   }
     }
 }
+
 
 # lets us execute scripts from the command line but only after the
 # window is open

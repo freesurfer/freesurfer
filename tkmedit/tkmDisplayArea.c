@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2003/04/16 23:05:50 $
-// Revision       : $Revision: 1.58 $
+// Revision Date  : $Date: 2003/04/18 22:47:08 $
+// Revision       : $Revision: 1.59 $
 
 #include "tkmDisplayArea.h"
 #include "tkmMeditWindow.h"
@@ -3193,285 +3193,159 @@ DspA_tErr DspA_HandleKeyDown_ ( tkmDisplayAreaRef this,
   MWin_tErr eWindowResult = MWin_tErr_NoErr;
   FunV_tErr eFunctional   = FunV_tErr_NoError;
   
-  switch ( ipEvent->mKey ) {
-    
-  case '1':
-  case '2':
-  case '3':
-  case '4':
-  case '5':
-  case '6':
-  case '7':
-  case '8':
-  case '9':
-    /* ctrl 1 goes to main volume */
-    if ( ipEvent->mKey == '1' &&
-	 ipEvent->mbCtrlKey ) {
-      eResult = DspA_SetDisplayFlag( this, 
-				     DspA_tDisplayFlag_AuxVolume, FALSE );
-      if ( DspA_tErr_NoErr != eResult )
-	goto error;
+  /* Ctrl key combos */
+  if( ipEvent->mbCtrlKey && !ipEvent->mbAltKey ) {
+    switch( ipEvent->mKey ) {
+    case '1':
+      eResult = 
+	DspA_SetDisplayFlag( this, DspA_tDisplayFlag_AuxVolume, FALSE );
       break;
-    }
-    
-    /* ctrl 2 goes to aux volume */
-    if ( ipEvent->mKey == '2' &&
-	 ipEvent->mbCtrlKey ) {
-      eResult = DspA_SetDisplayFlag( this, 
-				     DspA_tDisplayFlag_AuxVolume, TRUE );
-      if ( DspA_tErr_NoErr != eResult )
-	goto error;
-    }
-    
-    /* any other number sets the radius of the brush. */
-    eResult = DspA_SetBrushShape( this, (int)(ipEvent->mKey - '0'),
-				  sBrush.mShape, sBrush.mb3D );
-    if ( DspA_tErr_NoErr != eResult )
-      goto error;
-    break;
-    
-  case 'c':
-    /* alt-c toggles main and aux view. */
-    if( ipEvent->mbAltKey ) {
-      eResult = DspA_ToggleDisplayFlag( this, DspA_tDisplayFlag_AuxVolume );
-      /* ctrl+c toggles cursor display */
-    } else if( ipEvent->mbCtrlKey ) {
-      eResult = DspA_ToggleDisplayFlag( this, DspA_tDisplayFlag_Cursor );
-    } else {
-      /* c sets tool to control pts */
-      eResult = DspA_SetTool( this, DspA_tTool_EditCtrlPts );
-    }
-    if ( DspA_tErr_NoErr != eResult )
-      goto error;
-    
-    break;
-    
-  case 'e':
-    /* e sets tool to edit */
-    eResult = DspA_SetTool( this, DspA_tTool_EditVoxels );
-    if ( DspA_tErr_NoErr != eResult )
-      goto error;
-    break;
-    
-  case 'f':
-    /* alt-f swaps the anatomical/overlay display */
-    if( ipEvent->mbAltKey ) {
-      if( NULL == this->mpFunctionalVolume )
-	goto cleanup;
-      
-      if( 1 == this->mabDisplayFlags[DspA_tDisplayFlag_Anatomical] ) {
-	DspA_SetDisplayFlag( this, DspA_tDisplayFlag_Anatomical, 0 );
-	DspA_SetDisplayFlag( this, DspA_tDisplayFlag_FunctionalOverlay, 1 );
-      } else {
-	DspA_SetDisplayFlag( this, DspA_tDisplayFlag_Anatomical, 1 );
-	DspA_SetDisplayFlag( this, DspA_tDisplayFlag_FunctionalOverlay, 0 );
-      }
-    }
-    
-    /* ctrl+f toggles functional overlay display */
-    if( ipEvent->mbCtrlKey ) {
-      eResult = DspA_ToggleDisplayFlag( this, 
-					DspA_tDisplayFlag_FunctionalOverlay );
-      if ( DspA_tErr_NoErr != eResult )
-	goto error;
-    }
-    break;
-    
-  case 'g':
-    
-    /* g sets tool to edit segmentation */
-    eResult = DspA_SetTool( this, DspA_tTool_EditSegmentation );
-    if ( DspA_tErr_NoErr != eResult )
-      goto error;
-    
-    break;
-    
-  case 'h':
-    
-    FunV_UseOverlayCache( this->mpFunctionalVolume, 
-			  !this->mpFunctionalVolume->mbUseOverlayCache );
-    if( this->mpFunctionalVolume->mbUseOverlayCache ) {
-      DebugPrint( ("Cache enabled.\n" ) );
-    } else {
-      DebugPrint( ("Cache disabled.\n" ) );
-    }
-    break;
-    
-  case 'i':
-    /* ctrl+i toggles interpolated vertices display */
-    if( ipEvent->mbCtrlKey ) {
-      eResult = DspA_ToggleDisplayFlag( this, 
-					DspA_tDisplayFlag_InterpolateSurfaceVertices );
-      if ( DspA_tErr_NoErr != eResult )
-	goto error;
-    }
-    break;
-    
-  case 'k':
-    /* ctrl+k toggles cursor linking */
-    if( ipEvent->mbCtrlKey ) {
+    case '2':
+      eResult = 
+	DspA_SetDisplayFlag( this, DspA_tDisplayFlag_AuxVolume, TRUE );
+      break;
+    case 'a':
+      eResult = 
+	DspA_ToggleDisplayFlag( this, DspA_tDisplayFlag_Anatomical );
+      break;
+    case 'c':
+      eResult = 
+	DspA_ToggleDisplayFlag( this, DspA_tDisplayFlag_Cursor );
+      break;
+    case 'f':
+      eResult = 
+	DspA_ToggleDisplayFlag( this, DspA_tDisplayFlag_FunctionalOverlay );
+      break;
+    case 'g':
+      eResult = 
+   DspA_ToggleDisplayFlag( this, DspA_tDisplayFlag_SegmentationVolumeOverlay );
+      break;
+    case 'i':
+      eResult = 
+ DspA_ToggleDisplayFlag( this, DspA_tDisplayFlag_InterpolateSurfaceVertices );
+      break;
+    case 'k':
       eWindowResult = MWin_ToggleLinkedCursorFlag( this->mpWindow );
       if( MWin_tErr_NoErr != eWindowResult ) {
 	eResult = DspA_tErr_ErrorAccessingWindow;
-	goto error;
       }
-    }
-    break;
-    
-  case 'l':
-    /* ctrl+l toggles selection display */
-    if( ipEvent->mbCtrlKey ) {
-      eResult = DspA_ToggleDisplayFlag( this, DspA_tDisplayFlag_Selection );
-      if ( DspA_tErr_NoErr != eResult )
-	goto error;
-    }
-    break;
-    
-  case 'n':
-    /* n sets tool to navigate */
-    eResult = DspA_SetTool( this, DspA_tTool_Navigate );
-    if ( DspA_tErr_NoErr != eResult )
-      goto error;
-    break;
-    
-  case 'm':
-    /* m toggles the segmentation display */
-    eResult = DspA_ToggleDisplayFlag( this, DspA_tDisplayFlag_SegmentationVolumeOverlay);
-    if ( DspA_tErr_NoErr != eResult )
-      goto error;
-    break;
-    
-  case 'o':
-    /* ctrl+o toggles original suface display */
-    if( ipEvent->mbCtrlKey ) {
-      eResult = DspA_ToggleDisplayFlag( this, 
-					DspA_tDisplayFlag_OriginalSurface );
-      if ( DspA_tErr_NoErr != eResult )
-	goto error;
-    }
-    break;
-    
-  case 'p':
-    
-    /* ctrl+p toggles canonical/pial suface display */
-    if( ipEvent->mbCtrlKey ) {
-      eResult = DspA_ToggleDisplayFlag( this, 
-					DspA_tDisplayFlag_CanonicalSurface );
-      if ( DspA_tErr_NoErr != eResult )
-	goto error;
-    } else {
-      /* p sets tool to edit */
-      eResult = DspA_SetTool( this, DspA_tTool_EditSegmentation );
-      if ( DspA_tErr_NoErr != eResult )
-	goto error;
-    }
-    
-    break;
-    
-  case 's':
-    /* alt+s toggles aux segmentation display */
-    if( ipEvent->mbAltKey ) {
+      break;
+    case 'm':
       eResult = 
-	DspA_ToggleDisplayFlag( this,DspA_tDisplayFlag_AuxSegmentationVolume );
-
-    /* ctrl+s toggles main suface display */
-    } else if( ipEvent->mbCtrlKey ) {
-      eResult = DspA_ToggleDisplayFlag( this, DspA_tDisplayFlag_MainSurface );
-    } else {
-      /* s sets tool to select */
-      eResult = DspA_SetTool( this, DspA_tTool_SelectVoxels );
-    }
-    if ( DspA_tErr_NoErr != eResult )
-      goto error;
-    break;
-    
-  case 't':
-    /* ctrl+s toggles ctrl pt display */
-    if( ipEvent->mbCtrlKey ) {
-      eResult = DspA_ToggleDisplayFlag( this, 
-					DspA_tDisplayFlag_ControlPoints );
-      if ( DspA_tErr_NoErr != eResult )
-	goto error;
-    }
-    break;
-    
-  case 'v':
-    /* ctrl-v toggles vertex display. */
-    if ( ipEvent->mbCtrlKey ) {
-      eResult = DspA_ToggleDisplayFlag( this, 
-					DspA_tDisplayFlag_DisplaySurfaceVertices );
-      if ( DspA_tErr_NoErr != eResult )
-	goto error;
-    }
-    break;
-    
-  case 'x': 
-    /* x sets plane to sagittal */
-    eResult = DspA_SetOrientation( this, mri_tOrientation_Sagittal );
-    if ( DspA_tErr_NoErr != eResult )
-      goto error;
-    break;
-    
-  case 'y': 
-    /* y sets plane to horizontal */
-    eResult = DspA_SetOrientation( this, mri_tOrientation_Horizontal );
-    if ( DspA_tErr_NoErr != eResult )
-      goto error;
-    break;
-    
-  case 'z': 
-    /* ctrl-z undos */
-    if ( ipEvent->mbCtrlKey ) {
+	DspA_ToggleDisplayFlag( this, DspA_tDisplayFlag_MainSurface );
+      break;
+    case 'o':
+      eResult = 
+	DspA_ToggleDisplayFlag( this, DspA_tDisplayFlag_OriginalSurface );
+      break;
+    case 'p':
+      eResult = 
+	DspA_ToggleDisplayFlag( this, DspA_tDisplayFlag_CanonicalSurface );
+      break;
+    case 's':
+      eResult = 
+	DspA_ToggleDisplayFlag( this, DspA_tDisplayFlag_Selection );
+      break;
+    case 't':
+      eResult = 
+	DspA_ToggleDisplayFlag( this, DspA_tDisplayFlag_ControlPoints );
+      break;
+    case 'v':
+      eResult = 
+    DspA_ToggleDisplayFlag( this, DspA_tDisplayFlag_DisplaySurfaceVertices );
+      break;
+    case 'z':
       tkm_RestoreUndoList();
-    } else {
-      /* z sets plane to coronal */
-      eResult = DspA_SetOrientation( this, mri_tOrientation_Coronal );
-      if ( DspA_tErr_NoErr != eResult )
-	goto error;
+      break;
     }
-    break;
-    
-  case xGWin_tKey_UpArrow:
-  case xGWin_tKey_RightArrow:
-    /* move up a slice */
-    eResult = DspA_ChangeSliceBy( this, 1 );
-    if ( DspA_tErr_NoErr != eResult )
-      goto error;
-    DspA_Redraw_( this );
-    break;
-    
-  case xGWin_tKey_DownArrow:
-  case xGWin_tKey_LeftArrow:
-    /* move down a slice */
-    eResult = DspA_ChangeSliceBy( this, -1 );
-    if ( DspA_tErr_NoErr != eResult )
-      goto error;
-    DspA_Redraw_( this );
-    break;
-    
-  case '+':
-    if( NULL != this->mpFunctionalVolume ) {
-      /* move the time point up */
-      eFunctional = FunV_ChangeTimePointBy( this->mpFunctionalVolume, 1 );
-      if( FunV_tErr_NoError != eFunctional ) {
-	eResult = DspA_tErr_ErrorAccessingFunctionalVolume;
-	goto error;
-      }
-    }
-    break;
-    
-  case '-':
-    if( NULL != this->mpFunctionalVolume ) {
-      /* move the time point down */
-      eFunctional = FunV_ChangeTimePointBy( this->mpFunctionalVolume, -1 );
-      if( FunV_tErr_NoError != eFunctional ) {
-	eResult = DspA_tErr_ErrorAccessingFunctionalVolume;
-	goto error;
-      }
-    }
-    break;
-    
   }
+
+  /* Plain keys */
+  if( !ipEvent->mbCtrlKey && !ipEvent->mbAltKey ) {
+    switch( ipEvent->mKey ) {
+    case '1': case '2': case '3': case '4': case '5':
+    case '6': case '7': case '8': case '9':
+      eResult = DspA_SetBrushShape( this, (int)(ipEvent->mKey - '0'),
+				    sBrush.mShape, sBrush.mb3D );
+      break;
+    case 'a':
+      eResult = DspA_SetTool( this, DspA_tTool_EditVoxels );
+      break;
+    case 'g':
+      eResult = DspA_SetTool( this, DspA_tTool_EditSegmentation );
+      break;
+    case 'n':
+      eResult = DspA_SetTool( this, DspA_tTool_Navigate );
+      break;
+    case 's':
+      eResult = DspA_SetTool( this, DspA_tTool_SelectVoxels );
+      break;
+    case 't':
+      eResult = DspA_SetTool( this, DspA_tTool_EditCtrlPts );
+      break;
+    case 'x':
+      eResult = DspA_SetOrientation( this, mri_tOrientation_Sagittal );
+      break;
+    case 'y':
+      eResult = DspA_SetOrientation( this, mri_tOrientation_Horizontal );
+      break;
+    case 'z':
+      eResult = DspA_SetOrientation( this, mri_tOrientation_Coronal );
+      break;
+    case xGWin_tKey_UpArrow: case xGWin_tKey_RightArrow:
+      eResult = DspA_ChangeSliceBy( this, 1 );
+      DspA_Redraw_( this );
+      break;
+    case xGWin_tKey_DownArrow: case xGWin_tKey_LeftArrow:
+      eResult = DspA_ChangeSliceBy( this, -1 );
+      DspA_Redraw_( this );
+      break;
+    case '+':
+      if( NULL != this->mpFunctionalVolume ) {
+	eFunctional = FunV_ChangeTimePointBy( this->mpFunctionalVolume, 1 );
+	if( FunV_tErr_NoError != eFunctional ) {
+	  eResult = DspA_tErr_ErrorAccessingFunctionalVolume;
+	}
+      }
+      break;
+    case '-':
+      if( NULL != this->mpFunctionalVolume ) {
+	eFunctional = FunV_ChangeTimePointBy( this->mpFunctionalVolume, -1 );
+	if( FunV_tErr_NoError != eFunctional ) {
+	  eResult = DspA_tErr_ErrorAccessingFunctionalVolume;
+	}
+      }
+      break;
+    }
+  }
+
+  /* Alt-key combos */
+  if( !ipEvent->mbCtrlKey && ipEvent->mbAltKey ) {
+    switch ( ipEvent->mKey ) {
+    case 'a':
+      eResult = 
+	DspA_ToggleDisplayFlag( this, DspA_tDisplayFlag_AuxVolume );
+      break;
+    case 'f':
+      if( NULL != this->mpFunctionalVolume ) {
+	if( 1 == this->mabDisplayFlags[DspA_tDisplayFlag_Anatomical] ) {
+	  DspA_SetDisplayFlag( this, DspA_tDisplayFlag_Anatomical, 0 );
+	  DspA_SetDisplayFlag( this, DspA_tDisplayFlag_FunctionalOverlay, 1 );
+	} else {
+	  DspA_SetDisplayFlag( this, DspA_tDisplayFlag_Anatomical, 1 );
+	  DspA_SetDisplayFlag( this, DspA_tDisplayFlag_FunctionalOverlay, 0 );
+	}
+      }
+      break;
+    case 'g':
+      eResult = 
+      DspA_ToggleDisplayFlag( this, DspA_tDisplayFlag_AuxSegmentationVolume );
+      break;
+    }
+  }
+
+  if( DspA_tErr_NoErr != eResult )
+    goto error;
   
   goto cleanup;
   
