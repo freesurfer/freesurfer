@@ -23,6 +23,7 @@ static void usage_exit(int code) ;
 
 static int  annot_flag = -1 ;
 static int quiet = 0 ;
+static int scaleup_flag = 0 ;
 int cras =0; // 0 is false.  1 is true
 
 int
@@ -37,7 +38,7 @@ main(int argc, char *argv[])
 	Real   xw, yw, zw, xv, yv, zv, val;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_label_vals.c,v 1.8 2003/11/06 22:36:16 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_label_vals.c,v 1.9 2004/01/08 19:05:11 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -67,6 +68,26 @@ main(int argc, char *argv[])
   mri = MRIread(vol_name) ;
   if (!mri)
     ErrorExit(ERROR_NOFILE, "%s: could not read volume from %s",Progname, vol_name) ;
+	if (scaleup_flag)
+	{
+		float scale, fov_x, fov_y, fov_z  ;
+
+		scale = 1.0/MIN(MIN(mri->xsize, mri->ysize),mri->zsize) ;
+		fprintf(stderr, "scaling voxel sizes up by %2.2f\n", scale) ;
+		mri->xsize *= scale ; mri->ysize *= scale ; mri->zsize *= scale ;
+    fov_x = mri->xsize * mri->width;
+    fov_y = mri->ysize * mri->height;
+    fov_z = mri->zsize * mri->depth;
+    mri->xend = fov_x / 2.0;
+    mri->xstart = -mri->xend;
+    mri->yend = fov_y / 2.0;
+    mri->ystart = -mri->yend;
+    mri->zend = fov_z / 2.0;
+    mri->zstart = -mri->zend;
+
+    mri->fov = (fov_x > fov_y ? (fov_x > fov_z ? fov_x : fov_z) : (fov_y > fov_z ? fov_y : fov_z) );
+	}
+
 	if (annot_flag >= 0)
 	{
 		int x, y, z  ;
@@ -157,6 +178,8 @@ get_option(int argc, char *argv[])
   option = argv[1] + 1 ;            /* past '-' */
   if (strcmp("cras", option) == 0)
     cras = 1;
+	else if (strcmp("scaleup", option) == 0)
+		scaleup_flag = 1 ;
   else
   {
     switch (toupper(*option))
