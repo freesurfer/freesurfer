@@ -68,10 +68,13 @@ DiagInit(char *fname,
 
   if (!cp) cp = getenv("DIAG") ;
   if (cp) 
-  {
     sscanf(cp, "0x%lx", &Gdiag) ;
+
+  if (getenv("DIAG_VERBOSE"))
+    Gdiag |= DIAG_VERBOSE ;
+
+  if (Gdiag)
     fprintf(stderr, "diagnostics set to 0x%lx\n", Gdiag) ;
-  }
 
 #if 0
   if (getenv("logging") != NULL)
