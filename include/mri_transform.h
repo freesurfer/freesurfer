@@ -1,7 +1,7 @@
 #ifndef mri_transform_h
 #define mri_transform_h
 
-#include "basic.h" /* defines Real */
+#include "volume_io/basic.h" /* defines Real */
 
 
                                    /* need to set the size of the volume

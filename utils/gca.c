@@ -8883,7 +8883,7 @@ GCAcomputeConditionalDensity(GC1D *gc, float *vals, int ninputs, int label)
 #endif
   {
     dist = GCAmahDist(gc, vals, ninputs) ;
-		p = (1.0 / (pow(2*M_PI,ninputs/2.0)*sqrt(covariance_determinant(gc, ninputs)))) * exp(-dist) ;
+		p = (1.0 / (pow(2*M_PI,ninputs/2.0)*sqrt(covariance_determinant(gc, ninputs)))) * exp(-0.5*dist) ;
   }
   return(p) ;
 }
@@ -9210,8 +9210,10 @@ free_gcs(GC1D *gcs, int nlabels, int ninputs)
 
   for (i = 0 ; i < nlabels ; i++)
   {
-		free(gcs[i].means) ;
-		free(gcs[i].covars) ;
+		if (gcs[i].means)
+			free(gcs[i].means) ;
+		if (gcs[i].covars)
+			free(gcs[i].covars) ;
     if (gcs[i].nlabels)  /* gibbs stuff allocated */
     {
       for (j = 0 ; j < GIBBS_NEIGHBORHOOD ; j++)
@@ -9855,23 +9857,7 @@ GCAcreateFlashGCAfromParameterGCA(GCA *gca_T1PD, double *TR, double *fa, double 
 				if (gcan_src->nlabels > gcan_dst->max_labels)
 				{
 					free(gcan_dst->labels) ;
-					for (n = 0 ; n < gcan_dst->max_labels ; n++)
-					{
-						gc_dst = &gcan_dst->gcs[n] ;
-						for (i = 0 ; i < GIBBS_NEIGHBORS ; i++)
-						{
-							if (gc_dst->label_priors[i])
-								free(gc_dst->label_priors[i]) ;
-							if (gc_dst->labels[i])
-								free(gc_dst->labels[i]) ;
-						}
-						if (gc_dst->nlabels)
-							free(gc_dst->nlabels) ;
-						if (gc_dst->labels)
-							free(gc_dst->labels) ;
-						if (gc_dst->label_priors)
-							free(gc_dst->label_priors) ;
-					}
+					free_gcs(gcan_dst->gcs, gcan_dst->max_labels, gca_flash->ninputs) ;
 
           gcan_dst->labels = (unsigned char *)calloc(gcan_src->nlabels, sizeof(unsigned char)) ;
           if (!gcan_dst->labels)
@@ -9879,6 +9865,7 @@ GCAcreateFlashGCAfromParameterGCA(GCA *gca_T1PD, double *TR, double *fa, double 
                       gcan_src->nlabels) ;
 
 					gcan_dst->gcs = alloc_gcs(gcan_src->nlabels, GCA_NO_FLAGS, nflash) ;
+					gcan_dst->max_labels = gcan_dst->nlabels ;
 				}
 				for (n = 0 ; n < gcan_src->nlabels ; n++)
 				{
@@ -9962,7 +9949,7 @@ GCAcreateFlashGCAfromParameterGCA(GCA *gca_T1PD, double *TR, double *fa, double 
 	/* check and fix singular covariance matrixces */
 	GCAfixSingularCovarianceMatrices(gca_flash) ;
 	MatrixFree(&m_jacobian) ; MatrixFree(&m_cov_src) ; MatrixFree(&m_cov_dst) ;
-	MatrixFree(&m_jacobian_T) ;
+	MatrixFree(&m_jacobian_T) ; MatrixFree(&m_tmp) ;
 
 	return(gca_flash) ;
 }
