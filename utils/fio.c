@@ -136,11 +136,10 @@ fwriteShort(short s, FILE *fp)
 {
   int   ret ;
 
-  ret = fread(&s,sizeof(short),1,fp);
 #ifdef Linux
   s = swapShort(s) ;
 #endif
-  return(s) ;
+  return(fwrite(&s, sizeof(short), 1, fp)) ;
 }
 float
 freadFloat(FILE *fp)
