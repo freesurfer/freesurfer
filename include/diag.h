@@ -32,6 +32,7 @@ void DiagHeartbeat(float pct_done) ;
 
 /* diagnostic codes */
 #define DIAG_LP         0x00000001L   /* license plate detection diagnostics */
+#define DIAG_SURFACE    0x00000001L  /* never in same apps, so can re-use */
 #define DIAG_EXM        0x00000002L
 #define DIAG_TIMER      0x00000004L
 #define DIAG_WRITE      0x00000008L
