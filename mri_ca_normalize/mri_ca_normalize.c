@@ -3,9 +3,9 @@
 // written by Bruce Fischl
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/05/19 13:45:57 $
-// Revision       : $Revision: 1.23 $
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2004/05/26 15:05:25 $
+// Revision       : $Revision: 1.24 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -107,7 +107,7 @@ main(int argc, char *argv[])
   TRANSFORM    *transform = NULL ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_ca_normalize.c,v 1.23 2004/05/19 13:45:57 tosa Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ca_normalize.c,v 1.24 2004/05/26 15:05:25 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -133,7 +133,7 @@ main(int argc, char *argv[])
               Progname) ;
 
   ninputs = (argc - 3) / 2 ;
-  printf("reading %d input volume\n", ninputs) ;	
+  printf("reading %d input volume%ss\n", ninputs, ninputs > 1 ? "s" : "") ;	
   in_fname = argv[1] ;
   gca_fname = argv[1+ninputs] ;
   xform_fname = argv[2+ninputs] ;
