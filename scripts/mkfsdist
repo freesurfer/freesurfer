@@ -1,0 +1,175 @@
+#!/bin/csh -f
+# mkfsdist
+# $Id: mkfsdist,v 1.1 2001/05/31 00:40:39 greve Exp $
+#
+# Usage: mkfsdist targetdir
+#
+# Purpose: creates a FreeSurfer distribution in the directory 
+# specified on the command-line. The distribution can be installed 
+# by following the instructions in freesurfer_alpha/INSTALL.
+#
+# The files created are:
+#  fsa.tar.gz -- the freesurfer_alpha tree
+#  minc.tar.gz -- ~inverse/minc (for running functional autoreg)
+#  talairach.tar.gz -- $SUBJECTS_DIR/talairach (MNI 305)
+#
+# Several test subjects can be created by setting the 
+# TestSubjNoList variable. For example, if
+#
+#     set TestSubjNoList = (1 2 3);
+#
+# then the script will look for test_subject1, test_subject2,
+# and test_subject3. They will be tarred into test_subject1.tar.gz, 
+# test_subject2.tar.gz, etc.
+#
+# Symbolic Links in freesurfer_alpha:
+# 
+#  It does not follow symbolic links, so any symbolic link
+#  in freesurfer_alpha must have a relative pointer to someplace in the
+#  freesurfer_alpha tree.  
+#
+# Excluding files and directories from freesurfer_alpha:
+# 
+#  Files and directories within the freesurfer_alpha tree can be targeted
+#  for exclusion by entering them into freesurfer_alpha/tar-exclude. This
+#  is useful for exluding the license file (.license) as well as other
+#  files that just take up space. When adding items to the exclude file,
+#  put only one name on each line and make sure there are no trailing
+#  white spaces. This name will be exluded where ever it is found in the 
+#  tree, either as a file or as a directory.
+
+# This is where freesurfer_alpha lives #
+set FSA_DIR = ~inverse/freesurfer_alpha;
+
+# This is where the test subjects live #
+set DIST_SUBJECTS_DIR = /space/annecy/5/users/inverse/DIST_SUBJECTS
+
+# This is a list of test subject number to use. It will look for 
+# $DIST_SUBJECTS_DIR/test_subjectN where N is each number in the
+# list.
+#set TestSubjNoList = (1 2 3);
+set TestSubjNoList = (1)
+
+if($#argv != 1) then
+  echo "USAGE: mkfsdist2 targetdir"
+  exit 1;
+endif
+
+set TARGET_DIR = $argv[1];
+
+# Check that freesurfer_alpha is there #
+if(! -e $FSA_DIR) then
+  echo "ERROR: cannot find $FSA_DIR"
+  exit 1;
+endif
+
+# Check that test subjects are there #
+if(! -e $DIST_SUBJECTS_DIR) then
+  echo "ERROR: cannot find $DIST_SUBJECTS_DIR"
+  exit 1;
+endif
+foreach testsubjno ($TestSubjNoList)
+  set tsdir = $DIST_SUBJECTS_DIR/test_subject$testsubjno
+  if( ! -e $tsdir ) then
+    echo "ERROR: cannot find $tsdir"
+    exit 1
+  endif
+end
+
+# Check that the talairach subject is there #
+if(! -e $SUBJECTS_DIR/talairach) then
+  echo "ERROR: cannot find $$SUBJECTS_DIR/talairach"
+  exit 1;
+endif
+
+echo " "
+echo "Creating FreeSurfer Distribution in $TARGET_DIR"
+echo " "
+
+# Create the target directory #
+mkdir -p $TARGET_DIR
+if($status) then
+  echo "ERROR: could not create $TARGET_DIR"
+  exit 1;
+endif
+
+# Get the full path of the target directory #
+pushd $TARGET_DIR  > /dev/null
+set TARGET_DIR = `pawd`;
+popd > /dev/null
+
+# Put a file with the date as name in the target dir 
+set DateStr = "`date '+%Y%m%d'`"
+touch $TARGET_DIR/$DateStr
+
+# Create a log file #
+set LF = $TARGET_DIR/mkfsdist.log
+if(-e $LF) mv $LF $LF.old
+echo "Log file is $LF"
+
+echo "Log file for FreeSurfer (alpha) distribution creation" >> $LF
+echo "$Id: mkfsdist,v 1.1 2001/05/31 00:40:39 greve Exp $"  >> $LF
+echo "$0"    >> $LF
+echo "$argv" >> $LF
+date >> $LF
+
+
+# ---- Tar up freesurfer_alpha ------- #
+cd $FSA_DIR
+cd ..
+echo "--------------------------------------------" | tee -a $LF
+echo "Tarring $FSA_DIR" | tee -a $LF
+date | tee -a $LF
+set TF = $TARGET_DIR/fsa.tar.gz
+rm -f $TF
+tar cvz -f $TF \
+    --exclude-from $FSA_DIR/tar-exclude \
+    ./freesurfer_alpha >> $LF
+date | tee -a $LF
+
+#-- Tar up the minc bin and libs (for functional) -------#
+echo "--------------------------------------------" | tee -a $LF
+echo "Tarring minc" | tee -a $LF
+cd ~inverse/minc
+cd ..
+date | tee -a $LF
+set TF = $TARGET_DIR/minc.tar.gz
+rm -f $TF
+tar cvz -f $TF ./minc >> $LF
+date | tee -a $LF
+
+endif
+
+#----- Tar up the talairach (MNI305) subject --------#
+echo "--------------------------------------------" | tee -a $LF
+echo "Tarring talairach subject" | tee -a $LF
+cd $SUBJECTS_DIR/talairach
+cd ..
+date | tee -a $LF
+set TF = $TARGET_DIR/talairach.tar.gz
+rm -f $TF
+tar cvz -f $TF ./talairach >> $LF
+date | tee -a $LF
+
+#----- Tar up each test subject --------#
+pushd DIST_SUBJECTS_DIR > /dev/null
+foreach tsno ($TestSubjNoList)
+  echo "--------------------------------------------" | tee -a $LF
+  echo "Tarring test subject $tsno" | tee -a $LF
+  date | tee -a $LF
+  set testsubject = test_subject$tsno
+  set TF = $TARGET_DIR/$testsubject.tar.gz
+  rm -f $TF
+  tar cvz -f $TF ./$testsubject >> $LF
+  date | tee -a $LF
+end
+
+echo "------------------------------------------" | tee -a $LF
+
+# Copy the INSTALL File
+cp $FSA_DIR/INSTALL $TARGET_DIR
+
+echo "$0: done"
+
+
+exit 0
