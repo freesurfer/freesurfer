@@ -14,8 +14,9 @@
 #include "mrisurf.h"
 #include "macros.h"
 #include "oglutil.h"
+#include "label.h"
 
-static char vcid[] = "$Id: mris_show.c,v 1.25 1998/03/05 22:24:37 fischl Exp $";
+static char vcid[] = "$Id: mris_show.c,v 1.26 1998/04/23 01:16:26 fischl Exp $";
 
 
 /*-------------------------------- CONSTANTS -----------------------------*/
@@ -125,7 +126,7 @@ main(int argc, char *argv[])
 {
   char         **av, *in_fname, *out_fname, fname[100], hemi[10],
                *cp, path[100], name[100] ;
-  int          ac, nargs ;
+  int          ac, nargs, i ;
   float        angle ;
 
   memset(compiled, 0, sizeof(compiled)) ;
@@ -283,6 +284,8 @@ main(int argc, char *argv[])
   /* now compile the surface tessellation */
   glNewList(current_list, GL_COMPILE) ;
   compiled[current_list] = 1 ;
+  for (i = 0 ; i < nmarked ; i++)
+    mris->vertices[marked_vertices[i]].marked = 1 ;
   OGLUcompile(mris, marked_vertices, compile_flags, cslope) ;
   glEndList() ;
 
@@ -451,6 +454,20 @@ get_option(int argc, char *argv[])
     strcpy(curvature_fname, argv[2]) ;
     nargs = 1 ;
     break ;
+  case 'L':
+  {
+    LABEL *area ;
+    int   i ;
+
+    fprintf(stderr, "reading label file %s\n",argv[2]) ;
+    nargs = 1 ;
+    area = LabelRead(NULL, argv[2]) ;
+    if (nmarked+area->n_points >= MAX_MARKED)
+      area->n_points = MAX_MARKED - nmarked ;
+    for (i = 0 ; i < area->n_points ; i++)
+      marked_vertices[nmarked++] = area->vno[i] ;
+    LabelFree(&area) ;
+  }
   case 'V':
     if (nmarked >= MAX_MARKED)
       ErrorExit(ERROR_NOMEMORY, "%s: too many vertices marked (%d)",
