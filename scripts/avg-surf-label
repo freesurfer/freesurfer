@@ -2,14 +2,15 @@
 # avg-surf-label
 #
 
-set VERSION = '$Id: avg-surf-label,v 1.1 2005/01/12 22:13:43 greve Exp $';
+set VERSION = '$Id: avg-surf-label,v 1.2 2005/01/14 19:32:41 greve Exp $';
 set inputargs = ($argv);
 set PrintHelp = 0;
 
 set subjlist = ();
 set fsgd = ();
 set hemi = ();
-set measure = thickness
+set measure = "thickness";
+set fmt = "curv";
 set hemi = ();
 set label = ();
 set outfile = ();
@@ -62,6 +63,7 @@ tee $MLF > /dev/null <<EOF
 subjects_dir = '$SUBJECTS_DIR';
 label = '$label';
 measure = '$measure';
+fmt = '$fmt';
 hemi = '$hemi';
 subjlist = splitstring('$subjlist');
 outfile = '$outfile';
@@ -70,38 +72,61 @@ monly = $monly;
 nsubjs = size(subjlist,1);
 for nthsubj = 1:nsubjs
   subjid = deblank(subjlist(nthsubj,:));
-  fprintf('%d %s\n',nthsubj,subjid);
+  %fprintf('%d %s\n',nthsubj,subjid);
 
   labvals = read_label(subjid, label);
   if(isempty(labvals))
-    fprintf('ERROR: reading label %s\n',label);
+    fprintf('ERROR: reading label %s, subj = %s\n',label,subjid);
     if(~monly) quit; end
     return; 
   end
   labind = labvals(:,1);
   if(isempty(find(labind ~= -1)))
     fprintf('ERROR: it appears that label is not surface-based.\n');
+    fprintf('       Label = %s, subj = %s\n',label,subjid);
     if(~monly) quit; end
     return; 
   end
   labind = labind + 1; % convert to 1-based
   nlabel = length(labind);
 
-  curvpath = sprintf('%s/%s/surf/%s.%s',...
+  
+  infilepath = sprintf('%s/%s/surf/%s.%s',...
                      subjects_dir,subjid,hemi,measure);
-  [curv fnum] = read_curv(curvpath);
-  if(isempty(curv))
-    fprintf('ERROR: reading curv %s\n',curvpath);
+  if(strcmp(fmt,'curv'))
+    [surfdat fnum] = read_curv(infilepath);
+    if(isempty(surfdat))
+      fprintf('ERROR: reading curv %s for subj %s\n',infilepath,subjid);
+      if(~monly) quit; end
+      return; 
+    end
+  else
+    [w,v] = read_wfile(infilepath);
+    if(isempty(w))
+      fprintf('ERROR: reading curv %s for subj %s\n',infilepath,subjid);
+      if(~monly) quit; end
+      return; 
+    end
+    v = v+1; % change to one-based
+    nmax = max([v(:); labind(:)]);
+    surfdat = zeros(nmax,1);
+    surfdat(v) = w;
+  end
+
+  nvsurfdat = length(surfdat);
+  if(max(labind) > nvsurfdat)
+    fprintf('ERROR: subj %s, label %s, index %d exceeds number of vertices %d\n',...
+            subjid,label,max(labind),nvsurfdat);
     if(~monly) quit; end
     return; 
   end
+  
+  avgsurfdat = mean(surfdat(labind));
+  stdsurfdat = std(surfdat(labind));
 
-  avgcurv = mean(curv(labind));
-  stdcurv = std(curv(labind));
-
-  fprintf('%s %5d %g %g\n',subjid,nlabel,avgcurv,stdcurv);
+  fprintf('%15s %5d %g %g\n',subjid,nlabel,avgsurfdat,stdsurfdat);
   fp = fopen(outfile,'a');
-  fprintf(fp,'%s %5d %g %g\n',subjid,nlabel,avgcurv,stdcurv);
+  fprintf(fp,'%15s %5d %g %g\n',subjid,nlabel,avgsurfdat,stdsurfdat);
   fclose(fp);
 
 end
@@ -149,6 +174,15 @@ while( $#argv != 0 )
     case "--m":
       if ( $#argv == 0) goto arg1err;
       set measure = $argv[1]; shift;
+      breaksw
+
+    case "--fmt":
+      if ( $#argv == 0) goto arg1err;
+      set fmt = $argv[1]; shift;
+      if($fmt != curv && $fmt != paint) then
+        echo "ERROR: format $fmt unrecognized"
+        exit 1;
+      endif
       breaksw
 
     case "--l":
@@ -248,6 +282,7 @@ usage_exit:
   echo ""
   echo "  --h hemi  "
   echo "  --m measure : default is thickness"
+  echo "  --fmt format : curv (default) or paint "
   echo "  --l label      : as found in subjid/label"
   echo "  --o outfile    : text output file"
   echo ""
@@ -288,7 +323,14 @@ Hemisphere that the label is defined over (lh or rh).
 --m measure
 
 Name of surface measure. There must be a file called hemi.measure
-in subjid/surf and it must be in "curv" format.
+in subjid/surf and it must be in "curv" or "paint" format. The default
+format is curv, but this can be changed with --fmt.
+
+--fmt format
+
+curv or paint. Note: if you use the wrong format, it might fail in 
+strange ways, eg, it might give an error about a label index exceeding
+the number of vertices. 
 
 --l labelname
 
