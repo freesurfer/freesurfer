@@ -2,7 +2,7 @@
 # Name: unpackmincdir
 # Purpose: unpacks the functionals and anatomicals and copies others
 
-set VERSION = '$Id: unpackmincdir,v 1.1 2001/05/25 17:14:29 greve Exp $';
+set VERSION = '$Id: unpackmincdir,v 1.2 2002/04/12 23:01:12 greve Exp $';
 
 set n = `echo $argv | grep version | wc -l` 
 if($n != 0) then
@@ -152,7 +152,7 @@ echo "Base is $base" | tee -a $LF
 ## are unpacked (not things like yk-0-sonata-20000806-161824-2sl426-mri.mnc)
 set mincfiles = ();
 @ run = 1;
-while($run < 100)
+while($run < 999)
   set tmp1 = "$base-$run-mri.mnc";
   set tmp2 = "$base-$run-mri.mnc.gz";
   if(-e $tmp1 ) set mincfiles = ($mincfiles $tmp1);
