@@ -227,7 +227,8 @@ fprintf(stdout, "GCclassify(%2.3f)\n", m_x->rptr[1][1]) ;
   {
     gcl = &gc->classes[cno] ;
 #if 1
-    if (gcl->nobs <= gc->nvars+1)  /* covariance matrix was ill-conditioned */
+    /* check to see if covariance matrix was ill-conditioned */
+    if (FZERO(gcl->w0) || gcl->nobs <= gc->nvars+1)  
 #else
     if (gcl->ill_cond)
 #endif
