@@ -63,7 +63,7 @@ LDADD= $(addprefix $(top_srcdir)/,$(LIBS_MGH)) $(LIBS_TCL_OPENGL)
 scuba_LDFLAGS=
 
 foodir=$(prefix)/lib/tcl
-foo_SCRIPTS=scuba.tcl tkcon.tcl
+foo_SCRIPTS=scuba.tcl tkcon.tcl histolabel.tcl
 
 check_PROGRAMS= testIDTracker testBroadcaster testUtilities \
 	testMatrix44 testTransform44 testVolume3 testPath \
