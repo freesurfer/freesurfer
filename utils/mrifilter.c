@@ -3409,13 +3409,16 @@ MRIcomputeClassStatistics(MRI *mri_T1, MRI *mri_labeled, float gray_low,
           continue ;
         if (border_label == MRI_WHITE)
         {
-          nwhite++ ;
-          white_mean += (double)val ;
-          white_std += (double)(val*val) ;
-          if (val < white_min)
-            white_min = (double)val ;
-          if (val > white_max)
-            white_max = val ;
+          if (val >= (gray_low+gray_hi)/2)
+          {
+            nwhite++ ;
+            white_mean += (double)val ;
+            white_std += (double)(val*val) ;
+            if (val < white_min)
+              white_min = (double)val ;
+            if (val > white_max)
+              white_max = val ;
+          }
         }
         else if (border_label == MRI_NOT_WHITE)  /* gray bordering white */
         {
