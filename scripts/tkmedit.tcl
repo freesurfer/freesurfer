@@ -1,6 +1,6 @@
 #! /usr/bin/tixwish
 
-# $Id: tkmedit.tcl,v 1.51 2003/06/12 01:03:19 kteich Exp $
+# $Id: tkmedit.tcl,v 1.52 2003/07/11 20:14:11 kteich Exp $
 
 source $env(MRI_DIR)/lib/tcl/tkm_common.tcl
 
@@ -150,6 +150,10 @@ set Volm_tSampleType(nearest)   0
 set Volm_tSampleType(trilinear) 1
 set Volm_tSampleType(sinc)      2
 
+# Volm_tResampleMethod
+set Volm_tResampleMethod(RAS)   0
+set Volm_tResampleMethod(slice) 1
+
 set ksaLinkedCursorString(0) notlinked
 set ksaLinkedCursorString(1) linked
 
@@ -279,6 +283,8 @@ foreach volume "$tkm_tVolumeType_Main $tkm_tVolumeType_Aux" {
     set gVolume($volume,maxValue) 0
 
     set gVolume($volume,sampleType) $Volm_tSampleType(nearest)
+
+    set gVolume($volume,resampleMethod) $Volm_tResampleMethod(RAS)
 }
 
 # initialize global vars
@@ -552,6 +558,11 @@ proc UpdateVolumeSampleType { inVolume iType } {
     set gVolume($inVolume,sampleType) $iType
 }
 
+proc UpdateVolumeResampleMethod { inVolume iMethod } {
+    global gVolume
+    set gVolume($inVolume,resampleMethod) $iMethod
+}
+
 proc UpdateDTIVolumeAlpha { ifAlpha } {
     global gfDTIVolumeAlpha
     set gfDTIVolumeAlpha $ifAlpha
@@ -626,6 +637,11 @@ proc SendCursorConfiguration {} {
 proc SendVolumeSampleType { iVolume } {
     global gVolume
     SetVolumeSampleType $iVolume $gVolume($iVolume,sampleType)
+}
+
+proc SendVolumeResampleMethod { iVolume } {
+    global gVolume
+    SetVolumeResampleMethod $iVolume $gVolume($iVolume,resampleMethod)
 }
 
 proc UpdateVolumeValueMinMax { iVolume iMin iMax } {
@@ -3207,7 +3223,33 @@ proc CreateMenuBar { ifwMenuBar } {
 		    2 }
 	    }}
 	}}
-	    { separator }
+	{ cascade "Anatomical Resampling" {
+	    { cascade "Main Volume" {
+		{ radio 
+		    "RAS"
+		    "SendVolumeResampleMethod 0"
+		    gVolume(0,resampleMethod)
+		    0 }
+		{ radio 
+		    "Slice"
+		    "SendVolumeResampleMethod 0"
+		    gVolume(0,resampleMethod)
+		    1 }
+	    }}
+	    { cascade "Aux Volume" {
+		{ radio 
+		    "RAS"
+		    "SendVolumeResampleMethod 1"
+		    gVolume(1,resampleMethod)
+		    0 }
+		{ radio 
+		    "Slice"
+		    "SendVolumeResampleMethod 1"
+		    gVolume(1,resampleMethod)
+		    1 }
+	    }}
+	}}
+	{ separator }
 	{ check 
 	    "Anatomical Volume:Ctrl A"
 	    "SendDisplayFlagValue flag_Anatomical"
@@ -3436,6 +3478,7 @@ proc CreateMenuBar { ifwMenuBar } {
 		{ DoAverageSurfaceVertexPositionsDlog }
 		tMenuGroup_SurfaceViewing } 
 	}}
+
 	{ cascade "fMRI" {
 	    { command
 		"Select Contiguous Voxels by Func Value"
