@@ -61,5 +61,7 @@ int      LTAvoxelToRasXform(LTA *lta, MRI *mri_src, MRI *mri_dst) ;
 int      LTAvoxelToRasXform(LTA *lta, MRI *mri_src, MRI *mri_dst) ;
 int      LTAvoxelTransformToCoronalRasTransform(LTA *lta) ;
 
+int FixMNITal(float  xmni, float  ymni, float  zmni,
+        float *xtal, float *ytal, float *ztal);
 
 #endif
