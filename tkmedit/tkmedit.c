@@ -2568,7 +2568,7 @@ void set_cursor(float xpt, float ypt, float zpt)
     printf("val=%d ",selectedpixval);
     if (second_im_allocated) 
     {
-      secondpixelval = im2[zi][yi][xi];
+      selectedpixval = secondpixelval = im2[zi][yi][xi];
       printf("(2nd val=%d ",secondpixelval);
     }
   }
