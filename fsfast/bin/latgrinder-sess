@@ -1,7 +1,7 @@
 #!/bin/csh -f
 # latgrinder-sess
 #
-set VERSION = '$Id: latgrinder-sess,v 1.3 2004/06/04 04:02:29 greve Exp $'
+set VERSION = '$Id: latgrinder-sess,v 1.4 2004/06/09 02:28:57 greve Exp $'
 
 set inputargs = ($argv);
 
@@ -10,6 +10,7 @@ set pthresh  = ();
 set latdir   = ();
 set paint    = 1;
 set targsubj = average7
+set smoothsteps = 0;
 
 set MLF = ();
 set monly = 0;
@@ -217,9 +218,25 @@ if($paint) then
            echo "ERROR: mri_vol2surf" | tee -a $LF
            exit 1;
         endif
-      end
-    end
-  end
+        if($smoothsteps > 0) then
+	  set cmd = (mri_surf2surf)
+	  set cmd = ($cmd --srcsubject $targsubj)
+	  set cmd = ($cmd --srcsurfval $outstem --src_type mgh)
+	  set cmd = ($cmd --trgsubject $targsubj)
+	  set cmd = ($cmd --trgsurfval $outstem --trg_type mgh)
+	  set cmd = ($cmd --hemi $hemi)
+          pwd | tee -a $LF
+          echo $SUBJECTS_DIR | tee -a $LF
+          echo $cmd | tee -a $LF
+          $cmd | tee -a $LF
+          if($status) then
+             echo "ERROR: mri_surf2surf" | tee -a $LF
+             exit 1;
+          endif
+        endif
+      end # Hemi
+    end # stem
+  end #sess
 endif
 
 echo "" | tee -a $LF
@@ -256,6 +273,11 @@ while( $#argv != 0 )
     case "-latdir":
       if ( $#argv == 0) goto arg1err;
       set latdir = $argv[1]; shift;
+      breaksw
+
+    case "-smoothsteps":
+      if ( $#argv == 0) goto arg1err;
+      set smoothsteps = $argv[1]; shift;
       breaksw
 
     case "-monly":
@@ -344,6 +366,7 @@ usage_exit:
   echo "   -thresh  -log10(sigthresh) : eg, 2 for .01"
   echo "   -latdir latdir  : latency contrast directory"
   echo "   -nopaint : do not paint results onto $targsubj"
+  echo "   -smoothsteps nsteps : smooth nsteps on output surface"
   echo ""
   echo "   -sf sessidfile  ..."
   echo "   -df srchdirfile ..."
