@@ -645,7 +645,6 @@ Volm_tErr Volm_LoadDisplayTransform ( mriVolumeRef this,
 
   MRI *pmri = 0;         // use as convenience
   LT *tran = 0;          // use as convenience
-  mriTransformRef dispTran;
 
   DebugEnterFunction( ("Volm_LoadDisplayTransform( this=%p, isFileName=%s )", 
 		       this, isFileName) );
@@ -674,7 +673,7 @@ Volm_tErr Volm_LoadDisplayTransform ( mriVolumeRef this,
 		     eResult, Volm_tErr_CouldntReadTransform );
   
   /* convert (VOX->VOX xform to) RAS->RAS transform to screen->voxel coords */
-  switch (tran->type)
+  switch (lta->type)
   {
   case LINEAR_VOX_TO_VOX:
     {
@@ -891,9 +890,15 @@ void Volm_GetIntColorAtIdx ( mriVolumeRef this,
   float  value = 0;
   int    colorIdx = 0;
   xVoxel disp;
-  
+  static int hi = 0;
+
   /* transform idx to display transform */
   if( NULL != this->mDisplayTransform ) {
+
+    if( !hi ) {
+      fprintf( stderr, "DISPLAY TRANSFORM\n" );
+      hi = 1;
+    }
 
     Volm_ApplyDisplayTransform_( this, iIdx, &disp );
     if( Volm_VerifyIdx_( this, &disp ) == Volm_tErr_NoErr ) {
@@ -3696,7 +3701,7 @@ void Volm_ApplyDisplayTransform_ ( mriVolumeRef     this,
 				   xVoxelRef        iIdx,
 				   xVoxelRef        oIdx ) {
 
-  Trns_ConvertBtoA( this->mDisplayTransform, iIdx, oIdx );
+  Trns_ConvertAtoB( this->mDisplayTransform, iIdx, oIdx );
 }
 
 
