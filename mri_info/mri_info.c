@@ -653,6 +653,10 @@ static void read_siemens_file(char *fname, struct stat stat_buf)
   read_int(fp, 1068, &i2);
   read_int(fp, 1072, &i3);
   printf("registration time: %02d%02d%02d\n", i1, i2, i3);
+  read_string(fp, 3009, string, 65);
+  printf("experiment name: %s\n", string);
+  read_string(fp, 358, string, 25);
+  printf("experimenter: %s\n", string);
 
   fclose(fp);
 
