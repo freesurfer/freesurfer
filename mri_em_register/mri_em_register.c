@@ -6,8 +6,8 @@
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2005/03/16 15:00:42 $
-// Revision       : $Revision: 1.46 $
+// Revision Date  : $Date: 2005/03/25 14:57:15 $
+// Revision       : $Revision: 1.47 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -33,6 +33,17 @@
 static double TRs[MAX_GCA_INPUTS] ;
 static double fas[MAX_GCA_INPUTS] ;
 static double TEs[MAX_GCA_INPUTS] ;
+
+static int skull = 0 ;  /* if 1, aligning to image with skull */
+
+/*
+	allowable distance from an unknown sample to one in brain. Default
+	is 1 implying just a ring of unknowns alloowed outside brain. If aligning
+	to skull images this gets bigger to allow the full csf/skull context to
+	be used in the alignment.
+*/
+static int unknown_nbr_spacing = 1 ;
+
 
 static double find_optimal_linear_xform(GCA *gca, GCA_SAMPLE *gcas, 
 					MRI *mri, 
@@ -139,7 +150,7 @@ main(int argc, char *argv[])
   float        old_log_p, log_p ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_em_register.c,v 1.46 2005/03/16 15:00:42 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_em_register.c,v 1.47 2005/03/25 14:57:15 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -462,7 +473,8 @@ main(int argc, char *argv[])
     if (use_contrast) // -contrast option 
       parms.gcas = GCAfindContrastSamples(gca,&nsamples, spacing,min_prior);
     else
-      parms.gcas = GCAfindStableSamples(gca, &nsamples,spacing, min_prior, exclude_list); 
+      parms.gcas = GCAfindStableSamples(gca, &nsamples,spacing, min_prior, exclude_list,
+																				unknown_nbr_spacing) ;
     printf("************************************************\n");
     printf("spacing=%d, using %d sample points, tol=%2.2e...\n", spacing, nsamples, parms.tol) ;
     printf("************************************************\n");
@@ -482,7 +494,7 @@ main(int argc, char *argv[])
     parms.tol *= 10 ; i++ ;
   } 
   // change nsamples to all samples
-  parms.gcas = GCAfindAllSamples(gca, &nsamples, NULL) ;
+  parms.gcas = GCAfindAllSamples(gca, &nsamples, NULL, unknown_nbr_spacing) ;
   parms.nsamples = nsamples ;
 	parms.tol = 1e-7 ;
 
@@ -1007,7 +1019,7 @@ find_optimal_transform(MRI *mri, GCA *gca, GCA_SAMPLE *gcas, int nsamples,
     fprintf(stderr, "First Search limited to translation only.\n");
     fprintf(stderr, "************************************************\n");
     max_log_p = find_optimal_translation(gca, gcas, mri, nsamples, m_L,
-                                         -100, 100, 11, 3) ;
+                                         -100, 100, 11, 5) ;
     max_log_p = local_GCAcomputeLogSampleProbability(gca, gcas, mri, m_L,nsamples) ;
     fprintf(stderr, "Found translation: (%2.1f, %2.1f, %2.1f): log p = %2.1f\n",
 						*MATRIX_RELT(m_L, 1, 4),*MATRIX_RELT(m_L, 2, 4), *MATRIX_RELT(m_L, 3, 4), max_log_p) ;
@@ -1235,6 +1247,20 @@ get_option(int argc, char *argv[])
     nargs = 1 ;
     printf("using MR volume %s to mask input volume...\n", mask_fname) ;
   }
+  else if (!strcmp(option, "SKULL"))
+  {
+		unknown_nbr_spacing = 5 ;
+    printf("aligning to atlas containing skull, setting unknown_nbr_spacing = %d\n",
+					 unknown_nbr_spacing) ;
+		skull = 1 ;
+  }
+  else if (!strcmp(option, "UNS"))
+  {
+		unknown_nbr_spacing = atoi(argv[2]) ;
+		nargs = 1 ;
+    printf("aligning to atlas containing skull, setting unknown_nbr_spacing = %d\n",
+					 unknown_nbr_spacing) ;
+  }
   /////// debug options //////////////////////////////////
   else if (!strcmp(option, "DIAG"))
   {
@@ -1436,6 +1462,12 @@ get_option(int argc, char *argv[])
     norm_fname = argv[2] ;
     nargs = 1 ;
     printf("intensity normalizing and writing to %s...\n",norm_fname);
+  }
+  else if (!stricmp(option, "trans"))
+  {
+    MAX_TRANS = atof(argv[2]) ;
+    nargs = 1 ;
+    printf("setting max translation search range to be %2.1f\n", MAX_TRANS) ;
   }
   else if (!stricmp(option, "steps"))
   {
