@@ -65,4 +65,18 @@ Volume3<T>::Set ( int inX, int inY, int inZ, T iValue ) {
   }
 }
 
+template <typename T>
+T
+Volume3<T>::Get_Unsafe ( int inX, int inY, int inZ ) {
+
+  return mData[inZ][inY][inX];
+}
+
+template <typename T>
+void 
+Volume3<T>::Set_Unsafe ( int inX, int inY, int inZ, T iValue ) {
+
+  mData[inZ][inY][inX] = iValue;
+}
+
 
