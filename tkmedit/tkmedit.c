@@ -4,9 +4,9 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2003/04/18 22:47:08 $
-// Revision       : $Revision: 1.139 $
-char *VERSION = "$Revision: 1.139 $";
+// Revision Date  : $Date: 2003/04/25 17:22:40 $
+// Revision       : $Revision: 1.140 $
+char *VERSION = "$Revision: 1.140 $";
 
 #define TCL
 #define TKMEDIT 
@@ -428,7 +428,7 @@ static mriVolumeRef  gSegmentationVolume[tkm_knNumSegTypes];
 static mriVolumeRef  gPreviousSegmentationVolume[tkm_knNumSegTypes];
 static mriVolumeRef  gSegmentationChangedVolume[tkm_knNumSegTypes];
 
-static mriColorLookupTableRef gColorTable  = NULL;
+static mriColorLookupTableRef gColorTable[tkm_knNumSegTypes];
 static float         gfSegmentationAlpha   = kfDefaultSegmentationAlpha;
 
 /* Creates a new segementation volume from the settings from an
@@ -464,7 +464,8 @@ tkm_tErr ImportSurfaceAnnotationToSegmentation ( tkm_tSegType iVolume,
 						 char*    inAnnotationFileName,
 						 char*    inColorFileName );
 
-tkm_tErr LoadSegmentationColorTable ( char* inColorFileName );
+tkm_tErr LoadSegmentationColorTable ( tkm_tSegType iVolume,
+				      char*        inColorFileName );
 
 
 /* Sets the display alpha for determining the opacity of the
@@ -994,7 +995,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
      shorten our argc and argv count. If those are the only args we
      had, exit. */
   /* rkt: check for and handle version tag */
-  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.139 2003/04/18 22:47:08 kteich Exp $");
+  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.140 2003/04/25 17:22:40 kteich Exp $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
   argc -= nNumProcessedVersionArgs;
@@ -7730,7 +7731,7 @@ tkm_tErr NewSegmentationVolume ( tkm_tSegType    iVolume,
 
   /* Try to load the color table. */
   DebugNote( ("Loading color table.") );
-  eResult = LoadSegmentationColorTable( isColorFileName );
+  eResult = LoadSegmentationColorTable( iVolume, isColorFileName );
   DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
 		     eResult, tkm_tErr_ErrorAccessingSegmentationVolume );
 
@@ -7782,7 +7783,7 @@ tkm_tErr NewSegmentationVolume ( tkm_tSegType    iVolume,
     MWin_SetSegmentationVolume( gMeditWindow, iVolume, 
 				-1, gSegmentationVolume[iVolume] );
     MWin_SetSegmentationColorTable( gMeditWindow, iVolume, 
-				    -1, gColorTable );
+				    -1, gColorTable[iVolume] );
   }
   
   DebugCatch;
@@ -7842,7 +7843,7 @@ tkm_tErr LoadSegmentationVolume ( tkm_tSegType iVolume,
   
   /* Try to load the color table. */
   DebugNote( ("Loading color table.") );
-  eResult = LoadSegmentationColorTable( isColorFileName );
+  eResult = LoadSegmentationColorTable( iVolume, isColorFileName );
   DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
 		     eResult, tkm_tErr_ErrorAccessingSegmentationVolume );
 
@@ -7889,7 +7890,7 @@ tkm_tErr LoadSegmentationVolume ( tkm_tSegType iVolume,
     MWin_SetSegmentationVolume( gMeditWindow, iVolume, 
 		      -1, gSegmentationVolume[iVolume] );
     MWin_SetSegmentationColorTable( gMeditWindow, iVolume, 
-				    -1, gColorTable );
+				    -1, gColorTable[iVolume] );
   }
   
   DebugCatch;
@@ -8104,7 +8105,7 @@ tkm_tErr ImportSurfaceAnnotationToSegmentation ( tkm_tSegType iVolume,
 
   /* Try to load the color table. */
   DebugNote( ("Loading color table.") );
-  eResult = LoadSegmentationColorTable( isColorFileName );
+  eResult = LoadSegmentationColorTable( iVolume, isColorFileName );
   DebugAssertThrowX( (Volm_tErr_NoErr == eResult),
 		     eResult, tkm_tErr_CouldntLoadColorTable );
 
@@ -8133,7 +8134,7 @@ tkm_tErr ImportSurfaceAnnotationToSegmentation ( tkm_tSegType iVolume,
     if ( 0 != pVertex->annotation ) {
       MRISAnnotToRGB( pVertex->annotation, 
 		      color.mnRed, color.mnGreen, color.mnBlue );
-      CLUT_GetIndex( gColorTable, &color, &nStructure );
+      CLUT_GetIndex( gColorTable[iVolume], &color, &nStructure );
     }
 
     /* Set all the voxels between the white (current) vertex and the
@@ -8199,7 +8200,7 @@ tkm_tErr ImportSurfaceAnnotationToSegmentation ( tkm_tSegType iVolume,
     MWin_SetSegmentationVolume( gMeditWindow, iVolume, 
 		      -1, gSegmentationVolume[iVolume] );
     MWin_SetSegmentationColorTable( gMeditWindow, iVolume, 
-				    -1, gColorTable );
+				    -1, gColorTable[iVolume] );
   }
   
   DebugCatch;
@@ -8225,7 +8226,8 @@ tkm_tErr ImportSurfaceAnnotationToSegmentation ( tkm_tSegType iVolume,
 
 }
 
-tkm_tErr LoadSegmentationColorTable ( char* isColorFileName ) {
+tkm_tErr LoadSegmentationColorTable ( tkm_tSegType iVolume,
+				      char*        isColorFileName ) {
 
   tkm_tErr  eResult         = tkm_tErr_NoErr;
   char      sColorFileName[tkm_knPathLen]   = "";
@@ -8236,8 +8238,8 @@ tkm_tErr LoadSegmentationColorTable ( char* isColorFileName ) {
   char      sTclArguments[tkm_knTclCmdLen]   = "";
   char      sError[tkm_knErrStringLen]     = "";
   
-  DebugEnterFunction( ("LoadSegmentationColorTable( isColorFileName=%s )", 
-		       isColorFileName) );
+  DebugEnterFunction( ("LoadSegmentationColorTable( iVolume=%d, "
+		       "isColorFileName=%s )", iVolume, isColorFileName) );
   
   DebugAssertThrowX( (NULL != isColorFileName),
          eResult, tkm_tErr_InvalidParameter );
@@ -8249,7 +8251,7 @@ tkm_tErr LoadSegmentationColorTable ( char* isColorFileName ) {
   
   /* try to load color table */
   DebugNote( ("Loading color table") );
-  eColorTable = CLUT_New( &gColorTable, isColorFileName );
+  eColorTable = CLUT_New( &gColorTable[iVolume], isColorFileName );
   DebugAssertThrowX( (CLUT_tErr_NoErr == eColorTable),
          eResult, tkm_tErr_CouldntLoadColorTable );
   
@@ -8259,10 +8261,10 @@ tkm_tErr LoadSegmentationColorTable ( char* isColorFileName ) {
   DebugNote( ("Clearing color table in interface") );
   tkm_SendTclCommand( tkm_tTclCommand_ClearParcColorTable, "" );
   DebugNote( ("Getting number of color table entries") );
-  CLUT_GetNumEntries( gColorTable, &nNumEntries );
+  CLUT_GetNumEntries( gColorTable[iVolume], &nNumEntries );
   for( nEntry = 0; nEntry < nNumEntries; nEntry++ ) {
     DebugNote( ("Getting label for entry %d/%d", nEntry, nNumEntries) );
-    eColorTable = CLUT_GetLabel( gColorTable, nEntry, sLabel );
+    eColorTable = CLUT_GetLabel( gColorTable[iVolume], nEntry, sLabel );
     DebugAssertThrowX( (CLUT_tErr_NoErr == eColorTable),
 		       eResult, tkm_tErr_Unrecoverable );
     if( strcmp( sLabel, "" ) == 0 )
@@ -8335,7 +8337,7 @@ void GetSegmentationColorAtVoxel ( tkm_tSegType iVolume,
   }
   
   /* get the color out of the color map */
-  eColorTable = CLUT_GetColorFloat( gColorTable, index, &roiColor );
+  eColorTable = CLUT_GetColorFloat( gColorTable[iVolume], index, &roiColor );
   if( CLUT_tErr_NoErr != eColorTable )
     goto error;
   
@@ -8383,7 +8385,7 @@ void GetSegLabel ( tkm_tSegType iVolume,
     if( 0 == index ) {
       strcpy( osLabel, "None" );
     } else {
-      eColorTable = CLUT_GetLabel( gColorTable, index, osLabel );
+      eColorTable = CLUT_GetLabel( gColorTable[iVolume], index, osLabel );
       if( CLUT_tErr_NoErr != eColorTable ) {
 	/* pass an out of bounds notice. */
 	strcpy( osLabel, "Out of bounds." );
@@ -8477,12 +8479,13 @@ tkm_tErr SelectSegLabel ( tkm_tSegType iVolume,
 
   /* make sure we're loaded */
   DebugNote( ("Checking parameters") );
-  DebugAssertThrowX( (NULL != gSegmentationVolume || NULL != gColorTable),
-         eResult, tkm_tErr_SegmentationNotLoaded );
+  DebugAssertThrowX( (NULL != gSegmentationVolume || 
+		      NULL != gColorTable[iVolume]),
+		     eResult, tkm_tErr_SegmentationNotLoaded );
   
   /* check entry index */
   DebugNote( ("Getting number of entries") );
-  CLUT_GetNumEntries( gColorTable, &nNumEntries );
+  CLUT_GetNumEntries( gColorTable[iVolume], &nNumEntries );
   DebugAssertThrowX( (inIndex > 0 && inIndex <= nNumEntries),
          eResult, tkm_tErr_InvalidParameter );
   
@@ -8520,12 +8523,13 @@ tkm_tErr GraphSegLabel ( tkm_tSegType iVolume,
   
   /* make sure we're loaded */
   DebugNote( ("Checking parameters") );
-  DebugAssertThrowX( (NULL != gSegmentationVolume || NULL != gColorTable),
-         eResult, tkm_tErr_SegmentationNotLoaded );
+  DebugAssertThrowX( (NULL != gSegmentationVolume ||
+		      NULL != gColorTable[iVolume]),
+		     eResult, tkm_tErr_SegmentationNotLoaded );
   
   /* check entry index */
   DebugNote( ("Getting number of entries") );
-  CLUT_GetNumEntries( gColorTable, &nNumEntries );
+  CLUT_GetNumEntries( gColorTable[iVolume], &nNumEntries );
   DebugAssertThrowX( (inIndex > 0 && inIndex <= nNumEntries),
          eResult, tkm_tErr_InvalidParameter );
   
@@ -8549,7 +8553,7 @@ tkm_tErr GraphSegLabel ( tkm_tSegType iVolume,
          eResult, tkm_tErr_ErrorAccessingFunctionalVolume );
   
   /* set the graph window */
-  CLUT_GetLabel( gColorTable, inIndex, sLabel );
+  CLUT_GetLabel( gColorTable[iVolume], inIndex, sLabel );
   if( sLabel != "" )
     FunV_SetLocationString( gFunctionalVolume, sLabel );
   
