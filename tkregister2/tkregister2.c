@@ -1,10 +1,10 @@
 /*============================================================================
  Copyright (c) 1996 Martin Sereno and Anders Dale
 =============================================================================*/
-/*   $Id: tkregister2.c,v 1.22 2003/11/05 21:30:50 greve Exp $   */
+/*   $Id: tkregister2.c,v 1.23 2004/07/02 21:42:53 tosa Exp $   */
 
 #ifndef lint
-static char vcid[] = "$Id: tkregister2.c,v 1.22 2003/11/05 21:30:50 greve Exp $";
+static char vcid[] = "$Id: tkregister2.c,v 1.23 2004/07/02 21:42:53 tosa Exp $";
 #endif /* lint */
 
 #define TCL
@@ -3474,7 +3474,7 @@ char **argv;
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tkregister2.c,v 1.22 2003/11/05 21:30:50 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: tkregister2.c,v 1.23 2004/07/02 21:42:53 tosa Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -3529,30 +3529,30 @@ char **argv;
 
   /*=======================================================================*/
   /* register wrapped surfer functions with interpreter */
-  Tcl_CreateCommand(interp, "redraw",             W_redraw,             REND);
-  Tcl_CreateCommand(interp, "move_window",        W_move_window,        REND);
-  Tcl_CreateCommand(interp, "pop_gl_window",      W_pop_gl_window,      REND);
-  Tcl_CreateCommand(interp, "upslice",            W_upslice,            REND);
-  Tcl_CreateCommand(interp, "downslice",          W_downslice,          REND);
-  Tcl_CreateCommand(interp, "rotate_brain_x",     W_rotate_brain_x,     REND);
-  Tcl_CreateCommand(interp, "rotate_brain_y",     W_rotate_brain_y,     REND);
-  Tcl_CreateCommand(interp, "rotate_brain_z",     W_rotate_brain_z,     REND);
-  Tcl_CreateCommand(interp, "translate_brain_x",  W_translate_brain_x,  REND);
-  Tcl_CreateCommand(interp, "translate_brain_y",  W_translate_brain_y,  REND);
-  Tcl_CreateCommand(interp, "translate_brain_z",  W_translate_brain_z,  REND);
-  Tcl_CreateCommand(interp, "scale_brain_x",      W_scale_brain_x,      REND);
-  Tcl_CreateCommand(interp, "scale_brain_y",      W_scale_brain_y,      REND);
-  Tcl_CreateCommand(interp, "scale_brain_z",      W_scale_brain_z,      REND);
-  Tcl_CreateCommand(interp, "goto_point",         W_goto_point,         REND);
-  Tcl_CreateCommand(interp, "write_point",        W_write_point,        REND);
-  Tcl_CreateCommand(interp, "save_rgb",           W_save_rgb,           REND);
-  Tcl_CreateCommand(interp, "record_swapbuffers", W_record_swapbuffers, REND);
-  Tcl_CreateCommand(interp, "set_scale",          W_set_scale,          REND);
-  Tcl_CreateCommand(interp, "blur",               W_blur,               REND);
-  Tcl_CreateCommand(interp, "read_reg",           W_read_reg,           REND);
-  Tcl_CreateCommand(interp, "write_reg",          W_write_reg,          REND);
-  Tcl_CreateCommand(interp, "align_points",       W_align_points,       REND);
-  Tcl_CreateCommand(interp, "mirror_brain",       W_mirror_brain,       REND);
+  Tcl_CreateCommand(interp, "redraw",          (Tcl_CmdProc *)   W_redraw,             REND);
+  Tcl_CreateCommand(interp, "move_window",     (Tcl_CmdProc *)   W_move_window,        REND);
+  Tcl_CreateCommand(interp, "pop_gl_window",   (Tcl_CmdProc *)   W_pop_gl_window,      REND);
+  Tcl_CreateCommand(interp, "upslice",         (Tcl_CmdProc *)   W_upslice,            REND);
+  Tcl_CreateCommand(interp, "downslice",       (Tcl_CmdProc *)   W_downslice,          REND);
+  Tcl_CreateCommand(interp, "rotate_brain_x",  (Tcl_CmdProc *)   W_rotate_brain_x,     REND);
+  Tcl_CreateCommand(interp, "rotate_brain_y",  (Tcl_CmdProc *)   W_rotate_brain_y,     REND);
+  Tcl_CreateCommand(interp, "rotate_brain_z",  (Tcl_CmdProc *)   W_rotate_brain_z,     REND);
+  Tcl_CreateCommand(interp, "translate_brain_x",(Tcl_CmdProc *)  W_translate_brain_x,  REND);
+  Tcl_CreateCommand(interp, "translate_brain_y",(Tcl_CmdProc *)  W_translate_brain_y,  REND);
+  Tcl_CreateCommand(interp, "translate_brain_z",(Tcl_CmdProc *)  W_translate_brain_z,  REND);
+  Tcl_CreateCommand(interp, "scale_brain_x",    (Tcl_CmdProc *)  W_scale_brain_x,      REND);
+  Tcl_CreateCommand(interp, "scale_brain_y",    (Tcl_CmdProc *)  W_scale_brain_y,      REND);
+  Tcl_CreateCommand(interp, "scale_brain_z",    (Tcl_CmdProc *)  W_scale_brain_z,      REND);
+  Tcl_CreateCommand(interp, "goto_point",       (Tcl_CmdProc *)  W_goto_point,         REND);
+  Tcl_CreateCommand(interp, "write_point",      (Tcl_CmdProc *)  W_write_point,        REND);
+  Tcl_CreateCommand(interp, "save_rgb",         (Tcl_CmdProc *)  W_save_rgb,           REND);
+  Tcl_CreateCommand(interp, "record_swapbuffers",(Tcl_CmdProc *) W_record_swapbuffers, REND);
+  Tcl_CreateCommand(interp, "set_scale",        (Tcl_CmdProc *)  W_set_scale,          REND);
+  Tcl_CreateCommand(interp, "blur",             (Tcl_CmdProc *)  W_blur,               REND);
+  Tcl_CreateCommand(interp, "read_reg",         (Tcl_CmdProc *)  W_read_reg,           REND);
+  Tcl_CreateCommand(interp, "write_reg",        (Tcl_CmdProc *)  W_write_reg,          REND);
+  Tcl_CreateCommand(interp, "align_points",     (Tcl_CmdProc *)  W_align_points,       REND);
+  Tcl_CreateCommand(interp, "mirror_brain",     (Tcl_CmdProc *)  W_mirror_brain,       REND);
   /*=======================================================================*/
   /***** link global BOOLEAN variables to tcl equivalents */
   Tcl_LinkVar(interp,"maxflag",(char *)&maxflag, TCL_LINK_BOOLEAN);
