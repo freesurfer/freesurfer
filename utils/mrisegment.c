@@ -936,7 +936,14 @@ MRIremoveSmallSegments(MRI_SEGMENTATION *mriseg, int min_voxels)
 
   for (s = 0 ; s < mriseg->max_segments ; s++)
     if (mriseg->segments[s].nvoxels < min_voxels)
+    {
+      if (mriseg->segments[s].voxels)
+      {
+	free(mriseg->segments[s].voxels);
+	mriseg->segments[s].voxels = 0;
+      }
       mriseg->segments[s].nvoxels = 0 ;
+    }
   return(MRIcompactSegments(mriseg)) ;
 }
 
