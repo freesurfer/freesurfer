@@ -6,8 +6,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/03/24 15:18:20 $
-// Revision       : $Revision: 1.4 $
+// Revision Date  : $Date: 2004/05/13 19:28:56 $
+// Revision       : $Revision: 1.5 $
 
 
 #include "talairachex.h"
@@ -74,6 +74,15 @@ int ModifyTalairachCRAS(MRI *mri_tal, const LTA *lta)
       mri_tal->c_s =   9.75;
     }
   } // lta == 0
+  // when you modify c_(ras), you must recalculate i_to_r__ and r_to_i__
+  if (mri_tal->i_to_r__)
+    MatrixFree(&mri_tal->i_to_r__);
+  if (mri_tal->r_to_i__)
+    MatrixFree(&mri_tal->r_to_i__);
+
+  mri_tal->i_to_r__ = extract_i_to_r(mri_tal);
+  mri_tal->r_to_i__ = extract_r_to_i(mri_tal);
+
   return (NO_ERROR);
 }
 ///////////////////////////////////////////////////////////////////////////////
