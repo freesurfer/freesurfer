@@ -8,7 +8,7 @@
 
 #include <iostream>
 #include <iomanip>
-#if (__GNU_C__ < 3)
+#if (__GNUC__ < 3)
 #include "/usr/include/g++-3/alloc.h"
 #endif
 #include <string>
@@ -97,7 +97,7 @@ int main(int argc, char *argv[])
 
   // now printout the file
   ofstream ofile(const_cast<char *>(const_cast<char *>(outFile.c_str())));
-  ofile << "#! fsl_label2voxel " << argv[1] << "\t" << argv[2] << "\t" << argv[3] << "\t" << argv[4] << endl;
+  ofile << "#!ascii label " << argv[2] << ", from subject " << argv[3] << endl;
   ofile << counter << endl;
   vector<Row>::iterator iter;
   for (iter=list.begin(); iter != list.end(); iter++)
