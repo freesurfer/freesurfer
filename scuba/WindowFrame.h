@@ -64,6 +64,10 @@ class WindowFrame : public DebugReporter {
 
   // Redisplay requested flag.
   bool mbPostRedisplay;
+
+  // Keep track of last mouse moved coords so we interpolate and send
+  // moved commands for every point in between.
+  int mLastMoved[2];
 };
 
 
