@@ -1551,12 +1551,12 @@ MatrixAllocTranslation(int n, double *trans)
 }
 
 MATRIX *
-MatrixAllocRotation(int n, float angle, int which)
+MatrixReallocRotation(int n, float angle, int which, MATRIX *m)
 {
-  MATRIX *m ;
   float  s, c ;
 
-  m = MatrixIdentity(n, NULL) ;
+  if (!m)
+    m = MatrixIdentity(n, NULL) ;
 
   c = cos(angle) ;
   s = sin(angle) ;
@@ -1583,6 +1583,11 @@ MatrixAllocRotation(int n, float angle, int which)
   }
 
   return(m) ;
+}
+MATRIX *
+MatrixAllocRotation(int n, float angle, int which)
+{
+  return(MatrixReallocRotation(n, angle, which, NULL)) ;
 }
 
 MATRIX *
