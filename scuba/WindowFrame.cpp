@@ -5,11 +5,13 @@
 
 using namespace std;
 
-
+DeclareIDTracker(WindowFrame);
 
 WindowFrame::WindowFrame( ID iID ) {
   mLastMoved[0] = 0;
   mLastMoved[1] = 1;
+  mWidth = 0;
+  mHeight = 0;
 }
 
 WindowFrame::~WindowFrame() {

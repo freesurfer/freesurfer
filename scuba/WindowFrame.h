@@ -4,8 +4,10 @@
 #include <map>
 #include "DebugReporter.h"
 #include "InputState.h"
+#include "IDTracker.h"
 
-class WindowFrame : public DebugReporter {
+class WindowFrame : public DebugReporter,
+		    public IDTracker<WindowFrame> {
 
  public:
   typedef int ID;
@@ -58,9 +60,6 @@ class WindowFrame : public DebugReporter {
   // manually set by subclasses.
   int mHeight;
   int mWidth;
-
-  // Frame ID.
-  ID mID;
 
   // Redisplay requested flag.
   bool mbPostRedisplay;
