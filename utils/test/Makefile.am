@@ -5,7 +5,7 @@ AM_CFLAGS=-I$(top_srcdir)/include -I$(top_srcdir)/include/dicom
 AM_CXXFLAGS=-I$(top_srcdir)/include -I$(top_srcdir)/include/dicom
 AM_LDFLAGS=-L$(top_srcdir)/lib
 
-check_PROGRAMS=mnitest i2rtest icotest surftest extest mghxform inftest difftool  mri_ms_fcm mri_compute_stats mri_ms_LDA mri_fslmat_to_lta mri_concatenate_lta checkWfile mri_transform_to_COR  mri_compute_all_CNR mri_ms_compute_CNR  mris_diff mris_compute_thickness mri_apply_INU mri_ms_EM mri_edit_wm mri_apply_EM_mask mri_extract mri_ms_gca_EM
+check_PROGRAMS=mnitest i2rtest icotest surftest extest mghxform inftest difftool  mri_ms_fcm mri_compute_stats mri_ms_LDA mri_fslmat_to_lta mri_concatenate_lta checkWfile mri_transform_to_COR  mri_compute_all_CNR mri_ms_compute_CNR  mris_diff mris_compute_thickness mri_apply_INU mri_ms_EM mri_edit_wm mri_apply_EM_mask mri_extract mri_ms_gca_EM mris_indirect_morph
 
 TESTS=mnitest i2rtest icotest extest mghxform inftest checkanalyze
 
@@ -34,11 +34,16 @@ extest_SOURCES=extest.cpp
 mghxform_SOURCES=mghxform.cpp
 inftest_SOURCES=inftest.cpp
 difftool_SOURCES=difftool.cpp
+mris_indirect_morph_SOURCES=mris_indirect_morph.cpp
+
 
 LDADD=$(addprefix $(top_srcdir)/, $(LIBS_MGH))
 
 mris_diff_LDFLAGS=-L/autofs/homes/003/xhan/lnxlib -L$(top_srcdir)/lib
 mris_diff_LDADD=-lANN $(addprefix $(top_srcdir)/, $(LIBS_MGH))
+
+mris_indirect_morph_LDFLAGS=-L/autofs/homes/003/xhan/lnxlib -L$(top_srcdir)/lib
+mris_indirect_morph_LDADD=-lANN $(addprefix $(top_srcdir)/, $(LIBS_MGH))
 
 #mris_thickness_diff_LDFLAGS=$(OS_LDFLAGS)
 
