@@ -36,6 +36,10 @@
 #include "diag.h"
 #include "canny.h"
 #include "tiffio.h"
+#include "jpeglib.h"
+#include "pgm.h"
+#include "ppm.h"
+#include "pbm.h"
 
 /*-----------------------------------------------------
                     MACROS AND CONSTANTS
@@ -47,6 +51,16 @@
 static IMAGE  *TiffReadImage(char *fname)  ;
 static IMAGE  *TiffReadHeader(char *fname, IMAGE *I)  ;
 static int    TiffWriteImage(IMAGE *I, char *fname, int frame) ;
+static IMAGE *JPEGReadImage(char *fname);
+static IMAGE *JPEGReadHeader(FILE *fp, IMAGE *) ;
+static int JPEGWriteImage(IMAGE *I, char *fname, int frame) ;
+static IMAGE *PGMReadImage(char *fname) ;
+static IMAGE *PGMReadHeader(FILE *fp, IMAGE *) ;
+static int PGMWriteImage(IMAGE *I, char *fname, int frame) ;
+static IMAGE *PPMReadImage(char *fname) ;
+static IMAGE *PPMReadHeader(FILE *fp, IMAGE *) ;
+static IMAGE *PBMReadImage(char *fname) ;
+static IMAGE *PBMReadHeader(FILE *fp, IMAGE *) ;
 
 /*-----------------------------------------------------
                     GLOBAL FUNCTIONS
@@ -99,6 +113,12 @@ ImageFWrite(IMAGE *I, FILE *fp, char *fname)
     TiffWriteImage(I, fname, frame) ;
     break ;
   default:
+  case JPEG_IMAGE:
+    JPEGWriteImage(I, fname, frame);
+    break;
+  case PGM_IMAGE:
+    PGMWriteImage(I, fname, frame);
+    break;
   case HIPS_IMAGE:
     ecode = fwrite_header(fp,I,"fwrite") ;
     if (ecode != HIPS_OK)
@@ -327,6 +347,18 @@ ImageFReadHeader(FILE *fp, char *fname)
                mf.imagf ? PFCOMPLEX : PFFLOAT, 1, "temp") ;
   }
     break ;
+  case JPEG_IMAGE:
+    JPEGReadHeader(fp, I);
+    break ;
+  case PGM_IMAGE:
+    PGMReadHeader(fp, I);
+    break;
+  case PPM_IMAGE:
+    PPMReadHeader(fp, I);
+    break;
+  case PBM_IMAGE:
+    PBMReadHeader(fp, I);
+    break;
   case HIPS_IMAGE:
   default:
     ecode = fread_header(fp, I, fname) ;
@@ -416,6 +448,18 @@ ImageRead(char *fname)
     I = ImageFRead(fp, fname, frame, 1) ;
     fclose(fp) ;
     break ;
+  case JPEG_IMAGE:
+    I = JPEGReadImage(fname);
+    break ; 
+  case PGM_IMAGE:
+    I = PGMReadImage(fname);
+    break;
+  case PPM_IMAGE:
+    I = PPMReadImage(fname);
+    break;
+  case PBM_IMAGE:
+    I = PBMReadImage(fname);
+    break;
   default:
     break ;
   }
@@ -553,6 +597,14 @@ ImageUnpackFileName(char *inFname, int *pframe, int *ptype, char *outFname)
       *ptype = MATLAB_IMAGE ;
     else if (!strcmp(dot, "TIF") || !strcmp(dot, "TIFF"))
       *ptype = TIFF_IMAGE  ;
+    else if (!strcmp(dot, "JPG") || !strcmp(dot, "JPEG"))
+      *ptype = JPEG_IMAGE ; 
+    else if (!strcmp(dot, "PGM"))
+      *ptype = PGM_IMAGE;
+    else if (!strcmp(dot, "PPM"))
+      *ptype = PPM_IMAGE;
+    else if (!strcmp(dot, "PBM"))
+      *ptype = PBM_IMAGE;
     else
       *ptype = HIPS_IMAGE ;
   }
@@ -819,3 +871,262 @@ TiffWriteImage(IMAGE *I, char *fname, int frame)
   TIFFClose(out) ;
   return(NO_ERROR) ;
 }
+
+static IMAGE *
+JPEGReadImage(char *fname) 
+{
+  FILE *infile;
+  IMAGE *I;
+  struct jpeg_decompress_struct cinfo;
+  struct jpeg_error_mgr jerr;
+  JSAMPROW ptr;
+  int rowctr;
+
+  cinfo.err = jpeg_std_error(&jerr);
+  jpeg_create_decompress(&cinfo);
+
+  if ((infile = fopen(fname, "rb")) == NULL)
+    ErrorExit(ERROR_NO_FILE, "JPEGReadImage:  Input file does not exist\n");
+
+  jpeg_stdio_src(&cinfo, infile);
+  jpeg_read_header(&cinfo, TRUE);
+
+  cinfo.out_color_space = JCS_GRAYSCALE;
+
+  jpeg_start_decompress(&cinfo);
+  I = ImageAlloc(cinfo.output_height, cinfo.output_width, PFBYTE, 1);
+
+  rowctr = I->orows - 1;
+  while(cinfo.output_scanline < cinfo.output_height)
+    {
+      ptr = IMAGEpix(I, 0, rowctr--);
+      jpeg_read_scanlines(&cinfo, &ptr, 1);
+    }
+
+  jpeg_finish_decompress(&cinfo);
+  jpeg_destroy_decompress(&cinfo);
+
+  return I;
+}
+
+static IMAGE *
+JPEGReadHeader(FILE *fp, IMAGE *I)
+{
+  struct jpeg_decompress_struct cinfo;
+  struct jpeg_error_mgr jerr;
+
+  cinfo.err = jpeg_std_error(&jerr);
+  jpeg_create_decompress(&cinfo);
+
+  jpeg_stdio_src(&cinfo, fp);
+  jpeg_read_header(&cinfo, TRUE);
+
+  if (!I)
+    I = ImageAlloc(cinfo.image_height, cinfo.image_width, PFBYTE, 1) ;
+  else
+    init_header(I, "orig", "seq", 1, "today", cinfo.image_height,
+    cinfo.image_width,PFBYTE,1, "temp");
+  
+  jpeg_destroy_decompress(&cinfo);
+
+  return(I) ;
+}
+
+static int 
+JPEGWriteImage(IMAGE *I, char *fname, int frame) 
+{
+  FILE *outf;
+  struct jpeg_compress_struct cinfo;
+  struct jpeg_error_mgr jerr;
+  JSAMPROW ptr;
+
+  if (I->pixel_format != PFBYTE) 
+    ErrorReturn(ERROR_UNSUPPORTED, 
+                (ERROR_UNSUPPORTED, 
+                 "JPEGWrite: only PFBYTE currently supported")) ;
+    
+  cinfo.err = jpeg_std_error(&jerr);
+  jpeg_create_compress(&cinfo);
+
+  if ((outf = fopen(fname, "wb")) == NULL)
+    ErrorExit(ERROR_BAD_FILE, "JPEGWriteImage:  Could not open file");
+
+  jpeg_stdio_dest(&cinfo, outf);
+
+  cinfo.image_width = I->ocols;
+  cinfo.image_height = I->orows;
+  cinfo.input_components = 1;
+  cinfo.in_color_space = JCS_GRAYSCALE;
+
+  jpeg_set_defaults(&cinfo);
+
+  jpeg_start_compress(&cinfo, TRUE);
+
+  while(cinfo.next_scanline < cinfo.image_height) 
+    {
+      ptr = IMAGEpix(I, 0, (I->rows - cinfo.next_scanline - 1));
+      jpeg_write_scanlines(&cinfo, &ptr, 1);
+    }
+
+  jpeg_finish_compress(&cinfo);
+  jpeg_destroy_compress(&cinfo);
+
+  fclose(outf);
+  
+  return NO_ERROR;
+}
+
+static IMAGE *
+PGMReadHeader(FILE *fp, IMAGE *I)
+{
+  int rows, cols, format;
+  gray maxval;
+
+  pgm_readpgminit(fp, &cols, &rows, &maxval, &format);
+
+  if (!I)
+    I = ImageAlloc(rows, cols, PFBYTE, 1) ;
+  else
+    init_header(I, "orig", "seq", 1, "today", rows, cols, PFBYTE, 1, "temp");
+
+  return I;
+}
+
+static IMAGE *
+PGMReadImage(char *fname)
+{
+  FILE *infile;
+  IMAGE *I;
+  int rows, cols, format, i;
+  gray maxval;
+
+  if ((infile = pm_openr(fname)) == NULL)
+    ErrorExit(ERROR_NO_FILE,"PGMReadImage:  Input file does not exist\n");
+
+  pgm_readpgminit(infile, &cols, &rows, &maxval, &format);
+
+  I = ImageAlloc(rows, cols, PFBYTE, 1);
+  for(i=rows-1;i>=0; i--)
+    pgm_readpgmrow(infile, IMAGEpix(I, 0, i), cols, maxval, format);
+
+  pm_close(infile);
+
+  return I;
+}
+
+static int 
+PGMWriteImage(IMAGE *I, char *fname, int frame)
+{
+  FILE *outf;
+  int i;
+
+  if (I->pixel_format != PFBYTE)
+    ErrorReturn(ERROR_UNSUPPORTED, 
+                (ERROR_UNSUPPORTED, 
+                 "PGMWrite: only PFBYTE currently supported")) ;
+    
+  if ((outf = fopen(fname, "wb")) == NULL)
+    ErrorReturn(ERROR_UNSUPPORTED, 
+                (ERROR_UNSUPPORTED, 
+                 "JPEGWrite: only PFBYTE currently supported")) ;
+    
+  pgm_writepgminit(outf, I->ocols, I->orows, 255, 0);
+  for(i=I->orows-1;i>=0;i--)
+    pgm_writepgmrow(outf, IMAGEpix(I, 0, i), I->ocols, 255, 0);
+
+  fclose(outf);
+
+  return NO_ERROR;
+}
+
+static IMAGE *
+PBMReadImage(char *fname)
+{
+  FILE *infile;
+  IMAGE *I;
+  int rows, cols, i, j;
+  bit **inbits;
+  byte *ptr;
+
+  if ((infile = pm_openr(fname)) == NULL)
+    ErrorExit(ERROR_NO_FILE,"PGMReadImage:  Input file does not exist\n");
+
+  inbits = pbm_readpbm(infile, &cols, &rows);
+
+  pm_close(infile);
+
+  I = ImageAlloc(rows, cols, PFBYTE, 1);
+  ptr = I->image;
+
+  for(j=rows-1;j>=0; j--)
+    for(i=0;i<cols;i++)
+      *ptr++ = (byte)((inbits[j][i] == PBM_WHITE) ? 255 : 0);
+
+  return I;
+}
+
+static IMAGE *
+PPMReadImage(char *fname)
+{
+  FILE *infile;
+  IMAGE *I;
+  int rows, cols, format, i, j;
+  pixval maxval;
+  pixel *pixelrow, *pptr;
+  byte *ptr;
+
+  if ((infile = pm_openr(fname)) == NULL)
+    ErrorExit(ERROR_NO_FILE,"PGMReadImage:  Input file does not exist\n");
+
+  ppm_readppminit(infile, &cols, &rows, &maxval, &format);
+
+  pixelrow = ppm_allocrow(cols);
+
+  I = ImageAlloc(rows, cols, PFBYTE, 1);
+
+  for(i=rows-1;i>=0; i--)
+    {
+      ppm_readppmrow(infile, pixelrow, cols, maxval, format);
+      pptr = pixelrow;
+      ptr = IMAGEpix(I, 0, i);
+      for(j=0;j<cols;j++,pptr++,ptr++)
+  *ptr = (byte)(PPM_LUMIN(*pptr) + 0.5);
+    }
+
+  pm_close(infile);
+
+  return I;
+}
+
+static IMAGE *
+PBMReadHeader(FILE *fp, IMAGE *I)
+{
+  int rows, cols, format;
+
+  pbm_readpbminit(fp, &cols, &rows, &format);
+
+  if (!I)
+    I = ImageAlloc(rows, cols, PFBYTE, 1) ;
+  else
+    init_header(I, "orig", "seq", 1, "today", rows, cols, PFBYTE, 1, "temp");
+
+  return I;
+}
+
+static IMAGE *
+PPMReadHeader(FILE *fp, IMAGE *I)
+{
+  int rows, cols, format;
+  gray maxval;
+
+  ppm_readppminit(fp, &cols, &rows, &maxval, &format);
+
+  if (!I)
+    I = ImageAlloc(rows, cols, PFBYTE, 1) ;
+  else
+    init_header(I, "orig", "seq", 1, "today", rows, cols, PFBYTE, 1, "temp");
+
+  return I;
+}
+
+
