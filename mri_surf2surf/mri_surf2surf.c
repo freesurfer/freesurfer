@@ -1,6 +1,6 @@
 /*----------------------------------------------------------
   Name: mri_surf2surf.c
-  $Id: mri_surf2surf.c,v 1.13 2003/09/05 04:45:38 kteich Exp $
+  $Id: mri_surf2surf.c,v 1.14 2004/02/14 02:17:14 greve Exp $
   Author: Douglas Greve
   Purpose: Resamples data from one surface onto another. If
   both the source and target subjects are the same, this is
@@ -32,6 +32,8 @@
 #include "prime.h"
 #include "version.h"
 
+MRI *MRISgaussianSmooth(MRIS *Surf, MRI *Src, double GStd, MRI *Targ);
+
 static int  parse_commandline(int argc, char **argv);
 static void check_options(void);
 static void print_usage(void) ;
@@ -47,7 +49,7 @@ int GetNVtxsFromValFile(char *filename, char *fmt);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surf2surf.c,v 1.13 2003/09/05 04:45:38 kteich Exp $";
+static char vcid[] = "$Id: mri_surf2surf.c,v 1.14 2004/02/14 02:17:14 greve Exp $";
 char *Progname = NULL;
 
 char *surfreg = "sphere.reg";
@@ -85,6 +87,7 @@ int framesave = 0;
 float IcoRadius = 100.0;
 int nSmoothSteps = 0;
 int nthstep, nnbrs, nthnbr, nbrvtx, frame;
+double fwhm=0, gstd;
 
 int debug = 0;
 
@@ -109,7 +112,7 @@ int main(int argc, char **argv)
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.13 2003/09/05 04:45:38 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.14 2004/02/14 02:17:14 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -327,6 +330,10 @@ int main(int argc, char **argv)
   /* Smooth if desired */
   if(nSmoothSteps > 0)
     MRISsmoothMRI(TrgSurfReg, TrgVals, nSmoothSteps, TrgVals);
+  if(fwhm > 0){
+    printf("Gaussian smoothing with fwhm = %g, std = %g\n",fwhm,gstd);
+    MRISgaussianSmooth(TrgSurfReg, TrgVals, gstd, TrgVals);
+  }
 
   /* readjust frame power if necessary */
   if(is_sxa_volume(srcvalfile)){
@@ -417,9 +424,15 @@ static int parse_commandline(int argc, char **argv)
       if(nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%d",&nSmoothSteps);
       if(nSmoothSteps < 1){
-  fprintf(stderr,"ERROR: number of smooth steps (%d) must be >= 1\n",
-    nSmoothSteps);
+	fprintf(stderr,"ERROR: number of smooth steps (%d) must be >= 1\n",
+		nSmoothSteps);
       }
+      nargsused = 1;
+    }
+    else if (!strcmp(option, "--fwhm")){
+      if(nargc < 1) argnerr(option,1);
+      sscanf(pargv[0],"%lf",&fwhm);
+      gstd = fwhm/sqrt(log(256.0));
       nargsused = 1;
     }
 
@@ -774,6 +787,10 @@ static void check_options(void)
     exit(1);
   }
 
+  if(fwhm != 0 && nSmoothSteps != 0){
+    printf("ERROR: cannot specify --fwhm and --nsmooth\n");
+    exit(1);
+  }
   return;
 }
 
@@ -872,23 +889,116 @@ int GetICOOrderFromValFile(char *filename, char *fmt)
 }
 
 
-
-#if 0
-/* --------------------------------------------- */
-int check_format(char *trgfmt)
+/*-------------------------------------------------------------------*/
+MRI *MRISgaussianSmooth(MRIS *Surf, MRI *Src, double GStd, MRI *Targ)
 {
-  if( strcasecmp(trgfmt,"bvolume") != 0 &&
-      strcasecmp(trgfmt,"bfile") != 0 &&
-      strcasecmp(trgfmt,"bshort") != 0 &&
-      strcasecmp(trgfmt,"bfloat") != 0 &&
-      strcasecmp(trgfmt,"w") != 0 &&
-      strcasecmp(trgfmt,"curv") != 0 &&
-      strcasecmp(trgfmt,"paint") != 0 ){
-    fprintf(stderr,"ERROR: format %s unrecoginized\n",trgfmt);
-    fprintf(stderr,"Legal values are: bvolume, bfile, bshort, bfloat, and \n");
-    fprintf(stderr,"                  paint, w\n");
-    exit(1);
+  int vtxno1, vtxno2;
+  float val;
+  MRI *SrcTmp, *GSum, *GSum2;
+  VERTEX *vtx1, *vtx2 ;
+  double Radius, Radius2, dmin, GVar2, f, d, costheta, theta, g;
+
+  if(Surf->nvertices != Src->width){
+    printf("ERROR: MRISgaussianSmooth: Surf/Src dimension mismatch\n");
+    return(NULL);
   }
-  return(0);
+
+  if(Targ == NULL){
+    Targ = MRIallocSequence(Src->width, Src->height, Src->depth, 
+            MRI_FLOAT, Src->nframes);
+    if(Targ==NULL){
+      printf("ERROR: MRISgaussianSmooth: could not alloc\n");
+      return(NULL);
+    }
+  }
+  else{
+    if(Src->width   != Targ->width  || 
+       Src->height  != Targ->height || 
+       Src->depth   != Targ->depth  ||
+       Src->nframes != Targ->nframes){
+      printf("ERROR: MRISgaussianSmooth: output dimension mismatch\n");
+      return(NULL);
+    }
+    if(Targ->type != MRI_FLOAT){
+      printf("ERROR: MRISgaussianSmooth: structure passed is not MRI_FLOAT\n");
+      return(NULL);
+    }
+  }
+  SrcTmp = MRIcopy(Src,NULL);
+
+  /* This is for normalizing */
+  GSum = MRIallocSequence(Src->width, Src->height, Src->depth, MRI_FLOAT, 1);
+  if(GSum==NULL){
+    printf("ERROR: MRISgaussianSmooth: could not alloc GSum\n");
+    return(NULL);
+  }
+
+  GSum2 = MRIallocSequence(Src->width, Src->height, Src->depth, MRI_FLOAT, 1);
+  if(GSum2==NULL){
+    printf("ERROR: MRISgaussianSmooth: could not alloc GSum2\n");
+    return(NULL);
+  }
+
+  vtx1 = &Surf->vertices[0] ;
+  Radius2 = (vtx1->x * vtx1->x) + (vtx1->y * vtx1->y) + (vtx1->z * vtx1->z);
+  Radius  = sqrt(Radius2);
+  dmin = 4*GStd; // truncate after 4 stddevs
+  GVar2 = 2*(GStd*GStd);
+  f = 2*M_PI*GStd;
+
+  for(vtxno1 = 0; vtxno1 < Surf->nvertices; vtxno1++){
+    if(vtxno1%100==0) printf("vtxno1 = %d\n",vtxno1);
+    vtx1 = &Surf->vertices[vtxno1] ;
+
+    for(vtxno2 = vtxno1; vtxno2 < Surf->nvertices; vtxno2++){
+      vtx2 = &Surf->vertices[vtxno2] ;
+
+      /* Compute the angle between the two vectors (dot product) */
+      costheta = (vtx1->x*vtx2->x) + (vtx1->y*vtx2->y) + (vtx1->z*vtx2->z);
+      costheta /= Radius2;
+      theta = acos(costheta);
+
+      /* Compute the distance bet vertices along the surface of the sphere */
+      d = Radius * theta;
+
+      /* Truncate */
+      if(d > dmin) continue;
+
+      /* Compute weighting factor for this distance */
+      g = exp( -(d*d)/(GVar2) )/f;
+      MRIFseq_vox(GSum,vtxno1,0,0,0)  += g;
+      MRIFseq_vox(GSum,vtxno2,0,0,0)  += g;
+      MRIFseq_vox(GSum2,vtxno1,0,0,0) += (g*g);
+      MRIFseq_vox(GSum2,vtxno2,0,0,0) += (g*g);
+      
+      for(frame = 0; frame < Targ->nframes; frame ++){
+	val = g*MRIFseq_vox(SrcTmp,vtxno1,0,0,frame);
+	MRIFseq_vox(Targ,vtxno1,0,0,frame) += val;
+	val = g*MRIFseq_vox(SrcTmp,vtxno2,0,0,frame);
+	MRIFseq_vox(Targ,vtxno2,0,0,frame) += val;
+      }
+      
+    } /* end loop over vertex2 */
+    
+  } /* end loop over vertex1 */
+  
+
+  /* Normalize */
+  for(vtxno1 = 0; vtxno1 < Surf->nvertices; vtxno1++){
+    vtx1 = &Surf->vertices[vtxno1] ;
+    g = MRIFseq_vox(GSum,vtxno1,0,0,0);
+    for(frame = 0; frame < Targ->nframes; frame ++){
+      val = MRIFseq_vox(Targ,vtxno1,0,0,frame);
+      MRIFseq_vox(Targ,vtxno1,0,0,frame) = val/g;
+    }
+  }
+
+  MRIwrite(GSum,"gsum_000.bfloat");
+  MRIwrite(GSum2,"gsum2_000.bfloat");
+
+  MRIfree(&SrcTmp);
+  MRIfree(&GSum);
+  MRIfree(&GSum2);
+
+  return(Targ);
 }
-#endif
