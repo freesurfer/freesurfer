@@ -6,8 +6,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: pengyu $
-// Revision Date  : $Date: 2004/12/10 01:01:20 $
-// Revision       : $Revision: 1.1 $
+// Revision Date  : $Date: 2004/12/10 01:21:33 $
+// Revision       : $Revision: 1.2 $
 ////////////////////////////////////////////
 
 #include <math.h>
@@ -33,16 +33,17 @@
 #include "matrix.h"
 
 
-//static char vcid[] = "$Id: mris_spharm.c,v 1.1 2004/12/10 01:01:20 pengyu Exp $";
+//static char vcid[] = "$Id: mris_spharm.c,v 1.2 2004/12/10 01:21:33 pengyu Exp $";
 
 
 int             main(int argc, char *argv[]) ; 
 static int      get_option(int argc, char *argv[]) ; 
 char            *Progname ;             
-static CPRT *   SphericalHarmonics(int L, int M, int theta, int phi);
-static float    legendre(int l, int, m, float x) ;
+static int      SphericalHarmonics(int L, int M, int theta, int phi);
+static float    legendre(int l, int m, float x) ;
 
-#define         LEVEL = 5;
+static int         LEVEL = 5;
+static float       real, imag;
 
 int 
 main(int argc, char *argv[]) 
@@ -55,7 +56,6 @@ main(int argc, char *argv[])
 	MRI_SP        *mrisp ;
 	MATRIX        *m_Z, *m_V, *m_c;
 	VERTEX        *v;
-	CPTR          *z;
 
 	Progname = argv[0] ; 
 	DiagInit(NULL, NULL, NULL) ; 
@@ -88,8 +88,8 @@ main(int argc, char *argv[])
 	/*Sample the original surface*/
 
 	mris_out = ReadIcoByOrder(LEVEL, 100);
-	for (m = 0; m<mris_out->nvertices; m++)
-		mris_out->vertices[m].nsize=1;
+	for (i = 0; i<mris_out->nvertices; i++)
+		mris_out->vertices[i].nsize=1;
 	mrisp = MRISPalloc(1, 3); 
 	MRIScoordsToParameterization(mris_in, mrisp, 1) ;
 	MRISPblur(mrisp, mrisp, 2, 0);
@@ -107,31 +107,30 @@ main(int argc, char *argv[])
 	/*Initialize Matrix*/
 	dimension = (order+1)*(order+1);
 	nvertices = mris_out->nvertices;
-  v_v = VectorAlloc(3, MATRIX_REAL) ;
 	m_c = MatrixAlloc(dimension, 3, MATRIX_COMPLEX) ; 
 	m_Z = MatrixAlloc(nvertices, dimension, MATRIX_COMPLEX) ; 
 	m_V = MatrixAlloc(nvertices, 3, MATRIX_REAL) ; 
 
-	for (i=0; i<nvertices, i++)
+	for (i=0; i<nvertices; i++)
 	{
-    v = &mris->vertices[i] ;
+    v = &mris_out->vertices[i] ;
 		phi = atan2(v->y, v->x) ;
     if (phi < 0.0)  phi = 2 * M_PI + phi ; 
     d = 100*100 - v->z*v->z ;
     if (d < 0.0)   d = 0 ;
     theta = atan2(sqrt(d), v->z) ;    
     count = 0;
-		*MATRIX_RELT(m_V,i+1,1) = v->orig_x;
-		*MATRIX_RELT(m_V,i+1,2) = v->orig_y;
-		*MATRIX_RELT(m_V,i+1,3) = v->orig_z;
+		*MATRIX_RELT(m_V,i+1,1) = v->origx;
+		*MATRIX_RELT(m_V,i+1,2) = v->origy;
+		*MATRIX_RELT(m_V,i+1,3) = v->origz;
 
     for (j=0; j<=order; j++)
 			for ( k= -1*j; k<=j; k++)
 			{
 				count = count+1 ;
-				z = SphericalHarmonics(j, k, theta, phi);
-				*MATRIX_CELT_REAL(m_Z,i,count) = z->real;
-				*MATRIX_CELT_IMAG(m_Z,i,count) = z->imag;
+				SphericalHarmonics(j, k, theta, phi);
+				MATRIX_CELT_REAL(m_Z,i,count) = real;
+				MATRIX_CELT_IMAG(m_Z,i,count) = imag;
 			}
 	}
 
@@ -154,10 +153,9 @@ main(int argc, char *argv[])
 } 
 
 
-static CPRT *
+static int
 SphericalHarmonics(int L, int M, int theta, int phi)
 {
-	CPTR    *value;
 	float   P, real, imag, factor;	
 
 	P = legendre(L, abs(M), cos(theta));
@@ -169,13 +167,11 @@ SphericalHarmonics(int L, int M, int theta, int phi)
 		real = power(-1,abs(M)) * real;
 		imag = power(-1,abs(M)) *(-1) * imag;
 	}
-	value->real = real;
-	value->imag = imag;
-	return(value);
+	return(NO_ERROR);
 }
 
 static float
-legendre(int l, int, m, float x)
+legendre(int l, int m, float x)
 {
 	float  fact, pll, pmm, pmmp1, somx2;
 	int    i, ll;
