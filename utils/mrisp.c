@@ -1169,9 +1169,185 @@ MRISPclone(MRI_SP *mrisp_src)
         Returns value:
 
         Description
+           Convolve with a kernel with standard deviation = sigma mm.
 ------------------------------------------------------*/
-#define MAX_LEN  4
+#define MAX_LEN   4
+#define MAX_KLEN  50
 
+MRI_SP *
+MRISPconvolveGaussian(MRI_SP *mrisp_src, MRI_SP *mrisp_dst, 
+                      float sigma, float radius, int fno)
+{
+  int    u, v, cart_klen, klen, khalf, uk, vk, u1, v1, voff,f0,f1;
+  double d, k, total, ktotal, sigma_sq_inv, theta, phi, theta1, phi1,
+         sin_phi, cos_phi, sin_phi1, cos_phi1 ;
+  float  x0, y0, z0, x1, y1, z1, circumference = 0.0f, angle, max_len = 0.0f,
+         min_len = 10000.0f ;
+  IMAGE  *Ip_src, *Ip_dst ;
+  VECTOR  *vec1, *vec2 ;
+  
+  vec1 = VectorAlloc(3, MATRIX_REAL) ;
+  vec2 = VectorAlloc(3, MATRIX_REAL) ;
+
+  if (!mrisp_dst)
+    mrisp_dst = MRISPclone(mrisp_src) ;
+  mrisp_dst->sigma = sigma ;
+
+  /* determine the size of the kernel */
+  cart_klen = (int)nint(6.0f * sigma)+1 ;
+  if (ISEVEN(cart_klen))   /* ensure it's odd */
+    cart_klen++ ;
+
+  if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+    fprintf(stderr, "blurring surface, sigma = %2.3f, cartesian klen = %d\n",
+            sigma, cart_klen) ;
+
+  if (FZERO(sigma))
+    sigma_sq_inv = BIG ;
+  else
+    sigma_sq_inv = 1.0f / (sigma*sigma) ;
+
+  Ip_src = mrisp_src->Ip ; Ip_dst = mrisp_dst->Ip ;
+  if (fno < 0)
+  { f0 = 0 ; f1 = Ip_src->num_frame-1 ; }
+  else
+  { f0 = f1 = fno ; }
+
+  for (fno = f0 ; fno <= f1 ; fno++)   /* for each frame */
+  {
+    for (u = 0 ; u < U_DIM(mrisp_src) ; u++)
+    {
+      if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+        fprintf(stderr, "\r%3.3d of %d     ", u, U_DIM(mrisp_src)-1) ;
+      phi = (double)u*PHI_MAX / PHI_DIM(mrisp_src) ;
+      sin_phi = sin(phi) ; cos_phi = cos(phi) ;
+#if 0
+      sin_sq_u = sin_phi ; sin_sq_u *= sin_sq_u ;
+      if (!FZERO(sin_sq_u))
+      {
+        k = cart_klen * cart_klen ;
+        klen = sqrt(k + k/sin_sq_u) ;
+        if (klen > MAX_LEN*cart_klen)
+          klen = MAX_LEN*cart_klen ;
+      }
+      else
+        klen = MAX_LEN*cart_klen ;  /* arbitrary max length */
+#endif
+
+      for (v = 0 ; v < V_DIM(mrisp_src) ; v++)
+      {
+        theta = (double)v*THETA_MAX / THETA_DIM(mrisp_src) ;
+        x0 = radius * sin_phi * cos(theta) ;
+        y0 = radius * sin_phi * sin(theta) ;
+        z0 = radius * cos_phi ;
+        VECTOR_LOAD(vec1, x0, y0, z0) ;  /* radius vector */
+        if (FZERO(circumference))   /* only calculate once */
+          circumference = M_PI * 2.0 * V3_LEN(vec1) ;
+        if (u == DEBUG_U && v == DEBUG_V)
+          DiagBreak() ;
+
+
+        /* compute the distance between adjacent spherical matrix
+           elements at this point on the surface (probably easier
+           to do with the parameterization, but I'll do it in
+           Cartesian space for now.
+           */
+        u1 = u + 1 ;
+        if (u1 >= U_DIM(mrisp_src))
+          u1 = U_DIM(mrisp_src) - (u1-U_DIM(mrisp_src)+2) ;
+        v1 = v + 1 ;
+        if (v1 >= V_DIM(mrisp_src))
+          v1 = V_DIM(mrisp_src) - (v1-V_DIM(mrisp_src)+2) ;
+        
+        phi1 = (double)u1*PHI_MAX / PHI_DIM(mrisp_src) ;
+        theta1 = (double)v1*THETA_MAX / THETA_DIM(mrisp_src) ;
+        x1 = radius * sin(phi1) * cos(theta1) ;
+        y1 = radius * sin(phi1) * sin(theta1) ;
+        z1 = radius * cos(phi1) ;
+        VECTOR_LOAD(vec2, x1, y1, z1) ;  /* radius vector */
+        angle = fabs(Vector3Angle(vec1, vec2)) ;
+        d = circumference * angle / (2.0 * M_PI) ;  /* geodesic distance */
+        if (d > max_len)
+          max_len = d ;
+        if (d < min_len)
+          min_len = d ;
+
+        /* d is now the distance between adjacent cells - compute kernel size*/
+        klen = nint(6.0f * sigma / d)+1 ;
+        if (klen > MAX_KLEN)
+          klen = MAX_KLEN ;
+        
+        if (ISEVEN(klen))
+          klen++ ;
+        if (klen >= U_DIM(mrisp_src))
+          klen = U_DIM(mrisp_src)-1 ;
+        if (klen >= V_DIM(mrisp_src))
+          klen = V_DIM(mrisp_src)-1 ;
+        khalf = klen/2 ;
+        
+        total = ktotal = 0.0 ;
+        for (uk = -khalf ; uk <= khalf ; uk++)
+        {
+          u1 = u + uk ;
+          if (u1 < 0)  /* enforce spherical topology  */
+          {
+            voff = V_DIM(mrisp_src)/2 ;
+            u1 = -u1 ;
+          }
+          else if (u1 >= U_DIM(mrisp_src))
+          {
+            u1 = U_DIM(mrisp_src) - (u1-U_DIM(mrisp_src)+1) ;
+            voff = V_DIM(mrisp_src)/2 ;
+          }
+          else
+          voff = 0 ;
+          
+          phi1 = (double)u1*PHI_MAX / PHI_DIM(mrisp_src) ;
+          sin_phi1 = sin(phi1) ; cos_phi1 = cos(phi1) ;
+          
+          for (vk = -khalf ; vk <= khalf ; vk++)
+          {
+            theta1 = (double)v*THETA_MAX / THETA_DIM(mrisp_src) ;
+            x1 = radius * sin_phi1 * cos(theta1) ;
+            y1 = radius * sin_phi1 * sin(theta1) ;
+            z1 = radius * cos_phi1 ;
+            VECTOR_LOAD(vec2, x1, y1, z1) ;  /* radius vector */
+            angle = fabs(Vector3Angle(vec1, vec2)) ;
+            d = circumference * angle / (2.0 * M_PI) ;
+            k = exp(-d*d*sigma_sq_inv) ;
+            v1 = v + vk + voff ;
+            while (v1 < 0)  /* enforce spherical topology */
+              v1 += V_DIM(mrisp_src) ;
+            while (v1 >= V_DIM(mrisp_src))
+              v1 -= V_DIM(mrisp_src) ;
+            ktotal += k ;
+            total += k**IMAGEFseq_pix(Ip_src, u1, v1, fno) ;
+          }
+        }
+        if (u == DEBUG_U && v == DEBUG_V)
+          DiagBreak() ;
+        total /= ktotal ;   /* normalize weights to 1 */
+        *IMAGEFseq_pix(mrisp_dst->Ip, u, v, fno) = total ;
+      }
+    }
+  }
+
+  if (Gdiag & DIAG_SHOW)
+    fprintf(stderr, "min_len = %2.3f mm, max_len = %2.3f mm\n",
+            min_len, max_len) ;
+  if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+    fprintf(stderr, "done.\n") ;
+
+  VectorFree(&vec1) ; VectorFree(&vec2) ;
+  return(mrisp_dst) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
 MRI_SP *
 MRISPblur(MRI_SP *mrisp_src, MRI_SP *mrisp_dst, float sigma, int fno)
 {
@@ -1511,5 +1687,135 @@ MRISPread(char *fname)
   
   return(mrisp) ;
 }
+/*-----------------------------------------------------
+        Parameters:
 
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+double
+MRISParea(MRI_SP *mrisp)
+{
+  double total_area = 0.0, phi0, theta0, phi1, theta1, radius, 
+         l1, l2, x0, y0, z0, x1, y1, z1, x2, y2, z2  ;
+  float  val, max_len = 0.0 ;
+  int    u, v ;
+
+  radius = 1.0 ;
+  for (u = 0 ; u <= U_MAX_INDEX(mrisp) ; u++)
+  {
+    for (v = 0 ; v <= V_MAX_INDEX(mrisp) ; v++)
+    {
+      val = *IMAGEFpix(mrisp->Ip, u, v) ;
+      if (FZERO(val))
+        continue ;
+
+      phi0   = (double)u*PHI_MAX / PHI_DIM(mrisp) ;
+      theta0 = (double)v*THETA_MAX / THETA_DIM(mrisp) ;
+      phi1   = (double)(u+1)*PHI_MAX / PHI_DIM(mrisp) ;
+      theta1 = (double)(v+1)*THETA_MAX / THETA_DIM(mrisp) ;
+      x0 = radius * sin(phi0) * cos(theta0) ;
+      y0 = radius * sin(phi0) * sin(theta0) ;
+      z0 = radius * cos(phi0) ;
+      x1 = radius * sin(phi0) * cos(theta1) ;
+      y1 = radius * sin(phi0) * sin(theta1) ;
+      z1 = radius * cos(phi0) ;
+      x2 = radius * sin(phi1) * cos(theta1) ;
+      y2 = radius * sin(phi1) * sin(theta1) ;
+      z2 = radius * cos(phi1) ;
+      l1 = sqrt(SQR(x1-x0)+SQR(y1-y0)+SQR(z1-z0)) ;
+      l2 = sqrt(SQR(x2-x1)+SQR(y2-y1)+SQR(z2-z1)) ;
+      if (max_len < l1)
+        max_len = l1 ;
+      if (max_len < l2)
+        max_len = l2 ;
+      total_area += l1 * l2 ;
+    }
+  }
+  if (Gdiag & DIAG_SHOW)
+    fprintf(stderr, "max parameterization len = %2.3f\n", max_len) ;
+  return(total_area) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+MRI_SP *
+MRISPorLabel(MRI_SP *mrisp, MRI_SURFACE *mris, LABEL *area)
+{
+  int     n, vno, u, v ;
+  float   r, x, y, z, phi, theta, d, rsq ;
+
+  if (!mrisp)
+    mrisp = MRISPalloc(1, 1) ;
+
+  r = mris->radius ; rsq = r*r ;
+  for (n = 0 ; n < area->n_points ; n++)
+  {
+    vno = area->lv[n].vno ;
+    x = area->lv[n].x ;
+    y = area->lv[n].y ;
+    z = area->lv[n].z ;
+    d = rsq - z*z ;
+    if (d < 0.0)
+      d = 0 ;
+    phi = atan2(sqrt(d), z) ;
+    theta = atan2(y/r, x/r) ;
+    u = nint(PHI_DIM(mrisp) * phi / PHI_MAX) ;
+    v = nint(THETA_DIM(mrisp) * theta / THETA_MAX) ;
+    *IMAGEFpix(mrisp->Ip, u,v) = 1.0f ;
+  }
+  return(mrisp) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+MRI_SP *
+MRISPandLabel(MRI_SP *mrisp, MRI_SURFACE *mris, LABEL *area)
+{
+  int     n, vno, u, v ;
+  float   r, x, y, z, phi, theta, d, rsq ;
+
+  if (!mrisp)
+  {
+    mrisp = MRISPalloc(1, 1) ;
+    ImageClearArea(mrisp->Ip, -1, -1, -1, -1, 1, -1) ;
+  }
+
+  r = mris->radius ; rsq = r*r ;
+  for (n = 0 ; n < area->n_points ; n++)
+  {
+    vno = area->lv[n].vno ;
+    x = area->lv[n].x ;
+    y = area->lv[n].y ;
+    z = area->lv[n].z ;
+    d = rsq - z*z ;
+    if (d < 0.0)
+      d = 0 ;
+    phi = atan2(sqrt(d), z) ;
+    theta = atan2(y/r, x/r) ;
+    u = nint(PHI_DIM(mrisp) * phi / PHI_MAX) ;
+    v = nint(THETA_DIM(mrisp) * theta / THETA_MAX) ;
+    *IMAGEFpix(mrisp->Ip, u,v) += 1.0f ;
+  }
+  for (u = 0 ; u <= U_MAX_INDEX(mrisp) ; u++)
+  {
+    for (v = 0 ; v <= V_MAX_INDEX(mrisp) ; v++)
+    {
+      if (*IMAGEFpix(mrisp->Ip, u,v) > 1.5)  /* at least two on */
+        *IMAGEFpix(mrisp->Ip, u,v) = 1.0f ;
+      else
+        *IMAGEFpix(mrisp->Ip, u,v) = 0.0f ;
+    }
+  }
+  return(mrisp) ;
+}
 
