@@ -6198,6 +6198,7 @@ static MRI *gdfRead(char *fname, int read_volume)
   int n_files;
   char fname_use[STRLEN];
   int pad_zeros_flag;
+  int file_offset = 0;
 
   if((fp = fopen(fname, "r")) == NULL)
   {
@@ -6254,6 +6255,11 @@ static MRI *gdfRead(char *fname, int read_volume)
     else if(strncmp(line, "DISPLAY_CENTER", 14) == 0)
     {
       sscanf(line, "%*s %f %f %f", &center[0], &center[1], &center[2]);
+      c_d = TRUE;
+    }
+    else if(strncmp(line, "FILE_OFFSET", 11) == 0)
+    {
+      sscanf(line, "%*s %d", &file_offset);
       c_d = TRUE;
     }
     else
@@ -6503,6 +6509,8 @@ static MRI *gdfRead(char *fname, int read_volume)
       errno = 0;
       ErrorReturn(NULL, (ERROR_BADFILE, "gdfRead(): error opening file %s", fname_use));
     }
+
+    fseek(fp, file_offset, SEEK_SET);
 
     if(mri->type == MRI_UCHAR)
     {
