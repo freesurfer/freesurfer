@@ -8,10 +8,10 @@
  *
 */
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/03/23 20:45:49 $
-// Revision       : $Revision: 1.262 $
-char *MRI_C_VERSION = "$Revision: 1.262 $";
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2004/03/29 17:03:31 $
+// Revision       : $Revision: 1.263 $
+char *MRI_C_VERSION = "$Revision: 1.263 $";
 
 /*-----------------------------------------------------
                     INCLUDE FILES
@@ -2175,6 +2175,8 @@ MATRIX *surfaceRASFromVoxel_(MRI *mri)
   MATRIX *sRASFromVoxel;
   double m14, m24, m34;
 
+  if (!mri->i_to_r__)
+    mri->i_to_r__ = extract_i_to_r(mri);
   rasFromVoxel = mri->i_to_r__; // extract_i_to_r(mri);
   sRASFromVoxel = MatrixCopy(rasFromVoxel, NULL);
   // MatrixFree(&rasFromVoxel);
