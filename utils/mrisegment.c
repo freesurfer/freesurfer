@@ -1,0 +1,472 @@
+/*
+ *       FILE NAME:   mripolv.c
+ *
+ *       DESCRIPTION: utilities for calculating and filtering
+ *                    MRI data based on planes of least variance
+ *
+ *       AUTHOR:      Bruce Fischl
+ *       DATE:        1/8/97
+ *
+*/
+/*-----------------------------------------------------
+                    INCLUDE FILES
+-------------------------------------------------------*/
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
+#include <string.h>
+#include <memory.h>
+
+#include "error.h"
+#include "proto.h"
+#include "mri.h"
+#include "macros.h"
+#include "diag.h"
+#include "mrisegment.h"
+
+/*-----------------------------------------------------
+                    MACROS AND CONSTANTS
+-------------------------------------------------------*/
+
+
+/*-----------------------------------------------------
+                    STATIC PROTOTYPES
+-------------------------------------------------------*/
+
+static int mriSegmentReallocateVoxels(MRI_SEGMENTATION *mriseg, int sno,
+                                      int max_voxels) ;
+static int mriSegmentReallocateSegments(MRI_SEGMENTATION *mriseg, 
+                                        int max_segments) ;
+static int mriSegmentNew(MRI_SEGMENTATION *mriseg) ;
+static int mriSegmentMerge(MRI_SEGMENTATION *mriseg, int s0, int s1,
+                           MRI *mri_labeled) ;
+static int mriCompactSegments(MRI_SEGMENTATION *mriseg) ;
+
+/*-----------------------------------------------------
+                    GLOBAL FUNCTIONS
+-------------------------------------------------------*/
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+#define MAX_SEGMENTS     8000
+#define MAX_VOXELS         5
+#define NBR_VOX          (3*3*3)
+
+MRI_SEGMENTATION *
+MRIsegment(MRI *mri, float low_val, float hi_val)
+{
+  MRI_SEGMENTATION  *mriseg ;
+  MRI_SEGMENT       *mseg, *mseg2 ;
+  int               x, y, z, width, height, depth, xi, yi, zi, xk, yk, zk,
+                    val, border_labels[NBR_VOX], nlabels, label, nvox ;
+  MRI               *mri_labeled ;
+  float             voxel_size ;
+
+  voxel_size = mri->xsize * mri->ysize * mri->zsize ;
+  width = mri->width ; height = mri->height ; depth = mri->depth ;
+  mriseg = MRIsegmentAlloc(MAX_SEGMENTS, MAX_VOXELS) ;
+  mriseg->mri = mri ;
+
+  /* mri_labeled will contain the label number for each voxel (if it
+     has been assigned to a segment).
+  */
+  mri_labeled = MRIalloc(width, height, depth, MRI_SHORT) ;
+  for (z = 0 ; z < depth ; z++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      for (x = 0 ; x < width ; x++)
+        MRISvox(mri_labeled, x, y, z) = -1 ;
+    }
+  }
+
+  for (z = 0 ; z < depth ; z++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      for (x = 0 ; x < width ; x++)
+      {
+        val = MRIvox(mri, x, y, z) ;
+        if (val >= low_val && val <= hi_val)
+        {
+          memset(border_labels, -1, NBR_VOX*sizeof(int)) ;
+          for (nvox = 0, zk = -1 ; zk <= 1 ; zk++)
+          {
+            zi = z+zk ; 
+            if ((zi < 0) || (zi >= depth))
+              continue ;
+            for (yk = -1 ; yk <= 1 ; yk++)
+            {
+              yi = y+yk ; 
+              if ((yi < 0) || (yi >= height))
+                continue ;
+              for (xk = -1 ; xk <= 1 ; xk++, nvox++)
+              {
+#if 1
+                if ((abs(xk) + abs(yk) + abs(zk)) > 1)
+                  continue ;  /* only allow 4 (6 in 3-d) connectivity */
+#endif
+
+                xi = x+xk ; 
+                if ((xi < 0) || (xi >= width))
+                  continue ;
+                label = MRISvox(mri_labeled, xi, yi, zi) ;
+                if (label >= 0)
+                  border_labels[nvox] = label ;
+              }
+            }
+          }
+          for (nlabels = nvox = 0 ; nvox < NBR_VOX ; nvox++)
+          {
+            label = border_labels[nvox] ;
+            if ((label >= 0) && (!mriseg->segments[label].found))
+            {
+              mriseg->segments[label].found = 1 ;
+              nlabels++ ;
+            }
+          }
+          for (nvox = 0 ; nvox < NBR_VOX ; nvox++)
+          {
+            label = border_labels[nvox] ;
+            if (label >= 0)
+              mriseg->segments[label].found = 0 ; /* for next time */
+          }
+          label = 0 ;
+          switch (nlabels)
+          {
+          case 0:          /* allocate a new segment */
+            label = mriSegmentNew(mriseg) ;
+            mseg = &mriseg->segments[label] ;
+            if (DIAG_VERBOSE_ON)
+              fprintf(stderr, "allocating new label %d (%d total)\n",
+                      label, mriseg->nsegments) ;
+            break ;
+          case 1:          /* assign this voxel to the one that it borders */
+            for (nvox = 0 ; nvox < NBR_VOX ; nvox++)
+              if (border_labels[nvox] >= 0)
+              {
+                label = border_labels[nvox] ;
+                break ;
+              }
+            mseg = &mriseg->segments[label] ;
+            break ;
+          default:         /* merge segments and assign to lowest number */
+            mseg = NULL ;
+            for (nvox = 0 ; nvox < NBR_VOX ; nvox++)
+            {
+              if (border_labels[nvox] >= 0)
+              {
+                if (!mseg)
+                {
+                  label = border_labels[nvox] ;
+                  mseg = &mriseg->segments[label] ;
+                  mseg->found = 1 ;
+                }
+                else
+                {
+                  mseg2 = &mriseg->segments[border_labels[nvox]] ;
+                  if (mseg2->found == 0)
+                  {
+                    mseg2->found = 1 ;  /* prevent merging more than once */
+                    mriSegmentMerge(mriseg, label, border_labels[nvox],
+                                    mri_labeled) ;
+                  }
+                }
+                  
+              }
+            }
+            for (nvox = 0 ; nvox < NBR_VOX ; nvox++)
+              if (border_labels[nvox] >= 0)
+                mriseg->segments[border_labels[nvox]].found = 0 ;
+            break ;
+          }
+          /* add it to the existing list */
+          if (mseg->nvoxels >= mseg->max_voxels)
+            mriSegmentReallocateVoxels(mriseg, label, mseg->max_voxels*2);
+          mseg->voxels[mseg->nvoxels].x = x ;
+          mseg->voxels[mseg->nvoxels].y = y ;
+          mseg->voxels[mseg->nvoxels].z = z ;
+          mseg->nvoxels++ ;
+          mseg->area += voxel_size ;
+          if (mseg->nvoxels != (int)mseg->area)
+            DiagBreak() ;
+          MRISvox(mri_labeled, x, y, z) = label ;
+        }
+      }
+    }
+  }
+  mriCompactSegments(mriseg) ;
+
+  MRIfree(&mri_labeled) ;
+  return(mriseg) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+int
+MRIsegmentFree(MRI_SEGMENTATION **pmriseg)
+{
+  MRI_SEGMENTATION *mriseg ;
+  int              i ;
+
+  mriseg = *pmriseg ; *pmriseg = NULL ;
+  for (i = 0 ; i < mriseg->max_segments ; i++)
+    if (mriseg->segments[i].voxels)
+      free(mriseg->segments[i].voxels) ;
+
+  free(mriseg->segments) ;
+  free(mriseg) ;
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+MRI_SEGMENTATION *
+MRIsegmentAlloc(int max_segments, int max_voxels)
+{
+  MRI_SEGMENTATION *mriseg ;
+  int              i ;
+
+  mriseg = (MRI_SEGMENTATION *)calloc(1, sizeof(MRI_SEGMENTATION)) ;
+  if (!mriseg)
+    ErrorExit(ERROR_NOMEMORY, "MRIsegmentAlloc: could not alloc mriseg") ;
+  mriseg->segments = (MRI_SEGMENT *)calloc(max_segments, sizeof(MRI_SEGMENT)) ;
+  if (!mriseg->segments)
+    ErrorExit(ERROR_NOMEMORY, "MRIsegmentAlloc: could not alloc mrisegments");
+  mriseg->max_segments = max_segments ;
+
+  for (i = 0 ; i < max_segments ; i++)
+  {
+    mriseg->segments[i].area = 0.0f ;
+    mriseg->segments[i].nvoxels = 0 ;
+    mriseg->segments[i].max_voxels = max_voxels ;
+    mriseg->segments[i].voxels = (MSV *)calloc(max_voxels, sizeof(MSV)) ;
+    if (!mriseg->segments[i].voxels)
+      ErrorExit(ERROR_NOMEMORY, 
+                "MRIsegmentAlloc: could not alloc %dth voxel list", i);
+  }
+
+  return(mriseg) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+           Merge segment 1 into segment 0.
+------------------------------------------------------*/
+static int
+mriSegmentMerge(MRI_SEGMENTATION *mriseg, int s0, int s1, MRI *mri_labeled)
+{
+  MRI_SEGMENT  *mseg0, *mseg1 ;
+  int          v, total_voxels, x, y, z ;
+
+  if (DIAG_VERBOSE_ON)
+    fprintf(stderr, "merging segments %d and %d\n", s0, s1) ;
+  mseg0 = &mriseg->segments[s0] ; mseg1 = &mriseg->segments[s1] ; 
+  total_voxels = mseg0->nvoxels+mseg1->nvoxels ;
+  if (total_voxels >= mseg0->max_voxels)
+    mriSegmentReallocateVoxels(mriseg, s0, total_voxels+10) ;
+
+  for (v = mseg0->nvoxels ; v < total_voxels ; v++)
+  {
+    x = mseg1->voxels[v-mseg0->nvoxels].x ;
+    y = mseg1->voxels[v-mseg0->nvoxels].y ;
+    z = mseg1->voxels[v-mseg0->nvoxels].z ;
+    mseg0->voxels[v].x = x ; mseg0->voxels[v].y = y ; mseg0->voxels[v].z = z ;
+    if (mri_labeled)
+      MRISvox(mri_labeled, x, y, z) = s0 ;
+  }
+  mseg0->nvoxels = total_voxels ;
+  mseg0->area += mseg1->area ;
+  if (mseg0->nvoxels != (int)mseg0->area)
+    DiagBreak() ;
+  mriseg->nsegments-- ;
+  mseg1->nvoxels = 0 ;
+  mseg1->area = 0 ;
+
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+static int
+mriSegmentReallocateVoxels(MRI_SEGMENTATION *mriseg, int sno,
+                                      int max_voxels)
+{
+  MRI_SEGMENT *mseg ;
+  MSV         *old_voxels ;
+  int         v ;
+
+  if (max_voxels <= 0)
+    max_voxels = MAX_VOXELS ;
+
+  mseg = &mriseg->segments[sno] ;
+  old_voxels = mseg->voxels ;
+  
+  mseg->voxels = (MSV *)calloc(max_voxels, sizeof(MSV)) ;
+  if (!mseg->voxels)
+    ErrorExit(ERROR_NOMEMORY, "mriSegmentReallocVox: could not alloc voxels");
+
+  mseg->max_voxels = max_voxels ;
+
+  for (v = 0 ; v < mseg->nvoxels ; v++)
+  {
+    mseg->voxels[v].x = old_voxels[v].x ;
+    mseg->voxels[v].y = old_voxels[v].y ;
+    mseg->voxels[v].z = old_voxels[v].z ;
+  }
+  if (old_voxels)
+    free(old_voxels) ;
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+static int
+mriSegmentReallocateSegments(MRI_SEGMENTATION *mriseg, int max_segments)
+{
+  MRI_SEGMENT *old_segments ;
+  int         s ;
+
+  old_segments = mriseg->segments ;
+  mriseg->segments = (MRI_SEGMENT *)calloc(max_segments, sizeof(MRI_SEGMENT)) ;
+  if (!mriseg->segments)
+    ErrorExit(ERROR_NOMEMORY, "MRIsegmentAlloc: could not alloc mrisegments");
+  mriseg->max_segments = max_segments ;
+
+  for (s = 0 ; s < mriseg->nsegments ; s++)
+  {
+    if (s == 1)
+      DiagBreak() ;
+    mriseg->segments[s].area = old_segments[s].area ;
+    mriseg->segments[s].nvoxels = old_segments[s].nvoxels ;
+    mriseg->segments[s].max_voxels = old_segments[s].max_voxels ;
+    mriseg->segments[s].voxels = old_segments[s].voxels ;
+  }
+  free(old_segments) ;
+  for (s = mriseg->nsegments ; s < mriseg->max_segments ; s++)
+  {
+    mriseg->segments[s].voxels = (MSV *)calloc(MAX_VOXELS, sizeof(MSV)) ;
+    if (!mriseg->segments[s].voxels)
+      ErrorExit(ERROR_NOMEMORY, "mriSegmentRealloc: could not alloc voxels");
+    mriseg->segments[s].max_voxels = MAX_VOXELS ;
+  }
+
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+MRI *
+MRIsegmentToImage(MRI *mri_src, MRI *mri_dst, MRI_SEGMENTATION *mriseg, int s)
+{
+  int          v, x, y, z ;
+  MRI_SEGMENT  *mseg ;
+
+  if (!mri_dst)
+    mri_dst = MRIclone(mri_src, NULL) ;
+
+  mseg = &mriseg->segments[s] ;
+
+  for (v = 0 ; v < mseg->nvoxels ; v++)
+  {
+    x = mseg->voxels[v].x ; y = mseg->voxels[v].y ; z = mseg->voxels[v].z ; 
+    MRIvox(mri_dst, x, y, z) = MRIvox(mri_src, x, y, z) ;
+  }
+
+  return(mri_dst) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+static int
+mriSegmentNew(MRI_SEGMENTATION *mriseg)
+{
+  int s ;
+
+  if (mriseg->nsegments >= mriseg->max_segments)
+    mriSegmentReallocateSegments(mriseg, nint(mriseg->max_segments*1.5)) ;
+  mriseg->nsegments++ ;
+  for (s = 0 ; s < mriseg->nsegments ; s++)
+    if (mriseg->segments[s].nvoxels == 0)
+      return(s) ;
+  return(s) ;
+}
+
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+static int
+mriCompactSegments(MRI_SEGMENTATION *mriseg)
+{
+  MRI_SEGMENT *src_segment, *dst_segment ;
+  int         s, s2 ;
+
+  if (DIAG_VERBOSE_ON)
+    fprintf(stderr, "compacting segments...\n") ;
+
+  for (s = 0 ; s < mriseg->max_segments ; s++)
+  {
+    if (mriseg->segments[s].nvoxels == 0)
+    {
+      dst_segment = &mriseg->segments[s] ;
+      for (s2 = s+1 ; s2 < mriseg->max_segments ; s2++)
+      {
+        if (mriseg->segments[s2].nvoxels > 0)
+          break ;
+      }
+      if (s2 < mriseg->max_segments)
+      {
+        src_segment = &mriseg->segments[s2] ;
+        if (dst_segment->voxels)
+          free(dst_segment->voxels) ;
+          
+        dst_segment->area = src_segment->area ;
+        dst_segment->nvoxels = src_segment->nvoxels ;
+        dst_segment->voxels = src_segment->voxels ;
+        dst_segment->max_voxels = src_segment->max_voxels ;
+
+        src_segment->nvoxels = src_segment->max_voxels = 0 ;
+        src_segment->area = 0.0 ; src_segment->voxels = NULL ;
+      }
+    }
+  }
+
+  return(NO_ERROR) ;
+}
+
