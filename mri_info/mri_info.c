@@ -14,6 +14,7 @@
 #include "mri_identify.h"
 #include "error.h"
 #include "diag.h"
+#include "version.h"
 
 struct ge_header {
   int magic;
@@ -67,6 +68,14 @@ static void usage(char *prog_name, int exit_val)
 
 int main(int argc, char *argv[])
 {
+  int nargs;
+
+  /* rkt: check for and handle version tag */
+  nargs = handle_version_option (argc, argv, "$Id: mri_info.c,v 1.18 2003/05/05 16:45:36 kteich Exp $");
+  if (nargs && argc - nargs == 1)
+    exit (0);
+  argc -= nargs;
+
 
   Progname = argv[0] ;
   ErrorInit(NULL, NULL, NULL) ;
@@ -91,6 +100,9 @@ static void do_file(char *fname)
   int type;
   char *at;
   char fname2[STRLEN];
+#if 0
+  int i;
+#endif
 	MRI *mri ;
 	MATRIX *m ;
 

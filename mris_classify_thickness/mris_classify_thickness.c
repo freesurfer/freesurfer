@@ -16,8 +16,9 @@
 #include "fio.h"
 #include "mrishash.h"
 #include "sig.h"
+#include "version.h"
 
-static char vcid[] = "$Id: mris_classify_thickness.c,v 1.4 2000/09/19 20:05:47 fischl Exp $";
+static char vcid[] = "$Id: mris_classify_thickness.c,v 1.5 2003/05/05 16:45:08 kteich Exp $";
 
 
 /*-------------------------------- CONSTANTS -----------------------------*/
@@ -152,6 +153,12 @@ main(int argc, char *argv[])
   int          *sorted_indices = NULL, vno ;
   float        *test_thickness, *test_avg_thickness ;
   double       label_avg ;
+
+  /* rkt: check for and handle version tag */
+  nargs = handle_version_option (argc, argv, "$Id: mris_classify_thickness.c,v 1.5 2003/05/05 16:45:08 kteich Exp $");
+  if (nargs && argc - nargs == 1)
+    exit (0);
+  argc -= nargs;
 
   if (write_flag && DIAG_VERBOSE_ON)
     fp = fopen("scalespace.dat", "w") ;

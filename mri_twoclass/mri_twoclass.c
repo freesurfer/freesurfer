@@ -18,8 +18,9 @@
 #include "label.h"
 #include "cma.h"
 #include "vlabels.h"
+#include "version.h"
 
-static char vcid[] = "$Id: mri_twoclass.c,v 1.8 2002/09/10 14:20:51 fischl Exp $";
+static char vcid[] = "$Id: mri_twoclass.c,v 1.9 2003/05/05 16:45:21 kteich Exp $";
 
 
 /*-------------------------------- STRUCTURES ----------------------------*/
@@ -117,6 +118,12 @@ main(int argc, char *argv[])
                ***vls ;
   TRANSFORM    *transform ;
   VLI          *vli1 = NULL, *vli2 = NULL ;
+
+  /* rkt: check for and handle version tag */
+  nargs = handle_version_option (argc, argv, "$Id: mri_twoclass.c,v 1.9 2003/05/05 16:45:21 kteich Exp $");
+  if (nargs && argc - nargs == 1)
+    exit (0);
+  argc -= nargs;
 
   Progname = argv[0] ;
   ErrorInit(NULL, NULL, NULL) ;

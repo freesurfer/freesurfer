@@ -5,6 +5,7 @@
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 #include <GL/glx.h>
+#include "version.h"
 
 Display *gDisplay = NULL;
 int gScreen = 0;
@@ -16,6 +17,14 @@ void PrintAttributeList ( FILE* iOutput, char* isPrefix, int iaAttributes[] );
 
 
 int main ( int argc, char** argv ) {
+
+  int nargs;
+
+  /* rkt: check for and handle version tag */
+  nargs = handle_version_option (argc, argv, "$Id: test_window_env.c,v 1.3 2003/05/05 16:44:50 kteich Exp $");
+  if (nargs && argc - nargs == 1)
+    exit (0);
+  argc -= nargs;
 
 #if 0
   GLenum bSuccess;
