@@ -987,6 +987,7 @@ xv_dimage_event_handler(Xv_Window xv_window, Event *event)
     {
       switch ((char)event->ie_code)
       {
+      case 'i':  /* in */
       case '8':
         if (xvf->get_next_image)
         {
@@ -1013,6 +1014,7 @@ xv_dimage_event_handler(Xv_Window xv_window, Event *event)
           }
         }
         break ;
+      case 'o':  /* out */
       case '2':
         if (xvf->get_next_image)
         {
