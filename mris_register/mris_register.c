@@ -12,7 +12,7 @@
 #include "mri.h"
 #include "macros.h"
 
-static char vcid[] = "$Id: mris_register.c,v 1.3 1998/02/27 20:57:42 fischl Exp $";
+static char vcid[] = "$Id: mris_register.c,v 1.4 1998/03/05 19:27:26 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -23,8 +23,12 @@ static void print_help(void) ;
 static void print_version(void) ;
 
 static int max_passes = 4 ;
-static int nbrs = 2 ;
+static int nbrs = 1 ;
 static float scale = 1.0f ;
+
+static float dalpha = 0.0f ;
+static float dbeta = 0.0f ;
+static float dgamma = 0.0f ;
 
 char *Progname ;
 static char curvature_fname[100] = "" ;
@@ -45,15 +49,15 @@ main(int argc, char *argv[])
 
   memset(&parms, 0, sizeof(parms)) ;
   parms.projection = PROJECT_SPHERE ;
-  parms.tol = 1e-2 ;
+  parms.tol = 1e-0 ;
   parms.min_averages = 0 ;
   parms.l_dist = 0.0 ;
-  parms.l_area = 0.1 ;
-  parms.l_parea = 0.0f ;
+  parms.l_area = 0.0 ;
+  parms.l_parea = 0.1f ;
   parms.l_corr = 1.0f ;
   parms.l_pcorr = 0.0f ;
   parms.niterations = 25 ;
-  parms.n_averages = 128 ;
+  parms.n_averages = 256 ;
   parms.write_iterations = 100 ;
   parms.dt_increase = 1.01 /* DT_INCREASE */;
   parms.dt_decrease = 0.99 /* DT_DECREASE*/ ;
@@ -101,6 +105,10 @@ main(int argc, char *argv[])
     ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
               Progname, surf_fname) ;
 
+  if (!FZERO(dalpha) || !FZERO(dbeta) || !FZERO(dgamma))
+    MRISrotate(mris, mris, RADIANS(dalpha), RADIANS(dbeta), 
+               RADIANS(dgamma)) ;
+
   if (curvature_fname[0])
   {
     fprintf(stderr, "reading source curvature from %s\n",curvature_fname) ;
@@ -129,8 +137,9 @@ main(int argc, char *argv[])
   /*  MRISPwrite(mrisp_template, "temp.hipl") ;*/
 #endif
   
-  
-  MRISsetNeighborhoodSize(mris, nbrs) ;
+
+  if (nbrs > 1)
+    MRISsetNeighborhoodSize(mris, nbrs) ;
   MRISprojectOntoSphere(mris, mris, DEFAULT_RADIUS) ;
   mris->status = MRIS_PARAMETERIZED_SPHERE ;
   MRIScomputeMetricProperties(mris) ;
@@ -168,6 +177,15 @@ get_option(int argc, char *argv[])
     print_help() ;
   else if (!stricmp(option, "-version"))
     print_version() ;
+  else if (!stricmp(option, "rotate"))
+  {
+    dalpha = atof(argv[2]) ;
+    dbeta = atof(argv[3]) ;
+    dgamma = atof(argv[4]) ;
+    fprintf(stderr, "rotating brain by (%2.2f, %2.2f, %2.2f)\n",
+            dalpha, dbeta, dgamma) ;
+    nargs = 3 ;
+  }
   else if (!stricmp(option, "dist"))
   {
     sscanf(argv[2], "%f", &parms.l_dist) ;
