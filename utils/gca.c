@@ -142,7 +142,8 @@ static MRI *mri_gca =0;
 
 void GCAcleanup()
 {
-  MRIfree(&mri_gca);
+	if (mri_gca)
+		MRIfree(&mri_gca);
 }
 
 void GCAsetup()
@@ -1264,11 +1265,11 @@ GCAread(char *fname)
 						int r, c;
             gc = &gcan->gcs[n] ;
             gcan->labels[n] = (unsigned char)fgetc(fp) ;
-	    for (r = 0 ; r < gca->ninputs ; r++)
-	      gc->means[r] = freadFloat(fp) ;
-	    for (i = r = 0 ; r < gca->ninputs ; r++)
-	      for (c = r ; c < gca->ninputs ; c++, i++)
-		gc->covars[i] = freadFloat(fp) ;
+						for (r = 0 ; r < gca->ninputs ; r++)
+							gc->means[r] = freadFloat(fp) ;
+						for (i = r = 0 ; r < gca->ninputs ; r++)
+							for (c = r ; c < gca->ninputs ; c++, i++)
+								gc->covars[i] = freadFloat(fp) ;
             if (gca->flags & GCA_NO_MRF)
               continue ;
             for (i = 0 ; i < GIBBS_NEIGHBORS ; i++)
@@ -1346,13 +1347,13 @@ GCAread(char *fname)
 						
             gcan->labels[n] = (unsigned char)fgetc(fp) ;
 						
-	    for (r = 0 ; r < gca->ninputs ; r++)
-	      gc->means[r] = freadFloat(fp) ;
-	    for (i = r = 0 ; r < gca->ninputs ; r++)
-	      for (c = r ; c < gca->ninputs ; c++, i++)
-		gc->covars[i] = freadFloat(fp) ;
-            if (gca->flags & GCA_NO_MRF)
-              continue ;
+						for (r = 0 ; r < gca->ninputs ; r++)
+							gc->means[r] = freadFloat(fp) ;
+						for (i = r = 0 ; r < gca->ninputs ; r++)
+							for (c = r ; c < gca->ninputs ; c++, i++)
+								gc->covars[i] = freadFloat(fp) ;
+						if (gca->flags & GCA_NO_MRF)
+							continue ;
             for (i = 0 ; i < GIBBS_NEIGHBORS ; i++)
             {
               gc->nlabels[i] = freadInt(fp) ;
@@ -1416,18 +1417,18 @@ GCAread(char *fname)
     {
       for (z = 0 ; z < gca->node_depth ; z++)
       {
-	int xp, yp, zp ;
-	
-	if (x == Ggca_x && y == Ggca_y && z == Ggca_z)
-	  DiagBreak() ;
-	gcan = &gca->nodes[x][y][z] ;
-	gcaNodeToPrior(gca, x, y, z, &xp, &yp, &zp) ;
-	gcap = &gca->priors[xp][yp][zp] ;
-	for (n = 0 ; n < gcan->nlabels ; n++)
-	{
-	  gc = &gcan->gcs[n] ;
-	  gc->ntraining = gcan->total_training * getPrior(gcap,gcan->labels[n]) ;
-	}
+				int xp, yp, zp ;
+				
+				if (x == Ggca_x && y == Ggca_y && z == Ggca_z)
+					DiagBreak() ;
+				gcan = &gca->nodes[x][y][z] ;
+				gcaNodeToPrior(gca, x, y, z, &xp, &yp, &zp) ;
+				gcap = &gca->priors[xp][yp][zp] ;
+				for (n = 0 ; n < gcan->nlabels ; n++)
+				{
+					gc = &gcan->gcs[n] ;
+					gc->ntraining = gcan->total_training * getPrior(gcap,gcan->labels[n]) ;
+				}
       }
     }
   }
