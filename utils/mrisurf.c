@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2005/01/03 15:39:29 $
-// Revision       : $Revision: 1.318 $
+// Revision Date  : $Date: 2005/01/21 22:21:00 $
+// Revision       : $Revision: 1.319 $
 //////////////////////////////////////////////////////////////////
 #include <stdio.h>
 #include <string.h>
@@ -8267,10 +8267,10 @@ MRISreadPatchNoRemove(MRI_SURFACE *mris, char *pname)
     {
       // read int 
       if((cp = fgetl(line, 256, fp)))
-	sscanf(cp, "%d", &i);
+	sscanf(cp, "%d %*s", &i);
       else
 	ErrorReturn(ERROR_BADPARM,
-		    (ERROR_BADPARM, "MRISreadPatch(%s): could not read line for point %d\n", fname, j));
+		    (ERROR_BAD_PARM, "MRISreadPatch(%s): could not read line for point %d\n", fname, j));
 
       // if negative, flip it
       if (i<0)
@@ -15027,6 +15027,7 @@ MRISwritePatchAscii(MRI_SURFACE *mris, char *fname)
   int     vno, fno, n, nvertices, nfaces, type ;
   VERTEX  *v ;
   FACE    *face ;
+  int     i;
 
   type = MRISfileNameType(fname) ;
 #if 0
@@ -15054,7 +15055,7 @@ MRISwritePatchAscii(MRI_SURFACE *mris, char *fname)
       continue ;
     nfaces++ ;
   }
-  fprintf(fp, "#!ascii version of patch %s\n", mris->fname) ;
+  fprintf(fp, "#!ascii version of patch %s. The 1st index is not a vertex number\n", mris->fname) ;
   fprintf(fp, "%d %d\n", nvertices, nfaces) ;
   fprintf(stdout, "nvertices=%d (valid=%d) nfaces=%d\n", nvertices, 
           mrisValidVertices(mris), nfaces) ;
@@ -15062,22 +15063,26 @@ MRISwritePatchAscii(MRI_SURFACE *mris, char *fname)
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
     v = &mris->vertices[vno] ;
-    if (v->ripflag)
-      continue ;
-    fprintf(fp, "%d\n", vno) ;
-    fprintf(fp, "%f  %f  %f\n", v->x, v->y, v->z) ;
+    if (!v->ripflag)
+    {
+      // patch file uses border to change vertex index written to a file
+      i = (v->border) ? (-(vno+1)) : (vno+1);
+      fprintf(fp, "%d vno=%d\n", i, vno) ;
+      fprintf(fp, "%f  %f  %f\n", v->x, v->y, v->z) ;
+    }
   }
+  // face vertex info
   for (fno = 0 ; fno < mris->nfaces ; fno++)
   {
     face = &mris->faces[fno] ;
-    if (face->ripflag)
-      continue ;
-    fprintf(fp, "%d\n", fno) ;
-    for (n = 0 ; n < VERTICES_PER_FACE ; n++)
-      fprintf(fp, "%d ", face->v[n]) ;
-    fprintf(fp, "\n") ;
+    if (!face->ripflag)
+    {
+      fprintf(fp, "%d\n", fno) ;
+      for (n = 0 ; n < VERTICES_PER_FACE ; n++)
+	fprintf(fp, "%d ", face->v[n]) ;
+      fprintf(fp, "\n") ;
+    }
   }
-
   fclose(fp) ;
   return(NO_ERROR) ;
 }
