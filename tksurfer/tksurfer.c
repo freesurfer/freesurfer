@@ -5773,7 +5773,6 @@ read_image_info(char *fpref)
   char fname[NAME_LENGTH], char_buf[100];
   
   sprintf(fname,"%s.info",fpref);
-  /*  printf("surfer: read_image_info:\n");*/
   printf("surfer: %s\n",fname);
   fptr = fopen(fname,"r");
   if (fptr==NULL) {printf("surfer: ### File %s not found.\n",fname);exit(1);}
@@ -5797,7 +5796,15 @@ read_image_info(char *fpref)
   fscanf(fptr, "%*s %*f") ;   /* ti */
   fscanf(fptr, "%*s %s",char_buf);
   fclose(fptr);
-  
+
+  /* RKT: Check for fov == 0, which is incorrect. If it is, set it to
+     0.256, which is a reasonable default.  */
+  if (0 == fov)
+    {
+      print ("surfer: WARNING: fov was 0, setting to 0.256\n");
+      fov = 0.256;
+    }
+
   fov *= 1000;
   ps *= 1000;
   st *= 1000;
@@ -18108,7 +18115,7 @@ int main(int argc, char *argv[])   /* new main */
   /* end rkt */
   
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.46 2003/07/24 20:35:31 kteich Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.47 2003/08/01 16:18:21 kteich Exp $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
