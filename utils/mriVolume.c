@@ -890,15 +890,9 @@ void Volm_GetIntColorAtIdx ( mriVolumeRef this,
   float  value = 0;
   int    colorIdx = 0;
   xVoxel disp;
-  static int hi = 0;
 
   /* transform idx to display transform */
   if( NULL != this->mDisplayTransform ) {
-
-    if( !hi ) {
-      fprintf( stderr, "DISPLAY TRANSFORM\n" );
-      hi = 1;
-    }
 
     Volm_ApplyDisplayTransform_( this, iIdx, &disp );
     if( Volm_VerifyIdx_( this, &disp ) == Volm_tErr_NoErr ) {
