@@ -551,8 +551,8 @@ int   MRIneighborsOff3x3(MRI *mri, int x0, int y0, int z0, int min_val) ;
 
 MRI   *MRIreplaceValues(MRI *mri_src, MRI *mri_dst, 
                        BUFTYPE in_val, BUFTYPE out_val) ;
-MRI   *MRImask(MRI *mri_src, MRI *mri_mask, MRI *mri_dst, BUFTYPE mask,
-               BUFTYPE out_val) ;
+MRI   *MRImask(MRI *mri_src, MRI *mri_mask, MRI *mri_dst, int mask,
+               float out_val) ;
 MRI   *MRIthresholdMask(MRI *mri_src, MRI *mri_mask, MRI *mri_dst, 
                         BUFTYPE mask_threshold, BUFTYPE out_val) ;
 
