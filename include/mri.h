@@ -80,7 +80,7 @@ float MRIvoxelZscore(MRI *mri, int x, int y, int z, int wsize) ;
 float MRIvoxelDx(MRI *mri, int x, int y, int z) ;
 float MRIvoxelDy(MRI *mri, int x, int y, int z) ;
 float MRIvoxelDz(MRI *mri, int x, int y, int z) ;
-float MRIvoxelGradient(MRI *mri, int x, int y, int z, float *pdx, float *pdy,
+float MRIvoxelGradient(MRI *mri, int x, int y, int z, float *pdx, float *pdy, 
                        float *pdz) ;
 float MRIvoxelDirection(MRI *mri, int x, int y, int z, int wsize) ;
 /* use these constants for MRIreorder */
@@ -227,6 +227,9 @@ MRI   *MRIextractCpolvCoords(MRI *mri_src, int *px, int *py, int *pz,
                                  MRI *mri_polv, int x, int y,int z,int wsize);
 MRI   *MRIextractValues(MRI *mri_src, MRI *mri_dst, float min_val, 
                         float max_val) ;
+MRI   *MRIwmfilter(MRI *mri_src, MRI *mri_cpolv, MRI *mri_dst) ;
+MRI   *MRIorder(MRI *mri_src, MRI *mri_dst, int wsize, float pct) ;
+MRI   *MRIremoveHoles(MRI *mri_src, MRI*mri_dst, int wsize, float pct) ;
 
 /* morphology */
 MRI   *MRImorph(MRI *mri_src, MRI *mri_dst, int which) ;
@@ -393,6 +396,5 @@ MRI        *MRIfillFG(MRI *mri_src, MRI *mri_dst, int seed_x, int seed_y,
 #define OFFSET_NEGATIVE_GRADIENT_DIRECTION    0
 #define OFFSET_GRADIENT_DIRECTION             1
 #define OFFSET_ZERO                           2
-
 
 #endif
