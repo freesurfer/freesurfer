@@ -98,6 +98,7 @@ static void xvHipsCmdFrameInit(void) ;
 static void xvCreateImage(XV_FRAME *xvf, DIMAGE *dimage, int x, int y, 
                           int which) ;
 static void xvFreeDimage(DIMAGE *dimage) ;
+static void hipsCmdFrameDone(Frame frame) ;
 
 /*----------------------------------------------------------------------
                               GLOBAL DATA
@@ -619,7 +620,7 @@ xv_dimage_event_handler(Xv_Window xv_window, Event *event)
   {
 #ifdef LINUX
   case MS_MIDDLE:
-    xv_set(hips_cmd_frame, XV_SHOW, TRUE, NULL) ;
+    xv_set(hips_cmd_frame, FRAME_CMD_PUSHPIN_IN, TRUE, XV_SHOW, TRUE, NULL) ;
     hips_cmd_source = which ;
     break ;
   case MS_RIGHT:
@@ -629,7 +630,7 @@ xv_dimage_event_handler(Xv_Window xv_window, Event *event)
     break ;
 #else
   case MS_RIGHT:
-    xv_set(hips_cmd_frame, XV_SHOW, TRUE, NULL) ;
+    xv_set(hips_cmd_frame, FRAME_CMD_PUSHPIN_IN, TRUE, XV_SHOW, TRUE, NULL) ;
     hips_cmd_source = which ;
     break ;
   case MS_MIDDLE:
@@ -829,7 +830,8 @@ static void
 xvHipsCmdFrameInit(void) 
 {
   hips_cmd_frame = (Frame)
-    xv_create((Xv_opaque)NULL, FRAME,
+    xv_create((Xv_opaque)NULL, FRAME_CMD,
+              FRAME_DONE_PROC, hipsCmdFrameDone,
               XV_HEIGHT, HIPS_CMD_ROWS,
               XV_WIDTH,  HIPS_CMD_COLS,
               XV_X,      600,
@@ -1479,3 +1481,9 @@ xvFreeDimage(DIMAGE *dimage)
 /*  (*dimage->ximage->destroy_image)(dimage->ximage)*/
   /* lots of other stuff needed here */
 }
+static void
+hipsCmdFrameDone(Frame frame)
+{
+  xv_set(hips_cmd_frame, FRAME_CMD_PUSHPIN_IN, FALSE, XV_SHOW, FALSE, NULL) ;
+}
+
