@@ -70,6 +70,19 @@
 #define log2(f)     (log(f) / log(10.0))
 #endif
 
+#ifdef _MSDOS
+#include <math.h>
+#define exp2(f)     pow(2.0,(f))
+#define log2(f)     (log(f) / log(10.0))
+#ifndef M_E
+#define M_E 2.718282 /* exp(1) */
+#endif
+#ifndef M_PI
+#define M_PI  3.141593
+#endif
+
+#endif
+
 #define ISPOW2(n)   (exp2((float)nint(log2((float)n))) == (float)n)
 
 #endif
