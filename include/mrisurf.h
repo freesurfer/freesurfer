@@ -20,9 +20,7 @@ typedef struct vertex_type_
   float x,y,z;           /* curr position */
   float nx,ny,nz;        /* curr normal */
   float dx, dy, dz ;     /* current change in position */
-#if 0
   float ox,oy,oz;        /* last position */
-#endif
   float curv;            /* curr curvature */
 #if 0
   float mx,my,mz;        /* last movement */
@@ -48,6 +46,9 @@ typedef struct vertex_type_
   int *n;                /* [0-3, num long] */
   int vnum;              /* number neighboring vertices */
   int *v;                /* array neighboring vertex numbers, vnum long */
+  float *fnx ;           /* face normal - x component */
+  float *fny ;           /* face normal - y component */
+  float *fnz ;           /* face normal - z component */
   float *tri_area ;      /* array of triangle areas - num long */
   float *orig_tri_area ;     /* array of original triangle areas - num long */
   float *tri_angle ;     /* angles of each triangle this vertex belongs to */
@@ -124,7 +125,36 @@ typedef struct
 } MRI_SURFACE, MRIS ;
 
 
+typedef struct
+{
+  float   tol ;               /* tolerance for terminating a step */
+  float   l_angle ;           /* coefficient of angle term */
+  float   l_area ;            /* coefficient of area term */
+  float   l_corr ;            /* coefficient of correlation term */
+  int     n_averages ;        /* # of averages */
+  int     write_iterations ;  /* # of iterations between saving movies */
+  char    base_name[100] ;    /* base name of movie files */
+  int     projection ;        /* what kind of projection to do */
+  int     niterations ;       /* max # of time steps */
+  float   a ;
+  float   b ;
+  float   c ;                 /* ellipsoid parameters */
+  int     start_t ;           /* starting time step */
+  int     t ;                 /* current time */
+  FILE    *fp ;               /* for logging results */
+} INTEGRATION_PARMS ;
 
+
+#define L_ANGLE              0.01f   /* coefficient of angle term */
+#define L_AREA               1.0f    /* coefficient of angle term */
+#define N_AVERAGES           4096
+#define WRITE_ITERATIONS     1
+#define NITERATIONS          50
+#define NO_PROJECTION        0
+#define PROJECT_ELLIPSOID    1
+#define ELLIPSOID_PROJECTION PROJECT_ELLIPSOID
+
+#define TOL                  1e-5  /* minimum error tolerance for halting */
 
 MRI_SURFACE  *MRISread(char *fname) ;
 int          MRISwrite(MRI_SURFACE *mris, char *fname) ;
@@ -133,12 +163,14 @@ int          MRISfree(MRI_SURFACE **pmris) ;
 MRI_SURFACE  *MRISprojectOntoEllipsoid(MRI_SURFACE *mris_src, 
                                        MRI_SURFACE *mris_dst, 
                                        float a, float b, float c) ;
+MRI_SURFACE  *MRISradialProjectOntoEllipsoid(MRI_SURFACE *mris_src, 
+                                             MRI_SURFACE *mris_dst, 
+                                             float a, float b, float c);
 MRI_SURFACE  *MRISclone(MRI_SURFACE *mris_src) ;
 MRI_SURFACE  *MRIScenter(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst) ;
 MRI_SURFACE  *MRIStalairachTransform(MRI_SURFACE *mris_src, 
                                     MRI_SURFACE *mris_dst);
-MRI_SURFACE  *MRISunfold(MRI_SURFACE *mris, int niterations, float momentum,
-                         float l_area, float l_angle, float l_corr);
+MRI_SURFACE  *MRISunfold(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) ;
 int          MRIScomputeFaceAreas(MRI_SURFACE *mris) ;
 int          MRISupdateEllipsoidSurface(MRI_SURFACE *mris) ;
 int          MRISwriteTriangleProperties(MRI_SURFACE *mris, char *mris_fname);
