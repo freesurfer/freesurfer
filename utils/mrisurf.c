@@ -858,7 +858,11 @@ MRISwrite(MRI_SURFACE *mris, char *fname)
   if (fp==NULL) 
     ErrorReturn(ERROR_BADFILE,
                 (ERROR_BADFILE,"MRISwrite(%s): can't create file\n",fname));
+#if 0
   fwrite3(NEW_QUAD_FILE_MAGIC_NUMBER,fp);
+#else
+  fwrite3(QUAD_FILE_MAGIC_NUMBER,fp);
+#endif
   fwrite3(mris->nvertices,fp);
   fwrite3(mris->nfaces/2,fp);   /* # of quadrangles */
   for (k = 0 ; k < mris->nvertices ; k++)
@@ -866,7 +870,7 @@ MRISwrite(MRI_SURFACE *mris, char *fname)
     x = mris->vertices[k].x;
     y = mris->vertices[k].y;
     z = mris->vertices[k].z;
-#if 0
+#if 1
     fwrite2((int)(x*100),fp);
     fwrite2((int)(y*100),fp);
     fwrite2((int)(z*100),fp);
