@@ -13,6 +13,7 @@
 #define MRI_LONG    2
 #define MRI_FLOAT   3
 #define MRI_SHORT   4
+#define MRI_BITMAP  5
 
 typedef struct
 {
@@ -177,6 +178,8 @@ MRI   *MRIySobelRegion(MRI *mri_src, MRI *mri_y, int frame,MRI_REGION *region);
 MRI   *MRIzSobelRegion(MRI *mri_src, MRI *mri_z, int frame,MRI_REGION *region);
 
 MRI   *MRIreduce(MRI *mri_src, MRI *mri_dst) ;
+MRI   *MRIconvolve1dByte(MRI *mri_src, MRI *mri_dst, float *k, int len, 
+                         int axis) ;
 MRI   *MRIconvolve1d(MRI *mri_src, MRI *mri_dst, float *kernel, 
                      int len, int axis) ;
 MRI   *MRIreduce1d(MRI *mri_src, MRI *mri_dst,float *kernel,int len,int axis);
@@ -295,12 +298,15 @@ int   MRItransformRegion(MRI *mri_src, MRI *mri_dst, MRI_REGION *src_region,
                                  MRI_REGION *dst_region) ;
 MRI   *MRIextractTalairachPlane(MRI *mri_src, MRI *mri_dst, int orientation, 
                                 int x, int y, int z, int size) ;
-int   MRIeraseTalairachPlane(MRI *mri, MRI *mri_mask,
-                              int orientation, int x, int y, int z, int size) ;
+int   MRIeraseTalairachPlane(MRI *mri, MRI *mri_mask, int orientation, 
+                             int x, int y, int z,int size);
+
+int   MRIsampleVolume(MRI *mri, Real x, Real y, Real z, Real *pval) ;
 
 /* resampling routines */
 MRI   *MRIupsample2(MRI *mri_src, MRI *mri_dst) ;
 MRI   *MRIdownsample2(MRI *mri_src, MRI *mri_dst) ;
+
 
 
 #include "image.h"
@@ -308,7 +314,10 @@ MRI   *MRIdownsample2(MRI *mri_src, MRI *mri_dst) ;
 IMAGE *MRItoImage(MRI *mri, IMAGE *I, int slice) ;
 IMAGE *MRItoImageView(MRI *mri, IMAGE *I, int slice, int view, int frame) ;
 
-
+/* bitmap image access macros */
+#define MRIset_bit(mri,x,y,z)    MRIvox(mri,x/8,y,z) |= (0x001 << ((x)%8))
+#define MRItest_bit(mri,x,y,z)   (MRIvox(mri,x/8,y,z) & (0x001 << ((x)%8)))
+#define MRIclear_bit(mri,x,y,z)  MRIvox(mri,x/8,y,z) &= ~(0x001 << ((x)%8))
 
 #define MRISvox(mri,x,y,z)  (((short *)mri->slices[z][y])[x])
 #define MRIFvox(mri,x,y,z)  (((float *)(mri->slices[z][y]))[x])
