@@ -3043,41 +3043,51 @@ MRIabs(MRI *mri_src, MRI *mri_dst)
   }
   return(mri_dst) ;
 }
-/*-----------------------------------------------------
-        Parameters:
-
-        Returns value:
-
-        Description
-
-------------------------------------------------------*/
+/*-----------------------------------------------------*/
 MRI *
 MRIadd(MRI *mri1, MRI *mri2, MRI *mri_dst)
 {
-  int     width, height, depth, x, y, z ;
-  BUFTYPE *p1, *p2, *pdst ;
+  int     nframes, width, height, depth, x, y, z, f ;
+  float v1, v2, vsum;
+  //BUFTYPE *p1, *p2, *pdst ;
 
   width = mri1->width ;
   height = mri1->height ;
   depth = mri1->depth ;
+  nframes = mri1->nframes ;
+  if(nframes == 0) nframes = 1;
 
-  if (!mri_dst)
-  {
-    mri_dst = MRIalloc(width, height, depth, mri1->type) ;
+  if (!mri_dst){
+    mri_dst = MRIallocSequence(width, height, depth, mri1->type,nframes) ;
     MRIcopyHeader(mri1, mri_dst) ;
   }
 
-  for (z = 0 ; z < depth ; z++)
-  {
-    for (y = 0 ; y < height ; y++)
-    {
+  for (z = 0 ; z < depth ; z++){
+    for (y = 0 ; y < height ; y++){
+      for (x = 0 ; x < width ; x++){
+	for (f = 0 ; f < nframes ; f++){
+	  v1 = MRIgetVoxVal(mri1,x,y,z,f);
+	  v2 = MRIgetVoxVal(mri2,x,y,z,f);
+	  vsum = v1+v2;
+	  MRIsetVoxVal(mri_dst,x,y,z,f,vsum);
+	}
+      }
+    }
+  }
+
+#if 0 /* This is what it used to be, only worked
+	 with nframes = 1 and for type BUF_TYPE */
+  for (z = 0 ; z < depth ; z++){
+    for (y = 0 ; y < height ; y++){
       p1 = mri1->slices[z][y] ;
       p2 = mri2->slices[z][y] ;
       pdst = mri_dst->slices[z][y] ;
       for (x = 0 ; x < width ; x++)
-        *pdst++ = *p1++ + *p2++ ;
+	*pdst++ = *p1++ + *p2++ ;
     }
   }
+#endif
+
   return(mri_dst) ;
 }
 /*-----------------------------------------------------
