@@ -249,7 +249,7 @@ main(int argc, char *argv[])
                                         (int)min_spacing,min_prior);
   else
     parms.gcas = GCAfindStableSamples(gca, &nsamples,
-                                      (int)min_spacing,min_prior);
+                                      (int)min_spacing,min_prior, NULL);
   printf("using %d sample points...\n", nsamples) ;
 #endif
   parms.nsamples = nsamples ;
@@ -431,7 +431,7 @@ main(int argc, char *argv[])
     {
       free(parms.gcas) ;
       parms.gcas = GCAfindStableSamples(gca, &nsamples,
-                                        (int)min_spacing,min_prior);
+                                        (int)min_spacing,min_prior, NULL);
       printf("using %d sample points...\n", nsamples) ;
       parms.nsamples = nsamples ;
     }
@@ -439,7 +439,7 @@ main(int argc, char *argv[])
 
   {
     free(parms.gcas) ;
-    parms.gcas = GCAfindAllSamples(gca, &nsamples) ;
+    parms.gcas = GCAfindAllSamples(gca, &nsamples, NULL) ;
     parms.nsamples = nsamples ;
 
     printf("computing final MAP estimate of linear transform using %d samples...\n",

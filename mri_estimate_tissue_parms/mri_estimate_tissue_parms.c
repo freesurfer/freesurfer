@@ -121,7 +121,7 @@ main(int argc, char *argv[])
       else if (!stricmp(argv[i]+1, "tr"))
         tr = atof(argv[i+1]) ;
       else if (!stricmp(argv[i]+1, "fa"))
-        fa = atof(argv[i+1]) ;
+        fa = RADIANS(atof(argv[i+1])) ;
       else
         ErrorExit(ERROR_BADPARM, "%s: unsupported MR parameter %s",
                   Progname, argv[i]+1) ;
@@ -151,8 +151,8 @@ main(int argc, char *argv[])
       fa = 0 ;
     }
     printf("TE = %2.2f, TR = %2.2f, alpha = %2.2f\n", mri_flash[nvolumes]->te, 
-           mri_flash[nvolumes]->tr, mri_flash[nvolumes]->flip_angle) ;
-    mri_flash[nvolumes]->flip_angle = RADIANS(mri_flash[nvolumes]->flip_angle);
+           mri_flash[nvolumes]->tr, DEGREES(mri_flash[nvolumes]->flip_angle)) ;
+    mri_flash[nvolumes]->flip_angle = mri_flash[nvolumes]->flip_angle;
     if (conform)
     {
       MRI *mri_tmp ;
