@@ -314,6 +314,10 @@ int MWin_TclSetTool       ( ClientData  iClientData,
 			    Tcl_Interp* ipInterp,
 			    int   argc,
 			    char*   argv[] );
+int MWin_TclSetBrushTarget    ( ClientData  iClientData, 
+			       Tcl_Interp* ipInterp,
+			       int   argc,
+			       char*   argv[] );
 int MWin_TclSetBrushShape    ( ClientData  iClientData, 
 			       Tcl_Interp* ipInterp,
 			       int   argc,

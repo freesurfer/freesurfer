@@ -320,12 +320,13 @@ tkm_tErr LoadVolume    ( tkm_tVolumeType iType,
 			 char*     isFileName );
 
 /* saves the anatomical volume. if isPath is null, saves over the original. */
-tkm_tErr SaveVolume    ( char*     isPath );
+tkm_tErr SaveVolume    ( tkm_tVolumeType iType,
+			 char*     isPath );
 
 
 /* tells volume to load or unload this display transform */
 tkm_tErr LoadDisplayTransform  ( tkm_tVolumeType iVolume,
-          char*      isFileName );
+				 char*      isFileName );
 tkm_tErr UnloadDisplayTransform ( tkm_tVolumeType iVolume );
 
 /* operations on the main volume */
@@ -336,28 +337,30 @@ tkm_tErr SetVolumeDirty ( tkm_tVolumeType iVolume, tBoolean ibDirty );
 tkm_tErr IsVolumeDirty ( tkm_tVolumeType iVolume, tBoolean* obDirty );
 
 void SetVolumeBrightnessAndContrast ( tkm_tVolumeType iVolume,
-              float        ifBrightness,
-              float        ifContrast );
+				      float        ifBrightness,
+				      float        ifContrast );
 
 void ThresholdVolume ( int    inLevel,
-           tBoolean      ibAbove,
-           int        inNewLevel );
+		       tBoolean      ibAbove,
+		       int        inNewLevel );
 void FlipVolume       ( mri_tOrientation iAxis );
 void RotateVolume    ( mri_tOrientation iAxis,
-           float      ifDegrees );
+		       float      ifDegrees );
 
-void EditVoxelInRange ( xVoxelRef    ipVoxel, 
-      Volm_tValue  inLow,
-      Volm_tValue  inHigh, 
-      Volm_tValue  inNewValue );
+void EditVoxelInRange ( tkm_tVolumeType iVolume,
+			xVoxelRef       ipVoxel, 
+			Volm_tValue     inLow,
+			Volm_tValue     inHigh, 
+			Volm_tValue     inNewValue );
 
 int EditAnatomicalVolume ( xVoxelRef iAnaIdx, int inValue );
+int EditAuxAnatomicalVolume ( xVoxelRef iAnaIdx, int inValue );
 
 void ConvertRASToAnaIdx ( xVoxelRef iRAS,
-        xVoxelRef oAnaIdx );
+			  xVoxelRef oAnaIdx );
 
 void ConvertAnaIdxToRAS ( xVoxelRef iAnaIdx,
-        xVoxelRef oRAS );
+			  xVoxelRef oRAS );
 
 // ========================================================= FUNCTIONAL VOLUME
 
@@ -2983,14 +2986,14 @@ int TclLoadAuxVolume ( ClientData inClientData, Tcl_Interp* inInterp,
 int TclSaveVolume ( ClientData inClientData, Tcl_Interp* inInterp,
         int argc, char* argv[] ) {
   
-  if ( argc != 1 ) {
-    Tcl_SetResult ( inInterp, "wrong # args: SaveVolume",
-        TCL_VOLATILE );
+  if ( argc != 2 ) {
+    Tcl_SetResult ( inInterp, "wrong # args: SaveVolume [0=main,1=aux]",
+		    TCL_VOLATILE );
     return TCL_ERROR;
   }
   
   if( gbAcceptingTclCommands ) {
-    SaveVolume( NULL );
+    SaveVolume( atoi( argv[1] ), NULL );
   }
   
   return TCL_OK;
@@ -2999,14 +3002,14 @@ int TclSaveVolume ( ClientData inClientData, Tcl_Interp* inInterp,
 int TclSaveVolumeAs ( ClientData inClientData, Tcl_Interp* inInterp,
           int argc, char* argv[] ) {
   
-  if ( argc != 2 ) {
-    Tcl_SetResult ( inInterp, "wrong # args: SaveVolumeAs volume_path",
-        TCL_VOLATILE );
+  if ( argc != 3 ) {
+    Tcl_SetResult ( inInterp, "wrong # args: SaveVolumeAs [0=main,1=aux] "
+		    "volume_path:string", TCL_VOLATILE );
     return TCL_ERROR;
   }
   
   if( gbAcceptingTclCommands ) {
-    SaveVolume( argv[1] );
+    SaveVolume( atoi( argv[1] ), argv[2] );
   }
   
   return TCL_OK;
@@ -4334,6 +4337,7 @@ int main ( int argc, char** argv ) {
   tkm_SendTclCommand( tkm_tTclCommand_ShowGCAOptions, "0" );
   tkm_SendTclCommand( tkm_tTclCommand_ShowSegmentationOptions, "0" );
   tkm_SendTclCommand( tkm_tTclCommand_ShowVolumeDirtyOptions, "0" );
+  tkm_SendTclCommand( tkm_tTclCommand_ShowAuxVolumeDirtyOptions, "0" );
   tkm_SendTclCommand( tkm_tTclCommand_ShowMainTransformLoadedOptions, "0" );
   tkm_SendTclCommand( tkm_tTclCommand_ShowAuxTransformLoadedOptions, "0" );
   
@@ -6380,7 +6384,8 @@ tkm_tErr UnloadDisplayTransform ( tkm_tVolumeType iVolume ) {
   return eResult;
 }
 
-tkm_tErr SaveVolume ( char* isPath ) {
+tkm_tErr SaveVolume ( tkm_tVolumeType iVolume,
+		      char*           isPath ) {
   
   tkm_tErr  eResult         = tkm_tErr_NoErr;
   Volm_tErr eVolume         = Volm_tErr_NoErr;
@@ -6388,22 +6393,23 @@ tkm_tErr SaveVolume ( char* isPath ) {
   char      sFileName[tkm_knPathLen] = "";
   char*      psFileName         = NULL;
   
-  DebugEnterFunction( ("SaveVolume( isPath=%s )", isPath) );
+  DebugEnterFunction( ("SaveVolume( iVolume=%d, isPath=%s )", 
+		       iVolume, isPath) );
   
-  if( NULL == gAnatomicalVolume[tkm_tVolumeType_Main] ) 
+  if( NULL == gAnatomicalVolume[iVolume] ) 
     DebugGotoCleanup;
   
   /* if we have editing disabled, return */
   if( !editflag ) {
     tkm_DisplayError( "Saving Volume", 
-          "Couldn't save volume",
-          "This session was started in read-only mode. You cannot "
-          "save changes." );
+		      "Couldn't save volume",
+		      "This session was started in read-only mode. You cannot "
+		      "save changes." );
     DebugGotoCleanup;
   }
   
   /* if we haven't been edited, return */
-  eResult = IsVolumeDirty( tkm_tVolumeType_Main, &bDirty );
+  eResult = IsVolumeDirty( iVolume, &bDirty );
   if( !bDirty ) {
     DebugPrint( ("SaveVolume called when volume is clean!\n") );
     DebugGotoCleanup;
@@ -6417,7 +6423,7 @@ tkm_tErr SaveVolume ( char* isPath ) {
   } 
   
   /* write the main anatomical volume */
-  eVolume = Volm_ExportNormToCOR( gAnatomicalVolume[tkm_tVolumeType_Main], 
+  eVolume = Volm_ExportNormToCOR( gAnatomicalVolume[iVolume], 
           psFileName );
   if( Volm_tErr_NoErr != eVolume ) {
     tkm_DisplayError( "Saving Volume", 
@@ -6429,7 +6435,7 @@ tkm_tErr SaveVolume ( char* isPath ) {
   }
   
   /* set our edited flags null */
-  eResult = SetVolumeDirty( tkm_tVolumeType_Main, FALSE );
+  eResult = SetVolumeDirty( iVolume, FALSE );
   DebugAssertThrow( (tkm_tErr_NoErr == eResult) );
   
   
@@ -6498,10 +6504,20 @@ tkm_tErr SetVolumeDirty ( tkm_tVolumeType iVolume, tBoolean ibDirty ) {
   gbAnatomicalVolumeDirty[iVolume] = ibDirty;
   
   /* update tcl */
-  tkm_SendTclCommand( tkm_tTclCommand_ShowVolumeDirtyOptions, 
-          ibDirty?"1":"0" );
-  tkm_SendTclCommand( tkm_tTclCommand_UpdateVolumeDirty, ibDirty?"1":"0" );
-  
+  switch( iVolume ) {
+  case tkm_tVolumeType_Main:
+    tkm_SendTclCommand( tkm_tTclCommand_ShowVolumeDirtyOptions, 
+			ibDirty?"1":"0" );
+    tkm_SendTclCommand( tkm_tTclCommand_UpdateVolumeDirty, ibDirty?"1":"0" );
+    break;
+  case tkm_tVolumeType_Aux:
+    tkm_SendTclCommand( tkm_tTclCommand_ShowAuxVolumeDirtyOptions, 
+			ibDirty?"1":"0" );
+    tkm_SendTclCommand( tkm_tTclCommand_UpdateAuxVolumeDirty,ibDirty?"1":"0" );
+    break;
+  default:
+  }
+
   DebugCatch;
   DebugCatchError( eResult, tkm_tErr_NoErr, tkm_GetErrorString );
   EndDebugCatch;
@@ -6516,9 +6532,9 @@ tkm_tErr IsVolumeDirty ( tkm_tVolumeType iVolume, tBoolean* obDirty ) {
   tkm_tErr eResult = tkm_tErr_NoErr;
   
   DebugEnterFunction( ("IsVolumeDirty ( iVolume=%d, obDirty=%p )",
-           (int)iVolume, obDirty) );
+		       (int)iVolume, obDirty) );
   DebugAssertThrowX( (iVolume >= 0 && iVolume < tkm_knNumVolumeTypes),
-         eResult, tkm_tErr_InvalidParameter );
+		     eResult, tkm_tErr_InvalidParameter );
   
   /* get the dirty flag */
   *obDirty = gbAnatomicalVolumeDirty[iVolume];
@@ -6569,8 +6585,8 @@ void SetVolumeBrightnessAndContrast ( tkm_tVolumeType iVolume,
 }
 
 void ThresholdVolume ( int    inLevel,
-           tBoolean   ibAbove,
-           int        inNewLevel ) {
+		       tBoolean   ibAbove,
+		       int        inNewLevel ) {
   
   tkm_tErr  eResult = tkm_tErr_NoErr;
   Volm_tErr eVolume = Volm_tErr_NoErr;
@@ -6654,17 +6670,22 @@ void RotateVolume ( mri_tOrientation  iAxis,
   DebugExitFunction;
 }
 
-void EditVoxelInRange ( xVoxelRef    ipVoxel, 
-      Volm_tValue  inLow,
-      Volm_tValue  inHigh, 
-      Volm_tValue  inNewValue ) {
+void EditVoxelInRange ( tkm_tVolumeType iVolume,
+			xVoxelRef       ipVoxel, 
+			Volm_tValue     inLow,
+			Volm_tValue     inHigh, 
+			Volm_tValue     inNewValue ) {
   
   float        value    = 0;
   Volm_tValue newValue = 0;
+
+  if( NULL == gAnatomicalVolume[iVolume] ) {
+    return;
+  }
   
   /* get the value at this point. */
-  Volm_GetValueAtIdx( gAnatomicalVolume[tkm_tVolumeType_Main], 
-          ipVoxel, &value );
+  Volm_GetValueAtIdx( gAnatomicalVolume[iVolume], 
+		      ipVoxel, &value );
   newValue = (int)value;
   
   /* if it's in the range... */
@@ -6676,14 +6697,30 @@ void EditVoxelInRange ( xVoxelRef    ipVoxel,
   
   /* if values are different, set and add to undo list. */
   if( value != newValue ) {
-    Volm_SetValueAtIdx( gAnatomicalVolume[tkm_tVolumeType_Main], 
-      ipVoxel, newValue );
-    AddVoxelAndValueToUndoList( EditAnatomicalVolume, ipVoxel, value );
-    AddAnaIdxAndValueToUndoVolume( ipVoxel, value );
+    Volm_SetValueAtIdx( gAnatomicalVolume[iVolume], 
+			ipVoxel, newValue );
+
+    switch( iVolume ) {
+    case tkm_tVolumeType_Main:
+      /* if this is an edit on the main volume, add it to the undo list
+	 using the EditAnatomicalVolume function and also add it to the
+	 undo volume. */
+      AddVoxelAndValueToUndoList( EditAnatomicalVolume, ipVoxel, value ); 
+      AddAnaIdxAndValueToUndoVolume( ipVoxel, value ); 
+      break;
+      
+    case tkm_tVolumeType_Aux:
+      /* if this is an edit on the aux volume, add it to the undo list
+       using the EditAuxAnatomicalVolume function. */
+      AddVoxelAndValueToUndoList( EditAuxAnatomicalVolume, ipVoxel, value ); 
+      break;
+
+    default:
+    }
   }
   
   /* volume is dirty. */
-  SetVolumeDirty( tkm_tVolumeType_Main, TRUE );
+  SetVolumeDirty( iVolume, TRUE );
 }
 
 int EditAnatomicalVolume ( xVoxelRef iAnaIdx, int inValue ) {
@@ -6693,17 +6730,45 @@ int EditAnatomicalVolume ( xVoxelRef iAnaIdx, int inValue ) {
   float        value   = 0;
   
   DebugEnterFunction( ("EditAnatomicalVolume( iAnaIdx=%d,%d,%d, inValue=%d)",
-           xVoxl_ExpandInt(iAnaIdx), inValue) );
+		       xVoxl_ExpandInt(iAnaIdx), inValue) );
   
   /* get the current value so we can return it. set the new value */
   eVolume = Volm_GetValueAtIdx( gAnatomicalVolume[tkm_tVolumeType_Main], 
-        iAnaIdx, &value );
+				iAnaIdx, &value );
   DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
-         eResult, tkm_tErr_ErrorAccessingVolume );
+		     eResult, tkm_tErr_ErrorAccessingVolume );
   eVolume = Volm_SetValueAtIdx( gAnatomicalVolume[tkm_tVolumeType_Main], 
-        iAnaIdx, inValue );
+				iAnaIdx, inValue );
   DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
-         eResult, tkm_tErr_ErrorAccessingVolume );
+		     eResult, tkm_tErr_ErrorAccessingVolume );
+  
+  DebugCatch;
+  DebugCatchError( eResult, tkm_tErr_NoErr, tkm_GetErrorString );
+  EndDebugCatch;
+  
+  DebugExitFunction;
+  
+  return (int)value;
+}
+
+int EditAuxAnatomicalVolume ( xVoxelRef iAnaIdx, int inValue ) {
+  
+  tkm_tErr    eResult = tkm_tErr_NoErr;
+  Volm_tErr   eVolume = Volm_tErr_NoErr;
+  float        value   = 0;
+  
+  DebugEnterFunction(("EditAuxAnatomicalVolume( iAnaIdx=%d,%d,%d, inValue=%d)",
+		       xVoxl_ExpandInt(iAnaIdx), inValue) );
+  
+  /* get the current value so we can return it. set the new value */
+  eVolume = Volm_GetValueAtIdx( gAnatomicalVolume[tkm_tVolumeType_Aux], 
+				iAnaIdx, &value );
+  DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
+		     eResult, tkm_tErr_ErrorAccessingVolume );
+  eVolume = Volm_SetValueAtIdx( gAnatomicalVolume[tkm_tVolumeType_Aux], 
+				iAnaIdx, inValue );
+  DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
+		     eResult, tkm_tErr_ErrorAccessingVolume );
   
   DebugCatch;
   DebugCatchError( eResult, tkm_tErr_NoErr, tkm_GetErrorString );
@@ -8320,16 +8385,15 @@ void AddVoxelAndValueToUndoList ( tUndoActionFunction iFunction,
   /* make the entry */
   NewUndoEntry( &entry, iFunction, iVoxel, inValue );
   if( NULL == entry ) {
-    DebugPrint( ( "AddVoxelAndValueToUndoList(): Couldn't create entry.\n"
-      ) );
+    DebugPrint( ( "AddVoxelAndValueToUndoList(): Couldn't create entry.\n" ) );
     return;
   }
   
   /* add the entry */
   eList = xUndL_AddEntry( gUndoList, entry );
   if( xUndL_tErr_NoErr != eList ) {
-    DebugPrint( ( "AddVoxelAndValueToUndoList(): Error in xUndL_AddEntry %d: %s\n",
-      eList, xUndL_GetErrorString( eList ) ) );
+    DebugPrint( ( "AddVoxelAndValueToUndoList(): Error in xUndL_AddEntry "
+		  "%d: %s\n", eList, xUndL_GetErrorString( eList ) ) );
   }
 }
 
@@ -8346,6 +8410,7 @@ void RestoreUndoList () {
   
   /* volume is dirty now */
   SetVolumeDirty( tkm_tVolumeType_Main, TRUE );
+  SetVolumeDirty( tkm_tVolumeType_Aux, TRUE );
   
   /* force a redraw in the window */
   UpdateAndRedraw();
@@ -9388,12 +9453,13 @@ void tkm_WriteControlFile () {
   WriteControlPointFile( );
 }
 
-void tkm_EditVoxelInRange( xVoxelRef  inVolumeVox, 
-         tVolumeValue inLow, 
-         tVolumeValue inHigh, 
-         tVolumeValue inNewValue ) {
+void tkm_EditVoxelInRange( tkm_tVolumeType  iVolume, 
+			   xVoxelRef        inVolumeVox, 
+			   tVolumeValue     inLow, 
+			   tVolumeValue     inHigh, 
+			   tVolumeValue     inNewValue ) {
   
-  EditVoxelInRange( inVolumeVox, inLow, inHigh, inNewValue );
+  EditVoxelInRange( iVolume, inVolumeVox, inLow, inHigh, inNewValue );
   
 }
 
@@ -9703,6 +9769,7 @@ char kTclCommands [tkm_knNumTclCommands][STRLEN] = {
   "UpdateOrientation",
   "UpdateDisplayFlag",
   "UpdateTool",
+  "UpdateBrushTarget",
   "UpdateBrushShape",
   "UpdateBrushInfo",
   "UpdateCursorColor",
@@ -9715,6 +9782,7 @@ char kTclCommands [tkm_knNumTclCommands][STRLEN] = {
   "UpdateTimerStatus",
   "UpdateHomeDirectory",
   "UpdateVolumeDirty",
+  "UpdateAuxVolumeDirty",
   
   /* display status */
   "ShowVolumeCoords",
@@ -9727,6 +9795,7 @@ char kTclCommands [tkm_knNumTclCommands][STRLEN] = {
   "ShowFuncValue",
   "tkm_SetMenuItemGroupStatus tMenuGroup_AuxVolumeOptions",
   "tkm_SetMenuItemGroupStatus tMenuGroup_DirtyAnatomicalVolume",
+  "tkm_SetMenuItemGroupStatus tMenuGroup_DirtyAuxAnatomicalVolume",
   "tkm_SetMenuItemGroupStatus tMenuGroup_VolumeMainTransformLoadedOptions",
   "tkm_SetMenuItemGroupStatus tMenuGroup_VolumeAuxTransformLoadedOptions",
   "tkm_SetMenuItemGroupStatus tMenuGroup_OverlayOptions",
@@ -9895,14 +9964,14 @@ void HandleSegfault ( int nSignal ) {
   
   IsVolumeDirty( tkm_tVolumeType_Main, &bDirty );
   if( bDirty ) {
-    printf( "    : Attempting to save volume to /tmp directory...\n" );
-    SaveVolume( "/tmp" );
+    printf( "    : Attempting to save main volume to /tmp directory...\n" );
+    SaveVolume( tkm_tVolumeType_Main, "/tmp" );
     printf( "    : Data was saved to /tmp.\n" );
     printf( "    :\n" );
   }
   
   printf( "  : Please send the contents of the file .xdebug_tkmedit\n" );
-  printf( "  : that should be in this directory to kteich@nmr.mgh.harvard.edu\n");
+  printf( "  : that should be in this directory to analysis-bugs@nmr.mgh.harvard.edu\n");
   printf( "  :\n" );
   
   printf( "  : Now exiting...\n" );

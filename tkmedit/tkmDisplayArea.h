@@ -106,10 +106,20 @@ typedef struct {
   int mnNewValue;
 } DspA_tBrushInfo, *DspA_tBrushInfoRef;
 
+typedef enum {
+  DspA_tBrushTarget_None = -1,
+  DspA_tBrushTarget_Main,
+  DspA_tBrushTarget_MainAux,
+  DspA_knNumBrushTargets
+} DspA_tBrushTarget;
+
 /* the combined brush settings. all use the same shape, but there can be
    different threshold settings (for different mouse buttons). */
 typedef struct {
   
+  /* target */
+  DspA_tBrushTarget mTarget;
+
   /* shape */
   int mnRadius;
   DspA_tBrushShape mShape;

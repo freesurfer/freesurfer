@@ -1708,6 +1708,46 @@ DspA_tErr DspA_SetTool ( tkmDisplayAreaRef this,
   return eResult;
 }
 
+DspA_tErr DspA_SetBrushTarget ( tkmDisplayAreaRef this,
+				DspA_tBrushTarget iTarget ) {
+  
+  DspA_tErr eResult            = DspA_tErr_NoErr;
+  char      sTclArguments[STRLEN] = "";
+  
+  /* verify us. */
+  eResult = DspA_Verify ( this );
+  if ( DspA_tErr_NoErr != eResult )
+    goto error;
+  
+  /* check the input before setting the info */
+  if( iTarget > DspA_tBrushTarget_None
+      && iTarget <= DspA_knNumBrushTargets ) {
+    sBrush.mTarget = iTarget;
+  }
+  
+  /* if we're the currently focused display... */
+  if( sFocusedDisplay == this ) {
+    
+    /* send the tcl update. */
+    sprintf ( sTclArguments, "%d", (int)sBrush.mTarget );
+    tkm_SendTclCommand( tkm_tTclCommand_UpdateBrushTarget, sTclArguments );
+  }
+  
+  goto cleanup;
+  
+ error:
+  
+  /* print error message */
+  if ( DspA_tErr_NoErr != eResult ) {
+    DebugPrint( ("Error %d in DspA_SetBrushTarget: %s\n",
+		 eResult, DspA_GetErrorString(eResult) ) );
+  }
+  
+ cleanup:
+  
+  return eResult;
+}
+
 DspA_tErr DspA_SetBrushShape ( tkmDisplayAreaRef this,
 			       int               inRadius,
 			       DspA_tBrushShape  iShape,
@@ -1750,7 +1790,7 @@ DspA_tErr DspA_SetBrushShape ( tkmDisplayAreaRef this,
   
   /* print error message */
   if ( DspA_tErr_NoErr != eResult ) {
-    DebugPrint( ("Error %d in DspA_SetBrush: %s\n",
+    DebugPrint( ("Error %d in DspA_SetBrushShape: %s\n",
 		 eResult, DspA_GetErrorString(eResult) ) );
   }
   
@@ -3369,11 +3409,26 @@ void DspA_BrushVoxelsInThreshold_ ( xVoxelRef ipVoxel, void* ipData ) {
     return;
   }
   
-  /* edit the voxel */
-  tkm_EditVoxelInRange( ipVoxel, 
-			sBrush.mInfo[brush].mnLow,
-			sBrush.mInfo[brush].mnHigh,
-			sBrush.mInfo[brush].mnNewValue );
+  /* edit the voxel according to what the brush target is. */
+  switch( sBrush.mTarget ) {
+  case DspA_tBrushTarget_Main:
+    tkm_EditVoxelInRange( tkm_tVolumeType_Main, ipVoxel, 
+			  sBrush.mInfo[brush].mnLow,
+			  sBrush.mInfo[brush].mnHigh,
+			  sBrush.mInfo[brush].mnNewValue );
+    break;
+  case DspA_tBrushTarget_MainAux:
+    tkm_EditVoxelInRange( tkm_tVolumeType_Main, ipVoxel, 
+			  sBrush.mInfo[brush].mnLow,
+			  sBrush.mInfo[brush].mnHigh,
+			  sBrush.mInfo[brush].mnNewValue );
+    tkm_EditVoxelInRange( tkm_tVolumeType_Aux, ipVoxel, 
+			  sBrush.mInfo[brush].mnLow,
+			  sBrush.mInfo[brush].mnHigh,
+			  sBrush.mInfo[brush].mnNewValue );
+    break;
+  default:
+  }
 }
 
 void DspA_SelectVoxels_ ( xVoxelRef ipVoxel, void* ipData ) {

@@ -99,6 +99,7 @@ typedef enum {
   tkm_tTclCommand_UpdateOrientation,
   tkm_tTclCommand_UpdateDisplayFlag,
   tkm_tTclCommand_UpdateTool,
+  tkm_tTclCommand_UpdateBrushTarget,
   tkm_tTclCommand_UpdateBrushShape,
   tkm_tTclCommand_UpdateBrushInfo,
   tkm_tTclCommand_UpdateCursorColor,
@@ -111,6 +112,7 @@ typedef enum {
   tkm_tTclCommand_UpdateTimerStatus,
   tkm_tTclCommand_UpdateHomeDirectory,
   tkm_tTclCommand_UpdateVolumeDirty,
+  tkm_tTclCommand_UpdateAuxVolumeDirty,
   
   /* display status */
   tkm_tTclCommand_ShowVolumeCoords,
@@ -123,6 +125,7 @@ typedef enum {
   tkm_tTclCommand_ShowFuncValue,
   tkm_tTclCommand_ShowAuxVolumeOptions,
   tkm_tTclCommand_ShowVolumeDirtyOptions,
+  tkm_tTclCommand_ShowAuxVolumeDirtyOptions,
   tkm_tTclCommand_ShowMainTransformLoadedOptions,
   tkm_tTclCommand_ShowAuxTransformLoadedOptions,
   tkm_tTclCommand_ShowFuncOverlayOptions,
@@ -261,10 +264,11 @@ void tkm_RemoveControlPointWithinDist ( xVoxelRef        iAnaIdx,
 void tkm_WriteControlFile             ();
 
 /* editing */
-void tkm_EditVoxelInRange( xVoxelRef    iAnaIdx, 
-         tVolumeValue inLow, 
-         tVolumeValue inHigh, 
-         tVolumeValue inNewValue );
+void tkm_EditVoxelInRange( tkm_tVolumeType  iVolume, 
+			   xVoxelRef        inVolumeVox, 
+			   tVolumeValue     inLow, 
+			   tVolumeValue     inHigh, 
+			   tVolumeValue     inNewValue );
 
 /* undo list */
 void tkm_ClearUndoList   ();

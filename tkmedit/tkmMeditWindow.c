@@ -2635,6 +2635,9 @@ MWin_tErr MWin_RegisterTclCommands ( tkmMeditWindowRef this,
   Tcl_CreateCommand ( ipInterp, "SetTool",
           MWin_TclSetTool,
           (ClientData) this, (Tcl_CmdDeleteProc*) NULL );
+  Tcl_CreateCommand ( ipInterp, "SetBrushTarget",
+          MWin_TclSetBrushTarget,
+          (ClientData) this, (Tcl_CmdDeleteProc*) NULL );
   Tcl_CreateCommand ( ipInterp, "SetBrushShape",
           MWin_TclSetBrushShape,
           (ClientData) this, (Tcl_CmdDeleteProc*) NULL );
@@ -3359,6 +3362,74 @@ int MWin_TclSetTool ( ClientData  ipClientData,
   if ( MWin_tErr_NoErr != eResult ) {
 
     sprintf ( sError, "Error %d in MWin_TclSetTool: %s\n",
+        eResult, MWin_GetErrorString(eResult) );
+
+    DebugPrint( (sError ) );
+
+    /* set tcl result, volatile so tcl will make a copy of it. */
+    Tcl_SetResult( ipInterp, MWin_GetErrorString(eResult), TCL_VOLATILE );
+  }
+
+  eTclResult = TCL_ERROR;
+
+ cleanup:
+
+  return eTclResult;
+}
+
+int MWin_TclSetBrushTarget ( ClientData  ipClientData, 
+			     Tcl_Interp* ipInterp,
+			     int         argc,
+			     char*       argv[] ) {
+  
+  tkmMeditWindowRef this         = NULL;
+  int               eTclResult   = TCL_OK;
+  MWin_tErr         eResult      = MWin_tErr_NoErr;
+  DspA_tErr         eDispResult  = DspA_tErr_NoErr;
+  char              sError[256]  = "";       
+  DspA_tBrushTarget target       = DspA_tBrushTarget_None;
+
+  /* grab us from the client data ptr */
+  this = (tkmMeditWindowRef) ipClientData;
+
+  /* verify us. */
+  eResult = MWin_Verify ( this );
+  if ( MWin_tErr_NoErr != eResult )
+    goto error;
+
+  /* if not accepting commands yet, return. */
+  if( !this->mbAcceptingTclCommands )
+    goto cleanup;
+
+  /* verify the last clicked display area index. */
+  eResult = MWin_VerifyDisplayIndex ( this, this->mnLastClickedArea );
+  if ( MWin_tErr_NoErr != eResult )
+    goto error;
+
+  /* verify the number of arguments. */
+  if ( argc < 2 ) {
+    eResult = MWin_tErr_WrongNumberArgs;
+    goto error;
+  }
+
+  /* parse the args and get a target. */
+  target  = (DspA_tBrushTarget) atoi( argv[1] );
+
+  /* set the brush of the last clicked display. */
+  eDispResult = 
+    DspA_SetBrushTarget ( this->mapDisplays[this->mnLastClickedArea], target );
+  if ( DspA_tErr_NoErr != eDispResult ) {
+    eResult = MWin_tErr_ErrorAccessingDisplay;
+    goto error;
+  }
+  goto cleanup;
+
+ error:
+
+  /* print error message */
+  if ( MWin_tErr_NoErr != eResult ) {
+
+    sprintf ( sError, "Error %d in MWin_TclSetBrushTarget: %s\n",
         eResult, MWin_GetErrorString(eResult) );
 
     DebugPrint( (sError ) );
