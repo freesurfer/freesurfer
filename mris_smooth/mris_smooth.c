@@ -13,12 +13,11 @@
 #include "mri.h"
 #include "macros.h"
 
-static char vcid[] = "$Id: mris_smooth.c,v 1.2 1998/03/30 19:42:48 fischl Exp $";
+static char vcid[] = "$Id: mris_smooth.c,v 1.3 1999/03/22 23:26:53 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
 static int  get_option(int argc, char *argv[]) ;
-static void usage_exit(void) ;
 static void print_usage(void) ;
 static void print_help(void) ;
 static void print_version(void) ;
@@ -53,7 +52,7 @@ main(int argc, char *argv[])
   }
 
   if (argc < 3)
-    usage_exit() ;
+    print_help() ;
 
   in_fname = argv[1] ;
   out_fname = argv[2] ;
@@ -152,17 +151,10 @@ get_option(int argc, char *argv[])
 }
 
 static void
-usage_exit(void)
-{
-  print_usage() ;
-  exit(1) ;
-}
-
-static void
 print_usage(void)
 {
   fprintf(stderr, 
-          "usage: %s [options] <input surface> <sigma> <output curvature file name>\n", 
+          "usage: %s [options] <input surface> <output surface>\n", 
           Progname) ;
 }
 
@@ -171,11 +163,13 @@ print_help(void)
 {
   print_usage() ;
   fprintf(stderr, 
-       "\nThis program smooth the tessellation of a cortical surface and\n"
+       "\nThis program smooths the tessellation of a cortical surface and\n"
           "write out the first and second order properties after smoothing\n"
           "to the files $hemi.curv (mean curvature) and $hemi.area (area).\n");
   fprintf(stderr, "\nvalid options are:\n\n") ;
-  fprintf(stderr, "-n    normalize output curvatures.\n") ;
+  fprintf(stderr, "-a <avgs>  "
+          "specify # of curvature averaging iterations (def=10).\n") ;
+  fprintf(stderr, "-n <niter> specify # of smoothing iterations (def=10).\n") ;
   exit(1) ;
 }
 
