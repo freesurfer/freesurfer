@@ -14,6 +14,7 @@
 ------------------------------------------------------------------------*/
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <math.h>
 #include <sys/time.h>
 
@@ -22,7 +23,8 @@
 #include <lwp/check.h>
 #include <lwp/lwpmachdep.h>
 #include <lwp/lwperror.h>
-
+#include "lwpproto.h"
+#include "proto.h"
 
 #include "thread.h"
 #include "mthread.h"
@@ -56,6 +58,7 @@ static MACH_THREAD  *pmachThreadTable ;
                             STATIC PROTOTYPES
 ------------------------------------------------------------------------*/
 
+#define ANSI 1
 #if ANSI
 void print_stat(char *name, thread_t *iTid, statvec_t *stat) ;
 #else
@@ -131,7 +134,6 @@ MachThreadStart(name, func, iTid, parm, priority)
 #endif
 {
    thread_t   *pthr ;
-   int        index ;
    stkalign_t *stack ;
 
    if (iNthreads >= iMaxThreads)
@@ -179,7 +181,7 @@ MachThreadYield(iTid)
    else
       iMtid = &pmachThreadTable[iTid].thr ;
 
-   if (lwp_yield(iMtid) < 0)
+   if (lwp_yield(*iMtid) < 0)
       return(ErrorSet(-4, "lwp_yeild failed: %s\n", ERRSTR));
 
    return(0) ;
@@ -212,7 +214,7 @@ MachThreadKill(iTid)
    else
       iMtid = &pmachThreadTable[iTid].thr ;
 
-   if (lwp_destroy(iMtid) < 0)
+   if (lwp_destroy(*iMtid) < 0)
       return(ErrorSet(-4,"lwp_destroy failed: %s\n",ERRSTR));
    return(0) ;
 }
@@ -271,8 +273,8 @@ MachThreadSuspend(iTid)
    else
       iMtid = &pmachThreadTable[iTid].thr ;
 
-   if (lwp_suspend(iMtid) < 0)
-     return(ErrorSet(-2,"MachThreadSuspend: lwp_suspend failed (%s)\n",ERRSTR));
+   if (lwp_suspend(*iMtid) < 0)
+    return(ErrorSet(-2,"MachThreadSuspend: lwp_suspend failed (%s)\n",ERRSTR));
 
    return(0) ;
 }
@@ -296,7 +298,8 @@ print_stat(name, pthr, stat)
 #endif
 {
    printf("%s (%d @ %lx) :  priority %d, ", 
-             name, pthr->thread_key, pthr->thread_id, stat->stat_prio) ;
+             name, pthr->thread_key, (long)(pthr->thread_id), stat->stat_prio);
+
    switch (stat->stat_blocked.any_kind)
    {
    case NO_TYPE:
@@ -344,8 +347,8 @@ MachThreadResume(iTid)
    else
       iMtid = &pmachThreadTable[iTid].thr ;
 
-   if (lwp_resume(iMtid) < 0)
-     return(ErrorSet(-2, "MachThreadResume: lwp_resume failed (%s)\n", ERRSTR));
+   if (lwp_resume(*iMtid) < 0)
+     return(ErrorSet(-2, "MachThreadResume: lwp_resume failed (%s)\n",ERRSTR));
 
    return(0) ;
 }
