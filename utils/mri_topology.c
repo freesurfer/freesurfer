@@ -831,6 +831,11 @@ typedef struct TC_PARMS
   float maxindist,maxoutdist;
   /*weighting parameters between dist map and prior map for prioritization and prior*/
   float alpha,beta;
+
+  //atlas and transformation information
+  GCA *gca;
+  TRANSFORM *transform;
+
   
   /*label that we want to segment*/
   int nblabels;
@@ -1912,24 +1917,39 @@ static void initProb(TC_PARMS *parms)
   if(!parms->priors)
     return;
 
-  gca=GCAread(parms->gca_fname);
-  if(!gca)
+  if(parms->gca)
+    gca=parms->gca;
+  else
     {
-      fprintf(stderr,"\nIMPOSSIBLE TO READ GCA from %s",parms->gca_fname);
-      parms->alpha=1.0f;
-      parms->beta=1.0f;
-      parms->priors=0;
-      return;
+      fprintf(stderr,"\nreading gca...");
+      gca=GCAread(parms->gca_fname);
+      if(!gca)
+	{
+	  fprintf(stderr,"\nIMPOSSIBLE TO READ GCA from %s",parms->gca_fname);
+	  parms->alpha=1.0f;
+	  parms->beta=1.0f;
+	  parms->priors=0;
+	  return;
+	}
+      fprintf(stderr,"done");
     }
-  transform=TransformRead(parms->transform_fname);
-  if(!transform)
+  if(parms->transform)
+    transform=parms->transform;
+  else
     {
-      GCAfree(&gca);
-      fprintf(stderr,"\nIMPOSSIBLE TO READ TRANSFORM from %s",parms->transform_fname);
-      parms->beta=1.0f;
-      parms->alpha=1.0f;
-      parms->priors=0;
-      return;
+      fprintf(stderr,"\nreading transform...");
+      transform=TransformRead(parms->transform_fname);
+      if(!transform)
+	{
+	  if(!parms->gca)
+	    GCAfree(&gca);
+	  fprintf(stderr,"\nIMPOSSIBLE TO READ TRANSFORM from %s",parms->transform_fname);
+	  parms->beta=1.0f;
+	  parms->alpha=1.0f;
+	  parms->priors=0;
+	  return ;
+	}
+      fprintf(stderr,"done");
     }
   
   width=parms->width;
@@ -2091,8 +2111,10 @@ static void initProb(TC_PARMS *parms)
       MRIfree(&mri_pcsi);
     }
 
-  GCAfree(&gca);
-  free(transform);
+  if(!parms->gca)
+    GCAfree(&gca);
+  if(!parms->transform)
+    free(transform);
 }
 
 static void initCostMaps(TC_PARMS *parms)
@@ -2261,16 +2283,27 @@ static void guessSegmentation(TC_PARMS *parms)
   if(parms->mri_seg)
     MRIfree(&parms->mri_seg);
 
-  gca=GCAread(parms->gca_fname);
-  if(!gca)
+  if(parms->gca)
+    gca=parms->gca;
+  else
     {
-      ErrorExit(NO_ERROR,"IMPOSSIBLE TO READ GCA");
+      gca=GCAread(parms->gca_fname);
+      if(!gca)
+	{
+	  ErrorExit(NO_ERROR,"IMPOSSIBLE TO READ GCA");
+	}
     }
-  transform=TransformRead(parms->transform_fname);
-  if(!transform)
+  if(parms->transform)
+    transform=parms->transform;
+  else
     {
-      GCAfree(&gca);
-      ErrorExit(NO_ERROR,"IMPOSSIBLE TO READ TRANSFORM");
+      transform=TransformRead(parms->transform_fname);
+      if(!transform)
+	{
+	  if(!parms->gca)
+	    GCAfree(&gca);
+	  ErrorExit(NO_ERROR,"IMPOSSIBLE TO READ TRANSFORM");
+	}
     }
   
   width=mri_orig->width;
@@ -2410,8 +2443,10 @@ static void guessSegmentation(TC_PARMS *parms)
 	    MRIvox(mri_seg,i,j,k)=val;
 	}
   parms->mri_seg=mri_seg;
-  GCAfree(&gca);
-  free(transform);
+  if(!parms->gca)
+    GCAfree(&gca);
+  if(!parms->transform)
+    free(transform);
 
   MRIwrite(mri_seg,"/tmp/tmp");
 }
@@ -2432,7 +2467,8 @@ static void initImages(TC_PARMS* parms)
       fprintf(stderr,"\n****************************************************");
       fprintf(stderr,"\nINITIALIZATION OF THE IMAGES");
     }
-  if(parms->guess)
+
+  if(parms->guess)  //not used a lot these days ;-) ... work to be done with it !!!
     guessSegmentation(parms);
 
   mri=parms->mri_seg;
@@ -2603,7 +2639,6 @@ static void initImages(TC_PARMS* parms)
 	    MRIFvox(mri_dist,i,j,k)=fval/parms->maxoutdist;
 	}
 	  
-
   //allocate and init mri_prob volume (linear scaling so far)
   mri_prob=MRIalloc(width, height, depth, MRI_FLOAT);
   parms->mri_prob=mri_prob;
@@ -4475,6 +4510,12 @@ static TC_PARMS* initTC_PARMSfromMRITOPOLOGY_PARMS(MRI_TOPOLOGY_PARMS *parms)
   p->nblabels=parms->nlabels;
 
   p->verbose_mode=parms->verbose_mode;
+
+  p->gca=parms->gca;
+  p->transform=parms->transform;
+
+  p->gca_fname=parms->gca_fname;
+  p->transform_fname=parms->gca_fname;
 
   return p;
 }

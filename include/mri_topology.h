@@ -1,4 +1,5 @@
 #include "mri.h"
+#include "gca.h"
 
 #ifndef TOPO_INCLUDED
 #define TOPO_INCLUDED
@@ -55,6 +56,9 @@ typedef struct MRI_TOPOLOGY_PARMS
   char* prior_map_file;
   float alpha,beta;
   int guess_initial_segmentation;
+  //just in case, they are already allocated...
+  GCA *gca;
+  TRANSFORM *transform;
 
   //surfaces information
   int generate_surface;

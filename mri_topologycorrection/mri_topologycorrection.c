@@ -192,6 +192,9 @@ static void MRI_TOPOLOGY_PARMSdefault(MRI_TOPOLOGY_PARMS *parms)
   parms->beta=1.0f;
   parms->guess_initial_segmentation=0;
   parms->generate_surface=0;
+	parms->verbose_mode=0;
+	parms->gca=0;
+  parms->transform=0;
 }
 
 int main(int argc, char *argv[])
