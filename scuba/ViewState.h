@@ -21,6 +21,13 @@ class ViewState {
 
   int mBufferWidth;
   int mBufferHeight;
+
+  void ResetUpdateRect ();
+  void AddUpdateRect ( int iWindowLeft,  int iWindowTop,
+		       int iWindowRight, int iWindowBottom );
+  void UpdateEntireRect ();
+  int mUpdateRect[4];
+
 };
 
 std::ostream& operator << ( std::ostream& os, ViewState& iInput );
