@@ -15,7 +15,7 @@
 #include "cma.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mri_fill.c,v 1.64 2003/07/21 14:08:53 tosa Exp $";
+static char vcid[] = "$Id: mri_fill.c,v 1.65 2003/07/31 22:00:21 fischl Exp $";
 
 /*-------------------------------------------------------------------
                                 CONSTANTS
@@ -189,7 +189,7 @@ main(int argc, char *argv[])
   struct timeb  then ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_fill.c,v 1.64 2003/07/21 14:08:53 tosa Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_fill.c,v 1.65 2003/07/31 22:00:21 fischl Exp $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -604,7 +604,6 @@ main(int argc, char *argv[])
   MRIfillVolume(mri_lh_fill, mri_lh_im, wm_lh_x, wm_lh_y, wm_lh_z,lh_fill_val);
   fprintf(stderr, "filling right hemisphere...\n") ;
   MRIfillVolume(mri_rh_fill, mri_rh_im, wm_rh_x, wm_rh_y, wm_rh_z,rh_fill_val);
-
   MRIfree(&mri_lh_im) ; MRIfree(&mri_rh_im) ; MRIfree(&mri_im) ;
 
   /* find and eliminate degenerate surface locations caused by diagonal
@@ -616,6 +615,15 @@ main(int argc, char *argv[])
   MRIfillDegenerateLocations(mri_lh_fill, lh_fill_val) ;
   fprintf(stderr,"filling degenerate right hemisphere surface locations...\n");
   MRIfillDegenerateLocations(mri_rh_fill, rh_fill_val) ;
+
+	/*  must redo filling to avoid holes caused by  filling of  degenerate  locations */
+	mri_lh_im =  MRIcopy(mri_lh_fill, NULL);
+	mri_rh_im =  MRIcopy(mri_rh_fill, NULL);
+  fprintf(stderr, "refilling left hemisphere...\n") ;
+  MRIfillVolume(mri_lh_fill, mri_lh_im, wm_lh_x, wm_lh_y, wm_lh_z,lh_fill_val);
+  fprintf(stderr, "refilling right hemisphere...\n") ;
+  MRIfillVolume(mri_rh_fill, mri_rh_im, wm_rh_x, wm_rh_y, wm_rh_z,rh_fill_val);
+  MRIfree(&mri_lh_im) ; MRIfree(&mri_rh_im) ; 
 
   fprintf(stderr, "combining hemispheres...\n") ;
   MRIvoxelToTalairach(mri_lh_fill, (Real)wm_lh_x, (Real)wm_lh_y, (Real)wm_lh_z,
@@ -869,6 +877,14 @@ get_option(int argc, char *argv[])
     lh_fill_val = atoi(argv[2]) ;
     nargs = 1 ;
     fprintf(stderr,"using %d as fill val for left hemisphere.\n",lh_fill_val);
+  }
+  else if (!strcmp(option, "debug_voxel"))
+  {
+    Gx = atoi(argv[2]) ;
+    Gy = atoi(argv[3]) ;
+    Gz = atoi(argv[4]) ;
+    nargs = 3 ;
+    printf("debugging voxel (%d,  %d,  %d)\n", Gx, Gy, Gz)  ;
   }
   else if (!strcmp(option, "lh"))
   {
@@ -2694,7 +2710,10 @@ count_diagonals(MRI *mri, int x0, int y0, int z0)
 static int
 edit_segmentation(MRI *mri_wm, MRI *mri_seg)
 {
-  int   width, height, depth, x, y, z, label, non, noff, yi ;
+  int   width, height, depth, x, y, z, label, non, noff, xi, yi, zi,  xk, yk, zk, nchanged ;
+	MRI   *mri_filled ;
+
+	mri_filled =  MRIclone(mri_wm,  NULL);
 
   width = mri_wm->width ; height = mri_wm->height ; depth = mri_wm->depth ;
 
@@ -2705,8 +2724,8 @@ edit_segmentation(MRI *mri_wm, MRI *mri_seg)
     {
       for (x = 0 ; x < width ; x++)
       {
-        if (x == 95 && y == 127 && z == 119)  
-          DiagBreak() ;
+        if (x == Gx && y == Gy && z == Gz)  
+           DiagBreak() ;
         label = MRIvox(mri_seg, x, y, z) ;
         
         switch (label)
@@ -2735,28 +2754,42 @@ edit_segmentation(MRI *mri_wm, MRI *mri_seg)
           break ;
         case Left_Lateral_Ventricle:
         case Right_Lateral_Ventricle:
-          if ((neighborLabel(mri_seg, x, y, z,3,Left_Cerebral_Cortex) == 0) &&
-              (neighborLabel(mri_seg, x, y, z,3,Right_Cerebral_Cortex) == 0) &&
-              (MRIvox(mri_wm, x, y, z) < WM_MIN_VAL))
-          {
-#if 1
-            MRIvox(mri_wm, x, y, z) = 255 ;
-            non++ ; 
-#endif
-          }
-          /*          break ;   NO BREAK (intended) */
         case Left_Inf_Lat_Vent:
         case Right_Inf_Lat_Vent:
+          if ((neighborLabel(mri_seg, x, y, z,1,Left_Cerebral_Cortex) >= 0) &&
+              (neighborLabel(mri_seg, x, y, z,1,Right_Cerebral_Cortex) >= 0) &&
+              (MRIvox(mri_wm, x, y, z) < WM_MIN_VAL))
+          {
+            MRIvox(mri_wm, x, y, z) = 255 ;
+            MRIvox(mri_filled, x, y, z) = 255 ;
+            non++ ;  
+          }
+          yi = mri_wm->yi[y+1] ;
+          label = MRIvox(mri_seg, x,yi, z) ;
+          if (((label == Left_Cerebral_Cortex || label == Right_Cerebral_Cortex) ||
+							 (label == Left_Cerebral_White_Matter || label == Right_Cerebral_White_Matter) ||
+							 (label == Unknown))
+              && (MRIvox(mri_wm, x, yi, z) < WM_MIN_VAL))
+          {
+            MRIvox(mri_wm, x, yi, z) = 255 ;
+            MRIvox(mri_filled, x, yi, z) = 255 ;
+            non++ ;
+          }
+          break ;
         case Left_Hippocampus:
         case Right_Hippocampus:
           yi = mri_wm->yi[y+1] ;
           label = MRIvox(mri_seg, x,yi, z) ;
           if (((label == Left_Cerebral_Cortex || label == Right_Cerebral_Cortex) ||
-                                                         (label == Left_Cerebral_White_Matter || label == Right_Cerebral_White_Matter))
+							 (label == Left_Cerebral_White_Matter || label == Right_Cerebral_White_Matter))
               && (MRIvox(mri_wm, x, yi, z) < WM_MIN_VAL))
           {
             MRIvox(mri_wm, x, yi, z) = 255 ;
-            non++ ;
+            MRIvox(mri_filled, x, yi, z) = 255 ;
+						yi = mri_wm->yi[y+2] ;
+            MRIvox(mri_wm, x, yi, z) = 255 ;
+            MRIvox(mri_filled, x, yi, z) = 255 ;
+            non += 2 ;
           }
           break ;
         case Left_Accumbens_area:
@@ -2770,6 +2803,7 @@ edit_segmentation(MRI *mri_wm, MRI *mri_seg)
           if (MRIvox(mri_wm, x, y, z) < WM_MIN_VAL)
           {
             MRIvox(mri_wm, x, y, z) = 255 ;
+            MRIvox(mri_filled, x, y, z) = 255 ;
             non++ ; 
           }
           break ;
@@ -2780,7 +2814,55 @@ edit_segmentation(MRI *mri_wm, MRI *mri_seg)
     }
   }
 
+	/*
+		fill in voxels that were labeled wm by the aseg, but not by  wmfilter, and are
+		neighbors  of  voxels that  have been already been filled .
+	*/
+	do
+	{
+ 		nchanged = 0 ;
+ 		for (z = 0 ; z < depth ; z++)
+		{
+			for (y = 0 ; y < height ; y++)
+			{
+				for (x = 0 ; x < width ; x++)
+				{
+					if (x == Gx && y == Gy && z == Gz)  
+						DiagBreak() ;
+					if  (MRIvox(mri_filled, x,  y, z) == 0)
+						continue  ;
+					for (xk = -1 ; xk <= 1 ; xk++)
+					{
+						xi = mri_filled->xi[x+xk] ;
+						for (yk = -1 ; yk <= 1 ; yk++)
+						{
+							yi = mri_filled->yi[y+yk] ;
+							for (zk = -1 ; zk <= 1 ; zk++)
+							{
+								zi = mri_filled->zi[z+zk] ;
+								if (xi == Gx && yi == Gy && zi == Gz)  
+ 									DiagBreak() ;
+								label = MRIvox(mri_seg, xi, yi, zi) ;
+								if (IS_WM(label) &&  (MRIvox(mri_wm, xi, yi, zi) < WM_MIN_VAL))
+								{
+									nchanged++ ;
+									MRIvox(mri_wm, xi, yi, zi) = 255 ;
+#if 0
+									MRIvox(mri_filled, xi, yi, zi) = 255 ;
+#endif
+									non++ ;  
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+		printf("%d additional wm voxels added\n", nchanged)  ;
+	} while (nchanged >  0) ;
+
   printf("SEG EDIT: %d voxels turned on, %d voxels turned off.\n", non, noff) ;
+	MRIfree(&mri_filled) ;
   return(NO_ERROR) ;
 }
 
