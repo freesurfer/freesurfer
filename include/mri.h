@@ -99,7 +99,7 @@ typedef struct
   double        flip_angle ;  /* in radians */
 
   void*         tag_data; /* saved tag data */
-  long          tag_data_size; /* size of saved tag data */
+  int           tag_data_size; /* size of saved tag data */
   MATRIX *i_to_r__; /* cache */
   MATRIX *r_to_i__;
 } MRI_IMAGE, MRI ;
