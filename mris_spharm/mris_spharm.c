@@ -6,8 +6,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: pengyu $
-// Revision Date  : $Date: 2004/12/10 01:21:33 $
-// Revision       : $Revision: 1.2 $
+// Revision Date  : $Date: 2005/01/26 22:52:12 $
+// Revision       : $Revision: 1.3 $
 ////////////////////////////////////////////
 
 #include <math.h>
@@ -33,28 +33,34 @@
 #include "matrix.h"
 
 
-//static char vcid[] = "$Id: mris_spharm.c,v 1.2 2004/12/10 01:21:33 pengyu Exp $";
+//static char vcid[] = "$Id: mris_spharm.c,v 1.3 2005/01/26 22:52:12 pengyu Exp $";
 
 
 int             main(int argc, char *argv[]) ; 
 static int      get_option(int argc, char *argv[]) ; 
 char            *Progname ;             
-static int      SphericalHarmonics(int L, int M, int theta, int phi);
-static float    legendre(int l, int m, float x) ;
-
-static int         LEVEL = 5;
-static float       real, imag;
+static int      SphericalHarmonics(int L, int M, float theta, float phi) ;
+static double   legendre(int l, int m, float x) ;
+static double   factorial(int L, int M) ;
+static MATRIX   *ComplexMatrixTranspose(MATRIX *mIn, MATRIX *mOut);
+static MATRIX   *ComplexMatrixPseudoInverse(MATRIX *m, MATRIX *m_pseudo_inv);
+static MRI_SURFACE *center_brain(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst) ;
+static int      LEVEL = 7;
+static double   REAL, IMAG;
+static float    threshold = 1;
+static int      COMPARE = 0;
+static char     *cfname;
 
 int 
 main(int argc, char *argv[]) 
 { 
 	char          fname[STRLEN];
-	int           nargs, msec, order, i, j, k, nvertices, dimension, count; 
-	float         phi, d, theta;
+	int           nargs, msec, order, i, j, k, nvertices, dimension, count, fno; 
+	float         phi, d, theta, area;
 	struct timeb  then ;
 	MRIS          *mris_in, *mris_out; 
 	MRI_SP        *mrisp ;
-	MATRIX        *m_Z, *m_V, *m_c;
+	MATRIX        *m_Z, *m_V, *m_c, *m_Z_inv, *m_V_new;
 	VERTEX        *v;
 
 	Progname = argv[0] ; 
@@ -91,18 +97,30 @@ main(int argc, char *argv[])
 	for (i = 0; i<mris_out->nvertices; i++)
 		mris_out->vertices[i].nsize=1;
 	mrisp = MRISPalloc(1, 3); 
+#if 1
 	MRIScoordsToParameterization(mris_in, mrisp, 1) ;
-	MRISPblur(mrisp, mrisp, 2, 0);
-	MRISPblur(mrisp, mrisp, 2, 1);
-	MRISPblur(mrisp, mrisp, 2, 2);
+	//MRISPblur(mrisp, mrisp, 0.5, 0);
+	//MRISPblur(mrisp, mrisp, 0.5, 1);
+	//MRISPblur(mrisp, mrisp, 0.5, 2);
 	MRIScoordsFromParameterization(mrisp, mris_out) ;
-	
+#else
+	MRISreadOriginalProperties(mris_out, argv[2]) ;
+#endif
 #if 1 /*just to test if the parameterization is correct */
 	MRISsaveVertexPositions(mris_out, TMP_VERTICES) ;
 	MRISrestoreVertexPositions(mris_out, ORIGINAL_VERTICES) ;
-	MRISwrite(mris_out, "/autofs/space/dijon_004/ksong/BIRN_processed_data/prospective/buckner/CORTICAL_THINNING/RECONS/001009_vc5398/surf/lh.hippocampus.recovered") ; 
+	MRISupdateSurface(mris_out);
+	fprintf(stderr, "original area becomes %f\n", mris_out->total_area);
+	center_brain(mris_out, mris_out);
+	MRISscaleBrain(mris_out, mris_out, sqrt(100000.0f/mris_out->total_area)) ;
+	MRISupdateSurface(mris_out);
+	for (fno=0; fno<mris_out->nfaces; fno++)
+		area += mris_out->faces[fno].area;
+	fprintf(stderr, "original area becomes %f\n", area);
+	//MRISwrite(mris_out, "/space/xrt/1/users/btquinn/buckner_paper/011121_vc8048/surf/lh.sampled") ; 
+	MRISsaveVertexPositions(mris_out, ORIGINAL_VERTICES) ;
 	MRISrestoreVertexPositions(mris_out, TMP_VERTICES) ;
-#endif
+#endif	
 
 	/*Initialize Matrix*/
 	dimension = (order+1)*(order+1);
@@ -110,6 +128,8 @@ main(int argc, char *argv[])
 	m_c = MatrixAlloc(dimension, 3, MATRIX_COMPLEX) ; 
 	m_Z = MatrixAlloc(nvertices, dimension, MATRIX_COMPLEX) ; 
 	m_V = MatrixAlloc(nvertices, 3, MATRIX_REAL) ; 
+	m_Z_inv = MatrixAlloc(dimension, nvertices, MATRIX_COMPLEX) ; 
+	m_V_new = MatrixAlloc(nvertices, 3, MATRIX_COMPLEX) ; 
 
 	for (i=0; i<nvertices; i++)
 	{
@@ -127,19 +147,131 @@ main(int argc, char *argv[])
     for (j=0; j<=order; j++)
 			for ( k= -1*j; k<=j; k++)
 			{
-				count = count+1 ;
+				count++ ;
 				SphericalHarmonics(j, k, theta, phi);
-				MATRIX_CELT_REAL(m_Z,i,count) = real;
-				MATRIX_CELT_IMAG(m_Z,i,count) = imag;
+				MATRIX_CELT_REAL(m_Z,i+1,count) = REAL;
+				MATRIX_CELT_IMAG(m_Z,i+1,count) = IMAG;
 			}
+	}
+
+	m_Z_inv=ComplexMatrixPseudoInverse(m_Z, NULL) ;
+	MatrixMultiply(m_Z_inv, m_V, m_c) ;
+	MatrixPrint(stdout,m_c);
+
+	if (COMPARE)
+	{
+		MATRIX *m_cc; 
+		double r1, r2, m1, m2, diff;
+		fprintf(stdout, "%s\n", cfname);
+		m_cc = MatrixAlloc(dimension, 3, MATRIX_COMPLEX) ; 
+		mris_out = ReadIcoByOrder(LEVEL, 100);
+		for (i = 0; i<mris_out->nvertices; i++)
+			mris_out->vertices[i].nsize=1;
+		mrisp = MRISPalloc(1, 3); 
+#if 1
+		MRIScoordsToParameterization(mris_in, mrisp, 1) ;
+		//MRISPblur(mrisp, mrisp, 0.5, 0);
+		//MRISPblur(mrisp, mrisp, 0.5, 1);
+		//MRISPblur(mrisp, mrisp, 0.5, 2);
+		MRIScoordsFromParameterization(mrisp, mris_out) ;
+#else
+		MRISreadOriginalProperties(mris_out, cfname) ;
+#endif
+#if 1 /*just to test if the parameterization is correct */
+		MRISsaveVertexPositions(mris_out, TMP_VERTICES) ;
+		MRISrestoreVertexPositions(mris_out, ORIGINAL_VERTICES) ;
+		MRISupdateSurface(mris_out);
+		fprintf(stderr, "original area becomes %f\n", mris_out->total_area);
+		center_brain(mris_out, mris_out);
+		MRISscaleBrain(mris_out, mris_out, sqrt(100000.0f/mris_out->total_area)) ;
+		MRISupdateSurface(mris_out);
+		for (fno=0; fno<mris_out->nfaces; fno++)
+			area += mris_out->faces[fno].area;
+		fprintf(stderr, "original area becomes %f\n", area);
+		//MRISwrite(mris_out, "/space/xrt/1/users/btquinn/buckner_paper/011121_vc8048/surf/lh.sampled") ; 
+		MRISsaveVertexPositions(mris_out, ORIGINAL_VERTICES) ;
+		MRISrestoreVertexPositions(mris_out, TMP_VERTICES) ;
+#endif	
+
+		for (i=0; i<nvertices; i++)
+		{
+			v = &mris_out->vertices[i] ;
+			phi = atan2(v->y, v->x) ;
+			if (phi < 0.0)  phi = 2 * M_PI + phi ; 
+			d = 100*100 - v->z*v->z ;
+			if (d < 0.0)   d = 0 ;
+			theta = atan2(sqrt(d), v->z) ;    
+			count = 0;
+			*MATRIX_RELT(m_V,i+1,1) = v->origx;
+			*MATRIX_RELT(m_V,i+1,2) = v->origy;
+			*MATRIX_RELT(m_V,i+1,3) = v->origz;
+			
+			for (j=0; j<=order; j++)
+				for ( k= -1*j; k<=j; k++)
+				{
+					count++ ;
+					SphericalHarmonics(j, k, theta, phi);
+					MATRIX_CELT_REAL(m_Z,i+1,count) = REAL;
+					MATRIX_CELT_IMAG(m_Z,i+1,count) = IMAG;
+				}
+		}
+		
+		m_Z_inv=ComplexMatrixPseudoInverse(m_Z, NULL) ;
+		MatrixMultiply(m_Z_inv, m_V, m_cc) ;
+		MatrixPrint(stdout,m_cc);
+
+		/*check for difference*/
+		for (count=0, j=0; j<=order; j++)
+			for ( k= -1*j; k<=j; k++)
+			{
+				count++;
+				for (i=1;i<=3;i++)
+				{
+					r1 = MATRIX_CELT_REAL(m_c,count,i);
+					r2 = MATRIX_CELT_REAL(m_cc,count,i);
+					m1 = MATRIX_CELT_IMAG(m_c,count,i);
+					m2 = MATRIX_CELT_IMAG(m_cc,count,i);
+					if (sqrt(r1*r1+m1*m1)==0)
+						diff = fabs(sqrt(r1*r1+m1*m1)-sqrt(r2*r2+m2*m2));
+					else
+						diff = fabs(sqrt(r1*r1+m1*m1)-sqrt(r2*r2+m2*m2))/sqrt(r1*r1+m1*m1);
+					if (diff>threshold)
+					{	MATRIX_CELT_REAL(m_c,count,i) = r2;
+					MATRIX_CELT_IMAG(m_c,count,i) = m2;
+					fprintf(stdout, "%d %d %f\n",count, i, diff);}
+				}
+			}
+		MatrixFree(&m_cc) ;
+	} 
+
+	/*Reconstruct Surface using only part of the coefficients*/
+#if 0
+	for (i=5; i<=m_c->rows; i++)
+		for (j=1; j<=m_c->cols;j++)
+		{
+			MATRIX_CELT_REAL(m_c,i,j) = 0;
+			MATRIX_CELT_IMAG(m_c,i,j) = 0;
+		}
+#endif
+	MatrixMultiply(m_Z, m_c, m_V_new) ;
+
+	for (i=0; i<nvertices; i++)
+	{
+		v = &mris_out->vertices[i] ;
+		v->origx = MATRIX_CELT_REAL(m_V_new,i+1,1) ;
+		v->origy = MATRIX_CELT_REAL(m_V_new,i+1,2) ;
+		v->origz = MATRIX_CELT_REAL(m_V_new,i+1,3) ;
 	}
 
 	MRISsaveVertexPositions(mris_out, TMP_VERTICES) ;
 	MRISrestoreVertexPositions(mris_out, ORIGINAL_VERTICES) ;
-	fprintf(stdout, "Writing wavelets coefficient of original surface to %s\n", argv[4]);
+	fprintf(stdout, "Writing reconstructed surface to %s\n", argv[4]);
 	MRISwrite(mris_out,argv[4] ) ; 
 	MRISrestoreVertexPositions(mris_out, TMP_VERTICES) ;
-	
+
+
+	MatrixFree(&m_V_new) ;
+	MatrixFree(&m_Z_inv) ;
 	MatrixFree(&m_Z) ;
 	MatrixFree(&m_V) ;
 	MatrixFree(&m_c) ;
@@ -154,29 +286,29 @@ main(int argc, char *argv[])
 
 
 static int
-SphericalHarmonics(int L, int M, int theta, int phi)
+SphericalHarmonics(int L, int M, float theta, float phi)
 {
-	float   P, real, imag, factor;	
+	double   P, factor;	
 
 	P = legendre(L, abs(M), cos(theta));
-	factor = sqrt((L+0.5)*factorial(L-abs(M))/factorial(L+abs(M)));
-	real = factor * P * cos(abs(M)*phi) /sqrt(2 * M_PI);
-	imag = factor * P * sin(abs(M)*phi) /sqrt(2 * M_PI);
+	factor = sqrt((L+0.5)*factorial(L,abs(M)));
+	REAL = factor * P * cos(abs(M)*phi) /sqrt(2 * M_PI);
+	IMAG = factor * P * sin(abs(M)*phi) /sqrt(2 * M_PI);
 	if (M < 0)
 	{
-		real = power(-1,abs(M)) * real;
-		imag = power(-1,abs(M)) *(-1) * imag;
+		REAL = pow(-1,abs(M)) * REAL;
+		IMAG = pow(-1,abs(M)) *(-1) * IMAG;
 	}
 	return(NO_ERROR);
 }
 
-static float
+static double
 legendre(int l, int m, float x)
 {
-	float  fact, pll, pmm, pmmp1, somx2;
+	double  fact, pll, pmm, pmmp1, somx2;
 	int    i, ll;
 
-	if ( m<0 || m>1 || fabs(x)>1.0 )
+	if ( m<0 || m>l || fabs(x)>1.0 )
 		fprintf(stdout, "Bad arguments in routine legendre");
 	pmm = 1.0;
 	if ( m > 0)
@@ -210,6 +342,110 @@ legendre(int l, int m, float x)
 	}
 }
 
+static double 
+factorial(int L, int M)
+{
+	double ratio=1;
+	int i;
+	
+	for (i=L+M; i>L-M; i--)
+		ratio *= (double) 1/i;
+	return(ratio);
+}
+
+MATRIX *
+ComplexMatrixPseudoInverse(MATRIX *m, MATRIX *m_pseudo_inv)
+{
+  MATRIX  *mT, *mTm, *mTm_inv ;
+
+  /* build (mT m)-1 mT */
+  mT = ComplexMatrixTranspose(m, NULL) ;
+  mTm = MatrixMultiply(mT, m, NULL) ;
+  mTm_inv = MatrixInverse(mTm, NULL) ;
+  if (!mTm_inv)
+  {
+    MatrixFree(&mT) ; MatrixFree(&mTm) ;
+    return(NULL) ;
+  }
+  m_pseudo_inv = MatrixMultiply(mTm_inv, mT, m_pseudo_inv) ;
+
+  MatrixFree(&mT) ; MatrixFree(&mTm) ; MatrixFree(&mTm_inv) ; 
+  return(m_pseudo_inv) ;
+}
+
+MATRIX  *
+ComplexMatrixTranspose(MATRIX *mIn, MATRIX *mOut)
+{
+  int  row, col, rows, cols ;
+
+  if (!mOut)
+  {
+    mOut = MatrixAlloc(mIn->cols, mIn->rows, mIn->type) ;
+    if (!mOut)
+      return(NULL) ;
+  }
+
+  rows = mIn->rows ;
+  cols = mIn->cols ;
+
+  for (row = 1 ; row <= rows ; row++)
+  {
+    for (col = 1 ; col <= cols ; col++)
+		{
+			MATRIX_CELT_REAL(mOut,col,row) = MATRIX_CELT_REAL(mIn,row,col)  ;
+			MATRIX_CELT_IMAG(mOut,col,row) = -1*MATRIX_CELT_IMAG(mIn,row,col)  ;
+		}
+  }
+
+  return(mOut) ;
+}
+
+
+MRI_SURFACE *
+center_brain(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst)
+{
+  int         fno, vno ;
+  FACE        *face ;
+	VERTEX      *vdst;
+  float       x, y, z, x0, y0, z0 ;
+
+  if (!mris_dst)
+    mris_dst = MRISclone(mris_src) ;
+
+  x0 = y0 = z0 = 0 ;   /* silly compiler warning */
+
+  for (fno = 0 ; fno < mris_src->nfaces ; fno++)
+  {
+    face = &mris_dst->faces[fno] ;
+    if (face->ripflag)
+      continue ;
+    x = mris_dst->vertices[face->v[0]].x;
+    y = mris_dst->vertices[face->v[0]].y;
+    z = mris_dst->vertices[face->v[0]].z;
+    x += mris_dst->vertices[face->v[1]].x;
+    y += mris_dst->vertices[face->v[1]].y;
+    z += mris_dst->vertices[face->v[1]].z;
+    x += mris_dst->vertices[face->v[2]].x;
+    y += mris_dst->vertices[face->v[2]].y;
+    z += mris_dst->vertices[face->v[2]].z;
+		x /= face->area; y/= face->area; z/= face->area;
+		x0 += x; y0 += y; z0 += z;
+  }
+  x0 /= mris_dst->total_area ;  y0 /= mris_dst->total_area  ; z0 /= mris_dst->total_area ;
+ 
+  for (vno = 0 ; vno < mris_src->nvertices ; vno++)
+  {
+    vdst = &mris_dst->vertices[vno] ;
+    if (vdst->ripflag)
+      continue ;
+    vdst->x -= x0 ; vdst->y -= y0 ; vdst->z -= z0 ;
+  }
+
+  mris_dst->xctr = mris_dst->yctr = mris_dst->zctr = 0 ;
+  return(mris_dst) ;
+}
+
+
 /*----------------------------------------------------------------------
 	
 	Parameters: 
@@ -230,6 +466,19 @@ get_option(int argc, char *argv[])
 	{
 		LEVEL = atoi(argv[2]) ;
 		fprintf(stdout,"Use %d order icosahedron \n", LEVEL);
+		nargs=1;
+	}
+	else if (!stricmp(option, "C"))
+	{
+		cfname = argv[2] ;
+		COMPARE = 1;
+		fprintf(stdout,"Compare with %s \n", cfname);
+		nargs=1;
+	}
+	else if (!stricmp(option, "T"))
+	{
+		threshold = atof(argv[2]) ;
+		fprintf(stdout,"Set threshold as %f \n", threshold);
 		nargs=1;
 	}
 	else	switch (toupper(*option)) 

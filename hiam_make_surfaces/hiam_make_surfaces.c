@@ -7,8 +7,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: pengyu $
-// Revision Date  : $Date: 2004/04/14 19:58:57 $
-// Revision       : $Revision: 1.2 $
+// Revision Date  : $Date: 2005/01/26 22:52:41 $
+// Revision       : $Revision: 1.3 $
 ////////////////////////////////////////////
 
 #include <stdio.h>
@@ -61,10 +61,10 @@ static int    mrisComputeTangentialSpringTerm(MRI_SURFACE *mris, double l_spring
 static double mrisComputeTangentialSpringEnergy(MRI_SURFACE *mris);
 static int    mrisComputeQuadraticCurvatureTerm(MRI_SURFACE *mris, double l_curv);
 static double mrisComputeQuadraticCurvatureEnergy(MRI_SURFACE *mris);
-static int    MRISspringTermWithGaussianCurvature(MRI_SURFACE *mris, double gaussian_norm, double l_spring);
+static int    mriSspringTermWithGaussianCurvature(MRI_SURFACE *mris, double gaussian_norm, double l_spring);
 static double mrisComputeGaussianCurvatureSpringEnergy(MRI_SURFACE *mris, double gaussian_norm);
 
-static double MRISmomentumTimeStep(MRI_SURFACE *mris, float momentum, float dt, float tol, 
+static double mrismomentumTimeStep(MRI_SURFACE *mris, float momentum, float dt, float tol, 
                      float n_averages);
 static int    mrisProjectSurface(MRI_SURFACE *mris);
 static int    mrisComputeTangentPlanes(MRI_SURFACE *mris);
@@ -82,7 +82,7 @@ static int      write_iterations = 1 ;
 static int      niteration = 0 ;
 static int      smooth_spikes = 500;
 static int      nbrs = 3 ;
-//static float    weight_quadcur = 1.5, weight_label = 1.2, weight_repulse = 3.0, weight_Nspring = 0.5, weight_Tspring = 0.5;
+//static float    weight_quadcur = 0.0, weight_label = 1.0, weight_repulse = 0.0, weight_Nspring = 0.1, weight_Tspring = 0.1;
 static float    weight_quadcur = 1.2, weight_label = 1.2, weight_repulse = 3.0, weight_Nspring = 0.5, weight_Tspring = 0.5;
 char            *Progname ;
 int             t=0;
@@ -92,7 +92,6 @@ float           sigma = 2.0f ;
 float           MAX_mag = 2.0, threshold = 0.5 ;
 float           rmax = 10, rmin = 3.3 ;
 float           step_size = 1;
-
 
 
 int main(int argc, char *argv[]) ;
@@ -110,6 +109,8 @@ main(int argc, char *argv[])
 	MHT           *mht_v_current = NULL ;
 	double        energy_quadcur=0, energy_label=0, energy_repulse = 0, 
                 energy_Nspring = 0 , energy_Tspring = 0, energy_Gspring = 0;
+	MRI *mri_e;
+	int xi, yi, zi;
 
   DiagInit(NULL, NULL, NULL) ;
   ErrorInit(NULL, NULL, NULL) ; 
@@ -140,7 +141,20 @@ main(int argc, char *argv[])
 	fprintf(stderr, "reading segmentation volume from %s...\n", labelfilename) ;
 	mri_orig = MRIread(labelfilename) ;	
 	extractlabelvolume(mri_label, mri_orig);
-
+	/* added temporarily */
+	mri_e = MRIcopy(mri_orig, NULL);
+	for (xi=0; xi<mri_e->depth; xi++)
+		for (yi=0; yi<mri_e->height; yi++)
+			for (zi=0; zi<mri_e->width; zi++)
+			{
+				if ( ((xi-127)*(xi-127)/10/10)+((yi-127)*(yi-127)/3/3)+((zi-127)*(zi-127)/3/3) <= 1 )
+					mri_e->slices[xi][yi][zi] = 17;
+				else
+					mri_e->slices[xi][yi][zi] = 0;
+			}	
+	MRIwrite(mri_e, "/autofs/space/dijon_004/ksong/BIRN_processed_data/prospective/buckner/CORTICAL_THINNING/RECONS/001009_vc5398/surf/ellipsoid.mgh");
+	MRIfree(&mri_e);
+	/******************************/
 	//******** read original tesselation ********//
   sprintf(ifname,"%s/%s/surf/%s.%s",data_dir,argv[1],argv[2],orig_name);
 	fprintf(stderr, "reading original surface position from %s...\n", ifname) ;
@@ -236,7 +250,7 @@ main(int argc, char *argv[])
 		  mrisComputeRepulsiveTerm(mris,weight_repulse,mht_v_current) ;
 			mrisComputeNormalSpringTerm(mris,weight_Nspring);
 			mrisComputeTangentialSpringTerm(mris, weight_Tspring);
-			MRISspringTermWithGaussianCurvature(mris, gaussian_norm, weight_Gspring);
+			mriSspringTermWithGaussianCurvature(mris, gaussian_norm, weight_Gspring);
 			
 			//*****  Examine if movement is too large ****//
   		mrisExaminemovelength(mris);
@@ -254,7 +268,8 @@ main(int argc, char *argv[])
 			
 			//****** Total Energy  ****//
 			//energy_new = weight_quadcur*energy_quadcur + weight_label*energy_label + energy_repulse\
-        //                + weight_Nspring*energy_Nspring + weight_Tspring*energy_Tspring;
+        //                + weight_Nspring*energy_Nspring + weight_Tspring*energy_Tspring;//
+
 				energy_new = weight_quadcur*energy_quadcur + weight_label*energy_label \
 					+ weight_repulse*energy_repulse +  weight_Nspring*energy_Nspring \
 					+ weight_Tspring*energy_Tspring +  weight_Gspring*energy_Gspring; 
@@ -266,11 +281,14 @@ main(int argc, char *argv[])
 				{
 					if (((++counter) % write_iterations) == 0)  
 					{
-						sprintf(ofname, "%s/%s/surf/movie/%s.refined%d", data_dir, argv[1], argv[2],counter/write_iterations);
+						sprintf(ofname, "%s/%s/surf/movie/%s.firstrefined%3.3d", data_dir, argv[1], argv[2],counter/write_iterations);
 						MRISwrite(mris, ofname) ;
 					}
 				}
-				
+	
+				fprintf(stderr, "%dth iteration: ratio = %2.5f, energy_quadcur = %5.2f, energy_label = %5.2f,"
+								" energy_repulse = %5.2f, energy_Nspring = %5.2f, energy_Tspring = %5.2f\n",\
+								t,ratio,energy_quadcur,energy_label,energy_repulse,energy_Nspring,energy_Tspring) ;
 				t++; energy_old = energy_new ;
 				
 		}
@@ -280,9 +298,6 @@ main(int argc, char *argv[])
 		
 		sigma -= 0.5;
 		
-		fprintf(stderr, "%dth iteration: ratio = %2.5f, energy_quadcur = %5.2f, energy_label = %5.2f,"
-						" energy_repulse = %5.2f, energy_Nspring = %5.2f, energy_Tspring = %5.2f\n",\
-						t,ratio,energy_quadcur,energy_label,energy_repulse,energy_Nspring,energy_Tspring) ;
 	}
 
 
@@ -297,8 +312,8 @@ main(int argc, char *argv[])
 			{
 				if (((++counter) % write_iterations) == 0)  
 				{
-					sprintf(ofname, "%s/%s/surf/movie/%s.refined%d", data_dir, argv[1], argv[2],counter/write_iterations);
-					fprintf(stderr, "writing out reconstructed surface after %d iteration to %d \n", i, counter/write_iterations );
+					sprintf(ofname, "%s/%s/surf/movie/%s.refined%3.3d", data_dir, argv[1], argv[2],counter/write_iterations);
+					fprintf(stderr, "writing out reconstructed surface after %d iteration to %3.3d \n", i, counter/write_iterations );
 					MRISwrite(mris, ofname) ;
 					//measure the volume this new surface encloses and compare with the original//
 				}
@@ -321,14 +336,14 @@ main(int argc, char *argv[])
 		for ( i=0; i<niteration; i++ )
 		{
 			MRIScomputeSecondFundamentalForm(mris) ;
-			MRISspringTermWithGaussianCurvature(mris, gaussian_norm, 1) ;
-			MRISmomentumTimeStep(mris, 0.5, 1, 1, 0) ;
+			mriSspringTermWithGaussianCurvature(mris, gaussian_norm, 1) ;
+			mrismomentumTimeStep(mris, 0.5, 1, 1, 0) ;
 			mrisClearGradient(mris);
 			if (write_iterations > 0)
 			{
 				if (((++counter) % write_iterations) == 0)  
 				{
-						sprintf(ofname, "%s/%s/surf/movie/%s.refined%d", data_dir, argv[1], argv[2],counter/write_iterations);
+						sprintf(ofname, "%s/%s/surf/movie/%s.refined%3.3d", data_dir, argv[1], argv[2],counter/write_iterations);
 						MRISwrite(mris, ofname) ;
 				}
 			}
@@ -341,7 +356,7 @@ main(int argc, char *argv[])
 	if (write_iterations > 0)
 	{		
 		counter = floor(counter/write_iterations)+1 ;
-		sprintf(ofname, "%s/%s/surf/movie/%s.refined%d", data_dir, argv[1], argv[2],counter);
+		sprintf(ofname, "%s/%s/surf/movie/%s.refined%3.3d", data_dir, argv[1], argv[2],counter);
 		MRISwrite(mris, ofname) ;
 	}
 
@@ -442,7 +457,7 @@ mrisFindneighborlabel(MRI_SURFACE *mris, char surftype[10], MRI *mri_label[5], M
 
 		while ( table[0][vno] == type && step <= 2 )
 		{
-			MRIworldToVoxel(mri_orig, v->x+step*v->nx, v->y+step*v->ny, v->z+step*v->nz, &xw, &yw, &zw) ;
+			MRIsurfaceRASToVoxel(mri_orig, v->x+step*v->nx, v->y+step*v->ny, v->z+step*v->nz, &xw, &yw, &zw) ;
 			MRIsampleVolumeType(mri_orig, xw, yw, zw, &val, SAMPLE_NEAREST);
 			if ( val >=1 && val <=4 ) 
 				table[0][vno] = 0;
@@ -458,7 +473,7 @@ mrisFindneighborlabel(MRI_SURFACE *mris, char surftype[10], MRI *mri_label[5], M
 		}
 
 #if 0	
-		MRIworldToVoxel(mri_orig, v->x-0.5*v->nx, v->y-0.5*v->ny, v->z-0.5*v->nz, &xw, &yw, &zw) ;
+		MRIsurfaceRASToVoxel(mri_orig, v->x-0.5*v->nx, v->y-0.5*v->ny, v->z-0.5*v->nz, &xw, &yw, &zw) ;
 		MRIsampleVolumeType(mri_orig, xw, yw, zw, &val, SAMPLE_NEAREST);
 		if ( val >=1 && val <=4 ) 
 			table[1][vno] = 0;
@@ -564,7 +579,7 @@ mrisFindneighborlabel(MRI_SURFACE *mris, char surftype[10], MRI *mri_label[5], M
 
 		while ( table[0][vno] == type && step <= 2 )
 		{
-			MRIworldToVoxel(mri_orig, v->x+step*v->nx, v->y+step*v->ny, v->z+step*v->nz, &xw, &yw, &zw) ;
+			MRIsurfaceRASToVoxel(mri_orig, v->x+step*v->nx, v->y+step*v->ny, v->z+step*v->nz, &xw, &yw, &zw) ;
 			MRIsampleVolumeType(mri_orig, xw, yw, zw, &val, SAMPLE_NEAREST);
 			if ( val == 17 ) 
 				table[0][vno] = 0;
@@ -579,8 +594,8 @@ mrisFindneighborlabel(MRI_SURFACE *mris, char surftype[10], MRI *mri_label[5], M
 			step +=0.25;
 		}
 
-#if 0	
-		MRIworldToVoxel(mri_orig, v->x-v->nx, v->y-v->ny, v->z-v->nz, &xw, &yw, &zw) ;
+#if 1
+		MRIsurfaceRASToVoxel(mri_orig, v->x-0.5*v->nx, v->y-0.5*v->ny, v->z-0.5*v->nz, &xw, &yw, &zw) ;
 		MRIsampleVolumeType(mri_orig, xw, yw, zw, &val, SAMPLE_NEAREST);
 		if ( val ==17 ) 
 			table[1][vno] = 0;
@@ -621,13 +636,13 @@ mrisComputeLabelTerm1(MRI_SURFACE *mris, double weight_label, MRI *mri_smooth[5]
 		v = &mris->vertices[vno] ;
 #if 0		
 		x = v->x+1.5*v->nx ; y = v->y+1.5*v->ny ; z = v->z+1.5*v->nz ;
-		MRIworldToVoxel(mri_orig, x, y, z, &xw1, &yw1, &zw1) ;
+		MRIsurfaceRASToVoxel(mri_orig, x, y, z, &xw1, &yw1, &zw1) ;
 		x = v->x+0.5*v->nx ; y = v->y+0.5*v->ny ; z = v->z+0.5*v->nz ;
-		MRIworldToVoxel(mri_orig, x, y, z, &xw, &yw, &zw) ;
+		MRIsurfaceRASToVoxel(mri_orig, x, y, z, &xw, &yw, &zw) ;
 		nx = xw1-xw ; ny = yw1-yw ; nz = zw1-zw ; 		
 		MRIsampleVolumeDerivative(mri_smooth[table[0][vno]], xw, yw, zw, nx, ny, nz, &dn) ;
 
-		MRIworldToVoxel(mri_smooth[table[0][vno]], v->x+0.5*v->nx, v->y+0.5*v->ny, v->z+0.5*v->nz, &xw, &yw, &zw) ;
+		MRIsurfaceRASToVoxel(mri_smooth[table[0][vno]], v->x+0.5*v->nx, v->y+0.5*v->ny, v->z+0.5*v->nz, &xw, &yw, &zw) ;
 		MRIsampleVolumeType(mri_smooth[table[0][vno]], xw, yw, zw, &outlabel, SAMPLE_TRILINEAR);
 
 		dx = (1-outlabel)* v->nx * dn;
@@ -635,13 +650,13 @@ mrisComputeLabelTerm1(MRI_SURFACE *mris, double weight_label, MRI *mri_smooth[5]
 		dz = (1-outlabel)* v->nz * dn;
 	
 		x = v->x+0.5*v->nx ; y = v->y+0.5*v->ny ; z = v->z+0.5*v->nz ;
-		MRIworldToVoxel(mri_orig, x, y, z, &xw1, &yw1, &zw1) ;
+		MRIsurfaceRASToVoxel(mri_orig, x, y, z, &xw1, &yw1, &zw1) ;
 		x = v->x-0.5*v->nx ; y = v->y-0.5*v->ny ; z = v->z-0.5*v->nz ;
-		MRIworldToVoxel(mri_orig, x, y, z, &xw, &yw, &zw) ;
+		MRIsurfaceRASToVoxel(mri_orig, x, y, z, &xw, &yw, &zw) ;
 		nx = xw1-xw ; ny = yw1-yw ; nz = zw1-zw ; 		
 		MRIsampleVolumeDerivative(mri_smooth[table[1][vno]], xw, yw, zw, nx, ny, nz, &dn) ;
 		
-		MRIworldToVoxel(mri_smooth[table[1][vno]], v->x-0.5*v->nx, v->y-0.5*v->ny, v->z-0.5*v->nz, &xw, &yw, &zw) ;
+		MRIsurfaceRASToVoxel(mri_smooth[table[1][vno]], v->x-0.5*v->nx, v->y-0.5*v->ny, v->z-0.5*v->nz, &xw, &yw, &zw) ;
 		MRIsampleVolumeType(mri_smooth[table[1][vno]], xw, yw, zw, &inlabel, SAMPLE_TRILINEAR);	
 		
 		dx += (1-inlabel)* v->nx * dn;
@@ -649,13 +664,13 @@ mrisComputeLabelTerm1(MRI_SURFACE *mris, double weight_label, MRI *mri_smooth[5]
 		dz += (1-inlabel)* v->nz * dn;
 #else
 		x = v->x+v->nx ; y = v->y+v->ny ; z = v->z+v->nz ;
-		MRIworldToVoxel(mri_orig, x, y, z, &xw1, &yw1, &zw1) ;
+		MRIsurfaceRASToVoxel(mri_orig, x, y, z, &xw1, &yw1, &zw1) ;
 		x = v->x ; y = v->y ; z = v->z ;
-		MRIworldToVoxel(mri_orig, x, y, z, &xw, &yw, &zw) ;
+		MRIsurfaceRASToVoxel(mri_orig, x, y, z, &xw, &yw, &zw) ;
 		nx = xw1-xw ; ny = yw1-yw ; nz = zw1-zw ; 		
 
 		MRIsampleVolumeDerivative(mri_smooth[table[0][vno]], xw, yw, zw, nx, ny, nz, &dn) ;
-		MRIworldToVoxel(mri_orig, x+0.5*v->nx, y+0.5*v->ny, z+0.5*v->nz, &xw, &yw, &zw); 
+		MRIsurfaceRASToVoxel(mri_orig, x+0.5*v->nx, y+0.5*v->ny, z+0.5*v->nz, &xw, &yw, &zw); 
 		MRIsampleVolumeType(mri_label[table[0][vno]], xw, yw, zw, &outlabel, SAMPLE_NEAREST);
 
 		dx = (1 - outlabel)* v->nx * dn;
@@ -663,7 +678,7 @@ mrisComputeLabelTerm1(MRI_SURFACE *mris, double weight_label, MRI *mri_smooth[5]
 		dz = (1 - outlabel)* v->nz * dn;
 			
 		MRIsampleVolumeDerivative(mri_smooth[table[1][vno]], xw, yw, zw, nx, ny, nz, &dn) ;
-		MRIworldToVoxel(mri_orig, x-0.5*v->nx, y-0.5*v->ny, z-0.5*v->nz, &xw, &yw, &zw);
+		MRIsurfaceRASToVoxel(mri_orig, x-0.5*v->nx, y-0.5*v->ny, z-0.5*v->nz, &xw, &yw, &zw);
 		MRIsampleVolumeType(mri_label[table[1][vno]], xw, yw, zw, &inlabel, SAMPLE_NEAREST);	
 		
 		dx += (1 - inlabel)* v->nx * dn;
@@ -886,7 +901,7 @@ mrisComputeLabelEnergy(MRI_SURFACE *mris, MRI *mri_smooth[5],MRI *mri_label[5], 
 	int           vno ;
   Real          xw, yw, zw, inval=0, outval=0;
 	float         x, y, z;
-	float         target_I = 0.5;
+	//float         target_I = 0.5;
   VERTEX        *v;
 	double        energy = 0;
 	
@@ -895,17 +910,17 @@ mrisComputeLabelEnergy(MRI_SURFACE *mris, MRI *mri_smooth[5],MRI *mri_label[5], 
 		v = &mris->vertices[vno];
 		x = v->x;	y = v->y;  z = v->z;
 #if 1		
-		MRIworldToVoxel(mri_smooth[table[0][vno]], x+0.5*v->nx, y+0.5*v->ny, z+0.5*v->nz, &xw, &yw, &zw) ;
+		MRIsurfaceRASToVoxel(mri_orig, x+0.5*v->nx, y+0.5*v->ny, z+0.5*v->nz, &xw, &yw, &zw) ;
 		MRIsampleVolumeType(mri_label[table[0][vno]], xw, yw, zw, &outval, SAMPLE_NEAREST);		
-    MRIworldToVoxel(mri_smooth[table[1][vno]], x-0.5*v->nx, y-0.5*v->ny, z-0.5*v->nz, &xw, &yw, &zw) ;
+    MRIsurfaceRASToVoxel(mri_orig, x-0.5*v->nx, y-0.5*v->ny, z-0.5*v->nz, &xw, &yw, &zw) ;
 		MRIsampleVolumeType(mri_label[table[1][vno]], xw, yw, zw, &inval, SAMPLE_NEAREST);	
-		//		if ( outval!=1 || inval!=1)
+		//if ( outval!=1 || inval!=1)
 		//fprintf(stderr, "vertex %d is not correct: outval=%f inval=%f \n", vno, outval, inval) ;
 		energy += (1 - outval) * (1 - outval) + (1 - inval) * (1 - inval) ;
 #else		
-		MRIworldToVoxel(mri_orig, x, y, z, &xw, &yw, &zw) ;
+		MRIsurfaceRASToVoxel(mri_orig, x, y, z, &xw, &yw, &zw) ;
 		MRIsampleVolumeType(mri_label[table[0][vno]], xw, yw, zw, &outval, SAMPLE_NEAREST);		
-    //MRIworldToVoxel(mri_smooth[table[1][vno]], x, y, z, &xw, &yw, &zw) ;
+    //MRIsurfaceRASToVoxel(mri_smooth[table[1][vno]], x, y, z, &xw, &yw, &zw) ;
 		MRIsampleVolumeType(mri_label[table[1][vno]], xw, yw, zw, &inval, SAMPLE_NEAREST);	
 		if ( outval!=target_O || inval!=target_I)
 	 	fprintf(stderr, "vertex %d is not correct: outval=%f inval=%f \n", vno, outval, inval) ;
@@ -1403,8 +1418,8 @@ mrisComputeRepulsiveEnergy(MRI_SURFACE *mris, double l_repulse, MHT *mht)
   return(sse_repulse) ;
 }
 
-int
-MRISspringTermWithGaussianCurvature(MRI_SURFACE *mris, double gaussian_norm, double l_spring)
+static int
+mriSspringTermWithGaussianCurvature(MRI_SURFACE *mris, double gaussian_norm, double l_spring)
 {
   int     vno, n, m ;
   VERTEX  *vertex, *vn ;
@@ -1639,8 +1654,8 @@ print_usage(void)
 }
 
 
-double
-MRISmomentumTimeStep(MRI_SURFACE *mris, float momentum, float dt, float tol, 
+static double
+mrismomentumTimeStep(MRI_SURFACE *mris, float momentum, float dt, float tol, 
                      float n_averages)
 {
   double  delta_t, mag ;
