@@ -162,6 +162,154 @@ MRIpolvMean(MRI *mri_src, MRI *mri_dst, MRI *mri_polv, int wsize)
         Description
 ------------------------------------------------------*/
 MRI *
+MRIpolvNormalCurvature(MRI *mri_src, MRI *mri_dst, MRI *mri_polv, int wsize)
+{
+  int      width, height, depth, x, y, z, whalf, yk, n, vertex,xi,yi,zi,
+           *pxi, *pyi, *pzi  ;
+  float    nx, ny, nz, mean, var, val, std, *pdst ;
+  BUFTYPE  *pptr ;
+
+  init_basis_vectors() ;
+  width = mri_src->width ;
+  height = mri_src->height ;
+  depth = mri_src->depth ;
+  whalf = (wsize-1)/2 ;
+
+  if (!mri_dst)
+  {
+    mri_dst = MRIallocSequence(width,height,depth,MRI_FLOAT,mri_src->nframes);
+    MRIcopyHeader(mri_src, mri_dst) ;
+  }
+
+  pxi = mri_src->xi ; pyi = mri_src->yi ; pzi = mri_src->zi ;
+  n = wsize-1 ;  /* excludes central point */
+  for (z = 0 ; z < depth ; z++)
+  {
+    DiagHeartbeat((float)z / (float)(depth-1)) ;
+    for (y = whalf ; y < height ; y++)
+    {
+      pdst = &MRIFvox(mri_dst, 0, y, z) ;  /* ptr to destination */
+      pptr = &MRIvox(mri_polv, 0, y, z) ; /* ptr to normal vectors */
+      for (x = 0 ; x < width ; x++)
+      {
+        vertex = *pptr++ ;
+        nx = ic_x_vertices[vertex] ;  /* normal vector */
+        ny = ic_y_vertices[vertex] ;
+        nz = ic_z_vertices[vertex] ;
+
+        /* 
+           calculate the mean in the plane orthogonal to (a,b,c), 
+           through the current origin (x,y,z).
+           */
+        /* now find the values in the normal direction */
+        mean = var = 0.0f ;
+        for (yk = -whalf ; yk <= whalf ; yk++)
+        {
+          if (!yk)
+            continue ;  /* skip central point */
+          xi = pxi[nint((float)x + (float)yk * nx)] ;
+          yi = pyi[nint((float)y + (float)yk * ny)] ;
+          zi = pzi[nint((float)z + (float)yk * nz)] ;
+          val = (float)MRIvox(mri_src, xi, yi, zi) ;
+          var += val * val ;
+          mean += val ;
+        }
+        mean /= (float)n ;
+        val = (float)MRIvox(mri_src, x, y, z) ;
+        std = sqrt(var / (float)n - mean*mean) ;
+        if (!FZERO(std))
+          *pdst++ = (val - mean) / std ;
+        else
+          *pdst++ = 0.0f ;
+      }
+    }
+  }
+
+  return(mri_dst) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+MRI *
+MRIpolvZscore(MRI *mri_src, MRI *mri_dst, MRI *mri_polv, int wsize)
+{
+  int      width, height, depth, x, y, z, whalf, yk, n, vertex,xi,yi,zi,
+           *pxi, *pyi, *pzi  ;
+  float    nx, ny, nz, mean, var, val, std, *pdst, xf, yf, zf ;
+  BUFTYPE  *pptr ;
+
+  init_basis_vectors() ;
+  width = mri_src->width ;
+  height = mri_src->height ;
+  depth = mri_src->depth ;
+  whalf = (wsize-1)/2 ;
+
+  if (!mri_dst)
+  {
+    mri_dst = MRIallocSequence(width,height,depth,MRI_FLOAT,mri_src->nframes);
+    MRIcopyHeader(mri_src, mri_dst) ;
+  }
+
+  pxi = mri_src->xi ; pyi = mri_src->yi ; pzi = mri_src->zi ;
+  n = wsize ;
+  for (z = 0 ; z < depth ; z++)
+  {
+    DiagHeartbeat((float)z / (float)(depth-1)) ;
+    for (y = whalf ; y < height ; y++)
+    {
+      pdst = &MRIFvox(mri_dst, 0, y, z) ;  /* ptr to destination */
+      pptr = &MRIvox(mri_polv, 0, y, z) ; /* ptr to normal vectors */
+      for (x = 0 ; x < width ; x++)
+      {
+        vertex = *pptr++ ;
+        nx = ic_x_vertices[vertex] ;  /* normal vector */
+        ny = ic_y_vertices[vertex] ;
+        nz = ic_z_vertices[vertex] ;
+
+        /* 
+           calculate the mean in the plane orthogonal to (a,b,c), 
+           through the current origin (x,y,z).
+           */
+        /* now find the values in the normal direction */
+        mean = var = 0.0f ;
+        xf = (float)x - whalf*nx ;
+        yf = (float)y - whalf*ny ;
+        zf = (float)z - whalf*nz ;
+        for (yk = -whalf ; yk <= whalf ; yk++)
+        {
+          xi = pxi[nint(xf)] ;
+          yi = pyi[nint(yf)] ;
+          zi = pzi[nint(zf)] ;
+          val = (float)MRIvox(mri_src, xi, yi, zi) ;
+          var += val * val ;
+          mean += val ;
+          xf += nx ; yf += ny ; zf += nz ;
+        }
+        mean /= (float)n ;
+        val = (float)MRIvox(mri_src, x, y, z) ;
+        std = sqrt(var / (float)n - mean*mean) ;
+        if (!FZERO(std))
+          *pdst++ = (val - mean) / std ;
+        else
+          *pdst++ = 0.0f ;
+      }
+    }
+  }
+
+  return(mri_dst) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+MRI *
 MRIpolvMedian(MRI *mri_src, MRI *mri_dst, MRI *mri_polv, int wsize)
 {
   int      width, height, depth, x, y, z, whalf, xk, yk, n, vertex,xi,yi,zi,
@@ -985,9 +1133,25 @@ init_basis_vectors(void)
   pe2_x = e2_x_v ; pe2_y = e2_y_v ; pe2_z = e2_z_v ;
   for (vertex = 0 ; vertex < NVERTICES ; vertex++)
   {
-    e3_x = *px++ ;   /* vector on unit sphere */
-    e3_y = *py++ ;
-    e3_z = *pz++ ;
+    e3_x = *px ;   /* vector on unit sphere */
+    e3_y = *py ;
+    e3_z = *pz ;
+/* 
+   now we must scale the length of the vector so that it reaches the
+   border of the next voxel. Thus, 'diagonal' vectors must be extended
+   by sqrt(2) relative to those which lie along the cardinal axes.
+*/
+    vx = fabs(e3_x) ; vy = fabs(e3_y) ; vz = fabs(e3_z) ; /* use symmetry */
+    if ((vx > vy) && (vx > vz))  /* scale using x component */
+      len = 1.0f / vx ;
+    else if (vy > vz)            /* scale using y component */
+      len = 1.0f / vy ;
+    else                         /* scale using z component */
+      len = 1.0f / vz ;
+    *px++ = e3_x * len ;
+    *py++ = e3_y * len ;
+    *pz++ = e3_z * len ;
+
 
     /* pick some other unit non-linearly dependent vector */
     vx = e3_y ;
@@ -999,11 +1163,6 @@ init_basis_vectors(void)
     e1_y = vz*e3_x - vx*e3_z ;
     e1_z = vx*e3_y - vy*e3_x ;
 
-/* 
-   now we must scale the length of the vector so that it reaches the
-   border of the next voxel. Thus, 'diagonal' vectors must be extended
-   by sqrt(2) relative to those which lie along the cardinal axes.
-*/
     vx = fabs(e1_x) ; vy = fabs(e1_y) ; vz = fabs(e1_z) ; /* use symmetry */
     if ((vx > vy) && (vx > vz))  /* scale using x component */
       len = 1.0f / vx ;
