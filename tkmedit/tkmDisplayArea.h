@@ -101,11 +101,21 @@ typedef enum {
   DspA_knNumBrushes
 } DspA_tBrush;
 
+typedef enum {
+  DspA_tBrushMode_None  = -1,
+  DspA_tBrushMode_Set   = 0,
+  DspA_tBrushMode_Clone = 1,
+  DspA_knNumBrushModes
+} DspA_tBrushMode;
+
 /* the threshold settings for a brush */
 typedef struct {
   Volm_tValue mLow;
   Volm_tValue mHigh;
-  Volm_tValue mNewValue;
+
+  DspA_tBrushMode mMode;
+  Volm_tValue     mNewValue;
+  tkm_tVolumeType mCloneSource;
 } DspA_tBrushInfo, *DspA_tBrushInfoRef;
 
 typedef enum {
