@@ -86,7 +86,7 @@ main(int argc, char *argv[])
   MATRIX       *m_L ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_linear_register.c,v 1.9 2003/09/05 04:45:34 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_linear_register.c,v 1.10 2003/09/19 19:41:54 tosa Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -386,8 +386,9 @@ main(int argc, char *argv[])
       MRIfree(&mri_tmp) ;
     }
   }
-  MRIfree(&mri_in) ; MRIfree(&mri_ref) ;
-
+  // save src and target info in lta
+  getVolGeom(mri_in_orig, &parms.lta->xforms[0].src);
+  getVolGeom(mri_ref_orig, &parms.lta->xforms[0].dst);
   fprintf(stderr, "writing output transformation to %s...\n", out_fname) ;
   if (invert_flag)
   {
@@ -395,9 +396,14 @@ main(int argc, char *argv[])
 
     m_tmp = MatrixInverse(parms.lta->xforms[0].m_L, NULL) ;
     MatrixFree(&parms.lta->xforms[0].m_L) ;
+    // change src and dst
+    getVolGeom(mri_in_orig, &parms.lta->xforms[0].dst);
+    getVolGeom(mri_ref_orig, &parms.lta->xforms[0].src);
     parms.lta->xforms[0].m_L = m_tmp ;
   }
+  //
   LTAwrite(parms.lta, out_fname) ;
+  //
   if (mri_ref)
     MRIfree(&mri_ref) ;
   if (mri_in)
