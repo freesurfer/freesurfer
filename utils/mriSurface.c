@@ -641,6 +641,16 @@ Surf_tErr Surf_TransformToVolumeGeometry ( mriSurfaceRef this,
   DebugAssertThrowX( (ERROR_NONE == eMRIS),
 		     eResult, Surf_tErr_ErrorAccesssingSurface );
 
+  /* Since that changes the vertex positions, reconvert our client
+     space cache. */
+  Surf_ConvertSurfaceToClientSpace_( this, Surf_tVertexSet_Main );
+  if( this->mabVertexSetLoaded[Surf_tVertexSet_Pial] ) {
+    Surf_ConvertSurfaceToClientSpace_( this, Surf_tVertexSet_Pial );
+  }
+  if( this->mabVertexSetLoaded[Surf_tVertexSet_Original] ) {
+    Surf_ConvertSurfaceToClientSpace_( this, Surf_tVertexSet_Original );
+  }
+
   DebugCatch;
   DebugCatchError( eResult, Surf_tErr_NoErr, Surf_GetErrorString );
   EndDebugCatch;
