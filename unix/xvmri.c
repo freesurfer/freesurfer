@@ -324,8 +324,8 @@ XVMRIshow(XV_FRAME *xvf, MRI *mri, int which, int slice)
     return(NULL) ;
 
 
-  mag = MIN((float)xvf->display_rows / (float)I->rows,
-            (float)xvf->display_cols / (float)I->cols) ;
+  mag = MIN((float)xvf->orig_disp_rows / (float)I->rows,
+            (float)xvf->orig_disp_cols / (float)I->cols) ;
 
   XVsetImageSize(xvf, which, nint((float)I->rows*mag), 
                  nint((float)I->cols*mag));
@@ -335,7 +335,7 @@ XVMRIshow(XV_FRAME *xvf, MRI *mri, int which, int slice)
   if (which_click < 0)  /* reset current click point */
   {
     which_click = which ;
-    z_click = mri->depth / 2 ;
+    z_click = slice ;
     y_click = mri->height / 2 ;
     x_click = mri->width / 2 ;
 #if 0
