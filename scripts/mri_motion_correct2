@@ -3,7 +3,7 @@
 # Performs motion correction of anatomicals. This should produce
 # the same output as mri_motion_correct
 
-set VERSION = '$Id: mri_motion_correct2,v 1.4 2003/08/28 21:04:57 tosa Exp $';
+set VERSION = '$Id: mri_motion_correct2,v 1.5 2003/08/28 21:47:56 tosa Exp $';
 
 set tmpdir      = /tmp;
 set inputlist   = ();
@@ -25,6 +25,16 @@ endif
 set n = `echo $argv | grep version | wc -l` 
 if($n != 0) then
   echo $VERSION
+  ##### gather version info used in this script
+  mri_convert --version 
+  set prog = `which rawtominc`
+  strings $prog | grep rawtominc.c 
+  set prog = `which minctracc`
+  strings $prog | grep minctracc.c 
+  set prog = `which mincresample`
+  strings $prog | grep mincresample.c
+  set prog = `which mincaverage`
+  strings $prog | grep mincaverage.c 
   exit 0;
 endif
 
@@ -52,16 +62,6 @@ pwd               >> $LF
 uname -a           >> $LF
 date               >> $LF
 which mri_convert  >> $LF
-##### gather version info used in this script
-mri_convert --version 
-set prog = `which rawtominc`
-strings $prog | grep rawtominc.c 
-set prog = `which minctracc`
-strings $prog | grep minctracc.c 
-set prog = `which mincresample`
-strings $prog | grep mincresample.c
-set prog = `which mincaverage`
-strings $prog | grep mincaverage.c 
 
 set StartTime = `date`;
 
