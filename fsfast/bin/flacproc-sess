@@ -1,9 +1,9 @@
 #!/bin/csh -f
 # flacproc-sess
 #
-# $Id: flacproc-sess,v 1.3 2004/11/09 16:50:41 greve Exp $
+# $Id: flacproc-sess,v 1.4 2004/11/11 00:12:49 greve Exp $
 
-set VERSION = '$Id: flacproc-sess,v 1.3 2004/11/09 16:50:41 greve Exp $';
+set VERSION = '$Id: flacproc-sess,v 1.4 2004/11/11 00:12:49 greve Exp $';
 
 set cmdargs = ($argv);
 
@@ -88,18 +88,21 @@ if(isempty(flac)) return; end
 
 nruns = size(flac.runlist,1);
 
-mstem = sprintf('%s/%s/masks/%s',flac.sess,flac.fsd,...
-                flac.mask);
-mask = fast_ldbslice(mstem);
-indmask = find(mask);
-indnotmask = find(~mask);
+mstem = sprintf('%s/%s/masks/%s%s',flac.sess,flac.fsd,...
+                flac.mask,flac.formatext);
+%mask = fast_ldbslice(mstem);
+mask = MRIread(mstem);
+indmask = find(mask.vol);
+indnotmask = find(~mask.vol);
 
-acfsegstem = sprintf('%s/%s/masks/%s',flac.sess,flac.fsd,...
-                acfsegstem);
-acfseg = fast_ldbslice(acfsegstem);
-acfseglist = unique(acfseg(:));
+acfsegstem = sprintf('%s/%s/masks/%s%s',flac.sess,flac.fsd,...
+                acfsegstem,flac.formatext);
+%acfseg = fast_ldbslice(acfsegstem);
+acfseg = MRIread(acfsegstem);
+if(isempty(acfseg)) return; end
+acfseglist = unique(acfseg.vol(:));
 nacfsegs = length(acfseglist)-1; % Exclude 0
-acfmask = (acfseg ~= 0);
+acfmask = (acfseg.vol ~= 0);
 indacfmask = find(acfmask);
 
 for nthrun = 1:nruns
@@ -123,27 +126,28 @@ for nthrun = 1:nruns
   end
 
   fprintf('Loading functional data (%6.1f)\n',toc);
-  ystem = sprintf('%s/%s/%s/%s',flac.sess,flac.fsd,...
-                    flac.runlist(flac.nthrun,:),flac.funcstem);
-  [y mri] = fast_ldbslice(ystem);
+  ystem = sprintf('%s/%s/%s/%s%s',flac.sess,flac.fsd,...
+            flac.runlist(flac.nthrun,:),flac.funcstem,flac.formatext);
+  %[y mri] = fast_ldbslice(ystem);
+  y = MRIread(ystem);
   if(isempty(y)) return; end
-  szvol = size(y);
+  szvol = size(y.vol);
   szvol = szvol(1:end-1);
   Nv = prod(szvol);
-  y = fast_vol2mat(y);
+  y.vol = fast_vol2mat(y.vol);
 
   if(Synth)
     fprintf('Synthesizing input, AR1 = %g \n',SynthAR1);
-    y = randn(size(y));
+    y.vol = randn(size(y.vol));
     if(SynthAR1 ~= 0)
 	acfsynth = SynthAR1.^[0:flac.ntp-1]';
 	Facfsynth = chol(toeplitz(acfsynth))';
-	y = Facfsynth*y;
+	y.vol = Facfsynth*y.vol;
     end
   end
 
   fprintf('Performing OLS estimation   (%6.1f)\n',toc);
-  [beta, rvar, vdof, r] = fast_glmfitw(y,flac.X);
+  [beta, rvar, vdof, r] = fast_glmfitw(y.vol,flac.X);
 
   % Do AMD-SNC here and re-est
 
@@ -152,8 +156,8 @@ for nthrun = 1:nruns
   R = eye(flac.ntp) - flac.X*inv(flac.X'*flac.X)*flac.X';
   nn = [1:flac.ntp]';
   for nthseg = 1:nacfsegs
-    %indseg = find(acfseg(indacfmask)==nthseg);
-    indseg = find(acfseg==nthseg);
+    %indseg = find(acfseg.vol(indacfmask)==nthseg);
+    indseg = find(acfseg.vol==nthseg);
     nperseg(nthseg) = length(indseg);
     racf = fast_acorr(r(:,indseg));
     %racfseg(:,nthseg)  = mean(racf(:,indseg),2);
@@ -167,31 +171,38 @@ for nthrun = 1:nruns
   clear racf;
 
   fprintf('Performing GLS estimation   (%6.1f)\n',toc);
-  [beta rvar vdof r] = fast_glmfitw(y,flac.X,nacfseg,acfseg);
+  [beta rvar vdof r] = fast_glmfitw(y.vol,flac.X,nacfseg,acfseg.vol);
 
   indrvarz = find(rvar==0);
   rvar(indrvarz) = 10e10;
 
   fprintf('Saving estimation   (%6.1f)\n',toc);
-  outdir = sprintf('%s/%s/%s/%s',flac.sess,flac.fsd,...
-                    flac.runlist(flac.nthrun,:),flac.name);
+  outdir = sprintf('%s/%s/fla/%s/%s',flac.sess,flac.fsd,...
+                    flac.name,flac.runlist(flac.nthrun,:));
   mkdirp(outdir);
 
   flacmat = sprintf('%s/flac.mat',outdir);  
   save(flacmat,'flac','racfseg','ar1','nacfseg','acfseg','Synth','SynthAR1');
 
-  stem = sprintf('%s/beta',outdir);
-  tmp = fast_mat2vol(beta,szvol);
-  fast_svbslice(tmp,stem,[],[],mri);
+  stem = sprintf('%s/beta%s',outdir,flac.formatext);
+  tmp = y;
+  tmp.vol = fast_mat2vol(beta,szvol);
+  MRIwrite(tmp,stem);
+  %fast_svbslice(tmp,stem,[],[],mri);
 
-  stem = sprintf('%s/rvar',outdir);
-  tmp = fast_mat2vol(rvar,szvol);
-  fast_svbslice(tmp,stem,[],[],mri);
+  stem = sprintf('%s/rvar%s',outdir,flac.formatext);
+  tmp = y;
+  tmp.vol = fast_mat2vol(rvar,szvol);
+  MRIwrite(tmp,stem);
+  %fast_svbslice(tmp,stem,[],[],mri);
 
   if(svres)
-    stem = sprintf('%s/res',outdir);
-    tmp = fast_mat2vol(r,szvol);
-    fast_svbslice(tmp,stem,[],[],mri);
+    stem = sprintf('%s/res%s',outdir,flac.formatext);
+    tmp = y;
+    tmp.vol = fast_mat2vol(r,szvol);
+    MRIwrite(tmp,stem);
+    %tmp = fast_mat2vol(r,szvol);
+    %fast_svbslice(tmp,stem,[],[],mri);
   end
 
   fprintf('Computing contrasts   (%6.1f)\n',toc);
@@ -212,20 +223,26 @@ for nthrun = 1:nruns
     end
 
     C = flac.con(nthcon).C;
-    [F dof1 dof2 ces] = fast_fratiow(beta,flac.X,rvartmp,C,nacfseg,acfseg);
+    [F dof1 dof2 ces] = fast_fratiow(beta,flac.X,rvartmp,C,nacfseg,acfseg.vol);
     p = FTest(dof1, dof2, F);
     sig = -log10(p);
 
     condir = sprintf('%s/%s',outdir,flac.con(nthcon).name);
     mkdirp(condir);
 
-    stem = sprintf('%s/f',condir);
-    tmp = fast_mat2vol(F,szvol);
-    fast_svbslice(tmp,stem,[],[],mri);
+    stem = sprintf('%s/f%s',condir,flac.formatext);
+    tmp = y;
+    tmp.vol = fast_mat2vol(F,szvol);
+    MRIwrite(tmp,stem);
+    %tmp = fast_mat2vol(F,szvol);
+    %fast_svbslice(tmp,stem,[],[],mri);
 
-    stem = sprintf('%s/fsig',condir);
-    tmp = fast_mat2vol(sig,szvol);
-    fast_svbslice(tmp,stem,[],[],mri);
+    stem = sprintf('%s/fsig%s',condir,flac.formatext);
+    tmp = y;
+    tmp.vol = fast_mat2vol(sig,szvol);
+    MRIwrite(tmp,stem);
+    %tmp = fast_mat2vol(sig,szvol);
+    %fast_svbslice(tmp,stem,[],[],mri);
 
   end % contrasts
 
@@ -237,7 +254,7 @@ for nthrun = 1:nruns
     nregtot = size(flac.X,2);
     C = eye(nregtot);
     C = C(indtask,:);
-    [F dof1 dof2 ces] = fast_fratiow(beta,flac.X,rvar,C,nacfseg,acfseg);
+    [F dof1 dof2 ces] = fast_fratiow(beta,flac.X,rvar,C,nacfseg,acfseg.vol);
     p = FTest(dof1, dof2, F);
     sig = -log10(p);
     indnpca = find(abs(sig) < npcathresh);
@@ -245,7 +262,7 @@ for nthrun = 1:nruns
             length(indnpca),100*length(indnpca)/Nv);
 
     % Extract non-taskrelated voxels and ortho wrt nuissance
-    ynpca = y(:,indnpca);
+    ynpca = y.vol(:,indnpca);
     indnuis = flac_nuisregind(flac);
     Xnuis = flac.X(:,indnuis);
     ynpca = (eye(flac.ntp) - Xnuis*inv(Xnuis'*Xnuis)*Xnuis')*ynpca;
