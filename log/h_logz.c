@@ -86,7 +86,7 @@ static void  mapInitRuns(LOGMAP_INFO *mi, int max_run_len) ;
 static void  mapCalculateParms(LOGMAP_INFO *lmi) ;
 
 static int    logFilterNbd(LOGMAP_INFO *lmi, int filter[NBD_SIZE], 
-                           IMAGE *inImage, IMAGE *outImage, 
+                           IMAGE *Iin, IMAGE *Iout, 
                            int doweight, int start_ring, int end_ring) ;
 static IMAGE *logSobelX(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *Idst, 
                         int doweight, int start_ring, int end_ring) ;
@@ -257,6 +257,86 @@ LogMapSample(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *Idst)
         break ;
       }
     }
+  }
+
+  if (Iout != Idst)
+  {
+    ImageCopy(Iout, Idst) ;
+    ImageFree(&Iout) ;
+  }
+  return(Idst) ;
+}
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+----------------------------------------------------------------------*/
+IMAGE *
+LogMapInverseSample(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *Idst)
+{
+  int   ring, spoke, row, col, rows, cols ;
+  IMAGE *Iout ;
+  float  fval, *fdst ;
+  byte   bval, *bdst ;
+
+  if (!Idst)
+    Idst = ImageAlloc(lmi->nrows,lmi->ncols, Isrc->pixel_format,1);
+  else
+    ImageClearArea(Idst, 0, 0, Idst->rows, Idst->cols, 0.0f) ;
+
+  if (Idst->pixel_format != Isrc->pixel_format)
+    Iout = ImageAlloc(Idst->rows, Idst->cols, Isrc->pixel_format,1);
+  else
+    Iout = Idst ;
+
+  rows = Iout->rows ;
+  cols = Iout->cols ;
+
+  switch (Isrc->pixel_format)
+  {
+  case PFFLOAT:
+    fdst = IMAGEFpix(Idst, 0, 0) ;
+    for (row = 0 ; row < rows ; row++)
+    {
+      for (col = 0 ; col < cols ; col++)
+      {
+        ring = TV_TO_RING(lmi, col, row) ;
+        spoke = TV_TO_SPOKE(lmi, col, row) ;
+        if (ring != UNDEFINED && spoke != UNDEFINED && 
+            (LOG_PIX_AREA(lmi, ring, spoke) > 0))
+        {
+          fval = *IMAGEFpix(Isrc, ring, spoke) ;
+          *fdst++ = fval ;
+        }
+        else
+          *fdst++ = 0.0f ;
+      }
+    }
+    break ;
+  case PFBYTE:
+    bdst = IMAGEpix(Idst, 0, 0) ;
+    for (row = 0 ; row < rows ; row++)
+    {
+      for (col = 0 ; col < cols ; col++)
+      {
+        ring = TV_TO_RING(lmi, col, row) ;
+        spoke = TV_TO_SPOKE(lmi, col, row) ;
+        if (ring != UNDEFINED && spoke != UNDEFINED && 
+            (LOG_PIX_AREA(lmi, ring, spoke) > 0))
+        {
+          bval = *IMAGEpix(Isrc, ring, spoke) ;
+          *bdst++ = bval ;
+        }
+        else
+          *bdst++ = 0 ;
+      }
+    }
+    break ;
+  default:
+    ErrorReturn(Idst, (ERROR_UNSUPPORTED, 
+                       "LogMapInverseSample: unsupported pixel format %d",
+                       Iout->pixel_format)) ;
+    break ;
   }
 
   if (Iout != Idst)
@@ -891,6 +971,8 @@ mapInitLogPix(LOGMAP_INFO *lmi)
       LOG_PIX_AREA(lmi, ring, spoke)++ ;
       LOG_PIX_ROW_CENT(lmi, ring, spoke) += j ;
       LOG_PIX_COL_CENT(lmi, ring, spoke) += i ;
+      LOG_PIX_ROW_FCENT(lmi, ring, spoke) += j ;
+      LOG_PIX_COL_FCENT(lmi, ring, spoke) += i ;
       LOG_PIX_SPOKE(lmi, ring, spoke) = spoke ;
       LOG_PIX_RING(lmi, ring, spoke) = ring ;
     }
@@ -920,6 +1002,8 @@ wscale = 1.0 ;
     area = LOG_PIX_AREA(lmi, ring, spoke) ;
     LOG_PIX_ROW_CENT(lmi, ring, spoke) /= area ;
     LOG_PIX_COL_CENT(lmi, ring, spoke) /= area ;
+    LOG_PIX_ROW_FCENT(lmi, ring, spoke) /= (float)area ;
+    LOG_PIX_COL_FCENT(lmi, ring, spoke) /= (float)area ;
     if (ring <= nrings/2)
       rval = nrings/2-ring ;
     else
@@ -982,29 +1066,29 @@ static int isy[NBD_SIZE] = { -1, -2, -1,   0, 0, 0,   1, 2, 1} ;
 static int isx[NBD_SIZE] = {-1, 0, 1,  -2, 0, 2,   -1,  0,  1} ;
 
 int
-LogMapGradient(LOGMAP_INFO *lmi, IMAGE *inImage, 
-               IMAGE *gradImage, int doweight, int start_ring, int end_ring)
+LogMapGradient(LOGMAP_INFO *lmi, IMAGE *Iin, 
+               IMAGE *Igrad, int doweight, int start_ring, int end_ring)
 {
   static IMAGE *xImage = NULL, *yImage = NULL ;
 
-  if (!ImageCheckSize(inImage, xImage, 0, 0, 0))
+  if (!ImageCheckSize(Iin, xImage, 0, 0, 0))
   {
     if (xImage)
     {
       ImageFree(&xImage) ;
       ImageFree(&yImage) ;
     }
-    xImage = ImageAlloc(inImage->rows, inImage->cols,inImage->pixel_format,1);
-    yImage = ImageAlloc(inImage->rows, inImage->cols, inImage->pixel_format,1);
+    xImage = ImageAlloc(Iin->rows, Iin->cols,Iin->pixel_format,1);
+    yImage = ImageAlloc(Iin->rows, Iin->cols, Iin->pixel_format,1);
   }
   else
   {
-    ImageSetSize(xImage, inImage->rows, inImage->cols) ;
-    ImageSetSize(yImage, inImage->rows, inImage->cols) ;
-    yImage->pixel_format = xImage->pixel_format = inImage->pixel_format ;
+    ImageSetSize(xImage, Iin->rows, Iin->cols) ;
+    ImageSetSize(yImage, Iin->rows, Iin->cols) ;
+    yImage->pixel_format = xImage->pixel_format = Iin->pixel_format ;
   }
 
-  LogMapSobel(lmi, inImage, gradImage, xImage, yImage, doweight, 
+  LogMapSobel(lmi, Iin, Igrad, xImage, yImage, doweight, 
               start_ring, end_ring);
   return(0) ;
 }
@@ -1014,7 +1098,7 @@ LogMapGradient(LOGMAP_INFO *lmi, IMAGE *inImage,
            Description:
 ----------------------------------------------------------------------*/
 int
-LogMapSobel(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *gradImage, 
+LogMapSobel(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *Igrad, 
             IMAGE *Ix, IMAGE *Iy, int doweight, int start_ring, int end_ring)
 {
   int              ring, spoke, val = 0, xval = 0, yval = 0 ;
@@ -1047,7 +1131,7 @@ LogMapSobel(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *gradImage,
 #endif
 
 
-  if (gradImage)
+  if (Igrad)
   {
     switch (Isrc->pixel_format)
     {
@@ -1057,7 +1141,7 @@ LogMapSobel(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *gradImage,
           xval = (int)*IMAGEpix(Ix, ring, spoke) ;
           yval = (int)*IMAGEpix(Iy, ring, spoke) ;
           val = (int)sqrt(((double)(xval*xval) + (double)(yval*yval))/4.0) ;
-          *IMAGEpix(gradImage, ring, spoke) = val ;
+          *IMAGEpix(Igrad, ring, spoke) = val ;
         }
       break ;
     case PFINT:
@@ -1066,7 +1150,7 @@ LogMapSobel(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *gradImage,
           xval = *IMAGEIpix(Ix, ring, spoke) ;
           yval = *IMAGEIpix(Iy, ring, spoke) ;
           val = (int)sqrt(((double)(xval*xval) + (double)(yval*yval))/4.0) ;
-          *IMAGEIpix(gradImage, ring, spoke) = val ;
+          *IMAGEIpix(Igrad, ring, spoke) = val ;
         }
       break ;
     case PFFLOAT:
@@ -1075,7 +1159,7 @@ LogMapSobel(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *gradImage,
           fxval = *IMAGEFpix(Ix, ring, spoke) ;
           fyval = *IMAGEFpix(Iy, ring, spoke) ;
           fval = (float)sqrt((double)(fxval*fxval)+(double)(fyval*fyval))/4.0f;
-          *IMAGEFpix(gradImage, ring, spoke) = fval ;
+          *IMAGEFpix(Igrad, ring, spoke) = fval ;
         }
       break ;
 
@@ -1092,7 +1176,7 @@ LogMapSobel(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *gradImage,
   {
     ImageWrite(Ix, "x.hipl") ;
     ImageWrite(Iy, "y.hipl") ;
-    ImageWrite(gradImage, "grad.hipl") ;
+    ImageWrite(Igrad, "grad.hipl") ;
   }
 #endif
   return(0) ;
@@ -1125,7 +1209,7 @@ LogMapMeanFilter(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *Idst)
            Description:
 ----------------------------------------------------------------------*/
 int
-LogMapCurvature(LOGMAP_INFO *lmi, IMAGE *inImage, IMAGE *gradImage, 
+LogMapCurvature(LOGMAP_INFO *lmi, IMAGE *Iin, IMAGE *Igrad, 
                 float A, int doweight, int start_ring, int end_ring)
 {
   int    ring, spoke, val, xval, yval ;
@@ -1138,27 +1222,27 @@ LogMapCurvature(LOGMAP_INFO *lmi, IMAGE *inImage, IMAGE *gradImage,
   if (end_ring <= 0)
     end_ring = lmi->nrings-1 ;
 
-  if (!ImageCheckSize(inImage, xImage, 0, 0, 0))
+  if (!ImageCheckSize(Iin, xImage, 0, 0, 0))
   {
     if (xImage)
     {
       ImageFree(&xImage) ;
       ImageFree(&yImage) ;
     }
-    xImage = ImageAlloc(inImage->rows, inImage->cols, PFFLOAT, 1) ;
-    yImage = ImageAlloc(inImage->rows, inImage->cols, PFFLOAT, 1) ;
+    xImage = ImageAlloc(Iin->rows, Iin->cols, PFFLOAT, 1) ;
+    yImage = ImageAlloc(Iin->rows, Iin->cols, PFFLOAT, 1) ;
   }
   else
   {
-    ImageSetSize(xImage, inImage->rows, inImage->cols) ;
-    ImageSetSize(yImage, inImage->rows, inImage->cols) ;
+    ImageSetSize(xImage, Iin->rows, Iin->cols) ;
+    ImageSetSize(yImage, Iin->rows, Iin->cols) ;
   }
 
-  logFilterNbd(lmi, isx, inImage, xImage, doweight, start_ring, end_ring) ;
-  logFilterNbd(lmi, isy, inImage, yImage, doweight, start_ring, end_ring) ;
+  logFilterNbd(lmi, isx, Iin, xImage, doweight, start_ring, end_ring) ;
+  logFilterNbd(lmi, isy, Iin, yImage, doweight, start_ring, end_ring) ;
 
   Asq = (double)(A * A) ;
-  switch (inImage->pixel_format)
+  switch (Iin->pixel_format)
   {
   case PFINT:
     for_each_ring(lmi, ring, spoke, start_ring, end_ring)
@@ -1167,7 +1251,7 @@ LogMapCurvature(LOGMAP_INFO *lmi, IMAGE *inImage, IMAGE *gradImage,
       yval = *IMAGEIpix(yImage, ring, spoke) ;
       Imag = (double)((xval * xval) + (yval * yval)) ;
       val = (int)sqrt(1.0 + Asq * Imag) ;
-      *IMAGEIpix(gradImage, ring, spoke) = val ;
+      *IMAGEIpix(Igrad, ring, spoke) = val ;
     }
     break ;
   case PFFLOAT:
@@ -1177,12 +1261,12 @@ LogMapCurvature(LOGMAP_INFO *lmi, IMAGE *inImage, IMAGE *gradImage,
       fyval = *IMAGEFpix(yImage, ring, spoke) / 4.0f ;
       Imag = (double)((fxval*fxval) + (fyval*fyval)) ;
       fval = (float)sqrt(1.0 + Asq * Imag);
-      *IMAGEFpix(gradImage, ring, spoke) = fval ;
+      *IMAGEFpix(Igrad, ring, spoke) = fval ;
     }
     break ;
   default:
     fprintf(stderr, "LogMapCurvature: unsupported pixel format %d\n",
-            gradImage->pixel_format) ;
+            Igrad->pixel_format) ;
     exit(3) ;
     break ;
   }
@@ -1192,7 +1276,7 @@ LogMapCurvature(LOGMAP_INFO *lmi, IMAGE *inImage, IMAGE *gradImage,
   {
     ImageWrite(xImage, "x.hipl") ;
     ImageWrite(yImage, "y.hipl") ;
-    ImageWrite(gradImage, "grad.hipl") ;
+    ImageWrite(Igrad, "grad.hipl") ;
   }
 #endif
 
@@ -1205,19 +1289,19 @@ LogMapCurvature(LOGMAP_INFO *lmi, IMAGE *inImage, IMAGE *gradImage,
            Description:
 ----------------------------------------------------------------------*/
 static int
-logFilterNbd(LOGMAP_INFO *lmi, int filter[NBD_SIZE], IMAGE *inImage, 
-             IMAGE *outImage, int doweight, int start_ring, int end_ring)
+logFilterNbd(LOGMAP_INFO *lmi, int filter[NBD_SIZE], IMAGE *Iin, 
+             IMAGE *Iout, int doweight, int start_ring, int end_ring)
 {
   register int     k, ring, spoke, val, n_ring, n_spoke, *pf ;
   register float   fval ;
   LOGPIX           *npix, **nbd ;
 
-  if (outImage->pixel_format != inImage->pixel_format)
+  if (Iout->pixel_format != Iin->pixel_format)
     ErrorReturn(-1, 
                 (ERROR_UNSUPPORTED,
                  "logFilterNbd: input and output format must be the same\n"));
 
-  switch (inImage->pixel_format)
+  switch (Iin->pixel_format)
   {
   case PFINT:
     for_each_ring(lmi, ring, spoke, start_ring, end_ring)
@@ -1230,13 +1314,13 @@ logFilterNbd(LOGMAP_INFO *lmi, int filter[NBD_SIZE], IMAGE *inImage,
         npix = *nbd++ ;
         n_ring = npix->ring ;
         n_spoke = npix->spoke ;
-        val += *IMAGEIpix(inImage, n_ring, n_spoke) * *pf++ ;
+        val += *IMAGEIpix(Iin, n_ring, n_spoke) * *pf++ ;
       }
     }
     if (doweight)
       for_each_ring(lmi, ring, spoke, start_ring, end_ring)
-        *IMAGEIpix(outImage, ring,spoke) = 
-        nint((float)*IMAGEIpix(outImage, ring,spoke) *
+        *IMAGEIpix(Iout, ring,spoke) = 
+        nint((float)*IMAGEIpix(Iout, ring,spoke) *
              LOG_PIX_WEIGHT(lmi,ring,spoke)) ;
     break ;
   case PFFLOAT:
@@ -1250,19 +1334,19 @@ logFilterNbd(LOGMAP_INFO *lmi, int filter[NBD_SIZE], IMAGE *inImage,
         npix = *nbd++ ;
         n_ring = npix->ring ;
         n_spoke = npix->spoke ;
-        fval += *IMAGEFpix(inImage, n_ring, n_spoke) * *pf++ ;
+        fval += *IMAGEFpix(Iin, n_ring, n_spoke) * *pf++ ;
       }
-      *IMAGEFpix(outImage, ring, spoke) = fval ;
+      *IMAGEFpix(Iout, ring, spoke) = fval ;
     }
     if (doweight)
       for_each_ring(lmi, ring, spoke, start_ring, end_ring)
-        *IMAGEFpix(outImage, ring,spoke) *= LOG_PIX_WEIGHT(lmi,ring,spoke);
+        *IMAGEFpix(Iout, ring,spoke) *= LOG_PIX_WEIGHT(lmi,ring,spoke);
     break ;
   default:
     ErrorReturn(-2, 
                 (ERROR_UNSUPPORTED,
                  "logFilterNbd: unsupported input image format %d\n",
-                 inImage->pixel_format)) ;
+                 Iin->pixel_format)) ;
     break ;   /* never used */
   }
   return(0) ;
@@ -1275,26 +1359,26 @@ logFilterNbd(LOGMAP_INFO *lmi, int filter[NBD_SIZE], IMAGE *inImage,
            Description:
 ----------------------------------------------------------------------*/
 double
-LogMapDiffuse(LOGMAP_INFO *lmi, IMAGE *inImage, IMAGE *outImage, double k, 
+LogMapDiffuse(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *Iout, double k, 
               int niterations, int doweight, int which, int time_type)
 {
-  static  IMAGE *fSrcImage = NULL, *fDstImage = NULL ;
+  static  IMAGE *fSrcImage = NULL, *fIdst = NULL ;
   IMAGE         *fOut ;
 
-  if (!ImageCheckSize(inImage, fSrcImage, 0, 0, 0))
+  if (!ImageCheckSize(Isrc, fSrcImage, 0, 0, 0))
   {
     if (fSrcImage)
     {
       ImageFree(&fSrcImage) ;
-      ImageFree(&fDstImage) ;
+      ImageFree(&fIdst) ;
     }
-    fSrcImage = ImageAlloc(inImage->rows, inImage->cols, PFFLOAT, 1) ;
-    fDstImage = ImageAlloc(inImage->rows, inImage->cols, PFFLOAT, 1) ;
+    fSrcImage = ImageAlloc(Isrc->rows, Isrc->cols, PFFLOAT, 1) ;
+    fIdst = ImageAlloc(Isrc->rows, Isrc->cols, PFFLOAT, 1) ;
   }
   else
   {
-    ImageSetSize(fDstImage, inImage->rows, inImage->cols) ;
-    ImageSetSize(fSrcImage, inImage->rows, inImage->cols) ;
+    ImageSetSize(fIdst, Isrc->rows, Isrc->cols) ;
+    ImageSetSize(fSrcImage, Isrc->rows, Isrc->cols) ;
   }
 
 #if DEBUG  
@@ -1302,11 +1386,11 @@ LogMapDiffuse(LOGMAP_INFO *lmi, IMAGE *inImage, IMAGE *outImage, double k,
     DebugTimerStart() ;
 #endif
 
-  ImageCopy(inImage, fSrcImage) ;
-  if (outImage->pixel_format == PFFLOAT)
-    fOut = outImage ;
+  ImageCopy(Isrc, fSrcImage) ;
+  if (Iout->pixel_format == PFFLOAT)
+    fOut = Iout ;
   else
-    fOut = fDstImage ;
+    fOut = fIdst ;
 
   switch (which)
   {
@@ -1323,18 +1407,18 @@ LogMapDiffuse(LOGMAP_INFO *lmi, IMAGE *inImage, IMAGE *outImage, double k,
     exit(1) ;
   }
 
-  if (fOut != outImage)
-    ImageCopy(fOut, outImage) ;
+  if (fOut != Iout)
+    ImageCopy(fOut, Iout) ;
 
 #if 0
-  switch (outImage->pixel_format)
+  switch (Iout->pixel_format)
   {
   case PFINT:
     for (spoke = 0 ; spoke < lmi->nspokes ; spoke++) 
       for (ring = 0; ring < lmi->nrings; ring++) 
       {
         if (LOG_PIX_AREA(lmi, ring, spoke) <= 0)
-          *IMAGEIpix(outImage, ring, spoke) = 0 * UNDEFINED ;
+          *IMAGEIpix(Iout, ring, spoke) = 0 * UNDEFINED ;
       }
     break ;
   case PFFLOAT:
@@ -1342,7 +1426,7 @@ LogMapDiffuse(LOGMAP_INFO *lmi, IMAGE *inImage, IMAGE *outImage, double k,
       for (ring = 0; ring < lmi->nrings; ring++) 
       {
         if (LOG_PIX_AREA(lmi, ring, spoke) <= 0)
-          *IMAGEFpix(outImage, ring, spoke) = 0.0f * UNDEFINED ;
+          *IMAGEFpix(Iout, ring, spoke) = 0.0f * UNDEFINED ;
       }
     break ;
   default:
@@ -1383,7 +1467,7 @@ LogMapDiffuse(LOGMAP_INFO *lmi, IMAGE *inImage, IMAGE *outImage, double k,
            Description:
 ----------------------------------------------------------------------*/
 double
-LogMapDiffusePerona(LOGMAP_INFO *lmi, IMAGE *inImage, IMAGE *outImage, 
+LogMapDiffusePerona(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *Iout, 
               double k, int niterations, int doweight, int time_type)
 
 {
@@ -1393,14 +1477,15 @@ LogMapDiffusePerona(LOGMAP_INFO *lmi, IMAGE *inImage, IMAGE *outImage,
   float   weight, c[NBD_SIZE], fvals[NBD_SIZE], dst_val, rho,time,end_time;
   FILE    *fp ;
   LOGPIX  *pix, **pnpix, *npix ;
-  static  IMAGE *tmpImage = NULL, *gradImage = NULL ;
+  static  IMAGE *Itmp = NULL, *Igrad = NULL ;
+  IMAGE   *IsrcPtr, *IdstPtr, *ItmpPtr ;
   register float   *pf, *pc, *pcself ;
 
-  rows = inImage->rows ;
-  cols = inImage->cols ;
+  rows = Isrc->rows ;
+  cols = Isrc->cols ;
 
-  if ((outImage->pixel_format != inImage->pixel_format) ||
-      (outImage->pixel_format != PFFLOAT))
+  if ((Iout->pixel_format != Isrc->pixel_format) ||
+      (Iout->pixel_format != PFFLOAT))
   {
     fprintf(stderr,
         "ImageDiffusePerona: input and output image format must both be "
@@ -1408,33 +1493,32 @@ LogMapDiffusePerona(LOGMAP_INFO *lmi, IMAGE *inImage, IMAGE *outImage,
     exit(2) ;
   }
 
-  if ((outImage->rows != inImage->rows) ||
-      (outImage->cols != inImage->cols))
+  if ((Iout->rows != Isrc->rows) || (Iout->cols != Isrc->cols))
   {
     fprintf(stderr,
           "ImageDiffusePerona: input and output image sizes must match.\n");
     exit(2) ;
   }
 
-  if (!ImageCheckSize(inImage, tmpImage, 0, 0, 0))
+  if (!ImageCheckSize(Isrc, Itmp, 0, 0, 0))
   {
-    if (tmpImage)
-      ImageFree(&tmpImage) ;
-    tmpImage = ImageAlloc(inImage->rows, inImage->cols, PFFLOAT, 1) ;
+    if (Itmp)
+      ImageFree(&Itmp) ;
+    Itmp = ImageAlloc(Isrc->rows, Isrc->cols, PFFLOAT, 1) ;
   }
   else
-    ImageSetSize(tmpImage, inImage->rows, inImage->cols) ;
+    ImageSetSize(Itmp, Isrc->rows, Isrc->cols) ;
 
-  if (!ImageCheckSize(inImage, gradImage, 0, 0, 0))
+  if (!ImageCheckSize(Isrc, Igrad, 0, 0, 0))
   {
-    if (gradImage)
-      ImageFree(&gradImage) ;
-    gradImage = ImageAlloc(inImage->rows, inImage->cols, PFFLOAT, 1) ;
+    if (Igrad)
+      ImageFree(&Igrad) ;
+    Igrad = ImageAlloc(Isrc->rows, Isrc->cols, PFFLOAT, 1) ;
   }
   else
-    ImageSetSize(gradImage, inImage->rows, inImage->cols) ;
+    ImageSetSize(Igrad, Isrc->rows, Isrc->cols) ;
 
-  ImageCopy(inImage, tmpImage) ;
+  ImageCopy(Isrc, Itmp) ;
 
   if (Gdiag & DIAG_WRITE)
     fp = fopen("diffuse.dat", "w") ;
@@ -1479,10 +1563,16 @@ LogMapDiffusePerona(LOGMAP_INFO *lmi, IMAGE *inImage, IMAGE *outImage,
   nspokes = lmi->nspokes ;
   time = 0.0f ;
 
+#if 0
 #define LOG_MOVIE_FNAME      "log_diffuse_movie.hipl"
 
   unlink(LOG_MOVIE_FNAME) ;
-  ImageAppend(tmpImage, LOG_MOVIE_FNAME) ;
+  ImageAppend(Itmp, LOG_MOVIE_FNAME) ;
+#endif
+
+  IsrcPtr = Itmp ;
+  IdstPtr = Iout ;
+
   for (i = 0 ; i < niterations ; i++)
   {
     if (time_type != DIFFUSION_TIME_LOG)
@@ -1537,16 +1627,18 @@ LogMapDiffusePerona(LOGMAP_INFO *lmi, IMAGE *inImage, IMAGE *outImage,
         }
       }
     }
+#if 0
     else
     {
       start_ring = 0 ;
       end_ring = lmi->nrings -1 ;
     }
+#endif
     
     if (start_ring > end_ring)
       break ;
 
-    LogMapGradient(lmi, tmpImage, gradImage, doweight, start_ring, end_ring) ;
+    LogMapGradient(lmi, IsrcPtr, Igrad, doweight, start_ring, end_ring) ;
 
     for (ring = start_ring ; ring <= end_ring ; ring++)
     {
@@ -1570,8 +1662,8 @@ LogMapDiffusePerona(LOGMAP_INFO *lmi, IMAGE *inImage, IMAGE *outImage,
           n_ring = npix->ring ;
           n_spoke = npix->spoke ;
 
-          *pf++ = *IMAGEFpix(tmpImage, n_ring, n_spoke) ;
-          *pc++ = KERNEL_MUL * C(*IMAGEFpix(gradImage, n_ring, n_spoke),k);
+          *pf++ = *IMAGEFpix(IsrcPtr, n_ring, n_spoke) ;
+          *pc++ = KERNEL_MUL * C(*IMAGEFpix(Igrad, n_ring, n_spoke),k);
         }
 
         pcself = &c[N_SELF] ;
@@ -1583,18 +1675,29 @@ LogMapDiffusePerona(LOGMAP_INFO *lmi, IMAGE *inImage, IMAGE *outImage,
         for (pc = c,pf = fvals,dst_val = 0.0f,ci = 0 ; ci < NBD_SIZE ; ci++)
           dst_val += *pf++ * *pc++ ;
         
-        *IMAGEFpix(outImage, ring, spoke) = dst_val ;
+        *IMAGEFpix(IdstPtr, ring, spoke) = dst_val ;
 
       }   /* each spoke */
     }     /* each ring */
 
-    ImageCopy(outImage, tmpImage) ;
+#if 0
+    ImageCopy(Iout, Itmp) ;
+#else
+    ItmpPtr = IsrcPtr ;
+    IsrcPtr = IdstPtr ;
+    IdstPtr = ItmpPtr ;
+#endif
+
+#if 0
     if (Gdiag & DIAG_MOVIE)
-        ImageAppend(tmpImage, LOG_MOVIE_FNAME) ;
+        ImageAppend(Itmp, LOG_MOVIE_FNAME) ;
+#endif
 
     /*    k = k + k * slope ;*/
   }
 
+  if (IsrcPtr != Iout)   /* pointers have already been swapped */
+    ImageCopy(IsrcPtr, Iout) ;  
   if (fp)
     fclose(fp) ;
 
@@ -1606,29 +1709,29 @@ LogMapDiffusePerona(LOGMAP_INFO *lmi, IMAGE *inImage, IMAGE *outImage,
            Description:
 ----------------------------------------------------------------------*/
 double
-LogMapDiffuseCurvature(LOGMAP_INFO *lmi,IMAGE *inImage,IMAGE *outImage,
+LogMapDiffuseCurvature(LOGMAP_INFO *lmi,IMAGE *Isrc,IMAGE *Iout,
                        double A, int niterations,int doweight,int time_type)
 {
 /*  LOGPIX    *npix ;*/
   int       ring, spoke, n_ring, n_spoke, i, j, ci ; 
   float     c[NBD_SIZE], fvals[NBD_SIZE], dst_val ;
   FILE      *fp ;
-  IMAGE *srcImage, *dstImage, *tmpImagePtr ;
-  static  IMAGE *tmpImage = NULL, *gradImage = NULL ;
+  IMAGE *srcImage, *Idst, *tmpPtr ;
+  static  IMAGE *Itmp = NULL, *Igrad = NULL ;
 
-  if (inImage->pixel_format != PFFLOAT)
+  if (Isrc->pixel_format != PFFLOAT)
   {
     fprintf(stderr, 
             "LogMapDiffuseCurvature: unsupported input image format %d\n",
-            inImage->pixel_format) ;
+            Isrc->pixel_format) ;
     exit(1) ;
   }
 
-  if (outImage->pixel_format != PFFLOAT)
+  if (Iout->pixel_format != PFFLOAT)
   {
     fprintf(stderr, 
             "LogMapDiffuseCurvature: unsupported output image format %d\n",
-            outImage->pixel_format) ;
+            Iout->pixel_format) ;
     exit(1) ;
   }
 
@@ -1637,32 +1740,32 @@ LogMapDiffuseCurvature(LOGMAP_INFO *lmi,IMAGE *inImage,IMAGE *outImage,
     DebugTimerStart() ;
 #endif
 
-  if (!ImageCheckSize(inImage, tmpImage, 0, 0, 0))
+  if (!ImageCheckSize(Isrc, Itmp, 0, 0, 0))
   {
-    if (tmpImage)
+    if (Itmp)
     {
-      ImageFree(&tmpImage) ;
-      ImageFree(&gradImage) ;
+      ImageFree(&Itmp) ;
+      ImageFree(&Igrad) ;
     }
 
-    tmpImage = ImageAlloc(inImage->rows, inImage->cols, PFFLOAT, 1) ;
-    gradImage = ImageAlloc(inImage->rows, inImage->cols, PFFLOAT, 1) ;
+    Itmp = ImageAlloc(Isrc->rows, Isrc->cols, PFFLOAT, 1) ;
+    Igrad = ImageAlloc(Isrc->rows, Isrc->cols, PFFLOAT, 1) ;
   }
   else
   {
-    ImageSetSize(tmpImage, inImage->rows, inImage->cols) ;
-    ImageSetSize(gradImage, inImage->rows, inImage->cols) ;
+    ImageSetSize(Itmp, Isrc->rows, Isrc->cols) ;
+    ImageSetSize(Igrad, Isrc->rows, Isrc->cols) ;
   }
 
-  ImageCopy(inImage, tmpImage) ;
+  ImageCopy(Isrc, Itmp) ;
 
   if (Gdiag & DIAG_WRITE)
     fp = fopen("diffuse.dat", "w") ;
   else
     fp = NULL ;
 
-  srcImage = tmpImage ;
-  dstImage = outImage ;
+  srcImage = Itmp ;
+  Idst = Iout ;
 
   for (i = 0 ; i < niterations ; i++)
   {
@@ -1670,7 +1773,7 @@ LogMapDiffuseCurvature(LOGMAP_INFO *lmi,IMAGE *inImage,IMAGE *outImage,
     {
       fprintf(fp, "iteration #%d\n", i) ;
     }
-    LogMapCurvature(lmi, srcImage, gradImage, A, doweight, -1, -1) ;
+    LogMapCurvature(lmi, srcImage, Igrad, A, doweight, -1, -1) ;
 
     for_each_log_pixel(lmi, ring, spoke)  /* do diffusion on each pixel */
     {
@@ -1679,7 +1782,7 @@ LogMapDiffuseCurvature(LOGMAP_INFO *lmi,IMAGE *inImage,IMAGE *outImage,
         n_ring = LOG_PIX_NBD(lmi, ring, spoke, j)->ring ;
         n_spoke = LOG_PIX_NBD(lmi, ring, spoke, j)->spoke ;
         fvals[j] = *IMAGEFpix(srcImage, n_ring, n_spoke) ;
-        c[j] = KERNEL_MUL / *IMAGEFpix(gradImage, n_ring, n_spoke) ;
+        c[j] = KERNEL_MUL / *IMAGEFpix(Igrad, n_ring, n_spoke) ;
       }
 
       /* center coefficient is 1 - (sum of the other coefficients) */
@@ -1690,20 +1793,20 @@ LogMapDiffuseCurvature(LOGMAP_INFO *lmi,IMAGE *inImage,IMAGE *outImage,
       for (dst_val = 0.0f, ci = 0 ; ci < NBD_SIZE ; ci++)
         dst_val += fvals[ci] * c[ci] ;
 
-      *IMAGEFpix(dstImage, ring, spoke) = dst_val ;
+      *IMAGEFpix(Idst, ring, spoke) = dst_val ;
 
     }
     /* swap them */
-    tmpImagePtr = dstImage ;
-    dstImage = srcImage ;
-    srcImage = tmpImagePtr ;
+    tmpPtr = Idst ;
+    Idst = srcImage ;
+    srcImage = tmpPtr ;
 
     if (fp)
       fprintf(fp, "\\n") ;
   }
 
-  if (dstImage != outImage)
-    ImageCopy(dstImage, outImage) ;
+  if (Idst != Iout)
+    ImageCopy(Idst, Iout) ;
 
   if (fp)
     fclose(fp) ;
@@ -2883,6 +2986,318 @@ LogMapInitForwardFilter(LOGMAP_INFO *lmi, int which)
            Description:
 ----------------------------------------------------------------------*/
 IMAGE *
+LogMapInverseBilinear(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *Idst)
+{
+  register int i, ring, spoke;
+  register LOGPIX *lpix, **plpix ;
+  IMAGE           *Iout ;
+  int             rows, cols, row, col, npix ;
+  CP              *cp ;
+  CMI             *cmi ;
+  float           *dpix, dval ;
+  byte            *bdpix ;
+
+  ErrorReturn(NULL, 
+              (ERROR_UNSUPPORTED, 
+               "LogMapInverseBilinear: not yet implemented")) ;
+
+  if (!Idst)
+    Idst = ImageAlloc(lmi->nrows,lmi->ncols, PFFLOAT, 1);
+  else
+    ImageClearArea(Idst, 0, 0, lmi->nspokes, lmi->nrings, 0.0f) ;
+
+
+  if (Idst->pixel_format != PFFLOAT)
+    Iout = ImageAlloc(lmi->nspokes, lmi->nrings, PFFLOAT,1);
+  else
+    Iout = Idst ;
+
+  rows = lmi->nrows ;
+  cols = lmi->ncols ;
+  cmi = &lmi->cmi ;
+
+  cp = cmi->pix ;  /* Cartesian Map Info */
+  switch (Idst->pixel_format)
+  {
+  case PFFLOAT:
+    dpix = IMAGEFpix(Idst, 0, 0) ;
+    for (row = 0 ; row < rows ; row++)
+    {
+      for (col = 0 ; col < cols ; col++, cp++, dpix++)
+      {
+        /* find the 4 closes log points, and do bilinear interpolation */
+        npix = cp->npix ;
+        plpix = &cp->logpix[0] ;
+        dval = 0.0f ;
+        for (i = 0 ; i < npix ; i++)
+        {
+          lpix = *plpix++ ;
+          ring = lpix->ring ;
+          spoke = lpix->spoke ;
+          
+          dval += *IMAGEFpix(Isrc, ring, spoke) ;
+        }
+        if (npix)
+          *dpix = dval / (float)npix ;
+      }
+    }
+    break ;
+  case PFBYTE:
+    bdpix = IMAGEpix(Idst, 0, 0) ;
+    for (row = 0 ; row < rows ; row++)
+    {
+      for (col = 0 ; col < cols ; col++, cp++, bdpix++)
+      {
+        npix = cp->npix ;
+        plpix = &cp->logpix[0] ;
+        dval = 0.0f ;
+        for (i = 0 ; i < npix ; i++)
+        {
+          lpix = *plpix++ ;
+          ring = lpix->ring ;
+          spoke = lpix->spoke ;
+          
+          dval += *IMAGEFpix(Isrc, ring, spoke) ;
+        }
+        if (npix)
+          *bdpix = dval / (float)npix ;
+      }
+    }
+    break ;
+  default:
+    ErrorReturn(NULL, 
+                (ERROR_UNSUPPORTED, 
+                 "LogMapInverseBilinear: unsupported dst type %d",
+                 Idst->pixel_format)) ;
+    break ;
+  }
+  
+  if (Iout != Idst)
+  {
+    ImageCopy(Iout, Idst) ;
+    ImageFree(&Iout) ;
+  }
+  return(Idst) ;
+}
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+----------------------------------------------------------------------*/
+#define SIGMA 1.0f
+
+IMAGE *
+LogMapInverseFilterGaussian(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *Idst)
+{
+  register int i, ring, spoke;
+  register LOGPIX *lpix, **plpix ;
+  IMAGE           *Iout ;
+  int             rows, cols, row, col, npix ;
+  CP              *cp ;
+  CMI             *cmi ;
+  float           *dpix, dval, dsq, row_cent, col_cent, dx, dy, weight, 
+                  total_weight, norm ;
+  byte            *bdpix ;
+
+  norm = sqrt(2 * M_PI)*SIGMA ;
+
+  if (!Idst)
+    Idst = ImageAlloc(lmi->nrows,lmi->ncols, PFFLOAT, 1);
+  else
+    ImageClearArea(Idst, 0, 0, lmi->nspokes, lmi->nrings, 0.0f) ;
+
+
+  if (Idst->pixel_format != PFFLOAT)
+    Iout = ImageAlloc(lmi->nspokes, lmi->nrings, PFFLOAT,1);
+  else
+    Iout = Idst ;
+
+  rows = lmi->nrows ;
+  cols = lmi->ncols ;
+  cmi = &lmi->cmi ;
+
+  cp = cmi->pix ;  /* Cartesian Map Info */
+  switch (Idst->pixel_format)
+  {
+  case PFFLOAT:
+    dpix = IMAGEFpix(Idst, 0, 0) ;
+    for (row = 0 ; row < rows ; row++)
+    {
+      for (col = 0 ; col < cols ; col++, cp++, dpix++)
+      {
+        npix = cp->npix ;
+        plpix = &cp->logpix[0] ;
+        dval = 0.0f ;
+        total_weight = 0.0f ;
+        for (i = 0 ; i < npix ; i++)
+        {
+          lpix = *plpix++ ;
+          ring = lpix->ring ;
+          spoke = lpix->spoke ;
+          row_cent = LOG_PIX_ROW_FCENT(lmi, ring, spoke) ;
+          col_cent = LOG_PIX_COL_FCENT(lmi, ring, spoke) ;
+          dx = col_cent - (float)col ;
+          dy = row_cent - (float)row ;
+          dsq = (dx*dx + dy*dy) ;
+          weight = exp(-0.5f * dsq/(SIGMA*SIGMA)) / norm ;
+          
+          dval += weight * *IMAGEFpix(Isrc, ring, spoke) ;
+          total_weight += weight ;
+        }
+        if (!FZERO(total_weight))
+          *dpix = dval / (float)total_weight ;
+        else
+          DiagBreak() ;
+      }
+    }
+    break ;
+  case PFBYTE:
+    bdpix = IMAGEpix(Idst, 0, 0) ;
+    for (row = 0 ; row < rows ; row++)
+    {
+      for (col = 0 ; col < cols ; col++, cp++, bdpix++)
+      {
+        npix = cp->npix ;
+        plpix = &cp->logpix[0] ;
+        total_weight = dval = 0.0f ;
+        for (i = 0 ; i < npix ; i++)
+        {
+          lpix = *plpix++ ;
+          ring = lpix->ring ;
+          spoke = lpix->spoke ;
+          
+          row_cent = LOG_PIX_ROW_FCENT(lmi, ring, spoke) ;
+          col_cent = LOG_PIX_COL_FCENT(lmi, ring, spoke) ;
+          dx = col_cent - (float)col ;
+          dy = row_cent - (float)row ;
+          dsq = (dx*dx + dy*dy) ;
+          weight = exp(-0.5f * dsq/(SIGMA*SIGMA)) / norm ;
+          
+          dval += weight * *IMAGEFpix(Isrc, ring, spoke) ;
+          total_weight += weight ;
+        }
+        if (!FZERO(total_weight))
+          *bdpix = (byte)(dval / (float)total_weight) ;
+        else
+          DiagBreak() ;
+      }
+    }
+    break ;
+  default:
+    ErrorReturn(NULL, 
+                (ERROR_UNSUPPORTED, 
+                 "LogMapInverseFilter: unsupported dst type %d",
+                 Idst->pixel_format)) ;
+    break ;
+  }
+  
+  if (Iout != Idst)
+  {
+    ImageCopy(Iout, Idst) ;
+    ImageFree(&Iout) ;
+  }
+  return(Idst) ;
+}
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+----------------------------------------------------------------------*/
+IMAGE *
+LogMapInverseFilter(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *Idst)
+{
+  register int i, ring, spoke;
+  register LOGPIX *lpix, **plpix ;
+  IMAGE           *Iout ;
+  int             rows, cols, row, col, npix ;
+  CP              *cp ;
+  CMI             *cmi ;
+  float           *dpix, dval ; 
+  byte            *bdpix ;
+
+  if (!Idst)
+    Idst = ImageAlloc(lmi->nrows,lmi->ncols, PFFLOAT, 1);
+  else
+    ImageClearArea(Idst, 0, 0, lmi->nspokes, lmi->nrings, 0.0f) ;
+
+
+  if (Idst->pixel_format != PFFLOAT)
+    Iout = ImageAlloc(lmi->nspokes, lmi->nrings, PFFLOAT,1);
+  else
+    Iout = Idst ;
+
+  rows = lmi->nrows ;
+  cols = lmi->ncols ;
+  cmi = &lmi->cmi ;
+
+  cp = cmi->pix ;  /* Cartesian Map Info */
+  switch (Idst->pixel_format)
+  {
+  case PFFLOAT:
+    dpix = IMAGEFpix(Idst, 0, 0) ;
+    for (row = 0 ; row < rows ; row++)
+    {
+      for (col = 0 ; col < cols ; col++, cp++, dpix++)
+      {
+        npix = cp->npix ;
+        plpix = &cp->logpix[0] ;
+        dval = 0.0f ;
+        for (i = 0 ; i < npix ; i++)
+        {
+          lpix = *plpix++ ;
+          ring = lpix->ring ;
+          spoke = lpix->spoke ;
+          
+          dval += *IMAGEFpix(Isrc, ring, spoke) ;
+        }
+        if (npix)
+          *dpix = dval / (float)npix ;
+      }
+    }
+    break ;
+  case PFBYTE:
+    bdpix = IMAGEpix(Idst, 0, 0) ;
+    for (row = 0 ; row < rows ; row++)
+    {
+      for (col = 0 ; col < cols ; col++, cp++, bdpix++)
+      {
+        npix = cp->npix ;
+        plpix = &cp->logpix[0] ;
+        dval = 0.0f ;
+        for (i = 0 ; i < npix ; i++)
+        {
+          lpix = *plpix++ ;
+          ring = lpix->ring ;
+          spoke = lpix->spoke ;
+          
+          dval += *IMAGEFpix(Isrc, ring, spoke) ;
+        }
+        if (npix)
+          *bdpix = dval / (float)npix ;
+      }
+    }
+    break ;
+  default:
+    ErrorReturn(NULL, 
+                (ERROR_UNSUPPORTED, 
+                 "LogMapInverseFilter: unsupported dst type %d",
+                 Idst->pixel_format)) ;
+    break ;
+  }
+  
+  if (Iout != Idst)
+  {
+    ImageCopy(Iout, Idst) ;
+    ImageFree(&Iout) ;
+  }
+  return(Idst) ;
+}
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+----------------------------------------------------------------------*/
+IMAGE *
 LogMapForwardFilter(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *Idst)
 {
   register int i, ring, spoke;
@@ -2899,13 +3314,6 @@ LogMapForwardFilter(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *Idst)
   else
     ImageClearArea(Idst, 0, 0, Idst->rows, Idst->cols, 0.0f) ;
 
-#if 0
-  /* non-float stuff not working yet - I don't know why */
-  if ((Idst->pixel_format != PFFLOAT) || (Isrc->pixel_format != PFFLOAT))
-    ErrorReturn(NULL,
-                (ERROR_BADPARM, 
-                 "LogMapForwardFilter: src and dst must be PFFLOAT")) ;
-#endif
 
   if (Idst->pixel_format != PFFLOAT)
     Iout = ImageAlloc(lmi->nspokes, lmi->nrings, PFFLOAT,1);
@@ -2981,7 +3389,6 @@ LogMapForwardFilter(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *Idst)
   }
   return(Idst) ;
 }
-
 /*----------------------------------------------------------------------
             Parameters:
 
