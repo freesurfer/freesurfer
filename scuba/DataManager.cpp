@@ -60,8 +60,27 @@ DataLoader<T>::ReleaseData( T* ioData ) {
 }
 
 
-MRILoader DataManager::mMRILoader;
-MRISLoader DataManager::mMRISLoader;
+template <typename T>
+int
+DataLoader<T>::CountReferences( T iData ) {
+
+  list<T>::iterator tData;
+
+  for( tData = mlData.begin(); tData != mlData.end(); ++tData ) {
+    T data = *tData;
+    if( data == iData ) {
+      return mRefs[data];
+    }
+  }
+
+  return 0;
+}
+
+
+
+
+// MRILoader DataManager::mMRILoader;
+// MRISLoader DataManager::mMRISLoader;
 
 DataManager::DataManager() : DebugReporter() {
 }
@@ -72,8 +91,22 @@ DataManager::GetManager() {
   return sManager;
 }
 
+MRILoader& 
+DataManager::GetMRILoader() {
+  static MRILoader sLoader;
+  return sLoader;
+}
+
+MRISLoader& 
+DataManager::GetMRISLoader() {
+  static MRISLoader sLoader;
+  return sLoader;
+}
+
 // This line necessary to generate the right code.
 template DataLoader<MRI*>;
+list<MRI*> DataLoader<MRI*>::mlData;
+map<MRI*,int> DataLoader<MRI*>::mRefs;
 
 MRI* 
 MRILoader::LoadData( std::string& ifnData ) { 
@@ -109,6 +142,8 @@ MRILoader::DoesFileNameMatchObject( MRI* iData, std::string& ifnData ) {
 
 // This line necessary to generate the right code.
 template DataLoader<MRIS*>;
+list<MRIS*> DataLoader<MRIS*>::mlData;
+map<MRIS*,int> DataLoader<MRIS*>::mRefs;
 
 MRIS* 
 MRISLoader::LoadData( std::string& ifnData ) { 

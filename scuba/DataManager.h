@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2003/10/17 16:52:28 $
-// Revision       : $Revision: 1.4 $
+// Revision Date  : $Date: 2003/11/02 20:01:57 $
+// Revision       : $Revision: 1.5 $
 
 #ifndef DataManager_h
 #define DataManager_h
@@ -41,6 +41,9 @@ class DataLoader : public DebugReporter {
   // references to a specific instance of data.
   int CountLoaded() const { return mlData.size(); }
 
+  // Returns the number of references to this data.
+  int CountReferences( T iData );
+
  protected:
   DataLoader();
 
@@ -57,8 +60,8 @@ class DataLoader : public DebugReporter {
   virtual bool DoesFileNameMatchObject( T iData, std::string& ifnData )  = 0;
 
   // List of data and number of references for each data.
-  std::list<T> mlData;
-  std::map<T,int> mRefs;
+  static std::list<T> mlData;
+  static std::map<T,int> mRefs;
 };
 
 
@@ -84,14 +87,14 @@ class DataManager : public DebugReporter {
 
   static DataManager& GetManager();
 
-  static MRILoader& GetMRILoader() { return mMRILoader; }
-  static MRISLoader& GetMRISLoader() { return mMRISLoader; }
+  static MRILoader& GetMRILoader();
+  static MRISLoader& GetMRISLoader();
 
  protected:
   DataManager();
   
-  static MRILoader mMRILoader;
-  static MRISLoader mMRISLoader;
+  //  static MRILoader mMRILoader;
+  //  static MRISLoader mMRISLoader;
 };
 
 

@@ -17,7 +17,7 @@ featureset 1
 
 components:
 
-FSUtils::TCLCommandManager
+TCLCommandManager
  - AddListener( RespondToCommandFunc )
  - AddCommand( commandName, arguments.. )
  - SendCommand( commandName, arguments... )
@@ -26,7 +26,7 @@ FSUtils::TCLCommandManager
  - on called, compare command name with stored list, then lookup listeners to that command and broadcast to them
  - typdef (void)(RespondToCommandFunc)( commandName, arguments... )
 
-FSUtils::DataManager
+DataManager
  - LoadVolume( name );
  - LoadSurface( name );
  - void ReleaseVolume( MRI* );
@@ -35,7 +35,7 @@ FSUtils::DataManager
    - if another layer request the data, will just hand them the pointer
    - does reference counting
 
-FSUtils::PrefsFile
+PreferencesManager
  - UseFile ( fname )
    - look in ./fname, ~/fname etc
  - RegisterPref{Int,Float,String}( keyName, description, defaultValue )
@@ -43,68 +43,88 @@ FSUtils::PrefsFile
  - {Set,Get}PrefAs{Int,Float,String}( keyName )
    - set or return value from prefs file
 
-FSUtils::DataCollection
+DataCollection
+ - static DataCollection* GetDataCollection( CollectionID );
  - Unload()
  - holds a central data type and then associated data
+ - GetInfoAtRAS( iX,iY,iZ, oasLabels, oasValues )
 
-FSUtils::VolumeDataCollection : DataCollection
+VolumeDataCollection : DataCollection
  - MRI*
  - selection list
  - transform stuff
 
-FSUtils::SurfaceDataCollection : DataCollection
+SurfaceDataCollection : DataCollection
  - MRIS*
  - selection list
  - scalars
 
-Scuba::ToglManager
- - all togl stuff
- - passes to a scbFrame
+DataCollectionFactory
+ - static CollectionID NewDataCollection( iType );
 
-Scuba::Frame:
+ToglManager
+ - all togl stuff
+ - passes to a Frame
+ - Tcl: Click(iX,iY), MouseMoved(iX,iY)
+
+Frame:
  - 1..n views
  - manages configuration, passing clicks along, key events, to proper view
  - other objects can register for idle events
  - tool modes
+ - GetInfoAtWindowLocation( iX,iY, ocPairs, oasLabels, oasValues )
 
-Scuba::View
+View
  - manages 1..n layers
  - manages clicks, polling data, sending updates to tcl
  - tells layers to draw into proper GL area
- - orientation : 2D: plane, zoom, center
+ - orientation : 2D: plane, zoom, view center, tp, condition
                  3D: camera location, look, up
- - cursor
+ - knows RAS coordinate space , converts window<->RAS
+ - GetInfoAtWindowLocation( iX,iY, ocPairs, oasLabels, oasValues )
+ - link information: type, which views are linked
+ - SetCursor()
+ - SetLayers( iczLayers, iaLayerIDs ) 
 
-Scuba::Layer
- - opactiy for layer
- - drawing level : 0 for base, 1 for overlay, or user-settable
- - modes supported : 2D, 3D, graph, etc,
- - transform : transform for this layer
- - SetLayerData() associate a DataCollection
- - subclasses each have a DataCollection source, cannot be changed once layer is instantiated
-   - override SetLayerData() to see if data type is appropriate for this layer
-   - 2DMRI( VolumeData )
+Layer
+ - static Layer& GetLayer( LayerID );
+ - static GetLayerIDList( oczLayers, oaLayerIDs )
+ - Layer ( collectionID )
+ - GetInfoAtRAS( iX,iY,iZ ocPairs, oasLabels, oasValues )
+ - drawing attributes:
+   - opactiy
+   - drawing level : 0 for base, 1 for overlay, or user-settable
+   - modes supported : 2D, 3D, graph, etc,
+   - transform : transform for this layer
+ - subclasses
+   - contruction checks if collection type is appropriate for this layer
+   - 2DMRI( VolumeDataCollection )
      - draws slices
      - color scale : gray, color, or LUT
+     - LUT file
      - sample type : nearest, trilinear, sinc
-   - 2DMRIS( SurfaceData )
+   - 2DMRIS( SurfaceDataCollection )
      - does intersections
-     - color scale, scalars
+     - scalar files, color scale for each
      - interpolation type
-   - 3DMRIS( SurfaceData )
+   - 3DMRIS( SurfaceDataCollection )
      - draws mesh
      - scalar files, color scale for each
-   - Graph( VolumeData )
+   - Graph( VolumeDataCollection )
      - current time point, condition
 
+LayerFactory
+ - static LayerID NewLayer( iType );
+
+
 on redraw:
-scbToglFrame
+ToglFrame
   - for each view, view->Draw( this->Mode )
-scbView::Draw( iMode )
+View::Draw( iMode )
   - for each drawing level 0..n
     - for each layer in this level
       - layer->DrawIntoView( this->ViewInfo, this->Mode, this->Orientation )
-scbLayer::DrawIntoView
+Layer::DrawIntoView
   - 2DMRI
     - find bounds in volume from view bounds
     - for each voxel
@@ -114,13 +134,6 @@ scbLayer::DrawIntoView
     - do intersection to find draw list
     - apply color to vertex etc
 
-
-
-Layer Manager
-  - New{Volume,Surface}DataCollection <data_fn> <label> - returns CollectionID
-  - New{2DMRI,2DMRIS}Layer <CollectionID> - returns LayerID
-  - GetLayerIDList
-  - maintains list of LayerID <-> Layer objects
 
 
 
@@ -143,3 +156,19 @@ volume loading
    switch type {
      make widgets for layer info and settings
    }
+
+- view info manager
+ - for each view, list of possible layers, can add remove and reorder
+
+- info update
+ - tk send mouse location to ToglManager
+   - send to Frame
+     - send to View
+       - view transforms to 3/5D point, calls on Layers
+         - polls DataCollection for info
+
+- linked cursors
+ - tk pass clicks to ToglManager
+   - passes to Frame, interprets tool and calls tool function
+     - View gets SetCursor()
+       - if View is linked, goes through static list of linked Views and calls SetCursor()

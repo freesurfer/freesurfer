@@ -22,6 +22,7 @@ class DebugReporter {
 
 #define DebugOutput(x) \
   { \
+    mLastReporter = this; \
     if( this->mbDebug ) { \
       if( NULL != mOutputStream ) { \
 	(*mOutputStream) << __FILE__ << ":" << __LINE__ << ": " x << std::endl;\
@@ -31,10 +32,23 @@ class DebugReporter {
     } \
   }
   
- protected:
-
+#define DebugOutputStatic(x) \
+  { \
+    if( NULL != mLastReporter ) { \
+    if( mLastReporter->mbDebug ) { \
+      if( NULL != mLastReporter->mOutputStream ) { \
+	(*mLastReporter->mOutputStream) << __FILE__ << ":" << __LINE__ << ": " x << std::endl;\
+      } else { \
+	std::cerr <<__FILE__ << ":" << __LINE__ << ": " x << std::endl; \
+      } \
+    } \
+    } \
+  }
+  
   std::ostream* mOutputStream;
   bool mbDebug;
+
+  static DebugReporter* mLastReporter;
 };
 
 
