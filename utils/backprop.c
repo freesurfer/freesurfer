@@ -8,10 +8,10 @@
 
       Description:  
 
-  $Header: /space/repo/1/dev/dev/utils/backprop.c,v 1.2 1996/04/15 16:13:11 fischl Exp $
+  $Header: /space/repo/1/dev/dev/utils/backprop.c,v 1.3 1996/06/25 16:27:44 fischl Exp $
   $Log: backprop.c,v $
-  Revision 1.2  1996/04/15 16:13:11  fischl
-  removed warnings
+  Revision 1.3  1996/06/25 16:27:44  fischl
+  use proper diag codes
 
 ----------------------------------------------------------------------*/
 
@@ -572,7 +572,7 @@ BackpropProcess(BACKPROP *backprop, float *I)
   LAYER   *hidden, *output ;
   float   maxX ;
 
-  if (Gdiag) 
+  if (Gdiag & DIAG_BACKPROP) 
   {
     if (!backprop->learn)
       printf("\n") ;
@@ -599,7 +599,7 @@ BackpropProcess(BACKPROP *backprop, float *I)
   if (!backprop->learn)
     bpUnnormalizeOutputs(backprop) ;
 
-  if (Gdiag) 
+  if (Gdiag & DIAG_BACKPROP) 
   {
     printf("BackpropProcess returning: ") ;
     for (i = 0 ; i  < backprop->noutputs ; i++)
@@ -775,7 +775,7 @@ bpLayerFeedForward(float *I, LAYER *layer, int nlin)
   float           *pbias, *px ;
   register float  net, *Ii, *wij ;
 
-  if (Gdiag)
+  if (Gdiag & DIAG_BACKPROP)
     printf("bpLayerFeedForward()\n") ;
 
   nunits = layer->nunits ;
@@ -785,7 +785,7 @@ bpLayerFeedForward(float *I, LAYER *layer, int nlin)
   for (j = 0 ; j < nunits ; j++)
   {
     net = *pbias++ ;
-    if (Gdiag)
+    if (Gdiag & DIAG_BACKPROP)
       printf("unit %d: %2.5f\n", j, net) ;
 
     Ii  = &I[0] ;
@@ -794,7 +794,7 @@ bpLayerFeedForward(float *I, LAYER *layer, int nlin)
     {
       net += *wij++ * *Ii++ ;
 #if 0
-      if (Gdiag)
+      if (Gdiag & DIAG_BACKPROP)
         printf("net += %2.5f * %2.3f --> %2.5f\n",
           Wij(layer, i, j), I[i], net) ;
 #endif
@@ -805,7 +805,7 @@ bpLayerFeedForward(float *I, LAYER *layer, int nlin)
     else
       *px++ = net ;
 #if 0
-    if (Gdiag)
+    if (Gdiag & DIAG_BACKPROP)
       printf("unit %d output f(%2.5f) = %2.5f\n", j, net, f(net)) ;
 #endif
   }
@@ -956,7 +956,7 @@ BackpropLearn(BACKPROP *backprop, float *inputs,  float *targets)
   LAYER   *hidden, *output ;
   float   bpError ;
 
-  if (Gdiag) 
+  if (Gdiag & DIAG_BACKPROP) 
   {
     printf("\nBackpropLearn ") ;
     for (i = 0 ; i < backprop->ninputs ; i++)
@@ -1029,7 +1029,7 @@ bpCalculateOutputDeltas(BACKPROP *backprop, float *targets)
     *pdelta++ = (target - out) /* * fprime(out) */ ;
 
 #if 0
-    if (Gdiag)
+    if (Gdiag & DIAG_BACKPROP)
       printf("Output Delta %d: (%2.3f - %2.5f) * %2.5f = %2.5f\n",
              j, target, out, fprime(out), output->deltas[j]) ;
 #endif
@@ -1061,7 +1061,7 @@ bpCalculateHiddenDeltas(BACKPROP *backprop)
     *pdeli = 0.0 ;
 
 #if 0
-    if (Gdiag)
+    if (Gdiag & DIAG_BACKPROP)
       printf("HiddenDelta %d: (", j) ;
 #endif
 
@@ -1070,7 +1070,7 @@ bpCalculateHiddenDeltas(BACKPROP *backprop)
     {
       *pdeli += *pdelj++ * Wij(output, i, j) ;
 #if 0
-      if (Gdiag)
+      if (Gdiag & DIAG_BACKPROP)
       {
         printf("%2.5f * %2.5f", output->deltas[j], Wij(output,i,j)) ;
         if (j < output->nunits-1)
@@ -1081,7 +1081,7 @@ bpCalculateHiddenDeltas(BACKPROP *backprop)
 
     *pdeli++ *= fprime(hidden->x[i]) ;
 #if 0
-    if (Gdiag)
+    if (Gdiag & DIAG_BACKPROP)
       printf(") * %2.5f = %2.5f\n",
              fprime(hidden->x[i]), hidden->deltas[i]) ;
 #endif
@@ -1132,7 +1132,7 @@ bpUpdateLayerWeights(LAYER *layer, float *I, float trate, float momentum)
   {
     delta = layer->deltas[j] ;
     db = delta * one_minus_momentum + momentum * layer->db[j] ;
-    if (Gdiag)
+    if (Gdiag & DIAG_BACKPROP)
       printf("update bias %d: %2.5f + (%2.3f * %2.5f) = %2.5f\n",
              j, layer->biases[j], trate, delta, layer->biases[j]+trate*delta) ;
 
@@ -1146,7 +1146,7 @@ bpUpdateLayerWeights(LAYER *layer, float *I, float trate, float momentum)
     {
       dw = one_minus_momentum * delta * *Ii++ + momentum * *dwij ;
 #if 0
-      if (Gdiag)
+      if (Gdiag & DIAG_BACKPROP)
         printf("update weight %d-->%d: %2.5f + (%2.3f * %2.5f * %2.3f)"
                "= %2.5f\n",
                i,j, Wij(layer,i,j), trate, delta, I[i], 
