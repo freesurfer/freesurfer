@@ -1,9 +1,9 @@
 #!/bin/csh -f
 # flacproc-sess
 #
-# $Id: flacproc-sess,v 1.1 2004/11/01 05:20:35 greve Exp $
+# $Id: flacproc-sess,v 1.2 2004/11/02 05:16:33 greve Exp $
 
-set VERSION = '$Id: flacproc-sess,v 1.1 2004/11/01 05:20:35 greve Exp $';
+set VERSION = '$Id: flacproc-sess,v 1.2 2004/11/02 05:16:33 greve Exp $';
 
 set cmdargs = ($argv);
 
@@ -14,6 +14,8 @@ set nolog     = 0;
 set PrintHelp = 0;
 set Synth     = 0;
 set SynthAR1  = 0;
+set nsvd      = 0;
+set nsvdthresh = 1;
 
 if($#argv == 0)  goto usage_exit;
 set n = `echo $argv | grep -e -help | wc -l` 
@@ -66,6 +68,8 @@ sess = '$sess';
 acfsegstem = '$acfsegstem';
 Synth    = $Synth;
 SynthAR1 = $SynthAR1;
+nsvd = $nsvd;
+nsvdthresh = $nsvdthresh;
 monly = $monly;
 
 fprintf('-----------------------------------------------------\n');
@@ -99,6 +103,7 @@ indacfmask = find(acfmask);
 for nthrun = 1:nruns
   fprintf('Analyzing nthrun %d/%d (%s) %6.1f ------------\n',...
           nthrun,nruns,flac.runlist(nthrun,:),toc);
+  fprintf('FLAC: %s\n',flac.name);
 
   flac.nthrun = nthrun;
   flac = flac_customize(flac);
@@ -191,7 +196,7 @@ for nthrun = 1:nruns
     fprintf('  %d  %s   (%6.1f)\n',nthcon,flac.con(nthcon).name,toc);
 
     if(flac.con(nthcon).varsm > 0)
-      fprintf('  Smoothing variance with fwhm=%g mm\n',flac.con(nthcon).varsm);
+      fprintf('    Smoothing var with fwhm=%g mm\n',flac.con(nthcon).varsm);
       cfwhm = flac.con(nthcon).varsm/mri.volres(1);
       rfwhm = flac.con(nthcon).varsm/mri.volres(2);
       sfwhm = flac.con(nthcon).varsm/mri.volres(3);
@@ -219,6 +224,41 @@ for nthrun = 1:nruns
     fast_svbslice(tmp,stem,[],[],mri);
 
   end % contrasts
+
+  if(nsvd)
+    fprintf('NSVD   (%6.1f)\n',toc);
+
+    % Find task-related voxels
+    indtask = flac_taskregind(flac);
+    nregtot = size(flac.X,2);
+    C = eye(nregtot);
+    C = C(indtask,:);
+    [F dof1 dof2 ces] = fast_fratiow(beta,flac.X,rvar,C,nacfseg,acfseg);
+    p = FTest(dof1, dof2, F);
+    sig = -log10(p);
+    indnsvd = find(abs(sig) < nsvdthresh);
+    fprintf('NSVD: Number of task-related voxels: %d (%g)\n',...
+            length(indnsvd),100*length(indnsvd)/Nv);
+
+    % Extract non-taskrelated voxels and ortho wrt nuissance
+    ynsvd = y(:,indnsvd);
+    indnuis = flac_nuisregind(flac);
+    Xnuis = flac.X(:,indnuis);
+    ynsvd = (eye(flac.ntp) - Xnuis*inv(Xnuis'*Xnuis)*Xnuis')*ynsvd;
+    [u s v] = fast_svd(ynsvd);
+    ds = diag(s);
+    cpvs = 100*cumsum(ds)/sum(ds);
+    fprintf('CPVS: ');
+    fprintf(' %4.1f',cpvs(1:10));
+    fprintf('\n');
+
+    % Keep the top nsvdkeep components
+    Xnsvd = u;
+    Xnsvd = permute(Xnsvd,[3 2 4  1]);
+    Xnsvdstem = sprintf('%s/Xnsvd',outdir);
+    fast_svbslice(Xnsvd,Xnsvdstem);
+
+  end
 
 end % runs
 
@@ -262,6 +302,10 @@ while( $#argv != 0 )
         echo "ERROR: cannot find $flacfile"
         exit 1;
       endif
+      breaksw
+
+    case "-nsvd":
+      set nsvd = 1;
       breaksw
 
     case "-synth":
