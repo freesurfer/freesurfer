@@ -221,11 +221,12 @@ x   - interface
 
 x number shortcuts for brush size
 
-in plane increment
- - different for x y z
- - when view is created, set to 1
- - when first layer 0 set, set size for each x y z
+x in plane increment
+x  - different for x y z
+x  - when view is created, set to 1
+x  - when first layer 0 set, set size for each x y z
 
+save window size and position on quit
 
 option menus for data collections in label dlogs
  - add -menu type to dlog code
