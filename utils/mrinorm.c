@@ -266,12 +266,13 @@ MRInormInit(MRI *mri, MNI *mni, int windows_above_t0,int windows_below_t0,
   if (wsize <= 0)
     wsize = DEFAULT_WINDOW_SIZE ;
 
-  if (!mni->desired_wm_value)
-    mni->desired_wm_value = DEFAULT_DESIRED_WHITE_MATTER_VALUE ;
+  if (!desired_wm_value)
+    desired_wm_value = mni->desired_wm_value = 
+      DEFAULT_DESIRED_WHITE_MATTER_VALUE ;
   else
     mni->desired_wm_value = desired_wm_value ;
   if (FZERO(smooth_sigma))
-    mni->smooth_sigma = DEFAULT_SMOOTH_SIGMA ;
+    smooth_sigma = mni->smooth_sigma = DEFAULT_SMOOTH_SIGMA ;
   else
     mni->smooth_sigma = smooth_sigma ;
   error = MRItalairachToVoxel(mri, 0.0, 0.0, 0.0, &x0, &y0, &z0) ;
@@ -283,13 +284,23 @@ MRInormInit(MRI *mri, MNI *mni, int windows_above_t0,int windows_below_t0,
   if (windows_above_t0 > 0)
     mni->windows_above_t0 = windows_above_t0 ;
   else
-    mni->windows_above_t0 = DEFAULT_WINDOWS_ABOVE_T0 ;
+    windows_above_t0 = mni->windows_above_t0 = DEFAULT_WINDOWS_ABOVE_T0 ;
 
   if (windows_below_t0 > 0)
     mni->windows_below_t0 = windows_below_t0 ;
   else
-    mni->windows_below_t0 = DEFAULT_WINDOWS_BELOW_T0 ;
+    windows_below_t0 = mni->windows_below_t0 = DEFAULT_WINDOWS_BELOW_T0 ;
   nwindows = mni->windows_above_t0 + mni->windows_below_t0 ;
+
+  if (Gdiag & DIAG_SHOW)
+  {
+    fprintf(stderr, "MRInormInit:\n") ;
+    fprintf(stderr, "Talairach origin at (%d, %d, %d)\n",
+            x0_tal, y0_tal, z0_tal) ;
+    fprintf(stderr, "wsize %d, windows %d above, %d below\n", 
+            wsize, mni->windows_above_t0, mni->windows_below_t0) ;
+  }
+
   x = 0 ;
   dx = mri->width ;
   z = 0 ;
@@ -520,6 +531,14 @@ MRInormalize(MRI *mri_src, MRI *mri_dst, MNI *mni)
   npeaks = MRInormFindPeaks(mni, inputs, outputs) ;
   mri_dst = MRIsplineNormalize(mri_src, mri_dst,NULL,inputs,outputs,npeaks);
 
+  if (Gdiag & DIAG_SHOW)
+  {
+    int i ;
+
+    fprintf(stderr, "normalization found %d peaks:\n", npeaks) ;
+    for (i = 0 ; i < npeaks ; i++)
+      fprintf(stderr, "%d: %2.1f --> %2.3f\n", i, inputs[i], outputs[i]) ;
+  }
   if (dealloc)
     free(mni) ;
 
