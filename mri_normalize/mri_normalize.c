@@ -53,7 +53,7 @@ main(int argc, char *argv[])
   struct timeb start ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_normalize.c,v 1.32 2004/08/12 14:23:10 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_normalize.c,v 1.33 2004/09/15 13:39:24 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -164,8 +164,15 @@ main(int argc, char *argv[])
     MRI3dWriteControlPoints(control_volume_fname) ;
 
 	/* first do a gentle normalization to get things in the right intensity range */
+#if 0
 	if (!file_only)
 		file_only = control_point_fname != NULL && no1d;
+#endif
+	if (control_point_fname != NULL && file_only == 0)  /* do one pass with only file control points first */
+		MRI3dGentleNormalize(mri_dst, NULL, DEFAULT_DESIRED_WHITE_MATTER_VALUE,
+												 mri_dst,
+												 intensity_above, intensity_below/2,
+												 1, bias_sigma);
 	MRI3dGentleNormalize(mri_dst, NULL, DEFAULT_DESIRED_WHITE_MATTER_VALUE,
 											 mri_dst,
 											 intensity_above, intensity_below/2,
@@ -248,7 +255,10 @@ get_option(int argc, char *argv[])
   {
 		no1d = 1 ;
     num_3d_iter = 1 ;
-    printf("disabling 1D normalization and setting niter=1, make sure to use -f to specify control points\n") ;
+    gentle_flag = 1 ;
+		bias_sigma = 10 ;
+		
+    printf("disabling 1D normalization and setting niter=1, sigma=10, gentle=1, make sure to use -f to specify control points\n") ;
   }
   else if (!stricmp(option, "sigma"))
   {
