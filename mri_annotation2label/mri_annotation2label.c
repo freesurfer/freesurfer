@@ -1,6 +1,6 @@
 /*----------------------------------------------------------
   Name: mri_annotation2label.c
-  $Id: mri_annotation2label.c,v 1.7 2003/04/15 17:40:10 kteich Exp $
+  $Id: mri_annotation2label.c,v 1.8 2003/06/12 23:26:01 greve Exp $
   Author: Douglas Greve
   Purpose: Converts an annotation to a labels.
 
@@ -31,7 +31,7 @@ static int  singledash(char *flag);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_annotation2label.c,v 1.7 2003/04/15 17:40:10 kteich Exp $";
+static char vcid[] = "$Id: mri_annotation2label.c,v 1.8 2003/06/12 23:26:01 greve Exp $";
 char *Progname = NULL;
 
 char  *subject   = NULL;
@@ -67,7 +67,7 @@ int main(int argc, char **argv)
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_annotation2label.c,v 1.7 2003/04/15 17:40:10 kteich Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_annotation2label.c,v 1.8 2003/06/12 23:26:01 greve Exp $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -105,13 +105,21 @@ int main(int argc, char **argv)
   }
 
   /* ------ Load annotation ------ */
-  sprintf(annotfile,"%s/%s/label/%s_%s.annot",
+  sprintf(annotfile,"%s/%s/label/%s.%s.annot",
     SUBJECTS_DIR,subject,hemi,annotation);
   printf("Loading annotations from %s\n",annotfile);
   err = MRISreadAnnotation(Surf, annotfile);
   if(err){
-    fprintf(stderr,"ERROR: MRISreadAnnotation() failed\n");
-    exit(1);
+    printf("INFO: could not load from %s, trying ",annotfile);
+    sprintf(annotfile,"%s/%s/label/%s_%s.annot",
+	    SUBJECTS_DIR,subject,hemi,annotation);
+    printf("%s\n",annotfile);
+    err = MRISreadAnnotation(Surf, annotfile);
+    if(err){
+      printf("ERROR: MRISreadAnnotation() failed\n");
+      exit(1);
+    }
+    printf("OK, that worked.\n");
   }
 
   /* Loop through each vertex */
