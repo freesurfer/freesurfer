@@ -7275,22 +7275,51 @@ MATRIX *extract_i_to_r(MRI *mri)
     ErrorReturn(NULL, (ERROR_BADPARM, "extract_i_to_r(): error allocating matrix"));
   }
 
-  m11 = mri->xsize * mri->x_r;  m12 = mri->ysize * mri->y_r;  m13 = mri->zsize * mri->z_r;
-  m21 = mri->xsize * mri->x_a;  m22 = mri->ysize * mri->y_a;  m23 = mri->zsize * mri->z_a;
-  m31 = mri->xsize * mri->x_s;  m32 = mri->ysize * mri->y_s;  m33 = mri->zsize * mri->z_s;
+  if(mri->ras_good_flag)
+  {
+    m11 = mri->xsize * mri->x_r;  m12 = mri->ysize * mri->y_r;  m13 = mri->zsize * mri->z_r;
+    m21 = mri->xsize * mri->x_a;  m22 = mri->ysize * mri->y_a;  m23 = mri->zsize * mri->z_a;
+    m31 = mri->xsize * mri->x_s;  m32 = mri->ysize * mri->y_s;  m33 = mri->zsize * mri->z_s;
 
-  ci = (mri->width - 1.0) / 2.0;
-  cj = (mri->height - 1.0) / 2.0;
-  ck = (mri->depth - 1.0) / 2.0;
+    ci = (mri->width - 1.0) / 2.0;
+    cj = (mri->height - 1.0) / 2.0;
+    ck = (mri->depth - 1.0) / 2.0;
 
-  m14 = mri->c_r - (m11 * ci + m12 * cj + m13 * ck);
-  m24 = mri->c_a - (m21 * ci + m22 * cj + m23 * ck);
-  m34 = mri->c_s - (m31 * ci + m32 * cj + m33 * ck);
+    m14 = mri->c_r - (m11 * ci + m12 * cj + m13 * ck);
+    m24 = mri->c_a - (m21 * ci + m22 * cj + m23 * ck);
+    m34 = mri->c_s - (m31 * ci + m32 * cj + m33 * ck);
 
+  }
+  else if(mri->slice_direction == MRI_CORONAL)
+  {
+    m11 = -mri->xsize;  m12 =  0.0;         m13 = 0.0;         m14 =  mri->xsize * mri->width / 2.0;
+    m21 =  0.0;         m22 =  0.0;         m23 = mri->zsize;  m24 = -mri->zsize * mri->depth / 2.0;
+    m31 =  0.0;         m32 = -mri->ysize;  m33 = 0.0;         m34 =  mri->ysize * mri->height / 2.0;
+  }
+  else if(mri->slice_direction == MRI_SAGITTAL)
+  {
+    m11 =  0.0;         m12 =  0.0;         m13 = mri->zsize;  m14 = -mri->zsize * mri->depth / 2.0;
+    m21 =  mri->xsize;  m22 =  0.0;         m23 = 0.0;         m24 = -mri->xsize * mri->width / 2.0;
+    m31 =  0.0;         m32 = -mri->ysize;  m33 = 0.0;         m34 =  mri->ysize * mri->height / 2.0;
+  }
+  else if(mri->slice_direction == MRI_HORIZONTAL)
+  {
+    m11 = -mri->xsize;  m12 =  0.0;         m13 = 0.0;         m14 =  mri->xsize * mri->width / 2.0;
+    m21 =  0.0;         m22 = -mri->ysize;  m23 = 0.0;         m24 =  mri->ysize * mri->height / 2.0;
+    m31 =  0.0;         m32 =  0.0;         m33 = mri->zsize;  m34 = -mri->zsize * mri->depth / 2.0;
+  }
+  else
+  {
+    m11 = -mri->xsize;  m12 =  0.0;         m13 = 0.0;         m14 =  mri->xsize * mri->width / 2.0;
+    m21 =  0.0;         m22 = -mri->ysize;  m23 = 0.0;         m24 =  mri->ysize * mri->height / 2.0;
+    m31 =  0.0;         m32 =  0.0;         m33 = mri->zsize;  m34 = -mri->zsize * mri->depth / 2.0;
+  }
+  
   stuff_four_by_four(m, m11, m12, m13, m14, 
                         m21, m22, m23, m24, 
                         m31, m32, m33, m34, 
                         0.0, 0.0, 0.0, 1.0);
+
 
   return(m);
 
