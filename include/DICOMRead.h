@@ -2,10 +2,10 @@
 #define _DICOMRead_H
 
 
-#include "dicom.h"
-#include "lst.h"
-#include "dicom_objects.h"
-#include "condition.h"
+#include "dicom/dicom.h"
+#include "dicom/lst.h"
+#include "dicom/dicom_objects.h"
+#include "dicom/condition.h"
 
 #define NUMBEROFTAGS 22
 #define SHORTSIZE 16

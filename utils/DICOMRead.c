@@ -2,7 +2,7 @@
    DICOM 3.0 reading functions
    Author: Sebastien Gicquel and Douglas Greve
    Date: 06/04/2001
-   $Id: DICOMRead.c,v 1.19 2002/03/13 21:03:34 greve Exp $
+   $Id: DICOMRead.c,v 1.20 2002/04/30 22:13:31 greve Exp $
 *******************************************************/
 
 #include <stdio.h>
@@ -18,10 +18,6 @@
 #include <dirent.h>
 #include <malloc.h>
 #include <math.h>
-#include "dicom.h"
-#include "lst.h"
-#include "dicom_objects.h"
-#include "condition.h"
 #include "mri.h"
 #include "mri_identify.h"
 #include "fio.h"
@@ -30,6 +26,7 @@
 
 #define _DICOMRead_SRC
 #include "DICOMRead.h"
+#undef _DICOMRead_SRC
 
 static int DCMPrintCond(CONDITION cond);
 

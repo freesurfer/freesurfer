@@ -17,10 +17,6 @@
 #include <GL/glut.h>
 #include "error.h"
 #include "diag.h"
-#include "dicom.h"
-#include "lst.h"
-#include "dicom_objects.h"
-#include "condition.h"
 #include "mri.h"
 #include "mri_identify.h"
 #include "DICOMRead.h"
@@ -29,7 +25,7 @@
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_probedicom.c,v 1.1 2001/09/19 18:41:24 greve Exp $";
+static char vcid[] = "$Id: mri_probedicom.c,v 1.2 2002/04/30 22:13:10 greve Exp $";
 char *Progname = NULL;
 
 static int  parse_commandline(int argc, char **argv);
@@ -189,26 +185,26 @@ int main(int argc, char **argv)
   case QRY_VALUE: 
     if(!GettingPixelData){
       if(outputfile == NULL)
-	printf("%s\n",ElementValueString(&element));
+  printf("%s\n",ElementValueString(&element));
       else{
-	fp = fopen(outputfile,"w");
-	fprintf(fp,"%s\n",ElementValueString(&element));
-	fclose(fp);
+  fp = fopen(outputfile,"w");
+  fprintf(fp,"%s\n",ElementValueString(&element));
+  fclose(fp);
       }
     }
     else {
       if(outputbfile){
-	sprintf(tmpstr,"%s.hdr",outputfile);
-	ncols = GetDimLength(dicomfile,0);
-	nrows = GetDimLength(dicomfile,1);
-	endian = bf_getarchendian();
-	fp = fopen(tmpstr,"w");
-	fprintf(fp,"%d %d 1 %d\n",nrows,ncols,endian);
+  sprintf(tmpstr,"%s.hdr",outputfile);
+  ncols = GetDimLength(dicomfile,0);
+  nrows = GetDimLength(dicomfile,1);
+  endian = bf_getarchendian();
+  fp = fopen(tmpstr,"w");
+  fprintf(fp,"%d %d 1 %d\n",nrows,ncols,endian);
         fclose(fp);
-	sprintf(tmpstr,"%s.bshort",outputfile);
+  sprintf(tmpstr,"%s.bshort",outputfile);
       }
       else
-	sprintf(tmpstr,"%s",outputfile);
+  sprintf(tmpstr,"%s",outputfile);
 
       //printf("Writing Pixel Data to %s\n",tmpstr);
       fp = fopen(tmpstr,"w");
@@ -317,18 +313,18 @@ static int parse_commandline(int argc, char **argv)
       nargsused = 0;
     }
     else if(!strcmp(option, "--dictionary") ||
-	    !strcmp(option, "--dic")){
+      !strcmp(option, "--dic")){
       rt = system("dcm_print_dictionary");
       if(rt != 0){
-	printf("ERROR: is dcm_print_dictionary in your path?\n");
-	exit(1);
+  printf("ERROR: is dcm_print_dictionary in your path?\n");
+  exit(1);
       }
       exit(0);
     }
     else{
       fprintf(stderr,"ERROR: Option %s unknown\n",option);
       if(singledash(option))
-	fprintf(stderr,"       Did you really mean -%s ?\n",option);
+  fprintf(stderr,"       Did you really mean -%s ?\n",option);
       exit(-1);
     }
     nargc -= nargsused;
@@ -492,7 +488,7 @@ static void check_options(void)
   if(!DisplayImage){
     if(directive != QRY_FILETYPE && (grouptag == -1 || elementtag == -1)){
       fprintf(stderr,"ERROR: must specify group and element when querying %s\n",
-	      directivestring);
+        directivestring);
       exit(1);
     }
   }
@@ -1228,7 +1224,7 @@ void display(void)
   if(first) glClear(GL_COLOR_BUFFER_BIT);
   glRasterPos2i(0, 0);
   glDrawPixels(ImageWidth, ImageHeight, GL_RGB, 
-	       GL_UNSIGNED_BYTE, ImageBuff);
+         GL_UNSIGNED_BYTE, ImageBuff);
   glFlush();
   first = 0;
 }
