@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Computes glm inferences on the surface.
-  $Id: mris_glm.c,v 1.12 2002/11/12 22:46:55 greve Exp $
+  $Id: mris_glm.c,v 1.13 2002/11/12 23:04:03 greve Exp $
 
 Things to do:
   0. Documentation.
@@ -66,7 +66,7 @@ static char *getstem(char *bfilename);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_glm.c,v 1.12 2002/11/12 22:46:55 greve Exp $";
+static char vcid[] = "$Id: mris_glm.c,v 1.13 2002/11/12 23:04:03 greve Exp $";
 char *Progname = NULL;
 
 char *hemi        = NULL;
@@ -544,7 +544,7 @@ static int parse_commandline(int argc, char **argv)
       nargsused = 1;
       fsgd = gdfRead(fsgdfile,0);
       if(fsgd==NULL) exit(1);
-      strcpy(fsgd->tesselation,"surface");
+      strcpy(fsgd->tessellation,"surface");
       if(nth_is_arg(nargc, pargv, 1)){
 	gd2mtx_method = pargv[1]; nargsused ++;
 	if(gdfCheckMatrixMethod(gd2mtx_method)) exit(1);
