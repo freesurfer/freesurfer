@@ -2,7 +2,7 @@
 # epidewarp.fsl
 #
 
-set VERSION = '$Id: epidewarp.fsl,v 1.11 2005/02/21 20:47:34 greve Exp $'
+set VERSION = '$Id: epidewarp.fsl,v 1.12 2005/03/30 18:10:51 greve Exp $'
 set inputargs = ($argv);
 
 set dph = ();
@@ -218,10 +218,22 @@ set cmd = (flirt -in $vsmmag -ref $exf -out $vsm \
 echo $cmd |& tee -a $LF
 $cmd |& tee -a $LF
 if($status) exit 1;
-
 if($#epimat) then # Propogate mat file
   set vsmbase = `basename $vsm .img`;
   cp $epimat $vsmbase.mat
+endif
+
+# Now resample brain mask into epi space. This will take care of any 
+# differences in in-plane voxel size.
+set brainexf = $tmpdir/brainexf.img
+set cmd = (flirt -in $brain -ref $exf -out $brainexf \
+  -init $tmpdir/magfw-in-exf.fsl.mat -applyxfm)
+echo $cmd |& tee -a $LF
+$cmd |& tee -a $LF
+if($status) exit 1;
+if($#epimat) then # Propogate mat file
+  set base = `basename $brainexf .img`;
+  cp $epimat $base.mat
 endif
 
 # Check whether we can stop at this point
@@ -230,7 +242,7 @@ if($#exfdw == 0 && $#epidw == 0) goto done;
 #------------------ Dewarp the exf --------------------------#
 if($#exfdw != 0) then
   # Now apply the VSM to the exf
-  set cmd = (fugue -i $exf -u $exfdw --loadshift=$vsm --mask=$brain );
+  set cmd = (fugue -i $exf -u $exfdw --loadshift=$vsm --mask=$brainexf );
   echo $cmd |& tee -a $LF
   $cmd |& tee -a $LF
   if($status) exit 1;
