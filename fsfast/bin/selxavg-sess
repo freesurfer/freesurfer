@@ -1,8 +1,8 @@
 #!/bin/csh -f
 # selxavg-sess
 #
-# $Id: selxavg-sess,v 1.12 2005/01/23 17:15:35 greve Exp $
-set VERSION = '$Id: selxavg-sess,v 1.12 2005/01/23 17:15:35 greve Exp $';
+# $Id: selxavg-sess,v 1.13 2005/02/25 22:20:43 greve Exp $
+set VERSION = '$Id: selxavg-sess,v 1.13 2005/02/25 22:20:43 greve Exp $';
 set FASTVER = `cat $FMRI_ANALYSIS_DIR/docs/version`;
 
 set inputargs = ($argv);
@@ -72,14 +72,6 @@ set funcstem  = `cat $infofile | awk '{if($1 == "funcstem") print $2}'`;
 set maskstem  = `cat $infofile | awk '{if($1 == "maskstem") print $2}'`;
 set parname   = `cat $infofile | awk '{if($1 == "parname") print $2}'`;
 set ncond     = `cat $infofile | awk '{if($1 == "nconditions") print $2}'`;
-if($#ncond == 0) then
-  echo "ERROR: the number of conditions was not set in the analysis"
-  echo "It is probably the case that this analysis was created with "
-  echo "an old version of mkanalysis-sess. Please recreate the analysis."
-  echo ""
-  exit 1;
-endif
-
 set tpexclude = `cat $infofile | awk '{if($1 == "tpexclude") print $2}'`;
 set runlistfile = `cat $infofile | awk '{if($1 == "runlistfile") print $2}'`;
 set designtype = `cat $infofile | awk '{if($1 == "designtype") print $2}'`;
