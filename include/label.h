@@ -46,6 +46,7 @@ LABEL   *LabelAlloc(int max_points, char *subject_name, char *label_name) ;
 int     LabelCurvFill(LABEL *area, int *vertex_list, int nvertices, 
                     int max_vertices, MRI_SURFACE *mris) ;
 int     LabelFillMarked(LABEL *area, MRI_SURFACE *mris) ;
+int     LabelFillAnnotated(LABEL *area, MRI_SURFACE *mris) ;
 int     LabelFillAll(LABEL *area, int *vertex_list, int nvertices, 
                     int max_vertices, MRI_SURFACE *mris) ;
 int     LabelTalairachTransform(LABEL *area, MRI_SURFACE *mris) ;

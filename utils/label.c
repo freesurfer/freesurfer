@@ -696,6 +696,60 @@ LabelFillMarked(LABEL *area, MRI_SURFACE *mris)
         Description
 ------------------------------------------------------*/
 int
+LabelFillAnnotated(LABEL *area, MRI_SURFACE *mris)
+{
+  int    n, nfilled, nv, annotation ;
+  VERTEX *v, *vn ;
+  LV     *lv, *lvn ;
+
+
+  annotation = mris->vertices[area->lv[0].vno].annotation ;
+  do
+  {
+    nfilled = 0 ;
+
+    for (n = 0; n < area->n_points && 
+           area->n_points+nfilled < area->max_points ; n++)
+    {
+      lv = &area->lv[n] ;
+      v = &mris->vertices[lv->vno] ; v->marked = 1 ;
+      if (v->ripflag)
+        continue ;
+      for (nv = 0 ; nv < v->vnum ; nv++)   /* go through neighbors */
+      {
+        vn = &mris->vertices[v->v[nv]] ;
+        if (vn->ripflag || vn->marked)
+          continue ;
+        if (vn->annotation == annotation)  /* add it to the label */
+        {
+          vn->marked = 1 ;
+          lvn = &area->lv[area->n_points+nfilled] ;
+          nfilled++ ;
+          lvn->vno = v->v[nv] ;
+          lvn->x = vn->x ; lvn->y = vn->y ; lvn->z = vn->z ;
+        }
+        if (area->n_points+nfilled >= area->max_points)
+          break ;
+      }
+      if (area->n_points+nfilled >= area->max_points)
+        break ;
+    }
+    /*    fprintf(stderr, "%d vertices added.\n", nfilled) ;*/
+    area->n_points += nfilled ;
+  } while ((nfilled > 0) && (area->n_points < area->max_points)) ;
+#if 0
+  fprintf(stderr, "%d vertices in label %s\n",area->n_points, area->name);
+#endif
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+int
 LabelFillAll(LABEL *area, int *vertex_list, int nvertices, 
               int max_vertices, MRI_SURFACE *mris)
 {
