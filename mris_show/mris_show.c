@@ -15,7 +15,7 @@
 #include "macros.h"
 #include "oglutil.h"
 
-static char vcid[] = "$Id: mris_show.c,v 1.20 1998/01/22 18:19:32 fischl Exp $";
+static char vcid[] = "$Id: mris_show.c,v 1.21 1998/01/27 00:41:37 fischl Exp $";
 
 
 /*-------------------------------- CONSTANTS -----------------------------*/
@@ -100,6 +100,9 @@ static int noscale = 1 ;
 static MRI_SURFACE_PARAMETERIZATION *mrisp = NULL ;
 static int navgs = 0 ;
 static int nbrs = 2 ;
+static int nonmax_flag = 0 ;
+static char *coord_fname = NULL ;
+
 
 /*-------------------------------- FUNCTIONS ----------------------------*/
 
@@ -142,7 +145,8 @@ main(int argc, char *argv[])
   if (patch_flag)   /* read in orig surface before reading in patch */
   {
     FileNamePath(surf_fname, path) ;
-    cp = strrchr(surf_fname, '.') ;
+    FileNameOnly(surf_fname, name) ;
+    cp = strchr(name, '.') ;
     if (cp)
     {
       strncpy(hemi, cp-2, 2) ;
@@ -151,7 +155,7 @@ main(int argc, char *argv[])
     else
       strcpy(hemi, "lh") ;
     sprintf(fname, "%s/%s.orig", path, hemi) ;
-    mris = MRISread(fname) ;
+    mris = MRISfastRead(fname) ;
     if (!mris)
       ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
                 Progname, fname) ;
@@ -162,12 +166,15 @@ main(int argc, char *argv[])
   }
   else
   {
-    mris = MRISread(in_fname) ;
+    mris = MRISfastRead(in_fname) ;
     if (!mris)
       ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
                 Progname, in_fname) ;
   }
-  MRIScomputeMetricProperties(mris) ;
+  if (coord_fname)
+    MRISreadCanonicalCoordinates(mris, coord_fname) ;
+
+  /*  MRIScomputeMetricProperties(mris) ;*/
   if (mean_curvature_flag || gaussian_curvature_flag)
   {
     MRISsetNeighborhoodSize(mris, nbrs) ;  /* so curvatures are reasonable */
@@ -187,6 +194,8 @@ main(int argc, char *argv[])
     findAreaExtremes(mris) ;
   }
   MRISaverageCurvatures(mris, navgs) ;
+  if (nonmax_flag)
+  /*MRISnonmaxSuppress(mris)*/ ;
   if (talairach_flag)
     MRIStalairachTransform(mris, mris) ;
   MRIScenter(mris, mris) ;
@@ -312,6 +321,13 @@ get_option(int argc, char *argv[])
     fprintf(stderr, "reading parameterized curvature from %s\n", argv[2]) ;
     nargs = 1 ;
   }
+  else if (!stricmp(option, "coord"))
+  {
+    coord_fname = argv[2] ;
+    fprintf(stderr, "reading canonical coordinate system from %s\n", argv[2]) ;
+    nargs = 1 ;
+    compile_flags |= COORD_FLAG ;
+  }
   else if (!stricmp(option, "cslope"))
   {
     sscanf(argv[2], "%f", &cslope) ;
@@ -332,6 +348,8 @@ get_option(int argc, char *argv[])
     noscale = 1 ;
   else if (!stricmp(option, "scale"))
     noscale = 0 ;
+  else if (!stricmp(option, "nonmax"))
+    nonmax_flag = 1 ;
   else if (!stricmp(option, "fov"))
   {
     fov = atoi(argv[2]) ;
@@ -342,7 +360,7 @@ get_option(int argc, char *argv[])
   {
   case 'A':
     navgs = atoi(argv[2]) ;
-    fprintf(stderr, "averaging curvature patterns %d times.\n", navgs) ;
+    fprintf(stderr, "averaging curvature pattern %d times.\n", navgs) ;
     nargs = 1 ;
     break ;
   case 'M':

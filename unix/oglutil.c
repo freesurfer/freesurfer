@@ -17,7 +17,7 @@
 #include "oglutil.h"
 
 #if 0
-static char vcid[] = "$Id: oglutil.c,v 1.9 1997/12/15 20:41:33 fischl Exp $";
+static char vcid[] = "$Id: oglutil.c,v 1.10 1998/01/27 00:41:09 fischl Exp $";
 #endif
 
 /*-------------------------------- CONSTANTS -----------------------------*/
@@ -152,10 +152,10 @@ OGLUsetLightingModel(float lite0, float lite1, float lite2, float lite3,
 int
 OGLUcompile(MRI_SURFACE *mris, int *marked_vertices, int flags, float cslope)
 {
-  int          k, n, red, green, blue, error, mv, marked ;
+  int          k, n, red, green, blue, error, mv, marked, coord ;
   face_type    *f;
   VERTEX       *v, *vn ;
-  float        v1[3], min_curv, max_curv, offset ;
+  float        v1[3], min_curv, max_curv, offset, theta, phi ;
 
 /*  ogluSetFOV(mris) ;*/
   if (Gdiag & DIAG_SHOW)
@@ -190,16 +190,9 @@ OGLUcompile(MRI_SURFACE *mris, int *marked_vertices, int flags, float cslope)
       }
       glEnd() ;
     }
-#if 0
-    for (n=0;n<4;n++)
-      for (mv = 0 ; marked_vertices[mv] >= 0 ; mv++)
-        if (marked_vertices[mv] == f->v[n])
-          marked = 1 ;
-#else
     for (n=0;n<4;n++)
       if (mris->vertices[f->v[n]].marked)
         marked = 1 ;
-#endif
 
     glBegin(GL_QUADS) ;
     for (n=0;n<4;n++)
@@ -212,8 +205,25 @@ OGLUcompile(MRI_SURFACE *mris, int *marked_vertices, int flags, float cslope)
       /* don't display negative flat stuff */
       if (flags & PATCH_FLAG && v->nz < 0) 
         continue ;
+      if (flags & COORD_FLAG)
+      {
+        int itheta, iphi ;
 
-      if (marked)
+        theta = DEGREES(v->theta) ; phi = DEGREES(v->phi) ;
+        itheta = nint(theta) ; iphi = nint(phi) ;
+#define DSKIP  18
+        coord = 
+          ((((iphi/DSKIP)   * DSKIP) == iphi) || 
+           (((itheta/DSKIP) * DSKIP) == itheta));
+        if (coord)
+          DiagBreak() ;
+      }
+      else
+        coord = 0 ;
+      
+      if (coord)
+        glColor3ub(255,255,255) ;    /* paint the coordinate line white */
+      else if (marked)
         glColor3ub(0,255,255) ;      /* paint the marked vertex blue */
       else if (v->border)
         glColor3f(240,240,0.0);
@@ -264,6 +274,34 @@ OGLUcompile(MRI_SURFACE *mris, int *marked_vertices, int flags, float cslope)
   }
 
 
+#if 0
+  if (flags & COORD_FLAG)    /* draw canonical coordinate system */
+  {
+    int itheta, iphi ;
+    for (vno = 0 ; vno < mris->nvertices ; vno++)
+    {
+      v = &mris->vertices[vno] ;
+      if (v->ripflag)
+        continue ;
+
+      theta = DEGREES(v->theta) ; phi = DEGREES(v->phi) ;
+      itheta = nint(theta) ; iphi = nint(phi) ;
+#define DSKIP  18
+      coord = 
+        ((((iphi/DSKIP)   * DSKIP) == iphi) || 
+         (((itheta/DSKIP) * DSKIP) == itheta));
+      if (!coord)
+        continue ;
+
+      glColor3ub(255,255,255) ;    /* paint the coordinate line white */
+      load_brain_coords(v->nx,v->ny,v->nz,v1);
+      glNormal3fv(v1);                /* specify the normal for lighting */
+      load_brain_coords(v->x,v->y,v->z,v1);
+      glVertex3fv(v1);                /* specify the position of the vertex*/
+    }
+  }
+#endif
+      
 
   if (flags & TP_FLAG) for (mv = 0 ; marked_vertices[mv] >= 0 ; mv++)
   {
