@@ -22,7 +22,6 @@
 #define BIG_AND_NEGATIVE            -10000000.0
 
 static int edge_to_index(VERTEX *v, VERTEX *vn) ;
-static int dump_gcsan(GCSA_NODE *gcsan, CP_NODE *cpn, FILE *fp, int verbose) ;
 static int    MRIScomputeVertexPermutation(MRI_SURFACE *mris, int *indices) ;
 static int    GCSAupdateNodeMeans(GCSA_NODE *gcsan, 
                                   int label, double *v_inputs, int ninputs) ;
@@ -30,7 +29,6 @@ static int    GCSAupdateNodeGibbsPriors(CP_NODE *cpn, int label,
                                         MRI_SURFACE *mris, int vno) ;
 static int    GCSAupdateNodeCovariance(GCSA_NODE *gcsan, int label, 
                                        double *v_inputs, int ninputs) ;
-static VERTEX *GCSAsourceToClassifierVertex(GCSA *gcsa, VERTEX *v) ;
 static int    GCSANclassify(GCSA_NODE *gcsa_node, CP_NODE *cpn,
                             double *v_inputs, 
                             int ninputs, double *pprob) ;
@@ -287,7 +285,7 @@ GCSAtrainCovariances(GCSA *gcsa, MRI_SURFACE *mris)
   }
   return(NO_ERROR) ;
 }
-static VERTEX *
+VERTEX *
 GCSAsourceToClassifierVertex(GCSA *gcsa, VERTEX *v)
 {
   VERTEX *vdst ;
@@ -887,7 +885,7 @@ GCSANclassify(GCSA_NODE *gcsan, CP_NODE *cpn, double *v_inputs, int ninputs,
   return(best_label) ;
 }
 
-static int
+int
 dump_gcsan(GCSA_NODE *gcsan, CP_NODE *cpn, FILE *fp, int verbose)
 {
   int   n, index, i, j ;
