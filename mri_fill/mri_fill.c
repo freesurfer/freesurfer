@@ -14,6 +14,9 @@
                                 CONSTANTS
 -------------------------------------------------------------------*/
 
+#define PONS_LOG_FILE                   "pons.log"
+#define CC_LOG_FILE                     "cc.log"
+
 /* min # of neighbors which must be on to retain a point */
 #define DEFAULT_NEIGHBOR_THRESHOLD      8
 
@@ -30,6 +33,9 @@
 /* anything below this is not white matter */
 #define WM_MIN_VAL                       2 
 
+/* the min # of neighbors on for a point to be allowed to be a seed point */
+#define MIN_NEIGHBORS                    3
+
 /* Talairach seed points - only used if heuristics fail */
 #define CORPUS_CALLOSUM_TAL_X            0.0
 #define CORPUS_CALLOSUM_TAL_Y            0.0
@@ -38,6 +44,16 @@
 #define PONS_TAL_X                      -2.0
 #define PONS_TAL_Y                      -15.0  /* was -22.0 */
 #define PONS_TAL_Z                      -17.0
+
+#define WHITE_MATTER_LH_TAL_X            29.0
+#define WHITE_MATTER_LH_TAL_Y            -12.0 ;
+#define WHITE_MATTER_LH_TAL_Z            28.0 ;
+
+
+#define WHITE_MATTER_RH_TAL_X            -29.0
+#define WHITE_MATTER_RH_TAL_Y            -12.0 ;
+#define WHITE_MATTER_LH_TAL_Z            28.0 ;
+
 
 /* # if iterations for filling */
 #define MAX_ITERATIONS  1000  /* was 10 */
@@ -49,7 +65,7 @@
                                 GLOBAL DATA
 -------------------------------------------------------------------*/
 
-static int ilim0,ilim1,jlim0,jlim1;
+static int ylim0,ylim1,xlim0,xlim1;
 static int fill_holes_flag = TRUE;
 
 /* Talairach seed points for white matter in left and right hemispheres */
@@ -95,6 +111,8 @@ static int neighbor_threshold = DEFAULT_NEIGHBOR_THRESHOLD ;
 
 static MRI *mri_fill, *mri_im ;
 
+static int logging = 0 ;
+
 /*-------------------------------------------------------------------
                              STATIC PROTOTYPES
 -------------------------------------------------------------------*/
@@ -112,6 +130,8 @@ static MRI *find_cutting_plane(MRI *mri, Real x_tal, Real y_tal,Real z_tal,
 static int find_slice_center(MRI *mri,  int *pxo, int *pyo) ;
 static int find_corpus_callosum(MRI *mri, Real *ccx, Real *ccy, Real *ccz) ;
 static int find_pons(MRI *mri, Real *p_ponsx, Real *p_ponsy, Real *p_ponsz) ;
+static int find_cc_slice(MRI *mri, Real *pccx, Real *pccy, Real *pccz) ;
+static int neighbors_on(MRI *mri, int x0, int y0, int z0) ;
 
 /*-------------------------------------------------------------------
                                 FUNCTIONS
@@ -120,10 +140,10 @@ static int find_pons(MRI *mri, Real *p_ponsx, Real *p_ponsy, Real *p_ponsz) ;
 void
 main(int argc, char *argv[])
 {
-  int     i,j,k, xd, yd, zd, xnew, ynew, znew ;
+  int     x, y, z, xd, yd, zd, xnew, ynew, znew ;
   int     nargs, wm_lh_x, wm_lh_y, wm_lh_z, wm_rh_x, wm_rh_y, wm_rh_z ;
   char    input_fname[200],out_fname[200],*data_dir;
-  Real    x, y, z, dist, min_dist ;
+  Real    xr, yr, zr, dist, min_dist ;
   MRI     *mri_cc, *mri_pons ;
   int     x_pons, y_pons, z_pons, x_cc, y_cc, z_cc, xi, yi, zi ;
 #if 0
@@ -171,11 +191,16 @@ main(int argc, char *argv[])
   strcpy(out_fname, argv[2]) ;
 #endif
 
+  if (!Gdiag)
+    fprintf(stderr, "reading input volume...") ;
+
   mri_im = MRIread(input_fname) ;
   if (!mri_im)
     ErrorExit(ERROR_NOFILE, "%s: could not read %s", Progname, input_fname) ;
   mri_fill = MRIclone(mri_im, NULL) ;
 
+  if (!Gdiag)
+    fprintf(stderr, "done.\nsearching for cutting planes...") ;
   if (find_corpus_callosum(mri_im,&cc_tal_x,&cc_tal_y,&cc_tal_z) != NO_ERROR)
     mri_cc = NULL ;
   else
@@ -212,53 +237,56 @@ main(int argc, char *argv[])
                          SLICE_SIZE);
   MRIeraseTalairachPlane(mri_im, mri_pons, MRI_HORIZONTAL, 
                          x_pons, y_pons, z_pons, SLICE_SIZE) ;
-  if (Gdiag & DIAG_WRITE)
-  {
-    MRIwrite(mri_pons, "pons.mnc") ;
-    MRIwrite(mri_cc, "cc.mnc") ;
-  }
   MRIfree(&mri_cc) ;
   MRIfree(&mri_pons) ;
+  if (!Gdiag)
+    fprintf(stderr, "done.\n") ;
 
   /* find bounding box for valid data */
-  ilim0 = mri_im->height ; jlim0 = mri_im->width ;
-  ilim1 = jlim1 = 0;
-  for (k = 0 ; k < mri_im->depth ; k++)
+  ylim0 = mri_im->height ; xlim0 = mri_im->width ;
+  ylim1 = xlim1 = 0;
+  for (z = 0 ; z < mri_im->depth ; z++)
   {
-    for (i = 0 ; i < mri_im->height; i++)
+    for (y = 0 ; y < mri_im->height; y++)
     {
-      for (j = 0 ; j < mri_im->width ; j++)
+      for (x = 0 ; x < mri_im->width ; x++)
       {
-        if (MRIvox(mri_im, j, i, k) >0)
+        if (MRIvox(mri_im, x, y, z) >= WM_MIN_VAL)
         {
-          if (i<ilim0) ilim0=i;
-          if (i>ilim1) ilim1=i;
-          if (j<jlim0) jlim0=j;
-          if (j>jlim1) jlim1=j;
+          if (y<ylim0) ylim0=y;
+          if (y>ylim1) ylim1=y;
+          if (x<xlim0) xlim0=x;
+          if (x>xlim1) xlim1=x;
         }
       }
     }
   }
 
   /* find white matter seed point for the left hemisphere */
-  MRItalairachToVoxel(mri_im, wm_lh_tal_x, wm_lh_tal_y, wm_lh_tal_z,&x, &y,&z);
-  wm_lh_x = nint(x) ; wm_lh_y = nint(y) ; wm_lh_z = nint(z) ;
+#if 0
+  MRItalairachToVoxel(mri_im, wm_lh_tal_x,wm_lh_tal_y,wm_lh_tal_z,&xr,&yr,&zr);
+#else
+  MRItalairachToVoxel(mri_im, cc_tal_x+SEED_SEARCH_SIZE,
+                      cc_tal_y,cc_tal_z,&xr,&yr,&zr);
+#endif
+  wm_lh_x = nint(xr) ; wm_lh_y = nint(yr) ; wm_lh_z = nint(zr) ;
   if (!MRIvox(mri_im, wm_lh_x, wm_lh_y, wm_lh_z))
   {
     xnew = ynew = znew = 0 ;
     min_dist = 10000.0f ;
     if (Gdiag & DIAG_SHOW)
       fprintf(stderr, "searching for lh wm seed...") ;
-    for (k = wm_lh_z-SEED_SEARCH_SIZE ; k <= wm_lh_z+SEED_SEARCH_SIZE ; k++)
+    for (z = wm_lh_z-SEED_SEARCH_SIZE ; z <= wm_lh_z+SEED_SEARCH_SIZE ; z++)
     {
-      zi = mri_im->zi[k] ;
-      for (j = wm_lh_y-SEED_SEARCH_SIZE ; j <= wm_lh_y+SEED_SEARCH_SIZE ; y++)
+      zi = mri_im->zi[z] ;
+      for (y = wm_lh_y-SEED_SEARCH_SIZE ; y <= wm_lh_y+SEED_SEARCH_SIZE ; y++)
       {
-        yi = mri_im->yi[j] ;
-        for (i = wm_lh_x-SEED_SEARCH_SIZE ;i <= wm_lh_x+SEED_SEARCH_SIZE ; i++)
+        yi = mri_im->yi[y] ;
+        for (x = wm_lh_x-SEED_SEARCH_SIZE ;x <= wm_lh_x+SEED_SEARCH_SIZE ; x++)
         {
-          xi = mri_im->xi[i] ;
-          if (MRIvox(mri_im, xi, yi, zi))
+          xi = mri_im->xi[x] ;
+          if ((MRIvox(mri_im, xi, yi, zi) >= WM_MIN_VAL) &&
+              neighbors_on(mri_im, xi, yi, zi) >= MIN_NEIGHBORS)
           {
             xd = (xi - wm_lh_x) ; yd = (yi - wm_lh_y) ; zd = (zi - wm_lh_z) ;
             dist = xd*xd + yd*yd + zd*zd ;
@@ -277,26 +305,32 @@ main(int argc, char *argv[])
   }
 
   /* find white matter seed point for the right hemisphere */
-  MRItalairachToVoxel(mri_im, wm_rh_tal_x, wm_rh_tal_y, wm_rh_tal_z,&x, &y,&z);
-  wm_rh_x = nint(x) ; wm_rh_y = nint(y) ; wm_rh_z = nint(z) ;
+#if 0
+  MRItalairachToVoxel(mri_im, wm_rh_tal_x,wm_rh_tal_y,wm_rh_tal_z,&xr,&yr,&zr);
+#else
+  MRItalairachToVoxel(mri_im, cc_tal_x-SEED_SEARCH_SIZE, 
+                      cc_tal_y, cc_tal_z, &xr, &yr, &zr);
+#endif
+  wm_rh_x = nint(xr) ; wm_rh_y = nint(yr) ; wm_rh_z = nint(zr) ;
   if (!MRIvox(mri_im, wm_rh_x, wm_rh_y, wm_rh_z))
   {
     xnew = ynew = znew = 0 ;
     min_dist = 10000.0f ;
     if (Gdiag & DIAG_SHOW)
       fprintf(stderr, "searching for rh wm seed...") ;
-    for (k = wm_rh_z-SEED_SEARCH_SIZE ; k <= wm_rh_z+SEED_SEARCH_SIZE ; k++)
+    for (z = wm_rh_z-SEED_SEARCH_SIZE ; z <= wm_rh_z+SEED_SEARCH_SIZE ; z++)
     {
-      zi = mri_im->zi[k] ;
-      for (j = wm_rh_y-SEED_SEARCH_SIZE ; j <= wm_rh_y+SEED_SEARCH_SIZE ; j++)
+      zi = mri_im->zi[z] ;
+      for (y = wm_rh_y-SEED_SEARCH_SIZE ; y <= wm_rh_y+SEED_SEARCH_SIZE ; y++)
       {
-        yi = mri_im->yi[j] ;
-        for (i = wm_rh_x-SEED_SEARCH_SIZE ;i <= wm_rh_x+SEED_SEARCH_SIZE ; i++)
+        yi = mri_im->yi[y] ;
+        for (x = wm_rh_x-SEED_SEARCH_SIZE ;x <= wm_rh_x+SEED_SEARCH_SIZE ; x++)
         {
-          xi = mri_im->xi[i] ;
-          if (MRIvox(mri_im, xi, yi, zi))
+          xi = mri_im->xi[x] ;
+          if ((MRIvox(mri_im, xi, yi, zi) >= WM_MIN_VAL) &&
+              (neighbors_on(mri_im, xi, yi, zi) >= MIN_NEIGHBORS))
           {
-            xd = (xi - wm_lh_x) ; yd = (yi - wm_lh_y) ; zd = (zi - wm_lh_z) ;
+            xd = (xi - wm_rh_x) ; yd = (yi - wm_rh_y) ; zd = (zi - wm_rh_z) ;
             dist = xd*xd + yd*yd + zd*zd ;
             if (dist < min_dist)
             {
@@ -319,6 +353,8 @@ main(int argc, char *argv[])
   MRIvox(mri_fill, wm_rh_x, wm_rh_y, wm_rh_z) = RIGHT_HEMISPHERE_WHITE_MATTER ;
   MRIvox(mri_fill, wm_lh_x, wm_lh_y, wm_lh_z) = LEFT_HEMISPHERE_WHITE_MATTER ;
 
+  if (!Gdiag)
+    fprintf(stderr, "filling volume: pass 1 of 3...") ;
   fill_brain(WM_MIN_VAL);    /* fill from 2 seeds in wm outwards */
 
   /*MRIwrite(mri_fill, "fill1.mnc") ;*/
@@ -328,52 +364,39 @@ main(int argc, char *argv[])
   MRIclear(mri_fill) ;
   MRIvox(mri_fill,1,1,1) = 255;              /* seed for background */
   
+  if (!Gdiag)
+    fprintf(stderr, "\rfilling volume: pass 2 of 3...") ;
   fill_brain(-WM_MIN_VAL);/* fill in connected component of background */
-  /*MRIwrite(mri_fill, "fill2.mnc") ;*/
+
   if (fill_holes_flag)              
     fill_holes();         /* fill in islands with fewer than 10 nbrs on */
   
-  /*MRIwrite(mri_fill, "fill3.mnc") ;*/
-
   /* put complement into im (im==on means part of background) */
   MRIcopy(mri_fill, mri_im) ;
   MRIclear(mri_fill) ;
 
-#if 0 
-  for (i=0;i<nseed;i++)
-    if (snum==0 || snum==i+1)
-    {
-      if ((j_seed[i] >= 0 && j_seed[i] < mri_im->width) &&
-          (i_seed[i] >= 0 && i_seed[i] < mri_im->height) &&
-          (imnr_seed[i] >= 0 && imnr_seed[i] < mri_im->depth))
-        MRIvox(mri_fill, j_seed[i], i_seed[i], imnr_seed[i]) = val_seed[i];
-      else
-        fprintf(stderr, "seed[%d] = (%d, %d, %d) is out of bounds\n",
-                i, j_seed[i], i_seed[i], imnr_seed[i]) ;
-    }
-#else
   MRIvox(mri_fill, wm_rh_x, wm_rh_y, wm_rh_z) = RIGHT_HEMISPHERE_WHITE_MATTER ;
   MRIvox(mri_fill, wm_lh_x, wm_lh_y, wm_lh_z) = LEFT_HEMISPHERE_WHITE_MATTER ;
-#endif
 
 
   /* fill in background of complement (also sometimes called the foreground) */
+  if (!Gdiag)
+    fprintf(stderr, "\rfilling volume: pass 3 of 3...") ;
   fill_brain(-WM_MIN_VAL);   
-  /*MRIwrite(mri_fill, "fill4.mnc") ;*/
-  ilim0 = mri_im->height ; jlim0 = mri_im->width ;
-  ilim1 = jlim1 = 0;
-  for (k = 0 ; k < mri_fill->depth ; k++)
+  ylim0 = mri_im->height ; xlim0 = mri_im->width ;
+  ylim1 = xlim1 = 0;
+  for (z = 0 ; z < mri_fill->depth ; z++)
   {
-    for (i = 0 ; i < mri_fill->height ; i++)
+    for (y = 0 ; y < mri_fill->height ; y++)
     {
-      for (j = 0 ; j < mri_fill->width;j++)
+      for (x = 0 ; x < mri_fill->width;x++)
       {
-        if (MRIvox(mri_fill, j, i, k) >0)
+        if (MRIvox(mri_fill, x, y, z) >= WM_MIN_VAL)
         {
-          if (i<ilim0) ilim0=i;
-          if (i>ilim1) ilim1=i;
-          if (j<jlim0) jlim0=j;
-          if (j>jlim1) jlim1=j;
+          if (y<ylim0) ylim0=y;
+          if (y>ylim1) ylim1=y;
+          if (x<xlim0) xlim0=x;
+          if (x>xlim1) xlim1=x;
         }
       }
     }
@@ -382,17 +405,22 @@ main(int argc, char *argv[])
   if (fill_holes_flag)
     fill_holes();
   
-  /*MRIwrite(mri_fill, "fill5.mnc") ;*/
-
-  for (k = 0 ; k < mri_fill->depth ; k++)
-    for (i = 0; i < mri_fill->height ; i++)
-      for (j = 0; j < mri_fill->width ; j++)
+  if (!Gdiag)
+    fprintf(stderr, "done.\n") ;
+  for (z = 0 ; z < mri_fill->depth ; z++)
+    for (y = 0; y < mri_fill->height ; y++)
+      for (x = 0; x < mri_fill->width ; x++)
       {
-        if (k==0||k==mri_fill->depth-1) 
-          MRIvox(mri_fill, j, i, k) = 0;
+        if (z==0||z==mri_fill->depth-1) 
+          MRIvox(mri_fill, x, y, z) = 0;
       }
 
+  if (!Gdiag)
+    fprintf(stderr, "writing output to %s...", out_fname) ;
   MRIwrite(mri_fill, out_fname) ;
+  if (!Gdiag)
+    fprintf(stderr, "done.\n") ;
+  exit(0) ;
 }
 static int 
 fill_brain(int threshold)
@@ -426,7 +454,10 @@ fill_brain(int threshold)
       {
         for (j=j0;j!=j1;j+=dir)
         {
-
+          if ((j == 119 || j == 120) &&
+              (i == 93 || i == 94) &&
+              (imnr == 127 || imnr == 128))
+              DiagBreak() ;
           if (MRIvox(mri_fill, j, i, imnr) ==0)   /* not filled yet */
           {
             if ((threshold<0 &&   /* previous filled off */
@@ -454,7 +485,9 @@ fill_brain(int threshold)
     if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
       fprintf(stderr, "%d voxels filled\n",nfilled);
   } 
-  printf("total of %d voxels filled\n",ntotal);
+  fprintf(stderr, "total of %d voxels filled...",ntotal);
+  if (Gdiag & DIAG_SHOW)
+    fprintf(stderr, "\n") ;
   return(NO_ERROR) ;
 }
 
@@ -462,34 +495,32 @@ static int
 fill_holes(void)
 {
   int  nfilled, ntotal = 0, cnt, cntmax= neighbor_threshold ;
-  int im0,j0,i0,imnr,i,j;
+  int im0,x0,i0,z,i,x;
   int v,vmax;
 
   do
   {
     nfilled = 0;
-    for (imnr=1;imnr!=mri_fill->depth-1;imnr++)
+    for (z=1;z!=mri_fill->depth-1;z++)
     for (i=1;i!=mri_fill->height-1;i++)
-    for (j=1;j!=mri_fill->width-1;j++)
-    if (MRIvox(mri_fill, j, i, imnr)==0 && 
-        i>ilim0-10 && i<ilim1+10 && j>jlim0-10 && j<jlim1+10)
+    for (x=1;x!=mri_fill->width-1;x++)
+    if (MRIvox(mri_fill, x, i, z)==0 && 
+        i>ylim0-10 && i<ylim1+10 && x>xlim0-10 && x<xlim1+10)
     {
       cnt = 0;
       vmax = 0;
       for (im0= -1;im0<=1;im0++)
       for (i0= -1;i0<=1;i0++)
-      for (j0= -1;j0<=1;j0++)
+      for (x0= -1;x0<=1;x0++)
       {
-        v = MRIvox(mri_fill, j+j0, i+i0, imnr+im0) ;
+        v = MRIvox(mri_fill, x+x0, i+i0, z+im0) ;
         if (v>vmax) vmax = v;
         if (v == 0) cnt++;              /* count # of nbrs which are off */
-        if (cnt>cntmax) im0=i0=j0=1;    /* break out of all 3 loops */
+        if (cnt>cntmax) im0=i0=x0=1;    /* break out of all 3 loops */
       }
       if (cnt<=cntmax)   /* toggle pixel (off to on, or on to off) */
       {
-        if (imnr == 149 && (i == 96) && (j == 147))
-          printf("filled to %d", vmax) ;
-        MRIvox(mri_fill, j, i, imnr) = vmax; 
+        MRIvox(mri_fill, x, i, z) = vmax; 
         nfilled++;
         ntotal++;
       }
@@ -498,7 +529,8 @@ fill_holes(void)
       fprintf(stderr, "%d holes filled\n",nfilled);
   } while (nfilled > 0) ;
   
-  printf("total of %d holes filled\n",ntotal);
+  if (Gdiag & DIAG_SHOW)
+    fprintf(stderr, "total of %d holes filled\n",ntotal);
   return(NO_ERROR) ;
 }
 /*----------------------------------------------------------------------
@@ -565,6 +597,9 @@ get_option(int argc, char *argv[])
     min_filled = atoi(argv[2]) ;
     nargs = 1 ;
     break ;
+  case 'D':
+    logging = 1 ;
+    break ;
   case '?':
   case 'U':
     print_help() ;
@@ -623,13 +658,13 @@ print_help(void)
 #define MAX_OFFSET        50
 
 /* aspect ratios are dy/dx */
-#define MIN_CC_AREA       350
-#define MAX_CC_AREA       850
+#define MIN_CC_AREA       350  /* smallest I've seen is 389 */
+#define MAX_CC_AREA       950  /* biggest I've seen is 873 */
 #define MIN_CC_ASPECT     0.1
 #define MAX_CC_ASPECT     0.65
 
-#define MIN_PONS_AREA     375
-#define MAX_PONS_AREA     700
+#define MIN_PONS_AREA     350  /* smallest I've seen is 385 */
+#define MAX_PONS_AREA     700  /* biggest I've seen is 620 */  
 #define MIN_PONS_ASPECT   0.8
 #define MAX_PONS_ASPECT   1.2
 
@@ -640,10 +675,11 @@ find_cutting_plane(MRI *mri, Real x_tal, Real y_tal,Real z_tal,int orientation,
                    int *pxv, int *pyv, int *pzv)
 {
   MRI        *mri_slices[MAX_SLICES], *mri_filled[MAX_SLICES], *mri_cut ;
-  Real       dx, dy, dz, x, y, z, aspect,MIN_ASPECT,MAX_ASPECT;
+  Real       dx, dy, dz, x, y, z, aspect,MIN_ASPECT,MAX_ASPECT,
+             aspects[MAX_SLICES] ;
   int        slice, offset, area[MAX_SLICES], min_area, min_slice,xo,yo,
              xv, yv, zv, x0, y0, z0, xi, yi, zi, MIN_AREA, MAX_AREA, done ;
-             
+  FILE       *fp = NULL ;   /* for logging pons and cc statistics */
   char       fname[100], *name ;
   MRI_REGION region ;
 
@@ -655,12 +691,16 @@ find_cutting_plane(MRI *mri, Real x_tal, Real y_tal,Real z_tal,int orientation,
     name = "corpus callosum" ;
     MIN_AREA = MIN_CC_AREA ; MAX_AREA = MAX_CC_AREA ;
     MIN_ASPECT = MIN_CC_ASPECT ; MAX_ASPECT = MAX_CC_ASPECT ;
+    if (logging)
+      fp = fopen(CC_LOG_FILE, "a") ;
     break ;
   case MRI_HORIZONTAL: 
     dz = 1.0 ; dx = dy = 0.0 ; 
     name = "pons" ;
     MIN_AREA = MIN_PONS_AREA ; MAX_AREA = MAX_PONS_AREA ;
     MIN_ASPECT = MIN_PONS_ASPECT ; MAX_ASPECT = MAX_PONS_ASPECT ;
+    if (logging)
+      fp = fopen(PONS_LOG_FILE, "a") ;
     break ;
   case MRI_CORONAL:    
     dy = 1.0 ; dx = dz = 0.0 ; 
@@ -813,6 +853,7 @@ find_cutting_plane(MRI *mri, Real x_tal, Real y_tal,Real z_tal,int orientation,
     mri_filled[slice] = 
       MRIfillFG(mri_slices[slice], NULL, xo, yo,0,WM_MIN_VAL,127,&area[slice]);
     MRIboundingBox(mri_filled[slice], 1, &region) ;
+    aspects[slice] = (Real)region.dy / (Real)region.dx ;
 
     /* don't trust slices that extend to the border of the image */
     if (!region.x || !region.y || region.x+region.dx >= SLICE_SIZE-1 ||
@@ -846,15 +887,52 @@ find_cutting_plane(MRI *mri, Real x_tal, Real y_tal,Real z_tal,int orientation,
     }
   }
 
-  min_area = 10000 ; min_slice = -1 ;
-  for (slice = 1 ; slice < MAX_SLICES-1 ; slice++)
+  if (orientation == MRI_HORIZONTAL)
   {
-    if (area[slice] < min_area && 
-        (area[slice] >= MIN_AREA && area[slice] <= MAX_AREA))
+    min_area = 10000 ; min_slice = -1 ;
+    for (slice = 1 ; slice < MAX_SLICES-1 ; slice++)
     {
-      min_area = area[slice] ;
-      min_slice = slice ;
+      if (area[slice] < min_area && 
+          (area[slice] >= MIN_AREA && area[slice] <= MAX_AREA))
+      {
+        min_area = area[slice] ;
+        min_slice = slice ;
+      }
     }
+  }
+  else    /* search for middle of corpus callosum */
+  {
+    int valid[MAX_SLICES], num_on, max_num_on, max_on_slice_start ;
+
+    for (slice = 1 ; slice < MAX_SLICES-1 ; slice++)
+    {
+      valid[slice] =
+        ((area[slice]    >= MIN_AREA)   && (area[slice]    <= MAX_AREA) &&
+         (aspects[slice] >= MIN_ASPECT) && (aspects[slice] <= MAX_ASPECT)) ;
+    }
+    
+    max_on_slice_start = max_num_on = num_on = 0 ;
+    for (slice = 1 ; slice < MAX_SLICES-1 ; slice++)
+    {
+      if (valid[slice])
+        num_on++ ;
+      else
+      {
+        if (num_on > max_num_on)
+        {
+          max_num_on = num_on ;
+          max_on_slice_start = slice - num_on ;
+        }
+      }
+    }
+    if (num_on > max_num_on)   /* last slice was on */
+    {
+      max_num_on = num_on ;
+      max_on_slice_start = slice - num_on ;
+    }
+
+    min_slice = max_on_slice_start + (max_num_on-1)/2 ;
+    min_area = area[min_slice] ;
   }
 
   if (min_slice < 0)
@@ -869,6 +947,11 @@ find_cutting_plane(MRI *mri, Real x_tal, Real y_tal,Real z_tal,int orientation,
     MRIwrite(mri_filled[min_slice], fname) ;
   }
 
+  if (logging)
+  {
+    fprintf(fp, "area %d, aspect %2.2f\n", area[min_slice],aspects[min_slice]);
+    fclose(fp) ;
+  }
 
   offset = min_slice - HALF_SLICES ;
   x = x_tal + dx*offset ; y = y_tal + dy*offset ; z = z_tal + dz*offset ; 
@@ -877,8 +960,8 @@ find_cutting_plane(MRI *mri, Real x_tal, Real y_tal,Real z_tal,int orientation,
   mri_cut = MRIcopy(mri_filled[min_slice], NULL) ;
   if (Gdiag & DIAG_SHOW)
     fprintf(stderr, 
-            "%s: min area %d at slice %d, (%d, %d, %d)\n", 
-            name, min_area, min_slice, *pxv, *pyv, *pzv) ;
+            "%s: cutting at slice %d, area %d, (%d, %d, %d)\n", 
+            name, min_slice, min_area, *pxv, *pyv, *pzv) ;
 
 
 
@@ -904,14 +987,15 @@ find_slice_center(MRI *mri,  int *pxo, int *pyo)
   {
     for (x = 0 ; x < width ; x++)
     {
-      if (MRIvox(mri, x, y, 0))   /* find total distance to all other points */
+      /* find total distance to all other points */
+      if (MRIvox(mri, x, y, 0) >= WM_MIN_VAL)
       {
         total_dist = 0 ;
         for (y1 = 0 ; y1 < height ; y1++)
         {
           for (x1 = 0 ; x1 < width ; x1++)
           {
-            if (MRIvox(mri, x1, y1, 0)) 
+            if (MRIvox(mri, x1, y1, 0) >= WM_MIN_VAL) 
             {
               dist = (x1-x)*(x1-x) + (y1-y)*(y1-y) ;
               total_dist += dist ;
@@ -933,7 +1017,7 @@ find_slice_center(MRI *mri,  int *pxo, int *pyo)
   {
     for (x = xo-1 ; border && x <= xo+1 ; x++)
     {
-      if (MRIvox(mri, x, y, 0))  /* see if it is a border pixel */
+      if (MRIvox(mri, x, y, 0) >= WM_MIN_VAL) /* see if it is a border pixel */
       {
         border = 0 ;
         for (y1 = y-1 ; y1 <= y+1 ; y1++)
@@ -965,9 +1049,11 @@ find_slice_center(MRI *mri,  int *pxo, int *pyo)
 static int
 find_corpus_callosum(MRI *mri, Real *pccx, Real *pccy, Real *pccz)
 {
-  MRI  *mri_slice ;
-  int  xv, yv, zv, xo, yo, max_y, thickness, y1, xcc, ycc, x, y ;
-  Real xr, yr, zr ;
+  MRI         *mri_slice ;
+  int         xv, yv, zv, xo, yo, max_y, thickness, y1, xcc, ycc, x, y,x0 ;
+  Real        xr, yr, zr ;
+  MRI_REGION  region ;
+
 
   MRItalairachToVoxel(mri, 0.0, 0.0, 0.0, &xr, &yr, &zr);
   xv = nint(xr) ; yv = nint(yr) ; zv = nint(zr) ;
@@ -977,17 +1063,18 @@ find_corpus_callosum(MRI *mri, Real *pccx, Real *pccy, Real *pccz)
   {
     MRIwrite(mri_slice, "cor.mnc") ;
   }
-
+  MRIboundingBox(mri_slice, 1, &region) ;
+  x0 = region.x+region.dx/2 ;
   xo = mri_slice->width/2 ;  yo = mri_slice->height/2 ;
 
   /* find the column with the lowest starting y value of any sign. thick. */
   xcc = ycc = max_y = 0 ; 
-  for (x = xo-CC_SPREAD ; x <= xo+CC_SPREAD ; x++)
+  for (x = x0-CC_SPREAD ; x <= x0+CC_SPREAD ; x++)
   {
     /* search for first non-zero pixel */
     for (y = 0 ; y < SLICE_SIZE ; y++)
     {
-      if (MRIvox(mri_slice, x, y, 0))
+      if (MRIvox(mri_slice, x, y, 0) >= WM_MIN_VAL)
         break ;
     }
     
@@ -1018,25 +1105,43 @@ find_corpus_callosum(MRI *mri, Real *pccx, Real *pccy, Real *pccz)
     fprintf(stderr, "cc found at (%d, %d, %d)\n", xv, yv, zv) ;
   xr = (Real)xv ; yr = (Real)yv ; zr = (Real)zv ;
   MRIvoxelToTalairach(mri, xr, yr, zr, pccx, pccy, pccz) ;
+
+  find_cc_slice(mri, pccx, pccy, pccz) ;
   return(NO_ERROR) ;
 }
 
 #define MIN_BRAINSTEM_THICKNESS    15
 #define MAX_BRAINSTEM_THICKNESS    35
 #define MIN_DELTA_THICKNESS         3
+#define MIN_BRAINSTEM_HEIGHT       25
 
 static int
 find_pons(MRI *mri, Real *p_ponsx, Real *p_ponsy, Real *p_ponsz)
 {
   MRI   *mri_slice, *mri_filled ;
   Real  xr, yr, zr ;
-  int   xv, yv, zv, x, y, width, height, thickness, xstart, xo, yo, area,xmax ;
+  int   xv, yv, zv, x, y, width, height, thickness, xstart, xo, yo, area,xmax,
+        bheight ;
+  MRI_REGION region ;
 
   thickness = xstart = -1 ;
+  MRIboundingBox(mri, 10, &region) ;
+#if 0
   MRItalairachToVoxel(mri, 0.0, 0.0, 0.0, &xr, &yr, &zr);
   xv = nint(xr) ; yv = nint(yr) ; zv = nint(zr) ;
   mri_slice = 
     MRIextractTalairachPlane(mri, NULL, MRI_SAGITTAL,xv,yv,zv,SLICE_SIZE) ;
+#else
+  xr = (Real)(region.x+region.dx/2) ;
+  yr = (Real)(region.y+region.dy/2) ;
+  zr = (Real)(region.z+region.dz/2) ;
+  xv = (int)xr ; yv = (int)yr ; zv = (int)zr ;
+  MRIvoxelToTalairach(mri, xr, yr, zr, &xr, &yr, &zr);
+  mri_slice = 
+    MRIextractTalairachPlane(mri, NULL, MRI_SAGITTAL,xv,yv,zv,SLICE_SIZE) ;
+#endif
+
+  /* (xv,yv,zv) are the coordinates of the center of the slice */
 
   if (Gdiag & DIAG_WRITE)
     MRIwrite(mri_slice, "pons.mnc") ;
@@ -1087,17 +1192,26 @@ find_pons(MRI *mri, Real *p_ponsx, Real *p_ponsy, Real *p_ponsz)
    'cleft', which is about where we want to cut.
 */
   xmax = x = xstart ;  /* needed for initialization */
+  bheight = 0 ;
   do
   {
     xstart = x ;
-    y-- ;
+    y-- ; bheight++ ;
     for (x = width-1 ; !MRIvox(mri_filled,x,y,0) && (x >= 0) ; x--)
     {}
 
     if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
       fprintf(stderr, "slice %d, xstart %d\n", y, x) ;
     if (x > xmax)
+    {
+      /* check to see if we've gone too far */
+      if ((bheight > MIN_BRAINSTEM_HEIGHT) && (x-xmax >= MIN_DELTA_THICKNESS))
+      {
+        y-- ;   /* gone too far */
+        break ;
+      }
       xmax = x ;
+    }
   } while ((xmax - x < MIN_DELTA_THICKNESS) && (y >0)) ;
 
   /* now search forward to find center of slice */
@@ -1121,3 +1235,94 @@ find_pons(MRI *mri, Real *p_ponsx, Real *p_ponsy, Real *p_ponsz)
   return(NO_ERROR) ;
 }
 
+static int
+find_cc_slice(MRI *mri, Real *pccx, Real *pccy, Real *pccz)
+{
+  int         area[MAX_SLICES], min_area, min_slice, slice, offset,xv,yv,zv,
+              xo, yo ;
+  MRI         *mri_slice, *mri_filled ;
+  Real        aspect, x_tal, y_tal, z_tal, x, y, z ;
+  MRI_REGION  region ;
+  char        fname[100] ;
+
+  x_tal = *pccx ; y_tal = *pccy ; z_tal = *pccz ;
+  offset = 0 ;
+  xo = yo = (SLICE_SIZE-1)/2 ;  /* center point of the slice */
+  for (slice = 0 ; slice < MAX_SLICES ; slice++)
+  {
+    offset = slice - HALF_SLICES ;
+    x = x_tal + offset ; y = y_tal ; z = z_tal ;
+    MRItalairachToVoxel(mri, x, y,  z, &x, &y, &z) ;
+    xv = nint(x) ; yv = nint(y) ; zv = nint(z) ;
+    mri_slice = 
+      MRIextractTalairachPlane(mri, NULL, MRI_SAGITTAL, xv, yv, zv,SLICE_SIZE);
+    mri_filled = 
+      MRIfillFG(mri_slice, NULL, xo, yo,0,WM_MIN_VAL,127,&area[slice]);
+    MRIboundingBox(mri_filled, 1, &region) ;
+    aspect = (Real)region.dy / (Real)region.dx ;
+
+    /* don't trust slices that extend to the border of the image */
+    if (!region.x || !region.y || region.x+region.dx >= SLICE_SIZE-1 ||
+        region.y+region.dy >= SLICE_SIZE-1)
+      area[slice] = 0 ;
+
+    if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+      fprintf(stderr, "slice[%d] @ (%d, %d, %d): area = %d\n", 
+              slice, xv, yv, zv, area[slice]) ;
+
+    if ((Gdiag & DIAG_WRITE) && !(slice % 1))
+    {
+      sprintf(fname, "cc_slice%d.mnc", slice);
+      MRIwrite(mri_slice, fname) ;
+      sprintf(fname, "cc_filled%d.mnc", slice);
+      MRIwrite(mri_filled, fname) ;
+    }
+    MRIfree(&mri_filled) ; MRIfree(&mri_slice) ;
+  }
+
+  min_area = 10000 ; min_slice = -1 ;
+  for (slice = 1 ; slice < MAX_SLICES-1 ; slice++)
+  {
+    if (area[slice] < min_area && 
+        (area[slice] >= MIN_CC_AREA && area[slice] <= MAX_CC_AREA))
+    {
+      min_area = area[slice] ;
+      min_slice = slice ;
+    }
+  }
+
+  /* couldn't find a good slice - don't update estimate */
+  if (min_slice < 0)
+    ErrorReturn(ERROR_BADPARM, 
+                (ERROR_BADPARM, "%s: could not find valid seed for the cc",
+                 Progname));
+
+  offset = min_slice - HALF_SLICES ;
+  *pccx = x = x_tal + offset ; *pccy = y = y_tal ; *pccz = z = z_tal ;
+  MRItalairachToVoxel(mri, x, y,  z, &x, &y, &z) ;
+  if (Gdiag & DIAG_SHOW)
+    fprintf(stderr, 
+            "updating initial cc seed to (%d, %d, %d)\n", 
+            nint(x), nint(y), nint(z)) ;
+  return(NO_ERROR) ;
+}
+
+static int
+neighbors_on(MRI *mri, int x0, int y0, int z0)
+{
+  int   nbrs = 0 ;
+
+  if (MRIvox(mri,x0-1,y0,z0) >= WM_MIN_VAL)
+    nbrs++ ;
+  if (MRIvox(mri,x0+1,y0,z0) >= WM_MIN_VAL)
+    nbrs++ ;
+  if (MRIvox(mri,x0,y0+1,z0) >= WM_MIN_VAL)
+    nbrs++ ;
+  if (MRIvox(mri,x0,y0-1,z0) >= WM_MIN_VAL)
+    nbrs++ ;
+  if (MRIvox(mri,x0,y0,z0+1) >= WM_MIN_VAL)
+    nbrs++ ;
+  if (MRIvox(mri,x0,y0,z0-1) >= WM_MIN_VAL)
+    nbrs++ ;
+  return(nbrs) ;
+}
