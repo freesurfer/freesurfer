@@ -6,6 +6,30 @@
 #include "dicom_objects.h"
 #include "condition.h"
 
+
+#define NUMBEROFTAGS 22
+#define SHORTSIZE 16
+#define INTSIZE 16
+#define LONGSIZE 32
+
+#define DCM_NOERROR 0
+#define DCM_NODICOMFILES 1
+#define DCM_MULTIPLESTUDIES 2
+
+typedef unsigned short int BOOL;
+typedef unsigned short int bool;
+
+#define true 1
+#define false 0
+
+#ifdef _DICOMRead_SRC
+  char *SDCMStatusFile;
+  char  *SDCMListFile;
+#else
+  extern char *SDCMStatusFile;
+  extern char  *SDCMListFile;
+#endif
+
 typedef enum {
   // general infos
   DCM_StudyDate, DCM_PatientName, DCM_Manufacturer, DCM_StudyTime, DCM_SeriesTime, DCM_AcquisitionTime,
@@ -109,24 +133,11 @@ typedef struct {
   float VolCenter[3]; /* Exact RAS center of the volume */
   int   NFrames;     /* Equals lRepetitions + 1 */
   
+  int   ErrorFlag;   /* Set for error, eg, aborted run */
+
 } SDCMFILEINFO;
 
-#define NUMBEROFTAGS 22
-#define SHORTSIZE 16
-#define INTSIZE 16
-#define LONGSIZE 32
 
-#define DCM_NOERROR 0
-#define DCM_NODICOMFILES 1
-#define DCM_MULTIPLESTUDIES 2
-
-typedef unsigned short int BOOL;
-typedef unsigned short int bool;
-
-#define true 1
-#define false 0
-
-bool IsTagPresent[NUMBEROFTAGS];
 
 void PrintDICOMInfo(DICOMInfo *dcminfo);
 CONDITION GetString(DCM_OBJECT** object, DCM_TAG tag, char **st);
@@ -157,6 +168,7 @@ char *SiemensAsciiTag(char *dcmfile, char *TagString);
 int dcmGetNCols(char *dcmfile);
 int dcmGetNRows(char *dcmfile);
 int dcmGetVolRes(char *dcmfile, float *ColRes, float *RowRes, float *SliceRes);
+float sdcmMosaicSliceRes(char *dcmfile);
 int dcmImageDirCos(char *dcmfile, 
        float *Vcx, float *Vcy, float *Vcz,
        float *Vrx, float *Vry, float *Vrz);
@@ -173,14 +185,22 @@ int CompareSDCMFileInfo(const void *a, const void *b);
 int SortSDCMFileInfo(SDCMFILEINFO **sdcmfi_list, int nlist);
 
 int sdfiAssignRunNo(SDCMFILEINFO **sdcmfi_list, int nfiles);
+int sdfiAssignRunNo2(SDCMFILEINFO **sdfi_list, int nlist);
 int sdfiRunNo(char *dcmfile, SDCMFILEINFO **sdfi_list, int nlist);
 int sdfiNFilesInRun(char *dcmfile, SDCMFILEINFO **sdfi_list, int nlist);
+int sdfiCountFilesInRun(int RunNo, SDCMFILEINFO **sdfi_list, int nlist);
 int *sdfiRunFileList(char *dcmfile, SDCMFILEINFO **sdfi_list, 
          int nlist, int *NRunList);
 MRI * sdcmLoadVolume(char *dcmfile, int LoadVolume);
 int sdfiVolCenter(SDCMFILEINFO *sdfi);
 int sdfiFixImagePosition(SDCMFILEINFO *sdfi);
 int sdfiSameSlicePos(SDCMFILEINFO *sdfi1, SDCMFILEINFO *sdfi2);
+int sdfiCountRuns(SDCMFILEINFO **sdfi_list, int nlist);
+char *sdfiFirstFileInRun(int RunNo, SDCMFILEINFO **sdfi_list, int nlist);
+int *sdfiRunNoList(SDCMFILEINFO **sdfi_list, int nlist, int *NRuns);
+char **ScanSiemensSeries(char *dcmfile, int *nList);
+char **ReadSiemensSeries(char *ListFile, int *nList, char *dcmfile);
+SDCMFILEINFO **LoadSiemensSeriesInfo(char **SeriesList, int nList);
 
 #ifdef Solaris
 int scandir(const char *dir, struct dirent ***namelist,
