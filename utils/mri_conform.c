@@ -2,6 +2,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <math.h>
 #include "mri.h"
 #include "error.h"
 #include "histo.h"
@@ -9,6 +10,7 @@
 
 MRI *conform_type(MRI *mri);
 MRI *conform_voxels(MRI *mri);
+MRI *conform_size(MRI *mri);
 MRI *conform_direction(MRI *mri);
 
 MRI *MRIconform(MRI *mri)
@@ -29,7 +31,29 @@ MRI *MRIconform(MRI *mri)
   /* conform voxel sizes if needed */
   if(!(mri->xsize == 1 && mri->ysize == 1 && mri->zsize == 1))
   {
+
     temp = conform_voxels(mri);
+    MRIfree(&mri);
+    mri = temp;
+    copied_flag = 1;
+
+/*
+    temp = MRIallocSequence(mri->width, mri->height, mri->depth, mri->type, 1);
+    MRIcopyHeader(mri, temp);
+    temp->width = temp->height = temp->depth = 256;
+    temp->xsize = temp->ysize = temp->zsize = 1;
+    MRIinterpolate(mri, temp);
+    MRIfree(&mri);
+    mri = temp;
+    copied_flag = 1;
+*/
+
+  }
+
+  /* conform volume size if needed (256x256x256) */
+  if(mri->width != 256 || mri->height != 256 || mri->depth != 256)
+  {
+    temp = conform_size(mri);
     MRIfree(&mri);
     mri = temp;
     copied_flag = 1;
@@ -228,6 +252,7 @@ MRI *conform_voxels(MRI *mri)
   float xs, ys, zs;
   int xi, yi, zi;
   float xf, yf, zf, xf2, yf2, zf2;
+  float ras_scale;
 
   fovx = mri->width * mri->xsize;
   fovy = mri->height * mri->ysize;
@@ -300,9 +325,52 @@ MRI *conform_voxels(MRI *mri)
 
       }
 
+  if(mri->ras_good_flag)
+  {
+    ras_scale = sqrt(mri->x_r * mri->x_r + mri->x_a * mri->x_a + mri->x_s * mri->x_s);
+    mri2->x_r = mri->x_r / ras_scale;
+    mri2->x_a = mri->x_a / ras_scale;
+    mri2->x_s = mri->x_s / ras_scale;
+    ras_scale = sqrt(mri->y_r * mri->y_r + mri->y_a * mri->y_a + mri->y_s * mri->y_s);
+    mri2->y_r = mri->y_r / ras_scale;
+    mri2->y_a = mri->y_a / ras_scale;
+    mri2->y_s = mri->y_s / ras_scale;
+    ras_scale = sqrt(mri->z_r * mri->z_r + mri->z_a * mri->z_a + mri->z_s * mri->z_s);
+    mri2->z_r = mri->z_r / ras_scale;
+    mri2->z_a = mri->z_a / ras_scale;
+    mri2->z_s = mri->z_s / ras_scale;
+
+    mri2->c_r = mri->c_r;
+    mri2->c_a = mri->c_a;
+    mri2->c_s = mri->c_s;
+
+    mri2->ras_good_flag = 1;
+
+  }
+
   return(mri2);
 
 } /* end conform_voxels() */
+
+MRI *conform_size(MRI *mri)
+{
+
+  MRI *mri2;
+
+  if(mri->slices == NULL)
+  {
+    mri2 = MRIcopy(mri, NULL);
+    mri2->width = mri2->height = mri2->depth = 256;
+    return(mri2);
+  }
+  else
+    mri2 = MRIalloc(256, 256, 256, mri->type);
+
+  
+
+  return(mri2);
+
+} /* end conform_size() */
 
 MRI *conform_direction(MRI *mri)
 {
