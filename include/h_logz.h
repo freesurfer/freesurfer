@@ -77,6 +77,8 @@ typedef struct
   int     n_neighbors ;  /* # of neighbors allocated so far */
   int     ring_fovea ;
   double  maxr ;          /* max radius in domain */
+  float   min_rho ;
+  float   max_rho ;
 } LOGMAP_INFO ;
 
 /*
