@@ -565,6 +565,8 @@ AC_CHECK_FUNCS([bzero calloc floor ftime getenv getcwd getpagesize gettimeofday 
 ###############################################################################
 # output
 ###############################################################################
+DEV=`pwd`
+export DEV
 ./config/removemakefile.sh
 
 AC_OUTPUT(\
