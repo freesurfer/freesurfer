@@ -10,7 +10,7 @@
 #include "macros.h"
 #include "proto.h"
 
-static char vcid[] = "$Id: mri_fill.c,v 1.14 1998/04/17 18:47:19 fischl Exp $";
+static char vcid[] = "$Id: mri_fill.c,v 1.15 1998/05/10 21:45:26 fischl Exp $";
 
 /*-------------------------------------------------------------------
                                 CONSTANTS
@@ -114,6 +114,8 @@ static int neighbor_threshold = DEFAULT_NEIGHBOR_THRESHOLD ;
 static MRI *mri_fill, *mri_im ;
 
 static int logging = 0 ;
+
+static int fill_val = 0 ;   /* only non-zero for generating images of planes */
 
 /*-------------------------------------------------------------------
                              STATIC PROTOTYPES
@@ -247,9 +249,17 @@ main(int argc, char *argv[])
   }
 
   MRIeraseTalairachPlane(mri_im, mri_cc, MRI_SAGITTAL, x_cc, y_cc, z_cc, 
-                         SLICE_SIZE);
+                         SLICE_SIZE, fill_val);
   MRIeraseTalairachPlane(mri_im, mri_pons, MRI_HORIZONTAL, 
-                         x_pons, y_pons, z_pons, SLICE_SIZE) ;
+                         x_pons, y_pons, z_pons, SLICE_SIZE, fill_val) ;
+  if (fill_val)
+  {
+    fprintf(stderr,"writing out image with cutting planes to 'planes.mnc'.\n");
+    MRIwrite(mri_im, "planes.mnc") ;
+    fprintf(stderr, "done.\n") ;
+    exit(0) ;
+  }
+
   MRIfree(&mri_cc) ;
   MRIfree(&mri_pons) ;
   if (!Gdiag)
@@ -618,7 +628,8 @@ get_option(int argc, char *argv[])
     nargs = 1 ;
     break ;
   case 'F':
-    min_filled = atoi(argv[2]) ;
+    fill_val = atoi(argv[2]) ;
+    /*    min_filled = atoi(argv[2]) ;*/
     nargs = 1 ;
     break ;
   case 'D':
