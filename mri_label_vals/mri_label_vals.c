@@ -12,6 +12,7 @@
 #include "timer.h"
 #include "version.h"
 #include "label.h"
+#include "cma.h"
 
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
@@ -20,8 +21,8 @@ char *Progname ;
 static char *log_fname = NULL ;
 static void usage_exit(int code) ;
 
+static int  annot_flag = -1 ;
 static int quiet = 0 ;
-static int all_flag = 0 ;
 int cras =0; // 0 is false.  1 is true
 
 int
@@ -32,10 +33,11 @@ main(int argc, char *argv[])
   int    msec, minutes, seconds,  i  ;
 	LABEL  *area ;
   struct timeb start ;
-  MRI    *mri ;
+  MRI    *mri,  *mri_seg ;
+	Real   xw, yw, zw, xv, yv, zv, val;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_label_vals.c,v 1.6 2003/09/15 19:27:10 tosa Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_label_vals.c,v 1.7 2003/10/02 13:56:44 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -65,34 +67,70 @@ main(int argc, char *argv[])
   mri = MRIread(vol_name) ;
   if (!mri)
     ErrorExit(ERROR_NOFILE, "%s: could not read volume from %s",Progname, vol_name) ;
-  area = LabelRead(NULL, label_name) ;
-  if (!area)
-    ErrorExit(ERROR_NOFILE, "%s: could not read label from %s",Progname, label_name) ;
+	if (annot_flag >= 0)
+	{
+		int x, y, z  ;
 
-  if (cras == 1)
-    printf("using the label coordinates to be c_(r,a,s) != 0.\n");
+		mri_seg = MRIread(argv[2]) ;
+		if (!mri_seg)
+			ErrorExit(ERROR_NOFILE, "%s: could not read volume from %s",Progname, argv[2]) ;
 
-  for (i = 0 ;  i  < area->n_points ; i++)
-  {
-    Real  xw, yw, zw, xv, yv, zv, val;
-
-    xw =  area->lv[i].x ;
-    yw =  area->lv[i].y ;
-    zw =  area->lv[i].z ;
-    if (cras == 1)
-      MRIworldToVoxel(mri, xw, yw,  zw, &xv, &yv, &zv) ;
-    else
-      MRIsurfaceRASToVoxel(mri, xw, yw, zw, &xv, &yv, &zv);
-    MRIsampleVolumeType(mri, xv,  yv, zv, &val, SAMPLE_NEAREST);
-    if (val < .000001)
-    {  
-      val *= 1000000;
-      printf("%f*0.000001\n", val);
-    }
-    else
-      printf("%f\n", val);
-  }
-
+		for (x = 0  ; x  < mri_seg->width ; x++)
+		{
+			for (y = 0  ; y  < mri_seg->width ; y++)
+			{
+				for (z = 0  ; z  < mri_seg->width ; z++)
+				{
+					if (MRIvox(mri_seg, x, y,  z) == annot_flag)
+					{
+						MRIvoxelToSurfaceRAS(mri_seg, x, y,  z, &xw,  &yw, &zw) ;
+						MRIsurfaceRASToVoxel(mri, xw,  yw,  zw, &xv, &yv, &zv) ;
+						MRIsampleVolumeType(mri, xv,  yv, zv, &val, SAMPLE_NEAREST);
+#if  0
+						if (val < .000001)
+						{  
+							val *= 1000000;
+							printf("%f*0.000001\n", val);
+						}
+						else
+#endif
+							printf("%f\n", val);
+					}
+				}
+			}
+		}
+	}
+	else
+	{
+		area = LabelRead(NULL, label_name) ;
+		if (!area)
+			ErrorExit(ERROR_NOFILE, "%s: could not read label from %s",Progname, label_name) ;
+		
+		if (cras == 1)
+			fprintf(stderr,"using the label coordinates to be c_(r,a,s) != 0.\n");
+		
+		for (i = 0 ;  i  < area->n_points ; i++)
+		{
+			
+			xw =  area->lv[i].x ;
+			yw =  area->lv[i].y ;
+			zw =  area->lv[i].z ;
+			if (cras == 1)
+				MRIworldToVoxel(mri, xw, yw,  zw, &xv, &yv, &zv) ;
+			else
+				MRIsurfaceRASToVoxel(mri, xw, yw, zw, &xv, &yv, &zv);
+			MRIsampleVolumeType(mri, xv,  yv, zv, &val, SAMPLE_NEAREST);
+#if 0
+			if (val < .000001)
+			{  
+				val *= 1000000;
+				printf("%f*0.000001\n", val);
+			}
+			else
+#endif
+				printf("%f\n", val);
+		}
+	}
   msec = TimerStop(&start) ;
   seconds = nint((float)msec/1000.0f) ;
   minutes = seconds / 60 ;
@@ -127,7 +165,9 @@ get_option(int argc, char *argv[])
       quiet = 1 ;
       break ;
     case 'A':
-      all_flag = 1 ;
+      annot_flag = atoi(argv[2]) ;
+			nargs =  1  ;
+			fprintf(stderr,"using  annotation %d as label...\n", annot_flag)  ;
       break ;
     case 'L':
       log_fname = argv[2] ;
