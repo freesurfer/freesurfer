@@ -1,3 +1,5 @@
+#include "string_fixed.h"
+#include <errno.h>
 #include <stdexcept>
 #include "DataCollection.h"
 

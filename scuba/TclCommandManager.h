@@ -3,12 +3,13 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2004/04/28 21:53:48 $
-// Revision       : $Revision: 1.9 $
+// Revision Date  : $Date: 2004/04/29 18:33:58 $
+// Revision       : $Revision: 1.10 $
 
 #ifndef TclCommandManager_h
 #define TclCommandManager_h
 
+#include <errno.h>
 #include <stdlib.h>
 #include <list>
 #include <tcl.h>

@@ -1,5 +1,7 @@
+extern "C" {
 #include "tk.h"
 #include "tix.h"
+}
 #include "ScubaGlobalPreferences.h"
 #include "PreferencesManager.h"
 #include "ToglManager.h"

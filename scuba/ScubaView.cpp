@@ -1,3 +1,5 @@
+#include "string_fixed.h"
+#include <stdlib.h>
 #include <stdexcept>
 #include "glut.h"
 #include "ScubaView.h"
@@ -373,7 +375,7 @@ ScubaView::DoListenToTclCommand( char* isCommand, int iArgc, char** iasArgv ) {
     
     if( mID == viewID ) {
       
-      float zoomLevel = strtof( iasArgv[2], (char**)NULL );
+      float zoomLevel = (float) strtod( iasArgv[2], (char**)NULL );
       if( ERANGE == errno ) {
 	sResult = "bad zoom level";
 	return error;
@@ -393,17 +395,17 @@ ScubaView::DoListenToTclCommand( char* isCommand, int iArgc, char** iasArgv ) {
 
     if( mID == viewID ) {
       
-      float x = strtof( iasArgv[2], (char**)NULL );
+      float x = (float) strtod( iasArgv[2], (char**)NULL );
       if( ERANGE == errno ) {
 	sResult = "bad x coordinate";
 	return error;
       }
-      float y = strtof( iasArgv[3], (char**)NULL );
+      float y = (float) strtod( iasArgv[3], (char**)NULL );
       if( ERANGE == errno ) {
 	sResult = "bad y coordinate";
 	return error;
       }
-      float z = strtof( iasArgv[4], (char**)NULL );
+      float z = (float) strtod( iasArgv[4], (char**)NULL );
       if( ERANGE == errno ) {
 	sResult = "bad z coordinate";
 	return error;
@@ -687,7 +689,7 @@ ScubaView::DoListenToTclCommand( char* isCommand, int iArgc, char** iasArgv ) {
     
     if( mID == viewID ) {
       
-      float increment = strtof( iasArgv[3], (char**)NULL );
+      float increment = (float) strtod( iasArgv[3], (char**)NULL );
       if( ERANGE == errno ) {
 	sResult = "bad increment";
 	return error;

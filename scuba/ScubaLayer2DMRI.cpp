@@ -391,11 +391,6 @@ ScubaLayer2DMRI::DoListenToTclCommand ( char* isCommand, int iArgc, char** iasAr
 	
 	SetVolumeCollection( volume );
       }
-      catch( std::bad_cast& e ) {
-	DebugOutput( << "Bad cast from DataCollection" );
-	sResult = "bad collection ID, collection not a volume collection";
-	return error;
-      }
       catch(...) {
 	sResult = "bad collection ID, collection not found";
 	return error;
@@ -522,7 +517,7 @@ ScubaLayer2DMRI::DoListenToTclCommand ( char* isCommand, int iArgc, char** iasAr
     
     if( mID == layerID ) {
       
-      float brightness = strtof( iasArgv[2], (char**)NULL );
+      float brightness = (float) strtod( iasArgv[2], (char**)NULL );
       if( ERANGE == errno ) {
 	sResult = "bad brightness";
 	return error;
@@ -560,7 +555,7 @@ ScubaLayer2DMRI::DoListenToTclCommand ( char* isCommand, int iArgc, char** iasAr
     
     if( mID == layerID ) {
       
-      float contrast = strtof( iasArgv[2], (char**)NULL );
+      float contrast = (float) strtod( iasArgv[2], (char**)NULL );
       if( ERANGE == errno ) {
 	sResult = "bad contrast";
 	return error;
@@ -697,7 +692,7 @@ ScubaLayer2DMRI::DoListenToTclCommand ( char* isCommand, int iArgc, char** iasAr
     
     if( mID == layerID ) {
       
-      float value = strtof( iasArgv[2], (char**)NULL );
+      float value = (float) strtod( iasArgv[2], (char**)NULL );
       if( ERANGE == errno ) {
 	sResult = "bad value";
 	return error;
@@ -734,7 +729,7 @@ ScubaLayer2DMRI::DoListenToTclCommand ( char* isCommand, int iArgc, char** iasAr
     
     if( mID == layerID ) {
       
-      float value = strtof( iasArgv[2], (char**)NULL );
+      float value = (float) strtod( iasArgv[2], (char**)NULL );
       if( ERANGE == errno ) {
 	sResult = "bad value";
 	return error;
@@ -803,7 +798,7 @@ ScubaLayer2DMRI::DoListenToTclCommand ( char* isCommand, int iArgc, char** iasAr
     
     if( mID == layerID ) {
       
-      float opacity = strtof( iasArgv[2], (char**)NULL );
+      float opacity = (float) strtod( iasArgv[2], (char**)NULL );
       if( ERANGE == errno ) {
 	sResult = "bad opacity";
 	return error;

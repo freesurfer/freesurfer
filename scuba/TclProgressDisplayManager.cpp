@@ -1,3 +1,4 @@
+#include "string_fixed.h"
 #include <sstream>
 #include "TclProgressDisplayManager.h"
 #include "TclCommandManager.h"

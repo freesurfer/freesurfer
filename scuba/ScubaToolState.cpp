@@ -1,3 +1,4 @@
+#include <errno.h>
 #include "string_fixed.h"
 #include "ScubaToolState.h"
 

@@ -219,11 +219,6 @@ ScubaLayer2DMRIS::DoListenToTclCommand ( char* isCommand,
 	
 	SetSurfaceCollection( surface );
       }
-      catch( std::bad_cast& e ) {
-	DebugOutput( << "Bad cast from DataCollection" );
-	sResult = "bad collection ID, collection not a surface collection";
-	return error;
-      }
       catch(...) {
 	sResult = "bad collection ID, collection not found";
 	return error;

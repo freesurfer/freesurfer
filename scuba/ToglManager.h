@@ -5,6 +5,7 @@
 extern "C" {
 #include "togl.h"
 }
+#include "string_fixed.h"
 #include "WindowFrame.h"
 #include "DebugReporter.h"
 #include "InputState.h"

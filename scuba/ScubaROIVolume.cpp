@@ -1,3 +1,5 @@
+#include <errno.h>
+#include "string_fixed.h"
 #include <stdexcept>
 #include "ScubaROIVolume.h"
 

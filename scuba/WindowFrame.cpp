@@ -1,3 +1,4 @@
+#include "string_fixed.h"
 #include <stdexcept>
 #include "WindowFrame.h"
 

@@ -130,7 +130,7 @@ Layer::DoListenToTclCommand( char* isCommand, int iArgc, char** iasArgv ) {
     
     if( mID == layerID ) {
       
-      float opacity = strtof( iasArgv[2], (char**)NULL );
+      float opacity = (float) strtod( iasArgv[2], (char**)NULL );
       if( ERANGE == errno ) {
 	sResult = "bad opacity";
 	return error;
