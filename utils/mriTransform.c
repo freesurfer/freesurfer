@@ -1336,6 +1336,21 @@ void Trns_DebugPrint_ ( mriTransformRef this ) {
     MatrixPrint( stderr, this->mARAStoBRAS );
   }
   
+  if( NULL != this->mRAStoA ) {
+    DebugPrint( ("RAS to A:\n" ) );
+    MatrixPrint( stderr, this->mRAStoA );
+  }
+  
+  if( NULL != this->mRAStoB ) {
+    DebugPrint( ("RAS to B:\n" ) );
+    MatrixPrint( stderr, this->mRAStoB );
+  }
+  
+  if( NULL != this->mBRAStoARAS ) {
+    DebugPrint( ("BRAS to ARAS:\n" ) );
+    MatrixPrint( stderr, this->mBRAStoARAS );
+  }
+  
   if( NULL != this->mAtoB ) {
     DebugPrint( ("A to B:\n" ) );
     MatrixPrint( stderr, this->mAtoB );
