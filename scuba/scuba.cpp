@@ -79,6 +79,7 @@ int main ( int argc, char** argv ) {
       throw runtime_error( ssError.str() );
     }
     
+#if 0
     rTcl = Tix_Init( interp );
     if( TCL_OK != rTcl ) {
       stringstream ssError;
@@ -86,6 +87,7 @@ int main ( int argc, char** argv ) {
       ssError <<  "Tix_Init returned not TCL_OK: " << sResult;
       throw runtime_error( ssError.str() );
     }
+#endif
     
     TclCommandManager& commandMgr = TclCommandManager::GetManager();
     commandMgr.SetOutputStreamToCerr();
