@@ -15,7 +15,7 @@ function showfigxy(varargin)
 %
 % Note: this will take over keyboard and mousing callbacks!
 %
-% $Id: showfigxy.m,v 1.4 2004/01/21 17:19:26 greve Exp $
+% $Id: showfigxy.m,v 1.5 2004/03/22 22:11:41 greve Exp $
 %
 
 if(nargin == 0)  event = 'init'; 
@@ -40,6 +40,7 @@ switch(event)
   set(hfig,'WindowButtonDownFcn','showfigxy(''wbd'')');
   set(hfig,'WindowButtonMotionFcn','showfigxy(''wbm'')');
   ud = get(hfig,'UserData');
+  ud.showfigxy = 1;
   ud.curxytxt = uicontrol('Style', 'text','Position',  [1 1 250 20]);
   ud.mvxytxt = uicontrol('Style', 'text','Position',  [260 1 250 20]);
   ax = axis;
@@ -58,6 +59,7 @@ switch(event)
  case 'crosshaircolor'
   if(nargin == 2) 
     ud = get(hfig,'UserData');
+    if(~isshowfigxy(ud)) return; end
     ud.crosshaircolor = varargin{2};
     ud = drawcrosshair(ud); 
     set(hfig,'UserData',ud);
@@ -65,6 +67,7 @@ switch(event)
   
  case 'wbd';
   ud = get(hfig,'UserData');
+  if(~isshowfigxy(ud)) return; end
   xyz = get(gca,'CurrentPoint');
   x = xyz(1,1);
   y = xyz(1,2);  
@@ -79,6 +82,7 @@ switch(event)
   
  case 'wbm';
   ud = get(hfig,'UserData');
+  if(~isshowfigxy(ud)) return; end
   xyz = get(gca,'CurrentPoint');
   x = xyz(1,1);
   y = xyz(1,2);  
@@ -92,6 +96,7 @@ switch(event)
  case 'kbd';
 
   ud = get(hfig,'UserData');
+  if(~isshowfigxy(ud)) return; end
   c = get(hfig,'CurrentCharacter'); 
   %fprintf('c = %s (%d)\n',c,c);
 
@@ -206,6 +211,13 @@ function ud = drawcrosshair(ud)
     end
   end
    
+return;
+
+%---------------------------------------------------------%
+function r = isshowfigxy(ud)
+  if(~isfield(ud,'showfigxy')) r = 0;
+  else r = 1;
+  end
 return;
 
 %---------------------------------------------------------%
