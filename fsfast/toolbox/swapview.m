@@ -1,7 +1,7 @@
 function r = swapview(varargin)
 % r = swapview(varargin)
 
-version = '$Id: swapview.m,v 1.1 2003/07/31 02:34:00 greve Exp $';
+version = '$Id: swapview.m,v 1.2 2003/07/31 05:31:28 greve Exp $';
 r = 1;
 
 %% Print usage if there are no arguments %%
@@ -21,8 +21,6 @@ if(~isempty(strmatch(flag,'-init')) | isempty(hcurrentfig))
   s = check_params(s);
   if(isempty(s)) return; end
 
-  s.volsize = size(s.vol1);
-
   % Rescale Vol1 to be between 1 and (s.ncmap-1) %
   minbase = min(reshape1d(s.vol1));
   maxbase = max(reshape1d(s.vol1));
@@ -39,6 +37,7 @@ if(~isempty(strmatch(flag,'-init')) | isempty(hcurrentfig))
   s.curvox(1) = round(size(s.vol1,1)/2);
   s.curvox(2) = round(size(s.vol1,2)/2);
   s.curvox(3) = round(size(s.vol1,3)/2);
+  s.prevvox = s.curvox;
 
   s.displayimg1 = s.vol1(:,:,s.curvox(3));
   s.displayimg2 = s.vol2(:,:,s.curvox(3));
@@ -61,7 +60,6 @@ if(~isempty(strmatch(flag,'-init')) | isempty(hcurrentfig))
   set(gcf,'WindowButtonDownFcn',  'swapview(''wbd'');');
   %set(gcf,'WindowButtonUpFcn',    'swapview(''wbu'');');
   %set(gcf,'WindowButtonMotionFcn','swapview(''wbm'');');
-  set(gcf,'UserData',s);
 
   if(isempty(s.title)) s.title = 'SwapView'; end
   set(gcf,'Name',s.title);
@@ -71,6 +69,31 @@ if(~isempty(strmatch(flag,'-init')) | isempty(hcurrentfig))
   set(gcf,'BusyAction','cancel'); % dont build up a lot of events %
   set(gcf,'renderer','painters'); % seems to be the best
   
+  % Set up a menus %
+  s.viewmenu = uimenu('Label','View');
+  uimenu(s.viewmenu,'Label','Mosaic','Callback','swapview(''mosaic'');');
+  uimenu(s.viewmenu,'Label','Slice', 'Callback','swapview(''slice'');');
+  hc = get(s.viewmenu,'children')
+  set(hc(1),'checked','on');
+   
+  % Set up a menus %
+  s.curvolmenu = uimenu('Label','CurVol');
+  uimenu(s.curvolmenu,'Label','Vol1','Callback','swapview(''vol1'');','Tag','CurVolMenuVol1');
+  uimenu(s.curvolmenu,'Label','Vol2','Callback','swapview(''vol2'');','Tag','CurVolMenuVol2');
+  %s.curvolmenu.vol2 = uimenu(s.curvolmenu,'Label','Vol2','Callback','swapview(''vol2'');');
+  %s.curvolmenu.vol1 = uimenu(s.curvolmenu,'Label','Vol1','Callback','swapview(''vol1'');');
+  %set(s.curvolmenu.vol1,'checked','on');
+  h = findobj(s.curvolmenu,'Tag','CurVolMenuVol1');
+  set(h,'checked','on');
+
+  s.mosbut = uicontrol('Style', 'pushbutton', 'String', 'Mosaic','Position', ...
+	    [1   1 50 50], 'Callback', 'swapview(''mostoggle'');');
+  s.swapbut = uicontrol('Style', 'pushbutton', 'String', 'Swap','Position', ...
+	    [1  50 50 50], 'Callback', 'swapview(''voltoggle'');');
+  uicontrol('Style', 'pushbutton', 'String', 'State','Position', ...
+	    [1 100 50 50], 'Callback', 'swapview(''state'');');
+  s.curpostxt = uicontrol('Style', 'text','Position',[1 150 50 25]);
+
   fprintf('\n');
   fprintf(' ----------------------------------\n');
   fprintf(' For help press "h"\n');
@@ -80,6 +103,8 @@ if(~isempty(strmatch(flag,'-init')) | isempty(hcurrentfig))
   fprintf(' ------ Current State -------------\n');
   printstate(s);
   fprintf('\n');
+
+  set(gcf,'UserData',s);
 
   % force an event to get things rolling %
   swapview('r');
@@ -96,6 +121,74 @@ figure(s.hfig);
 redraw = 0;
 switch(flag)
   
+ case {'mosaic'}
+  if(s.mosview == 1) return; end
+  hc = get(s.viewmenu,'children');
+  set(hc(1),'checked','off');
+  set(hc(2),'checked','on');
+  set(s.mosbut,'string','Slice');
+  s.mosview = 1;
+   
+ case {'slice'}
+  if(s.mosview ~= 1) return; end
+  hc = get(s.viewmenu,'children');
+  set(hc(1),'checked','on');
+  set(hc(2),'checked','off');
+  set(s.mosbut,'string','Mosaic');
+  s.mosview = 0;
+   
+ case {'mostoggle'}
+  s.mosview = ~s.mosview;
+  if(s.mosview) swapview('mosaic');
+  else          swapview('slice');
+  end
+  %fprintf('mosview = %d %d\n',s.mosview,s.mosviewprev); 
+  return;
+ 
+ case {'vol1'}
+  if(s.curvol == 1) return; end
+  h = findobj(s.curvolmenu,'Tag','CurVolMenuVol1');
+  set(h,'checked','on');
+  h = findobj(s.curvolmenu,'Tag','CurVolMenuVol2');
+  set(h,'checked','off');
+  s.curvol = 1;
+   
+ case {'vol2'}
+  if(s.curvol == 2) return; end
+  h = findobj(s.curvolmenu,'Tag','CurVolMenuVol1');
+  set(h,'checked','off');
+  h = findobj(s.curvolmenu,'Tag','CurVolMenuVol2');
+  set(h,'checked','on');
+  s.curvol = 2;
+   
+  case {'voltoggle'}
+   if(s.curvol == 1) swapview('vol2');
+   else              swapview('vol1');
+   end
+   return;
+   
+ case{'upslice'}
+  if(s.mosview) return; end
+  s.curvox(3) = s.curvox(3) + 1;
+  if(s.curvox(3) > size(s.vol1,3)) s.curvox(3) = 1; end
+  s.displayimg1 = s.vol1(:,:,s.curvox(3),s.curvox(4));
+  s.displayimg2 = s.vol2(:,:,s.curvox(3),s.curvox(4));
+  redraw = 1;
+ 
+ case{'downslice'}
+  if(s.mosview) return; end
+  s.curvox(3) = s.curvox(3) - 1;
+  if(s.curvox(3) < 1) s.curvox(3) = size(s.vol1,3); end
+  s.displayimg1 = s.vol1(:,:,s.curvox(3),s.curvox(4));
+  s.displayimg2 = s.vol2(:,:,s.curvox(3),s.curvox(4));
+  redraw = 1;
+ 
+ case{'state'}
+  fprintf('\n\n');
+  printstate(s);
+  fprintf('\n\n');
+  return;
+
  case {'r'}, % refresh
   redraw = 1;
    
@@ -115,6 +208,7 @@ switch(flag)
     s.curvox(1:2) = round([r c]);
   else
     [rv cv sv] = mossub2volsub(r, c, size(s.vol1));
+    if(isempty(rv)) return; end % clicked zero padding
     s.curvox(1:3) = [rv cv sv];
   end
   if(s.verbose)
@@ -130,41 +224,20 @@ switch(flag)
   switch(c)
    
    case {'t'},
-    if(s.curvol == 1) s.curvol = 2;
-    else              s.curvol = 1;
-    end
-    redraw = 1;
+    swapview('voltoggle');
+    return;
    
    case {'m'},
-    s.mosview = ~s.mosview;
-    if(s.mosview) 
-      s.displayimg1 = vol2mos(s.vol1(:,:,:,s.curvox(4)));
-      s.displayimg2 = vol2mos(s.vol2(:,:,:,s.curvox(4)));
-      [r c] = volsub2mossub(s.curvox(1),s.curvox(2),s.curvox(3), ...
-				 size(s.vol1));
-      s.curpoint = [r c];
-    else
-      s.displayimg1 = vol2mos(s.vol1(:,:,s.curvox(3),s.curvox(4)));
-      s.displayimg2 = vol2mos(s.vol2(:,:,s.curvox(3),s.curvox(4)));
-      s.curpoint = [s.curvox(1) s.curvox(2)];
-    end
-    redraw = 2;
+    swapview('mostoggle');
+    return;
     
-   case {30}, % up arrow
-    if(s.mosview) return; end
-    s.curvox(3) = s.curvox(3) + 1;
-    if(s.curvox(3) > size(s.vol1,3)) s.curvox(3) = 1; end
-    s.displayimg1 = s.vol1(:,:,s.curvox(3),s.curvox(4));
-    s.displayimg2 = s.vol2(:,:,s.curvox(3),s.curvox(4));
-    redraw = 1;
+   case {'u',30}, % up arrow
+    swapview('upslice');
+    return;
     
-   case {31}, % down arrow
-    if(s.mosview) return; end
-    s.curvox(3) = s.curvox(3) - 1;
-    if(s.curvox(3) < 1) s.curvox(3) = size(s.vol1,3); end
-    s.displayimg1 = s.vol1(:,:,s.curvox(3),s.curvox(4));
-    s.displayimg2 = s.vol2(:,:,s.curvox(3),s.curvox(4));
-    redraw = 1;
+   case {'d',31}, % down arrow
+    swapview('downslice');
+    return;
     
    case {'h'},
     fprintf('\n');
@@ -193,11 +266,8 @@ switch(flag)
     return;
    
    case {'v'},
-    fprintf('\n');
-    fprintf('\n');
-    printstate(s);
-    fprintf('\n');
-    fprintf('\n');
+    swapview('state');
+    return;
    
    case {'z'},
     zoom;
@@ -212,13 +282,42 @@ switch(flag)
   end
   
 end % --- switch(flag) ----- %
+%-------------------------------------------------%
+%-------------->>>>>>><<<<<<<<<<<<<<--------------%
 
-if(redraw > 0)
-  figure(s.hfig);
-  axes(s.haxis);
+% Change from mos to slice or the other 
+if(s.mosviewprev ~= s.mosview)
+  if(s.mosview) 
+    set(gcf,'pointer','watch');
+    s.displayimg1 = vol2mos(s.vol1(:,:,:,s.curvox(4)));
+    s.displayimg2 = vol2mos(s.vol2(:,:,:,s.curvox(4)));
+    set(gcf,'pointer','crosshair');
+    [r c] = volsub2mossub(s.curvox(1),s.curvox(2),s.curvox(3), ...
+			  size(s.vol1));
+    s.curpoint = [r c];
+  else
+    s.displayimg1 = vol2mos(s.vol1(:,:,s.curvox(3),s.curvox(4)));
+    s.displayimg2 = vol2mos(s.vol2(:,:,s.curvox(3),s.curvox(4)));
+    s.curpoint = [s.curvox(1) s.curvox(2)];
+  end
+  s.mosviewprev = s.mosview;
+  redraw = 2;
+end
+
+% Change the current volume %
+if(s.prevvol ~= s.curvol | redraw > 0)
   if(s.curvol == 1) s.displayimg = s.displayimg1;
   else              s.displayimg = s.displayimg2;
   end
+  s.prevvol = s.curvol;
+  redraw = max(redraw,1);
+end
+
+% redraw %
+if(redraw > 0)
+  if(s.verbose) fprintf('redraw = %d\n',redraw); end
+  figure(s.hfig);
+  axes(s.haxis);
   if(redraw == 1)
     set(s.himage,'CData',s.displayimg);
   else
@@ -228,7 +327,7 @@ if(redraw > 0)
   end
   if(s.MarkerOn)
     hold on;
-    if(~isempty(s.hMarker)) delete(s.hMarker); end
+    if(~isempty(s.hMarker)) delete(s.hMarker);  end
     s.hMarker = plot(s.curpoint(2),s.curpoint(1),'g+');
     %ud.hMarkerRow = plot(ud.CurPixel(2),1,'gv');
     %ud.hMarkerCol = plot(1,ud.CurPixel(1),'g>');
@@ -237,11 +336,16 @@ if(redraw > 0)
   drawnow;
 end
 
+curvoxstr = sprintf('%d %d %d',s.curvox(1),s.curvox(2),s.curvox(3));
+set(s.curpostxt,'string',curvoxstr);
+  
+  
 set(gcf,'UserData',s);
 
 return;
+%--------------->>>>>>><<<<<<<<<<<<<<--------------%
 %--------------------------------------------------%
-%--------------------------------------------------%
+%-- end main --------------------------------------%
 %--------------------------------------------------%
 
 %--------------------------------------------------%
@@ -261,8 +365,6 @@ return
 function s = main_struct
   s.MarkerOn       = 1;
   s.hMarker        = [];
-  s.volsize        = [];
-  s.mossize        = [];
   s.vol1           = [];
   s.vol2           = [];
   s.hfig           = [];
@@ -272,10 +374,13 @@ function s = main_struct
   s.displayimg1    = [];
   s.displayimg2    = [];
   s.curpoint       = [1 1]; % current point in the display img
-  s.curvox         = [1 1 1 1]; % current point [r c s f]
-  s.curvol         = 1; % current volume
+  s.curvox         = [1 1 1 1]; % current vox index [r c s f]
+  s.prevvox        = [1 1 1 1]; % prev vox index [r c s f]
+  s.curvol         = 1; % current view volume
+  s.prevvol        = 1; % previous current view volume
   s.curview        = 1; % current plane view 1 = rc
   s.mosview        = 0; % 1 = view mos, 0 = view vol  
+  s.mosviewprev    = 0; % previous mosview
   s.zoomstate      = 0;
   s.ncmap          = 64;
   s.verbose        = 0;
@@ -388,16 +493,10 @@ return;
 
 %--------------------------------------------------%
 function printhelp
-  fprintf('b - change brush size (1x1,3x3,5x5,7x7,9x9,11x11,13x13,...)\n');
-  fprintf('h - print help (this message)\n');
-  fprintf('m - change edit mode\n');
-  fprintf('    No Edit - button down does nothing\n');
-  fprintf('    Set     - button down turns on mask at voxel\n');
-  fprintf('    Unset   - button down turns off mask at voxel\n');
-  fprintf('    Toggle  - button down toggels mask at voxel\n');
+  fprintf('m - toggle mosaic\n');
+  fprintf('t - toggle volume\n');
+  fprintf('o - toggle marker\n');
   fprintf('q - quit/exit\n');
-  fprintf('s - save mask\n');
-  fprintf('t - toggle mask on and off\n');
   fprintf('v - print the current state\n');
   fprintf('z - toggle zoom state. When zoom is on, use left\n');
   fprintf('    button to zoom in and right to zoom out\n');
