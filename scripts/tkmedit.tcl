@@ -1,6 +1,6 @@
 #! /usr/bin/tixwish
 
-# $Id: tkmedit.tcl,v 1.41 2003/04/23 22:32:19 kteich Exp $
+# $Id: tkmedit.tcl,v 1.42 2003/04/25 16:50:29 kteich Exp $
 
 source $env(MRI_DIR)/lib/tcl/tkm_common.tcl
 
@@ -295,7 +295,7 @@ proc UpdateLinkedCursorFlag { ibLinked } {
 proc UpdateVolumeCursor { iSet inX inY inZ } {
     global gnVolX gnVolY gnVolZ gsaLabelContents
     set gsaLabelContents(kLabel_Coords_Vol,value,$iSet) \
-      "($inX  $inY  $inZ)"
+      "$inX $inY $inZ"
     # set the volume coords
     set gnVolX $inX
     set gnVolY $inY
@@ -310,25 +310,25 @@ proc UpdateVolumeSlice { inSlice } {
 proc UpdateRASCursor { iSet ifX ifY ifZ } {
     global gsaLabelContents
     set gsaLabelContents(kLabel_Coords_Vol_RAS,value,$iSet) \
-      "($ifX  $ifY  $ifZ)"
+      "$ifX $ifY $ifZ"
 }
 
 proc UpdateTalCursor { iSet ifX ifY ifZ } {
     global gsaLabelContents
     set gsaLabelContents(kLabel_Coords_Vol_Tal,value,$iSet) \
-      "($ifX  $ifY  $ifZ)"
+      "$ifX $ifY $ifZ"
 }
 
 proc UpdateScannerCursor { iSet ifX ifY ifZ } {
     global gsaLabelContents
     set gsaLabelContents(kLabel_Coords_Vol_Scanner,value,$iSet) \
-      "($ifX  $ifY  $ifZ)"
+      "$ifX $ifY $ifZ"
 }
 
 proc UpdateMNICursor { iSet ifX ifY ifZ } {
     global gsaLabelContents
     set gsaLabelContents(kLabel_Coords_Vol_MNI,value,$iSet) \
-      "($ifX  $ifY  $ifZ)"
+      "$ifX $ifY $ifZ"
 }
 
 proc UpdateVolumeName { isName } {
@@ -374,13 +374,13 @@ proc UpdateFunctionalValue { iSet ifValue } {
 proc UpdateFunctionalCoords { iSet inX inY inZ } {
     global gsaLabelContents
     set gsaLabelContents(kLabel_Coords_Func,value,$iSet) \
-      "($inX  $inY  $inZ)"
+      "$inX $inY $inZ"
 }
 
 proc UpdateFunctionalRASCoords { iSet inX inY inZ } {
     global gsaLabelContents
     set gsaLabelContents(kLabel_Coords_Func_RAS,value,$iSet) \
-      "($inX  $inY  $inZ)"
+      "$inX $inY $inZ"
 }
 
 proc UpdateSurfaceDistance { iSet ifDistance } {
