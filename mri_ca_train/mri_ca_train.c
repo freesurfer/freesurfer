@@ -4,8 +4,8 @@
 /*                                                                     */
 /* Warning: Do not edit the following four lines.  CVS maintains them. */
 /* Revision Author: $Author: fischl $                                           */
-/* Revision Date  : $Date: 2004/04/08 14:51:32 $                                             */
-/* Revision       : $Revision: 1.31 $                                         */
+/* Revision Date  : $Date: 2004/05/10 14:55:38 $                                             */
+/* Revision       : $Revision: 1.32 $                                         */
 /***********************************************************************/
 
 #include <stdio.h>
@@ -627,12 +627,7 @@ main(int argc, char *argv[])
         if (!transform)
           ErrorExit(ERROR_NOFILE, "%s: could not read transform from file %s",
                     Progname, fname) ;
-        if (DIAG_VERBOSE_ON)
-          printf("reading transform from %s...\n", fname) ;
-        transform = TransformRead(fname);
-        if (!transform)
-          ErrorExit(ERROR_NOFILE, "%s: could not read transform from file %s",
-                    Progname, fname);
+
 				// change the transform to vox-to-vox
 				if (transform->type == LINEAR_RAS_TO_RAS)
 				{
