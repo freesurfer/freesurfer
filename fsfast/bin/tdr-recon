@@ -1,7 +1,7 @@
 #!/bin/tcsh -f
 # tdr-fidmat
 
-set VERSION = '$Id: tdr-recon,v 1.9 2004/04/13 22:02:32 greve Exp $';
+set VERSION = '$Id: tdr-recon,v 1.10 2004/04/13 22:03:51 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -341,7 +341,7 @@ check_params:
     echo "ERROR: must spec nechoes"
     exit 1;
   endif
-  if($#nthechoes == 0 ) then
+  if($#nthecho == 0 ) then
     echo "ERROR: must which echo to recon"
     exit 1;
   endif
