@@ -220,7 +220,6 @@ ImageFRead(FILE *fp, char *fname, int start, int nframes)
   int    ecode, end_frame, frame ;
   IMAGE  *I ;
   byte   *startpix ;
-  float  fmin, fmax ;
 
   if (!fname)
     fname = "ImageFRead" ;
@@ -271,12 +270,7 @@ ImageFRead(FILE *fp, char *fname, int start, int nframes)
   }
   I->image = startpix ;
 
-  ImageValRange(I, &fmin, &fmax) ;
-#ifdef LINUX
-  if (I->pixel_format == PFDOUBLE || I->pixel_format == PFDBLCOM)
-    fmin =  -100000.0f ;
-#endif
-  if (fmin < -10000.0f || fmax > 10000.0f)  /* wrong machine format */
+  if (!ImageValid(I))
   {
     DCPIX  *dcpix, dcval ;
     CPIX   *cpix, cval ;
@@ -4173,5 +4167,53 @@ ImageUnpad(IMAGE *Isrc, IMAGE *Idst, int rows, int cols)
   col0 = (Isrc->cols - cols) / 2 ;
   ImageExtractInto(Isrc, Idst, col0, row0, cols, rows, 0, 0) ;
   return(Idst) ;
+}
+
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+             determine whether the values in an image are valid or not
+----------------------------------------------------------------------*/
+int
+ImageValid(IMAGE *I)
+{
+  int    size ;
+  float  *fpix ;
+  double *dpix, exponent, val ;
+
+  size = I->rows * I->cols * I->num_frame ;
+
+  switch (I->pixel_format)
+  {
+  case PFFLOAT:
+    fpix = IMAGEFpix(I, 0, 0); 
+    while (size--)
+    {
+      val = *fpix++ ;
+      if (val == 0.0)
+        continue ;
+      exponent = log(fabs(val)) ;
+      if (fabs(exponent > 20))
+        return(0) ;
+    }
+    break ;
+  case PFDOUBLE:
+    dpix = IMAGEDpix(I, 0, 0); 
+    while (size--)
+    {
+      val = *dpix++ ;
+      if (val == 0.0)
+        continue ;
+      exponent = log(fabs(val)) ;
+      if (fabs(exponent > 20))
+        return(0) ;
+    }
+    break ;
+  case PFDBLCOM:
+    break ;
+  }
+
+  return(1) ;
 }
 
