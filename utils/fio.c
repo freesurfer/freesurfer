@@ -23,7 +23,7 @@ putf(float f, FILE *fp)
 #ifdef Linux
   f = swapFloat(f) ;
 #endif
-  return(fwrite(&f,1,4,fp));
+  return(fwrite(&f,4,1,fp));
 }
 
 float
@@ -31,7 +31,7 @@ getf(FILE *fp)
 {
   float f;
 
-  fread(&f,1,4,fp);
+  fread(&f,4,1,fp);
 #ifdef Linux
   f = swapFloat(f) ;
 #endif
@@ -56,7 +56,7 @@ fread2(int *v, FILE *fp)
   short s;
   int   ret ;
 
-  ret = fread(&s,1,2,fp);
+  ret = fread(&s,2,1,fp);
 #ifdef Linux
   s = swapShort(s) ;
 #endif
@@ -70,7 +70,7 @@ fread3(int *v, FILE *fp)
   unsigned int i = 0;
   int  ret ;
 
-  ret = fread(&i,1,3,fp);
+  ret = fread(&i,3,1,fp);
 #ifdef Linux
   i = (unsigned int)swapInt(i) ;
 #endif
@@ -84,7 +84,7 @@ fread4(float *v, FILE *fp)
   float f;
   int   ret ;
 
-  ret = fread(&f,1,4,fp);
+  ret = fread(&f,4,1,fp);
 #ifdef Linux
   f = swapFloat(f) ;
 #endif
@@ -108,7 +108,7 @@ fwrite2(int v, FILE *fp)
 #ifdef Linux
   s = swapShort(s) ;
 #endif
-  return(fwrite(&s,1,2,fp));
+  return(fwrite(&s,2,1,fp));
 }
 
 int
@@ -119,7 +119,7 @@ fwrite3(int v, FILE *fp)
 #ifdef Linux
   i = (unsigned int)swapInt(i) ;
 #endif
-  return(fwrite(&i,1,3,fp));
+  return(fwrite(&i,3,1,fp));
 }
 
 int
@@ -128,7 +128,7 @@ fwrite4(int v,FILE *fp)
 #ifdef Linux
   v = swapInt(v) ;
 #endif
-  return(fwrite(&v,1,4,fp));
+  return(fwrite(&v,4,1,fp));
 }
 
 float
@@ -137,7 +137,7 @@ freadFloat(FILE *fp)
   float f;
   int   ret ;
 
-  ret = fread(&f,1,4,fp);
+  ret = fread(&f,4,1,fp);
 #ifdef Linux
   f = swapFloat(f) ;
 #endif
@@ -149,7 +149,7 @@ freadInt(FILE *fp)
 {
   int  i, nread ;
 
-  nread = fread(&i,1,sizeof(int),fp);
+  nread = fread(&i,sizeof(int),1,fp);
 #ifdef Linux
   i = swapInt(i) ;
 #endif
@@ -162,7 +162,7 @@ fwriteInt(int v, FILE *fp)
 #ifdef Linux
   v = swapInt(v) ;
 #endif
-  return(fwrite(&v,1,sizeof(int),fp));
+  return(fwrite(&v,sizeof(int),1,fp));
 }
 
 int
@@ -171,6 +171,6 @@ fwriteFloat(float f, FILE *fp)
 #ifdef Linux
   f = swapFloat(f) ;
 #endif
-  return(fwrite(&f,1,sizeof(float),fp));
+  return(fwrite(&f,sizeof(float),1,fp));
 }
 
