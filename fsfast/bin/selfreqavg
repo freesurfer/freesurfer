@@ -1,7 +1,7 @@
 #!/bin/csh -f
 # fMRI selective frequency averaging (for phase-encoding analysis)
 
-set VERSION = '$Id: selfreqavg,v 1.3 2003/08/05 00:40:02 greve Exp $';
+set VERSION = '$Id: selfreqavg,v 1.4 2003/11/18 23:11:25 greve Exp $';
 set cmdargv = "$argv";
 
 set n = `echo $argv | grep version | wc -l` 
@@ -297,7 +297,7 @@ $TARGET <<EOF
     %fprintf('Mean Phase = %g (%g)\n',mean(phz),mean(phz)*180/pi);
 
     %% Put into appropriate format and save %%
-    tmp = zeros(12,Nv);
+    tmp = zeros(13,Nv);
     tmp(1,:)  = log10sigf .* sign(t);
     tmp(2,:)  = log10sigf .* sin(phz);
     tmp(3,:)  = log10sigf .* cos(phz);
@@ -310,6 +310,7 @@ $TARGET <<EOF
     tmp(10,:) = phz;
     tmp(11,:) = meanimg;
     tmp(12,:) = trendimg;
+    tmp(13,:) = sqrt( sin(phz).^2 + cos(phz).^2 );
 
     ntmp  = size(tmp,1);
     tmp   = reshape(tmp', [sfa.nrows sfa.ncols ntmp]); %'
