@@ -1,6 +1,6 @@
 /*----------------------------------------------------------
   Name: mri_xvolavg
-  $Id: mri_xvolavg.c,v 1.1 2002/01/31 19:19:00 greve Exp $
+  $Id: mri_xvolavg.c,v 1.2 2002/10/23 15:57:24 fischl Exp $
   Author: Douglas Greve
   Purpose: averages multiple volumes together into a single
   volume. The volumes can be 4D.
@@ -10,7 +10,7 @@
 #include <math.h>
 #include <string.h>
 
-#include "MRIio.h"
+#include "MRIio_old.h"
 #include "error.h"
 #include "diag.h"
 #include "mri.h"
@@ -27,7 +27,7 @@ static int  singledash(char *flag);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_xvolavg.c,v 1.1 2002/01/31 19:19:00 greve Exp $";
+static char vcid[] = "$Id: mri_xvolavg.c,v 1.2 2002/10/23 15:57:24 fischl Exp $";
 char *Progname = NULL;
 
 char *defaulttypestring;
