@@ -35,6 +35,10 @@
 #define FILTER_CLOSE             19
 #define FILTER_MINMAX            20
 #define FILTER_DIRECTION         21
+#define FILTER_ERODE6            22
+#define FILTER_DILATE6           23
+#define FILTER_OPEN6             24
+#define FILTER_CLOSE6            25
 #define FILTER_OFFSET            0x0100
 
 #define FILTER_MEDIAN_OFFSET     (FILTER_MEDIAN | FILTER_OFFSET)
