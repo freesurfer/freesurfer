@@ -11,7 +11,7 @@
 #include "mrinorm.h"
 
 
-void main(int argc, char *argv[]) ;
+int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
 
 char *Progname ;
@@ -19,7 +19,7 @@ char *Progname ;
 static MRI_NORM_INFO  mni ;
 static int verbose = 1 ;
 
-void
+int
 main(int argc, char *argv[])
 {
   char   **av ;
@@ -72,6 +72,7 @@ main(int argc, char *argv[])
   if (verbose)
     fprintf(stderr, "\n") ;
   exit(0) ;
+  return(0) ;
 }
 
 /*----------------------------------------------------------------------

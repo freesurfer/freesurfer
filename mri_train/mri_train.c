@@ -22,7 +22,7 @@ static int  verbose = 0 ;
 
 char *Progname ;
 
-void main(int argc, char *argv[]) ;
+int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
 
 #define NCLUSTERS  6
@@ -34,7 +34,8 @@ static RBF_PARMS rbf_parms =
 {
 { NCLUSTERS/2, NCLUSTERS, NCLUSTERS, NCLUSTERS, NCLUSTERS, NCLUSTERS/2}
 } ;
-void 
+
+int
 main(int argc, char *argv[])
 {
   MRIC    *mric ;
@@ -98,6 +99,7 @@ main(int argc, char *argv[])
   MRICwrite(mric, output_file_name) ;
   MRICfree(&mric) ;
   exit(0) ;
+  return(0) ;
 }
 /*----------------------------------------------------------------------
             Parameters:
