@@ -401,6 +401,7 @@ int          MRISwriteGeo(MRI_SURFACE *mris, char *fname) ;
 int          MRISwritePatchAscii(MRI_SURFACE *mris, char *fname) ;
 int          MRISwriteDists(MRI_SURFACE *mris, char *fname) ;
 int          MRISwriteCurvature(MRI_SURFACE *mris, char *fname) ;
+int          MRISreadNewCurvatureFile(MRI_SURFACE *mris, char *fname) ;
 int          MRISnormalizeCurvature(MRI_SURFACE *mris) ;
 int          MRISnormalizeCurvatureVariance(MRI_SURFACE *mris) ;
 int          MRISzeroMeanCurvature(MRI_SURFACE *mris) ;
@@ -480,6 +481,7 @@ MRI_SURFACE  *MRISreadFromVolume(MRI *mri, MRI_SURFACE *mris) ;
 
 
 int          MRIScomputeTriangleProperties(MRI_SURFACE *mris) ;
+int          MRISpaintVolume(MRI_SURFACE *mris, LTA *lta, MRI *mri) ;
 int          MRISsampleStatVolume(MRI_SURFACE *mris, STAT_VOLUME *sv,int time,
                                   int use_talairach_xform);
 
