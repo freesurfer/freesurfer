@@ -125,6 +125,7 @@ LogMapFree(LOGMAP_INFO **plmi)
   free(lmi->tvToRing) ;
   free(lmi->tvToSpoke) ;
   free(lmi->rhos) ;
+  free(lmi->cmi.pix) ;
   free(lmi) ; 
 }
 /*----------------------------------------------------------------------
@@ -178,6 +179,7 @@ LogMapInit(double alpha, int cols, int rows, int nrings, int nspokes)
   ConGraphInit(logMapInfo) ;   /* initialize the connectivity graph */
   logBuildRhoList(logMapInfo) ;
   logBuildValidSpokeList(logMapInfo) ;
+  LogMapInitForwardFilter(logMapInfo, LMI_FORWARD_FILTER_CIRCLE) ;
 
   return(logMapInfo) ;
 }
@@ -2347,8 +2349,11 @@ imageOffsetDirection(IMAGE *Ix, IMAGE *Iy, int wsize, IMAGE *Iorient,
 #define MEDIAN_INDEX  (WSQ/2)
 
 
+#define USE_MEDIAN 0
+#if USE_MEDIAN
 static int compare_sort_farray(const void *pf1, const void *pf2) ;
 static int compare_sort_barray(const void *pb1, const void *pb2) ;
+#endif
 
 
  IMAGE *Icalculated = NULL, *Ioffset = NULL, *Iorient = NULL,
@@ -2364,7 +2369,6 @@ LogMapNonlocal(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *Ismooth, IMAGE *Idst)
   byte  *calculated ;
   int   ring, spoke ;
   IMAGE *Iout ;
-#define USE_MEDIAN 0
 #if USE_MEDIAN
   int    xc, yc ;
   float  sort_farray[WINDOW_SIZE*WINDOW_SIZE], *fptr, *fpix ;
@@ -2632,6 +2636,7 @@ ImageWrite(Ioffset, "offset_bad.hipl") ;
   return(Idst) ;
 }
 
+#if USE_MEDIAN
 static int
 compare_sort_farray(const void *pf1, const void *pf2)
 {
@@ -2664,3 +2669,147 @@ compare_sort_barray(const void *pb1, const void *pb2)
 
   return(0) ;
 }
+#endif
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+----------------------------------------------------------------------*/
+int
+LogMapInitForwardFilter(LOGMAP_INFO *lmi, int which)
+{
+  int                 rows, cols, row, col, npix, ring, spoke, nrings,
+                      nspokes, ccol, crow ;
+  CARTESIAN_MAP_INFO  *cmi ;
+  CARTESIAN_PIXEL     *cp ;
+  LOGPIX              *lpix ;
+  float               radius, dist ;
+  int                 overflows = 0, col_end, row_end ;
+
+  rows = lmi->nrows ;
+  cols = lmi->ncols ;  /* size of cartesian image */
+  npix = rows * cols ;
+  cmi = &lmi->cmi ;
+  cp = cmi->pix = (CARTESIAN_PIXEL *)calloc(npix, sizeof(CP)) ;
+  if (!cmi->pix)
+    ErrorReturn(ERROR_NO_MEMORY, (ERROR_NO_MEMORY,
+                "LogMapInitForwardFilter: could not allocate LUT")) ;
+
+  fprintf(stderr, "building lookup tables...\n") ;
+  nrings = lmi->nrings ;
+  nspokes = lmi->nspokes ;
+  for (ring = 0 ; ring < nrings ; ring++)
+  {
+    if (ring < nrings-1)
+      radius = exp(lmi->rhos[ring+1]) - exp(lmi->rhos[ring]) ;
+    else
+      radius = exp(lmi->rhos[ring]) - exp(lmi->rhos[ring-1]) ;
+    radius = fabs(radius) ;
+    fprintf(stderr, "\rring, %d, radius %2.1f ", ring, radius) ;
+    for (spoke = 0 ; spoke < nspokes ; spoke++)
+    {
+      lpix = LOG_PIX(lmi, ring, spoke) ;
+      if (lpix->area <= 0)
+        continue ;
+
+      ccol = lpix->col_cent ;
+      crow = lpix->row_cent ;
+      row_end = MIN(crow+radius, rows-1) ;
+      col_end = MIN(ccol+radius, cols-1) ;
+      for (row = MAX(0,crow-radius) ; row <= row_end ; row++)
+      {
+        for (col = MAX(ccol-radius,0) ; col <= col_end ; col++)
+        {
+          /* check to see if this cart. pix is within sampling distance */
+          dist = sqrt((float)((ccol-col)*(ccol-col)+(crow-row)*(crow-row))) ;
+          if (dist <= radius)
+          {
+            cp = cmi->pix + row * cols + col ;
+            if (cp->npix >= MAX_PIX)   /* no more room */
+            {
+              overflows++ ;
+              continue ;
+            }
+            cp->logpix[cp->npix++] = lpix ;
+            lpix->ncpix++ ;
+          }
+        }
+      }
+    }
+  }
+
+  fprintf(stderr, "LUT built with %d overflows\n", overflows) ;
+  return(NO_ERROR) ;
+}
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+----------------------------------------------------------------------*/
+IMAGE *
+LogMapForwardFilter(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *Idst)
+{
+  int    rows, cols, row, col, ring, spoke, npix, i ;
+  IMAGE  *Iout ;
+  LOGPIX *lpix ;
+  CP     *cp ;
+  CMI    *cmi ;
+  float  *spix ;
+
+  if (!Idst)
+    Idst = ImageAlloc(lmi->nspokes,lmi->nrings, Isrc->pixel_format,1);
+  else
+    ImageClearArea(Idst, 0, 0, Idst->rows, Idst->cols, 0.0f) ;
+
+  if (Idst->pixel_format != Isrc->pixel_format)
+    Iout = ImageAlloc(lmi->nspokes, lmi->nrings, Isrc->pixel_format,1);
+  else
+    Iout = Idst ;
+
+  rows = lmi->nrows ;
+  cols = lmi->ncols ;
+  cmi = &lmi->cmi ;
+
+  cp = cmi->pix ;
+  spix = IMAGEFpix(Isrc, 0, 0) ;
+  for (row = 0 ; row < rows ; row++)
+  {
+    for (col = 0 ; col < cols ; col++, cp++, spix++)
+    {
+      npix = cp->npix ;
+      for (i = 0 ; i < npix ; i++)
+      {
+        lpix = cp->logpix[i] ;
+        ring = lpix->ring ;
+        spoke = lpix->spoke ;
+        *IMAGEFpix(Iout, ring, spoke) += *spix ;
+#if 0
+        if (ring == 1 && spoke == 0)
+          fprintf(stderr, "(1,0) += (%d, %d) %2.3f = %2.3f\n",
+                  col, row, *spix, *IMAGEFpix(Iout, ring, spoke)) ;
+#endif
+      }
+    }
+  }
+  
+  /* now normalize logmap by area of each pixel */
+  for_all_log_pixels(lmi, ring, spoke)
+  {
+    lpix = LOG_PIX(lmi, ring, spoke) ;
+#if 0
+    if (ring == 1 && spoke == 0)
+      fprintf(stderr, "normalizing (1,0) = %2.3f by %d\n", 
+              *IMAGEFpix(Iout, ring, spoke), lpix->ncpix) ;
+#endif
+    if (lpix->ncpix > 0)
+      *IMAGEFpix(Iout, ring, spoke) /= (float)lpix->ncpix ;
+  }
+
+  if (Iout != Idst)
+  {
+    ImageCopy(Iout, Idst) ;
+    ImageFree(&Iout) ;
+  }
+  return(Idst) ;
+}
+
