@@ -1,6 +1,6 @@
 #include <stdio.h>
 
-#include "icosohedron.h"
+#include "icosahedron.h"
 #include "error.h"
 #include "diag.h"
 
