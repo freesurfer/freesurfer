@@ -13,14 +13,18 @@ static void   matFree(double **matrix, int nrows, int ncols) ;
 static int    readMatFile(FILE *fp, MATFILE *mf, double **real_matrix, 
                                      double **imag_matrix) ;
 
-#ifdef Linux
 static void   swapBytes(MATFILE *mf) ;
 static short  swapShort(short s) ;
 static long   swapLong(long l) ;
 static double swapDouble(double dval) ;
-#endif
 
 static char *MatProgname = "matfile" ;
+
+#ifdef Linux
+#define DIFFERENT_ENDIAN(mf)   (mf->type != MATFILE_PC)
+#else
+#define DIFFERENT_ENDIAN(mf)   (mf->type == MATFILE_PC)
+#endif
 
 static int (*mat_printf)(const char *szFormat, ...)=NULL;
 int Matlab_Install_printf( int (*new_printf)(const char *szFormat, ...) )
@@ -361,10 +365,8 @@ readMatFile(FILE *fp, MATFILE *mf, double **real_matrix, double **imag_matrix)
                       MatProgname, row, col) ;
           /*exit(4)*/return(-1) ;
         }
-#ifdef Linux
-        if (mf->type >= MATFILE_SPARC)
+        if (DIFFERENT_ENDIAN(mf))
           sval = swapShort(sval) ;
-#endif
         real_matrix[row][col] = (double)sval ;
         break ;
       case MAT_INT:   /* 32 bit integer */
@@ -377,10 +379,8 @@ readMatFile(FILE *fp, MATFILE *mf, double **real_matrix, double **imag_matrix)
           /*exit(4)*/return(-1) ;
         }
 
-#ifdef Linux
-        if (mf->type >= MATFILE_SPARC)
+        if (DIFFERENT_ENDIAN(mf))
           lval = swapLong(lval) ;
-#endif
         real_matrix[row][col] = (double)lval ;
         break ;
       case MAT_FLOAT:
@@ -392,10 +392,8 @@ readMatFile(FILE *fp, MATFILE *mf, double **real_matrix, double **imag_matrix)
                       MatProgname, row, col) ;
           /*exit(4)*/return(-1) ;
         }
-#ifdef Linux
-        if (mf->type >= MATFILE_SPARC)
+        if (DIFFERENT_ENDIAN(mf))
           fval = (float)swapLong((long)fval) ;
-#endif
         real_matrix[row][col] = (double)fval ;
         break ;
       case MAT_DOUBLE:
@@ -407,10 +405,8 @@ readMatFile(FILE *fp, MATFILE *mf, double **real_matrix, double **imag_matrix)
                       MatProgname, row, col) ;
           /*exit(4)*/return(-1) ;
         }
-#ifdef Linux
-        if (mf->type >= MATFILE_SPARC)
+        if (DIFFERENT_ENDIAN(mf))
           dval = swapDouble(dval) ;
-#endif
         real_matrix[row][col] = dval ;
         break ;
       default:
@@ -438,10 +434,8 @@ readMatFile(FILE *fp, MATFILE *mf, double **real_matrix, double **imag_matrix)
       default:
         break ;
       }
-#ifdef Linux
-      if (mf->type >= MATFILE_SPARC)
+      if (DIFFERENT_ENDIAN(mf))
         dval = swapDouble(dval) ;
-#endif
       imag_matrix[row][col] = dval ;
     }
   }
@@ -455,7 +449,7 @@ MatReadHeader(FILE *fp, MATFILE *mf)
     int   nitems ;
     char  *name ;
 
-DiagPrintf(DIAG_WRITE, "MatReadHeader: fp=%lx, mf=%lx\n",fp,mf);    
+    DiagPrintf(DIAG_WRITE, "MatReadHeader: fp=%lx, mf=%lx\n",fp,mf);    
 
     nitems = fread(mf, 1, sizeof(MATHD), fp) ; 
     if (nitems != sizeof(MATHD))
@@ -465,15 +459,13 @@ DiagPrintf(DIAG_WRITE, "MatReadHeader: fp=%lx, mf=%lx\n",fp,mf);
       /*exit(1) ;*/
       return(NULL);
     }
-#ifdef Linux
     DiagPrintf(DIAG_WRITE, "type = %ld\n", mf->type) ;
-    if (mf->type >= MATFILE_SPARC || mf->type < 0)
+    if (DIFFERENT_ENDIAN(mf))
     {
-      DiagPrintf(DIAG_WRITE, "mat file generated on a sparc\n") ;
+      DiagPrintf(DIAG_WRITE, "mat file generated with different endian\n") ;
       swapBytes(mf) ;
     }
     DiagPrintf(DIAG_WRITE, "after swap, type = %ld\n", mf->type) ;
-#endif
 
     DiagPrintf(DIAG_WRITE, "MatReadHeader: nitems = %d, namelen=%d\n",
        nitems,(int)mf->namlen+1);
@@ -503,7 +495,6 @@ DiagPrintf(DIAG_WRITE, "MatReadHeader: fp=%lx, mf=%lx\n",fp,mf);
     return(name) ;
 }
 
-#ifdef Linux
 static void
 swapBytes(MATFILE *mf)
 {
@@ -582,5 +573,3 @@ swapDouble(double d)
 
   return(sd.d) ;
 }
-
-#endif
