@@ -802,6 +802,7 @@ mri_threshold/Makefile \
 dummy/Makefile \
 spherical_stats/Makefile \
 mri_bc_sc_bias_correct/Makefile \
+fsfast/Makefile fsfast/bin/Makefile fsfast/docs/Makefile fsfast/toolbox/Makefile \
  ) 
 
 
