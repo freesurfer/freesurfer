@@ -23,6 +23,7 @@ int                 VLfree(VLI **pvli) ;
 int                 VLwrite(VLI *vli, char *fname) ;
 VLI                 *VLread(char *fname) ;
 VL                  *VLreadVoxel(char *fname, int x, int y, int z,  VL *vl) ;
+int                 VLnormalize(VLI *vli) ;
 
 
 #define VL_MAGIC 0xaefcdae
