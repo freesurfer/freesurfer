@@ -1382,19 +1382,19 @@ Trns_tErr Trns_GetType     ( mriTransformRef this, int *ptype)  {
 }
 
 Trns_tErr Trns_CopyAtoB ( mriTransformRef this,
-        MATRIX*         iAtoB ) {
-
+			  MATRIX*         iAtoB ) {
+  
   Trns_tErr eResult = Trns_tErr_NoErr;
-
+  
   eResult = Trns_Verify( this );
   if( Trns_tErr_NoErr != eResult )
     goto error;
-
+  
   if (NULL != this->mAtoB)
     MatrixFree(&this->mAtoB) ;
   if (NULL != this->mBtoA)
     MatrixFree(&this->mBtoA) ;
-
+  
   /* create a copy of this matrix */
   this->mAtoB = MatrixCopy( iAtoB, NULL );
   this->mBtoA = MatrixInverse( iAtoB, NULL );
