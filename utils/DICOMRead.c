@@ -2,7 +2,7 @@
    DICOM 3.0 reading functions
    Author: Sebastien Gicquel and Douglas Greve
    Date: 06/04/2001
-   $Id: DICOMRead.c,v 1.57 2004/09/08 20:25:14 tosa Exp $
+   $Id: DICOMRead.c,v 1.58 2004/09/28 20:18:12 tosa Exp $
 *******************************************************/
 
 #include <stdio.h>
@@ -439,23 +439,23 @@ int AllocElementData(DCM_ELEMENT *e)
     e->d.string[e->length] = '\0'; /* add null terminator */
     break;
   case DCM_SS: 
-    e->d.ss = (short *) calloc(e->length,sizeof(short));
+    e->d.ss = (short *) calloc(1,sizeof(short));
     break;
   case DCM_SL:
-    e->d.sl = (int *) calloc(e->length,sizeof(int));
+    e->d.sl = (int *) calloc(1, sizeof(int));
     break;
   case DCM_SQ: 
     fprintf(stderr,"Element is of type dcm_sq, not supported\n");
     return(1);
     break;
   case DCM_UL: 
-    e->d.ul = (unsigned int *) calloc(e->length,sizeof(unsigned int));
+    e->d.ul = (unsigned int *) calloc(1,sizeof(unsigned int));
     break;
   case DCM_US:
-    e->d.us = (unsigned short *) calloc(e->length,sizeof(unsigned short));
+    e->d.us = (unsigned short *) calloc(1, sizeof(unsigned short)); // e->length is the byte count
     break;
   case DCM_AT: 
-    e->d.at = (DCM_TAG *) calloc(e->length,sizeof(DCM_TAG));
+    e->d.at = (DCM_TAG *) calloc(1, sizeof(DCM_TAG));
     break;
   case DCM_FD: 
     fprintf(stderr,"Element is of type double, not supported by CTN\n");
@@ -502,27 +502,33 @@ int FreeElementData(DCM_ELEMENT *e)
     e->d.string = NULL;
     break;
   case DCM_SS: 
-    free(&e->d.ss);
+    // free(&e->d.ss);
+    free(e->d.ss);
     e->d.ss = NULL;
     break;
   case DCM_SL:
-    free(&e->d.sl);
+    // free(&e->d.sl);
+    free(e->d.sl);
     e->d.sl = NULL;
     break;
   case DCM_SQ: 
-    free(&e->d.sq);
+    //free(&e->d.sq);
+    free(e->d.sq);
     e->d.sq = NULL;
     break;
   case DCM_UL: 
-    free(&e->d.ul);
+    // free(&e->d.ul);
+    free(e->d.ul);
     e->d.ul = NULL;
     break;
   case DCM_US:
-    free(&e->d.us);
+    // free(&e->d.us);
+    free(e->d.us);
     e->d.us = NULL;
     break;
   case DCM_AT: 
-    free(&e->d.at);
+    // free(&e->d.at);
+    free(e->d.at);
     e->d.at = NULL;
     break;
   case DCM_FD: 
@@ -934,6 +940,9 @@ int dcmGetNRows(char *dcmfile)
   if(e == NULL)  return(-1);
 
   NRows = *(e->d.us);
+
+  if (e->representation != DCM_US)
+    printf("bad element for %s\n", dcmfile);
 
   FreeElementData(e); 
   free(e);
