@@ -14,7 +14,7 @@
 #include "macros.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_smooth.c,v 1.9 2003/05/13 19:31:33 fischl Exp $";
+static char vcid[] = "$Id: mris_smooth.c,v 1.10 2003/05/15 20:20:48 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -45,7 +45,7 @@ main(int argc, char *argv[])
   MRI_SURFACE        *mris ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_smooth.c,v 1.9 2003/05/13 19:31:33 fischl Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_smooth.c,v 1.10 2003/05/15 20:20:48 fischl Exp $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -86,19 +86,34 @@ main(int argc, char *argv[])
 	{
 		int i ;
 
-		for (i = 0 ; i < niterations ; i++)
+		for (i = 0 ; i < niterations+5 ; i++)
 		{
-			MRIScomputeSecondFundamentalForm(mris) ;
-			MRISspringTermWithGaussianCurvature(mris, gaussian_norm, l_spring) ;
-			MRISmomentumTimeStep(mris, momentum, 1, 1, 0) ;
-			MRISclearGradient(mris) ;
-			if ((((i+1) % write_iterations) == 0) && (write_iterations > 0))
-		{
-				char fname[STRLEN] ;
-				sprintf(fname, "%s%04d", out_fname, i+1) ;
-				printf("writing snapshot to %s...\n", fname) ;
-				MRISwrite(mris, fname) ;
+			if (i < niterations)
+			{
+				MRIScomputeSecondFundamentalForm(mris) ;
+				MRISspringTermWithGaussianCurvature(mris, gaussian_norm, l_spring) ;
+				MRISmomentumTimeStep(mris, momentum, 1, 1, 0) ;
+				MRISclearGradient(mris) ;
+				if ((write_iterations > 0) && (((i+1) % write_iterations) == 0))
+				{
+					char fname[STRLEN] ;
+					sprintf(fname, "%s%04d", out_fname, i+1) ;
+					printf("writing snapshot to %s...\n", fname) ;
+					MRISwrite(mris, fname) ;
+				}
 			}
+			else
+			{
+				MRISaverageVertexPositions(mris, 1) ;
+				if (write_iterations > 0)
+				{
+					char fname[STRLEN] ;
+					sprintf(fname, "%s%04d", out_fname, i+1) ;
+					printf("writing snapshot to %s...\n", fname) ;
+					MRISwrite(mris, fname) ;
+				}
+			}
+
 		}
 	}
 	else
