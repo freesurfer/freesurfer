@@ -13,6 +13,8 @@
 #include "mri_conform.h"
 #include "cma.h"
 
+static int mle_label(MRI *mri_T1, MRI *mri_out_labeled, int x, int y, 
+										 int z, int wsize, int l1, int l2) ;
 static int change_label(MRI *mri_T1, MRI *mri_out_labeled, int x, int y, 
                         int z, int wsize, int left) ;
 int main(int argc, char *argv[]) ;
@@ -162,7 +164,7 @@ static MRI *
 edit_hippocampus(MRI *mri_in_labeled, MRI *mri_T1, MRI *mri_out_labeled)
 {
   int   width, height, depth, x, y, z, nchanged, dleft, label,  
-        dright, dpos, dant, dup, ddown, i, left ;
+        dright, dpos, dant, dup, ddown, i, left, dgray, dhippo, dwhite ;
   MRI   *mri_tmp ;
 
   nchanged = 0 ;
@@ -181,13 +183,121 @@ edit_hippocampus(MRI *mri_in_labeled, MRI *mri_T1, MRI *mri_out_labeled)
       {
         for (x = 0 ; x < width ; x++)
         {
-          if (x == 94 && y == 125 && z == 114)  
+          if (x == 160 && y == 125 && z == 118)  
             DiagBreak() ;
           label = MRIvox(mri_tmp, x, y, z) ;
+					if (x == 160 && y == 127 && z == 118)
+						DiagBreak() ;
 
           left = 0 ;
           switch (label)
           {
+					case Left_Cerebral_White_Matter:
+						left = 1 ;
+					case Right_Cerebral_White_Matter:
+						dgray = distance_to_label(mri_out_labeled,
+																			left ? Left_Cerebral_Cortex :
+																			Right_Cerebral_Cortex,
+																			x,y,z,0,1,0,1);
+						
+						dwhite = distance_to_label(mri_out_labeled,
+																			left ? Left_Cerebral_White_Matter :
+																			Right_Cerebral_White_Matter,
+																			x,y,z,0,-1,0,1);
+						
+						dhippo = distance_to_label(mri_out_labeled,
+																			 left ? Left_Hippocampus :
+																			 Right_Hippocampus,
+																			 x,y,z,0,-1,0,3);
+						/* change bright hippocampus that borders white matter to white matter */
+						if (dgray <= 1 && dwhite <= 1 && dhippo <= 3)
+						{
+              mle_label(mri_T1, mri_tmp, x, y, z, 9, 
+												left ? Left_Cerebral_Cortex : Right_Cerebral_Cortex,
+												left ? Left_Cerebral_White_Matter : Right_Cerebral_White_Matter) ;
+						}
+					case Left_Hippocampus:
+						left = 1 ;
+					case Right_Hippocampus:
+						dgray = distance_to_label(mri_out_labeled,
+																			left ? Left_Cerebral_Cortex :
+																			Right_Cerebral_Cortex,
+																			x,y,z,0,1,0,3);
+						
+						dwhite = distance_to_label(mri_out_labeled,
+																			left ? Left_Cerebral_White_Matter :
+																			Right_Cerebral_White_Matter,
+																			x,y,z,0,1,0,1);
+						
+						dhippo = distance_to_label(mri_out_labeled,
+																			 left ? Left_Hippocampus :
+																			 Right_Hippocampus,
+																			 x,y,z,0,-1,0,1);
+						/* change bright hippocampus that borders white matter to white matter */
+						if (dgray <= 3 && dwhite <= 1 && dhippo <= 1)
+						{
+              change_label(mri_T1, mri_tmp, x, y, z, 9, left) ;
+						}
+						break ;
+					case Unknown:
+						{
+							int dhippo, dl, dr, dgray, dwhite ;
+
+							if (x == 160 && y == 129 && z == 121)
+								DiagBreak() ;
+
+							/*
+								if the current label is unknown, and there is white matter above
+								and hippocampus above and gray matter below, change to gray matter.
+							*/
+							dl = distance_to_label(mri_out_labeled,
+																		 Left_Hippocampus,
+																		 x,y,z,0,-1,0,4);
+							dr = distance_to_label(mri_out_labeled,
+																		 Right_Hippocampus,
+																		 x,y,z,0,-1,0,4);
+							if (dl > 4 && dr > 4) /* could be inferior to inf-lat-ven also */
+							{
+								dl = distance_to_label(mri_out_labeled,
+																			 Left_Inf_Lat_Vent,
+																			 x,y,z,0,-1,0,4);
+								dr = distance_to_label(mri_out_labeled,
+																			 Right_Inf_Lat_Vent,
+																			 x,y,z,0,-1,0,4);
+							}
+
+							if (dl < dr)
+							{
+								left = 1 ;
+								dhippo = dl ;
+								dgray = distance_to_label(mri_out_labeled,
+																					Left_Cerebral_Cortex,
+																					x,y,z,0,1,0,2);
+								dwhite = distance_to_label(mri_out_labeled,
+																					 Left_Cerebral_White_Matter,
+																					 x,y,z,0,-1,0,2);
+							}
+							else
+							{
+								left = 0 ;
+								dhippo = dr ;
+								dwhite = distance_to_label(mri_out_labeled,
+																					 Right_Cerebral_White_Matter,
+																					 x,y,z,0,-1,0,2);
+								dgray = distance_to_label(mri_out_labeled,
+																					Right_Cerebral_Cortex,
+																					x,y,z,0,1,0,2);
+							}
+							if (dhippo <= 4 && dwhite <= 2 && dgray <= 2)
+							{
+								MRIvox(mri_tmp, x, y, z) = 
+									left ? Left_Cerebral_Cortex : Right_Cerebral_Cortex ;
+								nchanged++ ;
+								continue ;
+							}
+							
+							break ;
+						}
           case Left_Cerebral_Cortex:
             left = 1 ;
           case Right_Cerebral_Cortex:
@@ -327,6 +437,34 @@ edit_hippocampus(MRI *mri_in_labeled, MRI *mri_T1, MRI *mri_out_labeled)
                                    Right_Cerebral_White_Matter,x,y,z,0,0,1,3);
 
 
+						/* if the current label is gray and the is white matter directly above,
+							 and hippocampus within 3 mm, then change label to MLE of either gray or
+							 white 
+						*/
+
+						if (x == 156 && y == 128 && z == 115)
+							DiagBreak() ;
+						dgray = distance_to_label(mri_out_labeled,
+																			left ? Left_Cerebral_Cortex :
+																			Right_Cerebral_Cortex,
+																			x,y,z,0,1,0,1);
+						
+						dwhite = distance_to_label(mri_out_labeled,
+																			left ? Left_Cerebral_White_Matter :
+																			Right_Cerebral_White_Matter,
+																			x,y,z,0,-1,0,1);
+						
+						dhippo = distance_to_label(mri_out_labeled,
+																			 left ? Left_Hippocampus :
+																			 Right_Hippocampus,
+																			 x,y,z,0,-1,0,3);
+						/* change bright hippocampus that borders white matter to white matter */
+						if (dgray <= 1 && dwhite <= 1 && dhippo <= 3)
+						{
+              mle_label(mri_T1, mri_tmp, x, y, z, 9, 
+												left ? Left_Cerebral_Cortex : Right_Cerebral_Cortex,
+												left ? Left_Cerebral_White_Matter : Right_Cerebral_White_Matter) ;
+						}
             break ;
           default:
             break ;
@@ -495,6 +633,27 @@ label_mean(MRI *mri_T1, MRI *mri_labeled, int x, int y, int z, int wsize,
   else
     mean = 0.0f ;
   return(mean) ;
+}
+static int
+mle_label(MRI *mri_T1, MRI *mri_labeled, int x, int y, int z, int wsize, int l1, int l2)
+{
+  float  l1_mean, l2_mean, val ;
+  int    label ;
+
+  if (x == 95 && y == 127 && z == 119) /* dark wm (68) */
+    DiagBreak() ;
+  if (x == 94 && y == 126 && z == 119)  /* bright hippo (104) */
+    DiagBreak() ;
+  val = (float)MRIvox(mri_T1, x, y, z) ;
+  l1_mean = label_mean(mri_T1, mri_labeled, x, y, z, wsize, l1) ;
+  l2_mean = label_mean(mri_T1, mri_labeled, x, y, z, wsize, l2) ;
+  if (fabs(l1_mean-val) < fabs(l2_mean-val))
+    label = l1 ;
+  else
+    label = l2 ;
+  
+  MRIvox(mri_labeled, x, y, z) = label ;
+  return(NO_ERROR) ;
 }
 static int 
 change_label(MRI *mri_T1,MRI *mri_labeled,int x,int y,int z,int wsize,int left)
