@@ -6001,9 +6001,9 @@ GCAexpandVentricle(GCA *gca, MRI *mri_inputs, MRI *mri_src,
     mri_dst = MRIcopy(mri_src, mri_dst) ;
 
   mri_tmp = MRIcopy(mri_dst, NULL) ;
-
+	
   width = mri_src->width ; height = mri_src->height ; depth = mri_src->depth ;
-
+	
   i = total_changed = 0 ;
   do
   {
@@ -6017,66 +6017,66 @@ GCAexpandVentricle(GCA *gca, MRI *mri_inputs, MRI *mri_src,
           if (x == Ggca_x && y == Ggca_y && z == Ggca_z)
             DiagBreak() ; 
           
-	  GCAsourceVoxelToNode(gca, mri_dst, transform, x, y, z, &xn, &yn, &zn) ;
-	  gc_vent = GCAfindGC(gca, xn, yn, zn, target_label) ;
-	  if (gc_vent == NULL)
-	    continue ;
-          label = MRIvox(mri_dst, x, y, z) ;
-          
-          if (label == target_label)
-          {
-            for (zk = -1 ; zk <= 1 ; zk++)
-            {
-              for (yk = -1 ; yk <= 1 ; yk++)
-              {
-                for (xk = -1 ; xk <= 1 ; xk++)
-                {
-                  if (fabs(xk) + fabs(yk) + fabs(zk) > 1)
-                    continue ;
-                  xi = mri_src->xi[x+xk] ;
-                  yi = mri_src->yi[y+yk] ;
-                  zi = mri_src->zi[z+zk] ;
-                  label = MRIvox(mri_dst, xi, yi, zi) ;
-                  if (label != target_label) /* should it be changed? */
-                  {
-                    GCAsourceVoxelToNode(gca, mri_dst, transform, xi, yi, zi, 
-                                         &xn, &yn, &zn) ;
-                    gcan = &gca->nodes[xn][yn][zn] ;
-            
-                    if (xi == Ggca_x && yi == Ggca_y && zi == Ggca_z)
-                      DiagBreak() ; 
-		    
-		    load_vals(mri_inputs, xi, yi, zi, vals, gca->ninputs) ;
-		    gc = GCAfindGC(gca, xn, yn, zn, label) ;
-		    if (gc == NULL)
-		      plabel = 0.0 ;
-		    else
-		      plabel = GCAcomputeConditionalDensity(gc, vals, gca->ninputs, label) ;
-		    gc = GCAfindGC(gca, xn, yn, zn, target_label) ;
-		    if (gc == NULL)   /* use neighboring gc to allow for variability in ventricles */
-		      gc = gc_vent ;
-		    pv = GCAcomputeConditionalDensity(gc, vals, gca->ninputs, target_label) ;
-                    if (pv > 5*plabel)
-                    {
-                      if (xi == Ggca_x && yi == Ggca_y && zi == Ggca_z)
-                      {
-                        int olabel = MRIvox(mri_tmp, xi, yi, zi) ;
-
-                        printf("voxel (%d, %d, %d) changed from %s (%d) "
-                               "to %s (%d)\n", xi, yi, zi,
-                               cma_label_to_name(olabel), olabel,
-                               cma_label_to_name(target_label), target_label);
-                      }
-                      if (xi == 140 && yi == 79 && zi == 136)
-                        DiagBreak() ;   /* v should be wm */
-                      nchanged++ ;
-                      MRIvox(mri_tmp, xi, yi, zi) = target_label ;
-                    }
-                  }
-                }
-              }
-            }
-          } 
+					GCAsourceVoxelToNode(gca, mri_dst, transform, x, y, z, &xn, &yn, &zn) ;
+					gc_vent = GCAfindGC(gca, xn, yn, zn, target_label) ;
+					if (gc_vent == NULL)
+						continue ;
+					label = MRIvox(mri_dst, x, y, z) ;
+					
+					if (label == target_label)
+					{
+						for (zk = -1 ; zk <= 1 ; zk++)
+						{
+							for (yk = -1 ; yk <= 1 ; yk++)
+							{
+								for (xk = -1 ; xk <= 1 ; xk++)
+								{
+									if (fabs(xk) + fabs(yk) + fabs(zk) > 1)
+										continue ;
+									xi = mri_src->xi[x+xk] ;
+									yi = mri_src->yi[y+yk] ;
+									zi = mri_src->zi[z+zk] ;
+									label = MRIvox(mri_dst, xi, yi, zi) ;
+									if (label != target_label) /* should it be changed? */
+									{
+										GCAsourceVoxelToNode(gca, mri_dst, transform, xi, yi, zi, 
+																				 &xn, &yn, &zn) ;
+										gcan = &gca->nodes[xn][yn][zn] ;
+										
+										if (xi == Ggca_x && yi == Ggca_y && zi == Ggca_z)
+											DiagBreak() ; 
+										
+										load_vals(mri_inputs, xi, yi, zi, vals, gca->ninputs) ;
+										gc = GCAfindGC(gca, xn, yn, zn, label) ;
+										if (gc == NULL)
+											plabel = 0.0 ;
+										else
+											plabel = GCAcomputeConditionalDensity(gc, vals, gca->ninputs, label) ;
+										gc = GCAfindGC(gca, xn, yn, zn, target_label) ;
+										if (gc == NULL)   /* use neighboring gc to allow for variability in ventricles */
+											gc = gc_vent ;
+										pv = GCAcomputeConditionalDensity(gc, vals, gca->ninputs, target_label) ;
+										if (pv > 5*plabel)
+										{
+											if (xi == Ggca_x && yi == Ggca_y && zi == Ggca_z)
+											{
+												int olabel = MRIvox(mri_tmp, xi, yi, zi) ;
+												
+												printf("voxel (%d, %d, %d) changed from %s (%d) "
+															 "to %s (%d)\n", xi, yi, zi,
+															 cma_label_to_name(olabel), olabel,
+															 cma_label_to_name(target_label), target_label);
+											}
+											if (xi == 140 && yi == 79 && zi == 136)
+												DiagBreak() ;   /* v should be wm */
+											nchanged++ ;
+											MRIvox(mri_tmp, xi, yi, zi) = target_label ;
+										}
+									}
+								}
+							}
+						}
+					} 
         }
       }
     }
