@@ -33,6 +33,7 @@
 #include "mritransform.h"
 #include "utils.h"
 #include "matrix.h"
+#include "pdf.h"
 
 extern int errno;
 
@@ -9462,4 +9463,102 @@ MRItoTalairach(MRI *mri_src, MRI *mri_dst)
   }
 
   return(mri_dst) ;
+}
+/*-------------------------------------------------------------------
+  MRIlog10() - computes the log10 of the values at each voxel and
+  frame. If a value is zero, the result is set to 10000000000.0. If
+  the negflag is set, then -log10 is computed. The result is stored
+  in outmri. If outmri is NULL, the output MRI is alloced and its
+  pointer returned.
+  ------------------------------------------------------------------*/
+MRI *MRIlog10(MRI *inmri, MRI *outmri, int negflag)
+{
+  int c, r, s, f;
+  float val;
+
+  if(outmri==NULL){
+    outmri = MRIallocSequence(inmri->width, inmri->height, inmri->depth, 
+			      MRI_FLOAT, inmri->nframes);
+    if(outmri==NULL){
+      printf("ERROR: fMRIlog10: could not alloc\n");
+      return(NULL);
+    }
+  }
+  else{
+    if(inmri->width   != outmri->width  || 
+       inmri->height  != outmri->height || 
+       inmri->depth   != outmri->depth  ||
+       inmri->nframes != outmri->nframes){
+      printf("ERROR: MRIlog10: output dimension mismatch\n");
+      return(NULL);
+    }
+    if(outmri->type != MRI_FLOAT){
+      printf("ERROR: MRIlog10: structure passed is not MRI_FLOAT\n");
+      return(NULL);
+    }
+  }
+
+  for(c=0; c < inmri->width; c++){
+    for(r=0; r < inmri->height; r++){
+      for(s=0; s < inmri->depth; s++){
+	for(f=0; f < inmri->nframes; f++){
+	  val = MRIgetVoxVal(inmri, c, r, s, f);
+	  if(val == 0)     MRIFseq_vox(outmri,c,r,s,f) = 10000000000.0;
+	  else{
+	    if(negflag){
+	      if(val < 0) MRIFseq_vox(outmri,c,r,s,f) =  log10(fabs(val));
+	      else        MRIFseq_vox(outmri,c,r,s,f) = -log10(val);
+	    }
+	    else{
+	      if(val < 0) MRIFseq_vox(outmri,c,r,s,f) = -log10(fabs(val));
+	      else        MRIFseq_vox(outmri,c,r,s,f) =  log10(val);
+	    }
+	  }
+	}
+      }
+    }
+  }
+
+  return(outmri);
+}
+/*---------------------------------------------------------------------
+  MRIrandn() - fills an MRI structure with values sampled from a 
+  normal distribution with mean avg and standard devation stddev.
+  --------------------------------------------------------*/
+MRI *MRIrandn(int ncols, int nrows, int nslices, int nframes,
+	      float avg, float stddev, MRI *mri)
+{
+  int c, r, s, f;
+
+  if(mri==NULL){
+    mri = MRIallocSequence(ncols, nrows, nslices, MRI_FLOAT, nframes);
+    if(mri==NULL){
+      printf("ERROR: MRIrandn: could not alloc\n");
+      return(NULL);
+    }
+  }
+  else{
+    if(mri->width != ncols   || mri->height != nrows || 
+       mri->depth != nslices || mri->nframes != nframes){
+      printf("ERROR: MRIrandn: dimension mismatch\n");
+      return(NULL);
+    }
+    if(mri->type != MRI_FLOAT){
+      printf("ERROR: MRIrandn: structure passed is not MRI_FLOAT\n");
+      return(NULL);
+    }
+  }
+
+  for(c=0; c<ncols; c++){
+    for(r=0; r<nrows; r++){
+      for(s=0; s<nslices; s++){
+	for(f=0; f<nframes; f++){
+	  MRIFseq_vox(mri,c,r,s,f) = 
+	    stddev*PDFgaussian() + avg;
+	}
+      }
+    }
+  }
+
+  return(mri);
 }
