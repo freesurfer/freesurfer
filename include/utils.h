@@ -39,6 +39,7 @@ char *fgetl(char *s, int n, FILE *fp) ;
 
 int IntSqrt(int n) ;
 
+char *StrRemoveSpaces(char *str) ;
 char *StrUpper(char *str) ;
 char *StrLower(char *str) ;
 char *FileName(char *str) ;
