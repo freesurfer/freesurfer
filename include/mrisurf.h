@@ -797,5 +797,10 @@ typedef struct
 SMALL_SURFACE *MRISreadVerticesOnly(char *fname) ;
 int           MRISSfree(SMALL_SURFACE **pmriss) ;
 
+
+int  MRISsubsampleDist(MRI_SURFACE *mris, float spacing) ;
+int  MRISwriteDecimation(MRI_SURFACE *mris, char *fname) ;
+int  MRISreadDecimation(MRI_SURFACE *mris, char *fname) ;
+
 #endif
 

@@ -26977,3 +26977,164 @@ MRISsegmentMarked(MRI_SURFACE *mris, LABEL ***plabel_array, int *pnlabels,
   return(NO_ERROR) ;
 }
 
+int
+MRISsubsampleDist(MRI_SURFACE *mris, float spacing)
+{
+  int k,m,n, sub_num;
+  VERTEX *v;
+
+
+  sub_num = 0;
+  for (k=0;k<mris->nvertices;k++)
+  {
+    v = &mris->vertices[k];
+    v->d = 10000;
+    v->val = 0;
+  }
+  for (k=0;k<mris->nvertices;k++)
+  {
+    v = &mris->vertices[k];
+    for (m=0;m<v->vnum;m++)
+    {
+      if (mris->vertices[v->v[m]].d+1 < v->d)
+        v->d = mris->vertices[v->v[m]].d+1;
+    }
+    if (v->d>=spacing)
+    {
+      v->d = 0;
+      v->val = 1;
+      sub_num++;
+    }
+    for (m=0;m<v->vnum;m++)
+    {
+      if (mris->vertices[v->v[m]].d > v->d+1)
+        mris->vertices[v->v[m]].d = v->d+1;
+    }
+  }
+  for (k=mris->nvertices-1;k>=0;k--)
+  {
+    v = &mris->vertices[k];
+    for (m=0;m<v->vnum;m++)
+    {
+      if (mris->vertices[v->v[m]].d+1 < v->d)
+        v->d = mris->vertices[v->v[m]].d+1;
+      if (mris->vertices[v->v[m]].d > v->d+1)
+        mris->vertices[v->v[m]].d = v->d+1;
+    }
+  }
+
+  if (spacing==2)
+  for (k=0;k<mris->nvertices;k++)
+  if (mris->vertices[k].d > 0)
+  {
+    v = &mris->vertices[k];
+    n = 0;
+    for (m=0;m<v->vnum;m++)
+    {
+      if (mris->vertices[v->v[m]].d == 0)
+        n++;
+    }
+    if (n <= 2)
+    {
+      v->d = 0;
+      v->val = 1;
+      v->fixedval = TRUE;
+      sub_num++;
+    }
+    for (m=0;m<v->vnum;m++)
+    {
+      if (mris->vertices[v->v[m]].d > v->d+1)
+        mris->vertices[v->v[m]].d = v->d+1;
+    }
+  }
+
+  return(sub_num) ;
+}
+int
+MRISwriteDecimation(MRI_SURFACE *mris, char *fname)
+{
+  int k;
+  FILE *fptr;
+  
+  fptr = fopen(fname,"w");
+  if (fptr==NULL)
+    ErrorReturn(ERROR_BADFILE, 
+                (ERROR_BADFILE, "MRISwriteDecimation: could not create %s",
+                 fname)) ;
+  fputc('\0',fptr);
+  fwriteInt(mris->nvertices,fptr);
+  for (k=0;k<mris->nvertices;k++)
+  {
+    if (mris->vertices[k].d==0)
+      fputc('\1',fptr);
+    else
+      fputc('\0',fptr);
+  }
+  fclose(fptr);
+  return(NO_ERROR) ;
+}
+int
+MRISreadDecimation(MRI_SURFACE *mris, char *fname)
+{
+  int k,d, ndec;
+  char c;
+  FILE *fptr;
+
+
+  ndec = 0;
+  for (k=0;k<mris->nvertices;k++)
+  {
+    mris->vertices[k].undefval = TRUE;
+    mris->vertices[k].fixedval = FALSE;
+  }
+  fptr = fopen(fname,"r");
+  if (fptr==NULL) 
+    ErrorReturn(ERROR_BADFILE, 
+                (ERROR_BADFILE, "MRISreadDecimation: could not create %s",
+                 fname)) ;
+  c = fgetc(fptr);
+  if (c=='#')
+  {
+    fscanf(fptr,"%*s");
+    fscanf(fptr,"%d",&d);
+    if (d!=mris->nvertices) 
+      ErrorReturn(0,
+                  (ERROR_BADFILE,
+                   "%s: decimation file %s has wrong # of vertices\n",
+                   Progname, fname, d)) ;
+    for (k=0;k<mris->nvertices;k++)
+    {
+      fscanf(fptr,"%d",&d);
+      if (d!=0)
+      {
+        mris->vertices[k].d=0;
+        mris->vertices[k].fixedval=TRUE;
+        mris->vertices[k].undefval=FALSE;
+        ndec++;
+      }
+    }
+  }
+  else
+  {
+    d = freadInt(fptr);
+    if (d!=mris->nvertices) 
+      ErrorReturn(0,
+                  (ERROR_BADFILE,
+                   "%s: decimation file %s has wrong # of vertices\n",
+                   Progname, fname, d)) ;
+    for (k=0;k<mris->nvertices;k++)
+    {
+      c = fgetc(fptr);
+      if (c!='\0')
+      {
+        mris->vertices[k].d=0;
+        mris->vertices[k].fixedval=TRUE;
+        mris->vertices[k].undefval=FALSE;
+        ndec++;
+      }
+    }
+  }
+  fclose(fptr);
+  return(ndec) ;
+}
+
