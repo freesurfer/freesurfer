@@ -107,7 +107,7 @@ main(int argc, char *argv[])
       ErrorExit(ERROR_NOFILE, 
                 "%s: could not read histogram equalization volume %s", 
                 Progname, heq_fname) ;
-    MRIhistoEqualize(mri_eq, mri_in, 10) ;
+    MRIhistoEqualize(mri_in, mri_eq, mri_in, 30, 170) ;
     fprintf(stderr, "writing equalized volume to %s...\n", out_fname) ;
     MRIfree(&mri_eq) ;
     MRIwrite(mri_in, out_fname) ;
@@ -301,7 +301,7 @@ insert_wm_segmentation(MRI *mri_labeled, MRI *mri_wm,
       {
         if (x == 153 && y == 127 && z == 128)
           DiagBreak() ;
-        if (MRIvox(mri_wm, x, y, z) < WM_MIN_VAL)
+        if (MRIvox(mri_wm, x, y, z) < WM_MIN_VAL || MRIvox(mri_wm,x,y,z)>=200)
           continue ;
         label = MRIvox(mri_labeled, x, y, z) ;
         if (!change_label[label])
