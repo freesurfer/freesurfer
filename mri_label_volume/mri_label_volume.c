@@ -48,7 +48,7 @@ main(int argc, char *argv[])
 	double  vox_volume, brain_volume ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_label_volume.c,v 1.15 2003/12/09 17:08:31 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_label_volume.c,v 1.16 2004/02/09 21:46:14 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -130,6 +130,8 @@ main(int argc, char *argv[])
 	{ 
 		int i ;
 
+		if (log_fname == NULL)
+			log_fname = "area_volumes.log" ;
 		log_fp = fopen(log_fname, "a+") ;
 		fprintf(log_fp, "%s  ", subject_name) ;
 		if  (icv_fname || compute_pct)
