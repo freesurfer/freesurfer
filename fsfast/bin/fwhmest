@@ -14,6 +14,7 @@ set tmpdir = ();
 set outfile = ();
 set monly = 0;
 set MLF = ();
+set cleanup = 1;
 
 if($#argv == 0) goto usage_exit;
 set n = `echo $argv | grep version | wc -l` 
@@ -113,13 +114,13 @@ set bext = `getbext $MaskStem`;
 mri_convert $MaskStem"_000.$bext" $tmpdir/mask.img
 
 set dof = `cat $doffile`;
-set cmd = (smoothest -d $dof -m $tmpdir/mask.img -r $tmpdir/f.img)
+set cmd = (smoothest -V -d $dof -m $tmpdir/mask.img -r $tmpdir/f.img)
 echo $cmd |& tee $LF
 $cmd > $outfile
 
 cat $outfile
 
-rm -r $tmpdir
+if($cleanup) rm -r $tmpdir
 
 echo " " | tee -a $LF
 echo " " | tee -a $LF
@@ -162,6 +163,10 @@ while( $#argv != 0 )
     case "--umask":
       if ( $#argv == 0) goto arg1err;
       umask $1; shift;
+      breaksw
+
+    case "--nocleanup":
+      set cleanup = 0;
       breaksw
 
     case "--debug":
