@@ -4549,7 +4549,7 @@ ImageValid(IMAGE *I)
       val = *fpix++ ;
       if (val == 0.0)
         continue ;
-      exponent = log(fabs(val)) ;
+      exponent = log10(fabs(val)) ;
       if (fabs(exponent) > 20.0)
         return(0) ;
     }
@@ -4561,7 +4561,7 @@ ImageValid(IMAGE *I)
       val = *dpix++ ;
       if (val == 0.0)
         continue ;
-      exponent = log(fabs(val)) ;
+      exponent = log10(fabs(val)) ;
       if (fabs(exponent) > 20.0)
         return(0) ;
     }
