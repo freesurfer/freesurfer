@@ -16,7 +16,7 @@
 #include "icosahedron.h"
 #include "label.h"
 
-static char vcid[] = "$Id: mris_spherical_average.c,v 1.3 2001/03/13 17:01:57 fischl Exp $";
+static char vcid[] = "$Id: mris_spherical_average.c,v 1.4 2001/04/02 16:13:27 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -31,7 +31,7 @@ char *Progname ;
 static int normalize_flag = 0 ;
 static int condition_no = 0 ;
 static int stat_flag = 0 ;
-static char *output_surf_name = NULL ;
+static char *output_subject_name = NULL ;
 static int navgs = 0 ;
 static char *ohemi = NULL ;
 static char *osurf = NULL ;
@@ -173,11 +173,12 @@ main(int argc, char *argv[])
   }
   if (which != VERTEX_LABEL)
     MRISnormalize(mris_avg, nsubjects, which) ;
-  MHTfree(&mht) ;
+  if (mht) 
+    MHTfree(&mht) ;
 
-  if (output_surf_name)
+  if (output_subject_name)
   {
-    sprintf(fname, "%s/%s/surf/%s.%s", sdir,output_surf_name,ohemi,osurf);
+    sprintf(fname, "%s/%s/surf/%s.%s", sdir,output_subject_name,ohemi,osurf);
     fprintf(stderr, "reading output surface %s...\n", fname) ;
     MRISfree(&mris) ;
     mris = MRISread(fname) ;
@@ -315,9 +316,9 @@ get_option(int argc, char *argv[])
     nargs = 1 ;
     break ;
   case 'O':
-    output_surf_name = argv[2] ;
+    output_subject_name = argv[2] ;
     nargs = 1 ;
-    fprintf(stderr, "painting output onto subject %s.\n", output_surf_name);
+    fprintf(stderr, "painting output onto subject %s.\n", output_subject_name);
     break ;
   case '?':
   case 'U':
