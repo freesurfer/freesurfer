@@ -1,6 +1,6 @@
 /*----------------------------------------------------------
   Name: mri_surf2surf.c
-  $Id: mri_surf2surf.c,v 1.21 2004/10/28 19:30:06 greve Exp $
+  $Id: mri_surf2surf.c,v 1.22 2005/03/03 23:55:19 greve Exp $
   Author: Douglas Greve
   Purpose: Resamples data from one surface onto another. If
   both the source and target subjects are the same, this is
@@ -66,7 +66,7 @@ int dump_surf(char *fname, MRIS *surf, MRI *mri);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surf2surf.c,v 1.21 2004/10/28 19:30:06 greve Exp $";
+static char vcid[] = "$Id: mri_surf2surf.c,v 1.22 2005/03/03 23:55:19 greve Exp $";
 char *Progname = NULL;
 
 char *surfreg = NULL;
@@ -81,7 +81,7 @@ MRI_SURFACE *SrcSurfReg;
 char *SrcHitFile = NULL;
 char *SrcDistFile = NULL;
 int nSrcVtxs = 0;
-int SrcIcoOrder;
+int SrcIcoOrder = -1;
 
 char *trgsubject = NULL;
 char *trgvalfile = NULL;
@@ -141,7 +141,7 @@ int main(int argc, char **argv)
   double area, a0, a1, a2;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.21 2004/10/28 19:30:06 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.22 2005/03/03 23:55:19 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -171,7 +171,8 @@ int main(int argc, char **argv)
 
   /* --------- Load the registration surface for source subject --------- */
   if(!strcmp(srcsubject,"ico")){ /* source is ico */
-    SrcIcoOrder = GetICOOrderFromValFile(srcvalfile,srctypestring);
+    if(SrcIcoOrder == -1)
+      SrcIcoOrder = GetICOOrderFromValFile(srcvalfile,srctypestring);
     sprintf(fname,"%s/lib/bem/ic%d.tri",FREESURFER_HOME,SrcIcoOrder);
     SrcSurfReg = ReadIcoByOrder(SrcIcoOrder, IcoRadius);
     printf("Source Ico Order = %d\n",SrcIcoOrder);
@@ -507,6 +508,11 @@ static int parse_commandline(int argc, char **argv)
       srctype = string_to_type(srctypestring);
       nargsused = 1;
     }
+    else if (!strcmp(option, "--srcicoorder")){
+      if(nargc < 1) argnerr(option,1);
+      sscanf(pargv[0],"%d",&SrcIcoOrder);
+      nargsused = 1;
+    }
     else if (!strcmp(option, "--nsmooth-in")){
       if(nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%d",&nSmoothSteps_Input);
@@ -653,6 +659,7 @@ static void print_usage(void)
   fprintf(stdout, "   --srcsubject source subject\n");
   fprintf(stdout, "   --srcsurfval path of file with input values \n");
   fprintf(stdout, "   --src_type   source format\n");
+  fprintf(stdout, "   --srcicoorder when srcsubject=ico and src is .w\n");
   fprintf(stdout, "   --trgsubject target subject\n");
   fprintf(stdout, "   --trgicoorder when trgsubject=ico\n");
   fprintf(stdout, "   --trgsurfval path of file in which to store output values\n");
@@ -702,6 +709,12 @@ static void print_help(void)
 "    mri_convert. If no type string  is given, then the type is determined \n"
 "    from the sourcefile (if possible). If curv is used, then the curvature\n"
 "    file will be looked for in $SUBJECTS_DIR/srcsubject/surf/hemi.sourcefile.\n"
+"\n"
+"  --srcicoorder order\n"
+"\n"
+"    Icosahedron order of the source. Normally, this can be detected based\n"
+"    on the number of verticies, but this will fail with a .w file as input.\n"
+"    This is only needed when the source is a .w file.\n"
 "\n"
 "  --trgsubject subjectname\n"
 "\n"
