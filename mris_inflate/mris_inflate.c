@@ -13,7 +13,7 @@
 #include "mri.h"
 #include "macros.h"
 
-static char vcid[] = "$Id: mris_inflate.c,v 1.5 1997/12/19 20:24:22 fischl Exp $";
+static char vcid[] = "$Id: mris_inflate.c,v 1.6 1997/12/19 20:58:57 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -31,6 +31,8 @@ static int desired_curvature_set = 0 ;
 
 #define DESIRED_RADIUS   50.0   /* 10 cm radius */
 
+#define BASE_DT_SCALE    1.0
+static float base_dt_scale = BASE_DT_SCALE ;
 int
 main(int argc, char *argv[])
 {
@@ -43,22 +45,28 @@ main(int argc, char *argv[])
   ErrorInit(NULL, NULL, NULL) ;
   DiagInit(NULL, NULL, NULL) ;
 
-  strcpy(parms.base_name, "inflated") ;
+  parms.base_name[0] = 0 ;
   parms.projection = NO_PROJECTION ;
+  parms.fi_desired = 25 ;
+  parms.ici_desired = 3.5 ;
   parms.tol = 1e-4 ;
-  parms.dt = parms.base_dt = 0.01 ;
-  parms.n_averages = 0 ; /*N_AVERAGES*/ ;
+  parms.epsilon = EPSILON ;
+  parms.dt = 0.35 ;
+  parms.base_dt = BASE_DT_SCALE*parms.dt ;
+  parms.n_averages = 32 ; /*N_AVERAGES*/ ;
   parms.l_angle = 0.0 /* L_ANGLE */ ;
+  parms.l_dist = .1 ;
   parms.l_area = 0.0 /* L_AREA */ ;
-  parms.l_curv = 1.0 ;
-  parms.niterations = 1000 ;
-  parms.write_iterations = 25 /*WRITE_ITERATIONS */;
+  parms.l_spring = 1.0 ;
+  parms.l_curv = 0.0 ;
+  parms.niterations = 10000 ; /* infinite*/
+  parms.write_iterations = 50 /*WRITE_ITERATIONS */;
   parms.a = parms.b = parms.c = 0.0f ;  /* ellipsoid parameters */
   parms.integration_type = INTEGRATE_MOMENTUM ;
-  parms.momentum = MOMENTUM ;
-  parms.dt_increase = DT_INCREASE ;
-  parms.dt_decrease = DT_DECREASE ;
-  parms.error_ratio = ERROR_RATIO ;
+  parms.momentum = 0.9 ;
+  parms.dt_increase = 1.0 /* DT_INCREASE */;
+  parms.dt_decrease = 1.0 /* DT_DECREASE*/ ;
+  parms.error_ratio = 50.0 /*ERROR_RATIO */;
   /*  parms.integration_type = INTEGRATE_LINE_MINIMIZE ;*/
 
   ac = argc ;
@@ -75,6 +83,16 @@ main(int argc, char *argv[])
 
   in_fname = argv[1] ;
   out_fname = argv[2] ;
+
+  if (parms.base_name[0] == 0)
+  {
+    FileNameOnly(out_fname, fname) ;
+    cp = strchr(fname, '.') ;
+    if (cp)
+      strcpy(parms.base_name, cp+1) ;
+    else
+      strcpy(parms.base_name, "inflated") ;
+  }
 
   if (patch_flag)
   {
@@ -94,6 +112,7 @@ main(int argc, char *argv[])
       ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
                 Progname, fname) ;
 
+    MRISreadTriangleProperties(mris, fname) ;
     FileNameOnly(in_fname, fname) ;
     if (MRISreadPatch(mris, fname) != NO_ERROR)
       ErrorExit(ERROR_NOFILE, "%s: could not read patch file %s",
@@ -108,21 +127,39 @@ main(int argc, char *argv[])
   }
 
   MRIScomputeMetricProperties(mris) ;
+  MRIScomputeTriangleProperties(mris, 0) ;  /* recompute areas and normals */
+#if 0
   MRIStalairachTransform(mris, mris) ;
+#endif
   radius = MRISaverageRadius(mris) ;
   scale = DESIRED_RADIUS/radius ;
   MRISscaleBrain(mris, mris, scale) ;
   if (Gdiag & DIAG_SHOW)
     fprintf(stderr, "scaling brain by %2.2f\n", scale) ;
 
+  MRISstoreMetricProperties(mris) ;
+  MRISreadTriangleProperties(mris, in_fname) ;
+  MRIScomputeSecondFundamentalForm(mris) ;
+#if 0
   if (parms.niterations > 0)
   {
-    MRISunfold(mris, &parms, 100) ;
+    MRISunfold(mris, &parms) ;
     if (Gdiag & DIAG_SHOW)
       fprintf(stderr, "writing inflated surface to %s\n", out_fname) ;
+    radius = MRISaverageRadius(mris) ;
+    scale = DESIRED_RADIUS/radius ;
+    MRISscaleBrain(mris, mris, scale) ;
     MRISwrite(mris, out_fname) ;
   }
-
+#else
+  MRISinflateBrain(mris, &parms) ;
+  if (Gdiag & DIAG_SHOW)
+    fprintf(stderr, "writing inflated surface to %s\n", out_fname) ;
+  radius = MRISaverageRadius(mris) ;
+  scale = DESIRED_RADIUS/radius ;
+  MRISscaleBrain(mris, mris, scale) ;
+  MRISwrite(mris, out_fname) ;
+#endif
 
 #if 0
   sprintf(fname, "%s.area_error", out_fname) ;
@@ -172,11 +209,23 @@ get_option(int argc, char *argv[])
     nargs = 1 ;
     fprintf(stderr, "l_area = %2.3f\n", parms.l_area) ;
   }
+  else if (!stricmp(option, "dist"))
+  {
+    sscanf(argv[2], "%f", &parms.l_dist) ;
+    nargs = 1 ;
+    fprintf(stderr, "l_dist = %2.3f\n", parms.l_dist) ;
+  }
   else if (!stricmp(option, "curv"))
   {
     parms.l_curv = atof(argv[2]) ;
     nargs = 1 ;
     fprintf(stderr, "l_curv = %2.3f\n", parms.l_curv) ;
+  }
+  else if (!stricmp(option, "spring"))
+  {
+    parms.l_spring = atof(argv[2]) ;
+    nargs = 1 ;
+    fprintf(stderr, "l_spring = %2.3f\n", parms.l_spring) ;
   }
   else if (!stricmp(option, "no_proj"))
   {
@@ -197,16 +246,15 @@ get_option(int argc, char *argv[])
   else if (!stricmp(option, "lm"))
   {
     parms.integration_type = INTEGRATE_LINE_MINIMIZE ;
-    parms.tol = TOL ;
-    fprintf(stderr, "integrating with line minimization (tol = %2.2e)\n", 
-            parms.tol) ;
+    fprintf(stderr, "integrating with line minimization\n") ;
   }
   else if (!stricmp(option, "dt"))
   {
     parms.integration_type = INTEGRATE_MOMENTUM ;
-    parms.dt = parms.base_dt = atof(argv[2]) ;
+    parms.dt = atof(argv[2]) ;
+    parms.base_dt = base_dt_scale*parms.dt ;
     nargs = 1 ;
-    fprintf(stderr, "momentum with dt = %2.2f\n", parms.base_dt) ;
+    fprintf(stderr, "momentum with dt = %2.2f\n", parms.dt) ;
   }
   else if (!stricmp(option, "error_ratio"))
   {
@@ -228,6 +276,11 @@ get_option(int argc, char *argv[])
   }
   else switch (toupper(*option))
   {
+  case 'S':
+    parms.l_spring = atof(argv[2]) ;
+    nargs = 1 ;
+    fprintf(stderr, "l_spring = %2.3f\n", parms.l_spring) ;
+    break ;
   case 'M':
     parms.integration_type = INTEGRATE_MOMENTUM ;
     parms.momentum = atof(argv[2]) ;
@@ -237,8 +290,24 @@ get_option(int argc, char *argv[])
   case 'P':
     patch_flag = 1 ;
     break ;
+  case 'F':
+    parms.fi_desired = atof(argv[2]) ;
+    fprintf(stderr, "desired fi=%2.2f\n", parms.fi_desired) ;
+    nargs = 1 ;
+    break ;
+  case 'B':
+    base_dt_scale = atof(argv[2]) ;
+    parms.base_dt = base_dt_scale*parms.dt ;
+    nargs = 1;
+    break ;
   case 'V':
     Gdiag_no = atoi(argv[2]) ;
+    nargs = 1 ;
+    break ;
+  case 'E':
+    parms.epsilon = atof(argv[2]) ;
+    fprintf(stderr, "using epsilon=%2.4f\n", parms.epsilon) ;
+    nargs = 1 ;
     break ;
   case 'H':
     desired_curvature_set = 1 ;
