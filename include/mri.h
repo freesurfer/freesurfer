@@ -134,6 +134,7 @@ int   MRIdumpBuffer(MRI *mri, FILE *fp) ;
 MRI   *MRIsubtract(MRI *mri1, MRI *mri2, MRI *mri_dst) ;
 MRI   *MRIabsdiff(MRI *mri1, MRI *mri2, MRI *mri_dst) ;
 MRI   *MRIadd(MRI *mri1, MRI *mri2, MRI *mri_dst) ;
+MRI   *MRIaverage(MRI *mri_src, int dof, MRI *mri_dst) ;
 MRI   *MRIdivide(MRI *mri1, MRI *mri2, MRI *mri_dst) ;
 MRI   *MRImultiply(MRI *mri1, MRI *mri2, MRI *mri_dst) ;
 MRI   *MRIabs(MRI *mri, MRI *mri_dst) ;
