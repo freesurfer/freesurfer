@@ -363,7 +363,7 @@ FunD_tErr FunD_FindAndParseStemHeader_ ( mriFunctionalDataRef this,
   pHeader = fopen( sFileName, "r" );
   
   /* Start scanning for keywords... */
-  while( !feof( pHeader ) ) {
+  while(!feof( pHeader ) ) {
     
     /* grab a keyword */
     DebugNote( ("Reading a keyword") );
@@ -630,6 +630,8 @@ FunD_ParseRegistrationAndInitMatricies_ ( mriFunctionalDataRef this,
       
       /* read line and look for string */
       fgets( sLine, 1024, fRegister );
+      if (feof(fRegister))  // wow. read too much. get out.
+	break;
       bGood = sscanf( sLine, "%s", sKeyWord );
       if( bGood ) {
 	
@@ -1888,8 +1890,10 @@ FunD_tErr FunD_SaveRegistration ( mriFunctionalDataRef this ) {
     pBackupFile = fopen( sBackupFileName, "w" );
     DebugNote( ("Copying bytes to backup file") );
     // write to the backup file from the original file
-    while( !feof( pFile ) ) {
+    while(!feof( pFile ) ) {
       fread( &data, sizeof(data), 1, pFile );
+      if(feof(pFile)) // wow read too much.   get out.
+	break; 
       fwrite( &data, sizeof(data), 1, pBackupFile );
     }
     DebugNote( ("Closing backup file") );
