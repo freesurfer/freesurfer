@@ -131,7 +131,7 @@ int XVbrighten(XV_FRAME *xvf, int which, int offset) ;
 
 #ifdef IRIX
 #define ROW_HEIGHT           40
-#define CHAR_WIDTH           16
+#define CHAR_WIDTH           15
 #else
 #define ROW_HEIGHT           30
 #define CHAR_WIDTH           8
