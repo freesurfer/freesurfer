@@ -477,7 +477,7 @@ ImageRead(char *fname)
   MATRIX  *mat ;
   FILE    *fp ;
   int     type, frame ;
-  char    buf[100] ;
+  char    buf[STRLEN] ;
 
   strcpy(buf, fname) ;   /* don't destroy callers string */
   fname = buf ;
