@@ -1469,6 +1469,15 @@ int m,n;
 
 
 MATRIX *
+MatrixAllocTranslation(int n, double *trans)
+{
+  MATRIX *mat ;
+
+  mat = MatrixAlloc(n, n, MATRIX_REAL) ;
+  return(mat) ;
+}
+
+MATRIX *
 MatrixAllocRotation(int n, float angle, int which)
 {
   MATRIX *m ;
