@@ -59,7 +59,7 @@ typedef struct _LOGPIX
   int    ncpix ;         /* # of cart. pix that map to this logpix */
 } LOGPIX ;
 
-#define MAX_PIX  8
+#define MAX_PIX  7
 typedef struct
 {
   int npix ;      /* # of log pix that this cart. pixel contributes to */
@@ -149,6 +149,7 @@ int    LogMapInverse(LOGMAP_INFO *mi, IMAGE *inImage, IMAGE *outImage);
 int    LogMapGradient(LOGMAP_INFO *mi, IMAGE *inImage, 
                       IMAGE *gradImage, int doweight, 
                       int start_ring, int end_ring) ;
+IMAGE  *LogMapSmooth(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *Idst) ;
 double LogMapDiffuse(LOGMAP_INFO *mi, IMAGE *inImage, IMAGE *outImage, 
                      double k, int niter, int doweight, int which,
                      int time_type) ;
