@@ -1975,7 +1975,7 @@ mriBuildVoronoiDiagramFloat(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst)
 {
   int     width, height, depth, x, y, z, xk, yk, zk, xi, yi, zi, 
           *pxi, *pyi, *pzi, nchanged, n, total, visited ;
-  BUFTYPE *pmarked, *pctrl, ctrl, mark ;
+  BUFTYPE ctrl, mark ;
   float   *psrc, *pdst ;
   float   src, val, mean ;
   MRI     *mri_marked ;
@@ -1994,13 +1994,12 @@ mriBuildVoronoiDiagramFloat(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst)
     for (y = 0 ; y < height ; y++)
     {
       psrc = &MRIFvox(mri_src, 0, y, z) ;
-      pctrl = &MRIvox(mri_ctrl, 0, y, z) ;
       pdst = &MRIFvox(mri_dst, 0, y, z) ;
       for (x = 0 ; x < width ; x++)
       {
         if (x == Gx && y == Gy && z == Gz)
           DiagBreak() ;
-        ctrl = *pctrl++ ;
+				ctrl = MRIgetVoxVal(mri_ctrl, x, y, z, 0) ;
         src = (float)*psrc++ ;
         if (!ctrl)
           val = 0 ;
@@ -2053,13 +2052,12 @@ mriBuildVoronoiDiagramFloat(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst)
     {
       for (y = 0 ; y < height ; y++)
       {
-        pmarked = &MRIvox(mri_marked, 0, y, z) ;
         pdst = &MRIFvox(mri_dst, 0, y, z) ;
         for (x = 0 ; x < width ; x++)
         {
           if (x == Gx && y == Gy && z == Gz)
             DiagBreak() ;
-          mark = *pmarked++ ;
+          mark = MRIgetVoxVal(mri_marked, x, y, z, 0) ;
           if (mark != CONTROL_NBR)  /* not a neighbor of a marked point */
           {
             pdst++ ; ;
@@ -2079,9 +2077,9 @@ mriBuildVoronoiDiagramFloat(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst)
               for (xk = -1 ; xk <= 1 ; xk++)
               {
                 xi = pxi[x+xk] ;
-                if (MRIFvox(mri_marked, xi, yi, zi) == CONTROL_MARKED)
+                if (MRIgetVoxVal(mri_marked, xi, yi, zi, 0) == CONTROL_MARKED)
                 {
-                  n++ ; mean += (float)MRISvox(mri_dst, xi, yi, zi) ;
+                  n++ ; mean += MRIgetVoxVal(mri_dst, xi, yi, zi, 0) ;
                 }
               }
             }
@@ -2614,7 +2612,7 @@ mriSoapBubbleFloat(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst,int niter)
 {
   int     width, height, depth, x, y, z, xk, yk, zk, xi, yi, zi, i,
           *pxi, *pyi, *pzi ;
-  BUFTYPE *pctrl, ctrl, mean ;
+  BUFTYPE ctrl, mean ;
   float   *ptmp ;
   MRI     *mri_tmp ;
 
@@ -2635,11 +2633,10 @@ mriSoapBubbleFloat(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst,int niter)
     {
       for (y = 0 ; y < height ; y++)
       {
-        pctrl = &MRIvox(mri_ctrl, 0, y, z) ;
         ptmp = &MRIFvox(mri_tmp, 0, y, z) ;
         for (x = 0 ; x < width ; x++)
         {
-          ctrl = *pctrl++ ;
+          ctrl = MRIgetVoxVal(mri_ctrl, x, y, z, 0) ;
           if (ctrl == CONTROL_MARKED)   /* marked point - don't change it */
           {
             ptmp++ ;

@@ -2496,6 +2496,26 @@ MatrixPseudoInverse(MATRIX *m, MATRIX *m_pseudo_inv)
   return(m_pseudo_inv) ;
 }
 
+MATRIX *
+MatrixRightPseudoInverse(MATRIX *m, MATRIX *m_pseudo_inv)
+{
+  MATRIX  *mT, *mmT, *mmT_inv ;
+
+  /* build mT (m mT)-1 */
+  mT = MatrixTranspose(m, NULL) ;
+  mmT = MatrixMultiply(m, mT, NULL) ;
+  mmT_inv = MatrixInverse(mmT, NULL) ;
+  if (!mmT_inv)
+  {
+    MatrixFree(&mT) ; MatrixFree(&mmT) ;
+    return(NULL) ;
+  }
+  m_pseudo_inv = MatrixMultiply(mT, mmT_inv, m_pseudo_inv) ;
+
+  MatrixFree(&mT) ; MatrixFree(&mmT) ; MatrixFree(&mmT_inv) ; 
+  return(m_pseudo_inv) ;
+}
+
 int
 MatrixCheck(MATRIX *m)
 {
