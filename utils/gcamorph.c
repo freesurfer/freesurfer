@@ -524,9 +524,9 @@ gcamLikelihoodTerm(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth, double l_likeliho
 {
   int             x, y, z, len, xi, yi, zi, x0, y0, z0, half_len ;
   Real            dx, dy, dz, xp1, yp1, zp1, xm1, ym1, zm1 ;
-	float           val, mean, var ;
+  float           val, mean, var ;
   GCA_MORPH_NODE  *gcamn ;
-	MRI             *mri_nbhd, *mri_kernel ;
+  MRI             *mri_nbhd, *mri_kernel ;
 
   if (FZERO(l_likelihood))
     return(NO_ERROR) ;
@@ -534,11 +534,12 @@ gcamLikelihoodTerm(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth, double l_likeliho
   len = (int)nint(4.0f * parms->sigma)+1 ;
   if (ISEVEN(len))   /* ensure it's odd */
     len++ ;
-	half_len = (len-1)/2 ;
+  half_len = (len-1)/2 ;
 
-	mri = MRISeqchangeType(mri, MRI_FLOAT, 0, 0, 1) ;
-	mri_nbhd = MRIallocSequence(len,len,len, MRI_FLOAT, gcam->gca->ninputs) ;
-	mri_kernel = MRIgaussian1d(parms->sigma, 0) ;
+  mri = MRISeqchangeType(mri, MRI_FLOAT, 0, 0, 1) ;
+  mri_nbhd = MRIallocSequence(len,len,len, MRI_FLOAT, gcam->gca->ninputs) ;
+  // must copy header info.  we are missing here...........
+  mri_kernel = MRIgaussian1d(parms->sigma, 0) ;
   for (x = 0 ; x < gcam->width ; x++)
     for (y = 0 ; y < gcam->height ; y++)
       for (z = 0 ; z < gcam->depth ; z++)
@@ -546,47 +547,47 @@ gcamLikelihoodTerm(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth, double l_likeliho
         if (x == Gx && y == Gy && z == Gz)
           DiagBreak() ;
         gcamn = &gcam->nodes[x][y][z] ;
-				if (fabs(gcamn->x-Gvx)<1 && fabs(gcamn->y-Gvy)<1  && fabs(gcamn->z-Gvz)<1)
-					DiagBreak() ;
-				if (gcamn->status & GCAM_IGNORE_LIKELIHOOD || (gcamn->gc == NULL))
-					continue ;
+	if (fabs(gcamn->x-Gvx)<1 && fabs(gcamn->y-Gvy)<1  && fabs(gcamn->z-Gvz)<1)
+	  DiagBreak() ;
+	if (gcamn->status & GCAM_IGNORE_LIKELIHOOD || (gcamn->gc == NULL))
+	  continue ;
+	
+	x0 = nint(gcamn->x) ; y0 = nint(gcamn->y) ; z0 = nint(gcamn->z) ; 
+	if ((x0+half_len >= mri->width) ||
+	    (y0+half_len >= mri->height) ||
+	    (z0+half_len >= mri->depth))
+	  continue ;
+	MRIextractInto(mri, mri_nbhd, x0-half_len, y0-half_len, z0-half_len,len, len, len, 0, 0, 0) ;
+	if (gcam->gca->ninputs == 1)
+	{
+	  var = gcamn->gc->covars[0] ; mean = gcamn->gc->means[0] ;
+	  
+	  for (xi = 0 ;  xi < mri_nbhd->width ; xi++)
+	  {
+	    for (yi = 0 ;  yi < mri_nbhd->height ; yi++)
+	    {
+	      for (zi = 0 ;  zi < mri_nbhd->depth ; zi++)
+	      {
+		val = MRIFvox(mri_nbhd, xi, yi, zi) ;
+		val = (val - mean) * (val-mean) / var ;
+		MRIFvox(mri_nbhd, xi, yi, zi) = sqrt(val) ;
+	      }
+	    }
+	  }
+	}
+	else  /* haven't written the multi-input case yet */
+	{
+	  ErrorExit(ERROR_UNSUPPORTED, "vector-based likelihood not written yet") ;
+	}
+	MRIconvolveGaussian(mri_nbhd, mri_nbhd, mri_kernel) ;
+	MRIsampleVolumeType(mri_nbhd, half_len+1, half_len, half_len, &xp1, SAMPLE_NEAREST) ;
+	MRIsampleVolumeType(mri_nbhd, half_len-1, half_len, half_len, &xm1, SAMPLE_NEAREST) ;
+	MRIsampleVolumeType(mri_nbhd, half_len, half_len+1, half_len, &yp1, SAMPLE_NEAREST) ;
+	MRIsampleVolumeType(mri_nbhd, half_len, half_len-1, half_len, &ym1, SAMPLE_NEAREST) ;
+	MRIsampleVolumeType(mri_nbhd, half_len, half_len, half_len+1, &zp1, SAMPLE_NEAREST) ;
+	MRIsampleVolumeType(mri_nbhd, half_len, half_len, half_len-1, &zm1, SAMPLE_NEAREST) ;
 
-				x0 = nint(gcamn->x) ; y0 = nint(gcamn->y) ; z0 = nint(gcamn->z) ; 
-				if ((x0+half_len >= mri->width) ||
-						(y0+half_len >= mri->height) ||
-						(z0+half_len >= mri->depth))
-					continue ;
-				MRIextractInto(mri, mri_nbhd, x0-half_len, y0-half_len, z0-half_len,len, len, len, 0, 0, 0) ;
-				if (gcam->gca->ninputs == 1)
-				{
-					var = gcamn->gc->covars[0] ; mean = gcamn->gc->means[0] ;
-
-					for (xi = 0 ;  xi < mri_nbhd->width ; xi++)
-					{
-						for (yi = 0 ;  yi < mri_nbhd->height ; yi++)
-						{
-							for (zi = 0 ;  zi < mri_nbhd->depth ; zi++)
-							{
-								val = MRIFvox(mri_nbhd, xi, yi, zi) ;
-								val = (val - mean) * (val-mean) / var ;
-								MRIFvox(mri_nbhd, xi, yi, zi) = sqrt(val) ;
-							}
-						}
-					}
-				}
-				else  /* haven't written the multi-input case yet */
-				{
-					ErrorExit(ERROR_UNSUPPORTED, "vector-based likelihood not written yet") ;
-				}
-				MRIconvolveGaussian(mri_nbhd, mri_nbhd, mri_kernel) ;
-				MRIsampleVolumeType(mri_nbhd, half_len+1, half_len, half_len, &xp1, SAMPLE_NEAREST) ;
-				MRIsampleVolumeType(mri_nbhd, half_len-1, half_len, half_len, &xm1, SAMPLE_NEAREST) ;
-				MRIsampleVolumeType(mri_nbhd, half_len, half_len+1, half_len, &yp1, SAMPLE_NEAREST) ;
-				MRIsampleVolumeType(mri_nbhd, half_len, half_len-1, half_len, &ym1, SAMPLE_NEAREST) ;
-				MRIsampleVolumeType(mri_nbhd, half_len, half_len, half_len+1, &zp1, SAMPLE_NEAREST) ;
-				MRIsampleVolumeType(mri_nbhd, half_len, half_len, half_len-1, &zm1, SAMPLE_NEAREST) ;
-
-				dx = -(xp1 - xm1)/2 ; dy = -(yp1 - ym1)/2 ; dz = -(zp1 - zm1)/2 ;
+	dx = -(xp1 - xm1)/2 ; dy = -(yp1 - ym1)/2 ; dz = -(zp1 - zm1)/2 ;
         gcamn->dx += l_likelihood*dx ;
         gcamn->dy += l_likelihood*dy ;
         gcamn->dz += l_likelihood*dz ;
@@ -594,10 +595,10 @@ gcamLikelihoodTerm(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth, double l_likeliho
           printf("l_like: node(%d,%d,%d): dp=(%2.2f,%2.2f,%2.2f), node %2.2f+-%2.2f\n",
                  x, y, z, gcamn->dx, gcamn->dy, gcamn->dz,
                  gcamn->gc ? gcamn->gc->means[0] : 0.0, 
-								 gcamn->gc ? sqrt(covariance_determinant(gcamn->gc, gcam->gca->ninputs)) : 0.0) ;
+		 gcamn->gc ? sqrt(covariance_determinant(gcamn->gc, gcam->gca->ninputs)) : 0.0) ;
       }
 
-	MRIfree(&mri_kernel) ; MRIfree(&mri_nbhd) ; MRIfree(&mri) ;
+  MRIfree(&mri_kernel) ; MRIfree(&mri_nbhd) ; MRIfree(&mri) ;
   return(NO_ERROR) ;
 }
 
@@ -1398,7 +1399,10 @@ GCAMmorphFromAtlas(MRI *mri_in, GCA_MORPH *gcam, MRI *mri_morphed)
 #define SCALE_FACTOR 25.0f  /* so we can use byte images for float values */
 
   mri_weights = MRIalloc(width, height, depth, MRI_UCHAR) ;
+  MRIcopyHeader(mri_in, mri_weights);
   mri_s_morphed = MRIalloc(width, height, depth, MRI_SHORT) ;
+  MRIcopyHeader(mri_in, mri_s_morphed);
+
   for (x = 0 ; x < width ; x++)
   {
     for (y = 0 ; y < height ; y++)
@@ -2662,9 +2666,14 @@ GCAMinvert(GCA_MORPH *gcam, MRI *mri)
   width = mri->width ; height = mri->height ; depth = mri->depth ;
 
   gcam->mri_xind = MRIalloc(width, height, depth, MRI_SHORT) ;
+  MRIcopyHeader(mri, gcam->mri_xind);
   gcam->mri_yind = MRIalloc(width, height, depth, MRI_SHORT) ;
+  MRIcopyHeader(mri, gcam->mri_yind);
   gcam->mri_zind = MRIalloc(width, height, depth, MRI_SHORT) ;
+  MRIcopyHeader(mri, gcam->mri_zind);
   mri_ctrl = MRIalloc(width, height, depth, MRI_UCHAR) ;
+  MRIcopyHeader(mri, mri_ctrl);
+
   if (!gcam->mri_xind || !gcam->mri_yind || !gcam->mri_zind || !mri_ctrl)
     ErrorExit(ERROR_NOMEMORY, "GCAMinvert: could not allocated %dx%dx%d index volumes",
               width, height, depth) ;
@@ -2804,7 +2813,9 @@ gcamWriteMRI(GCA_MORPH *gcam, MRI *mri, int which)
   GCA_MORPH_NODE *gcamn ;
   
   if (!mri)
+  {
     mri = MRIalloc(gcam->width, gcam->height, gcam->depth, MRI_FLOAT) ;
+  }
   if (!mri)
     ErrorExit(ERROR_NOMEMORY, "gcamWrite: could not allocate %dx%dx%d MRI\n",
 	      gcam->width, gcam->height, gcam->depth) ;
