@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Computes glm inferences on the surface.
-  $Id: mris_glm.c,v 1.29 2004/10/06 22:03:04 greve Exp $
+  $Id: mris_glm.c,v 1.30 2004/10/20 21:13:22 greve Exp $
 
 Things to do:
   0. Documentation.
@@ -73,7 +73,7 @@ static char *getstem(char *bfilename);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_glm.c,v 1.29 2004/10/06 22:03:04 greve Exp $";
+static char vcid[] = "$Id: mris_glm.c,v 1.30 2004/10/20 21:13:22 greve Exp $";
 char *Progname = NULL;
 
 char *hemi        = NULL;
@@ -196,7 +196,7 @@ int main(int argc, char **argv)
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv, 
-      "$Id: mris_glm.c,v 1.29 2004/10/06 22:03:04 greve Exp $", "$Name:  $");
+      "$Id: mris_glm.c,v 1.30 2004/10/20 21:13:22 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -427,7 +427,7 @@ int main(int argc, char **argv)
   }
 
   /* ------- Start simulation loop -- only one pass for non-sim runs -------- */
-  for(nthsim = 0; nthsim <= nsim; nthsim++){
+  for(nthsim = 0; nthsim < nsim; nthsim++){
 
     /* ------ Synthesize data ------ */
     if(beta_in_id == NULL && SynthPDF != 0){
@@ -446,7 +446,9 @@ int main(int argc, char **argv)
       if(MRIwriteAnyFormat(SrcVals,yid,yfmt,-1,NULL)) exit(1);
       if(fsgd != NULL){
 	sprintf(tmpstr,"%s.fsgd",getstem(yid));
-	strcpy(fsgd->measname,surfmeasure);
+	if(surfmeasure != NULL) strcpy(fsgd->measname,surfmeasure);
+	else	                strcpy(fsgd->measname,"external");
+
 	sprintf(fsgd->datafile,"%s_000.bfloat",getstem(yid));
 	sprintf(fsgd->DesignMatFile,"%s.X.mat",getstem(yid));
 	MatlabWrite(X,fsgd->DesignMatFile,"X");
@@ -454,7 +456,7 @@ int main(int argc, char **argv)
 	gdfPrintHeader(fp,fsgd);
 	fprintf(fp,"Creator          %s\n",Progname);
 	fprintf(fp,"SmoothSteps      %d\n",nsmooth);
-	fprintf(fp,"SUBECTS_DIR      %s\n",SUBJECTS_DIR);
+	fprintf(fp,"SUBJECTS_DIR     %s\n",SUBJECTS_DIR);
 	fprintf(fp,"SynthSeed        %d\n",SynthSeed);
 	fclose(fp);
       }
@@ -494,7 +496,7 @@ int main(int argc, char **argv)
     /* Compute contrast-effect size */
     if(tid != NULL || sigid != NULL || cesid != NULL || 
        tmaxfile != NULL || SynthPDF != 0){
-      if(nsim == 1) printf("INFO: computing contrast effect size \n");fflush(stdout);
+      if(nsim == 1) printf("INFO: computing contrast effect size \n");
       ces = fMRImatrixMultiply(beta,C,ces);
       if(cesid != NULL && MCSim == 0){
 	if(IsSurfFmt(cesfmt) && IcoSurf == NULL)
@@ -505,7 +507,7 @@ int main(int argc, char **argv)
     
     /* Compute t-ratio  */
     if(tid != NULL || sigid != NULL || tmaxfile != NULL || SynthPDF != 0){
-      if(nsim == 1) printf("INFO: computing t \n"); fflush(stdout);
+      if(nsim == 1) printf("INFO: computing t \n");
       if(C->rows == 1)
 	t = fMRIcomputeT(ces, X, C, eresvar, t);
       else
