@@ -1971,7 +1971,10 @@ mghRead(char *fname, int read_volume, int frame)
     start_frame = 0 ; end_frame = nframes-1 ;
   }
   if (!read_volume)
+  {
     mri = MRIallocHeader(width, height, depth, type) ;
+    mri->dof = dof ;
+  }
   else
   {
     if (type == MRI_UCHAR)
@@ -1979,6 +1982,7 @@ mghRead(char *fname, int read_volume, int frame)
     else
       buf = NULL ;
     mri = MRIallocSequence(width, height, depth, type, nframes) ;
+    mri->dof = dof ;
     for (frame = start_frame ; frame <= end_frame ; frame++)
     {
       for (z = 0 ; z < depth ; z++)
