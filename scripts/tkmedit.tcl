@@ -1,6 +1,6 @@
 #! /usr/bin/tixwish
 
-# $Id: tkmedit.tcl,v 1.47 2003/05/16 19:41:49 kteich Exp $
+# $Id: tkmedit.tcl,v 1.48 2003/05/21 17:28:22 kteich Exp $
 
 source $env(MRI_DIR)/lib/tcl/tkm_common.tcl
 
@@ -72,7 +72,7 @@ set glActiveFlags {}
 set DspA_tTool_Navigate   0
 set DspA_tTool_Select     1
 set DspA_tTool_Edit       2
-set DspA_tTool_EditParc   3
+set DspA_tTool_EditSeg   3
 set DspA_tTool_CtrlPts    4
 
 # DspA_tBrush
@@ -156,13 +156,20 @@ set gTool $DspA_tTool_Select
 
 set gDisplayIntermediateResults 1
 
-# parc edit brush
-set gParcBrush(color) 0
-set gParcBrush(3d) 0
-set gParcBrush(fuzzy) 0
-set gParcBrush(distance) 0
-set gParcBrush(src) $tkm_tVolumeType_Main
-set glParcEditColors {}
+# seg edit brush
+set gSegBrush(color) 0
+set gSegBrush(3d) 0
+set gSegBrush(fuzzy) 0
+set gSegBrush(distance) 0
+set gSegBrush(src) $tkm_tVolumeType_Main
+set glSegEditColors {}
+
+# flood select params
+set gFloodSelectParams(3d) 0
+set gFloodSelectParams(src) $tkm_tVolumeType_Main
+set gFloodSelectParams(fuzzy) 0
+set gFloodSelectParams(distance) 0
+
 
 # for view preset setting and buttons
 set gDisplayCols 1
@@ -470,31 +477,40 @@ proc UpdateSurfaceLineColor { iSurface ifRed ifGreen ifBlue } {
     set gSurface($iSurface,color,blue) $ifBlue
 }
 
-proc UpdateParcBrushInfo { inColor ib3D iSrc inFuzzy inDistance } {
-    global gParcBrush
+proc UpdateSegBrushInfo { inColor ib3D iSrc inFuzzy inDistance } {
+    global gSegBrush
 
-    set oldSelection  $gParcBrush(color)
+    set oldSelection  $gSegBrush(color)
 
-    set gParcBrush(color)   $inColor
-    set gParcBrush(3d)      $ib3D
-    set gParcBrush(src)     $iSrc
-    set gParcBrush(fuzzy)   $inFuzzy
-    set gParcBrush(sitance) $inDistance
+    set gSegBrush(color)   $inColor
+    set gSegBrush(3d)      $ib3D
+    set gSegBrush(src)     $iSrc
+    set gSegBrush(fuzzy)   $inFuzzy
+    set gSegBrush(sitance) $inDistance
 
-    # if the parc brush info dialog box is open, we want to select the
-    # item with the index of the parc brush color. do all this in a catch
+    # if the seg brush info dialog box is open, we want to select the
+    # item with the index of the seg brush color. do all this in a catch
     # because if the dialog is not open, this will fail.
     catch { \
-     set fwColor [.wwEditParcBrushInfoDlog.lfwColor subwidget frame].fwColor; \
+     set fwColor [.wwEditSegBrushInfoDlog.lfwColor subwidget frame].fwColor; \
      $fwColor subwidget listbox selection clear $oldSelection; \
-     $fwColor subwidget listbox selection set $gParcBrush(color); \
-     $fwColor subwidget listbox see $gParcBrush(color) \
+     $fwColor subwidget listbox selection set $gSegBrush(color); \
+     $fwColor subwidget listbox see $gSegBrush(color) \
     } sResult
 }
 
 proc UpdateSegmentationVolumeAlpha { ifAlpha } {
     global gfSegmentationVolumeAlpha
     set gfSegmentationVolumeAlpha $ifAlpha
+}
+
+proc UpdateFloodSelectParams { ib3D iSrc inFuzzy inDistance } {
+    global gFloodSelectParams
+
+    set gFloodSelectParams(3d) $ib3D
+    set gFloodSelectParams(src) $iSrc
+    set gFloodSelectParams(fuzzy) $inFuzzy
+    set gFloodSelectParams(distance) $inDistance
 }
 
 proc UpdateVolumeColorScaleInfo { inVolume inThresh inSquash } {
@@ -1635,16 +1651,16 @@ proc DoSurfaceInfoDlog { } {
 
 }
 
-proc DoEditParcBrushInfoDlog { } {
+proc DoEditSegBrushInfoDlog { } {
 
     global gDialog 
-    global gParcBrush glParcEditColors
+    global gSegBrush glSegEditColors
     global tkm_tVolumeTarget_MainAna
     global tkm_tVolumeTarget_AuxAna
     global tkm_tVolumeTarget_MainSeg
     global tkm_tVolumeTarget_AuxSeg
 
-    set wwDialog .wwEditParcBrushInfoDlog
+    set wwDialog .wwEditSegBrushInfoDlog
 
    # try to create the dlog...
     if { [Dialog_Create $wwDialog "Segmentation Brush Info" {-borderwidth 10}] } {
@@ -1663,19 +1679,19 @@ proc DoEditParcBrushInfoDlog { } {
   set fwColor              $fwColorSub.fwColor
 
   tixScrolledListBox $fwColor -scrollbar auto\
-    -browsecmd SendParcBrushInfo
+    -browsecmd SendSegBrushInfo
   
   # go thru the list of entry names and insert each into the listbox
   $fwColor subwidget listbox configure -selectmode single
-  set nLength [llength $glParcEditColors]
+  set nLength [llength $glSegEditColors]
   for { set nEntry 0 } { $nEntry < $nLength } { incr nEntry } {
       $fwColor subwidget listbox insert end \
-        [lindex $glParcEditColors $nEntry]
+        [lindex $glSegEditColors $nEntry]
   }
 
-  # select the one with the index of the parc brush color
-  $fwColor subwidget listbox selection set $gParcBrush(color)
-  $fwColor subwidget listbox see $gParcBrush(color)
+  # select the one with the index of the seg brush color
+  $fwColor subwidget listbox selection set $gSegBrush(color)
+  $fwColor subwidget listbox see $gSegBrush(color)
 
   pack $fwColor \
     -side top \
@@ -1694,7 +1710,7 @@ proc DoEditParcBrushInfoDlog { } {
   set fwLabel         $fwFill.fwLabel
   set fwMainSrc       $fwFill.fwMainSrc
   set fwAuxSrc        $fwFill.fwAuxSrc
-  set fwParcSrc       $fwFill.fwParcSrc
+  set fwSegSrc       $fwFill.fwSegSrc
   set fwSliders       $fwFill.fwSliders
   set fwDistanceNote  $fwFill.fwDistanceNote
 
@@ -1702,28 +1718,28 @@ proc DoEditParcBrushInfoDlog { } {
 
   # 3d
   tkm_MakeCheckboxes $fw3D y { \
-    { text "3D" gParcBrush(3d) "SendParcBrushInfo" } }
+    { text "3D" gSegBrush(3d) "SendSegBrushInfo" } }
 
   # source radios
   tkm_MakeNormalLabel $fwLabel "Use as source:"
   tkm_MakeRadioButton $fwMainSrc "Main Anatomical" \
-    gParcBrush(src) $tkm_tVolumeTarget_MainAna "SendParcBrushInfo"
+    gSegBrush(src) $tkm_tVolumeTarget_MainAna "SendSegBrushInfo"
   tkm_MakeRadioButton $fwAuxSrc "Aux Anatomical" \
-    gParcBrush(src) $tkm_tVolumeTarget_AuxAna "SendParcBrushInfo"
-  tkm_MakeRadioButton $fwParcSrc "Segmentation" \
-    gParcBrush(src) $tkm_tVolumeTarget_MainSeg "SendParcBrushInfo"
+    gSegBrush(src) $tkm_tVolumeTarget_AuxAna "SendSegBrushInfo"
+  tkm_MakeRadioButton $fwSegSrc "Segmentation" \
+    gSegBrush(src) $tkm_tVolumeTarget_MainSeg "SendSegBrushInfo"
   
   # fuzziness and max distance
   tkm_MakeSliders $fwSliders { \
-    { "Fuzziness" gParcBrush(fuzzy) \
-    0 255 50 "SendParcBrushInfo" 1 } \
-    {  "\"Max Distance\"" gParcBrush(distance) \
-    0 255 50 "SendParcBrushInfo" 1 } }
+    { "Fuzziness" gSegBrush(fuzzy) \
+    0 255 50 "SendSegBrushInfo" 1 } \
+    {  "\"Max Distance\"" gSegBrush(distance) \
+    0 255 50 "SendSegBrushInfo" 1 } }
   tkm_MakeSmallLabel $fwDistanceNote "enter 0 for no limit"
   
 
   pack $fw3D $fwLabel $fwMainSrc $fwAuxSrc \
-    $fwParcSrc $fwSliders $fwDistanceNote $fwFill \
+    $fwSegSrc $fwSliders $fwDistanceNote $fwFill \
     -side top \
     -expand yes \
     -fill x
@@ -1736,6 +1752,79 @@ proc DoEditParcBrushInfoDlog { } {
     -expand yes \
     -fill x
 
+    }
+}
+
+proc DoEditFloodSelectParamsDlog { } {
+
+    global gDialog 
+    global gFloodSelectParams
+    global tkm_tVolumeTarget_MainAna
+    global tkm_tVolumeTarget_AuxAna
+    global tkm_tVolumeTarget_MainSeg
+    global tkm_tVolumeTarget_AuxSeg
+
+    set wwDialog .wwEditFloodSelectParams
+
+   # try to create the dlog...
+    if { [Dialog_Create $wwDialog "Flood Select" {-borderwidth 10}] } {
+
+	
+	set fwMain          $wwDialog.fwMain
+	set fwButtons       $wwDialog.fwButtons
+
+	set fw3D            $fwMain.fw3D
+	set fwLabel         $fwMain.fwLabel
+	set fwMainSrc       $fwMain.fwMainSrc
+	set fwAuxSrc        $fwMain.fwAuxSrc
+	set fwSegSrc        $fwMain.fwSegSrc
+	set fwAuxSegSrc     $fwMain.fwAuxSegSrc
+	set fwSliders       $fwMain.fwSliders
+	set fwDistanceNote  $fwMain.fwDistanceNote
+	
+	frame $fwMain
+
+	# 3d
+	tkm_MakeCheckboxes $fw3D y {
+	    { text "3D" gFloodSelectParams(3d) "SendFloodSelectParams" } }
+	
+	# source radios
+	tkm_MakeNormalLabel $fwLabel "Use as source:"
+	tkm_MakeRadioButton $fwMainSrc "Main Anatomical" \
+	    gFloodSelectParams(src) $tkm_tVolumeTarget_MainAna \
+	    "SendFloodSelectParams"
+	tkm_MakeRadioButton $fwAuxSrc "Aux Anatomical" \
+	    gFloodSelectParams(src) $tkm_tVolumeTarget_AuxAna \
+	    "SendFloodSelectParams"
+	tkm_MakeRadioButton $fwSegSrc "Main Segmentation" \
+	    gFloodSelectParams(src) $tkm_tVolumeTarget_MainSeg \
+	    "SendFloodSelectParams"
+	tkm_MakeRadioButton $fwAuxSegSrc "Aux Segmentation" \
+	    gFloodSelectParams(src) $tkm_tVolumeTarget_AuxSeg \
+	    "SendFloodSelectParams"
+	
+	# fuzziness and max distance
+	tkm_MakeSliders $fwSliders { 
+	    { "Fuzziness" gFloodSelectParams(fuzzy) 
+		0 255 50 "SendFloodSelectParams" 1 } 
+	    {  "\"Max Distance\"" gFloodSelectParams(distance) 
+		0 255 50 "SendFloodSelectParams" 1 } }
+	tkm_MakeSmallLabel $fwDistanceNote "enter 0 for no limit"
+	
+	
+	pack $fw3D $fwLabel $fwMainSrc $fwAuxSrc \
+	    $fwSegSrc $fwAuxSegSrc $fwSliders $fwDistanceNote \
+	    -side top \
+	    -expand yes \
+	    -fill x
+
+	# close button
+	tkm_MakeCloseButton $fwButtons $wwDialog 
+	
+	pack $fwMain $fwButtons \
+	    -side top \
+	    -expand yes \
+	    -fill x
     }
 }
 
@@ -2391,16 +2480,24 @@ proc SetDTIVolumeConfiguration {} {
     SetDTIAlpha $gfDTIVolumeAlpha
 }
 
-proc SendParcBrushInfo {} {
-    global gParcBrush
+proc SendSegBrushInfo {} {
+    global gSegBrush
 
     # get the selected item from the scrolled box in the dlog. this is the
     # index of the color to use.
-    set nSelection [[.wwEditParcBrushInfoDlog.lfwColor subwidget frame].fwColor subwidget listbox curselection];
+    set nSelection [[.wwEditSegBrushInfoDlog.lfwColor subwidget frame].fwColor subwidget listbox curselection];
 
-    SetParcBrushInfo $nSelection $gParcBrush(3d) \
-      $gParcBrush(src) $gParcBrush(fuzzy) \
-      $gParcBrush(distance)
+    SetSegBrushInfo $nSelection $gSegBrush(3d) \
+      $gSegBrush(src) $gSegBrush(fuzzy) \
+      $gSegBrush(distance)
+}
+
+proc SendFloodSelectParams {} {
+    global gFloodSelectParams
+
+    SetFloodSelectParams $gFloodSelectParams(3d) \
+      $gFloodSelectParams(src) $gFloodSelectParams(fuzzy) \
+      $gFloodSelectParams(distance)
 }
 
 proc SendVolumeColorScale { } {
@@ -2517,16 +2614,16 @@ proc ShowFuncValue { ibShow } {
     ShowLabel kLabel_Value_Func $ibShow
 }
 
-proc ClearParcColorTable { } {
+proc ClearSegColorTable { } {
 
-    global glParcEditColors
-    set glParcEditColors {}
+    global glSegEditColors
+    set glSegEditColors {}
 }
 
-proc AddParcColorTableEntry { inIndex isString } {
+proc AddSegColorTableEntry { inIndex isString } {
 
-    global glParcEditColors
-    set glParcEditColors [linsert $glParcEditColors $inIndex $isString]
+    global glSegEditColors
+    set glSegEditColors [linsert $glSegEditColors $inIndex $isString]
 }
 
 # =============================================================== VIEW PRESETS
@@ -2634,7 +2731,7 @@ proc MakeKeyBindings { iwTop } {
     bind $iwTop <Key-a> \
 	{SetTool $DspA_tTool_Edit}
     bind $iwTop <Key-g> \
-	{SetTool $DspA_tTool_EditParc}
+	{SetTool $DspA_tTool_EditSeg}
     bind $iwTop <Key-t> \
 	{SetTool $DspA_tTool_CtrlPts}
 }
@@ -2644,7 +2741,7 @@ proc CreateMenuBar { ifwMenuBar } {
     global mri_tOrientation_Sagittal mri_tOrientation_Horizontal 
     global mri_tOrientation_Coronal
     global DspA_tTool_Navigate DspA_tTool_Select
-    global DspA_tTool_Edit DspA_tTool_EditParc  DspA_tTool_CtrlPts 
+    global DspA_tTool_Edit DspA_tTool_EditSeg  DspA_tTool_CtrlPts 
     global gDisplayCols gDisplayRows gViewPreset
     global tViewPreset_Single tViewPreset_Multiple tViewPreset_Mosaic    
     global gTool
@@ -3143,7 +3240,7 @@ proc CreateMenuBar { ifwMenuBar } {
 	    2 }
 	{ radio
 	    "Edit Segmentation:G"
-	    "SetTool $DspA_tTool_EditParc"
+	    "SetTool $DspA_tTool_EditSeg"
 	    gTool
 	    3 }
 	{ radio
@@ -3160,8 +3257,11 @@ proc CreateMenuBar { ifwMenuBar } {
 	    DoEditBrushInfoDlog }
 	{ command
 	    "Configure Segmentation Brush..."
-	    DoEditParcBrushInfoDlog
+	    DoEditSegBrushInfoDlog
 	    tMenuGroup_Segmentation }
+	{ command
+	    "Configure Flood Select..."
+	    DoEditFloodSelectParamsDlog }
 	{ separator }
 	{ command
 	    "Save Point"
