@@ -80,7 +80,7 @@ handle_version_option (int argc, char** argv, char* id_string)
 	    fprintf (stdout, "%s ", argv[nnarg]);
 	  fprintf (stdout, "\n");
 	  
-	  fprintf (stdout, "%s Platform: %s GCC: %d\n",
+	  fprintf (stdout, "%s Platform: %s C lib: %d\n",
 		   id_string, __PLATFORM__, __GNUC_VERSION__);
 	  
 	  num_processed_args++;
