@@ -606,3 +606,105 @@ MRICcomputeInputs(MRI *mri, int x,int y,int z,float *inputs,int ninputs)
 
   return(NO_ERROR) ;
 }
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+          Build an image of target values. Each point in the image
+          contains the class # based on intensity thresholds either
+          provided by the user, or defaults if parms are 0.
+------------------------------------------------------*/
+MRI *
+MRICbuildTargetImage(MRI *mri_src, MRI *mri_target, MRI *mri_wm,
+                     int lo_lim, int hi_lim)
+{
+  int     x, y, z, width, height, depth ;
+  BUFTYPE *psrc, *pwm, *ptarget, src, wm, target ;
+
+  if (lo_lim <= 0)
+    lo_lim = LO_LIM ;
+  if (hi_lim <= 0)
+    hi_lim = HI_LIM ;
+
+  if (!mri_target)
+    mri_target = MRIclone(mri_wm, NULL) ;
+
+  width = mri_src->width ;
+  height = mri_src->height ;
+  depth = mri_src->depth ;
+
+  for (z = 0 ; z < depth ; z++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      psrc = &MRIvox(mri_src, 0, y, z) ;
+      ptarget = &MRIvox(mri_target, 0, y, z) ;
+      pwm = &MRIvox(mri_wm, 0, y, z) ;
+      for (x = 0 ; x < width ; x++)
+      {
+        src = *psrc++ ;
+        wm = *pwm++ ;
+        if (wm)
+          target = WHITE_MATTER ;
+        else if (src > hi_lim)
+          target = BRIGHT_MATTER ;
+        else if (src < lo_lim)
+          target = BACKGROUND ;
+        else
+          target = GREY_MATTER ;
+        *ptarget++ = target ;
+      }
+    }
+  }
+  return(mri_target) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+          Update the prior estimates using a frequency count.
+------------------------------------------------------*/
+MRI *
+MRICupdatePriors(MRI *mri_target, MRI *mri_priors, int scale)
+{
+  int      width, height, depth, xp, yp, zp, x, y, z, class,w,h,d, xt, yt, zt ;
+  BUFTYPE  *ptarget ;
+  float    increment ;
+  Real     xrt, yrt, zrt ;
+
+  width = mri_target->width ;
+  height = mri_target->height ;
+  depth = mri_target->depth ;
+  w = (int)(((float)width / (float)scale)+0.99f) ;
+  h = (int)(((float)height / (float)scale)+0.99f) ;
+  d = (int)(((float)depth / (float)scale)+0.99f) ;
+  if (!mri_priors)
+    mri_priors = 
+      MRIallocSequence(w, h, d, MRI_FLOAT, GAUSSIAN_NCLASSES) ;
+
+  increment = 1.0f / (float)(scale*scale*scale) ;
+  for (z = 0 ; z < depth ; z++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      ptarget = &MRIvox(mri_target, 0, y, z) ;
+      for (x = 0 ; x < width ; x++)
+      {
+        MRIvoxelToTalairachVoxel(mri_target, (Real)x, (Real)y, (Real)z,
+                                 &xrt, &yrt, &zrt) ;
+        xt = mri_priors->xi[nint(xrt/scale)] ;
+        yt = mri_priors->yi[nint(yrt/scale)] ;
+        zt = mri_priors->zi[nint(zrt/scale)] ;
+        class = *ptarget++ ;
+        MRIFseq_vox(mri_priors, xt, yt, zt, class) =
+          MRIFseq_vox(mri_priors, xt, yt, zt, class) + increment ;
+      }
+    }
+  }
+  return(mri_priors) ;
+}
+
