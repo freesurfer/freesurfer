@@ -17932,7 +17932,11 @@ mrisReadTriangleFilePositions(MRI_SURFACE *mris, char *fname)
   /*  fscanf(fp, "\ncreated by %s on %s\n", user, time_str) ;*/
   nvertices = freadInt(fp);
   nfaces = freadInt(fp);  
-  
+
+  if (nvertices != mris->nvertices || nfaces != mris->nfaces)
+    ErrorExit(ERROR_BADPARM, "mrisReadTriangleFile(%s): surface doesn't match %s\n",
+              fname, mris->fname) ;
+
   if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
     fprintf(stderr,"surface %s: %d vertices and %d faces.\n",
             fname, nvertices,nfaces);
@@ -20725,9 +20729,11 @@ MRIScorrectTopology(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected)
     fprintf(stderr, "%d defects found, arbitrating ambiguous regions...\n",
             dl->ndefects) ;
 
+#if 0
   MRISsaveVertexPositions(mris, CANONICAL_VERTICES) ;
   MRISreadVertexPositions(mris, "inflated") ;
   MRISsaveVertexPositions(mris, TMP_VERTICES) ;
+#endif
 #if 0
   MRISrestoreVertexPositions(mris, ORIGINAL_VERTICES) ;
 #endif
