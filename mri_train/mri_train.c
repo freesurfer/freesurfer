@@ -61,6 +61,8 @@ main(int argc, char *argv[])
 
   if (nclusters > 0)
   {
+    rbf_parms.max_clusters[BACKGROUND] = nclusters/2 ;
+    rbf_parms.max_clusters[BRIGHT_MATTER] = nclusters/2 ;
     rbf_parms.max_clusters[GRAY_MATTER] = nclusters ;
     rbf_parms.max_clusters[WHITE_MATTER] = nclusters ;
     rbf_parms.max_clusters[BORDER_MATTER] = nclusters ;
