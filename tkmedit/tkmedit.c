@@ -1343,6 +1343,10 @@ void loadFV()
     DebugPrint "loadFV(): got path %s and stem %s\n",
       thePath, theStem EndDebugPrint;
     
+    // set the functions it needs to interface with us.
+    FuncDis_SetRedrawFunction ( &redraw );
+    FuncDis_SetSendTCLCommandFunction ( &SendTCLCommand );
+
     // load and init.
     FuncDis_LoadData ( thePath, theStem );
     FuncDis_InitGraphWindow ( GetTCLInterp () );
@@ -2040,20 +2044,22 @@ int Medit(ClientData clientData, Tcl_Interp *interp, int argc, char *argv[]) {
 printf("\n");
 printf("Usage:\n");
 printf("  Using SUBJECTS_DIR environment variable and subject name as a volume source:\n" );
-printf("       %s name imagedir [relative_surf_name] [-] [-tcl script] [-s scale_factor]\n",argv[0]);
+printf("       %s name imagedir [relative_surf_name] [-] [-o functional_path stem] [-tcl script] [-s scale_factor]\n",argv[0]);
  printf("  Options:\n" );     
 printf("           name  subjectdir name              (relative to $SUBJECTS_DIR)\n");
 printf("       imagedir  orig,T1,brain,wm,filled      (relative to $subject/mri)\n");
 printf("       surfname  ?h.orig,?h.smoothwm,?h.plump (relative to $subject/surf)\n");
+ printf("functional_path  full path to functional data\n");
+ printf("           stem  stem of functional data image files\n");
 
 printf("\n  Specifying a specific dir or file as a volume source:\n");
-printf("       %s -f file_or_path [full_surf_path] [-] [-tcl script] [-s scale_factor]\n",argv[0]);
+printf("       %s -f file_or_path [full_surf_path] [-] [-o functinal_path stem] [-tcl script] [-s scale_factor]\n",argv[0]);
  printf("  Options:\n" );     
 printf("-f file_or_path  look at file_or_path and guess format to read in\n");
 printf(" full_surf_path  the full path including file name to a surface file\n");
 
  printf("\n  Using volume data in the current directory:\n" );
-printf("       %s local [-] [-tcl script] [-s scale_factor]\n",argv[0]);
+printf("       %s local [-] [-o functional_path stem] [-tcl script] [-s scale_factor]\n",argv[0]);
 
  printf("\n  General options:\n" );
  printf("   -tcl script  run in script mode with no visual output\n");
@@ -2071,7 +2077,7 @@ exit(1);
               to disguise the fact that they were
               there. */
     // kt - look for scale factor switch
-    if ( MATCH ( argv[argc-2], "-s" ) ) {
+    if ( argc > 2 && MATCH ( argv[argc-2], "-s" ) ) {
 
       // read in their scale factor.
       theScaleFactor = atoi ( argv[argc-1] );
@@ -2108,7 +2114,7 @@ exit(1);
     }
     statsloaded = 0;
 
-    if ( MATCH ( argv[argc-3], "-o" ) ) {
+    if ( argc > 3 && MATCH ( argv[argc-3], "-o" ) ) {
 
       isLoadingFunctionalData = TRUE;
       strcpy ( theFunctionalPath, argv[argc-2] );
@@ -4214,13 +4220,13 @@ void HandleMouseUp ( XButtonEvent inEvent ) {
   Voxel_New ( &theScreenVoxel );
   Voxel_New ( &theAnatomicalVoxel );
 
-  // get the clicked point in screen coords.
                                    /* first set our click points to the
               current cursor pts. this is  done
               because our ClickToScreen func leaves
               the coord that represents that z coords
               on the screen untouched, which won't be
               chaned by clicking in the x/y plane. */
+  // get the clicked point in screen coords.
   theClickedX = jc;
   theClickedY = ic;
   theClickedZ = imc;
@@ -8313,13 +8319,13 @@ char **argv;
   Tcl_CreateCommand ( interp, "SetBrush3DStatus", W_SetBrush3DStatus, REND );
 
   // labels
-  Tcl_CreateCommand ( interp, "SaveSelectionToLabelFile",
-          W_SaveSelectionToLabelFile, REND );
   Tcl_CreateCommand ( interp, "savelabel", 
           W_SaveSelectionToLabelFile, REND );
-  Tcl_CreateCommand ( interp, "LoadSelectionFromLabelFile",
-          W_LoadSelectionFromLabelFile, REND );
+  Tcl_CreateCommand ( interp, "SaveLabel", 
+          W_SaveSelectionToLabelFile, REND );
   Tcl_CreateCommand ( interp, "loadlabel", 
+          W_LoadSelectionFromLabelFile, REND );
+  Tcl_CreateCommand ( interp, "LoadLabel", 
           W_LoadSelectionFromLabelFile, REND );
 
   // end_kt
@@ -8459,6 +8465,12 @@ char **argv;
 
   // kt - if doing functional data, init graph window.
   if ( FuncDis_IsDataLoaded () ) {
+
+    // set the functions it needs to interface with us.
+    FuncDis_SetRedrawFunction ( &redraw );
+    FuncDis_SetSendTCLCommandFunction ( &SendTCLCommand );
+
+    // now init the graph window.
     FuncDis_InitGraphWindow ( interp );
   }
 
@@ -8468,16 +8480,6 @@ char **argv;
   printf("\t-z: switch to change scale factor from command line\n");
   printf("\tCtrl-button 1: Zoom in\n");
   printf("\tCtrl-button 3: Zoom out\n");
-
-  printf("\nControl points:\n");
-  printf("\tCtrl-h: toggle control point visibility\n");
-  printf("\tCtrl-y: toggle control point display style\n");
-  printf("\tButton 2: select nearest control point\n");
-  printf("\tShift-button 2: add nearest control point to selection\n");
-  printf("\tCtrl-button 2: remove nearest control point from selection\n");
-  printf("\tCtrl-n: deselect all points\n");
-  printf("\tCtrl-d: delete selected points\n");
-  printf("\tCtrl-s: save control points to control.dat file\n");
 
   printf("\nSurface display:\n");
   printf("\t'read_surface <surf_name>': read a current surface\n");
@@ -8489,8 +8491,24 @@ char **argv;
   printf("\tCtrl-v: toggle surface vertex display\n");
   printf("\tCtrl-a: toggle vertex display type, average or real\n");
 
-  printf("\nEditing:\n");
+  printf("\nControl point mode:\n");
+  printf("\tCtrl-h: toggle control point visibility\n");
+  printf("\tCtrl-y: toggle control point display style\n");
+  printf("\tButton 2: select nearest control point\n");
+  printf("\tShift-button 2: add nearest control point to selection\n");
+  printf("\tCtrl-button 2: remove nearest control point from selection\n");
+  printf("\tCtrl-n: deselect all points\n");
+  printf("\tCtrl-d: delete selected points\n");
+  printf("\tCtrl-s: save control points to control.dat file\n");
+
+  printf("\nEdit mode:\n");
   printf("\tCtrl-z: undos last edit stroke\n");
+
+  printf("\nSelection mode:\n");
+  printf("\t'LoadLabel label_file': import a label file into a selection.\n");
+  printf("\t'SaveLabel label_file': save a selection as a label file.\n");
+  printf("\tButton 2: add to selection\n");
+  printf("\tButton 3: remove from selection\n" );
 
   printf("\nMode switching:\n");
   printf("\t'SelectMode': enter selection mode\n");
@@ -8953,7 +8971,7 @@ void ToggleCtrlPtDisplayStatus () {
   // if we're not in control points mode, we still won't be able to
   // view control points.
   if ( !control_points ) {
-    fprintf ( stdout, "NOTE: You are in editing mode, not control point mode. You will not be able to see control points until you enter control point mode. This can be done by entering \"select_control_points\" at the prompt.\n" );
+    fprintf ( stdout, "NOTE: You are in editing mode, not control point mode. You will not be able to see control points until you enter control point mode. This can be done by entering \"CtrlPtMode\" at the prompt.\n" );
   }
 
   PR;
@@ -8974,7 +8992,7 @@ void ToggleCtrlPtDisplayStyle () {
   }
 
   if ( !control_points ) {
-    fprintf ( stdout, "NOTE: You are in editing mode, not control point mode. You will not be able to see control points until you enter control point mode. This can be done by entering \"select_control_points\" at the prompt.\n" );
+    fprintf ( stdout, "NOTE: You are in editing mode, not control point mode. You will not be able to see control points until you enter control point mode. This can be done by entering \"CtrlPtMode\" at the prompt.\n" );
   }
 
   PR;
