@@ -62,8 +62,10 @@ static void dump_options(FILE *fp);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_volcluster.c,v 1.2 2002/01/23 01:04:56 greve Exp $";
+static char vcid[] = "$Id: mri_volcluster.c,v 1.3 2002/02/25 16:53:41 greve Exp $";
 char *Progname = NULL;
+
+static char tmpstr[2000];
 
 int debug = 0;
 int verbose = 0;
@@ -97,8 +99,9 @@ char  *outtypestring;
 
 char *sumfile;
 
-int nlabelcluster;
+int nlabelcluster = -1;
 char *labelfile;
+char *labelbase;
 
 float threshmin  = -1.0;
 float threshmax  = -1.0;
@@ -386,6 +389,19 @@ int main(int argc, char **argv)
     LabelWrite(label, labelfile);
   }
 
+  if(labelbase != NULL){
+    for(nlabelcluster = 0; nlabelcluster < nclusters; nlabelcluster ++){
+      
+      printf("Computing label for cluster %d\n",nlabelcluster);
+      sprintf(tmpstr,"%s-%04d.label",labelbase,nlabelcluster+1);
+      label = clustCluster2Label(ClusterList[nlabelcluster], vol, frame,
+         colres, rowres, sliceres, FSA2Func);
+      printf("Saving label to %s\n",tmpstr);
+      LabelWrite(label, tmpstr);
+      LabelFree(&label);
+    }
+  }
+
   printf("mri_volcluster: done\n");
 
   return(0);
@@ -517,6 +533,12 @@ static int parse_commandline(int argc, char **argv)
       labelfile = pargv[0];
       nargsused = 1;
     }
+    else if (!strcmp(option, "--labelbase") ||
+       !strcmp(option, "--labelbase")){
+      if(nargc < 1) argnerr(option,1);
+      labelbase = pargv[0];
+      nargsused = 1;
+    }
     else if (!strcmp(option, "--nlabelcluster")){
       if(nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%d",&nlabelcluster);
@@ -644,6 +666,7 @@ static void print_usage(void)
   fprintf(stdout, "\n");
   fprintf(stdout, "   --label   label file\n");
   fprintf(stdout, "   --nlabelcluster n : save nth cluster in label\n");
+  fprintf(stdout, "   --labelbase  base : save all clusters under base-NNNN.label\n");
   fprintf(stdout, "\n");
   fprintf(stdout, "   --synth   synthfunc (uniform,loguniform,gaussian)\n");
   fprintf(stdout, "   --help    : how to use this program \n");
@@ -766,8 +789,13 @@ COMMAND-LINE ARGUMENTS:
     label file in the subject's anatomical space. Note: make sure that the
     label file includes a forward slash (/) or the label will be saved
     into the subjects anatomical direcotry. For example: ./mylabel.label.
+    Requires --nlabelcluster.
 
   --nlabelcluster n : save the nth cluster (see -label) as a label file.
+
+  --labelbase base : save each cluster in its own label file. The name
+    of the file will be base-NNNN.label, where NNNN is the four digit,
+    zero-padded cluster number. All clusters found will be saved.
 
 SUMMARY FILE
 
@@ -950,6 +978,12 @@ static void check_options(void)
       exit(1);
     }
   }
+
+  if(labelfile != NULL && nlabelcluster < 1){
+    printf("ERROR: --nlabelcluster must be specified with --label\n");
+    err = 1;
+  }
+
 
   if(err) exit(1);
 
