@@ -36,7 +36,7 @@ extern "C" {
 #define ISVERBATIM(type)  (((type) & 0xff00) == ITYPE_VERBATIM)
 #define BPP(type)   ((type) & BPPMASK)
 #define RLE(bpp)    (ITYPE_RLE | (bpp))
-/*#define VERBATIM(bpp)   (ITYPE_VERBATIM | (bpp))*/
+#define UNCOMPRESSED(bpp)   (ITYPE_VERBATIM | (bpp))
 #define IBUFSIZE(pixels)  ((pixels+(pixels>>6))<<2)
 #define RLE_NOP     0x00
 
