@@ -21,7 +21,7 @@ while( ~isempty(runid) )
 end
 
 if(isempty(runlist))
-  msg = sprintf('ERROR: no runs found in %s\n',dirname);
+  msg = sprintf('ERROR: no runs found in %s\n',runlistfile);
   qoe(msg);error(msg);
 end
 
