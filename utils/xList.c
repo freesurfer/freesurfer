@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include "xTypes.h"
 #include "xList.h"
 #include "xDebug.h"
 
@@ -43,6 +44,9 @@ xList_tErr xList_New ( xListRef* oppList ) {
   this->mpTail = NULL;
   this->mpNext = NULL;
 
+  /* no comparator by default */
+  this->mComparator = NULL;
+
   // all good, set the outgoing ptr.
   *oppList = this;
   
@@ -86,10 +90,16 @@ xList_tErr xList_InsertItem ( xListRef this,
 
   xList_tErr   eResult    = xList_tErr_NoErr;
   xListNodeRef pNewNode   = NULL;
+  tBoolean     bIsInList  = FALSE;
 
   // verify the list.
   eResult = xList_Verify ( this );
   if ( xList_tErr_NoErr != eResult )
+    goto cleanup;
+
+  /* make sure the item isn't already in here. */
+  xList_IsInList ( this, ipItemToInsert, &bIsInList );
+  if( bIsInList )
     goto cleanup;
 
   // make a new node.
@@ -123,17 +133,21 @@ xList_tErr xList_InsertItem ( xListRef this,
 }
 
 xList_tErr xList_RemoveItem ( xListRef this,
-            void*    ipItemToRemove ) {
+            void**   iopItemToRemove ) {
 
   xList_tErr   eResult   = xList_tErr_NoErr;
   xListNodeRef pCurNode  = NULL;
   xListNodeRef pBackNode = NULL;
-  char         bFound    = FALSE;
+  tBoolean         bFound    = FALSE;
+  void*        pItemToRemove = NULL;
 
   // verify the list.
   eResult = xList_Verify ( this );
   if ( xList_tErr_NoErr != eResult )
     goto cleanup;
+
+  // get the item to remove.
+  pItemToRemove = *iopItemToRemove;
 
   // scan through the list, keeping a back node.
   pCurNode = this->mpHead;
@@ -141,7 +155,8 @@ xList_tErr xList_RemoveItem ( xListRef this,
     && !bFound ) {
 
     // compare the nodes. if we found it exit the loop.
-    if ( pCurNode->mpData == ipItemToRemove ) {
+    if ( xList_CompareItems_( this, pCurNode->mpData, pItemToRemove ) 
+   == xList_tCompare_Match ) {
    
       bFound = TRUE;
  
@@ -176,6 +191,9 @@ xList_tErr xList_RemoveItem ( xListRef this,
     }
   }
 
+  // return the item.
+  *iopItemToRemove = pCurNode->mpData;
+
   // delete the node.
   free ( pCurNode );
 
@@ -186,10 +204,10 @@ xList_tErr xList_RemoveItem ( xListRef this,
  
 
 xList_tErr xList_IsInList ( xListRef this,
-          void* ipItemToFind, char* obpIsInList ) {
+          void* ipItemToFind, tBoolean* obpIsInList ) {
 
   xList_tErr    eResult    = xList_tErr_NoErr;
-  char          bFound     = FALSE;
+  tBoolean          bFound     = FALSE;
 
   // verify the list.
   eResult = xList_Verify ( this );
@@ -216,8 +234,9 @@ xListNodeRef xList_FindItem_ ( xListRef this, void *ipItem ) {
   while ( NULL != pCurNode ) {
 
     // compare the nodes. if we found it, return it.
-    if ( pCurNode->mpData == ipItem ) {
-   
+    if ( xList_CompareItems_( this, pCurNode->mpData, ipItem ) 
+   == xList_tCompare_Match ) {
+      
       return pCurNode;
  
     } else {
@@ -438,14 +457,26 @@ xList_tErr xList_GetNextItemFromPosition ( xListRef this,
   return eResult;
 }
 
+xList_tErr xList_NextFromPos ( xListRef this,
+             void**   oppNextItem ) {
+
+  return xList_GetNextItemFromPosition( this, oppNextItem );
+}
+
 xList_tErr xList_PushItem ( xListRef this, 
           void* ipItemToInsert ) {
   xList_tErr   eResult    = xList_tErr_NoErr;
   xListNodeRef pNewNode   = NULL;
+  tBoolean     bIsInList  = FALSE;
 
   // verify the list.
   eResult = xList_Verify ( this );
   if ( xList_tErr_NoErr != eResult )
+    goto cleanup;
+
+  /* make sure the item isn't already in here. */
+  xList_IsInList ( this, ipItemToInsert, &bIsInList );
+  if( bIsInList )
     goto cleanup;
 
   // make a new node.
@@ -523,6 +554,42 @@ xList_tErr xList_PopItem ( xListRef this, void** oppItem ) {
   return eResult;
 }
 
+xList_tErr xList_SetComparator ( xListRef             this,
+         xList_tCompare(*iComparator)(void*,void*) ) {
+   xList_tErr    eResult  = xList_tErr_NoErr;
+
+ // verify the list.
+  eResult = xList_Verify ( this );
+  if ( xList_tErr_NoErr != eResult )
+    goto cleanup;
+
+  /* set the comparator */
+  this->mComparator = iComparator;
+
+  goto cleanup;
+
+ cleanup:
+  
+  return eResult;
+}
+
+xList_tCompare xList_CompareItems_ ( xListRef this, 
+             void*    pItemA,
+             void*    pItemB ) {
+
+  xList_tCompare eResult = xList_tCompare_Match;
+
+  if( this->mComparator ) {
+    eResult = this->mComparator( pItemA, pItemB );
+  } else {
+    if( pItemA == pItemB) 
+      eResult = xList_tCompare_Match;
+    else 
+      eResult = xList_tCompare_GreaterThan;
+  }
+
+  return eResult;
+}
 
 xList_tErr xList_Verify ( xListRef this ) {
   

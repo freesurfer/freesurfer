@@ -8,6 +8,7 @@
 #include "tkmDisplayArea.h"
 #include "tkmFunctionalVolume.h"
 #include "tcl.h"
+#include "mriSurface.h"
 
 typedef enum {
 
@@ -20,6 +21,7 @@ typedef enum {
   MWin_tErr_InvalidDisplayIndex,
   MWin_tErr_InvalidDisplayArea,
   MWin_tErr_InvalidDisplayConfiguration,
+  MWin_tErr_InvalidCoordinateSpace,
   MWin_tErr_ErrorAccessingDisplay,
   MWin_tErr_WrongNumberArgs,
   MWin_tErr_InvalidEvent,
@@ -115,19 +117,19 @@ MWin_tErr MWin_SetParcellationVolume         ( tkmMeditWindowRef this,
                  int               inSize );
 MWin_tErr MWin_SetSurface                    ( tkmMeditWindowRef this, 
                  int               inDispIndex,
-                 MRI_SURFACE*      ipSurface );
+                 mriSurfaceRef     ipSurface );
 MWin_tErr MWin_SetOverlayVolume              ( tkmMeditWindowRef this,
                  int               inDispIndex,
                  tkmFunctionalVolumeRef ipVol );
 MWin_tErr MWin_SetControlPointsSpace         ( tkmMeditWindowRef this,
                  int               inDispIndex,
-                 VoxelSpaceRef     ipVoxels );
+                 x3DListRef        ipVoxels );
 MWin_tErr MWin_SetControlPointsSelectionList ( tkmMeditWindowRef this,
                  int               inDispIndex,
-                 VoxelListRef      ipVoxels );
+                 xListRef          ipVoxels );
 MWin_tErr MWin_SetSelectionSpace             ( tkmMeditWindowRef this, 
                  int               inDispIndex,
-                 VoxelSpaceRef     ipVoxels );
+                 x3DListRef        ipVoxels );
 
 
 /* viewing state changes. specify the display area the same way as above. */
@@ -136,18 +138,18 @@ MWin_tErr MWin_SetLinkedCursorFlag   ( tkmMeditWindowRef this,
 MWin_tErr MWin_ToggleLinkedCursorFlag( tkmMeditWindowRef this );
 MWin_tErr MWin_SetCursor             ( tkmMeditWindowRef this, 
                int               inDispIndex,
-               VoxelRef          ipCursor );
+               xVoxelRef         ipCursor );
 MWin_tErr MWin_SetOrientation        ( tkmMeditWindowRef this, 
                int               inDispIndex,
-               tkm_tOrientation  iOrientation );
+               mri_tOrientation  iOrientation );
 MWin_tErr MWin_SetZoomCenter         ( tkmMeditWindowRef this, 
                int               inDispIndex,
-               VoxelRef          ipCenter );
+               xVoxelRef         ipCenter );
 MWin_tErr MWin_SetZoomCenterToCursor ( tkmMeditWindowRef this,
                int               inDispIndex );
 MWin_tErr MWin_HiliteSurfaceVertex   ( tkmMeditWindowRef this,
                int               inDispIndex,
-               tkm_tSurfaceType  inSurface,
+               Surf_tVertexSet  inSurface,
                int               inVertex );
 MWin_tErr MWin_SetDisplayFlag        ( tkmMeditWindowRef this,
                int               inDispIndex,
@@ -161,9 +163,9 @@ MWin_tErr MWin_SetVolumeColorScale   ( tkmMeditWindowRef this,
 
 /* get the viewing state of the last clicked display area */
 MWin_tErr MWin_GetCursor ( tkmMeditWindowRef this,
-         VoxelRef          opCursor );
+        xVoxelRef          opCursor );
 MWin_tErr MWin_GetOrientation ( tkmMeditWindowRef         this,
-        tkm_tOrientation*   oOrientation );
+        mri_tOrientation*   oOrientation );
 
 
 /* for cursor linking. a display area whose cursor was set calls this
@@ -171,7 +173,7 @@ MWin_tErr MWin_GetOrientation ( tkmMeditWindowRef         this,
    cursors or flags. */
 MWin_tErr MWin_CursorChanged       ( tkmMeditWindowRef this,
              tkmDisplayAreaRef ipDisplay,
-             VoxelRef          ipCursor );
+            xVoxelRef          ipCursor );
 MWin_tErr MWin_ZoomLevelChanged    ( tkmMeditWindowRef this,
              tkmDisplayAreaRef ipDisplay,
              int               inZoomLevel );

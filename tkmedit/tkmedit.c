@@ -34,7 +34,6 @@
 #include "volume_io.h"
 #include "rgb_image.h"
 #include "fio.h"
-#include "mrisurf.h"
 #include "mri_conform.h"
 
 #ifndef OPENGL
@@ -136,7 +135,6 @@ float ptx[MAXPTS],pty[MAXPTS],ptz[MAXPTS];
 
 float par[MAXPARS],dpar[MAXPARS];
 
-static MRI_SURFACE *mris ;
 int white_lolim = 80;
 int white_hilim = 140;
 int gray_hilim = 100;
@@ -166,21 +164,13 @@ char *cfname;        /* $home/surf/hemi.curv */
 char *xffname;       /* $home/name/mri/transforms/TALAIRACHg4251_FNAME */
 char *rfname;        /* script */
 
-/* Talairach stuff */
-General_transform talairach_transform ; /* the next two are from this struct */
-Transform         *linear_transform = NULL ;
-Transform         *inverse_linear_transform = NULL ;
-int               transform_loaded = 0 ;
-
-
 
 #include "xDebug.h"
 #include "xTypes.h"
 #include "xUtilities.h"
-#include "tkmVoxel.h"
-#include "tkmVoxelList.h"
-#include "tkmVoxelSpace.h"
-#include "VoxelValueList.h"
+#include "xVoxel.h"
+#include "xList.h"
+#include "x3DList.h"
 #include "tkmMeditWindow.h"
 
 
@@ -201,17 +191,6 @@ int               transform_loaded = 0 ;
 
 // ===========================================================================
 
-// ================================================================== MESSAGES
-
-                                   /* put our messages here to make changing
-              them easier. */
-#define kMsg_InvalidClick "\nInvalid click - out of voxel bounds.\n"         \
-      "Although the screen displays areas that are out of voxel bounds in "  \
-      "black, you cannot click on them to select them. Please click inside " \
-      "voxel bounds, closer to the non-black image.\n\n"
-
-
-// ===========================================================================
 
 // =========================================================== READING VOLUMES
 
@@ -222,7 +201,6 @@ int               transform_loaded = 0 ;
               function to read_images and is 
               independent of the SUBJECTS_DIR env
               variable. */
-int ReadVolumeWithMRIRead ( tVolumeRef* ioVolume, char * inFileOrPath );
 
 
 // ===========================================================================
@@ -253,87 +231,68 @@ inline char IsVoxelInBounds ( int x, int y, int z );
 
 // ================================================== SELECTING CONTROL POINTS
 
-                                        /* returns nearest control point on
-             the same plane. returns 1 if found
-             and 0 otherwise. */
-int FindNearestCtrlPt ( VoxelRef inVolumeVox, tkm_tOrientation inPlane,
-      VoxelRef outCtrlPt );
+/* returns nearest control point on the same plane. */
+tBoolean FindNearestCtrlPt ( xVoxelRef        iAnaIdx, 
+           mri_tOrientation iPlane,
+           xVoxelRef*       opCtrlPt );
 
-                                   /* add and remove control points from
-              the selected ones. */
-void AddNearestCtrlPtToSelection ( VoxelRef inVolumeVox, 
-           tkm_tOrientation inPlane );
-void RemoveNearestCtrlPtFromSelection ( VoxelRef inVolumeVox, 
-           tkm_tOrientation inPlane );
+/* find the nearest ctrl pt and add or remove its pointer to the selection
+   list. note that this does not allocate or delete points. only a ptr to
+   ctrl pt lives in the selection list */
+void AddNearestCtrlPtToSelection      ( xVoxelRef        iAnaIdx, 
+          mri_tOrientation iPlane );
+void RemoveNearestCtrlPtFromSelection ( xVoxelRef        iAnaIdx, 
+          mri_tOrientation iPlane );
+void SelectCtrlPt                     ( xVoxelRef        iCtrlPt );
+void DeselectCtrlPt                   ( xVoxelRef        iCtrlPt );
 
-                                        /* remove the selected control points 
-                                           from the control point space */
-void DeleteSelectedCtrlPts ();
+/* deselect all control points */
+void DeselectAllCtrlPts               ();
 
-                                   /* make the input anatomical voxel a
-              control point */
-void NewCtrlPt ( VoxelRef inVoxel );
+/* gets every ctrl pt in the selection list and passes it to DeleteCtrlPt.
+   clears the selection list */
+void DeleteSelectedCtrlPts            ();
 
-                                   /* convert the cursor to anatomical coords
-              and make it a control point. */
+
+
+/* makes a copy of the ctrl pt and puts it in the ctrl pt list */
+void NewCtrlPt           ( xVoxelRef iCtrlPt,
+         tBoolean  ibWriteToFile );
+
+/* removes ctrl pt from the list and deletes it */
+void DeleteCtrlPt        ( xVoxelRef ipCtrlPt );
+
+/* passes the cursor to NewCtrlPt */
 void NewCtrlPtFromCursor ();
 
-                                   /* deselect all control points */
-void DeselectAllCtrlPts ();
 
-                                       /* reads the control.dat file, 
-                                          transforms all pts from RAS space 
-                                          to voxel space, and adds them as 
-                                          control pts */
-void ProcessCtrlPtFile ( char * inDir );
+/* reads the control.dat file, transforms all pts from RAS space 
+   to voxel space, and adds them as control pts */
+void ProcessCtrlPtFile ( char* inDir );
+tBoolean gParsedCtrlPtFile = FALSE;
 
-                                       /* writes all control points to the
-                                          control.dat file in RAS space */
-void WriteCtrlPtFile ( char * inDir );
+/* writes all control points to the control.dat file in RAS space */
+void WriteCtrlPtFile   ( char* inDir );
 
-                                       /* tsia */
-void ToggleCtrlPtDisplayStatus ();
-void SetCtrlPtDisplayStatus ( char inDisplay );
-void ToggleCtrlPtDisplayStyle ();
-void SetCtrlPtDisplayStyle ( int inStyle );
 
-                                       /* global storage for ctrl space. */
-VoxelSpaceRef gCtrlPtList = NULL;
+x3DListRef gCtrlPtList = NULL;
+xListRef gSelectionList = NULL;
 
-                                       /* global storage for selected ctrl 
-                                          pts. */
-VoxelListRef gSelectionList = NULL;
-
-                                       /* flag for displaying ctrl pts. if 
-                                          true, draws ctrl pts in draw loop. */
-char gIsDisplayCtrlPts;
-
-                                       /* style of control point to draw */
-#define kCtrlPtStyle_FilledVoxel              1
-#define kCtrlPtStyle_Crosshair                2
-char gCtrlPtDrawStyle;
-
-                                       /* whether or not we've added the 
-                                          contents of the control.dat file to
-                                          our control pt space. we only want
-                                          to add it once. */
-char gParsedCtrlPtFile;
+/* function for comparing voxels */
+xList_tCompare CompareVoxels ( void* inVoxelA, void* inVoxelB );
 
 // ===========================================================================
 
 // ================================================================== SURFACES
 
-                                      /* for different surface types */
+#include "mriSurface.h"
 
-#define kSurfaceType_Current              0
-#define kSurfaceType_Original             1
-#define kSurfaceType_Canonical            2
+mriSurfaceRef gSurface = NULL;
 
-                                       /* flags for determining whether a
-                                          surface is loaded. */
-char gIsCurrentSurfaceLoaded = FALSE;
-char gIsOriginalSurfaceLoaded = FALSE;
-char gIsCanonicalSurfaceLoaded = FALSE;
+void LoadSurface          ( char*           isName );
+void LoadSurfaceVertexSet ( Surf_tVertexSet iSet,
+          char*           fname );
+void UnloadSurface        ();
 
 // ===========================================================================
 
@@ -341,7 +300,7 @@ char gIsCanonicalSurfaceLoaded = FALSE;
 
 /* selecting regions works much like editing. the user chooses a brush shape and size and paints in a region. the tool can be toggled between selecting and unselecting. the selected pixels are kept in a voxel space for optimized retreival in the draw loop. there are the usual functions for adding and removing voxels as well as saving them out to a file. */
 
-VoxelSpaceRef gSelectedVoxels;
+x3DListRef gSelectedVoxels;
 char isDisplaySelectedVoxels;
 
 void InitSelectionModule ();
@@ -351,13 +310,13 @@ void DeleteSelectionModule ();
 void DrawSelectedVoxels ( char * inBuffer, int inPlane, int inPlaneNum );
 
 /* handles clicks. uses the current brush settings to paint or paint selected voxels. */
-void AllowSelectionModuleToRespondToClick ( VoxelRef inScreenVoxel );
+void AllowSelectionModuleToRespondToClick (xVoxelRef inScreenVoxel );
 
   /* adds or removes voxels to selections. if a voxel that isn't in the 
      selection is told to be removed, no errors occur. this is called from the 
      brush function. */
-void AddVoxelToSelection ( VoxelRef inVoxel );
-void RemoveVoxelFromSelection ( VoxelRef inVoxel );
+void AddVoxelToSelection      ( xVoxelRef  iAnaIdx );
+void RemoveVoxelFromSelection ( xVoxelRef  ipAnaIdx );
 
 /* clears the current selection */
 void ClearSelection ();
@@ -380,7 +339,7 @@ void GraphSelectedRegion ();
 
 // ============================================================ EDITING VOXELS
 
-void EditVoxelInRange( VoxelRef ipVoxel, 
+void EditVoxelInRange(xVoxelRef ipVoxel, 
            tVolumeValue inLow, tVolumeValue inHigh, 
            tVolumeValue inNewValue );
 
@@ -390,42 +349,68 @@ void EditVoxelInRange( VoxelRef ipVoxel,
 
 #define knNumVolumeValues 256
 #define knVolumeSize 256
-#define kfDefaultVolumeThreshold 0.35
-#define kfDefaultVolumeSquash    12.0
-
 static int gVolumeDimension;
 
 static tVolumeRef gAnatomicalVolume    = NULL;
 static tVolumeRef gAuxAnatomicalVolume = NULL;
-static tVolumeRef gSnapshotVolume      = NULL;
+
+/* talairach transforms for each volume */
+General_transform gAnaToTalTransform;
+General_transform gAuxAnaToTalTransform;
+tBoolean          gbAnaToTalTransformLoaded    = FALSE;
+tBoolean          gbAuxAnaToTalTransformLoaded = FALSE;
+
+char gVolumeName[256] = "";
+char gAuxVolumeName[256] = "";
+
+void          InitVolume            ( tVolumeRef*        ioVolume, 
+              int                inDimension );
+void          DeleteVolume          ( tVolumeRef*        ioVolume );
+tVolumeValue* GetVolumeSlicePtr     ( tVolumeRef         inVolume,
+              int                inSlice );
+int           ReadVolumeWithMRIRead ( tVolumeRef*        ioVolume, 
+              General_transform* iTransform,
+              char*              inFileOrPath );
+
+/* access */
+inline tVolumeValue GetVoxelValue ( tVolumeRef   inVolume,
+            int          x, 
+            int          y, 
+            int          z );
+inline void         SetVoxelValue ( tVolumeRef   inVolume,
+            int          x, 
+            int          y, 
+            int          z, 
+            tVolumeValue inValue );
+
+/* color scale management */
+#define kfDefaultVolumeThreshold 0.35
+#define kfDefaultVolumeSquash    12.0
 
 static float gfVolumeColorThreshold = kfDefaultVolumeThreshold;
 static float gfVolumeColorSquash    = kfDefaultVolumeSquash;
 static float gfaVolumeColors [knNumVolumeValues];
 
-void InitVolume ( tVolumeRef* ioVolume, int inDimension );
-void DeleteVolume ( tVolumeRef* ioVolume );
-inline tVolumeValue GetVoxelValue ( tVolumeRef inVolume,
-             int x, int y, int z );
+void SetVolumeColorScale ( float        ifThreshold, 
+         float        ifSquash );
+void GetVolumeColor      ( tVolumeValue iucValue,
+         xColor3fRef  oColor );
 
-inline void SetVoxelValue ( tVolumeRef inVolume,
-          int x, int y, int z, tVolumeValue inValue );
-tVolumeValue * GetVolumeSlicePtr ( tVolumeRef inVolume, int inSlice );
 
-void SetVolumeColorScale ( float ifThreshold, float ifSquash );
-
-void GetVolumeColor ( tVolumeValue iucValue, xColor3fRef oColor );
-
+/* maximum intensity projection for each volume */
 static tVolumeRef gAnatomicalMaxIntProj;
 static tVolumeRef gAuxAnatomicalMaxIntProj;
 
-void BuildVolumeMaxIntProj( tVolumeRef iVolume, 
-          tVolumeRef* iopMaxIntProjVolume );
-tVolumeValue GetVolumeMaxIntProjValue( tVolumeRef iMaxIntProjVolume, 
-               tkm_tOrientation iOrientation,
-               VoxelRef pVoxel );
+void         BuildVolumeMaxIntProj    ( tVolumeRef       iVolume, 
+          tVolumeRef*      iopMaxIntProjVolume );
+tVolumeValue GetVolumeMaxIntProjValue ( tVolumeRef       iMaxIntProjVolume, 
+          mri_tOrientation iOrientation,
+          xVoxelRef        pVoxel );
 
-void SnapshotVolume ();
+/* snapshot */
+static tVolumeRef gSnapshotVolume = NULL;
+
+void SnapshotVolume            ();
 void RestoreVolumeFromSnapshot ();
 
 // ===========================================================================
@@ -452,7 +437,7 @@ static int gNumParcellationColors;
 void LoadParcellationVolume ( char* inVolumeDirWithPrefix,
             char* inColorFileName );
 
-void GetParcellationColor ( VoxelRef inVoxel, xColor3fRef oColor );
+void GetParcellationColor (xVoxelRef inVoxel, xColor3fRef oColor );
 
 // ===========================================================================
 
@@ -487,19 +472,19 @@ void ClearUndoList ();
               voxel values. that list becomes the
               new undo list, so you can effectivly
               undo an undo. */
-void AddVoxelAndValueToUndoList ( VoxelRef inVoxel, int inValue );
+void AddVoxelAndValueToUndoList (xVoxelRef inVoxel, int inValue );
 void RestoreUndoList ();
 
                                    /* we need a struct for the undo list. this
               is what we add to it and what we get
               back when the list is restored. */
 typedef struct {
-  VoxelRef mVoxel;
+ xVoxelRef mVoxel;
   tVolumeValue mValue;
 } UndoEntry, *UndoEntryRef;
 
 void NewUndoEntry           ( UndoEntryRef* outEntry, 
-            VoxelRef inVoxel, tVolumeValue inValue );
+           xVoxelRef inVoxel, tVolumeValue inValue );
 void DeleteUndoEntry        ( UndoEntryRef* ioEntry );
 
                                    /* these are our callback functions for the
@@ -566,10 +551,8 @@ extern void scale2x(int, int, unsigned char *);
 
 int Medit(ClientData clientData, Tcl_Interp *interp, int argc, char *argv[]);
 int read_second_images(char *imdir2) ;
-void WriteVoxelToControlFile ( char* inPathName, VoxelRef inVolumeVox );
-void WriteVoxelToEditFile ( char* inPathName, VoxelRef inVolumeVox );
-void mark_file_vertices(char *fname) ; // read in a file, mark vert indicies
-void unmark_vertices(void) ; // set marked field of all vertices to 0
+void WriteVoxelToControlFile ( char* inPathName,xVoxelRef inVolumeVox );
+void WriteVoxelToEditFile ( char* inPathName,xVoxelRef inVolumeVox );
 void mri2pix(float xpt, float ypt, float zpt, int *jpt, int *ipt,int *impt);
 
 void rotate_brain(float a,char c) ;
@@ -584,12 +567,6 @@ void pix_to_rgb(char *fname) ; // another method of saving a screenshot
 void scrsave_to_rgb(char *fname) ; // use scrsave to save a screen shot
 void save_rgb(char *fname) ; // saves a screen shot
 //void edit_pixel(int action);
-int read_binary_surface(char *fname) ;
-int read_surface(char *fname) ;
-int read_orig_vertex_positions(char *name) ;
-int read_canonical_vertex_positions(char *fname) ;
-int read_binary_surf(char *fname) ;
-int dump_vertex(int vno) ; // prints info about a vertex
 int write_images(char *fpref) ; // saves volume to COR files
 int read_images(char *fpref) ; // reads volume from COR files
 void write_dipoles(char *fname) ;
@@ -600,9 +577,6 @@ void write_htrans(char *fname) ;
 void make_filenames(char *lsubjectsdir,char *lsrname, char *lpname, 
                     char *limdir, char *lsurface) ;
 void mirror(void) ;
-void read_fieldsign(char *fname) ;
-void read_fsmask(char *fname) ;
-void read_binary_curvature(char *fname) ;
 void smooth_3d(int niter) ;
 void flip_corview_xyz(char *newx, char *newy, char *newz) ;
 void wmfilter_corslice(int imc) ;
@@ -726,28 +700,53 @@ int Medit(ClientData clientData, Tcl_Interp *interp, int argc, char *argv[]) {
   }
 
     if (argc<2) {
-printf("\n");
-printf("Usage:\n");
-printf("tkmedit [subject image_type] [surface] [options...]\n");
- printf("-interface file:string\n");
- printf("   the tcl script to use as an interface\n" );
-printf("-f path:string\n");
-printf("   reads data with MRIread. path should be the full path to the data, i.e. \"/home/user/subjects/name/data\". cannot be used with normal \"subject image_type\" method.\n");
-printf("-o overlay_path:string overlay_stem:string [timecourse_path:string timecourse_stem:string]\n");
-printf("   load overlay or functional data. path should be a full path to the data. stem should be everything before the _000.b{float,short} in the filename. these arguments require the path and stem to be seperated, i.e. \"/home/subject/fmri/004 h\"\n");
-printf("-overlay path_and_stem:string\n");
-printf("-timecourse path_and_stem:string\n");
-printf("   these arguments should be the full path and stem concatenated together, unlike the -o arguments, i.e. \"/home/subject/fmri/004/h\"\n");
-printf("-fthresh min_overlay_threshold:float\n");
-printf("-fmind mid_overlay_threshold:float\n");
-printf("-fslope overlay_threshold_slope:float\n");
-printf("   sets initial threshold in overlay\n");
-printf("-revphaseflag reverse_overlay_values:1,0\n");
-printf("-truncphaseflag truncate_overlay_values:1,0\n");
-printf("   sets initial settings in overlay display configuration\n");
-printf("-overlaycache use_overlay_cache:1,0\n");
-printf("   turns on the overlay cache. note that this will make redraws faster with overlay data turned on, but takes a few minutes to initially build the cache and a lot of additional memory to store it\n");
-exit(1);
+
+      printf("tkmedit: integrated volumetric data viewer and editor with surface overlay\n\n");
+printf("usage: tkmedit {[subject image_type] | [-f path_to_data]} [surface]\n");
+printf("       [-interface script]\n");
+printf("       [-parcellation path_to_data color_file] \n");
+printf("       [-overlay path/stem] [-timecourse path/stem] \n");
+printf("       [-fthresh min_overlay_threshold] [-fmid overlay_threshold_midpoint] \n");
+printf("       [-fslope overlay_threshold_slope] [-revphaseflag 1|0] \n");
+printf("       [-truncphaseflag 1|0] [-overlaycache 1|0]\n\n");
+printf("   subject image_type : reads main subject volume as COR- file in \n");
+printf("                        $SUBJECTS_DIR/subject/mri/image_type/\n\n");
+printf("   f path : reads main subject volume if other than COR- file, or if not\n");
+printf("            in normal $SUBJECTS_DIR path.\n\n");
+printf("   surface : reads in surface in $SUBJECTS_DIR/subject/surf/surface\n\n");
+printf("   interface script : specify tcl script to use for interface\n");
+printf("   parcellation path_to_data color_file : load volume in path as\n");
+printf("                                          parcellation volume with color file\n\n");
+printf("   overlay path/stem : load volume in path with stem as overlay volume. must\n");
+printf("                       be bfile format. i.e. if data is /path/h.bfloat, arg\n");
+printf("           should be /path/h\n\n");
+printf("   timecourse path/stem : load volume in path with stem as time course volume.\n");
+printf("                          note that this can be the same or different than\n");
+printf("        the overlay data.\n\n");
+printf("   fthresh min_overlay_threshold : use specified value as threshold minimum.\n\n");
+printf("   fmin mid_overlay_threshold : use specified value as threshold midpoint.\n\n");
+printf("   fslope overlay_threshold_slope : use specified value as threshold slope.\n\n");
+printf("   revphaseflag 1|0 : if 1, show overlay data with reversed sign.\n\n");
+printf("   truncphaseflag 1|0 : if 1, don't show negative overlay data.\n\n");
+printf("   overlaycache 1|0 : if 1, build cache for overlay data. changing slices will\n");
+printf("          be faster, but there will be a 1-4 minute pause when\n");
+printf("                      caching data.\n\n");
+printf("examples:\n\n");
+printf("to view a subject in $SUBJECTS_DIR:\n\n");
+printf("   tkmedit anders T1\n\n");
+printf("to view a volume in another directory:\n\n");
+printf("   tkmedit -f /the/path/to/volume\n\n");
+printf("to view a subject with surface overlayed:\n\n");
+printf("   tkmedit anders T1 lh.white\n\n");
+printf("to view a subject with parcellation overlay:\n\n");
+printf("   tkmedit anders T1 -parcellation /path/to/volume /the/color/file.dat\n\n");
+printf("to view a subject with functional data overlayed:\n\n");
+printf("   tkmedit anders T1 -overlay /path/to/bfile/data/stem\n\n");
+printf("to view a subject with functional data overlayed and a time course graph:\n\n");
+printf("   tkmedit anders T1 -overlay /path/to/bfile/overlay/data/stem -timecourse /path/to/bfile/timecourse/data/stem\n\n");
+
+
+      exit(1);
     }
 
     // set the zoom factor for historical reasons
@@ -1231,28 +1230,47 @@ exit(1);
     // make filenames.
     make_filenames(lsubjectsdir,lsrname,sSubject,sImageDir,sSurface);
 
-    // if we want to load a surface, do so. however... if we are using MRIRead,
-    // they specified a full surface name, so use that (lsurface). else
-    // use the partial surface name concatenated with the SUBJECTS_DIR (sfname)
-    if ( surfflag ) {
-
-      if ( bUsingMRIRead ) 
-  read_surface( sSurface );
-      else
-  read_surface( sfname );
-    }
-
     // read in the volume using the selected method. sets many of our volume
     // related variables as well as allocates and fills out the volume array.
     if ( bUsingMRIRead ) {
+
+      /* if subject is . then copy in the cwd */
+      if( MATCH( sSubject, "." ) ) {
+#ifdef Linux
+  cwd = getcwd(NULL,0);
+#else
+  cwd = getenv("PWD");
+#endif
+  if( NULL != cwd ) {
+    strcpy( sSubject, cwd );
+  } else {
+    OutputPrint "ERROR: Couldn't get current working directory.\n" 
+      EndOutputPrint;
+    exit( 1 );
+  }
+      }
+
+     if( read_images ( sSubject ) ) {
+  OutputPrint "ERROR: Couldn't load volume %s.\n",
+    mfname EndOutputPrint;
+  exit (1);
+      }
+     /*
       if( ReadVolumeWithMRIRead ( &gAnatomicalVolume, sSubject ) ) {
+  OutputPrint "ERROR: Couldn't load volume %s.\n",
+    mfname EndOutputPrint;
   exit( 1 );
       }
+     */
       /* disable editing when doing it this way as our filenames
    are not properly built. */
       editflag = FALSE;
     } else {
-      read_images ( mfname );
+      if( read_images ( mfname ) ) {
+  OutputPrint "ERROR: Couldn't load volume %s.\n",
+    mfname EndOutputPrint;
+  exit (1);
+      }
     }
 
     /* now build max intensity projection */
@@ -1266,6 +1284,11 @@ exit(1);
 
     /* create our transformation object */
     InitTransformation ();
+
+    /* load surface. trasnsform must be inited first. */
+    if ( surfflag ) {
+      LoadSurface( sfname );
+    }
 
     /* load parcellation */
     if( bLoadingParcellation ) {
@@ -1383,68 +1406,14 @@ void save_rgb( char* fname ) {
   printf("medit: file %s written\n",fname);
 }
 
-void
-unmark_vertices () {
 
-  int vno ;
+void GotoSurfaceVertex ( Surf_tVertexSet inSurface, int inVertex ) {
 
-  if (!mris) {
-    fprintf(stderr, "no surface loaded.\n") ;
-    return ;
-  }
-
-  for (vno = 0 ; vno < mris->nvertices ; vno++)
-    mris->vertices[vno].marked = 0 ;
-
-  redraw();
-}
-
-void
-mark_file_vertices ( char *fname ) {
-
-  FILE  *fp ;
-  char  line[200], *cp ;
-  int   vno, nvertices, nargs ;
-  float area ;
-
-  if ( !mris ) {
-
-    fprintf(stderr, "no surface loaded.\n") ;
-    return ;
-  }
-
-  fp = fopen(fname, "r") ;
-  if ( !fp ) {
-    fprintf(stderr, "could not open file %s.\n", fname) ;
-    return ;
-  }
-
-  fgetl(line, 150, fp) ;
-  nargs = sscanf(line, "%d %f", &nvertices, &area) ;
-  if (nargs == 2)
-    fprintf ( stderr, "marking %d vertices, %2.3f mm^2 surface area\n",
-        nvertices, area ) ;
-  else if (nargs == 1)
-    fprintf(stderr, "marking %d vertices\n", nvertices) ;
-
-  while  ((cp = fgetl(line, 150, fp)) != NULL) {
-
-    sscanf(cp, "%d", &vno) ;
-    if (vno >= 0 && vno < mris->nvertices) {
-      mris->vertices[vno].marked = 1 ;
-    }
-  }
-
-  fclose(fp) ;
-
-
-}
-
-void GotoSurfaceVertex ( tkm_tSurfaceType inSurface, int inVertex ) {
+#if 0
 
   VERTEX* theVertex;
   int theVoxX, theVoxY, theVoxZ;
-  VoxelRef theVolumeVox;
+ xVoxelRef theVolumeVox;
   
   /* make sure surface is loaded. */
   if ( !mris ) {
@@ -1471,15 +1440,15 @@ void GotoSurfaceVertex ( tkm_tSurfaceType inSurface, int inVertex ) {
 
   /* convert the coords to volume voxel. */
   switch ( inSurface ) {
-  case tkm_tSurfaceType_Current:
+  case Surf_tVertexSet_Main:
     RASToVoxel ( theVertex->x, theVertex->y, theVertex->z,
      &theVoxX,     &theVoxY,     &theVoxZ ); 
     break;
-  case tkm_tSurfaceType_Original:
+  case Surf_tVertexSet_Original:
     RASToVoxel ( theVertex->origx, theVertex->origy, theVertex->origz,
      &theVoxX,         &theVoxY,         &theVoxZ ); 
     break;
-  case tkm_tSurfaceType_Canonical:
+  case Surf_tVertexSet_Pial:
     RASToVoxel ( theVertex->cx, theVertex->cy, theVertex->cz,
      &theVoxX,      &theVoxY,      &theVoxZ ); 
     break;
@@ -1491,22 +1460,23 @@ void GotoSurfaceVertex ( tkm_tSurfaceType inSurface, int inVertex ) {
   }
 
   /* build a voxel */
-  Voxel_New ( &theVolumeVox );
-  Voxel_Set ( theVolumeVox, theVoxX, theVoxY, theVoxZ );
+  xVoxl_New ( &theVolumeVox );
+  xVoxl_Set ( theVolumeVox, theVoxX, theVoxY, theVoxZ );
          
   /* tell the window to go there. */
   MWin_SetCursor ( gMeditWindow, -1, theVolumeVox );
   
   /* tell the window to hilite the vertex. */
   MWin_HiliteSurfaceVertex ( gMeditWindow, -1, inSurface, inVertex );
-
-  Voxel_Delete ( &theVolumeVox );
+#endif
 }
 
-void FindNearestSurfaceVertex ( tkm_tSurfaceType inSurface ) {
+void FindNearestSurfaceVertex ( Surf_tVertexSet inSurface ) {
+
+#if 0
 
   VERTEX* theVertex;
-  VoxelRef theCursor = NULL;
+ xVoxelRef theCursor = NULL;
   Real theRASX, theRASY, theRASZ;
   int theCurVertex, theClosestVertex;
   float dx, dy, dz, theDistance, theMinDistance;
@@ -1517,11 +1487,11 @@ void FindNearestSurfaceVertex ( tkm_tSurfaceType inSurface ) {
     return;
   }
   /* get cursor and convert to RAS */
-  Voxel_New ( &theCursor );
+  xVoxl_New ( &theCursor );
   MWin_GetCursor ( gMeditWindow, theCursor );
-  VoxelToRAS ( EXPAND_VOXEL_INT(theCursor), 
+  VoxelToRAS ( xVoxl_ExpandInt(theCursor), 
          &theRASX, &theRASY, &theRASZ );
-  Voxel_Delete ( &theCursor );
+  xVoxl_Delete ( &theCursor );
 
   /* nothing yet */
   theMinDistance = 1e9;
@@ -1535,17 +1505,17 @@ void FindNearestSurfaceVertex ( tkm_tSurfaceType inSurface ) {
 
     /* calc distance to cursor */
     switch ( inSurface ) {
-    case tkm_tSurfaceType_Current:
+    case Surf_tVertexSet_Main:
       dx = theVertex->x - theRASX;
       dy = theVertex->y - theRASY;
       dz = theVertex->z - theRASZ;
       break;
-    case tkm_tSurfaceType_Original:
+    case Surf_tVertexSet_Original:
       dx = theVertex->origx - theRASX;
       dy = theVertex->origy - theRASY;
       dz = theVertex->origz - theRASZ;
       break;
-    case tkm_tSurfaceType_Canonical:
+    case Surf_tVertexSet_Pial:
       dx = theVertex->cx - theRASX;
       dy = theVertex->cy - theRASY;
       dz = theVertex->cz - theRASZ;
@@ -1577,17 +1547,18 @@ void FindNearestSurfaceVertex ( tkm_tSurfaceType inSurface ) {
     
     OutputPrint "Nothing found!\n" EndOutputPrint;
   }
+#endif
 }
 
-void WriteVoxelToControlFile ( char* inPathName, VoxelRef inVolumeVox ) {
+void WriteVoxelToControlFile ( char* inPathName,xVoxelRef inVolumeVox ) {
 
   char fname[NAME_LENGTH];
   FILE *fp;
   Real theRASX, theRASY, theRASZ;
-  VoxelRef theVoxel;
+ xVoxelRef theVoxel;
 
   // make a new voxel
-  Voxel_New ( &theVoxel );
+  xVoxl_New ( &theVoxel );
   
   sprintf(fname,"%s/control.dat",inPathName);
   fp=fopen(fname,"a+");
@@ -1598,7 +1569,7 @@ void WriteVoxelToControlFile ( char* inPathName, VoxelRef inVolumeVox ) {
   }
 
   // convert voxel to ras
-  VoxelToRAS ( EXPAND_VOXEL_INT(inVolumeVox), 
+  VoxelToRAS ( xVoxl_ExpandInt(inVolumeVox), 
          &theRASX, &theRASY, &theRASZ );
   
   // write RAS space pt to file
@@ -1609,19 +1580,19 @@ void WriteVoxelToControlFile ( char* inPathName, VoxelRef inVolumeVox ) {
   fclose(fp);
 
   // free the voxel
-  Voxel_Delete ( &theVoxel );
+  xVoxl_Delete ( &theVoxel );
 }
 
-void WriteVoxelToEditFile ( char* inPathName, VoxelRef inVolumeVox ) {
+void WriteVoxelToEditFile ( char* inPathName,xVoxelRef inVolumeVox ) {
 
   char fname[NAME_LENGTH];
   FILE *fp;
   Real theTalX, theTalY, theTalZ;
   Real theRASX, theRASY, theRASZ;
-  VoxelRef theVoxel;
+ xVoxelRef theVoxel;
 
   // make a new voxel
-  Voxel_New ( &theVoxel );
+  xVoxl_New ( &theVoxel );
 
   sprintf(fname,"%s/edit.dat",inPathName);
   fp=fopen(fname,"w");
@@ -1633,7 +1604,7 @@ void WriteVoxelToEditFile ( char* inPathName, VoxelRef inVolumeVox ) {
   }
 
   // convert to ras
-  VoxelToRAS ( EXPAND_VOXEL_INT(inVolumeVox), 
+  VoxelToRAS ( xVoxl_ExpandInt(inVolumeVox), 
          &theRASX, &theRASY, &theRASZ );
   
   // write RAS space pt to file
@@ -1641,10 +1612,11 @@ void WriteVoxelToEditFile ( char* inPathName, VoxelRef inVolumeVox ) {
   DebugPrint "writing RAS point to %s...\n", fname EndDebugPrint;
   
   // if we have a tal transform for this volume...
-  if ( transform_loaded ) {
+  if ( gbAnaToTalTransformLoaded ) {
     
     // ras to tal
-    transform_point ( linear_transform, theRASX, theRASY, theRASZ,
+    transform_point ( get_linear_transform_ptr( &gAnaToTalTransform ),
+          theRASX, theRASY, theRASZ,
                       &theTalX, &theTalY, &theTalZ );
       
     // write tal space point to file
@@ -1656,7 +1628,7 @@ void WriteVoxelToEditFile ( char* inPathName, VoxelRef inVolumeVox ) {
   fclose(fp);
 
   // free the voxel
-  Voxel_Delete ( &theVoxel );
+  xVoxl_Delete ( &theVoxel );
 }
 
 void ReadCursorFromEditFile ( char* inDir ) {
@@ -1665,7 +1637,7 @@ void ReadCursorFromEditFile ( char* inDir ) {
   FILE* theFile;
   float theRASX, theRASY, theRASZ;
   int theVoxX, theVoxY, theVoxZ;
-  VoxelRef theVolumeVox;
+ xVoxelRef theVolumeVox;
 
   /* make the file name. */
   sprintf ( theFileName, "%s/edit.dat", inDir );
@@ -1687,11 +1659,11 @@ void ReadCursorFromEditFile ( char* inDir ) {
          &theVoxX, &theVoxY, &theVoxZ ); 
  
   /* build and set cursor */
-  Voxel_New ( &theVolumeVox );
-  Voxel_Set ( theVolumeVox, theVoxX, theVoxY, theVoxZ );
+  xVoxl_New ( &theVolumeVox );
+  xVoxl_Set ( theVolumeVox, theVoxX, theVoxY, theVoxZ );
   MWin_SetCursor ( gMeditWindow, -1, theVolumeVox );
   MWin_SetZoomCenterToCursor ( gMeditWindow, -1 );
-  Voxel_Delete ( &theVolumeVox );
+  xVoxl_Delete ( &theVolumeVox );
 }
 
 void UpdateAndRedraw () {
@@ -1927,170 +1899,53 @@ rotate_brain(float a,char c)
 int
 read_images(char *fpref) {
 
-  char sPath[256];
+  char  sPath[256];
   char* pEnd;
+  int   eRead;
 
-  /* take the /COR- off the end and pass it to ReadVolumeWithMRIRead */
+  DebugPrint "read_images( %s )\n", fpref EndDebugPrint;
+
+  /* if there is a /COR- at the end, take it off and pass
+     the rest to ReadVolumeWithMRIRead */
   strcpy( sPath, fpref );
   pEnd = strstr( sPath, "/COR-" );
-  *pEnd = '\0';
-  if( ReadVolumeWithMRIRead( &gAnatomicalVolume, sPath ) )
+  if( NULL != pEnd )
+    *pEnd = '\0';
+
+  DebugPrint "ReadVolumeWithMRIRead( %s )\n", sPath EndDebugPrint;
+
+  /* attempt to read the volume */
+  eRead = ReadVolumeWithMRIRead( &gAnatomicalVolume, 
+         &gAnaToTalTransform,
+         sPath );
+ 
+  /* if no good, set volume to null and return */
+  if( 0 != eRead ) {
+    gAnatomicalVolume         = NULL;
+    gbAnaToTalTransformLoaded = FALSE;
     return 1;
+  }
 
-
+  /* save the volume size */
   gVolumeDimension = knVolumeSize;
+
+  /* check to see if the transform is loaded */
+  if( get_linear_transform_ptr( &gAnaToTalTransform ) ) {
+    gbAnaToTalTransformLoaded = TRUE;
+  } else {
+    gbAnaToTalTransformLoaded = FALSE;
+  }
+
+  /* save the image name */
+  strcpy( gVolumeName, imtype );
+
+  /* set data in window */
   if( NULL != gMeditWindow ) {
     MWin_SetVolume( gMeditWindow, -1, 
         gAnatomicalVolume, gVolumeDimension );
   }
 
   return 0;
-
-#if 0
-
-  int i,j,k;
-  FILE *fptr, *xfptr;
-  char fname[STRLEN], char_buf[STRLEN];
-  tVolumeValue theIntensity;
-  tVolumeValue * theSlicePtr;
-  tVolumeValue* buf;
-  int bufsize;
-
-  sprintf(fname,"%s.info",fpref);
-  fptr = fopen(fname,"r");
-  if (fptr==NULL) {
-    strcpy(fpref,"COR-");
-    sprintf(fname,"%s.info",fpref);
-    fptr = fopen(fname,"r");
-    if (fptr==NULL) {
-      printf("medit: ### File %s not found (tried local dir, too)\n",fname);
-      exit(1);
-    }
-  } 
-
-  fscanf(fptr,"%*s %d",&imnr0);
-  fscanf(fptr,"%*s %d",&imnr1);
-  fscanf(fptr,"%*s %d",&ptype);
-  fscanf(fptr,"%*s %d",&xnum);
-  fscanf(fptr,"%*s %d",&ynum);
-  fscanf(fptr,"%*s %*f");
-  fscanf(fptr,"%*s %f",&ps);
-  fscanf(fptr,"%*s %f",&st);
-  fscanf(fptr,"%*s %*f");
-  fscanf(fptr,"%*s %f",&xx0); /* strtx */
-  fscanf(fptr,"%*s %f",&xx1); /* endx */
-  fscanf(fptr,"%*s %f",&yy0); /* strty */
-  fscanf(fptr,"%*s %f",&yy1); /* endy */
-  fscanf(fptr,"%*s %f",&zz0); /* strtz */
-  fscanf(fptr,"%*s %f",&zz1); /* endz */
-  fscanf(fptr, "%*s %*f") ;   /* tr */
-  fscanf(fptr, "%*s %*f") ;   /* te */
-  fscanf(fptr, "%*s %*f") ;   /* ti */
-  fscanf(fptr, "%*s %s",char_buf);
-
-  /* marty: ignore abs paths in COR-.info */
-  xfptr = fopen(xffname,"r");
-  if (xfptr==NULL)
-    printf("medit: Talairach xform file not found (ignored)\n");
-  else {
-    fclose(xfptr);
-    if (input_transform_file(xffname, &talairach_transform) != OK)
-      printf("medit: ### File %s load failed\n",xffname);
-    else {
-      printf("medit: Talairach transform file loaded\n");
-      printf("medit: %s\n",xffname);
-      linear_transform = get_linear_transform_ptr(&talairach_transform) ;
-      inverse_linear_transform =
-                      get_inverse_linear_transform_ptr(&talairach_transform) ;
-      transform_loaded = TRUE;
-    }
-  }
-
-  ps *= 1000;
-  st *= 1000;
-  xx0 *= 1000;
-  xx1 *= 1000;
-  yy0 *= 1000;
-  yy1 *= 1000;
-  zz0 *= 1000;
-  zz1 *= 1000;
-  fclose(fptr);
-  numimg = imnr1-imnr0+1;
-  xdim=xnum*zf;
-  ydim=ynum*zf;
-
-
-  bufsize = ((unsigned long)xnum)*ynum;
-  buf = (tVolumeValue*) lcalloc( bufsize, sizeof(tVolumeValue));
-
-  /*
-  for (k=0;k<numimg;k++) {
-    im[k] = (tVolumeValue **)lcalloc(ynum,sizeof(char *));
-    for (i=0;i<ynum;i++) {
-      im[k][i] = (tVolumeValue *)lcalloc(xnum,sizeof(char));
-    }
-  }
-  */
-
-  InitVolume ( &gAnatomicalVolume, xnum );
-    
-  for (k=0;k<6;k++)
-  {
-    sim[k] = (tVolumeValue **)lcalloc(ynum,sizeof(char *));
-    for (i=0;i<ynum;i++)
-    {
-      sim[k][i] = (tVolumeValue *)lcalloc(xnum,sizeof(char));
-    }
-  }
-
-  for (k=0;k<numimg;k++)
-  {
-    changed[k] = FALSE;
-    file_name(fpref,fname,k+imnr0,"%03d");
-    fptr = fopen(fname,"rb");
-    if(fptr==NULL){printf("medit: ### File %s not found.\n",fname);exit(1);}
-    fread(buf,sizeof(char),bufsize,fptr);
-
-    theSlicePtr = GetVolumeSlicePtr ( gAnatomicalVolume, k );
-    memcpy ( theSlicePtr, buf, xnum*ynum ); 
-   //    buffer_to_image ( buf, &theSlicePtr, xnum, ynum );
-
-    fclose(fptr);
-  }
-
-  for (k=0;k<numimg;k++)
-    for (i=0;i<ynum;i++)
-      for (j=0;j<xnum;j++) {
-
-  theIntensity = GetVoxelValue ( gAnatomicalVolume, j, i, k ) / 2;
-
-  if ( theIntensity > sim[3][i][j]) 
-    sim[3][i][j] = theIntensity;
-  
-  if ( theIntensity > sim[4][k][j]) 
-    sim[4][k][j] = theIntensity;
-  
-  if ( theIntensity > sim[5][i][k]) 
-    sim[5][i][k] = theIntensity;
-  }
-
-  for (i=0;i<ynum;i++)
-    for (j=0;j<xnum;j++)
-      for (k=0;k<3;k++)
-  sim[k][i][j] = sim[k+3][i][j];
-
-  free (buf);
-
-  /* set the volume in the medit window */
-  if( NULL != gMeditWindow ) {
-    MWin_SetVolume( gMeditWindow, -1, 
-        gAnatomicalVolume, gVolumeDimension );
-  }    
-
-  return(0);
-
-#endif
-
 }
 
 
@@ -2100,6 +1955,7 @@ read_second_images(char *imdir2)
 
   char sPath[256];
   char sNoTilde[256];
+  int  eRead;
 
   if (imdir2[0] == '/')
     sprintf(sPath,"%s",imdir2);
@@ -2113,112 +1969,36 @@ read_second_images(char *imdir2)
   else
     sprintf(sPath,"%s/%s/mri/%s",subjectsdir,pname,imdir2);
 
-  if( ReadVolumeWithMRIRead( &gAuxAnatomicalVolume, sPath ) )
-    return 1;
+  /* attempt to read the volume */
+  eRead = ReadVolumeWithMRIRead( &gAuxAnatomicalVolume, 
+         &gAuxAnaToTalTransform,
+         sPath );
 
-  gVolumeDimension = knVolumeSize;
+  /* if no good, set volume to null and return */
+  if( 0 != eRead ) {
+    gAuxAnatomicalVolume         = NULL;
+    gbAuxAnaToTalTransformLoaded = FALSE;
+    return 1;
+  }
+
+  /* check to see if transform is loaded */
+  if( get_linear_transform_ptr( &gAuxAnaToTalTransform ) ) {
+    gbAuxAnaToTalTransformLoaded = TRUE;
+  } else {
+    gbAuxAnaToTalTransformLoaded = FALSE;
+  }
+
+  /* save the image name */
+  strcpy( gAuxVolumeName, imdir2 );
+
+
+  /* set data in window */
   if( NULL != gMeditWindow ) {
     MWin_SetAuxVolume( gMeditWindow, -1, 
         gAuxAnatomicalVolume, gVolumeDimension );
   }
 
-
-  if( NULL != gAuxAnatomicalVolume ) {
-    tkm_SendTclCommand ( tkm_tTclCommand_ShowAuxValue, "1" );
-  } else {
-    tkm_SendTclCommand ( tkm_tTclCommand_ShowAuxValue, "0" );
-  }
-
   return 0;
-
-#if 0
-
-
-  int i,j,k,n;
-  FILE *fptr;
-  char fname[NAME_LENGTH], cmd[NAME_LENGTH], fpref[NAME_LENGTH];
-  char fnamefirst[NAME_LENGTH], notilde[NAME_LENGTH];
-  tVolumeValue theIntensity;
-  tVolumeValue * theSlicePtr = NULL;
-  tVolumeValue* buf;
-  int bufsize;
-
-  strcpy(imtype2, imdir2) ;
-
-  bufsize = ((unsigned long)xnum)*ynum;
-  buf = (tVolumeValue *)lcalloc(bufsize,sizeof(char));
-
-
-  /* TODO: replace w/setfile (add mri/<subdir>); tk.c: omit arg like others */
-  if (imdir2[0] == '/')
-    sprintf(fpref,"%s/COR-",imdir2);
-  else if (imdir2[0] == '~') {
-    for(n=1;n<=strlen(imdir2);n++)  notilde[n-1] = imdir2[n];
-    sprintf(fpref,"%s/%s/%s/COR-",subjectsdir,pname,notilde);
-  }
-  else if (MATCH(pname,"local"))
-    sprintf(fpref,"%s/%s/COR-",srname,imdir2);
-  else
-    sprintf(fpref,"%s/%s/mri/%s/COR-",subjectsdir,pname,imdir2);
-
-  sprintf(fnamefirst,"%s.info",mfname);
-  sprintf(fname,"%s.info",fpref);
-  sprintf(cmd,"diff %s %s",fnamefirst,fname);
-  if (system(cmd)!=0)
-    printf("medit: ### second COR-.info file doesn't match first--ignored\n");
-
-  if (!second_im_allocated)
-    alloc_second_im();
- 
-  for (k=0;k<numimg;k++) {
-    file_name(fpref,fname,k+imnr0,"%03d");
-    fptr = fopen(fname,"rb");
-    if(fptr==NULL){printf("medit: ### File %s not found.\n",fname);return(0);}
-    fread(buf,sizeof(char),bufsize,fptr);
-
-    theSlicePtr = GetVolumeSlicePtr ( gAuxAnatomicalVolume, k );
-    memcpy ( theSlicePtr, buf, xnum*ynum );
-    //    buffer_to_image ( buf, &theSlicePtr, xnum, ynum );
-
-    fclose(fptr);
-  }
-
-  for (k=0;k<numimg;k++)
-    for (i=0;i<ynum;i++)
-      for (j=0;j<xnum;j++) {
-
-  theIntensity = GetVoxelValue ( gAuxAnatomicalVolume, j, i, k ) / 2;
-
-  if ( theIntensity > sim[3][i][j]) 
-    sim[3][i][j] = theIntensity;
-  
-  if ( theIntensity > sim[4][k][j]) 
-    sim[4][k][j] = theIntensity;
-  
-  if ( theIntensity > sim[5][i][k]) 
-    sim[5][i][k] = theIntensity;
-  }
-
-  for (i=0;i<ynum;i++)
-  for (j=0;j<xnum;j++)
-  for (k=0;k<3;k++)
-    sim2[k][i][j] = sim2[k+3][i][j];
-
-  /* set the aux volume in the medit window */
-  if( gMeditWindow != NULL ) {
-    MWin_SetAuxVolume( gMeditWindow, -1, 
-           gAuxAnatomicalVolume, gVolumeDimension );
-  }
-
-  /* show the aux value in the tk window */
-  tkm_SendTclCommand ( tkm_tTclCommand_ShowAuxValue, "1" );
-
-  redraw();
-
-  free (buf);
-
-  return(0);
-#endif
 }
 
 int
@@ -2282,33 +2062,6 @@ write_images(char *fpref)
   editedimage = FALSE;
   return(0);
 }
-int
-dump_vertex(int vno)
-{
-  VERTEX *v, *vn ;
-  int    n ;
-  float  dx, dy, dz, dist ;
-
-  if (!mris)
-    ErrorReturn(ERROR_BADPARM, 
-                (ERROR_BADPARM, "%s: surface must be loaded\n", Progname)) ;
-
-  v = &mris->vertices[vno] ;
-  fprintf(stderr, 
-          "v %d: x = (%2.2f, %2.2f, %2.2f), n = (%2.2f, %2.2f, %2.2f)\n",
-          vno, v->x, v->y, v->z, v->nx, v->ny, v->nz) ;
-  if (curvloaded)
-    fprintf(stderr, "curv=%2.2f\n", v->curv) ;
-  fprintf(stderr, "nbrs:\n") ;
-  for (n = 0 ; n < v->vnum ; n++)
-  {
-    vn = &mris->vertices[v->v[n]] ;
-    dx = vn->x - v->x ; dy = vn->y - v->y ; dz = vn->z - v->z ;
-    dist = sqrt(dx*dx + dy*dy + dz*dz) ;
-    fprintf(stderr, "\tvn %d, dist = %2.2f\n", v->v[n], dist) ;
-  }
-  return(NO_ERROR) ;
-}
 
 void tkm_HandleIdle () {
 
@@ -2316,195 +2069,106 @@ void tkm_HandleIdle () {
   Tk_DoOneEvent ( TK_ALL_EVENTS | TK_DONT_WAIT );
 }
 
+// ================================================================== SURFACES
 
-void
-smooth_surface(int niter)
-{
-  if (mris)
-    MRISaverageVertexPositions(mris, niter) ;
-  redraw() ;
-}
-int 
-read_canonical_vertex_positions(char *fname)
-{
-  if (!mris)
-    return(NO_ERROR) ;
+void LoadSurface ( char* isName ) {
 
-  // kt - save current vertices to temp
-  MRISsaveVertexPositions ( mris, TMP_VERTICES );
+  Surf_tErr eSurface = Surf_tErr_NoErr;
+  tBoolean bLoaded = FALSE;
 
-  // read vertices into current
-  if (MRISreadVertexPositions(mris, fname) != NO_ERROR) {
-
-    DebugPrint "read_canonical_vertex_positions ( %s ):\n\tcould not read canonical vertex positions\n", fname EndDebugPrint;
-    OutputPrint "Couldn't read canonical vertices from %s.\n", 
-      fname EndOutputPrint;
-
-    gIsCanonicalSurfaceLoaded = FALSE;
-
-  } else {
-
-    // save current to canonical
-    MRISsaveVertexPositions(mris, CANONICAL_VERTICES) ;
-
-    // surface is loaded.
-    gIsCanonicalSurfaceLoaded = TRUE;
-    OutputPrint "Canonical surface loaded.\n" EndOutputPrint;
+  eSurface = Surf_New( &gSurface, isName, gRASTransform );
+  if( Surf_tErr_NoErr != eSurface ) {
+    DebugPrint "Surf error %d in LoadSurface: %s\n",
+      eSurface, Surf_GetErrorString( eSurface ) EndDebugPrint;
   }
 
-  // restore current from temp
-  MRISrestoreVertexPositions ( mris, TMP_VERTICES );
-  
-  /* set the medit window surface. */
-  MWin_SetSurface( gMeditWindow, -1, mris );
-  
-  /* enable or disable viewing optiosn */
-  if( gIsCanonicalSurfaceLoaded ) {
-    tkm_SendTclCommand( tkm_tTclCommand_ShowCanonicalSurfaceViewingOptions, 
-      "1" );
-  } else {
-    tkm_SendTclCommand( tkm_tTclCommand_ShowCanonicalSurfaceViewingOptions, 
-      "0" );
-  }    
-
-  return(NO_ERROR) ;
-}
-int
-read_orig_vertex_positions(char *name)
-{
-  if (!mris)
-    return(NO_ERROR) ;
-
-  // kt - save current vertices to temp
-  MRISsaveVertexPositions ( mris, TMP_VERTICES );
-
-  // read vertices into current
-  if (MRISreadVertexPositions(mris, name) != NO_ERROR) {
-
-    DebugPrint "read_orig_vertex_positions ( %s ):\n\tcould not read original vertex positions\n", name EndDebugPrint;
-    OutputPrint "Couldn't read original vertices from %s.\n", 
-      name EndOutputPrint;
-    gIsOriginalSurfaceLoaded = FALSE;
-
-  } else {
-
-    // save current to original
-    MRISsaveVertexPositions(mris, ORIG_VERTICES) ;
-    
-    // surface is loaded.
-    gIsOriginalSurfaceLoaded = TRUE;
-    OutputPrint "Original surface loaded.\n" EndOutputPrint;
-  }
-
-  // kt - restore current from temp
-  MRISrestoreVertexPositions ( mris, TMP_VERTICES );
-  
-  /* set the medit window surface. */
-  MWin_SetSurface( gMeditWindow, -1, mris );
-
-  /* enable or diable viewing options */
-  if( gIsOriginalSurfaceLoaded ) {
-    tkm_SendTclCommand( tkm_tTclCommand_ShowOriginalSurfaceViewingOptions, 
-      "1" );
-  } else {
-    tkm_SendTclCommand( tkm_tTclCommand_ShowOriginalSurfaceViewingOptions, 
-      "0" );
-  }    
-  
-  return(NO_ERROR) ;
-}
-
-int
-read_surface(char *name)
-{
-  char fname[STRLEN], *cp ;
-  int theStatus;
-
-  cp = strchr(name, '/') ;
-  if (!cp)  /* no path specified - put the path into it */
-  {
-    strcpy(surface, name) ;
-    sprintf(sfname,"%s/%s/surf/%s",subjectsdir,pname,name);
-    strcpy(fname, sfname) ;
-  }
-  else
-    strcpy(fname, name) ;
-  
-  OutputPrint "Reading surface file %s\n", fname EndOutputPrint;
-
-  theStatus = read_binary_surface(fname);
-
-  // kt - if the return is 0, it seems the call was successful.
-  if ( theStatus == 0 ) {
-
-    // mark the surface as loaded.
-    gIsCurrentSurfaceLoaded = TRUE;
-    
-    // print a status msg.
-    OutputPrint "Surface loaded.\n" EndOutputPrint;
-
-    // now load the other surfaces.
-    if( !gIsOriginalSurfaceLoaded )  
-      read_orig_vertex_positions ( "orig" );
-    if( !gIsCanonicalSurfaceLoaded )
-      read_canonical_vertex_positions ( "pial" );
-
-    /* enable our loading options */
-    tkm_SendTclCommand( tkm_tTclCommand_ShowSurfaceLoadingOptions, "1" );
-
-  } else {
-
-    DebugPrint "read_surface( %s ):\n\tread_binary_surface( %s ) failed, returned %d\n", name, fname, theStatus EndDebugPrint;
-    OutputPrint "Surface failed to load.\n" EndOutputPrint;
+  eSurface = Surf_IsVertexSetLoaded( gSurface, Surf_tVertexSet_Main, 
+             &bLoaded );
+  if( Surf_tErr_NoErr != eSurface ) {
+    DebugPrint "Surf error %d in LoadSurface: %s\n",
+      eSurface, Surf_GetErrorString( eSurface ) EndDebugPrint;
   }
 
   /* set the medit window surface. */
-  MWin_SetSurface( gMeditWindow, -1, mris );
-  
-  return theStatus;
+  MWin_SetSurface( gMeditWindow, -1, gSurface );
+
+  /* enable our loading options */
+  tkm_SendTclCommand( tkm_tTclCommand_ShowSurfaceLoadingOptions, 
+          bLoaded ? "1" : "0" );
+
+  /* turn surface display on or off */
+  MWin_SetDisplayFlag( gMeditWindow, -1, DspA_tDisplayFlag_MainSurface, 
+           bLoaded ? TRUE : FALSE);
+
+  /* this is a default setting */
+  MWin_SetDisplayFlag( gMeditWindow, -1,
+           DspA_tDisplayFlag_InterpolateSurfaceVertices,
+           bLoaded ? TRUE : FALSE);
+
+  /* load other vertices */
+  LoadSurfaceVertexSet( Surf_tVertexSet_Original, "orig" );
+  LoadSurfaceVertexSet( Surf_tVertexSet_Pial, "pial" );
 }
 
-int
-read_binary_surface(char *fname) {
-  
-  if (mris)
-    MRISfree(&mris) ;
-  mris = MRISread(fname) ;
+void LoadSurfaceVertexSet ( Surf_tVertexSet iSet,
+          char* fname ) {
 
-  if (!mris) {
-    surfflag = FALSE;
-    surfloaded = FALSE;
-    curvflag = FALSE;
-    curvloaded = FALSE;
-    fieldsignflag = FALSE;
-    gIsCurrentSurfaceLoaded = FALSE;
-    return(ERROR_NOFILE) ;
+  Surf_tErr eSurface = Surf_tErr_NoErr;
+  tBoolean  bLoaded  = FALSE;
+  DspA_tDisplayFlag flag = DspA_tDisplayFlag_None;
+  tkm_tTclCommand command = 0;
+
+  if( !gSurface )
+    return;
+
+  eSurface = Surf_LoadVertexSet( gSurface, fname, iSet );
+  if( Surf_tErr_NoErr != eSurface ) {
+    DebugPrint "Surf error %d in LoadSurfaceVertexSet: %s\n",
+      eSurface, Surf_GetErrorString( eSurface ) EndDebugPrint;
   }
 
-  surfflag = TRUE;
-  surfloaded = TRUE;
-  curvflag = FALSE;
-  curvloaded = FALSE;
-  fieldsignflag = FALSE;
-  gIsCurrentSurfaceLoaded = TRUE;
-  MRISsaveVertexPositions(mris, TMP_VERTICES) ;
-  return(0);
+  eSurface = Surf_IsVertexSetLoaded( gSurface, iSet, &bLoaded );
+  if( Surf_tErr_NoErr != eSurface ) {
+    DebugPrint "Surf error %d in LoadSurfaceVertexSet: %s\n",
+      eSurface, Surf_GetErrorString( eSurface ) EndDebugPrint;
+  }
+
+  /* get command and flag to set */
+  if( iSet == Surf_tVertexSet_Pial ) {
+    flag = DspA_tDisplayFlag_CanonicalSurface;
+    command = tkm_tTclCommand_ShowCanonicalSurfaceViewingOptions;
+  } else if( iSet == Surf_tVertexSet_Original ) {
+    flag = DspA_tDisplayFlag_OriginalSurface;
+    command = tkm_tTclCommand_ShowOriginalSurfaceViewingOptions;
+  }
+  /* turn flag on or off and enable or disable viewing optiosn */
+  MWin_SetDisplayFlag( gMeditWindow, -1, flag, bLoaded );
+  tkm_SendTclCommand( command, bLoaded?"1":"0" );
 }
 
 void UnloadSurface () {
 
-  if ( !mris ) {
-    OutputPrint "Surface not loaded.\n" EndOutputPrint;
+  Surf_tErr eSurface = Surf_tErr_NoErr;
+
+  if( !gSurface )
     return;
-  }
 
   /* free the surface. */
-  MRISfree ( &mris );
-  mris = NULL;
+  eSurface = Surf_Delete( &gSurface );
+  if( Surf_tErr_NoErr != eSurface ) {
+    DebugPrint "Surf error %d in UnloadSurface: %s\n",
+      eSurface, Surf_GetErrorString( eSurface ) EndDebugPrint;
+  }
 
-  /* update the medit window. */
-  MWin_SetSurface( gMeditWindow, -1, mris );
+  /* disable our loading options */
+  tkm_SendTclCommand( tkm_tTclCommand_ShowSurfaceLoadingOptions, "0" );
+
+/* update the medit window. */
+  MWin_SetSurface( gMeditWindow, -1, gSurface );
 }
+
+// ===========================================================================
+
 
 
 void
@@ -2754,79 +2418,6 @@ mirror(void)
 }
 
 void
-read_fieldsign(char *fname)  /* fscontour */
-{
-  int k,vnum;
-  float f;
-  FILE *fp;
-
-  if (!surfloaded) {printf("medit: ### surface %s not loaded\n",fname); return;}
-
-  fp = fopen(fname,"r");
-  if (fp==NULL) {printf("medit: ### File %s not found\n",fname); return;}
-  fread(&vnum,1,sizeof(int),fp);
-  printf("medit: mris->nvertices = %d, vnum = %d\n",mris->nvertices,vnum);
-  if (vnum!=mris->nvertices) {
-    printf("medit: ### incompatible vertex number in file %s\n",fname);
-    return; }
-  for (k=0;k<vnum;k++)
-  {
-    fread(&f,1,sizeof(float),fp);
-    mris->vertices[k].fieldsign = f;
-  }
-  fclose(fp);
-  fieldsignflag = TRUE;
-  surflinewidth = 3;
-  
-}
-
-void
-read_fsmask(char *fname)  /* fscontour */
-{
-  int k,vnum;
-  float f;
-  FILE *fp;
-
-  if (!surfloaded) {printf("medit: ### surface %s not loaded\n",fname); return;}
-
-  printf("medit: read_fsmask(%s)\n",fname);
-  fp = fopen(fname,"r");
-  if (fp==NULL) {printf("medit: ### File %s not found\n",fname); return;}
-  fread(&vnum,1,sizeof(int),fp);
-  if (vnum!=mris->nvertices) {
-    printf("medit: ### incompatible vertex number in file %s\n",fname);
-    return; }
-  for (k=0;k<vnum;k++)
-  {
-    fread(&f,1,sizeof(float),fp);
-    mris->vertices[k].fsmask = f;
-  }
-  fclose(fp);
-  
-}
-
-
-void
-read_binary_curvature(char *fname)
-{
-  float curvmin, curvmax, curv;
-  int   k;
-
-  MRISreadCurvatureFile(mris, fname) ;
-
-  curvmin= 1000000.0f ; curvmax = -curvmin;
-  for (k=0;k<mris->nvertices;k++)
-  {
-    curv = mris->vertices[k].curv;
-    if (curv>curvmax) curvmax=curv;
-    if (curv<curvmin) curvmin=curv;
-  }
-  printf("medit: curvature read: min=%f max=%f\n",curvmin,curvmax);
-  curvloaded = TRUE;
-  curvflag = TRUE;
-}
-
-void
 smooth_3d(int niter)
 {
   int iter,i,j,k;
@@ -3013,7 +2604,7 @@ wmfilter_corslice(int imc)
   double sum2,sum,var,avg,tvar,maxvar,minvar;
   double sum2v[MAXLEN],sumv[MAXLEN],avgv[MAXLEN],varv[MAXLEN],nv[MAXLEN];
   FILE *fptr;
-  tkm_tOrientation theOrientation;
+  mri_tOrientation theOrientation;
   int plane;
 
   // get the plane.
@@ -3194,7 +2785,7 @@ norm_allslices(int normdir)
   int x,y;
   float imf[256][256];
   float flim0,flim1,flim2,flim3;
-  tkm_tOrientation theOrientation;
+  mri_tOrientation theOrientation;
   int plane;
 
   // get the plane.
@@ -3251,7 +2842,7 @@ void norm_slice(int imc, int ic,int jc, int normdir)
   int imc0,ic0,jc0;
   float imf[256][256];
   float flim0,flim1,flim2,flim3;
-  tkm_tOrientation theOrientation;
+  mri_tOrientation theOrientation;
   int plane;
 
   // get the plane.
@@ -3603,38 +3194,6 @@ int TclWriteDecimation ( ClientData inClientData, Tcl_Interp* inInterp,
   return TCL_OK;
 }
 
-int TclMarkFileVertices ( ClientData inClientData, Tcl_Interp* inInterp,
-        int argc, char* argv[] ) {
-
-  if ( argc < 2 ) {
-    Tcl_SetResult ( inInterp, "wrong # args: MarkFileVertices filename:string",
-        TCL_VOLATILE );
-    return TCL_ERROR;
-  }
-
-  if( gbAcceptingTclCommands ) {
-    mark_file_vertices ( argv[1] );
-  }
-
-  return TCL_OK;
-}
-
-int TclUnmarkVertices ( ClientData inClientData, Tcl_Interp* inInterp,
-      int argc, char* argv[] ) {
-
-  if ( argc < 1 ) {
-    Tcl_SetResult ( inInterp, "wrong # args: UnmarkVertices",
-        TCL_VOLATILE );
-    return TCL_ERROR;
-  }
-
-  if( gbAcceptingTclCommands ) {
-    unmark_vertices ();
-  }
-
-  return TCL_OK;
-}
-
 int TclReadHPts ( ClientData inClientData, Tcl_Interp* inInterp,
       int argc, char* argv[] ) {
 
@@ -3715,88 +3274,6 @@ int TclMirror ( ClientData inClientData, Tcl_Interp* inInterp,
   return TCL_OK;
 }
 
-int TclReadFieldSign ( ClientData inClientData, Tcl_Interp* inInterp,
-           int argc, char* argv[] ) {
-
-  if ( argc < 1 ) {
-    Tcl_SetResult ( inInterp, "wrong # args: ReadFieldSign",
-        TCL_VOLATILE );
-    return TCL_ERROR;
-  }
-
-  if( gbAcceptingTclCommands ) {
-    read_fieldsign ( fsfname );
-  }
-
-  return TCL_OK;
-}
-
-int TclReadFSMask ( ClientData inClientData, Tcl_Interp* inInterp,
-        int argc, char* argv[] ) {
-
-  if ( argc < 1 ) {
-    Tcl_SetResult ( inInterp, "wrong # args: ReadFSMask",
-        TCL_VOLATILE );
-    return TCL_ERROR;
-  }
-
-  if( gbAcceptingTclCommands ) {
-    read_fsmask ( fmfname );
-  }
-
-  return TCL_OK;
-}
-
-int TclReadDefaultBinaryCurvature ( ClientData inClientData, 
-            Tcl_Interp* inInterp,
-            int argc, char* argv[] ) {
-
-  if ( argc < 1 ) {
-    Tcl_SetResult ( inInterp, "wrong # args: ReadDefaultBinaryCurvature",
-        TCL_VOLATILE );
-    return TCL_ERROR;
-  }
-
-  if( gbAcceptingTclCommands ) {
-    read_binary_curvature ( cfname );
-  }
-
-  return TCL_OK;
-}
-
-int TclReadBinaryCurvature ( ClientData inClientData, Tcl_Interp* inInterp,
-           int argc, char* argv[] ) {
-
-  if ( argc < 2 ) {
-    Tcl_SetResult ( inInterp, 
-        "wrong # args: ReadBinaryCurvature filename:string",
-        TCL_VOLATILE );
-    return TCL_ERROR;
-  }
-
-  if( gbAcceptingTclCommands ) {
-    read_binary_curvature ( argv[1] );
-  }
-
-  return TCL_OK;
-}
-
-int TclSmooth3D ( ClientData inClientData, Tcl_Interp* inInterp,
-      int argc, char* argv[] ) {
-
-  if ( argc < 2 ) {
-    Tcl_SetResult ( inInterp, "wrong # args: Smooth3D steps:int",
-        TCL_VOLATILE );
-    return TCL_ERROR;
-  }
-
-  if( gbAcceptingTclCommands ) {
-    smooth_3d ( atoi(argv[1]) );
-  }
-
-  return TCL_OK;
-}
-
 int TclFlipCorView ( ClientData inClientData, Tcl_Interp* inInterp,
        int argc, char* argv[] ) {
 
@@ -3814,58 +3291,10 @@ int TclFlipCorView ( ClientData inClientData, Tcl_Interp* inInterp,
   return TCL_OK;
 }
 
-int TclReadBinarySurface ( ClientData inClientData, Tcl_Interp* inInterp,
-         int argc, char* argv[] ) {
-
-  if ( argc < 1 ) {
-    Tcl_SetResult ( inInterp, "wrong # args: ReadBinarySurface",
-        TCL_VOLATILE );
-    return TCL_ERROR;
-  }
-
-  if( gbAcceptingTclCommands ) {
-    read_binary_surface ( sfname );
-  }
-
-  return TCL_OK;
-}
-
-int TclDumpVertex ( ClientData inClientData, Tcl_Interp* inInterp,
-        int argc, char* argv[] ) {
-
-  if ( argc < 2 ) {
-    Tcl_SetResult ( inInterp, "wrong # args: DumpVertex index:int",
-        TCL_VOLATILE );
-    return TCL_ERROR;
-  }
-
-  if( gbAcceptingTclCommands ) {
-    dump_vertex ( atoi(argv[1]) );
-  }
-
-  return TCL_OK;
-}
-
-int TclSmoothSurface ( ClientData inClientData, Tcl_Interp* inInterp,
-           int argc, char* argv[] ) {
-
-  if ( argc < 2 ) {
-    Tcl_SetResult ( inInterp, "wrong # args: SmoothSurface steps:int",
-        TCL_VOLATILE );
-    return TCL_ERROR;
-  }
-
-  if( gbAcceptingTclCommands ) {
-    smooth_surface ( atoi(argv[1]) );
-  }
-
-  return TCL_OK;
-}
-
 int TclWMFilterCorSlice ( ClientData inClientData, Tcl_Interp* inInterp,
         int argc, char* argv[] ) {
 
-  VoxelRef theCursor = NULL;
+ xVoxelRef theCursor = NULL;
 
   if ( argc < 1 ) {
     Tcl_SetResult ( inInterp, "wrong # args: WMFilterCorSlice",
@@ -3874,10 +3303,10 @@ int TclWMFilterCorSlice ( ClientData inClientData, Tcl_Interp* inInterp,
   }
 
   if( gbAcceptingTclCommands ) {
-    Voxel_New ( &theCursor );
+    xVoxl_New ( &theCursor );
     MWin_GetCursor ( gMeditWindow, theCursor );
-    wmfilter_corslice ( Voxel_GetZ(theCursor) );
-    Voxel_Delete ( &theCursor );
+    wmfilter_corslice ( xVoxl_GetZ(theCursor) );
+    xVoxl_Delete ( &theCursor );
   }
 
   return TCL_OK;
@@ -3886,7 +3315,7 @@ int TclWMFilterCorSlice ( ClientData inClientData, Tcl_Interp* inInterp,
 int TclNormSlice ( ClientData inClientData, Tcl_Interp* inInterp,
        int argc, char* argv[] ) {
 
-  VoxelRef theCursor = NULL;
+ xVoxelRef theCursor = NULL;
 
   if ( argc < 2 ) {
     Tcl_SetResult ( inInterp, 
@@ -3896,13 +3325,13 @@ int TclNormSlice ( ClientData inClientData, Tcl_Interp* inInterp,
   }
 
   if( gbAcceptingTclCommands ) {
-    Voxel_New ( &theCursor );
+    xVoxl_New ( &theCursor );
     MWin_GetCursor ( gMeditWindow, theCursor );
-    norm_slice ( Voxel_GetZ(theCursor), 
-     Voxel_GetY(theCursor),
-     Voxel_GetX(theCursor),
+    norm_slice ( xVoxl_GetZ(theCursor), 
+     xVoxl_GetY(theCursor),
+     xVoxl_GetX(theCursor),
      atoi(argv[1]) ); 
-    Voxel_Delete ( &theCursor );
+    xVoxl_Delete ( &theCursor );
   }
 
   return TCL_OK;
@@ -4141,7 +3570,7 @@ int TclClearSelection ( ClientData inClientData, Tcl_Interp* inInterp,
 int TclSendCursor ( ClientData inClientData, Tcl_Interp* inInterp,
         int argc, char* argv[] ) {
 
-  VoxelRef theCursor = NULL;
+ xVoxelRef theCursor = NULL;
 
   if ( argc < 1 ) {
     Tcl_SetResult ( inInterp, "wrong # args: SendCursor",
@@ -4150,10 +3579,10 @@ int TclSendCursor ( ClientData inClientData, Tcl_Interp* inInterp,
   }
 
   if( gbAcceptingTclCommands ) { 
-    Voxel_New ( &theCursor );
+    xVoxl_New ( &theCursor );
     MWin_GetCursor ( gMeditWindow, theCursor );
     WriteVoxelToEditFile ( tfname, theCursor );
-    Voxel_Delete ( &theCursor );
+    xVoxl_Delete ( &theCursor );
   }    
 
   return TCL_OK;
@@ -4195,7 +3624,7 @@ int TclUndoLastEdit ( ClientData inClientData, Tcl_Interp* inInterp,
 int TclNewControlPoint ( ClientData inClientData, Tcl_Interp* inInterp,
        int argc, char* argv[] ) {
 
-  VoxelRef theCursor = NULL;
+ xVoxelRef theCursor = NULL;
 
   if ( argc < 1 ) {
     Tcl_SetResult ( inInterp, "wrong # args: NewControlPoint",
@@ -4204,10 +3633,10 @@ int TclNewControlPoint ( ClientData inClientData, Tcl_Interp* inInterp,
   }
 
   if( gbAcceptingTclCommands ) {
-    Voxel_New ( &theCursor );
+    xVoxl_New ( &theCursor );
     MWin_GetCursor ( gMeditWindow, theCursor );
-    NewCtrlPt ( theCursor );
-    Voxel_Delete ( &theCursor );
+    NewCtrlPt ( theCursor, TRUE );
+    xVoxl_Delete ( &theCursor );
   }
 
   return TCL_OK;
@@ -4274,7 +3703,7 @@ int TclLoadMainSurface ( ClientData inClientData, Tcl_Interp* inInterp,
   }
 
   if( gbAcceptingTclCommands ) {
-    read_surface ( argv[1] );
+    LoadSurface ( argv[1] );
   }
 
   return TCL_OK;
@@ -4291,7 +3720,7 @@ int TclLoadCanonicalSurface ( ClientData inClientData, Tcl_Interp* inInterp,
   }
 
   if( gbAcceptingTclCommands ) {
-    read_canonical_vertex_positions ( argv[1] );
+    LoadSurfaceVertexSet( Surf_tVertexSet_Pial, argv[1] );
   }
 
   return TCL_OK;
@@ -4308,7 +3737,7 @@ int TclLoadOriginalSurface ( ClientData inClientData, Tcl_Interp* inInterp,
   }
 
   if( gbAcceptingTclCommands ) {
-    read_orig_vertex_positions ( argv[1] );
+    LoadSurfaceVertexSet( Surf_tVertexSet_Original, argv[1] );
   }  
 
   return TCL_OK;
@@ -4331,6 +3760,7 @@ int TclUnloadAllSurfaces ( ClientData inClientData, Tcl_Interp* inInterp,
   return TCL_OK;
 }
 
+
 int TclGotoMainVertex ( ClientData inClientData, Tcl_Interp* inInterp,
       int argc, char* argv[] ) {
 
@@ -4342,7 +3772,7 @@ int TclGotoMainVertex ( ClientData inClientData, Tcl_Interp* inInterp,
   }
 
   if( gbAcceptingTclCommands ) {
-    GotoSurfaceVertex ( tkm_tSurfaceType_Current, atoi( argv[1] ) );
+    GotoSurfaceVertex ( Surf_tVertexSet_Main, atoi( argv[1] ) );
   }  
 
   return TCL_OK;
@@ -4359,7 +3789,7 @@ int TclGotoCanonicalVertex ( ClientData inClientData, Tcl_Interp* inInterp,
   }
 
   if( gbAcceptingTclCommands ) {
-    GotoSurfaceVertex ( tkm_tSurfaceType_Canonical, atoi( argv[1] ) );
+    GotoSurfaceVertex ( Surf_tVertexSet_Pial, atoi( argv[1] ) );
   }  
 
   return TCL_OK;
@@ -4376,7 +3806,7 @@ int TclGotoOriginalVertex ( ClientData inClientData, Tcl_Interp* inInterp,
   }
 
   if( gbAcceptingTclCommands ) {
-    GotoSurfaceVertex ( tkm_tSurfaceType_Original, atoi( argv[1] ) );
+    GotoSurfaceVertex ( Surf_tVertexSet_Original, atoi( argv[1] ) );
   }  
 
   return TCL_OK;
@@ -4393,7 +3823,7 @@ int TclShowNearestMainVertex ( ClientData inClientData, Tcl_Interp* inInterp,
   }
 
   if( gbAcceptingTclCommands ) {
-    FindNearestSurfaceVertex ( tkm_tSurfaceType_Current );
+    FindNearestSurfaceVertex ( Surf_tVertexSet_Main );
   }  
 
   return TCL_OK;
@@ -4411,7 +3841,7 @@ int TclShowNearestOriginalVertex ( ClientData inClientData,
   }
 
   if( gbAcceptingTclCommands ) {
-    FindNearestSurfaceVertex ( tkm_tSurfaceType_Original );
+    FindNearestSurfaceVertex ( Surf_tVertexSet_Original );
   }  
 
   return TCL_OK;
@@ -4429,7 +3859,7 @@ int TclShowNearestCanonicalVertex ( ClientData inClientData,
   }
 
   if( gbAcceptingTclCommands ) {
-    FindNearestSurfaceVertex ( tkm_tSurfaceType_Canonical );
+    FindNearestSurfaceVertex ( Surf_tVertexSet_Pial );
   }  
 
   return TCL_OK;
@@ -4495,8 +3925,9 @@ char **argv;
   char script_tcl[NAME_LENGTH];
   char *envptr;
   FILE *fp ;
-  char theErr;
-  FunV_tErr eFunctional = FunV_tErr_NoError;
+  x3Lst_tErr e3DList     = x3Lst_tErr_NoErr;
+  xList_tErr eList       = xList_tErr_NoErr;
+  FunV_tErr  eFunctional = FunV_tErr_NoError;
 
 #ifdef SET_TCL_ENV_VAR
   tBoolean  bChangedEnvVar    = FALSE;
@@ -4516,21 +3947,29 @@ char **argv;
 
   DebugPrint "Debugging output is on.\n" EndDebugPrint;
 
+  /* init medit window */
+  glutInit            ( &argc, argv );
+  glutInitDisplayMode ( GLUT_RGBA | GLUT_DOUBLE );
+  MWin_New ( &gMeditWindow, "", 512, 512 );
+
+
   // init the selection list 
-  theErr = VList_New ( &gSelectionList );
-  if ( theErr ) {
-    DebugPrint "Error in VList_Init: %s\n", 
-      VList_GetErrorString(theErr) EndDebugPrint;
-    exit (1);
+  eList = xList_New( &gSelectionList );
+  if( xList_tErr_NoErr != eList ) {
+    OutputPrint "Fatal error: Couldn't initialize selection list.\n"
+      EndOutputPrint;
+    exit( 1 );
   }
+  xList_SetComparator( gSelectionList, CompareVoxels );
 
   // init our control pt list
-  theErr = VSpace_New ( &gCtrlPtList );
-  if ( theErr != kVSpaceErr_NoErr ) {
-    DebugPrint "Error in VSpace_Init: %s\n",
-      VSpace_GetErrorString ( theErr ) EndDebugPrint;
-    exit (1);
+  e3DList = x3Lst_New( &gCtrlPtList, 256 );
+  if( x3Lst_tErr_NoErr != e3DList ) {
+    OutputPrint "Fatal error: Couldn't initialize control point list.\n"
+      EndOutputPrint;
+    exit( 1 );
   }
+  x3Lst_SetComparator( gCtrlPtList, CompareVoxels );
 
   // init the undo list.
   InitUndoList ();
@@ -4538,20 +3977,22 @@ char **argv;
   // and the selection module.
   InitSelectionModule ();
 
-  // no surfaces are loaded.
-  gIsCurrentSurfaceLoaded = FALSE;
-  gIsOriginalSurfaceLoaded = FALSE;
-  gIsCanonicalSurfaceLoaded = FALSE;
-
   /* create functional volume */
   eFunctional = FunV_New( &gFunctionalVolume,
         UpdateAndRedraw, tkm_SendTclCommand, 
         SendTCLCommand );
+
   if( FunV_tErr_NoError != eFunctional ) {
-    DebugPrint "Error creating functional volume.\n" EndDebugPrint;
     OutputPrint "Couldn't initialize functional module.\n" EndOutputPrint;
     exit( 1 );
   }
+
+
+  /* set windows data sources */
+  MWin_SetControlPointsSpace ( gMeditWindow, -1, gCtrlPtList );
+  MWin_SetControlPointsSelectionList ( gMeditWindow, -1, gSelectionList );
+  MWin_SetSelectionSpace ( gMeditWindow, -1, gSelectedVoxels );
+
 
   /* start program, now as function; gl window not opened yet */
   Medit((ClientData) NULL, interp, argc, argv); /* event loop commented out */
@@ -4634,20 +4075,8 @@ char **argv;
   /* process ctrl pts file */
   ProcessCtrlPtFile( tfname );
 
-  /* init medit window */
-  glutInit            ( &argc, argv );
-  glutInitDisplayMode ( GLUT_RGBA | GLUT_DOUBLE );
-  MWin_New ( &gMeditWindow, pname, 512, 512 );
-
   /* set window's data */
-  MWin_SetVolume ( gMeditWindow, -1, gAnatomicalVolume, knVolumeSize );
-  MWin_SetControlPointsSpace ( gMeditWindow, -1, gCtrlPtList );
-  MWin_SetControlPointsSelectionList ( gMeditWindow, -1, gSelectionList );
-  MWin_SetSelectionSpace ( gMeditWindow, -1, gSelectedVoxels );
-  MWin_SetParcellationVolume( gMeditWindow, -1, gParcellationVolume, 
-            knVolumeSize );
-  if ( gIsCurrentSurfaceLoaded )
-    MWin_SetSurface ( gMeditWindow, 0, mris );
+  MWin_SetWindowTitle( gMeditWindow, pname );
 
   /* don't accept tcl commands yet. */
   gbAcceptingTclCommands = FALSE;
@@ -4790,14 +4219,6 @@ char **argv;
           TclWriteDecimation,
           (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
   
-  Tcl_CreateCommand ( interp, "MarkFileVertices",
-          TclMarkFileVertices,
-          (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
-  
-  Tcl_CreateCommand ( interp, "UnmarkVertices",
-          TclUnmarkVertices,
-          (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
-  
   Tcl_CreateCommand ( interp, "ReadHPts",
           TclReadHPts,
           (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
@@ -4818,40 +4239,8 @@ char **argv;
           TclMirror,
           (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
   
-  Tcl_CreateCommand ( interp, "ReadFieldSign",
-          TclReadFieldSign,
-          (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
-  
-  Tcl_CreateCommand ( interp, "ReadFSMask",
-          TclReadFSMask,
-          (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
-  
-  Tcl_CreateCommand ( interp, "ReadDefaultBinaryCurvature",
-          TclReadDefaultBinaryCurvature,
-          (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
-  
-  Tcl_CreateCommand ( interp, "ReadBinaryCurvature",
-          TclReadBinaryCurvature,
-          (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
-  
-  Tcl_CreateCommand ( interp, "Smooth3D",
-          TclSmooth3D,
-          (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
-  
   Tcl_CreateCommand ( interp, "FlipCorView",
           TclFlipCorView,
-          (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
-  
-  Tcl_CreateCommand ( interp, "ReadBinarySurface",
-          TclReadBinarySurface,
-          (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
-  
-  Tcl_CreateCommand ( interp, "DumpVertex",
-          TclDumpVertex,
-          (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
-  
-  Tcl_CreateCommand ( interp, "SmoothSurface",
-          TclSmoothSurface,
           (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
   
   Tcl_CreateCommand ( interp, "WMFilterCorSlice",
@@ -5041,7 +4430,7 @@ char **argv;
 
   /* if we have a tal transform, hide the ras coords. otherwise hide
      the tal coords. */
-  if ( transform_loaded ) {
+  if ( gbAnaToTalTransformLoaded ) {
     tkm_SendTclCommand ( tkm_tTclCommand_ShowRASCoords, "0" );
   } else {
     tkm_SendTclCommand ( tkm_tTclCommand_ShowTalCoords, "0" );
@@ -5054,31 +4443,6 @@ char **argv;
   /* we probably get sent a few tcl commands before now, and we cached
      them, so send them now. */
   SendCachedTclCommands ();
-
-  /* if we have a surface loaded, enable the aux surface loading optins */
-  if( gIsCurrentSurfaceLoaded ) {
-    tkm_SendTclCommand( tkm_tTclCommand_ShowSurfaceLoadingOptions, "1" );
-  } else {
-    tkm_SendTclCommand( tkm_tTclCommand_ShowSurfaceLoadingOptions, "0" );
-  }
-  
-  /* if canonical surface is loaded, enable viewing options. same for
-     original */
-  if( gIsOriginalSurfaceLoaded ) {
-    tkm_SendTclCommand( tkm_tTclCommand_ShowOriginalSurfaceViewingOptions, 
-      "1" );
-  } else {
-    tkm_SendTclCommand( tkm_tTclCommand_ShowOriginalSurfaceViewingOptions,
-      "0" );
-  }    
-  if( gIsCanonicalSurfaceLoaded ) {
-    tkm_SendTclCommand( tkm_tTclCommand_ShowCanonicalSurfaceViewingOptions,
-      "1" );
-  } else {
-    tkm_SendTclCommand( tkm_tTclCommand_ShowCanonicalSurfaceViewingOptions, 
-      "0" );
-  }    
-
 
   /* set the volume color scale */
   SetVolumeColorScale ( kfDefaultVolumeThreshold, kfDefaultVolumeSquash );
@@ -5099,8 +4463,6 @@ char **argv;
 
 void tkm_Quit () {
   
-  char theErr;
-
   /* delete window */
   MWin_Delete( &gMeditWindow );
 
@@ -5109,21 +4471,10 @@ void tkm_Quit () {
 
   // delete everything we allocated before
   FunV_Delete( &gFunctionalVolume );
-
   DeleteSelectionModule ();
-
-  theErr = VList_Delete ( &gSelectionList );
-  if ( theErr )
-    DebugPrint "Error in VList_Delete: %s\n",  
-      VList_GetErrorString(theErr) EndDebugPrint;
-
-  theErr = VSpace_Delete ( &gCtrlPtList );
-  if ( theErr != kVSpaceErr_NoErr )
-    DebugPrint "Error in VSpace_Delete: %s\n",
-      VSpace_GetErrorString(theErr) EndDebugPrint;
-
+  xList_Delete( &gSelectionList );
+  x3Lst_Delete( &gCtrlPtList );
   DeleteUndoList ();
-
   DeleteDebugging;
 
   exit(0);
@@ -5205,7 +4556,9 @@ static void Prompt(interp, partial)
 
 // =========================================================== READING VOLUMES
 
-int ReadVolumeWithMRIRead ( tVolumeRef* iopVolume, char * inFileOrPath ) {
+int ReadVolumeWithMRIRead ( tVolumeRef*        iopVolume, 
+          General_transform* iTransform,
+          char*              inFileOrPath ) {
 
   MRI *theMRIVolume;
   tVolumeRef theVolume = NULL;
@@ -5240,21 +4593,14 @@ int ReadVolumeWithMRIRead ( tVolumeRef* iopVolume, char * inFileOrPath ) {
   zz0 = theMRIVolume->zstart;
   zz1 = theMRIVolume->zend;
 
-  // grab the tal transforms.
-  if ( NULL != theMRIVolume->linear_transform ) {
-    copy_general_transform ( &theMRIVolume->transform, &talairach_transform );
-    linear_transform = get_linear_transform_ptr ( &talairach_transform );
-    inverse_linear_transform = 
-      get_inverse_linear_transform_ptr ( &talairach_transform );
+  // if they want transforms, grab the tal transforms.
+  if ( NULL != iTransform ) {
+    if( NULL != theMRIVolume->linear_transform ) {
+      copy_general_transform ( &theMRIVolume->transform, iTransform );
+    }
   }
 
-  // if we got them, make note of it.
-  if ( NULL != linear_transform  && NULL != inverse_linear_transform )
-    transform_loaded = TRUE;
-  else
-    transform_loaded = FALSE;
-
-  numimg = imnr1-imnr0+1; // really the number of slices
+    numimg = imnr1-imnr0+1; // really the number of slices
 
   // calc window dimensions according to already defined scale factor
   xdim= xnum * zf;
@@ -5297,10 +4643,9 @@ void ProcessCtrlPtFile ( char * inDir ) {
   Real theRASX, theRASY, theRASZ;
   int theVoxX, theVoxY, theVoxZ;
   int theNumPtsRead;
-  char theResult;
-  VoxelRef theVoxel;
-
-  Voxel_New ( &theVoxel );
+  xVoxelRef theVoxel = NULL;
+  
+  xVoxl_New( &theVoxel );
 
   // don't parse the file if we already have.
   if ( TRUE == gParsedCtrlPtFile )
@@ -5323,7 +4668,8 @@ void ProcessCtrlPtFile ( char * inDir ) {
   while ( !feof(theFile) ) {
     
     // read in some numbers
-    theNumPtsRead = fscanf ( theFile, "%f %f %f", &theTempX, &theTempY, &theTempZ );
+    theNumPtsRead = fscanf ( theFile, "%f %f %f",
+           &theTempX, &theTempY, &theTempZ );
 
     // if not successful, file is wierd. print error, close file, and return.
     if ( theNumPtsRead < 3 &&
@@ -5347,13 +4693,10 @@ void ProcessCtrlPtFile ( char * inDir ) {
                    &theVoxX, &theVoxY, &theVoxZ );
       
       // add it to our cntrl points space
-      Voxel_Set ( theVoxel, theVoxX, theVoxY, theVoxZ );
-      theResult = VSpace_AddVoxel ( gCtrlPtList, theVoxel );
-      if ( theResult != kVSpaceErr_NoErr )
-        DebugPrint "ProcessCtrlPtFile(): Error in VSpace_AddVoxel: %s\n", 
-          VSpace_GetErrorString ( theResult ) EndDebugPrint;
+      xVoxl_Set( theVoxel, theVoxX, theVoxY, theVoxZ );
+      NewCtrlPt( theVoxel, FALSE );
     }
-  }
+  }    
 
   // close the file.
   fclose ( theFile );
@@ -5361,325 +4704,315 @@ void ProcessCtrlPtFile ( char * inDir ) {
   // mark that we have processed the file, and shouldn't do it again.
   gParsedCtrlPtFile = TRUE;
 
-  Voxel_Delete ( &theVoxel );
+  xVoxl_Delete ( &theVoxel );
 }
 
                                        /* writes all control points to the
                                           control.dat file in RAS space */
 void WriteCtrlPtFile ( char * inDir ) {
 
-  char theFilename [NAME_LENGTH];
-  FILE * theFile;
-  int theVoxX, theVoxY, theVoxZ;
-  Real theRASX, theRASY, theRASZ;
-  char theResult;
-  int theIndex;
-  int theListCount, theListIndex;
-  VoxelListRef theList;
-  VoxelRef theVoxel;
-  
-  Voxel_New ( &theVoxel );
+  char       sFilename[256] = "";
+  FILE*      pFile          = NULL;
+  int        nPlane         = 0;
+  Real       rRASX          = 0;
+  Real       rRASY          = 0;
+  Real       rRASZ          = 0;
+  xListRef   list           = NULL;
+  xVoxelRef  voxel          = NULL;
+  x3Lst_tErr e3DList        = x3Lst_tErr_NoErr;
+  xList_tErr eList          = xList_tErr_NoErr;
 
   // create the filename.
-  sprintf ( theFilename, "%s/control.dat", inDir );
+  sprintf( sFilename, "%s/control.dat", inDir );
 
   // open the file for writing.
-  theFile = fopen ( theFilename, "w" );
+  pFile = fopen( sFilename, "w" );
 
   // check for success.
-  if ( NULL == theFile ) {
-    DebugPrint "WriteCtrlPtFile: Couldn't create %s for writing.\n",
-      theFilename EndDebugPrint;
+  if ( NULL == pFile ) {
+    OutputPrint "Couldn't create %s for writing control points.\n",
+      sFilename EndOutputPrint;
     return;
   }
 
-   DebugPrint "WriteCtrlPtFile: Writing control points to %s...\n",
-    theFilename EndDebugPrint;
-   OutputPrint "Saving control points... " EndOutputPrint;
+  OutputPrint "Saving control points... " EndOutputPrint;
 
   // get the ctrl pts in the list...
-  for ( theIndex = 0; theIndex < kVSpace_NumListsInPlane; theIndex++ ) {
+  for ( nPlane = 0; nPlane < gVolumeDimension; nPlane++ ) {
 
     // get the list for this x value.
-    theResult = VSpace_GetVoxelsInXPlane ( gCtrlPtList, theIndex, &theList );
-    if ( theResult != kVSpaceErr_NoErr ) {
-      DebugPrint "WriteCtrlPtFile(): Error in VSpace_GetVoxelsInXPlane: %s\n",
-        VSpace_GetErrorString ( theResult ) EndDebugPrint;
-      OutputPrint "\nError saving a point!\n" EndOutputPrint;
-      continue;
-    }
+    e3DList = x3Lst_GetItemsInXPlane( gCtrlPtList, nPlane, &list );
+    if( e3DList != x3Lst_tErr_NoErr )
+      goto error;
 
-    // get the number of voxels in the list.
-    theResult = VList_GetCount ( theList, &theListCount );
-    if ( theResult != kVListErr_NoErr ) {
-      DebugPrint "WriteCtrlPtFile(): Error in VList_GetCount: %s\n",
-        VList_GetErrorString ( theResult ) EndDebugPrint;
-      OutputPrint "\nError saving a point!\n" EndOutputPrint;
-      continue;
-    }
+    /* traverse the list */
+    eList = xList_ResetPosition( list );
+    while( (eList = xList_NextFromPos( list, (void**)&voxel )) 
+     != xList_tErr_EndOfList ) {
 
-    // get each voxel...
-    for ( theListIndex = 0; theListIndex < theListCount; theListIndex++ ) {
+      if( voxel ) {
 
-      theResult = VList_GetNthVoxel ( theList, theListIndex, theVoxel );
-      if ( theResult != kVListErr_NoErr ) {
-        DebugPrint "WriteCtrlPtFile(): Error in VList_GetNthVoxel: %s\n",
-          VList_GetErrorString ( theResult ) EndDebugPrint;
-  OutputPrint "\nError saving a point!\n" EndOutputPrint;
-        continue;
+  // transform to ras space.
+  VoxelToRAS ( xVoxl_ExpandInt(voxel),
+         &rRASX, &rRASY, &rRASZ );
+  
+  // write to the file
+  fprintf( pFile, "%f %f %f\n", rRASX, rRASY, rRASZ );
       }
-      
-      // unpack it.
-      theVoxX = Voxel_GetX ( theVoxel );
-      theVoxY = Voxel_GetY ( theVoxel );
-      theVoxZ = Voxel_GetZ ( theVoxel );
-
-      // transform to ras space.
-      VoxelToRAS ( theVoxX, theVoxY, theVoxZ,
-                   &theRASX, &theRASY, &theRASZ );
-      
-      // write to the file
-      fprintf ( theFile, "%f %f %f\n", theRASX, theRASY, theRASZ );
-      
-      DebugPrint "\t%d %d %d -> %f %f %f\n", 
-        theVoxX, theVoxY, theVoxZ,
-        theRASX, theRASY, theRASZ EndDebugPrint;
-      
     }
-    
+
+    if( eList != xList_tErr_EndOfList )
+      goto error;
   }
 
-  // close file
-  fclose ( theFile );
-
-  DebugPrint "\tDone.\n" EndDebugPrint;
   OutputPrint " done.\n" EndOutputPrint;
 
-  Voxel_Delete ( &theVoxel );
+  goto cleanup;
+
+ error:
+
+  if( eList != xList_tErr_NoErr ) {
+    DebugPrint "xList error %d in WriteCtrlPtFile.\n", eList EndDebugPrint;
+    OutputPrint "Error saving control points.\n" EndOutputPrint;
+  }
+
+  if( e3DList != x3Lst_tErr_NoErr ) {
+    DebugPrint "x3Lst error %d in WriteCtrlPtFile.\n", e3DList EndDebugPrint;
+    OutputPrint "Error saving control points.\n" EndOutputPrint;
+  }
+
+ cleanup:
+
+  /* close file */
+  if( pFile )
+    fclose( pFile );
 }
 
 
-int FindNearestCtrlPt ( VoxelRef inVolumeVox, tkm_tOrientation inPlane,
-       VoxelRef outCtrlPt ) {
+tBoolean FindNearestCtrlPt ( xVoxelRef        inVolumeVox, 
+           mri_tOrientation inPlane,
+           xVoxelRef*       outCtrlPt ) {
 
-  int theListCount, theListIndex;
-  char theResult;
-  VoxelRef theVoxel;
-  VoxelListRef theList;
-  unsigned int theDistance, theClosestDistance;
-  short theClosestIndex;
-  int theReturn;
+  tBoolean     bFound           = FALSE;
+  unsigned int nDistance        = 0;
+  unsigned int nClosestDistance = 0;
+  xListRef     list             = NULL;
+  xVoxelRef    voxel            = NULL;
+  xVoxelRef    closestVoxel     = NULL;
+  x3Lst_tErr   e3DList          = x3Lst_tErr_NoErr;
+  xList_tErr   eList            = xList_tErr_NoErr;
 
-  // assume not found.
-  theReturn = 0;
-
-  Voxel_New ( &theVoxel );
-
-  // get the dimension to search in, based on our current plane, and
-  // get the list of voxels for this slice.
+  /* get the list to search in */
   switch ( inPlane ) {
-  case tkm_tOrientation_Coronal: 
-    theResult = VSpace_GetVoxelsInZPlane ( gCtrlPtList, 
-             Voxel_GetZ(inVolumeVox), &theList );
+  case mri_tOrientation_Coronal: 
+    e3DList = x3Lst_GetItemsInZPlane( gCtrlPtList, 
+              xVoxl_GetZ(inVolumeVox), &list );
     break;
-  case tkm_tOrientation_Horizontal: 
-    theResult = VSpace_GetVoxelsInYPlane ( gCtrlPtList, 
-             Voxel_GetY(inVolumeVox), &theList );
+  case mri_tOrientation_Horizontal: 
+    e3DList = x3Lst_GetItemsInYPlane( gCtrlPtList, 
+              xVoxl_GetY(inVolumeVox), &list );
     break;
-  case tkm_tOrientation_Sagittal: 
-    theResult = VSpace_GetVoxelsInXPlane ( gCtrlPtList, 
-             Voxel_GetX(inVolumeVox), &theList );
+  case mri_tOrientation_Sagittal: 
+    e3DList = x3Lst_GetItemsInXPlane( gCtrlPtList, 
+              xVoxl_GetX(inVolumeVox), &list );
     break;
   default:
-    theResult = 0;
+    bFound = FALSE;
+    goto error;
   }
     
-  if ( theResult != kVSpaceErr_NoErr ) {
-    DebugPrint "FindNearestCtrlPt(): Error in VSpace_GetVoxelsInX/Y/ZPlane: %s\n", 
-      VSpace_GetErrorString ( theResult ) EndDebugPrint;
-    theList = NULL;
+  if ( e3DList != x3Lst_tErr_NoErr )
+    goto error;
+
+  /* if we got a list... */
+  if ( NULL != list ) {
+
+    /* start with a large distance */
+    nClosestDistance = gVolumeDimension * gVolumeDimension; 
+    bFound = FALSE;
+
+    /* traverse the list */
+    eList = xList_ResetPosition( list );
+    while( (eList = xList_NextFromPos( list, (void**)&voxel )) 
+     != xList_tErr_EndOfList ) {
+
+      if( voxel ) {
+
+  /* get the distance to the clicked voxel... */
+  nDistance =
+    ((xVoxl_GetX(inVolumeVox) - xVoxl_GetX(voxel)) * 
+     (xVoxl_GetX(inVolumeVox) - xVoxl_GetX(voxel))) +
+    ((xVoxl_GetY(inVolumeVox) - xVoxl_GetY(voxel)) * 
+     (xVoxl_GetY(inVolumeVox) - xVoxl_GetY(voxel))) +
+    ((xVoxl_GetZ(inVolumeVox) - xVoxl_GetZ(voxel)) * 
+     (xVoxl_GetZ(inVolumeVox) - xVoxl_GetZ(voxel)));
+  
+  /* if it's less than our max, mark the distance and copy the vox */
+  if ( nDistance < nClosestDistance ) {
+    nClosestDistance = nDistance;
+    closestVoxel = voxel;
+    bFound = TRUE;
   }
-
-  // if we got a list...
-  if ( theList != NULL ) {
-
-    // start with a large distance and no closest ctrl pt
-    theClosestDistance = 0 - 1; 
-    theClosestIndex = -1;
-
-    // get the number of voxel and search through the list...
-    theResult = VList_GetCount ( theList, &theListCount );
-    if ( theResult != kVListErr_NoErr ) {
-      DebugPrint "FindNearestCtrlPt(): Error in VList_GetCount: %s\n",
-        VList_GetErrorString ( theResult ) EndDebugPrint;
-      theListCount = 0;
+      }
     }
-    
-    for ( theListIndex = 0; theListIndex < theListCount; theListIndex++ ) {
+
+    if( eList != xList_tErr_EndOfList )
+      goto error;
  
-      // grab a voxel
-      theResult = VList_GetNthVoxel ( theList, theListIndex, theVoxel );
-      if ( theResult != kVListErr_NoErr ) {
-        DebugPrint "FindNearestCtrlPt(): Error in VList_GetNthVoxel: %s\n",
-          VList_GetErrorString ( theResult ) EndDebugPrint;
-        continue;
-      }
+   /* if we found a voxel */
+    if ( bFound ) {
 
-      // get the distance to the clicked voxel...
-      theDistance =
-        ((Voxel_GetX(inVolumeVox) - Voxel_GetX(theVoxel)) * 
-   (Voxel_GetX(inVolumeVox) - Voxel_GetX(theVoxel))) +
-        ((Voxel_GetY(inVolumeVox) - Voxel_GetY(theVoxel)) * 
-   (Voxel_GetY(inVolumeVox) - Voxel_GetY(theVoxel))) +
-        ((Voxel_GetZ(inVolumeVox) - Voxel_GetZ(theVoxel)) * 
-   (Voxel_GetZ(inVolumeVox) - Voxel_GetZ(theVoxel)));
-
-      // if it's less than our max, mark the distance and vox index
-      if ( theDistance < theClosestDistance ) {
-        theClosestDistance = theDistance;
-        theClosestIndex = theListIndex;
-      }
-    }
-
-    // if we found a voxel
-    if ( theClosestIndex != -1 ) {
-
-      // get it back again
-      theResult = VList_GetNthVoxel ( theList, theClosestIndex, theVoxel );
-      if ( theResult != kVListErr_NoErr ) {
-        DebugPrint "SelectCtrlPt(): Error in VList_GetNthVoxel: %s\n",
-          VList_GetErrorString ( theResult ) EndDebugPrint;
-        return theResult;
-      }
-
-      // return it.
-      Voxel_Copy ( outCtrlPt, theVoxel );
-
-      theResult = 1;
+      /* return it. */
+      *outCtrlPt = closestVoxel;
     }
   }
 
-  return theResult;
+  goto cleanup;
+
+ error:
+
+  if( eList != xList_tErr_NoErr )
+    DebugPrint "xList error %d in FindNearestCtrlPt.\n", eList EndDebugPrint;
+
+  if( e3DList != x3Lst_tErr_NoErr )
+    DebugPrint "x3Lst error %d in FindNearestCtrlPt.\n", eList EndDebugPrint;
+
+ cleanup:
+
+
+  return bFound;
 }
 
-void AddNearestCtrlPtToSelection ( VoxelRef inVolumeVox, 
-           tkm_tOrientation inPlane ) {
+void AddNearestCtrlPtToSelection ( xVoxelRef        inVolumeVox, 
+           mri_tOrientation inPlane ) {
 
-  char theResult;
-  VoxelRef theCtrlPt;
-  
-  Voxel_New ( &theCtrlPt );
+  xVoxelRef theCtrlPt;
 
   // if we find a nearest control point...
-  if ( FindNearestCtrlPt ( inVolumeVox, inPlane, theCtrlPt ) ) {
+  if ( FindNearestCtrlPt ( inVolumeVox, inPlane, &theCtrlPt ) ) {
 
     // add this point to the selection
-    theResult = VList_AddVoxel ( gSelectionList, theCtrlPt );
-    if ( theResult != kVListErr_NoErr )
-      DebugPrint "SelectCtrlPt(): Error in VList_AddVoxel: %s\n",
-  VList_GetErrorString ( theResult ) EndDebugPrint;
+    SelectCtrlPt( theCtrlPt );
   }  
-
-  Voxel_Delete ( &theCtrlPt );
 }
 
-void RemoveNearestCtrlPtFromSelection ( VoxelRef inVolumeVox, 
-          tkm_tOrientation inPlane ) {
+void RemoveNearestCtrlPtFromSelection ( xVoxelRef        inVolumeVox, 
+          mri_tOrientation inPlane ) {
   
-  char theResult;
-  VoxelRef theCtrlPt;
-  
-  Voxel_New ( &theCtrlPt );
+  xVoxelRef theCtrlPt;
 
   // if we find a nearest control point...
-  if ( FindNearestCtrlPt ( inVolumeVox, inPlane, theCtrlPt ) ) {
+  if ( FindNearestCtrlPt ( inVolumeVox, inPlane, &theCtrlPt ) ) {
 
     // remove this point from selection
-    theResult = VList_RemoveVoxel ( gSelectionList, theCtrlPt );
-    if ( theResult != kVListErr_NoErr )
-      DebugPrint "SelectCtrlPt(): Error in VList_RemoveVoxel: %s\n",
-  VList_GetErrorString ( theResult ) EndDebugPrint;    
+    DeselectCtrlPt( theCtrlPt );
   }
-  
-  Voxel_Delete ( &theCtrlPt );
 }
 
 void DeselectAllCtrlPts () {
 
-  char theResult;
+  xList_tErr eList = xList_tErr_NoErr;
   
-  theResult = VList_ClearList ( gSelectionList );
-  if ( theResult != kVListErr_NoErr )
-    DebugPrint "DeselectAllControlPoints(): Error in VList_ClearList: %s\n",
-      VList_GetErrorString ( theResult ) EndDebugPrint;
+  eList = xList_Clear( gSelectionList );
+  if ( eList != xList_tErr_NoErr )
+    DebugPrint "xList error %d in DeselectAllControlPoints: %s\n",
+      eList, xList_GetErrorString( eList ) EndDebugPrint;
 
   redraw ();
 }
 
-void NewCtrlPt ( VoxelRef inVoxel ) {
+void SelectCtrlPt ( xVoxelRef iVoxel ) {
 
-  char theResult;
-  
-  // add the voxel to the ctrl pt space
-  theResult = VSpace_AddVoxel ( gCtrlPtList, inVoxel );
-  if ( theResult != kVSpaceErr_NoErr )
-    DebugPrint "NewControlPoint(): Error in VSpace_AddVoxel: %s\n",
-      VSpace_GetErrorString ( theResult ) EndDebugPrint;
-    
-  OutputPrint "Made control point (%d,%d,%d).\n",
-    EXPAND_VOXEL_INT(inVoxel)  EndOutputPrint;
+  xList_tErr eList = xList_tErr_NoErr;
 
-  /* write it to the control point file. */
-  WriteVoxelToControlFile( tfname, inVoxel );
+  eList = xList_PushItem( gSelectionList, iVoxel );
+  if ( eList != xList_tErr_NoErr )
+    DebugPrint "xList error %d in SelectCtrlPt: %s\n",
+      eList, xList_GetErrorString( eList ) EndDebugPrint;
+
+  redraw ();
 }
 
-                                        /* remove the selected control points 
-                                           from the control point space */
+void DeselectCtrlPt ( xVoxelRef iVoxel ) {
+
+  xList_tErr eList = xList_tErr_NoErr;
+  xVoxelRef  pVoxel = NULL;
+
+  /* save a ptr to the voxel to remove. */
+  pVoxel = iVoxel;
+
+  /* this will return a ptr to the actual voxel removed. don't delte it here,
+     because it still exists in the big ctrl pt list */
+  eList = xList_RemoveItem( gSelectionList, (void**)&pVoxel );
+  if ( eList != xList_tErr_NoErr
+       && xList_tErr_ItemNotInList != eList )
+    DebugPrint "xList error %d in DeselectCtrlPt: %s\n",
+      eList, xList_GetErrorString( eList ) EndDebugPrint;
+
+  redraw ();
+}
+
+
+void NewCtrlPt ( xVoxelRef iCtrlPt,
+     tBoolean  ibWriteToFile ) {
+
+  x3Lst_tErr e3DList = x3Lst_tErr_NoErr;
+  xVoxelRef  ctrlPt  = NULL;
+
+  /* allocate a copy of the voxel */
+  xVoxl_New( &ctrlPt );
+  xVoxl_Copy( ctrlPt, iCtrlPt );
+
+  // add the voxel to the ctrl pt space
+  e3DList = x3Lst_AddItem( gCtrlPtList, ctrlPt, ctrlPt );
+  if( e3DList != x3Lst_tErr_NoErr )
+    DebugPrint "x3Lst error %d in NewCtrlPt.\n", e3DList EndDebugPrint;
+
+  /* write it to the control point file. */
+  if( ibWriteToFile )
+    WriteVoxelToControlFile( tfname, ctrlPt );
+}
+
+void DeleteCtrlPt ( xVoxelRef ipCtrlPt ) {
+
+  x3Lst_tErr e3DList = x3Lst_tErr_NoErr;
+  xVoxelRef  ctrlPt  = NULL;
+
+  ctrlPt = ipCtrlPt;
+
+  /* remove the item */
+  e3DList = x3Lst_RemoveItem( gCtrlPtList, ctrlPt, (void**)&ctrlPt );
+  if( e3DList != x3Lst_tErr_NoErr )
+    goto error;
+
+  /* delete it */
+  xVoxl_Delete( &ctrlPt );
+
+  goto cleanup;
+  
+ error:
+  
+  if( x3Lst_tErr_NoErr != e3DList
+      && x3Lst_tErr_ItemNotInSpace != e3DList ) {
+    DebugPrint "x3Lst error %d in DeleteCtrlPt.\n", e3DList EndDebugPrint;
+  }
+
+ cleanup:
+  return;
+}
+
 void DeleteSelectedCtrlPts () {
 
-  char theResult;
-  int theCount, theIndex;
-  VoxelRef theCtrlPt;
+  xList_tErr eList   = xList_tErr_NoErr;
+  xVoxelRef  ctrlPt  = NULL;
 
-  Voxel_New ( &theCtrlPt );
+  /* while we have items left to pop from selection list... */
+  while( (eList = xList_PopItem( gSelectionList, (void**)&ctrlPt )) 
+   != xList_tErr_EndOfList ) {
 
-  // get the number of selected points we have
-  theResult = VList_GetCount ( gSelectionList, &theCount );
-  if ( theResult != kVListErr_NoErr ) {
-    DebugPrint "Error in VList_GetCount: %s\n",
-      VList_GetErrorString ( theResult ) EndDebugPrint;
-    return;
+    /* remove the voxel from the ctrl pt list */
+    DeleteCtrlPt( ctrlPt );
   }
-
-  // for each one...
-  for ( theIndex = 0; theIndex < theCount; theIndex++ ) {
-
-    // get it
-    theResult = VList_GetNthVoxel ( gSelectionList, theIndex, theCtrlPt );
-    if ( theResult != kVListErr_NoErr ) {
-      DebugPrint "Error in VList_GetNthVoxel: %s\n",
-        VList_GetErrorString ( theResult ) EndDebugPrint;
-      continue;
-    }
-    
-    // set its value in the space to 0
-    theResult = VSpace_RemoveVoxel ( gCtrlPtList, theCtrlPt );
-    if ( theResult != kVSpaceErr_NoErr ) {
-      DebugPrint "DeleteSelectedCtrlPts(): Error in VSpace_RemoveVoxel: %s\n",
-        VSpace_GetErrorString ( theResult ) EndDebugPrint;
-      continue;
-    }        
-  }
-
-  // remove all pts from the selection list
-  theResult = VList_ClearList ( gSelectionList );
-  if ( theResult != kVListErr_NoErr ) {
-    DebugPrint "Error in VList_ClearList: %s\n",
-      VList_GetErrorString ( theResult ) EndDebugPrint;
-    return;
-  }
-
-  Voxel_Delete ( &theCtrlPt );
 
   redraw ();
 }
@@ -5690,350 +5023,355 @@ void DeleteSelectedCtrlPts () {
 
 void InitSelectionModule () {
 
-  char theErr;
-  theErr = VSpace_New ( &gSelectedVoxels );
-  if ( theErr != kVSpaceErr_NoErr ) {
-    DebugPrint "InitSelectionModule(): Error in VSpace_Init: %s\n",
-      VSpace_GetErrorString ( theErr ) EndDebugPrint;
-    gSelectedVoxels = NULL;
-  }
+  x3Lst_tErr e3DList     = x3Lst_tErr_NoErr;
 
-  isDisplaySelectedVoxels = TRUE;
+  e3DList = x3Lst_New( &gSelectedVoxels, 256 );
+  if( x3Lst_tErr_NoErr != e3DList ) {
+    OutputPrint "Error: Couldn't initialize selection module.\n"
+      EndOutputPrint;
+    gSelectionList = NULL;
+  }
+  x3Lst_SetComparator( gSelectedVoxels, CompareVoxels );
+
+  if( NULL != gSelectedVoxels )
+    isDisplaySelectedVoxels = TRUE;
 }
 
 void DeleteSelectionModule () {
 
-  char theErr;
-
   if ( NULL == gSelectedVoxels )
     return;
   
-  theErr = VSpace_Delete ( &gSelectedVoxels );
-  if ( theErr != kVSpaceErr_NoErr )
-    DebugPrint "DeleteSelectionModule(): Error in VSpace_Delete: %s\n",
-      VSpace_GetErrorString(theErr) EndDebugPrint;
+  x3Lst_Delete( &gSelectedVoxels );
 }
 
-void AllowSelectionModuleToRespondToClick ( VoxelRef inScreenVoxel ) {
+void AllowSelectionModuleToRespondToClick (xVoxelRef inScreenVoxel ) {
 
 }
 
-void AddVoxelToSelection ( VoxelRef inVoxel ) {
+void AddVoxelToSelection ( xVoxelRef iAnaIdx ) {
 
-  char theErr;
+  x3Lst_tErr e3DList = x3Lst_tErr_NoErr;
+  xVoxelRef  anaIdx  = NULL;
 
   if ( NULL == gSelectedVoxels )
     return;
-  
-  theErr = VSpace_AddVoxel ( gSelectedVoxels, inVoxel );
-  if ( theErr != kVSpaceErr_NoErr )
-    DebugPrint "AddVoxelToSelection(): Error in VSpace_AddVoxel: %s\n",
-      VSpace_GetErrorString(theErr) EndDebugPrint;
-  
+
+  /* allocate a copy of the voxel */
+  xVoxl_New( &anaIdx );
+  xVoxl_Copy( anaIdx, iAnaIdx );
+
+  // add the voxel to the ctrl pt space
+  e3DList = x3Lst_AddItem( gSelectedVoxels, anaIdx, anaIdx );
+  if( e3DList != x3Lst_tErr_NoErr )
+    DebugPrint "x3Lst error %d in AddVoxelToSelection.\n", 
+      e3DList EndDebugPrint;
 }
 
-void RemoveVoxelFromSelection ( VoxelRef inVoxel ) {
+void RemoveVoxelFromSelection ( xVoxelRef iAnaIdx ) {
 
-  char theErr;
+  x3Lst_tErr e3DList = x3Lst_tErr_NoErr;
+  xVoxelRef  where   = NULL;
+  xVoxelRef  voxel   = NULL;
 
   if ( NULL == gSelectedVoxels )
     return;
+
+  xVoxl_New( &where );
+  xVoxl_Copy( where, iAnaIdx );
+
+  voxel = iAnaIdx;
+
+  /* remove the item. we'll get back a ptr to the actual voxel we added. */
+  e3DList = x3Lst_RemoveItem( gSelectedVoxels, where, (void**)&voxel );
+  if( e3DList != x3Lst_tErr_NoErr )
+    goto error;
+
+  /* delete it */
+  xVoxl_Delete( &voxel );
+
+  goto cleanup;
   
-  theErr = VSpace_RemoveVoxel ( gSelectedVoxels, inVoxel );
-  if ( theErr != kVSpaceErr_NoErr &&
-       theErr != kVSpaceErr_VoxelNotInSpace )
-    DebugPrint "RemoveVoxelFromSelection(): Error in VSpace_RemoveVoxel: %s\n",
-      VSpace_GetErrorString(theErr) EndDebugPrint;
+ error:
+
+  if( x3Lst_tErr_NoErr != e3DList
+      && x3Lst_tErr_ItemNotInSpace != e3DList ) {
+    DebugPrint "x3Lst error %d in RemoveVoxelFromSelection.\n",
+      e3DList EndDebugPrint;
+  }
+
+ cleanup:
+
+    xVoxl_Delete( &where );
 }
 
 
 void ClearSelection () {
 
-  char theErr;
-
+  x3Lst_tErr e3DList = x3Lst_tErr_NoErr;
+  
   if ( NULL == gSelectedVoxels )
     return;
-  
-  theErr = VSpace_Clear ( gSelectedVoxels );
-  if ( theErr != kVSpaceErr_NoErr &&
-       theErr != kVSpaceErr_VoxelNotInSpace )
-    DebugPrint "ClearSelection(): Error in VSpace_Clear: %s\n",
-      VSpace_GetErrorString(theErr) EndDebugPrint;
+
+  e3DList = x3Lst_Clear( gSelectedVoxels );
+  if ( e3DList != x3Lst_tErr_NoErr )
+    DebugPrint "x3Lst error %d in ClearSelection\n",
+      e3DList EndDebugPrint;
 
   MWin_RedrawAll( gMeditWindow );
 }
 
-void SaveSelectionToLabelFile ( char * inFileName ) {
+void SaveSelectionToLabelFile ( char * isFileName ) {
 
-  LABEL * theLabel;
-  LABEL_VERTEX *theVertex;
-  int theNumVoxels, theGlobalVoxelIndex, theListVoxelIndex, theListIndex,
-    theListCount;
-  Real theRASX, theRASY, theRASZ;
-  VoxelRef theAnatomicalVoxel;
-  VoxelListRef theList;
-  int theLabelError;
-  char theError;
-  
-  DebugPrint "SaveSelectionToLabelFile ( %s )\n",
-    inFileName EndDebugPrint;
+  LABEL*        pLabel     = NULL;
+  LABEL_VERTEX* pVertex    = NULL;
+  Real          rRASX      = 0;
+  Real          rRASY      = 0;
+  Real          rRASZ      = 0;
+  xVoxelRef     anaVoxel   = NULL;
+  xListRef      list       = NULL;
+  x3Lst_tErr    e3DList    = x3Lst_tErr_NoErr;
+  xList_tErr    eList      = xList_tErr_NoErr;
+  int           nNumVoxels = 0;
+  int           nListCount = 0;
+  int           nVoxel     = 0;
+  int           nPlane     = 0;
+  int           eLabel     = 0;
 
-  Voxel_New ( &theAnatomicalVoxel );
+  /* get the number of selected voxels we have, or the sum of the voxels
+     in a particular plane. */
+  for ( nPlane = 0; nPlane < gVolumeDimension; nPlane++ ) {
 
-  // get the number of selected voxels we have.
-  theNumVoxels = 0;
-  for ( theListIndex = 0; 
-  theListIndex < kVSpace_NumListsInPlane; 
-  theListIndex++ ) {
-    theError = VSpace_GetVoxelsInXPlane ( gSelectedVoxels, 
-            theListIndex, &theList );
-    if ( kVSpaceErr_NoErr != theError ) {
-      DebugPrint "\tError in VSpace_GetVoxelsInXPlane (%d): %s\n",
-  theError, VSpace_GetErrorString ( theError ) EndDebugPrint;
-      Voxel_Delete ( &theAnatomicalVoxel );
-      return;
-    }
+    e3DList = x3Lst_GetItemsInXPlane( gSelectedVoxels, nPlane, &list );
+    if( x3Lst_tErr_NoErr != e3DList )
+      goto error;
 
-    theError = VList_GetCount ( theList, &theListCount );
-    if ( kVListErr_NoErr != theError ) {
-      DebugPrint "\tError in VList_GetCount (%d): %s\n",
-  theError, VList_GetErrorString ( theError ) EndDebugPrint;
-      Voxel_Delete ( &theAnatomicalVoxel );
-      return;
-    }
+    eList = xList_GetCount( list, &nListCount );
+    if( xList_tErr_NoErr != eList )
+      goto error;
 
-    theNumVoxels += theListCount;
+    nNumVoxels += nListCount;
   }
 
-  // allocate a label file with that number of voxels, our subject name,
-  // and the passed in label file name.
-  theLabel = LabelAlloc ( theNumVoxels, pname, inFileName );
-  if ( NULL == theLabel ) {
+  /* allocate a label file with that number of voxels, our subject name,
+     and the passed in label file name. */
+  pLabel = LabelAlloc( nNumVoxels, pname, isFileName );
+  if ( NULL == pLabel ) {
     DebugPrint "\tCouldn't allocate label.\n" EndDebugPrint;
     OutputPrint "ERROR: Couldn't save label.\n" EndOutputPrint;
-    Voxel_Delete ( &theAnatomicalVoxel );
-    return;
+    goto error;
   }
 
-  // set the number of points in the label
-  theLabel->n_points = theNumVoxels;
+  /* set the number of points in the label */
+  pLabel->n_points = nNumVoxels;
 
-  // for every list in a plane of the space... 
-  theGlobalVoxelIndex = 0;
-  for ( theListIndex = 0; 
-  theListIndex < kVSpace_NumListsInPlane; 
-  theListIndex++ ) {
+  /* for each plane */
+  nVoxel = 0;
+  for ( nPlane = 0; nPlane < gVolumeDimension; nPlane++ ) {
 
-    // get the list
-    theError = VSpace_GetVoxelsInXPlane ( gSelectedVoxels, 
-            theListIndex, &theList );
-    if ( kVSpaceErr_NoErr != theError ) {
-      DebugPrint "\tError in VSpace_GetVoxelsInXPlane (%d): %s\n",
-  theError, VSpace_GetErrorString ( theError ) EndDebugPrint;
-      Voxel_Delete ( &theAnatomicalVoxel );
-      return;
-    }
+    // get the list for this x value.
+    e3DList = x3Lst_GetItemsInXPlane( gSelectedVoxels, nPlane, &list );
+    if( e3DList != x3Lst_tErr_NoErr )
+      goto error;
 
-    // get the num of voxels in the list.
-    theError = VList_GetCount ( theList, &theListCount );
-    if ( kVListErr_NoErr != theError ) {
-      DebugPrint "\tError in VList_GetCount (%d): %s\n",
-  theError, VList_GetErrorString ( theError ) EndDebugPrint;
-      Voxel_Delete ( &theAnatomicalVoxel );
-      return;
-    }
+    /* traverse the list */
+    eList = xList_ResetPosition( list );
+    while( (eList = xList_NextFromPos( list, (void**)&anaVoxel )) 
+     != xList_tErr_EndOfList ) {
 
-    // note that this is only the index of the voxel within a list, not
-    // global count. for each voxel in the list...
-    for ( theListVoxelIndex = 0;
-    theListVoxelIndex < theListCount;
-    theListVoxelIndex++ ) {
+      if( anaVoxel ) {
+
+  /* convert voxel to ras */
+  VoxelToRAS ( xVoxl_ExpandInt(anaVoxel),
+         &rRASX, &rRASY, &rRASZ );
+
+  /* get a ptr the vertex in the label file. */
+  pVertex = &(pLabel->lv[nVoxel]);
       
-      // get a voxel.
-      theError = VList_GetNthVoxel ( theList, 
-             theListVoxelIndex, theAnatomicalVoxel );
-      if ( kVListErr_NoErr != theError ) {
-  DebugPrint "\tError in VList_GetNthVoxel (%d): %s\n",
-    theError, VList_GetErrorString ( theError ) EndDebugPrint;
-  Voxel_Delete ( &theAnatomicalVoxel );
-  return;
+  /* set the vertex */
+  pVertex->x = rRASX;
+  pVertex->y = rRASY;
+  pVertex->z = rRASZ;
+      
+  /* set the vno to -1, which is significant somewhere outside the realm
+     of tkmedit. set stat value to something decent and deleted to not */
+  pVertex->vno = -1;
+  pVertex->stat = 0;
+  pVertex->deleted = FALSE;
+
+  /* inc our global count. */
+  nVoxel++;
       }
-
-      // get a ptr the vertex in the label file. use the global count to 
-      // index.
-      theVertex = &(theLabel->lv[theGlobalVoxelIndex]);
-      
-      // convert to ras
-      VoxelToRAS ( EXPAND_VOXEL_INT(theAnatomicalVoxel),
-       &theRASX, &theRASY, &theRASZ );
-
-      // set the vertex
-      theVertex->x = theRASX;
-      theVertex->y = theRASY;
-      theVertex->z = theRASZ;
-      
-      // set the vno to -1, which is significant somewhere outside the realm
-      // of tkmedit. set stat value to something decent and deleted to not
-      theVertex->vno = -1;
-      theVertex->stat = 0;
-      theVertex->deleted = FALSE;
-
-      // inc our global count.
-      theGlobalVoxelIndex ++;
     }
+
+    if( eList != xList_tErr_EndOfList )
+      goto error;
   }
 
   // write the file
-  theLabelError = LabelWrite ( theLabel, inFileName );
-  if ( NO_ERROR != theLabelError ) {
+  eLabel = LabelWrite( pLabel, isFileName );
+  if ( NO_ERROR != eLabel ) {
     DebugPrint "Error in LabelWrite().\n" EndDebugPrint;
     OutputPrint "ERROR: Couldn't write label to file.\n" EndOutputPrint;
-    Voxel_Delete ( &theAnatomicalVoxel );
-    return;
+    goto error;
   }
 
-  // free it
-  LabelFree ( &theLabel );
-
-  Voxel_Delete ( &theAnatomicalVoxel );
-}
-
-void LoadSelectionFromLabelFile ( char * inFileName ) {
-
-  LABEL *theLabel;
-  LABEL_VERTEX *theVertex;
-  int theNumVoxels, theVoxelIndex;
-  int theVoxX, theVoxY, theVoxZ;
-  VoxelRef theVoxel;
-
-  Voxel_New ( &theVoxel );
-
-  DebugPrint "LoadSelectionFromLabelFile ( %s )\n", inFileName EndDebugPrint;
-
-  // read in the label
-  theLabel = LabelRead ( pname, inFileName );
-  if ( NULL == theLabel ) {
-    DebugPrint "\tError reading label file.\n" EndDebugPrint;
-    OutputPrint "ERROR: Couldn't read the label.\n" EndOutputPrint;
-    
-  } else {
-    
-    // for each vertex in there...
-    theNumVoxels = theLabel->max_points;
-    DebugPrint "Loading %d points.\n", theNumVoxels EndDebugPrint;
-    for ( theVoxelIndex = 0; theVoxelIndex < theNumVoxels; theVoxelIndex++ ) {
-      
-      // get the vertex.
-      theVertex = &(theLabel->lv[theVoxelIndex]);
-      
-      // only process verticies that arn't deleted.
-      if ( !(theVertex->deleted) ) {
-  
-  // covert from ras to voxel
-  RASToVoxel ( theVertex->x, theVertex->y, theVertex->z,
-         &theVoxX, &theVoxY, &theVoxZ );
-  
-  // add to the selection
-  Voxel_Set ( theVoxel, theVoxX, theVoxY, theVoxZ );
-  AddVoxelToSelection ( theVoxel );
-  
-      }
-    }
-
-    // dump the label
-    LabelFree ( &theLabel );
-  }  
-
-  /* set the window's selection again to force a redraw. */
-  MWin_SetSelectionSpace( gMeditWindow, -1, gSelectedVoxels );
-
-  Voxel_Delete ( &theVoxel );
-}
-
-void GraphSelectedRegion () {
-
-  char theError;
-  int theListIndex, theListVoxelIndex, theListCount;
-  VoxelRef theAnatomicalVoxel = NULL;
-  VoxelListRef theList = NULL;
-  FunV_tErr eFunctional = FunV_tErr_NoError;
-
-  Voxel_New ( &theAnatomicalVoxel );
-
-  // clear the functional display list.
-  eFunctional = FunV_BeginSelectionRange( gFunctionalVolume );
-  if( FunV_tErr_NoError != eFunctional ) {
-    DebugPrint "GraphSelectedRegion(): Error accessing functional volume.\n"
-      EndDebugPrint;
-    goto cleanup;
-  }
-
-  // for every list in a plane of the space... 
-  for ( theListIndex = 0; 
-  theListIndex < kVSpace_NumListsInPlane; 
-  theListIndex++ ) {
-
-    // get the list
-    theError = VSpace_GetVoxelsInXPlane ( gSelectedVoxels, 
-            theListIndex, &theList );
-    if ( kVSpaceErr_NoErr != theError ) {
-      DebugPrint "\tError in VSpace_GetVoxelsInXPlane (%d): %s\n",
-  theError, VSpace_GetErrorString ( theError ) EndDebugPrint;
-      goto cleanup;
-    }
-
-    // get the num of voxels in the list.
-    theError = VList_GetCount ( theList, &theListCount );
-    if ( kVListErr_NoErr != theError ) {
-      DebugPrint "\tError in VList_GetCount (%d): %s\n",
-  theError, VList_GetErrorString ( theError ) EndDebugPrint;
-      goto cleanup;
-    }
-
-    for ( theListVoxelIndex = 0;
-    theListVoxelIndex < theListCount;
-    theListVoxelIndex++ ) {
-      
-      // get a voxel.
-      theError = VList_GetNthVoxel ( theList, 
-             theListVoxelIndex, theAnatomicalVoxel );
-      if ( kVListErr_NoErr != theError ) {
-  DebugPrint "\tError in VList_GetNthVoxel (%d): %s\n",
-    theError, VList_GetErrorString ( theError ) EndDebugPrint;
   goto cleanup;
-      }
 
-      // add it to the functional display list.
-      eFunctional = 
-  FunV_AddAnatomicalVoxelToSelectionRange( gFunctionalVolume, 
-             theAnatomicalVoxel );
-      if( FunV_tErr_NoError != eFunctional ) {
-  DebugPrint"GraphSelectedRegion(): Error accessing functional volume.\n"
-    EndDebugPrint;
-  goto cleanup;
-      }
-    }
+ error:
+
+  if( eList != xList_tErr_NoErr ) {
+    DebugPrint "xList error %d in SaveSelectionToLabelFile.\n", 
+      eList EndDebugPrint;
+    OutputPrint "Error saving lavel file.\n" EndOutputPrint;
   }
 
-  // finish the list
-  eFunctional = FunV_EndSelectionRange( gFunctionalVolume );
-  if( FunV_tErr_NoError != eFunctional ) {
-    DebugPrint "GraphSelectedRegion(): Error accessing functional volume.\n"
-      EndDebugPrint;
-    goto cleanup;
+  if( e3DList != x3Lst_tErr_NoErr ) {
+    DebugPrint "x3Lst error %d in SaveSelectionToLabelFile.\n",
+      e3DList EndDebugPrint;
+    OutputPrint "Error saving label file.\n" EndOutputPrint;
   }
 
  cleanup:
 
-  if ( NULL != theAnatomicalVoxel )
-    Voxel_Delete ( &theAnatomicalVoxel );
+  if( pLabel )
+    LabelFree( &pLabel );
+}
+
+void LoadSelectionFromLabelFile ( char* isFileName ) {
+
+  LABEL*        pLabel     = NULL;
+  LABEL_VERTEX* pVertex    = NULL;
+  int           nVoxX      = 0;
+  int           nVoxY      = 0;
+  int           nVoxZ      = 0;
+  xVoxelRef     voxel     = NULL;
+  int           nNumVoxels = 0;
+  int           nVoxel     = 0;
+
+  xVoxl_New( &voxel );
+
+  /* read in the label */
+  pLabel = LabelRead( pname, isFileName );
+  if ( NULL == pLabel ) {
+    DebugPrint "\tError reading label file.\n" EndDebugPrint;
+    OutputPrint "ERROR: Couldn't read the label.\n" EndOutputPrint;
+    goto error;
+    
+  }
+
+  /* for each vertex in there... */
+  nNumVoxels = pLabel->max_points;
+  for( nVoxel = 0; nVoxel < nNumVoxels; nVoxel++ ) {
+    
+    /* get the vertex. */
+    pVertex = &(pLabel->lv[nVoxel]);
+    
+    /* only process verticies that arn't deleted. */
+    if ( !(pVertex->deleted) ) {
+      
+      /* covert from ras to voxel */
+      RASToVoxel( pVertex->x, pVertex->y, pVertex->z,
+      &nVoxX, &nVoxY, &nVoxZ );
+      
+      /* add to the selection */
+      xVoxl_Set( voxel, nVoxX, nVoxY, nVoxZ );
+      AddVoxelToSelection( voxel );
+    }
+  }
+
+  /* set the window's selection again to force a redraw. */
+  MWin_SetSelectionSpace( gMeditWindow, -1, gSelectedVoxels );
+
+  goto cleanup;
+
+ error:
+
+ cleanup:
+
+  if( pLabel )
+    LabelFree( &pLabel );
+
+  xVoxl_Delete( &voxel );
+}
+
+void GraphSelectedRegion () {
+
+  xVoxelRef  voxel       = NULL;
+  xListRef   list        = NULL;
+  FunV_tErr  eFunctional = FunV_tErr_NoError;
+  x3Lst_tErr e3DList     = x3Lst_tErr_NoErr;
+  xList_tErr eList       = xList_tErr_NoErr;
+  int        nPlane      = 0;
+
+  // clear the functional display list.
+  eFunctional = FunV_BeginSelectionRange( gFunctionalVolume );
+  if( FunV_tErr_NoError != eFunctional )
+    goto error;
+
+  // get the ctrl pts in the list...
+  for ( nPlane = 0; nPlane < gVolumeDimension; nPlane++ ) {
+
+    // get the list for this x value.
+    e3DList = x3Lst_GetItemsInXPlane( gSelectedVoxels, nPlane, &list );
+    if( e3DList != x3Lst_tErr_NoErr )
+      goto error;
+
+    /* traverse the list */
+    eList = xList_ResetPosition( list );
+    while( (eList = xList_NextFromPos( list, (void**)&voxel )) 
+     != xList_tErr_EndOfList ) {
+
+      if( voxel ) {
+  
+  /* add it to the functional display list. */
+  eFunctional = 
+    FunV_AddAnatomicalVoxelToSelectionRange( gFunctionalVolume, 
+             voxel );
+  if( FunV_tErr_NoError != eFunctional )
+    goto error;
+      }
+    }
+
+    if( eList != xList_tErr_EndOfList )
+      goto error;
+  }
+
+  /* finish the list */
+  eFunctional = FunV_EndSelectionRange( gFunctionalVolume );
+  if( FunV_tErr_NoError != eFunctional )
+    goto error;
+
+  goto cleanup;
+
+ error:
+
+  if( eList != xList_tErr_NoErr ) {
+    DebugPrint "xList error %d in GraphSelectedRegion.\n", eList EndDebugPrint;
+    OutputPrint "Error graphing selection.\n" EndOutputPrint;
+  }
+
+  if( e3DList != x3Lst_tErr_NoErr ) {
+    DebugPrint "x3Lst error %d in GraphSelectedRegion.\n", eList EndDebugPrint;
+    OutputPrint "Error graphing selection.\n" EndOutputPrint;
+  }
+
+  if( eFunctional != FunV_tErr_NoError ) {
+    DebugPrint "FunV error %d in GraphSelectedRegion.\n", 
+      eFunctional EndDebugPrint;
+    OutputPrint "Error graphing selection.\n" EndOutputPrint;
+  }
+
+
+ cleanup:
+  return;
 }
 
 // ===========================================================================
 
 // ============================================================ EDITING VOXELS
 
-void EditVoxelInRange( VoxelRef     ipVoxel, 
+void EditVoxelInRange(xVoxelRef     ipVoxel, 
            tVolumeValue inLow, 
            tVolumeValue inHigh, 
            tVolumeValue inNewValue ) {
@@ -6042,7 +5380,7 @@ void EditVoxelInRange( VoxelRef     ipVoxel,
   tVolumeValue newValue = 0;
 
   /* get the value at this point. */
-  value    = GetVoxelValue( gAnatomicalVolume, EXPAND_VOXEL_INT(ipVoxel) );
+  value    = GetVoxelValue( gAnatomicalVolume, xVoxl_ExpandInt(ipVoxel) );
   newValue = value;
 
   /* if it's in the range... */
@@ -6054,13 +5392,13 @@ void EditVoxelInRange( VoxelRef     ipVoxel,
 
   /* if values are different, set and add to undo list. */
   if( value != newValue ) {
-    SetVoxelValue( gAnatomicalVolume, EXPAND_VOXEL_INT(ipVoxel), newValue );
+    SetVoxelValue( gAnatomicalVolume, xVoxl_ExpandInt(ipVoxel), newValue );
     AddVoxelAndValueToUndoList( ipVoxel, value );
   }
 
   /* mark this slice as changed. */
-  changed[ Voxel_GetZ(ipVoxel) ] = TRUE;
-  editedimage = imnr0 + Voxel_GetZ(ipVoxel);
+  changed[ xVoxl_GetZ(ipVoxel) ] = TRUE;
+  editedimage = imnr0 + xVoxl_GetZ(ipVoxel);
 }
 
 // ===========================================================================
@@ -6086,6 +5424,11 @@ void InitTransformation () {
   *MATRIX_RELT(mTemp,4,4) = 1.0;
   Trns_CopyAtoRAS( gRASTransform, mTemp );
 
+  MatrixIdentity( 4, mTemp );
+  Trns_CopyBtoRAS( gRASTransform, mTemp );
+  Trns_CopyARAStoBRAS( gRASTransform, mTemp );
+  
+
   MatrixFree( &mTemp );
 }
 
@@ -6094,10 +5437,6 @@ char IsVoxelInBounds ( int x, int y, int z ) {
 
   if ( x < 0 || y < 0 || z < 0 ||
        x >= xnum || y >= ynum || z >= xnum ) {
-
-    DebugPrint "!!! Voxel coords out of bounds: (%d, %d, %d)\n",
-      x, y, z EndDebugPrint;
-
     return FALSE;
   }
 
@@ -6108,12 +5447,6 @@ inline
 char IsRASPointInBounds ( Real x, Real y, Real z ) {
 
   if ( x < xx0 || x > xx1 || y < yy0 || y > yy1 || z < zz0 || z > zz1 ) {
-
-    DebugPrint "!!! RAS coords out of bounds: (%2.1f, %2.1f, %2.1f)\n",
-      x, y, z EndDebugPrint;
-    DebugPrint "    x: %2.1f, %2.1f  y: %2.1f, %2.1f  z: %2.1f, %2.1f\n",
-      xx0, xx1, yy0, yy1, zz0, zz1 EndDebugPrint;
-
     return FALSE;
   }
 
@@ -6350,7 +5683,7 @@ void BuildVolumeMaxIntProj( tVolumeRef iVolume,
   volume = *iopMaxIntProjVolume;
 
   /* if not allocated, allocate it. */
-  nVolumeSize = gVolumeDimension * gVolumeDimension * tkm_knNumOrientations *
+  nVolumeSize = gVolumeDimension * gVolumeDimension * mri_knNumOrientations *
     sizeof( tVolumeValue );
   if( NULL == volume ) 
     volume = (tVolumeValue*) malloc ( nVolumeSize );
@@ -6360,7 +5693,7 @@ void BuildVolumeMaxIntProj( tVolumeRef iVolume,
 
   /* for every orientation */
   for( nOrientation = 0;
-       nOrientation < tkm_knNumOrientations; 
+       nOrientation < mri_knNumOrientations; 
        nOrientation++ ) {
 
     /* get dest ptr in the volume */
@@ -6375,14 +5708,14 @@ void BuildVolumeMaxIntProj( tVolumeRef iVolume,
     
     /* get the anatomical value */
     switch( nOrientation ) {
-    case tkm_tOrientation_Coronal:
+    case mri_tOrientation_Coronal:
       value = GetVoxelValue( iVolume, nX, nY, nSlice );
       break;
 
-    case tkm_tOrientation_Horizontal:
+    case mri_tOrientation_Horizontal:
       value = GetVoxelValue( iVolume, nX, nSlice, nY );
       break;
-    case tkm_tOrientation_Sagittal:
+    case mri_tOrientation_Sagittal:
       value = GetVoxelValue( iVolume, nSlice, nY, nX );
       break;
     default:
@@ -6405,29 +5738,31 @@ void BuildVolumeMaxIntProj( tVolumeRef iVolume,
 }
 
 tVolumeValue GetVolumeMaxIntProjValue( tVolumeRef iMaxIntProjVolume, 
-               tkm_tOrientation iOrientation,
-               VoxelRef iVoxel ) {
+               mri_tOrientation iOrientation,
+              xVoxelRef iVoxel ) {
 
-  int nX, nY;
+  int nX = 0;
+  int nY = 0;
 
   switch( iOrientation ) {
-  case tkm_tOrientation_Coronal:
-    nX = Voxel_GetX( iVoxel );
-    nY = Voxel_GetY( iVoxel );
+  case mri_tOrientation_Coronal:
+    nX = xVoxl_GetX( iVoxel );
+    nY = xVoxl_GetY( iVoxel );
     break;
-  case tkm_tOrientation_Horizontal:
-    nX = Voxel_GetX( iVoxel );
-    nY = Voxel_GetZ( iVoxel );
+  case mri_tOrientation_Horizontal:
+    nX = xVoxl_GetX( iVoxel );
+    nY = xVoxl_GetZ( iVoxel );
     break;
-  case tkm_tOrientation_Sagittal:
-    nX = Voxel_GetZ( iVoxel );
-    nY = Voxel_GetY( iVoxel );
+  case mri_tOrientation_Sagittal:
+    nX = xVoxl_GetZ( iVoxel );
+    nY = xVoxl_GetY( iVoxel );
     break;
   default:
     break;
   }
       
- return iMaxIntProjVolume[ (iOrientation * (gVolumeDimension * gVolumeDimension)) +
+ return iMaxIntProjVolume[ (iOrientation * 
+          (gVolumeDimension * gVolumeDimension)) +
        (nY * gVolumeDimension) + nX ];
 }
 
@@ -6456,7 +5791,9 @@ void LoadParcellationVolume ( char* isVolumeDirWithPrefix,
   }
 
   /* read in parcellation volume */
-  if( ReadVolumeWithMRIRead( &gParcellationVolume, isVolumeDirWithPrefix ) ) {
+  if( ReadVolumeWithMRIRead( &gParcellationVolume, 
+           NULL,
+           isVolumeDirWithPrefix ) ) {
    DebugPrint "LoadParcellationVolume: Couldn't open %s\n",
       sFileName EndDebugPrint;
     OutputPrint "Error finding parcellation data.\n" EndOutputPrint;
@@ -6538,12 +5875,12 @@ void LoadParcellationVolume ( char* isVolumeDirWithPrefix,
     free( pBuffer );
 }
 
-void GetParcellationColor ( VoxelRef ipVoxel, xColor3fRef oColor ) {
+void GetParcellationColor (xVoxelRef ipVoxel, xColor3fRef oColor ) {
 
   tVolumeValue ucIndex = 0;
 
   /* get the index from the volume */
-  ucIndex = GetVoxelValue( gParcellationVolume, EXPAND_VOXEL_INT(ipVoxel) );
+  ucIndex = GetVoxelValue( gParcellationVolume, xVoxl_ExpandInt(ipVoxel) );
 
   /* get the color out of the color map */
   if( ucIndex != 0 && ucIndex <= gNumParcellationColors ) {
@@ -6560,12 +5897,12 @@ void GetParcellationColor ( VoxelRef ipVoxel, xColor3fRef oColor ) {
   }  
 }
 
-void GetParcellationLabel ( VoxelRef ipVoxel, char* osLabel ) {
+void GetParcellationLabel (xVoxelRef ipVoxel, char* osLabel ) {
 
   tVolumeValue ucIndex = 0;
 
   /* get the index from the volume */
-  ucIndex = GetVoxelValue( gParcellationVolume, EXPAND_VOXEL_INT(ipVoxel) );
+  ucIndex = GetVoxelValue( gParcellationVolume, xVoxl_ExpandInt(ipVoxel) );
 
   /* get the label out of the table */
   if( ucIndex != 0 && ucIndex <= gNumParcellationColors ) {
@@ -6612,7 +5949,7 @@ void DeleteUndoList () {
 }
 
 void NewUndoEntry ( UndoEntryRef* outEntry,
-        VoxelRef inVoxel, tVolumeValue inValue ) {
+       xVoxelRef inVoxel, tVolumeValue inValue ) {
 
   UndoEntryRef this = NULL;
   
@@ -6627,8 +5964,8 @@ void NewUndoEntry ( UndoEntryRef* outEntry,
   }
 
   // copy the voxel in.
-  Voxel_New ( &(this->mVoxel) );
-  Voxel_Copy ( this->mVoxel, inVoxel );
+  xVoxl_New ( &(this->mVoxel) );
+  xVoxl_Copy ( this->mVoxel, inVoxel );
 
   // copy the value in.
   this->mValue = inValue;
@@ -6647,7 +5984,7 @@ void DeleteUndoEntry ( UndoEntryRef* ioEntry ) {
   }
   
   // delete the voxel.
-  Voxel_Delete ( &(this->mVoxel) );
+  xVoxl_Delete ( &(this->mVoxel) );
   
   // delete the entry.
   free ( this );
@@ -6663,7 +6000,7 @@ void PrintUndoEntry ( UndoEntryRef this ) {
   }
 
   DebugPrint "%p voxel (%d,%d,%d)  value = %d\n", this,
-    EXPAND_VOXEL_INT(this->mVoxel), this->mValue EndDebugPrint;
+    xVoxl_ExpandInt(this->mVoxel), this->mValue EndDebugPrint;
 
 }
 
@@ -6679,7 +6016,7 @@ void ClearUndoList () {
   }
 }
 
-void AddVoxelAndValueToUndoList ( VoxelRef inVoxel, int inValue ) {
+void AddVoxelAndValueToUndoList (xVoxelRef inVoxel, int inValue ) {
 
   UndoEntryRef theEntry = NULL;
   xUndL_tErr theErr;
@@ -6747,14 +6084,14 @@ void UndoActionWrapper      ( xUndL_tEntryPtr  inUndoneEntry,
 
   // get the value at this voxel.
   theVoxelValue = GetVoxelValue ( gAnatomicalVolume,
-          EXPAND_VOXEL_INT(theEntryToUndo->mVoxel) );
+          xVoxl_ExpandInt(theEntryToUndo->mVoxel) );
 
   // create an entry for it.
   NewUndoEntry ( &theUndoneEntry, theEntryToUndo->mVoxel, theVoxelValue );
 
   // set the voxel value.
   SetVoxelValue ( gAnatomicalVolume,
-      EXPAND_VOXEL_INT(theEntryToUndo->mVoxel),
+      xVoxl_ExpandInt(theEntryToUndo->mVoxel),
       theEntryToUndo->mValue );
 
   // pass back the new entry.
@@ -6766,15 +6103,15 @@ void PrintEntryWrapper ( xUndL_tEntryPtr inEntry ) {
   PrintUndoEntry ( (UndoEntryRef) inEntry );
 }
 
-void tkm_ConvertVolumeToRAS ( VoxelRef inVolumeVox, VoxelRef outRASVox ) {
+void tkm_ConvertVolumeToRAS (xVoxelRef inVolumeVox,xVoxelRef outRASVox ) {
 
   Trns_tErr eTransform = Trns_tErr_NoErr;
 
-  xVoxl_SetFloat( &gCoordA, EXPAND_VOXEL_FLOAT(inVolumeVox) );
+  xVoxl_SetFloat( &gCoordA, xVoxl_ExpandFloat(inVolumeVox) );
   eTransform = Trns_ConvertAtoRAS( gRASTransform, &gCoordA, &gCoordB );
   if( Trns_tErr_NoErr != eTransform )
     goto error;
-  Voxel_SetFloat( outRASVox, xVoxl_ExpandFloat(&gCoordB) );
+   xVoxl_SetFloat( outRASVox, xVoxl_ExpandFloat(&gCoordB) );
 
   goto cleanup;
 
@@ -6786,42 +6123,45 @@ void tkm_ConvertVolumeToRAS ( VoxelRef inVolumeVox, VoxelRef outRASVox ) {
 
  cleanup:
 
-  return;}
+  return;
+}
 
-void tkm_ConvertRASToVolume ( VoxelRef inRASVox, VoxelRef outVolumeVox ) {
+void tkm_ConvertRASToVolume (xVoxelRef inRASVox,xVoxelRef outVolumeVox ) {
 
   Trns_tErr eTransform = Trns_tErr_NoErr;
 
-  xVoxl_SetFloat( &gCoordA, EXPAND_VOXEL_FLOAT( inRASVox ) );
+  xVoxl_SetFloat( &gCoordA, xVoxl_ExpandFloat( inRASVox ) );
   eTransform = Trns_ConvertRAStoA( gRASTransform, &gCoordA, &gCoordB );
   if( Trns_tErr_NoErr != eTransform )
     goto error;
-  Voxel_SetFloat( outVolumeVox, xVoxl_ExpandFloat(&gCoordB) );
+  xVoxl_SetFloat( outVolumeVox, xVoxl_ExpandFloat(&gCoordB) );
 
   goto cleanup;
 
  error:
   
-  if( Trns_tErr_NoErr != eTransform )
-    DebugPrint "Error %d in tkm_ConvertVolumeToTal: %s\n",
+  if( Trns_tErr_NoErr != eTransform ) {
+    DebugPrint "Error %d in tkm_ConvertRASToVolume: %s\n",
       eTransform, Trns_GetErrorString( eTransform ) EndDebugPrint;
+  }
 
  cleanup:
 
-  return;}
+  return;
+}
 
-void tkm_ConvertVolumeToTal ( VoxelRef inVolumeVox, VoxelRef outTalVox ) {
+void tkm_ConvertVolumeToTal (xVoxelRef inVolumeVox,xVoxelRef outTalVox ) {
 
   Real theTalX, theTalY, theTalZ;
   Real theRASX, theRASY, theRASZ;
   Trns_tErr eTransform = Trns_tErr_NoErr;
 
-  if ( transform_loaded ) {
+  if ( gbAnaToTalTransformLoaded ) {
 
     xVoxl_SetFloat( &gCoordA, 
-        Voxel_GetX( inVolumeVox ),
-        Voxel_GetY( inVolumeVox ),
-        Voxel_GetZ( inVolumeVox ) );
+        xVoxl_GetX( inVolumeVox ),
+        xVoxl_GetY( inVolumeVox ),
+        xVoxl_GetZ( inVolumeVox ) );
     
     eTransform = Trns_ConvertAtoRAS( gRASTransform, &gCoordA, &gCoordB );
     if( Trns_tErr_NoErr != eTransform )
@@ -6831,13 +6171,14 @@ void tkm_ConvertVolumeToTal ( VoxelRef inVolumeVox, VoxelRef outTalVox ) {
     theRASY = xVoxl_GetFloatY( &gCoordB );
     theRASZ = xVoxl_GetFloatZ( &gCoordB );
 
-    transform_point ( linear_transform, theRASX, theRASY, theRASZ,
+    transform_point ( get_linear_transform_ptr( &gAnaToTalTransform ),
+          theRASX, theRASY, theRASZ,
                       &theTalX, &theTalY, &theTalZ );
 
-    Voxel_SetFloat ( outTalVox, 
+    xVoxl_SetFloat ( outTalVox, 
          (float)theTalX, (float)theTalY, (float)theTalZ );
   } else {
-    Voxel_Set ( outTalVox, 0, 0, 0 );
+    xVoxl_Set ( outTalVox, 0, 0, 0 );
   }
 
   goto cleanup;
@@ -6853,10 +6194,60 @@ void tkm_ConvertVolumeToTal ( VoxelRef inVolumeVox, VoxelRef outTalVox ) {
   return;
 }
 
-tVolumeValue tkm_GetVolumeValue ( tVolumeRef inVolume,
-           VoxelRef inVoxel ) {
+void tkm_ConvertTalToVolume ( xVoxelRef iTalVox,
+            xVoxelRef oAnaIdx ) {
 
-  return GetVoxelValue ( inVolume, EXPAND_VOXEL_INT(inVoxel) );
+  Real      theRASX    = 0;
+  Real      theRASY    = 0;
+  Real      theRASZ    = 0;
+  Trns_tErr eTransform = Trns_tErr_NoErr;
+
+  if ( gbAnaToTalTransformLoaded ) {
+
+    transform_point ( get_inverse_linear_transform_ptr( &gAnaToTalTransform ), 
+          xVoxl_ExpandFloat( iTalVox ),
+                      &theRASX, &theRASY, &theRASZ );
+
+    xVoxl_SetFloat( &gCoordA, 
+        theRASX, theRASY, theRASZ );
+    
+    eTransform = Trns_ConvertRAStoA( gRASTransform, &gCoordA, &gCoordB );
+    if( Trns_tErr_NoErr != eTransform )
+      goto error;
+    
+    xVoxl_Copy( oAnaIdx, &gCoordB );
+         
+  } else {
+    xVoxl_Set ( oAnaIdx, 0, 0, 0 );
+  }
+
+  goto cleanup;
+
+ error:
+  
+  if( Trns_tErr_NoErr != eTransform )
+    DebugPrint "Error %d in tkm_ConvertVolumeToTal: %s\n",
+      eTransform, Trns_GetErrorString( eTransform ) EndDebugPrint;
+
+ cleanup:
+
+  return;
+}
+
+tBoolean tkm_IsValidVolumeIdx ( xVoxelRef iAnaIdx ) {
+
+  return IsVoxelInBounds( xVoxl_ExpandInt( iAnaIdx ) );
+}
+  
+tBoolean tkm_IsValidRAS ( xVoxelRef iRAS ) {
+
+  return IsRASPointInBounds( xVoxl_ExpandFloat( iRAS ) );
+}
+
+tVolumeValue tkm_GetVolumeValue ( tVolumeRef inVolume,
+          xVoxelRef inVoxel ) {
+
+  return GetVoxelValue ( inVolume, xVoxl_ExpandInt(inVoxel) );
 }
 
 void tkm_GetAnatomicalVolumeColor( tVolumeValue inValue, xColor3fRef oColor ) {
@@ -6865,8 +6256,8 @@ void tkm_GetAnatomicalVolumeColor( tVolumeValue inValue, xColor3fRef oColor ) {
 }
 
 tVolumeValue tkm_GetMaxIntProjValue( tVolumeRef iVolume, 
-             tkm_tOrientation iOrientation, 
-             VoxelRef iVoxel ) {
+             mri_tOrientation iOrientation, 
+            xVoxelRef iVoxel ) {
   if( iVolume == gAnatomicalVolume ) {
     return GetVolumeMaxIntProjValue( gAnatomicalMaxIntProj,
              iOrientation, iVoxel );
@@ -6877,25 +6268,25 @@ tVolumeValue tkm_GetMaxIntProjValue( tVolumeRef iVolume,
   return 0;
 }
 
-void tkm_AddNearestCtrlPtToSelection ( VoxelRef inVolumeVox, 
-               tkm_tOrientation inPlane ) {
+void tkm_AddNearestCtrlPtToSelection (xVoxelRef inVolumeVox, 
+               mri_tOrientation inPlane ) {
 
   AddNearestCtrlPtToSelection ( inVolumeVox, inPlane );
 }
 
-void tkm_RemoveNearestCtrlPtFromSelection ( VoxelRef inVolumeVox, 
-              tkm_tOrientation inPlane ) {
+void tkm_RemoveNearestCtrlPtFromSelection (xVoxelRef inVolumeVox, 
+              mri_tOrientation inPlane ) {
 
   RemoveNearestCtrlPtFromSelection ( inVolumeVox, inPlane );
 }
 
 void tkm_NewCtrlPt () {
 
-  VoxelRef theCursor = NULL;
-  Voxel_New ( &theCursor );
+ xVoxelRef theCursor = NULL;
+  xVoxl_New ( &theCursor );
   MWin_GetCursor ( gMeditWindow, theCursor );
-  NewCtrlPt ( theCursor );
-  Voxel_Delete ( &theCursor );
+  NewCtrlPt ( theCursor, TRUE );
+  xVoxl_Delete ( &theCursor );
 }
 
 void tkm_DeselectAllCtrlPts () {
@@ -6913,7 +6304,7 @@ void tkm_WriteControlFile () {
   WriteCtrlPtFile ( tfname );
 }
 
-void tkm_EditVoxelInRange( VoxelRef     inVolumeVox, 
+void tkm_EditVoxelInRange(xVoxelRef     inVolumeVox, 
          tVolumeValue inLow, 
          tVolumeValue inHigh, 
          tVolumeValue inNewValue ) {
@@ -6922,14 +6313,14 @@ void tkm_EditVoxelInRange( VoxelRef     inVolumeVox,
 
 }
 
-void tkm_SelectVoxel ( VoxelRef inVolumeVox ) {
+void tkm_SelectVoxel (xVoxelRef inVolumeVox ) {
 
   AddVoxelToSelection ( inVolumeVox );
 }
 
-void tkm_DeselectVoxel ( VoxelRef inVolumeVox ) {
+void tkm_DeselectVoxel ( xVoxelRef inVolumeVox ) {
 
-  RemoveVoxelFromSelection (inVolumeVox );
+  RemoveVoxelFromSelection( inVolumeVox );
 }
 
 void tkm_ClearSelection () {
@@ -6947,12 +6338,12 @@ void tkm_RestoreUndoList () {
   RestoreUndoList ();
 }
 
-void tkm_WriteVoxelToControlFile ( VoxelRef inVolumeVox ) {
+void tkm_WriteVoxelToControlFile (xVoxelRef inVolumeVox ) {
 
   WriteVoxelToControlFile ( tfname, inVolumeVox );
 }
 
-void tkm_WriteVoxelToEditFile ( VoxelRef inVolumeVox ) {
+void tkm_WriteVoxelToEditFile (xVoxelRef inVolumeVox ) {
 
   WriteVoxelToEditFile ( tfname, inVolumeVox );
 }
@@ -6969,21 +6360,21 @@ char* tkm_GetSubjectName() {
 
 char* tkm_GetVolumeName() {
 
-  return imtype;
+  return gVolumeName;
 }
 
 char* tkm_GetAuxVolumeName() {
 
-  return imtype2;
+  return gAuxVolumeName;
 }
 
 
-void tkm_GetParcellationColor( VoxelRef inVoxel, xColor3fRef oColor ) {
+void tkm_GetParcellationColor(xVoxelRef inVoxel, xColor3fRef oColor ) {
   
   GetParcellationColor( inVoxel, oColor );
 }
 
-void tkm_GetParcellationLabel( VoxelRef inVoxel, char* osLabel ) {
+void tkm_GetParcellationLabel(xVoxelRef inVoxel, char* osLabel ) {
 
   GetParcellationLabel( inVoxel, osLabel );
 }
@@ -7044,3 +6435,20 @@ void tkm_SendTclCommand ( tkm_tTclCommand inCommand,
 }
 
 
+xList_tCompare CompareVoxels ( void* inVoxelA, void* inVoxelB ) {
+
+  xList_tCompare eResult = xList_tCompare_GreaterThan;
+  xVoxelRef      voxelA  = NULL;
+  xVoxelRef      voxelB  = NULL;
+
+  voxelA = (xVoxelRef) inVoxelA;
+  voxelB = (xVoxelRef) inVoxelB;
+
+  if( xVoxl_IsEqualInt( voxelA, voxelB ) ) {
+    eResult = xList_tCompare_Match;
+  } else {
+    eResult = xList_tCompare_GreaterThan;
+  }
+
+  return eResult;
+}

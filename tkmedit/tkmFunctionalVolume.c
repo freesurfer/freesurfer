@@ -175,7 +175,7 @@ FunV_tErr FunV_Delete ( tkmFunctionalVolumeRef* ioppVolume ) {
   FunV_tErr              eResult = FunV_tErr_NoError;
   tkmFunctionalVolumeRef this    = NULL;
   xList_tErr             eList   = xList_tErr_NoErr;
-  Volume_ErrorCode       eVolume = kVolumeErr_NoError;
+  FunD_tErr       eVolume = FunD_tErr_NoError;
 
   /* get us */
   this = *ioppVolume;
@@ -186,13 +186,13 @@ FunV_tErr FunV_Delete ( tkmFunctionalVolumeRef* ioppVolume ) {
     goto error;
 
   /* delete the volumes that exist. */
-  eVolume = Volume_Delete( &(this->mpOverlayVolume) );
-  if( kVolumeErr_NoError != eVolume ) {
+  eVolume =FunD_Delete( &(this->mpOverlayVolume) );
+  if( FunD_tErr_NoError != eVolume ) {
     eResult = FunV_tErr_DeletionFailed;
     goto error;
   }
-  eVolume = Volume_Delete( &(this->mpTimeCourseVolume) );
-  if( kVolumeErr_NoError != eVolume ) {
+  eVolume =FunD_Delete( &(this->mpTimeCourseVolume) );
+  if( FunD_tErr_NoError != eVolume ) {
     eResult = FunV_tErr_DeletionFailed;
     goto error;
   }
@@ -255,7 +255,7 @@ FunV_tErr FunV_LoadOverlay ( tkmFunctionalVolumeRef this,
     goto error;
 
   /* if we have more than one condition, set condition to 1. */
-  Volume_GetNumConditions( this->mpOverlayVolume, &nNumConditions );
+ FunD_GetNumConditions( this->mpOverlayVolume, &nNumConditions );
   if( nNumConditions > 1 ) {
     this->mnCondition = 1;
   }
@@ -420,15 +420,15 @@ FunV_tErr FunV_LoadTimeCourse ( tkmFunctionalVolumeRef this,
 }
 
 FunV_tErr FunV_LoadFunctionalVolume_ ( tkmFunctionalVolumeRef this,
-               VolumeRef*             ioppVolume,
+              mriFunctionalDataRef*             ioppVolume,
                char*                  isPath,
                char*                  isStem,
                char*                  isHeaderStem,
                char*                  isRegPath ) {
 
   FunV_tErr         eResult     = FunV_tErr_NoError;
-  Volume_ErrorCode  eVolume     = kVolumeErr_NoError;
-  VolumeRef         pVolume     = NULL;
+  FunD_tErr  eVolume     = FunD_tErr_NoError;
+ mriFunctionalDataRef         pVolume     = NULL;
 
   /* verify us */
   eResult = FunV_Verify( this );
@@ -437,16 +437,16 @@ FunV_tErr FunV_LoadFunctionalVolume_ ( tkmFunctionalVolumeRef this,
 
   /* delete volume if already allocated */
   if( NULL != *ioppVolume ) {
-    eVolume = Volume_Delete( ioppVolume );
-    if( kVolumeErr_NoError != eVolume ) {
+    eVolume =FunD_Delete( ioppVolume );
+    if( FunD_tErr_NoError != eVolume ) {
       eResult = FunV_tErr_DeletionFailed;
       goto error;
     }
   }
 
   /* load the volume */
-  eVolume = Volume_New( isPath, isStem, isHeaderStem, isRegPath, &pVolume );
-  if( kVolumeErr_NoError != eVolume ) {
+  eVolume = FunD_New( &pVolume, isPath, isStem, isHeaderStem, isRegPath );
+  if( FunD_tErr_NoError != eVolume ) {
     eResult = FunV_tErr_ErrorLoadingVolume;
     goto error;
   }
@@ -473,18 +473,18 @@ FunV_tErr FunV_InitOverlayCache_ ( tkmFunctionalVolumeRef this ) {
 
   FunV_tErr             eResult    = FunV_tErr_NoError;
   int                   nCacheSize = 0;
-  VoxelRef              pVoxel     = NULL;
-  VoxelRef              pMin     = NULL;
-  VoxelRef              pMax     = NULL;
+ xVoxelRef              pVoxel     = NULL;
+ xVoxelRef              pMin     = NULL;
+ xVoxelRef              pMax     = NULL;
   int                   nX         = 0;
   int                   nY         = 0;
   int                   nZ         = 0;
   FunV_tFunctionalValue funcValue  = 0;
   int                   nIndex     = 0;
 
-  Voxel_New( &pVoxel );
-  Voxel_New( &pMin );
-  Voxel_New( &pMax );
+  xVoxl_New( &pVoxel );
+  xVoxl_New( &pMin );
+  xVoxl_New( &pMax );
 
   /* if we're off, return */
   if( FALSE == this->mbUseOverlayCache ) {
@@ -505,17 +505,17 @@ FunV_tErr FunV_InitOverlayCache_ ( tkmFunctionalVolumeRef this ) {
   }
 
   /* get our func bounds in antomical space */
-  Volume_GetBoundsInAnatomical( this->mpOverlayVolume, pMin, pMax );
+ FunD_GetBoundsInAnatomical( this->mpOverlayVolume, pMin, pMax );
 
   /* calc dimensions */
-  this->manCacheDimensions[0] = Voxel_GetX(pMax) - Voxel_GetX(pMin);
-  this->manCacheDimensions[1] = Voxel_GetY(pMax) - Voxel_GetY(pMin);
-  this->manCacheDimensions[2] = Voxel_GetZ(pMax) - Voxel_GetZ(pMin);
+  this->manCacheDimensions[0] = xVoxl_GetX(pMax) - xVoxl_GetX(pMin);
+  this->manCacheDimensions[1] = xVoxl_GetY(pMax) - xVoxl_GetY(pMin);
+  this->manCacheDimensions[2] = xVoxl_GetZ(pMax) - xVoxl_GetZ(pMin);
 
   /* save offsets */
-  this->manCacheOffsets[0] = Voxel_GetX(pMin);
-  this->manCacheOffsets[1] = Voxel_GetY(pMin);
-  this->manCacheOffsets[2] = Voxel_GetZ(pMin);
+  this->manCacheOffsets[0] = xVoxl_GetX(pMin);
+  this->manCacheOffsets[1] = xVoxl_GetY(pMin);
+  this->manCacheOffsets[2] = xVoxl_GetZ(pMin);
 
   /* allocate the cache. */
   nCacheSize = this->manCacheDimensions[0] * 
@@ -549,7 +549,7 @@ FunV_tErr FunV_InitOverlayCache_ ( tkmFunctionalVolumeRef this ) {
       for( nX = 0; nX < this->manCacheDimensions[0]; nX++ ) {
   
   /* set our voxel with the offsets */
-  Voxel_Set( pVoxel, nX + this->manCacheOffsets[0], 
+  xVoxl_Set( pVoxel, nX + this->manCacheOffsets[0], 
        nY + this->manCacheOffsets[1], 
        nZ + this->manCacheOffsets[2] );
   
@@ -589,26 +589,26 @@ FunV_tErr FunV_InitOverlayCache_ ( tkmFunctionalVolumeRef this ) {
 
  cleanup:
 
-  Voxel_Delete( &pVoxel );
-  Voxel_Delete( &pMin );
-  Voxel_Delete( &pMax );
+  xVoxl_Delete( &pVoxel );
+  xVoxl_Delete( &pMin );
+  xVoxl_Delete( &pMax );
 
   return eResult;
 }
 
 FunV_tErr FunV_SetOverlayCacheValue_ ( tkmFunctionalVolumeRef this,
-        VoxelRef               ipVoxel,
+      xVoxelRef               ipVoxel,
         FunV_tFunctionalValue  iValue ) {
 
   FunV_tErr eResult = FunV_tErr_NoError;
   int       nIndex  = 0;
 
   nIndex = 
-    ((Voxel_GetZ(ipVoxel) - this->manCacheOffsets[2]) * 
+    ((xVoxl_GetZ(ipVoxel) - this->manCacheOffsets[2]) * 
      (this->manCacheDimensions[1] * this->manCacheDimensions[0])) + 
-    ((Voxel_GetY(ipVoxel) - this->manCacheOffsets[1]) * 
+    ((xVoxl_GetY(ipVoxel) - this->manCacheOffsets[1]) * 
      this->manCacheDimensions[0]) +
-    (Voxel_GetX(ipVoxel) - this->manCacheOffsets[0]) ;
+    (xVoxl_GetX(ipVoxel) - this->manCacheOffsets[0]) ;
 
   this->mOverlayCache[ nIndex ] = iValue;
 
@@ -630,7 +630,7 @@ FunV_tErr FunV_SetOverlayCacheValue_ ( tkmFunctionalVolumeRef this,
 }
 
 FunV_tErr FunV_GetOverlayCacheValue_ ( tkmFunctionalVolumeRef this,
-        VoxelRef               ipVoxel,
+      xVoxelRef               ipVoxel,
         FunV_tFunctionalValue* oValue ) {
 
 
@@ -638,23 +638,23 @@ FunV_tErr FunV_GetOverlayCacheValue_ ( tkmFunctionalVolumeRef this,
   int       nIndex  = 0;
 
   /* check bounds */
-  if( Voxel_GetX(ipVoxel) < this->manCacheOffsets[0]
-      || Voxel_GetX(ipVoxel) > (this->manCacheOffsets[0] + this->manCacheDimensions[0])
-      || Voxel_GetY(ipVoxel) < this->manCacheOffsets[1]
-      || Voxel_GetY(ipVoxel) > (this->manCacheOffsets[1] + this->manCacheDimensions[1])
-      || Voxel_GetZ(ipVoxel) < this->manCacheOffsets[2]
-      || Voxel_GetZ(ipVoxel) > (this->manCacheOffsets[2] + this->manCacheDimensions[2]) ) {
+  if( xVoxl_GetX(ipVoxel) < this->manCacheOffsets[0]
+      || xVoxl_GetX(ipVoxel) > (this->manCacheOffsets[0] + this->manCacheDimensions[0])
+      || xVoxl_GetY(ipVoxel) < this->manCacheOffsets[1]
+      || xVoxl_GetY(ipVoxel) > (this->manCacheOffsets[1] + this->manCacheDimensions[1])
+      || xVoxl_GetZ(ipVoxel) < this->manCacheOffsets[2]
+      || xVoxl_GetZ(ipVoxel) > (this->manCacheOffsets[2] + this->manCacheDimensions[2]) ) {
     *oValue = 0;
     eResult = FunV_tErr_InvalidAnatomicalVoxel;
     goto cleanup;
   }
 
   nIndex = 
-    ((Voxel_GetZ(ipVoxel) - this->manCacheOffsets[2]) * 
+    ((xVoxl_GetZ(ipVoxel) - this->manCacheOffsets[2]) * 
      (this->manCacheDimensions[1] * this->manCacheDimensions[0])) + 
-    ((Voxel_GetY(ipVoxel) - this->manCacheOffsets[1]) * 
+    ((xVoxl_GetY(ipVoxel) - this->manCacheOffsets[1]) * 
      this->manCacheDimensions[0]) +
-    (Voxel_GetX(ipVoxel) - this->manCacheOffsets[0]) ;
+    (xVoxl_GetX(ipVoxel) - this->manCacheOffsets[0]) ;
   
   *oValue = this->mOverlayCache[ nIndex ];
 
@@ -789,7 +789,7 @@ FunV_tErr FunV_SetTimeResolution ( tkmFunctionalVolumeRef this,
            int                    inTimeResolution ) {
 
   FunV_tErr         eResult            = FunV_tErr_NoError;
-  Volume_ErrorCode  eVolume            = kVolumeErr_NoError;
+  FunD_tErr  eVolume            = FunD_tErr_NoError;
   int               nTimeRes           = 0;
   char              sTclArguments[256] = "";
 
@@ -799,18 +799,18 @@ FunV_tErr FunV_SetTimeResolution ( tkmFunctionalVolumeRef this,
     goto error;
 
   /* set value in volume */
-  eVolume = Volume_SetTimeResolution( this->mpTimeCourseVolume,
+  eVolume =FunD_SetTimeResolution( this->mpTimeCourseVolume,
               inTimeResolution );
-  if( kVolumeErr_NoError != eVolume 
-      && kVolumeErr_InvalidTimeResolution != eVolume ) {
+  if( FunD_tErr_NoError != eVolume 
+      && FunD_tErr_InvalidTimeResolution != eVolume ) {
     eResult = FunV_tErr_ErrorAccessingInternalVolume;
     goto error;
   }
 
   /* get the new time res. */
-  eVolume = Volume_GetTimeResolution( this->mpTimeCourseVolume,
+  eVolume =FunD_GetTimeResolution( this->mpTimeCourseVolume,
               &nTimeRes );
-  if( kVolumeErr_NoError != eVolume ) {
+  if( FunD_tErr_NoError != eVolume ) {
     eResult = FunV_tErr_ErrorAccessingInternalVolume;
     goto error;
   }
@@ -851,7 +851,7 @@ FunV_tErr FunV_SetNumPreStimPoints ( tkmFunctionalVolumeRef this,
              int                    inNumPreStimPoints ) {
 
   FunV_tErr         eResult            = FunV_tErr_NoError;
-  Volume_ErrorCode  eVolume            = kVolumeErr_NoError;
+  FunD_tErr  eVolume            = FunD_tErr_NoError;
   int               nNumPreStimPoints  = 0;
   int               nNumPoints         = 0;
   char              sTclArguments[256] = "";
@@ -862,18 +862,18 @@ FunV_tErr FunV_SetNumPreStimPoints ( tkmFunctionalVolumeRef this,
     goto error;
 
   /* set value in volume */
-  eVolume = Volume_SetNumPreStimTimePoints( this->mpTimeCourseVolume,
+  eVolume =FunD_SetNumPreStimTimePoints( this->mpTimeCourseVolume,
               inNumPreStimPoints );
-  if( kVolumeErr_NoError != eVolume 
-      && kVolumeErr_InvalidNumPreStimTimePoints != eVolume ) {
+  if( FunD_tErr_NoError != eVolume 
+      && FunD_tErr_InvalidNumPreStimTimePoints != eVolume ) {
     eResult = FunV_tErr_ErrorAccessingInternalVolume;
     goto error;
   }
 
   /* get the new num pts. */
-  eVolume = Volume_GetNumPreStimTimePoints( this->mpTimeCourseVolume,
+  eVolume =FunD_GetNumPreStimTimePoints( this->mpTimeCourseVolume,
               &nNumPreStimPoints );
-  if( kVolumeErr_NoError != eVolume ) {
+  if( FunD_tErr_NoError != eVolume ) {
     eResult = FunV_tErr_ErrorAccessingInternalVolume;
     goto error;
   }
@@ -882,7 +882,7 @@ FunV_tErr FunV_SetNumPreStimPoints ( tkmFunctionalVolumeRef this,
   if( nNumPreStimPoints != inNumPreStimPoints ) {
     
     /* get number of time points */
-    Volume_GetNumTimePoints( this->mpTimeCourseVolume, &nNumPoints );
+   FunD_GetNumTimePoints( this->mpTimeCourseVolume, &nNumPoints );
     
     sprintf( sTclArguments, "\"%d is not a valid number of pre-stim time points. The value should be between 0 and %d.\"", inNumPreStimPoints, nNumPoints-1 );
     FunV_SendTkmeditTclCommand_( this, tkm_tTclCommand_ErrorDlog,
@@ -918,7 +918,7 @@ FunV_tErr FunV_SetTimeSecond ( tkmFunctionalVolumeRef this,
              int                    inSecond ) {
 
   FunV_tErr         eResult     = FunV_tErr_NoError;
-  Volume_ErrorCode  eVolume     = kVolumeErr_NoError;
+  FunD_tErr  eVolume     = FunD_tErr_NoError;
   int               nTimePoint  = 0;
 
   /* verify us */
@@ -927,9 +927,9 @@ FunV_tErr FunV_SetTimeSecond ( tkmFunctionalVolumeRef this,
     goto error;
 
   /* convert to time point. */
-  eVolume = Volume_ConvertSecondToTimePoint( this->mpOverlayVolume,
+  eVolume =FunD_ConvertSecondToTimePoint( this->mpOverlayVolume,
                inSecond, &nTimePoint );
-  if( kVolumeErr_NoError != eVolume ) {
+  if( FunD_tErr_NoError != eVolume ) {
     eResult = FunV_tErr_ErrorConvertingSecondToTimePoint;
     goto error;
   }
@@ -958,7 +958,7 @@ FunV_tErr FunV_SetTimePoint ( tkmFunctionalVolumeRef this,
             int                    inTimePoint ) {
 
   FunV_tErr         eResult            = FunV_tErr_NoError;
-  Volume_ErrorCode  eVolume            = kVolumeErr_NoError;
+  FunD_tErr  eVolume            = FunD_tErr_NoError;
   int               nSecond            = 0;
   int               nNumTimePoints     = 0;
   char              sTclArguments[256] = "";
@@ -971,7 +971,7 @@ FunV_tErr FunV_SetTimePoint ( tkmFunctionalVolumeRef this,
   DebugPrint "FunV_SetTimePoint( %d )\n", inTimePoint EndDebugPrint;
 
   /* if it's valid, set it */
-  if ( Volume_IsTimePointValid( this->mpOverlayVolume, inTimePoint )) {
+  if (FunD_IsTimePointValid( this->mpOverlayVolume, inTimePoint )) {
 
     /* set it */
     this->mnTimePoint = inTimePoint;
@@ -979,7 +979,7 @@ FunV_tErr FunV_SetTimePoint ( tkmFunctionalVolumeRef this,
   } else {
 
     /* get number of time points. */
-    Volume_GetNumTimePoints( this->mpOverlayVolume, &nNumTimePoints );
+   FunD_GetNumTimePoints( this->mpOverlayVolume, &nNumTimePoints );
     
     /* display an error message */
     sprintf( sTclArguments, "\"%d is not a valid time point for the overlay data. It must be between 0 and %d.\"", inTimePoint, nNumTimePoints-1 );
@@ -989,7 +989,7 @@ FunV_tErr FunV_SetTimePoint ( tkmFunctionalVolumeRef this,
  
 
   /* convert to a second */
-  eVolume = Volume_ConvertTimePointToSecond( this->mpOverlayVolume,
+  eVolume =FunD_ConvertTimePointToSecond( this->mpOverlayVolume,
                this->mnTimePoint, &nSecond );
 
   /* send the new value to tcl */
@@ -1041,7 +1041,7 @@ FunV_tErr FunV_SetCondition ( tkmFunctionalVolumeRef this,
     goto error;
 
   /* if valid.. */
-  if ( Volume_IsConditionIndexValid( this->mpOverlayVolume, inCondition )) {
+  if (FunD_IsConditionIndexValid( this->mpOverlayVolume, inCondition )) {
 
     /* set it */
     this->mnCondition = inCondition;
@@ -1049,7 +1049,7 @@ FunV_tErr FunV_SetCondition ( tkmFunctionalVolumeRef this,
   } else {
   
     /* get number of conditions */
-    Volume_GetNumConditions( this->mpOverlayVolume, &nNumConditions );
+   FunD_GetNumConditions( this->mpOverlayVolume, &nNumConditions );
 
     /* if they weren't equal, display an error message. */
     sprintf( sTclArguments, "\"%d is not a valid condition for the overlay data. It must be between 0 and %d.\"", inCondition, nNumConditions-1 );
@@ -1320,7 +1320,7 @@ FunV_tErr FunV_ChangeTimePointBy ( tkmFunctionalVolumeRef this,
   nTimePoint = this->mnTimePoint;
 
   /* get the number of time points */
-  Volume_GetNumTimePoints( this->mpOverlayVolume, &nNumTimePoints );
+ FunD_GetNumTimePoints( this->mpOverlayVolume, &nNumTimePoints );
   if( nNumTimePoints == 0 )
     goto cleanup;
 
@@ -1356,7 +1356,7 @@ FunV_tErr FunV_ChangeTimePointBy ( tkmFunctionalVolumeRef this,
 }
 
 FunV_tErr FunV_AnatomicalVoxelClicked ( tkmFunctionalVolumeRef this,
-          VoxelRef         ipAnatomicalVoxel ) {
+        xVoxelRef         ipAnatomicalVoxel ) {
 
   FunV_tErr eResult = FunV_tErr_NoError;
 
@@ -1400,13 +1400,17 @@ FunV_tErr FunV_AnatomicalVoxelClicked ( tkmFunctionalVolumeRef this,
 }
 
 FunV_tErr FunV_GetValueAtAnaIdx ( tkmFunctionalVolumeRef this,
-          VoxelRef               ipVoxel,
+         xVoxelRef               ipVoxel,
           FunV_tFunctionalValue* opValue ) {
 
   FunV_tErr        eResult = FunV_tErr_NoError;
-  Volume_ErrorCode eVolume = kVolumeErr_NoError;
+  FunD_tErr eVolume = FunD_tErr_NoError;
   float            fValue  = 0;
+  float            fRASValue  = 0;
   float            fOffset = 0;
+ xVoxelRef         RASVox  = NULL;
+
+  xVoxl_New( &RASVox );
 
   /* verify us */
   eResult = FunV_Verify( this );
@@ -1429,30 +1433,44 @@ FunV_tErr FunV_GetValueAtAnaIdx ( tkmFunctionalVolumeRef this,
   }
 
   /* get the data */
-  eVolume = Volume_GetDataAtAnaIdx( this->mpOverlayVolume, ipVoxel,
+  eVolume =FunD_GetDataAtAnaIdx( this->mpOverlayVolume, ipVoxel,
             this->mnCondition, this->mnTimePoint,
             &fValue );
-  if( kVolumeErr_NoError != eVolume ) {
+  if( FunD_tErr_NoError != eVolume ) {
     eResult = FunV_tErr_InvalidAnatomicalVoxel;
     *opValue = 0;
     goto error;
   }
+
+
+  tkm_ConvertVolumeToRAS( ipVoxel, RASVox );
+ FunD_GetDataAtRAS( this->mpOverlayVolume, RASVox,
+           this->mnCondition, this->mnTimePoint,
+           &fRASValue );
+  if( fRASValue != fValue ) {
+    EnableDebuggingOutput;
+    DebugPrint "idx %d,%d,%d = %f ras %.2f %.2f %.2f = %f\n",
+      xVoxl_ExpandInt(ipVoxel), fValue,
+      xVoxl_ExpandFloat(RASVox), fRASValue EndDebugPrint;
+    DisableDebuggingOutput;
+  }
+
 
   /* if we are displaying offsets and we have offset data... */
   if( this->mabDisplayFlags[FunV_tDisplayFlag_Ol_OffsetValues] 
       && NULL != this->mpOverlayOffsetVolume ) {
   
     /* get the offset at this value. only one plane in offset data. */
-    eVolume = Volume_GetDataAtAnaIdx( this->mpOverlayOffsetVolume, ipVoxel,
+    eVolume =FunD_GetDataAtAnaIdx( this->mpOverlayOffsetVolume, ipVoxel,
               0, 0, &fOffset );
-    if( kVolumeErr_NoError == eVolume ) {
+    if( FunD_tErr_NoError == eVolume ) {
       
       /* divide the functional value by the offset and mult by 100 to 
    get a percent */
       fValue = (fValue / fOffset) * 100.0;
     } else {
       DebugPrint "FunV_GetValueAtAnatomicalVoxel: %d,%d,%d: %s\n",
-  EXPAND_VOXEL_INT(ipVoxel), Volume_GetErrorString(eVolume) EndDebugPrint;
+  xVoxl_ExpandInt(ipVoxel),FunD_GetErrorString(eVolume) EndDebugPrint;
     }
   }
 
@@ -1470,6 +1488,8 @@ FunV_tErr FunV_GetValueAtAnaIdx ( tkmFunctionalVolumeRef this,
   }
 
  cleanup:
+
+  xVoxl_Delete( &RASVox );
 
   return eResult;
 }
@@ -1708,7 +1728,7 @@ FunV_tErr FunV_BeginSelectionRange ( tkmFunctionalVolumeRef this ) {
 
   FunV_tErr  eResult = FunV_tErr_NoError;
   xList_tErr eList   = xList_tErr_NoErr;
-  VoxelRef   pVoxel  = NULL;
+ xVoxelRef   pVoxel  = NULL;
 
   /* verify us */
   eResult = FunV_Verify( this );
@@ -1728,7 +1748,7 @@ FunV_tErr FunV_BeginSelectionRange ( tkmFunctionalVolumeRef this ) {
     if( NULL != pVoxel ) {
       
       /* delete it */
-      Voxel_Delete( &pVoxel );
+      xVoxl_Delete( &pVoxel );
     }
   }
 
@@ -1756,10 +1776,10 @@ FunV_tErr FunV_BeginSelectionRange ( tkmFunctionalVolumeRef this ) {
 
 FunV_tErr FunV_AddAnatomicalVoxelToSelectionRange 
                                    ( tkmFunctionalVolumeRef this,
-             VoxelRef               ipVoxel ) {
+            xVoxelRef               ipVoxel ) {
 
   FunV_tErr  eResult = FunV_tErr_NoError;
-  VoxelRef   pVoxel  = NULL;
+ xVoxelRef   pVoxel  = NULL;
   xList_tErr eList   = xList_tErr_NoErr;
 
   /* verify us */
@@ -1768,8 +1788,8 @@ FunV_tErr FunV_AddAnatomicalVoxelToSelectionRange
     goto error;
 
   /* create a voxel and copy into it */
-  Voxel_New( &pVoxel );
-  Voxel_Copy( pVoxel, ipVoxel );
+  xVoxl_New( &pVoxel );
+  xVoxl_Copy( pVoxel, ipVoxel );
 
   /* add voxel to list */
   eList = xList_InsertItem( this->mpSelectedVoxels, pVoxel );
@@ -1797,15 +1817,15 @@ FunV_tErr FunV_EndSelectionRange ( tkmFunctionalVolumeRef this ) {
 
   FunV_tErr             eResult            = FunV_tErr_NoError;
   xList_tErr            eList              = xList_tErr_NoErr;
-  VoxelRef              pVoxel             = NULL;
-  VoxelRef              pFuncVoxel         = NULL;
+ xVoxelRef              pVoxel             = NULL;
+ xVoxelRef              pFuncVoxel         = NULL;
   FunV_tFunctionalValue value              = 0;
   FunV_tFunctionalValue sum                = 0;
   int                   nNumValues         = 0;
   FunV_tFunctionalValue average            = 0;
   char                  sTclArguments[256] = "";
 
-  Voxel_New( &pFuncVoxel );
+  xVoxl_New( &pFuncVoxel );
 
   /* verify us */
   eResult = FunV_Verify( this );
@@ -1875,13 +1895,13 @@ FunV_tErr FunV_EndSelectionRange ( tkmFunctionalVolumeRef this ) {
     if( NULL != pVoxel ) {
 
       /* convert to functional index */
-      Volume_ConvertAnaIdxToFuncIdx( this->mpOverlayVolume,
+     FunD_ConvertAnaIdxToFuncIdx( this->mpOverlayVolume,
              pVoxel, pFuncVoxel );
       
       /* if valid, sprint it to the tcl argument */
-      if ( Volume_IsFunctionalVoxelValid( this->mpOverlayVolume,pFuncVoxel) ) {
+      if (FunD_IsFunctionalVoxelValid( this->mpOverlayVolume,pFuncVoxel) ) {
   sprintf( sTclArguments, "%d %d %d",
-     EXPAND_VOXEL_INT( pFuncVoxel ) );
+     xVoxl_ExpandInt( pFuncVoxel ) );
       } else {
   strcpy( sTclArguments, "-1 -1 -1" );
       }
@@ -1914,7 +1934,7 @@ FunV_tErr FunV_EndSelectionRange ( tkmFunctionalVolumeRef this ) {
 
  cleanup:
 
-  Voxel_Delete( &pFuncVoxel );
+  xVoxl_Delete( &pFuncVoxel );
 
   return eResult;
 }
@@ -1922,17 +1942,18 @@ FunV_tErr FunV_EndSelectionRange ( tkmFunctionalVolumeRef this ) {
 FunV_tErr FunV_DrawGraph ( tkmFunctionalVolumeRef this ) {
 
   FunV_tErr             eResult         = FunV_tErr_NoError;
-  Volume_ErrorCode      eVolume         = kVolumeErr_NoError;
+  FunD_tErr      eVolume         = FunD_tErr_NoError;
   tBoolean              bStartedDrawing = FALSE;
   int                   nNumTimePoints  = 0;
   float                 fOffset         = 0;
+  float                 fOffsetSum      = 0;
   float*                afValues        = NULL;
   float*                afDeviations    = NULL;
   float*                afSums          = NULL;
   xList_tErr            eList           = xList_tErr_NoErr;
   int                   nNumConditions  = 0;
   int                   nCondition      = 0;
-  VoxelRef              pVoxel          = NULL;
+ xVoxelRef              pVoxel          = NULL;
   int                   nValue          = 0;
   int                   nNumValues      = 0;
 
@@ -1948,9 +1969,9 @@ FunV_tErr FunV_DrawGraph ( tkmFunctionalVolumeRef this ) {
   }
 
   /* find the number of time points. */
-  eVolume = Volume_GetNumTimePoints( this->mpTimeCourseVolume, 
+  eVolume =FunD_GetNumTimePoints( this->mpTimeCourseVolume, 
              &nNumTimePoints );
-  if( kVolumeErr_NoError != eVolume ) {
+  if( FunD_tErr_NoError != eVolume ) {
     eResult = FunV_tErr_ErrorAccessingInternalVolume;
     goto error;
   }
@@ -1984,8 +2005,8 @@ FunV_tErr FunV_DrawGraph ( tkmFunctionalVolumeRef this ) {
 
   /* get the number of conditions */
   eVolume = 
-    Volume_GetNumConditions( this->mpTimeCourseVolume, &nNumConditions );
-  if( kVolumeErr_NoError != eVolume ) {
+   FunD_GetNumConditions( this->mpTimeCourseVolume, &nNumConditions );
+  if( FunD_tErr_NoError != eVolume ) {
     eResult = FunV_tErr_ErrorAccessingInternalVolume;
     goto error;
   }
@@ -2018,12 +2039,12 @@ FunV_tErr FunV_DrawGraph ( tkmFunctionalVolumeRef this ) {
   
   /* get all values at this voxel */
   eVolume = 
-    Volume_GetDataAtAnaIdxForAllTimePoints( this->mpTimeCourseVolume,
+   FunD_GetDataAtAnaIdxForAllTimePoints( this->mpTimeCourseVolume,
               pVoxel, nCondition,
               afValues );
 
   /* if it wasn't out of bounds... */
-  if( kVolumeErr_NoError == eVolume ) {
+  if( FunD_tErr_NoError == eVolume ) {
 
     /* if we are displaying offsets and we have offset data... */
     if( this->mabDisplayFlags[FunV_tDisplayFlag_TC_OffsetValues] 
@@ -2031,9 +2052,9 @@ FunV_tErr FunV_DrawGraph ( tkmFunctionalVolumeRef this ) {
       
       /* get the offset at this value. only one plane in offset data. */
       eVolume = 
-        Volume_GetDataAtAnaIdx( this->mpTimeCourseOffsetVolume, 
+       FunD_GetDataAtAnaIdx( this->mpTimeCourseOffsetVolume, 
               pVoxel, 0, 0, &fOffset );
-      if( kVolumeErr_NoError == eVolume ) {
+      if( FunD_tErr_NoError == eVolume ) {
         
         /* divide all functional values by the offset and mult by 100 to 
      get a percent */
@@ -2047,7 +2068,21 @@ FunV_tErr FunV_DrawGraph ( tkmFunctionalVolumeRef this ) {
     for( nValue = 0; nValue < nNumTimePoints; nValue++ ) {
       afSums[nValue] += afValues[nValue];
     }
-    
+
+
+    /* if we have error data, we'll need to divide our error bar
+       values by the average offset. */
+    if( this->mabDisplayFlags[FunV_tDisplayFlag_TC_OffsetValues] 
+        && NULL != this->mpOverlayOffsetVolume ) {
+      
+      /* get the offset at this value and add it to the sum. */
+      eVolume = FunD_GetDataAtAnaIdx( this->mpTimeCourseOffsetVolume, 
+              pVoxel, 0, 0, &fOffset );
+      if( FunD_tErr_NoError == eVolume ) {
+        fOffsetSum += fOffset;
+      }
+    }
+        
     /* inc our count */
     nNumValues++;
   }
@@ -2057,6 +2092,7 @@ FunV_tErr FunV_DrawGraph ( tkmFunctionalVolumeRef this ) {
     /* if we don't have any values at this point, our whole selections
        is out of range. */
     if( 0 == nNumValues ) {
+
       /* never really drew anything */
       bStartedDrawing = FALSE;
       goto cleanup;
@@ -2067,39 +2103,41 @@ FunV_tErr FunV_DrawGraph ( tkmFunctionalVolumeRef this ) {
       afValues[nValue] = afSums[nValue] / (float)nNumValues;
     }
 
+    /* if we have offset values, divide the offset sum by the number of
+       values. */
+    if( this->mabDisplayFlags[FunV_tDisplayFlag_TC_OffsetValues] 
+  && NULL != this->mpOverlayOffsetVolume ) {
+
+      fOffset /= (float) nNumValues;
+    }
+
     /* send the values to the graph */
     FunV_SendGraphData_( this, nCondition, nNumTimePoints, afValues );
     
     /* if there is error data present.. */
-    if( Volume_IsErrorDataPresent( this->mpTimeCourseVolume ) ) {
+    if(FunD_IsErrorDataPresent( this->mpTimeCourseVolume ) ) {
 
       /* get the deviations at all time points */
-      eVolume = Volume_GetDeviationForAllTimePoints( this->mpTimeCourseVolume,
+      eVolume =FunD_GetDeviationForAllTimePoints( this->mpTimeCourseVolume,
                  nCondition, 
                  afDeviations );
-      if( kVolumeErr_NoError != eVolume ) {
+      if( FunD_tErr_NoError != eVolume ) {
   eResult = FunV_tErr_ErrorAccessingInternalVolume;
   goto error;
       }
 
-      /* if we are displaying offsets and we have offset data... */
+      /* if we have offset values... */
       if( this->mabDisplayFlags[FunV_tDisplayFlag_TC_OffsetValues] 
     && NULL != this->mpOverlayOffsetVolume ) {
   
-  /* get the offset at this value. only one plane in offset data. */
-  eVolume = Volume_GetDataAtAnaIdx( this->mpTimeCourseOffsetVolume, 
-            pVoxel, 0, 0, &fOffset );
-  if( kVolumeErr_NoError == eVolume ) {
-    
-    /* divide all deviations by the offset and mult by 100 to 
-       get a percent */
-    for( nValue = 0; nValue < nNumTimePoints; nValue++ ) {
-      afDeviations[nValue] = (afDeviations[nValue] / fOffset) * 100.0;
-    }
+  /* divide all deviations by the offset and mult by 100 to 
+     get a percent */
+  for( nValue = 0; nValue < nNumTimePoints; nValue++ ) {
+    afDeviations[nValue] = (afDeviations[nValue] / fOffset) * 100.0;
   }
       }
-
-     /* send the deviations to the graph */
+      
+      /* send the deviations to the graph */
       FunV_SendGraphErrorBars_( this, nCondition, nNumTimePoints, 
         afDeviations );
     }
@@ -2142,7 +2180,7 @@ FunV_tErr FunV_SendGraphData_ ( tkmFunctionalVolumeRef this,
   char*            sTclArguments = NULL;
   int              nTimePoint    = 0;
   int              nTimeSecond   = 0;
-  Volume_ErrorCode eVolume       = kVolumeErr_NoError;
+  FunD_tErr eVolume       = FunD_tErr_NoError;
 
   /* allocate the argument string.  we limit the float to print .5, so 
      allocate 10 + two spaces + 3 chars for index per value so we can 
@@ -2163,7 +2201,7 @@ FunV_tErr FunV_SendGraphData_ ( tkmFunctionalVolumeRef this,
   for( nTimePoint = 0; nTimePoint < inNumValues; nTimePoint++ ) {
 
     /* convert to a second. */
-    eVolume = Volume_ConvertTimePointToSecond( this->mpTimeCourseVolume,
+    eVolume =FunD_ConvertTimePointToSecond( this->mpTimeCourseVolume,
                  nTimePoint, &nTimeSecond );
 
     /* write the second and value to the arg list */
@@ -2755,13 +2793,13 @@ FunV_tErr FunV_SendViewStateToTcl ( tkmFunctionalVolumeRef this ) {
   if( NULL != this->mpOverlayVolume ) {
     
     /* send the number of time points */
-    Volume_GetNumTimePoints( this->mpOverlayVolume, &nValue );
+   FunD_GetNumTimePoints( this->mpOverlayVolume, &nValue );
     sprintf( sTclArguments, "%d", nValue );
     FunV_SendTclCommand_( this, FunV_tTclCommand_Ol_UpdateNumTimePoints,
         sTclArguments );
 
     /* send the number of conditions */
-    Volume_GetNumConditions( this->mpOverlayVolume, &nValue );
+   FunD_GetNumConditions( this->mpOverlayVolume, &nValue );
     sprintf( sTclArguments, "%d", nValue );
     FunV_SendTclCommand_( this, FunV_tTclCommand_Ol_UpdateNumConditions,
         sTclArguments );
@@ -2776,15 +2814,15 @@ FunV_tErr FunV_SendViewStateToTcl ( tkmFunctionalVolumeRef this ) {
     }
     
     /* send the name and stem as the data name */
-    Volume_GetSubjectName( this->mpOverlayVolume, sValue );
-    Volume_GetStem( this->mpOverlayVolume, sValue2 );
+   FunD_GetSubjectName( this->mpOverlayVolume, sValue );
+   FunD_GetStem( this->mpOverlayVolume, sValue2 );
     sprintf( sTclArguments, "\"%s: %s\"", sValue, sValue2 );
     FunV_SendTclCommand_( this, FunV_tTclCommand_Ol_UpdateDataName,
         sTclArguments );
 
     /* send the current time point */
     sprintf( sTclArguments, "%d", this->mnTimePoint );
-    Volume_ConvertTimePointToSecond( this->mpOverlayVolume,
+   FunD_ConvertTimePointToSecond( this->mpOverlayVolume,
              this->mnTimePoint, &nValue );
     sprintf( sTclArguments, "%s %d", sTclArguments, nValue );
     FunV_SendTclCommand_( this, FunV_tTclCommand_Ol_UpdateTimePoint,
@@ -2808,19 +2846,19 @@ FunV_tErr FunV_SendViewStateToTcl ( tkmFunctionalVolumeRef this ) {
   if( NULL != this->mpTimeCourseVolume ) {
 
     /* send the number of conditions */
-    Volume_GetNumConditions( this->mpTimeCourseVolume, &nValue );
+   FunD_GetNumConditions( this->mpTimeCourseVolume, &nValue );
     sprintf( sTclArguments, "%d", nValue );
     FunV_SendTclCommand_( this, FunV_tTclCommand_TC_UpdateNumConditions,
         sTclArguments );
     
     /* send the number of pre stim points */
-    Volume_GetNumPreStimTimePoints( this->mpTimeCourseVolume, &nValue );
+   FunD_GetNumPreStimTimePoints( this->mpTimeCourseVolume, &nValue );
     sprintf( sTclArguments, "%d", nValue );
     FunV_SendTclCommand_( this, FunV_tTclCommand_TC_UpdateNumPreStimPoints,
         sTclArguments );
     
     /* send the time resolution */
-    Volume_GetTimeResolution( this->mpTimeCourseVolume, &nValue );
+   FunD_GetTimeResolution( this->mpTimeCourseVolume, &nValue );
     sprintf( sTclArguments, "%d", nValue );
     FunV_SendTclCommand_( this, FunV_tTclCommand_TC_UpdateTimeResolution,
         sTclArguments );
@@ -2835,8 +2873,8 @@ FunV_tErr FunV_SendViewStateToTcl ( tkmFunctionalVolumeRef this ) {
     }
 
     /* send the name and stem as the data name */
-    Volume_GetSubjectName( this->mpTimeCourseVolume, sValue );
-    Volume_GetStem( this->mpTimeCourseVolume, sValue2 );
+   FunD_GetSubjectName( this->mpTimeCourseVolume, sValue );
+   FunD_GetStem( this->mpTimeCourseVolume, sValue2 );
     sprintf( sTclArguments, "\"%s: %s\"", sValue, sValue2 );
     FunV_SendTclCommand_( this, FunV_tTclCommand_TC_UpdateDataName,
         sTclArguments );    
@@ -2994,7 +3032,7 @@ FunV_tErr FunV_OverlayChanged_ ( tkmFunctionalVolumeRef this ) {
 
   FunV_tErr              eResult            = FunV_tErr_NoError;
   xList_tErr             eList              = xList_tErr_NoErr;
-  VoxelRef               pVoxel             = NULL;
+ xVoxelRef               pVoxel             = NULL;
   FunV_tFunctionalValue  value              = 0;
   FunV_tErr              eValueResult       = FunV_tErr_NoError;
   char                   sTclArguments[256] = "";

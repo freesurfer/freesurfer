@@ -1,6 +1,8 @@
 #ifndef xList_H
 #define xList_H
 
+#include "xTypes.h"
+
                                    /* various error codes that will be
               returned by all functions. these can be
               translated into human readable strings
@@ -29,6 +31,14 @@ typedef enum {
 
 } xList_tErr;
 
+typedef enum {
+
+  xList_tCompare_LessThan    = -1,
+  xList_tCompare_Match       = 0,
+  xList_tCompare_GreaterThan = 1
+} xList_tCompare;
+
+
                                    /* we use a signature to detect corrupted 
               memory or multiple deletes on the same
               ptr. */
@@ -50,6 +60,8 @@ typedef struct {
   xListNodeRef       mpTail;       // last node
   xListNodeRef       mpNext;       // the next node in a traversal
   
+  xList_tCompare(*mComparator)(void*,void*);
+
 } xList, *xListRef;
 
                                    /* public interface */
@@ -84,7 +96,15 @@ xList_tErr xList_InsertItem ( xListRef this,
             void*    ipItemToInsert );
 
                                    /* desc:
-              removes an item from the list. 
+              removes an item from the list. note
+              that if a comparator is defined, the 
+              ptr that is passed in may not be the
+              same as the ptr in the list; both can
+              point to different pieces of memory.
+              since the one in the list needs to be
+              removed, it will be returned in the
+              item paramter. it should then be
+              deleted.
             * returns:
               InvalidListRef: null list ptr or bad
               signature.
@@ -92,7 +112,7 @@ xList_tErr xList_InsertItem ( xListRef this,
               allocate node.
            */
 xList_tErr xList_RemoveItem ( xListRef this,
-            void*    ipItemToRemove );
+            void**   iopItemToRemove );
 
                                    /* desc:
               searches list for item, returns true if
@@ -105,7 +125,7 @@ xList_tErr xList_RemoveItem ( xListRef this,
            */
 xList_tErr xList_IsInList ( xListRef this,
           void*    ipItem, 
-          char*    obpIsInList );
+          tBoolean*    obpIsInList );
 
                                    /* desc:
               empties the list. only deletes nodes, 
@@ -174,6 +194,8 @@ xList_tErr xList_ResetPosition ( xListRef this );
            */
 xList_tErr xList_GetNextItemFromPosition ( xListRef this,
              void**   oppNextItem );
+xList_tErr xList_NextFromPos ( xListRef this,
+             void**   oppNextItem );
 
                                    /* desc:
               for stack style access. pushes onto the 
@@ -207,6 +229,13 @@ xList_tErr xList_PopItem ( xListRef this, void** oppItem );
               InvalidListRef: null list ptr or bad
               signature.
            */
+xList_tErr xList_SetComparator ( xListRef             this,
+         xList_tCompare(*iComparator)(void*,void*) );
+
+xList_tCompare xList_CompareItems_ ( xListRef this, 
+             void*    pItemA,
+             void*    pItemB );
+
 xList_tErr xList_Verify ( xListRef this );
 
                                    /* desc:

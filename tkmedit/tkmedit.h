@@ -1,9 +1,9 @@
 #ifndef tkmedit_h
 #define tkmedit_h
 
-#include "tkmVoxel.h"
-#include "tkmVoxelSpace.h"
-#include "tkmVoxelList.h"
+#include "mriTypes.h"
+#include "xVoxel.h"
+#include "x3DList.h"
 #include "mrisurf.h"
 #include "xGLutWindow.h"
 
@@ -28,22 +28,15 @@ typedef tVolumeValue* tVolumeRef;
 #define tkm_knEditToBlackNewValue WM_EDITED_OFF
 
 /* this is synced to defs in tkmedit.c and in tkm_interface.tcl */
+/*
 typedef enum {  
-  tkm_tSurfaceType_None = -1,
-  tkm_tSurfaceType_Current = 0,
-  tkm_tSurfaceType_Original,
-  tkm_tSurfaceType_Canonical,
-  tkm_knNumSurfaceTypes
-} tkm_tSurfaceType;
-
-/* this is synced to defs in tkmedit.c and in tkm_interface.tcl */
-typedef enum { 
-  tkm_tOrientation_None = -1,
-  tkm_tOrientation_Coronal = 0,
-  tkm_tOrientation_Horizontal,
-  tkm_tOrientation_Sagittal,
-  tkm_knNumOrientations
-} tkm_tOrientation;
+  Surf_tVertexSet_None = -1,
+  Surf_tVertexSet_Main = 0,
+  Surf_tVertexSet_Original,
+  Surf_tVertexSet_Pial,
+  Surf_knNumVertexSets
+} Surf_tVertexSet;
+*/
 
 /* commands for the tcl side of things */
 typedef enum {
@@ -90,66 +83,78 @@ typedef enum {
 } tkm_tTclCommand;
 
 /* convesion functions */
-void tkm_ConvertVolumeToRAS ( VoxelRef inVolumeVox, VoxelRef outRASVox );
-void tkm_ConvertRASToVolume ( VoxelRef inRASVox, VoxelRef outVolumeVox );
-void tkm_ConvertVolumeToTal ( VoxelRef inVolumeVox, VoxelRef outTalVox );
+void tkm_ConvertVolumeToRAS ( xVoxelRef iAnaIdx,
+            xVoxelRef oRASVox );
+void tkm_ConvertRASToVolume ( xVoxelRef iRASVox,
+            xVoxelRef oAnaIdx );
+void tkm_ConvertVolumeToTal ( xVoxelRef iAnaIdx,
+            xVoxelRef oTalVox );
+void tkm_ConvertTalToVolume ( xVoxelRef iTalVox,
+            xVoxelRef oAnaIdx );
+
+tBoolean tkm_IsValidVolumeIdx ( xVoxelRef iAnaIdx );
+tBoolean tkm_IsValidRAS       ( xVoxelRef iRAS );
 
 /* interfaces for accessing current volume state */
-tVolumeValue tkm_GetVolumeValue ( tVolumeRef, VoxelRef );
-void tkm_GetAnatomicalVolumeColor( tVolumeValue inValue, xColor3fRef oColor );
+tVolumeValue tkm_GetVolumeValue ( tVolumeRef iVolume,
+          xVoxelRef  iAnaIdx );
+void tkm_GetAnatomicalVolumeColor( tVolumeValue inValue, 
+           xColor3fRef  oColor );
 
 /* getting the maximum intensity projection */
-tVolumeValue tkm_GetMaxIntProjValue( tVolumeRef iVolume, 
-             tkm_tOrientation iOrientation, 
-             VoxelRef pVoxel );
+tVolumeValue tkm_GetMaxIntProjValue( tVolumeRef       iVolume, 
+             mri_tOrientation iOrientation, 
+             xVoxelRef        ipVoxel );
 
 /* parcellation value */
-void tkm_GetParcellationColor( VoxelRef, xColor3fRef oColor );
-void tkm_GetParcellationLabel( VoxelRef, char* osLabel );
+void tkm_GetParcellationColor ( xVoxelRef   iWhere, 
+        xColor3fRef oColor );
+void tkm_GetParcellationLabel ( xVoxelRef   iWhere, 
+        char*       osLabel );
 
 /* dealing with control points */
-void tkm_AddNearestCtrlPtToSelection ( VoxelRef inVolumeVox, 
-               tkm_tOrientation inPlane );
-void tkm_RemoveNearestCtrlPtFromSelection ( VoxelRef inVolumeVox, 
-              tkm_tOrientation inPlane );
-void tkm_NewCtrlPt ();
-void tkm_DeselectAllCtrlPts ();
-void tkm_DeleteSelectedCtrlPts ();
-void tkm_WriteControlFile ();
+void tkm_AddNearestCtrlPtToSelection      ( xVoxelRef        iAnaIdx, 
+              mri_tOrientation iPlane );
+void tkm_RemoveNearestCtrlPtFromSelection ( xVoxelRef        iAnaIdx, 
+              mri_tOrientation iPlane );
+void tkm_NewCtrlPt                        ();
+void tkm_DeselectAllCtrlPts               ();
+void tkm_DeleteSelectedCtrlPts            ();
+void tkm_WriteControlFile                 ();
 
 /* editing */
-void tkm_EditVoxelInRange( VoxelRef     inVolumeVox, 
+void tkm_EditVoxelInRange( xVoxelRef    iAnaIdx, 
          tVolumeValue inLow, 
          tVolumeValue inHigh, 
          tVolumeValue inNewValue );
 
 /* undo list */
-void tkm_ClearUndoList ();
+void tkm_ClearUndoList   ();
 void tkm_RestoreUndoList ();
 
 /* selecting */
-void tkm_SelectVoxel ( VoxelRef inVolumeVox );
-void tkm_DeselectVoxel ( VoxelRef inVolumeVox );
+void tkm_SelectVoxel    ( xVoxelRef iAnaIdx );
+void tkm_DeselectVoxel  ( xVoxelRef iAnaIdx );
 void tkm_ClearSelection ();
 
 /* event processing */
 void tkm_HandleIdle ();
 
 /* writing points out to files. */
-void tkm_WriteVoxelToControlFile ( VoxelRef inVolumeVox );
-void tkm_WriteVoxelToEditFile ( VoxelRef inVolumeVox );
-void tkm_ReadCursorFromEditFile ();
+void tkm_WriteVoxelToControlFile ( xVoxelRef iAnaIdx );
+void tkm_WriteVoxelToEditFile    ( xVoxelRef iAnaIdx );
+void tkm_ReadCursorFromEditFile  ();
 
 /* cleaning up */
 void tkm_Quit ();
 
 /* various global variable access */
-char* tkm_GetSubjectName();
-char* tkm_GetVolumeName();
+char* tkm_GetSubjectName  ();
+char* tkm_GetVolumeName   ();
 char* tkm_GetAuxVolumeName();
 
 /* send a tcl command */
-void tkm_SendTclCommand ( tkm_tTclCommand inCommand,
-        char* inArguments );
+void tkm_SendTclCommand ( tkm_tTclCommand iCommand,
+        char*           isArguments );
 
 #endif

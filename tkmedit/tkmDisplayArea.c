@@ -1,19 +1,18 @@
 #include "tkmDisplayArea.h"
 #include "tkmMeditWindow.h"
 #include "tkmFunctionalVolume.h"
-#include "mritransform.h"
 #include "xUtilities.h"
 
 /* i'm not sure what to do about these y flips. it seems that whenever we're
    using a point that's going to go into the buffer to be drawn to the screen,
    we should flip when not in horizontal view. when using regular gl drawing 
    commands to draw to the screen, only do it in horizontal orientation. */
-#define BUFFER_Y_FLIP(y) ( this->mOrientation != tkm_tOrientation_Horizontal? \
+#define BUFFER_Y_FLIP(y) ( this->mOrientation != mri_tOrientation_Horizontal? \
                           (this->mnVolumeSize - y) : y )
-#define GLDRAW_Y_FLIP(y) ( this->mOrientation == tkm_tOrientation_Horizontal? \
+#define GLDRAW_Y_FLIP(y) ( this->mOrientation == mri_tOrientation_Horizontal? \
                           (this->mnVolumeSize - y) : y )
 #define GLDRAW_Y_FLIP_FLOAT(y) \
-                         ( this->mOrientation == tkm_tOrientation_Horizontal? \
+                         ( this->mOrientation == mri_tOrientation_Horizontal? \
                           ((float)this->mnVolumeSize - y) : y )
 
 //#define BUFFER_Y_FLIP(y) y
@@ -46,7 +45,7 @@ char DspA_ksaErrorStrings [DspA_knNumErrorCodes][256] = {
   "Invalid volume voxel.",
   "Invalid buffer point.",
   "Invalid screen point.",
-  "Error creating surface hash table.",
+  "Error accessing surface.",
   "Out of memory.",
   "Couldn't access control points.",
   "Coulnd't access selection.",
@@ -71,13 +70,13 @@ char DspA_ksaDisplayFlag [DspA_knNumDisplayFlags][256] = {
   "FunctionalOverlay"
 };
 
-char DspA_ksaOrientation [tkm_knNumOrientations][256] = {
+char DspA_ksaOrientation [mri_knNumOrientations][256] = {
   "Coronal",
   "Horizontal",
   "Sagittal"
 };
 
-char DspA_ksaSurface [tkm_knNumSurfaceTypes][256] = {
+char DspA_ksaSurface [Surf_knNumVertexSets][256] = {
   "Main",
   "Original",
   "Canonical"
@@ -115,15 +114,16 @@ DspA_tErr DspA_New ( tkmDisplayAreaRef* oppWindow,
   this->mfFrameBufferScaleY = 1.0;
 
   /* allocate our voxels */
-  Voxel_New ( &this->mpCursor );
-  Voxel_New ( &this->mpZoomCenter );
+  xVoxl_New ( &this->mpCursor );
+  xVoxl_New ( &this->mpZoomCenter );
 
   /* stuff in default values for display states. */
-  this->mOrientation           = tkm_tOrientation_Coronal;
+  this->mOrientation           = mri_tOrientation_Coronal;
   this->mnZoomLevel            = 1;
   this->mnHilitedVertexIndex   = -1;
-  this->mHilitedSurface        = tkm_tSurfaceType_None;
+  this->mHilitedSurface        = Surf_tVertexSet_None;
   this->mbSliceChanged         = TRUE;
+  this->mnVolumeSize           = 0;
 
   /* all our display flags start out false. */
   for ( nFlag = 0; nFlag < DspA_knNumDisplayFlags; nFlag++ )
@@ -138,6 +138,7 @@ DspA_tErr DspA_New ( tkmDisplayAreaRef* oppWindow,
   this->mpControlPoints         = NULL;
   this->mpSelectedControlPoints = NULL;
   this->mpSelection             = NULL;
+  this->maSurfaceLists          = NULL;
 
   /* return window. */
   *oppWindow = this;
@@ -175,8 +176,8 @@ DspA_tErr DspA_Delete ( tkmDisplayAreaRef* ioppWindow ) {
     free( this->mpFrameBuffer );
 
   /* delete our voxels */
-  Voxel_Delete ( &this->mpCursor );
-  Voxel_Delete ( &this->mpZoomCenter );
+  xVoxl_Delete ( &this->mpCursor );
+  xVoxl_Delete ( &this->mpZoomCenter );
 
   /* trash the signature */
   this->mSignature = 0x1;
@@ -291,10 +292,10 @@ DspA_tErr DspA_SetVolume ( tkmDisplayAreaRef this,
          int               inSize ) {
 
   DspA_tErr eResult            = DspA_tErr_NoErr;
-  VoxelRef  pCenter            = NULL;
+ xVoxelRef  pCenter            = NULL;
   char      sTclArguments[256] = "";
 
-  Voxel_New( &pCenter );
+  xVoxl_New( &pCenter );
 
   /* verify us. */
   eResult = DspA_Verify ( this );
@@ -330,7 +331,7 @@ DspA_tErr DspA_SetVolume ( tkmDisplayAreaRef this,
 
   /* initialize surface point lists. */
   eResult = DspA_InitSurfaceLists_( this, 
-      this->mnVolumeSize * tkm_knNumSurfaceTypes * tkm_knNumOrientations );
+      this->mnVolumeSize * Surf_knNumVertexSets * mri_knNumOrientations );
   if( DspA_tErr_NoErr != eResult )
     goto error;
 
@@ -339,7 +340,7 @@ DspA_tErr DspA_SetVolume ( tkmDisplayAreaRef this,
   tkm_SendTclCommand( tkm_tTclCommand_UpdateVolumeName, sTclArguments );
    
   /* get the center of the volume */
-  Voxel_Set( pCenter, this->mnVolumeSize/2, 
+  xVoxl_Set( pCenter, this->mnVolumeSize/2, 
        this->mnVolumeSize/2, this->mnVolumeSize/2 );
 
   /* set cursor and zoom center to middle of volume */
@@ -372,7 +373,7 @@ DspA_tErr DspA_SetVolume ( tkmDisplayAreaRef this,
 
  cleanup:
 
-  Voxel_Delete( &pCenter );
+  xVoxl_Delete( &pCenter );
 
   return eResult;
 }
@@ -398,9 +399,21 @@ DspA_tErr DspA_SetAuxVolume ( tkmDisplayAreaRef this,
   /* save the aux volume */
   this->mpAuxVolume = ipVolume;
 
-  /* send volume name to tk window */
-  sprintf( sTclArguments, "\"%s value\"", tkm_GetAuxVolumeName() );
-  tkm_SendTclCommand( tkm_tTclCommand_UpdateAuxVolumeName, sTclArguments );
+  /* if we got a volume... */
+  if( NULL != this->mpAuxVolume ) {
+    
+    /* send volume name to tk window */
+    sprintf( sTclArguments, "\"%s value\"", tkm_GetAuxVolumeName() );
+    tkm_SendTclCommand( tkm_tTclCommand_UpdateAuxVolumeName, sTclArguments );
+
+    /* show the volume value */
+    tkm_SendTclCommand( tkm_tTclCommand_ShowAuxValue, "1" );
+
+  } else {
+
+    /* hide the volume value */
+    tkm_SendTclCommand( tkm_tTclCommand_ShowAuxValue, "0" );
+  }    
 
   /* need to redraw if we're currently showing the aux volume */
   if( this->mabDisplayFlags[DspA_tDisplayFlag_AuxVolume] ) {
@@ -474,12 +487,9 @@ DspA_tErr DspA_SetParcellationVolume ( tkmDisplayAreaRef this,
 }
 
 DspA_tErr DspA_SetSurface ( tkmDisplayAreaRef this, 
-          MRI_SURFACE*      ipSurface ) {
+          mriSurfaceRef     ipSurface ) {
 
   DspA_tErr        eResult = DspA_tErr_NoErr;
-#if 0
-  tkm_tSurfaceType surface = tkm_tSurfaceType_None;
-#endif 
 
   /* verify us. */
   eResult = DspA_Verify ( this );
@@ -488,46 +498,6 @@ DspA_tErr DspA_SetSurface ( tkmDisplayAreaRef this,
 
   /* save the surface */
   this->mpSurface = ipSurface;
-
-#if 0
-  /* if we have a surface... */
-  if( NULL != this->mpSurface ) {
-
-    /* for each surface... */
-    for( surface = tkm_tSurfaceType_Current; 
-   surface < tkm_knNumSurfaceTypes; surface++ ) {
-
-      /* if we have a hash table for this surface, delete it. */
-      if( NULL != (this->mpSurfaceHashTable[surface]) )
-  MHTfree( &(this->mpSurfaceHashTable[surface]) );
-
-      /* create the hash table for this surface */
-      DebugPrint "DspA_SetSurface(): building table for %d...",
-  (int) surface EndDebugPrint;
-      this->mpSurfaceHashTable[surface] = 
-  MHTfillTableAtResolution( this->mpSurface, NULL, surface+1, 
-          DspA_kfHashTableResolution );
-      DebugPrint " done!\n" EndDebugPrint;
-      if( NULL == (this->mpSurfaceHashTable[surface]) ) {
-  eResult = DspA_tErr_ErrorCreatingSurfaceHashTable;
-  goto error;
-      }
-    }
-  }
-#endif
-
-  /* if not null, turn surfaces and interpolation on. */
-  if( NULL != this->mpSurface ) {
-
-    eResult = DspA_SetDisplayFlag( this, DspA_tDisplayFlag_MainSurface, TRUE );
-    if ( DspA_tErr_NoErr != eResult )
-      goto error;
-    
-    eResult = DspA_SetDisplayFlag( this, 
-      DspA_tDisplayFlag_InterpolateSurfaceVertices, TRUE );
-    if ( DspA_tErr_NoErr != eResult )
-      goto error;
-  }
 
   /* purge all the surface lists. */
   DspA_PurgeSurfaceLists_( this );
@@ -539,17 +509,6 @@ DspA_tErr DspA_SetSurface ( tkmDisplayAreaRef this,
   goto cleanup;
 
  error:
-
-#if 0
-  /* dispose anything that was allocated */
-  for( surface = tkm_tSurfaceType_None; 
-       surface < tkm_knNumSurfaceTypes; surface++ ) {
-    
-    /* if we have a hash table for this surface, delete it. */
-    if( NULL != (this->mpSurfaceHashTable[surface]) )
-      MHTfree( &(this->mpSurfaceHashTable[surface]) );
-  }
-#endif
 
   /* set surface to null */
   this->mpSurface = NULL;
@@ -612,7 +571,7 @@ DspA_tErr DspA_SetOverlayVolume ( tkmDisplayAreaRef      this,
 }
 
 DspA_tErr DspA_SetControlPointsSpace ( tkmDisplayAreaRef this,
-               VoxelSpaceRef     ipVoxels ) {
+               x3DListRef        ipVoxels ) {
 
   DspA_tErr eResult = DspA_tErr_NoErr;
 
@@ -649,7 +608,7 @@ DspA_tErr DspA_SetControlPointsSpace ( tkmDisplayAreaRef this,
 }
 
 DspA_tErr DspA_SetControlPointsSelectionList ( tkmDisplayAreaRef this,
-                 VoxelListRef      ipVoxels ) {
+                 xListRef          ipVoxels ) {
 
   DspA_tErr eResult = DspA_tErr_NoErr;
 
@@ -677,7 +636,7 @@ DspA_tErr DspA_SetControlPointsSelectionList ( tkmDisplayAreaRef this,
 }
 
 DspA_tErr DspA_SetSelectionSpace ( tkmDisplayAreaRef this, 
-           VoxelSpaceRef     ipVoxels ) {
+           x3DListRef        ipVoxels ) {
 
   DspA_tErr eResult = DspA_tErr_NoErr;
 
@@ -715,17 +674,17 @@ DspA_tErr DspA_SetSelectionSpace ( tkmDisplayAreaRef this,
 }
 
 DspA_tErr DspA_SetCursor ( tkmDisplayAreaRef this, 
-         VoxelRef          ipCursor ) {
+        xVoxelRef          ipCursor ) {
 
   DspA_tErr             eResult            = DspA_tErr_NoErr;
-  VoxelRef              pVoxel             = NULL;
+ xVoxelRef              pVoxel             = NULL;
   int                   nSlice             = 0;
   unsigned char         ucVolumeValue      = 0;
   FunV_tErr             eFunctional        = FunV_tErr_NoError;
   FunV_tFunctionalValue functionalValue   = 0;
   char                  sTclArguments[256] = "";
  
-  Voxel_New( &pVoxel );
+  xVoxl_New( &pVoxel );
 
   /* verify us. */
   eResult = DspA_Verify ( this );
@@ -733,7 +692,7 @@ DspA_tErr DspA_SetCursor ( tkmDisplayAreaRef this,
     goto error;
 
   /* verify the cursor */
-  eResult = DspA_VerifyVolumeVoxel_ ( this, ipCursor );
+  eResult = DspA_VerifyVolumexVoxl_ ( this, ipCursor );
   if ( DspA_tErr_NoErr != eResult )
     goto error;
 
@@ -741,7 +700,7 @@ DspA_tErr DspA_SetCursor ( tkmDisplayAreaRef this,
   nSlice = DspA_GetCurrentSliceNumber_( this );
 
   /* set the cursor */
-  Voxel_Copy( this->mpCursor, ipCursor );
+  xVoxl_Copy( this->mpCursor, ipCursor );
   
   /* if the new slice number is diffrent, set our dirty slice flag. */
   if( DspA_GetCurrentSliceNumber_( this ) != nSlice ) {
@@ -750,17 +709,17 @@ DspA_tErr DspA_SetCursor ( tkmDisplayAreaRef this,
 
   /* if cursor is .0 .0 .0, change to .5 .5 .5 so that it will draw in the
      center of a voxel on screen. */
-  if( Voxel_GetFloatX(this->mpCursor) == 
-      (float)(int)Voxel_GetFloatX(this->mpCursor)
-      && Voxel_GetFloatY(this->mpCursor) == 
-      (float)(int)Voxel_GetFloatY(this->mpCursor)
-      && Voxel_GetFloatZ(this->mpCursor) == 
-      (float)(int)Voxel_GetFloatZ(this->mpCursor) ) {
+  if( xVoxl_GetFloatX(this->mpCursor) == 
+      (float)(int)xVoxl_GetFloatX(this->mpCursor)
+      && xVoxl_GetFloatY(this->mpCursor) == 
+      (float)(int)xVoxl_GetFloatY(this->mpCursor)
+      && xVoxl_GetFloatZ(this->mpCursor) == 
+      (float)(int)xVoxl_GetFloatZ(this->mpCursor) ) {
     
-    Voxel_SetFloat( this->mpCursor,
-        Voxel_GetFloatX(this->mpCursor) + 0.5,
-        Voxel_GetFloatY(this->mpCursor) + 0.5,
-        Voxel_GetFloatZ(this->mpCursor) + 0.5 );
+    xVoxl_SetFloat( this->mpCursor,
+        xVoxl_GetFloatX(this->mpCursor) + 0.5,
+        xVoxl_GetFloatY(this->mpCursor) + 0.5,
+        xVoxl_GetFloatZ(this->mpCursor) + 0.5 );
   }
 
   /* if we're the currently focused display... */
@@ -771,17 +730,17 @@ DspA_tErr DspA_SetCursor ( tkmDisplayAreaRef this,
 
     /* send the cursor. */
     sprintf( sTclArguments, "%d %d %d",
-       EXPAND_VOXEL_INT( this->mpCursor ) );
+       xVoxl_ExpandInt( this->mpCursor ) );
     tkm_SendTclCommand( tkm_tTclCommand_UpdateVolumeCursor, sTclArguments );
     
     /* also convert to RAS and send those coords along. */
     tkm_ConvertVolumeToRAS( this->mpCursor, pVoxel );
-    sprintf( sTclArguments, "%.1f %.1f %.1f", EXPAND_VOXEL_FLOAT( pVoxel ) );
+    sprintf( sTclArguments, "%.1f %.1f %.1f", xVoxl_ExpandFloat( pVoxel ) );
     tkm_SendTclCommand( tkm_tTclCommand_UpdateRASCursor, sTclArguments );
     
     /* also convert to Tal and send those coords along. */
     tkm_ConvertVolumeToTal( this->mpCursor, pVoxel );
-    sprintf( sTclArguments, "%.1f %.1f %.1f", EXPAND_VOXEL_FLOAT( pVoxel ) );
+    sprintf( sTclArguments, "%.1f %.1f %.1f", xVoxl_ExpandFloat( pVoxel ) );
     tkm_SendTclCommand( tkm_tTclCommand_UpdateTalCursor, sTclArguments );
     
     /* also get the volume value and send that along. */
@@ -830,19 +789,19 @@ DspA_tErr DspA_SetCursor ( tkmDisplayAreaRef this,
   /* print error message */
   if ( DspA_tErr_NoErr != eResult ) {
     DebugPrint "Error %d in DspA_SetCursor(%d,%d,%d): %s\n",
-      eResult, EXPAND_VOXEL_INT(ipCursor),
+      eResult, xVoxl_ExpandInt(ipCursor),
       DspA_GetErrorString(eResult) EndDebugPrint;
   }
 
  cleanup:
 
-  Voxel_Delete( &pVoxel );
+  xVoxl_Delete( &pVoxel );
 
   return eResult;
 }
 
 DspA_tErr DspA_SetOrientation ( tkmDisplayAreaRef this, 
-        tkm_tOrientation  iOrientation ) {
+        mri_tOrientation  iOrientation ) {
 
   DspA_tErr eResult            = DspA_tErr_NoErr;
   char      sTclArguments[256] = "";
@@ -853,8 +812,8 @@ DspA_tErr DspA_SetOrientation ( tkmDisplayAreaRef this,
     goto error;
 
   /* verify the orientation */
-  if ( iOrientation <= tkm_tOrientation_None
-       || iOrientation >= tkm_knNumOrientations ) {
+  if ( iOrientation <= mri_tOrientation_None
+       || iOrientation >= mri_knNumOrientations ) {
     eResult = DspA_tErr_InvalidOrientation;
     goto error;
   }
@@ -907,7 +866,7 @@ DspA_tErr DspA_SetZoomLevel ( tkmDisplayAreaRef this,
 
   DspA_tErr eResult            = DspA_tErr_NoErr;
   char      sTclArguments[256] = "";
-  VoxelRef  pCenter            = NULL;
+ xVoxelRef  pCenter            = NULL;
 
   /* verify us. */
   eResult = DspA_Verify ( this );
@@ -930,11 +889,11 @@ DspA_tErr DspA_SetZoomLevel ( tkmDisplayAreaRef this,
 
     /* set a voxel to 128,128,128, setting the zoom center will not change
        the current slice. */
-    Voxel_New( &pCenter );
-    Voxel_Set( pCenter, this->mnVolumeSize/2, 
+    xVoxl_New( &pCenter );
+    xVoxl_Set( pCenter, this->mnVolumeSize/2, 
          this->mnVolumeSize/2, this->mnVolumeSize/2 );
     eResult = DspA_SetZoomCenter( this, pCenter );
-    Voxel_Delete( &pCenter );
+    xVoxl_Delete( &pCenter );
     if( DspA_tErr_NoErr != eResult )
       goto error;
   }
@@ -972,7 +931,7 @@ DspA_tErr DspA_SetZoomLevel ( tkmDisplayAreaRef this,
 }
 
 DspA_tErr DspA_SetZoomCenter ( tkmDisplayAreaRef this, 
-             VoxelRef          ipCenter ) {
+            xVoxelRef          ipCenter ) {
 
   DspA_tErr eResult  = DspA_tErr_NoErr;
   int       nX       = 0;
@@ -984,22 +943,22 @@ DspA_tErr DspA_SetZoomCenter ( tkmDisplayAreaRef this,
     goto error;
 
   /* verify the center */
-  eResult = DspA_VerifyVolumeVoxel_ ( this, ipCenter );
+  eResult = DspA_VerifyVolumexVoxl_ ( this, ipCenter );
   if ( DspA_tErr_NoErr != eResult )
     goto error;
   
   switch ( this->mOrientation ) {
-  case tkm_tOrientation_Coronal:
-    nX = Voxel_GetX( ipCenter );
-    nY = Voxel_GetY( ipCenter );
+  case mri_tOrientation_Coronal:
+    nX = xVoxl_GetX( ipCenter );
+    nY = xVoxl_GetY( ipCenter );
     break;
-  case tkm_tOrientation_Horizontal:
-    nX = Voxel_GetX( ipCenter );
-    nY = Voxel_GetZ( ipCenter );
+  case mri_tOrientation_Horizontal:
+    nX = xVoxl_GetX( ipCenter );
+    nY = xVoxl_GetZ( ipCenter );
     break;
-  case tkm_tOrientation_Sagittal:
-    nX = Voxel_GetZ( ipCenter );
-    nY = Voxel_GetY( ipCenter );
+  case mri_tOrientation_Sagittal:
+    nX = xVoxl_GetZ( ipCenter );
+    nY = xVoxl_GetY( ipCenter );
     break;
   default:
     eResult = DspA_tErr_InvalidOrientation;
@@ -1008,8 +967,8 @@ DspA_tErr DspA_SetZoomCenter ( tkmDisplayAreaRef this,
   }
   
   /* set the center */
-  Voxel_SetX( this->mpZoomCenter, nX );
-  Voxel_SetY( this->mpZoomCenter, nY );
+  xVoxl_SetX( this->mpZoomCenter, nX );
+  xVoxl_SetY( this->mpZoomCenter, nY );
   
   /* should rebuild frame */
   this->mbSliceChanged = TRUE;
@@ -1064,7 +1023,7 @@ DspA_tErr DspA_SetZoomCenterToCursor ( tkmDisplayAreaRef this ) {
 
 
 DspA_tErr DspA_HiliteSurfaceVertex ( tkmDisplayAreaRef this,
-             tkm_tSurfaceType  inSurface,
+             Surf_tVertexSet  inSurface,
              int               inVertex ) {
 
   DspA_tErr eResult = DspA_tErr_NoErr;
@@ -1413,9 +1372,9 @@ DspA_tErr DspA_ChangeSliceBy_ ( tkmDisplayAreaRef this,
          int               inDelta ) {
 
   DspA_tErr eResult = DspA_tErr_NoErr;
-  VoxelRef  pCursor = NULL;
+ xVoxelRef  pCursor = NULL;
 
-  Voxel_New( &pCursor );
+  xVoxl_New( &pCursor );
 
   /* verify us. */
   eResult = DspA_Verify ( this );
@@ -1423,18 +1382,18 @@ DspA_tErr DspA_ChangeSliceBy_ ( tkmDisplayAreaRef this,
     goto error;
 
   /* copy the cursor. */
-  Voxel_Copy( pCursor, this->mpCursor );
+  xVoxl_Copy( pCursor, this->mpCursor );
 
   /* apply the increment to the proper part of the cursor */
   switch ( this->mOrientation ) {
-  case tkm_tOrientation_Coronal:
-    Voxel_SetZ( pCursor, Voxel_GetZ( pCursor ) + inDelta );
+  case mri_tOrientation_Coronal:
+    xVoxl_SetZ( pCursor, xVoxl_GetZ( pCursor ) + inDelta );
     break;
-  case tkm_tOrientation_Horizontal:
-    Voxel_SetY( pCursor, Voxel_GetY( pCursor ) + inDelta );
+  case mri_tOrientation_Horizontal:
+    xVoxl_SetY( pCursor, xVoxl_GetY( pCursor ) + inDelta );
     break;
-  case tkm_tOrientation_Sagittal:
-    Voxel_SetX( pCursor, Voxel_GetX( pCursor ) + inDelta );
+  case mri_tOrientation_Sagittal:
+    xVoxl_SetX( pCursor, xVoxl_GetX( pCursor ) + inDelta );
     break;
   default:
     eResult = DspA_tErr_InvalidOrientation;
@@ -1458,7 +1417,7 @@ DspA_tErr DspA_ChangeSliceBy_ ( tkmDisplayAreaRef this,
 
  cleanup:
 
-  Voxel_Delete( &pCursor );
+  xVoxl_Delete( &pCursor );
 
   return eResult;
 }
@@ -1650,10 +1609,10 @@ DspA_tErr DspA_HandleMouseUp_ ( tkmDisplayAreaRef this,
 
   DspA_tErr   eResult     = DspA_tErr_NoErr;
   xPoint2n    bufferPt    = {0,0};
-  VoxelRef    pVolumeVox  = NULL;
+ xVoxelRef    pVolumeVox  = NULL;
   FunV_tErr   eFunctional = FunV_tErr_NoError;
 
-  Voxel_New( &pVolumeVox );
+  xVoxl_New( &pVolumeVox );
   
   eResult = DspA_ConvertScreenToBuffer_( this, &(ipEvent->mWhere), &bufferPt );
   if ( DspA_tErr_NoErr != eResult )
@@ -1665,7 +1624,7 @@ DspA_tErr DspA_HandleMouseUp_ ( tkmDisplayAreaRef this,
   
   DebugPrint "Mouse up screen x %d y %d buffer x %d y %d volume %d %d %d\n",
     ipEvent->mWhere.mnX, ipEvent->mWhere.mnY, bufferPt.mnX, bufferPt.mnY,
-    EXPAND_VOXEL_INT( pVolumeVox ) EndDebugPrint;
+    xVoxl_ExpandInt( pVolumeVox ) EndDebugPrint;
 
   /* set the cursor. */
   eResult = DspA_SetCursor( this, pVolumeVox );
@@ -1752,7 +1711,7 @@ DspA_tErr DspA_HandleMouseUp_ ( tkmDisplayAreaRef this,
 
  cleanup:
 
-  Voxel_Delete( &pVolumeVox );
+  xVoxl_Delete( &pVolumeVox );
 
   return eResult;
 }
@@ -1762,9 +1721,9 @@ DspA_tErr DspA_HandleMouseDown_ ( tkmDisplayAreaRef this,
 
   DspA_tErr   eResult = DspA_tErr_NoErr;
   xPoint2n    bufferPt    = {0,0};
-  VoxelRef    pVolumeVox  = NULL;
+ xVoxelRef    pVolumeVox  = NULL;
 
-  Voxel_New( &pVolumeVox );
+  xVoxl_New( &pVolumeVox );
   
   eResult = DspA_ConvertScreenToBuffer_( this, &(ipEvent->mWhere), &bufferPt );
   if ( DspA_tErr_NoErr != eResult )
@@ -1777,7 +1736,7 @@ DspA_tErr DspA_HandleMouseDown_ ( tkmDisplayAreaRef this,
 #if 0
   DebugPrint "Mouse down screen x %d y %d buffer x %d y %d volume %d %d %d\n",
     ipEvent->mWhere.mnX, ipEvent->mWhere.mnY, bufferPt.mnX, bufferPt.mnY,
-    EXPAND_VOXEL_INT( pVolumeVox ) EndDebugPrint;
+    xVoxl_ExpandInt( pVolumeVox ) EndDebugPrint;
 #endif
 
   /* edit mode with no modifiers: */
@@ -1883,7 +1842,7 @@ DspA_tErr DspA_HandleMouseDown_ ( tkmDisplayAreaRef this,
 
  cleanup:
 
-  Voxel_Delete( &pVolumeVox );
+  xVoxl_Delete( &pVolumeVox );
 
   return eResult;
 }
@@ -1892,9 +1851,9 @@ DspA_tErr DspA_HandleMouseMoved_ ( tkmDisplayAreaRef this,
            xGWin_tEventRef   ipEvent ) {
   DspA_tErr   eResult = DspA_tErr_NoErr;
   xPoint2n    bufferPt    = {0,0};
-  VoxelRef    pVolumeVox  = NULL;
+ xVoxelRef    pVolumeVox  = NULL;
 
-  Voxel_New( &pVolumeVox );
+  xVoxl_New( &pVolumeVox );
   
   eResult = DspA_ConvertScreenToBuffer_( this, &(ipEvent->mWhere), &bufferPt );
   if ( DspA_tErr_NoErr != eResult )
@@ -1907,7 +1866,7 @@ DspA_tErr DspA_HandleMouseMoved_ ( tkmDisplayAreaRef this,
 #if 0
   DebugPrint "Mouse moved screen x %d y %d buffer x %d y %d volume %d %d %d\n",
     ipEvent->mWhere.mnX, ipEvent->mWhere.mnY, bufferPt.mnX, bufferPt.mnY,
-    EXPAND_VOXEL_INT( pVolumeVox ) EndDebugPrint;
+    xVoxl_ExpandInt( pVolumeVox ) EndDebugPrint;
 #endif
 
   /* edit mode with no modifiers: */
@@ -1995,7 +1954,7 @@ DspA_tErr DspA_HandleMouseMoved_ ( tkmDisplayAreaRef this,
 
  cleanup:
 
-  Voxel_Delete( &pVolumeVox );
+  xVoxl_Delete( &pVolumeVox );
 
   return eResult;
 }
@@ -2146,21 +2105,21 @@ DspA_tErr DspA_HandleKeyDown_ ( tkmDisplayAreaRef this,
 
   case 'x': 
     /* x sets plane to sagittal */
-    eResult = DspA_SetOrientation( this, tkm_tOrientation_Sagittal );
+    eResult = DspA_SetOrientation( this, mri_tOrientation_Sagittal );
     if ( DspA_tErr_NoErr != eResult )
       goto error;
     break;
         
   case 'y': 
     /* y sets plane to horizontal */
-    eResult = DspA_SetOrientation( this, tkm_tOrientation_Horizontal );
+    eResult = DspA_SetOrientation( this, mri_tOrientation_Horizontal );
     if ( DspA_tErr_NoErr != eResult )
       goto error;
     break;
 
   case 'z': 
     /* z sets plane to coronal */
-    eResult = DspA_SetOrientation( this, tkm_tOrientation_Coronal );
+    eResult = DspA_SetOrientation( this, mri_tOrientation_Coronal );
     if ( DspA_tErr_NoErr != eResult )
       goto error;
     break;
@@ -2224,8 +2183,8 @@ DspA_tErr DspA_HandleKeyDown_ ( tkmDisplayAreaRef this,
 
 
 DspA_tErr DspA_BrushVoxels_ ( tkmDisplayAreaRef this,
-            VoxelRef          ipCenterVox,
-            void(*ipFunction)(VoxelRef) ) {
+           xVoxelRef          ipCenterVox,
+            void(*ipFunction)(xVoxelRef) ) {
 
   DspA_tErr        eResult     = DspA_tErr_NoErr;
   int              nXCenter    = 0;
@@ -2237,14 +2196,14 @@ DspA_tErr DspA_BrushVoxels_ ( tkmDisplayAreaRef this,
   int              nX          = 0;
   int              nY          = 0;
   int              nZ          = 0;
-  VoxelRef         pVolumeVox  = NULL;
+  xVoxelRef        pVolumeVox  = NULL;
 
-  Voxel_New( &pVolumeVox );
+  xVoxl_New( &pVolumeVox );
   
   /* get our center voxel. */
-  nXCenter = Voxel_GetX( ipCenterVox );
-  nYCenter = Voxel_GetY( ipCenterVox );
-  nZCenter = Voxel_GetZ( ipCenterVox );
+  nXCenter = xVoxl_GetX( ipCenterVox );
+  nYCenter = xVoxl_GetY( ipCenterVox );
+  nZCenter = xVoxl_GetZ( ipCenterVox );
 
   /* set all radii to the brush radius. we subtract one because of our 
      looping bounds. */
@@ -2256,13 +2215,13 @@ DspA_tErr DspA_BrushVoxels_ ( tkmDisplayAreaRef this,
      current orientation to 0. */
   if( !sbBrush3D ) {
     switch( this->mOrientation ) {
-    case tkm_tOrientation_Coronal:
+    case mri_tOrientation_Coronal:
       nZRadius = 0;
       break;
-    case tkm_tOrientation_Horizontal:
+    case mri_tOrientation_Horizontal:
       nYRadius = 0;
       break;
-    case tkm_tOrientation_Sagittal:
+    case mri_tOrientation_Sagittal:
       nXRadius = 0;
       break;
     default:
@@ -2278,11 +2237,11 @@ DspA_tErr DspA_BrushVoxels_ ( tkmDisplayAreaRef this,
       for ( nX = nXCenter - nXRadius; nX <= nXCenter + nXRadius; nX++ ) {
 
   /* set our voxel. */
-  Voxel_Set( pVolumeVox, nX, nY, nZ );
+  xVoxl_Set( pVolumeVox, nX, nY, nZ );
 
   /* if it's valid... */
   if( DspA_tErr_InvalidVolumeVoxel != 
-      DspA_VerifyVolumeVoxel_( this, pVolumeVox ) ) {
+      DspA_VerifyVolumexVoxl_( this, pVolumeVox ) ) {
 
     /* if we're circular, check the radius. if no good, continue. */
     if( DspA_tBrushShape_Circle == sBrushShape 
@@ -2313,13 +2272,13 @@ DspA_tErr DspA_BrushVoxels_ ( tkmDisplayAreaRef this,
   }
 
  cleanup:
-  Voxel_Delete( &pVolumeVox );
+  xVoxl_Delete( &pVolumeVox );
 
   return eResult;
 
 }
 
-void DspA_BrushVoxelsInThreshold_ ( VoxelRef ipVoxel ) {
+void DspA_BrushVoxelsInThreshold_ (xVoxelRef ipVoxel ) {
 
   tkm_EditVoxelInRange( ipVoxel, 
       snBrushThresholdLow,
@@ -2490,10 +2449,10 @@ DspA_tErr DspA_DrawFrameBuffer_ ( tkmDisplayAreaRef this ) {
 
 DspA_tErr DspA_DrawSurface_ ( tkmDisplayAreaRef this ) {
 
-  DspA_tErr        eResult   = DspA_tErr_NoErr;
-  tkm_tSurfaceType surface   = tkm_tSurfaceType_Current;
-  xListRef         pList     = NULL;
-  float            faColor[3] = {0, 0, 0};
+  DspA_tErr         eResult    = DspA_tErr_NoErr;
+  Surf_tVertexSet   surface    = Surf_tVertexSet_Main;
+  xGrowableArrayRef list       = NULL;
+  float             faColor[3] = {0, 0, 0};
 
 #if 0
   /* just draw surface and return. */
@@ -2534,29 +2493,29 @@ DspA_tErr DspA_DrawSurface_ ( tkmDisplayAreaRef this ) {
     DspA_SetUpOpenGLPort_( this );
 
     /* for each surface type... */
-    for ( surface = tkm_tSurfaceType_Current;
-    surface < tkm_knNumSurfaceTypes; surface++ ) {
+    for ( surface = Surf_tVertexSet_Main;
+    surface < Surf_knNumVertexSets; surface++ ) {
       
       /* if this surface is visible... */
       if( this->mabDisplayFlags[surface + DspA_tDisplayFlag_MainSurface] ) {
   
   /* get the list. */
-  pList = DspA_GetSurfaceList_( this, this->mOrientation, surface,
-              DspA_GetCurrentSliceNumber_(this) );
-  if( NULL == pList ) {
+  list = DspA_GetSurfaceList_( this, this->mOrientation, surface,
+             DspA_GetCurrentSliceNumber_(this) );
+  if( NULL == list ) {
     eResult = DspA_tErr_ErrorAccessingSurfaceList;
     goto error;
   }
   
   /* choose and set the color */
   switch( surface ) {
-  case tkm_tSurfaceType_Current:
+  case Surf_tVertexSet_Main:
     faColor[0] = 1.0; faColor[1] = 1.0; faColor[2] = 0.0;
     break;
-  case tkm_tSurfaceType_Original:
+  case Surf_tVertexSet_Original:
     faColor[0] = 0.0; faColor[1] = 1.0; faColor[2] = 0.0;
     break;
-  case tkm_tSurfaceType_Canonical:
+  case Surf_tVertexSet_Pial:
     faColor[0] = 1.0; faColor[1] = 0.0; faColor[2] = 0.0;
     break;
   default:
@@ -2567,7 +2526,7 @@ DspA_tErr DspA_DrawSurface_ ( tkmDisplayAreaRef this ) {
   glColor3fv( faColor );
   
   /* draw the points. */
-  DspA_ParsePointList_( this, GL_LINES, pList );
+  DspA_ParsePointList_( this, GL_LINES, list );
 
   /* if vertices are visible... */
   if( this->mabDisplayFlags[DspA_tDisplayFlag_DisplaySurfaceVertices] ) {
@@ -2582,7 +2541,7 @@ DspA_tErr DspA_DrawSurface_ ( tkmDisplayAreaRef this ) {
     glPointSize( DspA_knSurfaceVertexSize );
 
     /* draw the vertices. */
-    DspA_ParsePointList_( this, GL_POINTS, pList );
+    DspA_ParsePointList_( this, GL_POINTS, list );
   }
 
   /* if we have a hilited vertex for this surface... */
@@ -2719,7 +2678,7 @@ DspA_tErr DspA_DrawAxes_ ( tkmDisplayAreaRef this ) {
 
   DspA_tErr eResult     = DspA_tErr_NoErr;
   xPoint2n  volumePt    = {0, 0};
-  VoxelRef  pVoxel      = NULL;
+ xVoxelRef  pVoxel      = NULL;
 
 #if 0
 
@@ -2728,7 +2687,7 @@ DspA_tErr DspA_DrawAxes_ ( tkmDisplayAreaRef this ) {
   int       nLength     = 0;
   int       nChar       = 0;
 
-  Voxel_New( &pVoxel );
+  xVoxl_New( &pVoxel );
 
   DspA_SetUpOpenGLPort_( this );
 
@@ -2749,11 +2708,11 @@ DspA_tErr DspA_DrawAxes_ ( tkmDisplayAreaRef this ) {
       goto error;
     
     /* if this is good... */
-    eResult = DspA_VerifyVolumeVoxel_( this, pVoxel );
+    eResult = DspA_VerifyVolumexVoxl_( this, pVoxel );
     if( DspA_tErr_NoErr == eResult ) {
       
       /* convert the voxel coords to a string */
-      sprintf( sLabel, "%d,%d,%d", EXPAND_VOXEL_INT(pVoxel) );
+      sprintf( sLabel, "%d,%d,%d", xVoxl_ExpandInt(pVoxel) );
       
       /* draw a line here. */
       glBegin( GL_LINES );
@@ -2785,7 +2744,7 @@ DspA_tErr DspA_DrawAxes_ ( tkmDisplayAreaRef this ) {
   /* draw arrows */
   switch( this->mOrientation ) {
 
-  case tkm_tOrientation_Coronal:
+  case mri_tOrientation_Coronal:
     volumePt.mnX = 40; 
     volumePt.mnY = this->mnVolumeSize - 20;
     DspA_DrawHorizontalArrow_( &volumePt, -20, "R" );
@@ -2793,7 +2752,7 @@ DspA_tErr DspA_DrawAxes_ ( tkmDisplayAreaRef this ) {
     volumePt.mnY = 40; 
     DspA_DrawVerticalArrow_( &volumePt, -20, "S" );
     break;
-  case tkm_tOrientation_Horizontal:
+  case mri_tOrientation_Horizontal:
     volumePt.mnX = 40; 
     volumePt.mnY = this->mnVolumeSize - 20;
     DspA_DrawHorizontalArrow_( &volumePt, -20, "R" );
@@ -2801,7 +2760,7 @@ DspA_tErr DspA_DrawAxes_ ( tkmDisplayAreaRef this ) {
     volumePt.mnY = 40; 
     DspA_DrawVerticalArrow_( &volumePt, -20, "A" );
     break;
-  case tkm_tOrientation_Sagittal:
+  case mri_tOrientation_Sagittal:
    volumePt.mnX = this->mnVolumeSize - 40; 
     volumePt.mnY = this->mnVolumeSize - 20;
     DspA_DrawHorizontalArrow_( &volumePt, 20, "A" );
@@ -2827,7 +2786,7 @@ DspA_tErr DspA_DrawAxes_ ( tkmDisplayAreaRef this ) {
 
  cleanup:
 
-  Voxel_Delete( &pVoxel );
+  xVoxl_Delete( &pVoxel );
 
   return eResult;
 }
@@ -2898,9 +2857,9 @@ DspA_tErr DspA_BuildCurrentFrame_ ( tkmDisplayAreaRef this ) {
   xPoint2n              volumePt    = {0, 0};
   GLubyte*              pDest       = NULL;
   unsigned char         ucValue     = 0;
-  VoxelRef              pVoxel      = NULL;
-  VoxelRef              pFuncMin    = NULL;
-  VoxelRef              pFuncMax    = NULL;
+ xVoxelRef              pVoxel      = NULL;
+ xVoxelRef              pFuncMin    = NULL;
+ xVoxelRef              pFuncMax    = NULL;
   FunV_tErr             eFunctional = FunV_tErr_NoError;
   FunV_tFunctionalValue funcValue   = 0.0;
   xColor3f              color       = {0,0,0};
@@ -2911,16 +2870,16 @@ DspA_tErr DspA_BuildCurrentFrame_ ( tkmDisplayAreaRef this ) {
   xUtil_StartTimer();
 
   /* make our voxels */
-  Voxel_New ( &pVoxel );
-  Voxel_New ( &pFuncMin );
-  Voxel_New ( &pFuncMax );
+  xVoxl_New ( &pVoxel );
+  xVoxl_New ( &pFuncMin );
+  xVoxl_New ( &pFuncMax );
 
   /* if we have and are showing functional data... */
   if( this->mabDisplayFlags[DspA_tDisplayFlag_FunctionalOverlay] 
       && NULL != this->mpFunctionalVolume ) {
 
     /* get our overlay func bounds in antomical space */
-    Volume_GetBoundsInAnatomical( this->mpFunctionalVolume->mpOverlayVolume, 
+   FunD_GetBoundsInAnatomical( this->mpFunctionalVolume->mpOverlayVolume, 
           pFuncMin, pFuncMax );
   }
 
@@ -2929,7 +2888,7 @@ DspA_tErr DspA_BuildCurrentFrame_ ( tkmDisplayAreaRef this ) {
 
     /* set a voxel to 128,128,128, setting the zoom center will not change
        the current slice. */
-    Voxel_Set( pVoxel, this->mnVolumeSize/2, 
+    xVoxl_Set( pVoxel, this->mnVolumeSize/2, 
          this->mnVolumeSize/2, this->mnVolumeSize/2 );
     eResult = DspA_SetZoomCenter( this, pVoxel );
     if( DspA_tErr_NoErr != eResult )
@@ -2958,7 +2917,7 @@ DspA_tErr DspA_BuildCurrentFrame_ ( tkmDisplayAreaRef this ) {
   goto error;
 
       /* check it. */
-      eResult = DspA_VerifyVolumeVoxel_( this, pVoxel );
+      eResult = DspA_VerifyVolumexVoxl_( this, pVoxel );
       if( DspA_tErr_NoErr == eResult ) {
   
   /* if we are showing parcellation... */
@@ -3005,12 +2964,12 @@ DspA_tErr DspA_BuildCurrentFrame_ ( tkmDisplayAreaRef this ) {
       && NULL != this->mpFunctionalVolume ) {
            
     /* if this voxel is in our func bounds... */
-    if( Voxel_GetX(pVoxel) >= Voxel_GetX(pFuncMin)
-        && Voxel_GetX(pVoxel) <= Voxel_GetX(pFuncMax)
-        && Voxel_GetY(pVoxel) >= Voxel_GetY(pFuncMin)
-        && Voxel_GetY(pVoxel) <= Voxel_GetY(pFuncMax)
-        && Voxel_GetZ(pVoxel) >= Voxel_GetZ(pFuncMin)
-        && Voxel_GetZ(pVoxel) <= Voxel_GetZ(pFuncMax) ) {
+    if( xVoxl_GetX(pVoxel) >= xVoxl_GetX(pFuncMin)
+        && xVoxl_GetX(pVoxel) <= xVoxl_GetX(pFuncMax)
+        && xVoxl_GetY(pVoxel) >= xVoxl_GetY(pFuncMin)
+        && xVoxl_GetY(pVoxel) <= xVoxl_GetY(pFuncMax)
+        && xVoxl_GetZ(pVoxel) >= xVoxl_GetZ(pFuncMin)
+        && xVoxl_GetZ(pVoxel) <= xVoxl_GetZ(pFuncMax) ) {
 
       /* get a functional value. */
       eFunctional = 
@@ -3027,7 +2986,9 @@ DspA_tErr DspA_BuildCurrentFrame_ ( tkmDisplayAreaRef this ) {
                 &color, &funcColor );
         
         /* if the color is not all black.. */
-        if( funcColor.mfRed != 0 || funcColor.mfGreen != 0 || funcColor.mfBlue  != 0 ) {
+        if( funcColor.mfRed != 0 || 
+      funcColor.mfGreen != 0 || 
+      funcColor.mfBlue  != 0 ) {
     
     /* set the color to this func color */
     color = funcColor;
@@ -3076,9 +3037,9 @@ DspA_tErr DspA_BuildCurrentFrame_ ( tkmDisplayAreaRef this ) {
   EnableDebuggingOutput;
 
   /* delete the voxel. */
-  Voxel_Delete ( &pVoxel );
-  Voxel_Delete ( &pFuncMin );
-  Voxel_Delete ( &pFuncMax );
+  xVoxl_Delete ( &pVoxel );
+  xVoxl_Delete ( &pFuncMin );
+  xVoxl_Delete ( &pFuncMax );
 
   xUtil_StopTimer( "build frame buffer" );
 
@@ -3160,35 +3121,30 @@ DspA_tErr DspA_DrawFunctionalOverlayToFrame_ ( tkmDisplayAreaRef this ) {
 DspA_tErr DspA_DrawControlPointsToFrame_ ( tkmDisplayAreaRef this ) {
 
   DspA_tErr    eResult    = DspA_tErr_NoErr;
-  VoxelListRef pList      = NULL;
-  char         eList      = 0;
-  char         eSpace     = 0;
-  int          nNumPoints = 0;
-  int          nListIndex = 0;
-  VoxelRef     pControlPt = NULL;
+  xListRef     list       = NULL;
+  xList_tErr   eList      = xList_tErr_NoErr;
+  x3Lst_tErr   e3DList    = x3Lst_tErr_NoErr;
+  xVoxelRef    controlPt  = NULL;
   tBoolean     bSelected  = FALSE;
   xPoint2n     bufferPt   = {0,0};
   float        faColor[3] = {0, 0, 0};
 
-  /* new voxel */
-  Voxel_New( &pControlPt );
-
   /* decide which list we want out of the space. */
   switch ( this->mOrientation ) {
-  case tkm_tOrientation_Coronal:
-    eSpace = VSpace_GetVoxelsInZPlane( this->mpControlPoints, 
-               DspA_GetCurrentSliceNumber_(this), 
-               &pList );
+  case mri_tOrientation_Coronal:
+    e3DList = x3Lst_GetItemsInZPlane( this->mpControlPoints, 
+              DspA_GetCurrentSliceNumber_(this),
+              &list );
     break;
-  case tkm_tOrientation_Sagittal:
-    eSpace = VSpace_GetVoxelsInXPlane( this->mpControlPoints, 
-               DspA_GetCurrentSliceNumber_(this), 
-               &pList );
+  case mri_tOrientation_Sagittal:
+    e3DList = x3Lst_GetItemsInXPlane( this->mpControlPoints, 
+              DspA_GetCurrentSliceNumber_(this),
+              &list );
     break;
-  case tkm_tOrientation_Horizontal:
-    eSpace = VSpace_GetVoxelsInYPlane( this->mpControlPoints, 
-               DspA_GetCurrentSliceNumber_(this), 
-               &pList );
+  case mri_tOrientation_Horizontal:
+    e3DList = x3Lst_GetItemsInYPlane( this->mpControlPoints, 
+              DspA_GetCurrentSliceNumber_(this),
+              &list );
     break;
   default:
     eResult = DspA_tErr_InvalidOrientation;
@@ -3197,60 +3153,60 @@ DspA_tErr DspA_DrawControlPointsToFrame_ ( tkmDisplayAreaRef this ) {
   }
 
   /* check for error. */
-  if ( kVSpaceErr_NoErr != eSpace ) {
-    eResult = DspA_tErr_ErrorAccessingControlPoints;
+  if ( x3Lst_tErr_NoErr != e3DList )
     goto error;
-  }
 
-  /* get the number of points. */
-  eList = VList_GetCount( pList, &nNumPoints );
-  if ( kVListErr_NoErr != eList ) {
-    eResult = DspA_tErr_ErrorAccessingControlPoints;
+  /* if we got a list... */
+  if ( NULL != list ) {
+
+    /* traverse the list */
+    eList = xList_ResetPosition( list );
+    while( (eList = xList_NextFromPos( list, (void**)&controlPt )) 
+     != xList_tErr_EndOfList ) {
+
+      if( controlPt ) {
+
+  /* see if it's selected. */
+  eList = xList_IsInList( this->mpSelectedControlPoints, 
+        controlPt, &bSelected );
+  if ( xList_tErr_NoErr != eList )
     goto error;
-  }
 
-  /* for each one... */
-  for ( nListIndex = 0; nListIndex < nNumPoints; nListIndex++ ) {
-    
-    /* get the point. */
-    eList = VList_GetNthVoxel( pList, nListIndex, pControlPt );
-    if ( kVListErr_NoErr != eList ) {
-      eResult = DspA_tErr_ErrorAccessingControlPoints;
-      goto error;
+  /* color is green if not selected, yellow if so. */
+  if ( bSelected ) {
+    faColor[0] = 1;
+    faColor[1] = 1;
+    faColor[2] = 0;
+  } else {
+    faColor[0] = 0;
+    faColor[1] = 1;
+    faColor[2] = 0;
+  }      
+  
+  /* convert to buffer point. */
+  eResult = DspA_ConvertVolumeToBuffer_ ( this, controlPt, &bufferPt );
+  if ( DspA_tErr_NoErr != eResult )
+    goto error;
+  
+  /* draw a point here. */
+  DspA_DrawCrosshairIntoFrame_( this, faColor, &bufferPt, 
+              DspA_knControlPointCrosshairSize );
+      }
     }
 
-    /* see if it's selected. */
-    eList = VList_IsInList( this->mpSelectedControlPoints, 
-          pControlPt, &bSelected );
-    if ( kVListErr_NoErr != eList ) {
-      eResult = DspA_tErr_ErrorAccessingControlPoints;
+    if( eList != xList_tErr_EndOfList )
       goto error;
-    }
-
-    /* color is green if not selected, yellow if so. */
-    if ( bSelected ) {
-      faColor[0] = 1;
-      faColor[1] = 1;
-      faColor[2] = 0;
-    } else {
-      faColor[0] = 0;
-      faColor[1] = 1;
-      faColor[2] = 0;
-    }      
-
-    /* convert to buffer point. */
-    eResult = DspA_ConvertVolumeToBuffer_ ( this, pControlPt, &bufferPt );
-    if ( DspA_tErr_NoErr != eResult )
-      goto error;
-    
-    /* draw a point here. */
-    DspA_DrawCrosshairIntoFrame_( this, faColor, &bufferPt, 
-          DspA_knControlPointCrosshairSize );
   }
 
   goto cleanup;
 
  error:
+
+  if ( x3Lst_tErr_NoErr != e3DList )
+    eResult = DspA_tErr_ErrorAccessingControlPoints;
+  
+  if ( xList_tErr_NoErr != eList )
+    eResult = DspA_tErr_ErrorAccessingControlPoints;
 
   /* print error message */
   if ( DspA_tErr_NoErr != eResult ) {
@@ -3260,21 +3216,16 @@ DspA_tErr DspA_DrawControlPointsToFrame_ ( tkmDisplayAreaRef this ) {
 
  cleanup:
 
-  /* delete the voxel */
-  Voxel_Delete( &pControlPt );
-
   return eResult;
 }
 
 DspA_tErr DspA_DrawSelectionToFrame_ ( tkmDisplayAreaRef this ) {
 
   DspA_tErr     eResult           = DspA_tErr_NoErr;
-  VoxelListRef  pList             = NULL;
-  char          eList             = 0;
-  char          eSpace            = 0;
-  int           nNumPoints        = 0;
-  int           nListIndex        = 0;
-  VoxelRef      pSelectedPt       = NULL;
+  xListRef      list       = NULL;
+  xList_tErr    eList      = xList_tErr_NoErr;
+  x3Lst_tErr    e3DList    = x3Lst_tErr_NoErr;
+  xVoxelRef     selection         = NULL;
   xPoint2n      bufferPt          = {0,0};
   GLubyte*      pFrame            = NULL;
   int           nValue            = 0;
@@ -3282,25 +3233,23 @@ DspA_tErr DspA_DrawSelectionToFrame_ ( tkmDisplayAreaRef this ) {
   int           nX                = 0;
   int           nY                = 0;
   
-  /* new voxel */
-  Voxel_New( &pSelectedPt );
 
   /* decide which list we want out of the space. */
   switch ( this->mOrientation ) {
-  case tkm_tOrientation_Coronal:
-    eSpace = VSpace_GetVoxelsInZPlane( this->mpSelection, 
-               DspA_GetCurrentSliceNumber_(this),
-               &pList );
+  case mri_tOrientation_Coronal:
+    e3DList = x3Lst_GetItemsInZPlane( this->mpSelection,
+              DspA_GetCurrentSliceNumber_(this),
+              &list );
     break;
-  case tkm_tOrientation_Sagittal:
-    eSpace = VSpace_GetVoxelsInXPlane( this->mpSelection, 
-               DspA_GetCurrentSliceNumber_(this), 
-               &pList );
+  case mri_tOrientation_Sagittal:
+    e3DList = x3Lst_GetItemsInXPlane( this->mpSelection, 
+              DspA_GetCurrentSliceNumber_(this),
+              &list );
     break;
-  case tkm_tOrientation_Horizontal:
-    eSpace = VSpace_GetVoxelsInYPlane( this->mpSelection, 
-               DspA_GetCurrentSliceNumber_(this),
-               &pList );
+  case mri_tOrientation_Horizontal:
+    e3DList = x3Lst_GetItemsInYPlane( this->mpSelection,
+              DspA_GetCurrentSliceNumber_(this),
+              &list );
     break;
   default:
     eResult = DspA_tErr_InvalidOrientation;
@@ -3309,77 +3258,74 @@ DspA_tErr DspA_DrawSelectionToFrame_ ( tkmDisplayAreaRef this ) {
   }
 
   /* check for error. */
-  if ( kVSpaceErr_NoErr != eSpace ) {
-    DebugPrint "Error in VSpace_GetVoxelsInXYZPlane: %s\n",
-      VSpace_GetErrorString( eSpace ) EndDebugPrint;
-    eResult = DspA_tErr_ErrorAccessingSelection;
+  if ( x3Lst_tErr_NoErr != e3DList )
     goto error;
-  }
 
-  /* get the number of points. */
-  eList = VList_GetCount( pList, &nNumPoints );
-  if ( kVListErr_NoErr != eList ) {
-    DebugPrint "Error in VSpace_GetCount: %s\n",
-      VSpace_GetErrorString( eSpace ) EndDebugPrint;
-    eResult = DspA_tErr_ErrorAccessingSelection;
+  /* if we got a list... */
+  if ( NULL != list ) {
+
+    /* traverse the list */
+    eList = xList_ResetPosition( list );
+    while( (eList = xList_NextFromPos( list, (void**)&selection )) 
+     != xList_tErr_EndOfList ) {
+
+      if( selection ) {
+  
+  /* get the value at this point. */
+  nValue = tkm_GetVolumeValue( this->mpVolume, selection );
+    
+  /* calculate the intensified green component. */
+  nIntensifiedValue = nValue + DspA_knSelectionIntensityIncrement;
+  if ( nIntensifiedValue > DspA_knMaxPixelValue ) {
+    nIntensifiedValue = DspA_knMaxPixelValue;
+  }
+  
+  /* lower the other components if they are too high. */
+  if ( nIntensifiedValue - nValue <= 
+       DspA_knMinSelectionIntensityDiff ) {  
+    nValue -= DspA_knSelectionIntensityIncrement;
+    if ( nValue < 0 ) 
+      nValue = 0;
+  }
+  
+  /* covert to a buffer point. */
+  eResult = DspA_ConvertVolumeToBuffer_ ( this, selection, &bufferPt );
+  if ( DspA_tErr_NoErr != eResult )
     goto error;
+    
+  /* y flip the volume pt to flip the image over. */
+  bufferPt.mnY = BUFFER_Y_FLIP(bufferPt.mnY);
+  
+  /* write it back to the buffer. */
+  for( nY = bufferPt.mnY; nY < bufferPt.mnY + this->mnZoomLevel; nY++ ) {
+    for( nX = bufferPt.mnX; nX < bufferPt.mnX + this->mnZoomLevel;nX++) {
+      
+      pFrame = this->mpFrameBuffer + 
+        ( (nY * this->mnVolumeSize) + nX ) * DspA_knNumBytesPerPixel;
+      pFrame[DspA_knRedPixelCompIndex]   = (GLubyte)nValue;
+      pFrame[DspA_knGreenPixelCompIndex] = (GLubyte)nIntensifiedValue;
+      pFrame[DspA_knBluePixelCompIndex]  = (GLubyte)nValue;
+      pFrame[DspA_knAlphaPixelCompIndex] = (GLubyte)DspA_knMaxPixelValue;
+    }
   }
-
-  /* for each one... */
-  for ( nListIndex = 0; nListIndex < nNumPoints; nListIndex++ ) {
-
-    /* get the point. */
-    eList = VList_GetNthVoxel( pList, nListIndex, pSelectedPt );
-    if ( kVListErr_NoErr != eList ) {
-      DebugPrint "Error in VSpace_GetNthVoxel(%d): %s\n",
-  nListIndex, VSpace_GetErrorString( eSpace ) EndDebugPrint;
-      eResult = DspA_tErr_ErrorAccessingSelection;
-      goto error;
-    }
-
-    /* get the value at this point. */
-    nValue = tkm_GetVolumeValue( this->mpVolume, pSelectedPt );
-    
-    /* calculate the intensified green component. */
-    nIntensifiedValue = nValue + DspA_knSelectionIntensityIncrement;
-    if ( nIntensifiedValue > DspA_knMaxPixelValue ) {
-      nIntensifiedValue = DspA_knMaxPixelValue;
-    }
-
-    /* lower the other components if they are too high. */
-    if ( nIntensifiedValue - nValue <= DspA_knMinSelectionIntensityDiff ) {  
-  nValue -= DspA_knSelectionIntensityIncrement;
-  if ( nValue < 0 ) 
-    nValue = 0;
-    }
-
-    /* covert to a buffer point. */
-    eResult = DspA_ConvertVolumeToBuffer_ ( this, pSelectedPt, &bufferPt );
-    if ( DspA_tErr_NoErr != eResult )
-      goto error;
-    
-    /* y flip the volume pt to flip the image over. */
-    bufferPt.mnY = BUFFER_Y_FLIP(bufferPt.mnY);
-
-    /* write it back to the buffer. */
-    for( nY = bufferPt.mnY; nY < bufferPt.mnY + this->mnZoomLevel; nY++ ) {
-      for( nX = bufferPt.mnX; nX < bufferPt.mnX + this->mnZoomLevel; nX++ ) {
-
-  pFrame = this->mpFrameBuffer + ( (nY * this->mnVolumeSize) + nX ) * 
-    DspA_knNumBytesPerPixel;
-  pFrame[DspA_knRedPixelCompIndex]   = (unsigned char)nValue;
-  pFrame[DspA_knGreenPixelCompIndex] = (unsigned char)nIntensifiedValue;
-  pFrame[DspA_knBluePixelCompIndex]  = (unsigned char)nValue;
-  pFrame[DspA_knAlphaPixelCompIndex] = DspA_knMaxPixelValue;
       }
     }
+
+    if( eList != xList_tErr_EndOfList )
+      goto error;
   }
   
   goto cleanup;
   
  error:
   
-  /* print error message */
+  if ( x3Lst_tErr_NoErr != e3DList )
+    eResult = DspA_tErr_ErrorAccessingSelection;
+  
+  if ( xList_tErr_NoErr != eList )
+    eResult = DspA_tErr_ErrorAccessingSelection;
+
+   /* print error message */
   if ( DspA_tErr_NoErr != eResult ) {
     DebugPrint "Error %d in DspA_DrawSelectionToFrame_: %s\n",
       eResult, DspA_GetErrorString(eResult) EndDebugPrint;
@@ -3387,47 +3333,27 @@ DspA_tErr DspA_DrawSelectionToFrame_ ( tkmDisplayAreaRef this ) {
 
  cleanup:
 
-  /* delete the voxel */
-  Voxel_Delete( &pSelectedPt );
-
   return eResult;
 }
 
 DspA_tErr DspA_BuildSurfaceDrawLists_ ( tkmDisplayAreaRef this ) {
 
-  DspA_tErr        eResult         = DspA_tErr_NoErr;
-  xListRef         pList           = NULL;
-  xList_tErr       eList           = xList_tErr_NoErr;
-  VoxelRef         pAnatomicalVox  = NULL;
-#if 0
-  xPoint2n         volumePt        = {0,0};
-  VoxelRef         pRASVox         = NULL;
-  Real             rRASX           = 0;
-  Real             rRASY           = 0;
-  Real             rRASZ           = 0;
-  MHBT*            pBucket         = NULL;
-  int              nBin            = 0;
-#endif
-  int              nSlice          = 0;
-  tkm_tSurfaceType surface         = tkm_tSurfaceType_Current;
-  int              nFace           = 0;
-  int              nVertex         = 0;
-  int              nNeighbor       = 0;
-  face_type*       pFace           = NULL;
-  vertex_type*     pVertex         = NULL;
-  vertex_type*     pNeighbor       = NULL;
-  VoxelRef         pVertexVox      = NULL;
-  VoxelRef         pNeighborVox    = NULL;
-  xPoint2f         intersectionPt  = {0, 0};
-  tkmPointListNodeRef pPointNode = NULL;
-  tBoolean         bPointsInThisFace = FALSE;
+  DspA_tErr           eResult           = DspA_tErr_NoErr;
+  Surf_tErr           eSurface          = Surf_tErr_NoErr;
+  xGArr_tErr          eList             = xGArr_tErr_NoErr;
+  xGrowableArrayRef   list              = NULL;
+  int                 nSlice            = 0;
+  Surf_tVertexSet     surface           = Surf_tVertexSet_Main;
+  xPoint2n            zeroPoint         = {0,0};
+  xVoxelRef           curPlane          = NULL;
+  xVoxelRef           anaVertex         = NULL; 
+  xVoxelRef           anaNeighborVertex = NULL;
+  xPoint2f            intersectionPt    = {0, 0};
+  tBoolean            bPointsOnThisFace = FALSE;
 
-  Voxel_New( &pAnatomicalVox );
-#if 0
-  Voxel_New( &pRASVox );
-#endif
-  Voxel_New( &pVertexVox );
-  Voxel_New( &pNeighborVox );
+  xVoxl_New( &curPlane );
+  xVoxl_New( &anaVertex );
+  xVoxl_New( &anaNeighborVertex );
 
   /* get the current slice. */
   nSlice = DspA_GetCurrentSliceNumber_( this );
@@ -3436,19 +3362,18 @@ DspA_tErr DspA_BuildSurfaceDrawLists_ ( tkmDisplayAreaRef this ) {
   DspA_SetUpOpenGLPort_( this );
 
   /* for each surface type... */
-  for ( surface = tkm_tSurfaceType_Current;
-  surface < tkm_knNumSurfaceTypes; surface++ ) {
+  for ( surface = Surf_tVertexSet_Main;
+  surface < Surf_knNumVertexSets; surface++ ) {
     
     /* only build if this surface is being displayed */
     if( !this->mabDisplayFlags[surface + DspA_tDisplayFlag_MainSurface] ) {
       continue;
     }
 
-
     /* check to see if we already have this list. if so, don't build it. */
-    pList = DspA_GetSurfaceList_( this, this->mOrientation, surface,
-          DspA_GetCurrentSliceNumber_(this) );
-    if( NULL != pList ) {
+    list = DspA_GetSurfaceList_( this, this->mOrientation, surface,
+         DspA_GetCurrentSliceNumber_(this) );
+    if( NULL != list ) {
       continue;
     }
     
@@ -3457,350 +3382,138 @@ DspA_tErr DspA_BuildSurfaceDrawLists_ ( tkmDisplayAreaRef this ) {
         DspA_GetCurrentSliceNumber_(this) );
     
     /* get the list. */
-    pList = DspA_GetSurfaceList_( this, this->mOrientation, surface,
-          DspA_GetCurrentSliceNumber_(this) );
-    if( NULL == pList ) {
+    list = DspA_GetSurfaceList_( this, this->mOrientation, surface,
+         DspA_GetCurrentSliceNumber_(this) );
+    if( NULL == list ) {
       eResult = DspA_tErr_ErrorAccessingSurfaceList;
       goto error;
     }
 
-    /* create a point list node */
-    pPointNode = (tkmPointListNodeRef) malloc (sizeof(tkmPointListNode));
-    if( NULL == pPointNode ) {
-      eResult = DspA_tErr_OutOfMemory;
-      goto cleanup;
-    }
-    pPointNode->mnNumPoints = 0;
+    xUtil_StartTimer ();
 
-    /* insert it into the list. */
-    eList = xList_InsertItem ( pList, pPointNode );
-    if ( xList_tErr_NoErr != eList ) {
-      eResult = DspA_tErr_ErrorAccessingSurfaceList;
-      goto cleanup;
-    }
+    /* make a voxel with our current slice in it and
+       set the iterator to our view */
+    DspA_ConvertPlaneToVolume_ ( this, &zeroPoint, nSlice, this->mOrientation,
+         curPlane );
+    eSurface = Surf_SetIteratorPosition( this->mpSurface, curPlane );
+    if( Surf_tErr_NoErr != eSurface )
+      goto error;
 
-#if 0
-    DebugPrint "Building list %d for surface %d... ",
-      nSlice, (int)surface EndDebugPrint;
+    bPointsOnThisFace = FALSE;
 
-    /* for each point in a slice of the surface.. */
-    for( volumePt.mnY = 0; volumePt.mnY < this->mnVolumeSize; volumePt.mnY++ ){
-      for( volumePt.mnX = 0; volumePt.mnX < this->mnVolumeSize; volumePt.mnX++ ){
-    
-  /* make a volume voxel. */
-  eResult = DspA_ConvertBufferToVolume_ ( this, &volumePt, 
-            pAnatomicalVox );
-  if ( DspA_tErr_NoErr != eResult )
-    goto error;
+    /* while we have vertices to check.. */
+    while( (eSurface = Surf_GetNextAndNeighborVertex( this->mpSurface,
+                  surface,
+                  anaVertex, 
+                  anaNeighborVertex ))
+     != Surf_tErr_LastFace ) {
 
-  /* trans to ras */
-  tkm_ConvertVolumeToRAS( pAnatomicalVox, pRASVox );
-
-
-  /* get the bucket at this point */
-  pBucket = MHTgetBucket( this->mpSurfaceHashTable[surface],
-        EXPAND_VOXEL_FLOAT(pRASVox) );
-
-  /* if we got one... */
-  if( NULL != pBucket ) {
-
-    /* for each bin... */
-    for( nBin = 0; nBin < pBucket->nused; nBin++ ) {
-
-      /* get the face number. */
-      nFace = (pBucket->bins[nBin]).fno;
-#else
-      
-    /* for each face... */
-    for ( nFace = 0; nFace < this->mpSurface->nfaces; nFace++ ) {
-  
-#endif
-      
-      /* get the face. */
-      pFace = &(this->mpSurface->faces[nFace]);
-      if( NULL == pFace ) {
-  eResult = DspA_tErr_ErrorAccessingSurfaceList;
-  DebugPrint "Face %d was null!\n", nFace EndDebugPrint;
-  goto error;
+      /* convert coords to that z is the current plane */
+      switch( this->mOrientation ) {
+      case mri_tOrientation_Horizontal:
+  xVoxl_SetFloat( anaVertex, 
+      xVoxl_GetFloatX(anaVertex), 
+      xVoxl_GetFloatZ(anaVertex),
+      xVoxl_GetFloatY(anaVertex) );
+  xVoxl_SetFloat( anaNeighborVertex,
+      xVoxl_GetFloatX(anaNeighborVertex),
+      xVoxl_GetFloatZ(anaNeighborVertex), 
+      xVoxl_GetFloatY(anaNeighborVertex) );
+  break;
+      case mri_tOrientation_Coronal:
+  xVoxl_SetFloat( anaVertex, 
+      xVoxl_GetFloatX(anaVertex),
+      xVoxl_GetFloatY(anaVertex),
+      xVoxl_GetFloatZ(anaVertex) );
+  xVoxl_SetFloat( anaNeighborVertex, 
+      xVoxl_GetFloatX(anaNeighborVertex), 
+      xVoxl_GetFloatY(anaNeighborVertex),
+      xVoxl_GetFloatZ(anaNeighborVertex) );
+  break;
+      case mri_tOrientation_Sagittal:
+  xVoxl_SetFloat( anaVertex,
+      xVoxl_GetFloatZ(anaVertex),
+      xVoxl_GetFloatY(anaVertex),
+      xVoxl_GetFloatX(anaVertex) );
+  xVoxl_SetFloat( anaNeighborVertex, 
+      xVoxl_GetFloatZ(anaNeighborVertex),
+      xVoxl_GetFloatY(anaNeighborVertex), 
+      xVoxl_GetFloatX(anaNeighborVertex) );
+  break;
+      default:
+  break;
       }
-      
-      /* haven't drawn any points in this face */
-      bPointsInThisFace = FALSE;
-      
-      /* get the last neighrboring vertex. */
-      nNeighbor = VERTICES_PER_FACE - 1;
-      
-      /* for each point in the face.. */
-      for ( nVertex = 0; nVertex < VERTICES_PER_FACE; nVertex++ ) {
-  
-  /* get the vertices. */
-  pVertex   = &(this->mpSurface->vertices[pFace->v[nVertex]]);
-  pNeighbor = &(this->mpSurface->vertices[pFace->v[nNeighbor]]);
-  
-  if( NULL == pVertex ) {
+
+      /* if the line between these two points intersects the
+   current plane... */
+      if ( xUtil_LineIntersectsPlane( anaVertex, anaNeighborVertex, nSlice, 
+   this->mabDisplayFlags[DspA_tDisplayFlag_InterpolateSurfaceVertices],
+              &intersectionPt ) ) {
+  /* add this point */
+  eList = xGArr_Add( list, &intersectionPt );
+  if( xGArr_tErr_NoErr != eList ) {
+    DebugPrint "xGArr error %d in DspA_BuildSurfaceDrawLists_: %s\n",
+      eList, xGArr_GetErrorString( eList ) EndDebugPrint;
     eResult = DspA_tErr_ErrorAccessingSurfaceList;
-    DebugPrint "Vertex %d was null!\n", pFace->v[nVertex] EndDebugPrint;
     goto error;
   }
-  
-  if( NULL == pNeighbor ) {
+
+  bPointsOnThisFace = TRUE;
+      }
+
+      /* if we have a last vertex, and we drew points on this
+   face add a face marker. */
+      if( eSurface == Surf_tErr_LastVertex
+    && bPointsOnThisFace ) {
+
+  intersectionPt.mfX = -1;
+  intersectionPt.mfY = -1;
+  eList = xGArr_Add( list, &intersectionPt );
+  if( xGArr_tErr_NoErr != eList ) {
+    DebugPrint "xGArr error %d in DspA_BuildSurfaceDrawLists_: %s\n",
+      eList, xGArr_GetErrorString( eList ) EndDebugPrint;
     eResult = DspA_tErr_ErrorAccessingSurfaceList;
-    DebugPrint "Vertex %d was null!\n", pFace->v[nNeighbor] EndDebugPrint;
     goto error;
   }
-  
-  /* convert them to normalized voxels. */
-  xUtil_NormalizeVertexToVoxel( pVertex, surface, 
-              this->mOrientation, pVertexVox );
-  xUtil_NormalizeVertexToVoxel( pNeighbor, surface, 
-              this->mOrientation, pNeighborVox );
-  
-  /* if the line between these two points intersects the
-     current plane... */
-  if ( xUtil_LineIntersectsPlane( pNeighborVox, pVertexVox, nSlice, 
-       this->mabDisplayFlags[DspA_tDisplayFlag_InterpolateSurfaceVertices],
-          &intersectionPt ) ) {
-    
-    /* add this point to the list node. */
-    pPointNode->mafPoints[pPointNode->mnNumPoints][0] = 
-      intersectionPt.mfX;
-    pPointNode->mafPoints[pPointNode->mnNumPoints][1] = 
-      intersectionPt.mfY;
-    pPointNode->mnNumPoints++;
-    
-    /* if we are at the limit of points... */
-    if( pPointNode->mnNumPoints >= 
-        DspA_knMaxPointsPerPointListNode ) {
-      
-      /* create a new node. */
-      pPointNode = 
-        (tkmPointListNodeRef) malloc (sizeof(tkmPointListNode));
-      if( NULL == pPointNode ) {
-        eResult = DspA_tErr_OutOfMemory;
-        goto cleanup;
+
+  bPointsOnThisFace = FALSE;
       }
-      
-      pPointNode->mnNumPoints = 0;
-      
-      /* insert it into the list. */
-      eList = xList_InsertItem ( pList, pPointNode );
-      if ( xList_tErr_NoErr != eList ) {
-        eResult = DspA_tErr_ErrorAccessingSurfaceList;
-        goto cleanup;
-      }
-    }
-    
-    /* we're drawing a point this face, so the our flag to true. */
-    bPointsInThisFace = TRUE;
-  }
   
-  /* use this vertex as the next neighbor. */
-  nNeighbor = nVertex;      
-      }
-    
-      /* if we drew any points for this face... */
-      if( bPointsInThisFace ) {
-  
-  /* add a point -1 -1 to signify end of face. */
-  pPointNode->mafPoints[pPointNode->mnNumPoints][0] = -1.0;
-  pPointNode->mafPoints[pPointNode->mnNumPoints][1] = -1.0;
-  pPointNode->mnNumPoints++;
-  
-  /* if we are at the limit of points... */
-  if( pPointNode->mnNumPoints >= DspA_knMaxPointsPerPointListNode ) {
-    
-    /* create a new node. */
-    pPointNode = 
-      (tkmPointListNodeRef) malloc (sizeof(tkmPointListNode));
-    if( NULL == pPointNode ) {
-      eResult = DspA_tErr_OutOfMemory;
-      goto cleanup;
     }
+
+    /* if surface error is just on last face, clear it. */
+    if( Surf_tErr_LastFace == eSurface ) 
+      eSurface = Surf_tErr_NoErr;
+
+    /* check for other errors. */
+    if( Surf_tErr_NoErr != eSurface )
+      goto error;
     
-    pPointNode->mnNumPoints = 0;
-    
-    /* insert it into the list. */
-    eList = xList_InsertItem ( pList, pPointNode );
-    if ( xList_tErr_NoErr != eList ) {
-      eResult = DspA_tErr_ErrorAccessingSurfaceList;
-      goto cleanup;
-    }
-  }
-      } /* if points in this face.. */
-    } /* for each face... */
-#if 0
-  } /* if bucket is not null... */
-      } /* x */
-    } /* y */
-    DebugPrint " done.\n" EndDebugPrint;
-#endif
-   
+    xUtil_StopTimer( "build surface list" );
+
   } /* for each surface... */
 
   goto cleanup;
 
-  goto error;
  error:
 
+  if( Surf_tErr_NoErr != eSurface )
+    eResult = DspA_tErr_ErrorAccessingSurface;
+ 
   /* print error message */
   if ( DspA_tErr_NoErr != eResult ) {
-    DebugPrint "Error %d in DspA_BuildSurfaceDrawLists__: %s\n",
+    DebugPrint "Error %d in DspA_BuildSurfaceDrawLists_: %s\n",
       eResult, DspA_GetErrorString(eResult) EndDebugPrint;
   }
 
  cleanup:
 
-  Voxel_Delete( &pAnatomicalVox );
-#if 0
-  Voxel_Delete( &pRASVox );
-#endif
-  Voxel_Delete( &pVertexVox );
-  Voxel_Delete( &pNeighborVox );
+  xVoxl_Delete( &curPlane );
+  xVoxl_Delete( &anaVertex );
+  xVoxl_Delete( &anaNeighborVertex );
 
   return eResult;
-}
-
-DspA_tErr DspA_DrawSurfaceDirect_ ( tkmDisplayAreaRef this ) {
-
-  DspA_tErr        eResult         = DspA_tErr_NoErr;
-  int              nSlice          = 0;
-  tkm_tSurfaceType surface         = tkm_tSurfaceType_Current;
-  int              nFace           = 0;
-  int              nVertex         = 0;
-  int              nNeighbor       = 0;
-  face_type*       pFace           = NULL;
-  vertex_type*     pVertex         = NULL;
-  vertex_type*     pNeighbor       = NULL;
-  VoxelRef         pVertexVox      = NULL;
-  VoxelRef         pNeighborVox    = NULL;
-  xPoint2f         intersectionPt  = {0, 0};
-  xPoint2n         drawPt          = {0,0};
-  float            faColor[3]      = {0,0,0};
-  
-
-  Voxel_New( &pVertexVox );
-  Voxel_New( &pNeighborVox );
-
-  /* get the current slice. */
-  nSlice = DspA_GetCurrentSliceNumber_( this );
-
-  /* set up for gl drawing */
-  DspA_SetUpOpenGLPort_( this );
-
-  /* for each surface type... */
-  for ( surface = tkm_tSurfaceType_Current;
-  surface < tkm_knNumSurfaceTypes; surface++ ) {
-    
-    /* if this surface is visible... */
-    if( this->mabDisplayFlags[surface+DspA_tDisplayFlag_MainSurface] ) {
-
-      /* choose and set the color */
-      switch( surface ) {
-      case tkm_tSurfaceType_Current:
-  faColor[0] = 1.0; faColor[1] = 1.0; faColor[2] = 0.0;
-  break;
-      case tkm_tSurfaceType_Original:
-  faColor[0] = 0.0; faColor[1] = 1.0; faColor[2] = 0.0;
-  break;
-      case tkm_tSurfaceType_Canonical:
-  faColor[0] = 1.0; faColor[1] = 0.0; faColor[2] = 0.0;
-  break;
-      default:
-  faColor[0] = 0.5; faColor[1] = 0.5; faColor[2] = 0.5;
-  break;
-      }
-      
-      glColor3fv( faColor );
-      
-      /* for each face... */
-      for ( nFace = 0; nFace < this->mpSurface->nfaces; nFace++ ) {
-  
-  /* get the face. */
-  pFace = &(this->mpSurface->faces[nFace]);
-  
-  if( NULL == pFace ) {
-    eResult = DspA_tErr_ErrorAccessingSurfaceList;
-    goto error;
   }
-  
-  /* start a line */
-  glBegin( GL_LINES );
-  
-  /* get the last neighrboring vertex. */
-  nNeighbor = VERTICES_PER_FACE - 1;
-  
-  /* for each point in the face.. */
-  for ( nVertex = 0; nVertex < VERTICES_PER_FACE; nVertex++ ) {
-  
-    /* get the vertices. */
-    pVertex   = &(this->mpSurface->vertices[pFace->v[nVertex]]);
-    pNeighbor = &(this->mpSurface->vertices[pFace->v[nNeighbor]]);
-    
-    if( NULL == pVertex ) {
-      eResult = DspA_tErr_ErrorAccessingSurfaceList;
-      goto error;
-    }
-    
-    if( NULL == pNeighbor ) {
-      eResult = DspA_tErr_ErrorAccessingSurfaceList;
-      goto error;
-    }
-    
-    /* convert them to normalized voxels. */
-    xUtil_NormalizeVertexToVoxel( pVertex, surface, 
-          this->mOrientation, pVertexVox );
-    xUtil_NormalizeVertexToVoxel( pNeighbor, surface, 
-          this->mOrientation, pNeighborVox );
-    
-    /* if the line between these two points intersects the
-       current plane... */
-    if ( xUtil_LineIntersectsPlane( pNeighborVox, pVertexVox, nSlice, 
-            this->mabDisplayFlags[DspA_tDisplayFlag_InterpolateSurfaceVertices],
-            &intersectionPt ) ) {
-      
-      /* adjust the point */
-      //DspA_AdjustSurfaceDrawPoint_( this, &intersectionPt );
-
-      /* convert to zoomed coords. */
-      drawPt.mnX = (int) ((float)this->mnZoomLevel * (intersectionPt.mfX - Voxel_GetFloatX(this->mpZoomCenter))) + (float)(this->mnVolumeSize/2);
-      drawPt.mnY = (int) ((float)this->mnZoomLevel * (intersectionPt.mfY - Voxel_GetFloatY(this->mpZoomCenter))) + (float)(this->mnVolumeSize/2);
-      
-      /* y flip */
-      drawPt.mnY = GLDRAW_Y_FLIP(drawPt.mnY);
-
-      /* and draw the pt. */
-      glVertex2i( drawPt.mnX, drawPt.mnY );
-    }
-    
-    /* use this vertex as the next neighbor. */
-    nNeighbor = nVertex;      
-  }
-  
-  /* end the line. */
-  glEnd();
-      
-      }
-    }    
-  }
-
-  goto cleanup;
-
-  goto error;
- error:
-
-  /* print error message */
-  if ( DspA_tErr_NoErr != eResult ) {
-    DebugPrint "Error %d in DspA_DrawSurfaceDirect_: %s\n",
-      eResult, DspA_GetErrorString(eResult) EndDebugPrint;
-  }
-
- cleanup:
-
-  Voxel_Delete( &pVertexVox );
-  Voxel_Delete( &pNeighborVox );
-
-  return eResult;
-}
 
 DspA_tErr DspA_DrawCrosshairIntoFrame_ ( tkmDisplayAreaRef this,
            float*            ifaColor,
@@ -3847,7 +3560,7 @@ DspA_tErr DspA_DrawCrosshairIntoFrame_ ( tkmDisplayAreaRef this,
 }
 
 DspA_tErr DspA_GetCursor ( tkmDisplayAreaRef this, 
-         VoxelRef          opCursor ) {
+        xVoxelRef          opCursor ) {
 
   DspA_tErr eResult = DspA_tErr_NoErr;
 
@@ -3857,7 +3570,7 @@ DspA_tErr DspA_GetCursor ( tkmDisplayAreaRef this,
     goto error;
 
   /* return the cursor */
-  Voxel_Copy( opCursor, this->mpCursor );
+  xVoxl_Copy( opCursor, this->mpCursor );
 
   goto cleanup;
 
@@ -3875,7 +3588,7 @@ DspA_tErr DspA_GetCursor ( tkmDisplayAreaRef this,
 }
 
 DspA_tErr DspA_GetOrientation ( tkmDisplayAreaRef this, 
-        tkm_tOrientation* oOrientation ) {
+        mri_tOrientation* oOrientation ) {
 
   DspA_tErr eResult = DspA_tErr_NoErr;
 
@@ -3935,14 +3648,14 @@ int DspA_GetCurrentSliceNumber_ ( tkmDisplayAreaRef this ) {
   int nSlice = 0;
 
   switch ( this->mOrientation ) {
-  case tkm_tOrientation_Coronal:
-    nSlice = Voxel_GetZ( this->mpCursor );
+  case mri_tOrientation_Coronal:
+    nSlice = xVoxl_GetZ( this->mpCursor );
     break;
-  case tkm_tOrientation_Horizontal:
-    nSlice = Voxel_GetY( this->mpCursor );
+  case mri_tOrientation_Horizontal:
+    nSlice = xVoxl_GetY( this->mpCursor );
     break;
-  case tkm_tOrientation_Sagittal:
-    nSlice = Voxel_GetX( this->mpCursor );
+  case mri_tOrientation_Sagittal:
+    nSlice = xVoxl_GetX( this->mpCursor );
     break;
   default:
     nSlice = 0;
@@ -3959,7 +3672,8 @@ DspA_tErr DspA_InitSurfaceLists_( tkmDisplayAreaRef this,
   int                 nDrawList  = 0;
 
   /* allocate surface point lists. */
-  this->maSurfaceLists = (xListRef*) malloc (sizeof(xListRef) * inNumLists );
+  this->maSurfaceLists = (xGrowableArrayRef*) 
+    malloc (sizeof(xGrowableArrayRef) * inNumLists );
 
   /* set all lists to null */
   for( nDrawList = inNumLists - 1; nDrawList >= 0; nDrawList-- ) {
@@ -3987,8 +3701,7 @@ DspA_tErr DspA_PurgeSurfaceLists_ ( tkmDisplayAreaRef this ) {
 
   DspA_tErr           eResult    = DspA_tErr_NoErr;
   int                 nDrawList  = 0;
-  xList_tErr          eList      = xList_tErr_NoErr;
-  tkmPointListNodeRef pPointNode = NULL;
+  xGArr_tErr          eList      = xGArr_tErr_NoErr;
 
   for( nDrawList = DspA_GetNumSurfaceLists_( this ) - 1; 
        nDrawList >= 0;
@@ -3997,25 +3710,9 @@ DspA_tErr DspA_PurgeSurfaceLists_ ( tkmDisplayAreaRef this ) {
     /* if this is a list... */
     if( NULL != this->maSurfaceLists[nDrawList] ) {
       
-      /* pop each item and delete the point node. */
-      eList = xList_tErr_NoErr;
-      while( eList != xList_tErr_EndOfList ) {
-
-  eList = xList_PopItem( this->maSurfaceLists[nDrawList],
-             (void**)&pPointNode );
-  if( xList_tErr_NoErr != eList
-      && xList_tErr_EndOfList != eList ) {
-    eResult = DspA_tErr_ErrorAccessingSurfaceList;
-    goto error;
-  }
-  
-  if( NULL != pPointNode )
-    free( pPointNode );
-      }
-      
       /* delete the list. */
-      eList = xList_Delete( &this->maSurfaceLists[nDrawList] );
-      if( xList_tErr_NoErr != eList ) {
+      eList = xGArr_Delete( &this->maSurfaceLists[nDrawList] );
+      if( xGArr_tErr_NoErr != eList ) {
   eResult = DspA_tErr_ErrorAccessingSurfaceList;
   goto error;
       }
@@ -4038,21 +3735,22 @@ DspA_tErr DspA_PurgeSurfaceLists_ ( tkmDisplayAreaRef this ) {
 }
 
 DspA_tErr DspA_NewSurfaceList_ ( tkmDisplayAreaRef this,
-         tkm_tOrientation  iOrientation,
-         tkm_tSurfaceType  iSurface,
+         mri_tOrientation  iOrientation,
+         Surf_tVertexSet  iSurface,
          int               inSlice ) {
   
   DspA_tErr   eResult   = DspA_tErr_NoErr;
   int         nDrawList = 0;
-  xList_tErr  eList     = xList_tErr_NoErr;
+  xGArr_tErr  eList     = xGArr_tErr_NoErr;
 
   /* get the list index. */
   nDrawList = DspA_GetSurfaceListIndex_( this, iOrientation, 
            iSurface, inSlice );
 
   /* allocate a list. */
-  xList_New( &this->maSurfaceLists[nDrawList] );
-  if( xList_tErr_NoErr != eList ) {
+  xGArr_New( &this->maSurfaceLists[nDrawList],
+       sizeof( xPoint2f ), 512 );
+  if( xGArr_tErr_NoErr != eList ) {
     eResult = DspA_tErr_ErrorAccessingSurfaceList;
     goto error;
   }
@@ -4072,12 +3770,12 @@ DspA_tErr DspA_NewSurfaceList_ ( tkmDisplayAreaRef this,
   return eResult;
 }
 
-xListRef DspA_GetSurfaceList_ ( tkmDisplayAreaRef this,
-        tkm_tOrientation  iOrientation,
-        tkm_tSurfaceType  iSurface,
-        int               inSlice ) {
+xGrowableArrayRef DspA_GetSurfaceList_ ( tkmDisplayAreaRef this,
+           mri_tOrientation  iOrientation,
+           Surf_tVertexSet  iSurface,
+           int               inSlice ) {
 
-  xListRef pList = NULL;
+  xGrowableArrayRef pList = NULL;
 
   if( NULL != this->maSurfaceLists ) {
     pList = this->maSurfaceLists 
@@ -4089,15 +3787,15 @@ xListRef DspA_GetSurfaceList_ ( tkmDisplayAreaRef this,
 
 int DspA_GetNumSurfaceLists_ ( tkmDisplayAreaRef this ) {
 
-  return this->mnVolumeSize * tkm_knNumSurfaceTypes * tkm_knNumOrientations;
+  return this->mnVolumeSize * Surf_knNumVertexSets * mri_knNumOrientations;
 }
 
 int DspA_GetSurfaceListIndex_ ( tkmDisplayAreaRef this,
-        tkm_tOrientation  iOrientation,
-        tkm_tSurfaceType  iSurface,
+        mri_tOrientation  iOrientation,
+        Surf_tVertexSet  iSurface,
         int               inSlice ) {
 
-  return ((int)iOrientation * tkm_knNumSurfaceTypes * this->mnVolumeSize) +
+  return ((int)iOrientation * Surf_knNumVertexSets * this->mnVolumeSize) +
    ((int)iSurface * this->mnVolumeSize) + inSlice;
 }
 
@@ -4105,7 +3803,7 @@ int DspA_GetSurfaceListIndex_ ( tkmDisplayAreaRef this,
 
 
 DspA_tErr DspA_ConvertVolumeToBuffer_ ( tkmDisplayAreaRef this,
-          VoxelRef          ipVolumeVox,
+        xVoxelRef          ipVolumeVox,
           xPoint2nRef       opBufferPt ) {
 
   DspA_tErr eResult     = DspA_tErr_NoErr;
@@ -4115,24 +3813,24 @@ DspA_tErr DspA_ConvertVolumeToBuffer_ ( tkmDisplayAreaRef this,
   float     fVolumeSize = (float) this->mnVolumeSize;
 
   /* verify the voxel */
-  eResult = DspA_VerifyVolumeVoxel_( this, ipVolumeVox );
+  eResult = DspA_VerifyVolumexVoxl_( this, ipVolumeVox );
   if ( DspA_tErr_NoErr != eResult )
     goto error;
 
   /* first extract the points in the voxel that are on the same place as
      our orientation. */
   switch ( this->mOrientation ) {
-  case tkm_tOrientation_Coronal:
-    fX = Voxel_GetFloatX( ipVolumeVox );
-    fY = Voxel_GetFloatY( ipVolumeVox );
+  case mri_tOrientation_Coronal:
+    fX = xVoxl_GetFloatX( ipVolumeVox );
+    fY = xVoxl_GetFloatY( ipVolumeVox );
     break;
-  case tkm_tOrientation_Horizontal:
-    fX = Voxel_GetFloatX( ipVolumeVox );
-    fY = Voxel_GetFloatZ( ipVolumeVox );
+  case mri_tOrientation_Horizontal:
+    fX = xVoxl_GetFloatX( ipVolumeVox );
+    fY = xVoxl_GetFloatZ( ipVolumeVox );
     break;
-  case tkm_tOrientation_Sagittal:
-    fX = Voxel_GetFloatZ( ipVolumeVox );
-    fY = Voxel_GetFloatY( ipVolumeVox );
+  case mri_tOrientation_Sagittal:
+    fX = xVoxl_GetFloatZ( ipVolumeVox );
+    fY = xVoxl_GetFloatY( ipVolumeVox );
     break;
   default:
     eResult = DspA_tErr_InvalidOrientation;
@@ -4141,9 +3839,9 @@ DspA_tErr DspA_ConvertVolumeToBuffer_ ( tkmDisplayAreaRef this,
   }
 
   /* now zoom the coords to our zoomed buffer state */
-  fX = (fZoomLevel * (fX - Voxel_GetFloatX(this->mpZoomCenter))) +
+  fX = (fZoomLevel * (fX - xVoxl_GetFloatX(this->mpZoomCenter))) +
    (fVolumeSize/2.0);
-  fY = (fZoomLevel * (fY - Voxel_GetFloatY(this->mpZoomCenter))) +
+  fY = (fZoomLevel * (fY - xVoxl_GetFloatY(this->mpZoomCenter))) +
     (fVolumeSize/2.0);
 
   /* return the point */
@@ -4167,35 +3865,35 @@ DspA_tErr DspA_ConvertVolumeToBuffer_ ( tkmDisplayAreaRef this,
 
 DspA_tErr DspA_ConvertBufferToVolume_ ( tkmDisplayAreaRef this,
           xPoint2nRef       ipBufferPt,
-          VoxelRef          opVolumeVox ) {
+        xVoxelRef          opVolumeVox ) {
 
   DspA_tErr eResult     = DspA_tErr_NoErr;
   float     fX          = 0;
   float     fY          = 0;
-  VoxelRef  pVolumeVox  = NULL;
+ xVoxelRef  pVolumeVox  = NULL;
   float     fZoomLevel  = (float) this->mnZoomLevel;
   float     fBufferX    = (float) ipBufferPt->mnX;
   float     fBufferY    = (float) ipBufferPt->mnY;
   float     fVolumeSize = (float) this->mnVolumeSize;
 
-  Voxel_New ( &pVolumeVox );
+  xVoxl_New ( &pVolumeVox );
 
   /* unzoom the coords */
   fX = fBufferX / fZoomLevel + 
-    ( Voxel_GetFloatX(this->mpZoomCenter) - (fVolumeSize/2.0/fZoomLevel) );
+    ( xVoxl_GetFloatX(this->mpZoomCenter) - (fVolumeSize/2.0/fZoomLevel) );
   fY = fBufferY / fZoomLevel + 
-    ( Voxel_GetFloatY(this->mpZoomCenter) - (fVolumeSize/2.0/fZoomLevel) );
+    ( xVoxl_GetFloatY(this->mpZoomCenter) - (fVolumeSize/2.0/fZoomLevel) );
 
   /* build a voxel out of these two coords and the current slice */
   switch ( this->mOrientation ) {
-  case tkm_tOrientation_Coronal:
-    Voxel_SetFloat( pVolumeVox, fX, fY, DspA_GetCurrentSliceNumber_( this ) );
+  case mri_tOrientation_Coronal:
+    xVoxl_SetFloat( pVolumeVox, fX, fY, DspA_GetCurrentSliceNumber_( this ) );
     break;
-  case tkm_tOrientation_Horizontal:
-    Voxel_SetFloat( pVolumeVox, fX, DspA_GetCurrentSliceNumber_( this ), fY );
+  case mri_tOrientation_Horizontal:
+    xVoxl_SetFloat( pVolumeVox, fX, DspA_GetCurrentSliceNumber_( this ), fY );
     break;
-  case tkm_tOrientation_Sagittal:
-    Voxel_SetFloat( pVolumeVox, DspA_GetCurrentSliceNumber_( this ), fY, fX );
+  case mri_tOrientation_Sagittal:
+    xVoxl_SetFloat( pVolumeVox, DspA_GetCurrentSliceNumber_( this ), fY, fX );
     break;
   default:
     eResult = DspA_tErr_InvalidOrientation;
@@ -4204,7 +3902,7 @@ DspA_tErr DspA_ConvertBufferToVolume_ ( tkmDisplayAreaRef this,
   }
 
   /* copy into the outgoing voxel to return it */
-  Voxel_Copy( opVolumeVox, pVolumeVox );
+  xVoxl_Copy( opVolumeVox, pVolumeVox );
   
   goto cleanup;
   
@@ -4218,7 +3916,7 @@ DspA_tErr DspA_ConvertBufferToVolume_ ( tkmDisplayAreaRef this,
 
  cleanup:
 
-  Voxel_Delete ( &pVolumeVox );
+  xVoxl_Delete ( &pVolumeVox );
   
   return eResult;
 }
@@ -4226,26 +3924,26 @@ DspA_tErr DspA_ConvertBufferToVolume_ ( tkmDisplayAreaRef this,
 DspA_tErr DspA_ConvertPlaneToVolume_ ( tkmDisplayAreaRef this,
                xPoint2nRef       ipPlanePt,
                int               inSlice,
-               tkm_tOrientation  iOrientation,
-               VoxelRef          opVolumeVox ) {
+               mri_tOrientation  iOrientation,
+              xVoxelRef          opVolumeVox ) {
   
   DspA_tErr eResult     = DspA_tErr_NoErr;
-  VoxelRef  pVolumeVox  = NULL;
+ xVoxelRef  pVolumeVox  = NULL;
 
-  Voxel_New ( &pVolumeVox );
+  xVoxl_New ( &pVolumeVox );
 
   /* build a voxel out of these two coords and the slice */
   switch ( iOrientation ) {
-  case tkm_tOrientation_Coronal:
-    Voxel_Set( pVolumeVox, 
+  case mri_tOrientation_Coronal:
+    xVoxl_Set( pVolumeVox, 
          ipPlanePt->mnX, ipPlanePt->mnY, inSlice );
     break;
-  case tkm_tOrientation_Horizontal:
-    Voxel_Set( pVolumeVox, 
+  case mri_tOrientation_Horizontal:
+    xVoxl_Set( pVolumeVox, 
          ipPlanePt->mnX, inSlice, ipPlanePt->mnY );
     break;
-  case tkm_tOrientation_Sagittal:
-    Voxel_Set( pVolumeVox, 
+  case mri_tOrientation_Sagittal:
+    xVoxl_Set( pVolumeVox, 
          inSlice, ipPlanePt->mnY, ipPlanePt->mnX );
     break;
   default:
@@ -4255,7 +3953,7 @@ DspA_tErr DspA_ConvertPlaneToVolume_ ( tkmDisplayAreaRef this,
   }
 
   /* copy into the outgoing voxel to return it */
-  Voxel_Copy( opVolumeVox, pVolumeVox );
+  xVoxl_Copy( opVolumeVox, pVolumeVox );
 
   goto cleanup;
 
@@ -4269,7 +3967,7 @@ DspA_tErr DspA_ConvertPlaneToVolume_ ( tkmDisplayAreaRef this,
 
  cleanup:
 
-  Voxel_Delete ( &pVolumeVox );
+  xVoxl_Delete ( &pVolumeVox );
 
   return eResult;
 }
@@ -4361,27 +4059,27 @@ DspA_tErr DspA_SendViewStateToTcl_ ( tkmDisplayAreaRef this ) {
 
   DspA_tErr             eResult            = DspA_tErr_NoErr;
   char                  sTclArguments[256] = "";
-  VoxelRef              pVoxel             = NULL;
+ xVoxelRef              pVoxel             = NULL;
   unsigned char         ucVolumeValue      = 0;
   FunV_tErr             eFunctional        = FunV_tErr_NoError;
   FunV_tFunctionalValue functionalValue    = 0;
   int                   nFlag              = 0;
 
-  Voxel_New( &pVoxel );
+  xVoxl_New( &pVoxel );
 
   /* send the cursor. */
   sprintf( sTclArguments, "%d %d %d",
-     EXPAND_VOXEL_INT( this->mpCursor ) );
+     xVoxl_ExpandInt( this->mpCursor ) );
   tkm_SendTclCommand( tkm_tTclCommand_UpdateVolumeCursor, sTclArguments );
 
   /* also convert to RAS and send those coords along. */
   tkm_ConvertVolumeToRAS( this->mpCursor, pVoxel );
-  sprintf( sTclArguments, "%.1f %.1f %.1f", EXPAND_VOXEL_FLOAT( pVoxel ) );
+  sprintf( sTclArguments, "%.1f %.1f %.1f", xVoxl_ExpandFloat( pVoxel ) );
   tkm_SendTclCommand( tkm_tTclCommand_UpdateRASCursor, sTclArguments );
  
   /* also convert to Tal and send those coords along. */
   tkm_ConvertVolumeToTal( this->mpCursor, pVoxel );
-  sprintf( sTclArguments, "%.1f %.1f %.1f", EXPAND_VOXEL_FLOAT( pVoxel ) );
+  sprintf( sTclArguments, "%.1f %.1f %.1f", xVoxl_ExpandFloat( pVoxel ) );
   tkm_SendTclCommand( tkm_tTclCommand_UpdateTalCursor, sTclArguments );
  
   /* send volume name */
@@ -4462,7 +4160,7 @@ DspA_tErr DspA_SendViewStateToTcl_ ( tkmDisplayAreaRef this ) {
       (int)snBrushNewValue );
   tkm_SendTclCommand( tkm_tTclCommand_UpdateBrushThreshold, sTclArguments );
 
-  Voxel_Delete( &pVoxel );
+  xVoxl_Delete( &pVoxel );
 
   return eResult;
 }
@@ -4488,17 +4186,17 @@ DspA_tErr DspA_Verify ( tkmDisplayAreaRef this ) {
   return eResult;
 }
 
-DspA_tErr DspA_VerifyVolumeVoxel_  ( tkmDisplayAreaRef this,
-             VoxelRef          ipVoxel ) {
+DspA_tErr DspA_VerifyVolumexVoxl_  ( tkmDisplayAreaRef this,
+            xVoxelRef          ipVoxel ) {
   DspA_tErr eResult = DspA_tErr_NoErr;
 
   /* make sure voxel is in bounds */
-  if ( Voxel_GetX( ipVoxel )    < 0
-       || Voxel_GetY( ipVoxel ) < 0
-       || Voxel_GetZ( ipVoxel ) < 0
-       || Voxel_GetX( ipVoxel ) >= this->mnVolumeSize
-       || Voxel_GetY( ipVoxel ) >= this->mnVolumeSize
-       || Voxel_GetZ( ipVoxel ) >= this->mnVolumeSize ) {
+  if ( xVoxl_GetX( ipVoxel )    < 0
+       || xVoxl_GetY( ipVoxel ) < 0
+       || xVoxl_GetZ( ipVoxel ) < 0
+       || xVoxl_GetX( ipVoxel ) >= this->mnVolumeSize
+       || xVoxl_GetY( ipVoxel ) >= this->mnVolumeSize
+       || xVoxl_GetZ( ipVoxel ) >= this->mnVolumeSize ) {
 
     eResult = DspA_tErr_InvalidVolumeVoxel;
   }
@@ -4586,15 +4284,15 @@ void DspA_DebugPrint_ ( tkmDisplayAreaRef this ) {
     this->mnVolumeSize, this->mfFrameBufferScaleX, 
     this->mfFrameBufferScaleY EndDebugPrint;
   DebugPrint "\tzoom level %d center %d, %d, %d\n",
-    this->mnZoomLevel, EXPAND_VOXEL_INT(this->mpZoomCenter) EndDebugPrint;
+    this->mnZoomLevel, xVoxl_ExpandInt(this->mpZoomCenter) EndDebugPrint;
   DebugPrint "\tcursor %d, %d, %d orientation %s slice %d tool %d\n",
-    EXPAND_VOXEL_INT(this->mpCursor), DspA_ksaOrientation[this->mOrientation],
+    xVoxl_ExpandInt(this->mpCursor), DspA_ksaOrientation[this->mOrientation],
     DspA_GetCurrentSliceNumber_(this), sTool EndDebugPrint;
 }
 
 void DspA_Signal ( char* isFuncName, int inLineNum, DspA_tErr ieCode ) {
 
-  DebugPrint "Signal in %s, line %d: %d, %s", 
+  DebugPrint "Signal in %s, line %d: %d, %s\n", 
     isFuncName, inLineNum, ieCode, DspA_GetErrorString(ieCode) EndDebugPrint;
 }
 
@@ -4613,21 +4311,21 @@ char* DspA_GetErrorString ( DspA_tErr ieCode ) {
 tBoolean xUtil_FaceIntersectsPlane( MRI_SURFACE*     ipSurface,
             face_type*       ipFace,
             int              inPlane,
-            tkm_tSurfaceType iSurface,
-            tkm_tOrientation iOrientation ) {
+            Surf_tVertexSet iSurface,
+            mri_tOrientation iOrientation ) {
 
   int          nVertexA    = 0;
   int          nVertexB    = 0;
   vertex_type* pVertexA    = NULL;
   vertex_type* pVertexB    = NULL;
-  VoxelRef     pVoxelA     = NULL;
-  VoxelRef     pVoxelB     = NULL;
+ xVoxelRef     pVoxelA     = NULL;
+ xVoxelRef     pVoxelB     = NULL;
   float        fDistanceA  = 0;
   float        fDistanceB  = 0;
   tBoolean     bIntersects = FALSE;
 
-  Voxel_New( &pVoxelA );
-  Voxel_New( &pVoxelB );
+  xVoxl_New( &pVoxelA );
+  xVoxl_New( &pVoxelB );
 
   /* for every vertex... */
   for ( nVertexA = 0; nVertexA < VERTICES_PER_FACE; nVertexA++ ) {
@@ -4648,8 +4346,8 @@ tBoolean xUtil_FaceIntersectsPlane( MRI_SURFACE*     ipSurface,
           iOrientation, pVoxelB );
 
     /* find the distance between the two points and the plane. */
-    fDistanceA = Voxel_GetZ( pVoxelA ) - inPlane;
-    fDistanceB = Voxel_GetZ( pVoxelB ) - inPlane;
+    fDistanceA = xVoxl_GetZ( pVoxelA ) - inPlane;
+    fDistanceB = xVoxl_GetZ( pVoxelB ) - inPlane;
 
     /* if product is negative, they cross the plane. if it is 0,
        they both lie on the plane. */
@@ -4669,66 +4367,66 @@ tBoolean xUtil_FaceIntersectsPlane( MRI_SURFACE*     ipSurface,
 
  cleanup:
 
-  Voxel_Delete( &pVoxelA );
-  Voxel_Delete( &pVoxelB );
+  xVoxl_Delete( &pVoxelA );
+  xVoxl_Delete( &pVoxelB );
 
   return bIntersects;
 }
 
 void xUtil_NormalizeVertexToVoxel( vertex_type*     ipVertex,
-           tkm_tSurfaceType iSurface,
-           tkm_tOrientation iOrientation,
-           VoxelRef         opVoxel ) {
+           Surf_tVertexSet iSurface,
+           mri_tOrientation iOrientation,
+          xVoxelRef         opVoxel ) {
 
-  VoxelRef pRASVox = NULL;
-  VoxelRef pAnatomicalVox = NULL;
+ xVoxelRef pRASVox = NULL;
+ xVoxelRef pAnatomicalVox = NULL;
   Real rXVox = 0;
   Real rYVox = 0;
   Real rZVox = 0;
 
-  Voxel_New( &pRASVox );
-  Voxel_New( &pAnatomicalVox );
+  xVoxl_New( &pRASVox );
+  xVoxl_New( &pAnatomicalVox );
   
   switch( iSurface ) {
-  case tkm_tSurfaceType_Current:
-    Voxel_SetFloat( pRASVox, ipVertex->x, ipVertex->y, ipVertex->z );
+  case Surf_tVertexSet_Main:
+    xVoxl_SetFloat( pRASVox, ipVertex->x, ipVertex->y, ipVertex->z );
     break;
-  case tkm_tSurfaceType_Canonical:
-    Voxel_SetFloat( pRASVox, ipVertex->cx, ipVertex->cy, ipVertex->cz );
+  case Surf_tVertexSet_Pial:
+    xVoxl_SetFloat( pRASVox, ipVertex->cx, ipVertex->cy, ipVertex->cz );
     break;
-  case tkm_tSurfaceType_Original:
-    Voxel_SetFloat( pRASVox, ipVertex->origx, ipVertex->origy, ipVertex->origz );
+  case Surf_tVertexSet_Original:
+    xVoxl_SetFloat( pRASVox, ipVertex->origx, ipVertex->origy, ipVertex->origz );
     break;
   default:
     break;
   }
 
   tkm_ConvertRASToVolume( pRASVox, pAnatomicalVox );
-  rXVox = Voxel_GetFloatX( pAnatomicalVox );
-  rYVox = Voxel_GetFloatY( pAnatomicalVox );
-  rZVox = Voxel_GetFloatZ( pAnatomicalVox );
+  rXVox = xVoxl_GetFloatX( pAnatomicalVox );
+  rYVox = xVoxl_GetFloatY( pAnatomicalVox );
+  rZVox = xVoxl_GetFloatZ( pAnatomicalVox );
 
 
   switch( iOrientation ) {
-  case tkm_tOrientation_Horizontal:
-    Voxel_SetFloat( opVoxel, (float)rXVox, (float)rZVox, (float)rYVox );
+  case mri_tOrientation_Horizontal:
+    xVoxl_SetFloat( opVoxel, (float)rXVox, (float)rZVox, (float)rYVox );
     break;
-  case tkm_tOrientation_Coronal:
-    Voxel_SetFloat( opVoxel, (float)rXVox, (float)rYVox, (float)rZVox );
+  case mri_tOrientation_Coronal:
+    xVoxl_SetFloat( opVoxel, (float)rXVox, (float)rYVox, (float)rZVox );
     break;
-  case tkm_tOrientation_Sagittal:
-    Voxel_SetFloat( opVoxel, (float)rZVox, (float)rYVox, (float)rXVox );
+  case mri_tOrientation_Sagittal:
+    xVoxl_SetFloat( opVoxel, (float)rZVox, (float)rYVox, (float)rXVox );
     break;
   default:
     break;
   }
 
-  Voxel_Delete( &pRASVox );
-  Voxel_Delete( &pAnatomicalVox );
+  xVoxl_Delete( &pRASVox );
+  xVoxl_Delete( &pAnatomicalVox );
 }
 
-tBoolean xUtil_LineIntersectsPlane( VoxelRef         ipLineVoxA,
-            VoxelRef         ipLineVoxB,
+tBoolean xUtil_LineIntersectsPlane(xVoxelRef         ipLineVoxA,
+           xVoxelRef         ipLineVoxB,
             int              inPlane,
             tBoolean         ipInterpolate,
             xPoint2fRef      opIntersectionPt ) {
@@ -4740,8 +4438,8 @@ tBoolean xUtil_LineIntersectsPlane( VoxelRef         ipLineVoxA,
   xPoint2f intersectionPt   = {0, 0};
 
   /* get distance from each to plane. */
-  fDistanceA = Voxel_GetFloatZ( ipLineVoxA ) - fPlane;
-  fDistanceB = Voxel_GetFloatZ( ipLineVoxB ) - fPlane;
+  fDistanceA = xVoxl_GetFloatZ( ipLineVoxA ) - fPlane;
+  fDistanceB = xVoxl_GetFloatZ( ipLineVoxB ) - fPlane;
 
   /* if product is negative or 0, they intersect the plane. */
   if ( fDistanceA * fDistanceB > 0.0 ) {
@@ -4753,10 +4451,10 @@ tBoolean xUtil_LineIntersectsPlane( VoxelRef         ipLineVoxA,
   if( ipInterpolate ) {
     
     /* make sure they arn't on the same plane... */
-    if( Voxel_GetFloatZ(ipLineVoxB) - Voxel_GetFloatZ(ipLineVoxA) != 0.0 ) {
+    if( xVoxl_GetFloatZ(ipLineVoxB) - xVoxl_GetFloatZ(ipLineVoxA) != 0.0 ) {
 
-      fAlpha = (fPlane - Voxel_GetFloatZ( ipLineVoxA )) /
-  (Voxel_GetFloatZ( ipLineVoxB ) - Voxel_GetFloatZ( ipLineVoxA ));
+      fAlpha = (fPlane - xVoxl_GetFloatZ( ipLineVoxA )) /
+  (xVoxl_GetFloatZ( ipLineVoxB ) - xVoxl_GetFloatZ( ipLineVoxA ));
       
     } else {
 
@@ -4765,21 +4463,21 @@ tBoolean xUtil_LineIntersectsPlane( VoxelRef         ipLineVoxA,
     }
 
     /* interpolate to find the intersection. */
-    intersectionPt.mfX = (Voxel_GetFloatX( ipLineVoxA ) +
-      fAlpha * (Voxel_GetFloatX(ipLineVoxB) - Voxel_GetFloatX(ipLineVoxA)));
-    intersectionPt.mfY = (Voxel_GetFloatY( ipLineVoxA ) +
-      fAlpha * (Voxel_GetFloatY(ipLineVoxB) - Voxel_GetFloatY(ipLineVoxA)));
+    intersectionPt.mfX = (xVoxl_GetFloatX( ipLineVoxA ) +
+      fAlpha * (xVoxl_GetFloatX(ipLineVoxB) - xVoxl_GetFloatX(ipLineVoxA)));
+    intersectionPt.mfY = (xVoxl_GetFloatY( ipLineVoxA ) +
+      fAlpha * (xVoxl_GetFloatY(ipLineVoxB) - xVoxl_GetFloatY(ipLineVoxA)));
 
   } else {
     
     /* if no interpolationg, intersection is projection onto plane */
-    intersectionPt.mfX = Voxel_GetFloatX( ipLineVoxB );
-    intersectionPt.mfY = Voxel_GetFloatY( ipLineVoxB );
+    intersectionPt.mfX = xVoxl_GetFloatX( ipLineVoxB );
+    intersectionPt.mfY = xVoxl_GetFloatY( ipLineVoxB );
   }
 
   /*
   DebugPrint "intersecting %.2f,%.2f,%.2f to %.2f,%.2f,%.2f on %d",
-    EXPAND_VOXEL_FLOAT( ipLineVoxA ), EXPAND_VOXEL_FLOAT( ipLineVoxB ),
+    xVoxl_ExpandFloat( ipLineVoxA ), xVoxl_ExpandFloat( ipLineVoxB ),
     inPlane EndDebugPrint;
 
   DebugPrint "hit %d,%d\n",
@@ -4797,15 +4495,15 @@ DspA_tErr DspA_AdjustSurfaceDrawPoint_( tkmDisplayAreaRef this,
           xPoint2fRef       ipPoint ) {
 
   switch( this->mOrientation ) {
-  case tkm_tOrientation_Horizontal:
+  case mri_tOrientation_Horizontal:
     ipPoint->mfX += 0.5;
     ipPoint->mfY += 0.5;
     break;
-  case tkm_tOrientation_Coronal:
+  case mri_tOrientation_Coronal:
     ipPoint->mfX += 0.5;
     ipPoint->mfY += 0.5;
     break;
-  case tkm_tOrientation_Sagittal:
+  case mri_tOrientation_Sagittal:
     ipPoint->mfX += 0.5;
     ipPoint->mfY += 0.5;
     break;
@@ -4818,92 +4516,80 @@ DspA_tErr DspA_AdjustSurfaceDrawPoint_( tkmDisplayAreaRef this,
 
 DspA_tErr DspA_ParsePointList_( tkmDisplayAreaRef this,
         GLenum            inMode,
-        xListRef          ipList ) {
+        xGrowableArrayRef iList ) {
 
-  DspA_tErr        eResult   = DspA_tErr_NoErr;
-  tBoolean bOperationOpen = FALSE;
-  xPoint2f drawPoint      = {0,0};
-  int              nNodePoint = 0;
-  tkmPointListNodeRef pPointNode = NULL;
-  xList_tErr       eList     = xList_tErr_NoErr;
+  DspA_tErr  eResult        = DspA_tErr_NoErr;
+  xGArr_tErr eList          = xGArr_tErr_NoErr;
+  tBoolean   bOperationOpen = FALSE;
+  xPoint2f   intersectionPt = {0,0};
+  xPoint2f   drawPoint      = {0,0};
 
   /* reset the list position. */
-  eList = xList_ResetPosition ( ipList );
-  if ( xList_tErr_NoErr != eList ) {
-    eResult = DspA_tErr_ErrorAccessingSurfaceList;
+  eList = xGArr_ResetIterator( iList );
+  if( xGArr_tErr_NoErr != eList )
     goto error;
-  }
   
   /* start new operation. */
   glBegin( inMode );
   bOperationOpen = TRUE;
-
-  pPointNode = NULL;
-  eList = xList_tErr_NoErr;
-  while ( eList != xList_tErr_EndOfList ) {
-    
-    /* get the next point node in the list. */
-    eList = xList_GetNextItemFromPosition ( ipList, (void**)&pPointNode );
-    if ( xList_tErr_NoErr != eList
-   && xList_tErr_EndOfList != eList ) {
-      eResult = DspA_tErr_ErrorAccessingSurfaceList;
-      goto error;
-    }
-    
-    /* if we got a node... */
-    if ( NULL != pPointNode ) {
-      
-      /* for each point in the node... */
-      for( nNodePoint = 0; 
-     nNodePoint < pPointNode->mnNumPoints; 
-     nNodePoint++ ) {
   
-  /* if it is -1,-1, it's a face marker... */
-  if( -1.0 == pPointNode->mafPoints[nNodePoint][0]
-      && -1.0 == pPointNode->mafPoints[nNodePoint][1] ) {
+  while ( (eList = xGArr_NextItem( iList, (void*)&intersectionPt ))
+    == xGArr_tErr_NoErr ) {
     
-    /* if operation was still going, end it. */ 
-    if( bOperationOpen )
-      glEnd();
+    /* if it is -1,-1, it's a face marker... */
+    if( -1.0 == intersectionPt.mfX 
+  && -1.0 == intersectionPt.mfY ) {
+      
+      /* if operation was still going, end it. */ 
+      if( bOperationOpen )
+  glEnd();
+      
+      /* start new operation. */
+      glBegin( inMode );
+      bOperationOpen = TRUE;
+      
+    } else {
+      
+      drawPoint.mfX = intersectionPt.mfX;
+      drawPoint.mfY = intersectionPt.mfY;
+      
+      /* adjust the point */
+      DspA_AdjustSurfaceDrawPoint_( this, &drawPoint );
+      
+      /* convert to zoomed coords. */
+      drawPoint.mfX = ((float)this->mnZoomLevel * (drawPoint.mfX - xVoxl_GetFloatX(this->mpZoomCenter))) + (float)(this->mnVolumeSize/2.0);
+      drawPoint.mfY = ((float)this->mnZoomLevel * (drawPoint.mfY - xVoxl_GetFloatY(this->mpZoomCenter))) + (float)(this->mnVolumeSize/2.0);
     
-    /* start new operation. */
-    glBegin( inMode );
-    bOperationOpen = TRUE;
-    
-  } else {
-    
-    drawPoint.mfX = pPointNode->mafPoints[nNodePoint][0];
-    drawPoint.mfY = pPointNode->mafPoints[nNodePoint][1];
-
-    /* adjust the point */
-    DspA_AdjustSurfaceDrawPoint_( this, &drawPoint );
-
-    /* convert to zoomed coords. */
-    drawPoint.mfX = ((float)this->mnZoomLevel * (drawPoint.mfX - Voxel_GetFloatX(this->mpZoomCenter))) + (float)(this->mnVolumeSize/2.0);
-    drawPoint.mfY = ((float)this->mnZoomLevel * (drawPoint.mfY - Voxel_GetFloatY(this->mpZoomCenter))) + (float)(this->mnVolumeSize/2.0);
-    
-    /* y flip */
-    drawPoint.mfY = GLDRAW_Y_FLIP(drawPoint.mfY);
-    
-    /* and draw the pt. */
-    glVertex2f( drawPoint.mfX, drawPoint.mfY );
-  }
-      }
+      /* y flip */
+      drawPoint.mfY = GLDRAW_Y_FLIP(drawPoint.mfY);
+      
+      /* and draw the pt. */
+      glVertex2f( drawPoint.mfX, drawPoint.mfY );
     }
   }
+
+  /* clear flag if last item */
+  if( eList == xGArr_tErr_LastItem )
+    eList = xGArr_tErr_NoErr;
+
+  /* check for other errors */
+  if( eList != xGArr_tErr_NoErr )
+    goto error;
 
   /* end last operation */
-  if( bOperationOpen ) {
+  if( bOperationOpen )
     glEnd();
-  }
 
   goto cleanup;
   
-  error:
+ error:
   
+  if( xGArr_tErr_NoErr != eList )
+    eResult = DspA_tErr_ErrorAccessingSurfaceList;
+
   /* print error message */
   if ( DspA_tErr_NoErr != eResult ) {
-    DebugPrint "Error %d in DspA_DrawSurface_: %s\n",
+    DebugPrint "Error %d in DspA_ParsePointList_: %s\n",
       eResult, DspA_GetErrorString(eResult) EndDebugPrint;
   }
     
@@ -4911,5 +4597,3 @@ DspA_tErr DspA_ParsePointList_( tkmDisplayAreaRef this,
   
   return eResult;
 }
-
-  

@@ -3,8 +3,8 @@
 
 #include "xDebug.h"
 #include "xTypes.h"
-#include "tkmVoxel.h"
-#include "tkmFunctionalDataAccess.h"
+#include "xVoxel.h"
+#include "mriFunctionalDataAccess.h"
 #include "xList.h"
 #include "tkmedit.h"
 #include "tcl.h"
@@ -91,11 +91,11 @@ struct tkmFunctionalVolume {
 
   tSignature mSignature;
 
-  /* our volumes. VolumeRef is actually tkmFunctionalDataAccess */
-  VolumeRef  mpOverlayVolume;
-  VolumeRef  mpTimeCourseVolume;
-  VolumeRef  mpOverlayOffsetVolume;
-  VolumeRef  mpTimeCourseOffsetVolume;
+  /* our volumes.mriFunctionalDataRef is actually tkmFunctionalDataAccess */
+  mriFunctionalDataRef  mpOverlayVolume;
+  mriFunctionalDataRef  mpTimeCourseVolume;
+  mriFunctionalDataRef  mpOverlayOffsetVolume;
+  mriFunctionalDataRef  mpTimeCourseOffsetVolume;
 
   /* overlay cache. this looks just like an anatomical volume. */
   FunV_tOverlayCache mOverlayCache;
@@ -146,7 +146,7 @@ FunV_tErr FunV_LoadTimeCourse ( tkmFunctionalVolumeRef this,
 
 /* this loads a specific volume. will delete one if it already exists. */
 FunV_tErr FunV_LoadFunctionalVolume_ ( tkmFunctionalVolumeRef this,
-               VolumeRef*             ioppVolume,
+              mriFunctionalDataRef*             ioppVolume,
                char*                  isPath,
                char*                  isStem,
                char*                  isHeaderStem,
@@ -156,10 +156,10 @@ FunV_tErr FunV_LoadFunctionalVolume_ ( tkmFunctionalVolumeRef this,
    space volume, so it can be indexed with anatomical coords. */
 FunV_tErr FunV_InitOverlayCache_ ( tkmFunctionalVolumeRef this );
 FunV_tErr FunV_SetOverlayCacheValue_ ( tkmFunctionalVolumeRef this,
-               VoxelRef               ipAnaIdx,
+              xVoxelRef               ipAnaIdx,
                FunV_tFunctionalValue  iValue );
 FunV_tErr FunV_GetOverlayCacheValue_ ( tkmFunctionalVolumeRef this,
-               VoxelRef               ipAnaIdx,
+              xVoxelRef               ipAnaIdx,
                FunV_tFunctionalValue* oValue );
 FunV_tErr FunV_UseOverlayCache ( tkmFunctionalVolumeRef this,
          tBoolean               ibUseCache );
@@ -204,7 +204,7 @@ FunV_tErr FunV_ChangeTimePointBy   ( tkmFunctionalVolumeRef this,
 
 /* allows functional volume to respond to a click. */
 FunV_tErr FunV_AnatomicalVoxelClicked ( tkmFunctionalVolumeRef this,
-                      VoxelRef          ipAnatomicalVoxel );
+                     xVoxelRef          ipAnatomicalVoxel );
 
 
 /* overlay access */
@@ -212,7 +212,7 @@ FunV_tErr FunV_AnatomicalVoxelClicked ( tkmFunctionalVolumeRef this,
 /* basic accessors to values, based on current plane position if
    applicable */
 FunV_tErr FunV_GetValueAtAnaIdx ( tkmFunctionalVolumeRef this,
-          VoxelRef               ipVoxel,
+         xVoxelRef               ipVoxel,
           FunV_tFunctionalValue* opValue );
 
 /* calculate the rgb values for a color */
@@ -233,7 +233,7 @@ FunV_tErr FunV_InitGraphWindow ( tkmFunctionalVolumeRef this,
 FunV_tErr FunV_BeginSelectionRange      ( tkmFunctionalVolumeRef this );
 FunV_tErr FunV_AddAnatomicalVoxelToSelectionRange 
                                         ( tkmFunctionalVolumeRef this,
-                     VoxelRef               ipVoxel );
+                    xVoxelRef               ipVoxel );
 FunV_tErr FunV_EndSelectionRange        ( tkmFunctionalVolumeRef this );
 
 /* grabs values for the current selected voxels and shoots them towards

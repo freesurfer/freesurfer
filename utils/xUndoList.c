@@ -371,7 +371,7 @@ xUndL_tErr xUndL_Print ( xUndoListRef this ) {
 
   // start at the beginning.
   eListResult = xList_ResetPosition ( this->mpList );
-  if ( xList_tErr_NoErr != eListResult ) {
+ if ( xList_tErr_NoErr != eListResult ) {
     eResult = xUndL_tErr_ListResetFailed;
     goto cleanup;
   }

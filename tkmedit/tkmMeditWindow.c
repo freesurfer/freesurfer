@@ -12,6 +12,7 @@ char MWin_ksaErrorStrings [MWin_knNumErrorCodes][256] = {
   "Invalid display index.",
   "Invalid display area.",
   "Invalid display configuration",
+  "Invalid coordinate space.",
   "Error accessing display.",
   "Wrong number of arguments.",
   "Invalid event type.",
@@ -279,7 +280,7 @@ MWin_tErr MWin_PositionDisplays_ ( tkmMeditWindowRef this ) {
   DspA_tErr eDispResult = DspA_tErr_NoErr;
   int       nDisplay    = 0;
   xPoint2n  location    = {0, 0};
-  tkm_tOrientation orientation = tkm_tOrientation_None;
+  mri_tOrientation orientation = mri_tOrientation_None;
   int       nZoomLevel  = 0;
 
   switch ( this->mConfiguration ) {
@@ -333,22 +334,22 @@ MWin_tErr MWin_PositionDisplays_ ( tkmMeditWindowRef this ) {
       case 0:
   location.mnX = 0;
   location.mnY = 0;
-  orientation = tkm_tOrientation_Coronal;
+  orientation = mri_tOrientation_Coronal;
   break;
       case 1:
   location.mnX = this->mnWidth/2;
   location.mnY = 0;
-  orientation = tkm_tOrientation_Sagittal;
+  orientation = mri_tOrientation_Sagittal;
   break;
       case 2:
   location.mnX = 0;
   location.mnY = this->mnHeight/2;
-  orientation = tkm_tOrientation_Horizontal;
+  orientation = mri_tOrientation_Horizontal;
   break;
       case 3:
   location.mnX = this->mnWidth/2;
   location.mnY = this->mnHeight/2;
-  orientation = tkm_tOrientation_Coronal;
+  orientation = mri_tOrientation_Coronal;
   break;
       }
       
@@ -565,7 +566,7 @@ MWin_tErr MWin_SetParcellationVolume ( tkmMeditWindowRef this,
 }
 MWin_tErr MWin_SetSurface ( tkmMeditWindowRef this, 
           int               inDispIndex,
-          MRI_SURFACE*      ipSurface ) {
+          mriSurfaceRef     ipSurface ) {
 
   MWin_tErr eResult       = MWin_tErr_NoErr;
   DspA_tErr eDispResult   = DspA_tErr_NoErr;
@@ -673,7 +674,7 @@ MWin_tErr MWin_SetOverlayVolume ( tkmMeditWindowRef      this,
 
 MWin_tErr MWin_SetControlPointsSpace ( tkmMeditWindowRef this,
                int               inDispIndex,
-               VoxelSpaceRef     ipVoxels ) {
+               x3DListRef        ipVoxels ) {
 
   MWin_tErr eResult       = MWin_tErr_NoErr;
   DspA_tErr eDispResult   = DspA_tErr_NoErr;
@@ -727,7 +728,7 @@ MWin_tErr MWin_SetControlPointsSpace ( tkmMeditWindowRef this,
 
 MWin_tErr MWin_SetControlPointsSelectionList ( tkmMeditWindowRef this,
                  int               inDispIndex,
-                 VoxelListRef      ipVoxels ) {
+                 xListRef          ipVoxels ) {
 
   MWin_tErr eResult       = MWin_tErr_NoErr;
   DspA_tErr eDispResult   = DspA_tErr_NoErr;
@@ -783,7 +784,7 @@ MWin_tErr MWin_SetControlPointsSelectionList ( tkmMeditWindowRef this,
 
 MWin_tErr MWin_SetSelectionSpace ( tkmMeditWindowRef this, 
            int               inDispIndex,
-           VoxelSpaceRef     ipVoxels ) {
+           x3DListRef        ipVoxels ) {
   
   MWin_tErr eResult     = MWin_tErr_NoErr;
   DspA_tErr eDispResult = DspA_tErr_NoErr;
@@ -899,7 +900,7 @@ MWin_tErr MWin_ToggleLinkedCursorFlag ( tkmMeditWindowRef this ) {
 
 MWin_tErr MWin_SetCursor ( tkmMeditWindowRef this, 
          int               inDispIndex,
-         VoxelRef          ipCursor ) {
+        xVoxelRef          ipCursor ) {
 
   MWin_tErr eResult       = MWin_tErr_NoErr;
   DspA_tErr eDispResult   = DspA_tErr_NoErr;
@@ -953,7 +954,7 @@ MWin_tErr MWin_SetCursor ( tkmMeditWindowRef this,
 
 MWin_tErr MWin_SetOrientation ( tkmMeditWindowRef this, 
         int               inDispIndex,
-        tkm_tOrientation  iOrientation ) {
+        mri_tOrientation  iOrientation ) {
 
   MWin_tErr eResult       = MWin_tErr_NoErr;
   DspA_tErr eDispResult   = DspA_tErr_NoErr;
@@ -1007,7 +1008,7 @@ MWin_tErr MWin_SetOrientation ( tkmMeditWindowRef this,
 
 MWin_tErr MWin_SetZoomCenter ( tkmMeditWindowRef this, 
              int               inDispIndex,
-             VoxelRef          ipCenter ) {
+            xVoxelRef          ipCenter ) {
 
   MWin_tErr eResult     = MWin_tErr_NoErr;
   DspA_tErr eDispResult = DspA_tErr_NoErr;
@@ -1113,7 +1114,7 @@ MWin_tErr MWin_SetZoomCenterToCursor ( tkmMeditWindowRef this,
 
 MWin_tErr MWin_HiliteSurfaceVertex ( tkmMeditWindowRef this,
              int               inDispIndex,
-             tkm_tSurfaceType  inSurface,
+             Surf_tVertexSet  inSurface,
              int               inVertex ) {
 
   MWin_tErr eResult       = MWin_tErr_NoErr;
@@ -1222,14 +1223,14 @@ MWin_tErr MWin_SetDisplayFlag ( tkmMeditWindowRef this,
 }
 
 MWin_tErr MWin_GetCursor ( tkmMeditWindowRef this,
-         VoxelRef          opCursor ) {
+        xVoxelRef          opCursor ) {
   
   MWin_tErr eResult      = MWin_tErr_NoErr;
   DspA_tErr eDispResult  = DspA_tErr_NoErr;
-  VoxelRef  pCursor      = NULL;
+ xVoxelRef  pCursor      = NULL;
 
   /* new cursor. */
-  Voxel_New( &pCursor );
+  xVoxl_New( &pCursor );
 
   /* verify us. */
   eResult = MWin_Verify ( this );
@@ -1250,7 +1251,7 @@ MWin_tErr MWin_GetCursor ( tkmMeditWindowRef this,
   }
   
   /* return the cursor */
-  Voxel_Copy( opCursor, pCursor );
+  xVoxl_Copy( opCursor, pCursor );
 
   goto cleanup;
   
@@ -1265,17 +1266,17 @@ MWin_tErr MWin_GetCursor ( tkmMeditWindowRef this,
  cleanup:
   
   /* delete cursor */
-  Voxel_Delete( &pCursor );
+  xVoxl_Delete( &pCursor );
   
   return eResult;
 }
 
 MWin_tErr MWin_GetOrientation ( tkmMeditWindowRef this,
-        tkm_tOrientation*   oOrientation ) {
+        mri_tOrientation*   oOrientation ) {
 
   MWin_tErr        eResult      = MWin_tErr_NoErr;
   DspA_tErr        eDispResult  = DspA_tErr_NoErr;
-  tkm_tOrientation orientation  = tkm_tOrientation_None;
+  mri_tOrientation orientation  = mri_tOrientation_None;
 
   /* verify us. */
   eResult = MWin_Verify ( this );
@@ -1316,7 +1317,7 @@ MWin_tErr MWin_GetOrientation ( tkmMeditWindowRef this,
 
 MWin_tErr MWin_CursorChanged  ( tkmMeditWindowRef this,
         tkmDisplayAreaRef ipDisplay,
-        VoxelRef          ipCursor ) {
+      xVoxelRef          ipCursor ) {
 
   MWin_tErr        eResult      = MWin_tErr_NoErr;
   DspA_tErr        eDispResult  = DspA_tErr_NoErr;
@@ -2022,7 +2023,7 @@ int MWin_TclSetLinkedCursorFlag ( ClientData  iClientData,
   MWin_tErr         eResult      = MWin_tErr_NoErr;
   tBoolean          bFlag        = FALSE;
   char              sError[256]  = "";       
-  VoxelRef          pCursor      = NULL;
+ xVoxelRef          pCursor      = NULL;
 
   /* grab us from the client data ptr */
   this = (tkmMeditWindowRef) iClientData;
@@ -2057,13 +2058,13 @@ int MWin_TclSetLinkedCursorFlag ( ClientData  iClientData,
   /* print error message */
   if ( MWin_tErr_NoErr != eResult ) {
     
-    sprintf ( sError, "Error %d in MWin_TclSetCursor: %s\n",
+    sprintf ( sError, "Error %d in MWin_TclSetLinkedCursorFlag: %s\n",
         eResult, MWin_GetErrorString(eResult) );
 
     DebugPrint sError EndDebugPrint;
     
     /* set tcl result, volatile so tcl will make a copy of it. */
-    Tcl_SetResult( ipInterp, sError, TCL_VOLATILE );
+    Tcl_SetResult( ipInterp, MWin_GetErrorString(eResult), TCL_VOLATILE );
   }
   
   eTclResult = TCL_ERROR;
@@ -2071,7 +2072,7 @@ int MWin_TclSetLinkedCursorFlag ( ClientData  iClientData,
  cleanup:
 
   /* delete the voxel */
-  Voxel_Delete( &pCursor );
+  xVoxl_Delete( &pCursor );
 
   return eTclResult;
 }
@@ -2081,15 +2082,19 @@ int MWin_TclSetCursor ( ClientData  iClientData,
       int         argc,
       char*       argv[] ) {
   
-  tkmMeditWindowRef this         = NULL;
-  int               eTclResult   = TCL_OK;
-  MWin_tErr         eResult      = MWin_tErr_NoErr;
-  DspA_tErr         eDispResult  = DspA_tErr_NoErr;
-  char              sError[256]  = "";       
-  VoxelRef          pCursor      = NULL;
+  tkmMeditWindowRef this               = NULL;
+  int               eTclResult         = TCL_OK;
+  MWin_tErr         eResult            = MWin_tErr_NoErr;
+  DspA_tErr         eDispResult        = DspA_tErr_NoErr;
+  char              sError[256]        = "";       
+  xVoxelRef         pCursor            = NULL;
+  xVoxelRef         pConvertedCursor   = NULL;
+  mri_tCoordSpace   coordSpace         = mri_tCoordSpace_None;
+  char              sTclArguments[256] = "";
 
   /* new the voxel */
-  Voxel_New( &pCursor );
+  xVoxl_New( &pCursor );
+  xVoxl_New( &pConvertedCursor );
 
   /* grab us from the client data ptr */
   this = (tkmMeditWindowRef) iClientData;
@@ -2115,16 +2120,55 @@ int MWin_TclSetCursor ( ClientData  iClientData,
   }
   
   /* parse the args and set the cursor. */
-  Voxel_Set( pCursor, atoi( argv[1] ), atoi( argv[2] ), atoi( argv[3] ) );
+  coordSpace = (mri_tCoordSpace) atoi( argv[1] );
+  xVoxl_SetFloat( pCursor, atof( argv[2] ), atof( argv[3] ), atof( argv[4] ) );
 
+  /* check bounds and convert if necessary */
+  switch( coordSpace ) {
+  case mri_tCoordSpace_VolumeIdx:
+
+    xVoxl_Copy( pConvertedCursor, pCursor );
+    break;
+
+  case mri_tCoordSpace_RAS:
+
+    tkm_ConvertRASToVolume( pCursor, pConvertedCursor );
+    break;
+
+  case mri_tCoordSpace_Talairach:
+ 
+    tkm_ConvertTalToVolume( pCursor, pConvertedCursor );
+    break;
+
+  default:
+    eResult = MWin_tErr_InvalidCoordinateSpace;
+    goto error;
+  }
+
+  /* error msg if out of bounds */
+  if( !tkm_IsValidVolumeIdx( pConvertedCursor ) ) {
+    sprintf( sTclArguments, "\"%.2f %.2f %.2f is an invalid point.\"",
+       xVoxl_ExpandFloat( pCursor ) );
+    tkm_SendTclCommand( tkm_tTclCommand_ErrorDlog, sTclArguments );
+    goto cleanup;
+  }
+ 
   /* set the cursor of the last clicked display. */
   eDispResult = DspA_SetCursor ( this->mapDisplays[this->mnLastClickedArea],
-         pCursor );
+         pConvertedCursor );
   if ( DspA_tErr_NoErr != eDispResult ) {
     eResult = MWin_tErr_ErrorAccessingDisplay;
     goto error;
   }
-  
+
+  /* also center around that point */
+  eDispResult = 
+    DspA_SetZoomCenterToCursor ( this->mapDisplays[this->mnLastClickedArea] );
+  if ( DspA_tErr_NoErr != eDispResult ) {
+    eResult = MWin_tErr_ErrorAccessingDisplay;
+    goto error;
+  }
+
   goto cleanup;
   
  error:
@@ -2138,7 +2182,7 @@ int MWin_TclSetCursor ( ClientData  iClientData,
     DebugPrint sError EndDebugPrint;
     
     /* set tcl result, volatile so tcl will make a copy of it. */
-    Tcl_SetResult( ipInterp, sError, TCL_VOLATILE );
+    Tcl_SetResult( ipInterp, MWin_GetErrorString(eResult), TCL_VOLATILE );
   }
   
   eTclResult = TCL_ERROR;
@@ -2146,7 +2190,8 @@ int MWin_TclSetCursor ( ClientData  iClientData,
  cleanup:
 
   /* delete the voxel */
-  Voxel_Delete( &pCursor );
+  xVoxl_Delete( &pCursor );
+  xVoxl_Delete( &pConvertedCursor );
 
   return eTclResult;
 }
@@ -2161,7 +2206,7 @@ int MWin_TclSetOrientation ( ClientData  ipClientData,
   MWin_tErr         eResult      = MWin_tErr_NoErr;
   DspA_tErr         eDispResult  = DspA_tErr_NoErr;
   char              sError[256]  = "";       
-  tkm_tOrientation  orientation  = tkm_tOrientation_None;
+  mri_tOrientation  orientation  = mri_tOrientation_None;
 
   /* grab us from the client data ptr */
   this = (tkmMeditWindowRef) ipClientData;
@@ -2187,7 +2232,7 @@ int MWin_TclSetOrientation ( ClientData  ipClientData,
   }
 
   /* parse the args and get an orientation. */
-  orientation = (tkm_tOrientation) atoi( argv[1] );
+  orientation = (mri_tOrientation) atoi( argv[1] );
 
   /* set the zoom level of the last clicked display. */
   eDispResult = 
@@ -2210,7 +2255,7 @@ int MWin_TclSetOrientation ( ClientData  ipClientData,
     DebugPrint sError EndDebugPrint;
 
     /* set tcl result, volatile so tcl will make a copy of it. */
-    Tcl_SetResult( ipInterp, sError, TCL_VOLATILE );
+    Tcl_SetResult( ipInterp, MWin_GetErrorString(eResult), TCL_VOLATILE );
   }
 
   eTclResult = TCL_ERROR;
@@ -2278,7 +2323,7 @@ int MWin_TclSetZoomLevel ( ClientData  ipClientData,
     DebugPrint sError EndDebugPrint;
 
     /* set tcl result, volatile so tcl will make a copy of it. */
-    Tcl_SetResult( ipInterp, sError, TCL_VOLATILE );
+    Tcl_SetResult( ipInterp, MWin_GetErrorString(eResult), TCL_VOLATILE );
   }
 
   eTclResult = TCL_ERROR;
@@ -2298,10 +2343,10 @@ int MWin_TclSetZoomCenter ( ClientData  iClientData,
   MWin_tErr         eResult      = MWin_tErr_NoErr;
   DspA_tErr         eDispResult  = DspA_tErr_NoErr;
   char              sError[256]  = "";       
-  VoxelRef          pCenter      = NULL;
+ xVoxelRef          pCenter      = NULL;
 
   /* new the voxel */
-  Voxel_New( &pCenter );
+  xVoxl_New( &pCenter );
 
   /* grab us from the client data ptr */
   this = (tkmMeditWindowRef) iClientData;
@@ -2327,7 +2372,7 @@ int MWin_TclSetZoomCenter ( ClientData  iClientData,
   }
   
   /* parse the args and set the Center. */
-  Voxel_Set( pCenter, atoi( argv[1] ), atoi( argv[2] ), atoi( argv[3] ) );
+  xVoxl_Set( pCenter, atoi( argv[1] ), atoi( argv[2] ), atoi( argv[3] ) );
 
   /* set the Center of the last clicked display. */
   eDispResult = DspA_SetZoomCenter( this->mapDisplays[this->mnLastClickedArea],
@@ -2350,7 +2395,7 @@ int MWin_TclSetZoomCenter ( ClientData  iClientData,
     DebugPrint sError EndDebugPrint;
     
     /* set tcl result, volatile so tcl will make a copy of it. */
-    Tcl_SetResult( ipInterp, sError, TCL_VOLATILE );
+    Tcl_SetResult( ipInterp, MWin_GetErrorString(eResult), TCL_VOLATILE );
   }
   
   eTclResult = TCL_ERROR;
@@ -2358,7 +2403,7 @@ int MWin_TclSetZoomCenter ( ClientData  iClientData,
  cleanup:
 
   /* delete the voxel */
-  Voxel_Delete( &pCenter );
+  xVoxl_Delete( &pCenter );
 
   return eTclResult;
 }
@@ -2414,7 +2459,7 @@ int MWin_TclSetDisplayConfig ( ClientData  ipClientData,
     DebugPrint sError EndDebugPrint;
 
     /* set tcl result, volatile so tcl will make a copy of it. */
-    Tcl_SetResult( ipInterp, sError, TCL_VOLATILE );
+    Tcl_SetResult( ipInterp, MWin_GetErrorString(eResult), TCL_VOLATILE );
   }
 
   eTclResult = TCL_ERROR;
@@ -2485,7 +2530,7 @@ int MWin_TclSetDisplayFlag ( ClientData  ipClientData,
     DebugPrint sError EndDebugPrint;
 
     /* set tcl result, volatile so tcl will make a copy of it. */
-    Tcl_SetResult( ipInterp, sError, TCL_VOLATILE );
+    Tcl_SetResult( ipInterp, MWin_GetErrorString(eResult), TCL_VOLATILE );
   }
 
   eTclResult = TCL_ERROR;
@@ -2554,7 +2599,7 @@ int MWin_TclSetTool ( ClientData  ipClientData,
     DebugPrint sError EndDebugPrint;
 
     /* set tcl result, volatile so tcl will make a copy of it. */
-    Tcl_SetResult( ipInterp, sError, TCL_VOLATILE );
+    Tcl_SetResult( ipInterp, MWin_GetErrorString(eResult), TCL_VOLATILE );
   }
 
   eTclResult = TCL_ERROR;
@@ -2627,7 +2672,7 @@ int MWin_TclSetBrush ( ClientData  ipClientData,
     DebugPrint sError EndDebugPrint;
 
     /* set tcl result, volatile so tcl will make a copy of it. */
-    Tcl_SetResult( ipInterp, sError, TCL_VOLATILE );
+    Tcl_SetResult( ipInterp, MWin_GetErrorString(eResult), TCL_VOLATILE );
   }
 
   eTclResult = TCL_ERROR;
@@ -2700,7 +2745,7 @@ int MWin_TclSetBrushThreshold ( ClientData  ipClientData,
     DebugPrint sError EndDebugPrint;
 
     /* set tcl result, volatile so tcl will make a copy of it. */
-    Tcl_SetResult( ipInterp, sError, TCL_VOLATILE );
+    Tcl_SetResult( ipInterp, MWin_GetErrorString(eResult), TCL_VOLATILE );
   }
 
   eTclResult = TCL_ERROR;
@@ -2750,7 +2795,7 @@ int MWin_TclRedrawAll ( ClientData  ipClientData,
     DebugPrint sError EndDebugPrint;
 
     /* set tcl result, volatile so tcl will make a copy of it. */
-    Tcl_SetResult( ipInterp, sError, TCL_VOLATILE );
+    Tcl_SetResult( ipInterp, MWin_GetErrorString(eResult), TCL_VOLATILE );
   }
 
   eTclResult = TCL_ERROR;
