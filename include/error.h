@@ -13,6 +13,10 @@
 
 #include <stdarg.h>
 
+int     ErrorInit(char *fname, 
+                  int (*vfprint)(FILE *fp, char *fmt, va_list args),
+                  int (*vprint)(char *fmt, va_list args)) ;
+
 void    ErrorExit(int ecode, char *fmt, ...) ;
 int     ErrorPrintf(int ecode, char *fmt, ...) ;
 #define ErrorReturn(ret, args)  { ErrorPrintf args ; return(ret) ; }
