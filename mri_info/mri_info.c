@@ -104,9 +104,9 @@ static void do_file(char *fname)
     else if (!strcmp(at, "MGH"))
       type = MRI_MGH_FILE ;
     else if (!strcmp(at, "MR"))
-      type = GE_5X_FILE ;
+      type = GENESIS_FILE ;
     else if (!strcmp(at, "GE"))
-      type = GE_8X_FILE ;
+      type = GE_LX_FILE ;
     else if (!strcmp(at, "IMG"))
       type = MRI_ANALYZE_FILE ;
     else if(!strcmp(at, "COR"))
@@ -134,10 +134,10 @@ static void do_file(char *fname)
     else
     {
 
-    if(is_ge(fname2))
-      type = GE_5X_FILE;
-    else if(is_new_ge(fname2))
-      type = GE_8X_FILE;
+    if(is_genesis(fname2))
+      type = GENESIS_FILE;
+    else if(is_ge_lx(fname2))
+      type = GE_LX_FILE;
     else if(is_brik(fname2))
       type = BRIK_FILE;
     else if(is_siemens(fname2))
@@ -162,11 +162,11 @@ static void do_file(char *fname)
 
   switch(type)
   {
-    case GE_5X_FILE:
+    case GENESIS_FILE:
       read_ge_5x_file(fname2, stat_buf);
       break;
 
-    case GE_8X_FILE:
+    case GE_LX_FILE:
       read_ge_8x_file(fname2, stat_buf);
       break;
 
