@@ -33,8 +33,8 @@ int  WinSetRange(int iWin,double dXmin,double dXmax,double dYmin,double dYmax);
 int  WinGetRange(int iWin, double *pdXmin, double *pdXmax, double *pdYmin, 
                  double *pdYmax);
 
-int  WinCreate(char *pcName, int button_rows, int image_size, 
-               int rows, int cols) ;
+int  WinCreate(char *pcName, int button_rows, int image_rows, 
+               int image_cols, int rows, int cols) ;
 int  WinPrintf(int iWin, int x, int y, char *fmt, ...) ;
 int  WinShowImage(int iWin, IMAGE *image, int which) ;
 int  WinSetName(int win, int which, char *fmt, ...) ;
