@@ -57,8 +57,13 @@ LTAalloc(int nxforms, MRI *mri)
     x0 = y0 = z0 = 0 ;
 
   lta = (LINEAR_TRANSFORM_ARRAY *)calloc(1, sizeof(LTA)) ;
+  if (!lta)
+    ErrorExit(ERROR_NOMEMORY, "LTAalloc(%d): could not allocate LTA",nxforms);
   lta->num_xforms = nxforms ;
   lta->xforms = (LINEAR_TRANSFORM *)calloc(nxforms, sizeof(LT)) ;
+  if (!lta->xforms)
+    ErrorExit(ERROR_NOMEMORY, "LTAalloc(%d): could not allocate xforms",
+              nxforms);
   for (i = 0 ; i < nxforms ; i++)
   {
     lta->xforms[i].x0 = x0 ; 
@@ -552,13 +557,14 @@ int
 TransformFileNameType(char *fname)
 {
   int file_type = TRANSFORM_ARRAY_TYPE ;
-  char *dot, buf[100], *number ;
+  char *dot, buf[500], *number ;
 
   strcpy(buf, fname) ;
   dot = strrchr(buf, '@') ;
   number = strchr(buf, '#') ;
   if (number)
     *number = 0 ;  /* don't consider : part of extension */
+
   if (!dot)
     dot = strrchr(buf, '.') ;
 
