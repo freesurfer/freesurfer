@@ -188,15 +188,15 @@ MRI* MRISpeelVolume(MRIS *mris,MRI *mri_src,MRI *mri_dst,int type,unsigned char 
         py = py0 + (py1-py0)*u/numu;
         pz = pz0 + (pz1-pz0)*u/numu;
 
-  MRIworldToVoxel(mri_src,px,py,pz,&tx,&ty,&tz);
-  
-  imnr=(int)(tz+0.5);
-  j=(int)(ty+0.5);
-  i=(int)(tx+0.5);
+	// MRIworldToVoxel(mri_src,px,py,pz,&tx,&ty,&tz);
+	MRIsurfaceRASToVoxel(mri_src,px,py,pz,&tx,&ty,&tz);
+	imnr=(int)(tz+0.5);
+	j=(int)(ty+0.5);
+	i=(int)(tx+0.5);
+	
 
-
-  if (i>=0 && i<width && j>=0 && j<height && imnr>=0 && imnr<depth)
-    MRIvox(mri_buff,i,j,imnr) = 255;
+	if (i>=0 && i<width && j>=0 && j<height && imnr>=0 && imnr<depth)
+	  MRIvox(mri_buff,i,j,imnr) = 255;
 
       }  
     }
@@ -840,7 +840,8 @@ mrisComputeIntensityTerm(MRI_SURFACE *mris, double l_intensity, MRI *mri, double
 
     x = v->x ; y = v->y ; z = v->z ;
 
-    MRIworldToVoxel(mri, x, y, z, &xw, &yw, &zw) ;
+    // MRIworldToVoxel(mri, x, y, z, &xw, &yw, &zw) ;
+    MRIsurfaceRASToVoxel(mri, x, y, z, &xw, &yw, &zw) ;
     MRIsampleVolume(mri, xw, yw, zw, &val0) ;
     //    sigma = v->val2 ;
 
@@ -850,14 +851,16 @@ mrisComputeIntensityTerm(MRI_SURFACE *mris, double l_intensity, MRI *mri, double
     {
       Real val;
       xw = x + nx ; yw = y + ny ; zw = z + nz ;
-      MRIworldToVoxel(mri, xw, yw, zw, &xw, &yw, &zw) ;
+      // MRIworldToVoxel(mri, xw, yw, zw, &xw, &yw, &zw) ;
+      MRIsurfaceRASToVoxel(mri, xw, yw, zw, &xw, &yw, &zw) ;
       MRIsampleVolume(mri, xw, yw, zw, &val) ;
       val_outside = val ;
 
       
       
       xw = x - nx ; yw = y - ny ; zw = z - nz ;
-      MRIworldToVoxel(mri, xw, yw, zw, &xw, &yw, &zw) ;
+      // MRIworldToVoxel(mri, xw, yw, zw, &xw, &yw, &zw) ;
+      MRIsurfaceRASToVoxel(mri, xw, yw, zw, &xw, &yw, &zw) ;
       MRIsampleVolume(mri, xw, yw, zw, &val) ;
       val_inside = val ;
     }
@@ -875,12 +878,14 @@ mrisComputeIntensityTerm(MRI_SURFACE *mris, double l_intensity, MRI *mri, double
       {
         k = exp(-dist*dist/(2*sigma*sigma)) ; ktotal += k ;
         xw = x + dist*nx ; yw = y + dist*ny ; zw = z + dist*nz ;
-        MRIworldToVoxel(mri, xw, yw, zw, &xw, &yw, &zw) ;
+        // MRIworldToVoxel(mri, xw, yw, zw, &xw, &yw, &zw) ;
+        MRIsurfaceRASToVoxel(mri, xw, yw, zw, &xw, &yw, &zw) ;
         MRIsampleVolume(mri, xw, yw, zw, &val) ;
         val_outside += k*val ;
 
         xw = x - dist*nx ; yw = y - dist*ny ; zw = z - dist*nz ;
-        MRIworldToVoxel(mri, xw, yw, zw, &xw, &yw, &zw) ;
+        // MRIworldToVoxel(mri, xw, yw, zw, &xw, &yw, &zw) ;
+        MRIsurfaceRASToVoxel(mri, xw, yw, zw, &xw, &yw, &zw) ;
         MRIsampleVolume(mri, xw, yw, zw, &val) ;
         val_inside += k*val ;
       }
