@@ -1912,17 +1912,26 @@ MRIsetValues(MRI *mri, int val)
 
   switch (mri->type)
   {
-  case MRI_BITMAP:
-    bytes /= 8 ;
+  case MRI_UCHAR:
+    bytes *= sizeof(unsigned char) ;
     break ;
-  case MRI_FLOAT:
-    bytes *= sizeof(float) ;
+  case MRI_INT:
+    bytes *= sizeof(int) ;
     break ;
   case MRI_LONG:
     bytes *= sizeof(long) ;
     break ;
-  case MRI_INT:
-    bytes *= sizeof(int) ;
+  case MRI_FLOAT:
+    bytes *= sizeof(float) ;
+    break ;
+  case MRI_SHORT:
+    bytes *= sizeof(short) ;
+    break;
+  case MRI_BITMAP:
+    bytes /= 8 ;
+    break ;
+  case MRI_TENSOR:
+    bytes /= 8 ;
     break ;
   default:
     break ;
