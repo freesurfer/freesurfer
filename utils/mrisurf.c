@@ -4626,8 +4626,8 @@ MRIScomputeMeanCurvature(MRI_SURFACE *mris)
       {
         H += z / rsq ;
         N++ ;
-        if (fabs(z/rsq) > 1.0)
-          fprintf(stderr, "%d --> %d: curvaure = %2.1f\n", vno, vertex->v[i],
+        if ((fabs(z/rsq) > 5.0) && (Gdiag & DIAG_SHOW) && DIAG_VERBOSE_ON)
+          fprintf(stderr, "%d --> %d: curvature = %2.1f\n", vno, vertex->v[i],
                   z/rsq) ;
       }
     }
@@ -5036,5 +5036,217 @@ mrisCountValidLinks(MRI_SURFACE *mris, int vno1, int vno2)
     
   }
   return(nvalid) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+int
+MRIScomputeSecondFundamentalForm(MRI_SURFACE *mris)
+{
+  int    vno, vn, neighbors, i, j, n ;
+  VERTEX *vertex, *vnb, *vnb2 ;
+  MATRIX *m_U, *m_Ut, *m_tmp1, *m_tmp2, *m_inverse, *m_eigen, *m_Q ;
+  VECTOR *v_c, *v_z, *v_n, *v_e1, *v_e2, *v_yi ;
+  float  k1, k2, evalues[3] ;
+  double ui, vi ;
+
+  mrisComputeTangentPlanes(mris) ;
+
+  v_c = VectorAlloc(3, MATRIX_REAL) ;
+  v_n = VectorAlloc(3, MATRIX_REAL) ;
+  v_e1 = VectorAlloc(3, MATRIX_REAL) ;
+  v_e2 = VectorAlloc(3, MATRIX_REAL) ;
+  v_yi = VectorAlloc(3, MATRIX_REAL) ;
+  m_Q = MatrixAlloc(2, 2, MATRIX_REAL) ;   /* the quadratic form */
+  m_eigen = MatrixAlloc(2, 2, MATRIX_REAL) ;
+
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    vertex = &mris->vertices[vno] ;
+    if (vertex->ripflag)
+      continue ;
+
+    VECTOR_LOAD(v_n, vertex->nx, vertex->ny, vertex->nz) ;
+    VECTOR_LOAD(v_e1, vertex->e1x, vertex->e1y, vertex->e1z) ;
+    VECTOR_LOAD(v_e2, vertex->e2x, vertex->e2y, vertex->e2z) ;
+
+    /* now count 2-neighbors */
+    for (neighbors = i = 0 ; i < vertex->vnum ; i++)
+    {
+      vn = vertex->v[i] ;
+      vnb = &mris->vertices[vn] ;
+      if (vnb->ripflag)
+        continue ;
+      if (!vnb->marked)
+      {
+        neighbors++ ; vnb->marked = 1 ;
+      }
+      for (j = 0 ; j < vnb->vnum ; j++)
+      {
+        vnb2 = &mris->vertices[vnb->v[j]] ;
+        if (vnb2->ripflag || vnb2->marked)
+          continue ;
+        neighbors++ ; vnb2->marked = 1 ;
+      }
+    }
+
+    if (neighbors <= 0)
+      continue ;
+    
+    m_U = MatrixAlloc(neighbors, 3, MATRIX_REAL) ;
+    v_z = VectorAlloc(neighbors, MATRIX_REAL) ;
+
+    if (vno == 30424 || vno == 25815)
+      DiagBreak() ;
+
+    /* fit a quadratic form to the surface at this vertex */
+    for (n = i = 0 ; i < vertex->vnum ; i++)
+    {
+      vn = vertex->v[i] ;
+      vnb = &mris->vertices[vn] ;
+      if (vnb->ripflag)
+        continue ;
+      if (vnb->marked < 2)  /* use neighbor in lms calculation */
+      {
+/* 
+   calculate the projection of this vertex onto the local tangent plane 
+*/
+        VECTOR_LOAD(v_yi, vnb->x-vertex->x, vnb->y-vertex->y,vnb->z-vertex->z);
+        ui = V3_DOT(v_yi, v_e1) ; vi = V3_DOT(v_yi, v_e2) ;
+        *MATRIX_RELT(m_U, n+1, 1) = ui*ui ;
+        *MATRIX_RELT(m_U, n+1, 2) = 2*ui*vi ;
+        *MATRIX_RELT(m_U, n+1, 3) = vi*vi ;
+        VECTOR_ELT(v_z, n+1) = V3_DOT(v_n, v_yi) ;  /* height above TpS */
+        n++ ;
+        vnb->marked = 2 ;
+      }
+      for (j = 0 ; j < vnb->vnum ; j++)
+      {
+        vnb2 = &mris->vertices[vnb->v[j]] ;
+        if (vnb2->marked > 1 || vnb2->ripflag)   /* already processed */
+          continue ;
+
+/* 
+   calculate the projection of this vertex onto the local tangent plane 
+*/
+        VECTOR_LOAD(v_yi, vnb2->x-vertex->x, vnb2->y-vertex->y, 
+                    vnb2->z-vertex->z);
+        ui = V3_DOT(v_yi, v_e1) ; vi = V3_DOT(v_yi, v_e2) ;
+
+        *MATRIX_RELT(m_U, n+1, 1) = ui*ui ;
+        *MATRIX_RELT(m_U, n+1, 2) = 2*ui*vi ;
+        *MATRIX_RELT(m_U, n+1, 3) = vi*vi ;
+
+        VECTOR_ELT(v_z, n+1) = V3_DOT(v_n, v_yi) ;  /* height above TpS */
+        n++ ;
+        vnb2->marked = 2 ;
+      }
+    }
+
+    m_Ut = MatrixTranspose(m_U, NULL) ;          /* Ut */
+    m_tmp2 = MatrixMultiply(m_Ut, m_U, NULL) ;   /* Ut U */
+    m_inverse = MatrixInverse(m_tmp2, NULL) ;    /* (Ut U)^-1 */
+    if (!m_inverse)   /* singular matrix - must be planar?? */
+    {
+      evalues[0] = evalues[1] = 0.0 ;
+    }
+    else
+    {
+      m_tmp1 = MatrixMultiply(m_Ut, v_z, NULL) ;   /* Ut z */
+      MatrixMultiply(m_inverse, m_tmp1, v_c) ;     /* (Ut U)^-1 Ut z */
+
+      /* now build Hessian matrix */
+      *MATRIX_RELT(m_Q,1,1) = 2*VECTOR_ELT(v_c, 1) ;
+      *MATRIX_RELT(m_Q,1,2) = *MATRIX_RELT(m_Q,2,1) = 2*VECTOR_ELT(v_c, 2) ;
+      *MATRIX_RELT(m_Q,2,2) = 2*VECTOR_ELT(v_c, 3) ;
+      MatrixEigenSystem(m_Q, evalues, m_eigen) ;
+
+      MatrixFree(&m_tmp1) ;
+      MatrixFree(&m_inverse) ;
+    }
+    k1 = evalues[0] ; k2 = evalues[1] ;
+    vertex->k1 = k1 ; vertex->k2 = k2 ;
+    vertex->K = k1 * k2 ;
+    vertex->H = (k1 + k2) / 2 ;
+
+    /* now unmarked the 2-neighbors */
+    for (neighbors = i = 0 ; i < vertex->vnum ; i++)
+    {
+      vn = vertex->v[i] ;
+      vnb = &mris->vertices[vn] ;
+      if (vnb->ripflag)
+        continue ;
+      vnb->marked = 0 ;
+      for (j = 0 ; j < vnb->vnum ; j++)
+      {
+        vnb2 = &mris->vertices[vnb->v[j]] ;
+        vnb2->marked = 0 ;
+      }
+    }
+
+    MatrixFree(&m_Ut) ;
+    MatrixFree(&m_tmp2) ;
+    MatrixFree(&m_U) ;
+    VectorFree(&v_z) ;
+  }
+
+  MatrixFree(&m_eigen) ;
+  VectorFree(&v_e1) ;
+  VectorFree(&v_e2) ;
+  VectorFree(&v_c) ;
+  VectorFree(&v_n) ;
+  VectorFree(&v_yi) ;
+  MatrixFree(&m_Q) ;
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+int
+MRISuseGaussianCurvature(MRI_SURFACE *mris)
+{
+  int    vno ;
+  VERTEX *vertex ;
+
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    vertex = &mris->vertices[vno] ;
+    if (vertex->ripflag)
+      continue ;
+    vertex->curv = vertex->K ;
+  }
+
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+int
+MRISuseMeanCurvature(MRI_SURFACE *mris)
+{
+  int    vno ;
+  VERTEX *vertex ;
+
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    vertex = &mris->vertices[vno] ;
+    if (vertex->ripflag)
+      continue ;
+    vertex->curv = vertex->H ;
+  }
+
+  return(NO_ERROR) ;
 }
 
