@@ -16,7 +16,7 @@
 #include "timer.h"
 #include "version.h"
 
-static char vcid[]="$Id: mris_sphere.c,v 1.27 2003/09/05 04:45:44 kteich Exp $";
+static char vcid[]="$Id: mris_sphere.c,v 1.28 2005/01/31 20:39:16 xhan Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -63,6 +63,13 @@ static float l_sphere = 0.025 ;
 static char *orig_name = "smoothwm" ;
 static int smooth_avgs = 0 ;
 
+/* the following two are used when applying a lta transform to the surface */
+MRI          *mri = 0;
+MRI          *mri_dst = 0;
+
+static int invert = 0 ;
+static char *xform_fname = NULL;
+
 int
 main(int argc, char *argv[])
 {
@@ -72,9 +79,11 @@ main(int argc, char *argv[])
   MRI_SURFACE  *mris ;
   struct timeb  then ;
   float         max_dim ;
+  LTA          *lta = 0;
+  int          transform_type;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_sphere.c,v 1.27 2003/09/05 04:45:44 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_sphere.c,v 1.28 2005/01/31 20:39:16 xhan Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -161,9 +170,100 @@ main(int argc, char *argv[])
   }
   
   fprintf(stderr, "unfolding cortex into spherical form...\n");
+
+  if((talairach == 1) && xform_fname !=  NULL){
+    printf("Conflicting options: either apply a talairach xform or apply the input xform. Will ignore the talairach xform in the following.\n");
+    talairach = 0;
+  }   
+
   if (talairach)
     MRIStalairachTransform(mris, mris) ;
+  
+  if(xform_fname != NULL){
+    // read transform
+    transform_type =  TransformFileNameType(xform_fname);
+    
+    if(transform_type == MNI_TRANSFORM_TYPE || 
+       transform_type == TRANSFORM_ARRAY_TYPE ||
+       transform_type == REGISTER_DAT ||
+       transform_type == FSLREG_TYPE
+       ){
+      printf("Reading transform ...\n");
+      lta = LTAreadEx(xform_fname) ;
+      if (!lta)
+	ErrorExit(ERROR_NOFILE, "%s: could not read transform file %s",
+		  Progname, xform_fname) ;
 
+      if (transform_type == FSLREG_TYPE)
+      {
+	if(mri == 0 || mri_dst == 0){
+	  fprintf(stderr, "ERROR: fslmat does not have information on the src and dst volumes\n");
+	  fprintf(stderr, "ERROR: you must give options '-src' and '-dst' to specify the src and dst volume infos\n");
+	}
+
+
+	LTAmodifySrcDstGeom(lta, mri, mri_dst); // add src and dst information
+	LTAchangeType(lta, LINEAR_VOX_TO_VOX);
+      }
+
+      if (lta->xforms[0].src.valid == 0){
+	if(mri == 0){
+	  fprintf(stderr, "The transform does not have the valid src volume info.\n");
+	  fprintf(stderr, "Either you give src volume info by option --src or\n");
+	  fprintf(stderr, "make the transform to have the valid src info.\n");
+	  ErrorExit(ERROR_BAD_PARM, "Bailing out...\n");
+	}else{
+	  LTAmodifySrcDstGeom(lta, mri, NULL); // add src information
+	  //	  getVolGeom(mri, &lt->src);
+	}
+      }
+      if (lta->xforms[0].dst.valid == 0){
+	if(mri_dst == 0){
+	  fprintf(stderr, "The transform does not have the valid dst volume info.\n");
+	  fprintf(stderr, "Either you give src volume info by option --dst or\n");
+	  fprintf(stderr, "make the transform to have the valid dst info.\n");
+	  fprintf(stderr, "If the dst was average_305, then you can set\n");
+	  fprintf(stderr, "environmental variable USE_AVERAGE305 true\n");
+	  fprintf(stderr, "without giving the dst volume for RAS-to-RAS transform.\n");
+	  ErrorExit(ERROR_BAD_PARM, "Bailing out...\n");
+	}else{
+	  LTAmodifySrcDstGeom(lta, NULL, mri_dst); // add  dst information
+	  //getVolGeom(mri_dst, &lt->dst);
+	}
+      }
+    }
+    else{
+      ErrorExit(ERROR_BADPARM, "transform is not of MNI, nor Register.dat, nor FSLMAT type");
+    }
+    
+    if (invert){
+      VOL_GEOM vgtmp;
+      LT *lt;
+      MATRIX *m_tmp = lta->xforms[0].m_L ;
+      lta->xforms[0].m_L = MatrixInverse(lta->xforms[0].m_L, NULL) ;
+      MatrixFree(&m_tmp) ;
+      lt = &lta->xforms[0];
+      if (lt->dst.valid == 0 || lt->src.valid == 0){
+	fprintf(stderr, "WARNING:***************************************************************\n");
+	fprintf(stderr, "WARNING:dst volume infor is invalid.  Most likely produce wrong inverse.\n");
+	fprintf(stderr, "WARNING:***************************************************************\n");
+      }
+      copyVolGeom(&lt->dst, &vgtmp);
+      copyVolGeom(&lt->src, &lt->dst);
+      copyVolGeom(&vgtmp, &lt->src);
+    }
+    
+    MRIStransform(mris, mri, lta, mri_dst) ;
+
+    if (mri)
+      MRIfree(&mri);
+    if (mri_dst)
+      MRIfree(&mri_dst);
+
+    if(lta)
+      LTAfree(&lta);
+  }   /* if (xform_fname != NULL) */
+  
   max_dim = MAX(abs(mris->xlo), abs(mris->xhi)) ;
   max_dim = MAX(abs(max_dim), abs(mris->ylo)) ;
   max_dim = MAX(abs(max_dim), abs(mris->yhi)) ;
@@ -438,6 +538,42 @@ get_option(int argc, char *argv[])
     parms.dt_decrease = atof(argv[2]) ;
     nargs = 1 ;
     fprintf(stderr, "dt_decrease=%2.3f\n", parms.dt_decrease) ;
+  }
+  else if (!stricmp(option, "src"))
+  {
+    fprintf(stderr, "src volume for the transform (given by -at or -ait) is %s\n",argv[2]); 
+    fprintf(stderr, "Reading the src volume...\n");
+    mri = MRIreadHeader(argv[2], MRI_VOLUME_TYPE_UNKNOWN);
+    if (!mri)
+    {
+      ErrorExit(ERROR_BADPARM, "Could not read file %s\n", argv[2]);
+    }
+    nargs = 1;
+  }
+  else if (!stricmp(option, "dst"))
+  {
+    fprintf(stderr, "dst volume for the transform (given by -at or -ait) is %s\n",argv[2]); 
+    fprintf(stderr, "Reading the dst volume...\n");
+    mri_dst = MRIreadHeader(argv[2], MRI_VOLUME_TYPE_UNKNOWN);
+    if (!mri_dst)
+    {
+      ErrorExit(ERROR_BADPARM, "Could not read file %s\n", argv[2]);
+    }
+    nargs = 1;
+  }
+  else if (!stricmp(option, "at"))
+  {
+    invert = 0;
+    xform_fname = argv[2];
+    fprintf(stderr, "Apply the transform given by %s before mapping to sphere\n", xform_fname);
+    nargs = 1;
+  }
+  else if (!stricmp(option, "ait"))
+  {
+    invert = 1;
+    xform_fname = argv[2];
+    fprintf(stderr, "Inversely apply the transform given by %s before mapping to sphere\n", xform_fname);
+    nargs = 1;
   }
   else switch (toupper(*option))
   {
