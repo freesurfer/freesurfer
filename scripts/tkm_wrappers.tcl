@@ -500,7 +500,6 @@ proc tkm_MakeDirectorySelector { isTop isText iVariable } {
       -side left \
       -expand yes \
       -fill x
-  DebugPrint "now %.2f\n", oafDeviations[nValue] EndDebugPrint;
 }
 
 proc tkm_UpdateDirectorySelectorVariable { isTop } {
