@@ -85,7 +85,7 @@ int mri_identify(char *fname_passed)
   else if(is_bshort(fname))
     return(BSHORT_FILE);
   else if(is_otl(fname))
-    return(GDF_FILE);
+    return(OTL_FILE);
   else if(is_gdf(fname))
     return(GDF_FILE);
   else
