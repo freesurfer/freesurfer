@@ -125,91 +125,107 @@ ScubaLayer2DMRI::DrawIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
   float midValue;
   midValue = (mMaxVisibleValue - mMinVisibleValue) / 2.0 + mMinVisibleValue;
 
-  GLubyte* dest = iBuffer;
+  // Get window begininng and ending.
+  int winBoundsA[2], winBoundsB[2], windowMin[2], windowMax[2];
+  iTranslator.TranslateRASToWindow( mVolume->GetMinRASBounds(), winBoundsA );
+  iTranslator.TranslateRASToWindow( mVolume->GetMaxRASBounds(), winBoundsB );
+  windowMin[0] = MAX( 0, MIN( winBoundsA[0], winBoundsB[0] ) );
+  windowMin[1] = MAX( 0, MIN( winBoundsA[1], winBoundsB[1] ) );
+  windowMax[0] = MIN( iWidth, MAX( winBoundsA[0], winBoundsB[0] ) );
+  windowMax[1] = MIN( iHeight, MAX( winBoundsA[1], winBoundsB[1] ) );
 
-  // Point to the beginning of the buffer. For each pixel in the
-  // buffer...
+  GLubyte* dest;
+  int const kLoop = 8;
+  float value[kLoop];
+  float RAS[3];
+  int color[kLoop][3];
+
+  // For each pixel in our relevant window bounds...
   int window[2];
-  for( window[1] = 0; window[1] < iHeight; window[1]++ ) {
-    for( window[0] = 0; window[0] < iWidth; window[0]++ ) {
+  Point2<int> windowLoop;
+  for( window[1] = windowMin[1]; window[1] < windowMax[1]; window[1]++ ) {
+    dest = iBuffer + (window[1] * iWidth * 4) + (windowMin[0] * 4);
+    for( window[0] = windowMin[0]; 
+	 window[0] + kLoop < windowMax[0]; window[0] += kLoop ) {
 
-      // Use our translator to get an RAS point.
-      float RAS[3];
-      iTranslator.TranslateWindowToRAS( window, RAS );
+      windowLoop.Set( window );
+      for( int nLoop = 0; nLoop < kLoop; nLoop++ ) {
 
-      // Make sure this is within the bounds. If it is...
-      int color[3];
-      color[0] = color[1] = color[2] = 0;
-      if( mVolume->IsRASInMRIBounds( RAS ) ) {
-
-
-	float value = 0;
-	switch( mSampleMethod ) {
-	case nearest:
-	  value = mVolume->GetMRINearestValueAtRAS( RAS ); 
- 	  break;
-	case trilinear:
-	  value = mVolume->GetMRITrilinearValueAtRAS( RAS ); 
-	  break;
-	case sinc:
-	  value = mVolume->GetMRISincValueAtRAS( RAS ); 
-	  break;
-	case magnitude:
-	  value = mVolume->GetMRIMagnitudeValueAtRAS( RAS );
-	  break;
-	}
+	// Use our translator to get an RAS point.
+	iTranslator.TranslateWindowToRAS( windowLoop.xy(), RAS );
 	
-	if( (mColorMapMethod == heatScale || value >= mMinVisibleValue) &&
-	    (mColorMapMethod == heatScale || value <= mMaxVisibleValue) &&
-	    ((value != 0 && mbClearZero) || !mbClearZero) ) {
+	switch( mSampleMethod ) {
+	case nearest:  
+	  value[nLoop] = mVolume->GetMRINearestValueAtRAS( RAS );  break;
+	case trilinear:
+	  value[nLoop] = mVolume->GetMRITrilinearValueAtRAS( RAS );break;
+	case sinc:     
+	  value[nLoop] = mVolume->GetMRISincValueAtRAS( RAS );     break;
+	case magnitude:
+	  value[nLoop] = mVolume->GetMRIMagnitudeValueAtRAS( RAS );break;
+	}
+
+	windowLoop.Set( windowLoop.x()+1, windowLoop.y() );
+      }
+
+      
+      for( int nLoop = 0; nLoop < kLoop; nLoop++ ) {
+
+	if( (mColorMapMethod==heatScale || value[nLoop]>=mMinVisibleValue) &&
+	    (mColorMapMethod==heatScale || value[nLoop]<=mMaxVisibleValue) &&
+	    ((value[nLoop] != 0 && mbClearZero) || !mbClearZero) ) {
 	  
 	  switch( mColorMapMethod ) { 
 	  case grayscale: {
-
+	    
 	    int nLUT = (int) floor( (cGrayscaleLUTEntries-1) * 
-				    ((value - mMinVisibleValue) /
+				    ((value[nLoop] - mMinVisibleValue) /
 				     (mMaxVisibleValue - mMinVisibleValue)) );
 	    if( nLUT < 0 ) nLUT = 0;
 	    if( nLUT > cGrayscaleLUTEntries ) nLUT = cGrayscaleLUTEntries-1;
-	    color[0] = (int) mGrayscaleLUT[nLUT];
-	    color[1] = color[2] = color[0];
+	    color[nLoop][0] = (int) mGrayscaleLUT[nLUT];
+	    color[nLoop][1] = color[nLoop][2] = color[nLoop][0];
 	  }
 	    break;
 	  case heatScale:
 	    
-	    if( fabs(value) >= mMinVisibleValue &&
-		fabs(value) <= mMaxVisibleValue ) {
-	      
+	    if( fabs(value[nLoop]) >= mMinVisibleValue &&
+		fabs(value[nLoop]) <= mMaxVisibleValue ) {
+	    
 	      float tmp;
-	      if ( fabs(value) > mMinVisibleValue &&
-		   fabs(value) < midValue ) {
-		tmp = fabs(value);
+	      if ( fabs(value[nLoop]) > mMinVisibleValue &&
+		   fabs(value[nLoop]) < midValue ) {
+		tmp = fabs(value[nLoop]);
 		tmp = (1.0/(midValue-mMinVisibleValue)) *
 		  (tmp-mMinVisibleValue)*(tmp-mMinVisibleValue) + 
 		  mMinVisibleValue;
-		value = (value<0) ? -tmp : tmp;
+		value[nLoop] = (value[nLoop]<0) ? -tmp : tmp;
 	      }
 	      
 	      /* calc the color */
 	      float red, green, blue;
-	      if( value >= 0 ) {
-		red = ((value<mMinVisibleValue) ? 0.0 : 
-		       (value<midValue) ? 
-		       (value-mMinVisibleValue)/(midValue-mMinVisibleValue) :
+	      if( value[nLoop] >= 0 ) {
+		red = ((value[nLoop]<mMinVisibleValue) ? 0.0 : 
+		     (value[nLoop]<midValue) ? 
+		       (value[nLoop]-mMinVisibleValue)/
+		       (midValue-mMinVisibleValue) :
 		       1.0);
-		green = ((value<midValue) ? 0.0 :
-			 (value<mMaxVisibleValue) ? 
-			 (value-midValue)/(mMaxVisibleValue-midValue) : 1.0);
+		green = ((value[nLoop]<midValue) ? 0.0 :
+			 (value[nLoop]<mMaxVisibleValue) ? 
+			 (value[nLoop]-midValue)/
+			 (mMaxVisibleValue-midValue) : 1.0);
 		blue = 0.0; 
 	      } else {
-		value = -value;
+		value[nLoop] = -value[nLoop];
 		red = 0.0;
-		green = ((value<midValue) ? 0.0 :
-			 (value<mMaxVisibleValue) ? 
-			 (value-midValue)/(mMaxVisibleValue-midValue) : 1.0);
-		blue = ((value<mMinVisibleValue) ? 0.0 :
-			(value<midValue) ? 
-			(value-mMinVisibleValue)/(midValue-mMinVisibleValue) : 
+		green = ((value[nLoop]<midValue) ? 0.0 :
+			 (value[nLoop]<mMaxVisibleValue) ? 
+			 (value[nLoop]-midValue)/
+			 (mMaxVisibleValue-midValue) : 1.0);
+		blue = ((value[nLoop]<mMinVisibleValue) ? 0.0 :
+			(value[nLoop]<midValue) ? 
+			(value[nLoop]-mMinVisibleValue)/
+			(midValue-mMinVisibleValue) : 
 			1.0);
 	      }
 	      
@@ -217,70 +233,63 @@ ScubaLayer2DMRI::DrawIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
 	      if( green > 1.0 ) green = 1.0;
 	      if( blue > 1.0 )  blue = 1.0;
 	      
-	      color[0] = (int) (red * (float)kMaxPixelComponentValue);
-	      color[1] = (int) (green * (float)kMaxPixelComponentValue);
-	      color[2] = (int) (blue * (float)kMaxPixelComponentValue);
+	      color[nLoop][0] = (int) (red * (float)kMaxPixelComponentValue);
+	      color[nLoop][1] = (int) (green * (float)kMaxPixelComponentValue);
+	      color[nLoop][2] = (int) (blue * (float)kMaxPixelComponentValue);
 	    } else {
-	      color[0] = (int) dest[0];
-	      color[1] = (int) dest[1];
-	      color[2] = (int) dest[2];
+	      color[nLoop][0] = (int) dest[0];
+	      color[nLoop][1] = (int) dest[1];
+	      color[nLoop][2] = (int) dest[2];
 	    }
 	    break;
 	  case LUT:
 	    if( NULL != mColorLUT ) {
-	      mColorLUT->GetColorAtIndex( (int)value, color );
+	      mColorLUT->GetColorAtIndex( (int)value[nLoop], color[nLoop] );
 	    }
 	    break;
 	  }
-	}	
-
-#if 0
-	if( mVolume->IsRASEdge( RAS ) ) {
-	  color[0] = 255; color[1] = color[2] = 0;
 	}
-#endif
-
+      }      
+      
+      
+      for( int nLoop = 0; nLoop < kLoop; nLoop++ ) {
+	
 	// Write the RGB value to the buffer. Write a 255 in the
 	// alpha byte.
 	dest[0] = (GLubyte) (((float)dest[0] * (1.0 - mOpacity)) +
-			     ((float)color[0] * mOpacity));
+			     ((float)color[nLoop][0] * mOpacity));
 	dest[1] = (GLubyte) (((float)dest[1] * (1.0 - mOpacity)) +
-			     ((float)color[1] * mOpacity));
+			     ((float)color[nLoop][1] * mOpacity));
 	dest[2] = (GLubyte) (((float)dest[2] * (1.0 - mOpacity)) +
-			     ((float)color[2] * mOpacity));
+			     ((float)color[nLoop][2] * mOpacity));
 	dest[3] = (GLubyte)255;
+	
+	// Advance our pixel buffer pointer.
+	dest += 4;
       }
-
-      // Advance our pixel buffer pointer.
-      dest += 4;
-      
     }
   }
-
-
-  dest = iBuffer;
-  for( window[1] = 0; window[1] < iHeight; window[1]++ ) {
-    for( window[0] = 0; window[0] < iWidth; window[0]++ ) {
-
+  
+  
+  for( window[1] = windowMin[1]; window[1] < windowMax[1]; window[1]++ ) {
+    dest = iBuffer + (window[1] * iWidth * 4) + (windowMin[0] * 4);
+    for( window[0] = windowMin[0]; window[0] < windowMax[0]; window[0]++ ) {
+      
       // Use our translator to get an RAS point.
       float RAS[3];
       iTranslator.TranslateWindowToRAS( window, RAS );
-
-      // Make sure this is within the bounds. If it is...
-      if( mVolume->IsRASInMRIBounds( RAS ) ) {
+      
+      int selectColor[3];
+      if( mVolume->IsRASSelected( RAS, selectColor ) ) {
 	
-	int selectColor[3];
-	if( mVolume->IsRASSelected( RAS, selectColor ) ) {
-	  
-	  // Write the RGB value to the buffer. Write a 255 in the
-	  // alpha byte.
-	  dest[0] = (GLubyte) (((float)dest[0] * (1.0 - mROIOpacity)) +
-			       ((float)selectColor[0] * mROIOpacity));
-	  dest[1] = (GLubyte) (((float)dest[1] * (1.0 - mROIOpacity)) +
-			       ((float)selectColor[1] * mROIOpacity));
-	  dest[2] = (GLubyte) (((float)dest[2] * (1.0 - mROIOpacity)) +
-			       ((float)selectColor[2] * mROIOpacity));
-	}
+	// Write the RGB value to the buffer. Write a 255 in the
+	// alpha byte.
+	dest[0] = (GLubyte) (((float)dest[0] * (1.0 - mROIOpacity)) +
+			     ((float)selectColor[0] * mROIOpacity));
+	dest[1] = (GLubyte) (((float)dest[1] * (1.0 - mROIOpacity)) +
+			     ((float)selectColor[1] * mROIOpacity));
+	dest[2] = (GLubyte) (((float)dest[2] * (1.0 - mROIOpacity)) +
+			     ((float)selectColor[2] * mROIOpacity));
       }
       
       // Advance our pixel buffer pointer.
