@@ -388,12 +388,19 @@ MRInormFindPeaks(MNI *mni, float *inputs, float *outputs)
     else
     {
       inputs[i-deleted] = (float)reg->y + (float)reg->dy/ 2.0f ;
+#if 0
       outputs[i-deleted] = mni->desired_wm_value / (float)peak ;
+#else
+      outputs[i-deleted] = (float)peak ;
+#endif
     }
   }
 
   npeaks = nwindows - deleted ;
   npeaks = MRInormCheckPeaks(mni, inputs, outputs, npeaks) ;
+  for (i = 0 ; i < npeaks ; i++)
+    outputs[i] = (float)mni->desired_wm_value / outputs[i] ;
+
   return(npeaks) ;
 }
 /*-----------------------------------------------------
@@ -419,95 +426,89 @@ MRInormFindPeaks(MNI *mni, float *inputs, float *outputs)
           one is more likely to have both fwd and bkwd derivatives far
           from the mean).
 ------------------------------------------------------*/
-#define MAX_ABSOLUTE_SLOPE   0.05f   /* (% scaling change)/voxel */
-#define MAX_RELATIVE_SLOPE   4.0f    /* sigmas from the mean */
-#define MIN_ABSOLUTE_SLOPE   0.01f   /* (% scaling change)/voxel */
 int
 MRInormCheckPeaks(MNI *mni, float *inputs, float *outputs, int npeaks)
 {
-  int        i, deleted = 0, maxi ;
-  float      forward_dy[MAX_SPLINE_POINTS], backward_dy[MAX_SPLINE_POINTS],
-             avg_dy, sigma_dy, bdy, fdy, sbdy, sfdy, max_dy ;
+  int        starting_slice, slice, deleted[MAX_SPLINE_POINTS], old_slice,n ;
+  float      Iup, I, Idown, dI, dy, grad ;
 
-  if (npeaks < 3)  /* must have at least 3 peaks */
+  /* rule of thumb - at least a third of the coefficients must be valid */
+  if (npeaks < (mni->windows_above_t0+mni->windows_below_t0)/3) 
     return(0) ;
 
-  do
+  if (Gdiag & DIAG_SHOW)
+    for (slice = 0 ; slice < npeaks ; slice++)
+      fprintf(stderr, "%d: %2.0f --> %2.0f\n",
+              slice,inputs[slice],outputs[slice]) ;
+
+/* 
+   first find a good starting slice to anchor the checking by taking the
+   median peak value of three slices around the center of the brain.
+*/
+  starting_slice = mni->windows_above_t0-STARTING_SLICE ;
+  Iup = outputs[starting_slice-SLICE_OFFSET] ;
+  I = outputs[starting_slice] ;
+  Idown = outputs[starting_slice+SLICE_OFFSET] ;
+
+  if (Gdiag & DIAG_SHOW)
+    fprintf(stderr, 
+            "testing slices %d-%d=%d (%2.0f), %d (%2.0f), and %d (%2.0f)\n",
+            mni->windows_above_t0,STARTING_SLICE, starting_slice, I,
+            starting_slice+SLICE_OFFSET, Idown, starting_slice-SLICE_OFFSET,
+            Iup) ;
+
+  if ((I >= MIN(Iup, Idown)) && (I <= MAX(Iup, Idown)))
+    starting_slice = starting_slice ;
+  else if ((Iup >= MIN(I, Idown)) && (Iup <= MAX(I, Idown)))
+    starting_slice = starting_slice - SLICE_OFFSET ;
+  else
+    starting_slice = starting_slice + SLICE_OFFSET ;
+
+  if (Gdiag & DIAG_SHOW)
+    fprintf(stderr, "starting slice %d --> %2.0f\n", 
+            starting_slice, outputs[starting_slice]) ;
+
+  /* search forward and fill in arrays */
+  old_slice = starting_slice ;
+  for (slice = starting_slice+1 ; slice < npeaks ; slice++)
   {
-    /* compute forward difference derivatives */
-    for (avg_dy = 0.0f, i = 0 ; i < npeaks-1 ; i++)
-    {
-      forward_dy[i] = (outputs[i+1] - outputs[i]) / (inputs[i+1] - inputs[i]);
-      avg_dy += forward_dy[i] ;
-    }
-    avg_dy /= (float)(npeaks-1) ;
-    for (sigma_dy = 0.0f, i = 0 ; i < npeaks-1 ; i++)
-      sigma_dy += (avg_dy - forward_dy[i]) * (avg_dy - forward_dy[i]) ;
-    sigma_dy = sqrt(sigma_dy) / (float)(npeaks-2) ;
+    dI = outputs[slice] - outputs[old_slice] ;
+    dy = inputs[slice] - inputs[old_slice] ;
+    grad = fabs(dI / dy) ;
+    deleted[slice] =  (grad > MAX_GRADIENT) ;
+    if (!deleted[slice])
+      old_slice = slice ;
+    else if (Gdiag & DIAG_SHOW)
+      fprintf(stderr,"deleting peak[%d]=%2.0f, grad = %2.0f / %2.0f = %2.1f\n",
+              slice, outputs[slice],dI, dy, grad) ;
+  }
 
-    forward_dy[npeaks-1] = forward_dy[npeaks-2] ;
+  /* now search backwards and fill stuff in */
+  old_slice = starting_slice ;
+  for (slice = starting_slice-1 ; slice >= 0 ; slice--)
+  {
+    dI = outputs[old_slice] - outputs[slice] ;
+    dy = inputs[slice] - inputs[old_slice] ;
+    grad = fabs(dI / dy) ;
+    deleted[slice] =  (grad > MAX_GRADIENT) ;
+    if (!deleted[slice])
+      old_slice = slice ;
+    else if (Gdiag & DIAG_SHOW)
+      fprintf(stderr,"deleting peak[%d]=%2.0f, grad = %2.0f / %2.0f = %2.1f\n",
+              slice, outputs[slice], dI, dy, grad) ;
+  }
 
-    /* compute backwards difference derivatives */
-    for (i = 1 ; i < npeaks ; i++)
-      backward_dy[i] = (outputs[i] - outputs[i-1]) / (inputs[i] - inputs[i-1]);
-    backward_dy[0] = backward_dy[1] ;
+  for (n = slice = 0 ; slice < npeaks ; slice++)
+  {
+    if (!deleted[slice])   /* passed consistency check */
+    {
+      outputs[n] = outputs[slice] ;
+      inputs[n] = inputs[slice] ;
+      n++ ;
+    }
+  }
 
-    if (Gdiag & DIAG_SHOW)
-      fprintf(stderr, "avg = %2.5f, sigma = %2.5f\n", avg_dy, sigma_dy) ;
-
-    for (i = 0 ; i < npeaks ; i++)
-    {
-      bdy = fabs(backward_dy[i]) ;
-      fdy = fabs(forward_dy[i]) ;
-      sbdy = (bdy - avg_dy) / sigma_dy ;
-      sfdy = (fdy - avg_dy) / sigma_dy ;
-      if (Gdiag & DIAG_SHOW)
-        fprintf(stderr, "%d:  fwd = %2.3f (%2.3f), backwd = %2.3f (%2.3f)\n",
-                i, fdy, sfdy, bdy, sbdy) ;
-    }
-    
-    /* now check for deletions */
-    maxi = -1 ;
-    max_dy = 0.0f ;
-    for (i = 0 ; i < npeaks ; i++)
-    {
-      bdy = fabs(backward_dy[i]) ;
-      fdy = fabs(forward_dy[i]) ;
-      if (fdy + bdy > max_dy)
-      {
-        max_dy = fdy + bdy ;
-        maxi = i ;
-      }
-      
-    }
-    bdy = fabs(backward_dy[maxi]) ;
-    fdy = fabs(forward_dy[maxi]) ;
-    sbdy = (bdy - avg_dy) / sigma_dy ;
-    sfdy = (fdy - avg_dy) / sigma_dy ;
-    /*
-      Delete the max point if the slope is too high, or it is in the 
-      ambiguous region (MIN_ABS < slope < MAX_ABS) but it is an outlier.
-      */
-    if (((bdy > MAX_ABSOLUTE_SLOPE) || (fdy > MAX_ABSOLUTE_SLOPE) ||
-         (sbdy > MAX_RELATIVE_SLOPE) || (sfdy > MAX_RELATIVE_SLOPE)) &&
-        ((bdy > MIN_ABSOLUTE_SLOPE) || (fdy > MIN_ABSOLUTE_SLOPE)))
-    {
-      int nelts ;
-      
-      if (Gdiag & DIAG_SHOW)
-        fprintf(stderr, "deleting peak %d = %2.1f\n", maxi, outputs[maxi]) ;
-      deleted = 1 ;
-      nelts = npeaks - maxi - 1 ;
-      if (nelts)  /* not the last item in the list */
-      {
-        memmove(inputs+maxi, inputs+maxi+1, nelts*sizeof(inputs[0])) ;
-        memmove(outputs+maxi, outputs+maxi+1, nelts*sizeof(outputs[0])) ;
-      }
-      npeaks-- ;
-    }
-    else
-      deleted = 0 ;
-  } while (deleted > 0) ;
+  npeaks = n ;
   
   if (Gdiag & DIAG_SHOW)
     fflush(stderr) ;
