@@ -6,6 +6,7 @@
 #include "Utilities.h"
 #include "Array2.h"
 #include "PathManager.h"
+#include "VectorOps.h"
 
 using namespace std;
 
@@ -995,23 +996,42 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
 
       if( iInput.IsButtonDown() ) {
 
-	bool bBrushX, bBrushY, bBrushZ;
-	bBrushX = bBrushY = bBrushZ = true;
-	if( !iTool.GetBrush3D() ) {
-	  bBrushX = !(iViewState.mInPlane == 0);
-	  bBrushY = !(iViewState.mInPlane == 1);
-	  bBrushZ = !(iViewState.mInPlane == 2);
-	}
+	Point3<float> sq[4];
+	float rad = iTool.GetBrushRadius();
+	switch( iViewState.mInPlane ) {
+	case ViewState::X:
+	  sq[0].Set( iRAS ); sq[0][1] -= rad; sq[0][2] -= rad;
+	  sq[1].Set( iRAS ); sq[1][1] += rad; sq[1][2] -= rad;
+	  sq[2].Set( iRAS ); sq[2][1] += rad; sq[2][2] += rad;
+	  sq[3].Set( iRAS ); sq[3][1] -= rad; sq[3][2] += rad;
+	  break;
+	case ViewState::Y:
+	  sq[0].Set( iRAS ); sq[0][0] -= rad; sq[0][2] -= rad;
+	  sq[1].Set( iRAS ); sq[1][0] += rad; sq[1][2] -= rad;
+	  sq[2].Set( iRAS ); sq[2][0] += rad; sq[2][2] += rad;
+	  sq[3].Set( iRAS ); sq[3][0] -= rad; sq[3][2] += rad;
+	  break;
+	case ViewState::Z:
+	  sq[0].Set( iRAS ); sq[0][0] -= rad; sq[0][1] -= rad;
+	  sq[1].Set( iRAS ); sq[1][0] += rad; sq[1][1] -= rad;
+	  sq[2].Set( iRAS ); sq[2][0] += rad; sq[2][1] += rad;
+	  sq[3].Set( iRAS ); sq[3][0] -= rad; sq[3][1] += rad;
+	  break;
+	} 
 	list<Point3<float> > points;
 	ScubaToolState::Shape shape = iTool.GetBrushShape();
 	switch( shape ) {
-	case ScubaToolState::square:
-	  mVolume->GetRASPointsInCube( iRAS, iTool.GetBrushRadius(), 
-				       bBrushX, bBrushY, bBrushZ, points );
-	  break;
+	case ScubaToolState::square: {
+	  mVolume->FindRASPointsInSquare( sq[0].xyz(), sq[1].xyz(),
+					  sq[2].xyz(), sq[3].xyz(),
+					  0,
+					  points );
+	  } break;
 	case ScubaToolState::circle:
-	  mVolume->GetRASPointsInSphere( iRAS, iTool.GetBrushRadius(), 
-					 bBrushX, bBrushY, bBrushZ, points );
+	  mVolume->FindRASPointsInSquare( sq[0].xyz(), sq[1].xyz(),
+					  sq[2].xyz(), sq[3].xyz(),
+					  0,
+					  points );
 	  break;
 	}
 	
@@ -1049,6 +1069,8 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
 	    undoList.AddAction( action );
 	  }
 	}
+
+	RequestRedisplay();
       }
     }
 
@@ -1069,6 +1091,7 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
   case ScubaToolState::edgePath: {
     
     PathManager& pathMgr = PathManager::GetManager();
+    UndoManager& undoList = UndoManager::GetManager();
 
     if( iInput.IsButtonDownEvent() ) {
 
@@ -1080,9 +1103,15 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
 	switch( iInput.Button() ) {
 	case 1:
 	  mFirstPathRAS.Set( iRAS );
-	  mCurrentPath = pathMgr.NewPath();
+	  mCurrentPath = new Path<float>;
 	  mCurrentPath->AddVertex( ras );
 	  mCurrentPath->MarkEndOfSegment();
+
+	  // Make a undo list entry.
+	  undoList.BeginAction( "New Path" );
+	  undoList.AddAction( new UndoNewPathAction( mCurrentPath ) );
+	  undoList.EndAction();
+
 	  break;
 	case 2:
 	case 3:
@@ -1101,6 +1130,7 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
 	  break;
 	case 2:
 	  mCurrentPath->AddVertex( ras );
+	  pathMgr.ManagePath( *mCurrentPath );
 	  mCurrentPath = NULL;
 	  break;
 	case 3:
@@ -1115,6 +1145,7 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
 			       iTool.GetEdgePathEdgeBias() );
 	  }
 
+	  pathMgr.ManagePath( *mCurrentPath );
 	  mCurrentPath = NULL;
 	  break;
 	}
@@ -1146,7 +1177,14 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
 	if( 3 == iInput.Button() ) {
 	  Path<float>* delPath = FindClosestPathInPlane( iRAS, iViewState );
 	  if( delPath == mCurrentPath ) {
-	    pathMgr.DeletePath( delPath );
+
+	    pathMgr.UnmanagePath( *delPath );
+
+	    // The UndoAction will keep a pointer to the path until it
+	    // goes off the undo list. It will be deleted then.
+	    undoList.BeginAction( "Delete Path" );
+	    undoList.AddAction( new UndoDeletePathAction( delPath ) );
+	    undoList.EndAction();
 	  }
 	}
 	
@@ -1603,6 +1641,56 @@ UndoSelectionAction::Redo () {
     mVolume->UnselectRAS( mRAS );
   }
 }
+
+
+UndoPathAction::UndoPathAction ( Path<float>* iPath ) {
+  mPath = iPath;
+}
+
+UndoPathAction::~UndoPathAction () {
+
+}
+
+UndoNewPathAction::UndoNewPathAction ( Path<float>* iPath ) :
+  UndoPathAction( iPath ) {
+}
+
+void
+UndoNewPathAction::Undo () {
+
+  PathManager& pathMgr = PathManager::GetManager();
+  pathMgr.UnmanagePath( *mPath );
+}
+
+void
+UndoNewPathAction::Redo () {
+
+  PathManager& pathMgr = PathManager::GetManager();
+  pathMgr.ManagePath( *mPath );
+}
+
+UndoDeletePathAction::UndoDeletePathAction ( Path<float>* iPath ) :
+  UndoPathAction( iPath ) {
+}
+
+UndoDeletePathAction::~UndoDeletePathAction () {
+  delete mPath;
+}
+
+void
+UndoDeletePathAction::Undo () {
+
+  PathManager& pathMgr = PathManager::GetManager();
+  pathMgr.ManagePath( *mPath );
+}
+
+void
+UndoDeletePathAction::Redo () {
+
+  PathManager& pathMgr = PathManager::GetManager();
+  pathMgr.UnmanagePath( *mPath );
+}
+
 
 // ============================================================
 

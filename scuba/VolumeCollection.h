@@ -108,18 +108,6 @@ class VolumeCollection : public DataCollection {
   bool IsOtherRASSelected ( float iRAS[3], int iThisROIID );
 
 
-
-  // Calculate and return a list of RAS points within a certain
-  // area. Guaranteed to return one (or more!) RAS points for each
-  // voxel in the area.
-  void GetRASPointsInCube ( float iCenterRAS[3], float iRadius,
-			    bool ibBrushX, bool ibBrushY, bool ibBrushZ,
-			    std::list<Point3<float> >& oPoints );
-  void GetRASPointsInSphere ( float iCenterRAS[3], float iRadius,
-			      bool ibBrushX, bool ibBrushY, bool ibBrushZ,
-			      std::list<Point3<float> >& oPoints );
-
-
   // Writes an ROI to a label file.
   void WriteROIToLabel ( int iROIID, std::string ifnLabel );
 
@@ -141,6 +129,14 @@ class VolumeCollection : public DataCollection {
   // Enable or disable world to index transform.
   void SetUseWorldToIndexTransform ( bool ibUse );
 
+
+  // Finds and returns RAS points in a square area. Each RAS will
+  // translate to a unique voxel. INPUT POINTS MUST BE IN CLOCKWISE OR
+  // COUNTERCLOCKWISE ORDER.
+  void FindRASPointsInSquare ( float iPointA[3], float iPointB[3],
+			       float iPointC[3], float iPointD[3],
+			       float iMaxDistance, // optional
+			       std::list<Point3<float> >& oPoints );
 
 protected:
 

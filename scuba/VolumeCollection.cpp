@@ -793,100 +793,131 @@ VolumeCollection::IsOtherRASSelected ( float iRAS[3], int iThisROIID ) {
 }
 
 void
-VolumeCollection::GetRASPointsInCube ( float iCenterRAS[3], float iRadius,
-				       bool ibBrushX, bool ibBrushY,
-				       bool ibBrushZ,
-				       list<Point3<float> >& oPoints ) {
-  
-  Point3<float> centerRAS( iCenterRAS );
-  Point3<int> centerIdx;
-  RASToMRIIndex( centerRAS.xyz(), centerIdx.xyz() );
-  int cXVoxels = (int)ceil( iRadius / GetVoxelXSize() );
-  int cYVoxels = (int)ceil( iRadius / GetVoxelYSize() );
-  int cZVoxels = (int)ceil( iRadius / GetVoxelZSize() );
-  
-  if( !ibBrushX ) {
-    cXVoxels = 0;
-  }
-  if( !ibBrushY ) {
-    cYVoxels = 0;
-  }
-  if( !ibBrushZ ) {
-    cZVoxels = 0;
+VolumeCollection::FindRASPointsInSquare ( float iPointA[3], float iPointB[3],
+					  float iPointC[3], float iPointD[3],
+					  float iHeight,
+					  list<Point3<float> >& oPoints ) {
+
+  Point3<float> squareRAS[4];
+  squareRAS[0].Set( iPointA );
+  squareRAS[1].Set( iPointB );
+  squareRAS[2].Set( iPointC );
+  squareRAS[3].Set( iPointD );
+
+  // Find a plane normal from the four points.
+  Point3<float> v[2];
+  v[0] = squareRAS[1] - squareRAS[0];
+  v[1] = squareRAS[2] - squareRAS[0];
+  Point3<float> n = VectorOps::Cross( v[0], v[1] );
+
+  // Find the MRI indices. Find the square-to-volume bound.
+  Point3<int> squareIdx[4];
+  RASToMRIIndex( squareRAS[0].xyz(), squareIdx[0].xyz() );
+  RASToMRIIndex( squareRAS[1].xyz(), squareIdx[1].xyz() );
+  RASToMRIIndex( squareRAS[2].xyz(), squareIdx[2].xyz() );
+  RASToMRIIndex( squareRAS[3].xyz(), squareIdx[3].xyz() );
+
+
+  Point3<int> volumeBoundIdx[2];
+  volumeBoundIdx[0].Set
+    ( MIN(MIN(MIN(squareIdx[0][0],squareIdx[1][0]),squareIdx[2][0]),
+	  squareIdx[3][0]),
+      MIN(MIN(MIN(squareIdx[0][1],squareIdx[1][1]),squareIdx[2][1]),
+	  squareIdx[3][1]),
+      MIN(MIN(MIN(squareIdx[0][2],squareIdx[1][2]),squareIdx[2][2]),
+	  squareIdx[3][2]));
+  volumeBoundIdx[1].Set
+    ( MAX(MAX(MAX(squareIdx[0][0],squareIdx[1][0]),squareIdx[2][0]),
+	  squareIdx[3][0]),
+      MAX(MAX(MAX(squareIdx[0][1],squareIdx[1][1]),squareIdx[2][1]),
+	  squareIdx[3][1]),
+      MAX(MAX(MAX(squareIdx[0][2],squareIdx[1][2]),squareIdx[2][2]),
+	  squareIdx[3][2]));
+
+  // If there's only one voxel in the bounds, this is a special case
+  // where no voxels's edges will cross the square. So we'll just add
+  // this one and return.
+  if( volumeBoundIdx[0].x() == volumeBoundIdx[1].x() &&
+      volumeBoundIdx[0].y() == volumeBoundIdx[1].y() &&
+      volumeBoundIdx[0].z() == volumeBoundIdx[1].z() ) {
+    Point3<float> centerRAS;
+    MRIIndexToRAS( volumeBoundIdx[0].xyz(), centerRAS.xyz() );
+    oPoints.push_back( centerRAS );
+    return;
   }
 
-  oPoints.push_back( Point3<float>(iCenterRAS) );
-  
-  for( int nZ = -cZVoxels; nZ <= cZVoxels; nZ ++ ) {
-    for( int nY = -cYVoxels; nY <= cYVoxels; nY ++ ) {
-      for( int nX = -cXVoxels; nX <= cXVoxels; nX ++ ) {
+  // For each voxel in the cuboid...
+  for( int nZ = volumeBoundIdx[0].z(); nZ <= volumeBoundIdx[1].z(); nZ++ ) {
+    for( int nY = volumeBoundIdx[0].y(); nY <= volumeBoundIdx[1].y(); nY++ ) {
+      for( int nX = volumeBoundIdx[0].x(); nX <= volumeBoundIdx[1].x(); nX++ ){
 
-	Point3<float> ras( iCenterRAS[0] + nX*GetVoxelXSize(),
-			   iCenterRAS[1] + nY*GetVoxelYSize(),
-			   iCenterRAS[2] + nZ*GetVoxelZSize() );
-	
-	if( fabs(ras[0] - iCenterRAS[0]) > iRadius ||
-	    fabs(ras[1] - iCenterRAS[1]) > iRadius ||
-	    fabs(ras[2] - iCenterRAS[2]) > iRadius ) {
-	  continue;
+
+	// Create RAS versions of our corners.
+	Point3<int> voxelIdx[8];
+	voxelIdx[0].Set( nX  , nY  , nZ   );
+	voxelIdx[1].Set( nX+1, nY  , nZ   );
+	voxelIdx[2].Set( nX  , nY+1, nZ   );
+	voxelIdx[3].Set( nX+1, nY+1, nZ   );
+	voxelIdx[4].Set( nX  , nY  , nZ+1 );
+	voxelIdx[5].Set( nX+1, nY  , nZ+1 );
+	voxelIdx[6].Set( nX  , nY+1, nZ+1 );
+	voxelIdx[7].Set( nX+1, nY+1, nZ+1 );
+	Point3<float> voxelRAS[8];
+	for( int nCorner = 0; nCorner < 8; nCorner++ ) {
+	  MRIIndexToRAS( voxelIdx[nCorner].xyz(), voxelRAS[nCorner].xyz() );
 	}
 
-	if( IsRASInMRIBounds(ras.xyz()) )
-	  oPoints.push_back( ras );
-      }
-    }
-  }
-}
-
-void
-VolumeCollection::GetRASPointsInSphere ( float iCenterRAS[3], float iRadius,
-					 bool ibBrushX, bool ibBrushY,
-					 bool ibBrushZ,
-					 list<Point3<float> >& oPoints ) {
-
-  Point3<float> centerRAS( iCenterRAS );
-  Point3<int> centerIdx;
-  RASToMRIIndex( centerRAS.xyz(), centerIdx.xyz() );
-  int cXVoxels = (int)ceil( iRadius / GetVoxelXSize() );
-  int cYVoxels = (int)ceil( iRadius / GetVoxelYSize() );
-  int cZVoxels = (int)ceil( iRadius / GetVoxelZSize() );
-  
-  if( !ibBrushX ) {
-    cXVoxels = 0;
-  }
-  if( !ibBrushY ) {
-    cYVoxels = 0;
-  }
-  if( !ibBrushZ ) {
-    cZVoxels = 0;
-  }
-
-  oPoints.push_back( Point3<float>(iCenterRAS) );
-  
-  for( int nZ = -cZVoxels; nZ <= cZVoxels; nZ ++ ) {
-    for( int nY = -cYVoxels; nY <= cYVoxels; nY ++ ) {
-      for( int nX = -cXVoxels; nX <= cXVoxels; nX ++ ) {
-
-	Point3<float> ras( iCenterRAS[0] + nX*GetVoxelXSize(),
-			   iCenterRAS[1] + nY*GetVoxelYSize(),
-			   iCenterRAS[2] + nZ*GetVoxelZSize() );
-	
-	float distance = 
-	  sqrt( ((ras[0]-iCenterRAS[0]) * (ras[0]-iCenterRAS[0])) + 
-		((ras[1]-iCenterRAS[1]) * (ras[1]-iCenterRAS[1])) + 
-		((ras[2]-iCenterRAS[2]) * (ras[2]-iCenterRAS[2])) );
-
-	if( distance > iRadius ) {
-	  continue;
+	Point3<float> segmentRAS[12][2];
+	int anSegments[12][2] = { {0, 1}, {4, 5}, {6, 7}, {2, 3},
+				  {0, 2}, {1, 3}, {4, 6}, {5, 7},
+				  {0, 4}, {1, 5}, {2, 6}, {3, 7} };
+	for( int nSegment = 0; nSegment < 12; nSegment++ ) {
+	  segmentRAS[nSegment][0].Set( voxelRAS[anSegments[nSegment][0]] );
+	  segmentRAS[nSegment][1].Set( voxelRAS[anSegments[nSegment][1]] );
 	}
 
-	if( IsRASInMRIBounds(ras.xyz()) )
-	  oPoints.push_back( ras );
-      }
-    }
-  }
-}
+	// Intersect these segments with the plane. If any of them hit...
+	for( int nSegment = 0; nSegment < 12; nSegment++ ) {
 
+	  Point3<float> intersectionRAS;
+	  VectorOps::IntersectionResult rInt =
+	    VectorOps::SegmentIntersectsPlane
+	    ( segmentRAS[nSegment][0], segmentRAS[nSegment][1],
+	      squareRAS[0], n, intersectionRAS );
+	  
+	  if( VectorOps::intersect == rInt ) {
+
+	    // Calculate the anglesum of the intersection point with the
+	    // four plane corner points. If it is 2pi, this point is
+	    // inside the poly.
+	    double angleSum = 0;
+	    for( int nVector = 0; nVector < 4; nVector++ ) {
+	      Point3<float> v1 = squareRAS[nVector]       - intersectionRAS;
+	      Point3<float> v2 = squareRAS[(nVector+1)%4] - intersectionRAS;
+
+	      float v1Length = VectorOps::Length(v1);
+	      float v2Length = VectorOps::Length(v2);
+
+	      if( fabs(v1Length * v2Length) <= EPSILON ) {
+		angleSum = 2*M_PI;
+		break;
+	      }
+	      
+	      double rads = VectorOps::RadsBetweenVectors( v1, v2 );
+	      angleSum += rads;
+	    }
+	    
+	    if( fabs(angleSum - 2*M_PI) <= EPSILON ) {
+	      oPoints.push_back( voxelRAS[0] );
+	      break;
+	    }
+
+	  } // if intersect
+	} // for segment
+      } // for x
+    } // for y
+  } // for z
+}
 
 void
 VolumeCollection::WriteROIToLabel ( int iROIID, string ifnLabel ) {

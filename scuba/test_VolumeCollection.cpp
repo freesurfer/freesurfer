@@ -59,6 +59,7 @@ VolumeCollectionTester::Test ( Tcl_Interp* iInterp ) {
     vol.SetFileName( fnMRI );
     MRI* mri = vol.GetMRI();
     
+
     Assert( (vol.GetTypeDescription() == "Volume"),
 	     "GetTypeDescription didn't return Volume" );
 
@@ -171,7 +172,45 @@ VolumeCollectionTester::Test ( Tcl_Interp* iInterp ) {
 	     vol.mVoxelSize[1] == vol2.mVoxelSize[1] &&
 	     vol.mVoxelSize[2] == vol2.mVoxelSize[2]),
 	    "NewUsingTemplate failed, vol2 didn't match vol's voxelsize" );
-	    
+
+
+
+    dataTransform.SetMainTransform( 1, 0, 0, 0,
+				    0, 1, 0, 0,
+				    0, 0, 1, 0,
+				    0, 0, 0, 1 );
+    vol.SetDataToWorldTransform( dataTransform.GetID() );
+
+    Point3<float> p[4];
+    Volume3<bool> v( 5, 5, 5, false );
+    p[0].Set( 1, 1, 1 );   p[1].Set( 4, 1, 1 );
+    p[2].Set( 4, 4, 1 );   p[3].Set( 1, 4, 1 );
+    list<Point3<float> > points;
+    vol.FindRASPointsInSquare( p[0].xyz(), p[1].xyz(), p[2].xyz(), p[3].xyz(),
+			       0, points );
+    list<Point3<float> >::iterator tPoint;
+    for( tPoint = points.begin(); tPoint != points.end(); ++tPoint ) {
+      Point3<float> p = *tPoint;
+      v.Set( (int)p[0], (int)p[1], (int)p[2], true );
+    }
+    for( int nZ = 0; nZ < 5; nZ++ ) {
+      for( int nY = 0; nY < 5; nY++ ) {
+	for( int nX = 0; nX < 5; nX++ ) {
+	  bool filled = v.Get( nX, nY, nZ );
+	  if( nX >= 1 && nX <= 4 &&
+	      nY >= 1 && nY <= 4 &&
+	      nZ == 1 ) {
+	    stringstream ssMsg;
+	    ssMsg << "Failed: " << Point3<int>(nX,nY,nZ) << "was not filled";
+	    Assert( filled == true, ssMsg.str() );
+	  } else {
+	    stringstream ssMsg;
+	    ssMsg << "Failed: " << Point3<int>(nX,nY,nZ) << "was filled";
+	    Assert( filled == false, ssMsg.str() );
+	  }
+	}
+      }
+    }
 
 
     // Check the tcl commands.

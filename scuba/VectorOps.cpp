@@ -76,7 +76,12 @@ VectorOps::AreVectorsParallel ( Point3<float>& u, Point3<float>& v ) {
 
 double 
 VectorOps::RadsBetweenVectors ( Point3<float>& u, Point3<float>& v ) {
-  return acos(  Dot(u,v) / ( Length(u) * Length(v) )  );
+  double dot = Dot(u,v);
+  double lu  = Length(u);
+  double lv  = Length(v);
+  double costheta = dot / (lu*lv);
+  if( fabs( costheta - -1.0 ) < 0.0001 ) return M_PI;
+  return acos( costheta );
 }
 
 Point3<float> 

@@ -10,7 +10,7 @@ if { $err } {
     load [file dirname [info script]]/libscuba[info sharedlibextension] scuba
 }
 
-DebugOutput "\$Id: scuba.tcl,v 1.51 2004/08/30 02:39:15 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.52 2004/09/03 21:49:33 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -693,7 +693,8 @@ proc MakeScubaFrame { ifwTop } {
 	"%W MouseMotionCallback %x %y %b; ScubaMouseMotionCallback %x %y %s %b"
     bind $fwScuba <ButtonPress> \
 	"%W MouseDownCallback %x %y %b; ScubaMouseDownCallback %x %y %s %b"
-    bind $fwScuba <ButtonRelease> "%W MouseUpCallback %x %y %b"
+    bind $fwScuba <ButtonRelease> \
+	"%W MouseUpCallback %x %y %b; ScubaMouseUpCallback %x %y %s %b"
     bind $fwScuba <KeyRelease> \
 	"%W KeyUpCallback %x %y %K; ScubaKeyUpCallback %x %y %s %K"
     bind $fwScuba <KeyPress> \
@@ -751,6 +752,16 @@ proc MakeScubaFrameBindings { iFrameID } {
 	SelectViewInViewProperties $viewID
 	RedrawFrame [GetMainFrameID]
     }
+    bind $fwScuba <Key-1> {set gaTool(current,radius) 1; SetToolBrushRadius $gaFrame([GetMainFrameID],toolID) $gaTool(current,radius) } 
+    bind $fwScuba <Key-2> {set gaTool(current,radius) 2; SetToolBrushRadius $gaFrame([GetMainFrameID],toolID) $gaTool(current,radius) }
+    bind $fwScuba <Key-3> {set gaTool(current,radius) 3; SetToolBrushRadius $gaFrame([GetMainFrameID],toolID) $gaTool(current,radius) }
+    bind $fwScuba <Key-4> {set gaTool(current,radius) 4; SetToolBrushRadius $gaFrame([GetMainFrameID],toolID) $gaTool(current,radius) }
+    bind $fwScuba <Key-5> {set gaTool(current,radius) 5; SetToolBrushRadius $gaFrame([GetMainFrameID],toolID) $gaTool(current,radius) }
+    bind $fwScuba <Key-6> {set gaTool(current,radius) 6; SetToolBrushRadius $gaFrame([GetMainFrameID],toolID) $gaTool(current,radius) }
+    bind $fwScuba <Key-7> {set gaTool(current,radius) 7; SetToolBrushRadius $gaFrame([GetMainFrameID],toolID) $gaTool(current,radius) }
+    bind $fwScuba <Key-8> {set gaTool(current,radius) 8; SetToolBrushRadius $gaFrame([GetMainFrameID],toolID) $gaTool(current,radius) }
+    bind $fwScuba <Key-9> {set gaTool(current,radius) 9; SetToolBrushRadius $gaFrame([GetMainFrameID],toolID) $gaTool(current,radius) }
+
 }
 
 proc ScubaMouseMotionCallback { inX inY iState iButton } {
@@ -846,6 +857,12 @@ proc ScubaMouseDownCallback { inX inY iState iButton } {
     if { $viewID != $gaView(current,id) } {
 	SelectViewInViewProperties $viewID
     }
+
+    UpdateUndoMenuItem
+}
+
+proc ScubaMouseUpCallback { inX inY iState iButton } {
+    dputs "ScubaMouseUpCallback  $inX $inY $iState $iButton  "
 
     UpdateUndoMenuItem
 }
@@ -1415,17 +1432,14 @@ proc MakeToolsPanel { ifwTop } {
 
     tkuMakeSliders $fwPropsBrushSub.swRadius -sliders {
 	{-label "Radius" -variable gaTool(current,radius) 
-	    -min 0.1 -max 20 -entry true
-	    -resolution 0.1
+	    -min 0.01 -max 20 -entry true
+	    -resolution 0.5
 	    -command {SetToolBrushRadius $gaFrame([GetMainFrameID],toolID) $gaTool(current,radius)} }
     }
 
     tkuMakeCheckboxes $fwPropsBrushSub.cb \
 	-font [tkuNormalFont] \
 	-checkboxes { 
-	    {-type text -label "Work in 3D" 
-		-variable gaTool(current,brush3D)
-		-command {SetToolBrush3D $gaFrame([GetMainFrameID],toolID) $gaTool(current,brush3D)}}
 	    {-type text -label "Only brush zero values" 
 		-variable gaTool(current,onlyBrushZero)
 		-command {SetToolOnlyBrushZero $gaFrame([GetMainFrameID],toolID) $gaTool(current,onlyBrushZero)}}
@@ -4219,15 +4233,6 @@ bind $gaWidget(window) <Alt-Key-n> {
     }
     ShowHideConsole $gaView(tkcon,visible)
 }
-bind $gaWidget(window) <Key-1> {set gaTool(current,radius) 1; SetToolBrushRadius $gaFrame([GetMainFrameID],toolID) $gaTool(current,radius) } 
-bind $gaWidget(window) <Key-2> {set gaTool(current,radius) 2; SetToolBrushRadius $gaFrame([GetMainFrameID],toolID) $gaTool(current,radius) }
-bind $gaWidget(window) <Key-3> {set gaTool(current,radius) 3; SetToolBrushRadius $gaFrame([GetMainFrameID],toolID) $gaTool(current,radius) }
-bind $gaWidget(window) <Key-4> {set gaTool(current,radius) 4; SetToolBrushRadius $gaFrame([GetMainFrameID],toolID) $gaTool(current,radius) }
-bind $gaWidget(window) <Key-5> {set gaTool(current,radius) 5; SetToolBrushRadius $gaFrame([GetMainFrameID],toolID) $gaTool(current,radius) }
-bind $gaWidget(window) <Key-6> {set gaTool(current,radius) 6; SetToolBrushRadius $gaFrame([GetMainFrameID],toolID) $gaTool(current,radius) }
-bind $gaWidget(window) <Key-7> {set gaTool(current,radius) 7; SetToolBrushRadius $gaFrame([GetMainFrameID],toolID) $gaTool(current,radius) }
-bind $gaWidget(window) <Key-8> {set gaTool(current,radius) 8; SetToolBrushRadius $gaFrame([GetMainFrameID],toolID) $gaTool(current,radius) }
-bind $gaWidget(window) <Key-9> {set gaTool(current,radius) 9; SetToolBrushRadius $gaFrame([GetMainFrameID],toolID) $gaTool(current,radius) }
 
 
 

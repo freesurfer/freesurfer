@@ -128,6 +128,7 @@ class ScubaLayer2DMRI : public Layer {
   Point3<float>  mLastPathMoveRAS;
 };
 
+// Flooders ============================================================
 
 class ScubaLayer2DMRIFloodVoxelEdit : public VolumeCollectionFlooder {
  public:
@@ -142,22 +143,6 @@ class ScubaLayer2DMRIFloodVoxelEdit : public VolumeCollectionFlooder {
   virtual void DoVoxel ( float iRAS[3] );
 
   float mValue;
-};
-
-class UndoVoxelEditAction : public UndoAction {
- public:
-
-  UndoVoxelEditAction ( VolumeCollection* iVolume, 
-			float iNewValue, float iOrigValue, float iRAS[3] );
-
-  virtual void Undo ();
-  virtual void Redo ();
-  
- protected:
-  VolumeCollection* mVolume;
-  float mNewValue;
-  float mOrigValue;
-  float mRAS[3];
 };
 
 class ScubaLayer2DMRIFloodSelect : public VolumeCollectionFlooder {
@@ -175,6 +160,24 @@ class ScubaLayer2DMRIFloodSelect : public VolumeCollectionFlooder {
   bool mbSelect;
 };
 
+// Undoers ============================================================
+
+class UndoVoxelEditAction : public UndoAction {
+ public:
+
+  UndoVoxelEditAction ( VolumeCollection* iVolume, 
+			float iNewValue, float iOrigValue, float iRAS[3] );
+
+  virtual void Undo ();
+  virtual void Redo ();
+  
+ protected:
+  VolumeCollection* mVolume;
+  float mNewValue;
+  float mOrigValue;
+  float mRAS[3];
+};
+
 class UndoSelectionAction : public UndoAction {
  public:
 
@@ -189,6 +192,37 @@ class UndoSelectionAction : public UndoAction {
   bool mbSelect;
   float mRAS[3];
 };
+
+class UndoPathAction : public UndoAction {
+ public:
+  UndoPathAction ( Path<float>* iPath );
+  virtual ~UndoPathAction ();
+
+  virtual void Undo () {}
+  virtual void Redo () {}
+
+ protected:
+  Path<float>* mPath;
+};
+
+class UndoNewPathAction : public UndoPathAction {
+ public:
+  UndoNewPathAction ( Path<float>* iPath );
+
+  virtual void Undo ();
+  virtual void Redo ();
+};
+
+class UndoDeletePathAction : public UndoPathAction {
+ public:
+  UndoDeletePathAction ( Path<float>* iPath );
+  virtual ~UndoDeletePathAction ();
+
+  virtual void Undo ();
+  virtual void Redo ();
+};
+
+// Edge Finder ============================================================
 
 class EdgePathFinder : public ShortestPathFinder {
   

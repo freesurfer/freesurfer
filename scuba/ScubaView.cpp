@@ -1479,8 +1479,11 @@ ScubaView::DoMouseDown( int iWindow[2],
 	  layer.RedisplayPosted();
 	}
       }
+      catch(runtime_error e) {
+	DebugOutput( << "Error from layer " << layerID << ": " << e.what() );
+      }
       catch(...) {
-      DebugOutput( << "Couldn't find layer " << layerID );
+	DebugOutput( << "Couldn't find layer " << layerID );
       }
     }
   }
@@ -1510,7 +1513,6 @@ ScubaView::DoKeyDown( int iWindow[2],
   }
 
   
-
   if( key == msMoveViewLeft || key == msMoveViewRight ||
       key == msMoveViewDown || key == msMoveViewUp ||
       key == msMoveViewIn   || key == msMoveViewOut ) {

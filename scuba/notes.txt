@@ -338,6 +338,10 @@ x Only Edit 0 Voxels
 
 x fill source
 
+- set brush radius increment to voxel size?
+
+x undo paths
+
 - autosave volume
 
 - save and reload lines
@@ -379,6 +383,8 @@ BUGS:::
   - fill not in view plane
 - undo doesn't undo all painted voxels
 - new value stuff doesn't show up unless you click Tools panel first, then click voxelEditing button
+- any number sets brush size
+
 
 FUTURE IDEAS:::
 
