@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2004/10/22 21:16:04 $
-// Revision       : $Revision: 1.109 $
+// Revision Date  : $Date: 2004/12/20 02:07:57 $
+// Revision       : $Revision: 1.110 $
 
 #include "tkmDisplayArea.h"
 #include "tkmMeditWindow.h"
@@ -5772,7 +5772,7 @@ DspA_tErr DspA_DrawControlPoints_ ( tkmDisplayAreaRef this ) {
 	eResult = DspA_ConvertVolumeToBuffer_( this, &anaIdx, &bufferPt );
 	if ( DspA_tErr_NoErr != eResult )
 	  goto error;
-	
+       
 #if 0
 	DebugPrint( ("ctrl pt MRIIdx %d %d %d -> Idx %d %d %d -> "
 		     "buffer %d %d\n",
@@ -5884,7 +5884,7 @@ DspA_tErr DspA_DrawSelectionToFrame_ ( tkmDisplayAreaRef this ) {
     yMin = this->mnVolumeSizeY-1; yMax = 0; yInc = -1;
   }
   
-  /* Just loop through getting the anatomical color at this index. */
+  /* Just loop through getting the selection value at this index. */
   for ( bufferPt.mnY = yMin; bufferPt.mnY != yMax; bufferPt.mnY += yInc) {
     for ( bufferPt.mnX = 0; 
 	  bufferPt.mnX < this->mnVolumeSizeX; bufferPt.mnX ++ ) {
