@@ -1725,27 +1725,27 @@ int mincFindVolume(const char *line, const char *line2, char **srcVol, char **ds
       pch = strtok((char *) line, " ");
       while (pch != NULL)
       {
-				strcpy(buf, pch);
-				if (strstr(buf, ".mnc")) // first src mnc volume
-				{
-					mncorig = 1;
-					if (count ==0) // src
-					{
-						count++;
-						*srcVol = (char *) malloc(strlen(pch)+1);
-						strcpy(*srcVol, pch);
-						fprintf(stdout, "INFO: Src volume %s\n", *srcVol);
-					}	
-					else if (count == 1) // this is the second one must be dest volume
-					{
-						*dstVol = (char *) malloc(strlen(pch)+1);
-						strcpy(*dstVol, pch);
-						fprintf(stdout, "INFO: Target volume %s\n", *dstVol);
-						count = 0; // restore for another case
-						return 1;
-					}
-				}
-				pch = strtok(NULL, " ");
+	strcpy(buf, pch);
+	if (strstr(buf, ".mnc")) // first src mnc volume
+	{
+	  mncorig = 1;
+	  if (count ==0) // src
+	  {
+	    count++;
+	    *srcVol = (char *) malloc(strlen(pch)+1);
+	    strcpy(*srcVol, pch);
+	    fprintf(stdout, "INFO: Src volume %s\n", *srcVol);
+	  }	
+	  else if (count == 1) // this is the second one must be dest volume
+	  {
+	    *dstVol = (char *) malloc(strlen(pch)+1);
+	    strcpy(*dstVol, pch);
+	    fprintf(stdout, "INFO: Target volume %s\n", *dstVol);
+	    count = 0; // restore for another case
+	    return 1;
+	  }
+	}
+	pch = strtok(NULL, " ");
       }
     }
     else // let us assume MINC GUI transform
@@ -1754,28 +1754,28 @@ int mincFindVolume(const char *line, const char *line2, char **srcVol, char **ds
       pch = strtok(NULL, " ");          // now points to filename
       if (pch != NULL)
       {
-				strcpy(buf, pch);
-				if (strstr(buf, ".mnc")) // if it is a minc file.  it is dst
-				{
-					*dstVol = (char *) malloc(strlen(pch)+1);
-					strcpy(*dstVol, pch);
-				}
-				pch = strtok((char *) line2, " "); // points to %Volume
-				pch = strtok(NULL, " ");        // now points to filename
-				if (pch != NULL)
-				{
-					strcpy(buf, pch);
-					if (strstr(buf, ".mnc")) // if it is a minc file   it is src
-					{
-						*srcVol = (char *) malloc(strlen(pch)+1);
-						strcpy(*srcVol, pch);
-					}
-				}
+	strcpy(buf, pch);
+	if (strstr(buf, ".mnc")) // if it is a minc file.  it is dst
+	{
+	  *dstVol = (char *) malloc(strlen(pch)+1);
+	  strcpy(*dstVol, pch);
+	}
+	pch = strtok((char *) line2, " "); // points to %Volume
+	pch = strtok(NULL, " ");        // now points to filename
+	if (pch != NULL)
+	{
+	  strcpy(buf, pch);
+	  if (strstr(buf, ".mnc")) // if it is a minc file   it is src
+	  {
+	    *srcVol = (char *) malloc(strlen(pch)+1);
+	    strcpy(*srcVol, pch);
+	  }
+	}
       }
       if (*srcVol)
-				fprintf(stdout, "INFO: Src volume %s\n", *srcVol);
+	fprintf(stdout, "INFO: Src volume %s\n", *srcVol);
       if (*dstVol)
-				fprintf(stdout, "INFO: Target volume %s\n", *dstVol);
+	fprintf(stdout, "INFO: Target volume %s\n", *dstVol);
     }
   }
   else
@@ -1787,20 +1787,20 @@ int mincFindVolume(const char *line, const char *line2, char **srcVol, char **ds
       strcpy(buf, pch);
       if (strstr(buf, "src")) // first src mnc volume
       {
-				// get next token
-				pch=strtok(NULL, " ");
-				*srcVol = (char *) malloc(strlen(pch)+1);
-				strcpy(*srcVol, pch);
-				fprintf(stdout, "INFO: Src volume %s\n", *srcVol);
+	// get next token
+	pch=strtok(NULL, " ");
+	*srcVol = (char *) malloc(strlen(pch)+1);
+	strcpy(*srcVol, pch);
+	fprintf(stdout, "INFO: Src volume %s\n", *srcVol);
       }
       else if (strstr(buf, "dst"))
       {
-				// get next token
-				pch=strtok(NULL, " "); 
-				*dstVol = (char *) malloc(strlen(pch)+1);
-				strcpy(*dstVol, pch);
-				fprintf(stdout, "INFO: Target volume %s\n", *dstVol);
-				return 1;
+	// get next token
+	pch=strtok(NULL, " "); 
+	*dstVol = (char *) malloc(strlen(pch)+1);
+	strcpy(*dstVol, pch);
+	fprintf(stdout, "INFO: Target volume %s\n", *dstVol);
+	return 1;
       }
       pch = strtok(NULL, " ");
     }
@@ -1911,6 +1911,7 @@ LTA *ltaMNIreadEx(const char *fname)
   FILE             *fp ;
   int              row ;
   MATRIX           *m_L ;
+  int             no_volinfo = 0; 
 
   fp = fopen(fname, "r") ;
   if (!fp)
@@ -1924,12 +1925,20 @@ LTA *ltaMNIreadEx(const char *fname)
 
   fgetl(line, 900, fp) ;   /* MNI Transform File */
   fgetl(line, 900, fp) ;   /* fileinfo line */
-  strcpy(infoline, line);
+  // sometimes .xfm does not have any volume info.
+  // then line = "Transform_Type = Linear"
+  if (line[0] == '%') 
+    strcpy(infoline, line);
+  else
+    no_volinfo = 1;
   fgetl(line, 900, fp);
-  strcpy(infoline2, line);
-  while (line[0] == '%')
-    fgetl(line, 900, fp) ; /* variable # of comments */
-  fgetl(line, 900, fp) ;   /* Transform_Type = LInear */
+  if (line[0] == '%')
+  {  
+    strcpy(infoline2, line);
+    while (line[0] == '%')
+      fgetl(line, 900, fp) ; /* variable # of comments */
+    fgetl(line, 900, fp) ;   /* Transform_Type = Linear */
+  }
 
   m_L = lt->m_L ;
   for (row = 1 ; row <= 3 ; row++)
@@ -1954,7 +1963,8 @@ LTA *ltaMNIreadEx(const char *fname)
   fclose(fp);
 
   // add original src and dst information
-  mincGetVolInfo(infoline, infoline2, &lta->xforms[0].src, &lta->xforms[0].dst);
+  if (no_volinfo == 0)
+    mincGetVolInfo(infoline, infoline2, &lta->xforms[0].src, &lta->xforms[0].dst);
   lta->type = LINEAR_RAS_TO_RAS;
   return lta;
 }
