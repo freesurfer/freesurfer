@@ -2260,3 +2260,358 @@ writeTimes(char *fname, LOGMAP_INFO *lmi, int niter)
     fclose(fp) ;
 }
 
+#define FSCALE  1000.0f
+
+static int imageOffsetDirection(IMAGE *Ix, IMAGE *Iy, int wsize, 
+                                IMAGE *Iorient, int x0,int y0) ;
+static int
+imageOffsetDirection(IMAGE *Ix, IMAGE *Iy, int wsize, IMAGE *Iorient, 
+                     int x0,int y0)
+{
+  int    rows, cols, x, y, whalf, xc, yc, yoff, off, d ;
+  float  *xpix, *ypix, dx, dy, *or_xpix,*or_ypix, dir, ox, oy ;
+
+  rows = Ix->rows ;
+  cols = Ix->cols ;
+
+  whalf = (wsize-1)/2 ;
+  xpix = IMAGEFpix(Ix, x0, y0) ;
+  ypix = IMAGEFpix(Iy, x0, y0) ;
+  or_xpix = IMAGEFpix(Iorient, x0, y0) ;
+  or_ypix = IMAGEFseq_pix(Iorient, x0, y0, 1) ;
+
+/*
+  Now calculate the orientation for this point by averaging local gradient
+  orientation within the specified window.
+
+  x and y are in window coordinates, while xc and yc are in image
+  coordinates.
+*/
+  /* calculate orientation vector */
+  ox = *or_xpix++ ;
+  oy = *or_ypix++ ;
+  
+  dir = 0.0f ;
+  for (y = -whalf ; y <= whalf ; y++)
+  {
+    /* reflect across the boundary */
+    yc = y + y0 ;
+    if ((yc < 0) || (yc >= rows))
+      continue ;
+    
+    yoff = y*cols ;
+    for (x = -whalf ; x <= whalf ; x++)
+    {
+      xc = x0 + x ;
+      if ((xc < 0) || (xc >= cols))
+        continue ;
+      
+      off = yoff + x ;
+      dx = *(xpix+off) ;
+      dy = *(ypix+off) ;
+      dir += (x*ox + y*oy) * fabs(dx*ox + dy*oy) ;
+    }
+  }
+  
+  if (ISSMALL(dir))
+    d = 0 ;
+  else if (dir > 0.0f)   /* flip by 180 */
+    d = -1 ;
+  else
+    d = 1 ;
+
+  return(d) ;
+}
+
+#define BR     7
+#define BS     22
+#define BAD(r,s)  ((r==BR) && (s==BS))
+
+#define WINDOW_SIZE   3
+#define WHALF         ((WINDOW_SIZE-1)/2)
+#define WSQ           (WINDOW_SIZE*WINDOW_SIZE)
+#define MEDIAN_INDEX  (WSQ/2)
+
+
+static int compare_sort_farray(const void *pf1, const void *pf2) ;
+static int compare_sort_barray(const void *pb1, const void *pb2) ;
+
+
+ IMAGE *Icalculated = NULL, *Ioffset = NULL, *Iorient = NULL,
+         *Ix = NULL, *Iy = NULL;
+IMAGE *
+LogMapNonlocal(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *Ismooth, IMAGE *Idst)
+{
+  int  rows, cols, x, y, ax, ay, sx, sy, x1, y1, dx, dy, odx, ody, d, xn, yn,
+       steps, dir, dot, wsize = 3, maxsteps = 6 ;
+  float *src_xpix, *src_ypix, *oxpix, *oypix, fdir ;
+  byte  *calculated ;
+  int   ring, spoke, xc, yc ;
+  IMAGE *Iout ;
+  float  sort_farray[WINDOW_SIZE*WINDOW_SIZE], *fptr, *fpix ;
+  byte   sort_barray[WINDOW_SIZE*WINDOW_SIZE], *bptr, *bpix ;
+
+  rows = Isrc->rows ;
+  cols = Isrc->cols ;
+
+  if (!Icalculated || (rows != Icalculated->rows || cols != Icalculated->cols))
+  {
+    if (Icalculated)
+      ImageFree(&Icalculated) ;
+    if (Ioffset)
+      ImageFree(&Ioffset) ;
+    if (Iorient)
+      ImageFree(&Iorient) ;
+    if (Ix)
+      ImageFree(&Ix) ;
+    if (Iy)
+      ImageFree(&Iy) ;
+    Icalculated = ImageAlloc(rows, cols, PFBYTE, 1) ;
+    Ix = ImageAlloc(rows, cols, PFFLOAT, 1) ;
+    Iy = ImageAlloc(rows, cols, PFFLOAT, 1) ;
+    Ioffset = ImageAlloc(rows, cols, PFFLOAT, 2) ;
+  }
+  else
+    ImageClear(Icalculated) ;
+
+  ImageSobel(Ismooth, NULL, Ix, Iy) ;
+  Iorient = ImageOffsetOrientation(Ix, Iy, 3, Iorient) ;
+
+  if (!Idst)
+    Idst = ImageAlloc(lmi->nspokes,lmi->nrings, Isrc->pixel_format,1);
+  else
+    ImageClearArea(Idst, 0, 0, Idst->rows, Idst->cols, 0.0f) ;
+
+  if (Idst->pixel_format != Isrc->pixel_format)
+    Iout = ImageAlloc(lmi->nspokes, lmi->nrings, Isrc->pixel_format,1);
+  else
+    Iout = Idst ;
+
+  for_each_log_pixel(lmi, ring, spoke)
+  {
+    y1 = LOG_PIX_ROW_CENT(lmi, ring, spoke) ;
+    x1 = LOG_PIX_COL_CENT(lmi, ring, spoke) ;
+    if (y1 != UNDEFINED && x1 != UNDEFINED)
+    {
+      calculated = IMAGEpix(Icalculated, x1, y1) ;
+      src_xpix = IMAGEFpix(Iorient, x1, y1) ;
+      src_ypix = IMAGEFseq_pix(Iorient, x1, y1, 1) ;
+
+      /* do a Bresenham algorithm do find the offset line at this point */
+      if (*calculated == 0)
+      {
+        dir = imageOffsetDirection(Ix, Iy, wsize, Iorient, x1, y1) ;
+        fdir = (float)dir ;
+        *calculated = 1 ;
+        *IMAGEFpix(Ioffset, x1, y1) = *src_xpix * fdir ;
+        *IMAGEFseq_pix(Ioffset, x1, y1, 1) = *src_ypix * fdir ;
+      }
+      dx = nint(*IMAGEFpix(Ioffset,x1,y1) * FSCALE) ;
+      dy = nint(*IMAGEFseq_pix(Ioffset,x1,y1,1) * FSCALE) ;
+      x = x1 ;
+      y = y1 ;
+      ax = ABS(dx) << 1 ;
+      sx = SGN(dx) ;
+      ay = ABS(dy) << 1 ;
+      sy = SGN(dy) ;
+      
+      oxpix = src_xpix++ ;
+      oypix = src_ypix++ ;
+      
+      if (ax > ay)  /* x dominant */
+      {
+        d = ay - (ax >> 1) ;
+        for (steps = 0 ; steps < maxsteps ; steps++)
+        {
+          if (!*IMAGEpix(Icalculated, x, y))
+          {
+            dir = imageOffsetDirection(Ix, Iy, wsize, Iorient, x, y) ;
+            fdir = (float)dir ;
+            *IMAGEpix(Icalculated, x, y) = 1 ;
+            *IMAGEFpix(Ioffset, x, y) = *oxpix * fdir ;
+            *IMAGEFseq_pix(Ioffset, x, y, 1) = *oypix * fdir ;
+          }
+          odx = nint(*IMAGEFpix(Ioffset,x,y) * FSCALE) ;
+          ody = nint(*IMAGEFseq_pix(Ioffset,x,y,1) * FSCALE) ;
+          dot = odx * dx + ody * dy ;
+          if (dot <= 0)
+            break ;
+          if (d >= 0)
+          {
+            yn = y + sy ;
+            if (yn < 0 || yn >= rows)
+              break ;
+            oxpix += (sy * cols) ;
+            oypix += (sy * cols) ;
+            d -= ax ;
+          }
+          else
+            yn = y ;
+          oxpix += sx ;
+          oypix += sx ;
+          xn = x + sx ;
+          if (xn < 0 || xn >= cols)
+            break ;
+
+          x = xn ;
+          y = yn ;
+          d += ay ;
+        }
+      }
+      else    /* y dominant */
+      {
+        d = ax - (ay >> 1) ;
+        for (steps = 0 ; steps < maxsteps ; steps++)
+        {
+          if (!*IMAGEpix(Icalculated, x, y))
+          {
+            dir = imageOffsetDirection(Ix, Iy, wsize, Iorient, x, y) ;
+            fdir = (float)dir ;
+            *IMAGEpix(Icalculated, x, y) = 1 ;
+            *IMAGEFpix(Ioffset, x, y) = *oxpix * fdir ;
+            *IMAGEFseq_pix(Ioffset, x, y, 1) = *oypix * fdir ;
+          }
+          odx = nint(*IMAGEFpix(Ioffset,x,y) * FSCALE) ;
+          ody = nint(*IMAGEFseq_pix(Ioffset,x,y,1) * FSCALE) ;
+          dot = odx * dx + ody * dy ;
+          if (dot <= 0)
+            break ;
+          if (d >= 0)
+          {
+            xn = x + sx ;
+            if (xn < 0 || xn >= cols)
+              break ;
+            oxpix += sx ;
+            oypix += sx ;
+            d -= ay ;
+          }
+          else
+            xn = x ;
+          yn = y + sy ;
+          if (yn < 0 || yn >= rows)
+            break ;
+
+          x = xn ;
+          y = yn ;
+          oypix += (sy * cols) ;
+          oxpix += (sy * cols) ;
+          d += ax ;
+        }
+      }
+
+#if 0
+      *IMAGEFpix(Ioffset, x1, y1) = (float)(x-x1) ;
+      *IMAGEFseq_pix(Ioffset, x1, y1, 1) = (float)(y-y1) ;
+#endif
+
+      dx = (x - x1) ;
+      dy = (y - y1) ;
+
+      switch (Isrc->pixel_format)
+      {
+      case PFFLOAT:
+        /* build array of neighboring pixels - x and y are reused */
+        for (fptr = sort_farray, y = -WHALF ; y <= WHALF ; y++)
+        {
+          /* reflect across the boundary */
+          yc = y + y1 + dy ;
+          if (yc < 0)
+            yc = 0 ;
+          else if (yc >= rows)
+            yc = rows - 1 ;
+          
+          fpix = IMAGEFpix(Isrc, 0, yc) ;
+          for (x = -WHALF ; x <= WHALF ; x++)
+          {
+            xc = x1 + x + dx ;
+            if (xc < 0)
+              xc = 0 ;
+            else if (xc >= cols)
+              xc = cols - 1 ;
+            
+            *fptr++ = *(fpix + xc) ;
+          }
+        }
+        qsort(sort_farray, WSQ, sizeof(float), compare_sort_farray) ;
+        *IMAGEFpix(Iout, ring, spoke) = sort_farray[MEDIAN_INDEX] ;
+        break ;
+      case PFBYTE:
+        /* build array of neighboring pixels - x and y are reused */
+        for (bptr = sort_barray, y = -WHALF ; y <= WHALF ; y++)
+        {
+          /* reflect across the boundary */
+          yc = y + y1 + dy ;
+          if (yc < 0)
+            yc = 0 ;
+          else if (yc >= rows)
+            yc = rows - 1 ;
+          
+          bpix = IMAGEpix(Isrc, 0, yc) ;
+          for (x = -WHALF ; x <= WHALF ; x++)
+          {
+            xc = x1 + x + dx ;
+            if (xc < 0)
+              xc = 0 ;
+            else if (xc >= cols)
+              xc = cols - 1 ;
+            
+            *bptr++ = *(bpix + xc) ;
+          }
+        }
+        qsort(sort_barray, WSQ, sizeof(float), compare_sort_barray) ;
+        *IMAGEpix(Iout, ring, spoke) = sort_barray[MEDIAN_INDEX] ; ;
+        break ;
+      default:
+        ErrorReturn(Idst, (ERROR_UNSUPPORTED, 
+                         "LogMapNonlocal: unsupported pixel format %d",
+                         Iout->pixel_format)) ;
+        break ;
+      }
+    }
+  }
+
+#if 0
+ImageWrite(Icalculated, "calc.hipl") ;
+ImageWrite(Ioffset, "offset_bad.hipl") ;
+#endif
+
+  if (Iout != Idst)
+  {
+    ImageCopy(Iout, Idst) ;
+    ImageFree(&Iout) ;
+  }
+  return(Idst) ;
+}
+
+static int
+compare_sort_farray(const void *pf1, const void *pf2)
+{
+  register float f1, f2 ;
+
+  f1 = *(float *)pf1 ;
+  f2 = *(float *)pf2 ;
+
+/*  return(f1 > f2 ? 1 : f1 == f2 ? 0 : -1) ;*/
+  if (f1 > f2)
+    return(1) ;
+  else if (f1 < f2)
+    return(-1) ;
+
+  return(0) ;
+}
+static int
+compare_sort_barray(const void *pb1, const void *pb2)
+{
+  register byte b1,b2 ;
+
+  b1 = *(float *)pb1 ;
+  b2 = *(float *)pb2 ;
+
+/*  return(b1 > b2 ? 1 : b1 == b2 ? 0 : -1) ;*/
+  if (b1 > b2)
+    return(1) ;
+  else if (b1 < b2)
+    return(-1) ;
+
+  return(0) ;
+}
