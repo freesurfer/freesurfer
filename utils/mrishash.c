@@ -1691,7 +1691,7 @@ MHTfindClosestVertexInTable(MRIS_HASH_TABLE *mht, MRI_SURFACE *mris, float x, fl
     {
       for (xk = -1 ; xk <= 1 ; xk++)
       {      
-        bucket = MHTgetBucket(mht, x, y, z) ;
+        bucket = MHTgetBucket(mht, x+xk, y+yk, z+zk) ;
         if (!bucket)
           continue ;
         bin = bucket->bins ; 
