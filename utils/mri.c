@@ -253,10 +253,12 @@ MATRIX *MRItkReg2Native(MRI *ref, MRI *mov, MATRIX *R)
 }
 /*----------------------------------------------------------------
   MRItkRegMtx() - creates a tkregsiter-compatible matrix from the
-  matrix that aligns the two volumes assuming the native geometry.
+  matrix D that aligns the two volumes assuming the native geometry.
   This is the counterpart to MRITkReg2Native(). If D is null, it is
   assumed to be the identity. R: MovXYZ = R*RefXYZ. Typically,
   Ref is the Anatomical Reference, and Mov is the functional.
+  Use this function with D=NULL when the two volumes have been 
+  aligned with SPM.
   ---------------------------------------------------------------*/
 MATRIX *MRItkRegMtx(MRI *ref, MRI *mov, MATRIX *D)
 {
@@ -264,16 +266,18 @@ MATRIX *MRItkRegMtx(MRI *ref, MRI *mov, MATRIX *D)
   MATRIX *Tref, *Tmov, *R;
   MATRIX *invTmov, *invKref;
 
+  /* Native Goemetry */
   Tref = MRIxfmCRS2XYZ(ref,0);
   Tmov = MRIxfmCRS2XYZ(mov,0);
 
+  /* TkReg Goemetry */
   Kref = MRIxfmCRS2XYZtkreg(ref);
   Kmov = MRIxfmCRS2XYZtkreg(mov);
 
-  /* R = Kmov * inv(Tmov) * D * Tref *inv(Kref) */
   invTmov = MatrixInverse(Tmov,NULL);
   invKref = MatrixInverse(Kref,NULL);
 
+  /* R = Kmov * inv(Tmov) * D * Tref *inv(Kref) */
   R = MatrixMultiply(Kmov,invTmov,NULL);
   if(D != NULL) MatrixMultiply(R,D,R);
   MatrixMultiply(R,Tref,R);
@@ -472,6 +476,34 @@ MATRIX *MRItkreg2FSL(MRI *ref, MRI *mov, MATRIX *tkRegMat)
 
   return(FSLRegMat);
 }
+
+/*--------------------------------------------------------------------------
+  MtxCRS1toCRS0() - generates a matrix that will convert 1-based CRS (as
+  found in SPM matrices) to 0-based CRS, ie, CRS0 = Q*CRS1 (assuming that
+  CRS1 has been packed with a 1 in the 4th component.
+  --------------------------------------------------------------------------*/
+MATRIX *MtxCRS1toCRS0(MATRIX *Q)
+{
+  int r,c;
+
+  if(Q == NULL) Q = MatrixAlloc(4,4,MATRIX_REAL);
+  else{
+    if(Q->rows != 4 || Q->cols != 4){
+      printf("ERROR: MtxCRS1toCRS0(): input matrix is not 4x4\n");
+      return(NULL);
+    }
+  }
+
+  for(r=1;r<=4;r++){
+    for(c=1;c<=4;c++){
+      if(r==c || c==4) Q->rptr[r][c] = 1.0;
+      else             Q->rptr[r][c] = 0.0;
+    }
+  }
+
+  return(Q);
+}
+
 
 /*-------------------------------------------------------------------
   MRIgetVoxVal() - returns voxel value as a float regardless of
