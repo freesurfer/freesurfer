@@ -10,7 +10,7 @@ if { $err } {
     load [file dirname [info script]]/libscuba[info sharedlibextension] scuba
 }
 
-DebugOutput "\$Id: scuba.tcl,v 1.33 2004/06/11 00:19:04 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.34 2004/06/11 23:28:13 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -1211,6 +1211,7 @@ proc MakeToolsPanel { ifwTop } {
 
     global gaWidget
     global gaTool
+    global gaView
 
     set fwTop        $ifwTop.fwToolsProps
     set fwProps      $fwTop.fwProps
@@ -1223,6 +1224,7 @@ proc MakeToolsPanel { ifwTop } {
     set fwPropsCommon        $fwProps.fwPropsCommon
     set fwPropsBrush         $fwProps.fwPropsBrush
     set fwPropsFill          $fwProps.fwPropsFill
+    set fwPropsMarker        $fwProps.fwPropsMarker
 
     tixOptionMenu $fwMenu \
 	-label "Tools:" \
@@ -1317,6 +1319,30 @@ proc MakeToolsPanel { ifwTop } {
     grid $fwPropsFillSub.cb3D          -column 0 -row 2 -sticky ew
 
     set gaWidget(toolProperties,fill) $fwPropsFill
+
+
+    tixLabelFrame $fwPropsMarker \
+	-label "Marker Options" \
+	-labelside acrosstop \
+	-options {label.padX 5}
+
+    set fwPropsMarkerSub [$fwPropsMarker subwidget frame]
+    
+    tkuMakeEntry $fwPropsMarkerSub.ewNumMarkers \
+	-label "Number of Markers" \
+	-width 3 \
+	-font [tkuNormalFont] \
+	-variable gaView(numMarkers) \
+	-command {SetNumberOfViewMarkers $gaView(numMarkers) } \
+	-notify 1
+    set gaWidget(toolProperties,numMarkersEntry) $fwPropsMarkerSub.ewNumMarkers
+
+    grid $fwPropsMarkerSub.ewNumMarkers -column 0 -row 0 -sticky ew
+
+    set gaWidget(toolProperties,marker) $fwPropsMarker
+
+
+
 
     grid $fwMenu        -column 0 -row 0 -sticky news
     grid $fwPropsCommon -column 0 -row 1 -sticky news
@@ -2140,6 +2166,10 @@ proc SelectViewInViewProperties { iViewID } {
 	[GetViewInPlaneMovementIncrement $iViewID $gaView(current,inPlane)]
     tkuRefreshEntryNotify $gaWidget(viewProperties,inPlaneInc)
 
+    # This is the same for every view but get it here anyway.
+    set gaView(numMarkers) [GetNumberOfViewMarkers]
+    tkuRefreshEntryNotify $gaWidget(toolProperties,numMarkersEntry)
+
     for { set nLevel 0 } { $nLevel < 10 } { incr nLevel } {
 	$gaWidget(viewProperties,drawLevelMenu$nLevel) \
 	    config -disablecallback 1
@@ -2249,6 +2279,7 @@ proc SelectToolInToolProperties { iTool } {
     # Unpack the type-specific panels.
     grid forget $gaWidget(toolProperties,brush)
     grid forget $gaWidget(toolProperties,fill)
+    grid forget $gaWidget(toolProperties,marker)
 
     # Get the general layer properties from the specific layer and
     # load them into the 'current' slots.
@@ -2288,6 +2319,9 @@ proc SelectToolInToolProperties { iTool } {
 		[GetToolFloodMaxDistance $gaTool(current,id)]
 	    set gaTool(current,flood3D) \
 		[GetToolFlood3D $gaTool(current,id)]
+	}
+	marker { 
+	    grid $gaWidget(toolProperties,marker) -column 0 -row 2 -sticky ew
 	}
     }
 }

@@ -12,13 +12,26 @@
 #include "ScubaToolState.h"
 #include "ScubaTransform.h"
 
+class ScubaViewStaticTclListener : public DebugReporter, 
+				   public TclCommandListener {
+  
+public:
+  ScubaViewStaticTclListener ();
+  ~ScubaViewStaticTclListener ();
+
+    virtual TclCommandResult
+      DoListenToTclCommand ( char* isCommand, int iArgc, char** iArgv );
+};
+
+
 class ScubaView : public View, 
 		  public ScubaWindowToRASTranslator {
-
+  
   friend class ScubaViewTester;
-
- public:
-
+  friend class ScubaViewStaticTclListener;
+  
+public:
+  
   ScubaView();
   virtual ~ScubaView();
 
@@ -122,10 +135,12 @@ protected:
 
   // Sets a marker in the view, wrapping around the number of markers.
   static void SetNextMarker ( float iRAS[3] );
-
+  static void HideNearestMarker ( float iRAS[3] );
+  
   // Sets the number of markers to use, as well as initializes new
   // markers.
   static void SetNumberOfMarkers ( int icMarkers );
+  static int GetNumberOfMarkers () { return mcMarkers; }
 
   // The different steps in building our display. BuildFrameBuffer()
   // tells all the layers to copy their data to the frame
@@ -195,8 +210,11 @@ protected:
   // Markers.
   static Point3<float> mCursor;
   static int mcMarkers;
+  static int mNextMarker;
   static std::map<int,Point3<float> > mMarkerRAS;  // index from 0 - mcMarkers
   static std::map<int,bool> mMarkerVisible;
+
+  static ScubaViewStaticTclListener mStaticListener;
 
 };  
 

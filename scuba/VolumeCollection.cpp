@@ -903,8 +903,16 @@ VolumeCollection::WriteROIsToSegmentation ( string ifnVolume ) {
 void
 VolumeCollection::CalcWorldToIndexTransform () {
 
+  // I guess we don't really want to do this here.
+#if 0
   mWorldToIndexTransform = mDataToWorldTransform->Inverse();
   mWorldToIndexTransform.ApplyTransform( mDataToIndexTransform );
+#endif
+
+  // This makes it look like tkmedit when it loads a display
+  // transform, is this right???
+  mWorldToIndexTransform =
+    mDataToIndexTransform * mDataToWorldTransform->Inverse();
 
   DataChanged();
 }

@@ -278,14 +278,18 @@ x     - display text, progress, have buttons on right
   - need to duplicate the stuff in mriVolume.c:736?
 
 - markers
-  - tool: 1 set cursor, 2 add marker, 3 delete nearest marker
-  - ScubaView has list of markers with MaxNumMarkers
-    - SetCursor() sets cursor marker
-    - SetMarker() sets next marker, wrapping around
-
+  x tool: 1 set cursor, 2 add marker, 3 delete nearest marker
+  x ScubaView has list of markers with MaxNumMarkers
+    x SetCursor() sets cursor marker
+    x SetMarker() sets next marker, wrapping around
+  - have some kind of 'lock on cursor' option in the view
 
 - edge line
   - parameters for favoring straightness, edge values
+
+- use transform.h TransformRead to load transforms
+  - need TransformCompose to get single matrix
+
 
 DRAWING TOOLS:::
 
@@ -309,6 +313,7 @@ BUGS:::
 - sometimes filling returns an error with NewTask tcl cmd
 - crashing on ROI fill
 - linking doesn't work at all
+- on first boot, doesn't find view before adding volume
 
 FUTURE IDEAS:::
 

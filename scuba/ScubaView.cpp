@@ -13,11 +13,12 @@ using namespace std;
 
 int const ScubaView::kBytesPerPixel = 4;
 map<int,bool> ScubaView::mViewIDLinkedList;
-
 Point3<float> ScubaView::mCursor( 0, 0, 0 );
 int ScubaView::mcMarkers = 0;
+int ScubaView::mNextMarker = -1;
 std::map<int,Point3<float> > ScubaView::mMarkerRAS;
 std::map<int,bool> ScubaView::mMarkerVisible;
+ScubaViewStaticTclListener ScubaView::mStaticListener;
 
 
 int const ScubaView::kcInPlaneMarkerColors = 12;
@@ -792,6 +793,11 @@ ScubaView::DoListenToMessage ( string isMessage, void* iData ) {
     RequestRedisplay();
   }
 
+  if( isMessage == "markerChanged" ) {
+    mbRebuildOverlayDrawList = true;
+    RequestRedisplay();
+  }
+
   if( isMessage == "DrawCoordinateOverlay" ||
       isMessage == "DrawCenterCrosshairOverlay" ) {
     RebuildOverlayDrawList(); // our overlay will be different
@@ -1070,10 +1076,13 @@ ScubaView::DoMouseUp( int iWindow[2],
     case 1:
       SetCursor( world );
       break;
+    case 2:
+      SetNextMarker( world );
+      break;
+    case 3:
+      HideNearestMarker( world );
+      break;
     }
-
-    ScubaViewBroadcaster& broadcaster = ScubaViewBroadcaster::GetBroadcaster();
-    broadcaster.SendBroadcast( "cursorChanged", NULL );
   }
 
 
@@ -1357,16 +1366,69 @@ ScubaView::SetCursor ( float iRAS[3] ) {
   
   // Set the cursor;
   mCursor.Set( iRAS );
+
+  ScubaViewBroadcaster& broadcaster = ScubaViewBroadcaster::GetBroadcaster();
+  broadcaster.SendBroadcast( "cursorChanged", NULL );
 }
 
 void
 ScubaView::SetNextMarker ( float iRAS[3] ) {
 
+  if( mcMarkers > 0 ) {
+    
+    if( mNextMarker >= mcMarkers )
+      mNextMarker = 0;
+
+    mMarkerRAS[mNextMarker] = iRAS;
+    mMarkerVisible[mNextMarker] = true;
+
+    mNextMarker++;
+
+    ScubaViewBroadcaster& broadcaster = ScubaViewBroadcaster::GetBroadcaster();
+    broadcaster.SendBroadcast( "markerChanged", NULL );
+  }
+}
+
+void
+ScubaView::HideNearestMarker ( float iRAS[3] ) {
+
+  float closestDistance = 10000;
+  int nClosestMarker = -1;
+  for( int nMarker = 0; nMarker < mcMarkers; nMarker++ ) {
+    float distance = 
+      sqrt( (mMarkerRAS[nMarker].x() - iRAS[0]) *
+	    (mMarkerRAS[nMarker].x() - iRAS[0]) +
+	    (mMarkerRAS[nMarker].y() - iRAS[1]) *
+	    (mMarkerRAS[nMarker].y() - iRAS[1]) +
+	    (mMarkerRAS[nMarker].z() - iRAS[2]) *
+	    (mMarkerRAS[nMarker].z() - iRAS[2]) );
+    if( distance < closestDistance ) {
+      closestDistance = distance;
+      nClosestMarker = nMarker;
+    }
+  }
+
+  if( -1 != nClosestMarker ) {
+    mMarkerVisible[nClosestMarker] = false;
+
+    ScubaViewBroadcaster& broadcaster = ScubaViewBroadcaster::GetBroadcaster();
+    broadcaster.SendBroadcast( "markerChanged", NULL );
+  }
 }
 
 void
 ScubaView::SetNumberOfMarkers ( int icMarkers ) {
+  
+  if( icMarkers < mcMarkers ) {
+    for( int nMarker = icMarkers; nMarker < mcMarkers; nMarker++ ) {
+      mMarkerVisible[nMarker] = false;
+    }
+  }
 
+  mcMarkers = icMarkers;
+
+  if( mNextMarker >= mcMarkers || mNextMarker < 0 )
+    mNextMarker = 0;
 }
 
 
@@ -1639,6 +1701,20 @@ ScubaView::BuildOverlay () {
     glEnd();
   }
 
+  for( int nMarker = 0; nMarker < mcMarkers; nMarker++ ) {
+    if( mMarkerVisible[nMarker] ) {
+      int markerWindow[2];
+      TranslateRASToWindow( mMarkerRAS[nMarker].xyz(), markerWindow );
+      glColor3f( 0,1,0 );
+      glBegin( GL_LINES );
+      glVertex2d( markerWindow[0] - 5, markerWindow[1] );
+      glVertex2d( markerWindow[0] + 6, markerWindow[1] );
+      glVertex2d( markerWindow[0], markerWindow[1] - 5 );
+      glVertex2d( markerWindow[0], markerWindow[1] + 6 );
+      glEnd();
+    }
+  }
+
 
   glEndList();
 
@@ -1741,3 +1817,46 @@ ScubaViewBroadcaster::SendBroadcast ( std::string isMessage, void* iData ) {
     Broadcaster::SendBroadcast( isMessage, iData );
   }
 }
+
+ScubaViewStaticTclListener::ScubaViewStaticTclListener () {
+
+  TclCommandManager& commandMgr = TclCommandManager::GetManager();
+  commandMgr.AddCommand( *this, "SetNumberOfViewMarkers", 1, "numMarkers", 
+			 "Sets the number of view markers." );
+  commandMgr.AddCommand( *this, "GetNumberOfViewMarkers", 0, "", 
+			 "Returns the number of view markers." );
+}
+
+ScubaViewStaticTclListener::~ScubaViewStaticTclListener () {
+}
+
+TclCommandListener::TclCommandResult
+ScubaViewStaticTclListener::DoListenToTclCommand ( char* isCommand, 
+					       int iArgc, char** iasArgv ) {
+
+  // SetNumberOfViewMarkers <number>
+  if( 0 == strcmp( isCommand, "SetNumberOfViewMarkers" ) ) {
+    int cMarkers = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad number of markers";
+      return error;
+    }
+    
+    ScubaView::SetNumberOfMarkers( cMarkers );
+  }
+
+  // GetNumberOfViewMarkers
+  if( 0 == strcmp( isCommand, "GetNumberOfViewMarkers" ) ) {
+
+      sReturnFormat = "i";
+      stringstream ssReturnValues;
+      ssReturnValues << ScubaView::GetNumberOfMarkers();
+      sReturnValues = ssReturnValues.str();
+  }
+
+
+  return ok;
+}
+
+
+
