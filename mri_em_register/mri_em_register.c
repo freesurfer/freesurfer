@@ -6,8 +6,8 @@
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2004/05/27 18:23:17 $
-// Revision       : $Revision: 1.43 $
+// Revision Date  : $Date: 2004/11/15 19:18:30 $
+// Revision       : $Revision: 1.44 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -139,7 +139,7 @@ main(int argc, char *argv[])
   float        old_log_p, log_p ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_em_register.c,v 1.43 2004/05/27 18:23:17 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_em_register.c,v 1.44 2004/11/15 19:18:30 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -500,7 +500,7 @@ main(int argc, char *argv[])
     MRIfree(&mri_aligned) ;
     
     /*		Glta->xforms[0].m_L = m_L ;*/
-    sprintf(fname, "%s%3.3d_fsamples.mgh", parms.base_name, parms.start_t++) ;
+    sprintf(fname, "%s%3.3d_fsamples.mgz", parms.base_name, parms.start_t++) ;
     GCAtransformAndWriteSamples(gca, mri_in, parms.gcas, nsamples, fname, transform) ;
   }
   /////////////////////////////////////////////////////////////////////////
@@ -938,7 +938,7 @@ find_optimal_transform(MRI *mri, GCA *gca, GCA_SAMPLE *gcas, int nsamples,
       MRIwrite(mri, fname) ;
       sprintf(fname, "%s_centering0", parms.base_name) ;
       MRIwriteImageViews(mri, fname, IMAGE_SIZE) ;
-      sprintf(fname, "%s_fsamples_centering0.mgh", parms.base_name) ;
+      sprintf(fname, "%s_fsamples_centering0.mgz", parms.base_name) ;
       GCAtransformAndWriteSamples(gca, mri, gcas, nsamples, 
 																	fname, transform) ;
     }
@@ -1022,13 +1022,13 @@ find_optimal_transform(MRI *mri, GCA *gca, GCA_SAMPLE *gcas, int nsamples,
       mri_aligned = MRIlinearTransform(mri, NULL, m_L) ;
       sprintf(fname, "%s_centering1", parms.base_name) ;
       MRIwriteImageViews(mri_aligned, fname, IMAGE_SIZE) ;
-      sprintf(fname, "%s_after_centering.mgh", parms.base_name) ;
+      sprintf(fname, "%s_after_centering.mgz", parms.base_name) ;
       printf("writing image after centering to %s...\n", fname) ;
 #if 0
       MRIwrite(mri_aligned, fname) ;
 #else
       Glta->xforms[0].m_L = m_L ;
-      sprintf(fname, "%s_fsamples_centering1.mgh", parms.base_name) ;
+      sprintf(fname, "%s_fsamples_centering1.mgz", parms.base_name) ;
       printf("writing samples after centering to %s...\n", fname) ;
       GCAtransformAndWriteSamples(gca, mri, gcas, nsamples, 
 																	fname, transform) ;
@@ -1067,12 +1067,12 @@ find_optimal_transform(MRI *mri, GCA *gca, GCA_SAMPLE *gcas, int nsamples,
       mri_aligned = MRIlinearTransform(mri, NULL, m_L) ;
       sprintf(fname, "%s%03d", parms.base_name, parms.start_t+niter+1) ;
       MRIwriteImageViews(mri_aligned, fname, IMAGE_SIZE) ;
-      sprintf(fname, "%s%03d.mgh", parms.base_name, parms.start_t+niter+1) ;
+      sprintf(fname, "%s%03d.mgz", parms.base_name, parms.start_t+niter+1) ;
 #if 0
       MRIwrite(mri_aligned, fname) ;
 #else
       Glta->xforms[0].m_L = m_L ;
-      sprintf(fname, "%s%3.3d_fsamples.mgh", parms.base_name, parms.start_t+niter+1) ;
+      sprintf(fname, "%s%3.3d_fsamples.mgz", parms.base_name, parms.start_t+niter+1) ;
       GCAtransformAndWriteSamples(gca, mri, gcas, nsamples, fname, transform) ;
 #endif
 
