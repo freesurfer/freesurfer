@@ -1,5 +1,11 @@
 #!/usr/bin/wish
 
+#-------------------- NOTICE ------------------------------------#
+# This program is under revision control. Do not edit it without
+# going through the proper checkin/checkout steps!
+#----------------------------------------------------------------#
+
+
 # this script looks at the headers of ima files in a predetermined archive directory. The default archive directory is over-ridden by the environment variable ARCHIVE_DIR. the user selects a session and the path to that session is proveded to the script that copies the relevant files via nfs to the local machine and unpacks them locally into b shorts.
 
 # Copyright (C) 2001 Tony Harris tony@nmr.mgh.harvard.edu
@@ -166,7 +172,7 @@ set beforeMonthLabel [clock format $currentTime -format %b ]
 set beforeYear  [clock format $currentTime -format %Y ]
 
 # list of stuff to kill when "stop" button is pressed
-set mySubProcesses [list ima2mnc ima2mnc.nofork unpackmincdir unpackimadir mri_convert dicomserver dicomserver.nofork siemens_dicom_send ]
+set mySubProcesses [list ima2mnc ima2mnc.nofork unpackmincdir unpackimadir unpackimadir2 mri_convert dicomserver dicomserver.nofork siemens_dicom_send ]
 
 #--------------------------------  dicom send strings   ----------------------------------#
 
@@ -2325,7 +2331,7 @@ proc TransferSortMincFiles {destinationDir} \
 proc Ima2sessions {destinationDir} \
     {
        global copyDone log noArchBin archBin ima2sessionsPipe \
-              sourceDir 
+              sourceDir unpackimadir_cmd seqcfgoption
   #puts "cp ${sourceDir}/${fileName} ${destinationDir}/${fileName}"
         if { $copyDone } \
            { 
@@ -2346,16 +2352,16 @@ proc Ima2sessions {destinationDir} \
      } 
 
 
-       if { ! [ file exists $noArchBin/unpackimadir ] } \
+       if { ! [ file exists $noArchBin/$unpackimadir_cmd ] } \
      {
           CreateAlertDialog "Error" \
-                   "Couldn't find $noArchBin/unpackimadir"
+                   "Couldn't find $noArchBin/$unpackimadir_cmd"
              return 1
      }
 
        #puts "$noArchBin/unpackimadir  -src $sourceDir -targ $destinationDir"
 
-  set ima2sessionsPipe [open "|$noArchBin/unpackimadir -src $sourceDir -targ $destinationDir -keepminc" ]
+  set ima2sessionsPipe [open "|$noArchBin/$unpackimadir_cmd -src $sourceDir -targ $destinationDir $seqcfgoption" ]
 
         fileevent $ima2sessionsPipe readable { Log $ima2sessionsPipe }
         fconfigure $ima2sessionsPipe -blocking 0
@@ -3113,31 +3119,37 @@ bind all <Control-q> { exit }
 
 #----------------------- COMMAND LINE STUFF ---------------------------------#
 
-if { $argc > 1 } \
-  {
-    tk_messageBox -type ok -default ok -title "Error" \
-                       -message "usage:  unpack_ima.tcl \[distination dir\]" -icon warning
-    exit
-  }
+set targetDir .
+set unpackimadir_cmd unpackimadir
+set seqcfgoption ""
 
-switch -exact $argc \
-    {
-      0  { set targetDir "." } ; #      0  { set targetDir $env(HOME) }
+# Parse Command line options #
+set ntharg 0
+while  { $ntharg < $argc } {
 
-      1  {
-            if { [file isdirectory $targetDir] && [ file writable  $targetDir] } \
-               { set targetDir [ lindex $argv 0 ] }
-   }
- 
-      default  { 
-                  tk_messageBox -type ok -default ok -title "Command Line Help" \
-                              -icon question \
-                                                         -message $commandLineHelp
-                set targetDir .
-         }
+  set option [lindex $argv $ntharg];
+  #puts "option $ntharg $option"
+  incr ntharg 1
 
+  # number or arguments remaining
+  set nargrem [expr $argc - $ntharg]; 
 
+  switch -exact -- $option {
+    -unpackimadir2 {
+       set seqcfgfile "$env(MRI_DIR)/scanseq.unpackcfg"
+       set unpackimadir_cmd unpackimadir2
+       set seqcfgoption "-seqcfg $seqcfgfile"
+       #puts stdout "SeqCfgFile $seqcfgfile"
     }
+    -unpackimadir {
+       set unpackimadir_cmd unpackimadir
+       set seqcfgoption ""
+    }
+    default { 
+       set targetDir $option
+    }
+  }
+}
 
 #----------------------- DEPENDENCIES STUFF ---------------------------------#
 
