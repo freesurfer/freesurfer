@@ -231,11 +231,6 @@ save window size and position on quit
 option menus for data collections in label dlogs
  - add -menu type to dlog code
 
-
-
-- volume drawing caching
-  - problem is voxel sizes, so what if we resize and align the volume so that each voxel == 1 RAS point, and then create a volume of xyz translations, map<float[3],float[3]>, so the left-side RAS coords can just be rint-ed ... this would work for voxel size < 1, but waht about > 1, maybe just a matter of fixing the bounds
-
 x - edge line
 x  - on handle tool, find shortest path based on volume
 x  - add buffer bound info to view state
@@ -263,7 +258,7 @@ x     - functions to NewTask, UpdateTask, CheckForTaskButtons
 x   - change scuba.tcl functions
 x     - display text, progress, have buttons on right
 
-- data transforms
+x data transforms
   x DataCollection transform
   x VolumeCollection uses combo of world->data and data->index
   x interface for setting transform in VolumeCollection
@@ -314,13 +309,10 @@ x markers
 
 
 BUGS:::
-- fix radius in brush, it's really ugly
 - tabbing when in console switches frame, disable?
 - brings up tkcon window briefly when booting
-- sometimes filling returns an error with NewTask tcl cmd
-- crashing on ROI fill
 - markers and cursor draw at different slices when zoomed in
-- load up with no data, go to 2x2 view, switch view 0 to y, view 0's int line comes up in other views but other views' lines don't show in 0
+
 
 FUTURE IDEAS:::
 
@@ -331,11 +323,3 @@ nav tools draw onscreen sliders for feedback
  - on mouse down with right tool, draw scale bar
  - function to translate v position into modifcation value
  - start at mouse point, use expo scale towards edge for min/max values
-
-
-hi cras 
-
-    1      0      0 3.93991
-     0      1      0 -0.670391
-     0      0      1 4.81862
-     0      0      0      1

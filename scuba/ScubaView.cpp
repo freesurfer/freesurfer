@@ -1,6 +1,7 @@
 #include "string_fixed.h"
 #include <stdlib.h>
 #include <stdexcept>
+#include <iomanip>
 #include "glut.h"
 #include "ScubaView.h"
 #include "PreferencesManager.h"
@@ -10,6 +11,7 @@
 #include "Point3.h"
 #include "VectorOps.h"
 #include "Utilities.h"
+
 
 using namespace std;
 
@@ -232,6 +234,32 @@ ScubaView::Set2DInPlane ( ViewState::Plane iPlane ) {
   // Changed in plane, so we need to rebuild the overlay.
   RebuildOverlayDrawList();
   RequestRedisplay();
+}
+
+void
+ScubaView::Set2DPlaneNormalOrthogonalToInPlane () {
+
+  // Reset our plane normal. 
+  float plane[3];
+  switch( mViewState.mInPlane ) {
+  case ViewState::X:
+    plane[0] = 1; 
+    plane[1] = 0;
+    plane[2] = 0;
+    break;
+  case ViewState::Y:
+    plane[0] = 0;
+    plane[1] = 1;
+    plane[2] = 0;
+    break;
+  case ViewState::Z:
+    plane[0] = 0; 
+    plane[1] = 0;
+    plane[2] = 1;
+    break;
+  }
+
+  Set2DPlaneNormal( plane );
 }
 
 void
@@ -1149,24 +1177,13 @@ ScubaView::DoMouseMoved( int iWindow[2],
 	    break;
 	  }
 	  
-	  // Translate the original view center into a window center.
-	  Point3<float> oldCenterWindow;
-	  mViewToWindow.MultiplyVector3( mOriginalCenterRAS, 
-					 oldCenterWindow.xyz() );
+	  // Do the move.
+	  Point3<float> newCenterRAS;
+	  TranslateRASInWindowSpace( mOriginalCenterRAS, move.xyz(), 
+				     newCenterRAS.xyz() );
 
-	  // Apply the move.
-	  Point3<float> newCenterWindow;
-	  newCenterWindow[0] = oldCenterWindow[0] + move[0];
-	  newCenterWindow[1] = oldCenterWindow[1] + move[1];
-	  newCenterWindow[2] = oldCenterWindow[2] + move[2];
-
-	  // Convert back into view.
-	  Point3<float> newCenterView;
-	  mViewToWindow.InvMultiplyVector3( newCenterWindow.xyz(),
-					    newCenterView.xyz() );
-	  
 	  // Set the new center.
-	  Set2DRASCenter( newCenterView.xyz() );
+	  Set2DRASCenter( newCenterRAS.xyz() );
 
 	} else if( iTool.GetMode() == ScubaToolState::plane ) {
 
@@ -1198,24 +1215,13 @@ ScubaView::DoMouseMoved( int iWindow[2],
 		break;
 	      }
 	      
-	      // Translate the original view center into a window center.
-	      Point3<float> oldCenterWindow;
-	      mViewToWindow.MultiplyVector3( mOriginalCenterRAS, 
-					     oldCenterWindow.xyz() );
-	      
-	      // Apply the move.
-	      Point3<float> newCenterWindow;
-	      newCenterWindow[0] = oldCenterWindow[0] + move[0];
-	      newCenterWindow[1] = oldCenterWindow[1] + move[1];
-	      newCenterWindow[2] = oldCenterWindow[2] + move[2];
-	      
-	      // Convert back into view.
-	      Point3<float> newCenterView;
-	      mViewToWindow.InvMultiplyVector3( newCenterWindow.xyz(),
-						newCenterView.xyz() );
-	      
+	      // Do the move.
+	      Point3<float> newCenterRAS;
+	      TranslateRASInWindowSpace( mOriginalCenterRAS, move.xyz(), 
+					 newCenterRAS.xyz() );
+
 	      // Set the new center in the view.
-	      scubaView.Set2DRASCenter( newCenterView.xyz() );
+	      scubaView.Set2DRASCenter( newCenterRAS.xyz() );
 	      
 	    } break;
 	    
@@ -1287,7 +1293,7 @@ ScubaView::DoMouseMoved( int iWindow[2],
 }
 
 void
-ScubaView::DoMouseUp( int iWindow[2],
+  ScubaView::DoMouseUp( int iWindow[2],
 		      InputState& iInput, ScubaToolState& iTool ) {
 
   // No matter what tool we're on, look for ctrl-b{1,2,3} and do some
@@ -1340,6 +1346,20 @@ ScubaView::DoMouseUp( int iWindow[2],
 
   // Unselect view intersection line if plane tool.
   if( iTool.GetMode() == ScubaToolState::plane ) {
+    
+    // If we clicked with button 3, set the plane to its orthogonal
+    // position.
+    if( mCurrentMovingViewIntersection != -1 && 
+	iInput.Button() == 3 ) {
+
+      // Get the view..
+      View& view = View::FindByID( mCurrentMovingViewIntersection );
+      // ScubaView& scubaView = dynamic_cast<ScubaView&>(view);
+      ScubaView& scubaView = (ScubaView&)view;
+
+      scubaView.Set2DPlaneNormalOrthogonalToInPlane();
+    }
+
     mCurrentMovingViewIntersection = -1;
     mbRebuildOverlayDrawList = true;
     RequestRedisplay();
@@ -1484,67 +1504,53 @@ ScubaView::DoKeyDown( int iWindow[2],
       key == msMoveViewDown || key == msMoveViewUp ||
       key == msMoveViewIn   || key == msMoveViewOut ) {
     
-    float newRAS[3];
-    newRAS[0] = mViewState.mCenterRAS[0];
-    newRAS[1] = mViewState.mCenterRAS[1];
-    newRAS[2] = mViewState.mCenterRAS[2];
+    float move[3] = {0, 0, 0};
 
     if( key == msMoveViewLeft ) {
       switch( mViewState.mInPlane ) {
-      case ViewState::X: 
-	newRAS[1] = mViewState.mCenterRAS[1] - moveDistance; break;
-      case ViewState::Y: 
-	newRAS[0] = mViewState.mCenterRAS[0] - moveDistance; break;
-      case ViewState::Z: 
-	newRAS[0] = mViewState.mCenterRAS[0] - moveDistance; break;
+      case ViewState::X: move[1] = -moveDistance; break;
+      case ViewState::Y: move[0] = moveDistance; break;
+      case ViewState::Z: move[0] = moveDistance; break;
       }
     } else if( key == msMoveViewRight ) {
       switch( mViewState.mInPlane ) {
-      case ViewState::X: 
-	newRAS[1] = mViewState.mCenterRAS[1] + moveDistance; break;
-      case ViewState::Y: 
-	newRAS[0] = mViewState.mCenterRAS[0] + moveDistance; break;
-      case ViewState::Z: 
-	newRAS[0] = mViewState.mCenterRAS[0] + moveDistance; break;
+      case ViewState::X: move[1] = moveDistance; break;
+      case ViewState::Y: move[0] = -moveDistance; break;
+      case ViewState::Z: move[0] = -moveDistance; break;
       }
     } else if( key == msMoveViewDown ) {
       switch( mViewState.mInPlane ) {
-      case ViewState::X: 
-	newRAS[2] = mViewState.mCenterRAS[2] - moveDistance; break;
-      case ViewState::Y: 
-	newRAS[2] = mViewState.mCenterRAS[2] - moveDistance; break;
-      case ViewState::Z: 
-	newRAS[1] = mViewState.mCenterRAS[1] - moveDistance; break;
+      case ViewState::X: move[2] = -moveDistance; break;
+      case ViewState::Y: move[2] = -moveDistance; break;
+      case ViewState::Z: move[1] = -moveDistance; break;
       }
     } else if( key == msMoveViewUp ) {
       switch( mViewState.mInPlane ) {
-      case ViewState::X: 
-	newRAS[2] = mViewState.mCenterRAS[2] + moveDistance; break;
-      case ViewState::Y: 
-	newRAS[2] = mViewState.mCenterRAS[2] + moveDistance; break;
-      case ViewState::Z: 
-	newRAS[1] = mViewState.mCenterRAS[1] + moveDistance; break;
+      case ViewState::X: move[2] = moveDistance; break;
+      case ViewState::Y: move[2] = moveDistance; break;
+      case ViewState::Z: move[1] = moveDistance; break;
       }
     } else if( key == msMoveViewIn ) {
       switch( mViewState.mInPlane ) {
-      case ViewState::X: 
-	newRAS[0] = mViewState.mCenterRAS[0] + moveDistance; break;
-      case ViewState::Y: 
-	newRAS[1] = mViewState.mCenterRAS[1] + moveDistance; break;
-      case ViewState::Z: 
-	newRAS[2] = mViewState.mCenterRAS[2] + moveDistance; break;
+      case ViewState::X: move[0] = moveDistance; break;
+      case ViewState::Y: move[1] = moveDistance; break;
+      case ViewState::Z: move[2] = moveDistance; break;
       }
     } else if( key == msMoveViewOut ) {
       switch( mViewState.mInPlane ) {
-      case ViewState::X: 
-	newRAS[0] = mViewState.mCenterRAS[0] - moveDistance; break;
-      case ViewState::Y: 
-	newRAS[1] = mViewState.mCenterRAS[1] - moveDistance; break;
-      case ViewState::Z: 
-	newRAS[2] = mViewState.mCenterRAS[2] - moveDistance; break;
+      case ViewState::X: move[0] = -moveDistance; break;
+      case ViewState::Y: move[1] = -moveDistance; break;
+      case ViewState::Z: move[2] = -moveDistance; break;
       }
     }
-    Set2DRASCenter( newRAS );
+
+    // Do the move.
+    float centerRAS[3];
+    float newCenterRAS[3];
+    Get2DRASCenter( centerRAS );
+    TranslateRASInWindowSpace( centerRAS, move, newCenterRAS );
+
+    Set2DRASCenter( newCenterRAS );
 
     // Rebuild our label value info because the view has moved.
     float ras[3];
@@ -1699,8 +1705,8 @@ ScubaView::TranslateRASToWindow ( float const iRAS[3], int oWindow[2] ) {
     break;
   }
 
-  oWindow[0] = (int) rint( xWindow );
-  oWindow[1] = (int) rint( yWindow );
+  oWindow[0] = (int)rint( xWindow );
+  oWindow[1] = (int)rint( yWindow );
 }
 
 float
@@ -1709,6 +1715,23 @@ ScubaView::ConvertRASToWindow ( float iRAS, float iRASCenter,
 
   return ((iRAS - iRASCenter) * mViewState.mZoomLevel) +
     (iWindowDimension / 2.0);
+}
+
+void
+ScubaView::TranslateRASInWindowSpace ( float iRAS[3], float iMove[3],
+				       float oRAS[3] ) {
+
+  // Translate the view point into a window point.
+  Point3<float> window;
+  mViewToWindow.MultiplyVector3( iRAS, window.xyz() );
+
+  // Apply the move.
+  window[0] += iMove[0];
+  window[1] += iMove[1];
+  window[2] += iMove[2];
+  
+  // Convert back into view.
+  mViewToWindow.InvMultiplyVector3( window.xyz(), oRAS );
 }
 
 void
@@ -2052,7 +2075,7 @@ ScubaView::BuildOverlay () {
 	    Point3<float> P1, P2;
 	    P1.Set( mViewIDViewIntersectionPointMap[viewID][0] );
 	    P2.Set( mViewIDViewIntersectionPointMap[viewID][1] );
-	    
+
 	    // Transform to window points. These are the two points
 	    // to connect to draw a line.
 	    Point2<int> drawPoint1;
@@ -2165,8 +2188,10 @@ ScubaView::RebuildLabelValueInfo ( float  iRAS[3],
 
   // Get the RAS coords into a string and set that label/value.
   stringstream ssRASCoords;
-  ssRASCoords.width(5);
-  ssRASCoords << iRAS[0] << " " << iRAS[1] << " " << iRAS[2];
+  char sDigit[10];
+  sprintf( sDigit, "%.2f", iRAS[0] );  ssRASCoords << sDigit << " ";
+  sprintf( sDigit, "%.2f", iRAS[1] );  ssRASCoords << sDigit << " ";
+  sprintf( sDigit, "%.2f", iRAS[2] );  ssRASCoords << sDigit;
   labelValueMap["RAS"] = ssRASCoords.str();
 
   // Go through our draw levels. For each one, get the Layer.
@@ -2186,8 +2211,7 @@ ScubaView::RebuildLabelValueInfo ( float  iRAS[3],
     }
   }
 
-  // Set this labelValueMap in the array of label values under the
-  // name 'cursor'.
+  // Set this labelValueMap in the array of label values.
   mLabelValueMaps[isLabel] = labelValueMap;
 
 }

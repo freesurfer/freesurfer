@@ -17,7 +17,6 @@ VolumeCollection::VolumeCollection () :
   mEdgeVoxels = NULL;
   mSelectedVoxels = NULL;
   mVoxelSize[0] = mVoxelSize[1] = mVoxelSize[2] = 0;
-  mOneOverVoxelSize[0] = mOneOverVoxelSize[1] = mOneOverVoxelSize[2] = 0;
 
   TclCommandManager& commandMgr = TclCommandManager::GetManager();
   commandMgr.AddCommand( *this, "SetVolumeCollectionFileName", 2, 
@@ -85,19 +84,6 @@ VolumeCollection::GetMRI() {
     m.SetMatrix( voxelFromSurfaceRAS );
     MatrixFree( &voxelFromSurfaceRAS );
 
-#if 0
-    // This is our RAS -> surfaceRAS transform.
-    Matrix44 n;
-    n.SetMatrix( 1, 0, 0, -mMRI->c_r,
-		 0, 1, 0, -mMRI->c_a,
-		 0, 0, 1, -mMRI->c_s,
-		 0, 0, 0, 1 );
-
-
-    // Apply the former to the latter to get RAS -> index
-    m.ApplyTransformMatrix( n );
-#endif
-
     mDataToIndexTransform.SetMainTransform( m );
 
     CalcWorldToIndexTransform();
@@ -126,9 +112,6 @@ VolumeCollection::GetMRI() {
     mVoxelSize[0] = mMRI->xsize;
     mVoxelSize[1] = mMRI->ysize;
     mVoxelSize[2] = mMRI->zsize;
-    mOneOverVoxelSize[0] = 1.0 / mVoxelSize[0];
-    mOneOverVoxelSize[1] = 1.0 / mVoxelSize[1];
-    mOneOverVoxelSize[2] = 1.0 / mVoxelSize[2];
 
     try { 
       // CalcDataToIndexCache(); 
@@ -239,21 +222,26 @@ VolumeCollection::GetMRINearestValueAtRAS ( float iRAS[3] ) {
     int index[3];
     RASToMRIIndex( iRAS, index );
 
-    switch( mMRI->type ) {
-    case MRI_UCHAR:
-      value = (float)MRIvox(mMRI, index[0], index[1], index[2] );
-      break ;
-    case MRI_SHORT:
+    if( index[0] >= 0 && index[0] < mMRI->width &&
+	index[1] >= 0 && index[1] < mMRI->height &&
+	index[2] >= 0 && index[2] < mMRI->depth ) {
+      
+      switch( mMRI->type ) {
+      case MRI_UCHAR:
+	value = (float)MRIvox(mMRI, index[0], index[1], index[2] );
+	break ;
+      case MRI_SHORT:
       value = (float)MRISvox(mMRI, index[0], index[1], index[2] );
       break ;
-    case MRI_INT:
-      value = (float)MRIIvox(mMRI, index[0], index[1], index[2] );
-      break ;
-    case MRI_FLOAT:
-      value = MRIFvox(mMRI, index[0], index[1], index[2] );
-      break ;
-    default:
-      value = 0;
+      case MRI_INT:
+	value = (float)MRIIvox(mMRI, index[0], index[1], index[2] );
+	break ;
+      case MRI_FLOAT:
+	value = MRIFvox(mMRI, index[0], index[1], index[2] );
+	break ;
+      default:
+	value = 0;
+      }
     }
   }
   
@@ -267,8 +255,14 @@ VolumeCollection::GetMRITrilinearValueAtRAS ( float iRAS[3] ) {
   if( NULL != mMRI ) {
     float index[3];
     RASToMRIIndex( iRAS, index );
-    MRIsampleVolumeType( mMRI, index[0], index[1], index[2],
-			 &value, SAMPLE_TRILINEAR );
+
+    if( index[0] >= 0 && index[0] < mMRI->width &&
+	index[1] >= 0 && index[1] < mMRI->height &&
+	index[2] >= 0 && index[2] < mMRI->depth ) {
+      
+      MRIsampleVolumeType( mMRI, index[0], index[1], index[2],
+			   &value, SAMPLE_TRILINEAR );
+    }
   }
   return (float)value;
 }
@@ -280,8 +274,14 @@ VolumeCollection::GetMRISincValueAtRAS ( float iRAS[3] ) {
   if( NULL != mMRI ) {
     float index[3];
     RASToMRIIndex( iRAS, index );
-    MRIsampleVolumeType( mMRI, index[0], index[1], index[2],
-			 &value, SAMPLE_SINC );
+
+    if( index[0] >= 0 && index[0] < mMRI->width &&
+	index[1] >= 0 && index[1] < mMRI->height &&
+	index[2] >= 0 && index[2] < mMRI->depth ) {
+      
+      MRIsampleVolumeType( mMRI, index[0], index[1], index[2],
+			   &value, SAMPLE_SINC );
+    }
   }
   return (float)value;
 }
@@ -667,33 +667,41 @@ VolumeCollection::GetRASPointsInCube ( float iCenterRAS[3], float iRadius,
 				       bool ibBrushZ,
 				       list<Point3<float> >& oPoints ) {
   
-  // Find out the RAS.bounds.
-  float beginX = iCenterRAS[0] - iRadius;
-  float endX   = iCenterRAS[0] + iRadius;
-  float beginY = iCenterRAS[1] - iRadius;
-  float endY   = iCenterRAS[1] + iRadius;
-  float beginZ = iCenterRAS[2] - iRadius;
-  float endZ   = iCenterRAS[2] + iRadius;
-
-  // Limit according to our dimensions.
+  Point3<float> centerRAS( iCenterRAS );
+  Point3<int> centerIdx;
+  RASToMRIIndex( centerRAS.xyz(), centerIdx.xyz() );
+  int cXVoxels = (int)ceil( iRadius / GetVoxelXSize() );
+  int cYVoxels = (int)ceil( iRadius / GetVoxelYSize() );
+  int cZVoxels = (int)ceil( iRadius / GetVoxelZSize() );
+  
   if( !ibBrushX ) {
-    beginX = endX = iCenterRAS[0];
+    cXVoxels = 0;
   }
   if( !ibBrushY ) {
-    beginY = endY = iCenterRAS[1];
+    cYVoxels = 0;
   }
   if( !ibBrushZ ) {
-    beginZ = endZ = iCenterRAS[2];
+    cZVoxels = 0;
   }
 
-  // Go through the RAS coords and step in half the voxel size
-  // amount. Then add each to the list.
-  for( float nZ = beginZ; nZ <= endZ; nZ += GetVoxelXSize()/2.0 ) {
-    for( float nY = beginY; nY <= endY; nY += GetVoxelYSize()/2.0 ) {
-      for( float nX = beginX; nX <= endX; nX += GetVoxelZSize()/2.0 ) {
-	Point3<float> ras( nX, nY, nZ );
+  oPoints.push_back( Point3<float>(iCenterRAS) );
+  
+  for( int nZ = -cZVoxels; nZ <= cZVoxels; nZ ++ ) {
+    for( int nY = -cYVoxels; nY <= cYVoxels; nY ++ ) {
+      for( int nX = -cXVoxels; nX <= cXVoxels; nX ++ ) {
+
+	Point3<float> ras( iCenterRAS[0] + nX*GetVoxelXSize(),
+			   iCenterRAS[1] + nY*GetVoxelYSize(),
+			   iCenterRAS[2] + nZ*GetVoxelZSize() );
+	
+	if( fabs(ras[0] - iCenterRAS[0]) > iRadius ||
+	    fabs(ras[1] - iCenterRAS[1]) > iRadius ||
+	    fabs(ras[2] - iCenterRAS[2]) > iRadius ) {
+	  continue;
+	}
+
 	if( IsRASInMRIBounds(ras.xyz()) )
-	    oPoints.push_back( ras );
+	  oPoints.push_back( ras );
       }
     }
   }
@@ -704,48 +712,50 @@ VolumeCollection::GetRASPointsInSphere ( float iCenterRAS[3], float iRadius,
 					 bool ibBrushX, bool ibBrushY,
 					 bool ibBrushZ,
 					 list<Point3<float> >& oPoints ) {
-  // Find out the RAS.bounds.
-  float beginX = iCenterRAS[0] - iRadius;
-  float endX   = iCenterRAS[0] + iRadius;
-  float beginY = iCenterRAS[1] - iRadius;
-  float endY   = iCenterRAS[1] + iRadius;
-  float beginZ = iCenterRAS[2] - iRadius;
-  float endZ   = iCenterRAS[2] + iRadius;
 
-  // Limit according to our dimensions.
+  Point3<float> centerRAS( iCenterRAS );
+  Point3<int> centerIdx;
+  RASToMRIIndex( centerRAS.xyz(), centerIdx.xyz() );
+  int cXVoxels = (int)ceil( iRadius / GetVoxelXSize() );
+  int cYVoxels = (int)ceil( iRadius / GetVoxelYSize() );
+  int cZVoxels = (int)ceil( iRadius / GetVoxelZSize() );
+  
   if( !ibBrushX ) {
-    beginX = endX = iCenterRAS[0];
+    cXVoxels = 0;
   }
   if( !ibBrushY ) {
-    beginY = endY = iCenterRAS[1];
+    cYVoxels = 0;
   }
   if( !ibBrushZ ) {
-    beginZ = endZ = iCenterRAS[2];
+    cZVoxels = 0;
   }
 
-  // Go through the RAS coords and step in half the voxel size
-  // amount. Check the distance for the sphere shape. Then add each to
-  // the list.
-  for( float nZ = beginZ; nZ <= endZ; nZ += GetVoxelXSize()/2.0 ) {
-    for( float nY = beginY; nY <= endY; nY += GetVoxelYSize()/2.0 ) {
-      for( float nX = beginX; nX <= endX; nX += GetVoxelZSize()/2.0 ) {
+  oPoints.push_back( Point3<float>(iCenterRAS) );
+  
+  for( int nZ = -cZVoxels; nZ <= cZVoxels; nZ ++ ) {
+    for( int nY = -cYVoxels; nY <= cYVoxels; nY ++ ) {
+      for( int nX = -cXVoxels; nX <= cXVoxels; nX ++ ) {
 
-	float distance = sqrt( ((nX-iCenterRAS[0]) * (nX-iCenterRAS[0])) + 
-			       ((nY-iCenterRAS[1]) * (nY-iCenterRAS[1])) + 
-			       ((nZ-iCenterRAS[2]) * (nZ-iCenterRAS[2])) );
+	Point3<float> ras( iCenterRAS[0] + nX*GetVoxelXSize(),
+			   iCenterRAS[1] + nY*GetVoxelYSize(),
+			   iCenterRAS[2] + nZ*GetVoxelZSize() );
+	
+	float distance = 
+	  sqrt( ((ras[0]-iCenterRAS[0]) * (ras[0]-iCenterRAS[0])) + 
+		((ras[1]-iCenterRAS[1]) * (ras[1]-iCenterRAS[1])) + 
+		((ras[2]-iCenterRAS[2]) * (ras[2]-iCenterRAS[2])) );
 
 	if( distance > iRadius ) {
 	  continue;
 	}
 
-	Point3<float> ras( nX, nY, nZ );
 	if( IsRASInMRIBounds(ras.xyz()) )
 	  oPoints.push_back( ras );
       }
     }
   }
-
 }
+
 
 void
 VolumeCollection::WriteROIToLabel ( int iROIID, string ifnLabel ) {

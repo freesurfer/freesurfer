@@ -158,31 +158,28 @@ ScubaLayer2DMRI::DrawIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
       iTranslator.TranslateWindowToRAS( window, RAS );
       windowToRAS.Set( window[0], window[1], Point3<float>( RAS ) );
 
-
-      if( mVolume->IsRASInMRIBounds( RAS ) ) {
-	
-	switch( mSampleMethod ) {
-	case nearest:  value = mVolume->GetMRINearestValueAtRAS( RAS );  break;
-	case trilinear:value = mVolume->GetMRITrilinearValueAtRAS( RAS );break;
-	case sinc:     value = mVolume->GetMRISincValueAtRAS( RAS );     break;
-	case magnitude:value = mVolume->GetMRIMagnitudeValueAtRAS( RAS );break;
-	}
-	
-	//      memset (color, 0, sizeof(int) * 3);
-	switch( mColorMapMethod ) { 
-	case grayscale: GetGrayscaleColorForValue( value, dest, color );break;
-	case heatScale: GetHeatscaleColorForValue( value, dest, color );break;
-	case LUT:       GetColorLUTColorForValue( value, dest, color ); break;
-	}
-
-	dest[0] = aColorTimesOneMinusOpacity[dest[0]] + 
-	  aColorTimesOpacity[color[0]];
-	dest[1] = aColorTimesOneMinusOpacity[dest[1]] + 
-	  aColorTimesOpacity[color[1]];
-	dest[2] = aColorTimesOneMinusOpacity[dest[2]] + 
-	  aColorTimesOpacity[color[2]];
-	dest[3] = (GLubyte) 255;
+      
+      switch( mSampleMethod ) {
+      case nearest:  value = mVolume->GetMRINearestValueAtRAS( RAS );  break;
+      case trilinear:value = mVolume->GetMRITrilinearValueAtRAS( RAS );break;
+      case sinc:     value = mVolume->GetMRISincValueAtRAS( RAS );     break;
+      case magnitude:value = mVolume->GetMRIMagnitudeValueAtRAS( RAS );break;
       }
+      
+      //      memset (color, 0, sizeof(int) * 3);
+      switch( mColorMapMethod ) { 
+      case grayscale: GetGrayscaleColorForValue( value, dest, color );break;
+      case heatScale: GetHeatscaleColorForValue( value, dest, color );break;
+      case LUT:       GetColorLUTColorForValue( value, dest, color ); break;
+      }
+      
+      dest[0] = aColorTimesOneMinusOpacity[dest[0]] + 
+	aColorTimesOpacity[color[0]];
+      dest[1] = aColorTimesOneMinusOpacity[dest[1]] + 
+	aColorTimesOpacity[color[1]];
+      dest[2] = aColorTimesOneMinusOpacity[dest[2]] + 
+	aColorTimesOpacity[color[2]];
+      dest[3] = (GLubyte) 255;
       
       dest += 4;
     }

@@ -272,7 +272,8 @@ Matrix44::MultiplyVector3 ( float const iVector[3], float oVector[3] ) {
   oVector[0] = sumI0;
   oVector[1] = sumI1;
   oVector[2] = sumI2;
-#endif
+
+#else
   
   oVector[0] =
     GetCR(0,0) * iVector[0] +
@@ -289,6 +290,7 @@ Matrix44::MultiplyVector3 ( float const iVector[3], float oVector[3] ) {
     GetCR(1,2) * iVector[1] +
     GetCR(2,2) * iVector[2] +
     GetCR(3,2);
+#endif
 }
 
 void

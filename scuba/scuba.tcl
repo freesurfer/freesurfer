@@ -10,7 +10,7 @@ if { $err } {
     load [file dirname [info script]]/libscuba[info sharedlibextension] scuba
 }
 
-DebugOutput "\$Id: scuba.tcl,v 1.38 2004/06/26 00:37:21 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.39 2004/06/28 02:34:14 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -426,7 +426,7 @@ proc MakeMenuBar { ifwTop } {
 	{command "Load Transform..." { DoLoadTransformDlog } }
 	{separator}
 	{command "Save Label..." { DoSaveLabelDlog } }
-	{command "Export Labels as Segmenation..." { DoExportLabelsDlog } }
+	{command "Export ROIs as Segmenation..." { DoExportROIsDlog } }
 	{command "Quit:Alt Q" { Quit } }
     }
 
@@ -3266,12 +3266,13 @@ proc DoSaveLabelDlog {} {
 		-prompt1 "Will save ROI \"$gaROI(current,label)\" from data collection \"$gaCollection(current,label)\"" \
 		-type1 note \
 		-prompt2 "Save Label: " \
+		-defaultvalue2 [GetDefaultFileLocation SaveLabel] \
 		-defaultdir2 [GetDefaultFileLocation SaveLabel] \
 		-shortcuts $glShortcutDirs \
 		-okCmd { 
 		    set err [catch {
 			WriteVolumeROIToLabel $gaCollection(current,id) \
-			    $gaROI(current,id) %s1
+			    $gaROI(current,id) %s2
 		    } sResult]
 		    if { 0 != $err } { tkuErrorDlog $sResult }
 		}
@@ -3302,6 +3303,7 @@ proc DoLoadLabelDlog {} {
 	    -type1 note \
 	    -prompt2 "Load Label: " \
 	    -defaultdir2 [GetDefaultFileLocation LoadLabel] \
+	    -defaultvalue2 [GetDefaultFileLocation LoadLabel] \
 	    -shortcuts $glShortcutDirs \
 	    -okCmd { 
 		set err [catch {
@@ -3326,8 +3328,8 @@ proc DoLoadLabelDlog {} {
  }
 
 
- proc DoExportLabelsDlog {} {
-     dputs "DoExportLabelsDlog"
+ proc DoExportROIsDlog {} {
+     dputs "DoExportROIsDlog"
 
      global glShortcutDirs
      global gaCollection
@@ -3340,11 +3342,12 @@ proc DoLoadLabelDlog {} {
 	     -type1 note \
 	     -prompt2 "Save Volume: " \
 	     -defaultdir2 [GetDefaultFileLocation ExportSegmentation] \
+	     -defaultvalue2 [GetDefaultFileLocation ExportSegmentation] \
 	     -shortcuts $glShortcutDirs \
 	     -okCmd { 
 		 set err [catch {
 		     WriteVolumeROIsToSegmentation \
-			 $gaCollection(current,id) %s1
+			 $gaCollection(current,id) %s2
 		 } sResult]
 		 if { 0 != $err } { tkuErrorDlog $sResult }
 	     }
@@ -3363,6 +3366,7 @@ proc DoLoadTransformDlog {} {
     tkuDoFileDlog -title "Load Transform" \
 	-prompt1 "Load Transform: " \
 	-defaultdir1 [GetDefaultFileLocation Transform] \
+	-defaultvalue1 [GetDefaultFileLocation Transform] \
 	-shortcuts $glShortcutDirs \
 	-okCmd { 
 	    LoadTransform %s1

@@ -46,6 +46,7 @@ public:
   void Set2DZoomLevel ( float iZoom );
   void Set2DInPlane ( ViewState::Plane iPlane );
   void Set2DPlaneNormal ( float iNormal[3] );
+  void Set2DPlaneNormalOrthogonalToInPlane ();
 
   void Get2DRASCenter ( float oRASCenter[3] );
   float Get2DZoomLevel ();
@@ -130,7 +131,10 @@ protected:
   float ConvertRASToWindow ( float iRAS, float iRASCenter, 
 			     float iWindowDimension );
 
-
+  // Translates RAS (view) coordinates by a vector in window space.
+  void TranslateRASInWindowSpace ( float iRAS[3], float iMove[3],
+				   float oRAS[3] );
+				    
   // Markers are shared between views so these are static functions.
 
   // Sets the cursor, a single special marker.

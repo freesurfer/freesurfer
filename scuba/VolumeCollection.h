@@ -122,7 +122,6 @@ protected:
 				       int oCacheIndex[3] ) const;
 
   float mVoxelSize[3];
-  float mOneOverVoxelSize[3];
 
   float mMRIMinValue, mMRIMaxValue;
   float mMRIMagMinValue, mMRIMagMaxValue;
