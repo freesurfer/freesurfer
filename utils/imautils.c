@@ -13,6 +13,9 @@ static int imaSetDictEntry(int nthEntry, char *key, int offset,
          char *typestring, int nitems);
 static int imaGetKeyEntryNo(char *key);
 
+extern IMA_DICTIONARY_ENTRY ImaDictionary[NMAX_IMA_DICTIONARY];
+extern int nImaDictionary, ImaDictionaryGood;
+
 /*--------------------------------------------------------------------
   imaLoadVal() - loads a value of length nbytes*nitems from the file
   stream offset bytes from the beginning. If pval is non-null, the the
@@ -64,7 +67,7 @@ void *imaLoadVal(FILE *imafp, int offset, int nbytes, int nitems, void *pval)
   --------------------------------------------------------------------*/
 void MkImaDictionary(void)
 {
-  extern int nImaDictionary, ImaDictionaryGood;
+  // extern int nImaDictionary, ImaDictionaryGood;
   int n = 0;
 
   imaSetDictEntry(n++,"G08_Ide_StudyDate_Year",      0,"long",1);
@@ -143,7 +146,7 @@ void MkImaDictionary(void)
 static int imaSetDictEntry(int nthEntry, char *key, int offset, 
          char *typestring, int nitems)
 {
-  extern IMA_DICTIONARY_ENTRY ImaDictionary[NMAX_IMA_DICTIONARY];
+
   int type;
 
   if(nthEntry >= NMAX_IMA_DICTIONARY){
@@ -170,8 +173,8 @@ static int imaSetDictEntry(int nthEntry, char *key, int offset,
   ---------------------------------------------------------------*/
 void DumpImaDictionary(FILE *fp)
 {
-  extern IMA_DICTIONARY_ENTRY ImaDictionary[NMAX_IMA_DICTIONARY];
-  extern int nImaDictionary, ImaDictionaryGood;
+  // extern IMA_DICTIONARY_ENTRY ImaDictionary[NMAX_IMA_DICTIONARY];
+  // extern int nImaDictionary, ImaDictionaryGood;
   int n;
   IMA_DICTIONARY_ENTRY *ide;
 
@@ -191,8 +194,8 @@ void DumpImaDictionary(FILE *fp)
   ---------------------------------------------------------------*/
 int DumpImaDictionaryVal(FILE *fp, char *imafile)
 {
-  extern IMA_DICTIONARY_ENTRY ImaDictionary[NMAX_IMA_DICTIONARY];
-  extern int nImaDictionary, ImaDictionaryGood;
+  // extern IMA_DICTIONARY_ENTRY ImaDictionary[NMAX_IMA_DICTIONARY];
+  // extern int nImaDictionary, ImaDictionaryGood;
   char *key, *typestring;
   int n, offset, type, typesize, nitems;
   FILE *imafp;
@@ -290,8 +293,8 @@ int imaPrintVal(FILE *fp, int type, void *pval)
   --------------------------------------------------------------------*/
 void *imaLoadValFromKey(FILE *imafp, char *key, void *pval)
 {
-  extern IMA_DICTIONARY_ENTRY ImaDictionary[NMAX_IMA_DICTIONARY];
-  extern int ImaDictionaryGood;
+  // extern IMA_DICTIONARY_ENTRY ImaDictionary[NMAX_IMA_DICTIONARY];
+  // extern int ImaDictionaryGood;
   int n, offset, typesize, nitems, nbytes;
   void *r;
 
@@ -327,8 +330,8 @@ void *imaLoadValFromKey(FILE *imafp, char *key, void *pval)
   --------------------------------------------------------------------*/
 int imaTypeFromKey(char *key)
 {
-  extern IMA_DICTIONARY_ENTRY ImaDictionary[NMAX_IMA_DICTIONARY];
-  extern int  ImaDictionaryGood;
+  // extern IMA_DICTIONARY_ENTRY ImaDictionary[NMAX_IMA_DICTIONARY];
+  // extern int  ImaDictionaryGood;
   int n;
 
   if(!ImaDictionaryGood) MkImaDictionary();
@@ -343,8 +346,8 @@ int imaTypeFromKey(char *key)
   --------------------------------------------------------------------*/
 static int imaGetKeyEntryNo(char *key)
 {
-  extern IMA_DICTIONARY_ENTRY ImaDictionary[NMAX_IMA_DICTIONARY];
-  extern int nImaDictionary, ImaDictionaryGood;
+  // extern IMA_DICTIONARY_ENTRY ImaDictionary[NMAX_IMA_DICTIONARY];
+  // extern int nImaDictionary, ImaDictionaryGood;
   int n;
 
   if(!ImaDictionaryGood) MkImaDictionary();
