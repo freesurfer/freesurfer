@@ -16,7 +16,7 @@
 #include "icosahedron.h"
 #include "mrishash.h"
 
-static char vcid[] = "$Id: mris_fix_topology.c,v 1.5 1999/08/14 02:03:49 fischl Exp $";
+static char vcid[] = "$Id: mris_fix_topology.c,v 1.6 1999/08/16 16:57:44 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -100,11 +100,14 @@ main(int argc, char *argv[])
   if (!mris_corrected)  /* for now */
     exit(0) ;
 
+  MRISrestoreVertexPositions(mris_corrected, ORIGINAL_VERTICES) ;
   if (add)
     for (max_len = 1.5*8 ; max_len > 1 ; max_len /= 2)
-      MRISdivideLongEdges(mris_corrected, max_len) ;
+      while (MRISdivideLongEdges(mris_corrected, max_len) > 0)
+      {}
 
 #if 0
+  MRISrestoreVertexPositions(mris_corrected, TMP_VERTICES) ;
   sprintf(fname, "%s/%s/surf/%s.inflated%s", sdir, sname, hemi, suffix);
   fprintf(stderr, "writing corrected surface to %s...\n", fname) ;
   MRISwrite(mris_corrected, fname) ;
