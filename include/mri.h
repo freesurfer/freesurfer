@@ -12,6 +12,7 @@
 #define SAMPLE_TRILINEAR     1
 #define SAMPLE_SINC          2
 #define SAMPLE_CUBIC         3 /*E*/
+#define SAMPLE_WEIGHTED      4
 
 #define MRI_UCHAR   0
 #define MRI_INT     1
@@ -796,11 +797,6 @@ int MRIstats(MRI *mri, float *min, float *max, int *n_voxels, float *mean, float
 
 float MRIvolumeDeterminant(MRI *mri);
 
-#define RESAMPLE_INTERPOLATE  0
-#define RESAMPLE_NEAREST      1
-#define RESAMPLE_WEIGHTED     2
-#define RESAMPLE_SINC         3
-#define RESAMPLE_CUBIC        4 /*E*/
 
 int mriio_command_line(int argc, char *argv[]);
 int mriio_set_subject_name(char *name);

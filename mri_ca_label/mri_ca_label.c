@@ -108,7 +108,7 @@ main(int argc, char *argv[])
   TRANSFORM     *transform ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_ca_label.c,v 1.43 2004/01/14 18:46:32 tosa Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ca_label.c,v 1.44 2004/02/26 19:01:51 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -336,7 +336,7 @@ main(int argc, char *argv[])
     if (novar)
       GCAunifyVariance(gca) ;
     
-    gca_tmp = GCAcreateFlashGCAfromParameterGCA(gca, TRs, fas, TEs, mri_inputs->nframes) ;
+    gca_tmp = GCAcreateFlashGCAfromParameterGCA(gca, TRs, fas, TEs, mri_inputs->nframes, 100) ;
     GCAfree(&gca) ;
     gca = gca_tmp ;
     GCAhistoScaleImageIntensities(gca, mri_inputs) ;

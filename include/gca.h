@@ -297,7 +297,8 @@ double GCAmahDist(GC1D *gc, float *vals, int ninputs) ;
 int    GCAfreeSamples(GCA_SAMPLE **pgcas, int nsamples) ;
 double GCAsampleMahDist(GCA_SAMPLE *gcas, float *vals, int ninputs) ;
 int GCAnormalizePD(GCA *gca, MRI *mri_inputs, TRANSFORM *transform) ;
-GCA *GCAcreateFlashGCAfromParameterGCA(GCA *gca_parms, double *TR, double *fa, double *TE, int nflash);
+GCA *GCAcreateFlashGCAfromParameterGCA(GCA *gca_parms, double *TR, double *fa, double *TE, int nflash, double lambda);
+GCA *GCAcreateWeightedFlashGCAfromParameterGCA(GCA *gca_parms, double *TR, double *fa, double *TE, int nflash, double *wts, double lambda);
 GCA *GCAcreateFlashGCAfromFlashGCA(GCA *gca_parms, double *TR, double *fa, double *TE, int nflash);
 int GCAfixSingularCovarianceMatrices(GCA *gca) ;
 int GCAregularizeCovariance(GCA *gca, float regularize) ;
@@ -314,6 +315,8 @@ void GCAreinit(MRI *mri, GCA *gca); // reinit gca with mri values
 void GCAcleanup();
 void GCAcopyDCToMRI(GCA *gca, MRI *mri); // copy direction cosine info to MRI
 void GCAsetVolGeom(GCA *gca, VOL_GEOM *vg); 
+int GCAregularizeCovarianceMatrices(GCA *gca, double lambda) ;
+int GCAreplaceRightWithLeft(GCA *gca) ;
 
 extern int Ggca_x, Ggca_y, Ggca_z, Ggca_label ;
 
