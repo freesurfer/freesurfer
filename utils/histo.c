@@ -507,6 +507,7 @@ HISTOsmooth(HISTOGRAM *histo_src, HISTOGRAM *histo_dst,float sigma)
     histo_dst = HISTOalloc(nbins) ;
   else
     histo_dst->nbins = nbins ;
+	histo_dst->bin_size = histo_src->bin_size ;
 
   /* build the kernel in k */
   len = (int)nint(8.0f * sigma)+1 ;
