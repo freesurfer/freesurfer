@@ -6273,3 +6273,29 @@ GCAhistoScaleImageIntensities(GCA *gca, MRI *mri)
   return(NO_ERROR) ;
 }
 
+int
+GCAhisto(GCA *gca, int nbins, int **pcounts)
+{
+  int   *counts, x, y, z ;
+  GCA_NODE *gcan ;
+
+  *pcounts = counts = (int *)calloc(nbins+1, sizeof(int)) ;
+
+  for (x = 0 ; x < gca->width ; x++)
+  {
+    for (y = 0 ; y < gca->height ; y++)
+    {
+      for (z = 0 ; z < gca->depth ; z++)
+      {
+        gcan = &gca->nodes[x][y][z] ;
+        if (gcan->nlabels == 0 || (gcan->nlabels == 1 && 
+                                   gcaFindGC(gca,x,y,z,Unknown) != NULL))
+          continue ;
+        counts[gcan->nlabels]++ ;
+      }
+    }
+  }
+
+  return(NO_ERROR) ;
+}
+

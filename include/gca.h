@@ -178,6 +178,7 @@ int     GCAregularizeConditionalDensities(GCA *gca, float smooth) ;
 int     GCAmeanFilterConditionalDensities(GCA *gca, float navgs) ;
 int     GCArenormalizeToFlash(GCA *gca, char *tissue_parms_fname, MRI *mri) ;
 int     GCAhistoScaleImageIntensities(GCA *gca, MRI *mri) ;
+int     GCAhisto(GCA *gca, int nbins, int **pcounts) ;
 
 
 #define MIN_PRIOR  0.5
