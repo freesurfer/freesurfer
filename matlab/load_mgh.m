@@ -1,4 +1,4 @@
-function [vol, M, mr_parms, Mdc] = load_mgh_mdc(fname)
+function [vol, M, mr_parms, Mdc] = load_mgh(fname)
 % [vol, M, mr_parms, Mdc] = load_mgh(fname)
 %
 % M is the 4x4 vox2ras transform such that
@@ -10,7 +10,7 @@ function [vol, M, mr_parms, Mdc] = load_mgh_mdc(fname)
 %
 % See also: save_mgh, vox2ras_0to1
 %
-% $Id: load_mgh.m,v 1.4 2003/07/21 16:23:12 ebeth Exp $
+% $Id: load_mgh.m,v 1.5 2003/07/31 21:45:54 ebeth Exp $
 
 vol = [];
 M = [];
