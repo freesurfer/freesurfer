@@ -25,7 +25,7 @@ main(int argc, char *argv[])
   char   *in_fname, *out_fname ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_reduce.c,v 1.4 2003/09/05 04:45:37 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_reduce.c,v 1.5 2004/06/08 14:11:57 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -63,8 +63,9 @@ main(int argc, char *argv[])
     if (i)
       mri_src = MRIcopy(mri_dst, NULL) ;
     fprintf(stderr, "\nreducing by 2");
-    
-    mri_dst = MRIreduce(mri_src, NULL) ;
+
+    mri_dst = MRIallocSequence(mri_src->width/2, mri_src->height/2, mri_src->depth/2, MRI_FLOAT, mri_src->nframes);
+    MRIreduce(mri_src, mri_dst) ;
     MRIfree(&mri_src) ;
   } while (++i < reductions) ;
 
