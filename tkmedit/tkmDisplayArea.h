@@ -188,6 +188,7 @@ struct tkmDisplayArea {
   float                  mfFrameBufferScaleY;
 
   /* view state */
+  xVoxelRef              mpLastCursor;
   xVoxelRef              mpCursor;
   mri_tOrientation       mOrientation;
   int                    mnZoomLevel;
@@ -478,6 +479,9 @@ int DspA_GetCurrentSliceNumber_ ( tkmDisplayAreaRef this );
 DspA_tErr DspA_DrawHistogram ( tkmDisplayAreaRef        this,
              DspA_tHistogramParamsRef iParams );
 
+/* write the current distance to the vertex closest to the cursor */
+DspA_tErr DspA_SetSurfaceDistanceAtCursor ( tkmDisplayAreaRef this );
+
 /* tkmedit needs to get the selected head pt */
 DspA_tErr DspA_GetSelectedHeadPt ( tkmDisplayAreaRef   this,
            HPtL_tHeadPointRef* opHeadPoint );
@@ -545,6 +549,7 @@ DspA_tErr DspA_VerifyScreenPoint_ ( tkmDisplayAreaRef this,
              xPoint2nRef       ipScreenPt );
 DspA_tErr DspA_VerifyBufferPoint_ ( tkmDisplayAreaRef this,
              xPoint2nRef       ipBufferPt );
+
 /* set up opengl port */
 void DspA_SetUpOpenGLPort_ ( tkmDisplayAreaRef this );
 

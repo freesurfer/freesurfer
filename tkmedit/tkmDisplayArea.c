@@ -128,6 +128,7 @@ DspA_tErr DspA_New ( tkmDisplayAreaRef* oppWindow,
   this->mfFrameBufferScaleY = 1.0;
 
   /* allocate our voxels */
+  xVoxl_New( &this->mpLastCursor );
   xVoxl_New( &this->mpCursor );
   xVoxl_New( &this->mpZoomCenter );
   xVoxl_New( &this->mpOriginalZoomCenter );
@@ -232,6 +233,7 @@ DspA_tErr DspA_Delete ( tkmDisplayAreaRef* ioppWindow ) {
     free( this->mpFrameBuffer );
 
   /* delete our voxels */
+  xVoxl_Delete( &this->mpLastCursor );
   xVoxl_Delete( &this->mpCursor );
   xVoxl_Delete( &this->mpZoomCenter );
 
@@ -993,6 +995,9 @@ DspA_tErr DspA_SetCursor ( tkmDisplayAreaRef this,
 
   /* get our current slice. */
   nSlice = DspA_GetCurrentSliceNumber_( this );
+
+  /* Copy the current cursor into the last cursor. */
+  xVoxl_Copy( this->mpLastCursor, this->mpCursor );
 
   /* set the cursor */
   xVoxl_Copy( this->mpCursor, ipCursor );
@@ -5570,6 +5575,11 @@ DspA_tErr DspA_SendPointInformationToTcl_ ( tkmDisplayAreaRef this,
   char                  sLabel[STRLEN]        = "";
   int                   nValue             = 0;
   DspA_tHistogramParams histoParams;
+  float                 fDistanceX         = 0;
+  float                 fDistanceY         = 0;
+  float                 fDistanceZ         = 0;
+  float                 fDistance          = 0;
+ 
 
   /* send the anatomical index. */
   sprintf( sTclArguments, "%s %d %d %d", 
@@ -5952,6 +5962,39 @@ DspA_tErr DspA_SendPointInformationToTcl_ ( tkmDisplayAreaRef this,
   }
 #endif
 
+
+  /* update the cursor distance. if this is the cursor, find the
+     distance from the last cursor and print that. if this is the
+     mouseover, print the distance from the current cursor.  */
+  if( DspA_tDisplaySet_Cursor == iSet ) {
+    
+     fDistanceX = xVoxl_GetFloatX(iAnaIdx) - 
+       xVoxl_GetFloatX(this->mpLastCursor);
+     fDistanceY = xVoxl_GetFloatY(iAnaIdx) - 
+       xVoxl_GetFloatY(this->mpLastCursor);
+     fDistanceZ = xVoxl_GetFloatZ(iAnaIdx) - 
+       xVoxl_GetFloatZ(this->mpLastCursor);
+
+     fDistance = sqrt( fDistanceX * fDistanceX +
+           fDistanceY * fDistanceY +
+           fDistanceZ * fDistanceZ );
+
+  } else {
+
+     fDistanceX = xVoxl_GetFloatX(iAnaIdx) - xVoxl_GetFloatX(this->mpCursor);
+     fDistanceY = xVoxl_GetFloatY(iAnaIdx) - xVoxl_GetFloatY(this->mpCursor);
+     fDistanceZ = xVoxl_GetFloatZ(iAnaIdx) - xVoxl_GetFloatZ(this->mpCursor);
+
+     fDistance = sqrt( fDistanceX * fDistanceX +
+           fDistanceY * fDistanceY +
+           fDistanceZ * fDistanceZ );
+     
+  }
+
+  /* send the update */
+  sprintf( sTclArguments, "%s %f", DspA_ksaDisplaySet[iSet], fDistance );
+  tkm_SendTclCommand( tkm_tTclCommand_UpdateDistance, sTclArguments );
+
   return DspA_tErr_NoErr;
 }
 
@@ -6021,6 +6064,48 @@ DspA_tErr DspA_DrawHistogram ( tkmDisplayAreaRef        this,
   return eResult;
 }
              
+DspA_tErr DspA_SetSurfaceDistanceAtCursor ( tkmDisplayAreaRef this ) {
+
+  DspA_tErr eResult     = DspA_tErr_NoErr;
+  float     fDistanceX  = 0;
+  float     fDistanceY  = 0;
+  float     fDistanceZ  = 0;
+  float     fDistance   = 0;
+
+  /* verify us. */
+  eResult = DspA_Verify ( this );
+  if ( DspA_tErr_NoErr != eResult )
+    goto error;
+
+  /* calc the distance from this cursor to the last one. */
+  fDistanceX = xVoxl_GetFloatX(this->mpCursor) - 
+    xVoxl_GetFloatX(this->mpLastCursor);
+  fDistanceY = xVoxl_GetFloatY(this->mpCursor) - 
+    xVoxl_GetFloatY(this->mpLastCursor);
+  fDistanceZ = xVoxl_GetFloatZ(this->mpCursor) - 
+    xVoxl_GetFloatZ(this->mpLastCursor);
+
+  fDistance = sqrt( fDistanceX * fDistanceX +
+        fDistanceY * fDistanceY +
+        fDistanceZ * fDistanceZ );
+
+  /* set the distance for this ana idx */
+  tkm_SetSurfaceDistance( this->mpCursor, fDistance );
+
+  goto cleanup;
+
+ error:
+
+  /* print error message */
+  if ( DspA_tErr_NoErr != eResult ) {
+    DebugPrint( ("Error %d in DspA_SetSurfaceDistanceAtCursor: %s\n",
+      eResult, DspA_GetErrorString(eResult) ) );
+  }
+
+ cleanup:
+
+  return eResult;
+}
 
 DspA_tErr DspA_Verify ( tkmDisplayAreaRef this ) {
 
