@@ -4254,7 +4254,7 @@ ImageEntropy(IMAGE *I, int pairflag)
     }
     ecode = h_entropycnt(Ibyte, table, 0) ;
     if (ecode != HIPS_OK)
-      ErrorReturn(NULL, (ecode, "ImageEntropy: h_entropycnt failed")) ;
+      ErrorReturn(-1.0, (ecode, "ImageEntropy: h_entropycnt failed")) ;
 
   }
 
