@@ -2,6 +2,7 @@
 #define Debug_h
 
 #include <iostream>
+#include <stdlib.h>
 
 class DebugReporter {
 
@@ -9,6 +10,12 @@ class DebugReporter {
   DebugReporter() {
     mOutputStream = NULL;
     mbDebug = false;
+
+    char* sDebug = getenv( "COMPILE_DEBUG" );
+    if( NULL != sDebug ) {
+      mOutputStream = &std::cerr;
+      mbDebug = true;
+    }
   }
 
   void SetOutputStream( std::ostream& iStream ) {

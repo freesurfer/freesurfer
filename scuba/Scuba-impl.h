@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2004/04/18 21:11:31 $
-// Revision       : $Revision: 1.3 $
+// Revision Date  : $Date: 2004/05/05 19:40:43 $
+// Revision       : $Revision: 1.4 $
 
 // This file is necessary for creating the instantiations for template
 // classes. Note that we actually include the .cpp files here.  Then
@@ -37,3 +37,5 @@ template Array2<int>;
 template Array2<bool>;
 template Array2<listElement>;
 template PointList3<float>;
+template Volume3<Point3<int> >;
+template Array2<Point3<float> >;

@@ -5,6 +5,7 @@
 #include "ScubaView.h"
 #include "PreferencesManager.h"
 #include "ScubaGlobalPreferences.h"
+#include "Timer.h"
 
 using namespace std;
 
@@ -821,9 +822,25 @@ ScubaView::DoListenToMessage ( string isCommand, void* iData ) {
 void
 ScubaView::DoDraw() {
 
+#ifdef DEBUG
+  ::Timer timer;
+  timer.Start();
+#endif
+
   BuildFrameBuffer();
   DrawFrameBuffer();
   DrawOverlay();
+
+#ifdef DEBUG
+  int msec = timer.TimeNow();
+  float fps = 1.0 / ((float)msec/1000.0);
+
+  stringstream ssCommand;
+  ssCommand << "SetStatusBarText \"" << fps << " fps\"";
+
+  TclCommandManager& mgr = TclCommandManager::GetManager();
+  mgr.SendCommand( ssCommand.str() );
+#endif
 }
 
 void

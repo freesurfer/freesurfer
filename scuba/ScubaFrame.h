@@ -91,6 +91,7 @@ class ScubaFrameFactory : public ToglFrameFactory {
 public:
   virtual WindowFrame* NewWindowFrame( WindowFrame::ID iID ) { 
     ScubaFrame* frame = new ScubaFrame( iID );
+    frame->SetViewConfiguration( ScubaFrame::c1 );
     frame->SetOutputStreamToCerr();
     return frame;
   }

@@ -15,10 +15,9 @@ ScubaFrame::ScubaFrame( ID iID )
   DebugOutput( << "Created ScubaFrame " << iID );
   SetOutputStreamToCerr();
 
+  mcRows = 0;
   mnSelectedViewCol = 0;
   mnSelectedViewRow = 0;
-
-  SetViewConfiguration( c1 );
 
   TclCommandManager& commandMgr = TclCommandManager::GetManager();
   commandMgr.AddCommand( *this, "SetFrameViewConfiguration", 2, 
@@ -604,7 +603,6 @@ void
 ScubaFrame::DoReshape() {
 
   SizeViewsToConfiguration();
-
 }
 
 void
@@ -743,16 +741,25 @@ ScubaFrame::SetViewConfiguration( ScubaFrame::ViewConfiguration iConfig ) {
   // First disable existing views that won't be in the new
   // configuration.
   if( cNewRows < mcRows ) {
+    fprintf( stderr, "cNewRows %d < mcRows %d\n", cNewRows, mcRows );
     for( int nRow = cNewRows-1; nRow < mcRows; nRow++ ) {
       int cCols = mcCols[nRow];
+      fprintf( stderr, "cNewRows-1 %d nRow %d mcRows %d cCols %d\n",
+	       cNewRows-1, nRow, mcRows, cCols );
       if( cNewCols[nRow] < cCols ) {
+	fprintf( stderr, "cNewCols %d < cCols %d\n", cNewCols[nRow], cCols );
 	for( int nCol = cNewCols[nRow]-1; nCol < cCols; nCol++ ) {
+	  fprintf( stderr, "geting view at col row %d %d\n", nCol, nRow );
 	  View* view;
 	  try {
 	    view = GetViewAtColRow( nCol, nRow );
+	    fprintf( stderr, "got it\n" );
 	    view->SetVisibleInFrame( false );
+	    fprintf( stderr, "set visible to false\n" );
 	  } 
-	  catch(...) {}
+	  catch(...) {
+	    fprintf( stderr, "didn't get it\n" );
+	  }
 	}
       }
     }

@@ -19,6 +19,4 @@ class Timer {
 
 };
 
-
-
 #endif

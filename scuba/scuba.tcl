@@ -689,6 +689,8 @@ proc ScubaMouseDownCallback { inX inY iButton } {
     if { $viewID != $gaView(current,id) } {
 	SelectViewInViewProperties $viewID
     }
+
+    UpdateUndoMenuItem
 }
 
 proc ScubaKeyDownCallback { inX inY iKey } {
@@ -2585,6 +2587,11 @@ proc DoPrefsDlog {} {
 proc NewTask { args } {
     global gaTask
 
+    if { [info exists gaTask(going)] && $gaTask(going) } {
+	puts "task already exists!!"
+	return
+    }
+
     # set default arguments for all fields
     set aArgs(-title) ""
     set aArgs(-text) ""
@@ -2611,6 +2618,8 @@ proc NewTask { args } {
 
     set gaTask(callbacks) {}
     set gaTask(percent) 0
+
+    set gaTask(going) 1
 }
 
 proc TaskCallback { isButton } {
@@ -2657,6 +2666,14 @@ proc EndTask {} {
     destroy $gaTask(buttonFrame)
     frame $gaTask(buttonFrame)
     pack $gaTask(buttonFrame) -side right -anchor e
+
+    set gaTask(going) 0
+}
+
+proc SetStatusBarText { isText } {
+    global gaTask
+
+    set gaTask(label) $isText
 }
 
 # VIEW CONFIGURATION ==================================================

@@ -181,7 +181,7 @@ PreferencesManager::ReadFile() {
 	sError << "Bad prefs file: expected end-version, got " << sKeyword;
 	throw( logic_error(sError.str()) );
       }
-      DebugOutput( << "SET VERSION TO " << mVersion );
+      DebugOutput( << "Reading prefs file version " << mVersion );
 
     } else if( sKeyword == "begin-header" ) {
       stringstream sHeader;
@@ -189,7 +189,6 @@ PreferencesManager::ReadFile() {
 	getline( fPrefs, sKeyword );
 	if( sKeyword == "end-header" ) {
 	  msHeader = sHeader.str();
-	  DebugOutput( << "SET HEADER TO " << msHeader );
 	  break;
 	} else {
 	  sHeader << sKeyword;
@@ -199,7 +198,6 @@ PreferencesManager::ReadFile() {
     } else if( sKeyword == "begin-pref" ) {
 
       PreferenceValue* pref = new PreferenceValue();
-      DebugOutput( << "NEW PREF" );
 
       while( !fPrefs.eof() ) {
 	getline( fPrefs, sKeyword );
@@ -210,7 +208,6 @@ PreferencesManager::ReadFile() {
 	    getline( fPrefs, sKeyword );
 	    if( sKeyword == "end-description" ) {
 	      pref->msDescription = sDescription.str();
-	      DebugOutput( << "\tSET DESC TO " <<pref->msDescription );
 	      break;
 	    } else {
 	      sDescription << sKeyword;
@@ -225,7 +222,6 @@ PreferencesManager::ReadFile() {
 	    sError << "Bad prefs file: expected end-name, got " << sKeyword;
 	    throw( logic_error(sError.str()) );
 	  }
-	  DebugOutput( << "\tSET NAME TO " << pref->msKeyName );
 
 	} else if( sKeyword == "begin-value" ) {
 	  stringstream sValue;
@@ -233,7 +229,6 @@ PreferencesManager::ReadFile() {
 	    getline( fPrefs, sKeyword );
 	    if( sKeyword == "end-value" ) {
 	      pref->msValue = sValue.str();
-	      DebugOutput( << "\tSET VALUE TO " << pref->msValue );
 	      break;
 	    } else {
 	      sValue << sKeyword;
