@@ -19,11 +19,11 @@
 #include "cvector.h"
 #include "histo.h"
 
-static char vcid[] = "$Id: mris_ms_refine.c,v 1.5 2002/03/18 14:32:26 fischl Exp $";
+static char vcid[] = "$Id: mris_ms_refine.c,v 1.6 2002/03/29 20:43:20 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
-#define TOO_SMALL(dist)     (dist < 0.25)
+#define TOO_SMALL(dist)     (dist < 1)
 #define MAX_FLASH_VOLUMES   50
 #define ORIG_EXPANSION_DIST 1.0  /* average thickness of the cortex in mm (approx) */
 #define MAX_SAMPLES         1000
@@ -285,7 +285,7 @@ main(int argc, char *argv[])
 
   memset(&parms, 0, sizeof(parms)) ;
   parms.projection = NO_PROJECTION ;
-  parms.tol = 5e-3 ;
+  parms.tol = 1e-3 ;
   parms.dt = 0.5f ;
   parms.base_dt = BASE_DT_SCALE*parms.dt ;
   parms.l_spring = 0.0f ; parms.l_curv = 1.0 ; parms.l_intensity = 0.0 ;
@@ -373,7 +373,23 @@ main(int argc, char *argv[])
       mri_template = MRIconform(mri) ; mri = mri_flash[index] ;
     }
 
-    mri_flash[index] = MRIresample(mri, mri_template, RESAMPLE_INTERPOLATE) ;
+    switch (sample_type)
+    {
+    case SAMPLE_TRILINEAR:
+      mri_flash[index] = MRIresample(mri, mri_template, RESAMPLE_INTERPOLATE) ;
+      break ;
+    case SAMPLE_SINC:
+      mri_flash[index] = MRIresample(mri, mri_template, RESAMPLE_SINC) ;
+      break ;
+    case SAMPLE_NEAREST:
+      mri_flash[index] = MRIresample(mri, mri_template, RESAMPLE_NEAREST) ;
+      break ;
+    default:
+      ErrorExit(ERROR_UNSUPPORTED, "%s: unsupported sample type %d",
+                Progname, sample_type) ;
+      break ;
+    }
+          
     mri_flash[index]->tr = mri->tr ;
     mri_flash[index]->flip_angle = mri->flip_angle ;
     mri_flash[index]->te = mri->te ;
@@ -1636,8 +1652,8 @@ compute_maximal_distances(MRI_SURFACE *mris, float sigma, MRI **mri_flash, int n
                           double dstep, double max_inward_dist, double max_outward_dist_total,
                           MRI *mri_T1, MRI *mri_PD)
 {
-  int    vno, i, found_csf, j, max_j = 0, found_wm, past_wm, done,wm_dist, csf_dist, min_j,
-         nreversed, max_reversed ;
+  int    vno, i, found_csf, j, max_j = 0, found_wm, past_wm, wm_dist, csf_dist, min_j, low_pd_csf;
+  /*  int    nreversed, max_reversed,done;*/
   double T1, PD, max_outward_dist ;
   VERTEX *v_white, *v_pial ;
   MRI    *mri ;
@@ -1646,7 +1662,7 @@ compute_maximal_distances(MRI_SURFACE *mris, float sigma, MRI **mri_flash, int n
   Real   xw, yw, zw, xp, yp, zp, xo, yo, zo, cortical_dist,
          image_vals[MAX_FLASH_VOLUMES][MAX_SAMPLES] ;
   Real   T1_vals[MAX_SAMPLES], PD_vals[MAX_SAMPLES] ;
-  double dIdN_start[MAX_FLASH_VOLUMES], dIdN ;
+  /*  double dIdN_start[MAX_FLASH_VOLUMES], dIdN ;*/
 
 
 
@@ -1706,6 +1722,10 @@ compute_maximal_distances(MRI_SURFACE *mris, float sigma, MRI **mri_flash, int n
       T1 = T1_vals[j] ; PD = PD_vals[j] ;
       if (found_wm)
       {
+        if (found_wm > 1 && IS_GM(T1,PD))
+          break ;
+        else if (!IS_GM(T1,PD))
+          found_wm = 2 ;
         if (!IS_WM(T1,PD))
           break ;
 #if 0
@@ -1714,7 +1734,11 @@ compute_maximal_distances(MRI_SURFACE *mris, float sigma, MRI **mri_flash, int n
 #endif
       }
       else if (IS_WM(T1,PD))
+      {
         found_wm = 1 ;
+        if (!IS_GM(T1,PD))
+          found_wm=2 ;
+      }
     }
     if (found_wm == 0)
     {
@@ -1759,7 +1783,7 @@ compute_maximal_distances(MRI_SURFACE *mris, float sigma, MRI **mri_flash, int n
     MRIworldToVoxel(mri_flash[0],v_pial->pialx, v_pial->pialy, v_pial->pialz, &xp, &yp, &zp) ;
     nx = xp - xw ; ny = yp - yw ; nz = zp - zw ; 
     cortical_dist = dist = sqrt(nx*nx + ny*ny + nz*nz) ; 
-    max_outward_dist = max_outward_dist_total - cortical_dist ;
+    max_outward_dist = max_outward_dist_total /* - cortical_dist*/ ;
     
     min_outward_dist = max_outward_dist ;
     max_j = (max_outward_dist-dstep) / dstep ;
@@ -1772,13 +1796,14 @@ compute_maximal_distances(MRI_SURFACE *mris, float sigma, MRI **mri_flash, int n
       cortical_dist = dist = sqrt(nx*nx + ny*ny + nz*nz) ; 
       if (TOO_SMALL(dist))
       {
+        Real xpn, ypn, zpn ;
+
         MRIworldToVoxel(mri, 
                         v_pial->pialx+v_white->nx, 
                         v_pial->pialy+v_white->ny, 
-                        v_pial->pialz+v_white->nz, &xp, &yp, &zp) ;
-        nx = xp - xw ; ny = yp - yw ; nz = zp - zw ; 
+                        v_pial->pialz+v_white->nz, &xpn, &ypn, &zpn) ;
+        nx = xpn - xp ; ny = ypn - yp ; nz = zpn - zp ; 
         dist = sqrt(nx*nx + ny*ny + nz*nz) ; 
-        xp = xw ; yp = yw ; zp = zw ;   /* true surface position */
       }
 
       if (dist < 0.0001) dist = 0.001 ;
@@ -1799,7 +1824,7 @@ compute_maximal_distances(MRI_SURFACE *mris, float sigma, MRI **mri_flash, int n
     }
 
     /* search to see if T1/PD pairs are reasonable for CSF */
-    csf_dist = 0 ; past_wm = 0 ;
+    csf_dist = 0 ; past_wm = 0 ; low_pd_csf = 0 ;
     for (j = found_csf = 0 ; j <= max_j ; j++)
     {
       T1 = T1_vals[j] ; PD = PD_vals[j] ;
@@ -1811,12 +1836,37 @@ compute_maximal_distances(MRI_SURFACE *mris, float sigma, MRI **mri_flash, int n
       {
         if (!IS_CSF(T1,PD))
           break ;
+        /* don't include multiple types of non-brain stuff (the model doesn't support it) */
+        if ((PD < MIN_NONBRAIN_PD && low_pd_csf == 0) ||
+            (PD > MIN_NONBRAIN_PD && low_pd_csf != 0)) 
+        {
+          if (vno == Gdiag_no)
+            DiagBreak() ;
+          break ;
+        }
         if (++csf_dist >= 5)
           break ;
       }
       else if (!IS_BRAIN(T1,PD))  /* not brain */
+      {
+        if (PD < MIN_NONBRAIN_PD)
+          low_pd_csf = 1 ;
+        else
+          low_pd_csf = 0 ;
         found_csf = 1 ;
+      }
     }
+#if 1
+    if (!found_csf)
+    {
+      for (j = 0 ; j < max_j ; j++)
+      {
+        if ((T1_vals[j+1] < T1_vals[j]) ||   /* assume T1 and PD are monotonically increasing */
+            (PD_vals[j+1] < PD_vals[j]))
+          break ;
+      }
+    }
+#else
     if (found_csf)
     {
       min_outward_dist = ((float)j)*dstep ;
@@ -1852,10 +1902,14 @@ compute_maximal_distances(MRI_SURFACE *mris, float sigma, MRI **mri_flash, int n
       }
       if (done)
         break ;
+#if 0
+      /* ????????????????? */
       T1 = T1_vals[j] ; PD = PD_vals[j] ;
       if (!IS_BRAIN(T1,PD))
         break ;
+#endif
     }
+#endif
     min_outward_dist = ((float)j)*dstep ;
       
 #if 0
@@ -3823,6 +3877,7 @@ update_parameters(MRI_SURFACE *mris, EXTRA_PARMS *ep)
     v->marked = 1 ;
   }
   smooth_marked_maps(mris, ep, smooth_parms) ;
+  constrain_parameters(mris->nvertices, ep) ;
   if (Gdiag_no > 0 && mris->vertices[Gdiag_no].marked > 0)
   {
     v = &mris->vertices[vno = Gdiag_no] ;
