@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2003/02/10 21:12:41 $
-// Revision       : $Revision: 1.48 $
+// Revision Date  : $Date: 2003/02/10 22:15:43 $
+// Revision       : $Revision: 1.49 $
 
 #include "tkmDisplayArea.h"
 #include "tkmMeditWindow.h"
@@ -416,10 +416,7 @@ DspA_tErr DspA_SetVolume ( tkmDisplayAreaRef this,
   }
   
   /* Allocate a new one. NOTES: Normally mnVolumeSize{X,Y,Z} will all
-     be equal to each other, so this shouldn't be an issue. Also, at
-     some point somebody made by the frame buffer mallocation size
-     "nSize * nSize * sizeof(...)" which seems wrong and might have
-     just been a safety zone. */
+     be equal to each other, so this shouldn't be an issue. */
   nSize = MAX( MAX(this->mnVolumeSizeX, this->mnVolumeSizeY), 
 	       this->mnVolumeSizeZ) ;
   this->mpFrameBuffer = (GLubyte*) malloc( nSize * nSize * DspA_knNumBytesPerPixel );
@@ -3844,7 +3841,7 @@ DspA_tErr DspA_DrawFrameBuffer_ ( tkmDisplayAreaRef this ) {
   
   DspA_SetUpOpenGLPort_( this );
   
-  glDrawPixels ( this->mnVolumeSizeX, this->mnVolumeSizeY,  /* almost certainly wrong (BRF) */
+  glDrawPixels ( this->mnVolumeSizeX, this->mnVolumeSizeY,
 		 GL_RGBA, GL_UNSIGNED_BYTE, this->mpFrameBuffer );
   
   goto cleanup;
