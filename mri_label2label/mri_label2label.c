@@ -1,6 +1,6 @@
 /*----------------------------------------------------------
   Name: mri_label2label.c
-  $Id: mri_label2label.c,v 1.17 2003/09/05 04:45:34 kteich Exp $
+  $Id: mri_label2label.c,v 1.18 2003/09/11 21:48:01 greve Exp $
   Author: Douglas Greve
   Purpose: Converts a label in one subject's space to a label
   in another subject's space using either talairach or spherical
@@ -59,7 +59,7 @@ static int  nth_is_arg(int nargc, char **argv, int nth);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_label2label.c,v 1.17 2003/09/05 04:45:34 kteich Exp $";
+static char vcid[] = "$Id: mri_label2label.c,v 1.18 2003/09/11 21:48:01 greve Exp $";
 char *Progname = NULL;
 
 char  *srclabelfile = NULL;
@@ -116,7 +116,7 @@ int main(int argc, char **argv)
 {
   MATRIX *xyzSrc, *xyzTrg;
   MHT *TrgHash, *SrcHash=NULL;
-  VERTEX *srcvtx, *trgvtx;
+  VERTEX *srcvtx, *trgvtx, *trgregvtx;
   int n,err,srcvtxno,trgvtxno,allzero,nrevhits;
   float dmin, projdist=0.0, dx, dy, dz;
   float SubjRadius, Scale;
@@ -125,7 +125,7 @@ int main(int argc, char **argv)
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_label2label.c,v 1.17 2003/09/05 04:45:34 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_label2label.c,v 1.18 2003/09/11 21:48:01 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -395,6 +395,7 @@ int main(int argc, char **argv)
       trglabel->lv[n].y = trgvtx->y + dy;
       trglabel->lv[n].z = trgvtx->z + dz;
       trglabel->lv[n].stat = srclabel->lv[n].stat;
+
     }
     printf("INFO: found  %d nlabel points\n",trglabel->n_points);
 
@@ -418,21 +419,23 @@ int main(int argc, char **argv)
 	nTrgLabel = LabelHasVertex(trgvtxno, trglabel);
 	if(nTrgLabel != -1) continue;
 
-	trgvtx = &(TrgSurfReg->vertices[trgvtxno]);
+	trgregvtx = &(TrgSurfReg->vertices[trgvtxno]);
+	trgvtx = &(TrgSurf->vertices[trgvtxno]);
 
 	/* Find number of closest source vertex */
 	if(usehash){
-	  srcvtxno = MHTfindClosestVertexNo(SrcHash,SrcSurfReg,trgvtx,&dmin);
+	  srcvtxno = MHTfindClosestVertexNo(SrcHash,SrcSurfReg,trgregvtx,&dmin);
 	  if(srcvtxno < 0){
 	    printf("ERROR: srcvtxno = %d < 0\n",srcvtxno);
 	    printf("trgvtxno = %d, dmin = %g\n",trgvtxno,dmin);
-	    printf("trgxyz = %g, %g, %g\n",trgvtx->x,trgvtx->y,trgvtx->z);
+	    printf("trgregxyz = %g, %g, %g\n",
+		   trgregvtx->x,trgregvtx->y,trgregvtx->z);
 	    exit(1);
 	  }
 	}
 	else{
-	  srcvtxno = MRISfindClosestVertex(SrcSurfReg,trgvtx->x,trgvtx->y,
-					   trgvtx->z);
+	  srcvtxno = MRISfindClosestVertex(SrcSurfReg,trgregvtx->x,
+					   trgregvtx->y,trgregvtx->z);
 	}
 	srcvtx = &(SrcSurfReg->vertices[srcvtxno]);
 
@@ -463,6 +466,12 @@ int main(int argc, char **argv)
 	trglabel->lv[nTrgLabel].z = trgvtx->z + dz;
 	trglabel->lv[nTrgLabel].stat = srclabel->lv[nSrcLabel].stat;
 	trglabel->n_points ++;
+
+	if(trgvtxno == 53018 && 0){
+	  printf("trgvtxno = %d\n",trgvtxno);
+	  printf("vtx xyz = %g, %g, %g\n",trgvtx->x,trgvtx->y,trgvtx->z);
+	  printf("dx = %g, dy = %g, dz = %g\n",dx,dy,dz);
+	}
 
 	nrevhits++;
       }
