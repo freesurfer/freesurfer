@@ -139,6 +139,7 @@ MATRIX *VectorOuterProduct(VECTOR *v1, VECTOR *v2, MATRIX *m) ;
 VECTOR *VectorCrossProduct(VECTOR *v1, VECTOR *v2, VECTOR *vdst) ;
 float  VectorTripleProduct(VECTOR *v1, VECTOR *v2, VECTOR *v3) ;
 VECTOR *VectorNormalize(VECTOR *vin, VECTOR *vout) ;
+MATRIX *MatrixNormalizeCol(MATRIX *m, MATRIX *mcnorm);
 
 
 /* these are macro versions that work on 3-d vectors */
