@@ -306,7 +306,9 @@ MRIread(char *fpref)
     break ;
   case MRI_MINC_FILE:
     mri = mncRead(fname, 1, frame) ;
-printf("%d,%d,%d,%d\n", mri->xdir, mri->ydir, mri->zdir, mri->slice_direction);
+    if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+      printf("MNC dimensions: %d,%d,%d, slice direction: %d\n", 
+             mri->xdir, mri->ydir, mri->zdir, mri->slice_direction);
     if (!mri)
       return(NULL) ;
    break ;
@@ -2405,7 +2407,27 @@ MRIreorder(MRI *mri_src, MRI *mri_dst, int xdim, int ydim, int zdim)
           default:
           case ZDIM: zd = x ; break ;
         }
-        MRIvox(mri_dst, xd, yd, zd) = MRIvox(mri_src, xs, ys, zs) ;
+        switch (mri_src->type)
+        {
+        case MRI_SHORT:
+          MRISvox(mri_dst, xd, yd, zd) = MRISvox(mri_src, xs, ys, zs) ;
+          break ;
+        case MRI_FLOAT:
+          MRIFvox(mri_dst, xd, yd, zd) = MRIFvox(mri_src, xs, ys, zs) ;
+          break ;
+        case MRI_INT:
+          MRIIvox(mri_dst, xd, yd, zd) = MRIIvox(mri_src, xs, ys, zs) ;
+          break ;
+        case MRI_UCHAR:
+          MRIvox(mri_dst, xd, yd, zd) = MRIvox(mri_src, xs, ys, zs) ;
+          break ;
+        default:
+          ErrorReturn(NULL,
+                      (ERROR_UNSUPPORTED, 
+                       "MRIreorder: unsupported voxel format %d",
+                       mri_src->type)) ;
+          break ;
+        }
       }
     }
   }
