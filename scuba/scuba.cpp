@@ -1,6 +1,9 @@
 extern "C" {
 #include "tk.h"
 #include "tix.h"
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
 }
 #include "ScubaGlobalPreferences.h"
 #include "PreferencesManager.h"
@@ -81,7 +84,6 @@ int main ( int argc, char** argv ) {
       throw runtime_error( ssError.str() );
     }
     
-#if 1
     rTcl = Tix_Init( interp );
     if( TCL_OK != rTcl ) {
       stringstream ssError;
@@ -89,7 +91,7 @@ int main ( int argc, char** argv ) {
       ssError <<  "Tix_Init returned not TCL_OK: " << sResult;
       throw runtime_error( ssError.str() );
     }
-#endif
+
     
     TclCommandManager& commandMgr = TclCommandManager::GetManager();
     commandMgr.SetOutputStreamToCerr();
@@ -118,19 +120,48 @@ int main ( int argc, char** argv ) {
       ScubaGlobalPreferences::GetPreferences();
 
 
-    rTcl = Tcl_EvalFile( interp, "scuba.tcl" );
-    if( TCL_OK != rTcl ) {
-      stringstream ssError;
-      char* sResult = Tcl_GetStringResult( interp );
-      ssError <<  "Reading scuba.tcl returned not TCL_OK: " << sResult;
-      throw runtime_error( ssError.str() );
-    }
-    
- 
-    while( 1 ) {
-      Tcl_DoOneEvent( TCL_ALL_EVENTS );
-    }
+    // Look for the script, first in the local dir, then in
+    // ../scripts, then in $FREESURFER_HOME/lib/tcl.
+   struct stat info;
+   string fnScuba( "scuba.tcl" );
+   int rStat = stat( fnScuba.c_str(), &info );
+   if( !S_ISREG(info.st_mode) ) {
+     fnScuba = "../scripts/scuba.tcl";
+     rStat = stat( fnScuba.c_str(), &info );
+     if( !S_ISREG(info.st_mode) ) {
+       char* sFressurferHome = getenv( "FREESURFER_HOME" );
+       if( NULL != sFressurferHome ) {
+	 fnScuba = sFressurferHome + string("/lib/tcl/scuba.tcl");
+	 rStat = stat( fnScuba.c_str(), &info );
+       }
+     }
+   }
 
+   // If we haven't found one by now, bail.
+   if( !S_ISREG(info.st_mode) ) {
+      stringstream ssError;
+      ssError <<  "Couldn't find scuba.tcl file.";
+      throw runtime_error( ssError.str() );
+   }
+
+   
+   char* fnScubaC = strdup( fnScuba.c_str() );
+   rTcl = Tcl_EvalFile( interp, fnScubaC );
+   if( TCL_OK != rTcl ) {
+     stringstream ssError;
+     char* sResult = Tcl_GetStringResult( interp );
+     ssError <<  "Reading scuba.tcl returned not TCL_OK: " << sResult;
+     throw runtime_error( ssError.str() );
+   }
+   free( fnScubaC );
+
+   cout << "Using " << fnScuba << endl;
+
+    
+   while( 1 ) {
+     Tcl_DoOneEvent( TCL_ALL_EVENTS );
+   }
+   
   }
   catch( runtime_error e ) {
     cerr << "failed with exception: " << e.what() << endl;

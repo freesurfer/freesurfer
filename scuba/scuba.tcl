@@ -10,6 +10,8 @@ if { $err } {
     load [file dirname [info script]]/libscuba[info sharedlibextension] scuba
 }
 
+DebugOutput "\$Id: scuba.tcl,v 1.28 2004/05/06 16:55:57 kteich Exp $"
+
 # gTool
 #   current - current selected tool (nav,)
 

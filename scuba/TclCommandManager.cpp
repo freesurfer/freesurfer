@@ -42,6 +42,8 @@ TclCommandManager::GetManager() {
 			 "Returns the argc value from the command line." );
     sManager->AddCommand( *sManager, "GetArgv", 0, "", 
 			 "Returns the argv list from the command line." );
+    sManager->AddCommand( *sManager, "DebugOutput", 1, "message", 
+			 "Prints a message to the debugging output." );
   }
 
   return *sManager;
@@ -353,6 +355,13 @@ TclCommandManager::DoListenToTclCommand ( char* isCommand,
 
     sReturnFormat = ssFormat.str();
     sReturnValues = ssResult.str();
+  }
+
+  // DebugOutput message
+  if( 0 == strcmp( isCommand, "DebugOutput" ) ) {
+
+    string sMessage = iasArgv[1];
+    DebugOutput( << sMessage );
   }
 
   return ok;
