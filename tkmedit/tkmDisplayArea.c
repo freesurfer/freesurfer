@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2003/04/18 22:47:08 $
-// Revision       : $Revision: 1.59 $
+// Revision Date  : $Date: 2003/04/18 22:53:58 $
+// Revision       : $Revision: 1.60 $
 
 #include "tkmDisplayArea.h"
 #include "tkmMeditWindow.h"
@@ -3817,18 +3817,18 @@ DspA_tErr DspA_HandleDraw_ ( tkmDisplayAreaRef this ) {
       }
     }
 
-    /* Selection overlay */
-    if( this->mabDisplayFlags[DspA_tDisplayFlag_Selection] ) {
-      eResult = DspA_DrawSelectionToFrame_( this );
+    /* Draw functional overlay */
+    if( this->mabDisplayFlags[DspA_tDisplayFlag_FunctionalOverlay] ) {
+      eResult = DspA_DrawFunctionalOverlayToFrame_( this );
       if ( DspA_tErr_NoErr != eResult ) {
 	DspA_Signal( "DspA_HandleDraw_", __LINE__, eResult );
 	eResult = DspA_tErr_NoErr;
       }
     }
 
-    /* Draw functional overlay */
-    if( this->mabDisplayFlags[DspA_tDisplayFlag_FunctionalOverlay] ) {
-      eResult = DspA_DrawFunctionalOverlayToFrame_( this );
+    /* Selection overlay */
+    if( this->mabDisplayFlags[DspA_tDisplayFlag_Selection] ) {
+      eResult = DspA_DrawSelectionToFrame_( this );
       if ( DspA_tErr_NoErr != eResult ) {
 	DspA_Signal( "DspA_HandleDraw_", __LINE__, eResult );
 	eResult = DspA_tErr_NoErr;
