@@ -260,10 +260,12 @@ make_surface(void)
   face_index = 0;
   vertex_index = 0;
 
+  printf("\n") ;
   for (imnr=0;imnr<=numimg;imnr++)
   {
     if (vertex_index || face_index)
-      printf("slice %d: %d vertices, %d faces\n",imnr,vertex_index,face_index);
+      printf("\rslice %d: %d vertices, %d faces   ",
+             imnr,vertex_index,face_index);
     for (i=0;i<=IMGSIZE;i++)
     for (j=0;j<=IMGSIZE;j++)
     {
@@ -316,6 +318,7 @@ make_surface(void)
       face_index_table0[f_pack] = face_index_table1[f_pack];
     }
   }
+  printf("\n") ;
 }
 
 #if 0
