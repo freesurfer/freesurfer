@@ -365,6 +365,7 @@ else
 fi
 if test ! "$ac_blt_libraries" = "NO"; then
   blt_libraries=-L$ac_blt_libraries 
+  LDFLAGS="$LDFLAGS $blt_libraries"
 fi
 
 AC_SUBST(blt_includes)
