@@ -744,8 +744,8 @@ if [info exists env(tkregisterinterface)] {
   if {$env(tkregisterinterface) == "macro"} { macro }
   if {$env(tkregisterinterface) == "mini"}  { mini }
 } else {
-  mini
-  puts "tkregister.tcl: default mini interface (to change: macro,mini,micro)"
+  macro
+  puts "tkregister.tcl: default macro interface (to change: macro,mini,micro)"
   puts "tkregister.tcl: or: setenv tkregisterinterface {macro,mini,micro}"
 }
 
