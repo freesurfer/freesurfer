@@ -7,5 +7,5 @@ AM_LDFLAGS=-L$(top_srcdir)/lib
 
 bin_PROGRAMS = nmovie
 nmovie_SOURCES=nmovie.c
-nmovie_LDADD= $(addprefix $(top_srcdir)/,$(LIBS_MGH)) -lXt -lXaw $(GLUT_LIBS)  
+nmovie_LDADD= $(addprefix $(top_srcdir)/,$(LIBS_MGH)) -lXt -lXext -lXaw $(GLUT_LIBS)  
 nmovie_LDFLAGS=
