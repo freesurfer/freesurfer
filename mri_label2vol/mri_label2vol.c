@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Converts a label to a segmentation volume.
-  $Id: mri_label2vol.c,v 1.4 2004/08/04 18:52:32 greve Exp $
+  $Id: mri_label2vol.c,v 1.5 2004/08/17 21:31:14 tosa Exp $
 */
 
 
@@ -28,7 +28,7 @@
 #include "registerio.h"
 #include "resample.h"
 #include "annotation.h"
-
+#include "macros.h"
 
 #define PROJ_TYPE_NONE 0
 #define PROJ_TYPE_ABS  1
@@ -52,7 +52,7 @@ static int load_annotation(char *annotfile, MRIS *Surf);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_label2vol.c,v 1.4 2004/08/04 18:52:32 greve Exp $";
+static char vcid[] = "$Id: mri_label2vol.c,v 1.5 2004/08/17 21:31:14 tosa Exp $";
 char *Progname = NULL;
 
 char *LabelList[100];
@@ -102,7 +102,7 @@ int main(int argc, char **argv)
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv, 
-      "$Id: mri_label2vol.c,v 1.4 2004/08/04 18:52:32 greve Exp $", "$Name:  $");
+      "$Id: mri_label2vol.c,v 1.5 2004/08/17 21:31:14 tosa Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -442,6 +442,8 @@ static void print_usage(void)
 static void print_help(void)
 {
   print_usage() ;
+
+#if GCC_VERSION < 30300
   printf(
 
 "
@@ -663,7 +665,7 @@ http://surfer.nmr.mgh.harvard.edu/docs/tksurfer_doc.html
 
 "
 
-
+#endif
 );
 
 
