@@ -177,7 +177,7 @@ DiagCreateWindow(unsigned long diag_bits, int wrows, int wcols,
   win = WinAlloc("window", 50,50, wcols,wrows) ;
   WinShow(win) ;
 #else
-  win = WinCreate("window", 1, wrows, rows, cols) ;
+  win = WinCreate("window", 1, wrows, wcols, rows, cols) ;
 #endif
 
   return(win) ;
