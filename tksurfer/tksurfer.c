@@ -1331,6 +1331,8 @@ static int sclv_num_conditions = 0;
 static int sclv_cur_timepoint = 0;
 static int sclv_cur_condition = 0;
 
+static double sclv_overlay_alpha = 1.0;
+
 #define sclv_set_value(v,i,n) \
  switch(i) { \
      case SCLV_VAL: (v)->val = n; break; \
@@ -1378,6 +1380,9 @@ int sclv_calc_frequencies (int field);
 /* generic version of smooth_val, smooth_fs, etc */
 int sclv_smooth (int niter, int field);
 
+/* sets the overlay alpha value. */
+int sclv_set_overlay_alpha (double alpha);
+
 int sclv_set_current_field (int field);
 int sclv_send_current_field_info ();
 
@@ -1413,7 +1418,6 @@ int sclv_get_normalized_color_for_value (int field, float value,
 					 float *outRed,
 					 float *outGreen,
 					 float *outBlue);
-
 
 /* ---------------------------------------------------------------------- */
 
@@ -12553,14 +12557,23 @@ fill_color_array(MRI_SURFACE *mris, float *colors)
 		    get_complexval_color_vals(v->val,v->val2,v->stat,0,
 					      &r_overlay,&g_overlay,&b_overlay);
 		  
+		  r = r_overlay;
+		  g = g_overlay;
+		  b = b_overlay;
 		} else {
-		  /* get a red/green color based on the currently 
+		  /* get a color based on the currently 
 		     selected field if it is above fthresh. */
 		  sclv_get_value (v, sclv_current_field, &val);
 		  if (val > fthresh || val < -fthresh)
 		    {
+		      r_overlay = r;
+		      g_overlay = g;
+		      b_overlay = b;
 		      get_color_vals (val, v->curv, REAL_VAL,  
-				      &r, &g, &b);
+				      &r_overlay, &g_overlay, &b_overlay);
+		      r = r + (sclv_overlay_alpha * (r_overlay - r));
+		      g = g + (sclv_overlay_alpha * (g_overlay - g));
+		      b = b + (sclv_overlay_alpha * (b_overlay - b));
 		    }
 		}
 	    } 
@@ -16777,6 +16790,7 @@ int W_sclv_read_binary_values_frame  PARM;
 int W_sclv_read_bfile_values  PARM; 
 int W_sclv_write_binary_values PARM;
 int W_sclv_smooth  PARM; 
+int W_sclv_set_overlay_alpha  PARM; 
 int W_sclv_set_current_field  PARM; 
 int W_sclv_set_current_timepoint  PARM; 
 int W_sclv_copy_view_settings_from_current_field PARM;
@@ -17706,8 +17720,11 @@ int W_sclv_read_bfile_values (ClientData clientData,Tcl_Interp *interp,
 int W_sclv_smooth  WBEGIN
 ERR(3,"Wrong # args: sclv_smooth steps field")
      sclv_smooth(atoi(argv[1]), atoi(argv[2]));  WEND
+     int W_sclv_set_overlay_alpha  WBEGIN
+     ERR(2,"Wrong # args: sclv_set_overlay_alpha alpha")
+     sclv_set_overlay_alpha(atof(argv[1]));  WEND
      int W_sclv_set_current_field  WBEGIN
-     ERR(2,"Wrong # args: sclv_set_current_field")
+     ERR(2,"Wrong # args: sclv_set_current_field field")
      sclv_set_current_field(atoi(argv[1]));  WEND
      int W_sclv_set_current_timepoint  WBEGIN
      ERR(3,"Wrong # args: sclv_set_current_timepoint timepoint condition")
@@ -18453,6 +18470,8 @@ int main(int argc, char *argv[])   /* new main */
 		    W_sclv_write_binary_values, REND);
   Tcl_CreateCommand(interp, "sclv_smooth", 
 		    W_sclv_smooth, REND);
+  Tcl_CreateCommand(interp, "sclv_set_overlay_alpha", 
+		    W_sclv_set_overlay_alpha, REND);
   Tcl_CreateCommand(interp, "sclv_set_current_field", 
 		    W_sclv_set_current_field, REND);
   Tcl_CreateCommand(interp, "sclv_set_current_timepoint", 
@@ -18712,6 +18731,7 @@ int main(int argc, char *argv[])   /* new main */
   
   /* begin rkt */
   Tcl_LinkVar(interp,"timeresolution",(char *)&func_time_resolution, TCL_LINK_DOUBLE);
+  Tcl_LinkVar(interp,"falpha",(char *)&sclv_overlay_alpha, TCL_LINK_DOUBLE);
   Tcl_LinkVar(interp,"fmin",(char *)&sclv_value_min, TCL_LINK_DOUBLE);
   Tcl_LinkVar(interp,"fmax",(char *)&sclv_value_max, TCL_LINK_DOUBLE);
   /* end rkt */
@@ -21030,6 +21050,16 @@ sclv_calc_frequencies(int field)
   return (ERROR_NONE);
 }
 
+int sclv_set_overlay_alpha (double alpha)
+{
+  if (alpha < 0 || alpha > 1.0)
+    ErrorReturn(ERROR_BADPARM,(ERROR_BADPARM,"sclv_set_overlay_alpha: alpha must be 0-1"));
+
+  sclv_overlay_alpha = alpha;
+
+  return (ERROR_NONE);
+}
+
 int sclv_set_current_field (int field)
 {
   if (field < 0 || field > NUM_SCALAR_VALUES)
@@ -21380,7 +21410,6 @@ int sclv_get_normalized_color_for_value (int field, float value,
   *outBlue = ((float)b / 255.0);
   return (ERROR_NONE);
 }
-
 
 /* ---------------------------------------------------------------------- */
 
