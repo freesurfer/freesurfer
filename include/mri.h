@@ -272,6 +272,8 @@ MRI   *MRIzSobelRegion(MRI *mri_src, MRI *mri_z, int frame,MRI_REGION *region);
 
 MRI   *MRIreduce(MRI *mri_src, MRI *mri_dst) ;
 MRI   *MRIreduceByte(MRI *mri_src, MRI *mri_dst) ;
+MRI *MRIconvolve1dFloat(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis,
+												int src_frame, int dst_frame);
 MRI   *MRIconvolve1dShort(MRI *mri_src, MRI *mri_dst, float *k, int len, 
                           int axis, int src_frame, int dst_frame) ;
 MRI   *MRIconvolve1dByte(MRI *mri_src, MRI *mri_dst, float *k, int len, 

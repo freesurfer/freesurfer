@@ -3,8 +3,8 @@
 /*                                                                     */
 /* Warning: Do not edit the following four lines.  CVS maintains them. */
 /* Revision Author: $Author: fischl $                                           */
-/* Revision Date  : $Date: 2004/05/20 15:55:31 $                                             */
-/* Revision       : $Revision: 1.26 $                                         */
+/* Revision Date  : $Date: 2004/06/08 14:11:20 $                                             */
+/* Revision       : $Revision: 1.27 $                                         */
 /*                                                                     */
 /***********************************************************************/
 
@@ -125,6 +125,7 @@ int       TransformSampleInverseVoxel(TRANSFORM *transform, int width, int heigh
 TRANSFORM *TransformAlloc(int type, MRI *mri) ;
 int       TransformInvert(TRANSFORM *transform, MRI *mri) ;
 MRI       *TransformApply(TRANSFORM *transform, MRI *mri_src, MRI *mri_dst) ;
+MRI       *TransformApplyType(TRANSFORM *transform, MRI *mri_src, MRI *mri_dst, int interp_type) ;
 MRI       *TransformApplyInverse(TRANSFORM *transform, MRI *mri_src, MRI *mri_dst) ;
 
 // VOL_GEOM utilities
