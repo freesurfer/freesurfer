@@ -2731,6 +2731,69 @@ MRISreadCurvatureFile(MRI_SURFACE *mris, char *sname)
         Description
 ------------------------------------------------------*/
 int
+MRISreadFloatFile(MRI_SURFACE *mris, char *sname)
+{
+  int    k,vnum,fnum;
+  float  f, fmin, fmax;
+  FILE   *fp;
+  char   *cp, path[STRLEN], fname[STRLEN] ;
+  
+  cp = strchr(sname, '/') ;
+  if (!cp)                 /* no path - use same one as mris was read from */
+  {
+    cp = strchr(sname, '.') ;
+    FileNamePath(mris->fname, path) ;
+    if (cp)
+      sprintf(fname, "%s/%s", path, sname) ;
+    else   /* no hemisphere specified */
+      sprintf(fname, "%s/%s.%s", path, 
+              mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", sname) ;
+  }
+  else   
+    strcpy(fname, sname) ;  /* path specified explcitly */
+
+  if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON) 
+    fprintf(stdout, "reading float file...") ;
+
+  fp = fopen(fname,"r");
+  if (fp==NULL) 
+    ErrorReturn(ERROR_NOFILE, 
+                (ERROR_NOFILE, "MRISreadFloatFile: could not open %s", 
+                 fname)) ;
+
+  vnum = freadInt(fp);
+  fnum = freadInt(fp);
+  if (vnum!= mris->nvertices)
+  {
+    fclose(fp) ;
+    ErrorReturn(ERROR_NOFILE, 
+                (ERROR_NOFILE, "MRISreadFloatFile: incompatible # of vertices "
+                 "in file %s", fname)) ;
+  }
+  if (fnum!= mris->nfaces)
+  {
+    fclose(fp) ;
+    ErrorReturn(ERROR_NOFILE, 
+                (ERROR_NOFILE, "MRISreadFloatFile: incompatible # of faces "
+                 "file %s", fname)) ;
+  }
+  fmin = 10000.0f ; fmax = -10000.0f ;  /* for compiler warnings */
+  for (k=0;k<vnum;k++)
+  {
+    f = freadFloat(fp);
+    mris->vertices[k].val = f;
+  }
+  fclose(fp);
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+int
 MRISreadBinaryAreas(MRI_SURFACE *mris, char *mris_fname)
 {
   int   k,vnum,fnum;
