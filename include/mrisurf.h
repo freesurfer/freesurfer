@@ -776,7 +776,7 @@ MRI   *MRISpartialshell(MRI *mri_src,MRI_SURFACE *mris,MRI *mri_dst);
 MRI   *MRISpartialfloodoutside(MRI *mri_src,MRI *mri_dst);
 
 #define MRIS_BINARY_QUADRANGLE_FILE    0    /* homegrown */
-#define MRIS_ASCII_QUADRANGLE_FILE     1    /* homegrown */
+#define MRIS_ASCII_TRIANGLE_FILE       1    /* homegrown */
 #define MRIS_GEO_TRIANGLE_FILE         2    /* movie.byu format */
 #define MRIS_ICO_SURFACE               3
 #define MRIS_TRIANGULAR_SURFACE        MRIS_ICO_SURFACE
@@ -784,8 +784,7 @@ MRI   *MRISpartialfloodoutside(MRI *mri_src,MRI *mri_dst);
 
 
 #define IS_QUADRANGULAR(mris) \
-   ((mris->type == MRIS_BINARY_QUADRANGLE_FILE) || \
-    (mris->type == MRIS_ASCII_QUADRANGLE_FILE))
+   (mris->type == MRIS_BINARY_QUADRANGLE_FILE)
 
 
 /* actual constants are in mri.h */
