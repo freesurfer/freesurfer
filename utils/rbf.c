@@ -1023,29 +1023,17 @@ if (Gdiag & DIAG_SHOW)
 int
 RBFwrite(RBF *rbf, char *fname)
 {
-  int   i ;
   FILE  *fp ;
+  int   error ;
 
   fp = fopen(fname, "w") ;
   if (!fp)
     ErrorReturn(ERROR_NO_FILE, 
                 (ERROR_NO_FILE, "RBFwrite(%s): could not open file", fname)) ;
 
-  fprintf(fp, "%d %d %d\n", rbf->noutputs, rbf->ninputs, rbf->nhidden) ;
-  fprintf(fp, "\n# class names and max # of clusters\n") ;
-  for (i = 0 ; i < rbf->noutputs ; i++)
-    fprintf(fp, "%d %s\n", rbf->cs[i]->max_clusters, rbf->class_names[i]) ;
-
-  fprintf(fp, "# weights:\n") ;
-  MatrixAsciiWriteInto(fp, rbf->m_wij) ;
-  for (i = 0 ; i < rbf->noutputs ; i++)
-  {
-    fprintf(fp, "CLASS: %s\n", rbf->class_names[i]) ;
-    CSwriteInto(fp, rbf->cs[i]) ;
-  }
-
+  error = RBFwriteInto(rbf, fp) ;
   fclose(fp) ;
-  return(NO_ERROR) ;
+  return(error) ;
 }
 /*-----------------------------------------------------
         Parameters:
@@ -1057,8 +1045,6 @@ RBFwrite(RBF *rbf, char *fname)
 RBF *
 RBFread(char *fname)
 {
-  int   i, c, cno, class,noutputs,ninputs,nhidden,max_clusters[MAX_OUTPUTS];
-  char  *names[MAX_OUTPUTS], *cp, line[100] ;
   FILE  *fp ;
   RBF   *rbf ;
 
@@ -1067,39 +1053,7 @@ RBFread(char *fname)
     ErrorReturn(NULL, 
                 (ERROR_NO_FILE, "RBFread(%s): could not open file", fname)) ;
 
-  if (fscanf(fp, "%d %d %d\n", &noutputs, &ninputs, &nhidden) != 3)
-    ErrorReturn(NULL, (ERROR_BADFILE, "RBFread(%s): could not scan parms",
-                       fname)) ;
-
-  for (i = 0 ; i < noutputs ; i++)
-  {
-    cp = fgetl(line, 199, fp) ;
-    if (sscanf(cp, "%d", &max_clusters[i]) != 1)
-      ErrorReturn(NULL, (ERROR_BADFILE, 
-                         "RBFread(%s): could not read class # of clusters",
-                         fname,i));
-    cp = StrSkipNumber(cp) ;
-    names[i] = (char *)calloc(strlen(cp)+1, sizeof(char)) ;
-    strcpy(names[i], cp) ;
-  }
-  rbf = RBFinit(ninputs, noutputs, max_clusters, names) ;
-  for (i = 0 ; i < noutputs ; i++)
-    free(names[i]) ;
-
-  MatrixAsciiReadFrom(fp, rbf->m_wij) ;
-  for (i = 0 ; i < rbf->noutputs ; i++)
-  {
-    fgetl(line, 199, fp) ;   /* skip class name */
-    CSreadFrom(fp, rbf->cs[i]) ;
-  }
-
-  /* fill in cluster pointers in rbf struct for convenience sake */
-  for (cno = class = 0 ; class < rbf->noutputs ; class++)
-  {
-    for (c = 0 ; c < rbf->cs[class]->nclusters ; c++, cno++)
-      rbf->clusters[cno] = rbf->cs[class]->clusters+c ;
-  }
-
+  rbf = RBFreadFrom(fp) ;
   fclose(fp) ;
   return(rbf) ;
 }
@@ -1443,5 +1397,80 @@ rbfAllocateTrainingParameters(RBF *rbf)
               "rbfAllocateTrainingParms: could not allocate m_delta_wij") ;
 
   return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+          Write a classifier into a previously opened file.
+------------------------------------------------------*/
+int
+RBFwriteInto(RBF *rbf, FILE *fp)
+{
+  int   i ;
+
+  fprintf(fp, "%d %d %d\n", rbf->noutputs, rbf->ninputs, rbf->nhidden) ;
+  fprintf(fp, "\n# class names and max # of clusters\n") ;
+  for (i = 0 ; i < rbf->noutputs ; i++)
+    fprintf(fp, "%d %s\n", rbf->cs[i]->max_clusters, rbf->class_names[i]) ;
+
+  fprintf(fp, "# weights:\n") ;
+  MatrixAsciiWriteInto(fp, rbf->m_wij) ;
+  for (i = 0 ; i < rbf->noutputs ; i++)
+  {
+    fprintf(fp, "CLASS: %s\n", rbf->class_names[i]) ;
+    CSwriteInto(fp, rbf->cs[i]) ;
+  }
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+         Read a classifier from a previously opened file
+------------------------------------------------------*/
+RBF *
+RBFreadFrom(FILE *fp)
+{
+  int   i, c, cno, class,noutputs,ninputs,nhidden,max_clusters[MAX_OUTPUTS];
+  char  *names[MAX_OUTPUTS], *cp, line[100] ;
+  RBF   *rbf ;
+
+  if (fscanf(fp, "%d %d %d\n", &noutputs, &ninputs, &nhidden) != 3)
+    ErrorReturn(NULL, (ERROR_BADFILE, "RBFread: could not scan parms")) ;
+
+  for (i = 0 ; i < noutputs ; i++)
+  {
+    cp = fgetl(line, 199, fp) ;
+    if (sscanf(cp, "%d", &max_clusters[i]) != 1)
+      ErrorReturn(NULL, (ERROR_BADFILE, 
+                         "RBFread(%s): could not read class # of clusters",i));
+    cp = StrSkipNumber(cp) ;
+    names[i] = (char *)calloc(strlen(cp)+1, sizeof(char)) ;
+    strcpy(names[i], cp) ;
+  }
+  rbf = RBFinit(ninputs, noutputs, max_clusters, names) ;
+  for (i = 0 ; i < noutputs ; i++)
+    free(names[i]) ;
+
+  MatrixAsciiReadFrom(fp, rbf->m_wij) ;
+  for (i = 0 ; i < rbf->noutputs ; i++)
+  {
+    fgetl(line, 199, fp) ;   /* skip class name */
+    CSreadFrom(fp, rbf->cs[i]) ;
+  }
+
+  /* fill in cluster pointers in rbf struct for convenience sake */
+  for (cno = class = 0 ; class < rbf->noutputs ; class++)
+  {
+    for (c = 0 ; c < rbf->cs[class]->nclusters ; c++, cno++)
+      rbf->clusters[cno] = rbf->cs[class]->clusters+c ;
+  }
+
+  return(rbf) ;
 }
 
