@@ -58,16 +58,8 @@ fi
 AC_SUBST(TIXWISH)
 
 #################################################################
-# allow user to enable/disable scuba qt
-AC_ARG_ENABLE(scubaqt, [ --enable-scubaqt   Create QT version of scuba],
-  [case "${enableval}" in
-     yes) scubaqt=true ;;
-     no) scubaqt=false ;;
-     *) AC_MSG_ERROR(bad value ${enableval} for --enable-scubaqt) ;;
-   esac],[scubaqt=false])
-
-AM_CONDITIONAL(WANT_QTSCUBA, test x$scubaqt = xtrue)
-
+# If on a Mac, make a scuba bundle.
+AM_CONDITIONAL(SCUBA_BUNDLE, test x$target_os = xapple)
 
 ################################################################
 # define OS
