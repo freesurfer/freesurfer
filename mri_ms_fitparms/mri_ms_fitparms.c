@@ -28,14 +28,14 @@ static int debug_slice = -1 ;
 
 char *Progname ;
 static int align = 1 ;
-static int window_flag = 0 ;
 
 static void usage_exit(int code) ;
 
 static int niter=10 ;
 static float thresh = 25 ;
 static int conform = 0 ;
-static int sinc_flag = 1;
+
+static int InterpMethod = SAMPLE_TRILINEAR;  /*E* prev default behavior */
 static int sinchalfwindow = 3;
 
 static char *residual_name = NULL ;
@@ -68,7 +68,7 @@ main(int argc, char *argv[])
   double rms ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_ms_fitparms.c,v 1.11 2003/04/15 21:14:02 kteich Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ms_fitparms.c,v 1.12 2003/07/08 15:47:30 ebeth Exp $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -326,14 +326,77 @@ get_option(int argc, char *argv[])
     conform = 1 ;
     printf("interpolating volume to be isotropic 1mm^3\n") ;
   }
+  else if (!stricmp(option, "window"))
+  {
+    printf("window option not implemented\n");
+    /*E* window_flag = 1 ; */
+  }
+
+  /*E* Interpolation method.  Default is trilinear, other options are
+    nearest, cubic, sinc.  You can say -foo or -interp foo.  For sinc,
+    you can say -interp sinc 3 or -interp sinc -hw 3 or -sinc 3 or
+    -sinc -hw 3.  Maybe -hw 3 should imply sinc, but right now it
+    doesn't.  */
+
+  else if (!stricmp(option, "st") ||
+	   !stricmp(option, "sample") ||
+	   !stricmp(option, "sample_type") ||
+	   !stricmp(option, "interp"))
+  {
+    InterpMethod = MRIinterpCode(argv[2]) ;
+    nargs = 1;
+    if (InterpMethod==SAMPLE_SINC)
+    {
+      if ((argc<4) || !strncmp(argv[3],"-",1)) /*E* i.e. no sinchalfwindow value supplied */
+      {
+	printf("using sinc interpolation (default windowwidth is 6)\n");
+      }
+      else
+      {
+	sinchalfwindow = atoi(argv[3]);
+	nargs = 2;
+	printf("using sinc interpolation with windowwidth of %d\n", 2*sinchalfwindow);
+      }
+    }
+  }
   else if (!stricmp(option, "sinc"))
   {
-    sinchalfwindow = atoi(argv[2]);
-    sinc_flag = 1;
-    nargs = 1;
-    printf("using sinc interpolation with windowwidth of %d\n",
-      2*sinchalfwindow);
+    InterpMethod = SAMPLE_SINC;
+    if ((argc<3) || !strncmp(argv[2],"-",1)) /*E* i.e. no sinchalfwindow value supplied */
+    {
+      printf("using sinc interpolation (default windowwidth is 6)\n");
+    }
+    else
+    {
+      sinchalfwindow = atoi(argv[2]);
+      nargs = 1;
+      printf("using sinc interpolation with windowwidth of %d\n", 2*sinchalfwindow);
+    }
   }
+  else if (!stricmp(option, "sinchalfwindow") ||
+	   !stricmp(option, "hw"))
+  {
+    /*E* InterpMethod = SAMPLE_SINC; //? */
+    sinchalfwindow = atoi(argv[2]);
+    nargs = 1;
+    printf("using sinc interpolation with windowwidth of %d\n", 2*sinchalfwindow);
+  }
+  else if (!stricmp(option, "trilinear"))
+  {
+    InterpMethod = SAMPLE_TRILINEAR;
+    printf("using trilinear interpolation\n");
+  }
+  else if (!stricmp(option, "cubic"))
+  {
+    InterpMethod = SAMPLE_CUBIC;
+    printf("using cubic interpolation\n");
+  }
+  else if (!stricmp(option, "nearest"))
+  {
+    InterpMethod = SAMPLE_NEAREST;
+    printf("using nearest-neighbor interpolation\n");
+  }
+
   else if (!stricmp(option, "tr"))
   {
     tr = atof(argv[2]) ;
@@ -348,16 +411,6 @@ get_option(int argc, char *argv[])
   {
     fa = RADIANS(atof(argv[2])) ;
     nargs = 1;
-  }
-  else if (!stricmp(option, "trilinear"))
-  {
-    sinc_flag = 0;
-    printf("using trilinear interpolation\n");
-  }
-  else if (!stricmp(option, "window"))
-  {
-    window_flag = 1 ;
-    printf("applying hanning window to volumes...\n") ;
   }
   else if (!stricmp(option, "noconform"))
   {
@@ -503,7 +556,10 @@ estimate_ms_params(MRI **mri_flash, MRI **mri_flash_synth, int nvolumes, MRI *mr
       MatrixMultiply(M_reg[j],rasvec1,rasvec2);
       MatrixMultiply(ras2vox[j],rasvec2,voxvec2);
       xf=voxvec2->data[0]; yf=voxvec2->data[1]; zf=voxvec2->data[2];
-      MRIsampleVolume(mri, xf, yf, zf, &val) ;
+      if(InterpMethod==SAMPLE_SINC)
+	MRIsincSampleVolume(mri, xf, yf, zf, sinchalfwindow, &val) ;
+      else
+	MRIsampleVolumeType(mri, xf, yf, zf, &val, InterpMethod) ;
       ImageValues[j] = val;
       ss += val*val;
     }
@@ -646,7 +702,10 @@ estimate_ms_params_with_kalpha(MRI **mri_flash, MRI **mri_flash_synth, int nvolu
       MatrixMultiply(M_reg[k],rasvec1,rasvec2);
       MatrixMultiply(ras2vox[k],rasvec2,voxvec2);
       xf=voxvec2->data[0]; yf=voxvec2->data[1]; zf=voxvec2->data[2];
-      MRIsampleVolume(mri, xf, yf, zf, &val) ;
+      if(InterpMethod==SAMPLE_SINC)
+	MRIsincSampleVolume(mri, xf, yf, zf, sinchalfwindow, &val) ;
+      else
+	MRIsampleVolumeType(mri, xf, yf, zf, &val, InterpMethod) ;
       ImageValues[k] = val;
       ss += val*val;
     }
@@ -941,7 +1000,10 @@ estimate_rigid_regmatrix(MRI *mri_source, MRI *mri_target, MATRIX *M_reg)
         for (indx=1; indx<=nvalues; indx++)
         {
           xf=voxmat2->rptr[1][indx]; yf=voxmat2->rptr[2][indx]; zf=voxmat2->rptr[3][indx];
-          MRIsampleVolume(mri_target, xf, yf, zf, &val2) ;
+	  if(InterpMethod==SAMPLE_SINC)
+	    MRIsincSampleVolume(mri_target, xf, yf, zf, sinchalfwindow, &val2) ;
+	  else
+	    MRIsampleVolumeType(mri_target, xf, yf, zf, &val2, InterpMethod) ;
           voxval2[indx] = val2;
           val1 = voxval1[indx];
           err = val1-val2;
