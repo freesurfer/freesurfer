@@ -8,6 +8,7 @@
 #include "fio.h"
 #include "mrisurf.h"
 #include "matrix.h"
+#include "proto.h"
 
 
 /*------------------------ STATIC PROTOTYPES -------------------------*/
@@ -35,10 +36,16 @@ static int   mrisOrientEllipsoidArea(MRI_SURFACE *mris) ;
 #define SLICE_THICKNESS           1
 
 
-#define DEBUG_FACE(fno)   (((fno) == 80325) && 0)
-#define DEBUG_VERTEX(v,f)   (((v) == 79891) && 0)
+#if 0
+#define DEBUG_FACE(fno)   (((fno) == 77540))
+#else
+#define DEBUG_FACE(fno)   (((fno) == 79379) && 0)
+#endif
+#define DEBUG_VERTEX(v,f)   (((f) == 77557) && 0)
 
 /*--------------------------------------------------------------------*/
+
+/*-------------------------- STATIC DATA -------------------------------*/
 
 /*-------------------------- FUNCTIONS -------------------------------*/
 
@@ -700,6 +707,7 @@ mrisReadBinaryCurvature(MRI_SURFACE *mris, char *mris_fname)
                 (ERROR_NOFILE, "mrisReadBinaryCurvature: incompatible vertex "
                  "number in file %s", fname)) ;
   }
+  curvmin = 10000.0f ; curvmax = -10000.0f ;  /* for compiler warnings */
   for (k=0;k<vnum;k++)
   {
     fread2(&i,fp);
@@ -761,7 +769,7 @@ mrisReadBinaryAreas(MRI_SURFACE *mris, char *mris_fname)
   for (k=0;k<vnum;k++)
   {
     f = freadFloat(fp);
-    mris->vertices[k].origarea = f;
+    mris->vertices[k].origarea = f ;
     mris->total_area += f;
   }
   fclose(fp);
@@ -865,17 +873,16 @@ normalize_binary_curvature(MRI_SURFACE *mris)
 #define DEFAULT_A  45.0f
 #define DEFAULT_B  130.0f
 #define DEFAULT_C  75.0f
-#define TOTAL_AREA 91860.3
+#define TOTAL_AREA 91860.3  /* area of an ellipsoid with the above A,B and C */
 
 MRI_SURFACE *
 MRISprojectOntoEllipsoid(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst, 
                                        float a, float b, float c)
 {
-  int    vno, fno ;
+  int    vno ;
   VERTEX *vsrc, *vdst ;
-  FACE   *face ;
-  float  x0, y0, z0, x1, y1, z1, denom, dot,
-         asq_bsq, asq_csq, bsq_csq, x1sq, y1sq, z1sq, abc, area_scale ;
+  float  x0, y0, z0, x1, y1, z1, denom,
+         asq_bsq, asq_csq, bsq_csq, x1sq, y1sq, z1sq, abc ;
 
 #if 0
   if (Gdiag & DIAG_SHOW)
@@ -965,32 +972,7 @@ MRISprojectOntoEllipsoid(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst,
   }
 #endif
 
-  mrisComputeNormals(mris_dst);
-  MRIScomputeFaceAreas(mris_dst) ;
-  mrisScaleEllipsoidArea(mris_dst) ;
-  mrisOrientEllipsoidArea(mris_dst) ;
-
-#if 0
-  /* now give areas proper orientation (i.e. normal should always point out) */
-  area_scale = mris_dst->total_area / TOTAL_AREA ;
-  for (fno = 0 ; fno < mris_dst->nfaces ; fno++)
-  {
-    face = &mris_dst->faces[fno] ;
-    vdst = &mris_dst->vertices[face->v[0]] ;  /* arbitrary */
-    /* scale the area by the ratio of the ellipsoid area to that of the
-       original surface.
-       */
-    face->area *= area_scale ;
-
-    /* now make give the area an orientation: if the unit normal is pointing
-       inwards on the ellipsoid then the area should be negative.
-       */
-    dot = vdst->x * face->nx + vdst->y * face->ny + vdst->z * face->nz ;
-    if (dot < 0.0f)   /* not in same direction */
-      face->area *= -1.0f ;
-  }
-#endif
-
+  MRISupdateEllipsoidSurface(mris_dst) ;
   return(mris_dst) ;
 }
 /*-----------------------------------------------------
@@ -1177,44 +1159,78 @@ MRIStalairachTransform(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst)
         Returns value:
 
         Description
+          In counter-clockwise fashion, number the vertices 0-3 and the
+          edges a-d.
 ------------------------------------------------------*/
+#define VERTEX_EDGE(vec, v0, v1)   VECTOR_LOAD(vec,v1->x-v0->x,v1->y-v0->y,\
+                                               v1->z-v0->z)
 int
 MRIScomputeFaceAreas(MRI_SURFACE *mris)
 {
-  int         fno ;
-  VERTEX      *va, *vb, *vc ;
+  int         fno, vno ;
+  VERTEX      *v0, *v1, *v2, *v3 ;
   FACE        *face ;
-  VECTOR      *v_a, *v_b, *v_n ;
+  VECTOR      *v_a, *v_b, *v_c, *v_d, *v_n, *v_n1, *v_n2 ;
 
   v_a = VectorAlloc(3, MATRIX_REAL) ;
   v_b = VectorAlloc(3, MATRIX_REAL) ;
+  v_c = VectorAlloc(3, MATRIX_REAL) ;
+  v_d = VectorAlloc(3, MATRIX_REAL) ;
   v_n = VectorAlloc(3, MATRIX_REAL) ;
+  v_n1 = VectorAlloc(3, MATRIX_REAL) ;
+  v_n2 = VectorAlloc(3, MATRIX_REAL) ;
   for (fno = 0 ; fno < mris->nfaces ; fno++)
   {
     face = &mris->faces[fno] ;
-    va = &mris->vertices[face->v[0]] ;
-    vb = &mris->vertices[face->v[1]] ;
-    vc = &mris->vertices[face->v[2]] ;
-    VECTOR_LOAD(v_a, va->x - vb->x, va->y - vb->y, va->z - vb->z) ;
-    VECTOR_LOAD(v_b, vc->x - vb->x, vc->y - vb->y, vc->z - vb->z) ;
-    VectorCrossProduct(v_a, v_b, v_n) ;
+
+    v0 = &mris->vertices[face->v[0]] ;
+    v1 = &mris->vertices[face->v[1]] ;
+    v2 = &mris->vertices[face->v[2]] ;
+    v3 = &mris->vertices[face->v[3]] ;
+
+    VERTEX_EDGE(v_a, v0, v1) ;    /* these are oriented so that the right- */
+    VERTEX_EDGE(v_b, v2, v1) ;    /* hand rule will give an outward pointing */
+    VERTEX_EDGE(v_c, v2, v3) ;    /* normal if the triangles have positive */
+    VERTEX_EDGE(v_d, v0, v3) ;    /* area */
+
+    VectorCrossProduct(v_a, v_d, v_n1) ;
+    VectorCrossProduct(v_c, v_b, v_n2) ;
+    VectorAdd(v_n1, v_n2, v_n) ;
     VectorNormalize(v_n, v_n) ;
     face->nx = VECTOR_ELT(v_n,1) ; face->ny = VECTOR_ELT(v_n,2) ;
     face->nz = VECTOR_ELT(v_n,3) ; 
-    face->area = VectorTripleProduct(v_a, v_b, v_n) ;
-if (face->area < 0.0f)
-  DiagBreak() ;
+    face->area = VectorTripleProduct(v_a, v_d, v_n)*.5f ;
+    face->area += VectorTripleProduct(v_c, v_b, v_n)*.5f ;
+
+    if (face->area < 0.0f)
+      DiagBreak() ;
   }
 
-  if (!mris->initialized) for (fno = 0 ; fno < mris->nfaces ; fno++)
+  if (!mris->initialized) 
   {
-    face = &mris->faces[fno] ;
-    face->orig_area = face->area ;
+    mris->total_area = 0.0f ;
+    for (fno = 0 ; fno < mris->nfaces ; fno++)
+    {
+      face = &mris->faces[fno] ;
+#if 0
+      face->orig_area = face->area ;
+#else
+      face->orig_area = 0.0 ;
+      for (vno = 0 ; vno < VERTICES_PER_FACE ; vno++)
+        face->orig_area += mris->vertices[face->v[vno]].origarea ;
+      face->orig_area /= (float)(VERTICES_PER_FACE*2) ;
+      mris->total_area += face->orig_area ;
+#endif
+    }
   }
   mris->initialized = 1 ;
   VectorFree(&v_a) ;
   VectorFree(&v_b) ;
+  VectorFree(&v_c) ;
+  VectorFree(&v_d) ;
   VectorFree(&v_n) ;
+  VectorFree(&v_n1) ;
+  VectorFree(&v_n2) ;
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
@@ -1224,33 +1240,55 @@ if (face->area < 0.0f)
 
         Description
 ------------------------------------------------------*/
-#define DELTA_T             0.025f
+#define MAX_NEGATIVE        500
+#define DELTA_T             0.05f
 #define MOMENTUM            0.2f
 #define ONE_MINUS_MOMENTUM  (1.0f - MOMENTUM)
 #define RECOMPUTE_NORMALS   10
 #define DT_DECREASE         0.7f
-#define DT_INCREASE         1.05f
+#define DT_INCREASE         1.03f
 #define ERROR_RATIO         1.0f
 #define MIN_DT              0.000001f
 #define MAX_MIN_DTS         10
+
+#define WRITE_ITERATIONS    500
 
 MRI_SURFACE *
 MRISunfold(MRI_SURFACE *mris, int niterations, float base_momentum, 
            float l_area, float l_angle,  float l_corr)
 {
-  int         vno, t, fno, index, index_a, index_b, imin, min_dts ;
-  VERTEX      *v, *va, *vb ;
-  FACE        *f ;
-  VECTOR      *v_a, *v_b, *v_b_x_n, *v_n_x_a, *v_n, *v_delta, *v_sum ;
-  float       dx, dy, dz, delta, x, y, z, rms, old_rms, delta_t,
-              momentum, one_minus_momentum, min_dz ;
+  int         vno, t, fno, imin, min_dts, write_iterations = WRITE_ITERATIONS,
+              negative ;
+  VERTEX      *v, *v0, *v1, *v2, *v3 ;
+  FACE        *face ;
+  VECTOR      *v_a, *v_b, *v_c, *v_d, *v_n, *v_delta, *v_sum,
+              *v_d_x_n, *v_n_x_c, *v_n_x_a, *v_b_x_n ;
+  float       dz, delta, rms, old_rms, delta_t,
+              momentum, one_minus_momentum, min_dz, coef ;
+
+  {
+    char *cp ;
+
+    cp = getenv("WRITE_ITERATIONS") ;
+    if (cp)
+    {
+      sscanf(cp, "%d", &write_iterations) ;
+      fprintf(stderr, "writing out intermediate files every %d iterations\n",
+              write_iterations) ;
+    }
+  }
 
   v_a = VectorAlloc(3, MATRIX_REAL) ;
   v_b = VectorAlloc(3, MATRIX_REAL) ;
+  v_c = VectorAlloc(3, MATRIX_REAL) ;
+  v_d = VectorAlloc(3, MATRIX_REAL) ;
   v_n = VectorAlloc(3, MATRIX_REAL) ;       /* normal vector */
   v_sum = VectorAlloc(3, MATRIX_REAL) ;       
   v_delta = VectorAlloc(3, MATRIX_REAL) ;   
-  v_b_x_n = v_n_x_a = NULL ;
+  v_n_x_c = VectorAlloc(3, MATRIX_REAL) ;       /* normal vector */
+  v_n_x_a = VectorAlloc(3, MATRIX_REAL) ;       /* normal vector */
+  v_d_x_n = VectorAlloc(3, MATRIX_REAL) ;       /* normal vector */
+  v_b_x_n = VectorAlloc(3, MATRIX_REAL) ;       /* normal vector */
 
   MRISprojectOntoEllipsoid(mris, mris, 0.0f, 0.0f, 0.0f);
   rms = old_rms = mrisComputeAreaRMS(mris) ;
@@ -1260,105 +1298,173 @@ MRISunfold(MRI_SURFACE *mris, int niterations, float base_momentum,
   momentum = base_momentum ;
   one_minus_momentum = 1.0f - momentum ;
   min_dts = 0 ;
+  imin = -1 ;
   for (t = 0 ; t < niterations ; t++)
   {
-    fprintf(stderr, "%d of %d: dt = %2.6f, rms: %2.7f\n", 
-            t, niterations, delta_t, 100.0f*rms) ;
+    negative = mrisOrientEllipsoidArea(mris) ;
+    if (!((t+1)%write_iterations))
+    {
+      char fname[100] ;
+      sprintf(fname, "surf/%s.tmp%d", mris->hemisphere == LEFT_HEMISPHERE ?
+              "lh" : "rh", t+1) ;
+      if (Gdiag & DIAG_SHOW)
+        fprintf(stderr, "writing %s...", fname) ;
+      MRISwrite(mris, fname) ;
+      if (Gdiag & DIAG_SHOW)
+        fprintf(stderr, "done.\n") ;
+    }
+    fprintf(stdout, "%d of %d: dt = %2.6f, rms: %2.7f, %d < 0\n", 
+            t, niterations, delta_t, 100.0f*rms, negative) ;
+    fflush(stdout) ;
     min_dz = 1000.0f ;
+
+    /* keep track of last deltas for momentum, and clear new deltas */
     for (vno = 0 ; vno < mris->nvertices ; vno++)
     {
       v = &mris->vertices[vno] ;
-      x = v->x ; y = v->y ; z = v->z ;
+      v->odx = v->dx ; v->ody = v->dy ; v->odz = v->dz ;
+      v->dx = v->dy = v->dz = 0.0f ;
+    }
+
+    /* calculcate movement of vertices for each face */
+    for (fno = 0 ; fno < mris->nfaces ; fno++)
+    {
+      face = &mris->faces[fno] ;
+      if ((negative > MAX_NEGATIVE) && face->area > 0.0f)
+        continue ;
+
+      dz = face->nx*face->nx + face->ny*face->ny ;
+
+      v0 = &mris->vertices[face->v[0]] ;
+      v1 = &mris->vertices[face->v[1]] ;
+      v2 = &mris->vertices[face->v[2]] ;
+      v3 = &mris->vertices[face->v[3]] ;
       
-      VectorClear(v_delta) ;
-      dz = 0.0f ;
-      for (fno = 0 ; fno < v->num ; fno++)
-      {
-        f = &mris->faces[v->f[fno]] ;
+      VECTOR_LOAD(v_n, face->nx, face->ny, face->nz) ;
 
-        VECTOR_LOAD(v_n, f->nx, f->ny, f->nz) ;
-        index = v->n[fno] ;
-        index_a = index == 0 ? 3 : index-1 ;
-        va = &mris->vertices[f->v[index_a]] ;
-        dz += fabs(va->z - z) ;
-        VECTOR_LOAD(v_a, va->x - x, va->y - y, va->z - z) ;
-        index_b = (index+1) % 4 ;
-        vb = &mris->vertices[f->v[index_b]] ;
-        dz += fabs(vb->z - z) ;
-        VECTOR_LOAD(v_b, vb->x - x, vb->y - y, vb->z - z) ;
-        delta = f->area - f->orig_area ;
-        v_b_x_n = VectorCrossProduct(v_b, v_n, v_b_x_n) ;
-        v_n_x_a = VectorCrossProduct(v_n, v_a, v_n_x_a) ;
+      VERTEX_EDGE(v_a, v0, v1) ;  /* these are oriented so that the right- */
+      VERTEX_EDGE(v_b, v2, v1) ;  /* hand rule will give an outward pointing */
+      VERTEX_EDGE(v_c, v2, v3) ;  /* normal if the triangles have positive */
+      VERTEX_EDGE(v_d, v0, v3) ;  /* area */
 
-        VectorAdd(v_b_x_n, v_n_x_a, v_sum) ;
-        VectorScalarMul(v_sum, delta, v_sum) ;
-        VectorAdd(v_sum, v_delta, v_delta) ;
-#if 1
-if (DEBUG_VERTEX(vno, fno))
+      delta = face->area - face->orig_area ;
+
+      VectorCrossProduct(v_b, v_n, v_b_x_n) ;
+      VectorCrossProduct(v_d, v_n, v_d_x_n) ;
+      VectorCrossProduct(v_n, v_a, v_n_x_a) ;
+      VectorCrossProduct(v_n, v_c, v_n_x_c) ;
+
+if (DEBUG_FACE(fno))
 {
   DiagBreak() ;
-  fprintf(stderr, "\nface %d, vertex at (%2.3f, %2.3f, %2.3f)\n", 
-          v->f[fno], x, y, z) ;
-  fprintf(stderr, "   a   at (%2.3f, %2.3f, %2.3f)\n", va->x, va->y, va->z) ;
-  fprintf(stderr, "   b   at (%2.3f, %2.3f, %2.3f)\n", vb->x, vb->y, vb->z) ;
-  fprintf(stderr, "delta = (%2.3f - %2.3f) = %2.3f\n",
-          f->area, f->orig_area, delta) ;
-  fprintf(stderr, "a (%d) = ", f->v[index_a]) ;
+  fprintf(stderr, 
+          "\nface %d, normal (%2.1f, %2.1f, %2.1f), area %2.2f, "
+          "original area %2.2f\n",
+          fno, face->nx, face->ny, face->nz, face->area, face->orig_area) ;
+  fprintf(stderr, "P0 %d at (%2.2f, %2.2f, %2.2f)\n",
+          face->v[0], v0->x, v0->y, v0->z) ;
+  fprintf(stderr, "P1 %d at (%2.2f, %2.2f, %2.2f)\n",
+          face->v[1], v1->x, v1->y, v1->z) ;
+  fprintf(stderr, "P2 %d at (%2.2f, %2.2f, %2.2f)\n",
+          face->v[2], v2->x, v2->y, v2->z) ;
+  fprintf(stderr, "P3 %d at (%2.2f, %2.2f, %2.2f)\n",
+          face->v[3], v3->x, v3->y, v3->z) ;
+  fprintf(stderr, "a = ") ;
   MatrixPrintTranspose(stderr, v_a) ;
-  fprintf(stderr, "b (%d) = ", f->v[index_b]) ;
+  fprintf(stderr, "b = ") ;
   MatrixPrintTranspose(stderr, v_b) ;
-  fprintf(stderr, "n =     ") ;
-  MatrixPrintTranspose(stderr, v_n) ;
+  fprintf(stderr, "c = ") ;
+  MatrixPrintTranspose(stderr, v_c) ;
+  fprintf(stderr, "d = ") ;
+  MatrixPrintTranspose(stderr, v_d) ;
   fprintf(stderr, "b x n = ") ;
   MatrixPrintTranspose(stderr, v_b_x_n) ;
+  fprintf(stderr, "d x n = ") ;
+  MatrixPrintTranspose(stderr, v_d_x_n) ;
   fprintf(stderr, "n x a = ") ;
   MatrixPrintTranspose(stderr, v_n_x_a) ;
-  fprintf(stderr, "sum = ") ;
-  MatrixPrintTranspose(stderr, v_sum) ;
-  fprintf(stderr, "delta = ") ;
-  MatrixPrintTranspose(stderr, v_delta) ;
+  fprintf(stderr, "n x c = ") ;
+  MatrixPrintTranspose(stderr, v_n_x_c) ;
 }
-#endif
+      /* calculate movements in order 0-3 */
+      VectorAdd(v_d_x_n, v_n_x_a, v_sum) ;
+      VectorScalarMul(v_sum, delta, v_delta) ;
+if (DEBUG_FACE(fno))
+{ fprintf(stderr, "delta v0 = ") ; MatrixPrintTranspose(stderr, v_delta);}
+      v0->dx += VECTOR_ELT(v_delta, 1) ;
+      v0->dy += VECTOR_ELT(v_delta, 2) ;
+      v0->dz += VECTOR_ELT(v_delta, 3) ;
 
-      }
-      if (dz < min_dz)
+      /* P1 */
+      VectorAdd(v_d_x_n, v_n_x_c, v_sum) ;
+      VectorScalarMul(v_sum, -delta, v_delta) ;
+if (DEBUG_FACE(fno))
+{ fprintf(stderr, "delta v1 = ") ; MatrixPrintTranspose(stderr, v_delta);}
+      v1->dx += VECTOR_ELT(v_delta, 1) ;
+      v1->dy += VECTOR_ELT(v_delta, 2) ;
+      v1->dz += VECTOR_ELT(v_delta, 3) ;
+
+      /* P2 */
+      VectorAdd(v_b_x_n, v_n_x_c, v_sum) ;
+      VectorScalarMul(v_sum, delta, v_delta) ;
+if (DEBUG_FACE(fno))
+{ fprintf(stderr, "delta v2 = ") ; MatrixPrintTranspose(stderr, v_delta);}
+      v2->dx += VECTOR_ELT(v_delta, 1) ;
+      v2->dy += VECTOR_ELT(v_delta, 2) ;
+      v2->dz += VECTOR_ELT(v_delta, 3) ;
+
+      /* P3 */
+      VectorAdd(v_b_x_n, v_n_x_a, v_sum) ;
+      VectorScalarMul(v_sum, -delta, v_delta) ;
+if (DEBUG_FACE(fno))
+{ fprintf(stderr, "delta v3 = ") ; MatrixPrintTranspose(stderr, v_delta);}
+      v3->dx += VECTOR_ELT(v_delta, 1) ;
+      v3->dy += VECTOR_ELT(v_delta, 2) ;
+      v3->dz += VECTOR_ELT(v_delta, 3) ;
+
+
+      if (dz < min_dz && face->area < 0)
       {
         min_dz = dz ;
-        imin = vno ;
+        imin = fno ;
       }
-      VectorScalarMul(v_delta, l_area * delta_t, v_delta) ;
-      dx = momentum * v->dx + one_minus_momentum * VECTOR_ELT(v_delta,1) ;
-      dy = momentum * v->dy + one_minus_momentum * VECTOR_ELT(v_delta,2) ;
-      dz = momentum * v->dz + one_minus_momentum * VECTOR_ELT(v_delta,3) ;
-      if (DEBUG_VERTEX(vno, fno))
-      {
-        fprintf(stderr, "moving vertex by: ") ;
-        MatrixPrintTranspose(stderr, v_delta) ;
-        fprintf(stderr, "\n") ;
-      }
-      v->dx = dx ; v->dy = dy ; v->dz = dz ;
-      if ( /*v->dx > 1 || v->dy > 1 || v->dz > 1 ||*/
-          !finite(v->dx) || !finite(v->dy) || !finite(v->dz))
-      {
-        static int first = 1 ;
-        DiagBreak() ;
-        if (first)
-          fprintf(stderr, "NaN encountered at vertex %d!!\n", vno) ;
-        first = 0 ;
-        exit(1) ;
-      }
-    }
+    }    /* done with all faces */
 
     /* now apply the deltas */
+    coef = delta_t * l_area * one_minus_momentum ;
     for (vno = 0 ; vno < mris->nvertices ; vno++)
     {
       v = &mris->vertices[vno] ;
+      v->odx = v->dx = momentum * v->odx + coef * v->dx ; 
+      v->ody = v->dy = momentum * v->ody + coef * v->dy ; 
+      v->odz = v->dz = momentum * v->odz + coef * v->dz ; 
       v->x += v->dx ; v->y += v->dy ; v->z += v->dz ;
     }
+if (DEBUG_FACE(79379))
+{
+  face = &mris->faces[79379] ;
+  v0 = &mris->vertices[face->v[0]] ;
+  v1 = &mris->vertices[face->v[1]] ;
+  v2 = &mris->vertices[face->v[2]] ;
+  v3 = &mris->vertices[face->v[3]] ;
+  fprintf(stderr, "moving vertices by:\n") ;
+  fprintf(stderr, "v0: (%2.2f, %2.2f, %2.2f) --> (%2.2f, %2.2f, %2.2f)\n",
+          v0->dx, v0->dy, v0->dz, v0->x, v0->y, v0->z) ;
+  fprintf(stderr, "v1: (%2.2f, %2.2f, %2.2f) --> (%2.2f, %2.2f, %2.2f)\n",
+          v1->dx, v1->dy, v1->dz, v1->x, v1->y, v1->z) ;
+  fprintf(stderr, "v2: (%2.2f, %2.2f, %2.2f) --> (%2.2f, %2.2f, %2.2f)\n",
+          v2->dx, v2->dy, v2->dz, v2->x, v2->y, v2->z) ;
+  fprintf(stderr, "v3: (%2.2f, %2.2f, %2.2f) --> (%2.2f, %2.2f, %2.2f)\n",
+          v3->dx, v3->dy, v3->dz, v3->x, v3->y, v3->z) ;
+}
 
-    /*    MRISprojectOntoEllipsoid(mris, mris, 0.0f, 0.0f, 0.0f);*/
-    mrisComputeNormals(mris);
-    MRIScomputeFaceAreas(mris) ;
+    MRISupdateEllipsoidSurface(mris) ;
+
+if (DEBUG_FACE(79379))
+{
+  face = &mris->faces[79379] ;
+  fprintf(stderr, "new area: %2.3f\n", face->area) ;
+}
     rms = mrisComputeAreaRMS(mris) ;
     if (rms > old_rms)   /* error has increased, reduce the time step */
       delta_t *= DT_DECREASE ;
@@ -1373,14 +1479,14 @@ if (DEBUG_VERTEX(vno, fno))
       {
         v = &mris->vertices[vno] ;
         v->x -= v->dx ; v->y -= v->dy ; v->z -= v->dz ;
-        v->dx = v->dy = v->dz = 0.0f ;
+        v->dx = v->dy = v->dz = v->odx = v->ody = v->odz = 0.0f ;
       }
-      mrisComputeNormals(mris);
-      MRIScomputeFaceAreas(mris) ;
+      MRISupdateEllipsoidSurface(mris) ;
       rms = mrisComputeAreaRMS(mris) ;
     }
-    else
+    else   /* accept the change */
     {
+      MRISprojectOntoEllipsoid(mris, mris, 0.0f, 0.0f, 0.0f);
       momentum = base_momentum ; one_minus_momentum = 1.0f - momentum ;
     }
     old_rms = rms ;
@@ -1395,20 +1501,25 @@ if (DEBUG_VERTEX(vno, fno))
       min_dts = 0 ;
 #endif
 
-#if 0
+#if 1
     if (!t)
       fprintf(stderr, "mindz = %2.3f at %d\n", min_dz, imin) ;
 #endif
   }
 
-  /*  MRISprojectOntoEllipsoid(mris, mris, 0.0f, 0.0f, 0.0f);*/
+  MRISprojectOntoEllipsoid(mris, mris, 0.0f, 0.0f, 0.0f);
   VectorFree(&v_a) ;
-  VectorFree(&v_delta) ;
   VectorFree(&v_b) ;
+  VectorFree(&v_c) ;
+  VectorFree(&v_d) ;
+  VectorFree(&v_delta) ;
   VectorFree(&v_sum) ;
   VectorFree(&v_n) ;
+
+  VectorFree(&v_d_x_n) ;
   VectorFree(&v_b_x_n) ;
   VectorFree(&v_n_x_a) ;
+  VectorFree(&v_n_x_c) ;
   if (Gdiag & DIAG_SHOW)
     fprintf(stderr, "done.\n") ;
 
@@ -1437,11 +1548,11 @@ mrisComputeAreaRMS(MRI_SURFACE *mris)
     if (!finite(sse))
     {
       static int first = 1;
-
+      
       if (first)
         fprintf(stderr, "sse is not finite at face %d!\n", fno) ;
       first = 0 ;
-      DiagBreak() ;
+        DiagBreak() ;
       exit(1) ;
     }
   }
@@ -1460,18 +1571,19 @@ mrisScaleEllipsoidArea(MRI_SURFACE *mris)
   float   area_scale ;
   int     fno ;
   FACE    *face ;
-  VERTEX  *v ;
 
   area_scale = mris->total_area / TOTAL_AREA ;
-  for (fno = 0 ; fno < mris->nfaces ; fno++)
-  {
-    face = &mris->faces[fno] ;
-    v = &mris->vertices[face->v[0]] ;  /* arbitrary */
-    /* scale the area by the ratio of the ellipsoid area to that of the
-       original surface.
-       */
-    face->area *= area_scale ;
-  }
+  if (mris->initialized < 2)
+    for (fno = 0 ; fno < mris->nfaces ; fno++)
+    {
+      face = &mris->faces[fno] ;
+      
+      /* scale the area by the ratio of the ellipsoid area to that of the
+         original surface.
+         */
+      face->area *= area_scale ;
+    }
+  mris->initialized = 2 ;
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
@@ -1484,28 +1596,36 @@ mrisScaleEllipsoidArea(MRI_SURFACE *mris)
 static int
 mrisOrientEllipsoidArea(MRI_SURFACE *mris)
 {
-  int     fno ;
+  int     fno, negative ;
   FACE    *face ;
   VERTEX  *v ;
   float   dot ;
 
+  negative = 0 ;
   for (fno = 0 ; fno < mris->nfaces ; fno++)
   {
     face = &mris->faces[fno] ;
     v = &mris->vertices[face->v[0]] ;  /* arbitrary */
-
+      
     /* now give the area an orientation: if the unit normal is pointing
        inwards on the ellipsoid then the area should be negative.
        */
-    dot = v->x * face->nx + v->y * face->ny + v->z * face->nz ;
-if (DEBUG_FACE(fno))
-  fprintf(stderr, "face %d v at (%2.3f, %2.3f, %2.3f)\nface normal "
-          "(%2.3f, %2.3f, %2.3f), dot = %2.4f\n",
-          fno, v->x, v->y, v->z, face->nx, face->ny, face->nz, dot) ;
-    if (dot < 0.0f)   /* not in same direction */
+    dot = v->x * face->nx + v->y * face->ny + v->z * face->nz;
+    if (DEBUG_FACE(fno))
+      fprintf(stderr, "face %d v at (%2.3f, %2.3f, %2.3f)\nface normal "
+              "(%2.3f, %2.3f, %2.3f), dot = %2.4f\n",
+                fno, v->x, v->y, v->z, face->nx, face->ny, face->nz, dot) ;
+    if (dot < 0.0f)   /* not in same direction, area < 0 and reverse n */
+    {
+      negative++ ;
       face->area *= -1.0f ;
+      face->nx *= -1.0f ; face->ny *= -1.0f ; face->nz *= -1.0f ;
+    }
+    else
+      if (face->area < 0.0f)
+        negative++ ;
   }
-  return(NO_ERROR) ;
+  return(negative) ;
 }
 /*-----------------------------------------------------
         Parameters:
@@ -1514,3 +1634,11 @@ if (DEBUG_FACE(fno))
 
         Description
 ------------------------------------------------------*/
+int
+MRISupdateEllipsoidSurface(MRI_SURFACE *mris)
+{
+  mrisComputeNormals(mris);
+  MRIScomputeFaceAreas(mris) ;
+  mrisScaleEllipsoidArea(mris) ;
+  return(mrisOrientEllipsoidArea(mris)) ;
+}
