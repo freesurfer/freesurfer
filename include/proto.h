@@ -11,9 +11,25 @@
 /*----------- SunOS -----------------------*/
 #ifdef SunOS
 
+/* needed for select */
+#include <sys/types.h>
+#include <sys/time.h>
+
+int select (int width, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, 
+            struct timeval *timeout) ;
+
+int puts(char *s) ;
+int fputs(char *s, FILE *stream) ;
+int getw(FILE *stream);
+int putw(int w, FILE *stream);
+int fputc(int c, FILE *stream);
+int fgetc(FILE *stream);
+int pclose(FILE *stream);
+char *getwd(char *buf);
 int ftime(struct timeb *tp) ;
 /* void ftime(struct timeb *tm) ;*/
 int fflush(FILE *fp) ;
+int scanf(const char *fmt, ...) ;
 int fscanf(FILE *fp, const char *fmt, ...) ;
 int fprintf(FILE *fp, const char *fmt, ...) ;
 int printf(const char *fmt, ...) ;
@@ -40,6 +56,10 @@ int stricmp(char *str1, char *str2) ;
 #include "macros.h"
 int stricmp(char *str1, char *str2) ;
 #define nint(f)   ((int)(rint((double)f)))
+
+int getw(FILE *stream);
+int putw(int w, FILE *stream);
+
 #endif   /* Linux */
 
 /*----------- IRIX (SGI) -------------------*/
