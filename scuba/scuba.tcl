@@ -10,7 +10,7 @@ if { $err } {
     load [file dirname [info script]]/libscuba[info sharedlibextension] scuba
 }
 
-DebugOutput "\$Id: scuba.tcl,v 1.62 2004/10/18 03:10:23 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.63 2004/10/20 21:07:00 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -1753,10 +1753,10 @@ proc MakeLayerPropertiesPanel { ifwTop } {
     }
     tkuMakeSliders $fwProps2DMRI.swMinMax -sliders {
 	{-label "Min" -variable gaLayer(current,minVisibleValue) 
-	    -min 0 -max 1 -entry 1
+	    -min 0 -max 1 -entry 1 -entrywidth 6
 	    -command {Set2DMRILayerMinVisibleValue $gaLayer(current,id) $gaLayer(current,minVisibleValue); RedrawFrame [GetMainFrameID]}}
 	{-label "Max" -variable gaLayer(current,maxVisibleValue) 
-	    -min 0 -max 1 -entry 1
+	    -min 0 -max 1 -entry 1 -entrywidth 6
 	    -command {Set2DMRILayerMaxVisibleValue $gaLayer(current,id) $gaLayer(current,maxVisibleValue); RedrawFrame [GetMainFrameID]}}
     }
     set gaWidget(layerProperties,minMaxSliders) $fwProps2DMRI.swMinMax
@@ -4281,7 +4281,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.62 2004/10/18 03:10:23 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.63 2004/10/20 21:07:00 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
