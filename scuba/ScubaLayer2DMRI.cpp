@@ -166,6 +166,30 @@ ScubaLayer2DMRI::DrawIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
   float RAS[3];
   float value = 0;
   int color[3];
+#if 0
+  for( window[1] = windowMin[1]; window[1] < windowMax[1]; window[1]++ ) {
+    dest = iBuffer + (window[1] * iWidth * 4) + (windowMin[0] * 4);
+    for( window[0] = windowMin[0]; window[0] <= windowMax[0]; window[0]++ ) {
+
+      // Translate the window coord to an RAS and put it in our cache.
+      iTranslator.TranslateWindowToRAS( window, RAS );
+      windowToRAS.Set( window[0], window[1], Point3<float>( RAS ) );
+
+      value = mVolume->GetMRINearestValueAtRAS( RAS ); 
+      GetGrayscaleColorForValue( value, dest, color );
+
+      dest[0] = aColorTimesOneMinusOpacity[dest[0]] + 
+	aColorTimesOpacity[color[0]];
+      dest[1] = aColorTimesOneMinusOpacity[dest[1]] + 
+	aColorTimesOpacity[color[1]];
+      dest[2] = aColorTimesOneMinusOpacity[dest[2]] + 
+	aColorTimesOpacity[color[2]];
+      dest[3] = (GLubyte) 255;
+
+      dest += 4;
+    }
+  }
+#endif
   for( window[1] = windowMin[1]; window[1] < windowMax[1]; window[1]++ ) {
     dest = iBuffer + (window[1] * iWidth * 4) + (windowMin[0] * 4);
     for( window[0] = windowMin[0]; window[0] <= windowMax[0]; window[0]++ ) {
@@ -258,8 +282,8 @@ ScubaLayer2DMRI::DrawIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
 }
 
 void
-ScubaLayer2DMRI::GetGrayscaleColorForValue ( float iValue,
-					     GLubyte* iBase, int* oColor ) {
+ScubaLayer2DMRI::GetGrayscaleColorForValue ( float iValue,GLubyte* const iBase,
+					     int* oColor ) {
 
   if( (!mbClearZero && 
        iValue >= mMinVisibleValue && iValue <= mMaxVisibleValue) ||
@@ -280,15 +304,12 @@ ScubaLayer2DMRI::GetGrayscaleColorForValue ( float iValue,
 }
 
 void
-ScubaLayer2DMRI::GetHeatscaleColorForValue ( float iValue, 
-					     GLubyte* iBase, int* oColor ) {
+ScubaLayer2DMRI::GetHeatscaleColorForValue ( float iValue,GLubyte* const iBase,
+					     int* oColor ) {
 
-  if( iValue < mMinVisibleValue || iValue > mMaxVisibleValue ||
-      (mbClearZero && iValue == 0) ) {
-
-    oColor[0] = iBase[0]; oColor[1] = iBase[1]; oColor[2] = iBase[2];
-
-  } else {
+  if( (!mbClearZero && 
+       iValue >= mMinVisibleValue && iValue <= mMaxVisibleValue) ||
+      (mbClearZero && iValue != 0) ) {
     
     float midValue;
     midValue = (mMaxVisibleValue - mMinVisibleValue) / 2.0 + mMinVisibleValue;
@@ -345,23 +366,27 @@ ScubaLayer2DMRI::GetHeatscaleColorForValue ( float iValue,
       oColor[1] = (int) iBase[1];
       oColor[2] = (int) iBase[2];
     }
+
+  } else {
+
+    oColor[0] = iBase[0]; oColor[1] = iBase[1]; oColor[2] = iBase[2];
+
   }
 }
 
 void
-ScubaLayer2DMRI::GetColorLUTColorForValue ( float iValue, 
-					    GLubyte* iBase, int* oColor ) {
+ScubaLayer2DMRI::GetColorLUTColorForValue ( float iValue, GLubyte* const iBase,
+					    int* oColor ) {
   
-  if( iValue < mMinVisibleValue || iValue > mMaxVisibleValue ||
-      (mbClearZero && iValue == 0) ) {
+  if( (NULL != mColorLUT && !mbClearZero && 
+       iValue >= mMinVisibleValue && iValue <= mMaxVisibleValue) ||
+      (NULL != mColorLUT && mbClearZero && iValue != 0) ) {
 
-    oColor[0] = iBase[0]; oColor[1] = iBase[1]; oColor[2] = iBase[2];
+    mColorLUT->GetColorAtIndex( (int)iValue, oColor );
 
   } else {
-    
-    if( NULL != mColorLUT ) {
-      mColorLUT->GetColorAtIndex( (int)iValue, oColor );
-    }
+
+    oColor[0] = iBase[0]; oColor[1] = iBase[1]; oColor[2] = iBase[2];
   }
 }
   
