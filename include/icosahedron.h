@@ -33,7 +33,11 @@ MRI_SURFACE *ic163842_make_surface(int max_vertices, int max_faces) ;
 MRI_SURFACE *ic12_make_surface(int max_vertices, int max_faces) ;
 MRI_SURFACE *ICOread(char *fname) ;
 MRI_SURFACE *ICOreadOverAlloc(char *fname, double pct_over) ;
-int         ICOreadVertexPositions(MRI_SURFACE *mris, char *fname, int which) ;
+int          ICOreadVertexPositions(MRI_SURFACE *mris, char *fname, int which) ;
+MRI_SURFACE *ReadIcoByOrder(int IcoOrder, float RescaleFactor);
+MRI_SURFACE *ReadIcoByNVtxs(int nIcoVtxs, float RescaleFactor);
+int          IcoOrderFromNVtxs(int nIcoVtxs);
+int          IcoNVtxsFromOrder(int IcoOrder);
 
 #define ICO4_NVERTICES    2562
 #define ICO4_NFACES       5120
@@ -42,3 +46,4 @@ extern IC_VERTEX ic2562_vertices[] ;
 extern IC_FACE   ic2562_faces[] ;
 
 #endif
+
