@@ -2,9 +2,9 @@
 /* transform.h                                                         */
 /*                                                                     */
 /* Warning: Do not edit the following four lines.  CVS maintains them. */
-/* Revision Author: $Author: tosa $                                           */
-/* Revision Date  : $Date: 2004/02/05 18:57:00 $                                             */
-/* Revision       : $Revision: 1.25 $                                         */
+/* Revision Author: $Author: fischl $                                           */
+/* Revision Date  : $Date: 2004/05/20 15:55:31 $                                             */
+/* Revision       : $Revision: 1.26 $                                         */
 /*                                                                     */
 /***********************************************************************/
 
@@ -102,6 +102,7 @@ int      LTAprint(FILE *fp, const LTA *lta);
 #define LINEAR_CORONAL_RAS_TO_CORONAL_RAS       21
 #define LINEAR_COR_TO_COR       LINEAR_CORONAL_RAS_TO_CORONAL_RAS
 #define REGISTER_DAT            14
+#define FSLREG_TYPE             15
 
 int      TransformFileNameType(char *fname) ;
 int      LTAvoxelToRasXform(LTA *lta, MRI *mri_src, MRI *mri_dst) ;
@@ -115,7 +116,7 @@ MATRIX *DevolveXFM(char *subjid, MATRIX *XFM, char *xfmname);
 TRANSFORM *TransformRead(char *fname) ;
 TRANSFORM *TransformIdentity(void) ;
 int       TransformFree(TRANSFORM **ptrans) ;
-int       TransformSample(TRANSFORM *transform, int xv, int yv, int zv, float *px, float *py, float *pz) ;
+int       TransformSample(TRANSFORM *transform, float xv, float yv, float zv, float *px, float *py, float *pz) ;
 int       TransformSampleInverse(TRANSFORM *transform, int xv, int yv, int zv, 
                                  float *px, float *py, float *pz) ;
 int       TransformSampleInverseVoxel(TRANSFORM *transform, int width, int height, int depth,

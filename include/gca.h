@@ -331,12 +331,17 @@ void GCAcopyDCToMRI(GCA *gca, MRI *mri); // copy direction cosine info to MRI
 void GCAsetVolGeom(GCA *gca, VOL_GEOM *vg); 
 int GCAregularizeCovarianceMatrices(GCA *gca, double lambda) ;
 int GCAreplaceRightWithLeft(GCA *gca) ;
+int GCAcomputeLabelStats(GCA *gca, int target_label, float *pvar, float *means);
+GCA_NODE *GCAbuildRegionalGCAN(GCA *gca, int x, int y, int z, int wsize) ;
+int set_mean_vector(GC1D *gc, VECTOR *v_means, int ninputs) ;
+int set_covariance_matrix(GC1D *gc, MATRIX *m_cov, int ninputs) ;
+int GCAmaxLikelihoodLabel(GCA_NODE *gcan, float *vals, int ninputs, float *plikelihood) ;
+int GCAfreeRegionalGCAN(GCA_NODE **pgcan) ;
+GCA *GCAcompactify(GCA *gca);
 
 extern int Ggca_x, Ggca_y, Ggca_z, Ggca_label ;
 
 
 #define GCA_DEFAULT_NOISE_PARAMETER  1
-
-GCA *GCAcompactify(GCA *gca);
 
 #endif

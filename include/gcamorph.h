@@ -91,7 +91,8 @@ int       GCAMwrite(GCA_MORPH *gcam, char *fname) ;
 GCA_MORPH *GCAMread(char *fname) ;
 int       GCAMfree(GCA_MORPH **pgcam) ;
 MRI       *GCAMmorphFromAtlas(MRI *mri_src, GCA_MORPH *gcam, MRI *mri_dst) ;
-MRI       *GCAMmorphToAtlas(MRI *mri_src, GCA_MORPH *gcam, MRI *mri_dst) ;
+MRI       *GCAMmorphToAtlas(MRI *mri_src, GCA_MORPH *gcam, MRI *mri_dst, int frame) ;
+int       GCAMmarkNegativeNodesInvalid(GCA_MORPH *gcam) ;
 int       GCAMregister(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms) ;
 int       GCAMregisterLevel(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth, 
                             GCA_MORPH_PARMS *parms) ;
@@ -113,6 +114,7 @@ int       GCAMcopyNodePositions(GCA_MORPH *gcam, int from, int to) ;
 
 int GCAMsetLabelStatus(GCA_MORPH *gcam, int label, int status) ;
 int GCAMsetStatus(GCA_MORPH *gcam, int status) ;
+int GCAMapplyTransform(GCA_MORPH *gcam, TRANSFORM *transform) ;
 
 #define ORIGINAL_POSITIONS  0
 #define ORIG_POSITIONS      ORIGINAL_POSITIONS
