@@ -13,7 +13,7 @@
 #include "mri.h"
 #include "macros.h"
 
-static char vcid[] = "$Id: mris_smooth.c,v 1.5 1999/11/16 18:25:49 fischl Exp $";
+static char vcid[] = "$Id: mris_smooth.c,v 1.6 1999/11/22 13:16:02 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -30,6 +30,7 @@ static char area_fname[100] = "area" ;
 static int nbrs = 2 ;
 static int navgs = 10 ;
 static int niterations = 10 ;
+static int rescale = 0 ;
 
 int
 main(int argc, char *argv[])
@@ -75,7 +76,9 @@ main(int argc, char *argv[])
   fprintf(stderr, "smoothing complete - recomputing first and second "
           "fundamental forms...\n") ;
   MRIScomputeMetricProperties(mris) ;
-  MRISscaleBrainArea(mris) ;
+  
+  if (rescale)
+    MRISscaleBrainArea(mris) ;
   MRIScomputeSecondFundamentalForm(mris) ;
   MRISuseMeanCurvature(mris) ;
   MRISaverageCurvatures(mris, navgs) ;
@@ -127,6 +130,10 @@ get_option(int argc, char *argv[])
   case 'U':
     print_usage() ;
     exit(1) ;
+    break ;
+  case 'R':
+    rescale = 1 ;
+    fprintf(stderr, "rescaling brain area after smoothing...\n") ;
     break ;
   case 'C':
     strcpy(curvature_fname, argv[2]) ;
