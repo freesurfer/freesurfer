@@ -138,7 +138,7 @@ int main(int argc, char *argv[])
   int nargs;
   Progname=argv[0];
 
-  nargs = handle_version_option (argc, argv, "$Id: mri_parselabel.cpp,v 1.15 2004/06/10 21:55:12 tosa Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_parselabel.cpp,v 1.16 2004/06/10 21:59:39 tosa Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -192,7 +192,7 @@ int main(int argc, char *argv[])
   }
   cout << "---------------------------------------------------------------" << endl;
 
-  int val;
+  int val=0;
   if (!stats)
   {
     val = int(atof(argv[4]));
