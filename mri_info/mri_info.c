@@ -727,6 +727,7 @@ static void read_analyze_file(char *fname, struct stat stat_buf)
   printf("width: %d\n", header.dime.dim[3]);
   printf("height: %d\n", header.dime.dim[2]);
   printf("depth: %d\n", header.dime.dim[1]);
+  printf("voxel size: %g, %g, %g, %g, %g, %g, %g, %g\n", header.dime.pixdim[0], header.dime.pixdim[1], header.dime.pixdim[2], header.dime.pixdim[3], header.dime.pixdim[4], header.dime.pixdim[5], header.dime.pixdim[6], header.dime.pixdim[7]);
   printf("data type: ");
   switch(header.dime.datatype)
   {
