@@ -595,7 +595,9 @@ MRInormCheckPeaks(MNI *mni, float *inputs, float *outputs, int npeaks)
     dI = outputs[slice] - outputs[old_slice] ;
     dy = inputs[slice] - inputs[old_slice] ;
     grad = fabs(dI / dy) ;
-    deleted[slice] =  (grad > max_gradient) ;
+    deleted[slice] =  
+      ((grad > max_gradient) || 
+       ((slice - old_slice) > MAX_SKIPPED));
     if (!deleted[slice])
       old_slice = slice ;
     else if (Gdiag & DIAG_SHOW)
@@ -610,7 +612,9 @@ MRInormCheckPeaks(MNI *mni, float *inputs, float *outputs, int npeaks)
     dI = outputs[old_slice] - outputs[slice] ;
     dy = inputs[slice] - inputs[old_slice] ;
     grad = fabs(dI / dy) ;
-    deleted[slice] =  (grad > max_gradient) ;
+    deleted[slice] =  
+      ((grad > max_gradient) ||
+       ((old_slice - slice) > MAX_SKIPPED));
     if (!deleted[slice])
       old_slice = slice ;
     else if (Gdiag & DIAG_SHOW)
@@ -833,8 +837,10 @@ MRInormFindControlPoints(MRI *mri_src, int wm_target, float intensity_above,
       have and that lie in a 6-connected neighborhood of high
       intensities. (should push things out even close to the border).
   */
+#if 0
   low_thresh = wm_target-intensity_below/2; 
   hi_thresh =  wm_target+intensity_above/2;
+#endif
   total_filled = 0 ;
   do
   {
