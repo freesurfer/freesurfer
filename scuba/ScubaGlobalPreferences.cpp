@@ -55,6 +55,7 @@ ScubaGlobalPreferences::DoListenToTclCommand ( char* isCommand,
 	sKey == GetStringForKey( KeyInPlaneY ) ||
 	sKey == GetStringForKey( KeyInPlaneZ ) ||
 	sKey == GetStringForKey( KeyCycleViewsInFrame ) ||
+	sKey == GetStringForKey( KeyShuffleLayers ) ||
 	sKey == GetStringForKey( KeyMouseButtonOne ) ||
 	sKey == GetStringForKey( KeyMouseButtonTwo ) ||
 	sKey == GetStringForKey( KeyMouseButtonThree ) ||
@@ -68,7 +69,8 @@ ScubaGlobalPreferences::DoListenToTclCommand ( char* isCommand,
 	sKey == GetStringForKey( KeyMoveViewOut ) ||
 	sKey == GetStringForKey( KeyZoomViewIn ) ||
 	sKey == GetStringForKey( KeyZoomViewOut ) ||
-	sKey == GetStringForKey( ShowFPS ) ) {
+	sKey == GetStringForKey( ShowFPS )
+	) {
       
       PreferencesManager& prefsMgr = PreferencesManager::GetManager();
       string sValue = prefsMgr.GetValue( sKey );
@@ -117,6 +119,7 @@ ScubaGlobalPreferences::DoListenToTclCommand ( char* isCommand,
 	       sKey == GetStringForKey( KeyInPlaneY ) ||
 	       sKey == GetStringForKey( KeyInPlaneZ ) ||
 	       sKey == GetStringForKey( KeyCycleViewsInFrame ) ||
+	       sKey == GetStringForKey( KeyShuffleLayers ) ||
 	       sKey == GetStringForKey( KeyMouseButtonOne ) ||
 	       sKey == GetStringForKey( KeyMouseButtonTwo ) ||
 	       sKey == GetStringForKey( KeyMouseButtonThree ) ) {
@@ -167,6 +170,7 @@ ScubaGlobalPreferences::GetPrefAsString ( PrefKey iKey ) {
       iKey == KeyInPlaneY ||
       iKey == KeyInPlaneZ ||
       iKey == KeyCycleViewsInFrame ||
+      iKey == KeyShuffleLayers ||
       iKey == KeyMouseButtonOne ||
       iKey == KeyMouseButtonTwo ||
       iKey == KeyMouseButtonThree ||
@@ -202,6 +206,7 @@ ScubaGlobalPreferences::GetStringForKey ( PrefKey iKey ) {
   case KeyInPlaneY:                return "KeyInPlaneY";                 break;
   case KeyInPlaneZ:                return "KeyInPlaneZ";                 break;
   case KeyCycleViewsInFrame:       return "KeyCycleViewsInFrame";        break;
+  case KeyShuffleLayers:           return "KeyShuffleLayers";            break;
   case KeyMouseButtonOne:          return "KeyMouseButtonOne";           break;
   case KeyMouseButtonTwo:          return "KeyMouseButtonTwo";           break;
   case KeyMouseButtonThree:        return "KeyMouseButtonThree";         break;
@@ -265,6 +270,10 @@ ScubaGlobalPreferences::ReadPreferences () {
   PreferencesManager::StringPrefValue cycleKey( "q" );
   prefsMgr.RegisterValue( GetStringForKey( KeyCycleViewsInFrame ), 
 			  "Key to cycle view in a frame.", cycleKey );
+
+  PreferencesManager::StringPrefValue shuffleKey( "c" );
+  prefsMgr.RegisterValue( GetStringForKey( KeyShuffleLayers ), 
+			  "Key to shuffle layers in a view.", shuffleKey );
 
   PreferencesManager::StringPrefValue mouseOneKey( "w" );
   prefsMgr.RegisterValue( GetStringForKey( KeyMouseButtonOne ), 

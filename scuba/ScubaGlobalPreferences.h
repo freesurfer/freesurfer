@@ -20,7 +20,7 @@ class ScubaGlobalPreferences : public TclCommandListener, public Broadcaster {
 		 KeyMoveViewUp, KeyMoveViewDown,
 		 KeyMoveViewIn, KeyMoveViewOut,
 		 KeyZoomViewIn, KeyZoomViewOut,
-		 KeyCycleViewsInFrame,
+		 KeyCycleViewsInFrame, KeyShuffleLayers,
 		 KeyMouseButtonOne, KeyMouseButtonTwo, KeyMouseButtonThree,
 		 DrawCoordinateOverlay, DrawPlaneIntersections,
 		 ShowFPS };
