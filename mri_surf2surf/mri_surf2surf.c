@@ -1,12 +1,13 @@
 /*----------------------------------------------------------
   Name: mri_surf2surf.c
-  $Id: mri_surf2surf.c,v 1.8 2002/09/05 20:05:47 greve Exp $
+  $Id: mri_surf2surf.c,v 1.9 2002/09/06 19:46:31 greve Exp $
   Author: Douglas Greve
   Purpose: Resamples data from one surface onto another. If
   both the source and target subjects are the same, this is
   just a format conversion. The source or target subject may
   be ico.  Can handle data with multiple frames.
   -----------------------------------------------------------*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -25,6 +26,7 @@
 
 #include "bfileio.h"
 #include "registerio.h"
+//  extern char *ResampleVtxMapFile;
 #include "resample.h"
 #include "selxavgio.h"
 #include "prime.h"
@@ -44,7 +46,7 @@ int GetNVtxsFromValFile(char *filename, char *fmt);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surf2surf.c,v 1.8 2002/09/05 20:05:47 greve Exp $";
+static char vcid[] = "$Id: mri_surf2surf.c,v 1.9 2002/09/06 19:46:31 greve Exp $";
 char *Progname = NULL;
 
 char *surfreg = "sphere.reg";
@@ -138,6 +140,11 @@ int main(int argc, char **argv)
     sprintf(fname,"%s/%s/surf/%s.%s",SUBJECTS_DIR,srcsubject,hemi,surfreg);
     printf("Reading source surface reg %s\n",fname);
     SrcSurfReg = MRISread(fname) ;
+    if(cavtx > 0) 
+      printf("cavtx = %d, srcsurfreg: %g, %g, %g\n",cavtx,
+	   SrcSurfReg->vertices[cavtx].x,
+	   SrcSurfReg->vertices[cavtx].y,
+	   SrcSurfReg->vertices[cavtx].z);
   }
   if (!SrcSurfReg)
     ErrorExit(ERROR_NOFILE, "%s: could not read surface %s", Progname, fname) ;
@@ -146,9 +153,17 @@ int main(int argc, char **argv)
   /* ------------------ load the source data ----------------------------*/
   printf("Loading source data\n");
   if(!strcmp(srctypestring,"curv")){ /* curvature file */
-    sprintf(fname,"%s/%s/surf/%s.%s",SUBJECTS_DIR,srcsubject,hemi,srcvalfile);
+    if(fio_FileExistsReadable(srcvalfile)){
+      memset(fname,0,strlen(fname));
+      memcpy(fname,srcvalfile,strlen(srcvalfile));
+    }
+    else
+      sprintf(fname,"%s/%s/surf/%s.%s",SUBJECTS_DIR,srcsubject,hemi,srcvalfile);
     printf("Reading curvature file %s\n",fname);
-    MRISreadCurvatureFile(SrcSurfReg, fname);
+    if(MRISreadCurvatureFile(SrcSurfReg, fname) != 0){
+      printf("ERROR: reading curvature file\n");
+      exit(1);
+    }
     SrcVals = MRIcopyMRIS(NULL, SrcSurfReg, 0, "curv");
   }
   else if(!strcmp(srctypestring,"paint") || !strcmp(srctypestring,"w")){
@@ -471,6 +486,11 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcmp(option, "--trgdist")){
       if(nargc < 1) argnerr(option,1);
       TrgDistFile = pargv[0];
+      nargsused = 1;
+    }
+    else if (!strcmp(option, "--vtxmap")){
+      if(nargc < 1) argnerr(option,1);
+      ResampleVtxMapFile = pargv[0];
       nargsused = 1;
     }
     else{
