@@ -1,3 +1,18 @@
+/*
+new ScreenToRAS function
+on SetCursorToScreenPt, use ScreenToRAS to set RAS
+
+rewrite RecenterViewToScreenPt
+cursor to ras, save ras
+inScreen to voxel
+recenter around voxel
+SetCursorToRASPt ( saved ras )
+
+how to draw multiple vertices? averaged?
+
+change SaveCursorInVoxel to SaveCursor/RestoreCursor using RAS pts
+ */
+
 /*============================================================================
  Copyright (c) 1996 Martin Sereno and Anders Dale
 =============================================================================*/
@@ -136,8 +151,9 @@ int            tk_NumMainWindows = 0;
 #define DIR_FILE "ic1.tri"
 #define MAXCOR 500
 #define MAXLEN 100
-#define MOTIF_XFUDGE   8
-#define MOTIF_YFUDGE  32
+#define kDefaultWindowLocationX 0
+#define kDefaultWindowLocationY 0
+#define kWindowBottomBorderHeight 32
 #define CVIDBUF 25
 
 // kt - default zoom factor, makes window bigger
@@ -535,10 +551,12 @@ char * VSpace_GetErrorString ( int inErrorNum );
                                           selecting. */
 void ProcessClick ( int inClickX, int inClickY );
 
-                                       /* main function for setting the 
+                                       /* main functions for setting the 
                                           cursor (red crosshair) to a certain
-                                          point in screen coords. */
+                                          point in screen coords. the latter
+                  calls the former. */
 void SetCursorToScreenPt ( int inScreenX, int inScreenY, int inScreenZ );
+void SetCursorToRASPt ( Real inRASX, Real inRASY, Real inRASZ );
 
                                        /* when the tcl script changes planes
                                           in zoomed mode, some coordinates 
@@ -596,8 +614,18 @@ void SetCurrentSurfaceDisplayStatus ( char inDisplay );
 void SetOriginalSurfaceDisplayStatus ( char inDisplay );
 void SetCanonicalSurfaceDisplayStatus ( char inDisplay );
 
+                                       /* set the vertex display status
+            on surfaces */
+void SetSurfaceVertexDisplayStatus ( char inDisplay );
+char IsSurfaceVertexDisplayOn ();
+
+                                       /* set the vertex display type,
+            average or real */
+void SetAverageSurfaceVerticesStatus ( char inDisplay );
+char IsAverageSurfaceVerticesOn ();
+
                                        /* sets a certain vertex to be hilighted
-            on the next redraw. */
+                                          on the next redraw. */
 void HiliteSurfaceVertex ( vertex_type * inVertex, int inSurface );
 char IsSurfaceVertexHilited ( vertex_type * inVertex, int inSurface );
 
@@ -724,6 +752,16 @@ void RASToFloatScreenXY ( Real x, Real y, Real z,    // incoming ras coords
                           int inPlane,               // plane to convert on
                           float *j, float *i );      // out float screen
 
+                                       /* convert ras coords to screen coords
+            and back. note that this is a much
+            finer resolution of screen coords
+            than the voxel-screen conversions. */
+void RASToScreen ( Real inX, Real inY, Real inZ,
+       int inPlane, 
+       int * outScreenX, int * outScreenY, int * outScreenZ );
+void ScreenToRAS ( int inPlane, int inScreenX, int inScreenY, int inScreenZ,
+       Real * outRASX, Real * outRASY, Real * outRASZ );
+
 
                                        /* print info about a screen point */
 void PrintScreenPointInformation ( int j, int i, int im );
@@ -845,15 +883,21 @@ int gSavedCursorVoxelX, gSavedCursorVoxelY, gSavedCursorVoxelZ;
 
                                        /* flags for toggling surface
                                           display. */
-char gIsDisplayCurrentSurface, 
-  gIsDisplayOriginalSurface,
-  gIsDisplayCanonicalSurface;
+char gIsDisplayCurrentSurface = FALSE;
+char gIsDisplayOriginalSurface = FALSE;
+char gIsDisplayCanonicalSurface = FALSE;
 
                                        /* flags for determining whether a
                                           surface is loaded. */
-char gIsCurrentSurfaceLoaded,
-  gIsOriginalSurfaceLoaded,
-  gIsCanonicalSurfaceLoaded;
+char gIsCurrentSurfaceLoaded = FALSE;
+char gIsOriginalSurfaceLoaded = FALSE;
+char gIsCanonicalSurfaceLoaded = FALSE;
+
+                                       /* flag for drawing surface vertices */
+char gIsDisplaySurfaceVertices = FALSE;
+                                       /* whether to draw the average vertex
+            positions */
+char gIsAverageSurfaceVertices = TRUE;
 
                                        /* out hilited vertex and the surface
             we should hilite */
@@ -893,7 +937,6 @@ void reset_control_points(void) ;
 void mark_file_vertices(char *fname) ;
 void unmark_vertices(void) ;
 void goto_point_coords(int imc1,int ic1,int jc1) ;
-void set_cursor(float xpt,float ypt,float zpt) ;
 void mri2pix(float xpt, float ypt, float zpt, int *jpt, int *ipt,int *impt);
 void rotate_brain(float a,char c) ;
 void translate_brain(float a,char c) ;
@@ -2434,7 +2477,7 @@ do_one_gl_event(Tcl_Interp *interp)   /* tcl */
         /* Tcl_Eval(interp,"set zf $zf"); */ /* touch for trace */
         if (followglwinflag && zf != 4) {
           sprintf(command,"wm geometry . +%d+%d",
-                      w.x, w.y + w.h + MOTIF_YFUDGE /*+MOTIF_XFUDGE*/);
+                      w.x, w.y + w.h + kWindowBottomBorderHeight );
           Tcl_Eval(interp,command);
           /*Tcl_Eval(interp,"raise .");*/
         }
@@ -2541,8 +2584,18 @@ do_one_gl_event(Tcl_Interp *interp)   /* tcl */
           break;
 
         case XK_v:
-          if (altkeypressed) Tcl_Eval(interp,
+
+          if ( altkeypressed && !ctrlkeypressed ) {
+      Tcl_Eval(interp,
                  "set pradtmp $prad; set prad $pradlast; set pradlast $pradtmp");
+    } else if ( ctrlkeypressed ) {
+
+      // kt - ctrl+v toggles surface vertex display.
+      SetSurfaceVertexDisplayStatus ( !IsSurfaceVertexDisplayOn () );
+      redraw ();
+    }
+      
+
             break;
             
         case XK_B:
@@ -2677,14 +2730,27 @@ do_one_gl_event(Tcl_Interp *interp)   /* tcl */
           break;
           // end_kt
 
+  case XK_a:
+    
+    if ( ctrlkeypressed ) {
+
+      // toggle the average vertex display status.
+      SetAverageSurfaceVerticesStatus 
+        ( !IsAverageSurfaceVerticesOn() );
+      redraw ();
+    }
+    break;
+
         case XK_Up:
         case XK_Right:
-          Tcl_Eval(interp,"changeslice up; sendupdate");
+    upslice ();
+    redraw ();
           break;
           
         case XK_Down:
         case XK_Left:
-          Tcl_Eval(interp,"changeslice down; sendupdate");
+    downslice ();
+    redraw ();
           break;
 
           /* TODO: install X versions of rotate headpoints bindings */
@@ -2995,7 +3061,9 @@ open_window(char *name)
    tkoInitDisplayMode(TKO_RGB | TKO_SINGLE);   
 
   if (!initpositiondoneflag)
-    tkoInitPosition(MOTIF_XFUDGE+wx0,(1024-wy0-ydim)+MOTIF_XFUDGE,xdim,ydim);
+    tkoInitPosition ( kDefaultWindowLocationX,
+          kDefaultWindowLocationY,
+          xdim, ydim );
   if (!tkoInitWindow(name)) {
     printf("medit: ### tkoInitWindow(name) failed\n");exit(1);}
   hin.max_width = hin.max_height = 4*xnum + xnum/2;  /* maxsize */
@@ -3025,8 +3093,10 @@ open_window(char *name)
 #else  /* use gl calls */
   if (openglwindowflag) {
     printf("medit: ### GL window already open: can't open second\n");PR return;}
-  prefposition(wx0+MOTIF_XFUDGE, wx0+MOTIF_XFUDGE+xdim-1,
-               wy0-MOTIF_XFUDGE, wy0+ydim-1-MOTIF_XFUDGE);
+  prefposition( kDefaultWindowLocationX,
+    kDefaultWindowLocationX + xdim-1,
+    kDefaultWindowLocationY, 
+    kDefaultWindowLocationY + ydim-1);
   foreground();  /* tcl prompt */
   winopen(name);
   keepaspect(1,1);
@@ -3372,7 +3442,7 @@ goto_point(char *dir)
   if (fp==NULL) {printf("medit: ### File %s not found\n",fname);PR return;}
   fscanf(fp,"%f %f %f",&xpt,&ypt,&zpt);
   fclose(fp);
-  set_cursor(xpt,ypt,zpt);
+  SetCursorToRASPt ( (Real)xpt, (Real)ypt, (Real)zpt );
 }
 void
 unmark_vertices(void)
@@ -3471,15 +3541,15 @@ goto_vertex(int vno)
   HiliteSurfaceVertex ( v, kSurfaceType_Current );
 
   // set the cursor and go there.
-  set_cursor ( v->x, v->y, v->z );
+  SetCursorToRASPt ( (Real)(v->x), (Real)(v->y), (Real)(v->z) );
   RecenterViewToScreenPt ( jc, ic, imc );
 
   redraw() ;
 }
 
 void
-goto_orig_vertex(int vno)
-{
+goto_orig_vertex(int vno) {
+
   VERTEX *v ;
 
   if (!mris)
@@ -3493,7 +3563,7 @@ goto_orig_vertex(int vno)
   HiliteSurfaceVertex ( v, kSurfaceType_Original );
 
   // set the cursor and go there.
-  set_cursor ( v->x, v->y, v->z );
+  SetCursorToRASPt ( (Real)(v->x), (Real)(v->y), (Real)(v->z) );
   RecenterViewToScreenPt ( jc, ic, imc );
 
   redraw() ;
@@ -3515,7 +3585,7 @@ goto_canon_vertex(int vno)
   HiliteSurfaceVertex ( v, kSurfaceType_Canonical );
 
   // set the cursor and go there.
-  set_cursor ( v->x, v->y, v->z );
+  SetCursorToRASPt ( (Real)(v->x), (Real)(v->y), (Real)(v->z) );
   RecenterViewToScreenPt ( jc, ic, imc );
 
   redraw() ;
@@ -3530,7 +3600,7 @@ goto_point_coords(int imc1, int ic1,int jc1)
   xpt = xx1-ps*jc1/fsf;
   ypt = yy0+st*imc1/fsf;
   zpt = zz1-ps*(255.0-ic1/fsf);
-  set_cursor(xpt,ypt,zpt);
+  SetCursorToRASPt ( (Real)xpt, (Real)ypt, (Real)zpt );
 }
 
 void
@@ -3771,35 +3841,6 @@ void set_cursor(float xpt, float ypt, float zpt)
   PR
 }
 #endif
-
-void set_cursor ( float inX, float inY, float inZ ) {
-
-  int theVoxX, theVoxY, theVoxZ;
-  int theScreenX, theScreenY, theScreenZ;
-
-  DebugPrint "set_cursor (%f, %f, %f)\n", inX, inY, inZ EndDebugPrint;
-  
-  // convert ras to voxel. i don't know why you have to add 0.5 here, but
-  // you got a one-off error if you don't. some rounding thing.
-  RASToVoxel ( inX+0.5, inY+0.5, inZ+0.5, &theVoxX, &theVoxY, &theVoxZ );
-
-  DebugPrint "\tconverted to voxel (%d, %d, %d)\n", 
-    theVoxX, theVoxY, theVoxZ EndDebugPrint;
-
-  // voxel to screen
-  VoxelToScreen ( theVoxX, theVoxY, theVoxZ,
-                  plane, &theScreenX, &theScreenY, &theScreenZ );
-
-  // set the screen point.
-  SetCursorToScreenPt ( theScreenX, theScreenY, theScreenZ );
-
-  // print out info for this pt
-  printf ( "\nSelected voxel information:\n" );
-  PrintScreenPointInformation ( jc, ic, imc );
-
-  DebugPrint "\tdone.\n\n" EndDebugPrint
-}
-
 
 void initmap_hacked(void)
 {
@@ -4403,10 +4444,6 @@ show_vertex ( void ) {
   int      vno, min_vno ;
   float    dx, dy, dz, dist = 0.0, min_dist ;
 
-  DebugCode
-    int theVoxX, theVoxY, theVoxZ;
-  EndDebugCode;
-
   if (!mris)
     ErrorReturn ( ERROR_BADPARM, 
                   (ERROR_BADPARM, "%s: surface must be loaded\n", Progname)) ;
@@ -4434,17 +4471,8 @@ show_vertex ( void ) {
   HiliteSurfaceVertex ( v, kSurfaceType_Current );
 
   // set the cursor and go there.
-  set_cursor ( v->x, v->y, v->z );
-  RecenterViewToScreenPt ( jc, ic, imc );
-
-  DebugCode
-    
-    RASToVoxel ( v->x+0.5, v->y+0.5, v->z+0.5, &theVoxX, &theVoxY, &theVoxZ );
-  
-  DebugPrint "\tconverted to voxel (%d, %d, %d)\n", 
-    theVoxX, theVoxY, theVoxZ EndDebugPrint;
-  
-  EndDebugCode;
+  // set_cursor ( v->x, v->y, v->z );
+  // RecenterViewToScreenPt ( jc, ic, imc );
 
   // kt - redraw hilighted vertex.
   redraw ();
@@ -4487,8 +4515,8 @@ show_orig_vertex ( void ) {
   HiliteSurfaceVertex ( v, kSurfaceType_Original );
 
   // set the cursor and go there.
-  set_cursor ( v->x, v->y, v->z );
-  RecenterViewToScreenPt ( jc, ic, imc );
+  // set_cursor ( v->x, v->y, v->z );
+  // RecenterViewToScreenPt ( jc, ic, imc );
 
   fprintf(stderr, "vno %d @ (%2.1f, %2.1f, %2.1f), %2.1f mm away\n",
           min_vno, v->origx, v->origy, v->origz, sqrt(min_dist)) ;
@@ -4533,8 +4561,8 @@ show_canon_vertex ( void ) {
   HiliteSurfaceVertex ( v, kSurfaceType_Canonical );
 
   // set the cursor and go there.
-  set_cursor ( v->x, v->y, v->z );
-  RecenterViewToScreenPt ( jc, ic, imc );
+  // set_cursor ( v->x, v->y, v->z );
+  //  RecenterViewToScreenPt ( jc, ic, imc );
 
   fprintf(stderr, "vno %d @ (%2.1f, %2.1f, %2.1f), %2.1f mm away\n",
           min_vno, v->cx, v->cy, v->cz, sqrt(min_dist)) ;
@@ -4676,7 +4704,6 @@ void ProcessClick ( int inClickX, int inClickY ) {
 
 void SetCursorToScreenPt ( int inScreenX, int inScreenY, int inScreenZ ) {
   
-  int theVoxX, theVoxY, theVoxZ;
   Real theRASX, theRASY, theRASZ;
 
   // do some bounds checking
@@ -4693,10 +4720,9 @@ void SetCursorToScreenPt ( int inScreenX, int inScreenY, int inScreenZ ) {
 
   // we have to set these variables because they are used in other functions
   // show_vertex in particular. and they want ras coords too.
-  ScreenToVoxel ( plane, inScreenX, inScreenY, inScreenZ,
-                  &theVoxX, &theVoxY, &theVoxZ );
-  VoxelToRAS ( theVoxX, theVoxY, theVoxZ,
-               &theRASX, &theRASY, &theRASZ );
+  ScreenToRAS ( plane, inScreenX, inScreenY, inScreenZ,
+    &theRASX, &theRASY, &theRASZ );
+
   x_click = (float) theRASX;
   y_click = (float) theRASY;
   z_click = (float) theRASZ;
@@ -4705,15 +4731,23 @@ void SetCursorToScreenPt ( int inScreenX, int inScreenY, int inScreenZ ) {
   SendUpdateMessageToTKWindow ();
 }
 
+void SetCursorToRASPt ( Real inX, Real inY, Real inZ ) {
+
+  int theScreenX, theScreenY, theScreenZ;
+
+  // get a screen pt from the ras pt.
+  RASToScreen ( inX, inY, inZ, plane, 
+    &theScreenX, &theScreenY, &theScreenZ );
+
+  // set the screen point.
+  SetCursorToScreenPt ( theScreenX, theScreenY, theScreenZ );
+}
+
 void SaveCursorInVoxel () {
 
   // save screen cursor coords to voxel coords.
   ScreenToVoxel ( plane, jc, ic, imc, 
           &gSavedCursorVoxelX, &gSavedCursorVoxelY, &gSavedCursorVoxelZ );
-
-  DebugPrint "Saved cursor %d,%d,%d as voxel %d,%d,%d\n",
-    jc, ic, imc, gSavedCursorVoxelX, gSavedCursorVoxelY, gSavedCursorVoxelZ 
-    EndDebugPrint;
 }
 
 void SetCursorToSavedVoxel () {
@@ -4721,11 +4755,6 @@ void SetCursorToSavedVoxel () {
   // restore screen cursor from saved voxel coords.
   VoxelToScreen ( gSavedCursorVoxelX, gSavedCursorVoxelY, gSavedCursorVoxelZ,
                   plane, &jc, &ic, &imc );
-
-  DebugPrint "Set cursor to %d,%d,%d from voxel %d,%d,%d\n",
-    jc, ic, imc, gSavedCursorVoxelX, gSavedCursorVoxelY, gSavedCursorVoxelZ 
-    EndDebugPrint;
-
 }
 
 void SetPlane ( int inNewPlane ) {
@@ -4742,15 +4771,15 @@ void SetPlane ( int inNewPlane ) {
 
 void RecenterViewToScreenPt ( int inScreenX, int inScreenY, int inScreenZ ) {
   
-  int theSavedCursorX, theSavedCursorY, theSavedCursorZ;
   int theNewCenterX, theNewCenterY, theNewCenterZ;
-  int theTestCursorX, theTestCursorY, theTestCursorZ;
+  Real theSavedCursorX, theSavedCursorY, theSavedCursorZ;
+  //  Real theTestCursorX, theTestCursorY, theTestCursorZ;
 
-  // first get the cursor in voxel form to remember it
-  ScreenToVoxel ( plane, jc, ic, imc,
-                  &theSavedCursorX, &theSavedCursorY, &theSavedCursorZ );
+  // first get the cursor in RAS form to remember it
+  ScreenToRAS ( plane, jc, ic, imc,
+    &theSavedCursorX, &theSavedCursorY, &theSavedCursorZ );
   
-  // get the clicked voxel.
+  // get the voxel to center around.
   ScreenToVoxel ( plane, inScreenX, inScreenY, inScreenZ,
                   &theNewCenterX, &theNewCenterY, &theNewCenterZ );
   
@@ -4761,23 +4790,24 @@ void RecenterViewToScreenPt ( int inScreenX, int inScreenY, int inScreenZ ) {
   CheckCenterVoxel ();
   
   // reset the cursor in the new screen position
-  VoxelToScreen ( theSavedCursorX, theSavedCursorY, theSavedCursorZ,
-                  plane, &jc, &ic, &imc );
-  
+  SetCursorToRASPt ( theSavedCursorX, theSavedCursorY, theSavedCursorZ );
+
+  /*
   DebugCode {
     
-    ScreenToVoxel ( plane, jc, ic, imc,
-                    &theTestCursorX, &theTestCursorY, &theTestCursorZ );
+    ScreenToRAS ( plane, jc, ic, imc,
+      &theTestCursorX, &theTestCursorY, &theTestCursorZ );
     
     if ( theTestCursorX != theSavedCursorX ||
          theTestCursorY != theSavedCursorY ||
          theTestCursorZ != theSavedCursorZ )
-      DebugPrint "Cursor voxels don't match: was (%d, %d, %d), now (%d, %d, %d)\n", 
+      DebugPrint "Cursor voxels don't match: was (%2.1f, %2.1f, %2.1f), now (%2.1f, %2.1f, %2.1f)\n", 
         theSavedCursorX, theSavedCursorY, theSavedCursorZ,
         theTestCursorX, theTestCursorY, theTestCursorZ
         EndDebugPrint;
     
   } EndDebugCode;
+  */
 }
 
 void RecenterViewToCursor () {
@@ -5930,7 +5960,12 @@ void SetCurrentSurfaceDisplayStatus ( char inDisplay ) {
 
   // print a status msg.
   if ( gIsDisplayCurrentSurface ) {
-    printf ( "Current surface display is ON, shown in yellow with blue vertices.\n" );
+    printf ( "Current surface display is ON, shown in yellow\n" );
+    if ( IsSurfaceVertexDisplayOn() ) {
+      printf ( ", with blue vertices .\n" );
+    } else {
+      printf ( ".\n" );
+    }
   } else {
     printf ( "Current surface display is OFF.\n" );
   }    
@@ -5949,7 +5984,12 @@ void SetOriginalSurfaceDisplayStatus ( char inDisplay ) {
 
   // print a status msg.
   if ( gIsDisplayOriginalSurface ) {
-    printf ( "Original surface display is ON, shown in blue with yellow vertices .\n" );
+    printf ( "Original surface display is ON, shown in green" );
+    if ( IsSurfaceVertexDisplayOn() ) {
+      printf ( ", with magenta vertices .\n" );
+    } else {
+      printf ( ".\n" );
+    }
   } else {
     printf ( "Original surface display is OFF.\n" );
   }    
@@ -5968,10 +6008,51 @@ void SetCanonicalSurfaceDisplayStatus ( char inDisplay ) {
 
   // print a status msg.
   if ( gIsDisplayCanonicalSurface ) {
-    printf ( "Canonical surface display is ON, shown in red with cyan vertices.\n" );
+    printf ( "Canonical surface display is ON, shown in red\n" );
+    if ( IsSurfaceVertexDisplayOn() ) {
+      printf ( ", with cyan vertices .\n" );
+    } else {
+      printf ( ".\n" );
+    }
   } else {
     printf ( "Canonical surface display is OFF.\n" );
   }    
+}
+
+void SetSurfaceVertexDisplayStatus ( char inDisplay ) {
+
+  // set display status.
+  gIsDisplaySurfaceVertices = inDisplay;
+
+  // print a status msg.
+  if ( IsSurfaceVertexDisplayOn() ) {
+    printf ( "Surface vertex display is ON.\n" );
+  } else {
+    printf ( "Surface vertex display is OFF.\n" );
+  }    
+}
+
+char IsSurfaceVertexDisplayOn () {
+
+  return gIsDisplaySurfaceVertices;
+}
+
+void SetAverageSurfaceVerticesStatus ( char inDisplay ) {
+
+  // set display status.
+  gIsAverageSurfaceVertices = inDisplay;
+
+  // print a status msg.
+  if ( IsAverageSurfaceVerticesOn() ) {
+    printf ( "Displaying averaged surface vertices.\n" );
+  } else {
+    printf ( "Displaying true surface vertices.\n" );
+  }    
+}
+
+char IsAverageSurfaceVerticesOn () {
+
+  return gIsAverageSurfaceVertices;
 }
 
 void HiliteSurfaceVertex ( vertex_type * inVertex, int inSurface ) {
@@ -6075,26 +6156,37 @@ void CalcDrawPointsForVoxelsCrossingPlane ( float inPlaneZ, int inPlane,
   
   float theHeight, theRASX, theRASY;
 
-  // find a height. if they arn't both on the plane...
-  if ( Voxel_GetFloatZ(inVox2) - Voxel_GetFloatZ(inVox1) != 0 ) {
+  // averaging?
+  if ( IsAverageSurfaceVerticesOn() ) {
+
+    // find a height. if they arn't both on the plane...
+    if ( Voxel_GetFloatZ(inVox2) - Voxel_GetFloatZ(inVox1) != 0 ) {
+      
+      // height is one difference over the other, ends up positive.
+      theHeight = ( inPlaneZ - Voxel_GetFloatZ(inVox1) ) / 
+  ( Voxel_GetFloatZ(inVox2) - Voxel_GetFloatZ(inVox1) );
+      
+    } else {
+      
+      // else height is just one.
+      theHeight = 1.0;
+    }
     
-    // height is one difference over the other, ends up positive.
-    theHeight = ( inPlaneZ - Voxel_GetFloatZ(inVox1) ) / 
-      ( Voxel_GetFloatZ(inVox2) - Voxel_GetFloatZ(inVox1) );
+    // set points to be the first voxels coord + the height times the
+    // difference of the two.
+    theRASX = Voxel_GetFloatX(inVox1) + 
+      theHeight * ( Voxel_GetFloatX(inVox2) - Voxel_GetFloatX(inVox1) );
     
+    theRASY = Voxel_GetFloatY(inVox1) + 
+      theHeight * ( Voxel_GetFloatY(inVox2) - Voxel_GetFloatY(inVox1) );
+
   } else {
     
-    // else height is just one.
-    theHeight = 1.0;
+    // this is the real location of the vertex. vox2 is the actual vertex,
+    // vox1 is the neighbor.
+    theRASX = Voxel_GetFloatX ( inVox2 );
+    theRASY = Voxel_GetFloatY ( inVox2 );
   }
-  
-  // set points to be the first voxels coord + the height times the
-  // difference of the two.
-  theRASX = Voxel_GetFloatX(inVox1) + 
-    theHeight * ( Voxel_GetFloatX(inVox2) - Voxel_GetFloatX(inVox1) );
-  
-  theRASY = Voxel_GetFloatY(inVox1) + 
-    theHeight * ( Voxel_GetFloatY(inVox2) - Voxel_GetFloatY(inVox1) );
 
   // convert from ras to screen
   switch ( inPlane ) {
@@ -6120,8 +6212,8 @@ void DrawSurface ( MRI_SURFACE * theSurface, int inPlane, int inSurface ) {
   Voxel theVox1, theVox2;
   float theDrawPoint[VERTICES_PER_FACE][2]; // an array of 2d points
   float theDrawPointX, theDrawPointY, 
-    theHilitedVertexDrawPointX, theHilitedVertexDrawPointY;
-  int theNumDrawPoints, theDrawPointIndex;
+    theHilitedVertexDrawPointX[20], theHilitedVertexDrawPointY[20];
+  int theNumDrawPoints, theDrawPointIndex, theNumHilitedPoints;
   int thePlaneZ;
   char isHilitedVertexOnScreen;
   float theLineColor[3], theVertexColor[3];
@@ -6144,6 +6236,7 @@ void DrawSurface ( MRI_SURFACE * theSurface, int inPlane, int inSurface ) {
   }
 
   isHilitedVertexOnScreen = FALSE;
+  theNumHilitedPoints = TRUE;
 
   // for each face in this surface...
   theNumFaces = theSurface->nfaces;
@@ -6243,10 +6336,10 @@ void DrawSurface ( MRI_SURFACE * theSurface, int inPlane, int inSurface ) {
         set3fv ( theVertexColor, 0.0, 0.0, 1.0 );
               break;
 
-              // blue lines and yellow vertices for original
+              // green lines and purple vertices for original
             case kSurfaceType_Original:
-        set3fv ( theLineColor, 0.0, 0.0, 1.0 );
-        set3fv ( theVertexColor, 1.0, 1.0, 0.0 );
+        set3fv ( theLineColor, 0.0, 1.0, 0.0 );
+        set3fv ( theVertexColor, 1.0, 0.0, 1.0 );
               break;
               
               // red lines and vertices for canonical
@@ -6258,13 +6351,15 @@ void DrawSurface ( MRI_SURFACE * theSurface, int inPlane, int inSurface ) {
           }
 
     // is this the hilited vertex?
-    if ( !isHilitedVertexOnScreen &&
+    if ( /*!isHilitedVertexOnScreen &&*/
          IsSurfaceVertexHilited ( theVertex, inSurface ) ) {
 
       // mark it to be drawn later.
-      theHilitedVertexDrawPointX = theDrawPointX;
-      theHilitedVertexDrawPointY = theDrawPointY;
+      theHilitedVertexDrawPointX[theNumHilitedPoints] = theDrawPointX;
+      theHilitedVertexDrawPointY[theNumHilitedPoints] = theDrawPointY;
       isHilitedVertexOnScreen = TRUE;
+
+      theNumHilitedPoints ++;
       /*
       DebugPrint "Found pt at %2.1f, %2.1f\n",
         theHilitedVertexDrawPointX, theHilitedVertexDrawPointY EndDebugPrint;
@@ -6309,52 +6404,61 @@ void DrawSurface ( MRI_SURFACE * theSurface, int inPlane, int inSurface ) {
 
       endline ();
 
-      // set point size and color.
-      thePointSize = theLineWidth + 1;
-      if ( thePointSize > gLocalZoom ) {
-  thePointSize = 1;
+      // if we're drawing vertices...
+      if ( IsSurfaceVertexDisplayOn () ) {
+
+  // set point size and color.
+  thePointSize = theLineWidth + 1;
+  if ( thePointSize > gLocalZoom ) {
+    thePointSize = 1;
+  }
+  glPointSize ( thePointSize );
+  glColor3fv ( theVertexColor );
+  
+  // start drawing points.
+  glBegin ( GL_POINTS );
+  
+  // draw the points for this face.
+  for ( theDrawPointIndex = 0;
+        theDrawPointIndex < theNumDrawPoints;
+        theDrawPointIndex++ ) {
+    
+    // if this point is on screen...
+    if ( IsTwoDScreenPtInWindow ( 
+        theDrawPoint[theDrawPointIndex][kPointArrayIndex_X],
+        theDrawPoint[theDrawPointIndex][kPointArrayIndex_Y] ) ) {
+      
+      // draw this point.
+      v2f (&(theDrawPoint[theDrawPointIndex][kPointArrayIndex_Beginning]));
+    }
+  }
+  
+  glEnd ();
       }
-      glPointSize ( thePointSize );
-      glColor3fv ( theVertexColor );
-
-      // start drawing points.
-      glBegin ( GL_POINTS );
-
-      // draw the points for this face.
-      for ( theDrawPointIndex = 0;
-            theDrawPointIndex < theNumDrawPoints;
-            theDrawPointIndex++ ) {
-        
-        // if this point is on screen...
-        if ( IsTwoDScreenPtInWindow ( 
-                  theDrawPoint[theDrawPointIndex][kPointArrayIndex_X],
-                  theDrawPoint[theDrawPointIndex][kPointArrayIndex_Y] ) ) {
-          
-          // draw this point.
-          v2f (&(theDrawPoint[theDrawPointIndex][kPointArrayIndex_Beginning]));
-        }
-      }
-
-      glEnd ();
-
 
       // draw the hilited vertex if there is one.
       if ( isHilitedVertexOnScreen ) {
-
+  
   // big points size and purple color.
   glPointSize ( thePointSize * 3 );
   glColor3f ( 1.0, 0.0, 1.0 );
   
   glBegin ( GL_POINTS );
   
+  for ( theDrawPointIndex = 0;
+        theDrawPointIndex < theNumHilitedPoints;
+        theDrawPointIndex++ ) {
+
   // draw this point.
-  glVertex2f ( theHilitedVertexDrawPointX, theHilitedVertexDrawPointY );
+    glVertex2f ( theHilitedVertexDrawPointX[theDrawPointIndex],
+           theHilitedVertexDrawPointY[theDrawPointIndex] );
   
+  }
   /*
-  DebugPrint "Drew hilited vertex at %2.1f, %2.1f\n",
+    DebugPrint "Drew hilited vertex at %2.1f, %2.1f\n",
     theHilitedVertexDrawPointX, theHilitedVertexDrawPointY EndDebugPrint;
   */
-
+  
   glEnd ();
       }
     }
@@ -8296,6 +8400,15 @@ char **argv;
   printf("\tCtrl-n: deselect all points\n");
   printf("\tCtrl-d: delete selected points\n");
   printf("\tCtrl-s: save control points to control.dat file\n");
+  printf("\nSurface display:\n");
+  printf("\t'read_surface <surf_name>': read a current surface\n");
+  printf("\t'read_original_surface <surf_name>': read an original surface\n");
+  printf("\t'read_canonical_surface <surf_name>': read a canonical surface\n");
+  printf("\t'current': toggle current surface display\n");
+  printf("\t'original': toggle original surface display\n");
+  printf("\t'canonical': toggle canonical surface display\n");
+  printf("\tCtrl-v: toggle surface vertex display\n");
+  printf("\tCtrl-a: toggle vertex display type, average or real\n");
 
  printf("\n");
  PR;
@@ -9974,6 +10087,142 @@ void RASToFloatScreenXY ( Real x, Real y, Real z,    // incoming ras coords
 
 }
     
+void RASToScreen ( Real inRASX, Real inRASY, Real inRASZ,
+      int inPlane, 
+       int *outScreenX, int *outScreenY, int *outScreenZ ) {
+
+  Real rLocalZoom, rCenterX, rCenterY, rCenterZ;
+  Real rYDim, rXDim;
+  Real theRealVoxX, theRealVoxY, theRealVoxZ;
+
+  // convert everything to reals.
+  rLocalZoom = (Real) gLocalZoom;
+  rCenterX = (Real) gCenterX;
+  rCenterY = (Real) gCenterY;
+  rCenterZ = (Real) gCenterZ;
+  rYDim = (Real) ydim;
+  rXDim = (Real) xdim;
+
+  // adjust where necessary for rounding. i don't know why this works, but it
+  // does.
+  switch ( inPlane ) {
+  case CORONAL:
+    inRASX -= 0.5;
+    break;
+  case HORIZONTAL:
+    inRASX -= 0.5;
+    inRASY += 0.5;
+    inRASZ += 0.5;
+    break;
+  case SAGITTAL:
+    inRASX -= 0.5;
+    inRASZ -= 0.5;
+    break;
+  }
+
+  // first get our voxel x y and z in real form.
+  theRealVoxX = (Real) ( (xx1-(inRASX)) / ps );
+  theRealVoxY = (Real) (( (zz1-inRASZ)/ps ) - 255.0 + ( (rYDim - 1.0) / fsf ));
+  theRealVoxZ = (Real) ( (inRASY-yy0) / st );
+
+  // then convert them to screen pts
+  switch ( inPlane ) {
+  case CORONAL:
+    *outScreenX = (int)
+      ( rLocalZoom * fsf * (theRealVoxX - rCenterX) ) + (rYDim/2.0);
+    *outScreenY = (int)
+      ( (rYDim-1.0) -
+  ( rLocalZoom * fsf * (theRealVoxY - rCenterY) ) - (rYDim/2.0) );
+    *outScreenZ = (int)
+      ( theRealVoxZ * fsf );
+    break;
+
+  case HORIZONTAL:
+    *outScreenX = (int)
+      ( ( rLocalZoom * fsf * (theRealVoxX - rCenterX) ) + (rYDim/2.0) );
+    *outScreenY = (int)
+      ( (rYDim - 1.0) - (fsf * theRealVoxY) );
+    *outScreenZ = (int)
+      ( ( rLocalZoom * fsf * (theRealVoxZ - rCenterZ) ) + (rYDim/2.0) );
+    break;
+
+  case SAGITTAL:
+    *outScreenX = (int)
+      ( theRealVoxX * fsf );
+    *outScreenY = (int)
+      ( (rYDim-1.0) -
+  ( rLocalZoom * fsf * (theRealVoxY - rCenterY) ) - (rYDim/2.0) );
+    *outScreenZ = (int)
+      ( ( rLocalZoom * fsf * (theRealVoxZ - rCenterZ) ) + (rYDim/2.0) );
+    break;
+  }
+
+}
+
+void ScreenToRAS ( int inPlane, int inScreenX, int inScreenY, int inScreenZ,
+       Real * outRASX, Real * outRASY, Real * outRASZ ) {
+
+  Real rScreenX, rScreenY, rScreenZ;
+  Real rLocalZoom, rCenterX, rCenterY, rCenterZ;
+  Real rYDim, rXDim, rHalfScreen;
+  Real theRealVoxX, theRealVoxY, theRealVoxZ;
+
+  // convert everything to reals.
+  rScreenX = (Real) inScreenX;
+  rScreenY = (Real) inScreenY;
+  rScreenZ = (Real) inScreenZ;
+  rLocalZoom = (Real) gLocalZoom;
+  rCenterX = (Real) gCenterX;
+  rCenterY = (Real) gCenterY;
+  rCenterZ = (Real) gCenterZ;
+  rYDim = (Real) ydim;
+  rXDim = (Real) xdim;
+  rHalfScreen = (Real) rXDim/fsf/2.0/rLocalZoom;
+
+  // screen to voxel.
+  switch ( inPlane ) {
+  case CORONAL:
+    theRealVoxX =
+      (rScreenX / fsf / rLocalZoom) + (rCenterX - rHalfScreen);
+    theRealVoxY =
+      ( ((rYDim-1.0)-rScreenY) / fsf / rLocalZoom) + (rCenterY - rHalfScreen);
+    theRealVoxZ =
+      ( rScreenZ / fsf );
+
+    theRealVoxX -= 0.5;
+    break;
+    
+  case HORIZONTAL:
+    theRealVoxX =
+      (rScreenX / fsf / rLocalZoom) + (rCenterX - rHalfScreen);
+    theRealVoxY =
+      ( ((rYDim-1.0)-rScreenY) / fsf );
+    theRealVoxZ =
+      (rScreenZ / fsf / rLocalZoom) + (rCenterZ - rHalfScreen);
+
+    theRealVoxX -= 0.5;
+    theRealVoxY += 0.5;
+    theRealVoxZ -= 0.5;
+    break;
+    
+  case SAGITTAL:
+    theRealVoxX =
+      ( rScreenX / fsf );
+    theRealVoxY =
+      ( ((rYDim-1.0)-rScreenY) / fsf / rLocalZoom) + (rCenterY - rHalfScreen);
+    theRealVoxZ =
+      (rScreenZ / fsf / rLocalZoom) + (rCenterZ - rHalfScreen);
+
+    theRealVoxZ -= 0.5;
+    //    theRealVoxY += 0.5;
+    break;
+  }
+
+  // voxel to ras
+  *outRASX = (Real) (xx1 - (ps * theRealVoxX));
+  *outRASY = (Real) (yy0 + (st * theRealVoxZ));
+  *outRASZ = (Real) (zz1 - (ps * (255.0 - ((rYDim-1.0)/fsf) + theRealVoxY)));
+}
 
 /* ===================================================== Graphics utilities */
 
@@ -9989,12 +10238,14 @@ void DrawCrosshairInBuffer ( char * inBuffer,       // the buffer
   int x, y, theBufIndex;
 
   // add small offsets to put the cursor in the middle of a pixel.
+  /*
   if ( gLocalZoom*zf > 0 ) {
     inX -= inX % (gLocalZoom*zf);
     inY -= inY % (gLocalZoom*zf);
     inX += gLocalZoom*zf/2;
     inY += gLocalZoom*zf/2;
   }
+  */
 
   // go across the x line..
   for ( x = inX - inSize; x <= inX + inSize; x++ ) {
@@ -10164,7 +10415,8 @@ void CheckCenterVoxel () {
 void PrintScreenPointInformation ( int j, int i, int ic ) {
 
   int theVoxX, theVoxY, theVoxZ;
-  Real theRASX, theRASY, theRASZ, theTalX, theTalY, theTalZ;
+  Real theTalX, theTalY, theTalZ;
+  Real theRASX, theRASY, theRASZ;
   int thePixelValue;
   char theResult, theValue;
   Voxel theVoxel;
@@ -10193,6 +10445,7 @@ void PrintScreenPointInformation ( int j, int i, int ic ) {
 
   // get the ras coords
   VoxelToRAS ( theVoxX, theVoxY, theVoxZ, &theRASX, &theRASY, &theRASZ );
+  ScreenToRAS ( plane, j, i, ic, &theRASX, &theRASY, &theRASZ );
 
   // print the screen, vox, and ras coords
   printf ( "Coords: Screen (%d,%d,%d) Voxel (%d,%d,%d)\n",
