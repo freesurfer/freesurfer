@@ -9,7 +9,7 @@ function [volsm, G] = fast_smooth3d(vol,cfwhm,rfwhm,sfwhm)
 %
 % Note: does not attempt to handle wrap-around
 %
-% $Id: fast_smooth3d.m,v 1.1 2004/11/01 04:27:49 greve Exp $
+% $Id: fast_smooth3d.m,v 1.2 2004/12/10 21:53:17 greve Exp $
 
 if(nargin ~= 4)
   fprintf('[volsm, G] = fast_smooth3d(vol,cfwhm,rfwhm,sfwhm)\n');
@@ -27,7 +27,7 @@ volsz2 = 2*volsz;
 y = ([1:nrows]' - (nrows/2 + 1))/rstd;
 yy = repmat(y,[1 ncols nslices]);
 x = ([1:ncols]' - (ncols/2 + 1))/cstd;
-xx = repmat(x,[1 ncols nslices]);
+xx = repmat(x,[1 nrows nslices]);
 xx = permute(xx, [2 1 3]);
 z = ([1:nslices]' - (nslices/2 + 1))/sstd;
 zz = repmat(z,[1 nrows ncols]);
