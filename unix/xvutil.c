@@ -1439,7 +1439,7 @@ xvCreateXimage(XV_FRAME *xvf, IMAGE *image)
                  DefaultVisual(xvf->display, DefaultScreen(xvf->display)),
                  8,                   /* 8 bits per pixel */
                  ZPixmap,             /* not a bitmap */
-                 0, image->image,
+                 0, (char *) image->image, // byte *
                  cols,
                  rows,
                  8,                   /* 8 bits per pixel */
@@ -1461,7 +1461,7 @@ xvHipsCommand(Panel_item item, Event *event)
 
   dimage = XVgetDimage(xvf_hips, hips_cmd_source, DIMAGE_IMAGE) ;
   if (!dimage)
-    return(0) ;
+    return (Panel_setting)(0) ;
 
   if (xvf_hips->write_func)
     (*xvf_hips->write_func)(event, dimage, hips_cmd_str) ;
@@ -1470,7 +1470,7 @@ xvHipsCommand(Panel_item item, Event *event)
     ImageWrite(dimage->sourceImage, "out.hipl") ;
 
     if (strlen(hips_cmd_str) < 4)
-      return(0) ;
+      return (Panel_setting)(0) ;
     
     fprintf(stderr, "executing hips command '%s'\n", hips_cmd_str) ;
     
@@ -1483,7 +1483,7 @@ xvHipsCommand(Panel_item item, Event *event)
   }
 
   XFlush(xvf_hips->display); 
-  return(0) ;
+  return (Panel_setting)(0) ;
 }
 /*----------------------------------------------------------------------
             Parameters:
@@ -2686,11 +2686,11 @@ xvFileNameCommand(Panel_item item, Event *event)
   XFlush(xvf_fname->display); 
 
   if (strlen(xvf_fname->file_name) < 1)
-    return(0) ;
+    return (Panel_setting)(0) ;
 
   if (xvf_fname->fname_func)
     (*xvf_fname->fname_func)(xvf_fname->file_name) ;
-  return(0) ;
+  return (Panel_setting)(0) ;
 }
 
 int
