@@ -36,7 +36,7 @@ typedef enum {
 
 #define Volm_knErrStringLen 1024
 
-typedef BUFTYPE Volm_tValue;
+typedef float Volm_tValue;
 typedef Volm_tValue *Volm_tValueRef;
 #define Volm_knMaxValue   255
 #define Volm_knNumValues  256
