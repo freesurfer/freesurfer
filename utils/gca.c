@@ -223,24 +223,25 @@ int
 GCAvoxelToNode(GCA *gca, MRI *mri, int xv, int yv, int zv, int *pxn, 
                int *pyn, int *pzn)
 {
-  float   xscale, yscale, zscale ;
+  float   xscale, yscale, zscale, offset ;
 
   xscale = mri->xsize / gca->node_spacing ;
   yscale = mri->ysize / gca->node_spacing ;
   zscale = mri->zsize / gca->node_spacing ;
-  *pxn = (int)(xv * xscale) ;
+  offset = (gca->node_spacing-1.0)/2.0 ;
+  *pxn = nint((xv-offset) * xscale) ;
   if (*pxn < 0)
     *pxn = 0 ;
   else if (*pxn >= gca->node_width)
     *pxn = gca->node_width-1 ;
 
-  *pyn = (int)(yv * yscale) ;
+  *pyn = nint((yv-offset) * yscale) ;
   if (*pyn < 0)
     *pyn = 0 ;
   else if (*pyn >= gca->node_height)
     *pyn = gca->node_height-1 ;
 
-  *pzn = (int)(zv * zscale) ;
+  *pzn = nint((zv-offset) * zscale) ;
   if (*pzn < 0)
     *pzn = 0 ;
   else if (*pzn >= gca->node_depth)
@@ -250,31 +251,32 @@ GCAvoxelToNode(GCA *gca, MRI *mri, int xv, int yv, int zv, int *pxn,
 }
 
 int
-GCAvoxelToPrior(GCA *gca, MRI *mri, int xv, int yv, int zv, int *pxn, 
-               int *pyn, int *pzn)
+GCAvoxelToPrior(GCA *gca, MRI *mri, int xv, int yv, int zv, int *pxp, 
+               int *pyp, int *pzp)
 {
-  float   xscale, yscale, zscale ;
+  float   xscale, yscale, zscale, offset ;
 
   xscale = mri->xsize / gca->prior_spacing ;
   yscale = mri->ysize / gca->prior_spacing ;
   zscale = mri->zsize / gca->prior_spacing ;
-  *pxn = (int)(xv * xscale) ;
-  if (*pxn < 0)
-    *pxn = 0 ;
-  else if (*pxn >= gca->prior_width)
-    *pxn = gca->prior_width-1 ;
+  offset = (gca->prior_spacing-1.0)/2.0 ;
+  *pxp = nint((xv-offset) * xscale) ;
+  if (*pxp < 0)
+    *pxp = 0 ;
+  else if (*pxp >= gca->prior_width)
+    *pxp = gca->prior_width-1 ;
 
-  *pyn = (int)(yv * yscale) ;
-  if (*pyn < 0)
-    *pyn = 0 ;
-  else if (*pyn >= gca->prior_height)
-    *pyn = gca->prior_height-1 ;
+  *pyp = nint((yv-offset) * yscale) ;
+  if (*pyp < 0)
+    *pyp = 0 ;
+  else if (*pyp >= gca->prior_height)
+    *pyp = gca->prior_height-1 ;
 
-  *pzn = (int)(zv * zscale) ;
-  if (*pzn < 0)
-    *pzn = 0 ;
-  else if (*pzn >= gca->prior_depth)
-    *pzn = gca->prior_depth-1 ;
+  *pzp = nint((zv-offset) * zscale) ;
+  if (*pzp < 0)
+    *pzp = 0 ;
+  else if (*pzp >= gca->prior_depth)
+    *pzp = gca->prior_depth-1 ;
 
   return(NO_ERROR) ;
 }
@@ -302,7 +304,7 @@ GCAsourceVoxelToNode(GCA *gca, MRI *mri, TRANSFORM *transform,int xv, int yv, in
   TransformSample(transform, xv*mri->xsize, yv*mri->ysize, zv*mri->zsize, &xt, &yt, &zt) ;
 
   /* should change this to remove cast, but backwards comp for now */
-  xt = nint(xt/mri->xsize) ; yt = nint(yt/mri->ysize) ; zt = nint(zt/mri->zsize) ; 
+  xt = nint(xt/mri->xsize) ; yt = nint(yt/mri->ysize) ; zt = nint(zt/mri->zsize); 
   GCAvoxelToNode(gca, mri, xt, yt, zt, pxn, pyn, pzn) ;
   return(NO_ERROR) ;
 }
@@ -323,19 +325,19 @@ GCAnodeToVoxel(GCA *gca, MRI *mri, int xn, int yn, int zn, int *pxv,
   zscale = 1.0f / gca->node_spacing ;
 #endif
   offset = (gca->node_spacing-1.0)/2.0 ;
-  *pxv = (int)(xn / xscale + offset) ;
+  *pxv = nint(xn / xscale + offset) ;
   if (*pxv < 0)
     *pxv = 0 ;
   else if (*pxv >= mri->width)
     *pxv = mri->width-1 ;
 
-  *pyv = (int)(yn / yscale + offset) ;
+  *pyv = nint(yn / yscale + offset) ;
   if (*pyv < 0)
     *pyv = 0 ;
   else if (*pyv >= mri->height)
     *pyv = mri->height-1 ;
 
-  *pzv = (int)(zn / zscale + offset) ;
+  *pzv = nint(zn / zscale + offset) ;
   if (*pzv < 0)
     *pzv = 0 ;
   else if (*pzv >= mri->depth)
@@ -344,7 +346,7 @@ GCAnodeToVoxel(GCA *gca, MRI *mri, int xn, int yn, int zn, int *pxv,
   return(NO_ERROR) ;
 }
 int
-GCApriorToVoxel(GCA *gca, MRI *mri, int xn, int yn, int zn, int *pxv, 
+GCApriorToVoxel(GCA *gca, MRI *mri, int xp, int yp, int zp, int *pxv, 
                int *pyv, int *pzv)
 {
   float   xscale, yscale, zscale, offset ;
@@ -353,19 +355,19 @@ GCApriorToVoxel(GCA *gca, MRI *mri, int xn, int yn, int zn, int *pxv,
   yscale = mri->ysize / gca->prior_spacing ;
   zscale = mri->zsize / gca->prior_spacing ;
   offset = (gca->prior_spacing-1.0)/2.0 ;
-  *pxv = (int)(xn / xscale + offset) ;
+  *pxv = nint(xp / xscale + offset) ;
   if (*pxv < 0)
     *pxv = 0 ;
   else if (*pxv >= mri->width)
     *pxv = mri->width-1 ;
 
-  *pyv = (int)(yn / yscale + offset) ;
+  *pyv = nint(yp / yscale + offset) ;
   if (*pyv < 0)
     *pyv = 0 ;
   else if (*pyv >= mri->height)
     *pyv = mri->height-1 ;
 
-  *pzv = (int)(zn / zscale + offset) ;
+  *pzv = nint(zp / zscale + offset) ;
   if (*pzv < 0)
     *pzv = 0 ;
   else if (*pzv >= mri->depth)
@@ -558,6 +560,8 @@ GCAtrain(GCA *gca, MRI *mri_inputs, MRI *mri_labels, TRANSFORM *transform, GCA *
     {
       for (z = 0 ; z < depth ; z++)
       {
+        if (x == Gx && y == Gy && z == Gz)
+          DiagBreak() ;
         label = MRIvox(mri_labels, x, y, z) ;
 #if 0
         if (!label)
@@ -1824,7 +1828,7 @@ int
 GCAremoveOutlyingSamples(GCA *gca, GCA_SAMPLE *gcas, MRI *mri_inputs,
                          TRANSFORM *transform,int nsamples, float nsigma)
 {
-  int        x, y, z, xt, yt, zt, width, height, depth, val,
+  int        x, y, z, width, height, depth, val,
              i, nremoved, xp, yp, zp ;
   double     dist ;
 
@@ -1845,8 +1849,7 @@ GCAremoveOutlyingSamples(GCA *gca, GCA_SAMPLE *gcas, MRI *mri_inputs,
       continue ;
 
     xp = gcas[i].xp ; yp = gcas[i].yp ; zp = gcas[i].zp ; 
-    GCApriorToVoxel(gca, mri_inputs, xp, yp, zp, &xt, &yt, &zt) ;
-    TransformSampleInverseVoxel(transform, width, height, depth, xt, yt, zt, &x, &y, &z) ;
+    GCApriorToSourceVoxel(gca, mri_inputs, transform, xp, yp, zp, &x, &y, &z) ;
     val = MRIvox(mri_inputs, x, y, z) ;
 
     if (xp == Ggca_x && yp == Ggca_y && zp == Ggca_z)
@@ -1880,7 +1883,7 @@ float
 GCAnormalizedLogSampleProbability(GCA *gca, GCA_SAMPLE *gcas, 
                                MRI *mri_inputs, TRANSFORM *transform, int nsamples)
 {
-  int        x, y, z, xt, yt, zt, width, height, depth, val,
+  int        x, y, z, width, height, depth, val,
              xn, yn, zn, i, n, xp, yp, zp ;
   GCA_NODE   *gcan ;
   GCA_PRIOR  *gcap ;
@@ -1902,39 +1905,24 @@ GCAnormalizedLogSampleProbability(GCA *gca, GCA_SAMPLE *gcas,
       DiagBreak() ;
 
     xp = gcas[i].xp ; yp = gcas[i].yp ; zp = gcas[i].zp ; 
-    GCApriorToVoxel(gca, mri_inputs, xp, yp, zp, &xt, &yt, &zt) ;
+    GCApriorToSourceVoxel(gca, mri_inputs, transform, xp, yp, zp, &x, &y, &z) ;
     GCApriorToNode(gca, xp, yp, zp, &xn, &yn, &zn) ;
-    TransformSampleInverseVoxel(transform, width, height, depth, xt, yt, zt, &x, &y, &z) ;
     val = MRIvox(mri_inputs, x, y, z) ;
-
+    
     gcan = &gca->nodes[xn][yn][zn] ;
     gcap = &gca->priors[xp][yp][zp] ;
     if (xn == Ggca_x && yn == Ggca_y && zn == Ggca_z)
       DiagBreak() ;
-
+    
     for (norm_log_p = 0.0f, n = 0 ; n < gcan->nlabels ; n++)
     {
       gc = &gcan->gcs[n] ;
       norm_log_p += gcaComputeConditionalDensity(gc, val, gcan->labels[n]) ;
     }
     norm_log_p = log(norm_log_p) ;
-    gc = gcaFindGC(gca, xn, yn, zn, gcas[i].label) ;
-#define TRIM_DISTANCES 0
-#if TRIM_DISTANCES
-         
-    dist = (val-gc->mean) ;
-#define TRIM_DIST 20
-    if (abs(dist) > TRIM_DIST)
-      dist = TRIM_DIST ;
-    log_p =
-      -log(sqrt(gc->var)) - 
-      0.5 * (dist*dist/gc->var) +
-      log(getPrior(gcap, gcas[i].label])) ;
-#else
-  gc = GCAfindPriorGC(gca, xp, yp, zp, gcas[i].label) ;
+    gc = GCAfindPriorGC(gca, xp, yp, zp, gcas[i].label) ;
     log_p = gcaComputeConditionalDensity(gc, val, gcas[i].label) ;
     log_p = log(log_p) + log(gcas[i].prior) ;
-#endif
     log_p -= norm_log_p ;
     total_log_p += log_p ;
     gcas[i].log_p = log_p ;
@@ -1955,8 +1943,7 @@ float
 GCAcomputeLogSampleProbability(GCA *gca, GCA_SAMPLE *gcas, 
                                MRI *mri_inputs, TRANSFORM *transform, int nsamples)
 {
-  int        x, y, z, xt, yt, zt, width, height, depth, val,
-             xn, yn, zn, i, xp, yp, zp ;
+  int        x, y, z, width, height, depth, val, i, xp, yp, zp ;
   float      dist ;
   double     total_log_p, log_p ;
 
@@ -1974,9 +1961,7 @@ GCAcomputeLogSampleProbability(GCA *gca, GCA_SAMPLE *gcas,
       DiagBreak() ;
 
     xp = gcas[i].xp ; yp = gcas[i].yp ; zp = gcas[i].zp ; 
-    GCApriorToVoxel(gca, mri_inputs, xp, yp, zp, &xt, &yt, &zt) ;
-    GCApriorToNode(gca, xp, yp, zp, &xn, &yn, &zn) ;
-    TransformSampleInverseVoxel(transform, width, height, depth, xt, yt, zt, &x, &y, &z) ;
+    GCApriorToSourceVoxel(gca,mri_inputs, transform, xp, yp, zp, &x, &y, &z) ;
     gcas[i].x = x ; gcas[i].y = y ; gcas[i].z = z ;
     val = MRIvox(mri_inputs, x, y, z) ;
 
@@ -3115,10 +3100,10 @@ GCAwriteSamples(GCA *gca, MRI *mri, GCA_SAMPLE *gcas, int nsamples,
 MRI *
 GCAmri(GCA *gca, MRI *mri)
 {
-  int      width, height, depth, x, y, z, xn, yn, zn, n ;
-  float    val ;
-  GC1D     *gc ;
-  GCA_NODE *gcan ;
+  int       width, height, depth, x, y, z, xp, yp, zp, n, xn, yn, zn ;
+  float     val ;
+  GC1D      *gc ;
+  GCA_PRIOR *gcap ;
 
   if (!mri)
     mri = MRIalloc(gca->node_width, gca->node_height, gca->node_depth, MRI_UCHAR) ;
@@ -3130,12 +3115,14 @@ GCAmri(GCA *gca, MRI *mri)
     {
       for (z = 0 ; z < depth ; z++)
       {
+        GCAvoxelToPrior(gca, mri, x, y, z, &xp, &yp, &zp) ;
         GCAvoxelToNode(gca, mri, x, y, z, &xn, &yn, &zn) ;
-        gcan = &gca->nodes[xn][yn][zn] ;
-        for (val = 0.0, n = 0 ; n < gcan->nlabels ; n++)
+        gcap = &gca->priors[xp][yp][zp] ;
+        for (val = 0.0, n = 0 ; n < gcap->nlabels ; n++)
         {
-          gc = &gcan->gcs[n] ;
-          val += gc->mean*get_node_prior(gca, gcan->labels[n], xn, yn, zn) ;
+          gc = gcaFindGC(gca, xn, yn, zn, gcap->labels[n]) ;
+          if (gc)
+            val += gc->mean * gcap->priors[n] ;
         }
         switch (mri->type)
         {
@@ -3539,9 +3526,9 @@ GCAtransformAndWriteSamples(GCA *gca, MRI *mri, GCA_SAMPLE *gcas,
   {
     if (gcas[n].label == Gdiag_no)
       DiagBreak() ;
-    GCApriorToVoxel(gca, mri_dst, gcas[n].xp, gcas[n].yp, gcas[n].zp, 
-                   &xv, &yv, &zv) ;
-    TransformSampleInverseVoxel(transform, mri->width, mri->height, mri->depth, xv, yv, zv, &xv, &yv, &zv) ;
+    GCApriorToSourceVoxel(gca, mri_dst, transform,
+                          gcas[n].xp, gcas[n].yp, gcas[n].zp, 
+                          &xv, &yv, &zv) ;
     if (gcas[n].label > 0)
       label = gcas[n].label ;
     else if (gcas[n].label == 0)
@@ -4833,6 +4820,8 @@ GCAbuildMostLikelyVolume(GCA *gca, MRI *mri)
     {
       for (x = 0 ; x < width ; x++)
       {
+        if (x == Gx && y == Gy && z == Gz)
+          DiagBreak() ;
         GCAvoxelToNode(gca, mri, x, y, z, &xn, &yn, &zn) ;
         GCAvoxelToPrior(gca, mri, x, y, z, &xp, &yp, &zp) ;
         gcan = &gca->nodes[xn][yn][zn] ;
@@ -4851,6 +4840,8 @@ GCAbuildMostLikelyVolume(GCA *gca, MRI *mri)
           if (gcan->labels[n] == max_label)
             max_mean = gcan->gcs[n].mean ;
         }
+        if (max_mean < 0)
+          DiagBreak() ;
         switch (mri->type)
         {
         default:
@@ -4883,12 +4874,12 @@ GCAfindPriorGC(GCA *gca, int xp, int yp, int zp,int label)
 
 #if 1
 static GC1D *
-gcaFindGC(GCA *gca, int x, int y, int z,int label)
+gcaFindGC(GCA *gca, int xn, int yn, int zn,int label)
 {
   int        n ;
   GCA_NODE   *gcan  ;
 
-  gcan = &gca->nodes[x][y][z] ;
+  gcan = &gca->nodes[xn][yn][zn] ;
 
   for (n = 0 ; n < gcan->nlabels ; n++)
   {
@@ -5534,10 +5525,8 @@ GCAnormalizeSamples(MRI *mri_in, GCA *gca, GCA_SAMPLE *gcas, int nsamples,
     if (gcas[n].xp == Ggca_x && gcas[n].yp == Ggca_y && gcas[n].zp == Ggca_z)
       DiagBreak() ;
 
-    GCApriorToVoxel(gca, mri_dst, gcas[n].xp, gcas[n].yp, gcas[n].zp, 
-                   &xv, &yv, &zv) ;
-    TransformSampleInverseVoxel(transform, mri_in->width, mri_in->height, mri_in->depth,
-                                xv, yv, zv, &xv, &yv, &zv) ;
+    GCApriorToSourceVoxel(gca, mri_dst, transform, 
+                          gcas[n].xp, gcas[n].yp, gcas[n].zp, &xv, &yv, &zv) ;
 
     if (xv == 181 && yv == 146 && zv == 128)
       DiagBreak() ;
@@ -7882,16 +7871,16 @@ GCAfindAllSamples(GCA *gca, int *pnsamples)
   return(gcas) ;
 }
 int
-GCAcomputeMAPlabelAtLocation(GCA *gca, int x, int y, int z, float val, int *pmax_n,
-                             float *plog_p)
+GCAcomputeMAPlabelAtLocation(GCA *gca, int xp, int yp, int zp, float val, 
+                             int *pmax_n, float *plog_p)
 {
-  GCA_NODE   *gcan ;
+  GCA_PRIOR  *gcap ;
   GC1D       *gc ;
   int        n, max_n, max_label ;
   float      log_p, max_log_p ;
 
-  gcan = &gca->nodes[x][y][z] ;
-  if (gcan->nlabels == 0)
+  gcap = &gca->priors[xp][yp][zp] ;
+  if (gcap->nlabels == 0)
   {
     if (plog_p)
       *plog_p = 0.0 ;
@@ -7900,19 +7889,23 @@ GCAcomputeMAPlabelAtLocation(GCA *gca, int x, int y, int z, float val, int *pmax
     return(Unknown) ;
   }
 
-  gc = &gcan->gcs[0] ; max_label = gcan->labels[0] ;
-  max_log_p = gcaComputeLogDensity(gc,val,gcan->labels[max_n=0], 
-                                   get_node_prior(gca,gcan->labels[0],x, y,z));
-  for (n = 1 ; n < gcan->nlabels ; n++)
+  max_label = gcap->labels[0] ; max_n = 0 ;
+  gc = GCAfindPriorGC(gca, xp, yp, zp, gcap->labels[0]) ; 
+  if (gc)
+    max_log_p = gcaComputeLogDensity(gc, val, max_label, gcap->priors[0]) ;
+  else
+    max_log_p = -100000 ;
+  for (n = 1 ; n < gcap->nlabels ; n++)
   {
-    gc = &gcan->gcs[n] ;
-    log_p = gcaComputeLogDensity(gc,val,gcan->labels[n], 
-                                 get_node_prior(gca,gcan->labels[n],x,y,z));
+    gc = GCAfindPriorGC(gca, xp, yp, zp, gcap->labels[n]) ; 
+    if (!gc)
+      continue ;
+    log_p = gcaComputeLogDensity(gc,val,gcap->labels[n], gcap->priors[n]);
     if (log_p > max_log_p)
     {
       max_log_p = log_p ;
       max_n = n ;
-      max_label = gcan->labels[n] ;
+      max_label = gcap->labels[n] ;
     }
   }
 
@@ -8003,6 +7996,7 @@ copy_gcs(int nlabels, GC1D *gcs_src, GC1D *gcs_dst)
   }
   return(NO_ERROR) ;
 }
+
 int
 GCAfreeGibbs(GCA *gca)
 {
