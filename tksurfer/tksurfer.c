@@ -12700,11 +12700,13 @@ get_color_vals(float val, float curv, int mode,
 {
   short r,g,b;
   float f,fr,fg,fb,tmpoffset;
-  
+
   val -= foffset ;
   
   r = g = b = 0 ;
-  if (curv<0)  tmpoffset = cvfact*offset;
+  /* rkt: changed curv<0 to curv<cmid so that the grayscale curv
+     display would use cmid */
+  if (curv<cmid)  tmpoffset = cvfact*offset;
   else         tmpoffset = offset;
   
   if (mode==GREEN_RED_CURV)
@@ -12734,7 +12736,7 @@ get_color_vals(float val, float curv, int mode,
 	  b = 255 * (offset*blufact*(1 - fabs(f)));
 	}
     }
-  
+
   if (mode==REAL_VAL)   /* single val positive or signed */
     {
       if (colscale==HEAT_SCALE)  /* stat */
@@ -12833,6 +12835,7 @@ get_color_vals(float val, float curv, int mode,
       b = meshb;
 #endif
     }
+
   if (mode > MARKED)
     {
       if (EVEN(mode-MARKED))
