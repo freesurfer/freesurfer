@@ -1,3 +1,10 @@
+/*
+ do:
+optimize functional overlay drawing by grabbing volume bounds when loaded and only looping through those bounds when drawing
+
+better disctinction between error output and regular output. see LoadFunctionalVolume for example.
+ */
+
 /*============================================================================
  Copyright (c) 1996 Martin Sereno and Anders Dale
 =============================================================================*/
@@ -17,7 +24,6 @@
 #include "const.h"
 
 
-
 /*------------------begin medit.c-------------------*/
 
 /*============================================================================
@@ -34,27 +40,25 @@
 #include "rgb_image.h"
 #include "fio.h"
 #include "mrisurf.h"
+#include "mri_conform.h"
 
+#ifndef OPENGL
 #define OPENGL
+#endif
+
 #define TCL
 
 
-#ifdef TCL
 #  define PR   {if(promptflag){fputs("% ", stdout);} fflush(stdout);}
-#ifndef IRIX
 int            tk_NumMainWindows = 0;
-#endif
-#else
-#  define PR
-#endif
 
 
-#ifdef OPENGL
 #include "proto.h"
 #include "macros.h"
 #include "xwindow.h"
 #include <X11/keysym.h>
-#  define bgnpolygon()     glBegin(GL_QUADS)  /*one list OK;GL_POLYGON slower*/
+#  define bgnpolygon()     glBegin(GL_QUADS)  /*one list OK;GL_POLYGON s
+lower*/
 #  define bgnline()        glBegin(GL_LINES)
 #  define bgnpoint()       glBegin(GL_POINTS)
 #  define v2f(X)           glVertex2fv(X)
@@ -104,15 +108,8 @@ int            tk_NumMainWindows = 0;
 #  define GREEN   1
 #  define RED     2
 #  define YELLOW  3
-#else
-#  include <gl.h>
-#  include <device.h>
-#endif
-#ifdef Linux
+
 #define CURSOR_VAL   255
-#else
-#define CURSOR_VAL   255
-#endif
 
 /* #define SQR(x)       ((x)*(x)) */
 #define MATCH(A,B)   (!strcmp(A,B))
@@ -146,8 +143,8 @@ int            tk_NumMainWindows = 0;
 #define kWindowBottomBorderHeight 32
 #define CVIDBUF 25
 
-// kt - default zoom factor, makes window bigger
-#define kDefaultZoomFactor 2
+// kt - default scale factor, makes window bigger
+#define kDefaultScaleFactor 2
 
 int selectedpixval = 0;
 int secondpixval = 0 ;
@@ -235,13 +232,6 @@ int imc=0,ic=0,jc=0;
 int impt = -1,ipt = -1,jpt = -1;
 float x_click, y_click, z_click ;
 
-// status of the mouse and keyboard modifiers
-int ctrlkeypressed = FALSE;
-int altkeypressed = FALSE;
-int shiftkeypressed = FALSE;
-int button1pressed = FALSE;
-int button2pressed = FALSE;
-int button3pressed = FALSE;
 
 char *subjectsdir;   /* SUBJECTS_DIR */
 char *srname;        /* sessiondir--from cwd */
@@ -274,53 +264,19 @@ static int   control_points = 0 ;
 static int   num_control_points = 0 ;
 
 
-// ============================================================ kevin teich's stuff
+// ======================================================= kevin teich's stuff
+
+#include "tkmDebug.h"
+#include "tkmVoxel.h"
+#include "tkmVoxelList.h"
+#include "tkmVoxelSpace.h"
+#include "VoxelValueList.h"
 
                                        /* irix compiler doesn't like inlines */
 #ifdef IRIX
 #define inline
 #endif
 
-
-// ================================================================== DEBUGGING
-
-#define kDebugging          1 
-
-/* these can be redefined to do anything, or nothing at all. they can be used
-   to print to an error log file, to print with a specfic prefix or suffix,
-   print line numbers, etc. debugging output can be enabled or disabled in
-   the middle of the code. use InitDebugging to do any one-time set up work
-   and DeleteDebugging to take it down. */
-#ifdef kDebugging
-
-// regular cerr debugging output.
-char gDebuggingOn;
-#define InitDebugging           gDebuggingOn = TRUE;
-#define DeleteDebugging
-#define DisableDebuggingOutput  gDebuggingOn = FALSE;
-#define EnableDebuggingOutput   gDebuggingOn = TRUE;
-#define DebugCode               
-#define EndDebugCode            
-#define DebugPrint              if(gDebuggingOn) { fprintf ( stderr,
-#define EndDebugPrint           ); }
-#define Here(n)                 if(gDebuggingOn){fprintf(stderr,"--> here %d\n",\
-                                n);}
-
-#else
-
-// no debugging output.
-#define InitDebugging       
-#define DisableDebuggingOutput  
-#define EnableDebuggingOutput
-#define DeleteDebugging
-#define DebugCode               /*
-#define EndDebugCode            */
-#define DebugPrint              /*
-#define EndDebugPrint           */
-#define Here(n)
-#endif
-
-// ===========================================================================
 
 // ==================================================================== OUTPUT
 
@@ -330,6 +286,32 @@ char gDebuggingOn;
 #define DeleteOutput
 #define OutputPrint            fprintf ( stdout,
 #define EndOutputPrint         );
+
+// ===========================================================================
+
+// ================================================================== MESSAGES
+
+                                   /* put our massages here to make changing
+              them easier. */
+#define kMsg_InvalidClick "\nInvalid click - out of voxel bounds.\n"         \
+      "Although the screen displays areas that are out of voxel bounds in "  \
+      "black, you cannot click on them to select them. Please click inside " \
+      "voxel bounds, closer to the non-black image.\n\n"
+
+
+// ===========================================================================
+
+
+// =========================================================== READING VOLUMES
+
+                                   /* this function takes a path and passes
+              it to MRIRead. it then takes the MRI
+              struct and grabs all the information
+              it needs from it. this is an alternative
+              function to read_images and is 
+              independent of the SUBJECTS_DIR env
+              variable. */
+void ReadVolumeWithMRIRead ( char * inFileOrPath );
 
 // ===========================================================================
 
@@ -348,8 +330,8 @@ char gDebuggingOn;
 #define kPixelOffset_Red                  24
 #else
 #define kPixelOffset_Alpha                24
-#define kPixelOffset_Green                16
-#define kPixelOffset_Blue                 8
+#define kPixelOffset_Blue                 16
+#define kPixelOffset_Green                8
 #define kPixelOffset_Red                  0
 #endif
 
@@ -367,8 +349,8 @@ char gDebuggingOn;
 #endif 
 
 
-#define kCtrlPtCrosshairRadius            5
-#define kCursorCrosshairRadius            5
+#define kCtrlPtCrosshairRadius            2
+#define kCursorCrosshairRadius            2
 
                                      /* for indexing arrays of points */
 #define kPointArrayIndex_X                0
@@ -382,6 +364,14 @@ void DrawCrosshairInBuffer ( char * inBuffer,       // the buffer
                                int inSize,            // radius of crosshair
                                long inColor );        // color, should be a
                                                       // kRGBAColor_ value
+
+                                   /* draws a crosshair centered on the
+              voxel */
+void DrawCenteredCrosshairInBuffer ( char * inBuffer,
+             int inX, int inY,     
+             int inSize,           
+             long inColor );       
+                                                     
 
                                        /* fills a box with a color.
                                           starts drawing with the input coords
@@ -415,191 +405,9 @@ void DrawWithFloatVertexArray ( GLenum inMode,
 
 
 
-// =============================================================================
+// ===========================================================================
 
-// ======================================================================= VOXEL
-
-                                       /* a voxel data struct. most places
-                                          only need an int voxel, but some
-                                          need the extra preciseness of a
-                                          float, so the voxel actually stores
-                                          its data as a float, and we have
-                                          two sets of accessors and settors. */
-typedef struct {
-  float mX, mY, mZ;
-} Voxel;
-
-inline void Voxel_Set ( Voxel * inVoxel, int x, int y, int z );
-inline int Voxel_GetX ( Voxel * inVoxel );
-inline int Voxel_GetY ( Voxel * inVoxel );
-inline int Voxel_GetZ ( Voxel * inVoxel );
-
-inline void Voxel_SetFloat ( Voxel * inVoxel, float x, float y, float z );
-inline float Voxel_GetFloatX ( Voxel * inVoxel );
-inline float Voxel_GetFloatY ( Voxel * inVoxel );
-inline float Voxel_GetFloatZ ( Voxel * inVoxel );
-
-// =============================================================================
-
-// ================================================================== VOXEL LIST
-
-                                       /* a list of voxels. each function
-                                          returns an error code. */
-#define kVListErr_NoErr                                0
-#define kVListErr_InvalidPtr                           1
-#define kVListErr_ListFull                             2
-#define kVListErr_VoxelNotInList                       3
-#define kVListErr_IndexOutOfBounds                     4
-#define kVListErr_InvalidList                          5
-
-char kVList_ErrString [6][256] = {
-  "No error.",
-  "Invalid list pointer (probably null).",
-  "Cannot add a voxel, list is full.",
-  "Voxel not found in list.",
-  "Index is out of bounds (either < 0 or > list size).",
-  "Invalid list (failed basic sanity check, probably garbage memory)." };
-
-                                       /* voxel list is just an array. each
-                                          addition to the list is actually
-                                          copied into the array. */
-#define kVList_ListSize                                100
-typedef struct {
-  Voxel mVoxel [kVList_ListSize];
-  int mFirstEmpty;
-} VoxelList;
-
-
-                                       /* init the voxel list. */
-char VList_Init ( VoxelList * inList );
-
-                                       /* clean up after the list. */
-char VList_Delete ( VoxelList * inList );
-
-                                       /* add a voxel to the list. */
-char VList_AddVoxel ( VoxelList * inList, 
-                      Voxel * inVoxel );
-
-                                       /* remove a voxel from the list */
-char VList_RemoveVoxel ( VoxelList * inList,
-                         Voxel * inVoxel );
-
-                                       /* output whether or not the voxel 
-                                          is in the list */
-char VList_IsInList ( VoxelList * inList,
-                      Voxel * inVoxel,
-                      char * outIsInList );
-
-                                       /* if voxel is in list, returns its 
-                                          position, otherwise returns an error 
-                                          and -1 for the index. index is
-                                          0-based. no error checking, 
-                                          intended for internal use. */
-int VList_IndexInList ( VoxelList * inList, 
-                        Voxel * inVoxel );
-
-                                       /* clear all voxels in the list */
-char VList_ClearList ( VoxelList * inList );
-
-                                       /* get the number of voxels in the 
-                                          list */
-char VList_GetCount ( VoxelList * inList,
-                      int * outCount );
-
-                                       /* return the data in the nth voxel,
-                                          n is 0-based index.*/
-char VList_GetNthVoxel ( VoxelList * inList,
-                         int inIndex,
-                         Voxel * outVoxel );
-
-                                       /* print out all the voxels in the 
-                                          list */
-char VList_PrintDebug ( VoxelList * inList );
-void TclVList_PrintDebug ( VoxelList * inList );
-
-                                      /* give it an error number, it gives 
-                                         you an error string ptr */
-char * VList_GetErrorString ( int inErr );
-
-
-// =============================================================================
-
-// ================================================================= VOXEL SPACE
-
-                                       /* VoxelSpace, a 3-plane list of voxels
-                                          optimized for searching for voxels 
-                                          in 3 dimensions */
-#define kVSpace_NumListsInPlane                        256
-
-typedef struct {
-  VoxelList mXPlane[kVSpace_NumListsInPlane], 
-    mYPlane[kVSpace_NumListsInPlane], 
-    mZPlane[kVSpace_NumListsInPlane];
-} VoxelSpace;
-
-#define kVSpaceErr_NoErr                                0
-#define kVSpaceErr_InvalidPtr                           1
-#define kVSpaceErr_XPlaneFull                           2
-#define kVSpaceErr_YPlaneFull                           3
-#define kVSpaceErr_ZPlaneFull                           4
-#define kVSpaceErr_VoxelNotInSpace                      5
-#define kVSpaceErr_InvalidSpace                         6
-#define kVSpaceErr_InvalidVoxel                         7
-#define kVSpaceErr_InvalidPlaneNumber                   8
-
-char kVSpace_ErrString [9][256] = {
-  "No error.",
-  "Invalid space ptr.",
-  "List for that particular X-plane is full.",
-  "List for that particular Y-plane is full.",
-  "List for that particular Z-plane is full.",
-  "Voxel not found in space.",
-  "Invalid space (probably not initialized).",
-  "Invalid voxel (location is out of bounds of the space).",
-  "Invalid plane number, out of range." };
-
-                                       /* init the space */
-char VSpace_Init ( VoxelSpace * inSpace );
-
-                                       /* delete the space */
-char VSpace_Delete ( VoxelSpace * inSpace );
-
-                                       /* add a voxel to the space */
-char VSpace_AddVoxel ( VoxelSpace * inSpace, 
-                       Voxel * inVoxel );
-
-                                       /* remove a voxel from the space */
-char VSpace_RemoveVoxel ( VoxelSpace * inSpace,
-                          Voxel * inVoxel );
-
-                                       /* determine whether or not a voxel 
-                                          is in the space */
-char VSpace_IsInList ( VoxelSpace * inSpace,
-                       Voxel * inVoxel,
-                       char * outIsInList );
-
-                                       /* return a pointer to a list of 
-                                          voxels in a particular plane. */
-char VSpace_GetVoxelsInXPlane ( VoxelSpace * inSpace,
-                                int inXPlane,
-                                VoxelList ** outVoxelList );
-char VSpace_GetVoxelsInYPlane ( VoxelSpace * inSpace,
-                                int inYPlane,
-                                VoxelList ** outVoxelList );
-char VSpace_GetVoxelsInZPlane ( VoxelSpace * inSpace,
-                                int inZPlane,
-                                VoxelList ** outVoxelList );
-
-                                       /* print out all voxels in space */
-char VSpace_PrintDebug ( VoxelSpace * inSpace );
-void TclVSpace_PrintDebug ( VoxelSpace * inSpace );
-
-                                       /* return an error string */
-char * VSpace_GetErrorString ( int inErrorNum );
-
-// =============================================================================
-
-// ====================================================== COORDINATE CONVERSIONS
+// ==================================================== COORDINATE CONVERSIONS
 
                                         /* convert a click to screen coords. 
                                            only converts the two coords that 
@@ -643,6 +451,13 @@ inline int VoxelYToLocalZoomY ( int y );
 inline int VoxelZToScreenZ ( int z );
 inline int VoxelZToLocalZoomZ ( int z );
 
+                                   /* goes from a screen voxel to a 2d point
+              on the screen. puts the proper coords
+              in the h/v coords and scales if in all3
+              mode. */
+void ScreenToScreenXY ( int i, int j, int k,
+      int plane, int *h, int *v );
+
                                        /* converts ras coords to
                                           voxel coords and back */
 void RASToVoxel ( Real x, Real y, Real z,        // incoming ras coords
@@ -672,9 +487,9 @@ void ScreenToRAS ( int inPlane, int inScreenX, int inScreenY, int inScreenZ,
        Real * outRASX, Real * outRASY, Real * outRASZ );
 
 
-// =============================================================================
+// ===========================================================================
 
-// ============================================================= BOUNDS CHECKING
+// =========================================================== BOUNDS CHECKING
 
                                         /* various bounds checking. these
                                            three check basic bounds conditions.
@@ -696,11 +511,11 @@ inline char IsRASPointInBounds ( Real x, Real y, Real z );
 inline char IsScreenPtInWindow ( int j, int i, int im );
 inline char IsTwoDScreenPtInWindow ( int j, int i );
 
-// =============================================================================
+// ===========================================================================
 
-// ==================================================== SELECTING CONTROL POINTS
+// ================================================== SELECTING CONTROL POINTS
 
-inline char IsInSelectionMode ();
+void DrawControlPoints ( char * inBuffer, int inPlane, int inPlaneNum );
 
                                        /* draw control point. switches on 
                                           the current display style of the 
@@ -717,10 +532,11 @@ void DrawCtrlPt ( char * inBuffer,  // video buffer to draw into
                                           from the selection, depending on
                                           the ctrt and shift key. */
 void SelectCtrlPt ( int inScreenX, int inScreenY,     // screen pt clicked
-                    int inScreenZ, int inPlane );     // plane to search in
+                    int inScreenZ, int inPlane,       // plane to search in
+        unsigned int inState );           // modifier keys
 
                                         /* remove the selected control points 
-                                       tk    from the control point space */
+                                           from the control point space */
 void DeleteSelectedCtrlPts ();
 
 
@@ -739,18 +555,18 @@ void ToggleCtrlPtDisplayStatus ();
 void ToggleCtrlPtDisplayStyle ();
 
                                        /* global storage for ctrl space. */
-VoxelSpace gCtrlPtList;
+VoxelSpaceRef gCtrlPtList = NULL;
 
                                        /* global storage for selected ctrl 
                                           pts. */
-VoxelList gSelectionList;
+VoxelListRef gSelectionList = NULL;
 
                                        /* flag for displaying ctrl pts. if 
                                           true, draws ctrl pts in draw loop. */
 char gIsDisplayCtrlPts;
 
                                        /* style of control point to draw */
-#define kCtrlPtStyle_Point                    1
+#define kCtrlPtStyle_FilledVoxel                    1
 #define kCtrlPtStyle_Crosshair                2
 char gCtrlPtDrawStyle;
 
@@ -760,9 +576,9 @@ char gCtrlPtDrawStyle;
                                           to add it once. */
 char gParsedCtrlPtFile;
 
-// =============================================================================
+// ===========================================================================
 
-// ==================================================================== SURFACES
+// ================================================================== SURFACES
 
                                       /* for different surface types */
 #define kSurfaceType_Current              0
@@ -776,11 +592,11 @@ char gParsedCtrlPtFile;
                                           different set of coords from the
                                           vertex. */
 void CurrentSurfaceVertexToVoxel ( vertex_type * inVertex, int inPlane, 
-                            Voxel * outVoxel );
+                            VoxelRef outVoxel );
 void OriginalSurfaceVertexToVoxel ( vertex_type * inVertex, int inPlane, 
-                                    Voxel * outVoxel );
+                                    VoxelRef outVoxel );
 void CanonicalSurfaceVertexToVoxel ( vertex_type * inVertex, int inPlane, 
-                                     Voxel * outVoxel );
+                                     VoxelRef outVoxel );
 
                                        /* set the status of surface displays.
                                           first checks to see if the surface
@@ -809,7 +625,7 @@ char IsSurfaceVertexHilited ( vertex_type * inVertex, int inSurface );
 char IsVoxelsCrossPlane ( float inPlaneZ, 
                           float inVoxZ1, float inVoxZ2 );
 void CalcDrawPointsForVoxelsCrossingPlane ( float inPlaneZ, int inPlane,
-                                            Voxel *inVox1, Voxel *inVox2,
+                                            VoxelRef inVox1, VoxelRef inVox2,
                                             float *outX, float *outY );
 void DrawSurface ( MRI_SURFACE * theSurface, int inPlane, int inSurface );
 
@@ -836,9 +652,205 @@ char gIsAverageSurfaceVertices = TRUE;
 vertex_type * gHilitedVertex = NULL;
 int gHilitedVertexSurface= -1;
 
-// =============================================================================
+// ===========================================================================
 
-// ================================================================ CURSOR UTILS
+// ======================================================== FUNCTIONAL OVERLAY
+
+#include "tkmFunctionalDataAccess.h"
+
+                                   /* functional overlay package comes in two
+              parts. the first is the
+              tkmFunctionalDataAccess code that
+              provides basic parsing and reading of
+              the functional data from bfile format. 
+              the second is the current state of the
+              information being viewed, as well as
+              the functions necessary to draw the 
+              overlya, graph, and handle state
+              changes. the second part is handled
+              by the functions below. 
+
+              the graphing code is in a tcl script.
+              it broadcasts events to the c code and
+              receives variable updates. it does not
+              presume to change any variables directly
+              and only updates when the c code tells
+              it to. */
+
+char gIsFunctionalGraphWindowOpen = FALSE;
+VolumeRef gFunctionalVolume = NULL;
+VoxelRef gCurFunctionalVoxel = NULL; // in anatomical coords!!
+char gIsDisplayFunctionalOverlay = TRUE;
+int gCurFunctionalTimePoint, gCurFunctionalCondition;
+float gCurFunctionalThresholdMin, gCurFunctionalThresholdMid, 
+  gCurFunctionalThresholdMax;
+
+                                   /* this function loads the data from a
+              directory of bfiles, each of a certain
+              stem. it parses the header as well as
+              reads in the actual data, allocating
+              all of the space necessary. it also
+              initializes the list and voxels we use
+              locally as current state variables. */
+void LoadFunctionalData ( char * inFullPath, char * inStem );
+                                   /* frees all the memory previously
+              allocated. */
+void DeleteFunctionalData ();
+
+                                   /* reads the graph tcl script and sets
+              up the window. also sets up initial
+              values for functional state. */
+void InitFunctionalGraphWindow ( Tcl_Interp * inInterp );
+
+                                   /* returns status of functional data. */
+char IsFunctionalDataLoaded ();
+
+                                   /* given a vid buf and the current slice,
+              this draws all the functional data
+              according to the selected color scale. */
+void DrawFunctionalData ( char * inBuffer, int inPlane, int inPlaneNum );
+
+                                   /* sets the current functional voxel being
+              displayed in the graph window according
+              to what voxel was clicked. */
+void AllowFunctionalModuleToRespondToClick ( VoxelRef inVoxel );
+
+                                   /* sets the current functional voxel being
+              displayed in the graph by grabbing the
+              values for all timepoints for all
+              conditions of the voxel and passing
+              them to the graph. also grabs the error
+              deviations and passes those to the
+              graph. */
+void SetCurrentFunctionalVoxel ( VoxelRef inAnatomicalVoxel );
+
+                                   /* geta single functional value for an
+              anatomical value. */
+void GetFunctionalValueAtAnatomicalVoxel ( VoxelRef inVoxel,
+             float * outValue );
+
+                                   /* takes a list of values and calcs the
+              approriate x and y values for the graph.
+              constructs a tcl command string and
+              then sends it to the graph. */
+void SendFunctionalValuesToGraph ( VolumeRef inVolume,
+           int inCondition, int inNumValues,
+           float *inValues );
+
+                                   /* takes a list of errors, constructs a
+              tcl command, and sends it to the
+              graph. */
+void SendDeviationsToGraph ( VolumeRef inVolume,
+           int inCondition, int inNumValues,
+           float *inErrors );
+
+                                   /* sending a command to the graph really
+              just means sending it to the tcl
+              interpreter. */
+void SendCommandToFunctionalGraph ( char * );
+
+                                   /* given a value and offset, calcs the
+              red, green, and blue color components
+              based on a color scale. */
+void CalcFunctionalOverlayColor ( float inValue, float inOffset,
+          unsigned char *outRed,
+          unsigned char *outGreen,
+          unsigned char *outBlue );
+
+                                   /* copies a human readable string with the
+              current functional display state. */
+void CopyCurrentFunctionalStateString ( char * inString );
+
+                                   /* the settors check the validity of
+              incoming values, set the globals if
+              okay, generate an update event for the
+              graph with the relative data, and redraw
+              the window to reflect the changes. */
+void SetCurrentFunctionalDisplayStatus ( char inIsDisplay );
+void SetCurrentFunctionalTimeResolution ( int inTimeResolution );
+void SetCurrentFunctionalNumPreStimPoints ( int inNumPreStimPoints );
+void SetCurrentFunctionalTimeSecond ( int inSecond );
+void SetCurrentFunctionalTimePoint ( int inTimePoint );
+void SetCurrentFunctionalCondition ( int inCondition );
+void SetCurrentFunctionalThresholdMin ( float inThreshold );
+void SetCurrentFunctionalThresholdMid ( float inThreshold );
+void SetCurrentFunctionalThresholdMax ( float inThreshold );
+
+// ===========================================================================
+
+// ========================================================= SELECTING REGIONS
+
+/* selecting regions works much like editing. the user chooses a brush shape and size and paints in a region. the tool can be toggled between selecting and unselecting. the selected pixels are kept in a voxel space for optimized retreival in the draw loop. there are the usual functions for adding and removing voxels as well as saving them out to a file. */
+
+VoxelSpaceRef gSelectedVoxels;
+char isDisplaySelectedVoxels;
+
+void InitSelectionModule ();
+void DeleteSelectionModule ();
+
+/* grabs the list of voxels selected and draws them into the buffer. */
+void DrawSelectedVoxels ( char * inBuffer, int inPlane, int inPlaneNum );
+
+/* handles clicks. uses the current brush settings to paint or paint selected voxels. */
+void AllowSelectionModuleToRespondToClick ( VoxelRef inScreenVoxel );
+
+/* adds or removes voxels to selections. if a voxel that isn't in the selection is told to be removed, no errors occur. this is called from the brush function.*/
+void AddVoxelToSelection ( VoxelRef inVoxel, void * inData );
+void RemoveVoxelFromSelection ( VoxelRef inVoxel, void * inData );
+
+/* clears the current selection */
+void ClearSelection ();
+
+/* are we currently displaying the selection? */
+char IsDisplaySelectedVoxels ();
+
+/* write to and read from label files */
+void SaveSelectionToLabelFile ( char * inFileName );
+void LoadSelectionFromLabelFile ( char * inFileName );
+
+// ===========================================================================
+
+// =============================================================== BRUSH UTILS
+
+
+                                   /* to run a brush function, set its params
+              and give it a starting point and a
+              function to pass hit voxels to. it will
+              calculate what voxels are hit and pass
+              them to the passed in function. */
+typedef enum {
+  kShape_Square = 0,
+  kShape_Circular
+} Brush_Shape;
+
+// inData gets passed to the brush function.
+void PaintVoxels ( void(*inFunction)(VoxelRef,void*), void * inData,
+       VoxelRef inStartingPoint );
+void SetBrushRadius ( int inRadius );
+void SetBrushShape ( Brush_Shape inShape );
+void SetBrush3DStatus ( char inFlag );
+
+int gBrushRadius = 0;
+Brush_Shape gBrushShape = kShape_Square;
+char gBrushIsIn3D = FALSE;
+
+// ===========================================================================
+
+// ============================================================ EDITING VOXELS
+
+/* for changing voxel values. this called from the brush function. */
+void EditVoxel ( VoxelRef inVoxel, void * inData );
+
+// ===========================================================================
+
+// ============================================================== CURSOR UTILS
+
+                                   /* to hide and show the cursor */
+char gIsCursorVisible = TRUE;
+void HideCursor ();
+void ShowCursor ();
+char IsCursorVisible ();
+
 
                                        /* main functions for setting the 
                                           cursor (red crosshair) to a certain
@@ -869,9 +881,9 @@ void SetPlane ( int inNewPlane );
                                        /* print info about a screen point */
 void PrintScreenPointInformation ( int j, int i, int im );
 
-                                       /* send a message to the tk window when we
-            change our coords. this makes the window
-            update its slider coords. */
+                                       /* send a message to the tk window when
+            we change our coords. this makes the
+            window update its slider coords. */
 void SendUpdateMessageToTKWindow ();
 
                                        /* for saving our cursor position in
@@ -879,9 +891,9 @@ void SendUpdateMessageToTKWindow ();
                                           while zoomed in. */
 Real gSavedCursorVoxelX, gSavedCursorVoxelY, gSavedCursorVoxelZ;
 
-// =============================================================================
+// ===========================================================================
 
-// ===================================================================== ZOOMING
+// =================================================================== ZOOMING
 
 
                                        /* controls our local zooming, or 
@@ -933,9 +945,58 @@ void PrintZoomInformation ();
             and zoom level. */
 int gCenterX, gCenterY, gCenterZ, gLocalZoom;
 
-// =============================================================================
 
-// =================================================================== INTERFACE
+                                   /* nice way to get the cursor */
+void GetCursorInScreenCoords ( VoxelRef ioVoxel );
+void GetCursorInVoxelCoords ( VoxelRef ioVoxel );
+
+// ===========================================================================
+
+// ====================================================== SETTING VOXEL VALUES
+
+                                   /* these are mainly here for purposes of
+              readability. they just access an array
+              based on voxel values. */
+
+inline void SetVoxelValue ( int x, int y, int z, unsigned char inValue );
+inline unsigned char GetVoxelValue ( int x, int y, int z );
+
+// ===========================================================================
+
+// ============================================================== EDITING UNDO
+
+                                   /* this is a pretty simple implementation
+              of undo that only supports pixel 
+              editing. when editing, the pixels that
+              were changed are saved along with their
+              previous values in a list, one list per
+              editing click. */
+
+                                   /* note that the list is cleared when the
+              mouse button 2 or 3 is pressed down
+              right from the event handling code. 
+              this is a hack, but it's the best we
+              can do until we pass events and not
+              just coords to ProcessClick. */
+void ClearUndoList ();
+
+                                   /* when pixels are editied, they are added
+              to the list. if the user hits undo, the
+              entire list is drawn to the screen, 
+              using the SetVoxelValue() function. at
+              the same time, a new list is made
+              to save the positions of all the restored
+              voxel values. that list becomes the
+              new undo list, so you can effectivly
+              undo an undo. */
+void AddVoxelAndValueToUndoList ( VoxelRef inVoxel, int inValue );
+void RestoreUndoList ();
+
+VoxelValueListRef gUndoList;
+
+// ==========================================================================
+
+// ================================================================= INTERFACE
 
                                        /* main handling function for clicks.
                                           looks at modifier keys and other
@@ -944,14 +1005,29 @@ int gCenterX, gCenterY, gCenterZ, gLocalZoom;
                                           manipulation cursor, zoom level, and
                                           selecting. */
 void ProcessClick ( int inClickX, int inClickY );
+void HandleMouseUp ( XButtonEvent inEvent );
+void HandleMouseDown ( XButtonEvent inEvent );
+void HandleMouseMoved ( XMotionEvent inEvent );
 
-// =============================================================================
+/* we have three main modes: edit, ctrl pt, and selection. these are analogous to tools. what mode we're in determines what mouse events do. */
+typedef enum {
+  kMode_Edit = 0,
+  kMode_CtrlPt,
+  kMode_Select
+} Interface_Mode;
 
-// ======================================================================== MISC
+Interface_Mode gMode;
+
+void SetMode ( Interface_Mode inMode );
+Interface_Mode GetMode ();
+char IsInMode ( Interface_Mode inMode );
+
+// ===========================================================================
+
+// ====================================================================== MISC
 
                                      /* determines if a number is odd. */
 #define isOdd(x) (x%2)
-
 
                                        /* set and get the tcl interp to send
             the msg to */
@@ -963,7 +1039,7 @@ Tcl_Interp * gTCLInterp = NULL;
 
 #define set3fv(v,x,y,z) {v[0]=x; v[1]=y; v[2]=z;}
 
-// =============================================================================
+// ===========================================================================
 
 // end_kt 
 
@@ -973,13 +1049,8 @@ Tcl_Interp * gTCLInterp = NULL;
 extern void scale2x(int, int, unsigned char *);
 #endif
 
-#ifdef TCL
 void do_one_gl_event(Tcl_Interp *interp) ;
 int Medit(ClientData clientData, Tcl_Interp *interp, int argc, char *argv[]);
-#else
-void main(int argc,char *argv[]) ;
-
-#endif
 void usecnap(int usec) ;
 int read_second_images(char *imdir2) ;
 void resize_window_intstep(int newzf) ;
@@ -1257,9 +1328,13 @@ void transformFV(float x, float y, float z, float* x_1, float* y_1,float* z_1)
   
   if(hot)
     printf("after mult: %f, %f, %f\n",*x_1,*y_1,*z_1);
-  *x_1 = ((fvRegistration->in_plane_res*fvwidth)/2.0-(*x_1))/fvRegistration->in_plane_res;
-  *z_1 = fvheight-((fvRegistration->in_plane_res*fvheight)/2.0-(*z_1))/fvRegistration->in_plane_res;
-  *y_1 = (*y_1-(-fvRegistration->slice_thickness*fvslices)/2.0)/fvRegistration->slice_thickness;
+  *x_1 = ( ( fvRegistration->in_plane_res * fvwidth ) / 2.0 - (*x_1) ) / 
+    fvRegistration->in_plane_res;
+  *z_1 = fvheight - 
+    ( (fvRegistration->in_plane_res * fvheight) / 2.0 - (*z_1) ) / 
+    fvRegistration->in_plane_res;
+  *y_1 = ( *y_1 - ( -fvRegistration->slice_thickness * fvslices ) /2.0) / 
+    fvRegistration->slice_thickness;
 }
 
 /* TODO: swaponly on SGI's */
@@ -1333,6 +1408,10 @@ void loadFV()
 {
   char slicename[255];
   char* prefixname;
+  char thePathSection[20][64], thePath[256], theStem[64];
+  char * theCurSection;
+  int theIndex, theRebuildIndex;
+
   fvRegistration = NULL;
   
   if(overlay_file == NULL) {
@@ -1340,6 +1419,52 @@ void loadFV()
     return;
   }
   prefixname = overlay_file;
+
+
+  if ( getenv("USE_NEW_OVERLAY") ) {
+  // watch kevin's code hijack the functional volume loading from
+  // twitzel's hack!!!
+
+                                   /* this gets called the first time with
+              the correct prefix name and then again
+              a few times with different prefixnames,
+              so make sure we only load it once and
+              then do nothing if we have already
+              loaded. */
+  if ( !IsFunctionalDataLoaded () ) {
+
+    theCurSection = strtok ( prefixname, "/" );
+    strcpy ( thePathSection[0], theCurSection );
+    theIndex = 1;
+    while ( NULL != (theCurSection = strtok ( NULL, "/" )) ) {
+      strcpy ( thePathSection[theIndex++], theCurSection );
+    }
+    
+    // last part is the stem, the rest is the path.
+    strcpy ( theStem, thePathSection[--theIndex] );
+    
+    // rebuild the path.
+    strcpy ( thePath, "" );
+    for ( theRebuildIndex = 0;
+    theRebuildIndex < theIndex; 
+    theRebuildIndex++ ) {
+      sprintf ( thePath, "%s/%s", thePath, thePathSection[theRebuildIndex] );
+    }
+    
+    DebugPrint "loadFV(): got path %s and stem %s\n",
+      thePath, theStem EndDebugPrint;
+    
+    // load and init.
+    LoadFunctionalData ( thePath, theStem );
+  }    
+
+  // reset all of twitzels stuff.
+  do_overlay = 0;
+  overlay_file = NULL;
+  statsloaded = 0;
+
+  } else {
+  
 
   fvRegistration = StatReadRegistration("register.dat");
  
@@ -1361,6 +1486,8 @@ void loadFV()
 
   statsloaded = 1;
   loaded_fvfile = strdup(overlay_file);
+  
+  }
 }
 
 /* sample Data interpolates trilinear */
@@ -1378,7 +1505,7 @@ void loadFV()
 
 float sampleData(float x, float y, float z,int frame)
 {
-  int ux,lx,uy,ly,uz,lz; /* Koordinaten der Nachbarvoxel */
+  int ux,lx,uy,ly,uz,lz; /* Koordinaten der NachbarVoxel */
   int rechts, links, vorn, hinten, oben, unten;
   float v;
   int offset;
@@ -1996,13 +2123,8 @@ void draw_image_hacked(int imc, int ic, int jc)
 
 /*--------------------- twitzels hack end ---------------------------*/
 
-#ifdef TCL
-  int Medit(ClientData clientData, Tcl_Interp *interp, int argc, char *argv[])
-#else
-void
-main(int argc,char *argv[])
-#endif
-{
+int Medit(ClientData clientData, Tcl_Interp *interp, int argc, char *argv[]) {
+
     int i,j;
     int tclscriptflag=FALSE;
     char fname[NAME_LENGTH];
@@ -2015,42 +2137,62 @@ main(int argc,char *argv[])
     char *cwd; 
     char *word;
     char path[MAX_DIR_DEPTH][NAME_LENGTH];
-    int theZoomFactor;
+    int theScaleFactor;
+    char isUsingMRIRead;
+    char theMRIReadPath [NAME_LENGTH];
+    char isLoadingFunctionalData;
+    char theFunctionalPath[256], theFunctionalStem[16];
 
-    // kt - added zoom factor switch
-
+    isUsingMRIRead = FALSE;
+    isLoadingFunctionalData = FALSE;
+    
     if (argc<2) {
 printf("\n");
-printf("Usage: %s name imagedir [surfname] [-] [-tcl script] [-z zoom_factor]\n",argv[0]);
-printf("       %s local [-] [-tcl script] [-z zoom_factor]\n",argv[0]);
-printf("\n");
-printf("       name:  subjectdir name              (relative to $SUBJECTS_DIR)\n");
-printf("   imagedir:  orig,T1,brain,wm,filled      (relative to $subject/mri)\n");
-printf("   surfname:  ?h.orig,?h.smoothwm,?h.plump (relative to $subject/surf)\n");
-printf("  lone dash:  disable editing\n");
-printf("zoom_factor:  set zoom factor. 1 is min, 2 is default, 4 is recommended max.\n");
-#ifdef OPENGL
-printf("                                         [vers: 272134--OpenGL]\n");
-#else
-printf("                                         [vers: 272134--GL]\n");
-#endif
+printf("Usage:\n");
+printf("  Using SUBJECTS_DIR environment variable and subject name as a volume source:\n" );
+printf("       %s name imagedir [relative_surf_name] [-] [-tcl script] [-s scale_factor]\n",argv[0]);
+ printf("  Options:\n" );     
+printf("           name  subjectdir name              (relative to $SUBJECTS_DIR)\n");
+printf("       imagedir  orig,T1,brain,wm,filled      (relative to $subject/mri)\n");
+printf("       surfname  ?h.orig,?h.smoothwm,?h.plump (relative to $subject/surf)\n");
+
+printf("\n  Specifying a specific dir or file as a volume source:\n");
+printf("       %s -f file_or_path [full_surf_path] [-] [-tcl script] [-s scale_factor]\n",argv[0]);
+ printf("  Options:\n" );     
+printf("-f file_or_path  look at file_or_path and guess format to read in\n");
+printf(" full_surf_path  the full path including file name to a surface file\n");
+
+ printf("\n  Using volume data in the current directory:\n" );
+printf("       %s local [-] [-tcl script] [-s scale_factor]\n",argv[0]);
+
+ printf("\n  General options:\n" );
+ printf("   -tcl script  run in script mode with no visual output\n");
+printf("      lone dash  disable editing\n");
+printf("-s scale_factor  set window scale factor. 2 is default for 512x512.\n");
+printf("\n                                         [vers: 272134--OpenGL]\n");
 printf("\n");
 exit(1);
     }
 
-    // kt - look for zoom factor switch
-    if ( MATCH ( argv[argc-2], "-z" ) ) {
+                                   /* -tcl and -z switches should always be 
+              at the end. the rest of the args don't
+              use switches, so we check for these
+              switches first and then decrement arcg
+              to disguise the fact that they were
+              there. */
+    // kt - look for scale factor switch
+    if ( MATCH ( argv[argc-2], "-s" ) ) {
 
-      // read in their zoom factor.
-      theZoomFactor = atoi ( argv[argc-1] );
+      // read in their scale factor.
+      theScaleFactor = atoi ( argv[argc-1] );
 
       // check bounds
-      if ( theZoomFactor < 1 ) {
-        printf ( "medit: zoom factor to small, using 1\n" );
-        theZoomFactor = 1;
+      if ( theScaleFactor < 1 ) {
+        printf ( "medit: scale factor to small, using 1\n" );
+        theScaleFactor = 1;
       }
         
-      printf ( "medit: setting zoom factor to %d\n", theZoomFactor );
+      printf ( "medit: setting scale factor to %d\n", theScaleFactor );
 
       // we're done with this arg. (this is not the best way to do this)
       argc -= 2;
@@ -2058,53 +2200,115 @@ exit(1);
     } else {
 
       // no switch, use default.
-      theZoomFactor = kDefaultZoomFactor;
+      theScaleFactor = kDefaultScaleFactor;
     }
 
     // set the zoom factor
-    zf = ozf = theZoomFactor;
+    zf = ozf = theScaleFactor;
 
     // end_kt
 
     fsf = (float)zf;
     surflinewidth = zf;
 
+    // look for -tcl switch
     if (MATCH(argv[argc-2],"-tcl")) {
       argc -= 2;   /* strip so like before */
       tclscriptflag = TRUE;
     }
     statsloaded = 0;
 
+    if ( MATCH ( argv[argc-3], "-o" ) ) {
+
+      isLoadingFunctionalData = TRUE;
+      strcpy ( theFunctionalPath, argv[argc-2] );
+      strcpy ( theFunctionalStem, argv[argc-1] );
+      argc -= 3;
+    }
+
+                                   /* at this point, our remaining argv is:
+              0       1     2            3         4
+              tkmedit name  imagedir     [surface] [-]
+              tkmedit local [-]
+              tkmedit -f    file_or_path [surface] [-]
+              we now look at argv[1] and use it to 
+              determine the method to read our volume.
+              we also check for a surface. */
+    
+    // look at the first arg.
+    strcpy ( lpname, argv[1] );
+
+    // new style, use MRIread to load volume data. grab arg2 as the path.
+    isUsingMRIRead = FALSE;
+    if ( MATCH(lpname, "-f") ) {
+      isUsingMRIRead = TRUE;
+      strcpy ( theMRIReadPath, argv[2] );
+      strcpy ( limdir, "" );
+
+      // gave 'local' or '.' switch, so use local.
+    } else if ( MATCH(lpname,"local") || MATCH(lpname,".") ) {
+      strcpy ( limdir, "local" );
+
+      // enough args to give us the subject name and volume type.
+    } else if ( argc > 2 ) {
+      strcpy ( limdir,argv[2] );
+
+      // error.
+    } else {
+
+      printf("medit: ### imagedir missing\n"); exit(1); 
+    }
+
+    // check for teh subjects dir env variable. only need it if we're not
+    // using MRIread.
     lsubjectsdir = getenv("SUBJECTS_DIR");
-    if (lsubjectsdir==NULL) {
-      printf("medit: env var SUBJECTS_DIR undefined (use setenv)\n");exit(1);}
+    if ( lsubjectsdir == NULL && !isUsingMRIRead ) {
+      printf("medit: env var SUBJECTS_DIR undefined (use setenv)\n");
+      printf("       to specify a file or path, use the form:\n");
+      printf("       tkmedit -f file_or_path [surface] [-] [-tcl tcl_script] [-s scale_factor]\n" );
+      exit(1);
+    }
 
-    strcpy(lpname,argv[1]);
-    if (MATCH(lpname,"local"))  strcpy(limdir,"local");
-    else if (MATCH(lpname,".")) strcpy(limdir,"local");
-    else if (argc>2)            strcpy(limdir,argv[2]);
-    else  { printf("medit: ### imagedir missing\n"); exit(1); }
+    // make the path that we should find the data in.
+    sprintf ( fname, "%s/%s", lsubjectsdir, lpname );
+    
+    // if we're not using local dir and not using MRIRead...
+    if ( !MATCH ( lpname, "local" ) &&
+   !isUsingMRIRead ) {
 
-    sprintf(fname,"%s/%s",lsubjectsdir,lpname);
-    if (!MATCH(lpname,"local")) {
-      if ((fp=fopen(fname,"r"))==NULL) {
+      // try to open the dir.
+      if ((fp=fopen (fname,"r"))==NULL) {
         printf("medit: ### can't find subject %s\n",fname); exit(1);}
       else fclose(fp);
     }
 
+    // check for diable edit flag. it's always last.
     if (argv[argc-1][0]=='-') {
       editflag = FALSE;
       printf("medit: ### editing disabled\n");
     }
-    if ((editflag && argc>3) || (!editflag && argc>4)) {
+
+    // check for surface name. note that this will never be true if we're
+    // in local mode. it also works for both 'name imagedir' and 
+    // '-f file_or_path' methods.
+    if ( (editflag && argc>3) || (!editflag && argc>4)) {
+
+      // found one, read it in. set surfflag to load and show it.
       surfflag = TRUE;
       strcpy(lsurface,argv[3]);
-    }
-    else {
+
+    } else {
+
+      // use default surface name.
       strcpy(lsurface,"rh.orig");
     }
+
+    // check for bad flags.
     if (argc>2 && MATCH(limdir,"local") && editflag)
       printf("medit: ### ignored bad arg after \"local\": %s\n",argv[2]);
+
+                                   /* at this point, we're done
+              processing switches. */
 
     /* parse cwd to set session root (guess path to bem) */
     /* %%%%Sean %%%% */
@@ -2151,19 +2355,42 @@ exit(1);
     printf("medit: session root data dir ($session) set to:\n");
     printf("medit:     %s\n",lsrname);
 
+    // make filenames.
     make_filenames(lsubjectsdir,lsrname,lpname,limdir,lsurface);
 
-    if (surfflag)
-      // read_binary_surface(sfname);
-      read_surface(sfname);
-    read_images(mfname);  /* sets xnum/dim,ynum/dim */
+    // if we want to load a surface, do so. however... if we are using MRIRead,
+    // they specified a full surface name, so use that (lsurface). else
+    // use the partial surface name concatenated with the SUBJECTS_DIR (sfname)
+    if ( surfflag ) {
 
-    vidbuf = (GLubyte*)lcalloc((size_t)xdim*ydim*4,(size_t)sizeof(GLubyte)); 
-    /* vidbuf = (GLubyte*)lcalloc((size_t)xdim*ydim,(size_t)sizeof(GLubyte)); */
-   /* vidbuf = (Colorindex *)lcalloc((size_t)xdim*ydim,(size_t)sizeof(Colorindex));  */
-   cvidbuf = (Colorindex *)lcalloc((size_t)CVIDBUF,(size_t)sizeof(Colorindex));
-   binbuff = (unsigned char *)lcalloc((size_t)3*xdim*ydim,(size_t)sizeof(char));
+      if ( isUsingMRIRead ) 
+  read_surface( lsurface );
+      else
+  read_surface( sfname );
+    }
 
+    // read in the volume using the selected method. sets many of our volume
+    // related variables as well as allocates and fills out the volume array.
+    if ( isUsingMRIRead ) {
+      ReadVolumeWithMRIRead ( theMRIReadPath );
+    } else {
+      read_images(mfname);
+    }
+
+    // if we functional data, load it.
+    if ( isLoadingFunctionalData ) {
+      LoadFunctionalData ( theFunctionalPath, theFunctionalStem );
+    }
+
+    // allocate graphics buffers.
+    vidbuf = (GLubyte*)        lcalloc ( (size_t)xdim*ydim*4,
+           (size_t)sizeof(GLubyte)); 
+    cvidbuf = (Colorindex *)   lcalloc ( (size_t)CVIDBUF,
+           (size_t)sizeof(Colorindex));
+    binbuff = (unsigned char *)lcalloc ( (size_t)3*xdim*ydim,
+           (size_t)sizeof(char));
+
+    // set initial cursor coords.
     imc = zf*imnr1/2;
     ic = ydim/2;
     jc = xdim/2;
@@ -2193,311 +2420,13 @@ exit(1);
       redraw();
     }
 
-#ifndef TCL  /* tcl: omit event loop */
-    if (tclscriptflag) {
-      printf("medit: can't read tcl script  ...ignored (use tkmedit)\n");
-    }
-#  ifdef OPENGL
-    printf("medit: ### non-tk medit event loop not converted for OpenGL\n");
-    exit(1);
-#  else
-    while(1)
-    {
-        dev = qread(&val);  /* blocks here for next event */
-        switch(dev)  {
-          case ESCKEY:
-            exit(0);
-            break;
-          case LEFTMOUSE:
-            if (val == 0)  break;
-            sx = getvaluator(MOUSEX);
-            sy = getvaluator(MOUSEY);
-            select_pixel(sx,sy,TRUE);
-            redraw();
-            break;
-          case MIDDLEMOUSE:
-            if (val == 0)  break;
-            while (getbutton(MIDDLEMOUSE))
-            {
-              sx = getvaluator(MOUSEX);
-              sy = getvaluator(MOUSEY);
-              select_pixel(sx,sy,FALSE);
-              for (k= -prad;k<=prad;k++)
-              for (i= -prad;i<=prad;i++)
-              for (j= -prad;j<=prad;j++)
-              if (imc/zf+k>=0 && imc/zf+k<=numimg &&
-                  (ydim-1-ic)/zf+i>=0 && (ydim-1-ic)/zf+i<ynum &&
-                  jc/zf+j>=0 && jc/zf+j<xnum)
-              {
-                if (im[imc/zf+k][(ydim-1-ic)/zf+i][jc/zf+j] < WM_MIN_VAL)
-                  im[imc/zf+k][(ydim-1-ic)/zf+i][jc/zf+j] = 255;
-              }
-              for (k= -prad;k<=prad;k++)
-              if (imc/zf+k>=0 && imc/zf+k<=numimg)
-              {
-                changed[imc/zf+k] = TRUE;
-                editedimage = imnr0+imc/zf+k;
-              }
-            }
-            redraw();
-            break;
-          case RIGHTMOUSE:
-            if (val == 0)  break;
-            while (getbutton(RIGHTMOUSE))
-            {
-              sx = getvaluator(MOUSEX);
-              sy = getvaluator(MOUSEY);
-              select_pixel(sx,sy,FALSE);
-              for (k= -prad;k<=prad;k++)
-              for (i= -prad;i<=prad;i++)
-              for (j= -prad;j<=prad;j++)
-              if (imc/zf+k>=0 && imc/zf+k<=numimg &&
-                  (ydim-1-ic)/zf+i>=0 && (ydim-1-ic)/zf+i<ynum &&
-                  jc/zf+j>=0 && jc/zf+j<xnum)
-              {
-/*
-                im[imc/zf+k][(ydim-1-ic)/zf+i][jc/zf+j] = 0;
-*/
-/*
-  AKL Erased pixels set to 1 instead of 0
-      Leave pixels that are already 0, set to 0 when you try to erase
-*/
-                im[imc/zf+k][(ydim-1-ic)/zf+i][jc/zf+j] = WM_EDITED_OFF;
-              }
-              for (k= -prad;k<=prad;k++)
-              if (imc/zf+k>=0 && imc/zf+k<=numimg)
-              {
-                changed[imc/zf+k] = TRUE;
-                editedimage = imnr0+imc/zf+k;
-              }
-            }
-            redraw();
-            break;
-          case REDRAW:
-            reshapeviewport();
-            getsize(&lxdim,&lydim);
-            xdim = (int)lxdim;
-            ydim = (int)lydim;
-            resize_buffers(xdim,ydim);
-            zf = xdim/xnum;
-            fsf = (float)zf;
-            imc = (zf*imc)/ozf;
-            ic = (zf*ic)/ozf;
-            jc = (zf*jc)/ozf;
-            redraw();
-            break;
-          case LEFTARROWKEY: case DOWNARROWKEY:
-            if (val == 0)  break;
-            if (plane==CORONAL)
-              imc = (imc<zf)?imnr1*zf-zf+imc:imc-zf;
-            else if (plane==HORIZONTAL)
-              ic = (ic<zf)?ydim-zf+ic:ic-zf;
-            else if (plane==SAGITTAL)
-              jc = (jc<zf)?xdim-zf+jc:jc-zf;
-      redraw();
-            break;
-          case RIGHTARROWKEY: case UPARROWKEY:
-            if (val == 0)  break;
-            if (plane==CORONAL)
-              imc = (imc>=imnr1*zf-zf)?imc+zf-imnr1*zf:imc+zf;
-            else if (plane==HORIZONTAL)
-              ic = (ic>=ydim-zf)?ic+zf-ydim:ic+zf; 
-            else if (plane==SAGITTAL)
-              jc = (jc>=xdim-zf)?jc+zf-xdim:jc+zf;
-      redraw();
-            break;
-          case KEYBD:
-            switch((char)val)
-            {
-              case 'D': 
-                        printf("enter dipole spacing (in voxels): ");
-                        scanf("%d",&dip_spacing);
-                        sprintf(dipfname,"%s/%s/bem/brain3d%d.dip",
-                                subjectsdir,pname,dip_spacing);
-                        sprintf(decfname,"%s/%s/bem/brain3d%d-%d.dec",
-                                subjectsdir,pname,dip_spacing,dip_spacing);
-                        write_dipoles(dipfname);
-                        write_decimation(decfname);
-                        break;
-              case 't':
-                        fthresh = 0.95;
-                        break;
-              case 'x': case 'X': plane=SAGITTAL;redraw();break;
-              case 'y': case 'Y': plane=HORIZONTAL;redraw();break;
-              case 'z': case 'Z': plane=CORONAL;redraw();break;
-              case 'w': write_images(mfname);break;
-              case 'b': prad = 0;printf("brush size = %d\n",prad*2+1);break;
-              case 'B': prad=(prad+1)%5;
-                        printf("brush size = %d\n",prad*2+1);
-      break;
-              case 'o': optimize(10);redraw();break;
-              case 'O': optimize2();redraw();break;
-              case 'M': maxflag=!maxflag;redraw();break;
-              case 'm': maxflag=!maxflag;redraw();break;
-              case 'I': mirror();redraw();break;
-              case 'd': surfflag = !surfflag;break;
-              case '*': fsquash *= 1.1; break;
-              case '/': fsquash /= 1.1; break;
-              case '!': fsquash = 5.0; break;
-              case '+': fthresh += 0.05;
-                        break;
-              case '-': fthresh -= 0.05;
-                        break;
-              case '0': fthresh = 0.5;
-                        break;
-              case 'r': goto_point(tfname);
-                        redraw();
-                        break;
-              case 'f': write_point(tfname);
-                        break;
-              case 'R': 
-                        sprintf(fname,"%s","../bem/head2mri.hpts");
-                        if ((fp=fopen(fname,"r"))!=NULL)
-                        {
-                          ptsflag = TRUE;
-                          fgets(line,NAME_LENGTH,fp);
-                          l = 0;
-                          while (!feof(fp))
-                          {
-                            jold[l] = iold[l] = imold[l] = 0;
-                            if (line[0]=='2') /* .show format? */
-                              sscanf(line,"%*s%*s%*s%*s%*s%*s%*s%f%*s%f%*s%f",
-                                     &ptx[l],&pty[l],&ptz[l]);
-                            else /* .apos format */
-                            {
-                              sscanf(line,"%*s%*s%f%f%f",&ptx[l],&pty[l],&ptz[l]);
-                              ptx[l] *= 1000; /* convert from m to mm */
-                              pty[l] *= 1000;
-                              ptz[l] *= 1000;
-                            }
-/*
-                            printf("%d: %f %f %f\n",l,ptx[l],pty[l],ptz[l]);
-*/
-                            fgets(line,NAME_LENGTH,fp);
-                            l++;
-                          }
-                          printf("head points file %s read\n",fname);
-                          npts = l;
-                          fclose(fp);
-                          sprintf(fname,"%s","../bem/head2mri.trans");
-                          if ((fp=fopen(fname,"r"))!=NULL)
-                          {
-                            for (i=0;i<4;i++)
-                            for (j=0;j<4;j++)
-                              fscanf(fp,"%f",&tm[i][j]);
-                            printf("transformation file %s read\n",fname);
-                          } else
-                          {
-                            for (i=0;i<4;i++)
-                            for (j=0;j<4;j++)
-                              tm[i][j] = (i==j);
-                          }
-                          for (l=0;l<MAXPARS;l++)
-                          {
-                            par[l] = dpar[l] = 0;
-                          }
-                        } else
-                          printf("file %s not found\n",fname);
-                  redraw();
-                        break;
-              case 'W':
-                        sprintf(fname,"%s","../bem/head2mri.trans");
-                        if ((fp=fopen(fname,"w"))==NULL)
-                        {
-                          printf("can't open file %s\n",fname);
-                        } else
-                        {
-                          for (i=0;i<4;i++)
-                          {
-                            for (j=0;j<4;j++)
-                              fprintf(fp,"%13.6e ",tm[i][j]);
-                            fprintf(fp,"\n");
-                          }
-                          fclose(fp);
-                        }
-                        printf("transformation file %s written\n",fname);
-                        break;
-              /* rot z ccw */
-              case '[': if (plane==SAGITTAL) rotate_brain(5.0,'x');
-                        if (plane==HORIZONTAL) rotate_brain(-5.0,'z');
-                        if (plane==CORONAL) rotate_brain(5.0,'y');
-                        redraw();
-                        break;
-              case '{': if (plane==SAGITTAL) rotate_brain(50.0,'x');
-                        if (plane==HORIZONTAL) rotate_brain(-50.0,'z');
-                        if (plane==CORONAL) rotate_brain(50.0,'y');
-                        redraw();
-                        break;
-              /* rot z cw */
-              case ']': if (plane==SAGITTAL) rotate_brain(-5.0,'x');
-                        if (plane==HORIZONTAL) rotate_brain(5.0,'z');
-                        if (plane==CORONAL) rotate_brain(-5.0,'y');
-                        redraw();
-                        break;
-              case '}': if (plane==SAGITTAL) rotate_brain(-50.0,'x');
-                        if (plane==HORIZONTAL) rotate_brain(50.0,'z');
-                        if (plane==CORONAL) rotate_brain(-50.0,'y');
-                        redraw();
-                        break;
-              /* trans +y */
-              case 'p': if (plane==SAGITTAL) translate_brain(0.5,'z');
-                        if (plane==HORIZONTAL) translate_brain(0.5,'y');
-                        if (plane==CORONAL) translate_brain(0.5,'z');
-                        redraw();
-                        break;
-              case 'P': if (plane==SAGITTAL) translate_brain(2.5,'z');
-                        if (plane==HORIZONTAL) translate_brain(2.5,'y');
-                        if (plane==CORONAL) translate_brain(2.5,'z');
-                        redraw();
-                        break;
-              /* trans -y */
-              case '.': if (plane==SAGITTAL) translate_brain(-0.5,'z');
-                        if (plane==HORIZONTAL) translate_brain(-0.5,'y');
-                        if (plane==CORONAL) translate_brain(-0.5,'z');
-                        redraw();
-                        break;
-              case '>': if (plane==SAGITTAL) translate_brain(-2.5,'z');
-                        if (plane==HORIZONTAL) translate_brain(-2.5,'y');
-                        if (plane==CORONAL) translate_brain(-2.5,'z');
-                        redraw();
-                        break;
-              /* trans -x */
-              case 'l': if (plane==SAGITTAL) translate_brain(-0.5,'y');
-                        if (plane==HORIZONTAL) translate_brain(0.5,'x');
-                        if (plane==CORONAL) translate_brain(0.5,'x');
-                        redraw();
-                        break;
-              case 'L': if (plane==SAGITTAL) translate_brain(-2.5,'y');
-                        if (plane==HORIZONTAL) translate_brain(2.5,'x');
-                        if (plane==CORONAL) translate_brain(2.5,'x');
-                        redraw();
-                        break;
-              /* trans +x */
-              case ';': if (plane==SAGITTAL) translate_brain(0.5,'y');
-                        if (plane==HORIZONTAL) translate_brain(-0.5,'x');
-                        if (plane==CORONAL) translate_brain(-0.5,'x');
-                        redraw();
-                        break;
-              case ':': if (plane==SAGITTAL) translate_brain(2.5,'y');
-                        if (plane==HORIZONTAL) translate_brain(-2.5,'x');
-                        if (plane==CORONAL) translate_brain(-2.5,'x');
-                        redraw();
-                        break;
-            }
-            break;
-          }  /* dev switch */
-    set_scale();
-    }  /* while events */
-#  endif
-#endif  /* tcl: omit event loop */
-return(0);
+    return(0);
 }
 
 void
 do_one_gl_event(Tcl_Interp *interp)   /* tcl */
 {
 
-#ifdef OPENGL     /* derived from event.c:DoNextEvent(),tkExec() */
   XEvent current, ahead;
   char buf[1000];
   char command[NAME_LENGTH];
@@ -2547,21 +2476,27 @@ do_one_gl_event(Tcl_Interp *interp)   /* tcl */
         redraw();
         break;
 
-      case ButtonPress:
+    case ButtonPress:
+    case ButtonRelease:
+
+  // hack the click location.
         sx = current.xbutton.x;
         sy = current.xbutton.y;
         sx += w.x;   /* convert back to screen pos (ugh) */
         sy = 1024 - w.y - sy;
+  current.xbutton.x = sx;
+  current.xbutton.y = sy;
+  
+  // pass it to the handler
+  if ( ButtonPress == current.type ) {
+    HandleMouseDown ( current.xbutton );
+  } else {
 
-        switch ( current.xbutton.button ) {
-        case 1: button1pressed = TRUE; break;
-        case 2: button2pressed = TRUE; break;
-        case 3: button3pressed = TRUE; break;
-        default:
-          button1pressed = button2pressed = button3pressed = FALSE;
-        }
+    HandleMouseUp ( current.xbutton );
 
-        ProcessClick ( sx, sy );
+    // redraw if going up.
+    redraw ();
+  }
 
   // tell the tk window to update its coords.
         SendUpdateMessageToTKWindow ();
@@ -2569,20 +2504,23 @@ do_one_gl_event(Tcl_Interp *interp)   /* tcl */
         break;
 
       case MotionNotify:
-        sx = current.xmotion.x;
-        sy = current.xmotion.y;
-        sx += w.x;   /* convert back to screen pos (ugh) */
-        sy = 1024 - w.y - sy;
 
-        // call processclick to handle it, but only if ctrl is not down, 
-        // cuz we don't want to do multiple zooms. this is kind of messy,
-        // because event processing shouldn't have to know about input
-        // bindings. TODO: pass processclick() the buttons, the modifiers,
-        // and the event type (down, up, or drag).
-        if ( (button2pressed || button3pressed) &&
-             !ctrlkeypressed ) {
-          ProcessClick( sx, sy );
-        }
+  // only do it if we have a button down.
+  if ( current.xmotion.state & Button1Mask ||
+       current.xmotion.state & Button2Mask ||
+       current.xmotion.state & Button3Mask ) {
+
+    // hack the click location.
+    sx = current.xmotion.x;
+    sy = current.xmotion.y;
+    sx += w.x;   /* convert back to screen pos (ugh) */
+    sy = 1024 - w.y - sy;
+    current.xmotion.x = sx;
+    current.xmotion.y = sy;
+    
+    // pass it to the handler.
+    HandleMouseMoved ( current.xmotion );
+  }
 
         if (XPending(xDisplay)) {
           XPeekEvent(xDisplay, &ahead);
@@ -2592,13 +2530,6 @@ do_one_gl_event(Tcl_Interp *interp)   /* tcl */
         }
         break;
 
-      case ButtonRelease:
-        if (current.xbutton.button == 1)  button1pressed = FALSE;
-        if (current.xbutton.button == 2)  button2pressed = FALSE;
-        if (current.xbutton.button == 3)  button3pressed = FALSE;
-        redraw();
-        break;
-
       case KeyPress:
         XLookupString(&current.xkey, buf, sizeof(buf), &ks, 0);
         switch (ks) {
@@ -2606,26 +2537,26 @@ do_one_gl_event(Tcl_Interp *interp)   /* tcl */
         case XK_c: 
         case XK_0: 
         case XK_apostrophe:
-          if (altkeypressed) Tcl_Eval(interp,
+          if ( current.xkey.state & Mod1Mask ) Tcl_Eval(interp,
                 ".mri.main.right.cmp.aCOMPARE.bu invoke");
           break;
 
         case XK_M:
         case XK_m:
-          if (altkeypressed) 
+          if ( current.xkey.state & Mod1Mask ) 
             Tcl_Eval(interp,
                      ".mri.main.left.view.butt.left.amaxflag.ck invoke");
           break;
 
         case XK_d:
 
-          if (altkeypressed) 
+          if ( current.xkey.state & Mod1Mask ) 
 
             Tcl_Eval(interp, 
                      ".mri.main.left.view.butt.left.asurface.ck invoke");
 
           // kt
-          else if ( ctrlkeypressed ) {
+          else if (  current.xkey.state & ControlMask ) {
 
             DeleteSelectedCtrlPts ();
             redraw ();
@@ -2635,16 +2566,16 @@ do_one_gl_event(Tcl_Interp *interp)   /* tcl */
           break;
 
         case XK_b:
-          if (altkeypressed) Tcl_Eval(interp,
+          if ( current.xkey.state & Mod1Mask ) Tcl_Eval(interp,
                                       "set prad 0");
           break;
 
         case XK_v:
 
-          if ( altkeypressed && !ctrlkeypressed ) {
+          if (  current.xkey.state & Mod1Mask  && ! current.xkey.state & ControlMask ) {
       Tcl_Eval(interp,
                  "set pradtmp $prad; set prad $pradlast; set pradlast $pradtmp");
-    } else if ( ctrlkeypressed ) {
+    } else if (  current.xkey.state & ControlMask ) {
 
       // kt - ctrl+v toggles surface vertex display.
       SetSurfaceVertexDisplayStatus ( !IsSurfaceVertexDisplayOn () );
@@ -2655,32 +2586,32 @@ do_one_gl_event(Tcl_Interp *interp)   /* tcl */
             break;
             
         case XK_B:
-          if (altkeypressed) Tcl_Eval(interp,
+          if ( current.xkey.state & Mod1Mask ) Tcl_Eval(interp,
                   "set prad [expr ($prad+1)]");
             break;
 
         case XK_asterisk:
-          if (altkeypressed) Tcl_Eval(interp,
+          if ( current.xkey.state & Mod1Mask ) Tcl_Eval(interp,
                   "set fsquash [expr $fsquash * 1.1]; set_scale");
             break;
 
         case XK_slash:
-          if (altkeypressed) Tcl_Eval(interp,
+          if ( current.xkey.state & Mod1Mask ) Tcl_Eval(interp,
                   "set fsquash [expr $fsquash / 1.1]; set_scale");
           break;
 
         case XK_plus:
-          if (altkeypressed) Tcl_Eval(interp,
+          if ( current.xkey.state & Mod1Mask ) Tcl_Eval(interp,
                    "set fthresh [expr $fthresh + 0.05]; set_scale");
             break;
 
         case XK_minus:
-          if (altkeypressed) Tcl_Eval(interp,
+          if ( current.xkey.state & Mod1Mask ) Tcl_Eval(interp,
                    "set fthresh [expr $fthresh - 0.05]; set_scale");
             break;
 
         case XK_w:
-          if (altkeypressed) Tcl_Eval(interp,
+          if ( current.xkey.state & Mod1Mask ) Tcl_Eval(interp,
                   ".mri.main.left.head.save.aSAVEIMG.bu invoke");
           break;
 
@@ -2696,7 +2627,7 @@ do_one_gl_event(Tcl_Interp *interp)   /* tcl */
         case XK_Y: 
 
           // kt
-          if ( ctrlkeypressed ) {
+          if (  current.xkey.state & ControlMask ) {
 
             ToggleCtrlPtDisplayStyle ();
             redraw ();
@@ -2715,14 +2646,25 @@ do_one_gl_event(Tcl_Interp *interp)   /* tcl */
         case XK_z: 
         case XK_Z: 
 
-          // kt - changed to call the setplane function to properly
-          // restore cursor coords.
-          SetPlane ( CORONAL );
-          redraw();
+    // kt - ctrl-z undo
+    if (  current.xkey.state & ControlMask &&
+         IsInMode ( kMode_Edit ) ) {
+
+      RestoreUndoList ();
+      redraw ();
+
+    } else {
+      
+      // kt - changed to call the setplane function to properly
+      // restore cursor coords.
+      SetPlane ( CORONAL );
+      redraw();
+
+    }
           break;
 
         case XK_r:
-          if (altkeypressed) {
+          if ( current.xkey.state & Mod1Mask ) {
             /*Tcl_Eval(interp,"raise .");*/
             goto_point(tfname);
             redraw();
@@ -2730,15 +2672,15 @@ do_one_gl_event(Tcl_Interp *interp)   /* tcl */
           break;
 
         case XK_f:
-          if (altkeypressed) write_point(tfname);
+          if ( current.xkey.state & Mod1Mask ) write_point(tfname);
           break;
 
         case XK_I:
-          if (altkeypressed) { mirror(); redraw();}
+          if ( current.xkey.state & Mod1Mask ) { mirror(); redraw();}
           break;
 
         case XK_R:
-          if (altkeypressed) {
+          if ( current.xkey.state & Mod1Mask ) {
             read_hpts(hpfname);
             read_htrans(htfname);
             redraw();
@@ -2746,14 +2688,14 @@ do_one_gl_event(Tcl_Interp *interp)   /* tcl */
           break;
 
         case XK_W:
-          if (altkeypressed) 
+          if ( current.xkey.state & Mod1Mask ) 
             write_htrans(htfname);
           break;
           
           // kt
         case XK_h:
 
-          if ( ctrlkeypressed ) {
+          if (  current.xkey.state & ControlMask ) {
            
             // toggle the display status of the ctrl pts
             ToggleCtrlPtDisplayStatus ();
@@ -2764,7 +2706,7 @@ do_one_gl_event(Tcl_Interp *interp)   /* tcl */
 
         case XK_s:
 
-          if ( ctrlkeypressed ) {
+          if (  current.xkey.state & ControlMask ) {
 
             // write the ctrl pt file.
             WriteCtrlPtFile ( tfname );
@@ -2775,10 +2717,10 @@ do_one_gl_event(Tcl_Interp *interp)   /* tcl */
 
         case XK_n:
 
-          if ( ctrlkeypressed ) {
+          if (  current.xkey.state & ControlMask ) {
 
             // clear all selected points.
-            VList_ClearList ( &gSelectionList );
+            VList_ClearList ( gSelectionList );
 
             redraw ();
           }
@@ -2788,7 +2730,7 @@ do_one_gl_event(Tcl_Interp *interp)   /* tcl */
 
   case XK_a:
     
-    if ( ctrlkeypressed ) {
+    if (  current.xkey.state & ControlMask ) {
 
       // toggle the average vertex display status.
       SetAverageSurfaceVerticesStatus 
@@ -2810,7 +2752,7 @@ do_one_gl_event(Tcl_Interp *interp)   /* tcl */
           break;
 
           /* TODO: install X versions of rotate headpoints bindings */
-
+#if 0
           /* modifiers */
         case XK_Shift_L:   
         case XK_Shift_R:
@@ -2826,11 +2768,12 @@ do_one_gl_event(Tcl_Interp *interp)   /* tcl */
         case XK_Alt_R:
           altkeypressed=TRUE;   
           break;
-
+#endif
         }
         break;
-
+#if 0
       case KeyRelease:   /* added this mask to xwindow.c */
+  
   XLookupString(&current.xkey, buf, sizeof(buf), &ks, 0);
         switch (ks) {
           case XK_Shift_L:   case XK_Shift_R:   shiftkeypressed=FALSE; break;
@@ -2838,264 +2781,10 @@ do_one_gl_event(Tcl_Interp *interp)   /* tcl */
           case XK_Alt_L:     case XK_Alt_R:     altkeypressed=FALSE;   break;
         }
         break;
-
+#endif
     }
     /* return GL_FALSE; */
   }
-
-#else  /* use gl calls */
-  short dev, val;
-  static int ctrlkeypressed = FALSE;
-  static int altkeypressed = FALSE;
-  int i,j,k,l;
-  int irad,jrad,krad;
-  Screencoord sx,sy;
-  long lxdim,lydim,xorig,yorig;
-  char command[NAME_LENGTH];
-  char fname[NAME_LENGTH], line[NAME_LENGTH];
-  FILE *fp;
-
-
-  if (!openglwindowflag) return;
-  if (qtest()) {  /* do one event */
-    dev = qread(&val);
-    if (dev != LEFTMOUSE && dev != RIGHTMOUSE) /* hack: mouse zeros getbutton!*/
-      ctrlkeypressed = getbutton(LEFTCTRLKEY) || getbutton(RIGHTCTRLKEY);
-    switch(dev) {
-        break;
-      case REDRAW:
-        reshapeviewport();
-        getsize(&lxdim,&lydim);
-        xdim = (int)lxdim;
-        ydim = (int)lydim;
-        resize_buffers(xdim,ydim);
-        ozf = zf;
-        zf = xdim/xnum;
-        if (zf!=ozf && surflinewidth==ozf)
-          surflinewidth=zf;
-        fsf = (float)zf;
-        imc = (zf*imc)/ozf;
-        ic = (zf*ic)/ozf;
-        jc = (zf*jc)/ozf;
-        Tcl_Eval(interp,"set zf $zf");  /* touch for trace */
-        redraw();
-        getorigin(&xorig,&yorig);
-        if (followglwinflag && zf != 4) {
-          sprintf(command,"wm geometry . +%d+%d",
-                      xorig, 1024 - yorig + MOTIF_YFUDGE /*+ MOTIF_XFUDGE*/);
-          Tcl_Eval(interp,command);
-          Tcl_Eval(interp,"raise .");
-        }
-        break;
-      case LEFTARROWKEY: case DOWNARROWKEY:
-        if (val == 0)  break;
-        Tcl_Eval(interp,"changeslice down; sendupdate");
-        break;
-      case RIGHTARROWKEY: case UPARROWKEY:
-        if (val == 0)  break;
-        Tcl_Eval(interp,"changeslice up; sendupdate");
-        break;
-      case LEFTMOUSE:
-        if (val == 0)  break;
-        sx = getvaluator(MOUSEX);
-        sy = getvaluator(MOUSEY);
-        select_pixel(sx,sy,TRUE);
-        Tcl_Eval(interp,"unzoomcoords; sendupdate");
-        redraw();
-        break;
-      case MIDDLEMOUSE:
-        if (val == 0)  break;
-        if (drawsecondflag) {
-          printf("medit: N.B.: editing image in hidden buffer\n"); PR}
-        while (getbutton(MIDDLEMOUSE))
-        {
-          sx = getvaluator(MOUSEX);
-          sy = getvaluator(MOUSEY);
-          select_pixel(sx,sy,FALSE);
-          jrad=irad=krad=prad;
-          if (inplaneflag) { if(plane==CORONAL)    krad=0;
-                             if(plane==HORIZONTAL) irad=0;
-                             if(plane==SAGITTAL)   jrad=0; }
-          for (k= -krad;k<=krad;k++)
-          for (i= -irad;i<=irad;i++)
-          for (j= -jrad;j<=jrad;j++)
-          if (imc/zf+k>=0 && imc/zf+k<numimg &&
-              (ydim-1-ic)/zf+i>=0 && (ydim-1-ic)/zf+i<ynum &&
-              jc/zf+j>=0 && jc/zf+j<xnum)
-          {
-            if (circleflag && k*k+i*i+j*j>prad*prad) continue;
-            if (im[imc/zf+k][(ydim-1-ic)/zf+i][jc/zf+j] < WM_MIN_VAL)
-              im[imc/zf+k][(ydim-1-ic)/zf+i][jc/zf+j] = 255;
-          }
-          for (k= -prad;k<=prad;k++)
-          if (imc/zf+k>=0 && imc/zf+k<numimg)
-          {
-            changed[imc/zf+k] = TRUE;
-            editedimage = imnr0+imc/zf+k;
-          }
-        }
-        redraw();
-        break;
-      case RIGHTMOUSE:
-        if (val == 0)  break;
-        if (drawsecondflag) {
-          printf("medit: N.B.: editing image in hidden buffer\n"); PR}
-        while (getbutton(RIGHTMOUSE))
-        {
-          sx = getvaluator(MOUSEX);
-          sy = getvaluator(MOUSEY);
-          select_pixel(sx,sy,FALSE);
-          jrad=irad=krad=prad;
-          if (inplaneflag) { if(plane==CORONAL)    krad=0;
-                             if(plane==HORIZONTAL) irad=0;
-                             if(plane==SAGITTAL)   jrad=0; }
-          for (k= -krad;k<=krad;k++)
-          for (i= -irad;i<=irad;i++)
-          for (j= -jrad;j<=jrad;j++)
-          if (imc/zf+k>=0 && imc/zf+k<numimg &&
-              (ydim-1-ic)/zf+i>=0 && (ydim-1-ic)/zf+i<ynum &&
-              jc/zf+j>=0 && jc/zf+j<xnum)
-          {
-            if (circleflag && k*k+i*i+j*j>prad*prad) continue;
-            im[imc/zf+k][(ydim-1-ic)/zf+i][jc/zf+j] = WM_EDITED_OFF;
-          }
-          for (k= -prad;k<=prad;k++)
-          if (imc/zf+k>=0 && imc/zf+k<numimg)
-          {
-            changed[imc/zf+k] = TRUE;
-            editedimage = imnr0+imc/zf+k;
-          }
-        }
-        redraw();
-        break;
-      case LEFTALTKEY: case RIGHTALTKEY:
-        if (val)  altkeypressed = TRUE;
-        else      altkeypressed = FALSE;
-        break;
-      case KEYBD:
-        if (altkeypressed)
-        switch((char)val) {
-          case 'c': case '0': case '\'':
-                    Tcl_Eval(interp,".mri.main.right.cmp.aCOMPARE.bu invoke");
-                    break;
-          case 'M': Tcl_Eval(interp,
-                           ".mri.main.left.view.butt.left.amaxflag.ck invoke");
-                    break;
-          case 'm': Tcl_Eval(interp,
-                           ".mri.main.left.view.butt.left.amaxflag.ck invoke");
-                    break;
-          case 'd': Tcl_Eval(interp,
-                           ".mri.main.left.view.butt.left.asurfflag.ck invoke");
-                    break;
-          case 'b': Tcl_Eval(interp,"set prad 0");
-                    break;
-          case 'B': Tcl_Eval(interp,"set prad [expr ($prad+1)]");
-                    break;
-          case 'v': Tcl_Eval(interp,
-                  "set pradtmp $prad;set prad $pradlast;set pradlast $pradtmp");
-                    break;
-          case '*': Tcl_Eval(interp,
-                           "set fsquash [expr $fsquash * 1.1]; set_scale");
-                    break;
-          case '/': Tcl_Eval(interp,
-                           "set fsquash [expr $fsquash / 1.1]; set_scale");
-                    break;
-          case '+': Tcl_Eval(interp,
-                           "set fthresh [expr $fthresh + 0.05]; set_scale");
-                    break;
-          case '-': Tcl_Eval(interp,
-                           "set fthresh [expr $fthresh - 0.05]; set_scale");
-                    break;
-          case 'w': Tcl_Eval(interp,
-                           ".mri.main.left.head.save.aSAVEIMG.bu invoke");
-                    break;
-          case 'x': case 'X': plane=SAGITTAL;redraw();break;
-          case 'y': case 'Y': plane=HORIZONTAL;redraw();break;
-          case 'z': case 'Z': plane=CORONAL;redraw();break;
-          case 'r': /*Tcl_Eval(interp,"raise .");*/
-                    goto_point(tfname);
-                    redraw();
-                    break;
-          case 'f': write_point(tfname);
-                    break;
-          case 'I': mirror();redraw();break;
-          case 'R': read_hpts(hpfname);
-                    read_htrans(htfname);
-                    redraw();
-                    break;
-          case 'W': write_htrans(htfname);
-                    break;
-          /* rot z ccw */
-          case '[': if (plane==SAGITTAL) rotate_brain(5.0,'x');
-                    if (plane==HORIZONTAL) rotate_brain(-5.0,'z');
-                    if (plane==CORONAL) rotate_brain(5.0,'y');
-                    redraw();
-                    break;
-          case '{': if (plane==SAGITTAL) rotate_brain(50.0,'x');
-                    if (plane==HORIZONTAL) rotate_brain(-50.0,'z');
-                    if (plane==CORONAL) rotate_brain(50.0,'y');
-                    redraw();
-                    break;
-          /* rot z cw */
-          case ']': if (plane==SAGITTAL) rotate_brain(-5.0,'x');
-                    if (plane==HORIZONTAL) rotate_brain(5.0,'z');
-                    if (plane==CORONAL) rotate_brain(-5.0,'y');
-                    redraw();
-                    break;
-          case '}': if (plane==SAGITTAL) rotate_brain(-50.0,'x');
-                    if (plane==HORIZONTAL) rotate_brain(50.0,'z');
-                    if (plane==CORONAL) rotate_brain(-50.0,'y');
-                    redraw();
-                    break;
-          /* trans +y */
-          case 'p': if (plane==SAGITTAL) translate_brain(0.5,'z');
-                    if (plane==HORIZONTAL) translate_brain(0.5,'y');
-                    if (plane==CORONAL) translate_brain(0.5,'z');
-                    redraw();
-                    break;
-          case 'P': if (plane==SAGITTAL) translate_brain(2.5,'z');
-                    if (plane==HORIZONTAL) translate_brain(2.5,'y');
-                    if (plane==CORONAL) translate_brain(2.5,'z');
-                    redraw();
-                    break;
-          /* trans -y */
-          case '.': if (plane==SAGITTAL) translate_brain(-0.5,'z');
-                    if (plane==HORIZONTAL) translate_brain(-0.5,'y');
-                    if (plane==CORONAL) translate_brain(-0.5,'z');
-                    redraw();
-                    break;
-          case '>': if (plane==SAGITTAL) translate_brain(-2.5,'z');
-                    if (plane==HORIZONTAL) translate_brain(-2.5,'y');
-                    if (plane==CORONAL) translate_brain(-2.5,'z');
-                    redraw();
-                    break;
-          /* trans -x */
-          case 'l': if (plane==SAGITTAL) translate_brain(-0.5,'y');
-                    if (plane==HORIZONTAL) translate_brain(0.5,'x');
-                    if (plane==CORONAL) translate_brain(0.5,'x');
-                    redraw();
-                    break;
-          case 'L': if (plane==SAGITTAL) translate_brain(-2.5,'y');
-                    if (plane==HORIZONTAL) translate_brain(2.5,'x');
-                    if (plane==CORONAL) translate_brain(2.5,'x');
-                    redraw();
-                    break;
-          /* trans +x */
-          case ';': if (plane==SAGITTAL) translate_brain(0.5,'y');
-                    if (plane==HORIZONTAL) translate_brain(-0.5,'x');
-                    if (plane==CORONAL) translate_brain(-0.5,'x');
-                    redraw();
-                    break;
-          case ':': if (plane==SAGITTAL) translate_brain(2.5,'y');
-                    if (plane==HORIZONTAL) translate_brain(-2.5,'x');
-                    if (plane==CORONAL) translate_brain(-2.5,'x');
-                    redraw();
-                    break;
-        } /* End switch (char)val */
-        break; /* End case KEYBD */
-    }
-  }
-#endif
 
 }
 
@@ -3103,7 +2792,7 @@ int
 open_window(char *name)
 
 {
-#ifdef OPENGL
+
   XSizeHints hin;
 
   if (openglwindowflag) {
@@ -3146,48 +2835,13 @@ open_window(char *name)
   glMatrixMode(GL_MODELVIEW);
   glLoadIdentity();
 
-#else  /* use gl calls */
-  if (openglwindowflag) {
-    printf("medit: ### GL window already open: can't open second\n");PR return;}
-  prefposition( kDefaultWindowLocationX,
-    kDefaultWindowLocationX + xdim-1,
-    kDefaultWindowLocationY, 
-    kDefaultWindowLocationY + ydim-1);
-  foreground();  /* tcl prompt */
-  winopen(name);
-  keepaspect(1,1);
-  stepunit((long)xnum,(long)ynum);
-  maxsize((long)(4*xnum),(long)(4*ynum));
-  winconstraints();
-  cmode();
-  doublebuffer();
-  gconfig();
-  ortho2(0.0, (float)(xnum-1), 0.0, (float)(ynum-1));  /* orig:COR,HOR not -1 */
-  zbuffer(FALSE);
-
-  qdevice(ESCKEY);
-  qdevice(REDRAW);
-  qdevice(LEFTMOUSE);
-  qdevice(RIGHTMOUSE);
-  qdevice(MIDDLEMOUSE);
-  qdevice(LEFTARROWKEY);
-  qdevice(RIGHTARROWKEY);
-  qdevice(UPARROWKEY);
-  qdevice(DOWNARROWKEY);
-  qdevice(LEFTALTKEY);
-  qdevice(RIGHTALTKEY);
-  qdevice(KEYBD);
-#endif
-
   openglwindowflag = TRUE;
   return(0);
 }
 
 void
-resize_window_intstep(int newzf)
+resize_window_intstep(int newzf) {
 
-{
-#ifdef OPENGL
   int tzf;
 
   if (newzf==0)
@@ -3214,15 +2868,11 @@ resize_window_intstep(int newzf)
     ic = (zf*ic)/ozf;
     jc = (zf*jc)/ozf;
   }
-#else
-  printf("medit: ### OpenGL only\n");
-#endif
 }
 
 void 
-move_window( int x, int y)
-{
-#ifdef OPENGL
+move_window( int x, int y) {
+
   if (openglwindowflag) {
     XMoveWindow(xDisplay, w.wMain, x, y);
     w.x = x;
@@ -3233,15 +2883,19 @@ move_window( int x, int y)
     initpositiondoneflag = TRUE;
   }
   else ;
-#endif
+
 }
+
 void
 edit_pixel(int action)
 {
   int theXRadius, theYRadius, theZRadius;
   int theX, theY, theZ;
-  unsigned char thePixelValue;
+  unsigned char thePixelValue, theNewPixelValue;
   int theVoxX, theVoxY, theVoxZ;
+  VoxelRef theVoxel;
+
+  Voxel_New ( &theVoxel );
 
   // set all radiuses to the default prad.
   theXRadius = theYRadius = theZRadius = prad;
@@ -3277,32 +2931,48 @@ edit_pixel(int action)
           }
 
           // get the pixel value at this voxel.
-          thePixelValue = im[theZ][theY][theX];
+          thePixelValue = GetVoxelValue ( theX, theY, theZ );
 
-          // change it to the approriate color.
+          // choose a new color.
           if ( TO_WHITE == action && 
                thePixelValue < WM_MIN_VAL ) {
 
-            thePixelValue = 255;
+            theNewPixelValue = 255;
 
           } else if ( TO_BLACK == action ) {
             
-            thePixelValue = WM_EDITED_OFF;
-          }
+            theNewPixelValue = WM_EDITED_OFF;
 
-          // reset the pixel value.
-          im[theZ][theY][theX] = thePixelValue;
+          } else {
+      
+      theNewPixelValue = thePixelValue;
+    }
+  
+
+    // if this pixel is different from the new value..
+    if ( theNewPixelValue != thePixelValue ) {
+      
+      // save this value in the undo list.
+      Voxel_Set ( theVoxel, theX, theY, theZ );
+      AddVoxelAndValueToUndoList ( theVoxel, thePixelValue );
+    }
+
+    // set the pixel value.
+    SetVoxelValue ( theX, theY, theZ, theNewPixelValue );
         }
 
         EnableDebuggingOutput;
       }
   
+  // mark the slice files that we changed.
   for ( theZ = -prad; theZ <= prad; theZ++ ) {
     if ( theVoxZ + theZ >= 0 && theVoxZ + theZ < numimg ) {
       changed [ theVoxZ + theZ ] = TRUE;
       editedimage = imnr0 + theVoxZ + theZ;
     }
   }
+
+  Voxel_Delete ( &theVoxel );
 }
 
 void
@@ -3340,7 +3010,6 @@ scrsave_to_rgb(char *fname)  /* about 2X faster than pix_to_rgb */
 void
 pix_to_rgb(char *fname)
 {
-#ifdef OPENGL
   GLint swapbytes, lsbfirst, rowlength;
   GLint skiprows, skippixels, alignment;
   RGB_IMAGE *image;
@@ -3398,10 +3067,6 @@ pix_to_rgb(char *fname)
   free(red); free(green); free(blue);
 
   printf("medit: file %s written\n",fname);PR
-#else
-  printf("medit: ### pix_to_rgb implemented only in OpenGL version\n");PR
-  return;
-#endif
 }
 
 void
@@ -3556,29 +3221,24 @@ mark_file_vertices(char *fname)
 void
 select_control_points(void)
 {
-  control_points = 1 ;
 
-  // kt
-  fprintf ( stdout, "Control point mode is ON.\n" );
+  OutputPrint "NOTE: select_control_points is being deprecated. "
+    "From now one, please use CtrlPtMode or ControlPointMode.\n" 
+    EndOutputPrint;
 
-  // process the control pt file, adding all pts to it.
-  ProcessCtrlPtFile ( tfname );
+  SetMode ( kMode_CtrlPt );
 
-  if ( !gIsDisplayCtrlPts )
-    fprintf ( stdout, "NOTE: Control points are currently not being displayed. To display control points, press ctrl-h.\n" );
-
-  PR;
-
-  // redraw new control pts
-  redraw ();
-
-  // end_kt
 }
 
 void
-reset_control_points(void)
-{
-  control_points = -1 ;
+reset_control_points(void) {
+
+  OutputPrint "NOTE: reset_control_points is being deprecated. "
+    "From now one, please use one of the mode changing commands to change "
+    "modes, such as EditMode or SelectionMode\n."
+    EndOutputPrint;
+
+  SetMode ( kMode_Edit );
 }
 
 void
@@ -3587,14 +3247,14 @@ goto_vertex(int vno) {
   VERTEX *v ;
 
   if (!mris) {
-    fprintf(stderr, "surface not loaded.\n") ;
+    OutputPrint "Cannont goto vertex: surface is not loaded.\n" EndOutputPrint;
     return ;
   }
 
   v = &mris->vertices[vno] ;
 
-  DebugPrint "found vertex %d at RAS pt (%2.2f, %2.2f, %2.2f)\n",
-    vno, v->x, v->y, v->z EndDebugPrint;
+  OutputPrint "Found vertex %d at RAS pt (%2.2f, %2.2f, %2.2f)\n",
+    vno, v->x, v->y, v->z EndOutputPrint;
 
   // hilite this vertex.
   HiliteSurfaceVertex ( v, kSurfaceType_Current );
@@ -3612,13 +3272,13 @@ goto_orig_vertex(int vno) {
   VERTEX *v ;
 
   if (!mris) {
-    fprintf(stderr, "surface not loaded.\n") ;
+    OutputPrint "Cannont goto vertex: surface is not loaded.\n" EndOutputPrint;
     return ;
   }
   v = &mris->vertices[vno] ;
 
-  DebugPrint "found vertex %d at RAS pt (%2.2f, %2.2f, %2.2f)\n",
-    vno, v->x, v->y, v->z EndDebugPrint;
+  OutputPrint "Found vertex %d at RAS pt (%2.2f, %2.2f, %2.2f)\n",
+    vno, v->origx, v->origy, v->origz EndOutputPrint;
 
   // hilite this vertex.
   HiliteSurfaceVertex ( v, kSurfaceType_Original );
@@ -3636,13 +3296,13 @@ goto_canon_vertex(int vno) {
   VERTEX *v ;
 
   if (!mris) {
-    fprintf(stderr, "surface not loaded.\n") ;
+    OutputPrint "Cannont goto vertex: surface is not loaded.\n" EndOutputPrint;
     return ;
   }
   v = &mris->vertices[vno] ;
 
-  DebugPrint "found vertex %d at RAS pt (%2.2f, %2.2f, %2.2f)\n",
-    vno, v->x, v->y, v->z EndDebugPrint;
+  OutputPrint "Found vertex %d at RAS pt (%2.2f, %2.2f, %2.2f)\n",
+    vno, v->cx, v->cy, v->cz EndOutputPrint;
 
   // hilite this vertex.
   HiliteSurfaceVertex ( v, kSurfaceType_Canonical );
@@ -3675,7 +3335,10 @@ write_point(char *dir)
   int theVoxX, theVoxY, theVoxZ;
   Real theRASX, theRASY, theRASZ;
   char theResult;
-  Voxel theVoxel;
+  VoxelRef theVoxel;
+
+  // make a new voxel
+  Voxel_New ( &theVoxel );
 
   if (control_points) {
 
@@ -3687,7 +3350,7 @@ write_point(char *dir)
 
     } else {
 
-      print ( "opening control point file %s...\n", fname) ;
+      OutputPrint "opening control point file %s...\n", fname EndOutputPrint;
       fp=fopen(fname,"w");
     }
 
@@ -3700,21 +3363,21 @@ write_point(char *dir)
 
   // if we're in control point mode, add this point to the control point
   // space.
-  if ( IsInSelectionMode() ) {
+  if ( IsInMode ( kMode_CtrlPt ) ) {
 
     // get vox coords
     ScreenToVoxel ( plane, jc, ic, imc, &theVoxX, &theVoxY, &theVoxZ );
     
     // add voxel space pt to list of ctrl pts
-    Voxel_Set ( &theVoxel, theVoxX, theVoxY, theVoxZ );
-    theResult = VSpace_AddVoxel ( &gCtrlPtList, &theVoxel );
+    Voxel_Set ( theVoxel, theVoxX, theVoxY, theVoxZ );
+    theResult = VSpace_AddVoxel ( gCtrlPtList, theVoxel );
     if ( theResult != kVSpaceErr_NoErr )
       DebugPrint "write_point(): Error in VSpace_AddVoxel: %s\n",
         VSpace_GetErrorString ( theResult ) EndDebugPrint;
 
-    printf ( "Made control point (%d,%d,%d).\n",
-             theVoxX, theVoxY, theVoxZ ); PR;
-
+    OutputPrint "Made control point (%d,%d,%d).\n",
+      theVoxX, theVoxY, theVoxZ  EndOutputPrint;
+    
   }
 
   if (fp==NULL) {
@@ -3731,7 +3394,7 @@ write_point(char *dir)
   DebugPrint "writing RAS point to %s...\n", fname EndDebugPrint;
   
   // if we have a tal transform for this volume...
-  if ( transform_loaded && !IsInSelectionMode() ) {
+  if ( transform_loaded && IsInMode ( kMode_Edit ) ) {
     
     // ras to tal
     transform_point ( linear_transform, theRASX, theRASY, theRASZ,
@@ -3750,6 +3413,9 @@ write_point(char *dir)
 
   /*else { fprintf(stderr, "NOT writing transformed point to file...\n") ; }*/
   fclose(fp);
+
+  // free the voxel
+  Voxel_Delete ( &theVoxel );
 }
 
 void coords_to_talairach(void)
@@ -3807,6 +3473,9 @@ void talairach_to_coords(void)
     jpt=ipt=impt = -1;
   }
 }
+
+// this is the old set_cursor function. i'm keeping it around for reference.
+// it has been replaced with SetCursorToRASPt().
 #if 0
 void set_cursor(float xpt, float ypt, float zpt)
 {
@@ -3950,11 +3619,7 @@ void set_scale(void)
 
 void redraw(void) {
 
-#ifdef OPENGL
   XTextProperty tp;
-#else
-  char title[5*NAME_LENGTH];
-#endif
   static int lastplane = CORONAL;
 
   if (!openglwindowflag) {
@@ -3985,10 +3650,10 @@ void redraw(void) {
   }
 
   // update the window title
-  if ( drawsecondflag && second_im_allocated ) {
+  if ( second_im_allocated ) {
     
     // if we have two images, print both values.
-    sprintf(title_str, "%s:%s (%s=%d, %s=%d)", pname, imtype,imtype, 
+    sprintf(title_str, "%s:%s (%s=%d, %s=%d)", pname, imtype2, imtype, 
             selectedpixval, imtype2, secondpixval) ;
   } else {
 
@@ -4045,11 +3710,7 @@ void redraw(void) {
 
 void pop_gl_window(void)
 {
-#ifdef OPENGL
   XRaiseWindow(xDisplay, w.wMain);
-#else
-  winpop();
-#endif
 }
 
 void resize_buffers(int x,int y)
@@ -4636,11 +4297,257 @@ show_canon_vertex ( void ) {
   return(NO_ERROR) ;
 }
 
+void HandleMouseUp ( XButtonEvent inEvent ) {
 
+  int x, y, z;
+  int theClickedX, theClickedY, theClickedZ;
+  VoxelRef theScreenVoxel, theAnatomicalVoxel;
+
+  Voxel_New ( &theScreenVoxel );
+  Voxel_New ( &theAnatomicalVoxel );
+
+  // get the clicked point in screen coords.
+                                   /* first set our click points to the
+              current cursor pts. this is  done
+              because our ClickToScreen func leaves
+              the coord that represents that z coords
+              on the screen untouched, which won't be
+              chaned by clicking in the x/y plane. */
+  theClickedX = jc;
+  theClickedY = ic;
+  theClickedZ = imc;
+
+  // covert the click to the screen pt.
+  ClickToScreen ( inEvent.x, inEvent.y, plane, 
+      &theClickedX, &theClickedY, &theClickedZ );
+  Voxel_Set ( theScreenVoxel, theClickedX, theClickedY, theClickedZ );
+
+  // check bounds. if no good, print an error message and bail.
+  if ( !IsScreenPointInBounds ( plane, EXPAND_VOXEL_INT(theScreenVoxel) ) ) {
+    OutputPrint kMsg_InvalidClick EndOutputPrint;
+    Voxel_Delete ( &theScreenVoxel );
+    Voxel_Delete ( &theAnatomicalVoxel );  
+    return;
+  }
+
+  // convert to voxel.
+  ScreenToVoxel ( plane, EXPAND_VOXEL_INT(theScreenVoxel), &x, &y, &z );
+  Voxel_Set ( theAnatomicalVoxel, x, y, z );
+
+                                   /* on mouse up, always set the cursor to
+              the clicked point unless we are in ctrl
+              pt mode and used button 2, in which case
+              we pass it to the ctrl pt selection
+              function. */
+  if ( 2 == inEvent.button && IsInMode ( kMode_CtrlPt ) ) {
+    
+    SelectCtrlPt ( EXPAND_VOXEL_INT(theScreenVoxel), plane, inEvent.state );
+    
+  } else {
+    
+    SetCursorToScreenPt ( EXPAND_VOXEL_INT(theScreenVoxel) );
+    PrintScreenPointInformation ( EXPAND_VOXEL_INT(theScreenVoxel) );
+    
+    // when setting cursor, allow functional module to respond to click.
+    if ( IsFunctionalDataLoaded () ) 
+      AllowFunctionalModuleToRespondToClick ( theAnatomicalVoxel );
+  }
+
+                                   /* if control key was held down, check for
+              zooming. ctrl-button1 is zoom in,
+              ctrl-button2 is zoom out. when zooming, 
+              we center on the point first and then
+              zoom in or out. */
+  // if ctrl was down...
+  if ( inEvent.state & ControlMask ) {
+  
+    // always zoom in on button 1.
+    if ( 1 == inEvent.button ) {
+      RecenterViewToScreenPt ( EXPAND_VOXEL_INT(theScreenVoxel) );
+      ZoomViewIn ();
+    }      
+ 
+    // always zoom out on button 3.
+    if ( 3 == inEvent.button ) {
+       RecenterViewToScreenPt ( EXPAND_VOXEL_INT(theScreenVoxel) );
+      ZoomViewOut ();
+    }     
+  }
+
+  Voxel_Delete ( &theScreenVoxel );
+  Voxel_Delete ( &theAnatomicalVoxel );  
+}
+
+void HandleMouseDown ( XButtonEvent inEvent ) {
+
+  int x, y, z;
+  int theClickedX, theClickedY, theClickedZ;
+  VoxelRef theScreenVoxel, theAnatomicalVoxel;
+  int theEditAction;
+
+  // nothing happens on button 1.
+  if ( 1 == inEvent.button )
+    return;
+
+  // if control key and button 1 or 3 is down, they really want to
+  // zoom, and we will handle that on mouse up, not here.
+  if ( (inEvent.state & ControlMask) &&
+       (1 == inEvent.button || 3 == inEvent.button) )
+    return;
+
+  Voxel_New ( &theScreenVoxel );
+  Voxel_New ( &theAnatomicalVoxel );
+
+  // get the clicked point in screen coords.
+  theClickedX = jc;
+  theClickedY = ic;
+  theClickedZ = imc;
+  ClickToScreen ( inEvent.x, inEvent.y, plane, 
+      &theClickedX, &theClickedY, &theClickedZ );
+  Voxel_Set ( theScreenVoxel, theClickedX, theClickedY, theClickedZ );
+
+  // check bounds. if no good, print an error message and bail.
+  if ( !IsScreenPointInBounds ( plane, EXPAND_VOXEL_INT(theScreenVoxel) ) ) {
+    OutputPrint kMsg_InvalidClick EndOutputPrint;
+    Voxel_Delete ( &theScreenVoxel );
+    Voxel_Delete ( &theAnatomicalVoxel );  
+    return;
+  }
+
+  // convert to voxel.
+  ScreenToVoxel ( plane, EXPAND_VOXEL_INT(theScreenVoxel), &x, &y, &z );
+  Voxel_Set ( theAnatomicalVoxel, x, y, z );
+
+                                   /* on mouse down, we only do something if
+              we're beginning to paint. this happens
+              when we're in select mode or edit mode.
+              we just pass the point to the
+              approriate paint function. additionally,
+              if we're in editing mode and pressing
+              button2 or 3, this is a good time to
+              clear the undo list since we're
+              starting a new edit. */
+  // what mode?
+  switch ( GetMode() ) {
+
+    // editing...
+  case kMode_Edit: 
+    
+    // if button 2, paint voxels to white.
+    if ( 2 == inEvent.button ) {
+      theEditAction = TO_WHITE;
+    } else {
+      // if button 3, paint voxels to black.
+      theEditAction = TO_BLACK;
+    }
+    
+    PaintVoxels ( EditVoxel, &theEditAction, theAnatomicalVoxel );
+    break;
+
+  // selecting...
+  case kMode_Select:
+
+    // if button 2, select voxels.
+    if ( 2 == inEvent.button ) {
+      PaintVoxels ( AddVoxelToSelection, NULL, theAnatomicalVoxel );
+    } else {
+      // if button 3, unselect voxels.
+      PaintVoxels ( RemoveVoxelFromSelection, NULL, theAnatomicalVoxel );
+    }
+    break;
+
+  case kMode_CtrlPt:
+    break;
+  }
+    
+}
+
+void HandleMouseMoved ( XMotionEvent inEvent ) {
+
+  int x, y, z;
+  int theClickedX, theClickedY, theClickedZ;
+  VoxelRef theScreenVoxel, theAnatomicalVoxel;
+  int theEditAction;
+
+  // nothing happens on button 1.
+  if ( inEvent.state & Button1Mask )
+    return;
+
+  // if control key and button 1 or 3 is down, they really want to
+  // zoom, and we will handle that on mouse up, not here.
+  if ( ( inEvent.state & ControlMask ) &&
+       ( inEvent.state & Button1Mask || inEvent.state & Button3Mask ) )
+    return;
+
+  Voxel_New ( &theScreenVoxel );
+  Voxel_New ( &theAnatomicalVoxel );
+
+  // get the clicked point in screen coords.
+  theClickedX = jc;
+  theClickedY = ic;
+  theClickedZ = imc;
+  ClickToScreen ( inEvent.x, inEvent.y, plane, 
+      &theClickedX, &theClickedY, &theClickedZ );
+  Voxel_Set ( theScreenVoxel, theClickedX, theClickedY, theClickedZ );
+
+  // check bounds. if no good, print an error message and bail.
+  if ( !IsScreenPointInBounds ( plane, EXPAND_VOXEL_INT(theScreenVoxel) ) ) {
+    OutputPrint kMsg_InvalidClick EndOutputPrint;
+    Voxel_Delete ( &theScreenVoxel );
+    Voxel_Delete ( &theAnatomicalVoxel );  
+    return;
+  }
+
+  // convert to voxel.
+  ScreenToVoxel ( plane, EXPAND_VOXEL_INT(theScreenVoxel), &x, &y, &z );
+  Voxel_Set ( theAnatomicalVoxel, x, y, z );
+
+                                   /* on mouse moved, we only do something if
+              we're beginning to paint. this happens
+              when we're in select mode or edit mode.
+              we just pass the point to the
+              approriate paint function. */
+  // what mode?
+  switch ( GetMode() ) {
+
+    // editing...
+  case kMode_Edit: 
+    
+    // if button 2, paint voxels to white.
+    if ( inEvent.state & Button2Mask ) {
+      theEditAction = TO_WHITE;
+    } else {
+      // if button 3, paint voxels to black.
+      theEditAction = TO_BLACK;
+    }
+    
+    PaintVoxels ( EditVoxel, &theEditAction, theAnatomicalVoxel );
+    break;
+
+  // selecting...
+  case kMode_Select:
+
+    // if button 2, select voxels.
+    if ( inEvent.state & Button2Mask ) {
+      PaintVoxels ( AddVoxelToSelection, NULL, theAnatomicalVoxel );
+    } else {
+      // if button 3, unselect voxels.
+      PaintVoxels ( RemoveVoxelFromSelection, NULL, theAnatomicalVoxel );
+    }
+    break;
+
+  case kMode_CtrlPt:
+    break;
+  }
+}   
+
+
+#if 0
 void ProcessClick ( int inClickX, int inClickY ) {
 
   int theClickedJ, theClickedI, theClickedIM;
   int theVoxelX, theVoxelY, theVoxelZ;
+  VoxelRef theVoxel;
 
   // first set our click points to the current cursor pts. this is 
   // done because our ClickToScreen func leaves the
@@ -4654,15 +4561,17 @@ void ProcessClick ( int inClickX, int inClickY ) {
   ClickToScreen ( inClickX, inClickY, plane,
                   &theClickedJ, &theClickedI, &theClickedIM );
 
-  // convert to voxel coords and see if they are in bounds.
-  ScreenToVoxel ( plane, theClickedJ, theClickedI, theClickedIM,
-                  &theVoxelX, &theVoxelY, &theVoxelZ );
-  if ( !IsVoxelInBounds ( theVoxelX, theVoxelY, theVoxelZ ) ) {
+  // see if they are in bounds.
+  if ( !IsScreenPointInBounds ( plane, 
+        theClickedJ, theClickedI, theClickedIM ) ) {
 
-    printf ( "\nInvalid click - out of voxel bounds.\n" );
-    printf ( "Although the screen can display areas that are out of voxel bounds in black, you cannot click on them to select them. Please click inside voxel bounds, closer to the non-black image.\n\n" );
+    OutputPrint kMsg_InvalidClick EndOutputPrint;
     return;
   }
+
+  // convert to voxel coords.
+  ScreenToVoxel ( plane, theClickedJ, theClickedI, theClickedIM,
+                  &theVoxelX, &theVoxelY, &theVoxelZ );
 
   // now look at what button is pressed.
   if ( button1pressed ) {
@@ -4687,30 +4596,16 @@ void ProcessClick ( int inClickX, int inClickY ) {
       
   } else if ( button2pressed ) {
 
-
-    /* kt -- alt-button2 never gets here, for some reason
-    // if control is down...
-    if ( ctrlkeypressed ) {
-      
-      // recenter aroound clicked point.
-      RecenterViewToScreenPt ( theClickedJ, theClickedI, theClickedIM );
-
-      // print info about the new configurtion.
-      PrintZoomInformation ();
-    }
-
-    // if we're in control point mode...
-    else 
-    */
-
-    if ( IsInSelectionMode () ) {
+    // if selecting..
+    if ( IsInMode ( kMode_CtrlPt ) ) {
 
       // select a ctrl point.
       SelectCtrlPt ( theClickedJ, theClickedI, theClickedIM, plane );
 
+      // if in editing mode..
     } else {
 
-      // if in editing mode, select the pixel and color it white.
+      // select the pixel and color it white.
       SetCursorToScreenPt ( theClickedJ, theClickedI, theClickedIM );
       edit_pixel ( TO_WHITE );
     }
@@ -4724,23 +4619,33 @@ void ProcessClick ( int inClickX, int inClickY ) {
     if ( ctrlkeypressed && !all3flag ) {
       
       // zoom out
-      ZoomViewOut ();
+       RecenterViewToScreenPt ( theClickedJ, theClickedI, theClickedIM );
+     ZoomViewOut ();
 
       // print info about the new configurtion.
       PrintZoomInformation ();
       
       // else, if we're in editing mode..
-    } else if ( !IsInSelectionMode () ) {
+    } else if ( IsInMode ( kMode_Edit ) ) {
 
       // color it black.
       edit_pixel ( TO_BLACK );
     }
   }
 
+  // allow the functional overlay module to respond to this click.
+  if ( IsFunctionalDataLoaded () ) {
+
+    Voxel_New ( &theVoxel );
+    Voxel_Set ( theVoxel, theVoxelX, theVoxelY, theVoxelZ );
+    AllowFunctionalModuleToRespondToClick ( theVoxel );
+    Voxel_Delete ( &theVoxel );
+  }
+
   // because there were weird dragging effects if you jerked the 
   // mouse right after clicking. seems the event loop misses a lot 
   // of key and button releases, so we force them here.
-  if ( IsInSelectionMode() ) {
+  if ( IsInMode ( kMode_CtrlPt ) ) {
 
     button1pressed = FALSE;
     button2pressed = FALSE;
@@ -4764,6 +4669,25 @@ void ProcessClick ( int inClickX, int inClickY ) {
   updatepixval = TRUE;
 
 }
+#endif
+
+void HideCursor () {
+
+  gIsCursorVisible = FALSE;
+  redraw ();
+}
+
+void ShowCursor () {
+
+  gIsCursorVisible = TRUE;
+  redraw ();
+}
+
+char IsCursorVisible () {
+  
+  return gIsCursorVisible;
+}
+
 
 void SetCursorToScreenPt ( int inScreenX, int inScreenY, int inScreenZ ) {
   
@@ -4907,6 +4831,13 @@ void ZoomViewOut () {
   if ( gLocalZoom < kMinLocalZoom )
     gLocalZoom = kMinLocalZoom;
 
+  // if we are at min zoom..
+  if ( kMinLocalZoom == gLocalZoom ) {
+
+    // set the center to the middle of the voxel space.
+    SetCenterVoxel ( xnum/2, ynum/2, xnum/2 );
+  }
+
   // check the center, because it may be invalid now that we zoomed out.
   CheckCenterVoxel ();
 
@@ -4942,19 +4873,18 @@ void draw_image( int imc, int ic, int jc,
   int hax,hay,curs;
   int theVoxX, theVoxY, theVoxZ;
   int theScreenX, theScreenY, theScreenZ;
-  char isSelected;
-  Voxel theVoxel;
-  VoxelList * theList;
-  int theListCount, theListIndex;
-  char theResult;
-  long theColor;
+  VoxelRef theVoxel;
   int theVoxelSize;
   GLubyte v;
+
   hax = xdim/2;
   hay = ydim/2;
 
   if (all3flag) curs = 15;
   else          curs = 2;
+
+  // create a new voxel
+  Voxel_New ( &theVoxel );
 
   
   // calc voxel size, or the number of pixels that represent a single voxel.
@@ -5081,117 +5011,48 @@ void draw_image( int imc, int ic, int jc,
 
         // end drawing image
 
-        // only draw if we're supposed to.
+        // draw control points.
         if ( gIsDisplayCtrlPts ) {
+    DrawControlPoints ( vidbuf, CORONAL, imc/zf );
+        }
 
-          // find our vox z coords TODO: probably need a single dimension
-          // conversion function, like ScreenZToVoxelZ
-          theVoxZ = imc / zf;
-          
-          // get the list of points in this plane.
-          theResult = VSpace_GetVoxelsInZPlane ( &gCtrlPtList,
-                                                 theVoxZ,
-                                                 &theList ); 
-          if ( theResult != kVSpaceErr_NoErr ) {
-            DebugPrint"draw_image(): Error in VSpace_GetVoxelsInZPlane: %s\n", 
-                      VSpace_GetErrorString ( theResult ) EndDebugPrint;
-            theList = NULL;
-          }
+  // if we have functional data to draw...
+  if ( IsFunctionalDataLoaded () ) {
+    DrawFunctionalData ( vidbuf, CORONAL, imc/zf );
+  }
 
-          // if we have a list..
-          if ( theList != NULL ) {
-
-            // get its count
-            theResult = VList_GetCount ( theList, &theListCount );
-            if ( theResult != kVListErr_NoErr ) {
-              DebugPrint "draw_image(): Error in VList_GetCount: %s\n",
-                VList_GetErrorString ( theResult ) EndDebugPrint;
-              theListCount = 0;
-            }
-
-            // get each voxel...
-            for ( theListIndex = 0; 
-                  theListIndex < theListCount; 
-                  theListIndex++ ) {
-
-              theResult = VList_GetNthVoxel ( theList, theListIndex, 
-                                              &theVoxel );
-              if ( theResult != kVListErr_NoErr ) {
-                DebugPrint "draw_image(): Error in VList_GetNthVoxel: %s\n",
-                  VList_GetErrorString ( theResult ) EndDebugPrint;
-                continue;
-              }
-
-              // see if it's selected. 
-              theResult = VList_IsInList ( &gSelectionList, &theVoxel,
-                                        &isSelected );
-              if ( theResult != kVListErr_NoErr ) {
-                DebugPrint "Error in VList_IsInList: %s\n",
-                  VList_GetErrorString(theResult) EndDebugPrint
-                isSelected = FALSE;
-              }
-              
-              // if it's selected, draw in one color, else use another
-              // color
-              if ( isSelected )
-                theColor = kRGBAColor_Yellow;
-              else
-                theColor = kRGBAColor_Green;
-              
-              // go to screen points
-              VoxelToScreen ( Voxel_GetX(&theVoxel), Voxel_GetY(&theVoxel),
-                              Voxel_GetZ(&theVoxel), 
-                              CORONAL, &theScreenX, 
-                              &theScreenY, &theScreenZ );
-
-              // if it's in the window...
-              if ( IsScreenPtInWindow ( theScreenX, theScreenY, theScreenZ ) ) {
-
-                // draw the point.
-                if ( !all3flag ) {
-                  
-                  DrawCtrlPt ( vidbuf, theScreenX, theScreenY, theColor );
-                  
-                } else {
-                  
-                  // halve our coords in the all3 view. since our final copy is
-                  // actually y-flipped, our draw into the upper left corner
-                  // is actually a draw into the lower left corner. to make
-                  // sure the cursor shows up in the right place, we have to
-                  // add hay to the y coord here.
-                  DrawCtrlPt ( vidbuf, 
-                               theScreenX/2, hay + theScreenY/2, theColor );
-                }
-              }
-            }
-          }
-        } // end draw control points
+  // draw our selected voxels.
+  if ( IsDisplaySelectedVoxels () ) {
+    DrawSelectedVoxels ( vidbuf, CORONAL, imc/zf );
+  }
 
         // if our cursor is in view, draw it.
-        if ( IsScreenPtInWindow ( jc, ic, imc ) ) {
-
-          if ( !all3flag ) {
-            
-            DrawCrosshairInBuffer ( vidbuf, jc, ic, 
-                                    kCursorCrosshairRadius, 
-                                    kRGBAColor_Red );
-            
-          } else {
-            
-            // adjust coords for all3 view.
-            DrawCrosshairInBuffer ( vidbuf, jc/2, hay + ic/2, 
-                                    kCursorCrosshairRadius, 
-                                    kRGBAColor_Red );
-          
-          }
-        }
+  if ( IsCursorVisible () ) {
+    if ( IsScreenPtInWindow ( jc, ic, imc ) ) {
+      
+      if ( !all3flag ) {
+        
+        DrawCrosshairInBuffer ( vidbuf, jc, ic, 
+              kCursorCrosshairRadius, 
+              kRGBAColor_Red );
+        
+      } else {
+        
+        // adjust coords for all3 view.
+        DrawCrosshairInBuffer ( vidbuf, jc/2, hay + ic/2, 
+              kCursorCrosshairRadius, 
+              kRGBAColor_Red );
+        
+      }
+    }
+  }
 
         // end_kt
 
       } else { 
 
         // fill the screen with black.
-        for ( theScreenY = 0; theScreenY < ydim; theScreenY++ ) {
+       for ( theScreenY = 0; theScreenY < ydim; theScreenY++ ) {
           if ( all3flag && isOdd(theScreenY ) )
             continue;
           for ( theScreenX = 0; theScreenX < xdim; theScreenX++ ) {
@@ -5272,80 +5133,34 @@ void draw_image( int imc, int ic, int jc,
         }
         
         if ( gIsDisplayCtrlPts ) {
-
-          theVoxY = (ydim-1 - ic) / zf;
-
-          theResult = VSpace_GetVoxelsInYPlane ( &gCtrlPtList,
-                                                 theVoxY,
-                                                 &theList ); 
-          if ( theResult != kVSpaceErr_NoErr ) {
-            DebugPrint"draw_image(): Error in VSpace_GetVoxelsInZPlane: %s\n", 
-              VSpace_GetErrorString ( theResult ) EndDebugPrint
-            theList = NULL;
-          }
-
-          if ( theList != NULL ) {
-
-            theResult = VList_GetCount ( theList, &theListCount );
-            if ( theResult != kVListErr_NoErr ) {
-              DebugPrint "draw_image(): Error in VList_GetCount: %s\n",
-                VList_GetErrorString ( theResult ) EndDebugPrint;
-              theListCount = 0;
-            }
-
-            for ( theListIndex = 0; 
-                  theListIndex < theListCount; 
-                  theListIndex++ ) {
-
-              theResult = VList_GetNthVoxel ( theList, theListIndex, 
-                                              &theVoxel );
-              if ( theResult != kVListErr_NoErr ) {
-                DebugPrint "draw_image(): Error in VList_GetNthVoxel: %s\n",
-                  VList_GetErrorString ( theResult ) EndDebugPrint;
-                continue;
-              }
-
-              theResult = VList_IsInList ( &gSelectionList, &theVoxel,
-                                        &isSelected );
-              if ( theResult != kVListErr_NoErr ) {
-                DebugPrint "Error in VList_IsInList: %s\n",
-                  VList_GetErrorString(theResult) EndDebugPrint;
-                isSelected = FALSE;
-              }
-
-              if ( isSelected )
-                theColor = kRGBAColor_Yellow;
-              else
-                theColor = kRGBAColor_Green;
-              
-              VoxelToScreen ( Voxel_GetX(&theVoxel), Voxel_GetY(&theVoxel),
-                              Voxel_GetZ(&theVoxel), 
-                              HORIZONTAL, &theScreenX, 
-                              &theScreenY, &theScreenZ );
-              
-              if ( IsScreenPtInWindow ( theScreenX, theScreenY, theScreenZ ) ) {
-                if ( !all3flag )
-                  DrawCtrlPt ( vidbuf, theScreenX, theScreenZ, theColor );
-                else
-                  DrawCtrlPt ( vidbuf, theScreenX/2, theScreenZ/2, theColor );
-              }
-            }
-          }
-        } // end display control points
-        
-        if ( !all3flag ) {
-          
-          DrawCrosshairInBuffer ( vidbuf, jc, imc, 
-                                  kCursorCrosshairRadius, 
-                                  kRGBAColor_Red );
-          
-        } else {
-          
-          DrawCrosshairInBuffer ( vidbuf, jc/2, imc/2, 
-                                  kCursorCrosshairRadius, 
-                                  kRGBAColor_Red );
-          
+    DrawControlPoints ( vidbuf, HORIZONTAL, (ydim-1-ic)/zf );
         }
+        
+  if ( IsFunctionalDataLoaded () ) {
+    DrawFunctionalData ( vidbuf, HORIZONTAL, (ydim-1-ic)/zf );
+  }
+
+  if ( IsDisplaySelectedVoxels () ) {
+    DrawSelectedVoxels ( vidbuf, HORIZONTAL,  (ydim-1-ic)/zf );
+  }
+
+  if ( IsCursorVisible () ) {
+    if ( IsScreenPtInWindow ( jc, ic, imc ) ) {
+      if ( !all3flag ) {
+        
+        DrawCrosshairInBuffer ( vidbuf, jc, imc, 
+              kCursorCrosshairRadius, 
+              kRGBAColor_Red );
+        
+      } else {
+        
+        DrawCrosshairInBuffer ( vidbuf, jc/2, imc/2, 
+              kCursorCrosshairRadius, 
+              kRGBAColor_Red );
+        
+      }
+    }
+  }
         
       } else {
         for ( theScreenY = 0; theScreenY < ydim; theScreenY++ ) {
@@ -5417,83 +5232,35 @@ void draw_image( int imc, int ic, int jc,
         }
         
         if ( gIsDisplayCtrlPts ) {
-          
-          theVoxX = jc / zf;
-          
-          theResult = VSpace_GetVoxelsInXPlane ( &gCtrlPtList,
-                                                 theVoxX,
-                                                 &theList ); 
-          if ( theResult != kVSpaceErr_NoErr ) {
-            DebugPrint"draw_image(): Error in VSpace_GetVoxelsInZPlane: %s\n", 
-              VSpace_GetErrorString ( theResult ) EndDebugPrint;
-            theList = NULL;
-          }
-          
-          if ( theList != NULL ) {
-
-            theResult = VList_GetCount ( theList, &theListCount );
-            if ( theResult != kVListErr_NoErr ) {
-              DebugPrint "draw_image(): Error in VList_GetCount: %s\n",
-                VList_GetErrorString ( theResult ) EndDebugPrint;
-              theListCount = 0;
-            }
-
-            for ( theListIndex = 0; 
-                  theListIndex < theListCount; 
-                  theListIndex++ ) {
-              
-              theResult = VList_GetNthVoxel ( theList, theListIndex, 
-                                              &theVoxel );
-              if ( theResult != kVListErr_NoErr ) {
-                DebugPrint "draw_image(): Error in VList_GetNthVoxel: %s\n",
-                  VList_GetErrorString ( theResult ) EndDebugPrint;
-                continue;
-              }
-              
-              theResult = VList_IsInList ( &gSelectionList, &theVoxel,
-                                        &isSelected );
-              if ( theResult != kVListErr_NoErr ) {
-                DebugPrint "Error in VList_IsInList: %s\n",
-                  VList_GetErrorString(theResult) EndDebugPrint;
-                isSelected = FALSE;
-              }
-              
-              if ( isSelected )
-                theColor = kRGBAColor_Yellow;
-              else
-                theColor = kRGBAColor_Green;
-              
-              VoxelToScreen ( Voxel_GetX(&theVoxel), Voxel_GetY(&theVoxel),
-                              Voxel_GetZ(&theVoxel), 
-                              SAGITTAL, &theScreenX, 
-                              &theScreenY, &theScreenZ );
-              
-              if ( IsScreenPtInWindow ( theScreenX, theScreenY, theScreenZ ) ) {
-                if ( !all3flag )
-                  DrawCtrlPt ( vidbuf, theScreenZ, theScreenY, theColor );
-                else
-                  DrawCtrlPt ( vidbuf, 
-                               hax + theScreenZ/2, hay + theScreenY/2, 
-                               theColor );
-              }
-            }
-          }
-        } // end dray ctrl pnts          
-
-        if ( !all3flag ) {
-          
-          DrawCrosshairInBuffer ( vidbuf, imc, ic, 
-                                    kCursorCrosshairRadius, 
-                                    kRGBAColor_Red );
-          
-        } else {
-          
-          // draw into lower right hand quad
-          DrawCrosshairInBuffer ( vidbuf, hax + imc/2, hay + ic/2, 
-                                    kCursorCrosshairRadius, 
-                                    kRGBAColor_Red );
-          
+    DrawControlPoints ( vidbuf, SAGITTAL, jc/zf );
         }
+
+  if ( IsFunctionalDataLoaded () ) {
+    DrawFunctionalData ( vidbuf, SAGITTAL, jc/zf );
+  }
+
+  if ( IsDisplaySelectedVoxels () ) {
+    DrawSelectedVoxels ( vidbuf, SAGITTAL, jc/zf );
+  }
+
+  if ( IsCursorVisible () ) {
+    if ( IsScreenPtInWindow ( jc, ic, imc ) ) {
+      if ( !all3flag ) {
+        
+        DrawCrosshairInBuffer ( vidbuf, imc, ic, 
+              kCursorCrosshairRadius, 
+              kRGBAColor_Red );
+        
+      } else {
+        
+        // draw into lower right hand quad
+        DrawCrosshairInBuffer ( vidbuf, hax + imc/2, hay + ic/2, 
+              kCursorCrosshairRadius, 
+              kRGBAColor_Red );
+        
+      }
+    }
+  }
 
       } else {
         for ( theScreenY = 0; theScreenY < ydim; theScreenY++ ) {
@@ -5529,7 +5296,246 @@ void draw_image( int imc, int ic, int jc,
 
     rectwrite(0,0,xdim-1,ydim-1,vidbuf);
   }
+
+  Voxel_Delete ( &theVoxel );
 }
+
+void
+DrawControlPoints ( char * inBuffer, int inPlane, int inPlaneNum ) {
+
+  VoxelRef theVoxel;
+  VoxelListRef theList;
+  int theListCount, theListIndex;
+  char theListErr;
+  char isSelected;
+  long theColor;
+  int theScreenX, theScreenY, theScreenZ, theScreenH, theScreenV;
+
+  Voxel_New ( &theVoxel );
+
+  switch ( inPlane ) {
+  case CORONAL:
+    theListErr = 
+      VSpace_GetVoxelsInZPlane ( gCtrlPtList, inPlaneNum, &theList );
+    break;
+  case SAGITTAL:
+    theListErr = 
+      VSpace_GetVoxelsInXPlane ( gCtrlPtList, inPlaneNum, &theList );
+    break;
+  case HORIZONTAL:
+    theListErr = 
+      VSpace_GetVoxelsInYPlane ( gCtrlPtList, inPlaneNum, &theList );
+    break;
+  }
+
+  if ( theListErr != kVSpaceErr_NoErr ) {
+    DebugPrint "DrawControlPoints(): Error in VSpace_GetVoxelsInPlane: %s\n", 
+      VSpace_GetErrorString ( theListErr ) EndDebugPrint;
+    theList = NULL;
+  }
+  
+  // if we have a list..
+  if ( theList != NULL ) {
+    
+    // get its count
+    theListErr = VList_GetCount ( theList, &theListCount );
+    if ( theListErr != kVListErr_NoErr ) {
+      DebugPrint "DrawControlPoints(): Error in VList_GetCount: %s\n",
+  VList_GetErrorString ( theListErr ) EndDebugPrint;
+      theListCount = 0;
+    }
+
+    // get each voxel...
+    for ( theListIndex = 0; 
+    theListIndex < theListCount; 
+    theListIndex++ ) {
+      
+      theListErr = VList_GetNthVoxel ( theList, theListIndex, theVoxel );
+      if ( theListErr != kVListErr_NoErr ) {
+  DebugPrint "DrawControlPoints(): Error in VList_GetNthVoxel: %s\n",
+    VList_GetErrorString ( theListErr ) EndDebugPrint;
+  continue;
+      }
+
+      // see if it's selected. 
+      theListErr = VList_IsInList ( gSelectionList, theVoxel, &isSelected );
+      if ( theListErr != kVListErr_NoErr ) {
+  DebugPrint "DrawControlPoints(): Error in VList_IsInList: %s\n",
+    VList_GetErrorString(theListErr) EndDebugPrint
+    isSelected = FALSE;
+      }
+              
+      // if it's selected, draw in one color, else use another color
+      if ( isSelected )
+  theColor = kRGBAColor_Yellow;
+      else
+  theColor = kRGBAColor_Green;
+      
+      // go to screen points
+      VoxelToScreen ( Voxel_GetX(theVoxel), Voxel_GetY(theVoxel),
+          Voxel_GetZ(theVoxel), 
+          inPlane, &theScreenX, &theScreenY, &theScreenZ );
+      
+      // if it's in the window...
+      if ( IsScreenPtInWindow ( theScreenX, theScreenY, theScreenZ ) ) {
+  
+  // draw the point.
+  ScreenToScreenXY ( theScreenX, theScreenY, theScreenZ,
+         inPlane, &theScreenH, &theScreenV );
+    
+  DrawCtrlPt ( inBuffer, theScreenH, theScreenV, theColor );
+      }
+    }
+  }
+}
+
+/*
+void DrawFunctionalData ( char * inBuffer, int inPlane, int inPlaneNum ) {
+
+  VoxelValueListRef theList;
+  VoxelValueList_ErrorCode theListErr;
+  VoxelRef theVoxel;
+  float theValue;
+  int theScreenX, theScreenY, theScreenZ, theScreenH, theScreenV;
+
+  Voxel_New ( &theVoxel );
+
+  VoxelValueList_New ( &theList );
+  GetFunctionalValuesInPlane ( inPlane, inPlaneNum, theList );
+
+  theListErr = kVoxelValueListErr_NoErr;
+  while ( kVoxelValueListErr_NoErr == theListErr ) {
+    
+    theListErr =
+      VoxelValueList_GetNextVoxelAndValue ( theList,
+              theVoxel, &theValue );
+    
+    DisableDebuggingOutput;
+
+    VoxelToScreen ( Voxel_GetX(theVoxel), Voxel_GetY(theVoxel),
+        Voxel_GetZ(theVoxel), 
+        inPlane, &theScreenX, &theScreenY, &theScreenZ );
+    
+    if ( IsScreenPtInWindow ( theScreenX, theScreenY, theScreenZ ) ) {
+
+      EnableDebuggingOutput;
+      DebugPrint "-- (%d, %d, %d): %2.5f\n",
+  Voxel_GetX(theVoxel), Voxel_GetY(theVoxel), 
+  Voxel_GetZ(theVoxel), theValue EndDebugPrint;
+
+      ScreenToScreenXY ( theScreenX, theScreenY, theScreenZ,
+       inPlane, &theScreenH, &theScreenV );
+
+      FillBoxInBuffer ( inBuffer, theScreenH, theScreenV, 5,
+      kRGBAColor_Red );
+    }
+
+    EnableDebuggingOutput;
+  }
+
+  Voxel_Delete ( &theVoxel );
+}
+*/
+
+void DrawFunctionalData ( char * inBuffer, int inPlane, int inPlaneNum ) {
+
+  VoxelRef theVoxel;
+  int x, y;
+  float theValue;
+  int theScreenX, theScreenY, theScreenZ, theScreenH, theScreenV;
+  char theDestRed, theDestGreen, theDestBlue;
+  long theDestColor;
+  Volume_ErrorCode theErr;
+  int theVoxelSize;
+
+  // if we're not visible, return.
+  if ( !gIsDisplayFunctionalOverlay ) {
+    return;
+  }
+
+  Voxel_New ( &theVoxel );
+
+  // TODO: make a function for this
+  if ( !all3flag ) {
+    theVoxelSize = zf * gLocalZoom;
+  } else {
+    theVoxelSize = zf/2;
+  }
+
+  DisableDebuggingOutput;
+  
+  for ( y = 0; y < ynum; y++ ) {
+    for ( x = 0; x < xnum; x++ ) {
+
+      switch ( inPlane ) {
+      case CORONAL:
+  Voxel_Set ( theVoxel, x, y, inPlaneNum  );
+  break;
+      case SAGITTAL:
+  Voxel_Set ( theVoxel, inPlaneNum, x, y  );
+  break;
+      case HORIZONTAL:
+  Voxel_Set ( theVoxel, x, inPlaneNum, y );
+  break;
+      }
+
+      // get the value.
+      theErr = Volume_GetData ( gFunctionalVolume, theVoxel, 
+        gCurFunctionalCondition,
+        gCurFunctionalTimePoint,
+        &theValue );
+
+
+      // GetFunctionalValueAtAnatomicalVoxel ( theVoxel, &theValue );
+
+      if ( theErr == kVolumeErr_NoError ) {
+
+  VoxelToScreen ( Voxel_GetX(theVoxel), Voxel_GetY(theVoxel),
+      Voxel_GetZ(theVoxel), 
+      inPlane, &theScreenX, &theScreenY, &theScreenZ );
+  
+  if ( IsScreenPtInWindow ( theScreenX, theScreenY, theScreenZ ) ) {
+    
+    DebugPrint "-- (%d, %d, %d): %2.5f\n",
+      Voxel_GetX(theVoxel), Voxel_GetY(theVoxel), 
+      Voxel_GetZ(theVoxel), theValue EndDebugPrint;
+
+    ScreenToScreenXY ( theScreenX, theScreenY, theScreenZ,
+           inPlane, &theScreenH, &theScreenV );
+
+    
+    CalcFunctionalOverlayColor ( theValue, 0.25,
+            &theDestRed, &theDestGreen, &theDestBlue );
+    /*
+    EnableDebuggingOutput;
+    DebugPrint "%2.5f: %d  ", theValue, theColorComponent EndDebugPrint;
+    DisableDebuggingOutput;
+    */
+    
+    // only draw if we're not all 0s.
+    if ( theDestRed != 0 || theDestGreen != 0 || theDestBlue != 0 ) {
+      
+      theDestColor = 
+        ( (unsigned char)kPixelComponentLevel_Max << kPixelOffset_Alpha |
+    (unsigned char)theDestBlue << kPixelOffset_Blue |
+    (unsigned char)theDestGreen << kPixelOffset_Green |
+    (unsigned char)theDestRed << kPixelOffset_Red );
+      
+      FillBoxInBuffer ( inBuffer, theScreenH, theScreenV, theVoxelSize,
+            theDestColor );
+    }
+  }
+  
+      }
+
+    }
+  }
+
+  EnableDebuggingOutput;
+
+  Voxel_Delete ( &theVoxel );
+}
+  
 
 void
 draw_second_image(int imc, int ic, int jc)
@@ -5801,9 +5807,11 @@ read_canonical_vertex_positions(char *fname)
   MRISsaveVertexPositions ( mris, TMP_VERTICES );
 
   // read vertices into current
-  if (MRISreadVertexPositions(mris, fname) != NO_ERROR)
-  {
-    fprintf(stderr, "could not read canonical vertex positions from %s\n",fname);
+  if (MRISreadVertexPositions(mris, fname) != NO_ERROR) {
+
+    DebugPrint "read_canonical_vertex_positions ( %s ):\n\tcould not read canonical vertex positions\n", fname EndDebugPrint;
+    OutputPrint "Couldn't read canonical vertices from %s.\n", 
+      fname EndOutputPrint;
     return(Gerror) ;
   }
 
@@ -5817,7 +5825,8 @@ read_canonical_vertex_positions(char *fname)
   gIsCanonicalSurfaceLoaded = TRUE;
 
   // kt - print a status msg
-  printf ( "Canonical surface loaded. To toggle display, type \"canon\"\n." );
+  OutputPrint "Canonical surface loaded. To toggle display, type \"canon\"\n."
+    EndOutputPrint;
 
   return(NO_ERROR) ;
 }
@@ -5831,9 +5840,11 @@ read_orig_vertex_positions(char *name)
   MRISsaveVertexPositions ( mris, TMP_VERTICES );
 
   // read vertices into current
-  if (MRISreadVertexPositions(mris, name) != NO_ERROR)
-  {
-    fprintf(stderr, "could not read original vertex positions from %s\n",name);
+  if (MRISreadVertexPositions(mris, name) != NO_ERROR) {
+
+    DebugPrint "read_orig_vertex_positions ( %s ):\n\tcould not read original vertex positions\n", name EndDebugPrint;
+    OutputPrint "Couldn't read original vertices from %s.\n", 
+      name EndOutputPrint;
     return(Gerror) ;
   }
 
@@ -5847,7 +5858,8 @@ read_orig_vertex_positions(char *name)
   gIsOriginalSurfaceLoaded = TRUE;
 
   // kt - print a status msg
-  printf ( "Original surface loaded. To toggle display, type \"orig\"\n." );
+  OutputPrint "Original surface loaded. To toggle display, type \"orig\"\n."
+    EndOutputPrint;
 
   return(NO_ERROR) ;
 }
@@ -5868,18 +5880,24 @@ read_surface(char *name)
   else
     strcpy(fname, name) ;
 
-  DebugPrint "Reading surface file %s\n", fname EndDebugPrint;
+  OutputPrint "Reading surface file %s\n", fname EndOutputPrint;
 
   theStatus = read_binary_surface(fname);
 
   // kt - if the return is 0, it seems the call was successful.
-  // mark the surface as loaded.
   if ( theStatus == 0 ) {
 
+    // mark the surface as loaded.
     gIsCurrentSurfaceLoaded = TRUE;
     
     // print a status msg.
-    printf ( "Surface loaded. To toggle display, type \"current\"\n." );
+    OutputPrint "Surface loaded. To toggle display, type \"current\"\n." 
+      EndOutputPrint;
+
+  } else {
+
+    DebugPrint "read_surface( %s ):\n\tread_binary_surface( %s ) failed, returned %d\n", name, fname, theStatus EndDebugPrint;
+    OutputPrint "Surface failed to load.\n" EndOutputPrint;
   }
   
   return theStatus;
@@ -6136,7 +6154,7 @@ char IsSurfaceVertexHilited ( vertex_type * inVertex, int inSurface ) {
 }
 
 void CurrentSurfaceVertexToVoxel ( vertex_type * inVertex, int inPlane,
-                            Voxel * inVoxel ) {
+           VoxelRef inVoxel ) {
 
   // use the plane to determine the orientation of the voxel.
   switch ( inPlane ) {
@@ -6153,7 +6171,7 @@ void CurrentSurfaceVertexToVoxel ( vertex_type * inVertex, int inPlane,
 }
 
 void OriginalSurfaceVertexToVoxel ( vertex_type * inVertex, int inPlane,
-                            Voxel * inVoxel ) {
+            VoxelRef inVoxel ) {
 
   // use the plane to determine the orientation of the voxel.
   switch ( inPlane ) {
@@ -6170,7 +6188,7 @@ void OriginalSurfaceVertexToVoxel ( vertex_type * inVertex, int inPlane,
 }
 
 void CanonicalSurfaceVertexToVoxel ( vertex_type * inVertex, int inPlane,
-                            Voxel * inVoxel ) {
+             VoxelRef inVoxel ) {
 
   // use the plane to determine the orientation of the voxel.
   switch ( inPlane ) {
@@ -6212,7 +6230,7 @@ char IsVoxelsCrossPlane ( float inPlaneZ,
 
 // space is relative to face
 void CalcDrawPointsForVoxelsCrossingPlane ( float inPlaneZ, int inPlane,
-                                            Voxel *inVox1, Voxel *inVox2,
+                                            VoxelRef inVox1, VoxelRef inVox2,
                                             float *outX, float *outY ) {
   
   float theHeight, theRASX, theRASY;
@@ -6233,8 +6251,7 @@ void CalcDrawPointsForVoxelsCrossingPlane ( float inPlaneZ, int inPlane,
       theHeight = 1.0;
     }
     
-    // set points to be the first voxels coord + the height times the
-    // difference of the two.
+    // interperolate using the height to find the draw point.
     theRASX = Voxel_GetFloatX(inVox1) + 
       theHeight * ( Voxel_GetFloatX(inVox2) - Voxel_GetFloatX(inVox1) );
     
@@ -6295,7 +6312,7 @@ void DrawSurface ( MRI_SURFACE * theSurface, int inPlane, int inSurface ) {
   face_type * theFace;
   vertex_type * theNeighborVertex, * theVertex;
   int theNeighborVertexIndex, theVertexIndex, theFaceIndex, theNumFaces;
-  Voxel theVox1, theVox2;
+  VoxelRef theVox1, theVox2;
   float theDrawPoint[VERTICES_PER_FACE][2], // an array of 2d points
     theHilitedVertexDrawPoint[20][2];
   float theDrawPointX, theDrawPointY;
@@ -6304,6 +6321,9 @@ void DrawSurface ( MRI_SURFACE * theSurface, int inPlane, int inSurface ) {
   float theLineColor[3], theVertexColor[3];
   float theLineWidth, thePointSize;
   char isHilitedVertexOnScreen;
+
+  Voxel_New ( &theVox1 );
+  Voxel_New ( &theVox2 );
 
   // set our drawing plane correctly
   ortho2 ( 0.0, xdim-1, 0.0, ydim-1 );
@@ -6319,6 +6339,8 @@ void DrawSurface ( MRI_SURFACE * theSurface, int inPlane, int inSurface ) {
   case HORIZONTAL:
     thePlaneZ = zz1-ps*(255.0-ic/fsf);
     break;
+  default:
+    thePlaneZ = 0;
   }
 
   // for each face in this surface...
@@ -6349,27 +6371,27 @@ void DrawSurface ( MRI_SURFACE * theSurface, int inPlane, int inSurface ) {
       // make voxels out of the points we want to test.
       switch ( inSurface ) {
       case kSurfaceType_Current:
-        CurrentSurfaceVertexToVoxel ( theNeighborVertex, inPlane, &theVox1 );
-        CurrentSurfaceVertexToVoxel ( theVertex, inPlane, &theVox2 );
+        CurrentSurfaceVertexToVoxel ( theNeighborVertex, inPlane, theVox1 );
+        CurrentSurfaceVertexToVoxel ( theVertex, inPlane, theVox2 );
         break;
       case kSurfaceType_Original:
-        OriginalSurfaceVertexToVoxel ( theNeighborVertex, inPlane, &theVox1 );
-        OriginalSurfaceVertexToVoxel ( theVertex, inPlane, &theVox2 );
+        OriginalSurfaceVertexToVoxel ( theNeighborVertex, inPlane, theVox1 );
+        OriginalSurfaceVertexToVoxel ( theVertex, inPlane, theVox2 );
         break;
       case kSurfaceType_Canonical:
-        CanonicalSurfaceVertexToVoxel ( theNeighborVertex, inPlane, &theVox1 );
-        CanonicalSurfaceVertexToVoxel ( theVertex, inPlane, &theVox2 );
+        CanonicalSurfaceVertexToVoxel ( theNeighborVertex, inPlane, theVox1 );
+        CanonicalSurfaceVertexToVoxel ( theVertex, inPlane, theVox2 );
         break;
       }
 
       // see if they cross the plane
       if ( IsVoxelsCrossPlane ( thePlaneZ,
-                                Voxel_GetFloatZ(&theVox1), 
-                                Voxel_GetFloatZ(&theVox2) )) {
+                                Voxel_GetFloatZ(theVox1), 
+                                Voxel_GetFloatZ(theVox2) )) {
 
         // calculate the point to draw.
         CalcDrawPointsForVoxelsCrossingPlane ( thePlaneZ, inPlane,
-                                               &theVox1, &theVox2,
+                                               theVox1, theVox2,
                                                &theDrawPointX,&theDrawPointY );
 
         // if this point is on screen...
@@ -6469,14 +6491,15 @@ void DrawSurface ( MRI_SURFACE * theSurface, int inPlane, int inSurface ) {
       DrawWithFloatVertexArray ( GL_LINES, 
          (float*)theDrawPoint, theNumDrawPoints );
 
+      // set point size and color.
+      thePointSize = theLineWidth + 1;
+      if ( thePointSize > gLocalZoom ) {
+  thePointSize = 1;
+      }
+
       // if we're drawing vertices...
       if ( IsSurfaceVertexDisplayOn () ) {
 
-  // set point size and color.
-  thePointSize = theLineWidth + 1;
-  if ( thePointSize > gLocalZoom ) {
-    thePointSize = 1;
-  }
   glPointSize ( thePointSize );
   glColor3fv ( theVertexColor );
   
@@ -6533,6 +6556,7 @@ void DrawWithFloatVertexArray ( GLenum inMode,
 }
 
 
+// old draw_surface function, replaced by DrawSurface().
 void
 draw_surface(void)
 {
@@ -6695,7 +6719,6 @@ draw_surface(void)
     }
   }
 
-  // kt - made same changes in this part as in the last
   if (plane==SAGITTAL || all3flag)
   {
     ortho2 ( 0.0, xdim-1, 0.0, ydim-1 );
@@ -8036,20 +8059,20 @@ int W_WriteCtrlPtFile WBEGIN
      WriteCtrlPtFile ( tfname );
      WEND
      
-int W_TclVList_PrintDebug WBEGIN
-     ERR ( 1, "Wrong # args: TclVList_PrintDebug" )
-     TclVList_PrintDebug ( &gSelectionList );
-     WEND
-
-int W_TclVSpace_PrintDebug WBEGIN
-     ERR ( 1, "Wrong # args: TclVSpace_PrintDebug" )
-     TclVSpace_PrintDebug ( &gCtrlPtList );
-     WEND
-
 int TclScreenToVoxel ( ClientData inClientData, Tcl_Interp * inInterp,
                        int argc, char ** argv );
 int TclVoxelToScreen ( ClientData inClientData, Tcl_Interp * inInterp,
                        int argc, char ** argv );
+
+int TclHideCursor WBEGIN
+     ERR ( 1, "Wrong # args: HideCursor" )
+     HideCursor ();
+     WEND
+
+int TclShowCursor WBEGIN
+     ERR ( 1, "Wrong # args: ShowCursor" )
+     ShowCursor ();
+     WEND
 
 int TclSaveCursorLocation WBEGIN
      ERR ( 1, "Wrong # args: SaveCursorLocation" )
@@ -8065,6 +8088,113 @@ int W_UnzoomView WBEGIN
      ERR ( 1, "Wrong # args: UnzoomView" )
      UnzoomView ();
      WEND
+
+int W_PrintCurFunctionalHeader WBEGIN
+     ERR ( 1, "Wrong # args: PrintCurFunctionalHeader" )
+     Volume_DebugPrint ( gFunctionalVolume );
+     WEND
+
+int W_PrintCurFunctionalState WBEGIN
+     char theString [256];
+     ERR ( 1, "Wrong # args: PrintCurFunctionalState" )
+     CopyCurrentFunctionalStateString ( theString );
+     DebugPrint "%s", theString EndDebugPrint;
+     WEND
+     
+int W_LoadFunctionalData WBEGIN
+     ERR ( 3, "Wrong # args: LoadFunctionalData dir stem" )
+     LoadFunctionalData ( argv[1], argv[2] );
+     WEND
+
+int W_SetCurrentFunctionalDisplayStatus WBEGIN
+     ERR ( 2, "Wrong # args: SetCurrentFunctionalDisplayStatus status" )
+     SetCurrentFunctionalDisplayStatus ( atoi(argv[1]) );
+     WEND
+
+int W_SetCurrentFunctionalTimeResolution WBEGIN
+     ERR ( 2, "Wrong # args: SetCurrentFunctionalTimeResolution time_res" )
+      SetCurrentFunctionalTimeResolution ( atoi(argv[1]) );
+     WEND
+
+int W_SetCurrentFunctionalNumPreStimPoints WBEGIN
+     ERR ( 2, "Wrong # args: SetCurrentFunctionalNumPreStimPoints num_points" )
+      SetCurrentFunctionalNumPreStimPoints ( atoi(argv[1]) );
+     WEND
+
+int W_SetCurrentFunctionalTimeSecond WBEGIN
+     ERR ( 2, "Wrong # args, punk: SetCurrentFunctionalTimeSecond second" )
+     SetCurrentFunctionalTimeSecond ( rint(atoi(argv[1])) );
+     WEND
+
+int W_SetCurrentFunctionalTimePoint WBEGIN
+     ERR ( 2, "Wrong # args, punk: SetCurrentFunctionalTimePoint time_point" )
+     SetCurrentFunctionalTimePoint ( atoi(argv[1]) );
+     WEND
+
+int W_SetCurrentFunctionalCondition WBEGIN
+     ERR ( 2, "Wrong # args: SetCurrentFunctionalCondition condition" )
+     SetCurrentFunctionalCondition ( atoi(argv[1]) );
+     WEND
+
+int W_SetCurrentFunctionalThresholdMin WBEGIN
+     ERR ( 2, "Wrong # args: SetCurrentFunctionalThresholdMin threshold" )
+     SetCurrentFunctionalThresholdMin ( atof(argv[1]) );
+     WEND
+
+int W_SetCurrentFunctionalThresholdMid WBEGIN
+     ERR ( 2, "Wrong # args: SetCurrentFunctionalThresholdMid threshold" )
+     SetCurrentFunctionalThresholdMid ( atof(argv[1]) );
+     WEND
+
+int W_SetCurrentFunctionalThresholdMax WBEGIN
+     ERR ( 2, "Wrong # args: SetCurrentFunctionalThresholdMax threshold" )
+     SetCurrentFunctionalThresholdMax ( atof(argv[1]) );
+     WEND
+
+     // for changing modes from the cmd line
+int W_CtrlPtMode WBEGIN
+     ERR ( 1, "Wrong # args: CtrlPtMode" )
+     SetMode ( kMode_CtrlPt );
+     WEND;
+
+int W_EditMode WBEGIN
+     ERR ( 1, "Wrong # args: EditMode" )
+     SetMode ( kMode_Edit );
+     WEND;
+
+int W_SelectMode WBEGIN
+     ERR ( 1, "Wrong # args: SelectMode" )
+     SetMode ( kMode_Select );
+     WEND;
+
+     // for setting brush info
+int W_SetBrushRadius WBEGIN
+     ERR ( 2, "Wrong # args: SetBrushRadius radius" )
+     SetBrushRadius ( atoi(argv[1]) );
+     WEND;
+
+int W_SetBrushShape WBEGIN
+     ERR ( 2, "Wrong # args: SetBrushShape 0=square,1=circular" )
+     SetBrushShape ( (Brush_Shape)(atoi(argv[1])) );
+     WEND;
+
+int W_SetBrush3DStatus WBEGIN
+     ERR ( 2, "Wrong # args: SetBrush3DStatus status" )
+     SetBrush3DStatus ( atoi(argv[1]) );
+     WEND;
+
+     // saving and loading labels
+int W_SaveSelectionToLabelFile WBEGIN
+     ERR ( 2, "Wrong # args: SaveSelectionToLabelFile label_name" )
+     SaveSelectionToLabelFile ( argv[1] );
+     WEND;
+
+int W_LoadSelectionFromLabelFile WBEGIN
+     ERR ( 2, "Wrong # args: LoadSelectionFromLabelFile label_name" )
+     LoadSelectionFromLabelFile ( argv[1] );
+     WEND;
+
+
 
   // end_kt
 
@@ -8102,8 +8232,10 @@ char **argv;
   InitDebugging;
   EnableDebuggingOutput;
 
+  DebugPrint "Debugging output is on.\n" EndDebugPrint;
+
   // init the selection list 
-  theErr = VList_Init ( &gSelectionList );
+  theErr = VList_New ( &gSelectionList );
   if ( theErr ) {
     DebugPrint "Error in VList_Init: %s\n", 
       VList_GetErrorString(theErr) EndDebugPrint;
@@ -8111,12 +8243,20 @@ char **argv;
   }
 
   // init our control pt list
-  theErr = VSpace_Init ( &gCtrlPtList );
+  theErr = VSpace_New ( &gCtrlPtList );
   if ( theErr != kVSpaceErr_NoErr ) {
     DebugPrint "Error in VSpace_Init: %s\n",
       VSpace_GetErrorString ( theErr ) EndDebugPrint;
     exit (1);
   }
+
+  // init the undo list.
+  if ( VoxelValueList_New ( &gUndoList ) != kVoxelValueListErr_NoErr ) {
+    DebugPrint "Error allocating undo list.\n" EndDebugPrint;
+  }
+
+  // and the selection module.
+  InitSelectionModule ();
 
   // start off not displaying control pts.
   gIsDisplayCtrlPts = FALSE;
@@ -8140,6 +8280,10 @@ char **argv;
   gIsCurrentSurfaceLoaded = FALSE;
   gIsOriginalSurfaceLoaded = FALSE;
   gIsCanonicalSurfaceLoaded = FALSE;
+
+
+  // start out in editing mode.
+  SetMode ( kMode_Edit );
 
   // end_kt
 
@@ -8198,7 +8342,6 @@ char **argv;
   }
 
   /* start program, now as function; gl window not opened yet */
-  printf("tkmedit: starting medit\n");
   Medit((ClientData) NULL, interp, argc, argv); /* event loop commented out */
 
   /* start tcl/tk; first make interpreter */
@@ -8212,7 +8355,6 @@ char **argv;
   if (mainWindow == NULL) {
     fprintf(stderr, "%s\n", interp->result);
     exit(1); }
-
 
   //  theCrossCursor = Tk_GetCursor ( interp, mainWindow, "cross" );
   //  Tk_DefineCursor ( mainWindow, theCrossCursor );
@@ -8300,19 +8442,69 @@ char **argv;
   // kt
   Tcl_CreateCommand ( interp, "ProcessCtrlPtFile", W_ProcessCtrlPtFile, REND );
   Tcl_CreateCommand ( interp, "WriteCtrlPtFile", W_WriteCtrlPtFile, REND );
-  Tcl_CreateCommand ( interp, "TclVList_PrintDebug", 
-                      W_TclVList_PrintDebug, REND );
-  Tcl_CreateCommand ( interp, "TclVSpace_PrintDebug", 
-                      W_TclVSpace_PrintDebug, REND );
   Tcl_CreateCommand ( interp, "UnzoomView", W_UnzoomView, REND );
-
   Tcl_CreateCommand ( interp, "ScreenToVoxel", TclScreenToVoxel,
                       (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
   Tcl_CreateCommand ( interp, "VoxelToScreen", TclVoxelToScreen,
                       (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
+  Tcl_CreateCommand ( interp, "HideCursor", TclHideCursor, REND );
+  Tcl_CreateCommand ( interp, "ShowCursor", TclShowCursor, REND );
+  Tcl_CreateCommand ( interp, "hidecursor", TclHideCursor, REND );
+  Tcl_CreateCommand ( interp, "showcursor", TclShowCursor, REND );
   Tcl_CreateCommand ( interp, "SaveCursorLocation", TclSaveCursorLocation, REND);
   Tcl_CreateCommand ( interp, "RestoreCursorLocation", 
                       TclRestoreCursorLocation, REND);
+
+  Tcl_CreateCommand ( interp, "LoadFunctionalData",
+          W_LoadFunctionalData, REND );
+  Tcl_CreateCommand ( interp, "PrintCurFunctionalHeader", 
+          W_PrintCurFunctionalHeader, REND );
+  Tcl_CreateCommand ( interp, "PrintCurFunctionalState", 
+          W_PrintCurFunctionalState, REND );
+  Tcl_CreateCommand ( interp, "SetCurrentFunctionalDisplayStatus", 
+          W_SetCurrentFunctionalDisplayStatus, REND );
+   Tcl_CreateCommand ( interp, "SetCurrentFunctionalTimeResolution", 
+          W_SetCurrentFunctionalTimeResolution, REND );
+  Tcl_CreateCommand ( interp, "SetCurrentFunctionalNumPreStimPoints", 
+          W_SetCurrentFunctionalNumPreStimPoints, REND );
+  Tcl_CreateCommand ( interp, "SetCurrentFunctionalTimeSecond", 
+          W_SetCurrentFunctionalTimeSecond, REND );
+  Tcl_CreateCommand ( interp, "SetCurrentFunctionalTimePoint", 
+          W_SetCurrentFunctionalTimePoint, REND );
+  Tcl_CreateCommand ( interp, "SetCurrentFunctionalCondition", 
+          W_SetCurrentFunctionalCondition, REND );
+  Tcl_CreateCommand ( interp, "SetCurrentFunctionalThresholdMin", 
+          W_SetCurrentFunctionalThresholdMin, REND );
+  Tcl_CreateCommand ( interp, "SetCurrentFunctionalThresholdMid", 
+          W_SetCurrentFunctionalThresholdMid, REND );
+  Tcl_CreateCommand ( interp, "SetCurrentFunctionalThresholdMax", 
+          W_SetCurrentFunctionalThresholdMax, REND );
+
+  // for changing modes.
+  Tcl_CreateCommand ( interp, "CtrlPtMode", W_CtrlPtMode, REND );
+  Tcl_CreateCommand ( interp, "ControlPointMode", W_CtrlPtMode, REND );
+  Tcl_CreateCommand ( interp, "EditMode", W_EditMode, REND );
+  Tcl_CreateCommand ( interp, "SelectMode", W_SelectMode, REND );
+  Tcl_CreateCommand ( interp, "ctrlptmode", W_CtrlPtMode, REND );
+  Tcl_CreateCommand ( interp, "controlptmode", W_CtrlPtMode, REND );
+  Tcl_CreateCommand ( interp, "editmode", W_EditMode, REND );
+  Tcl_CreateCommand ( interp, "selectmode", W_SelectMode, REND );
+
+  // brush control
+  Tcl_CreateCommand ( interp, "SetBrushRadius", W_SetBrushRadius, REND );
+  Tcl_CreateCommand ( interp, "SetBrushShape", W_SetBrushShape, REND );
+  Tcl_CreateCommand ( interp, "SetBrush3DStatus", W_SetBrush3DStatus, REND );
+
+  // labels
+  Tcl_CreateCommand ( interp, "SaveSelectionToLabelFile",
+          W_SaveSelectionToLabelFile, REND );
+  Tcl_CreateCommand ( interp, "savelabel", 
+          W_SaveSelectionToLabelFile, REND );
+  Tcl_CreateCommand ( interp, "LoadSelectionFromLabelFile",
+          W_LoadSelectionFromLabelFile, REND );
+  Tcl_CreateCommand ( interp, "loadlabel", 
+          W_LoadSelectionFromLabelFile, REND );
+
   // end_kt
 
   /*=======================================================================*/
@@ -8340,11 +8532,6 @@ char **argv;
   Tcl_LinkVar(interp,"all3flag",(char *)&all3flag,TCL_LINK_BOOLEAN);
   Tcl_LinkVar(interp,"changeplanelock",(char *)&changeplanelock, 
                                                         TCL_LINK_BOOLEAN);
-  // kt
-  Tcl_LinkVar ( interp,
-                "gIsDisplayCtrlPts",
-                (char*)&gIsDisplayCtrlPts, 
-                TCL_LINK_BOOLEAN );
 
   /*=======================================================================*/
   /***** link global INT variables to tcl equivalents */
@@ -8450,6 +8637,10 @@ char **argv;
 
   /*Tk_MainLoop();*/  /* standard */
 
+  // kt - if doing functional data, init graph window.
+  if ( IsFunctionalDataLoaded () ) {
+    InitFunctionalGraphWindow ( interp );
+  }
 
   // kt - new commands summary
   printf("\nNew commands, see inverse/Notes/tkmedit.txt for details.\n");
@@ -8457,17 +8648,17 @@ char **argv;
   printf("\t-z: switch to change scale factor from command line\n");
   printf("\tCtrl-button 1: Zoom in\n");
   printf("\tCtrl-button 3: Zoom out\n");
+
   printf("\nControl points:\n");
-  printf("\t'select_control_points': enter selection mode\n");
-  printf("\t'reset_control_points': enter editing mode\n");
   printf("\tCtrl-h: toggle control point visibility\n");
   printf("\tCtrl-y: toggle control point display style\n");
   printf("\tButton 2: select nearest control point\n");
   printf("\tShift-button 2: add nearest control point to selection\n");
-  printf("\tAlt-button 2: remove nearest control point from selection\n");
+  printf("\tCtrl-button 2: remove nearest control point from selection\n");
   printf("\tCtrl-n: deselect all points\n");
   printf("\tCtrl-d: delete selected points\n");
   printf("\tCtrl-s: save control points to control.dat file\n");
+
   printf("\nSurface display:\n");
   printf("\t'read_surface <surf_name>': read a current surface\n");
   printf("\t'read_original_surface <surf_name>': read an original surface\n");
@@ -8477,6 +8668,28 @@ char **argv;
   printf("\t'canonical': toggle canonical surface display\n");
   printf("\tCtrl-v: toggle surface vertex display\n");
   printf("\tCtrl-a: toggle vertex display type, average or real\n");
+
+  printf("\nEditing:\n");
+  printf("\tCtrl-z: undos last edit stroke\n");
+
+  printf("\nMode switching:\n");
+  printf("\t'SelectMode': enter selection mode\n");
+  printf("\t'CtrlPtMode': enter control point editing mode\n");
+  printf("\t'EditMode': enter editing mode\n");
+
+  printf("\nCursor visibility:\n");
+  printf("\t'HideCursor': hides the cursor\n" );
+  printf("\t'ShowCursor': shows the cursor\n" );
+
+ DebugPrint "\nFunctional debug\n"
+   "\tPrintCurFunctionalHeader\n"
+   "\tPrintCurFunctionalValueList\n"
+   "\tPrintCurFunctionalState\n"
+   "\tSetCurrentFunctionalTimePoint time_point\n"
+   "\tSetCurrentFunctionalCondition condition\n"
+   "\tSetCurrentFunctionalThresholdMin threshold\n"
+   "\tSetCurrentFunctionalThresholdMid threshold\n"
+   "\tSetCurrentFunctionalThresholdMax threshold\n" EndDebugPrint;
 
  printf("\n");
  PR;
@@ -8496,6 +8709,12 @@ char **argv;
 
   // kt - delete the structs we inited before
 
+  if ( IsFunctionalDataLoaded() ) {
+    DeleteFunctionalData ();
+  }
+
+  DeleteSelectionModule ();
+
   theErr = VList_Delete ( &gSelectionList );
   if ( theErr )
     DebugPrint "Error in VList_Delete: %s\n",  
@@ -8505,6 +8724,8 @@ char **argv;
   if ( theErr != kVSpaceErr_NoErr )
     DebugPrint "Error in VSpace_Delete: %s\n",
       VSpace_GetErrorString(theErr) EndDebugPrint;
+
+  VoxelValueList_Delete ( &gUndoList );
 
   DeleteDebugging;
 
@@ -8595,603 +8816,124 @@ static void Prompt(interp, partial)
 
 // kt
 
-/* ================================================================= Voxel */ 
+// =========================================================== READING VOLUMES
 
+void ReadVolumeWithMRIRead ( char * inFileOrPath ) {
 
-                                       /* silly accessor methods for max
-                                          object orientedness */
-inline
-void Voxel_Set ( Voxel * inVoxel, int x, int y, int z ) {
-  
-  inVoxel->mX = x;
-  inVoxel->mY = y;
-  inVoxel->mZ = z;
-}
+  MRI * theVolume;
+  int theSlice, theRow, theCol;
 
-inline
-int Voxel_GetX ( Voxel * inVoxel ) {
+  // pass the path to MRIRead
+  theVolume = MRIread ( inFileOrPath );
 
-  return inVoxel->mX;
-}
-
-inline
-int Voxel_GetY ( Voxel * inVoxel ) {
-
-  return inVoxel->mY;
-}
-
-inline
-int Voxel_GetZ ( Voxel * inVoxel ) {
-
-  return inVoxel->mZ;
-}
-
-inline 
-void Voxel_SetFloat ( Voxel * inVoxel, float x, float y, float z ) {
-
-  inVoxel->mX = x;
-  inVoxel->mY = y;
-  inVoxel->mZ = z;
-}
-
-inline 
-float Voxel_GetFloatX ( Voxel * inVoxel ) {
-
-  return inVoxel->mX;
-}
-
-inline 
-float Voxel_GetFloatY ( Voxel * inVoxel ) {
-
-  return inVoxel->mY;
-}
-
-inline
-float Voxel_GetFloatZ ( Voxel * inVoxel ) {
-
-  return inVoxel->mZ;
-}
-
-
-/* ============================================================ VoxelList */
-                                       /* init the voxel list. */
-char VList_Init ( VoxelList * inList ) {
-
-  if ( NULL == inList )
-    return kVListErr_InvalidPtr;
-
-  // nothing to really do here except mark our list empty.
-  inList->mFirstEmpty = 0;
-
-  return kVListErr_NoErr;
-}
-
-                                       /* clean up after the list. */
-char VList_Delete ( VoxelList * inList ) {
-
-  if ( NULL == inList )
-    return kVListErr_InvalidPtr;
-
-  if ( inList->mFirstEmpty < 0 ||
-       inList->mFirstEmpty >= kVList_ListSize )
-    return kVListErr_InvalidList;
-
-  // nothing to do here.
-  return kVListErr_NoErr;
-}
-
-                                       /* add a voxel to the list. */
-char VList_AddVoxel ( VoxelList * inList, 
-                      Voxel * inVoxel ) {
-
-  if ( NULL == inList )
-    return kVListErr_InvalidPtr;
-
-  if ( inList->mFirstEmpty < 0 ||
-       inList->mFirstEmpty >= kVList_ListSize )
-    return kVListErr_InvalidList;
-
-  // make sure we have space to add this voxel.
-  if ( inList->mFirstEmpty + 1 >= kVList_ListSize )
-    return kVListErr_ListFull;
-
-  // see if it already exists. if it does, return no error. 
-  // !! should this return an error?
-  if ( VList_IndexInList ( inList, inVoxel ) >= 0 )
-    return kVListErr_NoErr;
-
-  // copy the voxel into the last spot.
-  inList->mVoxel [ inList->mFirstEmpty ] = *inVoxel;
-  inList->mFirstEmpty++;
-
-  return kVListErr_NoErr;
-}
-
-                                       /* remove a voxel from the list */
-char VList_RemoveVoxel ( VoxelList * inList,
-                         Voxel * inVoxel ) {
-
-  int theIndex;
-
-  if ( NULL == inList )
-    return kVListErr_InvalidPtr;
-
-  if ( inList->mFirstEmpty < 0 ||
-       inList->mFirstEmpty >= kVList_ListSize )
-    return kVListErr_InvalidList;
-
-  // find the index this voxel is at.
-  theIndex = VList_IndexInList ( inList, inVoxel );
-  if ( theIndex < 0 )
-    return kVListErr_VoxelNotInList;
-
-  // if this isn't the last space, copy the last one into it.
-  if ( theIndex != inList->mFirstEmpty - 1 )
-    inList->mVoxel [ theIndex ] = inList->mVoxel [ inList->mFirstEmpty-1 ];
-
-  // shorten the list.
-  inList->mFirstEmpty--;
-
-  return kVListErr_NoErr;
-}
-
-                                       /* output whether or not the voxel 
-                                          is in the list */
-char VList_IsInList ( VoxelList * inList,
-                      Voxel * inVoxel,
-                      char * outIsInList ) {
-
-  int theIndex;
-
-  if ( NULL == inList )
-    return kVListErr_InvalidPtr;
-
-  if ( inList->mFirstEmpty < 0 ||
-       inList->mFirstEmpty >= kVList_ListSize )
-    return kVListErr_InvalidList;
-
-  // see if we can find an index for this voxel.
-  theIndex = VList_IndexInList ( inList, inVoxel );
-  if ( theIndex < 0 )
-    *outIsInList = FALSE;
-  else
-    *outIsInList = TRUE;
-
-  return kVListErr_NoErr;
-}
-
-  
-
-                                       /* if voxel is in list, returns its 
-                                          position, otherwise returns an error 
-                                          and -1 for the index. index is
-                                          0-based. no error checking, 
-                                          intended for internal use. */
-int VList_IndexInList ( VoxelList * inList, 
-                        Voxel * inVoxel ) {
-
-  int theIndex;
-
-  // step through the entire list..
-  for ( theIndex = 0; theIndex < inList->mFirstEmpty; theIndex++ ) {
-
-    // if we found it..
-    if ( inList->mVoxel[theIndex].mX == inVoxel->mX &&
-         inList->mVoxel[theIndex].mY == inVoxel->mY &&
-         inList->mVoxel[theIndex].mZ == inVoxel->mZ )
-
-      // return the index.
-      return theIndex;
-
+  // make sure the result is good.
+  if ( NULL == theVolume ) {
+    OutputPrint "Couldn't read volume data at %s\n", 
+      inFileOrPath EndOutputPrint;
+    exit ( 1 );
   }
 
-  // not found.
-  return -1;
-}
+  // conform it.
+  theVolume = MRIconform ( theVolume );
+
+  // grab all the data we need.
+  imnr0 = theVolume->imnr0;
+  imnr1 = theVolume->imnr1;
+  ptype = theVolume->ptype;
+  xnum = theVolume->width;
+  ynum = theVolume->height;
+  ps = theVolume->ps;
+  st = theVolume->thick;
+  xx0 = theVolume->xstart;
+  xx1 = theVolume->xend;
+  yy0 = theVolume->ystart;
+  yy1 = theVolume->yend;
+  zz0 = theVolume->zstart;
+  zz1 = theVolume->zend;
+
+  // grab the tal transforms.
+  copy_general_transform ( &theVolume->transform, &talairach_transform );
+  linear_transform = get_linear_transform_ptr ( &talairach_transform );
+  inverse_linear_transform = 
+    get_inverse_linear_transform_ptr ( &talairach_transform );
   
+  // if we got them, make note of it.
+  if ( NULL != linear_transform  && NULL != inverse_linear_transform )
+    transform_loaded = TRUE;
 
-                                       /* clear all voxels in the list */
-char VList_ClearList ( VoxelList * inList ) {
+  numimg = imnr1-imnr0+1; // really the number of slices
 
-  if ( NULL == inList )
-    return kVListErr_InvalidPtr;
+  // calc window dimensions according to already defined scale factor
+  xdim= xnum * zf;
+  ydim= ynum * zf;
 
-  if ( inList->mFirstEmpty < 0 ||
-       inList->mFirstEmpty >= kVList_ListSize )
-    return kVListErr_InvalidList;
+  /*
+  DebugPrint "\timnr0 = %d\n", imnr0 EndDebugPrint;
+  DebugPrint "\timnr1 = %d\n", imnr1 EndDebugPrint;
+  DebugPrint "\tnumimg = %d\n", numimg EndDebugPrint;
+  DebugPrint "\tptype = %d\n", ptype EndDebugPrint;
+  DebugPrint "\txnum = %d\n", xnum EndDebugPrint;
+  DebugPrint "\tynum = %d\n", ynum EndDebugPrint;
+  DebugPrint "\tps = %2.5f\n", ps EndDebugPrint;
+  DebugPrint "\tst = %2.5f\n", st EndDebugPrint;
+  DebugPrint "\txx0 = %2.5f\n", xx0 EndDebugPrint;
+  DebugPrint "\txx1 = %2.5f\n", xx1 EndDebugPrint;
+  DebugPrint "\tyy0 = %2.5f\n", yy0 EndDebugPrint;
+  DebugPrint "\tyy1 = %2.5f\n", yy1 EndDebugPrint;
+  DebugPrint "\tzz0 = %2.5f\n", zz0 EndDebugPrint;
+  DebugPrint "\tzz1 = %2.5f\n", zz1 EndDebugPrint;
+  DebugPrint "\ttransform_loaded = %d\n", transform_loaded EndDebugPrint;
+  */
 
-  // set the first empty list member to 0, clears the list.
-  inList->mFirstEmpty = 0;
-
-  return kVListErr_NoErr;
-}
-
-                                       /* get the number of voxels in the 
-                                          list */
-char VList_GetCount ( VoxelList * inList,
-                      int * outCount ) {
-
-    if ( NULL == inList )
-    return kVListErr_InvalidPtr;
-
-    if ( inList->mFirstEmpty < 0 ||
-         inList->mFirstEmpty >= kVList_ListSize )
-      return kVListErr_InvalidList;
-
-    // the number of items is the index of the first empty.
-    *outCount = inList->mFirstEmpty;
-
-    return kVListErr_NoErr;
-}
-    
-
-                                       /* return the data in the nth voxel,
-                                          n is 0-based index.*/
-char VList_GetNthVoxel ( VoxelList * inList,
-                         int inIndex,
-                         Voxel * outVoxel ) {
-
-  if ( NULL == inList )
-    return kVListErr_InvalidPtr;
-  
-  if ( inList->mFirstEmpty < 0 ||
-       inList->mFirstEmpty >= kVList_ListSize )
-    return kVListErr_InvalidList;
-  
-  if ( inIndex < 0 ||
-       inIndex >= inList->mFirstEmpty )
-    return kVListErr_IndexOutOfBounds;
-  
-  // copy the data into outgoing voxel;
-  *outVoxel = inList->mVoxel [ inIndex ];
-  
-  return kVListErr_NoErr;
-}
-
-                                       /* print out all the voxels in the 
-                                          list */
-char VList_PrintDebug ( VoxelList * inList ) {
-
-  int theIndex, theCount;
-  char theResult;
-  Voxel theVoxel;
-
-  if ( NULL == inList )
-    return kVListErr_InvalidPtr;
-  
-  if ( inList->mFirstEmpty < 0 ||
-       inList->mFirstEmpty >= kVList_ListSize )
-    return kVListErr_InvalidList;
-  
-  theResult = VList_GetCount ( inList, &theCount );
-  if ( theResult != kVListErr_NoErr )
-    return theResult;
-
-  for ( theIndex = 0; theIndex < theCount; theIndex++ ) {
-
-    theResult = VList_GetNthVoxel ( inList, theIndex, &theVoxel );
-    if ( theResult != kVListErr_NoErr )
-      return theResult;
-
-    DebugPrint "\t(%d,%d,%d)\n",
-      Voxel_GetX(&theVoxel), Voxel_GetY(&theVoxel), Voxel_GetZ(&theVoxel) 
-      EndDebugPrint;
-  }
-
-  return kVListErr_NoErr;
-}
-
-void TclVList_PrintDebug ( VoxelList * inList ) {
-
-  char theErr;
-
-  DebugPrint "Printing out voxel list...\n" EndDebugPrint;
-
-  theErr = VList_PrintDebug ( inList );
-
-  if ( theErr != kVListErr_NoErr )
-    DebugPrint "TclVList_PrintDebug: Error %s\n", 
-      VList_GetErrorString(theErr) EndDebugPrint;
-
-  DebugPrint "\tDone.\n\n" EndDebugPrint;
-  PR;
-}
-
-char * VList_GetErrorString ( int inErr ) {
-
-  return (char*)(kVList_ErrString[inErr]);
-}
-
-
-/* ============================================================= VoxelSpace */
-
-                                       /* init the space */
-char VSpace_Init ( VoxelSpace * inSpace ) {
-
-  int theIndex;
-  char theResult;
-
-  if ( NULL == inSpace )
-    return kVSpaceErr_InvalidPtr;
-
-  // initialize every list we have.
-  for ( theIndex = 0; theIndex < kVSpace_NumListsInPlane; theIndex++ ) {
-    
-    theResult = VList_Init ( &(inSpace->mXPlane[theIndex]) );
-    if ( theResult != kVListErr_NoErr )
-      // this shouldn't fail.
-      ;
-
-    theResult = VList_Init ( &(inSpace->mYPlane[theIndex]) );
-    if ( theResult != kVListErr_NoErr )
-      // this shouldn't fail.
-      ;
-
-    theResult = VList_Init ( &(inSpace->mZPlane[theIndex]) );
-    if ( theResult != kVListErr_NoErr )
-      // this shouldn't fail.
-      ;
-  }
-
-  return kVSpaceErr_NoErr;
-}
-
-
-                                       /* delete the space */
-char VSpace_Delete ( VoxelSpace * inSpace ) {
-
-  int theIndex;
-  char theResult;
-
-  if ( NULL == inSpace )
-    return kVSpaceErr_InvalidPtr;
-
-  // initialize every list we have.
-  for ( theIndex = 0; theIndex < kVSpace_NumListsInPlane; theIndex++ ) {
-    
-    theResult = VList_Delete ( &(inSpace->mXPlane[theIndex]) );
-    if ( theResult != kVListErr_NoErr )
-      return kVSpaceErr_InvalidSpace;
-
-    theResult = VList_Delete ( &(inSpace->mYPlane[theIndex]) );
-    if ( theResult != kVListErr_NoErr )
-      return kVSpaceErr_InvalidSpace;
-
-    theResult = VList_Delete ( &(inSpace->mZPlane[theIndex]) );
-    if ( theResult != kVListErr_NoErr )
-      return kVSpaceErr_InvalidSpace;
-  }
-
-  return kVSpaceErr_NoErr;
-}
-  
-
-                                       /* add a voxel to the space */
-char VSpace_AddVoxel ( VoxelSpace * inSpace, 
-                       Voxel * inVoxel ) {
-
-  char theResult;
-  
-  if ( NULL == inSpace )
-    return kVSpaceErr_InvalidPtr;
-
-  // check the bounds on the voxel.
-  if ( inVoxel->mX < 0 || inVoxel->mY < 0 || inVoxel->mZ < 0 ||
-       inVoxel->mX >= kVSpace_NumListsInPlane ||
-       inVoxel->mY >= kVSpace_NumListsInPlane ||
-       inVoxel->mZ >= kVSpace_NumListsInPlane )
-    return kVSpaceErr_InvalidVoxel;
-
-  // add it to the x plane of the x coord, the y plane of the y coord,
-  // and the z plane of the z coord.
-  theResult = VList_AddVoxel ( &(inSpace->mXPlane[Voxel_GetX(inVoxel)]), inVoxel );
-  if ( theResult != kVListErr_NoErr ) {
-    if ( theResult == kVListErr_ListFull ) {
-      return kVSpaceErr_XPlaneFull;
-    } else {
-      return kVSpaceErr_InvalidSpace;
+  // each slice is an array of rows. each row is an array of cols.
+  // im[][][] is our volume buffer.
+  for ( theSlice = 0 ; theSlice < numimg; theSlice++ ) {
+    im[theSlice] = (BUFTYPE**)lcalloc ( ynum, sizeof(BUFTYPE*) );
+    for ( theRow = 0; theRow < ynum; theRow++ ) {
+      im[theSlice][theRow] = (BUFTYPE*)lcalloc ( xnum, sizeof(BUFTYPE) );
     }
   }
 
-  theResult = VList_AddVoxel ( &(inSpace->mYPlane[Voxel_GetY(inVoxel)]), inVoxel );
-  if ( theResult != kVListErr_NoErr ) {
-    if ( theResult == kVListErr_ListFull ) {
-      return kVSpaceErr_YPlaneFull;
-    } else {
-      return kVSpaceErr_InvalidSpace;
+  // sim[][][] is a small volume buffer.
+  for ( theSlice = 0 ; theSlice < 6; theSlice++ ) {
+    sim[theSlice] = (BUFTYPE**)lcalloc ( ynum, sizeof(BUFTYPE*) );
+    for ( theRow = 0; theRow < ynum; theRow++ ) {
+      sim[theSlice][theRow] = (BUFTYPE*)lcalloc ( xnum, sizeof(BUFTYPE) );
     }
   }
 
-  theResult = VList_AddVoxel ( &(inSpace->mZPlane[Voxel_GetZ(inVoxel)]), inVoxel );
-  if ( theResult != kVListErr_NoErr ) {
-    if ( theResult == kVListErr_ListFull ) {
-      return kVSpaceErr_ZPlaneFull;
-    } else {
-      return kVSpaceErr_InvalidSpace;
-    }
+  // read in all image data into im[], set changed[] for all slices to nil.
+  for ( theSlice = 0; theSlice < numimg; theSlice++ ) {
+    memcpy ( im[theSlice], theVolume->slices[theSlice], 
+       xnum * ynum * sizeof(BUFTYPE) );
+    changed[theSlice] = FALSE;
   }
 
-  return kVSpaceErr_NoErr;
-}
+  for ( theSlice = 0; theSlice < numimg; theSlice++ )
+    for ( theRow = 0; theRow < ynum; theRow++ )
+      for ( theCol = 0; theCol < xnum; theCol++ ) {
+  if ( im[theSlice][theRow][theCol]/2 > sim[3][theRow][theCol]) 
+    sim[3][theRow][theCol] = im[theSlice][theRow][theCol]/2;
 
-                                       /* remove a voxel from the space */
-char VSpace_RemoveVoxel ( VoxelSpace * inSpace,
-                          Voxel * inVoxel ) {
+  if ( im[theSlice][theRow][theCol]/2 > sim[4][theSlice][theCol]) 
+    sim[4][theSlice][theCol] = im[theSlice][theRow][theCol]/2;
 
-  char theResult;
-  
-  if ( NULL == inSpace )
-    return kVSpaceErr_InvalidPtr;
+  if ( im[theSlice][theRow][theCol]/2 > sim[5][theRow][theSlice]) 
+    sim[4][theRow][theSlice] = im[theSlice][theRow][theCol]/2;
+      }
 
-  // check the bounds on the voxel.
-  if ( inVoxel->mX < 0 || inVoxel->mY < 0 || inVoxel->mZ < 0 ||
-       inVoxel->mX >= kVSpace_NumListsInPlane ||
-       inVoxel->mY >= kVSpace_NumListsInPlane ||
-       inVoxel->mZ >= kVSpace_NumListsInPlane )
-    return kVSpaceErr_InvalidVoxel;
+  for ( theRow = 0; theRow < ynum; theRow++ )
+    for ( theCol = 0; theCol < xnum; theCol++ )
+      for ( theSlice = 0; theSlice < 3; theSlice++ ) {
+  sim[theSlice][theRow][theCol] = sim[theSlice+3][theRow][theCol];
+      }
 
-  // remove from all three planes
-  theResult = VList_RemoveVoxel ( &(inSpace->mXPlane[Voxel_GetX(inVoxel)]), inVoxel );
-  if ( theResult != kVListErr_NoErr ) {
-    if ( theResult == kVListErr_VoxelNotInList ) {
-      return kVSpaceErr_VoxelNotInSpace;
-    } else {
-      return kVSpaceErr_InvalidSpace;
-    }
-  }
+  // editing is always disabled in this mode (for the moment)
+  editflag = FALSE;
 
-  theResult = VList_RemoveVoxel ( &(inSpace->mYPlane[Voxel_GetY(inVoxel)]), inVoxel );
-  if ( theResult != kVListErr_NoErr ) {
-    if ( theResult == kVListErr_VoxelNotInList ) {
-      return kVSpaceErr_VoxelNotInSpace;
-    } else {
-      return kVSpaceErr_InvalidSpace;
-    }
-  }
+  OutputPrint "NOTE: Editing is disabled. Do not try and enable it or I will crash.\n" EndOutputPrint;
 
-  theResult = VList_RemoveVoxel ( &(inSpace->mZPlane[Voxel_GetZ(inVoxel)]), inVoxel );
-  if ( theResult != kVListErr_NoErr ) {
-    if ( theResult == kVListErr_VoxelNotInList ) {
-      return kVSpaceErr_VoxelNotInSpace;
-    } else {
-      return kVSpaceErr_InvalidSpace;
-    }
-  }
-
-  return kVSpaceErr_NoErr;
-}
-                                       /* determine whether or not a voxel 
-                                          is in the space */
-char VSpace_IsInList ( VoxelSpace * inSpace,
-                       Voxel * inVoxel,
-                       char * outIsInList ) {
-
-  char theResult;
-  
-  if ( NULL == inSpace )
-    return kVSpaceErr_InvalidPtr;
-
-  // check the bounds on the voxel.
-  if ( inVoxel->mX < 0 || inVoxel->mY < 0 || inVoxel->mZ < 0 ||
-       inVoxel->mX >= kVSpace_NumListsInPlane ||
-       inVoxel->mY >= kVSpace_NumListsInPlane ||
-       inVoxel->mZ >= kVSpace_NumListsInPlane )
-    return kVSpaceErr_InvalidVoxel;
-
-  // only need to check in one plane since all planes are redundant.
-  theResult = VList_IsInList ( &(inSpace->mXPlane[Voxel_GetX(inVoxel)]), inVoxel,
-                               outIsInList );
-  if ( theResult != kVListErr_NoErr )
-    return kVSpaceErr_InvalidSpace;
-
-  return kVListErr_NoErr;
-}
-  
-                                       /* return a pointer to a list of 
-                                          voxels in a particular plane. */
-char VSpace_GetVoxelsInXPlane ( VoxelSpace * inSpace,
-                                int inXPlane,
-                                VoxelList ** outVoxelList ) {
-
-  if ( NULL == inSpace )
-    return kVSpaceErr_InvalidPtr; 
-
-  if ( inXPlane < 0 || inXPlane >= kVSpace_NumListsInPlane )
-    return kVSpaceErr_InvalidPlaneNumber;
-
-  // we just return the list of voxels that has x values that they
-  // specify. this is the same as the other two functions, just in a
-  // different plane.
-  *outVoxelList = &(inSpace->mXPlane[inXPlane]);
-
-  return kVSpaceErr_NoErr;
-
-}
-
-char VSpace_GetVoxelsInYPlane ( VoxelSpace * inSpace,
-                                int inYPlane,
-                                VoxelList ** outVoxelList ) {
-
-  if ( NULL == inSpace )
-    return kVSpaceErr_InvalidPtr; 
-
-  if ( inYPlane < 0 || inYPlane >= kVSpace_NumListsInPlane )
-    return kVSpaceErr_InvalidPlaneNumber;
-
-  *outVoxelList = &(inSpace->mYPlane[inYPlane]);
-
-  return kVSpaceErr_NoErr;
-}
-
-char VSpace_GetVoxelsInZPlane ( VoxelSpace * inSpace,
-                                int inZPlane,
-                                VoxelList ** outVoxelList ) {
-
-  if ( NULL == inSpace )
-    return kVSpaceErr_InvalidPtr; 
-
-  if ( inZPlane < 0 || inZPlane >= kVSpace_NumListsInPlane )
-    return kVSpaceErr_InvalidPlaneNumber;
-
-  *outVoxelList = &(inSpace->mZPlane[inZPlane]);
-
-  return kVSpaceErr_NoErr;
-}
-
-char VSpace_PrintDebug ( VoxelSpace * inSpace ) {
-  
-  char theResult;
-  int theIndex;
-
-  if ( NULL == inSpace )
-    return kVSpaceErr_InvalidPtr; 
-
-  // tell all of our lists to print...
-  DebugPrint "Printing X-plane...\n" EndDebugPrint;
-  for ( theIndex = 0; theIndex < kVSpace_NumListsInPlane; theIndex++ ) {
-
-    theResult = VList_PrintDebug ( &(inSpace->mXPlane[theIndex]) );
-    if ( theResult != kVSpaceErr_NoErr )
-      DebugPrint "VSpace_PrintDebug(): Error printing list: %s\n",
-        VSpace_GetErrorString ( theResult ) EndDebugPrint;
-  }
-
-  DebugPrint "\nPrinting Y-plane...\n" EndDebugPrint;
-  for ( theIndex = 0; theIndex < kVSpace_NumListsInPlane; theIndex++ ) {
-
-    theResult = VList_PrintDebug ( &(inSpace->mYPlane[theIndex]) );
-    if ( theResult != kVSpaceErr_NoErr )
-      DebugPrint "VSpace_PrintDebug(): Error printing list: %s\n",
-        VSpace_GetErrorString ( theResult ) EndDebugPrint;
-  }
-
-  DebugPrint "\nPrinting Z-plane...\n" EndDebugPrint;
-  for ( theIndex = 0; theIndex < kVSpace_NumListsInPlane; theIndex++ ) {
-
-    theResult = VList_PrintDebug ( &(inSpace->mZPlane[theIndex]) );
-    if ( theResult != kVSpaceErr_NoErr )
-      DebugPrint "VSpace_PrintDebug(): Error printing list: %s\n",
-        VSpace_GetErrorString ( theResult ) EndDebugPrint;
-  }
-
-  return kVSpaceErr_NoErr;
-}
-
-void TclVSpace_PrintDebug ( VoxelSpace * inSpace ) {
-
-  char theResult;
-
-  theResult = VSpace_PrintDebug ( inSpace );
-  if ( theResult != kVSpaceErr_NoErr )
-    DebugPrint "TclVSpace_PrintDebug(): Error in VSpace_PrintDebug: %s\n",
-      VSpace_GetErrorString ( theResult ) EndDebugPrint;
-}
-              
-
-                                       /* return an error string */
-char * VSpace_GetErrorString ( int inErrorNum ) {
-
-  return (char*)(kVSpace_ErrString[inErrorNum]);
+  MRIfree ( &theVolume );
 }
 
 
@@ -9210,7 +8952,9 @@ void ProcessCtrlPtFile ( char * inDir ) {
   int theVoxX, theVoxY, theVoxZ;
   int theNumPtsRead;
   char theResult;
-  Voxel theVoxel;
+  VoxelRef theVoxel;
+
+  Voxel_New ( &theVoxel );
 
   // don't parse the file if we already have.
   if ( TRUE == gParsedCtrlPtFile )
@@ -9273,8 +9017,8 @@ void ProcessCtrlPtFile ( char * inDir ) {
         (short)theVoxX, (short)theVoxY, (short)theVoxZ EndDebugPrint;
       
       // add it to our cntrl points space
-      Voxel_Set ( &theVoxel, theVoxX, theVoxY, theVoxZ );
-      theResult = VSpace_AddVoxel ( &gCtrlPtList, &theVoxel );
+      Voxel_Set ( theVoxel, theVoxX, theVoxY, theVoxZ );
+      theResult = VSpace_AddVoxel ( gCtrlPtList, theVoxel );
       if ( theResult != kVSpaceErr_NoErr )
         DebugPrint "ProcessCtrlPtFile(): Error in VSpace_AddVoxel: %s\n", 
           VSpace_GetErrorString ( theResult ) EndDebugPrint;
@@ -9288,6 +9032,8 @@ void ProcessCtrlPtFile ( char * inDir ) {
 
   // mark that we have processed the file, and shouldn't do it again.
   gParsedCtrlPtFile = TRUE;
+
+  Voxel_Delete ( &theVoxel );
 }
 
                                        /* writes all control points to the
@@ -9301,9 +9047,15 @@ void WriteCtrlPtFile ( char * inDir ) {
   char theResult;
   int theIndex;
   int theListCount, theListIndex;
-  VoxelList * theList;
-  Voxel theVoxel;
+  VoxelListRef theList;
+  VoxelRef theVoxel;
   
+  if ( !IsInMode ( kMode_CtrlPt ) ) {
+    return;
+  }
+
+  Voxel_New ( &theVoxel );
+
   // create the filename.
   sprintf ( theFilename, "%s/control.dat", inDir );
 
@@ -9317,17 +9069,19 @@ void WriteCtrlPtFile ( char * inDir ) {
     return;
   }
 
-  DebugPrint "WriteCtrlPtFile: Writing control points to %s...\n",
+   DebugPrint "WriteCtrlPtFile: Writing control points to %s...\n",
     theFilename EndDebugPrint;
+   OutputPrint "Saving control points... " EndOutputPrint;
 
   // get the ctrl pts in the list...
   for ( theIndex = 0; theIndex < kVSpace_NumListsInPlane; theIndex++ ) {
 
     // get the list for this x value.
-    theResult = VSpace_GetVoxelsInXPlane ( &gCtrlPtList, theIndex, &theList );
+    theResult = VSpace_GetVoxelsInXPlane ( gCtrlPtList, theIndex, &theList );
     if ( theResult != kVSpaceErr_NoErr ) {
       DebugPrint "WriteCtrlPtFile(): Error in VSpace_GetVoxelsInXPlane: %s\n",
         VSpace_GetErrorString ( theResult ) EndDebugPrint;
+      OutputPrint "\nError saving a point!\n" EndOutputPrint;
       continue;
     }
 
@@ -9336,23 +9090,25 @@ void WriteCtrlPtFile ( char * inDir ) {
     if ( theResult != kVListErr_NoErr ) {
       DebugPrint "WriteCtrlPtFile(): Error in VList_GetCount: %s\n",
         VList_GetErrorString ( theResult ) EndDebugPrint;
+      OutputPrint "\nError saving a point!\n" EndOutputPrint;
       continue;
     }
 
     // get each voxel...
     for ( theListIndex = 0; theListIndex < theListCount; theListIndex++ ) {
 
-      theResult = VList_GetNthVoxel ( theList, theListIndex, &theVoxel );
+      theResult = VList_GetNthVoxel ( theList, theListIndex, theVoxel );
       if ( theResult != kVListErr_NoErr ) {
         DebugPrint "WriteCtrlPtFile(): Error in VList_GetNthVoxel: %s\n",
           VList_GetErrorString ( theResult ) EndDebugPrint;
+  OutputPrint "\nError saving a point!\n" EndOutputPrint;
         continue;
       }
       
       // unpack it.
-      theVoxX = Voxel_GetX ( &theVoxel );
-      theVoxY = Voxel_GetY ( &theVoxel );
-      theVoxZ = Voxel_GetZ ( &theVoxel );
+      theVoxX = Voxel_GetX ( theVoxel );
+      theVoxY = Voxel_GetY ( theVoxel );
+      theVoxZ = Voxel_GetZ ( theVoxel );
 
       // transform to ras space.
       VoxelToRAS ( theVoxX, theVoxY, theVoxZ,
@@ -9373,7 +9129,9 @@ void WriteCtrlPtFile ( char * inDir ) {
   fclose ( theFile );
 
   DebugPrint "\tDone.\n" EndDebugPrint;
+  OutputPrint " done.\n" EndOutputPrint;
 
+  Voxel_Delete ( &theVoxel );
 }
 
 void ToggleCtrlPtDisplayStatus () {
@@ -9401,13 +9159,13 @@ void ToggleCtrlPtDisplayStyle () {
 
   // if it's one, change it to another.
   switch ( gCtrlPtDrawStyle ) {
-  case kCtrlPtStyle_Point: 
+  case kCtrlPtStyle_FilledVoxel: 
     gCtrlPtDrawStyle = kCtrlPtStyle_Crosshair;
     fprintf ( stdout, "Control point display style is CROSSHAIR.\n" );
     break;
   case kCtrlPtStyle_Crosshair:
-    gCtrlPtDrawStyle = kCtrlPtStyle_Point;
-    fprintf ( stdout, "Control point display style is POINT.\n" );
+    gCtrlPtDrawStyle = kCtrlPtStyle_FilledVoxel;
+    fprintf ( stdout, "Control point display style is FILLED VOXEL.\n" );
     break;
   }
 
@@ -9428,7 +9186,7 @@ void DrawCtrlPt ( char * inBuffer,  // video buffer to draw into
   switch ( gCtrlPtDrawStyle ) {
 
     // draw in pixels
-  case kCtrlPtStyle_Point:
+  case kCtrlPtStyle_FilledVoxel:
 
     // if we're not in all3 view...
     if ( !all3flag ) {
@@ -9448,23 +9206,11 @@ void DrawCtrlPt ( char * inBuffer,  // video buffer to draw into
     // crosshair
   case kCtrlPtStyle_Crosshair:
 
-    // simple crosshair.
-    DrawCrosshairInBuffer ( inBuffer, inX, inY, 
-                            kCtrlPtCrosshairRadius, inColor );
+    // centered crosshair.
+    DrawCenteredCrosshairInBuffer ( inBuffer, inX, inY, 
+            kCtrlPtCrosshairRadius, inColor );
     break;
   }
-}
-
-
-                                       /* returns whether or not we are in
-                                          control points selection mode, as 
-                                          opposed to editing mode */
-inline char IsInSelectionMode () {
-
-  if ( control_points > 0 )
-    return TRUE;
-  else
-    return FALSE;
 }
 
                                        /* handles the clicking of ctrl pts.
@@ -9475,15 +9221,18 @@ inline char IsInSelectionMode () {
                                           from the selection, depending on
                                           the ctrt and shift key. */
 void SelectCtrlPt ( int inScreenX, int inScreenY,     // screen pt clicked
-                    int inScreenZ, int inPlane ) {    // plane to search in
+                    int inScreenZ, int inPlane,       // plane to search in
+        unsigned int inState ) {
 
   int theVoxX, theVoxY, theVoxZ;
   int theListCount, theListIndex;
   char theResult;
-  Voxel theVoxel;
-  VoxelList * theList;
+  VoxelRef theVoxel;
+  VoxelListRef theList;
   unsigned int theDistance, theClosestDistance;
   short theClosestIndex;
+
+  Voxel_New ( &theVoxel );
 
   // find the voxel they clicked
   ScreenToVoxel ( inPlane, inScreenX, inScreenY, inScreenZ, 
@@ -9493,14 +9242,16 @@ void SelectCtrlPt ( int inScreenX, int inScreenY,     // screen pt clicked
   // get the list of voxels for this slice.
   switch ( inPlane ) {
   case CORONAL: 
-    theResult = VSpace_GetVoxelsInZPlane ( &gCtrlPtList, theVoxZ, &theList );
+    theResult = VSpace_GetVoxelsInZPlane ( gCtrlPtList, theVoxZ, &theList );
     break;
   case HORIZONTAL: 
-    theResult = VSpace_GetVoxelsInYPlane ( &gCtrlPtList, theVoxY, &theList );
+    theResult = VSpace_GetVoxelsInYPlane ( gCtrlPtList, theVoxY, &theList );
     break;
   case SAGITTAL: 
-    theResult = VSpace_GetVoxelsInXPlane ( &gCtrlPtList, theVoxX, &theList );
+    theResult = VSpace_GetVoxelsInXPlane ( gCtrlPtList, theVoxX, &theList );
     break;
+  default:
+    theResult = 0;
   }
     
   if ( theResult != kVSpaceErr_NoErr ) {
@@ -9527,7 +9278,7 @@ void SelectCtrlPt ( int inScreenX, int inScreenY,     // screen pt clicked
     for ( theListIndex = 0; theListIndex < theListCount; theListIndex++ ) {
  
       // grab a voxel
-      theResult = VList_GetNthVoxel ( theList, theListIndex, &theVoxel );
+      theResult = VList_GetNthVoxel ( theList, theListIndex, theVoxel );
       if ( theResult != kVListErr_NoErr ) {
         DebugPrint "SelectCtrlPt(): Error in VList_GetNthVoxel: %s\n",
           VList_GetErrorString ( theResult ) EndDebugPrint;
@@ -9536,9 +9287,9 @@ void SelectCtrlPt ( int inScreenX, int inScreenY,     // screen pt clicked
 
       // get the distance to the clicked voxel...
       theDistance =
-        ((theVoxX - Voxel_GetX(&theVoxel))*(theVoxX - Voxel_GetX(&theVoxel))) +
-        ((theVoxY - Voxel_GetY(&theVoxel))*(theVoxY - Voxel_GetY(&theVoxel))) +
-        ((theVoxZ - Voxel_GetZ(&theVoxel))*(theVoxZ - Voxel_GetZ(&theVoxel)));
+        ((theVoxX - Voxel_GetX(theVoxel))*(theVoxX - Voxel_GetX(theVoxel))) +
+        ((theVoxY - Voxel_GetY(theVoxel))*(theVoxY - Voxel_GetY(theVoxel))) +
+        ((theVoxZ - Voxel_GetZ(theVoxel))*(theVoxZ - Voxel_GetZ(theVoxel)));
 
       // if it's less than our max, mark the distance and vox index
       if ( theDistance < theClosestDistance ) {
@@ -9551,7 +9302,7 @@ void SelectCtrlPt ( int inScreenX, int inScreenY,     // screen pt clicked
     if ( theClosestIndex != -1 ) {
 
       // get it back again
-      theResult = VList_GetNthVoxel ( theList, theClosestIndex, &theVoxel );
+      theResult = VList_GetNthVoxel ( theList, theClosestIndex, theVoxel );
       if ( theResult != kVListErr_NoErr ) {
         DebugPrint "SelectCtrlPt(): Error in VList_GetNthVoxel: %s\n",
           VList_GetErrorString ( theResult ) EndDebugPrint;
@@ -9560,10 +9311,10 @@ void SelectCtrlPt ( int inScreenX, int inScreenY,     // screen pt clicked
 
 
       // if shift key is down
-      if ( shiftkeypressed ) {
+      if ( inState & ShiftMask ) {
 
         // add this point to the selection
-        theResult = VList_AddVoxel ( &gSelectionList, &theVoxel );
+        theResult = VList_AddVoxel ( gSelectionList, theVoxel );
         if ( theResult != kVListErr_NoErr )
           DebugPrint "SelectCtrlPt(): Error in VList_AddVoxel: %s\n",
             VList_GetErrorString ( theResult ) EndDebugPrint;
@@ -9572,10 +9323,10 @@ void SelectCtrlPt ( int inScreenX, int inScreenY,     // screen pt clicked
       } else {
 
         // if ctrl key is down
-        if ( ctrlkeypressed ) {
+        if ( inState & ControlMask ) {
 
           // remove this point from selection
-          theResult = VList_RemoveVoxel ( &gSelectionList, &theVoxel );
+          theResult = VList_RemoveVoxel ( gSelectionList, theVoxel );
           if ( theResult != kVListErr_NoErr )
             DebugPrint "SelectCtrlPt(): Error in VList_RemoveVoxel: %s\n",
               VList_GetErrorString ( theResult ) EndDebugPrint;
@@ -9584,12 +9335,12 @@ void SelectCtrlPt ( int inScreenX, int inScreenY,     // screen pt clicked
         } else {
 
           // remove all points from selection and add this point
-          theResult = VList_ClearList ( &gSelectionList );
+          theResult = VList_ClearList ( gSelectionList );
           if ( theResult != kVListErr_NoErr )
             DebugPrint "SelectCtrlPt(): Error in VList_ClearList: %s\n",
               VList_GetErrorString ( theResult ) EndDebugPrint;
           
-          theResult = VList_AddVoxel ( &gSelectionList, &theVoxel );
+          theResult = VList_AddVoxel ( gSelectionList, theVoxel );
           if ( theResult != kVListErr_NoErr )
             DebugPrint "SelectCtrlPt(): Error in VList_AddVoxel: %s\n",
               VList_GetErrorString ( theResult ) EndDebugPrint;
@@ -9598,6 +9349,9 @@ void SelectCtrlPt ( int inScreenX, int inScreenY,     // screen pt clicked
       }
     }
   }
+
+  Voxel_Delete ( &theVoxel );
+
 }
 
 
@@ -9608,10 +9362,12 @@ void DeleteSelectedCtrlPts () {
 
   char theResult;
   int theCount, theIndex;
-  Voxel theCtrlPt;
+  VoxelRef theCtrlPt;
+
+  Voxel_New ( &theCtrlPt );
 
   // get the number of selected points we have
-  theResult = VList_GetCount ( &gSelectionList, &theCount );
+  theResult = VList_GetCount ( gSelectionList, &theCount );
   if ( theResult != kVListErr_NoErr ) {
     DebugPrint "Error in VList_GetCount: %s\n",
       VList_GetErrorString ( theResult ) EndDebugPrint;
@@ -9624,7 +9380,7 @@ void DeleteSelectedCtrlPts () {
   for ( theIndex = 0; theIndex < theCount; theIndex++ ) {
 
     // get it
-    theResult = VList_GetNthVoxel ( &gSelectionList, theIndex, &theCtrlPt );
+    theResult = VList_GetNthVoxel ( gSelectionList, theIndex, theCtrlPt );
     if ( theResult != kVListErr_NoErr ) {
       DebugPrint "Error in VList_GetNthVoxel: %s\n",
         VList_GetErrorString ( theResult ) EndDebugPrint;
@@ -9632,7 +9388,7 @@ void DeleteSelectedCtrlPts () {
     }
     
     // set its value in the space to 0
-    theResult = VSpace_RemoveVoxel ( &gCtrlPtList, &theCtrlPt );
+    theResult = VSpace_RemoveVoxel ( gCtrlPtList, theCtrlPt );
     if ( theResult != kVSpaceErr_NoErr ) {
       DebugPrint "DeleteSelectedCtrlPts(): Error in VSpace_RemoveVoxel: %s\n",
         VSpace_GetErrorString ( theResult ) EndDebugPrint;
@@ -9641,7 +9397,7 @@ void DeleteSelectedCtrlPts () {
   }
 
   // remove all pts from the selection list
-  theResult = VList_ClearList ( &gSelectionList );
+  theResult = VList_ClearList ( gSelectionList );
   if ( theResult != kVListErr_NoErr ) {
     DebugPrint "Error in VList_ClearList: %s\n",
       VList_GetErrorString ( theResult ) EndDebugPrint;
@@ -9652,7 +9408,1318 @@ void DeleteSelectedCtrlPts () {
 
   printf ( "Deleted selected control points.\n" );
   PR;
+
+  Voxel_Delete ( &theCtrlPt );
 }
+
+// ======================================================== FUNCTIONAL OVERLAY
+
+void LoadFunctionalData ( char * inFullPath, char * inStem ) {
+
+  Volume_ErrorCode theVolumeErr;
+  Tcl_Interp * theInterp;
+  char theSubjectName [256];
+
+  DebugPrint "LoadFunctionalData ( %s, %s )\n",
+    inFullPath, inStem EndDebugPrint;
+
+  OutputPrint "Loading functional data from directory %s with stem %s...",
+    inFullPath, inStem EndOutputPrint;
+
+  if ( IsFunctionalDataLoaded () ) {
+    DeleteFunctionalData ();
+  }
+
+  // try to create our volume.
+  theVolumeErr = Volume_New ( inFullPath, inStem, &gFunctionalVolume );
+
+  // if we didn't get it...
+  if ( theVolumeErr != kVolumeErr_NoError ) {
+
+    // flag for determining volume isn't loaded.
+    gFunctionalVolume = NULL;
+
+    // print an error message and return.
+    DebugPrint "\tError in Volume_New: %d, %s\n",
+      theVolumeErr, Volume_GetErrorString(theVolumeErr) EndDebugPrint;
+    OutputPrint "Couldn't load functional data.\n\tPath: %s\n\tStem: %s\n",
+      inFullPath, inStem EndOutputPrint;
+    return;
+  }
+
+  // init our value list and voxel.
+  Voxel_New ( &gCurFunctionalVoxel );
+  
+  OutputPrint " done.\n" EndOutputPrint;
+
+                                   /* there are two times when this function
+              could be called: during startup, before
+              the tcl interpreter is loaded, or after
+              the interpreter is loaded. if during
+              startup, InitFunctionalWindow will be
+              called after the interpreter is loaded.
+              if not, then we have to call it now
+              ourselves. check if we have an
+              interpreter and if so, init the graph
+              window. */
+  theInterp = GetTCLInterp ();
+  if ( NULL != theInterp ) {
+    InitFunctionalGraphWindow ( theInterp );
+  }
+
+  // make sure that our subject name matches the name in the functional data.
+  Volume_GetSubjectName ( gFunctionalVolume, theSubjectName );
+  if ( !MATCH ( theSubjectName, pname ) ) {
+
+    // if not, print an alert.
+    DebugPrint "\tsubject name mismatch: functional is %s, tkmedit is %s\n",
+      theSubjectName, pname EndDebugPrint;
+    OutputPrint "ALERT: Subject name in functional data doesn't match "
+      "name in anatomical data.\n" EndOutputPrint;
+  }
+
+  Volume_DebugPrint ( gFunctionalVolume );
+}
+
+void InitFunctionalGraphWindow ( Tcl_Interp * inInterp ) {
+  
+  int theErr;
+  char * theScriptDirName;
+  char theScriptFileName [128], theVolumePath[128], theVolumeStem[32],
+    theCommandString[256];
+  int theTimeResolution, theNumPreStimTimePoints;
+
+  // load graph code
+  if ( FALSE == gIsFunctionalGraphWindowOpen ) {
+    theScriptDirName = getenv("MRI_DIR");
+    sprintf ( theScriptFileName, "%s/lib/tcl/tkm_functional.tcl", 
+        theScriptDirName );
+    theErr = Tcl_EvalFile ( inInterp, theScriptFileName );
+    if ( TCL_OK != theErr ) {
+      OutputPrint "Fatal error: Couldn't load tkm_functional.tcl.\n"
+  EndOutputPrint;
+    }
+    
+    gIsFunctionalGraphWindowOpen = TRUE;
+  }
+
+  // get some data from the volume
+  Volume_GetPath ( gFunctionalVolume, theVolumePath );
+  Volume_GetStem ( gFunctionalVolume, theVolumeStem );
+  Volume_GetTimeResolution ( gFunctionalVolume, &theTimeResolution );
+  Volume_GetNumPreStimTimePoints ( gFunctionalVolume, 
+           &theNumPreStimTimePoints );
+
+  // make command strings to update the graph window.
+  sprintf ( theCommandString, "UpdatePath %s",
+      theVolumePath );
+  SendCommandToFunctionalGraph ( theCommandString );
+
+  sprintf ( theCommandString, "UpdateStem %s",
+      theVolumeStem );
+  SendCommandToFunctionalGraph ( theCommandString );
+
+  sprintf ( theCommandString, "UpdateTimeResolution %d",
+      theTimeResolution );
+  SendCommandToFunctionalGraph ( theCommandString );
+
+  sprintf ( theCommandString, "UpdateNumPreStimPoints %d",
+      theNumPreStimTimePoints );
+  SendCommandToFunctionalGraph ( theCommandString );
+
+  // set initial functional vars to a default value
+  GetCursorInVoxelCoords ( gCurFunctionalVoxel );
+  SetCurrentFunctionalVoxel ( gCurFunctionalVoxel );
+  SetCurrentFunctionalTimePoint ( 0 );
+  SetCurrentFunctionalCondition ( 0 );
+  SetCurrentFunctionalThresholdMin ( 50 );
+  SetCurrentFunctionalThresholdMid ( 75 );
+  SetCurrentFunctionalThresholdMax ( 200 );
+}
+
+void DeleteFunctionalData () {
+
+  Volume_ErrorCode theVolumeErr;
+
+  // if we're not allocated, return.
+  if ( !IsFunctionalDataLoaded () ) {
+    DebugPrint "DeleteFunctionalData(): Data isn't loaded.\n" EndDebugPrint;
+    return;
+  }
+
+  // delete the volume.
+  theVolumeErr = Volume_Delete ( &gFunctionalVolume );
+  if ( theVolumeErr != kVolumeErr_NoError ) {
+    DebugPrint "\tError in Volume_Delete: %d, %s\n",
+      theVolumeErr, Volume_GetErrorString(theVolumeErr) EndDebugPrint;
+  }
+
+  // delete voxel
+  Voxel_Delete ( &gCurFunctionalVoxel );
+}
+
+char IsFunctionalDataLoaded () {
+
+  if ( NULL == gFunctionalVolume ) {
+    return FALSE;
+  }
+
+  return TRUE;
+}
+
+void AllowFunctionalModuleToRespondToClick ( VoxelRef inVoxel ) {
+
+  // if we don't have functional data, return.
+  if ( !IsFunctionalDataLoaded() ) {
+    DebugPrint "AllowFunctionalModuleToRespondToClick(): Data isn't loaded."
+      EndDebugPrint;
+    return;
+  }
+
+  // make this voxel our current functional voxel
+  SetCurrentFunctionalVoxel ( inVoxel );
+}
+
+void SetCurrentFunctionalVoxel ( VoxelRef inVoxel ) {
+
+  int theCondition, theNumConditions;
+  Volume_ErrorCode theVolumeErr;
+  float * theAvgValues, * theDeviations;
+  int theNumTimePoints;
+
+  // copy this voxel.
+  Voxel_Copy ( gCurFunctionalVoxel, inVoxel );
+
+  // find out how big our data arrays have to be.
+  theVolumeErr = 
+    Volume_GetNumTimePoints ( gFunctionalVolume, &theNumTimePoints );
+  if ( theVolumeErr != kVoxelValueListErr_NoErr ) {
+    DebugPrint "\tError in Volume_GetNumTimePoints: %d, %s\n",
+      theVolumeErr, Volume_GetErrorString(theVolumeErr) EndDebugPrint;
+    return;
+  }
+
+  // get the number of conditions
+  theVolumeErr = 
+    Volume_GetNumConditions ( gFunctionalVolume, &theNumConditions );
+  if ( theVolumeErr != kVoxelValueListErr_NoErr ) {
+    DebugPrint "\tError in Volume_GetNumConditions: %d, %s\n",
+      theVolumeErr, Volume_GetErrorString(theVolumeErr) EndDebugPrint;
+    return;
+  }
+
+  // allocate an array of floats to hold the data.
+  theAvgValues = (float*) malloc ( theNumTimePoints*sizeof(float) );
+  if ( NULL == theAvgValues ) {
+    DebugPrint "\tError allocating float storage for %d timepoints.\n",
+      theNumTimePoints EndDebugPrint;
+    return;
+  }
+
+  theDeviations = (float*) malloc ( theNumTimePoints*sizeof(float) );
+  if ( NULL == theDeviations ) {
+    DebugPrint "\tError allocating float storage for %d timepoints.\n",
+      theNumTimePoints EndDebugPrint;
+    return;
+  }
+
+                                   /* we need to update the graph. we have to
+              do this in two stages. first we plot 
+              all the points in all conditions, then
+              we draw all the error bars in all the
+              conditions. we have to plot the points
+              first so that the graph can figure out
+              its axes bounds and autosize itself.
+              this is done automagically by the graph
+              library. our error bars don't have that
+              benefit, so if we draw them first they
+              don't get autosized. */
+
+  // for each condition...
+  for ( theCondition = 0;
+  theCondition < theNumConditions;
+  theCondition++ ) {
+
+    // get the values at all timepoints for this voxel.
+    theVolumeErr = Volume_GetDataForAllTimePoints ( gFunctionalVolume, 
+          gCurFunctionalVoxel, theCondition, theAvgValues );
+
+    if ( theVolumeErr != kVolumeErr_NoError ) {
+  DebugPrint "\tError in Volume_GetDataForAllTimePoints: %d, %s\n",
+      theVolumeErr, Volume_GetErrorString(theVolumeErr) EndDebugPrint;
+      free ( theAvgValues );
+      free ( theDeviations );
+      return;
+    }
+  
+    // if we're normalizing for the prestim values..
+    if ( 0 ) {
+
+      // do it.
+    }
+
+    // tell the graph to draw these values for this condition.
+    SendFunctionalValuesToGraph ( gFunctionalVolume, theCondition, 
+          theNumTimePoints, theAvgValues );
+  }
+
+  // if this volume has error information...
+  if ( Volume_IsErrorDataPresent ( gFunctionalVolume ) ) {
+  
+    // now go through again and send errors.
+    for ( theCondition = 0;
+    theCondition < theNumConditions;
+    theCondition++ ) {
+      
+      // get the deviations at all timepoints.
+      theVolumeErr = Volume_GetDeviationForAllTimePoints 
+  ( gFunctionalVolume, theCondition, theDeviations );
+      
+      if ( theVolumeErr != kVolumeErr_NoError ) {
+  DebugPrint "\tError in Volume_GetDeviationForAllTimePoints: %d, %s\n",
+    theVolumeErr, Volume_GetErrorString(theVolumeErr) EndDebugPrint;
+  free ( theAvgValues );
+  free ( theDeviations );
+  return;
+      }
+      
+      // tell the graph to draw these values for this condition.
+      SendDeviationsToGraph ( gFunctionalVolume, theCondition, 
+            theNumTimePoints, theDeviations );
+    }
+  }
+
+  free ( theAvgValues );
+  free ( theDeviations );
+}
+
+/*
+void GetFunctionalValuesInPlane ( int inPlane, int inPlaneNum,
+          VoxelValueListRef inList ) {
+
+  VoxelValueList_ErrorCode theListErr;
+  VoxelRef theVoxel, theRoundedVoxel;
+  float theValue;
+  char isInPlane;
+
+  // if we don't have functional data, return.
+  if ( !IsFunctionalDataLoaded() ) {
+    DebugPrint "GetFunctionalValueAtAnatomicalVoxel(): Data isn't loaded."
+      EndDebugPrint;
+    return;
+  }
+
+  Voxel_New ( &theVoxel );
+  Voxel_New ( &theRoundedVoxel );
+
+  // for every point in our own threshold value list...
+  theListErr = kVoxelValueListErr_NoErr;
+  while ( kVoxelValueListErr_NoErr == theListErr ) {
+
+    theListErr = 
+      VoxelValueList_GetNextVoxelAndValue ( gCurFunctionalValueList,
+              theVoxel, &theValue );
+
+    // is this voxel in this plane?
+    isInPlane = FALSE;
+    switch ( inPlane ) {
+    case CORONAL:
+      if ( Voxel_GetZ(theVoxel) == inPlaneNum )
+  isInPlane = TRUE;
+      break;
+    case SAGITTAL:
+      if ( Voxel_GetX(theVoxel) == inPlaneNum )
+  isInPlane = TRUE;
+      break;
+    case HORIZONTAL:
+      if ( Voxel_GetY(theVoxel) == inPlaneNum )
+  isInPlane = TRUE;
+      break;
+    }
+
+    if ( isInPlane ) {
+
+      Voxel_Set ( theRoundedVoxel,
+      rint ( Voxel_GetX(theVoxel) ),
+      rint ( Voxel_GetY(theVoxel) ),
+      rint ( Voxel_GetZ(theVoxel) ) );
+
+      // copy the voxel and value to their list.
+      VoxelValueList_AddVoxelAndValue ( inList, theVoxel, theValue );
+    }
+  }
+
+  Voxel_Delete ( &theVoxel );
+  Voxel_Delete ( &theRoundedVoxel );
+}
+*/
+
+void GetFunctionalValueAtAnatomicalVoxel ( VoxelRef inVoxel,
+             float * outValue ) {
+
+  float theValue;
+  Volume_ErrorCode theErr;
+
+  *outValue = 0;
+
+  // if we don't have functional data, return.
+  if ( !IsFunctionalDataLoaded() ) {
+    DebugPrint "GetFunctionalValueAtAnatomicalVoxel(): Data isn't loaded."
+      EndDebugPrint;
+    return;
+  }
+
+  // get the value.
+  theErr = Volume_GetData ( gFunctionalVolume, inVoxel, 
+          gCurFunctionalCondition,
+          gCurFunctionalTimePoint,
+          &theValue );
+
+  if ( kVolumeErr_NoError != theErr ) {
+    DebugPrint "\tError in Volume_GetAvgValueAtVoxel: %d, %s\n",
+      theErr, Volume_GetErrorString(theErr) EndDebugPrint;
+    return;
+  }
+
+  // return the value.
+  *outValue = theValue;
+}
+
+void SendFunctionalValuesToGraph ( VolumeRef inVolume,
+           int inCondition, int inNumValues,
+           float *inValues ) {
+
+  char * theCommandString;
+  int theValueIndex;
+  int theTimeSecond;
+
+  // allocate enough space for the commandstring. we limit the float to 
+  // print .5, so alocate 10 + two spaces + 3 chars for index per value
+  // so we can handle an entry like '100 1234.12345 ' and then another 20
+  // for the command name and braces.
+  theCommandString = (char*) malloc ( sizeof(char) * (inNumValues*16) + 20); 
+
+  // sprint the command name, the condition number, and the first brace.
+  sprintf ( theCommandString, "SetGraphData %d {", inCondition );
+
+  // for each value...
+  for ( theValueIndex = 0; theValueIndex < inNumValues; theValueIndex++ ) {
+
+    // get a second from the index
+    Volume_ConvertTimePointToSecond ( gFunctionalVolume,
+              theValueIndex,
+              &theTimeSecond );
+
+    // sprint the time point x value
+    sprintf ( theCommandString, "%s %d %2.5f", theCommandString,
+        theTimeSecond, inValues[theValueIndex] );
+  }
+
+  // sprint the last brace
+  sprintf ( theCommandString, "%s}", theCommandString );
+
+  //  DebugPrint "%s\n", theCommandString EndDebugPrint;
+
+  // send it to the graph.
+  SendCommandToFunctionalGraph ( theCommandString );
+
+  free ( theCommandString );
+}
+
+void SendDeviationsToGraph ( VolumeRef inVolume,
+            int inCondition, int inNumValues,
+            float *inErrors ) {
+
+  char * theCommandString;
+  int theValueIndex;
+
+  // allocate enough space for the commandstring. we limit the float to 
+  // print 2.5, so alocate 7 + two spaces + 3 chars for index per value
+  // and then another 20 for the command name.
+  theCommandString = (char*) malloc ( sizeof(char) * (inNumValues*12) + 20); 
+
+  // sprint the command name, the condition number, and the first brace.
+  sprintf ( theCommandString, "SetGraphErrorBars %d {", inCondition );
+
+  // for each value...
+  for ( theValueIndex = 0; theValueIndex < inNumValues; theValueIndex++ ) {
+
+    // print the errors
+    sprintf ( theCommandString, "%s %f", theCommandString,
+        inErrors[theValueIndex] );
+  }
+
+  // sprint the last brace
+  sprintf ( theCommandString, "%s}", theCommandString );
+
+  //  DebugPrint "%s\n", theCommandString EndDebugPrint;
+
+  // send it to the graph.
+  SendCommandToFunctionalGraph ( theCommandString );
+  
+  free ( theCommandString );
+}
+
+void SendCommandToFunctionalGraph ( char * inCommand ) {
+  
+  int theErr;
+  Tcl_Interp * theInterp;
+
+  // get the interp and send the command.
+  theInterp = GetTCLInterp ();
+
+  if ( NULL != theInterp ) {
+    DebugPrint "Sending cmd: %s\n", inCommand EndDebugPrint;
+    theErr = Tcl_Eval ( theInterp, inCommand );
+    if ( *theInterp->result != 0 ) {
+      DebugPrint "Cmd: %s\n", inCommand EndDebugPrint;
+      DebugPrint "\tResult: %s\n", theInterp->result EndDebugPrint;
+    }
+    if ( TCL_OK != theErr ) {
+      DebugPrint "Cmd: %s\n", inCommand EndDebugPrint;
+      DebugPrint "\tCommand did not return OK.\n" EndDebugPrint;
+      DebugPrint "\tResult: %s\n", theInterp->result EndDebugPrint;
+    }
+  }
+}
+
+void CalcFunctionalOverlayColor ( float inValue, float inOffset,
+          unsigned char *outRed,
+          unsigned char *outGreen,
+          unsigned char *outBlue ) {
+
+
+  float f, r, g, b;
+  float min, mid, max;
+  
+  f = inValue;
+  r = g = b = 0;
+  min = gCurFunctionalThresholdMin;
+  mid = gCurFunctionalThresholdMid;
+  max = gCurFunctionalThresholdMax;
+
+  if (f>=0) {
+    r = (f<min) ? 0 : (f<mid) ? (f-min)/(mid-min) : 1;
+    g = (f<mid) ? 0 : (f<max) ? (f-mid)/(max-mid) : 1;
+    b = 0;
+  } else {
+    f = -f;
+    b = (f<min) ? 0 : (f<mid) ? (f-min)/(mid-min) : 1;
+    g = (f<mid) ? 0 : (f<max) ? (f-mid)/(max-mid) : 1;
+    r = 0;
+  }
+
+  *outRed = r*255;
+  *outGreen = g*255;
+  *outBlue = b*255;
+
+}
+
+
+
+void CopyCurrentFunctionalStateString ( char * inString ) {
+
+  // if we don't have functional data, return.
+  if ( !IsFunctionalDataLoaded() ) {
+    DebugPrint "CopyCurrentFunctionalStateString(): Data isn't loaded."
+      EndDebugPrint;
+    return;
+  }
+
+  // make a string of the current state and copy it in to the string.
+  sprintf ( inString,
+      "Current functional time point: %d condition: %d threshold: %f-%f-%f\n",
+      gCurFunctionalTimePoint, gCurFunctionalCondition,
+      gCurFunctionalThresholdMin, gCurFunctionalThresholdMid,
+      gCurFunctionalThresholdMax );
+}
+
+void SetCurrentFunctionalDisplayStatus ( char inIsDisplay ) {
+
+  char theCommandString [128];
+
+  // if we don't have functional data, return.
+  if ( !IsFunctionalDataLoaded() ) {
+    DebugPrint "SetCurrentFunctionalDisplayStatus(): Data isn't loaded."
+      EndDebugPrint;
+    return;
+  }
+
+  DebugPrint "SetCurrentFunctionalDisplayStatus ( %d )\n",
+    inIsDisplay EndDebugPrint;
+
+  // set it
+  gIsDisplayFunctionalOverlay = inIsDisplay;
+
+  // tell the graph window to upate.
+  sprintf ( theCommandString, "UpdateDisplayStatus %d",
+      gIsDisplayFunctionalOverlay );
+  SendCommandToFunctionalGraph ( theCommandString );
+
+  // redraw tkmedit window.
+  redraw ();
+
+}
+
+void SetCurrentFunctionalTimeResolution ( int inTimeResolution ) {
+
+  char theCommandString[128];
+  int theNewTimeResolution;
+  Volume_ErrorCode theErr;
+
+  // if we don't have functional data, return.
+  if ( !IsFunctionalDataLoaded() ) {
+    DebugPrint "SetCurrentFunctionalTimeSecond(): Data isn't loaded."
+      EndDebugPrint;
+    return;
+  }
+
+  DebugPrint "SetCurrentFunctionalTimeResolution ( %d )\n",
+    inTimeResolution EndDebugPrint;
+
+  // set it in the volume.
+  theErr = Volume_SetTimeResolution ( gFunctionalVolume, inTimeResolution );
+  if ( kVolumeErr_NoError != theErr ) {
+    DebugPrint "\tError in Volume_SetTimeResolution: %d, %s\n",
+      theErr, Volume_GetErrorString(theErr) EndDebugPrint;
+  }
+
+  // get the new value
+  theErr = Volume_GetTimeResolution (gFunctionalVolume,&theNewTimeResolution );
+  if ( kVolumeErr_NoError != theErr ) {
+    DebugPrint "\tError in Volume_GetTimeResolution: %d, %s\n",
+      theErr, Volume_GetErrorString(theErr) EndDebugPrint;
+  }
+
+  // make sure our curent time point is in range.
+  if ( !Volume_IsTimePointValid ( gFunctionalVolume,
+          gCurFunctionalTimePoint ) ){
+
+    // if not set it to 0
+    SetCurrentFunctionalTimePoint ( 0 );
+  }
+    
+  // tell the graph window to upate.
+  sprintf ( theCommandString, "UpdateTimeResolution %d",
+      theNewTimeResolution );
+  SendCommandToFunctionalGraph ( theCommandString );
+
+  // reset the current functional voxel. this has the effect of recalcing
+  // the xaxis values and resending the graph data.
+  SetCurrentFunctionalVoxel ( gCurFunctionalVoxel );
+}
+
+void SetCurrentFunctionalNumPreStimPoints ( int inNumPreStimPoints ) {
+
+  char theCommandString[128];
+  int theNewNumPreStimTimePoints;
+  Volume_ErrorCode theErr;
+  
+  // if we don't have functional data, return.
+  if ( !IsFunctionalDataLoaded() ) {
+    DebugPrint "SetCurrentFunctionalTimeSecond(): Data isn't loaded."
+      EndDebugPrint;
+    return;
+  }
+
+  DebugPrint "SetCurrentFunctionalNumPreStimPoints ( %d )\n",
+    inNumPreStimPoints EndDebugPrint;
+
+  // set it in the volume.
+  theErr = Volume_SetNumPreStimTimePoints
+    ( gFunctionalVolume, inNumPreStimPoints );
+  if ( kVolumeErr_NoError != theErr ) {
+    DebugPrint "\tError in Volume_SetNumPreStimTimePoints: %d, %s\n",
+      theErr, Volume_GetErrorString(theErr) EndDebugPrint;
+  }
+
+  // get the new value
+  theErr = Volume_GetNumPreStimTimePoints
+    ( gFunctionalVolume, &theNewNumPreStimTimePoints );
+  if ( kVolumeErr_NoError != theErr ) {
+    DebugPrint "\tError in Volume_GetNumPreStimTimePoints: %d, %s\n",
+      theErr, Volume_GetErrorString(theErr) EndDebugPrint;
+  }
+
+  // tell the graph window to upate.
+  sprintf ( theCommandString, "UpdateNumPreStimPoints %d",
+      theNewNumPreStimTimePoints );
+  SendCommandToFunctionalGraph ( theCommandString );
+
+  // reset the current functional voxel. this has the effect of recalcing
+  // the xaxis values and resending the graph data.
+  SetCurrentFunctionalVoxel ( gCurFunctionalVoxel );}
+
+
+void SetCurrentFunctionalTimeSecond ( int inSecond ) {
+
+  int theTimeResolution, theFirstTimePoint;
+  int theTimePoint;
+
+  // if we don't have functional data, return.
+  if ( !IsFunctionalDataLoaded() ) {
+    DebugPrint "SetCurrentFunctionalTimeSecond(): Data isn't loaded."
+      EndDebugPrint;
+    return;
+  }
+
+  DebugPrint "SetCurrentFunctionalTimeSecond ( %d )\n",
+    inSecond EndDebugPrint;
+
+  // calc the first time and resolution.
+  theTimeResolution = gFunctionalVolume->mTimeResolution;
+  theFirstTimePoint = -(gFunctionalVolume->mNumPreStimTimePoints
+      * theTimeResolution);
+
+  // subtract the first point and divide by the resolution
+  theTimePoint = (inSecond - theFirstTimePoint) / theTimeResolution;
+
+  // set it.
+  SetCurrentFunctionalTimePoint ( theTimePoint );
+}
+
+void SetCurrentFunctionalTimePoint ( int inTimePoint ) {
+
+  int theTimeSecond;
+  char theCommandString[128];
+
+  // if we don't have functional data, return.
+  if ( !IsFunctionalDataLoaded() ) {
+    DebugPrint "SetCurrentFunctionalTimePoint(): Data isn't loaded."
+      EndDebugPrint;
+    return;
+  }
+
+  // if valid...
+  if ( Volume_IsTimePointValid ( gFunctionalVolume, inTimePoint ) ) {
+    
+    // set it.
+    gCurFunctionalTimePoint = inTimePoint;
+    
+  } else {
+
+    // error message.
+    OutputPrint "%d is an invalid time point.", inTimePoint EndOutputPrint;
+  }
+
+  // calc the time second
+  Volume_ConvertTimePointToSecond ( gFunctionalVolume, inTimePoint,
+            &theTimeSecond );
+
+  // tell the graph window to upate.
+  sprintf ( theCommandString, "UpdateTimePoint %d %d",
+      gCurFunctionalTimePoint, theTimeSecond );
+  SendCommandToFunctionalGraph ( theCommandString );
+
+  // redraw tkmedit window.
+  redraw ();
+}
+
+void SetCurrentFunctionalCondition ( int inCondition ) {
+
+  char theCommandString[128];
+
+  // if we don't have functional data, return.
+  if ( !IsFunctionalDataLoaded() ) {
+    DebugPrint "SetCurrentFunctionalCondition(): Data isn't loaded."
+      EndDebugPrint;
+    return;
+  }
+
+  // if valid...
+  if ( Volume_IsConditionIndexValid ( gFunctionalVolume, inCondition ) ) {
+
+    // set it.
+    gCurFunctionalCondition = inCondition;
+    
+  } else {
+
+    // error message.
+    OutputPrint "%d is an invalid condition.", inCondition EndOutputPrint;
+  }
+
+  // send update to graph
+  sprintf ( theCommandString, "UpdateCondition %d", gCurFunctionalCondition );
+  SendCommandToFunctionalGraph ( theCommandString );
+
+  // redraw tkmedit window.
+  redraw ();
+}
+
+void SetCurrentFunctionalThresholdMin ( float inThreshold ) {
+
+  char theCommandString [128];
+  
+  // if we don't have functional data, return.
+  if ( !IsFunctionalDataLoaded() ) {
+    DebugPrint "SetCurrentFunctionalThresholdMin(): Data isn't loaded."
+      EndDebugPrint;
+    return;
+  }
+
+  // set it.
+  gCurFunctionalThresholdMin = inThreshold;
+
+  // make sure mid and max are above it.
+  if ( gCurFunctionalThresholdMid <= gCurFunctionalThresholdMin ) {
+    SetCurrentFunctionalThresholdMid ( gCurFunctionalThresholdMin + 0.5 );
+  }
+  if ( gCurFunctionalThresholdMax <= gCurFunctionalThresholdMin ) {
+    SetCurrentFunctionalThresholdMax ( gCurFunctionalThresholdMin + 1 );
+  }
+
+  // send update to graph
+  sprintf ( theCommandString, "UpdateThresholdMin %f", 
+      gCurFunctionalThresholdMin );
+  SendCommandToFunctionalGraph ( theCommandString );
+
+  // redraw the tkmedit window.
+  redraw ();
+}
+ 
+void SetCurrentFunctionalThresholdMid ( float inThreshold ) {
+
+  char theCommandString [128];
+  
+  // if we don't have functional data, return.
+  if ( !IsFunctionalDataLoaded() ) {
+    DebugPrint "SetCurrentFunctionalThresholdMid(): Data isn't loaded."
+      EndDebugPrint;
+    return;
+  }
+
+  // set it.
+  gCurFunctionalThresholdMid = inThreshold;
+
+  // make sure min and max are on either sides of it it.
+  if ( gCurFunctionalThresholdMin >= gCurFunctionalThresholdMid ) {
+    SetCurrentFunctionalThresholdMin ( gCurFunctionalThresholdMid - 0.5 );
+  }
+  if ( gCurFunctionalThresholdMax <= gCurFunctionalThresholdMid ) {
+    SetCurrentFunctionalThresholdMax ( gCurFunctionalThresholdMid + 0.5 );
+  }
+
+  // send update to graph
+  sprintf ( theCommandString, "UpdateThresholdMid %f", 
+      gCurFunctionalThresholdMid );
+  SendCommandToFunctionalGraph ( theCommandString );
+
+  // redraw the tkmedit window.
+  redraw ();
+}
+ 
+void SetCurrentFunctionalThresholdMax ( float inThreshold ) {
+
+  char theCommandString [128];
+  
+  // if we don't have functional data, return.
+  if ( !IsFunctionalDataLoaded() ) {
+    DebugPrint "SetCurrentFunctionalThresholdMax(): Data isn't loaded."
+      EndDebugPrint;
+    return;
+  }
+
+  // set it.
+  gCurFunctionalThresholdMax = inThreshold;
+
+  // make sure mid and max are below it.
+  if ( gCurFunctionalThresholdMin >= gCurFunctionalThresholdMax ) {
+    SetCurrentFunctionalThresholdMin ( gCurFunctionalThresholdMax - 1.0 );
+  }
+  if ( gCurFunctionalThresholdMid >= gCurFunctionalThresholdMax ) {
+    SetCurrentFunctionalThresholdMid ( gCurFunctionalThresholdMax - 0.5 );
+  }
+
+  // send update to graph
+  sprintf ( theCommandString, "UpdateThresholdMax %f", 
+      gCurFunctionalThresholdMax );
+  SendCommandToFunctionalGraph ( theCommandString );
+
+  // redraw the tkmedit window.
+  redraw ();
+}
+ 
+// ===========================================================================
+
+// ========================================================= SELECTING REGIONS
+
+void InitSelectionModule () {
+
+  char theErr;
+  theErr = VSpace_New ( &gSelectedVoxels );
+  if ( theErr != kVSpaceErr_NoErr ) {
+    DebugPrint "InitSelectionModule(): Error in VSpace_Init: %s\n",
+      VSpace_GetErrorString ( theErr ) EndDebugPrint;
+    gSelectedVoxels = NULL;
+  }
+
+  isDisplaySelectedVoxels = TRUE;
+}
+
+void DeleteSelectionModule () {
+
+  char theErr;
+
+  if ( NULL == gSelectedVoxels )
+    return;
+  
+  theErr = VSpace_Delete ( &gSelectedVoxels );
+  if ( theErr != kVSpaceErr_NoErr )
+    DebugPrint "DeleteSelectionModule(): Error in VSpace_Delete: %s\n",
+      VSpace_GetErrorString(theErr) EndDebugPrint;
+}
+
+
+void DrawSelectedVoxels ( char * inBuffer, int inPlane, int inPlaneNum ) {
+
+  VoxelRef theVoxel;
+  VoxelListRef theList;
+  int theListCount, theListIndex;
+  char theListErr;
+  int theScreenX, theScreenY, theScreenZ, theScreenH, theScreenV;
+
+  Voxel_New ( &theVoxel );
+
+  switch ( inPlane ) {
+  case CORONAL:
+    theListErr = 
+      VSpace_GetVoxelsInZPlane ( gSelectedVoxels, inPlaneNum, &theList );
+    break;
+  case SAGITTAL:
+    theListErr = 
+      VSpace_GetVoxelsInXPlane ( gSelectedVoxels, inPlaneNum, &theList );
+    break;
+  case HORIZONTAL:
+    theListErr = 
+      VSpace_GetVoxelsInYPlane ( gSelectedVoxels, inPlaneNum, &theList );
+    break;
+  }
+
+  if ( theListErr != kVSpaceErr_NoErr ) {
+    DebugPrint "DrawSelectedVoxels(): Error in VSpace_GetVoxelsInPlane: %s\n", 
+      VSpace_GetErrorString ( theListErr ) EndDebugPrint;
+    theList = NULL;
+  }
+  
+  // if we have a list..
+  if ( theList != NULL ) {
+    
+    // get its count
+    theListErr = VList_GetCount ( theList, &theListCount );
+    if ( theListErr != kVListErr_NoErr ) {
+      DebugPrint "DrawSelectedVoxels: %s\n",
+  VList_GetErrorString ( theListErr ) EndDebugPrint;
+      theListCount = 0;
+    }
+
+    // get each voxel...
+    for ( theListIndex = 0; 
+    theListIndex < theListCount; 
+    theListIndex++ ) {
+      
+      theListErr = VList_GetNthVoxel ( theList, theListIndex, theVoxel );
+      if ( theListErr != kVListErr_NoErr ) {
+  DebugPrint "DrawSelectedVoxels(): Error in VList_GetNthVoxel: %s\n",
+    VList_GetErrorString ( theListErr ) EndDebugPrint;
+  continue;
+      }
+
+      // go to screen points
+      VoxelToScreen ( Voxel_GetX(theVoxel), Voxel_GetY(theVoxel),
+          Voxel_GetZ(theVoxel), 
+          inPlane, &theScreenX, &theScreenY, &theScreenZ );
+      
+      // if it's in the window...
+      if ( IsScreenPtInWindow ( theScreenX, theScreenY, theScreenZ ) ) {
+  
+  // draw the point.
+  ScreenToScreenXY ( theScreenX, theScreenY, theScreenZ,
+         inPlane, &theScreenH, &theScreenV );
+    
+  FillBoxInBuffer ( inBuffer, theScreenH, theScreenV,
+        gLocalZoom*zf, kRGBAColor_Green );
+      }
+    }
+  }
+  
+}
+
+void AllowSelectionModuleToRespondToClick ( VoxelRef inScreenVoxel ) {
+
+}
+
+void AddVoxelToSelection ( VoxelRef inVoxel, void * inData ) {
+
+  char theErr;
+
+  /*
+  DebugPrint "AddVoxelToSelection ( (%d, %d, %d) )\n",
+    EXPAND_VOXEL_INT(inVoxel) EndDebugPrint;
+  */
+
+  if ( NULL == gSelectedVoxels )
+    return;
+  
+  theErr = VSpace_AddVoxel ( gSelectedVoxels, inVoxel );
+  if ( theErr != kVSpaceErr_NoErr )
+    DebugPrint "AddVoxelToSelection(): Error in VSpace_AddVoxel: %s\n",
+      VSpace_GetErrorString(theErr) EndDebugPrint;
+  
+}
+
+void RemoveVoxelFromSelection ( VoxelRef inVoxel, void * inData ) {
+
+  char theErr;
+
+  /*
+  DebugPrint "RemoveVoxelToSelection ( (%d, %d, %d) )\n",
+    EXPAND_VOXEL_INT(inVoxel) EndDebugPrint;
+  */
+
+  if ( NULL == gSelectedVoxels )
+    return;
+  
+  theErr = VSpace_RemoveVoxel ( gSelectedVoxels, inVoxel );
+  if ( theErr != kVSpaceErr_NoErr &&
+       theErr != kVSpaceErr_VoxelNotInSpace )
+    DebugPrint "RemoveVoxelFromSelection(): Error in VSpace_RemoveVoxel: %s\n",
+      VSpace_GetErrorString(theErr) EndDebugPrint;
+}
+
+
+void ClearSelection () {
+
+}
+
+char IsDisplaySelectedVoxels () {
+
+  return isDisplaySelectedVoxels;
+}
+
+void SaveSelectionToLabelFile ( char * inFileName ) {
+
+  LABEL * theLabel;
+  LABEL_VERTEX *theVertex;
+  int theNumVoxels, theGlobalVoxelIndex, theListVoxelIndex, theListIndex,
+    theListCount;
+  Real theRASX, theRASY, theRASZ;
+  VoxelRef theAnatomicalVoxel;
+  VoxelListRef theList;
+  int theLabelError;
+  char theError;
+  
+  DebugPrint "SaveSelectionToLabelFile ( %s )\n",
+    inFileName EndDebugPrint;
+
+  Voxel_New ( &theAnatomicalVoxel );
+
+  // get the number of selected voxels we have.
+  theNumVoxels = 0;
+  for ( theListIndex = 0; 
+  theListIndex < kVSpace_NumListsInPlane; 
+  theListIndex++ ) {
+    theError = VSpace_GetVoxelsInXPlane ( gSelectedVoxels, 
+            theListIndex, &theList );
+    if ( kVSpaceErr_NoErr != theError ) {
+      DebugPrint "\tError in VSpace_GetVoxelsInXPlane (%d): %s\n",
+  theError, VSpace_GetErrorString ( theError ) EndDebugPrint;
+      Voxel_Delete ( &theAnatomicalVoxel );
+      return;
+    }
+
+    theError = VList_GetCount ( theList, &theListCount );
+    if ( kVListErr_NoErr != theError ) {
+      DebugPrint "\tError in VList_GetCount (%d): %s\n",
+  theError, VList_GetErrorString ( theError ) EndDebugPrint;
+      Voxel_Delete ( &theAnatomicalVoxel );
+      return;
+    }
+
+    theNumVoxels += theListCount;
+  }
+
+  // allocate a label file with that number of voxels, our subject name,
+  // and the passed in label file name.
+  theLabel = LabelAlloc ( theNumVoxels, pname, inFileName );
+  if ( NULL == theLabel ) {
+    DebugPrint "\tCouldn't allocate label.\n" EndDebugPrint;
+    OutputPrint "ERROR: Couldn't save label.\n" EndOutputPrint;
+    Voxel_Delete ( &theAnatomicalVoxel );
+    return;
+  }
+
+  // set the number of points in the label
+  theLabel->n_points = theNumVoxels;
+
+  // for every list in a plane of the space... 
+  theGlobalVoxelIndex = 0;
+  for ( theListIndex = 0; 
+  theListIndex < kVSpace_NumListsInPlane; 
+  theListIndex++ ) {
+
+    // get the list
+    theError = VSpace_GetVoxelsInXPlane ( gSelectedVoxels, 
+            theListIndex, &theList );
+    if ( kVSpaceErr_NoErr != theError ) {
+      DebugPrint "\tError in VSpace_GetVoxelsInXPlane (%d): %s\n",
+  theError, VSpace_GetErrorString ( theError ) EndDebugPrint;
+      Voxel_Delete ( &theAnatomicalVoxel );
+      return;
+    }
+
+    // get the num of voxels in the list.
+    theError = VList_GetCount ( theList, &theListCount );
+    if ( kVListErr_NoErr != theError ) {
+      DebugPrint "\tError in VList_GetCount (%d): %s\n",
+  theError, VList_GetErrorString ( theError ) EndDebugPrint;
+      Voxel_Delete ( &theAnatomicalVoxel );
+      return;
+    }
+
+    // note that this is only the index of the voxel within a list, not
+    // global count. for each voxel in the list...
+    for ( theListVoxelIndex = 0;
+    theListVoxelIndex < theListCount;
+    theListVoxelIndex++ ) {
+      
+      // get a voxel.
+      theError = VList_GetNthVoxel ( theList, 
+             theListVoxelIndex, theAnatomicalVoxel );
+      if ( kVListErr_NoErr != theError ) {
+  DebugPrint "\tError in VList_GetNthVoxel (%d): %s\n",
+    theError, VList_GetErrorString ( theError ) EndDebugPrint;
+  Voxel_Delete ( &theAnatomicalVoxel );
+  return;
+      }
+
+      // get a ptr the vertex in the label file. use the global count to 
+      // index.
+      theVertex = &(theLabel->lv[theGlobalVoxelIndex]);
+      
+      // convert to ras
+      VoxelToRAS ( EXPAND_VOXEL_INT(theAnatomicalVoxel),
+       &theRASX, &theRASY, &theRASZ );
+
+      // set the vertex
+      theVertex->x = theRASX;
+      theVertex->y = theRASY;
+      theVertex->z = theRASZ;
+      
+      // set the vno and stat value to something decent and deleted to not
+      theVertex->vno = theGlobalVoxelIndex;
+      theVertex->stat = 0;
+      theVertex->deleted = FALSE;
+
+      // inc our global count.
+      theGlobalVoxelIndex ++;
+    }
+  }
+
+  // write the file
+  theLabelError = LabelWrite ( theLabel, inFileName );
+  if ( NO_ERROR != theLabelError ) {
+    DebugPrint "Error in LabelWrite().\n" EndDebugPrint;
+    OutputPrint "ERROR: Couldn't write label to file.\n" EndOutputPrint;
+    Voxel_Delete ( &theAnatomicalVoxel );
+    return;
+  }
+
+  // free it
+  LabelFree ( &theLabel );
+
+  Voxel_Delete ( &theAnatomicalVoxel );
+}
+
+void LoadSelectionFromLabelFile ( char * inFileName ) {
+
+  LABEL *theLabel;
+  LABEL_VERTEX *theVertex;
+  int theNumVoxels, theVoxelIndex;
+  int theVoxX, theVoxY, theVoxZ;
+  VoxelRef theVoxel;
+
+  Voxel_New ( &theVoxel );
+
+  DebugPrint "LoadSelectionFromLabelFile ( %s )\n", inFileName EndDebugPrint;
+
+  // read in the label
+  theLabel = LabelRead ( pname, inFileName );
+  if ( NULL == theLabel ) {
+    DebugPrint "\tError reading label file.\n" EndDebugPrint;
+    OutputPrint "ERROR: Couldn't read the label.\n" EndOutputPrint;
+  }
+
+  // for each vertex in there...
+  theNumVoxels = theLabel->max_points;
+  for ( theVoxelIndex = 0; theVoxelIndex < theNumVoxels; theVoxelIndex++ ) {
+
+    // get the vertex.
+    theVertex = &(theLabel->lv[theVoxelIndex]);
+    
+    // only process verticies that arn't deleted.
+    if ( !(theVertex->deleted) ) {
+      
+      // covert from ras to voxel
+      RASToVoxel ( theVertex->x, theVertex->y, theVertex->z,
+       &theVoxX, &theVoxY, &theVoxZ );
+
+      // add to the selection
+      Voxel_Set ( theVoxel, theVoxX, theVoxY, theVoxZ );
+      AddVoxelToSelection ( theVoxel, NULL );
+    }
+  }
+
+  // dump the label
+  LabelFree ( &theLabel );
+  
+  Voxel_Delete ( &theVoxel );
+}
+
+// ===========================================================================
+
+// =============================================================== BRUSH UTILS
+
+void PaintVoxels ( void(*inFunction)(VoxelRef,void*), void * inData,
+       VoxelRef inStartingPoint ) {
+
+  int theXRadius, theYRadius, theZRadius;
+  int theX, theY, theZ;
+  int theStartX, theStartY, theStartZ;
+  VoxelRef theVoxel;
+
+  Voxel_New ( &theVoxel );
+
+  // set all radiuses to the global radius
+  theXRadius = theYRadius = theZRadius = gBrushRadius;
+
+  // if our 3d flag is not on, limit the radius of the plane we're in.
+  if ( !gBrushIsIn3D ) {
+    switch ( plane ) {
+    case CORONAL:
+      theZRadius = 0;
+      break;
+    case HORIZONTAL:
+      theYRadius = 0;
+      break;
+    case SAGITTAL:
+      theXRadius = 0; 
+      break;
+    }
+  }
+  
+  theStartX = Voxel_GetX ( inStartingPoint );
+  theStartY = Voxel_GetY ( inStartingPoint );
+  theStartZ = Voxel_GetZ ( inStartingPoint );
+
+  // loop around the starting point...
+  for ( theZ = theStartZ - theZRadius; 
+  theZ <= theStartZ + theZRadius; theZ++ ) {
+    for ( theY = theStartY - theYRadius; 
+    theY <= theStartY + theYRadius; theY++ ) {
+      for ( theX = theStartX - theXRadius; 
+      theX <= theStartX + theXRadius; theX++ ) {
+  
+        // if this voxel is valid..
+        DisableDebuggingOutput;
+        if ( IsVoxelInBounds ( theX, theY, theZ ) ) {
+          
+          EnableDebuggingOutput;
+        
+          // if we're drawing in a circle and this point is outside
+          // our radius squared, skip this voxel.
+          if ( kShape_Circular == gBrushShape && 
+               (theStartX-theX)*(theStartX-theX) + 
+               (theStartY-theY)*(theStartY-theY) + 
+               (theStartZ-theZ)*(theStartZ-theZ) > 
+         gBrushRadius*gBrushRadius ) {
+            continue;
+          }
+
+    // run the function on this voxel.
+    Voxel_Set ( theVoxel, theX, theY, theZ );
+    inFunction ( theVoxel, inData );
+        }
+
+        EnableDebuggingOutput;
+      }
+    }
+  }
+
+  Voxel_Delete ( &theVoxel );
+}
+
+void SetBrushRadius ( int inRadius ) {
+
+  DebugPrint "SetBrushRadius ( %d )\n", inRadius EndDebugPrint;
+
+  gBrushRadius = inRadius;
+}
+
+void SetBrushShape ( Brush_Shape inShape ) {
+
+  DebugPrint "SetBrushShape ( %d )\n", (int)inShape EndDebugPrint;
+
+  gBrushShape = inShape;
+}
+
+void SetBrush3DStatus ( char inIsIn3D ) {
+
+  DebugPrint "SetBrush3DStatus ( %d )\n", (int)inIsIn3D EndDebugPrint;
+
+  gBrushIsIn3D = inIsIn3D;
+}
+
+// ===========================================================================
+
+// ============================================================ EDITING VOXELS
+
+void EditVoxel ( VoxelRef inVoxel, void * inData ) {
+
+  int theEditAction;
+  int theNewPixelValue, thePixelValue;
+
+  DebugPrint "EditVoxel ( (%d, %d, %d), %d )\n",
+    EXPAND_VOXEL_INT(inVoxel), *(int*)inData EndDebugPrint;
+  
+  // get the action from the data ptr.
+  theEditAction = *(int*)inData;
+
+  // get the pixel value at this voxel.
+  thePixelValue = GetVoxelValue ( EXPAND_VOXEL_INT(inVoxel) );
+  
+  // choose a new color.
+  if ( TO_WHITE == theEditAction && 
+       thePixelValue < WM_MIN_VAL ) {
+    
+    theNewPixelValue = 255;
+    
+  } else if ( TO_BLACK == theEditAction ) {
+    
+    theNewPixelValue = WM_EDITED_OFF;
+    
+  } else {
+    
+    theNewPixelValue = thePixelValue;
+  }
+  
+  
+  // if this pixel is different from the new value..
+  if ( theNewPixelValue != thePixelValue ) {
+    
+    // save this value in the undo list.
+    AddVoxelAndValueToUndoList ( inVoxel, thePixelValue );
+  }
+  
+  // set the pixel value.
+  SetVoxelValue ( EXPAND_VOXEL_INT(inVoxel), theNewPixelValue );
+
+  // mark the slice files that we changed.
+  changed [ Voxel_GetZ(inVoxel) ] = TRUE;
+  editedimage = imnr0 + Voxel_GetZ(inVoxel);
+  
+}
+
+// ===========================================================================
 
 
 /* ============================================= Coordinate transformations */
@@ -9967,6 +11034,46 @@ int TclVoxelToScreen ( ClientData inClientData, Tcl_Interp * inInterp,
 
   return TCL_OK;
 }
+
+void ScreenToScreenXY ( int x, int y, int z,
+      int plane, int *outH, int *outV ) {
+
+  int h, v;
+
+  h = v = 0;
+
+  // this just is.
+  switch ( plane ) {
+  case CORONAL:
+    h = x;
+    v = y;
+    if ( all3flag ) {
+      h = h/2;
+      v = ydim/2 + v/2;
+    }
+    break;
+  case SAGITTAL:
+    h = z;
+    v = y;
+    if ( all3flag ) {
+      h = xdim/2 + h/2;
+      v = ydim/2 + v/2;
+    }
+    break;
+  case HORIZONTAL:
+    h = x;
+    v = z;
+    if ( all3flag ) {
+      h = h/2;
+      v = v/2;
+    }
+    break;
+  }
+
+  *outH = h;
+  *outV = v;
+}
+
 
                                             /* various bounds checking. */
 inline
@@ -10328,6 +11435,9 @@ void ScreenToRAS ( int inPlane, int inScreenX, int inScreenY, int inScreenZ,
     theRealVoxZ -= 0.5;
     //    theRealVoxY += 0.5;
     break;
+
+  default:
+    theRealVoxX = theRealVoxY = theRealVoxZ =0;
   }
 
   // voxel to ras
@@ -10357,15 +11467,43 @@ void DrawCrosshairInBuffer ( char * inBuffer,       // the buffer
 
   int x, y, theBufIndex;
 
-  // add small offsets to put the cursor in the middle of a pixel.
-  /*
+  // go across the x line..
+  for ( x = inX - inSize; x <= inX + inSize; x++ ) {
+
+    // stay in good pixel space.
+    if ( x < 0 || x >= xdim-1 )
+      continue;
+
+    // 4 bytes per pixel, cols * y down, x across
+    theBufIndex = 4 * ( inY*xdim + x );
+
+    // copy the color in.
+    SetCompositePixelInBuffer ( inBuffer, theBufIndex, 1, inColor );
+  }
+
+  // same thing down the y line...
+  for ( y = inY - inSize; y <= inY + inSize; y++ ) {
+    if ( y < 0 || y >= ydim-1 ) 
+      continue;
+    theBufIndex = 4 * ( y*xdim +inX );
+    SetCompositePixelInBuffer ( inBuffer, theBufIndex, 1, inColor );
+  }
+}
+
+void DrawCenteredCrosshairInBuffer ( char * inBuffer,  
+             int inX, int inY, 
+             int inSize,       
+             long inColor ) {   
+
+  int x, y, theBufIndex;
+
+  // add small offsets to put the cursor in the middle of a voxel.
   if ( gLocalZoom*zf > 0 ) {
     inX -= inX % (gLocalZoom*zf);
     inY -= inY % (gLocalZoom*zf);
     inX += gLocalZoom*zf/2;
     inY += gLocalZoom*zf/2;
   }
-  */
 
   // go across the x line..
   for ( x = inX - inSize; x <= inX + inSize; x++ ) {
@@ -10537,6 +11675,19 @@ void CheckCenterVoxel () {
 }
 
 
+void GetCursorInScreenCoords ( VoxelRef ioVoxel ) {
+
+  Voxel_Set ( ioVoxel, jc, ic, imc );
+}
+
+void GetCursorInVoxelCoords ( VoxelRef ioVoxel ) {
+
+  int x, y, z;
+
+  ScreenToVoxel ( plane, jc, ic, imc, &x, &y, &z );
+  Voxel_Set ( ioVoxel, x, y, z );
+}
+
 /* ===================================================== General utilities */
 
 
@@ -10547,10 +11698,12 @@ void PrintScreenPointInformation ( int j, int i, int ic ) {
   Real theRASX, theRASY, theRASZ;
   int thePixelValue;
   char theResult, theValue;
-  Voxel theVoxel;
+  VoxelRef theVoxel;
   float theFloatScreenX, theFloatScreenY;
   int theScreenX, theScreenY;
   float theFunctionalValue;
+
+  Voxel_New ( &theVoxel );
 
   // get the voxel coords
   ScreenToVoxel ( plane, j, i, ic, &theVoxX, &theVoxY, &theVoxZ );
@@ -10575,7 +11728,6 @@ void PrintScreenPointInformation ( int j, int i, int ic ) {
   printf ( "\n" );
 
   // get the ras coords
-  VoxelToRAS ( theVoxX, theVoxY, theVoxZ, &theRASX, &theRASY, &theRASZ );
   ScreenToRAS ( plane, j, i, ic, &theRASX, &theRASY, &theRASZ );
 
   // print the screen, vox, and ras coords
@@ -10614,15 +11766,22 @@ void PrintScreenPointInformation ( int j, int i, int ic ) {
     // from compose().
     theFunctionalValue = fcache[theScreenY*512 + theScreenX];
 
-    printf ( "Functional value: %f2.5\n", theFunctionalValue );
+    printf ( "\nFunctional value: %2.5f\n", theFunctionalValue );
   }
 
+  // check for the other functional value...
+  Voxel_Set ( theVoxel, theVoxX, theVoxY, theVoxZ );
+  if ( IsFunctionalDataLoaded() ) {
+
+    GetFunctionalValueAtAnatomicalVoxel ( theVoxel, &theFunctionalValue );
+    OutputPrint "\nFunctional value: %2.5f\n", 
+      theFunctionalValue EndOutputPrint;
+  }
 
   // get the value for this voxel
-  Voxel_Set ( &theVoxel, theVoxX, theVoxY, theVoxY );
-  theResult = VSpace_IsInList ( &gCtrlPtList, &theVoxel, &theValue );
+  theResult = VSpace_IsInList ( gCtrlPtList, theVoxel, &theValue );
   if ( theResult != kVSpaceErr_NoErr ) {
-    DebugPrint"PrintScreenInformation_pixel(): Error in VSpace_IsInList: %s\n",
+    DebugPrint"PrintScreenInformation(): Error in VSpace_IsInList: %s\n",
               VSpace_GetErrorString ( theResult ) EndDebugPrint;
     theValue = 0;
   }
@@ -10632,6 +11791,8 @@ void PrintScreenPointInformation ( int j, int i, int ic ) {
   
   print ( "\n" );
   PR;
+
+  Voxel_Delete ( &theVoxel );
 }
 
 
@@ -10696,6 +11857,155 @@ void SetTCLInterp ( Tcl_Interp * inInterp ) {
 Tcl_Interp * GetTCLInterp () {
 
   return gTCLInterp;
+}
+
+
+inline
+void SetVoxelValue ( int x, int y, int z, unsigned char inValue ) {
+
+  if ( IsVoxelInBounds ( x, y, z ) ) {
+
+    im[z][y][x] = inValue;
+  }
+}
+
+inline
+unsigned char GetVoxelValue ( int x, int y, int z ) {
+
+  if ( IsVoxelInBounds ( x, y, z ) ) {
+
+    return im[z][y][x];
+  }
+
+  return 0;
+}
+
+void ClearUndoList () {
+
+  VoxelValueList_ErrorCode theErr;
+
+  theErr = VoxelValueList_ClearList ( gUndoList );
+  
+  if ( kVoxelValueListErr_NoErr != theErr ) {
+    DebugPrint "ClearUndoList(): Error clearing list: %d\n",
+      theErr EndDebugPrint;
+    return;
+  }
+}
+
+void AddVoxelAndValueToUndoList ( VoxelRef inVoxel, int inValue ) {
+
+  VoxelValueList_ErrorCode theErr;
+  float theFloatValue;
+
+  theFloatValue = (float) inValue;
+
+  theErr = VoxelValueList_AddVoxelAndValue ( gUndoList, 
+               inVoxel, theFloatValue );
+  
+  if ( kVoxelValueListErr_NoErr != theErr ) {
+    DebugPrint "AddVoxelAndValueToUndoList(): Error adding (%d,%d,%d) %d: %d\n",
+      Voxel_GetX(inVoxel), Voxel_GetY(inVoxel),
+      Voxel_GetZ(inVoxel), inValue, theErr EndDebugPrint;
+    return;
+  }
+}
+
+void RestoreUndoList () {
+  
+  VoxelValueList_ErrorCode theErr;
+  VoxelRef theVoxel;
+  VoxelValueListRef theSwapList;
+  float theFloatValue, theSwapFloatValue;
+  unsigned char theValue, theSwapValue;
+
+  Voxel_New ( &theVoxel );
+  
+  theErr = VoxelValueList_New ( &theSwapList );
+  if ( kVoxelValueListErr_NoErr != theErr ) {
+    DebugPrint "RestoreUndoList(): Error making swap list: %d\n",
+      theErr EndDebugPrint;
+  }
+  
+  DebugPrint "RestoreUndoList()\n" EndDebugPrint;
+
+  while ( kVoxelValueListErr_NoErr ==
+    VoxelValueList_GetNextVoxelAndValue ( gUndoList,
+            theVoxel, &theFloatValue ) ) {
+    
+    // get the value at this voxel and add it to the new list.
+    theSwapValue = GetVoxelValue ( Voxel_GetX(theVoxel), Voxel_GetY(theVoxel), 
+           Voxel_GetZ(theVoxel) );
+    theSwapFloatValue = (float) theSwapValue;
+    theErr = VoxelValueList_AddVoxelAndValue ( theSwapList, 
+                 theVoxel, theSwapValue );
+    if ( kVoxelValueListErr_NoErr != theErr ) {
+      DebugPrint "RestoreUndoList(): Error adding value to swap list: %d\n",
+  theErr EndDebugPrint;
+    }
+  
+    // set the new value.
+    theValue = (unsigned char) theFloatValue;
+    SetVoxelValue ( Voxel_GetX(theVoxel), Voxel_GetY(theVoxel), 
+        Voxel_GetZ(theVoxel), theValue );
+  }
+
+  Voxel_Delete ( &theVoxel );
+
+  // delete the old undo list and set our ptr to the new one.
+  VoxelValueList_Delete ( &gUndoList );
+  gUndoList = theSwapList;
+}
+
+void SetMode ( Interface_Mode inMode ) {
+  
+  gMode = inMode;
+
+  switch ( gMode ) {
+  case kMode_Edit:
+
+    control_points = -1;
+
+    OutputPrint "Now in editing mode.\n" EndOutputPrint;
+    break;
+  case kMode_CtrlPt:
+    OutputPrint "Now in control point mode.\n" EndOutputPrint;
+
+    control_points = 1 ;
+    
+    // process the control pt file, adding all pts to it.
+    ProcessCtrlPtFile ( tfname );
+    
+    if ( !gIsDisplayCtrlPts ) {
+
+      OutputPrint "NOTE: Control points are currently not being displayed. "
+  "To display control points, press ctrl-h.\n" EndOutputPrint;
+    }
+    
+    // redraw new control pts
+    redraw ();
+
+    break;
+  case kMode_Select:
+
+    control_points = -1;
+
+    OutputPrint "Now in selection mode.\n" EndOutputPrint;
+    break;
+  }
+}
+
+Interface_Mode GetMode () {
+
+  return gMode;
+}
+
+char IsInMode ( Interface_Mode inMode ) {
+
+  if ( gMode == inMode )
+    return TRUE;
+
+  return FALSE;
 }
 
 // end_kt
