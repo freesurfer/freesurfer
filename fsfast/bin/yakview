@@ -6,7 +6,7 @@
 # responses.
 ############################################################
 
-set YAKVIEW_VER = '\$Id: yakview,v 1.5 2004/10/29 17:46:05 greve Exp $'
+set YAKVIEW_VER = '\$Id: yakview,v 1.6 2004/11/01 21:17:49 greve Exp $'
 
 # Set Default Values #
 set imgstem = ();
@@ -121,7 +121,7 @@ else
       set ImgFile = $imgstem;
     endif
   else
-    #set ImgMkMosaic = 1;
+    if($IsMosaic || $ForceMkMosaic)   set ImgMkMosaic = 1;
     set ImgFile = $imgstem;
   endif # if($fmtimg == 0) then
 endif
@@ -154,7 +154,7 @@ if($#sigstem != 0) then
       set SigFile = $sigstem;
     endif
    else
-    #set SigMkMosaic = 1;
+    if($IsMosaic || $ForceMkMosaic) set SigMkMosaic = 1;
     set SigFile = $sigstem;
    endif # if($fmtimg == 0) then
   endif
@@ -188,6 +188,7 @@ if($#sigmaskstem != 0) then
         set SigMaskFile = $sigmaskstem;
       endif
     else
+    if($IsMosaic || $ForceMkMosaic)  set SigMaskMkMosaic = 1;
       set SigMaskFile = $sigmaskstem;
       if(! -e $sigmaskstem) then
         echo "ERROR: cannot find $SigMaskFile" 
