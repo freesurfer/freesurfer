@@ -54,7 +54,7 @@
 #define ISEVEN       EVEN
 #define ISODD        ODD
 
-#define RADIANS(deg) (2.0 * M_PI * (double)(deg)) / (360.0)
+#define RADIANS(deg) ((2.0 * M_PI * (double)(deg)) / (360.0))
 #define DEGREES(rad) ((360.0 * (double)(rad)) / (2.0 * M_PI))
 #define NDEGREES(rad) (DEGREES(normAngle(rad)))
 
