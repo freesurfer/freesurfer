@@ -4,9 +4,9 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2003/07/29 17:11:01 $
-// Revision       : $Revision: 1.166 $
-char *VERSION = "$Revision: 1.166 $";
+// Revision Date  : $Date: 2003/07/30 21:41:37 $
+// Revision       : $Revision: 1.167 $
+char *VERSION = "$Revision: 1.167 $";
 
 #define TCL
 #define TKMEDIT 
@@ -1027,7 +1027,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
      shorten our argc and argv count. If those are the only args we
      had, exit. */
   /* rkt: check for and handle version tag */
-  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.166 2003/07/29 17:11:01 kteich Exp $");
+  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.167 2003/07/30 21:41:37 kteich Exp $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
   argc -= nNumProcessedVersionArgs;
@@ -2603,6 +2603,7 @@ void WriteVoxelToEditFile ( xVoxelRef iAnaIdx ) {
   Volm_tErr eVolume         = Volm_tErr_NoErr;
   char      sFileName[tkm_knPathLen] = "";
   FILE*      file         = NULL;
+  xVoxel    MRIIdx;
   xVoxel    ras;
   xVoxel    tal;
   
@@ -2619,8 +2620,11 @@ void WriteVoxelToEditFile ( xVoxelRef iAnaIdx ) {
   DebugAssertThrowX( (NULL != file), eResult, tkm_tErr_ErrorAccessingFile );
   
   /* convert idx to ras */
-  eVolume = Volm_ConvertIdxToRAS( gAnatomicalVolume[tkm_tVolumeType_Main],
-          iAnaIdx, &ras );
+  eVolume = Volm_ConvertIdxToMRIIdx( gAnatomicalVolume[tkm_tVolumeType_Main],
+				     iAnaIdx, &MRIIdx );
+  eVolume = 
+    Volm_ConvertMRIIdxToSurfaceRAS( gAnatomicalVolume[tkm_tVolumeType_Main],
+				 &MRIIdx, &ras );
   DebugAssertThrowX( (Volm_tErr_NoErr == eVolume), 
          eResult, tkm_tErr_ErrorAccessingVolume );
   
@@ -2631,11 +2635,11 @@ void WriteVoxelToEditFile ( xVoxelRef iAnaIdx ) {
   
   /* convert to tal and write that. */
   eVolume = Volm_ConvertIdxToTal( gAnatomicalVolume[tkm_tVolumeType_Main],
-          iAnaIdx, &tal );
+				  iAnaIdx, &tal );
   DebugAssertThrowX( (Volm_tErr_NoErr == eVolume), 
-         eResult, tkm_tErr_ErrorAccessingVolume );
+		     eResult, tkm_tErr_ErrorAccessingVolume );
   DebugNote( ("Writing tal edit point %.2f,%.2f,%.2f to file",
-        xVoxl_ExpandFloat( &tal ) ));
+	      xVoxl_ExpandFloat( &tal ) ));
   fprintf( file,"%f %f %f\n", xVoxl_ExpandFloat( &tal ) );
   
   DebugCatch;
@@ -2678,6 +2682,7 @@ void ReadCursorFromEditFile ( char* isFileName ) {
   float      fRASY   = 0;
   float      fRASZ   = 0;
   xVoxel    ras;
+  xVoxel    MRIIdx;
   xVoxel    idx;
   
   DebugEnterFunction( ("ReadCursorFromEditFile ( isFileName=%s )",
@@ -2693,11 +2698,16 @@ void ReadCursorFromEditFile ( char* isFileName ) {
   fscanf( file, "%f %f %f", &fRASX, &fRASY, &fRASZ );
   xVoxl_SetFloat( &ras, fRASX, fRASY, fRASZ );
   
-  /* convert to volume voxel. */
-  eVolume = Volm_ConvertRASToIdx( gAnatomicalVolume[tkm_tVolumeType_Main],
-          &ras, &idx );
+  /* convert to screen voxel. */
+  eVolume = 
+    Volm_ConvertSurfaceRASToMRIIdx( gAnatomicalVolume[tkm_tVolumeType_Main],
+				    &ras, &MRIIdx );
   DebugAssertThrowX( (Volm_tErr_NoErr == eVolume), 
-         eResult, tkm_tErr_ErrorAccessingVolume );
+		     eResult, tkm_tErr_ErrorAccessingVolume );
+  eVolume = Volm_ConvertMRIIdxToIdx( gAnatomicalVolume[tkm_tVolumeType_Main],
+				     &MRIIdx, &idx );
+  DebugAssertThrowX( (Volm_tErr_NoErr == eVolume), 
+		     eResult, tkm_tErr_ErrorAccessingVolume );
   
   /* build and set cursor */
   DebugNote( ("Setting cursor in main window") );
