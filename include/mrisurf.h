@@ -67,6 +67,7 @@ typedef struct vertex_type_
   int *n;                /* [0-3, num long] */
   int vnum;              /* number neighboring vertices */
   int *v;                /* array neighboring vertex numbers, vnum long */
+  float bnx,bny,obnx,obny;                       /* boundary normal */
 #if 0
   float *fnx ;           /* face normal - x component */
   float *fny ;           /* face normal - y component */
@@ -81,7 +82,6 @@ typedef struct vertex_type_
   float stress;          /* explosion */
   float logarat,ologarat,sqrtarat; /* for area term */
   float logshear,shearx,sheary,oshearx,osheary;  /* for shear term */
-  float bnx,bny,obnx,obny;                       /* boundary normal */
   float smx,smy,smz,osmx,osmy,osmz;              /* smoothed curr,last move */
   int   marked;            /* cursor */
   int   oripflag,origripflag;  /* cuts flags */
@@ -218,6 +218,8 @@ typedef struct
 #define NO_PROJECTION        0
 #define PROJECT_ELLIPSOID    1
 #define ELLIPSOID_PROJECTION PROJECT_ELLIPSOID
+#define PROJECT_PLANE        2
+#define PLANAR_PROJECTION    PROJECT_PLANE
 
 #define TOL                  1e-6  /* minimum error tolerance for unfolding */
 
@@ -227,10 +229,20 @@ typedef struct
 
 MRI_SURFACE  *MRISread(char *fname) ;
 int          MRISreadCanonicalCoordinates(MRI_SURFACE *mris, char *sname) ;
+int          MRISreadPatch(MRI_SURFACE *mris, char *pname) ;
+int          MRISreadTriangleProperties(MRI_SURFACE *mris, char *mris_fname) ;
+int          MRISreadBinaryCurvature(MRI_SURFACE *mris, char *mris_fname) ;
+int          MRISreadCurvatureFile(MRI_SURFACE *mris, char *fname) ;
+int          MRISreadValues(MRI_SURFACE *mris, char *fname) ;
+
 int          MRISwrite(MRI_SURFACE *mris, char *fname) ;
 int          MRISwriteCurvature(MRI_SURFACE *mris, char *fname) ;
 int          MRISwriteAreaError(MRI_SURFACE *mris, char *fname) ;
 int          MRISwriteAngleError(MRI_SURFACE *mris, char *fname) ;
+int          MRISwritePatch(MRI_SURFACE *mris, char *fname) ;
+int          MRISwriteValues(MRI_SURFACE *mris, char *fname) ;
+int          MRISwriteTriangleProperties(MRI_SURFACE *mris, char *mris_fname);
+
 MRI_SURFACE  *MRISalloc(int nvertices, int nfaces) ;
 int          MRISfree(MRI_SURFACE **pmris) ;
 MRI_SURFACE  *MRISprojectOntoEllipsoid(MRI_SURFACE *mris_src, 
@@ -246,7 +258,6 @@ MRI_SURFACE  *MRIStalairachTransform(MRI_SURFACE *mris_src,
 MRI_SURFACE  *MRISunfold(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) ;
 int          MRIScomputeFaceAreas(MRI_SURFACE *mris) ;
 int          MRISupdateEllipsoidSurface(MRI_SURFACE *mris) ;
-int          MRISwriteTriangleProperties(MRI_SURFACE *mris, char *mris_fname);
 MRI_SURFACE  *MRISrotate(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst, 
                          float dphi, float dtheta) ;
 
@@ -263,14 +274,11 @@ MRI_SP       *MRISPtranslate(MRI_SP *mrisp_src, MRI_SP *mrisp_dst, int du,
 MRI_SP       *MRISPclone(MRI_SP *mrisp_src) ;
 MRI_SP       *MRISPalloc(MRI_SURFACE *mris, float scale) ;
 int          MRISPfree(MRI_SP **pmrisp) ;
-int          MRISreadTriangleProperties(MRI_SURFACE *mris, char *mris_fname) ;
 int          MRIScomputeTriangleProperties(MRI_SURFACE *mris) ;
-int          MRISreadBinaryCurvature(MRI_SURFACE *mris, char *mris_fname) ;
-int          MRISreadCurvatureFile(MRI_SURFACE *mris, char *fname) ;
 int          MRISsampleStatVolume(MRI_SURFACE *mris, STAT_VOLUME *sv,int time,
                                   int use_talairach_xform);
-int          MRISwriteValues(MRI_SURFACE *mris, char *fname) ;
-int          MRISreadValues(MRI_SURFACE *mris, char *fname) ;
+
+int          MRISflattenPatch(MRI_SURFACE *mris, char *dir) ;
 
 /* constants for vertex->tethered */
 #define TETHERED_NONE           0
