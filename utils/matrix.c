@@ -3032,3 +3032,15 @@ MATRIX *MatrixNormalizeCol(MATRIX *m, MATRIX *mcnorm)
   
   return(mcnorm);
 }
+MATRIX *
+MatrixSimilarityTransform(MATRIX *m_src, MATRIX *m_mul, MATRIX *m_dst)
+{
+	MATRIX *m_mul_T, *m_tmp ;
+
+	m_mul_T = MatrixTranspose(m_mul, NULL) ;
+	m_tmp = MatrixMultiply(m_src, m_mul_T, NULL) ;
+	m_dst = MatrixMultiply(m_mul, m_tmp, m_dst) ;
+	MatrixFree(&m_mul_T) ; MatrixFree(&m_tmp) ;
+	return(m_dst) ;
+}
+
