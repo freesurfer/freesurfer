@@ -7282,8 +7282,11 @@ and for dest
     return(NULL);
   }
 
-  printf("MRIresample() matrix is:\n");
-  MatrixPrint(stdout, m);
+  if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+  {
+    printf("MRIresample() matrix is:\n");
+    MatrixPrint(stdout, m);
+  }
 
   dest = MRIalloc(template_vol->width, template_vol->height, template_vol->depth, template_vol->type);
   if(dest == NULL)
