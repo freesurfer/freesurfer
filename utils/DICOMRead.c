@@ -2,7 +2,7 @@
    DICOM 3.0 reading functions
    Author: Sebastien Gicquel and Douglas Greve
    Date: 06/04/2001
-   $Id: DICOMRead.c,v 1.56 2004/08/13 19:15:04 tosa Exp $
+   $Id: DICOMRead.c,v 1.57 2004/09/08 20:25:14 tosa Exp $
 *******************************************************/
 
 #include <stdio.h>
@@ -341,7 +341,7 @@ DCM_ELEMENT *GetElementFromFile(char *dicomfile, long grpid, long elid)
   CONDITION cond;
   DCM_ELEMENT *element;
   DCM_TAG tag;
-  unsigned long rtnLength;
+  unsigned int rtnLength;
   void * Ctx = NULL;
 
   element = (DCM_ELEMENT *) calloc(1,sizeof(DCM_ELEMENT));
@@ -442,14 +442,14 @@ int AllocElementData(DCM_ELEMENT *e)
     e->d.ss = (short *) calloc(e->length,sizeof(short));
     break;
   case DCM_SL:
-    e->d.sl = (long *) calloc(e->length,sizeof(long));
+    e->d.sl = (int *) calloc(e->length,sizeof(int));
     break;
   case DCM_SQ: 
     fprintf(stderr,"Element is of type dcm_sq, not supported\n");
     return(1);
     break;
   case DCM_UL: 
-    e->d.ul = (unsigned long *) calloc(e->length,sizeof(unsigned long));
+    e->d.ul = (unsigned int *) calloc(e->length,sizeof(unsigned int));
     break;
   case DCM_US:
     e->d.us = (unsigned short *) calloc(e->length,sizeof(unsigned short));
