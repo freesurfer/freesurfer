@@ -382,7 +382,7 @@ extern int (*gMRISexternalRipVertices)(MRI_SURFACE *mris, INTEGRATION_PARMS *par
 #define IP_RETRY_INTEGRATION  0x0004
 
 /* can't include this before structure, as stats.h includes this file. */
-#include "stats.h"
+/*#include "stats.h"*/
 #include "label.h"
 
 int MRISfindClosestCanonicalVertex(MRI_SURFACE *mris, float x, float y, 
@@ -519,7 +519,7 @@ MRI_SURFACE  *MRISreadFromVolume(MRI *mri, MRI_SURFACE *mris) ;
 
 int          MRIScomputeTriangleProperties(MRI_SURFACE *mris) ;
 int          MRISpaintVolume(MRI_SURFACE *mris, LTA *lta, MRI *mri) ;
-int          MRISsampleStatVolume(MRI_SURFACE *mris, STAT_VOLUME *sv,int time,
+int          MRISsampleStatVolume(MRI_SURFACE *mris, void *sv,int time,
                                   int use_talairach_xform);
 
 int          MRISflattenPatch(MRI_SURFACE *mris) ;
