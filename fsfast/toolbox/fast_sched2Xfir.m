@@ -39,7 +39,7 @@ function X = fast_sched2Xfir(tPres,ntrs,TR,TER,TPreStim,TimeWindow,W)
 % matrix entry for each presentation is given the value W(n) instead
 % of 1. Ignored if W=[].
 %
-% $Id: fast_sched2Xfir.m,v 1.1 2003/03/04 20:47:38 greve Exp $ 
+% $Id: fast_sched2Xfir.m,v 1.2 2003/03/14 04:17:33 greve Exp $ 
 
 X = [];
 
@@ -73,34 +73,31 @@ if(rem(TPreStim,TER) ~= 0)
   return;
 end
 
-% Check that no presentation exceeds the maximum time %
+% Compute time of last acq
 tmax = TR*(ntrs - 1);
-ind = find(tPres > tmax);
-if(~isempty(ind))
-  fprintf('WARNING: presentation time %g exceeds max %g ... ignoring\n',...
-          max(tPres),tmax);
-  ind = find(tPres <= tmax);
-  tPres = tPres(ind);
-end
+% Compute the resampling rate
+Rss = TR/TER;
+% Compute the number of Estimates
+Nh = round(TimeWindow/TER);
+% Compute the Post Stimulus Window
+TPostStim = TimeWindow - TPreStim - TER;
 
+% Number of presentations
 Npres = length(tPres);
+if(Npres == 0) 
+  X = zeros(ntrs,Nh);
+  return; 
+end
+tPres = reshape(tPres,[Npres 1]); % Just to make sure %
+
 if(isempty(W)) W = ones(Npres,1); end
 if(length(W) ~= Npres)
   fprintf('ERROR: length(W) (%d) does not equal Npres (%d)\n',length(W),Npres);
   return;
 end
-
-% Compute the resampling rate
-Rss = TR/TER;
-
-% Compute the number of Estimates
-Nh = round(TimeWindow/TER);
-
-% Compute the Post Stimulus Window
-TPostStim = TimeWindow - TPreStim - TER;
+W = reshape(W,[Npres 1]); % Just to make sure %
 
 X = zeros(Rss*ntrs,Nh);
-
 h = 1;
 for d = -TPreStim:TER:TPostStim,
    td = tPres+d;
@@ -115,6 +112,5 @@ end
 if(Rss ~= 1)
   X = X(1:Rss:Rss*ntrs,:);
 end
-
 
 return;
