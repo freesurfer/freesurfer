@@ -588,7 +588,7 @@ AC_CHECK_LIB([tix],[Tix_Init],
     [LIB_TIX=-ltix8.1.8.4],
     [
 # check tix8.1.8.3
-      AC_CHECK_LIB([tix.8.1.8.3], [Tix_Init],
+      AC_CHECK_LIB([tix8.1.8.3], [Tix_Init],
       [LIB_TIX=-ltix8.1.8.3],
       [AC_MSG_ERROR("FATAL: libtix not found. check config.log. set LDFLAGS or --with-tcl-dir.")
       ])
