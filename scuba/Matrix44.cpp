@@ -4,7 +4,9 @@
 #include <stdexcept>
 #include "Matrix44.h"
 #include "VectorOps.h"
+#if 0
 #include "mkl.h"
+#endif
 extern "C" {
   #include "macros.h"
 }
