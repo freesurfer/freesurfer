@@ -185,7 +185,8 @@ main(int argc, char *argv[])
                 Progname, output_file_name) ;
     else
     {
-      MRIcopyLabel(mri_old, mri_dst, 255) ;
+      MRIcopyLabel(mri_old, mri_dst, WM_EDITED_ON_VAL) ;
+      MRIcopyLabel(mri_old, mri_dst, WM_EDITED_OFF_VAL) ;
       MRIfree(&mri_old) ;
     }
   }
