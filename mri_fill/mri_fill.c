@@ -10,7 +10,7 @@
 #include "macros.h"
 #include "proto.h"
 
-static char vcid[] = "$Id: mri_fill.c,v 1.12 1998/01/25 21:54:24 fischl Exp $";
+static char vcid[] = "$Id: mri_fill.c,v 1.13 1998/03/10 00:24:01 fischl Exp $";
 
 /*-------------------------------------------------------------------
                                 CONSTANTS
@@ -128,7 +128,8 @@ static int fill_holes(void) ;
 static int fill_brain(int threshold) ;
 void main(int argc, char *argv[]) ;
 static MRI *find_cutting_plane(MRI *mri, Real x_tal, Real y_tal,Real z_tal,
-                              int orientation, int *pxv, int *pvy, int *pzv) ;
+                              int orientation, int *pxv, int *pvy, int *pzv,
+                               int seed_set) ;
 static int find_slice_center(MRI *mri,  int *pxo, int *pyo) ;
 static int find_corpus_callosum(MRI *mri, Real *ccx, Real *ccy, Real *ccz) ;
 static int find_pons(MRI *mri, Real *p_ponsx, Real *p_ponsy, Real *p_ponsz) ;
@@ -203,12 +204,20 @@ main(int argc, char *argv[])
 
   if (!Gdiag)
     fprintf(stderr, "done.\nsearching for cutting planes...") ;
-  if (find_corpus_callosum(mri_im,&cc_tal_x,&cc_tal_y,&cc_tal_z) != NO_ERROR)
-    mri_cc = NULL ;
+  if (!cc_seed_set)
+  {
+    if (find_corpus_callosum(mri_im,&cc_tal_x,&cc_tal_y,&cc_tal_z) 
+        != NO_ERROR)
+      mri_cc = NULL ;
+    else
+      mri_cc =
+        find_cutting_plane(mri_im, cc_tal_x, cc_tal_y, cc_tal_z,
+                           MRI_SAGITTAL, &x_cc, &y_cc, &z_cc, cc_seed_set) ;
+  }
   else
     mri_cc =
-      find_cutting_plane(mri_im, cc_tal_x, cc_tal_y, cc_tal_z, MRI_SAGITTAL,
-                         &x_cc, &y_cc, &z_cc) ;
+      find_cutting_plane(mri_im, cc_tal_x, cc_tal_y, cc_tal_z,
+                         MRI_SAGITTAL, &x_cc, &y_cc, &z_cc, cc_seed_set) ;
   if (!mri_cc)  /* heuristic failed - use Talairach coordinates */
   {
     cc_tal_x = CORPUS_CALLOSUM_TAL_X ; 
@@ -216,21 +225,24 @@ main(int argc, char *argv[])
     cc_tal_z = CORPUS_CALLOSUM_TAL_Z;
     mri_cc = 
       find_cutting_plane(mri_im, cc_tal_x, cc_tal_y, cc_tal_z, MRI_SAGITTAL,
-                         &x_cc, &y_cc, &z_cc) ;
+                         &x_cc, &y_cc, &z_cc, cc_seed_set) ;
     if (!mri_cc)
       ErrorExit(ERROR_BADPARM, "%s: could not find corpus callosum", Progname);
   }
 
-  find_pons(mri_im, &pons_tal_x, &pons_tal_y, &pons_tal_z) ;
+  if (!pons_seed_set)
+    find_pons(mri_im, &pons_tal_x, &pons_tal_y, &pons_tal_z) ;
   mri_pons = 
     find_cutting_plane(mri_im, pons_tal_x,pons_tal_y, pons_tal_z,
-                       MRI_HORIZONTAL, &x_pons, &y_pons, &z_pons);
+                       MRI_HORIZONTAL, &x_pons, &y_pons, &z_pons,
+                       pons_seed_set);
   if (!mri_pons) /* heuristic failed to find the pons - try Talairach coords */
   {
     pons_tal_x = PONS_TAL_X ; pons_tal_y = PONS_TAL_Y; pons_tal_z = PONS_TAL_Z;
     mri_pons = 
       find_cutting_plane(mri_im, pons_tal_x,pons_tal_y, pons_tal_z,
-                         MRI_HORIZONTAL, &x_pons, &y_pons, &z_pons);
+                         MRI_HORIZONTAL, &x_pons, &y_pons, &z_pons,
+                         pons_seed_set);
     if (!mri_pons)
       ErrorExit(ERROR_BADPARM, "%s: could not find pons", Progname);
   }
@@ -674,9 +686,9 @@ print_help(void)
 
 static MRI *
 find_cutting_plane(MRI *mri, Real x_tal, Real y_tal,Real z_tal,int orientation,
-                   int *pxv, int *pyv, int *pzv)
+                   int *pxv, int *pyv, int *pzv, int seed_set)
 {
-  MRI        *mri_slices[MAX_SLICES], *mri_filled[MAX_SLICES], *mri_cut ;
+  MRI        *mri_slices[MAX_SLICES], *mri_filled[MAX_SLICES], *mri_cut=NULL ;
   Real       dx, dy, dz, x, y, z, aspect,MIN_ASPECT,MAX_ASPECT,
              aspects[MAX_SLICES] ;
   int        slice, offset, area[MAX_SLICES], min_area, min_slice,xo,yo,
@@ -750,12 +762,32 @@ find_cutting_plane(MRI *mri, Real x_tal, Real y_tal,Real z_tal,int orientation,
      (region.x+region.dx < SLICE_SIZE-1) &&
      (region.y+region.dy < SLICE_SIZE-1)) ;
 
-  if (!done &&
-      ((pons_seed_set && orientation == MRI_HORIZONTAL) ||
-       (cc_seed_set && orientation == MRI_SAGITTAL)))
-      done = 1 ;
+  if (seed_set)  /* just fill around the specified seed */
+  {
+    done = 1 ;
+    MRIboundingBox(mri_filled[0], 1, &region) ;
+    MRItalairachToVoxel(mri, x_tal, y_tal,  z_tal, &x, &y, &z) ;
+    *pxv = nint(x) ; *pyv = nint(y) ; *pzv = nint(z) ;
+    mri_cut = MRIcopy(mri_filled[0], NULL) ;
+    for (yv = region.y ; yv < region.y+region.dy ; yv++)
+    {
+      for (xv = region.x ; xv < region.x+region.dx ; xv++)
+      {
+        MRIvox(mri_cut, xv, yv, 0) = 1 ;
+      }
+    }
+    if (Gdiag & DIAG_WRITE)
+    {
+      sprintf(fname, "%s_filled.mnc", 
+              orientation == MRI_SAGITTAL ? "cc":"pons");
+      MRIwrite(mri_slices[0], fname) ;
+      sprintf(fname, "%s_cut.mnc", 
+              orientation == MRI_SAGITTAL ? "cc":"pons");
+      MRIwrite(mri_cut, fname) ;
+    }
+  }
 
-  if (done)  /* center the seed */
+  if (!seed_set && done)  /* center the seed */
   {
     find_slice_center(mri_filled[0], &xi, &yi) ;
     switch (orientation)   
@@ -842,135 +874,142 @@ find_cutting_plane(MRI *mri, Real x_tal, Real y_tal,Real z_tal,int orientation,
   }
 
   if (Gdiag & DIAG_SHOW)
-    fprintf(stderr, "%s seed point found at (%d, %d, %d)\n", name, xv, yv, zv);
+    fprintf(stderr, "%s seed point found at (%d, %d, %d)\n", name, xv,yv,zv);
 
-  for (slice = 0 ; slice < MAX_SLICES ; slice++)
+  if (!seed_set)   /* find slice with smallest cross-section */
   {
-    offset = slice - HALF_SLICES ;
-    x = x_tal + dx*offset ; y = y_tal + dy*offset ; z = z_tal + dz*offset ; 
-    MRItalairachToVoxel(mri, x, y,  z, &x, &y,&z) ;
-    xv = nint(x) ; yv = nint(y) ; zv = nint(z) ;
-    mri_slices[slice] = 
-      MRIextractTalairachPlane(mri, NULL, orientation, xv, yv, zv, SLICE_SIZE);
-    mri_filled[slice] = 
-      MRIfillFG(mri_slices[slice], NULL, xo, yo,0,WM_MIN_VAL,127,&area[slice]);
-    MRIboundingBox(mri_filled[slice], 1, &region) ;
-    aspects[slice] = (Real)region.dy / (Real)region.dx ;
-
-    /* don't trust slices that extend to the border of the image */
-    if (!region.x || !region.y || region.x+region.dx >= SLICE_SIZE-1 ||
-        region.y+region.dy >= SLICE_SIZE-1)
-      area[slice] = 0 ;
-
-    if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
-      fprintf(stderr, "slice[%d] @ (%d, %d, %d): area = %d\n", 
-              slice, xv, yv, zv, area[slice]) ;
-
-    if (orientation == MRI_SAGITTAL)  /* extend to top and bottom of slice */
-      region.dy = SLICE_SIZE - region.y ;
-
-    /*    for (yv = region.y ; yv < region.y+region.dy ; yv++)*/
-    for (yv = region.y ; yv < region.y+region.dy ; yv++)
+    for (slice = 0 ; slice < MAX_SLICES ; slice++)
     {
-      for (xv = region.x ; xv < region.x+region.dx ; xv++)
+      offset = slice - HALF_SLICES ;
+      x = x_tal + dx*offset ; y = y_tal + dy*offset ; z = z_tal + dz*offset ;
+      MRItalairachToVoxel(mri, x, y,  z, &x, &y,&z) ;
+      xv = nint(x) ; yv = nint(y) ; zv = nint(z) ;
+      mri_slices[slice] = 
+        MRIextractTalairachPlane(mri,NULL,orientation, xv, yv,zv,SLICE_SIZE);
+      mri_filled[slice] = 
+        MRIfillFG(mri_slices[slice],NULL,xo,yo,0,WM_MIN_VAL,127,&area[slice]);
+      MRIboundingBox(mri_filled[slice], 1, &region) ;
+      aspects[slice] = (Real)region.dy / (Real)region.dx ;
+      
+      /* don't trust slices that extend to the border of the image */
+      if (!region.x || !region.y || region.x+region.dx >= SLICE_SIZE-1 ||
+          region.y+region.dy >= SLICE_SIZE-1)
+        area[slice] = 0 ;
+      
+      if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+        fprintf(stderr, "slice[%d] @ (%d, %d, %d): area = %d\n", 
+                slice, xv, yv, zv, area[slice]) ;
+      
+      if (orientation == MRI_SAGITTAL)  /* extend to top and bottom of slice */
+        region.dy = SLICE_SIZE - region.y ;
+      
+      /*    for (yv = region.y ; yv < region.y+region.dy ; yv++)*/
+      for (yv = region.y ; yv < region.y+region.dy ; yv++)
       {
-        MRIvox(mri_filled[slice], xv, yv, 0) = 1 ;
+        for (xv = region.x ; xv < region.x+region.dx ; xv++)
+        {
+          MRIvox(mri_filled[slice], xv, yv, 0) = 1 ;
+        }
       }
-    }
-
-    if ((Gdiag & DIAG_WRITE) && !(slice % 1))
-    {
-      sprintf(fname, "%s_slice%d.mnc", 
-              orientation == MRI_SAGITTAL ? "cc":"pons", slice);
-      MRIwrite(mri_slices[slice], fname) ;
-      sprintf(fname, "%s_filled%d.mnc", 
-              orientation == MRI_SAGITTAL ? "cc":"pons", slice);
-      MRIwrite(mri_filled[slice], fname) ;
-    }
-  }
-
-  if (orientation == MRI_HORIZONTAL)
-  {
-    min_area = 10000 ; min_slice = -1 ;
-    for (slice = 1 ; slice < MAX_SLICES-1 ; slice++)
-    {
-      if (area[slice] < min_area && 
-          (area[slice] >= MIN_AREA && area[slice] <= MAX_AREA))
+      
+      if ((Gdiag & DIAG_WRITE) && !(slice % 1))
       {
-        min_area = area[slice] ;
-        min_slice = slice ;
+        sprintf(fname, "%s_slice%d.mnc", 
+                orientation == MRI_SAGITTAL ? "cc":"pons", slice);
+        MRIwrite(mri_slices[slice], fname) ;
+        sprintf(fname, "%s_filled%d.mnc", 
+                orientation == MRI_SAGITTAL ? "cc":"pons", slice);
+        MRIwrite(mri_filled[slice], fname) ;
       }
-    }
-  }
-  else    /* search for middle of corpus callosum */
-  {
-    int valid[MAX_SLICES], num_on, max_num_on, max_on_slice_start ;
-
-    for (slice = 1 ; slice < MAX_SLICES-1 ; slice++)
-    {
-      valid[slice] =
-        ((area[slice]    >= MIN_AREA)   && (area[slice]    <= MAX_AREA) &&
-         (aspects[slice] >= MIN_ASPECT) && (aspects[slice] <= MAX_ASPECT)) ;
     }
     
-    max_on_slice_start = max_num_on = num_on = 0 ;
-    for (slice = 1 ; slice < MAX_SLICES-1 ; slice++)
+    if (orientation == MRI_HORIZONTAL)
     {
-      if (valid[slice])
-        num_on++ ;
-      else
+      min_area = 10000 ; min_slice = -1 ;
+      for (slice = 1 ; slice < MAX_SLICES-1 ; slice++)
       {
-        if (num_on > max_num_on)
+        if (area[slice] < min_area && 
+            (area[slice] >= MIN_AREA && area[slice] <= MAX_AREA))
         {
-          max_num_on = num_on ;
-          max_on_slice_start = slice - num_on ;
+          min_area = area[slice] ;
+          min_slice = slice ;
         }
       }
     }
-    if (num_on > max_num_on)   /* last slice was on */
+    else    /* search for middle of corpus callosum */
     {
-      max_num_on = num_on ;
-      max_on_slice_start = slice - num_on ;
+      int valid[MAX_SLICES], num_on, max_num_on, max_on_slice_start ;
+      
+      for (slice = 1 ; slice < MAX_SLICES-1 ; slice++)
+      {
+        valid[slice] =
+          ((area[slice]    >= MIN_AREA)   && (area[slice]    <= MAX_AREA) &&
+           (aspects[slice] >= MIN_ASPECT) && (aspects[slice] <= MAX_ASPECT));
+      }
+    
+      max_on_slice_start = max_num_on = num_on = 0 ;
+      for (slice = 1 ; slice < MAX_SLICES-1 ; slice++)
+      {
+        if (valid[slice])
+          num_on++ ;
+        else
+        {
+          if (num_on > max_num_on)
+          {
+            max_num_on = num_on ;
+            max_on_slice_start = slice - num_on ;
+          }
+        }
+      }
+      if (num_on > max_num_on)   /* last slice was on */
+      {
+        max_num_on = num_on ;
+        max_on_slice_start = slice - num_on ;
+      }
+      
+      min_slice = max_on_slice_start + (max_num_on-1)/2 ;
+      min_area = area[min_slice] ;
+    }
+    
+    if (min_slice < 0)
+      ErrorReturn(NULL, 
+                  (ERROR_BADPARM, "%s: could not find valid seed for the %s",
+                   Progname, name));
+    if (Gdiag & DIAG_WRITE)
+    {
+      sprintf(fname, "%s_slice.mnc", 
+              orientation == MRI_SAGITTAL ? "cc":"pons");
+      MRIwrite(mri_slices[min_slice], fname) ;
+      sprintf(fname, "%s_filled.mnc", 
+              orientation == MRI_SAGITTAL ? "cc":"pons");
+      MRIwrite(mri_filled[min_slice], fname) ;
     }
 
-    min_slice = max_on_slice_start + (max_num_on-1)/2 ;
-    min_area = area[min_slice] ;
+    if (logging)
+    {
+      fprintf(fp, "area %d, aspect %2.2f\n", 
+              area[min_slice],aspects[min_slice]);
+      fclose(fp) ;
+    }
+    
+    offset = min_slice - HALF_SLICES ;
+    x = x_tal + dx*offset ; y = y_tal + dy*offset ; z = z_tal + dz*offset ; 
+    MRItalairachToVoxel(mri, x, y,  z, &x, &y, &z) ;
+    *pxv = nint(x) ; *pyv = nint(y) ; *pzv = nint(z) ;
+    mri_cut = MRIcopy(mri_filled[min_slice], NULL) ;
+    if (Gdiag & DIAG_SHOW)
+      fprintf(stderr, 
+              "%s: cutting at slice %d, area %d, (%d, %d, %d)\n", 
+              name, min_slice, min_area, *pxv, *pyv, *pzv) ;
+
+    for (slice = 0 ; slice < MAX_SLICES ; slice++)
+    {
+      MRIfree(&mri_slices[slice]) ;
+      MRIfree(&mri_filled[slice]) ;
+    }
   }
-
-  if (min_slice < 0)
-    ErrorReturn(NULL, 
-                (ERROR_BADPARM, "%s: could not find valid seed for the %s",
-                 Progname, name));
-  if (Gdiag & DIAG_WRITE)
+  else   /* seed specified by user */
   {
-    sprintf(fname, "%s_slice.mnc", orientation == MRI_SAGITTAL ? "cc":"pons");
-    MRIwrite(mri_slices[min_slice], fname) ;
-    sprintf(fname, "%s_filled.mnc", orientation == MRI_SAGITTAL ? "cc":"pons");
-    MRIwrite(mri_filled[min_slice], fname) ;
-  }
-
-  if (logging)
-  {
-    fprintf(fp, "area %d, aspect %2.2f\n", area[min_slice],aspects[min_slice]);
-    fclose(fp) ;
-  }
-
-  offset = min_slice - HALF_SLICES ;
-  x = x_tal + dx*offset ; y = y_tal + dy*offset ; z = z_tal + dz*offset ; 
-  MRItalairachToVoxel(mri, x, y,  z, &x, &y, &z) ;
-  *pxv = nint(x) ; *pyv = nint(y) ; *pzv = nint(z) ;
-  mri_cut = MRIcopy(mri_filled[min_slice], NULL) ;
-  if (Gdiag & DIAG_SHOW)
-    fprintf(stderr, 
-            "%s: cutting at slice %d, area %d, (%d, %d, %d)\n", 
-            name, min_slice, min_area, *pxv, *pyv, *pzv) ;
-
-
-
-  for (slice = 0 ; slice < MAX_SLICES ; slice++)
-  {
-    MRIfree(&mri_slices[slice]) ;
-    MRIfree(&mri_filled[slice]) ;
   }
 
   return(mri_cut) ;
