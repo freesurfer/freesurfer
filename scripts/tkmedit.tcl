@@ -1,6 +1,6 @@
 #! /usr/bin/tixwish
 
-# $Id: tkmedit.tcl,v 1.53 2003/07/11 22:35:38 kteich Exp $
+# $Id: tkmedit.tcl,v 1.54 2003/07/21 19:29:13 kteich Exp $
 
 source $env(MRI_DIR)/lib/tcl/tkm_common.tcl
 
@@ -811,7 +811,7 @@ set tDlogSpecs(LoadLabel) [list \
   -entry1 [list GetDefaultLocation LoadLabel] \
   -default1 [list GetDefaultLocation LoadLabel] \
   -presets1 $glShortcutDirs \
-  -okCmd {LoadLabel %s1; SetDefaultLocation LoadLabel %s1} ]
+  -okCmd {LoadLabel %s1; SetDefaultLocation LoadLabel %s1; RedrawScreen} ]
 set tDlogSpecs(LoadMainSurface) [list \
   -title "Load Main Surface" \
   -prompt1 "Load Surface:" \
