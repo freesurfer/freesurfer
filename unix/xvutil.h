@@ -144,6 +144,8 @@ void XVdrawBox(XV_FRAME *xvf, int which, int x, int y, int dx, int dy,
                int color) ;
 void XVdrawLine(XV_FRAME *xvf, int which, int x, int y, int dx, int dy,  
                int color) ;
+void XVdrawLinef(XV_FRAME *xvf, int which, float x, float y, float dx, 
+                 float dy,  int color) ;
 void XVdrawArrow(XV_FRAME *xvf, int which, int x, int y, float dx, float dy,  
                int color) ;
 void XVdrawPoint(XV_FRAME *xvf, int which, int x, int y, int color) ;
