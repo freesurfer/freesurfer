@@ -363,6 +363,19 @@ orderNeighbors(LOGMAP_INFO *lmi, int ring, int spoke)
 static void
 printNeighbors(LOGMAP_INFO *lmi, int ring, int spoke)
 {
+#if 1
+  int    k, n_ring, n_spoke ;
+  LOGPIX *npix ;
+
+  printf("neighbors(%d, %d)\n", ring, spoke) ;
+  for (k = 0 ; k < NBD_SIZE ; k++)
+  {
+    n_ring = LOG_PIX_NBD(lmi, ring, spoke, k)->ring ;
+    n_spoke = LOG_PIX_NBD(lmi, ring, spoke, k)->spoke ;
+    npix = LOG_PIX(lmi, n_ring, n_spoke) ;
+    printf("(%d, %d)\n", n_ring, n_spoke) ;
+  }
+#else
   NEIGHBOR *neighbor ;
 
   printf("neighbors(%d, %d)\n", ring, spoke) ;
@@ -371,9 +384,13 @@ printNeighbors(LOGMAP_INFO *lmi, int ring, int spoke)
     printf("0x%lx (%d, %d)\n", (unsigned long)neighbor, neighbor->logpix->ring,
            neighbor->logpix->spoke) ;
   }
+#endif
   fflush(stdout) ;
 }
 #endif
+
+extern int debug(void) ;
+
 static void
 initEightConnected(LOGMAP_INFO *lmi)
 {
@@ -388,6 +405,9 @@ initEightConnected(LOGMAP_INFO *lmi)
 
   for_each_log_pixel(lmi, ring, spoke)
   {
+    if (ring == 43 && spoke == 40)
+      debug() ;
+
     /* use Neumann boundary conditions */
     for (k = 0 ; k < NBD_SIZE ; k++)
       LOG_PIX_NBD(lmi, ring, spoke, k) = LOG_PIX(lmi, ring, spoke) ;
@@ -417,6 +437,8 @@ initEightConnected(LOGMAP_INFO *lmi)
         LOG_PIX_NBD(lmi, ring, spoke, N_E) = LOG_PIX(lmi, n_ring, spoke) ;
 
       /* find northern neighbor */
+      if (ring == 43 && spoke == 40)
+        debug() ;
       n_ring = findConnectedRing(lmi, ring, spoke+1, -1) ;
       if (n_ring >= 0)
         LOG_PIX_NBD(lmi, ring, spoke, N_N) = LOG_PIX(lmi, n_ring, spoke+1) ;
@@ -484,6 +506,10 @@ initEightConnected(LOGMAP_INFO *lmi)
         LOG_PIX_NBD(lmi, ring, spoke, N_SW) = LOG_PIX(lmi, n_ring, spoke-1) ;
     }
 
+#if 0
+    if (ring == 43 && spoke == 40)
+      printNeighbors(lmi, ring, spoke) ;
+#endif
 #if 0
   {
     FILE *fp ;
