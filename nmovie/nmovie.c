@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <image.h>
 #include <stdlib.h>
+#include <string.h>
 #include "error.h"
 
 #include <X11/Xlib.h>
@@ -34,6 +35,8 @@
 int XShmQueryExtension(Display *disp) ;
 #endif 
 void useage(void);
+void update_proc(Widget w, XEvent *event, String *pars, Cardinal *npars);
+void mark_proc(Widget w, XEvent *event, String *pars, Cardinal *npars);
 void quit_proc(Widget w, XEvent *event, String *pars, Cardinal *npars);
 void repaint_proc(Widget w, XEvent *event, String *pars, Cardinal *npars);
 void loop_proc(Widget w, XEvent *event, String *pars, Cardinal *npars);
@@ -50,6 +53,7 @@ static int highbit(unsigned long ul);
 static void XSetupDisplay(int nframes);
 void rgb2xcol(IMAGE *I, byte *ximgdata, int fnum);
 void ConvertImages(int nframes, char **argv);
+void MakeDispNames(int argc, char **argv);
 /* -------- End Prototypes -------- */
 
 /* -------- Typedefs -------- */
@@ -83,7 +87,9 @@ int pfmt=0,rows=0,cols=0;
 int running = 0;
 int direction = FORWARD;
 int curframe=0;
+int mpx;
 unsigned long interval = 33; /* 1s */
+char **fnames;
 /* -------- End Global Variables ------- */
 
 /* -------- Static Variables -------- */
@@ -96,7 +102,9 @@ static XtActionsRec actions[] = {
   {"Slower",slower_proc},
   {"Quit", quit_proc},
   {"Forward",forward_proc},
-  {"Back",back_proc}
+  {"Back",back_proc},
+  {"Mark",mark_proc},
+  {"Update",update_proc}
 };
 
 static char *fallback_resources[] = {
@@ -124,7 +132,8 @@ static char *fallback_resources[] = {
   "*Canvas.baseTranslations:   #override <Expose>:Refresh()",
   NULL
 };
-static char ckeys[] = "#override <Key>Left:Back()\n <Key>Right:Forward()";
+static char ckeys[] = "#override <Key>Left:Back()\n <Key>Right:Forward()\n \
+<Btn3Down>:Mark()\n <Btn3Motion>:Update()";
 static XtIntervalId timer;
 /* -------- End Static Variables -------- */
 
@@ -132,6 +141,31 @@ void useage(void)
 {
   fprintf(stderr,"nmovie <image file> <image file> ...\n");
   exit(1);
+}
+
+void mark_proc(Widget w, XEvent *event, String *pars, Cardinal *npars)
+{
+  Window root,child;
+  int rx,ry,wy;
+  unsigned int mask;
+
+  XQueryPointer(xi.disp,xi.canvas,&root,&child,&rx,&ry,&mpx,&wy,&mask);
+}
+
+void update_proc(Widget w, XEvent *event, String *pars, Cardinal *npars)
+{
+  Window root,child;
+  int rx,ry,wx,wy;
+  unsigned int mask;
+
+  XQueryPointer(xi.disp,xi.canvas,&root,&child,&rx,&ry,&wx,&wy,&mask);
+
+  if (wx>mpx) 
+    forward_proc(canvas,event,NULL,NULL);
+  else
+    back_proc(canvas,event,NULL,NULL);
+
+  mpx = wx;
 }
 
 void start_timer(void)
@@ -144,7 +178,7 @@ void forward_proc(Widget w, XEvent *event, String *pars, Cardinal *npars)
 {
   curframe++;
   if (curframe==nframes)
-    curframe = nframes-1;
+    curframe = 0;
 
   repaint_proc(canvas,NULL,NULL,NULL);
 }
@@ -153,7 +187,7 @@ void back_proc(Widget w, XEvent *event, String *pars, Cardinal *npars)
 {
   curframe--;
   if (curframe<0)
-    curframe = 0;
+    curframe = nframes-1;
  
   repaint_proc(canvas,NULL,NULL,NULL);
 }
@@ -178,28 +212,28 @@ void timer_proc(XtPointer ptr, XtIntervalId *id)
     case LOOP:
       curframe++;
       if (curframe == nframes)
-	curframe = 0;
+  curframe = 0;
       break;
     case SWING:
       switch (direction)
-	{
-	case FORWARD:
-	  curframe++;
-	  if (curframe==nframes)
-	    {
-	      curframe = nframes-1;
-	      direction = REVERSE;
-	    }
-	  break;
-	case REVERSE:
-	  curframe--;
-	  if (curframe<0)
-	    {
-	      curframe=0;
-	      direction=FORWARD;
-	    }
-	  break;
-	}
+  {
+  case FORWARD:
+    curframe++;
+    if (curframe==nframes)
+      {
+        curframe = nframes-1;
+        direction = REVERSE;
+      }
+    break;
+  case REVERSE:
+    curframe--;
+    if (curframe<0)
+      {
+        curframe=0;
+        direction=FORWARD;
+      }
+    break;
+  }
       break;
     default:
     case NONE:
@@ -237,7 +271,10 @@ void repaint_proc(Widget w, XEvent *event, String *pars, Cardinal *npars)
   ximg->data = imgdata + (curframe*rows*ximg->bytes_per_line);
 
   if (w == canvas)
-    XPutImage(xi.disp, xi.canvas, xi.theGC, ximg, 0, 0, 0, 0, cols, rows);
+    {
+      XPutImage(xi.disp, xi.canvas, xi.theGC, ximg, 0, 0, 0, 0, cols, rows);
+      XStoreName(xi.disp, XtWindow(toplevel), fnames[curframe]);
+    }
 }
 
 void quit_proc(Widget w, XEvent *event, String *pars, Cardinal *npars)
@@ -268,7 +305,9 @@ static void XInit(int *argc, char ***argv)
   xi.context = XtCreateApplicationContext();
   XtAppSetFallbackResources(xi.context, fallback_resources);
   xi.disp = XtOpenDisplay(xi.context, NULL, "NMovie", "NMovie", NULL, 0, 
-			  argc, *argv);
+        argc, *argv);
+  if (!xi.disp)
+    ErrorExit(ERROR_BAD_PARM,"Unable to open display");
 
   shmext = XShmQueryExtension(xi.disp);
   xi.screenno = DefaultScreen(xi.disp);
@@ -305,32 +344,32 @@ static void XSetupDisplay(int nframes)
   xi.colormap = XCreateColormap(xi.disp, xi.root, xi.vis, AllocNone);
 
   toplevel = XtVaAppCreateShell("NMovie", "NMovie", 
-				applicationShellWidgetClass,
-				xi.disp, 
-				XtNvisual, xi.vis, 
-				XtNcolormap, xi.colormap, 
-				NULL);
+        applicationShellWidgetClass,
+        xi.disp, 
+        XtNvisual, xi.vis, 
+        XtNcolormap, xi.colormap, 
+        NULL);
 
   XtAppAddActions(xi.context,actions,XtNumber(actions));
 
   frame = XtVaCreateManagedWidget("Frame", formWidgetClass, toplevel, NULL);
   buttons = XtVaCreateManagedWidget("Buttons", formWidgetClass, frame, NULL );
   loop_bt = XtVaCreateManagedWidget("Loop", commandWidgetClass, 
-				    buttons, NULL); 
+            buttons, NULL); 
   swing_bt = XtVaCreateManagedWidget("Swing", commandWidgetClass, 
-				     buttons, NULL); 
+             buttons, NULL); 
   fast_bt = XtVaCreateManagedWidget("Faster", commandWidgetClass, 
-				    buttons, NULL); 
+            buttons, NULL); 
   slow_bt = XtVaCreateManagedWidget("Slower", commandWidgetClass, 
-				    buttons, NULL); 
+            buttons, NULL); 
   stop_bt = XtVaCreateManagedWidget("Stop", commandWidgetClass, 
-				    buttons, NULL); 
+            buttons, NULL); 
   quit_bt = XtVaCreateManagedWidget("Quit", commandWidgetClass, 
-				    buttons, NULL);
+            buttons, NULL);
   canvas = XtVaCreateManagedWidget("Canvas", simpleWidgetClass, frame, 
-				   XtNwidth, cols,
-				   XtNheight, rows,
-				   XtNaccelerators, keys, NULL);
+           XtNwidth, cols,
+           XtNheight, rows,
+           XtNaccelerators, keys, NULL);
   XtInstallAllAccelerators(canvas,toplevel);
   XtRealizeWidget(toplevel);
   xi.canvas = XtWindow(canvas);
@@ -346,10 +385,10 @@ static void XSetupDisplay(int nframes)
   xi.bshift = 7 - highbit(xi.bmask);
 
   ximg = XCreateImage(xi.disp,xi.vis,xi.depth,ZPixmap, 0, NULL, 
-		      cols, rows, 32, 0);
+          cols, rows, 32, 0);
 
   if ((imgdata = (byte *)calloc((size_t)(rows*ximg->bytes_per_line*nframes),
-				sizeof(byte))) 
+        sizeof(byte))) 
       ==NULL)
     ErrorExit(ERROR_NO_MEMORY,"Failed to allocate image buffer");
 
@@ -367,78 +406,78 @@ void rgb2xcol(IMAGE *I, byte *ximgdata, int fnum)
   for(i=0;i<rows;i++,xptr -= ximg->bytes_per_line)
     for(j=0, ip = xptr; j<cols; j++)
       {
-	r = *bptr++; g = *bptr++; b = *bptr++;
-	
-	if (xi.rshift<0) 
-	  r = r << (-xi.rshift);
-	else 
-	  r = r >> xi.rshift;
-	if (xi.gshift<0) 
-	  g = g << (-xi.gshift);
-	else 
-	  g = g >> xi.gshift;
-	if (xi.bshift<0) 
-	  b = b << (-xi.bshift);
-	else 
-	  b = b >> xi.bshift;
+  r = *bptr++; g = *bptr++; b = *bptr++;
+  
+  if (xi.rshift<0) 
+    r = r << (-xi.rshift);
+  else 
+    r = r >> xi.rshift;
+  if (xi.gshift<0) 
+    g = g << (-xi.gshift);
+  else 
+    g = g >> xi.gshift;
+  if (xi.bshift<0) 
+    b = b << (-xi.bshift);
+  else 
+    b = b >> xi.bshift;
 
-	r = r & xi.rmask;
-	g = g & xi.gmask;
-	b = b & xi.bmask; 
+  r = r & xi.rmask;
+  g = g & xi.gmask;
+  b = b & xi.bmask; 
 
-	xcol = r | g | b;
+  xcol = r | g | b;
 
-	switch(ximg->bits_per_pixel)
-	  {
-	  case 32:
-	    switch(ximg->byte_order)
-	      {
-	      case MSBFirst:
-		*ip++ = (xcol>>24) & 0xff;
-		*ip++ = (xcol>>16) & 0xff;
-		*ip++ = (xcol>>8)  & 0xff;
-		*ip++ =  xcol      & 0xff;
-		break;
-	      case LSBFirst:
-		*ip++ =  xcol      & 0xff;
-		*ip++ = (xcol>>8)  & 0xff;
-		*ip++ = (xcol>>16) & 0xff;
-		*ip++ = (xcol>>24) & 0xff;
-		break;
-	      }
-	    break;
-	  case 24:
-	    switch(ximg->byte_order)
-	      {
-	      case MSBFirst:
-		*ip++ = (xcol>>16) & 0xff;
-		*ip++ = (xcol>>8)  & 0xff;
-		*ip++ =  xcol      & 0xff;
-		break;
-	      case LSBFirst:
-		*ip++ =  xcol      & 0xff;
-		*ip++ = (xcol>>8)  & 0xff;
-		*ip++ = (xcol>>16) & 0xff;
-		break;
-	      }
-	    break;
-	  case 16:
-	    switch(ximg->byte_order)
-	      {
-	      case MSBFirst:
-		*ip++ = (xcol>>8) & 0xff;
-		*ip++ =  xcol     & 0xff;
-		break;
-	      case LSBFirst:
-		*ip++ =  xcol     & 0xff;
-		*ip++ = (xcol>>8) & 0xff;
-		break;
-	      }
-	    break;
-	  case 8:
-	    *ip++ = xcol & 0xff;
-	    break;
-	  }
+  switch(ximg->bits_per_pixel)
+    {
+    case 32:
+      switch(ximg->byte_order)
+        {
+        case MSBFirst:
+    *ip++ = (xcol>>24) & 0xff;
+    *ip++ = (xcol>>16) & 0xff;
+    *ip++ = (xcol>>8)  & 0xff;
+    *ip++ =  xcol      & 0xff;
+    break;
+        case LSBFirst:
+    *ip++ =  xcol      & 0xff;
+    *ip++ = (xcol>>8)  & 0xff;
+    *ip++ = (xcol>>16) & 0xff;
+    *ip++ = (xcol>>24) & 0xff;
+    break;
+        }
+      break;
+    case 24:
+      switch(ximg->byte_order)
+        {
+        case MSBFirst:
+    *ip++ = (xcol>>16) & 0xff;
+    *ip++ = (xcol>>8)  & 0xff;
+    *ip++ =  xcol      & 0xff;
+    break;
+        case LSBFirst:
+    *ip++ =  xcol      & 0xff;
+    *ip++ = (xcol>>8)  & 0xff;
+    *ip++ = (xcol>>16) & 0xff;
+    break;
+        }
+      break;
+    case 16:
+      switch(ximg->byte_order)
+        {
+        case MSBFirst:
+    *ip++ = (xcol>>8) & 0xff;
+    *ip++ =  xcol     & 0xff;
+    break;
+        case LSBFirst:
+    *ip++ =  xcol     & 0xff;
+    *ip++ = (xcol>>8) & 0xff;
+    break;
+        }
+      break;
+    case 8:
+      *ip++ = xcol & 0xff;
+      break;
+    }
       }
 }
 
@@ -452,6 +491,35 @@ void ConvertImages(int nframes, char **argv)
       I = ImageRead(argv[i+1]);
       rgb2xcol(I,imgdata,i);
       ImageFree(&I);
+    }
+}
+
+void MakeDispNames(int argc, char **argv)
+{
+  int i;
+  char *s;
+
+  fnames = (char **)malloc(sizeof(char *)*nframes);
+  if (!fnames)
+    ErrorExit(ERROR_NO_MEMORY,"Failed to allocate file name buffer\n");
+
+  for(i=1;i<argc;i++)
+    {
+      s = strrchr(argv[i],'/');
+      if (s!=NULL)
+  {
+    fnames[i-1] = (char *)malloc(sizeof(char)*strlen(s+1)+1);
+    if (!fnames[i-1])
+      ErrorExit(ERROR_NO_MEMORY,"Failed to allocate file name buffer\n");
+    strcpy(fnames[i-1],s+1);
+  }
+      else
+  {
+    fnames[i-1] = (char *)malloc(sizeof(char)*strlen(argv[i])+1);
+    if (!fnames[i-1])
+      ErrorExit(ERROR_NO_MEMORY,"Failed to allocate file name buffer\n");
+    strcpy(fnames[i-1],argv[i]);
+  }
     }
 }
 
@@ -478,6 +546,8 @@ int main(int argc, char **argv)
   nframes = argc-1;
 
   XSetupDisplay(nframes);
+
+  MakeDispNames(argc,argv);
 
   ConvertImages(nframes,argv);
 
