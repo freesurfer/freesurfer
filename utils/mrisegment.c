@@ -649,3 +649,24 @@ MRIsegmentDilateThreshold(MRI_SEGMENTATION *mriseg, MRI *mri_binary,
   return(NO_ERROR) ;
 }
 
+int
+MRIsegmentMax(MRI_SEGMENTATION *mriseg)
+{
+  int         segno, max_voxels, max_segno, nvox ;
+  MRI_SEGMENT *mseg ;
+
+  max_segno = -1 ; max_voxels = 0 ;
+  for (segno = 0 ; segno < mriseg->nsegments ; segno++)
+  {
+    mseg = &mriseg->segments[segno] ;
+
+    nvox = mseg->nvoxels ;
+    if (nvox > max_voxels)
+    {
+      max_segno = segno ;
+      max_voxels = nvox ;
+    }
+  }
+  return(max_segno) ;
+}
+
