@@ -1,10 +1,10 @@
 /*============================================================================
  Copyright (c) 1996 Martin Sereno and Anders Dale
 =============================================================================*/
-/*   $Id: tkregister2.c,v 1.16 2003/08/11 23:07:04 greve Exp $   */
+/*   $Id: tkregister2.c,v 1.17 2003/08/12 21:34:55 greve Exp $   */
 
 #ifndef lint
-static char vcid[] = "$Id: tkregister2.c,v 1.16 2003/08/11 23:07:04 greve Exp $";
+static char vcid[] = "$Id: tkregister2.c,v 1.17 2003/08/12 21:34:55 greve Exp $";
 #endif /* lint */
 
 #define TCL
@@ -317,7 +317,8 @@ MATRIX *invDmov, *FSLRegMat, *invFSLRegMat;
 
 int LoadSurf = 0, UseSurf=0;
 char *surfname = "white", surf_path[2000];
-int fstal=0; 
+int fstal=0, fixxfm=0; 
+char *talsubject = "talairach";
 char talxfmfile[2000],talxfmdir[2000];
 
 /**** ------------------ main ------------------------------- ****/
@@ -348,7 +349,7 @@ int Register(ClientData clientData,Tcl_Interp *interp, int argc, char *argv[])
   if(fstal){
     if(subjectsdir == NULL) subjectsdir = getenv("SUBJECTS_DIR");
     if(subjectsdir==NULL) {
-      printf("ERROR: SUBJECTS_DIR undefined. Use setenv or -sd\n");
+      printf("ERROR: SUBJECTS_DIR undefined. Use setenv or --sd\n");
       exit(1);
     }
     sprintf(talxfmdir,"%s/%s/mri/transforms",subjectsdir,subjectid);
@@ -374,7 +375,7 @@ int Register(ClientData clientData,Tcl_Interp *interp, int argc, char *argv[])
       }
     }
     mov_vol_id = (char *) calloc(sizeof(char),2000);
-    sprintf(mov_vol_id,"%s/talairach/mri/orig",subjectsdir);
+    sprintf(mov_vol_id,"%s/%s/mri/orig",subjectsdir,talsubject);
     ps_2 = 1.0;
     st_2 = 1.0;
   }
@@ -438,7 +439,9 @@ int Register(ClientData clientData,Tcl_Interp *interp, int argc, char *argv[])
     MRIfree(&targ_vol);
     targ_vol = mritmp;
   }
-  Ttarg = MRIxfmCRS2XYZtkreg(targ_vol);
+
+  if(!fstal || !fixxfm) Ttarg = MRIxfmCRS2XYZtkreg(targ_vol);
+  else                  Ttarg = MRIxfmCRS2XYZ(targ_vol,0);
   invTtarg = MatrixInverse(Ttarg,NULL);
   printf("Ttarg: --------------------\n");
   MatrixPrint(stdout,Ttarg);
@@ -461,7 +464,8 @@ int Register(ClientData clientData,Tcl_Interp *interp, int argc, char *argv[])
     MRIfree(&mov_vol);
     mov_vol = mritmp;
   }
-  Tmov = MRIxfmCRS2XYZtkreg(mov_vol);
+  if(!fstal || !fixxfm) Tmov = MRIxfmCRS2XYZtkreg(mov_vol);
+  else                  Tmov = MRIxfmCRS2XYZ(mov_vol,0);
   invTmov = MatrixInverse(Tmov,NULL);
   printf("Tmov: --------------------\n");
   Tmov = MRIxfmCRS2XYZtkreg(mov_vol);
@@ -706,6 +710,8 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--noedit"))    noedit = 1;
     else if (!strcasecmp(option, "--fstal")){
       fstal = 1; LoadSurf = 0; UseSurf = 0; fscale_2 = 1;}
+    else if (!strcasecmp(option, "--fixxfm"))    fixxfm = 1;
+    else if (!strcasecmp(option, "--nofixxfm"))  fixxfm = 0;
 
     else if (stringmatch(option, "--targ")){
       if(nargc < 1) argnerr(option,1);
@@ -769,6 +775,12 @@ static int parse_commandline(int argc, char **argv)
       if(nargc < 1) argnerr(option,1);
       memset(subjectid,'\0',1000);
       memcpy(subjectid,pargv[0],strlen(pargv[0]));
+      nargsused = 1;
+    }
+    else if ( !strcmp(option, "--talsubject") ||
+	      !strcmp(option, "--tals") ){
+      if(nargc < 1) argnerr(option,1);
+      talsubject = pargv[0];
       nargsused = 1;
     }
     else if ( !strcmp(option, "--sd") ){
@@ -3386,7 +3398,7 @@ char **argv;
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tkregister2.c,v 1.16 2003/08/11 23:07:04 greve Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: tkregister2.c,v 1.17 2003/08/12 21:34:55 greve Exp $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
