@@ -6,8 +6,8 @@
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/03/17 16:58:56 $
-// Revision       : $Revision: 1.37 $
+// Revision Date  : $Date: 2004/03/17 17:02:29 $
+// Revision       : $Revision: 1.38 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -136,7 +136,7 @@ main(int argc, char *argv[])
   float        old_log_p, log_p ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_em_register.c,v 1.37 2004/03/17 16:58:56 tosa Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_em_register.c,v 1.38 2004/03/17 17:02:29 tosa Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -475,6 +475,7 @@ main(int argc, char *argv[])
   } 
   // change nsamples to all samples
   parms.gcas = GCAfindAllSamples(gca, &nsamples, NULL) ;
+  if (Gdiag & DIAG_WRITE)
   {
     GCAwriteSamples(gca, mri_in, parms.gcas, nsamples, "./big_sample.mgh") ;
     printf("samples written\n") ;
