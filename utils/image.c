@@ -2666,7 +2666,7 @@ ImageAddSpeckleNoise(IMAGE *inImage,IMAGE *outImage, float amp)
   while (npix--)
   {
     gnoise = (float)randomNumber(1.0-(double)amp, 1.0+(double)amp) ;
-    *outPix++ = *inPix++ * gnoise ;
+    *outPix++ += *inPix++ * gnoise ;
   }
   return(0) ;
 }
@@ -3453,7 +3453,7 @@ ImageExtractInto(IMAGE *Isrc, IMAGE *Idst, int x0, int y0,
     {
       dsrc = IMAGEDpix(Isrc, x0, yin) ;
       ddst = IMAGEDpix(Idst, xdst, yout) ;
-      for (xin = x0 ; xin < x1 ; xin++, fdst++, fsrc++)
+      for (xin = x0 ; xin < x1 ; xin++, ddst++, dsrc++)
       {
         if (xin < 0 || xin > xend || yin < 0 || yin > yend)
           *ddst = 0.0 ;
