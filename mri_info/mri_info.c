@@ -597,6 +597,7 @@ static void read_siemens_file(char *fname, struct stat stat_buf)
   FILE *fp;
   char string[100];
   double d;
+  short s;
 
   if((fp = fopen(fname, "r")) == NULL)
   {
@@ -636,12 +637,24 @@ static void read_siemens_file(char *fname, struct stat stat_buf)
   read_double(fp, 2560, &d);
   printf("field strength: %g\n", d);
   read_string(fp, 2944, string, 65);
-  printf("sequence program name: %s\n",string);
+  printf("parameter file name: %s\n",string);
+  read_short(fp, 4994, &s);
+  printf("image matrix size (rows): %hd\n", s);
+  read_short(fp, 4996, &s);
+  printf("image matrix size (columns): %hd\n", s);
+  read_int(fp, 4004, &i1);
+  printf("nominal number of slices: %d\n", i1);
+  read_int(fp, 2864, &i1);
+  printf("base raw matrix size: %d\n", i1);
+  read_double(fp, 4136, &d);
+  printf("slice distance factor: %g\n", d);
+  read_int(fp, 1584, &i1);
+  printf("number of averages: %d\n", i1);
   read_double(fp, 5000, &d);
   printf("pixel size row: %g\n", d);
   read_double(fp, 5008, &d);
   printf("pixel size column: %g\n", d);
-  read_string(fp, 3904, string, 32);
+  read_string(fp, 3009, string, 65);
   printf("sequence name: %s\n",string);
   read_string(fp, 5814, string, 7);
   printf("slice direction: %s\n",string);
@@ -653,10 +666,14 @@ static void read_siemens_file(char *fname, struct stat stat_buf)
   read_int(fp, 1068, &i2);
   read_int(fp, 1072, &i3);
   printf("registration time: %02d%02d%02d\n", i1, i2, i3);
-  read_string(fp, 3009, string, 65);
+  read_string(fp, 3904, string, 32);
   printf("experiment name: %s\n", string);
   read_string(fp, 358, string, 25);
   printf("experimenter: %s\n", string);
+  read_string(fp, 281, string, 27);
+  printf("manufacturer model: %s\n", string);
+  read_string(fp, 1612, string, 27);
+  printf("device serial number: %s\n", string);
 
   fclose(fp);
 
