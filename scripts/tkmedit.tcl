@@ -1,6 +1,6 @@
 #! /usr/bin/tixwish
 
-# $Id: tkmedit.tcl,v 1.68 2003/12/08 08:04:32 kteich Exp $
+# $Id: tkmedit.tcl,v 1.69 2003/12/18 19:44:16 kteich Exp $
 
 
 source $env(FREESURFER_HOME)/lib/tcl/tkm_common.tcl
@@ -180,9 +180,12 @@ set ksaLinkedCursorString(1) linked
 set gOrientation 0
 set gbLinkedCursor 1
 set gbLinkedCursorString $ksaLinkedCursorString($gbLinkedCursor)
-set gnVolX 0
-set gnVolY 0
-set gnVolZ 0
+set gnVolX(cursor) 0
+set gnVolY(cursor) 0
+set gnVolZ(cursor) 0
+set gnVolX(mouseover) 0
+set gnVolY(mouseover) 0
+set gnVolZ(mouseover) 0
 set gnVolSlice 0
 set gnZoomLevel 0
 
@@ -354,9 +357,9 @@ proc UpdateVolumeCursor { iSet inX inY inZ } {
     set gsaLabelContents(kLabel_Coords_Vol,value,$iSet) \
       "$inX $inY $inZ"
     # set the volume coords
-    set gnVolX $inX
-    set gnVolY $inY
-    set gnVolZ $inZ
+    set gnVolX($iSet) $inX
+    set gnVolY($iSet) $inY
+    set gnVolZ($iSet) $inZ
 }
 
 proc UpdateVolumeSlice { inSlice } {
@@ -2619,9 +2622,9 @@ proc DoGotoPointDlog {} {
   set fwZ           $fwWhere.fwZ
   set fwButtons     $wwDialog.fwButtons
 
-  set fX $gnVolX
-  set fY $gnVolY
-  set fZ $gnVolZ
+  set fX $gnVolX(cursor)
+  set fY $gnVolY(cursor)
+  set fZ $gnVolZ(cursor)
   set coordSpace $mri_tCoordSpace_VolumeIdx
 
   # coord space radios
@@ -4230,25 +4233,25 @@ proc SaveRGBSeries { isPrefix inBegin inEnd } {
 
     # determine which way we're going
     if { $inBegin < $inEnd } {
-  set nIncr 1 
+	set nIncr 1 
     } else {
-  set nIncr -1
+	set nIncr -1
     }
-
-    set nX $gnVolX 
-    set nY $gnVolY
-    set nZ $gnVolZ
+    
+    set nX $gnVolX(cursor)
+    set nY $gnVolY(cursor)
+    set nZ $gnVolZ(cursor)
     for { set nSlice $inBegin } { $nSlice <= $inEnd } { incr nSlice $nIncr } {
-  
-  switch $gOrientation {
-      2 { set nX $nSlice }
-      1 { set nY $nSlice }
-      0 { set nZ $nSlice }
-  }
-
-  SetCursor $mri_tCoordSpace_VolumeIdx $nX $nY $nZ
-  RedrawScreen
-  SaveRGB $isPrefix[format "%03d" $nSlice].rgb
+	
+	switch $gOrientation {
+	    2 { set nX $nSlice }
+	    1 { set nY $nSlice }
+	    0 { set nZ $nSlice }
+	}
+	
+	SetCursor $mri_tCoordSpace_VolumeIdx $nX $nY $nZ
+	RedrawScreen
+	SaveRGB $isPrefix[format "%03d" $nSlice].rgb
     }
 }
 
