@@ -94,7 +94,7 @@ main(int argc, char *argv[])
   TRANSFORM    *transform = NULL ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_ca_normalize.c,v 1.14 2003/06/18 19:03:58 fischl Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ca_normalize.c,v 1.15 2003/08/27 19:29:47 fischl Exp $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -889,7 +889,7 @@ discard_unlikely_control_points(GCA *gca, GCA_SAMPLE *gcas, int nsamples,
 	int    i, xv, yv, zv, n, peak, start, end, num ;
 	HISTO *h, *hsmooth ;
 	float  fmin, fmax ;
-	Real   val ;
+	Real   val,  mean_ratio ;
 
 	for (num = n = 0 ; n < gca->ninputs ; n++)
 	{
@@ -910,10 +910,24 @@ discard_unlikely_control_points(GCA *gca, GCA_SAMPLE *gcas, int nsamples,
 			h->counts[nint(val-fmin)]++ ;
 		}
 
+		/* check to see  if peak is unlikely */
 		hsmooth = HISTOsmooth(h, NULL, 2) ;
-		peak = HISTOfindHighestPeakInRegion(hsmooth, 0, h->nbins-1) ;
-		end = HISTOfindEndOfPeak(hsmooth, peak, 0.01) ;
-		start = HISTOfindStartOfPeak(hsmooth, peak, 0.01) ;
+		do
+		{
+			if (gca->ninputs == 1) /*  find  brightest peak as for  n=1 it is T1  weighted  */
+				peak = HISTOfindLastPeak(hsmooth, HISTO_WINDOW_SIZE,MIN_HISTO_PCT);
+			else
+				peak = HISTOfindHighestPeakInRegion(hsmooth, 0, h->nbins-1) ;
+			end = HISTOfindEndOfPeak(hsmooth, peak, 0.01) ;
+			start = HISTOfindStartOfPeak(hsmooth, peak, 0.01) ;
+ 			for (mean_ratio = 0.0, i = 0 ; i < nsamples ; i++)
+			{
+				mean_ratio += peak / gcas[i].means[n];
+			}
+			mean_ratio /= (Real)nsamples ;
+			HISTOclearBins(hsmooth, hsmooth, start, end)  ;
+		} while  (mean_ratio  < 0.5 || mean_ratio > 2.0) ;
+
 		printf("%s: limiting intensities to %2.1f --> %2.1f\n", name, fmin+start, fmin+end) ;
 		for (i = 0 ; i < nsamples ; i++)
 		{
