@@ -14,7 +14,7 @@
 #include "macros.h"
 #include "utils.h"
 
-static char vcid[]="$Id: mris_sphere.c,v 1.7 1998/01/22 18:36:01 fischl Exp $";
+static char vcid[]="$Id: mris_sphere.c,v 1.8 1998/02/27 18:58:23 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -33,10 +33,7 @@ static float base_dt_scale = BASE_DT_SCALE ;
 static int nbrs = 2 ;
 static int inflate = 0 ;
 static double disturb = 0 ;
-static float min_neg_pct = 0.05f/100.0f ;  /* less than 0.05% negative */
-static int   min_neg = 20 ;
-static int   nospring = 0 ;
-static int   max_passes = 2 ;
+static int   max_passes = 1 ;
 static int   randomly_project = 0 ;
 static float scale = 1.0 ;
 static int mrisDisturbVertices(MRI_SURFACE *mris, double amount) ;
@@ -55,8 +52,8 @@ main(int argc, char *argv[])
 
   parms.dt = .1 ;
   parms.projection = PROJECT_ELLIPSOID ;
-  parms.tol = 2.5e-2 ;
-  parms.n_averages = 4096 ;
+  parms.tol = 1e-1 ;
+  parms.n_averages = 1024 ;
   parms.min_averages = 0 ;
   parms.l_angle = 0.0 /* L_ANGLE */ ;
   parms.l_area = 0.0 /* L_AREA */ ;
@@ -66,7 +63,7 @@ main(int argc, char *argv[])
   parms.l_area = 1.0 ;
   parms.l_boundary = 0.0 ;
   parms.l_curv = 0.0 ;
-  parms.niterations = 1 ;
+  parms.niterations = 25 ;
   parms.write_iterations = 1000 ;
   parms.a = parms.b = parms.c = 0.0f ;  /* ellipsoid parameters */
   parms.dt_increase = 1.01 /* DT_INCREASE */;
@@ -74,8 +71,7 @@ main(int argc, char *argv[])
   parms.error_ratio = 1.03 /*ERROR_RATIO */;
   parms.integration_type = INTEGRATE_LINE_MINIMIZE ;
   parms.momentum = 0.9 ;
-  parms.fi_desired = -1.0 ;
-  parms.ici_desired = -1.0 ;
+  parms.desired_rms_height = -1.0 ;
   parms.base_name[0] = 0 ;
   parms.Hdesired = 0.0 ;   /* a flat surface */
   parms.nbhd_size = 7 ;
@@ -177,35 +173,11 @@ get_option(int argc, char *argv[])
     nargs = 1 ;
     fprintf(stderr, "using l_curv = %2.3f\n", parms.l_curv) ;
   }
-#if 0
-  else if (!stricmp(option, "neg"))
-  {
-    sscanf(argv[2], "%f", &parms.l_neg) ;
-    nargs = 1 ;
-    fprintf(stderr, "using l_neg = %2.3f\n", parms.l_neg) ;
-  }
-#endif
-  else if (!stricmp(option, "nospring"))
-    nospring = 1 ;
   else if (!stricmp(option, "area"))
   {
     sscanf(argv[2], "%f", &parms.l_area) ;
     nargs = 1 ;
     fprintf(stderr, "using l_area = %2.3f\n", parms.l_area) ;
-  }
-  else if (!stricmp(option, "neg"))
-  {
-    min_neg = atoi(argv[2]) ;
-    min_neg_pct = (float)atof(argv[3])/100.0f ;
-    nargs = 2 ;
-    fprintf(stderr,"negative vertex thresholds: count: %d or area: %2.2f%%\n",
-            min_neg, 100.0f*min_neg_pct) ;
-  }
-  else if (!stricmp(option, "boundary"))
-  {
-    sscanf(argv[2], "%f", &parms.l_boundary) ;
-    nargs = 1 ;
-    fprintf(stderr, "using l_boundary = %2.3f\n", parms.l_boundary) ;
   }
   else if (!stricmp(option, "adaptive"))
   {
