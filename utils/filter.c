@@ -649,34 +649,67 @@ compare_sort_array(const void *pf1, const void *pf2)
            Description:
 ----------------------------------------------------------------------*/
 IMAGE *
-ImageConvolveGaussian(IMAGE *Isrc,IMAGE *gImage, IMAGE *outImage,
-                     int dst_frameno)
+ImageConvolveGaussian(IMAGE *Isrc,IMAGE *gImage, IMAGE *Iout, int dst_frameno)
 {
-  static IMAGE     *tmpImage = NULL ;
+  static IMAGE     *Itmp = NULL ;
   int              ksize ;
   float            *kernel, *buf ;
 
-  if (!ImageCheckSize(Isrc, tmpImage, 0, 0, 0))
+  if (!ImageCheckSize(Isrc, Itmp, 0, 0, 0))
   {
-    if (tmpImage)
-      ImageFree(&tmpImage) ;
-    tmpImage = ImageAlloc(Isrc->rows, Isrc->cols, PFFLOAT, 1) ;
+    if (Itmp)
+      ImageFree(&Itmp) ;
+    Itmp = ImageAlloc(Isrc->rows, Isrc->cols, PFFLOAT, 1) ;
   }
-  if (!outImage)
-    outImage = ImageAlloc(Isrc->rows, Isrc->cols, PFFLOAT, 1) ;
+  if (!Iout)
+    Iout = ImageAlloc(Isrc->rows, Isrc->cols, PFFLOAT, 1) ;
 
-  ImageSetSize(tmpImage, Isrc->rows, Isrc->cols) ;
+  ImageSetSize(Itmp, Isrc->rows, Isrc->cols) ;
 
   kernel = IMAGEFpix(gImage, 0, 0) ;
   ksize = gImage->cols ;
-  ImageConvolve1d(Isrc, tmpImage, kernel, ksize, IMAGE_VERTICAL) ;
+  ImageConvolve1d(Isrc, Itmp, kernel, ksize, IMAGE_VERTICAL) ;
 
-  buf = IMAGEFpix(outImage, 0, 0) ;
-  outImage->image = (byte *)IMAGEFseq_pix(outImage, 0, 0, dst_frameno) ;
-  ImageConvolve1d(tmpImage, outImage, kernel, ksize, IMAGE_HORIZONTAL) ;
+  buf = IMAGEFpix(Iout, 0, 0) ;
+  Iout->image = (byte *)IMAGEFseq_pix(Iout, 0, 0, dst_frameno) ;
+  ImageConvolve1d(Itmp, Iout, kernel, ksize, IMAGE_HORIZONTAL) ;
 
-  outImage->image = (byte *)buf ;
-  return(outImage) ;
+  Iout->image = (byte *)buf ;
+  return(Iout) ;
+}
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+----------------------------------------------------------------------*/
+IMAGE *
+ImageConvolveGaussianFrames(IMAGE *Isrc,IMAGE *gImage, IMAGE *Idst)
+{
+  int              frame, src_frames, dst_frames ;
+  byte             *src_buf, *dst_buf ;
+
+  if (!Idst)
+    Idst = ImageAlloc(Isrc->rows, Isrc->cols, PFFLOAT, 1) ;
+
+  src_frames = Isrc->num_frame ;
+  dst_frames = Idst->num_frame ;
+  Isrc->num_frame = Idst->num_frame = 1 ;
+  src_buf = Isrc->image ;
+  dst_buf = Idst->image ;
+  for (frame = 0 ; frame < src_frames ; frame++)
+  {
+    ImageConvolveGaussian(Isrc, gImage, Idst, 0) ;
+    Isrc->image += Isrc->sizeimage ;
+    if (Isrc != Idst)
+      Idst->image += Idst->sizeimage ;
+  }
+  
+  Isrc->image = src_buf ;
+  Idst->image = dst_buf ;
+  Isrc->num_frame = src_frames ;
+  Idst->num_frame = dst_frames ;
+
+  return(Idst) ;
 }
 /*----------------------------------------------------------------------
             Parameters:
