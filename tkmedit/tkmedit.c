@@ -4,9 +4,9 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2003/08/05 19:19:24 $
-// Revision       : $Revision: 1.169 $
-char *VERSION = "$Revision: 1.169 $";
+// Revision Date  : $Date: 2003/08/05 21:42:04 $
+// Revision       : $Revision: 1.170 $
+char *VERSION = "$Revision: 1.170 $";
 
 #define TCL
 #define TKMEDIT 
@@ -1027,7 +1027,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
      shorten our argc and argv count. If those are the only args we
      had, exit. */
   /* rkt: check for and handle version tag */
-  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.169 2003/08/05 19:19:24 kteich Exp $");
+  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.170 2003/08/05 21:42:04 kteich Exp $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
   argc -= nNumProcessedVersionArgs;
@@ -6668,7 +6668,7 @@ void MakeFileName ( char*     isInput,
     
     /* look at the second char. if it's a / or null use this subject. */
     if( isInput[1] == '/' ||
-  isInput[1] == '\0' ) {
+	isInput[1] == '\0' ) {
       
       xUtil_snprintf( sFileName, sizeof(sFileName),
           "%s%s", gsSubjectHomeDir, &(isInput[1]) );
@@ -6681,10 +6681,19 @@ void MakeFileName ( char*     isInput,
     
     break;
     
-    /* period, use cwd nd then rest of input */
+    /* dot. could be ./ or ../ . if the former, replace the dot with
+       the cwd, if the latter, prepend the cwd and a slash. */
   case '.':
-    xUtil_snprintf( sFileName, sizeof(sFileName),
-        "%s%s", gsUserHomeDir, &(isInput[1]) );
+
+    if( isInput[1] == '.' ) {
+      /* ../ -> cwd/filename */
+      xUtil_snprintf( sFileName, sizeof(sFileName),
+		      "%s/%s", gsUserHomeDir, isInput );
+    } else {
+      /* ./ -> cwdfilename[1] */
+      xUtil_snprintf( sFileName, sizeof(sFileName),
+		      "%s%s", gsUserHomeDir, &(isInput[1]) );
+    }
     break;
     
     /* slash, it's a full path. */
