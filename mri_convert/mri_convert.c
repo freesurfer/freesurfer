@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: ch $
-// Revision Date  : $Date: 2003/09/24 18:08:53 $
-// Revision       : $Revision: 1.68 $
+// Revision Date  : $Date: 2003/10/02 23:03:58 $
+// Revision       : $Revision: 1.69 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -83,6 +83,9 @@ int main(int argc, char *argv[])
   int forced_in_type, forced_out_type;
   char in_type_string[STRLEN], out_type_string[STRLEN];
   char subject_name[STRLEN];
+  int force_template_type_flag;
+  int forced_template_type;
+  char template_type_string[STRLEN];
   char reslice_like_name[STRLEN];
   int reslice_like_flag;
   int frame_flag;
@@ -183,7 +186,7 @@ int main(int argc, char *argv[])
   out_n_i_flag = out_n_j_flag = out_n_k_flag = FALSE;
   template_info_flag = FALSE;
   out_volume_type = MRI_VOLUME_TYPE_UNKNOWN;
-  force_in_type_flag = force_out_type_flag = FALSE;
+  force_in_type_flag = force_out_type_flag = force_template_type_flag = FALSE;
   subject_name[0] = '\0';
   reslice_like_flag = FALSE;
   frame_flag = FALSE;
@@ -205,7 +208,7 @@ int main(int argc, char *argv[])
   nskip = 0;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_convert.c,v 1.68 2003/09/24 18:08:53 ch Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_convert.c,v 1.69 2003/10/02 23:03:58 ch Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -512,6 +515,12 @@ int main(int argc, char *argv[])
       get_string(argc, argv, &i, out_type_string);
       forced_out_type = string_to_type(out_type_string);/* see mri_identify.c */
       force_out_type_flag = TRUE;
+    }
+    else if(strcmp(argv[i], "-tt") == 0 || strcmp(argv[i], "--template_type") == 0)
+    {
+      get_string(argc, argv, &i, template_type_string);
+      forced_template_type = string_to_type(template_type_string);
+      force_template_type_flag = TRUE;
     }
     else if(strcmp(argv[i], "-sn") == 0 || strcmp(argv[i], "--subject_name") == 0)
     {
@@ -842,6 +851,13 @@ int main(int argc, char *argv[])
   if(force_in_type_flag && forced_in_type == MRI_VOLUME_TYPE_UNKNOWN)
   {
     fprintf(stderr, "\n%s: unknown input volume type %s\n", Progname, in_type_string);
+    usage_message(stdout);
+    exit(1);
+  }
+
+  if(force_template_type_flag && forced_template_type == MRI_VOLUME_TYPE_UNKNOWN)
+  {
+    fprintf(stderr, "\n%s: unknown template volume type %s\n", Progname, template_type_string);
     usage_message(stdout);
     exit(1);
   }
@@ -1372,13 +1388,25 @@ int main(int argc, char *argv[])
   if(reslice_like_flag)
   {
 
-    printf("reading template info from volume %s...\n", reslice_like_name);
-
-    template = MRIreadInfo(reslice_like_name);
-    if(template == NULL)
+    if(force_template_type_flag)
     {
-      fprintf(stderr, "error reading from volume %s\n", reslice_like_name);
-      exit(1);
+      printf("reading template info from (type %s) volume %s...\n", template_type_string, reslice_like_name);
+      template = MRIreadHeader(reslice_like_name, forced_template_type);
+      if(template == NULL)
+      {
+        fprintf(stderr, "error reading from volume %s\n", reslice_like_name);
+        exit(1);
+      }
+    }
+    else
+    {
+      printf("reading template info from volume %s...\n", reslice_like_name);
+      template = MRIreadInfo(reslice_like_name);
+      if(template == NULL)
+      {
+        fprintf(stderr, "error reading from volume %s\n", reslice_like_name);
+        exit(1);
+      }
     }
 
   }
@@ -1814,6 +1842,7 @@ void usage(FILE *stream)
   "  ge            - GE Genesis format (input only)\n"
   "  gelx          - GE LX (input only)\n"
   "  lx            - same as gelx\n"
+  "  ximg          - GE XIMG variant (input only)\n"
   "  siemens       - Siemens IMA (input only)\n"
   "  dicom         - generic DICOM Format (input only)\n"
   "  siemens_dicom - Siemens DICOM Format (input only)\n"
@@ -1867,6 +1896,7 @@ void usage(FILE *stream)
   printf("  -nw, --no_write\n");
   printf("  -sn, --subject_name\n");
   printf("  -rl, --reslice_like\n");
+  printf("  -tt, --template_type <type> (see above)\n");
   printf("  -f,  --frame\n");
   printf("  -il, --in_like\n");
   printf("  -roi\n");
