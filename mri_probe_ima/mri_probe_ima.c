@@ -20,7 +20,7 @@
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_probe_ima.c,v 1.3 2002/01/31 00:21:26 greve Exp $";
+static char vcid[] = "$Id: mri_probe_ima.c,v 1.4 2002/01/31 00:48:30 greve Exp $";
 char *Progname = NULL;
 
 static int  parse_commandline(int argc, char **argv);
@@ -91,6 +91,14 @@ int main(int argc, char **argv)
 
   if(getattr){
     ifi = imaLoadFileInfo(imafile);
+    if(stringmatch(attrname,"studydate")){
+      printf("%s\n",ifi->StudyDate);
+      return(0); exit(0);
+    }
+    if(stringmatch(attrname,"studytime")){
+      printf("%s\n",ifi->StudyTime);
+      return(0); exit(0);
+    }
     if(stringmatch(attrname,"voldim")){
       printf("%d %d %d\n",ifi->VolDim[0],ifi->VolDim[1],ifi->VolDim[2]);
       return(0); exit(0);
@@ -117,6 +125,10 @@ int main(int argc, char **argv)
     }
     if(stringmatch(attrname,"patdob")){
       printf("%s\n",ifi->PatientDOB);
+      return(0); exit(0);
+    }
+    if(stringmatch(attrname,"patgender")){
+      printf("%s\n",ifi->PatientGender);
       return(0); exit(0);
     }
     printf("ERROR: attribute %s not recognized\n",attrname);
@@ -344,14 +356,17 @@ static void print_help(void)
 "\n"
 "ATTRIBUTES\n"
 "\n"
-"  isima    : returns 1 if the file is a Siemens IMA file, 0 otherwise \n"
-"  voldim   : number of columns, rows, and slices in the volume. \n"
-"  volres   : spacing between columns, rows, and slices in the volume\n"
-"  nframes  : number of frames\n"
-"  tr       : repetition time (sec)\n"
-"  pulseseq : pulse sequence name\n"
-"  patname  : patient name \n"
-"  patdob   : patient date of birth (YYYYMMDD)\n"
+"  isima     : returns 1 if the file is a Siemens IMA file, 0 otherwise \n"
+"  studydate : date of the scan  (YYYYMMDD)\n"
+"  studytime : time of the scan  (HHMMSS)\n"
+"  voldim    : number of columns, rows, and slices in the volume. \n"
+"  volres    : spacing between columns, rows, and slices in the volume\n"
+"  nframes   : number of frames\n"
+"  tr        : repetition time (sec)\n"
+"  pulseseq  : pulse sequence name\n"
+"  patname   : patient name \n"
+"  patdob    : patient date of birth (YYYYMMDD)\n"
+"  patgender : patient gender\n"
 "\n"
 "AUTHOR\n"
 "\n"
