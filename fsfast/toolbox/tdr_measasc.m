@@ -1,23 +1,27 @@
 function val = tdr_measasc(measasc,varname)
 % val = tdr_measasc(measasc,varname)
 %
-% $Id: tdr_measasc.m,v 1.2 2003/11/25 21:05:11 greve Exp $
+% $Id: tdr_measasc.m,v 1.3 2005/03/19 00:18:57 greve Exp $
 %
 % EPI ------------------------------------------------------
 % Number of echoes: sWiPMemBlock.alFree[2] (if it exists.
 %  if it does not exist, then it's 1 echo).
-% tDwell = tdr_measasc(measasc,'sRXSPEC.alDwellTime[0]'); % nsec
-% tRampUp = tdr_measasc(measasc,'m_alRegridRampupTime');  % us
-% tFlat   = tdr_measasc(measasc,'m_alRegridFlattopTime'); % us
+% tDwell    = tdr_measasc(measasc,'sRXSPEC.alDwellTime[0]'); % nsec
+% tRampUp   = tdr_measasc(measasc,'m_alRegridRampupTime');  % us
+% tFlat     = tdr_measasc(measasc,'m_alRegridFlattopTime'); % us
 % tRampDown = tdr_measasc(measasc,'m_alRegridRampdownTime'); % us
-% tDelSamp = tdr_measasc(measasc,'m_alRegridDelaySamplesTime'); % us
+% tDelSamp  = tdr_measasc(measasc,'m_alRegridDelaySamplesTime'); % us
 % echospacing = tdr_measasc(measasc,'m_lEchoSpacing'); % us
 %   Should be the same as tRampUp+tFlat+tRampDown
+% Can also get these from MDH
+%   nlines (nrows) = sKSpace.lPhaseEncodingLines
+%   nkcols = 'm_iNoOfFourierColumns = [N]';
 %
 % FID ---------------------------------------------------
 %  Applies only after 11/15
 % time to first echo (us) - alTE[0]  % us
-% echo spacing - sWiPMemBlock.adFree[2] % ms
+% number of echoes - sWiPMemBlock.alFree[10]
+% echo spacing     - sWiPMemBlock.adFree[2] % ms
 %
 
 val = [];
