@@ -1,6 +1,6 @@
 /*----------------------------------------------------------
   Name: mri_label2label.c
-  $Id: mri_label2label.c,v 1.3 2001/05/08 22:58:14 greve Exp $
+  $Id: mri_label2label.c,v 1.4 2001/05/15 21:53:50 greve Exp $
   Author: Douglas Greve
   Purpose: Converts a label in one subject's space to a label
   in another subject's space using either talairach or spherical
@@ -55,7 +55,7 @@ static int  singledash(char *flag);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_label2label.c,v 1.3 2001/05/08 22:58:14 greve Exp $";
+static char vcid[] = "$Id: mri_label2label.c,v 1.4 2001/05/15 21:53:50 greve Exp $";
 char *Progname = NULL;
 
 char  *srclabelfile = NULL;
@@ -458,49 +458,48 @@ static void print_help(void)
 {
   print_usage() ;
 
-  printf("
-  Purpose: Converts a label in one subject's space to a label
-  in another subject's space using either talairach or spherical
-  as an intermediate registration space. 
-
-  Example 1: If you have a label from subject fred called
-    broca-fred.label defined on fred's left hemispherical 
-    surface and you want to convert it to sally's surface, then
-
-    mri_label2label --srclabel broca-fred.label  --srcsubject fred 
-                    --trglabel broca-sally.label --trgsubject sally
-                    --regmethod surface --hemi lh
-
-    This will map from fred to sally using sphere.reg. The registration
-    surface can be changed with --surfreg.
-
-  Example 2: You could also do the same mapping using talairach 
-    space as an intermediate:
-
-    mri_label2label --srclabel broca-fred.label  --srcsubject fred 
-                    --trglabel broca-sally.label --trgsubject sally
-                    --regmethod volume
-
-    Note that no hemisphere is specified with --regmethod volume.
-
-  Notes:
-
-  1. A label can be converted to/from talairach space by specifying
-     the target/source subject as 'talairach'.
-  2. A label can be converted to/from the icosahedron by specifying
-     the target/source subject as 'ico'. When the source or target
-     subject is specified as 'ico', then the order of the icosahedron
-     must be specified with --srcicoorder/--trgicoorder.
-  3. When the surface registration method is used, the xyz coordinates
-     in the target label file are derived from the xyz coordinates
-     from the target subject's white surface. This can be changed
-     using the --trgsurf option.
-  4. When the volume registration method is used, the xyz coordinates
-     in the target label file are computed as xyzTrg = inv(Ttrg)*Tsrc*xyzSrc
-     where Tsrc is the talairach transform in 
-     srcsubject/mri/transforms/talairach.xfm, and where Ttrg is the talairach 
-     transform in trgsubject/mri/transforms/talairach.xfm.
-\n");
+  printf(
+"  Purpose: Converts a label in one subject's space to a label\n"
+"  in another subject's space using either talairach or spherical\n"
+"  as an intermediate registration space. \n"
+"\n"
+"  Example 1: If you have a label from subject fred called\n"
+"    broca-fred.label defined on fred's left hemispherical \n"
+"    surface and you want to convert it to sally's surface, then\n"
+"\n"
+"    mri_label2label --srclabel broca-fred.label  --srcsubject fred \n"
+"                    --trglabel broca-sally.label --trgsubject sally\n"
+"                    --regmethod surface --hemi lh\n"
+"\n"
+"    This will map from fred to sally using sphere.reg. The registration\n"
+"    surface can be changed with --surfreg.\n"
+"\n"
+"  Example 2: You could also do the same mapping using talairach \n"
+"    space as an intermediate:\n"
+"\n"
+"    mri_label2label --srclabel broca-fred.label  --srcsubject fred \n"
+"                    --trglabel broca-sally.label --trgsubject sally\n"
+"                    --regmethod volume\n"
+"\n"
+"    Note that no hemisphere is specified with --regmethod volume.\n"
+"\n"
+"  Notes:\n"
+"\n"
+"  1. A label can be converted to/from talairach space by specifying\n"
+"     the target/source subject as 'talairach'.\n"
+"  2. A label can be converted to/from the icosahedron by specifying\n"
+"     the target/source subject as 'ico'. When the source or target\n"
+"     subject is specified as 'ico', then the order of the icosahedron\n"
+"     must be specified with --srcicoorder/--trgicoorder.\n"
+"  3. When the surface registration method is used, the xyz coordinates\n"
+"     in the target label file are derived from the xyz coordinates\n"
+"     from the target subject's white surface. This can be changed\n"
+"     using the --trgsurf option.\n"
+"  4. When the volume registration method is used, the xyz coordinates\n"
+"     in the target label file are computed as xyzTrg = inv(Ttrg)*Tsrc*xyzSrc\n"
+"     where Tsrc is the talairach transform in \n"
+"     srcsubject/mri/transforms/talairach.xfm, and where Ttrg is the talairach \n"
+"     transform in trgsubject/mri/transforms/talairach.xfm.\n");
 
 
 
