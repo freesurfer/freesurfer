@@ -14,7 +14,7 @@
 #include "macros.h"
 #include "utils.h"
 
-static char vcid[] = "$Id: mris_flatten.c,v 1.3 1997/12/15 19:50:20 fischl Exp $";
+static char vcid[] = "$Id: mris_flatten.c,v 1.4 1997/12/16 16:45:50 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -44,10 +44,8 @@ main(int argc, char *argv[])
 {
   char         **av, *in_surf_fname, *in_patch_fname, *out_patch_fname, 
                fname[100], path[100], *cp ;
-  int          ac, nargs, niterations, naverages, int_type, write_iterations ;
+  int          ac, nargs ;
   MRI_SURFACE  *mris ;
-  float        l_spring, l_dist, momentum, dt, l_area ;
-  double       tol ;
 
   Progname = argv[0] ;
   ErrorInit(NULL, NULL, NULL) ;
@@ -123,105 +121,21 @@ main(int argc, char *argv[])
     fprintf(stderr, "reading original vertex positions...") ;
   if (!FZERO(disturb))
     mrisDisturbVertices(mris, disturb) ;
-#if 0
-  MRISstoreCurrentPositions(mris) ;
-  MRISreadVertexPositions(mris, "smoothwm") ;
-  if (Gdiag & DIAG_SHOW)
-    fprintf(stderr, "done.\n"
-            "Computing metric properties of original surface...") ;
-  MRISsetNeighborhoodSize(mris, nbrs) ;
-  MRIScomputeMetricProperties(mris) ;
-  if (Gdiag & DIAG_SHOW)
-    fprintf(stderr, "sampling distances on original surface...") ;
-  MRISsampleDistances(mris, nbr_size, max_nbrs) ;
-  if (Gdiag & DIAG_SHOW)
-    fprintf(stderr, "done, with avg # of neighbors = %2.1f\n", mris->avg_nbrs);
-  MRIScomputeMetricProperties(mris) ;
-  MRIScomputeTriangleProperties(mris, 0) ;  /* hack */
-  MRISstoreMetricProperties(mris) ;
-  MRISrestoreOldPositions(mris) ;
-  MRIScomputeMetricProperties(mris) ;
-  MRISupdateSurface(mris) ;
-#endif
   if (parms.niterations > 0)
   {
-    if (inflate)
-      MRISinflateBrain(mris, &parms) ;
+    if (randomly_flatten)
+      MRISflattenPatchRandomly(mris) ;
     else
-    {
-      if (randomly_flatten)
-        MRISflattenPatchRandomly(mris) ;
-      else
-        MRISflattenPatch(mris) ;
+      MRISflattenPatch(mris) ;
+    
+    
+    MRISreadOriginalProperties(mris, "smoothwm") ;
+    MRISsetNeighborhoodSize(mris, nbrs) ;
 
-      naverages = parms.n_averages ; parms.n_averages = 0 ;
-      l_spring = parms.l_spring ; l_dist = parms.l_dist ;
-      l_area = parms.l_area ;
-      dt = parms.dt ; momentum = parms.momentum ; 
-      int_type = parms.integration_type ;
-      niterations = parms.niterations ; tol = parms.tol ;
-      write_iterations = parms.write_iterations ;
-
-      if (write_iterations > 0)
-        parms.write_iterations = 50 ;
-      /*      parms.momentum = 0.95 ; parms.dt = .95 ; */
-      parms.integration_type = INTEGRATE_MOMENTUM /*INTEGRATE_ADAPTIVE */;
-      parms.l_spring = 0.0 ; parms.l_dist = 0.01 ; parms.l_boundary = 0.0 ;
-      parms.l_area = 1.0 ;
-      parms.niterations = 1 ;
-      parms.tol = 1e-5 ;
-      MRISstoreCurrentPositions(mris) ;
-      mris->status = MRIS_PATCH ;
-      MRISreadVertexPositions(mris, "smoothwm") ;
-      MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ;
-      MRIScomputeMetricProperties(mris) ;
-      MRIScomputeTriangleProperties(mris, 0) ;  /* hack */
-      MRISstoreMetricProperties(mris) ;
-      MRISrestoreOldPositions(mris) ;
-      mris->status = MRIS_PLANE ;
-      MRISupdateSurface(mris) ;
-#if 0
-#if 1
-      if (!nospring)
-        MRISremoveNegativeVertices(mris, &parms, min_neg, min_neg_pct) ;
-#else
-      if (!nospring)
-        MRISunfold(mris, &parms) ;  /* use spring force to remove neg. vert. */
-#endif
-#endif
-      /* restore user-specified parameters */
-      parms.l_spring = l_spring ; parms.l_dist = l_dist ;
-      parms.l_area = l_area ;
-      parms.niterations = niterations ; parms.n_averages = naverages ;
-      parms.momentum = momentum ; parms.dt = dt ; 
-      parms.integration_type = int_type ;
-      parms.tol = tol ;
-      parms.write_iterations = write_iterations ;
-
-      /* read in original positions and calculate distances */
-      if (nbrs > 1)
-      {
-        MRISsaveVertexPositions(mris, TMP_VERTICES) ;
-        mris->status = MRIS_PATCH ;  /* so no orientating will be done */
-        MRISrestoreVertexPositions(mris, ORIGINAL_VERTICES) ;
-        MRISsetNeighborhoodSize(mris, nbrs) ;
-        MRIScomputeMetricProperties(mris) ;
-        MRIScomputeTriangleProperties(mris, 0) ;  /* hack */
-        MRISstoreMetricProperties(mris) ;
-        
-        /* restore the current positions and properties */
-        MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
-        mris->status = MRIS_PLANE ;
-        MRIScomputeMetricProperties(mris) ;
-        MRIScomputeTriangleProperties(mris, 0) ;  /* hack */
-        MRISupdateSurface(mris) ;
-      }
-
-      if (Gdiag & DIAG_SHOW)
-        fprintf(stderr,"surface unfolded - minimizing metric distortion...\n");
-      /*      MRISscaleUp(mris) ;*/
-      MRISunfold(mris, &parms) ;  /* optimize metric properties of flat map */
-    }
+    if (Gdiag & DIAG_SHOW)
+      fprintf(stderr,"surface unfolded - minimizing metric distortion...\n");
+    /*      MRISscaleUp(mris) ;*/
+    MRISunfold(mris, &parms) ;  /* optimize metric properties of flat map */
     if (Gdiag & DIAG_SHOW)
       fprintf(stderr, "writing flattened patch to %s\n", out_patch_fname) ;
     MRISwritePatch(mris, out_patch_fname) ;
