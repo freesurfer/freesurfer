@@ -4,9 +4,9 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2004/10/15 16:47:55 $
-// Revision       : $Revision: 1.224 $
-char *VERSION = "$Revision: 1.224 $";
+// Revision Date  : $Date: 2004/10/15 18:31:59 $
+// Revision       : $Revision: 1.225 $
+char *VERSION = "$Revision: 1.225 $";
 
 #define TCL
 #define TKMEDIT 
@@ -1065,7 +1065,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
      shorten our argc and argv count. If those are the only args we
      had, exit. */
   /* rkt: check for and handle version tag */
-  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.224 2004/10/15 16:47:55 kteich Exp $", "$Name:  $");
+  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.225 2004/10/15 18:31:59 kteich Exp $", "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
   argc -= nNumProcessedVersionArgs;
@@ -2906,7 +2906,8 @@ void tkm_HandleIdle () {
 #endif
 
   /* just call the tk event handling function */
-  Tk_DoOneEvent( TK_ALL_EVENTS | TK_DONT_WAIT );
+  while (Tk_DoOneEvent( TK_ALL_EVENTS | TK_DONT_WAIT )) {
+  }
 
 #if defined(Linux) || defined(sun) || defined(SunOS) | defined(Darwin)
     tv.tv_sec = 0;
@@ -5035,7 +5036,7 @@ int main ( int argc, char** argv ) {
     DebugPrint( ( "%s ", argv[nArg] ) );
   }
   DebugPrint( ( "\n\n" ) );
-  DebugPrint( ( "$Id: tkmedit.c,v 1.224 2004/10/15 16:47:55 kteich Exp $ $Name:  $\n" ) );
+  DebugPrint( ( "$Id: tkmedit.c,v 1.225 2004/10/15 18:31:59 kteich Exp $ $Name:  $\n" ) );
 
   
   /* init glut */
