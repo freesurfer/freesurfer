@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: xhan $
-// Revision Date  : $Date: 2005/04/04 21:49:05 $
-// Revision       : $Revision: 1.163 $
+// Revision Date  : $Date: 2005/04/06 17:34:58 $
+// Revision       : $Revision: 1.164 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -7520,6 +7520,292 @@ GCAnormalizeSamples(MRI *mri_in, GCA *gca, GCA_SAMPLE *gcas, int nsamples,
   MRIfree(&mri_bias) ; MRIfree(&mri_ctrl) ;
   return(mri_dst) ;
 }
+
+
+void GCAnormalizeSamplesOneChannel(MRI *mri_in, GCA *gca, GCA_SAMPLE *gcas, int nsamples, 
+                    TRANSFORM *transform, char *ctl_point_fname, int input_index)
+/* This function is added by xhan, trying to normalize a single channel */
+{
+  
+  MRI    *mri_dst, *mri_ctrl, *mri_bias ;
+  int    xv, yv, zv, n, x, y, z, width, height, depth, xn, yn, zn, num, total, input;
+  float   bias ;
+  double  mean, sigma ;
+  Real    val ;
+ 
+  width = mri_in->width ; height = mri_in->height ; depth = mri_in->depth ;
+  mri_dst = mri_in;
+  mri_ctrl = MRIalloc(width, height, depth, MRI_UCHAR) ;
+  MRIcopyHeader(mri_in, mri_ctrl);
+  mri_bias = MRIalloc(mri_in->width,mri_in->height,mri_in->depth,MRI_SHORT);
+  if (!mri_bias)    
+    ErrorExit(ERROR_NOMEMORY, 
+	      "GCAnormalizeSamples: could not allocate (%d,%d,%d,2) bias image",
+	      mri_in->width,mri_in->height,mri_in->depth) ;
+  MRIcopyHeader(mri_in, mri_bias);
+
+#define MAX_BIAS 1250
+#define NO_BIAS  1000
+#define MIN_BIAS  750
+
+  if (ctl_point_fname)
+  {
+    MRI3dUseFileControlPoints(mri_ctrl, ctl_point_fname) ;
+    MRInormAddFileControlPoints(mri_ctrl, CONTROL_MARKED) ;
+  }
+
+  /* add control points from file */
+  for (z = 0 ; z < depth ; z++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      for (x = 0 ; x < width ; x++)
+      {
+        if (x == Gx && y == Gy && z == Gz)
+          DiagBreak() ;
+        MRISvox(mri_bias, x,y,z) = NO_BIAS ;  /* by default */
+        if (MRIvox(mri_ctrl, x, y, z) != CONTROL_MARKED)  /* not read from file */
+	  continue ;
+	
+	if (nsamples == 0)   /* only using file control points */
+	{
+	  MRIsampleVolumeFrame(mri_in, x, y, z, input_index, &val) ;
+	  bias = NO_BIAS*DEFAULT_DESIRED_WHITE_MATTER_VALUE / val ;          
+          MRISvox(mri_bias, x, y, z) = (short)nint(bias) ;
+	}
+	else    /* find atlas point this maps to */
+	{
+          int       n, max_n ;
+          GC1D      *gc ;
+          GCA_NODE  *gcan ;
+          GCA_PRIOR *gcap ;
+          double    max_p ;
+
+          if (!GCAsourceVoxelToNode(gca, mri_dst, transform,  x, y, z, &xn, &yn, &zn))
+	  {
+	    gcan = &gca->nodes[xn][yn][zn] ;
+	    gcap = getGCAP(gca, mri_dst, transform, x, y, z) ;
+	    if (gcap==NULL)
+	      continue;
+	    max_p = 0 ;
+	    for (max_n = -1, n = 0 ; n < gcan->nlabels ; n++)
+	    {
+	      if ((0 == IS_WM(gcan->labels[n])) &&
+		  (0 == IS_CEREBELLAR_WM(gcan->labels[n])) &&
+		  (gcan->labels[n] != Brain_Stem))
+		continue ;
+	      gc = &gcan->gcs[n] ;
+	      if (getPrior(gcap, gcan->labels[n]) >= max_p)
+	      {
+		max_p = getPrior(gcap, gcan->labels[n]) ;
+		max_n = n ;
+	      }
+	    }
+	    if (max_n < 0)  /* couldn't find any valid label at this location */
+	      continue ;
+	    gc = &gcan->gcs[max_n] ;
+	    
+	    
+	    MRIsampleVolumeFrame(mri_in, x, y, z, input_index, &val) ;
+	    if (FZERO(val))
+	      val = 1 ;
+	    bias = (float)NO_BIAS*((float)gc->means[input_index]/val) ;
+
+	    if (bias < 100 || bias > 5000)
+	      DiagBreak() ;
+	    if (bias < MIN_BIAS)
+	      bias = MIN_BIAS ;
+	    if (bias > MAX_BIAS)
+	      bias = MAX_BIAS ;
+          
+	    MRISvox(mri_bias, x, y, z) = (short)nint(bias) ;
+	  }
+	  /////////////////////////////////////////////////////
+        }
+      }
+    }
+  }
+
+  TransformInvert(transform, mri_in) ;
+  for (n = 0 ; n < nsamples ; n++)
+  {
+    if (gcas[n].xp == Ggca_x && gcas[n].yp == Ggca_y && gcas[n].zp == Ggca_z)
+      DiagBreak() ;
+
+    if (!GCApriorToSourceVoxel(gca, mri_dst, transform, 
+			       gcas[n].xp, gcas[n].yp, gcas[n].zp, &xv, &yv, &zv))
+    {
+      if (xv == 181 && yv == 146 && zv == 128)
+	DiagBreak() ;
+      if (xv == Ggca_x && yv == Ggca_y && zv == Ggca_z)
+	DiagBreak() ;
+      if (gcas[n].label == 29 || gcas[n].label == 61)
+      {
+	gcas[n].label = 0 ;
+	DiagBreak() ;
+      }
+      if (gcas[n].label > 0)
+      {
+	MRIvox(mri_ctrl, xv, yv, zv) = CONTROL_MARKED ;
+	
+
+	MRIsampleVolumeFrame(mri_in, xv, yv, zv, input_index, &val) ;
+	if (FZERO(val))
+	  val = 1 ;
+	bias = (float)NO_BIAS*((float)gcas[n].means[input_index]/val) ;
+
+	if (bias < 100 || bias > 5000)
+	  DiagBreak() ;
+#if 0
+	if (bias < MIN_BIAS)
+	  bias = MIN_BIAS ;
+	if (bias > MAX_BIAS)
+	  bias = MAX_BIAS ;
+#endif
+	
+	MRISvox(mri_bias, xv, yv, zv) = (short)nint(bias) ;
+      }
+      else
+	MRIvox(mri_ctrl, xv, yv, zv) = CONTROL_NONE ;
+    }
+  }
+
+  /* now check for and remove outliers */
+  mean = sigma = 0.0 ;
+  for (num = z = 0 ; z < depth ; z++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      for (x = 0 ; x < width ; x++)
+      {
+        if (x == Gx && y == Gy && z == Gz)
+          DiagBreak() ;
+        if (MRIvox(mri_ctrl, x, y, z) == CONTROL_MARKED)  
+        {
+          num++ ;
+          bias = (double)MRISvox(mri_bias, x, y, z) ;
+          mean += bias ; sigma += (bias*bias) ;
+        }
+      }
+    }
+  }
+
+  if (num > 0)
+  {
+    mean /= (double)num ;
+    sigma  = sqrt(sigma / (double)num - mean*mean) ;
+    printf("bias field = %2.3f +- %2.3f\n", mean/NO_BIAS, sigma/NO_BIAS) ;
+  }
+
+  /* now check for and remove outliers */
+  for (total = num = z = 0 ; z < depth ; z++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      for (x = 0 ; x < width ; x++)
+      {
+        if (x == Gx && y == Gy && z == Gz)
+          DiagBreak() ;
+        if (MRIvox(mri_ctrl, x, y, z) == CONTROL_MARKED)  
+        {
+          bias = (double)MRISvox(mri_bias, x, y, z) ;
+          total++ ;
+          if (fabs(bias-mean) > 4*sigma)
+          {
+            MRIvox(mri_ctrl, x, y, z) = CONTROL_NONE ;  
+            num++ ;
+            MRISvox(mri_bias, x, y, z) = NO_BIAS ;
+          }
+        }
+      }
+    }
+  }
+
+  printf("%d of %d control points discarded\n", num, total) ;
+
+  MRIbuildVoronoiDiagram(mri_bias, mri_ctrl, mri_bias) ;
+  /*  MRIwrite(mri_bias, "bias.mgz") ;*/
+#if 1
+  {
+    MRI *mri_kernel, *mri_smooth, *mri_down ;
+    float sigma = 16.0f ;
+
+    mri_down = MRIdownsample2(mri_bias, NULL) ;
+    mri_kernel = MRIgaussian1d(sigma, 100) ;
+    mri_smooth = MRIconvolveGaussian(mri_down, NULL, mri_kernel) ;
+    MRIfree(&mri_bias) ; MRIfree(&mri_kernel) ;
+    mri_bias = MRIupsample2(mri_smooth, NULL) ;
+    sigma = 2.0f ; MRIfree(&mri_down) ; MRIfree(&mri_smooth) ;
+    mri_kernel = MRIgaussian1d(sigma, 100) ;
+    mri_smooth = MRIconvolveGaussian(mri_bias, NULL, mri_kernel) ;
+    MRIfree(&mri_bias) ; mri_bias = mri_smooth ; MRIfree(&mri_kernel) ;
+  }
+#else
+  MRIsoapBubble(mri_bias, mri_ctrl, mri_bias, 10) ;
+#endif
+  /*  MRIwrite(mri_bias, "smooth_bias.mgz") ;*/
+
+
+  width = mri_in->width ; height = mri_in->height ; depth = mri_in->depth ;
+  for (z = 0 ; z < depth ; z++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      for (x = 0 ; x < width ; x++)
+      {
+        bias = (float)MRISvox(mri_bias, x, y, z)/NO_BIAS ;
+        if (bias < 0)
+          DiagBreak() ;
+	
+	MRIsampleVolumeFrame(mri_in, x, y, z, input_index, &val) ;
+	val *= bias ;   /* corrected value */
+	switch (mri_in->type)
+	  {
+	  case MRI_UCHAR: 
+	    if (val < 0)
+	      val = 0 ;
+	    else if (val > 255)
+	      val = 255 ;
+	    MRIseq_vox(mri_dst, x, y, z, input_index) = (BUFTYPE)nint(val) ; 
+	    break ;
+	  case MRI_SHORT: 
+	    MRISseq_vox(mri_dst, x, y, z, input_index) = (short)nint(val) ; 
+	    break ;
+	  case MRI_FLOAT: 
+	    MRIFseq_vox(mri_dst, x, y, z, input_index) = val ; 
+	    break ;
+	  default:
+	    ErrorReturn(NULL,
+			(ERROR_UNSUPPORTED, 
+			 "GCAnormalizeSamples: unsupported input type %d",mri_in->type));
+	    break ;
+	  }
+      
+      }
+    }
+  }
+  
+  MRIfree(&mri_bias) ; MRIfree(&mri_ctrl) ;
+  return;
+}
+
+MRI *
+GCAnormalizeSamplesAllChannels(MRI *mri_in, GCA *gca, GCA_SAMPLE *gcas, int nsamples, 
+			   TRANSFORM *transform, char *ctl_point_fname){
+  MRI    *mri_dst;
+  int input;
+
+  mri_dst = MRIcopy(mri_in, NULL);
+  
+  for(input = 0; input < gca->ninputs; input++){
+    GCAnormalizeSamplesOneChannel(mri_dst, gca, gcas, nsamples, 
+			       transform, ctl_point_fname, input);
+  }
+  
+  return (mri_dst);
+  
+}
+
 MRI *
 GCAnormalizeSamplesT1PD(MRI *mri_in, GCA *gca, GCA_SAMPLE *gcas, int nsamples, 
 			TRANSFORM *transform, char *ctl_point_fname)
@@ -9968,11 +10254,20 @@ GCAhistoScaleImageIntensities(GCA *gca, MRI *mri)
     MRIfree(&mri_frame) ;
     HISTOfree(&h_smooth) ; HISTOfree(&h_mri) ;
   }
+
+#if 0
   for (scale = 0.0, r = 0 ; r < gca->ninputs ; r++)
     scale += scales[r] ;
   scale /= (double)gca->ninputs ;
   printf("scaling all frames by %2.3f\n", scale) ;
   MRIscalarMul(mri, mri, scale) ;
+#else
+  // scale each frame independently -xhan
+  for (r = 0 ; r < gca->ninputs ; r++){
+    printf("scaling channel %d by %g\n", r, scales[r]);
+    MRIscalarMulFrame(mri, mri, scales[r], r);
+  }
+#endif
   return(NO_ERROR) ;
 }
 
@@ -12087,15 +12382,25 @@ GCAcreateFlashGCAfromFlashGCA(GCA *gca_flash_src, double *TR, double *fa, double
 	    *MATRIX_RELT(m_jac_dst, i+1, 2) = 
 	      dFlash_dPD(T1, PD, gca_flash_dst->TRs[i], gca_flash_dst->FAs[i], gca_flash_dst->TEs[i]) ;
 	    
-	    *MATRIX_RELT(m_jac_src, i+1, 1) = 
-	      dFlash_dT1(T1, PD, gca_flash_src->TRs[i], gca_flash_src->FAs[i], gca_flash_src->TEs[i]) ;
-	    *MATRIX_RELT(m_jac_src, i+1, 2) = 
-	      dFlash_dPD(T1, PD, gca_flash_src->TRs[i], gca_flash_src->FAs[i], gca_flash_src->TEs[i]) ;
+	    //	*MATRIX_RELT(m_jac_src, i+1, 1) = 
+	    //  dFlash_dT1(T1, PD, gca_flash_src->TRs[i], gca_flash_src->FAs[i], gca_flash_src->TEs[i]) ;
+	    //  *MATRIX_RELT(m_jac_src, i+1, 2) = 
+	    //  dFlash_dPD(T1, PD, gca_flash_src->TRs[i], gca_flash_src->FAs[i], gca_flash_src->TEs[i]) ;
 	    if (gcan_dst->labels[n] == Ggca_label)
 	    {
 	      label_means[i] += gc_dst->means[i] ;
 	    }
 	  }
+	  //this allows src and dst have different ninputs
+	  for (i = 0 ; i < gca_flash_src->ninputs ; i++)
+	  {
+	    *MATRIX_RELT(m_jac_src, i+1, 1) = 
+	      dFlash_dT1(T1, PD, gca_flash_src->TRs[i], gca_flash_src->FAs[i], gca_flash_src->TEs[i]) ;
+	    *MATRIX_RELT(m_jac_src, i+1, 2) = 
+	      dFlash_dPD(T1, PD, gca_flash_src->TRs[i], gca_flash_src->FAs[i], gca_flash_src->TEs[i]) ;
+	  }
+
+	  
 #define MIN_T1 50
 	  if (x == Gx && y == Gy && z == Gz)
 	    DiagBreak()  ;
