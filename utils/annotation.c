@@ -5,7 +5,10 @@
 #include "utils.h"
 #include "const.h"
 #include "error.h"
+
+#define ANNOTATION_SRC
 #include "annotation.h"
+#undef ANNOTATION_SRC
 
 typedef struct
 {
@@ -93,6 +96,7 @@ read_annotation_table(void)
   FILE  *fp ;
   char  *cp, fname[STRLEN], line[STRLEN] ;
   int   i ;
+  extern char *annotation_table_file;
 
   if (num_entries)
     return(NO_ERROR) ;   /* already read */
@@ -101,7 +105,11 @@ read_annotation_table(void)
   if (!cp)
     cp = "." ;
 
-  sprintf(fname, "%s/christophe_parc.txt", cp) ;
+  if(annotation_table_file == NULL)
+    sprintf(fname, "%s/christophe_parc.txt", cp) ;
+  else
+    sprintf(fname, "%s",annotation_table_file);
+
   fp = fopen(fname, "r") ;
   if (!fp)
   {
