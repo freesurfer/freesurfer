@@ -1,9 +1,9 @@
 #!/bin/csh -f
 # mc-sess - motion correction
 #
-# $Id: mc-sess,v 1.4 2003/10/04 20:16:47 greve Exp $
+# $Id: mc-sess,v 1.5 2005/01/26 19:53:48 greve Exp $
 
-set VERSION    = '$Id: mc-sess,v 1.4 2003/10/04 20:16:47 greve Exp $'
+set VERSION    = '$Id: mc-sess,v 1.5 2005/01/26 19:53:48 greve Exp $'
 set cmdargs = ($argv);
 
 set ScriptOnly = 0;
@@ -16,6 +16,7 @@ set funcstem   = f;  # stem of functional volume
 set funcmcstem = (); # stem of functional motion-corrected volume
 set PWDCMD = `getpwdcmd`;
 set targnthrun = 1;  # use nth run as target
+set targrun = ();    # use explicit run as target
 set nolog = 0;
 set RunListFile = ();
 
@@ -126,12 +127,18 @@ foreach sess ($SessList)
     chmod a+x $scriptfile
   endif
 
-  if($#RunList < $targnthrun) then
-    echo "ERROR: $sessid target run ($targnthrun) exceeds number of runs ($#RunList)"
-    exit 1;
+  if($#targrun == 0) then
+    if($#RunList < $targnthrun) then
+      echo "ERROR: $sessid target run ($targnthrun) exceeds "
+      echo "   number of runs ($#RunList)."
+      exit 1;
+    endif
+    if(! $PerRun) set targstem = $RunList[$targnthrun]/$funcstem
+  else
+    if(! $PerRun) set targstem = $targrun/$funcstem
   endif
+  echo "Targ Stem is $targstem"
 
-  if(! $PerRun) set targstem = $RunList[$targnthrun]/$funcstem
   foreach run ($RunList)  
     echo "  ------- ************************** -----------" |& tee -a $LF
     echo "  ------- Motion Correcting Run $run -----------" |& tee -a $LF
@@ -214,6 +221,11 @@ while( $#argv != 0 )
     case "-targnthrun":
       if ( $#argv == 0) goto arg1err;
       set targnthrun = $argv[1]; shift;
+      breaksw
+
+    case "-targrun":
+      if ( $#argv == 0) goto arg1err;
+      set targrun = $argv[1]; shift;
       breaksw
 
     case "-runlistfile":
@@ -313,6 +325,7 @@ usage_exit:
   echo "Optional Arguments:";
   echo "   -method  mcmethod  : afni"
   echo "   -targnthrun n      : use nth run as target (default=1)"
+  echo "   -targrun RRR       : use run RRR as target"
   echo "   -toff m            : target image offset ($targoff)"
   echo "   -fstem stem        : stem of output motion-corrected volume (fmc)"
   echo "   -fmcstem stem      : stem of output motion-corrected volume (fmc)"
