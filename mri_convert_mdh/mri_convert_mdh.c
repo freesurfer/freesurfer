@@ -13,7 +13,7 @@
 #include "version.h"
 
 #ifndef lint
-static char vcid[] = "$Id: mri_convert_mdh.c,v 1.9 2003/09/15 21:12:01 greve Exp $";
+static char vcid[] = "$Id: mri_convert_mdh.c,v 1.10 2003/09/22 04:49:16 greve Exp $";
 #endif /* lint */
 
 #define MDH_SIZE    128        //Number of bytes in the miniheader
@@ -105,7 +105,7 @@ int main(int argc, char **argv)
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_convert_mdh.c,v 1.9 2003/09/15 21:12:01 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_convert_mdh.c,v 1.10 2003/09/22 04:49:16 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -378,10 +378,10 @@ int main(int argc, char **argv)
   printf("Saving\n");
   for(n=0; n<nEchos; n++){
     printf("Echo %d\n",n);
-    sprintf(fname,"%s/echor%d.mgh",outdir,n);
+    sprintf(fname,"%s/echo%03dr.mgh",outdir,n+1);
     MRIwrite(echor[n],fname);
     MRIfree(&echor[n]);
-    sprintf(fname,"%s/echoi%d.mgh",outdir,n);
+    sprintf(fname,"%s/echo%03di.mgh",outdir,n+1);
     MRIwrite(echoi[n],fname);
     MRIfree(&echoi[n]);
   }
