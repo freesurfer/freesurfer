@@ -857,21 +857,23 @@ char *AppendString(char *src, char *app)
   char *tmp;
 
   if(!app) return src;
-
-  if(src) sz1 = strlen(src);
   sz2 = strlen(app);
 
-  tmp = (char *) realloc(src, sizeof(char)*(sz1+sz2+1));
+  if(src) sz1 = strlen(src);
+  else{
+    src = (char *) calloc(sizeof(char),(sz2+1));
+    memcpy(src,app,sz2);
+    return(src);
+  }
 
+  tmp = (char *) realloc(src, sizeof(char)*(sz1+sz2+1));
   if(!tmp){
     fprintf(stderr,"ERROR: AppendString: \n");
     fprintf(stderr,"Could not realloc\n");
     fprintf(stderr,"%s:%d\n",__FILE__,__LINE__);
     exit(1);
   }
-  /* Note: tmp should be equal to src */
-  if(src) sprintf(tmp,"%s%s",src,app);
-  else    sprintf(tmp,"%s",app);
+  sprintf(tmp,"%s%s",tmp,app);
 
   return(tmp);
 }
