@@ -626,7 +626,7 @@ MRInormFindControlPoints(MRI *mri_src, float max_grad,
         val0 = MRIvox(mri_src, x, y, z) ;
         if (val0 >= wm_target-wm_delta && val0 <= wm_target+wm_delta)
         {
-          low_thresh = wm_target-wm_delta ; hi_thresh = wm_target+wm_delta ;
+          low_thresh = wm_target-wm_delta ; hi_thresh = wm_target+2*wm_delta ;
 
 #define WHALF  ((5-1)/2)
           ctrl = 1 ;
@@ -875,13 +875,13 @@ MRIbuildVoronoiDiagram(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst)
       }
     }
     total -= nchanged ;
-    if (Gdiag & DIAG_SHOW)
+    if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
       fprintf(stderr, 
               "Voronoi: %d voxels assigned, %d remaining.      \r", 
               nchanged, total) ;
   } while (nchanged > 0 && total > 0) ;
 
-  if (Gdiag & DIAG_SHOW)
+  if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
     fprintf(stderr, "\n") ;
   MRIfree(&mri_marked) ;
   MRIreplaceValues(mri_ctrl, mri_ctrl, CONTROL_TMP, CONTROL_NONE) ;
@@ -1059,7 +1059,7 @@ mriRemoveOutliers(MRI *mri, int min_nbrs)
     }
   }
   
-  if (Gdiag & DIAG_SHOW)
+  if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
     fprintf(stderr, "%d control points deleted.\n", deleted) ;
   return(NO_ERROR) ;
 }
