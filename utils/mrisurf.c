@@ -24749,6 +24749,13 @@ mrisFindDefectConvexHull(MRI_SURFACE *mris, DEFECT *defect)
 
   return(NO_ERROR) ;
 }
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
 static int 
 mrisCheckSurface(MRI_SURFACE *mris)
 {
@@ -24798,7 +24805,13 @@ mrisCheckSurface(MRI_SURFACE *mris)
   fprintf(stderr, "%d defective edges\n", nbad) ;
   return(NO_ERROR) ;
 }
+/*-----------------------------------------------------
+        Parameters:
 
+        Returns value:
+
+        Description
+------------------------------------------------------*/
 static int 
 mrisMarkBadEdgeVertices(MRI_SURFACE *mris, int mark)
 {
@@ -24836,6 +24849,13 @@ mrisMarkBadEdgeVertices(MRI_SURFACE *mris, int mark)
   }
   return(nmarked) ;
 }
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
 #if 0
 static int
 mrisDilateAmbiguousVertices(MRI_SURFACE *mris, int mark, int ndil)
@@ -24869,6 +24889,13 @@ mrisDilateAmbiguousVertices(MRI_SURFACE *mris, int mark, int ndil)
 }
 
 #endif
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
 static int
 mrisDumpDefectiveEdge(MRI_SURFACE *mris, int vno1, int vno2)
 {
@@ -24927,6 +24954,13 @@ mrisDumpDefectiveEdge(MRI_SURFACE *mris, int vno1, int vno2)
 #endif
   return(NO_ERROR) ;
 }
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
 #if 0
 static int
 mrisDumpTriangle(MRI_SURFACE *mris, int fno)
@@ -24982,7 +25016,13 @@ mrisDefectRemoveNegativeVertices(MRI_SURFACE *mris, DEFECT *defect)
   }
   return(NO_ERROR) ;
 }
+/*-----------------------------------------------------
+        Parameters:
 
+        Returns value:
+
+        Description
+------------------------------------------------------*/
 static int
 mrisDefectRemoveDegenerateVertices(MRI_SURFACE *mris, float min_sphere_dist,
                                    DEFECT *defect)
@@ -25022,6 +25062,13 @@ mrisDefectRemoveDegenerateVertices(MRI_SURFACE *mris, float min_sphere_dist,
   }
   return(NO_ERROR) ;
 }
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
 static int
 mrisDefectRemoveProximalVertices(MRI_SURFACE *mris, float min_orig_dist,
                                  DEFECT *defect)
@@ -25061,6 +25108,13 @@ mrisDefectRemoveProximalVertices(MRI_SURFACE *mris, float min_orig_dist,
   }
   return(NO_ERROR) ;
 }
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
 static int
 mrisInitializeNeighborhood(MRI_SURFACE *mris, int vno)
 {
@@ -25169,6 +25223,20 @@ mrisInitializeNeighborhood(MRI_SURFACE *mris, int vno)
 
   return(NO_ERROR) ;
 }
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
 int
 MRISmarkNegativeVertices(MRI_SURFACE *mris, int mark) 
 {
@@ -25184,7 +25252,13 @@ MRISmarkNegativeVertices(MRI_SURFACE *mris, int mark)
   }
   return(NO_ERROR) ;
 }
+/*-----------------------------------------------------
+        Parameters:
 
+        Returns value:
+
+        Description
+------------------------------------------------------*/
 int
 MRISripNegativeVertices(MRI_SURFACE *mris) 
 {
@@ -25203,4 +25277,38 @@ MRISripNegativeVertices(MRI_SURFACE *mris)
   }
   return(NO_ERROR) ;
 }
+/*-----------------------------------------------------
+        Parameters:
 
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+double
+MRIScomputeAverageCurvature(MRI_SURFACE *mris, double *psigma)
+{
+  double mean, var, total, total_sq, nv, d;
+  int    vno ;
+  VERTEX *v ;
+
+  for (vno = 0, nv = total_sq = total = 0.0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    d = (double)v->curv ;
+    total_sq += d*d ; total += d ; nv += 1.0 ;
+  }
+  if (nv)
+  {
+    mean = total / nv ;
+    var = total_sq / nv - (mean*mean) ;
+  }
+  else
+    var = mean = 0.0 ;
+  if (psigma)
+    *psigma = sqrt(var) ;
+  return(mean) ;
+}
+
+  
