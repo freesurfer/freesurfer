@@ -3,9 +3,9 @@
 // written by Bruce Fischl
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2004/09/14 13:39:31 $
-// Revision       : $Revision: 1.300 $
+// Revision Author: $Author: segonne $
+// Revision Date  : $Date: 2004/10/26 17:43:08 $
+// Revision       : $Revision: 1.301 $
 //////////////////////////////////////////////////////////////////
 #include <stdio.h>
 #include <string.h>
@@ -14,7 +14,7 @@
 #include <sys/types.h>
 #include <sys/time.h>
 #include <unistd.h>
-
+ 
 #include "diag.h"
 #include "error.h"
 #include "utils.h"
@@ -42,6 +42,7 @@
 #include "transform.h"
 #include "talairachex.h"
 /*---------------------------- STRUCTURES -------------------------*/
+  
 
 /*---------------------------- CONSTANTS -------------------------*/
 
