@@ -383,8 +383,8 @@ LabelToFlat(LABEL *area, MRI_SURFACE *mris)
 int
 LabelWrite(LABEL *area, char *label_name)
 {
-  FILE  *fp ;
-  int  n, num ;
+  FILE   *fp ;
+  int    n, num ;
   char   fname[200], *cp, subjects_dir[100], lname[200] ;
 
   strcpy(lname, label_name) ;
@@ -630,6 +630,59 @@ LabelCurvFill(LABEL *area, int *vertex_list, int nvertices,
         Description
 ------------------------------------------------------*/
 int
+LabelFillMarked(LABEL *area, MRI_SURFACE *mris)
+{
+  int    n, nfilled, nv ;
+  VERTEX *v, *vn ;
+  LV     *lv, *lvn ;
+
+
+  do
+  {
+    nfilled = 0 ;
+
+    for (n = 0; n < area->n_points && 
+           area->n_points+nfilled < area->max_points ; n++)
+    {
+      lv = &area->lv[n] ;
+      v = &mris->vertices[lv->vno] ; v->marked = 2 ;
+      if (v->ripflag)
+        continue ;
+      for (nv = 0 ; nv < v->vnum ; nv++)   /* go through neighbors */
+      {
+        vn = &mris->vertices[v->v[nv]] ;
+        if (vn->ripflag)
+          continue ;
+        if (vn->marked == 1)  /* add it to the label */
+        {
+          vn->marked = 2 ;
+          lvn = &area->lv[area->n_points+nfilled] ;
+          nfilled++ ;
+          lvn->vno = v->v[nv] ;
+          lvn->x = vn->x ; lvn->y = vn->y ; lvn->z = vn->z ;
+        }
+        if (area->n_points+nfilled >= area->max_points)
+          break ;
+      }
+      if (area->n_points+nfilled >= area->max_points)
+        break ;
+    }
+    /*    fprintf(stderr, "%d vertices added.\n", nfilled) ;*/
+    area->n_points += nfilled ;
+  } while ((nfilled > 0) && (area->n_points < area->max_points)) ;
+#if 0
+  fprintf(stderr, "%d vertices in label %s\n",area->n_points, area->name);
+#endif
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+int
 LabelFillAll(LABEL *area, int *vertex_list, int nvertices, 
               int max_vertices, MRI_SURFACE *mris)
 {
@@ -827,12 +880,10 @@ LabelCopy(LABEL *asrc, LABEL *adst)
 {
   if (!adst)
     adst = LabelAlloc(asrc->n_points, asrc->subject_name, asrc->name) ;
-  else
-  {
-    adst->n_points = asrc->n_points ;
-    strcpy(adst->name, asrc->name) ;
-    strcpy(adst->subject_name, asrc->subject_name) ;
-  }
+
+  adst->n_points = asrc->n_points ;
+  strcpy(adst->name, asrc->name) ;
+  strcpy(adst->subject_name, asrc->subject_name) ;
 
   memmove(adst->lv, asrc->lv, asrc->n_points*sizeof(LABEL_VERTEX)) ;
   return(adst) ;
