@@ -22,7 +22,7 @@
 #include "icosahedron.h"
 #include "tritri.h"
 #include "timer.h"
-#include "anders.h"
+#include "chklc.h"
 
 /*---------------------------- STRUCTURES -------------------------*/
 
@@ -394,7 +394,7 @@ MRISreadOverAlloc(char *fname, double pct_over)
   VERTEX      *vertex ;
   FACE        *face ;
 
-  anders() ;
+  chklc() ;    /* check to make sure license.dat is present */
   type = mrisFileNameType(fname) ;
   if (type == MRIS_ASCII_QUADRANGLE_FILE)
   {
@@ -1001,7 +1001,7 @@ MRISwrite(MRI_SURFACE *mris, char *name)
 
   char  fname[STRLEN] ;
 
-  anders() ;
+  chklc() ;
   MRISbuildFileName(mris, name, fname) ;
   type = mrisFileNameType(fname) ;
   if (type == MRIS_ASCII_QUADRANGLE_FILE)
