@@ -687,7 +687,7 @@ angleDistance(float theta1, float theta2)
 
   return(adist) ;
 }
-#ifndef SunOS
+/*#ifndef SunOS*/
 int
 stricmp(char *str1, char *str2)
 {
@@ -699,7 +699,7 @@ stricmp(char *str1, char *str2)
   StrUpper(buf2) ;
   return(strcmp(buf1, buf2)) ;
 }
-#endif
+/*#endif*/
 /*------------------------------------------------------------------------
        Parameters:
 
