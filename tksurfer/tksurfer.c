@@ -23177,6 +23177,7 @@ int fill_flood_from_seed (int seed_vno, FILL_PARAMETERS* params)
   VERTEX* neighbor_v;
   float fvalue;
   float seed_curv = 0;
+  float seed_fvalue = 0;
   
   if (seed_vno < 0 || seed_vno >= mris->nvertices)
     return (ERROR_BADPARM);
@@ -23196,6 +23197,9 @@ int fill_flood_from_seed (int seed_vno, FILL_PARAMETERS* params)
     labl_find_label_by_vno (seed_vno, &label);
   if (params->dont_cross_cmid)
     seed_curv = mris->vertices[seed_vno].curv;
+  if (params->dont_cross_fthresh)
+    sclv_get_value (&mris->vertices[seed_vno], 
+		    sclv_current_field, &seed_fvalue);
   
   /* while we're still filling stuff in a pass... */
   num_filled_this_iter = 1;
@@ -23273,7 +23277,9 @@ int fill_flood_from_seed (int seed_vno, FILL_PARAMETERS* params)
 		  if (params->dont_cross_fthresh)
 		    {
 		      sclv_get_value (neighbor_v, sclv_current_field, &fvalue);
-		      if (fabs(fvalue) < fthresh)
+      if ((fthresh != 0 && seed_fvalue > 0 && fvalue < fthresh) ||
+	  (fthresh != 0 && seed_fvalue < 0 && fabs(fvalue) < fthresh) ||
+	  (fthresh == 0 && (fvalue * seed_fvalue < 0)))
 			{
 			  continue;
 			}
