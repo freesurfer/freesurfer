@@ -6,8 +6,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: pengyu $
-// Revision Date  : $Date: 2004/01/27 22:18:39 $
-// Revision       : $Revision: 1.1 $
+// Revision Date  : $Date: 2004/02/12 18:38:48 $
+// Revision       : $Revision: 1.2 $
 ////////////////////////////////////////////
 
 #include <math.h>
@@ -34,7 +34,7 @@
 #include "transform.h"
 #include "talairachex.h"
 
-static char vcid[] = "$Id: mri_cc.c,v 1.1 2004/01/27 22:18:39 pengyu Exp $";
+static char vcid[] = "$Id: mri_cc.c,v 1.2 2004/02/12 18:38:48 pengyu Exp $";
 
 
 int             main(int argc, char *argv[]) ; 
@@ -59,6 +59,7 @@ static int labels[] =
 #define HALF_CUT          ((CUT_WIDTH-1)/2)
 #define SEARCH_STEP       3
 #define MAX_OFFSET        50
+#define CC_VAL            127
 
 /* aspect ratios are dy/dx */
 #define MIN_CC_AREA       350  /* smallest I've seen is 389 */
@@ -102,10 +103,15 @@ main(int argc, char *argv[])
 	MRI         *mri_tal, *mri_talheader;
 	Real        xv, yv, zv;
 	FILE        *fp;
-	
+	MATRIX      *inverse_transform_matrix;
+	LT          *lt = 0;
+	VOL_GEOM    vgtmp;
+
 	Progname = argv[0] ; 
 	DiagInit(NULL, NULL, NULL) ; 
 	ErrorInit(NULL, NULL, NULL) ; 
+
+	print("cosine = %f", cos(3.14/4));
 	
 	for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++) 
 	{ 
@@ -138,8 +144,6 @@ main(int argc, char *argv[])
 	sprintf(ifname,"%s/%s/%s",data_dir,argv[1],wmvolume) ;  
 	fprintf(stderr,"reading white matter volume from %s\n", ifname);	
 	mri_wm = MRIread(ifname) ; 
-	mri_cc_tal = MRIcopy(mri_wm, NULL) ;	
-	MRIvalueFill(mri_cc_tal, 0) ;
 	
 	sprintf(ifname,"%s/%s/mri/transforms/talairach.xfm",data_dir,argv[1]) ;  
 	lta = LTAreadEx(ifname);
@@ -151,6 +155,9 @@ main(int argc, char *argv[])
   {
     MRIreplaceValues(mri_wm, mri_wm, labels[i], 0) ;
   }
+	sprintf(ofname,"%s/%s/mri/wmpeng.mgh",cp,argv[1]) ; 
+	fprintf(stderr, "writing wm volume to %s...\n", ofname) ; 
+	MRIwrite(mri_wm, ofname) ;
 
 	mri_talheader = MRIallocHeader(mri_wm->width, mri_wm->height, mri_wm->depth, mri_wm->type);
   MRIcopyHeader(mri_wm, mri_talheader); // not allocate memory, though
@@ -160,7 +167,7 @@ main(int argc, char *argv[])
 	mri_tal = MRIalloc(mri_wm->width, mri_wm->height, mri_wm->depth, mri_wm->type);
   MRIcopyHeader(mri_talheader, mri_tal);
   // now fill the talairach volume values
-  MRItoTalairachEx(mri_wm, mri_tal, lta);
+  MRItoTalairachEx(mri_wm, mri_tal, lta); 
 	
   // binalize the talairach volume (mri_tal)
   MRIbinarize(mri_tal, mri_tal, DEFAULT_DESIRED_WHITE_MATTER_VALUE/2-1, 0, 110) ;
@@ -168,6 +175,10 @@ main(int argc, char *argv[])
 	sprintf(ofname,"%s/%s/mri/wm_tal.mgh",cp,argv[1]) ; 
 	fprintf(stderr, "writing talairach volume to %s...\n", ofname) ; 
 	MRIwrite(mri_tal, ofname) ; 
+
+	mri_cc_tal = MRIcopy(mri_tal, NULL) ;	
+	MRIcopyHeader(mri_talheader, mri_cc_tal);
+	MRIvalueFill(mri_cc_tal, 0) ;
 
 	find_corpus_callosum(mri_tal,&cc_tal_x,&cc_tal_y,&cc_tal_z, lta);
 
@@ -179,7 +190,7 @@ main(int argc, char *argv[])
 	{ 
 		for (z = 0 ; z < mri_cc_tal->depth ; z++) 
 		{ 	 
-			if ( MRIvox(mri_cc_tal, xi, y, z) == 1)
+			if ( MRIvox(mri_cc_tal, xi, y, z) )
 			{
 				if (y < yi_low)
 					yi_low = y ;
@@ -195,7 +206,9 @@ main(int argc, char *argv[])
 
 	volume[0] = 0; volume[1] = 0; volume[2] = 0;
 	volume[3] = 0; volume[4] = 0;
-	MRIvalueFill(mri_wm, 0) ;
+
+	MRIcopy(mri_cc_tal, mri_tal);
+	MRIvalueFill(mri_tal, 0) ;	
 
 	for (i = xi-dxi ; i <= xi+dxi ; i++) 
 	{		
@@ -203,42 +216,75 @@ main(int argc, char *argv[])
 		{ 
 			for (k = 0 ; k < mri_cc_tal->depth ; k++) 
 			{
-				MRIvox(mri_wm, i, j, k) = MRIvox(mri_cc_tal, i, j, k) ;
+				MRIvox(mri_tal, i, j, k) = MRIvox(mri_cc_tal, i, j, k) ;	
 			} 	
 		}
-	}
+	} 
 
-	MRIfromTalairachEx(mri_wm, mri_cc_tal, lta);
+#if 0
+	MRIfromTalairachEx(mri_tal, mri_wm, lta);
+#else
+	inverse_transform_matrix = MatrixInverse(lta->xforms[0].m_L,
+																					 NULL);
+	if(inverse_transform_matrix == NULL)
+	{
+		fprintf(stderr, "ERROR: inverting transform\n");
+		MatrixPrint(stdout,lta->xforms[0].m_L);
+		exit(1);
+	}
+	
+	MatrixFree(&(lta->xforms[0].m_L));
+	lta->xforms[0].m_L = inverse_transform_matrix;
+	// reverse src and dst target info.
+	// since it affects the c_ras values of the result
+	// in LTAtransform()
+	// question is what to do when transform src info is invalid.
+	lt = &lta->xforms[0];
+	copyVolGeom(&lt->dst, &vgtmp);
+	copyVolGeom(&lt->src, &lt->dst);
+	copyVolGeom(&vgtmp, &lt->src);
+	mri_wm = MRIclone(mri_tal, NULL) ;
+	mri_wm->c_r = 0;
+	mri_wm->c_a = 0;
+	mri_wm->c_s = 0;  
+	mri_wm = LTAtransform(mri_tal, mri_wm, lta);
+#endif
+	sprintf(ofname,"%s/%s/mri/cc.mgh",cp,argv[1]) ; 
+	fprintf(stderr, "writing output to %s...\n", ofname) ; 
+	MRIwrite(mri_wm, ofname) ;
+ 
+	//MRItoTalairachEx(mri_wm,mri_tal,lta);
+	sprintf(ofname,"%s/%s/mri/cc_tal.mgh",cp,argv[1]) ; 
+	fprintf(stderr, "writing output to %s...\n", ofname) ; 
+	MRIwrite(mri_tal, ofname) ;
 
 		/* Then count the number of CC in the bounding box in this plane */
-	for (i = 0 ; i <= mri_cc_tal->width ; i++) 
+	for (i = 0 ; i <= mri_wm->width ; i++) 
 	{		
-		for (j = 0 ; j < mri_cc_tal->height ; j++) 
+		for (j = 0 ; j < mri_wm->height ; j++) 
 		{ 
-			for (k = 0 ; k < mri_cc_tal->depth ; k++) 
+			for (k = 0 ; k < mri_wm->depth ; k++) 
 			{ 	 
-				if (MRIvox(mri_cc_tal, i, j, k) == 1)
+				if (MRIvox(mri_wm, i, j, k))
 				{
-					MRIvoxelToTalairachVoxelEx(mri_cc_tal, i, j, k, &xv, &yv, &zv, lta);					
+					MRIvoxelToTalairachVoxelEx(mri_wm, i, j, k, &xv, &yv, &zv, lta);					
 					if ( yv>=yi_low && yv<=yi_high && zv>=zi_low && zv<=zi_high )
 					{
 						temp = (int) (zv-zi_low)/((zi_high-zi_low+1)/5);
 						volume[temp]++ ;
 					}
-					else printf ("error in talairach transform"); 	
+					else printf ("error in talairach transform\n"); 	
 				} 
 			}
 		}
 	}
 
 	fprintf(fp, "%s %d %d %d %d %d %d %d %d %d \n", argv[1], volume[4], volume[3],volume[2], volume[1],volume[0], yi_low, yi_high, zi_low, zi_high);
-
+	fprintf(stderr, "%s %d %d %d %d %d %d %d %d %d \n", argv[1], volume[4], volume[3],volume[2], volume[1],volume[0], yi_low, yi_high, zi_low, zi_high);
 
 	MRIfree(&mri_tal) ;
 	MRIfree(&mri_wm); 
-	sprintf(ofname,"%s/%s/mri/cc.mgh",cp,argv[1]) ; 
-	fprintf(stderr, "writing output to %s...\n", ofname) ; 
-	MRIwrite(mri_cc_tal, ofname) ; 		
+	MRIfree(&mri_talheader);
 	MRIfree(&mri_cc_tal) ; 
 	msec = TimerStop(&then) ; 
 	fprintf(stderr, "corpus callosum matter segmentation took %2.1f minutes\n", (float)msec/(1000.0f*60.0f)); 
@@ -365,7 +411,7 @@ find_cc_slice(MRI *mri_tal, Real *pccx, Real *pccy, Real *pccz, const LTA *lta)
     MRIworldToVoxel(mri_tal, x, y,  z, &x, &y, &z) ;
     xv = nint(x) ; yv = nint(y) ; zv = nint(z) ;
     mri_slice = MRIextractPlane(mri_tal, NULL, MRI_SAGITTAL, xv);
-    mri_filled =  MRIfillFG(mri_slice, NULL, zv, yv,0,WM_MIN_VAL,127,&area[slice]);
+    mri_filled =  MRIfillFG(mri_slice, NULL, zv, yv,0,WM_MIN_VAL,CC_VAL,&area[slice]);
     MRIboundingBox(mri_filled, 1, &region) ;
     aspect = (Real)region.dy / (Real)region.dx ;
 
@@ -385,7 +431,7 @@ find_cc_slice(MRI *mri_tal, Real *pccx, Real *pccy, Real *pccz, const LTA *lta)
       sprintf(fname, "cc_filled%d.mgh", slice);
       MRIwrite(mri_filled, fname) ;
     }
-		MRIfillPlane(mri_filled, mri_cc_tal, MRI_SAGITTAL, xv, 1);
+		MRIfillPlane(mri_filled, mri_cc_tal, MRI_SAGITTAL, xv, CC_VAL);
 
     MRIfree(&mri_filled) ; MRIfree(&mri_slice) ;
   }
