@@ -4831,77 +4831,84 @@ static MRI *analyzeRead(char *fname, int read_volume)
     /* 5 sagittal flipped 	P-A 	S-I 	R-L     */
     if (hdr->hist.orient==0)  /* x = - r, y = a, z = s */
     {
-      strcpy(direction, "transverse unflipped");
-      T = MatrixIdentity(4,NULL);
+      strcpy(direction, "transverse unflipped (default)");
+      T = MatrixAlloc(4, 4, MATRIX_REAL);
       T->rptr[1][1] =  -mri->xsize;
       T->rptr[2][2] =  mri->ysize;
       T->rptr[3][3] =  mri->zsize;
       T->rptr[1][4] = mri->xsize*(mri->width/2.0);
       T->rptr[2][4] = -mri->ysize*(mri->height/2.0);
       T->rptr[3][4] = -mri->zsize*(mri->depth/2.0);
+      T->rptr[4][4] = 1.;
     }
     else if (hdr->hist.orient==1) /* x = -r, y = s, z = a */
     {
       strcpy(direction, "coronal unflipped");
-      T = MatrixIdentity(4,NULL);
+      T = MatrixAlloc(4, 4, MATRIX_REAL);
       T->rptr[1][1] = -mri->xsize;
       T->rptr[2][3] =  mri->zsize;
       T->rptr[3][2] =  mri->ysize;
       T->rptr[1][4] = mri->xsize*(mri->width/2.0);
       T->rptr[2][4] = -mri->zsize*(mri->depth/2.0);
       T->rptr[3][4] = -mri->ysize*(mri->height/2.0);
+      T->rptr[4][4] = 1.;      
     }
     else if (hdr->hist.orient==2) /* x = a, y = s, z = -r */
     {
       strcpy(direction, "sagittal unflipped");
-      T = MatrixIdentity(4,NULL);
+      T = MatrixAlloc(4, 4, MATRIX_REAL);
       T->rptr[1][3] =  -mri->zsize;                  
       T->rptr[2][1] =  mri->xsize;
       T->rptr[3][2] =  mri->ysize;
       T->rptr[1][4] = mri->zsize*(mri->depth/2.0);
       T->rptr[2][4] = -mri->xsize*(mri->width/2.0);
       T->rptr[3][4] = -mri->ysize*(mri->height/2.0);
+      T->rptr[4][4] = 1.;
     }
     else if (hdr->hist.orient==3) /* x = -r, y = -a, z = s */
     {
       strcpy(direction, "transverse flipped");
-      T = MatrixIdentity(4,NULL);
+      T = MatrixAlloc(4, 4, MATRIX_REAL);
       T->rptr[1][1] =  -mri->xsize;
       T->rptr[2][2] =  -mri->ysize;
       T->rptr[3][3] =  mri->zsize;
       T->rptr[1][4] = mri->xsize*(mri->width/2.0);
       T->rptr[2][4] = mri->ysize*(mri->height/2.0);
       T->rptr[3][4] = -mri->zsize*(mri->depth/2.0);
+      T->rptr[4][4] = 1.;
     }
     else if (hdr->hist.orient==4) /* x = -r, y = -s, z = a */
     {
       strcpy(direction, "coronal flipped");
-      T = MatrixIdentity(4,NULL);
+      T = MatrixAlloc(4, 4, MATRIX_REAL);
       T->rptr[1][1] = -mri->xsize;
       T->rptr[2][3] =  mri->zsize;
       T->rptr[3][2] = -mri->ysize;
       T->rptr[1][4] =  mri->xsize*(mri->width/2.0);
       T->rptr[2][4] = -mri->zsize*(mri->depth/2.0);
       T->rptr[3][4] =  mri->ysize*(mri->height/2.0);
+      T->rptr[4][4] = 1.;
     }
     else if (hdr->hist.orient==5) /* x = a, y = -s, z = -r */
     {
       strcpy(direction, "sagittal flipped");
-      T = MatrixIdentity(4,NULL);
+      T = MatrixAlloc(4, 4, MATRIX_REAL);
       T->rptr[1][3] = -mri->zsize;                  
       T->rptr[2][1] =  mri->xsize;
       T->rptr[3][2] = -mri->ysize;
       T->rptr[1][4] =  mri->zsize*(mri->depth/2.0);
       T->rptr[2][4] = -mri->xsize*(mri->width/2.0);
       T->rptr[3][4] =  mri->ysize*(mri->height/2.0);
+      T->rptr[4][4] = 1.;
     }
     mri->ras_good_flag = 1;
     fprintf(stderr,
             "-----------------------------------------------------------------\n"
-            "Follow Analyze 7.5 voxel order from hdr->hist.orient value: %s.\n"
-            "If not suitable, please provide the information in %s file\n"
+	    "could not find %s file.                                          \n"
+            "follow Analyze 7.5 voxel order from hdr->hist.orient value: %d, %s.\n"
+            "if not valid, please provide the information in %s file\n"
             "-----------------------------------------------------------------\n",
-	    direction, matfile
+	    matfile, hdr->hist.orient, direction, matfile
 	    );
   }
 
