@@ -82,8 +82,8 @@ void
 mri_event_handler(XV_FRAME *xvf, Event *event,DIMAGE *dimage, 
                   int *px, int *py, int *pz)
 {
-  int       x, y, z, which, depth, view ;
-  Real      xr, yr, zr, xt, yt, zt, xv, yv, zv ;
+  int       x, y, z, which, depth, view, frame ;
+  Real      xr, yr, zr, xt, yt, zt, xv, yv, zv, xtv, ytv, ztv ;
   float     xf, yf, zf, xft, yft, zft ;
   MRI       *mri ;
   char      fname[100] ;
@@ -92,6 +92,7 @@ mri_event_handler(XV_FRAME *xvf, Event *event,DIMAGE *dimage,
   which = dimage->which ;
   mri = mris[which] ;
   depth = mri_depths[which] ;
+  frame = mri_frames[which] ;
   view = mri_views[which] ;
 
   /* click can occur in the middle of other stuff (sort of asynchonous) */
@@ -152,7 +153,10 @@ mri_event_handler(XV_FRAME *xvf, Event *event,DIMAGE *dimage,
     z = mri->depth-1 ;
 
   if (talairach)
-    MRIvoxelToTalairachVoxel(mri, (Real)x, (Real)y, (Real)z, &xt, &yt, &zt) ;
+  {
+    MRIvoxelToTalairach(mri, (Real)x, (Real)y, (Real)z, &xt, &yt, &zt) ;
+    MRIvoxelToTalairachVoxel(mri, (Real)x, (Real)y, (Real)z, &xtv,&ytv,&ztv);
+  }
   MRIvoxelToWorld(mri, (Real)x, (Real)y, (Real)z, &xr, &yr, &zr) ;
   switch (event_id(event))
   {
@@ -165,16 +169,20 @@ mri_event_handler(XV_FRAME *xvf, Event *event,DIMAGE *dimage,
     case MRI_UCHAR:
       if (talairach)
         XVprintf(xvf, 0, "T: (%d,%d,%d) --> %d",
-                 nint(xt),nint(yt),nint(zt),MRIvox(mri, x, y, z));
+                 nint(xt),nint(yt),nint(zt),
+                 MRIseq_vox(mri, nint(xtv), nint(ytv), nint(ztv),frame));
       else
-        XVprintf(xvf, 0, "(%d,%d,%d) --> %d",x,y,z,MRIvox(mri, x, y, z));
+        XVprintf(xvf, 0, "(%d,%d,%d) --> %d",x,y,z,
+                 MRIseq_vox(mri,x,y,z,frame));
       break ;
     case MRI_FLOAT:
       if (talairach)
         XVprintf(xvf, 0, "T: (%d,%d,%d) --> %2.3f",
-                 nint(xt),nint(yt),nint(zt),MRIFvox(mri, x, y, z));
+                 nint(xt),nint(yt),nint(zt),
+                 MRIFseq_vox(mri, nint(xtv), nint(ytv), nint(ztv),frame));
       else
-        XVprintf(xvf, 0, "(%d,%d,%d) --> %2.3f",x,y,z,MRIFvox(mri, x, y, z));
+        XVprintf(xvf, 0, "(%d,%d,%d) --> %2.3f",x,y,z,
+                 MRIFseq_vox(mri, x, y, z,frame));
       break ;
     }
     break ;
@@ -810,14 +818,14 @@ XVMRIsetPoint(XV_FRAME *xvf, int which, int x, int y, int z)
         x2 = MIN(mri2->width-1, x2) ; y2 = MIN(mri2->height-1, y2) ; 
         z2 = MIN(mri2->depth-1, z2) ;
         XVgetTitle(xvf, which2, title, 0) ;
-        sprintf(fmt, "%%10.10s: (%%3d, %%3d) --> %%2.%dlf\n", xvf->precision);
+        sprintf(fmt, "%%10.10s: (%%3d, %%3d) --> %%2.%dlf\n",xvf->precision);
         switch (mri2->type)
         {
         case MRI_UCHAR:
-          sprintf(buf, "%d", MRIseq_vox(mri2, x2, y2, z2,mri_frames[which2]));
+          sprintf(buf, "%d", MRIseq_vox(mri2, x2, y2,z2,mri_frames[which2]));
           break ;
         case MRI_FLOAT:
-          sprintf(buf, "%2.3f",MRIFseq_vox(mri2,x2,y2,z2,mri_frames[which2]));
+          sprintf(buf,"%2.3f",MRIFseq_vox(mri2,x2,y2,z2,mri_frames[which2]));
           break ;
         }
         XVshowImageTitle(xvf, which2, "%s (%s)", title, buf) ;
