@@ -1,6 +1,6 @@
 #! /usr/bin/tixwish
 
-# $Id: tksurfer.tcl,v 1.53 2003/09/03 18:09:36 kteich Exp $
+# $Id: tksurfer.tcl,v 1.54 2004/03/17 18:31:14 kteich Exp $
 
 package require BLT;
 
@@ -1513,11 +1513,11 @@ proc DoLoadFunctionalFile { inField isFileName isRegistrationFileName } {
     if { $inField == -1 } {
 	func_load_timecourse $isFileName $isRegistrationFileName
     } else {
-	if { $sExtension == ".w" } {
+	if { $sExtension == ".bfloat" || $sExtension == "bshort" } {
+	    sclv_read_bfile_values $inField $isFileName $isRegistrationFileName
+	} else {
 	    set val $isFileName
 	    sclv_read_binary_values $inField
-	} else {
-	    sclv_read_bfile_values $inField $isFileName $isRegistrationFileName
 	}
 	sclv_copy_view_settings_from_field $inField 0
 	OverlayLayerChanged
