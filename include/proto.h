@@ -15,6 +15,7 @@
 #include <sys/types.h>
 #include <sys/time.h>
 
+int _flsbuf(unsigned char c, FILE *p) ;
 int select (int width, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, 
             struct timeval *timeout) ;
 
