@@ -203,11 +203,13 @@ Volm_tErr Volm_DeepClone  ( mriVolumeRef  this,
   clone->mnDimensionZ = this->mnDimensionZ;
   
   /* copy mri volumes */
-  DebugNote( ("Cloning normalized volume") );
-  clone->mpMriValues = MRIcopy( this->mpMriValues, NULL );
-  DebugAssertThrowX( (NULL != clone->mpMriValues),
-		     eResult, Volm_tErr_CouldntCopyVolume );
-  
+  if ( NULL != this->mpMriValues ) {
+    DebugNote( ("Cloning normalized volume") );
+    clone->mpMriValues = MRIcopy( this->mpMriValues, NULL );
+    DebugAssertThrowX( (NULL != clone->mpMriValues),
+		       eResult, Volm_tErr_CouldntCopyVolume );
+  }  
+
   /* copy the transforms */
   if( NULL != this->mIdxToRASTransform ) {
     DebugNote( ("Copying index to RAS transform") );
@@ -263,6 +265,10 @@ Volm_tErr Volm_DeepClone  ( mriVolumeRef  this,
   memcpy( clone->maColorTable, this->maColorTable, 
 	  sizeof( this->maColorTable ));
   
+  /* Make our temp vars. */
+  clone->mpTmpScreenIdx = VectorAlloc( 4, MATRIX_REAL );
+  clone->mpTmpMRIIdx    = VectorAlloc( 4, MATRIX_REAL );
+
   /* return the clone */
   *opVolume = clone;
   
