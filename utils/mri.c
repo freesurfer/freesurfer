@@ -7008,3 +7008,55 @@ MATRIX *extract_i_to_r(MRI *mri)
 } /* end extract_i_to_r() */
 
 /* eof */
+MRI *
+MRIscaleMeanIntensities(MRI *mri_src, MRI *mri_ref, MRI *mri_dst)
+{
+  int    width, height, depth, x, y, z, val ;
+  double ref_mean, src_mean, nref_vox, nsrc_vox, scale ;
+  
+  mri_dst = MRIcopy(mri_src, mri_dst) ;
+
+  width = mri_dst->width ; height = mri_dst->height ; depth = mri_dst->depth;
+
+  nref_vox = nsrc_vox = src_mean = ref_mean = 0.0 ;
+  for (z = 0 ; z < depth ; z++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      for (x = 0 ; x < width ; x++)
+      {
+        if (MRIvox(mri_ref,x,y,z) > 10)
+        {
+          nref_vox++ ;
+          ref_mean += (double)MRIvox(mri_ref, x, y, z) ;
+        }
+        if (MRIvox(mri_src,x,y,z) > 10)
+        {
+          src_mean += (double)MRIvox(mri_src, x, y, z) ;
+          nsrc_vox++ ;
+        }
+      }
+    }
+  }
+
+  ref_mean /= nref_vox ; src_mean /= nsrc_vox ; 
+  fprintf(stderr, "mean brightnesses: ref = %2.1f, in = %2.1f\n",
+          ref_mean, src_mean) ;
+  scale = ref_mean / src_mean ;
+  for (z = 0 ; z < depth ; z++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      for (x = 0 ; x < width ; x++)
+      {
+        val = MRIvox(mri_src, x, y, z) ;
+        val = nint(val*scale) ;
+        if (val > 255)
+          val = 255 ;
+        MRIvox(mri_src, x, y, z) = val ;
+      }
+    }
+  }
+
+  return(mri_dst) ;
+}
