@@ -4,8 +4,8 @@
 /*                                                                     */
 /* Warning: Do not edit the following four lines.  CVS maintains them. */
 /* Revision Author: $Author: tosa $                                           */
-/* Revision Date  : $Date: 2004/01/13 21:20:22 $                                             */
-/* Revision       : $Revision: 1.22 $                                         */
+/* Revision Date  : $Date: 2004/01/13 21:39:34 $                                             */
+/* Revision       : $Revision: 1.23 $                                         */
 /***********************************************************************/
 
 #include <stdio.h>
@@ -360,12 +360,15 @@ main(int argc, char *argv[])
       printf("processing subject %s, %d of %d...\n", subject_name,i+1-nargs,
              nsubjects);
       printf("***************************************************************************\n");
-
       ///////////////////////////////////////////////////////////////////////////////
       // use the direction cosines etc from mri_inputs in gca
+      // the following makes gca to use the same direction cosines and c_(ras) as
+      // the inputs
+      // Note that we are not checking the consistency among subjects.
       GCAreinit(mri_inputs, gca);
       /////////////////////////////////////////////////////////////////////////////////
-      // xform_name is given
+      // xform_name is given, then we can use the consistent c_(r,a,s) for gca
+      ////////////////////////////////////////////////////////////////////////////////
       if (xform_name)
       {
 	// we read talairach.xfm which is a RAS-to-RAS
