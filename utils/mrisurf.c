@@ -137,7 +137,6 @@ static int   mrisSmoothCurvatures(MRI_SURFACE *mris, int niterations) ;
 static int   mrisSmoothNormals(MRI_SURFACE *mris, int niterations) ;
 static int   mrisComputeCurvatureGradientTerm(MRI_SURFACE *mris, 
                                               INTEGRATION_PARMS *parms) ;
-static int   mrisScaleBrainArea(MRI_SURFACE *mris) ;
 static int   mrisStoreCurrentGradient(MRI_SURFACE *mris) ;
 static int   mrisFindPoles(MRIS *mris) ;
 static int   mrisComputeEllipsoidProperties(MRI_SURFACE *mris) ;
@@ -3552,7 +3551,6 @@ mrisComputeSSE(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     (double)parms->l_curv * CURV_SCALE * sse_curv ;
   return(sse) ;
 }
-#if 0
 /*-----------------------------------------------------
         Parameters:
 
@@ -3560,36 +3558,14 @@ mrisComputeSSE(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 
         Description
 ------------------------------------------------------*/
-static int
-mrisScaleBrainArea(MRI_SURFACE *mris)
+int
+MRISscaleBrainArea(MRI_SURFACE *mris)
 {
-  float   area_scale ;
-  int     tno, vno, fno ;
-  VERTEX  *v ;
-  FACE    *face ;
+  float   scale ;
 
-  area_scale = mris->orig_area / mris->total_area ;
-  for (vno = 0 ; vno < mris->nvertices ; vno++)
-  {
-    v = &mris->vertices[vno] ;
-    if (v->ripflag)
-      continue ;
-    
-    /* scale the area by the ratio of the ellipsoid area to that of the
-       original surface.
-       */
-    v->area *= area_scale ;
-  }
-
-  for (fno = 0 ; fno < mris->nfaces ; fno++)
-  {
-    face = &mris->faces[fno] ;
-    if (face->ripflag)
-      continue ;
-    for (tno = 0 ; tno < TRIANGLES_PER_FACE ; tno++)
-      face->area[tno] *= area_scale ;
-  }
-
+  scale = sqrt(mris->orig_area / (mris->total_area+mris->neg_area)) ;
+  MRISscaleBrain(mris, mris, scale) ;
+  MRIScomputeMetricProperties(mris) ;
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
@@ -3601,6 +3577,7 @@ mrisScaleBrainArea(MRI_SURFACE *mris)
           Find the 3 poles (temporal, occipital, and frontal) of
           the cortical surface.
 ------------------------------------------------------*/
+#if 0
 #define MIN_Z_DISTANCE       30.0f
 #define MIN_Y_DISTANCE       30.0f
 #define MIN_ANGLE_VARIATION  RADIANS(30.0f)
@@ -3876,9 +3853,6 @@ MRISupdateEllipsoidSurface(MRI_SURFACE *mris)
 {
   MRIScomputeTriangleProperties(mris,0) ;  /* recompute areas and normals */
   mrisOrientEllipsoid(mris) ;      /* orient the normals and angles */
-#if 0
-  mrisScaleBrainArea(mris) ;   /* scale it to have same area as orig. */
-#endif
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
@@ -6939,7 +6913,7 @@ MRISaverageRadius(MRI_SURFACE *mris)
 int
 MRISinflateBrain(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 {
-  int     n_averages, n, write_iterations, niterations ;
+  int     n_averages, n, write_iterations, niterations, scale ;
   double  delta_t = 0.0, fi, ici, fi_desired;
 
   write_iterations = parms->write_iterations ;
@@ -6960,7 +6934,12 @@ MRISinflateBrain(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   MRIScomputeSecondFundamentalForm(mris) ;
   parms->start_t = 0 ;
   niterations = parms->niterations ;
-  fi_desired = parms->fi_desired ;
+  MRIScomputeCurvatureIndices(mris, &ici, &fi) ;
+  scale = parms->fi_desired < 0.0 ;
+  if (scale)
+    parms->fi_desired = fi_desired = 0.1 * fi ;
+  else
+    fi_desired = parms->fi_desired ;
   fprintf(stderr, "inflating to desired folding index = %2.3f\n", 
           parms->fi_desired);
 
@@ -6968,7 +6947,6 @@ MRISinflateBrain(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   if ((parms->write_iterations > 0) && (Gdiag&DIAG_WRITE))
     mrisWriteSnapshot(mris, parms, 0) ;
   
-  MRIScomputeCurvatureIndices(mris, &ici, &fi) ;
   if (Gdiag & DIAG_SHOW)
     fprintf(stderr, "%3.3d: dt: %2.4f, ici=%2.2f, fi=%2.2f, avgs=%d\n", 
             0, 0.0f, (float)ici,(float)fi, n_averages) ;
@@ -6985,6 +6963,8 @@ MRISinflateBrain(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   MRISclearCurvature(mris) ;   /* curvature will be used to calculate sulc */
   for (n = 0 ; n < niterations ; n++)
   {
+    if (scale)
+      MRISscaleBrainArea(mris) ;
     mrisClearGradient(mris) ;
     mrisComputeDistanceTerm(mris, parms) ;
     mrisComputeSpringTerm(mris, parms) ;
