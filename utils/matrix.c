@@ -285,7 +285,11 @@ MatrixMultiply(MATRIX *m1, MATRIX *m2, MATRIX *m3)
 
   if (!m3)
   {
-    m3 = MatrixAlloc(m1->rows, m2->cols, m1->type) ;
+    /* twitzel also did something here */
+    if((m1->type == MATRIX_COMPLEX) || (m2->type == MATRIX_COMPLEX)) 
+      m3 = MatrixAlloc(m1->rows, m2->cols, MATRIX_COMPLEX);
+    else
+      m3 = MatrixAlloc(m1->rows, m2->cols, m1->type) ;
     if (!m3)
       return(NULL) ;
   }
@@ -309,9 +313,10 @@ MatrixMultiply(MATRIX *m1, MATRIX *m2, MATRIX *m3)
   cols = m3->cols ;
   rows = m3->rows ;
   m1_cols = m1->cols ;
-  switch (m1->type)
+
+  /* twitzel modified here */
+  if((m1->type == MATRIX_REAL) && (m2->type == MATRIX_REAL))
   {
-  case MATRIX_REAL:
     for (row = 1 ; row <= rows ; row++)
     {
       r3 = &m3->rptr[row][1] ;
@@ -332,28 +337,43 @@ MatrixMultiply(MATRIX *m1, MATRIX *m2, MATRIX *m3)
         *r3++ = val ;
       }
     }
-    break ;
-  case MATRIX_COMPLEX:
+  } else if((m1->type == MATRIX_COMPLEX) && (m2->type == MATRIX_COMPLEX)) {
+ 
     for (row = 1 ; row <= rows ; row++)
-    {
-      for (col = 1 ; col <= cols ; col++)
       {
-        for (i = 1 ; i <= m1->cols ; i++)
+  for (col = 1 ; col <= cols ; col++)
+    {
+      for (i = 1 ; i <= m1->cols ; i++)
         {
-          float a, b, c, d ;  /* a + ib and c + id */
-          
-          a = MATRIX_CELT_REAL(m1,row,i) ;
-          b = MATRIX_CELT_IMAG(m1,row,i) ;
-          c = MATRIX_CELT_REAL(m2,i,col) ;
-          d = MATRIX_CELT_IMAG(m2,i,col) ;
-          MATRIX_CELT_REAL(m3,row,col) += a*c - b*d ;
-          MATRIX_CELT_IMAG(m3,row,col) += a*d + b*c ;
+    float a, b, c, d ;  /* a + ib and c + id */
+    
+    a = MATRIX_CELT_REAL(m1,row,i) ;
+    b = MATRIX_CELT_IMAG(m1,row,i) ;
+    c = MATRIX_CELT_REAL(m2,i,col) ;
+    d = MATRIX_CELT_IMAG(m2,i,col) ;
+    MATRIX_CELT_REAL(m3,row,col) += a*c - b*d ;
+    MATRIX_CELT_IMAG(m3,row,col) += a*d + b*c ;
         }
-      }
     }
-    break ;
+      }
+  } else if((m1->type == MATRIX_REAL) && (m2->type == MATRIX_COMPLEX)) {
+    for (row = 1 ; row <= rows ; row++)
+      {
+  for (col = 1 ; col <= cols ; col++)
+    {
+      for (i = 1 ; i <= m1->cols ; i++)
+        {
+    float a, c, d ;  /* a + ib and c + id and b=0 here*/
+    
+    a = *MATRIX_RELT(m1,row,i);
+    c = MATRIX_CELT_REAL(m2,i,col);
+    d = MATRIX_CELT_IMAG(m2,i,col);
+    *MATRIX_RELT(m3,row,col) += a*c;
+    *MATRIX_RELT(m3,row,col) += a*d;
+        }
+    }
+      }
   }
-
   if (m_tmp1)
     MatrixFree(&m_tmp1) ;
   if (m_tmp2)
