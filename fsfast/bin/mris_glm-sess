@@ -2,7 +2,7 @@
 # mris_glm-sess
 #
 
-set VERSION = '$Id: mris_glm-sess,v 1.5 2004/10/20 21:49:30 greve Exp $';
+set VERSION = '$Id: mris_glm-sess,v 1.6 2004/12/10 00:34:28 greve Exp $';
 set fsgdf = ();
 set analysis = ();
 set contrast = ();
@@ -195,6 +195,7 @@ endif
 foreach s ($subjlist)
   if($s != $fssubjlist[$n]) then
     echo "ERROR: fsgdf subject list is not the same as session list"| tee -a $LF
+    echo "$n $s $fssubjlist[$n]"
     exit 1;
   endif
   @ n = $n + 1;
