@@ -1,6 +1,6 @@
 /*----------------------------------------------------------
   Name: mri_label2label.c
-  $Id: mri_label2label.c,v 1.4 2001/05/15 21:53:50 greve Exp $
+  $Id: mri_label2label.c,v 1.5 2001/05/17 20:39:58 greve Exp $
   Author: Douglas Greve
   Purpose: Converts a label in one subject's space to a label
   in another subject's space using either talairach or spherical
@@ -55,7 +55,7 @@ static int  singledash(char *flag);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_label2label.c,v 1.4 2001/05/15 21:53:50 greve Exp $";
+static char vcid[] = "$Id: mri_label2label.c,v 1.5 2001/05/17 20:39:58 greve Exp $";
 char *Progname = NULL;
 
 char  *srclabelfile = NULL;
@@ -82,6 +82,8 @@ MATRIX *InvTrgVolReg;
 MATRIX *Src2TrgVolReg;
 
 float IcoRadius = 100.0;
+float hashres = 16;
+int usehash = 0;
 
 int debug = 0;
 
@@ -99,6 +101,7 @@ int main(int argc, char **argv)
   VERTEX *srcvtx, *trgvtx;
   int n,err,srcvtxno,trgvtxno,allzero;
   float dmin;
+  float SubjRadius, Scale;
 
   printf("\n");
 
@@ -224,6 +227,11 @@ int main(int argc, char **argv)
   fprintf(stderr,"ERROR: could not read %s\n",tmpstr);
         exit(1);
       }
+      printf("Rescaling ... ");
+      SubjRadius = MRISaverageRadius(SrcSurfReg) ;
+      Scale = IcoRadius / SubjRadius;
+      MRISscaleBrain(SrcSurfReg, SrcSurfReg, Scale);
+      printf(" original radius = %g\n",SubjRadius);
     }
     else{
       printf("Reading icosahedron, order = %d, radius = %g\n",
@@ -234,12 +242,13 @@ int main(int argc, char **argv)
   exit(1);
       }
     }
-
-    /*** Load the target registration surface ***/
+    
+    /*** Load the target surfaces ***/
     if(strcmp(trgsubject,"ico")){
       /* load target xyz surface */
-      sprintf(tmpstr,"%s/%s/surf/%s.%s",SUBJECTS_DIR,trgsubject,hemi,trgsurface); 
-      printf("Reading target registration \n %s\n",tmpstr);
+      sprintf(tmpstr,"%s/%s/surf/%s.%s",SUBJECTS_DIR,trgsubject,
+        hemi,trgsurface); 
+      printf("Reading target surface \n %s\n",tmpstr);
       TrgSurf = MRISread(tmpstr);
       if(TrgSurf == NULL){
   fprintf(stderr,"ERROR: could not read %s\n",tmpstr);
@@ -253,6 +262,11 @@ int main(int argc, char **argv)
   fprintf(stderr,"ERROR: could not read %s\n",tmpstr);
         exit(1);
       }
+      printf("Rescaling ... ");
+      SubjRadius = MRISaverageRadius(TrgSurfReg) ;
+      Scale = IcoRadius / SubjRadius;
+      MRISscaleBrain(TrgSurfReg, TrgSurfReg, Scale);
+      printf(" original radius = %g\n",SubjRadius);
     }
     else{
       printf("Reading icosahedron, order = %d, radius = %g\n",
@@ -264,14 +278,17 @@ int main(int argc, char **argv)
       }
       TrgSurf = TrgSurfReg;
     }
-
-    printf("Building target hash (res=16).\n");
-    TrgHash = MHTfillVertexTableRes(TrgSurfReg, NULL,CURRENT_VERTICES,16);
-
+    
+    if(usehash){
+      printf("Building target registration hash (res=%g).\n",hashres);
+      TrgHash = MHTfillVertexTableRes(TrgSurfReg, NULL,
+              CURRENT_VERTICES,hashres);
+    }
+    
     /* Loop through each source label and map its xyz to target */
     allzero = 1;
     for(n = 0; n < srclabel->n_points; n++){
-
+      
       /* vertex number of the source label */
       srcvtxno = srclabel->lv[n].vno;
       if(srcvtxno < 0 || srcvtxno >= SrcSurfReg->nvertices){
@@ -279,18 +296,31 @@ int main(int argc, char **argv)
     srcvtxno, SrcSurfReg->nvertices);
   exit(1);
       }
-
+      
       if(srcvtxno != 0) allzero = 0;
 
       /* source vertex */
       srcvtx = &(SrcSurfReg->vertices[srcvtxno]);
 
       /* closest target vertex number */
-      trgvtxno = MHTfindClosestVertexNo(TrgHash,TrgSurfReg,srcvtx,&dmin);
-
+      if(usehash){
+  trgvtxno = MHTfindClosestVertexNo(TrgHash,TrgSurfReg,srcvtx,&dmin);
+  if(trgvtxno < 0){
+    printf("ERROR: trgvtxno = %d < 0\n",trgvtxno);
+    printf("srcvtxno = %d, dmin = %g\n",srcvtxno,dmin);
+    printf("srcxyz = %g, %g, %g\n",srcvtx->x,srcvtx->y,srcvtx->z);
+    exit(1);
+  }
+      }
+      else{
+  trgvtxno = MRISfindClosestVertex(TrgSurfReg,srcvtx->x,srcvtx->y,
+           srcvtx->z);
+      }
       /* target vertex */
       trgvtx = &(TrgSurf->vertices[trgvtxno]);
 
+
+      trglabel->lv[n].vno = trgvtxno;
       trglabel->lv[n].x = trgvtx->x;
       trglabel->lv[n].y = trgvtx->y;
       trglabel->lv[n].z = trgvtx->z;
@@ -305,8 +335,8 @@ int main(int argc, char **argv)
     }
 
     MRISfree(&SrcSurfReg);
-    MHTfree(&TrgHash);
     MRISfree(&TrgSurfReg);
+    if(usehash) MHTfree(&TrgHash);
     if(strcmp(trgsubject,"ico")) MRISfree(&TrgSurf);
 
   }/*---------- done with surface-based mapping -------------*/
@@ -338,10 +368,10 @@ static int parse_commandline(int argc, char **argv)
     nargsused = 0;
 
     if (!strcasecmp(option, "--help"))  print_help() ;
-
     else if (!strcasecmp(option, "--version")) print_version() ;
-
     else if (!strcasecmp(option, "--debug"))   debug = 1;
+    else if (!strcasecmp(option, "--hash"))   usehash = 1;
+    else if (!strcasecmp(option, "--nohash")) usehash = 0;
 
     /* -------- source inputs ------ */
     else if (!strcmp(option, "--srcsubject")){
@@ -378,6 +408,11 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcmp(option, "--trgicoorder")){
       if(nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%d",&trgicoorder);
+      nargsused = 1;
+    }
+    else if (!strcmp(option, "--hashres")){
+      if(nargc < 1) argnerr(option,1);
+      sscanf(pargv[0],"%f",&hashres);
       nargsused = 1;
     }
 
@@ -447,8 +482,10 @@ static void dump_options(FILE *fp)
     fprintf(fp,"trgsurface = %s\n",trgsurface);
     fprintf(fp,"surfreg = %s\n",surfreg);
   }
-  fprintf(fp,"srcicoorder = %d\n",srcicoorder);
-  fprintf(fp,"trgicoorder = %d\n",trgicoorder);
+  if(!strcmp(srcsubject,"ico")) fprintf(fp,"srcicoorder = %d\n",srcicoorder);
+  if(!strcmp(trgsubject,"ico")) fprintf(fp,"trgicoorder = %d\n",trgicoorder);
+  fprintf(fp,"usehash = %d\n",usehash);
+
   fprintf(fp,"\n");
 
   return;
@@ -499,7 +536,10 @@ static void print_help(void)
 "     in the target label file are computed as xyzTrg = inv(Ttrg)*Tsrc*xyzSrc\n"
 "     where Tsrc is the talairach transform in \n"
 "     srcsubject/mri/transforms/talairach.xfm, and where Ttrg is the talairach \n"
-"     transform in trgsubject/mri/transforms/talairach.xfm.\n");
+"     transform in trgsubject/mri/transforms/talairach.xfm.\n"
+"  5. The registration surfaces are rescaled to a radiues of 100 (including \n"
+"     the ico)\n"
+);
 
 
 
@@ -578,8 +618,6 @@ static void check_options(void)
     fprintf(stderr,"ERROR: cannot use talairach with surface mapping\n");
     exit(1);
   }
-    
-
 
   return;
 }
@@ -594,3 +632,28 @@ static int singledash(char *flag)
   if(flag[0] == '-' && flag[1] != '-') return(1);
   return(0);
 }
+
+#if 0
+/* Replaced by MRISscaleBrain(SrcSurfReg, SrcSurfReg, Scale);*/
+/* 5/17/01 */
+/*---------------------------------------------------------------*/
+static float SurfRescale(MRI_SURFACE *surf, float radius)
+{
+  int n;
+  VERTEX *v;
+  float d, dsum, davg;
+
+  dsum = 0;
+  for(n=0; n < surf->nvertices; n++){
+    v = &(surf->vertices[n]);
+    d = sqrt( (v->x*v->x) + (v->y*v->y) + (v->z*v->z) );
+    v->x *= radius/d;
+    v->y *= radius/d;
+    v->z *= radius/d;
+    dsum = dsum + d;
+  }
+
+  davg = dsum/surf->nvertices;
+  return(davg);
+}
+#endif
