@@ -4,13 +4,17 @@
 
 #include "volume_io.h"
 
+#define VERTICES_PER_FACE    4
+
 typedef struct face_type_
 {
-  int    v[4];                      /* vertex numbers */
-  float  area ;                     /* a x b . n */
-  float  nx, ny, nz ;               /* face normal (a x b) */
-  float  orig_area ;                /* area before unfolding */
-  int    ripflag;                   /* ripped face */
+  int    v[VERTICES_PER_FACE];           /* vertex numbers of this face */
+  float  orig_area ;                     /* area before unfolding */
+  float  area ;                          /* 0.5 * (a x b  + c x d) . n*/
+  float  nx ;
+  float  ny ;
+  float  nz ;                            /* face normal (a x b) */
+  int    ripflag;                        /* ripped face */
 #if 0
   float logshear,shearx,sheary;  /* compute_shear */
 #endif
@@ -20,7 +24,8 @@ typedef struct vertex_type_
 {
   float x,y,z;           /* curr position */
   float nx,ny,nz;        /* curr normal */
-  float dx, dy, dz ;     /* last change in position */
+  float dx, dy, dz ;     /* current change in position */
+  float odx, ody, odz ;  /* last change in position */
 #if 0
   float ox,oy,oz;        /* last position */
 #endif
@@ -69,7 +74,7 @@ typedef struct vertex_type_
 #if 0
 typedef struct face2_type_
 {
-  int v[4];                      /* vertex numbers */
+  int v[VERTICES_PER_FACE];                      /* vertex numbers */
   int ripflag;                   /* ripped face */
 } face2_type;
 
@@ -135,6 +140,7 @@ MRI_SURFACE  *MRIStalairachTransform(MRI_SURFACE *mris_src,
 MRI_SURFACE  *MRISunfold(MRI_SURFACE *mris, int niterations, float momentum,
                          float l_area, float l_angle, float l_corr);
 int          MRIScomputeFaceAreas(MRI_SURFACE *mris) ;
+int          MRISupdateEllipsoidSurface(MRI_SURFACE *mris) ;
 
 
 /* constants for vertex->tethered */
