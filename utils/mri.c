@@ -9,9 +9,9 @@
  */
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2005/02/10 18:16:05 $
-// Revision       : $Revision: 1.293 $
-char *MRI_C_VERSION = "$Revision: 1.293 $";
+// Revision Date  : $Date: 2005/02/10 20:19:59 $
+// Revision       : $Revision: 1.294 $
+char *MRI_C_VERSION = "$Revision: 1.294 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -11709,7 +11709,7 @@ MRIsrcTransformedCentered(MRI *src, MRI *dst, MATRIX *stod_voxtovox, int interp_
 // No sample method ////////////////////////////////////////////////////////
 // using the src and orig_dst to modify the direction cosines and c_(ras) value 
 // so that it will be rotated in the RAS space but no pixel is sampled 
-MRI *MRITransformedCentered(MRI *src, MRI *orig_dst, MATRIX *stod_voxtovox)
+MRI *MRITransformedCentered(MRI *src, MRI *orig_dst, LTA *lta)
 {
   MRI *dst = 0;
   Real cx, cy, cz;
@@ -11717,8 +11717,78 @@ MRI *MRITransformedCentered(MRI *src, MRI *orig_dst, MATRIX *stod_voxtovox)
   MATRIX *dstToRas = 0;
   MATRIX *SI = 0;
   MATRIX *D = 0;
+  LT *tran = &lta->xforms[0];
 
   dst = MRIcopy(src, NULL);
+
+  if (lta->num_xforms > 1)
+    ErrorExit(ERROR_BADPARM, "The LTA contains more than one transforms.");
+
+  // first verify the consistency of the transform stored geometry vs. argument
+  if (tran->dst.valid == 1)
+  {
+    // compare the one with orig_dst to the stored one
+    VG dstvg, storedvg;
+    getVolGeom(orig_dst, &dstvg);
+    storedvg.valid = tran->dst.valid;
+    storedvg.width = tran->dst.width;
+    storedvg.height = tran->dst.height;
+    storedvg.depth = tran->dst.depth;
+    storedvg.xsize = tran->dst.xsize;
+    storedvg.ysize = tran->dst.ysize;
+    storedvg.zsize = tran->dst.zsize;
+    storedvg.x_r = tran->dst.x_r; storedvg.x_a = tran->dst.x_a; storedvg.x_s = tran->dst.x_s;
+    storedvg.y_r = tran->dst.y_r; storedvg.y_a = tran->dst.y_a; storedvg.y_s = tran->dst.y_s;
+    storedvg.z_r = tran->dst.z_r; storedvg.z_a = tran->dst.z_a; storedvg.z_s = tran->dst.z_s;
+    storedvg.c_r = tran->dst.c_r; storedvg.c_a = tran->dst.c_a; storedvg.c_s = tran->dst.c_s;
+    if (!vg_isEqual(&dstvg, &storedvg))
+    {
+      fprintf(stderr, "WARNING: stored destination volume for the transform differes from the argument.");
+    }
+  }
+  if (tran->src.valid == 1)
+  {
+    // compare the one with orig_dst to the stored one
+    VG srcvg, storedvg;
+    getVolGeom(src, &srcvg);
+    storedvg.valid = tran->src.valid;
+    storedvg.width = tran->src.width;
+    storedvg.height = tran->src.height;
+    storedvg.depth = tran->src.depth;
+    storedvg.xsize = tran->src.xsize;
+    storedvg.ysize = tran->src.ysize;
+    storedvg.zsize = tran->src.zsize;
+    storedvg.x_r = tran->src.x_r; storedvg.x_a = tran->src.x_a; storedvg.x_s = tran->src.x_s;
+    storedvg.y_r = tran->src.y_r; storedvg.y_a = tran->src.y_a; storedvg.y_s = tran->src.y_s;
+    storedvg.z_r = tran->src.z_r; storedvg.z_a = tran->src.z_a; storedvg.z_s = tran->src.z_s;
+    storedvg.c_r = tran->src.c_r; storedvg.c_a = tran->src.c_a; storedvg.c_s = tran->src.c_s;
+    if (!vg_isEqual(&srcvg, &storedvg))
+    {
+      fprintf(stderr, "WARNING: stored destination volume for the transform differes from the argument.");
+    }
+  }
+    
+  if (lta->type == LINEAR_RAS_TO_RAS)
+  {
+    MATRIX *tmp;
+    //     
+    //      src   -->   RAS
+    //       |           |
+    //       | M         | Y
+    //       V           V
+    //    orig_dst -->  RAS
+    //
+    // transform it to the vox-to-vox
+    // now calculate M 
+    tmp = MatrixMultiply(tran->m_L, src->i_to_r__, NULL);
+    MatrixFree(&tran->m_L);
+    tran->m_L = MatrixMultiply(orig_dst->r_to_i__, tmp, NULL);
+    MatrixFree(&tmp);
+    lta->type = LINEAR_VOX_TO_VOX;
+  }
+
+  if (lta->type != LINEAR_VOX_TO_VOX)
+    ErrorExit(ERROR_BADPARM, "The LTA does not contain LINEASR_RAS_TO_RAS nor LINEAR_VOX_TO_VOX.");
   //     
   //      src   -->   RAS
   //       |           |
@@ -11759,7 +11829,7 @@ MRI *MRITransformedCentered(MRI *src, MRI *orig_dst, MATRIX *stod_voxtovox)
   //      ( 0  1 )           ( 0     1 )
   //
   // 
-  dstToRas = MatrixMultiply(orig_dst->i_to_r__, stod_voxtovox, NULL);
+  dstToRas = MatrixMultiply(orig_dst->i_to_r__, tran->m_L, NULL);
 
   SI = MatrixAlloc(4, 4, MATRIX_REAL);
   *MATRIX_RELT(SI, 1, 1) = 1./dst->xsize ;
