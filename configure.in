@@ -59,7 +59,7 @@ AC_SUBST(TIXWISH)
 
 #################################################################
 # If on a Mac, make a scuba bundle.
-AM_CONDITIONAL(SCUBA_BUNDLE, test x$target_os = xapple)
+AM_CONDITIONAL(SCUBA_BUNDLE, test x$target_vendor = xapple)
 
 ################################################################
 # define OS
