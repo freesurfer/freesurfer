@@ -22,6 +22,8 @@ static void read_soltimecourse(char *fname) ;
 static void sol_plot(int timept, int plot_type) ;
 
 static void remove_triangle_links(void) ;
+static int draw_curvature_line(void) ;
+
 static void move_window(int x,int y) ;
 int MRIStransformBrain(MRI_SURFACE *mris, 
            float exx, float exy, float exz, 
@@ -54,7 +56,7 @@ int mask_label(char *label_name) ;
 
 MRI_SURFACE *mris = NULL, *mris2 = NULL ;
 static char *sdir = NULL ;
-static char *sphere_reg;
+static char *sphere_reg ;
 
 #define QUAD_FILE_MAGIC_NUMBER      (-1 & 0x00ffffff)
 #define TRIANGLE_FILE_MAGIC_NUMBER  (-2 & 0x00ffffff)
@@ -16051,6 +16053,7 @@ make_filenames(char *lsubjectsdir,char *lsrname,char *lpname,char *lstem,
                char *lext)
 {
   /* malloc for tcl */
+  sphere_reg = (char *)malloc(NAME_LENGTH*sizeof(char));
   subjectsdir = (char *)malloc(NAME_LENGTH*sizeof(char));
   srname = (char *)malloc(NAME_LENGTH*sizeof(char));
   pname = (char *)malloc(NAME_LENGTH*sizeof(char));
@@ -16083,7 +16086,6 @@ make_filenames(char *lsubjectsdir,char *lsrname,char *lpname,char *lstem,
   lfname = (char *)malloc(NAME_LENGTH*sizeof(char));
   vrfname = (char *)malloc(NAME_LENGTH*sizeof(char));
   xffname = (char *)malloc(NAME_LENGTH*sizeof(char));
-  sphere_reg = (char *)malloc(STRLEN*sizeof(char));
   /* following not set below */
   nfname = (char *)malloc(NAME_LENGTH*sizeof(char));
   rfname = (char *)malloc(NAME_LENGTH*sizeof(char));
@@ -16093,6 +16095,7 @@ make_filenames(char *lsubjectsdir,char *lsrname,char *lpname,char *lstem,
   tf2name = (char *)malloc(NAME_LENGTH*sizeof(char));
 
   /* make default names */
+  strcpy(sphere_reg, "sphere.reg") ;
   strcpy(subjectsdir,lsubjectsdir);
   strcpy(srname,lsrname);
   strcpy(pname,lpname);
@@ -16123,8 +16126,7 @@ sprintf(xffname,"%s/%s/%s/%s",subjectsdir,pname,TRANSFORM_DIR,TALAIRACH_FNAME);
 /* ~/morph/curv.rh.1000a2adj: curv (or fill), need hemi */
 sprintf(fifname,"%s/%s/%s.%s.%s/COR-",subjectsdir,pname,FILLDIR_STEM,stem,ext);
 sprintf(cif2name,"%s/%s/%s.%s.%s/COR-",subjectsdir,pname,CURVDIR_STEM,stem,ext);
- sprintf(sphere_reg, "sphere_reg"); 
- 
+
  if (getenv("USE_WHITE") == NULL) 
    sprintf(orfname,"%s.%s",fpref, orig_suffix);
  else
@@ -17049,6 +17051,10 @@ int                  W_restore_ripflags  WBEGIN
 int                  W_floodfill_marked_patch  WBEGIN
   ERR(2,"Wrong # args: floodfill_marked_patch <0=cutborder,1=fthreshborder,2=curvfill>")
                        floodfill_marked_patch(atoi(argv[1]));  WEND
+
+int                  W_draw_curvature_line  WBEGIN
+  ERR(1,"Wrong # args: draw_curvature_line")
+                       draw_curvature_line();  WEND
 
 int                  W_twocond  WBEGIN
   ERR(3,"Wrong # args: twocond <cond #0> <cond #1>")
@@ -18422,6 +18428,9 @@ int main(int argc, char *argv[])   /* new main */
   Tcl_CreateCommand(interp, "fill_flood_from_cursor",
         W_fill_flood_from_cursor, REND);
 
+  Tcl_CreateCommand(interp, "draw_curvature_line",
+                    W_draw_curvature_line, REND);
+
   /* end rkt */
   /*=======================================================================*/
   /***** link global surfer BOOLEAN variables to tcl equivalents */
@@ -18505,7 +18514,7 @@ int main(int argc, char *argv[])   /* new main */
   Tcl_LinkVar(interp,"scalebar_bright",(char *)&scalebar_bright, TCL_LINK_INT);
   Tcl_LinkVar(interp,"project",(char *)&project, TCL_LINK_INT);
   Tcl_LinkVar(interp,"sol_plot_type",(char *)&sol_plot_type, TCL_LINK_INT);
-  Tcl_LinkVar(interp,"phasecontour_bright",(char *)&phasecontour_bright, 
+  Tcl_LinkVar(interp,"phasecnntour_bright",(char *)&phasecontour_bright, 
                                                                TCL_LINK_INT);
   Tcl_LinkVar(interp,"blinkdelay",(char *)&blinkdelay, TCL_LINK_INT);
   Tcl_LinkVar(interp,"blinktime",(char *)&blinktime, TCL_LINK_INT);
@@ -23226,3 +23235,82 @@ set_value_label_name(char *label_name, int field)
   sprintf (cmd, "UpdateLinkedVarGroup view");
   Tcl_Eval (g_interp, cmd);
 }
+static int
+draw_curvature_line(void)
+{
+  static int firsttime = 1 ;
+  int    start_vno, current_vno, end_vno, n, best_n ;
+  double dot, dx, dy, dz, odx, ody, odz, best_dot, len ;
+  VERTEX *vn, *vend, *vstart, *vcurrent ;
+
+  if (nmarked < 2)
+  {
+    fprintf(stderr, "must  origin and end points (previous two)\n");
+    return(NO_ERROR) ;
+  }
+
+  if (firsttime)
+  {
+    MRISsaveVertexPositions(mris, TMP_VERTICES) ;
+    read_inflated_vertex_coordinates() ;
+    read_white_vertex_coordinates() ;
+    MRISrestoreVertexPositions(mris, ORIGINAL_VERTICES) ;
+    MRISaverageVertexPositions(mris, 25) ;
+    MRIScomputeMetricProperties(mris) ;
+    MRIScomputeSecondFundamentalForm(mris) ;  /* compute local basis in tangent bundle */
+    MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
+    firsttime = 0 ;
+  }
+
+  start_vno = current_vno = marked[0] ; vstart = &mris->vertices[start_vno] ;
+  end_vno = marked[1] ;  vend = &mris->vertices[end_vno] ;
+  vend->marked = 0 ;
+
+  odx = vend->x - vstart->x ; ody = vend->y - vstart->y ; odz = vend->z - vstart->z ;
+  do
+  {
+    vcurrent = &mris->vertices[current_vno] ;
+    vcurrent->marked = 1 ;
+    odx = vend->infx - vcurrent->infx ; ody = vend->infy - vcurrent->infy ; odz = vend->infz - vcurrent->infz ;
+    best_n = -1 ; best_dot = 0.0 ;
+    for (n = 0 ; n < vcurrent->vnum ; n++)
+    {
+      vn = &mris->vertices[vcurrent->v[n]] ;
+      if (vn->marked)
+        continue ;   /* already in line */
+      dx = vn->infx - vcurrent->infx ; dy = vn->infy - vcurrent->infy ; dz = vn->infz - vcurrent->infz ;
+      dot = dx*odx + dy*ody + dz*odz ;
+      if (dot < 0)
+        continue ;
+      dx = vn->x - vcurrent->x ; dy = vn->y - vcurrent->y ; dz = vn->z - vcurrent->z ;
+      len = sqrt(dx*dx + dy*dy + dz*dz) ;
+      if (FZERO(len))
+        continue ;
+      dx /= len ; dy /= len ; dz /= len ;
+      dot = dx*vcurrent->e2x + dy*vcurrent->e2y + dz*vcurrent->e2z ;
+      if (fabs(dot) > best_dot)
+      {
+        best_dot = fabs(dot) ;
+        best_n = n ;
+      }
+    }
+    if (best_n < 0)
+      break ;
+    draw_cursor(current_vno, FALSE) ;
+    current_vno = vcurrent->v[best_n] ;
+    if (current_vno != end_vno)
+    {
+#if 1
+      marked[nmarked++] = current_vno ;
+#else
+      mark_vertex(current_vno, TRUE) ;
+      draw_cursor(current_vno, TRUE) ;
+    /*    redraw() ;*/
+#endif
+    }
+  } while (current_vno != end_vno) ;
+
+  redraw() ;
+  return(NO_ERROR) ;
+}
+
