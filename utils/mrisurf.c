@@ -18089,6 +18089,9 @@ MRISsoapBubbleVals(MRI_SURFACE *mris, int navgs)
   VERTEX  *v, *vn ;
   double  mean ;
 
+  fprintf(stderr, 
+          "performing soap bubble smoothing of vals for %d iterations.\n",
+          navgs) ;
   for (i = 0 ; i < navgs ; i++)
   {
     for (nmarked = vno = 0 ; vno < mris->nvertices ; vno++)
@@ -18116,11 +18119,12 @@ MRISsoapBubbleVals(MRI_SURFACE *mris, int navgs)
         v->marked = 2 ;  /* has a real value, but is not fixed */
       }
     }
+#if 0
     if (!nmarked)
       break ;
+#endif
   }
   
-  fprintf(stderr, "\n") ;
   return(NO_ERROR) ;
 }
 static int
