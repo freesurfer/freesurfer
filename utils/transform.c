@@ -590,9 +590,6 @@ ltaMNIread(char *fname)
   FILE             *fp ;
   int              row ;
   MATRIX           *m_L, *V, *W, *m_tmp ;
-  General_transform transform ;   /* the next two are from this struct */
-  Transform         *linear_transform ;
-  Transform         *inverse_linear_transform ;
 
   fp = fopen(fname, "r") ;
   if (!fp)
