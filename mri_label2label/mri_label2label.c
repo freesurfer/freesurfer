@@ -1,6 +1,6 @@
 /*----------------------------------------------------------
   Name: mri_label2label.c
-  $Id: mri_label2label.c,v 1.10 2002/10/23 15:56:12 fischl Exp $
+  $Id: mri_label2label.c,v 1.11 2002/12/04 23:12:21 greve Exp $
   Author: Douglas Greve
   Purpose: Converts a label in one subject's space to a label
   in another subject's space using either talairach or spherical
@@ -58,7 +58,7 @@ static int  nth_is_arg(int nargc, char **argv, int nth);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_label2label.c,v 1.10 2002/10/23 15:56:12 fischl Exp $";
+static char vcid[] = "$Id: mri_label2label.c,v 1.11 2002/12/04 23:12:21 greve Exp $";
 char *Progname = NULL;
 
 char  *srclabelfile = NULL;
@@ -482,6 +482,11 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcmp(option, "--trgsurface")){
       if(nargc < 1) argnerr(option,1);
       trgsurface = pargv[0];
+      nargsused = 1;
+    }
+    else if (!strcmp(option, "--surfreg")){
+      if(nargc < 1) argnerr(option,1);
+      surfreg = pargv[0];
       nargsused = 1;
     }
     else if (!strcmp(option, "--trgicoorder")){
