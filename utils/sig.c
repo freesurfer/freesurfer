@@ -14,6 +14,48 @@
 #define ITMAX 100
 #define EPS 3.0e-7
 
+/*---------------------------------------------------------------
+  fdrthreshold() - returns the False Discovery Rate threshold.
+  p - list of values between 0 and 1.
+  np - number in p.
+  fdr - False Discovery Rate, between 0 and 1.
+  Return: threshold between 0 and 1.
+  Note: values in p will be changed (sorted ascending).
+  Ref: http://www.sph.umich.edu/~nichols/FDR/FDR.m
+  ---------------------------------------------------------*/
+double fdrthreshold(double *p, int np, double fdr)
+{
+  int n;
+  double r;
+  
+  // Sort in ascending order
+  qsort(p,np,sizeof(double),doublecompar);
+
+  r = fdr/np;
+  //printf("r = %g, fdr = %g, np = %d\n",r,fdr,np);
+
+  // Find the largest value of n for which p < r*(n+1)
+  for(n=np-1;n>=0; n--)
+    if(p[n] < r*(n+1)) return(p[n]);
+
+  // If p is never less than r*(n+1), then return the smallest
+  return(p[0]);
+}
+/*---------------------------------------------------------------
+  doublecompar() - qsort compare function to compare two doubles
+  --------------------------------------------------------------*/
+int doublecompar(const void *v1, const void *v2)
+{
+  double dv1, dv2;
+  dv1 = *((double *) v1);
+  dv2 = *((double *) v2);
+  if(dv1 < dv2)  return(-1);
+  if(dv1 == dv2) return(0);
+  return(+1);
+}
+
+
+/*-------------------------------------------------------------*/
 float betacf(float a, float b, float x)
 {
   float qap,qam,qab,em,tem,d;
