@@ -490,7 +490,12 @@ static MRI *mri_read(char *fname, int type, int volume_flag, int start_frame, in
   }
   else if(type == SIEMENS_DICOM_FILE)
   {
-    mri = sdcmLoadVolume(fname_copy, volume_flag);
+    // mri_convert -nth option sets start_frame = nth.  otherwise -1
+    mri = sdcmLoadVolume(fname_copy, volume_flag, start_frame);
+    start_frame = -1; 
+    // in order to avoid the later processing on start_frame and end_frame
+    // read the comment later on
+    end_frame = 0;
   }
   else if (type == BRUKER_FILE)
   {
@@ -573,7 +578,12 @@ static MRI *mri_read(char *fname, int type, int volume_flag, int start_frame, in
 
   /* reading the whole volume and then copying only some frames is a bit inelegant, but it's easier for now
      to do this than to insert the appropriate code into the read function for each format... */
-
+  //////////////////////////////////////////////////////////////////////////////
+  // This method does not work, because
+  // 1. each frame has different acq parameters
+  // 2. when making frames, it takes the info only from the first frame
+  // Thus taking a frame out must be done at each frame extraction
+  //////////////////////////////////////////////////////////////////////////////
   mri2 = MRIallocSequence(mri->width, mri->height, mri->depth, mri->type, (end_frame - start_frame + 1));
   MRIcopyHeader(mri, mri2);
   mri2->nframes = (end_frame - start_frame + 1);
@@ -690,7 +700,29 @@ MRI *MRIread(char *fname)
   if (mri==NULL) 
     return NULL;
 
-	MRIremoveNaNs(mri, mri) ;
+  MRIremoveNaNs(mri, mri) ;
+  return(mri);
+
+} /* end MRIread() */
+
+// allow picking one frame out of many frame
+// currently implemented only for Siemens dicom file
+MRI *MRIreadEx(char *fname, int nthframe)
+{
+  char  buf[STRLEN] ;
+  MRI *mri = NULL;
+
+  chklc() ;
+
+  FileNameFromWildcard(fname, buf) ; fname = buf ;
+  mri = mri_read(fname, MRI_VOLUME_TYPE_UNKNOWN, TRUE, nthframe, nthframe);
+
+  /* some volume format needs to read many different files for slices (GE DICOM or COR).
+     we make sure that mri_read() read the slices, not just one   */
+  if (mri==NULL) 
+    return NULL;
+
+  MRIremoveNaNs(mri, mri) ;
   return(mri);
 
 } /* end MRIread() */
@@ -4981,7 +5013,7 @@ static MRI *analyzeRead(char *fname, int read_volume)
     /* 2 sagittal unflipped 	P-A 	I-S 	R-L     */
     /* 3 transverse flipped 	R-L 	A-P 	I-S     */
     /* 4 coronal flipped 	R-L 	S-I 	P-A     */
-    /* 5 sagittal flipped 	P-A 	S-I 	R-L     */
+    /* 5 sagittal flipped 	P-A 	S-I 	R-L     */ //   P->A I->S L->R
     
     /* FLIRT distributes analyze format image which has a marked LR */
     /* in fls/etc/standard/avg152T1_LR-marked.img.  The convention    */
@@ -8251,11 +8283,11 @@ mghRead(char *fname, int read_volume, int frame)
   MRI  *mri ;
   FILE  *fp ;
   int   start_frame, end_frame, width, height, depth, nframes, type, x, y, z,
-        bpv, dof, bytes, version, ival, unused_space_size, good_ras_flag ;
+    bpv, dof, bytes, version, ival, unused_space_size, good_ras_flag ;
   BUFTYPE *buf ;
   char   unused_buf[UNUSED_SPACE_SIZE+1] ;
   float  fval, xsize, ysize, zsize, x_r, x_a, x_s, y_r, y_a, y_s,
-         z_r, z_a, z_s, c_r, c_a, c_s ;
+    z_r, z_a, z_s, c_r, c_a, c_s ;
   short  sval ;
   long tag_data_begin, tag_data_end;
   size_t tag_data_size;
@@ -8319,21 +8351,21 @@ mghRead(char *fname, int read_volume, int frame)
   }
   else
   {
-                if (frame >= 0)
-                {
-                        start_frame = end_frame = frame ;
-                        fseek(fp, frame*width*height*depth*bpv, SEEK_CUR) ;
-                        nframes = 1 ;
-                }
-                else
-                {  /* hack - # of frames < -1 means to only read in that
-                                        many frames. Otherwise I would have had to change the whole
-                                        MRIread interface and that was too much of a pain. Sorry.
-                         */
-                        if (frame < -1)  
-                        { nframes = frame*-1 ; } 
-                        start_frame = 0 ; end_frame = nframes-1 ;
-                }
+    if (frame >= 0)
+    {
+      start_frame = end_frame = frame ;
+      fseek(fp, frame*width*height*depth*bpv, SEEK_CUR) ;
+      nframes = 1 ;
+    }
+    else
+    {  /* hack - # of frames < -1 means to only read in that
+	  many frames. Otherwise I would have had to change the whole
+	  MRIread interface and that was too much of a pain. Sorry.
+       */
+      if (frame < -1)  
+      { nframes = frame*-1 ; } 
+      start_frame = 0 ; end_frame = nframes-1 ;
+    }
     if (type == MRI_UCHAR)
       buf = (BUFTYPE *)calloc(bytes, sizeof(BUFTYPE)) ;
     else
@@ -8346,7 +8378,7 @@ mghRead(char *fname, int read_volume, int frame)
       {
         switch (type)
         {
-          case MRI_INT:
+	case MRI_INT:
           for (y = 0 ; y < height ; y++)
           {
             for (x = 0 ; x < width ; x++)
@@ -8356,7 +8388,7 @@ mghRead(char *fname, int read_volume, int frame)
             }
           }
           break ;
-          case MRI_SHORT:
+	case MRI_SHORT:
           for (y = 0 ; y < height ; y++)
           {
             for (x = 0 ; x < width ; x++)
@@ -8366,8 +8398,8 @@ mghRead(char *fname, int read_volume, int frame)
             }
           }
           break ;
-          case MRI_TENSOR:
-          case MRI_FLOAT:
+	case MRI_TENSOR:
+	case MRI_FLOAT:
           for (y = 0 ; y < height ; y++)
           {
             for (x = 0 ; x < width ; x++)
@@ -8427,13 +8459,13 @@ mghRead(char *fname, int read_volume, int frame)
   else
   {
     fprintf(stderr,
-          "-----------------------------------------------------------------\n"
-          "Could not find the direction cosine information.\n"
-          "Will use the CORONAL orientation.\n"
-          "If not suitable, please provide the information in %s.\n"
-          "-----------------------------------------------------------------\n",
-          fname  
-          );
+	    "-----------------------------------------------------------------\n"
+	    "Could not find the direction cosine information.\n"
+	    "Will use the CORONAL orientation.\n"
+	    "If not suitable, please provide the information in %s.\n"
+	    "-----------------------------------------------------------------\n",
+	    fname  
+	    );
     setDirectionCosine(mri, MRI_CORONAL);
   }
 #if 0
