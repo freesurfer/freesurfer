@@ -9,6 +9,8 @@
 #include "error.h"
 #include "diag.h"
 #include "proto.h"
+#include "transform.h"
+#include "mrimorph.h"
 #include "fio.h"
 
 int main(int argc, char *argv[]) ;
@@ -22,6 +24,9 @@ static int xdim = XDIM, ydim = YDIM, zdim = ZDIM ;
 static int brueker = 0 ;
 static float scale = 1.0 ;
 static float blur_sigma = 0.0f ;
+static char *inverse_transform_fname = NULL ;
+static char *transform_fname = NULL ;
+
 
 MRI   *MRIreadBrueker(char *fname) ;
 
@@ -46,15 +51,14 @@ main(int argc, char *argv[])
     argv += nargs ;
   }
 
-  if (argc < 1)
-    argc = 1 ;
-
-  if (argc < 1)
-    ErrorExit(ERROR_BADPARM, "%s: no input name specified", Progname) ;
-  in_fname = argv[1] ;
-
   if (argc < 2)
+    ErrorExit(ERROR_BADPARM, "%s: no input name specified", Progname) ;
+  if (argc < 3)
     ErrorExit(ERROR_BADPARM, "%s: no output name specified", Progname) ;
+  if (argc > 3)
+    ErrorExit(ERROR_BADPARM, "%s: too many command line parameters (%d)", Progname,argc) ;
+
+  in_fname = argv[1] ;
   out_fname = argv[2] ;
 
   if (verbose)
@@ -96,6 +100,61 @@ main(int argc, char *argv[])
   }
   if (verbose)
     fprintf(stderr, "done.\nwriting to %s...", out_fname) ;
+
+  if (transform_fname || inverse_transform_fname)
+  {
+    MRI *mri_tmp ;
+    int type, inverse ;
+    char *fname ;
+    LTA  *lta ;
+    M3D  *m3d ;
+
+    if (inverse_transform_fname)
+    {
+      inverse = 1 ;
+      fname = inverse_transform_fname ;
+    }
+    else
+    {
+      inverse = 0 ;
+      fname = transform_fname ;
+    }
+    type = TransformFileNameType(fname) ;
+    switch (type)
+    {
+    default:
+    case MNI_TRANSFORM_TYPE:
+    case TRANSFORM_ARRAY_TYPE:
+      lta = LTAread(fname) ;
+      if (!lta)
+        ErrorExit(ERROR_NOFILE, "%s: could not open transform file %s\n", Progname, fname) ;
+      if (inverse)
+      {
+        MATRIX *m_L_inv ;
+        m_L_inv = MatrixInverse(lta->xforms[0].m_L, NULL) ;
+        MatrixFree(&lta->xforms[0].m_L) ;
+        lta->xforms[0].m_L = m_L_inv ;
+      }
+      mri_tmp = LTAtransform(mri, NULL, lta) ;
+      LTAfree(&lta) ;
+      break ;
+    case MORPH_3D_TYPE:
+      m3d = MRI3DreadSmall(fname) ;
+      if (!m3d)
+        ErrorExit(ERROR_NOFILE, "%s: could not open transform file %s\n",
+                  Progname, fname) ;
+      if (inverse)
+        mri_tmp = MRIapplyInverse3DMorph(mri, m3d, NULL) ;
+      else
+        mri_tmp = MRIapply3DMorph(mri, m3d, NULL) ;
+      MRI3DmorphFree(&m3d) ;
+      break ;
+    }
+    MRIfree(&mri) ;
+    mri = mri_tmp ;
+  }
+
+  fprintf(stderr, "writing output to '%s'...\n", out_fname) ;
   MRIwrite(mri, out_fname) ;
   if (verbose)
     fprintf(stderr, "done.\n") ;
@@ -125,6 +184,18 @@ get_option(int argc, char *argv[])
   }
   else switch (toupper(*option))
   {
+  case 'T':
+    transform_fname = argv[2] ;
+    fprintf(stderr, "applying transformation from %s before writing image.\n",
+            transform_fname) ;
+    nargs = 1 ;
+    break ;
+  case 'I':
+    inverse_transform_fname = argv[2] ;
+    fprintf(stderr, "inverting and applying transformation from %s before writing image.\n",
+            inverse_transform_fname) ;
+    nargs = 1 ;
+    break ;
   case 'B':
     brueker = 1 ;
     break ;
