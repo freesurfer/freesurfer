@@ -30,11 +30,17 @@ typedef struct
   float  mean ;
 } GCA_SAMPLE, GCAS ;
 
+#define GIBBS_NEIGHBORHOOD   6
+#define GIBBS_NEIGHBORS      GIBBS_NEIGHBORHOOD
+#define MAX_NBR_LABELS       9
 typedef struct
 {
   float   mean ;
   float   var ;
   float   prior ;
+  float   label_priors[GIBBS_NEIGHBORHOOD][MAX_NBR_LABELS] ;
+  char    labels[GIBBS_NEIGHBORHOOD][MAX_NBR_LABELS] ;
+  short   nlabels[ GIBBS_NEIGHBORHOOD];
 } GC1D, GAUSSIAN_CLASSIFIER_1D ;
 
 typedef struct
@@ -68,6 +74,8 @@ GCA  *GCAread(char *fname) ;
 int  GCAcompleteTraining(GCA *gca) ;
 MRI  *GCAlabel(MRI *mri_src, GCA *gca, MRI *mri_dst, LTA *lta) ;
 MRI  *GCAclassify(MRI *mri_src,GCA *gca,MRI *mri_dst,LTA *lta,int max_labels);
+MRI  *GCAreclassifyUsingGibbsPriors(MRI *mri_inputs, GCA *gca, MRI *mri_dst,
+                                    LTA *lta, int max_iter) ;
 GCA  *GCAreduce(GCA *gca_src) ;
 int  GCAnodeToVoxel(GCA *gca, MRI *mri, int xn, int yn, int zn, int *pxv, 
                     int *pyv, int *pzv) ;

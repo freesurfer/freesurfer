@@ -18,9 +18,12 @@ static int get_option(int argc, char *argv[]) ;
 
 char *Progname ;
 static void usage_exit(int code) ;
-MRI *MRImodeFilter(MRI *mri_src, MRI *mri_dst, int niter) ;
 
 static int filter = 0 ;
+static float thresh = 0.5 ;
+
+static int max_iter = 25 ;
+static int no_gibbs = 0 ;
 
 int
 main(int argc, char *argv[])
@@ -56,6 +59,7 @@ main(int argc, char *argv[])
   gca_fname = argv[3] ;
   out_fname = argv[4] ;
 
+  printf("reading input volume from %s...\n", in_fname) ;
   mri_in = MRIread(in_fname) ;
   if (!mri_in)
     ErrorExit(ERROR_NOFILE, "%s: could not read input MR volume from %s",
@@ -68,29 +72,38 @@ main(int argc, char *argv[])
     ErrorExit(ERROR_NOFILE, "%s: could not read classifier array from %s",
               Progname, gca_fname) ;
 
-  lta = LTAread(xform_fname) ;
-  if (!lta)
-    ErrorExit(ERROR_NOFILE, "%s: could not open transform", xform_fname) ;
+  if (stricmp(xform_fname, "none"))
+  {
+    lta = LTAread(xform_fname) ;
+    if (!lta)
+      ErrorExit(ERROR_NOFILE, "%s: could not open transform", xform_fname) ;
+  }
+  else
+    lta = LTAalloc(1, NULL) ;
 
   printf("labeling volume...\n") ;
   mri_labeled = GCAlabel(mri_in, gca, NULL, lta) ;
+  if (!no_gibbs)
+    GCAreclassifyUsingGibbsPriors(mri_in, gca, mri_labeled, lta, max_iter) ;
   GCAfree(&gca) ; MRIfree(&mri_in) ;
   if (filter)
   {
     MRI *mri_tmp ;
 
-    mri_tmp = MRImodeFilter(mri_labeled, NULL, filter) ;
+    printf("filtering labeled volume...\n") ;
+    mri_tmp = MRIthreshModeFilter(mri_labeled, NULL, filter, thresh) ;
     MRIfree(&mri_labeled) ;
     mri_labeled = mri_tmp ;
   }
 
+  printf("writing labeled volume to %s...\n", out_fname) ;
   MRIwrite(mri_labeled, out_fname) ;
 
   msec = TimerStop(&start) ;
   seconds = nint((float)msec/1000.0f) ;
   minutes = seconds / 60 ;
   seconds = seconds % 60 ;
-  fprintf(stderr, "auto-labeling took %d minutes and %d seconds.\n", 
+  printf("auto-labeling took %d minutes and %d seconds.\n", 
           minutes, seconds) ;
   exit(0) ;
   return(0) ;
@@ -107,12 +120,24 @@ get_option(int argc, char *argv[])
   char *option ;
   
   option = argv[1] + 1 ;            /* past '-' */
-  switch (toupper(*option))
+  if (!stricmp(option, "NOGIBBS"))
   {
+    no_gibbs = 1 ;
+    printf("disabling gibbs priors...\n") ;
+  }
+  else switch (toupper(*option))
+  {
+  case 'N':
+    max_iter = atoi(argv[2]) ;
+    nargs = 1 ;
+    printf("setting max iterations to %d...\n", max_iter) ;
+    break ;
   case 'F':
     filter = atoi(argv[2]) ;
-    nargs = 1 ;
-    printf("applying mode filter %d times to output of labelling\n",filter);
+    thresh = atof(argv[3]) ;
+    nargs = 2 ;
+    printf("applying thresholded (%2.2f) mode filter %d times to output of "
+           "labelling\n",thresh,filter);
     break ;
   case '?':
   case 'U':
