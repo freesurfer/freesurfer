@@ -23,6 +23,11 @@ end
 
 % open it as an ascii file
 fid = fopen(fname, 'r') ;
+if(fid == -1)
+  fprintf('ERROR: could not open %s\n',fname);
+  return;
+end
+
 fgets(fid) ;
 if(fid == -1)
   fprintf('ERROR: could not open %s\n',fname);
