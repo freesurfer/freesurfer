@@ -15,7 +15,7 @@
 #include "cma.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mri_fill.c,v 1.66 2003/08/05 19:19:16 kteich Exp $";
+static char vcid[] = "$Id: mri_fill.c,v 1.67 2003/08/11 20:05:31 fischl Exp $";
 
 /*-------------------------------------------------------------------
                                 CONSTANTS
@@ -189,7 +189,7 @@ main(int argc, char *argv[])
   struct timeb  then ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_fill.c,v 1.66 2003/08/05 19:19:16 kteich Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_fill.c,v 1.67 2003/08/11 20:05:31 fischl Exp $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -2730,6 +2730,7 @@ edit_segmentation(MRI *mri_wm, MRI *mri_seg)
         
         switch (label)
         {
+					/* erase these  labels */
         case Left_Cerebellum_White_Matter:
         case Left_Cerebellum_Exterior:
         case Left_Cerebellum_Cortex:
@@ -2752,6 +2753,23 @@ edit_segmentation(MRI *mri_wm, MRI *mri_seg)
             }
           }
           break ;
+
+					/* fill these */
+				case WM_hypointensities:
+				case Left_WM_hypointensities:
+				case Right_WM_hypointensities:
+				case non_WM_hypointensities:
+				case Left_non_WM_hypointensities:
+				case Right_non_WM_hypointensities:
+          if ((neighborLabel(mri_seg, x, y, z,1,Left_Cerebral_Cortex) >= 0) &&
+              (neighborLabel(mri_seg, x, y, z,1,Right_Cerebral_Cortex) >= 0) &&
+              (MRIvox(mri_wm, x, y, z) < WM_MIN_VAL))
+          {
+            MRIvox(mri_wm, x, y, z) = 255 ;
+            MRIvox(mri_filled, x, y, z) = 255 ;
+            non++ ;  
+          }
+					break ;
         case Left_Lateral_Ventricle:
         case Right_Lateral_Ventricle:
         case Left_Inf_Lat_Vent:
@@ -2778,6 +2796,18 @@ edit_segmentation(MRI *mri_wm, MRI *mri_seg)
           break ;
         case Left_Hippocampus:
         case Right_Hippocampus:
+				{
+					int xi,  olabel ;
+
+					xi = label == Right_Hippocampus ?  mri_wm->xi[x-1] :  mri_wm->xi[x+1] ;
+					olabel = MRIvox(mri_seg, xi, y, z) ;
+					if (olabel != label)  /* voxel lateral to this one is not hippocampus   */
+					{
+						MRIvox(mri_wm, xi, y, z) = 255 ;
+						MRIvox(mri_filled, xi, y, z) = 255 ;
+						non++ ;
+					}
+
           yi = mri_wm->yi[y+1] ;
           label = MRIvox(mri_seg, x,yi, z) ;
           if (((label == Left_Cerebral_Cortex || label == Right_Cerebral_Cortex) ||
@@ -2792,6 +2822,7 @@ edit_segmentation(MRI *mri_wm, MRI *mri_seg)
             non += 2 ;
           }
           break ;
+				}
         case Left_Accumbens_area:
         case Right_Accumbens_area:
         case Left_Caudate:
