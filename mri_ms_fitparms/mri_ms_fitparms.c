@@ -5,8 +5,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2004/09/15 13:39:16 $
-// Revision       : $Revision: 1.36 $
+// Revision Date  : $Date: 2004/11/22 21:29:11 $
+// Revision       : $Revision: 1.37 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -38,6 +38,8 @@ MRI *MRIssqrt(MRI *mri_src, MRI *mri_dst) ;
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
 
+static LTA *Glta = NULL ;
+static int invert_flag = 0 ;
 static double scale = 1; 
 static double sigma = 4 ;
 static  double base_dt  = 1e-6;
@@ -61,7 +63,6 @@ static float *faf_coefs[3][2] ;  /* coefficients (3 spatial dimensions, and one 
 static LABEL *faf_label ;
 #endif
 static int niter=10 ;
-static float thresh = 25 ;
 static int conform = 0 ;
 
 static int InterpMethod = SAMPLE_TRILINEAR;  /*E* prev default behavior */
@@ -83,7 +84,7 @@ static double compute_fa_rms(double T1_wm, double PD_wm, MRI **mri_flash, int nv
 static int estimate_flip_angle_field(MRI *mri_T1,  MRI *mri_PD, MRI **mri_flash, int nvolumes, int nfaf, 
 																		 float *faf_coefs[3][2], LABEL *faf_label, MRI *mri_faf)  ;
 #endif
-static double estimate_ms_params(MRI **mri_flash, MRI **mri_flash_synth, int nvolumes, MRI *mri_T1, MRI *mri_PD, MRI *mri_sse, MATRIX **M_reg);
+static double estimate_ms_params(MRI **mri_flash, MRI **mri_flash_synth, int nvolumes, MRI *mri_T1, MRI *mri_PD, MRI *mri_sse, MATRIX **M_reg,LTA *lta);
 static double estimate_ms_params_with_faf(MRI **mri_flash, MRI **mri_flash_synth, int nvolumes, MRI *mri_T1, MRI *mri_PD, MRI *mri_sse, MATRIX **M_reg,MRI*mri_faf);
 #if 0
 static double estimate_ms_params_in_label(MRI **mri_flash, MRI **mri_flash_synth, int nvolumes, MRI *mri_T1, MRI *mri_PD, MRI *mri_sse, MATRIX **M_reg,MRI*mri_faf, LABEL *area);
@@ -100,8 +101,8 @@ static int write_iterations=0;
 
 static int average_volumes_with_different_echo_times(MRI **mri_flash, MRI **mri_all_flash, int nvolumes_total) ;
 
-static MRI *estimate_T2star(MRI **mri_all_flash, int nvolumes, MRI *mri_PD) ;
-static MRI *compute_T2star_map(MRI **mri_flash, int nvolumes, int *scan_types) ;
+static MRI *estimate_T2star(MRI **mri_all_flash, int nvolumes, MRI *mri_PD, LTA *lta) ;
+static MRI *compute_T2star_map(MRI **mri_flash, int nvolumes, int *scan_types, LTA *lta) ;
 
 static int findUniqueTETRFA(MRI *mri_flash[], int numvolumes, float *ptr, float *pte, double *pfa);
 static int resetTRTEFA(MRI *mri, float tr, float te, double fa);
@@ -123,7 +124,7 @@ main(int argc, char *argv[])
   int    modified;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_ms_fitparms.c,v 1.36 2004/09/15 13:39:16 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ms_fitparms.c,v 1.37 2004/11/22 21:29:11 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -269,7 +270,7 @@ main(int argc, char *argv[])
 			if (mri_faf)
 				rms = estimate_ms_params_with_faf(mri_flash, synth_flag ? mri_flash_synth : NULL, nvolumes, mri_T1, mri_PD, mri_sse, M_reg, mri_faf) ;
 			else
-				rms = estimate_ms_params(mri_flash, synth_flag ? mri_flash_synth : NULL, nvolumes, mri_T1, mri_PD, mri_sse, M_reg) ;
+				rms = estimate_ms_params(mri_flash, synth_flag ? mri_flash_synth : NULL, nvolumes, mri_T1, mri_PD, mri_sse, M_reg, NULL) ;
       printf("parameter rms = %2.3f\n", rms) ;
     }
 
@@ -280,7 +281,7 @@ main(int argc, char *argv[])
 			if (mri_faf)
 				rms = estimate_ms_params_with_faf(mri_flash, mri_flash_synth, nvolumes, mri_T1, mri_PD, mri_sse, M_reg, mri_faf) ;
 			else
-				rms = estimate_ms_params(mri_flash, mri_flash_synth, nvolumes, mri_T1, mri_PD, mri_sse, M_reg) ;
+				rms = estimate_ms_params(mri_flash, mri_flash_synth, nvolumes, mri_T1, mri_PD, mri_sse, M_reg, NULL) ;
       printf("parameter rms = %2.3f\n", rms) ;
 			
       for (j=0;j<nvolumes;j++)
@@ -297,18 +298,26 @@ main(int argc, char *argv[])
       {
 				sprintf(fname,"%s/T1-%d.mgz",out_dir,iter);
 				printf("writing T1 estimates to %s...\n", fname) ;
+				if (Glta)
+					useVolGeomToMRI(&Glta->xforms[0].dst, mri_T1) ;
 				MRIwrite(mri_T1, fname) ;
 				sprintf(fname,"%s/PD-%d.mgz",out_dir,iter);
 				printf("writing PD estimates to %s...\n", fname) ;
+				if (Glta)
+					useVolGeomToMRI(&Glta->xforms[0].dst, mri_PD) ;
 				MRIwrite(mri_PD, fname) ;
 				sprintf(fname,"%s/sse-%d.mgz",out_dir,iter);
 				printf("writing residual sse to %s...\n", fname) ;
+				if (Glta)
+					useVolGeomToMRI(&Glta->xforms[0].dst, mri_sse) ;
 				MRIwrite(mri_sse, fname) ;
 				
 				for (j=0;j<nvolumes;j++)
 				{
 					sprintf(fname,"%s/vol%d-%d.mgz",out_dir,j,iter);
 					printf("writing synthetic images to %s...\n", fname);
+					if (Glta)
+						useVolGeomToMRI(&Glta->xforms[0].dst, mri_flash_synth[j]) ;
 					MRIwrite(mri_flash_synth[j], fname) ;
 					sprintf(fname,"%s/vol%d-%d.lta",out_dir,j,iter); 
 					printf("writing regisration matrix to %s...\n", fname);
@@ -322,6 +331,8 @@ main(int argc, char *argv[])
 				}
       }
     } // iterations end here
+		if (Glta != NULL)
+			rms = estimate_ms_params(mri_flash, synth_flag ? mri_flash_synth : NULL, nvolumes, mri_T1, mri_PD, mri_sse, M_reg, Glta) ;
 #if 0
     if (nfaf >  0)
     {
@@ -372,15 +383,21 @@ main(int argc, char *argv[])
 			resetTRTEFA(mri_PD, TR, TE, FA);
 			sprintf(fname,"%s/PD.mgz",out_dir);
 			printf("writing PD estimates to %s...\n", fname) ;
+			if (Glta)
+				useVolGeomToMRI(&Glta->xforms[0].dst, mri_PD) ;
 			MRIwrite(mri_PD, fname) ;
 			resetTRTEFA(mri_T1, TR, TE, FA);
 			sprintf(fname,"%s/T1.mgz",out_dir);
 			printf("writing T1 estimates to %s...\n", fname) ;
+			if (Glta)
+				useVolGeomToMRI(&Glta->xforms[0].dst, mri_T1) ;
 			MRIwrite(mri_T1, fname) ;
 			MRIfree(&mri_T1) ;
 			
 			sprintf(fname,"%s/sse.mgz",out_dir);
 			printf("writing residual sse to %s...\n", fname) ;
+			if (Glta)
+				useVolGeomToMRI(&Glta->xforms[0].dst, mri_sse) ;
 			MRIwrite(mri_sse, fname) ;
 			MRIfree(&mri_sse) ;
 		}
@@ -398,6 +415,8 @@ main(int argc, char *argv[])
       {
 				sprintf(fname,"%s/vol%d.mgz",out_dir,j);
 				printf("writing synthetic images to %s...\n", fname);
+				if (Glta)
+					useVolGeomToMRI(&Glta->xforms[0].dst, mri_flash_synth[j]) ;
 				MRIwrite(mri_flash_synth[j], fname) ;
 				sprintf(fname,"%s/vol%d.lta",out_dir,j);
 				printf("writing registration matrix to %s...\n", fname);
@@ -411,7 +430,7 @@ main(int argc, char *argv[])
       }
     }
   }
-	mri_T2star = estimate_T2star(mri_all_flash, nvolumes_total, mri_PD) ;
+	mri_T2star = estimate_T2star(mri_all_flash, nvolumes_total, mri_PD, Glta) ;
 	if (mri_T2star)
 	{
 		resetTRTEFA(mri_T2star, TR, TE, FA);
@@ -419,10 +438,14 @@ main(int argc, char *argv[])
 		{
 			sprintf(fname,"%s/PDcorrected.mgz",out_dir);
 			printf("writing corrected PD estimates to %s...\n", fname) ;
+			if (Glta)
+				useVolGeomToMRI(&Glta->xforms[0].dst, mri_PD) ;
 			MRIwrite(mri_PD, fname) ;
 		}
 		sprintf(fname,"%s/T2star.mgz",out_dir);
 		printf("writing T2star estimates to %s...\n", fname) ;
+		if (Glta)
+			useVolGeomToMRI(&Glta->xforms[0].dst, mri_T2star) ;
 		MRIwrite(mri_T2star, fname) ;
 	}
   msec = TimerStop(&start) ;
@@ -441,8 +464,9 @@ main(int argc, char *argv[])
 static int
 get_option(int argc, char *argv[])
 {
-  int  nargs = 0 ;
-  char *option ;
+  int        nargs = 0 ;
+  char       *option ;
+	TRANSFORM  *transform ;
   
   option = argv[1] + 1 ;            /* past '-' */
 	if (!stricmp(option, "debug_slice"))
@@ -664,11 +688,45 @@ get_option(int argc, char *argv[])
     printf("setting momentum=%2.2f\n",momentum) ;
     break ;
   case 'T':
-    thresh = atof(argv[2]) ;
-    nargs = 1 ;
-    printf("ignoring locations in which all images are less than %2.2f\n", 
-           thresh) ;
+		{
+			MRI *mri ;
+			transform = TransformRead(argv[2]) ;
+			if (!transform)
+				ErrorExit(ERROR_NOFILE, "%s: could not read transform from %s", 
+									Progname, argv[2]) ;
+			
+			Glta = (LTA *)(transform->xform) ;
+			nargs = 2 ;
+			printf("applying transform %s to output volumes...\n", argv[2]) ; 
+			if (invert_flag)
+			{
+				MATRIX *m ;
+
+				printf("inverting transform...\n") ;
+				m = MatrixInverse(Glta->xforms[0].m_L, NULL) ;
+				MatrixCopy(m, Glta->xforms[0].m_L) ;
+				MatrixFree(&m) ;
+			}
+			printf("reading output volume geometry from %s...\n", argv[3]) ;
+			mri = MRIread(argv[3]) ;
+			if (mri == NULL)
+				ErrorExit(ERROR_NOFILE, "%s: could not read volume %s for output volume settings", Progname, argv[3]) ;
+			getVolGeom(mri, &Glta->xforms[0].dst) ;
+			MRIfree(&mri) ;
+		}
     break ;
+	case 'I':
+		invert_flag = 1 ;
+		if (Glta)
+		{
+			MATRIX *m ;
+
+			printf("inverting transform...\n") ;
+			m = MatrixInverse(Glta->xforms[0].m_L, NULL) ;
+			MatrixCopy(m, Glta->xforms[0].m_L) ;
+			MatrixFree(&m) ;
+		}
+		break ;
   case 'A':
     align = 1 ;
     printf("aligning volumes before averaging...\n") ;
@@ -730,7 +788,7 @@ FLASHforwardModel(double flip_angle, double TR, double PD, double T1)
 #define FAk_MIN    0.5
 
 static double
-estimate_ms_params(MRI **mri_flash, MRI **mri_flash_synth, int nvolumes, MRI *mri_T1, MRI *mri_PD, MRI *mri_sse, MATRIX **M_reg)
+estimate_ms_params(MRI **mri_flash, MRI **mri_flash_synth, int nvolumes, MRI *mri_T1, MRI *mri_PD, MRI *mri_sse, MATRIX **M_reg, LTA *lta)
 {
   double   SignalTableValues[MAX_NVALS][MAX_NVOLS], SignalTableT1[MAX_NVALS], SignalTableNorm[MAX_NVALS], ImageValues[MAX_NVOLS], total_sse ;
   double   se, best_se, ss, sse, err, val, norm, T1, PD, xf, yf, zf ;
@@ -738,7 +796,14 @@ estimate_ms_params(MRI **mri_flash, MRI **mri_flash_synth, int nvolumes, MRI *mr
   int      width=mri_T1->width, height=mri_T1->height, depth=mri_T1->depth, nvalues=MAX_NVALS, nevals;
   int      nstep=11, step[11]={1024,512,256,128,64,32,16,8,4,2,1};
   MRI      *mri ;
-  MATRIX   *vox2ras[MAX_NVOLS], *ras2vox[MAX_NVOLS], *voxvec1, *voxvec2, *rasvec1, *rasvec2;
+  MATRIX   *vox2ras[MAX_NVOLS], *ras2vox[MAX_NVOLS], *voxvec1, *voxvec2, *rasvec1, *rasvec2, *m_xform = NULL ;
+
+	if (lta)
+	{
+		m_xform = MatrixInverse(lta->xforms[0].m_L, NULL) ;
+		printf("using matrix for resampling data:\n") ;
+		MatrixPrint(stdout, m_xform) ;
+	}
 
   voxvec1 = MatrixAlloc(4,1,MATRIX_REAL); voxvec1->rptr[4][1] = 1.0;
   voxvec2 = MatrixCopy(voxvec1, NULL);
@@ -770,13 +835,19 @@ estimate_ms_params(MRI **mri_flash, MRI **mri_flash_synth, int nvolumes, MRI *mr
     for (y = 0 ; y < height ; y++)
       for (x = 0 ; x < width ; x++)
       {
-				if (x == 0 && y == 0 && z == 4)
-					DiagBreak() ;
 				ss = 0;
 				for (j = 0 ; j < nvolumes ; j++)
 				{
+					if (x == Gx && y == Gy && z == Gz)
+						DiagBreak() ;
 					mri = mri_flash[j] ;
 					voxvec1->data[0]=x; voxvec1->data[1]=y; voxvec1->data[2]=z;
+					if (m_xform)
+					{
+						MatrixMultiply(m_xform, voxvec1, voxvec2) ;
+						MatrixCopy(voxvec2, voxvec1) ;
+					}
+
 					MatrixMultiply(vox2ras[j],voxvec1,rasvec1);
 					MatrixMultiply(M_reg[j],rasvec1,rasvec2);
 					MatrixMultiply(ras2vox[j],rasvec2,voxvec2);
@@ -861,6 +932,14 @@ estimate_ms_params(MRI **mri_flash, MRI **mri_flash_synth, int nvolumes, MRI *mr
 				if (T1 >= 4999 && ImageValues[0] > 70 && ImageValues[1] > 70)
 					DiagBreak() ;
       }
+	if (m_xform)
+		MatrixFree(&m_xform) ;
+	MatrixFree(&voxvec1) ; MatrixFree(&voxvec2) ; MatrixFree(&rasvec1) ; MatrixFree(&rasvec2) ;
+  for (j = 0 ; j < nvolumes ; j++)
+  {
+    MatrixFree(&vox2ras[j]) ;
+    MatrixFree(&ras2vox[j]) ;
+  }
   total_sse = sqrt(total_sse / (width*height*depth)) ;
   return(total_sse) ;
 }
@@ -1716,7 +1795,7 @@ average_volumes_with_different_echo_times(MRI **mri_flash, MRI **mri_all_flash, 
 }
 
 static MRI *
-estimate_T2star(MRI **mri_flash, int nvolumes, MRI *mri_PD)
+estimate_T2star(MRI **mri_flash, int nvolumes, MRI *mri_PD, LTA *lta)
 {
   int    i, j, nechoes, processed[MAX_IMAGES], nprocessed, x, y, z, different_te, width, depth, height ;
   MRI    *mri_T2star = NULL ;
@@ -1757,7 +1836,7 @@ estimate_T2star(MRI **mri_flash, int nvolumes, MRI *mri_PD)
   }
   printf("estimating T2* with %d different acquisitions, each with %d echoes...\n",
 				 nprocessed, nvolumes/nprocessed) ;
-  mri_T2star = compute_T2star_map(mri_flash, nvolumes, processed) ;
+  mri_T2star = compute_T2star_map(mri_flash, nvolumes, processed, lta) ;
 
   /* now update PD map to take out T2* component */
   if (correct_PD)
@@ -1797,14 +1876,25 @@ estimate_T2star(MRI **mri_flash, int nvolumes, MRI *mri_PD)
 }
 
 static MRI *
-compute_T2star_map(MRI **mri_flash, int nvolumes, int *scan_types)
+compute_T2star_map(MRI **mri_flash, int nvolumes, int *scan_types, LTA *lta)
 {
-  MATRIX *mX, *mXpinv = NULL ;
-  VECTOR *vY, *vParms = NULL ;
+  MATRIX *mX, *mXpinv = NULL, *m_xform ;
+  VECTOR *vY, *vParms = NULL, *v_src, *v_dst ;
   int    x, y, z, e, width, height, depth, nscans, i ;
   MRI    *mri_T2star ;
   float  T2star, cond ;
-  Real   val ;
+  Real   val, xf, yf, zf ;
+
+	if (lta)
+	{
+		m_xform = MatrixInverse(lta->xforms[0].m_L, NULL) ;
+		v_src = VectorAlloc(4, MATRIX_REAL) ;
+		v_dst = VectorAlloc(4, MATRIX_REAL) ;
+		v_src->rptr[4][1] = 1.0 ;
+		v_dst->rptr[4][1] = 1.0 ;
+	}
+	else
+		m_xform = NULL ;
 
   for (i = nscans = 0 ; i < nvolumes ; i++)
   {
@@ -1849,7 +1939,15 @@ compute_T2star_map(MRI **mri_flash, int nvolumes, int *scan_types)
 					DiagBreak() ;
 				for (e = 0 ; e < nvolumes ; e++)
 				{
-					MRIsampleVolumeType(mri_flash[e], x, y, z, &val, SAMPLE_NEAREST) ;
+					if (m_xform)
+					{
+						V3_X(v_src) = x ; V3_Y(v_src) = y ; V3_Z(v_src) = z ;
+						MatrixMultiply(m_xform, v_src, v_dst) ;
+						xf = V3_X(v_dst) ; yf = V3_Y(v_dst) ; zf = V3_Z(v_dst) ; 
+						MRIsampleVolumeType(mri_flash[e], xf, yf, zf, &val, InterpMethod) ;
+					}
+					else
+						MRIsampleVolumeType(mri_flash[e], x, y, z, &val, SAMPLE_NEAREST) ;
 					VECTOR_ELT(vY, e+1) = log(val) ;
 				}
 				vParms = MatrixMultiply(mXpinv, vY, vParms) ;
@@ -1871,6 +1969,12 @@ compute_T2star_map(MRI **mri_flash, int nvolumes, int *scan_types)
 
   MatrixFree(&mX) ; VectorFree(&vY) ; MatrixFree(&mXpinv) ;
   VectorFree(&vParms) ;
+	if (m_xform)
+	{
+		MatrixFree(&m_xform) ;
+		VectorFree(&v_src) ;
+		VectorFree(&v_dst) ;
+	}
   return(mri_T2star) ;
 }
 
