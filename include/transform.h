@@ -2,9 +2,9 @@
 /* transform.h                                                         */
 /*                                                                     */
 /* Warning: Do not edit the following four lines.  CVS maintains them. */
-/* Revision Author: $Author: tosa $                                           */
-/* Revision Date  : $Date: 2005/02/25 16:59:26 $                                             */
-/* Revision       : $Revision: 1.39 $                                         */
+/* Revision Author: $Author: fischl $                                           */
+/* Revision Date  : $Date: 2005/02/28 17:55:43 $                                             */
+/* Revision       : $Revision: 1.40 $                                         */
 /*                                                                     */
 /***********************************************************************/
 
@@ -154,6 +154,9 @@ void getVolGeom(const MRI *src, VOL_GEOM *vg);
 void useVolGeomToMRI(const VOL_GEOM *src, MRI *dst);
 MATRIX *vg_i_to_r(const VOL_GEOM *vg);
 MATRIX *vg_r_to_i(const VOL_GEOM *vg);
+#define vg_getRasToVoxelXform vg_r_to_i
+#define vg_getVoxelToRasXform vg_i_to_r
+
 int  vg_isEqual(const VOL_GEOM *vg1, const VOL_GEOM *vg2); // return 1 if equal return 0 if not equal
 void vg_print(const VOL_GEOM *vg);
  
@@ -162,3 +165,4 @@ int LTAvoxelXformToRASXform(const MRI *src, const MRI *dst, LT *voxTran, LT *ras
 
 // well uses LTA
 MATRIX *surfaceRASFromSurfaceRAS_(MRI *dst, MRI *src, LTA *lta);
+MRI   *MRITransformedCentered(MRI *src, MRI *orig_dst, LTA *lta) ;
