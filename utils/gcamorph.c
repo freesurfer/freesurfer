@@ -3,9 +3,9 @@
 //
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2004/05/06 15:42:28 $
-// Revision       : $Revision: 1.26 $
+// Revision Author: $Author: tosa $
+// Revision Date  : $Date: 2004/05/07 14:14:09 $
+// Revision       : $Revision: 1.27 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -541,7 +541,6 @@ GCAMinit(GCA_MORPH *gcam, MRI *mri, GCA *gca, TRANSFORM *transform, int relabel)
           gcamn->x = gcamn->origx = ox ; 
           gcamn->y = gcamn->origy = oy ; 
           gcamn->z = gcamn->origz = oz ;
-#if 1
           gcamn->label = max_label ;
           gcamn->n = max_n ;
           gcamn->prior = max_p ;
@@ -549,7 +548,6 @@ GCAMinit(GCA_MORPH *gcam, MRI *mri, GCA *gca, TRANSFORM *transform, int relabel)
           // gc can be NULL
           gcamn->gc = gc ;
           gcamn->log_p = 0 ;
-#endif
           if (x == Gx && y == Gy && z == Gz)
           {
             printf("node(%d,%d,%d) --> MRI (%2.1f, %2.1f, %2.1f)\n",
@@ -585,8 +583,14 @@ GCAMinit(GCA_MORPH *gcam, MRI *mri, GCA *gca, TRANSFORM *transform, int relabel)
   for (x = 0 ; x < width ; x++)
     for (y = 0 ; y < height ; y++)
       for (z = 0 ; z < depth ; z++)
+      {
+	if (gcam->nodes[x][y][z].area <0)
+	{
+	  fprintf(stderr, "node (%d,%d,%d) has negative area %f\n", 
+		  x, y, z, gcam->nodes[x][y][z].area);
+	}
         gcam->nodes[x][y][z].orig_area = gcam->nodes[x][y][z].area ;
-
+      }
   
   gcamComputeMetricProperties(gcam) ;
   return(NO_ERROR) ;
@@ -1493,8 +1497,10 @@ gcamComputeMetricProperties(GCA_MORPH *gcam)
         gcamn = &gcam->nodes[i][j][k] ;
 
         if (gcamn->invalid)
+	{
+	  gcamn->area = 0;
           continue;
-
+	}
         num = 0 ;
         if ((i < width-1) && (j < height-1) && (k < depth-1))
         {
@@ -1504,8 +1510,10 @@ gcamComputeMetricProperties(GCA_MORPH *gcam)
           gcamnk = &gcam->nodes[i][j][k+1] ;
 
           if (gcamn->invalid || gcamni->invalid || gcamnj->invalid || gcamnk->invalid)
-            continue;
-
+          {
+	    gcamn->area = 0;
+	    continue;
+	  }
           GCAMN_SUB(gcamni, gcamn, v_i) ; 
           GCAMN_SUB(gcamnj, gcamn, v_j) ; 
           GCAMN_SUB(gcamnk, gcamn, v_k) ;
@@ -1521,8 +1529,10 @@ gcamComputeMetricProperties(GCA_MORPH *gcam)
           gcamnk = &gcam->nodes[i][j][k-1] ;
 
           if (gcamn->invalid || gcamni->invalid || gcamnj->invalid || gcamnk->invalid)
-            continue;
-
+          {
+	    gcamn->area = 0;
+	    continue;
+	  }
           /* invert v_i so that coordinate system is right-handed */
           GCAMN_SUB(gcamn, gcamni, v_i) ; 
           GCAMN_SUB(gcamnj, gcamn, v_j) ; 
@@ -1533,8 +1543,12 @@ gcamComputeMetricProperties(GCA_MORPH *gcam)
           gcamn->area = area / (float)num ;
         else
           gcamn->area = 0 ;
+
         if ((area <= 0) && !FZERO(gcamn->orig_area))
-          gcam->neg++ ;
+        {
+	  DiagBreak();
+	  gcam->neg++ ;
+	}
       }
     }
   }
@@ -2819,6 +2833,7 @@ GCAMcomputeLabels(MRI *mri, GCA_MORPH *gcam)
         }
         else  /* out of FOV probably */
         {
+	  gcamn->invalid = 1;
           gcamn->label = label ;
           gcamn->n = 0 ;
           gcamn->prior = 1.0 ;
