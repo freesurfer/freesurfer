@@ -11,7 +11,7 @@ function err = fast_svbslice(y,stem,sliceno,bext,mristruct)
 %
 % See also fast_ldbslice, fast_mri_struct, fast_svbhdr.
 % 
-% $Id: fast_svbslice.m,v 1.5 2003/08/02 00:57:49 greve Exp $
+% $Id: fast_svbslice.m,v 1.6 2003/08/04 19:13:31 greve Exp $
 
 err = 1;
 
@@ -41,7 +41,7 @@ else
   end
 
   % Check for extra slices and delete them %
-  slice = nslices
+  slice = nslices;
   while(1)
     fname = sprintf('%s_%03d.%s',stem,slice,bext);
     fid = fopen(fname,'r');
@@ -64,7 +64,8 @@ if(exist('mristruct') == 1)
   fdims = length(szf);
   nframes = szf(fdims);
   mristruct.nframes = nframes;
-  fast_svbhdr(mristruct,stem);
+  bhdrfile = sprintf('%s.bhdr',stem);
+  fast_svbhdr(mristruct,bhdrfile);
 end
 
 err = 0;
