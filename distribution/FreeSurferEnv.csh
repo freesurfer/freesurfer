@@ -30,10 +30,10 @@
 #   script.
 #
 #
-# $Id: FreeSurferEnv.csh,v 1.5 2005/03/01 18:18:37 kteich Exp $
+# $Id: FreeSurferEnv.csh,v 1.6 2005/03/28 21:57:44 kteich Exp $
 #############################################################################
 
-set VERSION = '$Id: FreeSurferEnv.csh,v 1.5 2005/03/01 18:18:37 kteich Exp $'
+set VERSION = '$Id: FreeSurferEnv.csh,v 1.6 2005/03/28 21:57:44 kteich Exp $'
 
 ## Get the name of the operating system
 set os = `uname -s`
@@ -205,17 +205,15 @@ if(! $?path ) then
   set path = ( ~/bin /bin /usr/bin /usr/local/bin )
 endif
 
-set path = ( $path \
-             $FSFAST_HOME/bin     \
-             $FSFAST_HOME/bin/ \
-             $LOCAL_DIR/bin/         \
+set path = ( $FSFAST_HOME/bin     \
              $FREESURFER_HOME/bin/noarch      \
              $FREESURFER_HOME/bin/         \
              $FSL_BIN                   \
+	     $path
             )
 
 if(! $?NO_MINC) then
-  set path = ( $path $MINC_BIN_DIR)
+  set path = ( $MINC_BIN_DIR $path )
 endif
 rehash;
 

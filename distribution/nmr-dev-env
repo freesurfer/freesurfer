@@ -4,13 +4,13 @@
 #          stream: unpacking, functional, structural, and visualization.
 # Usage:   source nmr-dev-env
 #
-# $Id: nmr-dev-env,v 1.2 2005/03/16 17:45:37 kteich Exp $
+# $Id: nmr-dev-env,v 1.3 2005/03/28 21:57:44 kteich Exp $
 #
 # NOTE: this file is under version control. Make sure to use the
 # proper check-out/check-in procedures when modifying it!
 #############################################################################
 
-set NSE_VERSION = '$Id: nmr-dev-env,v 1.2 2005/03/16 17:45:37 kteich Exp $';
+set NSE_VERSION = '$Id: nmr-dev-env,v 1.3 2005/03/28 21:57:44 kteich Exp $';
 echo $NSE_VERSION
 
 ## Turn on verboseness if desired ##
@@ -19,7 +19,7 @@ if($?NMR_DEV_VERBOSE) then
   set verbose
 endif
 
-set VERSION = '$Id: nmr-dev-env,v 1.2 2005/03/16 17:45:37 kteich Exp $';
+set VERSION = '$Id: nmr-dev-env,v 1.3 2005/03/28 21:57:44 kteich Exp $';
 
 
 
@@ -75,7 +75,15 @@ endif
 ### Dont leave huge cores around ###
 limit coredumpsize 0
 
-set path = ($path $FREESURFER_HOME/bin /usr/pubsw/bin /usr/bin/X11 /usr/sbin /sbin)
+
+# Add pubsw and AFNI to the path if it isn't there.
+if ( "${path}" !~ */usr/pubsw/bin* ) then
+     set path = ( /usr/pubsw/bin $path )
+endif
+
+if ( "${path}" !~ */usr/pubsw/packages/afni/current/bin* ) then
+     set path = ( /usr/pubsw/packages/afni/current/bin $path )
+endif
 
 
 if(! $?MRI_UMASK) then
