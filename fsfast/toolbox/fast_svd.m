@@ -1,9 +1,10 @@
-function [u,s,v] = fast_svd(y)
-% [u s v] = fast_svd(y)
+function [u,s,v] = fast_svd(y,M)
+% [u s v] = fast_svd(y,<M>)
 % 
 % Computes efficient SVD when the number of rows and columns are
 % not the same. It is efficient in the sense that only the minimum
-% number of eigen components are computed.
+% number of eigen components are computed. If M is supplied, then
+% must be M = y*y' or M = y'*y depending upon the size of y.
 %
 % u will have dimension nrows by nmin
 % v will have dimension ncols by nmin
@@ -13,15 +14,15 @@ function [u,s,v] = fast_svd(y)
 % 
 % In any case, y = u*s*v';
 %
-% $Id: fast_svd.m,v 1.2 2004/08/19 00:53:07 greve Exp $
+% $Id: fast_svd.m,v 1.3 2004/09/23 18:25:39 greve Exp $
 %
 
 u=[];
 s=[];
 v=[];
 
-if(nargin ~= 1)
-  fprintf('[u s v] = fast_svd(y)\n');
+if(nargin < 1 | nargin > 2)
+  fprintf('[u s v] = fast_svd(y,<M>)\n');
   return;
 end
 
@@ -33,7 +34,7 @@ if(nr == nc)
 end
 
 if(nr > nc)
-  M = y'*y;
+  if(~exist('M','var')) M = y'*y; end
   [v s blah] = svd(M);
   s = sqrt(s);
   ds = diag(s);
@@ -49,7 +50,7 @@ end
 
 % only gets here if(nr < nc)
 
-M = y*y';
+if(~exist('M','var')) M = y*y'; end
 [u s blah] = svd(M);
 s = sqrt(s);
 ds = diag(s);
