@@ -743,6 +743,14 @@ ImageCopy(IMAGE *Isrc, IMAGE *Idst)
     {
       switch (Idst->pixel_format)
       {
+      case PFDOUBLE:
+        old = hips_cplxtor ;
+        hips_cplxtor = CPLX_REAL ;
+        ecode = h_tod(Isrc, Idst) ;
+        if (ecode != HIPS_OK)
+          ErrorExit(ecode, "ImageCopy: h_tod failed (%d)\n", ecode) ;
+        hips_cplxtor = old ;
+        break ;
       case PFFLOAT:
         old = hips_cplxtor ;
         hips_cplxtor = CPLX_REAL ;
@@ -1495,6 +1503,10 @@ ImageScale(IMAGE *Isrc, IMAGE *Idst, float new_min, float new_max)
       old_min = pmin.v_float ;
       old_max = pmax.v_float ;
       break ;
+    case PFDOUBLE:
+      old_min = pmin.v_double ;
+      old_max = pmax.v_double ;
+      break ;
     default:
       ErrorExit(ERROR_UNSUPPORTED, 
                 "ImageScale: unsupported pixel format %d\n",
@@ -1601,6 +1613,7 @@ ImageCopyFrames(IMAGE *inImage, IMAGE *outImage,int start, int nframes,
   byte  *cIn, *cOut ;
   unsigned int  *iIn, *iOut ;
   float *fsrc, *fdst ;
+  double *dsrc, *ddst ;
   int   size, frameno, pix_per_frame, end ;
 
   if (!ImageCheckSize(inImage, outImage, 0, 0, dst_frame + nframes))
@@ -1616,6 +1629,16 @@ ImageCopyFrames(IMAGE *inImage, IMAGE *outImage,int start, int nframes,
     size = inImage->rows * inImage->cols ;
     switch (inImage->pixel_format)
     {
+    case PFDOUBLE:
+      if (outImage->pixel_format != PFDOUBLE)
+        ErrorExit(ERROR_UNSUPPORTED, 
+                  "ImageCopyFrames: unsupported image pixel format %d -> %d\n",
+                  inImage->pixel_format, outImage->pixel_format) ;
+
+      dsrc = IMAGEDseq_pix(inImage, 0, 0, frameno) ;
+      ddst = IMAGEDseq_pix(outImage, 0, 0, dst_frame+frameno-start) ;
+      hmemcpy((char *)ddst, (char *)dsrc, pix_per_frame*sizeof(double)) ;
+      break ;
     case PFFLOAT:
       if (outImage->pixel_format != PFFLOAT)
         ErrorExit(ERROR_UNSUPPORTED, 
@@ -1705,6 +1728,7 @@ ImageScaleRange(IMAGE *image, float fmin, float fmax, int low, int high)
   byte   *csrc, cmin_val, cmax_val, cval ;
   int    *isrc, imin_val, imax_val, ival ;
   float  *fsrc,  fval, norm ;
+  double *dsrc,  dval, dmin, dmax, dnorm, dlow ;
 
   size = image->cols * image->rows ;
   switch (image->pixel_format)
@@ -1738,7 +1762,20 @@ ImageScaleRange(IMAGE *image, float fmin, float fmax, int low, int high)
       *isrc++ = ival ;
     }
     break ;
-
+  case PFDOUBLE:
+    dmin = (double)fmin ;
+    dmax = (double)fmax ;
+    size = image->cols * image->rows ;
+    dsrc = IMAGEDpix(image, 0, 0) ;
+    dnorm = ((double)high - (double)low) / (dmax-dmin);
+    dlow = (double)low ;
+    while (size--)
+    {
+      dval = *dsrc ;
+      dval = ((dval - dmin)*dnorm) + (double)low ;
+      *dsrc++ = dval ;
+    }
+    break ;
   case PFFLOAT:
     size = image->cols * image->rows ;
     fsrc = (float *)IMAGEFpix(image, 0, 0) ;
@@ -1750,9 +1787,8 @@ ImageScaleRange(IMAGE *image, float fmin, float fmax, int low, int high)
       *fsrc++ = fval ;
     }
     break ;
-
   default:
-    fprintf(stderr, "ImageScale: unsupported format %d\n", image->pixel_format);
+    fprintf(stderr, "ImageScale: unsupported format %d\n",image->pixel_format);
     exit(1) ;
   }
 
