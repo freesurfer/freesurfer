@@ -19,6 +19,7 @@ set fmt = ();
 set fmtext = ();
 set MLF = ();
 set cleanup = 1;
+set nskip = 0;
 
 if($#argv == 0) goto usage_exit;
 set n = `echo $argv | grep version | wc -l` 
@@ -79,6 +80,7 @@ tee $MLF > /dev/null <<EOF
   doffile = '$doffile';
   xmatfile = '$xmatfile';
   extregstem = '$extregstem';
+  nskip = $nskip;
   monly  = $monly;
 
   f = MRIread(inspec);
@@ -86,6 +88,10 @@ tee $MLF > /dev/null <<EOF
     fprintf('ERROR: loading %s\n',inspec);
     if(~monly) quit; end
     return; 
+  end
+  if(nskip > 0) 
+    fprintf('nskip = %d\n',nskip);
+    f.vol = f.vol(:,:,:,nskip+1:end); 
   end
 
   szf = size(f.vol);
@@ -202,6 +208,11 @@ while( $#argv != 0 )
       set PolyOrder = $argv[1]; shift;
       breaksw
 
+    case "--nskip":
+      if ( $#argv == 0) goto arg1err;
+      set nskip = $argv[1]; shift;
+      breaksw
+
     case "--X":
       if ( $#argv == 0) goto arg1err;
       set xmatfile = $argv[1]; shift;
@@ -297,6 +308,7 @@ usage_exit:
   echo ""
   echo "  --fmt format : bvolume, mgh, or mgz"
   echo "  --polyfit N : default is 0"
+  echo "  --nskip nskip : default is 0"
   echo "  --X xmatfile"
   echo "  --extreg extregstem"
   echo "  --o outfile : default is instem.fwhm.dat"
