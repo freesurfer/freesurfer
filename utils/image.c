@@ -3768,6 +3768,7 @@ ImageSplit(IMAGE *Icomp, IMAGE *Ireal, IMAGE *Iimag)
 {
   int    x, y, rows, cols ;
   float  *real, *imag = NULL ;
+  double *dreal, *dimag = NULL ;
   CPIX   *cpix ;
   DCPIX  *dcpix ;
 
@@ -3804,16 +3805,37 @@ ImageSplit(IMAGE *Icomp, IMAGE *Ireal, IMAGE *Iimag)
     case PFDBLCOM:
       dcpix = IMAGEDCpix(Icomp, 0, 0) ;
       
-      for (y = 0 ; y < rows ; y++)
+      switch (Ireal->pixel_format)
+      {
+      case PFFLOAT:
+        for (y = 0 ; y < rows ; y++)
         {
           for (x = 0 ; x < cols ; x++)
-            {
-              if (Iimag)
-                *imag++ = (float)dcpix->imag ;
-              *real++ = (float)dcpix->real ;
-              dcpix++ ;
-            }
+          {
+            if (Iimag)
+              *imag++ = (float)dcpix->imag ;
+            *real++ = (float)dcpix->real ;
+            dcpix++ ;
+          }
         }
+        break ;
+      case PFDOUBLE:
+        dreal = IMAGEDpix(Ireal, 0, 0) ;
+        if (Iimag)
+          dimag = IMAGEDpix(Iimag, 0, 0) ;
+
+        for (y = 0 ; y < rows ; y++)
+        {
+          for (x = 0 ; x < cols ; x++)
+          {
+            if (Iimag)
+              *dimag++ = dcpix->imag ;
+            *dreal++ = dcpix->real ;
+            dcpix++ ;
+          }
+        }
+        break ;
+      }
       break ;
     default:
       break ;
