@@ -1,6 +1,6 @@
 #!/bin/csh -f
 
-set FUNCVITS_VER = '$Id: mri-funcvits,v 1.2 2000/01/06 21:16:50 greve Exp $';
+set FUNCVITS_VER = '$Id: mri-funcvits,v 1.3 2000/02/19 01:43:10 greve Exp $';
 
 set stem     = ();
 set outdir   = ();
@@ -14,6 +14,7 @@ set cansurfname  = sphere.dist_new
 set noforce = 0;
 set mailuser = ()
 set debug = 0;
+set regfile = ();
 
 goto parse_args;
 parse_args_return:
@@ -22,6 +23,7 @@ if($#stem != 1 || $#outdir != 1) then
   echo "\nUSAGE: \n\n mri-funcvits "
   echo "   -stem     template stem      --required--"
   echo "   -outdir   output directory   --required--"
+  echo "   -reg      registration file  templatedir/register.dat"
   echo "   -orig     orig surface       $origsurfname"
   echo "   -sphere   spherical surface  $sphsurfname"
   echo "   -icosize  icosahedron size   $icosize"
@@ -48,13 +50,22 @@ popd  >& /dev/null
 
 set TemplateStem = $TemplateDir/$TemplateBase
 
-set regfile = $TemplateDir/register.dat
-if(! -f $regfile ) then
-  echo "ERROR: cannot find $regfile";
-  exit 1;
+## make sure the regfile exists ##
+set rmfregfile = 0;
+set fregfile = $TemplateDir/register.dat
+if($#regfile == 0) then
+  set regfile = $fregfile;
+else
+  if(! -f $regfile ) then
+    echo "ERROR: cannot find $regfile";
+    exit 1;
+  endif
+  cp $regfile $fregfile
+  set rmfregfile = 1;
 endif
 
-set subject = `head -n 1 $regfile`
+## Get the name of the subject ##
+set subject = `head -n 1 $fregfile`
 if($#svitdir == 0) then
   set svitdir   = $SUBJECTS_DIR/$subject/svit
 endif
@@ -71,7 +82,7 @@ if(! -d $icodir ) then
   exit 1;
 endif
 
-mkdir -p $outdir
+if(! -d $outdir) mkdir $outdir
 if(! -d $outdir ) then
   echo "ERROR: cannot create directory $outdir"
   exit 1;
@@ -79,6 +90,8 @@ endif
 cd $outdir
 
 echo "\n$FUNCVITS_VER\n"
+echo $0
+uname -a
 echo "Stem:     $stem"
 echo "OutDir:   $outdir"
 echo "Subject:  $subject"
@@ -88,6 +101,7 @@ echo "IcoSize:  $icosize"
 echo "VitDir:   $svitdir"
 echo "IcoDir:   $icodir"
 echo "noforce:  $noforce"
+echo "regfile:  $fregfile"
 
 echo "Started at `date`"
 
@@ -115,7 +129,7 @@ foreach hemi ($hemilist)
   else
     echo "---- $csurffc `date`--------"
     set cmd = "vss-project -i $origsurf -f surf "
-    set cmd = "$cmd -pm $regfile -f register -o $csurffc"
+    set cmd = "$cmd -pm $fregfile -f register -o $csurffc"
     if($debug) then
       echo $cmd
     endif
@@ -160,6 +174,8 @@ if($#mailuser == 1) then
     mail -s "mri-funcvits $subject `date`" $mailuser;
 endif
 
+if($rmfregfile)   rm -f $fregfile
+
 echo "Finished at `date`"
 echo "mri-funcvits completed successfully"
 
@@ -181,8 +197,13 @@ while( $#argv != 0 )
       set verbose = 1;
       breaksw
 
+    case "-echo"
+      set echo = 1;
+      breaksw
+
     case "-debug"
-      set debug = 1;
+      set debug   = 1;
+      set echo    = 1;
       set verbose = 1;
       breaksw
 
@@ -190,6 +211,11 @@ while( $#argv != 0 )
     case "-st":
       if ( $#argv == 0) goto arg1err;
       set stem = $argv[1]; shift;
+      breaksw
+
+    case "-reg":
+      if ( $#argv == 0) goto arg1err;
+      set regfile = $argv[1]; shift;
       breaksw
 
     case "-orig"
