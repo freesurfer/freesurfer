@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Computes glm inferences on the surface.
-  $Id: mris_glm.c,v 1.18 2003/06/30 20:40:38 greve Exp $
+  $Id: mris_glm.c,v 1.19 2003/08/05 22:46:31 greve Exp $
 
 Things to do:
   0. Documentation.
@@ -67,7 +67,7 @@ static char *getstem(char *bfilename);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_glm.c,v 1.18 2003/06/30 20:40:38 greve Exp $";
+static char vcid[] = "$Id: mris_glm.c,v 1.19 2003/08/05 22:46:31 greve Exp $";
 char *Progname = NULL;
 
 char *hemi        = NULL;
@@ -167,7 +167,7 @@ int main(int argc, char **argv)
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv, 
-	  "$Id: mris_glm.c,v 1.18 2003/06/30 20:40:38 greve Exp $");
+	  "$Id: mris_glm.c,v 1.19 2003/08/05 22:46:31 greve Exp $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -360,14 +360,14 @@ int main(int argc, char **argv)
 	sprintf(fsgd->datafile,"%s_000.bfloat",getstem(yid));
 	sprintf(fsgd->DesignMatFile,"%s.X.mat",getstem(yid));
         MatlabWrite(X,fsgd->DesignMatFile,"X");
+	fp = fopen(tmpstr,"w");
+	gdfPrintHeader(fp,fsgd);
+	fprintf(fp,"Creator          %s\n",Progname);
+	fprintf(fp,"SmoothSteps      %d\n",nsmooth);
+	fprintf(fp,"SUBECTS_DIR      %s\n",SUBJECTS_DIR);
+	fprintf(fp,"SynthSeed        %d\n",synthseed);
+	fclose(fp);
       }
-      fp = fopen(tmpstr,"w");
-      gdfPrintHeader(fp,fsgd);
-      fprintf(fp,"Creator          %s\n",Progname);
-      fprintf(fp,"SmoothSteps      %d\n",nsmooth);
-      fprintf(fp,"SUBECTS_DIR      %s\n",SUBJECTS_DIR);
-      fprintf(fp,"SynthSeed        %d\n",synthseed);
-      fclose(fp);
     }
 
     /* Future: run permutation loop here to get null dist of t */
