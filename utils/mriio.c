@@ -5480,12 +5480,12 @@ static int analyzeWriteFrame(MRI *mri, char *fname, int frame)
   }
   if(fabs(mri->z_a) > fabs(mri->z_r) && fabs(mri->z_a) > fabs(mri->z_s)){
     // Cor: Anterior/Post > both Right and Superior
-    if(mri->z_a > 0) hdr.hist.orient = 1; // cor unflipped   LSA
+    if(mri->y_s > 0) hdr.hist.orient = 1; // cor unflipped   LSA
     else             hdr.hist.orient = 4; // cor flipped     LIA
   }
   if(fabs(mri->z_r) > fabs(mri->z_a) && fabs(mri->z_r) > fabs(mri->z_s)){
     // Sag: Righ/Left > both Anterior and Superior
-    if(mri->z_a > 0) hdr.hist.orient = 2; // sag unflipped   ASL
+    if(mri->y_s > 0) hdr.hist.orient = 2; // sag unflipped   ASL
     else             hdr.hist.orient = 5; // sag flipped     AIL
   }
   printf("INFO: set hdr.hist.orient to %d\n",hdr.hist.orient);
