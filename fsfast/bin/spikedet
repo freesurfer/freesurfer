@@ -1,6 +1,6 @@
 #!/bin/csh -f 
 
-set VERSION = '$Id: spikedet,v 1.1 2004/05/17 17:45:53 greve Exp $';
+set VERSION = '$Id: spikedet,v 1.2 2004/05/17 17:48:03 greve Exp $';
 set inputargs = ($argv);
 
 set instem    = ();
@@ -240,6 +240,8 @@ usage_exit:
   echo "  --dt order : polynomial detrending order <$dtorder>"
   echo "  --monly mlf"
   echo ""
+  echo "  --help"
+  echo ""
 
   if(! $PrintHelp) exit 1;
 
@@ -254,7 +256,8 @@ exit 1;
 BEGINHELP
 
 Spike detector. Determines slices and time points where spikes are likely
-to be. 
+to be. Spikes are asusmed to be scanner artefacts (mostly some sort
+of arcing or electrical discharge).
 
 --i instem
 
@@ -279,6 +282,9 @@ the default summary file name is changed to instem.spike.fft.sum.
 Functional detrending with polynomial of given order order. Default
 is 1 (linear detrending). Use -1 to prevent detrending entirely.
 
+--monly MLF
+
+Only create a matlab file. This is mainly useful for debugging.
 
 ALGORITHM
 
