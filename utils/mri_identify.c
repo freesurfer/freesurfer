@@ -11,8 +11,10 @@
 #include "machine.h"
 #include "signa.h"
 #include "fio.h"
+#include "dicom.h"
 
 extern int errno;
+extern int IsDICOM(char *fname);
 
 #ifdef SunOS
 int stricmp(char *str1, char *str2) ;
@@ -67,6 +69,8 @@ int mri_identify(char *fname_passed)
 
   if(is_cor(fname))
     return(MRI_CORONAL_SLICE_DIRECTORY);
+  else if (IsDICOM(fname))
+    return(DICOM_FILE);
   else if(is_genesis(fname))
     return(GENESIS_FILE);
   else if(is_signa(fname))
