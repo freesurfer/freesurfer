@@ -2,7 +2,7 @@
    DICOM 3.0 reading functions
    Author: Sebastien Gicquel and Douglas Greve
    Date: 06/04/2001
-   $Id: DICOMRead.c,v 1.42 2003/08/26 18:26:09 tosa Exp $
+   $Id: DICOMRead.c,v 1.43 2003/09/08 22:20:33 tosa Exp $
 *******************************************************/
 
 #include <stdio.h>
@@ -949,6 +949,13 @@ int dcmImageDirCos(char *dcmfile,
   (*Vrz) /= +rms;
 
   FreeElementData(e); 
+  free(e);
+
+  e = GetElementFromFile(dcmfile, 0x20, 0x20);
+  if (e==NULL) return (1);
+  s = e->d.string;
+  
+  FreeElementData(e);
   free(e);
 
   return(0);
@@ -3282,12 +3289,14 @@ CONDITION GetDICOMInfo(char *fname, DICOMInfo *dcminfo, BOOL ReadImage, int Imag
     IsTagPresent[DCM_EchoNumber]=true;
 
   // image position
+  // watch out: DICOM gives the image position in LPS coordinates
+  //            We are interested in RAS coordinates (-1,-1,1)!
   tag=DCM_MAKETAG(0x20, 0x32);
   cond=GetMultiDoubleFromString(object, tag, &tmp, 3);
   if (cond != DCM_NORMAL) 
     {
       for (i=0; i<3; i++)
-  dcminfo->ImagePosition[i]=0;
+	dcminfo->ImagePosition[i]=0;
       cond2=cond;
 #ifdef _DEBUG
       printf("WARNING: tag image position not found\n"); 
@@ -3297,7 +3306,7 @@ CONDITION GetDICOMInfo(char *fname, DICOMInfo *dcminfo, BOOL ReadImage, int Imag
     {
       IsTagPresent[DCM_ImagePosition]=true;
       for (i=0; i<3; i++)
-  dcminfo->ImagePosition[i]=tmp[i];
+	dcminfo->ImagePosition[i]=tmp[i];
     }
   
   // image orientation
@@ -3872,198 +3881,6 @@ int myRound(double d)
     return (int)c;
 }
 
-#if 0
-/*******************************************************
-   RASFromOrientation
-   Author: Sebastien Gicquel
-   Date: 06/05/2001
-   input: structure MRI, structure DICOMInfo
-   output: fill in MRI structure RAS-related fields
-   LIMITATION: only if patient was lying supine head first
-*******************************************************/
-
-int RASFromOrientation(MRI *mri, DICOMInfo *dcm)
-{
-#ifdef _DEBUG
-  int i;
-#endif
-  /*
-    RAS coordinates inside scanner, if and only if patient is lying supine head first
-
-    -1  0  0
-    0 -1  0 = M1
-    0  0  1
-
-    Transformation matrix from DICOM volume to scanner is given by tag (20, 37) Image Orientation
-    = first row direction and first column direction in scanner referential
-    = M2
-
-    Transformation matrix from DICOM volume to MGH volume is given by
-
-    0 1  0
-    1 0  1 = M3
-    0 0 -1
-
-    RAS coordinates inside MRI structure are given by
-
-    M4 = M3.inv(M2).M1
-  */
-
-  MATRIX *RasScanner,
-    *Scanner2dicom,
-    *InvScanner2Dicom,
-    *RasMgh,
-    *VolumeCenterXyz,
-    *VolumeCenterRas;
-  int zdir=0, zor;
-  double centerX, centerY, centerZ;
-
-  RasScanner=MatrixAlloc(3, 3, 1);
-  RasScanner->rptr[1][1]=-1.;
-  RasScanner->rptr[2][2]=-1.;
-  RasScanner->rptr[3][3]=1.;
-  
-  Scanner2dicom=MatrixAlloc(3, 3, 1);
-  Scanner2dicom->rptr[1][1]=myRound(dcm->ImageOrientation[0]);
-  Scanner2dicom->rptr[2][1]=myRound(dcm->ImageOrientation[1]);
-  Scanner2dicom->rptr[3][1]=myRound(dcm->ImageOrientation[2]);
-  Scanner2dicom->rptr[1][2]=myRound(dcm->ImageOrientation[3]);
-  Scanner2dicom->rptr[2][2]=myRound(dcm->ImageOrientation[4]);
-  Scanner2dicom->rptr[3][2]=myRound(dcm->ImageOrientation[5]);
-
-  if (myRound(dcm->ImageOrientation[0])!=0)
-    {
-      if (myRound(dcm->ImageOrientation[4])!=0)
-  zdir=2; /*E* MRI_HORIZONTAL */
-      else
-  zdir=1; /*E* MRI_CORONAL */
-    }
-  else if (myRound(dcm->ImageOrientation[1])!=0)
-    {
-      if (myRound(dcm->ImageOrientation[3])!=0)
-  zdir=2; /*E* MRI_HORIZONTAL */
-      else
-  zdir=0; /*E* MRI_SAGITTAL */
-    }
-  else if (myRound(dcm->ImageOrientation[2])!=0)
-    {
-      if (myRound(dcm->ImageOrientation[3])!=0)
-  zdir=1; /*E* MRI_CORONAL */
-      else
-  zdir=0; /*E* MRI_SAGITTAL */
-    }
-  else
-    printf("WARNING: DICOM orientation problems\n");
-
-#ifdef _DEBUG
-  printf("image orientation:\n");
-  for (i=0; i<3; i++)
-    printf("%g\t", dcm->ImageOrientation[i]);
-  printf("\n");
-  for (i=3; i<6; i++)
-    printf("%g\t", dcm->ImageOrientation[i]);
-  printf("\n");
-  printf("first image position:\n");
-  for (i=0; i<3; i++)
-    printf("%g\t", dcm->FirstImagePosition[i]);
-  printf("\n");
-  printf("last image position:\n");
-  for (i=0; i<3; i++)
-    printf("%g\t", dcm->LastImagePosition[i]);
-  printf("\n");
-#endif
-
-
-  if (dcm->LastImagePosition[zdir]>dcm->FirstImagePosition[zdir])
-    zor=+1;
-  else 
-    zor=-1;
-    
-  Scanner2dicom->rptr[zdir+1][3]=zor;
-#ifdef _DEBUG
-  printf("matrix %s\n", "Scanner2dicom");
-  MatrixPrint(stdout, Scanner2dicom);
-#endif
-  InvScanner2Dicom=MatrixInverse(Scanner2dicom, NULL);
-#ifdef _DEBUG
-  printf("matrix %s\n", "InvScanner2Dicom");
-  MatrixPrint(stdout, InvScanner2Dicom);
-#endif
-  RasMgh=MatrixMultiply(InvScanner2Dicom, RasScanner, NULL);
-#ifdef _DEBUG
-  printf("matrix %s\n", "RasMg");
-  MatrixPrint(stdout, RasMgh);
-#endif
-  
-  mri->x_r=RasMgh->rptr[1][1];
-  mri->y_r=RasMgh->rptr[2][1];
-  mri->z_r=RasMgh->rptr[3][1];
-  mri->x_a=RasMgh->rptr[1][2];
-  mri->y_a=RasMgh->rptr[2][2];
-  mri->z_a=RasMgh->rptr[3][2];
-  mri->x_s=RasMgh->rptr[1][3];
-  mri->y_s=RasMgh->rptr[2][3];
-  mri->z_s=RasMgh->rptr[3][3];
-
-  // DICOM tag (20, 32) (Image Position) gives the coordinates of the center of the first pixel transmitted, relatively to the scanner
- 
-  VolumeCenterXyz=MatrixAlloc(3, 1, 1);
-
-  //  VolumeCenterXyz->rptr[1][1]=(dcm->FirstImagePosition[0]+dcm->LastImagePosition[0])/2.;
-  centerX=(dcm->FirstImagePosition[0]+dcm->LastImagePosition[0])/2.;
-  centerY=(dcm->FirstImagePosition[1]+dcm->LastImagePosition[1])/2.;
-  centerZ=(dcm->FirstImagePosition[2]+dcm->LastImagePosition[2])/2.;
-
-  switch (zdir)
-    {
-    case 0:  
-      // slices along the x direction, sagittal
-      // (x, y, z) scanner = (z, y, x) image
-      centerY+=dcm->ysize*((double)dcm->Rows-0.5);
-      centerZ+=dcm->xsize*((double)dcm->Columns-0.5);
-      break;
-    case 1:  
-      // slices along the y direction, coronal
-      // (x, y, z) scanner = (x, z, y) image
-      centerX+=dcm->xsize*((double)dcm->Rows-0.5);
-      centerZ+=dcm->ysize*((double)dcm->Columns-0.5);
-      break;
-    case 2:  
-      // slices along the z direction, transaxial
-      // (x, y, z) scanner = (x, y, z) image
-      centerX+=dcm->xsize*((double)dcm->Rows-0.5);
-      centerY+=dcm->ysize*((double)dcm->Columns-0.5);
-      break;
-    }
-
-  VolumeCenterXyz->rptr[1][1]=centerX;
-  VolumeCenterXyz->rptr[2][1]=centerY;
-  VolumeCenterXyz->rptr[3][1]=centerZ;
-
-  VolumeCenterRas=MatrixMultiply(RasScanner, VolumeCenterXyz, NULL);
-
-  mri->c_r=VolumeCenterRas->rptr[1][1];
-  mri->c_a=VolumeCenterRas->rptr[2][1];
-  mri->c_s=VolumeCenterRas->rptr[3][1];
-  
-  mri->ras_good_flag=1;
-
-  MatrixFree(&RasScanner);
-  MatrixFree(&Scanner2dicom);
-  MatrixFree(&InvScanner2Dicom);
-  MatrixFree(&RasMgh);
-  MatrixFree(&VolumeCenterXyz);
-  MatrixFree(&VolumeCenterRas);
-
-  /*E*
-  MRIdump(mri, stderr);
-  *E*/
-
-  return 0;
-}
-
-#else
-
 /*******************************************************
    RASFromOrientation
    Author: E'beth Haley
@@ -4073,8 +3890,16 @@ int RASFromOrientation(MRI *mri, DICOMInfo *dcm)
    called-by: DICOMInfo2MRI
 *******************************************************/
 
-// #define _RASFDEBUG
-#define _FIRSTMINUSLAST
+void DebugPrint(FILE *fp, const char *msg, ...)
+{
+#ifndef __OPTIMIZE
+  va_list ap;
+  va_start(ap, msg);
+  vfprintf(fp, msg, ap);
+  va_end(ap);
+#endif
+}
+
 
 int RASFromOrientation(MRI *mri, DICOMInfo *dcm)
 
@@ -4162,17 +3987,13 @@ int RASFromOrientation(MRI *mri, DICOMInfo *dcm)
        dcm->FirstImagePosition - wait, those are off by factors of -1,
        -1, 1 from each other.
 
-       Doug's Siemens code uses dcmImagePosition, which multiplies x
-       and y by -1.  Sebastien's GE code multiplies by diag(-1,-1,1) =
-       his M1=RasScanner for "RAS coordinates inside scanner, if and
-       only if patient is lying supine head first."  So Doug's code
-       should apply just fine to this.
+       The reason is that DICOM coordinate system is LPS, meanwhile
+       we use RAS coordinate system. that is why (-1,-1,1) multiplication
+       occurs.   
 
-       If you have strong feelings that I'm wrong about s[i] =
-       dcm->FirstImagePosition[i] - dcm->LastImagePosition[i];,
-       undefine _FIRSTMINUSLAST, because, sure, maybe last minus first
-       is right.  I'm open-minded on the subject - but the by-hand
-       calculations of c_ras come out right.
+       Note that FirstImagePosition and LastImagePosition are
+       in LPS coordinate system.  In order to obtain the RAS direction cosine,
+       you have to change them to RAS by mutliplying (-1,-1,1).
 
        n[3] = [ width, height, depth ] = { dcm->Columns -1, dcm->Rows
        -1, dcm->NumberOfFrames -1 }
@@ -4186,81 +4007,75 @@ int RASFromOrientation(MRI *mri, DICOMInfo *dcm)
 
   int i,j, n[3];
 
+  // note Doug does the conversion from LPS to RAS and thus
+  // these have the correct values
   dcmImageDirCos(dcm->FileName, c, c+1, c+2, r, r+1, r+2);
 
-  /*E* This next bit should probably become dcmSliceDirCos */
-  rms = 0.0;
-  for (i=0; i<3; i++)
+  // slice direction is not given in dicom
+  //
+  // we had to calculate
+  // one way is to use the image position to do so
+  // if number of slice is greater than one.
+  // 
+  // The image position is given in DICOM coordinate system, which is a 
+  // LPS (left-posterior-superior) coordinate system.  We are interested in 
+  // RAS (right-anterior-superior) coordinate system.  
+  // The first two coordinates sign flips, but not the last.  
+  //
+  // Actually if you used dcmImagePosition(), then this would be the case!
+  //
+  // Mixing Sebastian routines with Doug routines is a bad thing to do :-(...
+  // 
+  if (dcm->NumberOfFrames > 1) // means = NSlices > 0
+  {
+    rms = 0.0;
+    for (i=0; i<3; i++)
     {
-#ifdef _FIRSTMINUSLAST
-      s[i] = dcm->FirstImagePosition[i] - dcm->LastImagePosition[i];
-#else
-      s[i] = dcm->LastImagePosition[i] - dcm->FirstImagePosition[i];
-#endif
+      if (i < 2) // convert LP to RA
+	s[i] = dcm->FirstImagePosition[i] - dcm->LastImagePosition[i];
+      else       // S stays the same
+	s[i] = dcm->LastImagePosition[i] - dcm->FirstImagePosition[i];
       rms += s[i]*s[i];
     }
-  rms = sqrt(rms);
-  for (i=0; i<3; i++)
-    {
+    rms = sqrt(rms);
+    for (i=0; i<3; i++)
       s[i]/=rms;
-#ifdef _RASFDEBUG
-      fprintf(stderr, "s[%d] = %f\t", i, s[i]);
-#endif
-    }
-#ifdef _RASFDEBUG
-  fprintf(stderr, "\n\n");
-#endif
+  }
+  else
+  {
+    // build s[i] from c[i] and r[i] 
+    // there is an ambiguity in sign due to left-handed or right-handed coords
+    // we pick right-handed.  It does not matter anyway.
+    // note that c[] and r[] are normalized already and thus no need to calculate
+    // the normalization factor.
+    s[0] = c[1]*r[2] - c[2]*r[1];
+    s[1] = c[2]*r[0] - c[0]*r[2];
+    s[2] = c[0]*r[1] - c[1]*r[0];
+  }
 
-  /*E* fill in the columns of the Matrix of Direction Cosines.  */
-#ifdef _RASFDEBUG
-  fprintf(stderr, "Mdc = \n");
-#endif
   for (i=0; i<3; i++)
-    {
-      Mdc[i][0] = c[i];
-      Mdc[i][1] = r[i];
-      Mdc[i][2] = s[i];
-#ifdef _RASFDEBUG
-      fprintf (stderr, "[ %f %f %f ]\n", Mdc[i][0], Mdc[i][1], Mdc[i][2]);
-#endif
-    }
+  {
+    Mdc[i][0] = c[i];
+    Mdc[i][1] = r[i];
+    Mdc[i][2] = s[i];
+  }
 
+  // when one slice is given, it is zero
   dcmGetVolRes(dcm->FileName, Delta, Delta+1, Delta+2);
-#ifdef _RASFDEBUG
-  fprintf (stderr, "Delta = %f, %f, %f\n", Delta[0], Delta[1], Delta[2]);
-#endif
-
-  /*E*  T3x3 =  Mdc * diag(Delta's)  */
-#ifdef _RASFDEBUG
-  fprintf(stderr, "T3x3 = \n");
-#endif
   for (i=0; i<3; i++)
-    {
-#ifdef _RASFDEBUG
-      fprintf (stderr, "[ ");
-#endif
-      for (j=0; j<3; j++)
-	{ 
-	  T3x3[i][j] = Mdc[i][j] * Delta[j];
-#ifdef _RASFDEBUG
-	  fprintf (stderr, "%f ", T3x3[i][j]);
-#endif
-	}
-#ifdef _RASFDEBUG
-      fprintf (stderr, " ]\n");
-#endif
+  {
+    for (j=0; j<3; j++)
+    { 
+      T3x3[i][j] = Mdc[i][j] * Delta[j];
     }
+  }
   
   /* fill in n, number */
   n[0] = dcm->Columns -1;
   n[1] = dcm->Rows -1;
   n[2] = dcm->NumberOfFrames -1;  /*E* This is Slices :( */
+
   /*E* The -1 is for how many center-to-center lengths there are.  */
-  
-#ifdef _RASFDEBUG
-  fprintf(stderr, "n = %d\t%d\t%d\n\n", n[0], n[1], n[2]);
-#endif
-  
   /*E*
     Doug: c_ras = center = T * n /2.0
     
@@ -4273,36 +4088,18 @@ int RASFromOrientation(MRI *mri, DICOMInfo *dcm)
     dcmImagePosition differs from DICOM file first image position by
     factors of -1 -1 1.  Sebastien code also multiplies by
     diag{-1,-1,1}, so it should be fine to use dcmImagePosition.
-    
   */
-  
   dcmImagePosition(dcm->FileName, c_ras, c_ras+1, c_ras+2); /*E* = P_o */
-#ifdef _RASFDEBUG
-  fprintf(stderr,
-	  "dcmImagePosition, which converts LPS to RAS, gave: %f %f %f\n",
-	  c_ras[0], c_ras[1], c_ras[2]);
-#endif
 
   for (i=0; i<3; i++)
+  {
+    for (j=0; j<3; j++)
     {
-      for (j=0; j<3; j++)
-	{
-	  c_ras[i] += T3x3[i][j] * (float) n[j] /2.;
-#ifdef _RASFDEBUG
-	  fprintf(stderr,
-		  "c_ras[%d] += T3x3[%d][%d] * n[%d] /2.\n",
-		  i,i,j,j);
-	  fprintf(stderr,
-		  "adding T3x3[%d][%d] = %f, n[%d] = %d, T3x3[%d][%d] * n[%d] /2. = %f\n",
-		  i, j, T3x3[i][j], j, n[j], i, j, j, T3x3[i][j] * (float) n[j] /2.);
-#endif
-	}
+      c_ras[i] += T3x3[i][j] * (float) n[j] /2.;
     }
-
-#ifdef _RASFDEBUG
-  fprintf(stderr, "c_ras = %f\t%f\t%f\n\n", c_ras[0], c_ras[1], c_ras[2]);
-#endif
-
+  }
+  // printing a matrix, you can call call MatrixPrint(stdout, m) in gdb
+  // no need for #ifdef ..
   /*E* Now set mri values - the direction cosines.  I stole them
     straight from Sebastien's code, but - Are these backwards??  Ok,
     05aug02, transposed them: */
@@ -4321,21 +4118,8 @@ int RASFromOrientation(MRI *mri, DICOMInfo *dcm)
   mri->c_s = c_ras[2];
   mri->ras_good_flag = 1;
 
-#ifdef _RASFDEBUG
-  fprintf(stderr, "x_r = %f\t y_r = %f\t z_r = %f\t c_r = %f\t\n",
-	  mri->x_r, mri->y_r, mri->z_r, mri->c_r);
-  fprintf(stderr, "x_a = %f\t y_a = %f\t z_a = %f\t c_a = %f\t\n",
-	  mri->x_a, mri->y_a, mri->z_a, mri->c_a);
-  fprintf(stderr, "x_s = %f\t y_s = %f\t z_s = %f\t c_s = %f\t\n",
-	  mri->x_s, mri->y_s, mri->z_s, mri->c_s);
-#endif
-
-
-
   return 0;
 }
-
-#endif
 
 /*******************************************************
    DICOM16To8
@@ -4568,39 +4352,41 @@ int DICOMRead(char *FileName, MRI **mri, int ReadImage)
 	    FileName);
     exit(1);
   }
+  // no longer relies on the image number.
   // verify ImageNumber to be 1
-  if (aDicomInfo[inputIndex]->ImageNumber != 1)
-  {
-    fprintf(stderr, "The image number of the first image was not 1 for the list.  Exit.\n");
-    exit(1);
-  }
+  // if (aDicomInfo[inputIndex]->ImageNumber != 1)
+  // {
+  //   fprintf(stderr, "The image number of the first image was not 1 for the list.  Exit.\n");
+  //   exit(1);
+  // }
   if (nStudies > 1)
   {
     printf("Use %s as the starting filename for this extraction.\n", aDicomInfo[inputIndex]->FileName);
     printf("If like to use the different one, please pick one of the files listed above.\n");
   }
+  numFiles = nextIndex-inputIndex;
+  // verify with aDicomInfo->NumberOfFrames;
+  if (aDicomInfo[inputIndex]->NumberOfFrames != numFiles)
+  {
+    printf("WARNING: NumberOfFrames %d != Found Count of slices %d.\n",
+	   aDicomInfo[inputIndex]->NumberOfFrames,
+	   numFiles);
+  }
   // find the total number of files belonging to this list
   // the list has been sorted and thus look for the end.
   // numFiles = aDicomInfo[inputIndex]->NumberOfFrames; this is not reliable
   // use the ImageNumber directly
+  //
   // Watch out!!!!!!
   // Note that some dicom image consists of many images put into one
   // the increment of image number can be 30
   // If the image number increament is greater than one, we bail out
-  numFiles = 1; // i=0
-  for (i=inputIndex; i < nextIndex; ++i)
-  {
-    if (aDicomInfo[i]->ImageNumber >= numFiles)
-    {
-      numFiles = aDicomInfo[i]->ImageNumber;
-    }
-    else
-      break;
-  }
+  // 
   // non siemens dicom file cannot handle mosaic image
-  // nextIndex - inputIndex is the number of files.  numFiles is the one which
-  // counts subimages.
-  if (numFiles > (nextIndex- inputIndex))
+  // nextIndex - inputIndex is the number of files.  
+  // last image number - first image number > numfiles then must be mosaic
+  if ((aDicomInfo[nextIndex-1]->ImageNumber - aDicomInfo[inputIndex]->ImageNumber)
+       > numFiles)
   {
     fprintf(stderr, "Currently non-Siemens mosaic image cannot be handled.  Exit\n");
     exit(1);
