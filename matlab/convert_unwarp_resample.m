@@ -1,4 +1,4 @@
-% $Id: convert_unwarp_resample.m,v 1.7 2004/01/23 18:57:35 ebeth Exp $
+% $Id: convert_unwarp_resample.m,v 1.8 2004/01/23 21:05:58 ebeth Exp $
 %
 %% convert_unwarp_resample.m contains: 
 % convert_unwarp_resample()
@@ -145,9 +145,8 @@ end
 
 % We'll need ras_xform xyzc_ras, Mdc for GE throughplane projection
 % and c_ras for centering cor volume, if corfovflag:
-M0
-[Mdc, c_ras] = ras_xform_from_vox2ras_xform(M0,size(vol))
-keyboard
+[Mdc, c_ras] = ras_xform_from_vox2ras_xform(M0,size(vol));
+
 % Convert M to 1-based because that is what anders code expects
 M = vox2ras_0to1(M0);
 
