@@ -259,23 +259,29 @@ set gbAuxVolumeDirty 0
 set gbTalTransformPresent 0
 
 # determine the list of shortcut dirs for the file dlog boxes
-set glShortcutDirs {}
-if { [info exists env(SUBJECTS_DIR)] } {
-    lappend glShortcutDirs $env(SUBJECTS_DIR)
-    lappend glShortcutDirs $env(SUBJECTS_DIR)/subject
+proc BuildShortcutDirsList {} {
+    global glShortcutDirs gsSubjectDirectory env
+    set glShortcutDirs {}
+    if { [info exists env(SUBJECTS_DIR)] } {
+	lappend glShortcutDirs $env(SUBJECTS_DIR)
+    }
+    if { [info exists gsSubjectDirectory] } {
+	lappend glShortcutDirs $gsSubjectDirectory
+    }
+    if { [info exists env(FREESURFER_DATA)] } {
+	lappend glShortcutDirs $env(FREESURFER_DATA)
+    }
+    if { [info exists env(MRI_DIR)] } {
+	lappend glShortcutDirs $env(MRI_DIR)
+    }
+    if { [info exists env(PWD)] } {
+	lappend glShortcutDirs $env(PWD)
+    }
+    if { [info exists env(FSDEV_TEST_DATA)] } {
+	lappend glShortcutDirs $env(FSDEV_TEST_DATA)
+    }
 }
-if { [info exists env(FREESURFER_DATA)] } {
-    lappend glShortcutDirs $env(FREESURFER_DATA)
-}
-if { [info exists env(MRI_DIR)] } {
-    lappend glShortcutDirs $env(MRI_DIR)
-}
-if { [info exists env(PWD)] } {
-    lappend glShortcutDirs $env(PWD)
-}
-if { [info exists env(FSDEV_TEST_DATA)] } {
-    lappend glShortcutDirs $env(FSDEV_TEST_DATA)
-}
+BuildShortcutDirsList
 
 # ========================================================= UPDATES FROM MEDIT
 
@@ -518,6 +524,7 @@ proc UpdateAuxVolumeDirty { ibDirty } {
 proc UpdateSubjectDirectory { isSubjectDir } {
     global gsSubjectDirectory
     set gsSubjectDirectory $isSubjectDir
+    BuildShortcutDirsList
 }
 
 proc UpdateSegmentationColorTable { isColorTable } {
