@@ -2826,7 +2826,7 @@ TransformWrite(TRANSFORM *transform, char *fname)
 		return(GCAMwrite((GCA_MORPH *)(transform->xform), fname)) ;
 		break ;
 	default:
-		return(LTAwrite((LTA *)(transform->xform), fname)) ;
+		return(LTAwriteEx((LTA *)(transform->xform), fname)) ;
 		break ;
 	}
 	return(NO_ERROR) ;  /* will never get here */
