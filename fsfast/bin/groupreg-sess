@@ -1,7 +1,7 @@
 #!/bin/csh -f
 # groupreg-sess
 #
-set VERSION = '$Id: groupreg-sess,v 1.3 2004/11/20 00:23:21 greve Exp $';
+set VERSION = '$Id: groupreg-sess,v 1.4 2004/12/01 21:04:31 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -170,6 +170,7 @@ FLAXMatList = splitstring('$FLAXMatList');
 FLAConMat = '$FLAConMat';
 ninputs = size(InstemList,1);
 outdir = '$outdir';
+hemicode = '$hemicode';
 okfile = '$okfile';
 xmatfile = '$xmat';
 gconmatfile = '$gconmat';
