@@ -9,9 +9,9 @@
 */
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2004/04/02 22:08:37 $
-// Revision       : $Revision: 1.265 $
-char *MRI_C_VERSION = "$Revision: 1.265 $";
+// Revision Date  : $Date: 2004/04/21 21:53:52 $
+// Revision       : $Revision: 1.266 $
+char *MRI_C_VERSION = "$Revision: 1.266 $";
 
 /*-----------------------------------------------------
                     INCLUDE FILES
@@ -3709,7 +3709,7 @@ MRI *
 MRImultiply(MRI *mri1, MRI *mri2, MRI *mri_dst)
 {
   int     width, height, depth, x, y, z ;
-  BUFTYPE *p1, *p2, *pdst ;
+	float   f1, f2 ;
 
   width = mri1->width ;
   height = mri1->height ;
@@ -3725,11 +3725,12 @@ MRImultiply(MRI *mri1, MRI *mri2, MRI *mri_dst)
   {
     for (y = 0 ; y < height ; y++)
     {
-      p1 = mri1->slices[z][y] ;
-      p2 = mri2->slices[z][y] ;
-      pdst = mri_dst->slices[z][y] ;
-      for (x = 0 ; x < width ; x++)
-        *pdst++ = *p1++ * *p2++ ;
+			for (x = 0 ; x < width ; x++)
+			{
+				f1 = MRIgetVoxVal(mri1, x, y, z, 0) ;
+				f2 = MRIgetVoxVal(mri2, x, y, z, 0) ;
+				MRIsetVoxVal(mri_dst, x, y, z, 0, f1*f2) ;
+			}
     }
   }
   return(mri_dst) ;
@@ -10882,5 +10883,34 @@ MRInormalizeSequence(MRI *mri, float target)
   }
 
   return(NO_ERROR) ;
+}
+
+double
+MRImeanInLabel(MRI *mri_src, MRI *mri_labeled, int label)
+{
+	int  x, y, z, nvox, l ;
+	double mean = 0.0 ;
+	float  val ;
+
+	nvox = 0 ;
+	for (x = 0 ; x < mri_src->width ; x++)
+	{
+		for (y = 0 ; y < mri_src->height ; y++)
+		{
+			for (z = 0 ; z < mri_src->depth ; z++)
+			{
+				l = nint(MRIgetVoxVal(mri_labeled, x, y, z, 0)) ;
+				if (l == label)
+				{
+					val = MRIgetVoxVal(mri_src, x, y, z, 0) ;
+					mean += val ;
+					nvox++ ;
+				}
+			}
+		}
+	}
+	if (!nvox)
+		nvox = 1 ;
+	return(mean/nvox) ;
 }
 

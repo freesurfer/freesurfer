@@ -1404,6 +1404,53 @@ MRIreplaceValues(MRI *mri_src, MRI *mri_dst, BUFTYPE in_val, BUFTYPE out_val)
         Description
 ------------------------------------------------------*/
 MRI *
+MRImeanMask(MRI *mri_src, MRI *mri_mask, MRI *mri_dst,int mask, int wsize)
+{
+  int     width, height, depth, x, y, z, mask_val;
+  BUFTYPE *pmask ;
+  float   val ;
+
+  width = mri_src->width ;
+  height = mri_src->height ;
+  depth = mri_src->depth ;
+
+  if (!mri_dst)
+    mri_dst = MRIclone(mri_src, NULL) ;
+
+  if (mri_src->type != mri_dst->type)
+    ErrorReturn(NULL,
+                (ERROR_UNSUPPORTED, "MRImask: src and dst must be same type")) ;
+
+  for (z = 0 ; z < depth ; z++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      pmask = &MRIvox(mri_mask, 0, y, z) ;
+      for (x = 0 ; x < width ; x++)
+      {
+				if (x == Gx && y == Gy && z == Gz)
+					DiagBreak() ;
+				mask_val = MRIgetVoxVal(mri_mask, x, y, z, 0) ;
+				val = MRIgetVoxVal(mri_src, x, y, z, 0) ;
+					
+				if (mask_val == mask)
+				{
+					val = MRIvoxelMean(mri_src, x, y, z, wsize) ;
+				}
+				MRIsetVoxVal(mri_dst, x, y, z, 0, val) ;
+      }
+    }
+  }
+  return(mri_dst) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+MRI *
 MRImask(MRI *mri_src, MRI *mri_mask, MRI *mri_dst,int mask,float out_val)
 {
   int     width, height, depth, x, y, z, mask_val;

@@ -174,8 +174,8 @@ MRIvoxelGradient(MRI *mri, int x,int y,int z,float *pdx,float *pdy,float *pdz)
 float
 MRIvoxelMean(MRI *mri, int x0, int y0, int z0, int wsize)
 {
-  float   mean  ;
-  int     whalf, width, height, depth, x, y, z, npix, total, xmin, xmax,
+  float   mean, total  ;
+  int     whalf, width, height, depth, x, y, z, npix, xmin, xmax,
           ymin, ymax, zmin, zmax ;
   BUFTYPE *psrc ;
 
@@ -199,7 +199,7 @@ MRIvoxelMean(MRI *mri, int x0, int y0, int z0, int wsize)
     {
       psrc = &MRIvox(mri, xmin, y, z) ;
       for (x = xmin ; x <= xmax ; x++)
-        total += *psrc++ ;
+        total += MRIgetVoxVal(mri, x, y, z, 0) ;
     }
   }
   if (npix > 0)
