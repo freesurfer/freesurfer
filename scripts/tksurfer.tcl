@@ -117,6 +117,8 @@ set gaLinkedVars(fmin) 0
 set gaLinkedVars(fmax) 0
 set gaLinkedVars(cslope) 0
 set gaLinkedVars(cmid) 0
+set gaLinkedVars(cmin) 0
+set gaLinkedVars(cmax) 0
 set gaLinkedVars(angle_cycles) 0
 set gaLinkedVars(angle_offset) 0
 set gaLinkedVars(sulcflag) 0
@@ -143,7 +145,7 @@ array set gaLinkedVarGroups {
     overlay { colscale truncphaseflag invphaseflag revphaseflag \
       complexvalflag foffset fthresh fmid fslope fmin fmax \
       fnumtimepoints fnumconditions ftimepoint fcondition}
-    curvature { cslope cmid }
+    curvature { cslope cmid cmin cmax }
     phase { angle_offset angle_cycles }
     inflate { sulcflag }
     view { surfcolor vertexset overlayflag scalebarflag colscalebarflag \
@@ -291,6 +293,7 @@ set glLabel { \
   kLabel_Amplitude \
   kLabel_Angle \
   kLabel_Degree \
+  kLabel_Label \
   kLabel_Annotation \
   kLabel_MRIValue \
   kLabel_Parcellation_Name }
@@ -318,6 +321,7 @@ set gsaLabelContents(kLabel_ValStat,name)           "Overlay Layer 5"
 set gsaLabelContents(kLabel_Amplitude,name)         "Amplitude"
 set gsaLabelContents(kLabel_Angle,name)             "Angle"
 set gsaLabelContents(kLabel_Degree,name)            "Degree"
+set gsaLabelContents(kLabel_Label,name)             "Label"
 set gsaLabelContents(kLabel_Annotation,name)        "Annotation"
 set gsaLabelContents(kLabel_MRIValue,name)          "MRI Value"
 set gsaLabelContents(kLabel_Parcellation_Name,name) "Parcellation: "
@@ -635,7 +639,7 @@ proc DoConfigCurvatureDisplayDlog {} {
 
   tkm_MakeSliders $fwThresholdSliders [list \
     [list {"Threshold midpoint"} gaLinkedVars(cmid) \
-    -1 1 100 {} 1 0.05 ]]
+    $gaLinkedVars(cmin) $gaLinkedVars(cmax) 100 {} 1 0.05 ]]
   tkm_MakeEntry $fwThresholdSlope "Threshold slope" \
     gaLinkedVars(cslope) 6
 
@@ -1343,6 +1347,11 @@ proc CreateMenuBar { ifwMenuBar } {
       "Degree" \
       "ShowLabel kLabel_Degree $gbShowLabel(kLabel_Degree)"\
       gbShowLabel(kLabel_Degree) } \
+      { check \
+      "Label" \
+      "ShowLabel kLabel_Label $gbShowLabel(kLabel_Label)"\
+      gbShowLabel(kLabel_Label) \
+      mg_LabelLoaded } \
       { check \
       "Annotation" \
       "ShowLabel kLabel_Annotation $gbShowLabel(kLabel_Annotation)"\
