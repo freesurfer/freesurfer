@@ -149,6 +149,8 @@ StatReadVolume(char *prefix)
   }
   else
   {
+    fprintf(stderr,"WARNING: %s: StatReadVolume():\n",Progname);
+    fprintf(stderr,"%s does not exist\n",fname);
     sv->nevents = 1 ;
     sv->time_per_event = 0 ;  /* will be filled in later by .dat file */
   }
@@ -172,6 +174,11 @@ StatReadVolume(char *prefix)
       sv->std_dofs[event_number] = (float)dof_sigma ;
     }
     fclose(fp) ;
+  }
+  else
+  {
+    fprintf(stderr,"WARNING: %s: StatReadVolume():\n",Progname);
+    fprintf(stderr,"%s does not exist\n",fname);
   }
 
   /* count # of slices */
@@ -726,6 +733,13 @@ StatAccumulateTalairachVolume(SV *sv_tal, SV *sv)
          syoff, szoff ;
   VECTOR *v_struct, *v_func ;
   MRI    *mri_avg, *mri_std ;
+
+  if(!sv){
+    fprintf(stderr,"ERROR: %s: StatAccumulateTalairachVolume():\n",Progname);
+    fprintf(stderr,"Input stat volume is null\n");
+    fprintf(stderr,"%s: %d\n",__FILE__,__LINE__);
+    exit(1);
+  }
 
   v_func = VectorAlloc(4, MATRIX_REAL) ;
   v_struct = VectorAlloc(4, MATRIX_REAL) ;
