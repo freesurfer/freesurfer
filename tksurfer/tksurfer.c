@@ -21192,7 +21192,7 @@ int sclv_send_current_field_info ()
     {
       sprintf (cmd, "UpdateLinkedVarGroup overlay");
       Tcl_Eval (g_interp, cmd);
-      sprintf (cmd, "UpdateOverlayDlogInfo");
+      sprintf (cmd, "OverlayLayerChanged");
       Tcl_Eval (g_interp, cmd);
     }
   
