@@ -86,6 +86,7 @@ typedef struct vertex_type_
   float  imag_val ;       /* imaginary part of complex data value */
   float  cx, cy, cz ;     /* coordinates in canonical coordinate system */
   float  tx, ty, tz ;     /* tmp coordinate storage */
+  float  tx2, ty2, tz2 ;     /* tmp coordinate storage */
   float  origx, origy,
          origz ;          /* original coordinates */
   float  pialx, pialy, pialz ;  /* pial surface coordinates */
@@ -326,6 +327,7 @@ typedef struct
   float   l_corr ;            /* coefficient of correlation term */
   float   l_pcorr ;           /* polar correlation for rigid body */
   float   l_curv ;            /* coefficient of curvature term */
+  float   l_scurv ;            /* coefficient of curvature term */
   float   l_spring ;          /* coefficient of spring term */
   float   l_spring_norm ;     /* coefficient of normalize spring term */
   float   l_tspring ;         /* coefficient of tangential spring term */
@@ -652,6 +654,7 @@ MRI_SP  *MRISPandLabel(MRI_SP *mrisp, MRI_SURFACE *mris, LABEL *area) ;
 #define INFLATED_VERTICES   5
 #define FLATTENED_VERTICES  6
 #define PIAL_VERTICES       7
+#define TMP2_VERTICES       8
 
 
 int          MRISsaveVertexPositions(MRI_SURFACE *mris, int which) ;
