@@ -132,7 +132,9 @@ RGB_IMAGE *icreate();
 
 */
 
-unsigned short *ibufalloc();
+/* RKT: why is there a second definition here? why hasn't anything
+   complained before? */
+/* unsigned short *ibufalloc(); */
 
 #define IMAGEDEF    /* for backwards compatibility */
 #ifdef __cplusplus
