@@ -52,6 +52,7 @@ typedef struct
   General_transform transform ;   /* the next two are from this struct */
   Transform         *linear_transform ;
   Transform         *inverse_linear_transform ;
+  int           free_transform ;   /* are we responsible for freeing it? */
 } MRI_IMAGE, MRI ;
 
 /* I/O functions */
