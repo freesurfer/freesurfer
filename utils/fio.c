@@ -373,3 +373,17 @@ int fio_DirIsWritable(char *dirname, int fname)
 
   return(1);
 }
+/*-----------------------------------------------------
+  fio_FileExistsReadable() - file exists and is readable
+  -----------------------------------------------------*/
+int fio_FileExistsReadable(char *fname)
+{
+  FILE *fp;
+
+  fp = fopen(fname,"r");
+  if(fp != NULL){
+    fclose(fp);
+    return(1);
+  }
+  return(0);
+}
