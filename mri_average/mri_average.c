@@ -11,6 +11,7 @@
 #include "mrimorph.h"
 #include "mri_conform.h"
 #include "utils.h"
+#include "timer.h"
 
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
@@ -35,7 +36,7 @@ static double rzrot = 0.0 ;
 static double rxrot = 0.0 ;
 static double ryrot = 0.0 ;
 static int thresh_low = 0 ;
-
+static int nreductions = 1 ;
 static int conform = 1 ;
 
 
@@ -46,13 +47,16 @@ main(int argc, char *argv[])
   int    ac, nargs, i ;
   MRI    *mri_src, *mri_avg = NULL, *mri_tmp ;
   char   *in_fname, *out_fname ;
+  int          msec, minutes, seconds ;
+  struct timeb start ;
 
   Progname = argv[0] ;
   ErrorInit(NULL, NULL, NULL) ;
   DiagInit(NULL, NULL, NULL) ;
 
+  TimerStart(&start) ;
   parms.dt = 1e-6 ;
-  parms.tol = 1e-6 ;
+  parms.tol = 1e-5 ;
   parms.momentum = 0.0 ;
   parms.niterations = 20 ;
 
@@ -103,6 +107,7 @@ main(int argc, char *argv[])
         MRIfree(&mri_src) ;
         mri_src = mri_tmp ;
       }
+#if 1
       if (!FZERO(rzrot))
       {
         MRI *mri_tmp ;
@@ -110,7 +115,7 @@ main(int argc, char *argv[])
         fprintf(stderr,
                 "rotating second volume by %2.1f degrees around Z axis\n",
                 (float)DEGREES(rzrot)) ;
-        mri_tmp = MRIrotateZ(mri_src, NULL, rzrot) ;
+        mri_tmp = MRIrotateZ_I(mri_src, NULL, rzrot) ;
         MRIfree(&mri_src) ;
         mri_src = mri_tmp ;
       }
@@ -121,7 +126,7 @@ main(int argc, char *argv[])
         fprintf(stderr,
                 "rotating second volume by %2.1f degrees around X axis\n",
                 (float)DEGREES(rxrot)) ;
-        mri_tmp = MRIrotateX(mri_src, NULL, rxrot) ;
+        mri_tmp = MRIrotateX_I(mri_src, NULL, rxrot) ;
         MRIfree(&mri_src) ;
         mri_src = mri_tmp ;
       }
@@ -132,11 +137,36 @@ main(int argc, char *argv[])
         fprintf(stderr,
                 "rotating second volume by %2.1f degrees around Y axis\n",
                 (float)DEGREES(ryrot)) ;
-        mri_tmp = MRIrotateY(mri_src, NULL, ryrot) ;
+        mri_tmp = MRIrotateY_I(mri_src, NULL, ryrot) ;
         MRIfree(&mri_src) ;
         mri_src = mri_tmp ;
       }
-#if 1
+#else
+      if (!FZERO(ryrot) || !FZERO(rxrot) || !FZERO(rzrot))
+      {
+        MRI *mri_tmp ;
+        MATRIX *mX, *mY, *mZ, *mRot, *mTmp ;
+
+        mX = MatrixAllocRotation(3, x_angle, X_ROTATION) ;
+        mY = MatrixAllocRotation(3, y_angle, Y_ROTATION) ;
+        mZ = MatrixAllocRotation(3, z_angle, Z_ROTATION) ;
+        mTmp = MatrixMultiply(mX, mZ, NULL) ;
+        mRot = MatrixMultiply(mY, mTmp, NULL)
+        fprintf(stderr,
+                "rotating second volume by (%2.1f, %2.1f, %2.1f) degrees\n",
+                (float)DEGREES(rxrot), (float)DEGREES(ryrot)
+                (float)DEGREES(rzrot)) ;
+
+        mri_tmp = MRIrotate_I(mri_src, NULL, mRot, NULL) ;
+        MRIfree(&mri_src) ;
+        mri_src = mri_tmp ;
+
+        MatrixFree(&mX) ; MatrixFree(&mY) ; MatrixFree(&mZ) ;
+        MatrixFree(&mTmp) ; MatrixFree(&mRot) ;
+      }
+#endif
+
+#if 0
       if (!FZERO(rxrot) || !FZERO(ryrot) || !FZERO(rzrot))
         MRIwrite(mri_src, "/disk2/mri/tamily/mri/tmp") ;
 #endif
@@ -156,6 +186,12 @@ main(int argc, char *argv[])
   fprintf(stderr, "writing to %s...\n", out_fname) ;
   MRIwrite(mri_avg, out_fname) ;
   MRIfree(&mri_avg) ;
+  msec = TimerStop(&start) ;
+  seconds = nint((float)msec/1000.0f) ;
+  minutes = seconds / 60 ;
+  seconds = seconds % 60 ;
+  fprintf(stderr, "alignment and averaging took %d minutes and %d seconds.\n",
+          minutes, seconds) ;
   exit(0) ;
   return(0) ;
 }
@@ -187,6 +223,13 @@ get_option(int argc, char *argv[])
   {
     conform = 1 ;
     fprintf(stderr, "interpolating volume to be isotropic 1mm^3\n") ;
+  }
+  else if (!stricmp(option, "reduce"))
+  {
+    nreductions = atoi(argv[2]) ;
+    nargs = 1 ;
+    fprintf(stderr, "reducing input images %d times before aligning...\n",
+            nreductions) ;
   }
   else if (!stricmp(option, "noconform"))
   {
@@ -251,7 +294,8 @@ static MRI *
 align_with_average(MRI *mri_src, MRI *mri_avg)
 {
   MRI     *mri_aligned, *mri_in_red, *mri_ref_red, *mri_tmp ;
-  MRI     *mri_in_windowed, *mri_ref_windowed ;
+  MRI     *mri_in_windowed, *mri_ref_windowed, *mri_in_tmp, *mri_ref_tmp ;
+  int     i ;
 
   fprintf(stderr, "initializing alignment using PCA...\n") ;
   if (Gdiag & DIAG_WRITE)
@@ -275,14 +319,20 @@ align_with_average(MRI *mri_src, MRI *mri_avg)
 #endif
 
   MRIscaleMeanIntensities(mri_in_windowed, mri_ref_windowed, mri_in_windowed);
-#define USE_REDUCED_IMAGES 0
-#if USE_REDUCED_IMAGES
-  mri_in_red = MRIreduceByte(mri_in_windowed, NULL) ;
-  mri_ref_red = MRIreduceByte(mri_ref_windowed,NULL);
-#else
-  mri_in_red = MRIcopy(mri_in_windowed, NULL) ;
-  mri_ref_red = MRIcopy(mri_ref_windowed,NULL);
-#endif
+
+  mri_in_red = mri_in_tmp = MRIcopy(mri_in_windowed, NULL) ;
+  mri_ref_red = mri_ref_tmp = MRIcopy(mri_ref_windowed, NULL) ;
+  for (i = 0 ; i < nreductions ; i++)
+  {
+    mri_in_red = MRIreduceByte(mri_in_tmp, NULL) ;
+    mri_ref_red = MRIreduceByte(mri_ref_tmp,NULL);
+    MRIfree(&mri_in_tmp); MRIfree(&mri_ref_tmp) ;
+    if (i < nreductions-1)
+    {
+      mri_in_tmp = MRIcopy(mri_in_red, NULL) ;
+      mri_ref_tmp = MRIcopy(mri_ref_red, NULL) ;
+    }
+  }
   parms.mri_ref = mri_avg ;
   parms.mri_in = mri_aligned ;  /* for diagnostics */
   MRIrigidAlign(mri_in_red, mri_ref_red, &parms) ;
@@ -303,7 +353,7 @@ align_with_average(MRI *mri_src, MRI *mri_avg)
 static MRI *
 align_pca(MRI *mri_in, MRI *mri_ref)
 {
-  int    row, col ;
+  int    row, col, i ;
   float  dot ;
   MATRIX *m_ref_evectors = NULL, *m_in_evectors = NULL ;
   float  in_evalues[3], ref_evalues[3] ;
@@ -329,9 +379,29 @@ align_pca(MRI *mri_in, MRI *mri_ref)
                          ref_means, thresh_low);
   MRIprincipleComponents(mri_in,m_in_evectors,in_evalues,in_means,thresh_low);
 
-{
-  int i ;
+  /* check to make sure eigenvectors aren't reversed */
+  for (col = 1 ; col <= 3 ; col++)
+  {
+#if 0
+    float theta ;
+#endif
 
+    for (dot = 0.0f, row = 1 ; row <= 3 ; row++)
+      dot += m_in_evectors->rptr[row][col] * m_ref_evectors->rptr[row][col] ;
+
+    if (dot < 0.0f)
+    {
+      fprintf(stderr, "WARNING: mirror image detected in eigenvector #%d\n",
+              col) ;
+      dot *= -1.0f ;
+      for (row = 1 ; row <= 3 ; row++)
+        m_in_evectors->rptr[row][col] *= -1.0f ;
+    }
+#if 0
+    theta = acos(dot) ;
+    fprintf(stderr, "angle[%d] = %2.1f\n", col, DEGREES(theta)) ;
+#endif
+  }
   fprintf(stderr, "ref_evectors = \n") ;
   for (i = 1 ; i <= 3 ; i++)
     fprintf(stderr, "\t\t%2.2f    %2.2f    %2.2f\n",
@@ -345,30 +415,7 @@ align_pca(MRI *mri_in, MRI *mri_ref)
             m_in_evectors->rptr[i][1],
             m_in_evectors->rptr[i][2],
             m_in_evectors->rptr[i][3]) ;
-}
-  /* check to make sure eigenvectors aren't reversed */
-  for (col = 1 ; col <= 3 ; col++)
-  {
-#if 0
-    float theta ;
-#endif
 
-    for (dot = 0.0f, row = 1 ; row <= 3 ; row++)
-      dot += m_in_evectors->rptr[row][col] * m_ref_evectors->rptr[row][col] ;
-
-    if (dot < 0.0f)
-    {
-      fprintf(stderr, "WARNING: mirror image detected in %dth eigenvector!\n",
-              col) ;
-      dot *= -1.0f ;
-      for (row = 1 ; row <= 3 ; row++)
-        m_in_evectors->rptr[row][col] *= -1.0f ;
-    }
-#if 0
-    theta = acos(dot) ;
-    fprintf(stderr, "angle[%d] = %2.1f\n", col, DEGREES(theta)) ;
-#endif
-  }
   return(apply_pca(mri_in, mri_ref, NULL,
                       m_in_evectors, in_means,
                       m_ref_evectors, ref_means)) ;
@@ -417,7 +464,7 @@ apply_pca(MRI *mri_in, MRI *mri_ref, MRI *mri_reg,
 
   fprintf(stderr, "rotating volume by (%2.2f, %2.2f, %2.2f)\n",
           DEGREES(x_angle), DEGREES(y_angle), DEGREES(z_angle)) ;
-#if 0
+#if 1
   if (Gdiag & DIAG_WRITE)
     MRIwriteImageViews(mri_tmp, "after_trans", 400) ;
   fprintf(stderr, "rotation matrix:\n") ;
