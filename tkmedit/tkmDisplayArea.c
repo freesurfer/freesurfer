@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2003/10/02 20:58:18 $
-// Revision       : $Revision: 1.90 $
+// Revision Date  : $Date: 2003/10/31 20:10:28 $
+// Revision       : $Revision: 1.91 $
 
 #include "tkmDisplayArea.h"
 #include "tkmMeditWindow.h"
@@ -5362,9 +5362,9 @@ DspA_tErr DspA_DrawSelectionToFrame_ ( tkmDisplayAreaRef this ) {
   pFrame = this->mpFrameBuffer;
 
   if( mri_tOrientation_Horizontal == this->mOrientation ){
-    yMin = 0; yMax = this->mnVolumeSizeY; yInc = 1;
+    yMin = 0; yMax = this->mnVolumeSizeY-1; yInc = 1;
   } else {
-    yMin = this->mnVolumeSizeY; yMax = 0; yInc = -1;
+    yMin = this->mnVolumeSizeY-1; yMax = 0; yInc = -1;
   }
   
   /* Just loop through getting the anatomical color at this index. */
@@ -6814,10 +6814,12 @@ DspA_tErr DspA_SendPointInformationToTcl_ ( tkmDisplayAreaRef this,
   sprintf(sTclArguments, "%s %d %d %d", DspA_ksaDisplaySet[iSet], xVoxl_ExpandInt(&MRIIdx) ); 
   tkm_SendTclCommand( tkm_tTclCommand_UpdateVolumeCursor, sTclArguments );
 
+
   /* send the slice number */
   nSlice = DspA_GetCurrentSliceNumber_( this );
   sprintf( sTclArguments, "%d", nSlice );
   tkm_SendTclCommand( tkm_tTclCommand_UpdateVolumeSlice, sTclArguments );
+
   
   /* also convert to RAS and send those coords along. for these we
      actually use the surface RAS coords. */
@@ -6826,6 +6828,7 @@ DspA_tErr DspA_SendPointInformationToTcl_ ( tkmDisplayAreaRef this,
   sprintf( sTclArguments, "%s %.1f %.1f %.1f", 
 	   DspA_ksaDisplaySet[iSet], xVoxl_ExpandFloat( &voxel ) );
   tkm_SendTclCommand( tkm_tTclCommand_UpdateRASCursor, sTclArguments );
+
   
   /* also convert to mni and send those coords along. */
   if (NULL != this->mpVolume[tkm_tVolumeType_Main]->mpMriValues->linear_transform) {
@@ -6834,6 +6837,7 @@ DspA_tErr DspA_SendPointInformationToTcl_ ( tkmDisplayAreaRef this,
     sprintf( sTclArguments, "%s %.1f %.1f %.1f", 
              DspA_ksaDisplaySet[iSet], xVoxl_ExpandFloat( &voxel ) );
     tkm_SendTclCommand( tkm_tTclCommand_UpdateMNICursor, sTclArguments );
+
     
     /* and the tal coords */
     Volm_ConvertIdxToTal( this->mpVolume[tkm_tVolumeType_Main],
@@ -6842,6 +6846,7 @@ DspA_tErr DspA_SendPointInformationToTcl_ ( tkmDisplayAreaRef this,
              DspA_ksaDisplaySet[iSet], xVoxl_ExpandFloat( &voxel ) );
     tkm_SendTclCommand( tkm_tTclCommand_UpdateTalCursor, sTclArguments );
   }
+
   
   /* and the scanner coords. */
   Volm_ConvertIdxToScanner( this->mpVolume[tkm_tVolumeType_Main],
@@ -6849,6 +6854,7 @@ DspA_tErr DspA_SendPointInformationToTcl_ ( tkmDisplayAreaRef this,
   sprintf( sTclArguments, "%s %.1f %.1f %.1f", 
 	   DspA_ksaDisplaySet[iSet], xVoxl_ExpandFloat( &voxel ) );
   tkm_SendTclCommand( tkm_tTclCommand_UpdateScannerCursor, sTclArguments );
+
   
   /* also get the volume value and send that along. */
   Volm_GetValueAtMRIIdx_( this->mpVolume[tkm_tVolumeType_Main],
@@ -6892,6 +6898,7 @@ DspA_tErr DspA_SendPointInformationToTcl_ ( tkmDisplayAreaRef this,
     }
   
   tkm_SendTclCommand( tkm_tTclCommand_UpdateVolumeValue, sTclArguments );
+
   
   /* send aux volume value if it's loaded. */
   if( NULL != this->mpVolume[tkm_tVolumeType_Aux] ) 
@@ -6970,21 +6977,23 @@ DspA_tErr DspA_SendPointInformationToTcl_ ( tkmDisplayAreaRef this,
     sprintf( sTclArguments, "%s %f", DspA_ksaDisplaySet[iSet], funcValue );
     tkm_SendTclCommand( tkm_tTclCommand_UpdateFunctionalValue, 
 			sTclArguments );
+
     
     sprintf( sTclArguments, "%s %.1f %.1f %.1f", 
 	     DspA_ksaDisplaySet[iSet], xVoxl_ExpandFloat( &funcIdx ) );
     tkm_SendTclCommand( tkm_tTclCommand_UpdateFunctionalCoords, 
 			sTclArguments );
+
     
     sprintf( sTclArguments, "%s %.1f %.1f %.1f", 
 	     DspA_ksaDisplaySet[iSet], xVoxl_ExpandFloat( &funcRAS ) );
     tkm_SendTclCommand( tkm_tTclCommand_UpdateFunctionalRASCoords, 
 			sTclArguments );
   }
+
   
   /* and the seg label if we have one */
   if( NULL != this->mSegmentationVolume[tkm_tSegType_Main] ) {
-
 
     /* Get the value in ana idx space (this was messing up for some
        volumes with weird CRAS transforms) and get the corresponding
@@ -7001,8 +7010,7 @@ DspA_tErr DspA_SendPointInformationToTcl_ ( tkmDisplayAreaRef this,
 	strcpy( sLabel, "Out of bounds." );
       }
     }
-    
-    
+        
     /* if this is a click, and this is the seg volume we're looking
        at, set the index */
     if( DspA_tDisplaySet_Cursor == iSet &&
@@ -7037,6 +7045,7 @@ DspA_tErr DspA_SendPointInformationToTcl_ ( tkmDisplayAreaRef this,
     }
     tkm_SendTclCommand( tkm_tTclCommand_UpdateSegLabel, sTclArguments );
   }
+
   
   /* and the aux seg label if we have one */
   if( NULL != this->mSegmentationVolume[tkm_tSegType_Aux] ) {
@@ -7088,6 +7097,7 @@ DspA_tErr DspA_SendPointInformationToTcl_ ( tkmDisplayAreaRef this,
     }
     tkm_SendTclCommand( tkm_tTclCommand_UpdateAuxSegLabel, sTclArguments );
   }
+
   
   /* and the head point label if it's on */
   if( this->mabDisplayFlags[DspA_tDisplayFlag_HeadPoints]
@@ -7110,6 +7120,7 @@ DspA_tErr DspA_SendPointInformationToTcl_ ( tkmDisplayAreaRef this,
     }
     tkm_SendTclCommand( tkm_tTclCommand_UpdateHeadPointLabel, sTclArguments );
   }
+
   
   /* if we have gca data and this is the cursor, use gcadump to dump 
      the info to the screen */
@@ -7235,6 +7246,7 @@ DspA_tErr DspA_SendPointInformationToTcl_ ( tkmDisplayAreaRef this,
 	free( histoParams.masXAxisLabels[nValue] );
       free( histoParams.masXAxisLabels );
     }
+
   
 #if 0
   /* histogram example */
@@ -7308,6 +7320,7 @@ DspA_tErr DspA_SendPointInformationToTcl_ ( tkmDisplayAreaRef this,
     sprintf( sTclArguments, "%s %f", DspA_ksaDisplaySet[iSet], fDistance );
     tkm_SendTclCommand( tkm_tTclCommand_UpdateDistance, sTclArguments );
   }
+
   
   return DspA_tErr_NoErr;
 }
