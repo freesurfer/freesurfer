@@ -1,7 +1,7 @@
 #!/bin/csh -f
 # isxavg-re-sess - random effects intersubject averaging
 #
-set VERSION = '$Id: isxavg-re-sess,v 1.4 2004/04/07 17:32:56 greve Exp $'
+set VERSION = '$Id: isxavg-re-sess,v 1.5 2004/07/23 16:31:47 greve Exp $'
 set cmdargs = ($argv);
 
 set analysis    = ();
@@ -34,7 +34,7 @@ endif
 
 set SessList = (`getsesspath $argv`);
 if($status || $#SessList == 0) then
-  echo "ERROR: cannot find any sessions"
+  echo "$SessList"
   exit 1;
 endif
 
