@@ -851,6 +851,9 @@ TiffReadHeader(char *fname, IMAGE *I)
 
   switch (bits_per_sample)
   {
+  case 32:
+    type = PFFLOAT ;
+    break ;
   default:
   case 8:
     type = PFBYTE ;
@@ -888,12 +891,17 @@ TiffWriteImage(IMAGE *I, char *fname, int frame)
   {
   case PFBYTE:
     samples_per_pixel = 1 ;
-    bits_per_pixel = 8 ;
+    bits_per_pixel = sizeof(byte)*8 ;
+    break ;
+  case PFFLOAT:
+    samples_per_pixel = 1 ;
+    bits_per_pixel = sizeof(float)*8 ;
     break ;
   default:
     ErrorReturn(ERROR_UNSUPPORTED, 
                 (ERROR_UNSUPPORTED, 
-                 "TiffWrite: only PFBYTE currently supported")) ;
+                "TiffWrite: pixel format %d not supported currently supported",
+                 I->pixel_format)) ;
     samples_per_pixel = 3 ;
     bits_per_pixel = 8 ;
     break ;
