@@ -15,8 +15,9 @@
 #include "macros.h"
 #include "oglutil.h"
 #include "label.h"
+#include "version.h"
 
-static char vcid[] = "$Id: mris_show.c,v 1.32 2001/03/12 16:30:42 fischl Exp $";
+static char vcid[] = "$Id: mris_show.c,v 1.33 2003/04/17 18:59:13 kteich Exp $";
 
 
 /*-------------------------------- CONSTANTS -----------------------------*/
@@ -137,6 +138,12 @@ main(int argc, char *argv[])
                *cp, path[100], name[100] ;
   int          ac, nargs, i ;
   float        angle ;
+
+  /* rkt: check for and handle version tag */
+  nargs = handle_version_option (argc, argv, "$Id: mris_show.c,v 1.33 2003/04/17 18:59:13 kteich Exp $");
+  if (nargs && argc - nargs == 1)
+    exit (0);
+  argc -= nargs;
 
   memset(compiled, 0, sizeof(compiled)) ;
   Progname = argv[0] ;

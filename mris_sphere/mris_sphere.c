@@ -14,8 +14,9 @@
 #include "macros.h"
 #include "utils.h"
 #include "timer.h"
+#include "version.h"
 
-static char vcid[]="$Id: mris_sphere.c,v 1.25 2002/09/13 19:01:13 fischl Exp $";
+static char vcid[]="$Id: mris_sphere.c,v 1.26 2003/04/17 19:00:49 kteich Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -71,6 +72,12 @@ main(int argc, char *argv[])
   MRI_SURFACE  *mris ;
   struct timeb  then ;
   float         max_dim ;
+
+  /* rkt: check for and handle version tag */
+  nargs = handle_version_option (argc, argv, "$Id: mris_sphere.c,v 1.26 2003/04/17 19:00:49 kteich Exp $");
+  if (nargs && argc - nargs == 1)
+    exit (0);
+  argc -= nargs;
 
   Gdiag = DIAG_SHOW ;
 

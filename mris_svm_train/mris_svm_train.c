@@ -17,8 +17,9 @@
 #include "mrishash.h"
 #include "cvector.h"
 #include "svm.h"
+#include "version.h"
 
-static char vcid[] = "$Id: mris_svm_train.c,v 1.1 2002/01/15 16:11:43 fischl Exp $";
+static char vcid[] = "$Id: mris_svm_train.c,v 1.2 2003/04/17 19:03:49 kteich Exp $";
 
 
 /*-------------------------------- CONSTANTS -----------------------------*/
@@ -173,6 +174,12 @@ main(int argc, char *argv[])
     exit(0) ;
   }
 #endif
+
+  /* rkt: check for and handle version tag */
+  nargs = handle_version_option (argc, argv, "$Id: mris_svm_train.c,v 1.2 2003/04/17 19:03:49 kteich Exp $");
+  if (nargs && argc - nargs == 1)
+    exit (0);
+  argc -= nargs;
 
   Progname = argv[0] ;
   ErrorInit(NULL, NULL, NULL) ;

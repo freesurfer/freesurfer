@@ -15,8 +15,9 @@
 #include "mrishash.h"
 #include "icosahedron.h"
 #include "label.h"
+#include "version.h"
 
-static char vcid[] = "$Id: mris_spherical_average.c,v 1.8 2003/02/20 20:52:38 fischl Exp $";
+static char vcid[] = "$Id: mris_spherical_average.c,v 1.9 2003/04/17 19:01:19 kteich Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -50,6 +51,12 @@ main(int argc, char *argv[])
   MRI_SURFACE     *mris, *mris_avg ;
   MRIS_HASH_TABLE *mht = NULL ;
   LABEL           *area, *area_avg = NULL ;
+
+  /* rkt: check for and handle version tag */
+  nargs = handle_version_option (argc, argv, "$Id: mris_spherical_average.c,v 1.9 2003/04/17 19:01:19 kteich Exp $");
+  if (nargs && argc - nargs == 1)
+    exit (0);
+  argc -= nargs;
 
   Progname = argv[0] ;
   ErrorInit(NULL, NULL, NULL) ;

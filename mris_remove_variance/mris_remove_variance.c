@@ -12,8 +12,9 @@
 #include "mrisurf.h"
 #include "mri.h"
 #include "macros.h"
+#include "version.h"
 
-static char vcid[] = "$Id: mris_remove_variance.c,v 1.3 1998/07/29 21:45:14 fischl Exp $";
+static char vcid[] = "$Id: mris_remove_variance.c,v 1.4 2003/04/17 18:53:39 kteich Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -37,6 +38,12 @@ main(int argc, char *argv[])
   int          ac, nargs ;
   MRI_SURFACE  *mris ;
   double       r ;
+
+  /* rkt: check for and handle version tag */
+  nargs = handle_version_option (argc, argv, "$Id: mris_remove_variance.c,v 1.4 2003/04/17 18:53:39 kteich Exp $");
+  if (nargs && argc - nargs == 1)
+    exit (0);
+  argc -= nargs;
 
   Progname = argv[0] ;
   ErrorInit(NULL, NULL, NULL) ;

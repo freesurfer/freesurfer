@@ -13,8 +13,9 @@
 #include "mri.h"
 #include "macros.h"
 #include "label.h"
+#include "version.h"
 
-static char vcid[] = "$Id: mris_thickness_comparison.c,v 1.1 2002/03/18 14:31:32 fischl Exp $";
+static char vcid[] = "$Id: mris_thickness_comparison.c,v 1.2 2003/04/17 19:05:39 kteich Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -42,6 +43,12 @@ main(int argc, char *argv[])
   MRI_SURFACE        *mris ;
   double             mean_w, var_w, mean_thick, var_thick ;
   LABEL              *area ;
+
+  /* rkt: check for and handle version tag */
+  nargs = handle_version_option (argc, argv, "$Id: mris_thickness_comparison.c,v 1.2 2003/04/17 19:05:39 kteich Exp $");
+  if (nargs && argc - nargs == 1)
+    exit (0);
+  argc -= nargs;
 
   Progname = argv[0] ;
   ErrorInit(NULL, NULL, NULL) ;

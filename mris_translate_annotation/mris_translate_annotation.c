@@ -11,8 +11,9 @@
 #include "mrisurf.h"
 #include "mri.h"
 #include "macros.h"
+#include "version.h"
 
-static char vcid[] = "$Id: mris_translate_annotation.c,v 1.1 2002/10/22 18:25:44 fischl Exp $";
+static char vcid[] = "$Id: mris_translate_annotation.c,v 1.2 2003/04/17 19:06:55 kteich Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -34,6 +35,12 @@ main(int argc, char *argv[])
   char         *cp, fname[STRLEN], **av, *subject, *hemi, *in_annot, *trans_name, *out_annot ;
   int          ac, nargs ;
   MRI_SURFACE  *mris ;
+
+  /* rkt: check for and handle version tag */
+  nargs = handle_version_option (argc, argv, "$Id: mris_translate_annotation.c,v 1.2 2003/04/17 19:06:55 kteich Exp $");
+  if (nargs && argc - nargs == 1)
+    exit (0);
+  argc -= nargs;
 
   Gdiag = DIAG_SHOW ;
   Progname = argv[0] ;

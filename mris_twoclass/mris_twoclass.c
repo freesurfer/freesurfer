@@ -17,8 +17,9 @@
 #include "fio.h"
 #include "mrishash.h"
 #include "sig.h"
+#include "version.h"
 
-static char vcid[] = "$Id: mris_twoclass.c,v 1.6 2002/07/26 14:51:08 fischl Exp $";
+static char vcid[] = "$Id: mris_twoclass.c,v 1.7 2003/04/17 19:07:36 kteich Exp $";
 
 
 /*-------------------------------- CONSTANTS -----------------------------*/
@@ -227,6 +228,12 @@ main(int argc, char *argv[])
 
   if (write_flag && DIAG_VERBOSE_ON)
     fp = fopen("scalespace.dat", "w") ;
+
+  /* rkt: check for and handle version tag */
+  nargs = handle_version_option (argc, argv, "$Id: mris_twoclass.c,v 1.7 2003/04/17 19:07:36 kteich Exp $");
+  if (nargs && argc - nargs == 1)
+    exit (0);
+  argc -= nargs;
 
   Progname = argv[0] ;
   ErrorInit(NULL, NULL, NULL) ;

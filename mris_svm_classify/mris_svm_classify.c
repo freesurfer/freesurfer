@@ -13,6 +13,7 @@
 #include "timer.h"
 #include "svm.h"
 #include "label.h"
+#include "version.h"
 
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
@@ -40,6 +41,12 @@ main(int argc, char *argv[])
   double       classification ;
   float        *inputs ;
   MRI_SP       *mrisp ;
+
+  /* rkt: check for and handle version tag */
+  nargs = handle_version_option (argc, argv, "$Id: mris_svm_classify.c,v 1.2 2003/04/17 19:02:23 kteich Exp $");
+  if (nargs && argc - nargs == 1)
+    exit (0);
+  argc -= nargs;
 
   Progname = argv[0] ;
   ErrorInit(NULL, NULL, NULL) ;
