@@ -557,8 +557,22 @@ int   MRIreclassify(MRI *mri_src, MRI *mri_labeled,
 MRI *MRImaskThreshold(MRI *mri_src, MRI *mri_mask, MRI *mri_dst,
                              float threshold, int out_label) ;
 int MRIgrowLabel(MRI *mri, MRI *mri_bg, int in_label, int out_label) ;
-int MRIturnOnFG(MRI *mri, MRI *mri_fg) ;
+int MRIturnOnFG(MRI *mri, MRI *mri_fg, MRI *mri_bg) ;
 int MRIturnOffBG(MRI *mri, MRI *mri_bg) ;
+/* mriprob.c */
+MRI *MRIcomputeConditionalProbabilities(MRI *mri_T1, MRI *mri_mean, 
+                                      MRI *mri_std, MRI *mri_dst) ;
+MRI *MRIapplyBayesLaw(MRI *mri_priors, MRI *mri_p1, MRI *mri_p2,MRI *mri_dst);
+MRI *MRIprobabilityThresholdNeighborhoodOff(MRI *mri_src, MRI *mri_prob, 
+                                         MRI *mri_dst, float threshold, 
+                                         int nsize) ;
+MRI *MRIprobabilityThresholdNeighborhoodOn(MRI *mri_src, MRI *mri_prob, 
+                                         MRI *mri_dst, float threshold, 
+                                         int nsize, int out_label) ;
+MRI *MRIprobabilityThreshold(MRI *mri_src, MRI *mri_prob, MRI *mri_dst, 
+                             float threshold, int out_label) ;
+MRI *MRIdilateLabel(MRI *mri_src, MRI *mri_dst, int label, int niter) ;
+int MRIsetValues(MRI *mri, int val) ;
 
 #define MRI_NOT_WHITE   1
 #define MRI_AMBIGUOUS   128
