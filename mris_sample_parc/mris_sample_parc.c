@@ -14,7 +14,7 @@
 #include "macros.h"
 #include "annotation.h"
 
-static char vcid[] = "$Id: mris_sample_parc.c,v 1.2 2002/01/24 17:48:12 fischl Exp $";
+static char vcid[] = "$Id: mris_sample_parc.c,v 1.3 2002/03/28 18:57:01 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -33,6 +33,7 @@ static char *thickness_name = "thickness" ;
 static char sdir[STRLEN] ;
 static char *translation_fname = "cma_parcellation_colors.txt" ;
 static int wsize = 7 ;
+static int unknown_label = -1 ;
 
 int
 main(int argc, char *argv[])
@@ -111,6 +112,59 @@ main(int argc, char *argv[])
     v->val = v->annotation = MRIvox(mri_parc, nint(xw), nint(yw), nint(zw)) ;
 #endif
   }
+  if (unknown_label >= 0)
+  {
+    LABEL **labels, *label ;
+    int   nlabels, i, biggest_label, most_vertices, nzero ;
+
+#define TMP_LABEL 1000
+    for (nzero = vno = 0 ; vno < mris->nvertices ; vno++)
+    {
+      v = &mris->vertices[vno] ;
+      if (v->annotation == 0)
+      {
+        v->annotation = TMP_LABEL;
+        nzero++ ;
+      }
+    }
+    printf("%d unknown vertices found\n", nzero) ;
+    MRISsegmentAnnotated(mris, &labels, &nlabels, 10) ;
+    most_vertices = 0 ; biggest_label = -1 ;
+    for (i = 0 ; i < nlabels ; i++)
+    {
+      label = labels[i] ;
+      if (mris->vertices[label->lv[0].vno].annotation == TMP_LABEL)
+      {
+        if (label->n_points > most_vertices)
+        {
+          biggest_label = i ; most_vertices = label->n_points ;
+        }
+      }
+    }
+    if (biggest_label >= 0)
+    {
+      label = labels[biggest_label] ;
+      printf("replacing label # %d with %d vertices (vno=%d) with label %d\n",
+             biggest_label, label->n_points, label->lv[0].vno, unknown_label) ;
+      for (i = 0 ; i < label->n_points ; i++)
+      {
+        v = &mris->vertices[label->lv[i].vno] ;
+        v->annotation = v->val = unknown_label ;
+      }
+    }
+    for (nzero = vno = 0 ; vno < mris->nvertices ; vno++)
+    {
+      v = &mris->vertices[vno] ;
+      if (v->annotation == TMP_LABEL)
+      {
+        v->annotation = 0;
+        nzero++ ;
+      }
+    }
+    printf("after replacement, %d unknown vertices found\n", nzero) ;
+    MRISmodeFilterZeroVals(mris) ;  /* get rid of the rest of the unknowns by mode filtering */
+  }
+
   if (mode_filter)
   {
     printf("mode filtering sample labels...\n") ;
@@ -132,6 +186,7 @@ main(int argc, char *argv[])
   translate_indices_to_annotations(mris, translation_fname) ;
 
   sprintf(fname, "%s-%s.annot", hemi, annot_name) ;
+  printf("writing annotation to %s...\n", fname) ;
   MRISwriteAnnotation(mris, fname) ; 
   MRISreadAnnotation(mris, fname) ;
   exit(0) ;
@@ -181,8 +236,12 @@ get_option(int argc, char *argv[])
     nargs = 1 ;
     printf("using thickness file %s\n", thickness_name) ;
     break ;
-  case '?':
   case 'U':
+    unknown_label = atoi(argv[2]) ;
+    printf("changing largest connected unknown region to label %d\n", unknown_label) ;
+    nargs = 1 ;
+    break ;
+  case '?':
     print_usage() ;
     exit(1) ;
     break ;
