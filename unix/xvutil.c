@@ -1048,6 +1048,8 @@ xv_dimage_event_handler(Xv_Window xv_window, Event *event)
       case '2':
         if (xvf->get_next_image)
         {
+          IMAGE *Itmp ;
+
           if (dimage->sync)
           {
             int    which2 ;
@@ -1057,18 +1059,17 @@ xv_dimage_event_handler(Xv_Window xv_window, Event *event)
               dimage2 = XVgetDimage(xvf, which2, DIMAGE_IMAGE) ;
               if (dimage2 && (dimage2->sync == dimage->sync))
               {
-                dimage2->sourceImage = 
-                  (*xvf->get_next_image)(dimage2->sourceImage, which2, -1) ;
                 XVshowImage(xvf, which2, dimage2->sourceImage, dimage2->frame);
               }
             }
           }
           else
           {
-            dimage->sourceImage = 
-              (*xvf->get_next_image)(dimage->sourceImage, which, -1) ;
+            Itmp = (*xvf->get_next_image)(dimage->sourceImage, which, -1) ;
+            dimage->sourceImage = ImageCopy(Itmp, dimage->sourceImage) ;
             XVshowImage(xvf, which, dimage->sourceImage, dimage->frame) ;
           }
+          ImageFree(&Itmp) ;
         }
         break ;
       case 'r':
