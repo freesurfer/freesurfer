@@ -1181,6 +1181,10 @@ MRICfeatureName(MRIC *mric, int round, int feature_number)
     return("MIN5") ;
   if (f & FEATURE_MIN7)
     return("MIN7") ;
+  if (f & FEATURE_PRIORS)
+    return("PRIORS") ;
+  if (f & FEATURE_POSITION)
+    return("POSITION") ;
 
   return("unknown") ;
 }
@@ -1534,27 +1538,6 @@ MRICbuildScatterPlot(MRIC *mric, int class, MATRIX *m_scatter,
      */
 
   /* now fill in scatter plot */
-#if 0
-  means = rbf->cs[0]->means ;
-  stds = rbf->cs[0]->stds ;
-  while (mricGetClassObservation(&parms, v_obs,obs_no++,class) == NO_ERROR)
-  {
-    for (i = 0 ; i < rbf->ninputs ; i++)
-    {
-      mean = means[i] ;
-      std = stds[i] ;
-      v = VECTOR_ELT(v_obs, i+1) ;
-      z[i] = (v - mean) / std ;
-    }
-
-    /* map 0 to half_bins, -MAX_SIGMA*sigma to 0, MAX_SIGMA*sigma to nbins */
-    x = z[0]/MAX_SIGMA*half_bins + bin_offset ;
-    y = z[1]/MAX_SIGMA*half_bins + bin_offset ;
-    if (x < 0) x = 0 ; else if (x >= nbins) x = nbins-1 ;
-    if (y < 0) y = 0 ; else if (y >= nbins) y = nbins-1 ;
-    m_scatter->rptr[x][y] += 1.0f ;
-  }
-#else
   mins = rbf->min_inputs ;
   maxs = rbf->max_inputs ;
   while (mricGetClassObservation(&parms,v_obs,obs_no++,class) == NO_ERROR)
@@ -1578,9 +1561,10 @@ MRICbuildScatterPlot(MRIC *mric, int class, MATRIX *m_scatter,
       DiagBreak() ; 
     else if (y > nbins) 
       DiagBreak() ;
-    m_scatter->rptr[x][y] += 1.0f ;
+    if (!FZERO(VECTOR_ELT(v_obs,1)) || !FZERO(VECTOR_ELT(v_obs,2)))
+      m_scatter->rptr[x][y] += 1.0f ;
   }
-#endif
+
   VectorFree(&v_obs) ;
   return(NO_ERROR) ;
 }
