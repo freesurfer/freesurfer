@@ -11,8 +11,8 @@
  *
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/02/06 17:07:30 $
-// Revision       : $Revision: 1.41 $
+// Revision Date  : $Date: 2004/02/06 18:08:27 $
+// Revision       : $Revision: 1.42 $
 */
 
 /*-----------------------------------------------------
@@ -4723,7 +4723,7 @@ MRI3DreadSmall(char *fname)
   {
     fclose(fp) ;
     ErrorReturn(NULL, 
-                (ERROR_BADFILE, "file %s not an old 3d morph file.  Try a new 3d morph read routine.", 
+                (ERROR_BADFILE, "file %s not an old 3d morph file.\nTry a new 3d morph read routine.\n", 
                  fname)) ;
   }
   version = freadInt(fp) ;
