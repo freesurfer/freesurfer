@@ -10,6 +10,7 @@ class Point3 {
   Point3 ( T iX, T iY, T iZ ) { m[0] = iX; m[1] = iY; m[2] = iZ;}
   Point3 ( T iXYZ[3] ) { m[0] = iXYZ[0]; m[1] = iXYZ[1]; m[2] = iXYZ[2]; }
   void Set ( T iX, T iY, T iZ ) { m[0] = iX; m[1] = iY; m[2] = iZ;}
+  void Set ( T iXYZ[3] ) { m[0] = iXYZ[0]; m[1] = iXYZ[1]; m[2] = iXYZ[2];}
   T* xyz() { return m; }
   T x() { return m[0]; }
   T y() { return m[1]; }

@@ -11,6 +11,7 @@ using namespace std;
 VolumeCollection::VolumeCollection () :
   DataCollection() {
   mMRI = NULL;
+  mMagnitudeMRI = NULL;
   mWorldToIndexMatrix = NULL;
   mIndexToWorldMatrix = NULL;
   mWorldCoord = VectorAlloc( 4, MATRIX_REAL );
@@ -123,6 +124,24 @@ VolumeCollection::UpdateMRIValueRange () {
     MRIvalRange( mMRI, &mMRIMinValue, &mMRIMaxValue );
   }
 }
+
+float
+VolumeCollection::GetMRIMagnitudeMinValue () { 
+  if( NULL == mMagnitudeMRI ) {
+    MakeMagnitudeVolume();
+  }
+  return mMRIMagMinValue; 
+}
+
+float
+VolumeCollection::GetMRIMagnitudeMaxValue () { 
+  if( NULL == mMagnitudeMRI ) {
+    MakeMagnitudeVolume();
+  }
+  return mMRIMagMaxValue; 
+}
+
+
 
 float 
 VolumeCollection::GetVoxelXSize () {
@@ -397,6 +416,39 @@ VolumeCollection::SetMRIValueAtRAS ( float iRAS[3], float iValue ) {
       break ;
     }
   }
+}
+
+void
+VolumeCollection::MakeMagnitudeVolume () {
+
+  if( NULL != mMRI ) {
+    mMagnitudeMRI = 
+      MRIallocSequence( mMRI->width, mMRI->height, mMRI->depth,
+			MRI_FLOAT, mMRI->nframes );
+    MRI* gradMRI = MRIsobel( mMRI, NULL, mMagnitudeMRI );
+    MRIfree( &gradMRI );
+    
+    MRIvalRange( mMagnitudeMRI, &mMRIMagMinValue, &mMRIMagMaxValue );
+  }
+}
+
+float 
+VolumeCollection::GetMRIMagnitudeValueAtRAS ( float iRAS[3] ) {
+
+  Real value = 0;
+
+  // If we don't have the magnitude volume, calculate it.
+  if( NULL == mMagnitudeMRI ) {
+    MakeMagnitudeVolume();
+  }
+
+  // Get the value.
+  if( NULL != mMagnitudeMRI ) {
+    int index[3];
+    RASToMRIIndex( iRAS, index );
+    value = MRIFvox( mMagnitudeMRI, index[0], index[1], index[2] );
+  }
+  return (float)value;
 }
 
 TclCommandListener::TclCommandResult 

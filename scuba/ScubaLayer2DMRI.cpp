@@ -1352,6 +1352,10 @@ EdgePathFinder::EdgePathFinder ( int iViewWidth, int iViewHeight,
 float 
 EdgePathFinder::GetEdgeCost ( Point2<int>& iPoint ) {
 
+  // Get the magnitude value at this point. We add 0.1 to it because
+  // if it's 0, there's no preference for straight lines, since
+  // diagonal lines will have the same cost, which in some cases makes
+  // a really weird looking line.
   float RAS[3];
   mTranslator->TranslateWindowToRAS( iPoint.xy(), RAS );
   return mVolume->GetMRIMagnitudeValueAtRAS( RAS ) + 0.1;

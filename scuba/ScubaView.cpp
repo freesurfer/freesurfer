@@ -805,6 +805,10 @@ ScubaView::DoReshape( int iWidth, int iHeight ) {
     throw new runtime_error( sError.str() );
   }
 
+  // Set the view state buffer height and width.
+  mViewState.mBufferWidth  = iWidth;
+  mViewState.mBufferHeight = iHeight;
+
   // Allocate a new buffer.
   GLubyte* newBuffer = (GLubyte*) malloc( mWidth * mHeight * kBytesPerPixel );
   if( NULL == newBuffer ) {

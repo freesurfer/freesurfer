@@ -17,6 +17,9 @@ class ViewState {
   float mCenterRAS[3];
   float mZoomLevel;            
   Plane mInPlane;
+
+  int mBufferWidth;
+  int mBufferHeight;
 };
 
 std::ostream& operator << ( std::ostream& os, ViewState& iInput );

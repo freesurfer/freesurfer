@@ -29,6 +29,9 @@ class VolumeCollection : public DataCollection {
   float GetMRIMinValue () { return mMRIMinValue; }
   float GetMRIMaxValue () { return mMRIMaxValue; }
 
+  float GetMRIMagnitudeMinValue ();
+  float GetMRIMagnitudeMaxValue ();
+
   float GetVoxelXSize ();
   float GetVoxelYSize ();
   float GetVoxelZSize ();
@@ -49,6 +52,10 @@ class VolumeCollection : public DataCollection {
   
   void SetMRIValueAtRAS ( float iRAS[3], float iValue );
   
+  void MakeMagnitudeVolume ();
+
+  float GetMRIMagnitudeValueAtRAS ( float iRAS[3] );
+
   virtual TclCommandResult
     DoListenToTclCommand ( char* isCommand, int iArgc, char** iasArgv );
 
@@ -79,6 +86,7 @@ class VolumeCollection : public DataCollection {
 protected:
   std::string mfnMRI;
   MRI* mMRI;
+  MRI* mMagnitudeMRI;
 
   MATRIX* mWorldToIndexMatrix;
   MATRIX* mIndexToWorldMatrix;
@@ -86,6 +94,7 @@ protected:
   VECTOR* mIndexCoord;
 
   float mMRIMinValue, mMRIMaxValue;
+  float mMRIMagMinValue, mMRIMagMaxValue;
 
   Volume3<bool>* mEdgeVoxels;
 

@@ -358,8 +358,8 @@ proc LoadImages {} {
     global ksImageDir
     
     set sFileErrors ""
-    foreach sImageName { icon_edit_label icon_edit_volume 
-	icon_navigate icon_edit_ctrlpts icon_edit_parc icon_line_tool 
+    foreach sImageName { icon_edit_label icon_edit_volume icon_draw_line
+	icon_navigate icon_edit_ctrlpts icon_edit_parc icon_line_tool
 	icon_view_single icon_view_multiple icon_view_31 
 	icon_cursor_goto icon_cursor_save 
 	icon_main_volume icon_aux_volume icon_linked_cursors 
@@ -473,6 +473,7 @@ proc MakeToolBar { ifwTop } {
 	    { -type image -name voxelEditing -image icon_edit_volume } 
 	    { -type image -name roiEditing -image icon_edit_label } 
 	    { -type image -name straightLine -image icon_line_tool } 
+	    { -type image -name edgeLine -image icon_draw_line } 
 	}
 
     set gaTool($gaFrame([GetMainFrameID],toolID),mode) navigation
@@ -520,7 +521,7 @@ proc ToolBarWrapper { isName iValue } {
 
     if { $iValue == 1 } {
 	switch $isName {
-	    navigation - voxelEditing - roiEditing - straightLine {
+	    navigation - voxelEditing - roiEditing - straightLine - edgeLine {
 		SetToolMode $gaFrame([GetMainFrameID],toolID) $isName
 		SelectToolInToolProperties $isName
 	    }
@@ -539,7 +540,7 @@ proc ToolBarWrapper { isName iValue } {
 		    $gaLayer(current,id) $gaLayer(current,colorMapMethod)
 		RedrawFrame [GetMainFrameID]
 	    }
-	    nearest - trilinear - sinc {
+	    nearest - trilinear - sinc - magnitude {
 		Set2DMRILayerSampleMethod \
 		    $gaLayer(current,id) $gaLayer(current,sampleMethod)
 		RedrawFrame [GetMainFrameID]
@@ -1068,8 +1069,8 @@ proc MakeToolsPanel { ifwTop } {
     set gaWidget(toolProperties,menu) $fwMenu
 
     FillMenuFromList $fwMenu \
-	{ navigation voxelEditing roiEditing straightLine }  "" \
-	{ "Navigation" "Voxel Editing" "ROI Editing" "Straight Line" } false
+	{ navigation voxelEditing roiEditing straightLine edgeLine }  "" \
+	{ "Navigation" "Voxel Editing" "ROI Editing" "Straight Line" "Edge Line"} false
 
 
     frame $fwPropsCommon
@@ -1235,6 +1236,7 @@ proc MakeLayerPropertiesPanel { ifwTop } {
 	    {-type text -name nearest -label "Nearest"}
 	    {-type text -name trilinear -label "Trilinear"}
 	    {-type text -name sinc -label "Sinc"}
+	    {-type text -name magnitude -label "Mag"}
 	}
     tkuMakeCheckboxes $fwProps2DMRI.cbwClearZero \
 	-font [tkuNormalFont] \

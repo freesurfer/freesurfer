@@ -236,6 +236,22 @@ option menus for data collections in label dlogs
 - volume drawing caching
   - problem is voxel sizes, so what if we resize and align the volume so that each voxel == 1 RAS point, and then create a volume of xyz translations, map<float[3],float[3]>, so the left-side RAS coords can just be rint-ed ... this would work for voxel size < 1, but waht about > 1, maybe just a matter of fixing the bounds
 
+x - edge line
+x  - on handle tool, find shortest path based on volume
+x  - add buffer bound info to view state
+x  - add 'snake line' parallel to mCurrentLine and begin/end points
+x  - edgeline just makes straight line
+x  - code to draw snake line
+x  - connects first and last points on redraw
+ - try on 25cubed.mgh, gets some illegal indices
+ - favors diagonals over straights
+
+- live reslicing
+ - each view gets a color
+ - in each view, display a color for intersection of other views
+ - change inplane value to an actual plane description
+ - in each view, a line represents the in plane in the other views
+ - can click and drag on those lines to move in plane or rotate
 
 
 BRUCE'S LIST:::

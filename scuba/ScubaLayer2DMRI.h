@@ -6,6 +6,7 @@
 #include "ScubaColorLUT.h"
 #include "UndoManager.h"
 #include "Timer.h"
+#include "ShortestPathFinder.h"
 
 class ScubaLayer2DMRI : public Layer {
 
@@ -43,7 +44,7 @@ class ScubaLayer2DMRI : public Layer {
     mColorMapMethod = iMethod; }
   ColorMapMethod GetColorMapMethod () { return mColorMapMethod; }
 
-  enum SampleMethod { nearest, trilinear, sinc };
+  enum SampleMethod { nearest, trilinear, sinc, magnitude };
   void SetSampleMethod ( SampleMethod iSampleMethod ) {
     mSampleMethod = iSampleMethod; }
   SampleMethod GetSampleMethod () { return mSampleMethod; }
@@ -68,9 +69,15 @@ class ScubaLayer2DMRI : public Layer {
   void StretchCurrentLine( float iRAS[3] );
   void EndLine( float iRAS[3], ScubaWindowToRASTranslator& iTranslator );
   
+  void StartEdgeLine( float iRAS[3] );
+  void StretchCurrentEdgeLine( float iRAS[3], ViewState& iViewState,
+			       ScubaWindowToRASTranslator& iTranslator );
+  void EndEdgeLine( float iRAS[3], ScubaWindowToRASTranslator& iTranslator );
+
   virtual void GetPreferredInPlaneIncrements ( float oIncrements[3] );
 
  protected:
+
   VolumeCollection* mVolume;
   
   SampleMethod mSampleMethod;
@@ -87,12 +94,34 @@ class ScubaLayer2DMRI : public Layer {
 
   float mROIOpacity;
   
+  // For the straight lines.
   struct Line {
     float mBeginRAS[3];
     float mEndRAS[3];
   };
   Line* mCurrentLine;
   std::list<Line*> mLines;
+
+  void DrawStraightLineIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
+				    ViewState& iViewState,
+				    ScubaWindowToRASTranslator& iTranslator,
+				    Line* iLine );
+
+  // For snake lines.
+  class SnakeLine {
+  public:
+    SnakeLine( float iRAS[3] ) { mBeginRAS.Set( iRAS ); mEndRAS.Set( iRAS ); }
+    Point3<float> mBeginRAS;
+    Point3<float> mEndRAS;
+    std::list<Point3<float> > mPointsRAS;
+  };
+  SnakeLine* mCurrentSnakeLine;
+  std::list<SnakeLine*> mSnakeLines;
+
+  void DrawSnakeLineIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
+				 ViewState& iViewState,
+				 ScubaWindowToRASTranslator& iTranslator,
+				 SnakeLine* iLine );
 };
 
 
@@ -127,6 +156,20 @@ class UndoSelectionAction : public UndoAction {
   VolumeCollection* mVolume;
   bool mbSelect;
   float mRAS[3];
+};
+
+class EdgePathFinder : public ShortestPathFinder {
+  
+ public:
+  EdgePathFinder ( int iViewWidth, int iViewHeight, int iLongestEdge,
+		   ScubaWindowToRASTranslator* iTranslator,
+		   VolumeCollection* iVolume );
+		  
+  virtual float GetEdgeCost ( Point2<int>& iPoint );
+
+ protected:
+  VolumeCollection* mVolume;
+  ScubaWindowToRASTranslator* mTranslator;
 };
 
 #endif
