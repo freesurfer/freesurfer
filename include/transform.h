@@ -1,7 +1,33 @@
-#ifndef TRANSFORM_H
-#define TRANSFORM_H
+/***********************************************************************/
+/* transform.h                                                         */
+/*                                                                     */
+/* Warning: Do not edit the following four lines.  CVS maintains them. */
+/* Revision Author: $Author: tosa $                                           */
+/* Revision Date  : $Date: 2003/08/21 21:50:37 $                                             */
+/* Revision       : $Revision: 1.19 $                                         */
+/*                                                                     */
+/***********************************************************************/
+
+#ifndef MGH_TRANSFORM_H
+#define MGH_TRANSFORM_H
 
 #include "matrix.h"
+
+typedef enum { MINC, TKREG, GENERIC, UNKNOWN=-1 } TransformType;
+
+typedef struct
+{
+  int           width ;
+  int           height ;
+  int           depth ;     
+  float         xsize ;     
+  float         ysize ;     
+  float         zsize ;     
+  float         x_r, x_a, x_s; 
+  float         y_r, y_a, y_s; 
+  float         z_r, z_a, z_s; 
+  float         c_r, c_a, c_s; 
+} VOL_GEOM, VG;
 
 typedef struct
 {
@@ -12,6 +38,9 @@ typedef struct
   MATRIX     *m_L ;          /* transform matrix */
   MATRIX     *m_dL ;         /* gradient of fuctional wrt transform matrix */
   MATRIX     *m_last_dL ;    /* last time step for momentum */
+  VOL_GEOM   src;            /* src for the transform       */
+  VOL_GEOM   dst;            /* dst for the transform       */
+  TransformType type;        /* record transform type       */
 } LINEAR_TRANSFORM, LT ;
 
 typedef struct
@@ -35,6 +64,7 @@ typedef struct
 int      LTAfree(LTA **plta) ;
 LTA      *LTAreadInVoxelCoords(char *fname, MRI *mri) ;
 LTA      *LTAread(char *fname) ;
+LTA      *LTAreadEx(char *fname, MRI *src, MRI *dst); // transform from src to dst
 LTA      *LTAreadTal(char *fname) ;
 int      LTAwrite(LTA *lta, char *fname) ;
 LTA      *LTAalloc(int nxforms, MRI *mri) ;
