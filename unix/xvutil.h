@@ -55,7 +55,8 @@ typedef struct
   Window      window ;
   GC          clearGC, greenGC, blueGC, redGC, 
               xorGC, whiteGC, cyanGC, yellowGC, purpleGC ;
-  float       scale ;
+  float       xscale ;
+  float       yscale ;
   int         rescale_range ;
   int         frame ;
   int         used ;
@@ -82,15 +83,16 @@ typedef struct
   int             rows ;
   int             cols ;
   int             button_rows ;
-  int             display_size ;
+  int             display_rows ;
+  int             display_cols ;
   char            msg_str[MSGS][STR_LEN] ;
   Panel_item      msg_item[MSGS] ;
   DIMAGE          **dimages ;
 } XV_FRAME ;
 
 
-XV_FRAME *XValloc(int width, int height, int button_rows, int display_size, 
-                  char *name, Notify_value (*poll)(void)) ;
+XV_FRAME *XValloc(int rows, int cols, int button_rows, int display_rows, 
+                  int display_cols, char *name, Notify_value (*poll)(void)) ;
 int XVprintf(XV_FRAME *xvf, int which, ...) ;
 void XVclearImage(XV_FRAME *xvf, int which, int dotitle) ;
 void XVclearImageTitle(XV_FRAME *xvf, int which) ;

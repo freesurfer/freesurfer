@@ -32,7 +32,7 @@
 
 #define CHAR_WIDTH        8
 #define MAX_TITLE_CHARS   (MIN(STR_LEN-1, \
-                         (nint((float)xvf->display_size / (float)CHAR_WIDTH))))
+                         (nint((float)xvf->display_cols / (float)CHAR_WIDTH))))
 
 #define MAX_DISP_SCALES   4
 
@@ -123,8 +123,8 @@ static void            (*XVrepaint_handler)(XV_FRAME *xvf,DIMAGE *dimage)=NULL;
            Description:
 ----------------------------------------------------------------------*/
 XV_FRAME *
-XValloc(int rows, int cols, int button_rows, int display_size, char *name, 
-        Notify_value (*poll)(void))
+XValloc(int rows, int cols, int button_rows, int display_rows, 
+        int display_cols, char *name, Notify_value (*poll)(void))
 {
   int               row ;
   static struct itimerval  timer;       
@@ -136,9 +136,12 @@ XValloc(int rows, int cols, int button_rows, int display_size, char *name,
   xvf->rows = rows ;
   xvf->cols = cols ;
   xvf->button_rows = button_rows ;
-  if (!display_size)
-    display_size = DISPLAY_SIZE ;
-  xvf->display_size = display_size ;
+  if (!display_rows)
+    display_rows = DISPLAY_SIZE ;
+  if (!display_cols)
+    display_cols = display_rows ;
+  xvf->display_rows = display_rows ;
+  xvf->display_cols = display_cols ;
 
   xvf->dimages = (DIMAGE **)calloc(rows, sizeof(DIMAGE *)) ;
   if (!xvf->dimages)
@@ -182,9 +185,9 @@ xvCreateFrame(XV_FRAME *xvf, char *name)
 {
   int width, height ;
 
-  width = xvf->cols * xvf->display_size + (xvf->cols-1)*WINDOW_PAD ;
+  width = xvf->cols * xvf->display_cols + (xvf->cols-1)*WINDOW_PAD ;
   height = PANEL_HEIGHT + 
-    xvf->rows * xvf->display_size + (xvf->rows-1) * CHAR_HEIGHT ;
+    xvf->rows * xvf->display_rows + (xvf->rows-1) * CHAR_HEIGHT ;
   if (width < MIN_FRAME_WIDTH)
     width = MIN_FRAME_WIDTH ;
 
@@ -197,8 +200,8 @@ xvCreateFrame(XV_FRAME *xvf, char *name)
                            NULL);
   if (!xvf->frame)
     ErrorExit(ERROR_BADPARM, 
-              "xvCreateFrame(%s, (%d, %d), %d): could not create frame",
-              name, xvf->rows, xvf->cols, xvf->display_size) ;
+              "xvCreateFrame(%s, (%d, %d), (%d, %d)): could not create frame",
+              name, xvf->rows, xvf->cols,xvf->display_rows,xvf->display_cols);
 
   xvf->display = (Display *)xv_get(xvf->frame,XV_DISPLAY);
   xvf->screen = DefaultScreen(xvf->display);
@@ -211,7 +214,7 @@ xvCreateFrame(XV_FRAME *xvf, char *name)
   if (!xvf->panel)
     ErrorExit(ERROR_BADPARM, 
               "xvCreateFrame(%s, (%d, %d), %d): could not create panel",
-              name, xvf->rows, xvf->cols, xvf->display_size) ;
+              name, xvf->rows, xvf->cols, xvf->display_rows) ;
 
   xvf->gc = DefaultGC(xvf->display,DefaultScreen(xvf->display));
   XSetForeground(xvf->display, xvf->gc, xvf->black_pixel);
@@ -381,8 +384,8 @@ xvInitImages(XV_FRAME *xvf)
         (Canvas)xv_create((Xv_opaque)xvf->frame, CANVAS,
                           XV_X,                  x,
                           XV_Y,                  y,
-                          XV_HEIGHT,             xvf->display_size,
-                          XV_WIDTH,              xvf->display_size,
+                          XV_HEIGHT,             xvf->display_rows,
+                          XV_WIDTH,              xvf->display_cols,
                           CANVAS_X_PAINT_WINDOW, TRUE,
                           CANVAS_REPAINT_PROC,   xv_dimage_repaint,
                           CANVAS_RETAINED,       FALSE,
@@ -394,8 +397,8 @@ xvInitImages(XV_FRAME *xvf)
           (Canvas)xv_create((Xv_opaque)xvf->frame, CANVAS,
                             XV_X,                  x,
                             XV_Y,                  y,
-                            XV_HEIGHT,             xvf->display_size,
-                            XV_WIDTH,              xvf->display_size,
+                            XV_HEIGHT,             xvf->display_rows,
+                            XV_WIDTH,              xvf->display_cols,
                             CANVAS_X_PAINT_WINDOW, TRUE,
                             CANVAS_REPAINT_PROC,   xv_dimage_repaint,
                             CANVAS_RETAINED,       FALSE,
@@ -406,8 +409,8 @@ xvInitImages(XV_FRAME *xvf)
           (Canvas)xv_create((Xv_opaque)xvf->frame, CANVAS,
                             XV_X,                  x,
                             XV_Y,                  y,
-                            XV_HEIGHT,             xvf->display_size,
-                            XV_WIDTH,              xvf->display_size,
+                            XV_HEIGHT,             xvf->display_rows,
+                            XV_WIDTH,              xvf->display_cols,
                             CANVAS_X_PAINT_WINDOW, TRUE,
                             CANVAS_REPAINT_PROC,   xv_dimage_repaint,
                             CANVAS_RETAINED,       FALSE,
@@ -423,7 +426,7 @@ xvInitImages(XV_FRAME *xvf)
                   dimage->title_string,
                   NULL);
 
-      dimage->dispImage = ImageAlloc(xvf->display_size, xvf->display_size, 
+      dimage->dispImage = ImageAlloc(xvf->display_rows, xvf->display_cols, 
                                     PFBYTE, 1) ;
       dimage->ximage = xvCreateXimage(xvf, dimage->dispImage) ;
       xv_set(canvas_paint_window(dimage->canvas),
@@ -481,9 +484,9 @@ xvInitImages(XV_FRAME *xvf)
       XSetForeground(xvf->display, dimage->whiteGC, xvf->white_pixel);
       XSetBackground(xvf->display, dimage->whiteGC, xvf->white_pixel);
 
-      x += WINDOW_PAD + xvf->display_size ;
+      x += WINDOW_PAD + xvf->display_cols ;
     }
-    y += CHAR_HEIGHT + xvf->display_size ;
+    y += CHAR_HEIGHT + xvf->display_rows ;
   }
 }
 /*----------------------------------------------------------------------
@@ -543,7 +546,7 @@ XVrepaintImage(XV_FRAME *xvf, int which)
 void
 XVshowImage(XV_FRAME *xvf, int which, IMAGE *image, int frame)
 {
-  float         scale, fmin, fmax ;
+  float         xscale, yscale, fmin, fmax ;
   DIMAGE        *dimage ;
   unsigned long *substtable ;
   byte          bytelut[MAX_COLORS] ;
@@ -554,11 +557,12 @@ XVshowImage(XV_FRAME *xvf, int which, IMAGE *image, int frame)
     return ;
   dimage->used = 1 ;
   dimage->frame = frame ;
-  scale = 
-    (float)xvf->display_size / (float)(MAX(image->cols, image->rows)) ;
   dimage->sourceImage = image ;
 
-  dimage->scale = scale ;
+  xscale = (float)xvf->display_cols / (float)image->cols ;
+  yscale = (float)xvf->display_rows / (float)image->rows ;
+  dimage->xscale = xscale ;
+  dimage->yscale = yscale ;
 
   if (!ImageCheckSize(image, GtmpFloatImage, image->cols, image->rows, 1))
   {
@@ -591,7 +595,7 @@ XVshowImage(XV_FRAME *xvf, int which, IMAGE *image, int frame)
   ImageCopy(GtmpFloatImage, GtmpByteImage) ;
   h_invert(GtmpByteImage, GtmpByteImage2) ;
 
-#if 0
+#if 1
   ImageResize(GtmpByteImage2, dimage->dispImage, 
               dimage->dispImage->rows, dimage->dispImage->cols) ;
 #else
@@ -711,8 +715,8 @@ xv_dimage_event_handler(Xv_Window xv_window, Event *event)
   if (!dimage->used)
     return ;
 
-  x = (int)((float)x / dimage->scale) ;
-  y = (int)((float)y / dimage->scale) ;
+  x = (int)((float)x / dimage->xscale) ;
+  y = (int)((float)y / dimage->yscale) ;
 
   /* convert y to hips coordinate sysem */
   y = (dimage->sourceImage->rows-1) - y ;  
@@ -982,7 +986,7 @@ XVdrawPoint(XV_FRAME *xvf, int which, int x, int y, int color)
   Display *display ;
   Window  window ;
   int     x0, y0, x1, y1 ;
-  float   scale ;
+  float   xscale, yscale ;
   DIMAGE  *dimage ;
 
   dimage = xvGetDimage(which, 0) ;
@@ -1014,9 +1018,10 @@ XVdrawPoint(XV_FRAME *xvf, int which, int x, int y, int color)
     break ;
   }
 
-  scale = dimage->scale ;
-  x = nint(((float)x+0.5f) * scale) ;
-  y = nint((float)(((dimage->sourceImage->rows-1) - y) + 0.5f) * scale) ;
+  xscale = dimage->xscale ;
+  yscale = dimage->yscale ;
+  x = nint(((float)x+0.5f) * xscale) ;
+  y = nint((float)(((dimage->sourceImage->rows-1) - y) + 0.5f) * yscale) ;
   XSetLineAttributes(display, gc, 0, LineSolid, CapRound, JoinBevel) ;
   
   x0 = x - 4 ;
@@ -1046,7 +1051,7 @@ XVdrawBox(XV_FRAME *xvf, int which, int x, int y, int dx, int dy, int color)
   Window  window ;
   int     x0, y0, x1, y1 ;
   DIMAGE  *dimage ;
-  float   scale ;
+  float   xscale, yscale ;
 
   dimage = xvGetDimage(which, 0) ;
   if (!dimage)
@@ -1084,12 +1089,13 @@ XVdrawBox(XV_FRAME *xvf, int which, int x, int y, int dx, int dy, int color)
   }
 
   /* convert to window coordinate system */
-  scale = dimage->scale ;
+  xscale = dimage->xscale ;
+  yscale = dimage->yscale ;
 
-  x = nint(((float)x) * scale) ;
-  y = nint((float)(((dimage->sourceImage->rows) - y)) * scale) ;
-  dx = nint((float)dx * scale) ;
-  dy = nint((float)-dy * scale) ;
+  x = nint(((float)x) * xscale) ;
+  y = nint((float)(((dimage->sourceImage->rows) - y)) * yscale) ;
+  dx = nint((float)dx * xscale) ;
+  dy = nint((float)-dy * yscale) ;
 
   XSetLineAttributes(display, gc, 0, LineSolid, CapRound, JoinBevel) ;
 
@@ -1136,7 +1142,7 @@ XVdrawLine(XV_FRAME *xvf, int which, int x, int y, int dx, int dy, int color)
   Window  window ;
   int     x0, y0, x1, y1 ;
   DIMAGE  *dimage ;
-  float   scale ;
+  float   xscale, yscale ;
 
   dimage = xvGetDimage(which, 0) ;
   if (!dimage)
@@ -1146,11 +1152,12 @@ XVdrawLine(XV_FRAME *xvf, int which, int x, int y, int dx, int dy, int color)
   window = dimage->window ;
 
   /* convert to window coordinate system */
-  scale = dimage->scale ;
-  x = nint(((float)x +0.5f)* scale) ;
-  y = nint((float)(((dimage->sourceImage->rows-1) - y) +0.5f)* scale) ;
-  dx = nint((float)dx * scale) ;
-  dy = nint((float)-dy * scale) ;
+  xscale = dimage->xscale ;
+  yscale = dimage->yscale ;
+  x = nint(((float)x +0.5f)* xscale) ;
+  y = nint((float)(((dimage->sourceImage->rows-1) - y) +0.5f)* yscale) ;
+  dx = nint((float)dx * xscale) ;
+  dy = nint((float)-dy * yscale) ;
 
   switch (color)
   {
@@ -1198,7 +1205,7 @@ XVdrawArrow(XV_FRAME *xvf, int which, int x, int y,float dx,float dy,int color)
   Window  window ;
   int     x0, y0, x1, y1 ;
   DIMAGE  *dimage ;
-  float   scale, theta, theta0 ;
+  float   xscale, yscale, theta, theta0 ;
 
   dimage = xvGetDimage(which, 0) ;
   if (!dimage)
@@ -1208,11 +1215,12 @@ XVdrawArrow(XV_FRAME *xvf, int which, int x, int y,float dx,float dy,int color)
   window = dimage->window ;
 
   /* convert to window coordinate system */
-  scale = dimage->scale ;
-  x = nint(((float)x+0.5f) * scale) ;
-  y = nint(((float)((dimage->sourceImage->rows-1) - y) + 0.5f) * scale) ;
-  dx = nint(dx * scale) ;
-  dy = nint(-dy * scale) ;
+  xscale = dimage->xscale ;
+  yscale = dimage->yscale ;
+  x = nint(((float)x+0.5f) * xscale) ;
+  y = nint(((float)((dimage->sourceImage->rows-1) - y) + 0.5f) * yscale) ;
+  dx = nint(dx * xscale) ;
+  dy = nint(-dy * yscale) ;
 
   switch (color)
   {
