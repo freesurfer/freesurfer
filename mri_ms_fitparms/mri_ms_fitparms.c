@@ -5,8 +5,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/01/15 19:52:22 $
-// Revision       : $Revision: 1.21 $
+// Revision Date  : $Date: 2004/01/15 21:55:55 $
+// Revision       : $Revision: 1.22 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -90,7 +90,8 @@ static int average_volumes_with_different_echo_times(MRI **mri_flash, MRI **mri_
 static MRI *estimate_T2star(MRI **mri_all_flash, int nvolumes, MRI *mri_T1, MRI *mri_PD) ;
 static MRI *compute_T2star_map(MRI **mri_flash, int nvolumes, int *scan_types) ;
 
-static void findUniqueTETRFA(MRI *mri_flash[], int numvolumes, float *ptr, float *pte, double *pfa);
+static int findUniqueTETRFA(MRI *mri_flash[], int numvolumes, float *ptr, float *pte, double *pfa);
+static int resetTRTEFA(MRI *mri, float tr, float te, double fa);
 
 int
 main(int argc, char *argv[])
@@ -106,9 +107,10 @@ main(int argc, char *argv[])
   double rms ;
   float TR, TE;
   double FA;
+  int    modified;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_ms_fitparms.c,v 1.21 2004/01/15 19:52:22 tosa Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ms_fitparms.c,v 1.22 2004/01/15 21:55:55 tosa Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -174,11 +176,8 @@ main(int argc, char *argv[])
     {
       mri_flash[nvolumes]->flip_angle = fa ;
     }
-    printf("TE = %2.2f, TR = %2.2f, alpha = %2.2f\n", mri_flash[nvolumes]->te, 
+    printf("TE = %2.2f, TR = %2.2f, flip angle = %2.2f\n", mri_flash[nvolumes]->te, 
            mri_flash[nvolumes]->tr, DEGREES(mri_flash[nvolumes]->flip_angle)) ;
-#if 0
-    mri_flash[nvolumes]->flip_angle = RADIANS(mri_flash[nvolumes]->flip_angle);
-#endif
     if (conform)
     {
       MRI *mri_tmp ;
@@ -201,7 +200,9 @@ main(int argc, char *argv[])
   ///////////////////////////////////////////////////////////////////////////
   nvolumes_total = nvolumes ;   /* all volumes read in */
 
-  findUniqueTETRFA(mri_flash, nvolumes, &TR, &TE, &FA);
+  // modify TR, TE, FA if they are not unique among all input volumes
+  modified = findUniqueTETRFA(mri_flash, nvolumes, &TR, &TE, &FA);
+  fprintf(stderr, "TR = %.2f, TE = %.2f, Flip_angle = %.2f are used\n", TR, TE, DEGREES(FA)); 
 
   nvolumes = average_volumes_with_different_echo_times(mri_flash, mri_all_flash, nvolumes_total) ;
   if (nvolumes == 2)
@@ -271,6 +272,7 @@ main(int argc, char *argv[])
       printf("parameter rms = %2.3f\n", rms) ;
     }
 
+    // here is the iterations 
     for (iter=0; iter<niter; iter++) 
     {
       printf("parameter estimation/motion correction iteration %d of %d\n", iter+1, niter) ;
@@ -321,7 +323,7 @@ main(int argc, char *argv[])
 	  LTAwriteEx(lta,fname) ;
 	}
       }
-    }
+    } // iterations end here
     if (nfaf >  0)
     {
       int i ;
@@ -358,10 +360,15 @@ main(int argc, char *argv[])
       MRIwrite(mri_faf, fname);
       MRIfree(&mri_faf);
     }
-
+    /////////////////////////////////////////
+    // write results
+    /////////////////////////////////////////
+    resetTRTEFA(mri_PD, TR, TE, FA);
     sprintf(fname,"%s/PD.mgh",out_dir);
     printf("writing PD estimates to %s...\n", fname) ;
     MRIwrite(mri_PD, fname) ;
+    ////////////////////////////////////////
+    resetTRTEFA(mri_T1, TR, TE, FA);
     sprintf(fname,"%s/T1.mgh",out_dir);
     printf("writing T1 estimates to %s...\n", fname) ;
     MRIwrite(mri_T1, fname) ;
@@ -370,25 +377,30 @@ main(int argc, char *argv[])
     {
       if  (correct_PD)
       {
+	resetTRTEFA(mri_PD, TR, TE, FA);
 	sprintf(fname,"%s/PDcorrected.mgh",out_dir);
 	printf("writing corrected PD estimates to %s...\n", fname) ;
 	MRIwrite(mri_PD, fname) ;
       }
+      resetTRTEFA(mri_T2star, TR, TE, FA);
       sprintf(fname,"%s/T2star.mgh",out_dir);
       printf("writing T2star estimates to %s...\n", fname) ;
       MRIwrite(mri_T2star, fname) ;
     }
+    resetTRTEFA(mri_sse, TR, TE, FA);
     sprintf(fname,"%s/sse.mgh",out_dir);
     printf("writing residual sse to %s...\n", fname) ;
     MRIwrite(mri_sse, fname) ;
     if (mri_fa)
     {
+      resetTRTEFA(mri_fa, TR, TE, FA);
       sprintf(fname,"%s/fa.mgh",out_dir);
       printf("writing fa map to %s...\n", fname) ;
       MRIwrite(mri_fa, fname) ;
     }
     if (mri_faf)
     {
+      resetTRTEFA(mri_faf, TR, TE, FA);
       sprintf(fname,"%s/faf.mgh",out_dir);
       printf("writing faf map to %s...\n", fname) ;
       MRIwrite(mri_faf, fname) ;
@@ -397,9 +409,11 @@ main(int argc, char *argv[])
     {
       for (j=0;j<nvolumes;j++)
       {
+	resetTRTEFA(mri_flash_synth[j], TR, TE, FA);
 	sprintf(fname,"%s/vol%d.mgh",out_dir,j);
 	printf("writing synthetic images to %s...\n", fname);
 	MRIwrite(mri_flash_synth[j], fname) ;
+	/////////////////////
 	sprintf(fname,"%s/vol%d.lta",out_dir,j);
 	printf("writing registration matrix to %s...\n", fname);
 	lta = LTAalloc(1,NULL) ;
@@ -2030,49 +2044,49 @@ static double
 compute_fa_rms(double T1_wm, double PD_wm, MRI **mri_flash, int nvolumes, float *faf_coefs[3][2],  int nfaf, LABEL *faf_label,
 							 MRI *mri_T1,  MRI *mri_PD)
 {
-	int   k, i, xv, yv, zv ;
-	double rms, x, y, z, x0, y0, z0, w0x, w0y, w0z, val, sval, faf_scale, Inorm, Snorm, T1, PD ;
+  int   k, i, xv, yv, zv ;
+  double rms, x, y, z, x0, y0, z0, w0x, w0y, w0z, val, sval, faf_scale, Inorm, Snorm, T1, PD ;
 
-	x0 = mri_flash[0]->width/2 ; y0 = mri_flash[0]->height/2 ; z0 = mri_flash[0]->depth/2 ; 
-	w0x = M_PI/x0 ; w0y = M_PI/y0 ; w0z = M_PI/z0 ;
-	for (rms = 0.0, k = 0 ; k  < faf_label->n_points ; k++)
-	{
-		x = faf_label->lv[k].x ; y = faf_label->lv[k].y ; z = faf_label->lv[k].z ;
-		MRIsurfaceRASToVoxel(mri_flash[0], x, y, z, &x, &y, &z)  ;
-		xv = nint(x) ; yv = nint(y) ; zv = nint(z) ; 
+  x0 = mri_flash[0]->width/2 ; y0 = mri_flash[0]->height/2 ; z0 = mri_flash[0]->depth/2 ; 
+  w0x = M_PI/x0 ; w0y = M_PI/y0 ; w0z = M_PI/z0 ;
+  for (rms = 0.0, k = 0 ; k  < faf_label->n_points ; k++)
+  {
+    x = faf_label->lv[k].x ; y = faf_label->lv[k].y ; z = faf_label->lv[k].z ;
+    MRIsurfaceRASToVoxel(mri_flash[0], x, y, z, &x, &y, &z)  ;
+    xv = nint(x) ; yv = nint(y) ; zv = nint(z) ; 
 #if  USE_ALL_PARMS
-		T1 = (1-PARAMETER_WT)*T1_wm+PARAMETER_WT*MRIgetVoxVal(mri_T1, xv,  yv, zv, 0) ;
-		PD = (1-PARAMETER_WT)*PD_wm+PARAMETER_WT*MRIgetVoxVal(mri_PD,  xv, yv, zv, 0);
+    T1 = (1-PARAMETER_WT)*T1_wm+PARAMETER_WT*MRIgetVoxVal(mri_T1, xv,  yv, zv, 0) ;
+    PD = (1-PARAMETER_WT)*PD_wm+PARAMETER_WT*MRIgetVoxVal(mri_PD,  xv, yv, zv, 0);
 #else
-		T1 = T1_wm  ;
-		PD = PD_wm ;
+    T1 = T1_wm  ;
+    PD = PD_wm ;
 #endif
-		faf_scale = faf_coefs_to_scale(x-x0, y-y0, z-z0, w0x,  w0y, w0z, faf_coefs, nfaf) ;
-		for (Inorm = Snorm = 0.0, i = 0 ; i < nvolumes ; i++)
-		{
-			sval = FLASHforwardModel(faf_scale*mri_flash[i]->flip_angle, mri_flash[i]->tr, PD_wm, T1_wm) ;
-			val = MRIgetVoxVal(mri_flash[i], xv,  yv,  zv, 0) ;
-			Snorm  += sval*sval;
-			Inorm += val*val ;
-		}
+    faf_scale = faf_coefs_to_scale(x-x0, y-y0, z-z0, w0x,  w0y, w0z, faf_coefs, nfaf) ;
+    for (Inorm = Snorm = 0.0, i = 0 ; i < nvolumes ; i++)
+    {
+      sval = FLASHforwardModel(faf_scale*mri_flash[i]->flip_angle, mri_flash[i]->tr, PD_wm, T1_wm) ;
+      val = MRIgetVoxVal(mri_flash[i], xv,  yv,  zv, 0) ;
+      Snorm  += sval*sval;
+      Inorm += val*val ;
+    }
 #if NORM_VALUES
-		Snorm = sqrt(Snorm) ;  Inorm = sqrt(Inorm)  ;
-		if (FZERO(Snorm))
-			Snorm =  1 ;
-		if (FZERO(Inorm))
-			Inorm = 1 ;
+    Snorm = sqrt(Snorm) ;  Inorm = sqrt(Inorm)  ;
+    if (FZERO(Snorm))
+      Snorm =  1 ;
+    if (FZERO(Inorm))
+      Inorm = 1 ;
 #else
-		Snorm =  Inorm = 1  ;
+    Snorm =  Inorm = 1  ;
 #endif
-		for (i = 0 ; i < nvolumes ; i++)
-		{
-			sval = FLASHforwardModel(faf_scale*mri_flash[i]->flip_angle, mri_flash[i]->tr, 1, T1_wm)/Snorm ;
-			val = MRIgetVoxVal(mri_flash[i], xv,  yv,  zv, 0)/Inorm ;
-			rms += (sval-val)*(sval-val);
-		}
-	}
+    for (i = 0 ; i < nvolumes ; i++)
+    {
+      sval = FLASHforwardModel(faf_scale*mri_flash[i]->flip_angle, mri_flash[i]->tr, 1, T1_wm)/Snorm ;
+      val = MRIgetVoxVal(mri_flash[i], xv,  yv,  zv, 0)/Inorm ;
+      rms += (sval-val)*(sval-val);
+    }
+  }
 	
-	return(sqrt(rms/(double)(faf_label->n_points*nvolumes))) ;
+  return(sqrt(rms/(double)(faf_label->n_points*nvolumes))) ;
 }
 
 static double
@@ -2091,12 +2105,59 @@ faf_coefs_to_scale(double x, double y, double z,  double w0x, double w0y, double
 
 }
 
-static void findUniqueTETRFA(MRI *mri[], int numvolumes, float *ptr, float *pte, double *pfa)
+static int findUniqueTETRFA(MRI *mri[], int numvolumes, float *ptr, float *pte, double *pfa)
 {
   float TR, TE;
   double FA;
+  int i;
+  int flag = 0;
   // get the first volume values
   TR = mri[0]->tr;
   TE = mri[0]->te;
   FA = mri[0]->flip_angle;
+  for (i = 1; i < numvolumes; ++i)
+  {
+    if (!FZERO(TR - mri[i]->tr))
+    {
+      fprintf(stderr, "non-equal TR found for the volume %d.\n", i);
+      flag = 1;
+    }
+    if (!FZERO(TE - mri[i]->te))
+    {
+      fprintf(stderr, "non-equal TR found for the volume %d.\n", i);
+      flag = 2;
+    }
+    if (!FZERO(FA - mri[i]->flip_angle))
+    {
+      fprintf(stderr, "non-equal flip_angle found for the volume %d.\n", i);
+      flag = 4;
+    }
+  }
+
+  if ((flag & 1) == 1)
+  {
+    fprintf(stderr, "TR is set to zero.\n");
+    TR = 0.;
+  }
+  if ((flag & 2) == 2)
+  {
+    fprintf(stderr, "TE is set to zero.\n");
+    TE = 0.;
+  }
+  if ((flag & 4) == 4)
+  {
+    fprintf(stderr, "Flip_angle is set to zero.\n");
+    FA = 0.;
+  }
+  *ptr = TR; *pte = TE; *pfa = FA;
+
+  return flag;
+}
+
+static int resetTRTEFA(MRI *mri, float tr, float te, double fa)
+{
+  mri->tr = tr;
+  mri->te = te;
+  mri->flip_angle = fa;
+  return NO_ERROR;
 }
