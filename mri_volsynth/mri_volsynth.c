@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Synthesize a volume.
-  $Id: mri_volsynth.c,v 1.1 2003/07/03 04:28:03 greve Exp $
+  $Id: mri_volsynth.c,v 1.2 2003/07/09 03:41:28 greve Exp $
 */
 
 #include <stdio.h>
@@ -39,7 +39,7 @@ static int  isflag(char *flag);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_volsynth.c,v 1.1 2003/07/03 04:28:03 greve Exp $";
+static char vcid[] = "$Id: mri_volsynth.c,v 1.2 2003/07/09 03:41:28 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0;
@@ -51,7 +51,7 @@ int dim[4];
 float res[4];
 float cras[4];
 float cdircos[3], rdircos[3], sdircos[3];
-char *pdfname = "guassian";
+char *pdfname = "gaussian";
 char *precision=NULL; /* not used yet */
 MRI *mri;
 long seed=53;
@@ -95,6 +95,8 @@ int main(int argc, char **argv)
     mri = MRIrandn(dim[0], dim[1], dim[2], dim[3], 0, 1, NULL);
   else if(strcmp(pdfname,"uniform")==0)
     mri = MRIdrand48(dim[0], dim[1], dim[2], dim[3], 0, 1, NULL);
+  else if(strcmp(pdfname,"const")==0)
+    mri = MRIconst(dim[0], dim[1], dim[2], dim[3], 1, NULL);
   else {
     printf("ERROR: pdf %s unrecognized, must be gaussian or uniform\n",pdfname);
     exit(1);
@@ -231,7 +233,7 @@ static void print_usage(void)
   printf("   --vol volid <fmt> : output volume path id and format\n");
   printf("\n");
   printf(" Geometry flags\n");
-  printf("   --dim nc nr ns nf  \n");
+  printf("   --dim nc nr ns nf  (required)\n");
   printf("   --res dc dr ds df\n");
   printf("   --cdircos x y z\n");
   printf("   --rdircos x y z\n");
@@ -239,7 +241,7 @@ static void print_usage(void)
   printf("   --c_ras   c_r c_a c_s\n");
   printf("\n");
   printf(" Value distribution flags\n");
-  printf("   --pdf pdfname : <gaussian> or uniform\n");
+  printf("   --pdf pdfname : <gaussian>, uniform, or const\n");
   printf("\n");
 }
 /* --------------------------------------------- */
@@ -248,7 +250,8 @@ static void print_help(void)
   print_usage() ;
   printf("Synthesizes a volume with the given geometry and pdf. Default pdf \n");
   printf("is gaussian (mean 0, std 1). If uniform is chosen, then the min\n");
-  printf("is 0 and the max is 1.\n");
+  printf("is 0 and the max is 1. If const is chosen, then all voxels are set\n");
+  printf("to 1.\n");
   printf("\n");
 
   exit(1) ;
