@@ -17,7 +17,7 @@ ScubaToolState::ScubaToolState() {
   mFloodFuzziness = 0;
   mFloodFuzzinessType = seed;
   mFloodMaxDistance = 0;
-  mbFlood3D = true;
+  mbFlood3D = false;
   mEdgePathStraightBias = 0.9;
   mEdgePathEdgeBias = 0.9;
   mLayerTarget = -1;
@@ -125,7 +125,7 @@ ScubaToolState::~ScubaToolState() {
 
 TclCommandListener::TclCommandResult
 ScubaToolState::DoListenToTclCommand ( char* isCommand, 
-				       int iArgc, char** iasArgv ) {
+				       int, char** iasArgv ) {
 
   // SetToolMode <toolID> <mode>
   if( 0 == strcmp( isCommand, "SetToolMode" ) ) {

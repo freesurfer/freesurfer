@@ -467,9 +467,22 @@ ScubaView::GetWorldToViewTransform () {
   return mWorldToView->GetID();
 }
 
+map<string,string>&
+ScubaView::GetLabelValueMap ( string isSet ) {
+  
+  map<string,map<string,string> >::iterator tMap = 
+    mLabelValueMaps.find( isSet );
+
+  if( tMap != mLabelValueMaps.end() ) {
+    return mLabelValueMaps[isSet];
+  } else {
+    throw runtime_error( "Couldn't find that set." );
+  }
+}
 
 TclCommandListener::TclCommandResult
-ScubaView::DoListenToTclCommand( char* isCommand, int iArgc, char** iasArgv ) {
+ScubaView::DoListenToTclCommand( char* isCommand,
+				 int, char** iasArgv ) {
 
   // SetViewInPlane <viewID> <inPlane>
   if( 0 == strcmp( isCommand, "SetViewInPlane" ) ) {
@@ -1812,7 +1825,7 @@ ScubaView::DoMouseDown( int iWindow[2],
 
 void
 ScubaView::DoKeyDown( int iWindow[2], 
-		      InputState& iInput, ScubaToolState& iTool ) {
+		      InputState& iInput, ScubaToolState& ) {
   string key = iInput.Key();
 
   // Start with a move distance of 1. If we're moving in plane, set
@@ -1914,8 +1927,8 @@ ScubaView::DoKeyDown( int iWindow[2],
 }
 
 void
-ScubaView::DoKeyUp( int iWindow[2], 
-		    InputState& iInput, ScubaToolState& iTool ) {
+ScubaView::DoKeyUp( int[2], 
+		    InputState&, ScubaToolState& ) {
 
 }
 
@@ -2485,10 +2498,12 @@ ScubaView::DrawFrameBuffer () {
 
   glEnd();
   glGetError(); // clear error
+
 #endif  
 
   glRasterPos2i( 0, 0 );
   glDrawPixels( mWidth, mHeight, GL_RGBA, GL_UNSIGNED_BYTE, mBuffer );
+
 }
 
 void 
@@ -2855,7 +2870,7 @@ ScubaViewStaticTclListener::~ScubaViewStaticTclListener () {
 
 TclCommandListener::TclCommandResult
 ScubaViewStaticTclListener::DoListenToTclCommand ( char* isCommand, 
-					       int iArgc, char** iasArgv ) {
+						   int, char** iasArgv ) {
 
   // SetNumberOfViewMarkers <number>
   if( 0 == strcmp( isCommand, "SetNumberOfViewMarkers" ) ) {

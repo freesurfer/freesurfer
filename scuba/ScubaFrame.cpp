@@ -66,7 +66,7 @@ ScubaFrame::~ScubaFrame() {
 }
 
 TclCommandListener::TclCommandResult
-ScubaFrame::DoListenToTclCommand( char* isCommand, int iArgc, char** iasArgv ) {
+ScubaFrame::DoListenToTclCommand( char* isCommand, int, char** iasArgv ) {
 
   // SetFrameViewConfiguration <frameID> <configuration>
   if( 0 == strcmp( isCommand, "SetFrameViewConfiguration" ) ) {
@@ -546,10 +546,22 @@ ScubaFrame::DoListenToTclCommand( char* isCommand, int iArgc, char** iasArgv ) {
 }
 
 void
-ScubaFrame::DoListenToMessage ( string isMessage, void* iData ) {
+ScubaFrame::DoListenToMessage ( string isMessage, void* ) {
   
   if( isMessage == "viewChanged" ) {
     RequestRedisplay();
+  }
+}
+
+View* 
+ScubaFrame::GetSelectedView () {
+  
+  try { 
+    View* view = GetViewAtColRow( mnSelectedViewCol, mnSelectedViewRow );
+    return view;
+      }
+  catch(...) {
+    throw runtime_error( "Couldn't find selected view." );
   }
 }
 

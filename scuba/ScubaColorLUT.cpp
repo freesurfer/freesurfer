@@ -49,7 +49,7 @@ ScubaColorLUT::UseFile ( std::string ifnLUT ) {
 
 TclCommandListener::TclCommandResult
 ScubaColorLUT::DoListenToTclCommand ( char* isCommand, 
-				      int iArgc, char** iasArgv ) {
+				      int, char** iasArgv ) {
 
   // SetColorLUTLabel <lutID> <label>
   if( 0 == strcmp( isCommand, "SetColorLUTLabel" ) ) {
@@ -204,7 +204,7 @@ ScubaColorLUT::GetColorAtIndex ( int iIndex, int oColor[3] ) {
 }
 
 void 
-ScubaColorLUT::GetIndexOfColor ( int iColor[3], int& oIndex ) {
+ScubaColorLUT::GetIndexOfColor ( int[3], int& ) {
 
   
 }
@@ -297,7 +297,7 @@ ScubaColorLUTStaticTclListener::~ScubaColorLUTStaticTclListener () {
 
 TclCommandListener::TclCommandResult
 ScubaColorLUTStaticTclListener::DoListenToTclCommand ( char* isCommand, 
-					       int iArgc, char** iasArgv ) {
+						       int, char** iasArgv ) {
 
   // GetColorLUTIDList
   if( 0 == strcmp( isCommand, "GetColorLUTIDList" ) ) {

@@ -38,14 +38,14 @@ Layer::~Layer() {
 }
 
 void 
-Layer::DrawIntoBuffer( GLubyte* iBuffer, int iWidth, int iHeight,
-		       ViewState& iViewState,
-		       ScubaWindowToRASTranslator& iTranslator ) {
+Layer::DrawIntoBuffer( GLubyte*, int, int,
+		       ViewState&,
+		       ScubaWindowToRASTranslator& ) {
   cerr << "Layer " << msLabel << " is drawing into buffer" << endl;
 }
 
 void 
-Layer::GetInfoAtRAS ( float iRAS[3],
+Layer::GetInfoAtRAS ( float[3],
 		      std::map<std::string,std::string>& iLabelValues ) {
 
   string sLabel;
@@ -61,7 +61,7 @@ Layer::GetInfoAtRAS ( float iRAS[3],
 }
  
 TclCommandListener::TclCommandResult
-Layer::DoListenToTclCommand( char* isCommand, int iArgc, char** iasArgv ) {
+Layer::DoListenToTclCommand( char* isCommand, int, char** iasArgv ) {
 
   // SetLayerLabel <layerID> <label>
   if( 0 == strcmp( isCommand, "SetLayerLabel" ) ) {
@@ -165,7 +165,7 @@ Layer::DoListenToTclCommand( char* isCommand, int iArgc, char** iasArgv ) {
 
 
 void
-Layer::DoListenToMessage ( string isMessage, void* iData ) {
+Layer::DoListenToMessage ( string isMessage, void* ) {
 
   if( isMessage == "dataChanged" ) {
     DataChanged ();
@@ -191,9 +191,9 @@ Layer::SetHeight( int iHeight ) {
 }
 
 void
-Layer::HandleTool ( float iRAS[3], ViewState& iViewState,
-		    ScubaWindowToRASTranslator& iTranslator,
-		    ScubaToolState& iTool, InputState& iInput ) {
+Layer::HandleTool ( float[3], ViewState&,
+		    ScubaWindowToRASTranslator&,
+		    ScubaToolState&, InputState& ) {
 
 }
 
@@ -230,9 +230,9 @@ Layer::DrawPixelIntoBuffer ( GLubyte* iAddress,
 
 
 void 
-Layer::DrawAALineIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
+Layer::DrawAALineIntoBuffer ( GLubyte* iBuffer, int iWidth, int,
 			      int iFromWindow[2], int iToWindow[2],
-			      int iColor[3], int iThickness, float iOpacity ) {
+			      int iColor[3], int iThickness, float ) {
 
   // Set up x1, x2, y1, y2 so that x1 is always less than x2;
   int x1 = MIN( iFromWindow[0], iToWindow[0] );
@@ -390,7 +390,7 @@ LayerStaticTclListener::~LayerStaticTclListener () {
 
 TclCommandListener::TclCommandResult
 LayerStaticTclListener::DoListenToTclCommand ( char* isCommand, 
-					       int iArgc, char** iasArgv ) {
+					       int, char** ) {
 
   // GetLayerIDList
   if( 0 == strcmp( isCommand, "GetLayerIDList" ) ) {

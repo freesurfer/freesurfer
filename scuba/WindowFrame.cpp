@@ -8,7 +8,7 @@ using namespace std;
 
 DeclareIDTracker(WindowFrame);
 
-WindowFrame::WindowFrame( ID iID ) {
+WindowFrame::WindowFrame( ID ) {
   mLastMoved[0] = 0;
   mLastMoved[1] = 1;
   mWidth = 0;
@@ -156,32 +156,32 @@ WindowFrame::DoTimer() {
 }
 
 void
-WindowFrame::DoMouseMoved( int iWindow[2], InputState& iInput ) {
+WindowFrame::DoMouseMoved( int[2], InputState& ) {
 
   cerr << "WindowFrame::DoMouseMoved " << mID << endl;
   DebugOutput( << "WindowFrame " << mID << ": DoMouseMoved()" );
 }
 
 void
-WindowFrame::DoMouseUp( int iWindow[2], InputState& iInput ) {
+WindowFrame::DoMouseUp( int[2], InputState& ) {
 
   DebugOutput( << "WindowFrame " << mID << ": DoMouseUp()" );
 }
 
 void
-WindowFrame::DoMouseDown( int iWindow[2], InputState& iInput ) {
+WindowFrame::DoMouseDown( int[2], InputState& ) {
 
   DebugOutput( << "WindowFrame " << mID << ": DoMouseDown()" );
 }
 
 void
-WindowFrame::DoKeyDown( int iWindow[2], InputState& iInput ) {
+WindowFrame::DoKeyDown( int[2], InputState& ) {
 
   DebugOutput( << "WindowFrame " << mID << ": DoKeyDown()" );
 }
 
 void
-WindowFrame::DoKeyUp( int iWindow[2], InputState& iInput ) {
+WindowFrame::DoKeyUp( int[2], InputState& ) {
 
   DebugOutput( << "WindowFrame " << mID << ": DoKeyUp()" );
 }

@@ -383,12 +383,16 @@ x save and reload lines
 
 x button help balloons
 
-- button for zoom in and out
+x button for zoom in and out
 
 - change volume min/max to histogram ala tksurfer
 
 - save scene setup script
   - get and set markers and cursor
+
+- draw polygon ROI tool
+  - draw straight lines, autofill on close
+
 
 
 BRUCE'S LIST:::

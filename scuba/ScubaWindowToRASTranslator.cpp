@@ -4,13 +4,11 @@
 using namespace std;
 
 void 
-ScubaWindowToRASTranslator::TranslateWindowToRAS( int const iWindow[2],
-						  float oRAS[3] ) {
+ScubaWindowToRASTranslator::TranslateWindowToRAS( int const[2], float[3] ) {
   cerr << "NO" << endl;
 }
 
 void 
-ScubaWindowToRASTranslator::TranslateRASToWindow( float const iRAS[3], 
-						  int oWindow[2] ) {
+ScubaWindowToRASTranslator::TranslateRASToWindow( float const[3], int[2] ) {
   cerr << "NO" << endl;
 }

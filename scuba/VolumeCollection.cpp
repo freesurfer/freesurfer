@@ -875,7 +875,7 @@ VolumeCollection::IsOtherRASSelected ( float iRAS[3], int iThisROIID ) {
 void
 VolumeCollection::FindRASPointsInSquare ( float iPointA[3], float iPointB[3],
 					  float iPointC[3], float iPointD[3],
-					  float iMaxDistance,
+					  float,
 					  list<Point3<float> >& oPoints ) {
 
   Point3<float> squareRAS[4];
@@ -968,6 +968,7 @@ VolumeCollection::FindRASPointsInSquare ( float iPointA[3], float iPointB[3],
 	    ( segmentRAS[nSegment][0], segmentRAS[nSegment][1],
 	      squareRAS[0], n, intersectionRAS );
 	  
+
 	  if( VectorOps::intersect == rInt ) {
 
 	    // Calculate the anglesum of the intersection point with the
@@ -1463,13 +1464,13 @@ VolumeCollectionFlooder::DoStopRequested () {
 }
 
 void 
-VolumeCollectionFlooder::DoVoxel ( float iRAS[3] ) {
+VolumeCollectionFlooder::DoVoxel ( float[3] ) {
 
 }
 
 bool 
-VolumeCollectionFlooder::CompareVoxel ( float iRAS[3] ) {
-return true;
+VolumeCollectionFlooder::CompareVoxel ( float[3] ) {
+  return true;
 }
 
 void

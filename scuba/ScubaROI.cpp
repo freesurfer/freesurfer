@@ -46,7 +46,8 @@ ScubaROI::~ScubaROI () {
 
 
 TclCommandManager::TclCommandResult
-ScubaROI::DoListenToTclCommand ( char* isCommand, int iArgc, char** iasArgv ) {
+ScubaROI::DoListenToTclCommand ( char* isCommand,
+				 int, char** iasArgv ) {
 
   // SetROILabel <transformID> <label>
   if( 0 == strcmp( isCommand, "SetROILabel" ) ) {
@@ -323,7 +324,7 @@ ScubaROIStaticTclListener::~ScubaROIStaticTclListener () {
 
 TclCommandManager::TclCommandResult
 ScubaROIStaticTclListener::DoListenToTclCommand ( char* isCommand, 
-						  int iArgc, char** iasArgv ) {
+						  int, char** ) {
 
   // GetROIIDList
   if( 0 == strcmp( isCommand, "GetROIIDList" ) ) {

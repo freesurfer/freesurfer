@@ -53,7 +53,7 @@ PathManager::GetPathList () {
 }
 
 TclCommandManager::TclCommandResult
-PathManager::DoListenToTclCommand ( char* isCommand, int iArgc, 
+PathManager::DoListenToTclCommand ( char* isCommand, int, 
 				    char** iasArgv ) {
 
   // WritePathFile

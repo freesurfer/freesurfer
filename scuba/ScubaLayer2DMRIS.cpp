@@ -193,8 +193,8 @@ ScubaLayer2DMRIS::DrawIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
 }
   
 void
-ScubaLayer2DMRIS::GetInfoAtRAS ( float inRAS[3],
-			   std::map<std::string,std::string>& iLabelValues ) {
+ScubaLayer2DMRIS::GetInfoAtRAS ( float[3],
+				 std::map<std::string,std::string>& ) {
 
 }
 

@@ -63,12 +63,12 @@ View::KeyUp( int iWindow[2], InputState& iInput, ScubaToolState& iTool ) {
 }
 
 TclCommandListener::TclCommandResult 
-View::DoListenToTclCommand ( char* isCommand, int iArgc, char** iArgv ) {
+View::DoListenToTclCommand ( char*, int, char** ) {
   return ok;
 }
 
 void
-View::DoListenToMessage ( string isMessage, void* iData ) {
+View::DoListenToMessage ( string, void* ) {
 
 }
 
@@ -80,7 +80,7 @@ View::DoDraw() {
 }
 
 void
-View::DoReshape( int iWidth, int iHeight ) {
+View::DoReshape( int, int ) {
 
   DebugOutput( << "View " << msLabel << ": DoReshape()" );
 }
@@ -92,36 +92,31 @@ View::DoTimer() {
 }
 
 void
-View::DoMouseMoved( int iWindow[2], 
-		    InputState& iInput, ScubaToolState& iTool ) {
+View::DoMouseMoved( int[2], InputState&, ScubaToolState& ) {
 
   DebugOutput( << "View " << msLabel << ": DoMouseMoved()" );
 }
 
 void
-View::DoMouseUp( int iWindow[2], 
-		 InputState& iInput, ScubaToolState& iTool ) {
+View::DoMouseUp( int[2], InputState&, ScubaToolState& ) {
 
   DebugOutput( << "View " << msLabel << ": DoMouseUp()" );
 }
 
 void
-View::DoMouseDown( int iWindow[2], 
-		   InputState& iInput, ScubaToolState& iTool ) {
+View::DoMouseDown( int[2], InputState&, ScubaToolState& ) {
 
   DebugOutput( << "View " << msLabel << ": DoMouseDown()" );
 }
 
 void
-View::DoKeyDown( int iWindow[2], 
-		 InputState& iInput, ScubaToolState& iTool ) {
+View::DoKeyDown( int[2], InputState&, ScubaToolState& ) {
 
   DebugOutput( << "View " << msLabel << ": DoKeyDown()" );
 }
 
 void
-View::DoKeyUp( int iWindow[2], 
-	       InputState& iInput, ScubaToolState& iTool ) {
+View::DoKeyUp( int[2], InputState&, ScubaToolState& ) {
 
   DebugOutput( << "View " << msLabel << ": DoKeyUp()" );
 }

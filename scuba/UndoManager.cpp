@@ -169,7 +169,7 @@ UndoManager::Clear () {
 
 TclCommandManager::TclCommandResult
 UndoManager::DoListenToTclCommand ( char* isCommand, 
-				    int iArgc, char** iasArgv ) {
+				    int, char** ) {
 
 
   // GetUndoTitle

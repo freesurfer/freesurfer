@@ -282,7 +282,7 @@ SurfaceCollection::GetNumFaces () {
 }
 
 int
-SurfaceCollection::GetNumVerticesPerFace_Unsafe ( int inFace ) {
+SurfaceCollection::GetNumVerticesPerFace_Unsafe ( int ) {
 
   return VERTICES_PER_FACE;
 }

@@ -900,7 +900,7 @@ ScubaLayer2DMRI::DoListenToTclCommand ( char* isCommand, int iArgc, char** iasAr
 }
 
 void
-ScubaLayer2DMRI::DoListenToMessage ( string isMessage, void* iData ) {
+ScubaLayer2DMRI::DoListenToMessage ( string isMessage, void* ) {
 
   if( isMessage == "pathChanged" ) {
     RequestRedisplay();
@@ -1199,15 +1199,21 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
 
 	switch( iInput.Button() ) {
 	case 1:
+	  // Button 1, add a new vertex and segment to the path.
 	  mCurrentPath->AddVertex( ras );
 	  mCurrentPath->MarkEndOfSegment();
 	  break;
 	case 2:
+	  // Button 2, add the last vertex, tell the path manager to
+	  // manage this path, and 'let it go' by setting the current
+	  // path to NULL.
 	  mCurrentPath->AddVertex( ras );
 	  pathMgr.ManagePath( *mCurrentPath );
 	  mCurrentPath = NULL;
 	  break;
 	case 3:
+	  // Button 3, same as button 2, but stretch the path back to
+	  // the first point first.
 	  mCurrentPath->AddVertex( ras );
 
 	  if( iTool.GetMode() == ScubaToolState::straightPath ) {
@@ -1474,7 +1480,7 @@ void
 ScubaLayer2DMRI::DrawRASPathIntoBuffer ( GLubyte* iBuffer, 
 					 int iWidth, int iHeight,
 					 int iColor[3],
-					 ViewState& iViewState,
+					 ViewState&,
 				     ScubaWindowToRASTranslator& iTranslator,
 					 Path<float>& iPath ) {
 
@@ -1592,7 +1598,7 @@ ScubaLayer2DMRIFloodVoxelEdit::DoStopRequested () {
 }
 
 bool
-ScubaLayer2DMRIFloodVoxelEdit::CompareVoxel ( float iRAS[3] ) {
+ScubaLayer2DMRIFloodVoxelEdit::CompareVoxel ( float[3] ) {
 
   // Always return true.
   return true;
@@ -1702,7 +1708,7 @@ ScubaLayer2DMRIFloodSelect::DoStopRequested () {
 }
 
 bool
-ScubaLayer2DMRIFloodSelect::CompareVoxel ( float iRAS[3] ) {
+ScubaLayer2DMRIFloodSelect::CompareVoxel ( float[3] ) {
 
   // Always return true.
   return true;

@@ -36,8 +36,8 @@ ScubaGlobalPreferences::SavePreferences () {
 }
 
 TclCommandManager::TclCommandResult
-ScubaGlobalPreferences::DoListenToTclCommand ( char* isCommand, int iArgc, 
-					       char** iasArgv ) {
+ScubaGlobalPreferences::DoListenToTclCommand ( char* isCommand, 
+					       int, char** iasArgv ) {
 
   // SaveGlobalPreferences
   if( 0 == strcmp( isCommand, "SaveGlobalPreferences" ) ) {

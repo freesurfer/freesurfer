@@ -58,7 +58,8 @@ ScubaTransform::~ScubaTransform() {
 
 
 TclCommandListener::TclCommandResult
-ScubaTransform::DoListenToTclCommand( char* isCommand, int iArgc, char** iasArgv ) {
+ScubaTransform::DoListenToTclCommand( char* isCommand,
+				      int, char** iasArgv ) {
 
   // SetTransformLabel <transformID> <label>
   if( 0 == strcmp( isCommand, "SetTransformLabel" ) ) {
@@ -389,7 +390,7 @@ ScubaTransformStaticTclListener::~ScubaTransformStaticTclListener () {
 
 TclCommandListener::TclCommandResult
 ScubaTransformStaticTclListener::DoListenToTclCommand ( char* isCommand, 
-					       int iArgc, char** iasArgv ) {
+							int, char** ) {
 
   // GetTransformIDList
   if( 0 == strcmp( isCommand, "GetTransformIDList" ) ) {

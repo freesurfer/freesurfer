@@ -27,7 +27,8 @@ ScubaDataCollectionFactory::GetFactory() {
 }
 
 TclCommandListener::TclCommandResult
-ScubaDataCollectionFactory::DoListenToTclCommand( char* isCommand, int iArgc, char** iasArgv ) {
+ScubaDataCollectionFactory::DoListenToTclCommand( char* isCommand, 
+						  int, char** iasArgv ) {
 
   // GetDataCollectionIDList
   if( 0 == strcmp( isCommand, "GetDataCollectionIDList" ) ) {

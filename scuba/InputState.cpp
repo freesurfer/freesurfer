@@ -76,6 +76,7 @@ InputState::SetButtonUpEvent () {
   mbButtonDownEvent = false;
   mbButtonUpEvent   = true;
   mbButtonDragEvent = false;
+  mButton = 0;
 }
 
 void

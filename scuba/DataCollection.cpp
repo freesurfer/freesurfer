@@ -64,14 +64,14 @@ DataCollection::MakeLocationFromRAS ( float const iRAS[3] ) {
 }
 
 void
-DataCollection::GetInfo( DataLocation& iLoc,
-			 std::map<std::string,std::string>& iLabelValues ) {
+DataCollection::GetInfo( DataLocation&,
+			 std::map<std::string,std::string>& ) {
 
   return;
 }
 
 TclCommandListener::TclCommandResult
-DataCollection::DoListenToTclCommand( char* isCommand, int iArgc, char** iasArgv ) {
+DataCollection::DoListenToTclCommand( char* isCommand, int, char** iasArgv ) {
 
   // SetCollectionLabel <collectionID> <label>
   if( 0 == strcmp( isCommand, "SetCollectionLabel" ) ) {
@@ -231,7 +231,7 @@ DataCollection::DoListenToTclCommand( char* isCommand, int iArgc, char** iasArgv
 }
 
 void
-DataCollection::DoListenToMessage ( string isMessage, void* iData ) {
+DataCollection::DoListenToMessage ( string, void* ) {
   
 }
 

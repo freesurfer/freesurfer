@@ -36,6 +36,7 @@ public:
     mFactory = iFactory; 
   }
 
+  View* GetSelectedView ();
 protected:
 
   // Adjusts window coords for a view.

@@ -45,7 +45,7 @@ class ScubaColorLUT : public DebugReporter, public IDTracker<ScubaColorLUT>, pub
 
  protected:
 
-  const static int cDefaultEntries;
+  static const int cDefaultEntries;
 
   void ReadFile ();
 

@@ -8,7 +8,7 @@ using namespace std;
 
 void
 Utilities::FindPointsOnLine2d ( int iPointA[2], int iPointB[2],
-				int iThickness,
+				int,
 				list<Point2<int> >& oPoints ) {
 
   int dx = iPointB[0] - iPointA[0];

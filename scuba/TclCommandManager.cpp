@@ -114,7 +114,7 @@ TclCommandManager::CreateCommand( Command& iCommand ) {
 }
 
 int
-TclCommandManager::HandleCommand ( ClientData iClientData, Tcl_Interp* iInterp,
+TclCommandManager::HandleCommand ( ClientData, Tcl_Interp* iInterp,
 				   int argc, char** argv ) {
 
   int rTcl = TCL_OK;
@@ -323,7 +323,7 @@ TclCommandManager::RemoveListener ( TclCommandListener& iListener ) {
 
 TclCommandListener::TclCommandResult
 TclCommandManager::DoListenToTclCommand ( char* isCommand, 
-					  int iArgc, char** iasArgv ) {
+					  int, char** iasArgv ) {
 
   // PrintAllCommands
   if( 0 == strcmp( isCommand, "PrintAllCommands" ) ) {

@@ -70,6 +70,9 @@ public:
   void SetWorldToViewTransform ( int iTransformID );
   int GetWorldToViewTransform ();
 
+  // Get the map of label values.
+  std::map<std::string,std::string>& GetLabelValueMap ( std::string isSet );
+
   // Handle Tcl commands.
   virtual TclCommandResult
     DoListenToTclCommand ( char* isCommand, int iArgc, char** iasArgv );
