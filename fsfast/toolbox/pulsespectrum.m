@@ -9,7 +9,24 @@ function f = pulsespectrum(x0,x1,w)
 % 
 % If x0 = -x1, then the result will be all real.
 %
-% $Id: pulsespectrum.m,v 1.2 2004/01/26 03:16:40 greve Exp $
+% Example:
+%   ph = 2*pi * [0:N-1]'/N; ph = ph - ph(N/2+1); 
+%     ph will go from -pi to (almost) pi, passing through 0
+%     at N/2+1. This makes the x axis go from -N/2 to (N-1)/2
+%     passing through 0 at N/2 + 1: x = [-N/2 : (N-1)/2]; So let
+%   x0 = -10; x1 = 10; then
+%   f = pulsespectrum(x0,x1,ph);
+%   p = fftshift(abs(ifft(fftshift(f))));
+%   plot(x,p) shows the pulse. The pulse starts at about -10 and
+%   ends at about +10. There is a lot of ringing and roll off
+%   (ie, it's not a crisp pulse). I assume that this is because 
+%   the spectrum vector is sampled from the continuous, which is 
+%   not what the FFT assumes. Incidentally, the decoding DFT matrix
+%   is iDFT = exp(+i*(ph*x))/N; ie, p = abs(iDFT*f); This p will
+%   be the same as the one above. Less ringing when x0,x1 are on
+%   the half voxel (they are continuous).
+%
+% $Id: pulsespectrum.m,v 1.3 2004/05/01 04:48:30 greve Exp $
 
 f = [];
 
@@ -34,7 +51,7 @@ nx = length(x1);
 indwz  = find(w==0);
 indwnz = find(w~=0);
 
-f = zeros(length(w),nx);
+f = zeros(prod(size(w)),nx);
 for nthx = 1:nx
   x00 = x0(nthx);
   x11 = x1(nthx);
@@ -46,7 +63,10 @@ for nthx = 1:nx
   wx1 = w(indwnz)*x11;
   fx(indwnz) = (cos(wx1) - cos(wx0) + i*(sin(wx0)-sin(wx1)) )./(-i*w(indwnz));
 
-  f(:,nthx) = fx;
+  f(:,nthx) = reshape1d(fx);
+
 end
+
+f = reshape(f,[size(w) nx]);
 
 return
