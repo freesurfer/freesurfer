@@ -2721,7 +2721,7 @@ XVgetTitle(XV_FRAME *xvf, int which, char *title, int with_value)
     cp = title+strlen(title) ;
 
   if (cp)   /* strip trailing spaces */
-    while (isspace(*cp))
+    while (isspace((int)*cp))
       *cp-- = 0 ;
 
   return(title) ;
