@@ -91,7 +91,7 @@ main(int argc, char *argv[])
   double rms ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_ms_fitparms.c,v 1.17 2003/11/06 22:36:25 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ms_fitparms.c,v 1.18 2003/11/07 15:18:54 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -1756,7 +1756,7 @@ estimate_flip_angle_field(MRI *mri_T1,  MRI *mri_PD, MRI **mri_flash, int nvolum
 	int    i,  k,  n, done, iter, width, height, depth, nsmall =  0,  xv, yv, zv ;
 	double rms, dj_dalpha, last_rms, x, y, z, x0, y0, z0, w0x, w0y, w0z,  err,faf_scale,
          dalpha_dax, dalpha_day, dalpha_daz, dalpha_dbx, dalpha_dby, dalpha_dbz, alpha,TR, exp_TR_T1,  numer, denom,
-         dj_dax, dj_day, dj_daz, dj_dbx, dj_dby, dj_dbz, dt,  pct_change, dj_dT1, dj_dPD, last_dT1, last_dPD, dT1, dPD ;
+		dj_dax, dj_day, dj_daz, dj_dbx, dj_dby, dj_dbz, dt,  pct_change/*, dj_dT1, dj_dPD, last_dT1, last_dPD, dT1, dPD */;
 	double val, T1_wm, PD_wm, last_dax, last_day, last_daz, dax, day, daz, dbx, dby, dbz, last_dbx, last_dby, last_dbz,
          Inorm, Snorm, T1, PD ;
 
@@ -1779,7 +1779,7 @@ estimate_flip_angle_field(MRI *mri_T1,  MRI *mri_PD, MRI **mri_flash, int nvolum
 	last_rms = compute_fa_rms(T1_wm, PD_wm, mri_flash, nvolumes, faf_coefs,  nfaf, faf_label, mri_T1, mri_PD)  ;
 	printf("iter %03d: rms = %2.3f\n", 0, last_rms) ;
 
- 	last_dT1  = last_dPD = last_dax = last_day = last_daz = last_dbx = last_dby = last_dbz = 0 ;
+ 	/*last_dT1  = last_dPD = */last_dax = last_day = last_daz = last_dbx = last_dby = last_dbz = 0 ;
 	do
 	{
 		/*  compute current rms */
@@ -1908,9 +1908,9 @@ estimate_flip_angle_field(MRI *mri_T1,  MRI *mri_PD, MRI **mri_flash, int nvolum
 		}
 
 		
+#if 0
 		dT1 = momentum*last_dT1 + 1e6*dt * (-dj_dT1) ;
 		dPD = momentum*last_dPD + 1e7*dt * (-dj_dPD) ;
-#if 0
  		T1_wm += dT1 ;  
 #if NORM_VALUES
 		PD_wm += dPD ;
@@ -1944,7 +1944,7 @@ estimate_flip_angle_field(MRI *mri_T1,  MRI *mri_PD, MRI **mri_flash, int nvolum
 			nsmall = 0 ;
 		if (pct_change <  0)  /*  reset all momentum */
 		{
-			last_dT1 = last_dPD = last_dax = last_day = last_daz = last_dbx = last_dby = last_dbz = 0 ;
+			/*last_dT1 = last_dPD = */last_dax = last_day = last_daz = last_dbx = last_dby = last_dbz = 0 ;
 		}
 
 		done  = (iter++ > 500) || (nsmall > 5)  ;
