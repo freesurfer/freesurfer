@@ -2760,6 +2760,68 @@ MRISreadCurvatureFile(MRI_SURFACE *mris, char *sname)
 
         Description
 ------------------------------------------------------*/
+float *
+MRISreadCurvatureVector(MRI_SURFACE *mris, char *sname)
+{
+  int    k,i,vnum,fnum;
+  float  *cvec ;
+  FILE   *fp;
+  char   *cp, path[STRLEN], fname[STRLEN] ;
+  
+  cp = strchr(sname, '/') ;
+  if (!cp)                 /* no path - use same one as mris was read from */
+  {
+    cp = strchr(sname, '.') ;
+    FileNamePath(mris->fname, path) ;
+    if (cp)
+      sprintf(fname, "%s/%s", path, sname) ;
+    else   /* no hemisphere specified */
+      sprintf(fname, "%s/%s.%s", path, 
+              mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", sname) ;
+  }
+  else   
+    strcpy(fname, sname) ;  /* path specified explcitly */
+
+  if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON) 
+    fprintf(stdout, "reading curvature file...") ;
+
+  fp = fopen(fname,"r");
+  if (fp==NULL) 
+    return(NULL) ;
+
+  fread3(&vnum,fp);
+  if (vnum == NEW_VERSION_MAGIC_NUMBER)
+  {
+    fclose(fp) ;
+    return(MRISreadNewCurvatureFileVector(mris, fname)) ;
+  }
+  
+  fread3(&fnum,fp);
+  if (vnum!= mris->nvertices)
+  {
+    fclose(fp) ;
+    return(NULL) ;
+  }
+  cvec = (float *)calloc(mris->nvertices, sizeof(float)) ;
+  if (!cvec)
+    ErrorExit(ERROR_NOMEMORY, "MRISreadCurvatureVector(%s): calloc failed",
+              fname) ;
+
+  for (k=0;k<vnum;k++)
+  {
+    fread2(&i,fp);
+    cvec[k] = i/100.0 ;
+  }
+  fclose(fp);
+  return(cvec) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
 int
 MRISreadFloatFile(MRI_SURFACE *mris, char *sname)
 {
@@ -7505,48 +7567,63 @@ MRISwriteAnnotation(MRI_SURFACE *mris, char *sname)
 int
 MRISreadValues(MRI_SURFACE *mris, char *sname)
 {
-  int   i,k,num,ilat;
+  int   i,k,num,ilat, vno ;
   float f;
-  float lat;
+  float lat, *cvec;
   FILE  *fp;
   char  *cp, fname[STRLEN] ;
 
-  strcpy(fname, sname) ;
-  cp = strrchr(fname, '.') ;
-  if (!cp || *(cp+1) != 'w')
-    strcat(fname, ".w") ;
-  fp = fopen(fname,"rb");
-  if (fp==NULL) 
-    ErrorReturn(ERROR_NOFILE, (ERROR_NOFILE,
-                               "MRISreadValues: File %s not found\n",fname));
-  fread2(&ilat,fp);
-  lat = ilat/10.0;
-
-  for (k=0;k<mris->nvertices;k++)
-    mris->vertices[k].val=0;
-  if (fread3(&num,fp) < 1)
-    ErrorReturn(ERROR_BADFILE,
-                (ERROR_BADFILE, 
-                 "MRISreadValues(%s): could not read # of vertices",
-                 fname)) ;
-  for (i=0;i<num;i++)
+  cvec = MRISreadCurvatureVector(mris, sname) ;
+  if (cvec)
   {
-    if (fread3(&k,fp) < 1)
+    printf("reading values from curvature-format file...\n") ;
+    for (vno = 0 ; vno < mris->nvertices ; vno++)
+    {
+      if (vno == Gdiag_no)
+        DiagBreak() ;
+      mris->vertices[vno].val = cvec[vno];
+    }
+    free(cvec) ;
+  }
+  else
+  {
+    strcpy(fname, sname) ;
+    cp = strrchr(fname, '.') ;
+    if (!cp || *(cp+1) != 'w')
+      strcat(fname, ".w") ;
+    fp = fopen(fname,"rb");
+    if (fp==NULL) 
+      ErrorReturn(ERROR_NOFILE, (ERROR_NOFILE,
+                                 "MRISreadValues: File %s not found\n",fname));
+    fread2(&ilat,fp);
+    lat = ilat/10.0;
+    
+    for (k=0;k<mris->nvertices;k++)
+      mris->vertices[k].val=0;
+    if (fread3(&num,fp) < 1)
       ErrorReturn(ERROR_BADFILE,
                   (ERROR_BADFILE, 
-                   "MRISreadValues(%s): could not read %dth vno",
-                   fname, i)) ;
-    f = freadFloat(fp) ;
-    if (k>=mris->nvertices||k<0)
-      printf("MRISreadValues: vertex index out of range: %d f=%f\n",k,f);
-    else
+                   "MRISreadValues(%s): could not read # of vertices",
+                   fname)) ;
+    for (i=0;i<num;i++)
     {
-      if (k == Gdiag_no)
-        DiagBreak() ;
-      mris->vertices[k].val = f;
+      if (fread3(&k,fp) < 1)
+        ErrorReturn(ERROR_BADFILE,
+                    (ERROR_BADFILE, 
+                     "MRISreadValues(%s): could not read %dth vno",
+                     fname, i)) ;
+      f = freadFloat(fp) ;
+      if (k>=mris->nvertices||k<0)
+        printf("MRISreadValues: vertex index out of range: %d f=%f\n",k,f);
+      else
+      {
+        if (k == Gdiag_no)
+          DiagBreak() ;
+        mris->vertices[k].val = f;
+      }
     }
+    fclose(fp);
   }
-  fclose(fp);
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
@@ -29496,6 +29573,67 @@ MRISreadNewCurvatureFile(MRI_SURFACE *mris, char *sname)
     fprintf(stdout, "done. min=%2.3f max=%2.3f\n", curvmin, curvmax) ;
   fclose(fp);
   return(NO_ERROR) ;
+}
+float *
+MRISreadNewCurvatureFileVector(MRI_SURFACE *mris, char *sname)
+{
+  int    k,vnum,fnum, vals_per_vertex ;
+  float  *cvec ;
+  FILE   *fp;
+  char   *cp, path[STRLEN], fname[STRLEN] ;
+  
+  cp = strchr(sname, '/') ;
+  if (!cp)                 /* no path - use same one as mris was read from */
+  {
+    cp = strchr(sname, '.') ;
+    FileNamePath(mris->fname, path) ;
+    if (cp)
+      sprintf(fname, "%s/%s", path, sname) ;
+    else   /* no hemisphere specified */
+      sprintf(fname, "%s/%s.%s", path, 
+              mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", sname) ;
+  }
+  else   
+    strcpy(fname, sname) ;  /* path specified explcitly */
+
+  if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON) 
+    fprintf(stdout, "reading curvature file...") ;
+
+  fp = fopen(fname,"r");
+  if (fp==NULL) 
+    return(NULL) ;
+
+  fread3(&vnum,fp);
+  if (vnum != NEW_VERSION_MAGIC_NUMBER)
+  {
+    fclose(fp) ;
+    return(MRISreadCurvatureFileVector(mris, fname)) ;
+  }
+  
+  vnum = freadInt(fp);
+  fnum = freadInt(fp);
+  if (vnum!= mris->nvertices)
+  {
+    fclose(fp) ;
+    return(NULL) ;
+  }
+  vals_per_vertex = freadInt(fp) ;
+  if (vals_per_vertex != 1)
+  {
+    fclose(fp) ;
+    return(NULL) ;
+  }
+
+  cvec = (float *)calloc(mris->nvertices, sizeof(float)) ;
+  if (!cvec)
+    ErrorExit(ERROR_NOMEMORY, "MRISreadNewCurvatureVector(%s): calloc failed",
+              fname) ;
+  for (k=0;k<vnum;k++)
+  {
+    cvec[k] = freadFloat(fp) ;
+  }
+  fclose(fp);
+  return(cvec) ;
 }
 /*-----------------------------------------------------
         Parameters:
