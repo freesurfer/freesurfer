@@ -1,7 +1,7 @@
 function flac = fast_ldflac(flacfile)
 % flac = fast_ldflac(flacfile)
 %
-% $Id: fast_ldflac.m,v 1.4 2004/10/25 04:54:38 greve Exp $
+% $Id: fast_ldflac.m,v 1.5 2004/10/26 05:00:47 greve Exp $
 
 flac = [];
 if(nargin > 1)
@@ -24,7 +24,7 @@ if(nargin == 0) return; end
 
 fp = fopen(flacfile,'r');
 if(fp == -1)
-  fpritf('ERROR: could not open %s\n',flacfile);
+  fprintf('ERROR: could not open %s\n',flacfile);
   flac = [];
   return;
 end
