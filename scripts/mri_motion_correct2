@@ -3,7 +3,7 @@
 # Performs motion correction of anatomicals. This should produce
 # the same output as mri_motion_correct
 
-set VERSION = '$Id: mri_motion_correct2,v 1.5 2003/08/28 21:47:56 tosa Exp $';
+set VERSION = '$Id: mri_motion_correct2,v 1.6 2003/10/03 14:16:33 tosa Exp $';
 
 set tmpdir      = /tmp;
 set inputlist   = ();
@@ -12,8 +12,8 @@ set PrintHelp   = 0;
 set LF          = ();
 set CleanUp     = 1;
 set CleanUpList = ();
-
 set PWD = pwd;
+set HiRes = '';
 
 # If no args, print usage and exit #
 if($#argv == 0) then
@@ -178,7 +178,7 @@ endif
 echo "-----------------------------------------" |& tee -a $LF
 echo "Converting Average to COR " |& tee -a $LF
 date |& tee -a $LF
-set cmd = (mri_convert $avgvol $outdir);
+set cmd = (mri_convert ${HiRes} $avgvol $outdir);
 pwd >> $LF
 echo $cmd >> $LF
 $cmd |& tee -a $LF
@@ -247,6 +247,10 @@ while( $#argv != 0 )
     case "-debug":
       set verbose = 1;
       set echo = 1;
+      breaksw
+
+    case "-cm":
+      set HiRes = ('-cm')
       breaksw
 
     default:
@@ -362,6 +366,7 @@ usage_exit:
   echo "  -tmpdir tmpdir : directory for temporary files"
   echo "  -nocleanup     : do not delete temporary files"
   echo "  -umask umask   : set unix file permission mask"
+  echo "  -cm            : COR volumes conform to min voxel size"
   echo "  -version       : print version and exit"
   echo ""
 
