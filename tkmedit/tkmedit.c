@@ -4,9 +4,9 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2003/02/27 20:41:36 $
-// Revision       : $Revision: 1.127 $
-char *VERSION = "$Revision: 1.127 $";
+// Revision Date  : $Date: 2003/02/27 20:57:52 $
+// Revision       : $Revision: 1.128 $
+char *VERSION = "$Revision: 1.128 $";
 
 #define TCL
 #define TKMEDIT 
@@ -578,7 +578,7 @@ void IterateFloodFillSegmentation ( tkm_tSegType                iVolume,
 
 mriVolumeRef gDTIVolume;
 tAxis gaDTIAxisForComponent[xColr_knNumComponents];
-float gfDTIAlpha = 0.6;
+float gfDTIAlpha = 1.0;
 
 tkm_tErr LoadDTIVolume ( char*              isNameEV,
                          char*              isNameFA,
@@ -590,6 +590,8 @@ void GetDTIColorAtVoxel ( xVoxelRef        iAnaIdx,
 			  mri_tOrientation iPlane,
 			  xColor3fRef      iBaseColor,
 			  xColor3fRef      oColor );
+
+void SetDTIAlpha ( float ifAlpha );
 
 // ===========================================================================
 
@@ -4170,6 +4172,24 @@ int TclLoadDTIVolumes ( ClientData inClientData, Tcl_Interp* inInterp,
   return TCL_OK;
 }
 
+int TclSetDTIAlpha ( ClientData inClientData, 
+        Tcl_Interp* inInterp,
+        int argc, char* argv[] ) {
+  
+  if ( argc != 2 ) {
+    Tcl_SetResult ( inInterp,
+        "wrong # args: SetDTIAlpha alpha:float",
+        TCL_VOLATILE );
+    return TCL_ERROR;
+  }
+  
+  if( gbAcceptingTclCommands ) {
+    SetDTIAlpha ( atof(argv[1]) );
+  }  
+  
+  return TCL_OK;
+}
+
 int TclSmoothFunctionalOverlay ( ClientData inClientData, 
          Tcl_Interp* inInterp,
          int argc, char* argv[] ) {
@@ -5086,6 +5106,10 @@ int main ( int argc, char** argv ) {
           TclLoadDTIVolumes,
           (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
   
+  Tcl_CreateCommand ( interp, "SetDTIAlpha",
+          TclSetDTIAlpha,
+          (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
+  
   Tcl_CreateCommand ( interp, "SmoothFunctionalOverlay",
           TclSmoothFunctionalOverlay,
           (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
@@ -5190,9 +5214,13 @@ int main ( int argc, char** argv ) {
     SendBrightnessAndContrastUpdate( tkm_tVolumeType_Aux );
   }
   
-  /* set default roi group alpha */
-  DebugNote( ("Setting default segmentation group alpha") );
+  /* set default segmentation alpha */
+  DebugNote( ("Setting default segmentation alpha") );
   SetSegmentationAlpha( gfSegmentationAlpha );
+  
+  /* set default DTI alpha */
+  DebugNote( ("Setting default DTI alpha") );
+  SetDTIAlpha( gfDTIAlpha );
   
   /* if using csurf interface, call the func that hides a bunch of stuff. */
   if( gbUseCsurfInterface ) {
@@ -8990,6 +9018,21 @@ void GetDTIColorAtVoxel ( xVoxelRef        iAnaIdx,
   }
 }
             
+void SetDTIAlpha ( float ifAlpha ) {
+  
+  char sTclArguments[STRLEN] = "";
+  
+  if( ifAlpha >= 0 && ifAlpha <= 1.0 ) {
+    gfDTIAlpha = ifAlpha;
+    UpdateAndRedraw ();
+  }
+  
+  sprintf( sTclArguments, "%f", gfDTIAlpha );
+  tkm_SendTclCommand( tkm_tTclCommand_UpdateDTIVolumeAlpha, 
+		      sTclArguments ); 
+  
+}
+
 
 // ============================================================== EDITING UNDO
 
@@ -10578,6 +10621,7 @@ char *kTclCommands [tkm_knNumTclCommands] = {
   "UpdateParcBrushInfo",
   "UpdateVolumeColorScaleInfo",
   "UpdateSegmentationVolumeAlpha",
+  "UpdateDTIVolumeAlpha",
   "UpdateTimerStatus",
   "UpdateHomeDirectory",
   "UpdateVolumeDirty",

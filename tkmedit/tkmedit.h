@@ -112,6 +112,7 @@ typedef enum {
   tkm_tTclCommand_UpdateParcBrushInfo,
   tkm_tTclCommand_UpdateVolumeColorScale,
   tkm_tTclCommand_UpdateSegmentationVolumeAlpha,
+  tkm_tTclCommand_UpdateDTIVolumeAlpha,
   tkm_tTclCommand_UpdateTimerStatus,
   tkm_tTclCommand_UpdateHomeDirectory,
   tkm_tTclCommand_UpdateVolumeDirty,
