@@ -17,6 +17,7 @@
 #include <algorithm>
 
 extern "C" {
+#include "macros.h"
 #include "mri.h"
 #include "version.h"
 #include "macros.h"
@@ -32,6 +33,7 @@ int fillup=0;
 double scale = 1;
 string xfname;
 int invert=0;
+int stats=0;
 
 // voxel size
 double vx;
@@ -80,6 +82,47 @@ public:
   }
 };
 
+bool compareDirCos(const MRI *mri, const VOL_GEOM *vg)
+{
+  //////////////////////////////////
+  if ((mri->width - vg->width))
+    return false;
+  if ((mri->height -vg->height))
+    return false;
+  if ((mri->depth -vg->depth))
+    return false;
+  //////////////////////////////////
+  if (!FZERO(mri->x_r -vg->x_r))
+    return false;
+  if (!FZERO(mri->x_a -vg->x_a))
+    return false;
+  if (!FZERO(mri->x_s -vg->x_s))
+    return false;
+  ///////////////////////////////
+  if (!FZERO(mri->y_a -vg->y_a))
+    return false;
+  if (!FZERO(mri->y_a -vg->y_a))
+    return false;
+  if (!FZERO(mri->y_a -vg->y_a))
+    return false;
+  //////////////////////////////
+  if (!FZERO(mri->z_a -vg->z_a))
+    return false;
+  if (!FZERO(mri->z_a -vg->z_a))
+    return false;
+  if (!FZERO(mri->z_a -vg->z_a))
+    return false;
+  //////////////////////////////
+  if (!FZERO(mri->c_r -vg->c_r))
+    return false;
+  if (!FZERO(mri->c_a -vg->c_a))
+    return false;
+  if (!FZERO(mri->c_s -vg->c_s))
+    return false;
+  ///////////////////////////////////////
+  return true;
+}
+
 static int get_option(int argc, char *argv[]) ;
 MRI *erodeRegion(MRI *mri, MRI *cur, unsigned char val);
 int selectAddedRegion(MRI *mri, MRI *orig, unsigned char val);
@@ -95,7 +138,7 @@ int main(int argc, char *argv[])
   int nargs;
   Progname=argv[0];
 
-  nargs = handle_version_option (argc, argv, "$Id: mri_parselabel.cpp,v 1.13 2004/06/10 20:13:50 tosa Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_parselabel.cpp,v 1.14 2004/06/10 21:46:23 tosa Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -108,7 +151,7 @@ int main(int argc, char *argv[])
     argv += nargs ;
   }
   // check 
-  if (argc < 5)
+  if (argc < 4)
   {
     cerr << "Usage: mri_parselabel [option] <labelfile> <volfileforlabel> <outputvol> <greyforlabel>" << endl;
     cerr << "options are:" << endl;
@@ -116,9 +159,22 @@ int main(int argc, char *argv[])
     cerr << "        -xfm <xfm>   : use the xfm to transform the vertices " << endl;
     cerr << "                     : xfm must be from highres to lowres." << endl;
     cerr << "        -invert      : apply the inverse of the transform." << endl;
+    cerr << "        -stats       : put the stats value in the label into the output volume" << endl;
     cerr << "        -cras        : use scanner ras value for label position" << endl;
     cerr << "                       default is to use the surface ras value."<< endl;
     return -1;
+  }
+  else if (argc == 4)
+  {
+    // check to make sure that -stats is set
+    if (!stats)
+    {
+      cerr << "For stats usage: " << endl;
+      cerr << "Usage: mri_parselabel [option] -stats <labelfile> <volfileforlabel> <outputvol>" << endl;
+      cerr << "For other usage: " << endl;
+      cerr << "Usage: mri_parselabel [option] <labelfile> <volfileforlabel> <outputvol> <greyforlabel>" << endl;
+      return -1;
+    }  
   }
   cout << "---------------------------------------------------------------" << endl;
   cout << "Inputs: " << endl;
@@ -134,11 +190,15 @@ int main(int argc, char *argv[])
   }
   cout << "---------------------------------------------------------------" << endl;
 
-  int val = (int) atof(argv[4]);
-  if (val < 0 || val > 255)
+  int val;
+  if (!stats)
   {
-    cout << "grey value must be between 0 and 255.  you gave " << argv[5] << endl;
-    return -1;
+    val = int(atof(argv[4]));
+    if (val < 0 || val > 255)
+    {
+      cout << "grey value must be between 0 and 255.  you gave " << argv[5] << endl;
+      return -1;
+    }
   }
   ifstream flabel(argv[1], ios::in);
   if (!flabel.good())
@@ -197,6 +257,21 @@ int main(int argc, char *argv[])
   MATRIX *hSRASTolSRAS = 0;
   if (xfname.size())
   {
+    bool res;
+    // before doing anything, verify that the target volume has the same
+    // direction cosines as the transform has
+    if (!invert)
+    {
+      res = compareDirCos(mriIn, &lta->xforms[0].dst);
+      if (!res)
+	cerr << "volume and transform dst do not agree" << endl;
+    }
+    else
+    {
+      res = compareDirCos(mriIn, &lta->xforms[0].src);
+      if (!res)
+	cerr << "volume and transform src do not agree" << endl;
+    }  
     //  conformed -------> surfaceRAS
     //      |                  |
     //      V                  V  RASFromSRAS
@@ -288,7 +363,11 @@ int main(int argc, char *argv[])
   /////////////////////////////////////////////////////////////////////////////////
   // create a volume
   /////////////////////////////////////////////////////////////////////////////////
-  MRI *mriOut = MRIalloc(mriIn->width, mriIn->height, mriIn->depth, MRI_UCHAR);
+  MRI *mriOut = 0;
+  if (!stats)
+    mriOut = MRIalloc(mriIn->width, mriIn->height, mriIn->depth, MRI_UCHAR);
+  else
+    mriOut = MRIalloc(mriIn->width, mriIn->height, mriIn->depth, MRI_FLOAT);
   MRIcopyHeader(mriIn, mriOut);
 
   // set voxToRAS and rasToVox transform function
@@ -324,7 +403,10 @@ int main(int argc, char *argv[])
     }
     else
     {
-      MRIvox(mriOut, nint(xv), nint(yv), nint(zv)) = (unsigned char) val;
+      if (!stats)
+	MRIvox(mriOut, nint(xv), nint(yv), nint(zv)) = (unsigned char) val;
+      else
+	MRIFvox(mriOut, nint(xv), nint(yv), nint(zv)) = (float) vertices[i].value_;
       //////////////////////////////////////////////////////////////////////////
       // check possible others.  look around 3x3x3 neighbors
       for (int z0=-1; z0 < 2; ++z0)
@@ -340,7 +422,11 @@ int main(int argc, char *argv[])
 	    // if the difference is 1/2 voxel size mm then equal
 	    if (Vertex(xr, yr, zr) == vertices[i] && (x0+y0+z0) != 0)
 	    {
-	      MRIvox(mriOut, x, y, z ) = (unsigned char) val;
+	      if (!stats)
+		MRIvox(mriOut, x, y, z ) = (unsigned char) val;
+	      else
+		MRIFvox(mriOut, x, y, z ) = (float) vertices[i].value_;
+
 	      cout << "added voxel:" << Vertex(x, y, z)  
 		   << "for vertex :" << Vertex(xr, yr, zr) << endl; 
 	      cout << "       when:" << Vertex(nint(xv),nint(yv),nint(zv)) 
@@ -453,33 +539,39 @@ int get_option(int argc, char *argv[])
   option=argv[1]+1; // pass -
   if (strcmp(option, "cras")==0)
   {
-    cout << "use the scanner RAS coordinates for label position." << endl;
+    cout << "OPTION: use the scanner RAS coordinates for label position." << endl;
     useRealRAS=1;
   }
   else if (strcmp(option,"fillup") == 0)
   {
-    cout << "check to make sure all points are filled.... no longer necessary" << endl;
+    cout << "OPTION: check to make sure all points are filled.... no longer necessary" << endl;
     fillup = 1;
   }
   else if (strcmp(option,"scale") == 0)
   {
-    cout << "we scale the label positions by " << argv[2] << endl;
+    cout << "OPTION: we scale the label positions by " << argv[2] << endl;
     scale = atof(argv[2]);
     nargs=1;
   }
   else if (strcmp(option, "xfm") == 0)
   {
-    cout << "use xfm " << argv[2] << endl;
-    cout << "make sure that this is the xfm from high res to low res" << endl;
-    cout << "if the other way, you must use -invert option also" << endl;
+    cout << "OPTION: use xfm " << argv[2] << endl;
+    cout << "        make sure that this is the xfm from high res to low res" << endl;
+    cout << "        if the other way, you must use -invert option also" << endl;
     xfname = argv[2];
     nargs=1;
   }
   else if (strcmp(option, "invert")==0)
   {
-    cout << "xfm will be inverted" << endl;
+    cout << "OPTION: xfm will be inverted" << endl;
     invert=1;
     nargs=0;
+  }
+  else if (strcmp(option, "stats")==0)
+  {
+    cout << "OPTION: stats values will be in the output volume" << endl;
+    stats = 1;
+    nargs = 0;
   }
   return (nargs);
 }
