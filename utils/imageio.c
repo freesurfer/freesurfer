@@ -182,47 +182,47 @@ static void ImageSwapEndian(IMAGE *I)
   npix = (long)I->numpix * (long)I->num_frame ;
   
   switch (I->pixel_format)
+  {
+  case PFDBLCOM:
+    dcpix = IMAGEDCpix(I, 0, 0) ;
+    while (npix--)
     {
-    case PFDBLCOM:
-      dcpix = IMAGEDCpix(I, 0, 0) ;
-      while (npix--)
-  {
-    dcval = *dcpix ;
-    dcpix->real = swapDouble(dcval.real) ;
-    dcpix->imag = swapDouble(dcval.imag) ;
-    dcpix++ ;
-  }
-      break ;
-    case PFCOMPLEX:
-      cpix = IMAGECpix(I, 0, 0) ;
-      while (npix--)
-  {
-    cval = *cpix ;
-    cpix->real = swapFloat(cval.real) ;
-    cpix->imag = swapFloat(cval.imag) ;
-    cpix++ ;
-  }
-      break ;
-    case PFDOUBLE:
-      dpix = IMAGEDpix(I, 0, 0) ;
-      while (npix--)
-  {
-    dval = *dpix ;
-    *dpix++ = swapDouble(dval) ;
-  }
-      break ;
-    case PFFLOAT:
-      fpix = IMAGEFpix(I, 0, 0) ;
-      while (npix--)
-  {
-    fval = *fpix ;
-    *fpix++ = swapFloat(fval) ;
-  }
-      break ;
-    default:
-      ErrorExit(ERROR_UNSUPPORTED,"ImageFRead: unsupported type %d\n",
-    I->pixel_format);
+      dcval = *dcpix ;
+      dcpix->real = swapDouble(dcval.real) ;
+      dcpix->imag = swapDouble(dcval.imag) ;
+      dcpix++ ;
     }
+    break ;
+  case PFCOMPLEX:
+    cpix = IMAGECpix(I, 0, 0) ;
+    while (npix--)
+    {
+      cval = *cpix ;
+      cpix->real = swapFloat(cval.real) ;
+      cpix->imag = swapFloat(cval.imag) ;
+      cpix++ ;
+    }
+    break ;
+  case PFDOUBLE:
+    dpix = IMAGEDpix(I, 0, 0) ;
+    while (npix--)
+    {
+      dval = *dpix ;
+      *dpix++ = swapDouble(dval) ;
+    }
+    break ;
+  case PFFLOAT:
+    fpix = IMAGEFpix(I, 0, 0) ;
+    while (npix--)
+    {
+      fval = *fpix ;
+      *fpix++ = swapFloat(fval) ;
+    }
+    break ;
+  default:
+    ErrorExit(ERROR_UNSUPPORTED,"ImageFRead: unsupported type %d\n",
+	      I->pixel_format);
+  }
 }
 
 /*-----------------------------------------------------
@@ -828,6 +828,7 @@ TiffReadImage(char *fname, int frame0)
   float    *pf;
 #endif
   int      scanlinesize;
+  int      index = 0;
 
   if (!tif)
     return(NULL) ;
@@ -920,6 +921,9 @@ TiffReadImage(char *fname, int frame0)
     case 8:
       type = PFBYTE;
       break;
+    case 16:
+      type = PFSHORT;
+      break;
     case 32:
       type = PFFLOAT;
       break;
@@ -962,25 +966,38 @@ TiffReadImage(char *fname, int frame0)
     ret = TIFFGetFieldDefaulted(tif, TIFFTAG_SAMPLESPERPIXEL, &nsamples);
     ret = TIFFGetFieldDefaulted(tif, TIFFTAG_BITSPERSAMPLE,&bits_per_sample);
     scanlinesize = TIFFScanlineSize(tif);
-    if (DIAG_VERBOSE_ON && Gdiag & DIAG_SHOW)
-      fprintf(stderr, "flipped the reading order ...\n");
     for(row=0;row<height;row++)
     {
       // get the pointer at the first column of a row
       // note that the orientation is column, row
+      switch(orientation)
+      {
+      case ORIENTATION_TOPLEFT:
+	index = height-row-1;
+	break;
+      case ORIENTATION_BOTLEFT:
+	index = row;
+	break;
+      default:
+	ErrorExit(ERROR_BADPARM, "IMAGE: orientation = %d. we support only topleft or botleft\n", orientation);
+      }
+
       if (nsamples == 1)
       {
 	switch (bits_per_sample)
 	{
 	default:
 	case 8: 
-	  buf = (tdata_t *)IMAGEpix(I,0,height-row-1);
+	  buf = (tdata_t *)IMAGEpix(I,0,index);
+	  break;
+	case 16:
+	  buf = (tdata_t *)IMAGESpix(I,0,index);
 	  break;
 	case 32:
-	  buf = (tdata_t *)IMAGEFpix(I,0,height-row-1);
+	  buf = (tdata_t *)IMAGEFpix(I,0,index);
 	  break;
 	case 64:
-	  buf = (tdata_t *)IMAGEDpix(I,0,height-row-1);
+	  buf = (tdata_t *)IMAGEDpix(I,0,index);
 	  break;
 	}
 	if (TIFFReadScanline(tif, buf, row, 0) < 0) // row must be sequentially read for compressed data
@@ -994,7 +1011,7 @@ TiffReadImage(char *fname, int frame0)
 	{
 	default:
 	case 8:
-	  buf = (tdata_t*) IMAGERGBpix(I, 0, height-row-1);
+	  buf = (tdata_t*) IMAGERGBpix(I, 0, index);
 	  if (TIFFReadScanline(tif, buf, row, 0) < 0) // row must be sequentially read for compressed data
 	    ErrorReturn(NULL,
 			(ERROR_BADFILE,
@@ -1090,8 +1107,11 @@ TiffReadHeader(char *fname, IMAGE *I)
     case 32:
       type = PFFLOAT ;
       break ;
-    default:
+    case 16:
+      type = PFSHORT;
+      break;
     case 8:
+    default:
       type = PFBYTE ;
       break ;
     }
@@ -1141,6 +1161,10 @@ TiffWriteImage(IMAGE *I, char *fname, int frame)
     samples_per_pixel = 1 ;
     bits_per_sample = sizeof(byte)*8 ;
     break ;
+  case PFSHORT:
+    samples_per_pixel = 1;
+    bits_per_sample = sizeof(short)*8;
+    break;
   case PFFLOAT:
     samples_per_pixel = 1 ;
     bits_per_sample = sizeof(float)*8 ;
@@ -1171,6 +1195,9 @@ TiffWriteImage(IMAGE *I, char *fname, int frame)
     TIFFSetField(out, TIFFTAG_PLANARCONFIG, PLANARCONFIG_CONTIG);
     TIFFSetField(out, TIFFTAG_PHOTOMETRIC, PHOTOMETRIC_MINISBLACK);
     /* write out the data, line by line */
+    // here these are wrong
+    // TIFF writes image from the bottom
+    // thus row should be changed to height-row-1
     for (row = 0; row < I->rows; row++) 
     {
     switch (I->pixel_format)
@@ -1178,6 +1205,8 @@ TiffWriteImage(IMAGE *I, char *fname, int frame)
     case PFBYTE:
       buf = (tdata_t *)IMAGEpix(I,0,row);
       break;
+    case PFSHORT:
+      buf = (tdata_t *)IMAGESpix(I,0,row);
     case PFFLOAT:
       buf = (tdata_t *)IMAGEFpix(I,0,row);
       break;
