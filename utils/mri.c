@@ -6634,14 +6634,12 @@ MRIconcatenateFrames(MRI *mri_frame1, MRI *mri_frame2, MRI *mri_dst)
 MRI *
 MRIcopyFrame(MRI *mri_src, MRI *mri_dst, int src_frame, int dst_frame)
 {
-  int       width, height, depth, y, z ;
+  int       width, height, depth, y, z, bytes ;
   BUFTYPE   *psrc, *pdst ;
 
   width = mri_src->width ; 
   height = mri_src->height ;
   depth = mri_src->depth ;
-  if (mri_src->type != MRI_UCHAR)
-    ErrorReturn(NULL,(ERROR_UNSUPPORTED,"MRIcopyFrame: src must be UCHAR"));
 
   if (!mri_dst)
     mri_dst = 
@@ -6649,19 +6647,56 @@ MRIcopyFrame(MRI *mri_src, MRI *mri_dst, int src_frame, int dst_frame)
   if (!mri_dst)
     ErrorExit(ERROR_NOMEMORY, "MRIcopyFrame: could not alloc dst") ;
 
-  if (mri_dst->type != MRI_UCHAR)
-    ErrorReturn(NULL,(ERROR_UNSUPPORTED,"MRIcopyFrame: dst must be UCHAR"));
-  if (src_frame >= mri_src->nframes || dst_frame >= mri_dst->nframes)
-    ErrorReturn(NULL, (ERROR_BADPARM, "MRIcopyFrame: frame # out of bounds"));
+  if (mri_src->type != mri_dst->type)
+    ErrorReturn(NULL,(ERROR_UNSUPPORTED,
+                      "MRIcopyFrame: src and dst must be same type"));
 
 
+  switch (mri_src->type)
+  {
+  case MRI_UCHAR:
+    bytes = sizeof(unsigned char) ;
+    break ;
+  case MRI_SHORT:
+    bytes = sizeof(short) ;
+    break ;
+  case MRI_INT:
+    bytes = sizeof(int) ;
+    break ;
+  case MRI_FLOAT:
+    bytes = sizeof(float) ;
+    break ;
+  default:
+    ErrorReturn(NULL, (ERROR_BADPARM, 
+                       "MRIcopyFrame: unsupported src format %d",
+                       mri_src->type));
+    break ;
+  }
+  bytes *= width ;
   for (z = 0 ; z < depth ; z++)
   {
     for (y = 0 ; y < height ; y++)
     {
-      psrc = &MRIseq_vox(mri_src, 0, y, z, src_frame) ;
-      pdst = &MRIseq_vox(mri_dst, 0, y, z, dst_frame) ;
-      memmove(pdst, psrc, width*sizeof(char)) ;
+      switch (mri_src->type)
+      {
+      case MRI_UCHAR:
+        psrc = &MRIseq_vox(mri_src, 0, y, z, src_frame) ;
+        pdst = &MRIseq_vox(mri_dst, 0, y, z, dst_frame) ;
+        break ;
+      case MRI_SHORT:
+        psrc = (BUFTYPE *)&MRISseq_vox(mri_src, 0, y, z, src_frame) ;
+        pdst = (BUFTYPE *)&MRISseq_vox(mri_dst, 0, y, z, dst_frame) ;
+        break ;
+      case MRI_INT:
+        psrc = (BUFTYPE *)&MRIIseq_vox(mri_src, 0, y, z, src_frame) ;
+        pdst = (BUFTYPE *)&MRIIseq_vox(mri_dst, 0, y, z, dst_frame) ;
+        break ;
+      case MRI_FLOAT:
+        psrc = (BUFTYPE *)&MRIFseq_vox(mri_src, 0, y, z, src_frame) ;
+        pdst = (BUFTYPE *)&MRIFseq_vox(mri_dst, 0, y, z, dst_frame) ;
+        break ;
+      }
+      memmove(pdst, psrc, bytes) ;
     }
   }
   return(mri_dst) ;
