@@ -20,7 +20,7 @@ mri_segment mri_seghead mri_surfacemask mri_strip_skull mri_strip_subject_info m
 mri_surf2vol mri_surfcluster mri_synthesize \
 mri_tessellate mri_transform mri_train mri_twoclass \
 mri_volcluster mri_volsynth mri_vol2roi mri_vol2surf mri_watershed mri_wmfilter \
-mri_xvolavg mri_threshold mri_edit_wm_with_aseg mri_make_density_map
+mri_xvolavg mri_threshold mri_edit_wm_with_aseg 
 MRISSUBDIRS=stim stim_polar tridec \
 mris_add_template mris_anatomical_stats mris_annot_to_segmentation mris_average_curvature \
 mris_ca_label mris_ca_train mris_classify_thickness mris_compute_acorr mris_compute_overlap mris_convert \
@@ -30,7 +30,7 @@ mris_find_flat_regions mris_fix_topology mris_flatten mris_inflate mris_info mri
 mris_label_area mris_label_mode \
 mris_make_average_surface mris_make_surfaces mris_make_template \
 mris_morph_stats mris_multiscale_stats \
-mris_remove_variance mris_rescale mris_reverse mris_rotate mris_ms_refine mris_register \
+mris_remove_variance mris_rescale mris_reverse mris_rotate mris_ms_refine mris_distance_to_label mris_register \
 mris_sample_label mris_sample_parc mris_segment_vals mris_smooth mris_sphere \
 mris_spherical_average mris_surface_to_vol_distances mrisp_paint \
 mris_talairach mris_thickness mris_thickness_comparison mris_transform \

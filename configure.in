@@ -782,7 +782,7 @@ mris_label_area/Makefile mris_label_mode/Makefile mris_make_average_surface/Make
 mris_make_surfaces/Makefile mris_make_template/Makefile \
 mris_morph_stats/Makefile mris_multiscale_stats/Makefile \
 mris_remove_variance/Makefile mris_rescale/Makefile mris_reverse/Makefile mris_rotate/Makefile \
-mris_ms_refine/Makefile mris_register/Makefile mris_sample_label/Makefile \
+mris_ms_refine/Makefile mris_distance_to_label/Makefile mris_register/Makefile mris_sample_label/Makefile \
 mris_sample_parc/Makefile mris_segment_vals/Makefile mris_smooth/Makefile mris_sphere/Makefile \
 mris_spherical_average/Makefile mris_surface_to_vol_distances/Makefile mrisp_paint/Makefile \
 mris_talairach/Makefile mris_thickness/Makefile mris_thickness_comparison/Makefile \
