@@ -3938,3 +3938,518 @@ ImageExtract(IMAGE *inImage, IMAGE *outImage, int x0, int y0,int dx,
 
   return(0) ;
 }
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+----------------------------------------------------------------------*/
+IMAGE *
+ImageZeroMean(IMAGE *inImage, IMAGE *outImage)
+{
+  int    frameno, rows, cols, row, col, pix_per_frame, nframes ;
+  float  ftotal, fmean, *fSrcPtr, *fDstPtr, *fSrcBase, *fDstBase ;
+
+  if (inImage->pixel_format != PFFLOAT || 
+      (outImage && outImage->pixel_format != PFFLOAT))
+  {
+    fprintf(stderr, "ImageZeroMean: unsupported pixel format %d\n",
+            inImage->pixel_format) ;
+    return(NULL) ;
+  }
+
+  if (!outImage)
+    outImage = ImageClone(inImage) ;
+
+  nframes = inImage->num_frame ;
+  rows = inImage->rows ;
+  cols = inImage->cols ;
+  pix_per_frame = rows * cols ;
+  fSrcBase = IMAGEFpix(inImage, 0, 0) ;
+  fDstBase = IMAGEFpix(outImage, 0, 0) ;
+
+  /* mean of each pixel across all frames */
+  for (row = 0 ; row < rows ; row++)
+  {
+    for (col = 0 ; col < cols ; col++, fSrcBase++, fDstBase++)
+    {
+      ftotal = 0.0f ;
+      fSrcPtr = fSrcBase ;
+      for (frameno = 0 ; frameno < nframes ; frameno++)
+      {
+        ftotal += *fSrcPtr ;
+        fSrcPtr += pix_per_frame ;
+      }
+      fmean = ftotal / (float)nframes ;
+
+      /* subtract mean from this pixel in every frame */
+      fDstPtr = fDstBase ;
+      fSrcPtr = fSrcBase ;
+      for (frameno = 0 ; frameno < nframes ; frameno++)
+      {
+        *fDstPtr = *fSrcPtr - fmean ;
+        fDstPtr += pix_per_frame ;
+        fSrcPtr += pix_per_frame ;
+      }
+    }
+  }
+  return(outImage) ;
+}
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+              form the covariance matrix treating each frame of
+              inimage as an observation.
+----------------------------------------------------------------------*/
+IMAGE *
+ImageCovarMatrix(IMAGE *image, float **pmeans)
+{
+  static IMAGE *zimage = NULL ;    /* zero-mean version of image */
+  IMAGE  *cimage ;
+  int        rows, cols, row, col, crow, ccol, crows, ccols, pix_per_frame,
+             nframes, frameno, i ;
+  float      *flPtr, *frPtr, *fDstPtr, *flBase, *frBase, ftotal,
+             *means, *meanPtr, *fSrcPtr, *fSrcBase ;
+
+  if (image->pixel_format != PFFLOAT)
+  {
+    fprintf(stderr, "ImageCovarMatrix: input image must be FLOAT\n") ;
+    return(NULL) ;
+  }
+
+  if (!ImageCheckSize(image, zimage, 0, 0, 1))
+  {
+    if (zimage)
+      ImageFree(&zimage) ;
+    zimage = ImageClone(image) ;
+  }
+
+  rows = image->rows ;
+  cols = image->cols ;
+  nframes = image->num_frame ;
+  pix_per_frame = rows * cols ;
+
+  /* first calculate mean across observations (frames) */
+  means = (float *)calloc((unsigned int)pix_per_frame, sizeof(float)) ;
+  if (!means)
+  {
+    fprintf(stderr, "ImageCovarMatrix: could not allocate mean vector\n") ;
+    return(NULL) ;
+  }
+
+  /* mean of each pixel across all frames */
+  fSrcBase = IMAGEFpix(image, 0, 0) ;
+  for (i = row = 0 ; row < rows ; row++)
+  {
+    for (col = 0 ; col < cols ; col++, fSrcBase++, i++)
+    {
+      ftotal = 0.0f ;
+      fSrcPtr = fSrcBase ;
+      for (frameno = 0 ; frameno < nframes ; frameno++)
+      {
+        ftotal += *fSrcPtr ;
+        fSrcPtr += pix_per_frame ;
+      }
+      means[i] = ftotal / (float)nframes ;
+    }
+  }
+
+  /* zimage will hold the centered (0 mean) version of image */
+  fDstPtr = IMAGEFpix(zimage, 0, 0) ;
+  fSrcPtr = IMAGEFpix(image, 0, 0) ;
+  for (frameno = 0 ; frameno < nframes ; frameno++)
+  {
+    meanPtr = means ;
+    for (i = row = 0 ; row < rows ; row++)
+    {
+      for (col = 0 ; col < cols ; col++, i++)
+      {
+        *fDstPtr++ = *fSrcPtr++ - *meanPtr++ ;
+      }
+    }
+  }
+
+#if 0
+ImageWrite(zimage, "zimage.hipl") ;
+MatFileWrite("zimage.mat", zimage->image, zimage->num_frame, zimage->cols,
+             "zimage") ;
+MatFileWrite("means.mat", means, pix_per_frame, 1, "means") ;
+#endif
+
+/* 
+  now form covariance matrix, treating each frame of the input sequence
+  as a row in a num_frame x (rows*cols) sized matrix and forming the 
+  outer product of that matrix with itself. The covariance matrix will then
+  have the dimension (rows*cols) x (rows*cols).
+*/
+  ccols = crows = rows*cols ;
+  cimage = ImageAlloc(ccols, crows, PFFLOAT, 1) ;
+  if (!cimage)
+  {
+    fprintf(stderr, 
+            "ImageCovarMatrix: could not allocate %d x %d covariance matrix\n",
+            crows, ccols) ;
+    free(means) ;
+    return(NULL) ;
+  }
+  fDstPtr = IMAGEFpix(cimage, 0, 0) ;
+  for (crow = 0 ; crow < crows ; crow++)
+  {
+    for (ccol = 0 ; ccol < ccols ; ccol++)
+    {
+/* 
+      Calculate value of this entry in covariance matrix by multiplying
+      the crow'th position in each image by the ccol'th position in each image.
+*/
+      ftotal = 0.0f ;
+      flPtr = flBase = (float *)zimage->image + crow ;
+      frPtr = frBase = (float *)zimage->image + ccol ;
+      for (i = 0 ; i < nframes ; i++)
+      {
+        ftotal += *flPtr * *frPtr ;
+        flPtr += pix_per_frame ;
+        frPtr += pix_per_frame ;
+      }
+
+      *fDstPtr++ = ftotal / (nframes-1) ;  /* unbiased covariance */
+    }
+  }
+
+#if 0
+ImageWrite(cimage, "cimage.hipl") ;
+MatFileWrite("cimage.mat", cimage->image, crows, ccols, "cimage") ;
+#endif
+
+  if (pmeans)
+    *pmeans = means ;
+  else
+    free(means) ;
+  return(cimage) ;
+}
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+----------------------------------------------------------------------*/
+#include "eigen.h"
+#include "matfile.h"
+
+static int compare_evalues(const void *l1, const void *l2)  ;
+
+
+typedef struct
+{
+  int   eno ;
+  float evalue ;
+} EIGEN_VALUE, EVALUE ;
+
+static int
+compare_evalues(const void *l1, const void *l2)
+{
+  EVALUE *e1, *e2 ;
+
+  e1 = (EVALUE *)l1 ;
+  e2 = (EVALUE *)l2 ;
+  return(fabs(e1->evalue) < fabs(e2->evalue) ? 1 : -1) ;
+}
+
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+              perform the Hotelling or Karhunen-Loeve transform on a
+              sequence of images. The output image will contain the
+              sorted eigenvectors of the covariance matrix (the principal
+              components) in decreasing order of eigenvalue size. The 
+              num_frame-2st frame contains the mean vectors, while the 
+              last frame contains the eigenvalues.
+
+              Given an input image x where each frame is an observation of
+              the cols*rows variables, we form the matrix A whose rows are
+              orthonormal eigenvectors of the covariance matrix of x, then
+              construct the principal components y via:
+
+              y = A (x - mx)
+
+              where mx is the mean vector of the x variables.
+----------------------------------------------------------------------*/
+IMAGE *
+ImagePrincipalComponents(IMAGE *image, int nterms, IMAGE **pcoefImage)
+{
+  IMAGE *cimage, *pcImage, *zImage, *coefImage ;
+  float     *evalues, *evectors ;
+  int       frameno, nframes, row, col, rows, cols, pix_per_frame, i, nevalues,
+             frame ;
+  float     *fSrcPtr, *fDstPtr, *mean_vector, *fPcPtr ;
+  EVALUE    *eigen_values ;
+
+  if (image->pixel_format != PFFLOAT)
+  {
+    fprintf(stderr, "ImagePrincipalComponents: input image must be FLOAT\n") ;
+    return(NULL) ;
+  }
+
+  cimage = ImageCovarMatrix(image, &mean_vector) ;
+
+  nevalues = nframes = cimage->rows ;
+  if (!nterms)
+    nterms = nevalues ;
+
+  evalues = (float *)calloc((unsigned int)nevalues, sizeof(float)) ;
+  pix_per_frame = image->rows * image->cols ;
+  eigen_values = (EVALUE *)calloc((UINT)nevalues, sizeof(EIGEN_VALUE));
+  evectors = (float *)calloc((UINT)(nevalues*pix_per_frame), sizeof(float)) ;
+
+  /* 2 extra frames - 1 for mean vector, and one for eigenvalues */
+  pcImage = ImageAlloc(image->cols, image->rows, PFFLOAT, nterms+2) ;
+  rows = pcImage->rows ;
+  cols = pcImage->cols ;
+  
+  EigenSystem((float *)cimage->image, cimage->rows, evalues, evectors) ;
+#if 0
+  MatFileWrite("evectors.mat", evectors, cimage->rows, cimage->rows,
+               "evectors") ;
+#endif
+
+/* 
+  sort eigenvalues in order of decreasing absolute value. The
+  EIGEN_VALUE structure is needed to record final order of eigenvalue so 
+  we can also sort the eigenvectors.
+*/
+  for (i = 0 ; i < nevalues ; i++)
+  {
+    eigen_values[i].eno = i ;
+    eigen_values[i].evalue = evalues[i] ;
+  }
+  qsort((char *)eigen_values, nevalues, sizeof(EVALUE), compare_evalues) ;
+  for (i = 0 ; i < nevalues ; i++)
+    evalues[i] = eigen_values[i].evalue ;
+
+  /* columns of evectors are eigenvectors. */
+
+  /* copy eigenvectors into each frame in eigenvalue order */
+  for (frameno = 0 ; frameno < nterms ; frameno++)
+  {
+    fDstPtr = IMAGEFseq_pix(pcImage,0,0, frameno) ;
+    fSrcPtr = evectors + eigen_values[frameno].eno ;
+    for (row = 0 ; row < rows ; row++)
+    {
+      for (col = 0 ; col < cols ; col++)
+      {
+        *fDstPtr++ = *fSrcPtr ;
+        fSrcPtr += pix_per_frame ;
+      }
+    }
+  }
+
+  /* copy mean vector into next to last frame */
+  fDstPtr = IMAGEFseq_pix(pcImage, 0, 0, pcImage->num_frame-2) ;
+  for (i = 0 ; i < pix_per_frame ; i++)
+    *fDstPtr++ = mean_vector[i] ;
+
+  /* copy eigenvalues into last frame */
+  fDstPtr = IMAGEFseq_pix(pcImage, 0, 0, pcImage->num_frame-1) ;
+  for (i = 0 ; i < nevalues ; i++)
+    *fDstPtr++ = evalues[i] ;
+
+#if 0
+ImageWrite(pcImage, "pc.hipl") ;
+MatFileWrite("pc.mat", (float *)pcImage->image, pcImage->num_frame, 
+                        pcImage->cols, "pcs") ;
+#endif
+
+  if (pcoefImage)  /* also return coefficients for reconstruction */
+  {
+/*
+    the coefficient image will contain the same number of frames as the
+    # of principal components to be used in reconstruction. Each frame 
+    contains one coefficient per frame in the input image.
+*/
+    *pcoefImage = coefImage = ImageAlloc(image->num_frame, 1, PFFLOAT,nterms);
+    if (!coefImage)
+    {
+      fprintf(stderr, 
+              "ImagePrincipalComponents: could not allocated coef image\n");
+      exit(3) ;
+    }
+    zImage = ImageZeroMean(image, NULL) ;
+/*
+    the coefficients for reconstruction of the observation vectors from
+    the means and eigenvectors are given by:
+    
+    y = A . (x - mx)
+*/
+    fPcPtr = IMAGEFpix(pcImage, 0, 0) ;
+    fSrcPtr = IMAGEFpix(zImage, 0, 0) ;
+    fDstPtr = IMAGEFpix(coefImage, 0, 0) ;
+    for (frame = 0 ; frame < nterms ; frame++)
+    {
+/* 
+      for first set of coefficients. frame is also the number of the
+      eigenvector used in the construction.
+*/
+      fDstPtr = IMAGEFseq_pix(coefImage, 0, 0, frame) ;
+
+      for (col = 0 ; col < image->num_frame ; col++)
+      {
+/* 
+        for each column in the transposed centered image matrix, multiply
+        the col'th frame by the frame'th row.
+*/
+        fPcPtr = IMAGEFseq_pix(pcImage, 0, 0, frame) ;
+        fSrcPtr = IMAGEFseq_pix(zImage, 0, 0, col) ;
+        for (i = 0 ; i < nevalues ; i++)
+          *fDstPtr += *fPcPtr++ * *fSrcPtr++ ;
+
+        fDstPtr++ ;
+      }
+    }
+
+    ImageFree(&zImage) ;
+  }
+
+  free(mean_vector) ;
+  free(evalues) ;
+  free(evectors) ;
+  free(eigen_values) ;
+  ImageFree(&cimage) ;
+  return(pcImage) ;
+}
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+              reconstruct an image sequence from a set of principal
+              components.
+
+              note that the coefficient image may represent the 
+              reconstruction coefficients of more than one input
+              image. In that case, this function may be called
+              repeatedly, each call using an 'nframes' subset of
+              coefImage starting at 'start'.
+----------------------------------------------------------------------*/
+IMAGE *
+ImageReconstruct(IMAGE *pcImage, IMAGE *coefImage, IMAGE *xrImage,
+                int start, int nframes)
+{
+  int     rows, cols, frame, nterms, term, i, pix_per_frame,pix_per_coef_frame;
+  float   *fPcPtr, *fXPtr, *fCoefPtr, *means, *Mx, ftotal ;
+  float   *fBasePcPtr, *fBaseCoefPtr ;
+
+  rows = pcImage->rows ;
+  cols = pcImage->cols ;
+  pix_per_frame = rows * cols ;
+  pix_per_coef_frame = coefImage->cols * coefImage->rows ;
+
+  
+  /* one coefficient for each frame to be reconstructed */
+  if (!nframes)
+    nframes = coefImage->cols ; 
+
+  nterms = coefImage->num_frame ; /* # of terms in expansion */
+
+  if (!xrImage)
+    xrImage = ImageAlloc(cols, rows, PFFLOAT, nframes) ;
+  if (!xrImage)
+  {
+    fprintf(stderr, "ImageReconstruct: could not allocate image!\n") ;
+    exit(-2) ;
+  }
+
+/*
+  reconstruct x image based on a (possibly) reduced set of eigenvectors 
+  (in pcImage) and coefficients (in coefImage).
+
+  xr = (Ak' * y)' + mx
+
+  where ' denotes transpose
+
+  We have one coefficient for each frame to be reconstructed, and one frame of
+  coefficients for each principal component to use in the reconstruction.
+*/
+  means = IMAGEFseq_pix(pcImage, 0, 0, pcImage->num_frame-2) ;
+
+  fBaseCoefPtr = IMAGEFpix(coefImage, start, 0) ;
+  for (frame = 0 ; frame < nframes ; frame++, fBaseCoefPtr++)
+  {
+    /* reconstruct the frame #'th observation */
+    fXPtr = IMAGEFseq_pix(xrImage, 0, 0, frame) ;
+    Mx = means ;
+    fBasePcPtr = IMAGEFpix(pcImage, 0, 0) ;
+
+    for (i = 0 ; i < pix_per_frame ; i++)
+    {
+      /* use i'th component of every term */
+      fPcPtr = fBasePcPtr++ ;
+      fCoefPtr = fBaseCoefPtr ;
+#if 0
+      fPcPtr = IMAGEFpix(pcImage, i, 0) ;  
+      fCoefPtr = IMAGEFpix(coefImage, frame+start, 0) ;
+#endif
+
+      for (ftotal = 0.0f, term = 0 ; term < nterms ; term++)
+      {
+        /* use the term #'th column of the Ak matrix */
+        ftotal += *fPcPtr * *fCoefPtr ;
+
+        fCoefPtr += pix_per_coef_frame ;
+        fPcPtr += pix_per_frame ;
+      }
+
+      *fXPtr++ = ftotal + *Mx++ ;
+    }
+  }
+
+  return(xrImage) ;
+}
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+              treat each frame in the sequence as a rows x cols dimensional
+              vector and normalize it so its length is 1.
+----------------------------------------------------------------------*/
+int
+ImageNormalizeFrames(IMAGE *inImage, IMAGE *outImage)
+{
+  float  flen, *fsrcPtr, *fdstPtr, fval ;
+  int    frameno, pix_per_frame, rows, cols, npix ;
+
+  rows = inImage->rows ;
+  cols = inImage->cols ;
+  pix_per_frame = rows * cols ;
+  
+  switch (inImage->pixel_format)
+  {
+  case PFFLOAT:
+    for (frameno = 0 ; frameno < inImage->num_frame ; frameno++)
+    {
+      fsrcPtr = IMAGEFpix(inImage, 0, 0) + frameno * pix_per_frame ;
+      npix = pix_per_frame ;
+      flen = 0.0f ;
+      while (npix--)
+      {
+        fval = *fsrcPtr++ ;
+        flen += fval * fval ;
+      }
+      flen = (float)sqrt(flen) ;
+
+      if (FZERO(flen))
+        return(-2) ;
+
+      fsrcPtr = IMAGEFpix(inImage, 0, 0) + frameno * pix_per_frame ;
+      fdstPtr = IMAGEFpix(outImage, 0, 0) + frameno * pix_per_frame ;
+      npix = pix_per_frame ;
+
+      while (npix--)
+        *fdstPtr++ = *fsrcPtr++ / flen ;
+    }
+    break ;
+  default:
+    fprintf(stderr, "ImageNormalizeFrames: unsupported pixel format %d\n",
+            inImage->pixel_format) ;
+    return(-1);
+  }
+  
+  return(0) ;
+}
