@@ -385,6 +385,7 @@ MRI_SURFACE  *MRISradialProjectOntoEllipsoid(MRI_SURFACE *mris_src,
                                              float a, float b, float c);
 MRI_SURFACE  *MRISclone(MRI_SURFACE *mris_src) ;
 MRI_SURFACE  *MRIScenter(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst) ;
+int MRISorigVertexToVoxel(VERTEX *v, MRI *mri,Real *pxv, Real *pyv, Real *pzv) ;
 int          MRISvertexToVoxel(VERTEX *v, MRI *mri,Real *pxv, Real *pyv, 
                                Real *pzv) ;
 int          MRISworldToTalairachVoxel(MRI_SURFACE *mris, MRI *mri, 
@@ -479,6 +480,8 @@ double       MRISpercentDistanceError(MRI_SURFACE *mris) ;
 int          MRISscaleBrainArea(MRI_SURFACE *mris) ;
 
 MRI_SP       *MRISPcombine(MRI_SP *mrisp, MRI_SP *mrisp_template, int fno);
+int          MRISPcoordinate(MRI_SP *mrisp, float x, float y, float z,
+                             int *pu, int *pv) ;
 double       MRISPfunctionVal(MRI_SURFACE_PARAMETERIZATION *mrisp, 
                               MRI_SURFACE *mris,
                               float x, float y, float z, int fno) ;
@@ -620,5 +623,7 @@ int MRIScomputeDistanceErrors(MRI_SURFACE *mris, int nbhd_size, int max_nbrs);
 
 #define RH_LABEL           127
 #define LH_LABEL           255
+
+#define MRISPvox(m,u,v)   (*IMAGEFpix(m->Ip,u,v))
 
 #endif
