@@ -1,3 +1,6 @@
+
+# $Id: tkm_common.tcl,v 1.2 2003/05/07 23:00:35 kteich Exp $
+
 proc dputs { isString } {
 
     if { [catch {DebugPrint $isString}] != 0 } {
