@@ -215,4 +215,24 @@ void
 DiagBreak(void)
 {
 }
+/*-----------------------------------------------------
+        Parameters:
 
+        Returns value:
+
+        Description
+          dummy for break points in debugger
+------------------------------------------------------*/
+void
+DiagHeartbeat(float pct_done)
+{
+  static float old_pct = -10.0f ;
+
+  if ((old_pct < 0.0f) || (old_pct > pct_done) || (pct_done < 0.00001f))
+    fprintf(stderr, "\n") ;
+  old_pct = pct_done ;
+  if (Gdiag & DIAG_HEARTBEAT)
+    fprintf(stderr, "\r%2.1f%% finished     ",100.0f*pct_done);
+  if (pct_done >= 0.999f)
+    fprintf(stderr, "\n") ;
+}
