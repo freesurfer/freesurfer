@@ -350,6 +350,7 @@ MRInormInit(MRI *mri, MNI *mni, int windows_above_t0,int windows_below_t0,
 
         Description
 ------------------------------------------------------*/
+#define TOO_BRIGHT   225
 int
 MRInormFillHistograms(MRI *mri, MNI *mni)
 {
@@ -360,6 +361,7 @@ MRInormFillHistograms(MRI *mri, MNI *mni)
   {
     MRIhistogramRegion(mri, HISTO_BINS, mni->histograms+i, mni->regions+i) ;
     HISTOclearBins(mni->histograms+i,mni->histograms+i,0,BACKGROUND_INTENSITY);
+    HISTOclearBins(mni->histograms+i,mni->histograms+i,TOO_BRIGHT, 255);
   }
   return(NO_ERROR) ;
 }
