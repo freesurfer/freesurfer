@@ -6133,7 +6133,7 @@ static int print_unknown_labels(char *prefix)
 
 } /* end print_unknown_labels() */
 
-static int read_otl_file(FILE *fp, MRI *mri, int slice, mriColorLookupTableRef color_table, int fill_flag)
+static int read_otl_file(FILE *fp, MRI *mri, int slice, mriColorLookupTableRef color_table, int fill_flag, int translate_label_flag)
 {
 
   int n_outlines = -1;
@@ -6155,6 +6155,8 @@ static int read_otl_file(FILE *fp, MRI *mri, int slice, mriColorLookupTableRef c
   int empty_label_flag;
   int ascii_short_flag;
   int row;
+  char *translate_start;
+  int internal_structures_flag = FALSE;
 
   for(i = 0;i < 512;i++)
     memset(cma_field[i], 0x00, 512 * 2);
@@ -6267,10 +6269,36 @@ static int read_otl_file(FILE *fp, MRI *mri, int slice, mriColorLookupTableRef c
         sscanf(line, "%*s %d %d", &seed_x, &seed_y);
       if(strncmp(line, "LABEL", 5) == 0)
       {
+
         strcpy(label, &(line[6]));
         c = strrchr(label, '\n');
         if(c != NULL)
           *c = '\0';
+
+        /* exterior -> cortex, if desired */
+        if(translate_label_flag)
+        {
+          translate_start = strstr(label, "Exterior");
+          if(translate_start != NULL)
+            sprintf(translate_start, "Cortex");
+          else
+          {
+            translate_start = strstr(label, "exterior");
+            if(translate_start != NULL)
+              sprintf(translate_start, "cortex");
+          }
+        }
+
+        /* warning if there's an "exterior" or "cortex" after any other label */
+        if(strstr(label, "Exterior") == 0 || strstr(label, "exterior") == 0 || strstr(label, "Cortex") == 0 || strstr(label, "cortex") == 0)
+        {
+          if(internal_structures_flag)
+            printf("WARNING: label \"%s\" following non-exterior labels in slice %d\n", label, slice);
+          internal_structures_flag = FALSE;
+        }
+        else
+          internal_structures_flag = TRUE;
+
       }
 
     }
@@ -6463,7 +6491,7 @@ static int read_otl_file(FILE *fp, MRI *mri, int slice, mriColorLookupTableRef c
 
 } /* end read_otl_file() */
 
-MRI *MRIreadOtl(char *fname, int width, int height, int slices, char *color_file_name, int read_volume_flag, int fill_flag)
+MRI *MRIreadOtl(char *fname, int width, int height, int slices, char *color_file_name, int read_volume_flag, int fill_flag, int translate_labels_flag)
 {
 
   char stem[STRLEN];
@@ -6540,7 +6568,7 @@ MRI *MRIreadOtl(char *fname, int width, int height, int slices, char *color_file
     sprintf(c, "%d.otl", i);
     if((fp = fopen(stem, "r")) != NULL)
     {
-      if(read_otl_file(fp, mri, i, color_table, fill_flag) != NO_ERROR)
+      if(read_otl_file(fp, mri, i, color_table, fill_flag, translate_labels_flag) != NO_ERROR)
       {
         MRIfree(&mri);
         return(NULL);
