@@ -32,7 +32,7 @@
                     MACROS AND CONSTANTS
 -------------------------------------------------------*/
 
-#define DEBUG_POINT(x,y,z)  (((x==21) && (y==14)) &&((z)==7))
+#define DEBUG_POINT(x,y,z)  (((x==72) && (y==142)) &&((z)==127))
 
 /*-----------------------------------------------------
                     STATIC DATA
@@ -296,6 +296,93 @@ MRIerode(MRI *mri_src, MRI *mri_dst)
     MRIfree(&mri_dst) ;
     mri_dst = mri_src ;
   }
+  return(mri_dst) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+MRI *
+MRIdilateLabel(MRI *mri_src, MRI *mri_dst, int label, int niter)
+{
+  int     width, height, depth, x, y, z, x0, y0, z0, xi, yi, zi,
+          xmin, xmax, ymin, ymax, zmin, zmax, i;
+  BUFTYPE *psrc, out_val, val ;
+  MRI     *mri_tmp = NULL ;
+
+  width = mri_src->width ;
+  height = mri_src->height ;
+  depth = mri_src->depth ;
+
+  /* get everything outside of bounding box */
+  mri_dst = MRIcopy(mri_src, mri_dst) ;  
+
+  for (i = 0 ; i < niter ; i++)
+  {
+    mri_tmp = MRIcopy(mri_dst, mri_tmp) ; /* will allocate first time */
+    xmax = 0 ; xmin = width-1 ;
+    ymax = 0 ; ymin = height-1 ;
+    zmax = 0 ; zmin = depth-1 ;
+    for (z = 0 ; z < depth ; z++)
+    {
+      for (y = 0 ; y < height ; y++)
+      {
+        psrc = &MRIvox(mri_src, 0, y, z) ;
+        for (x = 0 ; x < width ; x++)
+        {
+          if (*psrc++ == label)
+          {
+            if (x-1 < xmin)
+              xmin = x-1 ;
+            if (x+1 > xmax)
+              xmax = x+1 ;
+            if (y-1 < ymin)
+              ymin = y-1 ;
+            if (y+1 > ymax)
+              ymax = y+1 ;
+            if (z-1 < zmin)
+              zmin = z-1 ;
+            if (z+1 > zmax)
+              zmax = z+1 ;
+          }
+        }
+      }
+    }
+    xmin = MAX(0, xmin) ; xmax = MIN(width-1, xmax) ;
+    ymin = MAX(0, ymin) ; ymax = MIN(height-1, ymax) ;
+    zmin = MAX(0, zmin) ; zmax = MIN(depth-1, zmax) ;
+    for (z = zmin ; z <= zmax ; z++)
+    {
+      for (y = ymin ; y <= ymax ; y++)
+      {
+        for (x = xmin ; x <= xmax ; x++)
+        {
+          out_val = MRIvox(mri_tmp, x, y, z) ;
+          for (z0 = -1 ; z0 <= 1 ; z0++)
+          {
+            zi = mri_tmp->zi[z+z0] ;
+            for (y0 = -1 ; y0 <= 1 ; y0++)
+            {
+              yi = mri_tmp->yi[y+y0] ;
+              for (x0 = -1 ; x0 <= 1 ; x0++)
+              {
+                xi = mri_tmp->xi[x+x0] ;
+                val = MRIvox(mri_tmp, xi,yi,zi) ;
+                if (val == label)
+                  out_val = label ;
+              }
+            }
+          }
+          MRIvox(mri_dst, x,y,z) = out_val ;
+        }
+      }
+    }
+  }
+  MRIfree(&mri_tmp) ;
+
   return(mri_dst) ;
 }
 /*-----------------------------------------------------
@@ -901,7 +988,7 @@ MRImaskThreshold(MRI *mri_src, MRI *mri_mask, MRI *mri_dst, float threshold,
       pdst = &MRIvox(mri_dst, 0, y, z) ;
       for (x = 0 ; x < width ; x++)
       {
-        if (x == 125 && y == 148 && z == 100)
+        if (DEBUG_POINT(x,y,z))
           DiagBreak() ;  /* marked as 255, should be 127 */
         out_val = 0 ;
         mask = *pmask++ ;   /* value from inverse morphed volume */
@@ -1076,7 +1163,7 @@ MRIgrowLabel(MRI *mri, MRI *mri_filled, int in_label, int out_label)
            Description:
 ----------------------------------------------------------------------*/
 int
-MRIturnOnFG(MRI *mri, MRI *mri_fg)
+MRIturnOnFG(MRI *mri, MRI *mri_fg, MRI *mri_bg)
 {
   int    x, y, z, width, height, depth ;
 
@@ -1088,6 +1175,8 @@ MRIturnOnFG(MRI *mri, MRI *mri_fg)
     {
       for (x = 0 ; x < width ; x++)
       {
+        if (x == 157 && y == 140 && z == 56)
+          DiagBreak() ;
         if (MRIvox(mri_fg, x, y, z) > 0)
           MRIvox(mri, x, y, z) = MRIvox(mri_fg, x, y, z) ;
       }
@@ -1101,14 +1190,68 @@ MRIturnOnFG(MRI *mri, MRI *mri_fg)
     {
       for (x = 0 ; x < width ; x++)
       {
+        if (x == 157 && y == 140 && z == 56)
+          DiagBreak() ;
         if ((MRIvox(mri_fg, x, y, z) == 0) && (MRIvox(mri,x,y,z) > 0))
+        {
           MRIvox(mri, x, y, z) = 0 ;
+          MRIvox(mri_bg, x, y, z) = 1 ;
+        }
       }
     }
   }
   return(NO_ERROR) ;
 }
 static BUFTYPE findLabel(MRI *mri, int x0, int y0, int z0) ;
+static BUFTYPE
+findLabel(MRI *mri, int x, int y, int z)
+{
+  int   xi, yi, zi, xk, yk, zk, label, width, height, depth, counts[256],
+        max_label, max_count, whalf = 1 ;
+
+  if (x == 148 && y == 104 && z == 136)
+    DiagBreak() ;
+
+  do
+  {
+    memset(counts, 0, sizeof(counts)) ;
+    
+    width = mri->width ; height = mri->height ; depth = mri->depth ;
+    for (zk = -whalf ; zk <= whalf ; zk++)
+    {
+      zi = z + zk ;
+      if (zi < 0 || zi >= depth)
+        continue ;
+      for (yk = -whalf ; yk <= whalf ; yk++)
+      {
+        yi = y + yk ;
+        if (yi < 0 || yi >= height)
+          continue ;
+        for (xk = -whalf ; xk <= whalf ; xk++)
+        {
+          xi = x + xk ;
+          if (xi < 0 || xi >= width)
+            continue ;
+          label = MRIvox(mri, xi, yi, zi) ;
+          if (label <= WM_MIN_VAL)
+            continue ;
+          counts[label]++ ;
+        }
+      }
+    }
+    
+    max_count = max_label = 0 ;
+    for (label = 0 ; label <= 255 ; label++)
+      if (counts[label] > max_count)
+      {
+        max_count = counts[label] ;
+        max_label = label ;
+      }
+    whalf++ ;
+  } while (max_count == 0 && whalf < 5) ;
+  
+  return(max_label) ;
+}
 /*----------------------------------------------------------------------
             Parameters:
 
@@ -1128,6 +1271,8 @@ MRIturnOffBG(MRI *mri, MRI *mri_bg)
     {
       for (x = 0 ; x < width ; x++)
       {
+        if (x == 157 && y == 140 && z == 56)
+          DiagBreak() ;
         if (MRIvox(mri_bg, x, y, z) > 0)
           MRIvox(mri, x, y, z) = 0 ;
       }
@@ -1140,6 +1285,8 @@ MRIturnOffBG(MRI *mri, MRI *mri_bg)
     {
       for (x = 0 ; x < width ; x++)
       {
+        if (x == 157 && y == 140 && z == 56)
+          DiagBreak() ;
         if ((MRIvox(mri_bg, x, y, z) == 0) &&
             (MRIvox(mri, x, y, z) == 0))
           MRIvox(mri, x, y, z) = findLabel(mri, x, y, z) ;
@@ -1148,6 +1295,7 @@ MRIturnOffBG(MRI *mri, MRI *mri_bg)
   }
   return(NO_ERROR) ;
 }
+#if 0
 static BUFTYPE
 findLabel(MRI *mri, int x, int y, int z)
 {
@@ -1182,4 +1330,53 @@ findLabel(MRI *mri, int x, int y, int z)
   return ((left_count > right_count) ? 
           MRI_LEFT_HEMISPHERE : 
           MRI_RIGHT_HEMISPHERE) ;
+}
+#endif
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+          Set an MRI intensity values to 0
+------------------------------------------------------*/
+int
+MRIsetValues(MRI *mri, int val)
+{
+  int   width, depth, height, bytes, y, z, frame, nframes ;
+
+  width = mri->width ;
+  height = mri->height ;
+  depth = mri->depth ;
+  nframes = mri->nframes ;
+  bytes = width ;
+
+  switch (mri->type)
+  {
+  case MRI_BITMAP:
+    bytes /= 8 ;
+    break ;
+  case MRI_FLOAT:
+    bytes *= sizeof(float) ;
+    break ;
+  case MRI_LONG:
+    bytes *= sizeof(long) ;
+    break ;
+  case MRI_INT:
+    bytes *= sizeof(int) ;
+    break ;
+  default:
+    break ;
+  }
+
+  for (frame = 0 ; frame < nframes ; frame++)
+  {
+    for (z = 0 ; z < depth ; z++)
+    {
+      for (y = 0 ; y < height ; y++)
+        memset(mri->slices[z+frame*depth][y], val, bytes) ;
+    }
+  }
+  
+  return(NO_ERROR) ;
 }
