@@ -61,6 +61,8 @@ public:
 };
 
 static int get_option(int argc, char *argv[]) ;
+MRI *erodeRegion(MRI *mri, MRI *cur, unsigned char val);
+int selectAddedRegion(MRI *mri, MRI *orig, unsigned char val);
 
 int (*voxToRAS)(MRI *mri, Real x, Real y, Real z, Real *xs, Real *ys, Real *zs);
 int (*rasToVox)(MRI *mri, Real x, Real y, Real z, Real *xs, Real *ys, Real *zs);
@@ -70,7 +72,7 @@ int main(int argc, char *argv[])
   int nargs;
   Progname=argv[0];
 
-  nargs = handle_version_option (argc, argv, "$Id: mri_parselabel.cpp,v 1.4 2004/06/02 21:30:51 tosa Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_parselabel.cpp,v 1.5 2004/06/03 15:28:07 tosa Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -189,94 +191,90 @@ int main(int argc, char *argv[])
   }
   cout << "naive filling done" << endl;
   MRIfree(&mriIn);
-  
-  if (!fillup)
-    goto here;
 
-  cout << "check missed positions...." << endl;
-  // now check whether missing points exist or not
+  MRI *mask =0;
+
+  if (fillup)
   {
+
+    // create a mask with eroded region
+    mask = MRIcopy(mriOut, NULL);
+    cout << "eroding region..." << endl;
+    mask = erodeRegion(mask, mriOut, val);
+
+    // MRIwrite(mask, "./eroded.mgh");
+
+    // get added points only
+    cout << "select only added points" << endl;
+    int addedPoints = selectAddedRegion(mask, mriOut, val);
+
+    int fivepercent = addedPoints/20;
+
+    cout << "check missed positions...." << endl;
+
+    // now check whether missing points exist or not
     unsigned char curval =0;
-    int count =0;
     int addedcount=0;
-    int xi, yi, zi;
+    int totcount = 0;
+    int percentage = 0;
+    Real xl, yl, zl;
     for (int z = 0; z < mriOut->depth; z++)
     {
       for (int y = 0; y < mriOut->height; y++)
       {
 	for (int x = 0; x < mriOut->width; x++)
 	{
-	  curval = MRIvox(mriOut, x, y, z);
+	  // mask has only added points marked with val
+	  curval = MRIvox(mask, x, y, z);
+	  // get the RAS point
+	  voxToRAS(mriOut, x, y, z, &xl, &yl, &zl);
 	  // this point is marked, then looking around to see other points
 	  // may belong to the label list.
 	  if (curval == val)
 	  {
-	    // look around 3 x 3 x 3 neighbors
-	    /////////////////////////////////////////////
-	    for (int z0 = -1 ; z0 <= 1 ; z0++)
+	    totcount++;
+	    if (totcount % fivepercent == 0)
 	    {
-	      zi = mriOut->zi[z+z0] ;
-	      for (int y0 = -1 ; y0 <= 1 ; y0++)
+	      percentage += 5;
+	      cout << percentage << "% done" << endl;
+	    }
+	    // search
+	    for (size_t i=0; i < vertices.size(); ++i)
+	    {
+	      // since I sorted by X, the vertex position > current position + 2x vx
+	      // don't do anymore
+	      if ((vertices[i].x_) > (xl + 2*vx))
+		goto nextpoint;
+	      
+	      if (vertices[i] == Vertex(xl, yl, zl, 0))
 	      {
-		yi = mriOut->yi[y+y0] ;
-		for (int x0 = -1 ; x0 <= 1 ; x0++)
+		// if it is not set
+		if (MRIvox(mriOut, x, y, z) != val)
 		{
-		  xi = mriOut->xi[x+x0] ;
-		  Real xl, yl, zl;
-		  voxToRAS(mriOut, xi, yi, zi, &xl, &yl, &zl);
-		  // search
-		  for (size_t i=0; i < vertices.size(); ++i)
-		  {
-		    // since I sorted by X, the vertex position > current position + 2x vx
-		    // don't do anymore
-		    if ((vertices[i].x_) > (xl + 2*vx))
-		      goto nextpoint;
-
-		    if (vertices[i] == Vertex(xl, yl, zl, 0))
-		    {
-		      if (xi != x || yi != y || zi != z)
-		      {
-			// if it is not set
-			if (MRIvox(mriOut, xi, yi, zi) != val)
-			{
-			  MRIvox(mriOut, xi, yi, zi) = val;
-			  cout << "\nadded another point: ( " 
-			       << xi << ", " << yi << ", " << zi <<")" << endl; 
-			  addedcount++;
-			}
-		      }
-		      // same point
-		      else if (xi == x && yi == y && zi == z)
-		      {
-			count++;
-			if (count%1000==0)
-			{
-			  cout << ".";
-			  cout.flush();
-			}
-		      }
-		    }		    
-		  }// for i
-		nextpoint:
-		  continue;
+		  MRIvox(mriOut, x, y, z) = val;
+		  cout << "\nadded another point: ( " 
+		       << x << ", " << y << ", " << z <<")" << endl; 
+		  addedcount++;
 		}
-	      }
-	    } /////////////////////////////////////////////////////////////////
-	  } // x
-	} // y
-      } // z
-    }
+	      } // for i		    
+	    nextpoint:
+	      continue;
+	    }
+	  }
+	} // x
+      } // y
+    } // z
     cout << endl;
-    cout << "total voxels = " << count + addedcount << endl;
-    cout << "     initial = " << count << endl;
     cout << "       added = " << addedcount << endl;
   }
- here:
-
+  
   MRIwrite(mriOut, argv[3]);
 
   MRIfree(&mriOut);
-  
+
+  if (mask)
+    MRIfree(&mask);
+
   return 0;
 }
 
@@ -305,4 +303,74 @@ int get_option(int argc, char *argv[])
   return (nargs);
 }
     
-  
+MRI *erodeRegion(MRI *mask, MRI *current, unsigned char val)
+{  
+  int xi, yi, zi;
+  unsigned char curval;
+  for (int z = 0; z < mask->depth; z++)
+  {
+    for (int y = 0; y < mask->height; y++)
+    {
+      for (int x = 0; x < mask->width; x++)
+      {
+	curval = MRIvox(current, x, y, z);
+	// this point is marked, then looking around to see other points
+	// may belong to the label list.
+	if (curval == val)
+	{
+	  // look around 3 x 3 x 3 neighbors
+	  /////////////////////////////////////////////
+	  for (int z0 = -1 ; z0 <= 1 ; z0++)
+	  {
+	    zi = mask->zi[z+z0] ;
+	    for (int y0 = -1 ; y0 <= 1 ; y0++)
+	    {
+	      yi = mask->yi[y+y0] ;
+	      for (int x0 = -1 ; x0 <= 1 ; x0++)
+	      {
+		xi = mask->xi[x+x0] ;
+		MRIvox(mask, xi, yi, zi) = val;
+	      }
+	    }
+	  } 
+	} 
+      } // x
+    } // y
+  } // z
+  return mask;
+}
+
+int selectAddedRegion(MRI *mask, MRI *orig, unsigned char val)
+{
+  int totcount = 0;
+  int origcount = 0;
+  unsigned char mval;
+  unsigned char curval;
+  for (int z = 0; z < mask->depth; z++)
+  {
+    for (int y = 0; y < mask->height; y++)
+    {
+      for (int x = 0; x < mask->width; x++)
+      {
+	mval = MRIvox(mask, x, y, z);
+	curval = MRIvox(orig, x, y, z);
+	
+	// this point is marked, then looking around to see other points
+	// may belong to the label list.
+	if (mval == val)
+	{
+	  totcount++;
+	  if (curval == val)
+	  {
+	    MRIvox(mask, x, y, z) = 0;
+	    origcount++;
+	  }
+	} 
+      } // x
+    } // y
+  } // z
+  printf("added points = %d \n", totcount-origcount);
+  printf("total count = %d, naive count = %d\n", totcount, origcount);
+  printf("total voxel count = %d\n", mask->depth*mask->height*mask->width);
+  return (totcount-origcount);
+}
