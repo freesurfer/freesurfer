@@ -3723,22 +3723,22 @@ static int write_bhdr(MRI *mri, FILE *fp)
   fprintf(fp, "          rows: %d\n", mri->height);
   fprintf(fp, "       nslices: %d\n", mri->depth);
   fprintf(fp, " n_time_points: %d\n", mri->nframes);
-  fprintf(fp, "   slice_thick: %g\n", mri->zsize);
-  fprintf(fp, "    top_left_r: %g\n", tlr);
-  fprintf(fp, "    top_left_a: %g\n", tla);
-  fprintf(fp, "    top_left_s: %g\n", tls);
-  fprintf(fp, "   top_right_r: %g\n", trr);
-  fprintf(fp, "   top_right_a: %g\n", tra);
-  fprintf(fp, "   top_right_s: %g\n", trs);
-  fprintf(fp, "bottom_right_r: %g\n", brr);
-  fprintf(fp, "bottom_right_a: %g\n", bra);
-  fprintf(fp, "bottom_right_s: %g\n", brs);
-  fprintf(fp, "      normal_r: %g\n", nr);
-  fprintf(fp, "      normal_a: %g\n", na);
-  fprintf(fp, "      normal_s: %g\n", ns);
-  fprintf(fp, "      image_te: %g\n", mri->te);
-  fprintf(fp, "      image_tr: %g\n", mri->tr);
-  fprintf(fp, "      image_ti: %g\n", mri->ti);
+  fprintf(fp, "   slice_thick: %f\n", mri->zsize);
+  fprintf(fp, "    top_left_r: %f\n", tlr);
+  fprintf(fp, "    top_left_a: %f\n", tla);
+  fprintf(fp, "    top_left_s: %f\n", tls);
+  fprintf(fp, "   top_right_r: %f\n", trr);
+  fprintf(fp, "   top_right_a: %f\n", tra);
+  fprintf(fp, "   top_right_s: %f\n", trs);
+  fprintf(fp, "bottom_right_r: %f\n", brr);
+  fprintf(fp, "bottom_right_a: %f\n", bra);
+  fprintf(fp, "bottom_right_s: %f\n", brs);
+  fprintf(fp, "      normal_r: %f\n", nr);
+  fprintf(fp, "      normal_a: %f\n", na);
+  fprintf(fp, "      normal_s: %f\n", ns);
+  fprintf(fp, "      image_te: %f\n", mri->te);
+  fprintf(fp, "      image_tr: %f\n", mri->tr);
+  fprintf(fp, "      image_ti: %f\n", mri->ti);
 
   return(NO_ERROR);
 
@@ -3840,9 +3840,9 @@ int read_bhdr(MRI *mri, FILE *fp)
   //printf("------------------------------\n");
 
   CRSCenter = MatrixAlloc(4,1,MATRIX_REAL);
-  CRSCenter->rptr[1][1] = (mri->width-1)/2.0;
-  CRSCenter->rptr[2][1] = (mri->height-1)/2.0;
-  CRSCenter->rptr[3][1] = (mri->depth-1)/2.0;
+  CRSCenter->rptr[1][1] = (mri->width)/2.0;
+  CRSCenter->rptr[2][1] = (mri->height)/2.0;
+  CRSCenter->rptr[3][1] = (mri->depth)/2.0;
   CRSCenter->rptr[4][1] = 1;
 
   RASCenter = MatrixMultiply(T,CRSCenter,NULL);
