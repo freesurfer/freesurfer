@@ -96,5 +96,7 @@ int   GCSAputInputType(GCSA *gcsa, int type, char *fname, int navgs, int ino,
                        int flags) ;
 int   GCSAsetCovariancesToIdentity(GCSA *gcsa) ;
 VERTEX *GCSAsourceToPriorVertex(GCSA *gcsa, VERTEX *v) ;
+VERTEX *GCSAsourceToClassifierVertex(GCSA *gcsa, VERTEX *v) ;
+int dump_gcsan(GCSA_NODE *gcsan, CP_NODE *cpn, FILE *fp, int verbose) ;
 
 #endif
