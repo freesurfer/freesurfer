@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2003/05/07 16:42:23 $
-// Revision       : $Revision: 1.67 $
+// Revision Date  : $Date: 2003/05/12 17:29:20 $
+// Revision       : $Revision: 1.68 $
 
 #include "tkmDisplayArea.h"
 #include "tkmMeditWindow.h"
@@ -5397,6 +5397,10 @@ DspA_tErr DspA_BuildSurfaceDrawLists_ ( tkmDisplayAreaRef this,
   xPoint2f            intersectionPt       = {0, 0};
   xPoint2f            interpIntersectionPt = {0, 0};
   tBoolean            bPointsOnThisFace    = FALSE;
+  int                 annotation;
+  int                 annotationRed;
+  int                 annotationGreen;
+  int                 annotationBlue;
   
   /* get the current slice. */
   nSlice = DspA_GetCurrentSliceNumber_( this );
@@ -5474,6 +5478,23 @@ DspA_tErr DspA_BuildSurfaceDrawLists_ ( tkmDisplayAreaRef this,
 	drawListNode.mnNeighborVertexIndex = nNeighborVertexIndex;
 	drawListNode.mIntersectionPoint = intersectionPt;
 	drawListNode.mInterpIntersectionPoint = interpIntersectionPt;
+	drawListNode.mOverrideColor = FALSE;
+
+	/* Get the annotation value at this vertex. If it's non-zero,
+	   set the override flag to true and put the color of the
+	   annotation into the draw list node. */
+	Surf_GetVertexAnnotationByIndex( this->mpSurface[iType], 
+					 nVertexIndex, &annotation );
+	if( annotation ) {
+	  MRISAnnotToRGB( annotation, 
+			  annotationRed, annotationGreen, annotationBlue );
+	  xColr_SetFloat( &(drawListNode.mColor),
+			  (float)annotationRed / 256.0,
+			  (float)annotationGreen / 256.0, 
+			  (float)annotationBlue / 256.0 );
+
+	  drawListNode.mOverrideColor = TRUE;
+	}
 
 	/* the original vertex is just the (unnormalized) anatomical
 	   vertex. same with the neighbor vertex. */
@@ -7637,6 +7658,7 @@ DspA_tErr DspA_ParsePointList_( tkmDisplayAreaRef this,
   tBoolean   bOperationOpen = FALSE;
   DspA_tSurfaceListNode drawListNode;
   xPoint2f   drawPoint      = {0,0};
+  float      faColor[3]     = {0, 0, 0};
   
   /* reset the list position. */
   eList = xGArr_ResetIterator( iList );
@@ -7682,6 +7704,12 @@ DspA_tErr DspA_ParsePointList_( tkmDisplayAreaRef this,
       /* y flip */
       drawPoint.mfY = GLDRAW_Y_FLIP(drawPoint.mfY);
       
+      /* If we have an override color, set it. */
+      if( drawListNode.mOverrideColor ) {
+	xColr_PackFloatArray( &(drawListNode.mColor), faColor );
+	glColor3fv( faColor );
+      }
+
       /* and draw the pt. */
       glVertex2f( drawPoint.mfX, drawPoint.mfY );
     }

@@ -206,6 +206,10 @@ typedef struct {
   /* the interpIntersectionPoint in 3D space. */
   xVoxel   mInterpVertex;
 
+  /* color for the vertex */
+  tBoolean mOverrideColor;
+  xColor3f mColor;
+
 } DspA_tSurfaceListNode, *DspA_tSurfaceListNodeRef;
 
 #define DspA_kSignature 0x194ffb2
