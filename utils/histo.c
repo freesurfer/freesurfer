@@ -65,6 +65,16 @@ HISTOdump(HISTOGRAM *histo, FILE *fp)
   }
   return(NO_ERROR) ;
 }
+HISTOGRAM *
+HISTOrealloc(HISTOGRAM *histo, int nbins)
+{
+  histo->bins = (float *)calloc(nbins, sizeof(float)) ;
+  histo->counts = (float *)calloc(nbins, sizeof(float)) ;
+  if (!histo->counts || !histo->bins)
+    ErrorExit(ERROR_NOMEMORY, "HISTOalloc(%d): could not allocate histogram",nbins) ;
+  histo->nbins = nbins ;
+  return(histo) ;
+}
 /*-----------------------------------------------------
         Parameters:
 
