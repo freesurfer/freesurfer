@@ -461,6 +461,8 @@ extern float ic_z_vertices[]  ;
 #define BFLOAT_FILE                   9
 #define SDT_FILE                      10
 #define OTL_FILE                      11
+#define GDF_FILE                      12
+
 
 int        MRImatch(MRI *mri1, MRI *mri2) ;
 int        MRIvalRange(MRI *mri, float *pmin, float *pmax) ;
