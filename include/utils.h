@@ -59,6 +59,7 @@ void FileRename(char *inName, char *outName) ;
 char *FileNameAbsolute(char *fname, char *absFname) ;
 char *FileNamePath(char *fname, char *pathName) ;
 char *FileNameRemoveExtension(char *in_fname, char *out_fname) ;
+char *FileNameExtension(char *fname, char *ext) ;
 char *AppendString(char *src, char *app);
 
 int devIsinf(float value);
