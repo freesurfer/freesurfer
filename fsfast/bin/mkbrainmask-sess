@@ -1,7 +1,8 @@
 #!/bin/csh -f
 # mkbrainmask-se3ss
 #
-# $Id: mkbrainmask-sess,v 1.1 2003/03/04 21:22:09 greve Exp $
+# $Id: mkbrainmask-sess,v 1.2 2003/10/01 21:54:43 greve Exp $
+set VERSION = '$Id: mkbrainmask-sess,v 1.2 2003/10/01 21:54:43 greve Exp $'
 
 set cmdargs = ($argv);
 
@@ -59,14 +60,36 @@ else
 endif
 
 echo "mkbrainmask-sess" >> $LF
-echo '$Id: mkbrainmask-sess,v 1.1 2003/03/04 21:22:09 greve Exp $' >> $LF
+echo '$Id: mkbrainmask-sess,v 1.2 2003/10/01 21:54:43 greve Exp $' >> $LF
 uname -a          >> $LF
 date              >> $LF
 $PWDCMD           >> $LF
 echo $cmdargs     >> $LF
 
+set ProjectDir = `pwd`;
+
 #---------------------------------------------------------------#
 foreach sess ($SessList)
+
+  set sessid = `basename $sess`;
+
+  # Create a log file #
+  if(-w .) then
+    mkdir -p log
+    set LF = $ProjectDir/log/mkbrainmask-$sessid-$fsd.log
+    rm -f $LF
+  else
+    set LF = /dev/null
+  endif
+
+  echo "mkbrainmask-sess" >> $LF
+  echo $sessid      >> $LF
+  echo $VERSION     >> $LF
+  uname -a          >> $LF
+  date              >> $LF
+  pwd               >> $LF
+  echo $cmdargs     >> $LF
+  echo "ProjectDir $ProjectDir" >> $LF
 
   echo "------------------------------------------------" |& tee -a $LF
   echo "------------------------------------------------" |& tee -a $LF
@@ -117,11 +140,11 @@ foreach sess ($SessList)
   if($#scratchdir != 0) set cmd = ($cmd -scratch $scratchdir);
 
   echo "--------------------------------------------------"
-  $PWDCMD   |& tee -a $LF
+  pwd       |& tee -a $LF
   echo $cmd |& tee -a $LF
   echo "--------------------------------------------------"
 
-  $cmd
+  $cmd |& tee -a $LF
   if($status) then
     echo "ERROR: mkbrainmask failed"  |& tee -a $LF
     exit 1;
@@ -129,6 +152,8 @@ foreach sess ($SessList)
 
 end
 
+date |& tee -a $LF
+echo "mkbrainmask-sess done" |& tee -a $LF
 
 exit 0;
 ###############################################

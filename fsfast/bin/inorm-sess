@@ -1,7 +1,8 @@
 #!/bin/csh -f
 # inorm-sess - 
 #
-# $Id: inorm-sess,v 1.1 2003/03/04 21:22:08 greve Exp $
+# $Id: inorm-sess,v 1.2 2003/10/01 21:54:43 greve Exp $
+set VERSION = '$Id: inorm-sess,v 1.2 2003/10/01 21:54:43 greve Exp $'
 
 set cmdargs = ($argv);
 
@@ -41,28 +42,33 @@ endif
 goto check_params;
 check_params_return:
 
-# Create a log file #
-if(-w .) then
-  mkdir -p log
-  set LF = `$PWDCMD`/log/inorm-sess-$fsd.log
-  rm -f $LF
-else
-  set LF = /dev/null
-endif
-
-echo "inorm-sess" >> $LF
-echo '$Id: inorm-sess,v 1.1 2003/03/04 21:22:08 greve Exp $'       >> $LF
-uname -a          >> $LF
-date              >> $LF
-$PWDCMD               >> $LF
-echo "$cmdargs"   >> $LF
-
 ## File permission masking ###
 if(! $?MRI_UMASK ) set MRI_UMASK = `umask`;
 umask $MRI_UMASK;
 set umaskarg = "-umask $MRI_UMASK"
 
+set ProjectDir = `pwd`;
+
 foreach sess ($SessList)
+  set sessid = `basename $sess`;
+
+  # Create a log file #
+  if(-w .) then
+    mkdir -p log
+    set LF = $ProjectDir/log/inorm-$sessid-$fsd.log
+    rm -f $LF
+  else
+    set LF = /dev/null
+  endif
+
+  echo "inorm-sess" >> $LF
+  echo $sessid      >> $LF
+  echo $VERSION     >> $LF
+  uname -a          >> $LF
+  date              >> $LF
+  pwd               >> $LF
+  echo $cmdargs     >> $LF
+  echo "ProjectDir $ProjectDir" >> $LF
 
   echo "------------------------------------------------" |& tee -a $LF
   echo "------------------------------------------------" |& tee -a $LF
@@ -77,7 +83,7 @@ foreach sess ($SessList)
   endif
 
   ### Check that the target directory is writable ###
-  if(! -w $sess/$fsd) then
+  if(! -w $sess/$fsd & 0) then
     echo "ERROR: $sess/$fsd is not writable"   |& tee -a $LF
     exit 1;
   endif
