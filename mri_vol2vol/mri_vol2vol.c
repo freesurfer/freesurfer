@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: converts values in one volume to another volume
-  $Id: mri_vol2vol.c,v 1.3 2004/08/11 23:24:06 greve Exp $
+  $Id: mri_vol2vol.c,v 1.4 2004/10/14 22:42:14 greve Exp $
 
   Things to do:
     1. Add ability to spec output center XYZ.
@@ -53,7 +53,7 @@ static int istringnmatch(char *str1, char *str2, int n);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2vol.c,v 1.3 2004/08/11 23:24:06 greve Exp $";
+static char vcid[] = "$Id: mri_vol2vol.c,v 1.4 2004/10/14 22:42:14 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -91,15 +91,18 @@ MRI *tmpmri;
 
 MATRIX *Vt2s, *X, *invX, *Xtmp;
 MATRIX *Tin, *Tout, *invTin;
-MATRIX *Xtal, *R;
+MATRIX *Xtal, *R, *Xtalfov;
 
-int fstalairach = 0;
 char *subjectsdir = NULL;   /* SUBJECTS_DIR */
 char *talxfmfile = "talairach.xfm";
 char talxfmpath[1000];
+int fstalairach = 0;
+char *talsubject = "talmni305", *talsubjecttmp;
+float talres = 2.0; // Can only be 1, 1.5, or 2
 
 int dont_irescale = 1;
 float minrescale = 0.0, maxrescale = 255.0;
+char fname[1000], dname[1000];
 
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv)
@@ -178,6 +181,8 @@ int main(int argc, char **argv)
     printf("INFO: reading xfm file %s, trying as reg.dat \n",xfmfile);
     err = regio_read_register(xfmfile, &trgsubject, &ipr, &bpr, 
 			      &intensity, &X, &float2int);
+    printf("Input XFM: ----------------\n");
+    MatrixPrint(stdout,X);
     if(!err){
       if(float2int == FLT2INT_TKREG){
 	printf("INFO: Fixing tkregister matrix\n");
@@ -191,22 +196,24 @@ int main(int argc, char **argv)
       }
       if(fstalairach){
 	printf("INFO: recomputing xfm for talairach transform\n");
-	if(subjectsdir == NULL) subjectsdir = getenv("SUBJECTS_DIR");
-	if (subjectsdir==NULL) {
-	  printf("ERROR: SUBJECTS_DIR undefined. Use setenv or --sd\n");
-	  exit(1);
-	}
-	//sprintf(talxfmpath,"%s/%s/mri/transforms/%s",
-	//subjectsdir,trgsubject,talxfmfile);
-	//err = regio_read_mincxfm(talxfmpath, &Xtal);
-	//if(err) exit(1);
 	Xtal = DevolveXFM(trgsubject, NULL, NULL);
 	invX = MatrixInverse(X,NULL);
-        MatrixMultiply(Xtal,invX,X); 
 	printf("Xtal: ------------------------------\n");
 	MatrixPrint(stdout,Xtal);
-	printf("inv(reg): ------------------------------\n");
+	printf("inv(Xtal): ------------------------------\n");
 	MatrixPrint(stdout,invX);
+	sprintf(fname,"%s/%s/mri/brainfov%2d.reg",
+		subjectsdir,talsubject,(int)(10*talres));
+	err = regio_read_register(fname, &talsubjecttmp, &ipr, &bpr, 
+			      &intensity, &Xtalfov, &float2int);
+	if(err){
+	  printf("ERROR: could not read %s\n",fname);
+	  exit(1);
+	}
+	printf("Xtalfov (%g): ------------------------------\n",talres);
+	MatrixPrint(stdout,Xtalfov);
+        MatrixMultiply(Xtal,invX,X); // X = Xtal*inv(X)
+        MatrixMultiply(Xtalfov,X,X); // X = Xtalfov*Xtal*inv(X)
       }
     }
     else{
@@ -221,6 +228,8 @@ int main(int argc, char **argv)
     }
   }
   else X = MatrixIdentity(4,NULL);
+  printf("Final XFM ------------------------------\n");
+  MatrixPrint(stdout,X);
 
   if(force_outvoxres){
     TempVol->xsize = outvoxres[0];
@@ -307,16 +316,26 @@ int main(int argc, char **argv)
     printf("INFO: writing output volume to %s (%s)\n",
 	   outvolpath,outvolfmt);
     MRIwriteType(OutVol,outvolpath,outvolfmtid);
-    if(fstalairach){
-      R = MatrixIdentity(4,NULL);
-      if(outvolfmtid == MRI_CORONAL_SLICE_DIRECTORY)
-	sprintf(regfile,"%s/COR.reg",outvolpath);
-      else
-	sprintf(regfile,"%s.reg",outvolpath);
-      printf("INFO: writing registration matrix to %s\n",regfile);
-      regio_write_register(regfile,"talairach",OutVol->xsize,
-			   OutVol->zsize,1,R,FLT2INT_ROUND);
+    if(outvolfmtid == MRI_CORONAL_SLICE_DIRECTORY)
+      sprintf(regfile,"%s/COR.reg",outvolpath);
+    if(outvolfmtid == BSHORT_FILE || outvolfmtid == BFLOAT_FILE){
+      decompose_b_fname(outvolpath, dname, fname);
+      sprintf(regfile,"%s/%s.reg",dname,fname);
     }
+    else
+      sprintf(regfile,"%s.reg",outvolpath);
+    printf("INFO: writing registration matrix to %s\n",regfile);
+    if(fstalairach) R = Xtalfov;
+    else            R = MatrixIdentity(4,NULL);
+    regio_write_register(regfile,talsubject,OutVol->xsize,
+			 OutVol->zsize,1,R,FLT2INT_ROUND);
+
+    printf("To check registration, run:\n");
+    printf("\n");
+    printf("  tkregister2 --mov %s --reg %s\n",
+	   outvolpath,regfile);
+    printf("\n");
+    printf("\n");
 
   }
 
@@ -349,8 +368,8 @@ static int parse_commandline(int argc, char **argv)
     if (!strcasecmp(option, "--help"))  print_help() ;
     else if (!strcasecmp(option, "--version")) print_version() ;
     else if (!strcasecmp(option, "--debug"))   debug = 1;
-    else if (!strcasecmp(option, "--fstal"))   fstalairach = 1;
-    else if (!strcasecmp(option, "--fstaliarach"))   fstalairach = 1;
+    else if (!strcasecmp(option, "--fstal"))       fstalairach = 1;
+    else if (!strcasecmp(option, "--fstalairach")) fstalairach = 1;
     else if (!strcasecmp(option, "--invxfm"))   invertxfm = 1;
 
     else if ( !strcmp(option, "--gdiagno") ) {
@@ -443,6 +462,20 @@ static int parse_commandline(int argc, char **argv)
       xfmfile = pargv[0]; nargsused = 1;
     }
 
+    else if (istringnmatch(option, "--talres",8)){
+      if(nargc < 1) argnerr(option,1);
+      sscanf(pargv[0],"%f",&talres); 
+      if( fabs(talres-1.0) < EPSILON ) talres = 1.0;
+      else if( fabs(talres-1.5) < EPSILON ) talres = 1.5;
+      else if( fabs(talres-2.0) < EPSILON ) talres = 2.0;
+      else {
+	printf("ERROR: tal res %g invalid. Only use 1.0, 1.5, or 2.0\n",
+	       talres);
+	exit(1);
+      }
+      nargsused = 1;
+    }
+
     else if (istringnmatch(option, "--interp",8)){
       if(nargc < 1) argnerr(option,1);
       interpmethod = pargv[0]; nargsused = 1;
@@ -488,6 +521,7 @@ static void print_usage(void)
   printf("  \n");
   printf("  --xfm xfmfile : apply transform \n");
   printf("  --fstal : resample volume into talairach space (needs xfm).\n");
+  printf("  --talres : Output talairach resolution (1, 1.5, or <2>)\n");
   printf("  --invxfm : invert transform before applying\n");
   printf("  \n");
   printf("  --interp method : nearest, <trilin>, sinc \n");
@@ -520,6 +554,9 @@ static void print_help(void)
 "\n"
 "Path name of the output volume. If the format is not included, the\n"
 "format will be inferred from the path name. See FORMATS below.\n"
+"A register.dat-style file will also be produce. It will be called\n"
+"output.reg (for COR, it will be COR.reg; for bshort/bfloat it will\n"
+"be stem.reg).\n"
 "\n"
 "--temp template volume <fmt>\n"
 "\n"
@@ -562,9 +599,18 @@ static void print_help(void)
 "talairach.xfm from SUBJECTS_DIR/subjid/transforms. SUBJECTS_DIR is\n"
 "read from the environment or can be specified with --sd. subjid is\n"
 "read from the xfm file. The transformation matrix is then computed\n"
-"as Xtal*inv(R), where Xtal is talairach.xfm matrix and R is the matrix\n"
-"in the xfm file. Don't use --invxfm unless you want to go from \n"
+"as Xfov*Xtal*inv(R), where Xtal is talairach.xfm matrix, R is the \n"
+"matrix in the xfm file, and Xfov maps from the talairach COR FOV to \n"
+"a reduced FOV that covers only the brain. Reducing the FOV saves space \n"
+"relative to the 256^3 COR FOV. By default, the output will be 2mm \n "
+"isotropic, but this can be changed with --fstalres\n"
+" Don't use --invxfm unless you want to go from \n"
 "talairach space back to the input.\n"
+"\n"
+"--fstalres resmm\n"
+"\n"
+"Set the resolution of the output when using --fstal. By default, it\n"
+"is 2 mm, but can be changed to 1.5 mm or 1.0 mm.\n"
 "\n"
 "--irescale min max\n"
 "\n"
@@ -617,11 +663,15 @@ Row is the next fastest, and Slice is the slowest.
 
 EXAMPLES:
 
-1. Resample a functional volume to talairach space.
+1. Resample a functional volume to talairach space at 1.5 mm res
 
    mri_vol2vol --in f_000.bfloat --out ftal_000.bfloat
-     --temp $SUBJECTS_DIR/talairach/mri/orig 
-     --xfm register.dat --fstal
+     --xfm register.dat --fstal --fstalres 1.5
+
+   register.dat registers the anatomical and functional. Note that
+   a template is not needed. The registration of ftal with the
+   talairach subject can then be checked with:
+     tkregister2 --mov ftal_000.bfloat --reg ftal.reg
 
 2. Resample a structural volume to talairach space.
 
@@ -651,9 +701,13 @@ mri_vol2vol --in vol.mgh --out vol2.mgh --temp temp.mgh --xfm register.dat
 where vol.mgh is the targ and temp.mgh is the mov (in tkregister-speak). 
 If you want to go the other way, add --invxfm.
 
-So, vol.mgh  and temp.mgh should be in register when you run:
+On the input side, vol.mgh  and temp.mgh should be in register when you run:
 
 tkregister2 --targ vol.mgh --mov temp.mgh --reg register.dat
+
+On the output side, this should also be in register:
+
+tkregister2 --targ temp.mgh --mov vol2.mgh --reg vol2.mgh.reg
 
 "
 "\n"
@@ -721,6 +775,18 @@ static void check_options(void)
       printf("ERROR: cannot recognize format %s\n",outvolfmt);
       exit(1);
     }
+  }
+
+  if(fstalairach){
+    if(subjectsdir == NULL) subjectsdir = getenv("SUBJECTS_DIR");
+    if (subjectsdir==NULL) {
+      printf("ERROR: SUBJECTS_DIR undefined. Use setenv or --sd\n");
+      exit(1);
+    }
+    sprintf(fname,"%s/%s/mri/brainfov%2d.mgh",
+		subjectsdir,talsubject,(int)(10*talres));
+    tempvolpath = (char *)calloc(strlen(fname)+1,sizeof(char));
+    memcpy(tempvolpath,fname,strlen(fname)+1);
   }
 
   if(tempvolpath == NULL){
