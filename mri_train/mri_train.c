@@ -25,11 +25,9 @@ static int get_option(int argc, char *argv[]) ;
 void 
 main(int argc, char *argv[])
 {
-  FILE    *fp ;
   MRIC    *mric ;
-  char    *training_file_name, *output_file_name, line[300], *cp, fname[100] ;
+  char    *training_file_name, *output_file_name ;
   int     nargs ;
-  MRI     *mri ;
 
   Progname = argv[0] ;
   DiagInit(NULL, NULL, NULL) ;
@@ -48,25 +46,7 @@ main(int argc, char *argv[])
   training_file_name = argv[1] ;
   output_file_name = argv[2] ;
 
-  /* figure out proper dimensions */
-  fp = fopen(training_file_name, "r") ;
-  if (!fp)
-    ErrorExit(ERROR_NO_FILE,
-                 "%s:  could not open file %s", Progname, training_file_name);
-  
-  cp = fgetl(line, 299, fp) ;
-  if (!cp)
-    ErrorExit(ERROR_BADFILE, "%s: could not scan any file names from %s",
-              Progname, training_file_name) ;
-  sscanf(cp, "%s", fname) ;
-  mri = MRIreadInfo(fname) ;
-  if (!mri)
-    ErrorExit(ERROR_NOFILE, "%s: could not open info file in %s",
-              Progname, fname) ;
-  fclose(fp) ;
-  mric =  MRIclassAlloc(mri->width, mri->height, mri->depth, scale, ninputs) ;
-  MRIfree(&mri) ;
-  MRIclassTrainAll(mric, training_file_name) ;
+  mric = MRIclassTrainAll(mric, training_file_name, scale, ninputs) ;
   MRIclassWrite(mric, output_file_name) ;
   exit(0) ;
 }
