@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Computes glm inferences on the surface.
-  $Id: mris_glm.c,v 1.24 2004/03/09 21:48:20 greve Exp $
+  $Id: mris_glm.c,v 1.25 2004/03/10 19:54:28 greve Exp $
 
 Things to do:
   0. Documentation.
@@ -68,7 +68,7 @@ static char *getstem(char *bfilename);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_glm.c,v 1.24 2004/03/09 21:48:20 greve Exp $";
+static char vcid[] = "$Id: mris_glm.c,v 1.25 2004/03/10 19:54:28 greve Exp $";
 char *Progname = NULL;
 
 char *hemi        = NULL;
@@ -156,10 +156,12 @@ double *SynthCDF;
 double *SynthXCDF;
 int     SynthNCDF;
 
-MRI_SURFACE *IcoSurf, *SurfReg;
-MRI *SrcVals, *beta, *yhat, *eres, *eresvar, *ces, *t, *sig;
-MATRIX *T, *Xt, *XtX, *iXtX, *Q, *R;
-MRI *tmpmri, *tmpmri2, *SrcHits, *SrcDist, *TrgHits, *TrgDist;
+MRI_SURFACE *IcoSurf=NULL, *SurfReg=NULL;
+MRI *SrcVals=NULL, *beta=NULL, *yhat=NULL;
+MRI *eres=NULL, *eresvar=NULL, *ces=NULL, *t=NULL, *sig=NULL;
+MATRIX *T=NULL, *Xt=NULL, *XtX=NULL, *iXtX=NULL, *Q=NULL, *R=NULL;
+MRI *tmpmri=NULL, *tmpmri2=NULL, *SrcHits=NULL;
+MRI *SrcDist=NULL, *TrgHits=NULL, *TrgDist=NULL;
 
 float DOF;
 char *SUBJECTS_DIR;
@@ -179,7 +181,7 @@ int main(int argc, char **argv)
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv, 
-      "$Id: mris_glm.c,v 1.24 2004/03/09 21:48:20 greve Exp $", "$Name:  $");
+      "$Id: mris_glm.c,v 1.25 2004/03/10 19:54:28 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -413,8 +415,8 @@ int main(int argc, char **argv)
   for(nthsim = 0; nthsim <= nsim; nthsim++){
 
     if(SynthPDF != 0) {
-      if(nthsim%100==0) {printf(" %d",nthsim); fflush(stdout);}
-      if(nthsim%1000==999) {printf("\n");fflush(stdout);}
+      if(nthsim%10==0) {printf(" %d",nthsim); fflush(stdout);}
+      if(nthsim%100==999) {printf("\n");fflush(stdout);}
     }
 
     /* ------ Synthesize data ------ */
@@ -455,24 +457,24 @@ int main(int argc, char **argv)
       /* Do permutation here. */
       
       if(nsim == 1) printf("INFO: computing beta \n");fflush(stdout);
-      beta = fMRImatrixMultiply(SrcVals, Q, NULL);
+      beta = fMRImatrixMultiply(SrcVals, Q, beta);
       if(betaid != NULL) 
 	if(MRIwriteAnyFormat(beta,betaid,betafmt,-1,NULL)) exit(1);
       
       if(nsim == 1) printf("INFO: computing eres \n");fflush(stdout);
-      eres = fMRImatrixMultiply(SrcVals, R, NULL);
+      eres = fMRImatrixMultiply(SrcVals, R, eres);
       if(eresid != NULL)
 	if(MRIwriteAnyFormat(eres,eresid,eresfmt,-1,NULL)) exit(1);
       
       if(yhatid != NULL){
 	if(nsim == 1) printf("INFO: computing yhat \n");fflush(stdout);
-	yhat = fMRImatrixMultiply(SrcVals, T, NULL);
+	yhat = fMRImatrixMultiply(SrcVals, T, yhat);
 	if(MRIwriteAnyFormat(yhat,yhatid,yhatfmt,-1,NULL)) exit(1);
 	MRIfree(&yhat);
       }
       
       if(nsim == 1) printf("INFO: computing var \n");fflush(stdout);
-      eresvar = fMRIvariance(eres,DOF,0,NULL);
+      eresvar = fMRIvariance(eres,DOF,0,eresvar);
       if(eresvarid != NULL)
 	if(MRIwriteAnyFormat(eresvar,eresvarid,eresvarfmt,0,IcoSurf)) exit(1);
       MRIfree(&eres);
@@ -482,7 +484,7 @@ int main(int argc, char **argv)
     /* Compute contrast-effect size */
     if(tid != NULL || sigid != NULL || cesid != NULL ||tmaxfile != NULL){
       if(nsim == 1) printf("INFO: computing contrast effect size \n");fflush(stdout);
-      ces = fMRImatrixMultiply(beta,C,NULL);
+      ces = fMRImatrixMultiply(beta,C,ces);
       if(cesid != NULL){
 	if(IsSurfFmt(cesfmt) && IcoSurf == NULL)
 	  IcoSurf = MRISloadSurfSubject(trgsubject,hemi,surfregid,SUBJECTS_DIR);
@@ -493,7 +495,7 @@ int main(int argc, char **argv)
     /* Compute t-ratio  */
     if(tid != NULL || sigid != NULL || tmaxfile != NULL){
       if(nsim == 1) printf("INFO: computing t \n"); fflush(stdout);
-      t = fMRIcomputeT(ces, X, C, eresvar, NULL);
+      t = fMRIcomputeT(ces, X, C, eresvar, t);
       if(tid != NULL) {
 	if(IsSurfFmt(tfmt) && IcoSurf == NULL)
 	  IcoSurf = MRISloadSurfSubject(trgsubject,hemi,surfregid,SUBJECTS_DIR);
@@ -514,7 +516,7 @@ int main(int argc, char **argv)
     /* Compute significance of t-ratio  */
     if(sigid != NULL){
       if(nsim == 1) printf("INFO: computing t significance \n");fflush(stdout);
-      sig = fMRIsigT(t, DOF, NULL);
+      sig = fMRIsigT(t, DOF, sig);
       MRIlog10(sig,sig,1);
       if(sigfmt != NULL || 1){
 	if(IsSurfFmt(sigfmt) && IcoSurf == NULL)
