@@ -2159,6 +2159,11 @@ Volm_tErr Volm_Flood ( mriVolumeRef        this,
     eList = xList_PopItem ( list, (void**)&curVoxel );
     if ( eList == xList_tErr_NoErr && NULL != curVoxel ) {
 
+      /* Make sure it's in bounds. */
+      if( Volm_tErr_NoErr != Volm_VerifyMRIIdx_( this, curVoxel ) ) {
+	continue;
+      }
+
       /* If we've already been here, continue. If not, mark our visited
 	 volume and continue. */
       nVisitedIndex = xVoxl_ExpandToIndex( curVoxel, this->mnDimensionZ, 
@@ -2172,7 +2177,7 @@ Volm_tErr Volm_Flood ( mriVolumeRef        this,
 	 not a function, just look at the values. Otherwise call the
 	 comparator function they gave us. If it's okay, go on, if
 	 not, continue. */
-      Volm_GetValueAtIdx_( this, curVoxel, &fValue );
+      Volm_GetValueAtMRIIdx_( this, curVoxel, &fValue );
       if( NULL != iParams->mComparatorFunc ) {
 
 	/* Call the comparator function they gave us. If it returns

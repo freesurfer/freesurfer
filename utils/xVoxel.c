@@ -44,12 +44,13 @@ char xVoxl_IsEqualInt ( xVoxelRef ipVox1, xVoxelRef ipVox2 ) {
 
 char xVoxl_IsEqualFloat ( xVoxelRef ipVox1, xVoxelRef ipVox2 ) {
 
-  if ( xVoxl_GetFloatX(ipVox1) == xVoxl_GetFloatX(ipVox2)
-       && xVoxl_GetFloatY(ipVox1) == xVoxl_GetFloatY(ipVox2)
-       && xVoxl_GetFloatZ(ipVox1) == xVoxl_GetFloatZ(ipVox2) )
+  if ( fabs( xVoxl_GetFloatX(ipVox1) - xVoxl_GetFloatX(ipVox2) ) < 0.0001 &&
+       fabs( xVoxl_GetFloatY(ipVox1) - xVoxl_GetFloatY(ipVox2) ) < 0.0001 &&
+       fabs( xVoxl_GetFloatZ(ipVox1) - xVoxl_GetFloatZ(ipVox2) ) < 0.0001 ) {
     return TRUE;
-  else
+  } else {
     return FALSE;
+  }
 }
 
 /* declare non-macro versions of this stuff. */
