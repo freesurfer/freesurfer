@@ -3371,3 +3371,80 @@ MRIremoveBrightStuff(MRI *mri_src, MRI *mri_dst, int threshold)
   return(mri_dst) ;
 }
 
+int
+MRIcomputeClassStatistics(MRI *mri_T1, MRI *mri_labeled, float gray_low,
+                          float gray_hi,
+                          float *pmean_wm, float *psigma_wm,
+                          float *pmean_gm, float *psigma_gm)
+{
+  MRI     *mri_border ;
+  int     x, y, z, width, height, depth, label, border_label, ngray, nwhite ;
+  double  white_min, white_max, white_mean, white_std,
+          gray_min, gray_max, gray_mean, gray_std ;
+  BUFTYPE *p_T1, *p_border, *p_labeled, val ;
+
+  mri_border = MRImarkBorderVoxels(mri_labeled, NULL) ;
+  if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+    MRIwrite(mri_border, "border.mgh") ;
+
+
+  width = mri_T1->width ; height = mri_T1->height ; depth = mri_T1->depth ; 
+
+  white_mean = gray_mean = white_std = gray_std = 0.0 ;
+  white_min = gray_min = 100000 ; white_max = gray_max = -white_min ;
+  for (nwhite = ngray = z = 0 ; z < depth ; z++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      p_T1 = &MRIvox(mri_T1, 0, y, z) ;
+      p_border = &MRIvox(mri_border, 0, y, z) ;
+      p_labeled = &MRIvox(mri_labeled, 0, y, z) ;
+      for (x = 0 ; x < width ; x++)
+      {
+        if (x == 144 && y == 53 && z == 127)
+          DiagBreak() ;
+
+        label = *p_labeled++ ; val = *p_T1++ ; border_label = *p_border++ ;
+        if (label == MRI_AMBIGUOUS)
+          continue ;
+        if (border_label == MRI_WHITE)
+        {
+          nwhite++ ;
+          white_mean += (double)val ;
+          white_std += (double)(val*val) ;
+          if (val < white_min)
+            white_min = (double)val ;
+          if (val > white_max)
+            white_max = val ;
+        }
+        else if (border_label == MRI_NOT_WHITE)  /* gray bordering white */
+        {
+          if (val >= gray_low && val <= gray_hi)
+          {
+            ngray++ ;
+            gray_mean += (double)val ;
+            gray_std += (double)(val*val) ;
+            if (val < gray_min)
+              gray_min = (double)val ;
+            if (val > gray_max)
+              gray_max = val ;
+          }
+        }
+      }
+    }
+  }
+
+  gray_mean /= (double)ngray ;
+  white_mean /= (double)nwhite ;
+  white_std = sqrt(white_std / (double)nwhite - white_mean*white_mean) ;
+  gray_std = sqrt(gray_std / (double)ngray - gray_mean*gray_mean) ;
+  fprintf(stderr, "WM: %2.1f +- %2.1f [%2.1f --> %2.1f]\n",
+          white_mean, white_std, white_min, white_max) ;
+  fprintf(stderr, "GM: %2.1f +- %2.1f [%2.1f --> %2.1f]\n",
+          gray_mean, gray_std, gray_min, gray_max) ;
+  MRIfree(&mri_border) ;
+  *pmean_wm = white_mean ; *pmean_gm = gray_mean ;
+  *psigma_wm = white_std ; *psigma_gm = gray_std ; 
+  return(NO_ERROR) ;
+}
+
