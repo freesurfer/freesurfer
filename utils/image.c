@@ -3611,3 +3611,81 @@ fprintf(stderr,
   ImageFree(&Igaussian) ;
   return(Idst) ;
 }
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+             perform histogram equalization on an image
+----------------------------------------------------------------------*/
+IMAGE *
+ImageHistoEqualize(IMAGE *Isrc, IMAGE *Idst)
+{
+  IMAGE     *Iin, *Iout ;
+  struct hips_histo histogram ;
+  int       ecode, count ;
+  float     fmin, fmax ;
+  Pixelval  crap ;
+  byte      map[256] ;
+
+  if (Isrc->pixel_format != PFBYTE)
+    Iin = ImageConvertToByte(Isrc, NULL) ;
+  else
+    Iin = Isrc ;
+
+  ImageValRange(Isrc, &fmin, &fmax) ;  /* so that output image is scaled properly */
+
+
+  if (Idst->pixel_format != PFBYTE)
+    Iout = ImageAlloc(Idst->rows, Idst->cols, PFBYTE, 1) ;
+  else
+    Iout = Idst ;
+
+  alloc_histo(&histogram, &crap, &crap, 256, PFBYTE) ;
+  ecode = h_clearhisto(&histogram) ;
+  if (ecode != HIPS_OK)
+    ErrorReturn(NULL, (ecode, "ImageHistoEqualize: h_clearhisto failed")) ;
+  ecode = h_histo(Iin, &histogram, 0, &count) ;
+  if (ecode != HIPS_OK)
+    ErrorReturn(NULL, (ecode, "ImageHistoEqualize: h_histo failed")) ;
+  ecode = h_histoeq(&histogram, count, map) ;
+  if (ecode != HIPS_OK)
+    ErrorReturn(NULL, (ecode, "ImageHistoEqualize: h_histoeq failed")) ;
+  ecode = h_pixmap(Iin, Iout, map) ;
+  if (ecode != HIPS_OK)
+    ErrorReturn(NULL, (ecode, "ImageHistoEqualize: h_pixmap failed")) ;
+
+  free(histogram.histo) ;
+
+  if (Iin != Isrc)
+    ImageFree(&Iin) ;
+  if (Iout != Idst)
+  {
+    ImageCopy(Iout, Idst) ;
+    ImageFree(&Iout) ;
+    ImageScale(Idst, Idst, fmin, fmax) ;
+  }
+  return(Idst) ;
+}
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+              convert an image to byte format, scaling its intensity values to
+              0-255
+----------------------------------------------------------------------*/
+#include "rescale.h"
+IMAGE *
+ImageConvertToByte(IMAGE *Isrc, IMAGE *Idst)
+{
+  int MinPoint[2], MaxPoint[2], ecode ;
+
+  if (!Idst)
+    Idst = ImageAlloc(Isrc->rows, Isrc->cols, PFBYTE, 1) ;
+
+  ecode = h_rescale(Isrc, 0.0f, 255.0f, MinPoint, MaxPoint, Idst) ;
+  if (ecode != HIPS_OK)
+    ErrorReturn(NULL, (ecode, "ImageConvert: h_rescale failed\n")) ;
+
+  return(Idst) ;
+}
+
