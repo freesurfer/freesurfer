@@ -2,9 +2,9 @@
 /* transform.h                                                         */
 /*                                                                     */
 /* Warning: Do not edit the following four lines.  CVS maintains them. */
-/* Revision Author: $Author: fischl $                                           */
-/* Revision Date  : $Date: 2005/02/01 15:13:11 $                                             */
-/* Revision       : $Revision: 1.37 $                                         */
+/* Revision Author: $Author: tosa $                                           */
+/* Revision Date  : $Date: 2005/02/10 20:19:29 $                                             */
+/* Revision       : $Revision: 1.38 $                                         */
 /*                                                                     */
 /***********************************************************************/
 
@@ -88,6 +88,10 @@ MATRIX   *LTAinverseTransformAtPoint(LTA *lta, float x, float y, float z,
 MATRIX   *LTAworldTransformAtPoint(LTA *lta, float x, float y,float z,
                                    MATRIX *m_L);
 int      LTAtoVoxelCoords(LTA *lta, MRI *mri) ; // don't use this
+
+/* the following routine reorient and reposition the volume by editing the direction cosines and c_ras values
+   it does not perform resampling */
+MRI *MRITransformedCentered(MRI *src, MRI *orig_dst, LTA *lta);
 
 LTA *LTAinvert(LTA *lta); // fill inverse part of LTA
 int LTAmodifySrcDstGeom(LTA *lta, MRI *src, MRI *dst);  // src and dst can be null.  only those non-null used to modifiy geom
