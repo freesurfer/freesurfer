@@ -122,6 +122,8 @@ MRI  *GCAcomputeProbabilities(MRI *mri_inputs, GCA *gca, MRI *mri_labels,
 
 MRI   *GCAconstrainLabelTopology(GCA *gca, MRI *mri_inputs, MRI *mri_src, 
                                  MRI *mri_dst, LTA *lta) ;
+MRI   *GCAnormalizeSamples(MRI *mri_in, GCA *gca, GCA_SAMPLE *gcas, 
+                           int nsamples, LTA *lta) ;
 
 #define MIN_PRIOR  0.5
 
