@@ -611,7 +611,7 @@ MRInormFindControlPoints(MRI *mri_src, float max_grad,
     mri_ctrl = MRIalloc(width, height, depth, MRI_UCHAR) ;
 
   pxi = mri_src->xi ; pyi = mri_src->yi ; pzi = mri_src->zi ;
-  wm_delta = nint((float)wm_target * 0.1f) ;
+  wm_delta = nint((float)wm_target * 0.15f) ;
   /*
     find points which are close to wm_target, and in relatively
     homogenous regions.
@@ -626,7 +626,7 @@ MRInormFindControlPoints(MRI *mri_src, float max_grad,
         val0 = MRIvox(mri_src, x, y, z) ;
         if (val0 >= wm_target-wm_delta && val0 <= wm_target+wm_delta)
         {
-          low_thresh = wm_target-wm_delta ; hi_thresh = wm_target+2*wm_delta ;
+          low_thresh = wm_target-wm_delta ; hi_thresh = wm_target+2.5*wm_delta;
 
 #define WHALF  ((5-1)/2)
           ctrl = 1 ;
