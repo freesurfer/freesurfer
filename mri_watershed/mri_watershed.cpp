@@ -5,11 +5,11 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2003/04/17 17:46:45 $
-// Revision       : $Revision: 1.17 $
+// Revision Date  : $Date: 2003/05/14 15:56:16 $
+// Revision       : $Revision: 1.18 $
 //
 ////////////////////////////////////////////////////////////////////
-char *MRI_WATERSHED_VERSION = "$Revision: 1.17 $";
+char *MRI_WATERSHED_VERSION = "$Revision: 1.18 $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -540,7 +540,7 @@ int main(int argc, char *argv[])
   /************* Command line****************/
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_watershed.cpp,v 1.17 2003/04/17 17:46:45 tosa Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_watershed.cpp,v 1.18 2003/05/14 15:56:16 tosa Exp $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -1192,7 +1192,7 @@ static int calCOGMAX(MRI_variables *MRI_var, int *x, int *y, int *z)
       }
     }
   if(n==0)
-    Error("\n pbm in the COG calculation ");
+    Error("\n Problem in the COG calculation ");
 
   MRI_var->xCOG/=n;
   MRI_var->yCOG/=n;
@@ -1243,7 +1243,7 @@ static int calBrainRadius(MRI_variables *MRI_var)
     }
 
   if(m==0)
-    Error("\n pbm with the radius calculation ");
+    Error("\n Problem with the radius calculation ");
 
   MRI_var->rad_Brain=sqrt(MRI_var->rad_Brain/m);
 
@@ -1483,7 +1483,7 @@ static int Pre_CharSorting(STRIP_PARMS *parms,MRI_variables *MRI_var)
   }
 
   if(m==0)
-    Error("\n Pbm with the variance calculation ");
+    Error("\n Problem with the variance calculation ");
   
   MRI_var->WM_VARIANCE= int(sqrt(MRI_var->WM_VARIANCE/m));
 
@@ -1674,13 +1674,13 @@ static int Pre_CharSorting(STRIP_PARMS *parms,MRI_variables *MRI_var)
 
     if(MRI_var->WM_VARIANCE>20)
     {
-      fprintf(stderr,"\n probable pbm with the variance");
+      fprintf(stderr,"\n Possible problem with the variance too big");
       MRI_var->WM_VARIANCE=15;
     }
     
     if(MRI_var->WM_MIN<=2*MRI_var->CSF_intensity)
     {
-      fprintf(stderr,"\n probable pbm with WM_MIN");
+      fprintf(stderr,"\n Possible problem with WM_MIN too small");
       MRI_var->WM_MIN= (int) MAX(MRI_var->WM_intensity/2,MRI_var->WM_intensity-1.5*MRI_var->WM_VARIANCE);
       MRI_var->WM_HALF_MIN=MAX(MRI_var->WM_HALF_MIN,MRI_var->WM_intensity-MRI_var->WM_VARIANCE);
     } 
@@ -1796,7 +1796,7 @@ static void analyseWM(double *tab,MRI_variables *MRI_var)
     b=-(a*Sx-Sy)/n;
 
     if(DZERO(a) || !finite(a))
-      Error("\n Interpolation Problem in the white matter curve analysis\n");
+      Error("\n Interpolation problem in the white matter curve analysis\n");
 
     MRI_var->WM_MAX=int(-b/a);    
   }
@@ -1810,7 +1810,7 @@ static void analyseWM(double *tab,MRI_variables *MRI_var)
       break;
 
   if(MRI_var->WM_HALF_MIN==2)
-    Error("\n pbm with WM_HALF_MIN");
+    Error("\n Problem with WM_HALF_MIN too small");
 
   k=MRI_var->WM_HALF_MIN;
   for(n=k;n>=1;n--)
@@ -1820,7 +1820,7 @@ static void analyseWM(double *tab,MRI_variables *MRI_var)
       break;
 
   if(MRI_var->WM_MIN==2)
-    Error("\n pbm with WM_MIN");
+    Error("\n Problem with WM_MIN too small");
 
   /*least-square distance interpolation*/
   if(MRI_var->WM_intensity > MRI_var->WM_MIN)
@@ -1841,8 +1841,8 @@ static void analyseWM(double *tab,MRI_variables *MRI_var)
     b=-(a*Sx-Sy)/n;
 
     if(DZERO(a) || !finite(a))
-      Error("\n interpolation pbm in the white matter analysis");
-    
+      Error("\n Interpolation problem in the white matter analysis");
+
     MRI_var->WM_MIN=int(MAX(0.,-b/a));
   }
 }
@@ -3053,7 +3053,7 @@ static void brain_params(MRI_variables *MRI_var)
     }
 
   if(n==0)
-    Error("\n pbm of COG calculation");
+    Error("\n Problem of COG calculation");
 
   MRI_var->xCOG=x/n;
   MRI_var->yCOG=y/n;
@@ -3248,7 +3248,7 @@ static void find_normal(const float nx, const float ny, const float nz,float* n1
   ps=sqrt(SQR(n2[0])+SQR(n2[1])+SQR(n2[2]));
   
   if(ps==0)
-    Error("\n pbm in find normal ");
+    Error("\n Problem in find normal ");
 
   n2[0]/=ps;
   n2[1]/=ps;
@@ -3626,7 +3626,7 @@ static void analyseCSF(unsigned long *CSF_percent,MRI_variables *MRI_var)
   b=-(a*Sx-Sy)/n;
 
   if(DZERO(a) || !finite(a))
-    fprintf(stderr, "\n pbm with the least square interpolation ");
+    fprintf(stderr, "\n Problem with the least square interpolation for CSF_MAX");
   // don't change the value
   else
     MRI_var->CSF_MAX=int(-b/a);
@@ -3655,7 +3655,7 @@ static void analyseCSF(unsigned long *CSF_percent,MRI_variables *MRI_var)
   b=-(a*Sx-Sy)/n;
 
   if(DZERO(a) || !finite(a))
-    fprintf(stderr, "\n pbm with the least square interpolation ");
+    fprintf(stderr, "\n Problem with the least square interpolation for CSF_MIN");
   else
     MRI_var->CSF_MIN= int ((MAX(0,-b/a) + MRI_var->CSF_MIN)/2.);
 
@@ -3748,7 +3748,7 @@ static void analyseGM(unsigned long *CSF_percent,unsigned long *int_percent,MRI_
   a=(n*Sxy-Sy*Sx)/(n*Sxx-Sx*Sx);
   b=-(a*Sx-Sy)/n;
   if(DZERO(a) || !finite(a))
-    fprintf(stderr, "\n pbm with the least square interpolation in GM_MIN calculation.");
+    fprintf(stderr, "\n Problem with the least square interpolation in GM_MIN calculation.");
   else
     MRI_var->GM_MIN=int(MAX(0,-b/a));
 #ifndef __OPTIMIZE__
@@ -3807,7 +3807,7 @@ static void analyseGM(unsigned long *CSF_percent,unsigned long *int_percent,MRI_
   a=(n*Sxy-Sy*Sx)/(n*Sxx-Sx*Sx);
   b=-(a*Sx-Sy)/n;
   if(DZERO(a) || !finite(a))
-    fprintf(stderr, "\n pbm with the least square interpolation in GM_MIN calculation.");
+    fprintf(stderr, "\n Problem with the least square interpolation in GM_MIN calculation.");
   else
     MRI_var->GM_MIN=int(MAX(0,-b/a));
 }
@@ -3953,7 +3953,7 @@ static unsigned long MRISpeelBrain(float h,MRI* mri_dst,MRIS *mris,unsigned char
     }
   }
 
-  MRIvox(mri_buff,1,1,1)= 64;
+  MRIvox(mri_buff,1,1,1)= 64; // starting (1,1,1) means that the edge voxels not marked as 64
   totalfilled = newfilled = 1;
   while (newfilled>0)
   {
@@ -3980,6 +3980,27 @@ static unsigned long MRISpeelBrain(float h,MRI* mri_dst,MRIS *mris,unsigned char
 	    }
     totalfilled += newfilled;
   }
+  // fill all surface boundary voxels to be 64 (there are 6 faces)
+  for (k=0; k < depth;k++)
+    for (j=0; j < height; j++)
+    {
+      MRIvox(mri_buff,       0, j, k ) = 64;
+      MRIvox(mri_buff, width-1, j, k ) = 64;
+    }
+  
+  for (k=0; k < depth;k++)
+    for (i=0; i < width ; i++)
+    {
+      MRIvox(mri_buff, i,        0, k ) = 64;
+      MRIvox(mri_buff, i, height-1, k ) = 64;
+    }
+
+  for (i=0; i < width ;i++)
+    for (j=0; j < height; j++)
+    {
+      MRIvox(mri_buff, i, j,      0 ) = 64;
+      MRIvox(mri_buff, i, j, depth-1) = 64;
+    }
 
   // modify mri_dst so that outside = 0
   brainsize=0;
@@ -6626,7 +6647,7 @@ static void MRISFineSegmentation(MRI_variables *MRI_var)
         force1=(1+tanh(F*(1/r-E)))/2;
       }
       else
-         Error("problem with normal");
+         Error("\n Problem with normal component being 0");
 
 
  
@@ -7198,7 +7219,27 @@ static int calcBrainSize(const MRI* mri_src, const MRIS *mris)
 	    }
     totalfilled += newfilled;
   }
+  // fill all surface boundary voxels to be 64 (there are 6 faces)
+  for (k=0; k < depth;k++)
+    for (j=0; j < height; j++)
+    {
+      MRIvox(mri_buff,       0, j, k ) = 64;
+      MRIvox(mri_buff, width-1, j, k ) = 64;
+    }
+  
+  for (k=0; k < depth;k++)
+    for (i=0; i < width ; i++)
+    {
+      MRIvox(mri_buff, i,        0, k ) = 64;
+      MRIvox(mri_buff, i, height-1, k ) = 64;
+    }
 
+  for (i=0; i < width ;i++)
+    for (j=0; j < height; j++)
+    {
+      MRIvox(mri_buff, i, j,      0 ) = 64;
+      MRIvox(mri_buff, i, j, depth-1) = 64;
+    }
   brainsize=0;
   for (k=0;k<depth;k++)
     for (j=0;j<height;j++)
@@ -7305,7 +7346,7 @@ void calcForce2(double &force0, double &force1, double &force,
     force1=(1+tanh(F*(1/r-E)))/2;
   }
   else
-    Error("problem with the normal!");
+    Error("\n Problem with the normal component being zero");
   
 
   // image dependent force calculation
