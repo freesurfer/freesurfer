@@ -6138,10 +6138,11 @@ tkm_tErr LoadVolume ( tkm_tVolumeType iType,
 		      char*      isName ) {
   
   tkm_tErr eResult        = tkm_tErr_NoErr;
+  Volm_tErr eVolume = Volm_tErr_NoErr;
   char     sPath[tkm_knPathLen]      = "";
   char*     pEnd          = NULL;
   char     sError[tkm_knErrStringLen]    = "";
-  Volm_tErr eVolume = Volm_tErr_NoErr;
+  mriVolumeRef newVolume = NULL;
   
   DebugEnterFunction( ("LoadVolume( iType=%d,  isName=%s )", 
            (int)iType, isName) );
@@ -6158,23 +6159,26 @@ tkm_tErr LoadVolume ( tkm_tVolumeType iType,
   if( NULL != pEnd )
     *pEnd = '\0';
   
+  /* load the volume */
+  DebugNote( ("Creating volume") );
+  eVolume = Volm_New( &newVolume );
+  DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
+         eResult, tkm_tErr_CouldntReadVolume );
+  
+  DebugNote( ("Reading data into volume") );
+  eVolume = Volm_ImportData( newVolume, sPath );
+  DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
+		     eResult, tkm_tErr_CouldntReadVolume );
+  
   /* if the volume exists, delete it */
   if( NULL != gAnatomicalVolume[iType] ) {
     UnloadDisplayTransform( iType );
     Volm_Delete( &gAnatomicalVolume[iType] );
   }
   
-  /* load the volume */
-  DebugNote( ("Creating volume") );
-  eVolume = Volm_New( &(gAnatomicalVolume[iType]) );
-  DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
-         eResult, tkm_tErr_CouldntReadVolume );
-  
-  DebugNote( ("Reading data into volume") );
-  eVolume = Volm_ImportData( gAnatomicalVolume[iType], sPath );
-  DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
-         eResult, tkm_tErr_CouldntReadVolume );
-  
+  /* save the new volume */
+  gAnatomicalVolume[iType] = newVolume;
+
   /* show the tal coords and hide the ras coords */
   if (NULL != gAnatomicalVolume[iType]->mpMriValues->linear_transform)
     {
