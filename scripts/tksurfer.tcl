@@ -134,6 +134,7 @@ set gaLinkedVars(cmid) 0
 set gaLinkedVars(dipavg) 0
 set gaLinkedVars(mouseoverflag) 0
 set gaLinkedVars(redrawlockflag) 0
+set gaLinkedVars(drawlabelflag) 1
 set gaLinkedVars(timeresolution) 0
 set gaLinkedVars(numprestimpoints) 0
 set gaLinkedVars(colortablename) ""
@@ -155,7 +156,7 @@ array set gaLinkedVarGroups {
     all { light0 light1 light2 light3 offset colscale truncphaseflag invphaseflag revphaseflag complexvalflag fthresh foffset fmid fslope cslope cmid angle_offset angle_cycles sulcflag surfcolor vertexset overlayflag scalebarflag colscalebarflag verticesflag cmid dipavg mouseoverflag colortablename }
     redrawlock { redrawlockflag }
     graph { timeresolution numprestimpoints }
-    label { colortablename }
+    label { colortablename drawlabelflag }
 }
 
 proc SendLinkedVarGroup { iGroup } {
@@ -1531,6 +1532,11 @@ proc CreateMenuBar { ifwMenuBar } {
       gaLinkedVars(overlayflag) } \
       \
       { check  \
+      "Labels" \
+      { SendLinkedVarGroup label; UpdateAndRedraw } \
+      gaLinkedVars(drawlabelflag) } \
+      \
+      { check  \
       "Scale Bar" \
       { SendLinkedVarGroup view; UpdateAndRedraw } \
       gaLinkedVars(scalebarflag) } \
@@ -1573,6 +1579,10 @@ proc CreateMenuBar { ifwMenuBar } {
       \
       { command "Delete Selected Label" \
       { labl_remove $gnSelectedLabel; UpdateAndRedraw } \
+      mg_LabelLoaded } \
+      \
+      { command "Delete All Labels" \
+      { labl_remove_all; UpdateAndRedraw } \
       mg_LabelLoaded } } } \
       \
       { cascade "Cut" { \
