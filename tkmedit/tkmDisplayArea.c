@@ -4499,8 +4499,8 @@ DspA_tErr DspA_DrawVectorField_ ( tkmDisplayAreaRef this ) {
 
   DspA_tErr    eResult    = DspA_tErr_NoErr;
   float        faColor[3] = {0, 0, 0};
-  xVoxel       start;
-  xVoxel       direction;
+  //  xVoxel       start;
+  //  xVoxel       direction;
 
   /* decide which list we want out of the space. */
   switch ( this->mOrientation ) {
