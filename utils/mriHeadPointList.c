@@ -175,8 +175,10 @@ HPtL_tErr HPtL_ReadHeadListFile_ ( mriHeadPointListRef this,
 
   /* scan it and count the number of points */
   nNumPoints = 0;
-  while( !feof( file ) ) {
+  while(1) /* !feof( file ) ) */ {   
     fgets( sLine, 1024, file );
+    if (feof(file)) // wow read too much.  break
+      break;
     nNumPoints++;
   }
 
