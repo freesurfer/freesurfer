@@ -24,12 +24,13 @@
 
 double randomNumber(double low, double hi) ;
 double normAngle(double angle) ;
-double calcDeltaPhi(double target_phi, double robot_phi) ;
+double calcDeltaPhi(double phi1, double phi2) ;
 #if 1
 double latan2(double y, double x) ;
 #else
 #define latan2(y,x)  atan2(y,x)
 #endif
+float  angleDistance(float theta1, float theta2) ;
 int    QuadEqual(double a1, double a2) ;
 void   fComplementCode(double *pdIn, double *pdOut, int iLen) ;
 #ifndef _HOME_
