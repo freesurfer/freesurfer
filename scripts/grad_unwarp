@@ -1,8 +1,8 @@
 #!/bin/csh -f
 # grad_unwarp - convert, unwarp, and resample dicom files
 #
-# $Id: grad_unwarp,v 1.2 2003/07/24 22:13:06 ebeth Exp $
-set VERSION = '$Id: grad_unwarp,v 1.2 2003/07/24 22:13:06 ebeth Exp $';
+# $Id: grad_unwarp,v 1.3 2003/08/07 17:48:51 ebeth Exp $
+set VERSION = '$Id: grad_unwarp,v 1.3 2003/08/07 17:48:51 ebeth Exp $';
 
 set inputargs = ($argv);
 
@@ -15,7 +15,8 @@ set outfile = ();
 set unwarptype = ();
 set outcor = 0;
 set interp_method = "cubic";
-set ehhdev = 0;
+set ebethdev = 0;
+set mydev = 0;
 
 set PrintHelp = 0;
 set MLF = ();
@@ -74,16 +75,20 @@ else
   set outfileuse = $outfile
 endif
 
-if($ehhdev) then
+if($ebethdev) then
   setenv DEV /space/lyon/1/fsdev/work/ebeth/dev
-  echo "INFO: setting DEV to $DEV"
+  echo "INFO: using DEV = $DEV"
+else if($mydev) then
+  echo "INFO: using DEV = $DEV"
+else
+  setenv DEV $FREESURFER_HOME
+  echo "INFO: using DEV = $DEV"
 endif
 
 #-----------------------------------------------------------#
 tee $MLF <<EOF
 
-addpath /space/lyon/1/fsdev/work/ebeth/dev/matlab
-% should change to DEV/matlab
+addpath $DEV/matlab
 
 infile     = '$infile';
 seriesno   = [$seriesno];
@@ -191,8 +196,12 @@ while( $#argv != 0 )
       set outcor = 1;
       breaksw
 
-    case "-noehhdev":
-      set ehhdev = 0;
+    case "-ebethdev":
+      set ebethdev = 1;
+      breaksw
+
+    case "-mydev":
+      set mydev = 1;
       breaksw
 
     case "-o":
