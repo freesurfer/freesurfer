@@ -39,6 +39,7 @@ static int MRIcountNbhdLabels(MRI *mri, int x, int y, int z, int label) ;
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
 
+
 static char *tl_gca_fname = NULL ;
 static double TR = -1 ;
 static double alpha = -1 ;
@@ -52,7 +53,8 @@ static void usage_exit(int code) ;
 
 static int novar = 0 ;
 static char *renormalization_fname = NULL ;
-static int renormalize = 0 ;
+static int renormalize_wsize = 0 ;
+static int renormalize_iter = 0 ;
 static int filter = 0 ;
 #if 0
 static float thresh = 0.5 ;
@@ -88,7 +90,7 @@ main(int argc, char *argv[])
   int    ac, nargs ;
   char   *in_fname, *out_fname,  *gca_fname, *xform_fname ;
   MRI    *mri_in, *mri_labeled, *mri_fixed = NULL ;
-  int          msec, minutes, seconds ;
+  int    msec, minutes, seconds ;
   struct timeb start ;
   GCA     *gca ;
   LTA     *lta ;
@@ -318,8 +320,6 @@ main(int argc, char *argv[])
       MRIwrite(mri_labeled, fname) ;
     }
     preprocess(mri_in, mri_labeled, gca, lta, mri_fixed) ;
-    if (renormalize)
-      GCArenormalizeLabels(mri_in, mri_labeled, gca, lta) ;
     if (fixed_flag == 0)
       MRIfree(&mri_fixed) ;
     if (!no_gibbs)
@@ -329,6 +329,15 @@ main(int argc, char *argv[])
       else
         GCAreclassifyUsingGibbsPriors(mri_in, gca, mri_labeled, lta, max_iter,
                                       mri_fixed, 0, NULL);
+    }
+    while (renormalize_iter--)  /* update gca values  and relabel */
+    {
+      printf("renormalizing GCA to initial labeling...\n") ;
+      GCArenormalizeAdaptive(mri_in, mri_labeled, gca, lta, renormalize_wsize) ;
+      mri_labeled = GCAlabel(mri_in, gca, NULL, lta) ;
+      preprocess(mri_in, mri_labeled, gca, lta, mri_fixed) ;
+      GCAreclassifyUsingGibbsPriors(mri_in, gca, mri_labeled, lta, max_iter,
+                                    mri_fixed, 0, NULL);
     }
   }
   GCAmaxLikelihoodBorders(gca, mri_in, mri_labeled, mri_labeled,lta,mle_niter,
@@ -515,9 +524,11 @@ get_option(int argc, char *argv[])
   }
   else if (!stricmp(option, "renormalize"))
   {
-    renormalize = atoi(argv[2]) ;
-    nargs = 1 ;
-    printf("renormalizing class means after initial labeling\n") ;
+    renormalize_wsize = atoi(argv[2]) ;
+    renormalize_iter = atoi(argv[3]) ;
+    nargs = 2 ;
+    printf("renormalizing class means %d times after initial labeling using %d window size\n",
+           renormalize_iter, renormalize_wsize) ;
   }
   else switch (toupper(*option))
   {
