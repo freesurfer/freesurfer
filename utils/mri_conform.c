@@ -116,7 +116,7 @@ MRI *conform_type(MRI *mri)
       if(this == max)
         bin = N_BINS - 1;
       else
-        bin = (int)((this - (float)min) / bin_size) + 1;
+        bin = (int)((this - (float)min) / bin_size);
       if(bin < 0)
         printf("bin < 0\n");
       if(bin > N_BINS - 1)
