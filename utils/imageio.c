@@ -36,8 +36,8 @@
 #include "diag.h"
 #include "canny.h"
 #include "tiffio.h"
-#ifndef IRIX
 #include "jpeglib.h"
+#ifndef IRIX
 #include "pgm.h"
 #include "ppm.h"
 #include "pbm.h"
@@ -874,7 +874,7 @@ TiffWriteImage(IMAGE *I, char *fname, int frame)
   return(NO_ERROR) ;
 }
 
-#ifdef IRIX
+#if 0
 static IMAGE *JPEGReadImage(char *fname)
 {
   ErrorReturn(NULL, (ERROR_UNSUPPORTED, "jpeg not supported on IRIX")) ; 
@@ -888,6 +888,9 @@ static int JPEGWriteImage(IMAGE *I, char *fname, int frame)
   ErrorReturn(ERROR_UNSUPPORTED, (ERROR_UNSUPPORTED, 
                                  "jpeg not supported on IRIX")) ; 
 }
+#endif
+
+#ifdef IRIX
 static IMAGE *PGMReadImage(char *fname)
 {
   ErrorReturn(NULL, (ERROR_UNSUPPORTED, "pgm not supported on IRIX")) ; 
@@ -917,110 +920,6 @@ static IMAGE *PBMReadHeader(FILE *fp, IMAGE *I)
   ErrorReturn(NULL, (ERROR_UNSUPPORTED, "pbm not supported on IRIX")) ; 
 }
 #else
-static IMAGE *
-JPEGReadImage(char *fname) 
-{
-  FILE *infile;
-  IMAGE *I;
-  struct jpeg_decompress_struct cinfo;
-  struct jpeg_error_mgr jerr;
-  JSAMPROW ptr;
-  int rowctr;
-
-  cinfo.err = jpeg_std_error(&jerr);
-  jpeg_create_decompress(&cinfo);
-
-  if ((infile = fopen(fname, "rb")) == NULL)
-    ErrorExit(ERROR_NO_FILE, "JPEGReadImage:  Input file does not exist\n");
-
-  jpeg_stdio_src(&cinfo, infile);
-  jpeg_read_header(&cinfo, TRUE);
-
-  cinfo.out_color_space = JCS_GRAYSCALE;
-
-  jpeg_start_decompress(&cinfo);
-  I = ImageAlloc(cinfo.output_height, cinfo.output_width, PFBYTE, 1);
-
-  rowctr = I->orows - 1;
-  while(cinfo.output_scanline < cinfo.output_height)
-    {
-      ptr = IMAGEpix(I, 0, rowctr--);
-      jpeg_read_scanlines(&cinfo, &ptr, 1);
-    }
-
-  jpeg_finish_decompress(&cinfo);
-  jpeg_destroy_decompress(&cinfo);
-
-  return I;
-}
-
-static IMAGE *
-JPEGReadHeader(FILE *fp, IMAGE *I)
-{
-  struct jpeg_decompress_struct cinfo;
-  struct jpeg_error_mgr jerr;
-
-  cinfo.err = jpeg_std_error(&jerr);
-  jpeg_create_decompress(&cinfo);
-
-  jpeg_stdio_src(&cinfo, fp);
-  jpeg_read_header(&cinfo, TRUE);
-
-  if (!I)
-    I = ImageAlloc(cinfo.image_height, cinfo.image_width, PFBYTE, 1) ;
-  else
-    init_header(I, "orig", "seq", 1, "today", cinfo.image_height,
-    cinfo.image_width,PFBYTE,1, "temp");
-  
-  jpeg_destroy_decompress(&cinfo);
-
-  return(I) ;
-}
-
-static int 
-JPEGWriteImage(IMAGE *I, char *fname, int frame) 
-{
-  FILE *outf;
-  struct jpeg_compress_struct cinfo;
-  struct jpeg_error_mgr jerr;
-  JSAMPROW ptr;
-
-  if (I->pixel_format != PFBYTE) 
-    ErrorReturn(ERROR_UNSUPPORTED, 
-                (ERROR_UNSUPPORTED, 
-                 "JPEGWrite: only PFBYTE currently supported")) ;
-    
-  cinfo.err = jpeg_std_error(&jerr);
-  jpeg_create_compress(&cinfo);
-
-  if ((outf = fopen(fname, "wb")) == NULL)
-    ErrorExit(ERROR_BAD_FILE, "JPEGWriteImage:  Could not open file");
-
-  jpeg_stdio_dest(&cinfo, outf);
-
-  cinfo.image_width = I->ocols;
-  cinfo.image_height = I->orows;
-  cinfo.input_components = 1;
-  cinfo.in_color_space = JCS_GRAYSCALE;
-
-  jpeg_set_defaults(&cinfo);
-
-  jpeg_start_compress(&cinfo, TRUE);
-
-  while(cinfo.next_scanline < cinfo.image_height) 
-    {
-      ptr = IMAGEpix(I, 0, (I->rows - cinfo.next_scanline - 1));
-      jpeg_write_scanlines(&cinfo, &ptr, 1);
-    }
-
-  jpeg_finish_compress(&cinfo);
-  jpeg_destroy_compress(&cinfo);
-
-  fclose(outf);
-  
-  return NO_ERROR;
-}
-
 static IMAGE *
 PGMReadHeader(FILE *fp, IMAGE *I)
 {
@@ -1176,3 +1075,107 @@ PPMReadHeader(FILE *fp, IMAGE *I)
 
 
 #endif
+static IMAGE *
+JPEGReadImage(char *fname) 
+{
+  FILE *infile;
+  IMAGE *I;
+  struct jpeg_decompress_struct cinfo;
+  struct jpeg_error_mgr jerr;
+  JSAMPROW ptr;
+  int rowctr;
+
+  cinfo.err = jpeg_std_error(&jerr);
+  jpeg_create_decompress(&cinfo);
+
+  if ((infile = fopen(fname, "rb")) == NULL)
+    ErrorExit(ERROR_NO_FILE, "JPEGReadImage:  Input file does not exist\n");
+
+  jpeg_stdio_src(&cinfo, infile);
+  jpeg_read_header(&cinfo, TRUE);
+
+  cinfo.out_color_space = JCS_GRAYSCALE;
+
+  jpeg_start_decompress(&cinfo);
+  I = ImageAlloc(cinfo.output_height, cinfo.output_width, PFBYTE, 1);
+
+  rowctr = I->orows - 1;
+  while(cinfo.output_scanline < cinfo.output_height)
+    {
+      ptr = IMAGEpix(I, 0, rowctr--);
+      jpeg_read_scanlines(&cinfo, &ptr, 1);
+    }
+
+  jpeg_finish_decompress(&cinfo);
+  jpeg_destroy_decompress(&cinfo);
+
+  return I;
+}
+
+static IMAGE *
+JPEGReadHeader(FILE *fp, IMAGE *I)
+{
+  struct jpeg_decompress_struct cinfo;
+  struct jpeg_error_mgr jerr;
+
+  cinfo.err = jpeg_std_error(&jerr);
+  jpeg_create_decompress(&cinfo);
+
+  jpeg_stdio_src(&cinfo, fp);
+  jpeg_read_header(&cinfo, TRUE);
+
+  if (!I)
+    I = ImageAlloc(cinfo.image_height, cinfo.image_width, PFBYTE, 1) ;
+  else
+    init_header(I, "orig", "seq", 1, "today", cinfo.image_height,
+    cinfo.image_width,PFBYTE,1, "temp");
+  
+  jpeg_destroy_decompress(&cinfo);
+
+  return(I) ;
+}
+
+static int 
+JPEGWriteImage(IMAGE *I, char *fname, int frame) 
+{
+  FILE *outf;
+  struct jpeg_compress_struct cinfo;
+  struct jpeg_error_mgr jerr;
+  JSAMPROW ptr;
+
+  if (I->pixel_format != PFBYTE) 
+    ErrorReturn(ERROR_UNSUPPORTED, 
+                (ERROR_UNSUPPORTED, 
+                 "JPEGWrite: only PFBYTE currently supported")) ;
+    
+  cinfo.err = jpeg_std_error(&jerr);
+  jpeg_create_compress(&cinfo);
+
+  if ((outf = fopen(fname, "wb")) == NULL)
+    ErrorExit(ERROR_BAD_FILE, "JPEGWriteImage:  Could not open file");
+
+  jpeg_stdio_dest(&cinfo, outf);
+
+  cinfo.image_width = I->ocols;
+  cinfo.image_height = I->orows;
+  cinfo.input_components = 1;
+  cinfo.in_color_space = JCS_GRAYSCALE;
+
+  jpeg_set_defaults(&cinfo);
+
+  jpeg_start_compress(&cinfo, TRUE);
+
+  while(cinfo.next_scanline < cinfo.image_height) 
+    {
+      ptr = IMAGEpix(I, 0, (I->rows - cinfo.next_scanline - 1));
+      jpeg_write_scanlines(&cinfo, &ptr, 1);
+    }
+
+  jpeg_finish_compress(&cinfo);
+  jpeg_destroy_compress(&cinfo);
+
+  fclose(outf);
+  
+  return NO_ERROR;
+}
+
