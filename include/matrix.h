@@ -65,6 +65,8 @@ float  MatrixDeterminant(MATRIX *m) ;
 MATRIX *MatrixEigenSystem(MATRIX *m, float *evalues, MATRIX *m_dst) ;
 MATRIX *MatrixSVD(MATRIX *mA, float *z, MATRIX *mV) ;
 MATRIX *MatrixCovariance(MATRIX *mInputs, MATRIX *mCov, MATRIX *mMeans) ;
+int    MatrixAsciiWriteInto(FILE *fp, MATRIX *m) ;
+MATRIX *MatrixAsciiReadFrom(FILE *fp, MATRIX *m) ;
 
 #define VectorAlloc(n, type)       MatrixAlloc(n, 1, type)
 #define VectorFree(pm)             MatrixFree(pm)
