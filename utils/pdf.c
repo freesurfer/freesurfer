@@ -64,8 +64,10 @@ double PDFerlang(int order)
 
 /*----------------------------------------------------------------
   PDFsampleCDF() - sample a value from the given CDF. The resulting
-  data will be distributed with the PDF that created the CDF. This is
-  a fairly inefficient implementation. See also PDFloadCDF().
+  data will be distributed with the PDF that created the CDF.  cdf[n]
+  is the probability that the random number will be <= xcdf[n].  This
+  is a fairly inefficient implementation. See also
+  PDFloadCDF(). 
   -------------------------------------------------------------------*/
 double PDFsampleCDF(double *xcdf, double *cdf, int ncdf)
 {
