@@ -75,7 +75,9 @@ ImageCalculateOffset(IMAGE *Ix, IMAGE *Iy, int wsize, IMAGE *Ioffset)
 
            Description:
 ----------------------------------------------------------------------*/
-int
+#define NS_FSCALE  10000.0f  /* to scale to approx. same range as new stuff */
+
+IMAGE *
 ImageCalculateNitShiOffset(IMAGE *Ix, IMAGE *Iy, int wsize, 
                           float mu, float c, IMAGE *Ioffset)
 {
@@ -86,14 +88,17 @@ ImageCalculateNitShiOffset(IMAGE *Ix, IMAGE *Iy, int wsize,
   register float gauss, fxpix, fypix, dot_product ;
   register int   xc, yc ;
 
-  mu *= mu ;     
-  vsq = 0.0f ;  /* prevent compiler warning */
-
   rows = Ix->rows ;
   cols = Ix->cols ;
 
+  if (!Ioffset)
+    Ioffset = ImageAlloc(rows, cols, PFFLOAT, 2) ;
+    
+  mu *= mu ;     
+  vsq = 0.0f ;  /* prevent compiler warning */
+
   whalf = (wsize-1)/2 ;
-  c1 = c * (float)whalf ;
+  c1 = NS_FSCALE * c * (float)whalf ;
 
   /* create a local gaussian window */
   if (wsize != w)
@@ -168,7 +173,7 @@ ImageCalculateNitShiOffset(IMAGE *Ix, IMAGE *Iy, int wsize,
         }
       }
 
-#if 0
+#if 1
       /* calculated phi(V), only needed for original NitShi algorithm */
       vsq = vx*vx + vy*vy ;
 
@@ -180,7 +185,7 @@ ImageCalculateNitShiOffset(IMAGE *Ix, IMAGE *Iy, int wsize,
     }
   }
 
-  return(0) ;
+  return(Ioffset) ;
 }
 /*----------------------------------------------------------------------
             Parameters:
@@ -1121,7 +1126,7 @@ ImageOffsetDirection(IMAGE *Ix, IMAGE *Iy, int wsize, IMAGE *Iorient,
            Description:
              use a Bresenham line drawing algorithm to do search
 ----------------------------------------------------------------------*/
-#define FSCALE  1000.0f
+#define FSCALE  100.0f
 
 IMAGE *
 ImageOffsetMagnitude(IMAGE *Isrc, IMAGE *Idst, int maxsteps)
@@ -1344,7 +1349,6 @@ ImageNitshiOffsetDirection(IMAGE *Ix,IMAGE *Iy,int wsize,IMAGE *Iorient,
            Description:
               only calculate directions at points along search vector.
 ----------------------------------------------------------------------*/
-#define FSCALE  1000.0f
 
 static int imageOffsetDirection(IMAGE *Ix, IMAGE *Iy, int wsize, 
                                 IMAGE *Iorient, int x0,int y0) ;
