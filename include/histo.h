@@ -27,6 +27,7 @@ HISTOGRAM *HISTOinvert(HISTOGRAM *histo_src, HISTOGRAM *histo_dst,int max_dst);
 HISTOGRAM *HISTOnormalize(HISTOGRAM *histo_src, HISTOGRAM *histo_dst, 
                           int max_out) ;
 HISTOGRAM *HISTOclear(HISTOGRAM *histo_src, HISTOGRAM *histo_dst) ;
+int       HISTOclearZeroBin(HISTOGRAM *h) ;
 HISTOGRAM *HISTOclearCounts(HISTOGRAM *histo_src, HISTOGRAM *histo_dst) ;
 HISTOGRAM *HISTOfillZeros(HISTOGRAM *histo_src, HISTOGRAM *histo_dst) ;
 HISTOGRAM *HISTOcompose(HISTOGRAM *histo1, HISTOGRAM *histo2, 
