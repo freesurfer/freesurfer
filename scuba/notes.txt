@@ -243,7 +243,11 @@ x  - add 'snake line' parallel to mCurrentLine and begin/end points
 x  - edgeline just makes straight line
 x  - code to draw snake line
 x  - connects first and last points on redraw
- - add edge line to edge volume
+x  - add edge line to edge volume
+
+- lines
+ - need to add removing function
+  - remove from edge volume properly
 
 x - live reslicing
 x  - each view gets a color
@@ -255,11 +259,11 @@ x  - in each view, display a color for intersection of other views
  - can click and drag on those lines to move in plane or rotate
 
 
-- status bar area
-  - change TclDlogManager to TclProgressDisplayManager
-    - functions to NewTask, UpdateTask, CheckForTaskButtons
-  - change scuba.tcl functions
-    - display text, progress, have buttons on right
+x - status bar area
+x   - change TclDlogManager to TclProgressDisplayManager
+x     - functions to NewTask, UpdateTask, CheckForTaskButtons
+x   - change scuba.tcl functions
+x     - display text, progress, have buttons on right
 
 
 BRUCE'S LIST:::
@@ -275,7 +279,8 @@ BUGS:::
   - way to have a progress bar without a percent?
 - brings up tkcon window briefly when booting
 - ctrl-click to zoom in while in line tool draws line - handleTool should check to see if ctrl is down
-
+- info pane doesn't update when changing slices
+- undo label doens't work correctly
 
 
 FUTURE IDEAS:::

@@ -133,9 +133,6 @@ class ScubaLayer2DMRIFloodSelect : public VolumeCollectionFlooder {
   virtual void DoVoxel ( float iRAS[3] );
 
   bool mbSelect;
-
-  Timer mFloodTimer;
-  bool mbFloodDlogOpen;
 };
 
 class UndoSelectionAction : public UndoAction {

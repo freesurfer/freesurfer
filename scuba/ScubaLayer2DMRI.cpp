@@ -2,7 +2,7 @@
 #include "ScubaLayer2DMRI.h"
 #include "ViewState.h"
 #include "talairachex.h"
-#include "TclDlogManager.h"
+#include "TclProgressDisplayManager.h"
 #include "Utilities.h"
 #include "Array2.h"
 
@@ -1236,16 +1236,24 @@ ScubaLayer2DMRI::GetPreferredInPlaneIncrements ( float oIncrements[3] ) {
 
 ScubaLayer2DMRIFloodSelect::ScubaLayer2DMRIFloodSelect ( bool ibSelect ) {
   mbSelect = ibSelect;
-  mbFloodDlogOpen = false;
 }
 
 
 void
 ScubaLayer2DMRIFloodSelect::DoBegin () {
       
-  // Start the timer. If it goes past 2 seconds we'll open a dialog box.
-  mFloodTimer.Start();
-  mbFloodDlogOpen = false;
+  // Create a task in the progress display manager.
+  TclProgressDisplayManager& manager =
+    TclProgressDisplayManager::GetManager();
+  
+  list<string> lButtons;
+  lButtons.push_back( "Stop" );
+  
+  if( mbSelect ) {
+    manager.NewTask( "Selecting", "Selecting voxels", false, lButtons );
+  } else {
+    manager.NewTask( "Unselecting", "Unselecting voxels", false, lButtons );
+  }
 
   // Start our undo action.
   UndoManager& undoList = UndoManager::GetManager();
@@ -1261,13 +1269,10 @@ ScubaLayer2DMRIFloodSelect::DoBegin () {
 void 
 ScubaLayer2DMRIFloodSelect::DoEnd () {
 
-  // If the dialog is open, close it.
-  if( mbFloodDlogOpen ) {
-    
-    TclDlogManager& manager = TclDlogManager::GetManager();
-    manager.CloseDlog();
-    mbFloodDlogOpen = false;
-  }
+  // End the task.
+  TclProgressDisplayManager& manager =
+    TclProgressDisplayManager::GetManager();
+  manager.EndTask();
 
   // End our undo action.
   UndoManager& undoList = UndoManager::GetManager();
@@ -1277,14 +1282,12 @@ ScubaLayer2DMRIFloodSelect::DoEnd () {
 bool
 ScubaLayer2DMRIFloodSelect::DoStopRequested () {
 
-  // If the dialog is open, check for the stop button.
-  if( mbFloodDlogOpen ) {
-    
-    TclDlogManager& manager = TclDlogManager::GetManager();
-    int nButton = manager.CheckDlogForButton();
-    if( nButton == 0 ) {
-      return true;
-    } 
+  // Check for the stop button.
+  TclProgressDisplayManager& manager = 
+    TclProgressDisplayManager::GetManager();
+  int nButton = manager.CheckTaskForButton();
+  if( nButton == 0 ) {
+    return true;
   } 
 
   return false;
@@ -1292,24 +1295,6 @@ ScubaLayer2DMRIFloodSelect::DoStopRequested () {
 
 bool
 ScubaLayer2DMRIFloodSelect::CompareVoxel ( float iRAS[3] ) {
-
-  // Use this to check how much time the flood is taking. If over two
-  // seconds, open a dialog box.
-  if( !mbFloodDlogOpen &&
-      mFloodTimer.TimeNow() > 2000 ) {
-    
-    TclDlogManager& manager = TclDlogManager::GetManager();
-    list<string> lButtons;
-    lButtons.push_back( "Stop" );
-
-    if( mbSelect ) {
-      manager.NewDlog( "Selecting", "Selecting voxels", false, lButtons );
-    } else {
-      manager.NewDlog( "Unselecting", "Unselecting voxels", false, lButtons );
-    }
-
-    mbFloodDlogOpen = true;
-  }
 
   // Always return true.
   return true;

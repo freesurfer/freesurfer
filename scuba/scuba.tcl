@@ -557,6 +557,39 @@ proc ToolBarWrapper { isName iValue } {
     }
 }
 
+proc MakeTaskArea { ifwTop } {
+    dputs "MakeTaskArea  $ifwTop  "
+
+    global gaFrame
+    global gaTask
+
+    set fwTask     $ifwTop.fwTask
+
+    frame $fwTask -border 2 -relief raised
+
+    set ewLabel     $fwTask.ewLabel
+    set ewProgress  $fwTask.ewProgress
+    set fwButtons   $fwTask.fwButtons
+
+    tkuMakeActiveLabel $ewLabel \
+	-font [tkuNormalFont] \
+	-variable gaTask(label) -width 50
+    tkuMakeActiveLabel $ewProgress \
+	-font [tkuNormalFont] \
+	-variable gaTask(progress) -width 10
+    frame $fwButtons
+
+    set gaTask(buttonFrame) $fwButtons
+
+    pack $ewLabel $ewProgress -side left -anchor w
+    pack $fwButtons -side right -anchor e
+
+
+    set gaTask(label) "Ready."
+
+    return $fwTask
+}
+
 proc GetMainFrameID {} {
 
     global gFrameWidgetToID
@@ -2531,10 +2564,10 @@ proc DoPrefsDlog {} {
     }
 }
 
-# DIALOGS ==============================================================
+# TASK AREA ==============================================================
 
-proc NewDlog { args } {
-    global gaDialog
+proc NewTask { args } {
+    global gaTask
 
     # set default arguments for all fields
     set aArgs(-title) ""
@@ -2545,53 +2578,33 @@ proc NewDlog { args } {
     # Set arg items.
     array set aArgs $args
 
-    set wwDialog .dialog
-    if { [tkuCreateDialog $wwDialog $aArgs(-title) {-borderwidth 10}] } {
-
-	set fwText     $wwDialog.fwText
-	set fwMeter    $wwDialog.fwMeter
-	set fwButtons  $wwDialog.fwButtons
-
-	set gaDialog(current,text) $aArgs(-text)
-	tkuMakeActiveLabel $fwText -variable gaDialog(current,text)
-
-	set gaDialog(current,meterText) "Progress: 0%"
-	tkuMakeActiveLabel $fwMeter -variable gaDialog(current,meterText)
-
-	frame $fwButtons
-	set nButton 0
-	foreach btn $aArgs(-buttons) {
-	    button $fwButtons.fw$nButton -text $btn \
-		-command "DlogCallback \"$btn\""
-	    pack $fwButtons.fw$nButton \
-		-side left -anchor e 
-	    incr nButton
-	}
-
-	pack $fwText $fwMeter $fwButtons -side top -fill x -expand yes
-
-	if { 0 } {
-	    after idle [format {
-		update idletasks
-		wm minsize %s %d [winfo reqheight %s]
-		wm geometry %s =%dx[winfo reqheight %s]
-	    } $wwDialog 400 $wwDialog $wwDialog 400 $wwDialog]
-	}
-
-	set gaDialog(current,callBacks) {}
-	set gaDialog(current,window) $wwDialog
-	set gaDialog(current,percent) 0
+    set gaTask(label) $aArgs(-text)
+    set gaTask(useMeter) $aArgs(-meter)
+    if { $gaTask(useMeter) } {
+	set gaTask(progress) "Progress: 0%"
     }
+
+    set nButton 0
+    foreach btn $aArgs(-buttons) {
+	button $gaTask(buttonFrame).bw$nButton -text $btn \
+	    -command "TaskCallback \"$btn\""
+	pack $gaTask(buttonFrame).bw$nButton \
+	    -side left -anchor e
+	incr nButton
+    }
+
+    set gaTask(callbacks) {}
+    set gaTask(percent) 0
 }
 
-proc DlogCallback { isButton } {
-    global gaDialog
+proc TaskCallback { isButton } {
+    global gaTask
 
-    lappend gaDialog(current,callBacks) $isButton
+    lappend gaTask(callbacks) $isButton
 }
 
-proc UpdateDlog { args } {
-    global gaDialog
+proc UpdateTask { args } {
+    global gaTask
 
     # set default arguments for all fields
     set aArgs(-text) $gaDialog(current,text)
@@ -2600,24 +2613,34 @@ proc UpdateDlog { args } {
     # Set arg items.
     array set aArgs $args
 
-    set gaDialog(current,text) $aArgs(-text)
-    set gaDialog(current,percent) $aArgs(-percent)
+    set gaTask(label) $aArgs(-text)
+    set gaTask(percent) $aArgs(-percent)
 
-    set gaDialog(current,meterText) "Progress: $gaDialog(current,percent)"
+    if { $gaTask(useMeter) } {
+	set gaDialog(progress) "Progress: $gaTask(percent)"
+    }
 }
 
-proc CheckDlogForButtons {} {
-    global gaDialog
+proc CheckTaskForButtons {} {
+    global gaTask
 
-    set lCallbacks $gaDialog(current,callBacks)
-    set gaDialog(current,callBacks) {}
+    set lCallbacks $gaTask(callbacks)
+    set gaTask(callbacks) {}
     return $lCallbacks
 }
 
-proc CloseDlog {} {
-    global gaDialog
+proc EndTask {} {
+    global gaTask
 
-    tkuCloseDialog $gaDialog(current,window)
+    # Set our labels back to a default.
+    set gaTask(label) "Ready."
+    set gaTask(progress) ""
+
+    # Destroy the button frame to kill the buttons, then recreate the
+    # button frame.
+    destroy $gaTask(buttonFrame)
+    frame $gaTask(buttonFrame)
+    pack $gaTask(buttonFrame) -side right -anchor e
 }
 
 # VIEW CONFIGURATION ==================================================
@@ -3088,6 +3111,7 @@ set gaWidget(menuBar) [MakeMenuBar $gaWidget(window)]
 set gaWidget(toolBar) [MakeToolBar $gaWidget(window)]
 set gaWidget(labelArea) [MakeLabelArea $gaWidget(window)]
 set gaWidget(properties) [MakePropertiesPanel $gaWidget(window)]
+set gaWidget(task) [MakeTaskArea $gaWidget(window)]
 
 # Set the grid coords of our areas and the grid them in.
 set gaWidget(menuBar,column)    0; set gaWidget(menuBar,row)    0
@@ -3095,7 +3119,8 @@ set gaWidget(toolBar,column)    0; set gaWidget(toolBar,row)    1
 set gaWidget(scubaFrame,column) 0; set gaWidget(scubaFrame,row) 2
 set gaWidget(labelArea,column)  0; set gaWidget(labelArea,row)  3
 set gaWidget(properties,column) 1; set gaWidget(properties,row) 2
-set gaWidget(tkcon,column)      0; set gaWidget(tkcon,row)      4
+set gaWidget(task,column)       0; set gaWidget(task,row)       4
+set gaWidget(tkcon,column)      0; set gaWidget(tkcon,row)      5
 
 grid $gaWidget(menuBar) -sticky ew -columnspan 2 \
     -column $gaWidget(menuBar,column) -row $gaWidget(menuBar,row)
@@ -3110,6 +3135,9 @@ grid $gaWidget(labelArea) \
 grid $gaWidget(properties) -sticky n \
     -column $gaWidget(properties,column) -row $gaWidget(properties,row) \
     -rowspan 2
+grid $gaWidget(task) -sticky ews \
+    -column $gaWidget(task,column) -row $gaWidget(task,row) \
+    -columnspan 2
 
 grid columnconfigure $gaWidget(window) 0 -weight 1
 grid columnconfigure $gaWidget(window) 1 -weight 0
@@ -3118,6 +3146,7 @@ grid rowconfigure $gaWidget(window) 1 -weight 0
 grid rowconfigure $gaWidget(window) 2 -weight 1
 grid rowconfigure $gaWidget(window) 3 -weight 0
 grid rowconfigure $gaWidget(window) 4 -weight 0
+grid rowconfigure $gaWidget(window) 5 -weight 0
 
 wm withdraw .
 
