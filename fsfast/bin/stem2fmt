@@ -1,0 +1,27 @@
+#!/bin/csh -f
+#
+# Finds the format/extension given the stem.
+#
+# Looks for a disk file called stem.fmt, where fmt is:
+# mgh, mgz, bhdr, or img (in that order), and returns fmt
+# 
+# $Id: stem2fmt,v 1.1 2004/11/16 20:00:03 greve Exp $
+
+if($#argv != 1) then
+  echo "USAGE: stem2fmt stem"
+  exit 1;
+endif
+
+set stem = $argv[1];
+
+foreach fmt (mgh mgz bhdr img)
+  set testfile = $stem.$fmt
+  if(-e $testfile) then
+    echo $fmt
+    exit 0;
+  endif
+end
+
+echo "ERROR: could not determine format for $stem"
+exit 1;
+##########################################
