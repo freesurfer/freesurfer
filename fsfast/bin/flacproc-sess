@@ -1,9 +1,9 @@
 #!/bin/csh -f
 # flacproc-sess
 #
-# $Id: flacproc-sess,v 1.5 2004/11/13 16:42:20 greve Exp $
+# $Id: flacproc-sess,v 1.6 2004/11/15 17:17:59 greve Exp $
 
-set VERSION = '$Id: flacproc-sess,v 1.5 2004/11/13 16:42:20 greve Exp $';
+set VERSION = '$Id: flacproc-sess,v 1.6 2004/11/15 17:17:59 greve Exp $';
 
 set cmdargs = ($argv);
 
@@ -92,12 +92,19 @@ nruns = size(flac.runlist,1);
 %                flac.mask,flac.formatext);
 mstem = sprintf('%s/%s/masks/%s%s',flac.sess,flac.fsd,flac.mask);
 mask = MRIread(mstem);
+if(isempty(mask))
+  if(~monly) quit; end
+  return;
+end
 indmask = find(mask.vol);
 indnotmask = find(~mask.vol);
 
 acfsegstem = sprintf('%s/%s/masks/%s',flac.sess,flac.fsd,acfsegstem);
 acfseg = MRIread(acfsegstem);
-if(isempty(acfseg)) return; end
+if(isempty(acfseg)) 
+  if(~monly) quit; end
+  return; 
+end
 acfseglist = unique(acfseg.vol(:));
 nacfsegs = length(acfseglist)-1; % Exclude 0
 acfmask = (acfseg.vol ~= 0);
@@ -129,7 +136,10 @@ for nthrun = 1:nruns
   %fprintf('ystem = %s\n',ystem);
   %fprintf('yspec = %s\n',yspec);
   y = MRIread(ystem);
-  if(isempty(y)) return; end
+  if(isempty(y)) 
+    if(~monly) quit; end
+    return; 
+  end
   szvol = size(y.vol);
   szvol = szvol(1:end-1);
   Nv = prod(szvol);
