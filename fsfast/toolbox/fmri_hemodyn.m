@@ -8,11 +8,12 @@ function h = fmri_hemodyn(t, delta, tau)
 % h(t>delta)  = ((t-delta)/tau)^2 * exp(-(t-delta)/tau)
 % h(t<=delta) = 0;
 %
-% The HDIR is scaled so that the peak = 1.0
+% The HDIR is scaled so that the continuous-time peak = 1.0,
+% though the peak of the sampled waveform may not be 1.0.
 %
 % Sample parameters: delta = 2.25 sec, tau = 1.25 sec
 %
-% $Id: fmri_hemodyn.m,v 1.1 2003/03/04 20:47:39 greve Exp $
+% $Id: fmri_hemodyn.m,v 1.2 2003/07/18 19:22:29 greve Exp $
 %
 
 if(nargin ~= 3)
@@ -42,6 +43,7 @@ i0 = find(t<delta);
 h(i0) = zeros(size(t(i0)));
 
 % scale max to 1 %
-h = h*exp(2.0)/4.0;
+% peak would always be at 4*exp(-2.0) regardless of parameters.
+h = h/(4*exp(-2.0));
 
 return;
