@@ -8945,8 +8945,10 @@ MRISwritePatchAscii(MRI_SURFACE *mris, char *fname)
   FACE    *face ;
 
   type = mrisFileNameType(fname) ;
+#if 0
   if (type == MRIS_ASCII_FILE)
     return(MRISwriteAscii(mris, fname)) ;
+#endif
 
   fp = fopen(fname, "w") ;
   if (!fp)
