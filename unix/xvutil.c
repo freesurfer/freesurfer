@@ -480,6 +480,8 @@ XVshowImage(XV_FRAME *xvf, int which, IMAGE *image, int frame)
     return ;
   dimage->used = DIMAGE_IMAGE ;
   dimage->frame = frame ;
+  if (dimage->sync && (image != dimage->sourceImage)) /* not an internal call*/
+    dimage->sync = 0 ;
 
 /* 
    dimage->oSourceImage is controlled by the user, and hence we cannot
@@ -796,8 +798,11 @@ xv_dimage_event_handler(Xv_Window xv_window, Event *event)
       }
       else if (event_is_up(event))  /* erase box and show zoomed image */
       {
+        int dir = xvf->ydir ;
+        xvf->ydir = -1 ;
         XVdrawBox(xvf, which, dimage->x1, dimage->y1, dimage->dx1,
                   dimage->dy1, XXOR) ;
+        xvf->ydir = dir ;
         if (dimage->dx1 < 0)
         {
           dimage->x0 = dimage->x1 + dimage->dx1 - 1 ;
@@ -844,6 +849,8 @@ xv_dimage_event_handler(Xv_Window xv_window, Event *event)
     case LOC_DRAG:
       if (event_left_is_down(event))  /* draw rubber band box */
       {
+        int dir = xvf->ydir ;
+        xvf->ydir = -1 ;
         if (dimage->x1)   /* erase old box */
           XVdrawBox(xvf, which, dimage->x1, dimage->y1, dimage->dx1,
                     dimage->dy1, XXOR) ;
@@ -858,6 +865,7 @@ xv_dimage_event_handler(Xv_Window xv_window, Event *event)
 #endif
         XVdrawBox(xvf, which, dimage->x1, dimage->y1, dimage->dx1,
                   dimage->dy1, XXOR) ;
+        xvf->ydir = dir ;
       }
       break ;
     default:
@@ -2169,13 +2177,21 @@ XVshowAllSyncedImages(XV_FRAME *xvf, int which)
   dimage = xvGetDimage(xvf, which, DIMAGE_IMAGE) ;
   if (!dimage)
     return(ERROR_BADPARM) ;
+#if 0
   XVshowImage(xvf, which, dimage->oSourceImage, dimage->frame) ;
+#else
+  XVshowImage(xvf, which, dimage->sourceImage, dimage->frame) ;
+#endif
 
   for (which2 = 0 ; which2 < xvf->rows*xvf->cols ; which2++)
   {
     dimage2 = xvGetDimage(xvf, which2, DIMAGE_IMAGE) ;
     if (dimage2 && (dimage2->sync == dimage->sync))
+#if 0
       XVshowImage(xvf, which2, dimage2->oSourceImage, dimage2->frame) ;
+#else
+      XVshowImage(xvf, which2, dimage2->sourceImage, dimage2->frame) ;
+#endif
   }
   return(NO_ERROR) ;
 }
