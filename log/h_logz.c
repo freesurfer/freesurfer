@@ -3363,6 +3363,36 @@ IMAGE *
 LogMapMedianFilter(LOGMAP_INFO *lmi, IMAGE *Isrc, int wsize, IMAGE *Ioffset, 
                    IMAGE *Idst)
 {
+#if 1
+  int  rows, cols ;
+  IMAGE *Iin, *Iout ;
+  float  fmin, fmax ;
+
+  rows = Isrc->rows ;
+  cols = Isrc->cols ;
+
+  ImageValRange(Isrc, &fmin, &fmax) ;
+  ImageScale(Isrc, Isrc, 0.0f, 255.0f) ;
+  Iin = ImageAlloc(rows, cols, PFBYTE, 1) ;
+  Iout = ImageAlloc(rows, cols, PFBYTE, 1) ;
+  ImageCopy(Isrc, Iin) ;
+
+  if (ImageCheckSize(Isrc, Idst, 0, 0, 0))
+  {
+    if (Idst)
+      ImageFree(&Idst) ;
+    Idst = ImageAlloc(rows, cols, PFFLOAT, 1) ;
+  }
+  else
+    ImageSetSize(Idst, rows, cols) ;
+
+  log_median(lmi, Iin, Iout, wsize) ;
+  ImageCopy(Iout, Idst) ;
+  ImageScale(Idst, Idst, fmin, fmax) ;
+  ImageScale(Isrc, Isrc, fmin, fmax) ;
+  ImageFree(&Iout) ;
+  ImageFree(&Iin) ;
+#else
   static float *sort_array = NULL ;
   static int   sort_size = 0 ;
   int    x0, y0, rows, cols, whalf, dx, dy, frame,wsq,
@@ -3485,6 +3515,7 @@ LogMapMedianFilter(LOGMAP_INFO *lmi, IMAGE *Isrc, int wsize, IMAGE *Ioffset,
       }
     }
   }
+#endif
   return(Idst) ;
 }
 /*----------------------------------------------------------------------
