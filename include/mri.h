@@ -489,6 +489,7 @@ MRI   *MRImask(MRI *mri_src, MRI *mri_mask, MRI *mri_dst, BUFTYPE mask,
 /* anything below this is not white matter */
 #define WM_MIN_VAL                       2 
 #define WM_EDITED_ON_VAL                 255
+#define WM_EDITED_OFF_VAL                1
 
 MRI *MRIreduceMeanAndStdByte(MRI *mri_src, MRI *mri_dst) ;
 MRI *MRIstdsToVariances(MRI *mri_std, MRI *mri_var, int source_frame) ;
