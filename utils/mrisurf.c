@@ -263,11 +263,11 @@ static int mrisRemoveVertexLink(MRI_SURFACE *mris, int vno1, int vno2) ;
 MRI_SURFACE *
 MRISread(char *fname)
 {
-  MRI_SURFACE *mris ;
+  MRI_SURFACE *mris = NULL ;
   int         nquads, nvertices, magic, version, ix, iy, iz, vno, fno, n, m,
               imnr, imnr0, imnr1, type, vertices[VERTICES_PER_FACE+1] ;
   float       x, y, z, xhi, xlo, yhi, ylo, zhi, zlo ;
-  FILE        *fp ;
+  FILE        *fp = NULL ;
   VERTEX      *vertex ;
   FACE        *face ;
 
@@ -3730,6 +3730,101 @@ MRISunfold(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int max_passes)
 
         Description
 ------------------------------------------------------*/
+MRI_SURFACE *
+MRISquickSphere(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int max_passes)
+{
+  int     base_averages, niter, passno, msec ;
+  double  pct_error ;
+  struct  timeb start ;
+  
+  TimerStart(&start) ;
+  
+  if (Gdiag & DIAG_WRITE)
+  {
+    char fname[200] ;
+    
+    sprintf(fname, "%s.%s.out", 
+            mris->hemisphere == RIGHT_HEMISPHERE ? "rh" : "lh",
+            parms->base_name);
+    if (!parms->start_t)
+    {
+      parms->fp = fopen(fname, "w") ;
+      if (!parms->fp)
+        ErrorExit(ERROR_NOFILE, "MRISunfold: could not open log file %s\n",
+                  fname) ;
+    }
+    mrisLogIntegrationParms(parms->fp, mris,parms) ;
+  }
+  if (Gdiag & DIAG_SHOW)
+    mrisLogIntegrationParms(stderr, mris, parms) ;
+
+  /*  parms->start_t = 0 ;*/
+/*
+   integrate until no improvement can be made at ANY scale, or until
+   the error is effectively zero.
+*/
+  base_averages = parms->n_averages ;
+  niter = parms->niterations ;
+  passno = 0 ;
+  do
+  {
+    {
+      char   *cp ;
+
+      cp = getenv("SPHERE") ;
+      if (cp)
+        MRISstoreAnalyticDistances(mris, MRIS_SPHERE) ;
+      cp = getenv("PLANE") ;
+      if (cp)
+        MRISstoreAnalyticDistances(mris, MRIS_PLANE) ;
+    }
+
+    if (!passno && 0)
+    {
+      double tol = parms->tol ;
+      parms->tol = 0.5 ;
+      if (niter > 30)
+        parms->niterations = 30 ;
+      mrisRemoveNegativeArea(mris, parms, base_averages, MAX_NEG_AREA_PCT, 2);
+      parms->niterations = niter ; parms->tol = tol ;
+    }
+
+    mrisIntegrationEpoch(mris, parms, base_averages) ;
+  } while (++passno < max_passes) ;
+
+
+
+  pct_error = MRISpercentDistanceError(mris) ;
+  if (Gdiag & DIAG_SHOW)
+    mrisLogStatus(mris, parms, stderr, 0) ;
+  fprintf(stderr, "final distance error %%%2.2f\n", (float)pct_error);
+  mrisProjectSurface(mris) ;
+  msec = TimerStop(&start) ;
+  if (Gdiag & DIAG_SHOW)
+  {
+    fprintf(stderr, "optimization complete.\n") ;
+    fprintf(stderr, "unfolding took %2.2f hours\n",
+            (float)msec/(1000.0f*60.0f*60.0f));
+    if (Gdiag & DIAG_WRITE)
+      fprintf(parms->fp, "unfolding took %2.2f hours\n",
+            (float)msec/(1000.0f*60.0f*60.0f));
+  }
+  if (Gdiag & DIAG_WRITE)
+  {
+    mrisLogStatus(mris, parms, parms->fp, 0) ;
+    fprintf(parms->fp, "final distance error %%%2.2f\n", pct_error);
+    fclose(parms->fp) ;
+  }
+
+  return(mris) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
 #if 0
 #if 0
 static float area_scoefs[] = 
@@ -4020,11 +4115,14 @@ mrisIntegrationEpoch(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,int base_averag
   else
   { snum = "spring" ; pnum = &parms->l_spring  ; }
 
-  ratio = *pnum / *pdenom ;
-  if (Gdiag & DIAG_SHOW)
-    fprintf(stderr, "%s/%s = %2.3f\n", snum, sdenom, ratio) ;
-  if (Gdiag & DIAG_WRITE)
-    fprintf(parms->fp, "%s/%s = %2.3f\n", snum, sdenom, ratio) ;
+  if (!FZERO(*pdenom))
+  {
+    ratio = *pnum / *pdenom ;
+    if (Gdiag & DIAG_SHOW)
+      fprintf(stderr, "%s/%s = %2.3f\n", snum, sdenom, ratio) ;
+    if (Gdiag & DIAG_WRITE)
+      fprintf(parms->fp, "%s/%s = %2.3f\n", snum, sdenom, ratio) ;
+  }
 
   old_averages = parms->n_averages ;
   for (done = total_steps = 0, n_averages = base_averages ; !done ; 
@@ -10411,11 +10509,14 @@ int
 MRISreadVertexPositions(MRI_SURFACE *mris, char *name)
 {
   char    fname[200] ;
-  int     vno, nvertices, nfaces, magic, version, tmp, ix, iy, iz, n ;
+  int     vno, nvertices, nfaces, magic, version, tmp, ix, iy, iz, n, type ;
   VERTEX  *vertex ;
   FILE    *fp ;
 
+  type = mrisFileNameType(fname) ;
   MRISbuildFileName(mris, name, fname) ;
+  if (type == MRIS_GEO_FILE)
+    return(mrisReadGeoFilePositions(mris, fname)) ;
   fp = fopen(fname, "rb") ;
   if (!fp)
     ErrorReturn(ERROR_NOFILE,
@@ -10433,7 +10534,7 @@ MRISreadVertexPositions(MRI_SURFACE *mris, char *name)
   {
     fclose(fp) ;
     if (mrisReadTriangleFilePositions(mris,fname)  != NO_ERROR)
-      ErrorReturn(NULL, (Gerror, "mrisReadTriangleFile failed.\n")) ;
+      ErrorReturn(Gerror, (Gerror, "mrisReadTriangleFile failed.\n")) ;
     version = -2 ;
   }
   else 
@@ -11164,14 +11265,13 @@ static int
 mrisReadGeoFilePositions(MRI_SURFACE *mris, char *fname)
 {
   char    line[202], *cp ;
-  int     vno, fno, n, nvertices, nfaces, patch, vertices_per_face, nedges ;
+  int     vno, nvertices, nfaces, patch, vertices_per_face, nedges ;
   VERTEX  *v ;
-  FACE    *face ;
   FILE    *fp ;
 
   fp = fopen(fname, "r") ;
   if (!fp)
-    ErrorReturn(NULL, 
+    ErrorReturn(ERROR_NOFILE, 
               (ERROR_NOFILE, 
                "mrisReadGeoFile: could not open file %s",fname));
 
@@ -11180,14 +11280,15 @@ mrisReadGeoFilePositions(MRI_SURFACE *mris, char *fname)
   if (sscanf(cp, "%*d %d %d %d\n", &nvertices, &nfaces, &nedges) != 3)
   {
     fclose(fp) ;
-    ErrorReturn(NULL, (ERROR_BADFILE, "mrisReadGeoFile(%s): could not scan "
-                       "dimensions from '%s'", fname, cp)) ;
+    ErrorReturn(ERROR_BADFILE, 
+                (ERROR_BADFILE, "mrisReadGeoFile(%s): could not scan "
+                 "dimensions from '%s'", fname, cp)) ;
   }
   vertices_per_face = nedges / nfaces ;
   if (vertices_per_face != VERTICES_PER_FACE)
   {
     fclose(fp) ;
-    ErrorReturn(NULL, (ERROR_BADFILE, 
+    ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, 
                        "mrisReadGeoFile(%s): unsupported vertices/face %d.",
                        fname, vertices_per_face)) ;
   }
@@ -15586,13 +15687,13 @@ static int
 mrisReadTriangleFilePositions(MRI_SURFACE *mris, char *fname)
 {
   VERTEX      *v ;
-  int         nvertices, nfaces, magic, vno, fno, n ;
+  int         nvertices, nfaces, magic, vno ;
   char        line[200] ;
   FILE        *fp ;
 
   fp = fopen(fname, "rb") ;
   if (!fp)
-    ErrorReturn(NULL,(ERROR_NOFILE,
+    ErrorReturn(ERROR_NOFILE,(ERROR_NOFILE,
                       "mrisReadTriangleFile(%s): could not open file",fname));
 
   fread3(&magic, fp) ;
