@@ -245,7 +245,7 @@ MRImorph(MRI *mri_src, MRI *mri_dst, int which)
 MRI *
 MRIerode(MRI *mri_src, MRI *mri_dst)
 {
-  int     width, height, depth, x, y, z, x0, y0, z0, xi, yi, zi ;
+  int     width, height, depth, x, y, z, x0, y0, z0, xi, yi, zi, same ;
   BUFTYPE *pdst, min_val, val ;
 
   width = mri_src->width ;
@@ -254,6 +254,14 @@ MRIerode(MRI *mri_src, MRI *mri_dst)
 
   if (!mri_dst)
     mri_dst = MRIclone(mri_src, NULL) ;
+
+  if (mri_dst == mri_src)
+  {
+    same = 1 ;
+    mri_dst = MRIclone(mri_src, NULL) ;
+  }
+  else
+    same = 0 ;
 
   for (z = 0 ; z < depth ; z++)
   {
@@ -282,6 +290,12 @@ MRIerode(MRI *mri_src, MRI *mri_dst)
       }
     }
   }
+  if (same)
+  {
+    MRIcopy(mri_dst, mri_src) ;
+    MRIfree(&mri_dst) ;
+    mri_dst = mri_src ;
+  }
   return(mri_dst) ;
 }
 /*-----------------------------------------------------
@@ -294,7 +308,7 @@ MRIerode(MRI *mri_src, MRI *mri_dst)
 MRI *
 MRIdilate(MRI *mri_src, MRI *mri_dst)
 {
-  int     width, height, depth, x, y, z, x0, y0, z0, xi, yi, zi ;
+  int     width, height, depth, x, y, z, x0, y0, z0, xi, yi, zi, same ;
   BUFTYPE *pdst, max_val, val ;
 
   width = mri_src->width ;
@@ -303,6 +317,14 @@ MRIdilate(MRI *mri_src, MRI *mri_dst)
 
   if (!mri_dst)
     mri_dst = MRIclone(mri_src, NULL) ;
+
+  if (mri_dst == mri_src)
+  {
+    same = 1 ;
+    mri_dst = MRIclone(mri_src, NULL) ;
+  }
+  else
+    same = 0 ;
 
   for (z = 0 ; z < depth ; z++)
   {
@@ -330,6 +352,12 @@ MRIdilate(MRI *mri_src, MRI *mri_dst)
         *pdst++ = max_val ;
       }
     }
+  }
+  if (same)
+  {
+    MRIcopy(mri_dst, mri_src) ;
+    MRIfree(&mri_dst) ;
+    mri_dst = mri_src ;
   }
   return(mri_dst) ;
 }
