@@ -5,8 +5,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2004/09/14 13:38:54 $
-// Revision       : $Revision: 1.35 $
+// Revision Date  : $Date: 2004/09/15 13:39:16 $
+// Revision       : $Revision: 1.36 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -45,6 +45,8 @@ static double momentum = 0.9 ;
 static int debug_slice = -1 ;
 static int correct_PD = 0 ;
 static int synth_flag = 1 ;
+
+static double max_T2star = 1000 ;
 
 char *Progname ;
 static int align = 1 ;
@@ -121,7 +123,7 @@ main(int argc, char *argv[])
   int    modified;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_ms_fitparms.c,v 1.35 2004/09/14 13:38:54 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ms_fitparms.c,v 1.36 2004/09/15 13:39:16 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -141,7 +143,7 @@ main(int argc, char *argv[])
     argv += nargs ;
   }
 
-  if (argc < 3)
+  if (argc < 2)
     usage_exit(1) ;
 
   out_dir = argv[argc-1] ;
@@ -460,6 +462,12 @@ get_option(int argc, char *argv[])
     base_dt = atof(argv[2]) ;
     nargs = 1 ;
     printf("setting dt = %e\n", base_dt) ;
+  }
+  else if (!stricmp(option, "max"))
+  {
+    max_T2star = atof(argv[2]) ;
+    nargs = 1 ;
+    printf("setting max T2* to %f\n", max_T2star) ;
   }
   else if (!stricmp(option, "debug_voxel"))
   {
@@ -1854,6 +1862,8 @@ compute_T2star_map(MRI **mri_flash, int nvolumes, int *scan_types)
 					DiagBreak() ;
 				if (!finite(T2star))
 					T2star = 0 ;
+				if (T2star > max_T2star)
+					T2star = max_T2star ;
 				MRIsetVoxVal(mri_T2star, x, y, z, 0, T2star) ;
       }
     }
