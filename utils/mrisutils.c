@@ -28,6 +28,7 @@
 #include "mrisutils.h"
 #include "cma.h"
 #include "gca.h"
+#include "sig.h"
 
 
 ///////////////////////////////////////////////////////////////////
@@ -1291,4 +1292,106 @@ MRIS *MRISloadSurfSubject(char *subj, char *hemi, char *surfid,
   printf("nvertices = %d\n",Surf->nvertices);fflush(stdout);
 
   return(Surf);
+}
+/*-----------------------------------------------------------------
+  MRISfdr() - performs False Discovery Rate (FDR) thesholding of
+  the the vertex val field. Results are stored in the val2 field.
+
+  fdr - false dicovery rate, between 0 and 1, eg: .05
+  signid -  
+      0 = use all values regardless of sign
+     +1 = use only positive values
+     -1 = use only negative values
+     If a vertex does not meet the sign criteria, its val2 is 0
+  log10flag - interpret val field as -log10(p)
+  maskflag - use the undefval field as a mask. If the undefval of
+     a vertex is 1, then its val will be used to compute the threshold
+     (if the val also meets the sign criteria). If the undefval is
+     0, then val2 will be set to 0.
+  fdrthresh - FDR threshold between 0 and 1. If log10flag is set,
+     then fdrthresh = -log10(fdrthresh). Vertices with p values 
+     GREATER than fdrthresh have val2=0. Note that this is the same
+     as requiring -log10(p) > -log10(fdrthresh).
+
+  So, for the val2 to be set to something non-zero, the val must
+  meet the sign, mask, and threshold criteria. If val meets all
+  the criteria, then val2=val (ie, no log10 transforms). The val
+  field itself is not altered.
+
+  Return Values:
+    0 - evertying is OK
+    1 - no vertices met the mask and sign criteria
+
+  Ref: http://www.sph.umich.edu/~nichols/FDR/FDR.m
+  ---------------------------------------------------------------*/
+int MRISfdr(MRIS *surf, double fdr, int signid, 
+	    int log10flag, int maskflag, double *fdrthresh)
+{
+  double *p=NULL, val, val2null;
+  int vtxno, np;
+
+  if(log10flag) val2null = 0;
+  else          val2null = 1;
+
+  p = (double *) calloc(surf->nvertices,sizeof(double));
+  np = 0;
+  for(vtxno = 0; vtxno < surf->nvertices; vtxno++){
+    if(maskflag && !surf->vertices[vtxno].undefval) continue;
+    val = surf->vertices[vtxno].val;
+    if(signid == -1 && val > 0) continue;
+    if(signid == +1 && val < 0) continue;
+    val = fabs(val);
+    if(log10flag) val = pow(10,-val);
+    p[np] = val;
+    np++;
+  }
+  printf("np = %d, nv = %d\n",np,surf->nvertices);
+
+  // Check that something met the match criteria, 
+  // otherwise return an error
+  if(np==0){
+    free(p);
+    return(1);
+  }
+
+  *fdrthresh = fdrthreshold(p,np,fdr);
+
+  // Perform the thresholding
+  for(vtxno = 0; vtxno < surf->nvertices; vtxno++){
+    if(maskflag && !surf->vertices[vtxno].undefval){
+      // Set to null if masking and not in the mask 
+      surf->vertices[vtxno].val2 = val2null;
+      continue;
+    }
+    val = surf->vertices[vtxno].val;
+    if(signid == -1 && val > 0){
+      // Set to null if wrong sign
+      surf->vertices[vtxno].val2 = val2null;
+      continue;
+    }
+    if(signid == +1 && val < 0){
+      // Set to null if wrong sign
+      surf->vertices[vtxno].val2 = val2null;
+      continue;
+    }
+
+    val = fabs(val);
+    if(log10flag) val = pow(10,-val);
+
+    if(val > *fdrthresh){
+      // Set to null if greather than thresh
+      surf->vertices[vtxno].val2 = val2null;
+      continue;
+    }
+
+    // Otherwise, it meets all criteria, so 
+    // pass the original value through
+    surf->vertices[vtxno].val2 = surf->vertices[vtxno].val;
+  }
+
+  // Change the fdrthresh to log10 if needed
+  if(log10flag) *fdrthresh = -log10(*fdrthresh);
+  free(p);
+
+  return(0);
 }

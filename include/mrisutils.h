@@ -12,5 +12,7 @@ MRI* MRISpeelVolume(MRIS *mris,MRI *mri_src,MRI *mri_dst,int type,unsigned char 
 MRIS *MRISmatchSurfaceToLabel(MRIS *mris,MRI *mri_seg,int label,MRI_REGION *mri_region,INTEGRATION_PARMS *integration_parms,int connectivity);
 MRIS *MRISloadSurfSubject(char *subj, char *hemi, char *surfid, 
 			  char *SUBJECTS_DIR);
+int MRISfdr(MRIS *surf, double fdr, int signid, 
+	    int log10flag, int maskflag, double *fdrthresh);
 
 #endif
