@@ -118,9 +118,15 @@ MRI *conform_type(MRI *mri)
       else
         bin = (int)((this - (float)min) / bin_size);
       if(bin < 0)
+      {
         printf("bin < 0\n");
+        bin = 0;
+      }
       if(bin > N_BINS - 1)
+      {
         printf("bin > N_BINS - 1\n");
+        bin = N_BINS - 1;
+      }
 
       counts[bin]++;
 
