@@ -47,7 +47,7 @@ Can something be done to affect the off-diagonals?
   #undef X
 #endif
 
-static char vcid[] = "$Id: optseq2.c,v 2.2 2003/09/05 04:45:45 kteich Exp $";
+static char vcid[] = "$Id: optseq2.c,v 2.3 2004/07/08 21:20:32 greve Exp $";
 char *Progname = NULL;
 
 static int  parse_commandline(int argc, char **argv);
@@ -104,6 +104,7 @@ int Update = 1;
 long seed = -1;
 int nKeep = -1;
 int nCB1Opt = 0;
+float tNullMax = -1;
 
 EVSCH **EvSchList;
 char *SvAllFile=NULL;
@@ -139,7 +140,7 @@ int main(int argc, char **argv)
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: optseq2.c,v 2.2 2003/09/05 04:45:45 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: optseq2.c,v 2.3 2004/07/08 21:20:32 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -308,7 +309,11 @@ int main(int argc, char **argv)
 
     /* Synthesize a Sequence and Schedule */
     EvSch = EVSsynth(nEvTypes, EvReps, EvDuration, dPSD,
-		     TR*Ntp, TPreScan, nCB1Opt);
+		     TR*Ntp, TPreScan, nCB1Opt, tNullMax);
+    if(EvSch==NULL){
+      printf("ERROR: syntheszing schedule\n");
+      exit(1);
+    }
     EvSch->nthsearched = nSearched;
 
     /* Construct the FIR Design Matrix */
@@ -609,6 +614,11 @@ static int parse_commandline(int argc, char **argv)
       sscanf(pargv[0],"%d",&PolyOrder);
       nargsused = 1;
     }
+    else if (stringmatch(option, "--tnullmax")){
+      if(nargc < 1) argnerr(option,1);
+      sscanf(pargv[0],"%g",&tNullMax);
+      nargsused = 1;
+    }
     else if (stringmatch(option, "--repvar")){
       if(nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%f",&PctVarEvReps);
@@ -724,6 +734,7 @@ static void print_usage(void)
   printf("  --ev label duration nrepetitions\n");
   printf("  --repvar pct <per-evt>: allow nrepetitions to vary by +/- percent\n");
   printf("  --polyfit order  \n");
+  printf("  --tnullmax tnullmax : limit max null duration to tnullmax sec  \n");
 
   printf("\n");
   printf("Searching and Cost Parameters\n");
@@ -859,6 +870,14 @@ static void print_help(void)
 "2. Order 0 is a baseline offset; Order 1 is a linear trend; Order 2\n"
 "is a quadradic trend. Cost functions will not explicitly include the \n"
 "nuisance variables. \n"
+"\n"
+"--tnullmax tNullMax \n"
+"\n"
+"Limit the maximum duration of the NULL stimulus to be tNullMax sec.\n"
+" Note: it may not be possible for a given parameter set to keep the NULL \n"
+"stimulus below a certain amount. In this case, the following error \n"
+"message will be printed out 'ERROR: could not enforce tNullMax'. By\n"
+"default, tNullMax is infinite. \n"
 " \n"
 "--nsearch Nsearch \n"
 " \n"
@@ -1336,6 +1355,7 @@ static void dump_options(FILE *fp)
   fprintf(fp,"PctVarEvReps = %g\n",PctVarEvReps);
   fprintf(fp,"VarEvRepsPerCond = %d\n",VarEvRepsPerCond);
   fprintf(fp,"PolyOrder = %d\n",PolyOrder);
+  fprintf(fp,"tNullMax = %g\n",tNullMax);
   if(outstem != NULL) printf("outstem = %s\n",outstem);
   if(SvAllFile != NULL) printf("SvAllFile = %s\n",SvAllFile);
   if(nInFiles != 0){

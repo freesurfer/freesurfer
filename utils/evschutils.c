@@ -233,9 +233,9 @@ int EVSwritePar(char *parfile, EVENT_SCHEDULE *EvSch, char **labels,
 -----------------------------------------------------------------*/
 EVENT_SCHEDULE *EVSsynth(int nEvTypes, int *nPer, float *tPer, 
 			 float tRes, float tMax, float tPreScan,
-			 int nCB1Search)
+			 int nCB1Search, float tNullMax)
 {
-  int id,m,n,nevents, nSlotsNull,nSlotsTot, *EvSeq;
+  int id,m,n,nevents, nSlotsNull,nSlotsTot, *EvSeq, nNullMax;
   float tStimTot,t,tScanTot, tNullTot;
   EVENT_SCHEDULE *EvSch;
 
@@ -267,14 +267,22 @@ EVENT_SCHEDULE *EVSsynth(int nEvTypes, int *nPer, float *tPer,
   /* Comute number of slots allocated for null */
   nSlotsNull = (int)floor(tNullTot/tRes);
 
-  /* Comute number of slots at given temp res, include slots for null */
+  /* Compute number of slots at given temp res, include slots for null */
   nSlotsTot = nevents + nSlotsNull;
+
+  /* Compute maximum number of back-to-back null slots */
+  if(tNullMax > 0)  nNullMax = (int)(floor(tNullMax/tRes));
+  else              nNullMax = nSlotsTot;
 
   /* Create a non-random sequence of 0s and 1s, 1 = Non-Null */
   EvSeq = (int *) calloc(sizeof(int),nSlotsTot);
   for(n=0;n < nevents; n++) EvSeq[n] = 1;
   /* Randomize the sequence of nulls and non-nulls*/
-  RandPermList(nSlotsTot,EvSeq);
+  m=RandPermListLimit0(nSlotsTot,EvSeq,nNullMax,100);
+  if(m < 0) {
+    printf("ERROR: could not enforce tNullMax\n");
+    return(NULL);
+  }
 
   /* Compute the the timing */
   m = 0;
@@ -451,6 +459,40 @@ int *RandPerm(int N, int *v)
 
   return(v);
 }
+/*------------------------------------------------------------------
+ RandPermListLimit0() - randomly permute members of a list but limit 
+ the maximum number of times member0 can appear back-to-back. For
+ example, if lim=5, then v[n]...v[n+5] could not be all be 0. This is
+ done by randomly permuting the sequence until a legal one is found.
+ Returns  0 upon successfully finding a legal sequence. Returns -1 
+ if the maximum number of iterations is exceeded.
+ -----------------------------------------------------------------*/
+int RandPermListLimit0(int N, int *v, int lim, int nitersmax)
+{
+  int niters, runlenmax, runlen, n;
+
+  niters = 0;
+  while(1){
+    RandPermList(N,v); // permute the list
+    // Count the max run length of items whose val is 0
+    runlenmax = 0;
+    runlen = 0;
+    for(n=0;n<N;n++){
+      if(v[n] == 0) runlen ++;
+      else{
+	if(runlenmax < runlen) runlenmax = runlen;
+	runlen = 0;
+      }
+    }
+    // Termination conditions
+    if(runlenmax <= lim)   return(0);
+    if(niters > nitersmax) return(-1);
+    niters++;
+  }
+
+  return(0); // should never get here
+}
+
 /*---------------------------------------------------------------
   RandPermList() - randomly permutes members of the given list.
   ------------------------------------------------------------*/

@@ -49,7 +49,7 @@ int EVSmaxId(EVSCH *EvSch);
 
 EVENT_SCHEDULE *EVSsynth(int nEvTypes, int *nPer, float *tPer, 
 			 float tRes, float tMax, float tPreScan,
-			 int nCB1Search);
+			 int nCB1Search, float tNullMax);
 
 EVENT_SCHEDULE *RandEvSch(int nevents, int ntypes, float dtmin, 
 			  float dtnullavg, int randweights);
@@ -81,6 +81,7 @@ float EVScost(EVSCH *EvSch, int CostId, float *params);
 
 int *RandPerm(int N, int *v);
 int  RandPermList(int N, int *v);
+int RandPermListLimit0(int N, int *v, int lim, int nitersmax);
 
 MATRIX *EVSfirXtXIdeal(int nEvTypes, int *nEvReps, float *EvDur, 
 		       float TR, int Ntp, 
