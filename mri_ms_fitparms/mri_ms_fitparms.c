@@ -5,8 +5,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2004/05/10 14:55:44 $
-// Revision       : $Revision: 1.31 $
+// Revision Date  : $Date: 2004/06/01 21:07:43 $
+// Revision       : $Revision: 1.32 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -109,7 +109,7 @@ main(int argc, char *argv[])
   char   **av, fname[STRLEN] ;
   int    ac, nargs, i ;
   MRI    *mri_flash[MAX_IMAGES], *mri_flash_synth[MAX_IMAGES], *mri_all_flash[MAX_IMAGES],
-    *mri_T1, *mri_PD, *mri_sse, *mri_T2star ;
+    *mri_T1, *mri_PD = NULL, *mri_sse, *mri_T2star ;
   char   *in_fname, *out_dir ;
   int    msec, minutes, seconds, nvolumes, nvolumes_total ;
   struct timeb start ;
@@ -120,7 +120,7 @@ main(int argc, char *argv[])
   int    modified;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_ms_fitparms.c,v 1.31 2004/05/10 14:55:44 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ms_fitparms.c,v 1.32 2004/06/01 21:07:43 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -140,7 +140,7 @@ main(int argc, char *argv[])
     argv += nargs ;
   }
 
-  if (argc < 4)
+  if (argc < 3)
     usage_exit(1) ;
 
   out_dir = argv[argc-1] ;
@@ -209,7 +209,7 @@ main(int argc, char *argv[])
   nvolumes_total = nvolumes ;   /* all volumes read in */
 
   nvolumes = average_volumes_with_different_echo_times(mri_flash, mri_all_flash, nvolumes_total) ;
-  if (nvolumes == 2)
+  if (nvolumes <= 2)
     niter = 0 ;  /* don't bother motion-correcting when we only have 2 volumes */
   if (synth_flag > 0)
   {
@@ -245,18 +245,16 @@ main(int argc, char *argv[])
     }
   }
   
-  printf("using %d FLASH volumes to estimate tissue parameters.\n", nvolumes) ;
-  mri_T1 = MRIclone(mri_flash[0], NULL) ;
-  mri_PD = MRIclone(mri_flash[0], NULL) ;
-  mri_sse = MRIclone(mri_flash[0], NULL) ;
-  
+
+  if (nvolumes > 1)
   {
     int j, iter ; /* should exit when M_reg's converge. */
     LTA *lta;
 
-    Progname = argv[0] ;
-    ErrorInit(NULL, NULL, NULL) ;
-    DiagInit(NULL, NULL, NULL) ;
+		printf("using %d FLASH volumes to estimate tissue parameters.\n", nvolumes) ;
+		mri_T1 = MRIclone(mri_flash[0], NULL) ;
+		mri_PD = MRIclone(mri_flash[0], NULL) ;
+		mri_sse = MRIclone(mri_flash[0], NULL) ;
 
     for (j=0;j<nvolumes;j++) 
       M_reg[j] = MatrixIdentity(4,(MATRIX *)NULL);
@@ -364,34 +362,24 @@ main(int argc, char *argv[])
 		modified = findUniqueTETRFA(mri_flash, nvolumes, &TR, &TE, &FA);
 		fprintf(stderr, "TR = %.2f, TE = %.2f, Flip_angle = %.2f are used\n", TR, TE, DEGREES(FA)); 
 
-    resetTRTEFA(mri_PD, TR, TE, FA);
-    sprintf(fname,"%s/PD.mgh",out_dir);
-    printf("writing PD estimates to %s...\n", fname) ;
-    MRIwrite(mri_PD, fname) ;
-    resetTRTEFA(mri_T1, TR, TE, FA);
-    sprintf(fname,"%s/T1.mgh",out_dir);
-    printf("writing T1 estimates to %s...\n", fname) ;
-    MRIwrite(mri_T1, fname) ;
-		MRIfree(&mri_T1) ;
-
-    sprintf(fname,"%s/sse.mgh",out_dir);
-    printf("writing residual sse to %s...\n", fname) ;
-    MRIwrite(mri_sse, fname) ;
-		MRIfree(&mri_sse) ;
-		
-		mri_T2star = estimate_T2star(mri_all_flash, nvolumes_total, mri_PD) ;
-		if (mri_T2star)
+		if (nvolumes > 1)
 		{
-			if  (correct_PD)
-			{
-				sprintf(fname,"%s/PDcorrected.mgh",out_dir);
-				printf("writing corrected PD estimates to %s...\n", fname) ;
-				MRIwrite(mri_PD, fname) ;
-			}
-			sprintf(fname,"%s/T2star.mgh",out_dir);
-			printf("writing T2star estimates to %s...\n", fname) ;
-			MRIwrite(mri_T2star, fname) ;
+			resetTRTEFA(mri_PD, TR, TE, FA);
+			sprintf(fname,"%s/PD.mgh",out_dir);
+			printf("writing PD estimates to %s...\n", fname) ;
+			MRIwrite(mri_PD, fname) ;
+			resetTRTEFA(mri_T1, TR, TE, FA);
+			sprintf(fname,"%s/T1.mgh",out_dir);
+			printf("writing T1 estimates to %s...\n", fname) ;
+			MRIwrite(mri_T1, fname) ;
+			MRIfree(&mri_T1) ;
+			
+			sprintf(fname,"%s/sse.mgh",out_dir);
+			printf("writing residual sse to %s...\n", fname) ;
+			MRIwrite(mri_sse, fname) ;
+			MRIfree(&mri_sse) ;
 		}
+		
     if (mri_faf)
     {
       resetTRTEFA(mri_faf, TR, TE, FA);
@@ -399,7 +387,7 @@ main(int argc, char *argv[])
       printf("writing faf map to %s...\n", fname) ;
       MRIwrite(mri_faf, fname) ;
     }
-    if (synth_flag > 0)
+    if (synth_flag > 0 && nvolumes > 1)
     {
       for (j=0;j<nvolumes;j++)
       {
@@ -418,6 +406,20 @@ main(int argc, char *argv[])
       }
     }
   }
+	mri_T2star = estimate_T2star(mri_all_flash, nvolumes_total, mri_PD) ;
+	if (mri_T2star)
+	{
+		resetTRTEFA(mri_T2star, TR, TE, FA);
+		if  (correct_PD && nvolumes > 1)
+		{
+			sprintf(fname,"%s/PDcorrected.mgh",out_dir);
+			printf("writing corrected PD estimates to %s...\n", fname) ;
+			MRIwrite(mri_PD, fname) ;
+		}
+		sprintf(fname,"%s/T2star.mgh",out_dir);
+		printf("writing T2star estimates to %s...\n", fname) ;
+		MRIwrite(mri_T2star, fname) ;
+	}
   msec = TimerStop(&start) ;
   seconds = nint((float)msec/1000.0f) ;
   minutes = seconds / 60 ;
@@ -1702,7 +1704,7 @@ estimate_T2star(MRI **mri_flash, int nvolumes, MRI *mri_PD)
   int    i, j, nechoes, processed[MAX_IMAGES], nprocessed, x, y, z, different_te, width, depth, height ;
   MRI    *mri_T2star = NULL ;
   double decay, T2star ;
-  Real   PD ;
+  Real   PD = 10 ;
 
   /* first decide whether T2* can be estimated at all */
   different_te = 0 ;
@@ -1711,7 +1713,7 @@ estimate_T2star(MRI **mri_flash, int nvolumes, MRI *mri_PD)
     for (j = i+1 ; different_te == 0 && j < nvolumes ; j++)
     {
       if (mri_flash[i]->te != mri_flash[j]->te)
-	different_te = 1 ;
+				different_te = 1 ;
     }
   }
   if (different_te == 0)
@@ -1737,7 +1739,7 @@ estimate_T2star(MRI **mri_flash, int nvolumes, MRI *mri_PD)
     nprocessed++ ;
   }
   printf("estimating T2* with %d different acquisitions, each with %d echoes...\n",
-	 nprocessed, nvolumes/nprocessed) ;
+				 nprocessed, nvolumes/nprocessed) ;
   mri_T2star = compute_T2star_map(mri_flash, nvolumes, processed) ;
 
   /* now update PD map to take out T2* component */
@@ -1748,22 +1750,28 @@ estimate_T2star(MRI **mri_flash, int nvolumes, MRI *mri_PD)
     {
       for (y = 0 ; y < height ; y++)
       {
-	for (z = 0 ; z < depth ; z++)
-	{
-	  PD = MRIgetVoxVal(mri_PD, x, y, z, 0);
-	  if (PD < 100)
-	    MRIsetVoxVal(mri_T2star, x, y, z, 0, 0) ;
-	  if (x == Gx && y == Gy && z == Gz)
-	    DiagBreak() ;
-	  T2star = MRIgetVoxVal(mri_T2star, x, y, z, 0) ;
-	  if (FZERO(T2star))
-	    continue ;
-	  for (i = 0, decay = 0.0 ; i < nvolumes ; i++)
-	    decay += exp(-mri_flash[i]->te / T2star) ;
-	  decay /= (float)nvolumes ;
-	  PD /= decay ;
-	  MRIsetVoxVal(mri_PD, x, y, z, 0, PD) ;
-	}
+				for (z = 0 ; z < depth ; z++)
+				{
+					if (mri_PD)
+					{
+						PD = MRIgetVoxVal(mri_PD, x, y, z, 0);
+						if (PD < 100)
+							MRIsetVoxVal(mri_T2star, x, y, z, 0, 0) ;
+					}
+					if (x == Gx && y == Gy && z == Gz)
+						DiagBreak() ;
+					T2star = MRIgetVoxVal(mri_T2star, x, y, z, 0) ;
+					if (FZERO(T2star))
+						continue ;
+					for (i = 0, decay = 0.0 ; i < nvolumes ; i++)
+						decay += exp(-mri_flash[i]->te / T2star) ;
+					decay /= (float)nvolumes ;
+					if (mri_PD)
+					{
+						PD /= decay ;
+						MRIsetVoxVal(mri_PD, x, y, z, 0, PD) ;
+					}
+				}
       }
     }
   }
