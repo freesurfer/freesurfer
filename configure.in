@@ -46,8 +46,9 @@ case "${host}" in
  SHARED_LDFLAGS="-shared"
  ;;
  x86_64-*)
- OS=Linux_x86_64
+ OS=Linux
  OS_CPP_FLAGS="-Wall -fwritable-strings"
+ OS_LDFLAGS="-all-static"
  LDFLAGS="-L/usr/lib64 $LDFLAGSA"
  DYNAMIC_LIB_EXT=".so"
  SHARED_CFLAGS="-fPIC"
