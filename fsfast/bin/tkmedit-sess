@@ -1,7 +1,7 @@
 #!/bin/csh -f
 # tkmedit-sess
 #
-set VERSION = '$Id: tkmedit-sess,v 1.8 2004/01/12 21:50:05 greve Exp $';
+set VERSION = '$Id: tkmedit-sess,v 1.9 2004/01/12 22:19:28 greve Exp $';
 set inputargs = ($argv);
 
 which pawd > /dev/null
@@ -168,9 +168,11 @@ if(! $nohdr) then
 
   if($space == native) then
     if(! $talreg) then
-      set regfile = $StudyDir/$sess/$fsd/register.dat;
+      #set regfile = $StudyDir/$sess/$fsd/register.dat;
+      set regfile = $sess/$fsd/register.dat;
     else
-      set regfile = $StudyDir/$sess/$fsd/register.tal;
+      #set regfile = $StudyDir/$sess/$fsd/register.tal;
+      set regfile = $sess/$fsd/register.tal;
     endif
   else
     set regfile = $hdrdir/register.dat;
@@ -212,9 +214,11 @@ if(! $nosig) then
 
   if($space == native) then
     if(! $talreg) then
-      set regfile = $StudyDir/$sess/$fsd/register.dat;
+      #set regfile = $StudyDir/$sess/$fsd/register.dat;
+      set regfile = $sess/$fsd/register.dat;
     else
-      set regfile = $StudyDir/$sess/$fsd/register.tal;
+      #set regfile = $StudyDir/$sess/$fsd/register.tal;
+      set regfile = $sess/$fsd/register.tal;
     endif
   else
     set regfile = $maphdrdir/register.dat;
