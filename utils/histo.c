@@ -1012,6 +1012,25 @@ HISTOaddSample(HISTOGRAM *histo, float val, float bmin, float bmax)
 }
 
 int
+HISTOfindPreviousValley(HISTOGRAM *h, int b0)
+{
+  int  b ;
+  float prev_val, val ;
+
+  prev_val = h->counts[b0] ;
+  if (b0 <= 0)
+    return(b0) ;
+  for (b = b0-1 ; b >= 0 ; b--)
+  {
+    val = h->counts[b] ;
+    if (val > prev_val)
+      return(b) ;
+    prev_val = val ;
+  }
+  return(-1) ;
+}
+
+int
 HISTOfindNextValley(HISTOGRAM *h, int b0)
 {
   int  b ;
@@ -1029,6 +1048,27 @@ HISTOfindNextValley(HISTOGRAM *h, int b0)
   }
   return(-1) ;
 }
+
+int
+HISTOfindStartOfPeak(HISTOGRAM *h, int b0, float pct_peak)
+{
+  int  b, b1 ;
+  float val, thresh ;
+
+	b1 = HISTOfindPreviousValley(h, b0) ;
+
+  thresh = h->counts[b0]*pct_peak ;
+  if (b0 <= 0)
+    return(b0) ;
+  for (b = b0-1 ; b >= b1 ; b--)
+  {
+    val = h->counts[b] ;
+    if (val < thresh)
+      return(b) ;
+  }
+  return(b) ;
+}
+
 
 int
 HISTOfindEndOfPeak(HISTOGRAM *h, int b0, float pct_peak)

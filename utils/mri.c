@@ -9,9 +9,9 @@
 */
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2003/02/26 19:42:43 $
-// Revision       : $Revision: 1.217 $
-char *MRI_C_VERSION = "$Revision: 1.217 $";
+// Revision Date  : $Date: 2003/03/17 22:53:07 $
+// Revision       : $Revision: 1.218 $
+char *MRI_C_VERSION = "$Revision: 1.218 $";
 
 /*-----------------------------------------------------
                     INCLUDE FILES
@@ -5340,10 +5340,11 @@ MRIupsample2(MRI *mri_src, MRI *mri_dst)
 {
   int     width, depth, height, x, y, z ;
   BUFTYPE *pdst ;
+	short   *psdst ;
   
-  if (mri_src->type != MRI_UCHAR)
+  if (mri_dst && mri_src->type != mri_dst->type)
     ErrorReturn(NULL, 
-                (ERROR_UNSUPPORTED, "MRIupsample2: source must be UCHAR"));
+                (ERROR_UNSUPPORTED, "MRIupsample2: source and dst must be same type"));
 
   width = 2*mri_src->width ;
   height = 2*mri_src->height ;
@@ -5359,9 +5360,23 @@ MRIupsample2(MRI *mri_src, MRI *mri_dst)
   {
     for (y = 0 ; y < height ; y++)
     {
-      pdst = &MRIvox(mri_dst, 0, y, z) ;
-      for (x = 0 ; x < width ; x++)
-        *pdst++ = MRIvox(mri_src, x/2, y/2, z/2) ;
+			switch (mri_src->type)
+			{
+			case MRI_UCHAR:
+				pdst = &MRIvox(mri_dst, 0, y, z) ; 
+				for (x = 0 ; x < width ; x++)
+					*pdst++ = MRIvox(mri_src, x/2, y/2, z/2) ;
+				break ;
+			case MRI_SHORT:
+				psdst = &MRISvox(mri_dst, 0, y, z) ; 
+				for (x = 0 ; x < width ; x++)
+					*psdst++ = MRISvox(mri_src, x/2, y/2, z/2) ;
+				break ;
+			default:
+				ErrorReturn(NULL,
+										(ERROR_UNSUPPORTED, "MRIupsample2: unsupported src type %d", mri_src->type)) ;
+			}
+
     }
   }
   
@@ -5455,11 +5470,12 @@ MRIdownsample2(MRI *mri_src, MRI *mri_dst)
 {
   int     width, depth, height, x, y, z, x1, y1, z1 ;
   BUFTYPE *psrc ;
+	short   *pssrc ;
   float   val ;
   
-  if (mri_src->type != MRI_UCHAR)
+  if (mri_dst && mri_src->type != mri_dst->type)
     ErrorReturn(NULL, 
-                (ERROR_UNSUPPORTED, "MRIdownsample2: source must be UCHAR"));
+                (ERROR_UNSUPPORTED, "MRIdownsample2: source and dst must be same type"));
 
   width = mri_src->width/2 ;
   height = mri_src->height/2 ;
@@ -5482,12 +5498,33 @@ MRIdownsample2(MRI *mri_src, MRI *mri_dst)
         {
           for (y1 = 2*y ; y1 <= 2*y+1 ; y1++)
           {
-            psrc = &MRIvox(mri_src, 2*x, y1, z1) ;
-            for (x1 = 2*x ; x1 <= 2*x+1 ; x1++)
-              val += *psrc++ ;
-          }
-        }
-        MRIvox(mri_dst, x, y, z) = (BUFTYPE)nint(val/8.0f) ;
+						switch (mri_src->type)
+						{
+						case MRI_UCHAR:
+							psrc = &MRIvox(mri_src, 2*x, y1, z1) ;
+							for (x1 = 2*x ; x1 <= 2*x+1 ; x1++)
+								val += *psrc++ ;
+							break ;
+						case MRI_SHORT:
+							pssrc = &MRISvox(mri_src, 2*x, y1, z1) ;
+							for (x1 = 2*x ; x1 <= 2*x+1 ; x1++)
+								val += *pssrc++ ;
+							break ;
+						default:
+							ErrorReturn(NULL,
+													(ERROR_UNSUPPORTED, "MRIdownsample2: unsupported input type %d",mri_src->type));
+						}
+					}
+				}
+				switch (mri_src->type)
+				{
+				case MRI_UCHAR:
+					MRIvox(mri_dst, x, y, z) = (BUFTYPE)nint(val/8.0f) ;
+					break ;
+				case MRI_SHORT:
+					MRISvox(mri_dst, x, y, z) = (short)nint(val/8.0f) ;
+					break ;
+				}
       }
     }
   }
