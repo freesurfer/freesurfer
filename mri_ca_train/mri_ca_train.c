@@ -4,8 +4,8 @@
 /*                                                                     */
 /* Warning: Do not edit the following four lines.  CVS maintains them. */
 /* Revision Author: $Author: tosa $                                           */
-/* Revision Date  : $Date: 2004/05/12 20:40:16 $                                             */
-/* Revision       : $Revision: 1.33 $                                         */
+/* Revision Date  : $Date: 2004/05/27 21:01:58 $                                             */
+/* Revision       : $Revision: 1.34 $                                         */
 /***********************************************************************/
 
 #include <stdio.h>
@@ -25,6 +25,7 @@
 #include "transform.h"
 #include "cma.h"
 #include "flash.h"
+#include "version.h"
 
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
@@ -91,6 +92,12 @@ main(int argc, char *argv[])
   parms.use_gradient = 0 ;
   parms.node_spacing = 4.0f ;
   parms.prior_spacing = 2.0f ;
+
+  /* rkt: check for and handle version tag */
+  nargs = handle_version_option (argc, argv, "$Id: mri_ca_train.c,v 1.34 2004/05/27 21:01:58 tosa Exp $", "$Name:  $");
+  if (nargs && argc - nargs == 1)
+    exit (0);
+  argc -= nargs;
 
   // parse command line args
   ac = argc ;
