@@ -61,6 +61,21 @@ void initVolGeom(VOL_GEOM *vg)
   vg->c_r =  0.; vg->c_a = 0.; vg->c_s =  0.;
 }
 
+void copyVolGeom(const VOL_GEOM *src, VOL_GEOM *dst)
+{
+  dst->valid = src->valid;
+  dst->width = src->width;
+  dst->height = src->height;
+  dst->depth = src->depth;
+  dst->xsize = src->xsize;
+  dst->ysize = src->ysize;
+  dst->zsize = src->zsize;
+  dst->x_r = src->x_r; dst->x_a = src->x_a; dst->x_s = src->x_s;
+  dst->y_r = src->y_r; dst->y_a = src->y_a; dst->y_s = src->y_s;
+  dst->z_r = src->z_r; dst->z_a = src->z_a; dst->z_s = src->z_s;
+  dst->c_r = src->c_r; dst->c_a = src->c_a; dst->c_s = src->c_s;
+}
+ 
 void writeVolGeom(FILE *fp, const VOL_GEOM *vg)
 {
   if (vg->valid==0)
@@ -494,7 +509,24 @@ LTAtransform(MRI *mri_src, MRI *mri_dst, LTA *lta)
   if (lta->num_xforms == 1)
   {
     if (lta->type == LINEAR_RAS_TO_RAS)
+    {
+      if (!mri_dst) 
+	mri_dst = MRIclone(mri_src, NULL) ;
+      LT *tran = &lta->xforms[0];
+      if (tran->dst.valid == 1) // transform dst is valid
+      {
+	// modify dst c_(r,a,s) using the transform dst value
+	// to make the better positioning
+	printf("INFO: Modifying dst c_(r,a,s), using the transform dst\n");
+	mri_dst->c_r = tran->dst.c_r;
+	mri_dst->c_a = tran->dst.c_a;
+	mri_dst->c_s = tran->dst.c_s;
+      }
+      else
+	printf("INFO: Transform dst volume info is not used (valid flag = 0).\n");
+
       return(MRIapplyRASlinearTransform(mri_src, mri_dst, lta->xforms[0].m_L)) ;
+    }
     else
       return(MRIlinearTransform(mri_src, mri_dst, lta->xforms[0].m_L)) ;
   }
@@ -1601,10 +1633,10 @@ void mincGetVolumeInfo(const char *srcVol, VOL_GEOM *vgSrc)
     vgSrc->c_r = worldr; vgSrc->c_a = worlda; vgSrc->c_s = worlds;
 
     vgSrc->valid = 1;
+    printf("INFO: Got the dst volume info.\n");
   }
   else
   {
-    printf("INFO: Set the src volume to the standard cor file.\n");
     initVolGeom(vgSrc);
   }
   return;
