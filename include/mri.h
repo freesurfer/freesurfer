@@ -228,6 +228,8 @@ MRI   *MRIzSobelRegion(MRI *mri_src, MRI *mri_z, int frame,MRI_REGION *region);
 
 MRI   *MRIreduce(MRI *mri_src, MRI *mri_dst) ;
 MRI   *MRIreduceByte(MRI *mri_src, MRI *mri_dst) ;
+MRI   *MRIconvolve1dShort(MRI *mri_src, MRI *mri_dst, float *k, int len, 
+                          int axis, int src_frame, int dst_frame) ;
 MRI   *MRIconvolve1dByte(MRI *mri_src, MRI *mri_dst, float *k, int len, 
                          int axis, int src_frame, int dst_frame) ;
 MRI   *MRIconvolve1d(MRI *mri_src, MRI *mri_dst, float *kernel, 
@@ -242,6 +244,7 @@ MRI   *MRIdiffuseCurvature(MRI *mri_src, MRI *mri_dst,
 MRI   *MRIdiffusePerona(MRI *mri_src, MRI *mri_dst, 
                              double k, int niter,double slope);
 MRI   *MRIdirectionMap(MRI *mri_grad, MRI *mri_direction, int wsize);
+MRI   *MRIdirectionMapUchar(MRI *mri_grad, MRI *mri_direction, int wsize);
 
 /* offset stuff */
 MRI   *MRIoffsetDirection(MRI *mri_grad, int wsize, MRI *mri_direction,
