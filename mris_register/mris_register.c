@@ -14,7 +14,7 @@
 #include "version.h"
 #include "gcsa.h"
 
-static char vcid[] = "$Id: mris_register.c,v 1.24 2005/02/05 23:37:59 segonne Exp $";
+static char vcid[] = "$Id: mris_register.c,v 1.25 2005/02/11 19:34:05 segonne Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -53,6 +53,7 @@ static int   label_indices[MAX_LABELS] ;
 
 /* multiframe registration */
 static int multiframes = 0;
+#define NUMBER_OF_FIELDS_IN_VECTORIAL_REGISTRATION 11
 #define NUMBER_OF_FRAMES NUMBER_OF_FIELDS_IN_VECTORIAL_REGISTRATION
 #define PARAM_FRAMES  (IMAGES_PER_SURFACE*NUMBER_OF_FRAMES)
 
@@ -72,7 +73,7 @@ main(int argc, char *argv[])
   MRI_SP       *mrisp_template ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_register.c,v 1.24 2005/02/05 23:37:59 segonne Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_register.c,v 1.25 2005/02/11 19:34:05 segonne Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -185,8 +186,7 @@ main(int argc, char *argv[])
   if (nbrs > 1)
     MRISsetNeighborhoodSize(mris, nbrs) ;
   MRISprojectOntoSphere(mris, mris, DEFAULT_RADIUS) ;
-  if (reverse_flag)
-    MRISreverse(mris, REVERSE_X) ; 
+  if (reverse_flag) MRISreverse(mris, REVERSE_X) ; 
   mris->status = MRIS_PARAMETERIZED_SPHERE ;
   MRIScomputeMetricProperties(mris) ;
   if (!FZERO(parms.l_dist))
@@ -199,10 +199,12 @@ main(int argc, char *argv[])
   MRISstoreMeanCurvature(mris) ;  /* use curvature from file */
   /*  MRISsetOriginalFileName(mris, orig_name) ;*/
   MRISreadOriginalProperties(mris, orig_name) ;
+
 	if(multiframes)
 		MRISvectorRegister(mris, mrisp_template, &parms, max_passes, min_degrees, max_degrees, nangles) ;
 	else
 		MRISregister(mris, mrisp_template, &parms, max_passes, min_degrees, max_degrees, nangles) ;
+
   fprintf(stderr, "writing registered surface to %s...\n", out_fname) ;
   MRISwrite(mris, out_fname) ;
   if (jacobian_fname)
@@ -285,6 +287,11 @@ get_option(int argc, char *argv[])
     fprintf(stderr, "using amygdala distance map \n") ;
 		nargs=1;
   }
+	else if (!stricmp(option, "topology"))
+  {
+		parms.flags |= IPFLAG_PRESERVE_SPHERICAL_POSITIVE_AREA;
+		fprintf(stderr, "preserving the topology of positive area triangles\n");
+  }
   else if (!stricmp(option, "vnum") || !stricmp(option, "distances"))
   {
     parms.nbhd_size = atof(argv[2]) ;
@@ -342,6 +349,11 @@ get_option(int argc, char *argv[])
   {
     fprintf(stderr, "disabling initial rigid alignment...\n") ;
     parms.flags |= IP_NO_RIGID_ALIGN ;
+  }
+	else if (!stricmp(option, "nosulc"))
+  {
+    fprintf(stderr, "disabling initial sulc alignment...\n") ;
+    parms.flags |= IP_NO_SULC ;
   }
   else if (!stricmp(option, "lm"))
   {

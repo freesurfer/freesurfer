@@ -13,11 +13,11 @@
 #include "macros.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_make_template.c,v 1.12 2005/02/09 16:25:25 tosa Exp $";
-
+static char vcid[] = "$Id: mris_make_template.c,v 1.13 2005/02/11 19:34:18 segonne Exp $";
+ 
 int main(int argc, char *argv[]) ;
 
-static int  get_option(int argc, char *argv[]) ;
+static int  get_option(int argc, char *argv[],INTEGRATION_PARMS *parms) ;
 static void usage_exit(void) ;
 static void print_usage(void) ;
 static void print_help(void) ;
@@ -39,7 +39,6 @@ static char *curvature_names[] =
   NULL
 } ;
 
-
 #define IMAGES_PER_SURFACE   3   /* mean, variance, and dof */
 #define SURFACES         sizeof(curvature_names) / sizeof(curvature_names[0])
 #define PARAM_IMAGES         (IMAGES_PER_SURFACE*SURFACES)
@@ -52,34 +51,17 @@ static char subjects_dir[STRLEN] ;
 
 /* VECTORIAL_REGISTRATION */
 static void setParms(INTEGRATION_PARMS *parms);
-static char *FRAME_FIELD_NAMES[]=  /* order correspond to maccros defined in mrisurf.h */
-	{
-		NULL,
-		"sulc",
-		NULL, /* curvature directly computed */
-		GRAYMID_NAME,
-		T1MID_NAME,
-		T2MID_NAME,
-		PDMID_NAME,
-		AMYGDALA_DIST_NAME,       
-		HIPPOCAMPUS_DIST_NAME,        
-		PALLIDUM_DIST_NAME,        
-		PUTAMEN_DIST_NAME,          
-		CAUDATE_DIST_NAME,          
-		LAT_VENTRICLE_DIST_NAME,     
-		INF_LAT_VENTRICLE_DIST_NAME,
-	};
+static int multiframes = 0 ; /* to use multiframes */
+static int base_default = 1 ;  /* using default vector fields */
+static int atlas_size = 3;
 
-static int multiframes = 0;
-#define NUMBER_OF_FRAMES NUMBER_OF_FIELDS_IN_VECTORIAL_REGISTRATION
-#define PARAM_FRAMES  (IMAGES_PER_SURFACE*NUMBER_OF_FRAMES)
 
 int
 main(int argc, char *argv[])
 {
   char         **av, surf_fname[STRLEN], *template_fname, *hemi, *sphere_name,
                *cp, *subject, fname[STRLEN] ;
-  int          ac, nargs, ino, sno, nbad = 0, failed, n,failed_field[MNOFIV],ncorrs;
+  int          ac, nargs, ino, sno, nbad = 0, failed, n,ncorrs;
   VERTEX *v;
   VALS_VP *vp;
   MRI_SURFACE  *mris ;
@@ -87,7 +69,7 @@ main(int argc, char *argv[])
   INTEGRATION_PARMS parms ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_make_template.c,v 1.12 2005/02/09 16:25:25 tosa Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_make_template.c,v 1.13 2005/02/11 19:34:18 segonne Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -96,12 +78,14 @@ main(int argc, char *argv[])
   Progname = argv[0] ;
   ErrorInit(NULL, NULL, NULL) ;
   DiagInit(NULL, NULL, NULL) ;
+	/* setting default values for vectorial registration */
+	setParms(&parms);
 
   ac = argc ;
   av = argv ;
   for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++)
   {
-    nargs = get_option(argc, argv) ;
+    nargs = get_option(argc, argv,&parms) ;
     argc -= nargs ;
     argv += nargs ;
   }
@@ -110,10 +94,7 @@ main(int argc, char *argv[])
     usage_exit() ;
 
 	/* multiframe registration */
-	if(multiframes){
-		parms.flags |= IP_USE_MULTIFRAMES;
-		setParms(&parms);
-	}
+	if(multiframes) parms.flags |= IP_USE_MULTIFRAMES;
 
   if (!strlen(subjects_dir))  /* not specified on command line*/
   {
@@ -130,7 +111,7 @@ main(int argc, char *argv[])
   {
     fprintf(stderr, "creating new parameterization...\n") ;
     if(multiframes){
-			mrisp_template = MRISPalloc(scale, PARAM_FRAMES); 
+			mrisp_template = MRISPalloc(scale, atlas_size * IMAGES_PER_SURFACE ); 
 			/* 			if (no_rot)  /\* don't do rigid alignment *\/ */
 			/* 				mrisp_aligned = NULL ; */
 			/* 			else */
@@ -159,8 +140,6 @@ main(int argc, char *argv[])
   for (ino = 0 ; ino < argc-1 ; ino++)
   {
 		failed = 0 ;
-		memset(failed_field,0,sizeof(int)*MNOFIV); /* for multiframes only */
-    if(multiframes) setParms(&parms); /* reset parameter values to default */
     subject = argv[ino] ;
     fprintf(stderr, "processing subject %s (%d of %d)\n", subject,
 						ino+1, argc-1) ;
@@ -176,7 +155,8 @@ main(int argc, char *argv[])
 			continue ;
 		}
     MRISsaveVertexPositions(mris, CANONICAL_VERTICES) ;
-    MRIScomputeMetricProperties(mris) ; MRISstoreMetricProperties(mris) ;
+    MRIScomputeMetricProperties(mris) ; 
+		MRISstoreMetricProperties(mris) ;
 
     if (Gdiag & DIAG_WRITE)
     {
@@ -214,15 +194,13 @@ main(int argc, char *argv[])
 			
 			/* load the different fields */
 			for(n = 0 ; n < parms.ncorrs ; n++){
-				if (FRAME_FIELD_NAMES[parms.corrfields[n]]){  /* read in precomputed curvature file */
-					sprintf(surf_fname, "%s/%s/surf/%s.%s", subjects_dir, subject, hemi, FRAME_FIELD_NAMES[parms.corrfields[n]]) ;
+				if (ReturnFieldName(parms.corrfields[n])){  /* read in precomputed curvature file */
+					sprintf(surf_fname, "%s/%s/surf/%s.%s", subjects_dir, subject, hemi, ReturnFieldName(parms.corrfields[n])) ;
 					if (MRISreadCurvatureFile(mris, surf_fname) != NO_ERROR){
 						fprintf(stderr,"\n\nXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX\n");
 						fprintf(stderr, "%s: could not read curvature file '%s'\n",Progname, surf_fname) ;
-						fprintf(stderr,"setting up correlation coefficient to zero\n");
-						parms.l_corrs[n]=parms.l_pcorrs[n]=0.0;
-						failed_field[n]=1;
-						continue;
+						failed = 1;
+						break;
 					}
 				}else{                       /* compute curvature of surface */
 					sprintf(surf_fname, "%s/%s/surf/%s.%s", subjects_dir, subject, hemi, surface_names[parms.corrfields[n]]) ;
@@ -238,8 +216,8 @@ main(int argc, char *argv[])
 												Progname, surf_fname) ;
 						fprintf(stderr,"setting up correlation coefficient to zero\n");
 						parms.l_corrs[n]=parms.l_pcorrs[n]=0.0;
-						failed_field[n]=1;
-						continue;
+						failed=1;
+						break;
 					}
 					MRISsetNeighborhoodSize(mris, -1) ;  /* back to max */
 					MRIScomputeMetricProperties(mris) ;
@@ -248,67 +226,73 @@ main(int argc, char *argv[])
 					MRISresetNeighborhoodSize(mris,1);/*only use nearest neighbor distances*/
 					MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
 				}
-				MRISnormalizeField(mris,IS_DISTANCE_FIELD(parms.corrfields[n])); /* normalize values */
+				MRISnormalizeField(mris,parms.types[n]); /* normalize values */
 				MRISsetCurvaturesToOrigValues(mris,n);
 				MRISsetCurvaturesToValues(mris,n);
 			}
-		}
-		
-		if (!no_rot && ino > 0)
-		{
-      if(multiframes){
-				parms.frame_no = 3 ; 
-				parms.l_corr = parms.l_pcorr = 0.0f ; /* don't use single field correlation functions */
-				
-				parms.mrisp = MRIStoParameterization(mris, NULL, scale, 0) ;
-				parms.mrisp_template = mrisp_template ;
-				
-				MRISrigidBodyAlignVectorGlobal(mris, &parms, 1.0, 64.0, 8) ;
-				if (Gdiag & DIAG_WRITE)
-					MRISwrite(mris, "sphere.rot.global") ;
-				MRISrigidBodyAlignVectorLocal(mris, &parms) ;
-				if (Gdiag & DIAG_WRITE)
-					MRISwrite(mris, "sphere.rot.local") ;
-				MRISPfree(&parms.mrisp) ;
-				MRISsaveVertexPositions(mris, CANONICAL_VERTICES) ;
-			}else{
-				sprintf(surf_fname, "%s/%s/surf/%s.%s", 
-								subjects_dir, subject, hemi, "sulc") ;
-				if (MRISreadCurvatureFile(mris, surf_fname) != NO_ERROR)
-				{
-					ErrorPrintf(Gerror, "%s: could not read curvature file '%s'\n",
-											Progname, surf_fname) ;
-					nbad++ ;
-					MRISfree(&mris) ;
-					continue ;
+			if(failed){
+				/* free cal structure*/
+				for( n = 0; n < mris->nvertices ; n++){
+				v=&mris->vertices[n];
+				vp=(VALS_VP*)v->vp;
+				free(vp->orig_vals);
+				free(vp->vals);
+				free(vp);
+				v->vp=NULL;
 				}
-				parms.frame_no = 3 ; /* use sulc for rigid registration */
-				parms.mrisp = MRIStoParameterization(mris, NULL, scale, 0) ;
-				parms.mrisp_template = mrisp_template ;
-				parms.l_corr = 1.0f ;
-				
-				MRISrigidBodyAlignGlobal(mris, &parms, 1.0, 64.0, 8) ;
-				if (Gdiag & DIAG_WRITE)
-					MRISwrite(mris, "sphere.rot.global") ;
-				MRISrigidBodyAlignLocal(mris, &parms) ;
-				if (Gdiag & DIAG_WRITE)
-					MRISwrite(mris, "sphere.rot.local") ;
-				MRISPfree(&parms.mrisp) ;
-				MRISsaveVertexPositions(mris, CANONICAL_VERTICES) ;
+				/* free surface */
+				MRISfree(&mris);
+				/* go onto the next subject */
+				continue;
 			}
 		}
+	
+		if (multiframes && (!no_rot)){ /* rigid body alignment */
+			parms.frame_no = 3 ;  /* don't use single field correlation functions */
+			parms.l_corr = parms.l_pcorr = 0.0f ; 
+			
+			parms.mrisp = MRIStoParameterization(mris, NULL, scale, 0) ;
+			parms.mrisp_template = mrisp_template ;
+			
+			MRISrigidBodyAlignVectorGlobal(mris, &parms, 1.0, 64.0, 8) ;
+			if (Gdiag & DIAG_WRITE) MRISwrite(mris, "sphere.rot.global") ;
+			MRISrigidBodyAlignVectorLocal(mris, &parms) ;
+			if (Gdiag & DIAG_WRITE) MRISwrite(mris, "sphere.rot.local") ;
+			MRISPfree(&parms.mrisp) ;
+			MRISsaveVertexPositions(mris, CANONICAL_VERTICES) ;
+		};
+		if((!multiframes) && (!no_rot) && ino > 0){ /* rigid body alignment */
+			sprintf(surf_fname, "%s/%s/surf/%s.%s", 
+							subjects_dir, subject, hemi, "sulc") ;
+			if (MRISreadCurvatureFile(mris, surf_fname) != NO_ERROR)
+			{
+				ErrorPrintf(Gerror, "%s: could not read curvature file '%s'\n",
+										Progname, surf_fname) ;
+				nbad++ ;
+				MRISfree(&mris) ;
+				continue ;
+			}
+			parms.frame_no = 3 ; /* use sulc for rigid registration */
+			parms.mrisp = MRIStoParameterization(mris, NULL, scale, 0) ;
+			parms.mrisp_template = mrisp_template ;
+			parms.l_corr = 1.0f ;
+			
+			MRISrigidBodyAlignGlobal(mris, &parms, 1.0, 64.0, 8) ;
+			if (Gdiag & DIAG_WRITE)
+				MRISwrite(mris, "sphere.rot.global") ;
+			MRISrigidBodyAlignLocal(mris, &parms) ;
+			if (Gdiag & DIAG_WRITE)
+				MRISwrite(mris, "sphere.rot.local") ;
+			MRISPfree(&parms.mrisp) ;
+			MRISsaveVertexPositions(mris, CANONICAL_VERTICES) ;
+		}
 
-				if(multiframes){
+		if(multiframes){
 			for (n = 0; n < parms.ncorrs ; n++)
 			{
-				if(failed_field[n]) continue;
-				
-				//				fprintf(stderr, "computing parameterization for surface %s...\n",);
-				
 				MRISsetOrigValuesToCurvatures(mris,n);
-				//				MRISnormalizeField(mris,IS_DISTANCE_FIELD(parms.corrfields[n]));
 				mrisp = MRIStoParameterization(mris, NULL, scale, 0) ;
-				MRISPcombine(mrisp, mrisp_template, n*3) ;
+				MRISPcombine(mrisp, mrisp_template, parms.frames[n]*IMAGES_PER_SURFACE) ;
 				MRISPfree(&mrisp) ;
 			}
 			/* free the VALS_VP structure */
@@ -373,7 +357,6 @@ main(int argc, char *argv[])
 			MRISfree(&mris) ;
 		}
 	}
-
 
 #if 0
   if (mrisp_aligned)  /* new parameterization - use rigid alignment */
@@ -499,9 +482,9 @@ main(int argc, char *argv[])
            Description:
 ----------------------------------------------------------------------*/
 static int
-get_option(int argc, char *argv[])
+get_option(int argc, char *argv[],INTEGRATION_PARMS *parms)
 {
-  int  nargs = 0 ;
+  int  n,nargs = 0 ;
   char *option ;
   
   option = argv[1] + 1 ;            /* past '-' */
@@ -526,10 +509,78 @@ get_option(int argc, char *argv[])
     no_rot = 1 ;
     fprintf(stderr, "not aligning hemispheres before averaging.\n") ;
   }
+	else if (!stricmp(option, "nodefault"))
+  {
+		base_default=0;
+		atlas_size = 0;
+		parms->ncorrs=0;
+		for(n=0;n<3;n++){
+			parms->frames[n]=0;
+			parms->types[n]=0;
+			parms->corrfields[n]=0;
+			parms->l_corrs[n]=0.0f;
+			parms->l_pcorrs[n]=0.0f;
+		}
+	}
+	else if (!stricmp(option, "size"))
+	{
+		int size=atoi(argv[2]);
+		if(size<=0) {
+			fprintf(stderr,"ERROR: size should at least 1!\n");
+			exit(1);
+		}
+		atlas_size = size; 
+		fprintf(stderr,"Setting up atlas size to %d\n",size);
+		nargs=1;
+	}
 	else if (!stricmp(option, "vector"))
   {
-    multiframes = 1 ;
-    fprintf(stderr, "generating vector atlas\n") ;
+		fprintf(stderr,"\nMultiframe Mode:\n");
+		fprintf(stderr,"Use <addframe> option to add extra-fields into average atlas\n");
+		fprintf(stderr,"Use <size> option to set up the # of frames\n");
+		fprintf(stderr,"field code:\n");
+	 	for(n=0 ; n < NUMBER_OF_VECTORIAL_FIELDS ; n++)
+		 	fprintf(stderr,"     field %d is '%s' (type = %d)\n",n,ReturnFieldName(n),IsDistanceField(n));
+		
+	}
+ 	else if (!stricmp(option, "addframe"))
+  {
+ 		int which_field,where_in_atlas,field_type;
+		
+		if(multiframes==0) /* activate multiframes mode */
+			multiframes = 1;
+
+		which_field=atoi(argv[2]);
+		where_in_atlas=atoi(argv[3]);
+		field_type=IsDistanceField(which_field);
+
+		fprintf(stderr, "adding field %d into average atlas at location %d\n",which_field,where_in_atlas) ;
+		if( base_default && (where_in_atlas<3) ){
+			fprintf(stderr,"ERROR: Cannot add field %d into atlas\n",which_field);
+			fprintf(stderr,"       By default, the first 3 fields are:\n");
+			fprintf(stderr,"       -curvature of inflated surface \n");
+			fprintf(stderr,"       -sulc of smoothwm surface \n");
+			fprintf(stderr,"       -curvature of smoothwm surface \n");
+			fprintf(stderr,"To cancel this option, use <nodefault> first\n");
+			exit(1);
+		}
+		/* check if this field exist or not */
+		for(n = 0 ; n < parms->ncorrs ; n++){
+			if(parms->corrfields[n]==which_field){
+				fprintf(stderr,"ERROR: field already exists\n");
+				exit(1);
+			}
+		}
+		/* adding field into parms */
+		n=parms->ncorrs++;
+		parms->corrfields[n]=which_field;
+		parms->frames[n]=where_in_atlas;
+		parms->types[n]=field_type;
+		if(where_in_atlas > atlas_size) {
+			atlas_size = where_in_atlas;
+			fprintf(stderr,"Atlas size increased to contain at least %d frames\n",atlas_size);
+		}
+		nargs = 2 ;
   }
   else switch (toupper(*option))
   {
@@ -584,6 +635,8 @@ print_help(void)
   fprintf(stderr, 
        "\nThis program will add a template into an average surface.\n");
   fprintf(stderr, "\nvalid options are:\n\n") ;
+	fprintf(stderr,"addframe which_field where_in_atlas \n");
+	fprintf(stderr,"vector : printf additional information for <addframe>\n");
   exit(1) ;
 }
 
@@ -596,49 +649,19 @@ print_version(void)
 
 /* set the correct set of vectorial parameters */
 static void setParms(INTEGRATION_PARMS *parms){
-	parms->ncorrs=NUMBER_OF_FRAMES;
+	/* default template fields*/
+	parms->ncorrs=3;
 		
 	parms->corrfields[0]=INFLATED_CURV_CORR_FRAME ; 
 	parms->frames[0]=0;
 	parms->l_corrs[0]=0.0f;parms->l_pcorrs[0]=0.0f;
 	
+	/* only use sulc for rigid registration */
 	parms->corrfields[1]=SULC_CORR_FRAME;
 	parms->frames[1]=1;
-	parms->l_corrs[1]=1.0f;parms->l_pcorrs[1]=1.0f;
+	parms->l_corrs[1]=1.0f;parms->l_pcorrs[1]=0.0f;
 	
 	parms->corrfields[2]=CURVATURE_CORR_FRAME;
 	parms->frames[2]=2;
-	parms->l_corrs[2]=1.0f;parms->l_pcorrs[2]=1.0f;
-	
-	parms->corrfields[3]=GRAYMID_CORR_FRAME;
-	parms->frames[3]=3;
-	parms->l_corrs[3]=1.0f;parms->l_pcorrs[3]=1.0f;
-	
-	parms->corrfields[4]=AMYGDALA_CORR_FRAME;
-	parms->frames[4]=4;
-	parms->l_corrs[4]=1.0f;parms->l_pcorrs[4]=1.0f;
-	
-	parms->corrfields[5]=HIPPOCAMPUS_CORR_FRAME;
-	parms->frames[5]=5;
-	parms->l_corrs[5]=1.0f;parms->l_pcorrs[5]=1.0f;
-	
-	parms->corrfields[6]=PALLIDUM_CORR_FRAME;
-	parms->frames[6]=6;
-	parms->l_corrs[6]=1.0f;parms->l_pcorrs[6]=1.0f;
-	
-	parms->corrfields[7]=PUTAMEN_CORR_FRAME;
-	parms->frames[7]=7;
-	parms->l_corrs[7]=1.0f;parms->l_pcorrs[7]=1.0f;
-	
-	parms->corrfields[8]=CAUDATE_CORR_FRAME;
-	parms->frames[8]=8;
-	parms->l_corrs[8]=1.0f;parms->l_pcorrs[8]=1.0f;
-	
-	parms->corrfields[9]=LAT_VENTRICLE_CORR_FRAME;
-	parms->frames[9]=9;
-	parms->l_corrs[9]=1.0f;parms->l_pcorrs[9]=1.0f;
-	
-	parms->corrfields[10]=INF_LAT_VENTRICLE_CORR_FRAME;
-	parms->frames[10]=10;
-	parms->l_corrs[10]=1.0f;parms->l_pcorrs[10]=1.0f;
+	parms->l_corrs[2]=0.0f;parms->l_pcorrs[2]=0.0f;
 }
