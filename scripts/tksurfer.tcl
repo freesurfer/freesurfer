@@ -81,7 +81,7 @@ set surfcolor 1
 set shrinksteps 5
 set smoothsteps 5
 set smoothtype val
-set redrawlockflag 1
+set redrawlockflag 0
 
 
 set gCopyFieldTarget 0
@@ -91,7 +91,11 @@ set kanDefaultTransform(rotate) 90
 set kanDefaultTransform(translate) 10
 set kanDefaultTransform(scale) 110
 
-#set home $env(HOME)
+# set some default histogram data
+set gaHistogramData(zoomed) 0
+
+
+#set home /home/kteich/subjects
 #set session ./
 #set subject anders
 
@@ -111,7 +115,7 @@ set gaLinkedVars(complexvalflag) 0
 set gaLinkedVars(currentvaluefield) 0
 set gaLinkedVars(fthresh) 0
 set gaLinkedVars(fmid) 0
-set gaLinkedVars(fslope) 0
+set gaLinkedVars(fthreshmax) 0
 set gaLinkedVars(fslope) 0
 set gaLinkedVars(fnumconditions) 0
 set gaLinkedVars(fnumtimepoints) 0
@@ -136,9 +140,11 @@ set gaLinkedVars(colscalebarflag) 0
 set gaLinkedVars(verticesflag) 0
 set gaLinkedVars(cmid) 0
 set gaLinkedVars(dipavg) 0
+set gaLinkedVars(curvflag) 1
 set gaLinkedVars(mouseoverflag) 0
-set gaLinkedVars(redrawlockflag) 1
+set gaLinkedVars(redrawlockflag) 0
 set gaLinkedVars(drawlabelflag) 1
+set gaLinkedVars(labelstyle) 0
 set gaLinkedVars(timeresolution) 0
 set gaLinkedVars(numprestimpoints) 0
 set gaLinkedVars(colortablename) ""
@@ -153,14 +159,14 @@ array set gaLinkedVarGroups {
     curvature { cslope cmid cmin cmax }
     phase { angle_offset angle_cycles }
     inflate { sulcflag }
-    view { flagsurfcolor vertexset overlayflag scalebarflag \
+    view { curvflag flagsurfcolor vertexset overlayflag scalebarflag \
   colscalebarflag verticesflag currentvaluefield }
     cvavg { cmid dipavg }
     mouseover { mouseoverflag }
     all { light0 light1 light2 light3 offset colscale truncphaseflag invphaseflag revphaseflag complexvalflag fthresh foffset fmid fslope cslope cmid angle_offset angle_cycles sulcflag surfcolor vertexset overlayflag scalebarflag colscalebarflag verticesflag cmid dipavg mouseoverflag colortablename }
     redrawlock { redrawlockflag }
     graph { timeresolution numprestimpoints }
-    label { colortablename drawlabelflag }
+    label { colortablename drawlabelflag labelstyle }
 }
 
 proc SendLinkedVarGroup { iGroup } {
@@ -168,9 +174,9 @@ proc SendLinkedVarGroup { iGroup } {
     set lVars $gaLinkedVarGroups($iGroup)
     foreach var $lVars {
   catch {
-    upvar #0 $var varToUpdate;
-    set varToUpdate $gaLinkedVars($var)
-      }
+      upvar #0 $var varToUpdate;
+      set varToUpdate $gaLinkedVars($var)
+  }
     }
 }
 
@@ -389,9 +395,116 @@ set gaScalarValueID(8,label) kLabel_StdError
 
 # tool bar frames
 set gfwaToolBar(main)  ""
+set gfwaToolBar(label)  ""
 
 # ========================================================= BUILDING INTERFACE
 
+
+proc CreateColorPicker { iwTop iCallbackFunction {izSquare 16} } {
+    global gColorPickerCB
+
+    # Picker config.
+    set kzSquareX $izSquare
+    set kzSquareY $izSquare
+    set klSquaresX 25
+    set klSquaresY 9
+    
+    # 216 colors
+    set kcReds 4
+    set kcGreens 4
+    set kcBlues 8
+
+    set gColorPickerCB $iCallbackFunction
+
+    frame $iwTop
+
+    set cwPicker       $iwTop.cwPicker
+
+    # Create the canvas with the right width and height
+    canvas $cwPicker \
+  -width [expr $kzSquareX * $klSquaresX] \
+  -height [expr $kzSquareY * $klSquaresY]
+
+    # Find the color increments for each next square.
+    set redInc   [expr 256 / $kcReds]
+    set greenInc [expr 256 / $kcGreens]
+    set blueInc  [expr 256 / $kcBlues]
+
+    # Start off with color 0,0,0.
+    set r 0
+    set g 0
+    set b 0
+
+    # For each square...
+    for { set nY 0 } { $nY < $klSquaresY } { incr nY } {
+  for { set nX 0 } { $nX < $klSquaresX } { incr nX } {
+      
+      # Create a square in the current color, converting our
+      # numerical values to a hex color value. Also give it the
+      # common tag 'color' and a tag made out of its numerical
+      # color components.
+      $cwPicker create rectangle \
+    [expr $nX * $kzSquareX] [expr $nY * $kzSquareY] \
+    [expr ($nX+1) * $kzSquareX] [expr ($nY+1) * $kzSquareY] \
+    -fill [format "#%.2x%.2x%.2x" $r $g $b] \
+    -tags "color $r-$g-$b"
+
+      # Increment our numerical color values in the order of r,
+      # g, and then b. With the increments we have, we'll
+      # actually get to 256, but we really want a top value of
+      # 255, so check for the 256 and bump it down to
+      # 255. (Dividing with 255 when finding the increments
+      # doesn't give us the full 0-255 range.
+      incr r $redInc
+      if { $r == 256 } { set r 255 }
+      if { $r > 255 } {
+    set r 0
+    incr g $greenInc
+    if { $g == 256 } { set g 255 }
+    if { $g > 255 } {
+        set g 0
+        incr b $blueInc
+        if { $b == 256 } { set b 255 }
+        if { $b > 255 } {
+      set b 0
+        }
+    }
+      }
+  }
+    }
+
+    # When we click on a color square, call the function.
+    $cwPicker bind color <Button-1> { HandlePickedColor %W }
+
+    pack $cwPicker -fill both
+}
+
+proc HandlePickedColor { icwPicker } {
+    global gColorPickerCB
+
+    # Get the numerical tag from the current element, the one the
+    # mouse is in. This is our r-g-b tag. Extract the numerical elements.
+    set color [lindex [$icwPicker gettags current] 1]
+    scan $color "%d-%d-%d" r g b
+
+    # Detroy the color picker dlog.
+    destroy .wwColorPicker
+
+    # Call the callback function.
+    $gColorPickerCB $r $g $b
+}
+
+proc CreateColorPickerWindow { iCallbuckFunction } {
+
+    # Make a new window, put a color picker inside it with our given
+    # callback function, and pack it.
+    toplevel .wwColorPicker 
+    wm title .wwColorPicker "Choose a color..."
+    tkm_MakeNormalLabel .wwColorPicker.lwInstructions "Chose a color..."
+    CreateColorPicker .wwColorPicker.cpwColor $iCallbuckFunction
+    pack .wwColorPicker.lwInstructions .wwColorPicker.cpwColor \
+  -side top
+}
 
 proc DoFileDlog { which } {
     global tDlogSpecs
@@ -519,16 +632,74 @@ proc FillOverlayLayerMenu { iowOverlay } {
     $iowOverlay config -disablecallback 0
 }
 
-proc DoConfigOverlayDisplayDlog {} {
+proc SetMin { iWidget inThresh } {
+    global gaLinkedVars
+    if { 1 || $inThresh <= $gaLinkedVars(fmid) &&
+   $inThresh < $gaLinkedVars(fthreshmax) } {
+  set gaLinkedVars(fthresh) $inThresh
+  $iWidget marker create line \
+      -coords [list $inThresh -Inf $inThresh Inf] \
+      -name thresh -outline red
+    }
+}
 
+proc SetMid { iWidget inThresh ibUpdateSlope } {
+    global gaLinkedVars
+    if { 1 || $inThresh >= $gaLinkedVars(fthresh) &&
+   $inThresh < $gaLinkedVars(fthreshmax) } {
+  set gaLinkedVars(fmid) $inThresh
+  $iWidget marker create line \
+      -coords [list $inThresh -Inf $inThresh Inf] \
+      -name mid -outline blue
+  if { $ibUpdateSlope } {
+      SetSlope $iWidget [expr 1.0 / ($gaLinkedVars(fthreshmax) - $gaLinkedVars(fmid))] 0
+  }
+    }
+}
+
+proc SetMax { iWidget inThresh ibUpdateSlope } {
+    global gaLinkedVars
+    if { 1 || $inThresh > $gaLinkedVars(fthresh) &&
+   $inThresh > $gaLinkedVars(fmid) } {
+  set gaLinkedVars(fthreshmax) $inThresh
+  $iWidget marker create line \
+      -coords [list $inThresh -Inf $inThresh Inf] \
+      -name max -outline green
+  if { $ibUpdateSlope } {
+      SetSlope $iWidget [expr 1.0 / ($gaLinkedVars(fthreshmax) - $gaLinkedVars(fmid))] 0
+  }
+    }
+}
+
+proc SetSlope { iWidget inSlope ibUpdateMax } {
+    global gaLinkedVars
+    set gaLinkedVars(fslope) $inSlope
+    if { $ibUpdateMax } {
+  SetMax $iWidget [expr (1.0 / $gaLinkedVars(fslope)) + $gaLinkedVars(fmid)] 0
+    }
+}
+
+proc UpdateHistogramData { iMin iMax iIncrement iNum ilData } {
+    global gaHistogramData
+
+    set gaHistogramData(min) $iMin
+    set gaHistogramData(max) $iMax
+    set gaHistogramData(increment) $iIncrement
+    set gaHistogramData(numBars) $iNum
+    set gaHistogramData(data) $ilData
+}
+
+proc DoConfigOverlayDisplayDlog {} {
+    
     global gDialog
     global gaLinkedVars
     global gCopyFieldTarget
-
+    global gbwHisto
+    
     set wwDialog .wwConfigOverlayDisplayDlog
-
+    
     UpdateLinkedVarGroup overlay
-
+    
     if { [Dialog_Create $wwDialog "Configure Overlay Display" {-borderwidth 10}] } {
   
   set fwMain             $wwDialog.fwMain
@@ -536,11 +707,11 @@ proc DoConfigOverlayDisplayDlog {} {
   set fwCondition        $wwDialog.fwCondition
   set fwColorScale       $wwDialog.fwColorScale
   set fwFlags            $wwDialog.fwFlags
-  set lfwThreshold       $wwDialog.lfwThreshold
+  set fwHisto            $wwDialog.fwHisto
   set fwButtons          $wwDialog.fwButtons
   
   frame $fwMain
-  
+
   set nMaxCondition [expr $gaLinkedVars(fnumconditions) - 1]
   if { $nMaxCondition < 0 } {
       set nMaxCondition 0
@@ -553,12 +724,12 @@ proc DoConfigOverlayDisplayDlog {} {
   tkm_MakeEntryWithIncDecButtons \
       $fwTimePoint "Time Point (0-$nMaxTimePoint)" \
       gaLinkedVars(ftimepoint) \
-      {} 1
+      {} 1 "0 $nMaxTimePoint"
   
   tkm_MakeEntryWithIncDecButtons \
       $fwCondition "Condition (0-$nMaxCondition)" \
       gaLinkedVars(fcondition) \
-      {} 1
+      {} 1 "0 $nMaxCondition"
   
   # color scale
   tkm_MakeRadioButtons $fwColorScale y "Color Scale" \
@@ -568,84 +739,168 @@ proc DoConfigOverlayDisplayDlog {} {
     { text "Two Condition Green Red (Complex)" 4 {} }
     { text "Green to Red (Signed)" 7 {} }
     { text "Heat Scale (Stat, Positive)" 1 {} }
-        { text "Blue to Red (Signed)" 6 {} }
+    { text "Blue to Red (Signed)" 6 {} }
     { text "Not Here (Signed)" 9 {} } }
-
+  
   # checkboxes for truncate, inverse, reverse phase, complex values
   tkm_MakeCheckboxes $fwFlags y {
       { text "Truncate" gaLinkedVars(truncphaseflag) {} }
       { text "Inverse" gaLinkedVars(invphaseflag) {} }
       { text "Reverse" gaLinkedVars(revphaseflag) {} }
       { text "Complex" gaLinkedVars(complexvalflag) {} } }
+  
 
-  # sliders for thresh, mid, field for slope
-  tixLabelFrame $lfwThreshold \
-      -label "Threshold" \
-      -labelside acrosstop \
-      -options { label.padX 5 }
+  # create the histogram frame and subunits
+  frame $fwHisto
+
+  set gbwHisto  $fwHisto.bwHisto
+  set fwThresh $fwHisto.fwThresh
+  set ewMin    $fwThresh.ewMin
+  set ewMid    $fwThresh.ewMid
+  set ewMax    $fwThresh.ewMax
+  set ewSlope  $fwThresh.ewSlope
+  set fwCopy   $fwHisto.fwCopy
+  set bwCopy   $fwCopy.bwCopy
+  set owTarget $fwCopy.owTarget
+
+  # create a barchart object. configure it to hide the legend
+  # and rotate the labels on the x axis.
+  blt::barchart $gbwHisto -width 200 -height 200
+  $gbwHisto legend config -hide yes
+  $gbwHisto axis config x -rotate 90.0 -stepsize 5
+
+  # bind the button pressing events to set the thresholds.
+  bind $gbwHisto <ButtonPress-1> \
+      { SetMin %W [%W axis invtransform x %x] }
+  bind $gbwHisto <ButtonPress-2> \
+      { SetMid %W [%W axis invtransform x %x] 1 }
+  bind $gbwHisto <ButtonPress-3> \
+      { SetMax %W [%W axis invtransform x %x] 1 }
+
+  # bind the bututon pressing events that do the zooming.
+  bind $gbwHisto <Control-ButtonPress-2>   { Histo_RegionStart %W %x %y }
+  bind $gbwHisto <Control-B2-Motion>      { Histo_RegionMotion %W %x %y }
+  bind $gbwHisto <Control-ButtonRelease-2> { Histo_RegionEnd %W %x %y }
+  bind $gbwHisto <Control-ButtonRelease-3> { Histo_Unzoom %W }
+
+  # make the entries for the threshold values.
+  frame $fwThresh
+
+  tkm_MakeEntry $ewMin "Min" gaLinkedVars(fthresh) 6 \
+      {SetMin $gbwHisto $gaLinkedVars(fthresh)}
+  tkm_MakeEntry $ewMid "Mid" gaLinkedVars(fmid) 6 \
+      {SetMid $gbwHisto $gaLinkedVars(fmid) 1}
+  tkm_MakeEntry $ewMax "Max" gaLinkedVars(fthreshmax) 6 \
+      {SetMax $gbwHisto $gaLinkedVars(fthreshmax) 1}
+  tkm_MakeEntry $ewSlope "Slope" gaLinkedVars(fslope) 6 \
+      {SetSlope $gbwHisto $gaLinkedVars(fslope) 1}
   
-  set fwThresholdSub     [$lfwThreshold subwidget frame]
-  set fwThresholdSliders $fwThresholdSub.fwThresholdSliders
-  set fwThresholdSlope   $fwThresholdSub.fwThresholdSlope
-  set fwCopy             $fwThresholdSub.fwCopy
-  set fwCopyButton       $fwCopy.fwCopyButton
-  set fwCopyTarget       $fwCopy.fwCopyTarget
+  # color the entries to match the lines in the histogram.
+  $ewMin.lwLabel config -fg red 
+  $ewMid.lwLabel config -fg blue
+  $ewMax.lwLabel config -fg green
+
+  # set initial values for the histogram.
+  SetMin $gbwHisto $gaLinkedVars(fthresh)
+  SetMid $gbwHisto $gaLinkedVars(fmid) 0
+  SetSlope $gbwHisto $gaLinkedVars(fslope) 1
   
-  #  tkm_MakeSliders $fwThresholdSliders [list \
-      #    [list {"Threshold offset"} gaLinkedVars(foffset) \
-      #   -10000 10000 100 {} 1 0.25] \
-      #    [list {"Threshold minimum"} gaLinkedVars(fthresh) \
-      #    $gaLinkedVars(fmin) $gaLinkedVars(fmax) 100 {} 1 0.25] \
-      #    [list {"Threshold midpoint"} gaLinkedVars(fmid) \
-      #    $gaLinkedVars(fmin) $gaLinkedVars(fmax) 100 {} 1 0.25]]
-  tkm_MakeSliders $fwThresholdSliders [list \
-       [list {"Threshold offset"} gaLinkedVars(foffset) \
-      -10000 10000 100 {} 1 0.25] \
-       [list {"Threshold minimum"} gaLinkedVars(fthresh) \
-      -10000 10000 100 {} 1 0.25] \
-       [list {"Threshold midpoint"} gaLinkedVars(fmid) \
-      -10000 10000 100 {} 1 0.25]]
-  tkm_MakeEntry $fwThresholdSlope "Threshold slope" \
-      gaLinkedVars(fslope) 6
+  pack $ewMin $ewMid $ewMax $ewSlope \
+      -side left
   
+  # make the button and menu that the user can use to copy the
+  # threshold settings to another layer.
   frame $fwCopy
-  tkm_MakeButtons $fwCopyButton [list \
+  tkm_MakeButtons $bwCopy \
+      [list \
        [list text "Copy Settings to Layer" \
         {sclv_copy_view_settings_from_current_field $gCopyFieldTarget}]]
-  tixOptionMenu $fwCopyTarget \
+  tixOptionMenu $owTarget \
       -variable $gCopyFieldTarget
-  FillOverlayLayerMenu $fwCopyTarget
+  FillOverlayLayerMenu $owTarget
   set gCopyFieldTarget 0
-
-  pack $fwCopyButton $fwCopyTarget \
-      -side left
-
-  pack $fwThresholdSliders $fwThresholdSlope $fwCopy \
-      -side top \
-      -anchor w
   
+  pack $bwCopy $owTarget \
+      -side left
+  
+  pack $gbwHisto -fill both -expand yes
+  pack $fwThresh $fwCopy -side top
+
   # buttons.
-  tkm_MakeApplyCloseButtons $fwButtons $wwDialog \
-      { SendLinkedVarGroup overlay;  \
-      sclv_set_current_timepoint $gaLinkedVars(ftimepoint) $gaLinkedVars(fcondition); \
-      UpdateAndRedraw; } {}
+  tkm_MakeDialogButtons $fwButtons $wwDialog [list \
+    [list Apply { SendLinkedVarGroup overlay; 
+        SetOverlayTimepointAndCondition; }] \
+    [list Close {}] \
+    [list Help {ShowOverlayHelpWindow}] \
+  ]
   
   pack $fwMain $fwTimePoint $fwCondition $fwColorScale \
-      $fwFlags $lfwThreshold $fwButtons \
+      $fwFlags $fwHisto $fwButtons \
       -side top       \
       -expand yes     \
       -fill x         \
       -padx 5         \
       -pady 5
+
+  # now update it so that we have the current info and stuff.
+  UpdateOverlayDlogInfo
+    }
+}
+
+proc ShowOverlayHelpWindow {} {
+    global gDialog
+
+    set wwDialog .wwConfigOverlayHelpDlog
+    if { [Dialog_Create $wwDialog "Overlay Help" {-borderwidth 10}] } {
+
+  set fwMain    $wwDialog.fwMain
+  set twHelp    $fwMain.twHelp
+  set fwButtons $wwDialog.fwButtons
+
+  frame $fwMain
+
+  tixScrolledText $twHelp -scrollbar y
+  [$twHelp subwidget text] config -wrap word -relief ridge -bd 1
+  [$twHelp subwidget text] insert end "At the top of the window, there are two entry widgets with up/down arrows next to them. If there are multiple time points or conditions in the overlay data, you can change the time point and condition of the overlay volume with these controls. You can see the total range of each variable in the parentheses next to the label.
+
+Next is the color scale. You can change the color scheme in which the overlay layers are drawn. Some do not work with simple scalar overlays and need multiple values loaded, but don't be afraid to experiment.
+
+Next are four boolean options for configuring the data display. Truncate will only show positive values if checked. If Inverse is checked, negative values will be shown in the positive value colors and vice versa. Reverse will switch the sign of the data; with Reverse and Truncate checked, you can show only the negative data. Complex is for special configurations involving multiple overlay layers.
+
+The histogram can be used to set the color scale threshold values graphically. If your data has a wide range of values, you may first want to zoom in on the most populated area of the histogram. Hold down the control key and drag with mouse button two (middle) to select the range on which you want to zoom in.
+
+You will see three vertical lines: a red one representing the minimum threshold, a blue one representing the midpoint, and a red one representing the maximum threshold. (Note that the maximum threshold does not represent a cut-off point above which no values will be drawn, but the point at which all values above will be drawn in the maximum 'hot' color.) You can set the min threshold with mouse button one (usually left), the midpoint with button two (middle), and the maximum point with button three (usually right). The colors of the bars in the histogram represent the color in which those values will be drawn on the surface.
+
+There are numerical representations of these values beneath the histogram. Note that the slope is automatically calculated when the mid point or maximum point are set. You can enter any of these four values manually. When you enter a new midpoint, maximum, or slope, press return to update the other values.
+
+The Copy Settings to Layer button can be used to copy the current threshold settings (all four values) to another layer. Select the layer to which you want to copy these settings in the pull-down menu.
+
+You always need to click the Apply button to apply any of these changes to the actually display. You can also press the space bar as a shortcut (but only when the cursor is not active in any of the numerical fields)."
+
+  pack $twHelp \
+      -fill both \
+      -expand yes
+
+  tkm_MakeDialogButtons $fwButtons $wwDialog [list \
+    [list Close {}] \
+  ]
+
+  pack $fwMain $fwButtons \
+      -side top \
+      -expand yes \
+      -fill x \
+      -pady 5
     }
 }
 
 proc UpdateOverlayDlogInfo {} {
-
     global gaLinkedVars
-    
+    global gaHistogramData
+    global gbwHisto
+    global knMinWidthPerTick
+
     # change the time point and condition range labels
-    catch { \
+    catch {
   set nMaxCondition [expr $gaLinkedVars(fnumconditions) - 1]
   if { $nMaxCondition < 0 } {
       set nMaxCondition 0
@@ -659,25 +914,130 @@ proc UpdateOverlayDlogInfo {} {
   .wwConfigOverlayDisplayDlog.fwCondition.control config \
     -label "Condition (0-$nMaxCondition)"
     }
-  
-    # change the range of the threshold sliders. commented out because
-    # it doesn't work for bruce that well.
-    if { 0 } {
-  catch {
-      [.wwConfigOverlayDisplayDlog.lfwThreshold subwidget frame].fwThresholdSliders.sw0 config \
-        -from $gaLinkedVars(fmin)
-      [.wwConfigOverlayDisplayDlog.lfwThreshold subwidget frame].fwThresholdSliders.sw0 config \
-        -to $gaLinkedVars(fmax)
+    
+    # set the histogram data
+    set err [catch {
+  set names [$gbwHisto element names]
+  foreach name $names {
+      $gbwHisto element delete $name
   }
-  
-  catch {
-      [.wwConfigOverlayDisplayDlog.lfwThreshold subwidget frame].fwThresholdSliders.sw1 config \
-        -from $gaLinkedVars(fmin)
-      [.wwConfigOverlayDisplayDlog.lfwThreshold subwidget frame].fwThresholdSliders.sw1 config \
-    -to $gaLinkedVars(fmax)
+  set nValue 0
+  for { set x $gaHistogramData(min) } \
+      { $x < $gaHistogramData(max) } \
+      { set x [expr $x + $gaHistogramData(increment)] } {
+    set lColors [sclv_get_normalized_color_for_value $x]
+    set color [format "#%.2x%.2x%.2x" \
+             [expr round([lindex $lColors 0] * 255.0)] \
+             [expr round([lindex $lColors 1] * 255.0)] \
+             [expr round([lindex $lColors 2] * 255.0)]]
+    $gbwHisto element create "Value $x" \
+        -xdata $x -ydata [lindex $gaHistogramData(data) $nValue] \
+        -foreground $color -borderwidth 0 \
+        -barwidth $gaHistogramData(increment)
+    incr nValue
+      }
+  if {$gaHistogramData(zoomed)} {
+      $gbwHisto axis config x \
+        -min $gaHistogramData(zoomedmin) -max $gaHistogramData(zoomedmax)
+  } else {
+      $gbwHisto axis config x \
+    -min $gaHistogramData(min) -max $gaHistogramData(max)
+  }  
+
+  # set the lines in the histogram
+  SetMin $gbwHisto $gaLinkedVars(fthresh)
+  SetMid $gbwHisto $gaLinkedVars(fmid) 0
+  SetSlope $gbwHisto $gaLinkedVars(fslope) 1
+
+  # calculate a good width for the ticks.
+  set width [$gbwHisto cget -width]
+  set widthPerTick [expr $width / $gaHistogramData(numBars)]
+  if { $widthPerTick < $knMinWidthPerTick } {
+      set numMarks [expr $width / $knMinWidthPerTick]
+      set widthPerTick [expr $gaHistogramData(numBars) / $numMarks]
+      $gbwHisto axis configure x -stepsize $widthPerTick
+  } else {
+      set widthPerTick $gaHistogramData(increment)
+      $gwGraph axis configure x -stepsize $widthPerTick
   }
+    } result]
+#    if {$err != 0} {puts "ERROR: $result"}
+
+    # change the range of the threshold sliders. 
+    catch {
+  [.wwConfigOverlayDisplayDlog.lfwThreshold subwidget frame].fwThresholdSliders.sw0 config \
+      -from $gaLinkedVars(fmin)
+  [.wwConfigOverlayDisplayDlog.lfwThreshold subwidget frame].fwThresholdSliders.sw0 config \
+      -to $gaLinkedVars(fmax)
+  }
+    
+    catch {
+  [.wwConfigOverlayDisplayDlog.lfwThreshold subwidget frame].fwThresholdSliders.sw1 config \
+      -from $gaLinkedVars(fmin)
+  [.wwConfigOverlayDisplayDlog.lfwThreshold subwidget frame].fwThresholdSliders.sw1 config \
+      -to $gaLinkedVars(fmax)
     }
 }
+
+proc Histo_Zoom { iwHisto inX1 inX2 } {
+    global gaHistogramData
+    if { $inX1 < $inX2 } {
+  $iwHisto axis configure x -min $inX1 -max $inX2
+    } elseif { $inX1 > $inX2 } {
+  $iwHisto axis configure x -min $inX2 -max $inX1
+    }
+    set gaHistogramData(zoomed) 1
+}
+proc Histo_Unzoom { iwHisto } {
+    global gaHistogramData
+    $iwHisto axis configure x y -min {} -max {}
+    set gaHistogramData(zoomed) 0
+}
+proc Histo_RegionStart { iwHisto inX inY } {
+    global gnRegionStart
+    $iwHisto marker create line -coords { } -name zoomBox \
+      -dashes dash -xor yes
+    set gnRegionStart(x) [$iwHisto axis invtransform x $inX]
+}
+proc Histo_RegionMotion { iwHisto inX inY } {
+    global gnRegionStart
+    set nX [$iwHisto axis invtransform x $inX]
+    $iwHisto marker configure zoomBox -coords \
+  [list \
+   $gnRegionStart(x) -Inf \
+   $gnRegionStart(x) Inf \
+   $nX Inf \
+   $nX -Inf \
+   $gnRegionStart(x) -Inf]
+}
+proc Histo_RegionEnd { iwHisto inX inY } {
+    global gnRegionStart
+    global gaHistogramData
+    $iwHisto marker delete zoomBox
+    set nX [$iwHisto axis invtransform x $inX]
+    Histo_Zoom $iwHisto $gnRegionStart(x) $nX
+    set gaHistogramData(zoomedmin) $gnRegionStart(x)
+    set gaHistogramData(zoomedmax) $nX
+}
+
+proc SetOverlayTimepointAndCondition {} {
+    global gaLinkedVars
+    global gbwHisto
+    SendLinkedVarGroup overlay
+    sclv_set_current_timepoint $gaLinkedVars(ftimepoint) \
+  $gaLinkedVars(fcondition);
+    UpdateAndRedraw 
+}
+
+proc SetOverlayField {} {
+    global gaLinkedVars
+    global gbwHisto
+    sclv_set_current_field $gaLinkedVars(currentvaluefield)
+    Histo_Unzoom $gbwHisto
+    SendLinkedVarGroup view
+    UpdateAndRedraw 
+}
+
 
 proc DoConfigCurvatureDisplayDlog {} {
 
@@ -770,36 +1130,36 @@ proc DoLoadOverlayDlog {} {
     set wwDialog .wwLoadOverlayDlog
 
     set knWidth 400
-
+    
     # try to create the dlog...
     if { [Dialog_Create $wwDialog "Load Overlay" {-borderwidth 10}] } {
-
+  
   set fwFile             $wwDialog.fwFile
   set fwFileNote         $wwDialog.fwFileNote
   set fwField            $wwDialog.fwField
   set fwFieldNote        $wwDialog.fwFieldNote
   set fwButtons          $wwDialog.fwButtons
-
+  
   set sFileName ""
   tkm_MakeFileSelector $fwFile "Load Overlay:" sFileName \
-    [list ExpandFileName "" kFileName_Surface]
-
+      [list ExpandFileName "" kFileName_Surface]
+  
   tkm_MakeSmallLabel $fwFileNote "The file name of the values" 400
-
+  
   tixOptionMenu $fwField -label "Into Field:" \
-    -variable nFieldIndex \
-    -options {
-      label.anchor e
-      label.width 5
-      menubutton.width 8
-  }
+      -variable nFieldIndex \
+      -options {
+    label.anchor e
+    label.width 5
+    menubutton.width 8
+      }
   
   tkm_MakeSmallLabel $fwFieldNote "The layer to load the values into" 400
-
+  
   set nIndex 0
   while { [info exists gaScalarValueID($nIndex,label)] } {
       $fwField add command $nIndex \
-        -label $gsaLabelContents($gaScalarValueID($nIndex,label),name)
+    -label $gsaLabelContents($gaScalarValueID($nIndex,label),name)
       incr nIndex
   }
   
@@ -807,20 +1167,21 @@ proc DoLoadOverlayDlog {} {
         tkm_MakeCancelOKButtons $fwButtons $wwDialog \
       {set val [ExpandFileName $sFileName kFileName_Surface]; \
      DoLoadValueFile $nFieldIndex }
-
+  
   pack $fwFile $fwFileNote $fwField $fwFieldNote $fwButtons \
-    -side top       \
-    -expand yes     \
-    -fill x         \
-    -padx 5         \
-    -pady 5
-
+      -side top       \
+      -expand yes     \
+      -fill x         \
+      -padx 5         \
+      -pady 5
+  
   # after the next idle, the window will be mapped. set the min
   # width to our width and the min height to the mapped height.
   after idle [format {
       update idletasks
       wm minsize %s %d [winfo reqheight %s]
-  } $wwDialog $knWidth $wwDialog] 
+      wm geometry %s =%dx[winfo reqheight %s]
+  } $wwDialog $knWidth $wwDialog $wwDialog $knWidth $wwDialog] 
     }
 }
 
@@ -895,50 +1256,59 @@ proc DoSaveValuesAsDlog {} {
     global gDialog
     global gaScalarValueID gsaLabelContents
 
+    set knWidth 400
     set wwDialog .wwSaveValuesAs
 
     # try to create the dlog...
     if { [Dialog_Create $wwDialog "Save Values As" {-borderwidth 10}] } {
-
+  
   set fwFile             $wwDialog.fwFile
   set fwFileNote         $wwDialog.fwFileNote
   set fwField            $wwDialog.fwField
   set fwFieldNote        $wwDialog.fwFieldNote
   set fwButtons          $wwDialog.fwButtons
-
+  
   set sFileName ""
   tkm_MakeFileSelector $fwFile "Save Values:" sFileName {}
-
+  
   tkm_MakeSmallLabel $fwFileNote "The file name of the values file to create" 400
-
+  
   tixOptionMenu $fwField -label "From Field:" \
-    -variable nFieldIndex \
-    -options {
-      label.anchor e
-      label.width 5
-      menubutton.width 8
-  }
+      -variable nFieldIndex \
+      -options {
+    label.anchor e
+    label.width 5
+    menubutton.width 8
+      }
   
   tkm_MakeSmallLabel $fwFieldNote "The layer to save" 400
-
+  
   set nIndex 0
   while { [info exists gaScalarValueID($nIndex,label)] } {
       $fwField add command $nIndex \
-        -label $gsaLabelContents($gaScalarValueID($nIndex,label),name)
+    -label $gsaLabelContents($gaScalarValueID($nIndex,label),name)
       incr nIndex
   }
   
   # buttons.
         tkm_MakeCancelOKButtons $fwButtons $wwDialog \
-    {set val [ExpandFileName $sFileName kFileName_Surface]; \
-    sclv_write_binary_values $nFieldIndex}
-
+      {set val [ExpandFileName $sFileName kFileName_Surface]; \
+     sclv_write_binary_values $nFieldIndex}
+  
   pack $fwFile $fwFileNote $fwField $fwFieldNote $fwButtons \
-    -side top       \
-    -expand yes     \
-    -fill x         \
-    -padx 5         \
-    -pady 5
+      -side top       \
+      -expand yes     \
+      -fill x         \
+      -padx 5         \
+      -pady 5
+
+  # after the next idle, the window will be mapped. set the min
+  # width to our width and the min height to the mapped height.
+  after idle [format {
+      update idletasks
+      wm minsize %s %d [winfo reqheight %s]
+      wm geometry %s =%dx[winfo reqheight %s]
+  } $wwDialog $knWidth $wwDialog $wwDialog $knWidth $wwDialog] 
     }
 }
 
@@ -1153,9 +1523,11 @@ proc DoCustomFillDlog {} {
       }
   
   # buttons.
-  tkm_MakeApplyCloseButtons $fwButtons $wwDialog \
-    { fill_flood_from_cursor $bNoBoundary $bNoLabel $bNoCmid $bNoFThresh; UpdateAndRedraw } {} "Fill"
-  
+  tkm_MakeDialogButtons $fwButtons $wwDialog [list \
+   [list Apply { fill_flood_from_cursor $bNoBoundary $bNoLabel $bNoCmid $bNoFThresh; UpdateAndRedraw } "Fill"] \
+   [list Close {}] \
+  ]
+
   pack $fwMain $fwText $fwFlags $fwButtons \
       -side top       \
       -expand yes     \
@@ -1334,8 +1706,12 @@ proc CreateMenuBar { ifwMenuBar } {
       "Tool Bars" { \
       { check \
       "Main" \
-      "ShowToolBar cut $gbShowToolBar(main)" \
-      gbShowToolBar(main) } }} \
+      "ShowToolBar main $gbShowToolBar(main)" \
+      gbShowToolBar(main) } \
+      { check \
+      "Label" \
+      "ShowToolBar label $gbShowToolBar(label)" \
+      gbShowToolBar(label) } }} \
       { cascade \
       "Information" { \
       { check \
@@ -1453,6 +1829,15 @@ proc CreateMenuBar { ifwMenuBar } {
       "MRI Value" \
       "ShowLabel kLabel_MRIValue $gbShowLabel(kLabel_MRIValue)"\
       gbShowLabel(kLabel_MRIValue) }}}
+      { cascade "Windows" { \
+      { command \
+      "Labels" \
+      { LblLst_ShowWindow } \
+      mg_LabelLoaded } \
+      { command \
+      "Time Course Graph" \
+      { Graph_ShowWindow } \
+      mg_TimeCourseLoaded } }} \
       \
       { separator } \
       \
@@ -1514,67 +1899,71 @@ proc CreateMenuBar { ifwMenuBar } {
       \
       {cascade "Overlay Layer" { \
       { radio "Overlay Layer 1" \
-      { sclv_set_current_field 0; \
-      SendLinkedVarGroup view; UpdateAndRedraw } \
+      { SetOverlayField } \
       gaLinkedVars(currentvaluefield) \
       0 \
       mg_OverlayLoaded } \
       \
       { radio "Overlay Layer 2" \
-      { sclv_set_current_field 1; \
-      SendLinkedVarGroup view; UpdateAndRedraw } \
+      { SetOverlayField } \
       gaLinkedVars(currentvaluefield) \
       1 \
       mg_OverlayLoaded } \
       \
       { radio "Overlay Layer 3" \
-      { sclv_set_current_field 2; \
-      SendLinkedVarGroup view; UpdateAndRedraw } \
+      { SetOverlayField } \
       gaLinkedVars(currentvaluefield) \
       2 \
       mg_OverlayLoaded } \
       \
       { radio "Overlay Layer 4" \
-      { sclv_set_current_field 3; \
-      SendLinkedVarGroup view; UpdateAndRedraw } \
+      { SetOverlayField } \
       gaLinkedVars(currentvaluefield) \
       3 \
       mg_OverlayLoaded } \
       \
       { radio "Overlay Layer 5" \
-      { sclv_set_current_field 4; \
-      SendLinkedVarGroup view; UpdateAndRedraw } \
+      { SetOverlayField } \
       gaLinkedVars(currentvaluefield) \
       4 \
       mg_OverlayLoaded } \
       \
       { radio "Overlay Layer 6" \
-      { sclv_set_current_field 5; \
-      SendLinkedVarGroup view; UpdateAndRedraw } \
+      { SetOverlayField } \
       gaLinkedVars(currentvaluefield) \
       5 \
       mg_OverlayLoaded } \
       \
       { radio "Overlay Layer 7" \
-      { sclv_set_current_field 6; \
-      SendLinkedVarGroup view; UpdateAndRedraw } \
+      { SetOverlayField } \
       gaLinkedVars(currentvaluefield) \
       6 \
       mg_OverlayLoaded } \
       \
       { radio "Overlay Layer 8" \
-      { sclv_set_current_field 7; \
-      SendLinkedVarGroup view; UpdateAndRedraw } \
+      { SetOverlayField } \
       gaLinkedVars(currentvaluefield) \
       7 \
       mg_OverlayLoaded } \
       \
       { radio "Overlay Layer 9" \
-      { sclv_set_current_field 8; \
-      SendLinkedVarGroup view; UpdateAndRedraw } \
+      { SetOverlayield } \
       gaLinkedVars(currentvaluefield) \
       8 \
       mg_OverlayLoaded } } } \
+      \
+      {cascade "Label Style" { \
+      { radio "Filled" \
+      { SendLinkedVarGroup label; UpdateAndRedraw } \
+      gaLinkedVars(labelstyle) \
+      0 \
+      mg_LabelLoaded } \
+      \
+      { radio "Outline" \
+      { SendLinkedVarGroup label; UpdateAndRedraw } \
+      gaLinkedVars(labelstyle) \
+      1 \
+      mg_LabelLoaded } } }
       \
       { separator } \
       \
@@ -1583,6 +1972,10 @@ proc CreateMenuBar { ifwMenuBar } {
       { SendLinkedVarGroup redrawlock; UpdateAndRedraw } \
       gaLinkedVars(redrawlockflag) } \
       \
+      { check  \
+      "Curvature" \
+      { SendLinkedVarGroup view; UpdateAndRedraw } \
+      gaLinkedVars(curvflag) } \
       \
       { check  \
       "Overlay" \
@@ -1687,10 +2080,6 @@ proc CreateMenuBar { ifwMenuBar } {
       \
       { command "Custom Fill..." \
       { DoCustomFillDlog; } } \
-      \
-      { command "Fill Stats" \
-      { floodfill_marked_patch 1; UpdateAndRedraw } \
-      mg_OverlayLoaded } \
       \
       { command "Fill Stats" \
       { floodfill_marked_patch 1; UpdateAndRedraw } \
@@ -2302,6 +2691,7 @@ proc CreateToolBar { ifwToolBar } {
     set fwPoint            $gfwaToolBar(main).fwPoint
     set fwView             $gfwaToolBar(main).fwView
     set fwFill             $gfwaToolBar(main).fwFill
+    set fwLabel            $gfwaToolBar(main).fwLabel
     
     frame $gfwaToolBar(main) -border 2 -relief raised
     
@@ -2331,13 +2721,41 @@ proc CreateToolBar { ifwToolBar } {
       { image icon_draw_line_closed { close_marked_vertices; \
       fbnd_new_line_from_marked_vertices; \
       UpdateAndRedraw } "Make Closed Fill Boundary" } \
-      { image icon_fill { DoCustomFillDlog } "Custom Fill" } \
+      { image icon_fill_label { DoCustomFillDlog } "Custom Fill" } \
       { image icon_erase_line { fbnd_remove_selected_boundary; } \
       "Remove Selected Boundary" } }
     
     bind $fwView.bw1 <B2-ButtonRelease> [list UpdateLockButton $fwView.bw1 gaLinkedVars(redrawlockflag)]
     
     pack $fwCut $fwPoint $fwView $fwFill \
+      -side left \
+      -anchor w \
+      -padx 5
+
+    # label toolbar
+    set gfwaToolBar(label)   $ifwToolBar.fwLabelBar
+    set fwLabel              $gfwaToolBar(main).fwLabel
+    set fwColor              $gfwaToolBar(main).fwColor
+
+    frame $gfwaToolBar(label) -border 2 -relief raised
+
+    tkm_MakeButtons $fwLabel {
+      { image icon_marked_to_label 
+    { labl_new_from_marked_vertices; UpdateAndRedraw } 
+    "New Label from Marked" }
+      { image icon_label_to_marked 
+    { labl_mark_vertices $gnSelectedLabel; UpdateAndRedraw } 
+    "Mark Label" } 
+      { image icon_erase_label 
+    { labl_remove $gnSelectedLabel; UpdateAndRedraw } 
+    "Erase Label" } }
+
+    tkm_MakeButtons $fwColor {
+  { image icon_color_label
+        { CreateColorPickerWindow LblLst_SetCurrentLabelColor } 
+      "Change label color" } }
+
+    pack $fwLabel $fwColor \
       -side left \
       -anchor w \
       -padx 5
@@ -2348,24 +2766,24 @@ proc ShowToolBar { isWhich ibShow } {
     global gfwaToolBar gbShowToolBar
 
     if { $ibShow == 1 } {   
-
+  
   if { [catch { pack $gfwaToolBar($isWhich) \
-    -side top \
-    -fill x \
-    -expand yes \
-    -after $gfwaToolBar(main) } sResult] == 1 } {
-      
-      pack $gfwaToolBar($isWhich) \
         -side top \
         -fill x \
-        -expand yes
+        -expand yes \
+        -after $gfwaToolBar(main) } sResult] == 1 } {
+      
+      pack $gfwaToolBar($isWhich) \
+    -side top \
+    -fill x \
+    -expand yes
   }
   
     } else {
-
+  
   pack forget $gfwaToolBar($isWhich)
     }
-
+    
     set gbShowToolBar($isWhich) $ibShow
 }
 
@@ -2420,9 +2838,12 @@ proc CreateGraphWindow { iwwTop } {
 
     set gwwGraphWindow $iwwTop
     toplevel $iwwTop
-
     wm title $iwwTop $ksGraphWindowName
     wm geometry $iwwTop 600x400
+
+    # if they hit the close box for this window, it will just hide it
+    # instead of destroying the window.
+    wm protocol $iwwTop WM_DELETE_WINDOW { Graph_HideWindow }
 }
 
 proc CreateGraphFrame { ifwGraph } {
@@ -2659,7 +3080,7 @@ proc Graph_Draw {} {
     # amounts.
     if { $gbAutoRangeGraph == 0 } {
   $gwGraph axis configure y -min $gnFixedAxesSize(y1) \
-    -max $gnFixedAxesSize(y2)
+      -max $gnFixedAxesSize(y2)
     }
 }
 
@@ -2680,7 +3101,7 @@ proc Graph_UpdateSize { } {
 
 # zoom callbacks
 proc Graph_Zoom { iwGraph inX1 inY1 inX2 inY2 } {
-
+    
     if { $inX1 < $inX2 } {
   $iwGraph axis configure x -min $inX1 -max $inX2
     } elseif { $inX1 > $inX2 } {
@@ -2906,6 +3327,10 @@ proc LblLst_CreateWindow { iwwTop } {
     wm title $iwwTop $ksLabelListWindowName
     wm geometry $iwwTop 450x500
     wm minsize $iwwTop 450 500
+
+    # if they hit the close box for this window, it will just hide it
+    # instead of destroying the window.
+    wm protocol $iwwTop WM_DELETE_WINDOW { LblLst_HideWindow }
 }
 
 proc LblLst_CreateLabelList { ifwList } {
@@ -2917,103 +3342,70 @@ proc LblLst_CreateLabelList { ifwList } {
     global gaLinkedVars
 
     set fwTop             $ifwList
-    set fwColorTable      $fwTop.fwColorTable
-    set fwLabelFrame      $fwTop.fwLabelFrame
-    set fwLabelList       $fwLabelFrame.fwLabelList
-    set fwLabelInfo       $fwLabelFrame.fwLabelInfo
+    set slwLabel          $fwTop.slwLabel
+    set lwProperties      $fwTop.lwProperties
+    set ewName            $fwTop.ewName
+    set cbwVisible        $fwTop.cbwVisible
+    set lwColor           $fwTop.lwColor
+    set cpwColor          $fwTop.cpwColor
+    set lwStructure       $fwTop.lwStructure 
+    set bwCopy            $fwTop.bwCopy
+    set alwStructure      $fwTop.alwStructure
+    set slwStructure      $fwTop.slwStructure
 
-    frame $fwTop
+    frame $fwTop -relief raised -border 2
     
-    frame $fwColorTable
-    set fwColorTableFileName $fwColorTable.fwColorTableFileName
-    set fwColorTableLoad     $fwColorTable.fwColorTableLoad
-
-    # make the file selector widget and a load button
-    set sColorTableFileName ""
-    tkm_MakeFileSelector $fwColorTableFileName \
-      "Color Table:" sColorTableFileName
-    tkm_MakeButtons $fwColorTableLoad [list \
-      [list text "Load" {labl_load_color_table $gaLinkedVars(colortablename); UpdateLinkedVarGroup label} ] ]
-
-    pack $fwColorTableFileName \
-      -side left \
-      -fill x \
-      -expand yes
-    pack $fwColorTableLoad \
-      -side left \
-      -anchor e
-
     # this is the list box of labels
-    frame $fwLabelFrame -relief raised -border 2
-
-    tixScrolledListBox $fwLabelList \
+    tixScrolledListBox $slwLabel \
       -options { listbox.selectmode single } \
-      -browsecmd LblLst_SelectHilitedLabel
-    set glwLabel [$fwLabelList subwidget listbox]
+  -browsecmd LblLst_SelectHilitedLabel
+    set glwLabel [$slwLabel subwidget listbox]
     
 
     # the info area for the selected label
-    frame $fwLabelInfo
-    set fwName          $fwLabelInfo.fwName
-    set fwVisible       $fwLabelInfo.fwVisible
-    set fwStructure     $fwLabelInfo.fwStructure
-    set fwStructureList $fwLabelInfo.fwStructureList
-    set fwInfoButtons   $fwLabelInfo.fwButtons
+    tkm_MakeBigLabel $lwProperties "Properties"
 
-    tkm_MakeEntry $fwName "Name" gaLabelInfo(name)
-    tkm_MakeCheckboxes $fwVisible y [list \
-      [list text "Visible" gaLabelInfo(visible)] ]
+    tkm_MakeEntry $ewName "Name" gaLabelInfo(name) 20 {LblLst_SendCurrentInfo}
+
+    tkm_MakeCheckboxes $cbwVisible x [list \
+    [list text "Visible" gaLabelInfo(visible) \
+         {LblLst_SendCurrentInfo; UpdateAndRedraw}] ]
+
+    tkm_MakeNormalLabel $lwColor "Choose a color:"
+
+    CreateColorPicker $cpwColor LblLst_SetCurrentLabelColor 8
+
+    tkm_MakeNormalLabel $lwStructure "Or a structure:"
 
     # an active label and scrolling list for the structure.
-    tkm_MakeActiveLabel $fwStructure "Structure" gaLabelInfo(structure) 10
-    tixScrolledListBox $fwStructureList \
-      -options { listbox.selectmode single } \
-      -browsecmd LblLst_SetHilitedStructure
-    set glwStructures [$fwStructureList subwidget listbox]
+    tkm_MakeActiveLabel $alwStructure "" gaLabelInfo(structureName) 10
 
-    tkm_MakeButtons $fwInfoButtons [list \
-      [list text "Apply" { LblLst_SendCurrentInfo; redraw } \
-      "Apply these settings to the selected label" ] \
-      [list text "Auto Name" \
-      { labl_set_name_from_table $gnSelectedLabel; redraw } \
-      "Set the label name from the structure" ] \
-      [list text "Mark" { labl_mark_vertices $gnSelectedLabel; redraw } \
-      "Mark vertices in this label" ] \
-      [list text "Quick Save" \
-      { labl_save $gnSelectedLabel [ExpandFileName $gaLabelInfo(name) kFileName_Surface]} \
-      "Save this label to label file" ] \
-      [list text "Delete" { labl_remove $gnSelectedLabel; redraw } \
-      "Delete this label from the list" ] ] y
-   
-    pack $fwName $fwVisible $fwStructure $fwStructureList \
-      -side top \
-      -expand yes \
-      -fill x
-    pack  $fwInfoButtons \
-      -side top 
+    # a button for copying the structure name into the name field
+    tkm_MakeButtons $bwCopy [list \
+   [list text "Set Name" \
+        {set gaLabelInfo(name) $gaLabelInfo(structureName)} ] ]
 
-    pack $fwLabelList \
-      -side left \
-      -expand yes \
-      -fill both \
-      -anchor n
-    pack  $fwLabelInfo \
-      -side left \
-      -expand yes \
-      -fill x \
-      -anchor n
+    tixScrolledListBox $slwStructure \
+  -options { listbox.selectmode single } \
+  -browsecmd { LblLst_HandleStructureListClick }
+    set glwStructures [$slwStructure subwidget listbox]
 
-    pack $fwColorTable \
-      -side top \
-      -fill x \
-      -expand yes \
-      -pady 5
+    grid $slwLabel       -column 0 -row 0 -sticky news -rowspan 8
+    grid $lwProperties   -column 1 -row 0 -sticky w    -columnspan 2
+    grid $ewName         -column 1 -row 1 -sticky we   -columnspan 2
+    grid $cbwVisible     -column 1 -row 2 -sticky w    -columnspan 2
+    grid $lwColor        -column 1 -row 3 -sticky ew   -columnspan 2
+    grid $cpwColor       -column 1 -row 4 -sticky news -columnspan 2
+    grid $lwStructure    -column 1 -row 5 -sticky w    -columnspan 2
+    grid $alwStructure   -column 1 -row 6 -sticky we
+    grid $bwCopy         -column 2 -row 6 -sticky ewns
+    grid $slwStructure   -column 1 -row 7 -sticky news -columnspan 2
 
-    pack $fwLabelFrame \
-      -side top \
-      -fill both \
-      -expand yes \
-      -anchor n
+    # Space everything out properly so that the label list and the
+    # structure list take up the most space.
+    grid columnconfigure $fwTop 0 -weight 1
+    grid columnconfigure $fwTop 1 -weight 1
+    grid rowconfigure    $fwTop 7 -weight 1
 
     set gnNumLabels 0
 }
@@ -3029,18 +3421,7 @@ proc LblLst_HideWindow {} {
     wm withdraw $gwwLabelListWindow
 }
 
-proc LblLst_UpdateCurrentInfo { isName inStructure ibVisible } {
-
-    global gaLabelInfo
-    global glStructures
-
-    # sets the info for the curernt label
-    set gaLabelInfo(name) $isName
-    set gaLabelInfo(structure) [lindex $glStructures $inStructure]
-    set gaLabelInfo(visible) $ibVisible
-}
-
-proc LblLst_UpdateInfo { inIndex isName inStructure ibVisible } {
+proc LblLst_UpdateInfo { inIndex isName inStructure ibVisible iRed iGreen iBlue } {
 
     global gaLabelInfo
     global glStructures
@@ -3048,19 +3429,51 @@ proc LblLst_UpdateInfo { inIndex isName inStructure ibVisible } {
     global glwLabel
     global glwStructures
 
-
     # delete the list entry in the list box and reinsert it with the
     # new name
     $glwLabel delete $inIndex
     $glwLabel insert $inIndex $isName
 
+    # select these items in their respective list boxes.
+    $glwLabel selection clear 0 end
     $glwLabel selection set $inIndex
+    $glwLabel see $inIndex
 
-    # if this is the label currently selected, update the info area too.
+    # update the info area too.
     set gaLabelInfo(name) $isName
-    set gaLabelInfo(structure) [lindex $glStructures $inStructure]
     set gaLabelInfo(visible) $ibVisible
-    $glwStructures selection set $inStructure
+    set gaLabelInfo(red) $iRed
+    set gaLabelInfo(green) $iGreen
+    set gaLabelInfo(blue) $iBlue
+
+    # if the structure is -1, it's a free label with a structure index
+    # of -1, else look up the structure index.
+    set gaLabelInfo(structureIndex) $inStructure
+    if { -1 == $inStructure } {
+  set gaLabelInfo(structureName) "Free"
+    } else {
+  set gaLabelInfo(structureName) [lindex $glStructures $inStructure]
+    }   
+}
+
+proc LblLst_SetCurrentLabelColor { iRed iGreen iBlue } {
+    global gnSelectedLabel
+    global gaLabelInfo
+
+    # change the color.
+    set gaLabelInfo(red) $iRed
+    set gaLabelInfo(green) $iGreen
+    set gaLabelInfo(blue) $iBlue
+
+    # this automatically makes the label a free label. set its index
+    # appropriately and give it a nice name.
+    set gaLabelInfo(structureIndex) -1 
+    set gaLabelInfo(structureName) "Free"
+
+    # tell the c code what we've done.
+    LblLst_SendCurrentInfo
+
+    UpdateAndRedraw
 }
 
 proc LblLst_SelectHilitedLabel {} {
@@ -3092,16 +3505,21 @@ proc LblLst_SendCurrentInfo {} {
     global gaLabelInfo
     global glwStructures
     
+    # If the structure is not -1, get the selected structure name from
+    # the list.
+    if { -1 != $gaLabelInfo(structureIndex) } {
+  set gaLabelInfo(structureName) [$glwStructures curselection]
+    } 
+
     # send the contents of the label info.
-    set nSelection $gnSelectedLabel
-    set nStructure [$glwStructures curselection]
-    labl_set_info $nSelection $gaLabelInfo(name) \
-      $nStructure $gaLabelInfo(visible)
+    labl_set_info $gnSelectedLabel $gaLabelInfo(name) \
+  $gaLabelInfo(structureIndex) $gaLabelInfo(visible) \
+  $gaLabelInfo(red) $gaLabelInfo(green) $gaLabelInfo(blue)
 
     # delete the list entry in the list box and reinsert it with the
     # new name
-    $glwLabel delete $nSelection
-    $glwLabel inser $nSelection $gaLabelInfo(name)
+    $glwLabel delete $gnSelectedLabel
+    $glwLabel insert $gnSelectedLabel $gaLabelInfo(name)
 }
 
 proc LblLst_AddLabel { isName } {
@@ -3123,15 +3541,47 @@ proc LblLst_RemoveLabel { inIndex } {
 }
 
 proc LblLst_SetHilitedStructure {} {
-
+    global glwLabel gnSelectedLabel
     global glwStructures gnSelectedStructure
     global gaLabelInfo glStructures
 
-    # find the hilighted label in the list box and select it
-    set gnSelectedStructure [$glwStructures curselection]
+    # if we have a selection...
+    if { [$glwStructures curselection] != {} } {
+  
+  # find the hilighted label in the list box and select it
+  set gnSelectedStructure [$glwStructures curselection]
 
-    # update the structure
-    set gaLabelInfo(structure) [lindex $glStructures $gnSelectedStructure]
+  # update the structure
+  set gaLabelInfo(structureIndex) $gnSelectedStructure
+  set gaLabelInfo(structureName) [lindex $glStructures $gnSelectedStructure]
+    }
+
+    # now we have to reselect the label in the lable list since
+    # clicking the strucutre list just unselected it. bah, stupid
+    # tk. problem is, the structure list will actually call this
+    # function twice, once on mouse down and once on mouse up, so
+    # after we select the entry in the label list, the structure list
+    # will lose its selection, and on the mouse up, when we get the
+    # curselection up there, it will return empty. so we need to
+    # enclose the stuff up there around that if statement.
+    # UNFORTUNATELY, this still doesn't work, the label selection
+    # isn't set again.
+    $glwLabel selection set $gnSelectedLabel
+}
+
+proc LblLst_HandleStructureListClick {} {
+    global glwLabel gnSelectedLabel
+    global gnSelectedStructure
+    global glwStructures
+
+    if { [$glwStructures curselection] != $gnSelectedStructure &&
+   [$glwStructures curselection] != {} } {
+  LblLst_SetHilitedStructure
+  LblLst_SendCurrentInfo
+  UpdateAndRedraw
+    }
+
+    $glwLabel selection set $gnSelectedLabel
 }
 
 proc LblLst_SetStructures { ilStructures } {
@@ -3361,17 +3811,19 @@ proc CreateImages {} {
 
     global ksImageDir
 
-    foreach image_name { icon_cursor_goto icon_cursor_save \
-      icon_arrow_up icon_arrow_down icon_arrow_left icon_arrow_right \
-      icon_arrow_rot_z_pos icon_arrow_rot_z_neg \
-      icon_zoom_in icon_zoom_out \
-      icon_arrow_rot_y_neg icon_arrow_rot_y_pos \
-      icon_arrow_rot_x_neg icon_arrow_rot_x_pos \
-      icon_cut_area icon_cut_closed_line icon_cut_line \
-      icon_cut_plane icon_cut_clear \
-      icon_draw_line icon_draw_line_closed icon_fill icon_erase_line \
-      icon_surface_main icon_surface_original icon_surface_pial \
-      icon_home icon_redraw } {
+    foreach image_name { icon_cursor_goto icon_cursor_save
+  icon_arrow_up icon_arrow_down icon_arrow_left icon_arrow_right
+  icon_arrow_rot_z_pos icon_arrow_rot_z_neg
+  icon_zoom_in icon_zoom_out
+  icon_arrow_rot_y_neg icon_arrow_rot_y_pos
+  icon_arrow_rot_x_neg icon_arrow_rot_x_pos
+  icon_cut_area icon_cut_closed_line icon_cut_line
+  icon_marked_to_label icon_label_to_marked icon_erase_label
+  icon_color_label
+  icon_cut_plane icon_cut_clear
+  icon_draw_line icon_draw_line_closed icon_fill_label icon_erase_line
+  icon_surface_main icon_surface_original icon_surface_pial
+  icon_home icon_redraw } {
 
   if { [catch {image create photo  $image_name -file \
     [ file join $ksImageDir $image_name.gif ]} sResult] != 0 } {
@@ -3476,7 +3928,7 @@ set tDlogSpecs(LoadCurvature) [list \
   -default1 [list ExpandFileName "" kFileName_Surface] \
   -note1 "The file name of the curvature data" \
   -okCmd {set curv [ExpandFileName %s1 kFileName_Surface]; \
-  read_binary_curv; set curvflag 1; UpdateAndRedraw; } ]
+  read_binary_curv; UpdateAndRedraw; } ]
 set tDlogSpecs(SaveCurvatureAs) [list \
   -title "Save Curvature As" \
   -prompt1 "Save Curvature:" \
@@ -3512,7 +3964,7 @@ set tDlogSpecs(LoadLabel) [list \
   -prompt1 "Load Label:" \
   -default1 [list ExpandFileName "" kFileName_Label] \
   -note1 "The file name of the label data" \
-  -okCmd {labl_load [ExpandFileName %s1 kFileName_Label] }]
+             -okCmd {labl_load [ExpandFileName %s1 kFileName_Label]; labl_mark_vertices $gnSelectedLabel; UpdateAndRedraw;  }]
 set tDlogSpecs(SaveLabelAs) [list \
   -title "Save Selected Label" \
   -prompt1 "Save Selected Label:" \
