@@ -3539,6 +3539,7 @@ MRIcopyHeader(MRI *mri_src, MRI *mri_dst)
   mri_dst->yend = mri_src->yend ;
   mri_dst->zstart = mri_src->zstart ;
   mri_dst->zend = mri_src->zend ;
+  mri_dst->flip_angle = mri_src->flip_angle ;
   mri_dst->tr = mri_src->tr ;
   mri_dst->te = mri_src->te ;
   mri_dst->ti = mri_src->ti ;
