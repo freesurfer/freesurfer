@@ -3,7 +3,7 @@
 # listed in groupdef files.  The candidate paths are
 # given in a searchdir file.
 #
-# $Id: getsesspath,v 1.1 2003/03/04 21:22:08 greve Exp $
+# $Id: getsesspath,v 1.2 2003/12/20 00:47:06 greve Exp $
 
 if($#argv == 0) then
   goto usage_exit;
@@ -121,12 +121,24 @@ while( $#argv != 0 )
 
     case "-sf":
       if ( $#argv == 0) goto arg1err;
-      set grpdef = $argv[1];
+      set grpdef = $argv[1];shift;
       if(! -e $grpdef) then
         echo "ERROR: $grpdef does not exist"
         exit 1;
       endif
-      set grpdefs = ($grpdefs $grpdef); shift;
+      set grpdefs = ($grpdefs $grpdef); 
+      breaksw
+
+    case "-gxf":
+      # group design matrix file
+      if ( $#argv == 0) goto arg1err;
+      set gxf = $argv[1]; shift;
+      if(! -e $gxf) then
+        echo "ERROR: $gxf does not exist"
+        exit 1;
+      endif
+      set gxflist = `cat $gxf | grep -v \# | tail +2 | awk '{print $1}'`;
+      set SessList = ($SessList $gxflist); 
       breaksw
 
     case "-g":
@@ -221,6 +233,7 @@ usage_exit:
   echo "USAGE: getsesspath"
   echo "   -s  sessid      ..."
   echo "   -sf sessidfile  ..."
+  echo "   -gxf groupxfile : group design matrix file"
   echo "   -d  srchdir     ..."
   echo "   -df srchdirfile ..."
   echo "   -cwd : use current working directory"
