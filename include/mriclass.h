@@ -26,11 +26,13 @@ typedef struct
   GCLASSIFY   *gc ;         /* if type == CLASSIFIER_GAUSSIAN */
   BACKPROP    *bp ;         /* if type == CLASSIFIER_BACKPROP */
   ARTMAP      *artmap ;     /* if type == CLASSIFIER_ARTMAP */
+  MRI         *mri_priors ; /* prior probabilities */
+  char        prior_fname[100] ;
 } MRI_CLASSIFIER, MRIC ;
 
 MRIC   *MRICalloc(int type, int ninputs, void *parms) ;
 int    MRICfree(MRIC **pmri) ;
-int    MRICtrain(MRIC *mric, char *file_name) ;
+int    MRICtrain(MRIC *mric, char *file_name, char *prior_fname) ;
 /*int    MRICclassify(MRIC *mric, MRI *mri_src, float *pprob) ;*/
 MRIC   *MRICread(char *fname) ;
 int    MRICwrite(MRIC *mric, char *fname) ;
