@@ -2916,6 +2916,7 @@ MRISregister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
       parms->tol *= 2.0f ;
       parms->l_corr /= 2.0f ;
       mrisLogIntegrationParms(parms->fp, mris, parms) ;
+      mrisLogIntegrationParms(stderr, mris, parms) ;
     }
     else
       break ;   /* finished */
@@ -5846,7 +5847,7 @@ MRISwriteValues(MRI_SURFACE *mris, char *sname)
   if (!cp || *(cp+1) != 'w')
     strcat(fname, ".w") ;
   if (Gdiag & DIAG_SHOW)
-    fprintf(stderr, "writing out surface values to %s.\n", fname) ;
+    fprintf(stderr, "writing surface values to %s.\n", fname) ;
 
   fp = fopen(fname,"wb");
   if (fp==NULL) 
@@ -13047,6 +13048,9 @@ MRIScomputeGraySurfaceValues(MRI_SURFACE *mris,MRI *mri_brain,MRI *mri_smooth,
       v->mean = max_mag ;
       mean_gray += min_val ; total_vertices++ ;
     }
+    else
+      v->val = 0.0f ;
+
     if (vno == Gdiag_no)
       fprintf(stderr, "v %d, target value = %2.1f, mag = %2.1f\n",
               Gdiag_no, v->val, v->mean) ;
