@@ -1,8 +1,8 @@
 % yakview - views images, stat overlays, and hemodynamic responses.
-% $Id: yakview.m,v 1.1 2003/03/04 20:47:41 greve Exp $
+% $Id: yakview.m,v 1.2 2003/04/21 01:39:05 greve Exp $
 
 fprintf(1,'\n\n');
-fprintf(1,'yakview: $Id: yakview.m,v 1.1 2003/03/04 20:47:41 greve Exp $\n');
+fprintf(1,'yakview: $Id: yakview.m,v 1.2 2003/04/21 01:39:05 greve Exp $\n');
 
 if(~exist('UseVersion')) UseVersion = 2; end
 
@@ -34,7 +34,9 @@ if(~ImgMkMosaic)
   s = s(:,:,1); % keep only first plane of the base 
   basesize = size(s);
 else
-  s = fmri_ldbvolume(ImgFile);
+  if(fmtimg) s = fast_ldanalyze(ImgFile);
+  else       s = fmri_ldbvolume(ImgFile);
+  end
   fprintf('%g  sec\n',toc);
   s = s(:,:,:,1);
   s = permute(s, [2 3 1]);   % row, col, slice
@@ -75,11 +77,15 @@ if(~isempty(SigFile))
       clear pmask
     end
   else
-    p = fmri_ldbvolume(SigFile);
+    if(fmtimg) p = fast_ldanalyze(SigFile);
+    else       p = fmri_ldbvolume(SigFile);
+    end
     if(~isempty(cutends))  p([1 size(p,1)],:,:) = cutends;  end
     if(~isempty(SigMaskFile))
       fprintf(1,'Loading Mask ...      '); tic;
-      pmask = fmri_ldbvolume(SigMaskFile);
+      if(fmtimg) pmask = fast_ldanalyze(SigMaskFile);
+      else       pmask = fmri_ldbvolume(SigMaskFile);
+      end
       fprintf('%g sec\n',toc);
       pmask = pmask > SigMaskThresh;
       pmask = repmat(pmask,[1 1 1 size(p,4)]);
@@ -172,7 +178,9 @@ if(~isempty(HDRFile))
       fprintf('%g sec\n',toc);
       hoffset = hoffset(:,:,1);
     else
-      hoffset = fmri_ldbvolume(OffFile);
+      if(fmtimg) hoffset = fast_ldanalyze(OffFile);
+      else       hoffset = fmri_ldbvolume(OffFile);
+      end
       fprintf('%g  sec\n',toc);
       hoffset = hoffset(:,:,:,1);
       fprintf(1,'Making Offset Mosaic ... '); tic;

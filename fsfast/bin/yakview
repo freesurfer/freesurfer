@@ -7,7 +7,7 @@
 ############################################################
 
 set fmrianalver = `cat $FMRI_ANALYSIS_DIR/docs/version`;
-set YAKVIEW_VER = '\$Id: yakview,v 1.1 2003/03/04 21:22:10 greve Exp $'
+set YAKVIEW_VER = '\$Id: yakview,v 1.2 2003/04/21 01:38:27 greve Exp $'
 
 # Set Default Values #
 set imgstem = ();
@@ -46,6 +46,7 @@ set OffFile = ();
 set RawFile = ();
 set datFile = ();
 set UseVersion = 2;
+set fmtimg = 0;
 
 if ( $#argv < 2 ) then
   echo "USAGE: -i imgstem -sn slicenum -p sigstem -th threshold -f pformat -h hdrstem ";
@@ -105,6 +106,7 @@ if( $slice == -1 ) then
   endif
 else
   # Stem and slice are specified #
+ if($fmtimg == 0) then
   set bext = `getbext $imgstem`;
   if($status) then
     echo "$bext";
@@ -120,6 +122,10 @@ else
     set ImgMkMosaic = 1;
     set ImgFile = $imgstem;
   endif
+ else
+  set ImgMkMosaic = 1;
+  set ImgFile = $imgstem;
+ endif # if($fmtimg == 0) then
 endif
 
 ######## Sig (Overlay) Image  ######################
@@ -133,6 +139,7 @@ if($#sigstem != 0) then
     endif
   else
     # Stem and slice are specified #
+   if($fmtimg == 0) then
     set bext = `getbext $sigstem`;
     if($status) then
       echo "$bext";
@@ -148,6 +155,10 @@ if($#sigstem != 0) then
       set SigMkMosaic = 1;
       set SigFile = $sigstem;
     endif
+   else
+    set SigMkMosaic = 1;
+    set SigFile = $sigstem;
+   endif # if($fmtimg == 0) then
   endif
 endif
 
@@ -284,6 +295,7 @@ else if( $#offstem != 0) then
   endif
 endif
 
+
 ## Set path for matlab file ##
 if($monly) then
   set MLF = $mfile;
@@ -333,7 +345,7 @@ rm -f $MLF;
 
   echo "cutends = [$cutends];" >> $MLF;
   echo "UseVersion = $UseVersion;" >> $MLF;
-
+  echo "fmtimg = $fmtimg;" >> $MLF;
   echo "yakview;" >> $MLF;
   echo "hyak = gcf;" >> $MLF;
   if(! $monly ) then
@@ -518,6 +530,10 @@ while( $#argv != 0 )
       set UseVersion = 2;
       breaksw
 
+    case "-img":
+      set fmtimg = 1;
+      breaksw
+
     case "-debug":
       set verbose
       set echo
@@ -538,8 +554,8 @@ goto parse_args_return;
 ############--------------##################
 check_params:
   if($#imgstem != 1) then
-     echo "ERROR: must specify an img stem";
-     exit 1
+    echo "ERROR: must specify an img stem";
+    exit 1
   endif
 
   if($#offstem == 1 && $#hdrstem == 0) then
