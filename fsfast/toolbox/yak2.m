@@ -16,11 +16,11 @@ function yak2(varargin)
 %
 % yak(cbstring) % for callback functions
 %
-% $Id: yak2.m,v 1.6 2004/11/01 04:39:14 greve Exp $
+% $Id: yak2.m,v 1.7 2004/12/07 23:54:46 greve Exp $
 
 if(nargin == 0)
   msg = 'USAGE: hfig = yak2(flag,options)';
-  msg = sprintf('%s\n$Id: yak2.m,v 1.6 2004/11/01 04:39:14 greve Exp $',msg);
+  msg = sprintf('%s\n$Id: yak2.m,v 1.7 2004/12/07 23:54:46 greve Exp $',msg);
   qoe(msg);error(msg);
 end
 
@@ -207,10 +207,11 @@ if(Init)
   set(h,'FontSize',10);
   set(h,'EraseMode','background');
 
-  if(ud.IsMosaic)
+  if(ud.IsMosaic & 0)
     h = uicontrol('Style', 'text','Position',  [1 1 400 20]);
-    set(h,'string','Volume Coordinates');
+    set(h,'string','Volume');
     set(h,'Tag','txStatus2');
+    set(h,'tooltip','Index of current point in the volume (0-based)');
   end
   
   h = text(xr(1),yr(1),'-*-*-*-');
@@ -456,11 +457,11 @@ switch (cbflag)
 
     case 'o' 
       if(~isempty(ud.ActImg))
-        title  = 'Adjust Overlay Threshold';
+        tmptitle  = 'Adjust Overlay Threshold';
         prompt = {'Max Threshold:','Min Threshold'};
         lines  = 1;
         def = {sprintf('%7.4f',ud.PMax),sprintf('%7.4f',ud.PMin)};
-        answer   = inputdlg(prompt,title,lines,def);
+        answer   = inputdlg(prompt,tmptitle,lines,def);
 	if(~isempty(answer))
 	  amax = sscanf(answer{1},'%f');
 	  amin = sscanf(answer{2},'%f');
@@ -487,11 +488,11 @@ switch (cbflag)
 
     case 'd' 
       if(~isempty(ud.ActImg))
-        title  = 'False Discovery Rate';
+        tmptitle  = 'False Discovery Rate';
         prompt = {'FDR:'};
         lines  = 1;
         def = {sprintf('%7.4f',ud.FDR)};
-        answer   = inputdlg(prompt,title,lines,def);
+        answer   = inputdlg(prompt,tmptitle,lines,def);
         ud.FDR = sscanf(answer{1},'%f');
 	p = 10.^(-abs(ud.ActImg(:,:,ud.CurPlaneNo)));
 	pthresh = fast_fdrthresh(p,ud.FDR);
@@ -511,11 +512,11 @@ switch (cbflag)
       end
 
     case 'f' 
-      title  = 'Goto Row/Col';
+      tmptitle  = 'Goto Row/Col';
       prompt = {'Row:','Col'};
       lines  = 1;
       def = {sprintf('%d',ud.CurPixel(1)),sprintf('%d',ud.CurPixel(2))};
-      answer   = inputdlg(prompt,title,lines,def);
+      answer   = inputdlg(prompt,tmptitle,lines,def);
       arow = sscanf(answer{1},'%d');
       acol = sscanf(answer{2},'%d');
       fprintf('new pos: %d %d\n',arow,acol);
@@ -622,6 +623,7 @@ switch (cbflag)
      case {'r'},
        hyak = gcf;
        if(~isempty(ud.hdatfile) & ~ishandle2(ud.hRaw))
+	 fprintf('Running yvpltraw\n');
          ud.hRaw = yvpltraw('init',ud.hdatfile,hyak);
        else
          if(~isempty(ud.raw) & ~ishandle2(ud.hRaw))
@@ -857,30 +859,6 @@ function setstatus(ud)
   h = findobj(gcf,'Tag','txStatus');
   set(h,'String',s);
 
-  r = ud.CurPixel(1);
-  c = ud.CurPixel(1);
-
-  if(ud.IsMosaic)
-    [rv cv sv tszmos] = mossub2volsub(r, c, ud.BaseSize);
-    s = sprintf('Volume Coordinates (1-based): r=%2d c=%2d s=%2d',rv,cv,sv);
-    h = findobj(gcf,'Tag','txStatus2');
-    set(h,'String',s);
-  end
-
-  if(~isempty(ud.ActImg))
-    [rf cf] = sind2find(r,c,ud);
-    v =  ud.ActImg(rf,cf,ud.CurPlaneNo);
-    % v =  sign(v)*10^(-abs(v));
-    s = sprintf('r = %3d, c = %3d, (%2d,%2d), ovl = %6.4f',r,c,rf,cf,v);
-  elseif(ishandle2(ud.hHDR))
-    v =  ud.UnderlayImg(r,c,ud.CurPlaneNo);
-    [rf cf] = sind2find(r,c,ud);
-    s = sprintf('r = %3d, c = %3d, (%2d,%2d), ovl = %6.4f',r,c,rf,cf,v);
-  else
-    v =  ud.UnderlayImg(r,c,ud.CurPlaneNo);
-    s = sprintf('r = %3d, c = %3d, v = %g',r,c,v);
-  end
-
 return
 %%%------------------------------------------%%%%
 function arg1check(cbflag,nflag,nmax)
@@ -965,9 +943,9 @@ function set_text(hYak,ud)
   set(h,'FontSize',10);
   set(h,'EraseMode','background');
 
-  if(ud.IsMosaic)
+  if(ud.IsMosaic & 0)
     [rv cv sv tszmos] = mossub2volsub(r, c, ud.BaseSize);
-    s = sprintf('Volume Coordinates (1-based): r=%2d c=%2d s=%2d',rv,cv,sv);
+    s = sprintf('Volume (0-based): c=%2d r=%2d s=%2d',cv-1,rv-1,sv-1);
     h = findobj(gcf,'Tag','txStatus2');
     set(h,'String',s);
   end
