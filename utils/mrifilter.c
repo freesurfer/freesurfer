@@ -971,6 +971,11 @@ MRIxSobel(MRI *mri_src, MRI *mri_x, int frame)
   height = mri_src->height ;
   depth = mri_src->depth ;
 
+  if (mri_src->type != MRI_UCHAR)
+    {
+      return MRIxSobelForAllTypes (mri_src, mri_x, frame);
+    }
+
   if (!mri_x)
   {
     mri_x = MRIalloc(width, height, depth, MRI_FLOAT) ;
@@ -1011,6 +1016,78 @@ MRIxSobel(MRI *mri_src, MRI *mri_x, int frame)
 
   return(mri_x) ;
 }
+
+MRI *
+MRIxSobelForAllTypes(MRI *mri_src, MRI *mri_x, int frame)
+{
+  int              tr_pix[3], mr_pix[3], br_pix[3] ;
+  float            tr_pix_val, mr_pix_val, br_pix_val;
+  int              x, y, z, width, height, depth ;
+  float            *outPtr;
+  float            left, middle, right, two, eight;
+
+  two = 2.0;
+  eight = 8.0;
+  
+  width = mri_src->width ;
+  height = mri_src->height ;
+  depth = mri_src->depth ;
+
+  if (!mri_x)
+  {
+    mri_x = MRIalloc(width, height, depth, MRI_FLOAT) ;
+    MRIcopyHeader(mri_src, mri_x) ;
+  }
+
+
+  /* applying sobel in x-y plane */
+  width-- ; height-- ; 
+  for (z = 0 ; z < depth ; z++)
+  {
+    for (y = 1 ; y < height ; y++)
+    {
+
+      tr_pix[0] = 0; tr_pix[1] = y-1; tr_pix[2] = z;
+      mr_pix[0] = 0; mr_pix[1] = y;   mr_pix[2] = z;
+      br_pix[0] = 0; br_pix[1] = y+1; br_pix[2] = z;
+      outPtr = &MRIFseq_vox(mri_x, 1, y, z, frame) ;
+
+      tr_pix_val = MRIgetVoxVal (mri_src, tr_pix[0], tr_pix[1], tr_pix[2],0);
+      mr_pix_val = MRIgetVoxVal (mri_src, mr_pix[0], mr_pix[1], mr_pix[2],0);
+      br_pix_val = MRIgetVoxVal (mri_src, br_pix[0], br_pix[1], br_pix[2],0);
+      left =    (tr_pix_val + two * mr_pix_val + br_pix_val) ;
+      tr_pix[0]++;
+      mr_pix[0]++;
+      br_pix[0]++;
+
+      tr_pix_val = MRIgetVoxVal (mri_src, tr_pix[0], tr_pix[1], tr_pix[2],0);
+      mr_pix_val = MRIgetVoxVal (mri_src, mr_pix[0], mr_pix[1], mr_pix[2],0);
+      br_pix_val = MRIgetVoxVal (mri_src, br_pix[0], br_pix[1], br_pix[2],0);
+      middle =  (tr_pix_val + two * mr_pix_val + br_pix_val) ;
+      tr_pix[0]++;
+      mr_pix[0]++;
+      br_pix[0]++;
+      
+      for (x = 1 ; x < width ; x++)
+      {
+
+	tr_pix_val = MRIgetVoxVal (mri_src, tr_pix[0], tr_pix[1], tr_pix[2],0);
+	mr_pix_val = MRIgetVoxVal (mri_src, mr_pix[0], mr_pix[1], mr_pix[2],0);
+	br_pix_val = MRIgetVoxVal (mri_src, br_pix[0], br_pix[1], br_pix[2],0);
+	right =  (tr_pix_val + two * mr_pix_val + br_pix_val) ;
+	tr_pix[0]++;
+	mr_pix[0]++;
+	br_pix[0]++;
+
+        *outPtr++ = (right - left) / eight ;
+        left = middle ;
+        middle = right ;
+      }
+    }
+  }
+
+  return(mri_x) ;
+}
 /*-----------------------------------------------------
         Parameters:
 
@@ -1029,7 +1106,12 @@ MRIySobel(MRI *mri_src, MRI *mri_y, int frame)
   height = mri_src->height ;
   depth = mri_src->depth ;
 
-  if (!mri_y)
+  if (mri_src->type != MRI_UCHAR)
+    {
+      return MRIySobelForAllTypes (mri_src, mri_y, frame);
+    }
+
+   if (!mri_y)
   {
     mri_y = MRIalloc(width, height, depth, MRI_FLOAT) ;
     MRIcopyHeader(mri_src, mri_y) ;
@@ -1065,6 +1147,72 @@ MRIySobel(MRI *mri_src, MRI *mri_y, int frame)
 
   return(mri_y) ;
 }
+
+
+MRI *
+MRIySobelForAllTypes(MRI *mri_src, MRI *mri_y, int frame)
+{
+  int              tr_pix[3], br_pix[3] ;
+  float            tr_pix_val, br_pix_val;
+  int              x, y, z, width, height, depth ;
+  float            *outPtr;
+  float            left, middle, right, two, eight;
+
+  two = 2.0;
+  eight = 8.0;
+  
+  width = mri_src->width ;
+  height = mri_src->height ;
+  depth = mri_src->depth ;
+
+  if (!mri_y)
+  {
+    mri_y = MRIalloc(width, height, depth, MRI_FLOAT) ;
+    MRIcopyHeader(mri_src, mri_y) ;
+  }
+
+
+  /* applying sobel in x-y plane */
+  width-- ; height-- ; 
+  for (z = 0 ; z < depth ; z++)
+  {
+    for (y = 1 ; y < height ; y++)
+    {
+
+      tr_pix[0] = 0; tr_pix[1] = y-1; tr_pix[2] = z;
+      br_pix[0] = 0; br_pix[1] = y+1; br_pix[2] = z;
+      outPtr = &MRIFseq_vox(mri_y, 1, y, z, frame) ;
+
+      tr_pix_val = MRIgetVoxVal (mri_src, tr_pix[0], tr_pix[1], tr_pix[2],0);
+      br_pix_val = MRIgetVoxVal (mri_src, br_pix[0], br_pix[1], br_pix[2],0);
+      left =    (br_pix_val - tr_pix_val) ;
+      tr_pix[0]++;
+      br_pix[0]++;
+
+      tr_pix_val = MRIgetVoxVal (mri_src, tr_pix[0], tr_pix[1], tr_pix[2],0);
+      br_pix_val = MRIgetVoxVal (mri_src, br_pix[0], br_pix[1], br_pix[2],0);
+      middle =  (br_pix_val - tr_pix_val) ;
+      tr_pix[0]++;
+      br_pix[0]++;
+      
+      for (x = 1 ; x < width ; x++)
+      {
+
+	tr_pix_val = MRIgetVoxVal (mri_src, tr_pix[0], tr_pix[1], tr_pix[2],0);
+	br_pix_val = MRIgetVoxVal (mri_src, br_pix[0], br_pix[1], br_pix[2],0);
+	right =  (br_pix_val - tr_pix_val) ;
+	tr_pix[0]++;
+	br_pix[0]++;
+
+        *outPtr++ = (right + two * middle + left) / eight ;
+        left = middle ;
+        middle = right ;
+      }
+    }
+  }
+
+  return(mri_y) ;
+}
 /*-----------------------------------------------------
         Parameters:
 
@@ -1084,6 +1232,11 @@ MRIzSobel(MRI *mri_src, MRI *mri_z, int frame)
   height = mri_src->height ;
   depth = mri_src->depth ;
 
+  if (mri_src->type != MRI_UCHAR)
+    {
+      return MRIxSobelForAllTypes (mri_src, mri_z, frame);
+    }
+  
   if (!mri_z)
   {
     mri_z = MRIalloc(width, height, depth, MRI_FLOAT) ;
@@ -1121,6 +1274,72 @@ MRIzSobel(MRI *mri_src, MRI *mri_z, int frame)
 
   return(mri_z) ;
 }
+
+MRI *
+MRIzSobelForAllTypes(MRI *mri_src, MRI *mri_z, int frame)
+{
+  int              tr_pix[3], br_pix[3] ;
+  float            tr_pix_val, br_pix_val;
+  int              x, y, z, width, height, depth ;
+  float            *outPtr;
+  float            left, middle, right, two, eight;
+
+  two = 2.0;
+  eight = 8.0;
+  
+  width = mri_src->width ;
+  height = mri_src->height ;
+  depth = mri_src->depth ;
+
+  if (!mri_z)
+  {
+    mri_z = MRIalloc(width, height, depth, MRI_FLOAT) ;
+    MRIcopyHeader(mri_src, mri_z) ;
+  }
+
+
+  /* applying sobel in x-z plane */
+  width-- ; depth-- ;
+  for (z = 1 ; z < depth ; z++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+
+      tr_pix[0] = 0; tr_pix[1] = y; tr_pix[2] = z-1;
+      br_pix[0] = 0; br_pix[1] = y; br_pix[2] = z+1;
+      outPtr = &MRIFseq_vox(mri_z, 1, y, z, frame) ;
+
+      tr_pix_val = MRIgetVoxVal (mri_src, tr_pix[0], tr_pix[1], tr_pix[2],0);
+      br_pix_val = MRIgetVoxVal (mri_src, br_pix[0], br_pix[1], br_pix[2],0);
+      left =    (br_pix_val - tr_pix_val) ;
+      tr_pix[0]++;
+      br_pix[0]++;
+
+      tr_pix_val = MRIgetVoxVal (mri_src, tr_pix[0], tr_pix[1], tr_pix[2],0);
+      br_pix_val = MRIgetVoxVal (mri_src, br_pix[0], br_pix[1], br_pix[2],0);
+      middle =  (br_pix_val - tr_pix_val) ;
+      tr_pix[0]++;
+      br_pix[0]++;
+      
+      for (x = 1 ; x < width ; x++)
+      {
+
+	tr_pix_val = MRIgetVoxVal (mri_src, tr_pix[0], tr_pix[1], tr_pix[2],0);
+	br_pix_val = MRIgetVoxVal (mri_src, br_pix[0], br_pix[1], br_pix[2],0);
+	right =  (br_pix_val - tr_pix_val) ;
+	tr_pix[0]++;
+	br_pix[0]++;
+
+        *outPtr++ = (right + two * middle + left) / eight ;
+        left = middle ;
+        middle = right ;
+      }
+    }
+  }
+
+  return(mri_z) ;
+}
+
 /*-----------------------------------------------------
         Parameters:
 

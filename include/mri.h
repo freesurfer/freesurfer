@@ -259,8 +259,11 @@ MRI   *MRIpolvMedianRegion(MRI *mri_src, MRI *mri_dst,MRI *mri_polv,int wsize,
 
 MRI   *MRIsobel(MRI *mri_src, MRI *mri_grad, MRI *mri_mag);
 MRI   *MRIxSobel(MRI *mri_src, MRI *mri_x, int frame) ;
+MRI   *MRIxSobelForAllTypes(MRI *mri_src, MRI *mri_x, int frame) ;
 MRI   *MRIySobel(MRI *mri_src, MRI *mri_y, int frame) ;
+MRI   *MRIySobelForAllTypes(MRI *mri_src, MRI *mri_y, int frame) ;
 MRI   *MRIzSobel(MRI *mri_src, MRI *mri_z, int frame) ;
+MRI   *MRIzSobelForAllTypes(MRI *mri_src, MRI *mri_z, int frame) ;
 MRI   *MRIsobelRegion(MRI *mri_src, MRI *mri_grad, int domag, 
                       MRI_REGION *region);
 MRI   *MRIxSobelRegion(MRI *mri_src, MRI *mri_x, int frame,MRI_REGION *region);
