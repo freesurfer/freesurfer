@@ -22,7 +22,7 @@ static MATRIX *pca_matrix(MATRIX *m_in_evectors, double in_means[3],
 
 
 char *Progname ;
-static int align = 1 ;
+static int align = 0 ;
 static int window_flag = 0 ;
 static MORPH_PARMS  parms ;
 
