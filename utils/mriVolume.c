@@ -1729,8 +1729,15 @@ Volm_tErr Volm_Flood ( mriVolumeRef        this,
   
   /* Recursivly iterate with these values */
   DebugNote( ("Starting iteration") );
-  Volm_FloodIterate_( this, iParams, &(iParams->mSourceIdx), visited );
+  iParams->mbFloodIterationMaxReached = FALSE;
+  eResult = Volm_FloodIterate_( this, iParams, 
+				&(iParams->mSourceIdx), visited );
+  DebugAssertThrow( (Volm_tErr_NoErr == eResult) );
   
+  /* If the iteration limit flag was set, return that error. */
+  DebugAssertThrowX( (!iParams->mbFloodIterationMaxReached),
+		     eResult, Volm_tErr_FloodMaxIterationCountReached );
+
   DebugCatch;
   DebugCatchError( eResult, Volm_tErr_NoErr, Volm_GetErrorString );
   EndDebugCatch;
@@ -1772,9 +1779,10 @@ Volm_tErr Volm_FloodIterate_ ( mriVolumeRef        this,
 
   /* Don't do this too many times. */
   this->mnFloodIterationCount++;
-  DebugAssertThrowX( (this->mnFloodIterationCount < Volm_knMaxFloodIteration),
-		     eResult, Volm_tErr_FloodMaxIterationCountReached );
-
+  if( this->mnFloodIterationCount >= Volm_knMaxFloodIteration ) {
+    iParams->mbFloodIterationMaxReached = TRUE;
+    DebugQuietThrow();
+  }
   
   /* If we've already been here, return. If not, mark our visited
      volume and continue. */
@@ -1835,12 +1843,12 @@ Volm_tErr Volm_FloodIterate_ ( mriVolumeRef        this,
   }
   
   /* Calc our bounds */
-  nBeginX  = xVoxl_GetX(iIdx) - 1;
-  nEndX    = xVoxl_GetX(iIdx) + 1;
-  nBeginY  = xVoxl_GetY(iIdx) - 1;
-  nEndY    = xVoxl_GetY(iIdx) + 1;
-  nBeginZ  = xVoxl_GetZ(iIdx) - 1;
-  nEndZ    = xVoxl_GetZ(iIdx) + 1;
+  nBeginX  = MAX( xVoxl_GetX(iIdx) - 1, 0 );
+  nEndX    = MIN( xVoxl_GetX(iIdx) + 1, this->mnDimensionX );
+  nBeginY  = MAX( xVoxl_GetY(iIdx) - 1, 0 );
+  nEndY    = MIN( xVoxl_GetY(iIdx) + 1, this->mnDimensionY );
+  nBeginZ  = MAX( xVoxl_GetZ(iIdx) - 1, 0 );
+  nEndZ    = MIN( xVoxl_GetZ(iIdx) + 1, this->mnDimensionZ );
   
   /* If we're not in 3d, limit one of them based on the orientation */
   if( !iParams->mb3D ) {
@@ -1866,7 +1874,7 @@ Volm_tErr Volm_FloodIterate_ ( mriVolumeRef        this,
       for( nX = nBeginX; nX <= nEndX; nX++ ) {
 	xVoxl_Set( &idx, nX, nY, nZ );
 	if( Volm_VerifyIdx_( this, &idx ) == Volm_tErr_NoErr ) {
-	  Volm_FloodIterate_( this, iParams, &idx, iVisited );
+	  eResult = Volm_FloodIterate_( this, iParams, &idx, iVisited );
 	}
       }
     }
