@@ -353,7 +353,7 @@ x undo
   x make sure works for ROI editing
   x multiple levels of undo
 
-- fix brush radius
+x fix brush radius
   x be able to set radius < 0.1
   - be able to set by voxel radius instead of mm
 
@@ -382,8 +382,8 @@ BUGS:::
   - circle brush doesn't work in proper plane
   - fill not in view plane
 - undo doesn't undo all painted voxels
+  - don't add duplicate voxels to an undo action
 - new value stuff doesn't show up unless you click Tools panel first, then click voxelEditing button
-- any number sets brush size
 
 
 FUTURE IDEAS:::
