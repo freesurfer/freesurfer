@@ -1,9 +1,9 @@
 #!/bin/csh -f
 # spatialsmooth-sess
 #
-# $Id: spatialsmooth-sess,v 1.1 2003/03/04 21:22:09 greve Exp $
+# $Id: spatialsmooth-sess,v 1.2 2003/09/23 22:20:07 greve Exp $
 
-set VERSION = '$Id: spatialsmooth-sess,v 1.1 2003/03/04 21:22:09 greve Exp $';
+set VERSION = '$Id: spatialsmooth-sess,v 1.2 2003/09/23 22:20:07 greve Exp $';
 
 set cmdargs = ($argv);
 
@@ -14,6 +14,7 @@ set RunList0 = ();
 set RunListFile = ();
 set PrintHelp = 0;
 set HPF = ();
+set inorm = 0;
 
 if($#argv == 0) then
   goto usage_exit;
@@ -51,7 +52,7 @@ else
 endif
 
 echo "spatiallysmooth-sess" >> $LF
-echo '$Id: spatialsmooth-sess,v 1.1 2003/03/04 21:22:09 greve Exp $'>> $LF
+echo '$Id: spatialsmooth-sess,v 1.2 2003/09/23 22:20:07 greve Exp $'>> $LF
 uname -a        >> $LF
 date            >> $LF
 $PWDCMD         >> $LF
@@ -79,18 +80,8 @@ foreach sess ($SessList)
   endif
 
   ### Goto the functional subdirectory ###
-  cd $sess/$fsd
+  pushd $sess/$fsd
 
-  ### Get the list of runs in the FSD ###
-  #if($#RunList0 == 0) then
-  #  set RunList = `getrunlist .`;
-  #  if($status || $#RunList == 0) then
-  #    echo "ERROR: $sess/$fsd has no runs"  |& tee -a $LF
-  #    exit 1;
-  #  endif
-  #else  
-  #  set RunList = ($RunList0);
-  #endif
   if($#RunListFile == 0) then
     set RunList = `getrunlist .`;
     if($status || $#RunList == 0) then
@@ -105,6 +96,17 @@ foreach sess ($SessList)
     set RunList = (`cat $RunListFile`);
   endif
   echo "RunList $RunList" |& tee -a $LF
+
+  if($inorm) then
+    set seqinfo = seq.info
+    if(! -e $seqinfo) then
+      echo "ERROR: cannot find $seqinfo"
+      exit 1;
+    endif
+    set TR  = `cat $seqinfo | awk '{if($1=="TR") print $2}'`;
+    set IPR = `cat $seqinfo | awk '{if($1=="rowpixelsize") print $2}'`;
+    set BPR = `cat $seqinfo | awk '{if($1=="slcpixelsize") print $2}'`;
+  endif
 
   ## Go through each run ##
   foreach run ($RunList)
@@ -134,7 +136,25 @@ foreach sess ($SessList)
       echo "ERROR: ipfsl failed"
       exit 1
     endif
-  end
+
+  if($inorm) then
+    echo "INFO: intensity normalizing smoothed volume"
+    set cmd = (inorm -i $run/$outstem -TR $TR -ipr $IPR -bpr $BPR)    
+    echo ---------------------------------------------- |& tee -a $LF
+    $PWDCMD   |& tee -a $LF
+    echo $cmd |& tee -a $LF
+    echo ---------------------------------------------- |& tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) then
+      echo "ERROR: ipfsl failed"
+      exit 1
+    endif
+  endif
+
+  end # Loop over runs
+
+
+  popd > /dev/null
 
 end # Loop over sessions #
 
@@ -190,6 +210,10 @@ while( $#argv != 0 )
     case "-rlf":
       if ( $#argv == 0) goto arg1err;
       set RunListFile = $argv[1]; shift;
+      breaksw
+
+    case "-inorm":
+      set inorm = 1;
       breaksw
 
     case "-verbose":
