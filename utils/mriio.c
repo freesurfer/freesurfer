@@ -8608,12 +8608,12 @@ mghRead(char *fname, int read_volume, int frame)
   fclose(fp) ;
 
   // xstart, xend, ystart, yend, zstart, zend are not stored
-  mri->xstart = - mri->width/2.;
-  mri->xend = mri->width/2.;
-  mri->ystart = - mri->height/2.;
-  mri->yend = mri->height/2.;
-  mri->zstart = - mri->depth/2.;
-  mri->zend = mri->depth/2.;
+  mri->xstart = - mri->width/2.*mri->xsize;
+  mri->xend = mri->width/2. * mri->xsize;
+  mri->ystart = - mri->height/2.*mri->ysize;
+  mri->yend = mri->height/2.*mri->ysize;
+  mri->zstart = - mri->depth/2.*mri->zsize;
+  mri->zend = mri->depth/2.*mri->zsize;
 
   return(mri) ;
 }
