@@ -42,6 +42,7 @@
 
 #define MRIS_BINARY_FILE    0
 #define MRIS_ASCII_FILE     1
+#define MRIS_GEO_FILE       2    /* movie.byu format */
 
 /*------------------------ STATIC PROTOTYPES -------------------------*/
 
@@ -55,6 +56,7 @@ static float mrisTriangleArea(MRIS *mris, int fac, int n) ;
 static int   mrisNormalFace(MRIS *mris, int fac,int n,float norm[]) ;
 static int   mrisReadTransform(MRIS *mris, char *mris_fname) ;
 static MRI_SURFACE *mrisReadAsciiFile(char *fname) ;
+static MRI_SURFACE *mrisReadGeoFile(char *fname) ;
 
 static int   mrisReadBinaryAreas(MRI_SURFACE *mris, char *mris_fname) ;
 /*static int   mrisReadFieldsign(MRI_SURFACE *mris, char *fname) ;*/
@@ -112,6 +114,7 @@ static int   mrisClearGradient(MRI_SURFACE *mris) ;
 static int   mrisClearMomentum(MRI_SURFACE *mris) ;
 static int   mrisApplyGradient(MRI_SURFACE *mris, double dt) ;
 static int   mrisValidVertices(MRI_SURFACE *mris) ;
+static int   mrisValidFaces(MRI_SURFACE *mris) ;
 static int   mrisLabelVertices(MRI_SURFACE *mris, float cx, float cy, 
                                float cz, int label, float radius) ;
 
@@ -235,6 +238,14 @@ MRISread(char *fname)
       return(NULL) ;
     version = -1 ;
   }
+  else if (type == MRIS_GEO_FILE)
+  {
+    mris = mrisReadGeoFile(fname) ;
+    if (!mris)
+      return(NULL) ;
+    version = -1 ;
+  }
+
   else
   {
     fp = fopen(fname, "rb") ;
@@ -627,7 +638,8 @@ MRISwrite(MRI_SURFACE *mris, char *fname)
   type = mrisFileNameType(fname) ;
   if (type == MRIS_ASCII_FILE)
     return(MRISwriteAscii(mris, fname)) ;
-
+  else if (type == MRIS_GEO_FILE)
+    return(MRISwriteGeo(mris, fname)) ;
   fp = fopen(fname,"w");
   if (fp==NULL) 
     ErrorReturn(ERROR_BADFILE,
@@ -5577,6 +5589,7 @@ MRISreadCanonicalCoordinates(MRI_SURFACE *mris, char *sname)
   MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ;
   MRISrestoreVertexPositions(mris, CANONICAL_VERTICES) ;
   r = mris->radius = MRISaverageRadius(mris) ;
+  r = mris->radius = (float)nint(mris->radius) ;
   MRISrestoreVertexPositions(mris, ORIGINAL_VERTICES) ;
   for (vno = 0 ; vno < nvertices ; vno++)
   {
@@ -5735,6 +5748,8 @@ MRISwritePatch(MRI_SURFACE *mris, char *fname)
   type = mrisFileNameType(fname) ;
   if (type == MRIS_ASCII_FILE)
     return(MRISwritePatchAscii(mris, fname)) ;
+  else if (type == MRIS_GEO_FILE)
+    return(MRISwriteGeo(mris, fname)) ;
 
   npts = 0;
   for (k=0;k<mris->nvertices;k++)
@@ -7637,6 +7652,25 @@ mrisValidVertices(MRI_SURFACE *mris)
         Returns value:
 
         Description
+------------------------------------------------------*/
+static int
+mrisValidFaces(MRI_SURFACE *mris)
+{
+  int fno, nfaces, nvalid ;
+
+  nfaces = mris->nfaces ;
+  for (fno = nvalid = 0 ; fno < nfaces ; fno++)
+    if (!mris->faces[fno].ripflag)
+      nvalid++ ;
+
+  return(nvalid) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
         File Format is:
 
         name x y z
@@ -9271,6 +9305,8 @@ mrisFileNameType(char *fname)
   StrUpper(ext) ;
   if (!strcmp(ext, "ASC"))
     type = MRIS_ASCII_FILE ;
+  else if (!strcmp(ext, "GEO"))
+    type = MRIS_GEO_FILE ;
   else
     type = MRIS_BINARY_FILE ;
 
@@ -9312,6 +9348,73 @@ MRISwriteAscii(MRI_SURFACE *mris, char *fname)
     fprintf(fp, "%d\n", face->ripflag) ;
   }
 
+  fclose(fp) ;
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+int
+MRISwriteGeo(MRI_SURFACE *mris, char *fname)
+{
+  int     vno, fno, n, actual_vno, toggle, nfaces, nvertices ;
+  VERTEX  *v ;
+  FACE    *face ;
+  FILE    *fp ;
+
+  nfaces = mrisValidFaces(mris) ;
+  nvertices = mrisValidVertices(mris) ;
+  fp = fopen(fname, "w") ;
+  if (!fp)
+    ErrorReturn(ERROR_NOFILE, 
+              (ERROR_NOFILE, "MRISwriteGeo: could not open file %s",fname));
+
+  fprintf(fp, "    1 %d %d %d\n", nvertices, 
+          nfaces, VERTICES_PER_FACE*nfaces) ;
+  fprintf(fp, "    1 %d\n", nfaces) ;
+  for (actual_vno = vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    v->marked = actual_vno++ ;
+  }
+
+  for (toggle = vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    fprintf(fp, "%12.5e%12.5e%12.5e", v->x, v->y, v->z) ;
+    if (toggle)
+    {
+      toggle = 0 ;
+      fprintf(fp, "\n") ;
+    }
+    else
+    {
+      toggle = 1 ;
+      fprintf(fp, " ") ;
+    }
+  }
+  if (toggle)
+    fprintf(fp, "\n") ;
+  
+  for (fno = 0 ; fno < mris->nfaces ; fno++)
+  {
+    face = &mris->faces[fno] ;
+    if (face->ripflag)
+      continue ;
+    for (n = 0 ; n < VERTICES_PER_FACE-1 ; n++)
+      fprintf(fp, "%d ", mris->vertices[face->v[n]].marked) ;
+    fprintf(fp, "-%d\n", mris->vertices[face->v[n]].marked) ;
+  }
+
+  MRISclearMarks(mris) ;
   fclose(fp) ;
   return(NO_ERROR) ;
 }
@@ -9400,6 +9503,59 @@ mrisReadAsciiFile(char *fname)
   FACE    *face ;
   FILE    *fp ;
 
+  fp = fopen(fname, "r") ;
+  if (!fp)
+    ErrorReturn(NULL, 
+              (ERROR_NOFILE, 
+               "MRISreadAsciiFile: could not open file %s",fname));
+
+  patch = 0 ;
+  cp = fgetl(line, 100, fp) ;
+  sscanf(cp, "%d %d\n", &nvertices, &nfaces) ;
+  mris = MRISalloc(nvertices, nfaces) ;
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    fscanf(fp, "%f  %f  %f  %d\n", &v->x, &v->y, &v->z, &v->ripflag) ;
+    if (v->ripflag)
+      patch = 1 ;
+  }
+  for (fno = 0 ; fno < mris->nfaces ; fno++)
+  {
+    face = &mris->faces[fno] ;
+    for (n = 0 ; n < VERTICES_PER_FACE ; n++)
+    {
+      fscanf(fp, "%d ", &face->v[n]) ;
+      mris->vertices[face->v[n]].num++;
+    }
+    fscanf(fp, "%d\n", &face->ripflag) ;
+  }
+
+  mris->patch = patch ;
+  if (patch)
+    mris->status = MRIS_PLANE ;
+  fclose(fp) ;
+  return(mris) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+static MRI_SURFACE *
+mrisReadGeoFile(char *fname)
+{
+  MRI_SURFACE   *mris ;
+  char    line[200], *cp ;
+  int     vno, fno, n, nvertices, nfaces, patch ;
+  VERTEX  *v ;
+  FACE    *face ;
+  FILE    *fp ;
+
+  ErrorReturn(NULL, 
+              (ERROR_UNSUPPORTED, "geo file reading not yet supported.\n")) ;
   fp = fopen(fname, "r") ;
   if (!fp)
     ErrorReturn(NULL, 
