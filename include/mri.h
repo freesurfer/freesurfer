@@ -270,6 +270,8 @@ HISTOGRAM  *MRIgetEqualizeHisto(MRI *mri, HISTOGRAM *histo_eq, int low,
                                 int norm) ;
 MRI        *MRIhistoNormalize(MRI *mri_src, MRI *mri_norm, MRI *mri_template,
                   int low) ;
+MRI        *MRIsplineNormalize(MRI *mri_src, MRI *mri_dst, MRI *mri_field,
+                               float *inputs, float *outputs, int npoints) ;
 MRI        *MRIadaptiveHistoNormalize(MRI *mri_src, MRI *mri_norm, 
                                       MRI *mri_template, int wsize,
                                       int hsize, int low) ;
