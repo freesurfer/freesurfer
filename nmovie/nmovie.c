@@ -589,7 +589,6 @@ int main(int argc, char **argv)
       if (!I)
         ErrorExit(ERROR_NOFILE, 
                   "%s: could not read image file %s\n",argv[i]);
-      rgb2xcol(I,imgdata,i);
       switch (I->pixel_format)
       {
       case PFBYTE:
@@ -602,9 +601,9 @@ int main(int argc, char **argv)
       pfmt = MAX(pfmt,I->pixel_format);
       rows = MAX(rows,I->orows);
       cols = MAX(cols,I->ocols);
+      ImageFree(&I);
     }
 
-  ImageFree(&I);
 
   nframes = argc-1;
 
