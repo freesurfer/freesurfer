@@ -5157,7 +5157,8 @@ mrisAverageAreas(MRI_SURFACE *mris, int num_avgs, int which)
         Description
 ------------------------------------------------------*/
 int
-MRISsampleStatVolume(MRI_SURFACE *mris, STAT_VOLUME *sv,int time_point,int tal)
+MRISsampleStatVolume(MRI_SURFACE *mris, STAT_VOLUME *sv,int time_point,
+                     int coords)
 {
   VERTEX   *v ;
   int      vno, xv, yv, zv, width, height, depth ;
@@ -5178,12 +5179,21 @@ MRISsampleStatVolume(MRI_SURFACE *mris, STAT_VOLUME *sv,int time_point,int tal)
     x = (Real)v->x ; y = (Real)v->y ; z = (Real)v->z ;
 
     /* now convert them into talairach space */
-    if (tal)
+    switch (coords)
+    {
+    case TALAIRACH_COORDS:
       MRIworldToTalairachVoxel(sv->mri_pvals[0], x, y, z, &xt, &yt, &zt) ;
-    else
+      break ;
+    case SPHERICAL_COORDS:
+      x = (Real)v->cx ; y = (Real)v->cy ; z = (Real)v->cz ;
       MRIworldToVoxel(sv->mri_pvals[0], x, y, z, &xt, &yt, &zt) ;
+      break ;
+    default:
+      MRIworldToVoxel(sv->mri_pvals[0], x, y, z, &xt, &yt, &zt) ;
+      break ;
+    }
     xv = nint(xt) ; yv = nint(yt) ; zv = nint(zt) ;
-    if (xv >= 0 && xv < width && yv >= 0 && yv <= height && zv >= 0&&zv<=depth)
+    if (xv >= 0 && xv < width && yv >= 0 && yv <= height && zv>=0&&zv<=depth)
       v->val = MRIFseq_vox(sv->mri_pvals[0], xv, yv, zv, time_point) ;
     if (vno == 1446)
       DiagBreak() ;
@@ -5310,7 +5320,7 @@ MRISreadCanonicalCoordinates(MRI_SURFACE *mris, char *sname)
   float       d, x, y, z, r, theta, phi ;
 
   cp = strchr(sname, '/') ;
-  if (!cp)                  /* no path - use same one as mris was read from */
+  if (!cp)                 /* no path - use same one as mris was read from */
   {
     FileNamePath(mris->fname, path) ;
     sprintf(fname, "%s/%s", path, sname) ;
@@ -5319,9 +5329,10 @@ MRISreadCanonicalCoordinates(MRI_SURFACE *mris, char *sname)
     strcpy(fname, sname) ;  /* path specified explcitly */
   fp = fopen(fname, "rb") ;
   if (!fp)
-    ErrorReturn(ERROR_NOFILE,(ERROR_NOFILE,
-                      "MRISreadCanonicalCoordinates(%s): could not open file",
-                      fname));
+    ErrorReturn(ERROR_NOFILE,
+                (ERROR_NOFILE,
+                 "MRISreadCanonicalCoordinates(%s): could not open file",
+                 fname));
 
   fread3(&magic, fp) ;
   if (magic == NEW_VERSION_MAGIC_NUMBER) 
