@@ -4,6 +4,7 @@
 #include <string.h>
 #include <malloc.h>
 #include <errno.h>
+#include <ctype.h>
 #include "mri.h"
 #include "diag.h"
 #include "error.h"
@@ -13,7 +14,7 @@
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_parse_sdcmdir.c,v 1.2 2002/03/13 21:07:35 greve Exp $";
+static char vcid[] = "$Id: mri_parse_sdcmdir.c,v 1.3 2002/10/07 17:19:59 greve Exp $";
 char *Progname = NULL;
 
 static int  parse_commandline(int argc, char **argv);
@@ -311,7 +312,14 @@ static int strip_leading_slashes(char *s)
   if(strlen(s) == 0) s[0] = '/';
   return(0);
 }
-/*---------------------------------------------------------------*/
+/*---------------------------------------------------------------
+  strip_white_space() - strips white space as well as anything
+  that is not alpha-numeric from s. This is needed because
+  when Siemens converts the protocol and pulse sequence names
+  to DICOM, there's a lot of garbage that gets appended to the
+  end. It looks like they forget to add a null terminator to
+  the string.
+---------------------------------------------------------------*/
 static char * strip_white_space(char *s)
 {
   char *s2;
@@ -320,11 +328,12 @@ static char * strip_white_space(char *s)
   if(s==NULL) return(NULL);
 
   l = strlen(s);
-  s2 = (char *) calloc(l,sizeof(char));
+  s2 = (char *) calloc(l+1,sizeof(char));
   
   m = 0;
   for(n=0; n<l; n++){
-    if(s[n] != ' '){
+    /*if(s[n] != ' '){*/
+    if( isalnum(s[n]) && s[n] != ' ' && s[n] != '\t' ){
       s2[m] = s[n];
       m++;
     }
