@@ -3014,6 +3014,17 @@ MRISunfold(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int max_passes)
   fprintf(stderr, "removing remaining folds...\n") ;
   mrisRemoveNegativeArea(mris, parms, base_averages, MAX_NEG_AREA_PCT, 3);
 
+  if (mris->patch)  /* smooth out remaining folds */
+  {
+    parms->l_spring = 1.0f ;
+    parms->niterations = 5 ;
+    parms->integration_type = INTEGRATE_MOMENTUM ;
+    parms->dt = 0.5f ; parms->momentum = 0.0f ;
+    parms->n_averages = 0 ;
+    mrisRemoveNegativeArea(mris, parms, 0, MAX_NEG_AREA_PCT, 1);
+  }
+ 
+
   pct_error = MRISpercentDistanceError(mris) ;
   if (Gdiag & DIAG_SHOW)
     mrisLogStatus(mris, parms, stderr, 0) ;
@@ -3215,7 +3226,6 @@ mrisRemoveNegativeArea(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
   float  l_area, l_parea, l_corr, l_spring, l_dist, *pnum, *pdenom, cmod ;
   double tol ;
   
-  parms->integration_type = INTEGRATE_LINE_MINIMIZE ;
   pct_neg = 100.0*mris->neg_area/(mris->neg_area+mris->total_area) ;
   if (pct_neg <= min_area_pct)
     return(0) ;   /* no steps */
@@ -3224,8 +3234,9 @@ mrisRemoveNegativeArea(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
   parms->tol = 1e-2 ;
   niter = parms->niterations ;
   old_averages = parms->n_averages ;
-  parms->niterations = 25 ;
-  base_averages = 1024 ;
+  /*  parms->integration_type = INTEGRATE_LINE_MINIMIZE ;*/
+  /* parms->niterations = 25 ;*/
+  /*  base_averages = 1024 ;*/
   l_area = parms->l_area ; l_parea = parms->l_parea ; 
   l_spring = parms->l_spring ;
   l_dist = parms->l_dist ; l_corr = parms->l_corr ;
