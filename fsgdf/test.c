@@ -9,18 +9,26 @@ int main (int argc, char** argv)
   char fnTestPath[1000];
   char fnTest[1000];
 
-  /* Build a proper path for our test data. */
-  env = getenv("FSDEV_TEST_DATA");
-  if(NULL != env)
-    {
-      strcpy(fnTestPath, env);
-    }
-  else 
-    {
-      strcpy(fnTestPath, "/space/lyon/1/fsdev/test_data");
-    }
-  sprintf(fnTest, "%s/fsgdf/y-lh.fsgd", fnTestPath);
+  if ( argc > 1 ) {
 
+    /* Grab the file name from the arg */
+    strcpy(fnTest, argv[1]);
+
+  } else {
+
+    /* Build a proper path for our test data. */
+    env = getenv("FSDEV_TEST_DATA");
+    if(NULL != env)
+      {
+	strcpy(fnTestPath, env);
+      }
+    else 
+      {
+	strcpy(fnTestPath, "/space/lyon/1/fsdev/test_data");
+      }
+    sprintf(fnTest, "%s/fsgdf/y-lh.fsgd", fnTestPath);
+  }
+ 
   /* Just test the read function, first without reading the data and
      then with. */
   gd = gdfRead(fnTest,0);
@@ -38,6 +46,7 @@ int main (int argc, char** argv)
     }
   gdfFree(&gd);
 
+  printf("Test successful.");
 
   return(0);
 }
