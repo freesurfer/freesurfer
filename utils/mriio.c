@@ -55,6 +55,9 @@
 
 #include "bfileio.h"
 
+// unix director separator 
+#define DIR_SEPARATOR '/'
+#define CURDIR "./"
 
 #define MM_PER_METER  1000.0f
 #define INFO_FNAME    "COR-.info"
@@ -285,7 +288,14 @@ static MRI *mri_read(char *fname, int type, int volume_flag, int start_frame, in
   int i, j, k, t;
   int volume_frames;
 
-  strcpy(fname_copy, fname);
+  // if filename does not contain any directory separator, then add "./"
+  if (!strchr(fname,DIR_SEPARATOR))
+  {
+    strcat(fname_copy, CURDIR);
+    strcat(fname_copy, fname);
+  } 
+  else
+    strcpy(fname_copy, fname);
 
   at = strrchr(fname_copy, '@');
   pound = strrchr(fname_copy, '#');
@@ -604,25 +614,17 @@ MRI *MRIread(char *fname)
 {
   char  buf[STRLEN] ;
   MRI *mri = NULL;
-  FILE *fp;
 
   chklc() ;
-
-  /* first check whether file exists or not */
-  fp = fopen(fname,"rb");
-  if (fp == NULL)
-  {
-    errno = 0;
-    ErrorReturn(NULL, (ERROR_BADPARM, "Could not open file '%s'\n", fname));
-  } 
-  fclose(fp);
 
   FileNameFromWildcard(fname, buf) ; fname = buf ;
   mri = mri_read(fname, MRI_VOLUME_TYPE_UNKNOWN, TRUE, -1, -1);
 
   /* some volume format needs to read many different files for slices (GE DICOM or COR).
      we make sure that mri_read() read the slices, not just one   */
-  
+  if (mri==NULL) 
+    return NULL;
+
   if (mri->depth==1)
   {
     MRIfree(&mri);
@@ -654,17 +656,27 @@ MRI *MRIreadHeader(char *fname, int type)
 {
   int usetype;
   MRI *mri = NULL;
+  char modFname[STRLEN];
 
   usetype = type;
 
+  // if there is no director separator, add "./" at the beginning
+  if (!strchr(fname,DIR_SEPARATOR))
+  {
+    strcpy(modFname, CURDIR);
+    strcat(modFname, fname);
+  } 
+  else
+    strcpy(modFname, fname);
+
   if(usetype == MRI_VOLUME_TYPE_UNKNOWN){
-    usetype = mri_identify(fname);
+    usetype = mri_identify(modFname);
     if(usetype == MRI_VOLUME_TYPE_UNKNOWN){
       printf("ERROR: could not determine type of %s\n",fname);
       return(NULL);
     }
   }
-  mri = mri_read(fname, usetype, FALSE, -1, -1);
+  mri = mri_read(modFname, usetype, FALSE, -1, -1);
 
   return(mri);
 
