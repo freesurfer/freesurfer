@@ -1,6 +1,6 @@
 #!/bin/csh -f
 # mkfsdist
-# $Id: mkfsdist,v 1.2 2001/05/31 23:41:04 greve Exp $
+# $Id: mkfsdist,v 1.3 2002/03/15 16:35:02 greve Exp $
 #
 # Usage: mkfsdist targetdir
 #
@@ -14,9 +14,9 @@
 #  fsa.tar.gz -- the freesurfer_alpha tree
 #  minc.tar.gz -- ~inverse/minc (for running functional autoreg)
 #  talairach.tar.gz -- $SUBJECTS_DIR/talairach (MNI 305)
-#  bert.001.tar.gz -- tutorial data, run 1
-#  bert.002.tar.gz -- tutorial data, run 2
-#  bert.003.tar.gz -- tutorial data, run 3
+#  bert.001.tar.gz -- anatomical tutorial data, run 1
+#  bert.002.tar.gz -- anatomical tutorial data, run 2
+#  bert.003.tar.gz -- anatomical tutorial data, run 3
 #
 # Symbolic Links in freesurfer_alpha:
 # 
@@ -44,14 +44,20 @@
 #  files found in freesurfer_alpha/tar-exclude-more.
 #
 # 
-set VERSION = '$Id: mkfsdist,v 1.2 2001/05/31 23:41:04 greve Exp $';
+set VERSION = '$Id: mkfsdist,v 1.3 2002/03/15 16:35:02 greve Exp $';
 
 # This is where freesurfer_alpha lives #
 set FSA_DIR = ~inverse/freesurfer_alpha;
 
 # This is where the 3 runs of the test subject live #
-set BERT_ORIG_DIR = /space/neo/5/recon/evelina/bert2001
+set BERT_ANAT_DIR = $SUBJECTS_DIR/bert
+set BERT_ORIG_DIR = $BERT_ANAT_DIR/mri/orig
+#/space/neo/5/recon/evelina/bert2001
 
+# Bert's functional data
+set BERT_FUNC_DIR = /space/sake/5/tutorial/JUL01/bert-functional
+
+#------------------------------------------------------#
 if($#argv != 1) then
   echo "USAGE: mkfsdist targetdir"
   exit 1;
@@ -65,8 +71,8 @@ if(! -e $FSA_DIR) then
 endif
 
 # Check that test subject runs are there #
-if(! -e $BERT_ORIG_DIR) then
-  echo "ERROR: cannot find $BERT_ORIG_DIR"
+if(! -e $BERT_ANAT_DIR) then
+  echo "ERROR: cannot find $BERT_ANAT_DIR"
   exit 1;
 endif
 foreach run (1 2 3)
@@ -76,6 +82,11 @@ foreach run (1 2 3)
     exit 1
   endif
 end
+
+if(! -e $BERT_FUNC_DIR) then
+  echo "ERROR: cannot find $BERT_FUNC_DIR"
+  exit 1;
+endif
 
 # Check that the talairach subject is there #
 if(! -e $SUBJECTS_DIR/talairach) then
@@ -121,6 +132,8 @@ echo "$0"    >> $LF
 echo "$argv" >> $LF
 date >> $LF
 
+#goto here;
+
 # ---- Tar up freesurfer_alpha ------- #
 cd $FSA_DIR
 cd ..
@@ -137,29 +150,35 @@ $tarcmd  >> $LF
 date | tee -a $LF
 
 #------ Special for tksurfer, tkmedit, and tkregister -----------#
+# Note: static vs dynamic only applies to Linux.
 # This part assures that the statically linked versions of tksurfer,
-# tkmedit, and tkregister are included in the distribution. In the
-# NMR version (ie, ~inverse/freesurfer_alpha), these programs are
+# tkmedit, and tkregister are the default in the Linux distribution. 
+# In the NMR version (ie, ~inverse/freesurfer_alpha), these programs are
 # dynamically linked, and the static version have a .static extension.
-# Furthermore, tksurfer in the distribution corresponds to 
-# tksurfer.new.static. All versions of these programs are excluded
-# by the tar-exclude file.
+# Also, tksurfer is replaced by tksurfer.new in all OSs; note that there
+# will still be tksurfer.new.
 #
-# ~inverese/freesurfer_alpha    Distribution
-# --------------------------    -----------------
-# tkmedit                       tkmedit.dynamic
-# tkmedit.static                tkmedit
-# tkregister                    tkregister.dynamic
-# tkregister.static             tkregister
-# tksurfer.new                  tksurfer.dynamic
-# tksurfer.new.static           tksurfer
+# NMR Center          Linux                Sun/IRIX
+# ------------------  -----------------    --------------
+# tkmedit             tkmedit.dynamic      tkmedit
+# tkmedit.static      tkmedit              N/A
+# tkregister          tkregister.dynamic   tkregister
+# tkregister.static   tkregister           N/A
+# tksurfer            Excluded             Excluded
+# tksurfer.new        tksurfer.new         tksurfer.new
+# tksurfer.new        tksurfer.dynamic     tksurfer
+# tksurfer.new.static tksurfer             N/A
+# tksurfer.new.static tksurfer.new         N/A
 #
 # A temporary freesurfer_alpha is created in the target 
-# directory, and, under that, bin/$OS is created, where OS is Linux,
-# IRIX, and Solaris. The relevant files are copied according to
+# directory, and, under that, bin/Linux is created.
+# The relevant files are copied according to
 # the translation described above. This freesurfer_alpha is appended
 # to the tar of the original freesurfer_alpha. The temporary 
 # freesurfer_alpha is then deledted, and the tar file is compressed.
+# When the distribution is extracted, the static versions will 
+# overwrite the dynamic version (though there will be .dynamic and
+# .static files there).
 echo "------------------------------------------" | tee -a $LF
 echo "Handling tkmedit, tksurfer, and tkregister" | tee -a $LF
 date | tee -a $LF
@@ -167,8 +186,8 @@ pushd $TARGET_DIR > /dev/null
 set FSA_TMP_DIR = freesurfer_alpha;
 mkdir -p $FSA_TMP_DIR
 
-# Go through each OS #
-foreach OS (Linux IRIX Solaris)
+# Go through each OS - actually only applies to Linux #
+foreach OS (Linux)
 
   # tkmedit and tkregister #
   mkdir -p $FSA_TMP_DIR/bin/$OS
@@ -189,20 +208,37 @@ foreach OS (Linux IRIX Solaris)
     cp $fstatic  $FSA_TMP_DIR/bin/$OS/$binary
   end # foreach binary (tkmedit tkregister)
 
-  # Copy tksurfer.new to tksurfer.dynamic #
-  set fdynamic = $FSA_DIR/bin/$OS/tksurfer.new
-  if(! -e $fdynamic) then
-    echo "ERROR: cannot find $fdynamic"| tee -a $LF
+end#foreach OS
+
+# ----------- Handle tksurfer ----------------------#
+foreach OS (Linux Solaris IRIX)
+  mkdir -p $FSA_TMP_DIR/bin/$OS
+
+  # Get path to tksurfer.new
+  set tksurfernew = $FSA_DIR/bin/$OS/tksurfer.new
+  if(! -e $tksurfernew) then
+    echo "ERROR: cannot find $tksurfernew"| tee -a $LF
     exit 1;
   endif
-  cp $fdynamic $FSA_TMP_DIR/bin/$OS/tksurfer.dynamic
-  # Copy tksurfer.new.static to tksurfer #
-  set fstatic = $FSA_DIR/bin/$OS/tksurfer.new.static
-  if(! -e $fstatic) then
-    echo "ERROR: cannot find $fstatic"| tee -a $LF
-    exit 1;
+
+  # Copy tksurfer.new to tksurfer (except Linux) #
+  if("$OS" != "Linux") then
+    # Solaris and IRIX
+    cp $tksurfernew $FSA_TMP_DIR/bin/$OS/tksurfer
+    cp $tksurfernew $FSA_TMP_DIR/bin/$OS/tksurfer.new
+  else
+    # Linux - must handle stat/dyn linked version #
+    cp $tksurfernew $FSA_TMP_DIR/bin/$OS/tksurfer.dynamic
+    cp $tksurfernew $FSA_TMP_DIR/bin/$OS/tksurfer.new.dynamic
+    # Copy tksurfer.new.static to tksurfer (Linux only)#
+    set tksurfernew_static = $FSA_DIR/bin/$OS/tksurfer.new.static
+    if(! -e $tksurfernew_static) then
+      echo "ERROR: cannot find $tksurfernew_static"| tee -a $LF
+      exit 1;
+    endif
+    cp $tksurfernew_static  $FSA_TMP_DIR/bin/$OS/tksurfer
+    cp $tksurfernew_static  $FSA_TMP_DIR/bin/$OS/tksurfer.new
   endif
-  cp $fstatic  $FSA_TMP_DIR/bin/$OS/tksurfer
 
 end#foreach OS
 
@@ -237,18 +273,36 @@ rm -f $TF
 tar cvz -f $TF ./talairach >> $LF
 date | tee -a $LF
 
-#----- Tar up each run of the test subject --------#
+#----- Tar up berts raw anatomicals --------#
 echo "--------------------------------------------" | tee -a $LF
 date | tee -a $LF  
 pushd $BERT_ORIG_DIR > /dev/null
-foreach run (1 2 3)
-  echo "Tarring bert run $run" | tee -a $LF
-  set rundir = `printf %03d $run`;
-  set TF = $TARGET_DIR/bert.$rundir.tar.gz
-  rm -f $TF
-  tar cvz -f $TF ./$rundir >> $LF
-  date | tee -a $LF  
-end
+pawd
+set TF = $TARGET_DIR/bert.raw.tar.gz
+rm -f $TF
+tar cvz -f $TF ./001 ./002 ./003 >> $LF
+
+#----- Tar up berts reconstructed anatomicals --------#
+echo "--------------------------------------------" | tee -a $LF
+date | tee -a $LF  
+pushd $BERT_ANAT_DIR > /dev/null
+cd ..
+pawd
+set TF = $TARGET_DIR/bert.recon.tar.gz
+rm -f $TF 
+tar cvz -f $TF ./bert >> $LF
+
+#----- Tar up Bert's functional data --------#
+#here:
+echo "--------------------------------------------" | tee -a $LF
+date | tee -a $LF  
+pushd $BERT_FUNC_DIR > /dev/null
+cd ..
+echo "Tarring bert functional data" | tee -a $LF
+set TF = $TARGET_DIR/bert.func.tar.gz
+rm -f $TF
+tar cvz -f $TF ./bert-functional >> $LF
+date | tee -a $LF  
 
 echo "------------------------------------------" | tee -a $LF
 
