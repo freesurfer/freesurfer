@@ -158,6 +158,9 @@ protected:
   void SetLinkedStatus ( bool ibLinked ) {mViewIDLinkedList[GetID()]=ibLinked;}
   bool GetLinkedStatus () { return mViewIDLinkedList[GetID()]; }
 
+  void SetLockOnCursor ( bool ibLock ) { mbLockOnCursor = ibLock; }
+  bool GetLockOnCursor () { return mbLockOnCursor; }
+
   // The draw list for the view overlay and a boolean saying whether
   // it should be rebuilt, usually when the view changes. This view
   // will actually use list kOverlayDrawListID + mID.
@@ -203,6 +206,9 @@ protected:
 
   // Whether to flip the right/left coordinates.
   bool mbFlipLeftRightInYZ;
+
+  // Whether to stay locked on the cursor.
+  bool mbLockOnCursor;
 
   // The color to use when drawing this view's inplane on another view.
   float mInPlaneMarkerColor[3];

@@ -10,7 +10,7 @@ if { $err } {
     load [file dirname [info script]]/libscuba[info sharedlibextension] scuba
 }
 
-DebugOutput "\$Id: scuba.tcl,v 1.34 2004/06/11 23:28:13 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.35 2004/06/13 19:57:33 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -1531,6 +1531,13 @@ proc MakeViewPropertiesPanel { ifwTop } {
 		-command {SetViewLinkedStatus $gaView(current,id) $gaView(current,linked)} }
 	}
 
+    tkuMakeCheckboxes $fwProps.cbwLocked \
+	-checkboxes {
+	    {-type text -label "Locked on Cursor"
+		-variable gaView(current,lockedCursor)
+		-command {SetViewLockOnCursor $gaView(current,id) $gaView(current,lockedCursor)} }
+	}
+
     for { set nLevel 0 } { $nLevel < 10 } { incr nLevel } {
 	tixOptionMenu $fwProps.mwDraw$nLevel \
 	    -label "Draw Level $nLevel:" \
@@ -1562,7 +1569,8 @@ proc MakeViewPropertiesPanel { ifwTop } {
     grid $fwProps.ewID      -column 0 -row 1 -sticky nw
     grid $fwProps.ewCol     -column 1 -row 1 -sticky e
     grid $fwProps.ewRow     -column 2 -row 1 -sticky e
-    grid $fwProps.cbwLinked -column 0 -row 2 -sticky ew -columnspan 3
+    grid $fwProps.cbwLinked -column 0 -row 2 -sticky ew
+    grid $fwProps.cbwLocked -column 1 -row 2 -sticky ew -columnspan 2
     for { set nLevel 0 } { $nLevel < 10 } { incr nLevel } {
 	grid $fwProps.mwDraw$nLevel \
 	    -column 0 -row [expr $nLevel + 3] -sticky ew -columnspan 3
@@ -2160,6 +2168,7 @@ proc SelectViewInViewProperties { iViewID } {
     set gaView(current,col) [GetColumnOfViewInFrame [GetMainFrameID] $iViewID]
     set gaView(current,row) [GetRowOfViewInFrame [GetMainFrameID] $iViewID]
     set gaView(current,linked) [GetViewLinkedStatus $iViewID]
+    set gaView(current,lockedCursor) [GetViewLockOnCursor $iViewID]
     set gaView(current,transformID) [GetViewTransform $iViewID]
     set gaView(current,inPlane) [GetViewInPlane $iViewID]
     set gaView(current,inPlaneInc) \

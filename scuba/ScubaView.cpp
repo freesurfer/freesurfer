@@ -34,6 +34,7 @@ ScubaView::ScubaView() {
   mbRebuildOverlayDrawList = true;
   mViewIDLinkedList[GetID()] = false;
   mbFlipLeftRightInYZ = true;
+  mbLockOnCursor = false;
   mInPlaneMovementIncrements[0] = 1.0;
   mInPlaneMovementIncrements[1] = 1.0;
   mInPlaneMovementIncrements[2] = 1.0;
@@ -105,6 +106,11 @@ ScubaView::ScubaView() {
 			 "Set the linked status for a view." );
   commandMgr.AddCommand( *this, "GetViewLinkedStatus", 1, "viewID",
 			 "Returns the linked status for a view." );
+  commandMgr.AddCommand( *this, "SetViewLockOnCursor", 2, "viewID lock",
+			 "Set a view to keep its view locked on the cursor." );
+  commandMgr.AddCommand( *this, "GetViewLockOnCursor", 1, "viewID",
+			 "Returns whether or not a view is locked on "
+			 "the cursor." );
   commandMgr.AddCommand( *this, "SetViewTransform", 2, "viewID transformID",
 			 "Set the view to world transform for a view." );
   commandMgr.AddCommand( *this, "GetViewTransform", 1, "viewID",
@@ -158,11 +164,11 @@ ScubaView::Set2DRASCenter ( float iRASCenter[3] ) {
   mViewState.mCenterRAS[0] = iRASCenter[0];
   mViewState.mCenterRAS[1] = iRASCenter[1];
   mViewState.mCenterRAS[2] = iRASCenter[2];
-
+    
   // Broadcast this change.
   ScubaViewBroadcaster& broadcaster = ScubaViewBroadcaster::GetBroadcaster();
-  broadcaster.SendBroadcast( "2DRASCenterChanged", (void*)&mID );
-
+    broadcaster.SendBroadcast( "2DRASCenterChanged", (void*)&mID );
+    
   // Changed our view center, so we need to rebuild the overlay.
   RebuildOverlayDrawList();
   RequestRedisplay();
@@ -612,6 +618,47 @@ ScubaView::DoListenToTclCommand( char* isCommand, int iArgc, char** iasArgv ) {
     }
   }
 
+  // SetViewLockOnCursor <viewID> <lock>
+  if( 0 == strcmp( isCommand, "SetViewLockOnCursor" ) ) {
+    int viewID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad view ID";
+      return error;
+    }
+    
+    if( mID == viewID ) {
+      
+      if( 0 == strcmp( iasArgv[2], "true" ) || 
+	  0 == strcmp( iasArgv[2], "1" )) {
+	SetLockOnCursor( true );
+      } else if( 0 == strcmp( iasArgv[2], "false" ) ||
+		 0 == strcmp( iasArgv[2], "0" ) ) {
+	SetLockOnCursor( false );
+      } else {
+	sResult = "bad lock \"" + string(iasArgv[2]) +
+	  "\", should be true, 1, false, or 0";
+	return error;	
+      }
+    }
+  }
+
+  // GetViewLockOnCursor <viewID>
+  if( 0 == strcmp( isCommand, "GetViewLockOnCursor" ) ) {
+    int viewID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad view ID";
+      return error;
+    }
+    
+    if( mID == viewID ) {
+
+      sReturnFormat = "i";
+      stringstream ssReturnValues;
+      ssReturnValues << (int)GetLockOnCursor();
+      sReturnValues = ssReturnValues.str();
+    }
+  }
+
   // SetViewTransform <viewID> <transformID>
   if( 0 == strcmp( isCommand, "SetViewTransform" ) ) {
     int viewID = strtol(iasArgv[1], (char**)NULL, 10);
@@ -789,6 +836,12 @@ ScubaView::DoListenToMessage ( string isMessage, void* iData ) {
   }
 
   if( isMessage == "cursorChanged" ) {
+
+    // If we're locked on the cursor, set our view now.
+    if( mbLockOnCursor ) {
+      Set2DRASCenter( mCursor.xyz() );
+    }
+
     mbRebuildOverlayDrawList = true;
     RequestRedisplay();
   }
