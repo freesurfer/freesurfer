@@ -402,6 +402,8 @@ float        *MRISreadCurvatureVector(MRI_SURFACE *mris, char *sname) ;
 int          MRISreadFloatFile(MRI_SURFACE *mris, char *fname) ;
 #define MRISreadCurvature MRISreadCurvatureFile
 
+MRI *MRISloadSurfVals(char *srcvalfile, char *typestring, MRI_SURFACE *Surf, 
+          char *subject, char *hemi, char *subjectsdir);
 int          MRISreadValues(MRI_SURFACE *mris, char *fname) ;
 int          MRISreadAnnotation(MRI_SURFACE *mris, char *fname) ;
 int          MRISwriteAnnotation(MRI_SURFACE *mris, char *fname) ;
@@ -877,6 +879,7 @@ int   MRISorigAreaToCurv(MRI_SURFACE *mris) ;
 int   MRISareaToCurv(MRI_SURFACE *mris) ;
 int   MRISclear(MRI_SURFACE *mris, int which) ;
 int   MRISnormalize(MRI_SURFACE *mris, int dof, int which) ;
+
 
 #endif
 
