@@ -747,6 +747,12 @@ MRI   *MRISaccentuate(MRI *mri_src,MRI *mri_dst,int lo_thresh,int hi_thresh);
 MRI   *MRISshell(MRI *mri_src,MRI_SURFACE *mris,MRI *mri_dst);
 MRI   *MRISfloodoutside(MRI *mri_src,MRI *mri_dst);
 
+/* high resolution cortical ribbon *
+MRI   *MRISpartialribbon(MRI_SURFACE *inner_mris,MRI_SURFACE *outer_mris,MRI *mri_src,MRI *mri_dst);
+MRI   *MRISpartialaccentuate(MRI *mri_src,MRI *mri_dst,int lo_thresh,int hi_thresh);
+MRI   *MRISpartialshell(MRI *mri_src,MRI_SURFACE *mris,MRI *mri_dst);
+MRI   *MRISpartialfloodoutside(MRI *mri_src,MRI *mri_dst);
+
 #define MRIS_BINARY_QUADRANGLE_FILE    0    /* homegrown */
 #define MRIS_ASCII_QUADRANGLE_FILE     1    /* homegrown */
 #define MRIS_GEO_TRIANGLE_FILE         2    /* movie.byu format */
