@@ -3187,7 +3187,7 @@ GCAreclassifyUsingGibbsPriors(MRI *mri_inputs, GCA *gca, MRI *mri_dst,LTA *lta,
         }
       }
       
-#if 1
+#if 0
       if (x == 100 && y == 104 && z == 130)
       {
         printf("(%d, %d, %d): old label %d, new label %d (p=%2.3f)\n",
@@ -3442,7 +3442,7 @@ char *gca_write_fname = NULL ;
 int gca_write_iterations = 0 ;
 
 #define MAX_PRIOR_FACTOR 0.5
-#define MIN_PRIOR_FACTOR 0.0001
+#define MIN_PRIOR_FACTOR 0.2
 
 MRI  *
 GCAreclassifyUsingGibbsPriors(MRI *mri_inputs, GCA *gca, MRI *mri_dst,LTA *lta,
@@ -3654,7 +3654,7 @@ GCAreclassifyUsingGibbsPriors(MRI *mri_inputs, GCA *gca, MRI *mri_dst,LTA *lta,
         MRIvox(mri_changed, x, y, z) = 0 ;
       MRIvox(mri_dst, x, y, z) = label ;
       
-#if 1
+#if 0
       if (x == 156 && y == 124 && z == 135)  /* wm should be amygdala */
       {
         printf("(%d, %d, %d): old label %d, new label %d (p=%2.3f)\n",
@@ -4320,7 +4320,7 @@ GCAexpandLabelIntoWM(GCA *gca, MRI *mri_inputs, MRI *mri_src,
     }
     MRIcopy(mri_tmp, mri_dst) ;
     total_changed += nchanged ;
-    if (i++ >= 2)
+    if (++i >= 1)
       break ;
   } while (nchanged > 0) ;
 
