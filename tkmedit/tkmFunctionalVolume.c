@@ -481,11 +481,11 @@ FunV_tErr FunV_LoadFunctionalVolume_ ( tkmFunctionalVolumeRef this,
                char*                  isHeaderStem,
                char*                  isRegistration,
                tBoolean               ibReportErrors ) {
-
+  
   FunV_tErr            eResult            = FunV_tErr_NoError;
   FunD_tErr            eVolume            = FunD_tErr_NoError;
   mriFunctionalDataRef pVolume            = NULL;
-  char                 sTclArguments[512] = "";
+  char                 sError[tkm_knErrStringLen] = "";
   
   /* verify us */
   eResult = FunV_Verify( this );
@@ -508,6 +508,13 @@ FunV_tErr FunV_LoadFunctionalVolume_ ( tkmFunctionalVolumeRef this,
     goto error;
   }
 
+  /* set the conversion method */
+  eVolume = FunD_SetConversionMethod( pVolume, this->mDefaultConvMethod );
+  if( FunD_tErr_NoError != eVolume ) {
+    eResult = FunV_tErr_ErrorAccessingInternalVolume;
+    goto error;
+  }
+
   /* return the volume */
   *ioppVolume = pVolume;
 
@@ -518,10 +525,14 @@ FunV_tErr FunV_LoadFunctionalVolume_ ( tkmFunctionalVolumeRef this,
   /* put up an error dlog if the volume didn't load */
   if( FunD_tErr_NoError != eVolume
       && ibReportErrors ) {
-    sprintf( sTclArguments, "\"Couldn't load overlay in %s/%s. %s\"",
-      isPath, isStem, FunD_GetErrorString( eVolume ) );
-    FunV_SendTkmeditTclCommand_( this, 
-         tkm_tTclCommand_ErrorDlog, sTclArguments );
+    xUtil_snprintf( sError, sizeof(sError),
+        "Loading functional overlay %s/%s.", isPath, isStem );
+    tkm_DisplayError( sError, FunD_GetErrorString( eVolume ),
+          "Tkmedit couldn't read the functional overlay you "
+          "specified. This could be because the volume "
+          "wasn't found or was unreadable, or because a "
+          "valid header type couldn't be find, or a "
+          "registration file couldn't be found or opened." );
   }
   
   /* print error message */
@@ -536,6 +547,66 @@ FunV_tErr FunV_LoadFunctionalVolume_ ( tkmFunctionalVolumeRef this,
   /* if no we don't want to print errors, don't return them */
   if( !ibReportErrors )
     eResult = FunV_tErr_NoError;
+
+  return eResult;
+}
+
+FunV_tErr FunV_SetConversionMethod ( tkmFunctionalVolumeRef this,
+             FunD_tConversionMethod iMethod ) {
+
+  FunV_tErr eResult = FunV_tErr_NoError;
+  FunD_tErr eVolume = FunD_tErr_NoError;
+  
+  /* verify us */
+  eResult = FunV_Verify( this );
+  if( FunV_tErr_NoError != eResult )
+    goto error;
+
+  /* save this as the new default method */
+  this->mDefaultConvMethod = iMethod;
+
+  /* set the method in our volumes */
+  if( NULL != this->mpOverlayVolume ) {
+    eVolume = FunD_SetConversionMethod( this->mpOverlayVolume, iMethod );
+    if( FunD_tErr_NoError != eVolume ) {
+      eResult = FunV_tErr_ErrorAccessingInternalVolume;
+      goto error;
+    }
+  }
+  if( NULL != this->mpOverlayOffsetVolume ) {
+    eVolume = FunD_SetConversionMethod( this->mpOverlayOffsetVolume, iMethod );
+    if( FunD_tErr_NoError != eVolume ) {
+      eResult = FunV_tErr_ErrorAccessingInternalVolume;
+      goto error;
+    }
+  }
+  if( NULL != this->mpTimeCourseVolume ) {
+    eVolume = FunD_SetConversionMethod( this->mpTimeCourseVolume, iMethod );
+    if( FunD_tErr_NoError != eVolume ) {
+      eResult = FunV_tErr_ErrorAccessingInternalVolume;
+      goto error;
+    }
+  }
+  if( NULL != this->mpTimeCourseOffsetVolume ) {
+    eVolume = FunD_SetConversionMethod( this->mpTimeCourseOffsetVolume, 
+          iMethod );
+    if( FunD_tErr_NoError != eVolume ) {
+      eResult = FunV_tErr_ErrorAccessingInternalVolume;
+      goto error;
+    }
+  }
+
+  goto cleanup;
+
+ error:
+
+  /* print error message */
+  if( FunV_tErr_NoError != eResult ) {
+    DebugPrint( ("Error %d in FunV_SetConversionMethod: %s\n",
+      eResult, FunV_GetErrorString(eResult) ) );
+  }
+
+ cleanup:
 
   return eResult;
 }
@@ -566,7 +637,6 @@ FunV_tErr FunV_InitOverlayCache_ ( tkmFunctionalVolumeRef this ) {
   /* if we already have this time point and condition cached, exit */
   if( this->mnCachedCondition == this->mnCondition
       && this->mnCachedTimePoint == this->mnTimePoint ) {
-    DebugPrint( ("\texiting\n" ) );
     goto cleanup;
   }
 
@@ -821,6 +891,45 @@ FunV_tErr FunV_IsOverlayPresent    ( tkmFunctionalVolumeRef this,
   return eResult;
 }
 
+FunV_tErr FunV_SmoothOverlayData ( tkmFunctionalVolumeRef this,
+           float                  ifSigma ) {
+
+
+  FunV_tErr eResult = FunV_tErr_NoError;
+
+  /* verify us */
+  eResult = FunV_Verify( this );
+  if( FunV_tErr_NoError != eResult )
+    goto error;
+
+  /* smooth if loaded */
+  if( NULL != this->mpOverlayVolume ) {
+    FunD_SmoothData( this->mpOverlayVolume, 0, 0, ifSigma );
+  } else {
+    eResult = FunV_tErr_OverlayNotLoaded;
+    goto error;
+  }
+
+  /* reinit the cache and call for a redraw. */
+  FunV_InitOverlayCache_( this );
+  FunV_OverlayChanged_( this );  
+
+  goto cleanup;
+
+ error:
+
+  /* print error message */
+  if( FunV_tErr_NoError != eResult ) {
+    DebugPrint( ("Error %d in FunV_SmoothOverlayData: %s\n",
+      eResult, FunV_GetErrorString(eResult) ) );
+  }
+
+ cleanup:
+
+  return eResult;
+
+}
+
 FunV_tErr FunV_IsTimeCoursePresent ( tkmFunctionalVolumeRef this,
              tBoolean*              obIsLoaded ) {
 
@@ -862,7 +971,8 @@ FunV_tErr FunV_SetTimeResolution ( tkmFunctionalVolumeRef this,
   FunV_tErr         eResult            = FunV_tErr_NoError;
   FunD_tErr         eVolume            = FunD_tErr_NoError;
   float             nTimeRes           = 0;
-  char              sTclArguments[256] = "";
+  char              sTclArguments[tkm_knTclCmdLen] = "";
+  char              sError[tkm_knErrStringLen] = "";
 
   /* verify us */
   eResult = FunV_Verify( this );
@@ -888,10 +998,12 @@ FunV_tErr FunV_SetTimeResolution ( tkmFunctionalVolumeRef this,
 
   /* if they weren't equal, display an error message. */
   if( nTimeRes != inTimeResolution ) {
-    sprintf( sTclArguments, "\"%f is not a valid time resolution.\"", 
-       inTimeResolution );
-    FunV_SendTkmeditTclCommand_( this, tkm_tTclCommand_ErrorDlog,
-         sTclArguments );
+    xUtil_snprintf( sError, sizeof(sError),
+        "Changing time potin to %d.", inTimeResolution );
+    tkm_DisplayError( sError, "Invalid time point.",
+          "Tkmedit couldn't set the time point to the value "
+          "you specified. Please make sure it is in range, "
+          "from 0 to the number of time points minus one." );
   }
 
   /* send the new value to tcl */
@@ -926,8 +1038,8 @@ FunV_tErr FunV_SetNumPreStimPoints ( tkmFunctionalVolumeRef this,
   FunD_tErr         eVolume            = FunD_tErr_NoError;
   int               nNumPreStimPoints  = 0;
   int               nNumPoints         = 0;
-  char              sTclArguments[256] = "";
-
+  char              sTclArguments[tkm_knTclCmdLen] = "";
+  char              sError[tkm_knErrStringLen] = "";
   /* verify us */
   eResult = FunV_Verify( this );
   if( FunV_tErr_NoError != eResult )
@@ -956,9 +1068,14 @@ FunV_tErr FunV_SetNumPreStimPoints ( tkmFunctionalVolumeRef this,
     /* get number of time points */
    FunD_GetNumTimePoints( this->mpTimeCourseVolume, &nNumPoints );
     
-    sprintf( sTclArguments, "\"%d is not a valid number of pre-stim time points. The value should be between 0 and %d.\"", inNumPreStimPoints, nNumPoints-1 );
-    FunV_SendTkmeditTclCommand_( this, tkm_tTclCommand_ErrorDlog,
-         sTclArguments );
+   xUtil_snprintf( sError, sizeof(sError),
+       "Setting number of pre-stim time points to %d.", 
+       inNumPreStimPoints );
+   tkm_DisplayError( sError, "Invalid number of points.",
+         "Tkmedit couldn't set the number of pre-stim time points "
+         "to the value you specfied. Please make sure it is "
+         "greater than 0 and less than the total number of time "
+         "points." );
   }
 
   /* send the new value to tcl */
@@ -1037,7 +1154,8 @@ FunV_tErr FunV_SetTimePoint ( tkmFunctionalVolumeRef this,
   FunD_tErr         eVolume            = FunD_tErr_NoError;
   float             fSecond            = 0;
   int               nNumTimePoints     = 0;
-  char              sTclArguments[256] = "";
+  char              sTclArguments[tkm_knTclCmdLen] = "";
+  char              sError[tkm_knErrStringLen] = "";
 
   /* verify us */
   eResult = FunV_Verify( this );
@@ -1060,9 +1178,12 @@ FunV_tErr FunV_SetTimePoint ( tkmFunctionalVolumeRef this,
     FunD_GetNumTimePoints( this->mpOverlayVolume, &nNumTimePoints );
     
     /* display an error message */
-    sprintf( sTclArguments, "\"%d is not a valid time point for the overlay data. It must be between 0 and %d.\"", inTimePoint, nNumTimePoints-1 );
-    FunV_SendTkmeditTclCommand_( this, tkm_tTclCommand_ErrorDlog,
-         sTclArguments );
+    xUtil_snprintf( sError, sizeof(sError),
+        "Setting time point to %d.", inTimePoint );
+    tkm_DisplayError( sError, "Invalid time point.",
+          "Tkmedit couldn't set the time point to the value you "
+          "specfied. Please make sure it is greater than 0 and "
+          "less than the total number of time points." );
   }
  
 
@@ -1111,7 +1232,8 @@ FunV_tErr FunV_SetCondition ( tkmFunctionalVolumeRef this,
 
   FunV_tErr         eResult            = FunV_tErr_NoError;
   int               nNumConditions     = 0;
-  char              sTclArguments[256] = "";
+  char              sTclArguments[tkm_knTclCmdLen] = "";
+  char              sError[tkm_knErrStringLen] = "";
 
   /* verify us */
   eResult = FunV_Verify( this );
@@ -1133,10 +1255,13 @@ FunV_tErr FunV_SetCondition ( tkmFunctionalVolumeRef this,
     /* get number of conditions */
     FunD_GetNumConditions( this->mpOverlayVolume, &nNumConditions );
 
-    /* if they weren't equal, display an error message. */
-    sprintf( sTclArguments, "\"%d is not a valid condition for the overlay data. It must be between 0 and %d.\"", inCondition, nNumConditions-1 );
-    FunV_SendTkmeditTclCommand_( this, tkm_tTclCommand_ErrorDlog,
-         sTclArguments );
+    /* display an error message */
+    xUtil_snprintf( sError, sizeof(sError),
+        "Setting condition to %d.", inCondition );
+    tkm_DisplayError( sError, "Invalid condition.",
+          "Tkmedit couldn't set the time point to the value you "
+          "specfied. Please make sure it is greater than 0 and "
+          "less than the total number of conditions." );
   }
 
   /* send the value to tcl */
@@ -1207,7 +1332,7 @@ FunV_tErr FunV_SetThreshold ( tkmFunctionalVolumeRef this,
   }
 
   /* if valid.. */
-  if ( iMin < iMid
+  if ( iMin <= iMid
        && iSlope > 0 ) {
 
     /* set everything */
@@ -1217,10 +1342,12 @@ FunV_tErr FunV_SetThreshold ( tkmFunctionalVolumeRef this,
 
   } else {
 
-    /* display an error message. */
-    sprintf( sTclArguments, "\"Invalid threshold values for the overlay. The threshold minimum must be less than the midpoint and the slope must be above 0.\"" );
-    FunV_SendTkmeditTclCommand_( this, tkm_tTclCommand_ErrorDlog,
-         sTclArguments );
+    /* display an error message */
+    tkm_DisplayError( "Setting threshold values", "Invalid values.",
+          "Tkmedit couldn't set the threshold to the values you "
+          "specfied. Please make sure the minimum is less than "
+          "or equal to the midpoint, and the slope is greater "
+          "than 0." );
   }
 
   /* send the new value to tcl */
@@ -1741,8 +1868,8 @@ FunV_tErr FunV_GetValueAtAnaIdx ( tkmFunctionalVolumeRef this,
 
   /* get the data */
   eVolume =FunD_GetDataAtAnaIdx( this->mpOverlayVolume, ipVoxel,
-            this->mnCondition, this->mnTimePoint,
-            &fValue );
+         this->mnCondition, this->mnTimePoint,
+         &fValue );
   if( FunD_tErr_NoError != eVolume ) {
     eResult = FunV_tErr_InvalidAnatomicalVoxel;
     *opValue = 0;
@@ -3108,8 +3235,12 @@ void FunV_SelectAnaVoxelsByFuncValueIter_ ( tkmFunctionalVolumeRef this,
 
   /* if it doesn't make the cut, exit */
   switch( iParams->compareType ) {
-  case FunV_tFindStatsComp_GTE:
-    bGood = (value >= iParams->mStartValue);
+  case FunV_tFindStatsComp_GTEoLTE:
+    if( iParams->mStartValue > 0 ) {
+      bGood = (value >= iParams->mStartValue);
+    } else {
+      bGood = (value <= iParams->mStartValue);
+    }
     break;
   case FunV_tFindStatsComp_EQ:
     bGood = (value == iParams->mStartValue);
