@@ -539,38 +539,40 @@ LTAtransform(MRI *mri_src, MRI *mri_dst, LTA *lta)
 
   if (lta->num_xforms == 1)
   {
-    if (lta->type == LINEAR_RAS_TO_RAS)
-    {
-      if (!mri_dst) 
-	mri_dst = MRIclone(mri_src, NULL) ;
-      if (tran->dst.valid == 1) // transform dst is valid
-      {
-	// modify dst c_(r,a,s) using the transform dst value
-	// to make the better positioning
-	fprintf(stderr, "INFO: Modifying dst c_(r,a,s), using the transform dst\n");
-	mri_dst->c_r = tran->dst.c_r;
-	mri_dst->c_a = tran->dst.c_a;
-	mri_dst->c_s = tran->dst.c_s;
-	mri_dst->ras_good_flag = 1;
-      }
-      else if(getenv("USE_AVERAGE305"))
-      {
-	fprintf(stderr, "INFO: environmental variable USE_AVERAGE305 set\n");
-	fprintf(stderr, "INFO: Modifying dst c_(r,a,s), using average_305 values\n");
-	mri_dst->c_r = -0.0950;
-	mri_dst->c_a = -16.5100;
-	mri_dst->c_s = 9.7500;
-	mri_dst->ras_good_flag = 1;
-      }
-      else
-	fprintf(stderr, "INFO: Transform dst volume info is not used (valid flag = 0).\n");
+    if (!mri_dst) 
+      mri_dst = MRIclone(mri_src, NULL);
 
-      return(MRIapplyRASlinearTransform(mri_src, mri_dst, lta->xforms[0].m_L)) ;
+    if (tran->dst.valid == 1) // transform dst is valid
+    {
+      // modify dst c_(r,a,s) using the transform dst value
+      // to make the better positioning
+      fprintf(stderr, "INFO: Modifying dst c_(r,a,s), using the transform dst\n");
+      mri_dst->c_r = tran->dst.c_r;
+      mri_dst->c_a = tran->dst.c_a;
+      mri_dst->c_s = tran->dst.c_s;
+      mri_dst->ras_good_flag = 1;
+    }
+    else if(getenv("USE_AVERAGE305"))
+    {
+      fprintf(stderr, "INFO: environmental variable USE_AVERAGE305 set\n");
+      fprintf(stderr, "INFO: Modifying dst c_(r,a,s), using average_305 values\n");
+      mri_dst->c_r = -0.0950;
+      mri_dst->c_a = -16.5100;
+      mri_dst->c_s = 9.7500;
+      mri_dst->ras_good_flag = 1;
     }
     else
-      return(MRIlinearTransform(mri_src, mri_dst, lta->xforms[0].m_L)) ;
-  }
+      fprintf(stderr, "INFO: Transform dst volume info is not used (valid flag = 0).\n");
 
+    if (lta->type == LINEAR_RAS_TO_RAS)
+    {
+      return(MRIapplyRASlinearTransform(mri_src, mri_dst, lta->xforms[0].m_L)) ;
+    }
+    else // vox-to-vox
+    {
+      return(MRIlinearTransform(mri_src, mri_dst, lta->xforms[0].m_L)) ;
+    }
+  }
   fprintf(stderr, "applying octree transform to image...\n") ;
   if (!mri_dst)
     mri_dst = MRIclone(mri_src, NULL) ;
