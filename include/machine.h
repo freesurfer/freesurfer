@@ -14,6 +14,12 @@ float   swapFloat(float l) ;
 double swapDouble(double dval) ;
 int    swapInt(int i) ;
 
+int Arch486(void);
+int ByteSwapBuf(void *Buf, long int nItems, int nBytesPerItem);
+int ByteSwap2(void *buf2, long int nitems);
+int ByteSwap4(void *buf4, long int nitems);
+int ByteSwap8(void *buf8, long int nitems);
+
 #ifdef Linux
 
 #define orderIntBytes(i)     swapInt(i)
