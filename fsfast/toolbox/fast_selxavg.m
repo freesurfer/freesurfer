@@ -1,8 +1,8 @@
 function r = fast_selxavg(varargin)
 % r = fast_selxavg(varargin)
-% '$Id: fast_selxavg.m,v 1.3 2003/03/28 23:51:31 greve Exp $'
+% '$Id: fast_selxavg.m,v 1.4 2003/04/08 04:50:50 greve Exp $'
 
-version = '$Id: fast_selxavg.m,v 1.3 2003/03/28 23:51:31 greve Exp $';
+version = '$Id: fast_selxavg.m,v 1.4 2003/04/08 04:50:50 greve Exp $';
 fprintf(1,'%s\n',version);
 r = 1;
 
@@ -264,6 +264,14 @@ for slice = firstslice:lastslice
         Xdrift  = fast_polytrendmtx(run,ntrs,nruns,s.PFOrder);
       end
 
+      if(s.nyqreg)
+	Xnyq = ones(ntrs,1);
+	Xnyq(2:2:end) = -1;
+	Xnyq = Xnyq - mean(Xnyq); %Make sure it's demeaned
+      else
+	Xnyq = [];
+      end
+      
       % Load paradigm for this run %
       par = fmri_ldpar(deblank(parfilelist(run,:)));
 
@@ -330,7 +338,7 @@ for slice = firstslice:lastslice
       end
 
       % Create final Convolution Matrix for ith run %
-      Xi = [Xpar Xdrift extregrun];
+      Xi = [Xpar Xdrift extregrun Xnyq];
 
       % Load or synthsize data %
       if(SynthSeed == 0)
@@ -439,6 +447,17 @@ for slice = firstslice:lastslice
           % Save (Whitened) Residual Error %
           fname = sprintf('%s/e%03d_%03d.bfloat',eresdir,run,slice);
           tmp = reshape(eres', [nrows ncols ntrs])/RescaleFactor; %'
+  	  fmri_svbfile(tmp,fname);
+        end
+
+        if(~isempty(s.acfdir))
+          % Compute and save ACF
+          fname = sprintf('%s/acf%03d_%03d.bfloat',s.acfdir,run,slice);
+	  if(slice == firstslice | s.debug)
+	    fprintf('INFO: computing acf %g\n',toc);
+	  end
+	  acf = fast_acorr(eres);
+          tmp = reshape(acf', [nrows ncols ntrs]);
   	  fmri_svbfile(tmp,fname);
         end
 
@@ -624,10 +643,12 @@ pfOrder = s.PFOrder;
 nExtReg = 0; if(s.nextreg > 0) nExtReg = s.nextreg; end
 tPreStim = s.PreStimWin;
 TimeWindow = TW;
+nyqreg = s.nyqreg;
 fprintf('INFO: saving meta to %s\n',xfile);
 save(xfile,'Xfinal','Nnnc','pfOrder','nExtReg',...
      'nruns','Navgs_per_cond','TimeWindow','tPreStim','TR','TER',...
-     'gfDelta','gfTau','tpxlist','RescaleFactor','RescaleTarget','-v4');
+     'gfDelta','gfTau','tpxlist','RescaleFactor','RescaleTarget',...
+     'nyqreg','-v4');
 
 %-- Save ECovMtx for each run individually --%
 if(s.SaveErrCovMtx) 
@@ -863,10 +884,12 @@ function s = sxa_struct
   s.nslices    = -1;
   s.eresdir    = '';
   s.sigestdir  = '';
+  s.acfdir  = '';
   s.snrdir  = '';
   s.debug = 0;
   s.loginput = 0;
   s.funcstem = '';
+  s.nyqreg = 0; % nyquist regressor
 return;
 
 %--------------------------------------------------%
@@ -1014,7 +1037,7 @@ function s = parse_args(varargin)
         s.ErrCovMtxStem = inputargs{narg};
         narg = narg + 1;
 
-      case {'-svecovmtx','-sverrcovmtx','-svecvm'},
+      case {'-svecovmtx','-sverrcovmtx','-svecvm','-svacf'},
         s.SaveErrCovMtx = 1;
 
       case {'-psc','percent'},
@@ -1138,6 +1161,11 @@ function s = parse_args(varargin)
         s.eresdir = inputargs{narg};
         narg = narg + 1;
 
+      case '-acfdir',
+        arg1check(flag,narg,ninputargs);
+        s.acfdir = inputargs{narg};
+        narg = narg + 1;
+
       case '-snrdir',
         arg1check(flag,narg,ninputargs);
         s.snrdir = inputargs{narg};
@@ -1157,6 +1185,9 @@ function s = parse_args(varargin)
         arg1check(flag,narg,ninputargs);
         s.SynthSeed = sscanf(inputargs{narg},'%d',1);
         narg = narg + 1;
+
+      case '-nyqreg',
+        s.nyqreg = 1;
 
       case '-verbose',
         s.verbose = 1;
@@ -1418,6 +1449,7 @@ function s = sxa_print_struct(s,fid)
 
   fprintf(fid,'firstslice   %d\n',s.firstslice);
   fprintf(fid,'nslices      %d\n',s.nslices);
+  fprintf(fid,'nyqreg       %d\n',s.nyqreg);
 
 return;
 %--------------------------------------------------%
