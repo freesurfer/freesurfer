@@ -30,7 +30,6 @@
                            MACROS AND CONSTANTS
 ----------------------------------------------------------------------*/
 
-#define CHAR_WIDTH        8
 #define MAX_TITLE_CHARS(d)   (MIN(STR_LEN-1, \
                         (nint((float)d->dispImage->cols / (float)CHAR_WIDTH))))
 
