@@ -15,7 +15,7 @@
 #include "annotation.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_sample_parc.c,v 1.9 2003/09/05 04:45:44 kteich Exp $";
+static char vcid[] = "$Id: mris_sample_parc.c,v 1.10 2003/09/16 18:46:14 tosa Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -53,7 +53,7 @@ main(int argc, char *argv[])
   Real          x, y, z, xw, yw, zw ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_sample_parc.c,v 1.9 2003/09/05 04:45:44 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_sample_parc.c,v 1.10 2003/09/16 18:46:14 tosa Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -117,7 +117,8 @@ main(int argc, char *argv[])
 
     d = v->curv*.5 ;  /* halfway out */
     x = v->x+d*v->nx ; y = v->y+d*v->ny ; z = v->z+d*v->nz ;
-    MRIworldToVoxel(mri_parc, x, y, z, &xw, &yw, &zw) ;
+    // MRIworldToVoxel(mri_parc, x, y, z, &xw, &yw, &zw) ;
+    MRIsurfaceRASToVoxel(mri_parc, x, y, z, &xw, &yw, &zw) ;
     v->annotation = v->val = 
       MRIfindNearestNonzero(mri_parc, wsize, xw, yw, zw) ;
 #if 0

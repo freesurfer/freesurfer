@@ -17,7 +17,7 @@
 #include "label.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_show.c,v 1.34 2003/09/05 04:45:44 kteich Exp $";
+static char vcid[] = "$Id: mris_show.c,v 1.35 2003/09/16 18:51:11 tosa Exp $";
 
 
 /*-------------------------------- CONSTANTS -----------------------------*/
@@ -140,7 +140,7 @@ main(int argc, char *argv[])
   float        angle ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_show.c,v 1.34 2003/09/05 04:45:44 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_show.c,v 1.35 2003/09/16 18:51:11 tosa Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -1321,7 +1321,8 @@ mrisFillFace(MRI_SURFACE *mris, int fno)
         glEnd() ;
         memmove(vstart, vend, 3*sizeof(float)) ;
 #else
-        MRIworldToVoxel(mri, x, y, z, &x, &y, &z) ;   /* volume coordinate */
+        // MRIworldToVoxel(mri, x, y, z, &x, &y, &z) ;   /* volume coordinate */
+        MRIsurfaceRASToVoxel(mri, x, y, z, &x, &y, &z) ;   /* volume coordinate */
         xv = nint(x) ; yv = nint(y) ; zv = nint(z) ;  /* voxel coordinate */
         MRIset_bit(mri, xv, yv, zv) ;                 /* mark it filled */
 #endif
@@ -1367,7 +1368,8 @@ mrisFillFace(MRI_SURFACE *mris, int fno)
       glEnd() ;
       memmove(vstart, vend, 3*sizeof(float)) ;
 #else
-      MRIworldToVoxel(mri, x, y, z, &x, &y, &z) ;   /* volume coordinate */
+      // MRIworldToVoxel(mri, x, y, z, &x, &y, &z) ;   /* volume coordinate */
+      MRIsurfaceRASToVoxel(mri, x, y, z, &x, &y, &z) ;   /* volume coordinate */
       xv = nint(x) ; yv = nint(y) ; zv = nint(z) ;  /* voxel coordinate */
       MRIset_bit(mri, xv, yv, zv) ;                 /* mark it filled */
 #endif
