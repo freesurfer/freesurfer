@@ -969,3 +969,9 @@ unsigned long MRISeraseOutsideOfSurface(float h,MRI* mri_dst,MRIS *mris,unsigned
 
 
 
+int MRISextendedNeighbors(MRIS *SphSurf,int TargVtxNo, int CurVtxNo,
+			  double DotProdThresh, int *XNbrVtxNo, 
+			  double *XNbrDotProd, int *nXNbrs,
+			  int nXNbrsMax);
+MRI *MRISgaussianSmooth(MRIS *Surf, MRI *Src, double GStd, MRI *Targ,
+			double TruncFactor);

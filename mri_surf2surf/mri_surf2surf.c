@@ -1,6 +1,6 @@
 /*----------------------------------------------------------
   Name: mri_surf2surf.c
-  $Id: mri_surf2surf.c,v 1.15 2004/02/17 00:50:26 greve Exp $
+  $Id: mri_surf2surf.c,v 1.16 2004/02/18 00:31:59 greve Exp $
   Author: Douglas Greve
   Purpose: Resamples data from one surface onto another. If
   both the source and target subjects are the same, this is
@@ -32,13 +32,6 @@
 #include "prime.h"
 #include "version.h"
 
-MRI *MRISgaussianSmooth(MRIS *Surf, MRI *Src, double GStd, MRI *Targ);
-MRI *MRISgaussianSmooth2(MRIS *Surf, MRI *Src, double GStd, MRI *Targ);
-int MRISextendedNeighbors(MRIS *SphSurf,int TargVtxNo, int CurVtxNo,
-			 double CosThresh, int *XNbrVtxNo, 
-			 double *XNbrCos, int *nXNbrs,
-			 int nXNbrsMax);
-
 static int  parse_commandline(int argc, char **argv);
 static void check_options(void);
 static void print_usage(void) ;
@@ -54,7 +47,7 @@ int GetNVtxsFromValFile(char *filename, char *fmt);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surf2surf.c,v 1.15 2004/02/17 00:50:26 greve Exp $";
+static char vcid[] = "$Id: mri_surf2surf.c,v 1.16 2004/02/18 00:31:59 greve Exp $";
 char *Progname = NULL;
 
 char *surfreg = "sphere.reg";
@@ -90,9 +83,12 @@ char *mapmethod = "nnfr";
 int UseHash = 1;
 int framesave = 0;
 float IcoRadius = 100.0;
-int nSmoothSteps = 0;
 int nthstep, nnbrs, nthnbr, nbrvtx, frame;
+int nSmoothSteps = 0;
 double fwhm=0, gstd;
+
+double fwhm_Input=0, gstd_Input=0;
+int nSmoothSteps_Input = 0;
 
 int debug = 0;
 
@@ -117,7 +113,7 @@ int main(int argc, char **argv)
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.15 2004/02/17 00:50:26 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.16 2004/02/18 00:31:59 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -215,9 +211,9 @@ int main(int argc, char **argv)
       if(sxa == NULL) exit(1);
       framepower = sxa_framepower(sxa,&f);
       if(f != SrcVals->nframes){
-  fprintf(stderr," number of frames is incorrect (%d,%d)\n",
-    f,SrcVals->nframes);
-  exit(1);
+	fprintf(stderr," number of frames is incorrect (%d,%d)\n",
+		f,SrcVals->nframes);
+	exit(1);
       }
       printf("INFO: Adjusting Frame Power\n");  fflush(stdout);
       mri_framepower(SrcVals,framepower);
@@ -228,6 +224,17 @@ int main(int argc, char **argv)
     exit(1);
   }
   printf("Done\n");
+
+  /* Smooth input if desired */
+  if(nSmoothSteps_Input > 0){
+    printf("NN smoothing input with n = %d\n",nSmoothSteps_Input);
+    MRISsmoothMRI(SrcSurfReg, SrcVals, nSmoothSteps_Input, SrcVals);
+  }
+  if(fwhm_Input > 0){
+    printf("Gaussian smoothing input with fwhm = %g, std = %g\n",
+	   fwhm_Input,gstd_Input);
+    MRISgaussianSmooth(SrcSurfReg, SrcVals, gstd_Input, SrcVals, 3.0);
+  }
 
   if(strcmp(srcsubject,trgsubject)){
     /* ------- Source and Target Subjects are different -------------- */
@@ -332,12 +339,12 @@ int main(int argc, char **argv)
     TrgVals = SrcVals;
   }
        
-  /* Smooth if desired */
+  /* Smooth output if desired */
   if(nSmoothSteps > 0)
     MRISsmoothMRI(TrgSurfReg, TrgVals, nSmoothSteps, TrgVals);
   if(fwhm > 0){
     printf("Gaussian smoothing with fwhm = %g, std = %g\n",fwhm,gstd);
-    MRISgaussianSmooth(TrgSurfReg, TrgVals, gstd, TrgVals);
+    MRISgaussianSmooth(TrgSurfReg, TrgVals, gstd, TrgVals, 3.0);
   }
 
   /* readjust frame power if necessary */
@@ -425,7 +432,17 @@ static int parse_commandline(int argc, char **argv)
       srctype = string_to_type(srctypestring);
       nargsused = 1;
     }
-    else if (!strcmp(option, "--nsmooth")){
+    else if (!strcmp(option, "--nsmooth-in")){
+      if(nargc < 1) argnerr(option,1);
+      sscanf(pargv[0],"%d",&nSmoothSteps_Input);
+      if(nSmoothSteps_Input < 1){
+	fprintf(stderr,"ERROR: number of smooth steps (%d) must be >= 1\n",
+		nSmoothSteps_Input);
+      }
+      nargsused = 1;
+    }
+    else if (!strcmp(option, "--nsmooth-out") ||
+	     !strcmp(option, "--nsmooth")){
       if(nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%d",&nSmoothSteps);
       if(nSmoothSteps < 1){
@@ -434,7 +451,14 @@ static int parse_commandline(int argc, char **argv)
       }
       nargsused = 1;
     }
-    else if (!strcmp(option, "--fwhm")){
+    else if (!strcmp(option, "--fwhm-in")){
+      if(nargc < 1) argnerr(option,1);
+      sscanf(pargv[0],"%lf",&fwhm_Input);
+      gstd_Input = fwhm_Input/sqrt(log(256.0));
+      nargsused = 1;
+    }
+    else if (!strcmp(option, "--fwhm") ||
+	     !strcmp(option, "--fwhm-out")){
       if(nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%lf",&fwhm);
       gstd = fwhm/sqrt(log(256.0));
@@ -539,23 +563,24 @@ static void usage_exit(void)
 /* --------------------------------------------- */
 static void print_usage(void)
 {
-  fprintf(stderr, "USAGE: %s \n",Progname) ;
-  fprintf(stderr, "\n");
-  fprintf(stderr, "   --srcsubject source subject\n");
-  fprintf(stderr, "   --srcsurfval path of file with input values \n");
-  fprintf(stderr, "   --src_type   source format\n");
-  fprintf(stderr, "   --trgsubject target subject\n");
-  fprintf(stderr, "   --trgicoorder when trgsubject=ico\n");
-  fprintf(stderr, "   --trgsurfval path of file in which to store output values\n");
-  fprintf(stderr, "   --trg_type   target format\n");
-  fprintf(stderr, "   --hemi       hemisphere (lh or rh) \n");
-  fprintf(stderr, "   --surfreg    surface registration (sphere.reg)  \n");
-  fprintf(stderr, "   --mapmethod  nnfr or nnf\n");
-  fprintf(stderr, "   --frame      save only nth frame (with --trg_type paint)\n");
-  fprintf(stderr, "   --nsmooth    number of smoothing steps\n");  
-  fprintf(stderr, "   --noreshape  do not reshape output to multiple 'slices'\n");  
+  fprintf(stdout, "USAGE: %s \n",Progname) ;
+  fprintf(stdout, "\n");
+  fprintf(stdout, "   --srcsubject source subject\n");
+  fprintf(stdout, "   --srcsurfval path of file with input values \n");
+  fprintf(stdout, "   --src_type   source format\n");
+  fprintf(stdout, "   --trgsubject target subject\n");
+  fprintf(stdout, "   --trgicoorder when trgsubject=ico\n");
+  fprintf(stdout, "   --trgsurfval path of file in which to store output values\n");
+  fprintf(stdout, "   --trg_type   target format\n");
+  fprintf(stdout, "   --hemi       hemisphere (lh or rh) \n");
+  fprintf(stdout, "   --surfreg    surface registration (sphere.reg)  \n");
+  fprintf(stdout, "   --mapmethod  nnfr or nnf\n");
+  fprintf(stdout, "   --frame      save only nth frame (with --trg_type paint)\n");
+  fprintf(stdout, "   --nsmooth-in N  : smooth the input\n");  
+  fprintf(stdout, "   --nsmooth-out N : smooth the output\n");  
+  fprintf(stdout, "   --noreshape  do not reshape output to multiple 'slices'\n");  
 
-  fprintf(stderr, "\n");
+  fprintf(stdout, "\n");
   printf("%s\n", vcid) ;
   printf("\n");
 
@@ -644,13 +669,16 @@ static void print_help(void)
 "    This, however, can leave some source vertices unrepresented in target (ie,\n"
 "    'holes'). If nnfr is chosen, then each hole is assigned to the closest\n"
 "    target vertex. If a target vertex has multiple source vertices, then the\n"
-"    source values are averaged together. It does not seem to make much difference. \n"
+"    source values are averaged together. It does not seem to make much difference.\n"
 "\n"
-"  --nsmooth niterations\n"
+"  --nsmooth-in  niterations\n"
+"  --nsmooth-out niterations  [note: same as --smooth]\n"
 "\n"
 "    Number of smoothing iterations. Each iteration consists of averaging each\n"
 "    vertex with its neighbors. When only smoothing is desired, just set the \n"
-"    the source and target subjects to the same subject.\n"
+"    the source and target subjects to the same subject. --smooth-in smooths\n"
+"    the input surface values prior to any resampling. --smooth-out smooths\n"
+"    after any resampling. \n"
 "\n"
 "  --frame framenumber\n"
 "\n"
@@ -722,27 +750,27 @@ static void dump_options(FILE *fp)
 /* --------------------------------------------- */
 static void print_version(void)
 {
-  fprintf(stderr, "%s\n", vcid) ;
+  fprintf(stdout, "%s\n", vcid) ;
   exit(1) ;
 }
 /* --------------------------------------------- */
 static void argnerr(char *option, int n)
 {
   if(n==1)
-    fprintf(stderr,"ERROR: %s flag needs %d argument\n",option,n);
+    fprintf(stdout,"ERROR: %s flag needs %d argument\n",option,n);
   else
-    fprintf(stderr,"ERROR: %s flag needs %d arguments\n",option,n);
+    fprintf(stdout,"ERROR: %s flag needs %d arguments\n",option,n);
   exit(-1);
 }
 /* --------------------------------------------- */
 static void check_options(void)
 {
   if(srcsubject == NULL){
-    fprintf(stderr,"ERROR: no source subject specified\n");
+    fprintf(stdout,"ERROR: no source subject specified\n");
     exit(1);
   }
   if(srcvalfile == NULL){
-    fprintf(stderr,"A source value path must be supplied\n");
+    fprintf(stdout,"A source value path must be supplied\n");
     exit(1);
   }
 
@@ -756,18 +784,18 @@ static void check_options(void)
     if(srctype == MRI_VOLUME_TYPE_UNKNOWN) {
   srctype = mri_identify(srcvalfile);
   if(srctype == MRI_VOLUME_TYPE_UNKNOWN){
-    fprintf(stderr,"ERROR: could not determine type of %s\n",srcvalfile);
+    fprintf(stdout,"ERROR: could not determine type of %s\n",srcvalfile);
     exit(1);
   }
     }
   }
 
   if(trgsubject == NULL){
-    fprintf(stderr,"ERROR: no target subject specified\n");
+    fprintf(stdout,"ERROR: no target subject specified\n");
     exit(1);
   }
   if(trgvalfile == NULL){
-    fprintf(stderr,"A target value path must be supplied\n");
+    fprintf(stdout,"A target value path must be supplied\n");
     exit(1);
   }
 
@@ -781,19 +809,23 @@ static void check_options(void)
     if(trgtype == MRI_VOLUME_TYPE_UNKNOWN) {
   trgtype = mri_identify(trgvalfile);
   if(trgtype == MRI_VOLUME_TYPE_UNKNOWN){
-    fprintf(stderr,"ERROR: could not determine type of %s\n",trgvalfile);
+    fprintf(stdout,"ERROR: could not determine type of %s\n",trgvalfile);
     exit(1);
   }
     }
   }
 
   if(hemi == NULL){
-    fprintf(stderr,"ERROR: no hemifield specified\n");
+    fprintf(stdout,"ERROR: no hemifield specified\n");
     exit(1);
   }
 
   if(fwhm != 0 && nSmoothSteps != 0){
-    printf("ERROR: cannot specify --fwhm and --nsmooth\n");
+    printf("ERROR: cannot specify --fwhm-out and --nsmooth-out\n");
+    exit(1);
+  }
+  if(fwhm_Input != 0 && nSmoothSteps_Input != 0){
+    printf("ERROR: cannot specify --fwhm-in and --nsmooth-in\n");
     exit(1);
   }
   return;
@@ -820,9 +852,9 @@ int GetNVtxsFromWFile(char *wfile)
 
   fp = fopen(wfile,"r");
   if (fp==NULL) {
-    fprintf(stderr,"ERROR: Progname: GetNVtxsFromWFile():\n");
-    fprintf(stderr,"Could not open %s\n",wfile);
-    fprintf(stderr,"(%s,%d,%s)\n",__FILE__, __LINE__,__DATE__);
+    fprintf(stdout,"ERROR: Progname: GetNVtxsFromWFile():\n");
+    fprintf(stdout,"Could not open %s\n",wfile);
+    fprintf(stdout,"(%s,%d,%s)\n",__FILE__, __LINE__,__DATE__);
     exit(1);
   }
   
@@ -856,7 +888,7 @@ int GetNVtxsFromValFile(char *filename, char *typestring)
   printf("GetNVtxs: %s %s\n",filename,typestring);
 
   if(!strcmp(typestring,"curv")){
-    fprintf(stderr,"ERROR: cannot get nvertices from curv format\n");
+    fprintf(stdout,"ERROR: cannot get nvertices from curv format\n");
     exit(1);
   }
 
@@ -884,7 +916,7 @@ int GetICOOrderFromValFile(char *filename, char *fmt)
 
   IcoOrder = IcoOrderFromNVtxs(nIcoVtxs);
   if(IcoOrder < 0){
-    fprintf(stderr,"ERROR: number of vertices = %d, does not mach ico\n",
+    fprintf(stdout,"ERROR: number of vertices = %d, does not mach ico\n",
       nIcoVtxs);
     exit(1);
 
@@ -892,424 +924,3 @@ int GetICOOrderFromValFile(char *filename, char *fmt)
   
   return(IcoOrder);
 }
-
-
-/*-------------------------------------------------------------------
-  MRISgaussianSmooth() - perform gaussian smoothing on a spherical 
-  surface. The gaussian is defined by stddev GStd and is truncated
-  at 4 stddevs. Note: this will change the val2bak of all the vertices.
-  -------------------------------------------------------------------*/
-MRI *MRISgaussianSmooth(MRIS *Surf, MRI *Src, double GStd, MRI *Targ)
-{
-  int vtxno1, vtxno2;
-  float val;
-  MRI *SrcTmp, *GSum, *GSum2;
-  VERTEX *vtx1;
-  double Radius, Radius2, dmax, GVar2, f, d, costheta, theta, g, dotprod;
-  int n, err, nXNbrs, *XNbrVtxNo;
-  double *XNbrDotProd, DotProdThresh;
-
-  if(Surf->nvertices != Src->width){
-    printf("ERROR: MRISgaussianSmooth: Surf/Src dimension mismatch\n");
-    return(NULL);
-  }
-
-  if(Targ == NULL){
-    Targ = MRIallocSequence(Src->width, Src->height, Src->depth, 
-            MRI_FLOAT, Src->nframes);
-    if(Targ==NULL){
-      printf("ERROR: MRISgaussianSmooth: could not alloc\n");
-      return(NULL);
-    }
-  }
-  else{
-    if(Src->width   != Targ->width  || 
-       Src->height  != Targ->height || 
-       Src->depth   != Targ->depth  ||
-       Src->nframes != Targ->nframes){
-      printf("ERROR: MRISgaussianSmooth: output dimension mismatch\n");
-      return(NULL);
-    }
-    if(Targ->type != MRI_FLOAT){
-      printf("ERROR: MRISgaussianSmooth: structure passed is not MRI_FLOAT\n");
-      return(NULL);
-    }
-  }
-
-  /* Make a copy in case it's done in place */
-  SrcTmp = MRIcopy(Src,NULL);
-
-  /* This is for normalizing */
-  GSum = MRIallocSequence(Src->width, Src->height, Src->depth, MRI_FLOAT, 1);
-  if(GSum==NULL){
-    printf("ERROR: MRISgaussianSmooth: could not alloc GSum\n");
-    return(NULL);
-  }
-
-  GSum2 = MRIallocSequence(Src->width, Src->height, Src->depth, MRI_FLOAT, 1);
-  if(GSum2==NULL){
-    printf("ERROR: MRISgaussianSmooth: could not alloc GSum2\n");
-    return(NULL);
-  }
-
-  vtx1 = &Surf->vertices[0] ;
-  Radius2 = (vtx1->x * vtx1->x) + (vtx1->y * vtx1->y) + (vtx1->z * vtx1->z);
-  Radius  = sqrt(Radius2);
-  dmax = 4*GStd; // truncate after 4 stddevs
-  GVar2 = 2*(GStd*GStd);
-  f = 1/(sqrt(2*M_PI)*GStd);
-  DotProdThresh = Radius2*cos(dmax/Radius)*(1.0001);
-
-  printf("Radius = %g, gstd = %g, dmax = %g, GVar2 = %g, f = %g, dpt = %g\n",
-	 Radius,gstd,dmax,GVar2,f,DotProdThresh);
-
-  /* Initialize */
-  for(vtxno1 = 0; vtxno1 < Surf->nvertices; vtxno1++){
-    MRIFseq_vox(GSum,vtxno1,0,0,0)  = 0;
-    MRIFseq_vox(GSum2,vtxno1,0,0,0) = 0;
-    for(frame = 0; frame < Targ->nframes; frame ++)
-      MRIFseq_vox(Targ,vtxno1,0,0,frame) = 0;
-    Surf->vertices[vtxno1].val2bak = -1;
-  }
-  
-  XNbrVtxNo   = (int *) calloc(Surf->nvertices,sizeof(int));
-  XNbrDotProd = (double *) calloc(Surf->nvertices,sizeof(double));
-
-  if(0){
-    // This will mess up future searches because it sets
-    // val2bak to 0
-    printf("Starting Search\n");
-    err = MRISextendedNeighbors(Surf,0,0,DotProdThresh, XNbrVtxNo, 
-			       XNbrDotProd, &nXNbrs, 1000);
-    printf("Found %d (err=%d)\n",nXNbrs,err);
-    for(n = 0; n < nXNbrs; n++){
-      printf("%d %d %g\n",n,XNbrVtxNo[n],XNbrDotProd[n]);
-    }
-  }
-
-  printf("nvertices = %d\n",Surf->nvertices);
-  for(vtxno1 = 0; vtxno1 < Surf->nvertices; vtxno1++){
-    if(vtxno1%10000==0) 
-    nXNbrs = 0;
-    err = MRISextendedNeighbors(Surf,vtxno1,vtxno1,DotProdThresh, XNbrVtxNo, 
-				XNbrDotProd, &nXNbrs, 1000);
-    for(n = 0; n < nXNbrs; n++){
-      vtxno2  = XNbrVtxNo[n];
-      dotprod =  XNbrDotProd[n];
-      costheta = dotprod/Radius2;
-
-      // cos theta might be slightly > 1 due to precision
-      if(costheta > +1.0) costheta = +1.0;
-      if(costheta < -1.0) costheta = -1.0;
-
-      // Compute the angle between the vertices
-      theta = acos(costheta);
-
-      /* Compute the distance bet vertices along the surface of the sphere */
-      d = Radius * theta;
-
-      /* Compute weighting factor for this distance */
-      g = f*exp( -(d*d)/(GVar2) ); /* f not really nec */
-
-      if(vtxno1 == 0 && 0){
-	printf("%d %d %g %g %g %g %g\n",
-	       vtxno1,vtxno2,dotprod,costheta,theta,d,g);
-      }
-
-      MRIFseq_vox(GSum,vtxno1,0,0,0)  += g;
-      MRIFseq_vox(GSum2,vtxno1,0,0,0) += (g*g);
-      
-      for(frame = 0; frame < Targ->nframes; frame ++){
-	val = g*MRIFseq_vox(SrcTmp,vtxno2,0,0,frame);
-	MRIFseq_vox(Targ,vtxno1,0,0,frame) += val;
-      }
-      
-    } /* end loop over vertex2 */
-    
-  } /* end loop over vertex1 */
-  
-
-  /* Normalize */
-  for(vtxno1 = 0; vtxno1 < Surf->nvertices; vtxno1++){
-    vtx1 = &Surf->vertices[vtxno1] ;
-    g = MRIFseq_vox(GSum,vtxno1,0,0,0);
-    MRIFseq_vox(GSum2,vtxno1,0,0,0) /= (g*g);
-    
-    for(frame = 0; frame < Targ->nframes; frame ++){
-      val = MRIFseq_vox(Targ,vtxno1,0,0,frame);
-      MRIFseq_vox(Targ,vtxno1,0,0,frame) = val/g;
-    }
-  }
-
-  MRIwrite(GSum,"gsum_000.bfloat");
-  MRIwrite(GSum2,"gsum2_000.bfloat");
-
-  MRIfree(&SrcTmp);
-  MRIfree(&GSum);
-  MRIfree(&GSum2);
-  free(XNbrVtxNo);
-  free(XNbrDotProd);
-
-  return(Targ);
-}
-
-/*-------------------------------------------------------------------
-  MRISextendedNeighbors() - read everything! Finds the set of
-  "extended" neighbors of a given target vertex and a distance
-  threshold. Call with CurVtxNo=TargVtxNo. There are other
-  recursive calls where CurVtxNo!=TargVtxNothat. 
-
-  The distance metric is the dot product between the vectors
-  pointing from the origin to the target and current vertices. For 
-  any given target vertex, the dot product must be greater than
-  (NOT less than) the DotProdThresh to be included. 
-
-  XNbrVtxNo is the (already allocated) list of vertex numbers of
-  vertices that are within threshold.
-
-  XNbrDotProd is the (already allocated) list of dot products of
-  vertices that are within threshold.
-
-  nXNbrs is a pointer to the total number of vertices that are 
-  within threshold.
-
-  nXNbrsMax is the maximum number allowed (ie, the allocation
-  lengths of XNbrVtxNo and XNbrDotProd.
-
-  NOTE: IMPORTANT!
-  1. This really only works on the spherical surface.
-  2. Assuming a spherical surface, the distance along the
-     sphere between the two vertices can be computed as
-        costheta = dotprod/(Radius^2);
-        theta = acos(costheta);
-        d = Radius * theta;
-     This also allows you to work backwards to get a 
-     dot product threshold from a given distance threshold.
-  3. Modifies vertex->val2bak. It is important that this
-     be set to -1 for all vertices prior to the first
-     call or before calling with the same target vertex
-     again.
-  4. It is expected that this will be run for each vertex
-     on a surface, so care has been taken to keep the 
-     coputations light (eg, not allocating XNbrnVtxNo
-     and XNbrnDotProd, using a dot product threshold
-     instead of a distance threshold, not resetting val2bak).
-  -------------------------------------------------------------------*/
-int MRISextendedNeighbors(MRIS *SphSurf,int TargVtxNo, int CurVtxNo,
-			  double DotProdThresh, int *XNbrVtxNo, 
-			  double *XNbrDotProd, int *nXNbrs,
-			  int nXNbrsMax)
-{
-  static int ncalls = 0;
-  VERTEX *vtarg,*vcur;
-  int nNNbrs, n, NbrVtxNo, err;
-  double DotProd;
-
-  // Get the current vertex
-  vcur  = &SphSurf->vertices[CurVtxNo] ;
-
-  // Return if this vertex has been hit
-  if((int)vcur->val2bak == TargVtxNo) return(0);
-
-  // Keep track of the number of recursive calls
-  if(CurVtxNo == TargVtxNo){
-    *nXNbrs = 0;
-    ncalls = 0;
-  }
-  ncalls++;
-
-  // Get the target vertex
-  vtarg = &SphSurf->vertices[TargVtxNo] ;
-
-  // Compute the dot product between the two
-  DotProd = (vtarg->x*vcur->x) + (vtarg->y*vcur->y) + (vtarg->z*vcur->z);
-  DotProd = fabs(DotProd);
-
-  //printf("c %d %d %d %g %d\n",ncalls,TargVtxNo,CurVtxNo,DotProd,*nXNbrs);
-
-  // Compare to threshold
-  if(DotProd <= DotProdThresh) return(0);
-
-  // Check whether another neigbor can be added
-  if(*nXNbrs >= nXNbrsMax-1) return(1);
-
-  // OK, add this vertex as an extended neighbor
-  XNbrVtxNo[*nXNbrs] = CurVtxNo;
-  XNbrDotProd[*nXNbrs]  = DotProd;
-  (*nXNbrs)++;
-  vcur->val2bak = TargVtxNo; // record a hit
-
-  // Now, loop over the current nearest neighbors 
-  nNNbrs = SphSurf->vertices[CurVtxNo].vnum;
-  for(n = 0; n < nNNbrs; n++){
-    NbrVtxNo = SphSurf->vertices[CurVtxNo].v[n];
-    err = MRISextendedNeighbors(SphSurf, TargVtxNo, NbrVtxNo, DotProdThresh, 
-				XNbrVtxNo, XNbrDotProd, nXNbrs, nXNbrsMax);
-    if(err) return(err);
-  }
-
-  return(0);
-}
-
-
-
-
-
-
-/*-------------------------------------------------------------------*/
-/* brute force approach */
-/*-------------------------------------------------------------------*/
-MRI *MRISgaussianSmooth2(MRIS *Surf, MRI *Src, double GStd, MRI *Targ)
-{
-  int vtxno1, vtxno2;
-  float val;
-  MRI *SrcTmp, *GSum, *GSum2;
-  VERTEX *vtx1, *vtx2 ;
-  double Radius, Radius2, dmax, GVar2, f, d;
-  double costheta=0, theta=0, g, dotprod;
-  int err, nXNbrs, XNbrVtxNo[1000];
-  double XNbrDotProd[1000], DotProdThresh;
-
-  if(Surf->nvertices != Src->width){
-    printf("ERROR: MRISgaussianSmooth: Surf/Src dimension mismatch\n");
-    return(NULL);
-  }
-
-  if(Targ == NULL){
-    Targ = MRIallocSequence(Src->width, Src->height, Src->depth, 
-            MRI_FLOAT, Src->nframes);
-    if(Targ==NULL){
-      printf("ERROR: MRISgaussianSmooth: could not alloc\n");
-      return(NULL);
-    }
-  }
-  else{
-    if(Src->width   != Targ->width  || 
-       Src->height  != Targ->height || 
-       Src->depth   != Targ->depth  ||
-       Src->nframes != Targ->nframes){
-      printf("ERROR: MRISgaussianSmooth: output dimension mismatch\n");
-      return(NULL);
-    }
-    if(Targ->type != MRI_FLOAT){
-      printf("ERROR: MRISgaussianSmooth: structure passed is not MRI_FLOAT\n");
-      return(NULL);
-    }
-  }
-  //Targ   = MRIcopy(Src,NULL);
-  SrcTmp = MRIcopy(Src,NULL);
-
-  /* This is for normalizing */
-  GSum = MRIallocSequence(Src->width, Src->height, Src->depth, MRI_FLOAT, 1);
-  if(GSum==NULL){
-    printf("ERROR: MRISgaussianSmooth: could not alloc GSum\n");
-    return(NULL);
-  }
-
-  GSum2 = MRIallocSequence(Src->width, Src->height, Src->depth, MRI_FLOAT, 1);
-  if(GSum2==NULL){
-    printf("ERROR: MRISgaussianSmooth: could not alloc GSum2\n");
-    return(NULL);
-  }
-
-  vtx1 = &Surf->vertices[0] ;
-  Radius2 = (vtx1->x * vtx1->x) + (vtx1->y * vtx1->y) + (vtx1->z * vtx1->z);
-  Radius  = sqrt(Radius2);
-  dmax = 4*GStd; // truncate after 4 stddevs
-  GVar2 = 2*(GStd*GStd);
-  f = 1/(sqrt(2*M_PI)*GStd);
-  DotProdThresh = Radius2*cos(dmax/Radius);
-
-  printf("Radius = %g, gstd = %g, dmax = %g, GVar2 = %g, f = %g, dpt = %g\n",
-	 Radius,gstd,dmax,GVar2,f,DotProdThresh);
-
-  for(vtxno1 = 0; vtxno1 < Surf->nvertices; vtxno1++){
-    MRIFseq_vox(GSum,vtxno1,0,0,0)  = 0;
-    MRIFseq_vox(GSum2,vtxno1,0,0,0) = 0;
-    for(frame = 0; frame < Targ->nframes; frame ++)
-      MRIFseq_vox(Targ,vtxno1,0,0,frame) = 0;
-    Surf->vertices[vtxno1].val2bak = -1;
-  }
-  
-  printf("Starting Search\n");
-  err = MRISextendedNeighbors(Surf,0,0,DotProdThresh, XNbrVtxNo, 
-			     XNbrDotProd, &nXNbrs, 1000);
-  printf("Found %d (err=%d)\n",nXNbrs,err);
-  for(vtxno1 = 0; vtxno1 < nXNbrs; vtxno1++){
-    printf("%d %d %g\n",vtxno1,XNbrVtxNo[vtxno1],XNbrDotProd[vtxno1]);
-  }
-
-  for(vtxno1 = 0; vtxno1 < Surf->nvertices; vtxno1++){
-    if(vtxno1%100==0) printf("vtxno1 = %d\n",vtxno1);
-    vtx1 = &Surf->vertices[vtxno1] ;
-
-    for(vtxno2 = vtxno1; vtxno2 < Surf->nvertices; vtxno2++){
-      vtx2 = &Surf->vertices[vtxno2] ;
-
-      if(vtxno1 != vtxno2){
-	/* Compute the angle between the two vectors (dot product) */
-	dotprod = (vtx1->x*vtx2->x) + (vtx1->y*vtx2->y) + (vtx1->z*vtx2->z);
-	costheta = dotprod/Radius2;
-	// cos theta might be slightly > 1 due to precision
-	if(costheta > +1.0) costheta = +1.0;
-	if(costheta < -1.0) costheta = -1.0;
-	theta = acos(costheta);
-	/* Compute the distance bet vertices along the surface of the sphere */
-	d = Radius * theta;
-	/* Compute weighting factor for this distance */
-	g = f*exp( -(d*d)/(GVar2) );
-      }
-      else {d = 0; g = f; dotprod = Radius2;}
-
-      /* Truncate */
-      if(d > dmax) continue;
-
-      if(vtxno1 == 0){
-	printf("%d %d %g %g %g %g %g\n",
-	       vtxno1,vtxno2,dotprod,costheta,theta,d,g);
-      }
-
-      MRIFseq_vox(GSum,vtxno1,0,0,0)  += g;
-      MRIFseq_vox(GSum2,vtxno1,0,0,0) += (g*g);
-
-      if(vtxno1 != vtxno2){
-	MRIFseq_vox(GSum,vtxno2,0,0,0)  += g;
-	MRIFseq_vox(GSum2,vtxno2,0,0,0) += (g*g);
-      }
-      
-      for(frame = 0; frame < Targ->nframes; frame ++){
-	val = g*MRIFseq_vox(SrcTmp,vtxno2,0,0,frame);
-	MRIFseq_vox(Targ,vtxno1,0,0,frame) += val;
-	if(vtxno1 != vtxno2){
-	  val = g*MRIFseq_vox(SrcTmp,vtxno1,0,0,frame);
-	  MRIFseq_vox(Targ,vtxno2,0,0,frame) += val;
-	}
-      }
-      
-    } /* end loop over vertex2 */
-    
-  } /* end loop over vertex1 */
-  
-
-  /* Normalize */
-  for(vtxno1 = 0; vtxno1 < Surf->nvertices; vtxno1++){
-    vtx1 = &Surf->vertices[vtxno1] ;
-    g = MRIFseq_vox(GSum,vtxno1,0,0,0);
-    MRIFseq_vox(GSum2,vtxno1,0,0,0) /= (g*g);
-    
-    for(frame = 0; frame < Targ->nframes; frame ++){
-      val = MRIFseq_vox(Targ,vtxno1,0,0,frame);
-      MRIFseq_vox(Targ,vtxno1,0,0,frame) = val/g;
-    }
-  }
-
-  MRIwrite(GSum,"gsum_000.bfloat");
-  MRIwrite(GSum2,"gsum2_000.bfloat");
-
-  MRIfree(&SrcTmp);
-  MRIfree(&GSum);
-  MRIfree(&GSum2);
-
-  return(Targ);
-}
-

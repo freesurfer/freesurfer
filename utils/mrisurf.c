@@ -33542,29 +33542,29 @@ MRI *MRISsmoothMRI(MRIS *Surf, MRI *Src, int nSmoothSteps, MRI *Targ)
 
   SrcTmp = MRIcopy(Src,NULL);
   for(nthstep = 0; nthstep < nSmoothSteps; nthstep ++){
-    printf("Step = %d\n",nthstep); fflush(stdout);
+    //printf("Step = %d\n",nthstep); fflush(stdout);
 
     for(vtx = 0; vtx < Surf->nvertices; vtx++){
       nnbrs = Surf->vertices[vtx].vnum;
 
       for(frame = 0; frame < Targ->nframes; frame ++){
-  val = MRIFseq_vox(SrcTmp,vtx,0,0,frame);
-
-  for(nthnbr = 0; nthnbr < nnbrs; nthnbr++){
-    nbrvtx = Surf->vertices[vtx].v[nthnbr];
-    val += MRIFseq_vox(SrcTmp,nbrvtx,0,0,frame) ;
-  }/* end loop over neighbor */
-
-  MRIFseq_vox(Targ,vtx,0,0,frame) = (val/(nnbrs+1));
+	val = MRIFseq_vox(SrcTmp,vtx,0,0,frame);
+	
+	for(nthnbr = 0; nthnbr < nnbrs; nthnbr++){
+	  nbrvtx = Surf->vertices[vtx].v[nthnbr];
+	  val += MRIFseq_vox(SrcTmp,nbrvtx,0,0,frame) ;
+	}/* end loop over neighbor */
+	
+	MRIFseq_vox(Targ,vtx,0,0,frame) = (val/(nnbrs+1));
       }/* end loop over frame */
-
+      
     } /* end loop over vertex */
-
+    
     MRIcopy(Targ,SrcTmp);
   }/* end loop over smooth step */
-
+  
   MRIfree(&SrcTmp);
-
+  
   return(Targ);
 }
 
@@ -34500,3 +34500,283 @@ double MRISavgVetexRadius(MRIS *Surf, double *StdDev)
   return(Avg);
 }
 
+/*-------------------------------------------------------------------
+  MRISgaussianSmooth() - perform gaussian smoothing on a spherical 
+  surface. The gaussian is defined by stddev GStd and is truncated
+  at TruncFactor stddevs. Note: this will change the val2bak of all 
+  the vertices.
+  -------------------------------------------------------------------*/
+MRI *MRISgaussianSmooth(MRIS *Surf, MRI *Src, double GStd, MRI *Targ,
+			double TruncFactor)
+{
+  int vtxno1, vtxno2;
+  float val;
+  MRI *SrcTmp, *GSum, *GSum2, *nXNbrsMRI;
+  VERTEX *vtx1;
+  double Radius, Radius2, dmax, GVar2, f, d, costheta, theta, g, dotprod;
+  int n, err, nXNbrs, *XNbrVtxNo, frame;
+  double *XNbrDotProd, DotProdThresh;
+  double InterVertexDistAvg,InterVertexDistStdDev;
+  double VertexRadiusAvg,VertexRadiusStdDev;
+
+
+  if(Surf->nvertices != Src->width){
+    printf("ERROR: MRISgaussianSmooth: Surf/Src dimension mismatch\n");
+    return(NULL);
+  }
+
+  if(Targ == NULL){
+    Targ = MRIallocSequence(Src->width, Src->height, Src->depth, 
+            MRI_FLOAT, Src->nframes);
+    if(Targ==NULL){
+      printf("ERROR: MRISgaussianSmooth: could not alloc\n");
+      return(NULL);
+    }
+  }
+  else{
+    if(Src->width   != Targ->width  || 
+       Src->height  != Targ->height || 
+       Src->depth   != Targ->depth  ||
+       Src->nframes != Targ->nframes){
+      printf("ERROR: MRISgaussianSmooth: output dimension mismatch\n");
+      return(NULL);
+    }
+    if(Targ->type != MRI_FLOAT){
+      printf("ERROR: MRISgaussianSmooth: structure passed is not MRI_FLOAT\n");
+      return(NULL);
+    }
+  }
+
+  /* Make a copy in case it's done in place */
+  SrcTmp = MRIcopy(Src,NULL);
+
+  /* This is for normalizing */
+  GSum = MRIallocSequence(Src->width, Src->height, Src->depth, MRI_FLOAT, 1);
+  if(GSum==NULL){
+    printf("ERROR: MRISgaussianSmooth: could not alloc GSum\n");
+    return(NULL);
+  }
+
+  GSum2 = MRIallocSequence(Src->width, Src->height, Src->depth, MRI_FLOAT, 1);
+  if(GSum2==NULL){
+    printf("ERROR: MRISgaussianSmooth: could not alloc GSum2\n");
+    return(NULL);
+  }
+  
+  nXNbrsMRI = MRIallocSequence(Src->width, Src->height, Src->depth, MRI_FLOAT, 1);
+
+  vtx1 = &Surf->vertices[0] ;
+  Radius2 = (vtx1->x * vtx1->x) + (vtx1->y * vtx1->y) + (vtx1->z * vtx1->z);
+  Radius  = sqrt(Radius2);
+  dmax = TruncFactor*GStd; // truncate after TruncFactor stddevs
+  GVar2 = 2*(GStd*GStd);
+  f = 1/(sqrt(2*M_PI)*GStd);
+  DotProdThresh = Radius2*cos(dmax/Radius)*(1.0001);
+
+  printf("Radius = %g, gstd = %g, dmax = %g, GVar2 = %g, f = %g, dpt = %g\n",
+	 Radius,GStd,dmax,GVar2,f,DotProdThresh);
+
+  InterVertexDistAvg = MRISavgInterVetexDist(Surf, &InterVertexDistStdDev);
+  VertexRadiusAvg = MRISavgVetexRadius(Surf, &VertexRadiusStdDev);
+  MRIScomputeMetricProperties(Surf);
+  printf("Total Area = %g \n",Surf->total_area);
+  printf("Dist   = %g +/- %g\n",InterVertexDistAvg,InterVertexDistStdDev);
+  printf("Radius = %g +/- %g\n",VertexRadiusAvg,VertexRadiusStdDev);
+
+  /* Initialize */
+  for(vtxno1 = 0; vtxno1 < Surf->nvertices; vtxno1++){
+    MRIFseq_vox(GSum,vtxno1,0,0,0)  = 0;
+    MRIFseq_vox(GSum2,vtxno1,0,0,0) = 0;
+    for(frame = 0; frame < Targ->nframes; frame ++)
+      MRIFseq_vox(Targ,vtxno1,0,0,frame) = 0;
+    Surf->vertices[vtxno1].val2bak = -1;
+  }
+  
+  /* These are needed by MRISextendedNeighbors()*/
+  XNbrVtxNo   = (int *) calloc(Surf->nvertices,sizeof(int));
+  XNbrDotProd = (double *) calloc(Surf->nvertices,sizeof(double));
+
+  if(0){
+    // This will mess up future searches because it sets
+    // val2bak to 0
+    printf("Starting Search\n");
+    err = MRISextendedNeighbors(Surf,0,0,DotProdThresh, XNbrVtxNo, 
+			       XNbrDotProd, &nXNbrs, Surf->nvertices);
+    printf("Found %d (err=%d)\n",nXNbrs,err);
+    for(n = 0; n < nXNbrs; n++){
+      printf("%d %d %g\n",n,XNbrVtxNo[n],XNbrDotProd[n]);
+    }
+  }
+
+  printf("nvertices = %d\n",Surf->nvertices);
+  for(vtxno1 = 0; vtxno1 < Surf->nvertices; vtxno1++){
+
+    nXNbrs = 0;
+    err = MRISextendedNeighbors(Surf,vtxno1,vtxno1,DotProdThresh, XNbrVtxNo, 
+				XNbrDotProd, &nXNbrs, Surf->nvertices);
+    MRIFseq_vox(nXNbrsMRI,vtxno1,0,0,0) = nXNbrs;
+    if(vtxno1%10000==0){
+      printf("vtxno1 = %d, nXNbrs = %d\n",vtxno1,nXNbrs);
+      fflush(stdout);
+    }
+
+    for(n = 0; n < nXNbrs; n++){
+      vtxno2  = XNbrVtxNo[n];
+      dotprod =  XNbrDotProd[n];
+      costheta = dotprod/Radius2;
+
+      // cos theta might be slightly > 1 due to precision
+      if(costheta > +1.0) costheta = +1.0;
+      if(costheta < -1.0) costheta = -1.0;
+
+      // Compute the angle between the vertices
+      theta = acos(costheta);
+
+      /* Compute the distance bet vertices along the surface of the sphere */
+      d = Radius * theta;
+
+      /* Compute weighting factor for this distance */
+      g = f*exp( -(d*d)/(GVar2) ); /* f not really nec */
+
+      if(vtxno1 == 0 && 0){
+	printf("%d %d %g %g %g %g %g\n",
+	       vtxno1,vtxno2,dotprod,costheta,theta,d,g);
+      }
+
+      MRIFseq_vox(GSum,vtxno1,0,0,0)  += g;
+      MRIFseq_vox(GSum2,vtxno1,0,0,0) += (g*g);
+      
+      for(frame = 0; frame < Targ->nframes; frame ++){
+	val = g*MRIFseq_vox(SrcTmp,vtxno2,0,0,frame);
+	MRIFseq_vox(Targ,vtxno1,0,0,frame) += val;
+      }
+      
+    } /* end loop over vertex2 */
+    
+  } /* end loop over vertex1 */
+  
+
+  /* Normalize */
+  for(vtxno1 = 0; vtxno1 < Surf->nvertices; vtxno1++){
+    vtx1 = &Surf->vertices[vtxno1] ;
+    g = MRIFseq_vox(GSum,vtxno1,0,0,0);
+    MRIFseq_vox(GSum2,vtxno1,0,0,0) /= (g*g);
+    
+    for(frame = 0; frame < Targ->nframes; frame ++){
+      val = MRIFseq_vox(Targ,vtxno1,0,0,frame);
+      MRIFseq_vox(Targ,vtxno1,0,0,frame) = val/g;
+    }
+  }
+
+  //MRIwrite(GSum,"gsum_000.bfloat");
+  //MRIwrite(GSum2,"gsum2_000.bfloat");
+  //MRIwrite(nXNbrsMRI,"nxnbrs.mgh");
+
+  MRIfree(&SrcTmp);
+  MRIfree(&GSum);
+  MRIfree(&GSum2);
+  MRIfree(&nXNbrsMRI);
+
+  free(XNbrVtxNo);
+  free(XNbrDotProd);
+
+  return(Targ);
+}
+
+/*-------------------------------------------------------------------
+  MRISextendedNeighbors() - read everything! Finds the set of
+  "extended" neighbors of a given target vertex and a distance
+  threshold. Call with CurVtxNo=TargVtxNo. There are other
+  recursive calls where CurVtxNo!=TargVtxNothat. 
+
+  The distance metric is the dot product between the vectors
+  pointing from the origin to the target and current vertices. For 
+  any given target vertex, the dot product must be greater than
+  (NOT less than) the DotProdThresh to be included. 
+
+  XNbrVtxNo is the (already allocated) list of vertex numbers of
+  vertices that are within threshold.
+
+  XNbrDotProd is the (already allocated) list of dot products of
+  vertices that are within threshold.
+
+  nXNbrs is a pointer to the total number of vertices that are 
+  within threshold.
+
+  nXNbrsMax is the maximum number allowed (ie, the allocation
+  lengths of XNbrVtxNo and XNbrDotProd.
+
+  NOTE: IMPORTANT!
+  1. This really only works on the spherical surface.
+  2. Assuming a spherical surface, the distance along the
+     sphere between the two vertices can be computed as
+        costheta = dotprod/(Radius^2);
+        theta = acos(costheta);
+        d = Radius * theta;
+     This also allows you to work backwards to get a 
+     dot product threshold from a given distance threshold.
+  3. Modifies vertex->val2bak. It is important that this
+     be set to -1 for all vertices prior to the first
+     call or before calling with the same target vertex
+     again.
+  4. It is expected that this will be run for each vertex
+     on a surface, so care has been taken to keep the 
+     coputations light (eg, not allocating XNbrnVtxNo
+     and XNbrnDotProd, using a dot product threshold
+     instead of a distance threshold, not resetting val2bak).
+  -------------------------------------------------------------------*/
+int MRISextendedNeighbors(MRIS *SphSurf,int TargVtxNo, int CurVtxNo,
+			  double DotProdThresh, int *XNbrVtxNo, 
+			  double *XNbrDotProd, int *nXNbrs,
+			  int nXNbrsMax)
+{
+  static int ncalls = 0;
+  VERTEX *vtarg,*vcur;
+  int nNNbrs, n, NbrVtxNo, err;
+  double DotProd;
+
+  // Get the current vertex
+  vcur  = &SphSurf->vertices[CurVtxNo] ;
+
+  // Return if this vertex has been hit
+  if((int)vcur->val2bak == TargVtxNo) return(0);
+
+  // Keep track of the number of recursive calls
+  if(CurVtxNo == TargVtxNo){
+    *nXNbrs = 0;
+    ncalls = 0;
+  }
+  ncalls++;
+
+  // Get the target vertex
+  vtarg = &SphSurf->vertices[TargVtxNo] ;
+
+  // Compute the dot product between the two
+  DotProd = (vtarg->x*vcur->x) + (vtarg->y*vcur->y) + (vtarg->z*vcur->z);
+  DotProd = fabs(DotProd);
+
+  //printf("c %d %d %d %g %d\n",ncalls,TargVtxNo,CurVtxNo,DotProd,*nXNbrs);
+
+  // Compare to threshold
+  if(DotProd <= DotProdThresh) return(0);
+
+  // Check whether another neigbor can be added
+  if(*nXNbrs >= nXNbrsMax-1) return(1);
+
+  // OK, add this vertex as an extended neighbor
+  XNbrVtxNo[*nXNbrs] = CurVtxNo;
+  XNbrDotProd[*nXNbrs]  = DotProd;
+  (*nXNbrs)++;
+  vcur->val2bak = TargVtxNo; // record a hit
+
+  // Now, loop over the current nearest neighbors 
+  nNNbrs = SphSurf->vertices[CurVtxNo].vnum;
+  for(n = 0; n < nNNbrs; n++){
+    NbrVtxNo = SphSurf->vertices[CurVtxNo].v[n];
+    err = MRISextendedNeighbors(SphSurf, TargVtxNo, NbrVtxNo, DotProdThresh, 
+				XNbrVtxNo, XNbrDotProd, nXNbrs, nXNbrsMax);
+    if(err) return(err);
+  }
+
+  return(0);
+}
