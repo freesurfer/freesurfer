@@ -1,8 +1,8 @@
 #!/bin/csh -f
 # kmacf-sess
 #
-# $Id: kmacf-sess,v 1.1 2003/04/09 06:45:53 greve Exp $
-set VERSION = '$Id: kmacf-sess,v 1.1 2003/04/09 06:45:53 greve Exp $';
+# $Id: kmacf-sess,v 1.2 2003/04/15 04:00:30 greve Exp $
+set VERSION = '$Id: kmacf-sess,v 1.2 2003/04/15 04:00:30 greve Exp $';
 set FASTVER = `cat $FSFAST_HOME/docs/version`;
 
 set inputargs = ($argv);
@@ -20,6 +20,8 @@ set outbase = ();
 set monly = 0;
 set MLF = ();
 set QuitOnError = 0;
+set FitPolyZ = 0;
+set PolyZOrder = 0;
 
 if($#argv == 0) then
   goto usage_exit;
@@ -127,7 +129,11 @@ foreach sess ($SessList)
   if(! $monly) set MLF = /tmp/kmacf-$$.m
   rm -f $MLF
   echo "MLF is $MLF" |& tee -a $LF
-  set maskstem = masks/$mask
+  if($#mask != 0) then
+    set maskstem = masks/$mask
+  else
+    set maskstem = ();
+  endif
 
   @ nthRun = 1;
   foreach Run ($RunList)
@@ -156,6 +162,8 @@ foreach sess ($SessList)
 
     set outbasestem = $acfdir/acf001
 
+    set xmatfile = $analysis-$Run/X.mat;
+
     set MLFTMP = $acfdir/kmacf-tmp.m
     rm -f $MLFTMP
 #-----------------------------------------------------------------#
@@ -170,7 +178,10 @@ maskstem   = '$maskstem';
 nmaxlag   = $nmaxlag;
 nitersmax = $nitersmax;
 nclusters = $nclusters;
-outbasestem   = '$outbasestem';
+outbasestem = '$outbasestem';
+xmatfile    = '$xmatfile';
+fitpolyz    = $FitPolyZ;
+polyzorder  = $PolyZOrder;
 
 fast_kmacf;
 
@@ -222,6 +233,12 @@ while( $#argv != 0 )
     case "-k":
       if ( $#argv == 0) goto arg1err;
       set nclusters = $argv[1]; shift;
+      breaksw
+
+    case "-polyz":
+      if ( $#argv == 0) goto arg1err;
+      set PolyZOrder = $argv[1]; shift;
+      set FitPolyZ = 1;
       breaksw
 
     case "-nmaxlag":
