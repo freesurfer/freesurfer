@@ -6,8 +6,8 @@
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/08/27 15:16:40 $
-// Revision       : $Revision: 1.2 $
+// Revision Date  : $Date: 2004/08/27 15:23:30 $
+// Revision       : $Revision: 1.3 $
 
 #include <iostream>
 #include <iomanip>
@@ -29,9 +29,10 @@ float gti=0;
 
 void print_usage()
 {
-  cout << "Usage: mri_modify <-xras xr xa xs> <-yras yr ya ys> <-zras zr za zs> <-cras cr ca cs> " << endl;
-  cout << "                   <-xsize size> <-ysize size> <-zsize size> " << endl;
-  cout << "                   <-TR recoverytime> <-TE echotime> <-TI inversiontime> <-FA angledegree> involume outvolume" << endl;
+  cout << "Usage: mri_modify <-xras xr xa xs> <-yras yr ya ys> <-zras zr za zs> <-cras cr ca cs> \\ " << endl;
+  cout << "                  <-xsize size> <-ysize size> <-zsize size> \\ " << endl;
+  cout << "                  <-tr recoverytime> <-te echotime> <-ti inversiontime> <-fa angledegree> \\ " << endl;
+  cout << "                  involume outvolume" << endl;
 }
 
 int get_option(int argc, char *argv[], VOL_GEOM &vg)
@@ -87,22 +88,22 @@ int get_option(int argc, char *argv[], VOL_GEOM &vg)
     vg.zsize = atof(argv[2]);
     nargs=1;
   }
-  else if (!strcmp(option, "TR"))
+  else if (!strcmp(option, "tr"))
   {
     gtr=atof(argv[2]);
     nargs=1;
   }
-  else if (!strcmp(option, "TE"))
+  else if (!strcmp(option, "te"))
   {
     gte=atof(argv[2]);
     nargs=1;
   }
-  else if (!strcmp(option, "TI"))
+  else if (!strcmp(option, "ti"))
   {
     gti=atof(argv[2]);
     nargs=1;
   }
-  else if (!strcmp(option, "FA"))
+  else if (!strcmp(option, "fa"))
   {
     // mri stores it as radian
     gflip_angle=RADIANS(atof(argv[2]));
@@ -115,7 +116,7 @@ int main(int argc, char *argv[])
 {
   int nargs;
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_modify.cpp,v 1.2 2004/08/27 15:16:40 tosa Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_modify.cpp,v 1.3 2004/08/27 15:23:30 tosa Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
