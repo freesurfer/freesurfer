@@ -4152,14 +4152,15 @@ int read_bhdr(MRI *mri, FILE *fp)
 
 static MRI *genesisRead(char *fname, int read_volume)
 {
-
   char fname_format[STRLEN];
+  char fname_format2[STRLEN];
   char fname_dir[STRLEN];
   char fname_base[STRLEN];
   char *c;
   MRI *mri = NULL;
   int im_init;
   int im_low, im_high;
+  int im_low2, im_high2;
   char fname_use[STRLEN];
   char temp_string[STRLEN];
   FILE *fp;
@@ -4214,7 +4215,10 @@ static MRI *genesisRead(char *fname, int read_volume)
       c++;
       im_init = atoi(c);
       *c = '\0';
+      // this is too quick to assume of this type
+      // another type %s%%03d.MR" must be examined
       sprintf(fname_format, "%s%%d.MR", fname_base);
+      sprintf(fname_format2, "%s%%03d.MR", fname_base);
     }
     else
     {
@@ -4230,8 +4234,11 @@ static MRI *genesisRead(char *fname, int read_volume)
 
   strcpy(temp_string, fname_format);
   sprintf(fname_format, "%s%s", fname_dir, temp_string);
+  strcpy(temp_string, fname_format2);
+  sprintf(fname_format2, "%s%s", fname_dir, temp_string);
 
   /* ----- find the low and high files ----- */
+  // test fname_format first
   im_low = im_init;
   do
   {
@@ -4247,6 +4254,31 @@ static MRI *genesisRead(char *fname, int read_volume)
     sprintf(fname_use, fname_format, im_high);
   } while(FileExists(fname_use));
   im_high--;
+  // now test fname_format2
+  im_low2 = im_init;
+  do
+  {
+    im_low2--;
+    sprintf(fname_use, fname_format2, im_low2);
+  } while(FileExists(fname_use));
+  im_low2++;
+
+  im_high2 = im_init;
+  do
+  {
+    im_high2++;
+    sprintf(fname_use, fname_format2, im_high2);
+  } while(FileExists(fname_use));
+  im_high2--;
+  // now decide which one to pick
+  if ((im_high2-im_low2) > (im_high-im_low))
+  {
+    // we have to use fname_format2
+    strcpy(fname_format, fname_format2);
+    im_high = im_high2;
+    im_low = im_low2;
+  }
+  // otherwise the same
 
   /* ----- allocate the mri structure ----- */
   header = MRIallocHeader(1, 1, 1, MRI_SHORT);
