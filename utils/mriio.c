@@ -422,7 +422,7 @@ MRIreadInfo(char *fpref)
   FILE    *fp;
   char    cmd[STRLEN], fname[STRLEN];
   int     imnr0, imnr1, width, height, depth, ptype, type, frame ;
-
+  char    info_line[STRLEN];
 
   MRIunpackFileName(fpref, &frame, &type, fname) ;
   switch (type)
@@ -506,11 +506,28 @@ MRIreadInfo(char *fpref)
     fscanf(fp,"%*s %f",&mri->zend); /* endz */
     fscanf(fp,"%*s %f",&mri->tr); 
     fscanf(fp,"%*s %f",&mri->te); 
-    fscanf(fp,"%*s %f",&mri->ti); 
-    if (fscanf(fp,"%s %s", cmd, mri->transform_fname) == 2)
+    fscanf(fp,"%*s %f",&mri->ti);
+
+    mri->linear_transform = NULL;
+    mri->ras_good_flag = 0;
+
+    while(fgets(info_line, STRLEN, fp) != NULL)
     {
-      if (!stricmp(cmd, "xform") || !stricmp(cmd, "transform"))
+      if(strncmp(info_line, "ras_good_flag", 13) == 0)
+        sscanf(info_line, "%*s %d", &mri->ras_good_flag);
+      else if(strncmp(info_line, "x_ras", 5) == 0)
+        sscanf(info_line, "%*s %f %f %f", &mri->x_r, &mri->x_a, &mri->x_s);
+      else if(strncmp(info_line, "y_ras", 5) == 0)
+        sscanf(info_line, "%*s %f %f %f", &mri->y_r, &mri->y_a, &mri->y_s);
+      else if(strncmp(info_line, "z_ras", 5) == 0)
+        sscanf(info_line, "%*s %f %f %f", &mri->z_r, &mri->z_a, &mri->z_s);
+      else if(strncmp(info_line, "c_ras", 5) == 0)
+        sscanf(info_line, "%*s %f %f %f", &mri->c_r, &mri->c_a, &mri->c_s);
+      else if(strncmp(info_line, "xform", 5) == 0 || strncmp(info_line, "transform", 9) == 0)
       {
+
+        sscanf(info_line, "%s %s", cmd, mri->transform_fname);
+
         if (*mri->transform_fname != '/') /* relative path, add prefix */
           sprintf(fname, "%s/%s", fpref, mri->transform_fname) ;
         else
@@ -542,13 +559,14 @@ MRIreadInfo(char *fpref)
                       mri->transform_fname) ;
 #endif
         }
+    
       }
       else
-        mri->linear_transform = NULL ;
+      {
+      /* do nothing -- toro has been known to return a blank line in the first pass */
+      }
     }
-    else
-      mri->linear_transform = NULL ;
-    
+
     mri->fov *= MM_PER_METER ;
     mri->ps *= MM_PER_METER ;
     mri->thick *= MM_PER_METER ;
@@ -725,6 +743,13 @@ MRIwriteInfo(MRI *mri, char *fpref)
 #endif
 
   }
+
+  fprintf(fp, "%s %d\n", "ras_good_flag", mri->ras_good_flag);
+  fprintf(fp, "%s %f %f %f\n", "x_ras", mri->x_r, mri->x_a, mri->x_s);
+  fprintf(fp, "%s %f %f %f\n", "y_ras", mri->y_r, mri->y_a, mri->y_s);
+  fprintf(fp, "%s %f %f %f\n", "z_ras", mri->z_r, mri->z_a, mri->z_s);
+  fprintf(fp, "%s %f %f %f\n", "c_ras", mri->c_r, mri->c_a, mri->c_s);
+
   fclose(fp);
 
   return(NO_ERROR) ;
@@ -2431,6 +2456,7 @@ MRIreorder(MRI *mri_src, MRI *mri_dst, int xdim, int ydim, int zdim)
       }
     }
   }
+  mri_dst->ras_good_flag = 0;
   return(mri_dst) ;
 }
 

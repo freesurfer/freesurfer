@@ -57,6 +57,13 @@ typedef struct
   int           zdir ;      /* structure (if needed) with                             */
                             /* MRIreorder(src, dest, src->xdir, src->ydir, src->zdir) */
 
+  float         x_r, x_a, x_s; /* these are the RAS distances across the whole volume */
+  float         y_r, y_a, y_s; /* in x, y, and z                                      */
+  float         z_r, z_a, z_s; /* c_r, c_a, and c_s are the center ras coordinates    */
+  float         c_r, c_a, c_s; /* ras_good_flag tells if these coordinates are set    */
+  int           ras_good_flag; /* and accurate for the volume                         */
+                               /* these will hopefully replace xdir, ydir, and zdir   */
+
 /* 
   each slice is an array of rows (mri->height of them) each of which is 
   mri->width long.
