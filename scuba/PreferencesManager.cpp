@@ -170,7 +170,6 @@ PreferencesManager::ReadFile() {
   }
 
   string sKeyword;
-  char c;
   while( !fPrefs.eof() ) {
     getline( fPrefs, sKeyword );
 

@@ -144,7 +144,8 @@ Layer::DoListenToTclCommand( char* isCommand, int iArgc, char** iasArgv ) {
 }
 
 void
-Layer::HandleTool ( float iRAS[3], ScubaWindowToRASTranslator& iTranslator,
+Layer::HandleTool ( float iRAS[3], ViewState& iViewState,
+		    ScubaWindowToRASTranslator& iTranslator,
 		    ScubaToolState& iTool, InputState& iInput ){
 
 }
@@ -154,8 +155,11 @@ void
 Layer::DrawPixelIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
 			     int iWindow[2], int iColor[3], float iOpacity ){
 
-  GLubyte* dest = iBuffer + (iWindow[0] * 4) + (iWindow[1] * iWidth * 4);
-  DrawPixelIntoBuffer( dest, iColor, iOpacity );
+  if( iWindow[0] >= 0 && iWindow[0] < iWidth && 
+      iWindow[1] >= 0 && iWindow[1] < iHeight ) {
+    GLubyte* dest = iBuffer + (iWindow[0] * 4) + (iWindow[1] * iWidth * 4);
+    DrawPixelIntoBuffer( dest, iColor, iOpacity );
+  }
 }
 
 void 
@@ -219,7 +223,7 @@ Layer::DrawAALineIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
     adjInc  = ( 1 * 4) + ( 0 * iWidth * 4);
     diagInc = ( 1 * 4) + (-1 * iWidth * 4);
     orthInc = ( 0 * 4) + (-1 * iWidth * 4);
-  } else if( bSteep && bNegativeY ) {
+  } else { //  bSteep && bNegativeY
     adjInc  = ( 0 * 4) + (-1 * iWidth * 4);
     diagInc = ( 1 * 4) + (-1 * iWidth * 4);
     orthInc = ( 1 * 4) + ( 0 * iWidth * 4);

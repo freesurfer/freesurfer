@@ -33,6 +33,9 @@ class ScubaToolState : public TclCommandListener, public IDTracker<ScubaToolStat
   void SetFloodFuzziness ( int iFuzziness ) { mFloodFuzziness = iFuzziness; }
   int GetFloodFuzziness () { return mFloodFuzziness; } 
   
+  void SetFloodMaxDistance ( int iDistance ) { mFloodMaxDistance = iDistance; }
+  int GetFloodMaxDistance () { return mFloodMaxDistance; } 
+  
   void SetFlood3D ( bool ib3D ) { mbFlood3D = ib3D; }
   bool GetFlood3D () { return mbFlood3D; }
 
@@ -52,6 +55,7 @@ class ScubaToolState : public TclCommandListener, public IDTracker<ScubaToolStat
   bool mbFloodStopAtLines;
   bool mbFloodStopAtROIs;
   int mFloodFuzziness;
+  int mFloodMaxDistance;
   bool mbFlood3D;
   
 };

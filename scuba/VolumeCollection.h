@@ -8,6 +8,7 @@ extern "C" {
 #include "mri.h"
 }
 #include "Volume3.h"
+#include "Point3.h"
 
 class VolumeCollection : public DataCollection {
 
@@ -54,11 +55,19 @@ class VolumeCollection : public DataCollection {
   void SelectRAS ( float iRAS[3] );
   void UnselectRAS ( float iRAS[3] );
   bool IsRASSelected ( float iRAS[3], int oColor[3] );
+  bool IsOtherRASSelected ( float iRAS[3], int iThisROIID );
 
   void InitEdgeVolume ();
   void MarkRASEdge ( float iRAS[3] );
   void UnmarkRASEdge ( float iRAS[3] );
   bool IsRASEdge ( float iRAS[3] );
+
+  void GetRASPointsInCube ( float iCenterRAS[3], int iRadius,
+			    bool ibBrushX, bool ibBrushY, bool ibBrushZ,
+			    std::list<Point3<float> >& oPoints );
+  void GetRASPointsInSphere ( float iCenterRAS[3], int iRadius,
+			      bool ibBrushX, bool ibBrushY, bool ibBrushZ,
+			      std::list<Point3<float> >& oPoints );
 
 protected:
   std::string mfnMRI;
@@ -77,7 +86,13 @@ protected:
 class VolumeCollectionFlooder {
  public:
   VolumeCollectionFlooder ();
-  ~VolumeCollectionFlooder ();
+  virtual ~VolumeCollectionFlooder ();
+
+  // Override these to do startup and shutdown stuff, also allow the
+  // user or program to cancel the flood.
+  virtual void DoBegin ();  
+  virtual void DoEnd ();
+  virtual bool DoStopRequested ();
 
   virtual bool CompareVoxel ( float iRAS[3] );
   virtual void DoVoxel ( float iRAS[3] );
@@ -88,8 +103,11 @@ class VolumeCollectionFlooder {
     bool mbStopAtEdges;
     bool mbStopAtROIs;
     bool mb3D;
-    
+    bool mbWorkPlaneX;
+    bool mbWorkPlaneY;
+    bool mbWorkPlaneZ;
     int mFuzziness;
+    int mMaxDistance;
     bool mbDiagonal;
   };
 

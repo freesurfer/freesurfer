@@ -56,7 +56,7 @@ class Layer : public DebugReporter, public IDTracker<Layer>, public TclCommandLi
   void SetWidth( int iWidth ) { mWidth = iWidth; }
   void SetHeight( int iHeight ) { mHeight = iHeight; }
 
-  virtual void HandleTool ( float iRAS[3],
+  virtual void HandleTool ( float iRAS[3], ViewState& iViewState,
 			    ScubaWindowToRASTranslator& iTranslator,
 			    ScubaToolState& iTool, InputState& iInput );
 

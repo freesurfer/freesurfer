@@ -327,3 +327,17 @@ TclCommandManager::PrintAllCommands () {
 
   return ssResult.str();
 }
+
+string
+TclCommandManager::SendCommand ( string isCommand ) {
+
+  if( mInterp ) {
+    char* sCommand = strdup( isCommand.c_str() );
+    Tcl_Eval( mInterp, sCommand );
+    char* sTclResult = Tcl_GetStringResult( mInterp );
+    free( sCommand );
+    return string(sTclResult);
+  } else {
+    return "";
+  }
+}

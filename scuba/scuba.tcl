@@ -390,10 +390,12 @@ proc LoadImages {} {
 proc MakeMenuBar { ifwTop } {
     dputs "MakeMenuBar  $ifwTop  "
 
-
     global gaMenu
+    global gaView
+
     set fwMenuBar     $ifwTop.fwMenuBar
     set gaMenu(file)  $fwMenuBar.mbwFile
+    set gaMenu(edit)  $fwMenuBar.mbwEdit
     set gaMenu(view)  $fwMenuBar.mbwView
 
     frame $fwMenuBar -border 2 -relief raised
@@ -406,15 +408,28 @@ proc MakeMenuBar { ifwTop } {
 
     pack $gaMenu(file) -side left
 
+    tkuMakeMenu -menu $gaMenu(edit) -label "Edit" -items {
+	{command "Undo" { UndoOrRedo; RedrawFrame [GetMainFrameID] } }
+    }
+
+    pack $gaMenu(edit) -side left
+
     tkuMakeMenu -menu $gaMenu(view) -label "View" -items {
 	{check "Flip Left/Right" { SetViewFlipLeftRightYZ $gaView(current,id) $gaView(flipLeftRight) } gaView(flipLeftRight) }
     }
+
+    set gaView(flipLeftRight) [GetPreferencesValue ViewFlipLeftRight]
 
     pack $gaMenu(view) -side left
 
     return $fwMenuBar
 }
 
+proc UpdateUndoMenuItem {} {
+    global gaMenu
+
+    tkuSetMenuItemName $gaMenu(edit) 0 [GetUndoTitle]
+}
 
 proc MakeToolBar { ifwTop } {
     dputs "MakeToolBar  $ifwTop  "
@@ -617,6 +632,9 @@ proc ScubaMouseDownCallback { inX inY iButton } {
 proc Quit {} {
     dputs "Quit  "
 
+    global gaView
+
+    SetPreferencesValue ViewFlipLeftRight $gaView(flipLeftRight)
 
     SaveGlobalPreferences
     exit
@@ -679,20 +697,20 @@ proc MakeSubjectsLoaderPanel { ifwTop } {
     global gaSubject
 
     set fwTop  $ifwTop.fwSubjects
-    set fwMenu $fwTop.fwMenu
     set fwData $fwTop.fwData
 
     frame $fwTop
 
-    frame $fwMenu
-    tixOptionMenu $fwMenu.menu \
+    frame $fwData -relief ridge -border 2
+
+    tixOptionMenu $fwData.fwMenu \
 	-label "Subject:" \
 	-variable gaSubject(current,menuIndex) \
 	-command { SubjectsLoaderSubjectMenuCallback }
-    set gaWidget(subjectsLoader,subjectsMenu) $fwMenu.menu
-    pack $fwMenu.menu
+    set gaWidget(subjectsLoader,subjectsMenu) $fwData.fwMenu
 
-    frame $fwData
+    grid $fwData.fwMenu  -column 0 -row 0 -columnspan 2 -sticky ew
+
     tixOptionMenu $fwData.volumesMenu \
 	-label "Volumes:"
     set gaWidget(subjectsLoader,volumeMenu) $fwData.volumesMenu
@@ -701,8 +719,8 @@ proc MakeSubjectsLoaderPanel { ifwTop } {
 	-text "Load" \
 	-command {LoadVolumeFromSubjectsLoader [$gaWidget(subjectsLoader,volumeMenu) cget -value]}
 
-    grid $fwData.volumesMenu   -column 0 -row 0 -sticky ew
-    grid $fwData.volumesButton -column 1 -row 0 -sticky e
+    grid $fwData.volumesMenu   -column 0 -row 1 -sticky ew
+    grid $fwData.volumesButton -column 1 -row 1 -sticky e
 
 
     tixOptionMenu $fwData.surfacesMenu \
@@ -713,14 +731,14 @@ proc MakeSubjectsLoaderPanel { ifwTop } {
 	-text "Load" \
 	-command {LoadSurfaceFromSubjectsLoader [$gaWidget(subjectsLoader,surfaceMenu) cget -value]}
     
-    grid $fwData.surfacesMenu   -column 0 -row 1 -sticky ew
-    grid $fwData.surfacesButton -column 1 -row 1 -sticky e
+    grid $fwData.surfacesMenu   -column 0 -row 2 -sticky ew
+    grid $fwData.surfacesButton -column 1 -row 2 -sticky e
 
 
     grid columnconfigure $fwData 0 -weight 1
     grid columnconfigure $fwData 1 -weight 0
     
-    pack $fwMenu $fwData -side top -expand yes -fill x
+    pack $fwData -side top -expand yes -fill x
 
     return $fwTop
 }
@@ -734,8 +752,12 @@ proc MakePropertiesPanel { ifwTop } {
     set fwTop  $ifwTop.fwProps
 
     frame $fwTop
+    set fwButtons  $fwTop.fwButtons
+    set fwPanels   $fwTop.fwPanels
     
-    tkuMakeToolbar $fwTop.tbwPanelsTop \
+    frame $fwButtons -relief raised -border 2
+
+    tkuMakeToolbar $fwButtons.tbwPanelsTop \
 	-allowzero 1 -radio 1 \
 	-variable gaPanel(currentTop) \
 	-command PanelBarWrapper \
@@ -745,7 +767,7 @@ proc MakePropertiesPanel { ifwTop } {
 	    {-type text -name layerProperties -label "Layers"}
 	    {-type text -name toolProperties -label "Tools"}
 	}
-    tkuMakeToolbar $fwTop.tbwPanelsBottom \
+    tkuMakeToolbar $fwButtons.tbwPanelsBottom \
 	-allowzero 1 -radio 1 \
 	-variable gaPanel(currentBottom) \
 	-command PanelBarWrapper \
@@ -755,28 +777,32 @@ proc MakePropertiesPanel { ifwTop } {
 	    {-type text -name lutProperties -label "Color LUTs"}
 	}
     
-    pack $fwTop.tbwPanelsTop $fwTop.tbwPanelsBottom -side top \
+    pack $fwButtons.tbwPanelsTop $fwButtons.tbwPanelsBottom -side top \
 	-fill x -expand yes
     
-    pack [frame $fwTop.fwPanel]
+    frame $fwPanels
+
+    pack [frame $fwPanels.fwPanel]
 
     set gaWidget(collectionProperties) \
-	[MakeDataCollectionsPropertiesPanel $fwTop.fwPanel]
+	[MakeDataCollectionsPropertiesPanel $fwPanels.fwPanel]
     set gaWidget(layerProperties) \
-	[MakeLayerPropertiesPanel $fwTop.fwPanel]
+	[MakeLayerPropertiesPanel $fwPanels.fwPanel]
     set gaWidget(viewProperties) \
-	[MakeViewPropertiesPanel $fwTop.fwPanel]
+	[MakeViewPropertiesPanel $fwPanels.fwPanel]
     set gaWidget(subjectsLoader) \
-	[MakeSubjectsLoaderPanel $fwTop.fwPanel]
+	[MakeSubjectsLoaderPanel $fwPanels.fwPanel]
     set gaWidget(transformProperties) \
-	[MakeTransformsPanel $fwTop.fwPanel]
+	[MakeTransformsPanel $fwPanels.fwPanel]
     set gaWidget(lutProperties) \
-	[MakeLUTsPanel $fwTop.fwPanel]
+	[MakeLUTsPanel $fwPanels.fwPanel]
     set gaWidget(toolProperties) \
-	[MakeToolsPanel $fwTop.fwPanel]
+	[MakeToolsPanel $fwPanels.fwPanel]
 
     set gaPanel(currentTop) subjectsLoader
     PanelBarWrapper subjectsLoader 1
+
+    pack $fwButtons $fwPanels -side top -fill x -expand yes
     
     return $fwTop
 }
@@ -813,25 +839,23 @@ proc MakeDataCollectionsPropertiesPanel { ifwTop } {
     global glShortcutDirs
 
     set fwTop        $ifwTop.fwCollectionsProps
-    set fwMenu       $fwTop.fwMenu
     set fwProps      $fwTop.fwProps
     set fwROIs       $fwTop.fwROIs
     set fwCommands   $fwTop.fwCommands
 
     frame $fwTop
 
-    frame $fwMenu
-    tixOptionMenu $fwMenu.menu \
-	-label "Data Collection:" \
-	-variable gaCollection(current,menuIndex) \
-	-command { CollectionPropertiesMenuCallback }
-    set gaWidget(collectionProperties,menu) $fwMenu.menu
-    pack $fwMenu.menu
-
-    frame $fwProps
+    frame $fwProps -relief ridge -border 2
+    set fwMenu         $fwProps.fwMenu
     set fwPropsCommon  $fwProps.fwPropsCommon
     set fwPropsVolume  $fwProps.fwPropsVolume
     set fwPropsSurface $fwProps.fwPropsSurface
+
+    tixOptionMenu $fwMenu \
+	-label "Data Collection:" \
+	-variable gaCollection(current,menuIndex) \
+	-command { CollectionPropertiesMenuCallback }
+    set gaWidget(collectionProperties,menu) $fwMenu
 
     frame $fwPropsCommon
     tkuMakeActiveLabel $fwPropsCommon.ewID \
@@ -871,7 +895,7 @@ proc MakeDataCollectionsPropertiesPanel { ifwTop } {
     set gaWidget(collectionProperties,surface) $fwPropsSurface
 
 
-    frame $fwROIs
+    frame $fwROIs -relief ridge -border 2
     tixOptionMenu $fwROIs.menu \
 	-label "Current ROI:" \
 	-variable gaROI(current,menuIndex) \
@@ -943,9 +967,9 @@ proc MakeDataCollectionsPropertiesPanel { ifwTop } {
     pack $fwCommands.bwMakeROI -expand yes -fill x
 
 
-    grid $fwPropsCommon -column 0 -row 0 -sticky news
+    grid $fwMenu        -column 0 -row 0 -sticky news
+    grid $fwPropsCommon -column 0 -row 1 -sticky news
 
-    grid $fwMenu     -column 0 -row 0 -sticky new
     grid $fwProps    -column 0 -row 1 -sticky news
     grid $fwROIs     -column 0 -row 3 -sticky news
     grid $fwCommands -column 0 -row 4 -sticky news
@@ -960,33 +984,44 @@ proc MakeToolsPanel { ifwTop } {
     global gaTool
 
     set fwTop        $ifwTop.fwToolsProps
-    set fwMenu       $fwTop.fwMenu
     set fwProps      $fwTop.fwProps
 
     frame $fwTop
 
-    frame $fwMenu
-    tixOptionMenu $fwMenu.menu \
-	-label "Tools:" \
-	-variable gaTool(current,menuIndex) \
-	-command { ToolPropertiesMenuCallback }
-    set gaWidget(toolProperties,menu) $fwMenu.menu
-    pack $fwMenu.menu
+    frame $fwProps -relief ridge -border 2
 
-    FillMenuFromList $fwMenu.menu \
-	{ navigation voxelEditing roiEditing straightLine }  "" \
-	{ "Navigation" "Voxel Editing" "ROI Editing" "Straight Line" } false
-
-    frame $fwProps
+    set fwMenu               $fwProps.fwMenu
     set fwPropsCommon        $fwProps.fwPropsCommon
     set fwPropsNavigation    $fwProps.fwPropsNavigation
     set fwPropsVoxelEditing  $fwProps.fwPropsVoxelEditing
     set fwPropsROIEditing    $fwProps.fwPropsROIEditing
     set fwPropsStraightLine  $fwProps.fwPropsStraightLine
 
+    tixOptionMenu $fwMenu \
+	-label "Tools:" \
+	-variable gaTool(current,menuIndex) \
+	-command { ToolPropertiesMenuCallback }
+    set gaWidget(toolProperties,menu) $fwMenu
+
+    FillMenuFromList $fwMenu \
+	{ navigation voxelEditing roiEditing straightLine }  "" \
+	{ "Navigation" "Voxel Editing" "ROI Editing" "Straight Line" } false
+
+
     frame $fwPropsCommon
+
+    set fwPropsCommonBrush $fwPropsCommon.fwPropsCommonBrush
+
+    tixLabelFrame $fwPropsCommonBrush \
+	-label "Brush Options" \
+	-labelside acrosstop \
+	-options { label.padX 5 }
+
+    pack $fwPropsCommonBrush -fill both -expand yes
+
+    set fwPropsCommonBrushSub [$fwPropsCommonBrush subwidget frame]
     
-    tkuMakeToolbar $fwPropsCommon.tbwBrushShape \
+    tkuMakeToolbar $fwPropsCommonBrushSub.tbwBrushShape \
 	-allowzero false \
 	-radio true \
 	-variable gaTool(current,brushShape) \
@@ -996,13 +1031,13 @@ proc MakeToolsPanel { ifwTop } {
 	    {-type text -name square -label "Square"}
 	}
 
-    tkuMakeSliders $fwPropsCommon.swRadius -sliders {
+    tkuMakeSliders $fwPropsCommonBrushSub.swRadius -sliders {
 	{-label "Radius" -variable gaTool(current,radius) 
-	    -min 1 -max 20
+	    -min 1 -max 20 -entry true
 	    -command {SetToolBrushRadius $gaFrame([GetMainFrameID],toolID) $gaTool(current,radius)} }
     }
 
-    tkuMakeCheckboxes $fwPropsCommon.cb3D \
+    tkuMakeCheckboxes $fwPropsCommonBrushSub.cb3D \
 	-font [tkuNormalFont] \
 	-checkboxes { 
 	    {-type text -label "Work in 3D" 
@@ -1010,9 +1045,9 @@ proc MakeToolsPanel { ifwTop } {
 		-command {SetToolBrush3D $gaFrame([GetMainFrameID],toolID) $gaTool(current,brush3D)}}
 	}
 
-    grid $fwPropsCommon.tbwBrushShape -column 0 -row 0 -sticky ew
-    grid $fwPropsCommon.swRadius      -column 0 -row 1 -sticky ew
-    grid $fwPropsCommon.cb3D          -column 0 -row 1 -sticky ew
+    grid $fwPropsCommonBrushSub.tbwBrushShape -column 0 -row 0 -sticky ew
+    grid $fwPropsCommonBrushSub.swRadius      -column 0 -row 1 -sticky ew
+    grid $fwPropsCommonBrushSub.cb3D          -column 0 -row 2 -sticky ew
 
 
     frame $fwPropsNavigation
@@ -1021,9 +1056,15 @@ proc MakeToolsPanel { ifwTop } {
     frame $fwPropsVoxelEditing
     set gaWidget(toolProperties,voxelEditing) $fwPropsVoxelEditing
 
-    frame $fwPropsROIEditing
 
-    tkuMakeCheckboxes $fwPropsROIEditing.cbFillOptions \
+    tixLabelFrame $fwPropsROIEditing \
+	-label "Fill Options" \
+	-labelside acrosstop \
+	-options { label.padX 5 }
+
+    set fwPropsROIEditingSub [$fwPropsROIEditing subwidget frame]
+
+    tkuMakeCheckboxes $fwPropsROIEditingSub.cbFillOptions \
 	-font [tkuNormalFont] \
 	-checkboxes { 
 	    {-type text -label "Stop at other ROIs" 
@@ -1034,13 +1075,16 @@ proc MakeToolsPanel { ifwTop } {
 		-command {SetToolFloodStopAtLines $gaFrame([GetMainFrameID],toolID) $gaTool(current,stopLines)}}
 	}
     
-    tkuMakeSliders $fwPropsROIEditing.swFuzziness -sliders {
+    tkuMakeSliders $fwPropsROIEditingSub.swFuzziness -sliders {
 	{-label "Fill Fuzziness" -variable gaTool(current,fuzziness) 
 	    -min 0 -max 20 -entry true
 	    -command {SetToolFloodFuzziness $gaFrame([GetMainFrameID],toolID) $gaTool(current,fuzziness)}}
+	{-label "Fill Max Distance" -variable gaTool(current,maxDistance) 
+	    -min 0 -max 20 -entry true
+	    -command {SetToolFloodMaxDistance $gaFrame([GetMainFrameID],toolID) $gaTool(current,maxDistance)}}
     }
 
-    tkuMakeCheckboxes $fwPropsROIEditing.cb3D \
+    tkuMakeCheckboxes $fwPropsROIEditingSub.cb3D \
 	-font [tkuNormalFont] \
 	-checkboxes { 
 	    {-type text -label "Work in 3D" 
@@ -1048,19 +1092,19 @@ proc MakeToolsPanel { ifwTop } {
 		-command {SetToolFlood3D $gaFrame([GetMainFrameID],toolID) $gaTool(current,flood3D)}}
 	}
 
-    grid $fwPropsROIEditing.cbFillOptions -column 0 -row 0 -sticky ew
-    grid $fwPropsROIEditing.swFuzziness   -column 0 -row 1 -sticky ew
-    grid $fwPropsROIEditing.cb3D          -column 0 -row 2 -sticky ew
+    grid $fwPropsROIEditingSub.cbFillOptions -column 0 -row 0 -sticky ew
+    grid $fwPropsROIEditingSub.swFuzziness   -column 0 -row 1 -sticky ew
+    grid $fwPropsROIEditingSub.cb3D          -column 0 -row 2 -sticky ew
 
     set gaWidget(toolProperties,roiEditing) $fwPropsROIEditing
 
     frame $fwPropsStraightLine
     set gaWidget(toolProperties,straightLine) $fwPropsStraightLine
 
-    grid $fwPropsCommon -column 0 -row 0 -sticky news
+    grid $fwMenu        -column 0 -row 0 -sticky news
+    grid $fwPropsCommon -column 0 -row 1 -sticky news
 
-    grid $fwMenu     -column 0 -row 0 -sticky new
-    grid $fwProps    -column 0 -row 1 -sticky news
+    grid $fwProps    -column 0 -row 0 -sticky news
 
     return $fwTop
 }
@@ -1074,23 +1118,22 @@ proc MakeLayerPropertiesPanel { ifwTop } {
     global glShortcutDirs
 
     set fwTop        $ifwTop.fwLayerProps
-    set fwMenu       $fwTop.fwMenu
     set fwProps      $fwTop.fwProps
 
     frame $fwTop
 
-    frame $fwMenu
-    tixOptionMenu $fwMenu.menu \
-	-label "Layer:" \
-	-variable gaLayer(current,menuIndex) \
-	-command { LayerPropertiesMenuCallback }
-    set gaWidget(layerProperties,menu) $fwMenu.menu
-    pack $fwMenu.menu
-
-    frame $fwProps
+    frame $fwProps -relief ridge -border 2
+    set fwMenu        $fwProps.fwMenu
     set fwPropsCommon $fwProps.fwPropsCommon
     set fwProps2DMRI  $fwProps.fwProps2DMRI
     set fwProps2DMRIS $fwProps.fwProps2DMRIS
+
+    tixOptionMenu $fwMenu \
+	-label "Layer:" \
+	-variable gaLayer(current,menuIndex) \
+	-command { LayerPropertiesMenuCallback }
+    set gaWidget(layerProperties,menu) $fwMenu
+
 
     frame $fwPropsCommon
     tkuMakeActiveLabel $fwPropsCommon.ewID \
@@ -1200,7 +1243,8 @@ proc MakeLayerPropertiesPanel { ifwTop } {
     set gaWidget(layerProperties,2DMRIS) $fwProps2DMRIS
 
 
-    grid $fwPropsCommon -column 0 -row 0 -sticky news
+    grid $fwMenu        -column 0 -row 0 -sticky news
+    grid $fwPropsCommon -column 0 -row 1 -sticky news
 
     grid $fwMenu -column 0 -row 0 -sticky new
     grid $fwProps -column 0 -row 1 -sticky news
@@ -1215,20 +1259,18 @@ proc MakeViewPropertiesPanel { ifwTop } {
     global gaView
 
     set fwTop        $ifwTop.fwViewProps
-    set fwMenu       $fwTop.fwMenu
     set fwProps      $fwTop.fwProps
 
     frame $fwTop
 
-    frame $fwMenu
-    tixOptionMenu $fwMenu.menu \
+    frame $fwProps -relief ridge -border 2
+
+    tixOptionMenu $fwProps.fwMenu \
 	-label "View:" \
 	-variable gaView(current,menuIndex) \
 	-command { ViewPropertiesMenuCallback }
-    set gaWidget(viewProperties,menu) $fwMenu.menu
-    pack $fwMenu.menu
+    set gaWidget(viewProperties,menu) $fwProps.fwMenu
 
-    frame $fwProps
     tkuMakeActiveLabel $fwProps.ewID \
 	-label "ID: " \
 	-variable gaView(current,id) -width 2
@@ -1264,19 +1306,19 @@ proc MakeViewPropertiesPanel { ifwTop } {
     button $fwProps.bwCopyLayers -text "Copy Layers to Other Views" \
 	-command { CopyViewLayersToAllViewsInFrame [GetMainFrameID] $gaView(current,id) }
     
-    grid $fwProps.ewID      -column 0 -row 0 -sticky nw
-    grid $fwProps.ewCol     -column 1 -row 0 -sticky e
-    grid $fwProps.ewRow     -column 2 -row 0 -sticky e
-    grid $fwProps.cbwLinked -column 0 -row 1 -sticky ew -columnspan 3
+    grid $fwProps.fwMenu    -column 0 -row 0 -sticky nw
+    grid $fwProps.ewID      -column 0 -row 1 -sticky nw
+    grid $fwProps.ewCol     -column 1 -row 1 -sticky e
+    grid $fwProps.ewRow     -column 2 -row 1 -sticky e
+    grid $fwProps.cbwLinked -column 0 -row 2 -sticky ew -columnspan 3
     for { set nLevel 0 } { $nLevel < 10 } { incr nLevel } {
 	grid $fwProps.mwDraw$nLevel \
-	    -column 0 -row [expr $nLevel + 2] -sticky ew -columnspan 3
+	    -column 0 -row [expr $nLevel + 3] -sticky ew -columnspan 3
     }
-    grid $fwProps.mwTransform  -column 0 -row 13 -sticky ew -columnspan 3
-    grid $fwProps.bwCopyLayers -column 0 -row 14 -sticky ew -columnspan 3
+    grid $fwProps.mwTransform  -column 0 -row 14 -sticky ew -columnspan 3
+    grid $fwProps.bwCopyLayers -column 0 -row 15 -sticky ew -columnspan 3
     
-    grid $fwMenu -column 0 -row 0 -sticky new
-    grid $fwProps -column 0 -row 1 -sticky news
+    grid $fwProps -column 0 -row 0 -sticky news
 
     return $fwTop
 }
@@ -1288,29 +1330,28 @@ proc MakeTransformsPanel { ifwTop } {
     global gaTransform
 
     set fwTop      $ifwTop.fwTransforms
-    set fwMenu     $fwTop.fwMenu
     set fwProps    $fwTop.fwProps
     set fwCommands $fwTop.fwCommands
  
     frame $fwTop
 
-    frame $fwMenu
-    tixOptionMenu $fwMenu.menu \
+    frame $fwProps -relief ridge -border 2
+
+    tixOptionMenu $fwProps.fwMenu \
 	-label "Transform:" \
 	-variable gaTransform(current,menuIndex) \
 	-command { TransformPropertiesMenuCallback }
-    set gaWidget(transformProperties,menu) $fwMenu.menu
-    pack $fwMenu.menu
+    set gaWidget(transformProperties,menu) $fwProps.fwMenu
 
-    
-    frame $fwProps
+    grid $fwProps.fwMenu -column 0 -row 0 -columnspan 4 -sticky new
+
     tkuMakeEntry $fwProps.ewLabel \
 	-variable gaTransform(current,label) \
 	-notify 1 \
 	-command {SetTransformLabel $gaTransform(current,id) $gaTransform(current,label); UpdateTransformList} 
     set gaWidget(transformProperties,labelEntry) $fwProps.ewLabel
     
-    grid $fwProps.ewLabel -column 0 -row 0 -columnspan 4 -sticky ew
+    grid $fwProps.ewLabel -column 0 -row 1 -columnspan 4 -sticky ew
 
     for { set nRow 0 } { $nRow < 4 } { incr nRow } {
 	for { set nCol 0 } { $nCol < 4 } { incr nCol } {
@@ -1324,7 +1365,7 @@ proc MakeTransformsPanel { ifwTop } {
 		$fwProps.ewValue$nCol-$nRow
 	    
 	    grid $fwProps.ewValue$nCol-$nRow \
-		-column $nCol -row [expr $nRow + 1] -sticky ew
+		-column $nCol -row [expr $nRow + 2] -sticky ew
 	}
     }
 
@@ -1332,7 +1373,7 @@ proc MakeTransformsPanel { ifwTop } {
 	-command { SetTransformValues $gaTransform(current,id) $gaTransform(current,valueList); ClearSetTransformValuesButton }
     set gaWidget(transformProperties,setValuesButton) $fwProps.bwSetTransform
 
-    grid $fwProps.bwSetTransform -column 0 -row 5 -columnspan 4 -sticky ew
+    grid $fwProps.bwSetTransform -column 0 -row 6 -columnspan 4 -sticky ew
 
     frame $fwCommands
     button $fwCommands.bwMakeTransform -text "Make New Transform" \
@@ -1340,7 +1381,7 @@ proc MakeTransformsPanel { ifwTop } {
 
     pack $fwCommands.bwMakeTransform -expand yes -fill x
 
-    pack $fwMenu $fwProps $fwCommands -side top -expand yes -fill x
+    pack $fwProps $fwCommands -side top -expand yes -fill x
 
     return $fwTop
 }
@@ -1353,21 +1394,19 @@ proc MakeLUTsPanel { ifwTop } {
     global glShortcutDirs
 
     set fwTop      $ifwTop.fwLUTs
-    set fwMenu     $fwTop.fwMenu
     set fwProps    $fwTop.fwProps
     set fwCommands $fwTop.fwCommands
  
     frame $fwTop
 
-    frame $fwMenu
-    tixOptionMenu $fwMenu.menu \
+    frame $fwProps -relief ridge -border 2
+
+    tixOptionMenu $fwProps.fwMenu \
 	-label "LUT:" \
 	-variable gaLUT(current,menuIndex) \
 	-command { LUTPropertiesMenuCallback }
-    set gaWidget(lutProperties,menu) $fwMenu.menu
-    pack $fwMenu.menu
+    set gaWidget(lutProperties,menu) $fwProps.fwMenu
 
-    frame $fwProps
     tkuMakeEntry $fwProps.ewLabel \
 	-variable gaLUT(current,label) \
 	-notify 1 \
@@ -1380,8 +1419,9 @@ proc MakeLUTsPanel { ifwTop } {
 	-shortcutdirs [list $glShortcutDirs] \
 	-command {SetColorLUTFileName $gaLUT(current,id) $gaLUT(current,fileName); UpdateLUTList; RedrawFrame [GetMainFrameID]}
     
-    grid $fwProps.ewLabel -column 0 -row 0 -sticky ew
-    grid $fwProps.fwLUT   -column 0 -row 1 -sticky ew
+    grid $fwProps.fwMenu  -column 0 -row 0 -sticky ew
+    grid $fwProps.ewLabel -column 0 -row 1 -sticky ew
+    grid $fwProps.fwLUT   -column 0 -row 2 -sticky ew
 
     frame $fwCommands
     button $fwCommands.bwMakeLUT -text "Make New LUT" \
@@ -1389,7 +1429,7 @@ proc MakeLUTsPanel { ifwTop } {
 
     pack $fwCommands.bwMakeLUT -expand yes -fill x
 
-    pack $fwMenu $fwProps $fwCommands -side top -expand yes -fill x
+    pack $fwProps $fwCommands -side top -expand yes -fill x
 
     return $fwTop
 }
@@ -1702,7 +1742,7 @@ proc SelectLayerInLayerProperties { iLayerID } {
     switch $gaLayer(current,type) {
 	2DMRI { 
 	    # Pack the type panel.
-	    grid $gaWidget(layerProperties,2DMRI) -column 0 -row 1 -sticky news
+	    grid $gaWidget(layerProperties,2DMRI) -column 0 -row 2 -sticky news
 
 	    # Configure the length of the value sliders.
 	    set gaLayer(current,minValue) [Get2DMRILayerMinValue $iLayerID]
@@ -1736,7 +1776,7 @@ proc SelectLayerInLayerProperties { iLayerID } {
 	2DMRIS {
 	    # Pack the type panel.
 	    grid $gaWidget(layerProperties,2DMRIS) \
-		-column 0 -row 1 -sticky news
+		-column 0 -row 2 -sticky news
 
 	    # Get the type specific properties.
 	    set lColor [Get2DMRISLayerLineColor $iLayerID]
@@ -1940,6 +1980,7 @@ proc SelectToolInToolProperties { iTool } {
 
     global gaWidget
     global gaTool
+    global gaFrame
 
     # Unpack the type-specific panels.
     grid forget $gaWidget(toolProperties,navigation)
@@ -1949,7 +1990,11 @@ proc SelectToolInToolProperties { iTool } {
 
     # Get the general layer properties from the specific layer and
     # load them into the 'current' slots.
+    set gaTool(current,id) $gaFrame([GetMainFrameID],toolID)
     set gaTool(current,type) $iTool
+    set gaTool(current,brushShape) [GetToolBrushShape $gaTool(current,id)]
+    set gaTool(current,radius) [GetToolBrushRadius $gaTool(current,id)]
+    set gaTool(current,brush3D) [GetToolBrush3D $gaTool(current,id)]
 
     # Make sure that this is the item selected in the menu. Disale the
     # callback and set the value of the menu to the layer ID. Then
@@ -1958,27 +2003,39 @@ proc SelectToolInToolProperties { iTool } {
     $gaWidget(toolProperties,menu) config -value $iTool
     $gaWidget(toolProperties,menu) config -disablecallback 0
     
+    # Set this tool in the toolbar too.
+    set gaTool($gaFrame([GetMainFrameID],toolID),mode) $gaTool(current,type)
+
     # Do the type specific stuff.
     switch $gaTool(current,type) {
 	navigation { 
 	    # Pack the type panel.
 	    grid $gaWidget(toolProperties,navigation) \
-		-column 0 -row 1 -sticky news
+		-column 0 -row 2 -sticky news
 	}
 	voxelEditing { 
 	    # Pack the type panel.
 	    grid $gaWidget(toolProperties,voxelEditing) \
-		-column 0 -row 1 -sticky news
+		-column 0 -row 2 -sticky news
 	}
 	roiEditing { 
 	    # Pack the type panel.
 	    grid $gaWidget(toolProperties,roiEditing) \
-		-column 0 -row 1 -sticky news
+		-column 0 -row 2 -sticky news
+
+	    set gaTool(current,stopROI) \
+		[GetToolFloodStopAtROIs $gaTool(current,id)]
+	    set gaTool(current,stopLines) \
+		[GetToolFloodStopAtLines $gaTool(current,id)]
+	    set gaTool(current,maxDistance) \
+		[GetToolFloodMaxDistance $gaTool(current,id)]
+	    set gaTool(current,flood3D) \
+		[GetToolFlood3D $gaTool(current,id)]
 	}
 	straightLine { 
 	    # Pack the type panel.
 	    grid $gaWidget(toolProperties,straightLine) \
-		-column 0 -row 1 -sticky news
+		-column 0 -row 2 -sticky news
 	}
     }
 }
@@ -2340,9 +2397,117 @@ proc DrawLabelArea {} {
     grid columnconfigure $gaWidget(labelArea) 0 -weight 1
     grid columnconfigure $gaWidget(labelArea) 1 -weight 1
 
+    # Save the new number of labels. The way nLabel is incremented
+    # here, it's equal to the number of labels we're displaying. If
+    # it's less than the last total..
     if { $nLabel > $gaWidget(labelArea,numberOfLabels) } {
 	set gaWidget(labelArea,numberOfLabels) $nLabel
+
+    } elseif { $nLabel < $gaWidget(labelArea,numberOfLabels) } {
+	
+	# Start with the nLabel before this one and go to our total,
+	# setting the labels blank. Don't save the new total because
+	# that's really the number of labels we have _created_, and we
+	# don't want to recreate them.
+	for { set nDelLabel [expr $nLabel - 1] }  \
+	    { $nDelLabel < $gaWidget(labelArea,numberOfLabels) } \
+	    { incr nDelLabel } {
+
+		set fw $gaWidget(labelArea).fw$nLabel
+		$fw.ewLabel.lw config -text ""
+		$fw.ewValue.lw config -text ""
+	    }
+
     }
+}
+
+# DIALOGS ==============================================================
+
+proc NewDlog { args } {
+    global gaDialog
+
+    # set default arguments for all fields
+    set aArgs(-title) ""
+    set aArgs(-text) ""
+    set aArgs(-meter) false
+    set aArgs(-buttons) {}
+
+    # Set arg items.
+    array set aArgs $args
+
+    set wwDialog .dialog
+    if { [tkuCreateDialog $wwDialog $aArgs(-title) {-borderwidth 10}] } {
+
+	set fwText     $wwDialog.fwText
+	set fwMeter    $wwDialog.fwMeter
+	set fwButtons  $wwDialog.fwButtons
+
+	set gaDialog(current,text) $aArgs(-text)
+	tkuMakeActiveLabel $fwText -variable gaDialog(current,text)
+
+	set gaDialog(current,meterText) "Progress: 0%"
+	tkuMakeActiveLabel $fwMeter -variable gaDialog(current,meterText)
+
+	frame $fwButtons
+	set nButton 0
+	foreach btn $aArgs(-buttons) {
+	    button $fwButtons.fw$nButton -text $btn \
+		-command "DlogCallback \"$btn\""
+	    pack $fwButtons.fw$nButton \
+		-side left -anchor e 
+	    incr nButton
+	}
+
+	pack $fwText $fwMeter $fwButtons -side top -fill x -expand yes
+
+	if { 0 } {
+	    after idle [format {
+		update idletasks
+		wm minsize %s %d [winfo reqheight %s]
+		wm geometry %s =%dx[winfo reqheight %s]
+	    } $wwDialog 400 $wwDialog $wwDialog 400 $wwDialog]
+	}
+
+	set gaDialog(current,callBacks) {}
+	set gaDialog(current,window) $wwDialog
+	set gaDialog(current,percent) 0
+    }
+}
+
+proc DlogCallback { isButton } {
+    global gaDialog
+
+    lappend gaDialog(current,callBacks) $isButton
+}
+
+proc UpdateDlog { args } {
+    global gaDialog
+
+    # set default arguments for all fields
+    set aArgs(-text) $gaDialog(current,text)
+    set aArgs(-percent) $gaDialog(current,percent)
+
+    # Set arg items.
+    array set aArgs $args
+
+    set gaDialog(current,text) $aArgs(-text)
+    set gaDialog(current,percent) $aArgs(-percent)
+
+    set gaDialog(current,meterText) "Progress: $gaDialog(current,percent)"
+}
+
+proc CheckDlogForButtons {} {
+    global gaDialog
+
+    set lCallbacks $gaDialog(current,callBacks)
+    set gaDialog(current,callBacks) {}
+    return $lCallbacks
+}
+
+proc CloseDlog {} {
+    global gaDialog
+
+    tkuCloseDialog $gaDialog(current,window)
 }
 
 # VIEW CONFIGURATION ==================================================
@@ -2516,6 +2681,15 @@ proc LoadVolume { ifnVolume ibCreateLayer iFrameIDToAdd } {
 	SelectCollectionInCollectionProperties $colID
 	SelectLayerInLayerProperties $layerID
     }
+
+    # Create a new ROI for this collection.
+    set roiID [NewCollectionROI $colID]
+    SetROILabel $roiID "New ROI"
+    SetROIType $roiID free
+    SetROIColor $roiID 0 0 255
+    UpdateROIList
+    SelectROIInROIProperties $roiID
+    
 
     # Add this directory to the shortcut dirs if it isn't there already.
     AddDirToShortcutDirsList [file dirname $ifnVolume]
@@ -2694,9 +2868,12 @@ foreach fnLUT {tkmeditColorsCMA tkmeditParcColorsCMA surface_labels.txt Simple_s
 }
 
 
-# Make the default transform.
-set transformID [MakeNewTransform]
-SetTransformLabel $transformID "Identity"
+# Make the default transform if necessary.
+set transformList [GetTransformIDList]
+if { [llength $transformList] == 0 } {
+    set transformID [MakeNewTransform]
+    SetTransformLabel $transformID "Identity"
+}
 
 
 # Set default view configuration and update/initialize the
@@ -2711,6 +2888,7 @@ UpdateLUTList
 SelectViewInViewProperties 0
 SelectTransformInTransformProperties 0
 SelectLUTInLUTProperties 0
+SelectToolInToolProperties navigation
 
 MakeScubaFrameBindings [GetMainFrameID]
 
@@ -2723,3 +2901,6 @@ foreach command $lCommands {
 
 
 bind $gaWidget(window) <Alt-Key-q> "Quit"
+
+
+

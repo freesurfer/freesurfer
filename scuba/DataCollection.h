@@ -36,6 +36,8 @@ class DataCollection : public DebugReporter, public IDTracker<DataCollection>, p
   void SelectROI ( int iROIID );
   virtual ScubaROI* DoNewROI ();
 
+  int GetSelectedROI () { return mSelectedROIID; }
+
 protected:
   std::string msLabel;
 

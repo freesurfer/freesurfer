@@ -391,20 +391,43 @@ x  - MarkRASEdge(), UnmarkRASEdge(), IsRASEdge()
 x  - move line drawing code to FindPointsOnLine() in Utilities.cpp
 x  - ScubaLayer2DMRI calls FindPoitnsOnLine with DrawPixel() to draw its lines
 x  - ScubaLayer2DMRI calls FindPoitnsOnLine() to add points to edges
- - when fill, check that volume for stopping
+x  - when fill, check that volume for stopping
+x  - only stop on _other_ ROIs
+ - cancel dlog
+
+x Dlog boxes
+x  - C interface
+x    - NewDialogBox( title, text, bMeter, button1, button2 )
+x    - UpdateDlog( percent )
+x    - CheckDlogForButton()
+x    - CloseDlog
+x  - proc NewDialogBox, UpdateDlog, CheckDlogForButton, CloseDlog
 
 x tool settings panel
 x  - radius, shape, 3d
 x  - tool specific panels
 x    - roi: stop params (roi, lines), fuzziness
 
+x Brush size
+x  - VolumeCollection::GetRASPointsInSphere ( center, radius, bx, by, bz )
+x  - VolumeCollection::GetRASPointsInCube ( center, radius, bx, by, bz )
+x  - ScubaLayer gets list of points and then calls function on each
+x    - Start at center, calc bounds using pixel size
 
-Edit ROI tool
- - fill, shift-click
+Volume Edit
+ - interface for setting new color and threshold
+ - make button 2 like select code in ScubaLayer2DMRI
+ - make an 'restore value' volume that VolumeCollection makes when loading MRI
+ - button 3 will 'restore' values
 
-- VolumeCollection::FloodVolumeAtRAS with function parameter for callback
-  - params struct to pass 
-
+x Undo
+x  - UndoManager::BeginAction(isTitle), EndAction(), starts and clears lists of UndoActions
+x  - UndoManager::GetTitle() tcl func returns "Nothing to undo" or "Undo|Redo $isSTitle"
+x  - UndoManager::AddAction( UndoAction )
+x  - UndoAction is subclassable
+x    - virtual UndoAction() and virtual RedoAction()
+x  - UndoManager::Undo() and Redo(), calls UndoAction() and RedoAction()
+x  - Declare UndoSelectAction(bSelect, RAS)
 
 line tools
  - draw series of lines with different tools, i.e. polygon, circle, weighted
@@ -481,14 +504,12 @@ Frame Info
 
 
 BUGS:::
-- when number of labelvalues decreases, old one is left behind with old value
 - save tkcon history when quit?
-- ROI properies
-  - no LUT is selected on startup
-- view flip pref not saved
-- line drawn outside window will crash
-- when load /tmp/test.mgh, zoom in, doesn't draw until change min to 1
-- need some way of specifying in plane on fill
+- viewflip pref is saved, but ScubaGlobalPrefs isn't doing all it should, need to add other values
+- when load /tmp/test-10.mgh, zoom in, doesn't draw until change min to 1
+- dlog code never gets a chance to open - CheckDlogForButton should maybe call DoOneEvent or something?
+- tkuSetMenuItemName doesn't work
+
 
 future ideas:
 
@@ -503,3 +524,10 @@ nav tools draw onscreen sliders for feedback
  - start at mouse point, use expo scale towards edge for min/max values
 
 
+
+
+Point3<T>
+ - looks cooler?
+
+Point3f
+ - would let us have array accessors i.e. float[3] xyz()

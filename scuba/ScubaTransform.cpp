@@ -162,6 +162,8 @@ ScubaTransform::DoListenToTclCommand( char* isCommand, int iArgc, char** iasArgv
       sReturnValues = ssResult.str();
     }
   }
+  
+  return ok;
 }
 
 void

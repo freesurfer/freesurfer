@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2004/01/30 07:15:56 $
-// Revision       : $Revision: 1.5 $
+// Revision Date  : $Date: 2004/03/24 17:06:13 $
+// Revision       : $Revision: 1.6 $
 
 #ifndef TclCommandManager_h
 #define TclCommandManager_h
@@ -33,7 +33,7 @@ class TclCommandListener {
   virtual TclCommandResult
     DoListenToTclCommand ( char* iCommand, int iArgc, char** iArgv ) = 0;
   
-  ~TclCommandListener();
+  virtual ~TclCommandListener();
 
  protected:
   // Valid format chars are:
@@ -96,6 +96,8 @@ class TclCommandManager : public DebugReporter, public TclCommandListener {
     DoListenToTclCommand ( char* iCommand, int iArgc, char** iArgv );
 
   std::string PrintAllCommands ();
+
+  std::string SendCommand ( std::string isCommand );
 
  protected:
 

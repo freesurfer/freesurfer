@@ -144,6 +144,10 @@ ScubaROI::DoListenToTclCommand ( char* isCommand, int iArgc, char** iasArgv ) {
     
       try {
 	ScubaColorLUT& lut = ScubaColorLUT::FindByID( lutID );
+	if( lut.GetID() != lutID ) {
+	  sResult = "Got wrong lut";
+	  return error;
+	}
       }
       catch(...) {
 	sResult = "bad lut ID, doesn't exist";
@@ -340,4 +344,5 @@ ScubaROIStaticTclListener::DoListenToTclCommand ( char* isCommand,
     sReturnValues = ssResult.str();
   }
 
+  return ok;
 }

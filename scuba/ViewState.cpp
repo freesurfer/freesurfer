@@ -33,6 +33,7 @@ ViewState::IsRASVisibleInPlane ( float iRAS[3], float iRange ) {
     viewCoord = mCenterRAS[1];
     break;
   case ViewState::Z:
+  default:
     rasCoord = iRAS[2];
     viewCoord = mCenterRAS[2];
     break;

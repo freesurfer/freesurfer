@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2003/12/12 01:48:28 $
-// Revision       : $Revision: 1.3 $
+// Revision Date  : $Date: 2004/03/24 17:06:13 $
+// Revision       : $Revision: 1.4 $
 
 #ifndef PreferencesManager_h
 #define PreferencesManager_h
@@ -23,6 +23,8 @@ class PreferencesManager : public DebugReporter {
   // included in PreferencesManager.
   class SimplePreferenceValue {
   public:
+    SimplePreferenceValue() {}
+    virtual ~SimplePreferenceValue() {}
     virtual void SetFromString( std::string const ) = 0;
     virtual std::string ValueToString() = 0;
   };
@@ -70,6 +72,7 @@ class PreferencesManager : public DebugReporter {
   public:
     IntPrefValue( int const i );
     IntPrefValue( std::string const i );
+    virtual ~IntPrefValue() {}
     void SetFromString( std::string const isValue );
     std::string ValueToString();
     int GetValue() const;
@@ -81,6 +84,7 @@ class PreferencesManager : public DebugReporter {
   public:
     FloatPrefValue( float const i );
     FloatPrefValue( std::string const i );
+    virtual ~FloatPrefValue() {}
     void SetFromString( std::string const isValue );
     std::string ValueToString();
     float GetValue() const;
@@ -91,6 +95,7 @@ class PreferencesManager : public DebugReporter {
   class StringPrefValue : public SimplePreferenceValue {
   public:
     StringPrefValue( std::string const i );
+    virtual ~StringPrefValue() {}
     void SetFromString( std::string const isValue );
     std::string ValueToString();
     std::string GetValue() const;

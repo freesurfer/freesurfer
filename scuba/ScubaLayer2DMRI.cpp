@@ -2,6 +2,7 @@
 #include "ScubaLayer2DMRI.h"
 #include "ViewState.h"
 #include "talairachex.h"
+#include "TclDlogManager.h"
 #include "Utilities.h"
 
 using namespace std;
@@ -125,9 +126,6 @@ ScubaLayer2DMRI::DrawIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
 
   GLubyte* dest = iBuffer;
 
-  float halfWidth  = ((float)iWidth / 2.0);
-  float halfHeight = ((float)iHeight / 2.0);
-
   // Point to the beginning of the buffer. For each pixel in the
   // buffer...
   int window[2];
@@ -238,7 +236,7 @@ ScubaLayer2DMRI::DrawIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
 			      ((float)selectColor[2] * mROIOpacity));
 	  }
 
-#if 1
+#if 0
 	  if( mVolume->IsRASEdge( RAS ) ) {
 	    color[0] = 255; color[1] = color[2] = 0;
 	  }
@@ -776,7 +774,7 @@ ScubaLayer2DMRI::DoListenToTclCommand ( char* isCommand, int iArgc, char** iasAr
 }
 
 void
-ScubaLayer2DMRI::HandleTool ( float iRAS[3], 
+ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
 			      ScubaWindowToRASTranslator& iTranslator,
 			      ScubaToolState& iTool, InputState& iInput ) {
   
@@ -784,7 +782,7 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3],
   case ScubaToolState::voxelEditing:
     
     switch( iInput.Button() ) {
-    case 1: 
+    case 2:
       mVolume->SetMRIValueAtRAS( iRAS, 255 );
       RequestRedisplay();
       break;
@@ -793,27 +791,84 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3],
 
   case ScubaToolState::roiEditing:
 
-    switch( iInput.Button() ) {
-    case 2: 
-      if( iInput.IsShiftKeyDown() ) {
+    // If shift key is down, we're filling. Make a flood params object
+    // and fill it out, then make a flood select object, specifying
+    // select or unselect in the ctor. Then run the flood object with
+    // the params.
+    if( iInput.IsButtonDown() &&
+	iInput.IsShiftKeyDown() ) {
+      VolumeCollectionFlooder::Params params;
+      params.mbStopAtEdges = iTool.GetFloodStopAtLines();
+      params.mbStopAtROIs  = iTool.GetFloodStopAtROIs();
+      params.mb3D          = iTool.GetFlood3D();
+      params.mFuzziness    = iTool.GetFloodFuzziness();
+      params.mMaxDistance  = iTool.GetFloodMaxDistance();
+      if( !iTool.GetFlood3D() ) {
+	params.mbWorkPlaneX = (iViewState.mInPlane == 0);
+	params.mbWorkPlaneY = (iViewState.mInPlane == 1);
+	params.mbWorkPlaneZ = (iViewState.mInPlane == 2);
+      }
+
+      // Create and run the flood object.
+      switch( iInput.Button() ) {
+      case 2: {
 	ScubaLayer2DMRIFloodSelect select( true );
-	VolumeCollectionFlooder::Params params;
 	select.Flood( *mVolume, iRAS, params );
-      } else {
-	mVolume->SelectRAS( iRAS );
-	RequestRedisplay();
       }
-      break;
-    case 3: 
-      if( iInput.IsShiftKeyDown() ) {
+	break;
+      case 3: {
 	ScubaLayer2DMRIFloodSelect select( false );
-	VolumeCollectionFlooder::Params params;
 	select.Flood( *mVolume, iRAS, params );
-      } else {
-	mVolume->UnselectRAS( iRAS );
-	RequestRedisplay();
       }
-      break;
+	break;
+      }
+      RequestRedisplay();
+	
+    } else if ( iInput.IsButtonDown() ) {
+
+      // Otherwise we're just brushing. Switch on the brush shape and
+      // call a GetRASPointsIn{Shape} function to get the points we
+      // need to brush.
+      bool bBrushX, bBrushY, bBrushZ;
+      bBrushX = bBrushY = bBrushZ = true;
+      if( !iTool.GetBrush3D() ) {
+	bBrushX = !(iViewState.mInPlane == 0);
+	bBrushY = !(iViewState.mInPlane == 1);
+	bBrushZ = !(iViewState.mInPlane == 2);
+      }
+      list<Point3<float> > points;
+      ScubaToolState::Shape shape = iTool.GetBrushShape();
+      switch( shape ) {
+      case ScubaToolState::square:
+	mVolume->GetRASPointsInCube( iRAS, iTool.GetBrushRadius(), 
+				     bBrushX, bBrushY, bBrushZ, points );
+	break;
+      case ScubaToolState::circle:
+	mVolume->GetRASPointsInSphere( iRAS, iTool.GetBrushRadius(), 
+				       bBrushX, bBrushY, bBrushZ, points );
+	break;
+      }
+      
+      switch( iInput.Button() ) {
+      case 2: {
+	list<Point3<float> >::iterator tPoints;
+	for( tPoints = points.begin(); tPoints != points.end(); ++tPoints ) {
+	  Point3<float> point = *tPoints;
+	  mVolume->SelectRAS( point.xyz() );
+	}
+      }
+	break;
+      case 3:{
+	list<Point3<float> >::iterator tPoints;
+	for( tPoints = points.begin(); tPoints != points.end(); ++tPoints ) {
+	  Point3<float> point = *tPoints;
+	  mVolume->UnselectRAS( point.xyz() );
+	}
+      }
+
+	break;
+      }
+      RequestRedisplay();
     }
     break;
 
@@ -839,7 +894,8 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3],
       break;
     }
     break;
-    
+  default:
+    break;
   }
 }
 
@@ -946,16 +1002,100 @@ ScubaLayer2DMRIFloodSelect::ScubaLayer2DMRIFloodSelect ( bool ibSelect ) {
   mbSelect = ibSelect;
 }
 
+
+void
+ScubaLayer2DMRIFloodSelect::DoBegin () {
+      
+  // Startup our dialog box.
+  TclDlogManager& manager = TclDlogManager::GetManager();
+  list<string> lButtons;
+  lButtons.push_back( "Stop" );
+
+  // Start our undo action.
+  UndoManager& undoList = UndoManager::GetManager();
+
+  if( mbSelect ) {
+    manager.NewDlog( "Selecting", "Selecting voxels", true, lButtons );
+    undoList.BeginAction( "Selection" );
+  } else {
+    manager.NewDlog( "Unselecting", "Unselecting voxels", true, lButtons );
+    undoList.BeginAction( "Unselection" );
+  }
+
+}
+
+void 
+ScubaLayer2DMRIFloodSelect::DoEnd () {
+
+  TclDlogManager& manager = TclDlogManager::GetManager();
+  manager.CloseDlog();
+
+  UndoManager& undoList = UndoManager::GetManager();
+  undoList.EndAction();
+}
+
+bool
+ScubaLayer2DMRIFloodSelect::DoStopRequested () {
+
+  TclDlogManager& manager = TclDlogManager::GetManager();
+  int nButton = manager.CheckDlogForButton();
+  if( nButton == 0 ) {
+    return true;
+  } else {
+    return false;
+  }
+}
+
 bool
 ScubaLayer2DMRIFloodSelect::CompareVoxel ( float iRAS[3] ) {
+  
+  static int c = 0;
+  TclDlogManager& manager = TclDlogManager::GetManager();
+  manager.UpdateDlog( "", ++c );
+
   return true;
 }
 
 void
 ScubaLayer2DMRIFloodSelect::DoVoxel ( float iRAS[3] ) {
+  UndoManager& undoList = UndoManager::GetManager();
+
   if( mbSelect ) {
     mVolume->SelectRAS( iRAS );
+    UndoSelectionAction* action = 
+      new UndoSelectionAction( mVolume, true, iRAS );
+    undoList.AddAction( action );
   } else {
     mVolume->UnselectRAS( iRAS );
+    UndoSelectionAction* action =
+      new UndoSelectionAction( mVolume, false, iRAS );
+    undoList.AddAction( action );
+  }
+}
+
+UndoSelectionAction::UndoSelectionAction ( VolumeCollection* iVolume,
+					   bool ibSelect, float iRAS[3] ) {
+  mVolume = iVolume;
+  mbSelect = ibSelect;
+  mRAS[0] = iRAS[0];
+  mRAS[1] = iRAS[1];
+  mRAS[2] = iRAS[2];
+}
+
+void
+UndoSelectionAction::Undo () {
+  if( mbSelect ) {
+    mVolume->UnselectRAS( mRAS );
+  } else {
+    mVolume->SelectRAS( mRAS );
+  }
+}
+
+void
+UndoSelectionAction::Redo () {
+  if( mbSelect ) {
+    mVolume->SelectRAS( mRAS );
+  } else {
+    mVolume->UnselectRAS( mRAS );
   }
 }

@@ -4,6 +4,7 @@
 #include "Layer.h"
 #include "VolumeCollection.h"
 #include "ScubaColorLUT.h"
+#include "UndoManager.h"
 
 class ScubaLayer2DMRI : public Layer {
 
@@ -32,7 +33,7 @@ class ScubaLayer2DMRI : public Layer {
   virtual TclCommandResult
     DoListenToTclCommand ( char* iCommand, int iArgc, char** iArgv );
 
-  virtual void HandleTool ( float iRAS[3], 
+  virtual void HandleTool ( float iRAS[3], ViewState& iViewState,
 			    ScubaWindowToRASTranslator& iTranslator,
 			    ScubaToolState& iTool, InputState& iInput );
 
@@ -96,11 +97,29 @@ class ScubaLayer2DMRIFloodSelect : public VolumeCollectionFlooder {
   ScubaLayer2DMRIFloodSelect ( bool ibSelect );
   ~ScubaLayer2DMRIFloodSelect () {}
 
+  virtual void DoBegin ();  
+  virtual void DoEnd ();
+  virtual bool DoStopRequested ();
+
   virtual bool CompareVoxel ( float iRAS[3] );
   virtual void DoVoxel ( float iRAS[3] );
 
   bool mbSelect;
 };
 
+class UndoSelectionAction : public UndoAction {
+ public:
+
+  UndoSelectionAction ( VolumeCollection* iVolume, 
+			bool ibSelect, float iRAS[3] );
+
+  virtual void Undo ();
+  virtual void Redo ();
+  
+ protected:
+  VolumeCollection* mVolume;
+  bool mbSelect;
+  float mRAS[3];
+};
 
 #endif

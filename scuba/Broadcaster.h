@@ -10,7 +10,7 @@ class Broadcaster {
  public:
 
   Broadcaster ();
-  ~Broadcaster ();
+  virtual ~Broadcaster ();
 
   void AddListener ( Listener* iListener );
   void RemoveListener ( Listener* iListener );

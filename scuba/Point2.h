@@ -10,9 +10,9 @@ class Point2 {
   Point2 () {}
   Point2 ( T iX, T iY ) { m[0] = iX; m[1] = iY; }
   void Set ( T iX, T iY ) { m[0] = iX; m[1] = iY; }
+  T* xy() { return m; }
   T x () { return m[0]; }
   T y () { return m[1]; }
-  T* xy() { return m; }
   T m[2];
 };
 

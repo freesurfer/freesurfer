@@ -924,7 +924,7 @@ ScubaView::DoMouseMoved( int iWindow[2],
     int layerID = (*tLevelLayerID).second;
     try {
       Layer& layer = Layer::FindByID( layerID );
-      layer.HandleTool( ras, *this, iTool, iInput );
+      layer.HandleTool( ras, mViewState, *this, iTool, iInput );
       if( layer.WantRedisplay() ) {
 	RequestRedisplay();
 	layer.RedisplayPosted();
@@ -977,7 +977,7 @@ ScubaView::DoMouseUp( int iWindow[2],
     int layerID = (*tLevelLayerID).second;
     try {
       Layer& layer = Layer::FindByID( layerID );
-      layer.HandleTool( ras, *this, iTool, iInput );
+      layer.HandleTool( ras, mViewState, *this, iTool, iInput );
       if( layer.WantRedisplay() ) {
 	RequestRedisplay();
 	layer.RedisplayPosted();
@@ -1011,7 +1011,7 @@ ScubaView::DoMouseDown( int iWindow[2],
     int layerID = (*tLevelLayerID).second;
     try {
       Layer& layer = Layer::FindByID( layerID );
-      layer.HandleTool( ras, *this, iTool, iInput );
+      layer.HandleTool( ras, mViewState, *this, iTool, iInput );
       if( layer.WantRedisplay() ) {
 	RequestRedisplay();
 	layer.RedisplayPosted();
@@ -1103,7 +1103,7 @@ ScubaView::DoKeyDown( int iWindow[2],
 
   } else if( key == msZoomViewIn || key == msZoomViewOut ) {
 
-    float newZoom;
+    float newZoom = mViewState.mZoomLevel;
     if( key == msZoomViewIn ) {
       newZoom = mViewState.mZoomLevel * 2.0;
     } else if( key == msZoomViewOut ) {
@@ -1175,7 +1175,7 @@ ScubaView::TranslateRASToWindow ( float iRAS[3], int oWindow[2] ) {
   float viewRAS[3];
   mWorldToView->MultiplyVector3( iRAS, viewRAS );
 
-  float xWindow, yWindow;
+  float xWindow = 0, yWindow = 0;
   switch( mViewState.mInPlane ) {
   case ViewState::X:
     xWindow = ConvertRASToWindow( viewRAS[1],
@@ -1225,7 +1225,6 @@ ScubaView::GetFirstUnusedDrawLevel () {
        tLevelLayerID != mLevelLayerIDMap.end(); ++tLevelLayerID ) {
 
     int level = (*tLevelLayerID).first;
-    int layerID = (*tLevelLayerID).second;
     
     highestLevel = level + 1;
   }
@@ -1292,36 +1291,37 @@ ScubaView::BuildOverlay () {
   char sXLabel, sYLabel, sZLabel;
   float left, right, top, bottom, plane;
   switch( mViewState.mInPlane ) {
-    case ViewState::X: 
-      sXLabel = 'a';
-      sYLabel = 's';
-      sZLabel = 'r';
-      window[0] = 0;       TranslateWindowToRAS( window, ras ); left = ras[1];
-      window[0] = mWidth;  TranslateWindowToRAS( window, ras ); right = ras[1];
-      window[1] = 0;       TranslateWindowToRAS( window, ras ); top = ras[2];
-      window[1] = mHeight; TranslateWindowToRAS( window, ras );bottom = ras[2];
-      plane = ras[0];
-      break;
-    case ViewState::Y: 
-      sXLabel = 'r';
-      sYLabel = 's';
-      sZLabel = 'a';
-      window[0] = 0;       TranslateWindowToRAS( window, ras ); left = ras[0];
-      window[0] = mWidth;  TranslateWindowToRAS( window, ras ); right = ras[0];
-      window[1] = 0;       TranslateWindowToRAS( window, ras ); top = ras[2];
-      window[1] = mHeight; TranslateWindowToRAS( window, ras );bottom = ras[2];
-      plane = ras[1];
-      break;
-    case ViewState::Z: 
-      sXLabel = 'r';
-      sYLabel = 'a';
-      sZLabel = 's';
-      window[0] = 0;       TranslateWindowToRAS( window, ras ); left = ras[0];
-      window[0] = mWidth;  TranslateWindowToRAS( window, ras ); right = ras[0];
-      window[1] = 0;       TranslateWindowToRAS( window, ras ); top = ras[1];
-      window[1] = mHeight; TranslateWindowToRAS( window, ras );bottom = ras[1];
-      plane = ras[2];
-      break;
+  case ViewState::X: 
+    sXLabel = 'a';
+    sYLabel = 's';
+    sZLabel = 'r';
+    window[0] = 0;       TranslateWindowToRAS( window, ras ); left = ras[1];
+    window[0] = mWidth;  TranslateWindowToRAS( window, ras ); right = ras[1];
+    window[1] = 0;       TranslateWindowToRAS( window, ras ); top = ras[2];
+    window[1] = mHeight; TranslateWindowToRAS( window, ras );bottom = ras[2];
+    plane = ras[0];
+    break;
+  case ViewState::Y: 
+    sXLabel = 'r';
+    sYLabel = 's';
+    sZLabel = 'a';
+    window[0] = 0;       TranslateWindowToRAS( window, ras ); left = ras[0];
+    window[0] = mWidth;  TranslateWindowToRAS( window, ras ); right = ras[0];
+    window[1] = 0;       TranslateWindowToRAS( window, ras ); top = ras[2];
+    window[1] = mHeight; TranslateWindowToRAS( window, ras );bottom = ras[2];
+    plane = ras[1];
+    break;
+  case ViewState::Z: 
+  default:
+    sXLabel = 'r';
+    sYLabel = 'a';
+    sZLabel = 's';
+    window[0] = 0;       TranslateWindowToRAS( window, ras ); left = ras[0];
+    window[0] = mWidth;  TranslateWindowToRAS( window, ras ); right = ras[0];
+    window[1] = 0;       TranslateWindowToRAS( window, ras ); top = ras[1];
+    window[1] = mHeight; TranslateWindowToRAS( window, ras );bottom = ras[1];
+    plane = ras[2];
+    break;
   }
 
 
@@ -1333,33 +1333,33 @@ ScubaView::BuildOverlay () {
   char sLabel[60];
   sprintf( sLabel, "%c%.2f", sXLabel, left );
   glRasterPos2i( 0, mHeight / 2 );
-  for( int nChar = 0; nChar < strlen( sLabel ); nChar++ ) {
+  for( int nChar = 0; nChar < (int)strlen( sLabel ); nChar++ ) {
     glutBitmapCharacter( GLUT_BITMAP_8_BY_13, sLabel[nChar] );
   }
   sprintf( sLabel, "%c%.2f", sXLabel, right );
   glRasterPos2i( mWidth - strlen(sLabel)*8, mHeight / 2 );
-  for( int nChar = 0; nChar < strlen( sLabel ); nChar++ ) {
+  for( int nChar = 0; nChar < (int)strlen( sLabel ); nChar++ ) {
     glutBitmapCharacter( GLUT_BITMAP_8_BY_13, sLabel[nChar] );
   }
   sprintf( sLabel, "%c%.2f", sYLabel, top );
   glRasterPos2i( mWidth / 2 - (strlen(sLabel)*8 / 2), mHeight-1-13 );
-  for( int nChar = 0; nChar < strlen( sLabel ); nChar++ ) {
+  for( int nChar = 0; nChar < (int)strlen( sLabel ); nChar++ ) {
     glutBitmapCharacter( GLUT_BITMAP_8_BY_13, sLabel[nChar] );
   }
   sprintf( sLabel, "%c%.2f", sYLabel, bottom );
   glRasterPos2i( mWidth / 2 - (strlen(sLabel)*8 / 2), 4 );
-  for( int nChar = 0; nChar < strlen( sLabel ); nChar++ ) {
+  for( int nChar = 0; nChar < (int)strlen( sLabel ); nChar++ ) {
     glutBitmapCharacter( GLUT_BITMAP_8_BY_13, sLabel[nChar] );
   }
   sprintf( sLabel, "%c%.2f", sZLabel, plane );
   glRasterPos2i( mWidth - (strlen(sLabel)*8), 4 );
-  for( int nChar = 0; nChar < strlen( sLabel ); nChar++ ) {
+  for( int nChar = 0; nChar < (int)strlen( sLabel ); nChar++ ) {
     glutBitmapCharacter( GLUT_BITMAP_8_BY_13, sLabel[nChar] );
   }
   if( mViewState.mZoomLevel != 1 ) {
     sprintf( sLabel, "%.2fx", mViewState.mZoomLevel );
     glRasterPos2i( 0, mHeight-1-13 );
-    for( int nChar = 0; nChar < strlen( sLabel ); nChar++ ) {
+    for( int nChar = 0; nChar < (int)strlen( sLabel ); nChar++ ) {
       glutBitmapCharacter( GLUT_BITMAP_8_BY_13, sLabel[nChar] );
     }
   }

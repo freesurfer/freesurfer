@@ -1,6 +1,6 @@
 # tkUtils.tcl (tku)
 
-# $Id: tkUtils.tcl,v 1.6 2004/03/05 20:22:22 kteich Exp $
+# $Id: tkUtils.tcl,v 1.7 2004/03/24 17:06:25 kteich Exp $
 
 # tkuMakeMenu isMenuButton "Menu Name" {item...}
 # item = { command   "Item Name" command                [group_name] }
@@ -261,72 +261,85 @@ proc tkuAddMenuItemsToMenu { isMenu ilMenuItems } {
 	
 	set bProcessed 0
 	
-	if { [string compare $sType "command"] == 0 } {
-	    
-	    # for every letter in item name..
-	    # if this letter is not in the local underline list...
-	    # add the letter to the list.
-	    # underline this index.
-	    # if no letters left, underline nothing.
-	    
-	    $isMenu add command \
-		-label [lindex $lItem 1] \
-		-command [lindex $lItem 2]
-	    #              -underline $nUnderline
-	    
-	    set sGroupName [lindex $lItem 3]
-	    if { [string compare $sGroupName ""] != 0 } {
-		tkuAddItemToMenuGroup $sGroupName $isMenu $nItemNum
+	switch $sType {
+
+	    "command" - "radio" - "check" {
+		
+		set sNameAndAccel [lindex $lItem 1]
+		set sName ""
+		set sAccel ""
+		if { [string first : $sNameAndAccel] != -1 } {
+		    set sName [string range $sNameAndAccel \
+				   0 [expr [string first : $sNameAndAccel] - 1]]
+		    set sAccel [string range $sNameAndAccel \
+				[expr [string first : $sNameAndAccel] + 1] end]
+		} else {
+		    set sName $sNameAndAccel
+		}
+
+		set sGroupName ""
+
+		switch $sType { 
+		    "command" {
+			$isMenu add command \
+			    -label $sName \
+			    -command [lindex $lItem 2] \
+			    -font [tkuNormalFont] \
+			    -accelerator $sAccel
+
+			set sGroupName [lindex $lItem 3]
+		    }
+		    "radio" {
+			$isMenu add radio \
+			    -label $sName \
+			    -command [lindex $lItem 2] \
+			    -variable [lindex $lItem 3] \
+			    -value [lindex $lItem 4] \
+			    -font [tkuNormalFont] \
+			    -accelerator $sAccel
+			
+			set sGroupName [lindex $lItem 5]
+		    }
+		    "check" {
+			$isMenu add check \
+			    -label $sName \
+			    -command [lindex $lItem 2] \
+			    -variable [lindex $lItem 3] \
+			    -font [tkuNormalFont] \
+			    -accelerator $sAccel
+			
+			set sGroupName [lindex $lItem 4]
+		    }
+		}
+
+		if { [string compare $sGroupName ""] != 0 } {
+		    tkuAddItemToMenuGroup $sGroupName $isMenu $nItemNum
+		}
+
+		set bProcessed 1
 	    }
-	    
-	    set bProcessed 1
-	}
-	if { [string compare $sType "radio" ] == 0 } {
-	    $isMenu add radio \
-		-label [lindex $lItem 1] \
-		-command [lindex $lItem 2] \
-		-variable [lindex $lItem 3] \
-		-value [lindex $lItem 4]
-	    
-	    set sGroupName [lindex $lItem 5]
-	    if { [string compare $sGroupName ""] != 0 } {
-		tkuAddItemToMenuGroup $sGroupName $isMenu $nItemNum
+	    "separator" {
+		$isMenu add separator
+		set bProcessed 1
 	    }
-	    
-	    set bProcessed 1
-	}
-	if { [string compare $sType "check" ] == 0 } {
-	    $isMenu add check \
-		-label [lindex $lItem 1] \
-		-command [lindex $lItem 2] \
-		-variable [lindex $lItem 3]
-	    
-	    set sGroupName [lindex $lItem 4]
-	    if { [string compare $sGroupName ""] != 0 } {
-		tkuAddItemToMenuGroup $sGroupName $isMenu $nItemNum
+	    "cascade" {
+		$isMenu add cascade \
+		    -label [lindex $lItem 1] \
+		    -menu $isMenu.cmw$nItemNum \
+		    -font [tkuNormalFont]      
+		
+		set lCascadeItems [lindex $lItem 2]
+		tkuAddMenuItemsToMenu $isMenu.cmw$nItemNum $lCascadeItems
+		
+		set sGroupName [lindex $lItem 3]
+		if { [string compare $sGroupName ""] != 0 } {
+		    tkuAddItemToMenuGroup $sGroupName $isMenu $nItemNum
+		}
+		set bProcessed 1
 	    }
-	    
-	    set bProcessed 1
+	    default {}
 	}
-	if { [string compare $sType "separator"] == 0 } {
-	    $isMenu add separator
-	    set bProcessed 1
-	}
-	if { [string compare $sType "cascade"] == 0 } {
-	    $isMenu add cascade \
-		-label [lindex $lItem 1] \
-		-menu $isMenu.cmw$nItemNum
-	    
-	    set lCascadeItems [lindex $lItem 2]
-	    tkuAddMenuItemsToMenu $isMenu.cmw$nItemNum $lCascadeItems
-	    
-	    set sGroupName [lindex $lItem 3]
-	    if { [string compare $sGroupName ""] != 0 } {
-		tkuAddItemToMenuGroup $sGroupName $isMenu $nItemNum
-	    }
-	    set bProcessed 1
-	}
-	
+
 	if { $bProcessed == 0 } {
 	    puts "Error!!!!! $sType not recognized"
 	}
@@ -335,6 +348,11 @@ proc tkuAddMenuItemsToMenu { isMenu ilMenuItems } {
 	    incr nItemNum
 	}
     }
+}
+
+proc tkuSetMenuItemName { ifwMenu inIndex isName } {
+
+    puts "[$ifwMenu.mw entryconfigure $inIndex]"
 }
 
 proc tkuAddItemToMenuGroup { isGroupName ifwMenuObject inMenuItemNum } {
@@ -727,7 +745,7 @@ proc tkuDoSubPercent { isPercent isString isSubstitution } {
     return $sResult
 }
 
-# tkuDoSubPercent
+# tkuDoFileDlog
 # -title : dlog title
 # -okCmd : cmd to execute on OK
 # -cancel : cmd to execute on cancel

@@ -46,10 +46,36 @@ ScubaGlobalPreferences::DoListenToTclCommand ( char* isCommand, int iArgc,
     SavePreferences();
   }
 
-  // GetPreferencesValue
+  // GetPreferencesValue <key>
   if( 0 == strcmp( isCommand, "GetPreferencesValue" ) ) {
 
     string sKey = iasArgv[1];
+    PreferencesManager& prefsMgr = PreferencesManager::GetManager();
+    string sValue = prefsMgr.GetValue( sKey );
+    sReturnFormat = "s";
+    sReturnValues = sValue;
+
+  }
+
+  // SetPreferencesValue <key> <value>
+  if( 0 == strcmp( isCommand, "SetPreferencesValue" ) ) {
+
+    string sKey = iasArgv[1];
+    if( sKey == "ViewFlipLeftRight" ) {
+
+      if( 0 == strcmp( iasArgv[2], "true" ) || 
+	  0 == strcmp( iasArgv[2], "1" )) {
+	mbViewFlipLeftRightInYZ = true;
+      } else if( 0 == strcmp( iasArgv[2], "false" ) ||
+		 0 == strcmp( iasArgv[2], "0" ) ) {
+	mbViewFlipLeftRightInYZ = false;
+      } else {
+	sResult = "bad value for key " + string(iasArgv[1]) + ", \"" +
+	  string(iasArgv[2]) + "\", should be true, 1, false, or 0";
+	return error;	
+      }
+    }
+
     PreferencesManager& prefsMgr = PreferencesManager::GetManager();
     string sValue = prefsMgr.GetValue( sKey );
     sReturnFormat = "s";

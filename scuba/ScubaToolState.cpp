@@ -10,6 +10,14 @@ map<int,ScubaToolState*> IDTracker<ScubaToolState>::mIDMap;
 
 ScubaToolState::ScubaToolState() {
   mMode = navigation;
+  mBrushRadius = 1;
+  mBrushShape = circle;
+  mbBrush3D = false;
+  mbFloodStopAtLines = true;
+  mbFloodStopAtROIs = true;
+  mFloodFuzziness = 0;
+  mFloodMaxDistance = 20;
+  mbFlood3D = true;
 
   TclCommandManager& commandMgr = TclCommandManager::GetManager();
   commandMgr.AddCommand( *this, "SetToolMode", 2, "toolID mode",
@@ -44,6 +52,10 @@ ScubaToolState::ScubaToolState() {
 			 "Specify a tool flood's fuzziness." );
   commandMgr.AddCommand( *this, "GetToolFloodFuzziness", 1, "toolID",
 			 "Returns a tool flood's fuzziness." );
+  commandMgr.AddCommand( *this, "SetToolFloodMaxDistance", 2,"toolID distance",
+			 "Specify a tool flood's max distance." );
+  commandMgr.AddCommand( *this, "GetToolFloodMaxDistance", 1, "toolID",
+			 "Returns a tool flood's max distance." );
   commandMgr.AddCommand( *this, "SetToolFlood3D", 2, "toolID 3D",
 			 "Sets the current brush 3D of a tool." );
   commandMgr.AddCommand( *this, "GetToolFlood3D", 1, "toolID",
@@ -331,7 +343,7 @@ ScubaToolState::DoListenToTclCommand ( char* isCommand,
 
       int fuzziness = strtol(iasArgv[2], (char**)NULL, 10);
       if( ERANGE == errno ) {
-	sResult = "bad ";
+	sResult = "bad fuzziness";
 	return error;
       }
       SetFloodFuzziness( fuzziness );
@@ -351,6 +363,42 @@ ScubaToolState::DoListenToTclCommand ( char* isCommand,
       sReturnFormat = "i";
       stringstream ssReturnValues;
       ssReturnValues << (int)GetFloodFuzziness();
+      sReturnValues = ssReturnValues.str();
+    }
+  }
+
+  // SetToolFloodMaxDistance <toolID> <MaxDistance>
+  if( 0 == strcmp( isCommand, "SetToolFloodMaxDistance" ) ) {
+    int toolID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad tool ID";
+      return error;
+    }
+    
+    if( GetID() == toolID ) {
+
+      int maxDistance = strtol(iasArgv[2], (char**)NULL, 10);
+      if( ERANGE == errno ) {
+	sResult = "bad distance";
+	return error;
+      }
+      SetFloodMaxDistance( maxDistance );
+    }
+  }
+
+  // GetToolFloodMaxDistance <toolID>
+  if( 0 == strcmp( isCommand, "GetToolFloodMaxDistance" ) ) {
+    int toolID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad tool ID";
+      return error;
+    }
+    
+    if( GetID() == toolID ) {
+
+      sReturnFormat = "i";
+      stringstream ssReturnValues;
+      ssReturnValues << (int)GetFloodMaxDistance();
       sReturnValues = ssReturnValues.str();
     }
   }
