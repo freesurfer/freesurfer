@@ -13,6 +13,7 @@
 -------------------------------------------------------*/
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 
 #include "image.h"
 #include "diag.h"
