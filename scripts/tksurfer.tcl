@@ -254,7 +254,10 @@ proc smooth { steps type } {
   }
   if { $type == "val" } {
     smooth_val $steps
-    val_to_stat 
+#    val_to_stat 
+    swap_stat_val
+    smooth_val $steps
+    swap_stat_val
   }
   if { $type == "sparse" } {
     smooth_val_sparse $steps
