@@ -501,7 +501,7 @@ MRICclassify(MRIC *mric, MRI *mri_src, MRI *mri_dst,
               m_priors->rptr[classno+1][1] = 
                 MRIFseq_vox(mri_priors, xt, yt, zt, classno) ;
           }
-          MRICcomputeInputs(mric,mri_in,x,y,z, v_inputs, mric->features[round]);
+          MRICcomputeInputs(mric,mri_in,x,y,z, v_inputs,mric->features[round]);
 
           switch (type)  /* now classify this observation */
           {
@@ -563,7 +563,7 @@ MRICclassify(MRIC *mric, MRI *mri_src, MRI *mri_dst,
         Description
 
 ------------------------------------------------------*/
-#define REGION_SIZE 8
+#define REGION_SIZE 2
 int
 MRICcomputeInputs(MRIC *mric, MRI *mri, int x,int y,int z,VECTOR *v_inputs,
                   int features)
@@ -1250,6 +1250,32 @@ MRICfeatureCode(MRIC *mric, int round, int feature_number)
       break ;
 
   return(f) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+
+------------------------------------------------------*/
+int
+MRICfeatureNumber(MRIC *mric, int round, int feature_code)
+{
+  int f, fno ;
+
+  /* first ninputs-1 correspond to inputs #s, rest to frames in priors */
+
+  /* find bit which corresponds to this # */
+  for (f = 0x001, fno = 0 ; f != MAX_FEATURE ; f<<=1)
+  {
+    if (f & mric->features[round]) 
+      fno++ ;
+    if (f & feature_code)
+      return(fno) ;
+  }
+
+  return(-1) ;
 }
 /*-----------------------------------------------------
         Parameters:
