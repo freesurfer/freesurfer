@@ -43,8 +43,8 @@ int ByteSwap8(void *buf8, long int nitems);
 #define orderShortBytes(i)   (i)
 #define orderFloatBytes(i)   (i)
 #define orderDoubleBytes(i)  (i)
-#define orderLongBytes(i)    (i)
-
+#define orderLong32Bytes(i)  (i)
+#define orderLong64Bytes(i)  (i)
 
 #endif
 
