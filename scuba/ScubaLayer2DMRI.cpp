@@ -5,6 +5,7 @@
 #include "TclProgressDisplayManager.h"
 #include "Utilities.h"
 #include "Array2.h"
+#include "PathManager.h"
 
 using namespace std;
 
@@ -21,7 +22,7 @@ ScubaLayer2DMRI::ScubaLayer2DMRI () {
   mColorMapMethod = grayscale;
   mBrightness = 0.25;
   mContrast = 12.0; mNegContrast = -mContrast;
-  mCurrentLine = NULL;
+  mCurrentPath = NULL;
   mROIOpacity = 0.7;
   mbEditableROI = true;
   mbClearZero = false;
@@ -206,6 +207,12 @@ ScubaLayer2DMRI::DrawIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
 	  dest[2] = (GLubyte) (((float)dest[2] * (1.0 - mROIOpacity)) +
 			       ((float)selectColor[2] * mROIOpacity));
 	}
+
+	if( mVolume->IsRASPath( RAS.xyz() ) ) {
+	  dest[0] = (GLubyte) ((float)dest[0] / 2.0 + 128.0);
+	  dest[1] = (GLubyte) ((float)dest[1] / 2.0);
+	  dest[2] = (GLubyte) ((float)dest[2] / 2.0);
+	}
       }
       
       // Advance our pixel buffer pointer.
@@ -223,23 +230,25 @@ ScubaLayer2DMRI::DrawIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
   case 2: range = mVolume->GetVoxelZSize() / 2.0; break;
   }
 
-  // Drawing lines.
+  // Drawing path.
   int lineColor[3];
-  if( mCurrentLine ) {
+  if( mCurrentPath ) {
     lineColor[0] = 0; lineColor[1] = 255; lineColor[2] = 0;
-    DrawRASPointListIntoBuffer( iBuffer, iWidth, iHeight, lineColor, 
-				iViewState, iTranslator, *mCurrentLine );
+    DrawRASPathIntoBuffer( iBuffer, iWidth, iHeight, lineColor, 
+			   iViewState, iTranslator, *mCurrentPath );
   }
-  std::list<PointList3<float>*>::iterator tLine;
-  for( tLine = mLines.begin(); tLine != mLines.end(); ++tLine ) {
-    PointList3<float>* line = *tLine;
-    if( line->GetNumPoints() > 0 ) {
-      Point3<float>& beginRAS = line->GetPointAtIndex( 0 );
-      if( mCurrentLine != line &&
+  list<Path<float>*>::iterator tPath;
+  PathManager& pathMgr = PathManager::GetManager();
+  list<Path<float>*>& pathList = pathMgr.GetPathList();
+  for( tPath = pathList.begin(); tPath != pathList.end(); ++tPath ) {
+    Path<float>* path = *tPath;
+    if( path->GetNumVertices() > 0 ) {
+      Point3<float>& beginRAS = path->GetVertexAtIndex( 0 );
+      if( mCurrentPath != path &&
 	  iViewState.IsRASVisibleInPlane( beginRAS.xyz(), range ) ) {
 	lineColor[0] = 255; lineColor[1] = 0; lineColor[2] = 0;
-	DrawRASPointListIntoBuffer( iBuffer, iWidth, iHeight, lineColor,
-				    iViewState, iTranslator, *line );
+	DrawRASPathIntoBuffer( iBuffer, iWidth, iHeight, lineColor,
+			       iViewState, iTranslator, *path );
       }
     }
   }
@@ -894,36 +903,30 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
   // Never handle control clicks, since that's a navigation thing
   // handled by the view.
 
+  // Only do this if we're the target layer.
+  if( iTool.GetLayerTarget() != GetID() )
+    return;
+
   switch( iTool.GetMode() ) {
   case ScubaToolState::voxelEditing:
-    
-    switch( iInput.Button() ) {
-    case 2:
-      if( mVolume->IsRASInMRIBounds(iRAS) ) {
-	mVolume->SetMRIValueAtRAS( iRAS, 255 );
-	RequestRedisplay();
-      }
-      break;
-    }
-    break;
-
   case ScubaToolState::roiEditing:
 
-    // If not editable, return now;
-    if( !mbEditableROI ) 
+    // If roiEditing, check editable ROI flag.
+    if( ScubaToolState::roiEditing == iTool.GetMode() &&
+	!mbEditableROI ) 
       return;
 
     // If shift key is down, we're filling. Make a flood params object
     // and fill it out, then make a flood select object, specifying
     // select or unselect in the ctor. Then run the flood object with
     // the params.
-    if( iInput.IsShiftKeyDown() ) {
+    if( iInput.IsShiftKeyDown() && iInput.IsButtonDownEvent() &&
+	(2 == iInput.Button() || 3 == iInput.Button()) ) {
 
-      if( iInput.IsButtonDownEvent() &&
-	  mVolume->IsRASInMRIBounds(iRAS) ) {
+      if( mVolume->IsRASInMRIBounds(iRAS) ) {
 
 	VolumeCollectionFlooder::Params params;
-	params.mbStopAtEdges = iTool.GetFloodStopAtLines();
+	params.mbStopAtPaths = iTool.GetFloodStopAtPaths();
 	params.mbStopAtROIs  = iTool.GetFloodStopAtROIs();
 	params.mb3D          = iTool.GetFlood3D();
 	params.mFuzziness    = iTool.GetFloodFuzziness();
@@ -935,22 +938,32 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
 	}
 	
 	// Create and run the flood object.
-	switch( iInput.Button() ) {
-	case 2: {
-	  ScubaLayer2DMRIFloodSelect select( true );
-	  select.Flood( *mVolume, iRAS, params );
+	VolumeCollectionFlooder* flooder = NULL;
+	if( ScubaToolState::voxelEditing == iTool.GetMode() ) {
+	  if( iInput.Button() == 2 ) {
+	    flooder = new ScubaLayer2DMRIFloodVoxelEdit( iTool.GetNewValue() );
+	  } else if( iInput.Button() == 3 ) {
+	    flooder = new ScubaLayer2DMRIFloodVoxelEdit( 0 );
+	  }
+	} else if( ScubaToolState::roiEditing == iTool.GetMode() ) {
+	  if( iInput.Button() == 2 ) {
+	    flooder = new ScubaLayer2DMRIFloodSelect( true );
+	  } else if( iInput.Button() == 3 ) {
+	    flooder = new ScubaLayer2DMRIFloodSelect( false );
+	  }
 	}
-	  break;
-	case 3: {
-	  ScubaLayer2DMRIFloodSelect select( false );
-	  select.Flood( *mVolume, iRAS, params );
-	}
-	  break;
-	}
+	flooder->Flood( *mVolume, iRAS, params );
+	delete flooder;
+
 	RequestRedisplay();
-      }
-      
-    } else {
+
+      }      
+    }
+
+    if( (iInput.IsButtonDownEvent() || iInput.IsButtonUpEvent() ||
+	 iInput.IsButtonDragEvent()) &&
+	!iInput.IsShiftKeyDown() &&
+	(2 == iInput.Button() || 3 == iInput.Button()) ) {
 
       // Otherwise we're just brushing. If this is a mouse down event,
       // open up an undo action, and if it's a mouse up event, close
@@ -960,10 +973,18 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
 
       UndoManager& undoList = UndoManager::GetManager();
       if( iInput.IsButtonDownEvent() ) {
-	if( iInput.Button() == 2 ) {
-	  undoList.BeginAction( "Selection Brush" );
-	} else if( iInput.Button() == 3 ) {
-	  undoList.BeginAction( "Unselection Brush" );
+	if( ScubaToolState::voxelEditing == iTool.GetMode() ) {
+	  if( iInput.Button() == 2 ) {
+	    undoList.BeginAction( "Edit Voxel" );
+	  } else if( iInput.Button() == 3 ) {
+	    undoList.BeginAction( "Erase Voxel" );
+	  }
+	} else if( ScubaToolState::roiEditing == iTool.GetMode() ) {
+	  if( iInput.Button() == 2 ) {
+	    undoList.BeginAction( "Selection Brush" );
+	  } else if( iInput.Button() == 3 ) {
+	    undoList.BeginAction( "Unselection Brush" );
+	  }
 	}
       }
 
@@ -993,81 +1014,106 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
 	  break;
 	}
 	
-	switch( iInput.Button() ) {
-	case 2: {
-	  list<Point3<float> >::iterator tPoints;
-	  for( tPoints = points.begin(); tPoints != points.end(); ++tPoints ) {
-	    Point3<float> point = *tPoints;
-	    if( mVolume->IsRASInMRIBounds(point.xyz()) ) {
-	      mVolume->SelectRAS( point.xyz() );
-	      UndoSelectionAction* action = 
-		new UndoSelectionAction( mVolume, true, point.xyz() );
-	      undoList.AddAction( action );
+	list<Point3<float> >::iterator tPoints;
+	for( tPoints = points.begin(); tPoints != points.end(); ++tPoints ) {
+	  Point3<float> point = *tPoints;
+	  if( mVolume->IsRASInMRIBounds(point.xyz()) ) {
+	    
+	    UndoAction* action = NULL;
+	    if( ScubaToolState::voxelEditing == iTool.GetMode() ) {
+	      float origValue = mVolume->GetMRINearestValueAtRAS( point.xyz());
+	      if( iInput.Button() == 2 ) {
+		mVolume->SetMRIValueAtRAS( point.xyz(), iTool.GetNewValue() );
+		action = 
+		  new UndoVoxelEditAction(mVolume, iTool.GetNewValue(),
+					  origValue,point.xyz());
+	      } else if( iInput.Button() == 3 ) {
+		mVolume->SetMRIValueAtRAS( point.xyz(), 0 );
+		action = 
+		  new UndoVoxelEditAction(mVolume, 0, origValue,point.xyz());
+	      }
+	    } else if( ScubaToolState::roiEditing == iTool.GetMode() ) {
+	      if( iInput.Button() == 2 ) {
+		mVolume->SelectRAS( point.xyz() );
+		action = new UndoSelectionAction( mVolume, true, point.xyz() );
+	      } else if( iInput.Button() == 3 ) {
+		mVolume->UnselectRAS( point.xyz() );
+		action =new UndoSelectionAction( mVolume, false, point.xyz() );
+	      }
 	    }
-	  }
-	}
-	  break;
-	case 3:{
-	  list<Point3<float> >::iterator tPoints;
-	  for( tPoints = points.begin(); tPoints != points.end(); ++tPoints ) {
-	    Point3<float> point = *tPoints;
-	    if( mVolume->IsRASInMRIBounds(point.xyz()) ) {
-	      mVolume->UnselectRAS( point.xyz() );
-	      UndoSelectionAction* action = 
-		new UndoSelectionAction( mVolume, false, point.xyz() );
-	      undoList.AddAction( action );
-	    }
-	  }
-	}
-	  
-	  break;
-	}
 
+	    undoList.AddAction( action );
+	  }
+	}
+      
 	RequestRedisplay();
       }
     }
+
+    if( ScubaToolState::voxelEditing == iTool.GetMode() ) {
+      
+      // Adjust the min/max visible value.
+      if( iTool.GetMode() == ScubaToolState::voxelEditing ) {
+	if( iTool.GetNewValue() < mMinVisibleValue )
+	  mMinVisibleValue = iTool.GetNewValue();
+	if( iTool.GetNewValue() > mMaxVisibleValue )
+	  mMaxVisibleValue = iTool.GetNewValue();
+      }
+    }
+
     break;
 
-  case ScubaToolState::straightLine:
-  case ScubaToolState::edgeLine:
+  case ScubaToolState::straightPath:
+  case ScubaToolState::edgePath: {
     
+    PathManager& pathMgr = PathManager::GetManager();
+
     if( iInput.IsButtonDownEvent() ) {
 
       Point3<float> ras( iRAS );
 	  
-      /* Button down, no current line */
-      if( NULL == mCurrentLine ) {
+      /* Button down, no current path */
+      if( NULL == mCurrentPath ) {
 
 	switch( iInput.Button() ) {
 	case 1:
-	  mFirstLineRAS.Set( iRAS );
-	  mCurrentLine = NewLine();
-	  mCurrentLine->Add( ras );
-	  mCurrentLine->MarkEndOfSegment();
+	  mFirstPathRAS.Set( iRAS );
+	  mCurrentPath = pathMgr.NewPath();
+	  mCurrentPath->AddVertex( ras );
+	  mCurrentPath->MarkEndOfSegment();
 	  break;
 	case 2:
 	case 3:
-	  mCurrentLine = FindClosestLine( iRAS, iViewState );
-	  mLastLineMoveRAS.Set( iRAS );
+	  mCurrentPath = FindClosestPathInPlane( iRAS, iViewState );
+	  mLastPathMoveRAS.Set( iRAS );
 	  break;
 	}
 
-	/* Button down, current line */
+	/* Button down, current path */
       } else {
 
 	switch( iInput.Button() ) {
 	case 1:
-	  mCurrentLine->Add( ras );
-	  mCurrentLine->MarkEndOfSegment();
+	  mCurrentPath->AddVertex( ras );
+	  mCurrentPath->MarkEndOfSegment();
 	  break;
 	case 2:
-	  EndLine( *mCurrentLine, iTranslator );
-	  mCurrentLine = NULL;
+	  mCurrentPath->AddVertex( ras );
+	  mCurrentPath = NULL;
 	  break;
 	case 3:
-	  mCurrentLine->Add( mFirstLineRAS );
-	  EndLine( *mCurrentLine, iTranslator );
-	  mCurrentLine = NULL;
+	  mCurrentPath->AddVertex( ras );
+
+	  if( iTool.GetMode() == ScubaToolState::straightPath ) {
+	    StretchPathStraight( *mCurrentPath, ras.xyz(),mFirstPathRAS.xyz());
+	  } else if( iTool.GetMode() == ScubaToolState::edgePath ) {
+	    StretchPathAsEdge( *mCurrentPath, ras.xyz(), 
+			       mFirstPathRAS.xyz(), iViewState, iTranslator,
+			       iTool.GetEdgePathStraightBias(),
+			       iTool.GetEdgePathEdgeBias() );
+	  }
+
+	  mCurrentPath = NULL;
 	  break;
 	}
       }
@@ -1079,12 +1125,12 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
       /* Drag event, current line */
       if( 2 == iInput.Button() ) {
 	
-	if( NULL != mCurrentLine ) {
-	  Point3<float> deltaRAS( iRAS[0] - mLastLineMoveRAS.x(),
-				  iRAS[1] - mLastLineMoveRAS.y(),
-				  iRAS[2] - mLastLineMoveRAS.z() );
-	  mCurrentLine->Move( deltaRAS );
-	  mLastLineMoveRAS.Set( iRAS );
+	if( NULL != mCurrentPath ) {
+	  Point3<float> deltaRAS( iRAS[0] - mLastPathMoveRAS.x(),
+				  iRAS[1] - mLastPathMoveRAS.y(),
+				  iRAS[2] - mLastPathMoveRAS.z() );
+	  mCurrentPath->Move( deltaRAS );
+	  mLastPathMoveRAS.Set( iRAS );
 
 	  RequestRedisplay();
 	}
@@ -1092,20 +1138,20 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
 
     } else if ( iInput.IsButtonUpEvent() ) {
 
-      /* Button up, current line */
-      if( NULL != mCurrentLine ) {
+      /* Button up, current path */
+      if( NULL != mCurrentPath ) {
 	
 	if( 3 == iInput.Button() ) {
-	  PointList3<float>* delLine = FindClosestLine( iRAS, iViewState );
-	  if( delLine == mCurrentLine ) {
-	    DeleteLine( delLine );
+	  Path<float>* delPath = FindClosestPathInPlane( iRAS, iViewState );
+	  if( delPath == mCurrentPath ) {
+	    pathMgr.DeletePath( delPath );
 	  }
 	}
 	
 	if( 3 == iInput.Button() ||
 	    2 == iInput.Button() ) {
 	  
-	  mCurrentLine = NULL;
+	  mCurrentPath = NULL;
 	}
 
 	RequestRedisplay();
@@ -1113,25 +1159,29 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
       
     } else {
 
-      /* No mouse event, current line */
-      if( NULL != mCurrentLine ) {
+      /* No mouse event, current path */
+      if( NULL != mCurrentPath ) {
+	
+	pathMgr.DisableUpdates();
 
-	Point3<float>& end = mCurrentLine->GetPointAtEndOfLastSegment();
-	if( iTool.GetMode() == ScubaToolState::straightLine ) {
-	  StretchLineStraight( *mCurrentLine, end.xyz(), iRAS );
-	} else if( iTool.GetMode() == ScubaToolState::edgeLine ) {
-	  StretchLineAsEdge( *mCurrentLine, end.xyz(), 
+	Point3<float>& end = mCurrentPath->GetPointAtEndOfLastSegment();
+	if( iTool.GetMode() == ScubaToolState::straightPath ) {
+	  StretchPathStraight( *mCurrentPath, end.xyz(), iRAS );
+	} else if( iTool.GetMode() == ScubaToolState::edgePath ) {
+	  StretchPathAsEdge( *mCurrentPath, end.xyz(), 
 			     iRAS, iViewState, iTranslator,
-			     iTool.GetEdgeLineStraightBias(),
-			     iTool.GetEdgeLineEdgeBias() );
+			     iTool.GetEdgePathStraightBias(),
+			     iTool.GetEdgePathEdgeBias() );
 	}
 	
+	pathMgr.EnableUpdates();
+
 	RequestRedisplay();
       }
     }
-      
-      
-    break;
+    
+    
+  } break;
   default:
     break;
   }
@@ -1161,7 +1211,12 @@ ScubaLayer2DMRI::BuildGrayscaleLUT () {
 		   cGrayscaleLUTEntries) + mMinVisibleValue;
 
     // Use sigmoid to apply brightness/contrast. Gets 0-1 value.
-    float bcdValue = (1.0 / (1.0 + exp( (((value-mMinVisibleValue)/(mMaxVisibleValue-mMinVisibleValue))-mBrightness) * -mContrast)));
+    float bcdValue;
+    if( value != 0 ) {
+      bcdValue = (1.0 / (1.0 + exp( (((value-mMinVisibleValue)/(mMaxVisibleValue-mMinVisibleValue))-mBrightness) * -mContrast)));
+    } else {
+      bcdValue = 0;
+    }
 
     // Normalize back to pixel component value.
     float normValue = bcdValue * kMaxPixelComponentValueFloat;
@@ -1171,33 +1226,24 @@ ScubaLayer2DMRI::BuildGrayscaleLUT () {
   }
 }
 
-// LINES===== ============================================================
-
-PointList3<float>*
-ScubaLayer2DMRI::NewLine() {
-
-  // Create a new line. Add it to our line list.
-  PointList3<float>* line = new PointList3<float>();
-  mLines.push_back( line );
-  return line;
-}
+// PATHS =================================================================
 
 void 
-ScubaLayer2DMRI::StretchLineStraight ( PointList3<float>& iLine,
+ScubaLayer2DMRI::StretchPathStraight ( Path<float>& iPath,
 				       float iRASBegin[3],
 				       float iRASEnd[3] ) {
   
-  // Just clear the line and add the begin and end point.
-  iLine.ClearLastSegment ();
+  // Just clear the path and add the begin and end point.
+  iPath.ClearLastSegment ();
   Point3<float> begin( iRASBegin );
   Point3<float> end( iRASEnd );
-  iLine.Add( begin );
-  iLine.Add( end );
+  iPath.AddVertex( begin );
+  iPath.AddVertex( end );
 }
 
 
 void 
-ScubaLayer2DMRI::StretchLineAsEdge ( PointList3<float>& iLine,
+ScubaLayer2DMRI::StretchPathAsEdge ( Path<float>& iPath,
 				     float iRASBegin[3],
 				     float iRASEnd[3],
 				     ViewState& iViewState,
@@ -1212,7 +1258,7 @@ ScubaLayer2DMRI::StretchLineAsEdge ( PointList3<float>& iLine,
   finder.SetStraightBias( iStraightBias );
   finder.SetEdgeBias( iEdgeBias );
 
-  // Get the first point from the line and the last point as passed
+  // Get the first point from the path and the last point as passed
   // in. Convert to window points. Then find the path between them.
   Point3<float> beginRAS( iRASBegin );
   Point3<float> endRAS( iRASEnd );
@@ -1225,62 +1271,26 @@ ScubaLayer2DMRI::StretchLineAsEdge ( PointList3<float>& iLine,
   
   finder.FindPath( beginWindow, endWindow, windowPoints );
 
-  // Clear the line points and add the points we got from the path,
+  // Clear the path points and add the points we got from the path,
   // converting them to RAS one the way.
-  iLine.ClearLastSegment();
+  iPath.ClearLastSegment();
   list<Point2<int> >::iterator tWindowPoint;
   for( tWindowPoint = windowPoints.begin();
        tWindowPoint != windowPoints.end();
        ++tWindowPoint ) {
     Point3<float> currentRAS;
     iTranslator.TranslateWindowToRAS( (*tWindowPoint).xy(), currentRAS.xyz() );
-    iLine.Add( currentRAS );
+    iPath.AddVertex( currentRAS );
   }
 }
 
 
-void 
-ScubaLayer2DMRI::EndLine( PointList3<float>& iLine,
-			  ScubaWindowToRASTranslator& iTranslator ) {
-
-  // For every two RAS points on our line, translate them to window
-  // points, find all the points on the line, convert them back to
-  // RAS, and tell the volume to mark these as edge point.
-  int cPoints = iLine.GetNumPoints();
-  int nCurPoint = 1;
-  for( nCurPoint = 1; nCurPoint < cPoints; nCurPoint++ ) {
-
-    int nBackPoint = nCurPoint - 1;
-
-    Point3<float>& curPoint  = iLine.GetPointAtIndex( nCurPoint );
-    Point3<float>& backPoint = iLine.GetPointAtIndex( nBackPoint );
-
-    int curWindow[2], backWindow[2];
-    iTranslator.TranslateRASToWindow( curPoint.xyz(), curWindow );
-    iTranslator.TranslateRASToWindow( backPoint.xyz(), backWindow );
-
-    list<Point2<int> > windowPoints;
-    Utilities::FindPointsOnLine2d( backWindow, curWindow, 1, windowPoints );
-
-    list<Point2<int> >::iterator tWindowPoint;
-    for( tWindowPoint = windowPoints.begin();
-	 tWindowPoint != windowPoints.end();
-	 ++tWindowPoint ) {
-     
-      Point2<int>& window = *tWindowPoint;
-      float RAS[3];
-      iTranslator.TranslateWindowToRAS( window.xy(), RAS );
-      mVolume->MarkRASEdge( RAS );
-    }
-  }
-}
-
-PointList3<float>*
-ScubaLayer2DMRI::FindClosestLine ( float iRAS[3],
-				   ViewState& iViewState ) {
+Path<float>*
+ScubaLayer2DMRI::FindClosestPathInPlane ( float iRAS[3],
+					  ViewState& iViewState ) {
 
   float minDistance = mWidth * mHeight;
-  PointList3<float>* closestLine = NULL;
+  Path<float>* closestPath = NULL;
   Point3<float> whereRAS( iRAS );
 
   float range = 0;
@@ -1290,101 +1300,71 @@ ScubaLayer2DMRI::FindClosestLine ( float iRAS[3],
   case 2: range = mVolume->GetVoxelZSize() / 2.0; break;
   }
 
-  std::list<PointList3<float>*>::iterator tLine;
-  for( tLine = mLines.begin(); tLine != mLines.end(); ++tLine ) {
-    PointList3<float>* line = *tLine;
-    Point3<float>& beginRAS = line->GetPointAtIndex( 0 );
+  PathManager& pathMgr = PathManager::GetManager();
+  list<Path<float>*>::iterator tPath;
+  list<Path<float>*>& paths = pathMgr.GetPathList();  
+  for( tPath = paths.begin(); tPath != paths.end(); ++tPath ) {
+    Path<float>* path = *tPath;
+    Point3<float>& beginRAS = path->GetVertexAtIndex( 0 );
     if( iViewState.IsRASVisibleInPlane( beginRAS.xyz(), range ) ) {
       
-
-      float minDistanceInLine = 999999;
+      float minDistanceInPath = 999999;
       
-      int cPoints = line->GetNumPoints();
-      int nCurPoint = 1;
-      for( nCurPoint = 1; nCurPoint < cPoints; nCurPoint++ ) {
+      int cVertices = path->GetNumVertices();
+      int nCurVertex = 1;
+      for( nCurVertex = 1; nCurVertex < cVertices; nCurVertex++ ) {
 	
-	int nBackPoint = nCurPoint - 1;
+	int nBackVertex = nCurVertex - 1;
 	
-	Point3<float>& curPoint  = line->GetPointAtIndex( nCurPoint );
-	Point3<float>& backPoint = line->GetPointAtIndex( nBackPoint );
+	Point3<float>& curVertex  = path->GetVertexAtIndex( nCurVertex );
+	Point3<float>& backVertex = path->GetVertexAtIndex( nBackVertex );
 	
 	float distance = 
-	  Utilities::DistanceFromLineToPoint3f( curPoint, backPoint,whereRAS );
-
-	if( distance < minDistanceInLine )
-	  minDistanceInLine = distance;
+	  Utilities::DistanceFromLineToPoint3f( curVertex, backVertex,
+						whereRAS );
+	
+	if( distance < minDistanceInPath )
+	  minDistanceInPath = distance;
       }
       
-      if( minDistanceInLine < minDistance ) {
-	minDistance = minDistanceInLine;
-	closestLine = line;
+      if( minDistanceInPath < minDistance ) {
+	minDistance = minDistanceInPath;
+	closestPath = path;
       }
     }
   }
 
-#if 0
-  std::list<PointList3<float>*>::iterator tLine;
-  for( tLine = mLines.begin(); tLine != mLines.end(); ++tLine ) {
-    PointList3<float>* line = *tLine;
-    Point3<float>& beginRAS = line->GetPointAtIndex( 0 );
-    if( iViewState.IsRASVisibleInPlane( beginRAS.xyz(), range ) ) {
-      float distance = 
-	line->GetSquaredDistanceOfClosestPoint( minDistance, whereRAS );
-      if( distance < minDistance ) {
-	minDistance = distance;
-	closestLine = line;
-      }
-    }
-  }
-#endif
-
-  return closestLine;
+  return closestPath;
 }
 
 void
-ScubaLayer2DMRI::DeleteLine ( PointList3<float>* iLine ) {
-
-  std::list<PointList3<float>*>::iterator tLine;
-  for( tLine = mLines.begin(); tLine != mLines.end(); ++tLine ) {
-    PointList3<float>* line = *tLine;
-    if( line == iLine ) {
-      mLines.erase( tLine );
-      delete line;
-      break;
-    }
-  }
-}
-
-void
-ScubaLayer2DMRI::DrawRASPointListIntoBuffer ( GLubyte* iBuffer, 
-					      int iWidth, int iHeight,
-					      int iColor[3],
-					      ViewState& iViewState,
-				    ScubaWindowToRASTranslator& iTranslator,
-					      PointList3<float>& iLine ) {
+ScubaLayer2DMRI::DrawRASPathIntoBuffer ( GLubyte* iBuffer, 
+					 int iWidth, int iHeight,
+					 int iColor[3],
+					 ViewState& iViewState,
+				     ScubaWindowToRASTranslator& iTranslator,
+					 Path<float>& iPath ) {
 
 
-  // For every two RAS points on our line, translate them to window
-  // points, and draw the line.
-  int cPoints = iLine.GetNumPoints();
-  for( int nCurPoint = 1; nCurPoint < cPoints; nCurPoint++ ) {
+  // For every two RAS vertices on our path, translate them to window
+  // points, and draw the path.
+  int cVertices = iPath.GetNumVertices();
+  for( int nCurVertex = 1; nCurVertex < cVertices; nCurVertex++ ) {
     
-    int nBackPoint = nCurPoint - 1;
+    int nBackVertex = nCurVertex - 1;
     
-    Point3<float>& curPoint  = iLine.GetPointAtIndex( nCurPoint );
-    Point3<float>& backPoint = iLine.GetPointAtIndex( nBackPoint );
+    Point3<float>& curVertex  = iPath.GetVertexAtIndex( nCurVertex );
+    Point3<float>& backVertex = iPath.GetVertexAtIndex( nBackVertex );
     
     int curWindow[2], backWindow[2];
-    iTranslator.TranslateRASToWindow( curPoint.xyz(), curWindow );
-    iTranslator.TranslateRASToWindow( backPoint.xyz(), backWindow );
+    iTranslator.TranslateRASToWindow( curVertex.xyz(), curWindow );
+    iTranslator.TranslateRASToWindow( backVertex.xyz(), backWindow );
     
     DrawLineIntoBuffer( iBuffer, iWidth, iHeight, backWindow, curWindow,
 			iColor, 1, 1 );
   }
 }
 
-
-// ======================================================================
 
 void
 ScubaLayer2DMRI::GetPreferredInPlaneIncrements ( float oIncrements[3] ) {
@@ -1394,6 +1374,104 @@ ScubaLayer2DMRI::GetPreferredInPlaneIncrements ( float oIncrements[3] ) {
   oIncrements[2] = mVolume->GetVoxelZSize();
 }
 
+
+// ======================================================================
+
+ScubaLayer2DMRIFloodVoxelEdit::ScubaLayer2DMRIFloodVoxelEdit ( float iValue ) {
+  mValue = iValue;
+}
+
+
+void
+ScubaLayer2DMRIFloodVoxelEdit::DoBegin () {
+      
+  // Create a task in the progress display manager.
+  TclProgressDisplayManager& manager =
+    TclProgressDisplayManager::GetManager();
+  
+  list<string> lButtons;
+  lButtons.push_back( "Stop" );
+  
+  manager.NewTask( "Filling", "Filling voxels", false, lButtons );
+
+  // Start our undo action.
+  UndoManager& undoList = UndoManager::GetManager();
+
+  undoList.BeginAction( "Voxel Fill" );
+}
+
+void 
+ScubaLayer2DMRIFloodVoxelEdit::DoEnd () {
+
+  // End the task.
+  TclProgressDisplayManager& manager =
+    TclProgressDisplayManager::GetManager();
+  manager.EndTask();
+
+  // End our undo action.
+  UndoManager& undoList = UndoManager::GetManager();
+  undoList.EndAction();
+}
+
+bool
+ScubaLayer2DMRIFloodVoxelEdit::DoStopRequested () {
+
+  // Check for the stop button.
+  TclProgressDisplayManager& manager = 
+    TclProgressDisplayManager::GetManager();
+  int nButton = manager.CheckTaskForButton();
+  if( nButton == 0 ) {
+    return true;
+  } 
+
+  return false;
+}
+
+bool
+ScubaLayer2DMRIFloodVoxelEdit::CompareVoxel ( float iRAS[3] ) {
+
+  // Always return true.
+  return true;
+}
+
+void
+ScubaLayer2DMRIFloodVoxelEdit::DoVoxel ( float iRAS[3] ) {
+  UndoManager& undoList = UndoManager::GetManager();
+
+  float origValue = mVolume->GetMRINearestValueAtRAS( iRAS );
+
+  mVolume->SetMRIValueAtRAS( iRAS, mValue );
+
+  UndoVoxelEditAction* action = 
+    new UndoVoxelEditAction( mVolume, mValue, origValue, iRAS );
+
+  undoList.AddAction( action );
+}
+
+UndoVoxelEditAction::UndoVoxelEditAction ( VolumeCollection* iVolume,
+					   float iNewValue, float iOrigValue, 
+					   float iRAS[3] ) {
+  mVolume = iVolume;
+  mNewValue = iNewValue;
+  mOrigValue = iOrigValue;
+  mRAS[0] = iRAS[0];
+  mRAS[1] = iRAS[1];
+  mRAS[2] = iRAS[2];
+}
+
+void
+UndoVoxelEditAction::Undo () {
+
+  mVolume->SetMRIValueAtRAS( mRAS, mOrigValue );
+}
+
+void
+UndoVoxelEditAction::Redo () {
+
+  mVolume->SetMRIValueAtRAS( mRAS, mNewValue );
+}
+
+// ============================================================
 
 ScubaLayer2DMRIFloodSelect::ScubaLayer2DMRIFloodSelect ( bool ibSelect ) {
   mbSelect = ibSelect;
@@ -1505,6 +1583,7 @@ UndoSelectionAction::Redo () {
   }
 }
 
+// ============================================================
 
 EdgePathFinder::EdgePathFinder ( int iViewWidth, int iViewHeight, 
 				 int iLongestEdge,

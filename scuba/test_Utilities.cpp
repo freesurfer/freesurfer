@@ -93,7 +93,23 @@ UtilitiesTester::Test () {
     int end[2] = {1, 1};
     list<Point2<int> > points;
     Utilities::FindPointsOnLine2d( begin, end, 1, points );
-    
+
+
+
+    {
+      Point3<int> a( 0, 0, 0 );
+      Point3<int> b( 5, 6, 7 );
+      list<Point3<int> > l;
+      Utilities::FindPointsOnLine3d( a.xyz(), b.xyz(), l );
+      
+      cout << "list from " << a << " to " << b << ": ";
+      list<Point3<int> >::iterator t;
+      for( t = l.begin(); t != l.end(); ++t ) {
+	cout << *t << " ";
+      }
+      cout << endl;
+
+    }
       
   }
   catch( runtime_error e ) {

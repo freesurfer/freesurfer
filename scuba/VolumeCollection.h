@@ -9,7 +9,6 @@ extern "C" {
 #undef Status
 #endif
 #include "mri.h"
-
 #ifdef X
   #undef X 
 #endif
@@ -24,6 +23,7 @@ extern "C" {
 #include "Point3.h"
 #include "ScubaTransform.h"
 #include "Broadcaster.h"
+#include "Path.h"
 
 class VolumeCollection : public DataCollection {
 
@@ -37,58 +37,89 @@ class VolumeCollection : public DataCollection {
   // Should return a type description unique to the subclass.
   virtual std::string GetTypeDescription() { return "Volume"; }
 
+  // Set the file name for this ROI. This will be used to load the MRI
+  // and to save it.
   void SetFileName ( std::string& ifnMRI );
 
+  // Creates an MRI using an existing data collection as a template.
+  void MakeUsingTemplate ( int iCollectionID );
+
+  // Get the MRI. If we're loading an MRI, this requires the MRI to be
+  // set first.
   MRI* GetMRI ();
-  void UpdateMRIValueRange ();
+
+  // Saves the current volume to a file name. If none is given, uses
+  // the set file name.
+  void Save ();
+  void Save ( std::string ifn );
+  
+
+  // Accessors.
   float GetMRIMinValue () { return mMRIMinValue; }
   float GetMRIMaxValue () { return mMRIMaxValue; }
 
-  float GetMRIMagnitudeMinValue ();
+  float GetMRIMagnitudeMinValue (); // (Calls MakeMagnitudeVolume if necessary)
   float GetMRIMagnitudeMaxValue ();
 
   float GetVoxelXSize () { return mVoxelSize[0]; }
   float GetVoxelYSize () { return mVoxelSize[1]; }
   float GetVoxelZSize () { return mVoxelSize[2]; }
 
+  // Coordinate conversion.
   void RASToMRIIndex ( float iRAS[3], int oIndex[3] );
   void RASToMRIIndex ( float iRAS[3], float oIndex[3] );
   void MRIIndexToRAS ( int iIndex[3], float oRAS[3] );
   void MRIIndexToRAS ( float iIndex[3], float oRAS[3] );
   void RASToDataRAS  ( float iRAS[3], float oDataRAS[3] );
 
+  // Bounds testing.
   bool IsRASInMRIBounds ( float iRAS[3] );
   bool IsMRIIndexInMRIBounds ( int iIndex[3] );
 
+  // Calculates values.
   float GetMRINearestValueAtRAS ( float iRAS[3] );
   float GetMRITrilinearValueAtRAS ( float iRAS[3] );
   float GetMRISincValueAtRAS ( float iRAS[3] );
+  float GetMRIMagnitudeValueAtRAS ( float iRAS[3] );
   
+  // Sets value.
   void SetMRIValueAtRAS ( float iRAS[3], float iValue );
   
-  void MakeMagnitudeVolume ();
-
-  float GetMRIMagnitudeValueAtRAS ( float iRAS[3] );
-
   virtual TclCommandResult
     DoListenToTclCommand ( char* isCommand, int iArgc, char** iasArgv );
 
   virtual void
     DoListenToMessage ( std::string isMessage, void* iData );
 
+  // Create an ROI for this data collection.
   virtual ScubaROI* DoNewROI ();
 
-  void InitSelectionVolume ();
+
+  // For the selection cache. This is just for quick lookup to see if
+  // any ROI is at this point.
   void SelectRAS ( float iRAS[3] );
   void UnselectRAS ( float iRAS[3] );
+
+  // Return whether or not an ROI is at this point, and if so, returns
+  // the color. If multiple ROIs are present, blends the color.
   bool IsRASSelected ( float iRAS[3], int oColor[3] );
+
+  // Return whether or not an ROI is present other than the one passed
+  // in.
   bool IsOtherRASSelected ( float iRAS[3], int iThisROIID );
 
-  void InitEdgeVolume ();
-  void MarkRASEdge ( float iRAS[3] );
-  void UnmarkRASEdge ( float iRAS[3] );
-  bool IsRASEdge ( float iRAS[3] );
 
+  // For the path cache. The 2DMRI layer basically uses this cache to
+  // see if a line is present at this point. This is probably a bad
+  // design.
+  void MarkRASPath ( float iRAS[3] );
+  void UnmarkRASPath ( float iRAS[3] );
+  bool IsRASPath ( float iRAS[3] );
+
+
+  // Calculate and return a list of RAS points within a certain
+  // area. Guaranteed to return one (or more!) RAS points for each
+  // voxel in the area.
   void GetRASPointsInCube ( float iCenterRAS[3], float iRadius,
 			    bool ibBrushX, bool ibBrushY, bool ibBrushZ,
 			    std::list<Point3<float> >& oPoints );
@@ -96,24 +127,53 @@ class VolumeCollection : public DataCollection {
 			      bool ibBrushX, bool ibBrushY, bool ibBrushZ,
 			      std::list<Point3<float> >& oPoints );
 
+
+  // Writes an ROI to a label file.
   void WriteROIToLabel ( int iROIID, std::string ifnLabel );
+
+  // Creates a new ROI in this data collection from a label file.
   int  NewROIFromLabel ( std::string ifnLabel );
+
+  // Writes all structure ROIs to a segmentation volume file.
   void WriteROIsToSegmentation ( std::string ifnVolume );
 
-  virtual void SetDataToWorldTransform ( int iTransformID ) {
-    DataCollection::SetDataToWorldTransform( iTransformID );
-    CalcWorldToIndexTransform();
-  }
 
-  Matrix44& GetWorldToIndexTransform () {
-    return mWorldToIndexTransform.GetMainMatrix(); }
+  // Sets the data to world transform, basically a user settable
+  // display transform.
+  virtual void SetDataToWorldTransform ( int iTransformID );
+
+
+  // Returns the combined world to index transform.
+  Matrix44& GetWorldToIndexTransform ();
+
+  // Enable or disable world to index transform.
+  void SetUseWorldToIndexTransform ( bool ibUse );
+
 
 protected:
 
+  // Gets information from the MRI structure.
+  void InitializeFromMRI ();
+
+  // Update the value range.
+  void UpdateMRIValueRange ();
+
+  // Calculates the final world to index transfrom from the data to
+  // index transform and the world to index transform.
   void CalcWorldToIndexTransform ();
 
+  // Calculates the magnitude volume and saves it in mMagnitudeMRI.
+  void MakeMagnitudeVolume ();
+
+  // Filename to use when reading or writing.
   std::string mfnMRI;
+
+  // The actual MRI volume.
   MRI* mMRI;
+
+  // The magnitude volume, used for the edge line tool. This is
+  // generated by MakeMagnitudeVolume whenever a magnitude value is
+  // set.
   MRI* mMagnitudeMRI;
 
   // We're dealing with two transforms here, data->world which is
@@ -123,15 +183,24 @@ protected:
   Transform44 mDataToIndexTransform;
   Transform44 mWorldToIndexTransform;
 
-  // Gets the extract_r_to_i matrix from the MRI. If 
+  bool mbUseDataToIndexTransform;
 
+  // Voxel sizes.
   float mVoxelSize[3];
 
+  // MRI and magnitude volume ranges.
   float mMRIMinValue, mMRIMaxValue;
   float mMRIMagMinValue, mMRIMagMaxValue;
 
-  Volume3<bool>* mEdgeVoxels;
+  // Our path cache.
+  void InitPathVolume ();
+  void CacheAllPaths ();
+  void CachePath ( Path<float>& iPath );
+  void ClearPathCache ();
+  Volume3<bool>* mPathVoxels;
 
+  // The selected voxel cache.
+  void InitSelectionVolume ();
   Volume3<bool>* mSelectedVoxels;
 };
 
@@ -152,7 +221,7 @@ class VolumeCollectionFlooder {
   class Params {
   public:
     Params ();
-    bool mbStopAtEdges;
+    bool mbStopAtPaths;
     bool mbStopAtROIs;
     bool mb3D;
     bool mbWorkPlaneX;

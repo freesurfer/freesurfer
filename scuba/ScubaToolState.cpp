@@ -14,19 +14,28 @@ ScubaToolState::ScubaToolState() {
   mBrushRadius = 0.5;
   mBrushShape = circle;
   mbBrush3D = false;
-  mbFloodStopAtLines = true;
+  mbFloodStopAtPaths = true;
   mbFloodStopAtROIs = true;
   mFloodFuzziness = 0;
   mFloodMaxDistance = 0;
   mbFlood3D = true;
-  mEdgeLineStraightBias = 0.9;
-  mEdgeLineEdgeBias = 0.9;
+  mEdgePathStraightBias = 0.9;
+  mEdgePathEdgeBias = 0.9;
+  mLayerTarget = -1;
 
   TclCommandManager& commandMgr = TclCommandManager::GetManager();
   commandMgr.AddCommand( *this, "SetToolMode", 2, "toolID mode",
 			 "Sets the current mode of a tool." );
   commandMgr.AddCommand( *this, "GetToolMode", 1, "toolID",
 			 "Gets the current mode of a tool." );
+  commandMgr.AddCommand( *this, "SetToolLayerTarget", 2, "toolID layerID",
+			 "Sets the target layer of a tool." );
+  commandMgr.AddCommand( *this, "GetToolLayerTarget", 1, "toolID",
+			 "Gets the target layer of a tool." );
+  commandMgr.AddCommand( *this, "SetToolNewVoxelValue", 2, "toolID value",
+			 "Sets the new voxel value of a tool." );
+  commandMgr.AddCommand( *this, "GetToolNewVoxelValue", 1, "toolID",
+			 "Gets the new voxel value of a tool." );
   commandMgr.AddCommand( *this, "SetToolBrushRadius", 2, "toolID radius",
 			 "Sets the current brush radius of a tool." );
   commandMgr.AddCommand( *this, "GetToolBrushRadius", 1, "toolID",
@@ -41,11 +50,11 @@ ScubaToolState::ScubaToolState() {
 			 "Sets the current brush 3D of a tool." );
   commandMgr.AddCommand( *this, "GetToolBrush3D", 1, "toolID",
 			 "Gets the current brush 3D of a tool." );
-  commandMgr.AddCommand( *this, "SetToolFloodStopAtLines", 2, "toolID stop",
-			 "Specify whether a tool flood should stop at lines.");
-  commandMgr.AddCommand( *this, "GetToolFloodStopAtLines", 1, "toolID",
+  commandMgr.AddCommand( *this, "SetToolFloodStopAtPaths", 2, "toolID stop",
+			 "Specify whether a tool flood should stop at paths.");
+  commandMgr.AddCommand( *this, "GetToolFloodStopAtPaths", 1, "toolID",
 			 "Returns whether or not a tool flood will stop "
-			 "at lines." );
+			 "at paths." );
   commandMgr.AddCommand( *this, "SetToolFloodStopAtROIs", 2, "toolID stop",
 			 "Specify whether a tool flood should stop at ROIs." );
   commandMgr.AddCommand( *this, "GetToolFloodStopAtROIs", 1, "toolID",
@@ -63,18 +72,18 @@ ScubaToolState::ScubaToolState() {
 			 "Sets the current brush 3D of a tool." );
   commandMgr.AddCommand( *this, "GetToolFlood3D", 1, "toolID",
 			 "Gets the current brush 3D of a tool." );
-  commandMgr.AddCommand( *this, "SetToolEdgeLineStraightBias", 2, 
+  commandMgr.AddCommand( *this, "SetToolEdgePathStraightBias", 2, 
 			 "toolID bias", "Sets the bias (0-1) for straight "
-			 "lines for the edge line tool." );
-  commandMgr.AddCommand( *this, "GetToolEdgeLineStraightBias", 1, 
+			 "paths for the edge path tool." );
+  commandMgr.AddCommand( *this, "GetToolEdgePathStraightBias", 1, 
 			 "toolID", "Returns the bias for straight "
-			 "lines for the edge line tool." );
-  commandMgr.AddCommand( *this, "SetToolEdgeLineEdgeBias", 2, 
+			 "paths for the edge path tool." );
+  commandMgr.AddCommand( *this, "SetToolEdgePathEdgeBias", 2, 
 			 "toolID bias", "Sets the bias (0-1) for edges "
-			 "for the edge line tool." );
-  commandMgr.AddCommand( *this, "GetToolEdgeLineEdgeBias", 1, 
+			 "for the edge path tool." );
+  commandMgr.AddCommand( *this, "GetToolEdgePathEdgeBias", 1, 
 			 "toolID", "Returns the bias for edges "
-			 "for the edge line tool." );
+			 "for the edge path tool." );
 
 }
 
@@ -107,14 +116,14 @@ ScubaToolState::DoListenToTclCommand ( char* isCommand,
 	newMode = voxelEditing;
       } else if ( 0 == strcmp( iasArgv[2], "roiEditing" )) {
 	newMode = roiEditing;
-      } else if ( 0 == strcmp( iasArgv[2], "straightLine" )) {
-	newMode = straightLine;
-      } else if ( 0 == strcmp( iasArgv[2], "edgeLine" )) {
-	newMode = edgeLine;
+      } else if ( 0 == strcmp( iasArgv[2], "straightPath" )) {
+	newMode = straightPath;
+      } else if ( 0 == strcmp( iasArgv[2], "edgePath" )) {
+	newMode = edgePath;
       } else {
 	sResult = "bad mode \"" + string(iasArgv[2]) + 
 	  "\", should be navigation, plane, marker, voxelEditing, "
-	  "roiEditing, straightLine, edgeLine.";
+	  "roiEditing, straightPath, edgePath.";
 	return error;
       }
       SetMode( newMode );
@@ -147,14 +156,86 @@ ScubaToolState::DoListenToTclCommand ( char* isCommand,
       case roiEditing:
 	sReturnValues = "roiEditing";
 	break;
-      case straightLine:
-	sReturnValues = "straightLine";
+      case straightPath:
+	sReturnValues = "straightPath";
 	break;
-      case edgeLine:
-	sReturnValues = "edgeLine";
+      case edgePath:
+	sReturnValues = "edgePath";
 	break;
       }
       sReturnFormat = "s";
+    }
+  }
+
+  // SetToolNewVoxelValue <toolID> <value>
+  if( 0 == strcmp( isCommand, "SetToolNewVoxelValue" ) ) {
+    int toolID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad tool ID";
+      return error;
+    }
+    
+    if( GetID() == toolID ) {
+
+      float value = strtod(iasArgv[2], (char**)NULL);
+      if( ERANGE == errno ) {
+	sResult = "bad radius";
+	return error;
+      }
+      SetNewValue( value );
+    }
+  }
+
+  // GetToolNewVoxelValue <toolID>
+  if( 0 == strcmp( isCommand, "GetToolNewVoxelValue" ) ) {
+    int toolID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad tool ID";
+      return error;
+    }
+    
+    if( GetID() == toolID ) {
+
+      stringstream ssValues;
+      ssValues << GetNewValue();
+      sReturnValues = ssValues.str();
+      sReturnFormat = "f";
+    }
+  }
+
+  // SetToolLayerTarget <toolID> <layerID>
+  if( 0 == strcmp( isCommand, "SetToolLayerTarget" ) ) {
+    int toolID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad tool ID";
+      return error;
+    }
+    
+    if( GetID() == toolID ) {
+
+      int layerID = strtol(iasArgv[2], (char**)NULL, 10);
+      if( ERANGE == errno ) {
+	sResult = "bad layerID";
+	return error;
+      }
+      SetLayerTarget( layerID );
+    }
+  }
+
+  // GetToolLayerTarget <toolID>
+  if( 0 == strcmp( isCommand, "GetToolLayerTarget" ) ) {
+    int toolID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad tool ID";
+      return error;
+    }
+    
+    if( GetID() == toolID ) {
+
+      stringstream ssValues;
+      ssValues << GetLayerTarget();
+      sReturnValues = ssValues.str();
+      sReturnFormat = "i";
     }
   }
 
@@ -281,8 +362,8 @@ ScubaToolState::DoListenToTclCommand ( char* isCommand,
     }
   }
 
-  // SetToolFloodStopAtLines <toolID> <stop>
-  if( 0 == strcmp( isCommand, "SetToolFloodStopAtLines" ) ) {
+  // SetToolFloodStopAtPaths <toolID> <stop>
+  if( 0 == strcmp( isCommand, "SetToolFloodStopAtPaths" ) ) {
     int toolID = strtol(iasArgv[1], (char**)NULL, 10);
     if( ERANGE == errno ) {
       sResult = "bad tool ID";
@@ -293,10 +374,10 @@ ScubaToolState::DoListenToTclCommand ( char* isCommand,
       
       if( 0 == strcmp( iasArgv[2], "true" ) || 
 	  0 == strcmp( iasArgv[2], "1" )) {
-	SetFloodStopAtLines( true );
+	SetFloodStopAtPaths( true );
       } else if( 0 == strcmp( iasArgv[2], "false" ) ||
 		 0 == strcmp( iasArgv[2], "0" ) ) {
-	SetFloodStopAtLines( false );
+	SetFloodStopAtPaths( false );
       } else {
 	sResult = "bad stop \"" + string(iasArgv[2]) +
 	  "\", should be true, 1, false, or 0";
@@ -305,8 +386,8 @@ ScubaToolState::DoListenToTclCommand ( char* isCommand,
     }
   }
 
-  // GetToolFloodStopAtLines <toolID>
-  if( 0 == strcmp( isCommand, "GetToolFloodStopAtLines" ) ) {
+  // GetToolFloodStopAtPaths <toolID>
+  if( 0 == strcmp( isCommand, "GetToolFloodStopAtPaths" ) ) {
     int toolID = strtol(iasArgv[1], (char**)NULL, 10);
     if( ERANGE == errno ) {
       sResult = "bad tool ID";
@@ -317,7 +398,7 @@ ScubaToolState::DoListenToTclCommand ( char* isCommand,
 
       sReturnFormat = "i";
       stringstream ssReturnValues;
-      ssReturnValues << (int)GetFloodStopAtLines();
+      ssReturnValues << (int)GetFloodStopAtPaths();
       sReturnValues = ssReturnValues.str();
     }
   }
@@ -476,8 +557,8 @@ ScubaToolState::DoListenToTclCommand ( char* isCommand,
     }
   }
 
-  // SetToolEdgeLineStraightBias <toolID> <bias>
-  if( 0 == strcmp( isCommand, "SetToolEdgeLineStraightBias" ) ) {
+  // SetToolEdgePathStraightBias <toolID> <bias>
+  if( 0 == strcmp( isCommand, "SetToolEdgePathStraightBias" ) ) {
     int toolID = strtol(iasArgv[1], (char**)NULL, 10);
     if( ERANGE == errno ) {
       sResult = "bad tool ID";
@@ -492,12 +573,12 @@ ScubaToolState::DoListenToTclCommand ( char* isCommand,
 	return error;
       }
 
-      SetEdgeLineStraightBias( bias );
+      SetEdgePathStraightBias( bias );
     }
   }
 
-  // GetToolEdgeLineStraightBias <toolID>
-  if( 0 == strcmp( isCommand, "GetToolEdgeLineStraightBias" ) ) {
+  // GetToolEdgePathStraightBias <toolID>
+  if( 0 == strcmp( isCommand, "GetToolEdgePathStraightBias" ) ) {
     int toolID = strtol(iasArgv[1], (char**)NULL, 10);
     if( ERANGE == errno ) {
       sResult = "bad tool ID";
@@ -508,13 +589,13 @@ ScubaToolState::DoListenToTclCommand ( char* isCommand,
 
       sReturnFormat = "f";
       stringstream ssReturnValues;
-      ssReturnValues << GetEdgeLineStraightBias();
+      ssReturnValues << GetEdgePathStraightBias();
       sReturnValues = ssReturnValues.str();
     }
   }
 
-  // SetToolEdgeLineEdgeBias <toolID> <bias>
-  if( 0 == strcmp( isCommand, "SetToolEdgeLineEdgeBias" ) ) {
+  // SetToolEdgePathEdgeBias <toolID> <bias>
+  if( 0 == strcmp( isCommand, "SetToolEdgePathEdgeBias" ) ) {
     int toolID = strtol(iasArgv[1], (char**)NULL, 10);
     if( ERANGE == errno ) {
       sResult = "bad tool ID";
@@ -529,12 +610,12 @@ ScubaToolState::DoListenToTclCommand ( char* isCommand,
 	return error;
       }
 
-      SetEdgeLineEdgeBias( bias );
+      SetEdgePathEdgeBias( bias );
     }
   }
 
-  // GetToolEdgeLineEdgeBias <toolID>
-  if( 0 == strcmp( isCommand, "GetToolEdgeLineEdgeBias" ) ) {
+  // GetToolEdgePathEdgeBias <toolID>
+  if( 0 == strcmp( isCommand, "GetToolEdgePathEdgeBias" ) ) {
     int toolID = strtol(iasArgv[1], (char**)NULL, 10);
     if( ERANGE == errno ) {
       sResult = "bad tool ID";
@@ -545,7 +626,7 @@ ScubaToolState::DoListenToTclCommand ( char* isCommand,
 
       sReturnFormat = "f";
       stringstream ssReturnValues;
-      ssReturnValues << GetEdgeLineEdgeBias();
+      ssReturnValues << GetEdgePathEdgeBias();
       sReturnValues = ssReturnValues.str();
     }
   }

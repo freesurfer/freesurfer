@@ -2,10 +2,14 @@
 #include <errno.h>
 #include <stdexcept>
 #include <vector>
+extern "C" {
+#include "error.h"
+}
 #include "VolumeCollection.h"
 #include "DataManager.h"
 #include "Point3.h"
-#include "error.h"
+#include "Utilities.h"
+#include "PathManager.h"
 
 using namespace std;
 
@@ -14,9 +18,14 @@ VolumeCollection::VolumeCollection () :
   DataCollection() {
   mMRI = NULL;
   mMagnitudeMRI = NULL;
-  mEdgeVoxels = NULL;
+  mPathVoxels = NULL;
   mSelectedVoxels = NULL;
   mVoxelSize[0] = mVoxelSize[1] = mVoxelSize[2] = 0;
+  mbUseDataToIndexTransform = true;
+
+  // Listen to the path manager so we know about paths.
+  PathManager& pathMgr = PathManager::GetManager();
+  pathMgr.AddListener( this );
 
   TclCommandManager& commandMgr = TclCommandManager::GetManager();
   commandMgr.AddCommand( *this, "SetVolumeCollectionFileName", 2, 
@@ -36,6 +45,23 @@ VolumeCollection::VolumeCollection () :
 			 "collectionID fileName", 
 			 "Writes a series of structure ROIs to a "
 			 "segmentation volume." );
+  commandMgr.AddCommand( *this, "MakeVolumeUsingTemplate", 2, 
+			 "collectionID templateCollectionID", 
+			 "Makes a volume using an existing volume "
+			 "as a template." );
+  commandMgr.AddCommand( *this, "SaveVolume", 1, 
+			 "collectionID", "Save volume with its file name." );
+  commandMgr.AddCommand( *this, "SaveVolumeWithFileName", 2, 
+			 "collectionID fileName", "Save volume with "
+			 "a given file name." );
+  commandMgr.AddCommand( *this, "SetUseVolumeDataToIndexTransform", 2, 
+			 "collectionID use", "Use or don't use the volume's "
+			 "Data to Index transform (usually RAS transform) "
+			 "in displaying data." );
+  commandMgr.AddCommand( *this, "GetUseVolumeDataToIndexTransform", 1, 
+			 "collectionID", "Returns whether or not a volume "
+			 "is using its Data to Index transform "
+			 "(usually RAS transform) in displaying data." );
 }
 
 VolumeCollection::~VolumeCollection() {
@@ -57,6 +83,42 @@ VolumeCollection::SetFileName ( string& ifnMRI ) {
   mfnMRI = ifnMRI;
 }
 
+void
+VolumeCollection::MakeUsingTemplate ( int iCollectionID ) {
+
+  VolumeCollection* vol = NULL;
+  try { 
+    DataCollection* col = &DataCollection::FindByID( iCollectionID );
+    //    VolumeCollection* vol = dynamic_cast<VolumeCollection*>(col);
+    vol = (VolumeCollection*)col;
+  }
+  catch (...) {
+    throw runtime_error( "Couldn't find template." );
+  }
+
+  // Get the mri from the template volume.
+  MRI* mri = vol->GetMRI();
+  if( NULL == mri ) {
+    throw runtime_error( "Couldn't get MRI from template" );
+  }
+
+  // Allocate the mri with the size from the template.
+  MRI* newMri = MRIallocSequence( mri->width, mri->height, mri->depth,
+				  mri->type, mri->nframes );
+  if( NULL == newMri ) {
+    throw runtime_error( "Couldn't allocate new mri." );
+  }
+  
+  // Copy the header from the template into the new mri.
+  MRIcopyHeader( mri, newMri );
+
+  // Save the MRI.
+  mMRI = newMri;
+  
+  // Initialize from it.
+  InitializeFromMRI();
+}
+
 MRI*
 VolumeCollection::GetMRI() { 
 
@@ -76,52 +138,81 @@ VolumeCollection::GetMRI() {
       SetLabel( mfnMRI );
     }
 
-
-    // Get our surfaceRAS -> index transform.
-    Matrix44 m;
-    //    MATRIX* voxelFromSurfaceRAS = voxelFromSurfaceRAS_( mMRI );
-    MATRIX* voxelFromSurfaceRAS = extract_r_to_i( mMRI );
-    m.SetMatrix( voxelFromSurfaceRAS );
-    MatrixFree( &voxelFromSurfaceRAS );
-
-    mDataToIndexTransform.SetMainTransform( m );
-
-    CalcWorldToIndexTransform();
-
-
-
-    UpdateMRIValueRange();
-
-    // Size all the rois we may have.
-    int bounds[3];
-    bounds[0] = mMRI->width;
-    bounds[1] = mMRI->height;
-    bounds[2] = mMRI->depth;
-    map<int,ScubaROI*>::iterator tIDROI;
-    for( tIDROI = mROIMap.begin();
-	 tIDROI != mROIMap.end(); ++tIDROI ) {
-	ScubaROIVolume* roi = (ScubaROIVolume*)(*tIDROI).second;
-	roi->SetROIBounds( bounds );
-    }
-
-    // Init the edge and selection volume.
-    InitEdgeVolume();
-    InitSelectionVolume();
-
-
-    mVoxelSize[0] = mMRI->xsize;
-    mVoxelSize[1] = mMRI->ysize;
-    mVoxelSize[2] = mMRI->zsize;
-
-    try { 
-      // CalcDataToIndexCache(); 
-    }
-    catch(...) { 
-      DebugOutput( << "Failed while calcing world to index cache  " );
-    }
+    InitializeFromMRI();
   }
 
   return mMRI; 
+}
+
+void
+VolumeCollection::Save () {
+
+  Save( mfnMRI );
+}
+
+void
+VolumeCollection::Save ( string ifn ) {
+
+  char* fn = strdup( ifn.c_str() ); 
+  int rMRI = MRIwrite( mMRI, fn );
+  free( fn );
+
+  if( ERROR_NONE != rMRI ) {
+    stringstream ssError;
+    ssError << "Couldn't write file " << ifn;
+    throw runtime_error( ssError.str() );
+  }
+}
+
+void
+VolumeCollection::InitializeFromMRI () {
+
+  if( NULL == mMRI ) {
+    throw runtime_error( "InitializeFromMRI called without an MRI" );
+  }
+
+  // Get our surfaceRAS -> index transform.
+  MATRIX* voxelFromSurfaceRAS = extract_r_to_i( mMRI );
+  if( NULL == voxelFromSurfaceRAS ) {
+    throw runtime_error( "Couldn't get voxelFromSurfaceRAS matrix" );
+  }
+
+  // Copy it to a Matrix44 and release the MATRIX. Then set our
+  // mDataToIndexTransform transform from this matrix. Then calculate
+  // the WorldToIndex transform.
+  Matrix44 m;
+  m.SetMatrix( voxelFromSurfaceRAS );
+
+  MatrixFree( &voxelFromSurfaceRAS );
+  
+  mDataToIndexTransform.SetMainTransform( m );
+  
+  CalcWorldToIndexTransform();
+
+  // Update (initialize) our MRI value range.
+  UpdateMRIValueRange();
+  
+  // Size all the rois we may have.
+  int bounds[3];
+  bounds[0] = mMRI->width;
+  bounds[1] = mMRI->height;
+  bounds[2] = mMRI->depth;
+  map<int,ScubaROI*>::iterator tIDROI;
+  for( tIDROI = mROIMap.begin();
+       tIDROI != mROIMap.end(); ++tIDROI ) {
+    ScubaROIVolume* roi = (ScubaROIVolume*)(*tIDROI).second;
+    roi->SetROIBounds( bounds );
+  }
+  
+  // Init the path and selection volume.
+  InitPathVolume();
+  InitSelectionVolume();
+  
+  // Save our voxel sizes.
+  mVoxelSize[0] = mMRI->xsize;
+  mVoxelSize[1] = mMRI->ysize;
+  mVoxelSize[2] = mMRI->zsize;
+  
 }
 
 void
@@ -313,6 +404,9 @@ VolumeCollection::SetMRIValueAtRAS ( float iRAS[3], float iValue ) {
     }
   }
 
+  if( iValue < mMRIMinValue ) mMRIMinValue = iValue;
+  if( iValue < mMRIMaxValue ) mMRIMaxValue = iValue;
+
   DataChanged();
 }
 
@@ -441,6 +535,94 @@ VolumeCollection::DoListenToTclCommand ( char* isCommand,
     }
   }
   
+  // MakeVolumeUsingTemplate <collectionID> <templateID>
+  if( 0 == strcmp( isCommand, "MakeVolumeUsingTemplate" ) ) {
+    int collectionID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad collection ID";
+      return error;
+    }
+    
+    if( mID == collectionID ) {
+     
+      int templateID = strtol(iasArgv[2], (char**)NULL, 10);
+      if( ERANGE == errno ) {
+	sResult = "bad template ID";
+	return error;
+      }
+    
+      MakeUsingTemplate( templateID );
+    }
+  }
+  
+  // SaveVolume <collectionID>
+  if( 0 == strcmp( isCommand, "SaveVolume" ) ) {
+    int collectionID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad collection ID";
+      return error;
+    }
+    
+    if( mID == collectionID ) {
+     
+      Save();
+    }
+  }
+  
+  // SaveVolumeWithFileName <collectionID> <fileName>
+  if( 0 == strcmp( isCommand, "SaveVolumeWithFileName" ) ) {
+    int collectionID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad collection ID";
+      return error;
+    }
+    
+    if( mID == collectionID ) {
+     
+      string fn( iasArgv[2] );
+      Save( fn );
+    }
+  }
+
+  // SetUseVolumeDataToIndexTransform <collectionID> <use>
+  if( 0 == strcmp( isCommand, "SetUseVolumeDataToIndexTransform" ) ) {
+    int collectionID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad collection ID";
+      return error;
+    }
+    
+    if( mID == collectionID ) {
+      
+      try {
+	bool bUse =
+	  TclCommandManager::ConvertArgumentToBoolean( iasArgv[2] );
+	SetUseWorldToIndexTransform( bUse );
+      }
+      catch( runtime_error e ) {
+	sResult = "bad use \"" + string(iasArgv[2]) + "\"," + e.what();
+	return error;	
+      }
+    }
+  }
+  
+
+  // GetUseVolumeDataToIndexTransform <layerID>
+  if( 0 == strcmp( isCommand, "GetUseVolumeDataToIndexTransform" ) ) {
+    int collectionID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad collection ID";
+      return error;
+    }
+    
+    if( mID == collectionID ) {
+
+      sReturnValues =
+	TclCommandManager::ConvertBooleanToReturnValue( mbUseDataToIndexTransform );
+      sReturnFormat = "i";
+    }
+  }
+
   return DataCollection::DoListenToTclCommand( isCommand, iArgc, iasArgv );
 }
 
@@ -449,6 +631,22 @@ VolumeCollection::DoListenToMessage ( string isMessage, void* iData ) {
   
   if( isMessage == "transformChanged" ) {
     CalcWorldToIndexTransform();
+  }
+  
+  if( isMessage == "pathVertexAdded" ) {    
+    int pathID = *(int*)iData;
+    try {
+      Path<float>& path = Path<float>::FindByID( pathID );
+      CachePath( path );
+    }
+    catch(...) {
+      cerr << "Couldn't find path " << pathID << endl;
+    }
+  }
+
+  if( isMessage == "pathChanged" ) {
+    ClearPathCache();
+    CacheAllPaths();
   }
 
   DataCollection::DoListenToMessage( isMessage, iData );
@@ -616,46 +814,94 @@ VolumeCollection::IsOtherRASSelected ( float iRAS[3], int iThisROIID ) {
 }
 
 void 
-VolumeCollection::InitEdgeVolume () {
+VolumeCollection::InitPathVolume () {
 
   if( NULL != mMRI ) {
 
-    if( NULL != mEdgeVoxels ) {
-      delete mEdgeVoxels;
+    if( NULL != mPathVoxels ) {
+      delete mPathVoxels;
     }
     
-    mEdgeVoxels = 
+    mPathVoxels = 
       new Volume3<bool>( mMRI->width, mMRI->height, mMRI->depth, false );
   }
 }
 
 void 
-VolumeCollection::MarkRASEdge ( float iRAS[3] ) {
+VolumeCollection::CacheAllPaths () {
+  PathManager& pathMgr = PathManager::GetManager();
+  list<Path<float>*> pathList = pathMgr.GetPathList();
+  list<Path<float>*>::iterator tPath;
+  for( tPath = pathList.begin(); tPath != pathList.end(); ++tPath ) {
+    Path<float>* path = *tPath;
+    CachePath( *path );
+  }
+}
+
+void
+VolumeCollection::CachePath ( Path<float>& iPath ) {
+
+  int cVertices = iPath.GetNumVertices();
+  int nCurVertex = 1;
+  for( nCurVertex = 1; nCurVertex < cVertices; nCurVertex++ ) {
+
+    int nBackVertex = nCurVertex - 1;
+
+    Point3<float>& curRAS  = iPath.GetVertexAtIndex( nCurVertex );
+    Point3<float>& backRAS = iPath.GetVertexAtIndex( nBackVertex );
+
+    float curIndex[3], backIndex[3];
+    RASToMRIIndex( curRAS.xyz(), curIndex );
+    RASToMRIIndex( backRAS.xyz(), backIndex );
+
+    list<Point3<float> > indexPoints;
+    Utilities::FindPointsOnLine3f( backIndex, curIndex, indexPoints );
+
+    list<Point3<float> >::iterator tIndexPoint;
+    for( tIndexPoint = indexPoints.begin();
+	 tIndexPoint != indexPoints.end();
+	 ++tIndexPoint ) {
+     
+      Point3<float>& index = *tIndexPoint;
+      float ras[3];
+      MRIIndexToRAS( index.xyz(), ras );
+      MarkRASPath( ras );
+    }
+  }
+}
+
+void
+VolumeCollection::ClearPathCache () {
+  mPathVoxels->SetAll( false );
+}
+
+void 
+VolumeCollection::MarkRASPath ( float iRAS[3] ) {
 
   if( NULL != mMRI ) {
     int index[3];
     RASToMRIIndex( iRAS, index );
-    mEdgeVoxels->Set_Unsafe( index[0], index[1], index[2], true );
+    mPathVoxels->Set_Unsafe( index[0], index[1], index[2], true );
   }
 }
 
 void 
-VolumeCollection::UnmarkRASEdge ( float iRAS[3] ) {
+VolumeCollection::UnmarkRASPath ( float iRAS[3] ) {
 
   if( NULL != mMRI ) {
     int index[3];
     RASToMRIIndex( iRAS, index );
-    mEdgeVoxels->Set_Unsafe( index[0], index[1], index[2], false );
+    mPathVoxels->Set_Unsafe( index[0], index[1], index[2], false );
   }
 }
 
 bool 
-VolumeCollection::IsRASEdge ( float iRAS[3] ) {
+VolumeCollection::IsRASPath ( float iRAS[3] ) {
 
   if( NULL != mMRI ) {
     int index[3];
     RASToMRIIndex( iRAS, index );
-    return mEdgeVoxels->Get_Unsafe( index[0], index[1], index[2] );
+    return mPathVoxels->Get_Unsafe( index[0], index[1], index[2] );
   } else {
     return false;
   }
@@ -906,19 +1152,49 @@ VolumeCollection::WriteROIsToSegmentation ( string ifnVolume ) {
   MRIfree( &segVolume );
 }
 
+
+void
+VolumeCollection::SetDataToWorldTransform ( int iTransformID ) {
+
+  DataCollection::SetDataToWorldTransform( iTransformID );
+  CalcWorldToIndexTransform();
+}
+
+
+Matrix44&
+VolumeCollection::GetWorldToIndexTransform () {
+
+  return mWorldToIndexTransform.GetMainMatrix(); 
+}
+
+
+void
+VolumeCollection::SetUseWorldToIndexTransform ( bool ibUse ) {
+
+  mbUseDataToIndexTransform = ibUse;
+  CalcWorldToIndexTransform();
+}
+
 void
 VolumeCollection::CalcWorldToIndexTransform () {
 
-  // This makes it look like tkmedit when it loads a display
-  // transform, is this right???
-  //  mWorldToIndexTransform = mDataToIndexTransform;
-  //  mWorldToIndexTransform.ApplyTransform( mDataToWorldTransform->Inverse() );
-  
-  //mWorldToIndexTransform = mDataToWorldTransform->Inverse();
-  //mWorldToIndexTransform.ApplyTransform( mDataToIndexTransform );
-  
-  mWorldToIndexTransform =
-    mDataToIndexTransform * mDataToWorldTransform->Inverse();
+  if( mbUseDataToIndexTransform ) {
+
+    // Just mult our transforms together.
+    mWorldToIndexTransform =
+      mDataToIndexTransform * mDataToWorldTransform->Inverse();
+
+  } else {
+
+    Transform44 center;
+    center.SetMainTransform( 1, 0, 0, mMRI->width/2,
+			     0, 1, 0, mMRI->height/2,
+			     0, 0, 1, mMRI->depth/2,
+			     0, 0, 0, 1 );
+
+    mWorldToIndexTransform = 
+      center * mDataToWorldTransform->Inverse();
+  }
 
 #if 0
   cerr << "mDataToIndex " << mDataToIndexTransform << endl;
@@ -939,7 +1215,7 @@ VolumeCollectionFlooder::~VolumeCollectionFlooder () {
 }
 
 VolumeCollectionFlooder::Params::Params () {
-  mbStopAtEdges = true;
+  mbStopAtPaths = true;
   mbStopAtROIs  = true;
   mb3D          = true;
   mbWorkPlaneX  = true;
@@ -986,7 +1262,7 @@ VolumeCollectionFlooder::Flood ( VolumeCollection& iVolume,
   voxelSize[0] = iVolume.GetVoxelXSize();
   voxelSize[1] = iVolume.GetVoxelYSize();
   voxelSize[2] = iVolume.GetVoxelZSize();
-
+  
   this->DoBegin();
 
   Volume3<bool>* bVisited =
@@ -1007,8 +1283,8 @@ VolumeCollectionFlooder::Flood ( VolumeCollection& iVolume,
     RASPoints.pop_back();
 
 
-    if( !iVolume.IsRASInMRIBounds( ras.xyz() ) ) {
-      continue;
+    if( !iVolume.IsRASInMRIBounds( ras.xyz() ) ) { 
+     continue;
     }
 
     Point3<int> index;
@@ -1018,10 +1294,10 @@ VolumeCollectionFlooder::Flood ( VolumeCollection& iVolume,
     }
     bVisited->Set_Unsafe( index.x(), index.y(), index.z(), true );
 
-    // Check if this is an edge or an ROI. If so, and our params say
+    // Check if this is an path or an ROI. If so, and our params say
     // not go to here, continue.
-    if( iParams.mbStopAtEdges ) {
-      if( iVolume.IsRASEdge( ras.xyz() ) ) {
+    if( iParams.mbStopAtPaths ) {
+      if( iVolume.IsRASPath( ras.xyz() ) ) {
 	continue;
       }
     }

@@ -25,6 +25,8 @@ Volume3<T>::Volume3 ( int izX, int izY, int izZ, T iInitialValue ) {
 
 }
 
+
+
 template <typename T>
 Volume3<T>::~Volume3 () {
 
@@ -38,6 +40,19 @@ Volume3<T>::~Volume3 () {
     free( mData );
   }
   mData = NULL;
+}
+
+template <typename T>
+void 
+Volume3<T>::SetAll ( T iValue ) {
+
+  for( int nZ = 0; nZ < mzZ; nZ++ ) {
+    for( int nY = 0; nY < mzY; nY++ ) {
+      for( int nX = 0; nX < mzX; nX++ ) {
+	mData[nZ][nY][nX] = iValue;
+      }
+    }
+  }
 }
 
 template <typename T>

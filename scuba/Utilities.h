@@ -14,6 +14,11 @@ class Utilities {
 				   int iThickness,
 				   std::list<Point2<int> >& oPoints );
 
+  static void FindPointsOnLine3d ( int iPointA[3], int iPointB[3],
+				   std::list<Point3<int> >& oPoints );
+  static void FindPointsOnLine3f ( float iPointA[3], float iPointB[3],
+				   std::list<Point3<float> >& oPoints );
+
   static float DistanceFromLineToPoint3f ( Point3<float>& iLineA, 
 					   Point3<float>& iLineB,
 					   Point3<float>& iPoint );

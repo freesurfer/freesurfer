@@ -77,7 +77,7 @@ tkuMakeToolbar .tb \
     -command {tbWrapper} \
     -buttons {
 	{ -type text -name tb1 -label "tb1" }
-	{ -type text -name tb2 -label "tb2" }
+	{ -type text -name tb2 -label "tb2" -balloon "hi there" }
     }
 set toolbar tb2
 

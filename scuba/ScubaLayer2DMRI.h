@@ -7,7 +7,7 @@
 #include "UndoManager.h"
 #include "Timer.h"
 #include "ShortestPathFinder.h"
-#include "PointList3.h"
+#include "Path.h"
 #include "Listener.h"
 
 class ScubaLayer2DMRI : public Layer {
@@ -76,38 +76,24 @@ class ScubaLayer2DMRI : public Layer {
   float GetROIOpacity () { return mROIOpacity; }
   void SetROIOpacity ( float iOpacity ) { mROIOpacity = iOpacity; }
 
-  // Creates a new line, adds it to the list of lines, and returns it.
-  PointList3<float>* NewLine ();
-
-  // Stretch a line from its beginning to the end RAS point.
-  void StretchLineStraight  ( PointList3<float>& iLine,
+  // Stretch a path from its beginning to the end RAS point.
+  void StretchPathStraight  ( Path<float>& iPath,
 			      float iRASBegin[3], float iRASEnd[3] );
-  void StretchLineAsEdge    ( PointList3<float>& iLine,
+  void StretchPathAsEdge    ( Path<float>& iPath,
 			      float iRASBegin[3], float iRASEnd[3],
 			      ViewState& iViewState,
 			      ScubaWindowToRASTranslator& iTranslator,
 			      float iStraightBias, float iEdgeBias );
 
-  // Add a vertex to the line.
-  void AddVertexToLine ( PointList3<float>& iLine,
-			 float iRASVertex[3] );
+  // Finds the closest path in a plane.
+  Path<float>* FindClosestPathInPlane ( float iRAS[3],
+					ViewState& iViewState );
 
-  // Ends a line. Adds points to volume's edge volume.
-  void EndLine              ( PointList3<float>& iLine,
-			      ScubaWindowToRASTranslator& iTranslator );
-
-  // Returns the line closest to the RAS point.
-  PointList3<float>*
-    FindClosestLine         ( float iRAS[3],
-			      ViewState& iViewState );
-
-  // Delete a line from our list.
-  void DeleteLine           ( PointList3<float>* iLine );
-
-  void DrawRASPointListIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
-				    int iColor[3], ViewState& iViewState,
-				    ScubaWindowToRASTranslator& iTranslator,
-				    PointList3<float>& iRASList );
+ // Draw a path.
+  void DrawRASPathIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
+			       int iColor[3], ViewState& iViewState,
+			       ScubaWindowToRASTranslator& iTranslator,
+			       Path<float>& iRASPath );
 				 
   virtual void GetPreferredInPlaneIncrements ( float oIncrements[3] );
  
@@ -134,13 +120,43 @@ class ScubaLayer2DMRI : public Layer {
   float mROIOpacity;
   bool mbEditableROI;
   
-  // For lines.
-  std::list<PointList3<float>* > mLines;
-  PointList3<float>*             mCurrentLine;
-  Point3<float>                  mFirstLineRAS;
-  Point3<float>                  mLastLineMoveRAS;
+  // For paths.
+  Path<float>*   mCurrentPath;
+  Point3<float>  mFirstPathRAS;
+  Point3<float>  mLastPathMoveRAS;
 };
 
+
+class ScubaLayer2DMRIFloodVoxelEdit : public VolumeCollectionFlooder {
+ public:
+  ScubaLayer2DMRIFloodVoxelEdit ( float iValue );
+  ~ScubaLayer2DMRIFloodVoxelEdit () {}
+
+  virtual void DoBegin ();  
+  virtual void DoEnd ();
+  virtual bool DoStopRequested ();
+
+  virtual bool CompareVoxel ( float iRAS[3] );
+  virtual void DoVoxel ( float iRAS[3] );
+
+  float mValue;
+};
+
+class UndoVoxelEditAction : public UndoAction {
+ public:
+
+  UndoVoxelEditAction ( VolumeCollection* iVolume, 
+			float iNewValue, float iOrigValue, float iRAS[3] );
+
+  virtual void Undo ();
+  virtual void Redo ();
+  
+ protected:
+  VolumeCollection* mVolume;
+  float mNewValue;
+  float mOrigValue;
+  float mRAS[3];
+};
 
 class ScubaLayer2DMRIFloodSelect : public VolumeCollectionFlooder {
  public:

@@ -8,7 +8,7 @@ AM_LDFLAGS=-L$(top_srcdir)/lib $(LDFLAGS_TCL)
 UTILITIES_SRCS=Volume3.cpp \
 	Point2.cpp \
 	Point3.cpp \
-	PointList3.cpp \
+	Path.cpp \
 	Array2.cpp \
 	Utilities.cpp \
 	Matrix44.cpp \

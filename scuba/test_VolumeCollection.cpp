@@ -72,9 +72,20 @@ VolumeCollectionTester::Test ( Tcl_Interp* iInterp ) {
     char* fnMRIC = strdup( fnMRI.c_str() );
     MRI* mriComp = MRIread( fnMRIC );
     
-    Assert( (MRImatch( mriComp, mri )), "MRImatch failed" );
+    Assert( (MRImatch( mriComp, mri )), "MRImatch failed for load" );
     
     MRIfree( &mriComp );
+
+
+    // Save it in /tmp, load it, and match it again.
+    string fnSave( "/tmp/test.mgz" );
+    vol.Save( fnSave );
+    
+    VolumeCollection testVol;
+    testVol.SetFileName( fnSave );
+    MRI* testMri = testVol.GetMRI();
+    Assert( (MRImatch( testMri, mri )), "MRImatch failed for load after save");
+
 
 
     // Make an ROI and make sure it's a volume ROI.
@@ -127,6 +138,7 @@ VolumeCollectionTester::Test ( Tcl_Interp* iInterp ) {
     }
 
 
+    world.Set( -50, 0, -80 );
     if( !vol.IsRASInMRIBounds( world.xyz() ) ) {
       cerr << "IsRASInMRIBounds failed. world " << world << endl;
       throw( runtime_error( "failed" ) );
@@ -139,15 +151,28 @@ VolumeCollectionTester::Test ( Tcl_Interp* iInterp ) {
 
 
     dataTransform.SetMainTransform( 2, 0, 0, 0,
-				    0, 3, 0, 0,
+				    0, 2, 0, 0,
 				    0, 0, 2, 0,
 				    0, 0, 0, 1 );
     vol.SetDataToWorldTransform( dataTransform.GetID() );
     world.Set( 0, -258, -254 );
     if( vol.IsRASInMRIBounds( world.xyz() ) ) {
-      cerr << "IsRASInMRIBounds failed. world " << world << endl;
+      vol.RASToMRIIndex( world.xyz(), index.xyz() );
+      cerr << "IsRASInMRIBounds failed. world " << world 
+	   << " index " << index << endl;
       throw( runtime_error( "failed" ) );
     }
+
+
+    // Create a new one from template.
+    VolumeCollection vol2;
+    vol2.MakeUsingTemplate( vol.GetID() );
+    Assert( (vol.mVoxelSize[0] == vol2.mVoxelSize[0] &&
+	     vol.mVoxelSize[1] == vol2.mVoxelSize[1] &&
+	     vol.mVoxelSize[2] == vol2.mVoxelSize[2]),
+	    "NewUsingTemplate failed, vol2 didn't match vol's voxelsize" );
+	    
+
 
     // Check the tcl commands.
     char sCommand[1024];

@@ -8,6 +8,8 @@ class Volume3 {
   Volume3 ( int izX, int izY, int izZ, T iInitialValue );
   ~Volume3 ();
 
+  void SetAll ( T iValue );
+
   T Get ( int inX, int inY, int inZ );
   void Set ( int inX, int inY, int inZ, T iValue );
 

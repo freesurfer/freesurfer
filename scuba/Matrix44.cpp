@@ -413,21 +413,33 @@ Matrix44::MultiplyVector3 ( float const iVector[3], int oVector[3] ) {
   float c = m13 * iZ;
   float sum00 = a + b;
   float sum01 = c + m14;
+#ifdef RINT
+  int sumI0 = (int) rint(sum00 + sum01);
+#else
   int sumI0 = (int) (sum00 + sum01);
-  
+#endif
+
   float d = m21 * iX;
   float e = m22 * iY;
   float f = m23 * iZ;
   float sum10 = d + e;
   float sum11 = f + m24;
+#ifdef RINT
+  int sumI1 = (int) rint(sum10 + sum11);
+#else
   int sumI1 = (int) (sum10 + sum11);
+#endif
 
   float g = m31 * iX;
   float h = m32 * iY;
   float i = m33 * iZ;
   float sum20 = g + h;
   float sum21 = i + m34;
+#ifdef RINT
+  int sumI2 = (int) rint(sum20 + sum21);
+#else
   int sumI2 = (int) (sum20 + sum21);
+#endif
 
   oVector[0] = sumI0;
   oVector[1] = sumI1;

@@ -10,7 +10,7 @@ if { $err } {
     load [file dirname [info script]]/libscuba[info sharedlibextension] scuba
 }
 
-DebugOutput "\$Id: scuba.tcl,v 1.48 2004/08/20 17:55:25 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.49 2004/08/23 03:11:44 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -141,7 +141,7 @@ proc GetDefaultFileLocation { iType } {
     global gSubject
     if { [info exists gsaDefaultLocation($iType)] == 0 } {
 	switch $iType {
-	    LoadVolume {
+	    LoadVolume - SaveVolume {
 		if { [info exists env(SUBJECTS_DIR)] } {
 		    if { [info exists gSubject(homeDir)] } {
 			set gsaDefaultLocation($iType) $gSubject(homeDir)/mri
@@ -421,14 +421,18 @@ proc MakeMenuBar { ifwTop } {
     frame $fwMenuBar -border 2 -relief raised
 
     tkuMakeMenu -menu $gaMenu(file) -label "File" -items {
+	{command "New Volume..." { DoNewVolumeDlog } }
 	{command "Load Volume..." { DoLoadVolumeDlog } }
+	{command "Save Volume..." { DoSaveVolumeDlog } }
+	{separator}
 	{command "Load Label..." { DoLoadLabelDlog } }
+	{command "Save Label..." { DoSaveLabelDlog } }
+	{command "Export ROIs as Segmenation..." { DoExportROIsDlog } }
+	{separator}
 	{command "Load Transform..." { DoLoadTransformDlog } }
 	{separator}
 	{command "Save RGB Capture..." { DoSaveRGBDlog } }
 	{separator}
-	{command "Save Label..." { DoSaveLabelDlog } }
-	{command "Export ROIs as Segmenation..." { DoExportROIsDlog } }
 	{command "Quit:Alt Q" { Quit } }
     }
 
@@ -497,13 +501,20 @@ proc MakeToolBar { ifwTop } {
 	-variable gaTool($gaFrame([GetMainFrameID],toolID),mode) \
 	-command {ToolBarWrapper} \
 	-buttons {
-	    { -type image -name navigation -image icon_navigate } 
-	    { -type image -name plane -image icon_rotate_plane } 
-	    { -type image -name marker -image icon_marker_crosshair } 
-	    { -type image -name voxelEditing -image icon_edit_volume } 
-	    { -type image -name roiEditing -image icon_edit_label } 
-	    { -type image -name straightLine -image icon_line_tool } 
-	    { -type image -name edgeLine -image icon_draw_line } 
+	    { -type image -name navigation -image icon_navigate 
+		-balloon "Navigation" } 
+	    { -type image -name plane -image icon_rotate_plane 
+		-balloon "Plane" } 
+	    { -type image -name marker -image icon_marker_crosshair 
+		-balloon "Marker" } 
+	    { -type image -name voxelEditing -image icon_edit_volume 
+		-balloon "Voxel Editing" } 
+	    { -type image -name roiEditing -image icon_edit_label 
+		-balloon "ROI Editing" } 
+	    { -type image -name straightPath -image icon_line_tool 
+		-balloon "Straight Path" } 
+	    { -type image -name edgePath -image icon_draw_line 
+		-balloon "Edge Path" } 
 	}
 
     set gaTool($gaFrame([GetMainFrameID],toolID),mode) navigation
@@ -514,9 +525,12 @@ proc MakeToolBar { ifwTop } {
 	-variable gaFrame([GetMainFrameID],viewConfig) \
 	-command {ToolBarWrapper} \
 	-buttons {
-	    { -type image -name c1 -image icon_view_single }
-	    { -type image -name c22 -image icon_view_multiple }
-	    { -type image -name c13 -image icon_view_31 }
+	    { -type image -name c1 -image icon_view_single
+		-balloon "Single View" }
+	    { -type image -name c22 -image icon_view_multiple
+		-balloon "2x2 View" }
+	    { -type image -name c13 -image icon_view_31 
+		-balloon "1/3 View" }
 	}
 
     set gaFrame([GetMainFrameID],viewConfig) c1
@@ -527,9 +541,12 @@ proc MakeToolBar { ifwTop } {
 	-variable gaView(current,inPlane) \
 	-command {ToolBarWrapper} \
 	-buttons {
-	    { -type image -name x -image icon_orientation_sagittal }
-	    { -type image -name y -image icon_orientation_coronal }
-	    { -type image -name z -image icon_orientation_horizontal }
+	    { -type image -name x -image icon_orientation_sagittal 
+		-balloon "X Plane" }
+	    { -type image -name y -image icon_orientation_coronal 
+		-balloon "Y Plane" }
+	    { -type image -name z -image icon_orientation_horizontal 
+		-balloon "Z Plane" }
 	}
 
     set gaView(current,inPlane) x
@@ -552,7 +569,7 @@ proc ToolBarWrapper { isName iValue } {
     if { $iValue == 1 } {
 	switch $isName {
 	    navigation - marker - plane - voxelEditing - roiEditing - \
-		straightLine - edgeLine {
+		straightPath - edgePath {
 		SetToolMode $gaFrame([GetMainFrameID],toolID) $isName
 		SelectToolInToolProperties $isName
 	    }
@@ -1173,6 +1190,15 @@ proc MakeDataCollectionsPropertiesPanel { ifwTop } {
     grid $fwPropsVolume.fwVolume -column 0 -row 0 -sticky ew
     set gaWidget(collectionProperties,volume) $fwPropsVolume
 
+    tkuMakeCheckboxes $fwPropsVolume.cbUseDataToIndexTransform \
+	-font [tkuNormalFont] \
+	-checkboxes { 
+	    {-type text -label "Use RAS Transform" 
+		-variable gaCollection(current,useDataToIndexTransform)
+		-command { SetUseVolumeDataToIndexTransform $gaCollection(current,id) $gaCollection(current,useDataToIndexTransform) }}
+	}
+
+    grid $fwPropsVolume.cbUseDataToIndexTransform -column 0 -row 1 -sticky ew
 
     frame $fwPropsSurface
     tkuMakeFileSelector $fwPropsSurface.fwSurface \
@@ -1307,7 +1333,8 @@ proc MakeToolsPanel { ifwTop } {
     set fwPropsBrush         $fwProps.fwPropsBrush
     set fwPropsFill          $fwProps.fwPropsFill
     set fwPropsMarker        $fwProps.fwPropsMarker
-    set fwPropsEdgeLine      $fwProps.fwPropsEdgeLine
+    set fwPropsVoxelEditing  $fwProps.fwPropsVoxelEditing
+    set fwPropsEdgePath      $fwProps.fwPropsEdgePath
 
     tixOptionMenu $fwMenu \
 	-label "Tools:" \
@@ -1316,11 +1343,19 @@ proc MakeToolsPanel { ifwTop } {
     set gaWidget(toolProperties,menu) $fwMenu
 
     FillMenuFromList $fwMenu \
-	{ navigation plane marker voxelEditing roiEditing straightLine edgeLine }  "" \
-	{ "Navigation" "Plane" "Marker" "Voxel Editing" "ROI Editing" "Straight Line" "Edge Line"} false
+	{ navigation plane marker voxelEditing roiEditing straightPath edgePath }  "" \
+	{ "Navigation" "Plane" "Marker" "Voxel Editing" "ROI Editing" "Straight Path" "Edge Path"} false
 
 
     frame $fwPropsCommon
+
+    tixOptionMenu $fwPropsCommon.owLayer \
+	-label "Target Layer:" \
+	-variable gatool(current,targetLayer) \
+	-command { ToolTargetLayerMenuCallback }
+    set gaWidget(toolProperties,targetLayerMenu) $fwPropsCommon.owLayer
+
+    grid $fwPropsCommon.owLayer -column 0 -row 0 -sticky ew
 
 
     tixLabelFrame $fwPropsBrush \
@@ -1375,9 +1410,9 @@ proc MakeToolsPanel { ifwTop } {
 	    {-type text -label "Stop at other ROIs" 
 		-variable gaTool(current,stopROI)
 		-command {SetToolFloodStopAtROIs $gaFrame([GetMainFrameID],toolID) $gaTool(current,stopROI)}}
-	    {-type text -label "Stop at lines" 
-		-variable gaTool(current,stopLines)
-		-command {SetToolFloodStopAtLines $gaFrame([GetMainFrameID],toolID) $gaTool(current,stopLines)}}
+	    {-type text -label "Stop at paths" 
+		-variable gaTool(current,stopPaths)
+		-command {SetToolFloodStopAtPaths $gaFrame([GetMainFrameID],toolID) $gaTool(current,stopPaths)}}
 	}
     
     tkuMakeSliders $fwPropsFillSub.swFuzziness -sliders {
@@ -1425,25 +1460,65 @@ proc MakeToolsPanel { ifwTop } {
     set gaWidget(toolProperties,marker) $fwPropsMarker
 
 
-    tixLabelFrame $fwPropsEdgeLine \
-	-label "Edge Line Options" \
+    tixLabelFrame $fwPropsVoxelEditing \
+	-label "Voxel Editing Options" \
 	-labelside acrosstop \
 	-options {label.padX 5}
 
-    set fwPropsEdgeLineSub [$fwPropsEdgeLine subwidget frame]
+    set fwPropsVoxelEditingSub [$fwPropsVoxelEditing subwidget frame]
+ 
+    tkuMakeEntry $fwPropsVoxelEditingSub.ewNewValue \
+	-label "New Value" \
+	-width 5 \
+	-font [tkuNormalFont] \
+	-variable gaTool(current,newVoxelValue) \
+	-command { SetToolNewVoxelValue $gaTool(current,id) $gaTool(current,newVoxelValue) } \
+	-notify 1
+    set gaWidget(toolProperties,newVoxelValueEntry) \
+	$fwPropsVoxelEditingSub.ewNewValue
+
+
+    tixOptionMenu $fwPropsVoxelEditingSub.mwLUT \
+	-label "LUT:" \
+	-command "VoxelEditingLUTMenuCallback"
+    set gaWidget(toolProperties,voxelLutMenu) $fwPropsVoxelEditingSub.mwLUT
+
+
+    tixScrolledListBox $fwPropsVoxelEditingSub.lbStructure \
+	-scrollbar auto \
+	-browsecmd VoxelEditingStructureListBoxCallback
+    $fwPropsVoxelEditingSub.lbStructure subwidget listbox \
+	configure -selectmode single
+    set gaWidget(toolProperties,voxelStructureListBox) \
+	$fwPropsVoxelEditingSub.lbStructure
     
-    tkuMakeSliders $fwPropsEdgeLineSub.swEdgeBias -sliders {
+    grid $fwPropsVoxelEditingSub.ewNewValue  -column 0 -row 0 -sticky ew
+    grid $fwPropsVoxelEditingSub.mwLUT       -column 0 -row 1 -sticky ew
+    grid $fwPropsVoxelEditingSub.lbStructure -column 0 -row 2 -sticky ew
+
+    set gaWidget(toolProperties,voxelEditing) $fwPropsVoxelEditing
+
+
+
+    tixLabelFrame $fwPropsEdgePath \
+	-label "Edge Path Options" \
+	-labelside acrosstop \
+	-options {label.padX 5}
+
+    set fwPropsEdgePathSub [$fwPropsEdgePath subwidget frame]
+    
+    tkuMakeSliders $fwPropsEdgePathSub.swEdgeBias -sliders {
 	{ -label "Edge Bias" -variable gaTool(current,edgeBias)
 	    -min 0 -max 1 -resolution 0.1
-	    -command {SetToolEdgeLineEdgeBias $gaTool(current,id) $gaTool(current,edgeBias)} }
+	    -command {SetToolEdgePathEdgeBias $gaTool(current,id) $gaTool(current,edgeBias)} }
     }
 	
 
-    set gaWidget(toolProperties,edgeLineBias) $fwPropsEdgeLineSub.swEdgeBias
+    set gaWidget(toolProperties,edgePathBias) $fwPropsEdgePathSub.swEdgeBias
 
-    grid $fwPropsEdgeLineSub.swEdgeBias -column 0 -row 0 -sticky ew
+    grid $fwPropsEdgePathSub.swEdgeBias -column 0 -row 0 -sticky ew
 
-    set gaWidget(toolProperties,edgeLine) $fwPropsEdgeLine
+    set gaWidget(toolProperties,edgePath) $fwPropsEdgePath
 
 
     grid $fwMenu        -column 0 -row 0 -sticky news
@@ -1896,6 +1971,8 @@ proc UpdateCurrentCollectionInCollectionProperites {} {
 	    # Get the type specific properties.
 	    set gaCollection(current,fileName) \
 		[GetVolumeCollectionFileName $colID]
+	    set gaCollection(current,useDataToIndexTransform) \
+		[GetUseVolumeDataToIndexTransform $colID]
 	}
 	Surface {
 	    # Pack the type panel.
@@ -2278,6 +2355,7 @@ proc UpdateLayerList {} {
     global gaLayer
     global gaWidget
     global gaView
+    global gaTool
 
     # We have two jobs here. First we need to populate the menu that
     # selects the current layer in the layer props panel. Then we need
@@ -2302,6 +2380,10 @@ proc UpdateLayerList {} {
 	FillMenuFromList $gaWidget(viewProperties,drawLevelMenu$nLevel) \
 	    $gaLayer(idList) "GetLayerLabel %s" {} true
     }
+
+    # Populate layer target menu in tool properties.
+    FillMenuFromList $gaWidget(toolProperties,targetLayerMenu) \
+	$gaLayer(idList) "GetLayerLabel %s" {} true
 
     # Make sure the right layers are selected in the view draw level
     # menus.
@@ -2481,7 +2563,8 @@ proc SelectToolInToolProperties { iTool } {
     grid forget $gaWidget(toolProperties,brush)
     grid forget $gaWidget(toolProperties,fill)
     grid forget $gaWidget(toolProperties,marker)
-    grid forget $gaWidget(toolProperties,edgeLine)
+    grid forget $gaWidget(toolProperties,edgePath)
+    grid forget $gaWidget(toolProperties,voxelEditing)
 
     # Get the general layer properties from the specific layer and
     # load them into the 'current' slots.
@@ -2497,6 +2580,13 @@ proc SelectToolInToolProperties { iTool } {
     
     # Set this tool in the toolbar too.
     set gaTool($gaFrame([GetMainFrameID],toolID),mode) $gaTool(current,type)
+
+    # Get the target layer.
+    set gaTool(current,targetLayer) [GetToolLayerTarget $gaTool(current,id)]
+
+    $gaWidget(toolProperties,targetLayerMenu) config -disablecallback 1
+    $gaWidget(toolProperties,targetLayerMenu) config -value $gaTool(current,targetLayer)
+    $gaWidget(toolProperties,targetLayerMenu) config -disablecallback 0
 
     # Do the type specific stuff. Pack the relevant tool panels.
     switch $gaTool(current,type) {
@@ -2515,23 +2605,117 @@ proc SelectToolInToolProperties { iTool } {
 
 	    set gaTool(current,stopROI) \
 		[GetToolFloodStopAtROIs $gaTool(current,id)]
-	    set gaTool(current,stopLines) \
-		[GetToolFloodStopAtLines $gaTool(current,id)]
+	    set gaTool(current,stopPaths) \
+		[GetToolFloodStopAtPaths $gaTool(current,id)]
 	    set gaTool(current,maxDistance) \
 		[GetToolFloodMaxDistance $gaTool(current,id)]
 	    set gaTool(current,flood3D) \
 		[GetToolFlood3D $gaTool(current,id)]
+
+	    if { "$gaTool(current,type)" == "voxelEditing" } {
+
+		grid $gaWidget(toolProperties,voxelEditing) \
+		    -column 0 -row 4 -sticky ew
+
+		set gaTool(current,newVoxelValue) \
+		    [GetToolNewVoxelValue $gaTool(current,id)]
+		tkuRefreshEntryNotify \
+		    $gaWidget(toolProperties,newVoxelValueEntry)
+	    }
 	}
 	marker { 
 	    grid $gaWidget(toolProperties,marker) -column 0 -row 2 -sticky ew
 	}
-	edgeLine { 
-	    grid $gaWidget(toolProperties,edgeLine) -column 0 -row 2 -sticky ew
+	edgePath { 
+	    grid $gaWidget(toolProperties,edgePath) -column 0 -row 2 -sticky ew
 
 	    set gaTool(current,edgeBias) \
-		[GetToolEdgeLineEdgeBias $gaTool(current,id)]
+		[GetToolEdgePathEdgeBias $gaTool(current,id)]
 	}
     }
+}
+
+proc ToolTargetLayerMenuCallback { iTool } {
+    
+    global gaTool
+
+    set gaTool(current,targetLayer) $iTool
+    SetToolLayerTarget $gaTool(current,id) $gaTool(current,targetLayer)
+}
+
+proc VoxelEditingLUTMenuCallback { iLUTID } {
+    dputs "VoxelEditingLUTMenuCallback  $iLUTID  "
+
+    SelectLUTInVoxelEditingStructureListBox $iLUTID
+}
+
+proc SelectLUTInVoxelEditingStructureListBox { iLUTID } {
+    dputs "SelectLUTInVoxelEditingStructureListBox  $iLUTID  "
+
+    global gaWidget
+    global gaCollection
+    global gaTool
+
+    set gaTool(current,voxelLutID) $iLUTID
+
+    # Clear the listbox.
+    $gaWidget(toolProperties,voxelStructureListBox) subwidget listbox \
+	delete 0 end
+
+    # Put the entries in the list box.
+    set cEntries [GetColorLUTNumberOfEntries $gaTool(current,voxelLutID)]
+    for { set nEntry 0 } { $nEntry < $cEntries } { incr nEntry } {
+	catch {
+	    set sLabel "$nEntry: [GetColorLUTEntryLabel $gaTool(current,voxelLutID) $nEntry]"
+	    $gaWidget(toolProperties,voxelStructureListBox) subwidget listbox \
+		insert end $sLabel
+	}
+    }
+
+    # Make sure the right menu item is selected.
+    $gaWidget(toolProperties,voxelLutMenu) config -disablecallback 1
+    $gaWidget(toolProperties,voxelLutMenu) config -value $iLUTID
+    $gaWidget(toolProperties,voxelLutMenu) config -disablecallback 0
+
+    SelectStructureInVoxelEditingListBox $gaTool(current,newVoxelValue)
+}
+
+proc VoxelEditingStructureListBoxCallback {} {
+    dputs "VoxelEditingLUTMenuCallback  "
+
+    global gaTool
+    global gaWidget
+
+    set nStructure [$gaWidget(toolProperties,voxelStructureListBox) \
+			subwidget listbox curselection]
+
+    SelectStructureInVoxelEditingListBox $nStructure
+}
+
+proc SelectStructureInVoxelEditingListBox { inStructure } {
+    dputs "SelectStructureInVoxelEditingListBox  $inStructure  "
+
+    global gaTool
+    global gaWidget
+    
+    # Set value in tool.
+    catch {
+	set gaTool(current,newVoxelValue) $inStructure
+	tkuRefreshEntryNotify \
+	    $gaWidget(toolProperties,newVoxelValueEntry)
+	SetToolNewVoxelValue $gaTool(current,id) $gaTool(current,newVoxelValue)
+    }
+    
+    # Make sure the structure is highlighted and visible in the listbox.
+    catch {
+	$gaWidget(toolProperties,voxelStructureListBox) subwidget listbox \
+	    selection clear 0 end
+	$gaWidget(toolProperties,voxelStructureListBox) subwidget listbox \
+	    selection set $gaTool(current,newVoxelValue)
+	$gaWidget(toolProperties,voxelStructureListBox) subwidget listbox \
+	    see $gaTool(current,structure)
+    }
+
 }
 
 # SUBJECTS LOADER FUNCTIONS =============================================
@@ -2906,6 +3090,10 @@ proc UpdateLUTList {} {
     # Rebuild the list in the ROI props.
     FillMenuFromList $gaWidget(roiProperties,lutMenu) $gaLUT(idList) \
 	"GetColorLUTLabel %s" {} false
+
+    # Rebuild the list in voxel editing.
+    FillMenuFromList $gaWidget(toolProperties,voxelLutMenu) $gaLUT(idList) \
+	"GetColorLUTLabel %s" {} false
 }
 
 # LABEL AREA FUNCTIONS ==================================================
@@ -3186,6 +3374,8 @@ proc SetLayerInAllViewsInFrame { iFrameID iLayerID } {
 
 proc FillMenuFromList { imw ilEntries iLabelFunction ilLabels ibNone  } {
 
+    set savedValue [$imw cget -value]
+
     # Disable callback.
     $imw config -disablecallback 1
     
@@ -3216,6 +3406,10 @@ proc FillMenuFromList { imw ilEntries iLabelFunction ilLabels ibNone  } {
 	incr nEntry
     }
     
+    if { [lsearch $ilEntries $savedValue] != -1 } {
+	$imw config -value $savedValue
+    }
+
     # Renable the callback.
     $imw config -disablecallback 0
 }
@@ -3240,6 +3434,25 @@ proc ShowHideConsole { ibShow } {
 }
 
 # DATA LOADING =====================================================
+
+proc MakeVolumeCollectionUsingTemplate { iColID } {
+    dputs "MakeVolumeCollectionUsingTemplate  $iColID  "
+
+
+    set err [catch { set colID [MakeDataCollection Volume] } sResult]
+    if { 0 != $err } { tkuErrorDlog $sResult; return }
+
+    set err [catch { MakeVolumeUsingTemplate $colID $iColID } sResult]
+    if { 0 != $err } { tkuErrorDlog $sResult; return }
+
+    # Get a good name for the collection.
+    set sLabel "New Volume"
+    
+    set err [catch { SetCollectionLabel $colID $sLabel } sResult]
+    if { 0 != $err } { tkuErrorDlog $sResult; return }
+
+    return $colID
+}
 
 proc MakeVolumeCollection { ifnVolume } {
     dputs "MakeVolumeCollection  $ifnVolume  "
@@ -3307,6 +3520,44 @@ proc Make2DMRISLayer { isLabel } {
     UpdateLayerList
 
     return $layerID
+}
+
+proc NewVolume { iTemplateID ibCreateLayer iFrameIDToAdd } {
+    dputs "NewVolume  $iTemplateID $ibCreateLayer $iFrameIDToAdd  "
+
+    set err [catch { 
+	set colID [MakeVolumeCollectionUsingTemplate $iTemplateID] 
+    } sResult]
+    if { 0 != $err } { tkuErrorDlog $sResult; return }
+
+    if { $ibCreateLayer } {
+
+	set sLabel [GetCollectionLabel $colID]
+
+	set layerID [Make2DMRILayer "$sLabel"]
+
+	set err [catch {
+	    Set2DMRILayerVolumeCollection $layerID $colID } sResult]
+	if { 0 != $err } { tkuErrorDlog $sResult; return }
+	
+	if { $iFrameIDToAdd != -1 } {
+	    SetLayerInAllViewsInFrame $iFrameIDToAdd $layerID
+	}
+
+	UpdateCollectionList
+	SelectCollectionInCollectionProperties $colID
+	SelectLayerInLayerProperties $layerID
+    }
+
+    # Create a new ROI for this collection.
+    set roiID [NewCollectionROI $colID]
+    SetROILabel $roiID "New ROI"
+    SetROIType $roiID free
+    SetROIColor $roiID 0 0 255
+    UpdateROIList
+    SelectROIInROIProperties $roiID
+    
+    SetStatusBarText "Created new volume."
 }
 
 proc LoadVolume { ifnVolume ibCreateLayer iFrameIDToAdd } {
@@ -3408,6 +3659,35 @@ proc LoadTransform { ifnLTA } {
     SetStatusBarText "Loaded $ifnLTA."
 }
 
+proc DoNewVolumeDlog {} {
+    dputs "DoNewVolumeDlog  "
+
+    global gaROI
+    global gaCollection
+
+    if { [info exists gaCollection(current,id)] &&
+	 $gaCollection(current,id) >= -1 &&
+	 "$gaCollection(current,type)" == "Volume" } {
+
+	tkuDoFileDlog -title "New Volume" \
+	    -prompt1 "Will make a new volume using volume \"$gaCollection(current,label)\" as a template." \
+	    -type1 note \
+	    -type2 checkbox \
+	    -prompt2 "Automatically add new layer to all views" \
+	    -defaultvalue2 1 \
+	    -okCmd { 
+		set frameID -1
+		if { %s2 } {
+		    set frameID $gFrameWidgetToID($gaWidget(scubaFrame))
+		}
+		NewVolume $gaCollection(current,id) 1 $frameID
+	    }
+	
+    } else {
+	tkuErrorDlog "You must first select a volume to use as a template. Please select one in the data collections panel."
+    }
+}
+
 proc DoLoadVolumeDlog {} {
     dputs "DoLoadVolumeDlog  "
 
@@ -3428,6 +3708,37 @@ proc DoLoadVolumeDlog {} {
 	    LoadVolume %s1 1 $frameID
 	}
 }
+
+
+proc DoSaveVolumeDlog {} {
+    dputs "DoSaveVolumeDlog  "
+
+    global glShortcutDirs
+    global gaCollection
+
+    if { [info exists gaCollection(current,id)] &&
+	 $gaCollection(current,id) >= -1 &&
+	 "$gaCollection(current,type)" == "Volume" } {
+
+	tkuDoFileDlog -title "Save Volume" \
+	    -prompt1 "Will save volume \"$gaCollection(current,label)\"." \
+	    -type1 note \
+	    -prompt2 "Save Volume: " \
+	    -defaultvalue2 [GetDefaultFileLocation SaveVolume] \
+	    -defaultdir2 [GetDefaultFileLocation SaveVolume] \
+	    -shortcuts $glShortcutDirs \
+	    -okCmd { 
+		set err [catch {
+		    SaveVolumeWithFileName $gaCollection(current,id) %s2
+		} sResult]
+		if { 0 != $err } { tkuErrorDlog $sResult }
+	    }
+	
+    } else {
+	tkuErrorDlog "You must first select a volume to use as a template. Please select one in the data collections panel."
+    }
+}
+
 
 proc DoSaveLabelDlog {} {
     dputs "DoSaveLabelDlog  "
@@ -3758,6 +4069,7 @@ SelectViewInViewProperties 0
 SelectTransformInTransformProperties 0
 SelectLUTInLUTProperties 0
 SelectToolInToolProperties navigation
+
 
 ShowHideConsole $gaView(tkcon,visible)
 
