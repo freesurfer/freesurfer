@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: converts values on a surface to a volume
-  $Id: mri_surf2vol.c,v 1.2 2002/04/18 19:30:42 greve Exp $
+  $Id: mri_surf2vol.c,v 1.3 2002/06/20 18:49:12 greve Exp $
 */
 
 #include <stdio.h>
@@ -41,7 +41,7 @@ static int istringnmatch(char *str1, char *str2, int n);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surf2vol.c,v 1.2 2002/04/18 19:30:42 greve Exp $";
+static char vcid[] = "$Id: mri_surf2vol.c,v 1.3 2002/06/20 18:49:12 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -79,11 +79,12 @@ MRI *TempVol,*OutVol;
 MRI *VtxVol;
 MRI_SURFACE *SrcSurf;
 
-MATRIX *Ma2v, *Ma2vTKR;
-MATRIX *Tvol, *invTvol;
+MATRIX *Ma2vTKR;
+MATRIX *Kvol, *invKvol;
 MATRIX *Qa2v;
 
 float reshapefactor;
+int mksurfmask = 0;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv)
@@ -126,8 +127,13 @@ int main(int argc, char **argv)
     exit(1);
   }
 
-  /* Fix the tkregister matrix */
-  Ma2v = MRIfixTkReg(RefAnat, TempVol, Ma2vTKR);
+  /* Construct the matrix to map from Surface XYZ to vol */
+  Kvol = MRIxfmCRS2XYZtkreg(TempVol); /* converts crs to xyz in vol */
+  invKvol = MatrixInverse(Kvol,NULL); /* converts xyz to crs in vol */
+  Qa2v = MatrixMultiply(invKvol,Ma2vTKR,NULL); /* conv xyz anat to crs vol */
+  printf("Qa2v: SurfXYZ to VolCRS: ------------------------------\n");
+  MatrixPrint(stdout,Qa2v);
+  printf("--------------------------------------------------\n");
 
   /* Dump some info before staring the main program */
   dump_options(stdout);
@@ -151,59 +157,61 @@ int main(int argc, char **argv)
 
 
   /* ----------- Read in the surface values ------------------------- */
-  if(istringnmatch(surfvalfmt,"paint",0)){
-    printf("INFO: Reading %s as paint format\n",surfvalpath);
-    MRISreadValues(SrcSurf,surfvalpath);
-    SurfVal = MRIallocSequence(SrcSurf->nvertices, 1, 1,MRI_FLOAT,1);
-    for(vtx = 0; vtx < SrcSurf->nvertices; vtx ++){
-      MRIFseq_vox(SurfVal,vtx,0,0,0) = SrcSurf->vertices[vtx].val;
+  if(! mksurfmask){
+    if(istringnmatch(surfvalfmt,"paint",0)){
+      printf("INFO: Reading %s as paint format\n",surfvalpath);
+      MRISreadValues(SrcSurf,surfvalpath);
+      SurfVal = MRIallocSequence(SrcSurf->nvertices, 1, 1,MRI_FLOAT,1);
+      for(vtx = 0; vtx < SrcSurf->nvertices; vtx ++){
+  MRIFseq_vox(SurfVal,vtx,0,0,0) = SrcSurf->vertices[vtx].val;
+      }
     }
-  }
-  else { 
-    printf("INFO: reading  %s as %s\n",surfvalpath,surfvalfmt);
-    SurfVal =  MRIreadType(surfvalpath,surfvalfmtid);
-    if(SurfVal == NULL){
-      printf("ERROR: could not read %s as %s\n",surfvalpath,surfvalfmt);
-      exit(1);
+    else { 
+      printf("INFO: reading  %s as %s\n",surfvalpath,surfvalfmt);
+      SurfVal =  MRIreadType(surfvalpath,surfvalfmtid);
+      if(SurfVal == NULL){
+  printf("ERROR: could not read %s as %s\n",surfvalpath,surfvalfmt);
+  exit(1);
+      }
+      if(SurfVal->height != 1 || SurfVal->depth != 1){
+  reshapefactor = SurfVal->height * SurfVal->depth;
+  printf("INFO: Reshaping %f\n",reshapefactor);
+  mritmp = mri_reshape(SurfVal, reshapefactor*SurfVal->width, 
+           1, 1, SurfVal->nframes);
+  MRIfree(&SurfVal);
+  SurfVal = mritmp;
+      }
+      if(SurfVal->width != SrcSurf->nvertices){
+  fprintf(stderr,"ERROR: dimesion inconsitency in source data\n");
+  fprintf(stderr,"       Number of surface vertices = %d\n",
+    SrcSurf->nvertices);
+  fprintf(stderr,"      Number of value vertices = %d\n",SurfVal->width);
+  exit(1);
+      }
     }
-    if(SurfVal->height != 1 || SurfVal->depth != 1){
-      reshapefactor = SurfVal->height * SurfVal->depth;
-      printf("INFO: Reshaping %f\n",reshapefactor);
-      mritmp = mri_reshape(SurfVal, reshapefactor*SurfVal->width, 
-         1, 1, SurfVal->nframes);
-      MRIfree(&SurfVal);
-      SurfVal = mritmp;
-    }
-    if(SurfVal->width != SrcSurf->nvertices){
-      fprintf(stderr,"ERROR: dimesion inconsitency in source data\n");
-      fprintf(stderr,"       Number of surface vertices = %d\n",
-        SrcSurf->nvertices);
-      fprintf(stderr,"       Number of value vertices = %d\n",SurfVal->width);
-      exit(1);
-    }
-  }
     
-  printf("Done loading source values (nvtxs = %d)\n",SrcSurf->nvertices);
-
+    printf("Done loading source values (nvtxs = %d)\n",SrcSurf->nvertices);
+  }
+  else{
+    /* Create a mask of the surface by filling the array with 1's */
+    SurfVal =  MRIallocSequence(SrcSurf->nvertices,1,1,MRI_FLOAT,1);
+    printf("surf nframes = %d\n",SurfVal->nframes);
+    if(SurfVal == NULL){
+      printf("ERROR: could not alloc SurfVal\n");
+      exit(1);
+    }
+    MRIvalueFill(SurfVal, 1);
+  }
 
   /*---------- Allocate the output volume ------------------*/
   OutVol = MRIallocSequence(TempVol->width, TempVol->height, 
-          TempVol->depth, SurfVal->nframes,
-          MRI_FLOAT);
+          TempVol->depth,  MRI_FLOAT, SurfVal->nframes);
   if(OutVol == NULL){
     printf("ERROR: could not alloc output volume MRI\n");
     exit(1);
   }
   MRIcopyHeader(TempVol,OutVol);
   OutVol->nframes = SurfVal->nframes;
-
-  /* Construct the matrix to map from Surface XYZ to vol */
-  Tvol = MRIxfmCRS2XYZ(OutVol, 0); /* converts crs to xyz in vol */
-  invTvol = MatrixInverse(Tvol,NULL); /* converts xyz to crs in vol */
-  Qa2v = MatrixMultiply(invTvol,Ma2v,NULL); /* conv xyz anat to crs vol */
-  printf("Qa2v: SurfXYZ to VolCRS: ------------------------------\n");
-  MatrixPrint(stdout,Qa2v);
-  printf("--------------------------------------------------\n");
 
   printf("INFO: mapping vertices to closest voxel\n");
   VtxVol = MRImapSurf2VolClosest(SrcSurf, OutVol, Qa2v, projfrac);
@@ -214,6 +222,10 @@ int main(int argc, char **argv)
 
   printf("INFO: resampling surface to volume\n");  
   MRIsurf2Vol(SurfVal, OutVol, VtxVol);
+
+  //if(mksurfmask){ // This may not be necessary 
+  //  printf("INFO: binarizing output volume\n");  
+  //}
 
   if(outvolpath != NULL){
     printf("INFO: writing output volume to %s\n",outvolpath);
@@ -254,6 +266,7 @@ static int parse_commandline(int argc, char **argv)
     if (!strcasecmp(option, "--help"))  print_help() ;
     else if (!strcasecmp(option, "--version")) print_version() ;
     else if (!strcasecmp(option, "--debug"))   debug = 1;
+    else if (!strcasecmp(option, "--mkmask"))  mksurfmask = 1;
 
     else if ( !strcmp(option, "--gdiagno") ) {
       if(nargc < 1) argnerr(option,1);
@@ -375,7 +388,7 @@ static void print_usage(void)
   printf("USAGE: %s \n",Progname) ;
   printf("\n");
   printf("  --surfval surfvalpath <fmt>\n");
-  //printf("  --srcsubj subject id of surfval\n");
+  printf("  --mkmask : make a mask instead of loading surfval\n");
   printf("  --hemi    hemisphere (lh or rh)\n");
   printf("  --projfrac thickness fraction \n");
   printf("  --volreg   volume registration file\n");
@@ -389,15 +402,6 @@ static void print_usage(void)
   printf("  --gdiagno number : set diag level\n");
   printf("  --version : print version and exit\n");
   printf("  \n");
-  //printf("  --dim nc nr ns nf  \n");
-  //printf("  --res dc dr ds df\n");
-  //printf("  --cdircos x y z\n");
-//  printf("  --rdircos x y z\n");
-//  printf("  --sdircos x y z\n");
-//  printf("  --precision\n");
-//  printf("  \n");
-
-  printf("\n");
 }
 /* --------------------------------------------- */
 static void print_help(void)
@@ -416,7 +420,13 @@ static void print_help(void)
 "\n"
 "This is the source of the surface values, and, optionally, the format.\n"
 "If the format is not included, the format will be inferred from the\n"
-"path name. See FORMATS below.\n"
+"path name. See FORMATS below. A mask can be created instead; see --mkmask.\n"
+"\n"
+"--mkmask \n"
+"\n"
+"Create a binary (ie, 1/0) mask of all the locations where a surface\n"
+"vertex intersects a volume voxel. This is done instead of mapping\n"
+"surface values to the volume.\n"
 "\n"
 "--hemi hemisphere\n"
 "\n"
@@ -466,7 +476,7 @@ static void print_help(void)
 "\n"
 "--gdiagno diagnostic level\n"
 "\n"
-"Sets the diagnostic level (only good for debugggin).\n"
+"Sets the diagnostic level (only good for debugging).\n"
 "\n"
 "--version\n"
 "\n"
@@ -518,10 +528,35 @@ static void argnerr(char *option, int n)
 /* --------------------------------------------- */
 static void check_options(void)
 {
-  if(surfvalpath == NULL){
-    printf("A surface value path must be supplied\n");
+
+  if(! mksurfmask ) {
+    if(surfvalpath == NULL){
+      printf("A surface value path must be supplied\n");
+      exit(1);
+    }
+    if(surfvalfmt == NULL){
+      surfvalfmtid = mri_identify(surfvalpath);
+      if(surfvalfmtid == MRI_VOLUME_TYPE_UNKNOWN){
+  printf("ERROR: cannot recognize the type of %s\n",surfvalpath);
+  exit(1);
+      }
+      surfvalfmt = type_to_string(surfvalfmtid);
+    }
+    else{
+      if(! istringnmatch(surfvalfmt,"paint",0)){
+  surfvalfmtid = string_to_type(surfvalfmt);
+  if(surfvalfmtid == MRI_VOLUME_TYPE_UNKNOWN){
+    printf("ERROR: cannot recognize format %s\n",surfvalfmt);
     exit(1);
   }
+      }
+    }
+  }
+  if(mksurfmask && surfvalpath != NULL){
+    printf("ERROR: cannot make mask and spec surface value file\n");
+    exit(1);
+  }
+
   if(hemi == NULL){
     printf("A hemisphere must be supplied\n");
     exit(1);
@@ -597,25 +632,6 @@ static void check_options(void)
     }
   }
 
-  if(surfvalfmt == NULL){
-    surfvalfmtid = mri_identify(surfvalpath);
-    if(surfvalfmtid == MRI_VOLUME_TYPE_UNKNOWN){
-      printf("ERROR: cannot recognize the type of %s\n",surfvalpath);
-      exit(1);
-    }
-    surfvalfmt = type_to_string(surfvalfmtid);
-  }
-  else{
-    if(! istringnmatch(surfvalfmt,"paint",0)){
-      surfvalfmtid = string_to_type(surfvalfmt);
-      if(surfvalfmtid == MRI_VOLUME_TYPE_UNKNOWN){
-  printf("ERROR: cannot recognize format %s\n",surfvalfmt);
-  exit(1);
-      }
-    }
-  }
-
-
   return;
 }
 /* --------------------------------------------- */
@@ -624,16 +640,13 @@ static void dump_options(FILE *fp)
   MRI *mri;
 
   fprintf(fp,"subjects dir   %s\n",subjectsdir);
-  fprintf(fp,"surface value path  %s\n",surfvalpath);
+  if(!mksurfmask) fprintf(fp,"surface value path  %s\n",surfvalpath);
   fprintf(fp,"hemi           %s\n",hemi);
+  fprintf(fp,"mksurfmask     %d\n",mksurfmask);
   fprintf(fp,"projfrac       %g\n",projfrac);
   fprintf(fp,"volreg file    %s\n",volregfile);
   fprintf(fp,"outvol   path  %s\n",outvolpath);
   fprintf(fp,"template path  %s\n",tempvolpath);
-
-  fprintf(fp,"------- Anat2Vol Registration -----------\n");
-  MatrixPrint(fp,Ma2v);
-  fprintf(fp,"-----------------------------------------\n");
 
   fprintf(fp,"------- Anat2Vol Registration (TkReg)----\n");
   MatrixPrint(fp,Ma2vTKR);
