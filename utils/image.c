@@ -3335,10 +3335,15 @@ int
 ImageCalculateNitShiOffset(IMAGE *Ix, IMAGE *Iy, int wsize, 
                           float mu, float c, IMAGE *offsetImage)
 {
-  int    x0, y0, rows, cols, x, y, whalf, xc, yc ;
-  float  vx, vy, fxpix, fypix, vsq, c1, *g, dot_product, *xpix, *ypix ;
+  int    x0, y0, rows, cols, x, y, whalf ;
+  float  vx, vy, vsq, c1, *g, *xpix, *ypix ;
   static float *gaussian = NULL ;
   static int   w = 0 ;
+  register float gauss, fxpix, fypix, dot_product ;
+  register int   xc, yc ;
+
+  mu *= mu ;     
+  vsq = 0.0f ;  /* prevent compiler warning */
 
   rows = Ix->rows ;
   cols = Ix->cols ;
@@ -3387,8 +3392,6 @@ ImageCalculateNitShiOffset(IMAGE *Ix, IMAGE *Iy, int wsize,
     for (x0 = 0 ; x0 < cols ; x0++, xpix++, ypix++)
     {
       
-      if (x0 == 18 && y0 == 22)
-        x0 = 18 ;
 /*
   x and y are in window coordinates, while xc and yc are in image
   coordinates.
@@ -3414,16 +3417,20 @@ ImageCalculateNitShiOffset(IMAGE *Ix, IMAGE *Iy, int wsize,
           fxpix = *IMAGEFpix(Ix, xc, yc) ;
           fypix = *IMAGEFpix(Iy, xc, yc) ;
           dot_product = x * fxpix + y * fypix ;
-          vx += *g * (dot_product * fxpix) ;
-          vy += *g * (dot_product * fypix) ;
+          gauss = *g ;
+          dot_product *= gauss ;
+          vx += (dot_product * fxpix) ;
+          vy += (dot_product * fypix) ;
         }
       }
 
+#if 0
+      /* calculated phi(V) */
       vsq = vx*vx + vy*vy ;
 
-      /* calculated phi(V) */
       vx = vx*c1 / (float)sqrt((double)(mu*mu + vsq)) ;
       vy = vy*c1 / (float)sqrt((double)(mu*mu + vsq)) ;
+#endif
       *xpix = -vx ;
       *ypix = -vy ;
     }
@@ -4780,9 +4787,10 @@ ImageNormalizeFrames(IMAGE *inImage, IMAGE *outImage)
 IMAGE *
 ImageNormalizeOffsetDistances(IMAGE *Isrc, IMAGE *Idst, int maxsteps)
 {
-  float  *src_xpix, *src_ypix, *dst_xpix, *dst_ypix, slope, dx,dy, odx, 
-         ody, xf, yf, dot ;
-  int    x0, y0, rows, cols, x, y, delta, i ;
+  float  *src_xpix, *src_ypix, *dst_xpix, *dst_ypix, slope, xf, yf, dot ;
+  int    x0, y0, rows, cols, delta, i ;
+  register int x, y ;
+  register float  dx, dy, odx, ody ;
 
   if (!Idst)
     Idst = ImageAlloc(Isrc->rows, Isrc->cols,Isrc->pixel_format,
@@ -4801,8 +4809,6 @@ ImageNormalizeOffsetDistances(IMAGE *Isrc, IMAGE *Idst, int maxsteps)
   {
     for (x0 = 0 ; x0 < cols ; x0++,src_xpix++,src_ypix++,dst_xpix++,dst_ypix++)
     {
-      if (x0 == 19 && y0 == 23)
-        x0 = 19 ;
 /* 
       search for the first point in the offset direction who's dot product
       with the current offset vector is below some threshold.
