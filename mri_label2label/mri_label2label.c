@@ -1,6 +1,6 @@
 /*----------------------------------------------------------
   Name: mri_label2label.c
-  $Id: mri_label2label.c,v 1.7 2002/05/14 21:59:43 greve Exp $
+  $Id: mri_label2label.c,v 1.8 2002/05/16 17:20:29 greve Exp $
   Author: Douglas Greve
   Purpose: Converts a label in one subject's space to a label
   in another subject's space using either talairach or spherical
@@ -58,7 +58,7 @@ static int  nth_is_arg(int nargc, char **argv, int nth);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_label2label.c,v 1.7 2002/05/14 21:59:43 greve Exp $";
+static char vcid[] = "$Id: mri_label2label.c,v 1.8 2002/05/16 17:20:29 greve Exp $";
 char *Progname = NULL;
 
 char  *srclabelfile = NULL;
@@ -102,6 +102,9 @@ int srcmaskframe = 0;
 float srcmaskthresh = 0.0;
 MRI *SrcMask;
 
+int useprojabs = 0, useprojfrac = 0; 
+float projabs = 0.0, projfrac = 0.0;
+
 /*-------------------------------------------------*/
 int main(int argc, char **argv)
 {
@@ -109,8 +112,10 @@ int main(int argc, char **argv)
   MHT *TrgHash;
   VERTEX *srcvtx, *trgvtx;
   int n,err,srcvtxno,trgvtxno,allzero;
-  float dmin;
+  float dmin, projdist=0.0, dx, dy, dz;
   float SubjRadius, Scale;
+  char fname[2000];
+  
 
   printf("\n");
 
@@ -251,7 +256,7 @@ int main(int argc, char **argv)
   exit(1);
       }
     }
-    
+      
     /*** Load the target surfaces ***/
     if(strcmp(trgsubject,"ico")){
       /* load target xyz surface */
@@ -293,15 +298,21 @@ int main(int argc, char **argv)
       TrgHash = MHTfillVertexTableRes(TrgSurfReg, NULL,
               CURRENT_VERTICES,hashres);
     }
+    if(useprojfrac){
+      sprintf(fname,"%s/%s/surf/%s.thickness",SUBJECTS_DIR,srcsubject,hemi);
+      printf("Reading thickness %s\n",fname);
+      MRISreadCurvatureFile(TrgSurf, fname);
+      printf("Done\n");
+    }
 
     /* handle source mask */
     if(srcmaskfile != NULL){
       printf("INFO: masking label\n");
       //SrcMask = MRIloadSurfVals(srcmaskfile, srcmaskfmt, NULL,
       //      srcsubject, hemi, NULL);
-
+      
       SrcMask = MRISloadSurfVals(srcmaskfile, srcmaskfmt, SrcSurfReg,
-        NULL,NULL,NULL);
+         NULL,NULL,NULL);
       if(SrcMask == NULL) exit(1);
       tmplabel = MaskSurfLabel(srclabel, SrcMask, 
              srcmaskthresh, srcmasksign, srcmaskframe);
@@ -351,11 +362,23 @@ int main(int argc, char **argv)
       /* target vertex */
       trgvtx = &(TrgSurf->vertices[trgvtxno]);
 
+      if(useprojabs || useprojfrac){
+  if(useprojabs)  projdist = projabs;
+  if(useprojfrac) projdist = projfrac * trgvtx->curv;
+  dx = projdist*trgvtx->nx;
+  dy = projdist*trgvtx->ny;
+  dz = projdist*trgvtx->nz;
+      }
+      else {
+  dx = 0.0;
+  dy = 0.0;
+  dz = 0.0;
+      }
 
       trglabel->lv[n].vno = trgvtxno;
-      trglabel->lv[n].x = trgvtx->x;
-      trglabel->lv[n].y = trgvtx->y;
-      trglabel->lv[n].z = trgvtx->z;
+      trglabel->lv[n].x = trgvtx->x + dx;
+      trglabel->lv[n].y = trgvtx->y + dy;
+      trglabel->lv[n].z = trgvtx->z + dz;
       trglabel->lv[n].stat = srclabel->lv[n].stat;
     }
 
@@ -465,6 +488,20 @@ static int parse_commandline(int argc, char **argv)
       nargsused = 1;
     }
 
+    else if (!strcmp(option, "--projabs")){
+      if(nargc < 1) argnerr(option,1);
+      sscanf(pargv[0],"%f",&projabs);
+      useprojabs = 1;
+      nargsused = 1;
+    }
+
+    else if (!strcmp(option, "--projfrac")){
+      if(nargc < 1) argnerr(option,1);
+      sscanf(pargv[0],"%f",&projfrac);
+      useprojfrac = 1;
+      nargsused = 1;
+    }
+
     else if (!strcmp(option, "--hemi")){
       if(nargc < 1) argnerr(option,1);
       hemi = pargv[0];
@@ -519,6 +556,9 @@ static void print_usage(void)
   fprintf(stdout, "   --srcmask     surfvalfile thresh <format>\n");
   fprintf(stdout, "   --srcmasksign sign (<abs>,pos,neg)\n");
   fprintf(stdout, "   --srcmaskframe 0-based frame number <0>\n");
+  fprintf(stdout, "\n");
+  fprintf(stdout, "   --projabs  dist project dist mm along surf normal\n");
+  fprintf(stdout, "   --projfrac frac project frac of thickness along surf normal\n");
   fprintf(stdout, "\n");
 }
 /* --------------------------------------------- */
@@ -589,6 +629,8 @@ static void print_help(void)
 "     transform in trgsubject/mri/transforms/talairach.xfm.\n"
 "  5. The registration surfaces are rescaled to a radius of 100 (including \n"
 "     the ico)\n"
+"  6. Projections along the surface normal can be either negative or\n"
+"     positive, but can only be used with surface registration method.\n"
 );
 
 
@@ -618,7 +660,8 @@ static void dump_options(FILE *fp)
     fprintf(fp,"srcmaskthresh %g %s\n",srcmaskthresh, srcmasksign);
     fprintf(fp,"srcmaskframe %d\n",srcmaskframe);
   }
-
+  printf("Use ProjAbs  = %d, %g\n",useprojabs,projabs);
+  printf("Use ProjFrac = %d, %g\n",useprojfrac,projfrac);
 
   fprintf(fp,"\n");
 
@@ -721,6 +764,18 @@ static void check_options(void)
     fprintf(stderr,"ERROR: cannot use talairach with surface mapping\n");
     exit(1);
   }
+
+  if(useprojabs && useprojfrac){
+    fprintf(stderr,"ERROR: cannot use absolute and fractional projection\n");
+    exit(1);
+  }
+
+  if( (useprojabs || useprojfrac) &&  strcmp(regmethod,"surface") ){
+    fprintf(stderr,"ERROR: must use surface regmethod with absolute "
+      "or fractional projection\n");
+    exit(1);
+  }
+
 
   return;
 }
