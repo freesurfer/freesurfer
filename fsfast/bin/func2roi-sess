@@ -1,7 +1,7 @@
 #!/bin/csh -f
 # func2roi-sess 
 
-set VERSION = '$Id: func2roi-sess,v 1.2 2003/03/20 22:32:38 greve Exp $';
+set VERSION = '$Id: func2roi-sess,v 1.3 2003/03/20 23:11:03 greve Exp $';
 set FASTVER = `cat $FMRI_ANALYSIS_DIR/docs/version`;
 
 set inputargs = ($argv);
@@ -783,6 +783,11 @@ check_params:
 
   if($usemask && $usefsdmask) then
     echo "ERROR: cannot specify contrast and fsd masks"
+    exit 1;
+  endif
+
+  if($#anapend != 0 && $NthRun != 0) then
+    echo "ERROR: cannot specify both anapend and nthrun"
     exit 1;
   endif
 
