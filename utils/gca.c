@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2004/04/02 22:08:36 $
-// Revision       : $Revision: 1.119 $
+// Revision Date  : $Date: 2004/04/03 17:31:00 $
+// Revision       : $Revision: 1.120 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -8965,76 +8965,76 @@ GCArenormalizeAdaptive(MRI *mri_in, MRI *mri_labeled, GCA *gca, TRANSFORM *trans
           if (label == Unknown)
             continue ;
           if( gcaNodeToPrior(gca, x, y, z, &xp, &yp, &zp)==NO_ERROR)
-	  {
-	    gc = &gcan->gcs[n] ;
+					{
+						gc = &gcan->gcs[n] ;
 
 #define MIN_SAMPLES 20
-	    wsize = orig_wsize ;
-	    if (label == Ggca_label)
-	      DiagBreak() ;
-	    do
-	    {
-	      gcas = gcaExtractThresholdedRegionLabelAsSamples(gca, mri_labeled,transform,
-							       &nsamples,label,
-							       xp, yp, zp, wsize,pthresh);
+						wsize = orig_wsize ;
+						if (label == Ggca_label)
+							DiagBreak() ;
+						do
+						{
+							gcas = gcaExtractThresholdedRegionLabelAsSamples(gca, mri_labeled,transform,
+																															 &nsamples,label,
+																															 xp, yp, zp, wsize,pthresh);
 	      
-	      if (x == Ggca_x && y == Ggca_y && z == Ggca_z)
-		DiagBreak() ;
-	      wsize += 2;  
-	      if (gcas && nsamples < MIN_SAMPLES)
-		GCAfreeSamples(&gcas, nsamples) ;
-	    } while ((nsamples < MIN_SAMPLES) && (wsize < 2*orig_wsize));
+							if (x == Ggca_x && y == Ggca_y && z == Ggca_z)
+								DiagBreak() ;
+							wsize += 2;  
+							if (gcas && nsamples < MIN_SAMPLES)
+								GCAfreeSamples(&gcas, nsamples) ;
+						} while ((nsamples < MIN_SAMPLES) && (wsize < 2*orig_wsize));
 	    
-	    if (nsamples < MIN_SAMPLES) /* couldn't find any in this nbhd */
-	      continue ;
+						if (nsamples < MIN_SAMPLES) /* couldn't find any in this nbhd */
+							continue ;
 	    
-	    for (frame = 0 ; frame < gca->ninputs ; frame++)
-	    {
-	      gcaHistogramSamples(gca, gcas, mri_in, transform, nsamples, histo, frame);
-	      HISTOsmooth(histo, hsmooth, 2) ;
-	      if (IS_WM(label) && gca->ninputs == 1)
-		peak = HISTOfindLastPeakRelative(hsmooth, HISTO_WINDOW_SIZE,.3);
-	      else if (IS_LAT_VENT(label) && gca->ninputs == 1)
-		peak = HISTOfindFirstPeakRelative(hsmooth, HISTO_WINDOW_SIZE,.3);
-	      else
-		peak = HISTOfindHighestPeakInRegion(hsmooth, fmin, fmax) ;
-	      if (peak < 0)
-		continue ;
+						for (frame = 0 ; frame < gca->ninputs ; frame++)
+						{
+							gcaHistogramSamples(gca, gcas, mri_in, transform, nsamples, histo, frame);
+							HISTOsmooth(histo, hsmooth, 2) ;
+							if (IS_WM(label) && gca->ninputs == 1)
+								peak = HISTOfindLastPeakRelative(hsmooth, HISTO_WINDOW_SIZE,.3);
+							else if (IS_LAT_VENT(label) && gca->ninputs == 1)
+								peak = HISTOfindFirstPeakRelative(hsmooth, HISTO_WINDOW_SIZE,.3);
+							else
+								peak = HISTOfindHighestPeakInRegion(hsmooth, 0, (fmax-fmin)*hsmooth->bin_size) ;
+							if (peak < 0)
+								continue ;
 #if 0
-	      ordered_indices = (int *)calloc(nsamples, sizeof(int)) ;
-	      GCAcomputeLogSampleProbability(gca, gcas, mri_in, transform, nsamples) ;
-	      GCArankSamples(gca, gcas, nsamples, ordered_indices) ;
+							ordered_indices = (int *)calloc(nsamples, sizeof(int)) ;
+							GCAcomputeLogSampleProbability(gca, gcas, mri_in, transform, nsamples) ;
+							GCArankSamples(gca, gcas, nsamples, ordered_indices) ;
 	      
-	      if (nsamples > MIN_SAMPLES)
-	      {
-		if (nint(nsamples*SAMPLE_PCT) < MIN_SAMPLES)
-		  nsamples = MIN_SAMPLES ;
-		else
-		  nsamples = nint(SAMPLE_PCT * (float)nsamples) ;
-	      }
+							if (nsamples > MIN_SAMPLES)
+							{
+								if (nint(nsamples*SAMPLE_PCT) < MIN_SAMPLES)
+									nsamples = MIN_SAMPLES ;
+								else
+									nsamples = nint(SAMPLE_PCT * (float)nsamples) ;
+							}
 	      
 	      
-	      /* compute mean and variance of image intensities in this label */
-	      for (var = mean = 0.0f, i = 0 ; i < nsamples ; i++)
-	      {
-		index = ordered_indices[i] ;
-		MRIsampleVolumeFrame(mri_in, gcas[index].x, gcas[index].y, gcas[index].z,
-				     frame, &val);
-		mean += val ;
-		var += val*val ;
-		if (gcas[index].x == Ggca_x &&  gcas[index].y == Ggca_y &&
-		    gcas[index].z == Ggca_z)
-		  DiagBreak() ;
-	      }
-	      mean /= (float)nsamples ; var = var / nsamples - mean*mean ; 
-	      var = sqrt(var);
-	      free(ordered_indices) ;
-	      gc->means[0] = mean ;
+							/* compute mean and variance of image intensities in this label */
+							for (var = mean = 0.0f, i = 0 ; i < nsamples ; i++)
+							{
+								index = ordered_indices[i] ;
+								MRIsampleVolumeFrame(mri_in, gcas[index].x, gcas[index].y, gcas[index].z,
+																		 frame, &val);
+								mean += val ;
+								var += val*val ;
+								if (gcas[index].x == Ggca_x &&  gcas[index].y == Ggca_y &&
+										gcas[index].z == Ggca_z)
+									DiagBreak() ;
+							}
+							mean /= (float)nsamples ; var = var / nsamples - mean*mean ; 
+							var = sqrt(var);
+							free(ordered_indices) ;
+							gc->means[0] = mean ;
 #endif
-	      gc->means[frame] = (float)peak ;
-	    }
-	    GCAfreeSamples(&gcas, nsamples) ; 
-	  }
+							gc->means[frame] = (float)peak ;
+						}
+						GCAfreeSamples(&gcas, nsamples) ; 
+					}
         }
       }
     }
@@ -9787,7 +9787,7 @@ GCAhistoScaleImageIntensities(GCA *gca, MRI *mri)
     if (gca->ninputs == 1)   /* assume it is T1-weighted */
       mri_peak = HISTOfindLastPeak(h_mri, 2*HISTO_WINDOW_SIZE,MIN_HISTO_PCT);
     else
-      mri_peak = HISTOfindHighestPeakInRegion(h_mri, 1, h_mri->nbins * h_mri->bin_size);
+      mri_peak = HISTOfindHighestPeakInRegion(h_mri, 1, h_mri->nbins);
     mri_peak = h_mri->bins[mri_peak] ;
     printf("before smoothing, mri peak at %d\n", mri_peak) ;
     h_smooth = HISTOsmooth(h_mri, NULL, 2) ;
@@ -9797,7 +9797,7 @@ GCAhistoScaleImageIntensities(GCA *gca, MRI *mri)
     if (gca->ninputs == 1 && (gca->type == GCA_UNKNOWN || (gca->type == GCA_FLASH && (DEGREES(mri->flip_angle)>15))))
       mri_peak = HISTOfindLastPeak(h_smooth, HISTO_WINDOW_SIZE,MIN_HISTO_PCT);
     else
-      mri_peak = HISTOfindHighestPeakInRegion(h_mri, 1, h_mri->nbins * h_mri->bin_size);
+      mri_peak = HISTOfindHighestPeakInRegion(h_mri, 1, h_mri->nbins);
     mri_peak = h_mri->bins[mri_peak] ;
     printf("after smoothing, mri peak at %d, scaling input intensities "
 	   "by %2.3f\n", mri_peak, wm_means[r]/mri_peak) ;
