@@ -122,7 +122,7 @@ get_option(int argc, char *argv[])
     break ;
   case '?':
   case 'U':
-    printf("usage: %s <training file>", argv[0]) ;
+    printf("usage: %s <training file> <output file>", argv[0]) ;
     exit(1) ;
     break ;
   default:
