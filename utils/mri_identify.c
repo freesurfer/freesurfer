@@ -111,6 +111,14 @@ int string_to_type(char *string)
     type = XIMG_FILE;
   if(strcmp(ls, "nifti1") == 0)
     type = NIFTI1_FILE;
+  // check for IMAGE file
+  if (!strcmp(ls, "mat")
+      || !strcmp(ls, "tif") || !strcmp(ls, "tiff")
+      || !strcmp(ls, "jpg") || !strcmp(ls, "jpeg")
+      || !strcmp(ls, "pgm") || !strcmp(ls, "ppm")
+      || !strcmp(ls, "pbm") || !strcmp(ls, "rgb"))
+    type = IMAGE_FILE;
+  
   return(type);
 
 } /* end string_to_type() */
@@ -139,6 +147,10 @@ int mri_identify(char *fname_passed)
       type = string_to_type(ext);
       ///////////////////////////////////////////////
       // if type is found then verify
+      // IMAGE file uses only extension
+      if (type == IMAGE_FILE)
+	return type;
+
       if (type != MRI_VOLUME_TYPE_UNKNOWN)
       {
 	switch(type)
