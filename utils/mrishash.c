@@ -1671,3 +1671,45 @@ MHTgetAllVerticesWithinDistance(MRIS_HASH_TABLE *mht, MRI_SURFACE *mris,
   return(returned_vertices) ;
 }
 
+
+/*
+	find vertex in hash table that is closest to input coordinates */
+VERTEX *
+MHTfindClosestVertexInTable(MRIS_HASH_TABLE *mht, MRI_SURFACE *mris, float x, float y, float z)
+{
+  VERTEX    *vmin, *vdst ;
+  int       i, xk, yk, zk ;
+  double    dist, min_dist ;
+  MHB       *bin ;
+  MHBT      *bucket ;
+
+  min_dist = 10000000 ; vmin = NULL ;
+  for (zk = -1 ; zk <= 1 ; zk++)
+  {
+    for (yk = -1 ; yk <= 1 ; yk++)
+    {
+      for (xk = -1 ; xk <= 1 ; xk++)
+      {      
+        bucket = MHTgetBucket(mht, x, y, z) ;
+        if (!bucket)
+          continue ;
+        bin = bucket->bins ; 
+        for (i = 0 ; i < bucket->nused ; i++, bin++)
+        {
+          vdst = &mris->vertices[bin->fno] ;
+
+          if (bin->fno == Gdiag_no)
+            DiagBreak() ;
+          dist = sqrt(SQR(vdst->x-x)+SQR(vdst->y-y)+SQR(vdst->z-z)) ;
+          if (dist < min_dist)
+          {
+            min_dist = dist ;
+            vmin = vdst ;
+          }
+        }
+      }
+    }
+  }
+
+  return(vmin) ;
+}
