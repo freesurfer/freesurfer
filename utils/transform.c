@@ -975,6 +975,67 @@ int FixMNITal(float  xmni, float  ymni, float  zmni,
 
   return(0);
 }
+/*-----------------------------------------------------------------
+  DevolveXFM() - change a tranformation matrix to work with tkreg RAS
+  coordinates (ie, c_ras = 0). Assumes that the transformation matrix
+  was computed with the orig-volume native vox2ras transform (or any
+  volume with the same geometry). The XFM maps from native orig RAS to
+  a native target RAS. Note: this has no effect when the orig volume
+  has c_ras = 0. If XFM is empty, then the talairach.xfm is read from
+  the subject's directory.  
+  Note: uses LTAvoxelTransformToCoronalRasTransform(). 
+  -----------------------------------------------------------------*/
+MATRIX *DevolveXFM(char *subjid, MATRIX *XFM)
+{
+  MATRIX *Torig_tkreg, *invTorig_tkreg, *Torig_native, *Mfix;
+  char origdir[2000], xfmpath[2000], *sd;
+  MRI *mriorig;
+  FILE *fp;
+  LTA    *lta;
+
+  sd = getenv("SUBJECTS_DIR") ;
+  if(sd==NULL){
+    printf("ERROR: SUBJECTS_DIR not defined\n");
+    return(NULL);
+  }
+  sprintf(origdir,"%s/%s/mri/orig",sd,subjid);
+  mriorig = MRIreadHeader(origdir,MRI_CORONAL_SLICE_DIRECTORY);
+  if(mriorig == NULL){
+    printf("ERROR: could not read header for %s\n",origdir);
+    return(NULL);
+  }
+  if(XFM==NULL){
+    /* Read in the talairach.xfm matrix */
+    sprintf(xfmpath,"%s/%s/mri/transforms/talairach.xfm",sd,subjid);
+    fp = fopen(xfmpath,"r");
+    if(fp == NULL){
+      printf("ERROR: could not open %s for reading \n",xfmpath);
+      return(NULL);
+    }
+    lta = LTAread(xfmpath);
+    if(lta->type == LINEAR_VOX_TO_VOX)
+      LTAvoxelTransformToCoronalRasTransform(lta);
+    XFM = lta->xforms[0].m_L;
+    LTAfree(&lta);
+  }
+
+  /* Mfig = inv(Torig_tkreg)*Torig_native */
+  /* X2 = Mfix*X */
+  Torig_tkreg  = MRIxfmCRS2XYZtkreg(mriorig);
+  Torig_native = MRIxfmCRS2XYZ(mriorig,0);
+  invTorig_tkreg = MatrixInverse(Torig_tkreg,NULL);
+  Mfix = MatrixMultiply(Torig_native,invTorig_tkreg,NULL);
+  MatrixMultiply(XFM,Mfix,XFM);
+
+  MatrixFree(&Mfix);
+  MatrixFree(&Torig_tkreg);
+  MatrixFree(&invTorig_tkreg);
+  MatrixFree(&Torig_native);
+  MRIfree(&mriorig);
+
+  return(XFM);
+}
+/*----------------------------------------------------------------*/
 TRANSFORM *
 TransformRead(char *fname)
 {

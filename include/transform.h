@@ -72,7 +72,7 @@ int      LTAvoxelTransformToCoronalRasTransform(LTA *lta) ;
 
 int FixMNITal(float  xmni, float  ymni, float  zmni,
         float *xtal, float *ytal, float *ztal);
-
+MATRIX *DevolveXFM(char *subjid, MATRIX *XFM);
 
 TRANSFORM *TransformRead(char *fname) ;
 TRANSFORM *TransformIdentity(void) ;
