@@ -11,8 +11,9 @@
 #include "mri.h"
 #include "error.h"
 #include "proto.h"
+#include "version.h"
 
-static char vcid[] = "$Id: mri_wmfilter.c,v 1.13 2002/10/23 15:57:20 fischl Exp $";
+static char vcid[] = "$Id: mri_wmfilter.c,v 1.14 2003/04/16 19:00:13 kteich Exp $";
 
 /*-------------------------------------------------------------------
                                 CONSTANTS
@@ -77,6 +78,12 @@ main(int argc,char *argv[])
   char  fpref[STRLEN],pname[STRLEN];
   char  *data_dir,*mri_dir;
   MRI   *mri_src, *mri_dst ;
+
+  /* rkt: check for and handle version tag */
+  nargs = handle_version_option (argc, argv, "$Id: mri_wmfilter.c,v 1.14 2003/04/16 19:00:13 kteich Exp $");
+  if (nargs && argc - nargs == 1)
+    exit (0);
+  argc -= nargs;
 
   Progname = argv[0] ;
   for ( ; argc > 1 && (*argv[1] == '-') ; argc--, argv++)

@@ -1,6 +1,6 @@
 /*----------------------------------------------------------
   Name: vol2surf.c
-  $Id: mri_vol2surf.c,v 1.12 2002/11/27 00:59:59 greve Exp $
+  $Id: mri_vol2surf.c,v 1.13 2003/04/16 18:58:43 kteich Exp $
   Author: Douglas Greve
   Purpose: Resamples a volume onto a surface. The surface
   may be that of a subject other than the source subject.
@@ -44,6 +44,7 @@
 #include "registerio.h"
 #include "resample.h"
 #include "selxavgio.h"
+#include "version.h"
 
 static int  parse_commandline(int argc, char **argv);
 static void check_options(void);
@@ -56,7 +57,7 @@ static void dump_options(FILE *fp);
 static int  singledash(char *flag);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2surf.c,v 1.12 2002/11/27 00:59:59 greve Exp $";
+static char vcid[] = "$Id: mri_vol2surf.c,v 1.13 2003/04/16 18:58:43 kteich Exp $";
 char *Progname = NULL;
 
 char *defaulttypestring;
@@ -134,6 +135,13 @@ int main(int argc, char **argv)
   int nTrg121,nSrc121,nSrcLost;
   int nTrgMulti,nSrcMulti;
   float MnTrgMultiHits,MnSrcMultiHits;
+  int nargs;
+
+  /* rkt: check for and handle version tag */
+  nargs = handle_version_option (argc, argv, "$Id: mri_vol2surf.c,v 1.13 2003/04/16 18:58:43 kteich Exp $");
+  if (nargs && argc - nargs == 1)
+    exit (0);
+  argc -= nargs;
 
   Progname = argv[0] ;
   argc --;

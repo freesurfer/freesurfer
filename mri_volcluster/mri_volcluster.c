@@ -30,6 +30,7 @@
 #include "resample.h"
 
 #include "volcluster.h"
+#include "version.h"
 
 static MATRIX *LoadMNITransform(char *regfile, int ncols, int nrows, 
         int nslices, MATRIX **ppCRS2FSA,
@@ -62,7 +63,7 @@ static void dump_options(FILE *fp);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_volcluster.c,v 1.6 2002/08/06 19:23:49 greve Exp $";
+static char vcid[] = "$Id: mri_volcluster.c,v 1.7 2003/04/16 18:58:33 kteich Exp $";
 char *Progname = NULL;
 
 static char tmpstr[2000];
@@ -132,6 +133,13 @@ int main(int argc, char **argv)
   int col, row, slc;
   int nthhit, n, nclusters, nprunedclusters;
   float x,y,z;
+  int nargs;
+
+  /* rkt: check for and handle version tag */
+  nargs = handle_version_option (argc, argv, "$Id: mri_volcluster.c,v 1.7 2003/04/16 18:58:33 kteich Exp $");
+  if (nargs && argc - nargs == 1)
+    exit (0);
+  argc -= nargs;
 
   Progname = argv[0] ;
   argc --;
