@@ -1624,6 +1624,8 @@ MRIresegmentThinWMStrands(MRI *mri_src, MRI *mri_dst, int thickness)
   
   return(mri_dst) ;
 }
+MRI   *MRIfillPlanarHoles(MRI *mri_src, MRI *mri_segment, MRI *mri_dst,
+                          MRI_SEGMENT *mseg);
 #if 0
 /*-----------------------------------------------------
         Parameters:
@@ -1634,7 +1636,7 @@ MRIresegmentThinWMStrands(MRI *mri_src, MRI *mri_dst, int thickness)
 ------------------------------------------------------*/
 #define MAX_LABELS   10000
 MRI *
-MRIthickenThinWMStrands(MRI *mri_src, MRI *mri_dst, int thickness, int nvoxels)
+MRIthickenThinWMStrands(MRI *mri_src,MRI *mri_dst,int thickness,int nsegments)
 {
   int      width, height, depth, x, y, z, vertex, thin, i, total_filled, 
            nfilled, nseg ;
@@ -1717,14 +1719,14 @@ MRIthickenThinWMStrands(MRI *mri_src, MRI *mri_dst, int thickness, int nvoxels)
 
     mriseg = MRIsegment(mri_thin, 1, 255) ;
     nfilled = 0 ;
-    for (nseg = i = 0 ; i < mriseg->max_segments ; i++)
+    for (nseg = 0 ; nseg < nsegments ; nseg++)
     {
       MRI_SEGMENT *mseg ;
       int         v, xd, yd, zd ;
 
-      if (mriseg->segments[i].nvoxels < nvoxels)
-        continue ;
-      nseg++ ;
+      i = MRIsegmentMax(mriseg) ;
+      if (i < 0)
+        break ;
       mseg = &mriseg->segments[i] ;
       for (v = 0 ; v < mseg->nvoxels ; v++)
       {
@@ -1764,11 +1766,9 @@ MRIthickenThinWMStrands(MRI *mri_src, MRI *mri_dst, int thickness, int nvoxels)
         Description
 ------------------------------------------------------*/
 #define MAX_LABELS           10000
-#define FILLED_VAL           225
-#define NBHD_FILLED_VAL      175
 #define TOO_THIN             2
 MRI *
-MRIthickenThinWMStrands(MRI *mri_src, MRI *mri_dst, int thickness, int nvoxels)
+MRIthickenThinWMStrands(MRI *mri_src, MRI *mri_dst,int thickness,int nsegments)
 {
   int      width, height, depth, x, y, z, thin, i, dont_fill, up_added,
            down_added, total_filled, nfilled, nseg, nx, ny, nz, xv, yv, zv, v ;
@@ -1899,11 +1899,12 @@ MRIthickenThinWMStrands(MRI *mri_src, MRI *mri_dst, int thickness, int nvoxels)
     MRI_SEGMENT *mseg ;
     MRI  *mri_tmp = NULL ;
       
-    for (nseg = i = 0 ; i < mriseg->max_segments ; i++)
+    for (nseg = 0 ; nseg < nsegments ; nseg++)
     {
+      i = MRIsegmentMax(mriseg) ;  /* find largest remaining segment */
+      if (i < 0)
+        break ;
       mseg = &mriseg->segments[i] ;
-      if (mseg->nvoxels < nvoxels)
-        continue ;
       mri_tmp = MRIsegmentToImage(mri_src, mri_tmp, mriseg, i) ;
       sprintf(fname, "seg%d.mgh", i) ;
       MRIwrite(mri_tmp, fname) ;
@@ -1921,11 +1922,12 @@ MRIthickenThinWMStrands(MRI *mri_src, MRI *mri_dst, int thickness, int nvoxels)
     MRI  *mri_tmp = NULL ;
     MRI_SEGMENT *mseg ;
       
-    for (nseg = i = 0 ; i < mriseg->max_segments ; i++)
+    for (nseg = 0 ; nseg < nsegments ; nseg++)
     {
+      i = MRIsegmentMax(mriseg) ;  /* find largest remaining segment */
+      if (i < 0)
+        break ;
       mseg = &mriseg->segments[i] ;
-      if (mseg->nvoxels < nvoxels)
-        continue ;
       mri_tmp = MRIsegmentToImage(mri_src, mri_tmp, mriseg, i) ;
       sprintf(fname, "dilated_seg%d.mgh", i) ;
       MRIwrite(mri_tmp, fname) ;
@@ -1933,9 +1935,7 @@ MRIthickenThinWMStrands(MRI *mri_src, MRI *mri_dst, int thickness, int nvoxels)
     MRIfree(&mri_tmp) ;
   }
 
-#define NSEGMENTS    20
-
-  for (nseg = 0 ; nseg < NSEGMENTS ; nseg++)
+  for (nseg = 0 ; nseg < nsegments ; nseg++)
   {
     MRI_SEGMENT *mseg ;
     /*    int         v, xd, yd, zd ;*/
@@ -2015,8 +2015,8 @@ MRIthickenThinWMStrands(MRI *mri_src, MRI *mri_dst, int thickness, int nvoxels)
                   xv = nint((Real)x + (up_dist+.5)*nx) ;
                   yv = nint((Real)y + (up_dist+.5)*ny) ;
                   zv = nint((Real)z + (up_dist+.5)*nz) ;
-                  MRIvox(mri_dst, xv, yv, zv) = FILLED_VAL ;
-                  MRIvox(mri_thin, xv, yv, zv) = FILLED_VAL ;
+                  MRIvox(mri_dst, xv, yv, zv) = THICKEN_FILL ;
+                  MRIvox(mri_thin, xv, yv, zv) = THICKEN_FILL ;
                   if (xv == 144 && yv == 137 && zv == 120)
                     DiagBreak() ;
                   nfilled++ ;
@@ -2033,8 +2033,8 @@ MRIthickenThinWMStrands(MRI *mri_src, MRI *mri_dst, int thickness, int nvoxels)
                   xv = nint((Real)x - (down_dist+.5)*nx) ;
                   yv = nint((Real)y - (down_dist+.5)*ny) ;
                   zv = nint((Real)z - (down_dist+.5)*nz) ;
-                  MRIvox(mri_dst, xv, yv, zv) = FILLED_VAL ;
-                  MRIvox(mri_thin, xv, yv, zv) = FILLED_VAL ;
+                  MRIvox(mri_dst, xv, yv, zv) = THICKEN_FILL ;
+                  MRIvox(mri_thin, xv, yv, zv) = THICKEN_FILL ;
                   if (xv == 144 && yv == 137 && zv == 120)
                     DiagBreak() ;
                   nfilled++ ;
@@ -2057,7 +2057,7 @@ MRIthickenThinWMStrands(MRI *mri_src, MRI *mri_dst, int thickness, int nvoxels)
     fprintf(stderr, "%d: segment %d, %d voxels, filled = %d, total = %d\n",
             nseg, i, mseg->nvoxels, nfilled, total_filled) ;
 
-    mseg->nvoxels = 0 ;   /* so it won't be max next time through */
+    mseg->ignore = 1 ;
 
     /* now that the strand has been thickened some apply a neighborhood
        filter to try to fill some holes.
@@ -2101,8 +2101,8 @@ MRIthickenThinWMStrands(MRI *mri_src, MRI *mri_dst, int thickness, int nvoxels)
                 {
                   if (x == 160 && y == 140 && z == 122)
                     DiagBreak() ;
-                  MRIvox(mri_dst, x, y, z) = NBHD_FILLED_VAL ;
-                  MRIvox(mri_thin, x, y, z) = NBHD_FILLED_VAL ;
+                  MRIvox(mri_dst, x, y, z) = NBHD_FILL ;
+                  MRIvox(mri_thin, x, y, z) = NBHD_FILL ;
                   nfilled++ ;
                 }
 
@@ -2113,8 +2113,12 @@ MRIthickenThinWMStrands(MRI *mri_src, MRI *mri_dst, int thickness, int nvoxels)
       }
       total_filled += nfilled ;
     } while (nfilled > 0) ;
+    
+    MRIfillPlanarHoles(mri_dst, mri_thin, mri_dst, mseg) ;
   }
   fprintf(stderr, "%2d segments, %d filled\n", nseg, total_filled) ;
+  MRIsegmentClearIgnoreFlags(mriseg) ;
+
   MRIsegmentFree(&mriseg) ;
 
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
@@ -4596,4 +4600,290 @@ MRIremoveIslands(MRI *mri_src, MRI*mri_dst, int wsize, int thresh)
     }
   }
   return(mri_dst) ;
+}
+MRI *
+MRIfillPlanarHoles(MRI *mri_src, MRI *mri_segment, MRI *mri_dst,
+                   MRI_SEGMENT *mseg)
+{
+  int   width, height, depth, x, y, z, nfilled, total_filled, vertex ;
+  MRI   *mri_binary_strand, *mri_strand_border ;
+
+  width = mri_src->width ;
+  height = mri_src->height ;
+  depth = mri_src->depth ;
+  init_basis_vectors() ;
+  mri_dst = MRIcopy(mri_src, mri_dst) ;
+
+  /* make it 0-1 */
+  mri_binary_strand = MRIbinarize(mri_segment, NULL, WM_MIN_VAL, 0, 1) ;
+
+  /* mri_strand_border will be all voxels not in the segment, but within 2
+     voxels of a segment voxel.
+  */
+  mri_strand_border = MRIdilate(mri_binary_strand, NULL) ; 
+  MRIdilate(mri_strand_border, mri_strand_border) ;
+  MRIxor(mri_binary_strand, mri_strand_border, mri_strand_border, 1, 255) ;
+
+  /*
+    for each voxel that is off, but borders an 'on' voxel in the
+    current segment, find max planar orientation at that point, and
+    if a segment voxel is on in each of the 4 quadrants, and the current
+    point doesn't neighbor a non-segment voxel, turn it on.
+  */
+  total_filled =  0 ;
+  MRIwrite(mri_binary_strand, "binary_strand.mgh") ;
+  MRIwrite(mri_strand_border, "strand_border.mgh") ;
+  do
+  {
+    nfilled = 0 ;
+    for (z = 0 ; z < depth ; z++)
+    {
+      for (y = 0 ; y < height ; y++)
+      {
+        for (x = 0 ; x < width ; x++)
+        {
+          if (x == 161 && y == 140 && z == 120)
+            DiagBreak() ;
+
+          /*
+            find a voxel which is off but is close to the thin strand
+            being considered.
+          */
+          if ((MRIvox(mri_dst, x, y, z) > WM_MIN_VAL) || 
+              (MRIvox(mri_strand_border, x, y, z) == 0))
+            continue ;
+          
+          /* if this voxel neighbors an on voxel that is not in the
+             strand then don't ever fill it.
+          */
+          /*
+            check to see if it is in the plane of the strand,
+            and if so fill it.
+          */
+          vertex = MRIcpolvMaxWhiteAtVoxel(mri_binary_strand, x, y, z, 5) ;
+          if (MRIcpolvAllQuadrantsFilled(mri_binary_strand, x, y, z, vertex,5))
+          {
+            if (MRIneighborsOn(mri_binary_strand, x, y, z, 1) ==
+                MRIneighborsOn(mri_dst, x, y, z, WM_MIN_VAL))
+            {
+              MRIvox(mri_dst, x, y, z) = 255 ;
+              MRIvox(mri_binary_strand, x, y, z) = 1 ;
+              MRIvox(mri_strand_border, x, y, z) = 0 ;
+              nfilled++ ;
+            }
+          }
+        }
+      }
+    }
+    total_filled += nfilled ;
+  } while (nfilled > 0) ;
+
+  fprintf(stderr, "%d planar holes filled\n", total_filled) ;
+  MRIfree(&mri_binary_strand) ; MRIfree(&mri_strand_border) ;
+  return(mri_dst) ;
+}
+
+int
+MRIcpolvMaxWhiteAtVoxel(MRI *mri, int x, int y, int z, int wsize)
+{
+  int      whalf, vertex, xk, yk, peak_vertex, max_count, num ;
+  float    xbase, ybase, zbase, *pe1_x, *pe1_y, *pe1_z, xf, yf, zf,
+           *pe2_x, *pe2_y, *pe2_z, e1_x, e1_y, e1_z, e2_x, e2_y, e2_z ;
+  Real     val ;
+  
+  init_basis_vectors() ;
+
+  if (x == 166 && y == 150 && z == 127)
+    DiagBreak() ;  /* 113 */
+
+  whalf = (wsize-1)/2 ; 
+
+  /*
+    for this point (x,y,z), go through a set of directions on the unit
+    sphere. For each direction, find all the planes orthogonal to that
+    dir. within our window, and pick the direction in which the variance
+    of all the planes is smallest. This will hopefully be the normal to 
+    the cortical surface.
+    */
+  pe1_x = e1_x_v ; pe1_y = e1_y_v ; pe1_z = e1_z_v ;
+  pe2_x = e2_x_v ; pe2_y = e2_y_v ; pe2_z = e2_z_v ;
+  max_count = peak_vertex = 0 ;
+  for (vertex = 0 ; vertex < NVERTICES ; vertex++)
+  {
+    num = 0 ;
+    e1_x = *pe1_x++ ;   /* first in-plane basis vector */
+    e1_y = *pe1_y++ ;
+    e1_z = *pe1_z++ ;
+    e2_x = *pe2_x++ ;   /* second in-plane basis vector */
+    e2_y = *pe2_y++ ;
+    e2_z = *pe2_z++ ;
+    
+    /* now find the values in this plane */
+    for (yk = -whalf ; yk <= whalf ; yk++)
+    {
+      xbase = (float)x + (float)yk * e2_x ;
+      ybase = (float)y + (float)yk * e2_y ;
+      zbase = (float)z + (float)yk * e2_z ;
+      for (xk = -whalf ; xk <= whalf ; xk++)
+      {
+        /* in-plane vect. is linear combination of scaled basis vects */
+        xf = xbase + xk*e1_x ;
+        yf = ybase + xk*e1_y ;
+        zf = zbase + xk*e1_z ;
+#if 0
+        MRIsampleVolume(mri, xf, yf, zf, &val) ;
+#else
+        val = MRIvox(mri, nint(xf), nint(yf), nint(zf)) ;
+#endif
+        if (val > 0.5)
+          num++ ;
+      }
+    }
+    if (num >= max_count)
+    {
+      peak_vertex = vertex ;
+      max_count = num ;
+    }
+  }
+
+  return(peak_vertex) ;
+}
+
+int
+MRIcpolvAllQuadrantsFilled(MRI *mri, int x, int y, int z,int vertex,int wsize)
+{
+#if 1
+  int      whalf ;
+  float    xf, yf, zf, e1_x, e1_y, e1_z, e2_x, e2_y,e2_z, dist ;
+  Real     val ;
+  
+  init_basis_vectors() ;
+
+  if (x == 166 && y == 150 && z == 127)
+    DiagBreak() ;  /* 113 */
+
+  whalf = (wsize-1)/2 ; 
+
+  /*
+    for this point (x,y,z), go through a set of directions on the unit
+    sphere. For each direction, find all the planes orthogonal to that
+    dir. within our window, and pick the direction in which the variance
+    of all the planes is smallest. This will hopefully be the normal to 
+    the cortical surface.
+    */
+  e1_x = e1_x_v[vertex] ;  e2_x = e2_x_v[vertex] ;
+  e1_y = e1_y_v[vertex] ;  e2_y = e2_y_v[vertex] ;
+  e1_z = e1_z_v[vertex] ;  e2_z = e2_z_v[vertex] ;
+
+#ifdef STEP_SIZE
+#undef STEP_SIZE
+#endif
+#define  STEP_SIZE 0.75
+
+  /* positive 'x' direction */
+  for (dist = STEP_SIZE ; dist <= whalf ; dist += STEP_SIZE)
+  {
+    xf = (float)x + dist * e1_x ;
+    yf = (float)y + dist * e1_y ;
+    zf = (float)z + dist * e1_z ;
+    MRIsampleVolume(mri, xf, yf, zf, &val) ;
+    if (val > 0.5)
+      break ;
+  }
+  if (val <= 0.5)
+    return(0) ;
+
+  /* negative 'y' direction */
+  for (dist = STEP_SIZE ; dist <= whalf ; dist += STEP_SIZE)
+  {
+    xf = (float)x - dist * e1_x ;
+    yf = (float)y - dist * e1_y ;
+    zf = (float)z - dist * e1_z ;
+    MRIsampleVolume(mri, xf, yf, zf, &val) ;
+    if (val > 0.5)
+      break ;
+  }
+  if (val <= 0.5)
+    return(0) ;
+  
+  /* positive 'y' direction */
+  for (dist = STEP_SIZE ; dist <= whalf ; dist += STEP_SIZE)
+  {
+    xf = (float)x + dist * e2_x ;
+    yf = (float)y + dist * e2_y ;
+    zf = (float)z + dist * e2_z ;
+    MRIsampleVolume(mri, xf, yf, zf, &val) ;
+    if (val > 0.5)
+      break ;
+  }
+  if (val <= 0.5)
+    return(0) ;
+
+  /* negative 'y' direction */
+  for (dist = STEP_SIZE ; dist <= whalf ; dist += STEP_SIZE)
+  {
+    xf = (float)x - dist * e2_x ;
+    yf = (float)y - dist * e2_y ;
+    zf = (float)z - dist * e2_z ;
+    MRIsampleVolume(mri, xf, yf, zf, &val) ;
+    if (val > 0.5)
+      break ;
+  }
+  if (val <= 0.5)
+    return(0) ;
+
+  return(1) ;
+#else
+  int      whalf, xk, yk, quads[2][2], xi, yi, i, j ;
+  float    xbase, ybase, zbase, xf, yf, zf, e1_x, e1_y, e1_z, e2_x, e2_y,e2_z;
+  Real     val ;
+  
+  init_basis_vectors() ;
+
+  if (x == 166 && y == 150 && z == 127)
+    DiagBreak() ;  /* 113 */
+
+  whalf = (wsize-1)/2 ; 
+
+  /*
+    for this point (x,y,z), go through a set of directions on the unit
+    sphere. For each direction, find all the planes orthogonal to that
+    dir. within our window, and pick the direction in which the variance
+    of all the planes is smallest. This will hopefully be the normal to 
+    the cortical surface.
+    */
+  e1_x = e1_x_v[vertex] ;  /* basis vectors for plane */
+  e1_y = e1_y_v[vertex] ;
+  e1_z = e1_z_v[vertex] ;
+  e2_x = e2_x_v[vertex] ;
+  e2_y = e2_y_v[vertex] ;
+  e2_z = e2_z_v[vertex] ;
+  memset(quads, 0, 4*sizeof(int)) ;
+  for (yk = -whalf ; yk <= whalf ; yk++)
+  {
+    xbase = (float)x + (float)yk * e2_x ;
+    ybase = (float)y + (float)yk * e2_y ;
+    zbase = (float)z + (float)yk * e2_z ;
+    for (xk = -whalf ; xk <= whalf ; xk++)
+    {
+      /* in-plane vect. is linear combination of scaled basis vects */
+      xf = xbase + xk*e1_x ;
+      yf = ybase + xk*e1_y ;
+      zf = zbase + xk*e1_z ;
+      MRIsampleVolume(mri, xf, yf, zf, &val) ;
+      if (val > 0.5)
+      {
+        xi = xk < 0 ; yi = yk < 0 ;
+        quads[xi][yi] = 1 ;
+      }
+    }
+  }
+
+  for (i = 0 ; i <= 1 ; i++)
+    for (j = 0 ; j <= 1 ; j++)
+      if (quads[i][j] == 0)
+        return(0) ;
+
+  return(1) ;
+#endif
 }

@@ -11,6 +11,7 @@
 #include "classify.h"
 #include "mrisegment.h"
 #include "mri.h"
+#include "timer.h"
 
 static int extract = 0 ;
 static int  verbose = 0 ;
@@ -25,7 +26,7 @@ static int niter = 1 ;
 
 static int thickness = 4 ;
 static int thicken = 1 ;
-static int nvoxels = 1000 ;
+static int nsegments = 20 ;
 static int fill_bg = 0 ;
 static int fill_ventricles = 0 ;
 
@@ -47,7 +48,8 @@ main(int argc, char *argv[])
 {
   MRI     *mri_src, *mri_dst, *mri_tmp, *mri_labeled ;
   char    *input_file_name, *output_file_name ;
-  int     nargs, i ;
+  int     nargs, i, msec ;
+  struct timeb  then ;
 
   Progname = argv[0] ;
   DiagInit(NULL, NULL, NULL) ;
@@ -64,6 +66,7 @@ main(int argc, char *argv[])
     ErrorExit(ERROR_BADPARM,
               "usage: %s <input volume> <output volume>", Progname);
 
+  TimerStart(&then) ;
   input_file_name = argv[1] ;
   output_file_name = argv[2] ;
 
@@ -108,7 +111,7 @@ main(int argc, char *argv[])
     fprintf(stderr, "thickening thin strands....\n") ;
     /*    MRIfilterMorphology(mri_dst, mri_dst) ;*/
     MRIremove1dStructures(mri_dst, mri_dst, 10000, 2) ;
-    MRIthickenThinWMStrands(mri_dst, mri_dst, thickness, nvoxels) ;
+    MRIthickenThinWMStrands(mri_dst, mri_dst, thickness, nsegments) ;
   }
 
   MRIfilterMorphology(mri_dst, mri_dst) ;
@@ -124,6 +127,9 @@ main(int argc, char *argv[])
     MRIfillVentricles(mri_dst, mri_dst) ;
   }
   MRIfree(&mri_src) ;
+  msec = TimerStop(&then) ;
+  fprintf(stderr, "white matter segmentation took %2.1f minutes\n",
+          (float)msec/(1000.0f*60.0f));
   fprintf(stderr, "writing output to %s...\n", output_file_name) ;
   MRIwrite(mri_dst, output_file_name) ;
 
@@ -180,12 +186,12 @@ get_option(int argc, char *argv[])
     nargs = 1 ;
     fprintf(stderr, "using white hilim = %2.1f\n", wm_hi) ;
   }
-  else if (!stricmp(option, "nvox"))
+  else if (!stricmp(option, "nseg"))
   {
-    nvoxels = atoi(argv[2]) ;
+    nsegments = atoi(argv[2]) ;
     nargs = 1 ;
-    fprintf(stderr,"discarding thin strands containing fewer than %d voxels\n",
-            nvoxels) ;
+    fprintf(stderr,"thickening the %d largest thin strands\n",
+            nsegments) ;
   }
   else if (!stricmp(option, "thicken"))
   {
@@ -298,8 +304,6 @@ MRIremoveWrongDirection(MRI *mri_src, MRI *mri_dst, int wsize,
   return(mri_dst) ;
 }
 
-
-#define BASAL_GANGLIA_FILL  50
 
 
 MRI *
@@ -477,7 +481,7 @@ MRIfilterMorphology(MRI *mri_src, MRI *mri_dst)
                   {
                     if (xi == 141 && y == 132 && z == 30)
                       DiagBreak() ;
-                    MRIvox(mri_dst, xi, y, z) = 255 ;
+                    MRIvox(mri_dst, xi, y, z) = DIAGONAL_FILL ;
                     if (is_diagonal(mri_dst, xi, y, z))
                       MRIvox(mri_dst, xi, y, z) = 0 ;
                     else
@@ -485,7 +489,7 @@ MRIfilterMorphology(MRI *mri_src, MRI *mri_dst)
                   }
                   if (yk)
                   {
-                    MRIvox(mri_dst, x, yi, z) = 255 ;
+                    MRIvox(mri_dst, x, yi, z) = DIAGONAL_FILL ;
                     if (is_diagonal(mri_dst, x, yi, z))
                       MRIvox(mri_dst, x, yi, z) = 0 ;
                     else
@@ -493,7 +497,7 @@ MRIfilterMorphology(MRI *mri_src, MRI *mri_dst)
                   }
                   if (zk)
                   {
-                    MRIvox(mri_dst, x, y, zi) = 255 ;
+                    MRIvox(mri_dst, x, y, zi) = DIAGONAL_FILL ;
                     if (is_diagonal(mri_dst, x, y, zi))
                       MRIvox(mri_dst, x, y, zi) = 0 ;
                     else
@@ -609,6 +613,7 @@ is_diagonal(MRI *mri, int x, int y, int z)
   return(0) ;
 }
 
+
 MRI *
 MRIfillVentricles(MRI *mri_src, MRI *mri_dst)
 {
@@ -626,7 +631,8 @@ MRIfillVentricles(MRI *mri_src, MRI *mri_dst)
   MRIcopy(mri_src, mri_dst) ;
   mri_filled = MRIcopy(mri_src, NULL) ;
 
-  MRIreplaceValues(mri_filled, mri_filled, 255, 254) ;
+  MRIreplaceValues(mri_filled, mri_filled, VENTRICLE_FILL, 
+                   VENTRICLE_FILL-1) ;
 
   /* first fill each coronal slice starting from a background seed */
   for (z = 0 ; z < depth ; z++)
@@ -635,12 +641,12 @@ MRIfillVentricles(MRI *mri_src, MRI *mri_dst)
     do
     {
       nfilled = 0 ;
-      MRIvox(mri_filled, 0, 0, z) = 255 ;
+      MRIvox(mri_filled, 0, 0, z) = VENTRICLE_FILL ;
       for (y = 0 ; y < height ; y++)
       {
         for (x = 0 ; x < width ; x++)
         {
-          if (MRIvox(mri_filled, x, y, z) == 255)
+          if (MRIvox(mri_filled, x, y, z) == VENTRICLE_FILL)
           {
             for (yk = -1 ; yk <= 1 ; yk++)
             {
@@ -651,7 +657,7 @@ MRIfillVentricles(MRI *mri_src, MRI *mri_dst)
                 if (!MRIvox(mri_filled, xi, yi, z))
                 {
                   nfilled++ ;
-                  MRIvox(mri_filled, xi, yi, z) = 255 ;
+                  MRIvox(mri_filled, xi, yi, z) = VENTRICLE_FILL ;
                 }
               }
             }
@@ -663,7 +669,7 @@ MRIfillVentricles(MRI *mri_src, MRI *mri_dst)
   } 
 
   MRIcomplement(mri_filled, mri_filled) ; 
-  MRIreplaceValues(mri_filled, mri_filled, 1, 255) ;
+  MRIreplaceValues(mri_filled, mri_filled, 1, VENTRICLE_FILL) ;
   mriseg = MRIsegment(mri_filled, 1, 255) ;
   fprintf(stderr, "%d segments found...\n", mriseg->nsegments) ;
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
