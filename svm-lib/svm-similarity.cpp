@@ -1,5 +1,6 @@
 #include "svm-similarity.h"
 
+using namespace std;
 
 double Distance (const SvmReal* v1, const SvmReal* v2, int n)
 {

@@ -1,5 +1,7 @@
 #include "svm-sketch.h"
 
+using namespace std;
+
 bool Sketch::init(const SvmRealVector& alpha, double b, const DoubleMatrix& kernelMatrix, 
 		  int posCount, int negCount, double threshold)
 {

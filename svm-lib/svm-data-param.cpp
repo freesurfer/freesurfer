@@ -3,6 +3,8 @@
 
 #include "svm-data-param.h"
 
+using namespace std;
+
 void DataParam::initFileNames(int count)
 {
   _fileCount = count;

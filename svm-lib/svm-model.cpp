@@ -1,5 +1,7 @@
 #include "svm-model.h"
 
+using namespace std;
+
 
 bool Model::copyData (const SvmReal* const* data, int rows, int cols)
 {

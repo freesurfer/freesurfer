@@ -21,6 +21,7 @@ const char* SvmParam::nameMaxIterations = "-max_iterations";
 const char* SvmParam::nameSigDig = "-sig_digits";
 const char* SvmParam::nameOptEpsilon = "-opt_epsilon";
 
+using namespace std;
 
 SvmParam::SvmParam()
 {

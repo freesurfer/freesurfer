@@ -4,6 +4,7 @@ extern "C" {
 #include "svm-pr-loqo.h"
 }
 
+using namespace std;
 
 ///////////////////////////// Utility functions for svm train and cross-validate
 

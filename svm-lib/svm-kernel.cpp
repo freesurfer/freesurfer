@@ -1,5 +1,7 @@
 #include "svm-kernel.h"
 
+using namespace std;
+
 
 bool Kernel::parse(const char *paramString) 
 {
