@@ -7,10 +7,22 @@
 #include "image.h"
 
 #define VERTICES_PER_FACE    4
+#define TRIANGLES_PER_FACE   2
 
+/*
+  the vertices in the face structure are arranged in 
+  counter-clockwise fashion when viewed from the outside.
+  */
 typedef struct face_type_
 {
   int    v[VERTICES_PER_FACE];           /* vertex numbers of this face */
+  float  nx[TRIANGLES_PER_FACE] ;
+  float  ny[TRIANGLES_PER_FACE] ;
+  float  nz[TRIANGLES_PER_FACE] ;
+  float  area[TRIANGLES_PER_FACE] ;
+  float  orig_area[TRIANGLES_PER_FACE] ;
+  float  angle[TRIANGLES_PER_FACE] ;
+  float  orig_angle[TRIANGLES_PER_FACE] ;
   int    ripflag;                        /* ripped face */
 #if 0
   float logshear,shearx,sheary;  /* compute_shear */
@@ -48,6 +60,7 @@ typedef struct vertex_type_
   int *n;                /* [0-3, num long] */
   int vnum;              /* number neighboring vertices */
   int *v;                /* array neighboring vertex numbers, vnum long */
+#if 0
   float *fnx ;           /* face normal - x component */
   float *fny ;           /* face normal - y component */
   float *fnz ;           /* face normal - z component */
@@ -55,6 +68,7 @@ typedef struct vertex_type_
   float *orig_tri_area ;     /* array of original triangle areas - num long */
   float *tri_angle ;     /* angles of each triangle this vertex belongs to */
   float *orig_tri_angle ;/* original values of above */
+#endif
 #if 0
   int   annotation;      /* area label (defunct--now from label file name!) */
   float stress;          /* explosion */
@@ -189,11 +203,11 @@ typedef struct
 #endif
 } MRI_SURFACE_PARAMETERIZATION, MRI_SP ;
 
-#define L_ANGLE              0.01f   /* coefficient of angle term */
+#define L_ANGLE              0.00f /*was 0.01*/ /* coefficient of angle term */
 #define L_AREA               1.0f    /* coefficient of angle term */
 #define N_AVERAGES           4096
-#define WRITE_ITERATIONS     1
-#define NITERATIONS          50
+#define WRITE_ITERATIONS     10
+#define NITERATIONS          1
 #define NO_PROJECTION        0
 #define PROJECT_ELLIPSOID    1
 #define ELLIPSOID_PROJECTION PROJECT_ELLIPSOID
@@ -237,6 +251,10 @@ MRI_SP       *MRISPtranslate(MRI_SP *mrisp_src, MRI_SP *mrisp_dst, int du,
 MRI_SP       *MRISPclone(MRI_SP *mrisp_src) ;
 MRI_SP       *MRISPalloc(MRI_SURFACE *mris, float scale) ;
 int          MRISPfree(MRI_SP **pmrisp) ;
+int          MRISreadTriangleProperties(MRI_SURFACE *mris, char *mris_fname) ;
+int          MRIScomputeTriangleProperties(MRI_SURFACE *mris) ;
+int          MRISreadBinaryCurvature(MRI_SURFACE *mris, char *mris_fname) ;
+int          MRISreadCurvatureFile(MRI_SURFACE *mris, char *fname) ;
 
 /* constants for vertex->tethered */
 #define TETHERED_NONE           0
