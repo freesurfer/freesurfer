@@ -4,8 +4,8 @@
 /*                                                                     */
 /* Warning: Do not edit the following four lines.  CVS maintains them. */
 /* Revision Author: $Author: tosa $                                           */
-/* Revision Date  : $Date: 2004/03/02 17:18:09 $                                             */
-/* Revision       : $Revision: 1.26 $                                         */
+/* Revision Date  : $Date: 2004/03/17 16:32:25 $                                             */
+/* Revision       : $Revision: 1.27 $                                         */
 /***********************************************************************/
 
 #include <stdio.h>
@@ -49,7 +49,6 @@ static float scale = 0 ;
 static GCA_PARMS parms ;
 static char *seg_dir = "seg" ;
 static char T1_name[STRLEN] = "orig" ;
-static char *PD_name = NULL ;
 static char *xform_name = NULL;
 static int prune = 0 ;
 static float smooth = -1 ;
@@ -121,7 +120,7 @@ main(int argc, char *argv[])
                 "%s: could not read histogram equalization volume %s", 
                 Progname, heq_fname) ;
   }
-
+  // options parsed.   subjects and gca name remaining
   out_fname = argv[argc-1] ;
   nsubjects = argc-2 ;
   for (options = i = 0 ; i < nsubjects ; i++)
@@ -137,7 +136,8 @@ main(int argc, char *argv[])
 
   // gca_inputs can be T1, PD, ...per subject
   if (gca_inputs == 0)
-    gca_inputs = ninputs ;   /* gca reads same # of inputs as we read from command line - not the case if we are mapping to flash */
+    gca_inputs = ninputs ;   
+  /* gca reads same # of inputs as we read from command line - not the case if we are mapping to flash */
   n = 0 ;
   if (gca_flags & GCA_GRAD)
   {
@@ -236,7 +236,7 @@ main(int argc, char *argv[])
           for (o = 0 ; o < ninputs ; o++)
             if (FEQUAL(TRs[o],mri_tmp->tr) && FEQUAL(FAs[o],mri_tmp->flip_angle) && FEQUAL(TEs[o], mri_tmp->te))
             {
-	      // this o is not used, then use it
+	      // if this o is not used, then use it
 	      if (used[o] == 0)
 	      {
 		ordering[input] = o ;
@@ -270,9 +270,29 @@ main(int argc, char *argv[])
       ////////////////////////////////////////////////////////////////////////////
       fprintf(stderr, "Gather all input volumes for the subject %s.\n", subject_name);
       // inputs must be coregistered
-      // note that inputs are T1, PD, ... per subject
+      // note that inputs are T1, PD, ... per subject (same TE, TR, FA)
       for (input = 0 ; input < ninputs ; input++)
       {      
+	//////////// set the gca type ///////////////////////////////////////////
+	// is this T1/PD training?
+	if (ninputs==2) // T1 and PD?
+	{
+	  if (!strstr(input_names[ordering[input]], "T1") 
+	      && !strstr(input_names[ordering[input]], "PD"))
+	    ErrorExit(ERROR_BADPARM, 
+		      "Need T1 and PD images. Make sure that the filename contains "T1" or "PD"\n");
+	  gca->type=GCA_PARAM;
+	      
+	}
+	else if (ninputs==1) // single input 
+	  gca->type=GCA_NORMAL; 
+	else 
+	  gca->type=GCA_UNKNOWN;
+	// how can we allow flash data training ???????
+	// currently checks the TE, TR, FA to be the same for all inputs
+	// thus we cannot allow flash data training.
+	///////////////////////////////////////////////////////////////////////////
+
         sprintf(fname, "%s/%s/mri/%s", subjects_dir, subject_name,input_names[ordering[input]]);
         if (DIAG_VERBOSE_ON)
           printf("reading co-registered input from %s...\n", fname) ;
@@ -328,7 +348,7 @@ main(int argc, char *argv[])
                       mri_tmp->width, mri_tmp->height, mri_tmp->depth,nframes) ;
           MRIcopyHeader(mri_tmp, mri_inputs) ;
         }
-        
+        // -mask option //////////////////////////////////////////////////////////
         if (mask_fname)
         {
           MRI *mri_mask ;
@@ -352,7 +372,7 @@ main(int argc, char *argv[])
         MRIfree(&mri_tmp) ;
       }// end of inputs per subject
 
-      if (i == 0 && flash)   /* first subject */
+      if (i == 0 && flashm)   /* first subject */
         GCAsetFlashParameters(gca, TRs, FAs, TEs) ;
 
       ///////////////////////////////////////////////////////////////////////////////////////
@@ -767,7 +787,7 @@ main(int argc, char *argv[])
 static int
 get_option(int argc, char *argv[])
 {
-        static int first_input = 1 ;
+  static int first_input = 1 ;
   int  nargs = 0 ;
   char *option ;
   
@@ -907,12 +927,6 @@ get_option(int argc, char *argv[])
     printf("reading T1 data from subject's mri/%s directory\n",
             T1_name) ;
   }
-  else if (!stricmp(option, "PD"))
-  {
-    PD_name = argv[2] ;
-    nargs = 1 ;
-    printf("reading PD data  subject's mri/%s file\n",PD_name) ;
-  }
   else if (!stricmp(option, "PARC_DIR") || !stricmp(option, "SEG_DIR") || 
                                          !stricmp(option, "SEGMENTATION"))
   {
@@ -985,11 +999,18 @@ get_option(int argc, char *argv[])
 static void
 usage_exit(int code)
 {
-  printf("usage: %s [options] <subject 1> <subject 2> ... <output file>\n",
+  printf("Purpose: %s trains GCA data with (multiple) subject(s)\n"); 
+  printf("Usage  : %s [options] <subject1> <subject2> ... <output gca fname>\n",
          Progname) ;
-  printf(
+  printf("where SUBJECTS_DIR env variable must be set.\n"
+	 "Options are:\n"
+	 "\t-parc_dir dir   - (Required) segmentation directory (path relative to $subject/mri.\n"
+	 "\t-mask volname   - use volname as a mask (path relative to $subject/mri.\n"
          "\t-node_spacing   - spacing of classifiers in canonical space\n"
-         "\t-prior_spacing  - spacing of class priors in canonical space\n");
+         "\t-prior_spacing  - spacing of class priors in canonical space\n"
+	 "\t-input name     - specifying training data (path relative to $subject/mri).\n"
+	 "                    can specify multiple inputs.  If not specified, \"orig\" is ued\n"
+	 );
   exit(code) ;
 }
 
