@@ -260,7 +260,8 @@ winPoll(void)
 
 ------------------------------------------------------------------------*/
 int
-WinCreate(char *pcName, int button_rows, int image_size, int rows, int cols)
+WinCreate(char *pcName, int button_rows, int image_rows, int image_cols, 
+          int rows, int cols)
 {
   int    iWin ;
   DIAG_WINDOW *pwin ;
@@ -271,7 +272,8 @@ WinCreate(char *pcName, int button_rows, int image_size, int rows, int cols)
                     "WinAlloc: could not allocate new window"));
   
   pwin = HandleToPtr(iWin) ;
-  pwin->xvf = XValloc(rows, cols, button_rows, image_size, pcName, winPoll) ;
+  pwin->xvf = XValloc(rows, cols, button_rows, image_rows, image_cols, 
+                      pcName, winPoll) ;
   XVsetParms(event_handler) ;
 
   if (!inited)
