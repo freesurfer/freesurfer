@@ -356,6 +356,7 @@ int          MRISwriteAreaError(MRI_SURFACE *mris, char *fname) ;
 int          MRISwriteAngleError(MRI_SURFACE *mris, char *fname) ;
 int          MRISwritePatch(MRI_SURFACE *mris, char *fname) ;
 int          MRISwriteValues(MRI_SURFACE *mris, char *fname) ;
+int          MRISwriteCurvatureToWFile(MRI_SURFACE *mris, char *fname) ;
 int          MRISwriteTriangleProperties(MRI_SURFACE *mris, char *mris_fname);
 int          MRISaverageCurvatures(MRI_SURFACE *mris, int navgs) ;
 int          MRISaverageVertexPositions(MRI_SURFACE *mris, int navgs) ;
@@ -587,6 +588,7 @@ int   MRISdisturbOriginalDistances(MRI_SURFACE *mris, double max_pct) ;
 double MRISstoreAnalyticDistances(MRI_SURFACE *mris, int which) ;
 int   MRISnegateValues(MRI_SURFACE *mris) ;
 int   MRIScopyMeansToValues(MRI_SURFACE *mris) ;
+int   MRIScopyCurvatureToValues(MRI_SURFACE *mris) ;
 int   MRIScopyImaginaryMeansToValues(MRI_SURFACE *mris) ;
 int   MRIScopyStandardErrorsToValues(MRI_SURFACE *mris) ;
 int   MRISaccumulateMeansInVolume(MRI_SURFACE *mris, MRI *mri, int mris_dof, 
