@@ -38,9 +38,9 @@
            Description:
 ----------------------------------------------------------------------*/
 #define DT           0.5
-#define E_DIFFUSION  0.001 /* increasing this gives a smoother solution */
-#define E_CURV       0.05  /* increasing this gives less curvature to front */
-#define MAG_SCALE    100.0  /* increasing this increases the effect of grad */
+#define E_DIFFUSION  0.0001  /* increasing this gives a smoother solution */
+#define E_CURV       0.01   /* increasing this gives less curvature to front */
+#define MAG_SCALE    5.0    /* increasing this increases the effect of grad */
 #define WRITE_ITER   1000
 #define MIN_DIST     2.0
 
@@ -225,8 +225,8 @@ MRIfill(MRI *mri_src, MRI *mri_distance, float x0, float y0,float z0,int niter)
             sdz = dz_b ;
           else             /* information coming from in front of us */
             sdz = dz_f ;
-          mag = sqrt(sdx*sdx+sdy*sdy+sdz*sdz) ;
-          F *= 1.0 / (1.0 + mag_scale*mag) ; 
+          mag = sqrt(sdx*sdx+sdy*sdy+sdz*sdz)*mag_scale ;
+          F *= 1.0 / (1.0 + mag*mag*mag) ; 
           dist += dt * (e_diffusion * laplacian - F * grad) ;
           MRIFvox(mri_distance, x, y, z) = (float)dist ;
         }
@@ -266,7 +266,10 @@ MRIbuildDistanceMap(MRI *mri_src, MRI *mri_distance, float x0, float y0,
   height = mri_src->height ;
   depth = mri_src->depth ;
   if (!mri_distance)
+  {
     mri_distance = MRIalloc(width, height, depth, MRI_FLOAT) ;
+    MRIcopyHeader(mri_src, mri_distance) ;
+  }
 
   for (z = 0 ; z < depth ; z++)
   {
@@ -316,7 +319,7 @@ MRIextractInterior(MRI *mri_src, MRI *mri_distance,  MRI *mri_dst)
       {
         dist = *pdist++ ;
         if (dist <= 0.0f)
-          *pdst++ = 255 ;
+          *pdst++ = 140 ;
         else
         {
           *pdst++ = MIN(*psrc,128) ;
