@@ -13,6 +13,7 @@ extern "C" {
 #include "version.h"
 #include "macros.h"
 #include "transform.h"
+#include "talairachex.h"
   char *Progname;
 }
 
@@ -78,7 +79,7 @@ int main(int argc, char *argv[])
   int nargs;
   Progname=argv[0];
 
-  nargs = handle_version_option (argc, argv, "$Id: mri_parselabel.cpp,v 1.7 2004/06/09 22:41:12 tosa Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_parselabel.cpp,v 1.8 2004/06/10 16:49:42 tosa Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -97,9 +98,8 @@ int main(int argc, char *argv[])
     cerr << "option: -cras        : use scanner ras value for label position" << endl;
     cerr << "                       default is to use the surface ras value."<< endl;
     cerr << "        -scale <val> : uses <val> to scale label position" << endl;
-    cerr << "        -xfm   <xfm> : use the xfm to transform the vertices " << endl;
-    cerr << "                     : xfm must be from highres to lowres.  If not use the next option" << endl;
-    cerr << "        -invert      : used when the xfm is from lowres into high res" << endl;
+    cerr << "        -xfm <xfm>   : use the xfm to transform the vertices " << endl;
+    cerr << "                     : xfm must be from highres to lowres." << endl;
     cerr << "        -fillup      : try to verify none of the label positions are missed." << endl;
     cerr << "                       takes a long time.....                               " << endl;
     return -1;
@@ -135,7 +135,19 @@ int main(int argc, char *argv[])
   LTA *lta = 0;
   if (xfname.size())
   {
-    lta = LTAread(const_cast<char *>(xfname.c_str()));
+    lta = LTAreadEx(const_cast<char *>(xfname.c_str()));
+    if (!lta->xforms[0].src.valid)
+    {
+      cerr << "could not find the src volume" << lta->xforms[0].src.fname << endl;
+      cerr << " need to calculate the correct transform" << endl;
+      return -1;
+    }
+    if (!lta->xforms[0].dst.valid)
+    {
+      cerr << "could not find the dst volume" << lta->xforms[0].dst.fname << endl;
+      cerr << " need to calculate the correct transform" << endl;
+      return -1;
+    }
   }
 
   MRI *mriIn=MRIread(argv[2]);
@@ -169,6 +181,45 @@ int main(int argc, char *argv[])
     vIn = VectorAlloc(4, MATRIX_REAL);
     vOut = VectorAlloc(4, MATRIX_REAL);
   }
+  MATRIX *hSRASTolSRAS = 0;
+  if (xfname.size())
+  {
+    //  conformed -------> surfaceRAS
+    //      |                  |
+    //      V                  V  RASFromSRAS
+    //    hres    ------->   RAS
+    //      |                  |   xfm
+    //      V                  V
+    //    lres    ------->   RAS
+    //      |                  |  sRASFromRAS
+    //      V                  V
+    //  conformed --------> surfaceRAS
+
+    cout << "calculate src surfaceRAS to dst surfaceRAS matrix" << endl;
+    // must convert to RAS first
+    MATRIX *RASFromSRAS = MatrixAlloc(4, 4, MATRIX_REAL);
+    MatrixIdentity(4, RASFromSRAS);
+    *MATRIX_RELT(RASFromSRAS, 1,4) = lta->xforms[0].src.c_r;
+    *MATRIX_RELT(RASFromSRAS, 2,4) = lta->xforms[0].src.c_a;
+    *MATRIX_RELT(RASFromSRAS, 3,4) = lta->xforms[0].src.c_s;
+    
+    MATRIX *sRASFromRAS;
+    sRASFromRAS = MatrixAlloc(4, 4, MATRIX_REAL);
+    MatrixIdentity(4, sRASFromRAS);
+    *MATRIX_RELT(sRASFromRAS, 1,4) = - lta->xforms[0].dst.c_r;
+    *MATRIX_RELT(sRASFromRAS, 2,4) = - lta->xforms[0].dst.c_a;
+    *MATRIX_RELT(sRASFromRAS, 3,4) = - lta->xforms[0].dst.c_s;
+    
+    MATRIX *tmpM = MatrixMultiply(lta->xforms[0].m_L, RASFromSRAS, NULL);
+    hSRASTolSRAS = MatrixMultiply(sRASFromRAS, tmpM, NULL); 
+
+    MatrixFree(&RASFromSRAS);
+    MatrixFree(&sRASFromRAS);
+    MatrixFree(&tmpM);
+    cout << "calculation done." << endl;
+  }
+  // read label
+  int count =0;
   while (flabel.good())
   {
     Vertex v;
@@ -179,25 +230,25 @@ int main(int argc, char *argv[])
     // cout << "(" << x << ", " << y << ", " << z << ")" << endl;
     if (xfname.size())
     {
-      V4_LOAD(vIn, scale*x, scale*y, scale*z, 1.);
-
-      if (invert)
-	LTAinverseTransformPoint(lta, vIn, vOut);
-      else
-	LTAtransformPoint(lta, vIn, vOut);
-
       double xt, yt, zt;
-      xt = V3_X(vOut);
-      yt = V3_Y(vOut);
-      zt = V3_Z(vOut);
+      TransformWithMatrix(hSRASTolSRAS, scale*x, scale*y, scale*z, &xt, &yt, &zt);
       // create a vector
-      v = Vertex(x, y, z, value);
+      v = Vertex(xt, yt, zt, value);
+      if (count < 10)
+      {
+	cout << "transformed: (" << scale*x << ", " << scale*y << ", " << scale*z << ") " 
+	     << " to  (" << xt << ", " << yt << ", " << zt << ") " << endl;
+      }
+      count++;
     }
     else
+    {
+      V4_LOAD(vIn, scale*x, scale*y, scale*z, 1.);
       v = Vertex(scale*x, scale*y, scale*z, value);
-
+    }
     vertices.push_back(v);
   }
+  count = 0;
   flabel.close();
   // free vector
   if (vIn)
@@ -206,12 +257,16 @@ int main(int argc, char *argv[])
     VectorFree(&vOut);
   if (lta)
     LTAfree(&lta);
+  if (hSRASTolSRAS)
+    MatrixFree(&hSRASTolSRAS);
 
+#if 0
   // sort
   cout << "sorting ..." << endl;
   sort(vertices.begin(), vertices.end(), LessX());
   cout << "sorting done" << endl;
-  
+#endif
+
   /////////////////////////////////////////////////////////////////////////////////
   // create a volume
   /////////////////////////////////////////////////////////////////////////////////
@@ -237,6 +292,13 @@ int main(int argc, char *argv[])
   for (size_t i=0; i < vertices.size(); ++i)
   {
     rasToVox(mriIn, vertices[i].x_, vertices[i].y_, vertices[i].z_, &xv, &yv, &zv);
+    if (count < 10)
+    {
+      cout << "get voxel at (" << xv << ", " << yv << ", " << zv << ")" 
+	   << "  from vertex (" << vertices[i].x_ << ", " << vertices[i].y_ << ", " << vertices[i].z_ << ") " << endl;
+    }
+    count++;
+
     // verify the voxel position
     if (xv < 0 || yv < 0 || zv < 0 
 	|| xv > mriIn->width-1 || yv > mriIn->height-1 || zv > mriIn->depth -1)
@@ -270,7 +332,9 @@ int main(int argc, char *argv[])
 	    MRIvox(mriOut, x, y, z ) = (unsigned char) val;
 	    cout << "\nadded another voxel point: ( " 
 		 << x << ", " << y << ", " << z <<")" << "for ras point: (" 
-		 << xr << ", " << yr << ", " << zr << ")" << endl; 
+		 << xr << ", " << yr << ", " << zr << ")"  
+	         << " for vertex (" << vertices[i].x_ << ", " << vertices[i].y_ << ", " << vertices[i].z_ << ") "
+	         << endl; 
 	    added++;
 	  }
 	}
@@ -319,6 +383,7 @@ int main(int argc, char *argv[])
 	  curval = MRIvox(mask, x, y, z);
 	  // get the RAS point
 	  voxToRAS(mriOut, x, y, z, &xl, &yl, &zl);
+
 	  // this point is marked, then looking around to see other points
 	  // may belong to the label list.
 	  if (curval == val)
