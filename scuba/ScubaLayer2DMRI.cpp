@@ -404,7 +404,6 @@ ScubaLayer2DMRI::GetInfoAtRAS ( float iRAS[3],
       ssValue << mColorLUT->GetLabelAtIndex((int)value);
     } else {
       ssValue << value;
-      cerr << "value is " << value << endl;
     }
 
     iLabelValues[mVolume->GetLabel() + " value"] = ssValue.str();
