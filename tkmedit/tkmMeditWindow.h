@@ -101,16 +101,23 @@ MWin_tErr MWin_PositionDisplays_       ( tkmMeditWindowRef this );
 /* setting display info. specify by display area index, starting from 0
    for the upper-left area. use -1 to specify all areas. */
 MWin_tErr MWin_SetVolume                     ( tkmMeditWindowRef this,
-                 int               inDispIndex,
-                 mriVolumeRef      ipVolume,
-                 int               inSize );
+                                               int               inDispIndex,
+                                               mriVolumeRef      ipVolume,
+                                               int               inSizeX,
+                                               int               inSizeY,
+                                               int               inSizeZ );
 MWin_tErr MWin_SetAuxVolume                  ( tkmMeditWindowRef this,
-                 int               inDispIndex,
-                 mriVolumeRef      ipVolume,
-                 int               inSize );
+                                               int               inDispIndex,
+                                               mriVolumeRef      ipVolume,
+                                               int               inSizeX,
+                                               int               inSizeY,
+                                               int               inSizeZ) ;
 MWin_tErr MWin_SetROIGroup                   ( tkmMeditWindowRef this,
                  int               inDispIndex,
                  mriVolumeRef      iGroup );
+MWin_tErr MWin_SetTensor                   ( tkmMeditWindowRef this,
+                 int               inDispIndex,
+                 mriVolumeRef      iTensor );
 MWin_tErr MWin_SetSurface                    ( tkmMeditWindowRef this, 
                  int               inDispIndex,
                  mriSurfaceRef     ipSurface );

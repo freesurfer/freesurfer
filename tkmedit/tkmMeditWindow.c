@@ -473,9 +473,11 @@ MWin_tErr MWin_PositionDisplays_ ( tkmMeditWindowRef this ) {
 }
 
 MWin_tErr MWin_SetVolume ( tkmMeditWindowRef this,
-         int               inDispIndex,
-         mriVolumeRef      ipVolume,
-         int               inSize ) {
+                           int               inDispIndex,
+                           mriVolumeRef      ipVolume,
+                           int               inSizeX, 
+                           int               inSizeY,
+                           int               inSizeZ ) {
 
   MWin_tErr eResult       = MWin_tErr_NoErr;
   DspA_tErr eDispResult   = DspA_tErr_NoErr;
@@ -484,8 +486,8 @@ MWin_tErr MWin_SetVolume ( tkmMeditWindowRef this,
   int       nDispIndexMax = inDispIndex+1;
   
   DebugEnterFunction( ("MWin_SetVolume( this=%p, inDispIndex=%d, "
-           "ipVolume=%p, inSize=%d )", this, inDispIndex,
-           ipVolume, inSize) );
+           "ipVolume=%p, inSize=%d,%d,%d )", this, inDispIndex,
+           ipVolume, inSizeX, inSizeY, inSizeZ) );
 
   /* verify us. */
   eResult = MWin_Verify ( this );
@@ -509,7 +511,7 @@ MWin_tErr MWin_SetVolume ( tkmMeditWindowRef this,
   nDispIndex++ ) {
 
     eDispResult = DspA_SetVolume ( this->mapDisplays[nDispIndex],
-           ipVolume, inSize );
+           ipVolume, inSizeX, inSizeY, inSizeZ );
     if ( DspA_tErr_NoErr != eDispResult ) {
       eResult = MWin_tErr_ErrorAccessingDisplay;
       goto error;
@@ -534,9 +536,11 @@ MWin_tErr MWin_SetVolume ( tkmMeditWindowRef this,
 }
 
 MWin_tErr MWin_SetAuxVolume ( tkmMeditWindowRef this,
-            int               inDispIndex,
-            mriVolumeRef      ipVolume,
-            int               inSize ) {
+                              int               inDispIndex,
+                              mriVolumeRef      ipVolume,
+                              int               inSizeX,
+                              int               inSizeY,
+                              int               inSizeZ ) {
 
   MWin_tErr eResult       = MWin_tErr_NoErr;
   DspA_tErr eDispResult   = DspA_tErr_NoErr;
@@ -566,7 +570,7 @@ MWin_tErr MWin_SetAuxVolume ( tkmMeditWindowRef this,
   nDispIndex++ ) {
 
     eDispResult = DspA_SetAuxVolume ( this->mapDisplays[nDispIndex],
-              ipVolume, inSize );
+              ipVolume, inSizeX, inSizeY, inSizeZ );
     if ( DspA_tErr_NoErr != eDispResult ) {
       eResult = MWin_tErr_ErrorAccessingDisplay;
       goto error;
@@ -580,6 +584,59 @@ MWin_tErr MWin_SetAuxVolume ( tkmMeditWindowRef this,
   /* print error message */
   if ( MWin_tErr_NoErr != eResult ) {
     DebugPrint( ("Error %d in MWin_SetAuxVolume: %s\n",
+      eResult, MWin_GetErrorString(eResult) ) );
+  }
+
+ cleanup:
+
+  return eResult;
+}
+
+MWin_tErr MWin_SetTensor                   ( tkmMeditWindowRef this,
+                 int               inDispIndex,
+                 mriVolumeRef      iTensor ){
+
+  MWin_tErr eResult       = MWin_tErr_NoErr;
+  DspA_tErr eDispResult   = DspA_tErr_NoErr;
+  int       nDispIndex    = 0;
+  int       nDispIndexMin = inDispIndex;
+  int       nDispIndexMax = inDispIndex+1;
+  
+  /* verify us. */
+  eResult = MWin_Verify ( this );
+  if ( MWin_tErr_NoErr != eResult )
+    goto error;
+
+  /* verify the display index. */
+  eResult = MWin_VerifyDisplayIndex ( this, inDispIndex );
+  if ( MWin_tErr_NoErr != eResult )
+    goto error;
+
+  /* if working on all displays, set the iteration bounds. */
+  if ( MWin_kAllDisplayAreas == inDispIndex ) {
+    nDispIndexMin = 0;
+    nDispIndexMax = MWin_knMaxNumAreas;
+  }
+
+  /* set the volume */
+  for ( nDispIndex = nDispIndexMin; 
+        nDispIndex < nDispIndexMax; 
+        nDispIndex++ ) {
+    
+    eDispResult = DspA_SetTensor ( this->mapDisplays[nDispIndex], iTensor );
+    if ( DspA_tErr_NoErr != eDispResult ) {
+      eResult = MWin_tErr_ErrorAccessingDisplay;
+      goto error;
+    }
+  }
+
+  goto cleanup;
+
+ error:
+
+  /* print error message */
+  if ( MWin_tErr_NoErr != eResult ) {
+    DebugPrint( ("Error %d in MWin_SetTensor: %s\n",
       eResult, MWin_GetErrorString(eResult) ) );
   }
 

@@ -59,6 +59,7 @@ typedef enum {
   DspA_tDisplayFlag_MaskToFunctionalOverlay,
   DspA_tDisplayFlag_HistogramPercentChange,
   DspA_tDisplayFlag_ROIGroupOverlay,
+  DspA_tDisplayFlag_TensorOverlay,
   DspA_tDisplayFlag_ROIVolumeCount,
   DspA_tDisplayFlag_FocusFrame,
   DspA_tDisplayFlag_UndoVolume,
@@ -74,7 +75,7 @@ typedef enum {
   DspA_tTool_Navigate     =  0,
   DspA_tTool_SelectVoxels,
   DspA_tTool_EditVoxels,
-  DspA_tTool_EditParcellation,
+  DspA_tTool_EditSegmentation,
   DspA_tTool_EditCtrlPts,
   DspA_knNumTools
 } DspA_tTool;
@@ -179,7 +180,9 @@ struct tkmDisplayArea {
   int                    mnHeight;
   
   /* frame buffer */
-  int                    mnVolumeSize;
+  int                    mnVolumeSizeX;
+  int                    mnVolumeSizeY;
+  int                    mnVolumeSizeZ;
   GLubyte*               mpFrameBuffer;
   float                  mfFrameBufferScaleX;
   float                  mfFrameBufferScaleY;
@@ -215,6 +218,7 @@ struct tkmDisplayArea {
   mriVolumeRef           mpVolume;
   mriVolumeRef           mpAuxVolume;
   mriVolumeRef           mROIGroup;
+  mriVolumeRef           mTensor;
   mriSurfaceRef          mpSurface;
   tkmFunctionalVolumeRef mpFunctionalVolume;
   x3DListRef             mpControlPoints;
@@ -265,13 +269,19 @@ DspA_tErr DspA_UpdateWindowTitle ( tkmDisplayAreaRef this );
 
 /* all the things it will draw */
 DspA_tErr DspA_SetVolume                     ( tkmDisplayAreaRef this,
-                 mriVolumeRef      ipVolume,
-                 int               inSize );
+                                               mriVolumeRef      ipVolume,
+                                               int               inSizeX,
+                                               int               inSizeY,
+                                               int               inSizeZ );
 DspA_tErr DspA_SetAuxVolume                  ( tkmDisplayAreaRef this,
-                 mriVolumeRef      ipVolume,
-                 int               inSize );
+                                               mriVolumeRef      ipVolume,
+                                               int               inSizeX,
+                                               int               inSizeY,
+                                               int               inSizeZ) ;
 DspA_tErr DspA_SetROIGroup                   ( tkmDisplayAreaRef this,
                  mriVolumeRef      iGroup );
+DspA_tErr DspA_SetTensor                   ( tkmDisplayAreaRef this,
+                 mriVolumeRef      iTensor );
 DspA_tErr DspA_SetSurface                    ( tkmDisplayAreaRef this, 
                  mriSurfaceRef     ipSurface );
 DspA_tErr DspA_SetOverlayVolume              ( tkmDisplayAreaRef this,
@@ -386,7 +396,7 @@ void DspA_BrushVoxelsInThreshold_ ( xVoxelRef ipVoxel, void* );
 /* parameter here is a DspA_tSelectAction */
 void DspA_SelectVoxels_           ( xVoxelRef ipVoxel, void* );
 /* no parameter here */
-void DspA_EditParcellationVoxels_ ( xVoxelRef ipVoxel, void* );
+void DspA_EditSegmentationVoxels_ ( xVoxelRef ipVoxel, void* );
 
 /* select the currently clicked roi */
 DspA_tErr DspA_SelectCurrentROI ( tkmDisplayAreaRef this );

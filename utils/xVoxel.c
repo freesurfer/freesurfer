@@ -206,10 +206,10 @@ tBoolean xVoxl_IncrementUntilLimits ( xVoxelRef this, int inXLimit,
   }
 }
 
-int xVoxl_ExpandToIndex ( xVoxelRef this, int inDimension ) {
+int xVoxl_ExpandToIndex ( xVoxelRef this, int inDimensionX, int inDimensionY ) {
 
-  return ( this->mfZ * pow( inDimension, 2 ) ) +
-    ( this->mfY * inDimension  ) + this->mfX;
+  return ( this->mfZ * inDimensionX * inDimensionY ) +
+    ( this->mfY * inDimensionX  ) + this->mfX;
 }
 
 void

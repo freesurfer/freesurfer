@@ -9,17 +9,17 @@
    we should flip when not in horizontal view. when using regular gl drawing 
    commands to draw to the screen, only do it in horizontal orientation. */
 #define BUFFER_Y_FLIP(y) ( this->mOrientation != mri_tOrientation_Horizontal? \
-                          (this->mnVolumeSize - (y)) : (y) )
+                          (this->mnVolumeSizeY - (y)) : (y) )
 #define GLDRAW_Y_FLIP(y) ( this->mOrientation == mri_tOrientation_Horizontal? \
-                          (this->mnVolumeSize - (y)) : (y) )
+                          (this->mnVolumeSizeY - (y)) : (y) )
 #define GLDRAW_Y_FLIP_FLOAT(y) \
                          ( this->mOrientation == mri_tOrientation_Horizontal? \
-                          ((float)this->mnVolumeSize - (y)) : (y) )
+                          ((float)this->mnVolumeSizeY - (y)) : (y) )
 
 //#define BUFFER_Y_FLIP(y) y
 //#define GLDRAW_Y_FLIP(y) y
 
-#define Y_FLIP(y)        (this->mnVolumeSize - (y))
+#define Y_FLIP(y)        (this->mnVolumeSizeY - (y))
 
 /* these describe the direction a volume voxel goes in the buffer in the y
    direction. to handle stuff like:
@@ -138,7 +138,9 @@ DspA_tErr DspA_New ( tkmDisplayAreaRef* oppWindow,
   this->mnHilitedVertexIndex   = -1;
   this->mHilitedSurface        = Surf_tVertexSet_None;
   this->mbSliceChanged         = TRUE;
-  this->mnVolumeSize           = 0;
+  this->mnVolumeSizeX           = 0;
+  this->mnVolumeSizeY           = 0;
+  this->mnVolumeSizeZ           = 0;
   this->mpSelectedHeadPoint     = NULL;
   this->mnROIGroupIndex        = -1;
   for( nSurface = 0; nSurface < Surf_knNumVertexSets; nSurface++ )
@@ -159,6 +161,10 @@ DspA_tErr DspA_New ( tkmDisplayAreaRef* oppWindow,
   this->mpVolume                = NULL;
   this->mpAuxVolume             = NULL;
   this->mROIGroup               = NULL;
+#if 0
+  MRIFseq_vox(this->mTensor, x,y,z,col*row+row) ;
+#endif
+  this->mTensor                 = NULL;
   this->mpSurface               = NULL;
   this->mpFunctionalVolume      = NULL;
   this->mpControlPoints         = NULL;
@@ -273,12 +279,12 @@ DspA_tErr DspA_SetPosition ( tkmDisplayAreaRef this,
   this->mnHeight = inHeight;
 
   /* set our scale */
-  if( this->mnVolumeSize > 0 ) {
+  if( this->mnVolumeSizeX > 0 ) {
 
     this->mfFrameBufferScaleX = 
-      (float)this->mnWidth  / (float)this->mnVolumeSize;
+      (float)this->mnWidth  / (float)this->mnVolumeSizeX;
     this->mfFrameBufferScaleY = 
-      (float)this->mnHeight / (float)this->mnVolumeSize;
+      (float)this->mnHeight / (float)this->mnVolumeSizeY;
   }
 
   /* rebuild our current frame and redraw. */
@@ -359,16 +365,19 @@ DspA_tErr DspA_UpdateWindowTitle ( tkmDisplayAreaRef this ) {
 }
 
 DspA_tErr DspA_SetVolume ( tkmDisplayAreaRef this,
-         mriVolumeRef      ipVolume,
-         int               inSize ) {
+                           mriVolumeRef      ipVolume,
+                           int               inSizeX,
+                           int               inSizeY,
+                           int               inSizeZ ) {
 
   DspA_tErr eResult                        = DspA_tErr_NoErr;
   xVoxelRef pCenter                        = NULL;
   char      sTclArguments[tkm_knTclCmdLen] = "";
   char      sVolumeName[tkm_knNameLen]     = "";
+  int         nSize ;
 
-  DebugEnterFunction( ("DspA_SetVolume( this=%p, ipVolume=%p, inSize=%d )", 
-           this, ipVolume, inSize) );
+  DebugEnterFunction( ("DspA_SetVolume( this=%p, ipVolume=%p, inSize=%d,%d,%d )", 
+           this, ipVolume, inSizeX, inSizeY, inSizeZ) );
 
   xVoxl_New( &pCenter );
 
@@ -381,7 +390,9 @@ DspA_tErr DspA_SetVolume ( tkmDisplayAreaRef this,
   this->mpVolume = ipVolume;
 
   /* save the volume size */
-  this->mnVolumeSize = inSize;
+  this->mnVolumeSizeX = inSizeX;
+  this->mnVolumeSizeY = inSizeY;
+  this->mnVolumeSizeZ = inSizeZ;
 
   /* if we alreayd have a frame buffer, delete it */
   if( NULL == this->mpFrameBuffer ) {
@@ -390,8 +401,8 @@ DspA_tErr DspA_SetVolume ( tkmDisplayAreaRef this,
   }
 
   /* allocate a new one */
-  this->mpFrameBuffer = (GLubyte*) malloc( this->mnVolumeSize *
-             this->mnVolumeSize * 
+  nSize = MAX(MAX(this->mnVolumeSizeX, this->mnVolumeSizeY), this->mnVolumeSizeZ) ;
+  this->mpFrameBuffer = (GLubyte*) malloc( nSize * nSize *
              DspA_knNumBytesPerPixel );
   if( NULL == this->mpFrameBuffer ) {
     eResult = DspA_tErr_AllocationFailed;
@@ -400,13 +411,13 @@ DspA_tErr DspA_SetVolume ( tkmDisplayAreaRef this,
 
   /* set inital values for our buffer scale */
   this->mfFrameBufferScaleX = 
-    (float)this->mnWidth  / (float)this->mnVolumeSize;
+    (float)this->mnWidth  / (float)this->mnVolumeSizeX;
   this->mfFrameBufferScaleY = 
-    (float)this->mnHeight  / (float)this->mnVolumeSize;
+    (float)this->mnHeight  / (float)this->mnVolumeSizeY;
 
   /* initialize surface point lists. */
   eResult = DspA_InitSurfaceLists_( this, 
-      this->mnVolumeSize * Surf_knNumVertexSets * mri_knNumOrientations );
+      nSize * Surf_knNumVertexSets * mri_knNumOrientations );
   if( DspA_tErr_NoErr != eResult )
     goto error;
 
@@ -419,8 +430,8 @@ DspA_tErr DspA_SetVolume ( tkmDisplayAreaRef this,
   tkm_SendTclCommand( tkm_tTclCommand_UpdateVolumeName, sTclArguments );
 
   /* get the center of the volume */
-  xVoxl_Set( pCenter, floor(this->mnVolumeSize/2), 
-       floor(this->mnVolumeSize/2), floor(this->mnVolumeSize/2) );
+  xVoxl_Set( pCenter, floor(this->mnVolumeSizeX/2), 
+       floor(this->mnVolumeSizeY/2), floor(this->mnVolumeSizeZ/2) );
 
   /* set cursor and zoom center to middle of volume if not already set */
   if (xVoxl_GetX(this->mpCursor)==0 &&
@@ -476,8 +487,10 @@ DspA_tErr DspA_SetVolume ( tkmDisplayAreaRef this,
 }
 
 DspA_tErr DspA_SetAuxVolume ( tkmDisplayAreaRef this,
-            mriVolumeRef      ipVolume,
-            int               inSize ) {
+                              mriVolumeRef      ipVolume,
+                              int               inSizeX,
+                              int               inSizeY,
+                              int               inSizeZ ) {
 
   DspA_tErr eResult                        = DspA_tErr_NoErr;
   char      sVolumeName[tkm_knNameLen]     = "";
@@ -489,7 +502,9 @@ DspA_tErr DspA_SetAuxVolume ( tkmDisplayAreaRef this,
     goto error;
 
   /* make sure this size is the same as the main volume size. */
-  if( inSize != this->mnVolumeSize ) {
+  if( inSizeX != this->mnVolumeSizeX ||
+      inSizeY != this->mnVolumeSizeY ||
+      inSizeZ != this->mnVolumeSizeZ ) {
     eResult = DspA_tErr_InvalidParameter;
     goto error;
   }
@@ -598,6 +613,64 @@ DspA_tErr DspA_SetROIGroup ( tkmDisplayAreaRef this,
   /* print error message */
   if( DspA_tErr_NoErr != eResult ) {
     DebugPrint( ("Error %d in DspA_SetROIGroup: %s\n",
+      eResult, DspA_GetErrorString(eResult) ) );
+  }
+
+ cleanup:
+
+  return eResult;
+}
+
+DspA_tErr DspA_SetTensor ( tkmDisplayAreaRef this,
+           mriVolumeRef      iTensor ) {
+
+  DspA_tErr eResult            = DspA_tErr_NoErr;
+  tBoolean  bHaveTensor         = FALSE;
+  char      sTclArguments[STRLEN] = "";
+  
+  /* verify us. */
+  eResult = DspA_Verify( this );
+  if( DspA_tErr_NoErr != eResult )
+    goto error;
+
+  /* save the group */
+  this->mTensor = iTensor;
+
+  /* turn stuff on or off based on if we have one. */
+  if( this->mTensor != NULL ) {
+    bHaveTensor = TRUE;
+  }
+
+  /* turn roi group on */
+  eResult = DspA_SetDisplayFlag( this, DspA_tDisplayFlag_TensorOverlay,
+                                 bHaveTensor );
+  if( DspA_tErr_NoErr != eResult )
+    goto error;
+  
+  /* show roi label */
+  sprintf( sTclArguments, "%d", (int)bHaveTensor );
+#if 0
+  tkm_SendTclCommand( tkm_tTclCommand_ShowROILabel, sTclArguments );
+  tkm_SendTclCommand( tkm_tTclCommand_ShowROIGroupOptions, sTclArguments );
+#endif
+
+  /* if we're focused, send the new information for the cursor */
+  if( sFocusedDisplay == this ) {
+    DspA_SendPointInformationToTcl_( this, DspA_tDisplaySet_Cursor,
+                                     this->mpCursor );
+  }
+  
+  /* redraw */
+  this->mbSliceChanged = TRUE;
+  DspA_Redraw_( this );
+
+  goto cleanup;
+
+ error:
+
+  /* print error message */
+  if( DspA_tErr_NoErr != eResult ) {
+    DebugPrint( ("Error %d in DspA_Tensor: %s\n",
       eResult, DspA_GetErrorString(eResult) ) );
   }
 
@@ -1199,8 +1272,8 @@ DspA_tErr DspA_SetZoomLevel ( tkmDisplayAreaRef this,
     /* set a voxel to 128,128,128, setting the zoom center will not change
        the current slice. */
     xVoxl_New( &pCenter );
-    xVoxl_Set( pCenter, this->mnVolumeSize/2, 
-         this->mnVolumeSize/2, this->mnVolumeSize/2 );
+    xVoxl_Set( pCenter, this->mnVolumeSizeX/2, 
+         this->mnVolumeSizeY/2, this->mnVolumeSizeZ/2 );
     eResult = DspA_SetZoomCenter( this, pCenter );
     xVoxl_Delete( &pCenter );
     if( DspA_tErr_NoErr != eResult )
@@ -1414,6 +1487,7 @@ DspA_tErr DspA_SetDisplayFlag ( tkmDisplayAreaRef this,
 
     break;
 
+  case DspA_tDisplayFlag_TensorOverlay:
   case DspA_tDisplayFlag_ROIGroupOverlay:
   case DspA_tDisplayFlag_ROIVolumeCount:
 
@@ -1972,9 +2046,9 @@ DspA_tErr DspA_ChangeSliceBy ( tkmDisplayAreaRef this,
   nSlice = DspA_GetCurrentSliceNumber_( this );
   nSlice += inDelta;
   while( nSlice < 0 ) 
-    nSlice += this->mnVolumeSize;
-  while( nSlice >= this->mnVolumeSize )
-    nSlice -= this->mnVolumeSize;
+    nSlice += this->mnVolumeSizeZ;
+  while( nSlice >= this->mnVolumeSizeZ )
+    nSlice -= this->mnVolumeSizeZ;
 
   /* set the slice */
   eResult = DspA_SetSlice( this, nSlice );
@@ -2163,7 +2237,7 @@ DspA_tErr DspA_SetCursorToCenterOfSpace ( tkmDisplayAreaRef this,
   DebugAssertThrow( (eResult == DspA_tErr_NoErr) );
 
   /* for each slice */
-  for( nSlice = 0; nSlice < this->mnVolumeSize; nSlice++ ) {
+  for( nSlice = 0; nSlice < this->mnVolumeSizeZ; nSlice++ ) {
     
     /* depending on what orientation we are in, get a list of voxels sorted
        by our slice number */
@@ -2419,7 +2493,7 @@ DspA_tErr DspA_HandleMouseUp_ ( tkmDisplayAreaRef this,
   }
 
   /* if edit parc tool... */
-  if( DspA_tTool_EditParcellation == sTool
+  if( DspA_tTool_EditSegmentation == sTool
       && NULL != this->mROIGroup
       && !ipEvent->mbCtrlKey) {
 
@@ -2441,7 +2515,7 @@ DspA_tErr DspA_HandleMouseUp_ ( tkmDisplayAreaRef this,
       } else {
   
   eResult = DspA_BrushVoxels_( this, pVolumeVox,  
-             NULL, DspA_EditParcellationVoxels_ );
+             NULL, DspA_EditSegmentationVoxels_ );
   if( DspA_tErr_NoErr != eResult )
     goto error;
   this->mbSliceChanged = TRUE;
@@ -2451,7 +2525,7 @@ DspA_tErr DspA_HandleMouseUp_ ( tkmDisplayAreaRef this,
 
     /* button three does a flood fill */
     case 3:
-      tkm_FloodFillParcellation( pVolumeVox, sParcBrush.mNewValue, 
+      tkm_FloodFillSegmentation( pVolumeVox, sParcBrush.mNewValue, 
          sParcBrush.mb3D, sParcBrush.mSrc, 
          sParcBrush.mnFuzzy, sParcBrush.mnDistance );
       this->mbSliceChanged = TRUE;
@@ -2607,7 +2681,7 @@ DspA_tErr DspA_HandleMouseDown_ ( tkmDisplayAreaRef this,
   /* if edit parc tool with button 1 or 3, clear the undo list */
   if( ( 1 == ipEvent->mButton
   || 3 == ipEvent->mButton )
-      && DspA_tTool_EditParcellation == sTool 
+      && DspA_tTool_EditSegmentation == sTool 
       && !ipEvent->mbCtrlKey
       && !ipEvent->mbAltKey ) {
     tkm_ClearUndoList();
@@ -2709,7 +2783,7 @@ DspA_tErr DspA_HandleMouseMoved_ ( tkmDisplayAreaRef this,
    slice */
     case 2:
       nNewSlice = this->mnOriginalSlice + rint(this->mTotalDelta.mfY);
-      if( nNewSlice >= 0 && nNewSlice < this->mnVolumeSize ) {
+      if( nNewSlice >= 0 && nNewSlice < this->mnVolumeSizeZ ) {
   DspA_SetSlice( this, nNewSlice );
       }
       break;
@@ -2753,14 +2827,14 @@ DspA_tErr DspA_HandleMouseMoved_ ( tkmDisplayAreaRef this,
   }
 
   /* if edit parc tool button 1... */
-  if( DspA_tTool_EditParcellation == sTool
+  if( DspA_tTool_EditSegmentation == sTool
       && NULL != this->mROIGroup
       && ipEvent->mButton == 2
       && !(ipEvent->mbAltKey)) {
 
     /* edit the parc volume */
     eResult = DspA_BrushVoxels_( this, pVolumeVox, 
-         NULL, DspA_EditParcellationVoxels_ );
+         NULL, DspA_EditSegmentationVoxels_ );
     if( DspA_tErr_NoErr != eResult )
       goto error;
     
@@ -2893,7 +2967,7 @@ DspA_tErr DspA_HandleKeyDown_ ( tkmDisplayAreaRef this,
   case 'g':
     
     /* g sets tool to edit segmentation */
-    eResult = DspA_SetTool( this, DspA_tTool_EditParcellation );
+    eResult = DspA_SetTool( this, DspA_tTool_EditSegmentation );
     if ( DspA_tErr_NoErr != eResult )
       goto error;
     
@@ -2967,7 +3041,7 @@ DspA_tErr DspA_HandleKeyDown_ ( tkmDisplayAreaRef this,
   goto error;
     } else {
       /* p sets tool to edit */
-      eResult = DspA_SetTool( this, DspA_tTool_EditParcellation );
+      eResult = DspA_SetTool( this, DspA_tTool_EditSegmentation );
       if ( DspA_tErr_NoErr != eResult )
   goto error;
     }
@@ -3294,9 +3368,9 @@ void DspA_SelectVoxels_ ( xVoxelRef ipVoxel, void* ipData ) {
   }
 }
 
-void DspA_EditParcellationVoxels_ ( xVoxelRef ipVoxel, void* ipData ) {
+void DspA_EditSegmentationVoxels_ ( xVoxelRef ipVoxel, void* ipData ) {
 
-  tkm_EditParcellation( ipVoxel, sParcBrush.mNewValue );
+  tkm_EditSegmentation( ipVoxel, sParcBrush.mNewValue );
 }
 
 DspA_tErr DspA_SelectCurrentROI ( tkmDisplayAreaRef this ) {
@@ -3558,7 +3632,7 @@ DspA_tErr DspA_DrawFrameBuffer_ ( tkmDisplayAreaRef this ) {
 
   DspA_SetUpOpenGLPort_( this );
 
-  glDrawPixels ( this->mnVolumeSize, this->mnVolumeSize,
+  glDrawPixels ( this->mnVolumeSizeX, this->mnVolumeSizeY,  /* almost certainly wrong (BRF) */
      GL_RGBA, GL_UNSIGNED_BYTE, this->mpFrameBuffer );
   
   goto cleanup;
@@ -3731,8 +3805,8 @@ DspA_tErr DspA_DrawCursor_ ( tkmDisplayAreaRef this ) {
   glEnd();
 
   glBegin( GL_LINES );
-  glVertex2d( bufferPt.mnX, this->mnVolumeSize );
-  glVertex2d( bufferPt.mnX, this->mnVolumeSize - 3*nHeight );
+  glVertex2d( bufferPt.mnX, this->mnVolumeSizeY );
+  glVertex2d( bufferPt.mnX, this->mnVolumeSizeY - 3*nHeight );
   glEnd();
 
   glBegin( GL_LINES );
@@ -3741,8 +3815,8 @@ DspA_tErr DspA_DrawCursor_ ( tkmDisplayAreaRef this ) {
   glEnd();
 
   glBegin( GL_LINES );
-  glVertex2d( this->mnVolumeSize, bufferPt.mnY );
-  glVertex2d( this->mnVolumeSize - 3*nWidth, bufferPt.mnY );
+  glVertex2d( this->mnVolumeSizeX, bufferPt.mnY );
+  glVertex2d( this->mnVolumeSizeX - 3*nWidth, bufferPt.mnY );
   glEnd();
 
   goto cleanup;
@@ -3771,9 +3845,9 @@ DspA_tErr DspA_DrawFrameAroundDisplay_ ( tkmDisplayAreaRef this ) {
   
   glBegin( GL_LINE_STRIP );
   glVertex2d( 1, 1 );
-  glVertex2d( this->mnVolumeSize-1, 1 );
-  glVertex2d( this->mnVolumeSize-1, this->mnVolumeSize-1 );
-  glVertex2d( 1, this->mnVolumeSize-1 );
+  glVertex2d( this->mnVolumeSizeX-1, 1 );
+  glVertex2d( this->mnVolumeSizeX-1, this->mnVolumeSizeY-1 );
+  glVertex2d( 1, this->mnVolumeSizeY-1 );
   glVertex2d( 1, 1 );
   glEnd ();
   
@@ -3816,7 +3890,7 @@ DspA_tErr DspA_DrawAxes_ ( tkmDisplayAreaRef this ) {
   volumePt.mnX = 0;
 
   /* all down the side, every size / 5 pixels */
-  for ( nY = 0; nY < this->mnVolumeSize; nY += this->mnVolumeSize/5 ) {
+  for ( nY = 0; nY < this->mnVolumeSizeY; nY += this->mnVolumeSizeY/5 ) {
       
     /* y flip the volume pt to flip the image over. */
     //volumePt.mnY = BUFFER_Y_FLIP(nY);
@@ -3868,23 +3942,23 @@ DspA_tErr DspA_DrawAxes_ ( tkmDisplayAreaRef this ) {
 
   case mri_tOrientation_Coronal:
     volumePt.mnX = 40; 
-    volumePt.mnY = this->mnVolumeSize - 20;
+    volumePt.mnY = this->mnVolumeSizeY - 20;
     DspA_DrawHorizontalArrow_( &volumePt, -20, "R" );
-    volumePt.mnX = this->mnVolumeSize - 20;
+    volumePt.mnX = this->mnVolumeSizeX - 20;
     volumePt.mnY = 40; 
     DspA_DrawVerticalArrow_( &volumePt, -20, "S" );
     break;
   case mri_tOrientation_Horizontal:
     volumePt.mnX = 40; 
-    volumePt.mnY = this->mnVolumeSize - 20;
+    volumePt.mnY = this->mnVolumeSizeY - 20;
     DspA_DrawHorizontalArrow_( &volumePt, -20, "R" );
-    volumePt.mnX = this->mnVolumeSize - 20;
+    volumePt.mnX = this->mnVolumeSizeX - 20;
     volumePt.mnY = 40; 
     DspA_DrawVerticalArrow_( &volumePt, -20, "A" );
     break;
   case mri_tOrientation_Sagittal:
-   volumePt.mnX = this->mnVolumeSize - 40; 
-    volumePt.mnY = this->mnVolumeSize - 20;
+   volumePt.mnX = this->mnVolumeSizeX - 40; 
+    volumePt.mnY = this->mnVolumeSizeY - 20;
     DspA_DrawHorizontalArrow_( &volumePt, 20, "A" );
     volumePt.mnX = 20;
     volumePt.mnY = 40; 
@@ -4010,8 +4084,8 @@ DspA_tErr DspA_BuildCurrentFrame_ ( tkmDisplayAreaRef this ) {
 
     /* set a voxel to 128,128,128, setting the zoom center will not change
        the current slice. */
-    xVoxl_Set( pVoxel, this->mnVolumeSize/2, 
-         this->mnVolumeSize/2, this->mnVolumeSize/2 );
+    xVoxl_Set( pVoxel, this->mnVolumeSizeX/2, 
+         this->mnVolumeSizeY/2, this->mnVolumeSizeZ/2 );
     eResult = DspA_SetZoomCenter( this, pVoxel );
     if( DspA_tErr_NoErr != eResult )
       goto error;
@@ -4023,9 +4097,9 @@ DspA_tErr DspA_BuildCurrentFrame_ ( tkmDisplayAreaRef this ) {
   DisableDebuggingOutput;
 
   /* go thru the buffer... */
-  for ( nY = 0; nY < this->mnVolumeSize; nY ++ ) {
+  for ( nY = 0; nY < this->mnVolumeSizeY; nY ++ ) {
     for ( volumePt.mnX = 0; 
-    volumePt.mnX < this->mnVolumeSize; volumePt.mnX ++ ) {
+    volumePt.mnX < this->mnVolumeSizeX; volumePt.mnX ++ ) {
 
       /* y flip the volume pt to flip the image over. */
       volumePt.mnY = BUFFER_Y_FLIP(nY);
@@ -4068,6 +4142,16 @@ DspA_tErr DspA_BuildCurrentFrame_ ( tkmDisplayAreaRef this ) {
     color.mfBlue  = 0;
   }
 
+  /* if we are showing tensors... */
+  if( this->mabDisplayFlags[DspA_tDisplayFlag_TensorOverlay] ) {
+    
+#if 0
+    /* get roi color blended in. */
+    tkm_GetROIColorAtVoxel( pVoxel, &color, &roiColor );
+    color = roiColor;
+#endif
+  }
+  
   /* if we are showing roi... */
   if( this->mabDisplayFlags[DspA_tDisplayFlag_ROIGroupOverlay] ) {
     
@@ -4108,21 +4192,21 @@ DspA_tErr DspA_BuildCurrentFrame_ ( tkmDisplayAreaRef this ) {
       if( FunV_tErr_NoError == eFunctional ) {
         
         /* get a color value. use the red compoonent for
-     base value. */
+           base value. */
         eFunctional = FunV_GetColorForValue ( this->mpFunctionalVolume,
-                funcValue, 
-                &color, &funcColor );
+                                              funcValue, 
+                                              &color, &funcColor );
         
         /* if the color is not all black.. */
         if( funcColor.mfRed != 0 || 
-      funcColor.mfGreen != 0 || 
-      funcColor.mfBlue  != 0 ) {
-    
-    /* set the color to this func color */
-    color = funcColor;
+            funcColor.mfGreen != 0 || 
+            funcColor.mfBlue  != 0 ) {
+          
+          /* set the color to this func color */
+          color = funcColor;
         }
       } 
-
+      
     } else {
       eFunctional = FunV_tErr_InvalidAnatomicalVoxel;
     }
@@ -4130,7 +4214,7 @@ DspA_tErr DspA_BuildCurrentFrame_ ( tkmDisplayAreaRef this ) {
     /* if we are out of functional bounds and our mask arg is on, then 
        this pixel is black. */
     if( FunV_tErr_InvalidAnatomicalVoxel == eFunctional &&
-      this->mabDisplayFlags[DspA_tDisplayFlag_MaskToFunctionalOverlay]) {
+        this->mabDisplayFlags[DspA_tDisplayFlag_MaskToFunctionalOverlay]) {
       color.mfRed   = 0;
       color.mfGreen = 0;
       color.mfBlue  = 0;
@@ -4138,49 +4222,49 @@ DspA_tErr DspA_BuildCurrentFrame_ ( tkmDisplayAreaRef this ) {
   }
   
       } else {
-  
-  /* voxel was out of bounds, set to out of bounds color. */
-  color.mfRed   = 0;
-  color.mfGreen = 0;
-  color.mfBlue  = 0;
-
-  /* clear error flag. */
-  eResult = DspA_tErr_NoErr;
+        
+        /* voxel was out of bounds, set to out of bounds color. */
+        color.mfRed   = 0;
+        color.mfGreen = 0;
+        color.mfBlue  = 0;
+        
+        /* clear error flag. */
+        eResult = DspA_tErr_NoErr;
       }
-
+      
       /* set the pixel */
       pDest[DspA_knRedPixelCompIndex]   = 
-  (GLubyte)(color.mfRed * (float)DspA_knMaxPixelValue);
+        (GLubyte)(color.mfRed * (float)DspA_knMaxPixelValue);
       pDest[DspA_knGreenPixelCompIndex] = 
-  (GLubyte)(color.mfGreen * (float)DspA_knMaxPixelValue);
+        (GLubyte)(color.mfGreen * (float)DspA_knMaxPixelValue);
       pDest[DspA_knBluePixelCompIndex]  = 
-  (GLubyte)(color.mfBlue * (float)DspA_knMaxPixelValue);
+        (GLubyte)(color.mfBlue * (float)DspA_knMaxPixelValue);
       pDest[DspA_knAlphaPixelCompIndex] = DspA_knMaxPixelValue;
-
+      
       /* advance our pointer. */
       pDest += DspA_knNumBytesPerPixel;
     }
   }
 
   goto cleanup;
-
+  
  error:
-
+  
   /* print error message */
   if ( DspA_tErr_NoErr != eResult ) {
     DebugPrint( ("Error %d in DspA_BuildCurrentFrame_: %s\n",
-      eResult, DspA_GetErrorString(eResult) ) );
+                 eResult, DspA_GetErrorString(eResult) ) );
   }
-
+  
  cleanup:
-
+  
   EnableDebuggingOutput;
-
+  
   /* delete the voxel. */
   xVoxl_Delete ( &pVoxel );
   xVoxl_Delete ( &pFuncMin );
   xVoxl_Delete ( &pFuncMax );
-
+  
   //  xUtil_StopTimer( "build frame buffer" );
 
   return eResult;
@@ -4210,39 +4294,39 @@ DspA_tErr DspA_DrawFunctionalOverlayToFrame_ ( tkmDisplayAreaRef this ) {
     
     /* down the buffer */
     for ( bufferPt.mnY = 0; 
-    bufferPt.mnY < this->mnVolumeSize; 
+    bufferPt.mnY < this->mnVolumeSizeY; 
     bufferPt.mnY++ ) {
       
       /* get an interpolated value within the range of -max to +max 
    determined by the y value */
       funcValue = (FunV_tFunctionalValue) 
-  ( (float)bufferPt.mnY * 
-    (float)((max*2.0)/(float)this->mnVolumeSize) - max );
+        ( (float)bufferPt.mnY * 
+          (float)((max*2.0)/(float)this->mnVolumeSizeY) - max );
       
       /* get the functional color for this value */
       eFunctional = FunV_GetColorForValue( this->mpFunctionalVolume,
-             funcValue, &color, &funcColor );
+                                           funcValue, &color, &funcColor );
       if( FunV_tErr_NoError != eFunctional ) {
-  eResult = DspA_tErr_ErrorAccessingFunctionalVolume;
-  goto error;
+        eResult = DspA_tErr_ErrorAccessingFunctionalVolume;
+        goto error;
       }
       
       /* draw on the right side... */
-      for ( bufferPt.mnX = this->mnVolumeSize - 10; 
-      bufferPt.mnX < this->mnVolumeSize; bufferPt.mnX++ ) {
-  
-  /* write it back to the buffer. */
-  pFrame = this->mpFrameBuffer + 
-    ( (bufferPt.mnY * this->mnVolumeSize) + bufferPt.mnX ) * 
-    DspA_knNumBytesPerPixel;
-  
-  pFrame[DspA_knRedPixelCompIndex]   = 
-    (GLubyte)(funcColor.mfRed * DspA_knMaxPixelValue);
-  pFrame[DspA_knGreenPixelCompIndex] = 
-    (GLubyte)(funcColor.mfGreen * DspA_knMaxPixelValue);
-  pFrame[DspA_knBluePixelCompIndex]  = 
-    (GLubyte)(funcColor.mfBlue * DspA_knMaxPixelValue);
-  pFrame[DspA_knAlphaPixelCompIndex] = DspA_knMaxPixelValue;
+      for ( bufferPt.mnX = this->mnVolumeSizeX - 10; 
+            bufferPt.mnX < this->mnVolumeSizeX; bufferPt.mnX++ ) {
+        
+        /* write it back to the buffer. */
+        pFrame = this->mpFrameBuffer + 
+          ( (bufferPt.mnY * this->mnVolumeSizeY) + bufferPt.mnX ) * 
+          DspA_knNumBytesPerPixel;
+        
+        pFrame[DspA_knRedPixelCompIndex]   = 
+          (GLubyte)(funcColor.mfRed * DspA_knMaxPixelValue);
+        pFrame[DspA_knGreenPixelCompIndex] = 
+          (GLubyte)(funcColor.mfGreen * DspA_knMaxPixelValue);
+        pFrame[DspA_knBluePixelCompIndex]  = 
+          (GLubyte)(funcColor.mfBlue * DspA_knMaxPixelValue);
+        pFrame[DspA_knAlphaPixelCompIndex] = DspA_knMaxPixelValue;
       }
     }
   }
@@ -4428,7 +4512,7 @@ DspA_tErr DspA_DrawSelectionToFrame_ ( tkmDisplayAreaRef this ) {
     for( nX = bufferPt.mnX; nX < bufferPt.mnX + this->mnZoomLevel;nX++) {
       
       pFrame = this->mpFrameBuffer + 
-        ( (nY * this->mnVolumeSize) + nX ) * DspA_knNumBytesPerPixel;
+        ( (nY * this->mnVolumeSizeX) + nX ) * DspA_knNumBytesPerPixel;
 
       /* get the current color in the buffer */
       xColr_Set( &color, (float)pFrame[DspA_knRedPixelCompIndex] /
@@ -5104,7 +5188,7 @@ xGrowableArrayRef DspA_GetSurfaceList_ ( tkmDisplayAreaRef this,
 
 int DspA_GetNumSurfaceLists_ ( tkmDisplayAreaRef this ) {
 
-  return this->mnVolumeSize * Surf_knNumVertexSets * mri_knNumOrientations;
+  return this->mnVolumeSizeX * Surf_knNumVertexSets * mri_knNumOrientations;  /* wrong (BRF) */
 }
 
 int DspA_GetSurfaceListIndex_ ( tkmDisplayAreaRef this,
@@ -5112,8 +5196,8 @@ int DspA_GetSurfaceListIndex_ ( tkmDisplayAreaRef this,
         Surf_tVertexSet  iSurface,
         int               inSlice ) {
 
-  return ((int)iOrientation * Surf_knNumVertexSets * this->mnVolumeSize) +
-   ((int)iSurface * this->mnVolumeSize) + inSlice;
+  return ((int)iOrientation * Surf_knNumVertexSets * this->mnVolumeSizeX) +  /* wrong (BRF) */
+   ((int)iSurface * this->mnVolumeSizeX) + inSlice;
 }
 
 
@@ -5127,7 +5211,7 @@ DspA_tErr DspA_ConvertVolumeToBuffer_ ( tkmDisplayAreaRef this,
   float     fX          = 0;
   float     fY          = 0;
   float     fZoomLevel  = (float) this->mnZoomLevel;
-  float     fVolumeSize = (float) this->mnVolumeSize;
+  float     fVolumeSize = (float) this->mnVolumeSizeX;
 
   /* verify the voxel */
   eResult = DspA_VerifyVolumeVoxel_( this, ipVolumeVox );
@@ -5195,7 +5279,7 @@ DspA_tErr DspA_ConvertBufferToVolume_ ( tkmDisplayAreaRef this,
   float     fZoomLevel  = (float) this->mnZoomLevel;
   float     fBufferX    = (float) ipBufferPt->mnX;
   float     fBufferY    = (float) ipBufferPt->mnY;
-  float     fVolumeSize = (float) this->mnVolumeSize;
+  float     fVolumeSize = (float) this->mnVolumeSizeX;
 
   /* unzoom the coords */
   fX = fBufferX / fZoomLevel + 
@@ -5652,16 +5736,16 @@ DspA_tErr DspA_SendPointInformationToTcl_ ( tkmDisplayAreaRef this,
     /* if this is a click with the edit tool and the volume count flag is
        on, calc and display the volume */
     if( DspA_tDisplaySet_Cursor == iSet &&
-  DspA_tTool_EditParcellation == sTool &&
-  this->mabDisplayFlags[DspA_tDisplayFlag_ROIVolumeCount] ) {
+        DspA_tTool_EditSegmentation == sTool &&
+        this->mabDisplayFlags[DspA_tDisplayFlag_ROIVolumeCount] ) {
       tkm_CalcROIVolume( iAnaIdx, &nValue );
       sprintf( sTclArguments, "%s \"%s (%d)\"",
-         DspA_ksaDisplaySet[iSet], sLabel, nValue );
-
+               DspA_ksaDisplaySet[iSet], sLabel, nValue );
+      
       /* else just the label */
     } else {
       sprintf( sTclArguments, "%s \"%s\"",
-         DspA_ksaDisplaySet[iSet], sLabel );
+               DspA_ksaDisplaySet[iSet], sLabel );
     }
     tkm_SendTclCommand( tkm_tTclCommand_UpdateROILabel, sTclArguments );
   }
@@ -5964,9 +6048,9 @@ DspA_tErr DspA_VerifyVolumeVoxel_  ( tkmDisplayAreaRef this,
   if ( xVoxl_GetX( ipVoxel )    < 0
        || xVoxl_GetY( ipVoxel ) < 0
        || xVoxl_GetZ( ipVoxel ) < 0
-       || xVoxl_GetX( ipVoxel ) >= this->mnVolumeSize
-       || xVoxl_GetY( ipVoxel ) >= this->mnVolumeSize
-       || xVoxl_GetZ( ipVoxel ) >= this->mnVolumeSize ) {
+       || xVoxl_GetX( ipVoxel ) >= this->mnVolumeSizeX
+       || xVoxl_GetY( ipVoxel ) >= this->mnVolumeSizeY
+       || xVoxl_GetZ( ipVoxel ) >= this->mnVolumeSizeZ ) {
 
     eResult = DspA_tErr_InvalidVolumeVoxel;
   }
@@ -5999,8 +6083,8 @@ DspA_tErr DspA_VerifyBufferPoint_ ( tkmDisplayAreaRef this,
   /* make sure the buffer point is in bounds */
   if ( ipBufferPt->mnX    < 0
       || ipBufferPt->mnY < 0
-       || ipBufferPt->mnX >= this->mnVolumeSize
-       || ipBufferPt->mnY >= this->mnVolumeSize ) {
+       || ipBufferPt->mnX >= this->mnVolumeSizeX
+       || ipBufferPt->mnY >= this->mnVolumeSizeY ) {
 
     eResult = DspA_tErr_InvalidBufferPoint;
   }
@@ -6019,9 +6103,9 @@ void DspA_SetUpOpenGLPort_ ( tkmDisplayAreaRef this ) {
   /* glOrtho ( left, right, bottom, top, near, far )
      ( left, bottom, -near ) is lower left corner of window
      ( right, top, -near ) is upper right */
-
-  glOrtho        ( 0, this->mnVolumeSize, this->mnVolumeSize, 0, -1.0, 1.0 );
-  //glOrtho        ( 0, this->mnVolumeSize, 0, this->mnVolumeSize, -1.0, 1.0 );
+  
+  glOrtho        ( 0, this->mnVolumeSizeX, this->mnVolumeSizeY, 0, -1.0, 1.0 );
+  //glOrtho        ( 0, this->mnVolumeSizeX, 0, this->mnVolumeSizeX, -1.0, 1.0 );
   eGL = glGetError ();
   if( GL_NO_ERROR != eGL )
     DebugPrint( ("glOrtho got error %d\n", eGL ) );
@@ -6032,7 +6116,7 @@ void DspA_SetUpOpenGLPort_ ( tkmDisplayAreaRef this ) {
   if( GL_NO_ERROR != eGL )
     DebugPrint( ("glViewport got error %d\n", eGL ) );
 
-  glRasterPos2i  ( 0, this->mnVolumeSize );
+  glRasterPos2i  ( 0, this->mnVolumeSizeX );
   //glRasterPos2i  ( 0, 0 );
   eGL = glGetError ();
   if( GL_NO_ERROR != eGL )
@@ -6051,7 +6135,7 @@ void DspA_DebugPrint_ ( tkmDisplayAreaRef this ) {
     this->mLocationInSuper.mnX, this->mLocationInSuper.mnY,
     this->mnWidth, this->mnHeight ) );
   DebugPrint( ("\tvolume size %d, x scale %.2f y scale %.2f\n",
-    this->mnVolumeSize, this->mfFrameBufferScaleX, 
+    this->mnVolumeSizeX, this->mfFrameBufferScaleX, 
     this->mfFrameBufferScaleY ) );
   DebugPrint( ("\tzoom level %d center %d, %d, %d\n",
     this->mnZoomLevel, xVoxl_ExpandInt(this->mpZoomCenter) ) );
@@ -6324,8 +6408,8 @@ DspA_tErr DspA_ParsePointList_( tkmDisplayAreaRef this,
       DspA_AdjustSurfaceDrawPoint_( this, &drawPoint );
       
       /* convert to zoomed coords. */
-      drawPoint.mfX = ((float)this->mnZoomLevel * (drawPoint.mfX - xVoxl_GetFloatX(this->mpZoomCenter))) + (float)(this->mnVolumeSize/2.0);
-      drawPoint.mfY = ((float)this->mnZoomLevel * (drawPoint.mfY - xVoxl_GetFloatY(this->mpZoomCenter))) + (float)(this->mnVolumeSize/2.0);
+      drawPoint.mfX = ((float)this->mnZoomLevel * (drawPoint.mfX - xVoxl_GetFloatX(this->mpZoomCenter))) + (float)(this->mnVolumeSizeX/2.0);
+      drawPoint.mfY = ((float)this->mnZoomLevel * (drawPoint.mfY - xVoxl_GetFloatY(this->mpZoomCenter))) + (float)(this->mnVolumeSizeY/2.0);
     
       /* y flip */
       drawPoint.mfY = GLDRAW_Y_FLIP(drawPoint.mfY);
