@@ -2,7 +2,7 @@
    DICOM 3.0 reading functions
    Author: Sebastien Gicquel and Douglas Greve
    Date: 06/04/2001
-   $Id: DICOMRead.c,v 1.71 2004/10/02 20:08:22 tosa Exp $
+   $Id: DICOMRead.c,v 1.72 2004/12/03 00:30:28 greve Exp $
 *******************************************************/
 
 #include <stdio.h>
@@ -1941,6 +1941,8 @@ int SortSDCMFileInfo(SDCMFILEINFO **sdcmfi_list, int nlist)
   sequence (except in mosaics). Those that occur earlier in time (ie,
   have a lower image number) will appear earlier in the sorted list.
 
+  The fourth comparison is the Echo Number.
+
   If the two files cannot be discriminated from these comparisions,
   a warning is printed and a 0 is returned.
 
@@ -1988,6 +1990,10 @@ int CompareSDCMFileInfo(const void *a, const void *b)
   /* Sort by Image Number (Temporal Sequence) */
   if(sdcmfi1->ImageNo < sdcmfi2->ImageNo) return(-1);
   if(sdcmfi1->ImageNo > sdcmfi2->ImageNo) return(+1);
+  
+  /* Sort by Echo Number  */
+  if(sdcmfi1->EchoNo < sdcmfi2->EchoNo) return(-1);
+  if(sdcmfi1->EchoNo > sdcmfi2->EchoNo) return(+1);
   
   /* Sort by Acquisition Time */
   /* This has been commented out because it should be
