@@ -222,9 +222,9 @@ struct tkmDisplayArea {
   int                    mnHeight;
   
   /* frame buffer */
-  int                    mnVolumeSizeX;
-  int                    mnVolumeSizeY;
-  int                    mnVolumeSizeZ;
+  int                    mnVolumeSizeX; /* This is actually the dimensions */
+  int                    mnVolumeSizeY; /* of the 'screen space', which is */
+  int                    mnVolumeSizeZ; /* 256^3. */
   GLubyte*               mpFrameBuffer;
   float                  mfFrameBufferScaleX;
   float                  mfFrameBufferScaleY;
@@ -243,7 +243,7 @@ struct tkmDisplayArea {
   int                    mnSegmentationVolumeIndex;
   int                    manSurfaceLineWidth[Surf_knNumVertexSets];
   xColor3f               maSurfaceLineColor[Surf_knNumVertexSets];
-  
+
   /* for navigation tool */
   xVoxelRef              mpOriginalZoomCenter;
   int                    mnOriginalSlice;
@@ -432,18 +432,20 @@ DspA_tErr DspA_HandleKeyDown_    ( tkmDisplayAreaRef this,
 DspA_tErr DspA_SetBrushInfoToDefault ( tkmDisplayAreaRef this,
 				       DspA_tBrush       iBrush );
 
-/* uses the current brush settings to run the input function on a bunch
-   of voxels based on the input point. */
+/* uses the current brush settings to run the input function on a
+   bunch of voxels based on the input point. The callback function
+   takes an array of xVoxelRef*, a length of the array, and a pointer
+   to data. */
 DspA_tErr DspA_BrushVoxels_ ( tkmDisplayAreaRef this,
 			      xVoxelRef         ipStartingVox,
 			      void*             ipData,
-			      void(*ipFunction)(xVoxelRef,void*) );
+			      void(*ipFunction)(xVoxelRef,int,void*) );
 /* parameter here is a DspA_tBrush */
-void DspA_BrushVoxelsInThreshold_ ( xVoxelRef ipVoxel, void* );
+void DspA_BrushVoxelsInThreshold_ ( xVoxelRef ipaVoxel, int inCount, void* );
 /* parameter here is a DspA_tSelectAction */
-void DspA_SelectVoxels_           ( xVoxelRef ipVoxel, void* );
+void DspA_SelectVoxels_           ( xVoxelRef ipaVoxel, int inCount, void* );
 /* no parameter here */
-void DspA_EditSegmentationVoxels_ ( xVoxelRef ipVoxel, void* );
+void DspA_EditSegmentationVoxels_ ( xVoxelRef ipaVoxel, int inCount, void* );
 
 /* select the currently clicked seg label */
 DspA_tErr DspA_SelectCurrentSegLabel ( tkmDisplayAreaRef this );

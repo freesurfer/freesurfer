@@ -4,9 +4,9 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2003/01/15 19:32:11 $
-// Revision       : $Revision: 1.123 $
-char *VERSION = "$Revision: 1.123 $";
+// Revision Date  : $Date: 2003/02/10 17:29:44 $
+// Revision       : $Revision: 1.124 $
+char *VERSION = "$Revision: 1.124 $";
 
 #define TCL
 #define TKMEDIT 
@@ -288,9 +288,9 @@ void DrawSelectedVoxels ( char * inBuffer, int inPlane, int inPlaneNum );
 
 /* adds or removes voxels to selections. if a voxel that isn't in the 
    selection is told to be removed, no errors occur. this is called from the 
-   brush function. */
-void AddVoxelToSelection      ( xVoxelRef  iAnaIdx );
-void RemoveVoxelFromSelection ( xVoxelRef  ipAnaIdx );
+   brush function. The iaAnaIdx parameter can be an array. */
+void AddVoxelsToSelection      ( xVoxelRef  iaAnaIdx, int inCount );
+void RemoveVoxelsFromSelection ( xVoxelRef  iaAnaIdx, int inCount );
 
 /* clears the current selection */
 void ClearSelection ();
@@ -355,11 +355,12 @@ void FlipVolume       ( mri_tOrientation iAxis );
 void RotateVolume    ( mri_tOrientation iAxis,
 		       float      ifDegrees );
 
-void EditAnatomicalVolumeInRange ( tkm_tVolumeType iVolume,
-				   xVoxelRef       ipVoxel, 
-				   Volm_tValue     inLow,
-				   Volm_tValue     inHigh, 
-				   Volm_tValue     inNewValue );
+void EditAnatomicalVolumeInRangeArray ( tkm_tVolumeType iVolume,
+					xVoxelRef       ipaVoxel, 
+					int             inCount,
+					Volm_tValue     inLow,
+					Volm_tValue     inHigh, 
+					Volm_tValue     inNewValue );
 
 void SetAnatomicalVolumeRegion ( tkm_tVolumeType iVolume,
 				 int             iAnaX0,
@@ -378,6 +379,14 @@ void ConvertRASToAnaIdx ( xVoxelRef iRAS,
 
 void ConvertAnaIdxToRAS ( xVoxelRef iAnaIdx,
 			  xVoxelRef oRAS );
+
+float gfaBrightness[tkm_knNumVolumeTypes]; 
+float gfaContrast[tkm_knNumVolumeTypes]; 
+
+void SetVolumeBrightnessAndContrast  ( tkm_tVolumeType iVolume,
+				       float        ifBrightness,
+				       float        ifContrast );
+void SendBrightnessAndContrastUpdate ( tkm_tVolumeType iVolume );
 
 // ========================================================= FUNCTIONAL VOLUME
 
@@ -531,6 +540,10 @@ void IterateCalcSegLabelVolume ( tkm_tSegType iVolume,
    list. TODO: Add it to the undo list, it doesn't currently. */
 void SetSegmentationValue    ( tkm_tSegType iVolume,
 			       xVoxelRef    iAnaIdx,
+			       int          inIndex );
+void SetSegmentationValues   ( tkm_tSegType iVolume,
+			       xVoxelRef    iaAnaIdx,
+			       int          inCount,
 			       int          inIndex );
 
 /* Flood fills a segmentation volume with various parameters. */
@@ -952,7 +965,13 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
   char        sScriptName[tkm_knPathLen]    = "";
   float        fSegmentationAlpha      = 0;
   tBoolean      bSegmentationAlpha      = FALSE;
-  
+  float         fBrightnessMain        = 0;
+  float         fContrastMain          = 0;
+  tBoolean      bBrightContrastMain    = FALSE;
+  float         fBrightnessAux        = 0;
+  float         fContrastAux          = 0;
+  tBoolean      bBrightContrastAux    = FALSE;
+
   DebugEnterFunction( ("ParseCmdLineArgs( argc=%d, argv=%s )", 
            argc, argv[0]) );
   
@@ -975,17 +994,20 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
     printf("Surface\n");
     printf("\n");
     printf("surface_file   : surface file to load (relative to $SUBJECTS_DIR/surf \n");
-    printf("         : or absolute)\n");
+    printf("               : or absolute)\n");
     printf("\n");
     printf("Options\n");
     printf("\n");
     printf("-aux <volume>  : load volume as auxilliary anatomical volume. relative to\n");
-    printf("    : in $SUBJECTS_DIR/subject/mri or specify absolute path\n");
+    printf("               : in $SUBJECTS_DIR/subject/mri or specify absolute path\n");
+    printf("\n");
+    printf("-bc-main <brightness> <contrast> : brightness and contrast for main volume\n");
+    printf("-bc-aux <brightness> <contrast> : brightness and contrast for aux volume\n");
     printf("\n");
     printf("-overlay <path/stem>      : load functional overlay volume\n");
     printf("-overlay-reg <registration> : load registration file for overlay volume \n");
-    printf("          : (default is register.dat in same path as\n");
-    printf("          :  volume)\n");
+    printf("                            : (default is register.dat in same path as\n");
+    printf("                            :  volume)\n");
     printf("\n");
     printf("-fthresh <value>      : specfify min, mid, and slope threshold\n");
     printf("-fmid <value>        : values for functional overlay display\n");
@@ -999,16 +1021,16 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
     printf("-sdir <subjects dir>       : (default is getenv(SUBJECTS_DIR)\n");
     printf("-timecourse <path/stem>    : load functional timecourse volume\n");
     printf("-timecourse-reg <registration>  : load registration file for timecourse   \n");
-    printf("        : volume (default is register.dat in\n");
-    printf("        : same path as volume)\n");
+    printf("                                : volume (default is register.dat in\n");
+    printf("                                : same path as volume)\n");
     printf("-timecourse-offset <path/stem>  : load timecourse offset volume\n");
     printf("\n");
     printf("-segmentation <volume> <colors>   : load segmentation volume and color file\n");
     printf("-segmentation-opacity <opacity>   : opacity of the segmentation \n");
-    printf("         : overlay (default is 0.3)\n");
+    printf("                                  : overlay (default is 0.3)\n");
     printf("\n");
     printf("-headpts <points> [<trans>]   : load head points file and optional\n");
-    printf("            : transformation\n");
+    printf("                              : transformation\n");
     printf("\n");
     printf("-interface script    : scecify interface script (default is tkmedit.tcl)\n");
     printf("\n");
@@ -1065,6 +1087,54 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
 	  nCurrentArg ++;
 	}
   
+      } else if( MATCH( sArg, "-bc-main" ) ) {
+  
+	/* check for the 2 values following the switch */
+	if( argc > nCurrentArg + 2
+	    && '-' != argv[nCurrentArg+1][0]
+	    && '-' != argv[nCurrentArg+2][0] ) {
+	  
+	  /* get the value */
+	  DebugNote( ("Parsing -bc-main option") );
+	  fBrightnessMain = atof( argv[nCurrentArg+1] );
+	  fContrastMain = atof( argv[nCurrentArg+2] );
+	  bBrightContrastMain = TRUE;
+	  nCurrentArg +=3 ;
+	  
+	} else { 
+	  
+	  /* misuse of that switch */
+	  tkm_DisplayError( "Parsing -bc-main option",
+			    "Expected two arguments",
+			    "This option needs two arguments: the brightness"
+			    "and the contrast for the volume." );
+	  nCurrentArg += 1;
+	}
+	
+      } else if( MATCH( sArg, "-bc-aux" ) ) {
+  
+	/* check for the 2 values following the switch */
+	if( argc > nCurrentArg + 2
+	    && '-' != argv[nCurrentArg+1][0]
+	    && '-' != argv[nCurrentArg+2][0] ) {
+	  
+	  /* get the value */
+	  DebugNote( ("Parsing -bc-aux option") );
+	  fBrightnessAux = atof( argv[nCurrentArg+1] );
+	  fContrastAux = atof( argv[nCurrentArg+2] );
+	  bBrightContrastAux = TRUE;
+	  nCurrentArg +=3 ;
+	  
+	} else { 
+	  
+	  /* misuse of that switch */
+	  tkm_DisplayError( "Parsing -bc-aux option",
+			    "Expected two arguments",
+			    "This option needs two arguments: the brightness"
+			    "and the contrast for the volume." );
+	  nCurrentArg += 1;
+	}
+	
       } else if( MATCH( sArg, "-o" ) ) {
 	
 	/* make sure there are enough args */
@@ -1886,10 +1956,22 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
     }
   }
   
+  /* If we got a non-default brightness and contrast, set it now. */
+  if( bBrightContrastMain ) {
+    SetVolumeBrightnessAndContrast( tkm_tVolumeType_Main, 
+				    fBrightnessMain, fContrastMain );
+  }
+
   /* if reading in an aux image... */
   if( bLoadingAuxVolume ) {
     DebugNote( ("Loading aux volume %s", sAuxVolume) );
     eResult = LoadVolume( tkm_tVolumeType_Aux, sAuxVolume );
+
+    /* If we got a non-default brightness and contrast, set it now. */
+    if( bBrightContrastAux ) {
+      SetVolumeBrightnessAndContrast( tkm_tVolumeType_Aux, 
+				      fBrightnessAux, fContrastAux );
+    }
   }
   
   /* load in the display transforms. */
@@ -3149,12 +3231,11 @@ int TclLoadVolumeDisplayTransform ( ClientData inClientData,
     /* get a volume index */
     volume = atoi( argv[1] );
     
-    /* make sure it's main or aux. if we have that volume, set the brightness
-       and contrast for it. */
+    /* make sure it's main or aux. if we have that volume, load the
+       transform. */
     if( volume == tkm_tVolumeType_Main || volume == tkm_tVolumeType_Aux ) {
       if( NULL != gAnatomicalVolume[ volume ] ) {
-  
-  LoadDisplayTransform( volume, argv[2] );
+	LoadDisplayTransform( volume, argv[2] );
       }
     }
   }
@@ -3179,12 +3260,11 @@ int TclUnloadVolumeDisplayTransform ( ClientData inClientData,
     /* get a volume index */
     volume = atoi( argv[1] );
     
-    /* make sure it's main or aux. if we have that volume, set the brightness
-       and contrast for it. */
+    /* make sure it's main or aux. if we have that volume, unload the
+       transform. */
     if( volume == tkm_tVolumeType_Main || volume == tkm_tVolumeType_Aux ) {
       if( NULL != gAnatomicalVolume[ volume ] ) {
-  
-  UnloadDisplayTransform( volume );
+	UnloadDisplayTransform( volume );
       }
     }
   }
@@ -3282,8 +3362,8 @@ int TclSetVolumeColorScale ( ClientData inClientData, Tcl_Interp* inInterp,
        and contrast for it. */
     if( volume == tkm_tVolumeType_Main || volume == tkm_tVolumeType_Aux ) {
       if( NULL != gAnatomicalVolume[ volume ] ) {
-  SetVolumeBrightnessAndContrast( volume,
-          atof( argv[2] ), atof( argv[3] ));
+	SetVolumeBrightnessAndContrast( volume,
+					atof( argv[2] ), atof( argv[3] ));
       }
     }
   }
@@ -5103,15 +5183,10 @@ int main ( int argc, char** argv ) {
   DebugNote( ( "Sending cached tcl commands" ) );
   SendCachedTclCommands ();
   
-  /* set default volume brightness and contrast, mainly so we can send
-     the update to the tcl window. */
-  SetVolumeBrightnessAndContrast( tkm_tVolumeType_Main, 
-          Volm_kfDefaultBrightness,
-          Volm_kfDefaultContrast );
+  /* send the brightness and contrast to the tcl window. */
+  SendBrightnessAndContrastUpdate( tkm_tVolumeType_Main );
   if( NULL != gAnatomicalVolume[tkm_tVolumeType_Aux] ) {
-    SetVolumeBrightnessAndContrast( tkm_tVolumeType_Aux, 
-            Volm_kfDefaultBrightness,
-            Volm_kfDefaultContrast );
+    SendBrightnessAndContrastUpdate( tkm_tVolumeType_Aux );
   }
   
   /* set default roi group alpha */
@@ -5583,60 +5658,63 @@ void DeleteSelectionModule () {
   
 }
 
-void AddVoxelToSelection ( xVoxelRef iAnaIdx ) {
+void AddVoxelsToSelection ( xVoxelRef iaAnaIdx, int inCount ) {
   
   x3Lst_tErr e3DList = x3Lst_tErr_NoErr;
+  int        nVoxel  = 0;
   xVoxelRef  anaIdx  = NULL;
   
   if ( NULL == gSelectedVoxels )
     return;
   
-  /* allocate a copy of the voxel */
-  xVoxl_New( &anaIdx );
-  xVoxl_Copy( anaIdx, iAnaIdx );
-  
-  // add the voxel to the ctrl pt space
-  e3DList = x3Lst_AddItem( gSelectedVoxels, anaIdx, anaIdx );
-  if( e3DList != x3Lst_tErr_NoErr )
-    DebugPrint( ( "x3Lst error %d in AddVoxelToSelection.\n", 
-      e3DList ) );
+  /* For each voxel we got... */
+  for( nVoxel = 0; nVoxel < inCount; nVoxel++ ) {
+    
+    /* Allocate a copy of the voxel */
+    xVoxl_New( &anaIdx );
+    xVoxl_Copy( anaIdx, &(iaAnaIdx[nVoxel]) );
+    
+    /* add the voxel to the ctrl pt space */
+    e3DList = x3Lst_AddItem( gSelectedVoxels, anaIdx, anaIdx );
+    if( e3DList != x3Lst_tErr_NoErr )
+      DebugPrint( ( "x3Lst error %d in AddVoxelToSelection.\n", e3DList ) );
+  }
 }
 
-void RemoveVoxelFromSelection ( xVoxelRef iAnaIdx ) {
+void RemoveVoxelsFromSelection ( xVoxelRef iaAnaIdx, int inCount ) {
   
   x3Lst_tErr e3DList = x3Lst_tErr_NoErr;
-  xVoxelRef  where   = NULL;
   xVoxelRef  voxel   = NULL;
+  int        nVoxel  = 0;
+  xVoxel     where;
   
   if ( NULL == gSelectedVoxels )
     return;
   
-  xVoxl_New( &where );
-  xVoxl_Copy( where, iAnaIdx );
-  
-  voxel = iAnaIdx;
-  
-  /* remove the item. we'll get back a ptr to the actual voxel we added. */
-  e3DList = x3Lst_RemoveItem( gSelectedVoxels, where, (void**)&voxel );
-  if( e3DList != x3Lst_tErr_NoErr )
-    goto error;
-  
-  /* delete it */
-  xVoxl_Delete( &voxel );
-  
-  goto cleanup;
-  
- error:
-  
-  if( x3Lst_tErr_NoErr != e3DList
-      && x3Lst_tErr_ItemNotInSpace != e3DList ) {
-    DebugPrint( ( "x3Lst error %d in RemoveVoxelFromSelection.\n",
-      e3DList ) );
+  for( nVoxel = 0; nVoxel < inCount; nVoxel++ ) {
+    
+    /* Copy the voxel into the location voxel. */
+    xVoxl_Copy( &where, &(iaAnaIdx[nVoxel]) );
+    
+    voxel = &(iaAnaIdx[nVoxel]);
+    
+    /* Remove the item. we'll get back a ptr to the actual voxel we
+       added. We may get an error if the voxel is out of bounds. If
+       so, just continue. If we got a different error, print an error
+       message.  */
+    e3DList = x3Lst_RemoveItem( gSelectedVoxels, &where, (void**)&voxel );
+    if( e3DList != x3Lst_tErr_NoErr ) {
+      if( e3DList != x3Lst_tErr_ItemNotInSpace ) {
+	DebugPrint( ( "x3Lst error %d in RemoveVoxelFromSelection. "
+		      "voxel %d of %d = %d, %d, %d\n",
+		      e3DList, nVoxel, inCount, xVoxl_ExpandInt( voxel ) ) );
+      }
+      continue;
+    }
+    
+    /* delete it */
+    xVoxl_Delete( &voxel );
   }
-  
- cleanup:
-  
-  xVoxl_Delete( &where );
 }
 
 
@@ -5818,7 +5896,7 @@ tkm_tErr LoadSelectionFromLabelFile ( char* isFileName ) {
        eResult, tkm_tErr_ErrorAccessingVolume );
       
       /* add to selection */
-      AddVoxelToSelection( &idx );
+      AddVoxelsToSelection( &idx, 1 );
     }
   }    
   
@@ -6351,8 +6429,8 @@ tkm_tErr LoadVolume ( tkm_tVolumeType iType,
   
   /* set the default color scale */
   SetVolumeBrightnessAndContrast( iType, 
-          Volm_kfDefaultBrightness,
-          Volm_kfDefaultContrast );
+				  Volm_kfDefaultBrightness,
+				  Volm_kfDefaultContrast );
   
   /* volume is clean */
   gbAnatomicalVolumeDirty[iType] = FALSE;
@@ -6662,24 +6740,28 @@ void SetVolumeBrightnessAndContrast ( tkm_tVolumeType iVolume,
   
   tkm_tErr  eResult         = tkm_tErr_NoErr;
   Volm_tErr eVolume         = Volm_tErr_NoErr;
-  char      sTclArguments[tkm_knTclCmdLen] = "";
   
   DebugEnterFunction( ("SetVolumeBrightnessAndContrast ( iVolume=%d, "
-           "ifBrightness=%.2f, ifContrast=%.2f )",
-           (int)iVolume, ifBrightness, ifContrast) );
+		       "ifBrightness=%.2f, ifContrast=%.2f )",
+		       (int)iVolume, ifBrightness, ifContrast) );
   
-  /* tell the volume to save a snapshot */
+  DebugAssertThrowX( (iVolume >= 0 && iVolume < tkm_knNumVolumeTypes), 
+		     eResult, tkm_tErr_InvalidParameter );
+
+  /* save these values. */
+  gfaBrightness[iVolume] = ifBrightness;
+  gfaContrast[iVolume] = ifContrast;
+
+  /* set the b/c in the volume. */
   DebugNote( ("Setting brightness and contrast") );
   eVolume = Volm_SetBrightnessAndContrast( gAnatomicalVolume[iVolume], 
-             ifBrightness, ifContrast );
+					   gfaBrightness[iVolume],
+					   gfaContrast[iVolume] );
   DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
-         eResult, tkm_tErr_ErrorAccessingVolume );
+		     eResult, tkm_tErr_ErrorAccessingVolume );
   
   /* update the tcl window */
-  DebugNote( ("Sending color scale update to tcl window") );
-  xUtil_snprintf( sTclArguments, sizeof(sTclArguments), "%d %f %f",
-      (int)iVolume, ifBrightness, ifContrast );
-  tkm_SendTclCommand( tkm_tTclCommand_UpdateVolumeColorScale, sTclArguments );
+  SendBrightnessAndContrastUpdate( iVolume );
   
   /* big redraw */
   MWin_RedrawAll( gMeditWindow );
@@ -6689,7 +6771,31 @@ void SetVolumeBrightnessAndContrast ( tkm_tVolumeType iVolume,
   EndDebugCatch;
   
   DebugExitFunction;
+}
+
+void SendBrightnessAndContrastUpdate ( tkm_tVolumeType iVolume ) {
   
+  tkm_tErr  eResult         = tkm_tErr_NoErr;
+  char      sTclArguments[tkm_knTclCmdLen] = "";
+  
+  DebugEnterFunction( ("SendBrightnessAndContrastUpdate ( iVolume=%d )",
+		       (int)iVolume) );
+  
+  DebugAssertThrowX( (iVolume >= 0 && iVolume < tkm_knNumVolumeTypes), 
+		     eResult, tkm_tErr_InvalidParameter );
+
+  /* update the tcl window */
+  DebugNote( ("Sending color scale update to tcl window") );
+  xUtil_snprintf( sTclArguments, sizeof(sTclArguments), "%d %f %f",
+		  (int)iVolume, gfaBrightness[iVolume], gfaContrast[iVolume] );
+  tkm_SendTclCommand( tkm_tTclCommand_UpdateVolumeColorScale, sTclArguments );
+  
+  
+  DebugCatch;
+  DebugCatchError( eResult, tkm_tErr_NoErr, tkm_GetErrorString );
+  EndDebugCatch;
+  
+  DebugExitFunction;
 }
 
 void ThresholdVolume ( int    inLevel,
@@ -6778,52 +6884,60 @@ void RotateVolume ( mri_tOrientation  iAxis,
   DebugExitFunction;
 }
 
-void EditAnatomicalVolumeInRange ( tkm_tVolumeType iVolume,
-				   xVoxelRef       ipVoxel, 
-				   Volm_tValue     inLow,
-				   Volm_tValue     inHigh, 
-				   Volm_tValue     inNewValue ) {
+void EditAnatomicalVolumeInRangeArray ( tkm_tVolumeType iVolume,
+					xVoxelRef       iaVoxel, 
+					int             inCount,
+					Volm_tValue     inLow,
+					Volm_tValue     inHigh, 
+					Volm_tValue     inNewValue ) {
   
+  int          nVoxel   = 0;
   float        value    = 0;
-  Volm_tValue newValue = 0;
+  Volm_tValue  newValue = 0;
 
   if( NULL == gAnatomicalVolume[iVolume] ) {
     return;
   }
   
-  /* get the value at this point. */
-  Volm_GetValueAtIdx( gAnatomicalVolume[iVolume], 
-		      ipVoxel, &value );
-  newValue = (int)value;
-  
-  /* if it's in the range... */
-  if( value >= inLow && value <= inHigh ) {
-    
-    /* set a new value */
-    newValue = inNewValue;
-  }
-  
-  /* if values are different, set and add to undo list. */
-  if( value != newValue ) {
-    Volm_SetValueAtIdx( gAnatomicalVolume[iVolume], 
-			ipVoxel, newValue );
+  /* for each voxel we got... */
+  for( nVoxel = 0; nVoxel < inCount; nVoxel++ ) {
 
-    switch( iVolume ) {
-    case tkm_tVolumeType_Main:
-      /* if this is an edit on the main volume, add it to the undo list
-	 using the EditAnatomicalVolume function and also add it to the
-	 undo volume. */
-      AddVoxelAndValueToUndoList( EditAnatomicalVolume, ipVoxel, value ); 
-      AddAnaIdxAndValueToUndoVolume( ipVoxel, value ); 
-      break;
+    /* get the value at this point. */
+    Volm_GetValueAtIdx( gAnatomicalVolume[iVolume], 
+			&(iaVoxel[nVoxel]), &value );
+    newValue = (int)value;
+  
+    /* if it's in the range... */
+    if( value >= inLow && value <= inHigh ) {
       
-    case tkm_tVolumeType_Aux:
-      /* if this is an edit on the aux volume, add it to the undo list
-       using the EditAuxAnatomicalVolume function. */
-      AddVoxelAndValueToUndoList( EditAuxAnatomicalVolume, ipVoxel, value ); 
-      break;
+      /* set a new value */
+      newValue = inNewValue;
+    }
+    
+    /* if values are different, set and add to undo list. */
+    if( value != newValue ) {
+      Volm_SetValueAtIdx( gAnatomicalVolume[iVolume], 
+			  &(iaVoxel[nVoxel]), newValue );
+      
+      switch( iVolume ) {
+      case tkm_tVolumeType_Main:
+	/* if this is an edit on the main volume, add it to the undo list
+	   using the EditAnatomicalVolume function and also add it to the
+	   undo volume. */
+	AddVoxelAndValueToUndoList( EditAnatomicalVolume, 
+				    &(iaVoxel[nVoxel]), value ); 
+	AddAnaIdxAndValueToUndoVolume( &(iaVoxel[nVoxel]), value ); 
+	break;
+	
+      case tkm_tVolumeType_Aux:
+	/* if this is an edit on the aux volume, add it to the undo list
+	   using the EditAuxAnatomicalVolume function. */
+	AddVoxelAndValueToUndoList( EditAuxAnatomicalVolume, 
+				    &(iaVoxel[nVoxel]), value ); 
+	break;
 
-    default:
+      default:
+      }
     }
   }
   
@@ -8072,7 +8186,7 @@ Volm_tVisitCommand AddSimilarVoxelToSelection ( xVoxelRef iAnaIdx,
   nTargetIndex = *(int*)ipnTarget;
   
   if( nIndex == nTargetIndex )
-    AddVoxelToSelection( iAnaIdx );
+    AddVoxelsToSelection( iAnaIdx, 1 );
   
   return Volm_tVisitComm_Continue;
 }
@@ -8422,6 +8536,18 @@ void SetSegmentationValue ( tkm_tSegType iVolume,
   
   /* TODO: add the change to the undo list. */
   EditSegmentation( iVolume, iAnaIdx, inIndex );
+}
+
+void SetSegmentationValues ( tkm_tSegType iVolume,
+			     xVoxelRef    iaAnaIdx,
+			     int          inCount,
+			     int          inIndex ) {
+
+  int nVoxel = 0;
+  
+  for( nVoxel = 0; nVoxel < inCount; nVoxel++ ) {
+    EditSegmentation( iVolume, &(iaAnaIdx[nVoxel]), inIndex );
+  }
 }
 
 
@@ -10032,8 +10158,20 @@ void tkm_EditAnatomicalVolumeInRange( tkm_tVolumeType  iVolume,
 				      tVolumeValue     inHigh, 
 				      tVolumeValue     inNewValue ) {
   
-  EditAnatomicalVolumeInRange( iVolume, inVolumeVox, 
-			       inLow, inHigh, inNewValue );
+  EditAnatomicalVolumeInRangeArray( iVolume, inVolumeVox, 1,
+				    inLow, inHigh, inNewValue );
+  
+}
+
+void tkm_EditAnatomicalVolumeInRangeArray( tkm_tVolumeType  iVolume, 
+					   xVoxelRef        iaVolumeVox, 
+					   int              inCount,
+					   tVolumeValue     inLow, 
+					   tVolumeValue     inHigh, 
+					   tVolumeValue     inNewValue ) {
+  
+  EditAnatomicalVolumeInRangeArray( iVolume, iaVolumeVox, inCount,
+				    inLow, inHigh, inNewValue );
   
 }
 
@@ -10053,14 +10191,24 @@ void tkm_SetAnatomicalVolumeRegion ( tkm_tVolumeType iVolume,
 			     iNewValue );
 }
 
-void tkm_SelectVoxel (xVoxelRef inVolumeVox ) {
+void tkm_SelectVoxel ( xVoxelRef iAnaIdx ) {
   
-  AddVoxelToSelection ( inVolumeVox );
+  AddVoxelsToSelection ( iAnaIdx, 1 );
 }
 
-void tkm_DeselectVoxel ( xVoxelRef inVolumeVox ) {
+void tkm_SelectVoxelArray ( xVoxelRef iaAnaIdx, int inCount ) {
   
-  RemoveVoxelFromSelection( inVolumeVox );
+  AddVoxelsToSelection ( iaAnaIdx, inCount );
+}
+
+void tkm_DeselectVoxel ( xVoxelRef iAnaIdx ) {
+  
+  RemoveVoxelsFromSelection( iAnaIdx, 1 );
+}
+
+void tkm_DeselectVoxelArray ( xVoxelRef iaAnaIdx, int inCount ) {
+  
+  RemoveVoxelsFromSelection( iaAnaIdx, inCount );
 }
 
 void tkm_ClearSelection () {
@@ -10236,6 +10384,14 @@ void tkm_EditSegmentation ( tkm_tSegType iVolume,
 			    int          inIndex ) {
   
   SetSegmentationValue( iVolume, iAnaIdx, inIndex );
+}
+
+void tkm_EditSegmentationArray ( tkm_tSegType iVolume,
+				 xVoxelRef    iaAnaIdx,
+				 int          inCount,
+				 int          inIndex ) {
+  
+  SetSegmentationValues( iVolume, iaAnaIdx, inCount, inIndex );
 }
 
 

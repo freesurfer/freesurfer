@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2003/01/15 19:32:10 $
-// Revision       : $Revision: 1.46 $
+// Revision Date  : $Date: 2003/02/10 17:29:44 $
+// Revision       : $Revision: 1.47 $
 
 #include "tkmDisplayArea.h"
 #include "tkmMeditWindow.h"
@@ -247,6 +247,7 @@ DspA_tErr DspA_Delete ( tkmDisplayAreaRef* ioppWindow ) {
   xVoxl_Delete( &this->mpLastCursor );
   xVoxl_Delete( &this->mpCursor );
   xVoxl_Delete( &this->mpZoomCenter );
+  xVoxl_Delete( &this->mpOriginalZoomCenter );
   
   /* trash the signature */
   this->mSignature = 0x1;
@@ -389,7 +390,8 @@ DspA_tErr DspA_SetVolume ( tkmDisplayAreaRef this,
   char      sVolumeName[tkm_knNameLen]     = "";
   int         nSize ;
   
-  DebugEnterFunction( ("DspA_SetVolume( this=%p, ipVolume=%p, inSize=%d,%d,%d )", 
+  DebugEnterFunction( ("DspA_SetVolume( this=%p, ipVolume=%p, "
+		       "inSize=%d,%d,%d )", 
 		       this, ipVolume, inSizeX, inSizeY, inSizeZ) );
   
   xVoxl_New( &pCenter );
@@ -413,10 +415,14 @@ DspA_tErr DspA_SetVolume ( tkmDisplayAreaRef this,
     this->mpFrameBuffer = NULL;
   }
   
-  /* allocate a new one */
-  nSize = MAX(MAX(this->mnVolumeSizeX, this->mnVolumeSizeY), this->mnVolumeSizeZ) ;
-  this->mpFrameBuffer = (GLubyte*) malloc( nSize * nSize *
-					   DspA_knNumBytesPerPixel );
+  /* Allocate a new one. NOTES: Normally mnVolumeSize{X,Y,Z} will all
+     be equal to each other, so this shouldn't be an issue. Also, at
+     some point somebody made by the frame buffer mallocation size
+     "nSize * nSize * sizeof(...)" which seems wrong and might have
+     just been a safety zone. */
+  nSize = MAX( MAX(this->mnVolumeSizeX, this->mnVolumeSizeY), 
+	       this->mnVolumeSizeZ) ;
+  this->mpFrameBuffer = (GLubyte*) malloc( nSize * DspA_knNumBytesPerPixel );
   if( NULL == this->mpFrameBuffer ) {
     eResult = DspA_tErr_AllocationFailed;
     goto error;
@@ -429,8 +435,8 @@ DspA_tErr DspA_SetVolume ( tkmDisplayAreaRef this,
     (float)this->mnHeight  / (float)this->mnVolumeSizeY;
   
   /* initialize surface point lists. */
-  eResult = DspA_InitSurfaceLists_( this, 
-				    nSize * Surf_knNumVertexSets * mri_knNumOrientations );
+  eResult = DspA_InitSurfaceLists_( this, nSize * Surf_knNumVertexSets * 
+				    mri_knNumOrientations );
   if( DspA_tErr_NoErr != eResult )
     goto error;
   
@@ -2822,6 +2828,13 @@ DspA_tErr DspA_HandleMouseMoved_ ( tkmDisplayAreaRef this,
   int                nNewZoomLevel= 0;
   tkm_tSegType       segType      = tkm_tSegType_Main;
   
+  /* For some reason we get MouseMoved events for points at the same
+     value as the window width or height. So check that here and if
+     that's the case, skip. */
+  if( ipEvent->mWhere.mnX == this->mnWidth ||
+      ipEvent->mWhere.mnY == this->mnHeight )
+    goto cleanup;
+
   xVoxl_New( &pVolumeVox );
   
   eResult = DspA_ConvertScreenToBuffer_( this, &(ipEvent->mWhere), &bufferPt );
@@ -3361,7 +3374,7 @@ DspA_tErr DspA_SetBrushInfoToDefault ( tkmDisplayAreaRef this,
 DspA_tErr DspA_BrushVoxels_ ( tkmDisplayAreaRef this,
 			      xVoxelRef         ipCenterVox,
 			      void*             ipData,
-			      void(*ipFunction)(xVoxelRef,void*) ) {
+			      void(*ipFunction)(xVoxelRef,int,void*) ) {
   
   DspA_tErr        eResult     = DspA_tErr_NoErr;
   int              nXCenter    = 0;
@@ -3370,11 +3383,16 @@ DspA_tErr DspA_BrushVoxels_ ( tkmDisplayAreaRef this,
   int              nXRadius    = 0;
   int              nYRadius    = 0;
   int              nZRadius    = 0;
-  int              nX          = 0;
-  int              nY          = 0;
-  int              nZ          = 0;
+  int              nXMin       = 0;
+  int              nXMax       = 0;
+  int              nYMin       = 0;
+  int              nYMax       = 0;
+  int              nZMin       = 0;
+  int              nZMax       = 0;
   xVoxelRef        pVolumeVox  = NULL;
-  
+  xVoxelRef        paBrushedVoxs = NULL;
+  int              nBrushedVoxs = 0;
+
   xVoxl_New( &pVolumeVox );
   
   /* get our center voxel. */
@@ -3407,35 +3425,52 @@ DspA_tErr DspA_BrushVoxels_ ( tkmDisplayAreaRef this,
       break;
     }
   }
-  
+
+  /* Calc the limits and cap them. */
+  nXMin = MAX( nXCenter - nXRadius, 0 );
+  nXMax = MIN( nXCenter + nXRadius, this->mnVolumeSizeX-1 );
+  nYMin = MAX( nYCenter - nYRadius, 0 );
+  nYMax = MIN( nYCenter + nYRadius, this->mnVolumeSizeY-1 );
+  nZMin = MAX( nZCenter - nZRadius, 0 );
+  nZMax = MIN( nZCenter + nZRadius, this->mnVolumeSizeZ-1 );
+
+  /* set our voxel. */
+  xVoxl_Set( pVolumeVox, nXMin, nYMin, nZMin );
+
+  /* Allocate the array of voxels. Set it to the max it can be, with
+     is the size of the cuboid in the bounds calc'd above. */
+  paBrushedVoxs = malloc( sizeof(xVoxel) * 
+			  (nXMax - nXMin + 1) *
+			  (nYMax - nYMin + 1) * 
+			  (nZMax - nZMin + 1));
+  DebugAssertThrowX( (NULL != paBrushedVoxs),
+		     eResult, DspA_tErr_AllocationFailed );
+
   /* loop around the starting point... */
-  for ( nZ = nZCenter - nZRadius; nZ <= nZCenter + nZRadius; nZ++ ) {
-    for ( nY = nYCenter - nYRadius; nY <= nYCenter + nYRadius; nY++ ) {
-      for ( nX = nXCenter - nXRadius; nX <= nXCenter + nXRadius; nX++ ) {
+  do {
 	
-	/* set our voxel. */
-	xVoxl_Set( pVolumeVox, nX, nY, nZ );
-	
-	/* if it's valid... */
-	if( DspA_tErr_InvalidVolumeVoxel != 
-	    DspA_VerifyVolumeVoxel_( this, pVolumeVox ) ) {
-	  
-	  /* if we're circular, check the radius. if no good, continue. */
-	  if( DspA_tBrushShape_Circle == sBrush.mShape 
-	      && ( (nXCenter-nX)*(nXCenter-nX) +
-		   (nYCenter-nY)*(nYCenter-nY) +
-		   (nZCenter-nZ)*(nZCenter-nZ) >
-		   (sBrush.mnRadius-1)*(sBrush.mnRadius-1) ) ) {
-	    continue;
-	  }
-	  
-	  /* run the function on this voxel. */
-	  ipFunction( pVolumeVox, ipData );
-	}
-      }
+    /* if we're circular, check the radius. if no good, continue. */
+    if( DspA_tBrushShape_Circle == sBrush.mShape &&
+	( (nXCenter - xVoxl_GetX(pVolumeVox)) *
+	  (nXCenter - xVoxl_GetX(pVolumeVox)) +
+	  (nYCenter - xVoxl_GetY(pVolumeVox)) *
+	  (nYCenter - xVoxl_GetY(pVolumeVox)) +
+	  (nZCenter - xVoxl_GetZ(pVolumeVox)) *
+	  (nZCenter - xVoxl_GetZ(pVolumeVox)) >
+	  (sBrush.mnRadius-1) * (sBrush.mnRadius-1) ) ) {
+      continue;
     }
-  }
+    
+    /* Add this voxel to the list and increment the count. */
+    xVoxl_Copy( &(paBrushedVoxs[nBrushedVoxs]), pVolumeVox );
+    nBrushedVoxs++;
+
+  } while( xVoxl_IncrementWithMinsUntilLimits( pVolumeVox, nXMin, nYMin,
+					       nXMax, nYMax, nZMax ));
   
+  /* run the function on these voxels. */
+  ipFunction( paBrushedVoxs, nBrushedVoxs, ipData );
+
   DspA_Redraw_( this );
   
   goto cleanup;
@@ -3451,47 +3486,55 @@ DspA_tErr DspA_BrushVoxels_ ( tkmDisplayAreaRef this,
  cleanup:
   xVoxl_Delete( &pVolumeVox );
   
+  if( NULL != paBrushedVoxs ) {
+    free( paBrushedVoxs );
+  }
+
   return eResult;
   
 }
 
-void DspA_BrushVoxelsInThreshold_ ( xVoxelRef ipVoxel, void* ipData ) {
+void DspA_BrushVoxelsInThreshold_ ( xVoxelRef ipaVoxel, int inCount,
+				    void* ipData ) {
   
-  DspA_tBrush brush = DspA_tBrush_None;
-  
+  DspA_tBrush brush  = DspA_tBrush_None;
+
   /* make sure the brush is in bounds */
   brush = *(DspA_tBrush*)ipData;
   if( brush < 0 ||
       brush >= DspA_knNumBrushes ) {
     return;
   }
-  
+
   /* edit the voxel according to what the brush target is. */
   switch( sBrush.mTarget ) {
   case DspA_tBrushTarget_Main:
-    tkm_EditAnatomicalVolumeInRange( tkm_tVolumeType_Main, ipVoxel, 
-				     sBrush.mInfo[brush].mnLow,
-				     sBrush.mInfo[brush].mnHigh,
-				     sBrush.mInfo[brush].mnNewValue );
+    tkm_EditAnatomicalVolumeInRangeArray( tkm_tVolumeType_Main, 
+					  ipaVoxel, inCount,
+					  sBrush.mInfo[brush].mnLow,
+					  sBrush.mInfo[brush].mnHigh,
+					  sBrush.mInfo[brush].mnNewValue );
     break;
-  case DspA_tBrushTarget_MainAux:
-    tkm_EditAnatomicalVolumeInRange( tkm_tVolumeType_Main, ipVoxel, 
-				     sBrush.mInfo[brush].mnLow,
-				     sBrush.mInfo[brush].mnHigh,
-				     sBrush.mInfo[brush].mnNewValue );
-    tkm_EditAnatomicalVolumeInRange( tkm_tVolumeType_Aux, ipVoxel, 
-				     sBrush.mInfo[brush].mnLow,
-				     sBrush.mInfo[brush].mnHigh,
-				     sBrush.mInfo[brush].mnNewValue );
-    break;
+    case DspA_tBrushTarget_MainAux:
+      tkm_EditAnatomicalVolumeInRangeArray( tkm_tVolumeType_Main,
+					    ipaVoxel, inCount,
+					    sBrush.mInfo[brush].mnLow,
+					    sBrush.mInfo[brush].mnHigh,
+					    sBrush.mInfo[brush].mnNewValue );
+      tkm_EditAnatomicalVolumeInRangeArray( tkm_tVolumeType_Aux,
+					    ipaVoxel, inCount,
+					    sBrush.mInfo[brush].mnLow,
+					    sBrush.mInfo[brush].mnHigh,
+					    sBrush.mInfo[brush].mnNewValue );
+      break;
   default:
   }
 }
 
-void DspA_SelectVoxels_ ( xVoxelRef ipVoxel, void* ipData ) {
+void DspA_SelectVoxels_ ( xVoxelRef ipaVoxel, int inCount, void* ipData ) {
   
   DspA_tSelectAction selectAction = DspA_tSelectAction_None;
-  
+
   /* make sure the action is in bounds */
   selectAction = *(DspA_tSelectAction*)ipData;
   if( selectAction < 0 ||
@@ -3502,23 +3545,21 @@ void DspA_SelectVoxels_ ( xVoxelRef ipVoxel, void* ipData ) {
   /* select or deselect the voxel */
   switch( selectAction ) {
   case DspA_tSelectAction_Select:
-    
-    tkm_SelectVoxel( ipVoxel );
+    tkm_SelectVoxelArray( ipaVoxel, inCount );
     break;
-    
   case DspA_tSelectAction_Deselect:
-    
-    tkm_DeselectVoxel( ipVoxel );
+    tkm_DeselectVoxelArray( ipaVoxel, inCount );
     break;
-    
   default:
-    break;
+      break;
   }
 }
 
-void DspA_EditSegmentationVoxels_ ( xVoxelRef ipVoxel, void* ipData ) {
+void DspA_EditSegmentationVoxels_ ( xVoxelRef ipaVoxel, int inCount, 
+				    void* ipData ) {
 
-  tkm_EditSegmentation( sParcBrush.mDest, ipVoxel, sParcBrush.mNewValue );
+  tkm_EditSegmentationArray( sParcBrush.mDest, 
+			     ipaVoxel, inCount, sParcBrush.mNewValue );
 }
 
 DspA_tErr DspA_SelectCurrentSegLabel ( tkmDisplayAreaRef this ) {

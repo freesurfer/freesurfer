@@ -252,6 +252,10 @@ void tkm_CalcSegLabelVolume ( tkm_tSegType iVolume,
 void tkm_EditSegmentation      ( tkm_tSegType      iVolume,
 				 xVoxelRef         iAnaIdx,
 				 int               inIndex );
+void tkm_EditSegmentationArray ( tkm_tSegType      iVolume,
+				 xVoxelRef         iaAnaIdx,
+				 int               inCount,
+				 int               inIndex );
 void tkm_FloodFillSegmentation ( tkm_tSegType      iVolume,
 				 xVoxelRef         iAnaIdx,
 				 int               inIndex,
@@ -280,6 +284,12 @@ void tkm_EditAnatomicalVolumeInRange( tkm_tVolumeType  iVolume,
 				      tVolumeValue     inLow, 
 				      tVolumeValue     inHigh, 
 				      tVolumeValue     inNewValue );
+void tkm_EditAnatomicalVolumeInRangeArray( tkm_tVolumeType  iVolume, 
+					   xVoxelRef        iaVolumeVox, 
+					   int              inCount,
+					   tVolumeValue     inLow, 
+					   tVolumeValue     inHigh, 
+					   tVolumeValue     inNewValue );
 
 /* Sets a region in the anatomical volume to a new value. */
 void tkm_SetAnatomicalVolumeRegion ( tkm_tVolumeType iVolume,
@@ -307,9 +317,11 @@ void tkm_GetHeadPoint ( xVoxelRef           iAnaIdx,
 			HPtL_tHeadPointRef* opPoint );
 
 /* selecting */
-void tkm_SelectVoxel    ( xVoxelRef iAnaIdx );
-void tkm_DeselectVoxel  ( xVoxelRef iAnaIdx );
-void tkm_ClearSelection ();
+void tkm_SelectVoxel         ( xVoxelRef iAnaIdx );
+void tkm_SelectVoxelArray    ( xVoxelRef iaAnaIdx, int inCount );
+void tkm_DeselectVoxel       ( xVoxelRef iAnaIdx );
+void tkm_DeselectVoxelArray  ( xVoxelRef iaAnaIdx, int inCount );
+void tkm_ClearSelection      ();
 
 /* event processing */
 void tkm_HandleIdle ();
