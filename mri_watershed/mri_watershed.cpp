@@ -5,11 +5,11 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2003/12/05 21:04:18 $
-// Revision       : $Revision: 1.24 $
+// Revision Date  : $Date: 2004/04/05 18:48:11 $
+// Revision       : $Revision: 1.25 $
 //
 ////////////////////////////////////////////////////////////////////
-char *MRI_WATERSHED_VERSION = "$Revision: 1.24 $";
+char *MRI_WATERSHED_VERSION = "$Revision: 1.25 $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -539,7 +539,7 @@ int main(int argc, char *argv[])
   /************* Command line****************/
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_watershed.cpp,v 1.24 2003/12/05 21:04:18 tosa Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_watershed.cpp,v 1.25 2004/04/05 18:48:11 tosa Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -1374,7 +1374,7 @@ static int Pre_CharSorting(STRIP_PARMS *parms,MRI_variables *MRI_var)
   xmax=MIN(MRI_var->width-2,xmin+2*r);
   xmin=xmax-2*r;
 
-  ymin=MAX(2,y-r-1);   
+  ymin=MAX(2,y-2*r-1);// subtraction (2*r) is bigger than (r) -> trying to remove neck portion   
   ymax=MIN(MRI_var->height-2,ymin+2*r);
   ymin=ymax-2*r;
 
