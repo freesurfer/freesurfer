@@ -4148,8 +4148,15 @@ draw_surface(void)
             else                        color(NUMVALS+MAPOFFSET+1); /*nondef*/
           }
           else if (curvflag && curvloaded) {
+#if 0
             if (v->curv>0.0)  color(NUMVALS+MAPOFFSET+4); /* TODO:colormap */
             else              color(NUMVALS+MAPOFFSET+5);
+#else
+            if (v->curv>0.0)  
+              glColor3f(1.0, 0.0, 0.0);
+            else              
+              glColor3f(0.0, 1.0, 0.0);
+#endif
           }
           else /* color(YELLOW); */ /* just surface */
       glColor3f(1.0,1.0,0.0);
@@ -4798,7 +4805,8 @@ read_binary_curvature(char *fname)
   float curvmin, curvmax, curv;
   int   k;
 
-  MRISreadBinaryCurvature(mris, fname) ;
+  fprintf(stderr, "fname=%s\n", fname) ;
+  MRISreadCurvatureFile(mris, fname) ;
 
   curvmin= 1000000.0f ; curvmax = -curvmin;
   for (k=0;k<mris->nvertices;k++)
@@ -5419,6 +5427,10 @@ int                  W_read_binary_curv  WBEGIN
   ERR(1,"Wrong # args: read_binary_curv")
                        read_binary_curvature(cfname);  WEND
 
+int                  W_read_curv  WBEGIN 
+  ERR(2,"Wrong # args: read_curv")
+                       read_binary_curvature(argv[1]);  WEND
+
 int                  W_smooth_3d  WBEGIN
   ERR(2,"Wrong # args: smooth_3d <steps>")
                        smooth_3d(atoi(argv[1]));  WEND
@@ -5605,6 +5617,7 @@ char **argv;
   Tcl_CreateCommand(interp, "read_fieldsign",     W_read_fieldsign,     REND);
   Tcl_CreateCommand(interp, "read_fsmask",        W_read_fsmask,        REND);
   Tcl_CreateCommand(interp, "read_binary_curv",   W_read_binary_curv,   REND);
+  Tcl_CreateCommand(interp, "read_curv",   W_read_curv,                 REND);
   Tcl_CreateCommand(interp, "goto_vertex",        W_goto_vertex,        REND);
   Tcl_CreateCommand(interp, "select_control_points",W_select_control_points,
                     REND);
