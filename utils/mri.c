@@ -8143,9 +8143,12 @@ MATRIX *extract_i_to_r(MRI *mri)
   }
   else
   {
-    m11 = -mri->xsize;  m12 =  0.0;         m13 = 0.0;         m14 =  mri->xsize * mri->width / 2.0;
-    m21 =  0.0;         m22 = -mri->ysize;  m23 = 0.0;         m24 =  mri->ysize * mri->height / 2.0;
-    m31 =  0.0;         m32 =  0.0;         m33 = mri->zsize;  m34 = -mri->zsize * mri->depth / 2.0;
+    m11 = -mri->xsize;  m12 =  0.0;         m13 = 0.0;         
+    m14 =  mri->xsize * mri->width / 2.0;
+    m21 =  0.0;         m22 = -mri->ysize;  m23 = 0.0;         
+    m24 =  mri->ysize * mri->height / 2.0;
+    m31 =  0.0;         m32 =  0.0;         m33 = mri->zsize;  
+    m34 = -mri->zsize * mri->depth / 2.0;
   }
   
   stuff_four_by_four(m, m11, m12, m13, m14, 
