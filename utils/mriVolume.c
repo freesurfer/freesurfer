@@ -945,8 +945,11 @@ void Volm_GetMaxIntColorAtIdx ( mriVolumeRef     this,
     Volm_FindMaxValues( this );
   }
   
+  /* First convert to MRI index */
+  Volm_ConvertScreenIdxToMRIIdx_( this, iIdx, &this->mTmpVoxel );
+
   /* Convert to an xy slice and get the color. */
-  Volm_ConvertIdxToXYSlice_( iIdx, iOrientation, &point, &nSlice );
+  Volm_ConvertIdxToXYSlice_( &this->mTmpVoxel, iOrientation, &point, &nSlice );
   Volm_GetMaxIntColorAtXYSlice( this, iOrientation, &point, nSlice, oColor );
 }
 
@@ -3329,19 +3332,19 @@ void Volm_ConvertIdxToXYSlice_ ( xVoxelRef         iIdx,
   
   switch( iOrientation ) {
   case mri_tOrientation_Coronal:
-    oPoint->mnX = xVoxl_GetX( iIdx );
-    oPoint->mnY = xVoxl_GetY( iIdx );
-    *onSlice    = xVoxl_GetZ( iIdx );
+    oPoint->mnX = xVoxl_GetX( &this->mTmpVoxel );
+    oPoint->mnY = xVoxl_GetY( &this->mTmpVoxel );
+    *onSlice    = xVoxl_GetZ( &this->mTmpVoxel );
     break;
   case mri_tOrientation_Horizontal:
-    oPoint->mnX = xVoxl_GetX( iIdx );
-    oPoint->mnY = xVoxl_GetZ( iIdx );
-    *onSlice    = xVoxl_GetY( iIdx );
+    oPoint->mnX = xVoxl_GetX( &this->mTmpVoxel );
+    oPoint->mnY = xVoxl_GetZ( &this->mTmpVoxel );
+    *onSlice    = xVoxl_GetY( &this->mTmpVoxel );
     break;
   case mri_tOrientation_Sagittal:
-    oPoint->mnX = xVoxl_GetZ( iIdx );
-    oPoint->mnY = xVoxl_GetY( iIdx );
-    *onSlice    = xVoxl_GetZ( iIdx );
+    oPoint->mnX = xVoxl_GetZ( &this->mTmpVoxel );
+    oPoint->mnY = xVoxl_GetY( &this->mTmpVoxel );
+    *onSlice    = xVoxl_GetZ( &this->mTmpVoxel );
     break;
   default:
     DebugPrintStack;
