@@ -319,9 +319,10 @@ main(int argc, char *argv[])
   GCAMregister(gcam, mri_in, &parms) ;
 
   printf("writing output transformation to %s...\n", out_fname) ;
-  GCAMwrite(gcam, out_fname) ;
   if (vf_fname)
     write_vector_field(mri_in, gcam, vf_fname) ;
+  if (GCAMwrite(gcam, out_fname) != NO_ERROR)
+    ErrorExit(Gerror, "%s: GCAMwrite(%s) failed", Progname, out_fname) ;
 
   if (gca)
     GCAfree(&gca) ;
