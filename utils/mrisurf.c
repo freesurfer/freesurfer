@@ -7267,7 +7267,7 @@ MRISreadValues(MRI_SURFACE *mris, char *sname)
   cp = strrchr(fname, '.') ;
   if (!cp || *(cp+1) != 'w')
     strcat(fname, ".w") ;
-  fp = fopen(fname,"r");
+  fp = fopen(fname,"rb");
   if (fp==NULL) 
     ErrorReturn(ERROR_NOFILE, (ERROR_NOFILE,
                                "MRISreadValues: File %s not found\n",fname));
@@ -7276,15 +7276,25 @@ MRISreadValues(MRI_SURFACE *mris, char *sname)
 
   for (k=0;k<mris->nvertices;k++)
     mris->vertices[k].val=0;
-  fread3(&num,fp);
+  if (fread3(&num,fp) < 1)
+    ErrorReturn(ERROR_BADFILE,
+                (ERROR_BADFILE, 
+                 "MRISreadValues(%s): could not read # of vertices",
+                 fname)) ;
   for (i=0;i<num;i++)
   {
-    fread3(&k,fp);
+    if (fread3(&k,fp) < 1)
+      ErrorReturn(ERROR_BADFILE,
+                  (ERROR_BADFILE, 
+                   "MRISreadValues(%s): could not read %dth vno",
+                   fname, i)) ;
     f = freadFloat(fp) ;
     if (k>=mris->nvertices||k<0)
       printf("MRISreadValues: vertex index out of range: %d f=%f\n",k,f);
     else
     {
+      if (k == Gdiag_no)
+        DiagBreak() ;
       mris->vertices[k].val = f;
     }
   }
