@@ -178,19 +178,19 @@ MRIclassFree(MRIC **pmric)
           defined to be MAX(1, scale/4) on each side of the
           region.
 ------------------------------------------------------*/
-#define LO_LIM  50
+#define LO_LIM  60
 #define HI_LIM  150
 
 int
-MRIclassTrain(MRIC *mric, MRI *mri_src, MRI *mri_norm, MRI *mri_target)
+MRIclassTrain(MRIC *mric, MRI *mri_src, MRI *mri_zscore, MRI *mri_target)
 {
   MATRIX     *m_inputs[NCLASSES] ;
   GCLASSIFY  *gc, **pgc ;
-  int        x, y, z, x0, y0, z0, x1, y1, z1, xm, ym, zm, 
+  int        x, y, z, x0, y0, z0, x1, y1, z1, xm, ym, zm, xv, yv, zv,
              width, depth, height, scale, classno, nclasses, nobs[NCLASSES],
              swidth, sheight, sdepth, overlap, ninputs ;
-  BUFTYPE    *psrc, *ptarget, src, target ;
-  float      *pnorm ;
+  BUFTYPE    src, target ;
+  Real       xrv, yrv, zrv ;
 
   scale = mric->scale ;
   overlap = MAX(1, scale/4) ;
@@ -202,41 +202,53 @@ MRIclassTrain(MRIC *mric, MRI *mri_src, MRI *mri_norm, MRI *mri_target)
   width = mric->width ;
   height = mric->height ;
   depth = mric->depth ;
-  scale = mric->scale ;
   nclasses = NCLASSES ;
 
   swidth = mri_src->width ;
   sheight = mri_src->height ;
   sdepth = mri_src->depth ;
 
+/*
+   the classifiers are distributed in Talairach space, whereas the
+   input MR images are not (necessarily). Therefore we have to
+   transform the voxel coordinates into Tal. space before selecting
+   the training values.
+*/
   /* train each classifier, x,y,z are in classifier space */
   for (z = 0 ; z < depth ; z++)
   {
     z0 = MAX(0,z*scale - overlap) ;
-    z1 = MIN(sdepth-1,z0+scale+2*overlap) ;
+    z1 = MIN(sdepth-1,(z+1)*scale+overlap) ;
     for (y = 0 ; y < height ; y++)
     {
       y0 = MAX(0,y*scale-overlap) ;
-      y1 = MIN(sheight-1,y0+scale+2*overlap) ;
+      y1 = MIN(sheight-1,(y+1)*scale+overlap) ;
       pgc = mric->gcs[z][y] ;
       for (x = 0 ; x < width ; x++)
       {
         gc = *pgc++ ;
         x0 = MAX(0,x*scale-overlap);
-        x1 = MIN(swidth-1,x0+scale+2*overlap) ;
+        x1 = MIN(swidth-1,(x+1)*scale+overlap) ;
         
         memset(nobs, 0, NCLASSES*sizeof(nobs[0])) ;
         for (zm = z0 ; zm <= z1 ; zm++)
         {
           for (ym = y0 ; ym <= y1 ; ym++)
           {
-            psrc = &MRIvox(mri_src, x0, ym, zm) ;
-            ptarget = &MRIvox(mri_target, x0, ym, zm) ;
-            pnorm = &MRIFvox(mri_norm, x0, ym, zm) ;
             for (xm = x0 ; xm <= x1 ; xm++)
             {
-              src = *psrc++ ;
-              target = *ptarget++ ;
+              MRItalairachVoxelToVoxel(mri_src, (Real)xm, (Real)ym, (Real)zm,
+                                       &xrv, &yrv, &zrv) ;
+              xv = nint(xrv) ;
+              yv = nint(yrv) ;
+              zv = nint(zrv) ;
+              if (xv < 0 || xv >= swidth ||
+                  yv < 0 || yv >= sheight ||
+                  zv < 0 || zv >= sdepth)
+                continue ;
+                                       
+              src = MRIvox(mri_src, xv, yv, zv) ;
+              target = MRIvox(mri_target, xv, yv, zv) ;
               
               /* decide what class it is */
               if (target)
@@ -250,8 +262,18 @@ MRIclassTrain(MRIC *mric, MRI *mri_src, MRI *mri_norm, MRI *mri_target)
                 else
                   classno = GREY_MATTER ;
               }
+#if 0
+if ((xv == 22 && yv == 27 && zv == 31) ||
+    (xv == 22 && yv == 26 && zv == 31))
+  fprintf(stderr, 
+          "TRAIN: (%d, %d, %d) --> (%d, %d, %d) --> (%d, %d, %d) = (%d, %2.3f) = class %d\n",
+      xm, ym, zm, x, y, z, xv, yv, zv, src, MRIFvox(mri_zscore, xv, yv, zv),
+          classno) ;
+#endif
+
               m_inputs[classno]->rptr[nobs[classno]+1][1] = src ;
-              m_inputs[classno]->rptr[nobs[classno]+1][2] = *pnorm++ ;
+              m_inputs[classno]->rptr[nobs[classno]+1][2] = 
+                MRIFvox(mri_zscore, xv, yv, zv) ;
               if (mric->nvars > 2)
               {
                 m_inputs[classno]->rptr[nobs[classno]+1][3] = xm ;
@@ -290,16 +312,16 @@ MRIclassTrain(MRIC *mric, MRI *mri_src, MRI *mri_norm, MRI *mri_target)
 #define PRETTY_SURE   .90f
 
 MRI *
-MRIclassify(MRIC *mric, MRI *mri_src, MRI *mri_norm, MRI *mri_dst, float conf,
-            MRI *mri_probs, MRI *mri_classes)
+MRIclassify(MRIC *mric, MRI *mri_src, MRI *mri_zscore, MRI *mri_dst, 
+            float conf, MRI *mri_probs, MRI *mri_classes)
 {
   MATRIX     *m_inputs ;
-  GCLASSIFY  *gc, **pgc ;
-  int        x, y, z, x0, y0, z0, x1, y1, z1, xm, ym, zm, 
-             width, depth, height, scale, classno, nclasses,
-             swidth, sheight, sdepth ;
+  GCLASSIFY  *gc ;
+  int        x, y, z, xc, yc, zc, width, depth, height, scale, classno, 
+             nclasses, swidth, sheight, sdepth ;
   BUFTYPE    *psrc, src, *pdst, *pclasses ;
-  float      *pnorm, prob, *pprobs = NULL ;
+  float      *pzscore, prob, *pprobs = NULL ;
+  Real       xt, yt, zt ;
 
   if (mric->swidth != mri_src->width || mric->sheight != mri_src->height ||
       mric->sdepth != mri_src->depth)
@@ -325,63 +347,77 @@ MRIclassify(MRIC *mric, MRI *mri_src, MRI *mri_norm, MRI *mri_dst, float conf,
   scale = mric->scale ;
   nclasses = NCLASSES ;
 
-  /* x,y,z are in classifier space */
-  for (z = 0 ; z < depth ; z++)
+/* 
+   x, y, and z are in the MR image space. To get the appropriate classifier
+   for each spatial location we must convert to Talairach voxel coords.,
+   then find the classifier assigned to that location in Talairach space.
+   
+   xc, yc, and zc are in classifier space, while xvt, yvt and zvt are
+   in Talairach voxel coords.
+*/
+  for (z = 0 ; z < sdepth ; z++)
   {
-    z0 = MAX(0,z*scale) ;
-    z1 = MIN(sdepth-1,z0+scale) ;
-    for (y = 0 ; y < height ; y++)
+    for (y = 0 ; y < sheight ; y++)
     {
-      y0 = MAX(0,y*scale) ;
-      y1 = MIN(sheight-1,y0+scale) ;
-      pgc = mric->gcs[z][y] ;
-      for (x = 0 ; x < width ; x++)
+      psrc = &MRIvox(mri_src, 0, y, z) ;
+      pdst = &MRIvox(mri_dst, 0, y, z) ;
+      pzscore = &MRIFvox(mri_zscore, 0, y, z) ;
+      if (mri_probs)
+        pprobs = &MRIFvox(mri_probs, 0, y, z) ;
+      else
+        pprobs = NULL ;
+      if (mri_classes)
+        pclasses = &MRIvox(mri_classes, 0, y, z) ;
+      else
+        pclasses = NULL ;
+      for (x = 0 ; x < swidth ; x++)
       {
-        x0 = MAX(0,x*scale);
-        x1 = MIN(swidth-1,x0+scale) ;
-        gc = *pgc++ ;
-
-        for (zm = z0 ; zm <= z1 ; zm++)
+        /* find the appropriate classifier for this location */
+        MRIvoxelToTalairachVoxel(mri_src, (Real)x, (Real)y, (Real)z,
+                                 &xt, &yt, &zt) ;
+        xc = nint((xt - scale/2) / scale) ;
+        if (xc < 0)
+          xc = 0 ;
+        else if (xc >= width)
+          xc = width - 1 ;
+        yc = nint((yt - scale/2) / scale) ;
+        if (yc < 0)
+          yc = 0 ;
+        else if (yc >= height)
+          yc = height-1 ;
+        zc = nint((zt - scale/2) / scale) ;
+        if (zc < 0)
+          zc = 0 ;
+        else if (zc >= depth)
+          zc = depth-1 ;
+        gc = mric->gcs[zc][yc][xc] ;
+        src = *psrc++ ;
+#if 0
+        if ((x == 22 && y == 26 && z == 31) ||
+            (x == 22 && y == 27 && z == 31))
+fprintf(stderr, 
+    "(%d, %d, %d) --> (%2.0f, %2.0f, %2.0f) --> (%d, %d, %d) = %d, %2.3f\n",
+    x, y, z, xt, yt, zt, xc, yc, zc, src, *pzscore) ;
+#endif
+        m_inputs->rptr[1][1] = src ;
+        m_inputs->rptr[2][1] = *pzscore++ ;
+        if (mric->nvars > 2)
         {
-          for (ym = y0 ; ym <= y1 ; ym++)
-          {
-            psrc = &MRIvox(mri_src, x0, ym, zm) ;
-            pdst = &MRIvox(mri_dst, x0, ym, zm) ;
-            pnorm = &MRIFvox(mri_norm, x0, ym, zm) ;
-            if (mri_probs)
-              pprobs = &MRIFvox(mri_probs, x0, ym, zm) ;
-            else
-              pprobs = NULL ;
-            if (mri_classes)
-              pclasses = &MRIvox(mri_classes, x0, ym, zm) ;
-            else
-              pclasses = NULL ;
-            for (xm = x0 ; xm <= x1 ; xm++)
-            {
-              src = *psrc++ ;
-              m_inputs->rptr[1][1] = src ;
-              m_inputs->rptr[2][1] = *pnorm++ ;
-              if (mric->nvars > 2)
-              {
-                m_inputs->rptr[3][1] = xm ;
-                m_inputs->rptr[4][1] = ym ;
-                m_inputs->rptr[5][1] = zm ;
-              }
-
-              /* now classify this observation */
-              classno = GCclassify(gc, m_inputs, &prob) ;
-              if (pclasses)
-                *pclasses++ = (BUFTYPE)classno ;
-              if (pprobs)
-                *pprobs++ = prob ;
-              if (classno == WHITE_MATTER && prob > conf)
-                *pdst++ = 255 ;
-              else
-                *pdst++ = src ;
-            }
-          }
+          m_inputs->rptr[3][1] = x ;
+          m_inputs->rptr[4][1] = y ;
+          m_inputs->rptr[5][1] = z ;
         }
-
+        
+        /* now classify this observation */
+        classno = GCclassify(gc, m_inputs, &prob) ;
+        if (pclasses)
+          *pclasses++ = (BUFTYPE)classno ;
+        if (pprobs)
+          *pprobs++ = prob ;
+        if (classno == WHITE_MATTER && prob > conf)
+          *pdst++ = 255 ;
+        else
+          *pdst++ = src ;
       }
     }
   }
@@ -540,7 +576,14 @@ MRIclassWrite(MRIC *mric, char *fname)
   fclose(fp) ;
   return(NO_ERROR) ;
 }
+/*-----------------------------------------------------
+        Parameters:
 
+        Returns value:
+
+        Description
+
+------------------------------------------------------*/
 MRI *
 MRIclassThreshold(MRIC *mric, MRI *mri_probs, MRI *mri_classes,
                   MRI *mri_dst, float threshold)
@@ -577,5 +620,49 @@ MRIclassThreshold(MRIC *mric, MRI *mri_probs, MRI *mri_classes,
     }
   }
   return(mri_dst) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+
+------------------------------------------------------*/
+GCLASSIFY *
+MRIgetClassifier(MRIC *mric, MRI *mri, int xv, int yv, int zv)
+{
+  GCLASSIFY  *gc ;
+  Real       xt, yt, zt ;
+  int        width, depth, height, scale, xc, yc, zc ;
+
+  width = mric->width ;
+  height = mric->height ;
+  depth = mric->depth ;
+  scale = mric->scale ;
+  MRIvoxelToTalairachVoxel(mri, (Real)xv, (Real)yv, (Real)zv, &xt, &yt, &zt) ;
+  xc = (int)((xt - scale/2) / scale) ;
+  if (xc < 0)
+    xc = 0 ;
+  else if (xc >= width)
+    xc = width - 1 ;
+  yc = (int)((yt - scale/2) / scale) ;
+  if (yc < 0)
+    yc = 0 ;
+  else if (yc >= height)
+    yc = height-1 ;
+  zc = (int)((zt - scale/2) / scale) ;
+  if (zc < 0)
+    zc = 0 ;
+  else if (zc >= depth)
+    zc = depth-1 ;
+  gc = mric->gcs[zc][yc][xc] ;
+#if 0
+fprintf(stderr, 
+        "classifier at (%d, %d, %d) --> (%d, %d, %d) is (%d, %d, %d)\n",
+        xv, yv, zv, (int)xt, (int)yt, (int)zt, xc, yc, zc) ;
+#endif
+
+  return(gc) ;
 }
 
