@@ -47,6 +47,16 @@ int CMAfreeOutlineField(CMAoutlineField **of)
     free(ofp->fill_field);
   }
 
+  if(ofp->outline_points_field != NULL)
+  {
+    for(i = 0;i < ofp->height;i++)
+    {
+      if(ofp->outline_points_field[i] != NULL)
+        free(ofp->outline_points_field[i]);
+    }
+    free(ofp->outline_points_field);
+  }
+
   *of = NULL;
 
   return(NO_ERROR);
@@ -65,6 +75,7 @@ CMAoutlineField *CMAoutlineFieldAlloc(int width, int height)
 
   of->claim_field = NULL;
   of->fill_field = NULL;
+  of->outline_points_field = NULL;
   of->width = width;
   of->height = height;
 
@@ -84,17 +95,16 @@ CMAoutlineField *CMAoutlineFieldAlloc(int width, int height)
   }
   memset(of->fill_field, 0x00, height * sizeof(unsigned char *));
 
+  of->outline_points_field = (unsigned char **)malloc(height * sizeof(unsigned char *));
+  if(of->outline_points_field == NULL)
+  {
+    CMAfreeOutlineField(&of);
+    ErrorReturn(NULL, (ERROR_NOMEMORY, "CMAoutlineFieldAlloc(): error allocating outline points field"));
+  }
+  memset(of->outline_points_field, 0x00, height * sizeof(unsigned char *));
+
   for(i = 0;i < height;i++)
   {
-
-    of->fill_field[i] = (unsigned char *)malloc(width * sizeof(unsigned char));
-    if(of->fill_field[i] == NULL)
-    {
-      CMAfreeOutlineField(&of);
-      ErrorReturn(NULL, (ERROR_NOMEMORY, "CMAoutlineFieldAlloc(): error allocating fill field"));
-    }
-
-    memset(of->fill_field[i], 0x00, width * sizeof(unsigned char));
 
     of->claim_field[i] = (CMAoutlineClaim *)malloc(width * sizeof(CMAoutlineClaim));
     if(of->claim_field[i] == NULL)
@@ -103,6 +113,22 @@ CMAoutlineField *CMAoutlineFieldAlloc(int width, int height)
       ErrorReturn(NULL, (ERROR_NOMEMORY, "CMAoutlineFieldAlloc(): error allocating claim field"));
     }
     memset(of->claim_field[i], 0x00, width * sizeof(CMAoutlineClaim));
+
+    of->fill_field[i] = (unsigned char *)malloc(width * sizeof(unsigned char));
+    if(of->fill_field[i] == NULL)
+    {
+      CMAfreeOutlineField(&of);
+      ErrorReturn(NULL, (ERROR_NOMEMORY, "CMAoutlineFieldAlloc(): error allocating fill field"));
+    }
+    memset(of->fill_field[i], 0x00, width * sizeof(unsigned char));
+
+    of->outline_points_field[i] = (unsigned char *)malloc(width * sizeof(unsigned char));
+    if(of->outline_points_field[i] == NULL)
+    {
+      CMAfreeOutlineField(&of);
+      ErrorReturn(NULL, (ERROR_NOMEMORY, "CMAoutlineFieldAlloc(): error allocating outline points field"));
+    }
+    memset(of->outline_points_field[i], 0x00, width * sizeof(unsigned char));
 
   }
 
@@ -171,6 +197,7 @@ int CMAclaimPoints(CMAoutlineField *field, short label, short *points, int n_poi
     if(y < 0 || y >= field->height)
       ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "CMAclaimPoints(): outline point out of range (y)"));
     field->fill_field[y][x] = CMA_FILL_OUTLINE;
+    field->outline_points_field[y][x] = 1;
   }
 
   CMAfill(field, seed_x, seed_y);
@@ -339,5 +366,19 @@ int CMAassignLabels(CMAoutlineField *field)
   return(NO_ERROR);
 
 } /* end CMAassignLabels() */
+
+int CMAzeroOutlines(CMAoutlineField *field)
+{
+
+  int i, j;
+
+  for(i = 0;i < field->width;i++)
+    for(j = 0;j < field->height;j++)
+      if(field->outline_points_field[j][i])
+        field->fill_field[j][i] = 0;
+
+  return(NO_ERROR);
+
+} /* end CMAzeroOutlines() */
 
 /* eof */

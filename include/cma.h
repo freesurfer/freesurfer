@@ -145,6 +145,7 @@ typedef struct {
   int width, height;
   CMAoutlineClaim **claim_field;
   unsigned char **fill_field;
+  unsigned char **outline_points_field;
 } CMAoutlineField;
 
 CMAoutlineField *CMAoutlineFieldAlloc(int width, int height);
@@ -166,5 +167,7 @@ int CMAvalueAllClaims(CMAoutlineField *field);
 
 short CMAtotalClaims(CMAoutlineField *field, int x, int y);
 int CMAaddWeightedTotals(CMAoutlineClaim *claim, float weight, float *claim_totals);
+
+int CMAzeroOutlines(CMAoutlineField *field);
 
 #endif
