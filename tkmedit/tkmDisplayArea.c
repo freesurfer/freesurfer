@@ -2,9 +2,9 @@
 // tkmDisplayArea.c
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2003/07/01 14:23:43 $
-// Revision       : $Revision: 1.76 $
+// Revision Author: $Author: kteich $
+// Revision Date  : $Date: 2003/07/11 20:12:52 $
+// Revision       : $Revision: 1.77 $
 
 #include "tkmDisplayArea.h"
 #include "tkmMeditWindow.h"
@@ -5340,6 +5340,10 @@ DspA_tErr DspA_DrawSelectionToFrame_ ( tkmDisplayAreaRef this ) {
       if ( DspA_tErr_NoErr != eResult )
 	goto error;
       
+      if( xVoxl_GetX(&anaIdx) >= 0 && xVoxl_GetX(&anaIdx) < 256 &&
+	  xVoxl_GetY(&anaIdx) >= 0 && xVoxl_GetY(&anaIdx) < 256 &&
+	  xVoxl_GetZ(&anaIdx) >= 0 && xVoxl_GetZ(&anaIdx) < 256 ) {
+
 	if( this->mpSelection
 	    [xVoxl_GetZ(&anaIdx)][xVoxl_GetY(&anaIdx)][xVoxl_GetX(&anaIdx)] ) {
 	  
@@ -5363,8 +5367,9 @@ DspA_tErr DspA_DrawSelectionToFrame_ ( tkmDisplayAreaRef this ) {
 	    (GLubyte)(color.mfBlue * (float)DspA_knMaxPixelValue);
 	  pFrame[DspA_knAlphaPixelCompIndex] = DspA_knMaxPixelValue;
 	  
+	}
       }
-
+	
       /* advance our pointer. */
       pFrame += DspA_knNumBytesPerPixel;
     }
