@@ -57,6 +57,7 @@ static char *renormalization_fname = NULL ;
 static int renormalize_wsize = 0 ;
 static int renormalize_iter = 0 ;
 static int filter = 0 ;
+static float pthresh = .7 ;
 #if 0
 static float thresh = 0.5 ;
 #endif
@@ -326,7 +327,8 @@ main(int argc, char *argv[])
     {
       preprocess(mri_in, mri_labeled, gca, transform, mri_fixed) ;
       printf("renormalizing GCA to initial labeling...\n") ;
-      GCArenormalizeAdaptive(mri_in, mri_labeled, gca, transform, renormalize_wsize) ;
+      GCArenormalizeAdaptive(mri_in, mri_labeled, gca, transform, renormalize_wsize,
+                             pthresh) ;
       GCAlabel(mri_in, gca, mri_labeled, transform) ;
     }
     preprocess(mri_in, mri_labeled, gca, transform, mri_fixed) ;
@@ -473,6 +475,12 @@ get_option(int argc, char *argv[])
     nargs = 1 ;
     alpha = RADIANS(atof(argv[2])) ;
     printf("using alpha=%2.0f degrees\n", DEGREES(alpha)) ;
+  }
+  else if (!stricmp(option, "PTHRESH"))
+  {
+    nargs = 1 ;
+    pthresh = atof(argv[2]) ;
+    printf("using p threshold %2.2f for adaptive renormalization\n",pthresh) ;
   }
   else if (!stricmp(option, "NITER"))
   {
@@ -757,6 +765,9 @@ preprocess(MRI *mri_in, MRI *mri_labeled, GCA *gca, TRANSFORM *transform,
     if (!gca_tl)
       ErrorExit(ERROR_NOFILE, "%s: could not read temporal lobe GCA file %s",
                 Progname, tl_gca_fname) ;
+
+    if (renormalize_wsize > 0)  /* gca was renormalized - update gca_tl to new means */
+      GCArenormalizeFromAtlas(gca_tl, gca) ;
 
     insert_thin_temporal_white_matter(mri_in, mri_labeled, gca_tl, transform,gca) ;
     GCAfree(&gca_tl) ;
@@ -1516,6 +1527,8 @@ insert_thin_temporal_white_matter(MRI *mri_in, MRI *mri_labeled,
     if (p > 255.0)
       p = 255.0 ;
     MRIvox(mri_probs, gcas[i].x, gcas[i].y, gcas[i].z) = (char)p ;
+    if (gcas[i].x == Ggca_x && gcas[i].y == Ggca_y && gcas[i].z == Ggca_z)
+      DiagBreak() ;
     MRIvox(mri_tmp_labels, gcas[i].x, gcas[i].y, gcas[i].z) = gcas[i].label ;
   }
 
@@ -2027,7 +2040,12 @@ insert_thin_temporal_white_matter(MRI *mri_in, MRI *mri_labeled,
     if (MRIvox(mri_tmp, x, y, z))
     {
       if (x == Ggca_x && y == Ggca_y && z == Ggca_z)
+      {
+        printf("changing voxel (%d, %d, %d) from %s to %s\n",
+               x, y, z, cma_label_to_name(MRIvox(mri_labeled,x, y,z)),
+               cma_label_to_name(gcas[i].label)) ;
         DiagBreak() ;
+      }
       MRIvox(mri_labeled, x, y, z) = gcas[i].label ;
     }
   }

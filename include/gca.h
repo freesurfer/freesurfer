@@ -212,7 +212,7 @@ int   GCAnormalizeTissueStatistics(GCA *gca) ;
 char *cma_label_to_name(int label) ;
 int  GCArenormalize(MRI *mri_in, MRI *mri_labeled, GCA *gca, TRANSFORM *transform) ;
 int  GCArenormalizeAdaptive(MRI *mri_in, MRI *mri_labeled, GCA *gca, TRANSFORM *transform,
-                            int wsize) ;
+                            int wsize, float pthresh) ;
 int  GCArenormalizeLabels(MRI *mri_in, MRI *mri_labeled, GCA *gca, TRANSFORM *transform) ;
 MRI   *GCArelabel_cortical_gray_and_white(GCA *gca, MRI *mri_inputs, 
                                           MRI *mri_src, MRI *mri_dst,TRANSFORM *transform);
@@ -243,6 +243,8 @@ int  GCApriorToSourceVoxel(GCA *gca, MRI *mri, TRANSFORM *transform, int xp, int
 int  GCApriorToSourceVoxelFloat(GCA *gca, MRI *mri, TRANSFORM *transform, 
                                 int xp, int yp, int zp, 
                                 float *pxv, float *pyv, float *pzv) ;
+int GCArenormalizeFromAtlas(GCA *gca, GCA *gca_template) ;
+
 
 #define MIN_PRIOR  0.5
 
