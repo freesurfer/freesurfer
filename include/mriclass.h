@@ -40,5 +40,6 @@ int     MRIclassWrite(MRIC *mric, char *fname) ;
 MRI     *MRIclassThreshold(MRIC *mric, MRI *mri_probs, MRI *mri_classes,
                            MRI *mri_dst, float threshold) ;
 
+GCLASSIFY *MRIgetClassifier(MRIC *mric, MRI *mri, int xv, int yv, int zv) ;
 
 #endif
