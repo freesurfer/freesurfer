@@ -723,8 +723,9 @@ int MRIstats(MRI *mri, float *min, float *max, int *n_voxels, float *mean, float
 float MRIvolumeDeterminant(MRI *mri);
 
 #define RESAMPLE_INTERPOLATE  0
-#define RESAMPLE_NEAREST  1
-#define RESAMPLE_WEIGHTED  2
+#define RESAMPLE_NEAREST      1
+#define RESAMPLE_WEIGHTED     2
+#define RESAMPLE_SINC         3
 
 int mriio_command_line(int argc, char *argv[]);
 int mriio_set_subject_name(char *name);
