@@ -778,7 +778,7 @@ MRI   *MRISshell(MRI *mri_src,MRI_SURFACE *mris,MRI *mri_dst);
 MRI   *MRISfloodoutside(MRI *mri_src,MRI *mri_dst);
 
 /* high resolution cortical ribbon */
-MRI   *MRISpartialribbon(MRI_SURFACE *inner_mris,MRI_SURFACE *outer_mris,MRI *mri_src,MRI *mri_dst);
+MRI   *MRISpartialribbon(MRI_SURFACE *inner_mris,MRI_SURFACE *outer_mris,MRI *mri_src,MRI *mri_dst,MRI *mri_mask,int hemisphere);
 MRI   *MRISpartialaccentuate(MRI *mri_src,MRI *mri_dst,int lo_thresh,int hi_thresh);
 MRI   *MRISpartialshell(MRI *mri_src,MRI_SURFACE *mris,MRI *mri_dst);
 MRI   *MRISpartialfloodoutside(MRI *mri_src,MRI *mri_dst);
@@ -844,4 +844,6 @@ int   MRISclear(MRI_SURFACE *mris, int which) ;
 int   MRISnormalize(MRI_SURFACE *mris, int dof, int which) ;
 
 #endif
+
+
 
