@@ -89,14 +89,16 @@ static void xvCreateImage(XV_FRAME *xvf, DIMAGE *dimage, int x, int y,
                           int which) ;
 static void xvFreeDimage(DIMAGE *dimage) ;
 static Panel_setting xvFileNameCommand(Panel_item item, Event *event) ;
-static char *xvGetTitle(int which, char *title, int with_value) ;
+static char *xvGetTitle(XV_FRAME *xvf,int which, char *title, int with_value) ;
 
 /*----------------------------------------------------------------------
                               GLOBAL DATA
 ----------------------------------------------------------------------*/
 static int debug_it = 0 ;
 
-static XV_FRAME *xvf ;
+#define MAX_XVFS  10
+static int      nxvfs = 0 ;
+static XV_FRAME *xvfs[MAX_XVFS], *xvf_fname, *xvf_hips ;
 static IMAGE *GtmpFloatImage = NULL, *GtmpByteImage = NULL,
   *GtmpByteImage2 = NULL, *GtmpScaledFloatImage = NULL ;
 
@@ -120,13 +122,18 @@ XV_FRAME *
 XValloc(int rows, int cols, int button_rows, int display_rows, 
         int display_cols, char *name, Notify_value (*poll)(void))
 {
-  int               row ;
+  int                      row ;
   static struct itimerval  timer;       
+  XV_FRAME                 *xvf ;
+
+  if (nxvfs >= MAX_XVFS)
+    ErrorReturn(NULL, (ERROR_NO_MEMORY, "XValloc: too many xv frames")) ;
 
   xvf = (XV_FRAME *)calloc(1, sizeof(XV_FRAME)) ;
   if (!xvf)
     return(NULL) ;
 
+  xvfs[nxvfs++] = xvf ;
   xvf->noprint = 0 ;
   xvf->ydir = -1 ;
   xvf->precision = DEFAULT_PRECISION ;
@@ -625,24 +632,32 @@ XVshowImage(XV_FRAME *xvf, int which, IMAGE *image, int frame)
 static void
 xv_dimage_repaint(Canvas canvas, Xv_Window window, Rectlist *repaint_area)
 {
-  int    row, col, which = -1 ;
-  DIMAGE *dimage ;
+  int       row, col, which = -1, xno ;
+  DIMAGE    *dimage ;
+  XV_FRAME  *xvf = NULL ;
 
   dimage = NULL ;
-  for (row = 0 ; row < xvf->rows ; row++)
+  for (xno = 0 ; xno < nxvfs ; xno++)
   {
-    for (col = 0 ; col < xvf->cols ; col++)
+    xvf = xvfs[xno] ;
+    for (row = 0 ; row < xvf->rows ; row++)
     {
-      if (xvf->dimages[row][col].canvas == canvas)
+      for (col = 0 ; col < xvf->cols ; col++)
       {
-        dimage = &xvf->dimages[row][col] ;
-        which = row * xvf->cols + col ;
-        break ;
+        if (xvf->dimages[row][col].canvas == canvas)
+        {
+          dimage = &xvf->dimages[row][col] ;
+          which = row * xvf->cols + col ;
+          break ;
+        }
       }
+      if (which >= 0)
+        break ;
     }
     if (which >= 0)
       break ;
   }
+
   if (dimage && dimage->used)
     XVrepaintImage(xvf, which) ;
 }
@@ -685,22 +700,27 @@ xv_dimage_event_handler(Xv_Window xv_window, Event *event)
   int        x, y, yprint, i ;
   double     val = 0.0 ;
   Window     window ;
-  int        row, col, which = -1, rows, cols ;
+  int        row, col, which = -1, rows, cols, xno ;
   DIMAGE     *dimage, *dimage2 = NULL ;
   char       fmt[150], buf[100], title[40] ;
   float      aspect = 1.0f, scale = 1.0f ;
+  XV_FRAME   *xvf = NULL ;
 
   window = event_window(event) ;
 
   dimage = NULL ;
-  for (row = 0 ; row < xvf->rows ; row++)
+  for (xno = 0 ; xno < nxvfs ; xno++)
   {
-    for (col = 0 ; col < xvf->cols ; col++)
+    xvf = xvfs[xno] ;
+    for (row = 0 ; row < xvf->rows ; row++)
     {
-      if (canvas_paint_window(xvf->dimages[row][col].canvas) == xv_window)
+      for (col = 0 ; col < xvf->cols ; col++)
       {
-        dimage = &xvf->dimages[row][col] ;
-        which = row * xvf->cols + col ;
+        if (canvas_paint_window(xvf->dimages[row][col].canvas) == xv_window)
+        {
+          dimage = &xvf->dimages[row][col] ;
+          which = row * xvf->cols + col ;
+        }
       }
     }
   }
@@ -840,6 +860,7 @@ xv_dimage_event_handler(Xv_Window xv_window, Event *event)
 #ifdef Linux
   case MS_MIDDLE:
     xv_set(hips_cmd_frame, FRAME_CMD_PUSHPIN_IN, TRUE, XV_SHOW, TRUE, NULL) ;
+    xvf_hips = xvf ;
     hips_cmd_source = which ;
     break ;
   case MS_RIGHT:
@@ -849,6 +870,7 @@ xv_dimage_event_handler(Xv_Window xv_window, Event *event)
     break ;
 #else
   case MS_RIGHT:
+    xvf_hips = xvf ;
     xv_set(hips_cmd_frame, FRAME_CMD_PUSHPIN_IN, TRUE, XV_SHOW, TRUE, NULL) ;
     hips_cmd_source = which ;
     break ;
@@ -878,7 +900,7 @@ xv_dimage_event_handler(Xv_Window xv_window, Event *event)
       break ;
     }
 
-    xvGetTitle(which, title, 0) ;
+    xvGetTitle(xvf, which, title, 0) ;
     sprintf(fmt, "%%10.10s: (%%3d, %%3d) --> %%2.%dlf\n", xvf->precision) ;
     if (!xvf->noprint)
       XVprintf(xvf, 0, fmt, title, x, yprint, val) ;
@@ -889,7 +911,7 @@ xv_dimage_event_handler(Xv_Window xv_window, Event *event)
         dimage2 = xvGetDimage(xvf, i, 0) ;
         if (dimage2 && (dimage2->sync == dimage->sync))
         {
-          xvGetTitle(i, title, 0) ;
+          xvGetTitle(xvf, i, title, 0) ;
           switch (dimage2->sourceImage->pixel_format)
           {
           case PFDOUBLE:
@@ -1162,7 +1184,7 @@ xvHipsCommand(Panel_item item, Event *event)
   strcpy(hips_cmd_str, (char *)xv_get(hips_cmd_panel_item, PANEL_VALUE)) ;
   xv_set(hips_cmd_frame, FRAME_CMD_PUSHPIN_IN, FALSE, XV_SHOW, FALSE, NULL) ;
 
-  dimage = xvGetDimage(xvf, hips_cmd_source, 0) ;
+  dimage = xvGetDimage(xvf_hips, hips_cmd_source, 0) ;
   if (!dimage)
     return(0) ;
 #if 1
@@ -1170,7 +1192,7 @@ xvHipsCommand(Panel_item item, Event *event)
 #else
   if (ImageWriteFrames(dimage->sourceImage, "out.hipl", dimage->frame, 1) < 0)
   {
-    XVprintf(xvf, 0, "write failed\n") ;
+    XVprintf(xvf_hips, 0, "write failed\n") ;
     return(0) ;
   }
 #endif
@@ -1184,10 +1206,10 @@ xvHipsCommand(Panel_item item, Event *event)
   if (strstr(hips_cmd_str, "in.hipl"))
   {
     ImageReadInto("in.hipl", dimage->sourceImage, 0) ;
-    XVshowImage(xvf, hips_cmd_source, dimage->sourceImage, dimage->frame) ;
+    XVshowImage(xvf_hips, hips_cmd_source, dimage->sourceImage, dimage->frame) ;
   }
 
-  XFlush(xvf->display); 
+  XFlush(xvf_hips->display); 
   return(0) ;
 }
 /*----------------------------------------------------------------------
@@ -1250,8 +1272,13 @@ xvHipsCmdFrameInit(XV_FRAME *xvf)
 void 
 buttonQuit(Panel_item item, Event *event)
 {
+  XV_FRAME  *xvf ;
+
+  xvf = xvfs[--nxvfs] ;
   xv_destroy_safe(xvf->frame);
-  xv_destroy_safe(hips_cmd_frame) ;
+  if (nxvfs <= 0)
+    xv_destroy_safe(hips_cmd_frame) ;
+
   if (XVquit_func)
     (*XVquit_func)() ;
 }
@@ -1663,7 +1690,7 @@ XVsetImageSize(XV_FRAME *xvf, int which, int rows, int cols)
     
     /* should free the ximage and the canvas, but don't know how yet */
     dimage->ximage = xvCreateXimage(xvf, dimage->dispImage) ;
-    if (xvGetTitle(i, title, 1))
+    if (xvGetTitle(xvf, i, title, 1))
       XVshowImageTitle(xvf, i, title) ;
 
 /* 
@@ -2152,6 +2179,7 @@ XVgetFileName(XV_FRAME *xvf, char *default_fname,
   char     *fmt ;
   int      len ;
 
+  xvf_fname = xvf ;
   va_start(args, fname_func) ;
   fmt = va_arg(args, char *) ;
   vsprintf(xvf->fname_prompt, fmt, args) ;
@@ -2169,15 +2197,16 @@ XVgetFileName(XV_FRAME *xvf, char *default_fname,
 static Panel_setting
 xvFileNameCommand(Panel_item item, Event *event)
 {
-  strcpy(xvf->file_name, (char *)xv_get(xvf->fname_panel_item, PANEL_VALUE)) ;
-  xv_set(xvf->fname_frame, FRAME_CMD_PUSHPIN_IN, FALSE, XV_SHOW, FALSE, NULL) ;
-  XFlush(xvf->display); 
+  strcpy(xvf_fname->file_name, (char *)xv_get(xvf_fname->fname_panel_item, 
+                                              PANEL_VALUE)) ;
+  xv_set(xvf_fname->fname_frame, FRAME_CMD_PUSHPIN_IN,FALSE,XV_SHOW,FALSE,NULL);
+  XFlush(xvf_fname->display); 
 
-  if (strlen(xvf->file_name) < 4)
+  if (strlen(xvf_fname->file_name) < 4)
     return(0) ;
 
-  if (xvf->fname_func)
-    (*xvf->fname_func)(xvf->file_name) ;
+  if (xvf_fname->fname_func)
+    (*xvf_fname->fname_func)(xvf_fname->file_name) ;
   return(0) ;
 }
 
@@ -2190,7 +2219,7 @@ XVsetDepthFunc(XV_FRAME *xvf,
 }
 
 static char *
-xvGetTitle(int which, char *title, int with_value)
+xvGetTitle(XV_FRAME *xvf, int which, char *title, int with_value)
 {
   char   *cp ;
   DIMAGE *dimage ;
