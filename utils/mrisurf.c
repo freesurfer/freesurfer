@@ -20133,7 +20133,7 @@ mrisAddVertices(MRI_SURFACE *mris, double nsigma)
   float    x, y, z, sx, sy, sz, nx, ny, nz ;
 
 #if 1
-  mean = MRIScomputeVertexSpacingStats(mris, &sigma, NULL, NULL, NULL) ;
+  mean = MRIScomputeVertexSpacingStats(mris, &sigma, NULL, NULL, NULL, NULL) ;
 #else
   mean = mrisComputeVertexNormalSpacingStats(mris, &sigma) ;
   thresh *= thresh ;   /* make it squared so we don't need sqrts later */
@@ -20379,7 +20379,7 @@ MRIScomputeFaceAreaStats(MRI_SURFACE *mris, double *psigma,
 ------------------------------------------------------*/
 double
 MRIScomputeVertexSpacingStats(MRI_SURFACE *mris, double *psigma,
-                              double *pmin, double *pmax, int *pvno)
+                              double *pmin, double *pmax, int *pvno,int *pvno2)
 {
   double   total_dist, mean, var, nv, dist, sigma, min_dist, max_dist,
            dist_scale ;
@@ -20410,6 +20410,8 @@ MRIScomputeVertexSpacingStats(MRI_SURFACE *mris, double *psigma,
       {
         if (pvno)
           *pvno = vno ;
+        if (pvno2)
+          *pvno2 = v->v[n] ;
         max_dist = dist ;
       }
       if (dist < min_dist)
@@ -21641,11 +21643,12 @@ int
 MRISprintTessellationStats(MRI_SURFACE *mris, FILE *fp)
 {
   double  mean, dsigma, dmin, dmax ;
-  int     vno ;
+  int     vno, vno2 ;
 
-  mean = MRIScomputeVertexSpacingStats(mris, &dsigma, &dmin, &dmax, &vno) ;
-  fprintf(fp, "vertex spacing %2.2f +- %2.2f (%2.2f-->%2.2f) (max @ vno %d)\n",
-          mean, dsigma, dmin, dmax, vno) ;
+  mean = MRIScomputeVertexSpacingStats(mris, &dsigma, &dmin,&dmax,&vno,&vno2) ;
+  fprintf(fp, "vertex spacing %2.2f +- %2.2f (%2.2f-->%2.2f) "
+          "(max @ vno %d --> %d)\n",
+          mean, dsigma, dmin, dmax, vno, vno2) ;
   mean = MRIScomputeFaceAreaStats(mris, &dsigma, &dmin, &dmax) ;
   fprintf(fp, "face area %2.2f +- %2.2f (%2.2f-->%2.2f)\n",
           mean, dsigma, dmin, dmax) ;
@@ -22601,9 +22604,29 @@ MRIScorrectTopology(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected)
       nsmooth = 200 ;
 
     MRISrestoreVertexPositions(mris_corrected, ORIGINAL_VERTICES) ;
+#if 0
     MRISclearMarks(mris_corrected) ;
     for (vno = 0 ; vno < kept_vertices ; vno++)
       mris_corrected->vertices[vno].marked = 1 ;
+#else
+    MRISsetMarks(mris_corrected, 1) ;
+    for (i = 0 ; i < dl->ndefects ; i++)
+    {
+      defect = &dl->defects[i] ;
+      for (n = 0 ; n < defect->nvertices ; n++)
+      {
+        vno = vertex_trans[defect->vertices[n]] ;
+        v = &mris_corrected->vertices[vno] ;
+        v->marked = 0 ;
+      }
+      for (n = 0 ; n < defect->nborder ; n++)
+      {
+        vno = vertex_trans[defect->border[n]] ;
+        v = &mris_corrected->vertices[vno] ;
+        v->marked = 0 ;
+      }
+    }
+#endif
     fprintf(stderr, 
       "performing soap bubble on retessellated vertices for %d "
       "iterations...\n", nsmooth) ;
@@ -23629,10 +23652,10 @@ static int
 mrisTessellateDefect(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected, 
                      DEFECT *defect, int *vertex_trans)
 {
-  int    i, j, vlist[10000], n, nvertices, nedges ;
+  int    i, j, vlist[10000], n, nvertices, nedges, max_i, nadded, max_added ;
   VERTEX *v, *v2 ;
   EDGE   *et ;
-  double  dx, dy, dz, cx, cy, cz ;
+  double  dx, dy, dz, cx, cy, cz, max_len, inflated_len, orig_len ;
   static int dno = 0 ;
 
   /* first build table of all possible edges among vertices in the defect
@@ -23658,7 +23681,8 @@ mrisTessellateDefect(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected,
   if (nvertices > 250)
     fprintf(stderr, 
             "retessellating defect %d with %d vertices (convex hull=%d).\n", 
-            dno++, nvertices, defect->nchull) ;
+            dno, nvertices, defect->nchull) ;
+  dno++ ;
   if (nvertices == 0)  /* should never happen */
     return(NO_ERROR) ;
 
@@ -23674,29 +23698,64 @@ mrisTessellateDefect(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected,
     v = &mris->vertices[vlist[i]] ;
     if (vlist[i] == Gdiag_no)
       DiagBreak() ;
+    if (vertex_trans[vlist[i]] == Gdiag_no)
+      DiagBreak() ;
     for (j = i+1 ; j < nvertices ; j++, n++)
     {
       if (vlist[j] == Gdiag_no)
         DiagBreak() ;
       if (vlist[j] == Gdiag_no || vlist[i] == Gdiag_no)
         DiagBreak() ;
+      if (vertex_trans[vlist[j]] == Gdiag_no || vertex_trans[vlist[i]] == Gdiag_no)
+        DiagBreak() ;
       v2 = &mris->vertices[vlist[j]] ;
       et[n].vno1 = vertex_trans[vlist[i]]; et[n].vno2 = vertex_trans[vlist[j]];
-#if 0
+      if ((et[n].vno1 == 141823 && et[n].vno2 == 141908) ||
+          (et[n].vno2 == 141823 && et[n].vno1 == 141908))
+        DiagBreak() ;
       dx = v->origx - v2->origx ;
       dy = v->origy - v2->origy ;
       dz = v->origz - v2->origz ;
-#else
+      orig_len = sqrt(dx*dx+dy*dy+dz*dz) ;
+      
       /* use inflated surface for distances as it more closely approximates
          distances along the surface (more interesting than 3d distances).
       */
       dx = v->tx - v2->tx ;
       dy = v->ty - v2->ty ;
       dz = v->tz - v2->tz ;
-#endif
-      et[n].len = sqrt(dx*dx + dy*dy + dz*dz) ;
-      if (et[n].vno1 == 53150 && et[n].vno2 == 53151)
+      inflated_len = sqrt(dx*dx + dy*dy + dz*dz) ;
+
+      et[n].len = inflated_len ;
+      if (et[n].vno1 == 120811 && et[n].vno2 == 120951)
+      {
+        VERTEX *v1, *v2 ;
+        v1 = &mris_corrected->vertices[et[n].vno1] ;
+        v2 = &mris_corrected->vertices[et[n].vno2] ;
+        fprintf(stderr, "v %d (%d) --> %d (%d), len = %2.3f\n",
+                et[n].vno1, vlist[i], et[n].vno2, vlist[j], et[n].len) ;
+        fprintf(stderr, "INFLATED:  (%2.1f, %2.1f, %2.1f) --> "
+                "(%2.1f, %2.1f, %2.1f), len = %2.2f\n",
+                v1->tx, v1->ty, v1->tz,
+                v2->tx, v2->ty, v2->tz,
+                sqrt(SQR(v1->tx-v2->tx)+SQR(v1->ty-v2->ty)+SQR(v1->tz-v2->tz)));
+        fprintf(stderr, "CANON:  (%2.1f, %2.1f, %2.1f) --> "
+                "(%2.1f, %2.1f, %2.1f), len = %2.2f\n",
+                v1->cx, v1->cy, v1->cz,
+                v2->cx, v2->cy, v2->cz,
+                sqrt(SQR(v1->cx-v2->cx)+SQR(v1->cy-v2->cy)+SQR(v1->cz-v2->cz)));
+        fprintf(stderr, "CURRENT:  (%2.1f, %2.1f, %2.1f) --> "
+                "(%2.1f, %2.1f, %2.1f), len = %2.2f\n",
+                v1->x, v1->y, v1->z,
+                v2->x, v2->y, v2->z,
+                sqrt(SQR(v1->x-v2->x)+SQR(v1->y-v2->y)+SQR(v1->z-v2->z)));
+        fprintf(stderr, "ORIG:  (%2.1f, %2.1f, %2.1f) --> "
+                "(%2.1f, %2.1f, %2.1f), len = %2.2f\n",
+                v1->origx, v1->origy, v1->origz,
+                v2->origx, v2->origy, v2->origz,
+                sqrt(SQR(v1->origx-v2->origx)+SQR(v1->origy-v2->origy)+SQR(v1->origz-v2->origz)));
         DiagBreak() ;
+      }
       if (edgeExists(mris_corrected, et[n].vno1, et[n].vno2))
       {
         et[n].used = 1 ;
@@ -23800,6 +23859,8 @@ mrisTessellateDefect(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected,
   }
   fprintf(stderr, "retessellating planar representation...\n") ;
 #endif
+
+  max_len = 0 ; max_i = 0 ; max_added = nadded = 0 ;
   for (i = 0 ; i < nedges ; i++)
   {
     if (i == 1662 || i == 1685)
@@ -23827,8 +23888,45 @@ mrisTessellateDefect(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected,
     if (!intersectDefectEdges(mris_corrected, defect, &et[i], vertex_trans))
     {
       mrisAddEdge(mris_corrected, et[i].vno1, et[i].vno2) ;
-      et[i].used = 1 ;
+      et[i].used = 1 ; nadded++ ;
+      if (et[i].len > max_len)
+      {
+        max_len = et[i].len ; max_added = nadded-1 ;
+        max_i = i ;
+      }
     }
+  }
+
+
+  if (max_len > 10)
+  {
+    VERTEX *v1, *v2 ;
+    n = max_i ;
+    v1 = &mris_corrected->vertices[et[n].vno1] ;
+    v2 = &mris_corrected->vertices[et[n].vno2] ;
+    fprintf(stderr, "%d: v %d --> %d, len = %2.3f, nadded = %d of %d\n",
+            max_i, et[n].vno1, et[n].vno2, et[n].len, max_added, nadded-1) ;
+    fprintf(stderr, "INFLATED:  (%2.1f, %2.1f, %2.1f) --> "
+            "(%2.1f, %2.1f, %2.1f), len = %2.2f\n",
+            v1->tx, v1->ty, v1->tz,
+            v2->tx, v2->ty, v2->tz,
+            sqrt(SQR(v1->tx-v2->tx)+SQR(v1->ty-v2->ty)+SQR(v1->tz-v2->tz)));
+    fprintf(stderr, "CANON:  (%2.1f, %2.1f, %2.1f) --> "
+            "(%2.1f, %2.1f, %2.1f), len = %2.2f\n",
+            v1->cx, v1->cy, v1->cz,
+            v2->cx, v2->cy, v2->cz,
+            sqrt(SQR(v1->cx-v2->cx)+SQR(v1->cy-v2->cy)+SQR(v1->cz-v2->cz)));
+    fprintf(stderr, "CURRENT:  (%2.1f, %2.1f, %2.1f) --> "
+            "(%2.1f, %2.1f, %2.1f), len = %2.2f\n",
+            v1->x, v1->y, v1->z,
+            v2->x, v2->y, v2->z,
+            sqrt(SQR(v1->x-v2->x)+SQR(v1->y-v2->y)+SQR(v1->z-v2->z)));
+    fprintf(stderr, "ORIG:  (%2.1f, %2.1f, %2.1f) --> "
+            "(%2.1f, %2.1f, %2.1f), len = %2.2f\n",
+            v1->origx, v1->origy, v1->origz,
+            v2->origx, v2->origy, v2->origz,
+            sqrt(SQR(v1->origx-v2->origx)+SQR(v1->origy-v2->origy)+SQR(v1->origz-v2->origz)));
+    DiagBreak() ;
   }
 #if 0
   mrisAddDefectFaces(mris_corrected, e0, e1, origin, et, nedges) ;
@@ -24828,7 +24926,7 @@ mrisOrientRetessellatedSurface(MRI_SURFACE *mris, DEFECT_LIST *dl,int *vtrans)
     dot = v->nx * v->x + v->ny*v->y + v->nz*v->z ;
     if (dot < 0)
     {
-      fprintf(stderr, "vertex %d has invertex normal!\n", vno) ;
+      fprintf(stderr, "vertex %d has inverted normal!\n", vno) ;
       DiagBreak() ;
     }
 
