@@ -909,13 +909,13 @@ void SortFiles(char *fNames[], int nFiles, DICOMInfo ***ptrDicomArray, int *nStu
     {
       npermut=0;
       for (n=0; n<nFiles-1; n++)
-  if (strcmp(dicomArray[n]->AcquisitionTime, dicomArray[n+1]->AcquisitionTime)>0)  // 2nd time inferior to first
-    {
-      storage=dicomArray[n];
-      dicomArray[n]=dicomArray[n+1];
-      dicomArray[n+1]=storage;
-      npermut++;
-    }
+	if (strcmp(dicomArray[n]->AcquisitionTime, dicomArray[n+1]->AcquisitionTime)>0)  // 2nd time inferior to first
+	  {
+	    storage=dicomArray[n];
+	    dicomArray[n]=dicomArray[n+1];
+	    dicomArray[n+1]=storage;
+	    npermut++;
+	  }
       done=(npermut==0);      
     }  
 
@@ -988,6 +988,16 @@ int IsDICOM(char *fname)
 
   return(cond == DCM_NORMAL);
 }
+
+#ifdef Solaris
+
+int alphasort(const struct dirent **a, const struct dirent **b)
+{
+  return(strcmp((*a)->d_name, (*b)->d_name));
+}
+
+#endif
+
 
 /*******************************************************
    ScanDir
@@ -1341,15 +1351,15 @@ int DICOMInfo2MRI(DICOMInfo *dcm, void *data, MRI *mri)
     data8=(unsigned char *)data;
     for (k=0, n=0; k<dcm->NumberOfFrames; k++)
       for (j=0; j<dcm->Columns; j++)
-  for (i=0; i<dcm->Rows; i++, n++)
-    MRIvox(mri, i, j, k) = data8[n];
+	for (i=0; i<dcm->Rows; i++, n++)
+	  MRIvox(mri, i, j, k) = data8[n];
     break;
   case 16:
     data16=(unsigned short *)data;
     for (k=0, n=0; k<dcm->NumberOfFrames; k++)
       for (j=0; j<dcm->Columns; j++)
-  for (i=0; i<dcm->Rows; i++, n++)
-    MRISvox(mri, i, j, k) = data16[n];
+	for (i=0; i<dcm->Rows; i++, n++)
+	  MRISvox(mri, i, j, k) = data16[n];
     break;
   }
  
@@ -1421,12 +1431,12 @@ int DICOMRead(char *FileName, MRI **mri, int ReadImage)
       printf("Generating log file dicom.log\n");
       fp = fopen("dicom.log", "w");
       if (fp==NULL) {
-  printf("Can not create file dicom.log\n");
+	printf("Can not create file dicom.log\n");
       }
       else {
-  for (i=0; i<NumberOfDICOMFiles; i++)
-    fprintf(fp, "%s\t%d\n", aDicomInfo[i]->FileName, aDicomInfo[i]->ImageNumber);
-  fclose(fp);
+	for (i=0; i<NumberOfDICOMFiles; i++)
+	  fprintf(fp, "%s\t%d\n", aDicomInfo[i]->FileName, aDicomInfo[i]->ImageNumber);
+	fclose(fp);
       }
     }
 
