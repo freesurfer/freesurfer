@@ -114,14 +114,14 @@ mri_event_handler(XV_FRAME *xvf, Event *event,DIMAGE *dimage,
     break ;
   case MRI_HORIZONTAL:
     x = event_x(event) ;
-    y = depth - mri->imnr0 ;
+    y = depth ;
     if (xvf->ydir < 0)
       z = mri->height - (event_y(event)+1) ;
     else
       z = event_y(event) ;
     break ;
   case MRI_SAGITAL:
-    x = depth - mri->imnr0 ;
+    x = depth ;
     if (xvf->ydir < 0)
       y = mri->height - (event_y(event)+1) ;
     else
@@ -179,13 +179,13 @@ mri_event_handler(XV_FRAME *xvf, Event *event,DIMAGE *dimage,
       old_which = which_click ;
       which_click = dimage->which ;
       XVrepaintImage(xvf, old_which) ;
+      view = mri_views[which] ;
+      sprintf(view_str, "view: %s", 
+              view == MRI_CORONAL ? "CORONAL" :
+              view == MRI_SAGITAL ? "SAGITAL" : "HORIZONTAL") ;
+      xv_set(view_panel, PANEL_LABEL_STRING, view_str, NULL) ;
     }
 
-    view = mri_views[which] ;
-    sprintf(view_str, "view: %s", 
-            view == MRI_CORONAL ? "CORONAL" :
-            view == MRI_SAGITAL ? "SAGITAL" : "HORIZONTAL") ;
-    xv_set(view_panel, PANEL_LABEL_STRING, view_str, NULL) ;
     x_click = x ;
     y_click = y ;
     z_click = z ;
@@ -397,9 +397,10 @@ XVMRIinit(XV_FRAME *xvf_init, int view_row, int view_col)
 static void 
 viewMenuItem(Menu menu, Menu_item menu_item)
 {
-  char *menu_str ;
-  MRI  *mri ;
-  int  slice, which, view ;
+  char   *menu_str ;
+  MRI    *mri, *mri2 ;
+  int    slice, which, view, which2, sync ;
+  DIMAGE *dimage, *dimage2 ;
 
   which = which_click ;
   if (which_click < 0)   /* no current window */
@@ -427,10 +428,30 @@ viewMenuItem(Menu menu, Menu_item menu_item)
     slice = y_click ;
   }
 
-  XVMRIsetView(xvf, which, view) ;
-  XVMRIshow(xvf, mri, which, slice) ;
   sprintf(view_str, "view: %s", menu_str) ;
   xv_set(view_panel, PANEL_LABEL_STRING, view_str, NULL) ;
+  XVMRIsetView(xvf, which, view) ;
+
+  dimage = XVgetDimage(xvf, which, DIMAGE_IMAGE) ;
+  sync = dimage->sync ;
+  if (sync)
+  {
+    for (which2 = 0 ; which2 < xvf->rows*xvf->cols ; which2++)
+    {
+      if (which2 == which)
+        continue ;
+      dimage2 = XVgetDimage(xvf, which2, DIMAGE_IMAGE) ;
+      mri2 = mris[which2] ;
+      if (dimage2 && mri2 && (dimage2->sync == sync))
+      {
+        XVMRIsetView(xvf, which2, view) ;
+        XVMRIshow(xvf, mri2, which2, slice) ;
+      }
+    }
+  }
+  XVMRIshow(xvf, mri, which, slice) ;  /* will reset syncs */
+  if (sync)  /* if they were synced, reinstate it */
+    XVsyncAll(xvf, which) ;
 }
 /*----------------------------------------------------------------------
             Parameters:
