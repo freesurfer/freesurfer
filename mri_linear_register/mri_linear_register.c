@@ -13,10 +13,17 @@
 #include "timer.h"
 #include "diag.h"
 #include "mrimorph.h"
+#include "mri_conform.h"
 #include "utils.h"
+#include "matrix.h"
 
 char         *Progname ;
 static MORPH_PARMS  parms ;
+
+static int invert_flag = 0 ;
+static int voxel_coords = 0 ;
+static int nopca = 0 ;
+static int full_res = 0 ;
 
 static double tx = 0.0 ;
 static double ty = 0.0 ;
@@ -25,14 +32,20 @@ static double rzrot = 0.0 ;
 static double rxrot = 0.0 ;
 static double ryrot = 0.0 ;
 
+static MATRIX *initialize_transform(MRI *mri_in, MRI *mri_ref, MP *parms) ;
+static MRI *find_cropping(MRI *mri_in, MRI *mri_ref, MP *parms) ;
 static int get_option(int argc, char *argv[]) ;
-static int register_mri(MRI *mri_in, MRI *mri_ref, MP *parms) ;
+static int register_mri(MRI *mri_in, MRI *mri_ref, MP *parms, MATRIX *m_L) ;
 static int order_eigenvectors(MATRIX *m_src_evectors, MATRIX *m_dst_evectors) ;
 static float window_size = 0 ;
 static unsigned char thresh_low = 40 ;
 static int binarize = 1 ;
+static int check_crop_flag = 0 ;
+static int use_gradient = 1 ;
 
 static char *var_fname = NULL ;
+static char *xform_mean_fname = NULL ;
+static char *xform_covariance_fname = NULL ;
 
 #if 0
 static unsigned char thresh_hi = 120 ;
@@ -41,8 +54,8 @@ static unsigned char thresh_hi = 120 ;
 static MATRIX *pca_matrix(MATRIX *m_in_evectors, double in_means[3],
                          MATRIX *m_ref_evectors, double ref_means[3]) ;
 static MATRIX *compute_pca(MRI *mri_in, MRI *mri_ref) ;
-#if 0
 static int init_scaling(MRI *mri_in, MRI *mri_ref, MATRIX *m_L) ;
+#if 0
 static int init_translation(MRI *mri_in, MRI *mri_ref, MATRIX *m_L);
 #endif
 
@@ -51,6 +64,7 @@ static int num_xforms = 1 ;
 static int transform_loaded = 0 ;
 
 static double blur_sigma = 2.0f ;
+static double l_priors = 1 ;  /* weighting for prior term (if used) */
 
 /* 
    command line consists of three inputs:
@@ -63,12 +77,14 @@ static double blur_sigma = 2.0f ;
 int
 main(int argc, char *argv[])
 {
-  char         ref_fname[100], *in_fname, *out_fname, fname[100], **av ;
-  MRI          *mri_ref, *mri_in ;
-  int          ac, nargs ;
-  int          msec, minutes, seconds ;
+  char         *ref_fname, *in_fname, *out_fname, fname[STRLEN], **av ;
+  MRI          *mri_ref, *mri_in, *mri_orig, *mri_in_red, *mri_ref_red,
+               *mri_in_tmp, *mri_ref_tmp, *mri_ref_orig, *mri_in_orig ;
+  int          ac, nargs, i, msec, minutes, seconds ;
   struct timeb start ;
+  MATRIX       *m_L ;
 
+  parms.mri_crop = NULL ;
   parms.l_intensity = 1.0f ;
   parms.niterations = 100 ;
   parms.levels = -1 ;   /* use default */
@@ -78,6 +94,8 @@ main(int argc, char *argv[])
   parms.dt = 5e-6 ;  /* was 5e-6 */
   parms.tol = 1e-3 ;
   parms.momentum = 0.8 ;
+  parms.max_levels = MAX_LEVELS ;
+  parms.factor = 1.0 ;
   parms.niterations = 25 ;
   Progname = argv[0] ;
 
@@ -100,11 +118,45 @@ main(int argc, char *argv[])
               Progname) ;
 
   in_fname = argv[1] ;
-  strcpy(ref_fname, argv[2]) ;
-#if 0
-  if (strchr(ref_fname, '#') == NULL)
-    strcat(ref_fname, "#-2") ;
-#endif
+  ref_fname = argv[2] ;
+  if (xform_mean_fname)
+  {
+    int   sno, nsubjects ;
+    FILE  *fp ;
+
+    parms.m_xform_mean = MatrixAsciiRead(xform_mean_fname, NULL) ;
+    if (!parms.m_xform_mean)
+      ErrorExit(Gerror, "%s: could not read parameter means from %s",
+                Progname, xform_mean_fname) ;
+
+    fp = fopen(xform_covariance_fname, "r") ;
+    if (!fp)
+      ErrorExit(ERROR_NOFILE, "%s: could not read covariances from %s",
+                Progname, xform_covariance_fname) ;
+
+    fscanf(fp, "nsubjects=%d", &nsubjects) ;
+    printf("reading %d transforms...\n", nsubjects) ;
+
+    parms.m_xforms = (MATRIX **)calloc(nsubjects, sizeof(MATRIX *)) ;
+    if (!parms.m_xforms)
+      ErrorExit(ERROR_NOMEMORY, "%s: could not allocate array of %d xforms",
+                Progname, nsubjects) ;
+    for (sno = 0 ; sno < nsubjects ; sno++)
+    {
+      parms.m_xforms[sno] = MatrixAsciiReadFrom(fp, NULL) ;
+      if (!parms.m_xforms[sno])
+      ErrorExit(ERROR_NOMEMORY, "%s: could not allocate %dth xform",
+                Progname, sno) ;
+      
+    }
+    parms.m_xform_covariance = MatrixAsciiReadFrom(fp, NULL) ;
+    if (!parms.m_xform_covariance)
+      ErrorExit(Gerror, "%s: could not read parameter covariance from %s",
+                Progname, xform_covariance_fname) ;
+    fclose(fp) ;
+    parms.l_priors = l_priors ;
+    parms.nxforms = nsubjects ;
+  }
   out_fname = argv[3] ;
   FileNameOnly(out_fname, fname) ;
   FileNameRemoveExtension(fname, fname) ;
@@ -119,6 +171,14 @@ main(int argc, char *argv[])
   if (!mri_ref)
     ErrorExit(ERROR_NOFILE, "%s: could not open reference volume %s.\n",
               Progname, ref_fname) ;
+  if (mri_ref->type != MRI_UCHAR)
+  {
+    MRI *mri_tmp ;
+
+    mri_tmp = MRIchangeType(mri_ref, MRI_UCHAR, 0.0, 0.999, FALSE) ;
+    MRIfree(&mri_ref) ;
+    mri_ref = mri_tmp ;
+  }
 
   if (var_fname)  /* read in a volume of standard deviations */
   {
@@ -135,10 +195,50 @@ main(int argc, char *argv[])
   }
   fprintf(stderr, "reading '%s'...\n", in_fname) ;
   fflush(stderr) ;
-  mri_in = MRIread(in_fname) ;
+  mri_orig = mri_in = MRIread(in_fname) ;
   if (!mri_in)
     ErrorExit(ERROR_NOFILE, "%s: could not open input volume %s.\n",
               Progname, in_fname) ;
+  if (mri_in->type != MRI_UCHAR)
+  {
+    MRI *mri_tmp ;
+
+    mri_orig = mri_tmp = MRIchangeType(mri_in, MRI_UCHAR, 0.0, 0.999, FALSE) ;
+    MRIfree(&mri_in) ;
+    mri_in = mri_tmp ;
+  }
+
+  /* make sure they are the same size */
+  if (mri_in->width  != mri_ref->width ||
+      mri_in->height != mri_ref->height  ||
+      mri_in->depth  != mri_ref->depth)
+  {
+    int  width, height, depth ;
+    MRI  *mri_tmp ;
+    
+    width = MAX(mri_in->width, mri_ref->width) ;
+    height = MAX(mri_in->height, mri_ref->height) ;
+    depth = MAX(mri_in->depth, mri_ref->depth) ;
+    mri_tmp = MRIalloc(width, height, depth, MRI_UCHAR) ;
+    MRIextractInto(mri_in, mri_tmp, 0, 0, 0,
+                   mri_in->width, mri_in->height, mri_in->depth, 0, 0, 0) ;
+#if 0
+    MRIfree(&mri_in) ; 
+#else
+    parms.mri_in = mri_in ;
+#endif
+    mri_in = mri_orig = mri_tmp ;
+    
+    mri_tmp = MRIallocSequence(width, height,depth,MRI_UCHAR,mri_ref->nframes);
+    MRIextractInto(mri_ref, mri_tmp, 0, 0, 0,
+                   mri_ref->width, mri_ref->height, mri_ref->depth, 0, 0, 0) ;
+#if 0
+    MRIfree(&mri_ref) ; 
+#else
+    parms.mri_in = mri_in ;
+#endif
+    mri_ref = mri_tmp ;
+  }
 
 
   if (!FZERO(tx) || !FZERO(ty) || !FZERO(tz))
@@ -151,7 +251,7 @@ main(int argc, char *argv[])
     MRIfree(&mri_in) ;
     mri_in = mri_tmp ;
   }
-#if 1
+
   if (!FZERO(rzrot))
   {
     MRI *mri_tmp ;
@@ -185,45 +285,111 @@ main(int argc, char *argv[])
     MRIfree(&mri_in) ;
     mri_in = mri_tmp ;
   }
-#else
-  if (!FZERO(ryrot) || !FZERO(rxrot) || !FZERO(rzrot))
-  {
-    MRI *mri_tmp ;
-    MATRIX *mX, *mY, *mZ, *mRot, *mTmp ;
-    
-    mX = MatrixAllocRotation(3, x_angle, X_ROTATION) ;
-    mY = MatrixAllocRotation(3, y_angle, Y_ROTATION) ;
-    mZ = MatrixAllocRotation(3, z_angle, Z_ROTATION) ;
-    mTmp = MatrixMultiply(mX, mZ, NULL) ;
-    mRot = MatrixMultiply(mY, mTmp, NULL)
-      fprintf(stderr, 
-              "rotating second volume by (%2.1f, %2.1f, %2.1f) degrees\n",
-              (float)DEGREES(rxrot), (float)DEGREES(ryrot)
-              (float)DEGREES(rzrot)) ;
-    
-    mri_tmp = MRIrotate_I(mri_in, NULL, mRot, NULL) ;
-    MRIfree(&mri_in) ;
-    mri_in = mri_tmp ;
-    
-    MatrixFree(&mX) ; MatrixFree(&mY) ; MatrixFree(&mZ) ; 
-    MatrixFree(&mTmp) ; MatrixFree(&mRot) ;
-  }
-#endif
 
   if (!transform_loaded)   /* wasn't preloaded */
     parms.lta = LTAalloc(1, mri_in) ;
 
   if (!FZERO(blur_sigma))
   {
-    MRI *mri_tmp, *mri_kernel ;
+    MRI *mri_kernel, *mri_tmp ;
 
     mri_kernel = MRIgaussian1d(blur_sigma, 100) ;
     mri_tmp = MRIconvolveGaussian(mri_in, NULL, mri_kernel) ;
-    MRIfree(&mri_in) ; mri_in = mri_tmp ;
+    mri_in = mri_tmp ;
+    MRIfree(&mri_kernel) ;
   }
-  register_mri(mri_in, mri_ref, &parms) ;
+  MRIscaleMeanIntensities(mri_in, mri_ref, mri_in);
+
+  mri_ref_orig = mri_ref ; mri_in_orig = mri_in ;
+  if (nreductions > 0)
+  {
+    mri_in_red = mri_in_tmp = MRIcopy(mri_in, NULL) ;
+    mri_ref_red = mri_ref_tmp = MRIcopy(mri_ref, NULL) ;
+    for (i = 0 ; i < nreductions ; i++)
+    {
+      mri_in_red = MRIreduceByte(mri_in_tmp, NULL) ;
+      mri_ref_red = MRIreduceMeanAndStdByte(mri_ref_tmp,NULL);
+      MRIfree(&mri_in_tmp); MRIfree(&mri_ref_tmp) ;
+      mri_in_tmp = mri_in_red ; mri_ref_tmp = mri_ref_red ;
+    }
+    mri_in = mri_in_red ; mri_ref = mri_ref_red ;
+  }
+  /* for diagnostics */
+  if (full_res)
+  {
+    parms.mri_ref = mri_ref ; parms.mri_in = mri_in ; 
+  }
+  else
+  {
+    parms.mri_ref = mri_ref_orig ; parms.mri_in = mri_in_orig ;
+  }
+
+  m_L = initialize_transform(mri_in, mri_ref, &parms) ;
+
+  if (use_gradient)
+  {
+    MRI  *mri_in_mag, *mri_ref_mag, *mri_grad, *mri_mag ;
+
+    printf("computing gradient magnitude of input image...\n") ;
+    mri_mag = MRIalloc(mri_in->width, mri_in->height, mri_in->depth,MRI_FLOAT);
+    MRIcopyHeader(mri_in, mri_mag) ;
+    mri_grad = MRIsobel(mri_in, NULL, mri_mag) ;
+    MRIfree(&mri_grad) ;
+
+    /* convert it to ubytes */
+    MRIvalScale(mri_mag, mri_mag, 0.0f, 255.0f) ;
+    mri_in_mag = MRIclone(mri_in, NULL) ; MRIcopy(mri_mag, mri_in_mag) ;
+    MRIfree(&mri_mag) ;
+
+    /* now compute gradient of ref image */
+    printf("computing gradient magnitude of reference image...\n") ;
+    mri_mag = MRIalloc(mri_ref->width, mri_ref->height, mri_ref->depth,MRI_FLOAT);
+    MRIcopyHeader(mri_ref, mri_mag) ;
+    mri_grad = MRIsobel(mri_ref, NULL, mri_mag) ;
+    MRIfree(&mri_grad) ;
+
+    /* convert it to ubytes */
+    MRIvalScale(mri_mag, mri_mag, 0.0f, 255.0f) ;
+    mri_ref_mag = MRIclone(mri_ref, NULL) ; MRIcopy(mri_mag, mri_ref_mag) ;
+    MRIfree(&mri_mag) ;
+
+    register_mri(mri_in_mag, mri_ref_mag, &parms, m_L) ;
+    MRIfree(&mri_in_mag) ; MRIfree(&mri_ref_mag) ;
+  }
+  register_mri(mri_in, mri_ref, &parms, m_L) ;
+  if (check_crop_flag)  /* not working yet! */
+  {
+    printf("searching for cropped regions in the input image...\n") ;
+    parms.mri_crop = find_cropping(mri_orig, mri_ref, &parms) ;
+    MRIwrite(parms.mri_crop, "crop.mgh") ;
+    register_mri(mri_in, mri_ref, &parms, m_L) ;
+  }
   
+  if (voxel_coords)
+  {
+    MRI *mri_tmp ;
+
+    printf("transforming xform to voxel coordinates...\n") ;
+    MRIrasXformToVoxelXform(mri_in_orig, mri_ref_orig,
+                            parms.lta->xforms[0].m_L, 
+                            parms.lta->xforms[0].m_L);
+    mri_tmp = MRIlinearTransform(mri_in_orig, NULL, parms.lta->xforms[0].m_L);
+    MRIwriteImageViews(mri_tmp, "morphed", IMAGE_SIZE) ;
+    MRIfree(&mri_tmp) ;
+
+    MRIwriteImageViews(mri_ref_orig, "target", IMAGE_SIZE) ;
+  }
+  MRIfree(&mri_in) ; MRIfree(&mri_ref) ;
+
   fprintf(stderr, "writing output transformation to %s...\n", out_fname) ;
+  if (invert_flag)
+  {
+    MATRIX *m_tmp ;
+
+    m_tmp = MatrixInverse(parms.lta->xforms[0].m_L, NULL) ;
+    MatrixFree(&parms.lta->xforms[0].m_L) ;
+    parms.lta->xforms[0].m_L = m_tmp ;
+  }
   LTAwrite(parms.lta, out_fname) ;
   if (mri_ref)
     MRIfree(&mri_ref) ;
@@ -252,56 +418,84 @@ get_option(int argc, char *argv[])
 
   option = argv[1] + 1 ;            /* past '-' */
   StrUpper(option) ;
-  if (!strcmp(option, "DIST") || !strcmp(option, "DISTANCE"))
+  if (!stricmp(option, "DIST") || !stricmp(option, "DISTANCE"))
   {
     parms.l_dist = atof(argv[2]) ;
     nargs = 1 ;
     fprintf(stderr, "l_dist = %2.2f\n", parms.l_dist) ;
   }
-  else if (!strcmp(option, "DT"))
+  else if (!stricmp(option, "DT"))
   {
     parms.dt = atof(argv[2]) ;
     nargs = 1 ;
     fprintf(stderr, "dt = %2.2e\n", parms.dt) ;
   }
-  else if (!strcmp(option, "TOL"))
+  else if (!stricmp(option, "INVERT"))
+  {
+    invert_flag = 1 ;
+    fprintf(stderr, "inverting transform before writing...\n") ;
+  }
+  else if (!stricmp(option, "crop"))
+  {
+    check_crop_flag = 1 ;
+    nargs = 1 ;
+    fprintf(stderr, "checking for cropping....\n") ;
+  }
+  else if (!stricmp(option, "nlevels"))
+  {
+    parms.max_levels = atoi(argv[2]) ;
+    nargs = 1 ;
+    fprintf(stderr, "nlevels = %d\n", parms.max_levels) ;
+  }
+  else if (!stricmp(option, "image_size"))
+  {
+    IMAGE_SIZE = atoi(argv[2]) ;
+    nargs = 1 ;
+    fprintf(stderr, "setting default image size to %d\n", IMAGE_SIZE) ;
+  }
+  else if (!stricmp(option, "TOL"))
   {
     parms.tol = atof(argv[2]) ;
     nargs = 1 ;
     fprintf(stderr, "tol = %2.2e\n", parms.tol) ;
   }
-  else if (!strcmp(option, "NUM"))
+  else if (!stricmp(option, "NUM"))
   {
     num_xforms = atoi(argv[2]) ;
     nargs = 1 ;
     fprintf(stderr, "finding a total of %d linear transforms\n", num_xforms) ;
   }
-  else if (!strcmp(option, "AREA"))
+  else if (!stricmp(option, "SCOUT"))
+  {
+    parms.scout_flag = 1 ;
+    printf("limitting domain of integration to central slices...\n") ;
+  }
+  else if (!stricmp(option, "AREA"))
   {
     parms.l_area = atof(argv[2]) ;
     nargs = 1 ;
     fprintf(stderr, "l_area = %2.2f\n", parms.l_area) ;
   }
-  else if (!strcmp(option, "WINDOW"))
+  else if (!stricmp(option, "WINDOW"))
   {
     window_size = atof(argv[2]) ;
     fprintf(stderr, "applying Hanning window (R=%2.1f) to images...\n",
             window_size) ;
     nargs = 1 ;
   }
-  else if (!strcmp(option, "NLAREA"))
+  else if (!stricmp(option, "NLAREA"))
   {
     parms.l_nlarea = atof(argv[2]) ;
     nargs = 1 ;
     fprintf(stderr, "l_nlarea = %2.2f\n", parms.l_nlarea) ;
   }
-  else if (!strcmp(option, "LEVELS"))
+  else if (!stricmp(option, "LEVELS"))
   {
     parms.levels = atoi(argv[2]) ;
     nargs = 1 ;
     fprintf(stderr, "levels = %d\n", parms.levels) ;
   }
-  else if (!strcmp(option, "INTENSITY") || !strcmp(option, "CORR"))
+  else if (!stricmp(option, "INTENSITY") || !stricmp(option, "CORR"))
   {
     parms.l_intensity = atof(argv[2]) ;
     nargs = 1 ;
@@ -326,8 +520,42 @@ get_option(int argc, char *argv[])
     fprintf(stderr, "reducing input images %d times before aligning...\n",
             nreductions) ;
   }
+  else if (!stricmp(option, "priors"))
+  {
+    l_priors = atof(argv[2]) ;
+    nargs = 1 ;
+    fprintf(stderr, "using %2.2f as weight for prior term\n", l_priors) ;
+  }
+  else if (!stricmp(option, "voxel"))
+  {
+    voxel_coords = 1 ;
+    fprintf(stderr, "outputting transform in voxel coordinates\n") ;
+  }
+  else if (!stricmp(option, "full_res"))
+  {
+    full_res = 1 ;
+    fprintf(stderr, "outputting full resolution images\n") ;
+  }
+  else if (!stricmp(option, "nopca"))
+  {
+    nopca = 1 ;
+    fprintf(stderr, "disabling pca\n") ;
+  }
+  else if (!stricmp(option, "factor"))
+  {
+    parms.factor = atof(argv[2]) ;
+    nargs = 1 ;
+    fprintf(stderr, "using time step factor of %2.2f\n",parms.factor) ;
+  }
   else switch (*option)
   {
+  case 'X':
+    xform_mean_fname = argv[2] ;
+    xform_covariance_fname = argv[3] ;
+    printf("reading means (%s) and covariances (%s) of xforms\n",
+           xform_mean_fname, xform_covariance_fname) ;
+    nargs = 2 ;
+    break ;
   case 'D':
     tx = atof(argv[2]) ; ty = atof(argv[3]) ; tz = atof(argv[4]) ;
     nargs = 3 ;
@@ -396,51 +624,16 @@ get_option(int argc, char *argv[])
 
 #if 1
 static int
-register_mri(MRI *mri_in, MRI *mri_ref, MORPH_PARMS *parms)
+register_mri(MRI *mri_in, MRI *mri_ref, MORPH_PARMS *parms, MATRIX *m_L)
 {
-  MRI     *mri_in_red, *mri_ref_red ;
-  MRI     *mri_in_windowed, *mri_ref_windowed, *mri_in_tmp, *mri_ref_tmp ;
-  int     i ;
-  MATRIX  *m_L ;
-
-  MRIscaleMeanIntensities(mri_in, mri_ref, mri_in);
-  fprintf(stderr, "initializing alignment using PCA...\n") ;
-  if (Gdiag & DIAG_WRITE && parms->write_iterations > 0)
-  {
-    MRIwriteImageViews(mri_ref, "ref", 400) ;
-    MRIwriteImageViews(mri_in, "before_pca", 400) ;
-  }
-
-  m_L = compute_pca(mri_in, mri_ref) ; 
-
-#if 0
-  init_scaling(mri_in, mri_ref, m_L) ;
-  init_translation(mri_in, mri_ref, m_L) ; /* in case PCA failed */
-#endif
-
-  /* convert it to RAS mm coordinates */
-  MRIvoxelXformToRasXform(mri_in, mri_ref, m_L, m_L) ;
-
-  if (Gdiag & DIAG_SHOW)
-  {
-    printf("initial transform:\n") ;
-    MatrixPrint(stdout, m_L) ;
-  }
-  if (Gdiag & DIAG_WRITE && parms->write_iterations > 0)
-  {
-    MRI *mri_aligned ;
+  MRI     *mri_in_windowed, *mri_ref_windowed ;
     
-    mri_aligned = MRIapplyRASlinearTransform(mri_in, NULL, m_L) ;
-    MRIwriteImageViews(mri_aligned, "after_pca", 400) ;
-    MRIfree(&mri_aligned) ;
-  }
-
   fprintf(stderr, "aligning volume with average...\n") ;
-
+  
   if (window_size > 0)
   {
     double in_means[3], ref_means[3] ;
-
+    
     MRIcenterOfMass(mri_in, in_means, 0) ;
     MRIcenterOfMass(mri_ref, ref_means, 0) ;
     printf("windowing ref around (%d, %d, %d) and input around (%d, %d, %d)\n",
@@ -454,20 +647,8 @@ register_mri(MRI *mri_in, MRI *mri_ref, MORPH_PARMS *parms)
                 nint(ref_means[1]), nint(ref_means[2]),window_size);
     mri_in = mri_in_windowed ; mri_ref = mri_ref_windowed ;
   }
-
-
-  mri_in_red = mri_in_tmp = MRIcopy(mri_in, NULL) ;
-  mri_ref_red = mri_ref_tmp = MRIcopy(mri_ref, NULL) ;
-  for (i = 0 ; i < nreductions ; i++)
-  {
-    mri_in_red = MRIreduceByte(mri_in_tmp, NULL) ;
-    mri_ref_red = MRIreduceByte(mri_ref_tmp,NULL);
-    MRIfree(&mri_in_tmp); MRIfree(&mri_ref_tmp) ;
-    mri_in_tmp = mri_in_red ; mri_ref_tmp = mri_ref_red ;
-  }
-  parms->mri_ref = mri_ref ; 
-  parms->mri_in = mri_in ;  /* for diagnostics */
-  MRIrigidAlign(mri_in_red, mri_ref_red, parms, m_L) ;
+  
+  MRIrigidAlign(mri_in, mri_ref, parms, m_L) ;
 
   fprintf(stderr, "final transform:\n") ;
   MatrixPrint(stderr, parms->lta->xforms[0].m_L) ;
@@ -479,12 +660,12 @@ register_mri(MRI *mri_in, MRI *mri_ref, MORPH_PARMS *parms)
 
     mri_aligned = 
       MRIapplyRASlinearTransform(mri_in, NULL, parms->lta->xforms[0].m_L) ;
-    MRIwriteImageViews(mri_aligned, "after_alignment", 400) ;
+    MRIwriteImageViews(mri_aligned, "after_alignment", IMAGE_SIZE) ;
     MRIfree(&mri_aligned) ;
   }
 
-  MRIfree(&mri_in_red) ; MRIfree(&mri_ref_red) ;
 
+  MatrixCopy(parms->lta->xforms[0].m_L, m_L) ;
   return(NO_ERROR) ;
 }
 static MATRIX *
@@ -495,17 +676,6 @@ compute_pca(MRI *mri_in, MRI *mri_ref)
   MATRIX *m_ref_evectors = NULL, *m_in_evectors = NULL ;
   float  in_evalues[3], ref_evalues[3] ;
   double  ref_means[3], in_means[3] ;
-#if 0
-  MRI     *mri_in_windowed, *mri_ref_windowed ;
-
-  mri_in_windowed = MRIwindow(mri_in, NULL, WINDOW_HANNING,127,127,127,100.0f);
-  mri_ref_windowed = MRIwindow(mri_ref,NULL,WINDOW_HANNING,127,127,127,100.0f);
-  if (Gdiag & DIAG_WRITE)
-  {
-    MRIwriteImageViews(mri_in_windowed, "in_windowed", 400) ;
-    MRIwriteImageViews(mri_ref_windowed, "ref_windowed", 400) ;
-  }
-#endif
 
   if (!m_ref_evectors)
     m_ref_evectors = MatrixAlloc(3,3,MATRIX_REAL) ;
@@ -526,20 +696,6 @@ compute_pca(MRI *mri_in, MRI *mri_ref)
     MRIprincipleComponents(mri_in,m_in_evectors,in_evalues,in_means,
                            thresh_low);
   }
-  fprintf(stderr, "before ordering....\n") ;
-  fprintf(stderr, "ref_evectors = \n") ;
-  for (i = 1 ; i <= 3 ; i++)
-    fprintf(stderr, "\t\t%2.2f    %2.2f    %2.2f\n",
-            m_ref_evectors->rptr[i][1],
-            m_ref_evectors->rptr[i][2],
-            m_ref_evectors->rptr[i][3]) ;
-
-  fprintf(stderr, "\nin_evectors = \n") ;
-  for (i = 1 ; i <= 3 ; i++)
-    fprintf(stderr, "\t\t%2.2f    %2.2f    %2.2f\n",
-            m_in_evectors->rptr[i][1],
-            m_in_evectors->rptr[i][2],
-            m_in_evectors->rptr[i][3]) ;
 
   order_eigenvectors(m_in_evectors, m_in_evectors) ;
   order_eigenvectors(m_ref_evectors, m_ref_evectors) ;
@@ -650,9 +806,11 @@ pca_matrix(MATRIX *m_in_evectors, double in_means[3],
   z_angle = atan2(r21 / cosy, r11 / cosy) ;
   x_angle = atan2(r32 / cosy, r33 / cosy) ;
 
-#define MAX_ANGLE  (RADIANS(25))
-  if (fabs(x_angle) > MAX_ANGLE || fabs(y_angle) > MAX_ANGLE || 
-      fabs(z_angle) > MAX_ANGLE)
+#define MAX_X_ANGLE  (RADIANS(35))
+#define MAX_Y_ANGLE  (RADIANS(15))
+#define MAX_Z_ANGLE  (RADIANS(15))
+  if (fabs(x_angle) > MAX_X_ANGLE || fabs(y_angle) > MAX_Y_ANGLE || 
+      fabs(z_angle) > MAX_Z_ANGLE)
   {
     MATRIX *m_I ;
 
@@ -762,8 +920,14 @@ register_mri(MRI *mri_in, MRI *mri_ref, MORPH_PARMS *parms)
                 Progname) ;
   }
 
-  parms->mri_ref = mri_ref_red ; 
-  parms->mri_in = mri_in_red ;  /* for diagnostics */
+  if (full_res)
+  {
+  }
+  else
+  {
+    parms->mri_ref = mri_ref_red ; 
+    parms->mri_in = mri_in_red ;  /* for diagnostics */
+  }
   while (parms->lta->num_xforms < num_xforms)
     LTAdivide(parms->lta, mri_in_red) ;
   fprintf(stderr,"computing %d linear transformation%s...\n",
@@ -775,7 +939,6 @@ register_mri(MRI *mri_in, MRI *mri_ref, MORPH_PARMS *parms)
 }
 #endif
 
-#if 0
 /*-----------------------------------------------------
         Parameters:
 
@@ -838,6 +1001,7 @@ init_scaling(MRI *mri_in, MRI *mri_ref, MATRIX *m_L)
   MatrixMultiply(m_scaling, m_L, m_L) ;
   return(NO_ERROR) ;
 }
+#if 0
 /*-----------------------------------------------------
         Parameters:
 
@@ -874,3 +1038,239 @@ init_translation(MRI *mri_in, MRI *mri_ref, MATRIX *m_L)
   return(NO_ERROR) ;
 }
 #endif
+
+#define BORDER_LABEL   1
+#define CROP_LABEL     2
+
+static MRI *
+find_cropping(MRI *mri_in, MRI *mri_ref, MP *parms)
+{
+  MRI    *mri_crop, *mri_tmp ;
+  int    x, y, z, xi, yi, zi, xk, yk, zk, width, height, depth, num_on,
+         ncropped, nfilled ;
+
+  ncropped = 0 ;
+  mri_crop = MRIclone(mri_in, NULL) ;
+  mri_tmp = 
+    MRIapplyRASinverseLinearTransform(mri_ref, NULL,parms->lta->xforms[0].m_L);
+  if (!mri_tmp)
+    return(NULL) ;
+  mri_ref = mri_tmp ;   /* reference volume transformed into input space */
+
+  width = mri_in->width ; height = mri_in->height ; depth = mri_in->depth;
+
+  /* 
+     first find regions in which the source image has 0s next to non-zeros
+     and the reference image is non-zero
+  */
+  for (z = 0 ; z < depth ; z++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      for (x = 0 ; x < width ; x++)
+      {
+        if (x == 0 && y == 254 && z == 127)
+          DiagBreak() ;
+
+
+        if (x == 126 && y == 124 && z == 217)
+          DiagBreak() ;
+        if (x == 126 && y == 241 && z == 234)
+          DiagBreak() ;
+        if ((MRIvox(mri_in, x, y, z) > 0) || (MRIvox(mri_ref,x,y,z) == 0))
+          continue ;
+
+        /* find at least one non-zero voxel in input volume */
+        num_on = 0 ;
+        for (zk = -1 ; zk <= 1 ; zk++)
+        {
+          zi = mri_in->zi[z+zk] ;
+          for (yk = -1 ; yk <= 1 ; yk++)
+          {
+            yi = mri_in->yi[y+yk] ;
+            for (xk = -1 ; xk <= 1 ; xk++)
+            {
+              xi = mri_in->xi[x+xk] ;
+              if (MRIvox(mri_in, xi, yi, zi) > 0)
+              {
+                num_on++ ;
+                break ;
+              }
+            }
+            if (num_on)
+              break ;
+          }
+          if (num_on)
+            break ;
+        }
+        if (num_on)
+        {
+          MRIvox(mri_crop, x, y, z) = BORDER_LABEL ;
+          ncropped++ ;
+        }
+      }
+    }
+  }
+
+  /* now do a flood fill outward from the seed points to include all
+     connected voxels that are 0 in the input volume and non-zero in
+     the reference volume.
+  */
+
+  do
+  {
+    nfilled = 0 ;
+    for (z = 0 ; z < depth ; z++)
+    {
+      for (y = 0 ; y < height ; y++)
+      {
+        for (x = 0 ; x < width ; x++)
+        {
+          if (x == 0 && y == 254 && z == 127)
+            DiagBreak() ;
+
+          if (x == 126 && y == 124 && z == 217)
+            DiagBreak() ;
+          if (x == 126 && y == 241 && z == 234)
+            DiagBreak() ;
+          if ((MRIvox(mri_in, x, y, z) > 0) || 
+              (MRIvox(mri_ref,x,y,z) <= 10) ||
+              (MRIvox(mri_crop,x,y,z) > 0))
+            continue ;
+          
+          /* find at least one non-zero voxel in input volume */
+          num_on = 0 ;
+          for (zk = -1 ; zk <= 1 ; zk++)
+          {
+            zi = mri_in->zi[z+zk] ;
+            for (yk = -1 ; yk <= 1 ; yk++)
+            {
+              yi = mri_in->yi[y+yk] ;
+              for (xk = -1 ; xk <= 1 ; xk++)
+              {
+                xi = mri_in->xi[x+xk] ;
+                if (MRIvox(mri_crop, xi, yi, zi) > 0)
+                {
+                  num_on++ ;
+                  break ;
+                }
+              }
+              if (num_on)
+                break ;
+            }
+            if (num_on)
+              break ;
+          }
+          if (num_on)
+          {
+            MRIvox(mri_crop, x, y, z) = CROP_LABEL ;
+            nfilled++ ;
+          }
+        }
+      }
+    }
+    ncropped += nfilled ;
+    fprintf(stderr, "%d cropped voxels detected - %d total\n", nfilled,
+            ncropped) ;
+  } while (nfilled > 0) ;
+
+
+  /* now remove all border points that don't have at least one neighbor
+     that is cropped and non-border.
+  */
+  for (z = 0 ; z < depth ; z++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      for (x = 0 ; x < width ; x++)
+      {
+        if (x == 0 && y == 254 && z == 127)
+          DiagBreak() ;
+        
+        
+        if (x == 126 && y == 124 && z == 217)
+          DiagBreak() ;
+        if (x == 126 && y == 241 && z == 234)
+          DiagBreak() ;
+        if (MRIvox(mri_crop, x, y, z) != BORDER_LABEL)
+          continue ;
+
+        /* find at least one non-zero voxel in input volume */
+        num_on = 0 ;
+        for (zk = -1 ; zk <= 1 ; zk++)
+        {
+          zi = mri_in->zi[z+zk] ;
+          for (yk = -1 ; yk <= 1 ; yk++)
+          {
+            yi = mri_in->yi[y+yk] ;
+            for (xk = -1 ; xk <= 1 ; xk++)
+            {
+              xi = mri_in->xi[x+xk] ;
+              if ((MRIvox(mri_crop, xi, yi, zi) > 0) &&
+                  MRIvox(mri_crop, xi, yi, zi) != BORDER_LABEL)
+              {
+                num_on++ ;
+                break ;
+              }
+            }
+            if (num_on)
+              break ;
+          }
+          if (num_on)
+            break ;
+        }
+        if (num_on == 0)
+        {
+          MRIvox(mri_crop, x, y, z) = 0 ;
+          ncropped-- ;
+        }
+      }
+    }
+  }
+
+  printf("%d cropped points detected...\n", ncropped) ;
+  MRIfree(&mri_ref) ; /* NOT the one passed in - the inverse transformed one */
+  return(mri_crop) ;
+}
+
+
+static MATRIX *
+initialize_transform(MRI *mri_in, MRI *mri_ref, MP *parms)
+{
+  MATRIX *m_L ;
+
+  fprintf(stderr, "initializing alignment using PCA...\n") ;
+  if (Gdiag & DIAG_WRITE && parms->write_iterations > 0)
+  {
+    MRIwriteImageViews(parms->mri_ref, "ref", IMAGE_SIZE) ;
+    MRIwriteImageViews(parms->mri_in, "before_pca", IMAGE_SIZE) ;
+  }
+
+  if (nopca)
+    m_L = MatrixIdentity(3, NULL) ;
+  else
+    m_L = compute_pca(mri_in, mri_ref) ; 
+  
+  init_scaling(mri_in, mri_ref, m_L) ;
+#if 0
+  init_translation(mri_in, mri_ref, m_L) ; /* in case PCA failed */
+#endif
+  
+  /* convert it to RAS mm coordinates */
+  MRIvoxelXformToRasXform(mri_in, mri_ref, m_L, m_L) ;
+  
+  if (Gdiag & DIAG_SHOW)
+  {
+    printf("initial transform:\n") ;
+    MatrixPrint(stdout, m_L) ;
+  }
+  if (Gdiag & DIAG_WRITE && parms->write_iterations > 0)
+  {
+    MRI *mri_aligned ;
+    
+    mri_aligned = MRIapplyRASlinearTransform(parms->mri_in, NULL, m_L) ;
+    MRIwriteImageViews(mri_aligned, "after_pca", IMAGE_SIZE) ;
+    MRIfree(&mri_aligned) ;
+  }
+  return(m_L) ;
+}
