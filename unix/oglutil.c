@@ -17,7 +17,7 @@
 #include "oglutil.h"
 
 #if 0
-static char vcid[] = "$Id: oglutil.c,v 1.14 1998/05/12 20:51:33 fischl Exp $";
+static char vcid[] = "$Id: oglutil.c,v 1.15 1998/05/14 15:01:04 fischl Exp $";
 #endif
 
 /*-------------------------------- CONSTANTS -----------------------------*/
@@ -165,7 +165,10 @@ OGLUcompile(MRI_SURFACE *mris, int *marked_vertices, int flags, float cslope)
   int          k, n, red, green, blue, error, mv, marked ;
   face_type    *f;
   VERTEX       *v, *vn ;
-  float        v1[3], min_curv, max_curv, offset, theta, phi, coord_coef = 0.0;
+  float        v1[3], min_curv, max_curv, offset, coord_coef = 0.0;
+#if 0
+  float        phi, theta ;
+#endif
 
 /*  ogluSetFOV(mris) ;*/
   if (Gdiag & DIAG_SHOW)
@@ -218,7 +221,7 @@ OGLUcompile(MRI_SURFACE *mris, int *marked_vertices, int flags, float cslope)
       /* don't display negative flat stuff */
       if ((flags & PATCH_FLAG) && (v->nz < 0) && !(flags & NEG_FLAG))
         continue ;
-#if 1
+#if 0
       if (flags & COORD_FLAG)
       {
         int    itheta, iphi ;
@@ -266,10 +269,10 @@ OGLUcompile(MRI_SURFACE *mris, int *marked_vertices, int flags, float cslope)
       else
 #endif
         coord_coef = 0 ;
-      
+
       if (marked)
         glColor3ub(0,255,255) ;      /* paint the marked vertex blue */
-      else if (v->border && !(flags & BW_FLAG))
+      else if (v->border && !(flags & BW_FLAG) && !(flags & NOBORDER_FLAG))
         glColor3f(240,240,0.0);
       else   /* color it depending on curvature */
       {
@@ -331,206 +334,132 @@ OGLUcompile(MRI_SURFACE *mris, int *marked_vertices, int flags, float cslope)
   }
 
 
-#if 0
+#if 1
   if (flags & COORD_FLAG)    /* draw canonical coordinate system */
   {
-    int    meshr = 100;   /* mesh color */
-    int    meshg = 100;
-    int    meshb = 100, m ;
-    float  mup = 0.05 ;  /* dist edge above surface (0.05 in surfer.c) */
+    float  cheight = 15*0.05 ; /* dist edge above surface (0.05 in surfer.c) */
     FACE   *f ;
-    float  intdiv0,intdiv1,intdiv2,intdiv3,frac0,frac1,frac2,frac3,nx,ny,nz;
+    float  nx,ny,nz;
     float  cross_x[4],cross_y[4],cross_z[4];
-    int    crossnum;
-    float  contour_spacing[3], coord0[3], coord1[3], coord2[3], coord3[3] ;
+    int    nintersections;
+    VERTEX *va, *vb, *vf[VERTICES_PER_FACE] ;
+    double avg_coord, phi_avg, theta_avg, coorda, coordb, coord_line ;
+    double fcoords[VERTICES_PER_FACE], frac ;
+    int    cno, fvno ;
 
 #define RGBcolor(R,G,B)  glColor3ub((GLubyte)(R),(GLubyte)(G),(GLubyte)(B))
 
-    contour_spacing[0] = contour_spacing[1] = contour_spacing[2] = 
-      oglu_coord_spacing ;
-    /*    RGBcolor(meshr,meshg,meshb);*/
-    for (k = 0 ; k < mris->nfaces ; k++) if (!mris->faces[k].ripflag)
+    for (k = 0 ; k < mris->nfaces ; k++)
     {
       f = &mris->faces[k];
-      coord0[0] = mris->vertices[f->v[0]].theta*180/M_PI;
-      coord0[1] = 2+mris->vertices[f->v[0]].phi*180/M_PI;
-      coord0[2] = 0;
-      coord1[0] = mris->vertices[f->v[1]].theta*180/M_PI;
-      coord1[1] = 2+mris->vertices[f->v[1]].phi*180/M_PI;
-      coord1[2] = 0;
-      coord2[0] = mris->vertices[f->v[2]].theta*180/M_PI;
-      coord2[1] = 2+mris->vertices[f->v[2]].phi*180/M_PI;
-      coord2[2] = 0;
-      coord3[0] = mris->vertices[f->v[3]].theta*180/M_PI;
-      coord3[1] = 2+mris->vertices[f->v[3]].phi*180/M_PI;
-      coord3[2] = 0;
-
-      for (m = 0 ; m < 3 ; m++)
+      if (f->ripflag)
+        continue ;
+      phi_avg = theta_avg = nx = ny = nz = 0.0f ;
+      
+      /* calculate average surface coordinate and average normal */
+      for (fvno = 0 ; fvno < VERTICES_PER_FACE ; fvno++)
       {
-        if (m==0)
+        if (f->v[fvno] == 1210)
+          DiagBreak() ;
+        vf[fvno] = &mris->vertices[f->v[fvno]] ;
+        phi_avg += vf[fvno]->phi ;
+        theta_avg += vf[fvno]->theta ;
+        nx += vf[fvno]->nx ; ny += vf[fvno]->ny ; nz += vf[fvno]->nz ;
+      }
+      phi_avg /= (float)VERTICES_PER_FACE ; 
+      theta_avg /= (float)VERTICES_PER_FACE ;
+      nx /= (float)VERTICES_PER_FACE ;
+      ny /= (float)VERTICES_PER_FACE ;
+      nz /= (float)VERTICES_PER_FACE ;
+
+      /* find intersection of face with nearest coord line for each coord */
+      for (cno = 0 ; cno < 2 ; cno++)    /* once per coordinate */
+      {
+        if (!cno)    /* phi */
         {
+          avg_coord = DEGREES(phi_avg) ;
           RGBcolor(255,230,0);
-          glLineWidth(4.0f);
-        }
-        else if (m==1)
-        {
-          /*RGBcolor(190,145,255);*/
           RGBcolor(180,135,255);
-          glLineWidth(3.0f);
+          RGBcolor(150,255,255);
+          glLineWidth(1.0f);
+          for (fvno = 0 ; fvno < VERTICES_PER_FACE ; fvno++)
+            fcoords[fvno] = DEGREES(vf[fvno]->phi) ;
         }
-        else if (m==2)
-          RGBcolor(0,0,255);
-        crossnum = 0;
-        intdiv0 = floor(coord0[m]/contour_spacing[m]);
-        intdiv1 = floor(coord1[m]/contour_spacing[m]);
-        intdiv2 = floor(coord2[m]/contour_spacing[m]);
-        intdiv3 = floor(coord3[m]/contour_spacing[m]);
-        frac0   = coord0[m]/contour_spacing[m]-intdiv0;
-        frac1   = coord1[m]/contour_spacing[m]-intdiv1;
-        frac2   = coord2[m]/contour_spacing[m]-intdiv2;
-        frac3   = coord3[m]/contour_spacing[m]-intdiv3;
-        if (intdiv0!=intdiv1)
+        else         /* theta */
         {
-          cross_x[crossnum] = 
-            mris->vertices[f->v[0]].x+ 
-            (mris->vertices[f->v[1]].x-mris->vertices[f->v[0]].x)*
-            (1-frac0)/(1+frac1-frac0);
-          cross_y[crossnum] = 
-            mris->vertices[f->v[0]].y+
-            (mris->vertices[f->v[1]].y-mris->vertices[f->v[0]].y)*
-            (1-frac0)/(1+frac1-frac0);
-          cross_z[crossnum] = 
-            mris->vertices[f->v[0]].z+
-            (mris->vertices[f->v[1]].z-mris->vertices[f->v[0]].z)*
-            (1-frac0)/(1+frac1-frac0);
-          crossnum++;
+          avg_coord = DEGREES(theta_avg) ;
+          RGBcolor(180,135,255);
+          RGBcolor(150,255,255);
+          glLineWidth(1.0f);
+          for (fvno = 0 ; fvno < VERTICES_PER_FACE ; fvno++)
+            fcoords[fvno] = DEGREES(vf[fvno]->theta) ;
         }
-        if (intdiv1!=intdiv2)
+
+
+        coord_line = nint(avg_coord/oglu_coord_spacing) * oglu_coord_spacing;
+
+        /* find out if coordinate line passes between these two vertices */
+        nintersections = 0 ;   /* assume no coordinate lines cross this face */
+        for (fvno = 0 ; nintersections<25 && fvno < VERTICES_PER_FACE ; fvno++)
         {
-          cross_x[crossnum] = 
-            mris->vertices[f->v[1]].x+
-            (mris->vertices[f->v[2]].x-mris->vertices[f->v[1]].x)*
-            (1-frac1)/(1+frac2-frac1);
-          cross_y[crossnum] = 
-            mris->vertices[f->v[1]].y+
-            (mris->vertices[f->v[2]].y-mris->vertices[f->v[1]].y)*
-            (1-frac1)/(1+frac2-frac1);
-          cross_z[crossnum] = 
-            mris->vertices[f->v[1]].z+
-            (mris->vertices[f->v[2]].z-mris->vertices[f->v[1]].z)*
-            (1-frac1)/(1+frac2-frac1);
-          crossnum++;
-        }
-        if (intdiv0!=intdiv2)
-        {
-          cross_x[crossnum] = 
-            mris->vertices[f->v[0]].x+
-            (mris->vertices[f->v[2]].x-mris->vertices[f->v[0]].x)*
-            (1-frac0)/(1+frac2-frac0);
-          cross_y[crossnum] = 
-            mris->vertices[f->v[0]].y+
-            (mris->vertices[f->v[2]].y-mris->vertices[f->v[0]].y)*
-            (1-frac0)/(1+frac2-frac0);
-          cross_z[crossnum] = 
-            mris->vertices[f->v[0]].z+
-            (mris->vertices[f->v[2]].z-mris->vertices[f->v[0]].z)*
-            (1-frac0)/(1+frac2-frac0);
-          crossnum++;
-        }
-        if (intdiv0!=intdiv2)
-        {
-          cross_x[crossnum] = 
-            mris->vertices[f->v[0]].x+
-            (mris->vertices[f->v[2]].x-mris->vertices[f->v[0]].x)*
-            (1-frac0)/(1+frac2-frac0);
-          cross_y[crossnum] = 
-            mris->vertices[f->v[0]].y+
-            (mris->vertices[f->v[2]].y-mris->vertices[f->v[0]].y)*
-            (1-frac0)/(1+frac2-frac0);
-          cross_z[crossnum] = 
-            mris->vertices[f->v[0]].z+
-            (mris->vertices[f->v[2]].z-mris->vertices[f->v[0]].z)*
-            (1-frac0)/(1+frac2-frac0);
-          crossnum++;
-        }
-        if (intdiv0!=intdiv3)
-        {
-          cross_x[crossnum] = 
-            mris->vertices[f->v[0]].x+
-            (mris->vertices[f->v[3]].x-mris->vertices[f->v[0]].x)*
-            (1-frac0)/(1+frac3-frac0);
-          cross_y[crossnum] = 
-            mris->vertices[f->v[0]].y+
-            (mris->vertices[f->v[3]].y-mris->vertices[f->v[0]].y)*
-            (1-frac0)/(1+frac3-frac0);
-          cross_z[crossnum] = 
-            mris->vertices[f->v[0]].z+
-            (mris->vertices[f->v[3]].z-mris->vertices[f->v[0]].z)*
-            (1-frac0)/(1+frac3-frac0);
-          crossnum++;
-        }
-        if (intdiv3!=intdiv2)
-        {
-          cross_x[crossnum] = 
-            mris->vertices[f->v[3]].x+
-            (mris->vertices[f->v[2]].x-mris->vertices[f->v[3]].x)*
-            (1-frac3)/(1+frac2-frac3);
-          cross_y[crossnum] = 
-            mris->vertices[f->v[3]].y+
-            (mris->vertices[f->v[2]].y-mris->vertices[f->v[3]].y)*
-            (1-frac3)/(1+frac2-frac3);
-          cross_z[crossnum] = 
-            mris->vertices[f->v[3]].z+
-            (mris->vertices[f->v[2]].z-mris->vertices[f->v[3]].z)*
-            (1-frac3)/(1+frac2-frac3);
-          crossnum++;
-        }
-        if (crossnum>0 && fabs(intdiv0-intdiv1)<=1
-                       && fabs(intdiv1-intdiv2)<=1
-                       && fabs(intdiv0-intdiv2)<=1
-                       && fabs(intdiv0-intdiv3)<=1
-                       && fabs(intdiv3-intdiv2)<=1)
-        {
-          nx = (mris->vertices[f->v[0]].nx+mris->vertices[f->v[1]].nx+
-                mris->vertices[f->v[2]].nx+mris->vertices[f->v[3]].nx)/4;
-          ny = (mris->vertices[f->v[0]].ny+mris->vertices[f->v[1]].ny+
-                mris->vertices[f->v[2]].ny+mris->vertices[f->v[3]].ny)/4;
-          nz = (mris->vertices[f->v[0]].nz+mris->vertices[f->v[1]].nz+
-                mris->vertices[f->v[2]].nz+mris->vertices[f->v[3]].nz)/4;
-          if (crossnum!=2 && crossnum!=4)
+          coorda = fcoords[fvno] ;
+          coordb = fcoords[fvno < VERTICES_PER_FACE-1 ? fvno+1 : 0] ;
+          va = vf[fvno] ;
+          vb = vf[fvno < VERTICES_PER_FACE-1 ? fvno+1 : 0] ;
+
+          if (coorda <= coord_line && coordb >= coord_line)
           {
-            printf("surfer: error - crossnum=%d\n",crossnum);
+            /* intersects between 0 and 1 */
+            frac = (coord_line - coorda) / (coordb - coorda) ;
+            cross_x[nintersections] = va->x + frac * (vb->x - va->x) ;
+            cross_y[nintersections] = va->y + frac * (vb->y - va->y) ;
+            cross_z[nintersections] = va->z + frac * (vb->z - va->z) ;
+            nintersections++ ;
           }
-          else
+          else if (coorda >= coord_line && coordb <= coord_line)
+          {
+            /* intersects between 1 and 0 */
+            frac = (coord_line - coordb) / (coorda - coordb) ;
+            cross_x[nintersections] = vb->x + frac * (va->x - vb->x) ;
+            cross_y[nintersections] = vb->y + frac * (va->y - vb->y) ;
+            cross_z[nintersections] = vb->z + frac * (va->z - vb->z) ;
+            nintersections++ ;
+          }
+          if (nintersections >= 2)   /* draw the line */
           {
             glBegin(GL_LINES) ;
             load_brain_coords(nx,ny,nz,v1);
             glNormal3fv(v1);
-            load_brain_coords(cross_x[0]+mup*nx,cross_y[0]+mup*ny,
-                              cross_z[0]+mup*nz,v1);
+            load_brain_coords(cross_x[0]+cheight*nx,cross_y[0]+cheight*ny,
+                              cross_z[0]+cheight*nz,v1);
             glVertex3fv(v1);
-            load_brain_coords(cross_x[1]+mup*nx,cross_y[1]+mup*ny,
-                              cross_z[1]+mup*nz,v1);
+            load_brain_coords(cross_x[1]+cheight*nx,cross_y[1]+cheight*ny,
+                              cross_z[1]+cheight*nz,v1);
             glVertex3fv(v1);
             glEnd() ;
-            if (crossnum>2)
-            {
-              glBegin(GL_LINES);
-              load_brain_coords(nx,ny,nz,v1);
-              glNormal3fv(v1);
-              load_brain_coords(cross_x[2]+mup*nx,cross_y[2]+mup*ny,
-                                cross_z[2]+mup*nz,v1);
-              glVertex3fv(v1);
-              load_brain_coords(cross_x[3]+mup*nx,cross_y[3]+mup*ny,
-                                cross_z[3]+mup*nz,v1);
-              glVertex3fv(v1);
-              glEnd();
-            }
           }
         }
+#if 0
+        if (nintersections == 1 || nintersections == 3)
+        {
+          fprintf(stderr, "warning, f %d: %d intersections!\n",
+                  k,nintersections);
+          DiagBreak() ;
+          RGBcolor(255,255,255);
+          glBegin(GL_LINES) ;
+          load_brain_coords(nx,ny,nz,v1);
+          glNormal3fv(v1);
+          load_brain_coords(vf[0]->x, vf[0]->y, vf[0]->z, v1);
+          glVertex3fv(v1);
+          load_brain_coords(vf[2]->x, vf[2]->y, vf[2]->z, v1);
+          glVertex3fv(v1);
+          glEnd() ;
+        }
+#endif
       }
     }
   }
+
 #endif
 
 #if 0
