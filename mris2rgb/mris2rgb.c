@@ -28,7 +28,7 @@
 #include "tiff.h"
 #include "tiffio.h"
 
-static char vcid[] = "$Id: mris2rgb.c,v 1.3 1998/02/11 21:14:55 fischl Exp $";
+static char vcid[] = "$Id: mris2rgb.c,v 1.4 1998/02/13 17:48:15 fischl Exp $";
 
 /*-------------------------------- CONSTANTS -----------------------------*/
 
@@ -107,7 +107,8 @@ static int         configuration[] =
   GLX_GREEN_SIZE, 1, GLX_BLUE_SIZE, 1, None
 } ;
 #endif
-static char curvature_fname[100] = "" ;
+static char *curvature_fname = NULL ;
+static char *coord_fname = NULL ;
 static float cslope = 5.0f ;
 static int   patch_flag = 0 ;
 
@@ -201,6 +202,8 @@ main(int argc, char *argv[])
                   Progname, in_fname) ;
     }
 
+    if (coord_fname)
+      MRISreadCanonicalCoordinates(mris, coord_fname) ;
     if (talairach_flag)
       MRIStalairachTransform(mris, mris) ;
     MRIScenter(mris, mris) ;
@@ -231,7 +234,7 @@ main(int argc, char *argv[])
     
     if (mrisp)
       MRISfromParameterization(mrisp, mris, 0) ;
-    if (curvature_fname[0])
+    if (curvature_fname)
       MRISreadCurvatureFile(mris, curvature_fname) ;
 
     switch (curvature_flag)
@@ -425,6 +428,15 @@ get_option(int argc, char *argv[])
     curvature_flag = MEAN_CURVATURE ;
   else if (!stricmp(option, "tp"))
     compile_flags |= TP_FLAG ;
+  else if (!stricmp(option, "neg"))
+    compile_flags |= NEG_FLAG ;
+  else if (!stricmp(option, "coord"))
+  {
+    compile_flags |= COORD_FLAG ;
+    coord_fname = argv[2] ;
+    fprintf(stderr, "reading coordinate locations from %s.\n", coord_fname);
+    nargs = 1 ;
+  }
   else if (!stricmp(option, "mesh"))
     compile_flags |= MESH_FLAG ;
   else if (!stricmp(option, "tiff"))
@@ -482,7 +494,7 @@ get_option(int argc, char *argv[])
     lateral_flag = medial_flag = 1 ;
     break ;
   case 'C':
-    strcpy(curvature_fname, argv[2]) ;
+    curvature_fname =  argv[2] ;
     nargs = 1 ;
     break ;
   default:
