@@ -68,6 +68,8 @@ class ScubaLayer2DMRI : public Layer {
   void StretchCurrentLine( float iRAS[3] );
   void EndLine( float iRAS[3], ScubaWindowToRASTranslator& iTranslator );
   
+  virtual void GetPreferredInPlaneIncrements ( float oIncrements[3] );
+
  protected:
   VolumeCollection* mVolume;
   

@@ -86,6 +86,7 @@ ScubaLayer2DMRIS::DrawIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
 	planeCoord      = iViewState.mCenterRAS[1];
 	break;
       case 2: // Z
+      default:
 	vertexCoord     = vertex->z;
 	nextVertexCoord = nextVertex->z;
 	planeCoord      = iViewState.mCenterRAS[2];

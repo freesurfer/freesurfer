@@ -221,6 +221,12 @@ x   - interface
 
 x number shortcuts for brush size
 
+in plane increment
+ - different for x y z
+ - when view is created, set to 1
+ - when first layer 0 set, set size for each x y z
+
+
 option menus for data collections in label dlogs
  - add -menu type to dlog code
 
@@ -233,16 +239,16 @@ option menus for data collections in label dlogs
 
 BRUCE'S LIST:::
 
-b/c controled by mouse
-x in and out slice pg up/down
-x turning off ras coord display
-x display cursor
-x default to voxel size not 1mm.
+- b/c controled by mouse
 
 
 BUGS:::
 - fix radius in brush, it's really ugly
 - tabbing when in console switches frame, disable?
+- dlog box on fill still not create
+  - way to suspend the redraw in the middle of the fill?
+  - way to have a progress bar without a percent?
+- when switch inplane, rebuild overlay
 
 
 FUTURE IDEAS:::

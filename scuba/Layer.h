@@ -79,6 +79,8 @@ class Layer : public DebugReporter, public IDTracker<Layer>, public TclCommandLi
 			    int iFromWindow[2], int iToWindow[2],
 			    int iColor[3], int iThickness, float iOpacity );
 
+  virtual void GetPreferredInPlaneIncrements ( float oIncrements[3] );
+
  protected:
 
   int mWidth;

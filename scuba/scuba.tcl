@@ -526,6 +526,7 @@ proc ToolBarWrapper { isName iValue } {
     global gaFrame
     global gaROI
     global gaTool
+    global gaView
 
     if { $iValue == 1 } {
 	switch $isName {
@@ -539,6 +540,8 @@ proc ToolBarWrapper { isName iValue } {
 	    }
 	    x - y - z {
 		SetViewInPlane [GetSelectedViewID [GetMainFrameID]] $isName
+		set gaView(current,inPlaneInc) \
+   	          [GetViewInPlaneMovementIncrement $gaView(current,id) $isName]
 		RedrawFrame [GetMainFrameID]
 	    }
 	    grayscale - heatScale - lut {
@@ -1370,7 +1373,7 @@ proc MakeViewPropertiesPanel { ifwTop } {
 	-label "In-plane key increment" \
 	-font [tkuNormalFont] \
 	-variable gaView(current,inPlaneInc) \
-	-command {SetViewInPlaneMovementIncrement $gaView(current,id) $gaView(current,inPlaneInc) } \
+	-command {SetViewInPlaneMovementIncrement $gaView(current,id) $gaView(current,inPlane) $gaView(current,inPlaneInc) } \
 	-notify 1
     set gaWidget(viewProperties,inPlaneInc) $fwProps.ewInPlaneInc
     
@@ -1917,6 +1920,10 @@ proc ViewPropertiesDrawLevelMenuCallback { iLevel iLayerID } {
     # Set the layer in this view and redraw.
     SetLayerInViewAtLevel $gaView(current,id) $iLayerID $iLevel
     RedrawFrame [GetMainFrameID]
+
+    # Get the new inplane inc value if necessary.
+    set gaView(current,inPlaneInc) \
+	[GetViewInPlaneMovementIncrement $gaView(current,id) $gaView(current,inPlane)]
 }
 
 proc ViewPropertiesTransformMenuCallback { iTransformID } {
@@ -1946,7 +1953,8 @@ proc SelectViewInViewProperties { iViewID } {
     set gaView(current,linked) [GetViewLinkedStatus $iViewID]
     set gaView(current,transformID) [GetViewTransform $iViewID]
     set gaView(current,inPlane) [GetViewInPlane $iViewID]
-    set gaView(current,inPlaneInc) [GetViewInPlaneMovementIncrement $iViewID]
+    set gaView(current,inPlaneInc) \
+	[GetViewInPlaneMovementIncrement $iViewID $gaView(current,inPlane)]
     tkuRefreshEntryNotify $gaWidget(viewProperties,inPlaneInc)
 
     for { set nLevel 0 } { $nLevel < 10 } { incr nLevel } {

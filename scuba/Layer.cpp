@@ -306,6 +306,16 @@ Layer::DrawLineIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
   }
 }
 
+void 
+Layer::GetPreferredInPlaneIncrements ( float oIncrements[3] ) {
+  
+  oIncrements[0] = 1.0;
+  oIncrements[1] = 1.0;
+  oIncrements[2] = 1.0;
+}
+
+
+
 LayerStaticTclListener::LayerStaticTclListener () {
 
   TclCommandManager& commandMgr = TclCommandManager::GetManager();

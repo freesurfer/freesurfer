@@ -228,7 +228,7 @@ ScubaLayer2DMRI::DrawIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
 	    break;
 	  }
 	}	
-	
+
 	int selectColor[3];
 	if( mVolume->IsRASSelected( RAS, selectColor ) ) {
 	  color[0] = (int) (((float)color[0] * (1.0 - mROIOpacity)) +
@@ -239,7 +239,6 @@ ScubaLayer2DMRI::DrawIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
 			    ((float)selectColor[2] * mROIOpacity));
 	}
 
-
 #if 0
 	if( mVolume->IsRASEdge( RAS ) ) {
 	  color[0] = 255; color[1] = color[2] = 0;
@@ -248,18 +247,12 @@ ScubaLayer2DMRI::DrawIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
 
 	// Write the RGB value to the buffer. Write a 255 in the
 	// alpha byte.
-#if 0
 	dest[0] = (GLubyte) (((float)dest[0] * (1.0 - mOpacity)) +
 			     ((float)color[0] * mOpacity));
 	dest[1] = (GLubyte) (((float)dest[1] * (1.0 - mOpacity)) +
 			     ((float)color[1] * mOpacity));
 	dest[2] = (GLubyte) (((float)dest[2] * (1.0 - mOpacity)) +
 			     ((float)color[2] * mOpacity));
-	dest[3] = (GLubyte)255;
-#endif
-	dest[0] = (GLubyte) color[0];
-	dest[1] = (GLubyte) color[1];
-	dest[2] = (GLubyte) color[2];
 	dest[3] = (GLubyte)255;
       }
 
@@ -268,6 +261,7 @@ ScubaLayer2DMRI::DrawIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
       
     }
   }
+
 
   if( mCurrentLine ) {
     int lineBegin[2];
@@ -1039,6 +1033,15 @@ ScubaLayer2DMRI::EndLine( float iRAS[3],
     mCurrentLine = NULL;
   }
 }
+
+void
+ScubaLayer2DMRI::GetPreferredInPlaneIncrements ( float oIncrements[3] ) {
+  
+  oIncrements[0] = mVolume->GetVoxelXSize();
+  oIncrements[1] = mVolume->GetVoxelYSize();
+  oIncrements[2] = mVolume->GetVoxelZSize();
+}
+
 
 ScubaLayer2DMRIFloodSelect::ScubaLayer2DMRIFloodSelect ( bool ibSelect ) {
   mbSelect = ibSelect;

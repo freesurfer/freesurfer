@@ -16,7 +16,9 @@ ScubaView::ScubaView() {
   mbRebuildOverlayDrawList = true;
   mViewIDLinkedList[GetID()] = false;
   mbFlipLeftRightInYZ = true;
-  mInPlaneMovementIncrement = 1.0;
+  mInPlaneMovementIncrements[0] = 1.0;
+  mInPlaneMovementIncrements[1] = 1.0;
+  mInPlaneMovementIncrements[2] = 1.0;
 
   ScubaGlobalPreferences& globalPrefs =
     ScubaGlobalPreferences::GetPreferences();
@@ -87,14 +89,16 @@ ScubaView::ScubaView() {
 			 "Set the left-right flip flag for a view." );
   commandMgr.AddCommand( *this, "GetViewFlipLeftRightYZ", 1, "viewID",
 			 "Returns the left-right flip flag for a view." );
-  commandMgr.AddCommand( *this, "SetViewInPlaneMovementIncrement", 2,
-			 "viewID increment",
+  commandMgr.AddCommand( *this, "SetViewInPlaneMovementIncrement", 3,
+			 "viewID inPlane increment",
 			 "Set the amount that using the in plane movement "
 			 "keys will increment or decrement the in plane "
-			 "RAS value." );
-  commandMgr.AddCommand( *this, "GetViewInPlaneMovementIncrement", 1, "viewID",
+			 "RAS value. inPlane should be x, y, or z." );
+  commandMgr.AddCommand( *this, "GetViewInPlaneMovementIncrement", 2,
+			 "viewID inPlane",
 			 "Returns the amount the in plane movement "
-			 "increment." );
+			 "increment for inPlane. inPlane should be x, "
+			 "y, or z." );
 
   // Get some prefs values
   ScubaGlobalPreferences& prefs = ScubaGlobalPreferences::GetPreferences();
@@ -222,6 +226,12 @@ ScubaView::SetLayerAtLevel ( int iLayerID, int iLevel ) {
       // Set the layer's width and height.
       layer.SetWidth( mWidth );
       layer.SetHeight( mHeight );
+
+      // If this is level 0, get our in plane increments from it.
+      if( 0 == iLevel ) {
+	layer.GetPreferredInPlaneIncrements( mInPlaneMovementIncrements );
+      }
+
     }
     catch(...) {
       DebugOutput( << "Couldn't find layer " << iLayerID );
@@ -667,7 +677,7 @@ ScubaView::DoListenToTclCommand( char* isCommand, int iArgc, char** iasArgv ) {
     }
   }
 
-  // SetViewInPlaneMovementIncrement <viewID> <increment>
+  // SetViewInPlaneMovementIncrement <viewID> <inPlane> <increment>
   if( 0 == strcmp( isCommand, "SetViewInPlaneMovementIncrement" ) ) {
     int viewID = strtol(iasArgv[1], (char**)NULL, 10);
     if( ERANGE == errno ) {
@@ -677,17 +687,38 @@ ScubaView::DoListenToTclCommand( char* isCommand, int iArgc, char** iasArgv ) {
     
     if( mID == viewID ) {
       
-      float increment = strtof( iasArgv[2], (char**)NULL );
+      float increment = strtof( iasArgv[3], (char**)NULL );
       if( ERANGE == errno ) {
 	sResult = "bad increment";
 	return error;
       }
       
-      SetInPlaneMovementIncrement( increment );
+      if( 0 == strcmp( iasArgv[2], "x" ) ||
+	  0 == strcmp( iasArgv[2], "X" ) ) {
+
+	mInPlaneMovementIncrements[0] = increment;
+
+      } else if( 0 == strcmp( iasArgv[2], "y" ) ||
+		 0 == strcmp( iasArgv[2], "Y" ) ) {
+
+	mInPlaneMovementIncrements[1] = increment;
+
+      } else if( 0 == strcmp( iasArgv[2], "z" ) ||
+		 0 == strcmp( iasArgv[2], "Z" ) ) {
+
+	mInPlaneMovementIncrements[2] = increment;
+
+      } else {
+	stringstream ssResult;
+	ssResult << "bad inPlane \"" << iasArgv[1] << "\", should be "
+		 << "x, y, or z.";
+	sResult = ssResult.str();
+	return error;
+      }
     }
   }
 
-  // GetViewInPlaneMovementIncrement <viewID>
+  // GetViewInPlaneMovementIncrement <viewID> <inPlane>
   if( 0 == strcmp( isCommand, "GetViewInPlaneMovementIncrement" ) ) {
     int viewID = strtol(iasArgv[1], (char**)NULL, 10);
     if( ERANGE == errno ) {
@@ -697,9 +728,33 @@ ScubaView::DoListenToTclCommand( char* isCommand, int iArgc, char** iasArgv ) {
     
     if( mID == viewID ) {
 
+      float increment = 0;
+      if( 0 == strcmp( iasArgv[2], "x" ) ||
+	  0 == strcmp( iasArgv[2], "X" ) ) {
+
+	increment = mInPlaneMovementIncrements[0];
+
+      } else if( 0 == strcmp( iasArgv[2], "y" ) ||
+		 0 == strcmp( iasArgv[2], "Y" ) ) {
+
+	increment = mInPlaneMovementIncrements[1];
+
+      } else if( 0 == strcmp( iasArgv[2], "z" ) ||
+		 0 == strcmp( iasArgv[2], "Z" ) ) {
+
+	increment = mInPlaneMovementIncrements[2];
+
+      } else {
+	stringstream ssResult;
+	ssResult << "bad inPlane \"" << iasArgv[2] << "\", should be "
+		 << "x, y, or z.";
+	sResult = ssResult.str();
+	return error;
+      }
+
       sReturnFormat = "f";
       stringstream ssReturnValues;
-      ssReturnValues << GetInPlaneMovementIncrement();
+      ssReturnValues << increment;
       sReturnValues = ssReturnValues.str();
     }
   }
@@ -1023,7 +1078,14 @@ ScubaView::DoKeyDown( int iWindow[2],
   // multiplay that value by 10.
   float moveDistance = 1.0;
   if( key == msMoveViewIn || key == msMoveViewOut ) {
-    moveDistance = mInPlaneMovementIncrement;
+    switch( mViewState.mInPlane ) {
+    case ViewState::X: 
+      moveDistance = mInPlaneMovementIncrements[0]; break;
+    case ViewState::Y: 
+      moveDistance = mInPlaneMovementIncrements[1]; break;
+    case ViewState::Z: 
+      moveDistance = mInPlaneMovementIncrements[2]; break;
+    }
   }
   if( iInput.IsControlKeyDown() ) {
     moveDistance = 10.0;
