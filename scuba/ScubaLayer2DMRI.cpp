@@ -322,58 +322,50 @@ ScubaLayer2DMRI::GetHeatscaleColorForValue ( float iValue,GLubyte* const iBase,
     float midValue = mHeatScaleMidThreshold;
     float maxValue = mHeatScaleMaxThreshold;
     
-    if( fabs(iValue) >= minValue &&
-	fabs(iValue) <= maxValue ) {
-      
-      float tmp;
-      if ( fabs(iValue) > minValue &&
-	   fabs(iValue) < midValue ) {
-	tmp = fabs(iValue);
-	tmp = (1.0/(midValue-minValue)) * (tmp-minValue)*(tmp-minValue) + 
-	  minValue;
-	iValue = (iValue<0) ? -tmp : tmp;
-      }
-      
-      /* calc the color */
-      float red, green, blue;
-      if( iValue >= 0 ) {
-	red = ((iValue<minValue) ? 0.0 : 
-	       (iValue<midValue) ? 
-	       (iValue-minValue)/
-	       (midValue-minValue) :
-	       1.0);
-	green = ((iValue<midValue) ? 0.0 :
-		 (iValue<maxValue) ? 
-		 (iValue-midValue)/
-		 (maxValue-midValue) : 1.0);
-	blue = 0.0; 
-      } else {
-	iValue = -iValue;
-	red = 0.0;
-	green = ((iValue<midValue) ? 0.0 :
-		 (iValue<maxValue) ? 
-		 (iValue-midValue)/
-		 (maxValue-midValue) : 1.0);
-	blue = ((iValue<minValue) ? 0.0 :
-		(iValue<midValue) ? 
-		(iValue-minValue)/
-		(midValue-minValue) : 
-		1.0);
-      }
-      
-      if( red > 1.0 )   red = 1.0;
-      if( green > 1.0 ) green = 1.0;
-      if( blue > 1.0 )  blue = 1.0;
-      
-      oColor[0] = (int) (red * (float)kMaxPixelComponentValue);
-      oColor[1] = (int) (green * (float)kMaxPixelComponentValue);
-      oColor[2] = (int) (blue * (float)kMaxPixelComponentValue);
-    } else {
-      oColor[0] = (int) iBase[0];
-      oColor[1] = (int) iBase[1];
-      oColor[2] = (int) iBase[2];
+    float tmp;
+    if ( fabs(iValue) > minValue &&
+	 fabs(iValue) < midValue ) {
+      tmp = fabs(iValue);
+      tmp = (1.0/(midValue-minValue)) * (tmp-minValue)*(tmp-minValue) + 
+	minValue;
+      iValue = (iValue<0) ? -tmp : tmp;
     }
-
+    
+    /* calc the color */
+    float red, green, blue;
+    if( iValue >= 0 ) {
+      red = ((iValue<minValue) ? 0.0 : 
+	     (iValue<midValue) ? 
+	     (iValue-minValue)/
+	     (midValue-minValue) :
+	     1.0);
+      green = ((iValue<midValue) ? 0.0 :
+	       (iValue<maxValue) ? 
+	       (iValue-midValue)/
+	       (maxValue-midValue) : 1.0);
+      blue = 0.0; 
+    } else {
+      iValue = -iValue;
+      red = 0.0;
+      green = ((iValue<midValue) ? 0.0 :
+	       (iValue<maxValue) ? 
+	       (iValue-midValue)/
+	       (maxValue-midValue) : 1.0);
+      blue = ((iValue<minValue) ? 0.0 :
+	      (iValue<midValue) ? 
+	      (iValue-minValue)/
+	      (midValue-minValue) : 
+	      1.0);
+    }
+    
+    if( red > 1.0 )   red = 1.0;
+    if( green > 1.0 ) green = 1.0;
+    if( blue > 1.0 )  blue = 1.0;
+    
+    oColor[0] = (int) (red * (float)kMaxPixelComponentValue);
+    oColor[1] = (int) (green * (float)kMaxPixelComponentValue);
+    oColor[2] = (int) (blue * (float)kMaxPixelComponentValue);
+    
   } else {
     oColor[0] = (int)iBase[0]; 
     oColor[1] = (int)iBase[1]; 
