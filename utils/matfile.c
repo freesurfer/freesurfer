@@ -13,7 +13,7 @@ static void   matFree(double **matrix, int nrows, int ncols) ;
 static int    readMatFile(FILE *fp, MATFILE *mf, double **real_matrix, 
                                      double **imag_matrix) ;
 
-#ifndef SPARC
+#ifndef SunOS
 static void   swapBytes(MATFILE *mf) ;
 static short  swapShort(short s) ;
 static long   swapLong(long l) ;
@@ -197,7 +197,7 @@ MatFileWrite(const char *fname, float *data, int rows, int cols, char *name)
   mf.mrows = (long)rows ;
   mf.ncols = (long)cols ;
   mf.imagf = 0L ;
-#ifdef SPARC
+#ifdef SunOS
   mtype = MATFILE_SPARC ;
 #else
   mtype = MATFILE_PC ;
@@ -357,7 +357,7 @@ readMatFile(FILE *fp, MATFILE *mf, double **real_matrix, double **imag_matrix)
                       MatProgname, row, col) ;
           /*exit(4)*/return(-1) ;
         }
-#ifndef SPARC
+#ifndef SunOS
         if (mf->type >= MATFILE_SPARC)
           sval = swapShort(sval) ;
 #endif
@@ -373,7 +373,7 @@ readMatFile(FILE *fp, MATFILE *mf, double **real_matrix, double **imag_matrix)
           /*exit(4)*/return(-1) ;
         }
 
-#ifndef SPARC
+#ifndef SunOS
         if (mf->type >= MATFILE_SPARC)
           lval = swapLong(lval) ;
 #endif
@@ -388,7 +388,7 @@ readMatFile(FILE *fp, MATFILE *mf, double **real_matrix, double **imag_matrix)
                       MatProgname, row, col) ;
           /*exit(4)*/return(-1) ;
         }
-#ifndef SPARC
+#ifndef SunOS
         if (mf->type >= MATFILE_SPARC)
           fval = (float)swapLong((long)fval) ;
 #endif
@@ -403,7 +403,7 @@ readMatFile(FILE *fp, MATFILE *mf, double **real_matrix, double **imag_matrix)
                       MatProgname, row, col) ;
           /*exit(4)*/return(-1) ;
         }
-#ifndef SPARC
+#ifndef SunOS
         if (mf->type >= MATFILE_SPARC)
           dval = swapDouble(dval) ;
 #endif
@@ -434,7 +434,7 @@ readMatFile(FILE *fp, MATFILE *mf, double **real_matrix, double **imag_matrix)
       default:
         break ;
       }
-#ifndef SPARC
+#ifndef SunOS
       if (mf->type >= MATFILE_SPARC)
         dval = swapDouble(dval) ;
 #endif
@@ -461,7 +461,7 @@ DiagPrintf(DIAG_WRITE, "MatReadHeader: fp=%lx, mf=%lx\n",fp,mf);
       /*exit(1) ;*/
       return(NULL);
     }
-#ifndef SPARC
+#ifndef SunOS
     DiagPrintf(DIAG_WRITE, "type = %ld\n", mf->type) ;
     if (mf->type >= MATFILE_SPARC || mf->type < 0)
     {
@@ -499,7 +499,7 @@ DiagPrintf(DIAG_WRITE, "MatReadHeader: fp=%lx, mf=%lx\n",fp,mf);
     return(name) ;
 }
 
-#ifndef SPARC
+#ifndef SunOS
 static void
 swapBytes(MATFILE *mf)
 {

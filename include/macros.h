@@ -49,7 +49,7 @@
 #define ISSMALL(f)   (fabs(f) < 0.000001f)
 #define ISTINY(f)    (fabs(f) < 0.00000001f)
 
-#ifndef SPARC
+#ifndef SunOS
 #define FZERO(f)     (fabs(f) < 0.0000001F)
 #define iszero(f)   (FZERO(f))
 #else

@@ -8,8 +8,8 @@
 #include <time.h>
 #include <sys/timeb.h>
 
-/*----------- SPARC -----------------------*/
-#ifdef SPARC
+/*----------- SunOS -----------------------*/
+#ifdef SunOS
 
 int ftime(struct timeb *tp) ;
 /* void ftime(struct timeb *tm) ;*/
@@ -33,14 +33,14 @@ int fseek(FILE *fp, long offset, int whence) ;
 int fread(void *ptr, int size, int nitems, FILE *fp) ;
 int fwrite(void *ptr, int size, int nitems, FILE *fp) ;
 int stricmp(char *str1, char *str2) ;
-#endif   /* SPARC */
+#endif   /* SunOS */
 
-/*----------- LINUX -----------------------*/
-#ifdef LINUX
+/*----------- Linux -----------------------*/
+#ifdef Linux
 #include "macros.h"
 int stricmp(char *str1, char *str2) ;
 #define nint(f)   ((int)(rint((double)f)))
-#endif   /* LINUX */
+#endif   /* Linux */
 
 /*----------- MSDOS -----------------------*/
 #ifdef _MSDOS
