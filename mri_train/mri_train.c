@@ -12,7 +12,8 @@
 #include "classify.h"
 #include "gcarray.h"
 
-static int features = FEATURE_INTENSITY | FEATURE_MEAN3 | FEATURE_DIRECTION ;
+static int features = FEATURE_INTENSITY | FEATURE_MEAN3 | FEATURE_DIRECTION |
+                        FEATURE_POSITION | FEATURE_CPOLV_MEDIAN5 ;
 
 static int extract = 0 ;
 static int classifier = CLASSIFIER_RBF ;
@@ -30,7 +31,7 @@ static int nclusters = 0 ;
 
 static RBF_PARMS rbf_parms =
 {
-{ 2, NCLUSTERS, NCLUSTERS, 1}
+{ 2, NCLUSTERS, NCLUSTERS, 2}
 } ;
 void 
 main(int argc, char *argv[])
