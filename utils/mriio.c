@@ -55,14 +55,16 @@ static int data_size[] = { 1, 4, 4, 4, 2 };
                     STATIC PROTOTYPES
 -------------------------------------------------------*/
 
+#if 0
+static void image_to_int_buffer(int *buf, MRI *mri, int slice);
+static void image_to_long_buffer(long *buf, MRI *mri, int slice);
+static void image_to_float_buffer(float *buf, MRI *mri, int slice);
+#endif
 static void short_buffer_to_image(short *buf, MRI *mri, int slice, int frame) ;
 static void image_to_short_buffer(short *buf, MRI *mri, int slice);
 static void int_buffer_to_image(int *buf, MRI *mri, int slice, int frame) ;
-static void image_to_int_buffer(int *buf, MRI *mri, int slice);
 static void long_buffer_to_image(long *buf, MRI *mri, int slice, int frame) ;
-static void image_to_long_buffer(long *buf, MRI *mri, int slice);
 static void float_buffer_to_image(float *buf, MRI *mri, int slice, int frame) ;
-static void image_to_float_buffer(float *buf, MRI *mri, int slice);
 static void buffer_to_image(BUFTYPE *buf, MRI *mri, int slice, int frame) ;
 static void image_to_buffer(BUFTYPE *buf, MRI *mri, int slice) ;
 static MRI *mncRead(char *fname, int read_volume, int frame) ;
@@ -1022,6 +1024,24 @@ buffer_to_image(BUFTYPE *buf, MRI *mri, int slice, int frame)
   }
 }
 
+
+static void
+int_buffer_to_image(int *buf, MRI *mri, int slice, int frame)
+{
+  int           y, width, height ;
+  int           *pslice ;
+  
+  width = mri->width ;
+  height = mri->height ;
+  for (y = 0 ; y < height ; y++)
+  {
+    pslice = &MRIIseq_vox(mri, 0, y, slice, frame) ;
+    memcpy(pslice, buf, width*sizeof(int)) ;
+    buf += width ;
+  }
+}
+
+#if 0
 static void
 image_to_int_buffer(int *buf, MRI *mri, int slice)
 {
@@ -1060,23 +1080,6 @@ image_to_int_buffer(int *buf, MRI *mri, int slice)
     buf += width ;
   }
 }
-
-static void
-int_buffer_to_image(int *buf, MRI *mri, int slice, int frame)
-{
-  int           y, width, height ;
-  int           *pslice ;
-  
-  width = mri->width ;
-  height = mri->height ;
-  for (y = 0 ; y < height ; y++)
-  {
-    pslice = &MRIIseq_vox(mri, 0, y, slice, frame) ;
-    memcpy(pslice, buf, width*sizeof(int)) ;
-    buf += width ;
-  }
-}
-
 static void
 image_to_long_buffer(long *buf, MRI *mri, int slice)
 {
@@ -1115,23 +1118,6 @@ image_to_long_buffer(long *buf, MRI *mri, int slice)
     buf += width ;
   }
 }
-
-static void
-long_buffer_to_image(long *buf, MRI *mri, int slice, int frame)
-{
-  int           y, width, height ;
-  long          *pslice ;
-  
-  width = mri->width ;
-  height = mri->height ;
-  for (y = 0 ; y < height ; y++)
-  {
-    pslice = &MRILseq_vox(mri, 0, y, slice, frame) ;
-    memcpy(pslice, buf, width*sizeof(long)) ;
-    buf += width ;
-  }
-}
-
 static void
 image_to_float_buffer(float *buf, MRI *mri, int slice)
 {
@@ -1170,6 +1156,24 @@ image_to_float_buffer(float *buf, MRI *mri, int slice)
     buf += width ;
   }
 }
+#endif
+
+static void
+long_buffer_to_image(long *buf, MRI *mri, int slice, int frame)
+{
+  int           y, width, height ;
+  long          *pslice ;
+  
+  width = mri->width ;
+  height = mri->height ;
+  for (y = 0 ; y < height ; y++)
+  {
+    pslice = &MRILseq_vox(mri, 0, y, slice, frame) ;
+    memcpy(pslice, buf, width*sizeof(long)) ;
+    buf += width ;
+  }
+}
+
 
 static void
 float_buffer_to_image(float *buf, MRI *mri, int slice, int frame)
@@ -2894,10 +2898,11 @@ mghRead(char *fname, int read_volume, int frame)
   MRI  *mri ;
   FILE  *fp ;
   int   start_frame, end_frame, width, height, depth, nframes, type, x, y, z,
-        bpv, dof, bytes, version ;
+        bpv, dof, bytes, version, ival ;
   BUFTYPE *buf ;
   char   unused_buf[UNUSED_SPACE_SIZE+1] ;
   float  fval ;
+  short  sval ;
 
   fp = fopen(fname, "rb") ;
   if (!fp)
@@ -2919,6 +2924,8 @@ mghRead(char *fname, int read_volume, int frame)
   default:
   case MRI_FLOAT:  bpv = sizeof(float) ; break ;
   case MRI_UCHAR:  bpv = sizeof(char)  ; break ;
+  case MRI_SHORT:  bpv = sizeof(short) ; break ;
+  case MRI_INT:     bpv = sizeof(int) ; break ;
   }
   bytes = width * height * bpv ;  /* bytes per slice */
   if (frame >= 0)
@@ -2955,6 +2962,26 @@ mghRead(char *fname, int read_volume, int frame)
       {
         switch (type)
         {
+          case MRI_INT:
+          for (y = 0 ; y < height ; y++)
+          {
+            for (x = 0 ; x < width ; x++)
+            {
+              ival = freadInt(fp) ; 
+              MRIIseq_vox(mri,x,y,z,frame-start_frame) = ival ;
+            }
+          }
+          break ;
+          case MRI_SHORT:
+          for (y = 0 ; y < height ; y++)
+          {
+            for (x = 0 ; x < width ; x++)
+            {
+              sval = freadShort(fp) ; 
+              MRISseq_vox(mri,x,y,z,frame-start_frame) = sval ;
+            }
+          }
+          break ;
           case MRI_FLOAT:
           for (y = 0 ; y < height ; y++)
           {
@@ -2992,9 +3019,10 @@ static int
 mghWrite(MRI *mri, char *fname, int frame)
 {
   FILE  *fp ;
-  int   start_frame, end_frame, x, y, z, width, height, depth ;
-  char        buf[UNUSED_SPACE_SIZE+1] ;
+  int   ival, start_frame, end_frame, x, y, z, width, height, depth ;
+  char  buf[UNUSED_SPACE_SIZE+1] ;
   float fval ;
+  short sval ;
 
   if (frame >= 0)
     start_frame = end_frame = frame ;
@@ -3032,6 +3060,24 @@ mghWrite(MRI *mri, char *fname, int frame)
       {
         switch (mri->type)
         {
+        case MRI_SHORT:
+          for (x = 0 ; x < width ; x++)
+          {
+            if (z == 74 && y == 16 && x == 53)
+              DiagBreak() ;
+            sval = MRISseq_vox(mri,x,y,z,frame) ;
+            fwriteShort(sval, fp) ;
+          }
+          break ;
+        case MRI_INT:
+          for (x = 0 ; x < width ; x++)
+          {
+            if (z == 74 && y == 16 && x == 53)
+              DiagBreak() ;
+            ival = MRIIseq_vox(mri,x,y,z,frame) ;
+            fwriteInt(ival, fp) ;
+          }
+          break ;
         case MRI_FLOAT:
           for (x = 0 ; x < width ; x++)
           {
