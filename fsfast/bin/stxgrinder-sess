@@ -1,0 +1,514 @@
+#!/bin/csh -f
+# stxgrinder2-sess
+#
+set VERSION = '$Id: stxgrinder-sess,v 1.5 2003/08/04 17:47:10 greve Exp $';
+
+set inputargs = ($argv);
+
+set analysis    = ();
+set contrastlist = ();
+set space     = ();
+set spacedir  = ();
+set srcspacedir  = ();
+set hemi = ();
+set MLF = ();
+set monly = 0;
+set tTestDOFMax = 300;
+set FTestDOFMax = 1000;
+set DoFTest = 1;
+set tTestSave = 1;
+set DoPct = 1;
+set PrintHelp = 0;
+set DoAllContrasts = 0;
+
+if($#argv == 0)  goto usage_exit;
+set n = `echo $argv | grep version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;  
+  goto usage_exit;
+endif
+
+##### Create a log file ######
+set logdir = `pwd`/log;
+mkdir -p $logdir
+if(! -e $logdir | ! -w $logdir) then
+  echo "WARNING: could not create $logdir"
+  set LF = /dev/null
+else
+  set LF = $logdir/stxgrinder2-sess.log
+  if(-e $LF) mv $LF $LF.old
+endif
+echo "--------------------------------------------------------------"
+echo "stxgrinder2-sess logfile is $LF"
+echo "--------------------------------------------------------------"
+
+echo "stxgrinder2-sess log file" >> $LF
+echo $VERSION >> $LF
+id            >> $LF
+pwd           >> $LF
+echo $0     >> $LF
+echo $inputargs  >> $LF
+uname -a      >> $LF
+date          >> $LF
+echo FTestDOFMax $FTestDOFMax >> $LF
+echo tTestDOFMax $tTestDOFMax >> $LF
+echo DoFTest $DoFTest  >> $LF
+
+set SessList = `getsesspath $inputargs`;
+if($status || $#SessList == 0) then
+  echo "ERROR: finding sessions" |& tee -a $LF
+  echo "       $SessList" |& tee -a $LF
+  exit 1;
+endif
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+## Get functional subdirectory from the info file ##
+set infofile = $analysis/analysis.info
+if(! -e $infofile) then
+  echo "ERROR: cannot find $infofile" |& tee -a $LF
+  exit 1;
+endif
+set fsd = `cat $infofile | awk '{if($1 == "fsd") print $2}'`;
+set designtype = `cat $infofile | awk '{if($1 == "designtype") print $2}'`;
+if($designtype == abblocked || $designtype == retinotopy) then
+  echo "ERROR: analysis design type is $designtype, must be er or blocked"
+  exit 1;
+endif
+
+if($space == "native") set space = ();
+
+# Check that all the analyses have been done, mkdir for contrasts #
+set IsGroupList = ();
+foreach sess ($SessList)
+  set sessinfo = $sess/session.info
+  if(-e $sessinfo) then
+    set IsGroup = `grep GroupAverage $sessinfo | wc -l`;
+  else
+    set IsGroup = 0;
+  endif
+  set IsGroupList = ($IsGroupList $IsGroup);
+  if($IsGroup) then
+    set ffx = "-ffx";
+  else
+    set ffx = ();
+  endif
+
+  set anadir = $sess/$fsd/$analysis
+  if(! -e $anadir) then
+    echo "ERROR: analysis $analysis does not exist for $sess"
+    exit 1;
+  endif
+  set anasdir = $anadir/$spacedir$ffx
+  foreach hs ($hemi)
+    if($hs == nohemi) then
+      set hdat = $anasdir/h.dat
+    else
+      set hdat = $anasdir/h-$hs.dat
+    endif
+    if(! -e $hdat) then
+      echo "ERROR: cannot find $hdat"
+      exit 1;
+    endif
+    foreach c ($contrastlist)
+      set cmat = $analysis/$c.mat
+      if(! -e $cmat) then
+        echo "ERROR: contrast $c does not exist for analysis $analysis"
+        exit 1;
+      endif
+      mkdir -p $anasdir/$c
+      cp $cmat $anasdir/$c
+    end
+  end
+
+end
+
+echo "Contrast List: $contrastlist"
+
+if(! $monly) set MLF = /tmp/stxgrinder2-sess-$$.m
+echo MLF is $MLF
+rm -f $MLF
+
+#--------------------------------------------------------------#
+tee $MLF > /dev/null <<EOF
+SessList = splitstring('$SessList');
+fsd      = '$fsd';
+analysis = '$analysis';
+contrasts = splitstring('$contrastlist');
+hemi = splitstring('$hemi');
+spacedir = '$spacedir';
+tTestDOFMax = $tTestDOFMax;
+FTestDOFMax = $FTestDOFMax;
+DoFTest = $DoFTest;
+tTestSave = $tTestSave;
+IsGroup = [$IsGroupList];
+
+fast_stxgrinder2_sess;
+
+EOF
+#--------------------------------------------------------------#
+
+echo "-----------------------------------------------------"| tee -a $LF
+
+set StartTime = `date`;
+if(! $monly) then
+  cat $MLF | matlab -nojvm -nosplash -display iconic
+  rm -f $MLF
+endif
+
+echo "" | tee -a $LF
+echo "" | tee -a $LF
+echo "Started at $StartTime" | tee -a $LF
+echo "Ended   at `date`"     | tee -a $LF
+echo "stxgrinder2-sess completed" | tee -a $LF
+echo " "
+echo " "
+
+exit 0;
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-space":
+      if ( $#argv == 0) goto arg1err;
+      set space = $argv[1]; shift;
+      breaksw
+
+    case "-spacedir":
+      if ( $#argv == 0) goto arg1err;
+      set spacedir = $argv[1]; shift;
+      breaksw
+
+    case "-hemi":
+      if ( $#argv == 0) goto arg1err;
+      set hemi = ($hemi $argv[1]); shift;
+      breaksw
+
+    case "-a":
+    case "-analysis":
+      if ( $#argv == 0) goto arg1err;
+      set analysis = $argv[1]; shift;
+      breaksw
+
+    case "-c":
+    case "-contrast":
+      if ( $#argv == 0) goto arg1err;
+      set c = $argv[1]; shift;
+      set contrastlist = ($contrastlist $c);
+      breaksw
+
+    case "-fdofmax":
+      if ( $#argv == 0) goto arg1err;
+      set FTestDOFMax = $argv[1]; shift;
+      breaksw
+
+    case "-noftest":
+      set DoFTest = 0;
+      breaksw
+
+    case "-grpname":
+    case "-group":
+      if ( $#argv == 0) goto arg1err;
+      set grpname = $argv[1]; shift;
+      breaksw
+
+    case "-monly":
+      if ( $#argv == 0) goto arg1err;
+      set MLF = $argv[1]; shift;
+      set monly = 1;
+      breaksw
+
+    case "-umask":
+      if ( $#argv == 0) goto arg1err;
+      set umaskarg = "-umask $argv[1]";
+      umask $argv[1]; shift;
+      breaksw
+
+    case "-nopct":
+      set DoPct = 0;
+      breaksw
+
+    case "-all":
+      set DoAllContrasts = 1;
+      breaksw
+
+    case "-debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    case "-cwd":
+      breaksw
+
+    case "-g":
+    case "-s":
+    case "-sf":
+    case "-df":
+    case "-d":
+      # ignore getsesspath arguments 
+      shift;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+  set errs = 0;
+
+  if($#analysis == 0) then
+    echo "ERROR: no analysis specified"|& tee -a $LF 
+    set errs = 1;
+  endif
+
+  if($DoAllContrasts) then
+    set matlist = ($analysis/*.mat)
+    if($#matlist == 0) then
+      echo "ERROR: not contrasts found in $analysis"
+      exit 1;
+    endif
+    set contrastlist = ();
+    foreach m ($matlist)
+      set b = `basename $m | sed 's/.mat//'`
+      set contrastlist = ($contrastlist $b);
+    end
+  endif
+
+  if($#contrastlist == 0) then
+    echo "ERROR: no contrast specified"
+    set errs = 1;
+  endif
+
+  if($#hemi != 0 && $space != sph) then
+    echo "ERROR: -hemi can only be used with sph space"
+    set errs = 1;
+  endif
+  if($space == sph) then
+    if($#hemi == 0 ) set hemi = (lh rh);
+    foreach hs ($hemi)
+      if($hs != lh && $hs != rh) then
+        echo "ERROR: hemi must be either lh or rh ($hs)";
+        set errs = 1;
+      endif
+    end
+  else
+    set hemi = nohemi;
+  endif
+
+  if($errs) exit 1;
+
+  if($#spacedir == 0) set spacedir = $space;
+  if($space == native) then
+    set srcspacedir = ();
+  else
+    set srcspacedir = $spacedir;
+  endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo " "
+  echo "USAGE: stxgrinder2-sess"
+  echo ""
+  echo "   -a analysisname : session-level functional analysis name"
+  echo "   -c  contrast <-c contrast> : contrasts"
+  echo "   -all : compute all contrasts for given analysis"
+  echo "   -space    spacename  : space in which to average (native, tal, sph)"
+  echo "   -spacedir spacedir     : space directory (default spacename)"
+  echo "   -hemi     hemisphere   : with sph space <lh rh>";
+  echo "   -fdofmax  dofmax       : max dof for F-test"
+  echo ""
+  echo "   -sf sessidfile  ..."
+  echo "   -df srchdirfile ..."
+  echo "   -s  sessid      ..."
+  echo "   -d  srchdir     ..."
+  echo ""
+  echo "   -help"
+  echo "   -umask umask   : set unix file permission mask"
+  echo "   -version       : print version and exit"
+  echo " "
+
+  if(! $PrintHelp ) exit 1;
+
+  echo " "
+  echo "$VERSION "
+  echo " "
+
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+FS-FAST utility to compute contrasts for testing hypotheses based on a
+general linear model (GLM), including t and F statistics,
+significances of those statistics, and contrast effects sizes
+(ces). This replaces stxgrinder-sess.
+
+COMMAND-LINE ARGUMENTS
+
+-a analysisname
+
+Analysis as created by mkanalysis-sess.new and computed by selxavg-sess.
+
+-c contrast <-c contrast>
+
+Contrast as created by mkcontrast-sess. Multiple contrasts can be
+specified with multiple -c flags. This is a convenience only; the
+results will be exactly the same if the two contrasts are computed
+with separate calls to stxgrinder2-sess. See also -all.
+
+-all
+
+Compute all contrasts found in the given analysis. The list is
+obtained based on all the .mat files in the project-level analysis
+directory.
+
+-space spacename
+
+This is for running contrasts on group fixed-effects averages computed
+in the given space or on individuals after being resampled to the
+given space. Valid space names are tal (talairach) and sph
+(spherical). The hemi option becomes valid when the space is sph. See
+func2tal-sess, func2sph-sess, and isxavg-fe-sess. By defaul, the 
+contrast is computed in the native functional space of subject.
+
+-spacedir spacedir
+
+By default, the name of the space subdirectory is just the same as the
+space name. In some cases, this can be changed (eg, with sphsmooth-sess).
+This option is the mechanism to specify what the new directory is.
+
+-hemi hemisphere
+
+When the space is of type sph (ie, sphereical), then the data have been
+resampled onto the two cortical hemispheres separately (see func2sph-sess).
+By defalt, contrasts for both hemispheres will be computed. To run only
+one hemisphere, specify that hemisphere here with lh or rh.
+
+-fdofmax dofmax
+
+Set the max DOF used in F-test to dofmax (ie, if DOF > dofmax, the DOF
+is set to dofmax). Default is 1000. See BUGS below.
+
+-noftest
+
+Do not perform F-test. See BUGS below.
+
+
+ALGORITHM AND OUTPUTS
+
+All the contrast outputs will be found in sess/analysis/contrast (for
+native space) or sess/analysis/spacedir/contrast (for resampled). 
+Note: the significances are stored as -log10(p).
+
+This program uses a univariate general linear model to compute the
+contrasts:
+
+y = X*b + n
+
+where y is the raw data vector, X is the design matrix (the columns of
+which are regressors), b is the vector of model parameters (regression
+coefficients), and n noise. The noise is need not be white, but white will
+be assumed for this discussion.
+
+The best estimate of b is bhat = inv(X'*X)*X'*y, with residual
+variance r = y - X*bhat. The residual variance is rvar = r'r/DOF,
+where DOF is the number of rows of X minus the number of columns. bhat
+and rvar are computed by selxavg-sess; both are stored in the h
+volume. The X matrix can be found in the session-level analysis
+directory in X.mat.
+
+A contrast matrix C is a matrix with number of columns equal to the
+number of columns in X. The contrast matrix is created by
+mkcontrast-sess and can be found the the project-level analysis
+directory (files with .mat).  C can have any number of rows J. The
+contrast effect size (CES) is then ces = C*bhat.  The CES is saved
+in the volume called ces. Note: there is also a volume called
+cespct which is the CES as a percent of the mean functional value.
+
+When J=1 (ie, there is only one row in C), the variance of the ces is
+cesvar = rvar * (C * inv(X'*X) *C').  A t-statistic is formed by 
+t = ces/sqrt(cesvar), and the significance is computed. The result
+is stored in volumes called t and sig, respectively.
+
+When J>1 (ie, there multiple row in C), several things are done. First,
+an F-ratio is computed as F = ces'*inv(C*inv(X'*X)*C')*ces/(J*rvar);
+the signfificance of this ratio is also compued. The result
+is stored in volumes called f and fsig, respectively. Second, a separate
+t-test of performed for each row of C as described above; all results
+are still stored in the t and sig volumes, but these volumes will have
+J frames. Finally, the best (smallest) significance within the J
+significances computed at a voxel is stored in minsig (after multiplication
+by J as a bonferroni correction). The row as which the min sig was found
+is stored in iminsig.
+
+Note: the significances are stored as -log10(p). For t-tests, the signifiance
+is given the same sign as the t-value.
+
+Output summary:
+ces     - Contrast Effect Size = C*bhat
+cespct  - ces expressed as a percentage of mean baseline
+cesvar  - variance of ces
+t       - t-ratio
+sig     - significance based on t-test
+f       - f-ratio (when J>1)
+fsig    - significance based on F-test (when J>1)
+minsig  - best significance, boferroni corrected (when J>1)
+iminsig - index of best significance (when J>1)
+
+NOTES:
+
+stxgrinder2-sess is argument-for-argument compatible with 
+stxgrinder-sess.
+
+The significances are stored as -log10(p).
+
+For t-tests, the signifiance is given the same sign as the t-value.
+
+For F-tests, the signifiance is not given a sign. This is the only
+difference with stxgrinder-sess.
+
+t-test is not saved when contrast is omnibus or zomnibus
+
+BUGS
+
+Sometimes the program may hang when performing the F-test. This is
+caused when the DOF is very large (eg, > 1000). This ofen happens
+when analyzing group fixed effects. If the program appears to hang,
+reduce FtestDOFMax with -fdofmax until it seems to run ok. You can
+also just skip the F-test with -noftest.
