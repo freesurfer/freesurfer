@@ -16,6 +16,9 @@
 #include "histo.h"
 #include "mrinorm.h"
 
+static char *example_T1 = NULL ;
+static char *example_segmentation = NULL ;
+
 static int distance_to_label(MRI *mri_labeled, int label, int x, 
                              int y, int z, int dx, int dy, 
                              int dz, int max_dist) ;
@@ -165,6 +168,24 @@ main(int argc, char *argv[])
     mri_in->tr = TR ;
   if (TE > 0)
     mri_in->te = TE ;
+
+  if (example_T1)
+  {
+    MRI *mri_T1, *mri_seg ;
+
+    mri_seg = MRIread(example_segmentation) ;
+    if (!mri_seg)
+      ErrorExit(ERROR_NOFILE,"%s: could not read example segmentation from %s",
+                Progname, example_segmentation) ;
+    mri_T1 = MRIread(example_T1) ;
+    if (!mri_T1)
+      ErrorExit(ERROR_NOFILE,"%s: could not read example T1 from %s",
+                Progname, example_T1) ;
+    printf("scaling atlas intensities using specified examples...\n") ;
+    MRIeraseBorderPlanes(mri_seg) ;
+    GCArenormalizeToExample(gca, mri_seg, mri_T1) ;
+    MRIfree(&mri_seg) ; MRIfree(&mri_T1) ;
+  }
 
   if (tissue_parms_fname)   /* use FLASH forward model */
     GCArenormalizeToFlash(gca, tissue_parms_fname, mri_in) ;
@@ -386,6 +407,14 @@ get_option(int argc, char *argv[])
     TR = atof(argv[2]) ;
     nargs = 1 ;
     printf("using TR=%2.1f msec\n", TR) ;
+  }
+  else if (!stricmp(option, "EXAMPLE"))
+  {
+    example_T1 = argv[2] ;
+    example_segmentation = argv[3] ;
+    printf("using %s and %s as example T1 and segmentations respectively.\n",
+           example_T1, example_segmentation) ;
+    nargs = 2 ;
   }
   else if (!stricmp(option, "TE"))
   {
