@@ -60,7 +60,9 @@ FunD_tErr FunD_New ( mriFunctionalDataRef* outVolume,
 		     char*                 isPathName, 
 		     char*                 isStem,
 		     char*                 isHeaderStem,
-		     char*                 isRegistration ) {
+		     char*                 isRegistration,
+		     MATRIX *tkregMat)
+{
   
   mriFunctionalDataRef this    = NULL;
   FunD_tErr            eResult = FunD_tErr_NoError;
@@ -175,7 +177,7 @@ FunD_tErr FunD_New ( mriFunctionalDataRef* outVolume,
   
   /* parse the registration file */
   DebugNote( ("Parsing registration file") );
-  eResult = FunD_ParseRegistrationAndInitMatricies( this );
+  eResult = FunD_ParseRegistrationAndInitMatricies( this , tkregMat);
   DebugAssertThrow( (FunD_tErr_NoError == eResult) );
   
   /* parse the data */ 
@@ -414,11 +416,13 @@ FunD_tErr FunD_ParseBFileHeader ( mriFunctionalDataRef this ) {
   return FunD_tErr_NoError;
 }
 
-FunD_tErr FunD_ParseRegistrationAndInitMatricies ( mriFunctionalDataRef this ) {
-  
+FunD_tErr FunD_ParseRegistrationAndInitMatricies ( mriFunctionalDataRef this , MATRIX *tkregMat) 
+{
   char theFileName[256];
   fMRI_REG * theRegInfo;
   MATRIX* mTmp             = NULL;
+  MATRIX  *rasTotkregRAS   = NULL;
+  MATRIX  *rasTofRAS       = NULL;
   float   ps               = 0;
   float   st               = 0;
   float   slices           = 0;
@@ -450,7 +454,45 @@ FunD_tErr FunD_ParseRegistrationAndInitMatricies ( mriFunctionalDataRef this ) {
   slices = this->mNumSlices;
   rows   = this->mNumRows;
   cols   = this->mNumCols;
-  
+
+  // create transform for conformed volume vs. functional volume
+  // Note that theRegInfo->mri2fmri is calculated using the tkregRAS, i.e.
+  // the standard rotation matrix
+  //
+  //                      
+  //         conformed(B)  -----> RAS  (c_(r,a,s) != 0)
+  //            ^         fixed    |                          These four transfomrs makes
+  //            |                  |identity                        this->mClientTransform
+  //            |                  |
+  //         original (A)  -----> RAS  (c_(r,a,s) != 0)
+  //            |         given    |
+  //            | identity         | ? rasTotkregRAS
+  //            |                  V
+  //         original      ----> tkregRAS  (c_(r,a,s) == 0)
+  //            |       [tkregMat] |
+  //            | ? (2)            | mri2fmri
+  //            V                  V
+  //         functional    ---->  fRAS      (c_(r,a,s) == 0)
+  //                      fixed
+  // 
+  // Using this picture to create the following transform mIdxToIdxTransform 
+  //                              AtoRAS
+  //         A (conformed volume) ----> RAS
+  //         |                           | 
+  //         V                           V 
+  //         B (functional volume) ---> RAS
+  //                              BtoRAS 
+  ///////////////////////////////////////////////////////////////////////////////////
+  // Note that mClientTransform keeps track of src(A) and conformed volume(B).  Thus
+  Trns_CopyAtoRAS(this->mIdxToIdxTransform, this->mClientTransform->mBtoRAS);
+  // create RAS to fRAS transform
+  rasTotkregRAS = MatrixMultiply( tkregMat, this->mClientTransform->mRAStoA, NULL);
+  rasTofRAS     = MatrixMultiply( theRegInfo->mri2fmri, rasTotkregRAS, NULL);
+  MatrixFree(&rasTotkregRAS);
+  // set ARAStoBRAS ( conformed volume RAS = src RAS and thus you can use the same)
+  Trns_CopyARAStoBRAS( this->mIdxToIdxTransform, rasTofRAS );
+  MatrixFree(&rasTofRAS);
+
   // create the functional index to functional ras matrix
   mTmp = MatrixAlloc( 4, 4, MATRIX_REAL );
   MatrixClear( mTmp );
@@ -461,37 +503,15 @@ FunD_tErr FunD_ParseRegistrationAndInitMatricies ( mriFunctionalDataRef this ) {
   *MATRIX_RELT(mTmp,2,4) = -(st*slices) / 2.0;
   *MATRIX_RELT(mTmp,3,4) = (ps*rows) / 2.0;
   *MATRIX_RELT(mTmp,4,4) = 1.0;
+  // set BtoRAS
   Trns_CopyBtoRAS( this->mIdxToIdxTransform, mTmp );
-  Trns_CopyBtoRAS( this->mRASToIdxTransform, mTmp );
+  // by doing this->mIdxToIdxTransform->mRAStoB is calculated
   MatrixFree( &mTmp );
-  
-  // create the anatomical index to anatomical ras matrix
-#if 0
-  mTmp = MatrixAlloc( 4, 4, MATRIX_REAL );
-  *MATRIX_RELT(mTmp,1,1) = -1.0;
-  *MATRIX_RELT(mTmp,2,3) = 1.0;
-  *MATRIX_RELT(mTmp,3,2) = -1.0;
-  *MATRIX_RELT(mTmp,1,4) = 128.0;
-  *MATRIX_RELT(mTmp,2,4) = -128.0;
-  *MATRIX_RELT(mTmp,3,4) = 128.0;
-  *MATRIX_RELT(mTmp,4,4) = 1.0;
-#endif
-  Trns_GetBtoRAS( this->mClientTransform, &mTmp );
-  Trns_CopyAtoRAS( this->mIdxToIdxTransform, mTmp );
-  
-  /* the ras to idx transformer gets the identity matrix here */
-  mTmp = MatrixIdentity( 4, NULL );
-  Trns_CopyAtoRAS( this->mRASToIdxTransform, mTmp );
-  MatrixFree( &mTmp );
-  
-  /* a is anatomical, b is functional, mri2fmri takes us from a_ras
-     to b_ras */
-  Trns_CopyARAStoBRAS( this->mIdxToIdxTransform, theRegInfo->mri2fmri );
-  Trns_CopyARAStoBRAS( this->mRASToIdxTransform, theRegInfo->mri2fmri );
+  // we finished constructing this->mIdxToIdxTransform
+  ////////////////////////////////////////////////////////////////////////////////////
   
   // get rid of the registration info.
   StatFreeRegistration ( &theRegInfo );
-  
   
   /*
     Trns_DebugPrint_( this->mIdxToIdxTransform );
@@ -1847,7 +1867,7 @@ void FunD_ConvertAnaIdxToFuncIdx ( mriFunctionalDataRef this,
   Trns_tErr eTransform = Trns_tErr_NoErr;
   
   xVoxl_Copy( &sCoord1, inAnaIdx );
-  
+
   eTransform = Trns_ConvertAtoB( this->mIdxToIdxTransform, 
          &sCoord1, &sCoord2 );
   if( Trns_tErr_NoErr != eTransform ) {
