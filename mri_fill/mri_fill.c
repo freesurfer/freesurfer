@@ -15,7 +15,7 @@
 #include "cma.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mri_fill.c,v 1.67 2003/08/11 20:05:31 fischl Exp $";
+static char vcid[] = "$Id: mri_fill.c,v 1.68 2003/08/19 17:20:14 fischl Exp $";
 
 /*-------------------------------------------------------------------
                                 CONSTANTS
@@ -131,6 +131,7 @@ static char *segmentation_fname = NULL ;
                              STATIC PROTOTYPES
 -------------------------------------------------------------------*/
 
+static int MRIlabelsInNbhd(MRI *mri, int x, int y, int z, int whalf, int label) ;
 #if 0
 static int neighbors(MRI *mri, int x, int y,int z,int whalf,int label);
 #endif
@@ -189,7 +190,7 @@ main(int argc, char *argv[])
   struct timeb  then ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_fill.c,v 1.67 2003/08/11 20:05:31 fischl Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_fill.c,v 1.68 2003/08/19 17:20:14 fischl Exp $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -237,9 +238,9 @@ main(int argc, char *argv[])
     MRI *mri_p_wm ;
     char subjects_dir[STRLEN], mri_dir[STRLEN], *cp ;
 
-    cp = getenv("FREESURFER_HOME") ;
+    cp = getenv("MRI_DIR") ;
     if (!cp)
-      ErrorExit(ERROR_BADPARM, "%s: could not read FREESURFER_HOME from environment",
+      ErrorExit(ERROR_BADPARM, "%s: could not read MRI_DIR from environment",
                 Progname) ;
     strcpy(mri_dir, cp) ;
 
@@ -641,9 +642,9 @@ main(int argc, char *argv[])
     MRI *mri_p_ventricle, *mri_fg, *mri_bg, *mri_T1, *mri_ventricle ;
     char subjects_dir[STRLEN], mri_dir[STRLEN], *cp ;
 
-    cp = getenv("FREESURFER_HOME") ;
+    cp = getenv("MRI_DIR") ;
     if (!cp)
-      ErrorExit(ERROR_BADPARM, "%s: could not read FREESURFER_HOME from environment",
+      ErrorExit(ERROR_BADPARM, "%s: could not read MRI_DIR from environment",
                 Progname) ;
     strcpy(mri_dir, cp) ;
 
@@ -1029,7 +1030,7 @@ print_help(void)
 #define MIN_CC_AREA       350  /* smallest I've seen is 389 */
 #define MAX_CC_AREA      1400  /* biggest I've seen is 1154 */
 #define MIN_CC_ASPECT     0.1
-#define MAX_CC_ASPECT     0.65
+#define MAX_CC_ASPECT     0.75
 
 #define MIN_PONS_AREA     350  /* smallest I've seen is 385 */
 #define MAX_PONS_AREA     700  /* biggest I've seen is 620 */  
@@ -1826,7 +1827,7 @@ find_cc_slice(MRI *mri, Real *pccx, Real *pccy, Real *pccz)
             "updating initial cc seed to (%d, %d, %d)\n", 
             nint(xv), nint(yv), nint(zv)) ;
   }
-  return(NO_ERROR) ;
+   return(NO_ERROR) ;
 }
 
 static int
@@ -2175,9 +2176,9 @@ mriReadConditionalProbabilities(MRI *mri_T1, char *atlas_name, char *suffix,
   MRI  *mri_mean, *mri_std, *mri_tmp ;
   char *mri_dir, fname[STRLEN] ;
 
-  mri_dir = getenv("FREESURFER_HOME") ;
+  mri_dir = getenv("MRI_DIR") ;
   if (!mri_dir)
-    ErrorExit(ERROR_BADPARM, "%s: could not read FREESURFER_HOME from environment\n") ;
+    ErrorExit(ERROR_BADPARM, "%s: could not read MRI_DIR from environment\n") ;
 
   if (!mri_dst)
     mri_dst = MRIclone(mri_T1, NULL) ;
@@ -2222,9 +2223,9 @@ mriReadBinaryProbabilities(char *atlas_name, char *suffix, M3D *m3d,
   MRI  *mri_priors, *mri_T1, *mri_on_conditional, *mri_off_conditional, *mri_tmp ;
   char *mri_dir, *subjects_dir, fname[STRLEN] ;
 
-  mri_dir = getenv("FREESURFER_HOME") ;
+  mri_dir = getenv("MRI_DIR") ;
   if (!mri_dir)
-    ErrorExit(ERROR_BADPARM, "%s: could not read FREESURFER_HOME from environment\n") ;
+    ErrorExit(ERROR_BADPARM, "%s: could not read MRI_DIR from environment\n") ;
   subjects_dir = getenv("SUBJECTS_DIR") ;
   if (!subjects_dir)
     ErrorExit(ERROR_BADPARM, 
@@ -2710,7 +2711,7 @@ count_diagonals(MRI *mri, int x0, int y0, int z0)
 static int
 edit_segmentation(MRI *mri_wm, MRI *mri_seg)
 {
-  int   width, height, depth, x, y, z, label, non, noff, xi, yi, zi,  xk, yk, zk, nchanged ;
+  int   width, height, depth, x, y, z, label, non, noff, xi, yi, zi,  xk, yk, zk, nchanged, wsize ;
 	MRI   *mri_filled ;
 
 	mri_filled =  MRIclone(mri_wm,  NULL);
@@ -2730,6 +2731,13 @@ edit_segmentation(MRI *mri_wm, MRI *mri_seg)
         
         switch (label)
         {
+				case Unknown:
+					wsize=5 ;
+					if (MRIlabelsInNbhd(mri_seg, x, y, z, (wsize-1)/2, Unknown) < (wsize*wsize*wsize-1))
+						break ;
+
+					/* !!! no break - erase unknown if it is surrounded by only  unknowns */
+
 					/* erase these  labels */
         case Left_Cerebellum_White_Matter:
         case Left_Cerebellum_Exterior:
@@ -2945,6 +2953,28 @@ neighborLabel(MRI *mri, int x, int y, int z, int whalf, int label)
     }
   }
   return(0) ;
+}
+
+static int
+MRIlabelsInNbhd(MRI *mri, int x, int y, int z, int whalf, int label)
+{
+  int xi, yi, zi, xk, yk, zk, count ;
+  
+  for (count = 0, zk = -whalf ; zk <= whalf ; zk++)
+  {
+    zi = mri->zi[z+zk] ;
+    for (yk = -whalf ; yk <= whalf ; yk++)
+    {
+      yi = mri->yi[y+yk] ;
+      for (xk = -whalf ; xk <= whalf ; xk++)
+      {
+        xi = mri->xi[x+xk] ;
+        if (MRIvox(mri, xi, yi, zi) == label)
+					count++;
+      }
+    }
+  }
+  return(count) ;
 }
 
 static MRI *
