@@ -15,6 +15,7 @@
 #include "rgb_image.h"
 #include "const.h"
 #include "version.h"
+#include "fsgdf_wrap.h"
 //////////////////////////////////////////////////////
 
 static void resize_brain(float surface_area) ;
@@ -18221,7 +18222,7 @@ int main(int argc, char *argv[])   /* new main */
   /* end rkt */
   
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.79 2004/09/24 15:15:37 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.80 2004/09/27 17:11:07 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

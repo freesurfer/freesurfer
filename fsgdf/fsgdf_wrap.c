@@ -25,28 +25,8 @@
 
 #include <string.h>
 
-#if defined(_WIN32) || defined(__WIN32__)
-#       if defined(_MSC_VER)
-#               if defined(STATIC_LINKED)
-#                       define SWIGEXPORT(a) a
-#                       define SWIGIMPORT(a) extern a
-#               else
-#                       define SWIGEXPORT(a) __declspec(dllexport) a
-#                       define SWIGIMPORT(a) extern a
-#               endif
-#       else
-#               if defined(__BORLANDC__)
-#                       define SWIGEXPORT(a) a _export
-#                       define SWIGIMPORT(a) a _export
-#               else
-#                       define SWIGEXPORT(a) a
-#                       define SWIGIMPORT(a) a
-#               endif
-#       endif
-#else
-#       define SWIGEXPORT(a) a
-#       define SWIGIMPORT(a) a
-#endif
+#include "fsgdf_wrap.h"
+
 
 #ifdef SWIG_GLOBAL
 #define SWIGRUNTIME(a) SWIGEXPORT(a)
@@ -210,7 +190,7 @@ SWIG_TypeClientData(swig_type_info *ti, void *clientdata) {
 #endif
 
 /*
- * $Header: /space/repo/1/dev/dev/fsgdf/fsgdf_wrap.c,v 1.7 2004/09/27 17:04:24 kteich Exp $
+ * $Header: /space/repo/1/dev/dev/fsgdf/fsgdf_wrap.c,v 1.8 2004/09/27 17:11:28 kteich Exp $
  * 
  * swigtcl8.swg
  */
@@ -955,7 +935,6 @@ typedef struct {
 #define  SWIGTYPE_p_short swig_types[8] 
 static swig_type_info *swig_types[10];
 
-#include "fsgdf_wrap.h"
 #include "fsgdf.h"
 
 extern FSGD *gdfRead(char *,int);
