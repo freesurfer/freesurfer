@@ -202,8 +202,13 @@ char **ReadSiemensSeries(char *ListFile, int *nList, char *dcmfile);
 SDCMFILEINFO **LoadSiemensSeriesInfo(char **SeriesList, int nList);
 
 #ifdef SunOS
-int scandir(const char *dir, struct dirent ***namelist,
-            int (*select)(const struct dirent *),
+/* kteich - this typedef is to keep the compiler from complaining
+   about a struct defined in the parameter list... i don't know. i
+   just replaced all 'struct dirent' in the code with 'struct_dirent'
+   to reference the new typedef. seems to work. */
+typedef struct dirent struct_dirent;
+int scandir(const char *dir, struct_dirent ***namelist,
+            int (*select)(const struct_dirent *),
             int (*compar)(const void *, const void *));
 int alphasort(const void *a, const void *b);
 #endif
