@@ -187,7 +187,7 @@ proc ::tkcon::Init {args} {
 	    alias clear dir dump echo idebug lremove
 	    tkcon_puts tkcon_gets observe observe_var unalias which what
 	}
-	RCS		{RCS: $Id: tkcon.tcl,v 1.4 2004/04/03 22:32:18 kteich Exp $}
+	RCS		{RCS: $Id: tkcon.tcl,v 1.5 2004/09/17 21:44:17 kteich Exp $}
 	HEADURL		{http://cvs.sourceforge.net/cgi-bin/viewcvs.cgi/tkcon/tkcon/tkcon.tcl?rev=HEAD}
 	docs		"http://tkcon.sourceforge.net/"
 	email		{jeff@hobbs.org}
@@ -328,11 +328,7 @@ proc ::tkcon::Init {args} {
 		-rcfile	{}
 		default	{ lappend slaveargs $arg; incr i -1 }
 	    }
-	} elseif {[file isfile $arg]} {
-	    lappend slavefiles $arg
-	} else {
-	    lappend slaveargs $arg
-	}
+	} 
     }
 
     ## Create slave executable
