@@ -238,5 +238,10 @@ IMAGE *LogMapOffset(LOGMAP_INFO *lmi, IMAGE *Isrc, int wsize, IMAGE *Ioffset) ;
 
 int log_median(LOGMAP_INFO *lmi, IMAGE *hdi, IMAGE *hdo, int size) ;
 
+#define LOGMAP_RLE        0
+#define LOGMAP_SAMPLE     1
+#define LOGMAP_NONLOCAL   2
+#define LOGMAP_FILTER     3
+
 
 #endif
