@@ -18127,7 +18127,7 @@ int main(int argc, char *argv[])   /* new main */
   /* end rkt */
   
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.43 2003/05/22 20:42:43 kteich Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.44 2003/07/01 14:15:44 tosa Exp $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -23958,6 +23958,7 @@ int fill_flood_from_seed (int seed_vno, FILL_PARAMETERS* params)
       labl_remove_marked_vertices_from_label (params->argument);
       break;
     default:
+      break;
     }
   
   return (ERROR_NONE);
