@@ -16,7 +16,7 @@
 #include "mrimorph.h"
 #include "mrinorm.h"
 
-static char vcid[] = "$Id: mris_make_surfaces.c,v 1.35 2000/03/20 17:24:26 fischl Exp $";
+static char vcid[] = "$Id: mris_make_surfaces.c,v 1.36 2000/03/27 17:13:27 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -137,7 +137,7 @@ main(int argc, char *argv[])
   parms.l_tspring = 1.0f ; parms.l_nspring = 0.5f ;
 
   parms.niterations = 0 ;
-  parms.write_iterations = 5 /*WRITE_ITERATIONS */;
+  parms.write_iterations = 0 /*WRITE_ITERATIONS */;
   parms.integration_type = INTEGRATE_MOMENTUM ;
   parms.momentum = 0.0 /*0.8*/ ;
   parms.dt_increase = 1.0 /* DT_INCREASE */;
