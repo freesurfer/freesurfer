@@ -851,11 +851,6 @@ TiffReadImage(char *fname, int frame0)
   // fill order is LSB or MSB TIFFReadScanLine() handles it automatically
   ret = TIFFGetFieldDefaulted(tif, TIFFTAG_FILLORDER, &fillorder);
   ret = TIFFGetFieldDefaulted(tif, TIFFTAG_COMPRESSION, &compression);
-  if (compression > 34677)
-  {
-    compression = COMPRESSION_NONE;
-    ret = TIFFSetField(tif, TIFFTAG_COMPRESSION, compression);
-  }
   // orientation
   // #define TIFFTAG_ORIENTATION             274     /* +image orientation */
   //    ORIENTATION_TOPLEFT         1       /* row 0 top, col 0 lhs */
