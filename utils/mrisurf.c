@@ -7096,8 +7096,10 @@ MRISaverageRadius(MRI_SURFACE *mris)
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
     vertex = &mris->vertices[vno] ;
+#if 0
     if (vertex->ripflag)
       continue ;
+#endif
     x = (double)vertex->x ; y = (double)vertex->y ; z = (double)vertex->z ;
     if (x>xhi) xhi=x;
     if (x<xlo) xlo=x;
@@ -7110,8 +7112,10 @@ MRISaverageRadius(MRI_SURFACE *mris)
   for (radius = 0.0, n = vno = 0 ; vno < mris->nvertices ; vno++)
   {
     vertex = &mris->vertices[vno] ;
+#if 0
     if (vertex->ripflag)
       continue ;
+#endif
     n++ ;
     x = (double)vertex->x-x0 ; 
     y = (double)vertex->y-y0 ; 
@@ -9120,8 +9124,10 @@ MRISsaveVertexPositions(MRI_SURFACE *mris, int which)
   for (vno = 0 ; vno < nvertices ; vno++)
   {
     v = &mris->vertices[vno] ;
+#if 0
     if (v->ripflag)
       continue ;
+#endif
     switch (which)
     {
     case CANONICAL_VERTICES:
@@ -9155,8 +9161,10 @@ MRISrestoreVertexPositions(MRI_SURFACE *mris, int which)
   for (vno = 0 ; vno < nvertices ; vno++)
   {
     v = &mris->vertices[vno] ;
+#if 0
     if (v->ripflag)
       continue ;
+#endif
     switch (which)
     {
     case CANONICAL_VERTICES:
