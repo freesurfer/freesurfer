@@ -1391,7 +1391,16 @@ XVresize(XV_FRAME *xvf)
       max_width = x ;
     y += CHAR_HEIGHT + max_height ;
   }
+  if (xvf->min_panel_width && xvf->min_panel_width > max_width)
+    max_width = xvf->min_panel_width ;
   xv_set(xvf->frame, XV_WIDTH, max_width, XV_HEIGHT, y, NULL) ;
   return(0) ;
+}
+
+void
+XVsetMinPanelWidth(XV_FRAME *xvf, int min_panel_width)
+{
+  xvf->min_panel_width = min_panel_width ;
+  xv_set(xvf->frame, XV_WIDTH, min_panel_width, NULL) ;
 }
 
