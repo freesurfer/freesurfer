@@ -72,7 +72,7 @@ static double gcamJacobianEnergy(GCA_MORPH *gcam, MRI *mri) ;
 static int gcamApplyGradient(GCA_MORPH *gcam, GCA_MORPH_PARMS *parms) ;
 static int gcamSmoothGradient(GCA_MORPH *gcam, int navgs) ;
 static int gcamUndoGradient(GCA_MORPH *gcam) ;
-
+static int check_gcam(GCAM *gcam) ;
 #define DEFAULT_PYRAMID_LEVELS 3
 #define MAX_PYRAMID_LEVELS     6
 #define MAX_EXP          200
@@ -128,7 +128,7 @@ int
 GCAMregister(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms)
 {
   char   fname[STRLEN] ;
-  int    level, i, level_steps, navgs, l2 ;
+  int    level, i, level_steps, navgs, l2, relabel, orig_relabel ;
   MRI    *mri_smooth = NULL, *mri_kernel ;
   double base_sigma, pct_change, rms, last_rms, orig_dt,l_smooth ;
   
@@ -154,12 +154,14 @@ GCAMregister(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms)
     parms->log_fp = NULL ;
 
   base_sigma = parms->sigma ;
-	if (gcam->relabel)
+	if (parms->relabel_avgs >= parms->navgs)
 		GCAMcomputeLabels(mri, gcam) ;
 	else
 		GCAMcomputeMaxPriorLabels(gcam) ;
+	orig_relabel = relabel = parms->relabel ;
   for (level = parms->levels-1 ; level >= 0 ; level--)
   {
+		parms->relabel = (parms->relabel_avgs >= parms->navgs) ;
 	  parms->sigma = base_sigma ;
 #if 0
 		parms->l_smoothness = l_smooth / (sqrt(parms->navgs)+1) ;
@@ -183,7 +185,7 @@ GCAMregister(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms)
     	i = 0 ;
 	    do
   	  {
-    	  if (((level != (parms->levels-1)) || (i > 0)) && gcam->relabel)
+    	  if (((level != (parms->levels-1)) || (i > 0)) && parms->relabel)
 				{
       	  GCAMcomputeLabels(mri, gcam) ;
 					if (parms->write_iterations != 0)
@@ -228,6 +230,7 @@ GCAMregister(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms)
     parms->log_fp = NULL ;
   }
 
+	parms->relabel = orig_relabel ;
 	parms->navgs = navgs ; parms->dt = orig_dt ;
   return(NO_ERROR) ;
 }
@@ -331,7 +334,7 @@ GCAMinit(GCA_MORPH *gcam, MRI *mri, GCA *gca, TRANSFORM *transform, int relabel)
 
   width = gcam->width ; height = gcam->height ; depth = gcam->depth ;
   TransformInvert(transform, mri) ;
-  gcam->gca = gca ; gcam->spacing = gca->prior_spacing ; gcam->relabel = relabel ;
+  gcam->gca = gca ; gcam->spacing = gca->prior_spacing ; 
   for (x = 0 ; x < width ; x++)
   {
     for (y = 0 ; y < height ; y++)
@@ -382,7 +385,7 @@ GCAMinit(GCA_MORPH *gcam, MRI *mri, GCA *gca, TRANSFORM *transform, int relabel)
     }
   }
 
-	if (gcam->relabel)
+	if (relabel)
 		GCAMcomputeLabels(mri, gcam) ;
 	else
 		GCAMcomputeMaxPriorLabels(gcam) ;
@@ -461,10 +464,13 @@ gcamLogLikelihoodTerm(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth, double l_log_l
 				else
 				{
 #if 0
-					label = 
-						GCAcomputeMAPlabelAtLocation(gcam->gca, x,y,z,vals,&n,&gcamn->log_p);
-					if (label == gcamn->label)  /* already correct label - don't move anywhere */
-						continue ;
+					if (parms->relabel)
+					{
+						label = 
+							GCAcomputeMAPlabelAtLocation(gcam->gca, x,y,z,vals,&n,&gcamn->log_p);
+						if (label == gcamn->label)  /* already correct label - don't move anywhere */
+							continue ;
+					}
 #endif
 					load_mean_vector(gcamn->gc, v_means, gcam->gca->ninputs) ;
 					load_inverse_covariance_matrix(gcamn->gc, m_inv_cov, gcam->gca->ninputs) ;
@@ -505,52 +511,26 @@ gcamLogLikelihoodTerm(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth, double l_log_l
 
 /*
 */
-#define MAX_LEN 15
-#define IND0    ((MAX_LEN-1)/2)
-
 static int
 gcamLikelihoodTerm(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth, double l_likelihood, GCA_MORPH_PARMS *parms)
 {
-  int             x, y, z, len, xk, yk, zk, xi, yi, zi ;
-  Real            dx, dy, dz, norm, wts[MAX_LEN][MAX_LEN][MAX_LEN], 
-		              p_I_given_c[MAX_LEN][MAX_LEN][MAX_LEN], dist, xp1, xm1, yp1, ym1, zp1, zm1;
-	float           vals[MAX_GCA_INPUTS] ;
+  int             x, y, z, len, xi, yi, zi, x0, y0, z0, half_len ;
+  Real            dx, dy, dz, xp1, yp1, zp1, xm1, ym1, zm1 ;
+	float           vals[MAX_GCA_INPUTS], val, mean, var ;
   GCA_MORPH_NODE  *gcamn ;
+	MRI             *mri_nbhd, *mri_kernel ;
 
   if (FZERO(l_likelihood))
     return(NO_ERROR) ;
 
-  len = (int)nint(2.0f * parms->sigma)+1 ;
-	if (2*len >= MAX_LEN)
-		len = (MAX_LEN-1)/2 ;
+  len = (int)nint(4.0f * parms->sigma)+1 ;
   if (ISEVEN(len))   /* ensure it's odd */
     len++ ;
+	half_len = (len-1)/2 ;
 
-	/* precompute Gaussian convolution weights */
-	for (norm = 0.0, x = IND0-len ; x <= IND0+len ; x++)
-	{
-		for (y = IND0-len ; y <= IND0+len ; y++)
-		{
-			for (z = IND0-len ; z <= IND0+len ; z++)
-			{
-				dist = sqrt(SQR(x-IND0)+SQR(y-IND0)+SQR(z-IND0)) ;
-				wts[x][y][z] = exp(-0.5*dist*dist / (parms->sigma*parms->sigma)) ;
-				norm += wts[x][y][z] ;
-			}
-		}
-	}
-	
-	for (x = IND0-len ; x <= IND0+len ; x++)
-	{
-		for (y = IND0-len ; y <= IND0+len ; y++)
-		{
-			for (z = IND0-len ; z <= IND0+len ; z++)
-			{
-				wts[x][y][z] /= norm ;
-			}
-		}
-	}
-
+	mri = MRISeqchangeType(mri, MRI_FLOAT, 0, 0, 1) ;
+	mri_nbhd = MRIallocSequence(len,len,len, MRI_FLOAT, gcam->gca->ninputs) ;
+	mri_kernel = MRIgaussian1d(parms->sigma, 0) ;
   for (x = 0 ; x < gcam->width ; x++)
     for (y = 0 ; y < gcam->height ; y++)
       for (z = 0 ; z < gcam->depth ; z++)
@@ -563,48 +543,42 @@ gcamLikelihoodTerm(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth, double l_likeliho
 				if (gcamn->status & GCAM_IGNORE_LIKELIHOOD || (gcamn->gc == NULL))
 					continue ;
 
-				len++ ;   /* include enough so we can do convolution at +-1 for derivative calculation */
-				for (xk = -len ; xk <= len ; xk++)
+				x0 = nint(gcamn->x) ; y0 = nint(gcamn->y) ; z0 = nint(gcamn->z) ; 
+				if ((x0+half_len >= mri->width) ||
+						(y0+half_len >= mri->height) ||
+						(z0+half_len >= mri->depth))
+					continue ;
+				MRIextractInto(mri, mri_nbhd, x0-half_len, y0-half_len, z0-half_len,len, len, len, 0, 0, 0) ;
+				if (gcam->gca->ninputs == 1)
 				{
-					xi = xk+IND0 ;
-					for (yk = -len ; yk <= len ; yk++)
+					var = gcamn->gc->covars[0] ; mean = gcamn->gc->means[0] ;
+
+					for (xi = 0 ;  xi < mri_nbhd->width ; xi++)
 					{
-						yi = yk+IND0 ;
-						for (zk = -len ; zk <= len ; zk++)
+						for (yi = 0 ;  yi < mri_nbhd->height ; yi++)
 						{
-							zi = zk+IND0 ;
-							load_vals(mri, gcamn->x+xk, gcamn->y+yk, gcamn->z+zk, vals, gcam->gca->ninputs) ;
-							p_I_given_c[xi][yi][zi] = 
-								GCAcomputeConditionalDensity(gcamn->gc, vals, gcam->gca->ninputs,gcamn->label) ;
+							for (zi = 0 ;  zi < mri_nbhd->depth ; zi++)
+							{
+								val = MRIFvox(mri_nbhd, xi, yi, zi) ;
+								val = (val - mean) * (val-mean) / var ;
+								MRIFvox(mri_nbhd, xi, yi, zi) = val ;
+							}
 						}
 					}
 				}
-				len-- ;
-
-				/* now do gaussian convolution */
-				xp1 = xm1 = yp1 = ym1 = zp1 = zm1 = 0 ;
-				for (xk = -len ; xk <= len ; xk++)
+				else  /* haven't written the multi-input case yet */
 				{
-					xi = xk+IND0 ;
-					for (yk = -len ; yk <= len ; yk++)
-					{
-						yi = yk+IND0 ;
-						for (zp1 = 0, zk = -len ; zk <= len ; zk++)
-						{
-							zi = zk+IND0 ;
-							xp1 += wts[xi][yi][zi]*p_I_given_c[xi+1][yi][zi] ;
-							xm1 += wts[xi][yi][zi]*p_I_given_c[xi-1][yi][zi] ;
-							yp1 += wts[xi][yi][zi]*p_I_given_c[xi][yi+1][zi] ;
-							ym1 += wts[xi][yi][zi]*p_I_given_c[xi][yi-1][zi] ;
-							zp1 += wts[xi][yi][zi]*p_I_given_c[xi][yi][zi+1] ;
-							zm1 += wts[xi][yi][zi]*p_I_given_c[xi][yi][zi-1] ;
-						}
-					}
+					ErrorExit(ERROR_UNSUPPORTED, "vector-based likelihood not written yet") ;
 				}
+				MRIconvolveGaussian(mri_nbhd, mri_nbhd, mri_kernel) ;
+				MRIsampleVolumeType(mri_nbhd, half_len+1, half_len, half_len, &xp1, SAMPLE_NEAREST) ;
+				MRIsampleVolumeType(mri_nbhd, half_len-1, half_len, half_len, &xm1, SAMPLE_NEAREST) ;
+				MRIsampleVolumeType(mri_nbhd, half_len, half_len+1, half_len, &yp1, SAMPLE_NEAREST) ;
+				MRIsampleVolumeType(mri_nbhd, half_len, half_len-1, half_len, &ym1, SAMPLE_NEAREST) ;
+				MRIsampleVolumeType(mri_nbhd, half_len, half_len, half_len+1, &zp1, SAMPLE_NEAREST) ;
+				MRIsampleVolumeType(mri_nbhd, half_len, half_len, half_len-1, &zm1, SAMPLE_NEAREST) ;
 
-				dx = (xp1 - xm1)/2 ;
-				dy = (yp1 - ym1)/2 ;
-				dz = (zp1 - zm1)/2 ;
+				dx = -(xp1 - xm1)/2 ; dy = -(yp1 - ym1)/2 ; dz = -(zp1 - zm1)/2 ;
         gcamn->dx += l_likelihood*dx ;
         gcamn->dy += l_likelihood*dy ;
         gcamn->dz += l_likelihood*dz ;
@@ -616,6 +590,7 @@ gcamLikelihoodTerm(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth, double l_likeliho
 								 gcamn->gc ? sqrt(covariance_determinant(gcamn->gc, gcam->gca->ninputs)) : 0.0, vals[0]) ;
       }
 
+	MRIfree(&mri_kernel) ; MRIfree(&mri_nbhd) ; MRIfree(&mri) ;
   return(NO_ERROR) ;
 }
 
@@ -1642,9 +1617,10 @@ log_integration_parms(FILE *fp, GCA_MORPH_PARMS *parms)
 
   fprintf(fp, 
 					"\ntol=%2.2e, dt=%2.2e, exp_k=%2.1f, momentum=%2.2f, levels=%d, niter=%d, "
-					"lbl_dist=%2.2f, avgs=%d, sigma=%2.1f,type=%d\n", 
+					"lbl_dist=%2.2f, avgs=%d, sigma=%2.1f,type=%d, relabel=%d, neg=%s\n", 
           parms->tol, parms->dt, parms->exp_k,parms->momentum, parms->levels, 
-					parms->niterations, parms->label_dist,parms->navgs,parms->sigma,parms->integration_type) ;
+					parms->niterations, parms->label_dist,parms->navgs,parms->sigma,parms->integration_type,
+					parms->relabel, parms->noneg ? "no" : "yes") ;
   return(NO_ERROR) ;
 }
 
@@ -1710,8 +1686,8 @@ GCAMregisterLevel(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth, GCA_MORPH_PARMS *p
 		increasing = 0 ;  /* don't use it for optimal time-step stuff */
   if (parms->log_fp) 
   {
-    fprintf(parms->log_fp, "GCAMregisterLevel: using voxel thickness %2.1f, navgs=%d\n",
-            mri->xsize, parms->navgs) ;
+    fprintf(parms->log_fp, "GCAMregisterLevel: using voxel thickness %2.1f, navgs=%d, relabel=%d\n",
+            mri->xsize, parms->navgs, parms->relabel) ;
     log_integration_parms(parms->log_fp, parms) ;
     fflush(parms->log_fp) ;
   }
@@ -1756,7 +1732,9 @@ GCAMregisterLevel(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth, GCA_MORPH_PARMS *p
 		case GCAM_INTEGRATE_BOTH:
 			if (which == GCAM_INTEGRATE_OPTIMAL)
 			{
+	check_gcam(gcam) ;
 				min_dt = gcamFindOptimalTimeStep(gcam, parms, mri) ;
+	check_gcam(gcam) ;
 				parms->dt = min_dt ;
 				max_small = parms->nsmall ;
 				tol = parms->tol ;
@@ -1776,7 +1754,6 @@ GCAMregisterLevel(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth, GCA_MORPH_PARMS *p
 
 		gcamApplyGradient(gcam, parms) ;
 		gcamComputeMetricProperties(gcam) ;
-#if 1
 		if (gcam->neg > 0 && parms->noneg == True)
 		{
 			int i = 0 ;
@@ -1786,20 +1763,26 @@ GCAMregisterLevel(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth, GCA_MORPH_PARMS *p
 				gcamCropNegativeAreaNodeGradient(gcam, 0.9) ;
 #else
 				parms->dt *= 0.9 ;
-				if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
-					printf("%d negative nodes - reducing timestep to %2.2f...\n", 
-						gcam->neg, parms->dt) ;
+				if (Gdiag & DIAG_SHOW)
+					printf("%3.3d: %d negative nodes - reducing timestep to %2.6f...\n", 
+						i+1, gcam->neg, parms->dt) ;
 
 #endif
 				gcamUndoGradient(gcam) ;
 				gcamComputeMetricProperties(gcam) ;
 				gcamApplyGradient(gcam, parms) ;
 				gcamComputeMetricProperties(gcam) ;
-				if (++i > 90)
+				if (++i > 50)
+				{
+					if (gcam->neg > 0)  /* couldn't find a  step without folds */
+					{
+						gcamUndoGradient(gcam) ;
+						gcamComputeMetricProperties(gcam) ;
+					}
 					break ;
+				}
 			}
 		}
-#endif
 		min_dt = parms->dt ;
 		parms->dt = orig_dt ;
 
@@ -1831,13 +1814,13 @@ GCAMregisterLevel(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth, GCA_MORPH_PARMS *p
 
     if (parms->log_fp)
     {
-      fprintf(parms->log_fp, "%03d: dt=%2.3f, rms=%2.3f (%2.3f%%), neg=%d\n",
+      fprintf(parms->log_fp, "%03d: dt=%2.6f, rms=%2.3f (%2.3f%%), neg=%d\n",
               n+1, min_dt, rms, pct_change, gcam->neg) ;
       fflush(parms->log_fp) ;
     }
 
     if (Gdiag & DIAG_SHOW)
-      printf("%03d: dt=%2.3f, rms=%2.3f (%2.3f%%), neg=%d\n",
+      printf("%03d: dt=%2.6f, rms=%2.3f (%2.3f%%), neg=%d\n",
              n+1, min_dt, rms, pct_change, gcam->neg) ;
 
 
@@ -1889,7 +1872,7 @@ GCAMregisterLevel(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth, GCA_MORPH_PARMS *p
 			nsmall = 0 ;  /* start counting small steps again */
 		}
 #if 0
-		if (gcam->relabel)
+		if (parms->relabel)
 		{
 			GCAMcomputeLabels(mri, gcam) ;
 			last_rms = gcamComputeRMS(gcam, mri, parms) ;
@@ -1934,6 +1917,7 @@ write_snapshot(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms, int iter)
   MRI            *mri_morphed, *mri_samples ;
   GCA_MORPH_NODE *gcamn ;
   int            x, y, z, xv, yv, zv ;
+	static         int write_samples = -1, write_labels = -1 ;
 
   mri_morphed = GCAMmorphToAtlas(parms->mri, gcam, NULL) ;
   sprintf(base_name, "%s_%3.3d", parms->base_name, iter) ;
@@ -1954,15 +1938,19 @@ write_snapshot(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms, int iter)
         zv = mri_samples->zi[nint(gcamn->z)] ; 
         MRIvox(mri_samples, xv, yv, zv) = gcamn->label ;
       }
-	if (getenv("GCAM_WRITE_SAMPLES"))
+	if (write_samples < 0)
+		write_samples = getenv("GCAM_WRITE_SAMPLES") != NULL ;
+	if (write_labels < 0)
+		write_labels = getenv("GCAM_WRITE_LABELS") != NULL ;
+
+	if (write_samples > 0)
 	{
 		sprintf(fname, "%s_fsamples_%3.3d.mgh", parms->base_name, iter) ;
 		printf("writing samples to %s....\n", fname) ;
 		MRIwrite(mri_samples, fname) ;
 	}
 
-	if (getenv("GCAM_WRITE_LABELS"))
-
+	if (write_labels > 0)
 	{
 		MRIclear(mri_samples) ;
 		for (x = 0 ; x < gcam->width ; x++)
@@ -2062,7 +2050,9 @@ gcamComputeRMS(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms)
   float   nvoxels ;
   double  rms, sse ;
 
+check_gcam(gcam) ;
   sse = gcamComputeSSE(gcam, mri, parms) ;
+check_gcam(gcam) ;
   nvoxels = gcam->width*gcam->height*gcam->depth ;
   rms = sqrt(sse/nvoxels) ;
   return(rms) ;
@@ -2076,11 +2066,15 @@ gcamComputeSSE(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms)
   nvox = gcam->width*gcam->height*gcam->width ;
   label_sse = map_sse = a_sse = sse = l_sse = s_sse = j_sse = d_sse = 0.0;
 
+	check_gcam(gcam) ;
   gcamComputeMetricProperties(gcam) ;
+	check_gcam(gcam) ;
 	if (!FZERO(parms->l_log_likelihood) || !FZERO(parms->l_likelihood))
 		l_sse = MAX(parms->l_log_likelihood, parms->l_likelihood) * gcamLogLikelihoodEnergy(gcam, mri) ;
+	check_gcam(gcam) ;
 	if (!FZERO(parms->l_label))
 		label_sse = parms->l_label * gcamLabelEnergy(gcam, mri, parms->label_dist) ;
+	check_gcam(gcam) ;
 	if (!FZERO(parms->l_map))
 		map_sse = parms->l_map * gcamMapEnergy(gcam, mri) ;
   if (!FZERO(parms->l_distance))
@@ -2489,7 +2483,7 @@ GCAMcomputeLabels(MRI *mri, GCA_MORPH *gcam)
 
   printf("label assignment complete, %d changed (%2.2f%%)\n",
          nchanged, 100.0*(float)nchanged/(width*height*depth)) ;
-  return(NO_ERROR) ;
+  return(nchanged) ;
 }
 int
 GCAMcomputeMaxPriorLabels(GCA_MORPH *gcam)
@@ -3103,7 +3097,7 @@ gcamFindOptimalTimeStep(GCA_MORPH *gcam, GCA_MORPH_PARMS *parms, MRI *mri)
 static double
 gcamLabelEnergy(GCA_MORPH *gcam, MRI *mri, double label_dist)
 {
-  int             x, y, z, label, num, min_wm_dist, wm_label ;
+  int             x, y, z, label, num, wm_label ;
   float           error, sse, vals[MAX_GCA_INPUTS], yi, yk, max_dist ;
   GCA_MORPH_NODE  *gcamn, *gcamn_inf, *gcamn_sup ;
 	GC1D            *wm_gc ;
@@ -3163,9 +3157,8 @@ gcamLabelEnergy(GCA_MORPH *gcam, MRI *mri, double label_dist)
 				if (wm_gc == NULL)
 					continue ;
 
-				min_wm_dist = IS_WM(gcamn->label) ? -.5 : -.5 ;
 				max_dist = 0 ; max_log_p = -1e20;
-				for (yk = min_wm_dist ; yk <= label_dist ; yk+=0.1) /* sample superiorly */
+				for (yk = -label_dist ; yk <= label_dist ; yk+=0.1) /* sample superiorly */
 				{
 					yi = gcamn->y-yk ;   /* sample superiorly */
 					yi = gcamn->y+yk ;   /* sample inferiorly */
@@ -3200,7 +3193,7 @@ gcamLabelEnergy(GCA_MORPH *gcam, MRI *mri, double label_dist)
 static int
 gcamLabelTerm(GCA_MORPH *gcam, MRI *mri, double l_label, double label_dist)
 {
-  int             x, y, z, label, min_wm_dist, wm_label, num = 0 ;
+  int             x, y, z, label, wm_label, num = 0 ;
   Real            dy;
   GCA_MORPH_NODE  *gcamn, *gcamn_inf, *gcamn_sup ;
 	float           vals[MAX_GCA_INPUTS], yk, max_dist, yi ;
@@ -3265,7 +3258,6 @@ gcamLabelTerm(GCA_MORPH *gcam, MRI *mri, double l_label, double label_dist)
 					continue ;
 
 				dy = 0 ; 
-				min_wm_dist = IS_WM(gcamn->label) ? -.5 : -.5 ;
 				max_dist = 0 ; max_log_p = -1e20;
 				for (yk = -label_dist ; yk <= label_dist ; yk += 0.1)
 				{
@@ -3621,9 +3613,29 @@ gcamRemoveNegativeNodes(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms)
 		parms->dt = orig_dt ;
 		new_neg = gcam->neg ;
 		pct_change = 100.0*(last_rms-rms)/(last_rms) ;
-		printf("iter %d, dt=%2.4f: new neg %d, old_neg %d, delta %d, rms=%2.3f\n", ++i, min_dt, new_neg, old_neg, old_neg-new_neg, rms) ;
+		printf("iter %d, dt=%2.6f: new neg %d, old_neg %d, delta %d, rms=%2.3f\n", ++i, min_dt, new_neg, old_neg, old_neg-new_neg, rms) ;
 	} while ((new_neg > 0) && (pct_change > parms->tol) && (i < 5)) ;
 
 	*parms = *(&saved_parms) ;
 	return(NO_ERROR) ;
+}
+static int
+check_gcam(GCAM *gcam)
+{
+	int  x, y, z ;
+	GCA_MORPH_NODE *gcamn ;
+
+  for (z = 0 ; z < gcam->depth ; z++)
+  {
+    for (y = 0 ; y < gcam->height ; y++)
+    {
+      for (x = 0 ; x < gcam->width ; x++)
+      {
+        gcamn = &gcam->nodes[x][y][z] ;
+				if (gcamn->gc)
+					gcamn->gc->means[0] = gcamn->gc->means[0]*1;
+			}
+		}
+	}
+	return(0) ;
 }

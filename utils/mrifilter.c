@@ -1736,7 +1736,7 @@ MRIgaussian1d(float sigma, int max_len)
   len = (int)nint(8.0f * sigma)+1 ;
   if (ISEVEN(len))   /* ensure it's even */
     len++ ;
-  if (max_len && (max_len < len))
+  if (max_len > 0 && (max_len < len))
     len = max_len ;
   half = len/2 ;
   mri = MRIalloc(len, 1, 1, MRI_FLOAT) ;
