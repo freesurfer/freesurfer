@@ -318,7 +318,6 @@ void testtko ();
               variable. */
 void ReadVolumeWithMRIRead ( char * inFileOrPath );
 
-
 // ===========================================================================
 
 // ================================================================== GRAPHICS
@@ -2090,9 +2089,7 @@ int Medit(ClientData clientData, Tcl_Interp *interp, int argc, char *argv[]) {
     char isUsingMRIRead;
     char theMRIReadPath [NAME_LENGTH];
     char isLoadingFunctionalData;
-    char isLoadingFunctionalCompoundData;
-    char theFunctionalOverlayPath[256], theFunctionalOverlayStem[16];
-    char theFunctionalTimeCoursePath[256], theFunctionalTimeCourseStem[16];
+    char theFunctionalPath[256], theFunctionalStem[16];
 
     isUsingMRIRead = FALSE;
     isLoadingFunctionalData = FALSE;
@@ -2174,22 +2171,10 @@ exit(1);
     if ( argc > 3 && MATCH ( argv[argc-3], "-o" ) ) {
 
       isLoadingFunctionalData = TRUE;
-      strcpy ( theFunctionalOverlayPath, argv[argc-2] );
-      strcpy ( theFunctionalOverlayStem, argv[argc-1] );
+      strcpy ( theFunctionalPath, argv[argc-2] );
+      strcpy ( theFunctionalStem, argv[argc-1] );
       argc -= 3;
     }
-
-    if ( argc > 5 && MATCH ( argv[argc-5], "-o" ) ) {
-
-      isLoadingFunctionalCompoundData = TRUE;
-      strcpy ( theFunctionalOverlayPath,    argv[argc-4] );
-      strcpy ( theFunctionalOverlayStem,    argv[argc-3] );
-      strcpy ( theFunctionalTimeCoursePath, argv[argc-2] );
-      strcpy ( theFunctionalTimeCourseStem, argv[argc-1] );
-      argc -= 5;
-    }
-
-
 
                                    /* at this point, our remaining argv is:
               0       1     2            3         4
@@ -2359,20 +2344,7 @@ exit(1);
     if ( isLoadingFunctionalData ) {
 
       // load it.
-      FuncDis_LoadData ( theFunctionalOverlayPath, theFunctionalOverlayStem );
-
-      // go to selection mode.
-      SetMode ( kMode_Select );
-    }
-
-    // if we have compound functional data...
-    if ( isLoadingFunctionalCompoundData ) {
-
-      // load it.
-      FuncDis_LoadCompoundData ( theFunctionalOverlayPath, 
-         theFunctionalOverlayStem,
-         theFunctionalTimeCoursePath,
-         theFunctionalTimeCourseStem );
+      FuncDis_LoadData ( theFunctionalPath, theFunctionalStem );
 
       // go to selection mode.
       SetMode ( kMode_Select );
@@ -3327,8 +3299,8 @@ goto_point_coords(int imc1, int ic1,int jc1)
 void
 write_point(char *dir)
 {
-  char fname[NAME_LENGTH];
-  FILE *fp;
+  char theFileName[NAME_LENGTH];
+  FILE *theFile;
   Real theTalX, theTalY, theTalZ;
   int theVoxX, theVoxY, theVoxZ;
   Real theRASX, theRASY, theRASZ;
@@ -3337,37 +3309,37 @@ write_point(char *dir)
   // make a new voxel
   Voxel_New ( &theVoxel );
 
-  if (control_points) {
+  /* open control.dat or edit.dat depending on what mode we're in */
+  if ( IsInMode( kMode_Edit ) ) {
 
-    sprintf(fname,"%s/control.dat",dir);
-    if (control_points > 0 || num_control_points++ > 0) {
+    sprintf( theFileName, "%s/edit.dat", dir );
 
-      // kt -changed from "a" to "a+" to create file if it doesn't exist
-      fp=fopen(fname,"a+");
+  } else if ( IsInMode( kMode_CtrlPt ) ) {
 
-    } else {
-
-      OutputPrint "opening control point file %s...\n", fname EndOutputPrint;
-      fp=fopen(fname,"w");
-    }
+    sprintf( theFileName, "%s/control.dat", dir );
 
   } else {
 
-    sprintf(fname,"%s/edit.dat",dir);
-    fp=fopen(fname,"w");
+    OutputPrint "SendPnt only works in control point mode or edit mode!\n"
+      EndOutputPrint;
+
+    return;
   }
 
+  OutputPrint "writing point to file %s...\n", theFileName EndOutputPrint;
+
+  /* open and check for success. */
+  theFile = fopen( theFileName, "w" );
+  if ( NULL == theFile ) {
+    OutputPrint "medit: ### can't create file %s\n", 
+      theFileName EndOutputPrint;
+    return;
+  }
 
   // if we're in control point mode, add this point to the control point
   // space.
   if ( IsInMode ( kMode_CtrlPt ) ) {
-
     NewCtrlPtFromCursor ();
-  }
-
-  if (fp==NULL) {
-    printf("medit: ### can't create file %s\n",fname); PR 
-    return;
   }
 
   // screen to ras
@@ -3375,8 +3347,7 @@ write_point(char *dir)
   VoxelToRAS ( theVoxX, theVoxY, theVoxZ, &theRASX, &theRASY, &theRASZ );
   
   // write RAS space pt to file
-  fprintf ( fp,"%f %f %f\n", theRASX, theRASY, theRASZ );
-  DebugPrint "writing RAS point to %s...\n", fname EndDebugPrint;
+  fprintf ( theFile, "%f %f %f\n", theRASX, theRASY, theRASZ );
   
   // if we have a tal transform for this volume...
   if ( transform_loaded && IsInMode ( kMode_Edit ) ) {
@@ -3385,10 +3356,8 @@ write_point(char *dir)
     transform_point ( linear_transform, theRASX, theRASY, theRASZ,
                       &theTalX, &theTalY, &theTalZ );
     
-    
     // write tal space point to file
-    fprintf(fp, "%f %f %f\n", theTalX, theTalY, theTalZ );
-    DebugPrint "writing Tal point to %s...\n", fname EndDebugPrint;
+    fprintf( theFile, "%f %f %f\n", theTalX, theTalY, theTalZ );
     
     // these are global variables, used elsewhere.
     xtalairach = theTalX;
@@ -3396,8 +3365,7 @@ write_point(char *dir)
     ztalairach = theTalZ; 
   }
 
-  /*else { fprintf(stderr, "NOT writing transformed point to file...\n") ; }*/
-  fclose(fp);
+  fclose( theFile );
 
   // free the voxel
   Voxel_Delete ( &theVoxel );
@@ -4649,7 +4617,7 @@ void ProcessClick ( int inClickX, int inClickY ) {
     SetCursorToScreenPt ( theClickedJ, theClickedI, theClickedIM );
 
     // if ctrl is down and we're not in all3 mode..
-    irangctrlkeypressed && !all3flag ) {
+    if ( ctrlkeypressed && !all3flag ) {
       
       // zoom out
        RecenterViewToScreenPt ( theClickedJ, theClickedI, theClickedIM );
@@ -9446,7 +9414,7 @@ void DrawSelectedVoxels ( char * inBuffer, int inPlane, int inPlaneNum ) {
   int theListCount, theListIndex;
   char theListErr;
   int theScreenX, theScreenY, theScreenZ, theScreenH, theScreenV;
-  unsigned char theValue;
+  int theValue;
   int theIntensifiedValue;
   long theColor;
 
@@ -11145,6 +11113,7 @@ unsigned char GetVoxelValue ( tVolumeRef inVolume,
     return inVolume [ (gVolumeDimension * gVolumeDimension * z) +
         (gVolumeDimension * y) + x ];
     //  }
+  return 0;
 }
 
 unsigned char * GetVolumeSlicePtr ( tVolumeRef inVolume, int inSlice ) {
