@@ -14,7 +14,7 @@
 #include "macros.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_smooth.c,v 1.8 2003/04/17 18:59:45 kteich Exp $";
+static char vcid[] = "$Id: mris_smooth.c,v 1.9 2003/05/13 19:31:33 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -32,6 +32,10 @@ static int nbrs = 2 ;
 static int navgs = 10 ;
 static int niterations = 10 ;
 static int rescale = 0 ;
+static double gaussian_norm = 0 ;
+static int write_iterations = 0 ;
+static double l_spring = 1.0 ;
+static float momentum = 0.5 ;
 
 int
 main(int argc, char *argv[])
@@ -41,7 +45,7 @@ main(int argc, char *argv[])
   MRI_SURFACE        *mris ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_smooth.c,v 1.8 2003/04/17 18:59:45 kteich Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_smooth.c,v 1.9 2003/05/13 19:31:33 fischl Exp $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -78,7 +82,27 @@ main(int argc, char *argv[])
   MRIScomputeMetricProperties(mris) ;
   MRISstoreMetricProperties(mris) ;
   MRISsetNeighborhoodSize(mris, nbrs) ;
-  MRISaverageVertexPositions(mris, niterations) ;
+	if (gaussian_norm > 0)
+	{
+		int i ;
+
+		for (i = 0 ; i < niterations ; i++)
+		{
+			MRIScomputeSecondFundamentalForm(mris) ;
+			MRISspringTermWithGaussianCurvature(mris, gaussian_norm, l_spring) ;
+			MRISmomentumTimeStep(mris, momentum, 1, 1, 0) ;
+			MRISclearGradient(mris) ;
+			if ((((i+1) % write_iterations) == 0) && (write_iterations > 0))
+		{
+				char fname[STRLEN] ;
+				sprintf(fname, "%s%04d", out_fname, i+1) ;
+				printf("writing snapshot to %s...\n", fname) ;
+				MRISwrite(mris, fname) ;
+			}
+		}
+	}
+	else
+		MRISaverageVertexPositions(mris, niterations) ;
 
   fprintf(stderr, "smoothing complete - recomputing first and second "
           "fundamental forms...\n") ;
@@ -133,6 +157,21 @@ get_option(int argc, char *argv[])
     normalize_flag = 1 ;
   else switch (toupper(*option))
   {
+	case 'M':
+		momentum = atof(argv[2]) ;
+		printf("using momentum = %2.2f\n", momentum) ;
+		nargs = 1 ;
+		break ;
+	case 'G':
+		gaussian_norm = atof(argv[2]) ;
+		printf("using Gaussian curvature smoothing with norm %2.2f\n", gaussian_norm) ;
+		nargs = 1 ;
+		break ;
+	case 'W':
+		write_iterations = atoi(argv[2]) ;
+		printf("writing out snapshots every %d iterations\n", write_iterations) ;
+		nargs = 1 ;
+		break ;
   case '?':
   case 'U':
     print_usage() ;
