@@ -13,7 +13,7 @@
 #include "mri.h"
 #include "macros.h"
 
-static char vcid[] = "$Id: mris_reverse.c,v 1.1 1998/04/22 00:37:24 fischl Exp $";
+static char vcid[] = "$Id: mris_reverse.c,v 1.2 1999/04/18 03:16:49 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -61,7 +61,8 @@ main(int argc, char *argv[])
 
   MRISreverse(mris, which) ;
   if (Gdiag & DIAG_SHOW)
-    fprintf(stderr, "writing smoothed surface to %s\n", out_fname) ;
+    fprintf(stderr, "writing reversed surface to %s\n", out_fname) ;
+  mris->type = MRIS_TRIANGULAR_SURFACE ;
   MRISwrite(mris, out_fname) ;
   exit(0) ;
   return(0) ;  /* for ansi */
