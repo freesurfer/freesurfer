@@ -65,14 +65,14 @@ main(int argc, char *argv[])
 {
   char   **av, *cp ;
   int    ac, nargs, i, dof, no_transform, which, sno = 0, nsubjects = 0 ;
-  MRI    *mri, *mri_mean = NULL, *mri_std, *mri_T1,*mri_binary,*mri_dof=NULL,
+  MRI    *mri=0, *mri_mean = NULL, *mri_std=0, *mri_T1=0,*mri_binary=0,*mri_dof=NULL,
     *mri_priors = NULL ;
   char   *subject_name, *out_fname, fname[STRLEN] ;
   /*  LTA    *lta;*/
-  MRI *mri_tmp ;
+  MRI *mri_tmp=0 ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_make_template.c,v 1.20 2005/03/01 18:52:39 tosa Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_make_template.c,v 1.21 2005/03/03 22:11:02 tosa Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -290,10 +290,10 @@ main(int argc, char *argv[])
 	/* MRIlinearTransform() calls MRIlinearTransformInterp() */
 	mri_tmp = LTAtransform(mri_T1, NULL, lta);
 	printf("----- -----------------------\n");
-        MRIfree(&mri_T1) ; 
 	LTAfree(&lta);
 #endif
-	mri_T1 = mri_tmp ;
+	MRIfree(&mri_T1);
+	mri_T1 = mri_tmp ; // reassign pointers
         fprintf(stderr, "transform application complete.\n") ;
       }
 
@@ -376,7 +376,11 @@ main(int argc, char *argv[])
     MRIwrite(mri_mean, out_fname) ;
     MRIfree(&mri_mean) ;
     if (dof <= 1) /* can't calulate variances - set them to reasonable val */
-      MRIreplaceValues(mri_std, mri, 0, 1) ;
+    {
+      //               src      dst
+      MRIreplaceValues(mri_std, mri_std, 0, 1) ;
+    }
+    // mri_std contains the variance here
     if (!var_fname)
     {
       fprintf(stderr, "\nwriting T1 variances to %s...\n", out_fname);
@@ -385,13 +389,12 @@ main(int argc, char *argv[])
     else
     {
       fprintf(stderr, "\nwriting T1 variances to %s...\n", var_fname);
-      MRIwrite(mri, var_fname) ;
+      MRIwrite(mri_std, var_fname) ;
     }
     MRIfree(&mri_std) ;
-
+    if (mri)
+      MRIfree(&mri);
   } /* end if binarize */
-
-  exit(0) ;
   return(0) ;
 }
 /*----------------------------------------------------------------------
