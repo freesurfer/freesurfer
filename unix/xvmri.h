@@ -21,10 +21,11 @@
 #include "region.h"
 #include "image.h"
 
-void mri_event_handler(XV_FRAME *xvf, Event *event,
+int  mri_event_handler(XV_FRAME *xvf, Event *event,
                        DIMAGE *dimage, int *px, int *py, int *pz) ;
 void XVMRIdrawPoint(XV_FRAME *xvf, int which, int view, int depth, MRI *mri,
                     int x, int y, int z, int color) ;
+int  XVMRIdraw3DPoint(XV_FRAME *xvf, int which,int x, int y, int z, int color);
 
 void XVMRIdrawRegion(XV_FRAME *xvf, int which, int view, int depth, MRI *mri,
                 MRI_REGION *reg, int color) ;
