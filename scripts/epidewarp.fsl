@@ -2,7 +2,7 @@
 # epidewarp.fsl
 #
 
-set VERSION = '$Id: epidewarp.fsl,v 1.2 2004/07/28 18:23:57 greve Exp $'
+set VERSION = '$Id: epidewarp.fsl,v 1.3 2004/11/19 23:42:36 greve Exp $'
 set inputargs = ($argv);
 
 set dph = ();
@@ -84,6 +84,7 @@ set cmd = (avwroi $epi $exf $nmidframe 1)
 echo $cmd |& tee -a $LF
 $cmd |& tee -a $LF
 if($status) exit 1;
+if($#epimat) cp $epimat `dirname $exf`/`basename $exf .img`.mat # Copy matfile
 
 # Keep only the first frame from mag
 set cmd = (avwroi $mag $tmpdir/mag 0 1)
@@ -91,6 +92,7 @@ echo $cmd |& tee -a $LF
 $cmd |& tee -a $LF
 if($status) exit 1;
 set mag = $tmpdir/mag.img
+if($#epimat) cp $epimat `dirname $mag`/`basename $mag .img`.mat # Copy matfile
 
 # Create brain mask from the mag
 set cmd = (bet $mag $brain)
@@ -101,6 +103,7 @@ set cmd = (avwmaths $brain -bin $brain)
 echo $cmd |& tee -a $LF
 $cmd |& tee -a $LF
 if($status) exit 1;
+if($#epimat) cp $epimat `dirname $brain`/`basename $brain .img`.mat # Copy matfile
 
 # Create head mask by dilating the brain mask 3 times
 @ nthdil = 1;
@@ -115,6 +118,7 @@ while($nthdil <= 3)
   if($status) exit 1;
   @ nthdil = $nthdil + 1;
 end
+if($#epimat) cp $epimat `dirname $head`/`basename $head .img`.mat # Copy matfile
 
 # Rescale the delta phase to be between -pi and pi. Starts out
 # at 0 - 4095. Make sure the phase is float precision with _32R
@@ -123,6 +127,7 @@ echo $cmd |& tee -a $LF
 $cmd |& tee -a $LF
 if($status) exit 1;
 set dph = $tmpdir/dph
+if($#epimat) cp $epimat `dirname $dph`/`basename $dph .img`.mat # Copy matfile
 
 # Do the phase unwrapping (-f for 3D, -v for verbose)
 set cmd = (prelude -p $dph -a $mag -o $dph -f -v -m $head);
@@ -156,6 +161,7 @@ set cmd = (fugue -i $mag -u $magdw -p $ph2 \
 echo $cmd |& tee -a $LF
 $cmd |& tee -a $LF
 if($status) exit 1;
+if($#epimat) cp $epimat `dirname $vsmmag`/`basename $vsmmag .img`.mat # Copy matfile
 
 # Forward warp the mag in order to reg with func
 # What does mask do here?
@@ -164,9 +170,10 @@ set cmd = (fugue -i $mag -w $magfw --loadshift=$vsmmag --mask=$brain )
 echo $cmd |& tee -a $LF
 $cmd |& tee -a $LF
 if($status) exit 1;
+if($#epimat) cp $epimat `dirname $magfw`/`basename $magfw .img`.mat # Copy matfile
 
 # Register magfw to example func. There are some parameters here
-# that may need to be tweeked.
+# that may need to be tweeked. Should probably strip the mag.
 set cmd = (flirt -in $magfw -ref $exf \
   -out $tmpdir/magfw-in-exf.img \
   -omat $tmpdir/magfw-in-exf.fsl.mat \
@@ -178,6 +185,8 @@ set cmd = (flirt -in $magfw -ref $exf \
 echo $cmd |& tee -a $LF
 $cmd |& tee -a $LF
 if($status) exit 1;
+if($#epimat) cp $epimat $tmpdir/magfw-in-exf.mat # Copy matfile
+
 
 # Now resample VSM into epi space. This will take care of any 
 # differences in in-plane voxel size.
@@ -196,18 +205,8 @@ endif
 if($#exfdw == 0 && $#epidw == 0) goto done;
 
 if($#exfdw != 0) then
-  # Now apply the VSM to the exf (um=unmasked)
-  set exfdwum = $tmpdir/exfdwum.img
-  set cmd = (fugue -i $exf -u $exfdwum --loadshift=$vsm --mask=$brain );
-  echo $cmd |& tee -a $LF
-  $cmd |& tee -a $LF
-  if($status) exit 1;
-
-  # Now mask the dewarped exf using the mag brain mask.
-  # This is necessary to prevent voxels in the original EPI
-  # that are out of the brain from simply being copied into
-  # the dewarped image.
-  set cmd = (avwmaths $exfdwum -mul $brain $exfdw)
+  # Now apply the VSM to the exf
+  set cmd = (fugue -i $exf -u $exfdw --loadshift=$vsm --mask=$brain );
   echo $cmd |& tee -a $LF
   $cmd |& tee -a $LF
   if($status) exit 1;
@@ -463,7 +462,6 @@ ALGORITHM OVERVIEW
 7. Register the forward warped mag with the example func (FLIRT)
 8. Resample the VSM into EPI space (FLIRT)
 9. Dewarp the EPI and/or Example Func (FUGUE).
-10. Mask out-of-brain voxels using the mag brain mask.
 
 The EPI and Example Func should be in register with the mag volume.
 
