@@ -10,7 +10,7 @@ if { $err } {
     load [file dirname [info script]]/libscuba[info sharedlibextension] scuba
 }
 
-DebugOutput "\$Id: scuba.tcl,v 1.46 2004/08/14 23:58:26 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.47 2004/08/19 17:53:03 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -3635,7 +3635,7 @@ while { $nArg < $argc } {
 
 # Source our support files.
 foreach sSourceFileName { tkUtils.tcl tkcon.tcl } {
-    set lPath [list "$env(PWD)"]
+    set lPath [list "$env(PWD)" ../scripts]
     if { [info exists env(DEV)] } {
 	lappend lPath "$env(DEV)/scripts"
     }
