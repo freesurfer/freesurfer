@@ -1394,6 +1394,7 @@ MRIvoxelToTalairachVoxel(MRI *mri, Real xv, Real yv, Real zv,
   MRIvoxelToWorld(mri, xv, yv, zv, &xw, &yw, &zw) ;
   if (mri->linear_transform)
     transform_point(mri->linear_transform, xw, yw, zw, &xt, &yt, &zt) ;
+  else
   { xt = xw ; yt = yw ; zt = zw ; }
   MRIworldToVoxel(mri, xt, yt, zt, pxt, pyt, pzt) ;
 
@@ -5331,7 +5332,7 @@ MRIextractTalairachPlane(MRI *mri_src, MRI *mri_dst, int orientation,
 {
   Real     e1_x, e1_y, e1_z, e2_x, e2_y, e2_z, xbase, ybase, zbase ;
   int      whalf, xk, yk, xi, yi, zi ;
-  Real     ex, ey, ez, len ;
+  Real     ex, ey, ez, len, x0, y0, z0 ;
 
   whalf = (wsize-1)/2 ;
 
@@ -5349,48 +5350,49 @@ MRIextractTalairachPlane(MRI *mri_src, MRI *mri_dst, int orientation,
     mri_dst->imnr1 = mri_dst->imnr0 ;
   }
 
+  MRIvoxelToTalairachVoxel(mri_src, x, y, z, &x0, &y0, &z0) ;
   switch (orientation)
   {
   default:
   case MRI_CORONAL:   /* basis vectors in x-y plane */
     /* the 'x' basis vector */
-    ex = (Real)x+1 ; ey = (Real)y ; ez = (Real)z ;
-    MRIvoxelToTalairachVoxel(mri_src, ex, ey, ez, &e1_x, &e1_y, &e1_z) ;
+    ex = (Real)x0+1 ; ey = (Real)y0 ; ez = (Real)z0 ;
+    MRItalairachVoxelToVoxel(mri_src, ex, ey, ez, &e1_x, &e1_y, &e1_z) ;
     e1_x -= (Real)x ; e1_y -= (Real)y ; e1_z -= (Real)z ; 
 
     /* the 'y' basis vector */
-    ex = (Real)x ; ey = (Real)y+1 ; ez = (Real)z ;
-    MRIvoxelToTalairachVoxel(mri_src, ex, ey, ez, &e2_x, &e2_y, &e2_z) ;
+    ex = (Real)x0 ; ey = (Real)y0+1 ; ez = (Real)z0 ;
+    MRItalairachVoxelToVoxel(mri_src, ex, ey, ez, &e2_x, &e2_y, &e2_z) ;
     e2_x -= (Real)x ; e2_y -= (Real)y ; e2_z -= (Real)z ; 
     break ;
   case MRI_HORIZONTAL:  /* basis vectors in x-z plane */
     /* the 'x' basis vector */
-    ex = (Real)x+1 ; ey = (Real)y ; ez = (Real)z ;
-    MRIvoxelToTalairachVoxel(mri_src, ex, ey, ez, &e1_x, &e1_y, &e1_z) ;
+    ex = (Real)x0+1 ; ey = (Real)y0 ; ez = (Real)z0 ;
+    MRItalairachVoxelToVoxel(mri_src, ex, ey, ez, &e1_x, &e1_y, &e1_z) ;
     e1_x -= (Real)x ; e1_y -= (Real)y ; e1_z -= (Real)z ; 
 
     /* the 'y' basis vector */
-    ex = (Real)x ; ey = (Real)y ; ez = (Real)z+1 ;
-    MRIvoxelToTalairachVoxel(mri_src, ex, ey, ez, &e2_x, &e2_y, &e2_z) ;
+    ex = (Real)x0 ; ey = (Real)y0 ; ez = (Real)z0+1 ;
+    MRItalairachVoxelToVoxel(mri_src, ex, ey, ez, &e2_x, &e2_y, &e2_z) ;
     e2_x -= (Real)x ; e2_y -= (Real)y ; e2_z -= (Real)z ; 
     break ;
   case MRI_SAGITTAL:    /* basis vectors in y-z plane */
     /* the 'x' basis vector */
-    ex = (Real)x ; ey = (Real)y ; ez = (Real)z+1.0 ;
-    MRIvoxelToTalairachVoxel(mri_src, ex, ey, ez, &e1_x, &e1_y, &e1_z) ;
+    ex = (Real)x0 ; ey = (Real)y0 ; ez = (Real)z0+1.0 ;
+    MRItalairachVoxelToVoxel(mri_src, ex, ey, ez, &e1_x, &e1_y, &e1_z) ;
     e1_x -= (Real)x ; e1_y -= (Real)y ; e1_z -= (Real)z ; 
 
     /* the 'y' basis vector */
-    ex = (Real)x ; ey = (Real)y+1.0 ; ez = (Real)z ;
-    MRIvoxelToTalairachVoxel(mri_src, ex, ey, ez, &e2_x, &e2_y, &e2_z) ;
+    ex = (Real)x0 ; ey = (Real)y0+1.0 ; ez = (Real)z0 ;
+    MRItalairachVoxelToVoxel(mri_src, ex, ey, ez, &e2_x, &e2_y, &e2_z) ;
     e2_x -= (Real)x ; e2_y -= (Real)y ; e2_z -= (Real)z ; 
     break ;
   }
 
   len = sqrt(e1_x*e1_x + e1_y*e1_y + e1_z*e1_z) ;
-/*  e1_x /= len ; e1_y /= len ; e1_z /= len ;*/
+  /*  e1_x /= len ; e1_y /= len ; e1_z /= len ;*/
   len = sqrt(e2_x*e2_x + e2_y*e2_y + e2_z*e2_z) ;
-/*  e2_x /= len ; e2_y /= len ; e2_z /= len ;*/
+  /*  e2_x /= len ; e2_y /= len ; e2_z /= len ;*/
 
   for (yk = -whalf ; yk <= whalf ; yk++)
   {
@@ -5473,45 +5475,46 @@ MRIeraseTalairachPlaneNew(MRI *mri, MRI *mri_mask, int orientation, int x,
 {
   Real     e1_x, e1_y, e1_z, e2_x, e2_y, e2_z, xbase, ybase, zbase ;
   int      whalf, xk, yk, xi, yi, zi, xki, yki, x0, y0 ;
-  Real     ex, ey, ez, len ;
+  Real     ex, ey, ez, len, xt0, yt0, zt0 ;
 
   whalf = (wsize-1)/2 ;
 
   x0 = mri_mask->width/2 ; y0 = mri_mask->height/2 ;
+  MRIvoxelToTalairachVoxel(mri, x, y, z, &xt0, &yt0, &zt0) ;
   switch (orientation)
   {
   default:
   case MRI_CORONAL:   /* basis vectors in x-y plane */
     /* the 'x' basis vector */
-    ex = (Real)x+1 ; ey = (Real)y ; ez = (Real)z ;
-    MRIvoxelToTalairachVoxel(mri, ex, ey, ez, &e1_x, &e1_y, &e1_z) ;
+    ex = (Real)xt0+1 ; ey = (Real)yt0 ; ez = (Real)zt0 ;
+    MRItalairachVoxelToVoxel(mri, ex, ey, ez, &e1_x, &e1_y, &e1_z) ;
     e1_x -= (Real)x ; e1_y -= (Real)y ; e1_z -= (Real)z ; 
 
     /* the 'y' basis vector */
-    ex = (Real)x ; ey = (Real)y+1 ; ez = (Real)z ;
-    MRIvoxelToTalairachVoxel(mri, ex, ey, ez, &e2_x, &e2_y, &e2_z) ;
+    ex = (Real)xt0 ; ey = (Real)yt0+1 ; ez = (Real)zt0 ;
+    MRItalairachVoxelToVoxel(mri, ex, ey, ez, &e2_x, &e2_y, &e2_z) ;
     e2_x -= (Real)x ; e2_y -= (Real)y ; e2_z -= (Real)z ; 
     break ;
   case MRI_HORIZONTAL:  /* basis vectors in x-z plane */
     /* the 'x' basis vector */
-    ex = (Real)x+1 ; ey = (Real)y ; ez = (Real)z ;
-    MRIvoxelToTalairachVoxel(mri, ex, ey, ez, &e1_x, &e1_y, &e1_z) ;
+    ex = (Real)xt0+1 ; ey = (Real)yt0 ; ez = (Real)zt0 ;
+    MRItalairachVoxelToVoxel(mri, ex, ey, ez, &e1_x, &e1_y, &e1_z) ;
     e1_x -= (Real)x ; e1_y -= (Real)y ; e1_z -= (Real)z ; 
 
     /* the 'y' basis vector */
-    ex = (Real)x ; ey = (Real)y ; ez = (Real)z+1 ;
-    MRIvoxelToTalairachVoxel(mri, ex, ey, ez, &e2_x, &e2_y, &e2_z) ;
+    ex = (Real)xt0 ; ey = (Real)yt0 ; ez = (Real)zt0+1 ;
+    MRItalairachVoxelToVoxel(mri, ex, ey, ez, &e2_x, &e2_y, &e2_z) ;
     e2_x -= (Real)x ; e2_y -= (Real)y ; e2_z -= (Real)z ; 
     break ;
   case MRI_SAGITTAL:    /* basis vectors in y-z plane */
     /* the 'x' basis vector */
-    ex = (Real)x ; ey = (Real)y ; ez = (Real)z+1.0 ;
-    MRIvoxelToTalairachVoxel(mri, ex, ey, ez, &e1_x, &e1_y, &e1_z) ;
+    ex = (Real)xt0 ; ey = (Real)yt0 ; ez = (Real)zt0+1.0 ;
+    MRItalairachVoxelToVoxel(mri, ex, ey, ez, &e1_x, &e1_y, &e1_z) ;
     e1_x -= (Real)x ; e1_y -= (Real)y ; e1_z -= (Real)z ; 
 
     /* the 'y' basis vector */
-    ex = (Real)x ; ey = (Real)y+1.0 ; ez = (Real)z ;
-    MRIvoxelToTalairachVoxel(mri, ex, ey, ez, &e2_x, &e2_y, &e2_z) ;
+    ex = (Real)xt0 ; ey = (Real)yt0+1.0 ; ez = (Real)zt0 ;
+    MRItalairachVoxelToVoxel(mri, ex, ey, ez, &e2_x, &e2_y, &e2_z) ;
     e2_x -= (Real)x ; e2_y -= (Real)y ; e2_z -= (Real)z ; 
     break ;
   }
@@ -5685,6 +5688,65 @@ MRIextractPlane(MRI *mri_src, MRI *mri_dst, int orientation, int where)
     break ;
   }
 
+  return(mri_dst) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+MRI *
+MRIfillPlane(MRI *mri_mask, MRI *mri_dst, int orientation, int where, int fillval)
+{
+  int      x, y, z, width, height ;
+
+  switch (orientation)
+  {
+  default:
+  case MRI_CORONAL:   /* basis vectors in x-y plane */
+    width = mri_mask->width ; height = mri_mask->height ;
+    break ;
+  case MRI_HORIZONTAL:  /* basis vectors in x-z plane */
+    width = mri_mask->width ; height = mri_mask->depth ;
+    break ;
+  case MRI_SAGITTAL:    /* basis vectors in y-z plane */
+    width = mri_mask->depth ; height = mri_mask->height ;
+    break ;
+  }
+  
+  switch (orientation)
+  {
+  default:
+  case MRI_CORONAL:   /* basis vectors in x-y plane */
+    for (x = 0 ; x < mri_dst->width ; x++)
+    {
+      for (y = 0 ; y < mri_dst->height ; y++)
+        if (MRIvox(mri_mask, x, y, 0))
+          MRIvox(mri_dst, x, y, where) = fillval ;
+    }
+    break ;
+  case MRI_HORIZONTAL:  /* basis vectors in x-z plane */
+    for (x = 0 ; x < mri_dst->width ; x++)
+    {
+      for (z = 0 ; z < mri_dst->depth ; z++)
+      {
+        if (MRIvox(mri_mask, x, z, 0))
+          MRIvox(mri_dst, x, where, z) = fillval ;
+      }
+    }
+    break ;
+  case MRI_SAGITTAL:    /* basis vectors in y-z plane */
+    for (z = 0 ; z < mri_dst->depth ; z++)
+    {
+      for (y = 0 ; y < mri_dst->height ; y++)
+        if (MRIvox(mri_mask, z, y, 0))
+          MRIvox(mri_dst, where, y, z) = fillval ;
+    }
+    break ;
+  }
+  
   return(mri_dst) ;
 }
 /*-----------------------------------------------------
@@ -9106,3 +9168,73 @@ MRIfindNearestNonzeroLocation(MRI *mri, int wsize, Real xr, Real yr, Real zr,
   return(min_val) ;
 }
 
+MRI *
+MRIfromTalairach(MRI *mri_src, MRI *mri_dst)
+{
+  int  x, y, z, xv, yv, zv ;
+  Real xt, yt, zt, xn, yn, zn, val ;
+
+  if (!mri_dst)
+    mri_dst = MRIclone(mri_src, NULL) ;
+
+  for (x = 0 ; x < mri_dst->width ; x++)
+  {
+    xn = (Real)x ;
+    for (y = 0 ; y < mri_dst->height ; y++)
+    {
+      yn = (Real)y ;
+      for (z = 0 ; z < mri_dst->depth ; z++)
+      {
+        zn = (Real)z ;
+        MRIvoxelToTalairachVoxel(mri_src, xn, yn, zn, &xt, &yt, &zt) ;
+        xv = nint(xt) ; yv = nint(yt) ; zv = nint(zt) ; 
+        if ((xv >= 0 && xv < mri_src->width) &&
+            (yv >= 0 && yv < mri_src->height) &&
+            (zv >= 0 && zv < mri_src->depth))
+        {
+          MRIsampleVolume(mri_src, xt, yt, zt, &val) ;
+          MRIvox(mri_dst, x, y, z) = val ;
+        }
+        else
+          MRIvox(mri_dst, x, y, z) = 0 ;
+      }
+    }
+  }
+
+  return(mri_dst) ;
+}
+MRI *
+MRItoTalairach(MRI *mri_src, MRI *mri_dst)
+{
+  int  x, y, z, xv, yv, zv ;
+  Real xt, yt, zt, xn, yn, zn, val ;
+
+  if (!mri_dst)
+    mri_dst = MRIclone(mri_src, NULL) ;
+
+  for (x = 0 ; x < mri_dst->width ; x++)
+  {
+    xt = (Real)x ;
+    for (y = 0 ; y < mri_dst->height ; y++)
+    {
+      yt = (Real)y ;
+      for (z = 0 ; z < mri_dst->depth ; z++)
+      {
+        zt = (Real)z ;
+        MRItalairachVoxelToVoxel(mri_src, xt, yt, zt, &xn, &yn, &zn) ;
+        xv = nint(xn) ; yv = nint(yn) ; zv = nint(zt) ; 
+        if ((xv >= 0 && xv < mri_src->width) &&
+            (yv >= 0 && yv < mri_src->height) &&
+            (zv >= 0 && zv < mri_src->depth))
+        {
+          MRIsampleVolume(mri_src, xn, yn, zn, &val) ;
+          MRIvox(mri_dst, x, y, z) = val ;
+        }
+        else
+          MRIvox(mri_dst, x, y, z) = 0 ;
+      }
+    }
+  }
+
+  return(mri_dst) ;
+}
