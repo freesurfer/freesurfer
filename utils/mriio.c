@@ -1125,6 +1125,7 @@ analyzeRead(char *fname, int read_volume, int frame)
   /* these are the sizes the image 'should' be */
   if (hdr.dime.pixdim[0] > 3.5f)/* hack to support FIL and texas */
   {
+    hdr.dime.pixdim[2] *= 2 ;
     width = max_dim / hdr.dime.pixdim[1] ;
     height = max_dim / hdr.dime.pixdim[2] ;
     depth = max_dim / hdr.dime.pixdim[3] ;
@@ -1453,6 +1454,10 @@ read_byte_analyze_image(char *fname, MRI *mri, dsr *hdr)
           break;
         case DT_UNSIGNED_CHAR:
           b = (char)(*(unsigned char *)(buf+bytes_per_pix*(y*width+x)));
+          if (b != 0)
+            DiagBreak() ;
+          xd = z + xoff ; yd = (height-y-1) + yoff ; zd = (width-x-1) + zoff ;
+          MRIvox(mri, xd, yd, zd) = b ;
           break;
         case DT_SIGNED_SHORT:
           s = *(short *)(buf+bytes_per_pix*(y*width+x)) ;
@@ -1466,10 +1471,6 @@ read_byte_analyze_image(char *fname, MRI *mri, dsr *hdr)
           b = (char)(scale * (float)(s-hdr->dime.glmin));
           break;
         }
-#if 0
-        xd = z + xoff ; yd = (height-y-1) + yoff ; zd = (width-x-1) + zoff ;
-        MRIvox(mri, xd, yd, zd) = b ;
-#endif
       }
     }
   }
@@ -1537,7 +1538,7 @@ write_analyze_header(char *fname, MRI *mri)
 {
   FILE  *fp;
   char  hdr_fname[STRLEN], *dot ;
-  int   nread, i ;
+  int   nwritten, i ;
   dsr   hdr ;
   float fmin, fmax ;
 
@@ -1625,13 +1626,13 @@ write_analyze_header(char *fname, MRI *mri)
   hdr.hist.smax = swapInt(hdr.hist.smax) ;
   hdr.hist.smin = swapInt(hdr.hist.smin) ;
 #endif
-  nread = fwrite(&hdr, sizeof(char), sizeof(dsr),fp);
+  nwritten = fwrite(&hdr, sizeof(char), sizeof(dsr),fp);
   fclose(fp);
-  if (nread != sizeof(dsr))
+  if (nwritten != sizeof(dsr))
     ErrorReturn(ERROR_BADFILE, 
                 (ERROR_BADFILE,
                  "write_analyze_header: could write read %d of %d bytes",
-                 nread, sizeof(dsr))) ;
+                 nwritten, sizeof(dsr))) ;
   return(NO_ERROR) ;
 }
 
@@ -1647,7 +1648,7 @@ write_analyze_image(char *fname, MRI *mri)
 {
   int    x, y, z, bufsize, bytes_per_pix, width, height, depth, xd, yd, zd ;
   FILE   *fp;
-  int    nread ;
+  int    nwritten ;
   char   *buf ;
   float  f ;
 
@@ -1682,6 +1683,8 @@ write_analyze_image(char *fname, MRI *mri)
           f = MRIFvox(mri, xd, yd, zd) ;
         else
           f = MRIvox(mri, xd, yd, zd) ;
+        if (f != 0)
+          DiagBreak() ;
 #ifdef Linux
         f = swapFloat(f) ;
 #endif
@@ -1700,15 +1703,15 @@ write_analyze_image(char *fname, MRI *mri)
         }
       }
     }
-    nread = fwrite(buf, bytes_per_pix, bufsize, fp) ;
-    if (nread != bufsize)
+    nwritten = fwrite(buf, bytes_per_pix, bufsize, fp) ;
+    if (nwritten != bufsize)
     {
       free(buf) ;
       fclose(fp) ;
       ErrorReturn(ERROR_BADFILE, 
-                  (ERROR_BADFILE, 
-                   "write_analyze_image: could not write slice %d (%d items read)",
-                   z, bufsize)) ;
+               (ERROR_BADFILE, 
+               "write_analyze_image: could not write slice %d (%d items read)",
+                z, bufsize)) ;
     }
 
   }
