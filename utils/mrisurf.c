@@ -12,6 +12,12 @@
 
 /*---------------------------- STRUCTURES -------------------------*/
 
+/*---------------------------- CONSTANTS -------------------------*/
+
+#define ORIG_AREAS     0
+#define CURRENT_AREAS  1
+#define AVERAGE_AREAS  0
+
 
 /*------------------------ STATIC PROTOTYPES -------------------------*/
 
@@ -20,13 +26,15 @@ static int   mrisFindNeighbors(MRI_SURFACE *mris) ;
 static void  mrisNormalize(float v[3]) ;
 static float mrisTriangleArea(MRIS *mris, int fac, int n) ;
 static int   mrisNormalFace(MRIS *mris, int fac,int n,float norm[]) ;
-static int   mrisFindPoles(MRIS *mris) ;
 static int   mrisReadTransform(MRIS *mris, char *mris_fname) ;
 static int   mrisReadBinaryCurvature(MRI_SURFACE *mris, char *mris_fname) ;
 static int   mrisReadBinaryAreas(MRI_SURFACE *mris, char *mris_fname) ;
 static int   mrisReadTriangleProperties(MRI_SURFACE *mris, char *mris_fname) ;
 /*static int   mrisReadFieldsign(MRI_SURFACE *mris, char *fname) ;*/
 static double mrisComputeSSE(MRI_SURFACE *mris, float l_area,float l_angle);
+static double mrisComputeError(MRI_SURFACE *mris, float l_area,float l_angle,
+                                double *parea_error, double *pangle_error,
+                               int *pn);
 static int   mrisScaleEllipsoidArea(MRI_SURFACE *mris) ;
 static int   mrisCountNegativeVertices(MRI_SURFACE *mris) ;
 static int   mrisAverageGradients(MRI_SURFACE *mris, int num_avgs) ;
@@ -36,6 +44,11 @@ static float mrisLineMinimize(MRI_SURFACE *mris, INTEGRATION_PARMS *parms);
 static float deltaAngle(float angle1, float angle2) ;
 #if 0
 static int   mrisOrientEllipsoidArea(MRI_SURFACE *mris) ;
+static int   mrisFindPoles(MRIS *mris) ;
+#endif
+static int   mrisComputeEllipsoidProperties(MRI_SURFACE *mris) ;
+#if AVERAGE_AREAS
+static int   mrisAverageAreas(MRI_SURFACE *mris, int num_avgs, int which) ;
 #endif
 
 /*--------------------------------------------------------------------*/
@@ -117,7 +130,7 @@ MRISread(char *fname)
     fprintf(stderr, "reading %d vertices and %d faces.\n",nvertices,nfaces);
 
   mris = MRISalloc(nvertices, nfaces) ;
-
+  strcpy(mris->fname, fname) ;
   if (strstr(fname, "rh"))
     mris->hemisphere = RIGHT_HEMISPHERE ;
   else
@@ -312,7 +325,7 @@ MRISread(char *fname)
 
   if (mrisReadTriangleProperties(mris, fname))
     mrisCalculateTriangleProperties(mris) ;
-  mrisFindPoles(mris) ;
+  /*  mrisFindPoles(mris) ;*/
 #if 0
   MRIScomputeFaceAreas(mris) ;
 #endif
@@ -637,113 +650,6 @@ mrisNormalFace(MRIS *mris, int fac,int n,float norm[])
   printf("[%5.2f,%5.2f,%5.2f] x [%5.2f,%5.2f,%5.2f] = [%5.2f,%5.2f,%5.2f]\n",
          v0[0],v0[1],v0[2],v1[0],v1[1],v1[2],norm[0],norm[1],norm[2]);
 */
-  return(NO_ERROR) ;
-}
-/*-----------------------------------------------------
-        Parameters:
-
-        Returns value:
-
-        Description
-          Find the 3 poles (temporal, occipital, and frontal) of
-          the cortical surface.
-------------------------------------------------------*/
-#define MIN_Z_DISTANCE       30.0f
-#define MIN_Y_DISTANCE       30.0f
-#define MIN_ANGLE_VARIATION  RADIANS(30.0f)
-
-static int
-mrisFindPoles(MRIS *mris)
-{
-  int     vno, n, neigh, local_max ;
-  VERTEX  *vertex, *v_neigh ;
-  Real    x, y, z, xt, yt, zt ;
-  float   temporal_y_hi = -1000, zfront, yfront, angle ;
-
-  if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
-    fprintf(stderr, "(%2.0f, %2.0f, %2.0f) --> (%2.0f, %2.0f, %2.0f), ctr "
-            "(%2.0f, %2.0f, %2.0f)\n",
-            mris->xlo, mris->ylo, mris->zlo, mris->xhi, mris->yhi, mris->zhi,
-            mris->xctr, mris->yctr, mris->zctr);
-  if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
-    fprintf(stderr, "finding cortical poles...") ;
-
-  /* first find frontal and occipital poles */
-  for (vno = 0 ; vno < mris->nvertices ; vno++)
-  {
-    vertex = &mris->vertices[vno] ;
-    if (vertex->y >= mris->yhi)
-      mris->v_frontal_pole = vertex ;
-    else if (vertex->y <= mris->ylo)
-      mris->v_occipital_pole = vertex ;
-  }
-
-  /* now find temporal pole */
-  zfront = mris->v_frontal_pole->z ; yfront = mris->v_frontal_pole->y ;
-  for (vno = 0 ; vno < mris->nvertices ; vno++)
-  {
-    vertex = &mris->vertices[vno] ;
-    x = (Real)vertex->x ; y = (Real)vertex->y ; z = (Real)vertex->z ;
-    if (mris->linear_transform)
-      transform_point(mris->linear_transform, -x, z, y, &xt, &yt, &zt) ;
-    else
-    { xt = -x ; yt = z ; zt = y ; }
-
-/*
-  some rules for finding the temporal pole:
-
-  1. must be a local max in y (posterior-anterior) direction.
-  2. Must be below some absolute y talairach coordinate.
-  3. Must be a minimum distance from the frontal pole in y and z directions.
-  4. Must have a normal vector within 30 degrees of (0,1,0).
-*/
-    if ((yt < MAX_TALAIRACH_Y) &&  /* low enough to be temporal pole */
-        ((zfront - vertex->z) > MIN_Z_DISTANCE) &&
-        ((yfront - vertex->y) > MIN_Y_DISTANCE))
-    {
-      local_max = 1 ;
-      if (vertex->y > temporal_y_hi)  /* check neighbors positions */
-      {
-        for (n = 0 ; n < vertex->vnum ; n++)
-        {
-          neigh = vertex->v[n] ;
-          v_neigh = &mris->vertices[neigh] ;
-          if (v_neigh->y > vertex->y)
-          {
-            local_max = 0 ;
-            break ;
-          }
-        }
-
-        angle = acos(vertex->ny) ;
-        if (local_max && (angle < MIN_ANGLE_VARIATION))
-        {
-          mris->v_temporal_pole = vertex ;
-          temporal_y_hi = vertex->y ;
-        }
-      }
-    }
-  }
-
-  if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
-  {
-    if (mris->v_temporal_pole)
-      fprintf(stderr, "F: (%2.0f,%2.0f,%2.0f), T: (%2.0f,%2.0f,%2.0f) "
-              "O: (%2.0f,%2.0f,%2.0f).\n",
-              mris->v_frontal_pole->x, mris->v_frontal_pole->y, 
-              mris->v_frontal_pole->z,
-              mris->v_temporal_pole->x, mris->v_temporal_pole->y, 
-              mris->v_temporal_pole->z,
-              mris->v_occipital_pole->x, mris->v_occipital_pole->y, 
-              mris->v_occipital_pole->z) ;
-    else
-      fprintf(stderr, "F: (%2.0f,%2.0f,%2.0f), T: (NOT FOUND), "
-              "O: (%2.0f,%2.0f,%2.0f).\n",
-              mris->v_frontal_pole->x, mris->v_frontal_pole->y, 
-              mris->v_frontal_pole->z,
-              mris->v_occipital_pole->x, mris->v_occipital_pole->y, 
-              mris->v_occipital_pole->z) ;
-  }
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
@@ -1480,7 +1386,7 @@ MRI_SURFACE *
 MRISunfold(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 {
   char    host_name[100], *cp ;
-  int     n_averages, done ;
+  int     base_averages, n_averages, done ;
   float   base_tol ;
   INTEGRATION_PARMS _parms ;
 
@@ -1513,7 +1419,7 @@ MRISunfold(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
       parms->write_iterations = WRITE_ITERATIONS ;
   }
 
-  n_averages = parms->n_averages ;
+  base_averages = n_averages = parms->n_averages ;
   cp = getenv("HOST") ;
   if (cp)
     strcpy(host_name, cp) ;
@@ -1553,10 +1459,31 @@ MRISunfold(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     n_averages /= 2 ;           /* repeat integration at a finer scale */
   } while (!done) ;
 
+  /* go through it again, starting from biggest scale */
+  n_averages = base_averages ;
+  do
+  {
+    parms->tol = base_tol * sqrt((float)n_averages+1.0f) ;
+    fprintf(stderr, "integrating at scale = %d, tol = %2.1e\n", n_averages,
+            parms->tol) ;
+    parms->n_averages = n_averages ;     /* # of averages == scale */
+    parms->start_t += mrisIntegrate(mris, parms) ;
+    done = n_averages == 0 ;    /* finished integrating at smallest scale */
+    n_averages /= 2 ;           /* repeat integration at a finer scale */
+  } while (!done) ;
+
   parms->tol = base_tol ;
   if (Gdiag & DIAG_SHOW)
     fclose(parms->fp) ;
 
+  switch (parms->projection)
+  {
+  case ELLIPSOID_PROJECTION:
+    MRISprojectOntoEllipsoid(mris, mris, 0.0f, 0.0f, 0.0f);
+    break ;
+  default:
+    break ;
+  }
   return(mris) ;
 }
 /*-----------------------------------------------------
@@ -1570,13 +1497,13 @@ static int
 mrisIntegrate(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 {
   char    base_name[100] ;
-  int     vno, t, fno, imin, write_iterations, fmin = 0,
+  int     vno, t, fno, imin, write_iterations, fmin = 0, num,
           negative, index, index_a, index_b, n_averages, niterations ;
   VERTEX  *v, *va, *vb ;
   VECTOR  *v_a, *v_b, *v_n, *v_area_delta, *v_b_x_n, *v_n_x_a, *v_sum, 
           *v_angle_delta ;
   FACE    *face ;
-  double  sse, old_sse ;
+  double  sse, old_sse, angle_sse, area_sse ;
   float   min_dz, dz, delta_t, orig_area, area, delta, 
           len, l_area, l_corr, l_angle, angle, orig_angle ;
 
@@ -1598,8 +1525,22 @@ mrisIntegrate(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   v_b_x_n = VectorAlloc(3, MATRIX_REAL) ;      
   v_angle_delta = VectorAlloc(3, MATRIX_REAL) ;
 
-  MRISprojectOntoEllipsoid(mris, mris, 0.0f, 0.0f, 0.0f);
-  sse = old_sse = mrisComputeSSE(mris, parms->l_area, parms->l_angle) ;
+  switch (parms->projection)
+  {
+  case ELLIPSOID_PROJECTION:
+    MRISprojectOntoEllipsoid(mris, mris, 0.0f, 0.0f, 0.0f);
+    break ;
+  default:
+    break ;
+  }
+
+#if AVERAGE_AREAS
+  mrisReadTriangleProperties(mris, mris->fname) ;
+  mrisAverageAreas(mris, parms->n_averages, ORIG_AREAS) ;
+#endif
+
+  sse = old_sse = mrisComputeError(mris, parms->l_area, parms->l_angle,
+                                   &area_sse,&angle_sse, &num);
   imin = -1 ;
   delta_t = 0.0f ;
   niterations += parms->start_t ;
@@ -1608,15 +1549,19 @@ mrisIntegrate(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     char fname[100] ;
 
     negative = mrisCountNegativeVertices(mris) ;
-    printf("%d of %d: dt = %2.3f, mse: %2.6f, neg: %d (%2.3f), avgs = %d\n",
-            parms->start_t, niterations, delta_t, sse/(float)mris->nvertices, 
-           negative, mris->neg_area, n_averages) ;
+    printf("%d of %d: dt: %2.3f, rms: %2.4f (%2.2f, %2.1f), neg: %d (%2.1f)"
+           ", avgs: %d\n", parms->start_t, niterations, delta_t, 
+           sqrt(sse/(float)num), sqrt(area_sse/(float)num), 
+           DEGREES(sqrt(angle_sse/(float)num)), 
+           negative, mris->neg_area, n_averages);
     if (Gdiag & DIAG_SHOW)
     {
-      fprintf(parms->fp,
-              "%d of %d: dt = %2.3f, mse: %2.6f, neg: %d (%2.3f), avgs = %d\n",
-              parms->start_t, niterations, delta_t, sse/(float)mris->nvertices,
-              negative, mris->neg_area, n_averages) ;
+      if (Gdiag & DIAG_SHOW)
+        fprintf(parms->fp, "%d of %d: dt: %2.3f, rms: %2.4f (%2.4f, %2.1f), "
+                "neg: %d (%2.1f) avgs: %d\n", parms->start_t, niterations, 
+                delta_t, sqrt(sse/(float)num), sqrt(area_sse/(float)num), 
+                DEGREES(sqrt(angle_sse/(float)num)), negative, mris->neg_area, 
+                n_averages);
       fflush(parms->fp) ;
     }
     fflush(stdout) ;
@@ -1626,6 +1571,10 @@ mrisIntegrate(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
       if (Gdiag & DIAG_SHOW)
         fprintf(stderr, "writing %s...", fname) ;
       MRISwrite(mris, fname) ;
+      sprintf(fname, "%s%4.4d.area_error", base_name, 0) ;
+      if (Gdiag & DIAG_SHOW)
+        fprintf(stderr, " %s...", fname) ;
+      MRISwriteAreaError(mris, fname) ;
       if (Gdiag & DIAG_SHOW)
       {
         fprintf(stderr, "done.\n") ;
@@ -1636,10 +1585,12 @@ mrisIntegrate(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 
   for (t = parms->start_t ; t < niterations ; t++)
   {
+#if AVERAGE_AREAS
+    mrisAverageAreas(mris, parms->n_averages, CURRENT_AREAS) ;
+#endif
     min_dz = 10000.0f ;
 
     /* calculcate movement of each vertex */
-    delta_t = 1.0f ; /* temporary - will be returned by lineMinimize */
     for (vno = 0 ; vno < mris->nvertices ; vno++)
     {
       v = &mris->vertices[vno] ;
@@ -1712,7 +1663,7 @@ if (DEBUG_VERTEX(vno))
         len = V3_DOT(v_a,v_a) ; 
         if (!FZERO(len))           /* |a|^2 */
           V3_SCALAR_MUL(v_n_x_a, 1.0f / len, v_n_x_a);
-        len = V3_DOT(v_b,v_b) ; /* |b|^2 */
+        len = V3_DOT(v_b,v_b) ;    /* |b|^2 */
         if (!FZERO(len))
           V3_SCALAR_MUL(v_b_x_n, 1.0f / len, v_b_x_n);
         V3_ADD(v_n_x_a, v_b_x_n, v_sum) ;
@@ -1808,31 +1759,38 @@ if (DEBUG_VERTEX(vno))
     if (!t && (Gdiag & DIAG_SURFACE) && DIAG_VERBOSE_ON)
       fprintf(stderr, "mindz = %2.3f at v %d, f %d\n",min_dz, imin, fmin) ;
 
+#if !AVERAGE_AREAS
     mrisAverageGradients(mris, n_averages) ;
+#endif
     parms->t = t ;
     delta_t = mrisLineMinimize(mris, parms) ;
-    /*    MRISupdateEllipsoidSurface(mris) ;*/
-    /* MRISprojectOntoEllipsoid(mris, mris, 0.0f, 0.0f, 0.0f);*/
 
     if (delta_t < parms->tol)   /* reached the minimum */
       break ;
 
     /* only print stuff out if we actually took a step */
-    sse = mrisComputeSSE(mris, parms->l_area, parms->l_angle) ;
-    if (fabs((sse-old_sse)/(sse+old_sse)) < parms->tol)
+    sse = mrisComputeError(mris,parms->l_area,parms->l_angle,&area_sse,
+                           &angle_sse, &num);
+    if (FZERO(sse) || (fabs((sse-old_sse)/(sse+old_sse)) < parms->tol/10.0f))
       break ;
 
     old_sse = sse ;
     negative = mrisCountNegativeVertices(mris) ;
-    printf("%d of %d: dt = %2.3f, mse: %2.6f, neg: %d (%2.3f), avgs = %d\n",
-            t+1, niterations, delta_t, sse/(float)mris->nvertices, 
-           negative,mris->neg_area, n_averages) ;
+    printf("%d of %d: dt: %2.3f, rms: %2.4f (%2.2f, %2.1f), neg: %d (%2.1f), "
+           "avgs: %d\n", t+1, niterations,  delta_t, 
+           (float)sqrt(sse/(float)num), 
+           (float)sqrt(area_sse/(float)num), 
+           (float)DEGREES(sqrt(angle_sse/(float)num)), 
+           negative, mris->neg_area, n_averages) ;
     fflush(stdout) ;
     if (Gdiag & DIAG_SHOW)
     {
-      fprintf(parms->fp,
-              "%d of %d: dt = %2.3f, mse: %2.6f, neg: %d (%2.3f), avgs = %d\n",
-              t+1, niterations, delta_t, sse/(float)mris->nvertices, 
+      fprintf(parms->fp, 
+              "%d of %d: dt: %2.3f, rms: %2.4f (%2.2f, %2.1f), neg: %d (%2.1f)"
+              ", avgs: %d\n", t+1, niterations, delta_t, 
+              (float)sqrt(sse/(float)num), 
+              (float)sqrt(area_sse/(float)num), 
+              (float)DEGREES(sqrt(angle_sse/(float)num)), 
               negative,mris->neg_area, n_averages) ;
       fflush(parms->fp) ;
     }
@@ -1844,6 +1802,10 @@ if (DEBUG_VERTEX(vno))
       if (Gdiag & DIAG_SHOW)
         fprintf(stderr, "writing %s...", fname) ;
       MRISwrite(mris, fname) ;
+      sprintf(fname, "%s%4.4d.area_error", base_name, t+1) ;
+      if (Gdiag & DIAG_SHOW)
+        fprintf(stderr, " %s...", fname) ;
+      MRISwriteAreaError(mris, fname) ;
       if (Gdiag & DIAG_SHOW)
       {
         fprintf(stderr, "done.\n") ;
@@ -1852,7 +1814,7 @@ if (DEBUG_VERTEX(vno))
     }
   }
 
-  /*  MRISprojectOntoEllipsoid(mris, mris, 0.0f, 0.0f, 0.0f);*/
+  MRISprojectOntoEllipsoid(mris, mris, 0.0f, 0.0f, 0.0f) ;
   VectorFree(&v_a) ;
   VectorFree(&v_b) ;
   VectorFree(&v_area_delta) ;
@@ -1863,6 +1825,42 @@ if (DEBUG_VERTEX(vno))
   VectorFree(&v_angle_delta) ;
 
   return(t-parms->start_t) ;  /* return actual # of steps taken */
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+static double
+mrisComputeError(MRI_SURFACE *mris, float l_area,float l_angle,
+                  double *parea_error, double *pangle_error, int *pn)
+{
+  double  sse, sse_area, sse_angle, delta ;
+  int     vno, fno, n ;
+  VERTEX  *v ;
+
+  sse_angle = sse_area = 0.0 ;
+  for (n = 0, vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    for (fno = 0 ; fno < v->num ; fno++, n++)
+    {
+      delta = (double)(v->tri_area[fno] - v->orig_tri_area[fno]) ;
+      sse_area += delta*delta ;
+      delta = deltaAngle(v->tri_angle[fno], v->orig_tri_angle[fno]);
+      sse_angle += delta*delta ;
+      if (!finite(sse_area) || !finite(sse_angle))
+        ErrorExit(ERROR_BADPARM, "sse is not finite at vertex %d!\n", vno) ;
+    }
+  }
+
+  *pn = n ;
+  *parea_error = sse_area ;
+  *pangle_error = sse_angle ;
+  sse = l_area * sse_area + l_angle * sse_angle ;
+  return(sse) ;
 }
 /*-----------------------------------------------------
         Parameters:
@@ -1915,6 +1913,7 @@ mrisScaleEllipsoidArea(MRI_SURFACE *mris)
   VERTEX  *v ;
 
   area_scale = mris->total_area / mris->orig_area ;
+#if 0
   if (mris->initialized < 2)  /* only do it once */
   {
     mris->initialized = 2 ;
@@ -1930,9 +1929,129 @@ mrisScaleEllipsoidArea(MRI_SURFACE *mris)
         v->orig_tri_area[fno] *= area_scale ;
     }
   }
+#else
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    
+    /* scale the area by the ratio of the ellipsoid area to that of the
+       original surface.
+       */
+    v->area /= area_scale ;
+    for (fno = 0 ; fno < v->num ; fno++)
+      v->tri_area[fno] /= area_scale ;
+  }
+#endif
   return(NO_ERROR) ;
 }
 #if 0
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+          Find the 3 poles (temporal, occipital, and frontal) of
+          the cortical surface.
+------------------------------------------------------*/
+#define MIN_Z_DISTANCE       30.0f
+#define MIN_Y_DISTANCE       30.0f
+#define MIN_ANGLE_VARIATION  RADIANS(30.0f)
+
+static int
+mrisFindPoles(MRIS *mris)
+{
+  int     vno, n, neigh, local_max ;
+  VERTEX  *vertex, *v_neigh ;
+  Real    x, y, z, xt, yt, zt ;
+  float   temporal_y_hi = -1000, zfront, yfront, angle ;
+
+  if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+    fprintf(stderr, "(%2.0f, %2.0f, %2.0f) --> (%2.0f, %2.0f, %2.0f), ctr "
+            "(%2.0f, %2.0f, %2.0f)\n",
+            mris->xlo, mris->ylo, mris->zlo, mris->xhi, mris->yhi, mris->zhi,
+            mris->xctr, mris->yctr, mris->zctr);
+  if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+    fprintf(stderr, "finding cortical poles...") ;
+
+  /* first find frontal and occipital poles */
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    vertex = &mris->vertices[vno] ;
+    if (vertex->y >= mris->yhi)
+      mris->v_frontal_pole = vertex ;
+    else if (vertex->y <= mris->ylo)
+      mris->v_occipital_pole = vertex ;
+  }
+
+  /* now find temporal pole */
+  zfront = mris->v_frontal_pole->z ; yfront = mris->v_frontal_pole->y ;
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    vertex = &mris->vertices[vno] ;
+    x = (Real)vertex->x ; y = (Real)vertex->y ; z = (Real)vertex->z ;
+    if (mris->linear_transform)
+      transform_point(mris->linear_transform, -x, z, y, &xt, &yt, &zt) ;
+    else
+    { xt = -x ; yt = z ; zt = y ; }
+
+/*
+  some rules for finding the temporal pole:
+
+  1. must be a local max in y (posterior-anterior) direction.
+  2. Must be below some absolute y talairach coordinate.
+  3. Must be a minimum distance from the frontal pole in y and z directions.
+  4. Must have a normal vector within 30 degrees of (0,1,0).
+*/
+    if ((yt < MAX_TALAIRACH_Y) &&  /* low enough to be temporal pole */
+        ((zfront - vertex->z) > MIN_Z_DISTANCE) &&
+        ((yfront - vertex->y) > MIN_Y_DISTANCE))
+    {
+      local_max = 1 ;
+      if (vertex->y > temporal_y_hi)  /* check neighbors positions */
+      {
+        for (n = 0 ; n < vertex->vnum ; n++)
+        {
+          neigh = vertex->v[n] ;
+          v_neigh = &mris->vertices[neigh] ;
+          if (v_neigh->y > vertex->y)
+          {
+            local_max = 0 ;
+            break ;
+          }
+        }
+
+        angle = acos(vertex->ny) ;
+        if (local_max && (angle < MIN_ANGLE_VARIATION))
+        {
+          mris->v_temporal_pole = vertex ;
+          temporal_y_hi = vertex->y ;
+        }
+      }
+    }
+  }
+
+  if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+  {
+    if (mris->v_temporal_pole)
+      fprintf(stderr, "F: (%2.0f,%2.0f,%2.0f), T: (%2.0f,%2.0f,%2.0f) "
+              "O: (%2.0f,%2.0f,%2.0f).\n",
+              mris->v_frontal_pole->x, mris->v_frontal_pole->y, 
+              mris->v_frontal_pole->z,
+              mris->v_temporal_pole->x, mris->v_temporal_pole->y, 
+              mris->v_temporal_pole->z,
+              mris->v_occipital_pole->x, mris->v_occipital_pole->y, 
+              mris->v_occipital_pole->z) ;
+    else
+      fprintf(stderr, "F: (%2.0f,%2.0f,%2.0f), T: (NOT FOUND), "
+              "O: (%2.0f,%2.0f,%2.0f).\n",
+              mris->v_frontal_pole->x, mris->v_frontal_pole->y, 
+              mris->v_frontal_pole->z,
+              mris->v_occipital_pole->x, mris->v_occipital_pole->y, 
+              mris->v_occipital_pole->z) ;
+  }
+  return(NO_ERROR) ;
+}
 /*-----------------------------------------------------
         Parameters:
 
@@ -2000,12 +2119,12 @@ mrisComputeEllipsoidProperties(MRI_SURFACE *mris)
     v = &mris->vertices[vno] ;
     v->area = 0.0f ;
     V3_CLEAR(v_n_avg) ;/* will be normal of vertex - avg of all triangles */
-if (DEBUG_VERTEX(vno))
-{
-  fprintf(stderr, "\ncomputing A and N for v %d at "
-          "(%2.3f, %2.3f, %2.3f), oarea = %2.2f\n", 
-          vno, v->x, v->y, v->z, v->origarea) ;
-}
+
+    if (DEBUG_VERTEX(vno))
+      fprintf(stderr, "\ncomputing A and N for v %d at "
+              "(%2.3f, %2.3f, %2.3f), oarea = %2.2f\n", 
+              vno, v->x, v->y, v->z, v->origarea) ;
+
     for (fno = 0 ; fno < v->num ; fno++)  /* all faces of this vertex */
     {
       face = &mris->faces[v->f[fno]] ;
@@ -2232,11 +2351,13 @@ mrisReadTriangleProperties(MRI_SURFACE *mris, char *mris_fname)
   for (k=0;k<vnum;k++)
   {
     v = &mris->vertices[k] ;
+    v->origarea = 0.0f ;
     for (fno = 0 ; fno < v->num ; fno++)
     {
       f = freadFloat(fp);
       v->orig_tri_area[fno] = f ;
       mris->orig_area += f;
+      v->origarea += f;
     }
   }
 
@@ -2409,13 +2530,15 @@ mrisCalculateTriangleProperties(MRI_SURFACE *mris)
 
         Description
 ------------------------------------------------------*/
+#define MAX_MM  (DEFAULT_A/10.0f)
+
 static float
 mrisLineMinimize(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 {
   char    fname[100] ;
   FILE    *fp = NULL ;
-  double  starting_sse, sse, min_sse ;
-  float   delta_t, total_delta ;
+  double  starting_sse, sse, min_sse, max_dt ;
+  float   delta_t, total_delta, min_delta, max_delta, dx, dy, dz, mag ;
   int     vno, done = 0, increasing ;
   VERTEX  *vertex ;
   static float last_max_delta_t = 0.0f ;
@@ -2426,14 +2549,7 @@ mrisLineMinimize(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     fp = fopen(fname, "w") ;
   }
 
-#if 0
-  if (FZERO(last_max_delta_t))  /* first time */
-    delta_t = 4.0f*sqrt((double)parms->n_averages+1.0)*DELTA_T ;
-  else
-    delta_t = last_max_delta_t ;
-#else
-  delta_t = 128.0f*parms->tol ;
-#endif
+  /*  delta_t = 128.0f*parms->tol ;*/
 
   switch (parms->projection)
   {
@@ -2444,8 +2560,67 @@ mrisLineMinimize(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     break ;
   }
   min_sse = starting_sse = mrisComputeSSE(mris, parms->l_area, parms->l_angle);
+
+  max_delta = 0.0f ;
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    vertex = &mris->vertices[vno] ;
+    dx = vertex->dx ; dy = vertex->dy ; dz = vertex->dz ;
+    mag = sqrt(dx*dx+dy*dy+dz*dz) ;
+    if (mag > max_delta)
+      max_delta = mag ;
+  }
+
+  max_dt = MAX_MM / max_delta ;
+
+  /* pick starting step size */
+  min_delta = 0.0f ; /* to get rid of compiler warning */
+  for (delta_t = parms->tol ; delta_t < max_dt ; delta_t *= 10.0f)
+  {
+    for (vno = 0 ; vno < mris->nvertices ; vno++)
+    {
+      vertex = &mris->vertices[vno] ;
+      vertex->ox = vertex->x ; vertex->oy = vertex->y ; vertex->oz = vertex->z;
+      vertex->x += delta_t * vertex->dx ;
+      vertex->y += delta_t * vertex->dy ;
+      vertex->z += delta_t * vertex->dz ;
+      if (!finite(vertex->x) || !finite(vertex->y) || !finite(vertex->z))
+        DiagBreak() ;
+    }
+    switch (parms->projection)
+    {
+    case ELLIPSOID_PROJECTION:
+      MRISprojectOntoEllipsoid(mris, mris, 0.0f, 0.0f, 0.0f);
+      break ;
+    default:
+      break ;
+    }
+    sse = mrisComputeSSE(mris, parms->l_area, parms->l_angle) ;
+    if (sse <= min_sse)   /* new minimum found */
+    {
+      min_sse = sse ;
+      min_delta = delta_t ;
+    }
+
+    /* undo step */
+    for (vno = 0 ; vno < mris->nvertices ; vno++)  
+    {
+      vertex = &mris->vertices[vno] ;
+      vertex->x = vertex->ox ; vertex->y = vertex->oy ; vertex->z=vertex->oz;
+      if (!finite(vertex->x) || !finite(vertex->y) || !finite(vertex->z))
+        DiagBreak() ;
+    }
+    MRISupdateEllipsoidSurface(mris) ;
+  }
+
+  delta_t = min_delta ;
+  fprintf(stderr,"max_delta = %2.3f, max_dt = %2.1f, starting delta = %2.3f\n",
+          max_delta, max_dt, delta_t) ;
+
+  /* now search for minimum in gradient direction */
   increasing = 1 ;
   total_delta = 0.0f ;
+  min_sse = starting_sse ;
   while (!done)
   {
     for (vno = 0 ; vno < mris->nvertices ; vno++)
@@ -2474,6 +2649,8 @@ mrisLineMinimize(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
       min_sse = sse ;
       total_delta += delta_t ;           /* keep track of total time step */
       last_max_delta_t = total_delta ;   /* best total time step */
+      if (total_delta+delta_t > max_dt)
+        increasing = 0 ;  /* limit size of largest time step */
     }
     else                 /* error increased - undo it and decrease time step */
     {
@@ -2487,17 +2664,7 @@ mrisLineMinimize(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
         if (!finite(vertex->x) || !finite(vertex->y) || !finite(vertex->z))
           DiagBreak() ;
       }
-#if 0
-      /* I don't think this is necessary */
-      switch (parms->projection)
-      {
-      case ELLIPSOID_PROJECTION:
-        MRISupdateEllipsoidSurface(mris) ;
-        break ;
-      default:
-        break ;
-      }
-#endif
+      MRISupdateEllipsoidSurface(mris) ;
     }
     if (increasing)    /* increase time step and search further out */
       delta_t *= 2.0f ;
@@ -2670,7 +2837,7 @@ MRISrotate(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst, float dphi,
     if (vno == DEBUG_VNO)
       DiagBreak() ;
 
-    vertex = &mris_dst->vertices[vno] ;
+    vertex = &mris_src->vertices[vno] ;
     x = vertex->x ; y = vertex->y ; z = vertex->z ;
     theta = atan2(y/b, x/a) ;
     if (theta < 0.0f)
@@ -3395,4 +3562,172 @@ MRISPtranslate(MRI_SP *mrisp_src, MRI_SP *mrisp_dst, int du, int dv)
   }
   return(mrisp_dst) ;
 }
+/*-----------------------------------------------------
+        Parameters:
 
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+int
+MRISwriteAreaError(MRI_SURFACE *mris, char *fname)
+{
+  int    k,i ;
+  float  area, orig_area ;
+  /*  char   fname[100], fpref[100], hemi[20], *cp ;*/
+  FILE   *fp;
+  
+  if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+    fprintf(stderr, "writing area error file %s...", fname) ;
+
+#if 0
+  cp = strrchr(mris_fname, '.') ;
+  if (!cp)
+    ErrorReturn(ERROR_BADPARM, 
+                (ERROR_BADPARM, "MRISwriteAreaError(%s): could not scan "
+                 "hemisphere from fname", mris_fname)) ;
+  strncpy(hemi, cp-2, 2) ; hemi[2] = 0 ;
+  FileNamePath(mris_fname, fpref) ;
+  sprintf(fname, "%s/%s.curv", fpref, hemi) ;
+#endif
+  fp = fopen(fname,"wb");
+  if (fp==NULL) 
+    ErrorReturn(ERROR_NOFILE, 
+                (ERROR_NOFILE, "MRISwriteAreaError: could not open %s", 
+                 fname)) ;
+
+  fwrite3(mris->nvertices,fp);
+  fwrite3(mris->nfaces,fp);
+  for (k=0;k<mris->nvertices;k++)
+  {
+    area = mris->vertices[k].area ;
+    orig_area = mris->vertices[k].origarea ;
+    i = (area-orig_area) * 100.0 ;
+    fwrite2((int)i,fp);
+  }
+  fclose(fp);
+  if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+    fprintf(stderr, "done.\n") ;
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+int
+MRISwriteAngleError(MRI_SURFACE *mris, char *fname)
+{
+  int    k,i, n ;
+  float  error ;
+  FILE   *fp;
+  VERTEX *v ;
+  
+  if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+    fprintf(stderr, "writing angular error file %s...", fname) ;
+
+  fp = fopen(fname,"wb");
+  if (fp==NULL) 
+    ErrorReturn(ERROR_NOFILE, 
+                (ERROR_NOFILE, "MRISwriteAngleError: could not open %s", 
+                 fname)) ;
+
+  fwrite3(mris->nvertices,fp);
+  fwrite3(mris->nfaces,fp);
+  for (k=0;k<mris->nvertices;k++)
+  {
+    error = 0.0f ;
+    v = &mris->vertices[k] ;
+    for (n = 0; n < v->num; n++)
+    {
+      error += fabs(v->tri_angle[n] - v->orig_tri_angle[n]) ;
+    }
+    i = DEGREES(error) * 100.0 ;
+    fwrite2((int)i,fp);
+  }
+  fclose(fp);
+  if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+    fprintf(stderr, "done.\n") ;
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+#if AVERAGE_AREAS
+static int
+mrisAverageAreas(MRI_SURFACE *mris, int num_avgs, int which)
+{
+  int    i, vno, vnb, *pnb, fno, num ;
+  float  area ;
+  VERTEX *v, *vn ;
+
+  for (i = 0 ; i < num_avgs ; i++)
+  {
+    switch (which)
+    {
+    case ORIG_AREAS:
+      for (vno = 0 ; vno < mris->nvertices ; vno++)
+      {
+        v = &mris->vertices[vno] ;
+        area = 0.0f ;
+
+        /* first include all the areas associated with this vertex */
+        for (fno = 0 ; fno < v->num ; fno++)
+          area += v->orig_tri_area[fno] ;
+
+        num = v->num ;
+
+        /* now include all the areas associated with its neighbors */
+        for (pnb = v->v, vnb = 0 ; vnb < v->vnum ; vnb++)
+        {
+          vn = &mris->vertices[*pnb++] ;    /* neighboring vertex pointer */
+          num += vn->num ;
+          for (fno = 0 ; fno < vn->num ; fno++)  /* for each face */
+            area += vn->orig_tri_area[fno] ;
+        }
+
+        /* first include all the areas associated with this vertex */
+        area /= (float)num ;
+        for (fno = 0 ; fno < v->num ; fno++)
+          v->orig_tri_area[fno] = area ;
+      }
+      break ;
+    case CURRENT_AREAS:
+      for (vno = 0 ; vno < mris->nvertices ; vno++)
+      {
+        v = &mris->vertices[vno] ;
+        area = 0.0f ;
+
+        /* first include all the areas associated with this vertex */
+        for (fno = 0 ; fno < v->num ; fno++)
+          area += v->tri_area[fno] ;
+
+        num = v->num ;
+
+        /* now include all the areas associated with its neighbors */
+        for (pnb = v->v, vnb = 0 ; vnb < v->vnum ; vnb++)
+        {
+          vn = &mris->vertices[*pnb++] ;    /* neighboring vertex pointer */
+          num += vn->num ;
+          for (fno = 0 ; fno < vn->num ; fno++)  /* for each face */
+            area += vn->tri_area[fno] ;
+        }
+
+        /* first include all the areas associated with this vertex */
+        area /= (float)num ;
+        for (fno = 0 ; fno < v->num ; fno++)
+          v->tri_area[fno] = area ;
+      }
+      break ;
+    }
+  }
+  return(NO_ERROR) ;
+}
+
+#endif
