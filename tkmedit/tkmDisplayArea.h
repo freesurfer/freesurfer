@@ -13,6 +13,8 @@
 #include "xGrowableArray.h"
 #include "mriHeadPointList.h"
 #include "gca.h"
+#include "const.h"
+#include "vlabels.h"
 
 typedef enum {
   DspA_tErr_NoErr = 0,
@@ -194,7 +196,7 @@ struct tkmDisplayArea {
   /* display data */
   mriVolumeRef           mpVolume;
   mriVolumeRef           mpAuxVolume;
-  mriVolumeRef            mROIGroup;
+  mriVolumeRef           mROIGroup;
   mriSurfaceRef          mpSurface;
   tkmFunctionalVolumeRef mpFunctionalVolume;
   x3DListRef             mpControlPoints;
@@ -202,6 +204,10 @@ struct tkmDisplayArea {
   mriHeadPointListRef    mHeadPoints;
   GCA*                   mGCAVolume;
   LTA*                   mGCATransform;
+  VLI*                   mVLI1 ;
+  VLI*                   mVLI2 ;
+  char                   isVLI1_name[STRLEN] ;
+  char                   isVLI2_name[STRLEN] ;
 };
 typedef struct tkmDisplayArea tkmDisplayArea;
 typedef tkmDisplayArea *tkmDisplayAreaRef;
@@ -261,6 +267,11 @@ DspA_tErr DspA_SetHeadPointList              ( tkmDisplayAreaRef this,
 DspA_tErr DspA_SetGCA                        ( tkmDisplayAreaRef this,
                  GCA*              iVolume,
                  LTA*              iTransform );
+DspA_tErr DspA_SetVLIs                        ( tkmDisplayAreaRef this,
+                 VLI*              iVLI1,
+                 VLI*              iVLI2,
+                 char*             isVLI1_name,
+                 char*             isVLI2_name);
 
 /* viewing state changes */
 DspA_tErr DspA_SetCursor             ( tkmDisplayAreaRef this, 
