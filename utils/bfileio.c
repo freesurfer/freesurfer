@@ -4,7 +4,7 @@ Purpose: Routines for handling bfile (bshort and bfloat) I/O.
 Author:  Douglas Greve
 Date:    11/22/00
 
-$Id: bfileio.c,v 1.1 2001/02/06 18:02:14 greve Exp $
+$Id: bfileio.c,v 1.2 2001/02/07 22:57:36 greve Exp $
 
 Bfile names are assumed to have the following format:
   stem_%03d.bext 
@@ -151,7 +151,7 @@ int bf_gettypefromname(char *bfname)
 
 /*---------------------------------------------*/
 int bf_readheader(char * hdrfile, int *nrows, int *ncols, 
-		  int *nfrms, int *endian)
+      int *nfrms, int *endian)
 {
   extern int  bferr;
   extern char bfmsg[BFMSGLEN];
@@ -175,7 +175,7 @@ int bf_readheader(char * hdrfile, int *nrows, int *ncols,
 }
 /*---------------------------------------------*/
 int bf_writeheader(char * hdrfile, int nrows, int ncols, 
-		   int nfrms, int endian)
+       int nfrms, int endian)
 {
   extern int  bferr;
   extern char bfmsg[BFMSGLEN];
@@ -199,8 +199,8 @@ int bf_writeheader(char * hdrfile, int nrows, int ncols,
 }
 /*---------------------------------------------*/
 int bf_getbfiledim(char * bfname, int *nrows, 
-		   int *ncols, int *nfrms,
-		   int *endian, int *type)
+       int *ncols, int *nfrms,
+       int *endian, int *type)
 {
   char  *stem  = NULL;
   char  hdrfile[1000];
@@ -312,8 +312,8 @@ float * bf_ldbfile(char * bfname, int *nrows, int *ncols, int *nfrms)
 }
 /*---------------------------------------------*/
 int bf_svbfile(float *bfdata, char *bfname, 
-	       int nrows, int ncols, int nfrms,
-	       int svendian)
+         int nrows, int ncols, int nfrms,
+         int svendian)
 {
   extern int  bferr;
   extern char bfmsg[BFMSGLEN];
@@ -361,9 +361,9 @@ int bf_svbfile(float *bfdata, char *bfname,
       /* copy data to temp buf and swap bytes */
       fdata = (float *) calloc(ntot,sizeof(float));
       if(fdata == NULL){
-	sprintf(bfmsg,"bf_svbfile() could not alloc float %d\n",ntot);
-	bferr = 1; fprintf(stderr,"%s \n",bfmsg);
-	return(1);
+  sprintf(bfmsg,"bf_svbfile() could not alloc float %d\n",ntot);
+  bferr = 1; fprintf(stderr,"%s \n",bfmsg);
+  return(1);
       }
       fdatadealloc = 1;
       memcpy(fdata, bfdata, ntot*sizeof(float));
@@ -478,7 +478,7 @@ int bf_getvoltype(char *stem)
 }
 /* -------------------------------------------------------- */
 int bf_getvoldim(char *stem, int *nrows,  int *ncols, int *nslcs, 
-		 int *nfrms, int *endian, int *type)
+     int *nfrms, int *endian, int *type)
 {
 
   char hdrfile[1000];
@@ -518,8 +518,8 @@ int bf_freebfd(BF_DATA **bfd)
     for(n=0; n < (*bfd)->nslcs; n++){
       /* Free each slice of the data */
       if((*bfd)->slcdata[n] != NULL){
-	free((*bfd)->slcdata[n]);
-	(*bfd)->slcdata[n] = NULL;
+  free((*bfd)->slcdata[n]);
+  (*bfd)->slcdata[n] = NULL;
       }
     }
     free((*bfd)->slcdata);
@@ -597,7 +597,7 @@ int bf_delete_volume(char *stem)
   char fname[1000];
   int nrows, ncols, nslcs, nfrms, endian, type;
   int err, slice;
-  char *ext;
+  char *ext = NULL;
 
   if(! bf_volume_exists(stem) ){
     fprintf(stderr,"bf_delete_volume(): volume %s does not exist\n",stem);
@@ -858,7 +858,7 @@ int bf_rcf2index(BF_DATA *bfd, int r, int c, int f)
   index in a slice.
   -------------------------------------------------------------*/
 int bf_index2rcf(BF_DATA *bfd, int index, int *r, int *c, int *f)
-		  
+      
 {
   int i = index;
 
@@ -886,11 +886,11 @@ int bf_get_minmax(BF_DATA *bfd, float *bfdmin, float *bfdmax)
   for(r=0;r<bfd->nrows;r++){
     for(c=0;c<bfd->ncols;c++){
       for(s=0;s<bfd->nslcs;s++){
-	for(f=0;f<bfd->nfrms;f++){
-	  val = BF_GETVAL(bfd,r,c,s,f);
-	  if(*bfdmin > val) *bfdmin = val;
-	  if(*bfdmax < val) *bfdmax = val;
-	}
+  for(f=0;f<bfd->nfrms;f++){
+    val = BF_GETVAL(bfd,r,c,s,f);
+    if(*bfdmin > val) *bfdmin = val;
+    if(*bfdmax < val) *bfdmax = val;
+  }
       }
     }
   }
@@ -913,11 +913,11 @@ int bf_rescale(BF_DATA *bfd, float min, float max)
   for(r=0;r<bfd->nrows;r++){
     for(c=0;c<bfd->ncols;c++){
       for(s=0;s<bfd->nslcs;s++){
-	for(f=0;f<bfd->nfrms;f++){
-	  val = (BF_GETVAL(bfd,r,c,s,f) - bfdmin)/bfdrange;
-	  val = range*val + min;
-	  BF_SETVAL(val,bfd,r,c,s,f);
-	}
+  for(f=0;f<bfd->nfrms;f++){
+    val = (BF_GETVAL(bfd,r,c,s,f) - bfdmin)/bfdrange;
+    val = range*val + min;
+    BF_SETVAL(val,bfd,r,c,s,f);
+  }
       }
     }
   }
@@ -940,7 +940,7 @@ int bf_rescale(BF_DATA *bfd, float min, float max)
       ie, xyzBF = R*xyzCOR
   -------------------------------------------------------------*/
 int bf_read_register(char *regfile, char **subject, float *ipr, 
-		     float *bpr, float *intensity,  float R[4][4])
+         float *bpr, float *intensity,  float R[4][4])
 {
   FILE *fp;
   char tmp[1000];
@@ -998,10 +998,10 @@ int bf_read_register(char *regfile, char **subject, float *ipr,
       n = fscanf(fp,"%f",&R[r][c]);
       /*printf("%d %d %f\n",r,c,R[r][c]);*/
       if(n != 1){
-	perror("bf_read_register()");
-	fprintf(stderr,"Error reading R[%d][%d] from %s\n",r,c,regfile);
-	fclose(fp);
-	return(1);
+  perror("bf_read_register()");
+  fprintf(stderr,"Error reading R[%d][%d] from %s\n",r,c,regfile);
+  fclose(fp);
+  return(1);
       }
     }
   }
@@ -1015,8 +1015,8 @@ int bf_read_register(char *regfile, char **subject, float *ipr,
   xyz = Q*rcs
   --------------------------------------------------------*/
 int bf_qmtx(int nrows, int ncols, int nslcs, 
-	    float rowres, float colres, float slcres,
-	    float Q[4][4])
+      float rowres, float colres, float slcres,
+      float Q[4][4])
 {
   int r,c;
 
