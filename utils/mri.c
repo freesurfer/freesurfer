@@ -8,10 +8,10 @@
  *
  */
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/06/08 18:23:54 $
-// Revision       : $Revision: 1.275 $
-char *MRI_C_VERSION = "$Revision: 1.275 $";
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2004/06/24 16:23:42 $
+// Revision       : $Revision: 1.276 $
+char *MRI_C_VERSION = "$Revision: 1.276 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -8906,6 +8906,10 @@ MRIcopyFrame(MRI *mri_src, MRI *mri_dst, int src_frame, int dst_frame)
   if (mri_src->type != mri_dst->type)
     ErrorReturn(NULL,(ERROR_UNSUPPORTED,
                       "MRIcopyFrame: src and dst must be same type"));
+	if (dst_frame >= mri_dst->nframes)
+		ErrorReturn(NULL, 
+								(ERROR_BADPARM, "MRIcopyFrame: dst frame #%d out of range (nframes=%d)\n",
+								 dst_frame, mri_dst->nframes)) ;
   MRIcopyHeader(mri_src, mri_dst) ;
 
   switch (mri_src->type)
@@ -11069,3 +11073,62 @@ MRIeraseNegative(MRI *mri_src, MRI *mri_dst)
 	}
 	return(mri_dst) ;
 }
+int
+MRIsampleVolumeSlice(MRI *mri, Real x, Real y, Real z, Real *pval, int slice_direction)
+{
+  int  OutOfBounds;
+  int  xm, xp, ym, yp, zm, zp, width, height, depth ;
+  Real val, xmd, ymd, xpd, ypd ;  /* d's are distances */
+	Real val11, val12, val21, val22 ;
+
+  if (FEQUAL((int)x,x) && FEQUAL((int)y,y) && FEQUAL((int)z, z))
+    return(MRIsampleVolumeType(mri, x, y, z, pval, SAMPLE_NEAREST)) ;
+
+  OutOfBounds = MRIindexNotInVolume(mri, x, y, z);
+  if(OutOfBounds == 1){
+    /* unambiguously out of bounds */
+    *pval = 0.0;
+    return(NO_ERROR) ;
+  }
+
+  width = mri->width ; height = mri->height ; depth = mri->depth ; 
+
+  if (x >= width)    x = width - 1.0 ;
+  if (y >= height)   y = height - 1.0 ;
+  if (z >= depth)    z = depth - 1.0 ;
+  if (x < 0.0)       x = 0.0 ;
+  if (y < 0.0)       y = 0.0 ;
+  if (z < 0.0)       z = 0.0 ;
+
+  xm = MAX((int)x, 0) ;
+  xp = MIN(width-1, xm+1) ;
+  ym = MAX((int)y, 0) ;
+  yp = MIN(height-1, ym+1) ;
+  zm = MAX((int)z, 0) ;
+  zp = MIN(depth-1, zm+1) ;
+
+  xmd = x - (float)xm ;
+  ymd = y - (float)ym ;
+  xpd = (1.0f - xmd) ;
+  ypd = (1.0f - ymd) ;
+
+	switch (slice_direction)
+	{
+	case MRI_CORONAL:
+		zp = nint(z) ;
+		val11 = MRIgetVoxVal(mri, xm, ym, zp, 0) ;
+		val12 = MRIgetVoxVal(mri, xm, yp, zp, 0) ;
+		val21 = MRIgetVoxVal(mri, xp, ym, zp, 0) ;
+		val22 = MRIgetVoxVal(mri, xp, yp, zp, 0) ;
+    *pval = val = xpd * ypd * val11 + xpd * ymd * val12 + xmd * ypd * val21 +
+      xmd * ymd * val22 ;
+    break ;
+  default:
+    ErrorReturn(ERROR_UNSUPPORTED, 
+                (ERROR_UNSUPPORTED, 
+                 "MRIsampleVolumeSlice: unsupported direction %d", slice_direction)) ;
+    break ;
+  }
+  return(NO_ERROR) ;
+}
+
