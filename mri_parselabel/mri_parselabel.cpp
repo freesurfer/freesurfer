@@ -62,6 +62,14 @@ bool operator==(const Vertex &a, const Vertex &b)
     return false;
 }
 
+ostream &operator<<(ostream &s, const Vertex &v)
+{
+  s.setf(ios::fixed, ios::floatfield);
+  s.precision(4);
+  s << " (" << setw(8) << v.x_ << ", " << setw(8) << v.y_ << ", " << setw(8) << v.z_ << ") ";
+  return s;
+}
+
 // used for sort 
 class LessX
 {
@@ -87,7 +95,7 @@ int main(int argc, char *argv[])
   int nargs;
   Progname=argv[0];
 
-  nargs = handle_version_option (argc, argv, "$Id: mri_parselabel.cpp,v 1.10 2004/06/10 16:53:57 tosa Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_parselabel.cpp,v 1.11 2004/06/10 19:30:58 tosa Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -102,14 +110,14 @@ int main(int argc, char *argv[])
   // check 
   if (argc < 5)
   {
-    cerr << "Usage: mri_parselabel [option] <labelfile> <positionscaling> <volfileforlabel> <outputvol> <greyforlabel>" << endl;
-    cerr << "option: -cras        : use scanner ras value for label position" << endl;
-    cerr << "                       default is to use the surface ras value."<< endl;
+    cerr << "Usage: mri_parselabel [option] <labelfile> <volfileforlabel> <outputvol> <greyforlabel>" << endl;
+    cerr << "options are:" << endl;
     cerr << "        -scale <val> : uses <val> to scale label position" << endl;
     cerr << "        -xfm <xfm>   : use the xfm to transform the vertices " << endl;
     cerr << "                     : xfm must be from highres to lowres." << endl;
-    cerr << "        -fillup      : try to verify none of the label positions are missed." << endl;
-    cerr << "                       takes a long time.....                               " << endl;
+    cerr << "        -invert      : apply the inverse of the transform." << endl;
+    cerr << "        -cras        : use scanner ras value for label position" << endl;
+    cerr << "                       default is to use the surface ras value."<< endl;
     return -1;
   }
   cout << "---------------------------------------------------------------" << endl;
@@ -150,12 +158,16 @@ int main(int argc, char *argv[])
       cerr << " need to calculate the correct transform" << endl;
       return -1;
     }
+    else
+      cout << "found the src volume: " << lta->xforms[0].src.fname << endl;
     if (!lta->xforms[0].dst.valid)
     {
       cerr << "could not find the dst volume" << lta->xforms[0].dst.fname << endl;
       cerr << " need to calculate the correct transform" << endl;
       return -1;
     }
+    else
+      cout << "found the dst volume: " << lta->xforms[0].dst.fname << endl;
   }
 
   MRI *mriIn=MRIread(argv[2]);
@@ -214,9 +226,9 @@ int main(int argc, char *argv[])
     MATRIX *sRASFromRAS;
     sRASFromRAS = MatrixAlloc(4, 4, MATRIX_REAL);
     MatrixIdentity(4, sRASFromRAS);
-    *MATRIX_RELT(sRASFromRAS, 1,4) = - lta->xforms[0].dst.c_r;
-    *MATRIX_RELT(sRASFromRAS, 2,4) = - lta->xforms[0].dst.c_a;
-    *MATRIX_RELT(sRASFromRAS, 3,4) = - lta->xforms[0].dst.c_s;
+    *MATRIX_RELT(sRASFromRAS, 1,4) = -lta->xforms[0].dst.c_r;
+    *MATRIX_RELT(sRASFromRAS, 2,4) = -lta->xforms[0].dst.c_a;
+    *MATRIX_RELT(sRASFromRAS, 3,4) = -lta->xforms[0].dst.c_s;
     
     MATRIX *tmpM = MatrixMultiply(lta->xforms[0].m_L, RASFromSRAS, NULL);
     hSRASTolSRAS = MatrixMultiply(sRASFromRAS, tmpM, NULL); 
@@ -224,7 +236,16 @@ int main(int argc, char *argv[])
     MatrixFree(&RASFromSRAS);
     MatrixFree(&sRASFromRAS);
     MatrixFree(&tmpM);
-    cout << "calculation done." << endl;
+
+    if (invert)
+    {
+      MATRIX *tmp=MatrixInverse(hSRASTolSRAS, NULL);
+      MatrixFree(&hSRASTolSRAS);
+      hSRASTolSRAS = tmp;
+    }  
+    cout << "surfaceRASToSurfaceRAS matrix " << endl;
+    MatrixPrint(stdout, hSRASTolSRAS);
+    cout << "Transforming vertices ... " << endl;
   }
   // read label
   int count =0;
@@ -235,7 +256,6 @@ int main(int argc, char *argv[])
     double x, y, z;
     double value;
     flabel >> num >> x >> y >> z >> value;
-    // cout << "(" << x << ", " << y << ", " << z << ")" << endl;
     if (xfname.size())
     {
       double xt, yt, zt;
@@ -244,9 +264,11 @@ int main(int argc, char *argv[])
       v = Vertex(xt, yt, zt, value);
       if (count < 10)
       {
-	cout << "transformed: (" << scale*x << ", " << scale*y << ", " << scale*z << ") " 
-	     << " to  (" << xt << ", " << yt << ", " << zt << ") " << endl;
+	cout << "transformed:";
+	cout << Vertex(scale*x, scale*y, scale*z) << "to " << v << endl;
       }
+      else if (count == 10)
+	cout << " ... " << endl;
       count++;
     }
     else
@@ -301,20 +323,16 @@ int main(int argc, char *argv[])
   {
     rasToVox(mriIn, vertices[i].x_, vertices[i].y_, vertices[i].z_, &xv, &yv, &zv);
     if (count < 10)
-    {
-      cout << "get voxel at (" << xv << ", " << yv << ", " << zv << ")" 
-	   << "  from vertex (" << vertices[i].x_ << ", " << vertices[i].y_ << ", " << vertices[i].z_ << ") " << endl;
-    }
+      cout << "get voxel at " << Vertex(xv, yv, zv) << "from vertex " << vertices[i] << endl;
+    else if (count == 10)
+      cout << " ... " << endl;
     count++;
 
     // verify the voxel position
     if (xv < 0 || yv < 0 || zv < 0 
 	|| xv > mriIn->width-1 || yv > mriIn->height-1 || zv > mriIn->depth -1)
     {
-      cerr << "Vertex " << i 
-	   << " has invalid voxel position (" << xv << ", " << yv << ", " << zv << ") from "
-	   << " (" << vertices[i].x_ << ", " << vertices[i].y_ << ", " << vertices[i].z_ 
-	   << ") " << endl;
+      cerr << "Vertex " << i << vertices[i] << " has invalid voxel position " << Vertex(xv, yv, zv) << endl;
 
       MRIfree(&mriIn);
       MRIfree(&mriOut);
@@ -338,11 +356,10 @@ int main(int argc, char *argv[])
 	  if (Vertex(xr, yr, zr) == vertices[i] && (x0+y0+z0) != 0)
 	  {
 	    MRIvox(mriOut, x, y, z ) = (unsigned char) val;
-	    cout << "\nadded another voxel point: ( " 
-		 << x << ", " << y << ", " << z <<")" << "for ras point: (" 
-		 << xr << ", " << yr << ", " << zr << ")"  
-	         << " for vertex (" << vertices[i].x_ << ", " << vertices[i].y_ << ", " << vertices[i].z_ << ") "
-	         << endl; 
+	    cout << "added voxel:" << Vertex(x, y, z)  
+		 << "for vertex :" << Vertex(xr, yr, zr) << endl; 
+	    cout << "       when:" << Vertex(nint(xv),nint(yv),nint(zv)) 
+		 << "for vertex :" << vertices[i] << endl;
 	    added++;
 	  }
 	}
