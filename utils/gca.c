@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/01/12 16:46:46 $
-// Revision       : $Revision: 1.83 $
+// Revision Date  : $Date: 2004/01/12 23:27:23 $
+// Revision       : $Revision: 1.84 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -28,9 +28,12 @@ int Ggca_label = -1 ;
 int Ggca_x = -1 ;
 int Ggca_y = -1 ;
 int Ggca_z = -1 ;
-int Gxp = 64;
-int Gyp = 43;
-int Gzp = 64;
+int Gxp = -1;
+int Gyp = -1;
+int Gzp = -1;
+int Gxn = 32;
+int Gyn = 21;
+int Gzn = 32;
 
 /* this is the hack section */
 double PRIOR_FACTOR = 0.1 ;
@@ -149,6 +152,7 @@ static int xnbr_offset[] = { 1, -1, 0, 0,  0,  0} ;
 static int ynbr_offset[] = { 0, 0,  1, -1, 0,  0} ;
 static int znbr_offset[] = { 0, 0,  0, 0,  1, -1} ;
 int check_finite(char *where, double what) ;
+static int boundsCheck(int ix, int iy, int iz, MRI *mri);
 
 /// the values are global scope and thus use a funny __ at the end so that
 /// other people can use mri_node/prior without overriding them.
@@ -189,6 +193,11 @@ void GCAsetup(GCA *gca)
   mri_node__->ysize = gca->node_spacing;
   mri_node__->zsize = gca->node_spacing;
 
+  fprintf(stderr, "node voxelToRAS\n");
+  MATRIX *mnode = extract_i_to_r(mri_node__);
+  MatrixPrint(stderr, mnode);
+  MatrixFree(&mnode);
+
   // setup prior part ////////////////////////////////////////////////////////////////
   if (mri_prior__)
   {
@@ -209,6 +218,11 @@ void GCAsetup(GCA *gca)
   mri_prior__->ysize = gca->prior_spacing;
   mri_prior__->zsize = gca->prior_spacing;
 
+  fprintf(stderr, "prior voxelToRAS\n");
+  MATRIX *mprior = extract_i_to_r(mri_prior__);
+  MatrixPrint(stderr, mprior);
+  MatrixFree(&mprior);
+  
   // set up the default talairach volume /////////////////////////////////////////////
   if (mri_tal__)
   {
@@ -228,6 +242,12 @@ void GCAsetup(GCA *gca)
   mri_tal__->xsize = gca->xsize; 
   mri_tal__->ysize = gca->ysize;
   mri_tal__->zsize = gca->zsize;
+
+  fprintf(stderr, "tal voxelToRAS\n");
+  MATRIX *mtal = extract_i_to_r(mri_tal__);
+  MatrixPrint(stderr, mtal);
+  MatrixFree(&mtal);
+
 }
 
 // using the values of mri, modify gca
@@ -348,81 +368,103 @@ get_node_prior(GCA *gca, int label, int xn, int yn, int zn)
     return 0.;
 }
 
-static int
-gcaNodeToPrior(GCA *gca, int xn, int yn, int zn, int *pxp, int *pyp, int *pzp)
+// use the same function for bounds checking
+// if (ix, iy, iz) is within mri volume, returns NO_ERROR
+//                                       otherwise ERROR_BADPARAM
+static int boundsCheck(int ix, int iy, int iz, MRI *mri)
 {
-  double xp, yp, zp;
-  int ixp=0;
-  int iyp=0;
-  int izp=0;
-  // initialize errCode
-  int errCode = NO_ERROR;
+  int errCode = NO_ERROR; // initialize
+  if (ix < 0) 
+    errCode = ERROR_BADPARM;
+  else if (iy < 0) 
+    errCode = ERROR_BADPARM;
+  else if (iz < 0) 
+    errCode = ERROR_BADPARM;
+  else if (ix > mri->width-1) 
+    errCode = ERROR_BADPARM;  
+  else if (iy > mri->height-1)
+    errCode = ERROR_BADPARM;
+  else if (iz > mri->depth-1) 
+    errCode = ERROR_BADPARM;
+  return errCode;
+}
+
+int gcaNodeToPriorReal(GCA *gca, Real xn, Real yn, Real zn, Real *pxp, Real *pyp, Real *pzp)
+{
   MATRIX *rasFromNode = extract_i_to_r(mri_node__);
   MATRIX *priorFromRAS = extract_r_to_i(mri_prior__);
   MATRIX *nodeToPrior = MatrixMultiply(priorFromRAS, rasFromNode, NULL);
-  TransformWithMatrix(nodeToPrior, xn, yn, zn, &xp, &yp, &zp);
+  TransformWithMatrix(nodeToPrior, xn, yn, zn, pxp, pyp, pzp);
+
+  MatrixFree(&rasFromNode);
+  MatrixFree(&priorFromRAS);
+  MatrixFree(&nodeToPrior);
+
+  return NO_ERROR;
+}
+
+static int
+gcaNodeToPrior(GCA *gca, int xn, int yn, int zn, int *pxp, int *pyp, int *pzp)
+{
+  Real xp, yp, zp;
+  int ixp, iyp, izp;
+  // initialize errCode
+  int errCode = NO_ERROR;
+
+  gcaNodeToPriorReal(gca, xn, yn, zn, &xp, &yp, &zp);
 
   // bounds check
   // xn, yn, zn are double.  we use voxel center as integer
   ixp = (int) floor(xp+.5);
   iyp = (int) floor(yp+.5);
   izp = (int) floor(zp+.5);
-  if (ixp < 0) 
-    errCode = ERROR_BADPARM;
-  else if (iyp < 0) 
-    errCode = ERROR_BADPARM;
-  else if (izp < 0) 
-    errCode = ERROR_BADPARM;
-  else if (ixp > mri_prior__->width-1) 
-    errCode = ERROR_BADPARM;  
-  else if (iyp > mri_prior__->height-1)
-    errCode = ERROR_BADPARM;
-  else if (izp > mri_prior__->depth-1) 
-    errCode = ERROR_BADPARM;
+  
+  errCode = boundsCheck(ixp, iyp, izp, mri_prior__);
+
   *pxp = ixp;
   *pyp = iyp;
   *pzp = izp;
-  MatrixFree(&rasFromNode);
-  MatrixFree(&priorFromRAS);
-  MatrixFree(&nodeToPrior);
+
   return errCode ;
+}
+
+int GCApriorToNodeReal(GCA *gca, Real xp, Real yp, Real zp, Real *pxn, Real *pyn, Real *pzn)
+{
+  MATRIX *rasFromPrior = extract_i_to_r(mri_prior__);
+  MATRIX *nodeFromRAS = extract_r_to_i(mri_node__);
+  MATRIX *priorToNode = MatrixMultiply(nodeFromRAS, rasFromPrior, NULL);
+
+  TransformWithMatrix(priorToNode, xp, yp, zp, pxn, pyn, pzn);
+
+  MatrixFree(&rasFromPrior);
+  MatrixFree(&nodeFromRAS);
+  MatrixFree(&priorToNode);
+
+  return NO_ERROR;
 }
 
 int
 GCApriorToNode(GCA *gca, int xp, int yp, int zp, int *pxn, int *pyn, int *pzn)
 {
-  double xn, yn, zn;
+  Real xn, yn, zn;
   int ixn=0;
   int iyn=0;
   int izn=0;
   int errCode = NO_ERROR;
-  MATRIX *rasFromPrior = extract_i_to_r(mri_prior__);
-  MATRIX *nodeFromRAS = extract_r_to_i(mri_node__);
-  MATRIX *priorToNode = MatrixMultiply(nodeFromRAS, rasFromPrior, NULL);
-  TransformWithMatrix(priorToNode, xp, yp, zp, &xn, &yn, &zn);
+
+  GCApriorToNodeReal(gca, xp, yp, zp, &xn, &yn, &zn);
+
   // bounds check
   // xn, yn, zn are double.  we use voxel center as integer
   ixn = (int) floor(xn+.5);
   iyn = (int) floor(yn+.5);
   izn = (int) floor(zn+.5);
-  if (ixn < 0) 
-    errCode = ERROR_BADPARM;
-  else if (iyn < 0) 
-    errCode = ERROR_BADPARM;
-  else if (izn < 0) 
-    errCode = ERROR_BADPARM;
-  else if (ixn > mri_node__->width-1) 
-    errCode = ERROR_BADPARM;  
-  else if (iyn > mri_node__->height-1)
-    errCode = ERROR_BADPARM;
-  else if (izn > mri_node__->depth-1) 
-    errCode = ERROR_BADPARM;
+
+  errCode = boundsCheck(ixn, iyn, izn, mri_node__);
+
   *pxn = ixn;
   *pyn = iyn;
   *pzn = izn;
-  MatrixFree(&rasFromPrior);
-  MatrixFree(&nodeFromRAS);
-  MatrixFree(&priorToNode);
   return errCode;
 }
 
@@ -544,44 +586,42 @@ dump_gcan(GCA *gca, GCA_NODE *gcan, FILE *fp, int verbose, GCA_PRIOR *gcap)
 ////////////////////////////////////////////////////////////////
 // transform from template -> node
 ////////////////////////////////////////////////////////////////
-int
-GCAvoxelToNode(GCA *gca, MRI *mri, int xv, int yv, int zv, int *pxn, 
-               int *pyn, int *pzn)
+int GCAvoxelToNodeReal(GCA *gca, MRI *mri, Real xv, Real yv, Real zv,
+			Real *pxn, Real *pyn, Real *pzn)
 {
-  double xn, yn, zn;
-  int   ixn, iyn, izn;
-  int errCode = NO_ERROR;
-
   MATRIX *rasFromVoxel = extract_i_to_r(mri);
   MATRIX *nodeFromRAS = extract_r_to_i(mri_node__);
   MATRIX *voxelToNode = MatrixMultiply(nodeFromRAS, rasFromVoxel, NULL);
 
-  TransformWithMatrix(voxelToNode, xv, yv, zv, &xn, &yn, &zn);
+  TransformWithMatrix(voxelToNode, xv, yv, zv, pxn, pyn, pzn);
+
+  MatrixFree(&rasFromVoxel);
+  MatrixFree(&nodeFromRAS);
+  MatrixFree(&voxelToNode);
+
+  return NO_ERROR;
+}
+
+int
+GCAvoxelToNode(GCA *gca, MRI *mri, int xv, int yv, int zv, int *pxn, 
+               int *pyn, int *pzn)
+{
+  Real xn, yn, zn;
+  int   ixn, iyn, izn;
+  int errCode = NO_ERROR;
+
+  GCAvoxelToNodeReal(gca, mri, xv, yv, zv, &xn, &yn, &zn);
 
   // xn, yn, zn are double.  we use voxel center as integer
   ixn = (int) floor(xn+.5);
   iyn = (int) floor(yn+.5);
   izn = (int) floor(zn+.5);
   // if outofbounds, tell it
-  if (ixn < 0) 
-    errCode = ERROR_BADPARM;
-  else if (iyn < 0) 
-    errCode = ERROR_BADPARM;
-  else if (izn < 0) 
-    errCode = ERROR_BADPARM;
-  else if (ixn > mri_node__->width-1) 
-    errCode = ERROR_BADPARM;
-  else if (iyn > mri_node__->height-1) 
-    errCode = ERROR_BADPARM;
-  else if (izn > mri_node__->depth-1) 
-    errCode = ERROR_BADPARM;
+  errCode = boundsCheck(ixn, iyn, izn, mri_node__);
   // 
   *pxn = ixn;
   *pyn = iyn;
   *pzn = izn;
-  MatrixFree(&rasFromVoxel);
-  MatrixFree(&nodeFromRAS);
-  MatrixFree(&voxelToNode);
 
   return errCode;
 }
@@ -589,43 +629,42 @@ GCAvoxelToNode(GCA *gca, MRI *mri, int xv, int yv, int zv, int *pxn,
 ////////////////////////////////////////////////////////////////////
 // transform from template -> prior
 ////////////////////////////////////////////////////////////////////
-int
-GCAvoxelToPrior(GCA *gca, MRI *mri, int xv, int yv, int zv, 
-                    int *pxp, int *pyp, int *pzp)
+int GCAvoxelToPriorReal(GCA *gca, MRI *mri, Real xv, Real yv, Real zv, 
+			 Real *pxp, Real *pyp, Real *pzp)
 {
-  double xp, yp, zp;
-  int ixp, iyp, izp;
-  int errCode = NO_ERROR;
-
   MATRIX *rasFromVoxel = extract_i_to_r(mri);
   MATRIX *priorFromRAS = extract_r_to_i(mri_prior__);
   MATRIX *voxelToPrior = MatrixMultiply(priorFromRAS, rasFromVoxel, NULL);
 
-  TransformWithMatrix(voxelToPrior, xv, yv, zv, &xp, &yp, &zp);
+  TransformWithMatrix(voxelToPrior, xv, yv, zv, pxp, pyp, pzp);
+
+  MatrixFree(&rasFromVoxel);
+  MatrixFree(&priorFromRAS);
+  MatrixFree(&voxelToPrior);
+
+  return NO_ERROR;
+}
+
+int
+GCAvoxelToPrior(GCA *gca, MRI *mri, int xv, int yv, int zv, 
+                    int *pxp, int *pyp, int *pzp)
+{
+  Real xp, yp, zp;
+  int ixp, iyp, izp;
+  int errCode = NO_ERROR;
+
+  GCAvoxelToPriorReal(gca, mri, xv, yv, zv, &xp, &yp, &zp);
+
   ixp = (int) floor(xp+.5);
   iyp = (int) floor(yp+.5);
   izp = (int) floor(zp+.5);
   // bound check
   // if outofbounds, tell it
-  if (ixp < 0) 
-    errCode = ERROR_BADPARM;
-  else if (iyp < 0) 
-    errCode = ERROR_BADPARM;
-  else if (izp < 0) 
-    errCode = ERROR_BADPARM;
-  else if (ixp > mri_prior__->width-1) 
-    errCode = ERROR_BADPARM;
-  else if (iyp > mri_prior__->height-1) 
-    errCode = ERROR_BADPARM;
-  else if (izp > mri_prior__->depth-1) 
-    errCode = ERROR_BADPARM;
+  errCode = boundsCheck(ixp, iyp, izp, mri_prior__);
   // 
   *pxp = ixp;
   *pyp = iyp;
   *pzp = izp;
-  MatrixFree(&rasFromVoxel);
-  MatrixFree(&priorFromRAS);
-  MatrixFree(&voxelToPrior);
 
   return errCode;
 }
@@ -633,92 +672,86 @@ GCAvoxelToPrior(GCA *gca, MRI *mri, int xv, int yv, int zv,
 /////////////////////////////////////////////////////////////////////
 // transform node->template
 /////////////////////////////////////////////////////////////////////
-int
-GCAnodeToVoxel(GCA *gca, MRI *mri, int xn, int yn, int zn, 
-	       int *pxv, int *pyv, int *pzv)
+int GCAnodeToVoxelReal(GCA *gca, MRI *mri, Real xn, Real yn, Real zn, 
+	       Real *pxv, Real *pyv, Real *pzv)
 {
-  double xv, yv, zv;
-  int ixv, iyv, izv;
-  int errCode = NO_ERROR;
-
   MATRIX *rasFromNode = extract_i_to_r(mri_node__);
   MATRIX *voxelFromRAS = extract_r_to_i(mri);
   MATRIX *nodeToVoxel = MatrixMultiply(voxelFromRAS, rasFromNode, NULL);
 
-  TransformWithMatrix(nodeToVoxel, xn, yn, zn, &xv, &yv, &zv);
+  TransformWithMatrix(nodeToVoxel, xn, yn, zn, pxv, pyv, pzv);
+
+  MatrixFree(&rasFromNode);
+  MatrixFree(&voxelFromRAS);
+  MatrixFree(&nodeToVoxel);
+
+  return NO_ERROR;
+}
+
+int
+GCAnodeToVoxel(GCA *gca, MRI *mri, int xn, int yn, int zn, 
+	       int *pxv, int *pyv, int *pzv)
+{
+  Real xv, yv, zv;
+  int ixv, iyv, izv;
+  int errCode = NO_ERROR;
+
+  GCAnodeToVoxelReal(gca, mri, xn, yn, zn, &xv, &yv, &zv);
+
   ixv = (int) floor(xv+.5);
   iyv = (int) floor(yv+.5);
   izv = (int) floor(zv+.5);
 
   // bound check
   // if outofbounds, tell it
-  if (ixv < 0) 
-    errCode = ERROR_BADPARM;
-  else if (iyv < 0) 
-    errCode = ERROR_BADPARM;
-  else if (izv < 0) 
-    errCode = ERROR_BADPARM;
-  //  
-  else if (ixv > mri->width-1) 
-    errCode = ERROR_BADPARM;
-  else if (iyv > mri->height-1) 
-    errCode = ERROR_BADPARM;
-  else if (izv > mri->depth-1) 
-    errCode = ERROR_BADPARM;
+  errCode = boundsCheck(ixv, iyv, izv, mri);
   // 
 
   *pxv = ixv;
   *pyv = iyv;
   *pzv = izv;
-  MatrixFree(&rasFromNode);
-  MatrixFree(&voxelFromRAS);
-  MatrixFree(&nodeToVoxel);
-
   return errCode;
 }
 
 //////////////////////////////////////////////////////////////////////
 // transform from prior-> template
 //////////////////////////////////////////////////////////////////////
-int
-GCApriorToVoxel(GCA *gca, MRI *mri, int xp, int yp, int zp, int *pxv, 
-               int *pyv, int *pzv)
+int GCApriorToVoxelReal(GCA *gca, MRI *mri, Real xp, Real yp, Real zp, 
+			 Real *pxv, Real *pyv, Real *pzv)
 {
-  double xv, yv, zv;
-  int ixv, iyv, izv;
-  int errCode = NO_ERROR;
-
   MATRIX *rasFromPrior = extract_i_to_r(mri_prior__);
   MATRIX *voxelFromRAS = extract_r_to_i(mri);
   MATRIX *priorToVoxel = MatrixMultiply(voxelFromRAS, rasFromPrior, NULL);
 
-  TransformWithMatrix(priorToVoxel, xp, yp, zp, &xv, &yv, &zv);
+  TransformWithMatrix(priorToVoxel, xp, yp, zp, pxv, pyv, pzv);
 
+  MatrixFree(&rasFromPrior);
+  MatrixFree(&voxelFromRAS);
+  MatrixFree(&priorToVoxel);
+
+  return NO_ERROR;
+}
+
+int
+GCApriorToVoxel(GCA *gca, MRI *mri, int xp, int yp, int zp, 
+		int *pxv, int *pyv, int *pzv)
+{
+  Real xv, yv, zv;
+  int ixv, iyv, izv;
+  int errCode = NO_ERROR;
+
+  GCApriorToVoxelReal(gca, mri, xp, yp, zp, &xv, &yv, &zv);
+ 
   ixv = (int) floor(xv+.5);
   iyv = (int) floor(yv+.5);
   izv = (int) floor(zv+.5);
   // bound check
   // if outofbounds, tell it
-  if (ixv < 0) 
-    errCode = ERROR_BADPARM;
-  else if (iyv < 0) 
-    errCode = ERROR_BADPARM;
-  else if (izv < 0) 
-    errCode = ERROR_BADPARM;
-  else if (ixv > mri->width-1) 
-    errCode = ERROR_BADPARM;
-  else if (iyv > mri->height-1) 
-    errCode = ERROR_BADPARM;
-  else if (izv > mri->depth-1) 
-    errCode = ERROR_BADPARM;
+  errCode = boundsCheck(ixv, iyv, izv, mri);
   // 
   *pxv = ixv;
   *pyv = iyv;
   *pzv = izv;
-
-  MatrixFree(&rasFromPrior);
-  MatrixFree(&voxelFromRAS);
-  MatrixFree(&priorToVoxel);
 
   return errCode;
 }
@@ -731,12 +764,18 @@ GCAsourceVoxelToPrior(GCA *gca, MRI *mri, TRANSFORM *transform,
                       int xv, int yv, int zv, int *pxp, int *pyp, int *pzp)
 {
   float   xt, yt, zt ;
+  Real    xrt, yrt, zrt;
+
+  LTA *lta;
   if (transform->type != MORPH_3D_TYPE)
   {
     if (transform->type == LINEAR_VOX_TO_VOX)
     {
+      lta = (LTA *) transform->xform;
       // transform point to talairach volume point
-      TransformSample(transform, xv, yv, zv, &xt, &yt, &zt) ;
+      TransformWithMatrix(lta->xforms[0].m_L, xv, yv, zv, &xrt, &yrt, &zrt);
+      xt = xrt; yt = yrt; zt = zrt;
+      // TransformSample(transform, xv, yv, zv, &xt, &yt, &zt) ;
     }
     else
       ErrorExit(ERROR_BADPARM, "GCAsourceVoxelToPrior: needs vox-to-vox transform") ;      
@@ -756,13 +795,19 @@ int
 GCAsourceVoxelToNode(GCA *gca, MRI *mri, TRANSFORM *transform,int xv, int yv, int zv, 
                      int *pxn, int *pyn, int *pzn)
 {
-  float   xt, yt, zt ;
+  float xt, yt, zt;
+  Real  xrt, yrt, zrt ;
+  LTA *lta;
+
   if (transform->type != MORPH_3D_TYPE)
   {
     if (transform->type == LINEAR_VOX_TO_VOX) // from src to talairach volume
     {
+      lta = (LTA *) transform->xform;
       // get the talairach position
-      TransformSample(transform, xv, yv, zv, &xt, &yt, &zt) ;
+      TransformWithMatrix(lta->xforms[0].m_L, xv, yv, zv, &xrt, &yrt, &zrt);
+     // TransformSample(transform, xv, yv, zv, &xt, &yt, &zt) ;
+      xt = xrt; yt = yrt; zt = zrt;
     }
     else
       ErrorExit(ERROR_BADPARM, "GCAsourceVoxelToNode: needs vox-to-vox transform") ;      
@@ -782,30 +827,33 @@ int
 GCApriorToSourceVoxelFloat(GCA *gca, MRI *mri, TRANSFORM *transform, int xp, int yp, int zp, 
                     float *pxv, float *pyv, float *pzv)
 {
-  int   width, height, depth, xt, yt, zt ;
+  int   width, height, depth;
+  Real  xt, yt, zt ;
   float  xv, yv, zv ;
-  float  xc, yc, zc;
+  Real  xc, yc, zc;
   int errCode = NO_ERROR;
+  LTA *lta;
   width = mri->width ; height = mri->height ;  depth = mri->depth ;
   // go to the template voxel position
-  // note that this point could go outside of the tal volume
-  GCApriorToVoxel(gca, mri_tal__, xp, yp, zp, &xt, &yt, &zt) ;
+  GCApriorToVoxelReal(gca, mri_tal__, xp, yp, zp, &xt, &yt, &zt);
   // got the point in mri_tal__ position
   if (transform->type != MORPH_3D_TYPE)
   {
+    lta = (LTA *) transform->xform;
     // get the talairach to orig 
-    TransformSampleInverse(transform, xt, yt, zt, &xc, &yc, &zc);
-    if (xc < 0) 
+    TransformWithMatrix(lta->inv_xforms[0].m_L, xt, yt, zt, &xc, &yc, &zc);
+    // TransformSampleInverse(transform, xt, yt, zt, &xc, &yc, &zc);
+    if (xc < -0.5) 
       errCode = ERROR_BADPARM;
-    else if (yc < 0) 
+    else if (yc < -0.5) 
       errCode = ERROR_BADPARM;
-    else if (zc < 0) 
+    else if (zc < -0.5) 
       errCode = ERROR_BADPARM;
-    else if (xc > width-1) 
+    else if (xc > (width-1+.5)) 
       errCode = ERROR_BADPARM;
-    else if (yc > height-1) 
+    else if (yc > (height-1+.5)) 
       errCode = ERROR_BADPARM;
-    else if (zc > depth-1) 
+    else if (zc > (depth-1+.5)) 
       errCode = ERROR_BADPARM;
     xv = xc;
     yv = yc;
@@ -823,28 +871,32 @@ int
 GCAnodeToSourceVoxelFloat(GCA *gca, MRI *mri, TRANSFORM *transform, int xn, int yn, int zn, 
                     float *pxv, float *pyv, float *pzv)
 {
-  int   width, height, depth, xt, yt, zt ;
+  int   width, height, depth;
+  Real  xt, yt, zt ;
   float  xv, yv, zv ;
-  float  xc, yc, zc ;
+  Real  xc, yc, zc ;
   int errCode = NO_ERROR;
+  LTA *lta;
   width = mri->width ; height = mri->height ;  depth = mri->depth ;
   // get template voxel position
-  GCAnodeToVoxel(gca, mri_tal__, xn, yn, zn, &xt, &yt, &zt) ;
+  GCAnodeToVoxelReal(gca, mri_tal__, xn, yn, zn, &xt, &yt, &zt) ;
   if (transform->type != MORPH_3D_TYPE)
   {
-    // get the voxel position
-    TransformSampleInverse(transform, xt, yt, zt, &xc, &yc, &zc);
-    if (xc < 0) 
+    lta = (LTA *) transform->xform;
+    // get the talairach to orig 
+    TransformWithMatrix(lta->inv_xforms[0].m_L, xt, yt, zt, &xc, &yc, &zc);
+    // TransformSampleInverse(transform, xt, yt, zt, &xc, &yc, &zc);
+    if (xc < -0.5) 
       errCode = ERROR_BADPARM;
-    else if (yc < 0) 
+    else if (yc < -0.5) 
       errCode = ERROR_BADPARM;
-    else if (zc < 0) 
+    else if (zc < -0.5) 
       errCode = ERROR_BADPARM;
-    else if (xc > width-1) 
+    else if (xc > (width-1+.5)) 
       errCode = ERROR_BADPARM;
-    else if (yc > height-1) 
+    else if (yc > (height-1+.5)) 
       errCode = ERROR_BADPARM;
-    else if (zc > depth-1) 
+    else if (zc > (depth-1+.5)) 
       errCode = ERROR_BADPARM;
     xv = xc;
     yv = yc;
@@ -864,18 +916,18 @@ GCAnodeToSourceVoxel(GCA *gca, MRI *mri, TRANSFORM *transform, int xn, int yn, i
 {
   float  xf, yf, zf ;
   int errCode = NO_ERROR;
-  GCAnodeToSourceVoxelFloat(gca, mri, transform, xn, yn, zn, &xf, &yf, &zf) ;
-  if (xf < 0) 
+  errCode = GCAnodeToSourceVoxelFloat(gca, mri, transform, xn, yn, zn, &xf, &yf, &zf) ;
+  if (xf < -0.5) 
     errCode = ERROR_BADPARM;
-  else if (yf < 0) 
+  else if (yf < -0.5) 
     errCode = ERROR_BADPARM;
-  else if (zf < 0) 
+  else if (zf < -0.5) 
     errCode = ERROR_BADPARM;
-  else if (xf > mri->width-1) 
+  else if (xf > (mri->width-1.+0.5)) 
     errCode = ERROR_BADPARM; 
-  else if (yf > mri->height-1) 
+  else if (yf > (mri->height-1.+0.5)) 
     errCode = ERROR_BADPARM;
-  else if (zf > mri->depth-1) 
+  else if (zf > (mri->depth-1.+0.5)) 
     errCode = ERROR_BADPARM;
 
   *pxv = nint(xf) ; *pyv = nint(yf) ; *pzv = nint(zf) ;
@@ -889,19 +941,20 @@ GCApriorToSourceVoxel(GCA *gca, MRI *mri, TRANSFORM *transform, int xp, int yp, 
   float  xf, yf, zf ;
   int errCode = NO_ERROR;
 
-  GCApriorToSourceVoxelFloat(gca, mri, transform, xp, yp, zp, &xf, &yf, &zf) ;
-  if (xf < 0) 
+  errCode = GCApriorToSourceVoxelFloat(gca, mri, transform, xp, yp, zp, &xf, &yf, &zf) ;
+  if (xf < -0.5) 
     errCode = ERROR_BADPARM;
-  else if (yf < 0) 
+  else if (yf < -0.5) 
     errCode = ERROR_BADPARM;
-  else if (zf < 0) 
+  else if (zf < -0.5) 
     errCode = ERROR_BADPARM;
-  else if (xf > mri->width-1)  
+  else if (xf > (mri->width-1.+0.5))  
     errCode = ERROR_BADPARM;
-  else if (yf > mri->height-1) 
+  else if (yf > (mri->height-1.+0.5)) 
     errCode = ERROR_BADPARM;
-  else if (zf > mri->depth-1)  
+  else if (zf > (mri->depth-1.+0.5))  
     errCode = ERROR_BADPARM;
+
   *pxv = nint(xf) ; *pyv = nint(yf) ; *pzv = nint(zf) ;
   return errCode;
 }
@@ -1232,6 +1285,26 @@ GCAtrain(GCA *gca, MRI *mri_inputs, MRI *mri_labels, TRANSFORM *transform, GCA *
 	  {
 	    // debugging code /////////////////////////////////////////////////////////////
 	    if (xp == Gxp && yp == Gyp && zp == Gzp)
+	    {
+	      GC1D *gc ;
+	      int  i ;
+	      // using node to find the label
+	      gc = GCAfindGC(gca, xn, yn, zn, label) ;
+	      if (gc)
+	      {
+		gcan = &gca->nodes[xn][yn][zn];
+		printf("\npos (%d, %d, %d) label=%d, Node (%d, %d, %d) labels:", x, y, z, label, xn, yn, zn); 
+		for (i=0; i < gcan->nlabels; ++i)
+		  printf("%d ", gcan->labels[i]);
+                printf("\n");
+		gcap = &gca->priors[xp][yp][zp];
+		printf("pos (%d, %d, %d) label=%d, Prior (%d, %d, %d) labels:", x, y, z, label, xp, yp, zp); 
+		for (i=0; i < gcap->nlabels; ++i)
+		  printf("%d ", gcap->labels[i]);
+                printf("\n");
+	      }	
+	    }
+	    if (xn == Gxn && yn == Gyn && zn == Gzn)
 	    {
 	      GC1D *gc ;
 	      int  i ;
