@@ -424,7 +424,7 @@ LIBDIRS_MGH="utils rgb unix dicom hipsstubs"
 AC_SUBST(LIBDIRS_MGH)
 
 # stupid circular dependency on iopen swapInt etc.
-LIBS_MGH="rgb/librgb.a unix/libunix.a dicom/libdicom.a hipsstubs/libhipsstubs.a"
+LIBS_MGH="utils/libutils.a rgb/librgb.a unix/libunix.a dicom/libdicom.a hipsstubs/libhipsstubs.a"
 AC_SUBST(LIBS_MGH)
 
 #####################################################
