@@ -52,12 +52,12 @@ int main(int argc, char *argv[])
   }
 
   /* Extract ribbon */
-/*  printf("Extracting ribbon.\n");
-  mri=MRISpartialribbon(inner_mris,outer_mris,mri_src,NULL); */
+  printf("Extracting ribbon.\n");
+  mri=MRISpartialribbon(inner_mris,outer_mris,mri_src,NULL);
 
   /* Save MRI volume to directory */
-/*  printf("Writing volume file %s.\n",output_mri_pref);
-  MRIwrite(mri,output_mri_pref); */
+  printf("Writing volume file %s.\n",output_mri_pref);
+  MRIwrite(mri,output_mri_pref);
 
   MRIfree(&mri);
   MRISfree(&inner_mris);
