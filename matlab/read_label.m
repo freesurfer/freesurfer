@@ -6,6 +6,9 @@ function [l] = read_label(sname, lname)
 % l will be nvertices-by-5, where each column means:
 % (1) vertex number, (2-4) xyz at each vertex, (5) stat
 %
+% IMPORTANT: the vertex number is 0-based.
+% 
+% $Id: read_label.m,v 1.4 2005/01/23 17:19:23 greve Exp $
 
 l = [];
 
