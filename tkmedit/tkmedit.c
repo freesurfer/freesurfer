@@ -4,9 +4,9 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/09/16 13:54:05 $
-// Revision       : $Revision: 1.222 $
-char *VERSION = "$Revision: 1.222 $";
+// Revision Date  : $Date: 2004/09/16 14:56:31 $
+// Revision       : $Revision: 1.223 $
+char *VERSION = "$Revision: 1.223 $";
 
 #define TCL
 #define TKMEDIT 
@@ -34,17 +34,18 @@ char *VERSION = "$Revision: 1.222 $";
 #include <tcl.h>
 // #include <tclDecls.h>
 #include <tk.h>
-// It seems that the later version of Tix uses ITcl and ITk.
+// 
+// It seems that the later version of Tix uses ITcl and ITk
+// for RedHat Enterprise Linux only.   Do the following only
+// for RedHat Enterprise Linux.
 // stupid tix people who cannot handle version.   I had to use gcc version.
 // you cannot include itk.h either(producing so many unknowns) either.
-#if (__GNUC__ > 2)
-#ifndef Itcl_Init
-int Itcl_Init(Tcl_Interp* interp);
-#endif
-#ifndef Itk_Init
-int Itk_Init(Tcl_Interp* interp);
-#endif
-#endif
+// #ifndef Itcl_Init
+// int Itcl_Init(Tcl_Interp* interp);
+// #endif
+// #ifndef Itk_Init
+// int Itk_Init(Tcl_Interp* interp);
+// #endif
 //////////////////////////////////////////////////////
 #include <tix.h>
 #include <blt.h>
@@ -1064,7 +1065,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
      shorten our argc and argv count. If those are the only args we
      had, exit. */
   /* rkt: check for and handle version tag */
-  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.222 2004/09/16 13:54:05 tosa Exp $", "$Name:  $");
+  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.223 2004/09/16 14:56:31 tosa Exp $", "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
   argc -= nNumProcessedVersionArgs;
@@ -5022,7 +5023,7 @@ int main ( int argc, char** argv ) {
     DebugPrint( ( "%s ", argv[nArg] ) );
   }
   DebugPrint( ( "\n\n" ) );
-  DebugPrint( ( "$Id: tkmedit.c,v 1.222 2004/09/16 13:54:05 tosa Exp $ $Name:  $\n" ) );
+  DebugPrint( ( "$Id: tkmedit.c,v 1.223 2004/09/16 14:56:31 tosa Exp $ $Name:  $\n" ) );
 
   
   /* init glut */
@@ -5328,17 +5329,17 @@ int main ( int argc, char** argv ) {
           "not being set or being set incorrectly." );
     DebugAssertThrowX( (TCL_OK == eTcl), eResult, tkm_tErr_CouldntInitTk );
   }
-  //sorry. Tix does not define minor version
-#if (__GNUC__ > 2)
-  eTcl = Itcl_Init(interp);
-  if( TCL_OK != eTcl ) {
-    DebugPrint( ("Itlc_Init returned %d: %s\n", (int)eTcl, interp->result) );
-  }
-  eTcl = Itk_Init(interp);
-  if( TCL_OK != eTcl ) {
-    DebugPrint( ("Itk_Init returned %d: %s\n", (int)eTcl, interp->result) );
-  }
-#endif
+
+  ////////// do the following only for RedHat Enterprise Linux
+  // eTcl = Itcl_Init(interp);
+  // if( TCL_OK != eTcl ) {
+  //   DebugPrint( ("Itlc_Init returned %d: %s\n", (int)eTcl, interp->result) );
+  // }
+  // eTcl = Itk_Init(interp);
+  // if( TCL_OK != eTcl ) {
+  //   DebugPrint( ("Itk_Init returned %d: %s\n", (int)eTcl, interp->result) );
+  // }
+  ///////////////////////////////////////////////////////////////////
   eTcl = Tix_Init( interp );
   if( TCL_OK != eTcl ) {
     DebugPrint( ("Tix_Init returned %d: %s\n", (int)eTcl, interp->result) );

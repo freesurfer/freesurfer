@@ -160,17 +160,16 @@ char *Progname = "surfer" ;
 #endif
 
 /* begin rkt */
+// Do the following only for RedHat Enterprise Linux
 // It seems that the later version of Tix uses ITcl and ITk.
 // stupid tix people who cannot handle version.   I had to use gcc version.
 // you cannot include itk.h either(producing so many unknowns) either.
-#if (__GNUC__ > 2)
-#ifndef Itcl_Init
-int Itcl_Init(Tcl_Interp* interp);
-#endif
-#ifndef Itk_Init
-int Itk_Init(Tcl_Interp* interp);
-#endif
-#endif
+// #ifndef Itcl_Init
+// int Itcl_Init(Tcl_Interp* interp);
+// #endif
+// #ifndef Itk_Init
+// int Itk_Init(Tcl_Interp* interp);
+// #endif
 
 /* make these decls if the headers are screwed up */
 #ifndef Blt_Init
@@ -18221,7 +18220,7 @@ int main(int argc, char *argv[])   /* new main */
   /* end rkt */
   
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.75 2004/09/16 14:02:07 tosa Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.76 2004/09/16 14:59:32 tosa Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -18412,12 +18411,11 @@ int main(int argc, char *argv[])   /* new main */
 
   // later version of Tix needs these.  Unfortunately Tix does not define Major and Minor
   // to distinguish what it is (stupidity).  I had to use gnu ;-(....
-#if (__GNUC__ > 2)
-  if (Itcl_Init(interp) == TCL_ERROR) {
-    fprintf(stderr, "Itcl_Init failed: %s\n", interp->result); }
-  if (Itk_Init(interp) == TCL_ERROR) {
-    fprintf(stderr, "Itk_Init failed: %s\n", interp->result); }
-#endif
+  // Do the following only for RedHat Enterprise Linux only
+  // if (Itcl_Init(interp) == TCL_ERROR) {
+  //   fprintf(stderr, "Itcl_Init failed: %s\n", interp->result); }
+  // if (Itk_Init(interp) == TCL_ERROR) {
+  //   fprintf(stderr, "Itk_Init failed: %s\n", interp->result); }
 
   /* begin rkt */
   if (Tix_Init(interp) == TCL_ERROR) {
