@@ -663,8 +663,10 @@ Volm_tErr Volm_LoadDisplayTransform ( mriVolumeRef this,
 	// m_resample_t2s = m_ras2vox_s * m_ras_t2ras_s * gm_screen2ras_t
         DebugNote( ("Calculating inverse of resample matrix") );
         MatrixInverse( this->m_resample, this->m_resample_inv );
+#if 0
         printf("resample matrix is:\n") ;
         MatrixPrint(stdout, this->m_resample) ;
+#endif
         MatrixFree(&m_ras2vox) ; MatrixFree(&m_tmp);MatrixFree(&m_ras2ras_inverse);
         break ;
       }
@@ -730,10 +732,8 @@ Volm_tErr Volm_LoadDisplayTransform ( mriVolumeRef this,
 	fprintf(stderr, "m_tmp = m_ras2ras_inverse * gm_screen2ras = \n");
 	MatrixPrint(stderr, m_tmp) ;
 	fprintf(stderr, "this->m_resample = m_ras2vox * m_ras2ras_inverse * gm_screen2ras = m_ras2vox(_s) * m_ras_c2ras_s * gm_screen2ras(_c) = ");
+	MatrixPrint(stderr, this->m_resample);
 #endif
-	
-	printf("resample matrix is:\n") ;
-	MatrixPrint(stdout, this->m_resample) ;
 	MatrixFree(&m_ras2vox) ; MatrixFree(&m_tmp);MatrixFree(&m_ras2ras_inverse);
 	break ;
       }
