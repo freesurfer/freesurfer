@@ -6,8 +6,8 @@
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2005/01/29 16:08:19 $
-// Revision       : $Revision: 1.2 $
+// Revision Date  : $Date: 2005/01/31 21:09:50 $
+// Revision       : $Revision: 1.3 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -15,6 +15,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include "gcamorph.h"
 
 #include "mri.h"
 #include "matrix.h"
@@ -41,6 +42,8 @@ typedef struct
 } VOXEL_LIST ;
 
 #define MAX_ANGLE       RADIANS(25)
+
+#define PAD             2
 
 static MRI *mri_from_voxel_list(VOXEL_LIST *vl, MRI *mri) ;
 static int  free_voxel_list(VOXEL_LIST **pvoxel_list) ;
@@ -115,6 +118,8 @@ static int white_labels[] =
 #endif
 
 static INTEGRATION_PARMS parms ;
+static TRANSFORM  *transform = NULL ;
+static GCA_MORPH_PARMS mp ;
 
 int
 main(int argc, char *argv[])
@@ -122,12 +127,15 @@ main(int argc, char *argv[])
 	char       **av, *hires_fname, *aseg_fname, *intensity_fname, *out_fname, fname[STRLEN] ;
   int        ac, nargs, i ;
 	MRI        *mri_intensity, *mri_lowres, *mri_hires, *mri_tmp ;
-	TRANSFORM  *transform = NULL ;
 	VOXEL_LIST *vl_lowres, *vl_hires ;
+	MRI_REGION  box ;
+  struct timeb start ;
+  int          msec, minutes, seconds ;
 
 	parms.write_iterations = 0 ;
 	parms.start_t = 0 ;
 
+  TimerStart(&start) ;
   setRandomSeed(-1L) ;
   DiagInit(NULL, NULL, NULL) ;
   ErrorInit(NULL, NULL, NULL) ;
@@ -162,6 +170,14 @@ main(int argc, char *argv[])
 		MRIfree(&mri_hires) ;
 		mri_hires = mri_tmp ;
 	}
+
+	MRIboundingBox(mri_hires, 0, &box) ;
+	box.x -= PAD ; box.y -= PAD ; box.z -= PAD ; 
+	box.dx += 2*PAD ; box.dy += 2*PAD ; box.dz += 2*PAD ; 
+	mri_tmp = MRIextractRegion(mri_hires, NULL, &box) ;
+	MRIfree(&mri_hires) ;
+	mri_hires = mri_tmp ;
+
 	mri_intensity = MRIread(intensity_fname) ;
 	if (!mri_intensity)
 		ErrorExit(ERROR_NOFILE, "%s: could not read intensity label volume %s",
@@ -196,46 +212,114 @@ main(int argc, char *argv[])
 		}
 	}
 
-	vl_lowres = create_voxel_list(mri_lowres,target_label,target_label,NULL,0);
-	for (i = 0 ; i < 3 ; i++)
+	if (transform == NULL)   /* compute optimal linear transform */
 	{
-		printf("------------- outer loop iteration %d ---------------\n",i) ;
-		vl_hires = create_voxel_list(mri_hires, 1, 255, NULL, skip) ;
-
-		transform = compute_optimal_transform(vl_lowres, vl_hires, &parms,
-																					transform) ;
-		free_voxel_list(&vl_hires) ;
-		vl_hires = create_voxel_list(mri_hires, 1, 255, NULL, skip/4) ;
-		powell_minimize(vl_lowres, vl_hires, ((LTA *)(transform->xform))->xforms[0].m_L) ;
-		free_voxel_list(&vl_hires) ;
-	}
-	free_voxel_list(&vl_lowres) ;
-
-	printf("final vox2vox matrix:\n") ;
-	MatrixPrint(stdout, ((LTA *)(transform->xform))->xforms[0].m_L) ;
-	{
-		MRI *mri_aligned, *mri_filtered ;
-		char fname[STRLEN] ;
-		int  i ;
-
-		mri_aligned = MRIsrcTransformedCentered(mri_hires, mri_lowres, ((LTA *)(transform->xform))->xforms[0].m_L, SAMPLE_NEAREST) ;
-		sprintf(fname, "%sfinal.mgz", parms.base_name) ;
-		MRIwrite(mri_aligned, fname) ;
-
-		for (i = 1 ; i <= 10 ; i++)
+		vl_lowres = create_voxel_list(mri_lowres,target_label,target_label,NULL,0);
+		for (i = 0 ; i < 3 ; i++)
 		{
-			sprintf(fname, "%sfiltered%d.mgz", parms.base_name, i) ;
-			mri_filtered = MRImodeFilter(mri_aligned, NULL, i) ;
-			printf("writing filtered image to %s\n", fname) ;
-			MRIwrite(mri_filtered, fname) ;
-			MRIfree(&mri_filtered) ;
+			printf("------------- outer loop iteration %d ---------------\n",i) ;
+			vl_hires = create_voxel_list(mri_hires, 1, 255, NULL, skip) ;
+			
+			transform = compute_optimal_transform(vl_lowres, vl_hires, &parms,
+																						transform) ;
+			free_voxel_list(&vl_hires) ;
+			vl_hires = create_voxel_list(mri_hires, 1, 255, NULL, skip/4) ;
+			powell_minimize(vl_lowres, vl_hires, ((LTA *)(transform->xform))->xforms[0].m_L) ;
+			free_voxel_list(&vl_hires) ;
 		}
-		MRIfree(&mri_aligned) ;
+		free_voxel_list(&vl_lowres) ;
+
+		printf("final vox2vox matrix:\n") ;
+		MatrixPrint(stdout, ((LTA *)(transform->xform))->xforms[0].m_L) ;
+		{
+			MRI *mri_aligned, *mri_filtered ;
+			char fname[STRLEN] ;
+			int  i ;
+
+			mri_aligned = MRIsrcTransformedCentered(mri_hires, mri_lowres, ((LTA *)(transform->xform))->xforms[0].m_L, SAMPLE_NEAREST) ;
+			sprintf(fname, "%sfinal.mgz", parms.base_name) ;
+			MRIwrite(mri_aligned, fname) ;
+
+			for (i = 1 ; i <= 10 ; i++)
+			{
+				sprintf(fname, "%sfiltered%d.mgz", parms.base_name, i) ;
+				mri_filtered = MRImodeFilter(mri_aligned, NULL, i) ;
+				printf("writing filtered image to %s\n", fname) ;
+				MRIwrite(mri_filtered, fname) ;
+				MRIfree(&mri_filtered) ;
+			}
+			MRIfree(&mri_aligned) ;
+		}
+
+		LTAvoxelToRasXform((LTA *)(transform->xform), mri_hires, mri_lowres) ;
+		TransformWrite(transform, out_fname) ;
+	}
+	else   /* linear transform already computed - compute 3d morph */
+	{
+		GCA_MORPH *gcam ;
+		MATRIX    *m_L ;
+		LTA       *lta ;
+
+		lta = ((LTA *)(transform->xform)) ;
+    m_L = MRIrasXformToVoxelXform(mri_hires, mri_lowres, lta->xforms[i].m_L, NULL) ;
+    MatrixFree(&lta->xforms[0].m_L) ;
+
+		if (MatrixDeterminant(m_L) < 0)
+		{
+			MATRIX *m_I ;
+
+			printf("transform det < 0 --> replacing with identity and transforming hires label volume\n");
+			mri_tmp = MRIsrcTransformedCentered(mri_hires, mri_lowres, m_L, SAMPLE_NEAREST) ;
+			MRIfree(&mri_hires) ;
+			mri_hires = mri_tmp ;
+			m_I = MatrixIdentity(4, NULL) ;
+			MRIrasXformToVoxelXform(mri_hires, mri_lowres, m_I, m_L);
+			MatrixFree(&m_I) ;
+			
+			/* make sure none of the labels are on the border */
+			mri_tmp = MRIalloc(mri_hires->width+2, mri_hires->height+2, mri_hires->depth+2, MRI_UCHAR) ;
+			MRIextractInto(mri_hires, mri_tmp, 0, 0, 0, mri_hires->width, mri_hires->width, mri_hires->depth, 1, 1, 1);
+			MRIfree(&mri_hires) ; mri_hires = mri_tmp ;
+			MRIwrite(mri_hires, "hires_xformed.mgz") ;
+		}
+
+    lta->xforms[0].m_L = m_L ;
+		printf("initializing GCAM with vox->vox matrix:\n") ;
+		MatrixPrint(stdout, m_L) ;
+		memset(&mp, 0, sizeof(mp)) ;
+		strcpy(mp.base_name, parms.base_name) ;
+		mp.write_iterations = parms.write_iterations ;
+		mp.l_jacobian = 1 ;
+		mp.l_binary = 1 ;
+		mp.dt = 0.01 ;
+		mp.noneg = True ;
+		mp.exp_k = 20 ;
+		mp.max_grad = 0.3 ;
+		mp.momentum = 0.0 ;
+		mp.l_smoothness = 1 ;
+		mp.sigma = 8 ;
+		mp.relabel_avgs = -1 ;
+		mp.navgs = 64 ;
+		mp.levels = 4 ;
+		mp.integration_type = GCAM_INTEGRATE_BOTH ;
+		mp.nsmall = 1 ;
+		mp.reset_avgs = -1 ;
+		mp.tol = 0.0001 ;
+		mp.niterations = 1000 ;
+		gcam = GCAMalloc(mri_hires->width, mri_hires->height, mri_hires->depth);
+    GCAMinit(gcam, mri_lowres, NULL, transform, 0) ;
+		GCAMinitLabels(gcam, mri_hires) ;
+    GCAMsetStatus(gcam, GCAM_IGNORE_LIKELIHOOD) ; /* disable everything */
+		GCAMregister(gcam, mri_lowres, &mp) ;
+		GCAMwrite(gcam, out_fname) ;
 	}
 
-	LTAvoxelToRasXform((LTA *)(transform->xform), mri_hires, mri_lowres) ;
-	TransformWrite(transform, out_fname) ;
-
+  msec = TimerStop(&start) ;
+  seconds = nint((float)msec/1000.0f) ;
+  minutes = seconds / 60 ;
+  seconds = seconds % 60 ;
+  printf("registration took %d minutes and %d seconds.\n", 
+				 minutes, seconds) ;
 	exit(0) ;
 	return(0) ;
 }
@@ -250,17 +334,43 @@ get_option(int argc, char *argv[])
   StrUpper(option) ;
   if (!stricmp(option, "debug_voxel"))
 	{
-		Gx = Gsx = atoi(argv[2]) ;
-		Gy = Gsy = atoi(argv[3]) ;
-		Gz = Gsz = atoi(argv[4]) ;
+		Gx = atoi(argv[2]) ;
+		Gy = atoi(argv[3]) ;
+		Gz = atoi(argv[4]) ;
 		nargs = 3 ;
 		printf("debugging voxel (%d, %d, %d)\n", Gx, Gy, Gz) ;
 	}
+  else if (!stricmp(option, "view"))
+	{
+		Gsx = atoi(argv[2]) ;
+		Gsy = atoi(argv[3]) ;
+		Gsz = atoi(argv[4]) ;
+		nargs = 3 ;
+		printf("viewing voxel (%d, %d, %d)\n", Gsx, Gsy, Gsz) ;
+	}
+	else if (!stricmp(option, "dt"))
+	{
+		mp.dt = atof(argv[2]) ;
+		nargs = 1 ;
+		printf("using dt = %2.3f\n", mp.dt) ;
+	}
 	else switch (*option)
 	{
+  case 'M':
+    mp.momentum = atof(argv[2]) ;
+    nargs = 1 ;
+    printf("momentum = %2.2f\n", mp.momentum) ;
+    break ;
 	case 'S':
 		skip = atoi(argv[2]);
 		printf("skipping %d voxels in hires data...\n", skip) ;
+		nargs = 1 ;
+		break ;
+	case 'T':
+		printf("reading transform from %s...\n", argv[2]) ;
+		transform = TransformRead(argv[2]) ;
+		if (transform == NULL)
+			ErrorExit(ERROR_NOFILE,"%s: could not read transform from %s\n",argv[2]);
 		nargs = 1 ;
 		break ;
 	case 'I':
@@ -269,7 +379,7 @@ get_option(int argc, char *argv[])
 		printf("reading intensity image from %s for debugging...\n", hires_intensity_fname) ;
 		break ;
 	case 'W':
-		parms.write_iterations = atoi(argv[2]) ;
+		mp.write_iterations = parms.write_iterations = atoi(argv[2]) ;
 		Gdiag |= DIAG_WRITE ;
 		nargs = 1 ;
 		printf("setting write iterations = %d\n", parms.write_iterations) ;
@@ -424,8 +534,9 @@ compute_optimal_transform(VOXEL_LIST *vl_lowres, VOXEL_LIST *vl_hires,
   } while (nscales < MIN_SCALES || (done == FALSE)) ;
 
 
+
 	/*	m_vox_xform = compute_pca(mri_hires, mri_lowres) ;*/
-  parms->start_t += niter+1 ;
+  parms->start_t += niter ;
 	MatrixFree(&m_origin) ;
 	MatrixFree(&m_inv_origin) ;
 	return(transform) ;
