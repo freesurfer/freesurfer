@@ -11,8 +11,9 @@
 #include "proto.h"
 #include "utils.h"
 #include "mrisurf.h"
+#include "label.h"
 
-void main(int argc, char *argv[]) ;
+int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
 static Transform *load_transform(char *subject_name, General_transform *xform);
 
@@ -39,6 +40,7 @@ static char *output_subject = NULL ;
 
 static char *canon_name = NULL ;
 
+#if 0
 typedef struct
 {
   int    n_points ;           /* # of points in area */
@@ -50,6 +52,7 @@ typedef struct
   float  *z ;
 } LABEL ;
 
+
 int LabelFree(LABEL **parea) ;
 int LabelDump(FILE *fp, LABEL *area) ;
 LABEL *LabelRead(char *subject_name, char *label_name) ;
@@ -57,8 +60,9 @@ int LabelWrite(LABEL *area, char *fname) ;
 int LabelToCanonical(LABEL *area, MRI_SURFACE *mris) ;
 int LabelFromCanonical(LABEL *area, MRI_SURFACE *mris) ;
 int LabelToFlat(LABEL *area, MRI_SURFACE *mris) ;
+#endif
 
-void
+int
 main(int argc, char *argv[])
 {
   char         **av ;
@@ -162,6 +166,7 @@ main(int argc, char *argv[])
   if (verbose)
     fprintf(stderr, "done.\n") ;
   exit(0) ;
+  return(0) ;
 }
 
 /*----------------------------------------------------------------------
@@ -243,6 +248,7 @@ print_help(void)
   exit(1) ;
 }
 
+#if 0
 LABEL *
 LabelRead(char *subject_name, char *label_name)
 {
@@ -417,3 +423,4 @@ LabelWrite(LABEL *area, char *fname)
   return(NO_ERROR) ;
 }
 
+#endif
