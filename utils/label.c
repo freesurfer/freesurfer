@@ -1387,3 +1387,65 @@ LabelNormalizeStats(LABEL *area, float norm)
   return(NO_ERROR) ;
 }
 
+/*-------------------------------------------------------------
+  MaskSurfLabel() - removes vertices from a label based on the 
+  value of those vertices in a surface mask.
+  -------------------------------------------------------------*/
+LABEL *MaskSurfLabel(LABEL *lbl, MRI *SurfMask, 
+         float thresh, char *masksign, int frame)
+{
+  LABEL *msklbl;
+  int n,vno, ok, noverlap;
+  float maskval;
+
+  if(frame >= SurfMask->nframes){
+    printf("ERROR:  MaskSurfLabel: specified frame %d is greater "
+     "than the number of frame %d\n",frame, SurfMask->nframes);
+    return(NULL);
+  }
+
+  /* Check that the label is a surface-based label */
+  ok = 0;
+  for(n = 0; n < lbl->n_points; n++){
+    if(lbl->lv[n].vno != 0) ok = 1;
+  }
+  if(!ok){
+    printf("ERROR: MaskSurfLabel: all label vertices are 0, proably\n");
+    printf("       not a label created from a surface\n");
+    return(NULL);
+  }
+
+  /* -- Allocate the Target Label ---*/
+  msklbl = LabelAlloc(lbl->n_points,lbl->subject_name,"labelfilenamehere");
+  msklbl->n_points = lbl->n_points;
+
+  /* Compute the number of overlapping vertices */
+  noverlap = 0;
+  for(n = 0; n < lbl->n_points; n++){
+    vno = lbl->lv[n].vno;
+    if(vno >= SurfMask->width){
+      printf("ERROR: MaskSurfLabel: label vertex %d has vno %d which "
+       "is larger than the number of vertices %d in mask\n",
+       n,vno,SurfMask->width);
+      return(NULL);
+    }
+    maskval = MRIgetVoxVal(SurfMask,vno,0,0,frame);
+    if(!strcmp(masksign,"abs")) maskval = fabs(maskval);
+    if(!strcmp(masksign,"neg")) maskval = -maskval;
+    //printf("%4d  %6d  %g %g  %d\n",n,vno,maskval,thresh,maskval>thresh);
+    if(maskval < thresh) continue;
+    msklbl->lv[noverlap].vno = vno;
+    msklbl->lv[noverlap].x = lbl->lv[noverlap].x;
+    msklbl->lv[noverlap].y = lbl->lv[noverlap].y;
+    msklbl->lv[noverlap].z = lbl->lv[noverlap].z;
+    msklbl->lv[noverlap].stat = lbl->lv[noverlap].stat;
+    noverlap ++;
+  }
+  if(noverlap==0){
+    printf("WARNING: MaskSurfLabel: no overlap between label and mask\n");
+    return(NULL);
+  }
+  msklbl->n_points = noverlap;
+
+  return(msklbl);
+}
