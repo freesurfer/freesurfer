@@ -756,7 +756,7 @@ int bhdr_precision(char *fname)
   char *stem;
   char tmpstr[2000];
 
-  if(! is_bhdr(fname)) return(NULL);
+  if(! is_bhdr(fname)) return(0);
   stem = bhdr_stem(fname);
 
   sprintf(tmpstr,"%s_000.bfloat",stem);
