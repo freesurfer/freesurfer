@@ -1,10 +1,10 @@
 /*============================================================================
  Copyright (c) 1996 Martin Sereno and Anders Dale
 =============================================================================*/
-/*   $Id: tkregister2.c,v 1.1 2002/08/13 15:55:18 greve Exp $   */
+/*   $Id: tkregister2.c,v 1.2 2002/08/14 18:14:21 greve Exp $   */
 
 #ifndef lint
-static char vcid[] = "$Id: tkregister2.c,v 1.1 2002/08/13 15:55:18 greve Exp $";
+static char vcid[] = "$Id: tkregister2.c,v 1.2 2002/08/14 18:14:21 greve Exp $";
 #endif /* lint */
 
 #define TCL
@@ -27,6 +27,7 @@ static char vcid[] = "$Id: tkregister2.c,v 1.1 2002/08/13 15:55:18 greve Exp $";
 #include "machine.h"
 #include "MRIio.h"
 #include "mri.h"
+#include "mrisurf.h"
 #include "mri_identify.h"
 #include "registerio.h"
 
@@ -296,10 +297,12 @@ int  fstarg = 0;
 int mkheaderreg = 0, noedit = 0, fixtkreg = 1, fixonly = 0;
 int LoadVol = 1;
 
-MRI *mov_vol, *targ_vol, *mritmp;
+MRI *mov_vol, *targ_vol, *mritmp, *mrisurf;
+MRI_SURFACE *surf;
 
 float movimg[WINDOW_ROWS][WINDOW_COLS];
 float targimg[WINDOW_ROWS][WINDOW_COLS];
+int surfimg[WINDOW_ROWS][WINDOW_COLS];
 
 int debug;
 
@@ -310,10 +313,15 @@ char *fslregfname;
 char *fslregoutfname;
 MATRIX *invDmov, *FSLRegMat, *invFSLRegMat; 
 
+int LoadSurf = 0, UseSurf=0;
+char *surfname = "white", surf_path[2000];
+
+
 /**** ------------------ main ------------------------------- ****/
 int Register(ClientData clientData,Tcl_Interp *interp, int argc, char *argv[])
 {
-  int i,j;
+  int i,j,n,c,r,s;
+  MATRIX *Vxyz=NULL, *Vcrs=NULL;
 
   Progname = argv[0] ;
   argc --;
@@ -478,6 +486,82 @@ int Register(ClientData clientData,Tcl_Interp *interp, int argc, char *argv[])
   }
 
   /*------------------------------------------------------*/
+  if(LoadSurf){
+    if(subjectsdir == NULL) subjectsdir = getenv("SUBJECTS_DIR");
+    if (subjectsdir==NULL) {
+      printf("ERROR: SUBJECTS_DIR undefined. Use setenv or -sd\n");
+      exit(1);
+    }
+    /* alloc a volume data struct for the surface */
+    mrisurf = MRIallocSequence(256,256,256, MRI_UCHAR, 1) ;
+    if(mrisurf == NULL){
+      printf("ERROR: could not alloc volume for surf\n");
+      exit(1);
+    }
+    mrisurf->x_r = -1.0;
+    mrisurf->x_a =  0.0;
+    mrisurf->x_s =  0.0;
+    mrisurf->y_r =  0.0;
+    mrisurf->y_a = +1.0;
+    mrisurf->y_s =  0.0;
+    mrisurf->z_r =  0.0;
+    mrisurf->z_a =  0.0;
+    mrisurf->z_s = -1.0;
+    mrisurf->c_r = +0.5;
+    mrisurf->c_a = -0.5;
+    mrisurf->c_s = +0.5;
+
+    /* load in the left hemi */
+    sprintf(surf_path,"%s/%s/surf/lh.%s",subjectsdir,subjectid,surfname);
+    printf("Reading lh surface %s\n",surfname);
+    surf = MRISread(surf_path) ;
+    if (!surf)
+      ErrorExit(ERROR_NOFILE,"%s: could not read surface %s", 
+		Progname, surfname) ;
+    printf("Done reading surface\n");
+
+    /* make a surface mask in the volume */
+    Vxyz = MatrixAlloc(4,1,MATRIX_REAL);
+    Vxyz->rptr[4][1] = 1.0;
+    for(n=0; n < surf->nvertices; n++){
+      Vxyz->rptr[1][1] = surf->vertices[n].x;
+      Vxyz->rptr[2][1] = surf->vertices[n].y;
+      Vxyz->rptr[3][1] = surf->vertices[n].z;
+      Vcrs = MatrixMultiply(invTtarg,Vxyz,Vcrs);
+      c = nint(Vcrs->rptr[1][1]);
+      r = nint(Vcrs->rptr[2][1]);
+      s = nint(Vcrs->rptr[3][1]);
+      MRIvox(mrisurf,c,r,s) = 1;
+    }
+    MRISfree(&surf);
+
+    /* load in the right hemi */
+    sprintf(surf_path,"%s/%s/surf/rh.%s",subjectsdir,subjectid,surfname);
+    printf("Reading rh surface %s\n",surfname);
+    surf = MRISread(surf_path) ;
+    if (!surf)
+      ErrorExit(ERROR_NOFILE,"%s: could not read surface %s", 
+		Progname, surfname) ;
+    printf("Done reading surface\n");
+
+    /* make a surface mask in the volume */
+    Vxyz = MatrixAlloc(4,1,MATRIX_REAL);
+    Vxyz->rptr[4][1] = 1.0;
+    for(n=0; n < surf->nvertices; n++){
+      Vxyz->rptr[1][1] = surf->vertices[n].x;
+      Vxyz->rptr[2][1] = surf->vertices[n].y;
+      Vxyz->rptr[3][1] = surf->vertices[n].z;
+      Vcrs = MatrixMultiply(invTtarg,Vxyz,Vcrs);
+      c = nint(Vcrs->rptr[1][1]);
+      r = nint(Vcrs->rptr[2][1]);
+      s = nint(Vcrs->rptr[3][1]);
+      MRIvox(mrisurf,c,r,s) = 2;
+    }
+    MRISfree(&surf);
+
+  }
+
+  /*------------------------------------------------------*/
   if(ps_2 != mov_vol->xsize){
     printf("WARNING: pixel size in regfile (%f) does not match that of "
 	   "movable volume (%f)\n",ps_2,mov_vol->xsize);
@@ -585,6 +669,15 @@ static int parse_commandline(int argc, char **argv)
 	mov_vol_fmt = checkfmt(fmt);
       }
     }
+    else if (!strcmp(option, "--surf")){
+      LoadSurf = 1;
+      UseSurf  = 1;
+      nargsused = 1;
+      if(nth_is_arg(nargc, pargv, 0)){
+	surfname = pargv[0]; nargsused ++;
+	printf("surfname set to %s\n",surfname);
+      }
+    }
     else if (!strcmp(option, "--reg")){
       if(nargc < 1) argnerr(option,1);
       regfname = pargv[0];
@@ -662,6 +755,7 @@ static void print_usage(void)
   printf("   --targ target volume <fmt>\n");
   printf("   --fstarg : target is relative to subjectid/mri\n");
   printf("   --mov  movable volume  <fmt> \n");
+  printf("   --surf surfname : display surface as an overlay \n");
   printf("   --reg  register.dat : input/output registration file\n");
   printf("   --regheader : compute regstration from headers\n");
   printf("   --fslreg file : FSL-Style registration input matrix\n");
@@ -690,17 +784,22 @@ static void print_help(void)
 
 SUMMARY
 
-  tkregister2 is a tool to assist in the manual tuning of the linear
-  registration between two volumes, mainly for the purpose of
-  interacting with the FreeSurfer anatomical stream. The initial
-  registration can be based on: (1) a previously existing registration,
-  (2) the spatial information contained in the headers of the two input
-  volumes, or (3) an FSL registration matrix.The output takes the form
-  of a FreeSurfer registration matrix. It is also possible to output an
-  FSL registration matrix. It is possible to run tkregister2 without the
-  manual editing stage (ie, it exits immediately) in order to compute
-  and/or convert registration matrices. tkregister2 will also seamlessly
-  interface with SPM.
+tkregister2 is a tool to assist in the manual tuning of the linear
+registration between two volumes, mainly for the purpose of
+interacting with the FreeSurfer anatomical stream. The GUI displays a
+window in which the user can toggle between the two volumes to see how
+well they line up. It is also possible to display the cortical surface
+to assist in alignment. The user can edit the registration by
+translation, rotation, and stretching.  The initial registration can
+be based on: (1) a previously existing registration, (2) the spatial
+information contained in the headers of the two input volumes, or (3)
+an FSL registration matrix. The output takes the form of a FreeSurfer
+registration matrix. It is also possible to output an FSL registration
+matrix. It is possible to run tkregister2 without the manual editing
+stage (ie, it exits immediately) in order to compute and/or convert
+registration matrices. tkregister2 can also compute registration
+matrices from two volumes aligned in SPM.
+
   
 FLAGS AND OPTIONS
   
@@ -720,6 +819,17 @@ FLAGS AND OPTIONS
   This is the path to the target volume. It can read anything readable 
   by mri_convert. See also --fstarg.
   
+
+  --surf <surfacename>
+
+  Load the cortical surface (both hemispheres) and display as an
+  overlay on the volumes. If just --surf is supplied, then the white 
+  surface is loaded, otherwise surfacename is loaded. The subject
+  name (as found in the input registration file or as specified
+  on the command-line) must be valid, and the surface must exist
+  in the subject's anatomical directory. The surface display can
+  be toggled by clicking in the window and hitting 's'.
+
   --reg registration-file
   
   Path to the input or output FreeSurfer registration file. If the user
@@ -841,7 +951,8 @@ SAVE REG button. The intensity of the movable can be changed by editing
 the value of the 'fmov:' text box. The brightntess and contrast of the
 target can be changed by editing the 'contrast:' and 'midpoint:' text
 boxes. The target can be masked off to the FOV of the movable by 
-pressing the 'masktarg' radio button.
+pressing the 'masktarg' radio button. If a surface has been loaded, it
+can be toggled by clicking in the display window and hitting 's'.
 
 USING WITH FSL and SPM 
 
@@ -874,6 +985,12 @@ The target is almost always a FreeSurfer anatomical, which has
 256x256x256 voxels, isotropic at 1mm. The GUI probably will not work 
 unless the target has these dimensions.  The non-GUI operations
 will probably be OK though.
+
+AUTHORS
+
+The original tkregister was written by Martin Sereno and Anders Dale
+in 1996. The original was modified by Douglas Greve in 2002.
+
 ");
 
 
@@ -1001,6 +1118,7 @@ void draw_image2(int imc,int ic,int jc)
   extern int xdim_2, ydim_2, imnr1_2; /* func Nc, Ns, Nr */
   extern float movimg[WINDOW_ROWS][WINDOW_COLS];
   extern float targimg[WINDOW_ROWS][WINDOW_COLS];
+  extern int surfimg[WINDOW_ROWS][WINDOW_COLS];
   extern MATRIX *Qmov, *Qtarg;
   static int firstpass = 1;
   static int PrevPlane, PrevImc, PrevIc, PrevJc, PrevOverlayMode;
@@ -1102,7 +1220,8 @@ void draw_image2(int imc,int ic,int jc)
   for(r = 0; r < ydim; r++){
     for(c = 0; c < xdim; c++){
       targimg[r][c] = 0.0;
-      movimg[r][c] = 0.0;
+      movimg[r][c]  = 0.0;
+      surfimg[r][c] = 0;
 
       /* crsTarg = Qtarg * [c r 0 1]' */
       fcTarg = Qtarg->rptr[1][1]*c + Qtarg->rptr[1][2]*r + Qtarg->rptr[1][4];
@@ -1120,6 +1239,8 @@ void draw_image2(int imc,int ic,int jc)
 
       /* Could interp here, but why bother? */
       targimg[r][c] = MRIFseq_vox(targ_vol,icTarg,irTarg,isTarg,0);
+
+      if(UseSurf) surfimg[r][c] = MRIvox(mrisurf,icTarg,irTarg,isTarg);
       
       /* Keep track of the max and min */
       if(targimgmax < targimg[r][c]) targimgmax = targimg[r][c];
@@ -1212,22 +1333,29 @@ void draw_image2(int imc,int ic,int jc)
   k = 0;
   for(r = 0; r < ydim; r++){
     for(c = 0; c < xdim; c++){
-      switch(overlay_mode){
-      case TARGET:   f = targimg[r][c]; break;
-      case MOVEABLE: f = movimg[r][c];  break;
-      }
-      if(f < 0)        f = 0;
-      else if(f > 255) f = 255;
-      voxval = (unsigned char)(nint(f));
-      if(!use_inorm){
-	lvidbuf[3*k]   = colormap[voxval];
-	lvidbuf[3*k+1] = colormap[voxval];
-	lvidbuf[3*k+2] = colormap[voxval];
+      if(UseSurf && surfimg[r][c]){
+	lvidbuf[3*k]   = 0;
+	lvidbuf[3*k+1] = 255;
+	lvidbuf[3*k+2] = 0;
       }
       else{
-	lvidbuf[3*k]   = voxval;
-	lvidbuf[3*k+1] = voxval;
-	lvidbuf[3*k+2] = voxval;
+	switch(overlay_mode){
+	case TARGET:   f = targimg[r][c]; break;
+	case MOVEABLE: f = movimg[r][c];  break;
+	}
+	if(f < 0)        f = 0;
+	else if(f > 255) f = 255;
+	voxval = (unsigned char)(nint(f));
+	if(!use_inorm){
+	  lvidbuf[3*k]   = colormap[voxval];
+	  lvidbuf[3*k+1] = colormap[voxval];
+	  lvidbuf[3*k+2] = colormap[voxval];
+	}
+	else{
+	  lvidbuf[3*k]   = voxval;
+	  lvidbuf[3*k+1] = voxval;
+	  lvidbuf[3*k+2] = voxval;
+	}
       }
       k++;
     }
@@ -1762,11 +1890,11 @@ int do_one_gl_event(Tcl_Interp *interp)   /* tcl */
           /* lower case */
 	case XK_i: use_inorm = !use_inorm;  updateflag = TRUE; break;
 	case XK_n: interpmethod = SAMPLE_NEAREST; updateflag = TRUE; break;
-	case XK_s: interpmethod = SAMPLE_SINC; updateflag = TRUE; break;
 	case XK_t: interpmethod = SAMPLE_TRILINEAR; updateflag = TRUE; break;
 	case XK_x: plane=SAGITTAL;   updateflag = TRUE; break;
 	case XK_y: plane=HORIZONTAL; updateflag = TRUE; break;
 	case XK_z: plane=CORONAL;    updateflag = TRUE; break;
+	case XK_s: if(LoadSurf) UseSurf = !UseSurf; updateflag = TRUE; break;
 
           /* others */
           case XK_Up:
