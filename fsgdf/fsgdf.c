@@ -1,7 +1,7 @@
 /*
   fsgdf.c
   Utilities for reading freesurfer group descriptor file format 
-  $Id: fsgdf.c,v 1.16 2002/11/25 22:18:28 kteich Exp $
+  $Id: fsgdf.c,v 1.17 2003/04/05 01:14:10 greve Exp $
 
   See:   http://surfer.nmr.mgh.harvard.edu/docs/fsgdf.txt
 
@@ -64,8 +64,6 @@ int isblank (int c);
 
 static FSGD *gdfReadV1(char *gdfname);
 static int gdfPrintV1(FILE *fp, FSGD *gd);
-static int gdfCountItemsOnLine(FILE *fp);
-static int gdfCountItemsInString(char *str);
 static int gdfClassNo(FSGD *gd, char *class);
 static int gdfCheckVarRep(FSGD *gd);
 static int gdfCheckClassRep(FSGD *gd);
@@ -482,7 +480,7 @@ static int gdfClassNo(FSGD *gd, char *class)
   in the given string, where an item is defined as
   one or more contiguous non-blank characters.
   --------------------------------------------------*/
-static int gdfCountItemsInString(char *str)
+int gdfCountItemsInString(char *str)
 {
   int len, n, nhits;
 
@@ -508,7 +506,7 @@ static int gdfCountItemsInString(char *str)
   one or more contiguous non-blank characters. The
   file pointer is not changed.
   --------------------------------------------------*/
-static int gdfCountItemsOnLine(FILE *fp)
+int gdfCountItemsOnLine(FILE *fp)
 {
   fpos_t now;
   char tmpstr[1000];

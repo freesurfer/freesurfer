@@ -51,6 +51,8 @@ MATRIX *gdfMatrixDODS(FSGD *gd, MATRIX *X);
 MATRIX *gdfMatrix(FSGD *gd, char *gd2mtx_method, MATRIX *X);
 int gdfOffsetSlope(FSGD *gd, int classno, int varno, 
 		   int c, int r, int s, float *offset, float *slope);
+int gdfCountItemsOnLine(FILE *fp);
+int gdfCountItemsInString(char *str);
 
 int gdfGetTitle(FSGD *gd, char *title);
 int gdfGetMeasurementName(FSGD *gd, char *name);
