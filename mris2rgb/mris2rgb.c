@@ -29,7 +29,7 @@
 #include "tiffio.h"
 #include "label.h"
 
-static char vcid[] = "$Id: mris2rgb.c,v 1.16 1998/06/03 04:55:23 fischl Exp $";
+static char vcid[] = "$Id: mris2rgb.c,v 1.17 1998/06/03 05:16:06 fischl Exp $";
 
 /*-------------------------------- CONSTANTS -----------------------------*/
 
@@ -212,7 +212,7 @@ main(int argc, char *argv[])
     else
       strcpy(hemi, "lh") ;
 
-    is_flat = (strstr(name, "flat") != NULL || strstr(name, "patch")) ;
+    is_flat = (strstr(name, ".flat") != NULL || strstr(name, ".patch")) ;
     if (patch_flag || is_flat) /* read the orig surface, then the patch file */
     {
       FileNamePath(in_fname, path) ;
