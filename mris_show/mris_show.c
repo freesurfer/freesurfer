@@ -4,8 +4,8 @@
 #include <math.h>
 #include <ctype.h>
 
-#include <glut.h>
-#include <gl.h>
+#include <GL/glut.h>
+#include <GL/gl.h>
 
 #include "macros.h"
 #include "error.h"
@@ -15,7 +15,7 @@
 #include "macros.h"
 #include "oglutil.h"
 
-static char vcid[] = "$Id: mris_show.c,v 1.16 1997/12/10 23:20:53 fischl Exp $";
+static char vcid[] = "$Id: mris_show.c,v 1.17 1997/12/15 20:41:17 fischl Exp $";
 
 
 /*-------------------------------- CONSTANTS -----------------------------*/
@@ -157,7 +157,6 @@ main(int argc, char *argv[])
     if (MRISreadPatch(mris, name) != NO_ERROR)
       ErrorExit(ERROR_NOFILE, "%s: could not read patch file %s",
                 Progname, surf_fname) ;
-    MRIScomputeTriangleProperties(mris) ;  /* recompute areas and normals */
   }
   else
   {
@@ -166,6 +165,7 @@ main(int argc, char *argv[])
       ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
                 Progname, in_fname) ;
   }
+  MRIScomputeMetricProperties(mris) ;
   MRIScomputeSecondFundamentalForm(mris) ;
   if (mean_curvature_flag)
     MRISuseMeanCurvature(mris) ;
@@ -833,6 +833,7 @@ findAreaExtremes(MRI_SURFACE *mris)
   FACE    *face ;
   float   min_area, max_area;
 
+  fmax = fmin = tmax = tmin = 0 ;
   min_area = 10000.0f ; max_area = -10000.0f ;
   for (fno = 0 ; fno < mris->nfaces ; fno++)
   {
