@@ -5231,6 +5231,7 @@ static MRI *gdfRead(char *fname, int read_volume)
   unsigned char *ucbuf = NULL;
   int n_files;
   char fname_use[STRLEN];
+  int pad_zeros_flag;
 
   if((fp = fopen(fname, "r")) == NULL)
   {
@@ -5275,7 +5276,7 @@ static MRI *gdfRead(char *fname, int read_volume)
     }
     else if(strncmp(line, "DATA_TYPE", 9) == 0)
     {
-      sscanf(line, "%*s %s", data_type_string);
+      strcpy(data_type_string, &line[10]);
       dt_d = TRUE;
     }
     else if(strncmp(line, "ORIENTATION", 11) == 0)
@@ -5412,6 +5413,8 @@ static MRI *gdfRead(char *fname, int read_volume)
     
   }
 
+  pad_zeros_flag = FALSE;
+
   n_files = 0;
   do
   {
@@ -5419,10 +5422,26 @@ static MRI *gdfRead(char *fname, int read_volume)
     sprintf(fname_use, "%s%d%s", file_path_1, n_files, file_path_2);
   } while(FileExists(fname_use));
 
+  /* ----- try padding the zeros if no files are found ----- */
   if(n_files == 1)
   {
-    errno = 0;
-    ErrorReturn(NULL, (ERROR_BADFILE, "gdfRead(): can't find file %s\n", fname_use));
+
+    pad_zeros_flag = TRUE;
+
+    n_files = 0;
+    do
+    {
+      n_files++;
+      sprintf(fname_use, "%s%03d%s", file_path_1, n_files, file_path_2);
+    } while(FileExists(fname_use));
+
+    /* ----- still a problem? ----- */
+    if(n_files == 1)
+    {
+      errno = 0;
+      ErrorReturn(NULL, (ERROR_BADFILE, "gdfRead(): can't find file %s%d%s or %s\n", file_path_1, 1, file_path_2, fname_use));
+    }
+
   }
 
   n_files--;
@@ -5500,18 +5519,21 @@ static MRI *gdfRead(char *fname, int read_volume)
   for(i = 1;i <= n_files;i++)
   {
 
-    sprintf(fname_use, "%s%d%s", file_path_1, i, file_path_2);
+    if(pad_zeros_flag)
+      sprintf(fname_use, "%s%03d%s", file_path_1, i, file_path_2);
+    else
+      sprintf(fname_use, "%s%d%s", file_path_1, i, file_path_2);
 
     fp = fopen(fname_use, "r");
     if(fp == NULL)
     {
-      MRIfree(&mri);
       if(mri->type == MRI_UCHAR)
         free(ucbuf);
       if(mri->type == MRI_SHORT)
         free(sbuf);
       if(mri->type == MRI_FLOAT)
         free(fbuf);
+      MRIfree(&mri);
       errno = 0;
       ErrorReturn(NULL, (ERROR_BADFILE, "gdfRead(): error opening file %s", fname_use));
     }
@@ -5883,6 +5905,29 @@ static int read_otl_file(FILE *fp, MRI *mri, int slice, mriColorLookupTableRef c
         strcpy(alt_compare, &(label_to_compare[5]));
       else if(strncmp(alt_compare, "right-", 6) == 0)
         strcpy(alt_compare, &(label_to_compare[6]));
+
+      /* --- strip leading and trailing spaces (now dashes) --- */
+
+      /* leading */
+      for(j = 0;label_to_compare[j] == '-';j++);
+      if(label_to_compare[j] != '\0')
+      {
+        for(c = label_to_compare;*(c+j) != '\0';c++)
+          *c = *(c+j);
+        *c = *(c+j);
+      }
+
+      /* trailing */
+      for(j = strlen(label_to_compare) - 1;j >= 0 && label_to_compare[j] == '-';j--);
+      if(j < 0) /* all dashes! */
+      {
+        /* for now, let this fall through to an unknown label */
+      }
+      else /* j is the index of the last non-dash character */
+      {
+        label_to_compare[j+1] = '\0';
+      }
+
 
       label_value = -1;
       for(j = 0;j < color_table->mnNumEntries;j++)
