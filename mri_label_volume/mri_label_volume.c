@@ -78,16 +78,7 @@ main(int argc, char *argv[])
 		exit(0) ;
 	}
 
-  if (compute_pct)
-  {
-    for (brain_volume = label = 0 ; label <= MAX_CMA_LABEL ; label++)
-    {
-      if (!IS_BRAIN(label))
-        continue ;
-      brain_volume += MRIvoxelsInLabel(mri, label) ;
-    }
-  }
-  else if (brain_fname)
+  if (brain_fname)
 	{
 		MRI *mri_brain = MRIread(brain_fname) ;
 		if (mri_brain == NULL)
@@ -96,6 +87,15 @@ main(int argc, char *argv[])
 		brain_volume = MRItotalVoxelsOn(mri_brain, WM_MIN_VAL) ;
 		MRIfree(&mri_brain) ;
 	}
+  else if (compute_pct)
+  {
+    for (brain_volume = label = 0 ; label <= MAX_CMA_LABEL ; label++)
+    {
+      if (!IS_BRAIN(label))
+        continue ;
+      brain_volume += MRIvoxelsInLabel(mri, label) ;
+    }
+  }
 	else
     brain_volume = 1 ;
 
@@ -181,6 +181,7 @@ get_option(int argc, char *argv[])
     break ;
 	case 'B':
 		brain_fname = argv[2] ;
+    compute_pct = 1 ;
 		nargs = 1 ;
 		printf("reading brain volume from %s...\n", brain_fname) ;
 		break ;
