@@ -116,8 +116,8 @@ ScubaLayer2DMRI::SetVolumeCollection ( VolumeCollection& iVolume ) {
   mVolume = &iVolume;
 
   mVolume->GetMRI();
-  mMinVisibleValue = mVolume->GetMRIMinValue();
-  mMaxVisibleValue = mVolume->GetMRIMaxValue();
+  SetMinVisibleValue( mVolume->GetMRIMinValue() );
+  SetMaxVisibleValue( mVolume->GetMRIMaxValue() );
 
   mVolume->AddListener( this );
 
@@ -1225,6 +1225,24 @@ ScubaLayer2DMRI::BuildGrayscaleLUT () {
     mGrayscaleLUT[(int)nEntry] = (int) floor( normValue );
   }
 }
+
+void
+ScubaLayer2DMRI::SetMinVisibleValue ( float iValue ) {
+
+  mMinVisibleValue = iValue; 
+  if( mMinVisibleValue >= mMaxVisibleValue ) {
+    mMinVisibleValue = mMinVisibleValue - 1;
+  }
+}
+
+void
+ScubaLayer2DMRI::SetMaxVisibleValue ( float iValue ) { 
+  mMaxVisibleValue = iValue; 
+  if( mMaxVisibleValue <= mMinVisibleValue ) {
+    mMaxVisibleValue = mMinVisibleValue + 1;
+  }
+}
+ 
 
 // PATHS =================================================================
 

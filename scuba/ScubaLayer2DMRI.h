@@ -68,9 +68,9 @@ class ScubaLayer2DMRI : public Layer {
   void SetContrast ( float iContrast ) { 
     mContrast = iContrast; mNegContrast = -mContrast; }
 
-  void SetMinVisibleValue ( float iValue ) { mMinVisibleValue = iValue; }
+  void SetMinVisibleValue ( float iValue );
   float GetMinVisibleValue () { return mMinVisibleValue; }
-  void SetMaxVisibleValue ( float iValue ) { mMaxVisibleValue = iValue; }
+  void SetMaxVisibleValue ( float iValue );
   float GetMaxVisibleValue () { return mMaxVisibleValue; }
 
   float GetROIOpacity () { return mROIOpacity; }
