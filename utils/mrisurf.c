@@ -46,9 +46,9 @@
 #define MRIS_ASCII_FILE     1
 #define MRIS_GEO_FILE       2    /* movie.byu format */
 
-#define NEG_AREA_K          100.0
+#define NEG_AREA_K          200.0
 /* limit the size of the ratio so that the exp() doesn't explode */
-#define MAX_NEG_RATIO       (-100 / NEG_AREA_K)
+#define MAX_NEG_RATIO       (400 / NEG_AREA_K)
 
 /*------------------------ STATIC PROTOTYPES -------------------------*/
 
@@ -4519,9 +4519,15 @@ mrisComputeNonlinearAreaSSE(MRI_SURFACE *mris)
       ratio = area_scale*face->area / face->orig_area ;
     else
       ratio = 0.0f ;
-    if (ratio < MAX_NEG_RATIO)
+    if (ratio > MAX_NEG_RATIO)
       ratio = MAX_NEG_RATIO ;
+    else if (ratio < -MAX_NEG_RATIO)
+      ratio = -MAX_NEG_RATIO ;
+#if 0
     error = (1.0 / NEG_AREA_K) * log(1.0+exp(-NEG_AREA_K*ratio)) ;
+#else
+    error = (log(1.0+exp(NEG_AREA_K*ratio)) / NEG_AREA_K) - ratio ;
+#endif
 
     sse += error ;
     if (!finite(sse) || !finite(error))
@@ -10478,9 +10484,15 @@ mrisComputeNonlinearAreaTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     else
       ratio = 0.0f ;
 
-    if (ratio < MAX_NEG_RATIO)
+    if (ratio > MAX_NEG_RATIO)
       ratio = MAX_NEG_RATIO ;
+    else if (ratio < -MAX_NEG_RATIO)
+      ratio = -MAX_NEG_RATIO ;
+#if 0
     scale = l_narea * (1 - (1/(1.0+exp(-NEG_AREA_K*ratio)))) ;
+#else
+    scale = l_narea / (1.0+exp(NEG_AREA_K*ratio)) ;
+#endif
     delta = scale * (area - orig_area) ; 
 
     V3_CROSS_PRODUCT(v_a, v_n, v_a_x_n) ;
