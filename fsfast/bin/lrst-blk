@@ -1,8 +1,8 @@
 #!/bin/csh -f
 # lrst-blk
 #
-# $Id: lrst-blk,v 1.1 2003/03/04 21:22:09 greve Exp $
-set VERSION = '$Id: lrst-blk,v 1.1 2003/03/04 21:22:09 greve Exp $';
+# $Id: lrst-blk,v 1.2 2003/03/20 01:21:52 greve Exp $
+set VERSION = '$Id: lrst-blk,v 1.2 2003/03/20 01:21:52 greve Exp $';
 
 set inputargs = ($argv);
 set DateStr = "`date '+%y%m%d%H%M'`"
@@ -209,9 +209,9 @@ while( $#argv != 0 )
     case "-detrend":
       if ( $#argv == 0) goto arg1err;
       set DetrendMethod = $argv[1]; shift;
-      if($DetrendMethod != none && \
-         $DetrendMethod != linear && \
-         $DetrendMethod != whittle) then
+      if("$DetrendMethod" != none && \
+         "$DetrendMethod" != linear && \
+         "$DetrendMethod" != whittle) then
          echo "ERROR: detrending method must be either: "
          echo "       none, linear, or whittle"
          exit 1;
