@@ -2,7 +2,7 @@
 # mris_glm-sess
 #
 
-set VERSION = '$Id: mris_glm-sess,v 1.4 2004/10/19 19:34:27 greve Exp $';
+set VERSION = '$Id: mris_glm-sess,v 1.5 2004/10/20 21:49:30 greve Exp $';
 set fsgdf = ();
 set analysis = ();
 set contrast = ();
@@ -17,6 +17,11 @@ set nolog = 0;
 set VolFWHM = ();
 set VolSynth  = 0;
 set SurfSynth  = 0;
+set nsim = ();
+set chtargs = ();
+set GContrastSpecified = 0;
+set trgsubj = ();
+set debug = 0;
 
 set DateStr = "`date '+%y%m%d%H%M%S'`"
 set ProcId = $$
@@ -43,6 +48,50 @@ parse_args_return:
 
 goto check_params;
 check_params_return:
+
+if($#nsim) then
+  set LF = log/mris_glm-$analysis-$contrast-sim.log
+  if(-e $LF) mv $LF $LF.bak
+  date |& tee -a $LF
+
+  set chtdir = `dirname $chtfile`;
+  mkdir -p $chtdir
+  set wfile = $chtdir/sigt-mcsim-$hemi.w # Must change name
+  # Loop thru the MC simulation, recursively running mris_glm-sess
+  rm -f $chtfile
+  @ nthsim = 1;
+  while($nthsim <= $nsim)
+    echo "---mcsimulation---------------------------------" |& tee -a $LF
+    echo "nthsim $nthsim  `date`" |& tee -a $LF
+    set cmd = (mris_glm-sess $cmdargs -volsynth -nomcsim)
+    set cmd = ($cmd --sigt $wfile paint)
+    pwd |& tee -a $LF
+    echo $cmd |& tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) exit 1;
+
+    echo "" |& tee -a $LF
+    echo "" |& tee -a $LF
+    echo "`date`" |& tee -a $LF
+    set cmd = (mri_surfcluster --hemi $hemi --src $wfile )
+    set cmd = ($cmd --srcsubj $trgsubj --cht $chtfile $chtargs)
+    set cmd = ($cmd --thmin 1 --thmax 5 --minarea 10) # dummy args
+    pwd |& tee -a $LF
+    echo $cmd |& tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) exit 1;
+
+    @ nthsim = $nthsim + 1;
+  end
+
+  echo "" |& tee -a $LF
+  echo "" |& tee -a $LF
+  rm -r $wfile
+  echo "mris_glm-sess with mc simulation done `date`" |& tee -a $LF
+  exit 0;
+endif
+
+
 
 set cfgfile  = $analysis/analysis.cfg
 set infofile = $analysis/analysis.info
@@ -152,10 +201,13 @@ foreach s ($subjlist)
 end
 
 # OK, now construct the mris_glm command-line
-set cmd = (mris_glm --allowsubjrep)
-set cmd = ($cmd --fsgd $fsgdf --hemi $hemi)
-set cmd = ($cmd $wlist --ifmt paint)
-set cmd = ($cmd $mris_glm_args)
+#set MGLM = $DEV/mris_glm/mris_glm
+set MGLM = mris_glm
+set cmda = ( --allowsubjrep)
+set cmda = ($cmda --fsgd $fsgdf --hemi $hemi)
+set cmda = ($cmda $wlist --ifmt paint)
+set cmda = ($cmda $mris_glm_args)
+set cmd = ($MGLM $cmda)
 echo "--------------------------------------"| tee -a $LF
 pwd | tee -a $LF
 echo $cmd | tee -a $LF
@@ -250,6 +302,25 @@ while( $#argv != 0 )
       set hemi = $argv[1]; shift;
       breaksw
 
+    case "-mcsim"
+      if($#argv < 9) then
+        echo "ERROR: -mcsim requires 9 arguments"
+        exit 1;
+      endif
+      set nsim    = $argv[1]; shift;
+      set chtfile = $argv[1]; shift;
+      set chtargs = ()
+      @ n = 1;
+      while($n <= 7)
+	set chtargs = ($chtargs $argv[1]); shift;
+        @ n = $n + 1;
+      end
+      breaksw
+
+    case "-nomcsim"
+      set nsim = ();
+      breaksw
+
     case "-force-paint":
     case "-forcepaint":
       set ForcePaint = 1;
@@ -257,6 +328,21 @@ while( $#argv != 0 )
 
     case "-no-force-paint":
       set ForcePaint = 0;
+      breaksw
+
+    case "--gcv"
+    case "--contrast"
+      # Need to keep track of whether a contrast has been
+      # specified because it is needed for simulations
+      set GContrastSpecified = 1;
+      set mris_glm_args = ($mris_glm_args $flag);
+      breaksw
+
+    case "--trgsubj"
+      # Need to keep track of the target subject for sim
+      if ( $#argv == 0) goto arg1err;
+      set trgsubj = $argv[1]; shift;
+      set mris_glm_args = ($mris_glm_args --trgsubj $trgsubj);
       breaksw
 
     case "--meas":
@@ -288,6 +374,7 @@ while( $#argv != 0 )
     case "-debug":
       set verbose = 1;
       set echo = 1; # turns on terminal echoing
+      set debug = 1;
       breaksw
 
     case "-nolog":
@@ -329,6 +416,16 @@ endif
 
 if($VolSynth && $SurfSynth) then
   echo "ERROR: cannot specify both Volume and Surface synthesis"
+  exit 1;
+endif
+
+if($#nsim && ! $GContrastSpecified) then
+  echo "ERROR: need to specify a mris_glm contrast when simulating"
+  exit 1;
+endif
+
+if($#trgsubj == 0) then
+  echo "ERROR: mris_glm requires a target subject (--trgsubj)"
   exit 1;
 endif
 
