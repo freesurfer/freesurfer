@@ -52,22 +52,13 @@ MRIvoxelDx(MRI *mri, int x, int y, int z)
 
   total = 0 ;
 
-  if (y > 0)
-    ym1 = y - 1 ;
-  else
-    ym1 = y ;
-  if (y < (height-1))
-    yp1 = y + 1 ;
-  else
-    yp1 = y ;
-  if (x > 0)
-    xm1 = x-1 ;
-  else
-    xm1 = x ;
-  if (x < (width-1))
-    xp1 = x+1 ;
-  else
-    xp1 = x ;
+  x = mri->xi[x] ;
+  xm1 = mri->xi[x-1] ;
+  xp1 = mri->xi[x+1] ;
+  y = mri->yi[y] ;
+  ym1 = mri->yi[y-1] ;
+  yp1 = mri->yi[y+1] ;
+  z = mri->zi[z] ;
 
   left = 2 * MRIvox(mri, xm1, y, z) ;
   left += MRIvox(mri, xm1, ym1, z) ;
@@ -98,22 +89,13 @@ MRIvoxelDy(MRI *mri, int x, int y, int z)
 
   total = 0 ;
 
-  if (y > 0)
-    ym1 = y - 1 ;
-  else
-    ym1 = y ;
-  if (y < (height-1))
-    yp1 = y + 1 ;
-  else
-    yp1 = y ;
-  if (x > 0)
-    xm1 = x-1 ;
-  else
-    xm1 = x ;
-  if (x < (width-1))
-    xp1 = x+1 ;
-  else
-    xp1 = x ;
+  x = mri->xi[x] ;
+  xm1 = mri->xi[x-1] ;
+  xp1 = mri->xi[x+1] ;
+  y = mri->yi[y] ;
+  ym1 = mri->yi[y-1] ;
+  yp1 = mri->yi[y+1] ;
+  z = mri->zi[z] ;
 
   top = 2 * MRIvox(mri, xm1, ym1, z) ;
   top += MRIvox(mri, x, ym1, z) ;
@@ -144,22 +126,13 @@ MRIvoxelDz(MRI *mri, int x, int y, int z)
 
   total = 0 ;
 
-  if (z > 0)
-    zm1 = z - 1 ;
-  else
-    zm1 = z ;
-  if (z < (depth-1))
-    zp1 = z + 1 ;
-  else
-    zp1 = z ;
-  if (x > 0)
-    xm1 = x-1 ;
-  else
-    xm1 = x ;
-  if (x < (width-1))
-    xp1 = x+1 ;
-  else
-    xp1 = x ;
+  x = mri->xi[x] ;
+  xm1 = mri->xi[x-1] ;
+  xp1 = mri->xi[x+1] ;
+  z = mri->zi[z] ;
+  zm1 = mri->zi[z-1] ;
+  zp1 = mri->zi[z+1] ;
+  y = mri->yi[y] ;
 
   top = 2 * MRIvox(mri, xm1, y, zm1) ;
   top += MRIvox(mri, x, y, zm1) ;
@@ -310,24 +283,23 @@ MRIvoxelDirection(MRI *mri, int x0, int y0, int z0, int wsize)
   depth = mri->depth ;
 
   total = 0 ;
-  zmin = MAX(0, z0-whalf) ;
   zmax = MIN(depth-1, z0+whalf) ;
-  ymin = MAX(0, y0-whalf) ;
   ymax = MIN(height-1, y0+whalf) ;
-  xmin = MAX(0, x0-whalf) ;
   xmax = MIN(width-1, x0+whalf) ;
   npix = (zmax - zmin + 1) * (ymax - ymin + 1) * (xmax - xmin + 1) ;
 
   /* should do something smarter than this about border conditions */
+#if 0
   memset(dx_win, 0, MAX_LEN*sizeof(float)) ;
   memset(dy_win, 0, MAX_LEN*sizeof(float)) ;
   memset(dz_win, 0, MAX_LEN*sizeof(float)) ;
+#endif
   pdx = dx_win ; pdy = dy_win ; pdz = dz_win ;
-  for (z = zmin ; z <= zmax ; z++)
+  for (z = z0-whalf ; z <= zmax ; z++)
   {
-    for (y = ymin ; y <= ymax ; y++)
+    for (y = y0-whalf ; y <= ymax ; y++)
     {
-      for (x = xmin ; x <= xmax ; x++)
+      for (x = x0-whalf ; x <= xmax ; x++)
       {
         *pdx++ = MRIvoxelDx(mri, x, y, z) ;
         *pdy++ = MRIvoxelDy(mri, x, y, z) ;
@@ -354,7 +326,8 @@ MRIvoxelDirection(MRI *mri, int x0, int y0, int z0, int wsize)
       }
     }
   }
-  return(dir/27.0f) ;
+#define FSCALE 1000.0f
+  return(dir*(1.0f / (FSCALE*27.0f))) ;
 }
 
 float
