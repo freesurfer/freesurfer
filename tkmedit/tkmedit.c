@@ -16,7 +16,6 @@
 #include "diag.h"
 #include "utils.h"
 #include "const.h"
-#include "vlabels.h"
 
 #include "tkmedit.h"
 
@@ -80,6 +79,7 @@ char tkm_ksaErrorStrings [tkm_knNumErrorCodes][tkm_knErrStringLen] = {
   "Couldn't load the functional time course.",
   "Couldn't load the transform.",
   "Couldn't load the GCA volume.",
+  "Couldn't load the VLI volume.",
   "Error accessing a file.",
   "Error accessing the anatomical volume.",
   "Error accessing the segmentation.",
@@ -88,6 +88,7 @@ char tkm_ksaErrorStrings [tkm_knNumErrorCodes][tkm_knErrStringLen] = {
   "Couldnt write a file.",
   "A memory allocation failed.",
   "Tried to call a function on an unloaded surface.",
+  "Functional overlay is not loaded.",
   "Segmentation data is not loaded.",
   "Couldn't cache the script name.",
   "gettimeofday failed.",
@@ -224,6 +225,7 @@ typedef enum {
   tkm_tFileName_VolumeTransform,
   tkm_tFileName_Label,
   tkm_tFileName_GCA,
+  tkm_tFileName_VLI,
   tkm_tFileName_RGB,
   tkm_tFileName_ControlPoints,
   tkm_tFileName_Edit,
@@ -233,7 +235,7 @@ typedef enum {
 
 /* subdirectories local to subject's home dir */
 char ksaFileNameSubDirs[tkm_knNumFileNameTypes][tkm_knPathLen] = {
-  "fmri", "", "bem", "surf", "mri", "mri/transforms", "label", "mri", "image/rgb", "tmp", "tmp", "lib/tcl"
+  "fmri", "", "bem", "surf", "mri", "mri/transforms", "label", "mri", "", "image/rgb", "tmp", "tmp", "lib/tcl"
 };
 
 /* input starts with ., gsUserHomeDir will be prepended. if ~ or nothing,
@@ -406,6 +408,8 @@ tkm_tErr LoadFunctionalOverlay    ( char* isPathAndStem,
 tkm_tErr LoadFunctionalTimeCourse ( char* isPathAndStem, 
             char* isOffsetPath,
             char* isRegistration );
+
+tkm_tErr SmoothOverlayData ( float ifSigma );
 
 void TranslateOverlayRegisgtration ( float ifDistance, char isDirection );
 void RotateOverlayRegistration     ( float ifDegrees, char isDirection );
@@ -620,6 +624,18 @@ tkm_tErr DeleteGCA ();
 
 /* ======================================================================= */
 
+/* =================================================================== VLI */
+
+#include "vlabels.h"
+
+VLI* gVLI1 = NULL;
+VLI* gVLI2 = NULL;
+
+tkm_tErr LoadVLIs ( char* isFileName1, char* isFileName2 );
+tkm_tErr DeleteVLIs ();
+
+/* ======================================================================= */
+
 /* ========================================================== MEDIT WINDOW */
 
 tkmMeditWindowRef gMeditWindow = NULL;
@@ -722,10 +738,6 @@ void sagnorm_allslices(void) ;
 void sagnorm_corslice(int imc) ;
 void alloc_second_im(void) ;
 void smooth_surface(int niter) ;
-static void SmoothFunctionalData(mriFunctionalDataRef mpOverlayVolume, 
-                                 float sigma) ;
-
-VLI *gVLI1 = NULL, *gVLI2 = NULL ;
 
 char *Progname ;
 
@@ -819,15 +831,17 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
   tBoolean                bMid                                  = FALSE;
   FunV_tFunctionalValue   mid                                   = 0;
   tBoolean                bSlope                                = FALSE;
-  tBoolean                bSmooth                               = FALSE;
   FunV_tFunctionalValue   slope                                 = 0;
-  float                   sigma                                 = 0;
+  tBoolean                bSmooth                               = FALSE;
+  float                   smoothSigma                           = 0;
   tBoolean                bRevPhaseFlag                         = FALSE;
   int                     nRevPhaseFlag                         = 0;
   tBoolean                bTruncPhaseFlag                       = FALSE;
   int                     nTruncPhaseFlag                       = 0;
   tBoolean                bUseOverlayCacheFlag                  = FALSE;
   int                     nUseOverlayCacheFlag                  = 0;
+  tBoolean                bSetConversionMethod                  = FALSE;
+  FunD_tConversionMethod  convMethod       = FunD_tConversionMethod_FFF;
   tBoolean                bLoadingHeadPts                       = FALSE;
   tBoolean                bHaveHeadPtsTransform                 = FALSE;
   char                    sHeadPts[tkm_knPathLen]               = "";
@@ -876,8 +890,8 @@ printf("\n");
 printf("-fthresh <value>            : specfify min, mid, and slope threshold\n");
 printf("-fmid <value>               : values for functional overlay display\n");
 printf("-fslope <value>             : (default is 0, 1.0, and 1.0)\n");
-printf("\n");
 printf("-fsmooth <sigma>            : smooth functional overlay after loading\n");
+printf("\n");
 printf("-revphaseflag <1|0>         : reverses phase display in overlay (default off)\n");
 printf("-truncphaseflag <1|0>       : truncates overlay values below 0 (default off)\n");
 printf("-overlaycache <1|0>         : uses overlay cache (default off)\n");
@@ -996,18 +1010,6 @@ printf("-interface script    : scecify interface script (default is tkmedit.tcl)
       bLoadingOverlay = TRUE;
       nCurrentArg += 2;
 
-      /* check for one more, the registration. */
-      if( argc > nCurrentArg
-    && '-' != argv[nCurrentArg][0] ) {
-        
-        /* read in the registration file */
-        DebugNote( ("Parsing registration file in -overlay option") );
-        psOverlayRegistration = sOverlayRegistration;
-        xUtil_strncpy( sOverlayRegistration, argv[nCurrentArg],
-           sizeof( sOverlayRegistration ));
-        nCurrentArg++;
-      }
-
     } else {
 
       /* misuse of that option */
@@ -1075,18 +1077,6 @@ printf("-interface script    : scecify interface script (default is tkmedit.tcl)
          sizeof(sTimeCoursePathAndStem) );
       bLoadingTimeCourse = TRUE;
       nCurrentArg += 2;
-
-      /* check for one more. */
-      if( argc > nCurrentArg
-    && '-' != argv[nCurrentArg][0] ) {
-        
-        /* read in the registration file */
-        DebugNote( ("Parsing registration file in -timecourse option") );
-        psTimeCourseRegistration = (char*) malloc( sizeof(char) * 256 );
-        xUtil_strncpy( psTimeCourseRegistration, argv[nCurrentArg],
-           sizeof(psTimeCourseRegistration) );
-        nCurrentArg++;
-      }
 
     } else {
 
@@ -1265,9 +1255,7 @@ printf("-interface script    : scecify interface script (default is tkmedit.tcl)
       nCurrentArg += 1;
     }
 
-  } 
-  else if( MATCH( sArg, "-fslope" ) ) 
-  {
+  } else if( MATCH( sArg, "-fslope" ) ) {
 
     /* check for the value following the switch */
     if( argc > nCurrentArg + 1 &&
@@ -1289,17 +1277,15 @@ printf("-interface script    : scecify interface script (default is tkmedit.tcl)
       nCurrentArg += 1;
     }
 
-  } 
-  else if( MATCH( sArg, "-fsmooth" ) ) 
-  {
+  } else if( MATCH( sArg, "-fsmooth" ) ) {
 
     /* check for the value following the switch */
     if( argc > nCurrentArg + 1 &&
         '-' != argv[nCurrentArg+1][0] ) {
 
       /* get the value */
-      DebugNote( ("Parsing -fsmooh option") );
-      sigma = (float) atof( argv[nCurrentArg+1] );
+      DebugNote( ("Parsing -fsmooth option") );
+      smoothSigma = (float) atof( argv[nCurrentArg+1] );
       bSmooth = TRUE;
       nCurrentArg +=2 ;
 
@@ -1313,8 +1299,7 @@ printf("-interface script    : scecify interface script (default is tkmedit.tcl)
       nCurrentArg += 1;
     }
 
-  } 
-  else if( MATCH( sArg, "-revphaseflag" ) ) {
+  } else if( MATCH( sArg, "-revphaseflag" ) ) {
 
     /* check for the value following the switch */
     if( argc > nCurrentArg + 1
@@ -1522,6 +1507,46 @@ printf("-interface script    : scecify interface script (default is tkmedit.tcl)
       nUseOverlayCacheFlag = atoi( argv[nCurrentArg+1] );
       bUseOverlayCacheFlag = TRUE;
       nCurrentArg +=2 ;
+
+    } else { 
+      
+      /* misuse of that switch */
+      tkm_DisplayError( "Parsing -overlaycache option",
+            "Expected an argument",
+            "This option needs an argument: a 1 or 0 to "
+            "turn the option on or off." );
+      nCurrentArg += 1;
+    }
+
+  } else if( MATCH( sArg, "-float2int" ) ) {
+
+    /* check for the value following the switch */
+    if( argc > nCurrentArg + 1
+        && '-' != argv[nCurrentArg+1][0] ) {
+
+      /* get the value */
+      DebugNote( ("Parsing -float2int option") );
+      if( MATCH( argv[nCurrentArg+1], "tkreg" ) ) {
+  convMethod = FunD_tConversionMethod_FCF;
+  bSetConversionMethod = TRUE;
+  nCurrentArg +=2;
+      }
+      else if( MATCH( argv[nCurrentArg+1], "floor" ) ) {
+  convMethod = FunD_tConversionMethod_FFF;
+  bSetConversionMethod = TRUE;
+  nCurrentArg +=2;
+      }
+      else if( MATCH( argv[nCurrentArg+1], "round" ) ) {
+  convMethod = FunD_tConversionMethod_Round;
+  bSetConversionMethod = TRUE;
+  nCurrentArg +=2;
+      } else {
+  tkm_DisplayError( "Parsing -float2int option",
+        "Argument not recognized",
+        "Please specify tkreg, floor, or round "
+        "as the conversion method." );
+  nCurrentArg +=1;
+      }
 
     } else { 
       
@@ -1782,8 +1807,10 @@ printf("-interface script    : scecify interface script (default is tkmedit.tcl)
       eResult = LoadFunctionalOverlay( sOverlayPathAndStem,
                psOverlayOffsetPathAndStem,
                psOverlayRegistration );
-      if (bSmooth == TRUE)
-        SmoothFunctionalData(gFunctionalVolume->mpOverlayVolume, sigma);
+
+      if( eResult == tkm_tErr_NoErr && bSmooth ) {
+  eResult = SmoothOverlayData( smoothSigma );
+      }
     }
 
     /* load functional time course data */
@@ -1821,7 +1848,11 @@ printf("-interface script    : scecify interface script (default is tkmedit.tcl)
       eFunctional = FunV_UseOverlayCache( gFunctionalVolume,
             (tBoolean) nUseOverlayCacheFlag );
     }
-    
+    if( bSetConversionMethod ) {
+      DebugNote( ("Setting conversion method to %d", convMethod) );
+      eFunctional = FunV_SetConversionMethod( gFunctionalVolume, convMethod );
+    }
+
     /* clear error flag because if we get here we've already handled it
      with an error message. */
     eResult = tkm_tErr_NoErr;
@@ -3013,109 +3044,6 @@ int TclCrashHard ( ClientData inClientData,
 
   return TCL_OK;
 }
-int TclSmoothFunctionalData ( ClientData inClientData, 
-       Tcl_Interp* inInterp,
-       int argc, char* argv[] )
-{
-  float     sigma = atof(argv[1]) ;
-
-  if (NULL == gFunctionalVolume)  
-    return TCL_OK ; /* print some message about funv vol not loaded */
-  SmoothFunctionalData(gFunctionalVolume->mpOverlayVolume, sigma) ;
-  FunV_InitOverlayCache_(gFunctionalVolume) ;
-  UpdateAndRedraw();
-  return TCL_OK;
-}
-int TclReadVoxelLabels ( ClientData inClientData, 
-       Tcl_Interp* inInterp,
-       int argc, char* argv[] )
-{
-  tkm_tErr  eResult                             = tkm_tErr_NoErr;
-  char *fname1 = argv[1], *fname2 = argv[2] ;
-  VLI  *vli1, *vli2 ;
-  char          sError[tkm_knErrStringLen] = "";
-
-  DebugEnterFunction( ("ReadVoxelLables( vli1_name=%s, vli2_name=%s )",
-                       fname1, fname2) );
-  DebugNote( ("Reading VLI1 with VLread") );
-  vli1 = VLread(fname1) ;
-  DebugAssertThrowX( (NULL != vli1), eResult, tkm_tErr_CouldntLoadVLI );
-  DebugNote( ("Reading VLI2 with VLread") );
-  vli2 = VLread(fname2) ;
-  DebugAssertThrowX( (NULL != vli2), eResult, tkm_tErr_CouldntLoadVLI );
-
-
-  gVLI1 = vli1 ;
-  gVLI2 = vli2 ;
-
-  /* set in window */
-  MWin_SetVLIs( gMeditWindow, -1, gVLI1, gVLI2, fname1, fname2 );
-
-  DebugCatch;
-  DebugCatchError( eResult, tkm_tErr_NoErr, tkm_GetErrorString );
-
-  xUtil_snprintf( sError, sizeof(sError), "Loading voxel labels %s, %s", 
-      fname1, fname2 );
-  tkm_DisplayError( sError,
-        tkm_GetErrorString(eResult),
-        "Tkmedit couldn't read the VLIs you "
-        "specified. This could be because the format "
-        "wasn't valid or the file wasn't found." );
-  EndDebugCatch;
-
-  DebugExitFunction;
-  
-  return eResult;
-}
-
-
-static void
-SmoothFunctionalData(mriFunctionalDataRef mpOverlayVolume, float sigma)
-{
-  MRI       *mri_kernel, *mri ;
-  int       x, y, z, width, height, depth ;
-  xVoxelRef theFunctionalVoxel = NULL;
-  float     theValue ;
-
-  xVoxl_New ( &theFunctionalVoxel );
-  printf("smoothing with sigma = %2.2f...\n", sigma) ;
-  mri_kernel = MRIgaussian1d(sigma, 100) ;
-
-  width = mpOverlayVolume->mNumCols ;
-  height =  mpOverlayVolume->mNumRows ;
-  depth = mpOverlayVolume->mNumSlices ;
-  mri = MRIalloc(width, height, depth, MRI_FLOAT) ;
-  for (x = 0 ; x < width ; x++)
-  {
-    for (y = 0 ; y < height ; y++)
-    {
-      for (z = 0 ; z < depth ; z++)
-      {
-        xVoxl_Set ( theFunctionalVoxel, x, y, z );
-        theValue = FunD_GetValue ( mpOverlayVolume, 
-                                   theFunctionalVoxel, 0, 0) ;
-        MRIFvox(mri, x, y, z) = theValue ;
-      }
-    }
-  }
-
-  MRIconvolveGaussian(mri, mri, mri_kernel) ;
-  for (x = 0 ; x < width ; x++)
-  {
-    for (y = 0 ; y < height ; y++)
-    {
-      for (z = 0 ; z < depth ; z++)
-      {
-        xVoxl_Set ( theFunctionalVoxel, x, y, z );
-        theValue = MRIFvox(mri, x, y, z) ;
-        FunD_SetValue ( mpOverlayVolume, theFunctionalVoxel, 0, 0, theValue) ;
-      }
-    }
-  }
-
-  MRIfree(&mri_kernel) ; MRIfree(&mri) ;
-  xVoxl_Delete ( &theFunctionalVoxel );
-}
 
 int TclTranslateOverlayRegistration ( ClientData inClientData, 
               Tcl_Interp* inInterp,
@@ -3318,6 +3246,23 @@ int TclLoadGCA ( ClientData inClientData, Tcl_Interp* inInterp,
 
   if( gbAcceptingTclCommands ) {
     LoadGCA ( argv[1], argv[2] ); 
+  }
+
+  return TCL_OK;
+}
+
+int TclReadVoxelLabels ( ClientData inClientData, 
+       Tcl_Interp* inInterp,
+       int argc, char* argv[] )
+{
+  if ( argc != 3 ) {
+    Tcl_SetResult ( inInterp, "wrong # args: ReadVoxelLabels vli1 vli2",
+        TCL_VOLATILE );
+    return TCL_ERROR;
+  }
+
+  if( gbAcceptingTclCommands ) {
+    LoadVLIs ( argv[1], argv[2] ); 
   }
 
   return TCL_OK;
@@ -4179,6 +4124,25 @@ int TclLoadFunctionalTimeCourse ( ClientData inClientData,
   return TCL_OK;
 }
 
+int TclSmoothFunctionalOverlay ( ClientData inClientData, 
+         Tcl_Interp* inInterp,
+         int argc, char* argv[] ) {
+
+  if ( argc != 2 ) {
+    Tcl_SetResult ( inInterp,
+        "wrong # args: SmoothFunctionalOverlay sigma",
+        TCL_VOLATILE );
+    return TCL_ERROR;
+  }
+
+  if( gbAcceptingTclCommands ) {
+    SmoothOverlayData( atof(argv[1]) );
+   }  
+
+  return TCL_OK;
+}
+
+
 int TclSetTimerStatus ( ClientData inClientData, Tcl_Interp* inInterp,
       int argc, char* argv[] ) {
 
@@ -4737,8 +4701,7 @@ int main ( int argc, char** argv ) {
   DebugNote( ("Registering tkmedit tcl commands") );
   Tcl_CreateCommand ( interp, "CrashHard", TclCrashHard,
           (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
-  Tcl_CreateCommand ( interp, "SmoothFunctionalData", TclSmoothFunctionalData,
-          (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
+
   Tcl_CreateCommand ( interp, "ReadVoxelLabels", TclReadVoxelLabels,
           (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
 
@@ -4968,6 +4931,10 @@ int main ( int argc, char** argv ) {
           TclLoadFunctionalTimeCourse,
           (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
 
+  Tcl_CreateCommand ( interp, "SmoothFunctionalOverlay",
+          TclSmoothFunctionalOverlay,
+          (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
+
   Tcl_CreateCommand ( interp, "SetTimerStatus",
           TclSetTimerStatus,
           (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
@@ -5116,6 +5083,10 @@ void tkm_Quit () {
   if( NULL != gGCAVolume ) {
     DebugNote( ("Deleting GCA.") );
     DeleteGCA();
+  }
+  if( NULL != gVLI1 || NULL != gVLI2 ) {
+    DebugNote( ("Deleting VLIs.") );
+    DeleteVLIs();
   }
   DebugNote( ("Deleteing functional volume.") );
   FunV_Delete( &gFunctionalVolume );
@@ -6387,7 +6358,10 @@ tkm_tErr SaveVolume ( char* isPath ) {
 
   /* if we have editing disabled, return */
   if( !editflag ) {
-    DebugPrint( ("SaveVolume called when volume is read only!\n") );
+    tkm_DisplayError( "Saving Volume", 
+          "Couldn't save volume",
+          "This session was started in read-only mode. You cannot "
+          "save changes." );
     DebugGotoCleanup;
   }
 
@@ -6408,11 +6382,19 @@ tkm_tErr SaveVolume ( char* isPath ) {
   /* write the main anatomical volume */
   eVolume = Volm_ExportNormToCOR( gAnatomicalVolume[tkm_tVolumeType_Main], 
           psFileName );
-  DebugAssertThrowX( (Volm_tErr_NoErr == eVolume), 
-         eResult, tkm_tErr_ErrorAccessingVolume );
+  if( Volm_tErr_NoErr != eVolume ) {
+    tkm_DisplayError( "Saving Volume", 
+          "Couldn't save volume",
+          "The files could not be written. Check to make sure the "
+          "destination directory exists, that you have "
+          "permission to write to it, and that there is "
+          "sufficient disk space." );
+  }
 
   /* set our edited flags null */
   eResult = SetVolumeDirty( tkm_tVolumeType_Main, FALSE );
+  DebugAssertThrow( (tkm_tErr_NoErr == eResult) );
+         
 
   DebugCatch;
   DebugCatchError( eResult, tkm_tErr_NoErr, tkm_GetErrorString );
@@ -6757,14 +6739,14 @@ tkm_tErr LoadFunctionalOverlay( char* isPathAndStem,
           psRegistration );
   DebugAssertThrowX( (FunV_tErr_NoError == eFunctional),
          eResult, tkm_tErr_CouldntLoadOverlay );
-
+  
   /* turn overlay display on */
   MWin_SetDisplayFlag( gMeditWindow, -1, DspA_tDisplayFlag_FunctionalOverlay, 
            TRUE );
-
+  
   DebugCatch;
   DebugCatchError( eResult, tkm_tErr_NoErr, tkm_GetErrorString );
-
+  
   xUtil_snprintf( sError, sizeof(sError), "Loading functional overlay %s", 
       isPathAndStem );
   tkm_DisplayError( sError,
@@ -6784,7 +6766,7 @@ tkm_tErr LoadFunctionalOverlay( char* isPathAndStem,
 tkm_tErr LoadFunctionalTimeCourse( char* isPathAndStem,
            char* isOffsetPathAndStem,
            char* isRegistration ) {
-
+  
   tkm_tErr  eResult                           = tkm_tErr_NoErr;
   char      sPathAndStem[tkm_knPathLen]       = "";
   char      sOffsetPathAndStem[tkm_knPathLen] = "";
@@ -6797,7 +6779,7 @@ tkm_tErr LoadFunctionalTimeCourse( char* isPathAndStem,
   DebugEnterFunction( ("LoadFunctionalTimeCourse( isPathAndStem=%s, "
            "isOffsetPathAndStem=%s, isRegistration=%s )", 
            isPathAndStem, isOffsetPathAndStem, isRegistration) );
-
+  
   /* make our path and stem filename. if we have a registration file name,
      make that too. */
   DebugNote( ("Making file name from %s", isPathAndStem) );
@@ -6849,6 +6831,39 @@ tkm_tErr LoadFunctionalTimeCourse( char* isPathAndStem,
   return eResult;
 }
 
+tkm_tErr SmoothOverlayData ( float ifSigma ) {
+
+  tkm_tErr  eResult                           = tkm_tErr_NoErr;
+  FunV_tErr eFunctional                       = FunV_tErr_NoError;
+  char      sError[tkm_knErrStringLen]        = "";
+
+  DebugEnterFunction( ("SmoothOverlayData( ifSigma=%f )", ifSigma) );
+
+  /* make sure we have data */
+  DebugAssertThrowX( (NULL != gFunctionalVolume), 
+         eResult, tkm_tErr_OverlayNotLoaded);
+
+  /* smooth the data */
+  printf("smoothing with sigma = %2.2f...\n", ifSigma) ;
+  eFunctional = FunV_SmoothOverlayData( gFunctionalVolume, ifSigma );
+  DebugAssertThrowX( (FunV_tErr_NoError == eFunctional),
+         eResult, tkm_tErr_ErrorAccessingFunctionalVolume );
+
+  UpdateAndRedraw();
+
+  DebugCatch;
+  DebugCatchError( eResult, tkm_tErr_NoErr, tkm_GetErrorString );
+
+  xUtil_snprintf( sError, sizeof(sError), "Smoothing overlay data" );
+  tkm_DisplayError( sError,
+        tkm_GetErrorString(eResult),
+        "Tkmedit couldn't smooth the functional overlay data." );
+  EndDebugCatch;
+
+  DebugExitFunction;
+  
+  return eResult;
+}
 
 
 void RotateOverlayRegistration ( float ifDegrees, 
@@ -8821,6 +8836,79 @@ tkm_tErr DeleteGCA () {
 
 /* ========================================================================= */
 
+/* ===================================================================== VLI */
+
+tkm_tErr LoadVLIs ( char* isFileName1, char* isFileName2 ) {
+
+  tkm_tErr  eResult                             = tkm_tErr_NoErr;
+  char      sFileName1[tkm_knPathLen] = "";
+  char      sFileName2[tkm_knPathLen] = "";
+  VLI*      vli1 = NULL;
+  VLI*      vli2 = NULL;
+  char          sError[tkm_knErrStringLen] = "";
+
+  DebugEnterFunction( ("ReadVoxelLabels( vli1_name=%s, vli2_name=%s )",
+                       isFileName1, isFileName2 ) );
+
+  /* make filenames */
+  DebugNote( ("Making file name from %s", isFileName1) );
+  MakeFileName( isFileName1, tkm_tFileName_GCA, 
+    sFileName1, sizeof(sFileName1) );
+  DebugNote( ("Making file name from %s", isFileName2) );
+  MakeFileName( isFileName2, tkm_tFileName_VolumeTransform, 
+    sFileName2, sizeof(sFileName2) );
+
+  /* load vlis */
+  DebugNote( ("Reading VLI1 with VLread") );
+  vli1 = VLread( sFileName1 ) ;
+  DebugAssertThrowX( (NULL != vli1), eResult, tkm_tErr_CouldntLoadVLI );
+  DebugNote( ("Reading VLI2 with VLread") );
+  vli2 = VLread( sFileName2 ) ;
+  DebugAssertThrowX( (NULL != vli2), eResult, tkm_tErr_CouldntLoadVLI );
+
+  /* set globals */
+  gVLI1 = vli1 ;
+  gVLI2 = vli2 ;
+
+  /* set in window */
+  MWin_SetVLIs( gMeditWindow, -1, gVLI1, gVLI2, sFileName1, sFileName2 );
+
+  DebugCatch;
+  DebugCatchError( eResult, tkm_tErr_NoErr, tkm_GetErrorString );
+
+  xUtil_snprintf( sError, sizeof(sError), "Loading voxel labels %s, %s", 
+      sFileName1, sFileName2 );
+  tkm_DisplayError( sError,
+        tkm_GetErrorString(eResult),
+        "Tkmedit couldn't read the VLIs you "
+        "specified. This could be because the format "
+        "wasn't valid or the file wasn't found." );
+  EndDebugCatch;
+
+  DebugExitFunction;
+  
+  return eResult;
+}
+
+tkm_tErr DeleteVLIs () {
+
+  tkm_tErr eResult = tkm_tErr_NoErr;
+
+  DebugEnterFunction( ("DeleteVLIs ()") );
+
+  if( NULL != gVLI1 )
+    VLfree( &gVLI1 );
+  if( NULL != gVLI2 )
+    VLfree( &gVLI2 );
+
+  DebugExitFunction;
+  
+  return eResult;
+}
+
+
+/* ========================================================================= */
+
 /* =================================================================== TIMER */
 
 tkm_tErr StartTimer () {
@@ -9417,6 +9505,9 @@ char kTclCommands [tkm_knNumTclCommands][256] = {
   "tkm_SetMenuItemGroupStatus tMenuGroup_Parcellation",
   "ClearParcColorTable",
   "AddParcColorTableEntry",
+
+  /* histogram */
+  "BarChart_Draw",
 
   /* interface configuration */
   "raise .; wm geometry .",
