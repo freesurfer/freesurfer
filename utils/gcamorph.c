@@ -3,8 +3,8 @@
 //
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Date  : $Date: 2004/05/27 18:48:52 $
-// Revision       : $Revision: 1.42 $
+// Revision Date  : $Date: 2004/05/27 19:36:37 $
+// Revision       : $Revision: 1.43 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -214,10 +214,12 @@ GCAMwrite(GCA_MORPH *gcam, char *fname)
     myclose=pclose;
     strcpy(command, "gzip -f -c > " );
     strcat(command, fname);
+    errno=0;
     fp = popen(command, "w");
     if (errno)
     {
       pclose(fp);
+      errno = 0;
       ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "GCAMwrite(%s): gzip encountered error.",
 				  fname)) ;
     }
@@ -411,10 +413,12 @@ GCAMread(char *fname)
     strcpy(command, "zcat ");
     strcat(command, fname);
     myclose=pclose;
+    errno = 0;
     fp = popen(command, "r");
     if (errno)
     {
       pclose(fp);
+      errno = 0;
       ErrorReturn(NULL, (ERROR_BADPARM, "GCAMread(%s): zcat encountered error.",
 												 fname)) ;
     }
