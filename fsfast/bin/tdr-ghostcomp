@@ -1,0 +1,255 @@
+#!/bin/tcsh -f
+# tdr-ghostcomp
+
+set VERSION = '$Id: tdr-ghostcomp,v 1.1 2003/12/19 22:13:33 greve Exp $';
+
+set inputargs = ($argv);
+
+set mdhdir     = ();
+set mghdir     = ();
+
+set thresh     = 2;
+set order      = 2;
+set rvarthresh = 0.25;
+set outmatfile = ();
+
+set nechoes    = (); # needed with mdhdir 
+set npcns      =  3; # needed with mdhdir 
+set monly      = 0;
+
+
+set PrintHelp = 0;
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+set n = `echo $argv | grep -e -version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+set umask = `umask`;
+
+##### Create a log file ######
+set logdir = $outdir/log;
+mkdir -p $logdir
+if(! -e $logdir) then
+  echo "WARNING: could not create $logdir"
+  set LF = /dev/null
+else
+  set LF = $logdir/tdr-ghostcomp.log
+  if(-e $LF) mv $LF $LF.old
+endif
+echo "--------------------------------------------------------------"
+echo "tdr-ghostcomp logfile is $LF"
+echo "--------------------------------------------------------------"
+
+echo "tdr-ghostcomp log file" >> $LF
+echo $VERSION >> $LF
+id            >> $LF
+pwd           >> $LF
+echo $0        >> $LF
+echo $inputargs  >> $LF
+uname -a      >> $LF
+date          >> $LF
+
+set StartTime = `date`;
+
+if($#mdhdir != 0) then
+  echo "Converting mdh to mgh"
+
+  set parnames = (lRepetitions sKSpace.lBaseResolution \
+                  sFastImaging.lEPIFactor sSliceArray.lSize);
+
+  set par = `parse-measasc $mdhdir/meas.asc $parnames`;
+  if($status) then
+    echo "$par"
+    exit 1;
+  endif
+  set lReps = $par[1];
+  @ nframes = $lReps + 1;
+  set nrows = $par[2];
+  set ncols = $par[3];
+  set nslices = $par[4];
+
+  set cmd = (mri_convert_mdh --srcdir $mdhdir --outdir $mghdir \
+              --dim $nframes $nslices $nechoes $nrows $ncols $npcns \
+              --fasterdim line)
+  echo "---------------------------------" |& tee -a $LF
+  date |& tee -a $LF
+  echo $cmd |& tee -a $LF
+  $cmd |& tee -a $LF
+  if($status) exit 1;
+endif
+
+set measasc = $mghdir/meas.asc
+if(! -e $measasc) then
+  echo "ERROR: cannot find $measasc"
+  exit 1;
+endif
+
+
+set MLF = $outdir/run_ghostcomp.m
+rm -f $MLF
+#---------------------------------------------#
+tee -a > /dev/null $MLF  <<EOF
+
+mghdir = '$mghdir';
+measasc = '$measasc';
+outmatfile = '$outmatfile';
+
+tdr_ghostcomp;
+
+EOF
+#---------------------------------------------#
+
+if(! $monly) then
+  cat $MLF >> $LF
+  cat $MLF | matlab -display iconic -nojvm -nosplash | & tee -a $LF
+  echo "" | & tee -a $LF
+endif
+
+echo "Started at $StartTime" |& tee -a $LF
+echo "Ended   at `date`"     |& tee -a $LF
+
+echo "tdr-ghostcomp done"
+
+
+exit 0
+
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "--mdhdir":
+      if ( $#argv == 0) goto arg1err;
+      set mdhdir = $argv[1]; shift;
+      breaksw
+
+    case "--mghdir":
+      if ( $#argv == 0) goto arg1err;
+      set mghdir = $argv[1]; shift;
+      breaksw
+
+    case "--thresh":
+      if ( $#argv == 0) goto arg1err;
+      set thresh = $argv[1]; shift;
+      breaksw
+
+    case "--order":
+      if ( $#argv == 0) goto arg1err;
+      set order = $argv[1]; shift;
+      breaksw
+
+    case "--rvarthresh":
+      if ( $#argv == 0) goto arg1err;
+      set rvarthresh = $argv[1]; shift;
+      breaksw
+
+    case "--o":
+      if ( $#argv == 0) goto arg1err;
+      set outmatfile = $argv[1]; shift;
+      breaksw
+
+    case "--nechoes":
+      if ( $#argv == 0) goto arg1err;
+      set nechoes = $argv[1]; shift;
+      breaksw
+
+    case "--nocleanup":
+      set cleanup = 0;
+      breaksw
+
+    case "--debug":
+      set verbose = 1;
+      set echo = 1; # turns on terminal echoing
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+  if($#mdhdir == 0 && $#mghdir == 0) then
+    echo "ERROR: must specify a source directory"
+    exit 1;
+  endif
+  if($#mdhdir != 0 && $#nechoes == 0) then
+    echo "ERROR: must specify number of echoes with mdhdir"
+    exit 1;
+  endif
+  if($#outmatfile == 0) then
+    echo "ERROR: must specify an output mat file"
+    exit 1;
+  endif
+  set outdir = `dirname $outmatfile`;
+  mkdir -p $outdir
+  if($status) then
+    echo "ERROR: making $outdir"
+    exit 1;
+  endif
+
+  if($#mghdir == 0) set mghdir = $outdir
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "USAGE: tdr-ghostcomp"
+  echo ""
+  echo "  --mdhdir    dir"
+  echo "  --mghdir    dir"
+  echo "  --thresh    thresh"
+  echo "  --order     order"
+  echo "  --rvarthresh rvarthresh" 
+  echo "  --o          outmatfile"
+  echo "  --nocleanup : do not delete intermediate mgh files"
+  echo ""
+
+  if(! $PrintHelp) exit 1;
+
+  echo $VERSION
+
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+
+exit 1;
+
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+Computes compensation for deghosting.
