@@ -208,6 +208,34 @@ int getSliceDirection(MRI *mri)
   return direction;
 }
 
+// For surface, we currently cannot handle volumes with general slice direction
+// nor we cannot handle non-conformed volumes
+int mriOKforSurface(MRI *mri)
+{
+  // first check slice direction
+  if (getSliceDirection(mri) != MRI_CORONAL)
+    return 0;
+  else if (mri->width != 256 || mri->height != 256 || mri->depth != 256)
+    return 0;
+  else if (mri->xsize != 1 || mri->ysize != 1 || mri->zsize != 1)
+    return 0;
+  else
+    return 1;
+}
+
+void setMRIforSurface(MRI *mri)
+{
+  if (!mriOKforSurface(mri))
+    ErrorExit(ERROR_BADPARM, 
+                "%s: the volume is not conformed, that is, the volume must be  256^3 with 1mm voxel size and in CORONAL direction.\n", Progname) ;
+  else
+  {
+    // we checked conformed in mriOKforSurface(). The only thing missing is c_(r,a,s) = 0
+    // for surface creation assume that the volume is conformed and c_(r,a,s) = 0
+    mri->c_r=mri->c_a=mri->c_s = 0;
+  }
+}
+
 int mriio_command_line(int argc, char *argv[])
 {
 
