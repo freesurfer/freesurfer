@@ -166,22 +166,16 @@ static int n_unknown_labels;
 // defined only when c_(r,a,s) = 0
 int decideSliceDirection(MRI *mri)
 {
-  int direction;
+  int direction = MRI_UNDEFINED;
   if (mri->c_r == 0 && mri->c_a == 0 && mri->c_s == 0)
   {
-    int direction = MRI_UNDEFINED;
-    if      (mri->x_r == -1 && mri->y_s == -1 && mri->z_a == 1)
+    if (mri->x_r == -1 && mri->y_s == -1 && mri->z_a == 1)
       direction = MRI_CORONAL;
     else if (mri->x_a == 1  && mri->y_s == -1 && mri->z_r == 1)
       direction = MRI_SAGITTAL;
     else if (mri->x_r == -1 && mri->y_a == -1 && mri->z_s == 1)
       direction = MRI_HORIZONTAL;
-    else
-      direction = MRI_UNDEFINED;
   }
-  else
-    direction = MRI_UNDEFINED;
-
   if (mri->slice_direction == MRI_UNDEFINED)
     return direction;
   else
