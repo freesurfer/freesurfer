@@ -13,7 +13,7 @@
 #include "macros.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_make_template.c,v 1.11 2005/02/05 19:31:31 segonne Exp $";
+static char vcid[] = "$Id: mris_make_template.c,v 1.12 2005/02/09 16:25:25 tosa Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -80,14 +80,14 @@ main(int argc, char *argv[])
   char         **av, surf_fname[STRLEN], *template_fname, *hemi, *sphere_name,
                *cp, *subject, fname[STRLEN] ;
   int          ac, nargs, ino, sno, nbad = 0, failed, n,failed_field[MNOFIV],ncorrs;
-	VERTEX *v;
-	VALS_VP *vp;;
+  VERTEX *v;
+  VALS_VP *vp;
   MRI_SURFACE  *mris ;
   MRI_SP       *mrisp, /* *mrisp_aligned,*/ *mrisp_template ;
   INTEGRATION_PARMS parms ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_make_template.c,v 1.11 2005/02/05 19:31:31 segonne Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_make_template.c,v 1.12 2005/02/09 16:25:25 tosa Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
