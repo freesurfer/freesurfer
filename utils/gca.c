@@ -4937,6 +4937,8 @@ GCAconstrainLabelTopology(GCA *gca, MRI *mri_inputs,MRI *mri_src, MRI *mri_dst,
     nvox = MRIvoxelsInLabel(mri_dst, i) ;
     if (!nvox)
       continue ;
+		if (LABEL_WITH_NO_TOPOLOGY_CONSTRAINT(i))
+			continue ;
     /*    printf("label %03d: %d voxels\n", i, nvox) ;*/
     mriseg = MRIsegment(mri_src, (float)i, (float)i) ;
     if (!mriseg)
@@ -6293,7 +6295,27 @@ cma_label_to_name(int label)
     return("Bright Unknown") ;
   if (label == Dark_Unknown)
     return("Dark Unknown") ;
-  sprintf(name, "UNKNOWN (%d)", label) ;
+
+	if (label == Left_Interior)
+		return("Left_Interior") ; 
+	if (label == Right_Interior)
+		return("Right_Interior") ; 
+	if (label == Left_Lateral_Ventricles)
+		return("Left_Lateral_Ventricles") ; 
+	if (label == Right_Lateral_Ventricles)
+		return("Right_Lateral_Ventricles") ; 
+	if (label == WM_hypointensities)
+		return("WM_hypointensities") ; 
+	if (label == Left_WM_hypointensities)
+		return("Left_WM_hypointensities") ; 
+	if (label == Right_WM_hypointensities)
+		return("Right_WM_hypointensities") ; 
+	if (label == non_WM_hypointensities)
+		return("non_WM_hypointensities") ; 
+	if (label == Left_non_WM_hypointensities)
+		return("Left_non_WM_hypointensities") ; 
+	if (label == Right_non_WM_hypointensities)
+		return("Right_non_WM_hypointensities") ; 
   return(name) ;
 }
 MRI *
