@@ -2666,7 +2666,7 @@ ImageAddSpeckleNoise(IMAGE *inImage,IMAGE *outImage, float amp)
   while (npix--)
   {
     gnoise = (float)randomNumber(1.0-(double)amp, 1.0+(double)amp) ;
-    *outPix++ += *inPix++ * gnoise ;
+    *outPix++ = *inPix++ * gnoise ;
   }
   return(0) ;
 }
