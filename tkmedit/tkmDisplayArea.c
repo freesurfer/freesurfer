@@ -2,6 +2,7 @@
 #include "tkmMeditWindow.h"
 #include "tkmFunctionalVolume.h"
 #include "xUtilities.h"
+#include "utils.h"
 
 /* i'm not sure what to do about these y flips. it seems that whenever we're
    using a point that's going to go into the buffer to be drawn to the screen,
@@ -74,22 +75,6 @@ char DspA_ksaErrorStrings [DspA_knNumErrorCodes][256] = {
   "Error accessing head point list.",
   "Error accessing list.",
   "Invalid error code."
-};
-
-char DspA_ksaDisplayFlag [DspA_knNumDisplayFlags][256] = {
-
-  "None",
-  "AuxVolume",
-  "AnatomicalVolume"
-  "Cursor",
-  "MainSurface",
-  "OriginalSurface",
-  "CanonicalSurface",
-  "InterpolateSurfaceVertices",
-  "DisplaySurfaceVertices",
-  "ControlPoints",
-  "Selection",
-  "FunctionalOverlay"
 };
 
 char DspA_ksaOrientation [mri_knNumOrientations][256] = {
@@ -182,6 +167,8 @@ DspA_tErr DspA_New ( tkmDisplayAreaRef* oppWindow,
   this->mHeadPoints             = NULL;
   this->mGCAVolume              = NULL;
   this->mGCATransform           = NULL;
+  this->mVLI1                   = NULL;
+  this->mVLI2                   = NULL;
   
   /* set default brush info */
   sBrush.mnRadius = 1;
@@ -669,10 +656,15 @@ DspA_tErr DspA_SetOverlayVolume ( tkmDisplayAreaRef      this,
      DspA_tErr_ErrorAccessingFunctionalVolume );
   }
 
-  /* turn functional data on if there is */
+  /* turn functional data and color scale bar on if there is */
   if( bOverlayLoaded ) {
     eResult = DspA_SetDisplayFlag( this, DspA_tDisplayFlag_FunctionalOverlay,
            TRUE );
+    if( DspA_tErr_NoErr != eResult )
+      goto error;
+
+    eResult = DspA_SetDisplayFlag( this, 
+        DspA_tDisplayFlag_FunctionalColorScaleBar, TRUE );
     if( DspA_tErr_NoErr != eResult )
       goto error;
   }
@@ -1456,6 +1448,7 @@ DspA_tErr DspA_SetDisplayFlag ( tkmDisplayAreaRef this,
     break;
     
   case DspA_tDisplayFlag_FunctionalOverlay:
+  case DspA_tDisplayFlag_FunctionalColorScaleBar:
   case DspA_tDisplayFlag_MaskToFunctionalOverlay:
 
     /* if no func data, set to false. */
@@ -2855,7 +2848,7 @@ DspA_tErr DspA_HandleKeyDown_ ( tkmDisplayAreaRef this,
     if( ipEvent->mbAltKey ) {
       if( NULL == this->mpFunctionalVolume )
   goto cleanup;
-
+      
       if( 1 == this->mabDisplayFlags[DspA_tDisplayFlag_Anatomical] ) {
   DspA_SetDisplayFlag( this, DspA_tDisplayFlag_Anatomical, 0 );
   DspA_SetDisplayFlag( this, DspA_tDisplayFlag_FunctionalOverlay, 1 );
@@ -2864,7 +2857,7 @@ DspA_tErr DspA_HandleKeyDown_ ( tkmDisplayAreaRef this,
   DspA_SetDisplayFlag( this, DspA_tDisplayFlag_FunctionalOverlay, 0 );
       }
     }
-
+    
     /* ctrl+f toggles functional overlay display */
     if( ipEvent->mbCtrlKey ) {
       eResult = DspA_ToggleDisplayFlag( this, 
@@ -2873,14 +2866,14 @@ DspA_tErr DspA_HandleKeyDown_ ( tkmDisplayAreaRef this,
   goto error;
     }
     break;
-
+    
   case 'g':
-
+    
     /* g sets tool to edit segmentation */
     eResult = DspA_SetTool( this, DspA_tTool_EditParcellation );
     if ( DspA_tErr_NoErr != eResult )
       goto error;
-
+    
     break;
 
   case 'h':
@@ -4182,51 +4175,57 @@ DspA_tErr DspA_DrawFunctionalOverlayToFrame_ ( tkmDisplayAreaRef this ) {
   xColor3f              funcColor   = {0,0,0};
   GLubyte*              pFrame      = NULL;
   
-  /* draw the color scale bar. get threshold max. */
-  eFunctional = FunV_GetThresholdMax( this->mpFunctionalVolume, &max );
-  if( FunV_tErr_NoError != eFunctional ) {
-    eResult = DspA_tErr_ErrorAccessingFunctionalVolume;
-    goto error;
-  }
-
-  /* down the buffer */
-  for ( bufferPt.mnY = 0; bufferPt.mnY < this->mnVolumeSize; bufferPt.mnY++ ) {
-      
-    /* get an interpolated value within the range of -max to +max 
-       determined by the y value */
-    funcValue = (FunV_tFunctionalValue) 
-      ( (float)bufferPt.mnY * 
-  (float)((max*2.0)/(float)this->mnVolumeSize) - max );
-      
-      /* get the functional color for this value */
-    eFunctional = FunV_GetColorForValue( this->mpFunctionalVolume,
-           funcValue, &color, &funcColor );
+  /* if we're drawing the color scale bar... */
+  if( this->mabDisplayFlags[DspA_tDisplayFlag_FunctionalColorScaleBar] ) {
+    
+    /* draw the color scale bar. get threshold max. */
+    eFunctional = FunV_GetThresholdMax( this->mpFunctionalVolume, &max );
     if( FunV_tErr_NoError != eFunctional ) {
       eResult = DspA_tErr_ErrorAccessingFunctionalVolume;
       goto error;
     }
-  
-    /* draw on the right side... */
-    for ( bufferPt.mnX = this->mnVolumeSize - 10; 
-    bufferPt.mnX < this->mnVolumeSize; bufferPt.mnX++ ) {
+    
+    /* down the buffer */
+    for ( bufferPt.mnY = 0; 
+    bufferPt.mnY < this->mnVolumeSize; 
+    bufferPt.mnY++ ) {
       
-      /* write it back to the buffer. */
-      pFrame = this->mpFrameBuffer + 
-  ( (bufferPt.mnY * this->mnVolumeSize) + bufferPt.mnX ) * 
-  DspA_knNumBytesPerPixel;
-
-      pFrame[DspA_knRedPixelCompIndex]   = 
-   (GLubyte)(funcColor.mfRed * DspA_knMaxPixelValue);
-      pFrame[DspA_knGreenPixelCompIndex] = 
-  (GLubyte)(funcColor.mfGreen * DspA_knMaxPixelValue);
-      pFrame[DspA_knBluePixelCompIndex]  = 
-  (GLubyte)(funcColor.mfBlue * DspA_knMaxPixelValue);
-      pFrame[DspA_knAlphaPixelCompIndex] = DspA_knMaxPixelValue;
+      /* get an interpolated value within the range of -max to +max 
+   determined by the y value */
+      funcValue = (FunV_tFunctionalValue) 
+  ( (float)bufferPt.mnY * 
+    (float)((max*2.0)/(float)this->mnVolumeSize) - max );
+      
+      /* get the functional color for this value */
+      eFunctional = FunV_GetColorForValue( this->mpFunctionalVolume,
+             funcValue, &color, &funcColor );
+      if( FunV_tErr_NoError != eFunctional ) {
+  eResult = DspA_tErr_ErrorAccessingFunctionalVolume;
+  goto error;
+      }
+      
+      /* draw on the right side... */
+      for ( bufferPt.mnX = this->mnVolumeSize - 10; 
+      bufferPt.mnX < this->mnVolumeSize; bufferPt.mnX++ ) {
+  
+  /* write it back to the buffer. */
+  pFrame = this->mpFrameBuffer + 
+    ( (bufferPt.mnY * this->mnVolumeSize) + bufferPt.mnX ) * 
+    DspA_knNumBytesPerPixel;
+  
+  pFrame[DspA_knRedPixelCompIndex]   = 
+    (GLubyte)(funcColor.mfRed * DspA_knMaxPixelValue);
+  pFrame[DspA_knGreenPixelCompIndex] = 
+    (GLubyte)(funcColor.mfGreen * DspA_knMaxPixelValue);
+  pFrame[DspA_knBluePixelCompIndex]  = 
+    (GLubyte)(funcColor.mfBlue * DspA_knMaxPixelValue);
+  pFrame[DspA_knAlphaPixelCompIndex] = DspA_knMaxPixelValue;
+      }
     }
   }
   
   goto cleanup;
-
+  
   goto error;
  error:
 
@@ -5463,6 +5462,7 @@ DspA_tErr DspA_SendPointInformationToTcl_ ( tkmDisplayAreaRef this,
   int                   nROIIndex          = 0;
   char                  sLabel[256]        = "";
   int                   nValue             = 0;
+  DspA_tHistogramParams histoParams;
 
   /* send the anatomical index. */
   sprintf( sTclArguments, "%s %d %d %d", 
@@ -5609,24 +5609,33 @@ DspA_tErr DspA_SendPointInformationToTcl_ ( tkmDisplayAreaRef this,
   /* if we have gca data and this is the cursor, use gcadump to dump 
      the info to the screen */
   if( NULL != this->mGCAVolume &&
-      DspA_tDisplaySet_Cursor == iSet ) 
+      DspA_tDisplaySet_Cursor == iSet ) {
     GCAdump( this->mGCAVolume, this->mpVolume->mpNormValues,
        xVoxl_ExpandInt( iAnaIdx ), this->mGCATransform, stdout, 0 );
+}
 
   if( NULL != this->mVLI1 &&
       DspA_tDisplaySet_Cursor == iSet ) 
   {
-    int xn, yn, zn, n ;
+    int xn, yn, zn, label_counts_c1[256], label_counts_c2[256], index,
+        inNumValues, n1, n2 ;
     VL *vl ;
-
+    char name1[STRLEN], name2[STRLEN], *cp ;
+    tBoolean  bUsePct         = TRUE ;
+    
+    FileNameOnly(this->isVLI1_name, name1) ;
+    cp = strrchr(name1, '.') ; if (cp) *cp = 0 ;
+    FileNameOnly(this->isVLI2_name, name2) ;
+    cp = strrchr(name2, '.') ; if (cp) *cp = 0 ;
     xn = nint(xVoxl_GetX(iAnaIdx) / this->mVLI1->resolution) ;
     yn = nint(xVoxl_GetY(iAnaIdx) / this->mVLI1->resolution) ;
     zn = nint(xVoxl_GetZ(iAnaIdx) / this->mVLI1->resolution) ;
 
+#if 0
     printf("voxel (%d, %d, %d) --> node (%d, %d, %d)\n",
            xVoxl_ExpandInt( iAnaIdx ), xn, yn, zn) ;
     vl = &this->mVLI1->vl[xn][yn][zn] ;
-    printf("%s:\n", this->isVLI1_name) ;
+    printf("%s:\n", name1) ;
     for (n = 0 ; n < vl->nlabels ; n++)
     {
       if (vl->counts[n] > 0)
@@ -5634,17 +5643,216 @@ DspA_tErr DspA_SendPointInformationToTcl_ ( tkmDisplayAreaRef this,
                vl->labels[n], vl->counts[n]) ;
     }
     vl = &this->mVLI2->vl[xn][yn][zn] ;
-    printf("%s:\n", this->isVLI2_name) ;
+    printf("%s:\n", name2) ;
     for (n = 0 ; n < vl->nlabels ; n++)
     {
       if (vl->counts[n] > 0)
         printf("%s (%d): %d\n", cma_label_to_name(vl->labels[n]),
                vl->labels[n], vl->counts[n]) ;
     }
+#endif
+
+    memset(label_counts_c1, 0, sizeof(label_counts_c1)) ;
+    vl = &this->mVLI1->vl[xn][yn][zn] ;
+    for (n1 = index = 0 ; index < vl->nlabels ; index++)
+    {
+      label_counts_c1[vl->labels[index]] += vl->counts[index] ;
+      n1 += vl->counts[index] ;
+    }
+    
+    memset(label_counts_c2, 0, sizeof(label_counts_c2)) ;
+    vl = &this->mVLI2->vl[xn][yn][zn] ;
+    for (n2 = index = 0 ; index < vl->nlabels ; index++)
+    {
+      label_counts_c2[vl->labels[index]] += vl->counts[index] ;
+      n2 += vl->counts[index] ;
+    }
+
+    /* count # of different labels */
+    for (inNumValues = index = 0 ; index < 256 ; index++)
+      if ((label_counts_c1[index]) > 0 || label_counts_c2[index] > 0)
+        inNumValues++ ;
+
+    xUtil_snprintf( histoParams.msTitle, sizeof(histoParams.msTitle),
+                    "labels of %s vs. %s at (%d,%d,%d)", 
+                    name1, name2,
+                    xVoxl_ExpandInt( iAnaIdx ) );
+      /* the titles of the axes */
+    xUtil_strncpy( histoParams.msXAxisTitle, "Labels",
+                   sizeof(histoParams.msXAxisTitle) );
+    
+    xUtil_strncpy( histoParams.msLabel1, name1,
+                   sizeof(histoParams.msLabel1) );
+    xUtil_strncpy( histoParams.msLabel2,  name2,
+                   sizeof(histoParams.msLabel2) );
+    
+    /* declare arrays of values and labels */
+    histoParams.mafValues1 = (float*) calloc( inNumValues, sizeof(float) );
+    histoParams.mafValues2 = (float*) calloc( inNumValues, sizeof(float) );
+    histoParams.masXAxisLabels = (char**) calloc( inNumValues, sizeof(char *));
+    
+    /* fill them up with some random nubmers and cma labels */
+    histoParams.mnNumValues = inNumValues;
+    for (nValue = index = 0 ; index < 256 ; index++)
+    {
+      if ((label_counts_c1[index]) == 0 && label_counts_c2[index] == 0)
+        continue ;
+
+      /* assign values for the elements */
+      histoParams.mafValues1[nValue] = (float)label_counts_c1[index] ;
+      histoParams.mafValues2[nValue] = (float)label_counts_c2[index] ;
+      if (bUsePct)
+      {
+        xUtil_strncpy( histoParams.msYAxisTitle, "% of voxels with label",
+                       sizeof(histoParams.msYAxisTitle) );
+        histoParams.mafValues1[nValue] /= ((float)n1/100) ;
+        histoParams.mafValues2[nValue] /= ((float)n2/100) ;
+      }
+      else
+        xUtil_strncpy( histoParams.msYAxisTitle, "# of voxels with label",
+                       sizeof(histoParams.msYAxisTitle) );
+
+
+      /* allocate and set the label for this element */
+      histoParams.masXAxisLabels[nValue] = 
+        (char*) malloc( sizeof(char) * DspA_knHistoTitleLength );
+      xUtil_strncpy( histoParams.masXAxisLabels[nValue], 
+                     cma_label_to_name( index ), DspA_knHistoTitleLength );
+      nValue++ ;
+    }
+    
+    /* draw the thing */
+    DspA_DrawHistogram( this, &histoParams );
+    
+    free( histoParams.mafValues1 );
+    free( histoParams.mafValues2 );
+    for( nValue = 0; nValue < inNumValues; nValue++ )
+      free( histoParams.masXAxisLabels[nValue] );
+    free( histoParams.masXAxisLabels );
   }
+
+#if 0
+  /* histogram example */
+  if( getenv("SEE_HISTO_DEMO") ) {
+    if( DspA_tDisplaySet_Cursor == iSet ) {
+      
+      /* the title of the window and graph */
+      DebugNote( ("Sprintfing coords") );
+      xUtil_snprintf( histoParams.msTitle, sizeof(histoParams.msTitle),
+          "%d, %d, %d", xVoxl_ExpandInt( iAnaIdx ) );
+      /* the titles of the axes */
+      DebugNote( ("Copying axis titles") );
+      xUtil_strncpy( histoParams.msXAxisTitle, "The Kinds of Stuff",
+         sizeof(histoParams.msXAxisTitle) );
+      xUtil_strncpy( histoParams.msYAxisTitle, "Amount of Stuff",
+         sizeof(histoParams.msYAxisTitle) );
+      /* the title of the elements in the legend */
+      DebugNote( ("Copying element titles") );
+      xUtil_strncpy( histoParams.msLabel1, "Some Stuff", 
+         sizeof(histoParams.msLabel1) );
+      xUtil_strncpy( histoParams.msLabel2, "Other Stuff",
+         sizeof(histoParams.msLabel2) );
+      
+      /* declare arrays of values and labels */
+#define knNumValues 20
+      histoParams.mafValues1 = (float*) calloc( knNumValues, sizeof(float) );
+      histoParams.mafValues2 = (float*) calloc( knNumValues, sizeof(float) );
+      histoParams.masXAxisLabels = (char**) calloc( knNumValues, sizeof(float) );
+      
+      /* fill them up with some random nubmers and cma labels */
+      histoParams.mnNumValues = knNumValues;
+      for( nValue = 0; nValue < knNumValues; nValue++ ) {
+  /* assign values for the elements */
+  histoParams.mafValues1[nValue] = random()%100;
+  histoParams.mafValues2[nValue] = random()%100;
+  /* allocate and set the label for this element */
+  histoParams.masXAxisLabels[nValue] = 
+    (char*) malloc( sizeof(char) * DspA_knHistoTitleLength );
+  xUtil_strncpy( histoParams.masXAxisLabels[nValue], 
+           cma_label_to_name( nValue ), DspA_knHistoTitleLength );
+      }
+      
+      /* draw the thing */
+      DspA_DrawHistogram( this, &histoParams );
+      
+      free( histoParams.mafValues1 );
+      free( histoParams.mafValues2 );
+      for( nValue = 0; nValue < knNumValues; nValue++ )
+  free( histoParams.masXAxisLabels[nValue] );
+      free( histoParams.masXAxisLabels );
+    }
+  }
+#endif
 
   return DspA_tErr_NoErr;
 }
+
+DspA_tErr DspA_DrawHistogram ( tkmDisplayAreaRef        this,
+             DspA_tHistogramParamsRef iParams ) {
+
+  DspA_tErr eResult             = DspA_tErr_NoErr;
+  char      sTclArgs[50000]     = "";
+  char      sValues1List[10000] = "";
+  char      sValues2List[10000] = "";
+  char      sLabelsList[10000]  = "";
+  int       nValue              = 0;
+
+  DebugEnterFunction( ("DspA_ShowHistogram( this=%p, iParams=%p )",
+           this, iParams) );
+
+  DebugNote( ("Verifying self") );
+  eResult = DspA_Verify( this );
+  DebugAssertThrow( (eResult == DspA_tErr_NoErr) );
+
+  /* print all the titles */
+  DebugNote( ("Printing titles") );
+  xUtil_snprintf( sTclArgs, sizeof(sTclArgs), 
+      "-title \"%s\" -xAxisTitle \"%s\" -yAxisTitle \"%s\" "
+      "-label1 \"%s\" -label2 \"%s\"", iParams->msTitle,
+      iParams->msXAxisTitle, iParams->msYAxisTitle,
+      iParams->msLabel1, iParams->msLabel2 );
+ 
+  /* print the open brace for the list */
+  DebugNote( ("Printing open braces") );
+  xUtil_strncpy( sValues1List, "-values1 { ", sizeof(sValues1List) );
+  xUtil_strncpy( sValues2List, "-values2 { ", sizeof(sValues2List) );
+  xUtil_strncpy( sLabelsList, "-xAxisLabels { ", sizeof(sLabelsList) );
+    
+  /* for each value... */
+  for( nValue = 0; nValue < iParams->mnNumValues; nValue++ ) {
+   
+    /* build a list of values and labels */
+    DebugNote( ("Printing elements %d/%d", nValue, iParams->mnNumValues) );
+    sprintf( sValues1List, "%s %.2f",
+       sValues1List, iParams->mafValues1[nValue] );
+    sprintf( sValues2List, "%s %.2f", 
+       sValues2List, iParams->mafValues2[nValue] );
+    sprintf( sLabelsList, "%s \"%s\"", 
+       sLabelsList, iParams->masXAxisLabels[nValue] );
+  }
+
+  /* print the closing brace for the list */
+  DebugNote( ("Printing closing braces") );
+  sprintf( sValues1List, "%s }", sValues1List );
+  sprintf( sValues2List, "%s }", sValues2List );
+  sprintf( sLabelsList, "%s }", sLabelsList );
+  
+  /* print the lists */
+  DebugNote( ("Printing lists to main args") );
+  sprintf( sTclArgs, "%s %s %s %s", sTclArgs,
+     sValues1List, sValues2List, sLabelsList );
+      
+  tkm_SendTclCommand( tkm_tTclCommand_DrawHistogram, sTclArgs );
+
+  DebugCatch;
+  DebugCatchError( eResult, DspA_tErr_NoErr, DspA_GetErrorString );
+  EndDebugCatch;
+
+  DebugExitFunction;
+
+  return eResult;
+}
+             
 
 DspA_tErr DspA_Verify ( tkmDisplayAreaRef this ) {
 
