@@ -3,7 +3,7 @@
 # Performs motion correction of anatomicals. This should produce
 # the same output as mri_motion_correct
 
-set VERSION = '$Id: mri_motion_correct2,v 1.8 2004/10/04 22:52:12 greve Exp $';
+set VERSION = '$Id: mri_motion_correct2,v 1.9 2004/12/14 03:37:42 greve Exp $';
 
 set tmpdir      = ();
 set inputlist   = ();
@@ -15,6 +15,7 @@ set CleanUpList = ();
 set PWD = pwd;
 set HiRes = '';
 set outfmt = ();
+set AllowWild = 0;
 
 # If no args, print usage and exit #
 if($#argv == 0) then
@@ -290,14 +291,22 @@ while( $#argv != 0 )
       set echo = 1;
       breaksw
 
+    case "-wild":
+      set AllowWild = 1;
+      breaksw
+
     case "-cm":
       set HiRes = ('-cm')
       breaksw
 
     default:
-      echo ERROR: Flag $flag unrecognized. 
-      echo $cmdline
-      exit 1
+      if($AllowWild) then
+        set inputlist = ($inputlist $flag);
+      else
+        echo ERROR: Flag $flag unrecognized. 
+        echo $cmdline
+        exit 1
+      endif
       breaksw
   endsw
 
@@ -401,11 +410,13 @@ usage_exit:
   echo ""
   echo "Optional Arguments:";
   echo ""
+  echo "  -wild          : assume unmatched args are input files"
   echo "  -tmpdir tmpdir : directory for temporary files"
   echo "  -nocleanup     : do not delete temporary files"
   echo "  -umask umask   : set unix file permission mask"
   echo "  -cm            : COR volumes conform to min voxel size"
   echo "  -version       : print version and exit"
+  echo "  -debug         : print lots of stuff to screen"
   echo ""
 
   if(! $PrintHelp) exit 1;
@@ -424,7 +435,7 @@ perform the alignment. Then uses mincresample and mincaverage.
 
 The inputs and output can be any format accepted by mri_convert.
 
-Example:
+Example 1:
 
 mri_motion_correct2 -i 002.mgz  -i 003 -o mc4.img
 
@@ -432,5 +443,12 @@ mri_motion_correct2 -i 002.mgz  -i 003 -o mc4.img
   003 is in COR format.
   mc4.img (the output) is in analyze format.
 
+Example 2:
 
+Say you have many input volumes, eg, 001.mgh ... 010.mgh, and
+you do not want to list all of them on the command-line with
+a -i. Then you can:
 
+mri_motion_correct2 -o mc.mgh  -wild *.mgh
+
+Note that -wild must appear BEFORE the wildcard.
