@@ -16,7 +16,7 @@
 #include "mrimorph.h"
 #include "mrinorm.h"
 
-static char vcid[] = "$Id: mris_make_surfaces.c,v 1.40 2002/07/04 19:34:36 fischl Exp $";
+static char vcid[] = "$Id: mris_make_surfaces.c,v 1.41 2002/08/01 21:54:36 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -303,6 +303,8 @@ main(int argc, char *argv[])
       min_gray_at_white_border = gray_mean-gray_std ;
     if (!max_border_white_set)
       max_border_white = white_mean+white_std ;
+    if (!max_csf_set)
+      max_csf = gray_mean-2*gray_std ;
     if (!min_border_white_set)
       min_border_white = gray_mean ;
     fprintf(stderr, "setting MIN_GRAY_AT_WHITE_BORDER to %2.1f (was %d)\n",
@@ -311,6 +313,8 @@ main(int argc, char *argv[])
             max_border_white, MAX_BORDER_WHITE) ;
     fprintf(stderr, "setting MIN_BORDER_WHITE to %2.1f (was %d)\n",
             min_border_white, MIN_BORDER_WHITE) ;
+    fprintf(stderr, "setting MAX_CSF to %2.1f (was %d)\n",
+            max_csf, MAX_CSF) ;
 
     if (!max_gray_set)
       max_gray = white_mean-white_std ;
@@ -404,7 +408,8 @@ main(int argc, char *argv[])
     MRISprintTessellationStats(mris, stderr) ;
     MRIScomputeBorderValues(mris, mri_T1, mri_smooth, 
                             MAX_WHITE, max_border_white, min_border_white,
-                            min_gray_at_white_border, max_gray, current_sigma, 
+                            min_gray_at_white_border, 
+                            max_border_white /*max_gray*/, current_sigma, 
                             2*max_thickness, parms.fp, GRAY_WHITE) ;
     MRISfindExpansionRegions(mris) ;
     if (vavgs)
@@ -482,12 +487,14 @@ main(int argc, char *argv[])
       MRIScomputeSecondFundamentalForm(mris) ;
       MRISuseMeanCurvature(mris) ;
       MRISaverageCurvatures(mris, curvature_avgs) ;
-      sprintf(fname, "%s.curv%s",
-              mris->hemisphere == LEFT_HEMISPHERE?"lh":"rh", suffix);
+      sprintf(fname, "%s.curv%s%s",
+              mris->hemisphere == LEFT_HEMISPHERE?"lh":"rh", output_suffix,
+              suffix);
       fprintf(stderr, "writing smoothed curvature to %s\n", fname) ;
       MRISwriteCurvature(mris, fname) ;
-      sprintf(fname, "%s.area%s",
-              mris->hemisphere == LEFT_HEMISPHERE?"lh":"rh", suffix);
+      sprintf(fname, "%s.area%s%s",
+              mris->hemisphere == LEFT_HEMISPHERE?"lh":"rh", output_suffix,
+              suffix);
 #if 0
       fprintf(stderr, "writing smoothed area to %s\n", fname) ;
       MRISwriteArea(mris, fname) ;
@@ -650,7 +657,7 @@ main(int argc, char *argv[])
       MRISprintTessellationStats(mris, stderr) ;
       MRIScomputeBorderValues(mris, mri_T1, mri_smooth, MAX_WHITE, 
                               max_border_white, min_border_white, 
-                              min_gray_at_white_border, max_gray,
+                              min_gray_at_white_border, max_border_white /*max_gray*/,
                               current_sigma, 2*max_thickness, parms.fp,
                               GRAY_WHITE) ;
       MRISfindExpansionRegions(mris) ;
