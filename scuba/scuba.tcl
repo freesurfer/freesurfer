@@ -349,6 +349,7 @@ proc MakeMenuBar { ifwTop } {
     global gaMenu
     set fwMenuBar     $ifwTop.fwMenuBar
     set gaMenu(file)  $fwMenuBar.mbwFile
+    set gaMenu(view)  $fwMenuBar.mbwView
 
     frame $fwMenuBar -border 2 -relief raised
 
@@ -359,6 +360,12 @@ proc MakeMenuBar { ifwTop } {
     }
 
     pack $gaMenu(file) -side left
+
+    tkuMakeMenu -menu $gaMenu(view) -label "View" -items {
+	{check "Flip Left/Right" { SetViewFlipLeftRightYZ $gaView(current,id) $gaView(flipLeftRight) } gaView(flipLeftRight) }
+    }
+
+    pack $gaMenu(view) -side left
 
     return $fwMenuBar
 }
@@ -495,6 +502,12 @@ proc ScubaMouseMotionCallback { inX inY iButton } {
     UpdateLabelArea $labelValues
 }
 
+proc Quit {} {
+
+    SaveGlobalPreferences
+    exit
+}
+
 # INTERFACE CREATION ==================================================
 
 proc MakeLabelArea { ifwTop } {
@@ -602,6 +615,7 @@ proc MakePropertiesPanel { ifwTop } {
     $fwTop add layerPanel -label Layers
     $fwTop add viewPanel -label Views
     $fwTop add subjectsLoader -label Subjects
+    $fwTop add transformPanel -label Transforms
 
     set gaWidget(layerProperties) \
 	[MakeLayerPropertiesPanel [$fwTop subwidget layerPanel]]
@@ -609,10 +623,13 @@ proc MakePropertiesPanel { ifwTop } {
 	[MakeViewPropertiesPanel [$fwTop subwidget viewPanel]]
     set gaWidget(subjectsLoader) \
 	[MakeSubjectsLoaderPanel [$fwTop subwidget subjectsLoader]]
+    set gaWidget(transformProperties) \
+	[MakeTransformsPanel [$fwTop subwidget transformPanel]]
 
     pack $gaWidget(layerProperties)
     pack $gaWidget(viewProperties)
     pack $gaWidget(subjectsLoader)
+    pack $gaWidget(transformProperties)
 
     return $fwTop
 }
@@ -648,7 +665,9 @@ proc MakeLayerPropertiesPanel { ifwTop } {
 	-variable gaLayer(current,type) -width 5
     tkuMakeEntry $fwPropsCommon.ewLabel \
 	-variable gaLayer(current,label) \
-	-command {SetLayerLabel $gaLayer(current,id) $gaLayer(current,label); UpdateLayerList}
+	-command {SetLayerLabel $gaLayer(current,id) $gaLayer(current,label); UpdateLayerList} \
+	-notify 1
+    set gaWidget(layerProperties,labelEntry) $fwPropsCommon.ewLabel
     tkuMakeSliders $fwPropsCommon.swOpacity -sliders {
 	{-label "Opacity" -variable gaLayer(current,opacity) 
 	    -min 0 -max 1 -resolution 0.1
@@ -790,6 +809,13 @@ proc MakeViewPropertiesPanel { ifwTop } {
 	    $fwProps.mwDraw$nLevel
     }
 
+    tixOptionMenu $fwProps.mwTransform \
+	-label "Transform:" \
+	-variable gaView(current,transformID) \
+	-command "ViewPropertiesTransformMenuCallback"
+    set gaWidget(viewProperties,transformMenu) \
+	$fwProps.mwTransform
+    
     button $fwProps.bwCopyLayers -text "Copy Layers to Other Views" \
 	-command { CopyViewLayersToAllViewsInFrame [GetMainFrameID] $gaView(current,id) }
     
@@ -801,10 +827,73 @@ proc MakeViewPropertiesPanel { ifwTop } {
 	grid $fwProps.mwDraw$nLevel \
 	    -column 0 -row [expr $nLevel + 2] -sticky ew -columnspan 3
     }
-    grid $fwProps.bwCopyLayers -column 0 -row 13 -sticky ew -columnspan 3
+    grid $fwProps.mwTransform  -column 0 -row 13 -sticky ew -columnspan 3
+    grid $fwProps.bwCopyLayers -column 0 -row 14 -sticky ew -columnspan 3
     
     grid $fwMenu -column 0 -row 0 -sticky new
     grid $fwProps -column 0 -row 1 -sticky news
+
+    return $fwTop
+}
+
+proc MakeTransformsPanel { ifwTop } {
+    global gaWidget
+    global gaTransform
+
+    set fwTop      $ifwTop.fwSubjects
+    set fwMenu     $fwTop.fwMenu
+    set fwProps    $fwTop.fwProps
+    set fwCommands $fwTop.fwCommands
+ 
+    frame $fwTop
+
+    frame $fwMenu
+    tixOptionMenu $fwMenu.menu \
+	-label "Transform:" \
+	-variable gaTransform(current,menuIndex) \
+	-command { TransformPropertiesMenuCallback }
+    set gaWidget(transformProperties,menu) $fwMenu.menu
+    pack $fwMenu.menu
+
+    
+    frame $fwProps
+    tkuMakeEntry $fwProps.ewLabel \
+	-variable gaTransform(current,label) \
+	-notify 1 \
+	-command {SetTransformLabel $gaTransform(current,id) $gaTransform(current,label); UpdateTransformList} 
+    set gaWidget(transformProperties,labelEntry) $fwProps.ewLabel
+    
+    grid $fwProps.ewLabel -column 0 -row 0 -columnspan 4 -sticky ew
+
+    for { set nRow 0 } { $nRow < 4 } { incr nRow } {
+	for { set nCol 0 } { $nCol < 4 } { incr nCol } {
+
+	    tkuMakeEntry $fwProps.ewValue$nCol-$nRow \
+		-width 6 \
+		-variable gaTransform(current,value$nCol-$nRow) \
+		-command { UpdateCurrentTransformValueList } \
+		-notify 1
+	    set gaWidget(transformProperties,value$nCol-$nRow) \
+		$fwProps.ewValue$nCol-$nRow
+	    
+	    grid $fwProps.ewValue$nCol-$nRow \
+		-column $nCol -row [expr $nRow + 1] -sticky ew
+	}
+    }
+
+    button $fwProps.bwSetTransform -text "Set Values" \
+	-command { SetTransformValues $gaTransform(current,id) $gaTransform(current,valueList); ClearSetTransformValuesButton }
+    set gaWidget(transformProperties,setValuesButton) $fwProps.bwSetTransform
+
+    grid $fwProps.bwSetTransform -column 0 -row 5 -columnspan 4 -sticky ew
+
+    frame $fwCommands
+    button $fwCommands.bwMakeTransform -text "Make New Transform" \
+	-command { set transformID [MakeNewTransform]; SetTransformLabel $transformID "New Transform"; UpdateTransformList; SelectTransformInTransformProperties $transformID }
+
+    pack $fwCommands.bwMakeTransform -expand yes -fill x
+
+    pack $fwMenu $fwProps $fwCommands -side top -expand yes -fill x
 
     return $fwTop
 }
@@ -834,7 +923,8 @@ proc SelectLayerInLayerProperties { iLayerID } {
     set gaLayer(current,type) [GetLayerType $iLayerID]
     set gaLayer(current,label) [GetLayerLabel $iLayerID]
     set gaLayer(current,opacity) [GetLayerOpacity $iLayerID]
-     
+    tkuRefreshEntryNotify $gaWidget(layerProperties,labelEntry)
+
     # Make sure that this is the item selected in the menu. Disale the
     # callback and set the value of the menu to the index of this
     # layer ID in the layer ID list. Then reenable the callback.
@@ -985,6 +1075,18 @@ proc ViewPropertiesDrawLevelMenuCallback { iLevel inLayer } {
 
     # Set the layer in this view and redraw.
     SetLayerInViewAtLevel $gaView(current,id) $layerID $iLevel
+    RedrawFrame [GetMainFrameID]
+}
+
+proc ViewPropertiesTransformMenuCallback { inTransform } {
+    global gaView
+    global gaTransform
+    
+    # Find the transform ID from the list of indices.
+    set transformID [lindex $gaTransform(idList) [expr $inTransform]]
+
+    # Set the transform in this view and redraw.
+    SetViewTransform $gaView(current,id) $transformID
     RedrawFrame [GetMainFrameID]
 }
 
@@ -1217,6 +1319,134 @@ proc UpdateSubjectList {} {
     if { ![info exists gaSubject(current,id)] } {
 	SelectSubjectInSubjectsLoader [lindex $gaSubject(nameList) 0]
     }
+}
+
+# TRANSFORM PROPERTIES FUNCTIONS =========================================
+
+proc TransformPropertiesMenuCallback { inTransform } {
+    global gaTransform
+
+    # Get the ID at this index in the idList, then select that transform.
+    set transformID [lindex $gaTransform(idList) $inTransform]
+    SelectTransformInTransformProperties $transformID
+}
+
+proc SelectTransformInTransformProperties { iTransformID } {
+    global gaWidget
+    global gaTransform
+
+    # Get the tranforms properties from the transofmr layer and
+    # load them into the 'current' slots.
+    set gaTransform(current,id) $iTransformID
+    set gaTransform(current,label) [GetTransformLabel $iTransformID]
+    set gaTransform(current,valueList) [GetTransformValues $iTransformID]
+    tkuRefreshEntryNotify $gaWidget(transformProperties,labelEntry)
+
+    # Set the invidual values from the value list.
+    for { set nRow 0 } { $nRow < 4 } { incr nRow } {
+	for { set nCol 0 } { $nCol < 4 } { incr nCol } {
+	    set gaTransform(current,value$nCol-$nRow) \
+		[lindex $gaTransform(current,valueList) \
+		     [expr ($nRow * 4) + $nCol]]
+	    tkuRefreshEntryNotify \
+		$gaWidget(transformProperties,value$nCol-$nRow)
+	}
+    }
+
+     
+    # Make sure that this is the item selected in the menu. Disale the
+    # callback and set the value of the menu to the index of this
+    # transform ID in the transform ID list. Then reenable the callback.
+    $gaWidget(transformProperties,menu) config -disablecallback 1
+    $gaWidget(transformProperties,menu) config \
+	-value [lsearch $gaTransform(idList) $iTransformID]
+    $gaWidget(transformProperties,menu) config -disablecallback 0
+}
+
+
+# This builds the transform ID list and populates the menu that selects
+# the current transform in the transform props panel, and the menu in the
+# view props panel. It should be called whenever a transform is created or
+# deleted, or when a lyer is added to or removed from a view.
+proc UpdateTransformList {} {
+    global gaTransform
+    global gaWidget
+    global gaView
+
+    # Get the transform ID list.
+    set err [catch { set gaTransform(idList) [GetTransformIDList] } sResult]
+    if { $err } { 
+	set gaTransform(idList) {} 
+    }
+
+    # First rebuild the transform list in the transform props panel.
+
+    # Disable the menu callback.
+    $gaWidget(transformProperties,menu) config -disablecallback 1
+
+    # Get all the entries, delete them, then add commands for all the
+    # IDs in the transform ID list.
+    set lEntries [$gaWidget(transformProperties,menu) entries]
+    foreach entry $lEntries { 
+	$gaWidget(transformProperties,menu) delete $entry
+    }
+    foreach id $gaTransform(idList) {
+	$gaWidget(transformProperties,menu) add command $id \
+	    -label "$id: [GetTransformLabel $id]"
+    }
+    # Renable the menu.
+    $gaWidget(transformProperties,menu) config -disablecallback 0
+
+    # Reselect the current transformProperties.
+    if { [info exists gaTransform(current,id)] && 
+	 $gaTransform(current,id) >= 0 } {
+	SelectTransformInTransformProperties $gaTransform(current,id)
+    }
+
+    # Now rebuild the transform list in the view props panel.
+
+    # Disable callback.
+    $gaWidget(viewProperties,transformMenu) \
+	config -disablecallback 1
+    
+    # Delete all the entries and add ones for all the IDs in the
+    # ID list.
+    set lEntries [$gaWidget(viewProperties,transformMenu) entries]
+    foreach entry $lEntries { 
+	$gaWidget(viewProperties,transformMenu) delete $entry
+    }
+    foreach id $gaTransform(idList) {
+	$gaWidget(viewProperties,transformMenu) add command $id \
+	    -label "$id: [GetTransformLabel $id]"
+    }
+    
+    # Renable the callback.
+    $gaWidget(viewProperties,transformMenu) \
+	    config -disablecallback 0
+}
+
+proc UpdateCurrentTransformValueList {} {
+    global gaTransform
+    global gaWidget
+
+    set gaTransform(current,valueList) {}
+
+    for { set nRow 0 } { $nRow < 4 } { incr nRow } {
+	for { set nCol 0 } { $nCol < 4 } { incr nCol } {
+	    lappend gaTransform(current,valueList) \
+		$gaTransform(current,value$nCol-$nRow)
+	}
+    }
+
+    # Change the set button to red to remind the user to click that button.
+    $gaWidget(transformProperties,setValuesButton) config -fg red
+}
+
+proc ClearSetTransformValuesButton {} {
+    global gaWidget
+
+    # Change the set button to normal.
+    $gaWidget(transformProperties,setValuesButton) config -fg black
 }
 
 # LABEL AREA FUNCTIONS ==================================================
@@ -1568,8 +1798,9 @@ SetFrameViewConfiguration [GetMainFrameID] c1
 UpdateLayerList
 UpdateViewList
 UpdateSubjectList
+UpdateTransformList
 SelectViewInViewProperties 0
-
+SelectTransformInTransformProperties 0
 
 # Now execute all the commands we cached before.
 foreach command $lCommands {

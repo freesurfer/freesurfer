@@ -2,6 +2,7 @@
 #include "glut.h"
 #include "ScubaView.h"
 #include "PreferencesManager.h"
+#include "ScubaGlobalPreferences.h"
 
 using namespace std;
 
@@ -14,14 +15,34 @@ ScubaView::ScubaView() {
   mbPostRedisplay = false;
   mbRebuildOverlayDrawList = true;
   mViewIDLinkedList[GetID()] = false;
-  //  mWorldToView = MatrixAlloc( 4, 4, MATRIX_REAL );
-  mWorldRAS = VectorAlloc( 4, MATRIX_REAL );
-  mViewRAS = VectorAlloc( 4, MATRIX_REAL );
+  mbFlipLeftRightInYZ = true;
 
-  // -1 0 0 0
-  //  0 0 1 0
-  //  0 1 0 0
-  //  0 0 0 1
+  ScubaGlobalPreferences& globalPrefs =
+    ScubaGlobalPreferences::GetPreferences();
+
+  mbFlipLeftRightInYZ = globalPrefs.GetViewFlipLeftRightYZ();
+
+  // Try setting our initial transform to the default transform with
+  // id 0. If it's not there, create it.
+  try { 
+    mWorldToView = &(ScubaTransform::FindByID( 0 ));
+    mWorldToView->AddListener( this );
+  }
+  catch(...) {
+
+    ScubaTransform* transform = new ScubaTransform();
+    transform->SetLabel( "Identity" );
+    transform->AddListener( this );
+    
+    try {
+      mWorldToView = &(ScubaTransform::FindByID( 0 ));
+    }
+    catch(...) {
+      DebugOutput( << "Couldn't make default transform!" );
+    }
+  }
+
+#if 0
 
 #define FLIP_Z
 #define VIEW
@@ -62,6 +83,9 @@ ScubaView::ScubaView() {
   mWorldToView = MatrixInverse( mViewToWorld, NULL );
 #endif
 
+#endif
+
+
   TclCommandManager& commandMgr = TclCommandManager::GetManager();
   commandMgr.AddCommand( *this, "SetViewInPlane", 2, "viewID inPlane",
 			 "Sets the in plane in a view. inPlane should be "
@@ -91,6 +115,15 @@ ScubaView::ScubaView() {
 			 "Set the linked status for a view." );
   commandMgr.AddCommand( *this, "GetViewLinkedStatus", 1, "viewID",
 			 "Returns the linked status for a view." );
+  commandMgr.AddCommand( *this, "SetViewTransform", 2, "viewID transformID",
+			 "Set the view to world transform for a view." );
+  commandMgr.AddCommand( *this, "GetViewTransform", 1, "viewID",
+			 "Returns the transformID of a view's view to "
+			 "world transform." );
+  commandMgr.AddCommand( *this, "SetViewFlipLeftRightYZ", 2, "viewID flip",
+			 "Set the left-right flip flag for a view." );
+  commandMgr.AddCommand( *this, "GetViewFlipLeftRightYZ", 1, "viewID",
+			 "Returns the left-right flip flag for a view." );
   
 
   PreferencesManager& prefsMgr = PreferencesManager::GetManager();
@@ -312,9 +345,29 @@ ScubaView::CopyLayerSettingsToView ( ScubaView& iView ) {
     int level = (*tLevelLayerID).first;
     int layerID = (*tLevelLayerID).second;
     iView.SetLayerAtLevel( level, layerID );
-
   }
 }
+
+void
+ScubaView::SetWorldToViewTransform ( int iTransformID ) {
+
+  try {
+    mWorldToView->RemoveListener( this );
+    mWorldToView = &(ScubaTransform::FindByID( iTransformID ));
+    mWorldToView->AddListener( this );
+    RequestRedisplay();
+  }
+  catch(...) {
+    DebugOutput( << "Couldn't find transform " << iTransformID );
+  }
+}
+
+int
+ScubaView::GetWorldToViewTransform () {
+
+  return mWorldToView->GetID();
+}
+
 
 TclCommandListener::TclCommandResult
 ScubaView::DoListenToTclCommand( char* isCommand, int iArgc, char** iasArgv ) {
@@ -590,7 +643,94 @@ ScubaView::DoListenToTclCommand( char* isCommand, int iArgc, char** iasArgv ) {
     }
   }
 
+  // SetViewTransform <viewID> <transformID>
+  if( 0 == strcmp( isCommand, "SetViewTransform" ) ) {
+    int viewID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad view ID";
+      return error;
+    }
+    
+    if( mID == viewID ) {
+      
+      int transformID = strtol( iasArgv[2], (char**)NULL, 10 );
+      if( ERANGE == errno ) {
+	sResult = "bad transformID";
+	return error;
+      }
+      
+      SetWorldToViewTransform( transformID );
+    }
+  }
+
+  // GetViewTransform <viewID>
+  if( 0 == strcmp( isCommand, "GetViewTransform" ) ) {
+    int viewID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad view ID";
+      return error;
+    }
+    
+    if( mID == viewID ) {
+
+      sReturnFormat = "i";
+      stringstream ssReturnValues;
+      ssReturnValues << (int)GetWorldToViewTransform();
+      sReturnValues = ssReturnValues.str();
+    }
+  }
+
+  // SetViewFlipLeftRightYZ <viewID> <flip>
+  if( 0 == strcmp( isCommand, "SetViewFlipLeftRightYZ" ) ) {
+    int viewID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad view ID";
+      return error;
+    }
+    
+    if( mID == viewID ) {
+      
+      if( 0 == strcmp( iasArgv[2], "true" ) || 
+	  0 == strcmp( iasArgv[2], "1" )) {
+	SetFlipLeftRightYZ( true );
+      } else if( 0 == strcmp( iasArgv[2], "false" ) ||
+		 0 == strcmp( iasArgv[2], "0" ) ) {
+	SetFlipLeftRightYZ( false );
+      } else {
+	sResult = "bad flip value \"" + string(iasArgv[2]) +
+	  "\", should be true, 1, false, or 0";
+	return error;	
+      }
+    }
+  }
+
+  // GetViewFlipLeftRightYZ <viewID>
+  if( 0 == strcmp( isCommand, "GetViewFlipLeftRightYZ" ) ) {
+    int viewID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad view ID";
+      return error;
+    }
+    
+    if( mID == viewID ) {
+
+      sReturnFormat = "i";
+      stringstream ssReturnValues;
+      ssReturnValues << (int)GetFlipLeftRightYZ();
+      sReturnValues = ssReturnValues.str();
+    }
+  }
+
   return ok;
+}
+
+void
+ScubaView::DoListenToMessage ( string isCommand, void* iData ) {
+  
+  if( isCommand == "transformChanged" ) {
+    RebuildOverlayDrawList(); // our overlay coords are different now
+    RequestRedisplay();
+  }
 }
 
 void
@@ -985,33 +1125,33 @@ ScubaView::TranslateWindowToRAS ( int iWindow[2], float oRAS[3] ) {
   // that and then offset by the RAS center. We find a 3D point by
   // using our mInPlane and the corresponding mCenterRAS in ViewState.
 
+  int xWindow = iWindow[0];
   float viewRAS[3];
   switch( mViewState.mInPlane ) {
   case ViewState::X:
     viewRAS[0] = mViewState.mCenterRAS[0];
-    viewRAS[1] = ConvertWindowToRAS( iWindow[0],mViewState.mCenterRAS[1],mWidth );
+    viewRAS[1] = ConvertWindowToRAS( xWindow,mViewState.mCenterRAS[1],mWidth );
     viewRAS[2] = ConvertWindowToRAS(iWindow[1],mViewState.mCenterRAS[2],mHeight );
     break;
   case ViewState::Y:
-    viewRAS[0] = ConvertWindowToRAS( iWindow[0],mViewState.mCenterRAS[0],mWidth );
+    if( mbFlipLeftRightInYZ ) {
+      xWindow = mWidth - xWindow;
+    }
+    viewRAS[0] = ConvertWindowToRAS( xWindow,mViewState.mCenterRAS[0],mWidth );
     viewRAS[1] = mViewState.mCenterRAS[1];
     viewRAS[2] = ConvertWindowToRAS(iWindow[1],mViewState.mCenterRAS[2],mHeight );
     break;
   case ViewState::Z:
-    viewRAS[0] = ConvertWindowToRAS( iWindow[0],mViewState.mCenterRAS[0],mWidth );
+    if( mbFlipLeftRightInYZ ) {
+      xWindow = mWidth - xWindow;
+    }
+    viewRAS[0] = ConvertWindowToRAS( xWindow,mViewState.mCenterRAS[0],mWidth );
     viewRAS[1] = ConvertWindowToRAS(iWindow[1],mViewState.mCenterRAS[1],mHeight );
     viewRAS[2] = mViewState.mCenterRAS[2];
     break;
   }
 
-  VECTOR_ELT( mViewRAS, 1 ) = viewRAS[0];
-  VECTOR_ELT( mViewRAS, 2 ) = viewRAS[1];
-  VECTOR_ELT( mViewRAS, 3 ) = viewRAS[2];
-  VECTOR_ELT( mViewRAS, 4 ) = 1.0;
-  MatrixMultiply( mViewToWorld, mViewRAS, mWorldRAS );
-  oRAS[0] = VECTOR_ELT( mWorldRAS, 1 );
-  oRAS[1] = VECTOR_ELT( mWorldRAS, 2 );
-  oRAS[2] = VECTOR_ELT( mWorldRAS, 3 );
+  mWorldToView->InvMultiplyVector3( viewRAS, oRAS );
 }
 
 float
@@ -1026,14 +1166,7 @@ void
 ScubaView::TranslateRASToWindow ( float iRAS[3], int oWindow[2] ) {
   
   float viewRAS[3];
-  VECTOR_ELT( mWorldRAS, 1 ) = iRAS[0];
-  VECTOR_ELT( mWorldRAS, 2 ) = iRAS[1];
-  VECTOR_ELT( mWorldRAS, 3 ) = iRAS[2];
-  VECTOR_ELT( mWorldRAS, 4 ) = 1.0;
-  MatrixMultiply( mWorldToView, mWorldRAS, mViewRAS );
-  viewRAS[0] = VECTOR_ELT( mViewRAS, 1 );
-  viewRAS[1] = VECTOR_ELT( mViewRAS, 2 );
-  viewRAS[2] = VECTOR_ELT( mViewRAS, 3 );
+  mWorldToView->MultiplyVector3( iRAS, viewRAS );
 
   float xWindow, yWindow;
   switch( mViewState.mInPlane ) {
@@ -1048,12 +1181,18 @@ ScubaView::TranslateRASToWindow ( float iRAS[3], int oWindow[2] ) {
 				  mViewState.mCenterRAS[0], mWidth );
     yWindow = ConvertRASToWindow( viewRAS[2],
 				  mViewState.mCenterRAS[2], mHeight );
+    if( mbFlipLeftRightInYZ ) {
+      xWindow = mWidth - xWindow;
+    }
     break;
   case ViewState::Z:
     xWindow = ConvertRASToWindow( viewRAS[0],
 				  mViewState.mCenterRAS[0], mWidth );
     yWindow = ConvertRASToWindow( viewRAS[1],
 				  mViewState.mCenterRAS[1], mHeight );
+    if( mbFlipLeftRightInYZ ) {
+      xWindow = mWidth - xWindow;
+    }
     break;
   }
 
@@ -1085,6 +1224,14 @@ ScubaView::GetFirstUnusedDrawLevel () {
 
   return highestLevel;
 }
+
+void
+ScubaView::SetFlipLeftRightYZ ( bool iFlip ) {
+
+  mbFlipLeftRightInYZ = iFlip;
+  RequestRedisplay();
+}
+
 
 void 
 ScubaView::BuildFrameBuffer () {
@@ -1127,39 +1274,45 @@ ScubaView::BuildOverlay () {
   if( !mbRebuildOverlayDrawList )
     return;
 
-  // Draw the HUD overlay if necessary.
+  // Draw the HUD overlay if necessary. We need to take our edge
+  // window coords and translate them to RAS coords and draw them on
+  // the sides of the screens. Note w'ere only really using one of the
+  // coords in each left/right/bottom/top/plane calculation because we
+  // don't care about the other dimensions.
+  int window[2];
+  float ras[3];
   char sXLabel, sYLabel, sZLabel;
   float left, right, top, bottom, plane;
   switch( mViewState.mInPlane ) {
     case ViewState::X: 
       sXLabel = 'a';
-      left =   mViewState.mCenterRAS[1] - (mWidth/2 / mViewState.mZoomLevel);
-      right =  mViewState.mCenterRAS[1] + (mWidth/2 / mViewState.mZoomLevel);
       sYLabel = 's';
-      bottom = mViewState.mCenterRAS[2] - (mHeight/2 / mViewState.mZoomLevel);
-      top =    mViewState.mCenterRAS[2] + (mHeight/2 / mViewState.mZoomLevel);
       sZLabel = 'r';
-      plane =  mViewState.mCenterRAS[0];
+      window[0] = 0;       TranslateWindowToRAS( window, ras ); left = ras[1];
+      window[0] = mWidth;  TranslateWindowToRAS( window, ras ); right = ras[1];
+      window[1] = 0;       TranslateWindowToRAS( window, ras ); top = ras[2];
+      window[1] = mHeight; TranslateWindowToRAS( window, ras );bottom = ras[2];
+      plane = ras[0];
       break;
     case ViewState::Y: 
       sXLabel = 'r';
-      left =   mViewState.mCenterRAS[0] - (mWidth/2 / mViewState.mZoomLevel);
-      right =  mViewState.mCenterRAS[0] + (mWidth/2 / mViewState.mZoomLevel);
       sYLabel = 's';
-      bottom = mViewState.mCenterRAS[2] - (mHeight/2 / mViewState.mZoomLevel);
-      top =    mViewState.mCenterRAS[2] + (mHeight/2 / mViewState.mZoomLevel);
       sZLabel = 'a';
-      plane =  mViewState.mCenterRAS[1];
+      window[0] = 0;       TranslateWindowToRAS( window, ras ); left = ras[0];
+      window[0] = mWidth;  TranslateWindowToRAS( window, ras ); right = ras[0];
+      window[1] = 0;       TranslateWindowToRAS( window, ras ); top = ras[2];
+      window[1] = mHeight; TranslateWindowToRAS( window, ras );bottom = ras[2];
+      plane = ras[1];
       break;
     case ViewState::Z: 
       sXLabel = 'r';
-      left =   mViewState.mCenterRAS[0] - (mWidth/2 / mViewState.mZoomLevel);
-      right =  mViewState.mCenterRAS[0] + (mWidth/2 / mViewState.mZoomLevel);
       sYLabel = 'a';
-      bottom = mViewState.mCenterRAS[1] - (mHeight/2 / mViewState.mZoomLevel);
-      top =    mViewState.mCenterRAS[1] + (mHeight/2 / mViewState.mZoomLevel);
       sZLabel = 's';
-      plane =  mViewState.mCenterRAS[2];
+      window[0] = 0;       TranslateWindowToRAS( window, ras ); left = ras[0];
+      window[0] = mWidth;  TranslateWindowToRAS( window, ras ); right = ras[0];
+      window[1] = 0;       TranslateWindowToRAS( window, ras ); top = ras[1];
+      window[1] = mHeight; TranslateWindowToRAS( window, ras );bottom = ras[1];
+      plane = ras[2];
       break;
   }
 
@@ -1168,6 +1321,7 @@ ScubaView::BuildOverlay () {
 
   glColor3f( 1, 1, 1 );
 
+  // Now draw the labels we calc'd before.
   char sLabel[60];
   sprintf( sLabel, "%c%.2f", sXLabel, left );
   glRasterPos2i( 0, mHeight / 2 );

@@ -10,11 +10,10 @@
 #include "Layer.h"
 #include "ScubaWindowToRASTranslator.h"
 #include "ScubaToolState.h"
-extern "C" {
-#include "matrix.h"
-}
+#include "ScubaTransform.h"
+#include "Listener.h"
 
-class ScubaView : public View, public ScubaWindowToRASTranslator {
+class ScubaView : public View, public ScubaWindowToRASTranslator, public Listener {
 
   friend class ScubaViewTester;
 
@@ -44,8 +43,15 @@ class ScubaView : public View, public ScubaWindowToRASTranslator {
   // Sets the same layers in another view.
   void CopyLayerSettingsToView ( ScubaView& iView );
 
+  // Set the display transform for this view.
+  void SetWorldToViewTransform ( int iTransformID );
+  int GetWorldToViewTransform ();
+
   virtual TclCommandResult
     DoListenToTclCommand ( char* isCommand, int iArgc, char** iasArgv );
+
+  virtual void
+    DoListenToMessage ( std::string isCommand, void* iData );
 
   // Implement ScubaWindowToRASTranslator.
   void TranslateWindowToRAS ( int iWindow[2], float oRAS[3] );
@@ -54,6 +60,9 @@ class ScubaView : public View, public ScubaWindowToRASTranslator {
   int GetFirstUnusedDrawLevel ();
 
   void RebuildOverlayDrawList () { mbRebuildOverlayDrawList = true; }
+
+  void SetFlipLeftRightYZ ( bool iFlip );
+  bool GetFlipLeftRightYZ () { return mbFlipLeftRightInYZ; }
 
 protected:
 
@@ -149,10 +158,10 @@ protected:
   static int mCurrentBroadcaster;
   static std::map<int,bool> mViewIDLinkedList;
 
-  MATRIX* mWorldToView;
-  MATRIX* mViewToWorld;
-  MATRIX* mWorldRAS;
-  MATRIX* mViewRAS;
+  ScubaTransform* mWorldToView;
+
+
+  bool mbFlipLeftRightInYZ;
 };  
 
 class ScubaViewFactory : public ViewFactory {

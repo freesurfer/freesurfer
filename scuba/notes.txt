@@ -300,23 +300,39 @@ x View calls Layer::HandleTool ( RAS, ToolState, InputState )
 
 x - should set,get,min/max stuff be in VolumeCollection? Layer is doing a lot of stuff
 
-display transform interface on view level
-- ScubaTransform class
-  - GetTransformList -- returns list of IDs
-  - Get/SetTransformLabel, Get/SetTransformMatrix
-- transforms panel
-  - list of transforms
+x display transform interface on view level
+x - ScubaTransform class
+x   - GetTransformList -- returns list of IDs
+x   - Get/SetTransformLabel, Get/SetTransformMatrix
+x - transforms panel
+x   - list of transforms
   - two matrix displays, one is 'current', one is 'apply'
   - can load from external file or set values automatically in apply transform
   - 'apply' button on apply side multiples new matrix to current
-- view props has a new transform field
-- ScubaView gets new tcl functions:
-  - SetViewTransformID and GetViewTransformID <viewID> <transformID>
+x - view props has a new transform field
+x - ScubaView gets new tcl functions:
+x   - SetViewTransformID and GetViewTransformID <viewID> <transformID>
 
+x Broadcaster class
+x  - Broadcast( string message, void* data )
+x  - AddListener( Listener* )
+x  - RemoveListener( Listener* )
+x Listener class
+x  - ListenToMessage( string message, void* data )
 
-
+x option for left/right flip, i.e. Neurology View, which does a x flip in R and S views
+ - make static for all views??
+ - add function for getting initial values of global menu and toolbar vars i.e. gaView(flipLeftRight)
 
 consider linking ScubaFrame's selected view to the gaView(current) view in scuba.tcl, link view configuration in scuba.tcl and select view in view props automatically. the 't' view selecting key would need to be reimplemented in scuba.tcl.
+
+x ScubaGlobalPrefs object with static getter
+x  - on ctor, gets stuff from prefs file
+x  - ScubaView gets R/L flip bool from here
+ - modify PreferencesManager to have PreferencesUsers class, others mix in, have SavePrerferences() call that clientes use to set prefs before file is saved
+
+
+x ScubaView needs to use TranslateWindowToRAS when drawing coords on side of window
 
 
 
@@ -384,6 +400,7 @@ BUGS:::
 - left right flipped in coronal
 - when change in plane with key, no update to tcl
    - should all this stuff be done in tcl because there's no notficiation method from c->tcl?
+- only send .2f coords in labels in ScubaView
 
 
 future ideas:
@@ -397,4 +414,5 @@ nav tools draw onscreen sliders for feedback
  - on mouse down with right tool, draw scale bar
  - function to translate v position into modifcation value
  - start at mouse point, use expo scale towards edge for min/max values
+
 

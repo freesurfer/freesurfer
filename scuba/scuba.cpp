@@ -1,3 +1,4 @@
+#include "ScubaGlobalPreferences.h"
 #include "ToglManager.h"
 #include "ScubaFrame.h"
 #include "ScubaView.h"
@@ -29,6 +30,9 @@ int Scuba_Init ( Tcl_Interp* iInterp ) {
 
     ScubaDataCollectionFactory& dataFactory = 
       ScubaDataCollectionFactory::GetFactory();
+
+    ScubaGlobalPreferences preferences =
+      ScubaGlobalPreferences::GetPreferences();
   }
   catch( ... ) {
     return TCL_ERROR;

@@ -492,6 +492,7 @@ ScubaFrame::DoDraw() {
       glOrtho( 0, mWidth/cCols-1, 0, mHeight/mcRows-1, -1.0, 1.0 );
       glMatrixMode( GL_MODELVIEW );
       
+#if 0
       // Flip left/right.
       float m[16];
       m[0] = -1;  m[4] =  0;   m[8] = 0;  m[12] = 0;
@@ -499,7 +500,7 @@ ScubaFrame::DoDraw() {
       m[2] =  0;  m[6] =  1;  m[10] = 0;  m[14] = 0;
       m[3] =  0;  m[7] =  0;  m[11] = 0;  m[15] = 1;
       glLoadMatrixf( m );
-
+#endif
 
       // We change the y position so that the 0,0 view is in the top
       // left corner and the cCols-1,mcRows-1 view is in the bottom

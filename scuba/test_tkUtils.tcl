@@ -18,6 +18,15 @@ if { [catch {
     puts "$sResult"
 }
 
+set entryVar "Callback is puts"
+tkuMakeEntry .ew \
+    -variable entryVar -command {puts $entryVar} -width 20
+pack .ew
+
+set entryVar2 "No callback, notify"
+tkuMakeEntry .ew2 \
+    -variable entryVar2 -width 20 -notify 1
+pack .ew2
 
 tkuMakeCheckboxes .cb \
     -orientation h \
