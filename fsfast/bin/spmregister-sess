@@ -1,7 +1,7 @@
 #!/bin/csh -f
 # spmregister-sess
 #
-set VERSION = '$Id: spmregister-sess,v 1.8 2004/04/05 21:56:54 greve Exp $';
+set VERSION = '$Id: spmregister-sess,v 1.9 2005/01/21 22:52:37 greve Exp $';
 set inputargs = ($argv);
 set DateString = "`date '+%y%m%d%H%M'`"
 
@@ -10,9 +10,13 @@ set asd          = 3danat;
 set samesessanat = 0;
 set nolog        = 0;
 set Run          = ();
+set PerRun       = 0;
+set RunListFile  = ();
 set fsvol        = brain;
 set regfilename  = register.dat
 set funcstem     = f;
+set fmt          = bhdr;
+set frame        = 0;
 
 ## If there are no options, just print the usage ##
 if($#argv == 0) goto usage_exit;
@@ -96,37 +100,74 @@ foreach sess ($SessList)
     exit 1;
   endif
 
-  if($#Run == 0) then
-    set funcdir = `getfirstrundir-sess $fsd`;
-    if($status) then
-      echo "$funcdir" |& tee -a $LF
+
+  if(! $PerRun) then
+    # Do once for all runs
+    if($#Run == 0) then
+      set funcdir = `getfirstrundir-sess $fsd`;
+      if($status) then
+        echo "$funcdir" |& tee -a $LF
+        exit 1;
+      endif
+    else
+      set funcdir = $fsd/$Run
+      if(! -e $funcdir) then
+        echo "ERROR: $Run does not exist in $fsd" |& tee -a $LF
+        exit 1;
+      endif
+    endif
+
+    set movfile = $funcdir/$funcstem"_000.bshort"
+    if(! -e $movfile) then
+      set movfile = $funcdir/$funcstem"_000.bfloat"
+      if(! -e $movfile) then
+         echo "ERROR: cannot find f volume in $funcdir" |& tee -a $LF
+         exit 1;
+      endif
+    endif
+
+    set regfile = $fsd/$regfilename
+    set cmd = (spmregister --s $subject --mov $movfile \
+      --reg $regfile --fsvol $fsvol)
+    if($frame)  set cmd = ($cmd -frame $frame)
+    $cmd |& tee -a $LF
+    if($status) then 
+      echo "ERROR: spmregister failed" |& tee -a $LF
       exit 1;
     endif
   else
-    set funcdir = $fsd/$Run
-    if(! -e $funcdir) then
-      echo "ERROR: $Run does not exist in $fsd" |& tee -a $LF
+    # Do separately for each run
+    set RunList = `getrunlist $fsd $RunListFile`;
+    set st = $status;
+    if($st) then
+      echo "ERROR: getting run list"
+      echo "  $RunList"
       exit 1;
     endif
+   
+    foreach Run ($RunList)
+      echo "  Run: $Run ----------------" |& tee -a $LF
+      date  |& tee -a $LF
+      set funcdir = $fsd/$Run
+      set movfile = $funcdir/$funcstem.$fmt
+      if(! -e $movfile) then
+        echo "ERROR: cannot find f volume in $funcdir" |& tee -a $LF
+        exit 1;
+      endif
+      set regfile = $funcdir/fs.register.dat
+      set cmd = (spmregister --s $subject --mov $movfile \
+        --reg $regfile --fsvol $fsvol)
+      if($frame)  set cmd = ($cmd --frame $frame)
+      $cmd |& tee -a $LF
+      if($status) then 
+        echo "ERROR: spmregister failed" |& tee -a $LF
+        exit 1;
+      endif
+    end  # Loop over runs
+
+
   endif
 
-  set movfile = $funcdir/$funcstem"_000.bshort"
-  if(! -e $movfile) then
-    set movfile = $funcdir/$funcstem"_000.bfloat"
-    if(! -e $movfile) then
-       echo "ERROR: cannot find f volume in $funcdir" |& tee -a $LF
-       exit 1;
-    endif
-  endif
-
-  set regfile = $fsd/$regfilename
-  set cmd = (spmregister --s $subject --mov $movfile \
-    --reg $regfile --fsvol $fsvol)
-  $cmd |& tee -a $LF
-  if($status) then 
-    echo "ERROR: spmregister failed" |& tee -a $LF
-    exit 1;
-  endif
 
   popd > /dev/null
 
@@ -156,9 +197,23 @@ while( $#argv != 0 )
       set Run = $argv[1]; shift;
       breaksw
 
+    case "-perrun":
+      set PerRun = 1;
+      breaksw
+
+    case "-rlf":
+      if ( $#argv == 0) goto arg1err;
+      set RunListFile = $argv[1]; shift;
+      breaksw
+
     case "-funcstem":
       if ( $#argv == 0) goto arg1err;
       set funcstem = $argv[1]; shift;
+      breaksw
+
+    case "-frame":
+      if ( $#argv == 0) goto arg1err;
+      set frame = $argv[1]; shift;
       breaksw
 
     case "-fsvol":
@@ -243,7 +298,10 @@ usage_exit:
   echo "   -d  srchdir     ..."
   echo "   -fsd dir       : functional subdirectory ($fsd)"
   echo "   -run RRR       : register to run RRR"
+  echo "   -perrun        : register each run separately"
+  echo "   -rlf RLF       : run-list file (with -perrun)"
   echo "   -funcstem stem : default is f"
+  echo "   -frame frameno : 0-based frame no (default 0)"
   echo "   -fsvol volid   : FreeSurfer vol id (default is $fsvol)"
   echo "   -regfile file  : Save reg as file instead of register.dat"
   echo "   -umask umask   : set unix file permission mask"
