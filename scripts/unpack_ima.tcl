@@ -1231,10 +1231,10 @@ proc CheckDirOK {} \
       {
 
         if [ file exists $targetDir ] \
-      {
-    if { [ string compare [ exec ls $targetDir ] ""]} \
-        {
-      set overwriteAnswer [tk_messageBox -type yesno \
+          {
+             if { [ string compare [ exec ls $targetDir ] ""]} \
+                 {
+                     set overwriteAnswer [tk_messageBox -type yesno \
                                              -default yes \
                                              -title "$targetDir not empty" \
                                              -message "Overwrite contents of $targetDir" \
@@ -1244,34 +1244,34 @@ proc CheckDirOK {} \
                              set targetDirWritable 0
                              return 0}
                         
-        }
+                 }
 
-      }
+    }
 
 
-  if { ! [ file exists $targetDir ]} \
+       if { ! [ file exists $targetDir ]} \
            { 
               if { [ file writable [ file dirname $targetDir ] ] } \
                  { file mkdir $targetDir } \
               else \
-         {
+                {
                   tk_messageBox -type ok -default ok -title "Error" \
                        -message "could not create $targetDir" -icon error 
                   set targetDir .
                   return 0
-         }
-     }
+                }
+           }
 
-  if { ![ file isdirectory $targetDir ] } \
-         {
-                  tk_messageBox -type ok -default ok -title "Error" \
+       if { ![ file isdirectory $targetDir ] } \
+          {
+             tk_messageBox -type ok -default ok -title "Error" \
                        -message "$targetDir is not a directory" -icon error 
-                  set targetDir .
-                  return 0
-         }
+             set targetDir .
+             return 0
+          }
 
 
-  if { ! [ file writable $targetDir ] } \
+      if { ! [ file writable $targetDir ] } \
               {
                   tk_messageBox -type ok -default ok -title "Error" \
                        -message "$targetDir is not writeable" -icon error 
@@ -1280,7 +1280,17 @@ proc CheckDirOK {} \
          }
    set targetDirWritable 1
 
+    }
+
+  if { [ CheckSourceDirOK ] } { return 1 } else { return 0 }
+
+
   }
+
+#----------------------------------------------------------------------------#
+proc CheckSourceDirOK {} \
+{
+  global  sourceDir archiveDir
 
   if { ! [ file isdirectory $sourceDir ] }\
               {
@@ -1936,7 +1946,7 @@ $File add command -label "Change archives" -command \
          if { $newDirSelected == 1 } \
             { set archiveDir $fbInfo(currentDir) }
 
-                 if { [CheckDirOK] } { $commandFrame.startButton configure -state normal } \
+                 if { [CheckSourceDirOK] } { $commandFrame.startButton configure -state normal } \
                         else { $commandFrame.startButton configure -state disabled }
 
 
@@ -2013,7 +2023,7 @@ $View add command -label "Sequences" -command {
 $Option add command -label "Load text DB"   -state disabled \
                                        -command { 
                                                   set copyDone 1
-                                                  ReadIndexFile
+                                                  ReadIndexFile $indexFile
                                                 }
 
 $Option add command -label "Search"   -state normal \
@@ -2246,7 +2256,7 @@ if { $argc > 1 } \
 
 switch -exact $argc \
     {
-      0  { set targetDir "." } #      0  { set targetDir $env(HOME) }
+      0  { set targetDir "." } ; #      0  { set targetDir $env(HOME) }
 
       1  {
             if { [file isdirectory $targetDir] && [ file writable  $targetDir] } \
