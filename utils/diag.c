@@ -34,6 +34,10 @@ int Gvx = -1 ;
 int Gvy = -1 ;
 int Gvz = -1 ;
 
+int Gsx = -1 ;
+int Gsy = -1 ;
+int Gsz = -1 ;
+
 unsigned long  Gdiag      = 0 ;
 int            Gdiag_no   = -1 ;
 int Gx = -1 ;

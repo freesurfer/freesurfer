@@ -4279,15 +4279,23 @@ MRIwriteImageViews(MRI *mri, char *base_name, int target_size)
 {
   if (Gdiag & DIAG_SHOW)
     fprintf(stderr, "writing image views to ???_%s.rgb...\n", base_name) ;
-  if (Gvz >= 0 && Gvz < mri->depth)
+	if (Gsz >= 0 && Gsz < mri->depth)
+    mriWriteImageView(mri, base_name, target_size, MRI_CORONAL, Gsz) ; 
+  else if (Gvz >= 0 && Gvz < mri->depth)
     mriWriteImageView(mri, base_name, target_size, MRI_CORONAL, Gvz) ; 
   else
     mriWriteImageView(mri, base_name, target_size, MRI_CORONAL, -1) ; 
-  if (Gvx >= 0 && Gvx < mri->width)
+
+  if (Gsx >= 0 && Gsx < mri->width)
+    mriWriteImageView(mri, base_name, target_size, MRI_SAGITTAL, Gsx) ;
+  else if (Gvx >= 0 && Gvx < mri->width)
     mriWriteImageView(mri, base_name, target_size, MRI_SAGITTAL, Gvx) ;
   else
     mriWriteImageView(mri, base_name, target_size, MRI_SAGITTAL, -1) ;
-  if (Gvy >= 0 && Gvy < mri->depth)
+
+  if (Gsy >= 0 && Gsy < mri->height)
+    mriWriteImageView(mri, base_name, target_size, MRI_HORIZONTAL, Gsy) ; 
+  else if (Gvy >= 0 && Gvy < mri->height)
     mriWriteImageView(mri, base_name, target_size, MRI_HORIZONTAL, Gvy) ; 
   else
     mriWriteImageView(mri, base_name, target_size, MRI_HORIZONTAL, -1) ; 
