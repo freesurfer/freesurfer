@@ -35,6 +35,7 @@ typedef struct {
 #include "hipsh.h"
 #include "hipsu.h"
 
+#if 0
 int h_mulscale(struct header *hdi, struct header *hdo, Pixelval *b) ;
 int h_divscale(struct header *hdi, struct header *hdo, Pixelval *b) ;
 int h_add(struct header *hdi1, struct header *hdi2, struct header *hdo) ;
@@ -42,7 +43,7 @@ int h_linscale(struct header *hdi, struct header * hdo, float b, float c) ;
 int h_div(struct header *hdi1, struct header * hdi2, struct header *hdo) ;
 int h_tof(struct header *hdi, struct header *hdo) ;
 int h_toc(struct header *hdi, struct header *hdo) ;
-int h_reduce(struct header *hdi, struct header *hdo, float xf, float yf) ;
+int h_reduce(struct header *hdi, struct header *hdo, int xf, int yf) ;
 int h_flipquad(struct header *hdi, struct header *hdo) ;
 int h_rot180(struct header *hdi, struct header *hdo) ;
 int h_minmax(struct header *hd, Pixelval *minval, Pixelval *maxval,int nzflag);
@@ -57,5 +58,6 @@ int h_logmap_f(struct header *phd,struct header *phd_LM,float a,
                int R,int rows,int cols,int Fx,int Fy,float disk_size) ;
 int h_LMtable_uniform(LMtable *ptable,struct header *phd_w,int Irows,int Icols,
                       float a,int R,int Fx,int Fy,float disk_size) ;
+#endif
 
 #endif
