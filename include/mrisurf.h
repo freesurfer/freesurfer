@@ -15,6 +15,15 @@
 #define TRIANGLES_PER_FACE   2
 #define ANGLES_PER_TRIANGLE  3
 
+typedef struct _area_label
+{
+  char     name[100] ;        /* name of region */
+  float    cx ;               /* centroid x */
+  float    cy ;               /* centroid y */
+  float    cz ;               /* centroid z */
+  int      label ;            /* an identifier (used as an index) */
+} MRIS_AREA_LABEL ;
+
 /*
   the vertices in the face structure are arranged in 
   counter-clockwise fashion when viewed from the outside.
@@ -37,15 +46,18 @@ typedef struct face_type_
 
 typedef struct vertex_type_
 {
-  float x,y,z;           /* curr position */
-  float nx,ny,nz;        /* curr normal */
+  float x,y,z;            /* curr position */
+  float nx,ny,nz;         /* curr normal */
   double dx, dy, dz ;     /* current change in position */
-  double odx, ody, odz ; 
-  double ldx, ldy, ldz ;  /* last change of position (for momentum) */
-  float ox,oy,oz;        /* last position */
-  float curv;            /* curr curvature */
-  float val;             /* scalar data value (file: rh.val, sig2-rh.w) */
-  int   cx, cy, cz ;     /* coordinates in canonical coordinate system */
+  double odx, ody, odz ;  /* last change of position (for momentum) */
+  double tdx, tdy, tdz ;  /* temporary storage for averaging gradient */
+  float  ox,oy,oz;        /* last position (for undoing time steps) */
+  float  curv;            /* curr curvature */
+  float  val;             /* scalar data value (file: rh.val, sig2-rh.w) */
+  float  cx, cy, cz ;     /* coordinates in canonical coordinate system */
+  float  tx, ty, tz ;     /* tmp coordinate storage */
+  float  origx, origy,
+         origz ;          /* original coordinates */
   float e1x, e1y, e1z ;  /* 1st basis vector for the local tangent plane */
   float e2x, e2y, e2z ;  /* 2nd basis vector for the local tangent plane */
 #if 0
@@ -72,9 +84,14 @@ typedef struct vertex_type_
   int vnum;              /* number neighboring vertices */
   int *v;                /* array neighboring vertex numbers, vnum long */
   int v2num ;            /* number of 2-connected neighbors */
-                        
-#if 0
+  int v3num ;            /* number of 3-connected neighbors */
+  int vtotal ;          /* total # of neighbors, will be same as one of above*/
+  int *vdist ;           /* randomly sampled vertices */
+  int vdist_num ;        /* # of randomly sampled vertices */
+  float d ;              /* for distance calculations */
+  int nsize ;            /* size of neighborhood (e.g. 1, 2, 3) */
   float bnx,bny,obnx,obny;                       /* boundary normal */
+#if 0
   float *fnx ;           /* face normal - x component */
   float *fny ;           /* face normal - y component */
   float *fnz ;           /* face normal - z component */
@@ -95,10 +112,15 @@ typedef struct vertex_type_
   int   border;            /* flag */
   float area,origarea ;
   int   tethered ;
-  float theta, phi ;             /* parameterization */
-  float K ;                /* Gaussian curvature */
-  float H ;                /* mean curvature */
-  float k1, k2 ;           /* the principal curvatures */
+  float theta, phi ;    /* parameterization */
+  float K ;             /* Gaussian curvature */
+  float H ;             /* mean curvature */
+  float ftmp ;          /* temporary floating pt. storage */
+  float k1, k2 ;        /* the principal curvatures */
+  int   label ;         /* is this vertex part of a labeled region? */
+  float *dist ;         /* distance to neighboring vertices */
+  float *dist_orig ;    /* original distance to neighboring vertices */
+  int   neg ;           /* 1 if the normal is invertex */
 } vertex_type, VERTEX ;
 
 typedef struct
@@ -138,7 +160,12 @@ typedef struct
   float        Kmin ;             /* min Gaussian curvature */
   float        Kmax ;             /* max Gaussian curvature */
   double       Ktotal ;           /* total Gaussian curvature */
-  int          patch ;            /* 1 if a patch of the surface */
+  int          status ;           /* type of surface (e.g. sphere, plane) */
+  int          patch ;            /* if a patch of the surface */
+  int          nlabels ;
+  MRIS_AREA_LABEL *labels ;       /* nlabels of these (may be null) */
+  int          nsize ;            /* size of neighborhoods */
+  float        avg_nbrs ;         /* mean # of vertex neighbors */
 } MRI_SURFACE, MRIS ;
 
 
@@ -149,7 +176,14 @@ typedef struct
   float   l_area ;            /* coefficient of area term */
   float   l_corr ;            /* coefficient of correlation term */
   float   l_curv ;            /* coefficient of curvature term */
+  float   l_spring ;          /* coefficient of spring term */
+  float   l_boundary ;        /* coefficient of boundary term */
+  float   l_dist ;            /* coefficient of distance term */
+  float   l_neg ;
   int     n_averages ;        /* # of averages */
+  int     min_averages ;
+  int     nbhd_size ;
+  int     max_nbrs ;
   int     write_iterations ;  /* # of iterations between saving movies */
   char    base_name[100] ;    /* base name of movie files */
   int     projection ;        /* what kind of projection to do */
@@ -169,12 +203,26 @@ typedef struct
   double  dt_increase ;       /* rate at which time step increases */
   double  dt_decrease ;       /* rate at which time step decreases */
   double  error_ratio ;       /* ratio at which to undo step */
+  double  epsilon ;           /* constant in Sethian inflation */
+  double  fi_desired ;        /* desired folding index */
+  double  ici_desired ;       /* desired intrinsic curvature index */
+  double  shrink ;
+  double  starting_sse ;
+  double  ending_sse ;
 } INTEGRATION_PARMS ;
 
 #define IPFLAG_HVARIABLE           0x0001   /* for parms->flags */
 
 #define INTEGRATE_LINE_MINIMIZE    0
 #define INTEGRATE_MOMENTUM         1
+#define INTEGRATE_ADAPTIVE         2
+
+#define MRIS_SURFACE               0
+#define MRIS_PATCH                 1
+#define MRIS_CUT                   MRIS_PATCH
+#define MRIS_PLANE                 2
+#define MRIS_ELLIPSOID             3
+#define MRIS_SPHERE                4
 
 
 /*
@@ -227,6 +275,7 @@ typedef struct
 #define PROJECT_PLANE        2
 #define PLANAR_PROJECTION    PROJECT_PLANE
 #define MOMENTUM             0.8
+#define EPSILON              0.25
 
 #define TOL                  1e-6  /* minimum error tolerance for unfolding */
 #define DELTA_T              0.1
@@ -236,6 +285,7 @@ typedef struct
 
 
 MRI_SURFACE  *MRISread(char *fname) ;
+int          MRISreadOriginalProperties(MRI_SURFACE *mris, char *sname) ;
 int          MRISreadCanonicalCoordinates(MRI_SURFACE *mris, char *sname) ;
 int          MRISreadPatch(MRI_SURFACE *mris, char *pname) ;
 int          MRISreadTriangleProperties(MRI_SURFACE *mris, char *mris_fname) ;
@@ -256,6 +306,9 @@ int          MRISfree(MRI_SURFACE **pmris) ;
 MRI_SURFACE  *MRISprojectOntoEllipsoid(MRI_SURFACE *mris_src, 
                                        MRI_SURFACE *mris_dst, 
                                        float a, float b, float c) ;
+int          MRISsetNeighborhoodSize(MRI_SURFACE *mris, int nsize) ;
+int          MRISsampleDistances(MRI_SURFACE *mris, int *nbr_count, 
+                                 int n_nbrs, int max_nbrs);
 MRI_SURFACE  *MRISradialProjectOntoEllipsoid(MRI_SURFACE *mris_src, 
                                              MRI_SURFACE *mris_dst, 
                                              float a, float b, float c);
@@ -264,6 +317,10 @@ MRI_SURFACE  *MRIScenter(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst) ;
 MRI_SURFACE  *MRIStalairachTransform(MRI_SURFACE *mris_src, 
                                     MRI_SURFACE *mris_dst);
 MRI_SURFACE  *MRISunfold(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) ;
+MRI_SURFACE  *MRISflatten(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) ;
+MRI_SURFACE  *MRISremoveNegativeVertices(MRI_SURFACE *mris, 
+                                         INTEGRATION_PARMS *parms,
+                                         int min_neg, float min_neg_pct) ;
 int          MRIScomputeFaceAreas(MRI_SURFACE *mris) ;
 int          MRISupdateEllipsoidSurface(MRI_SURFACE *mris) ;
 MRI_SURFACE  *MRISrotate(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst, 
@@ -286,7 +343,8 @@ int          MRIScomputeTriangleProperties(MRI_SURFACE *mris) ;
 int          MRISsampleStatVolume(MRI_SURFACE *mris, STAT_VOLUME *sv,int time,
                                   int use_talairach_xform);
 
-int          MRISflattenPatch(MRI_SURFACE *mris, char *dir) ;
+int          MRISflattenPatch(MRI_SURFACE *mris) ;
+int          MRISflattenPatchRandomly(MRI_SURFACE *mris) ;
 int          MRIScomputeMeanCurvature(MRI_SURFACE *mris) ;
 
 int          MRIScomputeEulerNumber(MRI_SURFACE *mris, int *pnvertices, 
@@ -295,19 +353,37 @@ int          MRIStopologicalDefectIndex(MRI_SURFACE *mris) ;
 int          MRISremoveTopologicalDefects(MRI_SURFACE *mris,float curv_thresh);
 
 int          MRIScomputeSecondFundamentalForm(MRI_SURFACE *mris) ;
+int          MRISuseAreaErrors(MRI_SURFACE *mris) ;
 int          MRISuseGaussianCurvature(MRI_SURFACE *mris) ;
 int          MRISuseMeanCurvature(MRI_SURFACE *mris) ;
 int          MRIScomputeCurvatureIndices(MRI_SURFACE *mris, 
                                          double *pici, double *pfi) ;
 
+double       MRIScomputeFolding(MRI_SURFACE *mris) ;
+
 int          MRISprojectOntoCylinder(MRI_SURFACE *mris, float radius) ;
 double       MRISaverageRadius(MRI_SURFACE *mris) ;
-int          MRISinflateBrain(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
-                              double Kmin) ;
-double       MRISvariation(MRI_SURFACE *mris) ;
+int          MRISinflateBrain(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) ;
+double       MRIStotalVariation(MRI_SURFACE *mris) ;
+double       MRIStotalVariationDifference(MRI_SURFACE *mris) ;
 double       MRIScurvatureError(MRI_SURFACE *mris, double Kd) ;
 MRI_SURFACE  *MRISscaleBrain(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst, 
                              float scale) ;
+int          MRISstoreMetricProperties(MRI_SURFACE *mris) ;
+int          MRISreadTetherFile(MRI_SURFACE *mris, char *fname, float radius) ;
+int          MRISreadVertexPositions(MRI_SURFACE *mris, char *fname) ;
+int          MRIScomputeMetricProperties(MRI_SURFACE *mris) ;
+int          MRISrestoreOldPositions(MRI_SURFACE *mris) ;
+int          MRISstoreCurrentPositions(MRI_SURFACE *mris) ;
+int          MRISupdateSurface(MRI_SURFACE *mris) ;
+
+#define ORIGINAL_VERTICES   0
+#define GOOD_VERTICES       1
+#define TMP_VERTICES        2
+
+
+int          MRISsaveVertexPositions(MRI_SURFACE *mris, int which) ;
+int          MRISrestoreVertexPositions(MRI_SURFACE *mris, int which) ;
 
 /* constants for vertex->tethered */
 #define TETHERED_NONE           0
@@ -334,7 +410,7 @@ MRI_SURFACE  *MRISscaleBrain(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst,
 #define MAX_DIM    DEFAULT_B
 
 #if 1
-#define DT_INCREASE  1.03 /* 1.03*/
+#define DT_INCREASE  1.1 /* 1.03*/
 #define DT_DECREASE  0.5
 #else
 #define DT_INCREASE  1.0 /* 1.03*/
@@ -343,4 +419,5 @@ MRI_SURFACE  *MRISscaleBrain(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst,
 #define DT_MIN       0.01
 #define ERROR_RATIO  1.03  /* 1.01 then 1.03 */
 
+#define NO_LABEL     -1
 #endif
