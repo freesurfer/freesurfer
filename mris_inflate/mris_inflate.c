@@ -13,7 +13,7 @@
 #include "mri.h"
 #include "macros.h"
 
-static char vcid[] = "$Id: mris_inflate.c,v 1.7 1998/01/08 21:01:22 fischl Exp $";
+static char vcid[] = "$Id: mris_inflate.c,v 1.8 1998/01/08 21:12:49 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -36,7 +36,7 @@ static float base_dt_scale = BASE_DT_SCALE ;
 int
 main(int argc, char *argv[])
 {
-  char         **av, *in_fname, *out_fname, path[100], fname[100],*cp,hemi[10];
+  char         **av, *in_fname, *out_fname, fname[100], *cp ;
   int          ac, nargs ;
   MRI_SURFACE  *mris ;
   double       radius, scale ;
