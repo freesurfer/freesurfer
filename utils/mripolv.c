@@ -1624,6 +1624,7 @@ MRIresegmentThinWMStrands(MRI *mri_src, MRI *mri_dst, int thickness)
   
   return(mri_dst) ;
 }
+#if 0
 /*-----------------------------------------------------
         Parameters:
 
@@ -1754,6 +1755,359 @@ MRIthickenThinWMStrands(MRI *mri_src, MRI *mri_dst, int thickness, int nvoxels)
   fprintf(stderr, "%d voxels filled\n", total_filled) ;
   return(mri_dst) ;
 }
+#else
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+#define MAX_LABELS   10000
+#define FILLED_VAL           240
+#define NBHD_FILLED_VAL      200
+#define THICKENED_FILL_VAL   210
+#define TOO_THIN             2
+MRI *
+MRIthickenThinWMStrands(MRI *mri_src, MRI *mri_dst, int thickness, int nvoxels)
+{
+  int      width, height, depth, x, y, z, thin, i, dont_fill,
+           total_filled, nfilled, nseg, nx, ny, nz, xv, yv, zv, v ;
+  float    nd ;
+  BUFTYPE  *psrc, *pthin ;
+  Real     val, xf, yf, zf, max_dist, up_dist, down_dist, xt, yt, zt ;
+  MRI_SEGMENTATION *mriseg ;
+  MRI              *mri_thin, *mri_tmp ;
+
+  width = mri_src->width ;
+  height = mri_src->height ;
+  depth = mri_src->depth ;
+  max_dist = thickness/2+1 ;  /* allow search to extend into non-white */
+
+  init_basis_vectors() ;
+  if (!mri_dst)
+    mri_dst = MRIclone(mri_src, NULL) ;
+  mri_thin = MRIclone(mri_src, NULL) ;
+  mri_tmp = MRIremoveIslands(mri_src, NULL, 3, 27-3) ;
+  MRIclose(mri_tmp, mri_tmp) ;
+
+  /* erase regions we know are not thin temporal strand */
+  for (z = 0 ; z < depth ; z++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      for (x = 0 ; x < width ; x++)
+      {
+        MRIvoxelToTalairach(mri_src, x, y, z, &xt, &yt, &zt) ;
+        if ((fabs(xt) < 10) || zt < -50 || zt > 10)
+        {
+          MRIvox(mri_tmp, x, y, z) = 0 ;
+        }
+      }
+    }
+  }
+
+  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+    MRIwrite(mri_tmp, "closed.mgh") ;
+
+  MRIcopy(mri_src, mri_dst) ;
+  for (z = 0 ; z < depth ; z++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      psrc = &MRIvox(mri_tmp, 0, y, z) ;  /* ptr to source */
+      pthin = &MRIvox(mri_thin, 0, y, z) ;  /* ptr to destination */
+      for (x = 0 ; x < width ; x++)
+      {
+        if (x == 96 && y == 134 && z == 97)
+          DiagBreak() ;
+        thin = 0 ;
+        if (*psrc++) /* this is in closed volume to prevent fragmentation */
+        {
+          for (nz = 0 ; !thin && nz <= 1 ; nz++)
+          {
+            for (ny = 0 ; !thin && ny <= 1 ; ny++)
+            {
+              for (nx = 0 ; !thin && nx <= 1 ; nx++)
+              {
+                if (!nx && !ny && !nz)
+                  continue ;
+                if ((fabs(nx) + fabs(ny) + fabs(nz)) > 1)
+                  continue ;
+                /* hack - only allow superior-inferior thickening */
+                if (!ny || nx || nz)
+                  continue ;
+
+                /* first search 'downwards' to see if we can find non-white */
+                down_dist = thickness+1 ;
+                for (nd = 0 ; nd <= thickness+1 ; nd++)
+                {
+                  xf = (Real)x - nd*nx ;
+                  yf = (Real)y - nd*ny ;
+                  zf = (Real)z - nd*nz ;
+                  MRIsampleVolume(mri_tmp, xf, yf, zf, &val) ;
+                  if (val < WM_MIN_VAL)
+                  {
+                    down_dist = nd-0.5 ;
+                    break ;
+                  }
+                }
+                
+                /* now search 'upwards' to see if we can find non-white */
+                up_dist = thickness+1 ;
+                for (nd = 0 ; nd <= thickness+1 ; nd++)
+                {
+                  xf = (Real)x + nd*nx ;
+                  yf = (Real)y + nd*ny ;
+                  zf = (Real)z + nd*nz ;
+                  MRIsampleVolume(mri_tmp, xf, yf, zf, &val) ;
+                  if (val < WM_MIN_VAL)
+                  {
+                    up_dist = nd-0.5 ;
+                    break ;
+                  }
+                }
+                thin =  ((up_dist+down_dist) <= thickness) ;
+              }
+            }
+          }
+        }
+        if (thin)
+          *pthin++ = thin ;
+        else
+          pthin++ ;
+      }
+    }
+  }
+
+#if 0
+  MRIwrite(mri_thin, "orig.mgh") ;
+  MRIopen(mri_thin, mri_thin) ;
+  MRIwrite(mri_thin, "opened.mgh") ;
+#endif
+
+  /* now thicken the strand, being careful not to connect with other
+     strands.
+  */
+  total_filled = 0 ;
+  mriseg = MRIsegment(mri_thin, 1, 255) ;
+
+  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+  {
+    char fname[200] ;
+    MRI_SEGMENT *mseg ;
+    MRI  *mri_tmp = NULL ;
+      
+    for (nseg = i = 0 ; i < mriseg->max_segments ; i++)
+    {
+      mseg = &mriseg->segments[i] ;
+      if (mseg->nvoxels < nvoxels)
+        continue ;
+      mri_tmp = MRIsegmentToImage(mri_src, mri_tmp, mriseg, i) ;
+      sprintf(fname, "seg%d.mgh", i) ;
+      MRIwrite(mri_tmp, fname) ;
+    }
+    MRIfree(&mri_tmp) ;
+  }
+
+#define NDILATIONS  5
+  for (i = 0 ; i < NDILATIONS ; i++)
+    MRIsegmentDilate(mriseg, mri_src) ;
+
+  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+  {
+    char fname[200] ;
+    MRI  *mri_tmp = NULL ;
+    MRI_SEGMENT *mseg ;
+      
+    for (nseg = i = 0 ; i < mriseg->max_segments ; i++)
+    {
+      mseg = &mriseg->segments[i] ;
+      if (mseg->nvoxels < nvoxels)
+        continue ;
+      mri_tmp = MRIsegmentToImage(mri_src, mri_tmp, mriseg, i) ;
+      sprintf(fname, "dilated_seg%d.mgh", i) ;
+      MRIwrite(mri_tmp, fname) ;
+    }
+    MRIfree(&mri_tmp) ;
+  }
+
+  for (nseg = i = 0 ; i < mriseg->max_segments ; i++)
+  {
+    MRI_SEGMENT *mseg ;
+    /*    int         v, xd, yd, zd ;*/
+    
+    mseg = &mriseg->segments[i] ;
+    if (mseg->nvoxels < nvoxels)
+    {
+      mseg->nvoxels = 0 ;
+      continue ;
+    }
+    nseg++ ;
+    MRIclear(mri_thin) ;   /* mri_thin will now contain the segment */
+    MRIsegmentToImage(mri_tmp, mri_thin, mriseg, i) ;
+    for (v = 0 ; v < mseg->nvoxels ; v++)
+    {
+      x = mseg->voxels[v].x ; y = mseg->voxels[v].y ; z = mseg->voxels[v].z;
+      if (x == 96 && y == 134 && z == 97)
+        DiagBreak() ;
+      if (MRIvox(mri_src, x, y, z) < WM_MIN_VAL)
+        continue ;
+
+      /* find the direction in which this voxel is thin and thicken it */
+      for (nz = 0 ; nz <= 1 ; nz++)
+      {
+        for (ny = 0 ; ny <= 1 ; ny++)
+        {
+          for (nx = 0 ; nx <= 1 ; nx++)
+          {
+            if (!nx && !ny && !nz)
+              continue ;
+            if ((fabs(nx) + fabs(ny) + fabs(nz)) > 1)
+              continue ;
+            if (!ny || nx || nz)
+              continue ;  /* hack - only allow superior-inferior thickening */
+
+            /* first search 'downwards' to see if we can find non-white */
+            down_dist = TOO_THIN+1 ;
+            for (nd = 0 ; nd <= TOO_THIN+1 ; nd++)
+            {
+              xf = (Real)x - nd*nx ;
+              yf = (Real)y - nd*ny ;
+              zf = (Real)z - nd*nz ;
+              MRIsampleVolume(mri_dst, xf, yf, zf, &val) ;
+              if (val < WM_MIN_VAL)
+              {
+                down_dist = nd-0.5 ;
+                break ;
+              }
+            }
+                
+            /* now search 'upwards' to see if we can find non-white */
+            up_dist = TOO_THIN+1 ;
+            for (nd = 0 ; nd <= TOO_THIN+1 ; nd++)
+            {
+              xf = (Real)x + nd*nx ;
+              yf = (Real)y + nd*ny ;
+              zf = (Real)z + nd*nz ;
+              MRIsampleVolume(mri_dst, xf, yf, zf, &val) ;
+              if (val < WM_MIN_VAL)
+              {
+                up_dist = nd-0.5 ;
+                break ;
+              }
+            }
+            thin =  ((up_dist+down_dist) <= TOO_THIN) ;
+            if (thin)
+            {
+              if (up_dist <= down_dist)
+              {
+                xv = nint((Real)x + (up_dist+1.5)*nx) ;
+                yv = nint((Real)y + (up_dist+1.5)*ny) ;
+                zv = nint((Real)z + (up_dist+1.5)*nz) ;
+                if (!MRIvox(mri_dst, xv, yv, zv))
+                {
+                  xv = nint((Real)x + (up_dist+.5)*nx) ;
+                  yv = nint((Real)y + (up_dist+.5)*ny) ;
+                  zv = nint((Real)z + (up_dist+.5)*nz) ;
+                  MRIvox(mri_dst, xv, yv, zv) = FILLED_VAL ;
+                  MRIvox(mri_thin, xv, yv, zv) = FILLED_VAL ;
+                  if (xv == 144 && yv == 137 && zv == 120)
+                    DiagBreak() ;
+                  total_filled++ ;
+                }
+              }
+              if (up_dist >= down_dist)
+              {
+                xv = nint((Real)x - (down_dist+1.5)*nx) ;
+                yv = nint((Real)y - (down_dist+1.5)*ny) ;
+                zv = nint((Real)z - (down_dist+1.5)*nz) ;
+                if (!MRIvox(mri_dst, xv, yv, zv))
+                {
+                  xv = nint((Real)x - (down_dist+.5)*nx) ;
+                  yv = nint((Real)y - (down_dist+.5)*ny) ;
+                  zv = nint((Real)z - (down_dist+.5)*nz) ;
+                  MRIvox(mri_dst, xv, yv, zv) = FILLED_VAL ;
+                  MRIvox(mri_thin, xv, yv, zv) = FILLED_VAL ;
+                  if (xv == 144 && yv == 137 && zv == 120)
+                    DiagBreak() ;
+                  total_filled++ ;
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+    fprintf(stderr, "segment %d, %d voxels, filled = %d\n",
+            i, mseg->nvoxels, total_filled) ;
+
+    /* now that the strand has been thickened some apply a neighborhood
+       filter to try to fill some holes.
+    */
+    if (i == 557)
+      MRIwrite(mri_thin, "seg557.mgh") ;
+    do
+    {
+      nfilled = 0 ;
+      for (z = 1 ; z < depth-1 ; z++)
+      {
+        for (y = 1 ; y < height-1 ; y++)
+        {
+          for (x = 1 ; x < width-1 ; x++)
+          {
+            if (x == 160 && y == 140 && z == 121)
+              DiagBreak() ;
+
+            if (!MRIvox(mri_dst, x, y, z)) /* check if it should be filled */
+            {
+              if ((MRIvox(mri_thin,x+1,y,z) && MRIvox(mri_thin, x-1, y, z)) ||
+                  (MRIvox(mri_thin,x,y+1,z) && MRIvox(mri_thin, x, y-1, z)) ||
+                  (MRIvox(mri_thin,x,y,z+1) && MRIvox(mri_thin, x, y, z-1)))
+              {
+                dont_fill = 0 ;
+                for (nz = -1 ; !dont_fill && nz <= 1 ; nz++)
+                {
+                  for (ny = -1 ; !dont_fill && ny <= 1 ; ny++)
+                  {
+                    for (nx = -1 ; !dont_fill && nx <= 1 ; nx++)
+                    {
+                      /* if any neighboring voxels are on the src image
+                         that are not part of this segment, don't fill it.
+                      */
+                      if (MRIvox(mri_dst, x+nx,y+ny,z+nz) &&
+                          !MRIvox(mri_thin, x+nx,y+ny,z+nz))
+                        dont_fill = 1 ;
+                    }
+                  }
+                }
+                  
+                if (!dont_fill)
+                {
+                  if (x == 160 && y == 140 && z == 122)
+                    DiagBreak() ;
+                  MRIvox(mri_dst, x, y, z) = NBHD_FILLED_VAL ;
+                  MRIvox(mri_thin, x, y, z) = NBHD_FILLED_VAL ;
+                  nfilled++ ;
+                }
+
+              }
+            }
+          }
+        }
+      }
+      total_filled += nfilled ;
+    } while (nfilled > 0) ;
+  }
+  fprintf(stderr, "%2d segments, %d filled\n", nseg, total_filled) ;
+  MRIsegmentFree(&mriseg) ;
+
+  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+    MRIwrite(mri_thin, "thin.mgh") ;
+  MRIfree(&mri_thin) ; MRIfree(&mri_tmp) ; 
+  return(mri_dst) ;
+}
+#endif
 /*-----------------------------------------------------
         Parameters:
 
@@ -4161,3 +4515,67 @@ MRIvertexToVector(int vertex, float *pdx, float *pdy, float *pdz)
   return(NO_ERROR) ;
 }
 
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+          Remove small inconsistincies in the labelling of a volume.
+------------------------------------------------------*/
+MRI *
+MRIremoveIslands(MRI *mri_src, MRI*mri_dst, int wsize, int thresh)
+{
+  int     width, height, depth, x, y, z, whalf, x0, y0, z0,xi,yi,zi,
+          num_on, num_off ;
+  BUFTYPE val, *pdst, out_val ;
+  float   wcubed ;
+
+  width = mri_src->width ;
+  height = mri_src->height ;
+  depth = mri_src->depth ;
+  if (!mri_dst)
+    mri_dst = MRIclone(mri_src, NULL) ;
+
+  wcubed = (float)(wsize*wsize*wsize) ;
+  whalf = wsize/2 ;
+
+  for (z = whalf ; z < depth ; z++)
+  {
+    for (y = whalf ; y < height ; y++)
+    {
+      pdst = &MRIvox(mri_dst, 0, y, z) ;
+      for (x = 0 ; x < width ; x++)
+      {
+        for (out_val=num_on = num_off = 0, z0 = -whalf ; z0 <= whalf ; z0++)
+        {
+          zi = mri_src->zi[z+z0] ;
+          for (y0 = -whalf ; y0 <= whalf ; y0++)
+          {
+            yi = mri_src->yi[y+y0] ;
+            for (x0 = -whalf ; x0 <= whalf ; x0++)
+            {
+              xi = mri_src->xi[x+x0] ;
+              val = MRIvox(mri_src, xi, yi, zi) ;
+              if (!val)
+                num_off++ ;
+              else
+              {
+                if (!out_val)
+                  out_val = 0 ;
+                num_on++ ;
+              }
+            }
+          }
+        }
+        val = MRIvox(mri_src, x, y, z) ;
+        if (val && (num_off >= thresh))
+          val = 0 ;
+        else if (!val && (num_on >= thresh))
+          val = 255 ;
+        *pdst++ = val ;
+      }
+    }
+  }
+  return(mri_dst) ;
+}
