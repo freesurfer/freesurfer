@@ -33,6 +33,9 @@ typedef struct
 } MRI_SEGMENTATION ;
 
 MRI_SEGMENTATION *MRIsegment(MRI *mri, float low_val, float hi_val) ;
+// the next one cares about only finding the maxsegment region
+MRI_SEGMENTATION *MRImaxsegment(MRI *mri, float low_val, float hi_val) ;
+
 int              MRIsegmentFree(MRI_SEGMENTATION **pmriseg) ;
 MRI_SEGMENTATION *MRIsegmentAlloc(int max_segments, int max_voxels) ;
 MRI              *MRIsegmentToImage(MRI *mri_src, MRI *mri_dst, 
