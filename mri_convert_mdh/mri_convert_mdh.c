@@ -12,7 +12,7 @@
 #include "fio.h"
 
 #ifndef lint
-static char vcid[] = "$Id: mri_convert_mdh.c,v 1.5 2003/06/23 22:27:38 greve Exp $";
+static char vcid[] = "$Id: mri_convert_mdh.c,v 1.6 2003/07/01 15:23:01 tosa Exp $";
 #endif /* lint */
 
 #define MDH_SIZE    128        //Number of bytes in the miniheader
@@ -89,7 +89,7 @@ int main(int argc, char **argv)
   //MDH *mdh = NULL;
   int n,d, err;
   char *tmpstr;
-  MRI *pcnr, *pcni;
+  MRI *pcnr=0, *pcni=0;
   MRI **echor, **echoi;
   float *rptr, *iptr;
   //int s,f,e,p,l;
