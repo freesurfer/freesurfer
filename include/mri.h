@@ -162,6 +162,7 @@ MRI   *MRIscale(MRI *mri_src, MRI *mri_dst, float sx, float sy, float sz) ;
 MRI   *MRIaffine(MRI *mri_src, MRI *mri_dst, MATRIX *mA, MATRIX *mB) ;
 MRI   *MRIinverseLinearTransform(MRI *mri_src, MRI *mri_dst, MATRIX *mA) ;
 MRI   *MRIlinearTransform(MRI *mri_src, MRI *mri_dst, MATRIX *mA) ;
+MRI   *MRIapplyRASlinearTransform(MRI *mri_src, MRI *mri_dst, MATRIX *mA) ;
 MRI   *MRIinterpolate(MRI *mri_src, MRI *mri_dst) ;
 MRI   *MRIconfThresh(MRI *mri_src, MRI *mri_probs, MRI *mri_classes, 
                      MRI *mri_dst,float thresh, int min_target,int max_target);
@@ -254,6 +255,9 @@ MRI   *MRIbinarize(MRI *mri_src, MRI *mri_dst, BUFTYPE threshold,
 MRI   *MRIthresholdRangeInto(MRI *mri_src, MRI *mri_dst, 
                              BUFTYPE low_val, BUFTYPE hi_val) ;
 int   MRIprincipleComponents(MRI *mri, MATRIX *mEvectors, float *evalues,
+                              double *means, BUFTYPE theshold) ;
+int   MRIcenterOfMass(MRI *mri,double *means, BUFTYPE threshold) ;
+int   MRIbinaryPrincipleComponents(MRI *mri, MATRIX *mEvectors, float *evalues,
                               double *means, BUFTYPE theshold) ;
 int   MRIclear(MRI *mri_src) ;
 
@@ -457,7 +461,6 @@ extern float ic_z_vertices[]  ;
 #define BFLOAT_FILE                   9
 #define SDT_FILE                      10
 #define OTL_FILE                      11
-#define GDF_FILE                      12
 
 int        MRImatch(MRI *mri1, MRI *mri2) ;
 int        MRIvalRange(MRI *mri, float *pmin, float *pmax) ;
@@ -701,5 +704,13 @@ int stuff_four_by_four(MATRIX *m, float m11, float m12, float m13, float m14,
                                   float m21, float m22, float m23, float m24, 
                                   float m31, float m32, float m33, float m34, 
                                   float m41, float m42, float m43, float m44);
+
+MATRIX *extract_r_to_i(MRI *mri) ;
+#define MRIgetVoxelToRasXform   extract_i_to_r
+#define MRIgetRasToVoxelXform   extract_r_to_i
+MATRIX *MRIvoxelXformToRasXform(MRI *mri_src, MRI *mri_dst,
+                                MATRIX *m_voxel_xform, MATRIX *m_ras_xform);
+MATRIX *MRIrasXformToVoxelXform(MRI *mri_src, MRI *mri_dst,
+                                MATRIX *m_ras_xform, MATRIX *m_voxel_xform);
 
 #endif
