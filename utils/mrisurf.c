@@ -33593,3 +33593,149 @@ mrisReadAsciiCurvatureFile(MRI_SURFACE *mris, char *fname)
 	return(NO_ERROR) ;
 }
 
+// expand the surface by "h" and create a volume which has "val" outside of this surface
+unsigned long
+MRISeraseOutsideOfSurface(float h,MRI* mri_dst,MRIS *mris,unsigned char val)
+{
+  int i,j,k,imnr; 
+  float x0,y0,z0,x1,y1,z1,x2,y2,z2,d0,d1,d2,dmax,u,v;
+  float px,py,pz,px0,py0,pz0,px1,py1,pz1;
+  int numu,numv,totalfilled,newfilled;
+  double tx,ty,tz;
+  unsigned long brainsize;
+
+  int width, height,depth;
+  MRI *mri_buff;
+
+  width=mri_dst->width;
+  height=mri_dst->height;
+  depth=mri_dst->depth;
+
+  mri_buff= MRIalloc(width, height, depth, MRI_UCHAR) ;
+
+  for (k=0;k<mris->nvertices;k++)
+  {
+    // cache the values
+   mris->vertices[k].tx=mris->vertices[k].x;
+   mris->vertices[k].ty=mris->vertices[k].y;
+   mris->vertices[k].tz=mris->vertices[k].z;
+
+   // expand by h using normal
+   mris->vertices[k].x +=h*mris->vertices[k].nx;
+   mris->vertices[k].y +=h*mris->vertices[k].ny;
+   mris->vertices[k].z +=h*mris->vertices[k].nz;
+  }
+
+
+  for (k=0;k<mris->nfaces;k++)
+  {
+    // calculate three vertices
+    x0 =mris->vertices[mris->faces[k].v[0]].x;    
+    y0 =mris->vertices[mris->faces[k].v[0]].y;    
+    z0 =mris->vertices[mris->faces[k].v[0]].z;    
+    x1 =mris->vertices[mris->faces[k].v[1]].x;    
+    y1 =mris->vertices[mris->faces[k].v[1]].y;    
+    z1 =mris->vertices[mris->faces[k].v[1]].z;    
+    x2 =mris->vertices[mris->faces[k].v[2]].x;    
+    y2 =mris->vertices[mris->faces[k].v[2]].y;    
+    z2 =mris->vertices[mris->faces[k].v[2]].z;
+    // calculate the sides
+    d0 = sqrt(SQR(x1-x0)+SQR(y1-y0)+SQR(z1-z0));
+    d1 = sqrt(SQR(x2-x1)+SQR(y2-y1)+SQR(z2-z1));
+    d2 = sqrt(SQR(x0-x2)+SQR(y0-y2)+SQR(z0-z2));
+    dmax = (d0>=d1&&d0>=d2)?d0:(d1>=d0&&d1>=d2)?d1:d2;
+    numu = (int)(ceil(2*d0));
+    numv = (int)(ceil(2*dmax));
+
+      
+    for (v=0;v<=numv;v++)
+    {
+      px0 = x0 + (x2-x0)*v/numv;
+      py0 = y0 + (y2-y0)*v/numv;
+      pz0 = z0 + (z2-z0)*v/numv;
+      px1 = x1 + (x2-x1)*v/numv;
+      py1 = y1 + (y2-y1)*v/numv;
+      pz1 = z1 + (z2-z1)*v/numv;
+      for (u=0;u<=numu;u++)
+      {
+        px = px0 + (px1-px0)*u/numu;
+        py = py0 + (py1-py0)*u/numu;
+        pz = pz0 + (pz1-pz0)*u/numu;
+
+	MRIworldToVoxel(mri_dst,px,py,pz,&tx,&ty,&tz);
+	
+	imnr=(int)(tz+0.5);
+	j=(int)(ty+0.5);
+	i=(int)(tx+0.5);
+	if (i>=0 && i<width && j>=0 && j<height && imnr>=0 && imnr<depth)
+	  MRIvox(mri_buff,i,j,imnr) = 255;
+                                
+      }  
+    }
+  }
+
+  MRIvox(mri_buff,1,1,1)= 64;
+  totalfilled = newfilled = 1;
+  while (newfilled>0)
+  {
+    newfilled = 0;
+    for (k=0;k<depth;k++)
+      for (j=0;j<height;j++)
+        for (i=0;i<width;i++)
+          if (MRIvox(mri_buff,i,j,k)==0)
+            if (MRIvox(mri_buff,i,j,mri_buff->zi[k-1])==64||MRIvox(mri_buff,i,mri_buff->yi[j-1],k)==64||
+                MRIvox(mri_buff,mri_buff->xi[i-1],j,k)==64)
+            {
+              MRIvox(mri_buff,i,j,k)= 64;
+              newfilled++;
+            }
+    for (k=depth-1;k>=0;k--)
+      for (j=height-1;j>=0;j--)
+        for (i=width-1;i>=0;i--)
+          if (MRIvox(mri_buff,i,j,k)==0)
+            if (MRIvox(mri_buff,i,j,mri_buff->zi[k+1])==64||MRIvox(mri_buff,i,mri_buff->yi[j+1],k)==64||
+                MRIvox(mri_buff,mri_buff->xi[i+1],j,k)==64)
+	    {
+	      MRIvox(mri_buff,i,j,k) = 64;
+	      newfilled++;
+	    }
+    totalfilled += newfilled;
+  }
+
+  // modify mri_dst so that outside = 0
+  brainsize=0;
+  if(val==0)
+    for (k=0;k<depth;k++)
+      for (j=0;j<height;j++)
+        for (i=0;i<width;i++)
+        {
+          if (MRIvox(mri_buff,i,j,k)==64)
+            MRIvox(mri_dst,i,j,k) = 0;
+	  else
+	    brainsize++;
+        }
+  else{
+    for (k=0;k<depth;k++)
+      for (j=0;j<height;j++)
+        for (i=0;i<width;i++)
+        {
+          if (MRIvox(mri_buff,i,j,k)!=64)
+            MRIvox(mri_dst,i,j,k) = val;
+	  else
+	    brainsize++;
+        }
+  }
+  // restore the surface
+  for (k=0;k<mris->nvertices;k++)
+  {
+    mris->vertices[k].x=mris->vertices[k].tx;
+    mris->vertices[k].y=mris->vertices[k].ty;
+    mris->vertices[k].z=mris->vertices[k].tz;
+  }
+  // calculate the normals
+  MRIScomputeNormals(mris);
+        
+  MRIfree(&mri_buff);
+  return brainsize;
+}
+
