@@ -59,6 +59,7 @@ static double gcaGibbsImageLogLikelihood(GCA *gca, MRI *mri_labels,
 
 static int mriFillRegion(MRI *mri, int x,int y,int z,int fill_val,int whalf);
 static int gcaFindMaxPriors(GCA *gca, float *max_priors) ;
+static int gcaFindIntensityBounds(GCA *gca, float *pmin, float *pmax) ;
 static int dump_gcan(GCA_NODE *gcan, FILE *fp, int verbose) ;
 static GCA_NODE *findSourceGCAN(GCA *gca, MRI *mri_src,LTA *lta,
                                 int x,int y,int z);
@@ -1964,8 +1965,8 @@ GCAfindContrastSamples(GCA *gca, int *pnsamples, int min_spacing,
     }
   }
 
-  fprintf(stderr, "total sample mean = %2.1f\n", 
-          total_mean/((float)nfound-nzeros)) ;
+  fprintf(stderr, "total sample mean = %2.1f (%d zeros)\n", 
+          total_mean/((float)nfound-nzeros), nzeros) ;
 
   {
     int  n ;
@@ -1992,12 +1993,16 @@ GCAfindStableSamples(GCA *gca, int *pnsamples, int min_spacing,float min_prior)
   float      max_prior, total_mean, /*mean_dist,*/ best_mean_dist,
              priors[MAX_DIFFERENT_LABELS], means[MAX_DIFFERENT_LABELS], 
              vars[MAX_DIFFERENT_LABELS], max_priors[MAX_DIFFERENT_LABELS],
-             node_stride, x, y, z ;
+             node_stride, x, y, z, min_unknown, max_unknown ;
   MRI        *mri_filled ;
 
 #define MIN_UNKNOWN_DIST  8
 
   gcaFindMaxPriors(gca, max_priors) ;
+  gcaFindIntensityBounds(gca, &min_unknown, &max_unknown) ;
+  printf("bounding unknown intensity as < %2.1f or > %2.1f\n", 
+         min_unknown, max_unknown) ;
+
   memset(label_counts, 0, sizeof(label_counts)) ;
   width = gca->width ; height = gca->height ; depth = gca->depth ;
   gcas = calloc(width*height*depth, sizeof(GCA_SAMPLE)) ;
@@ -2081,17 +2086,23 @@ GCAfindStableSamples(GCA *gca, int *pnsamples, int min_spacing,float min_prior)
             {
               int  xv, yv, zv ;
               
-              xv = (int)((float)x*gca->spacing) ;
-              yv = (int)((float)y*gca->spacing) ;
-              zv = (int)((float)z*gca->spacing) ;
-              if (MRIvox(mri_filled, xv, yv, zv) == 0)
+              if (1 || ((gcas[nfound].mean <= min_unknown) ||
+                        (gcas[nfound].mean >= max_unknown))) /* disabled check */
               {
-                mriFillRegion(mri_filled, xv, yv, zv, 1, MIN_UNKNOWN_DIST) ;
-                /*                MRIvox(mri_filled, xv, yv, zv) = 1 ;*/
-                nzeros++ ;
-                label_counts[best_label]++ ;
-                nfound++ ;
+                xv = (int)((float)x*gca->spacing) ;
+                yv = (int)((float)y*gca->spacing) ;
+                zv = (int)((float)z*gca->spacing) ;
+                if (MRIvox(mri_filled, xv, yv, zv) == 0)
+                {
+                  mriFillRegion(mri_filled, xv, yv, zv, 1, MIN_UNKNOWN_DIST) ;
+                  /*                MRIvox(mri_filled, xv, yv, zv) = 1 ;*/
+                  nzeros++ ;
+                  label_counts[best_label]++ ;
+                  nfound++ ;
+                }
               }
+              else
+                DiagBreak() ;
             }
           }
           else
@@ -2110,8 +2121,8 @@ GCAfindStableSamples(GCA *gca, int *pnsamples, int min_spacing,float min_prior)
     }
   }
 
-  fprintf(stderr, "total sample mean = %2.1f\n", 
-          total_mean/((float)nfound-nzeros)) ;
+  fprintf(stderr, "total sample mean = %2.1f (%d zeros)\n", 
+          total_mean/((float)nfound-nzeros), nzeros) ;
 
   {
     int  n ;
@@ -2254,8 +2265,8 @@ GCAfindStableSamples(GCA *gca, int *pnsamples, int min_spacing,float min_prior)
     }
   }
 
-  fprintf(stderr, "total sample mean = %2.1f\n", 
-          total_mean/((float)nfound-nzeros)) ;
+  fprintf(stderr, "total sample mean = %2.1f (%d zeros)\n", 
+          total_mean/((float)nfound-nzeros), nzeros) ;
 
   {
     int  n ;
@@ -2706,6 +2717,68 @@ mriFillRegion(MRI *mri, int x, int y, int z, int fill_val, int whalf)
   return(NO_ERROR) ;
 }
 
+static int
+gcaFindIntensityBounds(GCA *gca, float *pmin, float *pmax)
+{
+  int      width, depth, height, x, y, z, n, label ;
+  GCA_NODE *gcan ;
+  GC1D     *gc ;
+  float    mn, mx, offset ;
+
+  mn = 100000.0f ; mx = -mn ;
+  width = gca->width ; height = gca->height ; depth = gca->depth ;
+
+  for (x = 0 ; x < width ; x++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      for (z = 0 ; z < depth ; z++)
+      {
+        gcan = &gca->nodes[x][y][z] ;
+        for (n = 0 ; n < gcan->nlabels ; n++)
+        {
+          gc = &gcan->gcs[n] ;
+          label = gcan->labels[n] ;
+          if (label == 0)  /* don't include unknowns */
+            continue ;
+          if (gc->prior < 0.1)
+            continue ;  /* exclude unlikely stuff (errors in labeling) */
+          offset = 0.5*sqrt(gc->var) ;
+          if (gc->mean + offset > mx)
+          {
+            mx = gc->mean + offset ;
+#if 0
+            if (mx > 130)
+            {
+              printf("label %d, mean %2.1f, std %2.1f, prior %2.3f\n",
+                      gcan->labels[n], gc->mean, sqrt(gc->var), gc->prior) ;
+              
+            }
+#endif
+          }
+          if (gc->mean - offset < mn)
+          {
+            mn = gc->mean - offset ;
+#if 0
+            if (mn < 10)
+            {
+              printf("label %d, mean %2.1f, std %2.1f, prior %2.3f\n",
+                      gcan->labels[n], gc->mean, sqrt(gc->var), gc->prior) ;
+              
+            }
+#endif
+          }
+          if (mn < 5)
+            mn = 5 ;
+          if (mx > 225)
+            mx = 225 ;
+        }
+      }
+    }
+  }
+  *pmin = mn ; *pmax = mx ;
+  return(NO_ERROR) ;
+}
 static int
 gcaFindMaxPriors(GCA *gca, float *max_priors)
 {
@@ -3358,7 +3431,7 @@ GCAreclassifyUsingGibbsPriors(MRI *mri_inputs, GCA *gca, MRI *mri_dst,LTA *lta,
   {
     if (iter == 0)
     {
-      char  fname[STRLEN], *cp ;
+      /*      char  fname[STRLEN], *cp ;*/
       /*      int   nfixed ;*/
 
       if (gca_write_iterations)
@@ -3368,9 +3441,6 @@ GCAreclassifyUsingGibbsPriors(MRI *mri_inputs, GCA *gca, MRI *mri_dst,LTA *lta,
         printf("writing snapshot to %s...\n", fname) ;
         MRIwrite(mri_dst, fname) ;
       }
-      strcpy(fname, mri_inputs->fname) ;
-      cp = strrchr(fname, '/') ;
-      strcpy(cp+1, "probs") ;
       mri_probs = GCAlabelProbabilities(mri_inputs, gca, NULL, lta) ;
 #if 0
       for (nfixed = x = 0 ; x < width ; x++)
@@ -3387,6 +3457,9 @@ GCAreclassifyUsingGibbsPriors(MRI *mri_inputs, GCA *gca, MRI *mri_dst,LTA *lta,
       fprintf(stderr, "%d new fixed points added\n", nfixed) ;
 #endif
 #if 0
+      strcpy(fname, mri_inputs->fname) ;
+      cp = strrchr(fname, '/') ;
+      strcpy(cp+1, "probs") ;
       fprintf(stderr, "writing label probabilities to %s...\n", fname) ;
       MRIwrite(mri_probs, fname) ;
 #endif
