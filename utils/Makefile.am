@@ -5,7 +5,7 @@
 AM_CPPFLAGS=$(X_CFLAGS) -I$(top_srcdir)/include -I$(top_srcdir)/include/dicom
 AM_LDFLAGS=
 
-lib_LIBRARIES= libutils.a
+noinst_LIBRARIES= libutils.a
 libutils_a_SOURCES = $(wildcard *.c)
 am_libutils_a_OBJECTS = $(libutils_a_SOURCES:%.c=%.o)
 

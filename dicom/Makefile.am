@@ -5,7 +5,7 @@
 AM_CPPFLAGS=-I$(top_srcdir)/include -I$(top_srcdir)/include/dicom
 AM_LDFLAGS=
 
-lib_LIBRARIES= libdicom.a
+noinst_LIBRARIES= libdicom.a
 libdicom_a_SOURCES = $(wildcard *.c)
 am_libdicom_a_OBJECTS = $(libdicom_a_SOURCES:%.c=%.o)
 
