@@ -611,6 +611,11 @@ XVshowImage(XV_FRAME *xvf, int which, IMAGE *image, int frame)
   {
     if (!FZERO(dimage->fmax))
       ImageScaleRange(GtmpFloatImage,dimage->fmin,dimage->fmax,0,MAX_DISP_VAL);
+    else if (image == dimage->zoomImage) /* use original range */
+    {
+      ImageValRange(dimage->oSourceImage, &fmin, &fmax) ;
+      ImageScaleRange(GtmpFloatImage, fmin, fmax, 0, MAX_DISP_VAL) ;
+    }
     if (dimage->rescale_range || image->num_frame == 1)
       ImageScale(GtmpFloatImage, GtmpFloatImage, 0, MAX_DISP_VAL) ;
     else   /* use entire sequence to compute display range */
@@ -983,13 +988,13 @@ xv_dimage_event_handler(Xv_Window xv_window, Event *event)
   else
     yprint = y ;
 
-  if (event_ctrl_is_down(event)) 
+  if (event_ctrl_is_down(event))   /* rubber box event */
   {
     if (y >= dimage->sourceImage->rows) y = dimage->sourceImage->rows ;
     if (x >= dimage->sourceImage->cols) x = dimage->sourceImage->cols ;
     switch (event_id(event)) 
     {
-    case MS_RIGHT:
+    case MS_RIGHT:    /* zoom out to normal view */
       if (event_is_up(event))
       {
         dimage->dx1 = dimage->dy1 = dimage->dx = dimage->dy = 
@@ -1008,8 +1013,8 @@ xv_dimage_event_handler(Xv_Window xv_window, Event *event)
         XVshowAllSyncedImages(xvf, which) ;
       }
       break ;
-    case MS_LEFT:
-      if (event_is_down(event))
+    case MS_LEFT:    
+      if (event_is_down(event))  /* still drawing rubber box */
       {
         dimage->x1 = x ;
         dimage->y1 = y ;
@@ -1023,14 +1028,14 @@ xv_dimage_event_handler(Xv_Window xv_window, Event *event)
         xvf->ydir = dir ;
         if (dimage->dx1 < 0)
         {
-          dimage->x0 = dimage->x1 + dimage->dx1 - 1 ;
+          dimage->x0 = dimage->x1 + dimage->dx1 + 1 ;
           dimage->dx1 *= -1 ;
         }
         else
           dimage->x0 = dimage->x1 ;
         if (dimage->dy1 < 0)
         {
-          dimage->y0 = dimage->y1 + dimage->dy1 - 1 ;
+          dimage->y0 = dimage->y1 + dimage->dy1 + 1 ;
           dimage->dy1 *= -1 ;
         }
         else
@@ -1092,18 +1097,15 @@ xv_dimage_event_handler(Xv_Window xv_window, Event *event)
   }
   else switch (event_id(event))   /* ctrl is not down */
   {
-  case MS_MIDDLE:
+  case MS_MIDDLE:    /* put up frame for issuing shell command */
     xvf_hips = xvf ;
     xv_set(hips_cmd_frame, FRAME_CMD_PUSHPIN_IN, TRUE, XV_SHOW, TRUE, NULL) ;
     hips_cmd_source = which ;
     break ;
   case MS_RIGHT:
-    if (event_is_down(event))
-    {
-    }
     break ;
   case LOC_DRAG:
-    if (!event_left_is_down(event))
+    if (!event_left_is_down(event))  /* not draggin with left mouse - quit */
       break ;
   case MS_LEFT:
     switch (dimage->sourceImage->pixel_format)
@@ -1801,7 +1803,13 @@ XVdrawLine(XV_FRAME *xvf, int which, int x, int y, int dx, int dy, int color)
     y = nint((float)(((dimage->zoomImage->rows-1) - 
                       (y-dimage->y0)) +0.5f)* yscale) ;
   else
-    y = nint(((float)(y-dimage->y0) +0.5f)* yscale) ;
+  {
+    if (dimage->dy)
+      y = nint(((float)(dimage->y0+y+dimage->dy-dimage->sourceImage->rows) 
+                + 0.5f) * yscale) ;
+    else 
+      y = nint(((float)(y-dimage->y0)+0.5f) * yscale) ;
+  }
 
   dx = nint((float)dx * xscale) ;
   dy = nint((float)(xvf->ydir*dy) * yscale) ;
@@ -1869,7 +1877,13 @@ XVdrawArrow(XV_FRAME *xvf, int which, int x, int y,float dx,float dy,int color)
     y = nint(((float)((dimage->zoomImage->rows-1) - 
                       (y-dimage->y0)) + 0.5f) * yscale) ;
   else
-    y = nint(((float)(y-dimage->y0)+0.5f) * yscale) ;
+  {
+    if (dimage->dy)
+      y = nint(((float)(dimage->y0+y+dimage->dy-dimage->sourceImage->rows) 
+                + 0.5f) * yscale) ;
+    else 
+      y = nint(((float)(y-dimage->y0)+0.5f) * yscale) ;
+  }
 
   dx = nint(dx * xscale) ;
   dy = nint(xvf->ydir * dy * yscale) ;
@@ -2501,11 +2515,11 @@ XVshowAllSyncedImages(XV_FRAME *xvf, int which)
   {
     dimage2 = XVgetDimage(xvf, which2, DIMAGE_IMAGE) ;
     if (dimage2 && (dimage2->sync == dimage->sync))
-#if 0
-      XVshowImage(xvf, which2, dimage2->oSourceImage, dimage2->frame) ;
-#else
+    {
+      XVsetImageSize(xvf, which2, dimage->dispImage->rows, 
+                     dimage->dispImage->cols) ;
       XVshowImage(xvf, which2, dimage2->sourceImage, dimage2->frame) ;
-#endif
+    }
   }
   return(NO_ERROR) ;
 }
