@@ -1,6 +1,6 @@
 % flac_resynth.m
 
-flac_resynth_version = '$Id: flac_resynth.m,v 1.2 2004/12/10 00:32:41 greve Exp $';
+flac_resynth_version = '$Id: flac_resynth.m,v 1.3 2004/12/12 02:20:15 greve Exp $';
 
 flac_resynth_version_no = sscanf(flac_resynth_version,'%*s %*s %s',1);
 
@@ -159,7 +159,8 @@ for nthrun = 1:nruns
     %dSn(ind) = .1*dSn(1);
     
     % Spatially filter the white noise
-    noise.vol(:,indmask) = ((noise.vol(:,indmask)*Vn)*(Sn.^2))*Vn';
+    noise.vol(:,indmask) = ((noise.vol(:,indmask)*Vn)*Sn)*Vn'; % Not Sn.^2
+
   end
   
   
