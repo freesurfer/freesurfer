@@ -479,6 +479,7 @@ extern float ic_z_vertices[]  ;
 #define SIGNA_FILE                    14
 #define DICOM_FILE                    15
 #define MRI_ANALYZE4D_FILE            16 
+#define SIEMENS_DICOM_FILE            17
 
 
 
@@ -748,10 +749,13 @@ MRI *MRIsincTransform(MRI *mri_src, MRI *mri_dst, MATRIX *mA, int hw);
 int MRIlabelOverlap(MRI *mri1, MRI *mri2, int label) ;
 int MRIeraseBorderPlanes(MRI *mri) ;
 
+/* Zero-padding for 3d analyze (ie, spm) format */
 #ifdef _MRIIO_SRC
-  int SPM_N_Zero_Pad = -1;
+  int N_Zero_Pad_Input  = -1;
+  int N_Zero_Pad_Output = -1;
 #else
-  extern int SPM_N_Zero_Pad;
+  extern int N_Zero_Pad_Input;
+  extern int N_Zero_Pad_Output;
 #endif
 
 
