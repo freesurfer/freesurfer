@@ -1,10 +1,10 @@
 /*============================================================================
  Copyright (c) 1996 Martin Sereno and Anders Dale
 =============================================================================*/
-/*   $Id: tkregister2.c,v 1.20 2003/09/05 04:45:48 kteich Exp $   */
+/*   $Id: tkregister2.c,v 1.21 2003/11/05 00:06:15 greve Exp $   */
 
 #ifndef lint
-static char vcid[] = "$Id: tkregister2.c,v 1.20 2003/09/05 04:45:48 kteich Exp $";
+static char vcid[] = "$Id: tkregister2.c,v 1.21 2003/11/05 00:06:15 greve Exp $";
 #endif /* lint */
 
 #define TCL
@@ -206,6 +206,8 @@ static int checkfmt(char *fmt);
 #define WINDOW_COLS 512
 
 int plane = CORONAL;
+int plane_init = CORONAL;
+int slice_init = -1;
 int xnum=256,ynum=256;
 int ptype;
 float ps,st,xx0,xx1,yy0,yy1,zz0,zz1;
@@ -278,6 +280,7 @@ char *targpref;      /* abs single image structural stem name */
 char *movformat;     /* abs single image epi structural stem name */
 char *tfname;        /* (dir!) subjectsdir/name/tmp/ */
 char *sgfname;       /* (dir!) set: get from cwd: $session/rgb/ */
+char *tkrtitle=NULL; /* window title */
 
 int blinktop = 0;    /* says whats on top while blinking */
 int invalid_buffers = 1;
@@ -655,15 +658,24 @@ int Register(ClientData clientData,Tcl_Interp *interp, int argc, char *argv[])
   printf("---- Input registration matrix --------\n");
   MatrixPrint(stdout,RegMat);
 
+  if(tkrtitle == NULL) tkrtitle = subjectid;
+
   printf("Opening window %s\n",pname);fflush(stdout);
-  open_window(pname);
+  open_window(tkrtitle);
   
   printf("Setting scale\n");fflush(stdout);
   set_scale();
   
-  imc = zf*imnr1/2;
-  ic = ydim/2;
-  jc = xdim/2;
+  imc = zf*imnr1/2; // Cor
+  ic = ydim/2;      // Ax
+  jc = xdim/2;      // Sag
+  if(slice_init > 0){
+    if(plane_init == CORONAL)    imc = zf*slice_init;
+    if(plane_init == SAGITTAL)   jc  = (int)(xdim*(slice_init/256.0));
+    if(plane_init == HORIZONTAL) ic  = (int)(ydim*(slice_init/256.0));
+    printf("plane = %d, slice = %d\n",plane_init,slice_init);
+    printf("imc = %d, jc = %d, ic = %d\n",imc,jc,ic);
+  }
   
   /* load both buffers; sets visible_mode/plane, last_visible_mode/plane */
   printf("Redrawing Movable\n");fflush(stdout);
@@ -737,6 +749,24 @@ static int parse_commandline(int argc, char **argv)
       sscanf(pargv[0],"%lf",&fscale_2);
       nargsused = 1;
     }
+    else if (!strcmp(option, "--slice")){
+      if(nargc < 1) argnerr(option,1);
+      sscanf(pargv[0],"%d",&slice_init);
+      nargsused = 1;
+    }
+    else if (!strcmp(option, "--plane")){
+      if(nargc < 1) argnerr(option,1);
+      plane_init = -1000;
+      if( strcmp(pargv[0],"cor") == 0) plane_init = CORONAL;
+      if( strcmp(pargv[0],"sag") == 0) plane_init = SAGITTAL;
+      if( strcmp(pargv[0],"ax")  == 0) plane_init = HORIZONTAL;
+      if( strcmp(pargv[0],"hor") == 0) plane_init = HORIZONTAL;
+      if(plane_init == -1000){
+	printf("ERROR: orientation %s unrecognized\n",pargv[0]);
+	exit(1);
+      }
+      nargsused = 1;
+    }
     else if (!strcmp(option, "--surf")){
       LoadSurf = 1;
       UseSurf  = 1;
@@ -789,6 +819,11 @@ static int parse_commandline(int argc, char **argv)
       subjectsdir = pargv[0];
       nargsused = 1;
     }
+    else if ( !strcmp(option, "--title") ){
+      if(nargc < 1) argnerr(option,1);
+      tkrtitle = pargv[0];
+      nargsused = 1;
+    }
     else if ( !strcmp(option, "--gdiagno") ){
       if(nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%d",&Gdiag_no);
@@ -832,6 +867,8 @@ static void print_usage(void)
   printf("   --mov  movable volume  <fmt> \n");
   printf("   --fstal : set mov to be tal and reg to be tal xfm  \n");
   printf("   --movbright  f : brightness of movable volume\n");
+  printf("   --plane  orient  : startup view plane <cor>, sag, ax\n");
+  printf("   --slice  sliceno : startup slice number\n");
   printf("   --surf surfname : display surface as an overlay \n");
   printf("   --reg  register.dat : input/output registration file\n");
   printf("   --regheader : compute regstration from headers\n");
@@ -842,6 +879,7 @@ static void print_usage(void)
   printf("   --fslregout file : FSL-Style registration output matrix\n");
   printf("   --nofix : don't fix old tkregister matrices\n");
   printf("   --float2int code : spec old tkregister float2int\n");
+  printf("   --title title : set window title\n");
   printf("   --gdiagno n : set debug level\n");
   printf("\n");
   printf("   --help : WARNING: contains material that could be harmful "
@@ -904,6 +942,15 @@ static void print_help(void)
 "  $SUBJECTS_DIR/subjectid/transforms/talairach.xfm. User must have\n"
 "  write permission to this file. Do not specify --reg with this\n"
 "  flag. It is ok to specify --regheader with this flag.\n"
+"\n"
+"  --plane <orientation>\n"
+"\n"
+"  Set the initial orientation. Valid values are cor, sag, and ax.\n"
+"  The default is cor.\n"
+"\n"
+"  --slice sliceno\n"
+"\n"
+"  Set the initial slice to view. \n"
 "\n"
 "  --surf <surfacename>\n"
 "\n"
@@ -968,8 +1015,12 @@ static void print_help(void)
 "  \n"
 "  --float2int code\n"
 "  \n"
-"  This is only here for debugging purposes in order to simulate the behavior\n"
-"  of the old tkregister.\n"
+"  This is only here for debugging purposes in order to simulate the \n"
+"  behavior of the old tkregister.\n"
+"  \n"
+"  --title title\n"
+"  \n"
+"  Set the window titles to title. Default is subjectname.\n"
 "  \n"
 "  --gdiagno N\n"
 "\n"
@@ -1259,7 +1310,7 @@ void draw_image2(int imc,int ic,int jc)
   int icTarg,irTarg,isTarg;
   int icMov,irMov,isMov;
 
-  if(firstpass) update_needed = 1;
+  if(firstpass)    update_needed = 1;
   else{
     update_needed = 0;
     if(PrevPlane   != plane)        update_needed = 1;
@@ -1275,7 +1326,7 @@ void draw_image2(int imc,int ic,int jc)
 
   /* Set the current point */
   switch(plane){
-  case SAGITTAL:   cScreenCur = imc;  rScreenCur = ic; break;
+  case SAGITTAL:   cScreenCur = imc; rScreenCur = ic;  break;
   case HORIZONTAL: cScreenCur = jc;  rScreenCur = imc; break;
   case CORONAL:    cScreenCur = jc;  rScreenCur = ic;  break;
   }
@@ -2022,7 +2073,6 @@ int do_one_gl_event(Tcl_Interp *interp)   /* tcl */
 	case XK_i: use_inorm = !use_inorm;  updateflag = TRUE; break;
 	case XK_n: interpmethod = SAMPLE_NEAREST; updateflag = TRUE; break;
 	case XK_t: interpmethod = SAMPLE_TRILINEAR; updateflag = TRUE; break;
-	case XK_x: plane=SAGITTAL;   updateflag = TRUE; break;
 
 	  /* translate in-plane up or down */
 	case XK_p: 
@@ -2118,8 +2168,9 @@ int do_one_gl_event(Tcl_Interp *interp)   /* tcl */
 	  updateflag = TRUE; 
 	  break;
 
-	case XK_y: plane=HORIZONTAL; updateflag = TRUE; break;
-	case XK_z: plane=CORONAL;    updateflag = TRUE; break;
+	case XK_x: plane=SAGITTAL;   updateflag = TRUE; break;
+	case XK_y: plane=CORONAL;    updateflag = TRUE; break;
+	case XK_z: plane=HORIZONTAL; updateflag = TRUE; break;
 	case XK_s: if(LoadSurf) UseSurf = !UseSurf; updateflag = TRUE; break;
 
           /* others */
@@ -3403,7 +3454,7 @@ char **argv;
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tkregister2.c,v 1.20 2003/09/05 04:45:48 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: tkregister2.c,v 1.21 2003/11/05 00:06:15 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -3417,9 +3468,9 @@ char **argv;
     printf("    [dir containing mri distribution]\n");
     exit(1);
   }
-  sprintf(tkregister_tcl,"%s/lib/tcl/%s",envptr,"tkregister.tcl");
+  sprintf(tkregister_tcl,"%s/lib/tcl/%s",envptr,"tkregister2.tcl");
   if ((fp=fopen(tkregister_tcl,"r"))==NULL) {
-    printf("tkregister: startup script %s not found\n",tkregister_tcl);
+    printf("tkregister2: startup script %s not found\n",tkregister_tcl);
     exit(1);
   }
   else fclose(fp);
@@ -3523,6 +3574,7 @@ char **argv;
   Tcl_LinkVar(interp,"home",        (char *)&subjectsdir,TCL_LINK_STRING);
   Tcl_LinkVar(interp,"session",     (char *)&srname,TCL_LINK_STRING);
   Tcl_LinkVar(interp,"subject",     (char *)&pname,TCL_LINK_STRING);
+  Tcl_LinkVar(interp,"tkrtitle",    (char *)&tkrtitle,TCL_LINK_STRING);
   Tcl_LinkVar(interp,"registerdat", (char *)&regfname,TCL_LINK_STRING);
   Tcl_LinkVar(interp,"analysedat",  (char *)&afname,TCL_LINK_STRING);
   Tcl_LinkVar(interp,"subjtmpdir",  (char *)&tfname,TCL_LINK_STRING);
@@ -3530,8 +3582,9 @@ char **argv;
   /*=======================================================================*/
 
   /* run tcl/tk startup script to set vars, make interface; no display yet */
-  printf("tkregister: interface: %s\n",tkregister_tcl);
+  printf("tkregister2: interface: %s\n",tkregister_tcl);
   code = Tcl_EvalFile(interp,tkregister_tcl);
+  plane = plane_init;
   if (*interp->result != 0)  printf(interp->result);
 
   /* always start up command line shell too */
