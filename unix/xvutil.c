@@ -520,7 +520,7 @@ XVrepaintImage(XV_FRAME *xvf, int which)
 void
 XVshowImage(XV_FRAME *xvf, int which, IMAGE *image, int frame)
 {
-  float         xscale, yscale, fmin, fmax ;
+  float         xscale, yscale, scale, fmin, fmax ;
   DIMAGE        *dimage ;
   unsigned long *substtable ;
   byte          bytelut[MAX_COLORS] ;
@@ -570,14 +570,11 @@ XVshowImage(XV_FRAME *xvf, int which, IMAGE *image, int frame)
   h_invert(GtmpByteImage, GtmpByteImage2) ;
 
 #if 0
-if (which == 1)
-  ImageWrite(GtmpByteImage2, "disp0.hipl") ;
   ImageResize(GtmpByteImage2, dimage->dispImage, 
               dimage->dispImage->rows, dimage->dispImage->cols) ;
-if (which == 1)
-  ImageWrite(dimage->dispImage, "disp.hipl") ;
 #else
-  ImageRescale(GtmpByteImage2, dimage->dispImage, xscale) ;
+  scale = (xscale + yscale)/2.0f ;
+  ImageRescale(GtmpByteImage2, dimage->dispImage, scale) ;
 #endif
 
   substtable = (unsigned long *) xv_get(xvf->cms,CMS_INDEX_TABLE);
@@ -588,12 +585,6 @@ if (which == 1)
     h_shift_b(dimage->dispImage, dimage->dispImage, -2);
 #endif
   h_applylut(dimage->dispImage, dimage->dispImage, MAX_COLORS, bytelut);
-
-#if 0
-ImageWrite(GtmpByteImage, "i1.hipl") ;
-ImageWrite(GtmpByteImage2, "i2.hipl") ;
-ImageWrite(dimage->dispImage, "i3.hipl") ;
-#endif
 
   XVrepaintImage(xvf, which) ;
   XFlush(xvf->display); 
