@@ -3,8 +3,8 @@
 /*                                                                     */
 /* Warning: Do not edit the following four lines.  CVS maintains them. */
 /* Revision Author: $Author: tosa $                                           */
-/* Revision Date  : $Date: 2005/02/10 20:19:29 $                                             */
-/* Revision       : $Revision: 1.38 $                                         */
+/* Revision Date  : $Date: 2005/02/25 16:59:26 $                                             */
+/* Revision       : $Revision: 1.39 $                                         */
 /*                                                                     */
 /***********************************************************************/
 
@@ -71,6 +71,7 @@ int      LTAwrite(LTA *lta, char *fname) ;
 LTA      *LTAalloc(int nxforms, MRI *mri) ;
 int      LTAdivide(LTA *lta, MRI *mri) ;
 MRI      *LTAtransform(MRI *mri_src, MRI *mri_dst, LTA *lta) ;
+MRI      *LTAtransformInterp(MRI *mri_src, MRI *mri_dst, LTA *lta, int interp) ;
 MATRIX   *LTAtransformAtPoint(LTA *lta, float x, float y,float z,MATRIX *m_L);
 int      LTAworldToWorld(LTA *lta, float x, float y, float z,
                          float *px, float *py, float *pz);
