@@ -27,6 +27,7 @@
 #include "box.h"
 #include "region.h"
 #include "nr.h"
+#include "talairachex.h" 
 
 /*-----------------------------------------------------
                     MACROS AND CONSTANTS
@@ -45,6 +46,61 @@ static int compare_sort_array(const void *pc1, const void *pc2) ;
 /*-----------------------------------------------------
                     GLOBAL FUNCTIONS
 -------------------------------------------------------*/
+/** 
+ * void calCRASforSampleVolume
+ * 
+ * @param src MRI* volume
+ * @param dst MRI* sampled volume
+ * @param pr  output ptr to c_r 
+ * @param pa  output ptr to c_a 
+ * @param ps  output ptr to c_s
+ */
+void calcCRASforSampleVolume(MRI *src, MRI *dst, Real *pr, Real *pa, Real *ps)
+{
+  // get the voxel position of the "center" voxel of the dst in the src volume
+  // i.e. sample is 2, then get the voxel position 64 in the src volume
+  //      thus  it is 128.5 (in the src) for 64 (in the dst)
+  Real sx, sy, sz;
+  int dx, dy, dz;
+  int samplex, sampley, samplez;
+
+  // error check first
+  if ((src->width)%(dst->width) != 0)
+    ErrorExit(ERROR_BADPARM, "src width must be integer multiple of dst width");
+  if ((src->height)%(dst->height) != 0)
+    ErrorExit(ERROR_BADPARM, "src height must be integer multiple of dst height");
+  if ((src->depth)%(dst->depth) != 0)
+    ErrorExit(ERROR_BADPARM, "src depth must be integer multiple of dst depth");
+
+  samplex = src->width/dst->width;
+  sampley = src->height/dst->height;
+  samplez = src->depth/dst->depth;
+
+  // "center" voxel position in dst
+  dx = dst->width/2; // if the length is odd, then it does the right thing (truncation)
+  dy = dst->height/2;// i.e.  0 1 2 then 3/2 = 1,  0 1 2 3 then 4/2=2
+  dz = dst->depth/2;
+  // corresponding position in src
+  sx = dx*samplex + (samplex-1.)/2.; // ((dx*samplex - 0.5) + ((dx+1)*samplex -0.5))/2.
+  sy = dy*sampley + (sampley-1.)/2.;
+  sz = dz*samplez + (samplez-1.)/2.;
+  //
+  // Example
+  // | 0 1 2 | 3 4 5 | 6 7 8 | -(sample by 3).  
+  // |   0   |   1   |   2   |                    1 (3/2) in dst corresponds to 1*3+(3-1)/2 = 4! in src
+  //
+  // | 0 1 2 3 | 4 5 6 7 |     -(sample by 4)->0 1     
+  // |    0    |    1    |                        1 (2/2) in dst corresponds to 1*4+(4-1)/2 = 5.5 in src
+  
+  // get ras of the "center" voxel position in dst
+  MATRIX *i2r = src->i_to_r__;
+  TransformWithMatrix(i2r, sx, sy, sz, pr, pa, ps);
+  if (Gdiag & DIAG_SHOW)
+    fprintf(stderr, "c_ras for sample volume is (%f, %f, %f) compared with the src (%f, %f, %f)\n",
+	    *pr, *pa, *ps, src->c_r, src->c_a, src->c_s);
+  MatrixFree(&i2r);
+}
+
 /*-----------------------------------------------------
         Parameters:
 
@@ -2235,6 +2291,39 @@ MRI *MRIgaussianSmooth(MRI *src, float std, int norm, MRI *targ)
   return(targ);
 }
 
+/** 
+ * MRImodifySampledHeader
+ * 
+ * dst volume is sampled by 2 and thus copying direction cosines 
+ * but cras and other info changed. modify cached transform also.
+ *
+ * @param src 
+ * @param dst 
+ */
+static void MRImodifySampledHeader(MRI *mri_src, MRI *mri_dst)
+{
+  if (!mri_dst)
+    ErrorExit(ERROR_BADPARM, "dst volume must be given");
+
+  MRIcopyHeader(mri_src, mri_dst) ;
+  
+  mri_dst->thick = mri_src->thick * 2.0f ;
+  mri_dst->ps = mri_src->ps * 2.0f ;
+  mri_dst->scale = mri_src->scale * 2 ;
+  mri_dst->xsize = mri_src->xsize * 2.0f ;
+  mri_dst->ysize = mri_src->ysize * 2.0f ;
+  mri_dst->zsize = mri_src->zsize * 2.0f ;
+
+  Real c_r, c_a, c_s;
+  // calculate c_ras value
+  calcCRASforSampleVolume(mri_src, mri_dst, &c_r, &c_a, &c_s);
+  mri_dst->c_r = c_r;
+  mri_dst->c_a = c_a;
+  mri_dst->c_s = c_s;
+
+  // header modified update cached info
+  MRIreInitCache(mri_dst);
+}
 
 /*-----------------------------------------------------
         Parameters:
@@ -2275,13 +2364,7 @@ MRIreduceMeanAndStdByte(MRI *mri_src, MRI *mri_dst)
   MRIfree(&mri_var_reduced) ;
   MRIfree(&mri_std_reduced) ;
 
-  MRIcopyHeader(mri_src, mri_dst) ;
-  
-  mri_dst->thick = mri_src->thick * 2.0f ;
-  mri_dst->scale = mri_src->scale * 2 ;
-  mri_dst->xsize = mri_src->xsize * 2.0f ;
-  mri_dst->ysize = mri_src->ysize * 2.0f ;
-  mri_dst->zsize = mri_src->zsize * 2.0f ;
+  MRImodifySampledHeader(mri_src, mri_dst);
 
   mri_dst->mean = MRImeanFrame(mri_dst, 1) ;
 #if 0
@@ -2323,20 +2406,17 @@ MRIreduce(MRI *mri_src, MRI *mri_dst)
               width, height, depth) ;
 
   mtmp1 = MRIconvolve1d(mri_src, NULL, kernel, KERNEL_SIZE, MRI_WIDTH, 0,0) ;
+  // null then create MRI_FLOAT volume
   mtmp2 = MRIconvolve1d(mtmp1, NULL, kernel, KERNEL_SIZE, MRI_HEIGHT, 0,0) ;
+  // again MRI_FLOAT volume
   MRIfree(&mtmp1) ;
+  // half dimensions of the original
   mri_dst = MRIreduce1d(mtmp2, mri_dst, kernel, KERNEL_SIZE, MRI_DEPTH) ;
 
-  MRIcopyHeader(mri_src, mri_dst) ;
-  
-  mri_dst->thick = mri_src->thick * 2.0f ;
-  mri_dst->ps = mri_src->ps * 2.0f ;
-  mri_dst->scale = mri_src->scale * 2 ;
-  mri_dst->xsize = mri_src->xsize * 2.0f ;
-  mri_dst->ysize = mri_src->ysize * 2.0f ;
-  mri_dst->zsize = mri_src->zsize * 2.0f ;
+  MRImodifySampledHeader(mri_src, mri_dst);
 
   MRIfree(&mtmp2) ;
+
   return(mri_dst) ;
 }
 MRI *
@@ -2356,14 +2436,7 @@ MRIreduce2D(MRI *mri_src, MRI *mri_dst)
   mri_dst = MRIreduceSlice(mtmp1, mri_dst, kernel, KERNEL_SIZE, MRI_HEIGHT) ;
   MRIfree(&mtmp1) ;
 
-  MRIcopyHeader(mri_src, mri_dst) ;
-  
-  mri_dst->thick = mri_src->thick * 2.0f ;
-  mri_dst->ps = mri_src->ps * 2.0f ;
-  mri_dst->scale = mri_src->scale * 2 ;
-  mri_dst->xsize = mri_src->xsize * 2.0f ;
-  mri_dst->ysize = mri_src->ysize * 2.0f ;
-  mri_dst->zsize = mri_src->zsize * 2.0f ;
+  MRImodifySampledHeader(mri_src, mri_dst);
 
   return(mri_dst) ;
 }
@@ -2396,13 +2469,7 @@ MRIreduceByte(MRI *mri_src, MRI *mri_dst)
   MRIfree(&mtmp1) ;
   mri_dst = MRIreduce1dByte(mtmp2, mri_dst, kernel, KERNEL_SIZE, MRI_DEPTH) ;
 
-  MRIcopyHeader(mri_src, mri_dst) ;
-  
-  mri_dst->thick = mri_src->thick * 2.0f ;
-  mri_dst->scale = mri_src->scale * 2 ;
-  mri_dst->xsize = mri_src->xsize * 2.0f ;
-  mri_dst->ysize = mri_src->ysize * 2.0f ;
-  mri_dst->zsize = mri_src->zsize * 2.0f ;
+  MRImodifySampledHeader(mri_src, mri_dst);
 
   MRIfree(&mtmp2) ;
   return(mri_dst) ;
@@ -3008,7 +3075,7 @@ MRIreduce1d(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis)
             
             total = total + k[i] * MRIFvox(mri_src, xi, yi, zi) ;
           }
-					MRIsetVoxVal(mri_dst, x, y, z, 0, total);
+	  MRIsetVoxVal(mri_dst, x, y, z, 0, total);
         }
       }
     }
@@ -3035,7 +3102,7 @@ MRIreduce1d(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis)
             
             total = total + k[i] * MRIFvox(mri_src, xi, yi, zi) ;
           }
-					MRIsetVoxVal(mri_dst, x, y, z, 0, total);
+	  MRIsetVoxVal(mri_dst, x, y, z, 0, total);
         }
       }
     }
@@ -3063,14 +3130,14 @@ MRIreduce1d(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis)
             
             total = total + k[i] * MRIFvox(mri_src, xi, yi, zi) ;
           }
-					MRIsetVoxVal(mri_dst, x, y, z, 0, total);
+	  MRIsetVoxVal(mri_dst, x, y, z, 0, total);
         }
       }
     }
     break ;
   }
 
-/*  mri_dst = MRIcopy(mri_src, mri_dst) ;*/
+  /*  mri_dst = MRIcopy(mri_src, mri_dst) ;*/
 
   return(mri_dst) ;
 }
