@@ -37,6 +37,9 @@ switch(DoWhat)
  case 'getntp'
   if(isempty(flacfg)) pr_fla_needed(DoWhat); return; end
   rt = get_ntp(flacfg);
+ case 'getitpx' % Time Point Exclude Indicies
+  if(isempty(flacfg)) pr_fla_needed(DoWhat); return; end
+  rt = get_itpx(flacfg);
  case 'getrunweight'
   if(isempty(flacfg)) pr_fla_needed(DoWhat); return; end
   rt = get_runweight(flacfg);
@@ -50,7 +53,8 @@ switch(DoWhat)
   rt = check_ermid(flacfg);
  
  case {'iserm','nparams','nregressors','autopsd',...
-       'amatrix','matrix','parseline','createline'}
+       'irfmatrix','erfmatrix','matrix','parseline','createline',...
+      'irftaxis','erftaxis'}
   if(strcmp(DoWhat,'parseline'))
     if(isempty(line))
       fprintf('ERROR: line needed with parseline\n');
@@ -76,9 +80,22 @@ switch(DoWhat)
     rt = fast_fxcfg_gamma(DoWhat,thing);
    case 'polynomial'
     rt = fast_fxcfg_poly(DoWhat,thing);
+   case 'extreg'
+    rt = fast_fxcfg_extreg(DoWhat,thing);
    otherwise
     fprintf('ERROR: model %s unrecognized\n',model);
     return;
+  end
+ 
+  if(strcmp(DoWhat,'matrix'))
+    itpx = fast_fxcfg('getitpx',flacfg);
+    if(~isempty(itpx) & flacfg.usetpexclude)
+      rt(itpx,:) = 0;
+    end
+    if(~isempty(flacfg.nskip) & flacfg.nskip > 0)
+      itpx = [1:flacfg.nskip];
+      rt(itpx,:) = 0;
+    end
   end
  
  otherwise
@@ -235,42 +252,40 @@ end
 ok = 1;
 return;
 %---------------------------------------------------------------%
-function sesscfg = load_sesscfg(flacfg)
-
-sesscfg = [];
+function flacfg = load_sesscfg(flacfg)
 
 if(isempty(flacfg.funcstem))
   fprintf('ERROR: flacfg.funcstem is empty\n');
-  return;
+  flacfg = []; return;
 end
 if(isempty(flacfg.sesspath))
   fprintf('ERROR: flacfg.sesspath is empty\n');
-  return;
+  flacfg = []; return;
 end
 d = dir(flacfg.sesspath);
 if(isempty(d))
   fprintf('ERROR: flacfg.sesspath %s does not exist\n',flacfg.sesspath);
-  return;
+  flacfg = []; return;
 end
 afsd = sprintf('%s/%s',flacfg.sesspath,flacfg.fsd);
 d = dir(afsd);
 if(isempty(d))
   fprintf('ERROR: %s does not exist\n',afsd);
-  return;
+  flacfg = []; return;
 end
 
 if(isempty(flacfg.runlistfile))
   runlist = fast_runlist(afsd);
   if(isempty(runlist))
     fprintf('ERROR: cannot find any runs in %s\n',afsd);
-    return;
+    flacfg = []; return;
   end
 else
   rlf = sprintf('%s/%s',afsd,flacfg.runlistfile);
   runlist = fast_runlist(rlf);
   if(isempty(runlist))
     fprintf('ERROR: reading %s\n',rlf);
-    return;
+    flacfg = []; return;
   end
 end
 
@@ -278,24 +293,25 @@ sesscfg = fast_sesscfg_struct;
 sesscfg.runlist = runlist;
 sesscfg.fstemlist = '';
 
-% Need to read run weight file 
-% and check that each run is represented.
+nfx = length(flacfg.fxlist);
+
+% If one of the fxcfg needs run weight, read file and check 
+% that each run is represented.
+
 
 for nthrun = 1:length(runlist)
   rd = sprintf('%s/%s',afsd,runlist(nthrun,:));
   d = dir(rd);
   if(isempty(d))
     fprintf('ERROR: %s does not exist\n',rd);
-    sesscfg = [];
-    return;
+    flacfg = []; return;
   end
 
   fstem = sprintf('%s/%s',rd,flacfg.funcstem);
   [nslices nrows ncols ntp] = fmri_bvoldim(fstem);
   if(isempty(nslices))
     fprintf('ERROR: reading %s\n',fstem);
-    sesscfg = [];
-    return;
+    flacfg = []; return;
   end
   sesscfg.fstemlist = strvcat(sesscfg.fstemlist,fstem);
   sesscfg.ntp(nthrun) = ntp;
@@ -306,11 +322,60 @@ for nthrun = 1:length(runlist)
     evsch = fmri_ldpar(evschfile);
     if(isempty(evsch))
       fprintf('ERROR: reading %s\n',evschfile);
-      sesscfg = [];
+      flacfg = []; return;
     end
     sesscfg.evschlist(nthrun).evsch = evsch;
   end
 
+  % Go through each effect, determine if any are extreg %
+  for nthfx = 1:nfx
+    fxcfg = flacfg.fxlist(nthfx).fx;
+    if(strcmp(fxcfg.model,'extreg'))
+      extregstem = sprintf('%s/%s',rd,deblank(fxcfg.sparams(1,:)));
+      extreg = squeeze(fast_ldbslice(extregstem))';
+      %keyboard
+      if(isempty(extreg))
+	fprintf('ERROR: reading %s\n',extregstem);
+	flacfg = []; return;
+      end
+      if(size(extreg,1) ~= ntp)
+	fprintf('ERROR: dimension mismatch %s\n',extregstem);
+	flacfg = []; return;
+      end
+      if(size(extreg,1) < fxcfg.params(1))
+	fprintf('ERROR: nextreg=%d, exceeds size of extreg\n',fxcfg.params(1));
+	flacfg = []; return;	
+      end
+      flacfg.fxlist(nthfx).fx.npmlist(nthrun).M  = extreg;
+    end
+  end
 end
   
+flacfg.sesscfg = sesscfg;
+
+return;
+%---------------------------------------------------------%
+function itpx = get_itpx(flacfg)
+
+if(isempty(flacfg.nthrun))
+  fprintf('ERROR: nthrun is empty\n');
+  return;
+end
+if(isempty(flacfg.sesscfg))
+  fprintf('ERROR: sesscfg is empty\n');
+  return;
+end
+if(isempty(flacfg.sesscfg.evschlist))
+  fprintf('ERROR: flacfg.sesscfg.evschlist is empty\n');
+  return;
+end
+nruns = length(flacfg.sesscfg.evschlist);
+if(flacfg.nthrun < 1 | flacfg.nthrun > nruns)
+  fprintf('ERROR: nthrun=%d, out of range\n');
+  return;
+end
+
+evsch = flacfg.sesscfg.evschlist(flacfg.nthrun).evsch;
+itpx = find(evsch(:,2) == -1);
+
 return;
