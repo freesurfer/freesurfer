@@ -7115,7 +7115,7 @@ MRISwriteValues(MRI_SURFACE *mris, char *sname)
 int
 MRISreadAnnotation(MRI_SURFACE *mris, char *sname)
 {
-  int   i,j,vno,num;
+  int   i,j,vno,num, need_hemi ;
   FILE  *fp;
   char  *cp, fname[STRLEN], path[STRLEN];
 #if 0
@@ -7127,12 +7127,16 @@ MRISreadAnnotation(MRI_SURFACE *mris, char *sname)
   cp = strchr(sname, '/') ;
   if (!cp)                 /* no path - use same one as mris was read from */
   {
-    cp = strchr(sname, '.') ;
+    FileNameOnly(sname, fname) ;
+
+    need_hemi = 
+      !stricmp(fname, mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh") ;
+
     FileNamePath(mris->fname, path) ;
-    if (cp)
-      sprintf(fname, "%s/../label/%s", path, sname) ;
+    if (!need_hemi)
+      sprintf(fname, "%s/../label/%s.annot", path, sname) ;
     else   /* no hemisphere specified */
-      sprintf(fname, "%s/../label/%s.%s", path, 
+      sprintf(fname, "%s/../label/%s_%s.annot", path, 
               mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", sname) ;
   }
   else
