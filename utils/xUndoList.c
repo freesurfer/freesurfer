@@ -361,7 +361,7 @@ xUndL_tErr xUndL_Print ( xUndoListRef this ) {
   DebugPrint "Printing undo list....\n" EndDebugPrint;
 
   // get the count
-  eListResult = xList_GetCount ( this->mpList, &nCount );
+  eListResult = xList_GetCount ( this->mpList, (int *)&nCount );
   if ( xList_tErr_NoErr != eListResult ) {
     eResult = xUndL_tErr_ListCountFailed;
     goto cleanup;
