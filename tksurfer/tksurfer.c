@@ -7852,7 +7852,7 @@ sclv_read_bfile_values (char* dir, char* stem, char* registration, int field)
   volume_error = FunD_New (&volume, dir, stem, NULL, registration );
   if (volume_error!=FunD_tErr_NoError)
     {
-      printf("surfer: couldn't load %s/%s",dir,stem);
+      printf("surfer: couldn't load %s/%s\n",dir,stem);
       ErrorReturn(func_convert_error(volume_error),(func_convert_error(volume_error),"sclv_read_bfloat_values: error in FunD_New\n"));
     }
   
