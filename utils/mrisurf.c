@@ -11037,3 +11037,38 @@ MRISsequentialAverageVertexPositions(MRI_SURFACE *mris, int navgs)
   }
   return(NO_ERROR) ;
 }
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+int
+MRISreverse(MRI_SURFACE *mris, int which)
+{
+  int    vno ;
+  float  x, y, z ;
+  VERTEX *v ;
+
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    x = v->x ;
+    y = v->y ;
+    z = v->z ;
+    switch (which)
+    {
+    default:
+    case REVERSE_X: x = -x ; break ;
+    case REVERSE_Y: y = -y ; break ;
+    case REVERSE_Z: z = -z ; break ;
+    }
+    v->x = x ;
+    v->y = y ;
+    v->z = z ;
+  }
+  return(NO_ERROR) ;
+}
