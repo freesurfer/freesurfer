@@ -668,12 +668,13 @@ MRICbuildTargetImage(MRI *mri_src, MRI *mri_target, MRI *mri_wm,
         Description
           Update the prior estimates using a frequency count.
 ------------------------------------------------------*/
+#define COUNT_IMAGE   GAUSSIAN_NCLASSES
+
 MRI *
 MRICupdatePriors(MRI *mri_target, MRI *mri_priors, int scale)
 {
-  int      width, height, depth, xp, yp, zp, x, y, z, class,w,h,d, xt, yt, zt ;
+  int      width, height, depth, x, y, z, class,w,h,d, xt, yt, zt ;
   BUFTYPE  *ptarget ;
-  float    increment ;
   Real     xrt, yrt, zrt ;
 
   width = mri_target->width ;
@@ -682,11 +683,15 @@ MRICupdatePriors(MRI *mri_target, MRI *mri_priors, int scale)
   w = (int)(((float)width / (float)scale)+0.99f) ;
   h = (int)(((float)height / (float)scale)+0.99f) ;
   d = (int)(((float)depth / (float)scale)+0.99f) ;
+
+/* 
+   allocate one image for each class, plus one to keep track of the
+   # of pixels mapped to that location.
+   */
   if (!mri_priors)
     mri_priors = 
-      MRIallocSequence(w, h, d, MRI_FLOAT, GAUSSIAN_NCLASSES) ;
+      MRIallocSequence(w, h, d, MRI_FLOAT, GAUSSIAN_NCLASSES+1) ;
 
-  increment = 1.0f / (float)(scale*scale*scale) ;
   for (z = 0 ; z < depth ; z++)
   {
     for (y = 0 ; y < height ; y++)
@@ -701,10 +706,51 @@ MRICupdatePriors(MRI *mri_target, MRI *mri_priors, int scale)
         zt = mri_priors->zi[nint(zrt/scale)] ;
         class = *ptarget++ ;
         MRIFseq_vox(mri_priors, xt, yt, zt, class) =
-          MRIFseq_vox(mri_priors, xt, yt, zt, class) + increment ;
+          MRIFseq_vox(mri_priors, xt, yt, zt, class) + 1.0f ;
+        MRIFseq_vox(mri_priors, xt, yt, zt, COUNT_IMAGE) =
+          MRIFseq_vox(mri_priors, xt, yt, zt, COUNT_IMAGE) + 1.0f ;
       }
     }
   }
   return(mri_priors) ;
 }
+/*-----------------------------------------------------
+        Parameters:
 
+        Returns value:
+
+        Description
+           Normalize the priors by dividing by the total # of
+           times each pixel has been mapped.
+------------------------------------------------------*/
+int
+MRInormalizePriors(MRI *mri_priors)
+{
+  int      width, height, depth, x, y, z, class ;
+  float    *pnorm, norm ;
+
+  width = mri_priors->width ;
+  height = mri_priors->height ;
+  depth = mri_priors->depth ;
+
+/* 
+   allocate one image for each class, plus one to keep track of the
+   # of pixels mapped to that location.
+   */
+  for (z = 0 ; z < depth ; z++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      pnorm = &MRIFseq_vox(mri_priors, 0, y, z, COUNT_IMAGE) ;
+      for (x = 0 ; x < width ; x++)
+      {
+        norm = *pnorm++ ;
+        if (!FZERO(norm)) for (class = 0 ; class < GAUSSIAN_NCLASSES ; class++)
+        {
+          MRIFseq_vox(mri_priors, x, y, z, class) /= norm ;
+        }
+      }
+    }
+  }
+  return(NO_ERROR) ;
+}
