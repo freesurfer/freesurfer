@@ -566,6 +566,10 @@ static MRI *corRead(char *fname, int read_volume)
     {
       sscanf(line, "%*s %f %f %f", &c_r, &c_a, &c_s);
     }
+    else if(strncmp(line, "xform", 5) == 0 || strncmp(line, "transform", 9) == 0)
+    {
+      sscanf(line, "%*s %s", xform);
+    }
   }
 
   fclose(fp);
@@ -684,7 +688,28 @@ if(x_r == 0.0 && x_a == 0.0 && x_s == 0.0 && y_r == 0.0 && y_a == 0.0 && y_s == 
   mri->z_r = z_r;  mri->z_a = z_a;  mri->z_s = z_s;
   mri->c_r = c_r;  mri->c_a = c_a;  mri->c_s = c_s;
   if(strlen(xform) > 0)
-    strcpy(mri->transform_fname, xform);
+  {
+
+    if(xform[0] == '/')
+      strcpy(mri->transform_fname, xform);
+    else
+      sprintf(mri->transform_fname, "%s/%s", fname, xform);
+
+    if(input_transform_file(mri->transform_fname, &(mri->transform)) == NO_ERROR)
+    {
+      mri->linear_transform = get_linear_transform_ptr(&mri->transform);
+      mri->inverse_linear_transform = get_inverse_linear_transform_ptr(&mri->transform);
+      mri->free_transform = 1;
+    }
+    else
+    {
+      ErrorPrintf(ERROR_BAD_FILE, "error loading transform from %s", mri->transform_fname);
+      mri->linear_transform = NULL;
+      mri->inverse_linear_transform = NULL;
+      mri->free_transform = 1;
+    }
+
+  }
 
   if(!read_volume)
     return(mri);
