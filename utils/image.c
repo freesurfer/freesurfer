@@ -1634,9 +1634,15 @@ ImageCheckSize(IMAGE *inImage,IMAGE *outImage, int rows, int cols, int nframes)
   if (!nframes)
     nframes = inImage->num_frame ;
 
+#if 0
   inPix = (long)rows * (long)cols * (long)nframes * (long)inImage->sizepix ;
   outPix = (long)outImage->numpix * (long)outImage->sizepix * 
            (long)outImage->num_frame ;
+#else
+  /* don't take size of pixels into account */
+  inPix = (long)rows * (long)cols * (long)nframes ;
+  outPix = (long)outImage->numpix * (long)outImage->num_frame ;
+#endif
 
   return(outPix >= inPix) ;
 }
