@@ -6,13 +6,10 @@
 #include "mri_conform.h"
 #include "mriTransform.h"
 
-/*E* to fix tkmedit transform displacement problem - substitute these
-  for extract_i_to_r: */
-MATRIX *Volm_MRIgetRasToVoxelXform(MRI *mri);
-MATRIX *Volm_MRIgetVoxelToRasXform(MRI *mri);
-/*E*/
+//#define LINEAR_CORONAL_RAS_TO_CORONAL_RAS       21
+// should be in transform.h if they aren't already
 
-char *Volm_ksaErrorStrings[Volm_knNumErrorCodes] = {
+char Volm_ksaErrorStrings[Volm_knNumErrorCodes][Volm_knErrStringLen] = {
   "No error.",
   "Invalid signature.",
   "Invalid parameter.",
@@ -23,7 +20,7 @@ char *Volm_ksaErrorStrings[Volm_knNumErrorCodes] = {
   "Couldn't copy transform.",
   "Couldn't normalize volume.",
   "Couldn't export volume to COR format.",
-  "Normalized values not< present.",
+  "Normalized values not present.",
   "Scanner transform not present.",
   "Index to RAS transform not present."
 };
@@ -203,13 +200,11 @@ Volm_tErr Volm_DeepClone  ( mriVolumeRef  this,
   clone->mnDimensionZ = this->mnDimensionZ;
   
   /* copy mri volumes */
-  if ( NULL != this->mpMriValues ) {
-    DebugNote( ("Cloning normalized volume") );
-    clone->mpMriValues = MRIcopy( this->mpMriValues, NULL );
-    DebugAssertThrowX( (NULL != clone->mpMriValues),
-		       eResult, Volm_tErr_CouldntCopyVolume );
-  }  
-
+  DebugNote( ("Cloning normalized volume") );
+  clone->mpMriValues = MRIcopy( this->mpMriValues, NULL );
+  DebugAssertThrowX( (NULL != clone->mpMriValues),
+		     eResult, Volm_tErr_CouldntCopyVolume );
+  
   /* copy the transforms */
   if( NULL != this->mIdxToRASTransform ) {
     DebugNote( ("Copying index to RAS transform") );
@@ -265,10 +260,6 @@ Volm_tErr Volm_DeepClone  ( mriVolumeRef  this,
   memcpy( clone->maColorTable, this->maColorTable, 
 	  sizeof( this->maColorTable ));
   
-  /* Make our temp vars. */
-  clone->mpTmpScreenIdx = VectorAlloc( 4, MATRIX_REAL );
-  clone->mpTmpMRIIdx    = VectorAlloc( 4, MATRIX_REAL );
-
   /* return the clone */
   *opVolume = clone;
   
@@ -317,6 +308,11 @@ Volm_tErr Volm_ImportData ( mriVolumeRef this,
   m_resample = MRIgetConformMatrix( mriVolume );
   DebugAssertThrowX( (NULL != m_resample), 
                      eResult, Volm_tErr_CouldntNormalizeVolume );
+//#define _VID_DEBUG  
+#ifdef _VID_DEBUG
+  fprintf(stderr, "m_resample = \n");
+  MatrixPrint(stderr, m_resample);
+#endif
   
   /* grab the xsize of the conformed volume as our dimension */
   this->mnDimensionX = abs(mriVolume->xend - mriVolume->xstart);
@@ -355,21 +351,45 @@ Volm_tErr Volm_ImportData ( mriVolumeRef this,
     Trns_Delete( &(this->mIdxToRASTransform) );
   }
   
-  if (mriVolume->slice_direction != MRI_CORONAL)
+  /*E* dangerous to check slice_direction - for .mgh at least this
+    shoule break unless this changes to if(ras_good_flag and not that
+    kind of coronal) else check slice_direction - actually, what is
+    that check for? */
+
+  //  if (mriVolume->slice_direction != MRI_CORONAL)
+  if ( 
+      (mriVolume->ras_good_flag &&
+       ( mriVolume->x_r != -1.0 
+	 || mriVolume->x_a != 0.0
+	 || mriVolume->x_s != 0.0
+	 || mriVolume->y_r != 0.0
+	 || mriVolume->y_a != 0.0
+	 || mriVolume->y_s != -1.0
+	 || mriVolume->z_r != 0.0
+	 || mriVolume->z_a != 1.0
+	 || mriVolume->z_s != 0.0
+	 // || mriVolume->c_r != 0.0
+	 // || mriVolume->c_a != 0.0
+	 // || mriVolume->c_s != 0.0
+	 )
+       )
+      || (!mriVolume->ras_good_flag && mriVolume->slice_direction != MRI_CORONAL)
+      )
     {
       DebugNote( ("Creating idx to ras transform") );
       Trns_New( &this->mIdxToRASTransform );
       DebugNote( ("Getting idx to ras matrix") );
       idxToRASTransform = MRIgetVoxelToRasXform( mriVolume );
+      // that includes voxelsize
       DebugAssertThrowX( (NULL != idxToRASTransform),
-			 eResult, Volm_tErr_AllocationFailed );
+                         eResult, Volm_tErr_AllocationFailed );
       DebugNote( ("Copying idx to ras transform matrix into transform") );
       Trns_CopyAtoRAS( this->mIdxToRASTransform, idxToRASTransform );
       DebugNote( ("Copying identity matrix into idx to ras transform") );
       Trns_CopyARAStoBRAS( this->mIdxToRASTransform, identity ); /* no display xform */
       Trns_CopyBtoRAS( this->mIdxToRASTransform, identity );
     }
-  else
+  else 
     {
       idxToRASTransform = MatrixAlloc( 4, 4, MATRIX_REAL );
       MatrixClear( idxToRASTransform );
@@ -453,7 +473,7 @@ Volm_tErr Volm_ExportNormToCOR ( mriVolumeRef this,
   return eResult;
 }
 
-//#define _VLDTDEBUG
+//#define _VLDT_DEBUG
 
 Volm_tErr Volm_LoadDisplayTransform ( mriVolumeRef this,
 				      char*        isFileName ) {
@@ -475,65 +495,107 @@ Volm_tErr Volm_LoadDisplayTransform ( mriVolumeRef this,
   /* try to read a transform and make sure we got it */
   DebugNote( ("Creating transform from lta transform file %s", isFileName) );
   eTransform = Trns_NewFromLTA( &(this->mDisplayTransform), isFileName );
+  //E/ Trns_NewFromLTA copies the matrix right out of
+  //LTATransform->xforms[0].m_L and notes type
   DebugAssertThrowX( (Trns_tErr_NoErr == eTransform),
 		     eResult, Volm_tErr_CouldntReadTransform );
   
-  /* convert RAS->RAS transform to screen->voxel coords */
+  /* convert (VOX->VOX xform to) RAS->RAS transform to screen->voxel coords */
   switch (this->mDisplayTransform->type)
     {
+    case LINEAR_CORONAL_RAS_TO_CORONAL_RAS:
+      {
+	extern MATRIX *gm_screen2ras ;
+        MATRIX *m_coronalras2coronalras, *m_ras2ras, *m_ras2ras_inverse, *m_tmp, *m_ras2vox,
+	  *m_thisorientation2coronal, *m_coronal2thisorientation;
+
+        Trns_GetARAStoBRAS(this->mDisplayTransform, &m_coronalras2coronalras) ;
+	m_thisorientation2coronal = MRIgetConformMatrix(this->mpMriValues);
+	//E/ = MRIgetResampleMatrix(mri, templ) = src_inv*m_templ
+	m_coronal2thisorientation = MatrixInverse(m_thisorientation2coronal, NULL);
+
+	//E/ want m_ras2ras = m_coronal2thisorientation_src * m_coronalras_t2coronalras_s
+
+	//E/ NOT * m_thisorientation2coronal_targ - leave that end
+	//coronal - we don't have any noncoronal targ orientation in
+	//mind.
+
+	m_ras2ras = MatrixMultiply(m_coronal2thisorientation, m_coronalras2coronalras, NULL); //m_ras_c2ras_s
+	
+        m_ras2vox = MRIgetRasToVoxelXform(this->mpMriValues);
+        m_ras2ras_inverse = MatrixInverse(m_ras2ras, NULL) ; // ras_s2ras_c
+        m_tmp = MatrixMultiply(m_ras2ras_inverse, gm_screen2ras, NULL) ;
+        MatrixMultiply(m_ras2vox, m_tmp, this->m_resample) ;
+	// m_resample_t2s = m_ras2vox_s * m_ras_t2ras_s * gm_screen2ras_t
+        DebugNote( ("Calculating inverse of resample matrix") );
+        MatrixInverse( this->m_resample, this->m_resample_inv );
+        printf("resample matrix is:\n") ;
+        MatrixPrint(stdout, this->m_resample) ;
+        MatrixFree(&m_ras2vox) ; MatrixFree(&m_tmp);MatrixFree(&m_ras2ras_inverse);
+        break ;
+      }
     case LINEAR_VOX_TO_VOX:
       {
-	MATRIX *m_ras2ras, *m_vox2vox ;
-	
-	/* assume it's in coronal->coronal coordinates */
-	Trns_GetARAStoBRAS(this->mDisplayTransform, &m_vox2vox) ;
-	m_ras2ras = MRIvoxelXformToRasXform(this->mpMriValues, this->mpMriValues, m_vox2vox, NULL);
-	
-	Trns_CopyARAStoBRAS(this->mDisplayTransform, m_ras2ras) ;
-	MatrixFree(&m_vox2vox) ; MatrixFree(&m_ras2ras) ;
+        MATRIX *m_ras2ras, *m_vox2vox ;
+
+        /* assume it's in coronal->coronal coordinates */
+        Trns_GetARAStoBRAS(this->mDisplayTransform, &m_vox2vox) ;
+        m_ras2ras = MRIvoxelXformToRasXform(this->mpMriValues, this->mpMriValues, m_vox2vox, NULL);
+
+        Trns_CopyARAStoBRAS(this->mDisplayTransform, m_ras2ras) ;
+        MatrixFree(&m_vox2vox) ; MatrixFree(&m_ras2ras) ;
+#ifdef _VLDT_DEBUG
+	fprintf(stderr, "Volm_LoadDisplayTransform: case LINEAR_VOX_TO_VOX\n");
+#endif
       }
       /*  NOBREAK!!  break ;*/
+
     case LINEAR_RAS_TO_RAS:
+      //E/ could probably fix it for this case
+    case LINEAR_RAS_TO_CORONAL_RAS:
+      //E/ this case was probably a mistake
       {
 	extern MATRIX *gm_screen2ras ;
 	MATRIX *m_ras2ras, *m_ras2ras_inverse, *m_tmp, *m_ras2vox ;
 	
+	if (this->mDisplayTransform->type == LINEAR_VOX_TO_VOX)
+	  fprintf(stderr, "Don't really know what to do with a LTA of type LINEAR_VOX_TO_VOX - we'll pretend it's LINEAR_VOX_TO_CONFORM_VOX and see what happens.\n");
+	if (this->mDisplayTransform->type == LINEAR_RAS_TO_CORONAL_RAS)
+	  fprintf(stderr, "Don't really know what to do with a LTA of type LINEAR_RAS_TO_CORONAL_RAS - we'll pretend it's LINEAR_CORONAL_RAS_TO_CORONAL_RAS and see what happens.\n");
+	if (this->mDisplayTransform->type == LINEAR_RAS_TO_RAS)
+	  fprintf(stderr, "Don't really know what to do with a LTA of type LINEAR_RAS_TO_RAS - we'll pretend it's LINEAR_CORONAL_RAS_TO_CORONAL_RAS and see what happens.\n");
+
 	Trns_GetARAStoBRAS(this->mDisplayTransform, &m_ras2ras) ;
-	
-	m_ras2vox = Volm_MRIgetRasToVoxelXform(this->mpMriValues);
-	/*E*  In the previous rev, that line was:
-	  m_ras2vox = MRIgetRasToVoxelXform(this->mpMriValues) ;
-	  
-	  MRIgetRasToVoxelXform() is pound-defined in mri.h as
-	  mri.c's extract_r_to_i() , and refers to mri->x/y/zsize and
-	  mri->w/h/depth
-	  
-	  This is where the 05aug02 displacement trouble appears to come
-	  from.  If I write a new function that doesn't displace by
-	  c_ras, the problem goes away.  So I did.	
-	  
-	  *E*/
-	
+	//E/ m_ras2ras is either from v2v case above or what mri_rigid_register wrote out, i.e. ras_c2ras_s
+
+	m_ras2vox = MRIgetRasToVoxelXform(this->mpMriValues) ;
 	m_ras2ras_inverse = MatrixInverse(m_ras2ras, NULL) ;
-	/*E* the value of gm_screen2ras is hardcoded in tkmedit.c */
 	m_tmp = MatrixMultiply(m_ras2ras_inverse, gm_screen2ras, NULL) ;
 	MatrixMultiply(m_ras2vox, m_tmp, this->m_resample) ;
+	//E/ m_resample = m_ras2vox_s * m_ras_c2ras_s * gm_screen2ras_c
+	//E/ the value of gm_screen2ras is hardcoded in tkmedit.c = "W"
 	DebugNote( ("Calculating inverse of resample matrix") );
 	MatrixInverse( this->m_resample, this->m_resample_inv );
 
-#ifdef _VLDTDEBUG
-	fprintf(stderr, "Volm_LoadDisplayTransform: case LINEAR_RAS_TO_RAS or fell through\n");
-	fprintf(stderr, "m_ras2ras = \n");
+	//E/ now m_resample_inv = gm_ras_c2screen * m_ras_s2ras_c * m_vox2ras_s
+
+	// Trns_GetARAStoBRAS() delivers whatever you wrote out to the
+	// lta file, in e.g. mri_rigid_register, which is ras_s2ras_c.
+	// Or ras_c2ras_s.  Uhh..
+
+#ifdef _VLDT_DEBUG
+	fprintf(stderr, "Volm_LoadDisplayTransform: case LINEAR_RAS_TO_CORONAL_RAS or fell through\n");
+	fprintf(stderr, "m_ras2ras (= m_ras_s2ras_c, I think) = \n");
 	MatrixPrint(stderr, m_ras2ras) ;
-	fprintf(stderr, "m_ras2vox = \n");
+	fprintf(stderr, "m_ras2vox (= m_ras2vox_s) = \n");
 	MatrixPrint(stderr, m_ras2vox) ;
-	fprintf(stderr, "m_ras2ras_inverse = \n");
+	fprintf(stderr, "m_ras2ras_inverse (= m_ras_c2ras_s, I think) = \n");
 	MatrixPrint(stderr, m_ras2ras_inverse ) ;
-	fprintf(stderr, "gm_screen2ras = \n");
+	fprintf(stderr, "gm_screen2ras(_c) = \n");
 	MatrixPrint(stderr, gm_screen2ras) ;
 	fprintf(stderr, "m_tmp = m_ras2ras_inverse * gm_screen2ras = \n");
 	MatrixPrint(stderr, m_tmp) ;
-	fprintf(stderr, "this->m_resample = m_ras2vox * m_ras2ras_inverse * gm_screen2ras = ");
+	fprintf(stderr, "this->m_resample = m_ras2vox * m_ras2ras_inverse * gm_screen2ras = m_ras2vox(_s) * m_ras_c2ras_s * gm_screen2ras(_c) = ");
 #endif
 	
 	printf("resample matrix is:\n") ;
@@ -542,6 +604,7 @@ Volm_tErr Volm_LoadDisplayTransform ( mriVolumeRef this,
 	break ;
       }
     default:   /* don't know what to do yet */
+      fprintf(stderr, "LTA type isn't LINEAR_VOX_TO_VOX, LINEAR_RAS_TO_RAS, nor LINEAR_RAS_TO_CORONAL_RAS or the new ones - don't know what to do.\n");
       break ;
     }
   
@@ -556,10 +619,91 @@ Volm_tErr Volm_LoadDisplayTransform ( mriVolumeRef this,
 }
 
 
-/*E* See note above.  MRIgetRasToVoxelXform which is extract_r_to_i
-  was giving an extra displacement by c_ras.  Other things call it,
-  where that's probably the _right thing.  So this is a rewritten
-  version just for _this case to do. */
+/*E*
+MATRIX *Volm_VoxelXformToCoronalRasXform(MRI *mri_src, MATRIX *m_vox_c2vox_s, MATRIX *m_ras_c2ras_s)
+{
+  MATRIX   *V, *W, *m_tmp ;
+
+  //E/ need m_ras_c2ras_s = vox_c2ras_c * m_vox_c2vox_s * ras_s2vox_s
+  //E/ = W_s * m_vox_c2vox_s * V_c
+  V = MatrixAlloc(4, 4, MATRIX_REAL) ;  // world to voxel transform
+  W = MatrixAlloc(4, 4, MATRIX_REAL) ;  // voxel to world transform
+ 
+  //E/ 1mmIsotropicCoronalRas to vox
+  *MATRIX_RELT(V, 1, 1) = -1 ; *MATRIX_RELT(V, 1, 4) = 128 ;
+  *MATRIX_RELT(V, 2, 3) = -1 ; *MATRIX_RELT(V, 2, 4) = 128 ;
+  *MATRIX_RELT(V, 3, 2) = 1 ;  *MATRIX_RELT(V, 3, 4) = 128 ;
+  *MATRIX_RELT(V, 4, 4) = 1 ;
+
+  //E/ vox to appropriate Ras
+  W = MRIgetVoxelToRasXform(mri_src);
+
+  m_tmp = MatrixMultiply(m_vox_c2vox_s, V, NULL) ;
+  m_ras_c2ras_s = MatrixMultiply(W, m_tmp, NULL) ;
+
+  //#define _VVXTCRXDEBUG
+#ifdef _VVXTCRXDEBUG
+  fprintf(stderr, "Volm_VoxelXformToCoronalRasXform: m_vox_c2vox_s=\n");
+  MatrixPrint(stderr, m_vox_c2vox_s);
+  fprintf(stderr, "Volm_VoxelXformToCoronalRasXform: V=\n");
+  MatrixPrint(stderr, V);
+  fprintf(stderr, "Volm_VoxelXformToCoronalRasXform: W=\n");
+  MatrixPrint(stderr, W);
+  fprintf(stderr, "Volm_VoxelXformToCoronalRasXform: m_ras_c2ras_s=\n");
+  MatrixPrint(stderr, m_ras_c2ras_s);
+#endif
+
+  MatrixFree(&V) ; MatrixFree(&W) ; MatrixFree(&m_tmp) ;
+  return(m_ras_c2ras_s) ;
+}
+*/
+
+
+MATRIX *Volm_V2CVXtoR2CRX(MRI *mri_src, MATRIX *m_vox_s2vox_c, MATRIX *m_ras_s2ras_c)
+{
+  MATRIX   *V, *W, *m_tmp ;
+
+  //E/ need m_ras_s2ras_c = vox_c2ras_c * m_vox_s2vox_c * ras_s2vox_s
+  //E/ = W_c * m_vox_t2vox_s * V_s
+  V = MatrixAlloc(4, 4, MATRIX_REAL) ;  /* world to voxel transform */
+  W = MatrixAlloc(4, 4, MATRIX_REAL) ;  /* voxel to world transform */
+ 
+  //E/ vox to 1mmIsotropicCoronalRas
+    *MATRIX_RELT(W, 1, 1) = -1 ; *MATRIX_RELT(W, 1, 4) = 128 ;
+    *MATRIX_RELT(W, 2, 3) = 1 ; *MATRIX_RELT(W, 2, 4) = -128 ;
+    *MATRIX_RELT(W, 3, 2) = -1 ;  *MATRIX_RELT(W, 3, 4) = 128 ;
+    *MATRIX_RELT(W, 4, 4) = 1 ;
+
+  //E/ ras to appropriate vox
+  V = MRIgetRasToVoxelXform(mri_src);
+
+  m_tmp = MatrixMultiply(m_vox_s2vox_c, V, NULL) ;
+  m_ras_s2ras_c = MatrixMultiply(W, m_tmp, NULL) ;
+
+  //#define _VVXTCRXDEBUG
+#ifdef _VVXTCRXDEBUG
+  fprintf(stderr, "Volm_V2CVXtoR2CRX: m_vox_s2vox_c=\n");
+  MatrixPrint(stderr, m_vox_s2vox_c);
+  fprintf(stderr, "Volm_V2CVXtoR2CRX: V_s=\n");
+  MatrixPrint(stderr, V);
+  fprintf(stderr, "Volm_V2CVXtoR2CRX: W_c=\n");
+  MatrixPrint(stderr, W);
+  fprintf(stderr, "Volm_V2CVXtoR2CRX: m_ras_s2ras_c=\n");
+  MatrixPrint(stderr, m_ras_s2ras_c);
+#endif
+
+  MatrixFree(&V) ; MatrixFree(&W) ; MatrixFree(&m_tmp) ;
+  return(m_ras_s2ras_c) ;
+}
+
+
+
+#if 0
+//E/ KLUDGE ALERT, getting rid of this!
+/*E* See note above, where this is called.  MRIgetRasToVoxelXform
+  which is extract_r_to_i was giving an extra displacement by c_ras.
+  Other things call it, where that's probably the _right thing.  So
+  this is a rewritten version just for _this case to do. */
 MATRIX *Volm_MRIgetRasToVoxelXform(MRI *mri)
 {
   MATRIX *m_ras_to_voxel, *m_voxel_to_ras ;
@@ -578,7 +722,7 @@ MATRIX *Volm_MRIgetVoxelToRasXform(MRI *mri)
   float m31, m32, m33, m34;
   float ci, cj, ck;
   
-#ifdef _VLDTDEBUG
+#ifdef _VLDT_DEBUG
   /*E*/ fprintf(stderr, "Volm_MRIgetVoxelToRasXform(): mri = \n");
   /*E*/ MRIdump(mri, stderr);
 #endif
@@ -591,7 +735,7 @@ MATRIX *Volm_MRIgetVoxelToRasXform(MRI *mri)
   
   if(mri->ras_good_flag)
     {
-#ifdef _VLDTDEBUG
+#ifdef _VLDT_DEBUG
       /*E*/ fprintf(stderr, "Volm_MRIgetVoxelToRasXform(): in ras_good_flag\n");
 #endif
       
@@ -650,7 +794,7 @@ MATRIX *Volm_MRIgetVoxelToRasXform(MRI *mri)
 		     m21, m22, m23, m24, 
 		     m31, m32, m33, m34, 
 		     0.0, 0.0, 0.0, 1.0);
-#ifdef _VLDTDEBUG
+#ifdef _VLDT_DEBUG
   /*E*/  fprintf(stderr, "Volm_MRIgetVoxelToRasXform(): m = \n");
   /*E*/  MatrixPrint(stderr, m) ;
 #endif
@@ -658,6 +802,8 @@ MATRIX *Volm_MRIgetVoxelToRasXform(MRI *mri)
   return(m);
   
 } /* end Volm_MRIgetVoxelToRasXform() */
+#endif
+
 
 
 Volm_tErr Volm_UnloadDisplayTransform ( mriVolumeRef this ) {
@@ -930,7 +1076,7 @@ Volm_tErr Volm_ConvertIdxToRAS ( mriVolumeRef this,
 	      xVoxl_ExpandFloat( &mriIdx )) );
   MRIvoxelToWorld( this->mpMriValues, xVoxl_ExpandFloat( &mriIdx ),
 		   &rasX, &rasY, &rasZ );
-  
+  //E/ rewriting this - it checked slice_direction before ras_good_flag
   /* stuff results */
   DebugNote( ("Stuffing result into xVoxel") );
   xVoxl_SetFloat( oRAS, (float)rasX, (float)rasY, (float)rasZ );
@@ -1022,6 +1168,9 @@ Volm_tErr Volm_ConvertIdxToMNITal ( mriVolumeRef this,
 	      "MRIvoxelToTalairachVoxel", xVoxl_ExpandFloat( &mriIdx )) );
   MRIvoxelToTalairach( this->mpMriValues, xVoxl_ExpandFloat( &mriIdx ),
 		       &talX, &talY, &talZ );
+  //E/ written for coronal only - might be confusing for .mgh's (they
+  //look coronal (slice_direction is not set, so sometimes 0) but
+  //aren't)
   
   /* stuff results */
   DebugNote( ("Stuffing result into xVoxel") );
@@ -2180,7 +2329,7 @@ void Volm_GetValueAtXYSlice_ ( mriVolumeRef this,
 			       float*            oValue) {
   
   Volm_ConvertXYSliceToIdx_( iOrientation, iPoint, inSlice, &this->mTmpVoxel );
-  Volm_GetValueAtIdx_( this, &this->mTmpVoxel, oValue );
+  Volm_GetValueAtIdx_( this, &idx, oValue );
 }
 
 void Volm_GetValueAtIdx_ ( mriVolumeRef this,
