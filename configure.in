@@ -681,6 +681,9 @@ AC_SUBST(LIBS_TCL)
 AC_SUBST(LIBS_TCL_OPENGL)
 AC_SUBST(TCL_CFLAGS)
 
+# check whether needs Itcl_Init() and Itk_Init()
+AX_TIX_INITCHECK($TCL_CFLAGS, $LDFLAGS_TCL, $LIBS_TCL)
+
 ###########################################################################################
 # Checks for header files.
 ############################################################################################
