@@ -14,7 +14,7 @@
 #include "macros.h"
 #include "fio.h"
 
-static char vcid[] = "$Id: mris_anatomical_stats.c,v 1.4 1999/02/01 15:11:49 fischl Exp $";
+static char vcid[] = "$Id: mris_anatomical_stats.c,v 1.5 2000/02/09 13:42:12 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -44,17 +44,22 @@ static char *label_name = NULL ;
 static char *annotation_name = NULL ;
 static char *thickness_name = "thickness" ;
 
+static int histo_flag = 0 ;
+static char *gray_histo_name ;
+static char *mri_name = "T1" ;
+
 int
 main(int argc, char *argv[])
 {
   char          **av, *hemi, *sname, sdir[400], *cp, fname[500], *surf_name ;
   int           ac, nargs, vno ;
   MRI_SURFACE   *mris ;
-  MRI           *mri_wm, *mri_kernel = NULL ;
+  MRI           *mri_wm, *mri_kernel = NULL, *mri_orig ;
   double        gray_volume, wm_volume, thickness_mean, thickness_var,
                 total_abs_curvature, ici, fi ;
   int           mark = 0 ;
   VERTEX        *v ;
+  HISTOGRAM     *histo_gray ;
 
   Progname = argv[0] ;
   ErrorInit(NULL, NULL, NULL) ;
@@ -138,6 +143,21 @@ main(int argc, char *argv[])
     MRIScomputeMetricProperties(mris) ;
   }
 
+  if (histo_flag)
+  { 
+    sprintf(fname, "%s/%s/mri/%s", sdir, sname, mri_name) ;
+    fprintf(stderr, "reading volume %s...\n", fname) ;
+    mri_orig = MRIread(fname) ;
+    if (!mri_orig)
+      ErrorExit(ERROR_NOFILE, "%s: could not read input volume %s",
+                Progname, fname) ;
+    histo_gray = HISTOalloc(256) ; 
+  }
+  else
+  { 
+    histo_gray = NULL ; mri_orig = NULL ;
+  }
+
 #if 0
   fprintf(stderr, "measuring cortical thickness...") ;
   MRISmeasureCorticalThickness(mris, mri_wm) ;
@@ -155,9 +175,25 @@ main(int argc, char *argv[])
           wm_volume) ;
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
+    if (!histo_flag && annotation_name == NULL)
+      break ;
     v = &mris->vertices[vno] ;
     if (v->ripflag)
       continue ;
+    if (histo_flag)
+    {
+      double d, xw, yw, zw, x, y, z, thickness, val ;
+      
+      thickness = v->imag_val ;
+
+      for (d = 0.5 ; d < (thickness-0.5) ; d += 0.1)
+      {
+        x = v->x+d*v->nx ; y = v->y+d*v->ny ; z = v->z+d*v->nz ;
+        MRIworldToVoxel(mri_orig, x, y, z, &xw, &yw, &zw) ;
+        MRIsampleVolume(mri_orig, xw, yw, zw, &val) ;
+        HISTOaddSample(histo_gray, val, 0, 255) ;
+      }
+    }
     if (annotation_name)
     {
       mark = v->marked ;
@@ -166,7 +202,43 @@ main(int argc, char *argv[])
               v->marked&0xff,(v->marked>>8)&0xff,(v->marked>>16)&0xff) ;
       MRISripVerticesWithoutMark(mris, mark) ;
       MRIScomputeMetricProperties(mris) ;
+
+
+
+      MRIScopyCurvatureFromImagValues(mris) ;  /* restore thickness measures */
+      MRIScomputeCurvatureStats(mris, &thickness_mean, &thickness_var,
+                                ignore_below, ignore_above) ;
+      
+      fprintf(stdout, "total surface area                      = %2.0f mm^2\n", 
+              mris->total_area) ;
+      
+      gray_volume = MRISmeasureCorticalGrayMatterVolume(mris) ;
+      fprintf(stdout, "total gray matter volume                = %2.0f mm^3\n", 
+              gray_volume) ;
+      
+      fprintf(stdout, 
+              "average cortical thickness              = %2.3f mm +- %2.3f mm\n",
+              thickness_mean, sqrt(thickness_var)) ;
+      
+      MRISuseMeanCurvature(mris) ;
+      total_abs_curvature = MRIScomputeAbsoluteCurvature(mris) ;
+      fprintf(stdout, "integrated rectified mean curvature     = %2.3f\n", 
+              total_abs_curvature) ;
+      MRISuseGaussianCurvature(mris) ;
+      total_abs_curvature = MRIScomputeAbsoluteCurvature(mris) ;
+      fprintf(stdout, "integrated rectified Gaussian curvature = %2.3f\n", 
+              total_abs_curvature) ;
+      MRIScomputeCurvatureIndices(mris, &ici, &fi) ;
+      fprintf(stdout, "folding index                           = %2.3f\n", fi);
+      fprintf(stdout, "intrinsic curvature index               = %2.3f\n", ici);
+      MRISrestoreSurface(mris) ;
+      MRISreplaceMarks(mris, mark, -1) ;
+      MRISripVerticesWithMark(mris, -1) ;
     }
+  }
+
+  if (annotation_name == NULL)
+  {
     MRIScopyCurvatureFromImagValues(mris) ;  /* restore thickness measures */
     MRIScomputeCurvatureStats(mris, &thickness_mean, &thickness_var,
                               ignore_below, ignore_above) ;
@@ -179,7 +251,7 @@ main(int argc, char *argv[])
             gray_volume) ;
     
     fprintf(stdout, 
-          "average cortical thickness              = %2.3f mm +- %2.3f mm\n",
+            "average cortical thickness              = %2.3f mm +- %2.3f mm\n",
             thickness_mean, sqrt(thickness_var)) ;
     
     MRISuseMeanCurvature(mris) ;
@@ -191,16 +263,16 @@ main(int argc, char *argv[])
     fprintf(stdout, "integrated rectified Gaussian curvature = %2.3f\n", 
             total_abs_curvature) ;
     MRIScomputeCurvatureIndices(mris, &ici, &fi) ;
-    fprintf(stdout, "folding index                           = %2.3f\n", fi) ;
+    fprintf(stdout, "folding index                           = %2.3f\n", fi);
     fprintf(stdout, "intrinsic curvature index               = %2.3f\n", ici);
-    if (annotation_name)
-    {
-      MRISrestoreSurface(mris) ;
-      MRISreplaceMarks(mris, mark, -1) ;
-      MRISripVerticesWithMark(mris, -1) ;
-    }
-    else
-      break ;
+  }
+  if (histo_flag)
+  {
+    fprintf(stderr, "plotting gray matter histogram to file %s...\n",
+            gray_histo_name) ;
+    HISTOplot(histo_gray, gray_histo_name) ;
+    MRIfree(&mri_orig) ;
+    HISTOfree(&histo_gray) ;
   }
   exit(0) ;
   return(0) ;  /* for ansi */
@@ -233,6 +305,19 @@ get_option(int argc, char *argv[])
     label_name = argv[2] ;
     nargs = 1 ;
     fprintf(stderr, "limiting computations to label %s.\n", label_name) ;
+    break ;
+  case 'M':
+    mri_name = argv[2] ;
+    nargs = 1 ;
+    fprintf(stderr, "computing histograms on intensity values from %s...\n",
+            mri_name) ;
+    break ;
+  case 'H':
+    histo_flag = 1 ;
+    gray_histo_name = argv[2] ;
+    nargs = 1 ;
+    fprintf(stderr,"writing histograms of intensity distributions to %s...\n",
+            gray_histo_name);
     break ;
   case 'A':
     annotation_name = argv[2] ;
