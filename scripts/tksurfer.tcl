@@ -1,6 +1,6 @@
 #! /usr/bin/tixwish
 
-# $Id: tksurfer.tcl,v 1.60 2004/08/04 20:56:23 kteich Exp $
+# $Id: tksurfer.tcl,v 1.61 2004/11/02 00:51:54 kteich Exp $
 
 package require BLT;
 
@@ -795,6 +795,7 @@ proc DoConfigOverlayDisplayDlog {} {
     global gCopyFieldTarget
     global gbwHisto
     global gsHistoValue
+    global gFDRRate
     
     set wwDialog .wwConfigOverlayDisplayDlog
     
@@ -964,20 +965,23 @@ proc DoConfigOverlayDisplayDlog {} {
 	# create the histogram frame and subunits
 	frame $fwHisto -relief ridge -border 2
 
-	set lwHisto  $fwHisto.lwHisto
-	set gbwHisto $fwHisto.bwHisto
-	set fwThresh $fwHisto.fwThresh
-	set ewMin    $fwThresh.ewMin
-	set ewMid    $fwThresh.ewMid
-	set ewMax    $fwThresh.ewMax
-	set ewSlope  $fwThresh.ewSlope
+	set lwHisto   $fwHisto.lwHisto
+	set gbwHisto  $fwHisto.bwHisto
+	set fwThresh  $fwHisto.fwThresh
+	set ewMin     $fwThresh.ewMin
+	set ewMid     $fwThresh.ewMid
+	set ewMax     $fwThresh.ewMax
+	set ewSlope   $fwThresh.ewSlope
 	set fwValueOffset $fwHisto.fwValueOffset
-	set ewValue  $fwValueOffset.ewValue
-	set ewOffset $fwValueOffset.ewOffset
-	set fwCopy   $fwHisto.fwCopy
-	set bwCopy   $fwCopy.bwCopy
-	set owTarget $fwCopy.owTarget
-	set cbwAll   $fwCopy.cbwAll
+	set ewValue   $fwValueOffset.ewValue
+	set ewOffset  $fwValueOffset.ewOffset
+	set fwCopy    $fwHisto.fwCopy
+	set bwCopy    $fwCopy.bwCopy
+	set owTarget  $fwCopy.owTarget
+	set cbwAll    $fwCopy.cbwAll
+	set fwFDR     $fwHisto.fwFDR
+	set bwFDR     $fwFDR.bwFDR
+	set ewFDRRate $fwFDR.ewFDRRate
 
 	label $lwHisto -text "Threshold" -font [tkm_GetLabelFont]
 
@@ -1047,7 +1051,7 @@ proc DoConfigOverlayDisplayDlog {} {
 	
 	pack $ewMin $ewMid $ewMax $ewSlope \
 	    -side left
-	
+
 	# make the button and menu that the user can use to copy the
 	# threshold settings to another layer.
 	frame $fwCopy
@@ -1066,6 +1070,18 @@ proc DoConfigOverlayDisplayDlog {} {
 	    -text "Apply changes to all layers" \
 	    -font [tkm_GetNormalFont]
 
+	# button and field for setting the threshold using FDR.
+	frame $fwFDR
+	tkm_MakeButtons $bwFDR \
+	    [list \
+		 [list text "Set Threshold Using FDR" \
+		      {sclv_set_current_threshold_using_fdr $gFDRRate}]]
+	tkm_MakeEntry $ewFDRRate "Rate" gFDRRate 4 {}
+	
+	pack $bwFDR $ewFDRRate \
+	    -side left \
+	    -expand yes \
+	    -fill x
 	
 	grid $bwCopy   -column 0 -row 0 
 	grid $owTarget -column 1 -row 0 -sticky news
@@ -1078,6 +1094,7 @@ proc DoConfigOverlayDisplayDlog {} {
 	pack $fwThresh -side top
 	pack $fwValueOffset -side top -expand yes -fill x
 	pack $fwCopy -side top  -expand yes -fill x
+	pack $fwFDR  -side top  -expand yes -fill x
 
 	# buttons.
 	tkm_MakeDialogButtons $fwButtons $wwDialog [list \
@@ -1092,7 +1109,7 @@ proc DoConfigOverlayDisplayDlog {} {
 	]
 	
 	pack $fwMain $fwDisplay $fwPlane $fwColorScale \
-	    $fwFlags $fwHisto $fwButtons \
+	    $fwFlags $fwHisto $fwFDR $fwButtons \
 	    -side top       \
 	    -expand yes     \
 	    -fill x         \

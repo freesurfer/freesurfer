@@ -7,6 +7,7 @@
 #include "xDebug.h"
 #include "proto.h"
 #include "mrisurf.h"
+#include "mrisutils.h"
 #include "const.h"
 #include "fio.h"
 #include "error.h"
@@ -1455,6 +1456,9 @@ int sclv_set_threshold_from_percentile         (int field, float thresh,
 						float mid, float max);
 int sclv_get_value_for_percentile              (int field, float percentile, 
 						float* value);
+
+/* sets the threshold using FDR. */
+int sclv_set_threshold_using_fdr (int field, float rate);
 
 /* copies field settings from one field to another */
 int sclv_copy_view_settings_from_current_field (int field);
@@ -5862,7 +5866,6 @@ read_image_info(char *fpref)
     }
   else 
     {
-
       /* Look for a mgz version of the T1 and get the info from there. */
       sprintf(fname,"%s/%s/mri/T1.mgz",subjectsdir,pname);
       mri_header = MRIreadHeader (fname, MRI_VOLUME_TYPE_UNKNOWN);
@@ -16954,6 +16957,7 @@ int W_sclv_copy_view_settings_from_current_field PARM;
 int W_sclv_copy_all_view_settings_from_current_field PARM;
 int W_sclv_copy_view_settings_from_field PARM;
 int W_sclv_set_current_threshold_from_percentile PARM;
+int W_sclv_set_current_threshold_using_fdr PARM;
 int W_sclv_send_histogram PARM;
 int W_sclv_send_current_field_info PARM;
 int W_sclv_get_normalized_color_for_value PARM;
@@ -17912,6 +17916,9 @@ int W_sclv_copy_all_view_settings_from_current_field  WBEGIN
      int W_sclv_set_current_threshold_from_percentile  WBEGIN
      ERR(4,"Wrong # args: sclv_set_current_threshold_from_percentile thresh mid slope")
      sclv_set_current_threshold_from_percentile(atof(argv[1]),atof(argv[2]),atof(argv[3]));  WEND
+     int W_sclv_set_current_threshold_using_fdr  WBEGIN
+     ERR(2,"Wrong # args: sclv_set_current_threshold_using_fdr rate")
+     sclv_set_threshold_using_fdr(sclv_current_field,atof(argv[1]));  WEND
      int W_sclv_send_histogram  WBEGIN
      ERR(2,"Wrong # args: sclv_send_histogram field")
      sclv_send_histogram(atoi(argv[1]));  WEND
@@ -18222,7 +18229,7 @@ int main(int argc, char *argv[])   /* new main */
   /* end rkt */
   
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.80 2004/09/27 17:11:07 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.81 2004/11/02 00:51:28 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -18875,6 +18882,8 @@ int main(int argc, char *argv[])   /* new main */
 		    (Tcl_CmdProc*) W_sclv_copy_view_settings_from_field, REND);
   Tcl_CreateCommand(interp, "sclv_set_current_threshold_from_percentile", 
 		    (Tcl_CmdProc*) W_sclv_set_current_threshold_from_percentile, REND);
+  Tcl_CreateCommand(interp, "sclv_set_current_threshold_using_fdr", 
+		    (Tcl_CmdProc*) W_sclv_set_current_threshold_using_fdr, REND);
   Tcl_CreateCommand(interp, "sclv_send_histogram",
 		    (Tcl_CmdProc*) W_sclv_send_histogram, REND);
   Tcl_CreateCommand(interp, "sclv_send_current_field_info",
@@ -20540,7 +20549,7 @@ void wndw_handle_event (void* data, xGWin_tEventRef event)
       
     case xGWin_tEventType_Idle:
       /* Call the Tk event handling function. */
-      Tk_DoOneEvent (TK_ALL_EVENTS | TK_DONT_WAIT);
+      while (Tk_DoOneEvent (TK_ALL_EVENTS | TK_DONT_WAIT)) {}
 
 #if defined(Linux) || defined(sun) || defined(SunOS) | defined(Darwin)
       tv.tv_sec = 0;
@@ -22052,6 +22061,35 @@ int sclv_get_value_for_percentile (int field, float percentile, float* value)
   *value = sclv_field_info[field].min_value +
     ( ((sclv_field_info[field].max_value - sclv_field_info[field].min_value + 1) * bin) / sclv_field_info[field].num_freq_bins);
   
+  return (ERROR_NONE);
+}
+
+int sclv_set_threshold_using_fdr (int field, float rate)
+{
+  double threshold;
+  int err;
+
+  err = MRISfdr(mris, rate, 0, 1, 0, &threshold);
+  if( err ){
+    printf ("surfer: Error calculating threshold with FDR.\n");
+    return (err);
+  }
+
+  fprintf(stderr,"fdr got %f\n",threshold);
+
+  sclv_field_info[field].fthresh = threshold;
+  sclv_field_info[field].fmid = threshold + 1.5; 
+  sclv_field_info[field].fslope = 0.66; 
+
+  if (field == sclv_current_field)
+    {
+      fthresh = sclv_field_info[field].fthresh;
+      fmid = sclv_field_info[field].fmid;
+      fslope = sclv_field_info[field].fslope;
+      vertex_array_dirty = 1;
+      sclv_send_current_field_info();
+    }
+
   return (ERROR_NONE);
 }
 
