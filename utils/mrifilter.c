@@ -2426,7 +2426,7 @@ MRIconvolve1dShort(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis,
           
           for (ki = k, i = 0 ; i < len ; i++)
             total += *ki++ * 
-              (float)(MRIseq_vox(mri_src, x,y,zi[z+i-halflen], src_frame));
+              (float)(MRISseq_vox(mri_src, x,y,zi[z+i-halflen], src_frame));
           
           *outPix++ = (short)nint(total) ;
         }
