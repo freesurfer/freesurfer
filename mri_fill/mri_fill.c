@@ -14,7 +14,7 @@
 #include "mrinorm.h"
 #include "cma.h"
 
-static char vcid[] = "$Id: mri_fill.c,v 1.58 2002/09/10 19:57:50 fischl Exp $";
+static char vcid[] = "$Id: mri_fill.c,v 1.59 2003/01/24 19:30:52 fischl Exp $";
 
 /*-------------------------------------------------------------------
                                 CONSTANTS
@@ -427,9 +427,12 @@ main(int argc, char *argv[])
 		 with one of the labels
 	*/
   MRImask(mri_im, mri_cc, mri_im, 1, fill_val) ;
-  MRImask(mri_saved_labels, mri_cc, mri_saved_labels, 1, 0) ;
   MRImask(mri_im, mri_pons, mri_im, 1, fill_val) ;
-  MRImask(mri_saved_labels, mri_pons, mri_saved_labels, 1, 0) ;
+	if (mri_saved_labels)
+	{
+		MRImask(mri_saved_labels, mri_cc, mri_saved_labels, 1, 0) ;
+		MRImask(mri_saved_labels, mri_pons, mri_saved_labels, 1, 0) ;
+	}
   if (fill_val)
   {
     fprintf(stderr,"writing out image with cutting planes to 'planes.mgh'.\n");
@@ -438,9 +441,13 @@ main(int argc, char *argv[])
     exit(0) ;
   }
 
-  for (i = 0 ; i < NLABELS ; i++)
-    MRIcopyLabel(mri_saved_labels, mri_im, labels[i]) ;
-  MRIfree(&mri_labels) ; MRIfree(&mri_pons) ; MRIfree(&mri_saved_labels) ;
+	if (mri_saved_labels)
+	{
+		for (i = 0 ; i < NLABELS ; i++)
+			MRIcopyLabel(mri_saved_labels, mri_im, labels[i]) ;
+		MRIfree(&mri_saved_labels) ;
+	}
+  MRIfree(&mri_labels) ; MRIfree(&mri_pons) ; 
   if (!Gdiag)
     fprintf(stderr, "done.\n") ;
 
