@@ -6580,8 +6580,111 @@ static MRI *gdfRead(char *fname, int read_volume)
 static int gdfWrite(MRI *mri, char *fname)
 {
 
-  errno = 0;
-  ErrorReturn(ERROR_UNSUPPORTED, (ERROR_UNSUPPORTED, "GDF read unsupported"));
+  FILE *fp;
+  int i, j;
+  char im_fname[STRLEN];
+  unsigned char *buf;
+  int buf_size = 0;
+
+  if(strlen(mri->gdf_image_stem) == 0)
+  {
+    errno = 0;
+    ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "GDF write attempted without GDF image stem"));
+  }
+
+  if(mri->nframes != 1)
+  {
+    errno = 0;
+    ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "GDF write attempted with %d frames (supported only for 1 frame)", mri->nframes));
+  }
+
+  /* ----- type checks first ----- */
+
+  if(mri->type != MRI_UCHAR && 
+     mri->type != MRI_FLOAT && 
+     mri->type != MRI_SHORT)
+  {
+    errno = 0;
+    ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "gdfWrite(): bad data type (%d) for GDF write (only uchar, float, short supported)", mri->type));
+  }
+
+  /* ----- then write the image files ----- */
+
+  printf("writing GDF image files...\n");
+
+  if(mri->type == MRI_UCHAR)
+    buf_size = mri->width * sizeof(unsigned char);
+  if(mri->type == MRI_FLOAT)
+    buf_size = mri->width * sizeof(float);
+  if(mri->type == MRI_SHORT)
+    buf_size = mri->width * sizeof(short);
+
+  buf = (unsigned char *)malloc(buf_size);
+  if(buf == NULL)
+  {
+    errno = 0;
+    ErrorReturn(ERROR_NO_MEMORY, (ERROR_NO_MEMORY, "gdfWrite(): no memory for voxel write buffer"));
+  }
+
+  for(i = 0;i < mri->depth;i++)
+  {
+
+    sprintf(im_fname, "%s_%d.img", mri->gdf_image_stem, i+1);
+    fp = fopen(im_fname, "w");
+    if(fp == NULL)
+    {
+      free(buf);
+      errno = 0;
+      ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "gdfWrite(): error opening file %s", im_fname));
+    }
+
+    for(j = 0;j < mri->height;j++)
+    {
+      memcpy(buf, mri->slices[i][j], buf_size);
+#ifdef Linux
+      if(mri->type == MRI_FLOAT)
+        byteswapbuffloat(buf, buf_size);
+      if(mri->type == MRI_SHORT)
+        byteswapbufshort(buf, buf_size);
+#endif
+      fwrite(buf, 1, buf_size, fp);
+    }
+
+  fclose(fp);
+
+  }
+
+  free(buf);
+
+  /* ----- and finally the info file ----- */
+
+  printf("writing GDF info file...\n");
+
+  fp = fopen(fname, "w");
+  if(fp == NULL)
+  {
+    errno = 0;
+    ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "gdfWrite(): error opening file %s", fname));
+  }
+
+  fprintf(fp, "GDF FILE VERSION3\n");
+  fprintf(fp, "START MAIN HEADER\n");
+  fprintf(fp, "IMAGE_FILE_PATH %s_*.img\n", mri->gdf_image_stem);
+  fprintf(fp, "SIZE %d %d\n", mri->width, mri->height);
+  fprintf(fp, "IP_RES %g %g\n", mri->xsize, mri->ysize);
+  fprintf(fp, "SL_THICK %g\n", mri->zsize);
+  fprintf(fp, "FILE_OFFSET 0\n");
+  if(mri->type == MRI_UCHAR)
+    fprintf(fp, "DATA_TYPE unsigned char\n");
+  if(mri->type == MRI_FLOAT)
+    fprintf(fp, "DATA_TYPE float\n");
+  if(mri->type == MRI_SHORT)
+    fprintf(fp, "DATA_TYPE short\n");
+  fprintf(fp, "END MAIN HEADER\n");
+
+  fclose(fp);
+
+  return(NO_ERROR);
 
 }
 
