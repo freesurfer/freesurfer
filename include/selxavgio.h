@@ -1,6 +1,6 @@
 /***************************************************************
   Name:    selxavgio.h
-  $Id: selxavgio.h,v 1.1 2001/02/06 18:13:35 greve Exp $
+  $Id: selxavgio.h,v 1.2 2002/12/16 22:20:21 greve Exp $
   Author:  Douglas Greve
   Purpose: Routines for handling header files for data created by
   selxavg or selavg (selectively averaged).
@@ -16,7 +16,7 @@ typedef struct{
   int   Nc;    /* Total number of conditions, incl fix*/
   int   Nnnc;  /* Total number of conditions, exlc fix*/
   int   Nh;    /* Number of estimtes per condition = TW/TER*/
-  int   DOF;
+  float DOF;
   int   *npercond;
   int   nruns;
   int   ntp;
