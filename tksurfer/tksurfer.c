@@ -1036,7 +1036,7 @@ void bpfilter(FLOATTYPE **data, int nchan, int nsamp,float lo,float hi);
 
 /* -------------------------------------------------- the window and events */
 
-#define USE_XGLUT_WINDOW
+// #define USE_XGLUT_WINDOW
 
 #ifdef USE_XGLUT_WINDOW
 
