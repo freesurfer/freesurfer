@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2003/03/14 20:26:40 $
-// Revision       : $Revision: 1.55 $
+// Revision Date  : $Date: 2003/03/18 17:15:47 $
+// Revision       : $Revision: 1.56 $
 
 #include "tkmDisplayArea.h"
 #include "tkmMeditWindow.h"
@@ -7575,14 +7575,6 @@ tBoolean xUtil_LineIntersectsPlane ( xVoxelRef         ipAnaIdxA,
   return TRUE;
 }
 
-DspA_tErr DspA_AdjustSurfaceDrawPoint_( tkmDisplayAreaRef this,
-					xPoint2fRef       ipPoint ) {
-  
-  /* used to do artificial addtion of .5 pixels here */
-  /* it is no longer necessary                       */
-  return DspA_tErr_NoErr;
-}
-
 
 DspA_tErr DspA_AdjustSurfaceAnaIdx ( tkmDisplayAreaRef this,
 				     xVoxelRef         iAnaIdx ) {
@@ -7693,9 +7685,6 @@ DspA_tErr DspA_ParsePointList_( tkmDisplayAreaRef this,
 	drawPoint.mfY = drawListNode.mIntersectionPoint.mfY;
       }	
       
-      /* adjust the point */
-      DspA_AdjustSurfaceDrawPoint_( this, &drawPoint );
-	
       /* convert to zoomed coords. */
       drawPoint.mfX = ((float)this->mnZoomLevel * (drawPoint.mfX - xVoxl_GetFloatX(this->mpZoomCenter))) + (float)(this->mnVolumeSizeX/2.0);
       drawPoint.mfY = ((float)this->mnZoomLevel * (drawPoint.mfY - xVoxl_GetFloatY(this->mpZoomCenter))) + (float)(this->mnVolumeSizeY/2.0);
