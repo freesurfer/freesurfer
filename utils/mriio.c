@@ -1127,7 +1127,7 @@ analyzeRead(char *fname, int read_volume, int frame)
   /* these are the sizes the image 'should' be */
   if (hdr.dime.pixdim[0] > 3.5f)/* hack to support FIL and texas */
   {
-    hdr.dime.pixdim[2] *= 1.3 ;
+    /*    hdr.dime.pixdim[2] *= 1.3 ;*/
 #if 1
     width = max_dim / hdr.dime.pixdim[1] ;
     height = max_dim / hdr.dime.pixdim[2] ;
