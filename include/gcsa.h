@@ -95,5 +95,6 @@ int   GCSAreclassifyLabel(GCSA *gcsa, MRI_SURFACE *mris, LABEL *area) ;
 int   GCSAputInputType(GCSA *gcsa, int type, char *fname, int navgs, int ino,
                        int flags) ;
 int   GCSAsetCovariancesToIdentity(GCSA *gcsa) ;
+VERTEX *GCSAsourceToPriorVertex(GCSA *gcsa, VERTEX *v) ;
 
 #endif

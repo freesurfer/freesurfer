@@ -799,6 +799,12 @@ int   MRIScomputeAverageCircularPhaseGradient(MRI_SURFACE *mris, LABEL *area,
 
 #define GRAY_WHITE     1
 #define GRAY_CSF       2
+int
+MRIScomputeInvertedBorderValues(MRI_SURFACE *mris,MRI *mri_brain,
+																MRI *mri_smooth, Real inside_hi, Real border_hi,
+																Real border_low, Real outside_low, Real outside_hi,
+																double sigma,
+																float max_thickness, FILE *log_fp, int which);
 int   MRIScomputeBorderValues(MRI_SURFACE *mris,MRI *mri_brain,
                               MRI *mri_smooth, Real inside_hi, Real border_hi,
                               Real border_low, Real outside_low, Real outside_hi,

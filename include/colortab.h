@@ -29,5 +29,7 @@ int         CTABcolorToIndex(COLOR_TABLE *pct, int r, int g, int b, int*index);
 int         CTABindexToColor(COLOR_TABLE *pct, int index, int*r, int*g, int*b);
 int         CTABcopyName(COLOR_TABLE *pct, int index, char *name);
 int         CTABannotationToIndex(COLOR_TABLE *ctab, int annotation) ;
+int         CTABnameToIndex(COLOR_TABLE *ctab, char *name) ;
+int         CTABnameToAnnotation(COLOR_TABLE *ctab, char *name) ;
 
 #endif
