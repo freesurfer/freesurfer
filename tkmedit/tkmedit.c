@@ -4,9 +4,9 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2003/07/28 14:11:56 $
-// Revision       : $Revision: 1.165 $
-char *VERSION = "$Revision: 1.165 $";
+// Revision Date  : $Date: 2003/07/29 17:11:01 $
+// Revision       : $Revision: 1.166 $
+char *VERSION = "$Revision: 1.166 $";
 
 #define TCL
 #define TKMEDIT 
@@ -216,21 +216,6 @@ void ExtractVolumeName  ( char* isDataSource,
    false if -f is used on the command line. */
 tBoolean gEnableFileNameGuessing = TRUE;
 
-
-// ==========================================================================
-
-// =============================================================== CANCELLING
-
-/* These functions let the user cancel an action that is taking a long
-   time. */
-int gCancelListening    = 0;
-int gCancelUserCanceled = 0;
-
-void InitializeUserCancel ();
-void StartListeningForUserCancel ();
-void StopListeningForUserCancel ();
-int DidUserCancel ();
-void HandleUserCancelCallback (int signal);
 
 // ==========================================================================
 
@@ -1042,7 +1027,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
      shorten our argc and argv count. If those are the only args we
      had, exit. */
   /* rkt: check for and handle version tag */
-  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.165 2003/07/28 14:11:56 kteich Exp $");
+  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.166 2003/07/29 17:11:01 kteich Exp $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
   argc -= nNumProcessedVersionArgs;
@@ -2452,14 +2437,6 @@ void FindNearestSurfaceVertex ( Surf_tVertexSet iSet ) {
   if( MWin_tErr_NoErr != eWindow )
     goto error;
   
-  /* RKT: We don't need to adjust surface verts any more. */
-#if 0
-  /* first unadjust the point. */
-  eWindow = MWin_UnadjustSurfaceAnaIdx( gMeditWindow, &cursor );
-  if( MWin_tErr_NoErr != eWindow )
-    goto error;
-#endif
-  
   /* get the vertex */
   eSurface = Surf_GetClosestVertexVoxel( gSurface[tkm_tSurfaceType_Main],
 					 iSet, &cursor, &anaIdx,
@@ -2471,14 +2448,6 @@ void FindNearestSurfaceVertex ( Surf_tVertexSet iSet ) {
   Surf_GetSurfaceSetName( iSet, sSetName );
   OutputPrint "Nearest %s vertex to %d, %d, %d:\n\t%s\n",
     sSetName, xVoxl_ExpandInt( &cursor ), sDescription EndOutputPrint;
-  
-  /* RKT: We don't need to adjust surface verts any more. */
-#if 0
-  /* adjust it so it aligns to the surface. */
-  eWindow = MWin_AdjustSurfaceAnaIdx( gMeditWindow, &anaIdx );
-  if( MWin_tErr_NoErr != eWindow )
-    goto error;
-#endif
   
   /* tell the window to go there. */
   eWindow = MWin_SetCursor ( gMeditWindow, -1, &anaIdx );
@@ -2519,14 +2488,6 @@ void FindNearestInterpolatedSurfaceVertex ( Surf_tVertexSet iSet ) {
   if( MWin_tErr_NoErr != eWindow )
     goto error;
   
-  /* RKT: We don't need to adjust surface verts any more. */
-#if 0
-  /* first unadjust the point. */
-  eWindow = MWin_UnadjustSurfaceAnaIdx( gMeditWindow, &cursor );
-  if( MWin_tErr_NoErr != eWindow )
-    goto error;
-#endif
-  
   /* get the verteices */
   eWindow = MWin_GetClosestInterpSurfVoxel( gMeditWindow,
 					    tkm_tSurfaceType_Main,
@@ -2540,14 +2501,6 @@ void FindNearestInterpolatedSurfaceVertex ( Surf_tVertexSet iSet ) {
   Surf_GetSurfaceSetName( iSet, sSetName );
   OutputPrint "Nearest %s vertex to %d, %d, %d:\n\t%s\n",
     sSetName, xVoxl_ExpandInt( &cursor ), sDescription EndOutputPrint;
-  
-  /* RKT: We don't need to adjust surface verts any more. */
-#if 0
-  /* adjust it so it aligns to the surface. */
-  eWindow = MWin_AdjustSurfaceAnaIdx( gMeditWindow, &interpAnaIdx );
-  if( MWin_tErr_NoErr != eWindow )
-    goto error;
-#endif
   
   /* tell the window to go there. */
   eWindow = MWin_SetCursor ( gMeditWindow, -1, &interpAnaIdx );
@@ -4909,13 +4862,13 @@ int main ( int argc, char** argv ) {
   DebugAssertThrow( (eResult == tkm_tErr_NoErr) );
   
   DebugNote( ("Initalizing user cancel listener") );
-  InitializeUserCancel();
+  xUtil_InitializeUserCancel();
 
   /* create functional volume */
   DebugNote( ("Creating functional volume") );
   eFunctional = FunV_New( &gFunctionalVolume,
-        UpdateAndRedraw, tkm_SendTclCommand, 
-        SendTCLCommand );
+			  UpdateAndRedraw, tkm_SendTclCommand, 
+			  SendTCLCommand );
   DebugAssertThrow( (FunV_tErr_NoError == eFunctional) );
   
   /* set windows data sources */
@@ -6446,11 +6399,12 @@ void SelectVoxelsByFuncValue ( FunV_tFindStatsComp iCompare ) {
   
   /* get cursor */
   DebugNote( ("Getting cursor") );
-  MWin_GetCursor( gMeditWindow, &cursor );
+  MWin_GetCursorInMRIIdx( gMeditWindow, &cursor );
   
   /* select voxels */
   DebugNote( ("Selecting voxels around %d,%d,%d", xVoxl_ExpandInt( &cursor )));
-  FunV_SelectAnaVoxelsByFuncValue( gFunctionalVolume, &cursor, iCompare );
+  FunV_FloodSelect( gFunctionalVolume, &cursor, tkm_tVolumeType_Main,
+		    9999, iCompare );
   
   DebugExitFunction;
 }
@@ -6478,7 +6432,8 @@ tkm_tErr FloodSelect ( xVoxelRef         iSeedMRIIdx,
   
   xVoxl_Copy( &params.mSourceIdx, iSeedMRIIdx );
   params.mfFuzziness             = inFuzzy;
-  params.mComparator             = Volm_tValueComparator_EQ;
+  params.mComparatorType         = Volm_tValueComparator_EQ;
+  params.mComparatorFunc         = NULL;
   params.mfMaxDistance           = inDistance;
   params.mb3D                    = ib3D;
   MWin_GetOrientation ( gMeditWindow, &params.mOrientation );
@@ -6537,7 +6492,7 @@ tkm_tErr FloodSelect ( xVoxelRef         iSeedMRIIdx,
   Volm_GetValueAtMRIIdx( sourceVolume, iSeedMRIIdx, &params.mfSourceValue );
 
   /* Start listening for a cancel. */
-  StartListeningForUserCancel();
+  xUtil_StartListeningForUserCancel();
 
   /* Do it! */
   eVolume = Volm_Flood( sourceVolume, &params );
@@ -6549,7 +6504,7 @@ tkm_tErr FloodSelect ( xVoxelRef         iSeedMRIIdx,
   }
 
   /* Stop listening for the cancel. */
-  StopListeningForUserCancel();
+  xUtil_StopListeningForUserCancel();
 
   UpdateAndRedraw();
   
@@ -6583,7 +6538,7 @@ Volm_tVisitCommand FloodSelectCallback ( xVoxelRef iMRIIdx,
   }
   
   /* Check the user cancel. If they canceled, stop. */
-  if( DidUserCancel() ) {
+  if( xUtil_DidUserCancel() ) {
     return Volm_tVisitComm_Stop;
   }
 
@@ -6893,51 +6848,6 @@ void SendCachedTclCommands () {
   }
 }
 
-// =============================================================== CANCELLING
-
-void InitializeUserCancel () {
-
-  /* init the flags and register our handler. */
-  gCancelListening = 0;
-  gCancelUserCanceled = 0;
-  signal( SIGINT, HandleUserCancelCallback );
-}
-
-void StartListeningForUserCancel () {
-
-  /* set our listening flag. */
-  gCancelListening = 1;
-}
-
-void StopListeningForUserCancel () {
-
-  /* stop listening and reset the canceled flag. */
-  gCancelListening = 0;
-  gCancelUserCanceled = 0;
-}
-
-int DidUserCancel () {
-
-  /* just return the canceled flag. */
-  return gCancelUserCanceled ;
-}
-
-void HandleUserCancelCallback (int signal) {
-
-  /* if we're listening, set the flag, if not, exit normally. */
-  if( gCancelListening ) {
-
-      gCancelUserCanceled = 1;
-
-   } else {
-
-      printf( "Killed\n" );
-      fflush( stdout );
-      exit(1);
-    }
-}
-
-// ==========================================================================
 
 // ============================================================= VOLUME ACCESS
 
@@ -9399,7 +9309,8 @@ tkm_tErr FloodFillSegmentation ( tkm_tSegType    iVolume,
   
   xVoxl_Copy( &params.mSourceIdx, iAnaIdx );
   params.mfFuzziness             = inFuzzy;
-  params.mComparator             = Volm_tValueComparator_EQ;
+  params.mComparatorType         = Volm_tValueComparator_EQ;
+  params.mComparatorFunc         = NULL;
   params.mfMaxDistance           = inDistance;
   params.mb3D                    = ib3D;
   MWin_GetOrientation ( gMeditWindow, &params.mOrientation );
@@ -9461,7 +9372,7 @@ tkm_tErr FloodFillSegmentation ( tkm_tSegType    iVolume,
   Volm_GetValueAtIdx( sourceVolume, iAnaIdx, &params.mfSourceValue );
 
   /* Start listening for a cancel. */
-  StartListeningForUserCancel();
+  xUtil_StartListeningForUserCancel();
 
   /* Do it! */
   eVolume = Volm_Flood( sourceVolume, &params );
@@ -9473,7 +9384,7 @@ tkm_tErr FloodFillSegmentation ( tkm_tSegType    iVolume,
   }
 
   /* Stop listening for the cancel. */
-  StopListeningForUserCancel();
+  xUtil_StopListeningForUserCancel();
 
   UpdateAndRedraw();
   
@@ -9509,7 +9420,7 @@ Volm_tVisitCommand FloodFillSegmentationCallback ( xVoxelRef iAnaIdx,
   }
   
   /* Check the user cancel. If they canceled, stop. */
-  if( DidUserCancel() ) {
+  if( xUtil_DidUserCancel() ) {
     return Volm_tVisitComm_Stop;
   }
 
@@ -11100,18 +11011,14 @@ void tkm_ReadCursorFromEditFile () {
   GotoSavedCursor();
 }
 
-void tkm_GetAnaDimension  ( tkm_tVolumeType iVolume,
-          int*      onDimensionX, int* onDimensionY, int *onDimensionZ  ) {
+void tkm_GetAnatomicalVolume ( tkm_tVolumeType iVolume,
+			       mriVolumeRef*   opVolume ) {
   
-  Volm_GetDimensions( gAnatomicalVolume[iVolume], onDimensionX, onDimensionY, onDimensionZ );
-}
-
-tBoolean tkm_IsValidAnaIdx ( tkm_tVolumeType iVolume,
-			     xVoxelRef     iAnaIdx ) {
-  
-  Volm_tErr    eVolume   = Volm_tErr_NoErr;
-  eVolume = Volm_VerifyIdx( gAnatomicalVolume[iVolume], iAnaIdx );
-  return ( Volm_tErr_NoErr == eVolume );
+  if( iVolume >= 0 && iVolume < tkm_knNumVolumeTypes ) {
+    *opVolume = gAnatomicalVolume[iVolume];
+  } else {
+    opVolume = NULL;
+  }
 }
 
 void tkm_GetSegmentationColorAtVoxel ( tkm_tSegType iVolume,
