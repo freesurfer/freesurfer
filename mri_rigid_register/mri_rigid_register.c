@@ -256,8 +256,7 @@ get_option(int argc, char *argv[])
 static void
 usage_exit(int code)
 {
-  printf("usage: %s [options] <volume> ... <output T1 volume> <output PD volume>\n", Progname) ;
-  printf("\t-a    rigid alignment of input volumes before averaging\n") ;
+  printf("usage: %s [options] <src volume> <target volume> <transform fname>\n", Progname) ;
   exit(code) ;
 }
 
@@ -294,7 +293,7 @@ MRIsadd(MRI *mri1, MRI *mri2, MRI *mri_dst)
 
 #define MAX_VOX 262145
 
-#define NSTEP   9
+#define NSTEP   11
 
 static void
 estimate_rigid_regmatrix(MRI *mri_source, MRI *mri_target, MATRIX *M_reg)
@@ -304,9 +303,9 @@ estimate_rigid_regmatrix(MRI *mri_source, MRI *mri_target, MATRIX *M_reg)
   int      width=mri_source->width, height=mri_source->height, depth=mri_source->depth, dx=10, dy=10, dz=10, nvalues;
 #if 1
 /*
-  int      nstep=6, step[6]={32,16,8,4,2,1}, scale;
+  int      nstep=8, step[8]={32,16,8,4,2,1}, scale;
 */
-  int      step[NSTEP]={256,128,64,32,16,8,4,2,1}, scale;
+  int      step[NSTEP]={1024,512,256,128,64,32,16,8,4,2,1}, scale;
 #else
   int      nstep=1, step[1]={1}, scale;
 #endif
