@@ -1023,17 +1023,17 @@ void setStatColor(float f, unsigned char *rp, unsigned char *gp, unsigned char *
   {
     if (f>=0)
     {
-      r = tmpoffset*((f<f2thresh)?1:(f<fmid)?1-(f-f2thresh)/(fmid-f2thresh):0) +
+      r = tmpoffset*((f<f2thresh)?1:(f<fmid)?1-(f-f2thresh)/(fmid-f2thresh):0)+
           ((f<f2thresh)?0:(f<fmid)?(f-f2thresh)/(fmid-f2thresh):1);
-      g = tmpoffset*((f<f2thresh)?1:(f<fmid)?1-(f-f2thresh)/(fmid-f2thresh):0) +
+      g = tmpoffset*((f<f2thresh)?1:(f<fmid)?1-(f-f2thresh)/(fmid-f2thresh):0)+
           ((f<fmid)?0:(f<fmid+1.00/fslope)?1*(f-fmid)*fslope:1);
       b = tmpoffset*((f<f2thresh)?1:(f<fmid)?1-(f-f2thresh)/(fmid-f2thresh):0);
     } else
     {
       f = -f;
-      b = tmpoffset*((f<f2thresh)?1:(f<fmid)?1-(f-f2thresh)/(fmid-f2thresh):0) +
+      b = tmpoffset*((f<f2thresh)?1:(f<fmid)?1-(f-f2thresh)/(fmid-f2thresh):0)+
           ((f<f2thresh)?0:(f<fmid)?(f-f2thresh)/(fmid-f2thresh):1);
-      g = tmpoffset*((f<f2thresh)?1:(f<fmid)?1-(f-f2thresh)/(fmid-f2thresh):0) +
+      g = tmpoffset*((f<f2thresh)?1:(f<fmid)?1-(f-f2thresh)/(fmid-f2thresh):0)+
           ((f<fmid)?0:(f<fmid+1.00/fslope)?1*(f-fmid)*fslope:1);
       r = tmpoffset*((f<f2thresh)?1:(f<fmid)?1-(f-f2thresh)/(fmid-f2thresh):0);
     }
@@ -1045,20 +1045,20 @@ void setStatColor(float f, unsigned char *rp, unsigned char *gp, unsigned char *
   {  
     if (f>=0)
     {
-      r = tmpoffset*((f<f2thresh)?1:(f<fmid)?1-(f-f2thresh)/(fmid-f2thresh):0) +
+      r = tmpoffset*((f<f2thresh)?1:(f<fmid)?1-(f-f2thresh)/(fmid-f2thresh):0)+
           ((f<f2thresh)?0:(f<fmid)?(f-f2thresh)/(fmid-f2thresh):1);
-      g = tmpoffset*((f<f2thresh)?1:(f<fmid)?1-(f-f2thresh)/(fmid-f2thresh):0) +
+      g = tmpoffset*((f<f2thresh)?1:(f<fmid)?1-(f-f2thresh)/(fmid-f2thresh):0)+
           ((f<fmid)?0:(f<fmid+1.00/fslope)?1*(f-fmid)*fslope:1);
-      b = tmpoffset*((f<f2thresh)?1:(f<fmid)?1-(f-f2thresh)/(fmid-f2thresh):0) +
+      b = tmpoffset*((f<f2thresh)?1:(f<fmid)?1-(f-f2thresh)/(fmid-f2thresh):0)+
           ((f<fmid)?0:(f<fmid+1.00/fslope)?1*(f-fmid)*fslope:1);
     } else
     {
       f = -f;
-      b = tmpoffset*((f<f2thresh)?1:(f<fmid)?1-(f-f2thresh)/(fmid-f2thresh):0) +
+      b = tmpoffset*((f<f2thresh)?1:(f<fmid)?1-(f-f2thresh)/(fmid-f2thresh):0)+
           ((f<f2thresh)?0:(f<fmid)?(f-f2thresh)/(fmid-f2thresh):1);
-      g = tmpoffset*((f<f2thresh)?1:(f<fmid)?1-(f-f2thresh)/(fmid-f2thresh):0) +
+      g = tmpoffset*((f<f2thresh)?1:(f<fmid)?1-(f-f2thresh)/(fmid-f2thresh):0)+
           ((f<fmid)?0:(f<fmid+1.00/fslope)?1*(f-fmid)*fslope:1);
-      r = tmpoffset*((f<f2thresh)?1:(f<fmid)?1-(f-f2thresh)/(fmid-f2thresh):0) +
+      r = tmpoffset*((f<f2thresh)?1:(f<fmid)?1-(f-f2thresh)/(fmid-f2thresh):0)+
           ((f<fmid)?0:(f<fmid+1.00/fslope)?1*(f-fmid)*fslope:1);
     }
     r = r*255;
@@ -1066,10 +1066,12 @@ void setStatColor(float f, unsigned char *rp, unsigned char *gp, unsigned char *
     b = b*255;
   }
   else if (colscale==JUST_GRAY)
-    {
-      if (f<0) f = -f;
-      r = g = b = f*255;
-    }
+  {
+    if (f<0) f = -f;
+    r = g = b = f*255;
+  }
+  else
+    r = g = b = f*255 ;   /* for compiler warning - don't know what to do */
   *rp = (unsigned char)r;
   *gp = (unsigned char)g;
   *bp = (unsigned char)b;
@@ -1081,10 +1083,13 @@ void compose(unsigned char* stbuffer, unsigned char* outbuffer, int dir)
   int hax,hay;
   int i,j,k;
   int curs;
+
   int imnr;
   int ims;
   unsigned char red,green,blue;
   unsigned char ccolor1,ccolor2;
+
+  k = 0 ;   /* could be uninitialized otherwise?? */
 
   if(all3flag) {
     ccolor1 = 255;
@@ -1105,19 +1110,22 @@ void compose(unsigned char* stbuffer, unsigned char* outbuffer, int dir)
   for(h=0; h<ydim; h++) {
     for(w=0; w<xdim; w++) {
       if(do_overlay == 1) { 
-  if(fcache[h*512+w]!=NO_VALUE)
-    setStatColor(fcache[h*512+w],&red,&green,&blue,stbuffer[h*512+w]/255.0);
-  else {
-    red = green = blue = hacked_map[stbuffer[h*512+w]+MAPOFFSET];
-    if (truncflag)
-      if (stbuffer[h*512+w]<white_lolim+MAPOFFSET || stbuffer[h*512+w]>white_hilim+MAPOFFSET)
-        red = green = blue = hacked_map[MAPOFFSET];
-  }
+        if(fcache[h*512+w]!=NO_VALUE)
+          setStatColor(fcache[h*512+w],&red,&green,&blue,
+                       stbuffer[h*512+w]/255.0);
+        else {
+          red = green = blue = hacked_map[stbuffer[h*512+w]+MAPOFFSET];
+          if (truncflag)
+            if (stbuffer[h*512+w]<white_lolim+MAPOFFSET || 
+                stbuffer[h*512+w]>white_hilim+MAPOFFSET)
+              red = green = blue = hacked_map[MAPOFFSET];
+        }
       } else {
-  red = green = blue = hacked_map[stbuffer[h*512+w]+MAPOFFSET];
-  if (truncflag)
-    if (stbuffer[h*512+w]<white_lolim+MAPOFFSET || stbuffer[h*512+w]>white_hilim+MAPOFFSET)
-      red = green = blue = hacked_map[MAPOFFSET];
+        red = green = blue = hacked_map[stbuffer[h*512+w]+MAPOFFSET];
+        if (truncflag)
+          if (stbuffer[h*512+w]<white_lolim+MAPOFFSET || 
+              stbuffer[h*512+w]>white_hilim+MAPOFFSET)
+            red = green = blue = hacked_map[MAPOFFSET];
       }
       outbuffer[4*h*xdim+4*w]=red; 
       outbuffer[4*h*xdim+4*w+1]=green; 
@@ -1126,38 +1134,41 @@ void compose(unsigned char* stbuffer, unsigned char* outbuffer, int dir)
     }
   }
   
-  if(all3flag || plane==SAGITTAL) {
-    for (i=ic-curs;i<=ic+curs;i++) {
-      if (all3flag) 
-  k = 4*(xdim*hay + hax + i/2*xdim/2+imc/2 + i/2*hax);
-      else if(plane==SAGITTAL)        
-  k = 4*(i*xdim+imc);
-      outbuffer[k] = ccolor1 ; outbuffer[k+1] = ccolor2;
-      outbuffer[k+2] = ccolor2;
-      outbuffer[k+3]=255;
-    }
+  if(all3flag || plane==SAGITTAL) 
+  {
+    for (i=ic-curs;i<=ic+curs;i++) 
+      {
+        if (all3flag) 
+          k = 4*(xdim*hay + hax + i/2*xdim/2+imc/2 + i/2*hax);
+        else if(plane==SAGITTAL)        
+          k = 4*(i*xdim+imc);
+        outbuffer[k] = ccolor1 ; outbuffer[k+1] = ccolor2;
+        outbuffer[k+2] = ccolor2;
+        outbuffer[k+3]=255;
+      }
     for (imnr=imc-curs;imnr<=imc+curs;imnr++) {
       if (all3flag) k = 4*(xdim*hay + hax + ic/2*xdim/2+imnr/2 + ic/2*hax);
       else if(plane==SAGITTAL)
-  k = 4*(ic*xdim+imnr);
+        k = 4*(ic*xdim+imnr);
       outbuffer[k] = ccolor1; 
       outbuffer[k+1] = ccolor2;
       outbuffer[k+2] = ccolor2;
       outbuffer[k+3]=255;
     }
   }
-  if(all3flag || plane==CORONAL) {
+  if(all3flag || plane==CORONAL) 
+  {
     for (i=ic-curs;i<=ic+curs;i++) {
       if (all3flag) k = 4*(xdim*hay + i/2*xdim/2+jc/2 + i/2*hax);
       else if(plane==CORONAL)      
-  k = 4*(i*xdim+jc);
+        k = 4*(i*xdim+jc);
       vidbuf[k] = ccolor1; vidbuf[k+1] = vidbuf[k+2] = ccolor2; 
       vidbuf[k+3]= 255;
     }
     for (j=jc-curs;j<=jc+curs;j++) {
       if (all3flag) k = 4*(xdim*hay + ic/2*xdim/2+j/2 + ic/2*hax);
       else if(plane==CORONAL)
-  k = 4*(ic*xdim+j);
+        k = 4*(ic*xdim+j);
       vidbuf[k] = ccolor1; vidbuf[k+1] = vidbuf[k+2] = ccolor2; 
       vidbuf[k+3]= 255;
     }
@@ -1166,46 +1177,46 @@ void compose(unsigned char* stbuffer, unsigned char* outbuffer, int dir)
     for (imnr=imc-curs;imnr<=imc+curs;imnr++) {
       if (all3flag) k = 4*(imnr/2*xdim/2+jc/2 + imnr/2*hax);
       else if(plane == HORIZONTAL)
-  k = 4*(imnr*xdim+jc);
+        k = 4*(imnr*xdim+jc);
       vidbuf[k] = ccolor1; vidbuf[k+1] = vidbuf[k+2] = ccolor2;
       vidbuf[k+3]=255;
     }
     for (j=jc-curs;j<=jc+curs;j++) {
       if (all3flag) k = 4*(imc/2*xdim/2+j/2 + imc/2*hax);
       else if(plane == HORIZONTAL)
-  k = 4*(imc*xdim+j);
+        k = 4*(imc*xdim+j);
       vidbuf[k] = ccolor1; vidbuf[k+1] = vidbuf[k+2] = ccolor2;
       vidbuf[k+3]=255;
     }
   }
-
+  
   if(all3flag) {
     if(dir==0) {
       for (i=ic-curs;i<=ic+curs;i++) {
-  k = 4*(hax + i/2*xdim/2+imc/2 + i/2*hax);
-  vidbuf[k] = ccolor1; vidbuf[k+1] = vidbuf[k+2] = ccolor2;
-  vidbuf[k+3]=255;
+        k = 4*(hax + i/2*xdim/2+imc/2 + i/2*hax);
+        vidbuf[k] = ccolor1; vidbuf[k+1] = vidbuf[k+2] = ccolor2;
+        vidbuf[k+3]=255;
       } 
     } else {
       ims = 511-imc;
       for (i=ic-curs;i<=ic+curs;i++) {
-  k = 4*(hax + i/2*xdim/2+ims/2 + i/2*hax);
-  vidbuf[k] = ccolor1; vidbuf[k+1] = vidbuf[k+2] = ccolor2;
-  vidbuf[k+3]=255;
+        k = 4*(hax + i/2*xdim/2+ims/2 + i/2*hax);
+        vidbuf[k] = ccolor1; vidbuf[k+1] = vidbuf[k+2] = ccolor2;
+        vidbuf[k+3]=255;
       } 
     }
     if(dir==0) {
       for (imnr=imc-curs;imnr<=imc+curs;imnr++) {
-  k = 4*(hax + ic/2*xdim/2+imnr/2 + ic/2*hax);
-  vidbuf[k] = ccolor1; vidbuf[k+1] = vidbuf[k+2] = ccolor2;
-  vidbuf[k+3]=255;
+        k = 4*(hax + ic/2*xdim/2+imnr/2 + ic/2*hax);
+        vidbuf[k] = ccolor1; vidbuf[k+1] = vidbuf[k+2] = ccolor2;
+        vidbuf[k+3]=255;
       }
     } else {
       ims = 511-imc;
       for (imnr=ims-curs;imnr<=ims+curs;imnr++) {
-  k = 4*(hax + ic/2*xdim/2+imnr/2 + ic/2*hax);
-  vidbuf[k] = ccolor1; vidbuf[k+1] = vidbuf[k+2] = ccolor2;
-  vidbuf[k+3]=255;
+        k = 4*(hax + ic/2*xdim/2+imnr/2 + ic/2*hax);
+        vidbuf[k] = ccolor1; vidbuf[k+1] = vidbuf[k+2] = ccolor2;
+        vidbuf[k+3]=255;
       }
     }
   }  
@@ -2438,7 +2449,7 @@ pix_to_rgb(char *fname)
   fp = fopen(fname,"w");
   if (fp==NULL){printf("medit: ### can't create file %s\n",fname);PR return;}
   fclose(fp);
-  image = iopen(fname,"w",RLE(1), 3, width, height, 3);
+  image = iopen(fname,"w",UNCOMPRESSED(1), 3, width, height, 3);
   for(y = 0 ; y < height; y++) {
     r = red + y * width;
     g = green + y * width;
@@ -2730,6 +2741,9 @@ void set_cursor(float xpt, float ypt, float zpt)
       printf("(%s=%d ",imtype2, secondpixval);
     }
   }
+  else
+    xi = yi = zi = 0 ; /* ???? something should be done here */
+
   if (ptype==0) /* Horizontal */
   {
     printf(
@@ -3414,6 +3428,8 @@ select_pixel( short sx, short sy, int printflag)
         printf("%s=%d ", imtype2,secondpixval); 
       }
     }
+    else
+      xi = yi = zi = 0 ;   /* ??? something should be done here */
     if (ptype==0) /* Horizontal */
     {
       printf("imnr(P/A)=%d, i(I/S)=%d, j(R/L)=%d (x=%2.1f y=%2.1f z=%2.1f)\n",
