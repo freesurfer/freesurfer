@@ -22,6 +22,7 @@ static void usage_exit(int code) ;
 
 static int quiet = 0 ;
 static int all_flag = 0 ;
+int cras =0; // 0 is false.  1 is true
 
 int
 main(int argc, char *argv[])
@@ -34,7 +35,7 @@ main(int argc, char *argv[])
   MRI    *mri ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_label_vals.c,v 1.5 2003/09/15 18:21:02 tosa Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_label_vals.c,v 1.6 2003/09/15 19:27:10 tosa Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -67,18 +68,29 @@ main(int argc, char *argv[])
   area = LabelRead(NULL, label_name) ;
   if (!area)
     ErrorExit(ERROR_NOFILE, "%s: could not read label from %s",Progname, label_name) ;
-  
+
+  if (cras == 1)
+    printf("using the label coordinates to be c_(r,a,s) != 0.\n");
+
   for (i = 0 ;  i  < area->n_points ; i++)
   {
-    Real  xw, yw, zw, xv, yv, zv, val ;
-    
+    Real  xw, yw, zw, xv, yv, zv, val;
+
     xw =  area->lv[i].x ;
     yw =  area->lv[i].y ;
     zw =  area->lv[i].z ;
-    //MRIworldToVoxel(mri, xw, yw,  zw, &xv, &yv, &zv) ;
-    MRIsurfaceRASToVoxel(mri, xw, yw, zw, &xv, &yv, &zv);
-    MRIsampleVolumeType(mri, xv,  yv, zv, &val, SAMPLE_NEAREST) ;
-    printf("%f\n", val)  ;
+    if (cras == 1)
+      MRIworldToVoxel(mri, xw, yw,  zw, &xv, &yv, &zv) ;
+    else
+      MRIsurfaceRASToVoxel(mri, xw, yw, zw, &xv, &yv, &zv);
+    MRIsampleVolumeType(mri, xv,  yv, zv, &val, SAMPLE_NEAREST);
+    if (val < .000001)
+    {  
+      val *= 1000000;
+      printf("%f*0.000001\n", val);
+    }
+    else
+      printf("%f\n", val);
   }
 
   msec = TimerStop(&start) ;
@@ -105,29 +117,32 @@ get_option(int argc, char *argv[])
   char *option ;
   
   option = argv[1] + 1 ;            /* past '-' */
-  switch (toupper(*option))
+  if (strcmp("cras", option) == 0)
+    cras = 1;
+  else
   {
-  case 'Q':
-    quiet = 1 ;
-    break ;
-  case 'A':
-    all_flag = 1 ;
-    break ;
-  case 'L':
-    log_fname = argv[2] ;
-    nargs = 1 ;
-    fprintf(stderr, "logging results to %s\n", log_fname) ;
-    break ;
-  case '?':
-  case 'U':
-    usage_exit(0) ;
-    break ;
-  default:
-    fprintf(stderr, "unknown option %s\n", argv[1]) ;
-    exit(1) ;
-    break ;
+    switch (toupper(*option))
+    {
+    case 'Q':
+      quiet = 1 ;
+      break ;
+    case 'A':
+      all_flag = 1 ;
+      break ;
+    case 'L':
+      log_fname = argv[2] ;
+      nargs = 1 ;
+      fprintf(stderr, "logging results to %s\n", log_fname) ;
+      break ;
+    case 'U':
+      usage_exit(0) ;
+      break ;
+    default:
+      fprintf(stderr, "unknown option %s\n", argv[1]) ;
+      exit(1) ;
+      break ;
+    }
   }
-
   return(nargs) ;
 }
 /*----------------------------------------------------------------------
@@ -139,5 +154,12 @@ static void
 usage_exit(int code)
 {
   printf("usage: %s [options] <volume> <label file>\n",  Progname) ;
+  printf("where optins are\n");
+  printf("   -cras   label created in the coordinates where c_(r,a,s) != 0\n");
+  printf("             if it did not work, try using this option.\n");
+  // printf("   -q      quiet\n");
+  // printf("   -a      all\n");
+  // printf("   -l file log results to a file.\n");
+  printf("   -u      print this help.\n");
   exit(code) ;
 }
