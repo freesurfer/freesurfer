@@ -1,7 +1,7 @@
 #!/bin/csh -f
 # 
-# $Id: spmregister,v 1.1 2003/11/03 21:45:06 greve Exp $
-set VERSION = '$Id: spmregister,v 1.1 2003/11/03 21:45:06 greve Exp $';
+# $Id: spmregister,v 1.2 2003/11/03 21:51:34 greve Exp $
+set VERSION = '$Id: spmregister,v 1.2 2003/11/03 21:51:34 greve Exp $';
 
 set subjid = ();
 set refvol = ();
@@ -347,12 +347,17 @@ a way suitable for mri_convert.
 Output registration file. This will map RAS in the reference to
 RAS in the movable.
 
+NOTES:
+
+Uses normalize mutual information.
+
 BUGS
 
 There may be a series of warnings of the form:
 "Warning: Assuming a scalefactor of 1 for refvol.spm_rigid_register.img". 
 This can be ignored.
 
-See Also: tkregister2, mri_convert, mri_rigid_register, fsl_rigid_register
+SEE ALSO: tkregister2, mri_convert, mri_rigid_register, 
+fsl_rigid_register, spm_coreg.m.
 
 
