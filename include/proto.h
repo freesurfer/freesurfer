@@ -9,6 +9,8 @@
 
 #ifdef SPARC
 
+int ftime(struct timeb *tp) ;
+/* void ftime(struct timeb *tm) ;*/
 int fflush(FILE *fp) ;
 int fscanf(FILE *fp, const char *fmt, ...) ;
 int fprintf(FILE *fp, const char *fmt, ...) ;
@@ -29,7 +31,6 @@ int fseek(FILE *fp, long offset, int whence) ;
 int fread(void *ptr, int size, int nitems, FILE *fp) ;
 int fwrite(void *ptr, int size, int nitems, FILE *fp) ;
 int stricmp(char *str1, char *str2) ;
-void ftime(struct timeb *tm) ;
 
 #else
 #ifdef LINUX
