@@ -485,7 +485,6 @@ MATRIX *surfaceRASFromVoxel_(MRI *mri);
 MATRIX *voxelFromSurfaceRAS_(MRI *mri);
 MATRIX *surfaceRASFromRAS_(MRI *mri);
 MATRIX *RASFromSurfaceRAS_(MRI *mri);
-MATRIX *surfaceRASFromSurfaceRAS_(MRI *dst, MRI *src, LTA *lta);
 
 int MRIvoxelToSurfaceRAS(MRI *mri, Real xv, Real yv, Real zv, 
 			 Real *xs, Real *ys, Real *zs);
