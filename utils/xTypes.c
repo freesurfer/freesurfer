@@ -10,8 +10,29 @@ void xColr_Set ( xColor3fRef iColor,
   iColor->mfBlue  = ifBlue;
 }
 
+void xColr_SetComponent ( xColor3fRef iColor, 
+			  xColr_tComponent iComponent,
+			  float ifValue ) {
+  switch ( iComponent ) {
+  case xColr_tComponent_Red: iColor->mfRed = ifValue; break;
+  case xColr_tComponent_Green: iColor->mfGreen = ifValue; break;
+  case xColr_tComponent_Blue: iColor->mfBlue = ifValue; break;
+  default: return;
+  }
+}
+
+float xColr_GetComponent ( xColor3fRef iColor, 
+			   xColr_tComponent iComponent ) {
+  switch ( iComponent ) {
+  case xColr_tComponent_Red: return iColor->mfRed; break;
+  case xColr_tComponent_Green: return iColor->mfGreen; break;
+  case xColr_tComponent_Blue: return iColor->mfBlue; break;
+  default: return 0;
+  }
+}
+
 void xColr_PackFloatArray ( xColor3fRef iColor,
-          float*      iafColor ) {
+			    float*      iafColor ) {
   iafColor[0] = iColor->mfRed;
   iafColor[1] = iColor->mfGreen;
   iafColor[2] = iColor->mfBlue;

@@ -39,7 +39,8 @@ typedef struct {
 typedef enum {
   tAxis_X = 0,
   tAxis_Y,
-  tAxis_Z
+  tAxis_Z,
+  knNumAxes
 } tAxis;
 
 typedef enum {
@@ -50,14 +51,18 @@ typedef enum {
   xColr_knNumComponents
 } xColr_tComponent;
 
-void xColr_Set ( xColor3fRef iColor, 
-     float ifRed, float ifGreen, float ifBlue );
-
-void xColr_PackFloatArray ( xColor3fRef iColor,
-          float*      iafColor );
+void  xColr_Set            ( xColor3fRef iColor, 
+			     float ifRed, float ifGreen, float ifBlue );
+void  xColr_SetComponent   ( xColor3fRef iColor, 
+			     xColr_tComponent iComponent,
+			     float ifValue );
+float xColr_GetComponent   ( xColor3fRef iColor, 
+			     xColr_tComponent iComponent );
+void xColr_PackFloatArray  ( xColor3fRef iColor,
+			    float*      iafColor );
 
 void xColr_HilightComponent ( xColor3fRef      iColor,
-            xColr_tComponent iComponent );
+			      xColr_tComponent iComponent );
 
 #define xColr_ExpandFloat(iColor) (iColor)->mfRed,(iColor)->mfGreen,(iColor)->mfBlue
 
