@@ -2380,7 +2380,7 @@ void tkm_HandleIdle () {
 // ================================================================== SURFACES
 
 tkm_tErr LoadSurface ( tkm_tSurfaceType iType,
-           char*    isName ) {
+		       char*    isName ) {
   
   tkm_tErr  eResult           = tkm_tErr_NoErr;
   Surf_tErr eSurface           = Surf_tErr_NoErr;
@@ -2392,14 +2392,19 @@ tkm_tErr LoadSurface ( tkm_tSurfaceType iType,
            (int)iType, isName) );
   
   DebugAssertThrowX( (NULL != isName),
-         eResult, tkm_tErr_InvalidParameter );
+		     eResult, tkm_tErr_InvalidParameter );
   DebugAssertThrowX( (iType >= 0 && iType < tkm_knNumSurfaceTypes),
-         eResult, tkm_tErr_InvalidParameter );
+		     eResult, tkm_tErr_InvalidParameter );
   
   /* make file name */
   DebugNote( ("Making file name from %s", isName) );
   MakeFileName( isName, tkm_tFileName_Surface, sName, sizeof(sName) );
   
+  /* delete existing if we already have it */
+  if( NULL != gSurface[iType] ) {
+    Surf_Delete( &gSurface[iType] );
+  }
+
   /* create the surface */
   DebugNote( ("Creating surface") );
   eSurface = Surf_New( &gSurface[iType], sName, gIdxToRASTransform);
