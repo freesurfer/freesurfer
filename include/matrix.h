@@ -41,6 +41,7 @@ MATRIX  *MatrixAlloc(int rows, int cols, int type) ;
 int     MatrixFree(MATRIX **pmat) ;
 MATRIX  *MatrixMultiply(MATRIX *m1, MATRIX *m2, MATRIX *m3) ;
 MATRIX  *MatrixCopy(MATRIX *mIn, MATRIX *mOut) ;
+int     MatrixWriteTxt(char *fname, MATRIX *mat) ;
 MATRIX  *MatrixReadTxt(char *fname, MATRIX *mat) ;
 MATRIX  *MatrixRead(char *fname) ;
 int     MatrixWrite(MATRIX *mIn, char *fname, char *name) ;
