@@ -1,6 +1,6 @@
 /*---------------------------------------------------------------
   Name: resample.c
-  $Id: resample.c,v 1.13 2003/09/05 18:14:11 greve Exp $
+  $Id: resample.c,v 1.14 2004/04/21 18:20:00 greve Exp $
   Author: Douglas N. Greve
   Purpose: code to perform resapling from one space to another, 
   including: volume-to-volume, volume-to-surface, and surface-to-surface.
@@ -587,17 +587,34 @@ int ProjNormFracThick(float *x, float *y, float *z,
   *z = surf->vertices[vtx].z + r*surf->vertices[vtx].nz;
   return(0);
 }
+/*----------------------------------------------------------------
+  ProjNormDist() - projects along the surface normal a given
+  distance.
+  ----------------------------------------------------------------*/
+int ProjNormDist(float *x, float *y, float *z, 
+          MRI_SURFACE *surf, int vtx, float dist)
+{
+  *x = surf->vertices[vtx].x + dist*surf->vertices[vtx].nx;
+  *y = surf->vertices[vtx].y + dist*surf->vertices[vtx].ny;
+  *z = surf->vertices[vtx].z + dist*surf->vertices[vtx].nz;
+  return(0);
+}
 /*------------------------------------------------------------
   vol2surf_linear() - resamples data from a volume onto surface 
   vertices assuming the the transformation from the volume into
   anatomical space is fully linear. The voxels actually 
   sampled are stored in the SrcHitVol. The value is the number
-  of times the voxel was sampled.
+  of times the voxel was sampled. If ProjFrac is non-zero, then
+  it will project along the surface normal a distance equal to 
+  a fraction ProjFrac of the surface thickness at that point.
+  If ProjDistFlag is set then ProjFrac is interpreted as an 
+  absolute distance.
   ------------------------------------------------------------*/
 MRI *vol2surf_linear(MRI *SrcVol, 
          MATRIX *Qsrc, MATRIX *Fsrc, MATRIX *Wsrc, MATRIX *Dsrc, 
          MRI_SURFACE *TrgSurf, float ProjFrac, 
-         int InterpMethod, int float2int, MRI *SrcHitVol)
+         int InterpMethod, int float2int, MRI *SrcHitVol,
+	 int ProjDistFlag)
 {
   MATRIX *QFWDsrc;
   MATRIX *Scrs, *Txyz;
@@ -641,7 +658,10 @@ MRI *vol2surf_linear(MRI *SrcVol,
   for(vtx = 0; vtx < TrgSurf->nvertices; vtx++){
 
     if(ProjFrac != 0.0)
-      ProjNormFracThick(&Tx,&Ty,&Tz,TrgSurf,vtx,ProjFrac);
+      if(ProjDistFlag)
+	ProjNormDist(&Tx,&Ty,&Tz,TrgSurf,vtx,ProjFrac);
+      else
+	ProjNormFracThick(&Tx,&Ty,&Tz,TrgSurf,vtx,ProjFrac);
     else{
       Tx = TrgSurf->vertices[vtx].x;
       Ty = TrgSurf->vertices[vtx].y;

@@ -1,6 +1,6 @@
 /*----------------------------------------------------------
   Name: vol2surf.c
-  $Id: mri_vol2surf.c,v 1.19 2004/02/11 22:10:34 greve Exp $
+  $Id: mri_vol2surf.c,v 1.20 2004/04/21 18:19:46 greve Exp $
   Author: Douglas Greve
   Purpose: Resamples a volume onto a surface. The surface
   may be that of a subject other than the source subject.
@@ -58,7 +58,7 @@ static void dump_options(FILE *fp);
 static int  singledash(char *flag);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2surf.c,v 1.19 2004/02/11 22:10:34 greve Exp $";
+static char vcid[] = "$Id: mri_vol2surf.c,v 1.20 2004/04/21 18:19:46 greve Exp $";
 char *Progname = NULL;
 
 char *defaulttypestring;
@@ -84,6 +84,7 @@ float IcoRadius = 100;
 char *surfreg = "sphere.reg";
 char *thicknessname = "thickness";
 float ProjFrac = 0;
+int   ProjDistFlag = 0;
 
 MRI_SURFACE *Surf    = NULL;
 MRI_SURFACE *SurfOut = NULL;
@@ -153,7 +154,7 @@ int main(int argc, char **argv)
   int r,c,s,nsrchits;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_vol2surf.c,v 1.19 2004/02/11 22:10:34 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_vol2surf.c,v 1.20 2004/04/21 18:19:46 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -322,7 +323,8 @@ int main(int argc, char **argv)
   printf("Mapping Source Volume onto Source Subject Surface\n");
   fflush(stdout);
   SurfVals = vol2surf_linear(SrcVol, Qsrc, Fsrc, Wsrc, Dsrc, 
-           Surf, ProjFrac, interpmethod, float2int, SrcHitVol);
+           Surf, ProjFrac, interpmethod, float2int, SrcHitVol,
+	   ProjDistFlag);
   fflush(stdout);
   if(SurfVals == NULL){
     printf("ERROR: mapping volume to source\n");
@@ -542,7 +544,7 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--noreshape")) reshape = 0;
     else if (!strcasecmp(option, "--fixtkreg")) fixtkreg = 1;
     else if (!strcasecmp(option, "--nofixtkreg")) fixtkreg = 0;
-
+    
     else if ( !strcmp(option, "--default_type") ) {
       if(nargc < 1) argnerr(option,1);
       defaulttypestring = pargv[0];
@@ -610,8 +612,8 @@ static int parse_commandline(int argc, char **argv)
       if(nargc < 1) argnerr(option,1);
       mapmethod = pargv[0];
       if(strcmp(mapmethod,"nnfr") && strcmp(mapmethod,"nnf")){
-  fprintf(stderr,"ERROR: mapmethod must be nnfr or nnf\n");
-  exit(1);
+	fprintf(stderr,"ERROR: mapmethod must be nnfr or nnf\n");
+	exit(1);
       }
       nargsused = 1;
     }
@@ -635,6 +637,12 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcmp(option, "--projfrac")){
       if(nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%f",&ProjFrac);
+      nargsused = 1;
+    }
+    else if (!strcmp(option, "--projdist")){
+      if(nargc < 1) argnerr(option,1);
+      sscanf(pargv[0],"%f",&ProjFrac);
+      ProjDistFlag = 1;
       nargsused = 1;
     }
     else if (!strcmp(option, "--thickness")){
@@ -752,7 +760,8 @@ static void print_usage(void)
   //printf("   --nohash flag to keep the hash table from being used. \n");
   printf("\n");
   printf(" Options for projecting along the surface normal:\n");
-  printf("   --projfrac  (0->1) projection along normal \n");  
+  printf("   --projfrac frac : (0->1)fractional projection along normal \n");  
+  printf("   --projdist mmdist : distance projection along normal \n");  
   //printf("   --thickness thickness file (thickness)\n");
   printf("\n");
   printf(" Options for output\n");
@@ -872,7 +881,14 @@ static void print_help(void)
 "    When set at 0.5 with the white surface, this should sample in the\n"
 "    middle of the cortical surface. This requires that a ?h.thickness file \n"
 "    exist for the source subject. Note, the faction can be less than\n"
-"    zero, in which case it will project into the white matter.\n"
+"    zero, in which case it will project into the white matter. See also\n"
+"    --projdist.\n"
+"\n"
+"  --projdist mmdist\n"
+"\n"
+"    Same as --projfrac but projects the given distance in mm at all\n"
+"    points of the surface regardless of thickness.\n"
+"\n"
 "\n"
 "  --out  output path : location to store the data (see below)\n"
 "  --out_type format of output (see below)\n"
@@ -1123,7 +1139,8 @@ static void dump_options(FILE *fp)
 
   if(srchitvolid != NULL){
     fprintf(fp,"srchitvol = %s\n",srchitvolid);
-    if(srchittypestring != NULL) fprintf(fp,"srchittype = %s\n",srchittypestring);
+    if(srchittypestring != NULL) 
+      fprintf(fp,"srchittype = %s\n",srchittypestring);
   }
 
   fprintf(fp,"surf = %s\n",surfname);
@@ -1133,8 +1150,13 @@ static void dump_options(FILE *fp)
     fprintf(fp,"surfreg = %s\n",surfreg);
   }
   if(ProjFrac != 0.0){
-    fprintf(fp,"ProjFrac = %g\n",ProjFrac);
-    fprintf(fp,"thickness = %s\n",thicknessname);
+    if(!ProjDistFlag){
+      fprintf(fp,"ProjFrac = %g\n",ProjFrac);
+      fprintf(fp,"thickness = %s\n",thicknessname);
+    }
+    else{
+      fprintf(fp,"ProjDist = %g\n",ProjFrac);
+    }
   }
 
   fprintf(fp,"interp = %s\n",interpmethod_string);
