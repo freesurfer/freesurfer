@@ -38,7 +38,6 @@
 #define FRAME_Y             10
 
 #define DISPLAY_SIZE        128
-#define MAX_DISP_VAL        249
 
 
 #define PANEL_HEIGHT        ((xvf->button_rows+1) * ROW_HEIGHT+4*WINDOW_PAD)
@@ -171,7 +170,6 @@ xvCreateFrame(XV_FRAME *xvf, char *name)
 {
   int width, height ;
 
-  xvInitColors(xvf) ;
   width = xvf->cols * xvf->display_size + (xvf->cols-1)*WINDOW_PAD ;
   height = PANEL_HEIGHT + 
     xvf->rows * xvf->display_size + (xvf->rows-1) * CHAR_HEIGHT ;
@@ -188,7 +186,9 @@ xvCreateFrame(XV_FRAME *xvf, char *name)
   xvf->black_pixel = BlackPixel(xvf->display, xvf->screen);
   xvf->white_pixel = WhitePixel(xvf->display, xvf->screen);
 
-  xvf->panel = (Panel)xv_create((Xv_opaque)xvf->frame, PANEL, XV_X, 0, XV_Y,  0, NULL) ;
+  xvInitColors(xvf) ;
+
+  xvf->panel =(Panel)xv_create((Xv_opaque)xvf->frame,PANEL,XV_X,0,XV_Y,0,NULL);
   xvf->gc = DefaultGC(xvf->display,DefaultScreen(xvf->display));
   XSetForeground(xvf->display, xvf->gc, xvf->black_pixel);
   XSetBackground(xvf->display, xvf->gc, xvf->white_pixel);
@@ -246,63 +246,74 @@ XVprintf(XV_FRAME *xvf, int which, ...)
            Description:
 ----------------------------------------------------------------------*/
 
-#define MAX_COLORS   256
+#define MAX_DISP_VAL     MAX_GRAY
+#define RESERVED_COLORS  6
+#define MAX_GRAY         (MAX_COLORS-RESERVED_COLORS-1)
+#define MAX_COLORS       64
 
-#define PURPLE_INDEX 250
-#define YELLOW_INDEX 251
-#define CYAN_INDEX   252
-#define GREEN_INDEX  253
-#define BLUE_INDEX   254
-#define RED_INDEX    255
 
-static Xv_singlecolor        xcolors[MAX_COLORS] ;
+#define PURPLE_INDEX     (MAX_COLORS-6)
+#define YELLOW_INDEX     (MAX_COLORS-5)
+#define CYAN_INDEX       (MAX_COLORS-4)
+#define GREEN_INDEX      (MAX_COLORS-3)
+#define BLUE_INDEX       (MAX_COLORS-2)
+#define RED_INDEX        (MAX_COLORS-1)
+
+static XColor        xcolors[MAX_COLORS] ;
 
 static void
 xvInitColors(XV_FRAME *xvf)
 {
-  int           i ;
+  int           i, shift ;
   unsigned long *pix_vals ;
+
+  shift = MAX_COLORS == 64 ? 10 : MAX_COLORS == 128 ? 9 : 8 ;
 
   for (i = 0 ; i < MAX_COLORS ; i++)
   {
+    xcolors[i].pixel = i ;
     switch (i)
     {
+#if 1
     case PURPLE_INDEX:
-      xcolors[i].red = xcolors[i].blue = 255 ;
-      xcolors[i].green = 200 ;
+      xcolors[i].red = xcolors[i].blue = 255<<shift ;
+      xcolors[i].green = 200<<shift ;
       break ;
     case YELLOW_INDEX:
-      xcolors[i].green = xcolors[i].red = 200 ;
+      xcolors[i].green = xcolors[i].red = 200<<shift ;
       xcolors[i].blue = 0 ;
       break ;
     case CYAN_INDEX:
-      xcolors[i].green = xcolors[i].blue = 255 ;
-      xcolors[i].red = 128 ;
+      xcolors[i].green = xcolors[i].blue = 255<<shift ;
+      xcolors[i].red = 128<<shift ;
       break ;
     case RED_INDEX:
-      xcolors[i].green = xcolors[i].blue = 200 ;
-      xcolors[i].red = 255 ;
+      xcolors[i].green = xcolors[i].blue = 200<<shift ;
+      xcolors[i].red = 255<<shift ;
       break ;
     case BLUE_INDEX:
-      xcolors[i].green = xcolors[i].red = 200 ;
-      xcolors[i].blue = 255 ;
+      xcolors[i].green = xcolors[i].red = 200<<shift ;
+      xcolors[i].blue = 255<<shift ;
       break ;
     case GREEN_INDEX:
-      xcolors[i].red = xcolors[i].blue = 100 ;
-      xcolors[i].green = 255 ;
+      xcolors[i].red = xcolors[i].blue = 100<<shift ;
+      xcolors[i].green = 255<<shift ;
       break ;
+#endif
     default:
-      xcolors[i].red = i ;
-      xcolors[i].green = i ;
-      xcolors[i].blue = i ;
+      xcolors[i].red = i<<shift ;
+      xcolors[i].green = i<<shift ;
+      xcolors[i].blue = i<<shift ;
       break ;
     }
   }
 
-  xvf->cms = (Cms)xv_create((Xv_opaque)NULL, CMS,
-                       CMS_SIZE,    MAX_COLORS,
-                       CMS_COLORS,  xcolors,
-                       CMS_TYPE,    XV_STATIC_CMS,
+  xvf->cms = (Cms)xv_create(xvf->screen, CMS,
+                       CMS_NAME,     "xvutil",
+                       CMS_SIZE,      MAX_COLORS,
+                       CMS_X_COLORS,  xcolors,
+                       CMS_TYPE,      MAX_COLORS == 64 ?
+                                      XV_STATIC_CMS : XV_DYNAMIC_CMS,
                        NULL) ;
   
   pix_vals = (unsigned long *)xv_get(xvf->cms, CMS_INDEX_TABLE) ;
@@ -333,7 +344,21 @@ xvInitImages(XV_FRAME *xvf)
     {
       dimage = &xvf->dimages[row][col] ;
 
+
       /* last canvas has its own colormap */
+#ifdef LINUX
+      dimage->canvas =
+        (Canvas)xv_create((Xv_opaque)xvf->frame, CANVAS,
+                          XV_X,                  x,
+                          XV_Y,                  y,
+                          XV_HEIGHT,             xvf->display_size,
+                          XV_WIDTH,              xvf->display_size,
+                          CANVAS_X_PAINT_WINDOW, TRUE,
+                          CANVAS_REPAINT_PROC,   xv_dimage_repaint,
+                          CANVAS_RETAINED,       FALSE,
+                          WIN_CMS,     xvf->cms,
+                          NULL);
+#else
       if (row == xvf->rows-1 && col == xvf->cols-1)
         dimage->canvas =
           (Canvas)xv_create((Xv_opaque)xvf->frame, CANVAS,
@@ -357,6 +382,7 @@ xvInitImages(XV_FRAME *xvf)
                             CANVAS_REPAINT_PROC,   xv_dimage_repaint,
                             CANVAS_RETAINED,       FALSE,
                             NULL);
+#endif
 
       dimage->title_item = (Panel_item)
         xv_create((Xv_opaque)xvf->panel, PANEL_MESSAGE,
@@ -486,8 +512,11 @@ xvRepaintImage(XV_FRAME *xvf, int which)
 void
 XVshowImage(XV_FRAME *xvf, int which, IMAGE *image, int frame)
 {
-  float     scale, fmin, fmax ;
-  DIMAGE    *dimage ;
+  float         scale, fmin, fmax ;
+  DIMAGE        *dimage ;
+  unsigned long *substtable ;
+  byte          bytelut[MAX_COLORS] ;
+  int           i ;
 
   dimage = xvGetDimage(which, 1) ;
   if (!dimage)
@@ -538,6 +567,15 @@ XVshowImage(XV_FRAME *xvf, int which, IMAGE *image, int frame)
 #else
   ImageRescale(GtmpByteImage2, dimage->dispImage, scale) ;
 #endif
+
+  substtable = (unsigned long *) xv_get(xvf->cms,CMS_INDEX_TABLE);
+  for (i=0;i<MAX_COLORS;i++)
+    bytelut[i] = (byte)substtable[i];
+#if 0
+  if (MAX_COLORS == 64)
+    h_shift_b(dimage->dispImage, dimage->dispImage, -2);
+#endif
+  h_applylut(dimage->dispImage, dimage->dispImage, MAX_COLORS, bytelut);
 
 #if 0
 ImageWrite(GtmpByteImage, "i1.hipl") ;
