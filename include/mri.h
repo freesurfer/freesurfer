@@ -15,10 +15,6 @@
 #define MRI_SHORT   4
 #define MRI_BITMAP  5
 
-static int data_size[] = {
-  1, 4, 4, 4, 2
-};
-
 typedef struct
 {
   int  x ;
