@@ -225,7 +225,6 @@ MRI   *MRIscaleAndMultiply(MRI *mri1, float scale, MRI *mri2, MRI *mri_dst) ;
 MRI   *MRIabs(MRI *mri, MRI *mri_dst) ;
 MRI   *MRIscalarMul(MRI *mri_src, MRI *mri_dst, float scalar) ;
 MRI   *MRIscalarMulFrame(MRI *mri_src, MRI *mri_dst, float scalar, int frame) ;
-MRI   *MRImakePositive(MRI *mri_src, MRI *mri_dst) ;
 
 #include "mrisegment.h"
 
@@ -567,6 +566,7 @@ int        MRIvalRangeFrame(MRI *mri, float *pmin, float *pmax, int frame) ;
 MRI        *MRIvalScale(MRI *mri_src, MRI *mri_dst, float fmin, float fmax) ;
 HISTOGRAM  *MRIhistogram(MRI *mri, int nbins) ;
 HISTOGRAM  *MRIhistogramLabel(MRI *mri, MRI *mri_labeled, int label, int nbins);
+HISTOGRAM  *MRIhistogramLabelRegion(MRI *mri, MRI *mri_labeled, MRI_REGION *region, int label, int nbins);
 MRI        *MRIhistoEqualize(MRI *mri_src, MRI *mri_template, MRI *mri_dst, 
                              int low, int high) ;
 MRI        *MRIapplyHistogram(MRI *mri_src, MRI *mri_dst, HISTOGRAM *histo) ;
@@ -620,7 +620,6 @@ int   MRIneighborsOff3x3(MRI *mri, int x0, int y0, int z0, int min_val) ;
 
 MRI   *MRIreplaceValues(MRI *mri_src, MRI *mri_dst, 
                        BUFTYPE in_val, BUFTYPE out_val) ;
-MRI   *MRImeanMask(MRI *mri_src, MRI *mri_mask, MRI *mri_dst,int mask, int wsize) ;
 MRI   *MRImask(MRI *mri_src, MRI *mri_mask, MRI *mri_dst, int mask,
                float out_val) ;
 MRI   *MRIthresholdMask(MRI *mri_src, MRI *mri_mask, MRI *mri_dst, 
@@ -810,7 +809,6 @@ int mriio_command_line(int argc, char *argv[]);
 int mriio_set_subject_name(char *name);
 int MRIgetVolumeName(char *string, char *name_only);
 MRI *MRIread(char *fname);
-MRI *MRIreadEx(char *fname, int nthframe);
 MRI *MRIreadType(char *fname, int type);
 MRI *MRIreadInfo(char *fname);
 MRI *MRIreadHeader(char *fname, int type);

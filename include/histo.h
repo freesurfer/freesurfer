@@ -63,5 +63,6 @@ int       HISTOfindCurrentPeak(HISTOGRAM *histo, int b0, int wsize, float min_pc
 int       HISTOfillHoles(HISTO *h) ;
 int       HISTOtotal(HISTO *h) ;
 int       HISTOtotalInRegion(HISTO *h, int b0, int b1) ;
+int       HISTOfindBin(HISTOGRAM *h, float val) ;
 
 #endif
