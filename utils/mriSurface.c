@@ -612,7 +612,7 @@ Surf_tErr Surf_TransformToVolumeGeometry ( mriSurfaceRef this,
   int       eMRIS    = ERROR_NONE;
   MRI*      mri      = NULL;
   
-  DebugEnterFunction( ("Surf_CopyGeometryInformation( this=%p, "
+  DebugEnterFunction( ("Surf_TransformToVolumeGeometry( this=%p, "
 		       "iVolumeGeometry=%p )", this, iVolumeGeometry) );
   
   DebugNote( ("Verifying volume") );
@@ -624,6 +624,7 @@ Surf_tErr Surf_TransformToVolumeGeometry ( mriSurfaceRef this,
 		     eResult, Surf_tErr_InvalidParameter );
 
   /* Make a fake MRI from the volume geometry we got. */
+  DebugNote( ("Allocting fake header.") );
   mri = MRIallocHeader( iVolumeGeometry->width,
 			iVolumeGeometry->height, 
 			iVolumeGeometry->depth, MRI_VOLUME_TYPE_UNKNOWN);
@@ -631,11 +632,13 @@ Surf_tErr Surf_TransformToVolumeGeometry ( mriSurfaceRef this,
 		     eResult, Surf_tErr_AllocationFailed );
 
   /* Copy geometry information to the fake MRI. */
+  DebugNote( ("Putting geometry in fake header with useVolGeomToMRI.") );
   useVolGeomToMRI( iVolumeGeometry, mri );
 
   /* Do the transform. */
+  DebugNote( ("Running MRISsurf2surf") );
   eMRIS = MRISsurf2surf( this->mSurface, mri, NULL );
-  DebugAssertThrowX( (ERROR_NONE != eMRIS),
+  DebugAssertThrowX( (ERROR_NONE == eMRIS),
 		     eResult, Surf_tErr_ErrorAccesssingSurface );
 
   DebugCatch;
