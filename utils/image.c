@@ -374,7 +374,7 @@ ImageFReadHeader(FILE *fp, char *fname)
     
     MatReadHeader(fp, &mf) ;
     init_header(I, "matlab", "seq", 1, "today", (int)mf.mrows, (int)mf.ncols,
-                PFFLOAT, 1, "temp") ;
+               mf.imagf ? PFCOMPLEX : PFFLOAT, 1, "temp") ;
   }
     break ;
   case HIPS_IMAGE:
