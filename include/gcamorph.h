@@ -10,17 +10,17 @@
 
 typedef struct
 {
-  Real   origx ;      //  (origx,origy,origz) saved
+  Real   origx ;      //  mri original src voxel position (using lta)
   Real   origy ;
   Real   origz ;
-  Real   x ;          //  (x,y,z) saved
+  Real   x ;          //  updated original src voxel position
   Real   y ;
   Real   z ;
   Real   xs ;         //  not saved
   Real   ys ;
   Real   zs ;
   int    xn ;         /* node coordinates */
-  int    yn ;         // (xn, yn, zn) saved
+  int    yn ;         //  prior voxel position
   int    zn ;
   int    label ;      
   int    n ;          /* index in gcan structure */
@@ -32,6 +32,7 @@ typedef struct
   float  area ;
   float  orig_area ;
   int    status ;       /* ignore likelihood term */
+  char   invalid;       /* if invalid = 1, then don't use this structure */
 } GCA_MORPH_NODE, GMN ;
 
 typedef struct
@@ -42,7 +43,7 @@ typedef struct
   int  neg ;
   double exp_k ;
   int  spacing ;
-  MRI  *mri_xind ;    /* MRI->gca transform */
+  MRI  *mri_xind ;    /* MRI ->gcam transform */
   MRI  *mri_yind ;
   MRI  *mri_zind ;
   VOL_GEOM   src;            /* src for the transform       */
