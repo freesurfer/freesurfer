@@ -3,8 +3,8 @@
 //
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Date  : $Date: 2004/05/27 16:15:56 $
-// Revision       : $Revision: 1.40 $
+// Revision Date  : $Date: 2004/05/27 16:20:07 $
+// Revision       : $Revision: 1.41 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -218,8 +218,8 @@ GCAMwrite(GCA_MORPH *gcam, char *fname)
     if (errno)
     {
       pclose(fp);
-      ErrorReturn(NULL, (ERROR_BADPARM, "GCAMwrite(%s): gzip encountered error.",
-			 fname)) ;
+      ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "GCAMwrite(%s): gzip encountered error.",
+				  fname)) ;
     }
   }
   else
