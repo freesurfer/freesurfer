@@ -6,7 +6,7 @@
 # responses.
 ############################################################
 
-set YAKVIEW_VER = '\$Id: yakview,v 1.7 2004/12/07 23:55:13 greve Exp $'
+set YAKVIEW_VER = '\$Id: yakview,v 1.8 2005/01/23 17:16:35 greve Exp $'
 
 # Set Default Values #
 set imgstem = ();
@@ -564,6 +564,8 @@ while( $#argv != 0 )
 
     case "-mgh":
       set fmtimg = 2;
+      set slice = mos
+      set IsMosaic = 1;
       breaksw
 
     case "-debug":
