@@ -665,7 +665,6 @@ ScubaFrame::DoReshape() {
 void
 ScubaFrame::DoTimer() {
 
-#if 0
   // In our timer function we scan our views and ask if they want
   // redisplays.
   for( int nRow = 0; nRow < mcRows; nRow++ ) {
@@ -687,7 +686,6 @@ ScubaFrame::DoTimer() {
       }
     }
   }  
-#endif
 }
 
 void
