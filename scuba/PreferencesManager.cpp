@@ -199,6 +199,15 @@ PreferencesManager::ReadFile() {
 	}
       }
 
+      /* Just read in but ignore the timestamp. */
+    } else if( sKeyword == "begin-timestamp" ) {
+      while( !fPrefs.eof() ) {
+	getline( fPrefs, sKeyword );
+	if( sKeyword == "end-timestamp" ) {
+	  break;
+	}
+      }
+
     } else if( sKeyword == "begin-pref" ) {
 
       PreferenceValue* pref = new PreferenceValue();
@@ -265,9 +274,12 @@ PreferencesManager::WriteFile() {
   fPrefs << mVersion << endl;
   fPrefs << "end-version" << endl << endl;
 
-  fPrefs << "begin-header" << endl;
+  fPrefs << "begin-timestamp" << endl;
   fPrefs << "# Scuba preferences file written " << ctime(&curTime);
-  fPrefs << "# $Id: PreferencesManager.cpp,v 1.12 2004/12/05 20:21:46 kteich Exp $" << endl;
+  fPrefs << "# $Id: PreferencesManager.cpp,v 1.13 2005/01/06 17:51:57 kteich Exp $" << endl;
+  fPrefs << "end-timestamp" << endl << endl;
+
+  fPrefs << "begin-header" << endl;
   fPrefs << msHeader << endl << endl;
   fPrefs << "end-header" << endl << endl;
 
