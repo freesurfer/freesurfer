@@ -219,3 +219,100 @@ fwriteFloat(float f, FILE *fp)
   return(fwrite(&f,sizeof(float),1,fp));
 }
 
+/*------------------------------------------------------
+  fio_dirname() - function to replicate the functionality
+  of the unix dirname.
+  Author: Douglas Greve, 9/10/2001
+  ------------------------------------------------------*/
+char *fio_dirname(char *pathname)
+{
+  int l,n;
+  char *dirname;
+
+  if(pathname == NULL) return(NULL);
+
+  l = strlen(pathname);
+
+  /* strip off leading forward slashes */
+  while(l > 0 && pathname[l-1] == '/'){
+    pathname[l-1] = '\0';
+    l = strlen(pathname);
+  }
+
+  if(l < 2){
+    /* pathname is / or . or single character */
+    dirname = (char *) calloc(2,sizeof(char));
+    if(l==0 || pathname[0] == '/') dirname[0] = '/';
+    else                           dirname[0] = '.';
+    return(dirname);
+  }
+
+  /* Start at the end of the path name and step back
+     until a forward slash is found */
+  for(n=l; n >= 0; n--)if(pathname[n] == '/') break;
+
+  if(n < 0){
+    /* no forward slash found */
+    dirname = (char *) calloc(2,sizeof(char));
+    dirname[0] = '.';
+    return(dirname);
+  }
+
+  if(n == 0){
+    /* first forward slash is the first character */
+    dirname = (char *) calloc(2,sizeof(char));
+    dirname[0] = '/';
+    return(dirname);
+  }
+
+  dirname = (char *) calloc(n+1,sizeof(char));
+  memcpy(dirname,pathname,n);
+  return(dirname);
+}
+/*------------------------------------------------------
+  fio_basename() - function to replicate the functionality
+  of the unix basename.
+  Author: Douglas Greve, 9/10/2001
+  ------------------------------------------------------*/
+char *fio_basename(char *pathname, char *ext)
+{
+  int l,n,lext;
+  char *basename;
+
+  if(pathname == NULL) return(NULL);
+
+  l = strlen(pathname);
+
+  /* strip off the extension if it matches ext */
+  if(ext != NULL){
+    lext = strlen(ext);
+    if(lext < (l + 2)){
+      if( strcmp(ext,&(pathname[l-lext]) ) == 0){
+  memset(&(pathname[l-lext]),'\0',lext+1);
+  l = strlen(pathname);
+      }
+    }
+  }
+
+  /* strip off leading forward slashes */
+  while(l > 0 && pathname[l-1] == '/'){
+    pathname[l-1] = '\0';
+    l = strlen(pathname);
+  }
+
+  if(l < 2){
+    /* basename is / or . or single character */
+    basename = (char *) calloc(2,sizeof(char));
+    if(l==0) basename[0] = '/';
+    else     basename[0] = pathname[0];
+    return(basename);
+  }
+
+  /* Start at the end of the path name and step back
+     until a forward slash is found */
+  for(n=l; n >= 0; n--) if(pathname[n] == '/') break;
+
+  basename = (char *) calloc(l-n,sizeof(char));
+  memcpy(basename,&(pathname[n+1]),l-n);
+  return(basename);
+}
