@@ -2,7 +2,7 @@
 #include "mrisurf.h"
 #include "error.h"
 #include "diag.h"
-#include "icosohedron.h"
+#include "icosahedron.h"
 
 
 #define ICO_NVERTICES 2562
