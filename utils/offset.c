@@ -720,7 +720,6 @@ ImageCalculateOffsetDirection(IMAGE *Ix, IMAGE *Iy, int wsize, IMAGE *Ioffset)
 #define WHALF        (WSIZE-1)/2
 
 /* global for debugging, make local if this routine is ever really used. */
-IMAGE *Ioffset = NULL, *Ioffset2 = NULL, *Ix = NULL, *Iy = NULL, *Ismooth = NULL ;
 
 #define MEDIAN_INDEX  ((3*3-1)/2)
 static int compare_sort_array(const void *pf1, const void *pf2) ;
@@ -728,6 +727,8 @@ static int compare_sort_array(const void *pf1, const void *pf2) ;
 IMAGE *
 ImageOffsetScale(IMAGE *Isrc, IMAGE *Idst)
 {
+  static IMAGE *Ioffset = NULL, *Ioffset2 = NULL, *Ix = NULL, *Iy = NULL, 
+         *Ismooth = NULL ;
   static IMAGE   *Igauss = NULL ;
   int     srows, scols, drows, dcols, xs, ys ;
   int     x0, y0, x, y, ystep, xstep, maxsteps, i, idx, idy ;
