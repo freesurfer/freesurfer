@@ -54,7 +54,7 @@ main(int argc, char *argv[])
   GCSA         *gcsa ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_ca_label.c,v 1.8 2003/09/05 04:45:40 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_ca_label.c,v 1.9 2005/01/05 17:28:45 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -106,7 +106,7 @@ main(int argc, char *argv[])
   MRIScomputeSecondFundamentalForm(mris) ;
   MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ;
   if (MRISreadCanonicalCoordinates(mris, canon_surf_name) != NO_ERROR)
-    ErrorExit(ERROR_NOFILE, "%s: could not read annot file %s for %s",
+    ErrorExit(ERROR_NOFILE, "%s: could not read spherical coordinate system from %s for %s",
               Progname, canon_surf_name, subject_name) ;
 #if 1
   for (i = gcsa->ninputs-1 ; i >= 0 ; i--)
