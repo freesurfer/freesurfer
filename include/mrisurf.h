@@ -72,6 +72,7 @@ typedef struct vertex_type_
   float  tx, ty, tz ;     /* tmp coordinate storage */
   float  origx, origy,
          origz ;          /* original coordinates */
+  float  pialx, pialy, pialz ;  /* pial surface coordinates */
   float  infx, infy, infz; /* inflated coordinates */
   float  fx, fy, fz ;      /* flattened coordinates */
   float e1x, e1y, e1z ;  /* 1st basis vector for the local tangent plane */
@@ -206,12 +207,17 @@ typedef struct
   int          max_faces ;        /* may be bigger than nfaces */
   char         subject_name[STRLEN] ;/* name of the subject */
   float        canon_area ;
+  int          noscale ;          /* don't scale by surface area if true */
+  float        *dx2 ;             /* an extra set of gradient (not always alloced) */
+  float        *dy2 ;
+  float        *dz2 ;
 } MRI_SURFACE, MRIS ;
 
 
 #define IPFLAG_HVARIABLE           0x0001   /* for parms->flags */
 #define IPFLAG_NO_SELF_INT_TEST    0x0002
 #define IPFLAG_QUICK               0x0004  /* sacrifice quality for speed */
+#define IPFLAG_ADD_VERTICES        0x0008
 
 #define INTEGRATE_LINE_MINIMIZE    0  /* use quadratic fit */
 #define INTEGRATE_MOMENTUM         1
@@ -313,6 +319,7 @@ typedef struct
   float   l_convex ;          /* convexity term */
   float   l_tsmooth ;         /* thickness smoothness term */
   float   l_surf_repulse ;    /* repulsive orig surface (for white->pial) */
+  float   l_external ;        /* external (user-defined) coefficient */
   int     n_averages ;        /* # of averages */
   int     min_averages ;
   int     nbhd_size ;
@@ -347,10 +354,16 @@ typedef struct
   float   sigma ;             /* blurring scale */
   MRI     *mri_brain ;        /* for settling surfaace to e.g. g/w border */
   MRI     *mri_smooth ;       /* smoothed version of mri_brain */
+  void    *user_parms ;       /* arbitrary spot for user to put stuff */
 } INTEGRATION_PARMS ;
 
-#define IP_USE_CURVATURE  0x0001
-#define IP_NO_RIGID_ALIGN 0x0002
+extern int (*gMRISexternalGradient)(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) ;
+extern double (*gMRISexternalSSE)(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) ;
+extern double (*gMRISexternalRMS)(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) ;
+extern int (*gMRISexternalTimestep)(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) ;
+
+#define IP_USE_CURVATURE      0x0001
+#define IP_NO_RIGID_ALIGN     0x0002
 #define IP_RETRY_INTEGRATION  0x0004
 
 /* can't include this before structure, as stats.h includes this file. */
@@ -362,8 +375,10 @@ int MRISfindClosestCanonicalVertex(MRI_SURFACE *mris, float x, float y,
 int MRISfindClosestOriginalVertex(MRI_SURFACE *mris, float x, float y, 
                                     float z) ;
 int MRISfindClosestVertex(MRI_SURFACE *mris, float x, float y, float z) ;
+double MRIScomputeSSE(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) ;
 double       MRIScomputeCorrelationError(MRI_SURFACE *mris, 
                                          MRI_SP *mrisp_template, int fno) ;
+int          MRISallocExtraGradients(MRI_SURFACE *mris) ;
 MRI_SURFACE  *MRISread(char *fname) ;
 MRI_SURFACE  *MRISreadOverAlloc(char *fname, double pct_over) ;
 MRI_SURFACE  *MRISfastRead(char *fname) ;
@@ -595,6 +610,7 @@ MRI_SP  *MRISPandLabel(MRI_SP *mrisp, MRI_SURFACE *mris, LABEL *area) ;
 #define CURRENT_VERTICES    4
 #define INFLATED_VERTICES   5
 #define FLATTENED_VERTICES  6
+#define PIAL_VERTICES       7
 
 
 int          MRISsaveVertexPositions(MRI_SURFACE *mris, int which) ;
@@ -611,6 +627,7 @@ int          MRISrestoreVertexPositions(MRI_SURFACE *mris, int which) ;
 /* constants for mris->hemisphere */
 #define LEFT_HEMISPHERE         0
 #define RIGHT_HEMISPHERE        1
+#define NO_HEMISPHERE           2
 
 #if 0
 #define DEFAULT_A  44.0f
@@ -652,6 +669,8 @@ int          MRISrestoreVertexPositions(MRI_SURFACE *mris, int which) ;
 int   MRIStranslate(MRI_SURFACE *mris, float dx, float dy, float dz) ;
 int   MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, 
                           MRI *mri_smooth, INTEGRATION_PARMS *parms);
+int   MRISpositionSurfaces(MRI_SURFACE *mris, MRI **mri_flash, 
+                           int nvolumes, INTEGRATION_PARMS *parms);
 int   MRISmoveSurface(MRI_SURFACE *mris, MRI *mri_brain, 
                           MRI *mri_smooth, INTEGRATION_PARMS *parms);
 int   MRISscaleVals(MRI_SURFACE *mris, float scale) ;
@@ -676,6 +695,8 @@ int   MRISmarkRandomVertices(MRI_SURFACE *mris, float prob_marked) ;
 int   MRISmarkNegativeVertices(MRI_SURFACE *mris, int mark) ;
 int   MRISripNegativeVertices(MRI_SURFACE *mris) ;
 int   MRISclearMarks(MRI_SURFACE *mris) ;
+int   MRISclearFixedValFlags(MRI_SURFACE *mris) ;
+int   MRIScopyFixedValFlagsToMarks(MRI_SURFACE *mris) ;
 int   MRISclearAnnotations(MRI_SURFACE *mris) ;
 int   MRISsetMarks(MRI_SURFACE *mris, int mark) ;
 int   MRISsequentialAverageVertexPositions(MRI_SURFACE *mris, int navgs) ;
@@ -771,7 +792,7 @@ int  MRISwriteStc(char *fname, MATRIX *m_data, float epoch_begin_lat,
 float  MRISdistanceToSurface(MRI_SURFACE *mris, MHT *mht,
                              float x0, float y0, float z0,
                              float nx, float ny, float nz) ;
-int    MRISexpandSurface(MRI_SURFACE *mris, float distance) ;
+int    MRISexpandSurface(MRI_SURFACE *mris, float distance, INTEGRATION_PARMS *parms) ;
 
 #endif
                              
