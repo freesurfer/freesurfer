@@ -24,4 +24,6 @@
 
 #define INV_SQRTPI     0.56419
 
+#define STR_LEN        100   /* misc. string length */
+
 #endif
