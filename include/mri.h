@@ -80,9 +80,14 @@ float MRIvoxelZscore(MRI *mri, int x, int y, int z, int wsize) ;
 float MRIvoxelDx(MRI *mri, int x, int y, int z) ;
 float MRIvoxelDy(MRI *mri, int x, int y, int z) ;
 float MRIvoxelDz(MRI *mri, int x, int y, int z) ;
-float MRIvoxelGradient(MRI *mri, int x, int y, int z, float *pdx, float *pdy, 
+float MRIvoxelGradient(MRI *mri, int x, int y, int z, float *pdx, float *pdy,
                        float *pdz) ;
 float MRIvoxelDirection(MRI *mri, int x, int y, int z, int wsize) ;
+/* use these constants for MRIreorder */
+#define XDIM  1
+#define YDIM  2
+#define ZDIM  3
+MRI  *MRIreorder(MRI *mri_src, MRI *mri_dst, int xdim, int ydim, int zdim);
 
 /* I/O functions */
 int    MRIwrite(MRI *mri, char *fpref) ;
@@ -388,5 +393,6 @@ MRI        *MRIfillFG(MRI *mri_src, MRI *mri_dst, int seed_x, int seed_y,
 #define OFFSET_NEGATIVE_GRADIENT_DIRECTION    0
 #define OFFSET_GRADIENT_DIRECTION             1
 #define OFFSET_ZERO                           2
+
 
 #endif
