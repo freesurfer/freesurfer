@@ -3310,7 +3310,7 @@ set tDlogSpecs(LoadCurvature) [list \
   -default1 [list ExpandFileName "" kFileName_Surface] \
   -note1 "The file name of the curvature data" \
   -okCmd {set curv [ExpandFileName %s1 kFileName_Surface]; \
-  read_binary_curv; set curvflag 1; RestoreView; } ]
+  read_binary_curv; set curvflag 1; UpdateAndRedraw; } ]
 set tDlogSpecs(SaveCurvatureAs) [list \
   -title "Save Curvature As" \
   -prompt1 "Save Curvature:" \
