@@ -1,5 +1,5 @@
-function [yacf, M] = fast_yacf_kjw(racf,R)
-% yacf = fast_yacf_kjw(racf,R)
+function [yacf, M] = fast_yacf_kjw(racf,R,p)
+% yacf = fast_yacf_kjw(racf,R,<p>)
 % 
 % Remove bias from residual autocorrelation function using Keith
 % Worsley's fmristats method. The bias is induced by projecting out
@@ -11,6 +11,8 @@ function [yacf, M] = fast_yacf_kjw(racf,R)
 % yacf is an approximation of the autocor function
 %  of the original noise.
 % M is the correction matrix.
+% p - cant remember. Default is number of frames. I think it's the
+%  same as running it like fast_yacf_kjw(racf(1:p,:),R)
 %
 % Notes:
 %  1. As the number of frames increases, the computation is 
@@ -21,17 +23,23 @@ function [yacf, M] = fast_yacf_kjw(racf,R)
 %
 % See also: fast_acorr, fast_kjw_mtx.
 %
-% $Id: fast_yacf_kjw.m,v 1.4 2004/04/06 16:22:59 greve Exp $
+% Worsely, 2002, NI 15, 1-15.
+% 
+% $Id: fast_yacf_kjw.m,v 1.5 2004/10/30 00:34:10 greve Exp $
 
-if(nargin ~= 2)
-  fprintf('yacf = fast_yacf_kjw(racf,R)\n');
+if(nargin < 2 | nargin > 3)
+  fprintf('yacf = fast_yacf_kjw(racf,R,<p>)\n');
   return;
 end
 
-[nf nv] = size(racf);
-M = fast_kjw_mtx(R,nf);
 
-yacf = inv(M)*racf;
-yacf = yacf./repmat(yacf(1,:),[nf 1]);
+[nf nv] = size(racf);
+
+if(~exist('p','var')) p = nf; end
+
+M = fast_kjw_mtx(R,p);
+
+yacf = inv(M)*racf(1:p,:);
+yacf = yacf./repmat(yacf(1,:),[p 1]);
 
 return;
