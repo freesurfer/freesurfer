@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2003/08/20 16:21:24 $
-// Revision       : $Revision: 1.83 $
+// Revision Date  : $Date: 2003/09/08 17:55:03 $
+// Revision       : $Revision: 1.84 $
 
 #include "tkmDisplayArea.h"
 #include "tkmMeditWindow.h"
@@ -6745,9 +6745,10 @@ DspA_tErr DspA_SendPointInformationToTcl_ ( tkmDisplayAreaRef this,
   sprintf( sTclArguments, "%d", nSlice );
   tkm_SendTclCommand( tkm_tTclCommand_UpdateVolumeSlice, sTclArguments );
   
-  /* also convert to RAS and send those coords along. */
-  Volm_ConvertIdxToRAS( this->mpVolume[tkm_tVolumeType_Main],
-			iAnaIdx, &voxel );
+  /* also convert to RAS and send those coords along. for these we
+     actually use the surface RAS coords. */
+  Volm_ConvertMRIIdxToSurfaceRAS( this->mpVolume[tkm_tVolumeType_Main],
+				  &MRIIdx, &voxel );
   sprintf( sTclArguments, "%s %.1f %.1f %.1f", 
 	   DspA_ksaDisplaySet[iSet], xVoxl_ExpandFloat( &voxel ) );
   tkm_SendTclCommand( tkm_tTclCommand_UpdateRASCursor, sTclArguments );
@@ -6768,7 +6769,7 @@ DspA_tErr DspA_SendPointInformationToTcl_ ( tkmDisplayAreaRef this,
     tkm_SendTclCommand( tkm_tTclCommand_UpdateTalCursor, sTclArguments );
   }
   
-  /* and the scanner coords */
+  /* and the scanner coords. */
   Volm_ConvertIdxToScanner( this->mpVolume[tkm_tVolumeType_Main],
 			    iAnaIdx, &voxel );
   sprintf( sTclArguments, "%s %.1f %.1f %.1f", 
