@@ -13,8 +13,8 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/06/01 16:32:26 $
-// Revision       : $Revision: 1.38 $
+// Revision Date  : $Date: 2004/06/01 16:44:04 $
+// Revision       : $Revision: 1.39 $
 
 ------------------------------------------------------------------------*/
 
@@ -1013,6 +1013,15 @@ int getMemoryUsed()
   char buf[256];
   int memused = 0;
   int numassigned = 0;
+  /////////////////////////////////////////////////////////////////////////
+  // Linux /proc/$pid/status file memory usage information
+  // VmSize : virtual memory usage of entire process
+  // VmRSS  : resident set currently in physical memory including code, data, stack
+  // VmData : virtual memory usage of heap
+  // VmStk  : virtual memory usage of stack
+  // VmExe  : virtual memory usage by executable and statically linked libs
+  // VmLib  : virtual memory usage by dlls loaded
+  /////////////////////////////////////////////////////////////////////////
   sprintf(buf, "grep -i vmdata /proc/%d/status | cut -f 2", getpid());
   errno = 0;
   fp = popen(buf, "r");
