@@ -13,7 +13,7 @@
 #include "mri.h"
 #include "macros.h"
 
-static char vcid[] = "$Id: mris_remove_variance.c,v 1.1 1998/07/25 16:18:49 fischl Exp $";
+static char vcid[] = "$Id: mris_remove_variance.c,v 1.2 1998/07/25 18:21:51 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -23,6 +23,7 @@ static void print_usage(void) ;
 static void print_help(void) ;
 static void print_version(void) ;
 int MRISremoveValueVarianceFromCurvature(MRI_SURFACE *mris) ;
+double MRIScomputeCurvatureValueCorrelationCoefficient(MRI_SURFACE *mris) ;
 
 char *Progname ;
 
@@ -35,6 +36,7 @@ main(int argc, char *argv[])
                hemi[10], path[200], name[200],*cp ;
   int          ac, nargs ;
   MRI_SURFACE  *mris ;
+  double       r ;
 
   Progname = argv[0] ;
   ErrorInit(NULL, NULL, NULL) ;
@@ -76,7 +78,14 @@ main(int argc, char *argv[])
   MRISreadCurvatureFile(mris, var_curv) ;
   MRIScopyCurvatureToValues(mris) ;
   MRISreadCurvatureFile(mris, in_curv) ;
+  r = MRIScomputeCurvatureValueCorrelationCoefficient(mris) ;
+  fprintf(stderr, "correlation coefficient = %2.3f\n", (float)r) ;
   MRISremoveValueVarianceFromCurvature(mris) ;
+  if (Gdiag & DIAG_SHOW)
+  {
+    r = MRIScomputeCurvatureValueCorrelationCoefficient(mris) ;
+    fprintf(stderr, "after decorrelation coefficient = %2.3f\n", (float)r) ;
+  }
   MRISaverageCurvatures(mris, navgs) ;
   MRISwriteCurvature(mris, out_curv) ;
   exit(0) ;
@@ -172,7 +181,7 @@ MRISremoveValueVarianceFromCurvature(MRI_SURFACE *mris)
     v = &mris->vertices[vno] ;
     if (v->ripflag)
       continue ;
-    len += v->val*v->val ;
+    len += (double)v->val*(double)v->val ;
   }
 
   if (FZERO(len))
@@ -186,8 +195,8 @@ MRISremoveValueVarianceFromCurvature(MRI_SURFACE *mris)
     v = &mris->vertices[vno] ;
     if (v->ripflag)
       continue ;
-    v->val /= len ;
-    dot += v->curv * v->val ;
+    v->d = v->val / len ;
+    dot += (double)v->curv * (double)v->d ;
   }
 
   /* now subtract the the scaled val vector from the curvature vector */
@@ -196,7 +205,16 @@ MRISremoveValueVarianceFromCurvature(MRI_SURFACE *mris)
     v = &mris->vertices[vno] ;
     if (v->ripflag)
       continue ;
-    v->curv -= dot * v->val ;
+    v->curv -= dot * (double)v->d ;
+  }
+
+  /* dot should now be 0 */
+  for (dot = 0.0, vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    dot += (double)v->curv * (double)v->val ;
   }
 
   /* recompute min, max and mean curvature */
@@ -222,3 +240,48 @@ MRISremoveValueVarianceFromCurvature(MRI_SURFACE *mris)
   return(NO_ERROR) ;
 }
 
+double
+MRIScomputeCurvatureValueCorrelationCoefficient(MRI_SURFACE *mris)
+{
+  double   r, mean_val, mean_curv, s_val, s_curv, n ;
+  int      vno ;
+  VERTEX   *v ;
+
+  /* first build normalize vector in vertex->val field */
+  n = (double)mris->nvertices ;
+  for (mean_val = mean_curv = 0.0, vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    mean_val += v->val ;
+    mean_curv += v->curv ;
+  }
+
+  mean_val /= n ; mean_curv /= n ;
+
+  /* compute standard deviations */
+  for (s_val = s_curv = 0.0, vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    s_val += SQR(v->val-mean_val) ;
+    s_curv += SQR(v->curv-mean_curv) ;
+  }
+
+  s_val /= (n-1.0) ; s_curv /= (n-1.0) ;
+  s_val = sqrt(s_val) ; s_curv = sqrt(s_curv) ;
+
+  /* measure length of val vector */
+  for (r = 0.0, vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    r += (v->val - mean_val) * (v->curv - mean_curv) ;
+  }
+  r /= ((n-1.0) * s_val * s_curv) ;
+
+  return(r) ;
+}
