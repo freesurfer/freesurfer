@@ -421,6 +421,9 @@ int  Volm_GetMaxValueIndex_     ( mriVolumeRef     this,
 void Volm_GetValueAtIdx_             ( mriVolumeRef      this,
 				       xVoxelRef         iIdx,
 				       float*            oValue );
+void Volm_GetValueAtMRIIdx_          ( mriVolumeRef      this,
+				       xVoxelRef         iMRIIdx,
+				       float*            oValue );
 void Volm_GetValueAtXYSlice_         ( mriVolumeRef this,
 				       mri_tOrientation  iOrientation,
 				       xPoint2nRef       iPoint,
@@ -449,6 +452,9 @@ void Volm_GetMaxValueAtXYSlice_      ( mriVolumeRef this,
 
 
 void Volm_SetValueAtIdx_         ( mriVolumeRef      this,
+				   xVoxelRef         iIdx,
+				   float             iValue );
+void Volm_SetValueAtMRIIdx_         ( mriVolumeRef      this,
 				   xVoxelRef         iIdx,
 				   float             iValue );
 void Volm_SetValueAtIdxFrame_    ( mriVolumeRef      this,

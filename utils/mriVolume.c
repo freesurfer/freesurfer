@@ -3283,6 +3283,42 @@ void Volm_GetValueAtIdx_ ( mriVolumeRef this,
     }
 }
 
+void Volm_GetValueAtMRIIdx_ ( mriVolumeRef this,
+			      xVoxelRef    iMRIIdx,
+			      float*       oValue) {
+  
+  switch( this->mpMriValues->type ) {
+    case MRI_UCHAR:
+      *oValue = 
+	MRIvox( this->mpMriValues, xVoxl_GetX(iMRIIdx), 
+		xVoxl_GetY(iMRIIdx), xVoxl_GetZ(iMRIIdx) );
+      break;
+    case MRI_INT:
+      *oValue = 
+	MRIIvox( this->mpMriValues, xVoxl_GetX(iMRIIdx), 
+		 xVoxl_GetY(iMRIIdx), xVoxl_GetZ(iMRIIdx) );
+      break;
+    case MRI_LONG:
+      *oValue = 
+	MRILvox( this->mpMriValues, xVoxl_GetX(iMRIIdx), 
+		 xVoxl_GetY(iMRIIdx), xVoxl_GetZ(iMRIIdx) );
+      break;
+    case MRI_FLOAT:
+      *oValue = 
+	MRIFvox( this->mpMriValues, xVoxl_GetX(iMRIIdx), 
+		 xVoxl_GetY(iMRIIdx), xVoxl_GetZ(iMRIIdx) );
+      break;
+    case MRI_SHORT:
+      *oValue = 
+	MRISvox( this->mpMriValues, xVoxl_GetX(iMRIIdx), 
+		 xVoxl_GetY(iMRIIdx), xVoxl_GetZ(iMRIIdx) );
+      break;
+    default:
+      *oValue = 0;
+      break ;
+    }
+}
+
 void Volm_GetValueAtXYSlice_ ( mriVolumeRef this,
 			       mri_tOrientation  iOrientation,
 			       xPoint2nRef       iPoint,
@@ -3439,6 +3475,42 @@ void Volm_SetValueAtIdx_ ( mriVolumeRef     this,
     case MRI_INT:
       MRIIvox( this->mpMriValues, xVoxl_GetX(&this->mTmpVoxel), 
 	       xVoxl_GetY(&this->mTmpVoxel), xVoxl_GetZ(&this->mTmpVoxel) ) = 
+	(int) iValue;
+      break ;
+    }
+}
+
+void Volm_SetValueAtMRIIdx_ ( mriVolumeRef     this,
+			   xVoxelRef        iMRIIdx,
+			   float            iValue ) {
+  
+  switch (this->mpMriValues->type)
+    {
+    default:
+      break ;
+    case MRI_UCHAR:
+      MRIvox( this->mpMriValues, xVoxl_GetX(iMRIIdx), 
+	      xVoxl_GetY(iMRIIdx), xVoxl_GetZ(iMRIIdx) ) = 
+	(BUFTYPE) iValue;
+      break ;
+    case MRI_SHORT:
+      MRISvox( this->mpMriValues, xVoxl_GetX(iMRIIdx), 
+	       xVoxl_GetY(iMRIIdx), xVoxl_GetZ(iMRIIdx) ) = 
+	(short) iValue;
+      break ;
+    case MRI_FLOAT:
+      MRIFvox( this->mpMriValues, xVoxl_GetX(iMRIIdx), 
+	       xVoxl_GetY(iMRIIdx), xVoxl_GetZ(iMRIIdx) ) = 
+	(float) iValue;
+      break ;
+    case MRI_LONG:
+      MRILvox( this->mpMriValues, xVoxl_GetX(iMRIIdx), 
+	       xVoxl_GetY(iMRIIdx), xVoxl_GetZ(iMRIIdx) ) = 
+	(long) iValue;
+      break ;
+    case MRI_INT:
+      MRIIvox( this->mpMriValues, xVoxl_GetX(iMRIIdx), 
+	       xVoxl_GetY(iMRIIdx), xVoxl_GetZ(iMRIIdx) ) = 
 	(int) iValue;
       break ;
     }
