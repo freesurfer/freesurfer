@@ -32,11 +32,12 @@ class VolumeLocation : public DataLocation {
  public:
   VolumeLocation ( VolumeCollection& iVolume, float const iRAS[3] );
   ~VolumeLocation () {}
-  int* Index() { return mIdx; }
+  int* Index() { return mIdxi; }
   void SetFromRAS( float const iRAS[3] );
  protected:
   VolumeCollection& mVolume;
-  int mIdx[3];
+  int mIdxi[3];
+  float mIdxf[3];
 };
 
 class VolumeCollection : public DataCollection {
@@ -185,6 +186,9 @@ class VolumeCollection : public DataCollection {
   virtual void DataChanged ();
 
   // For autosaving.
+  void SetAutoSaveOn ( bool ibAutosave ) { mbAutosave = ibAutosave; }
+  bool GetAutoSaveOn () { return mbAutosave; }
+
   bool IsAutosaveDirty () { return mbAutosaveDirty; }
   void AutosaveIfDirty ();
 

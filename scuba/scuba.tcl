@@ -10,7 +10,7 @@ if { $err } {
     load [file dirname [info script]]/libscuba[info sharedlibextension] scuba
 }
 
-DebugOutput "\$Id: scuba.tcl,v 1.68 2005/01/07 19:47:17 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.69 2005/01/28 20:43:40 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -501,6 +501,7 @@ proc MakeMenuBar { ifwTop } {
 	{check "Flip Left/Right" { SetViewFlipLeftRightYZ $gaView(current,id) $gaView(flipLeftRight) } gaView(flipLeftRight) }
 	{check "Coordinate Overlay" { SetPreferencesValue DrawCoordinateOverlay $gaView(coordOverlay); RedrawFrame [GetMainFrameID] } gaView(coordOverlay) }
 	{check "Markers" { SetPreferencesValue DrawMarkers $gaView(markers); RedrawFrame [GetMainFrameID] } gaView(markers) }
+	{check "Paths" { SetPreferencesValue DrawPaths $gaView(paths); RedrawFrame [GetMainFrameID] } gaView(paths) }
 	{check "Plane Intersections" { SetPreferencesValue DrawPlaneIntersections $gaView(planeIntersections); RedrawFrame [GetMainFrameID] } gaView(planeIntersections) }
 	{check "Show Console:Alt N" { ShowHideConsole $gaView(tkcon,visible) } gaView(tkcon,visible) }
 	{check "Auto-Configure" {} gaView(autoConfigure) }
@@ -511,6 +512,7 @@ proc MakeMenuBar { ifwTop } {
     set gaView(tkcon,visible) [GetPreferencesValue ShowConsole]
     set gaView(coordOverlay)  [GetPreferencesValue DrawCoordinateOverlay]
     set gaView(markers)       [GetPreferencesValue DrawMarkers]
+    set gaView(paths)         [GetPreferencesValue DrawPaths]
     set gaView(planeIntersections) [GetPreferencesValue DrawPlaneIntersections]
     set gaView(autoConfigure) [GetPreferencesValue AutoConfigureView]
     set gaView(showFPS)       [GetPreferencesValue ShowFPS]
@@ -1036,6 +1038,7 @@ proc Quit {} {
     SetPreferencesValue ShowConsole $gaView(tkcon,visible)
     SetPreferencesValue DrawCoordinateOverlay $gaView(coordOverlay)
     SetPreferencesValue DrawMarkers $gaView(markers)
+    SetPreferencesValue DrawPaths $gaView(paths)
     SetPreferencesValue DrawPlaneIntersections $gaView(planeIntersections)
     SetPreferencesValue AutoConfigureView $gaView(autoConfigure)
     SetPreferencesValue ShowFPS $gaView(showFPS)
@@ -4347,7 +4350,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.68 2005/01/07 19:47:17 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.69 2005/01/28 20:43:40 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.

@@ -15,7 +15,7 @@ int const ScubaColorLUT::cDefaultEntries = 500;
 ScubaColorLUT::ScubaColorLUT() {
   msLabel = "";
   mfnLUT = "";
-  mcEntries = cDefaultEntries;
+  mcEntries = 0;
 
   TclCommandManager& commandMgr = TclCommandManager::GetManager();
   commandMgr.AddCommand( *this, "SetColorLUTLabel", 2, "lutID label",

@@ -20,6 +20,7 @@ class ScubaLayer2DMRI : public Layer {
 
   // Associate a volume collection with this layer.
   void SetVolumeCollection ( VolumeCollection& iVolume );
+  VolumeCollection* GetVolumeCollection () { return mVolume; }
 
   // Tell the layer to draw its contents into a GL frame buffer.
   virtual void DrawIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
@@ -65,13 +66,22 @@ class ScubaLayer2DMRI : public Layer {
   SampleMethod GetSampleMethod () { return mSampleMethod; }
 
   void SetColorLUT ( int iLUTID );
+  int GetColorLUT ();
+
+  void SetDrawZeroClear ( bool ibClearZero ) { mbClearZero = ibClearZero; }
+  bool GetDrawZeroClear () { return mbClearZero; }
 
   static int const cGrayscaleLUTEntries;
   static int const kMaxPixelComponentValue;  
   static float const kMaxPixelComponentValueFloat;  
   void BuildGrayscaleLUT ();
-  void SetBrightness ( float iBrightness ) { mBrightness = iBrightness; }
-  void SetContrast ( float iContrast ) { mContrast = iContrast; }
+
+  // Brightness:  dark  1 --~~==## 0  bright
+  // Contrast:    gray  0 --~~==## 30 black/white
+  void SetBrightness ( float iBrightness );
+  float GetBrightness () { return mBrightness; }
+  void SetContrast ( float iContrast );
+  float GetContrast () { return mContrast; }
 
   void SetMinVisibleValue ( float iValue );
   float GetMinVisibleValue () { return mMinVisibleValue; }

@@ -12,6 +12,7 @@ LayerStaticTclListener Layer::mStaticListener;
 
 Layer::Layer() {
   mOpacity = 1.0;
+  mbVisible = true;
   msLabel = "";
   mbPostRedisplay = false;
   mBytesPerPixel = 4;

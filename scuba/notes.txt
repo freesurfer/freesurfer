@@ -354,6 +354,8 @@ x fill tool
 
 ======== HERE
 
+- hide/show paths
+
 - histo tool
   - redesign so that it can be left open
     - specify ROI on the fly, click to rehisto
@@ -439,6 +441,7 @@ x Segment Slice by Histogram
     x tk histogram, choose seg vol, get table from it, assign values
 
 BUGS:::
+- path tool click button 2 if not paths present crashes
 - tabbing when in console switches frame, disable?
 - brings up tkcon window briefly when booting
 - color picker window, open twice?
@@ -475,7 +478,16 @@ x auto-config on change view modes
 x connect keybindings
 
 - get the new layers window working
-  - signal for when view's layers are changed
+  x working on pdmTransform
+  - ignore markers for histogram.
+  - min/mid/max marker for heat scale
+
+x default dirs for file dlogs if subject is loaded
+
+QtVolumeHistogram
+  - still crashing sometimes when mousing over bars, rigorous testing
+  - get threading to work
+    - when switching vols before thread is done, is terminate() okay to call?
 
 - when current layer/data collection change, update menus
   - Save Volume <VolumeName>

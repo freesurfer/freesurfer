@@ -144,6 +144,10 @@ ScubaLayer2DMRI::DrawIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
     return;
   }
 
+  if( !mbVisible ) {
+    return;
+  }
+
   // Precalc our color * opacity.
   GLubyte aColorTimesOpacity[256];
   GLubyte aColorTimesOneMinusOpacity[256];
@@ -282,7 +286,7 @@ ScubaLayer2DMRI::GetGrayscaleColorForValue ( float iValue,GLubyte* const iBase,
     oColor[2] = mGrayscaleLUT[nLUT];
 
   } else {
-    
+
     oColor[0] = (int)iBase[0]; 
     oColor[1] = (int)iBase[1]; 
     oColor[2] = (int)iBase[2];
@@ -353,9 +357,9 @@ ScubaLayer2DMRI::GetHeatscaleColorForValue ( float iValue,GLubyte* const iBase,
     }
 
   } else {
-
-    oColor[0] = iBase[0]; oColor[1] = iBase[1]; oColor[2] = iBase[2];
-
+    oColor[0] = (int)iBase[0]; 
+    oColor[1] = (int)iBase[1]; 
+    oColor[2] = (int)iBase[2];
   }
 }
 
@@ -370,8 +374,9 @@ ScubaLayer2DMRI::GetColorLUTColorForValue ( float iValue, GLubyte* const iBase,
     mColorLUT->GetColorAtIndex( (int)iValue, oColor );
 
   } else {
-
-    oColor[0] = iBase[0]; oColor[1] = iBase[1]; oColor[2] = iBase[2];
+    oColor[0] = (int)iBase[0]; 
+    oColor[1] = (int)iBase[1]; 
+    oColor[2] = (int)iBase[2];
   }
 }
   
@@ -1206,8 +1211,10 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
 	case 2:
 	case 3:
 	  mCurrentPath = FindClosestPathInPlane( iRAS, iViewState );
-	  mCurrentPath->SetSelected( true );
-	  mLastPathMoveRAS.Set( iRAS );
+	  if( mCurrentPath ) {
+	    mCurrentPath->SetSelected( true );
+	    mLastPathMoveRAS.Set( iRAS );
+	  }
 	  break;
 	}
 
@@ -1373,6 +1380,33 @@ ScubaLayer2DMRI::SetColorLUT ( int iLUTID ) {
   }
   
 }
+
+int
+ScubaLayer2DMRI::GetColorLUT () {
+
+  return mColorLUT->GetID();
+}
+
+void
+ScubaLayer2DMRI::SetBrightness ( float iBrightness ) { 
+
+  if( iBrightness < 0 || iBrightness > 1 ) {
+    throw runtime_error( "Invalid brightness" );
+  }
+  mBrightness = iBrightness; 
+  BuildGrayscaleLUT();
+}
+
+void
+ScubaLayer2DMRI::SetContrast ( float iContrast ) { 
+
+  if( iContrast < 0 || iContrast > 30 ) {
+    throw runtime_error( "Invalid contrast" );
+  }
+  mContrast = iContrast; 
+  BuildGrayscaleLUT();
+}
+
 
 
 void

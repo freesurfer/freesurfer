@@ -72,6 +72,9 @@ class Layer : public DebugReporter,
   void SetOpacity( float iOpacity ) { mOpacity = iOpacity; }
   float GetOpacity() { return mOpacity; }
 
+  void SetVisible( bool ibVisible ) { mbVisible = ibVisible; }
+  bool GetVisible() { return mbVisible; }
+
   void SetWidth( int iWidth );
   void SetHeight( int iHeight );
 
@@ -104,7 +107,7 @@ class Layer : public DebugReporter,
   virtual void GetPreferredInPlaneIncrements ( float oIncrements[3] );
 
   virtual float GetPreferredBrushRadiusIncrement ();
-  
+
  protected:
 
   // Overridable timer behavior.
@@ -116,6 +119,8 @@ class Layer : public DebugReporter,
   std::string msLabel;
   
   float mOpacity;
+
+  bool mbVisible;
 
   static LayerStaticTclListener mStaticListener;
 

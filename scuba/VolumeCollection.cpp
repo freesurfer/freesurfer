@@ -291,9 +291,9 @@ bool
 VolumeCollection::IsInBounds ( VolumeLocation& iLoc ) {
 
   if( NULL != mMRI ) {
-      return ( iLoc.mIdx[0] >= 0 && iLoc.mIdx[0] < mMRI->width &&
-	       iLoc.mIdx[1] >= 0 && iLoc.mIdx[1] < mMRI->height &&
-	       iLoc.mIdx[2] >= 0 && iLoc.mIdx[2] < mMRI->depth );
+      return ( iLoc.mIdxi[0] >= 0 && iLoc.mIdxi[0] < mMRI->width &&
+	       iLoc.mIdxi[1] >= 0 && iLoc.mIdxi[1] < mMRI->height &&
+	       iLoc.mIdxi[2] >= 0 && iLoc.mIdxi[2] < mMRI->depth );
   } else {
     return false;
   }
@@ -381,22 +381,22 @@ VolumeCollection::GetMRINearestValue ( VolumeLocation& iLoc ) {
   Real value = 0;
   if( NULL != mMRI ) {
 
-    if( iLoc.mIdx[0] >= 0 && iLoc.mIdx[0] < mMRI->width &&
-	iLoc.mIdx[1] >= 0 && iLoc.mIdx[1] < mMRI->height &&
-	iLoc.mIdx[2] >= 0 && iLoc.mIdx[2] < mMRI->depth ) {
+    if( iLoc.mIdxi[0] >= 0 && iLoc.mIdxi[0] < mMRI->width &&
+	iLoc.mIdxi[1] >= 0 && iLoc.mIdxi[1] < mMRI->height &&
+	iLoc.mIdxi[2] >= 0 && iLoc.mIdxi[2] < mMRI->depth ) {
       
       switch( mMRI->type ) {
       case MRI_UCHAR:
-	value = (float)MRIvox(mMRI, iLoc.mIdx[0], iLoc.mIdx[1], iLoc.mIdx[2] );
+	value = (float)MRIvox(mMRI,iLoc.mIdxi[0],iLoc.mIdxi[1],iLoc.mIdxi[2] );
 	break ;
       case MRI_SHORT:
-      value = (float)MRISvox(mMRI, iLoc.mIdx[0], iLoc.mIdx[1], iLoc.mIdx[2] );
-      break ;
+	value =(float)MRISvox(mMRI,iLoc.mIdxi[0],iLoc.mIdxi[1],iLoc.mIdxi[2] );
+	break ;
       case MRI_INT:
-	value = (float)MRIIvox(mMRI, iLoc.mIdx[0], iLoc.mIdx[1], iLoc.mIdx[2] );
+	value =(float)MRIIvox(mMRI,iLoc.mIdxi[0],iLoc.mIdxi[1],iLoc.mIdxi[2] );
 	break ;
       case MRI_FLOAT:
-	value = MRIFvox(mMRI, iLoc.mIdx[0], iLoc.mIdx[1], iLoc.mIdx[2] );
+	value = MRIFvox(mMRI,iLoc.mIdxi[0],iLoc.mIdxi[1],iLoc.mIdxi[2] );
 	break ;
       default:
 	value = 0;
@@ -439,11 +439,11 @@ VolumeCollection::GetMRITrilinearValue ( VolumeLocation& iLoc ) {
   Real value = 0;
   if( NULL != mMRI ) {
 
-    if( iLoc.mIdx[0] >= 0 && iLoc.mIdx[0] < mMRI->width &&
-	iLoc.mIdx[1] >= 0 && iLoc.mIdx[1] < mMRI->height &&
-	iLoc.mIdx[2] >= 0 && iLoc.mIdx[2] < mMRI->depth ) {
+    if( iLoc.mIdxi[0] >= 0 && iLoc.mIdxi[0] < mMRI->width &&
+	iLoc.mIdxi[1] >= 0 && iLoc.mIdxi[1] < mMRI->height &&
+	iLoc.mIdxi[2] >= 0 && iLoc.mIdxi[2] < mMRI->depth ) {
       
-      MRIsampleVolumeType( mMRI, iLoc.mIdx[0], iLoc.mIdx[1], iLoc.mIdx[2],
+      MRIsampleVolumeType( mMRI, iLoc.mIdxf[0], iLoc.mIdxf[1], iLoc.mIdxf[2],
 			   &value, SAMPLE_TRILINEAR );
     }
   }
@@ -456,11 +456,11 @@ VolumeCollection::GetMRISincValue ( VolumeLocation& iLoc ) {
   Real value = 0;
   if( NULL != mMRI ) {
 
-    if( iLoc.mIdx[0] >= 0 && iLoc.mIdx[0] < mMRI->width &&
-	iLoc.mIdx[1] >= 0 && iLoc.mIdx[1] < mMRI->height &&
-	iLoc.mIdx[2] >= 0 && iLoc.mIdx[2] < mMRI->depth ) {
+    if( iLoc.mIdxi[0] >= 0 && iLoc.mIdxi[0] < mMRI->width &&
+	iLoc.mIdxi[1] >= 0 && iLoc.mIdxi[1] < mMRI->height &&
+	iLoc.mIdxi[2] >= 0 && iLoc.mIdxi[2] < mMRI->depth ) {
       
-      MRIsampleVolumeType( mMRI, iLoc.mIdx[0], iLoc.mIdx[1], iLoc.mIdx[2],
+      MRIsampleVolumeType( mMRI, iLoc.mIdxf[0], iLoc.mIdxf[1], iLoc.mIdxf[2],
 			   &value, SAMPLE_SINC );
     }
   }
@@ -474,23 +474,23 @@ VolumeCollection::SetMRIValue ( VolumeLocation& iLoc,
   if( NULL != mMRI ) {
     switch( mMRI->type ) {
     case MRI_UCHAR:
-      MRIvox( mMRI, iLoc.mIdx[0], iLoc.mIdx[1], iLoc.mIdx[2] ) =
+      MRIvox( mMRI, iLoc.mIdxi[0], iLoc.mIdxi[1], iLoc.mIdxi[2] ) =
 	(BUFTYPE) iValue;
       break ;
     case MRI_SHORT:
-      MRISvox( mMRI, iLoc.mIdx[0], iLoc.mIdx[1], iLoc.mIdx[2] ) = 
+      MRISvox( mMRI, iLoc.mIdxi[0], iLoc.mIdxi[1], iLoc.mIdxi[2] ) = 
 	(short) iValue;
       break ;
     case MRI_FLOAT:
-      MRIFvox( mMRI, iLoc.mIdx[0], iLoc.mIdx[1], iLoc.mIdx[2] ) = 
+      MRIFvox( mMRI, iLoc.mIdxi[0], iLoc.mIdxi[1], iLoc.mIdxi[2] ) = 
 	(float) iValue;
       break ;
     case MRI_LONG:
-      MRILvox( mMRI, iLoc.mIdx[0], iLoc.mIdx[1], iLoc.mIdx[2] ) = 
+      MRILvox( mMRI, iLoc.mIdxi[0], iLoc.mIdxi[1], iLoc.mIdxi[2] ) = 
 	(long) iValue;
       break ;
     case MRI_INT:
-      MRIIvox( mMRI, iLoc.mIdx[0], iLoc.mIdx[1], iLoc.mIdx[2] ) = 
+      MRIIvox( mMRI, iLoc.mIdxi[0], iLoc.mIdxi[1], iLoc.mIdxi[2] ) = 
 	(int) iValue;
       break ;
     default:
@@ -534,7 +534,7 @@ VolumeCollection::GetMRIMagnitudeValue ( VolumeLocation& iLoc ) {
 
   // Get the value.
   if( NULL != mMagnitudeMRI ) {
-    value = MRIFvox( mMagnitudeMRI, iLoc.mIdx[0], iLoc.mIdx[1], iLoc.mIdx[2] );
+    value = MRIFvox( mMagnitudeMRI, iLoc.mIdxi[0], iLoc.mIdxi[1], iLoc.mIdxi[2] );
   }
   return (float)value;
 }
@@ -827,10 +827,10 @@ VolumeCollection::Select ( VolumeLocation& iLoc ) {
     ScubaROIVolume* volumeROI = (ScubaROIVolume*)roi;
 
     // Selectg in the ROI.
-    volumeROI->SelectVoxel( iLoc.mIdx );
+    volumeROI->SelectVoxel( iLoc.mIdxi );
 
     // Also mark this in the selection voxel.
-    mSelectedVoxels->Set_Unsafe( iLoc.mIdx[0], iLoc.mIdx[1], iLoc.mIdx[2],
+    mSelectedVoxels->Set_Unsafe( iLoc.mIdxi[0], iLoc.mIdxi[1], iLoc.mIdxi[2],
 				 true );
   }
 }
@@ -845,7 +845,7 @@ VolumeCollection::Unselect ( VolumeLocation& iLoc ) {
     ScubaROIVolume* volumeROI = (ScubaROIVolume*)roi;
 
     // Unselect in the ROI.
-    volumeROI->UnselectVoxel( iLoc.mIdx );
+    volumeROI->UnselectVoxel( iLoc.mIdxi );
 
     // If there are no more ROIs with this voxel selected, unselect it
     // in the selection volume.
@@ -859,13 +859,13 @@ VolumeCollection::Unselect ( VolumeLocation& iLoc ) {
       //    ScubaROIVolume* volumeROI = dynamic_cast<ScubaROIVolume*>(roi);
       ScubaROIVolume* volumeROI = (ScubaROIVolume*)roi;
 
-      if( volumeROI->IsVoxelSelected( iLoc.mIdx ) ) {
+      if( volumeROI->IsVoxelSelected( iLoc.mIdxi ) ) {
 	bSelected = true;
 	break;
       }
     }
     if( !bSelected ) {
-      mSelectedVoxels->Set_Unsafe( iLoc.mIdx[0], iLoc.mIdx[1], iLoc.mIdx[2],
+      mSelectedVoxels->Set_Unsafe( iLoc.mIdxi[0], iLoc.mIdxi[1], iLoc.mIdxi[2],
 				   false );
     }
   }
@@ -875,7 +875,7 @@ bool
 VolumeCollection::IsSelected ( VolumeLocation& iLoc, int oColor[3] ) {
 
   // Check the selection volume cache first.
-  if( !(mSelectedVoxels->Get_Unsafe( iLoc.mIdx[0], iLoc.mIdx[1], iLoc.mIdx[2] )) )
+  if( !(mSelectedVoxels->Get_Unsafe( iLoc.mIdxi[0], iLoc.mIdxi[1], iLoc.mIdxi[2] )) )
     return false;
 
   try {
@@ -891,7 +891,7 @@ VolumeCollection::IsSelected ( VolumeLocation& iLoc, int oColor[3] ) {
       ScubaROI* roi = &ScubaROI::FindByID( roiID );
       //    ScubaROIVolume* volumeROI = dynamic_cast<ScubaROIVolume*>(roi);
       ScubaROIVolume* volumeROI = (ScubaROIVolume*)roi;
-      if( volumeROI->IsVoxelSelected( iLoc.mIdx ) ) {
+      if( volumeROI->IsVoxelSelected( iLoc.mIdxi ) ) {
 	bSelected = true;
 	int color[3];
 	volumeROI->GetDrawColor( color );
@@ -1271,6 +1271,7 @@ VolumeCollection::WriteROIsToSegmentation ( string ifnVolume ) {
 void
 VolumeCollection::SetDataToWorldTransform ( int iTransformID ) {
 
+  cerr << "VolumeCollection::SetDataToWorldTransform " << iTransformID << endl;
   DataCollection::SetDataToWorldTransform( iTransformID );
   CalcWorldToIndexTransform();
 }
@@ -1864,7 +1865,10 @@ VolumeLocation::VolumeLocation ( VolumeCollection& iVolume,
 				 float const iRAS[3] )
   : DataLocation( iRAS ), mVolume( iVolume ) {
 
-  mVolume.RASToMRIIndex( iRAS, mIdx );
+  mVolume.RASToMRIIndex( iRAS, mIdxi );
+  mIdxi[0] = (int) mIdxf[0];
+  mIdxi[1] = (int) mIdxf[1];
+  mIdxi[2] = (int) mIdxf[2];
 }
 
 void
@@ -1873,5 +1877,8 @@ VolumeLocation::SetFromRAS ( float const iRAS[3] ) {
   mRAS[0] = iRAS[0];
   mRAS[1] = iRAS[1];
   mRAS[2] = iRAS[2];
-  mVolume.RASToMRIIndex( iRAS, mIdx );
+  mVolume.RASToMRIIndex( iRAS, mIdxf );
+  mIdxi[0] = (int) mIdxf[0];
+  mIdxi[1] = (int) mIdxf[1];
+  mIdxi[2] = (int) mIdxf[2];
 }

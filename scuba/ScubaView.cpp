@@ -1297,7 +1297,8 @@ ScubaView::DoListenToMessage ( string isMessage, void* iData ) {
 
   if( isMessage == "DrawCoordinateOverlay" ||
       isMessage == "DrawPlaneIntersections" ||
-      isMessage == "DrawMarkers") {
+      isMessage == "DrawMarkers" ||
+      isMessage == "DrawPaths") {
     RebuildOverlayDrawList(); // our overlay will be different
     RequestRedisplay();
   }
@@ -2749,36 +2750,38 @@ ScubaView::BuildOverlay () {
   float range = 0.5;
 
   // Drawing paths.
-  list<Path<float>*>::iterator tPath;
-  PathManager& pathMgr = PathManager::GetManager();
-  list<Path<float>*>& pathList = pathMgr.GetPathList();
-  for( tPath = pathList.begin(); tPath != pathList.end(); ++tPath ) {
-    Path<float>* path = *tPath;
-    if( path->GetNumVertices() > 0 ) {
-      Point3<float>& beginRAS = path->GetVertexAtIndex( 0 );
-      if( mViewState.IsRASVisibleInPlane( beginRAS.xyz(), range ) ) {
-	
-	if( path->IsSelected() ) { glColor3f( 0, 1, 0 ); }
-	else                     { glColor3f( 1, 0, 0 ); }
+  if( prefs.GetPrefAsBool( ScubaGlobalPreferences::DrawPaths )) {
 
-	int cVertices = path->GetNumVertices();
-	for( int nCurVertex = 1; nCurVertex < cVertices; nCurVertex++ ) {
+    list<Path<float>*>::iterator tPath;
+    PathManager& pathMgr = PathManager::GetManager();
+    list<Path<float>*>& pathList = pathMgr.GetPathList();
+    for( tPath = pathList.begin(); tPath != pathList.end(); ++tPath ) {
+      Path<float>* path = *tPath;
+      if( path->GetNumVertices() > 0 ) {
+	Point3<float>& beginRAS = path->GetVertexAtIndex( 0 );
+	if( mViewState.IsRASVisibleInPlane( beginRAS.xyz(), range ) ) {
 	  
-	  int nBackVertex = nCurVertex - 1;
+	  if( path->IsSelected() ) { glColor3f( 0, 1, 0 ); }
+	  else                     { glColor3f( 1, 0, 0 ); }
 	  
-	  Point3<float>& curVertex  = path->GetVertexAtIndex( nCurVertex );
-	  Point3<float>& backVertex = path->GetVertexAtIndex( nBackVertex );
+	  int cVertices = path->GetNumVertices();
+	  for( int nCurVertex = 1; nCurVertex < cVertices; nCurVertex++ ) {
+	    
+	    int nBackVertex = nCurVertex - 1;
+	    
+	    Point3<float>& curVertex  = path->GetVertexAtIndex( nCurVertex );
+	    Point3<float>& backVertex = path->GetVertexAtIndex( nBackVertex );
 	  
-	  int curWindow[2], backWindow[2];
-	  TranslateRASToWindow( curVertex.xyz(), curWindow );
-	  TranslateRASToWindow( backVertex.xyz(), backWindow );
-	  
-	  glBegin( GL_LINES );
-	  glVertex2d( backWindow[0], backWindow[1] );
-	  glVertex2d( curWindow[0], curWindow[1] );
-	  glEnd();
+	    int curWindow[2], backWindow[2];
+	    TranslateRASToWindow( curVertex.xyz(), curWindow );
+	    TranslateRASToWindow( backVertex.xyz(), backWindow );
+	    
+	    glBegin( GL_LINES );
+	    glVertex2d( backWindow[0], backWindow[1] );
+	    glVertex2d( curWindow[0], curWindow[1] );
+	    glEnd();
+	  }
 	}
-	
       }
     }
   }

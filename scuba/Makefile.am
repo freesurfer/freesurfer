@@ -75,13 +75,13 @@ check_PROGRAMS= testIDTracker testBroadcaster testUtilities \
 	testScubaTransform testScubaColorLUT testScubaROI testScubaROIVolume \
 	testVectorOps testRASToVoxel testCoordTimer
 
-# if WANT_QTSCUBA
+#if WANT_QTSCUBA
 # bin_PROGRAMS += qtscuba
 # qtscuba_SOURCES=$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS) $(GUI_SRCS) $(LAYER_SRCS) QTScubaWidget.cpp qtscuba.cpp
-# qtscuba_CXXFLAGS=-I${QTDIR}/include
+# qtscuba_CXXFLAGS=-I${QTDIR}/include -DQT_THREAD_SUPPORT -DQT_SHARED
 # qtscuba_LDFLAGS=-L${QTDIR}/lib -lqt-mt
 # check_PROGRAMS += testVolumeHistogram
-# endif
+#endif
 
 TESTS=$(check_PROGRAMS) 
 
@@ -151,6 +151,6 @@ testScubaROIVolume_SOURCES=test_ScubaROIVolume.cpp \
 
 # if WANT_QTSCUBA
 # testVolumeHistogram_SOURCES=$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS) $(GUI_SRCS) $(LAYER_SRCS) QtVolumeHistogram.cpp test_VolumeHistogram.cpp
-# testVolumeHistogram_CXXFLAGS=-I${QTDIR}/include
+# testVolumeHistogram_CXXFLAGS=-I${QTDIR}/include -DQT_THREAD_SUPPORT -DQT_SHARED
 # testVolumeHistogram_LDFLAGS=-L${QTDIR}/lib -lqt-mt
-# endif
+#endif
