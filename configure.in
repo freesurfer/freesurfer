@@ -12,7 +12,7 @@ AC_PROG_LIBTOOL
 # create specifal dir for intermediate files
 AC_MSG_NOTICE(Setting System ...)
 AC_CANONICAL_SYSTEM
-AM_INIT_AUTOMAKE(Freesurfer, 0.1)
+AM_INIT_AUTOMAKE
 AC_CONFIG_SRCDIR([config.h.in])
 AM_CONFIG_HEADER([config.h])
 
@@ -716,6 +716,7 @@ brik2bfloat/Makefile minc_to_bshort/Makefile paint/Makefile \
 histo_compute_joint_density/Makefile histo_register_block/Makefile scripts/Makefile images/Makefile \
 distribution/Makefile distribution/lib/Makefile distribution/lib/bem/Makefile distribution/average/Makefile \
 mri_modify/Makefile \
+utils/test/Makefile \
  ) 
 
 
