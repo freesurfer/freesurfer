@@ -2,9 +2,9 @@
 // mri_tessellate.c
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2003/04/16 18:00:49 $
-// Revision       : $Revision: 1.15 $
+// Revision Author: $Author: tosa $
+// Revision Date  : $Date: 2003/07/31 15:03:11 $
+// Revision       : $Revision: 1.16 $
 //
 //
 // How it works.
@@ -30,36 +30,22 @@
 //
 //              v_surf = v_boundary - 1/2.
 //
-// 2. The RAS coordinates of surface is given by
+// 2. Even though the RAS coordinates of surface is given by
 //
-//              X_surf = M * (v_boundary - 1/2 - c) + C         (1)
+//          MRIvoxelToWorld(mri, vertex[k].j-0.5, vertex[k].i - 0.5, vertex[k].imnr - 0.5,
+//                               &x, &y, &z);
 //
-//    where we used the general RAS from voxel transform
+//    currently we use the surface RAS being given by conformed volume with c_(r,a,s) = 0
 //
-//              X = M * ( v - c ) + C
-//    
-//    with c is the RAS center position, C is the corresponding RAS coordinates,
-//    M is the transform (3x3).
+//          MRIvoxelToSurfaceRAS()
 //
-//    If we pick c = (width/2, height/2, depth/2), C = 0, and M = (-1  0  0)(ps 0   0)
-//                                                                ( 0  0  1)(0  ps  0)
-//                                                                ( 0 -1  0)(0  0  st)
-// 
-//    then we get the value in write_binary_surface2() from eq.(1)
-//  
-//        x = xx1-(vertex[k].j-0.5)*ps;
-//        y = yy0+(vertex[k].imnr-0.5)*st;
-//        z = zz1-(vertex[k].i-0.5)*ps;
-//
-//    for xx1 = (width/2)*ps , yy0 = - (depth/2)*st, zz1 = (height/2)*ps.
-//
-//  
-char *MRI_TESSELLATE_VERSION = "$Revision: 1.15 $";
+char *MRI_TESSELLATE_VERSION = "$Revision: 1.16 $";
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include "mri.h"
 #include "fio.h"
 #include "const.h"
 #include "diag.h"
@@ -68,6 +54,8 @@ char *MRI_TESSELLATE_VERSION = "$Revision: 1.15 $";
 #include "error.h"
 #include "MRIio_old.h"
 #include "version.h"
+#include "tags.h"
+#include "matrix.h"
 
 #define SQR(x) ((x)*(x))
 #define IMGSIZE     256
@@ -80,25 +68,27 @@ static int get_option(int argc, char *argv[]) ;
 
 static int all_flag = 0 ;
 
-typedef struct face_type_
+// mrisurf.h defines bigger structures (face_type_ and vertex_type_). 
+// we don't need big structure here
+typedef struct tface_type_
 {
   int imnr,i,j,f;
   int num;
   int v[4];
-} face_type;
+} tface_type;
 
-typedef struct vertex_type_
+typedef struct tvertex_type_
 {
   int imnr,i,j;
   int num;
   int f[9];
-} vertex_type;
+} tvertex_type;
 
-face_type *face;
+tface_type *face;
 int *face_index_table0;
 int *face_index_table1;
 
-vertex_type *vertex;
+tvertex_type *vertex;
 int *vertex_index_table;
 
 int xnum=256,ynum=256;
@@ -107,12 +97,16 @@ unsigned char **im[MAXIM];  /* image matrix  */
 unsigned char *buf;  /* scratch memory  */
 int imnr0,imnr1,numimg;
 
-float st,ps,fov,xx0,xx1,yy0,yy1,zz0,zz1;
-
 int imin=0;
 int imax=IMGSIZE;
 int jmin=0;
 int jmax=255;
+
+MRI *mri;
+int type_changed = 0;
+
+// orig->surface RAS is not MRIvoxelToWorld(), but more involved one
+int compatibility= 1;
 
 static int value;
 
@@ -135,11 +129,11 @@ char *Progname ;
 int
 main(int argc, char *argv[])
 {
-  char ifpref[STRLEN],ofpref[STRLEN] /*,*data_dir*/;
+  char ofpref[STRLEN] /*,*data_dir*/;
   int  nargs ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_tessellate.c,v 1.15 2003/04/16 18:00:49 kteich Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_tessellate.c,v 1.16 2003/07/31 15:03:11 tosa Exp $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -154,115 +148,70 @@ main(int argc, char *argv[])
     argc -= nargs ;
     argv += nargs ;
   }
-
-
+  // we removed the option
   if (argc<4)
   {
-    printf("Usage: %s <input volume> <label> <output surface>\n",Progname);
+    printf("Usage: %s <option> <input volume> <label-value> <output surface>\n",Progname);
     exit(1);
   }
+
+  sscanf(argv[2],"%d",&value);        // this assumes that argv[2] can be changed to int
+
+  sprintf(ofpref,"%s",argv[3]);      // this assumes argv[3] is the file
   
-  sscanf(argv[2],"%d",&value);
-#if 0
-  data_dir = getenv("SUBJECTS_DIR");
-  if (data_dir==NULL)
-  {
-    printf("environment variable SUBJECTS_DIR undefined (use setenv)\n");
-    exit(1);
-  }
-  sprintf(ifpref,"%s/%s/mri/filled/COR-",data_dir,argv[1]);
-  sprintf(ofpref,"%s/%s/surf/%s.orig",data_dir,argv[1],argv[3]);
-#else
-  sprintf(ifpref,"%s/COR-",argv[1]);
-  sprintf(ofpref,"%s",argv[3]);
-#endif
+  face = (tface_type *)lcalloc(MAXFACES,sizeof(tface_type));
+  // 4 connected (6 in 3D) neighbors
+  face_index_table0 = (int *)lcalloc(6*ynum*xnum,sizeof(int));
+  face_index_table1 = (int *)lcalloc(6*ynum*xnum,sizeof(int));
   
-  face = (face_type *)lcalloc(MAXFACES,sizeof(face_type));
-  face_index_table0 = (int *)lcalloc(6*65536,sizeof(int));
-  face_index_table1 = (int *)lcalloc(6*65536,sizeof(int));
+  vertex = (tvertex_type *)lcalloc(MAXVERTICES,sizeof(tvertex_type));
+  vertex_index_table = (int *)lcalloc(8*ynum*xnum,sizeof(int));
   
-  vertex = (vertex_type *)lcalloc(MAXVERTICES,sizeof(vertex_type));
-  vertex_index_table = (int *)lcalloc(8*65536,sizeof(int));
-  
-  read_images(ifpref);
+  // passing dir/COR- 
+  read_images(argv[1]);
   
   make_surface();
-#if 0
-  write_surface();
-  write_binary_surface(ofpref);
-#endif
+
   write_binary_surface2(ofpref);
-  exit(0) ;
-  return(0) ;
+
+  return 0;
 }
 
 static void
 read_images(char *fpref)
 {
-  int i,j,k;                   /* loop counters */
-  FILE *fptr;
-  char fname[STRLEN];
+  mri = MRIread(fpref);
+  imnr0 = mri->imnr0;
+  imnr1 = mri->imnr1;
+  xnum = mri->width;
+  ynum = mri->height;
 
-  sprintf(fname,"%s.info",fpref);
-  fptr = fopen(fname,"r");
-  if (fptr==NULL) {printf("File %s not found.\n",fname);exit(1);}
-  fscanf(fptr,"%*s %d",&imnr0);
-  fscanf(fptr,"%*s %d",&imnr1);
-  fscanf(fptr,"%*s %*d");
-  fscanf(fptr,"%*s %d",&xnum);
-  fscanf(fptr,"%*s %d",&ynum);
-  fscanf(fptr,"%*s %f",&fov);
-  fscanf(fptr,"%*s %f",&ps);
-  fscanf(fptr,"%*s %f",&st);
-  fscanf(fptr,"%*s %*f"); /* locatn */
-  fscanf(fptr,"%*s %f",&xx0); /* strtx */
-  fscanf(fptr,"%*s %f",&xx1); /* endx */
-  fscanf(fptr,"%*s %f",&yy0); /* strty */
-  fscanf(fptr,"%*s %f",&yy1); /* endy */
-  fscanf(fptr,"%*s %f",&zz0); /* strtz */
-  fscanf(fptr,"%*s %f",&zz1); /* endz */
-  fov *= 1000;
-  ps *= 1000;
-  st *= 1000;
-  xx0 *= 1000;
-  xx1 *= 1000;
-  yy0 *= 1000;
-  yy1 *= 1000;
-  zz0 *= 1000;
-  zz1 *= 1000;
-/*  printf("%e %e %e %e %e %e %e %e %e\n",fov,ps,st,xx0,xx1,yy0,yy1,zz0,zz1); */
-
-  fclose(fptr);
   numimg = imnr1-imnr0+1;
+
+  imin = 0;
+  imax = ynum;
+  jmin = 0;
+  jmax = xnum;
+
+  // change to UCHAR if not
+  if (mri->type!=MRI_UCHAR)
+  {
+    MRI *mri_tmp ;
+    
+    type_changed = 1;
+    printf("changing type of input volume to 8 bits/voxel...\n") ;
+    mri_tmp = MRIchangeType(mri, MRI_UCHAR, 0.0, 0.999, FALSE) ;
+    MRIfree(&mri) ; 
+    mri = mri_tmp ;
+  }
+  else
+    type_changed = 0 ;
+  
 
 /* Allocate memory */
 
   bufsize = ((unsigned long)xnum)*ynum;
   buf = (unsigned char *)lcalloc(bufsize,sizeof(char));
-  for (k=0;k<numimg;k++)
-  {
-    im[k] = (unsigned char **)lcalloc(IMGSIZE,sizeof(char *));
-    for (i=0;i<IMGSIZE;i++)
-    {
-      im[k][i] = (unsigned char *)lcalloc(IMGSIZE,sizeof(char));
-    }
-  }
-
-  for (k=1;k<numimg-1;k++)
-  {
-    file_name(fpref,fname,k+imnr0,"%03d");
-          fptr = fopen(fname,"rb");
-          if (fptr==NULL) {printf("File %s not found.\n",fname);exit(1);}
-          fread(buf,sizeof(char),bufsize,fptr);
-          buffer_to_image(buf,im[k],xnum,ynum);
-          fclose(fptr);
-  }
-
-  for (k=1;k<numimg-1;k++)
-        for (i=0;i<IMGSIZE;i++)
-        for (j=0;j<IMGSIZE;j++)
-          if (i<imin||i>=imax-1||j<jmin||j>=jmax-1)
-            im[k][i][j] = 0;
 }
 
 static int face_index, vertex_index;
@@ -270,7 +219,7 @@ static int face_index, vertex_index;
 static void
 add_face(int imnr, int i, int j, int f, int prev_flag)
 {
-  int pack = f*65536+i*256+j;
+  int pack = f*ynum*xnum+i*xnum+j;
 
   if (face_index >= MAXFACES-1)
     ErrorExit(ERROR_NOMEMORY, "%s: max faces %d exceeded", 
@@ -279,9 +228,9 @@ add_face(int imnr, int i, int j, int f, int prev_flag)
     face_index_table0[pack] = face_index;
   else
     face_index_table1[pack] = face_index;
-  face[face_index].imnr = imnr;
-  face[face_index].i = i;
-  face[face_index].j = j;
+  face[face_index].imnr = imnr; // z
+  face[face_index].i = i;       // y
+  face[face_index].j = j;       // x
   face[face_index].f = f;
   face[face_index].num = 0;
   face_index++;
@@ -290,15 +239,15 @@ add_face(int imnr, int i, int j, int f, int prev_flag)
 static int
 add_vertex(int imnr, int i, int j)
 {
-  int pack = i*257+j;
+  int pack = i*(xnum+1)+j;
 
   if (vertex_index >= MAXVERTICES-1)
     ErrorExit(ERROR_NOMEMORY, "%s: max vertices %d exceeded", 
               Progname,MAXVERTICES) ;
   vertex_index_table[pack] = vertex_index;
-  vertex[vertex_index].imnr = imnr;
-  vertex[vertex_index].i = i;
-  vertex[vertex_index].j = j;
+  vertex[vertex_index].imnr = imnr; // z
+  vertex[vertex_index].i = i;       // y
+  vertex[vertex_index].j = j;       // x
   vertex[vertex_index].num = 0;
   return vertex_index++;
 }
@@ -308,21 +257,22 @@ facep(int im0, int i0, int j0, int im1, int i1, int j1)
 {
   return (im0>=0&&im0<numimg&&i0>=imin&&i0<imax&&j0>=jmin&&j0<jmax&&
           im1>=0&&im1<numimg&&i1>=imin&&i1<imax&&j1>=jmin&&j1<jmax&&
-          im[im0][i0][j0] != im[im1][i1][j1] &&
-          ((im[im0][i0][j0]==value||im[im1][i1][j1]==value) || all_flag));
+          MRIvox(mri, j0, i0, im0) != MRIvox(mri, j1, i1, im1) &&
+          ((MRIvox(mri, j0, i0, im0)==value || MRIvox(mri, j1, i1, im1)==value) || all_flag));
 }
+
 static void
-check_face(int im0, int i0, int j0, int im1, int i1,int j1, int f, int n,
-           int v_ind, int prev_flag)
+check_face(int im0, int i0, int j0, int im1, int i1,int j1, 
+	   int f, int n, int v_ind, int prev_flag)
 {
-  int f_pack = f*65536+i0*256+j0;
+  int f_pack = f*ynum*xnum+i0*xnum+j0; // f= 0, 1, 2, 3, 4, 5
   int f_ind;
 
   if ((im0>=0&&im0<numimg&&i0>=imin&&i0<imax&&j0>=jmin&&j0<jmax&&
        im1>=0&&im1<numimg&&i1>=imin&&i1<imax&&j1>=jmin&&j1<jmax))
   {
-    if ((all_flag && ((im[im0][i0][j0] != im[im1][i1][j1]!=value))) ||
-        (((im[im0][i0][j0]==value) && (im[im1][i1][j1]!=value))))
+    if ((all_flag && ((MRIvox(mri, j0, i0, im0) != MRIvox(mri, j1, i1, im1)!=value))) ||
+        (((MRIvox(mri, j0, i0, im0)==value) && (MRIvox(mri, j1, i1, im1)!=value))))
     {
       if (n==0)
       {
@@ -351,8 +301,8 @@ make_surface(void)
   {
     if ((vertex_index || face_index) && !(imnr % 10))
       printf("slice %d: %d vertices, %d faces\n",imnr,vertex_index,face_index);
-    for (i=0;i<=IMGSIZE;i++)
-    for (j=0;j<=IMGSIZE;j++)
+    for (i=0;i<=ynum;i++)
+    for (j=0;j<=xnum;j++)
     {
       if (facep(imnr,i-1,j-1,imnr-1,i-1,j-1) ||
           facep(imnr,i-1,j,imnr-1,i-1,j) ||
@@ -395,134 +345,84 @@ make_surface(void)
         check_face(imnr  ,i-1,j-1,imnr  ,i-1,j  ,5,3,v_ind,0);
       }
     }
-    for (i=0;i<IMGSIZE;i++)
-    for (j=0;j<IMGSIZE;j++)
+    for (i=0;i<xnum;i++)
+    for (j=0;j<ynum;j++)
     for (f=0;f<6;f++)
     {
-      f_pack = f*256*256+i*256+j;
+      f_pack = f*ynum*xnum+i*xnum+j;
       face_index_table0[f_pack] = face_index_table1[f_pack];
     }
   }
 }
 
-#if 0
-static void
-write_surface(void)
-{
-  int k,n;
-  float x,y,z;
-
-  printf("%d %d\n",vertex_index,face_index);
-  for (k=0;k<vertex_index;k++)
-  {
-    x = xx1-(vertex[k].j-0.5)*ps;
-    y = yy0+(vertex[k].imnr-0.5)*st;
-    z = zz1-(vertex[k].i-0.5)*ps;
-/*
-    if (k<10000 && (k%100)==0)
-      printf("k=%d: imnr=%d i=%d j=%d x=%5.1f y=%5.1f z=%5.1f\n",
-              k,vertex[k].imnr,vertex[k].i,vertex[k].j,x,y,z);
-*/
-    printf("%6.2f %6.2f %6.2f %d\n",x,y,z,vertex[k].num);
-    for (n=0;n<vertex[k].num;n++)
-      printf("%d ",vertex[k].f[n]);
-    printf("\n");
-  }
-  for (k=0;k<face_index;k++)
-  {
-    for (n=0;n<4;n++)
-      printf("%d ",face[k].v[n]);
-    printf("\n");
-  }
-}
-#endif
-
-#if 0
-fwrite1(v,fp)
-int v;
-FILE *fp;
-{
-  unsigned char c = (unsigned char)v;
-
-  fwrite(&c,1,1,fp);
-}
-
-fwrite2(v,fp)
-int v;
-FILE *fp;
-{
-  short s = (short)v;
-
-  fwrite(&s,2,1,fp);
-}
-
-fwrite3(v,fp)
-int v;
-FILE *fp;
-{
-  unsigned int i = (unsigned int)(v<<8);
-
-  fwrite(&i,3,1,fp);
-}
-#endif
-
-#if 0
-static void
-write_binary_surface(char *fname)
-{
-  int k,n;
-  float x,y,z;
-  FILE *fp;
-
-  fp = fopen(fname,"w");
-  fwrite3(vertex_index,fp);
-  fwrite3(face_index,fp);
-  for (k=0;k<vertex_index;k++)
-  {
-    x = xx1-(vertex[k].j-0.5)*ps;
-    y = yy0+(vertex[k].imnr-0.5)*st;
-    z = zz1-(vertex[k].i-0.5)*ps;
-    fwrite2((int)(x*100),fp);
-    fwrite2((int)(y*100),fp);
-    fwrite2((int)(z*100),fp);
-    fwrite1(vertex[k].num,fp);
-    for (n=0;n<vertex[k].num;n++)
-      fwrite3(vertex[k].f[n],fp);
-  }
-  for (k=0;k<face_index;k++)
-  {
-    for (n=0;n<4;n++)
-      fwrite3(face[k].v[n],fp);
-  }
-  fclose(fp);
-}
-#endif
+#define V4_LOAD(v, x, y, z, r)  (VECTOR_ELT(v,1)=x, VECTOR_ELT(v,2)=y, \
+                                  VECTOR_ELT(v,3)=z, VECTOR_ELT(v,4)=r) ;
 
 static void
 write_binary_surface2(char *fname)
 {
   int k,n;
-  float x,y,z;
+  double x,y,z;
   FILE *fp;
+  MATRIX *m;
+  VECTOR *vw, *vv;
+
+  int useRealRAS = compatibility ? 0 : 1;
+  if (useRealRAS == 1)
+    printf("using real RAS to save vertex points...\n");
+  else
+    printf("using the conformed surface RAS to save vertex points...\n");
 
   fp = fopen(fname,"w");
+  if (fp == NULL)
+    ErrorExit(ERROR_BADPARM, "%s: could not write a file %s", 
+              Progname,fname) ;
+  else
+    fprintf(stdout, "writing %s\n", fname);
+
   fwrite3(-1,fp);
   fwrite3(vertex_index,fp);
   fwrite3(face_index,fp);
+
+  // matrix is the same all the time so cache it
+  if (useRealRAS==1)
+    m = extract_i_to_r(mri);
+  else
+    m = surfaceRASFromVoxel_(mri);
+
+  vv = VectorAlloc(4, MATRIX_REAL);
+  vw = VectorAlloc(4, MATRIX_REAL);
   for (k=0;k<vertex_index;k++)
   {
-    x = xx1-(vertex[k].j-0.5)*ps;
-    y = zz0+(vertex[k].imnr-0.5)*st;
-    z = yy1-(vertex[k].i-0.5)*ps;
+
+    V4_LOAD(vv, vertex[k].j-0.5, vertex[k].i-0.5, vertex[k].imnr-0.5, 1);
+    MatrixMultiply(m, vv, vw);
+    x = V3_X(vw);
+    y = V3_Y(vw);
+    z = V3_Z(vw);
+#if 0
+    // we are doing the same thing as the following. 
+    if (useRealRAS == 1)  // use the physical RAS as the vertex point
+      MRIvoxelToWorld(mri, vertex[k].j-0.5, vertex[k].i-0.5, vertex[k].imnr-0.5, &x, &y, &z);
+    else
+      MRIvoxelToSurfaceRAS(mri, vertex[k].j-0.5, vertex[k].i-0.5, vertex[k].imnr-0.5, &x, &y, &z);
+#endif
     fwrite2((int)(x*100),fp);
     fwrite2((int)(y*100),fp);
     fwrite2((int)(z*100),fp);
   }
+  MatrixFree(&m);
+  VectorFree(&vv);
+  VectorFree(&vw);
+
   for (k=0;k<face_index;k++)
   {
     for (n=0;n<4;n++)
       fwrite3(face[k].v[n],fp);
   }
+  // record whether use the physical RAS or not
+  fwriteInt(TAG_USEREALRAS, fp); // first tag
+  fwriteInt(useRealRAS, fp);     // its value
   fclose(fp);
 }
 /*----------------------------------------------------------------------
@@ -552,6 +452,9 @@ get_option(int argc, char *argv[])
     all_flag = 1 ;
     printf("tessellating the surface of all voxels with different labels\n") ;
     break ;
+  case 'N':
+    compatibility = 0;
+    break;
   case '?':
   case 'U':
     printf("Usage: %s <input volume> <label> <output surface>\n",Progname);
