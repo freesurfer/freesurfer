@@ -49,6 +49,7 @@ static void break_here(void) ;
 static void break_here(void){ fprintf(stderr, "break point encountered!\n") ;}
 static IMAGE  *TiffReadImage(char *fname)  ;
 static IMAGE  *TiffReadHeader(char *fname, IMAGE *I)  ;
+static int    TiffWriteImage(IMAGE *I, char *fname, int frame) ;
 
 /*-----------------------------------------------------
                     GLOBAL FUNCTIONS
@@ -183,26 +184,40 @@ ImageWrite(IMAGE *I, char *fname)
 int
 ImageFWrite(IMAGE *I, FILE *fp, char *fname)
 {
-  int ecode, frame ;
-  byte *image ;
+  byte    *image ;
+  int     ecode, type, frame ;
+  char    buf[100] ;
 
   if (!fname)
     fname = "ImageFWrite" ;
 
-  ecode = fwrite_header(fp,I,"fwrite") ;
-  if (ecode != HIPS_OK)
-    ErrorExit(ERROR_NO_FILE, "ImageFWrite: fwrite_header failed (%d)\n",ecode);
+  strcpy(buf, fname) ;   /* don't destroy callers string */
+  fname = buf ;
+  ImageUnpackFileName(fname, &frame, &type, fname) ;
 
-  image = I->image ;
-  for (frame = 0 ; frame < I->num_frame ; frame++)
+  switch (type)
   {
-    ecode = fwrite_image(fp, I, frame, "fwrite") ;
+  case TIFF_IMAGE:
+    TiffWriteImage(I, fname, frame) ;
+    break ;
+  default:
+  case HIPS_IMAGE:
+    ecode = fwrite_header(fp,I,"fwrite") ;
     if (ecode != HIPS_OK)
-      ErrorExit(ERROR_NO_FILE, 
-              "ImageFWrite: fwrite_image frame %d failed (%d)\n",ecode,frame);
-    I->image += I->sizeimage ;  /* next frame */
+      ErrorExit(ERROR_NO_FILE, "ImageFWrite: fwrite_header failed (%d)\n",ecode);
+    
+    image = I->image ;
+    for (frame = 0 ; frame < I->num_frame ; frame++)
+    {
+      ecode = fwrite_image(fp, I, frame, "fwrite") ;
+      if (ecode != HIPS_OK)
+        ErrorExit(ERROR_NO_FILE, 
+                "ImageFWrite: fwrite_image frame %d failed (%d)\n",ecode,frame);
+      I->image += I->sizeimage ;  /* next frame */
+    }
+    I->image = image ;
+    break ;
   }
-  I->image = image ;
   return(0) ;
 }
 /*-----------------------------------------------------
@@ -5098,6 +5113,12 @@ __eprintf(void)
 {
 }
 
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+             Read the header info from a tiff image.
+----------------------------------------------------------------------*/
 static IMAGE *
 TiffReadHeader(char *fname, IMAGE *I)
 {
@@ -5125,4 +5146,56 @@ TiffReadHeader(char *fname, IMAGE *I)
     init_header(I, "orig", "seq", 1, "today", height,width,type,1, "temp");
   
   return(I) ;
+}
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+             Write an image to disk in TIFF format.
+----------------------------------------------------------------------*/
+static int
+TiffWriteImage(IMAGE *I, char *fname, int frame)
+{
+  TIFF    *out ;
+  int     bits_per_pixel, samples_per_pixel, row ;
+  uint16  config = PLANARCONFIG_CONTIG;
+
+  out = TIFFOpen(fname, "w");
+  if (out == NULL)
+    return(ERROR_NOFILE);
+
+  TIFFSetField(out, TIFFTAG_IMAGEWIDTH, (uint32) I->cols);
+  TIFFSetField(out, TIFFTAG_IMAGELENGTH, (uint32) I->rows);
+  TIFFSetField(out, TIFFTAG_ORIENTATION, ORIENTATION_BOTLEFT);
+
+  switch (I->pixel_format)
+  {
+  case PFBYTE:
+    samples_per_pixel = 1 ;
+    bits_per_pixel = 8 ;
+    break ;
+  default:
+    ErrorReturn(ERROR_UNSUPPORTED, 
+                (ERROR_UNSUPPORTED, 
+                 "TiffWrite: only PFBYTE currently supported")) ;
+    samples_per_pixel = 3 ;
+    bits_per_pixel = 8 ;
+    break ;
+  }
+
+  TIFFSetField(out, TIFFTAG_SAMPLESPERPIXEL, samples_per_pixel);
+  TIFFSetField(out, TIFFTAG_BITSPERSAMPLE, bits_per_pixel);
+  TIFFSetField(out, TIFFTAG_PLANARCONFIG, config);
+  TIFFSetField(out, TIFFTAG_PHOTOMETRIC, PHOTOMETRIC_MINISBLACK);
+
+  /* write out the data, line by line */
+  for (row = 0; row < I->rows; row++) 
+  {
+    if (TIFFWriteScanline(out, IMAGEpix(I,0,row), row, 0) < 0)
+      ErrorReturn(ERROR_BADFILE, 
+                (ERROR_BADFILE,"TiffWrite: TIFFWriteScanline returned error"));
+  }
+
+  TIFFClose(out) ;
+  return(NO_ERROR) ;
 }
