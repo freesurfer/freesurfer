@@ -14,7 +14,7 @@
 #include "macros.h"
 #include "fio.h"
 
-static char vcid[] = "$Id: mris_anatomical_stats.c,v 1.1 1998/10/29 20:01:42 fischl Exp $";
+static char vcid[] = "$Id: mris_anatomical_stats.c,v 1.2 1998/11/05 21:17:46 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -46,7 +46,7 @@ static char *annotation_name = NULL ;
 int
 main(int argc, char *argv[])
 {
-  char          **av, *hemi, *sname, sdir[400], *cp, fname[500] ;
+  char          **av, *hemi, *sname, sdir[400], *cp, fname[500], *surf_name ;
   int           ac, nargs, vno ;
   MRI_SURFACE   *mris ;
   MRI           *mri_wm, *mri_kernel = NULL ;
@@ -79,6 +79,10 @@ main(int argc, char *argv[])
   strcpy(sdir, cp) ;
 
   hemi = argv[2] ; 
+  if (argc > 3)
+    surf_name = argv[3] ;
+  else
+    surf_name = WHITE_MATTER_NAME ;
 
   if (sigma > 0.0)
     mri_kernel = MRIgaussian1d(sigma, 100) ;
@@ -102,7 +106,7 @@ main(int argc, char *argv[])
     MRIfree(&mri_kernel);
   }
 
-  sprintf(fname, "%s/%s/surf/%s.%s", sdir, sname, hemi, WHITE_MATTER_NAME) ;
+  sprintf(fname, "%s/%s/surf/%s.%s", sdir, sname, hemi, surf_name) ;
   fprintf(stderr, "reading input surface %s...\n", fname) ;
   mris = MRISread(fname) ;
   if (!mris)
@@ -191,6 +195,8 @@ main(int argc, char *argv[])
       MRISreplaceMarks(mris, mark, -1) ;
       MRISripVerticesWithMark(mris, -1) ;
     }
+    else
+      break ;
   }
   exit(0) ;
   return(0) ;  /* for ansi */
@@ -258,7 +264,8 @@ static void
 print_usage(void)
 {
   fprintf(stderr, 
-          "usage: %s [options] <subject name> <hemi>\n", Progname) ;
+          "usage: %s [options] <subject name> <hemi> [<surface name>]\n", 
+          Progname) ;
 }
 
 static void
