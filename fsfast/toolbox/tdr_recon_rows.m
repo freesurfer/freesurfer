@@ -5,7 +5,7 @@ function [rimg, dgbeta, ncsub] = tdr_recon_rows(kimg,Rrow,PERev)
 %
 % See also tdr_recon_cols.
 % 
-% $Id: tdr_recon_rows.m,v 1.3 2003/11/06 19:44:14 greve Exp $
+% $Id: tdr_recon_rows.m,v 1.4 2003/12/19 22:25:23 greve Exp $
 
 rimg = [];
 dgbeta = [];
@@ -19,7 +19,7 @@ if(exist('PERev') ~= 1) PERev = 0; end
 [nrows ncols nslices nframes] = size(kimg);
 evenrows = [2:2:nrows];
 
-rimg = zeros(size(kimg));
+rimg = zeros(nrows,size(Rrow,2),nslices,nframes);
 dgbeta = zeros(2,nslices,nframes);
 ncsub = zeros(nslices,nframes);
 for frame = 1:nframes
