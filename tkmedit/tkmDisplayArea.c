@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2004/02/20 19:33:18 $
-// Revision       : $Revision: 1.101 $
+// Revision Date  : $Date: 2004/05/21 17:31:51 $
+// Revision       : $Revision: 1.102 $
 
 #include "tkmDisplayArea.h"
 #include "tkmMeditWindow.h"
@@ -218,7 +218,8 @@ DspA_tErr DspA_New ( tkmDisplayAreaRef* oppWindow,
   this->mLineVertex1.mnX = this->mLineVertex1.mnY = -1;
   this->mLineVertex2.mnX = this->mLineVertex2.mnY = -1;
   this->mNumLineVoxels = 0;
-
+  this->mLineDistance = 0;
+  
   /* set default brush info */
   sBrush.mnRadius = 1;
   sBrush.mShape   = DspA_tBrushShape_Square;
@@ -3055,11 +3056,18 @@ DspA_tErr DspA_HandleMouseUp_ ( tkmDisplayAreaRef this,
 	  this->mLineVertex2.mnY = xVoxl_GetY( &lineVox );;
 	}
 	
+	this->mLineDistance =
+	  sqrt( (this->mLineVertex2.mnX - this->mLineVertex1.mnX) *
+		(this->mLineVertex2.mnX - this->mLineVertex1.mnX) +
+		(this->mLineVertex2.mnY - this->mLineVertex1.mnY) *
+		(this->mLineVertex2.mnY - this->mLineVertex1.mnY) );
+
       } else if ( 3 == ipEvent->mButton ) {
 
 	this->mLineVertex1.mnX = -1;
 	this->mLineVertex1.mnY = -1;
 	this->mLineVertex2 = this->mLineVertex1;
+	this->mLineDistance = 0;
       }
       DspA_BuildLineToolVoxelList_( this );
       this->mbSliceChanged = TRUE;
@@ -7762,12 +7770,17 @@ DspA_tErr DspA_SendPointInformationToTcl_ ( tkmDisplayAreaRef this,
       Surf_GetDistance( this->mpSurface[tkm_tSurfaceType_Main], 
 			iAnaIdx, this->mpCursor, &fDistance );
     }
+
     
     /* send the update */
     sprintf( sTclArguments, "%s %f", DspA_ksaDisplaySet[iSet], fDistance );
     tkm_SendTclCommand( tkm_tTclCommand_UpdateDistance, sTclArguments );
   }
 
+  /* Send the line length update. */
+  sprintf( sTclArguments, "%s %f", DspA_ksaDisplaySet[iSet], 
+	   this->mLineDistance );
+  tkm_SendTclCommand( tkm_tTclCommand_UpdateLineLength, sTclArguments );
   
   return DspA_tErr_NoErr;
 }

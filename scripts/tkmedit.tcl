@@ -1,6 +1,6 @@
 #! /usr/bin/tixwish
 
-# $Id: tkmedit.tcl,v 1.77 2004/04/29 23:05:24 kteich Exp $
+# $Id: tkmedit.tcl,v 1.78 2004/05/21 17:31:57 kteich Exp $
 
 
 source $env(FREESURFER_HOME)/lib/tcl/tkm_common.tcl
@@ -241,7 +241,8 @@ set glLabel { \
   kLabel_Label_SegLabel \
   kLabel_Label_AuxSegLabel \
   kLabel_Label_Head \
-  kLabel_SurfaceDistance }
+  kLabel_SurfaceDistance \
+  kLabel_LineLength }
 foreach label $glLabel {
     set gfwaLabel($label,cursor) ""
     set gfwaLabel($label,mouseover) ""
@@ -259,6 +260,7 @@ set gsaLabelContents(kLabel_Label_SegLabel,name) "Sgmtn label"
 set gsaLabelContents(kLabel_Label_AuxSegLabel,name) "Aux Sgmtn label"
 set gsaLabelContents(kLabel_Label_Head,name) "Head Point"
 set gsaLabelContents(kLabel_SurfaceDistance,name) "Surface Distance"
+set gsaLabelContents(kLabel_LineLength,name) "Line Length"
 
 foreach label $glLabel {
     set gsaLabelContents($label,value,cursor) "none"
@@ -447,6 +449,11 @@ proc UpdateFunctionalRASCoords { iSet inX inY inZ } {
 proc UpdateSurfaceDistance { iSet ifDistance } {
     global gsaLabelContents
     set gsaLabelContents(kLabel_SurfaceDistance,value,$iSet) $ifDistance
+}
+
+proc UpdateLineLength { iSet ifLength } {
+    global gsaLabelContents
+    set gsaLabelContents(kLabel_LineLength,value,$iSet) $ifLength
 }
 
 proc UpdateZoomLevel { inLevel } { 
@@ -3560,7 +3567,12 @@ proc CreateMenuBar { ifwMenuBar } {
 		"Surface Distance"
 		"ShowLabel kLabel_SurfaceDistance $gbShowLabel(kLabel_SurfaceDistance)"
 		gbShowLabel(kLabel_SurfaceDistance)
-		tMenuGroup_SurfacexLoading} 
+		tMenuGroup_SurfaceLoading} 
+	    { check
+		"Line Length"
+		"ShowLabel kLabel_LineLength $gbShowLabel(kLabel_LineLength)"
+		gbShowLabel(kLabel_LineLength)
+		} 
 	}}
 	{ separator }
 	{ cascade "Configure..." {

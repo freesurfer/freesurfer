@@ -99,6 +99,7 @@ typedef enum {
   tkm_tTclCommand_UpdateAuxSegLabel,
   tkm_tTclCommand_UpdateHeadPointLabel,
   tkm_tTclCommand_UpdateDistance,
+  tkm_tTclCommand_UpdateLineLength,
   tkm_tTclCommand_UpdateZoomLevel,
   tkm_tTclCommand_UpdateOrientation,
   tkm_tTclCommand_UpdateDisplayFlag,

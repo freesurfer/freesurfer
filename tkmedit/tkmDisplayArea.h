@@ -317,6 +317,7 @@ struct tkmDisplayArea {
   xPoint2n mLineVertex2;
   xVoxel mLineVoxels[DspA_knMaxNumLineVoxels];
   int mNumLineVoxels;
+  float mLineDistance;
 
   /* This is the actual volume size, as opposed to mnVolumeSize */
   int mnVolumeDimensionX;
