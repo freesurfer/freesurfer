@@ -10,7 +10,7 @@ if { $err } {
     load [file dirname [info script]]/libscuba[info sharedlibextension] scuba
 }
 
-DebugOutput "\$Id: scuba.tcl,v 1.76 2005/02/07 15:30:15 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.77 2005/02/07 22:04:28 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -548,6 +548,7 @@ proc MakeToolBar { ifwTop } {
     global gaTool
     global gaFrame
     global gaView
+    global gaWidget
     global gCoordsInput
 
     set fwToolBar     $ifwTop.fwToolBar
@@ -615,15 +616,33 @@ proc MakeToolBar { ifwTop } {
     button $fwToolBar.bwZoomIn   -image icon_zoom_in \
 	-command { ZoomViewIn; RedrawFrame [GetMainFrameID] }
 
-
     frame $fwToolBar.fwCoordsInput
     tkuMakeEntry $fwToolBar.fwCoordsInput.ew \
-	-variable gCoordsInput \
+	-variable gCoordsInput(entry) \
 	-command { GotoCoordsInputCallback } \
 	-width 20
-    set gCoordsInput "Goto RAS Coords"
-    pack $fwToolBar.fwCoordsInput.ew \
+    set gCoordsInput(entry) "Enter RAS Coords"
+    bind $fwToolBar.fwCoordsInput.ew { }
+    set gaWidget(coordsEntry) $fwToolBar.fwCoordsInput.ew.ewEntry
+    menubutton $fwToolBar.fwCoordsInput.bw \
+	-text "V" \
+	-menu $fwToolBar.fwCoordsInput.bw.menu
+    set gaWidget(coordsMenuPopup) [menu $fwToolBar.fwCoordsInput.bw.menu]
+    $gaWidget(coordsMenuPopup) add command -label "RAS Coords" \
+	-command { 
+	    set gCoordsInput(system) ras ;
+	    set gCoordsInput(entry) "Enter RAS Coords" }
+    $gaWidget(coordsMenuPopup) add command -label "Index Coords" \
+	-command { 
+	    set gCoordsInput(system) index ;
+	    set gCoordsInput(entry) "Enter Index Coords" }
+    set gaWidget(coordsMenuButton) $fwToolBar.fwCoordsInput.bw
+    pack $fwToolBar.fwCoordsInput.ew $fwToolBar.fwCoordsInput.bw \
+	-side left \
 	-fill x
+
+    set gCoordsInput(system) ras
+
 
     pack $fwToolBar.fwTool $fwToolBar.fwView $fwToolBar.fwInPlane \
 	$fwToolBar.bwZoomOut $fwToolBar.bwZoomIn $fwToolBar.fwCoordsInput \
@@ -1020,9 +1039,10 @@ proc GotoCoordsInputCallback {} {
 
     global gaView
     global gCoordsInput
+    global gaTool
 
     # Get the input string.
-    set sCoords $gCoordsInput
+    set sCoords $gCoordsInput(entry)
 
     # [-+]? matches the leading - or +
     # \d+ matches a series of digits like 12
@@ -1035,13 +1055,39 @@ proc GotoCoordsInputCallback {} {
 
     } else {
 
-	# Set the cursor.
-	SetViewRASCenter $gaView(current,id) \
-	    [lindex $sFiltered 0] [lindex $sFiltered 1] [lindex $sFiltered 2]
-	RedrawFrame [GetMainFrameID]
-    }
+	if { "$gCoordsInput(system)" == "ras" } {
+	    
+	    # Set the cursor.
+	    SetViewRASCenter $gaView(current,id) \
+		[lindex $sFiltered 0] [lindex $sFiltered 1] \
+		[lindex $sFiltered 2]
+	    RedrawFrame [GetMainFrameID]
+	    
+	    set gCoordsInput(entry) "Enter RAS Coords"
 
-    set gCoordsInput "Enter RAS Coords"
+	} elseif { "$gCoordsInput(system)" == "index" } {
+
+	    if { $gaTool(current,targetLayer) < 0 } {
+		tkuErrorDlog "Please specify a target volume layer."
+		return;
+	    }
+
+	    if { [GetLayerType $gaTool(current,targetLayer)] != "2DMRI" } {
+		tkuErrorDlog "A volume layer must be targetted."
+		return;
+	    }
+	    
+	    set lRAS [Get2DMRIRASCoordsFromIndex $gaTool(current,targetLayer) \
+			  [lindex $sFiltered 0] [lindex $sFiltered 1] \
+			  [lindex $sFiltered 2]]
+	    puts "Got $lRAS"
+	    SetViewRASCenter $gaView(current,id) \
+		[lindex $lRAS 0] [lindex $lRAS 1] [lindex $lRAS 2]
+	    RedrawFrame [GetMainFrameID]
+ 
+	    set gCoordsInput(entry) "Enter Index Coords"
+	}
+    }
 }
 
 proc GetPreferences {} {
@@ -2714,7 +2760,6 @@ proc 2DMRILayerMinMaxValueChanged { iLayerID } {
     }
 }
 
-
 # This builds the layer ID list and populates the menu that selects
 # the current layer in the layer props panel, and the menus in the
 # view props panel. It should be called whenever a layer is created or
@@ -3550,7 +3595,7 @@ proc DrawLabelArea {} {
 	foreach lLabelValue $glLabelValues($nArea) {
 	    
 	    set label [lindex $lLabelValue 0]
-	    set glLabelValues($nLabel,value) [lindex $lLabelValue 1]
+	    set glLabelValues($nArea,$nLabel,value) [lindex $lLabelValue 1]
 
 	    set fw $gaWidget(labelArea,$nArea).fw$nLabel
 	    set ewLabel $fw.ewLabel
@@ -3562,7 +3607,7 @@ proc DrawLabelArea {} {
 		
 		tkuMakeNormalLabel $ewLabel -label $label -width 14
 		entry $ewValue \
-		    -textvariable glLabelValues($nLabel,value) \
+		    -textvariable glLabelValues($nArea,$nLabel,value) \
 		    -font [tkuNormalFont] \
 		    -width 18 \
 		    -state disabled \
@@ -3575,7 +3620,7 @@ proc DrawLabelArea {} {
 	    } else {
 		
 		$ewLabel.lw config -text $label
-		$ewValue config -textvariable glLabelValues($nLabel,value)
+		$ewValue config -textvariable glLabelValues($nArea,$nLabel,value)
 	    }
 	    
 	    incr nLabel
@@ -4515,7 +4560,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.76 2005/02/07 15:30:15 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.77 2005/02/07 22:04:28 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
@@ -4805,7 +4850,6 @@ wm title $gaWidget(window) "scuba"
 set gaWidget(tkcon) [frame $gaWidget(window).tkcon -height 40]
 ::tkcon::Init -root $gaWidget(tkcon) -showmenu 0 -embed 1 -exec ""
 tkcon attach main
-
 
 # Make the areas in the window. Make the scuba frame first because it
 # inits stuff that is needed by other areas.
