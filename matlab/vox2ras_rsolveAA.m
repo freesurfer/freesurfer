@@ -10,7 +10,7 @@ function [M_R] = vox2ras_rsolveAA(Vc_C, inPlaneRotation, varargin)
 %%
 %% VERSION
 %%
-%% 	$Id: vox2ras_rsolveAA.m,v 1.2 2004/06/03 18:23:25 rudolph Exp $
+%% 	$Id: vox2ras_rsolveAA.m,v 1.3 2004/06/08 19:08:05 rudolph Exp $
 %%
 %% SYNOPSIS
 %%
@@ -73,7 +73,8 @@ if length(varargin)
 	ch_orientation	= varargin{1}(1);
 end
 
-%% phase reference vector
+%% phase reference vector - 
+%%	adapted from Andre van der Kouwe's "autoaligncorrect.cpp"
 Vc_P	= zeros(3, 1);
 switch ch_orientation
     case 't'

@@ -161,7 +161,7 @@ end
 %%	This parsing relies on an underlying *nix environment. The
 %% 	somewhat convoluted construction is necessary to embed the 
 %%	single quote character in the commmand string
-cmd 	= ['cat meas.asc | grep -a adRM | awk ' char(39) ...
+cmd 	= ['cat ' str_filename ' | grep -a adRM | awk ' char(39) ...
 		'{print $4 " " $7 " " $10}' char(39)];
 [s, v2r]= system(cmd);	%% Execute the command, capturing vox2ras in v2r
 [r c]	= size(v2r);	
@@ -197,7 +197,7 @@ for i=1:3,
 	case 3
 	    str_search = 'dTra';
     end   
-    cmd = ['cat meas.asc | grep -a sSliceArray.asSlice | grep sNormal.' ... 
+    cmd = ['cat ' str_filename ' | grep -a sSliceArray.asSlice | grep sNormal.' ... 
     		str_search ' | awk ' char(39) '{print $3}' char(39)];
     [s, f]   = system(cmd);
     Vc_N(i)  = str2num(f);
@@ -208,7 +208,7 @@ Vc_N(2)	= -Vc_N(2);
 %% and scale with the Slice Select voxel dimension
 Vc_N	= Vr_voxelDimension(3) * Vc_N;
 %% Parse meas.asc file for InPlaneRotation value
-cmd = ['cat meas.asc | grep -a sSliceArray.asSlice | grep dInPlaneRot' ... 
+cmd = ['cat ' str_filename ' | grep -a sSliceArray.asSlice | grep dInPlaneRot' ... 
     		' | awk ' char(39) '{print $3}' char(39)];
 [s, inPlaneRot]    		= system(cmd);
 inPlaneRotation			= str2num(inPlaneRot);
@@ -226,7 +226,7 @@ for i=1:3,
 	case 3
 	    str_search = 'dTra';
     end   
-    cmd = ['cat meas.asc | grep -a sSliceArray.asSlice | grep sPosition.' ... 
+    cmd = ['cat ' str_filename ' | grep -a sSliceArray.asSlice | grep sPosition.' ... 
     		str_search ' | awk ' char(39) '{print $3}' char(39)];
     [s, f]    = system(cmd);
     Vc_Ps(i)  = str2num(f);
