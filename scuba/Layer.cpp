@@ -10,6 +10,8 @@ DeclareIDTracker(Layer);
 
 LayerStaticTclListener Layer::mStaticListener;
 
+int const Layer::kBPP = 3;  // bytes per pixel
+
 Layer::Layer() {
   mOpacity = 1.0;
   msLabel = "";
@@ -167,7 +169,8 @@ Layer::DrawPixelIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
 
   if( iWindow[0] >= 0 && iWindow[0] < iWidth && 
       iWindow[1] >= 0 && iWindow[1] < iHeight ) {
-    GLubyte* dest = iBuffer + (iWindow[0] * 4) + (iWindow[1] * iWidth * 4);
+    GLubyte* dest = iBuffer + (iWindow[0] * kBPP) + 
+      (iWindow[1] * iWidth * kBPP);
     DrawPixelIntoBuffer( dest, iColor, iOpacity );
   }
 }
@@ -222,21 +225,21 @@ Layer::DrawAALineIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
   // steep-ness.
   int adjInc, diagInc, orthInc;
   if( !bSteep && !bNegativeY ) {
-    adjInc  = ( 1 * 4) + ( 0 * iWidth * 4);
-    diagInc = ( 1 * 4) + ( 1 * iWidth * 4);
-    orthInc = ( 0 * 4) + ( 1 * iWidth * 4);
+    adjInc  = ( 1 * kBPP) + ( 0 * iWidth * kBPP);
+    diagInc = ( 1 * kBPP) + ( 1 * iWidth * kBPP);
+    orthInc = ( 0 * kBPP) + ( 1 * iWidth * kBPP);
   } else if( bSteep && !bNegativeY ) {
-    adjInc  = ( 0 * 4) + ( 1 * iWidth * 4);
-    diagInc = ( 1 * 4) + ( 1 * iWidth * 4);
-    orthInc = ( 1 * 4) + ( 0 * iWidth * 4);
+    adjInc  = ( 0 * kBPP) + ( 1 * iWidth * kBPP);
+    diagInc = ( 1 * kBPP) + ( 1 * iWidth * kBPP);
+    orthInc = ( 1 * kBPP) + ( 0 * iWidth * kBPP);
   } else if( !bSteep && bNegativeY ) {
-    adjInc  = ( 1 * 4) + ( 0 * iWidth * 4);
-    diagInc = ( 1 * 4) + (-1 * iWidth * 4);
-    orthInc = ( 0 * 4) + (-1 * iWidth * 4);
+    adjInc  = ( 1 * kBPP) + ( 0 * iWidth * kBPP);
+    diagInc = ( 1 * kBPP) + (-1 * iWidth * kBPP);
+    orthInc = ( 0 * kBPP) + (-1 * iWidth * kBPP);
   } else { //  bSteep && bNegativeY
-    adjInc  = ( 0 * 4) + (-1 * iWidth * 4);
-    diagInc = ( 1 * 4) + (-1 * iWidth * 4);
-    orthInc = ( 1 * 4) + ( 0 * iWidth * 4);
+    adjInc  = ( 0 * kBPP) + (-1 * iWidth * kBPP);
+    diagInc = ( 1 * kBPP) + (-1 * iWidth * kBPP);
+    orthInc = ( 1 * kBPP) + ( 0 * iWidth * kBPP);
   }
 
   // Calculate the slope. In the divide by zero case, set it to a big
@@ -258,7 +261,7 @@ Layer::DrawAALineIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
   float Bdinc = (dy-dx) * 2.0;
   float Bvar = Bainc - dx;
 
-  GLubyte* midPixel = iBuffer + ( x1 * 4 ) + ( y1 * iWidth * 4 );
+  GLubyte* midPixel = iBuffer + ( x1 * kBPP ) + ( y1 * iWidth * kBPP );
   GLubyte* curPixel;
   
   do {

@@ -107,6 +107,8 @@ class Layer : public DebugReporter,
 
   // Redisplay requested flag.
   bool mbPostRedisplay;
+
+  static int const kBPP;
 };
 
 
