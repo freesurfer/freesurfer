@@ -12,7 +12,7 @@
 #include "mri.h"
 #include "macros.h"
 
-static char vcid[] = "$Id: mris_register.c,v 1.12 2002/03/29 20:42:44 fischl Exp $";
+static char vcid[] = "$Id: mris_register.c,v 1.13 2002/04/02 17:35:28 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -34,16 +34,18 @@ static float dbeta = 0.0f ;
 static float dgamma = 0.0f ;
 
 char *Progname ;
-static char curvature_fname[100] = "" ;
+static char curvature_fname[STRLEN] = "" ;
 static char *orig_name = "smoothwm" ;
 static char *jacobian_fname = NULL ;
+
+static int use_defaults = 1 ;
 
 static INTEGRATION_PARMS  parms ;
 
 int
 main(int argc, char *argv[])
 {
-  char         **av, *surf_fname, *template_fname, *out_fname, fname[100],*cp;
+  char         **av, *surf_fname, *template_fname, *out_fname, fname[STRLEN],*cp;
   int          ac, nargs ;
   MRI_SURFACE  *mris ;
   MRI_SP       *mrisp_template ;
@@ -59,15 +61,9 @@ main(int argc, char *argv[])
   parms.tol = 1e-0*10 ;
   parms.min_averages = 0 ;
   parms.l_area = 0.0 ;
-#if 0
   parms.l_parea = 0.2f ;
   parms.l_dist = 0.1 ;
   parms.l_corr = 1.0f ;
-#else
-  parms.l_parea = 0.0f ;
-  parms.l_dist = 0.0 ;
-  parms.l_corr = 0.0f ;
-#endif
   parms.l_nlarea = 1 ;
   parms.l_pcorr = 0.0f ;
   parms.niterations = 25 ;
@@ -134,7 +130,7 @@ main(int argc, char *argv[])
   if (!mrisp_template)
     ErrorExit(ERROR_NOFILE, "%s: could not open template file %s",
                 Progname, template_fname) ;
-  if (FZERO(parms.l_parea) && FZERO(parms.l_dist) && FZERO(parms.l_corr))
+  if (use_defaults)
   {
     if (*IMAGEFseq_pix(mrisp_template->Ip, 0, 0, 2) <= 1.0)  /* 1st time */
     {
@@ -224,6 +220,7 @@ get_option(int argc, char *argv[])
   {
     sscanf(argv[2], "%f", &parms.l_dist) ;
     nargs = 1 ;
+    use_defaults = 0 ;
     fprintf(stderr, "l_dist = %2.3f\n", parms.l_dist) ;
   }
   else if (!stricmp(option, "norot"))
@@ -250,30 +247,35 @@ get_option(int argc, char *argv[])
   }
   else if (!stricmp(option, "area"))
   {
+    use_defaults = 0 ;
     sscanf(argv[2], "%f", &parms.l_area) ;
     nargs = 1 ;
     fprintf(stderr, "using l_area = %2.3f\n", parms.l_area) ;
   }
   else if (!stricmp(option, "parea"))
   {
+    use_defaults = 0 ;
     sscanf(argv[2], "%f", &parms.l_parea) ;
     nargs = 1 ;
     fprintf(stderr, "using l_parea = %2.3f\n", parms.l_parea) ;
   }
   else if (!stricmp(option, "nlarea"))
   {
+    use_defaults = 0 ;
     sscanf(argv[2], "%f", &parms.l_nlarea) ;
     nargs = 1 ;
     fprintf(stderr, "using l_nlarea = %2.3f\n", parms.l_nlarea) ;
   }
   else if (!stricmp(option, "spring"))
   {
+    use_defaults = 0 ;
     sscanf(argv[2], "%f", &parms.l_spring) ;
     nargs = 1 ;
     fprintf(stderr, "using l_spring = %2.3f\n", parms.l_spring) ;
   }
   else if (!stricmp(option, "corr"))
   {
+    use_defaults = 0 ;
     sscanf(argv[2], "%f", &parms.l_corr) ;
     nargs = 1 ;
     fprintf(stderr, "using l_corr = %2.3f\n", parms.l_corr) ;
