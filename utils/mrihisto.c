@@ -43,6 +43,8 @@
 -------------------------------------------------------*/
 static HISTOGRAM *mriHistogramRegion(MRI *mri, int nbins, HISTOGRAM *histo,
                                      MRI_REGION *region);
+static HISTOGRAM *mriHistogramLabel(MRI *mri, int nbins, HISTOGRAM *histo,
+                                     LABEL *label);
 /*-----------------------------------------------------
                     GLOBAL FUNCTIONS
 -------------------------------------------------------*/
@@ -161,6 +163,114 @@ MRIhistogramRegion(MRI *mri, int nbins, HISTOGRAM *histo, MRI_REGION *region)
   mri_prev = mri ;
   HISTOcopy(histo, &h_prev) ;
   REGIONcopy(region, &reg_prev) ;
+  return(histo) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+HISTOGRAM *
+MRIhistogramLabelStruct(MRI *mri, int nbins, HISTOGRAM *histo, LABEL *label)
+{
+  float             fmin, fmax, bin_size ;
+
+  fmin = MRIvalRange(mri, &fmin, &fmax) ;
+  if (!nbins)
+    nbins = nint(fmax - fmin) + 1 ;
+
+  if (!histo)
+    histo = HISTOalloc(nbins) ;
+  else
+    histo->nbins = nbins ;
+
+  HISTOclear(histo, histo) ;
+  bin_size = (fmax - fmin + 1) / (float)nbins ;
+
+
+  mriHistogramLabel(mri, nbins, histo, label) ;
+  
+  return(histo) ;
+}
+static HISTOGRAM *
+mriHistogramLabel(MRI *mri, int nbins, HISTOGRAM *histo, LABEL *label)
+{
+  int        width, height, depth, x, y, z, bin_no, i ;
+  float      fmin, fmax, bin_size, val ;
+  Real       xv, yv, zv ;
+
+
+  if (mri->type == MRI_UCHAR)
+  {
+    fmin = 0 ; fmax = 255 ;
+  }
+  else
+    fmin = MRIvalRange(mri, &fmin, &fmax) ;
+
+  if (!nbins)
+    nbins = nint(fmax - fmin) + 1 ;
+
+  if (!histo)
+    histo = HISTOalloc(nbins) ;
+  else
+    histo->nbins = nbins ;
+
+  HISTOclear(histo, histo) ;
+
+  bin_size = (fmax - fmin + 1) / (float)nbins ;
+  width = mri->width ;
+  height = mri->height ;
+  depth = mri->depth ;
+
+  for (bin_no = 0 ; bin_no < nbins ; bin_no++)
+    histo->bins[bin_no] = (bin_no+1)*bin_size ;
+
+  switch (mri->type)
+  {
+  case MRI_UCHAR:
+    for (i = 0 ; i < label->n_points ; i++)
+    {
+      MRIworldToVoxel(mri, label->lv[i].x, label->lv[i].y, label->lv[i].z, 
+                      &xv, &yv, &zv) ;
+      x = nint(xv) ; y = nint(yv) ; z = nint(zv) ;
+      val = (float)MRIvox(mri, x, y, z) ;
+      bin_no = (int)((float)(val - fmin) / (float)bin_size) ;
+      histo->counts[bin_no]++ ;
+    }
+    break ;
+  case MRI_SHORT:
+    for (i = 0 ; i < label->n_points ; i++)
+    {
+      MRIworldToVoxel(mri, label->lv[i].x, label->lv[i].y, label->lv[i].z, 
+                      &xv, &yv, &zv) ;
+      x = nint(xv) ; y = nint(yv) ; z = nint(zv) ;
+      val = (float)MRISvox(mri, x, y, z) ;
+      bin_no = (int)((float)(val - fmin) / (float)bin_size) ;
+      histo->counts[bin_no]++ ;
+    }
+    break ;
+  case MRI_FLOAT:
+    for (i = 0 ; i < label->n_points ; i++)
+    {
+      MRIworldToVoxel(mri, label->lv[i].x, label->lv[i].y, label->lv[i].z, 
+                      &xv, &yv, &zv) ;
+      x = nint(xv) ; y = nint(yv) ; z = nint(zv) ;
+      val = (float)MRIFvox(mri, x, y, z) ;
+      bin_no = (int)((float)(val - fmin) / (float)bin_size) ;
+      histo->counts[bin_no]++ ;
+    }
+    break ;
+  default:
+    ErrorReturn(NULL, 
+                (ERROR_UNSUPPORTED, 
+                 "mriHistogramLabel: unsupported mri type %d",
+                 mri->type)) ;
+    break ;
+  }
+
+    
   return(histo) ;
 }
 /*-----------------------------------------------------
@@ -618,10 +728,6 @@ MRIhistogramLabel(MRI *mri, MRI *mri_labeled, int label, int nbins)
   int        val, bmin, bmax ;
   float      fval;
 
-  if (mri->type != MRI_UCHAR && mri->type != MRI_FLOAT)
-    ErrorReturn(NULL, (ERROR_UNSUPPORTED,
-                       "MRIhistogramLabel: must by type UCHAR or FLOAT"));
-
   fmin = MRIvalRange(mri, &fmin, &fmax) ;
   bmin = (int)fmin ; bmax = (int)fmax ;
   if (!nbins)
@@ -665,6 +771,8 @@ MRIhistogramLabel(MRI *mri, MRI *mri_labeled, int label, int nbins)
           break;
           
         default:
+          ErrorReturn(NULL, (ERROR_UNSUPPORTED,
+                             "MRIhistogramLabel: unsupported type %d",mri->type));
           break ;
         }
       }
