@@ -136,36 +136,50 @@ TclCommandManager::HandleCommand ( ClientData iClientData, Tcl_Interp* iInterp,
 	for( tListener = command->mlListeners.begin(); 
 	     tListener != command->mlListeners.end(); ++tListener ) {
 	  
-	  // Give the listener a chance to listen to this command.
-	  TclCommandListener* listener = *tListener;
-	  TclCommandListener::TclCommandResult result =
-	    listener->ListenToTclCommand( argv[0], argc, argv );
-	  
-	  // If they gave us a return format string, convert the
-	  // format string and values string into a tcl object, which
-	  // could be a single value object or a list.
-	  if( listener->sReturnFormat.length() != 0 ) {
-	    stringstream sFormat( listener->sReturnFormat );
-	    stringstream sValues( listener->sReturnValues );
-	    Tcl_Obj* rObj = 
-	      commandMgr.ConvertFStringToTclObj( sFormat, sValues, iInterp );
-	    Tcl_SetObjResult( iInterp, rObj );
-	  }
+	  try {
 
-	  // If they gave us a result string, change that into a
-	  // string and set the result to that.
-	  if( listener->sResult.length() != 0 ) {
-	    char* sResult = strdup( listener->sResult.c_str() );
-	    Tcl_SetResult( iInterp, sResult, TCL_VOLATILE );
-	    free( sResult );
+	    // Give the listener a chance to listen to this command.
+	    TclCommandListener* listener = *tListener;
+	    TclCommandListener::TclCommandResult result =
+	      listener->ListenToTclCommand( argv[0], argc, argv );
+	    
+	    // If they gave us a return format string, convert the
+	    // format string and values string into a tcl object, which
+	    // could be a single value object or a list.
+	    if( listener->sReturnFormat.length() != 0 ) {
+	      stringstream sFormat( listener->sReturnFormat );
+	      stringstream sValues( listener->sReturnValues );
+	      Tcl_Obj* rObj = 
+		commandMgr.ConvertFStringToTclObj( sFormat, sValues, iInterp );
+	      Tcl_SetObjResult( iInterp, rObj );
+	    }
+	    
+	    // If they gave us a result string, change that into a
+	    // string and set the result to that.
+	    if( listener->sResult.length() != 0 ) {
+	      char* sResult = strdup( listener->sResult.c_str() );
+	      Tcl_SetResult( iInterp, sResult, TCL_VOLATILE );
+	      free( sResult );
+	    }
+	    
+	    // If the result was not ok, save that in the final
+	    // result. This way many objects can respond to the command
+	    // but an error will be returned if any of them return an
+	    // error.
+	    if( result != ok ) {
+	      finalResult = result;
+	    }
 	  }
-	  
-	  // If the result was not ok, save that in the final
-	  // result. This way many objects can respond to the command
-	  // but an error will be returned if any of them return an
-	  // error.
-	  if( result != ok ) {
-	    finalResult = result;
+	  catch( runtime_error e ) {
+	    finalResult = error;
+	    char* sError = strdup( e.what() );
+	    Tcl_SetResult( iInterp, sError, TCL_VOLATILE );
+	    free( sError );
+	  }
+	  catch(...) {
+	    finalResult = error;
+	    char sError[1024] = "Unkown error";
+	    Tcl_SetResult( iInterp, sError, TCL_VOLATILE );
 	  }
 	}
       }

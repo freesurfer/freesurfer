@@ -2,6 +2,7 @@
 extern "C" {
 #include "macros.h"
 }
+#include "Scuba-impl.h"
 
 char* Progname = "test_ScubaROI";
 

@@ -20,7 +20,8 @@ ScubaView::ScubaView() {
   ScubaGlobalPreferences& globalPrefs =
     ScubaGlobalPreferences::GetPreferences();
 
-  mbFlipLeftRightInYZ = globalPrefs.GetViewFlipLeftRightYZ();
+  mbFlipLeftRightInYZ = 
+    globalPrefs.GetPrefAsBool( ScubaGlobalPreferences::ViewFlipLeftRight );
 
   // Try setting our initial transform to the default transform with
   // id 0. If it's not there, create it.
@@ -132,52 +133,52 @@ ScubaView::ScubaView() {
   prefsMgr.UseFile( ".scuba" );
 
   PreferencesManager::StringPrefValue moveViewLeft( "Left" );
-  prefsMgr.RegisterValue( "key-MoveViewLeft", 
+  prefsMgr.RegisterValue( "KeyMoveViewLeft", 
 			  "Key to move the view to the left.",
 			  moveViewLeft );
-  msMoveViewLeft = prefsMgr.GetValue( "key-MoveViewLeft" );
+  msMoveViewLeft = prefsMgr.GetValue( "KeyMoveViewLeft" );
 
   PreferencesManager::StringPrefValue moveViewRight( "Right" );
-  prefsMgr.RegisterValue( "key-MoveViewRight", 
+  prefsMgr.RegisterValue( "KeyMoveViewRight", 
 			  "Key to move the view to the right.",
 			  moveViewRight );
-  msMoveViewRight = prefsMgr.GetValue( "key-MoveViewRight" );
+  msMoveViewRight = prefsMgr.GetValue( "KeyMoveViewRight" );
 
   PreferencesManager::StringPrefValue moveViewUp( "Up" );
-  prefsMgr.RegisterValue( "key-MoveViewUp", 
+  prefsMgr.RegisterValue( "KeyMoveViewUp", 
 			  "Key to move the view up.",
 			  moveViewUp );
-  msMoveViewUp = prefsMgr.GetValue( "key-MoveViewUp" );
+  msMoveViewUp = prefsMgr.GetValue( "KeyMoveViewUp" );
 
   PreferencesManager::StringPrefValue moveViewDown( "Down" );
-  prefsMgr.RegisterValue( "key-MoveViewDown", 
+  prefsMgr.RegisterValue( "KeyMoveViewDown", 
 			  "Key to move the view down.",
 			  moveViewDown );
-  msMoveViewDown = prefsMgr.GetValue( "key-MoveViewDown" );
+  msMoveViewDown = prefsMgr.GetValue( "KeyMoveViewDown" );
 
   PreferencesManager::StringPrefValue moveViewIn( "period" );
-  prefsMgr.RegisterValue( "key-MoveViewIn", 
+  prefsMgr.RegisterValue( "KeyMoveViewIn", 
 			  "Key to move the view in in plane.",
 			  moveViewIn );
-  msMoveViewIn = prefsMgr.GetValue( "key-MoveViewIn" );
+  msMoveViewIn = prefsMgr.GetValue( "KeyMoveViewIn" );
 
   PreferencesManager::StringPrefValue moveViewOut( "comma" );
-  prefsMgr.RegisterValue( "key-MoveViewOut", 
+  prefsMgr.RegisterValue( "KeyMoveViewOut", 
 			  "Key to move the view out in plane.",
 			  moveViewOut );
-  msMoveViewOut = prefsMgr.GetValue( "key-MoveViewOut" );
+  msMoveViewOut = prefsMgr.GetValue( "KeyMoveViewOut" );
 
   PreferencesManager::StringPrefValue zoomViewIn( "equal" );
-  prefsMgr.RegisterValue( "key-ZoomViewIn", 
+  prefsMgr.RegisterValue( "KeyZoomViewIn", 
 			  "Key to zoom the view in in plane.",
 			  zoomViewIn );
-  msZoomViewIn = prefsMgr.GetValue( "key-ZoomViewIn" );
+  msZoomViewIn = prefsMgr.GetValue( "KeyZoomViewIn" );
 
   PreferencesManager::StringPrefValue zoomViewOut( "minus" );
-  prefsMgr.RegisterValue( "key-ZoomViewOut", 
+  prefsMgr.RegisterValue( "KeyZoomViewOut", 
 			  "Key to zoom the view out in plane.",
 			  zoomViewOut );
-  msZoomViewOut = prefsMgr.GetValue( "key-ZoomViewOut" );
+  msZoomViewOut = prefsMgr.GetValue( "KeyZoomViewOut" );
 
   map<string,string> labelValueMap;
   mLabelValueMaps["cursor"] = labelValueMap;

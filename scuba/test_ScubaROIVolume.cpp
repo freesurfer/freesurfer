@@ -1,4 +1,5 @@
 #include "ScubaROIVolume.h"
+#include "Scuba-impl.h"
 
 char* Progname = "test_ScubaROIVolume";
 
@@ -41,6 +42,10 @@ ScubaROIVolumeTester::Test ( Tcl_Interp* iInterp ) {
 	     12 == roi.mBounds[2]), "SetROIBounds didn't work" );
     Assert( (NULL != roi.mVoxels), "SetROIBounds didn't create mVoxels" );
 
+    Assert( (0 == roi.NumSelectedVoxels()), 
+	    "NumSelectedVoxels didn't return 0" );
+
+    int cSelections = 0;
     int voxel[3];
     for( int nZ = 0; nZ < bounds[2]; nZ++ ) {
       for( int nY = 0; nY < bounds[1]; nY++ ) {
@@ -48,12 +53,16 @@ ScubaROIVolumeTester::Test ( Tcl_Interp* iInterp ) {
 	  voxel[0] = nX; voxel[1] = nY; voxel[2] = nZ;
 	  if( nZ % 2 && nY % 2 && nX % 2 ) {
 	    roi.SelectVoxel( voxel );
+	    cSelections++;
 	  } else {
 	    roi.UnselectVoxel( voxel );
 	  }
 	}
       }
     }
+
+    Assert( (cSelections == roi.NumSelectedVoxels()), 
+	    "NumSelectedVoxels didn't return proper number" );
 
     for( int nZ = 0; nZ < bounds[2]; nZ++ ) {
       for( int nY = 0; nY < bounds[1]; nY++ ) {

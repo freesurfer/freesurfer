@@ -69,6 +69,9 @@ class VolumeCollection : public DataCollection {
 			      bool ibBrushX, bool ibBrushY, bool ibBrushZ,
 			      std::list<Point3<float> >& oPoints );
 
+  void WriteROIToLabel ( int iROIID, std::string ifnLabel );
+  void WriteROIsToSegmentation ( std::string ifnVolume );
+
 protected:
   std::string mfnMRI;
   MRI* mMRI;

@@ -3,6 +3,7 @@
 #include "VolumeCollection.h"
 #include "DataManager.h"
 #include "Point3.h"
+#include "error.h"
 
 using namespace std;
 
@@ -23,6 +24,14 @@ VolumeCollection::VolumeCollection () :
   commandMgr.AddCommand( *this, "GetVolumeCollectionFileName", 1, 
 			 "collectionID", 
 			 "Gets the file name for a given volume collection.");
+  commandMgr.AddCommand( *this, "WriteVolumeROIToLabel", 3, 
+			 "collectionID roiID fileName", 
+			 "Writes an ROI to a label file." );
+  commandMgr.AddCommand( *this, "WriteVolumeROIsToSegmentation", 2, 
+			 "collectionID fileName", 
+			 "Writes a series of structure ROIs to a "
+			 "segmentation volume." );
+  
 }
 
 VolumeCollection::~VolumeCollection() {
@@ -75,8 +84,13 @@ VolumeCollection::GetMRI() {
       SetLabel( mfnMRI );
     }
 
+#if 0
     mWorldToIndexMatrix = extract_r_to_i( mMRI );
     mIndexToWorldMatrix = extract_i_to_r( mMRI );
+#else 
+    mWorldToIndexMatrix = voxelFromSurfaceRAS_( mMRI );
+    mIndexToWorldMatrix = surfaceRASFromVoxel_( mMRI );
+#endif
     UpdateMRIValueRange();
 
     // Size all the rois we may have.
@@ -313,6 +327,48 @@ VolumeCollection::DoListenToTclCommand ( char* isCommand,
       sReturnValues = mfnMRI;
     }
   }
+
+  // WriteVolumeROIToLabel <collectionID> <roiID> <fileName>
+  if( 0 == strcmp( isCommand, "WriteVolumeROIToLabel" ) ) {
+    int collectionID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad collection ID";
+      return error;
+    }
+    
+    if( mID == collectionID ) {
+     
+     int roiID = strtol(iasArgv[2], (char**)NULL, 10);
+     if( ERANGE == errno ) {
+       sResult = "bad roi ID";
+       return error;
+     }
+     
+     try {
+       WriteROIToLabel( roiID, string(iasArgv[3]) );
+     }
+     catch(...) {
+       sResult = "That ROI doesn't belong to this collection";
+       return error;
+     }
+    }
+    sReturnFormat = "s";
+    sReturnValues = mfnMRI;
+  }
+  
+  // WriteVolumeROIsToSegmentation <collectionID> <fileName>
+  if( 0 == strcmp( isCommand, "WriteVolumeROIsToSegmentation" ) ) {
+    int collectionID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad collection ID";
+      return error;
+    }
+    
+    if( mID == collectionID ) {
+     
+      WriteROIsToSegmentation( string(iasArgv[2]) );
+    }
+  }
   
   return DataCollection::DoListenToTclCommand( isCommand, iArgc, iasArgv );
 }
@@ -404,6 +460,7 @@ VolumeCollection::IsRASSelected ( float iRAS[3], int oColor[3] ) {
     return false;
   }
 }
+
 
 bool 
 VolumeCollection::IsOtherRASSelected ( float iRAS[3], int iThisROIID ) {
@@ -566,6 +623,118 @@ VolumeCollection::GetRASPointsInSphere ( float iCenterRAS[3], int iRadius,
   }
 
 }
+
+void
+VolumeCollection::WriteROIToLabel ( int iROIID, string ifnLabel ) {
+  
+  map<int,ScubaROI*>::iterator tIDROI;
+  tIDROI = mROIMap.find( iROIID );
+  if( tIDROI != mROIMap.end() ) {
+    ScubaROIVolume* roi = (ScubaROIVolume*)(*tIDROI).second;
+
+    int bounds[3];
+    roi->GetROIBounds( bounds );
+
+    int cSelectedVoxels = roi->NumSelectedVoxels();
+    if( 0 == cSelectedVoxels ) {
+      throw runtime_error( "No selected voxels." );
+    }
+
+    char* fnLabel = strdup( ifnLabel.c_str() );
+    LABEL* label = LabelAlloc( cSelectedVoxels, NULL, fnLabel );
+    if( NULL == label ) {
+      throw runtime_error( "Couldn't allocate label" );
+    }
+    label->n_points = cSelectedVoxels;
+
+    int nPoint = 0;
+    int voxel[3];
+    for( voxel[2] = 0; voxel[2] < bounds[2]; voxel[2]++ ) {
+      for( voxel[1] = 0; voxel[1] < bounds[1]; voxel[1]++ ) {
+	for( voxel[0] = 0; voxel[0] < bounds[0]; voxel[0]++ ) {
+	  
+	  if( roi->IsVoxelSelected( voxel ) ) {
+
+	    float ras[3];
+	    MRIIndexToRAS( voxel, ras );
+
+	    label->lv[nPoint].x = ras[0];
+	    label->lv[nPoint].y = ras[1];
+	    label->lv[nPoint].z = ras[2];
+	    label->lv[nPoint].stat = GetMRINearestValueAtRAS( ras );
+	    label->lv[nPoint].vno = -1;
+	    label->lv[nPoint].deleted = false;
+
+	    nPoint++;
+	  }
+	}
+      }
+    }
+
+    int error = LabelWrite( label, fnLabel );
+    if( NO_ERROR != error ) {
+      throw runtime_error( "Couldn't write label" );
+    }
+
+    free( fnLabel );
+
+  } else {
+    throw runtime_error( "ROI doesn't belong to this collection" );
+  }
+}
+
+
+void
+VolumeCollection::WriteROIsToSegmentation ( string ifnVolume ) {
+  
+
+  // Create a volume of the same size as our own.
+  MRI* segVolume = MRIallocSequence( mMRI->width, mMRI->height, mMRI->depth, 
+				     MRI_UCHAR, mMRI->nframes );
+  if( NULL == segVolume ) {
+    throw runtime_error( "Couldn't create seg volume" );
+  }
+
+  // Go through the volume...
+  int index[3];
+  for( index[2] = 0; index[2] < mMRI->depth; index[2]++ ) {
+    for( index[1] = 0; index[1] < mMRI->height; index[1]++ ) {
+      for( index[0] = 0; index[0] < mMRI->width; index[0]++ ) {
+	
+	// For each of our ROIs, if one is selected here and if it's a
+	// structure ROI, set the value of the seg volume to the
+	// structure index.
+	map<int,ScubaROI*>::iterator tIDROI;
+	for( tIDROI = mROIMap.begin();
+	     tIDROI != mROIMap.end(); ++tIDROI ) {
+	  int roiID = (*tIDROI).first;
+	  
+	  ScubaROI* roi = &ScubaROI::FindByID( roiID );
+	  //    ScubaROIVolume* volumeROI = dynamic_cast<ScubaROIVolume*>(roi);
+	  ScubaROIVolume* volumeROI = (ScubaROIVolume*)roi;
+	  if( volumeROI->GetType() == ScubaROI::Structure &&
+	      volumeROI->IsVoxelSelected( index ) ) {
+
+	    MRIvox( segVolume, index[0], index[1], index[2] ) = 
+	      (BUFTYPE) volumeROI->GetStructure();
+
+	  }
+	}
+      }
+    }
+  }
+
+  // Write the volume.
+  char* fnVolume = strdup( ifnVolume.c_str() );
+  int error = MRIwrite( segVolume, fnVolume );
+  free( fnVolume );
+  if( NO_ERROR != error ) {
+    throw runtime_error( "Couldn't write segmentation." );
+  }
+
+  MRIfree( &segVolume );
+}
+
 
 
 

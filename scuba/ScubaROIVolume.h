@@ -12,16 +12,21 @@ class ScubaROIVolume : public ScubaROI {
   ScubaROIVolume ();
   ~ScubaROIVolume ();
 
-  void SetROIBounds ( int iBounds[3] );
-  void SelectVoxel ( int iVoxel[3] );
-  void UnselectVoxel ( int iVoxel[3] );
+  void SetROIBounds ( int const iBounds[3] );
+  void GetROIBounds ( int oBounds[3] ) const;
 
-  bool IsVoxelSelected ( int iVoxel[3] );
+  void SelectVoxel ( int const iVoxel[3] );
+  void UnselectVoxel ( int const iVoxel[3] );
+
+  bool IsVoxelSelected ( int const iVoxel[3] ) const;
+
+  int NumSelectedVoxels () const { return mcSelectedVoxels; }
 
  protected:
 
   int mBounds[3];
   bool*** mVoxels;
+  int mcSelectedVoxels;
 };
 
 

@@ -429,11 +429,17 @@ x    - virtual UndoAction() and virtual RedoAction()
 x  - UndoManager::Undo() and Redo(), calls UndoAction() and RedoAction()
 x  - Declare UndoSelectAction(bSelect, RAS)
 
-line tools
- - draw series of lines with different tools, i.e. polygon, circle, weighted
- - just act as 'fill boundaries'
+Labels
+x - save .label
+  - interface
+ - export structure labels as segmentations
+  - interface
+ - load label
+  - interface
+ - import segmentation
+  - interface
 
-
+number shortcuts for brush size
 
 
 
@@ -443,73 +449,24 @@ line tools
 
 
 
+BRUCE'S LIST:::
 
-Frame
-
-Info pane
- - list of label/value strings in two columns
-   - first column for a marker, PDM to select marker
-     - max number of markers, default is 1 for cursor
-   - second column for mouseover
-
-
-
-Control Window
-
-
-Tools
- global
-   ctrl-b1 zoom in
-   ctrl-b2 recenter
-   ctrl-b3 zoom out
- - Navigation
-   b1 pan
-   b2 slice
-   b3 zoom	
- - Marker
-   b2 make marker
-   b3 remove marker
- - Voxel Selection
-   b2 select,   shift-b2 select fill
-   b3 unselect, shift-b3 select unfill
- - Voxel Editing
-   b2 paint, shift-b2 paint fill, ctrl-shift-b2 set color
-   b3 erase, shift-b3 erase fill, ctrl-shift-b3 set erase color
- - Voxel Restore
-   b2 restore,   shift-b2 restore fill
-   b3 unrestore, shift-b2 unrestore fill
- - Control Points
-   b2 make control point
-   b3 remove control point
-
-Data Info Dlog
- - row for each of loaded data
- - viewing options i.e. gray or LUT, opacity
-
-Layer Info Dlog
- - row for each layer
- - set layer name
- - choose data sources
- - choose viewing options i.e. opacity
- - choose editable options
-
-View Info
- - row for each view
- - linked navigation checkbox
- - list of layers names with checkboxes
-
-Frame Info
- - view layout
- - special views like mosaic
+b/c controled by mouse
+in and out slice pg up/down
+turning off ras coord display
+display cursor
+default to voxel size not 1mm.
 
 
 BUGS:::
 - viewflip pref is saved, but ScubaGlobalPrefs isn't doing all it should, need to add other values
 - when load /tmp/test-10.mgh, zoom in, doesn't draw until change min to 1
 - start up blank, load bert T1, draws black until move min to 1
+- fix radius in brush, it's really ugly
+- only open up dlog in fill if takes longer than 2 seconds
+- increase max distance in fill
 
-
-future ideas:
+FUTURE IDEAS:::
 
 Save Scene
  - save a script file to automatically load in data and set up view state like current one
@@ -518,12 +475,3 @@ nav tools draw onscreen sliders for feedback
  - on mouse down with right tool, draw scale bar
  - function to translate v position into modifcation value
  - start at mouse point, use expo scale towards edge for min/max values
-
-
-
-
-Point3<T>
- - looks cooler?
-
-Point3f
- - would let us have array accessors i.e. float[3] xyz()

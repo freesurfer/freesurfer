@@ -418,10 +418,11 @@ proc MakeMenuBar { ifwTop } {
 
     tkuMakeMenu -menu $gaMenu(view) -label "View" -items {
 	{check "Flip Left/Right" { SetViewFlipLeftRightYZ $gaView(current,id) $gaView(flipLeftRight) } gaView(flipLeftRight) }
-	{check "Show Console:Alt N" { ShowHideConsole $gaWidget(tkcon,visible) } gaWidget(tkcon,visible) }
+	{check "Show Console:Alt N" { ShowHideConsole $gaView(tkcon,visible) } gaView(tkcon,visible) }
     }
 
     set gaView(flipLeftRight) [GetPreferencesValue ViewFlipLeftRight]
+    set gaView(tkcon,visible) [GetPreferencesValue ShowConsole]
 
     pack $gaMenu(view) -side left
 
@@ -585,10 +586,10 @@ proc MakeScubaFrameBindings { iFrameID } {
 
     set fwScuba $gaWidget(scubaFrame,$iFrameID)
 
-    set sKeyInPlaneX [GetPreferencesValue key-InPlaneX]
-    set sKeyInPlaneY [GetPreferencesValue key-InPlaneY]
-    set sKeyInPlaneZ [GetPreferencesValue key-InPlaneZ]
-    set sKeyCycleView [GetPreferencesValue key-CycleViewsInFrame]
+    set sKeyInPlaneX [GetPreferencesValue KeyInPlaneX]
+    set sKeyInPlaneY [GetPreferencesValue KeyInPlaneY]
+    set sKeyInPlaneZ [GetPreferencesValue KeyInPlaneZ]
+    set sKeyCycleView [GetPreferencesValue KeyCycleViewsInFrame]
 
     bind $fwScuba <Key-$sKeyInPlaneX> {
 	set gaView(current,inPlane) x
@@ -644,10 +645,11 @@ proc Quit {} {
 
     # Set our prefs values and save our prefs.
     SetPreferencesValue ViewFlipLeftRight $gaView(flipLeftRight)
+    SetPreferencesValue ShowConsole $gaView(tkcon,visible)
+    set f [open log.txt w]
+    puts $f "SetPreferencesValue ShowConsole $gaView(tkcon,visible)"
+    close $f
     SaveGlobalPreferences
-
-    # Destory the tkcon widget to shut it down properly.
-#    destroy $gaWidget(tkcon)
 
     exit
 }
@@ -2573,7 +2575,8 @@ proc FillMenuFromList { imw ilEntries iLabelFunction ilLabels ibNone  } {
 
 proc ShowHideConsole { ibShow } {
     global gaWidget
-    
+    global gaView
+
     if { $ibShow } {
 
 	grid $gaWidget(tkcon) -sticky ews \
@@ -2586,7 +2589,7 @@ proc ShowHideConsole { ibShow } {
     }
 
     # Make sure our visible var is set correctly.
-    set gaWidget(tkcon,visible) $ibShow
+    set gaView(tkcon,visible) $ibShow
 }
 
 # DATA LOADING =====================================================
@@ -2897,7 +2900,7 @@ SelectTransformInTransformProperties 0
 SelectLUTInLUTProperties 0
 SelectToolInToolProperties navigation
 
-ShowHideConsole 0
+ShowHideConsole $gaView(tkcon,visible)
 
 MakeScubaFrameBindings [GetMainFrameID]
 
@@ -2911,10 +2914,10 @@ foreach command $lCommands {
 
 bind $gaWidget(window) <Alt-Key-q> "Quit"
 bind $gaWidget(window) <Alt-Key-n> {
-    if { $gaWidget(tkcon,visible) } {
-	set gaWidget(tkcon,visible) 0
+    if { $gaView(tkcon,visible) } {
+	set gaView(tkcon,visible) 0
     } else {
-	set gaWidget(tkcon,visible) 1
+	set gaView(tkcon,visible) 1
     }
-    ShowHideConsole $gaWidget(tkcon,visible)
+    ShowHideConsole $gaView(tkcon,visible)
 }

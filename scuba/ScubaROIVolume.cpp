@@ -7,6 +7,7 @@ ScubaROIVolume::ScubaROIVolume () {
 
   mBounds[0] = mBounds[1] = mBounds[2] = 0;
   mVoxels = NULL;
+  mcSelectedVoxels = 0;
 }
 
 ScubaROIVolume::~ScubaROIVolume () {
@@ -23,7 +24,7 @@ ScubaROIVolume::~ScubaROIVolume () {
 }
 
 void 
-ScubaROIVolume::SetROIBounds ( int iBounds[3] ) {
+ScubaROIVolume::SetROIBounds ( int const iBounds[3] ) {
 
   if( iBounds[0] <= 0 || iBounds[1] <= 0 || iBounds[2] <= 0 ) 
     throw runtime_error( "out of bounds" );
@@ -49,10 +50,20 @@ ScubaROIVolume::SetROIBounds ( int iBounds[3] ) {
       mVoxels[nZ][nY] = (bool*) calloc( mBounds[0], sizeof(bool) );
     }
   }
+
+  mcSelectedVoxels = 0;
+}
+
+void 
+ScubaROIVolume::GetROIBounds ( int oBounds[3] ) const {
+
+  oBounds[0] = mBounds[0];
+  oBounds[1] = mBounds[1];
+  oBounds[2] = mBounds[2];
 }
 
 void
-ScubaROIVolume::SelectVoxel ( int iVoxel[3] ) {
+ScubaROIVolume::SelectVoxel ( int const iVoxel[3] ) {
 
   if( iVoxel[0] < 0 || iVoxel[0] >= mBounds[0] ||
       iVoxel[1] < 0 || iVoxel[1] >= mBounds[1] ||
@@ -60,11 +71,15 @@ ScubaROIVolume::SelectVoxel ( int iVoxel[3] ) {
     throw runtime_error( "out of bounds" );
   }    
     
-  mVoxels[iVoxel[2]][iVoxel[1]][iVoxel[0]] = true;
+  if( !mVoxels[iVoxel[2]][iVoxel[1]][iVoxel[0]] ) {
+
+    mcSelectedVoxels++;
+    mVoxels[iVoxel[2]][iVoxel[1]][iVoxel[0]] = true;
+  }
 }
 
 void 
-ScubaROIVolume::UnselectVoxel ( int iVoxel[3] ) {
+ScubaROIVolume::UnselectVoxel ( int const iVoxel[3] ) {
 
   if( iVoxel[0] < 0 || iVoxel[0] >= mBounds[0] ||
       iVoxel[1] < 0 || iVoxel[1] >= mBounds[1] ||
@@ -72,11 +87,15 @@ ScubaROIVolume::UnselectVoxel ( int iVoxel[3] ) {
     throw runtime_error( "out of bounds" );
   }    
 
-  mVoxels[iVoxel[2]][iVoxel[1]][iVoxel[0]] = false;
+  if( mVoxels[iVoxel[2]][iVoxel[1]][iVoxel[0]] ) {
+
+    mcSelectedVoxels--;
+    mVoxels[iVoxel[2]][iVoxel[1]][iVoxel[0]] = false;
+  }
 }
 
 bool
-ScubaROIVolume::IsVoxelSelected ( int iVoxel[3] ) {
+ScubaROIVolume::IsVoxelSelected ( int const iVoxel[3] ) const {
 
   if( iVoxel[0] < 0 || iVoxel[0] >= mBounds[0] ||
       iVoxel[1] < 0 || iVoxel[1] >= mBounds[1] ||
