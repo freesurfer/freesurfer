@@ -8502,7 +8502,6 @@ GCAmeanFilterConditionalDensities(GCA *gca, float navgs)
   return(NO_ERROR) ;
 }
 
-#define MIN_BIN  50
 #define OFFSET_SIZE  25
 double BOX_SIZE =   60;   /* mm */
 double HALF_BOX=   (60/2);
@@ -8565,7 +8564,7 @@ GCAhistoScaleImageIntensities(GCA *gca, MRI *mri)
 
 		h_mri = MRIhistogramRegion(mri_frame, 0, NULL, &box) ; 
 		if (gca->ninputs == 1)
-			HISTOclearBins(h_mri, h_mri, 0, MIN_BIN) ;
+			HISTOclearBins(h_mri, h_mri, 0, nint(min_real_bin / h_mri->bin_size)) ;
 		if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
 			HISTOplot(h_mri, "mri.histo") ;
 		if (gca->ninputs == 1)   /* assume it is T1-weighted */
@@ -10375,8 +10374,9 @@ GCAregularizeCovariance(GCA *gca, float regularize)
 					{
 						for (c = r ; c < gca->ninputs ; c++, i++)
 						{
+							gc->covars[i] = (1-regularize)*gc->covars[i] ;
 							if (r == c)
-								gc->covars[i] += regularize*vars[r] ;  /* mean of overall variance in this image */
+								gc->covars[i] += regularize*vars[r] ;  
 						}
 					}
 					if (x == Ggca_x && y == Ggca_y && z == Ggca_z &&
