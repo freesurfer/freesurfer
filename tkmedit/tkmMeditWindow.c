@@ -911,6 +911,64 @@ MWin_tErr MWin_SetHeadPointList ( tkmMeditWindowRef   this,
   return eResult;
 }
 
+MWin_tErr MWin_SetVLIs                        ( tkmMeditWindowRef this,
+                 int               inDispIndex,
+                 VLI*              iVLI1,
+                 VLI*              iVLI2,
+                 char*             isVLI1_name,
+                 char*             isVLI2_name ) {
+
+  MWin_tErr eResult     = MWin_tErr_NoErr;
+  DspA_tErr eDispResult = DspA_tErr_NoErr;
+  int       nDispIndex    = 0;
+  int       nDispIndexMin = inDispIndex;
+  int       nDispIndexMax = inDispIndex+1;
+
+  /* verify us. */
+  eResult = MWin_Verify ( this );
+  if ( MWin_tErr_NoErr != eResult )
+    goto error;
+
+  /* verify the display index. */
+  eResult = MWin_VerifyDisplayIndex ( this, inDispIndex );
+  if ( MWin_tErr_NoErr != eResult )
+    goto error;
+
+  /* if working on all displays, set the iteration bounds. */
+  if ( MWin_kAllDisplayAreas == inDispIndex ) {
+    nDispIndexMin = 0;
+    nDispIndexMax = MWin_knMaxNumAreas;
+  }
+
+  /* set the VLIs */
+  for ( nDispIndex = nDispIndexMin; 
+  nDispIndex < nDispIndexMax; 
+  nDispIndex++ ) {
+
+    eDispResult = DspA_SetVLIs ( this->mapDisplays[nDispIndex],
+        iVLI1, iVLI2, isVLI1_name, isVLI2_name );
+    if ( DspA_tErr_NoErr != eDispResult ) {
+      eResult = MWin_tErr_ErrorAccessingDisplay;
+      goto error;
+    }
+  }
+
+  goto cleanup;
+
+ error:
+
+  /* print error message */
+  if ( MWin_tErr_NoErr != eResult ) {
+    DebugPrint( ("Error %d in MWin_SetVLIs: %s\n",
+      eResult, MWin_GetErrorString(eResult) ) );
+  }
+
+ cleanup:
+
+  return eResult;
+}
+
+
 MWin_tErr MWin_SetGCA ( tkmMeditWindowRef   this, 
       int                 inDispIndex,
       GCA*                iVolume,

@@ -16,6 +16,7 @@
 #include "diag.h"
 #include "utils.h"
 #include "const.h"
+#include "vlabels.h"
 
 #include "tkmedit.h"
 
@@ -723,6 +724,8 @@ void alloc_second_im(void) ;
 void smooth_surface(int niter) ;
 static void SmoothFunctionalData(mriFunctionalDataRef mpOverlayVolume, 
                                  float sigma) ;
+
+VLI *gVLI1 = NULL, *gVLI2 = NULL ;
 
 char *Progname ;
 
@@ -3023,6 +3026,47 @@ int TclSmoothFunctionalData ( ClientData inClientData,
   UpdateAndRedraw();
   return TCL_OK;
 }
+int TclReadVoxelLabels ( ClientData inClientData, 
+       Tcl_Interp* inInterp,
+       int argc, char* argv[] )
+{
+  tkm_tErr  eResult                             = tkm_tErr_NoErr;
+  char *fname1 = argv[1], *fname2 = argv[2] ;
+  VLI  *vli1, *vli2 ;
+  char          sError[tkm_knErrStringLen] = "";
+
+  DebugEnterFunction( ("ReadVoxelLables( vli1_name=%s, vli2_name=%s )",
+                       fname1, fname2) );
+  DebugNote( ("Reading VLI1 with VLread") );
+  vli1 = VLread(fname1) ;
+  DebugAssertThrowX( (NULL != vli1), eResult, tkm_tErr_CouldntLoadVLI );
+  DebugNote( ("Reading VLI2 with VLread") );
+  vli2 = VLread(fname2) ;
+  DebugAssertThrowX( (NULL != vli2), eResult, tkm_tErr_CouldntLoadVLI );
+
+
+  gVLI1 = vli1 ;
+  gVLI2 = vli2 ;
+
+  /* set in window */
+  MWin_SetVLIs( gMeditWindow, -1, gVLI1, gVLI2, fname1, fname2 );
+
+  DebugCatch;
+  DebugCatchError( eResult, tkm_tErr_NoErr, tkm_GetErrorString );
+
+  xUtil_snprintf( sError, sizeof(sError), "Loading voxel labels %s, %s", 
+      fname1, fname2 );
+  tkm_DisplayError( sError,
+        tkm_GetErrorString(eResult),
+        "Tkmedit couldn't read the VLIs you "
+        "specified. This could be because the format "
+        "wasn't valid or the file wasn't found." );
+  EndDebugCatch;
+
+  DebugExitFunction;
+  
+  return eResult;
+}
 
 
 static void
@@ -4694,6 +4738,8 @@ int main ( int argc, char** argv ) {
   Tcl_CreateCommand ( interp, "CrashHard", TclCrashHard,
           (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
   Tcl_CreateCommand ( interp, "SmoothFunctionalData", TclSmoothFunctionalData,
+          (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
+  Tcl_CreateCommand ( interp, "ReadVoxelLabels", TclReadVoxelLabels,
           (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
 
   Tcl_CreateCommand ( interp, "DebugPrint", TclDebugPrint,

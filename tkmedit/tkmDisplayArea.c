@@ -823,6 +823,41 @@ DspA_tErr DspA_SetHeadPointList ( tkmDisplayAreaRef   this,
   return eResult;
 }
 
+DspA_tErr DspA_SetVLIs                        ( tkmDisplayAreaRef this,
+                 VLI*              iVLI1,
+                 VLI*              iVLI2,
+                 char*             isVLI1_name,
+                 char*             isVLI2_name) {
+
+  DspA_tErr eResult            = DspA_tErr_NoErr;
+
+  /* verify us. */
+  eResult = DspA_Verify( this );
+  if( DspA_tErr_NoErr != eResult )
+    goto error;
+
+  /* save the VLIs and LTA */
+  this->mVLI1    = iVLI1;
+  this->mVLI2    = iVLI2;
+  strcpy(this->isVLI1_name, isVLI1_name) ;
+  strcpy(this->isVLI2_name, isVLI2_name) ;
+
+  goto cleanup;
+
+ error:
+
+  /* print error message */
+  if( DspA_tErr_NoErr != eResult ) {
+    DebugPrint( ("Error %d in DspA_SetVLIs: %s\n",
+      eResult, DspA_GetErrorString(eResult) ) );
+  }
+
+ cleanup:
+
+  return eResult;
+}
+
+
 DspA_tErr DspA_SetGCA ( tkmDisplayAreaRef   this, 
       GCA*                iVolume,
       LTA*                iTransform ) {
@@ -5574,9 +5609,38 @@ DspA_tErr DspA_SendPointInformationToTcl_ ( tkmDisplayAreaRef this,
   /* if we have gca data and this is the cursor, use gcadump to dump 
      the info to the screen */
   if( NULL != this->mGCAVolume &&
-      DspA_tDisplaySet_Cursor == iSet ) {
+      DspA_tDisplaySet_Cursor == iSet ) 
     GCAdump( this->mGCAVolume, this->mpVolume->mpNormValues,
        xVoxl_ExpandInt( iAnaIdx ), this->mGCATransform, stdout, 0 );
+
+  if( NULL != this->mVLI1 &&
+      DspA_tDisplaySet_Cursor == iSet ) 
+  {
+    int xn, yn, zn, n ;
+    VL *vl ;
+
+    xn = nint(xVoxl_GetX(iAnaIdx) / this->mVLI1->resolution) ;
+    yn = nint(xVoxl_GetY(iAnaIdx) / this->mVLI1->resolution) ;
+    zn = nint(xVoxl_GetZ(iAnaIdx) / this->mVLI1->resolution) ;
+
+    printf("voxel (%d, %d, %d) --> node (%d, %d, %d)\n",
+           xVoxl_ExpandInt( iAnaIdx ), xn, yn, zn) ;
+    vl = &this->mVLI1->vl[xn][yn][zn] ;
+    printf("%s:\n", this->isVLI1_name) ;
+    for (n = 0 ; n < vl->nlabels ; n++)
+    {
+      if (vl->counts[n] > 0)
+        printf("%s (%d): %d\n", cma_label_to_name(vl->labels[n]),
+               vl->labels[n], vl->counts[n]) ;
+    }
+    vl = &this->mVLI2->vl[xn][yn][zn] ;
+    printf("%s:\n", this->isVLI2_name) ;
+    for (n = 0 ; n < vl->nlabels ; n++)
+    {
+      if (vl->counts[n] > 0)
+        printf("%s (%d): %d\n", cma_label_to_name(vl->labels[n]),
+               vl->labels[n], vl->counts[n]) ;
+    }
   }
 
   return DspA_tErr_NoErr;
