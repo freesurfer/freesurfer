@@ -102,7 +102,9 @@ static char *get_afni_string(FILE *fp, int count, char *name);
 static int *get_afni_int(FILE *fp, int count, char *name);
 static float *get_afni_float(FILE *fp, int count, char *name);
 static int decompose_b_fname(char *fname_passed, char *directory, char *stem);
+#if 0
 static int orient_with_register(MRI *mri);
+#endif
 static int nan_inf_check(MRI *mri);
 #ifdef VC_TO_CV
 static int voxel_center_to_center_voxel(MRI *mri, float *x, float *y, float *z);
@@ -671,7 +673,7 @@ static MRI *corRead(char *fname, int read_volume)
   int imnr0, imnr1, x, y, ptype;
   double fov, thick, psiz, locatn; /* using floats to read creates problems when checking values (e.g. thick = 0.00100000005) */
   float strtx, endx, strty, endy, strtz, endz;
-  float tr, te, ti;
+  float tr, te, ti, flip_angle ;
   int ras_good_flag;
   float x_r, x_a, x_s;
   float y_r, y_a, y_s;
@@ -718,7 +720,7 @@ static MRI *corRead(char *fname, int read_volume)
   y_r = y_a = y_s = 0.0;
   z_r = z_a = z_s = 0.0;
   c_r = c_a = c_s = 0.0;
-  tr = te = ti = 0.0;
+  flip_angle = tr = te = ti = 0.0;
   fov = 0.0;
   locatn = 0.0;
 
@@ -759,6 +761,11 @@ static MRI *corRead(char *fname, int read_volume)
     {
       sscanf(line, "%*s %lf", &thick);
       gotten = gotten | THICK_FLAG;
+    }
+    else if(strncmp(line, "flip ", 5) == 0)
+    {
+      sscanf(line+11, "%f", &flip_angle);
+      flip_angle = RADIANS(flip_angle) ;
     }
     else if(strncmp(line, "psiz ", 5) == 0)
     {
@@ -948,6 +955,7 @@ if(x_r == 0.0 && x_a == 0.0 && x_s == 0.0 && y_r == 0.0 && y_a == 0.0 && y_s == 
   mri->tr = tr;
   mri->te = te;
   mri->ti = ti;
+  mri->flip_angle = flip_angle ;
   mri->ras_good_flag = ras_good_flag;
   mri->x_r = x_r;  mri->x_a = x_a;  mri->x_s = x_s;
   mri->y_r = y_r;  mri->y_a = y_a;  mri->y_s = y_s;
@@ -1124,6 +1132,7 @@ static int corWrite(MRI *mri, char *fname)
   fprintf(fp, "tr %f\n", mri->tr);
   fprintf(fp, "te %f\n", mri->te);
   fprintf(fp, "ti %f\n", mri->ti);
+  fprintf(fp, "flip angle %f\n", DEGREES(mri->flip_angle));
   fprintf(fp, "ras_good_flag %d\n", mri->ras_good_flag);
   fprintf(fp, "x_ras %f %f %f\n", mri->x_r, mri->x_a, mri->x_s);
   fprintf(fp, "y_ras %f %f %f\n", mri->y_r, mri->y_a, mri->y_s);
@@ -1376,7 +1385,7 @@ static MRI *siemensRead(char *fname, int read_volume_flag)
   mri->location = 0.0;
 
   fseek(fp, 2112, SEEK_SET) ;
-  mri->flip_angle = freadDouble(fp) ;  /* in degrees */
+  mri->flip_angle = RADIANS(freadDouble(fp)) ;  /* was in degrees */
 
   fseek(fp, 1560, SEEK_SET);
   fread(&d, 8, 1, fp);
@@ -1545,15 +1554,15 @@ static MRI *mincRead(char *fname, int read_volume)
     ErrorReturn(NULL, (ERROR_BADFILE, "mincRead(): can't find file %s", fname));
   }
 
-  printf("INFO: mincRead: reading %s\n",fname);
   status = start_volume_input(fname, 0, dim_names, NC_UNSPECIFIED, 0, 0, 0, 
             TRUE, &vol, NULL, &input_info);
-  printf("INFO: mincRead: done reading \n");
 
-  /**/
-printf("%d\n", status);
-printf("%d\n", get_volume_n_dimensions(vol));
-printf("%d\n", vol->nc_data_type);
+  if (Gdiag & DIAG_VERBOSE_ON && DIAG_SHOW)
+  {
+    printf("status = %d\n", status);
+    printf("n_dimensions = %d\n", get_volume_n_dimensions(vol));
+    printf("nc_data_type = %d\n", vol->nc_data_type);
+  }
 /**/
 
   if(status != OK)
@@ -2836,6 +2845,7 @@ static MRI *bvolumeRead(char *fname_passed, int read_volume, int type)
 } /* end bvolumeRead() */
 
 
+#if 0
 static int orient_with_register(MRI *mri)
 {
 
@@ -3011,6 +3021,7 @@ static int orient_with_register(MRI *mri)
   return(NO_ERROR);
 
 } /* end orient_with_register() */
+#endif
 
 static int decompose_b_fname(char *fname, char *dir, char *stem)
 {
@@ -3461,7 +3472,7 @@ static MRI *genesisRead(char *fname, int read_volume)
   fseek(fp, image_header_offset + 202, SEEK_SET);
   header->te = freadInt(fp)/MICROSECONDS_PER_MILLISECOND  ;
   fseek(fp, image_header_offset + 254, SEEK_SET);
-  header->flip_angle = freadShort(fp) ;
+  header->flip_angle = RADIANS(freadShort(fp)) ;  /* was in degrees */
 
   fseek(fp, image_header_offset + 130, SEEK_SET);
   fread(&c_r,  4, 1, fp);  c_r  = orderFloatBytes(c_r);
@@ -4002,7 +4013,8 @@ static MRI *analyzeRead(char *fname, int read_volume)
 
   hdr = ReadAnalyzeHeader(hdrfile, &swap, &mritype, &bytes_per_voxel);
   if(hdr == NULL) return(NULL);
-  //DumpAnalyzeHeader(stdout,hdr);
+  if (Gdiag & DIAG_VERBOSE_ON)
+    DumpAnalyzeHeader(stdout,hdr);
 
   /* Get the number of frames as either the fourth dimension or 
      the number of files. */
@@ -7266,7 +7278,7 @@ mghRead(char *fname, int read_volume, int frame)
 
   fclose(fp) ;
 
-  if (good_ras_flag)
+  if (good_ras_flag > 0)
   {
     mri->xsize =     xsize ;
     mri->ysize =     ysize ;
@@ -7289,6 +7301,13 @@ mghRead(char *fname, int read_volume, int frame)
     mri->c_s = c_s  ;
     if (good_ras_flag > 0)
       mri->ras_good_flag = 1 ;
+  }
+  if (!feof(fp))
+  {
+    mri->tr = freadFloat(fp) ;
+    mri->flip_angle = freadFloat(fp) ;
+    mri->te = freadFloat(fp) ;
+    mri->ti = freadFloat(fp) ;
   }
   return(mri) ;
 }
@@ -7414,6 +7433,11 @@ mghWrite(MRI *mri, char *fname, int frame)
       }
     }
   }
+
+  fwriteFloat(mri->tr, fp) ;
+  fwriteFloat(mri->flip_angle, fp) ;
+  fwriteFloat(mri->te, fp) ;
+  fwriteFloat(mri->ti, fp) ;
 
   fclose(fp) ;
   return(NO_ERROR) ;
