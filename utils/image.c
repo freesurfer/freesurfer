@@ -904,7 +904,10 @@ ImageClearArea(IMAGE *I, int r0, int c0, int rows, int cols, float val)
         *cptr++ = cval ;
       break ;
     default:
-      ErrorReturn(ERROR_UNSUPPORTED, (ERROR_UNSUPPORTED, "ImageClearArea: only handles PFFLOAT")) ;
+      ErrorReturn(ERROR_UNSUPPORTED, 
+                  (ERROR_UNSUPPORTED, 
+                   "ImageClearArea: unsupported image format %d",
+                   I->pixel_format)) ;
       break ;
     }
   }
@@ -5181,7 +5184,7 @@ ImageSmoothOffsets(IMAGE *Isrc, IMAGE *Idst, int wsize)
               apply an offset vector to a filtered image.
 ----------------------------------------------------------------------*/
 IMAGE *
-ImageApplyOffset(IMAGE *Isrc, IMAGE *offsetImage, IMAGE *Idst)
+ImageApplyOffset(IMAGE *Isrc, IMAGE *Ioffset, IMAGE *Idst)
 {
   int x, y, rows, cols, dx, dy ;
   float  *dst, *src, *dx_pix, *dy_pix ;
@@ -5209,11 +5212,9 @@ ImageApplyOffset(IMAGE *Isrc, IMAGE *offsetImage, IMAGE *Idst)
     ErrorReturn(NULL, (ERROR_SIZE, "ImageApplyOffset: dst not big enough")) ;
 
   dst = IMAGEFpix(Iout, 0, 0) ;
-  dx_pix = IMAGEFpix(offsetImage, 0, 0) ;
-  dy_pix = IMAGEFseq_pix(offsetImage, 0, 0, 1) ;
+  dx_pix = IMAGEFpix(Ioffset, 0, 0) ;
+  dy_pix = IMAGEFseq_pix(Ioffset, 0, 0, 1) ;
 
-ImageWrite(offsetImage, "o.hipl") ;
-  
   for (y = 0 ; y < rows ; y++)
   {
     for (x = 0 ; x < cols ; x++)
@@ -5233,5 +5234,60 @@ ImageWrite(offsetImage, "o.hipl") ;
     ImageFree(&Iout) ;
   }
   return(Idst) ;
+}
+
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+              use an offset vector field to specify edge locations.
+----------------------------------------------------------------------*/
+IMAGE *
+ImageOffsetEdgeDetect(IMAGE *Ioffset, IMAGE *Iedge)
+{
+  int    x, y, rows, cols, dx, dy ;
+  float  *dx_pix, *dy_pix ;
+  UCHAR  *edge ;
+  IMAGE  *Iout ;
+
+  rows = Ioffset->rows ;
+  cols = Ioffset->cols ;
+
+  if (!Iedge)
+    Iedge = ImageAlloc(rows, cols, PFBYTE, 1) ;
+
+  if (Iedge->pixel_format != PFBYTE)
+    Iout = ImageAlloc(rows, cols, PFBYTE, 1) ;
+  else
+    Iout = Iedge ;
+
+#if 0
+  if (!ImageCheckSize(Ioffset, Iout, 0, 0, 1))
+    ErrorReturn(NULL,(ERROR_SIZE,"ImageOffsetEdgeDetect: dst not big enough"));
+#endif
+
+  /* assume everything is an edge */
+  ImageClearArea(Iout, -1, -1, -1, -1, 1.0f) ;  
+  edge = IMAGEpix(Iout, 0, 0) ;
+  dx_pix = IMAGEFpix(Ioffset, 0, 0) ;
+  dy_pix = IMAGEFseq_pix(Ioffset, 0, 0, 1) ;
+
+  for (y = 0 ; y < rows ; y++)
+  {
+    for (x = 0 ; x < cols ; x++)
+    {
+      dx = (int)*dx_pix++ ;
+      dy = (int)*dy_pix++ ;
+      edge = IMAGEpix(Iout, x+dx, y+dy) ;
+      *edge = (UCHAR)0 ;  /* not an edge pixel */
+    }
+  }
+
+  if (Iout != Iedge)
+  {
+    ImageCopy(Iout, Iedge) ;
+    ImageFree(&Iout) ;
+  }
+  return(Iedge) ;
 }
 
