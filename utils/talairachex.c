@@ -6,8 +6,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/03/23 19:55:19 $
-// Revision       : $Revision: 1.3 $
+// Revision Date  : $Date: 2004/03/24 15:18:20 $
+// Revision       : $Revision: 1.4 $
 
 
 #include "talairachex.h"
@@ -17,8 +17,8 @@
 #define V4_LOAD(v, x, y, z, r)  (VECTOR_ELT(v,1)=x, VECTOR_ELT(v,2)=y, \
                                   VECTOR_ELT(v,3)=z, VECTOR_ELT(v,4)=r) ;
 
-VECTOR *src = 0;
-VECTOR *res = 0;
+static VECTOR *src__ = 0;
+static VECTOR *dst__ = 0;
 
 int ModifyTalairachCRAS(MRI *mri_tal, const LTA *lta)
 {
@@ -192,18 +192,18 @@ MATRIX *MRASFromTalVoxel(MRI *mri, const LTA *lta)
 
 void TransformWithMatrix(MATRIX *mat, Real x, Real y, Real z, Real *px, Real *py, Real *pz)
 {
-  // VECTOR *src, *res;
-  if (src == 0)
-    src = VectorAlloc(4, MATRIX_REAL);
-  if (res == 0)
-    res = VectorAlloc(4, MATRIX_REAL);
-  V4_LOAD(src, x, y, z, 1.);
-  MatrixMultiply(mat, src, res);
-  *px = V3_X(res);
-  *py = V3_Y(res);
-  *pz = V3_Z(res);
+  // VECTOR *src, *dst;
+  if (src__ == 0)
+    src__ = VectorAlloc(4, MATRIX_REAL);
+  if (dst__ == 0)
+    dst__ = VectorAlloc(4, MATRIX_REAL);
+  V4_LOAD(src__, x, y, z, 1.);
+  MatrixMultiply(mat, src__, dst__);
+  *px = V3_X(dst__);
+  *py = V3_Y(dst__);
+  *pz = V3_Z(dst__);
   // VectorFree(&src);
-  // VectorFree(&res);
+  // VectorFree(&dst);
 }
 
 //////////////////////////////////////////////////////////////////////////////////
