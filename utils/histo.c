@@ -1029,3 +1029,23 @@ HISTOfindNextValley(HISTOGRAM *h, int b0)
   return(-1) ;
 }
 
+int
+HISTOfindEndOfPeak(HISTOGRAM *h, int b0, float pct_peak)
+{
+  int  b, b1 ;
+  float val, thresh ;
+
+	b1 = HISTOfindNextValley(h, b0) ;
+
+  thresh = h->counts[b0]*pct_peak ;
+  if (b0 >= h->nbins)
+    return(b0) ;
+  for (b = b0+1 ; b <= b1 ; b++)
+  {
+    val = h->counts[b] ;
+    if (val < thresh)
+      return(b) ;
+  }
+  return(b) ;
+}
+

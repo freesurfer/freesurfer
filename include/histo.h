@@ -46,6 +46,7 @@ int       HISTOfindFirstPeak(HISTOGRAM *h, int wsize, float min_pct) ;
 int       HISTOfindFirstPeakRelative(HISTOGRAM *h, int wsize, float min_pct);
 int       HISTOfindValley(HISTOGRAM *h, int wsize, int b0, int b1) ;
 int       HISTOfindNextValley(HISTOGRAM *h, int b0) ;
+int       HISTOfindEndOfPeak(HISTOGRAM *h, int b0, float pct_peak) ;
 int       HISTOfindLastPeakInRegion(HISTOGRAM *h, int wsize, float min_pct, 
                                     int b0, int b1) ;
 int       HISTOcountPeaksInRegion(HISTOGRAM *h, int wsize, float min_pct, 
