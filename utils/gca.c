@@ -2,9 +2,9 @@
 // originally written by Bruce Fischl
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2004/05/27 14:42:59 $
-// Revision       : $Revision: 1.139 $
+// Revision Author: $Author: tosa $
+// Revision Date  : $Date: 2004/05/27 16:21:12 $
+// Revision       : $Revision: 1.140 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1508,6 +1508,12 @@ GCAwrite(GCA *gca, char *fname)
     strcpy(command, "gzip -f -c > ");
     strcat(command, fname);
     fp = popen(command, "w");
+    if (errno)
+    {
+      pclose(fp);
+      errno = 0;
+      ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM,"GCAwrite(%s): gzip encountered error", fname)) ;
+    }
   }
   else
   {
