@@ -375,8 +375,8 @@ clusterComputeStatistics(CLUSTER *cluster)
     cluster->det = MatrixDeterminant(cluster->m_scatter) ;
     if (FZERO(cluster->det*100.0f))
       ErrorReturn(ERROR_BADPARM, 
-                  (ERROR_BADPARM, "clusterComputeStatistics: cluster %d "
-                   "singular scatter matrix", cluster->cno)) ;
+                  (ERROR_BADPARM, "clusterComputeStatistics: cluster %d: "
+                   "scatter matrix is singular", cluster->cno)) ;
     cluster->m_inverse = MatrixInverse(cluster->m_scatter, cluster->m_inverse);
     cluster->det = MatrixDeterminant(cluster->m_inverse) ;
     if (FZERO(cluster->det*100.0f))
