@@ -2,14 +2,15 @@
 % for use with the time-domain reconstruction method. The
 % reconstruction matrix is not computed here.
 %
-% $Id: tdr_fidmat.m,v 1.2 2003/09/25 02:12:39 greve Exp $
+% $Id: tdr_fidmat.m,v 1.3 2003/10/20 22:17:30 greve Exp $
 
 addpath /homes/4/greve/sg2/dale-matlab/utils; % for smoother
 
 if(0)
 
 fiddirlist = '';
-fiddirlist = strvcat(fiddirlist,'/space/greve/2/users/greve/fb-104.2/rawk/fid2/mgh');
+fiddirlist = strvcat(fiddirlist,...
+     '/space/greve/2/users/greve/fb-104.2/rawk/fid2/mgh');
 
 fidfwhm = 0; % smoothing for fid
 
@@ -48,6 +49,11 @@ tic;
 fidechospacing_odd = 2*fidechospacing;
 nfidechoes_odd = length([1:2:nfidechoes]);
 
+% Times at which the odd fid echoes were aquired %
+tfid = (fidecho1ped + fidechospacing_odd*[0:nfidechoes_odd-1]');
+tfid = tfid/1000; % convert to ms
+nT2sFit = 5; % number of echoes to use to fit the T2s
+
 % Compute the Ideal col and row DFT reconstruction matrices
 Fcol = fast_dftmtx(nrows);
 Rcol = inv(Fcol);
@@ -57,12 +63,21 @@ Rrow = transpose(inv(Frow));
 nTEs = length(TEList);
 nFIDMaps = size(fiddirlist,1);
 
-D = zeros(nrows,nrows,ncols,nslices,nTEs);
-D0 = zeros(nrows,ncols,nslices);
+D   = zeros(nrows,nrows,ncols,nslices,nTEs);
+D0  = zeros(nrows,ncols,nslices);
+T2s = zeros(nrows,ncols,nslices);
+B0  = zeros(nrows,ncols,nslices);
+epiref_undist = zeros(nrows,ncols,nslices,nTEs);
 
-for sliceno = 1:nslices
-  fprintf('sliceno = %d (%g) ----------------\n',sliceno,toc);
-  fid = zeros(nrows,ncols,nfidechoes_odd);
+sliceorder = [1:2:nslices 2:2:nslices];
+for acqsliceno = 1:nslices
+  %sliceno = sliceorder(acqsliceno); 
+  sliceno = acqsliceno;
+  fprintf('acq = %d, sliceno = %d (%g) ----------------\n',...
+	  acqsliceno,sliceno,toc);
+
+  fid  = zeros(nrows,ncols,nfidechoes_odd);
+  kfid = zeros(nrows,ncols,nfidechoes_odd);
 
   %----------------------------------------------------------------%
   % Load in all odd echos of the FID for the given slice %
@@ -77,28 +92,29 @@ for sliceno = 1:nslices
 
       % Load the real part of this FID echo 
       mghname = sprintf('%s/echo%03dr.mgh',fiddir,FIDEcho);
-      kfidrtmp = load_mgh(mghname,sliceno); 
+      kfidrtmp = load_mgh(mghname,acqsliceno); 
       if(isempty(kfidrtmp)) return; end
       kfidr = kfidr + kfidrtmp';% transpose for row major
     
       % Load the imagniary part of this FID echo 
       mghname = sprintf('%s/echo%03di.mgh',fiddir,FIDEcho);
-      kfiditmp = load_mgh(mghname,sliceno);
+      kfiditmp = load_mgh(mghname,acqsliceno);
       if(isempty(kfiditmp)) return; end
       kfidi = kfidi + kfiditmp'; % transpose for row major
     end
     
     % Compute the complex
-    kfid = (kfidr + i*kfidi)/nFIDMaps;
+    kfid_echo = (kfidr + i*kfidi)/nFIDMaps;
     
     % Recon the FID image
-    fidimg = Rcol * kfid * Rrow;
+    fidimg = Rcol * kfid_echo * Rrow;
 
     if(fidfwhm > 0)
       fidimg = smooth2d(fidimg,fidfwhm,fidfwhm);
     end
 
-    fid(:,:,nthFIDEcho) = fidimg;
+    fid(:,:,nthFIDEcho)  = fidimg;
+    kfid(:,:,nthFIDEcho) = kfid_echo;
     
     nthFIDEcho = nthFIDEcho + 1;
   end % finished loading all FID echoes
@@ -106,6 +122,12 @@ for sliceno = 1:nslices
   % Save the first echo separately
   D0(:,:,sliceno) = fid(:,:,1);
 
+  % Compute the T2* map
+  T2s(:,:,sliceno) = tdr_fidt2star(abs(fid),tfid,nT2sFit);
+  
+  % Compute the B0 map in radians/sec
+  B0(:,:,sliceno) = tdr_fidb0(fid,tfid/1000,nT2sFit);
+  
   %----------------------------------------------------------------%
   % Compute the Decay Map for each echo for this slice %
   nthTE = 1;
@@ -114,7 +136,8 @@ for sliceno = 1:nslices
 
     % Get the PED of each sample in the EPI
     perev = TEPERevList(nthTE);
-    pedmat = pedmatrix2(TE*1000,epiechospacing,delsamp,tDwell,nrows,ncols,perev);
+    pedmat = pedmatrix2(TE*1000,epiechospacing,delsamp,tDwell,...
+			nrows,ncols,perev);
 
     % Apply the same transforms as will be applied to the EPI kspace data
     % to make it match the first echo of the FID 
@@ -126,6 +149,19 @@ for sliceno = 1:nslices
     [indA, indB, wA, wB] = fidinterp(pedmat,fidecho1ped,...
 				     fidechospacing_odd,nfidechoes_odd);
   
+    % Simulate distorted and undistorted epis
+    kepiref_dist  = zeros(nrows,ncols);
+    for r = 1:nrows
+      for c = 1:ncols
+	nA = indA(r,c);
+	nB = indB(r,c);
+	kepiref_dist(r,c) = wA(r,c) * kfid(r,c,nA) + wB(r,c) * kfid(r,c,nB);
+	epiref_undist(r,c,sliceno,nthTE) = ...
+	    abs(wA(r,c) *  fid(r,c,nA) + wB(r,c) *  fid(r,c,nB));
+      end
+    end
+    epiref_dist(:,:,sliceno,nthTE) = abs(Rcol * kepiref_dist * Rrow);
+    
     % Compute the decay map for each column %
     for imgcol = 1:ncols
       Dcol  = zeros(nrows,nrows);
@@ -153,9 +189,12 @@ for n = 1:nTEs
   TE = TEList(n);
   perev = TEPERevList(n);
   DTE = D(:,:,:,:,n);
+  epirefdist = epiref_dist(:,:,:,n);
+  epirefundist = epiref_undist(:,:,:,n);
   save(outfile,'fiddirlist','fidecho1ped','fidechospacing','nfidechoes',...
      'fidfwhm','epiechospacing','delsamp','tDwell','TE','perev', ...
-     'DTE','D0');
+     'DTE','D0','T2s','B0','epirefdist','epirefundist','sliceorder');
+  clear DTE;
 end
 
 toc
