@@ -1,9 +1,9 @@
 #!/bin/csh -f
 # rocview
 #
-# $Id: rocview,v 1.6 2004/06/07 00:15:42 greve Exp $
+# $Id: rocview,v 1.7 2004/11/11 00:03:01 greve Exp $
 
-set VERSION = '$Id: rocview,v 1.6 2004/06/07 00:15:42 greve Exp $';
+set VERSION = '$Id: rocview,v 1.7 2004/11/11 00:03:01 greve Exp $';
 set inputargs = ($argv);
 
 set fprvolid = ();
@@ -96,8 +96,13 @@ fmtimg = $fmtimg;
 
 if(size(maskvolid,1)==1)
   fprintf('Loading %s\n',maskvolid);
-  if(fmtimg) maskvol = fast_ldanalyze(maskvolid);
-  else       maskvol = fmri_ldbvolume(maskvolid);
+  if(fmtimg==1) 
+    maskvol = fast_ldanalyze(maskvolid);
+  elseif(fmtimg==2) 
+    maskvol = MRIread(maskvolid);
+    maskvol = maskvol.vol;
+  else          
+    maskvol = fmri_ldbvolume(maskvolid);
   end
 
   maskvol = maskvol(:,:,:,1);
@@ -120,8 +125,13 @@ if(~isempty(fprvolid))
 
     nthfprvolid = deblank(fprvolid(nth,:));
     fprintf('Loading %s\n',nthfprvolid);
-    if(fmtimg) nthfprvol = fast_ldanalyze(nthfprvolid);
-    else       nthfprvol = fmri_ldbvolume(nthfprvolid);
+    if(fmtimg == 1) 
+      nthfprvol = fast_ldanalyze(nthfprvolid);
+    elseif(fmtimg == 2) 
+      nthfprvol = MRIread(nthfprvolid);
+      nthfprvol = nthfprvol.vol;
+    else       
+      nthfprvol = fmri_ldbvolume(nthfprvolid);
     end
 
     if(~isempty(frame)) nthfprvol = nthfprvol(:,:,:,frame+1); end
@@ -288,6 +298,10 @@ while( $#argv != 0 )
 
     case "-img":
       set fmtimg = 1;
+      breaksw
+
+    case "-mgh":
+      set fmtimg = 2;
       breaksw
 
     case "-deltap":
