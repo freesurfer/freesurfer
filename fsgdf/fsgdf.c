@@ -1,7 +1,7 @@
 /*
   fsgdf.c
   Utilities for reading freesurfer group descriptor file format 
-  $Id: fsgdf.c,v 1.4 2002/11/12 20:40:18 greve Exp $
+  $Id: fsgdf.c,v 1.5 2002/11/12 20:52:18 kteich Exp $
 
   See:   http://surfer.nmr.mgh.harvard.edu/docs/fsgdf.txt
 
@@ -101,6 +101,12 @@ int gdfPrint(FILE *fp, FSGD *gd)
     return(1);
   }
   return(r);
+}
+
+/*--------------------------------------------------*/
+int gdfPrintStdout(FSGD *gd)
+{
+  return gdfPrint(stdout,gd);
 }
 
 /*--------------------------------------------------*/
@@ -857,12 +863,14 @@ int gdfGetNthSubjectMeasurement(FSGD *gd, int nsubject,
     return(-1);
   if(nsubject < 0 || nsubject >= gd->ninputs)
     return(-1);
+#if 0
   if(x < gd->data->xstart || x > gd->data->xend ||
      y < gd->data->ystart || y > gd->data->yend ||
      z < gd->data->zstart || z > gd->data->zend ||
      nsubject < 0 || nsubject >= gd->data->nframes)
     return(-1);
-    
+#endif    
+
   switch( gd->data->type ) {
     case MRI_UCHAR:
       *value = MRIseq_vox(gd->data,x,y,z,nsubject);
