@@ -26,6 +26,7 @@
 #define FILTER_EXPONENTIAL   10
 #define FILTER_DIFFUSE_CURV  FILTER_DIFFUSE
 #define FILTER_DIFFUSE_GRAD  11
+#define FILTER_OFFSET_SCALE  12
 #define FILTER_OFFSET        0x0100
 
 IMAGE    *ImageNitShiFilter(IMAGE *Isrc, IMAGE *Ix, IMAGE *Iy, int wsize, 
