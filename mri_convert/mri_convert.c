@@ -3,9 +3,9 @@
 // original: written by Bruce Fischl (Apr 16, 1997)
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/02/09 21:00:13 $
-// Revision       : $Revision: 1.83 $
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2004/02/09 21:45:55 $
+// Revision       : $Revision: 1.84 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -130,6 +130,7 @@ int main(int argc, char *argv[])
   int DevXFM = 0;
   char devxfm_subject[STRLEN];
   MATRIX *T;
+	float scale_factor ;
 
   for(i=0;i<argc;i++) printf("%s ",argv[i]);
   printf("\n");
@@ -171,6 +172,7 @@ int main(int argc, char *argv[])
   }
 
   /* ----- initialize values ----- */
+	scale_factor = 1 ;
   in_name[0] = '\0';
   out_name[0] = '\0';
   invert_val = -1.0;
@@ -217,7 +219,7 @@ int main(int argc, char *argv[])
   nskip = 0;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_convert.c,v 1.83 2004/02/09 21:00:13 tosa Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_convert.c,v 1.84 2004/02/09 21:45:55 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -514,6 +516,11 @@ int main(int argc, char *argv[])
         usage_message(stdout);
         exit(1);
       }
+    }
+    else if(strcmp(argv[i], "-sc") == 0 || strcmp(argv[i], "--scale") == 0)
+    {
+			scale_factor = atof(argv[i+1]) ;
+			i++ ;
     }
     else if(strcmp(argv[i], "-rt") == 0 || strcmp(argv[i], "--resample_type") == 0)
     {
@@ -1146,6 +1153,12 @@ int main(int argc, char *argv[])
     if(in_like_flag) MRIfree(&mri_in_like);
     exit(1);
   }
+
+	if (!FEQUAL(scale_factor,1.0))
+	{
+		printf("scaling input volume by %2.3f\n", scale_factor) ;
+		MRIscalarMul(mri, mri, scale_factor) ;
+	}
 
   if(zero_ge_z_offset_flag) //E/
     mri->c_s = 0.0;
@@ -1992,6 +2005,7 @@ void usage(FILE *stream)
   printf("  -rl, --reslice_like\n");
   printf("  -tt, --template_type <type> (see above)\n");
   printf("  -f,  --frame\n");
+	printf("  -sc, --scale <scale factor>\n") ;
   printf("  -il, --in_like\n");
   printf("  -roi\n");
   printf("  -fp, --fill_parcellation\n");
