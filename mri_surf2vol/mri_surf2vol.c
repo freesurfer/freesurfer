@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: converts values on a surface to a volume
-  $Id: mri_surf2vol.c,v 1.5 2003/04/16 17:58:06 kteich Exp $
+  $Id: mri_surf2vol.c,v 1.6 2003/05/15 21:11:23 greve Exp $
 */
 
 #include <stdio.h>
@@ -42,7 +42,7 @@ static int istringnmatch(char *str1, char *str2, int n);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surf2vol.c,v 1.5 2003/04/16 17:58:06 kteich Exp $";
+static char vcid[] = "$Id: mri_surf2vol.c,v 1.6 2003/05/15 21:11:23 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -91,22 +91,22 @@ int mksurfmask = 0;
 int main(int argc, char **argv)
 {
   float ipr, bpr, intensity;
-  int float2int, err, vtx;
+  int float2int, err, vtx, nhits;
   char fname[2000];
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_surf2vol.c,v 1.5 2003/04/16 17:58:06 kteich Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_surf2vol.c,v 1.6 2003/05/15 21:11:23 greve Exp $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
-
+  
   Progname = argv[0] ;
   argc --;
   argv++;
   ErrorInit(NULL, NULL, NULL) ;
   DiagInit(NULL, NULL, NULL) ;
-
+  
   if(argc == 0) usage_exit();
 
   parse_commandline(argc, argv);
@@ -171,30 +171,30 @@ int main(int argc, char **argv)
       MRISreadValues(SrcSurf,surfvalpath);
       SurfVal = MRIallocSequence(SrcSurf->nvertices, 1, 1,MRI_FLOAT,1);
       for(vtx = 0; vtx < SrcSurf->nvertices; vtx ++){
-  MRIFseq_vox(SurfVal,vtx,0,0,0) = SrcSurf->vertices[vtx].val;
+	MRIFseq_vox(SurfVal,vtx,0,0,0) = SrcSurf->vertices[vtx].val;
       }
     }
     else { 
       printf("INFO: reading  %s as %s\n",surfvalpath,surfvalfmt);
       SurfVal =  MRIreadType(surfvalpath,surfvalfmtid);
       if(SurfVal == NULL){
-  printf("ERROR: could not read %s as %s\n",surfvalpath,surfvalfmt);
-  exit(1);
+	printf("ERROR: could not read %s as %s\n",surfvalpath,surfvalfmt);
+	exit(1);
       }
       if(SurfVal->height != 1 || SurfVal->depth != 1){
-  reshapefactor = SurfVal->height * SurfVal->depth;
-  printf("INFO: Reshaping %f\n",reshapefactor);
-  mritmp = mri_reshape(SurfVal, reshapefactor*SurfVal->width, 
-           1, 1, SurfVal->nframes);
-  MRIfree(&SurfVal);
-  SurfVal = mritmp;
+	reshapefactor = SurfVal->height * SurfVal->depth;
+	printf("INFO: Reshaping %f\n",reshapefactor);
+	mritmp = mri_reshape(SurfVal, reshapefactor*SurfVal->width, 
+			     1, 1, SurfVal->nframes);
+	MRIfree(&SurfVal);
+	SurfVal = mritmp;
       }
       if(SurfVal->width != SrcSurf->nvertices){
-  fprintf(stderr,"ERROR: dimesion inconsitency in source data\n");
-  fprintf(stderr,"       Number of surface vertices = %d\n",
-    SrcSurf->nvertices);
-  fprintf(stderr,"      Number of value vertices = %d\n",SurfVal->width);
-  exit(1);
+	fprintf(stderr,"ERROR: dimesion inconsitency in source data\n");
+	fprintf(stderr,"       Number of surface vertices = %d\n",
+		SrcSurf->nvertices);
+	fprintf(stderr,"      Number of value vertices = %d\n",SurfVal->width);
+	exit(1);
       }
     }
     
@@ -227,9 +227,12 @@ int main(int argc, char **argv)
     printf("ERROR: could not map vertices to voxels\n");
     exit(1);
   }
-
+  
   printf("INFO: resampling surface to volume\n");  
-  MRIsurf2Vol(SurfVal, OutVol, VtxVol);
+  nhits = MRIsurf2Vol(SurfVal, OutVol, VtxVol);
+  printf("INFO: sampled %d voxels in the volume\n",nhits);
+
+  /* count the number of hits */
 
   //if(mksurfmask){ // This may not be necessary 
   //  printf("INFO: binarizing output volume\n");  
