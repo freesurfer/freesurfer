@@ -13,7 +13,7 @@
 #include "mri.h"
 #include "region.h"
 
-static char vcid[] = "$Id: mri_nlfilter.c,v 1.5 1997/07/21 18:58:05 fischl Exp $";
+static char vcid[] = "$Id: mri_nlfilter.c,v 1.6 1997/10/16 20:01:55 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
@@ -41,12 +41,18 @@ static MRI *mri_gaussian ;
 
 #define REGION_SIZE   16
 
+#if 0
+#undef DIAG_VERBOSE_ON
+#define DIAG_VERBOSE_ON   1
+#endif
+
 static int region_size = REGION_SIZE ;
 int
 main(int argc, char *argv[])
 {
   char   **av ;
-  int    ac, nargs, width, height, depth, x, y, z, xborder, yborder, zborder ;
+  int    ac, nargs, width, height, depth, x, y, z, xborder, yborder, zborder,
+         xrborder, yrborder, zrborder ;
   char   *in_fname, *out_fname ;
   MRI    *mri_smooth, *mri_grad, *mri_filter_src, *mri_filter_dst, *mri_dst,
          *mri_tmp, *mri_blur, *mri_src, *mri_filtered, *mri_direction,
@@ -104,14 +110,27 @@ main(int argc, char *argv[])
       {
         region.x = x ; region.y = y ; region.z = z ;
         region.dx = region.dy = region.dz = region_size ;
+        if (region.x == 142)
+          DiagBreak() ;
         REGIONexpand(&region, &region, (filter_window_size+1)/2) ;
         MRIclipRegion(mri_src, &region, &region) ;
+        if (region.x == 142)
+          DiagBreak() ;
+
+        /* check for < 0 width regions */
+        xborder = x-region.x ; yborder = y-region.y ; zborder = z-region.z ;
+        xrborder = MAX(0, (region.dx-xborder) - region_size) ;
+        yrborder = MAX(0, (region.dy-yborder) - region_size) ;
+        zrborder = MAX(0, (region.dz-zborder) - region_size) ;
+#if 0
+        if (region.dx < 2*xborder || region.dy<2*yborder||region.dz<2*zborder)
+          continue ;
+#endif
 
         if (DIAG_VERBOSE_ON && (Gdiag & DIAG_SHOW))
           fprintf(stderr, "extracting region (%d, %d, %d) --> (%d, %d, %d)...",
                   region.x,region.y,region.z, region.x+region.dx-1,
                   region.y+region.dy-1,region.z+region.dz-1) ;
-        xborder = x-region.x ; yborder = y-region.y ; zborder = z-region.z ;
         mri_clip = MRIextractRegion(mri_src, NULL, &region) ;
         if (DIAG_VERBOSE_ON && (Gdiag & DIAG_SHOW))
           fprintf(stderr, "done.\nsmoothing region and up-sampling...") ;
@@ -205,6 +224,8 @@ main(int argc, char *argv[])
                     "%s: could not allocate filtered image", Progname) ;
         if (DIAG_VERBOSE_ON && (Gdiag & DIAG_SHOW))
           fprintf(stderr, "done.\n") ;
+        if (region.x == 142)
+          DiagBreak() ;
         MRIfree(&mri_offset) ;
         MRIfree(&mri_filter_dst) ;
         if (Gdiag & DIAG_WRITE)
@@ -214,8 +235,21 @@ main(int argc, char *argv[])
         if (Gdiag & DIAG_WRITE)
           MRIwrite(mri_tmp, "downfilt.mnc") ;
         region.x += xborder ; region.y += yborder ; region.z += zborder ;
+#if 0
         region.dx -=2*xborder; region.dy-= 2*yborder; region.dz -= 2 * zborder;
-        MRIextractIntoRegion(mri_tmp,mri_dst,xborder,yborder,zborder,&region);
+#else
+        region.dx -= xrborder + xborder; 
+        region.dy -= yrborder + yborder; 
+        region.dz -= zrborder + zborder;
+#endif
+        if (region.dx <= 0 || region.dy <= 0 || region.dz <= 0)
+        {
+          fprintf(stderr, "invalid region: (%d,%d,%d) --> (%d,%d,%d)\n",
+                  region.x,region.y,region.z,region.dx,region.dy,region.dz);
+        }
+        else
+          MRIextractIntoRegion(mri_tmp,mri_dst,xborder,yborder,zborder,
+                               &region);
         MRIfree(&mri_tmp); 
       }
     }
