@@ -21541,6 +21541,10 @@ MRISwriteTriangularSurface(MRI_SURFACE *mris, char *fname)
     for (n = 0 ; n < VERTICES_PER_FACE ; n++)
       fwriteInt(mris->faces[k].v[n],fp);
   }
+  /* write whether vertex data was using the real RAS rather than conformed RAS */
+  fwriteInt(TAG_USEREALRAS, fp);
+  fwriteInt(mris->useRealRAS, fp);
+
   fclose(fp);
   return(NO_ERROR) ;
 }
@@ -21612,7 +21616,6 @@ mrisReadTriangleFileVertexPositionsOnly(char *fname)
       ErrorExit(ERROR_BADFILE, "%s: vertex %d z coordinate %f!",
                 Progname, vno, v->z) ;
   }
-  
   fclose(fp);
   return(mriss) ;
 }
@@ -21679,6 +21682,7 @@ mrisReadTriangleFile(char *fname, double pct_over)
   char        line[STRLEN] ;
   FILE        *fp ;
   MRI_SURFACE *mris ;
+  int         tag;
 
   fp = fopen(fname, "rb") ;
   if (!fp)
@@ -21735,6 +21739,18 @@ mrisReadTriangleFile(char *fname, double pct_over)
     
     for (n = 0 ; n < VERTICES_PER_FACE ; n++)
       mris->vertices[mris->faces[fno].v[n]].num++;
+  }
+  // new addition
+  if (freadIntEx(&tag, fp))
+  {
+    if (tag == TAG_USEREALRAS)
+      if (!freadIntEx(&mris->useRealRAS,fp)) // set useRealRAS
+	mris->useRealRAS = 0; // if error, set to default
+  }
+  else // no tag found.
+  {
+    // mark vertex coordinates are using the conformed (256^3) and c_(r,a,s) = 0.
+    mris->useRealRAS = 0;
   }
   fclose(fp);
   return(mris) ;
