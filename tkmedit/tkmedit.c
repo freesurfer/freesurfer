@@ -4,9 +4,9 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2003/06/12 20:16:11 $
-// Revision       : $Revision: 1.160 $
-char *VERSION = "$Revision: 1.160 $";
+// Revision Date  : $Date: 2003/06/13 14:39:29 $
+// Revision       : $Revision: 1.161 $
+char *VERSION = "$Revision: 1.161 $";
 
 #define TCL
 #define TKMEDIT 
@@ -1042,7 +1042,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
      shorten our argc and argv count. If those are the only args we
      had, exit. */
   /* rkt: check for and handle version tag */
-  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.160 2003/06/12 20:16:11 kteich Exp $");
+  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.161 2003/06/13 14:39:29 kteich Exp $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
   argc -= nNumProcessedVersionArgs;
@@ -6563,14 +6563,6 @@ tkm_tErr FloodSelect ( xVoxelRef         iSeedAnaIdx,
 
   /* Do it! */
   eVolume = Volm_Flood( sourceVolume, &params );
-  if( Volm_tErr_FloodMaxIterationCountReached == eVolume ) {
-    strcpy( sTclArguments, 
-	    "\"The area you tried to select was too large, and tkmedit "
-	    "couldn't select all of it. Try clicking near the edge of "
-	    "the region it selected to continue with another "
-	    "flood selection. \"" );
-    tkm_SendTclCommand( tkm_tTclCommand_ErrorDlog, sTclArguments );
-  }
 
   /* If we selected more than 1000 voxels, we printed a message and
      started printing update dots. Now close off the message. */
@@ -9500,14 +9492,6 @@ tkm_tErr FloodFillSegmentation ( tkm_tSegType    iVolume,
 
   /* Do it! */
   eVolume = Volm_Flood( sourceVolume, &params );
-  if( Volm_tErr_FloodMaxIterationCountReached == eVolume ) {
-    strcpy( sTclArguments, 
-	    "\"The area you tried to filled was too large, and tkmedit "
-	    "couldn't select all of it. Try clicking near the edge of "
-	    "the region it filled to continue with another "
-	    "flood fill. \"" );
-    tkm_SendTclCommand( tkm_tTclCommand_ErrorDlog, sTclArguments );
-  }
   
   /* If we selected more than 1000 voxels, we printed a message and
      started printing update dots. Now close off the message. */
