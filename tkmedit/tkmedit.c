@@ -399,6 +399,9 @@ void RecomputeSegmentation(mriVolumeRef inVol,
 			   mriVolumeRef inSegVol, mriVolumeRef inSegChanged, 
 			   mriVolumeRef outVol) ;
 
+tkm_tErr NewSegmentationVolume ( tkm_tVolumeType iFromVolume,
+				 char*           inColorFileName );
+
 tkm_tErr LoadSegmentationVolume ( char* inVolumeDirWithPrefix,
 				  char* inColorFileName );
 void SaveSegmentationVolume ( char* inVolumeDirWithPrefix );
@@ -3706,6 +3709,24 @@ int TclAverageSurfaceVertexPositions ( ClientData inClientData,
 }
 
 
+int TclNewSegmentationVolume ( ClientData inClientData, 
+			       Tcl_Interp* inInterp,
+			       int argc, char* argv[] ) {
+  
+  if ( argc != 3 ) {
+    Tcl_SetResult ( inInterp,
+		    "wrong # args: NewSegmentationVolume [0=main|1=aux] color_file:string",
+		    TCL_VOLATILE );
+    return TCL_ERROR;
+  }
+  
+  if( gbAcceptingTclCommands ) {
+    NewSegmentationVolume ( atoi(argv[1]), argv[2] );
+  }  
+  
+  return TCL_OK;
+}
+
 int TclLoadSegmentationVolume ( ClientData inClientData, 
         Tcl_Interp* inInterp,
         int argc, char* argv[] ) {
@@ -4886,6 +4907,9 @@ int main ( int argc, char** argv ) {
 		      TclAverageSurfaceVertexPositions,
 		      (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
   
+  Tcl_CreateCommand ( interp, "NewSegmentationVolume",
+		      TclNewSegmentationVolume,
+		      (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
   Tcl_CreateCommand ( interp, "LoadSegmentationVolume",
           TclLoadSegmentationVolume,
           (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
@@ -7210,6 +7234,98 @@ void ScaleOverlayRegisgtration ( float ifFactor,
 
 
 // ================================================= SEGMENTATION and ROI GROUP
+
+tkm_tErr NewSegmentationVolume ( tkm_tVolumeType iFromVolume,
+				 char*           isColorFileName ) {
+  
+  tkm_tErr     eResult                      = tkm_tErr_NoErr;
+  mriVolumeRef newVolume                    = NULL;
+  mriVolumeRef newChangedVolume             = NULL;
+  Volm_tErr    eVolume                      = Volm_tErr_NoErr;
+  char         sError[tkm_knErrStringLen]   = "";
+
+  DebugEnterFunction( ("LoadSegmentationVolume( iFromVolume=%d, "
+		       "isColorFileName=%s )", (int)iFromVolume,
+		       isColorFileName) );
+  
+  DebugAssertThrowX( (NULL != isColorFileName),
+         eResult, tkm_tErr_InvalidParameter );
+  
+
+  /* Create the new volume from the existing anatomical. */
+  DebugNote( ("Creating new segmentation volume") );
+  eVolume = Volm_New( &newVolume );
+  DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
+		     eResult, tkm_tErr_ErrorAccessingSegmentationVolume );
+  eVolume = Volm_CreateFromVolume( newVolume, gAnatomicalVolume[iFromVolume] );
+  DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
+		     eResult, tkm_tErr_ErrorAccessingSegmentationVolume );
+
+
+  /* Try to load the color table. */
+  DebugNote( ("Loading color table.") );
+  eResult = LoadSegmentationColorTable( isColorFileName );
+  DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
+		     eResult, tkm_tErr_ErrorAccessingSegmentationVolume );
+
+  
+  /* allocate flag volume from the new segmentation volume. */
+  DebugNote( ("Creating segmentation flag volume") );
+  eVolume = Volm_New( &newChangedVolume );
+  DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
+		     eResult, tkm_tErr_ErrorAccessingSegmentationVolume );
+  eVolume = Volm_CreateFromVolume( newChangedVolume, newVolume );
+  DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
+		     eResult, tkm_tErr_CouldntLoadSegmentation );
+
+
+  /* free existing segmentation if present. */
+  if( NULL != gSegmentationVolume ) {
+    DebugNote( ("Deleting existing roi group") );
+    eVolume = Volm_Delete( &gSegmentationVolume );
+    DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
+           eResult, tkm_tErr_ErrorAccessingSegmentationVolume );
+    
+    DebugNote( ("Deleting existing flag volume") );
+    eVolume = Volm_Delete( &gSegmentationChangedVolume );
+    DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
+           eResult, tkm_tErr_ErrorAccessingSegmentationVolume );
+  }
+  
+
+  /* Save these volumes. */
+  gSegmentationVolume        = newVolume;
+  gSegmentationChangedVolume = newChangedVolume;
+
+  /* enable our segmentation options */
+  DebugNote( ("Enabling segmentation options in interface") );
+  tkm_SendTclCommand( tkm_tTclCommand_ShowSegmentationOptions, "1" );
+  
+  /* set segmentation volume in window */
+  if( gMeditWindow ) {
+    DebugNote( ("Setting roi group in main window") );
+    MWin_SetROIGroup( gMeditWindow, -1, gSegmentationVolume );
+  }
+  
+  DebugCatch;
+  DebugCatchError( eResult, tkm_tErr_NoErr || tkm_tErr_CouldntLoadColorTable,
+		   tkm_GetErrorString );
+  
+  if( eResult != tkm_tErr_CouldntLoadColorTable ) {
+    xUtil_snprintf( sError, sizeof(sError),
+		    "Creating Segmentation" );
+    tkm_DisplayError( sError,
+		      tkm_GetErrorString(eResult),
+		      "Tkmedit couldn't create a segmentation." );
+
+  }
+
+  EndDebugCatch;
+  
+  DebugExitFunction;
+  
+  return eResult;
+}
 
 tkm_tErr LoadSegmentationVolume ( char* isVolumeDirWithPrefix,
           char* isColorFileName ) {
