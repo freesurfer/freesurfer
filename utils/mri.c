@@ -9,9 +9,9 @@
 */
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2003/01/14 18:41:33 $
-// Revision       : $Revision: 1.204 $
-char *MRI_C_VERSION = "$Revision: 1.204 $";
+// Revision Date  : $Date: 2003/01/14 19:02:34 $
+// Revision       : $Revision: 1.205 $
+char *MRI_C_VERSION = "$Revision: 1.205 $";
 
 /*-----------------------------------------------------
                     INCLUDE FILES
@@ -1976,16 +1976,16 @@ MRIinitHeader(MRI *mri)
   mri->imnr0 = 1 ;
   mri->imnr1 = mri->depth ;
   mri->fov = mri->width ;
-  mri->thick = 1 ;
-  mri->xsize = 1 ;
-  mri->ysize = 1 ;
-  mri->zsize = 1 ;
+  mri->thick = 1.0 ;
+  mri->xsize = 1.0 ;
+  mri->ysize = 1.0 ;
+  mri->zsize = 1.0 ;
   mri->ps = 1 ;
-  mri->xstart = -mri->width/2 ;
-  mri->xend = mri->width/2 ;
-  mri->ystart = -mri->height/2 ;
-  mri->yend = mri->height/2 ;
-  mri->zstart = -mri->depth/2 ;
+  mri->xstart = -mri->width/2.0 ;
+  mri->xend = mri->width/2.0 ;
+  mri->ystart = -mri->height/2.0 ;
+  mri->yend = mri->height/2.0 ;
+  mri->zstart = -mri->depth/2.0 ;
   mri->zend = mri->depth/2 ;
   mri->x_r = mri->x_a = mri->x_s = 0.0;
   mri->y_r = mri->y_a = mri->y_s = 0.0;
