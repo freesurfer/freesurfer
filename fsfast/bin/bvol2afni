@@ -1,0 +1,196 @@
+#!/bin/csh -f
+
+set VERSION = '$Id: bvol2afni,v 1.1 2004/02/13 21:30:42 greve Exp $'
+
+if($#argv == 0) goto usage_exit;
+
+set n = `echo $argv | grep version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+
+# in-plane resolution in mm
+set firstplane = ();    # First Frame (0-based)
+set nplanes = ();       # Number of Frames past first
+set cleanup = 1;
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+set afnidir = `dirname $afnistem`
+mkdir -p $afnidir
+
+set hdr0 = $bstem"_000.hdr"
+if(! -e $hdr0) then
+  echo "ERROR: cannot find $hdr0"
+  exit 1;
+endif
+
+set tmp = `cat $hdr0`;
+set nrows = $tmp[1];             # x: fastest       MGH-NMR:(R to L)
+set ncols = $tmp[2];             # y: next-fasted   MGH-NMR:(S to I)
+set nfrms = $tmp[3];             # t: next-next-fasted      
+set nslcs = `getnslices $bstem`; # z: slowest       MGH-NMR:(P to A)
+set endian = $tmp[4];              
+
+# Extract the right number of frames, if necessary
+set tmpdir = ();
+if($#firstplane != 0 || $#nplanes != 0) then
+  if($#firstplane == 0) set firstplane = 0;
+  if($#nplanes == 0)    @ nplanes = $nfrms - $firstplane;
+  set tmpdir = $afnidir/tmp-$$
+  bfileconvert -i $bstem -fp $firstplane -np $nplanes -o $tmpdir/tmp
+  if($status) exit 1;
+  set bstem = $tmpdir/tmp
+endif
+
+set bext = `getbext $bstem`; # bshort or bfloat
+set b0 = $bstem"_000."$bext
+
+# Convert to analyze first #
+set imgstem = $afnidir/f
+set imgfile = $imgstem.img
+set imghdr = $imgstem.hdr
+set imgmat = $imgstem.mat
+#set args = (-iid -1 0 0 -ijd 0 -1 0 -ikd 0 0 -1 )
+set MRIC = mri_convert
+set cmd = ($MRIC $b0 $imgfile -ot analyze4d)
+echo "-------------------------------"
+pwd
+echo $cmd
+$cmd
+if($status) exit 1;
+echo "-------------------------------"
+
+#mv $imgmat $imgmat.bak
+
+# Convert to afni
+rm -f $afnistem+orig.BRIK
+rm -f $afnistem+orig.HEAD
+set afnistemstem = `basename $afnistem`;
+set TO3D = /usr/pubsw/packages/AFNI/current/bin/to3d
+set cmd = ($TO3D -session $afnidir -prefix $afnistemstem $imghdr)
+echo "-------------------------------"
+pwd
+echo $cmd
+$cmd
+if($status) exit 1;
+echo "-------------------------------"
+
+# Delete intermediate analyze files
+#rm -f $imgfile $imghdr $imgmat
+
+if($#tmpdir) then
+  #echo "Deleting tmp dir $tmpdir"
+  rm -r $tmpdir
+endif
+
+
+exit 0;
+#-------------------------------------------------------------#
+
+parse_args:
+set cmdline = "$argv";
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-i":
+      if ( $#argv == 0) goto arg1err;
+      set bstem = $argv[1]; shift;
+      breaksw
+
+    case "-o":
+      if ( $#argv == 0) goto arg1err;
+      set afnistem = $argv[1]; shift;
+      breaksw
+
+    case "-fp":
+      if ( $#argv == 0) goto arg1err;
+      set firstplane = $argv[1]; shift;
+      breaksw
+
+    case "-np":
+      if ( $#argv == 0) goto arg1err;
+      set nplanes = $argv[1]; shift;
+      breaksw
+
+    case "-umask":
+      if ( $#argv == 0) goto arg1err;
+      umask $argv[1]; shift;
+      breaksw
+
+    case "-verbose":
+      set verbose ;
+      breaksw
+
+    case "-echo":
+      set echo = 1;
+      breaksw
+
+    case "-debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+
+############--------------##################
+check_params:
+
+  set errs = 0;
+
+  if($#bstem == 0) then
+    echo "ERROR: no input stem specified"
+    set errs = 1;
+  endif
+
+  if($#afnistem == 0) then
+    echo "ERROR: no output stem specified"
+    set errs = 1;
+  endif
+
+  if($errs) then
+    echo "ERRORS detected ... aborting"
+    exit 1;
+  endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo "USAGE: bvol2afni"
+  echo "Options:";
+  echo "   -i bfilestem    : input  volume "
+  echo "   -o afnistem     : output volume "
+  echo "   -fp firstframe "
+  echo "   -np nframes "
+  echo "   -version : print version and exit"
+exit 1;
+
+
