@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/12/08 20:11:33 $
-// Revision       : $Revision: 1.313 $
+// Revision Date  : $Date: 2004/12/10 21:41:27 $
+// Revision       : $Revision: 1.314 $
 //////////////////////////////////////////////////////////////////
 #include <stdio.h>
 #include <string.h>
@@ -3639,6 +3639,7 @@ MRISclone(MRI_SURFACE *mris_src)
 
   mris_dst = MRISalloc(mris_src->nvertices, mris_src->nfaces) ;
 
+  mris_dst->type = mris_src->type;  // missing
   mris_dst->hemisphere = mris_src->hemisphere ;
   mris_dst->xctr = mris_src->xctr ;
   mris_dst->yctr = mris_src->yctr ;
