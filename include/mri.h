@@ -692,7 +692,7 @@ MRI *MRIreadRaw(FILE *fp, int width, int height, int depth, int type);
 MRI *MRIreorder(MRI *mri_src, MRI *mri_dst, int xdim, int ydim, int zdim);
 
 MATRIX *extract_i_to_r(MRI *mri);
-int *apply_i_to_r(MRI *mri, MATRIX *m);
+int apply_i_to_r(MRI *mri, MATRIX *m);
 
 int stuff_four_by_four(MATRIX *m, float m11, float m12, float m13, float m14, 
                                   float m21, float m22, float m23, float m24, 
