@@ -79,7 +79,7 @@ static void  xvInitColors(XV_FRAME *xvf) ;
 static void xvInitImages(XV_FRAME *xvf) ;
 static void xv_dimage_repaint(Canvas canvas, Xv_Window window, 
                                        Rectlist *repaint_area) ;
-static DIMAGE *xvGetDimage(int which, int alloc) ;
+static DIMAGE *xvGetDimage(XV_FRAME *xvf, int which, int alloc) ;
 static void xv_dimage_event_handler(Xv_Window window, Event *event) ;
 static XImage *xvCreateXimage(XV_FRAME *xvf, IMAGE *image) ;
 static Panel_setting xvHipsCommand(Panel_item item, Event *event) ;
@@ -358,7 +358,7 @@ XVbrighten(XV_FRAME *xvf, int which, int offset)
   DIMAGE        *dimage ;
 
   /* global is a hack, but too much trouble otherwise */
-  dimage = xvGetDimage(which, 0) ;
+  dimage = xvGetDimage(xvf, which, 0) ;
   if (!dimage)
     return(ERROR_BAD_PARM) ;
 
@@ -411,7 +411,7 @@ XVclearImage(XV_FRAME *xvf, int which, int dotitle)
 {
   DIMAGE    *dimage ;
 
-  dimage = xvGetDimage(which, 0) ;
+  dimage = xvGetDimage(xvf, which, 0) ;
   if (!dimage)
     return ;
   XClearArea(xvf->display, dimage->window, 0, 0, 0, 0, False) ;
@@ -429,7 +429,7 @@ XVrepaintImage(XV_FRAME *xvf, int which)
   DIMAGE    *dimage ;
   IMAGE *image ;
 
-  dimage = xvGetDimage(which, 0) ;
+  dimage = xvGetDimage(xvf, which, 0) ;
   if (!dimage || dimage->entered)
     return ;
   dimage->entered = 1 ;
@@ -454,10 +454,10 @@ XVshowImage(XV_FRAME *xvf, int which, IMAGE *image, int frame)
   int           i, rows, cols, srows, scols, c ;
   byte          lut[MAX_COLORS] ;
 
-if (debug_it)
-  ImageWrite(image, "i0.hipl") ;
+  if (!image)
+    return ;
 
-  dimage = xvGetDimage(which, 1) ;
+  dimage = xvGetDimage(xvf, which, 1) ;
   if (!dimage)
     return ;
   dimage->used = 1 ;
@@ -475,8 +475,6 @@ if (debug_it)
     dimage->sourceImage = image ;
     image = dimage->zoomImage ;
   }
-if (debug_it)
-  ImageWrite(dimage->zoomImage, "i1.hipl") ;
 
   scols = dimage->dispImage->cols ;
   srows = dimage->dispImage->rows ;
@@ -544,16 +542,8 @@ if (debug_it)
   else
     ImageRescale(GtmpFloatImage, GtmpScaledFloatImage, scale) ;
 
-if (debug_it)
-{
-  fprintf(stderr, "scale = %2.3f (%2.3f, %2.3f)\n", scale, xscale, yscale) ;
-  ImageWrite(GtmpScaledFloatImage, "i2.hipl") ;
-}
   ImageCopy(GtmpScaledFloatImage, GtmpByteImage) ; /* convert to bytes */
   h_invert(GtmpByteImage, dimage->dispImage) ;
-
-if (debug_it)
-  ImageWrite(GtmpByteImage, "i3.hipl") ;
 
   /* use current colormap */
   substtable = (unsigned long *) xv_get(xvf->cms,CMS_INDEX_TABLE);
@@ -607,7 +597,7 @@ xv_dimage_repaint(Canvas canvas, Xv_Window window, Rectlist *repaint_area)
            Description:
 ----------------------------------------------------------------------*/
 static DIMAGE *
-xvGetDimage(int which, int alloc)
+xvGetDimage(XV_FRAME *xvf, int which, int alloc)
 {
   DIMAGE *dimage ;
   int    row, col ;
@@ -641,10 +631,10 @@ xv_dimage_event_handler(Xv_Window xv_window, Event *event)
   double     val = 0.0 ;
   Window     window ;
   int        row, col, which = -1, rows, cols ;
-  DIMAGE     *dimage ;
-  char       *str, fmt[150], buf[100] ;
+  DIMAGE     *dimage, *dimage2 = NULL ;
+  char       fmt[150], buf[100], title[40] ;
   static int first = 1 ;
-  float      aspect = 1.0f ;
+  float      aspect = 1.0f, scale = 1.0f ;
 
   window = event_window(event) ;
 
@@ -694,6 +684,8 @@ xv_dimage_event_handler(Xv_Window xv_window, Event *event)
     case MS_RIGHT:
       if (event_is_up(event))
       {
+        dimage->dx1 = dimage->dy1 = dimage->dx = dimage->dy = 
+          dimage->x0 = dimage->y0 = dimage->x1 = dimage->y1 = 0 ;
         rows = xvf->display_rows ;
         cols = xvf->display_cols ;
         aspect = 
@@ -702,12 +694,10 @@ xv_dimage_event_handler(Xv_Window xv_window, Event *event)
           XVsetImageSize(xvf, which, rows, nint((float)rows / aspect)) ;
         else
           XVsetImageSize(xvf, which, nint((float)cols * aspect), cols) ;
-
-        dimage->dx1 = dimage->dy1 = dimage->dx = dimage->dy = 
-          dimage->x0 = dimage->y0 = dimage->x1 = dimage->y1 = 0 ;
-        XVshowImage(xvf, which, dimage->sourceImage, 0) ;
         if (dimage->sync)
           XVdoSync(xvf, which) ;
+        XVresize(xvf) ;
+        XVshowAllSyncedImages(xvf, which) ;
       }
       break ;
     case MS_LEFT:
@@ -740,15 +730,15 @@ xv_dimage_event_handler(Xv_Window xv_window, Event *event)
           rows = xvf->display_rows ;
           cols = xvf->display_cols ;
           aspect = (float)dimage->dy1 / (float)dimage->dx1 ;
+          dimage->dx = dimage->dx1 ;
+          dimage->dy = dimage->dy1 ;
+          if (dimage->sync)
+            XVdoSync(xvf, which) ;
           if (aspect > 1.0f)
             XVsetImageSize(xvf, which, rows, nint((float)rows / aspect)) ;
           else
             XVsetImageSize(xvf, which, nint((float)cols * aspect),cols) ;
-          dimage->dx = dimage->dx1 ;
-          dimage->dy = dimage->dy1 ;
-          XVshowImage(xvf, which, dimage->sourceImage, 0) ;
-          if (dimage->sync)
-            XVdoSync(xvf, which) ;
+          XVshowAllSyncedImages(xvf, which) ;
         }
           
         dimage->x1 = dimage->y1 = 0 ;  /* no longer drawing */
@@ -817,43 +807,37 @@ xv_dimage_event_handler(Xv_Window xv_window, Event *event)
       val = (double)*IMAGEseq_pix(dimage->sourceImage, x, y, dimage->frame) ;
       break ;
     }
-    for (str = dimage->title_string ; *str && isspace(*str) ; str++)
-    {}
     
+    sscanf(dimage->title_string, "%s", title) ; 
     sprintf(fmt, "%%10.10s: (%%3d, %%3d) --> %%2.%dlf\n", xvf->precision) ;
-
+    XVprintf(xvf, 0, fmt, title, x, y, val) ;
     if (dimage->sync)
     {
-      DIMAGE *odimage ;
-
       for (i = 0 ; i < xvf->rows*xvf->cols ; i++)
       {
-        odimage = xvGetDimage(i, 0) ;
-        if (odimage && (odimage->sync == dimage->sync))
+        dimage2 = xvGetDimage(xvf, i, 0) ;
+        if (dimage2 && (dimage2->sync == dimage->sync))
         {
-          switch (odimage->sourceImage->pixel_format)
+          sscanf(dimage2->title_string, "%s", title) ; 
+          switch (dimage2->sourceImage->pixel_format)
           {
           case PFDOUBLE:
-            val = *IMAGEDseq_pix(odimage->sourceImage, x, y, odimage->frame) ;
-            sprintf(buf, " (%d: %2.2f)", i, val) ;
+            sprintf(buf, "%2.2f", 
+                    *IMAGEDseq_pix(dimage2->sourceImage, x,y,dimage2->frame));
             break ;
           case PFFLOAT:
-            val = (double)*IMAGEFseq_pix(odimage->sourceImage, x, y, 
-                                         odimage->frame);
-            sprintf(buf, " (%d: %2.2f)", i, val) ;
+            sprintf(buf, "%2.2f",  
+                    *IMAGEFseq_pix(dimage2->sourceImage, x,y,dimage2->frame));
             break ;
           case PFBYTE:
-            val = (double)*IMAGEseq_pix(odimage->sourceImage, x, y, 
-                                        odimage->frame) ;
-            sprintf(buf, " (%d: %d)", i, (int)val) ;
+            sprintf(buf, "%d", (int)
+                    *IMAGEseq_pix(dimage2->sourceImage, x, y,dimage2->frame));
             break ;
           }
-          strcat(fmt, buf) ;
+          XVshowImageTitle(xvf, i, "%s (%s)", title, buf) ;
         }
       }
     }
-    XVprintf(xvf, 0, fmt, str, x, y, val) ;
-
 
     /* extract this location as center of new template */
     if (event_id(event) == LOC_DRAG || event_is_down(event))
@@ -867,6 +851,26 @@ xv_dimage_event_handler(Xv_Window xv_window, Event *event)
     {
       switch ((char)event->ie_code)
       {
+      case 'S':
+        fprintf(stderr, "syncing all\n") ;
+        XVsyncAll(xvf, which) ;
+        break ;
+      case 's':
+        fprintf(stderr, "unsyncing all\n") ;
+        XVunsyncAll(xvf, which) ;
+        break ;
+      case 'm':
+        scale = 0.9f ;
+      case 'M':
+        if (event->ie_code == 'M')
+          scale = 1.1f ;
+        rows = nint((float)dimage->dispImage->rows*scale) ;
+        cols = nint((float)dimage->dispImage->cols*scale) ;
+        XVsetImageSize(xvf, which, rows, cols) ;
+        if (rows > xvf->display_rows || cols > xvf->display_cols)
+          XVresize(xvf) ;
+        XVshowAllSyncedImages(xvf, which) ;
+        break;
       case '*':
         XVgamma(xvf, which, 0.02f) ;
         break ;
@@ -894,7 +898,7 @@ xv_dimage_event_handler(Xv_Window xv_window, Event *event)
     case 'D':
     case 'd':
       debug_it = 1 ;
-      XVshowImage(xvf, which, dimage->sourceImage, 0) ;
+      XVshowImage(xvf, which, dimage->sourceImage, dimage->frame) ;
       break ;
     }
   }
@@ -1027,7 +1031,7 @@ xvHipsCommand(Panel_item item, Event *event)
   strcpy(hips_cmd_str, (char *)xv_get(hips_cmd_panel_item, PANEL_VALUE)) ;
   xv_set(hips_cmd_frame, FRAME_CMD_PUSHPIN_IN, FALSE, XV_SHOW, FALSE, NULL) ;
 
-  dimage = xvGetDimage(hips_cmd_source, 0) ;
+  dimage = xvGetDimage(xvf, hips_cmd_source, 0) ;
   if (!dimage)
     return(0) ;
 #if 1
@@ -1049,7 +1053,7 @@ xvHipsCommand(Panel_item item, Event *event)
   if (strstr(hips_cmd_str, "in.hipl"))
   {
     ImageReadInto("in.hipl", dimage->sourceImage, 0) ;
-    XVshowImage(xvf, hips_cmd_source, dimage->sourceImage, 0) ;
+    XVshowImage(xvf, hips_cmd_source, dimage->sourceImage, dimage->frame) ;
   }
 
   XFlush(xvf->display); 
@@ -1114,7 +1118,7 @@ XVdrawPoint(XV_FRAME *xvf, int which, int x, int y, int color)
   float   xscale, yscale ;
   DIMAGE  *dimage ;
 
-  dimage = xvGetDimage(which, 0) ;
+  dimage = xvGetDimage(xvf, which, 0) ;
   if (!dimage)
     return ;
   
@@ -1179,7 +1183,7 @@ XVdrawBox(XV_FRAME *xvf, int which, int x, int y, int dx, int dy, int color)
   DIMAGE  *dimage ;
   float   xscale, yscale ;
 
-  dimage = xvGetDimage(which, 0) ;
+  dimage = xvGetDimage(xvf, which, 0) ;
   if (!dimage)
     return ;
   
@@ -1270,7 +1274,7 @@ XVdrawLine(XV_FRAME *xvf, int which, int x, int y, int dx, int dy, int color)
   DIMAGE  *dimage ;
   float   xscale, yscale ;
 
-  dimage = xvGetDimage(which, 0) ;
+  dimage = xvGetDimage(xvf, which, 0) ;
   if (!dimage)
     return ;
 
@@ -1334,7 +1338,7 @@ XVdrawArrow(XV_FRAME *xvf, int which, int x, int y,float dx,float dy,int color)
   DIMAGE  *dimage ;
   float   xscale, yscale, theta, theta0 ;
 
-  dimage = xvGetDimage(which, 0) ;
+  dimage = xvGetDimage(xvf, which, 0) ;
   if (!dimage)
     return ;
 
@@ -1481,31 +1485,60 @@ XVsetMessagePosition(XV_FRAME *xvf, int which, int col, int row)
 int
 XVsetImageSize(XV_FRAME *xvf, int which, int rows, int cols)
 {
-  DIMAGE    *dimage ;
+  DIMAGE    *dimage, *dimage2 = NULL ;
   char      title[100] ;
+  int       i, done = 0 ;
 
-  dimage = xvGetDimage(which, 1) ;
+  dimage = xvGetDimage(xvf, which, 1) ;
   if (!dimage || rows <= 0 || cols <= 0)
     return(-1) ;
 
-  xv_set(dimage->canvas, CANVAS_WIDTH, cols, CANVAS_HEIGHT, rows, NULL) ;
-  xv_set(dimage->canvas, XV_WIDTH, cols, XV_HEIGHT, rows, NULL) ;
+  i = which ;
+  do
+  {
+    xv_set(dimage->canvas, CANVAS_WIDTH, cols, CANVAS_HEIGHT, rows, NULL) ;
+    xv_set(dimage->canvas, XV_WIDTH, cols, XV_HEIGHT, rows, NULL) ;
+    
+    xv_set(canvas_paint_window(dimage->canvas),
+           WIN_EVENT_PROC, xv_dimage_event_handler, WIN_CONSUME_EVENTS,  
+           MS_LEFT, LOC_DRAG, MS_RIGHT, MS_MIDDLE, WIN_ASCII_EVENTS, 
+           WIN_META_EVENTS, WIN_LEFT_KEYS, WIN_RIGHT_KEYS,NULL, NULL);
+    dimage->window = 
+      (Window)xv_get(canvas_paint_window(dimage->canvas),XV_XID);
+    
+    ImageFree(&dimage->dispImage) ;
+    dimage->dispImage = ImageAlloc(rows, cols, PFBYTE, 1) ;
+    
+    /* should free the ximage and the canvas, but don't know how yet */
+    dimage->ximage = xvCreateXimage(xvf, dimage->dispImage) ;
+    sscanf(dimage->title_string, "%s", title) ; /* get rid of leading spaces */
+    XVshowImageTitle(xvf, i, title) ;
 
-  xv_set(canvas_paint_window(dimage->canvas),
-         WIN_EVENT_PROC, xv_dimage_event_handler,
-         WIN_CONSUME_EVENTS,  MS_LEFT, LOC_DRAG, MS_RIGHT, MS_MIDDLE, 
-         WIN_ASCII_EVENTS, WIN_META_EVENTS, WIN_LEFT_KEYS, WIN_RIGHT_KEYS,NULL,
-         NULL);
-  dimage->window = 
-    (Window)xv_get(canvas_paint_window(dimage->canvas),XV_XID);
+    if (dimage->sync)
+    {
+      if (i == which)    /* just did one passed in by caller */
+        i = -1 ;
 
-  ImageFree(&dimage->dispImage) ;
-  dimage->dispImage = ImageAlloc(rows, cols, PFBYTE, 1) ;
+      for (i++ ; i < xvf->rows*xvf->cols ; i++)
+      {
+        if (i == which)
+          continue ;
+        dimage2 = xvGetDimage(xvf, i, 0) ;
+        if (dimage2 &&  (dimage2->sync && dimage->sync))
+          break ;
+      }
+      if (i < xvf->rows*xvf->cols)
+      {
+        done = 0 ;
+        dimage = dimage2 ;
+      }
+      else
+        done = 1 ;
+    }
+    else
+      done = 1 ;
+  } while (!done) ;
 
-  /* should free the ximage and the canvas, but don't know how yet */
-  dimage->ximage = xvCreateXimage(xvf, dimage->dispImage) ;
-  sscanf(dimage->title_string, "%s", title) ; /* get rid of leading spaces */
-  XVshowImageTitle(xvf, which, title) ;
   return(0) ;
 }
 /*----------------------------------------------------------------------
@@ -1742,7 +1775,7 @@ XVgamma(XV_FRAME *xvf, int which, float beta)
   DIMAGE        *dimage ;
   double        dval ;
 
-  dimage = xvGetDimage(which, 0) ;
+  dimage = xvGetDimage(xvf, which, 0) ;
   if (!dimage)
     return(NO_ERROR) ;
 
@@ -1775,7 +1808,7 @@ XVzoom(XV_FRAME *xvf, int which, float zoom)
   float   max_dim ;
   DIMAGE  *dimage ;
 
-  dimage = xvGetDimage(which, 0) ;
+  dimage = xvGetDimage(xvf, which, 0) ;
   if (!dimage)
     return(NO_ERROR) ;
 
@@ -1789,7 +1822,7 @@ XVzoom(XV_FRAME *xvf, int which, float zoom)
 
 /*  fprintf(stderr, "zoom = %2.3f\n", dimage->zoom) ;*/
 
-  XVshowImage(xvf, which, dimage->sourceImage, 0) ;
+  XVshowImage(xvf, which, dimage->sourceImage, dimage->frame) ;
   return(NO_ERROR) ;
 }
 
@@ -1798,7 +1831,7 @@ XVsync(XV_FRAME *xvf, int which, int sync)
 {
   DIMAGE  *dimage ;
 
-  dimage = xvGetDimage(which, 0) ;
+  dimage = xvGetDimage(xvf, which, 0) ;
   if (!dimage)
     return(ERROR_BAD_PARM) ;
 
@@ -1808,11 +1841,11 @@ XVsync(XV_FRAME *xvf, int which, int sync)
 int
 XVdoSync(XV_FRAME *xvf, int which)
 {
-  DIMAGE  *dimage, *odimage ;
+  DIMAGE  *dimage, *dimage2 ;
   int     i, rows, cols ;
   float   aspect ;
 
-  dimage = xvGetDimage(which, 0) ;
+  dimage = xvGetDimage(xvf, which, 0) ;
   if (!dimage)
     return(ERROR_BAD_PARM) ;
 
@@ -1820,17 +1853,17 @@ XVdoSync(XV_FRAME *xvf, int which)
   {
     if (i == which)
       continue ;
-    odimage = xvGetDimage(i, 0) ;
-    if (odimage && (odimage->sync == dimage->sync))
+    dimage2 = xvGetDimage(xvf, i, 0) ;
+    if (dimage2 && (dimage2->sync == dimage->sync))
     {
-      odimage->dx = dimage->dx ;
-      odimage->dy = dimage->dy ;
-      odimage->x0 = dimage->x0 ;
-      odimage->y0 = dimage->y0 ;
-      odimage->x1 = dimage->x1 ;
-      odimage->y1 = dimage->y1 ;
-      odimage->dx1 = dimage->dx1 ;
-      odimage->dy1 = dimage->dy1 ;
+      dimage2->dx = dimage->dx ;
+      dimage2->dy = dimage->dy ;
+      dimage2->x0 = dimage->x0 ;
+      dimage2->y0 = dimage->y0 ;
+      dimage2->x1 = dimage->x1 ;
+      dimage2->y1 = dimage->y1 ;
+      dimage2->dx1 = dimage->dx1 ;
+      dimage2->dy1 = dimage->dy1 ;
       rows = xvf->display_rows ;
       cols = xvf->display_cols ;
       if (dimage->dx)
@@ -1839,12 +1872,78 @@ XVdoSync(XV_FRAME *xvf, int which)
         aspect = 
           (float)dimage->sourceImage->rows / (float)dimage->sourceImage->cols ;
 
+#if 0
       if (aspect > 1.0f)
         XVsetImageSize(xvf, i, rows, nint((float)rows / aspect)) ;
       else
         XVsetImageSize(xvf, i, nint((float)cols * aspect),cols) ;
-      XVshowImage(xvf, i, odimage->sourceImage, 0) ;
+#endif
+/*      XVshowImage(xvf, i, dimage2->sourceImage, dimage->frame) ;*/
     }
+  }
+  return(NO_ERROR) ;
+}
+
+int
+XVsyncAll(XV_FRAME *xvf, int which)
+{
+  int    rows, cols, which2, sync ;
+  DIMAGE *dimage, *dimage2 ;
+
+
+  for (sync = which = 0 ; which < xvf->rows*xvf->cols ; which++)
+  {
+    dimage = xvGetDimage(xvf, which, 0) ;
+    if (dimage && (dimage->sync == 0))
+    {
+      dimage->sync = ++sync ;
+      rows = dimage->sourceImage->rows ;
+      cols = dimage->sourceImage->cols ;
+      for (which2 = 0 ; which2 < xvf->rows*xvf->cols ; which2++)
+      {
+        dimage2 = xvGetDimage(xvf, which2, 0) ;
+        if (dimage2 && (dimage2->sourceImage->rows == rows) && 
+            (dimage2->sourceImage->cols == cols))
+          dimage2->sync = sync ;
+      }
+      XVdoSync(xvf, which) ;
+    }
+  }
+  XVshowAllSyncedImages(xvf, which) ;
+  return(NO_ERROR) ;
+}
+int
+XVunsyncAll(XV_FRAME *xvf, int which)
+{
+  DIMAGE *dimage ;
+
+  for (which = 0 ; which < xvf->rows*xvf->cols ; which++)
+  {
+    dimage = xvGetDimage(xvf, which, 0) ;
+    if (dimage && dimage->sync)
+    {
+      XVdoSync(xvf, which) ;
+      dimage->sync = 0 ;
+    }
+  }
+  return(NO_ERROR) ;
+}
+int
+XVshowAllSyncedImages(XV_FRAME *xvf, int which)
+{
+  int     which2 ;
+  DIMAGE  *dimage, *dimage2 ;
+
+  dimage = xvGetDimage(xvf, which, 0) ;
+  if (!dimage)
+    return(ERROR_BADPARM) ;
+  XVshowImage(xvf, which, dimage->sourceImage, dimage->frame) ;
+
+  for (which2 = 0 ; which2 < xvf->rows*xvf->cols ; which2++)
+  {
+    dimage2 = xvGetDimage(xvf, which2, 0) ;
+    if (dimage2 && (dimage2->sync == dimage->sync))
+      XVshowImage(xvf, which2, dimage2->sourceImage, dimage2->frame) ;
   }
   return(NO_ERROR) ;
 }
