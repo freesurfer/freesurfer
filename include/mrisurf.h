@@ -738,4 +738,23 @@ MRI   *MRISfloodoutside(MRI *mri_src,MRI *mri_dst);
 
 #define MRISPvox(m,u,v)   (*IMAGEFpix(m->Ip,u,v))
 
+
+typedef struct
+{
+  float   x ;
+  float   y ;
+  float   z ;
+} SMALL_VERTEX ;
+
+typedef struct
+{
+  int   nvertices ;
+  SMALL_VERTEX *vertices ;
+} SMALL_SURFACE ;
+
+#define MRISSread  MRISreadVerticesOnly
+SMALL_SURFACE *MRISreadVerticesOnly(char *fname) ;
+int           MRISSfree(SMALL_SURFACE **pmriss) ;
+
 #endif
+
