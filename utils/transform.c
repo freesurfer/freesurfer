@@ -145,7 +145,7 @@ void readVolGeom(FILE *fp, VOL_GEOM *vg)
   char *p = 0;
   int counter = 0;
   long pos = 0;
-  int     fail = 0;
+  int  fail = 0;
   while((p = fgets(line, sizeof(line), fp)) && counter < 8)
   {
     sscanf(line, "%s %s %*s", param, eq);
@@ -200,6 +200,7 @@ void readVolGeom(FILE *fp, VOL_GEOM *vg)
   {
     if (pos > 0 ) // if success in getting pos, then 
       fail = fseek(fp, pos, SEEK_SET); // restore the position
+    // note that this won't allow compression using pipe
   }
   if (!vgRead)
   {
@@ -207,6 +208,30 @@ void readVolGeom(FILE *fp, VOL_GEOM *vg)
     initVolGeom(vg);
   }
 }
+
+// return i_to_r from VOL_GEOM
+MATRIX *vg_i_to_r(const VOL_GEOM *vg)
+{
+  MATRIX *mat =0;
+  MRI *tmp = 0;
+  tmp = MRIallocHeader(vg->width, vg->height, vg->depth, MRI_UCHAR);
+  useVolGeomToMRI(vg, tmp);
+  mat = extract_i_to_r(tmp);
+  MRIfree(&tmp);
+  return mat;
+}
+
+MATRIX *vg_r_to_i(const VOL_GEOM *vg)
+{
+  MATRIX *mat =0;
+  MRI *tmp = 0;
+  tmp = MRIallocHeader(vg->width, vg->height, vg->depth, MRI_UCHAR);
+  useVolGeomToMRI(vg, tmp);
+  mat = extract_r_to_i(tmp);
+  MRIfree(&tmp);
+  return mat;
+}
+
 /*-----------------------------------------------------
         Parameters:
 
