@@ -6,7 +6,7 @@
   Purpose: averages the voxels within an ROI. The ROI
            can be constrained structurally (with a label file)
            and/or functionally (with a volumetric mask)
-  $Id: mri_vol2roi.c,v 1.5 2001/04/12 18:52:06 greve Exp $
+  $Id: mri_vol2roi.c,v 1.6 2001/08/13 21:27:57 greve Exp $
 */
 
 #include <stdio.h>
@@ -51,13 +51,14 @@ int CountLabelHits(MRI *SrcVol, MATRIX *Qsrc, MATRIX *Fsrc,
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2roi.c,v 1.5 2001/04/12 18:52:06 greve Exp $";
+static char vcid[] = "$Id: mri_vol2roi.c,v 1.6 2001/08/13 21:27:57 greve Exp $";
 char *Progname = NULL;
 
 char *roifile    = NULL;
 char *roifmt     = "bvolume";
 char *roitxtfile = NULL;
 int  oldtxtstyle = 0;
+int  plaintxtstyle = 0;
 
 char *srcvolid   = NULL;
 char *srcfmt     = NULL;
@@ -349,8 +350,10 @@ int main(int argc, char **argv)
       printf("INFO: saving as old style txt\n");
       fprintf(fp,"%d \n",nmskhits);
     }
-    fprintf(fp,"%d \n",nlabelhits);
-    fprintf(fp,"%d \n",nfinalhits);
+    if(! plaintxtstyle ){
+      fprintf(fp,"%d \n",nlabelhits);
+      fprintf(fp,"%d \n",nfinalhits);
+    }
     for(f=0; f < mROI->nframes; f++) 
       fprintf(fp,"%9.4f\n",MRIFseq_vox(mROI,0,0,0,f));
     fclose(fp);
@@ -387,7 +390,8 @@ static int parse_commandline(int argc, char **argv)
 
     else if (!strcasecmp(option, "--debug"))   debug = 1;
 
-    else if (!strcasecmp(option, "--oldtxtstyle"))  oldtxtstyle = 1;
+    else if (!strcasecmp(option, "--oldtxtstyle"))    oldtxtstyle = 1;
+    else if (!strcasecmp(option, "--plaintxtstyle"))  plaintxtstyle = 1;
 
     /* -------- ROI output file ------ */
     else if (!strcmp(option, "--roiavgtxt")){
