@@ -61,16 +61,8 @@
 extern void swab(const void *from, void *to, size_t n);
 #endif
 
-static MATRIX *MRIxfmCRS2XYZ(MRI *mri, int base);
+#if 0
 static int NormalizeVector(float *v, int n);
-
-static MRI *mri_read(char *fname, int type, int volume_flag, int start_frame, int end_frame);
-static MRI *corRead(char *fname, int read_volume);
-static int corWrite(MRI *mri, char *fname);
-static MRI *siemensRead(char *fname, int read_volume);
-
-static MRI *mincRead(char *fname, int read_volume);
-static int mincWrite(MRI *mri, char *fname);
 static MRI *mincRead2(char *fname, int read_volume);
 static int mincWrite2(MRI *mri, char *fname);
 static int GetMINCInfo(MRI *mri, 
@@ -80,7 +72,15 @@ static int GetMINCInfo(MRI *mri,
            Real dircos[3][3],
            Real VolCenterVox[3],
            Real VolCenterWorld[3]);
+#endif
 
+static MRI *mri_read(char *fname, int type, int volume_flag, int start_frame, int end_frame);
+static MRI *corRead(char *fname, int read_volume);
+static int corWrite(MRI *mri, char *fname);
+static MRI *siemensRead(char *fname, int read_volume);
+
+static MRI *mincRead(char *fname, int read_volume);
+static int mincWrite(MRI *mri, char *fname);
 static int bvolumeWrite(MRI *vol, char *fname_passed, int type);
 //static int bshortWrite(MRI *mri, char *fname_passed);
 //static int bfloatWrite(MRI *mri, char *stem);
@@ -1750,7 +1750,7 @@ static MRI *mincRead(char *fname, int read_volume)
   return(mri);
 
 } /* end mincRead() */
-
+#if 0
 /*-----------------------------------------------------------*/
 static MRI *mincRead2(char *fname, int read_volume)
 {
@@ -2238,7 +2238,7 @@ static int NormalizeVector(float *v, int n)
   for(i=0;i<n;i++) v[i] /= sum2;
   return(0);
 }
-
+#endif
 /*----------------------------------------------------------*/
 /* time course clean */
 static int mincWrite(MRI *mri, char *fname)
@@ -5248,7 +5248,7 @@ static void swap_analyze_header(dsr *hdr)
   at 1,1,1 instead of 0,0,0, then set base = 1.
 
   ------------------------------------------------------*/
-static MATRIX *MRIxfmCRS2XYZ(MRI *mri, int base)
+MATRIX *MRIxfmCRS2XYZ(MRI *mri, int base)
 {
   MATRIX *m;
   MATRIX *Pcrs, *PxyzOffset;
