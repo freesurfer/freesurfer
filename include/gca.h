@@ -10,6 +10,7 @@
 #define FILE_TAG        0xab2c
 #define TAG_PARAMETERS  0x0001
 #define TAG_GCA_TYPE    0x0002
+#define TAG_GCA_DIRCOS  0x0003
 
 /* the volume that the classifiers are distributed within */
 #define DEFAULT_VOLUME_SIZE   256
@@ -110,10 +111,21 @@ typedef struct
   int       ninputs ;
   GCA_TISSUE_PARMS tissue_parms[MAX_GCA_LABELS] ;
   int    flags ;
-	int       type ;
-	double    TRs[MAX_GCA_INPUTS] ;  /* TR of training data (in msec) */
-	double    FAs[MAX_GCA_INPUTS] ;  /* flip angles of training data (in radians) */
-	double    TEs[MAX_GCA_INPUTS] ;  /* TE  of training data (in msec) */
+  int       type ;
+  double    TRs[MAX_GCA_INPUTS] ;  /* TR of training data (in msec) */
+  double    FAs[MAX_GCA_INPUTS] ;  /* flip angles of training data (in radians) */
+  double    TEs[MAX_GCA_INPUTS] ;  /* TE  of training data (in msec) */
+  // direction cosine info (common to both prior and node)
+  float         x_r, x_a, x_s; 
+  float         y_r, y_a, y_s; 
+  float         z_r, z_a, z_s; 
+  float         c_r, c_a, c_s; 
+  int           width;            
+  int           height;
+  int           depth;
+  float         xsize;
+  float         ysize;
+  float         zsize;
 } GAUSSIAN_CLASSIFIER_ARRAY, GCA ;
 
 
@@ -294,9 +306,12 @@ double GCAcomputeConditionalLogDensity(GC1D *gc, float *vals, int ninputs, int l
 double GCAcomputeNormalizedConditionalDensity(GCA *gca, int xp, int yp, int zp, float *vals, int label);
 MRI    *GCArelabelNonbrain(GCA *gca, MRI *mri_inputs, MRI *mri_src, MRI *mri_dst, TRANSFORM *transform) ;
 int    GCAreplaceLabels(GCA *gca, int in_label, int out_label) ;
+///////////////////////////////////////////////////////////////////
 
-
-
+// setting up global node and prior volume parameters
+void GCAsetup(GCA *gca);
+void GCAreinit(MRI *mri, GCA *gca); // reinit gca with mri values
+void GCAcleanup();
 
 extern int Ggca_x, Ggca_y, Ggca_z, Ggca_label ;
 
