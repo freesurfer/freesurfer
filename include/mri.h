@@ -359,6 +359,12 @@ MRI        *MRIfromVolume(Volume volume, int start_frame, int end_frame) ;
 int        MRIisValid(MRI *mri) ;
 MRI        *MRIflipByteOrder(MRI *mri_src, MRI *mri_dst) ;
 
+MRI        *MRIfill(MRI *mri_src, MRI *mri_distance, 
+                    int x0, int y0, int z0, int niter) ;
+MRI        *MRIextractInterior(MRI *mri_src, MRI *mri_distance,  MRI *mri_dst);
+MRI        *MRIbuildDistanceMap(MRI *mri_src, MRI *mri_distance,
+                                int x0, int y0, int z0) ;
+MRI        *MRIupdateDistanceMap(MRI *mri_distance) ;
 
 /* constants used in mri_dir of MRIoffsetDirection and for MRIminmax filter */
 #define OFFSET_NEGATIVE_GRADIENT_DIRECTION    0
