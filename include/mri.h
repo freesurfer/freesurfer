@@ -527,4 +527,7 @@ int   MRIreclassify(MRI *mri_src, MRI *mri_labeled,
 #define MRI_AMBIGUOUS   128
 #define MRI_WHITE       255
 
+#define MRI_LEFT_HEMISPHERE     255
+#define MRI_RIGHT_HEMISPHERE    127
+
 #endif
