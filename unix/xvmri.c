@@ -43,6 +43,10 @@ int            mri_depths[MAX_IMAGES] ;
 int            mri_frames[MAX_IMAGES] ;
 int            which_click = -1 ;
 int            mri_slices[MAX_IMAGES] ;
+int            x_click ;
+int            y_click ;
+int            z_click ;
+
 
 /*----------------------------------------------------------------------
                            STATIC DATA
@@ -52,10 +56,6 @@ static XV_FRAME       *xvf ;
 static Menu           view_menu ;
 static char           view_str[100] ;
 static Panel_item     view_panel ;
-
-static int            x_click ;
-static int            y_click ;
-static int            z_click ;
 
 static char           image_path[100] = "." ;
 
@@ -84,8 +84,7 @@ void
 mri_event_handler(XV_FRAME *xvf, Event *event,DIMAGE *dimage, 
                   int *px, int *py, int *pz)
 {
-  int       x, y, z, which, depth, view, frame, which2 ;
-  DIMAGE    *dimage2 ;
+  int       x, y, z, which, depth, view, frame ;
   Real      xr, yr, zr, xt, yt, zt, xv, yv, zv, xtv, ytv, ztv ;
   float     xf, yf, zf, xft, yft, zft ;
   MRI       *mri ;
@@ -162,8 +161,6 @@ mri_event_handler(XV_FRAME *xvf, Event *event,DIMAGE *dimage,
     MRIvoxelToTalairachVoxel(mri, (Real)x, (Real)y, (Real)z, &xtv,&ytv,&ztv);
   }
   MRIvoxelToWorld(mri, (Real)x, (Real)y, (Real)z, &xr, &yr, &zr) ;
-if ((char)event->ie_code == 'S')
-  DiagBreak() ;
 
   if (event_shift_is_down(event) && !event_is_ascii(event))
   {
@@ -224,13 +221,7 @@ if ((char)event->ie_code == 'S')
     if (event_is_up(event)) switch ((char)event->ie_code)
     {
     case 'S':   /* change all views and slices to be the same */
-      for (which2 = 0 ; which2 < xvf->rows*xvf->cols ; which2++)
-      {
-        if (which2 == which)
-          continue ;
-        dimage2 = XVgetDimage(xvf, which2, DIMAGE_IMAGE) ;
-        XVMRIsetView(xvf, which2, mri_views[which]) ;
-      }
+      XVMRIsetView(xvf, which, mri_views[which]) ;
       break ;
     case '0':
       fprintf(stderr, "turning off voxel (%d, %d, %d)\n", x, y, z) ;
@@ -530,9 +521,18 @@ XVMRIshowFrame(XV_FRAME *xvf, MRI *mri, int which, int slice,int frame)
   {
   case MRI_CORONAL:
     slice -= mri->imnr0 ;
+    if (slice >= mri->depth)
+      slice = mri->depth-1 ;
+    if (slice < 0)
+      slice = 0 ;
     break ;
   case MRI_SAGITAL:
+    if (slice >= mri->width)
+      slice = mri->width-1 ;
+    break ;
   case MRI_HORIZONTAL:
+    if (slice >= mri->height)
+      slice = mri->height-1 ;
     break ;
   }
 
@@ -733,9 +733,11 @@ XVMRIshowAll(XV_FRAME *xvf)
 static void
 repaint_handler(XV_FRAME *xvf, DIMAGE *dimage)
 {
-  if (dimage->which == which_click && (mris[which_click] != NULL))
-    XVMRIdrawPoint(xvf, which_click, mri_views[which_click], 0, 
-                   mris[which_click], x_click, y_click, z_click, XRED) ;
+  int which = dimage->which ;
+
+  if ((dimage->sync || (which == which_click)) && (mris[which] != NULL))
+    XVMRIdrawPoint(xvf, which, mri_views[which], 0, 
+                   mris[which], x_click, y_click, z_click, XRED) ;
 }
 /*----------------------------------------------------------------------
             Parameters:
@@ -768,7 +770,6 @@ XVMRIsetView(XV_FRAME *xvf, int which, int view)
   if (!mris[which])
     return(NO_ERROR) ;
 
-  mri_views[which] = view ;
   mri = mris[which] ;
 
   switch (view)
@@ -800,7 +801,7 @@ XVMRIsetView(XV_FRAME *xvf, int which, int view)
   {
     for (which2 = 0 ; which2 < xvf->rows*xvf->cols ; which2++)
     {
-      if (which2 == which)
+      if (which2 == which) 
         continue ;
       dimage2 = XVgetDimage(xvf, which2, DIMAGE_IMAGE) ;
       mri2 = mris[which2] ;
@@ -825,16 +826,27 @@ XVMRIsetView(XV_FRAME *xvf, int which, int view)
           slice2 = slice ;
         }
 /*        XVMRIsetView(xvf, which2, view) ;*/
-        mri_views[which2] = view ;
-        XVMRIshowFrame(xvf, mri2, which2, slice2, mri_frames[which2]) ;
+        if (view == mri_views[which2])
+          XVMRIredisplayFrame(xvf, mri2, which2, slice2, mri_frames[which2]) ;
+        else
+        {
+          mri_views[which2] = view ;
+          XVMRIshowFrame(xvf, mri2, which2, slice2, mri_frames[which2]) ;
+        }
       }
     }
   }
 
   /* will reset syncs */
-  XVMRIshowFrame(xvf, mri, which, slice, mri_frames[which]) ;  
-  if (sync)  /* if they were synced, reinstate it */
-    XVsyncAll(xvf, which) ;
+  if (view != mri_views[which])
+  {
+    mri_views[which] = view ;
+    XVMRIshowFrame(xvf, mri, which, slice, mri_frames[which]) ;  
+#if 0
+    if (sync)  /* if they were synced, reinstate it */
+      XVsyncAll(xvf, which) ;
+#endif
+  }
   return(NO_ERROR) ;
 }
 /*----------------------------------------------------------------------
@@ -869,6 +881,18 @@ XVMRIsetPoint(XV_FRAME *xvf, int which, int x, int y, int z)
   char     fmt[150], title[50], buf[100] ;
   Real     xr, yr, zr ;
 
+  if (which != which_click)   /* erase old point */
+  {
+    int old_which = which_click ;
+
+    which_click = which ;  /* must do before repaint so point isn't drawn */
+#if 0
+    xvmriRepaintValue(xvf, old_which, x, y, z) ;
+#else
+    XVrepaintImage(xvf, old_which) ;
+#endif
+  }
+  else which_click = which ;
   dimage = XVgetDimage(xvf, which, DIMAGE_IMAGE) ;
   mri = mris[which] ;
   x_click = x ;
@@ -919,8 +943,8 @@ XVMRIsetPoint(XV_FRAME *xvf, int which, int x, int y, int z)
           break ;
         }
         XVshowImageTitle(xvf, which2, "%s (%s)", title, buf) ;
+        XVrepaintImage(xvf, which2) ;
       }
-      
     }
   }
   return(NO_ERROR) ;
@@ -987,3 +1011,89 @@ xvmriRepaintValue(XV_FRAME *xvf, int which, int x, int y, int z)
   return(NO_ERROR) ;
 }
 
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+----------------------------------------------------------------------*/
+IMAGE *
+XVMRIredisplayFrame(XV_FRAME *xvf, MRI *mri, int which, int slice,int frame)
+{
+  IMAGE  *I ;
+
+  if (frame < 0)
+    frame = 0 ;
+
+  if (which_click == which && mri != mris[which])
+    which_click = -1 ;  /* a new MR image shown */
+
+  if (!mri)
+    return(NULL) ;
+
+  mri_frames[which] = frame ;
+
+  if (slice < 0)  /* set slice to middle of slice direction */
+  {
+    switch (mri_views[which])
+    {
+    case MRI_CORONAL:
+      slice = (mri->imnr0 + mri->imnr1) / 2 ;
+      break ;
+    case MRI_SAGITAL:
+      slice = mri->width / 2 ;
+      break ;
+    case MRI_HORIZONTAL:
+      slice = mri->height / 2 ;
+      break ;
+    }
+  }
+
+  mri_depths[which] = slice ;
+  switch (mri_views[which])
+  {
+  case MRI_CORONAL:
+    slice -= mri->imnr0 ;
+    if (slice >= mri->depth)
+      slice = mri->depth-1 ;
+    if (slice < 0)
+      slice = 0 ;
+    break ;
+  case MRI_SAGITAL:
+    if (slice >= mri->width)
+      slice = mri->width-1 ;
+    break ;
+  case MRI_HORIZONTAL:
+    if (slice >= mri->height)
+      slice = mri->height-1 ;
+    break ;
+  }
+
+  mri_slices[which] = slice ;
+  I = MRItoImageView(mri, Idisplay[which], slice, mri_views[which], frame) ;
+  if (!I)
+    return(NULL) ;
+
+
+  /* must be done before XVshowImage to draw point properly */
+  if (which_click < 0)  /* reset current click point */
+  {
+    which_click = which ;
+    z_click = slice ;
+    y_click = mri->height / 2 ;
+    x_click = mri->width / 2 ;
+#if 0
+    XVMRIdrawPoint(xvf, which, mri_views[which], 0, mri, x_click,
+                   y_click, z_click, XXOR);
+#endif
+  }
+  XVshowImage(xvf, which, I, 0) ;
+
+
+  if (Idisplay[which] && (I != Idisplay[which]))
+    ImageFree(&Idisplay[which]) ;
+
+  Idisplay[which] = I ;
+
+  mris[which] = mri ;
+  return(I) ;
+}
