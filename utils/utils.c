@@ -739,7 +739,11 @@ FileNameAbsolute(char *fname, char *absFname)
     len = strlen(fname) ;
     if (fname[len-1] == '/')
       fname[len-1] = 0 ;
+#ifndef Linux
     getwd(pathname) ;
+#else
+    getcwd(pathname, MAXPATHLEN-1) ;
+#endif
     sprintf(absFname, "%s/%s", pathname, fname) ;
   }
   return(absFname) ;
@@ -763,7 +767,11 @@ FileNamePath(char *fname, char *pathName)
   if (slash)
     *slash = 0 ;          /* remove file name */
   else      
+#ifndef Linux
     getwd(pathName)  ;    /* no path at all, must be cwd */
+#else
+    getcwd(pathName, MAXPATHLEN-1) ;
+#endif
 
   return(pathName) ;
 }
@@ -812,3 +820,14 @@ deltaAngle(float angle1, float angle2)
 
   return(delta) ;
 }
+#ifdef Linux
+char *
+getwd(char *buf)
+{
+  if (!buf)
+    buf = (char *)calloc(MAXPATHLEN, sizeof(char)) ;
+  getcwd(buf, MAXPATHLEN-1) ;
+  return(buf) ;
+}
+
+#endif
