@@ -3,7 +3,6 @@
 #include <unistd.h>
 #include <string.h>
 #include "mri.h"
-#include "mriio_siemens.h"
 #include "error.h"
 #include "mri_identify.h"
 #include "utils.h"
