@@ -8004,18 +8004,6 @@ copy_gcs(int nlabels, GC1D *gcs_src, GC1D *gcs_dst)
   return(NO_ERROR) ;
 }
 int
-check_finite(char *where, double what)
-{
-  if (!finite(what))
-  {
-    ErrorPrintf(ERROR_BADPARM, "%s not finite!\n",where) ;
-    DiagBreak() ;
-    return(0) ;
-  }
-  return(1) ;
-}
-
-int
 GCAfreeGibbs(GCA *gca)
 {
   int       x, y, z,n, i ;
