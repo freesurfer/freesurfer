@@ -4,6 +4,7 @@
 #include "typedefs.h"
 #include "proto.h"
 #include "mgh_matrix.h"
+#include "error.h"
 
 FLOATTYPE * MGH_vector(int n)
 {
@@ -285,10 +286,6 @@ void covariance_matrix(FLOATTYPE **R,int n)
   }
 }
 
-void MGH_nrerror(char *s)
-{
-  printf("%s\n",s);
-}
 
 void mgh_ludcmp(FLOATTYPE **a,int n,int *indx,FLOATTYPE *d)
 {
@@ -303,7 +300,8 @@ void mgh_ludcmp(FLOATTYPE **a,int n,int *indx,FLOATTYPE *d)
     big=0.0;
     for (j=0;j<n;j++)
       if ((temp=fabs(a[i][j])) > big) big=temp;
-    if (big == 0.0) MGH_nrerror("Singular matrix in routine LUDCMP");
+    if (big == 0.0) 
+      ErrorExit(ERROR_BADPARM, "LU decomposition: matrix in singular");
     vv[i]=1.0/big;
   }
   for (j=0;j<n;j++)
@@ -485,7 +483,9 @@ void mgh_svdcmp(FLOATTYPE **a,FLOATTYPE *w,FLOATTYPE **v,int m,int n)
   FLOATTYPE anorm=0.0,g=0.0,scale=0.0;
   FLOATTYPE *rv1;
 
-  if (m<n) MGH_nrerror("SVDCMP: too few rows in A");
+  if (m<n) 
+    ErrorExit(ERROR_BADPARM, 
+              "Singular value decompostion: input matrix has too few rows");
   rv1=MGH_vector(n);
   for (i=0;i<n;i++)
   {
@@ -644,7 +644,9 @@ void mgh_svdcmp(FLOATTYPE **a,FLOATTYPE *w,FLOATTYPE **v,int m,int n)
         }
         break;
       }
-      if (its==30) MGH_nrerror("SVDCMP: No convergence in 30 iterations");
+      if (its==30) 
+        ErrorExit(ERROR_BADPARM, 
+                  "Singular value decomposition failed to converge");
       x=w[l];
       nm=k-1;
       y=w[nm];

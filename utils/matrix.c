@@ -1249,7 +1249,8 @@ int m,n;
   float anorm=0.0,g=0.0,scale=0.0;
   float *rv1;
 
-  if (m<n) nrerror("SVDCMP: too few rows in A");
+  if (m<n) 
+    ErrorExit(ERROR_BADPARM, "Singular Value Decomp: too few rows in A");
   rv1=vector(n);
   for (i=0;i<n;i++)
   {
@@ -1410,7 +1411,7 @@ int m,n;
       }
       if (its==30) 
         return(Gerror = ERROR_BADPARMS) ;
-      /*nrerror("SVDCMP: No convergence in 30 iterations");*/
+
       x=w[l];
       nm=k-1;
       y=w[nm];
