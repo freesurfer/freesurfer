@@ -10,6 +10,8 @@
 #include "macros.h"
 #include "proto.h"
 
+static char vcid[] = "$Id: mri_fill.c,v 1.11 1997/10/27 17:35:04 fischl Exp $";
+
 /*-------------------------------------------------------------------
                                 CONSTANTS
 -------------------------------------------------------------------*/
@@ -616,7 +618,7 @@ get_option(int argc, char *argv[])
 static void
 print_version(void)
 {
-  fprintf(stderr, "fill version 1\n") ;
+  fprintf(stderr, "fill version %s\n", vcid) ;
   exit(0) ;
 }
 static void
