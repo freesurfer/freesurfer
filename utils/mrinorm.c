@@ -686,7 +686,7 @@ MRInormFindControlPoints(MRI *mri_src, int wm_target, float intensity_above,
                          float intensity_below, MRI *mri_ctrl)
 {
   int     width, height, depth, x, y, z, xk, yk, zk, xi, yi, zi, *pxi, *pyi, 
-          *pzi, ctrl, nctrl, nfilled, too_low, total_filled,i, val0, val;
+          *pzi, ctrl, nctrl, nfilled, too_low, total_filled,i, val0, val, n;
   BUFTYPE low_thresh, hi_thresh ;
 
   if (!wm_target)
@@ -827,6 +827,83 @@ MRInormFindControlPoints(MRI *mri_src, int wm_target, float intensity_above,
   nctrl += total_filled ;
   if (Gdiag & DIAG_SHOW)
     fprintf(stderr,"%d contiguous 3x3x3 control points added\n",total_filled);
+
+
+  /*  add all voxels that neighbor at least 3 control points and
+      have and that lie in a 6-connected neighborhood of high
+      intensities. (should push things out even close to the border).
+  */
+  low_thresh = wm_target-intensity_below/2; 
+  hi_thresh =  wm_target+intensity_above/2;
+  total_filled = 0 ;
+  do
+  {
+    nfilled = 0 ;
+    for (z = 0 ; z < depth ; z++)
+    {
+      for (y = 0 ; y < height ; y++)
+      {
+        for (x = 0 ; x < width ; x++)
+        {
+          switch (mri_src->type)
+          {
+          default:
+          case MRI_UCHAR: val0 = MRIvox(mri_src, x, y, z) ; break ;
+          case MRI_SHORT: val0 = MRISvox(mri_src, x, y, z) ; break ;
+          }
+          ctrl = MRIvox(mri_ctrl, x, y, z) ;
+          too_low = 0 ;
+          if (val0 >= low_thresh && val0 <= hi_thresh && !ctrl)
+          {
+            if (x == 116 && y == 111 && z == 187)
+              DiagBreak() ;
+            n = 0 ;
+            for (zk = -1 ; zk <= 1 && !too_low ; zk++)
+            {
+              zi = pzi[z+zk] ;
+              for (yk = -1 ; yk <= 1 && !too_low ; yk++)
+              {
+                yi = pyi[y+yk] ;
+                for (xk = -1 ; xk <= 1 && !too_low ; xk++)
+                {
+                  /*
+                    check for any 27-connected neighbor that is a control
+                    point and has a small intensity difference with the
+                    current point.
+                  */
+                  xi = pxi[x+xk] ;
+                  switch (mri_src->type)
+                  {
+                  default:
+                  case MRI_UCHAR: val = MRIvox(mri_src, xi, yi, zi) ; break ;
+                  case MRI_SHORT: val = MRISvox(mri_src, xi, yi, zi) ; break ;
+                  }
+                  if (MRIvox(mri_ctrl, xi, yi, zi))
+                    n++ ;   /* count # of 27-connected control points */
+                  if ((abs(xk) + abs(yk) + abs(zk)) > 1)
+                    continue ;  /* only allow 4 (6 in 3-d) connectivity */
+                  if (val > hi_thresh || val < low_thresh)
+                    too_low = 1 ;
+                }
+              }
+            }
+#define MIN_CONTROL_POINTS   4
+            if (n >= MIN_CONTROL_POINTS && !too_low)
+            {
+              ctrl = 1 ;
+              MRIvox(mri_ctrl, x, y, z) = 128 ;
+              nfilled++ ;
+            }
+          }
+        }
+      }
+    }
+    total_filled += nfilled ;
+  } while (nfilled > 0) ;
+  nctrl += total_filled ;
+  if (Gdiag & DIAG_SHOW)
+    fprintf(stderr,"%d contiguous 6-connected control points added\n",
+            total_filled);
 
 #if 0
   low_thresh = wm_target-(2*intensity_below); 
