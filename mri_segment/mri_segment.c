@@ -20,6 +20,8 @@ static float nslope = 1.0f ;
 static float wm_low = 90 ;
 static float wm_hi = 130 ;
 static float gray_hi = 100 ;
+static int niter = 3 ;
+
 char *Progname ;
 
 int main(int argc, char *argv[]) ;
@@ -74,7 +76,7 @@ main(int argc, char *argv[])
     classifier at each point in space and reclassify all voxels in the
     range [wm_low-5,gray_hi+5].
     */
-  for (i = 0 ; i < 1 ; i++)
+  for (i = 0 ; i < niter ; i++)
   {
     MRIreclassify(mri_src, mri_labeled, mri_labeled, wm_low-5, gray_hi+5, 7);
   }
@@ -125,6 +127,11 @@ get_option(int argc, char *argv[])
   }
   else switch (toupper(*option))
   {
+  case 'N':
+    niter = atoi(argv[2]) ;
+    nargs = 1 ;
+    fprintf(stderr, "running border classification %d times\n", niter) ;
+    break ;
   case 'V':
     verbose = !verbose ;
     break ;
