@@ -320,7 +320,7 @@ MRIread(char *fpref)
 
   if (!MRIisValid(mri))
     MRIflipByteOrder(mri, mri) ;
-MRIdump(mri, stderr);
+
   return(mri) ;
 }
 /*-----------------------------------------------------
@@ -2384,7 +2384,6 @@ ge8xRead(char *fname, int read_volume, int frame)
 
       fseek(fp, offset_to_pixel_data, SEEK_SET) ;
       fread(&(pixel_data[(slice_number - min_slice_number) * mri->height * mri->width]), 1, mri->width * mri->height * 2, fp);
-
       fclose(fp) ;
     }
 
@@ -2394,7 +2393,9 @@ ge8xRead(char *fname, int read_volume, int frame)
 
   } /* end if(read_volume) */
 
+printf("conforming...\n");
   mri2 = MRIconform(mri, pixel_data, XDIM, YDIM, ZDIM);
+printf("done\n");
 /*
 mri->slice_direction = 1;
   if(mri->slice_direction == 2)
@@ -2519,6 +2520,8 @@ swab(pixel_data, pixel_data, mri->height * mri->width * mri->depth * 2);
 
   if(strncmp(slice_direction, "Sag>Tra", 7) == 0)
     mri2 = MRIconform(mri, pixel_data, -ZDIM, YDIM, XDIM);
+  else if(strncmp(slice_direction, "Sag>Cor", 7) == 0)
+    mri2 = MRIconform(mri, pixel_data, XDIM, -ZDIM, YDIM);
   else if(strncmp(slice_direction, "Sag", 3) == 0)
     mri2 = MRIconform(mri, pixel_data, YDIM, ZDIM, XDIM);
   else if(strncmp(slice_direction, "Tra", 3) == 0)
@@ -2528,7 +2531,7 @@ swab(pixel_data, pixel_data, mri->height * mri->width * mri->depth * 2);
 
     if(pixel_data != NULL)
       free(pixel_data);
-MRIdump(mri2, stdout);
+
     MRIfree(&mri);
     return(mri2);
 
@@ -2791,8 +2794,6 @@ brikRead(char *fname, int read_volume, int frame)
   int orient_vals[3];
   int orient_code[] = { -XDIM, XDIM, ZDIM, -ZDIM, -YDIM, YDIM };
 
-printf("starting brik read\n");
-
   strcpy(header_name, fname);
   if((dot = strrchr(header_name, '.')) == NULL)
     ErrorReturn(NULL, (ERROR_BADPARM, 
@@ -2854,11 +2855,8 @@ printf("starting brik read\n");
       }
       else if(strcmp(name, "ORIENT_SPECIFIC") == 0)
       {
-printf("yo!\n");
         fgets(header_line, STRLEN, fin);
-printf("%s\n", header_line);
         sscanf(header_line, "%d %d %d", &orient_vals[0], &orient_vals[1], &orient_vals[2]);
-printf("%d, %d, %d\n",orient_vals[0], orient_vals[1], orient_vals[2]);
       }
 
     }
@@ -2901,10 +2899,8 @@ printf("%d, %d, %d\n",orient_vals[0], orient_vals[1], orient_vals[2]);
 
   buf = NULL;
 
-printf("done header\n");
   if(read_volume)
   {
-printf("reading volume\n");
     if((fin = fopen(fname, "r")) == NULL)
       ErrorReturn(NULL, (ERROR_BADPARM, 
                          "can't open file %s", fname));
@@ -2940,26 +2936,18 @@ printf("reading volume\n");
         for(i = 0;i < mri->width * mri->height * mri->depth * data_size[mri->type];i+=4)
         {
           memcpy(swapbuf, &buf[i], 4);
-          &buf[i + 0] = swapbuf[3];
-          &buf[i + 1] = swapbuf[2];
-          &buf[i + 2] = swapbuf[1];
-          &buf[i + 3] = swapbuf[0];
+          buf[i + 0] = swapbuf[3];
+          buf[i + 1] = swapbuf[2];
+          buf[i + 2] = swapbuf[1];
+          buf[i + 3] = swapbuf[0];
         }
     }
 #endif
 
   }
 
-printf("conforming...\n");
+  mri2 = MRIconform(mri, buf, orient_code[orient_vals[0]], orient_code[orient_vals[1]], orient_code[orient_vals[2]]);
 
-printf("--(%d)-> --(%d)-> %d\n", 0, orient_vals[0], orient_code[orient_vals[0]]);
-printf("--(%d)-> --(%d)-> %d\n", 1, orient_vals[1], orient_code[orient_vals[1]]);
-printf("--(%d)-> --(%d)-> %d\n", 2, orient_vals[2], orient_code[orient_vals[2]]);
-  mri2 = MRIconform(mri, buf, 
-orient_code[orient_vals[0]], 
-orient_code[orient_vals[1]], 
-orient_code[orient_vals[2]]);
-printf("done\n");
   if(buf != NULL)
     free(buf);
 
