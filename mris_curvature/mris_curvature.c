@@ -13,7 +13,7 @@
 #include "mri.h"
 #include "macros.h"
 
-static char vcid[] = "$Id: mris_curvature.c,v 1.1 1997/10/29 23:30:18 fischl Exp $";
+static char vcid[] = "$Id: mris_curvature.c,v 1.2 1997/10/30 23:47:13 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -25,12 +25,15 @@ static void print_version(void) ;
 
 char *Progname ;
 
+static int write_flag = 0 ;
+
 int
 main(int argc, char *argv[])
 {
   char         **av, *in_fname, fname[100], hemi[10], path[100], *cp ;
-  int          ac, nargs ;
+  int          ac, nargs, nhandles ;
   MRI_SURFACE  *mris ;
+  double       ici, fi ;
 
   Progname = argv[0] ;
   ErrorInit(NULL, NULL, NULL) ;
@@ -50,25 +53,47 @@ main(int argc, char *argv[])
 
   in_fname = argv[1] ;
 
-  FileNamePath(in_fname, path) ;
-  FileNameOnly(in_fname, fname) ;
-  cp = strchr(fname, '.') ;
-  if (!cp)
-    ErrorExit(ERROR_BADPARM, "%s: could not scan hemisphere from '%s'",
-              Progname, fname) ;
-  strncpy(hemi, cp-2, 2) ;
-  hemi[2] = 0 ;
-
   mris = MRISread(in_fname) ;
   if (!mris)
     ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
               Progname, in_fname) ;
 
+#if 0
+MRISprojectOntoCylinder(mris, 50.0f) ;
+MRISwrite(mris,in_fname) ;
+#endif
+
+#if 0
+MRISprojectOntoEllipsoid(mris, mris, 50.0f, 50.0f, 50.0f) ;
+MRISwrite(mris, in_fname) ;
+mrisComputeNormals(mris) ;
+#endif
+
   MRIScomputeSecondFundamentalForm(mris) ;
-  MRISuseGaussianCurvature(mris) ;
-  sprintf(fname, "%s/%s.K", path, hemi) ; MRISwriteCurvature(mris, fname) ;
-  MRISuseMeanCurvature(mris) ;
-  sprintf(fname, "%s/%s.H", path, hemi) ; MRISwriteCurvature(mris, fname) ;
+  nhandles = nint(1.0 - mris->Ktotal / (4.0*M_PI)) ;
+  fprintf(stderr, "total integrated curvature = %2.3f*4pi (%2.3f) --> "
+          "%d handles\n", (float)mris->Ktotal/(4.0f*M_PI), 
+          (float)mris->Ktotal, nhandles) ;
+  
+  MRIScomputeCurvatureIndices(mris, &ici, &fi);
+  fprintf(stderr, "ICI = %2.1f, FI = %2.1f\n", ici, fi) ;
+
+  if (write_flag)
+  {
+    FileNamePath(in_fname, path) ;
+    FileNameOnly(in_fname, fname) ;
+    cp = strchr(fname, '.') ;
+    if (!cp)
+      ErrorExit(ERROR_BADPARM, "%s: could not scan hemisphere from '%s'",
+                Progname, fname) ;
+    strncpy(hemi, cp-2, 2) ;
+    hemi[2] = 0 ;
+    
+    MRISuseGaussianCurvature(mris) ;
+    sprintf(fname, "%s/%s.K", path, hemi) ; MRISwriteCurvature(mris, fname) ;
+    MRISuseMeanCurvature(mris) ;
+    sprintf(fname, "%s/%s.H", path, hemi) ; MRISwriteCurvature(mris, fname) ;
+  }
   exit(0) ;
   return(0) ;  /* for ansi */
 }
@@ -91,6 +116,9 @@ get_option(int argc, char *argv[])
     print_version() ;
   else switch (toupper(*option))
   {
+  case 'W':
+    write_flag = 1 ;
+    break ;
   case '?':
   case 'U':
     print_usage() ;
