@@ -368,8 +368,8 @@ MatrixMultiply(MATRIX *m1, MATRIX *m2, MATRIX *m3)
     a = *MATRIX_RELT(m1,row,i);
     c = MATRIX_CELT_REAL(m2,i,col);
     d = MATRIX_CELT_IMAG(m2,i,col);
-    *MATRIX_RELT(m3,row,col) += a*c;
-    *MATRIX_RELT(m3,row,col) += a*d;
+    MATRIX_CELT_REAL(m3,row,col) += a*c;
+    MATRIX_CELT_IMAG(m3,row,col) += a*d;
         }
     }
       }
