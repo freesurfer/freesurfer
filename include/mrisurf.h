@@ -143,7 +143,7 @@ typedef struct vertex_type_
 typedef struct 
 {
   int nvertices;
-  unsigned int *vertex_indizes;
+  unsigned int *vertex_indices;
 } STRIP;
 
 typedef struct
