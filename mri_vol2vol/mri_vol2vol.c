@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: converts values in one volume to another volume
-  $Id: mri_vol2vol.c,v 1.4 2004/10/14 22:42:14 greve Exp $
+  $Id: mri_vol2vol.c,v 1.5 2004/10/14 22:50:42 greve Exp $
 
   Things to do:
     1. Add ability to spec output center XYZ.
@@ -53,7 +53,7 @@ static int istringnmatch(char *str1, char *str2, int n);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2vol.c,v 1.4 2004/10/14 22:42:14 greve Exp $";
+static char vcid[] = "$Id: mri_vol2vol.c,v 1.5 2004/10/14 22:50:42 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -678,7 +678,7 @@ EXAMPLES:
    cd  $SUBJECTS_DIR/subjid/mri/
    mkdir -p orig-tal
    mri_vol2vol --in orig --out orig-tal
-               --temp $SUBJECTS_DIR/talairach 
+               --temp $SUBJECTS_DIR/talairach/mri/orig
                --xfm transforms/talairach.xfm 
 
    NOTE: this should give the same result as:
@@ -686,7 +686,7 @@ EXAMPLES:
 
 3. Resample a subcortical segmentation to functional space. It uses
    nearest-neighbor interp because the segmentation values are
-   categorical, not continuous. 
+   categorical, not continuous (for this see also mri_label2vol). 
 
    mri_vol2vol --in   $SUBJECTS_DIR/subjid/mri/aseg 
                --out  aseg_000.bshort
