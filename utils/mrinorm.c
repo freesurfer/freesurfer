@@ -2334,8 +2334,8 @@ mriSoapBubbleShort(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst,int niter)
 {
   int     width, height, depth, x, y, z, xk, yk, zk, xi, yi, zi, i,
           *pxi, *pyi, *pzi ;
-  BUFTYPE *pctrl, ctrl, mean ;
-  short   *ptmp ;
+  BUFTYPE *pctrl, ctrl ;
+  short   *ptmp, mean ;
   MRI     *mri_tmp ;
 
   width = mri_src->width ; height = mri_src->height ; depth = mri_src->depth ; 
@@ -2366,7 +2366,7 @@ mriSoapBubbleShort(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst,int niter)
             continue ;
           }
           /* now set this voxel to the average of the marked neighbors */
-          mean = 0.0f ;
+          mean = 0 ;
           for (zk = -1 ; zk <= 1 ; zk++)
           {
             zi = pzi[z+zk] ;
@@ -2380,7 +2380,7 @@ mriSoapBubbleShort(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst,int niter)
               }
             }
           }
-          *ptmp++ = (float)mean / (3.0f*3.0f*3.0f) ;
+          *ptmp++ = (short)nint((float)mean / (3.0f*3.0f*3.0f)) ;
         }
       }
     }
