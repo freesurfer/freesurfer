@@ -6,7 +6,7 @@
   Purpose: averages the voxels within an ROI. The ROI
            can be constrained structurally (with a label file)
            and/or functionally (with a volumetric mask)
-  $Id: mri_vol2roi.c,v 1.18 2004/02/09 16:23:52 greve Exp $
+  $Id: mri_vol2roi.c,v 1.19 2004/02/09 17:01:55 greve Exp $
 */
 
 #include <stdio.h>
@@ -54,7 +54,7 @@ int BTypeFromStem(char *stem);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2roi.c,v 1.18 2004/02/09 16:23:52 greve Exp $";
+static char vcid[] = "$Id: mri_vol2roi.c,v 1.19 2004/02/09 17:01:55 greve Exp $";
 char *Progname = NULL;
 
 char *roifile    = NULL;
@@ -84,6 +84,7 @@ int    mskinvert = 0;
 int    mskframe = 0;
 
 char  *finalmskvolid = NULL;
+char  *finalmskcrs = NULL;
 
 LABEL *Label;
 
@@ -128,7 +129,7 @@ int main(int argc, char **argv)
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_vol2roi.c,v 1.18 2004/02/09 16:23:52 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_vol2roi.c,v 1.19 2004/02/09 17:01:55 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -357,6 +358,26 @@ int main(int argc, char **argv)
     MRIwriteAnyFormat(mFinalMskVol,finalmskvolid,"bfloat",-1,NULL);
   }
 
+  /* ------- Save CRS of the the final mask ------------------ */
+  if(finalmskcrs != NULL){
+    fp = fopen(finalmskcrs,"w");
+    if(fp==NULL){
+      fprintf(stderr,"ERROR: cannot open %s\n",finalmskcrs);
+      exit(1);
+    }
+    for(r=0;r<mFinalMskVol->height;r++){
+      for(c=0;c<mFinalMskVol->width;c++){
+	for(s=0;s<mFinalMskVol->depth;s++){
+	  val = MRIFseq_vox(mFinalMskVol,c,r,s,0); 
+          if(val > 0.5){
+	    fprintf(fp,"%d %d %d\n",c,r,s);
+	  }
+	}
+      }
+    }    
+    fclose(fp);
+  }
+
   /* If this is a statistical volume, lower each frame to it's appropriate
      power (eg, variance needs to be sqrt'ed) */
   if(is_sxa_volume(srcvolid)){
@@ -562,6 +583,12 @@ static int parse_commandline(int argc, char **argv)
       nargsused = 1;
     }
 
+    else if (!strcmp(option, "--finalmskcrs")){
+      if(nargc < 1) argnerr(option,1);
+      finalmskcrs = pargv[0];
+      nargsused = 1;
+    }
+
     else{
       fprintf(stderr,"ERROR: Option %s unknown\n",option);
       if(singledash(option))
@@ -612,6 +639,7 @@ static void print_usage(void)
   printf("   --roiavgtxt fname :output text file for ROI average\n");
   printf("   --roiavg    stem : output bfloat stem for ROI average\n");
   printf("   --finalmskvol path in which to save final mask\n");
+  printf("   --finalmskcrs fname: save col,row,slice in text fname\n");
   printf("\n");
 }
 /* --------------------------------------------- */
@@ -732,6 +760,11 @@ static void print_help(void)
 "\n"
 "Save the final set of voxels selected for the ROI in this volume. See\n"
 "introduction for more info.\n"
+"\n"
+"--finalmskcrs fname\n"
+"\n"
+"Save the column, row, and slice of the voxels in the mask in a text\n"
+"file. The indicies are zero-based.\n"
 "\n"
 "BUGS\n"
 "\n"
