@@ -2,9 +2,9 @@
 // mri_tessellate.c
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2003/09/05 04:45:38 $
-// Revision       : $Revision: 1.17 $
+// Revision Author: $Author: tosa $
+// Revision Date  : $Date: 2003/09/30 17:11:58 $
+// Revision       : $Revision: 1.18 $
 //
 //
 // How it works.
@@ -39,7 +39,7 @@
 //
 //          MRIvoxelToSurfaceRAS()
 //
-char *MRI_TESSELLATE_VERSION = "$Revision: 1.17 $";
+char *MRI_TESSELLATE_VERSION = "$Revision: 1.18 $";
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -133,7 +133,7 @@ main(int argc, char *argv[])
   int  nargs ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_tessellate.c,v 1.17 2003/09/05 04:45:38 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_tessellate.c,v 1.18 2003/09/30 17:11:58 tosa Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -397,16 +397,16 @@ write_binary_surface2(char *fname)
 
     V4_LOAD(vv, vertex[k].j-0.5, vertex[k].i-0.5, vertex[k].imnr-0.5, 1);
     MatrixMultiply(m, vv, vw);
+    // we are doing the same thing as the following, but we save time in
+    // calculating the matrix at every point
+    // if (useRealRAS == 1)  // use the physical RAS as the vertex point
+    //   MRIvoxelToWorld(mri, vertex[k].j-0.5, vertex[k].i-0.5, vertex[k].imnr-0.5, &x, &y, &z);
+    // else
+    //   MRIvoxelToSurfaceRAS(mri, vertex[k].j-0.5, vertex[k].i-0.5, vertex[k].imnr-0.5, &x, &y, &z);
     x = V3_X(vw);
     y = V3_Y(vw);
     z = V3_Z(vw);
-#if 0
-    // we are doing the same thing as the following. 
-    if (useRealRAS == 1)  // use the physical RAS as the vertex point
-      MRIvoxelToWorld(mri, vertex[k].j-0.5, vertex[k].i-0.5, vertex[k].imnr-0.5, &x, &y, &z);
-    else
-      MRIvoxelToSurfaceRAS(mri, vertex[k].j-0.5, vertex[k].i-0.5, vertex[k].imnr-0.5, &x, &y, &z);
-#endif
+
     fwrite2((int)(x*100),fp);
     fwrite2((int)(y*100),fp);
     fwrite2((int)(z*100),fp);
@@ -454,6 +454,7 @@ get_option(int argc, char *argv[])
     break ;
   case 'N':
     compatibility = 0;
+    printf("surface saved uses coordinates in the real RAS where c_(r,a,s) != 0");
     break;
   case '?':
   case 'U':
