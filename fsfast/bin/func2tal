@@ -1,8 +1,8 @@
 #!/bin/csh -f
 # func2tal
-# $Id: func2tal,v 1.4 2003/08/19 05:45:56 greve Exp $
+# $Id: func2tal,v 1.5 2003/08/19 05:47:12 greve Exp $
 
-set FUNC2TAL_VER = '$Id: func2tal,v 1.4 2003/08/19 05:45:56 greve Exp $';
+set FUNC2TAL_VER = '$Id: func2tal,v 1.5 2003/08/19 05:47:12 greve Exp $';
 
 set inputargs = ($argv)
 
@@ -81,8 +81,8 @@ endif
 df $taldir >> $LF
 
 ############## Run stat_normalize ###############
-set SN = ~/sg1/build/stat_normalize/stat_normalize
-#set SN = stat_normalize
+#set SN = ~/sg1/build/stat_normalize/stat_normalize
+set SN = stat_normalize
 set cmd = ($SN -r $res -x $xfmfile)
 if($fixxfm)   set cmd = ($cmd -i)
 set cmd = ($cmd $funcstem $talstem);
