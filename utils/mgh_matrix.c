@@ -478,7 +478,7 @@ static FLOATTYPE maxarg1,maxarg2;
 #define SIGN(a,b) ((b) >= 0.0 ? fabs(a) : -fabs(a))
 #endif
 
-void svdcmp(FLOATTYPE **a,FLOATTYPE *w,FLOATTYPE **v,int m,int n)
+void mgh_svdcmp(FLOATTYPE **a,FLOATTYPE *w,FLOATTYPE **v,int m,int n)
 {
   int flag,i,its,j,jj,k,l=0,nm=0; /* Keep gcc happy */
   FLOATTYPE c,f,h,s,x,y,z;

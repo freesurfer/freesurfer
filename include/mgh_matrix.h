@@ -40,7 +40,7 @@ void mgh_lubksb(FLOATTYPE **a,int n,int *indx,FLOATTYPE *b);
 void inverse(FLOATTYPE **a,FLOATTYPE **y,int n);
 FLOATTYPE determinant(FLOATTYPE **a,int n);
 FLOATTYPE MGH_svd(FLOATTYPE **A,FLOATTYPE **V,FLOATTYPE *z,int m,int n);
-void svdcmp(FLOATTYPE **a,FLOATTYPE *w,FLOATTYPE **v,int m,int n);
+void mgh_svdcmp(FLOATTYPE **a,FLOATTYPE *w,FLOATTYPE **v,int m,int n);
 
 
 #endif
