@@ -15,7 +15,7 @@
 #include "version.h"
 #include "flash.h"
 
-static char vcid[] = "$Id: mri_synthesize.c,v 1.13 2004/10/27 20:32:01 fischl Exp $";
+static char vcid[] = "$Id: mri_synthesize.c,v 1.14 2005/03/11 17:28:16 xhan Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -80,7 +80,7 @@ main(int argc, char *argv[])
   float       TR, TE, alpha ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_synthesize.c,v 1.13 2004/10/27 20:32:01 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_synthesize.c,v 1.14 2005/03/11 17:28:16 xhan Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -493,7 +493,7 @@ normalize_PD(MRI *mri_PD, float target)
     {
       for (z = 0 ; z < mri_PD->depth ; z++)
       {
-        mean_PD += (double)MRISvox(mri_PD, x, y, z) ;
+        mean_PD += (double)MRIgetVoxVal(mri_PD, x, y, z,0) ;
       }
     }
   }
@@ -507,9 +507,9 @@ normalize_PD(MRI *mri_PD, float target)
     {
       for (z = 0 ; z < mri_PD->depth ; z++)
       {
-        val = (double)MRISvox(mri_PD, x, y, z) ;
+        val = (double)MRIgetVoxVal(mri_PD, x, y, z,0) ;
         val *= scale ;
-        MRISvox(mri_PD, x, y, z) = (short)val ;
+        MRIsetVoxVal(mri_PD, x, y, z,0, val);
       }
     }
   }
@@ -520,7 +520,7 @@ static int
 discard_PD(MRI *mri_PD, short thresh, short target)
 {
   int    x, y, z ;
-  short  val ;
+  double  val ;
 
   for (x = 0 ; x < mri_PD->width ; x++)
   {
@@ -528,11 +528,11 @@ discard_PD(MRI *mri_PD, short thresh, short target)
     {
       for (z = 0 ; z < mri_PD->depth ; z++)
       {
-        val = MRISvox(mri_PD, x, y, z) ;
+        val = MRIgetVoxVal(mri_PD, x, y, z,0) ;
         if (val > thresh)
-          MRISvox(mri_PD, x, y, z) = target ;
+          MRIsetVoxVal(mri_PD, x, y, z,0, target);
         else
-          MRISvox(mri_PD, x, y, z) = 0 ;
+          MRIsetVoxVal(mri_PD, x, y, z,0,0);
       }
     }
   }
@@ -552,9 +552,9 @@ remap_T1(MRI *mri_T1, float mean, float scale)
       {
         if (x == Gx && y == Gy && z == Gz)
           DiagBreak() ;
-        val = (float)MRISvox(mri_T1, x, y, z) ;
+        val = (float)MRIgetVoxVal(mri_T1, x, y, z,0) ;
         val = mean * (tanh(scale * (val-mean))+1.5) ;
-        MRISvox(mri_T1, x, y, z) = val ;
+        MRIsetVoxVal(mri_T1, x, y, z,0, val) ;
       }
     }
   }
