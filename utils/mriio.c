@@ -49,6 +49,7 @@
 #include "chklc.h"
 #include "mriColorLookupTable.h"
 #include "dicom.h"
+#include "DICOMRead.h"
 
 #define MM_PER_METER  1000.0f
 #define INFO_FNAME    "COR-.info"
@@ -105,9 +106,6 @@ static MRI *sdtRead(char *fname, int read_volume);
 static MRI *mghRead(char *fname, int read_volume, int frame) ;
 static int mghWrite(MRI *mri, char *fname, int frame) ;
 static int mghAppend(MRI *mri, char *fname, int frame) ;
-
-/********************************************/
-int DICOMRead(char *FileName, MRI **mri, int ReadImage);
 
 /********************************************/
 
@@ -360,7 +358,8 @@ static MRI *mri_read(char *fname, int type, int volume_flag, int start_frame, in
   }
   else if(type == DICOM_FILE)
   {
-    DICOMRead(fname_copy, &mri, volume_flag);
+    //DICOMRead(fname_copy, &mri, volume_flag);
+    mri = sdcmLoadVolume(fname_copy, volume_flag);
   }
   else
   {
