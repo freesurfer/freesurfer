@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: converts values on a surface to a volume
-  $Id: mri_surf2vol.c,v 1.7 2003/09/05 04:45:38 kteich Exp $
+  $Id: mri_surf2vol.c,v 1.8 2003/11/13 19:12:44 greve Exp $
 */
 
 #include <stdio.h>
@@ -42,7 +42,7 @@ static int istringnmatch(char *str1, char *str2, int n);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surf2vol.c,v 1.7 2003/09/05 04:45:38 kteich Exp $";
+static char vcid[] = "$Id: mri_surf2vol.c,v 1.8 2003/11/13 19:12:44 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -52,6 +52,7 @@ char *surfvalpath = NULL;
 char *surfvalfmt = NULL;
 int   surfvalfmtid = 0;
 char *hemi = NULL;
+char *surfname = "white";
 char *srcsubject = NULL;
 char *targsubject = NULL;
 float projfrac = 0;
@@ -96,7 +97,7 @@ int main(int argc, char **argv)
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_surf2vol.c,v 1.7 2003/09/05 04:45:38 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_surf2vol.c,v 1.8 2003/11/13 19:12:44 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -147,7 +148,7 @@ int main(int argc, char **argv)
   dump_options(stdout);
 
   /* ---------- Load the surface for source subject -------------------*/
-  sprintf(fname,"%s/%s/surf/%s.%s",subjectsdir,srcsubject,hemi,"white");
+  sprintf(fname,"%s/%s/surf/%s.%s",subjectsdir,srcsubject,hemi,surfname);
   printf("Reading surface %s\n",fname);
   SrcSurf = MRISread(fname) ;
   if (!SrcSurf)
@@ -293,20 +294,24 @@ static int parse_commandline(int argc, char **argv)
       if(nargc < 1) argnerr(option,1);
       surfvalpath = pargv[0]; nargsused = 1;
       if(nth_is_arg(nargc, pargv, 1)){
-  surfvalfmt = pargv[1]; nargsused ++;
-  surfvalfmtid = string_to_type(surfvalfmt);
+	surfvalfmt = pargv[1]; nargsused ++;
+	surfvalfmtid = string_to_type(surfvalfmt);
       }
     }
     else if (istringnmatch(option, "--srcsubject",9)){
       if(nargc < 1) argnerr(option,1);
       srcsubject = pargv[0]; nargsused = 1;
     }
+    else if (istringnmatch(option, "--surf",9)){
+      if(nargc < 1) argnerr(option,1);
+      surfname = pargv[0]; nargsused = 1;
+    }
     else if (istringnmatch(option, "--hemi",3)){
       if(nargc < 1) argnerr(option,1);
       hemi = pargv[0]; nargsused = 1;
       if(strcmp(hemi,"lh") && strcmp(hemi,"rh")){
-  printf("ERROR: hemi = %s, must be lh or rh\n",hemi);
-  exit(1);
+	printf("ERROR: hemi = %s, must be lh or rh\n",hemi);
+	exit(1);
       }
     }
     else if ( !strcmp(option, "--projfrac") ) {
@@ -321,24 +326,24 @@ static int parse_commandline(int argc, char **argv)
       if(nargc < 1) argnerr(option,1);
       outvolpath = pargv[0]; nargsused = 1;
       if(nth_is_arg(nargc, pargv, 1)){
-  outvolfmt = pargv[1]; nargsused ++;
-  outvolfmtid = string_to_type(outvolfmt);
+	outvolfmt = pargv[1]; nargsused ++;
+	outvolfmtid = string_to_type(outvolfmt);
       }
     }
     else if (istringnmatch(option, "--vtxvol",0)){
       if(nargc < 1) argnerr(option,1);
       vtxvolpath = pargv[0]; nargsused = 1;
       if(nth_is_arg(nargc, pargv, 1)){
-  vtxvolfmt = pargv[1]; nargsused ++;
-  vtxvolfmtid = string_to_type(vtxvolfmt);
+	vtxvolfmt = pargv[1]; nargsused ++;
+	vtxvolfmtid = string_to_type(vtxvolfmt);
       }
     }
     else if (istringnmatch(option, "--template",6)){
       if(nargc < 1) argnerr(option,1);
       tempvolpath = pargv[0]; nargsused = 1;
       if(nth_is_arg(nargc, pargv, 1)){
-  tempvolfmt = pargv[1]; nargsused ++;
-  tempvolfmtid = string_to_type(tempvolfmt);
+	tempvolfmt = pargv[1]; nargsused ++;
+	tempvolfmtid = string_to_type(tempvolfmt);
       }
     }
     else if ( !strcmp(option, "--dim") ) {
@@ -401,6 +406,7 @@ static void print_usage(void)
   printf("  --surfval surfvalpath <fmt>\n");
   printf("  --mkmask : make a mask instead of loading surfval\n");
   printf("  --hemi    hemisphere (lh or rh)\n");
+  printf("  --surf    surfname (default is white)\n");
   printf("  --projfrac thickness fraction \n");
   printf("  --volreg   volume registration file\n");
   printf("  --template <fmt> output like this volume <fmt>\n");
@@ -441,7 +447,12 @@ static void print_help(void)
 "\n"
 "--hemi hemisphere\n"
 "\n"
-"Hemesphere (lh or rh) that the source surface values refer to.\n"
+"Hemisphere (lh or rh) that the source surface values refer to.\n"
+"\n"
+"--surf surfname\n"
+"\n"
+"Surface to use as found in surf directory. The actual surface file\n"
+"name will be hemi.surfname. Default is white.\n"
 "\n"
 "--projfrac fraction\n"
 "\n"
