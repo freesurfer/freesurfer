@@ -5,8 +5,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2004/01/27 21:07:35 $
-// Revision       : $Revision: 1.27 $
+// Revision Date  : $Date: 2004/02/09 21:55:13 $
+// Revision       : $Revision: 1.28 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -120,7 +120,7 @@ main(int argc, char *argv[])
   int    modified;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_ms_fitparms.c,v 1.27 2004/01/27 21:07:35 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ms_fitparms.c,v 1.28 2004/02/09 21:55:13 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -1383,12 +1383,12 @@ MRIsadd(MRI *mri1, MRI *mri2, MRI *mri_dst)
 static void
 estimate_rigid_regmatrix(MRI *mri_source, MRI *mri_target, MATRIX *M_reg)
 {
-  double   xf, yf, zf, tx, ty, tz, ax, ay, az, ca, sa, val1, val2, err, sse, best_sse, dt=0.01, da=RADIANS(0.005), tol=0.00001;
+  double   xf, yf, zf, tx, ty, tz, ax, ay, az, ca, sa, val1, val2, err, sse, best_sse, dt=0.1, da=RADIANS(0.025), tol=0.00001;
   int      x, y, z, txi, tyi, tzi, axi, ayi, azi, indx, stepindx, changed, pass;
   int      width=mri_source->width, height=mri_source->height, depth=mri_source->depth, dx=10, dy=10, dz=10, nvalues;
 #if 1
 /*
-  int      nstep=6, step[6]={32,16,8,4,2,1}, scale;
+  int      nstep=10, step[10]={512, 256, 128, 64, 32,16,8,4,2,1}, scale;
 */
   int      nstep=5, step[5]={16,8,4,2,1}, scale;
 #else
@@ -1542,7 +1542,7 @@ estimate_rigid_regmatrix(MRI *mri_source, MRI *mri_target, MATRIX *M_reg)
       }
      
     }
-    printf("step %d: sse = %f (%f)\n",stepindx,sse,sqrt(sse));
+    printf("step %d (dx=%2.1f, da=%2.1f): sse = %f (%f)\n",stepindx,tx, DEGREES(ax), sse,sqrt(sse));
   }
   MatrixCopy(M_reg_opt, M_reg);
 }
