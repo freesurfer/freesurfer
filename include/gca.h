@@ -109,6 +109,12 @@ float  GCAcomputeLogSampleProbability(GCA *gca, GCA_SAMPLE *gcas,
 float  GCAcomputeLogSampleProbabilityUsingCoords(GCA *gca, GCA_SAMPLE *gcas, 
                                       MRI *mri_inputs,
                                       MATRIX *m_L,int nsamples);
+float  GCAnormalizedLogSampleProbability(GCA *gca, GCA_SAMPLE *gcas, 
+                                      MRI *mri_inputs,
+                                      MATRIX *m_L,int nsamples);
+int   GCAremoveOutlyingSamples(GCA *gca, GCA_SAMPLE *gcas, 
+                                      MRI *mri_inputs,
+                                      MATRIX *m_L,int nsamples, float nsigma);
 int   GCArankSamples(GCA *gca, GCA_SAMPLE *gcas, int nsamples, 
                      int *ordered_indices) ;
 MRI  *GCAanneal(MRI *mri_inputs, GCA *gca, MRI *mri_dst,LTA *lta, 
