@@ -4,12 +4,12 @@
 // mri_watershed.cpp
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2003/04/16 18:58:19 $
-// Revision       : $Revision: 1.15 $
+// Revision Author: $Author: tosa $
+// Revision Date  : $Date: 2003/04/16 19:51:18 $
+// Revision       : $Revision: 1.16 $
 //
 ////////////////////////////////////////////////////////////////////
-char *MRI_WATERSHED_VERSION = "$Revision: 1.15 $";
+char *MRI_WATERSHED_VERSION = "$Revision: 1.16 $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -38,7 +38,6 @@ extern "C" {
 #include "timer.h"
 #include "chklc.h"
 #include "diag.h"
-#include "mri_transform.h"
 #include "version.h"
 }
 
@@ -543,7 +542,7 @@ int main(int argc, char *argv[])
   /************* Command line****************/
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_watershed.cpp,v 1.15 2003/04/16 18:58:19 kteich Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_watershed.cpp,v 1.16 2003/04/16 19:51:18 tosa Exp $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -2525,7 +2524,7 @@ static int PostAnalyze(STRIP_PARMS *parms,MRI_variables *MRI_var)
     find a complement limited to 2*estimated size...*/
 
 
-  if (MRI_var->main_basin_size<MRI_var->estimated_size/5)
+  if (MRI_var->main_basin_size < MRI_var->estimated_size/5)
   {
     fprintf(stderr,"\n      Main basin size probably too small..."
             "looking for complement...");
@@ -7236,7 +7235,7 @@ void calcForce1(double &fST, double &fSN, double &fN,
   ////////////////////////////////////////////////////////////////
   // Vn force calculation  : force
   force2=-1;
-  for (h= -noutside;h<0;h++)
+  for (h=-noutside;h<0;h++) // up to 15 voxels inside 
   {
     // look at outside side voxels (h < 0) of the current position
     MRIworldToVoxel(mri_var->mri_src,(x-nx*h),
@@ -7253,7 +7252,7 @@ void calcForce1(double &fST, double &fSN, double &fN,
   
   ///////////////////////////////////////////////////////////////
   force3 = 1;
-  for (h=1;h<ninside;h++)
+  for (h=1;h<ninside;h++) // 10 voxels outside
   {
     // look at inside voxes (h > 0) of the current position
     MRIworldToVoxel(mri_var->mri_src,
