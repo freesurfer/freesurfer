@@ -15,7 +15,7 @@
 #include "utils.h"
 #include "timer.h"
 
-static char vcid[]="$Id: mris_sphere.c,v 1.13 1999/03/23 23:27:27 fischl Exp $";
+static char vcid[]="$Id: mris_sphere.c,v 1.14 1999/04/06 18:47:20 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -163,9 +163,12 @@ main(int argc, char *argv[])
   {
     if (!load)
     {
-      parms.n_averages = 32 ; parms.tol = .1 ;
-      MRISprintTessellationStats(mris, stderr) ;
+#if 0
+      parms.n_averages = 32 ;
+      parms.tol = .1 ;
       parms.l_parea = parms.l_dist = 0.0 ; parms.l_nlarea = 1 ; 
+#endif
+      MRISprintTessellationStats(mris, stderr) ;
       MRISquickSphere(mris, &parms, max_passes) ;  
     }
 #if 0
@@ -383,9 +386,8 @@ get_option(int argc, char *argv[])
     nbrs = 1 ;
     parms.l_spring = parms.l_dist = parms.l_parea = parms.l_area = 0.0 ; 
     parms.l_nlarea = 1.0 ;
-    parms.tol = .25 ;
-    parms.nbhd_size = 7 ; parms.max_nbrs = 8 ;
-    parms.n_averages = 1024 ;
+    parms.tol = 1e-2 ;
+    parms.n_averages = 32 ;
     /*    parms.tol = 10.0f / (sqrt(33.0/1024.0)) ;*/
     break ;
   case 'L':
