@@ -6,8 +6,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2003/12/17 18:29:20 $
-// Revision       : $Revision: 1.1 $
+// Revision Date  : $Date: 2004/02/12 16:19:07 $
+// Revision       : $Revision: 1.2 $
 
 
 #include "talairachex.h"
@@ -41,7 +41,9 @@ int ModifyTalairachCRAS(MRI *mri_tal, const LTA *lta)
 	{
 	  // use average_305 value
 	  fprintf(stderr, 
-	  "INFO: Modifying talairach volume c_(r,a,s) based on average_305\n");
+		  "INFO: Modifying talairach volume c_(r,a,s) based on average_305.\n");
+	  fprintf(stderr,
+		  "INFO: If not preferred, set environmental varible NO_AVERAGE305 true.\n");
 	  mri_tal->c_r = -0.095;
 	  mri_tal->c_a = -16.51;
 	  mri_tal->c_s =   9.75;
@@ -272,6 +274,8 @@ MRI *
 MRItoTalairachEx(MRI *mri_src, MRI *mri_tal, const LTA *lta)
 {
   MATRIX *voxToTalvoxel = MtalVoxelFromVoxel(mri_src, lta);
+  fprintf(stderr, "voxel to talairach voxel transform\n");
+  MatrixPrint(stderr, voxToTalvoxel);
   if (!mri_tal)
   {
     mri_tal = MRIclone(mri_src, NULL) ; // data is not copied
@@ -289,7 +293,8 @@ MRI *
 MRIfromTalairachEx(MRI * mri_tal, MRI *mri_dst, const LTA *lta)
 {
   MATRIX *talVoxelToVoxel = MvoxelFromTalVoxel(mri_dst, lta);
-
+  fprintf(stderr, "talairach voxel to voxel transform\n");
+  MatrixPrint(stderr, talVoxelToVoxel);
   if (!mri_dst)
   {
     ErrorExit(ERROR_BADPARM, "%s: Needs target volume to recover c_(ras)", Progname) ;    
