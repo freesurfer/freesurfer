@@ -4,8 +4,8 @@
 /* date       :8/27/2003                  */
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2003/08/29 16:44:42 $
-// Revision       : $Revision: 1.1 $
+// Revision Date  : $Date: 2003/09/02 16:01:14 $
+// Revision       : $Revision: 1.2 $
 
 // there are many files present in Bruker directory
 //
@@ -24,7 +24,7 @@
 //           procs  ... ???
 //           roi    ... ???
 //
-char *BRUCKER_C_VERSION= "$Revision: 1.1 $";
+char *BRUCKER_C_VERSION= "$Revision: 1.2 $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -239,6 +239,7 @@ MRI* readBrukerMethod(char *methodFile, char *d3procFile)
   int nframes=0;
   int lDim=0;
   int lRead=0;
+  int width2, height2, depth2;
 
   if (!readBrukerD3proc(d3procFile, &width, &height, &depth, &type, &nframes))
     return (MRI *) 0;
@@ -273,10 +274,10 @@ MRI* readBrukerMethod(char *methodFile, char *d3procFile)
 	return 0;
       }
       if (lDim == 3)
-	lRead = sscanf(line,"%d %d %d", &height, &width, &depth);
+	lRead = sscanf(line,"%d %d %d", &height2, &width2, &depth2);
       else if (lDim == 2)
       {
-	lRead = sscanf(line,"%d %d", &height, &width);
+	lRead = sscanf(line,"%d %d", &height2, &width2);
 	depth = 3;
       }
     }
@@ -315,6 +316,10 @@ MRI* readBrukerMethod(char *methodFile, char *d3procFile)
 
   if (width > 0 && height > 0 && depth > 0)
   {
+    if (width != width2 || height != height2 || depth != depth2)
+      fprintf(stderr, "d3proc and method size differed: d3proc (%d,%d,%d) while method (%d,%d,%d)\n",
+	      width, height, depth, width2, height2, depth2);
+
     mri = MRIalloc(width, height, depth, type);
 
     // get real sizes
