@@ -21,6 +21,7 @@
 #include "error.h"
 #include "macros.h"
 #include "gclass.h"
+#include "proto.h"
 
 /*-----------------------------------------------------
                     MACROS AND CONSTANTS
@@ -91,6 +92,28 @@ GCalloc(int nclasses, int nvars, char *class_names[])
                    "GFalloc(%d): could not allocated %d x 1 mean vector"
                    "for %dth class", nclasses, nvars, cno)) ;
     }
+    gcl->m_W = MatrixAlloc(nvars,nvars,MATRIX_REAL);
+    if (!gcl->m_W)
+    {
+      GCfree(&gc) ;
+      ErrorReturn(NULL, 
+                  (ERROR_NO_MEMORY, 
+                   "GFalloc(%d): could not allocated %d x %d matrix"
+                   "for %dth class", nclasses, nvars, nvars, cno)) ;
+    }
+#if 1
+    gcl->m_wT = 
+      MatrixAlloc(gcl->m_u->cols, gcl->m_covariance->rows, MATRIX_REAL);
+    if (!gcl->m_wT)
+    {
+      GCfree(&gc) ;
+      ErrorReturn(NULL, 
+                  (ERROR_NO_MEMORY, 
+                   "GFalloc(%d): could not allocated %d x %d matrix"
+                   "for %dth class", nclasses, gcl->m_u->cols, 
+                   gcl->m_covariance->rows, cno)) ;
+    }
+#endif
     if (class_names)
       strncpy(gcl->class_name, class_names[cno], 29) ;
     else
@@ -131,7 +154,7 @@ GCtrain(GCLASSIFY *gc, int class, MATRIX *m_inputs)
     MatrixMakeDiagonal(gcl->m_covariance, gcl->m_covariance) ;
 
   det = MatrixDeterminant(gcl->m_covariance);
-  if (FZERO(det))  /* matrix is ill-conditioned */
+  if (FZERO(det))  /* matrix is singular or ill-conditioned */
     return(NO_ERROR) ;
 
   m_sigma_inverse = MatrixInverse(gcl->m_covariance, NULL) ;
@@ -139,9 +162,9 @@ GCtrain(GCLASSIFY *gc, int class, MATRIX *m_inputs)
     m_sigma_inverse = MatrixIdentity(gc->nvars, NULL) ;
   m_uT = MatrixTranspose(gcl->m_u, NULL) ;
   det = MatrixDeterminant(gcl->m_covariance) ;
-  gcl->m_W = MatrixScalarMul(m_sigma_inverse, -0.5f, NULL) ;
+  gcl->m_W = MatrixScalarMul(m_sigma_inverse, -0.5f, gcl->m_W) ;
   m_tmp = MatrixMultiply(m_sigma_inverse, gcl->m_u, NULL) ;
-  gcl->m_wT = MatrixTranspose(m_tmp, NULL) ;
+  gcl->m_wT = MatrixTranspose(m_tmp, gcl->m_wT) ;
   MatrixFree(&m_tmp) ;
   m_tmp = MatrixMultiply(m_sigma_inverse, gcl->m_u, NULL) ;
   m_tmp2 = MatrixMultiply(m_uT, m_tmp, NULL) ;
@@ -246,7 +269,11 @@ fprintf(stdout, "GCclassify(%2.3f)\n", m_x->rptr[1][1]) ;
   for (cno = 0 ; cno < gc->nclasses ; cno++)
   {
     gcl = &gc->classes[cno] ;
-    if (!gcl->m_W)    /* covariance matrix was ill-conditioned */
+#if 1
+    if (gcl->nobs <= gc->nvars)    /* covariance matrix was ill-conditioned */
+#else
+    if (!gcl->m_W || !gcl->m_wT)
+#endif
     {
       gc->log_probabilities[cno] = -10000.0f ;
       continue ;
@@ -281,5 +308,110 @@ fprintf(stdout, "class %d: log(p) = %2.3f + %2.3f + %2.3f = %2.3f\n",
   if (m_tmp3)
     MatrixFree(&m_tmp3) ;
   return(class) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+          save a classifier to disk in an already opened file
+------------------------------------------------------*/
+int
+GCasciiWriteInto(FILE *fp, GCLASSIFY *gc)
+{
+  int classno ;
+  
+  fprintf(fp, "%d %d %d\n", gc->nclasses, gc->nvars, gc->type) ;
+  for (classno = 0 ; classno < gc->nclasses ; classno++)
+    GCasciiWriteClassInto(fp, &gc->classes[classno]) ;
+
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+           read a classifier from disk in ASCII format from
+           an already opened file.
+------------------------------------------------------*/
+GCLASSIFY *
+GCasciiReadFrom(FILE *fp, GCLASSIFY *gc)
+{
+  int        classno, nclasses, nvars, type ;
+  
+  if (fscanf(fp, "%d %d %d\n", &nclasses, &nvars, &type) != 3)
+    ErrorReturn(NULL,
+                (ERROR_BADFILE, "GCasciiReadFrom: could not scan parms")) ;
+
+  if (!gc)
+  {
+    gc = GCalloc(nclasses, nvars, NULL) ;
+    if (!gc)
+      ErrorReturn(NULL,
+                  (ERROR_BADFILE, "GCasciiReadFrom: GCalloc failed")) ;
+  }
+  else
+    if ((gc->nclasses != nclasses) || (gc->nvars != nvars))
+        ErrorReturn(NULL,
+                  (ERROR_BADPARM, 
+                   "GCasciiReadFrom: specified classifier is of wrong form"));
+
+  for (classno = 0 ; classno < gc->nclasses ; classno++)
+    GCasciiReadClassFrom(fp, &gc->classes[classno]) ;
+
+  return(gc) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+          write a single class to disk in ascii format
+------------------------------------------------------*/
+int 
+GCasciiWriteClassInto(FILE *fp, GCLASS *gcl)
+{
+  fprintf(fp, "%d %f %d\n", gcl->classno, gcl->w0, gcl->nobs) ;
+  fprintf(fp, "%s\n", gcl->class_name) ;
+  MatrixAsciiWriteInto(fp, gcl->m_covariance) ;
+  MatrixAsciiWriteInto(fp, gcl->m_u) ;
+  MatrixAsciiWriteInto(fp, gcl->m_W) ;
+  MatrixAsciiWriteInto(fp, gcl->m_wT) ;
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+           read a single class from disk in ascii format
+------------------------------------------------------*/
+GCLASS *
+GCasciiReadClassFrom(FILE *fp, GCLASS *gcl)
+{
+  char class_name[CLASS_NAME_LEN], *cp ;
+
+  if (fscanf(fp, "%d %f %d\n", &gcl->classno, &gcl->w0, &gcl->nobs) != 3)
+    ErrorReturn(NULL,
+                (ERROR_BADFILE, 
+                 "GCasciiReadClassFrom: could not scan parms from file")) ;
+
+  if ((cp = fgetl(class_name, CLASS_NAME_LEN-1, fp)) == NULL)
+    ErrorReturn(NULL,
+                (ERROR_BADFILE, 
+                 "GCasciiReadClassFrom: could not scan class name from file"));
+  strcpy(gcl->class_name, cp) ;
+
+  /* some of these matrices may already be allocated */
+  gcl->m_covariance = MatrixAsciiReadFrom(fp, gcl->m_covariance) ;
+  gcl->m_u = MatrixAsciiReadFrom(fp, gcl->m_u) ;
+  gcl->m_W = MatrixAsciiReadFrom(fp, gcl->m_W) ;
+  gcl->m_wT = MatrixAsciiReadFrom(fp, gcl->m_wT) ;
+  return(gcl) ;
 }
 
