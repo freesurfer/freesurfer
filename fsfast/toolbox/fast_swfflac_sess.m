@@ -5,7 +5,9 @@ tic;
 % flacfile = '~/links/sg1/xval/flac/sem_assoc.flac';
 % sesspath = '~/links/sg1/xval/dng';
 % outfspec  = 'fmcsm5-swf-bh';
+% contrast
 % alpha = 0.5;
+% pthresh = -log10(sigthreshold) regularization
 % ytikreg = .1 % Tikhonov regularization parameter
 % synthtarg = 0; % Synth target data with WGN
 % okfile = '/tmp/ok.ok';
@@ -13,7 +15,13 @@ tic;
 % These may or may not be defined
 % rcslist = [49 34 14 24 50 14]; % 1-based
 % targflacfile = '~/links/sg1/xval/flac/rest.flac';
-% contrast
+% 
+
+fprintf('contrast = %s\n',contrast);
+fprintf('alpha = %g\n',alpha);
+fprintf('pthresh = %g (%g)\n',pthresh,10^(-pthresh));
+fprintf('ytkreg = %g\n',ytikreg);
+fprintf('synthtarg = %g\n',synthtarg);
 
 % Delete the okfile, if it exists
 tmp = sprintf('rm -f %s',okfile);
@@ -40,13 +48,10 @@ fprintf('Starting session %s (%6.1f)\n',flac.sess,toc);
 fprintf('flac = %s, nruns = %d (%g)\n',flac.name,nruns,toc);    
 fprintf('outfspec = %s\n',outfspec);
 
-if(~exist('contrast','var')) contrast = []; end
-if(~isempty(contrast))
-  contrastind = flac_conindex(contrast,flac);
-  if(isempty(contrastind))
-    fprintf('ERROR: contrast %s not found in flac\n',contrast);
-    return;
-  end
+contrastind = flac_conindex(contrast,flac);
+if(isempty(contrastind))
+  fprintf('ERROR: contrast %s not found in flac\n',contrast);
+  return;
 end
 
 % Handle when the target flac is diff than source
@@ -74,9 +79,11 @@ if(isempty(mask)) return; end
 indmask = find(mask.vol);
 Nvmask = length(indmask);
 indnotmask = find(~mask.vol);
+nv = prod(mask.volsize);
 
 % Go through each run
 for jthrun = 1:nruns
+  fprintf('\n\n');
   fprintf('Processing jth run %d (%6.1f)\n',jthrun,toc);
   jflac = targflac;
   jflac.nthrun = jthrun;
@@ -89,6 +96,8 @@ for jthrun = 1:nruns
   jX = jflac.X;
 
   % Go through each run but leave out the jth
+  conmask = mask;
+  conmask.vol = zeros(conmask.volsize);
   rjk = [];
   sjk = [];
   for kthrun = 1:nruns
@@ -119,19 +128,36 @@ for jthrun = 1:nruns
     beta.vol = fast_vol2mat(beta.vol);
     beta.vol = beta.vol(:,indmask);
 
-    % Simulate the signal
-    if(isempty(contrast))
-      % Use all the task-related components
-      srun = jX(:,indtask)*beta.vol(indtask,:); 
-    else
-      % Project into the contrast subspace
-      C = flac.con(contrastind).C;
-      srun = (jX*C'*C)*beta.vol;
-    end
+    % Project into the contrast subspace
+    C = flac.con(contrastind).C;
+    srun = (jX*C'*C)*beta.vol;
+
     sjk = [sjk; srun];
     clear srun beta;
     
+    confspec = sprintf('%s/%s/fla/%s/%s/%s/fsig',kflac.sess,kflac.fsd,...
+		       kflac.name,kflac.runlist(kflac.nthrun,:),...
+		       kflac.con(contrastind).name);
+    con = MRIread(confspec);
+    if(isempty(con)) 
+      if(~monly) quit; end
+      return;
+    end
+    conmask.vol = conmask.vol | (abs(con.vol) > pthresh);
+
   end
+  conmask.vol = conmask.vol & mask.vol;
+  indconmask = find(conmask.vol);
+  Nvconmask = length(indconmask);
+  fprintf('  nvconmask = %d (%g%%)\n',Nvconmask,100*Nvconmask/Nvmask);
+  if(Nvconmask == 0)
+    fprintf('ERROR: no voxels in the contrast mask\n');
+    if(~monly) quit; end; return;
+  end
+  indconmaskout = find(~conmask.vol(indmask));
+  
+  % Set signal voxels to 0 if they do not meet threshold
+  sjk(:,indconmaskout) = 0;
   
   % Compute the expected observable
   yjk = sjk + rjk;
@@ -192,11 +218,25 @@ for jthrun = 1:nruns
   % Weight by alpha and add original data weighted by 1-alpha
   yswf = alpha*yswf + (1-alpha)*y.vol(:,indmask);
 
-  % Divide by 1-alpha. This is just a scaling factor that will
-  % have no affect on the final analysis, but it will make the
-  % ranges of values more similar to the original which facilitates
-  % comparison.
-  if(alpha < 1) yswf = yswf/(1-alpha); end
+  % This computes a global scaling factor base on the variance of the
+  % best-fit signal. This will have no effect the final functional
+  % analysis, but it will make the ranges of values before and after
+  % SWF more similar which facilitates comparison.
+  Ctask = eye(size(jX,2));
+  Ctask = Ctask(indtask,:);
+  [b0 rvar0 vdof0] = fast_glmfitw(y.vol(:,indmask),jX);
+  [F0 dof10 dof20] = fast_fratiow(b0,jX,rvar0,Ctask);
+  p0 = FTest(dof10, dof20, F0);
+  ind0 = find(p0 < .01);
+  if(isempty(ind0)) ind0 = [1:length(indmask)]; end
+  s0 = jX(:,indtask)*b0(indtask,ind0);
+  bswf = (inv(jX'*jX)*jX')*yswf(:,ind0);
+  sswf = jX(:,indtask)*bswf(indtask,:);
+  a0 = mean(std(s0),2);
+  aswf = mean(std(sswf),2);
+  gscale = a0/aswf;
+  fprintf('  a0 = %g, aswf = %g, gscale = %g\n',a0,aswf,gscale);
+  yswf = yswf*gscale;
   
   % Set mean to be the same as the original
   ymn = mean(y.vol(:,indmask));  
@@ -244,7 +284,7 @@ for jthrun = 1:nruns
     % outward projection).
     yrcsswf = ((yrcs(:,indmask)*Vy)*((inv(Sy.^2)*(Vy'*Vs)*(Ss.^2))))*Vs';
     yrcsswf = alpha*yrcsswf + (1-alpha)*yrcs(:,indmask);    
-    if(alpha < 1) yrcsswf = yrcsswf/(1-alpha); end
+    yrcsswf = gscale*yrcsswf;
   
     % Rescale so that the voxel of interest has a weight of 100, then
     % set the weight at the voxel of interest to 0, otherwise won't be
@@ -276,7 +316,7 @@ for jthrun = 1:nruns
     yrcsswf = Vy*((inv(Sy.^2)*(Vy'*Vs)*(Ss.^2)))*(Vs'*yrcs(:,indmask)');
     yrcsswf = yrcsswf';
     yrcsswf = alpha*yrcsswf + (1-alpha)*yrcs(:,indmask);    
-    if(alpha < 1) yrcsswf = yrcsswf/(1-alpha); end
+    yrcsswf = gscale*yrcsswf;
   
     % Rescale so that the voxel of interest has a weight of 100, then
     % set the weight at the voxel of interest to 0, otherwise won't be
@@ -306,7 +346,8 @@ for jthrun = 1:nruns
   clear y yswf yhat;
 
 end
-
+fprintf('\n\n');
+  
 fmri_touch(okfile);
 fprintf('Done for session %s (%6.1f)\n',flac.sess,toc);    
 
