@@ -1,13 +1,16 @@
 #!/bin/tcsh -f
 # tdr-fidmat
 
-set VERSION = '$Id: tdr-recon,v 1.10 2004/04/13 22:03:51 greve Exp $';
+set VERSION = '$Id: tdr-recon,v 1.11 2005/03/19 00:36:50 greve Exp $';
 
 set inputargs = ($argv);
 
 set rawkdir    = ();
 set rcolmat    = ();
 set outstem    = ();
+set phstem     = ();
+set realstem   = ();
+set imagstem   = ();
 set bhdrfile   = ();
 set nechoes    = ();
 set nthecho    = ();
@@ -17,6 +20,7 @@ set fidstem    = ();
 set cleanup    = 1;
 set convmdh    = 1;
 set fixpedrift = 1;
+set fitpedrift = 1;
 set nslices    = ();
 set npcns      = 3;
 
@@ -85,6 +89,13 @@ if($status) then
   exit 1;
 endif
 set nrows = $tmp;
+
+set tmp = `parse-measasc $epimeasasc "nslices"`
+if($status) then
+  echo "$tmp"| tee -a $LF
+  exit 1;
+endif
+set nslices = $tmp;
 
 set tmp = `parse-measasc $epimeasasc "m_lEchoSpacing"`
 if($status) then
@@ -182,8 +193,12 @@ tee -a > /dev/null $MLF  <<EOF
   rcolmatfile = '$rcolmat';
   usefid = $usefid;
   fixpedrift = $fixpedrift;
+  fitpedrift = $fitpedrift;
   nframes = $nframesrecon;
   funcstem = '$funcstem';
+  phstem   = '$phstem';
+  realstem = '$realstem';
+  imagstem = '$imagstem';
   fidstem  = '$fidstem';
   bhdrfile = '$bhdrfile';
   tDwell     = $epitdwell; % usec
@@ -263,6 +278,21 @@ while( $#argv != 0 )
       set outstem = $argv[1]; shift;
       breaksw
 
+    case "--ph":
+      if ( $#argv == 0) goto arg1err;
+      set phstem = $argv[1]; shift;
+      breaksw
+
+    case "--real":
+      if ( $#argv == 0) goto arg1err;
+      set realstem = $argv[1]; shift;
+      breaksw
+
+    case "--imag":
+      if ( $#argv == 0) goto arg1err;
+      set imagstem = $argv[1]; shift;
+      breaksw
+
     case "--fid":
       if ( $#argv == 0) goto arg1err;
       set fidstem = $argv[1]; shift;
@@ -288,6 +318,10 @@ while( $#argv != 0 )
       set fixpedrift = 0;
       breaksw
 
+    case "--nofitpedrift":
+      set fitpedrift = 0;
+      breaksw
+
     case "--nocleanup":
       set cleanup = 0;
       breaksw
@@ -298,7 +332,7 @@ while( $#argv != 0 )
 
     case "--noconvmdh":
       set convmdh = 0;
-      set cleanup = 1;
+      set cleanup = 0;
       breaksw
 
     case "--debug":
@@ -392,9 +426,9 @@ usage_exit:
   echo "  --rcol    rcolmat : as created by tdr-rcolmat"
   echo "  --echo    nthecho : echo to recon (starting at 1)"
   echo "  --nechoes nechoes : number of echos in raw data"
-  echo "  --nslices nslices : number of slices"
   echo "  --notdr   don't compensate for distortion"
   echo "  --nofixpedrift  don't compensate for PE drift"
+  echo "  --nofitpedrift  don't fit PE drift to quadradic"
   echo "  --nframesrecon nframesrecon : only recon this number of frames"
   echo "  --o       outstem : bfloat output"
   echo "  --fid     fidstem : save first echo of fid as an anatomical"
