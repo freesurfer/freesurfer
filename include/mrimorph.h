@@ -146,7 +146,6 @@ int           MRIeraseNeck(MRI *mri, NECK_PARMS *np) ;
 
 #define M3D_MAGIC  0xabcdef42
 
-#define DEFAULT_IMAGE_SIZE       400
 extern int IMAGE_SIZE ;
 
 #endif
