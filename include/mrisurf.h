@@ -439,6 +439,7 @@ int          MRISwritePatchAscii(MRI_SURFACE *mris, char *fname) ;
 int          MRISwriteDists(MRI_SURFACE *mris, char *fname) ;
 int          MRISwriteCurvature(MRI_SURFACE *mris, char *fname) ;
 int          MRISreadNewCurvatureFile(MRI_SURFACE *mris, char *fname) ;
+int          MRISrectifyCurvature(MRI_SURFACE *mris) ;
 int          MRISnormalizeCurvature(MRI_SURFACE *mris) ;
 int          MRISnormalizeCurvatureVariance(MRI_SURFACE *mris) ;
 int          MRISzeroMeanCurvature(MRI_SURFACE *mris) ;
