@@ -40,7 +40,7 @@
 ----------------------------------------------------------------------*/
 void 
 mri_event_handler(XV_FRAME *xvf,int depth,MRI *mri,Event *event,DIMAGE *dimage,
-                  int view)
+                  int view, int *px, int *py, int *pz)
 {
   int       x, y, z ;
   Real      xr, yr, zr ;
@@ -64,17 +64,26 @@ mri_event_handler(XV_FRAME *xvf,int depth,MRI *mri,Event *event,DIMAGE *dimage,
       Y=0 is the neck/brain stem
       */
     x = event_x(event) ;
-    y = mri->height - (event_y(event)+1) ;
+    if (xvf->ydir < 0)
+      y = mri->height - (event_y(event)+1) ;
+    else
+      y = event_y(event) ;
     z = depth - mri->imnr0 ;
     break ;
   case MRI_HORIZONTAL:
     x = event_x(event) ;
     y = depth - mri->imnr0 ;
-    z = mri->height - (event_y(event)+1) ;
+    if (xvf->ydir < 0)
+      z = mri->height - (event_y(event)+1) ;
+    else
+      z = event_y(event) ;
     break ;
   case MRI_SAGITAL:
     x = depth - mri->imnr0 ;
-    y = mri->height - (event_y(event)+1) ;
+    if (xvf->ydir < 0)
+      y = mri->height - (event_y(event)+1) ;
+    else
+      y = event_y(event) ;
     z = event_x(event) ;
     break ;
   }
@@ -118,4 +127,76 @@ mri_event_handler(XV_FRAME *xvf,int depth,MRI *mri,Event *event,DIMAGE *dimage,
     }
     break ;
   }
+  if (px)
+    *px = x ;
+  if (py)
+    *py = y ;
+  if (pz)
+    *pz = z ;
 }
+void
+XVMRIdrawPoint(XV_FRAME *xvf, int which, int view, int depth, MRI *mri,
+               int x,int y,int z,int color)
+{
+  int xi, yi ;
+
+  switch (view)
+  {
+  default:
+  case MRI_CORONAL:
+    /*
+      Z=0 is the back of the head,
+      X=0 is the right side of the head
+      Y=0 is the neck/brain stem
+      */
+    xi = x ;
+    yi = y ;
+    break ;
+  case MRI_HORIZONTAL:
+    xi = x ;
+    yi = z ;
+    break ;
+  case MRI_SAGITAL:
+    xi = z ;
+    yi = y ;
+    break ;
+  }
+  XVdrawPoint(xvf, which, xi, yi, color) ;
+}
+
+void
+XVMRIdrawRegion(XV_FRAME *xvf, int which, int view, int depth, MRI *mri,
+                MRI_REGION *reg, int color)
+{
+  int xi, yi, dx, dy ;
+
+  switch (view)
+  {
+  default:
+  case MRI_CORONAL:
+    /*
+      Z=0 is the back of the head,
+      X=0 is the right side of the head
+      Y=0 is the neck/brain stem
+      */
+    xi = reg->x ;
+    yi = reg->y ;
+    dx = reg->dx ;
+    dy = reg->dy ;
+    break ;
+  case MRI_HORIZONTAL:
+    xi = reg->x ;
+    yi = reg->z ;
+    dx = reg->dx ;
+    dy = reg->dz ;
+    break ;
+  case MRI_SAGITAL:
+    xi = reg->z ;
+    dx = reg->dz ;
+    yi = reg->y ;
+    dy = reg->dy ;
+    break ;
+  }
+  XVdrawBox(xvf, which, xi, yi, dx, dy, color) ;
+}
+
