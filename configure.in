@@ -212,22 +212,22 @@ AC_MSG_CHECKING(CPU optimization ...)
 # now set the flag
 case "$CPUTYPE" in 
   pentium3) 
-     CPUFLAGS="-march=pentium3 -msse -mfpmath=sse"
+     CPUFLAGS="-march=pentium3"
      ;;
   pentium4)
-     CPUFLAGS="-march=pentium4 -msse2 -mfpmath=sse"
+     CPUFLAGS="-march=pentium4"
      ;;
   athlonxp)
-     CPUFLAGS="-march=pentium3 -msse -mfpmath=sse"
+     CPUFLAGS="-march=pentium3"
      ;;	
   opteron)
-     CPUFLAGS="-march=x86-64 -msse2"
+     CPUFLAGS="-march=x86-64"
      ;;
   athlon64)
-     CPUFLAGS="-march=x86-64 -msse2"
+     CPUFLAGS="-march=x86-64"
      ;;
   athlon-fx)
-     CPUFLAGS="-march=x86-64 -msse2"
+     CPUFLAGS="-march=x86-64"
      ;;
   G4)
      CPUFLAGS="-mtune=G4 -mcpu=G4 -faltivec"
