@@ -110,7 +110,7 @@ int   MRIpeak(MRI *mri, int *px, int *py, int *pz) ;
 int   MRIcopyHeader(MRI *mri_src, MRI *mri_dst) ;
 MRI   *MRIcopy(MRI *mri_src, MRI *mri_dst) ;
 MRI   *MRIreslice(MRI *mri_src, MRI *mri_dst, int slice_direction) ;
-int   MRIboundingBox(MRI *mri, int thresh, BOX *box) ;
+int   MRIboundingBox(MRI *mri, int thresh, MRI_REGION *region) ;
 
 /* coordinate transforms */
 MRI   *MRItranslate(MRI *mri_src, MRI *mri_dst, int dx, int dy, int dz) ;

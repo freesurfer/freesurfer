@@ -5,19 +5,18 @@
 #include "backprop.h"
 #include "gclass.h"
 #include "artmap.h"
-#include "box.h"
 #include "mri.h"
 
-#define GAUSSIAN_NCLASSES    4
-#define BACKGROUND           0
-#define GREY_MATTER          1
-#define WHITE_MATTER         2
-#define BRIGHT_MATTER        3
-#define LO_LIM               70
-#define HI_LIM               150
+#define GAUSSIAN_NCLASSES      4
+#define BACKGROUND             0
+#define GREY_MATTER            1
+#define WHITE_MATTER           2
+#define BRIGHT_MATTER          3
+#define LO_LIM                 70
+#define HI_LIM                 150
+#define DEFINITELY_BACKGROUND  50
 
-#define MAX_INPUTS           4
-
+#define MAX_INPUTS             10
 
 /* bitfield of feature types */
 #define FEATURE_INTENSITY      0x00001
@@ -62,19 +61,13 @@ MRIC   *MRICread(char *fname) ;
 int    MRICwrite(MRIC *mric, char *fname) ;
 MRI    *MRICclassify(MRIC *mric, MRI *mri_src, 
                      MRI *mri_dst, float conf,MRI *mri_probs,MRI *mri_classes);
-int    MRICupdateMeans(MRIC *mric, int round, 
-                       MRI *mri_src, MRI *mri_target, BOX *bbox) ;
-int    MRICcomputeMeans(MRIC *mric, int round) ;  
-int    MRICupdateCovariances(MRIC *mric, int round, MRI *mri_src, 
-                             MRI *mri_target, BOX *bbox) ;
-int    MRICcomputeCovariances(MRIC *mric, int round) ;
 int    MRICcomputeInputs(MRI *mri, int x,int y,int z,float *obs, int features);
 MRI    *MRICbuildTargetImage(MRI *mri_src, MRI *mri_target, MRI *mri_wm,
                              int lo_lim, int hi_lim) ;
 MRI    *MRICupdatePriors(MRI *mri_target, MRI *mri_priors, int scale) ;
 int    MRInormalizePriors(MRI *mri_priors) ;
 int    MRICupdateStatistics(MRIC *mric, int round, MRI *mri_src, 
-                            MRI *mri_target, BOX *box) ;
+                            MRI *mri_target, MRI_REGION *box) ;
 int    MRICcomputeStatistics(MRIC *mric, int round) ;
 
 #endif
