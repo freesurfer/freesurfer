@@ -86,14 +86,11 @@
 **	and convert the object to and from its "stream" representation.
 **	In addition, the package can parse a file which contains a stream
 **	and create its internal object.
-** Last Update:		$Author: tosa $, $Date: 2004/06/18 19:39:40 $
+** Last Update:		$Author: tosa $, $Date: 2004/06/23 14:06:36 $
 ** Source File:		$RCSfile: dcm.c,v $
-** Revision:		$Revision: 1.11 $
+** Revision:		$Revision: 1.12 $
 ** Status:		$State: Exp $
 */
-
-static char rcsid[] = "$Revision: 1.11 $ $RCSfile: dcm.c,v $";
-
 
 #include <sys/fcntl.h>
 #include <ctype.h>

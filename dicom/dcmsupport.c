@@ -45,13 +45,12 @@
 **			as support for the DCM facility and for applications.
 **			These routines help parse strings and other data
 **			values that are encoded in DICOM objects.
-** Last Update:		$Author: tosa $, $Date: 2004/06/22 14:35:51 $
+** Last Update:		$Author: tosa $, $Date: 2004/06/23 14:07:36 $
 ** Source File:		$RCSfile: dcmsupport.c,v $
-** Revision:		$Revision: 1.4 $
+** Revision:		$Revision: 1.5 $
 ** Status:		$State: Exp $
 */
 
-static char rcsid[] = "$Revision: 1.4 $ $RCSfile: dcmsupport.c,v $";
 #include <stdio.h>
 #include <errno.h>
 #include <string.h>

@@ -41,13 +41,11 @@
 ** Author, Date:	Steve Moore, 30-Jun-96
 ** Intent:		Provide common abstractions needed for operations
 **			in a multi-threaded environment.
-** Last Update:		$Author: kteich $, $Date: 2003/02/10 20:35:44 $
+** Last Update:		$Author: tosa $, $Date: 2004/06/23 14:06:04 $
 ** Source File:		$RCSfile: ctnthread.c,v $
-** Revision:		$Revision: 1.3 $
+** Revision:		$Revision: 1.4 $
 ** Status:		$State: Exp $
 */
-
-static char rcsid[] = "$Revision: 1.3 $ $RCSfile: ctnthread.c,v $";
 
 #include <stdio.h>
 #ifdef GCCSUNOS

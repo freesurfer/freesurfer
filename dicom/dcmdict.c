@@ -44,13 +44,11 @@
 **			static objects are maintained which define how
 **			elements in the DICOM V3.0 standard are to be
 **			interpreted.
-** Last Update:		$Author: kteich $, $Date: 2003/02/10 23:34:21 $
+** Last Update:		$Author: tosa $, $Date: 2004/06/23 14:07:06 $
 ** Source File:		$RCSfile: dcmdict.c,v $
-** Revision:		$Revision: 1.4 $
+** Revision:		$Revision: 1.5 $
 ** Status:		$State: Exp $
 */
-
-static char rcsid[] = "$Revision: 1.4 $ $RCSfile: dcmdict.c,v $";
 
 #include <stdio.h>
 #include <sys/types.h>

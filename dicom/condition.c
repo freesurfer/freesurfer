@@ -67,13 +67,11 @@
 **			The stack is maintained as a simple stack array.  If
 **			it overflows, we dump the stack to stdout and reset it.
 **
-** Last Update:		$Author: tosa $, $Date: 2004/06/23 14:04:20 $
+** Last Update:		$Author: tosa $, $Date: 2004/06/23 14:05:20 $
 ** Source File:		$RCSfile: condition.c,v $
-** Revision:		$Revision: 1.6 $
+** Revision:		$Revision: 1.7 $
 ** Status:		$State: Exp $
 */
-
-char rcsid[] = "$Revision: 1.6 $ $RCSfile: condition.c,v $";
 
 /*
 **
