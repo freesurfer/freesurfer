@@ -1,6 +1,6 @@
 /*----------------------------------------------------------
   Name: vol2surf.c
-  $Id: mri_vol2surf.c,v 1.8 2002/04/11 16:25:52 greve Exp $
+  $Id: mri_vol2surf.c,v 1.9 2002/05/17 20:22:41 greve Exp $
   Author: Douglas Greve
   Purpose: Resamples a volume onto a surface. The surface
   may be that of a subject other than the source subject.
@@ -56,7 +56,7 @@ static void dump_options(FILE *fp);
 static int  singledash(char *flag);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2surf.c,v 1.8 2002/04/11 16:25:52 greve Exp $";
+static char vcid[] = "$Id: mri_vol2surf.c,v 1.9 2002/05/17 20:22:41 greve Exp $";
 char *Progname = NULL;
 
 char *defaulttypestring;
@@ -380,26 +380,21 @@ int main(int argc, char **argv)
     if(reshape){
       if(reshapefactor == 0) 
   reshapefactor = GetClosestPrimeFactor(SurfVals2->width,6);
-
-      printf("Reshaping %d (nvertices = %d)\n",reshapefactor,SurfVals2->width);
-      mritmp = mri_reshape(SurfVals2, SurfVals2->width / reshapefactor, 
-         1, reshapefactor,SurfVals2->nframes);
-      if(mritmp == NULL){
-  printf("ERROR: mri_reshape could not alloc\n");
-  return(1);
+      if(reshapefactor != SurfVals2->width){
+  printf("Reshaping %d (nvertices = %d)\n",
+         reshapefactor,SurfVals2->width);
+  mritmp = mri_reshape(SurfVals2, SurfVals2->width / reshapefactor, 
+           1, reshapefactor,SurfVals2->nframes);
+  if(mritmp == NULL){
+    printf("ERROR: mri_reshape could not alloc\n");
+    return(1);
+  }
+  MRIfree(&SurfVals2);
+  SurfVals2 = mritmp;
       }
-      MRIfree(&SurfVals2);
-      SurfVals2 = mritmp;
-
-#if 0
-      /* uncomment this to undo the reshape (for testing) */
-      mritmp = mri_reshape(SurfVals2, reshapefactor*SurfVals2->width, 
-         1, 1, SurfVals2->nframes);
-      MRIfree(&SurfVals2);
-      SurfVals2 = mritmp;
-#endif
-
-
+      else{
+  printf("INFO: nvertices is prime, cannot reshape\n");
+      }
     }
     printf("Writing\n");
     MRIwriteType(SurfVals2,outfile,outtype);
