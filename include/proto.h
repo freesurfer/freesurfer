@@ -70,8 +70,10 @@ int fwrite(void *ptr, int size, int nitems, FILE *fp) ;
 #include "macros.h"
 #define nint(f)   ((int)(rint((double)f)))
 
+#if 0
 int getw(FILE *stream);
 int putw(int w, FILE *stream);
+#endif
 
 void swab(const void *from, void *to, size_t n);
 
