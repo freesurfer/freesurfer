@@ -691,6 +691,12 @@ xv_dimage_event_handler(Xv_Window xv_window, Event *event)
     switch (event_id(event)) 
     {
     case MS_RIGHT:
+      if (event_is_up(event))
+      {
+        dimage->dx1 = dimage->dy1 = dimage->dx = dimage->dy = 
+          dimage->x0 = dimage->y0 = dimage->x1 = dimage->y1 = 0 ;
+        XVshowImage(xvf, which, dimage->sourceImage, 0) ;
+      }
       break ;
     case MS_LEFT:
       if (event_is_down(event))
@@ -741,30 +747,13 @@ xv_dimage_event_handler(Xv_Window xv_window, Event *event)
         dimage->dx1 = x - dimage->x1 ;
         dimage->dy1 = y - dimage->y1 ;
 
-#ifdef SIGN
-#undef SIGN
-#endif
-#define SIGN(a)   (a >= 0 ? 1 : -1)
-
         /* enforce appropriate aspect ratio */
-        dimage->dx1 = SIGN(dimage->dx1) * abs(nint(aspect * dimage->dy1)) ;
+        dimage->dx1 = ISIGN(dimage->dx1) * abs(nint(aspect * dimage->dy1)) ;
         XVdrawBox(xvf, which, dimage->x1, dimage->y1, dimage->dx1,
                   dimage->dy1, XXOR) ;
       }
       break ;
     default:
-      if (event_is_up(event))
-      {
-        switch ((char)event->ie_code)
-        {
-        case '\n':
-        case '\r':
-          dimage->dx1 = dimage->dy1 = dimage->dx = dimage->dy = 
-            dimage->x0 = dimage->y0 = dimage->x1 = dimage->y1 = 0 ;
-          XVshowImage(xvf, which, dimage->sourceImage, 0) ;
-          break ;
-        }
-      }
       break ;
     }
   }
