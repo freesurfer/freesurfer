@@ -1847,8 +1847,8 @@ GCAremoveOutlyingSamples(GCA *gca, GCA_SAMPLE *gcas, MRI *mri_inputs,
       ErrorPrintf(ERROR_BADPARM, "gc %d not found in GCAremoveOutlyingSamples!", i) ;
       continue ;
     }
-    dist = fabs(val - gc->mean) ;
-    if (nsigma * dist >= sqrt(gc->var))
+    dist = fabs(val - gc->mean) / sqrt(gc->var) ;
+    if (dist >= nsigma)
     {
       nremoved++ ;
       gcas[i].log_p = BIG_AND_NEGATIVE ;
@@ -1965,11 +1965,12 @@ GCAcomputeLogSampleProbability(GCA *gca, GCA_SAMPLE *gcas,
     GCApriorToVoxel(gca, mri_inputs, xp, yp, zp, &xt, &yt, &zt) ;
     GCApriorToNode(gca, xp, yp, zp, &xn, &yn, &zn) ;
     TransformSampleInverseVoxel(transform, width, height, depth, xt, yt, zt, &x, &y, &z) ;
+    gcas[i].x = x ; gcas[i].y = y ; gcas[i].z = z ;
     val = MRIvox(mri_inputs, x, y, z) ;
 
     gcan = &gca->nodes[xn][yn][zn] ;
     gcap = &gca->priors[xp][yp][zp] ;
-      gc = GCAfindPriorGC(gca, xp, yp, zp, gcas[i].label) ;
+    gc = GCAfindPriorGC(gca, xp, yp, zp, gcas[i].label) ;
 #define TRIM_DISTANCES 0
 #if TRIM_DISTANCES
          
@@ -7849,6 +7850,26 @@ GCAfreeGibbs(GCA *gca)
     }
   }
   gca->flags |= GCA_NO_MRF ;
+  return(NO_ERROR) ;
+}
+
+int
+GCAcomputeSampleCoords(GCA *gca, MRI *mri, GCA_SAMPLE *gcas, 
+                       int nsamples,TRANSFORM *transform)
+{
+  int    n, x, y, z ;
+
+  TransformInvert(transform, mri) ;
+  for (n = 0 ; n < nsamples ; n++)
+  {
+    if (gcas[n].label == Gdiag_no)
+      DiagBreak() ;
+    GCApriorToSourceVoxel(gca, mri, transform, gcas[n].xp, gcas[n].yp, gcas[n].zp, &x, &y, &z) ;
+    gcas[n].x = x ; gcas[n].y = y ; gcas[n].z = z ;
+    if (DIAG_VERBOSE_ON && Gdiag & DIAG_SHOW)
+      printf("label %d: (%d, %d, %d) <-- (%d, %d, %d)\n",
+             gcas[n].label,gcas[n].xp,gcas[n].yp,gcas[n].zp, x, y, z) ;
+  }
   return(NO_ERROR) ;
 }
 
