@@ -405,9 +405,6 @@ initEightConnected(LOGMAP_INFO *lmi)
 
   for_each_log_pixel(lmi, ring, spoke)
   {
-    if (ring == 43 && spoke == 40)
-      debug() ;
-
     /* use Neumann boundary conditions */
     for (k = 0 ; k < NBD_SIZE ; k++)
       LOG_PIX_NBD(lmi, ring, spoke, k) = LOG_PIX(lmi, ring, spoke) ;
@@ -437,8 +434,6 @@ initEightConnected(LOGMAP_INFO *lmi)
         LOG_PIX_NBD(lmi, ring, spoke, N_E) = LOG_PIX(lmi, n_ring, spoke) ;
 
       /* find northern neighbor */
-      if (ring == 43 && spoke == 40)
-        debug() ;
       n_ring = findConnectedRing(lmi, ring, spoke+1, -1) ;
       if (n_ring >= 0)
         LOG_PIX_NBD(lmi, ring, spoke, N_N) = LOG_PIX(lmi, n_ring, spoke+1) ;
