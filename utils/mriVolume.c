@@ -426,9 +426,14 @@ Volm_tErr Volm_SetFromMRI_ ( mriVolumeRef this,
 #endif
   
   /* grab the end-start values as our dimension. also nframes. */
+  /* 
   this->mnDimensionX = abs(iMRI->xend - iMRI->xstart);
   this->mnDimensionY = abs(iMRI->yend - iMRI->ystart);
   this->mnDimensionZ = abs(iMRI->zend - iMRI->zstart);
+  */
+  this->mnDimensionX = iMRI->width;
+  this->mnDimensionY = iMRI->height;
+  this->mnDimensionZ = iMRI->depth;
   this->mnDimensionFrame = iMRI->nframes;
 
   this->m_resample = m_resample ;
@@ -2473,11 +2478,11 @@ void Volm_ConvertScreenIdxToMRIIdx_ ( mriVolumeRef this,
 
   DebugNote( ("Checking mri idx") );
   if( (xVoxl_GetX(oMRIIdx) < 0 ||
-       xVoxl_GetRoundX(oMRIIdx) >= this->mnDimensionX ||
+       xVoxl_GetX(oMRIIdx) >= this->mnDimensionX ||
        xVoxl_GetY(oMRIIdx) < 0 ||
-       xVoxl_GetRoundY(oMRIIdx) >= this->mnDimensionY ||
+       xVoxl_GetY(oMRIIdx) >= this->mnDimensionY ||
        xVoxl_GetZ(oMRIIdx) < 0 ||
-       xVoxl_GetRoundZ(oMRIIdx) >= this->mnDimensionZ) ) {
+       xVoxl_GetZ(oMRIIdx) >= this->mnDimensionZ) ) {
 
     xVoxl_Set( oMRIIdx, 0, 0, 0 );
   }
@@ -2508,11 +2513,11 @@ void Volm_ConvertMRIIdxToScreenIdx_ ( mriVolumeRef this,
 
   DebugNote( ("Checking screen idx") );
   if( (xVoxl_GetX(oScreenIdx) < 0 ||
-       xVoxl_GetRoundX(oScreenIdx) >= 256 ||
+       xVoxl_GetX(oScreenIdx) >= 256 ||
        xVoxl_GetY(oScreenIdx) < 0 ||
-       xVoxl_GetRoundY(oScreenIdx) >= 256 ||
+       xVoxl_GetY(oScreenIdx) >= 256 ||
        xVoxl_GetZ(oScreenIdx) < 0 ||
-       xVoxl_GetRoundZ(oScreenIdx) >= 256) ) {
+       xVoxl_GetZ(oScreenIdx) >= 256) ) {
 
     xVoxl_Set( oScreenIdx, 0, 0, 0 );
   }
@@ -2579,17 +2584,23 @@ void Volm_GetValueAtXYSlice_ ( mriVolumeRef this,
 			       float*            oValue) {
   
   Volm_ConvertXYSliceToIdx_( iOrientation, iPoint, inSlice, &this->mTmpVoxel );
-  Volm_GetValueAtIdx_( this, &idx, oValue );
+  Volm_GetValueAtIdx_( this, &this->mTmpVoxel, oValue );
 }
 
 void Volm_GetValueAtIdx_ ( mriVolumeRef this,
 			   xVoxelRef    iIdx,
 			   float*       oValue) {
   
+  int x, y, z;
+
   /* First convert to MRI index, and then switch on the volume data
      type and use the proper MRIvox access function to get the
      value. */
   Volm_ConvertScreenIdxToMRIIdx_( this, iIdx, &this->mTmpVoxel );
+  
+  x = xVoxl_GetX(&this->mTmpVoxel);
+  y = xVoxl_GetY(&this->mTmpVoxel);
+  z = xVoxl_GetZ(&this->mTmpVoxel);
 
   switch( this->mpMriValues->type ) {
     case MRI_UCHAR:
