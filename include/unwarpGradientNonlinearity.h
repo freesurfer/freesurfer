@@ -5,12 +5,26 @@
 #include"mri.h"
 
 MRI *unwarpGradientNonlinearity(MRI *mri, 
-				char *unwarp_gradientType, 
-				char *unwarp_partialUnwarp, 
-				char *unwarp_jacobianCorrection,
-				char *unwarp_interpType,
-				int unwarp_sincInterpHW);
+        char *unwarp_gradientType, 
+        char *unwarp_partialUnwarp, 
+        char *unwarp_jacobianCorrection,
+        char *unwarp_interpType,
+        int unwarp_sincInterpHW);
 
+int uGN_loadGradientData(char *unwarp_gradientType, 
+       MATRIX *M_XYZ_2_beadIJK,
+       float **p_bead_dX,
+       float **p_bead_dY,
+       float **p_bead_dZ,
+       int *p_maxBeadI,
+       int *p_maxBeadJ,
+       int *p_maxBeadK);
+
+int uGN_linInterp(float *bead_dX, float *bead_dY, float *bead_dZ, 
+        float beadI, float beadJ, float beadK, 
+        int maxBeadI, int maxBeadJ, int maxBeadK,
+        float *p_voxel_dX, float *p_voxel_dY, float *p_voxel_dZ);
+        
 
 
 #ifdef unwarpGradientNonlinearity_SRC
