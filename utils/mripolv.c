@@ -4735,7 +4735,7 @@ MRIfillPlanarHoles(MRI *mri_src, MRI *mri_segment, MRI *mri_dst,
 int
 MRIcpolvMaxWhiteAtVoxel(MRI *mri, int x, int y, int z, int wsize)
 {
-  int      whalf, vertex, xk, yk, peak_vertex, max_count, num ;
+  int      whalf, vertex, xk, yk, peak_vertex, max_count, num, xi, yi, zi ;
   float    xbase, ybase, zbase, *pe1_x, *pe1_y, *pe1_z, xf, yf, zf,
            *pe2_x, *pe2_y, *pe2_z, e1_x, e1_y, e1_z, e2_x, e2_y, e2_z ;
   Real     val ;
@@ -4779,10 +4779,13 @@ MRIcpolvMaxWhiteAtVoxel(MRI *mri, int x, int y, int z, int wsize)
         xf = xbase + xk*e1_x ;
         yf = ybase + xk*e1_y ;
         zf = zbase + xk*e1_z ;
+        xi = mri->xi[nint(xf)] ;
+        yi = mri->yi[nint(yf)] ;
+        zi = mri->zi[nint(zf)] ;
 #if 0
-        MRIsampleVolume(mri, xf, yf, zf, &val) ;
+        MRIsampleVolume(mri, xi, yi, zi, &val) ;
 #else
-        val = MRIvox(mri, nint(xf), nint(yf), nint(zf)) ;
+        val = MRIvox(mri, xi, yi, zi) ;
 #endif
         if (val > 0.5)
           num++ ;
