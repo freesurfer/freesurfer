@@ -17,7 +17,7 @@
 #include "macros.h"
 #include "oglutil.h"
 
-static char vcid[] = "$Id: oglutil.c,v 1.7 1997/12/11 00:32:38 fischl Exp $";
+static char vcid[] = "$Id: oglutil.c,v 1.8 1997/12/11 00:36:01 fischl Exp $";
 
 
 /*-------------------------------- CONSTANTS -----------------------------*/
@@ -159,7 +159,7 @@ OGLUcompile(MRI_SURFACE *mris, int *marked_vertices, int flags, float cslope)
 
 /*  ogluSetFOV(mris) ;*/
   if (Gdiag & DIAG_SHOW)
-    fprintf(stderr, "compiling surface tesselation...") ;
+    fprintf(stderr, "compiling surface tessellation...") ;
 
   min_curv = mris->min_curv ;
   max_curv = mris->max_curv ;
