@@ -591,6 +591,7 @@ MRI   *MRIthresholdMask(MRI *mri_src, MRI *mri_mask, MRI *mri_dst,
 
 /* anything below this is not white matter */
 #define WM_MIN_VAL                       5 
+#define MIN_WM_VAL                       WM_MIN_VAL
 #define WM_EDITED_ON_VAL                 255
 #define WM_EDITED_OFF_VAL                1
 
@@ -738,6 +739,7 @@ int  MRIcomputeClassStatistics(MRI *mri_T1, MRI *mri_labeled,
 
 #define BASAL_GANGLIA_FILL   50
 #define MAX_WM_VAL           (THICKEN_FILL-1)
+#define WM_MAX_VAL           MAX_WM_VAL
 #define THICKEN_FILL         200
 #define NBHD_FILL            210
 #define VENTRICLE_FILL       220
