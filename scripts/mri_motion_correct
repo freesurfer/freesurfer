@@ -1,0 +1,469 @@
+#!/bin/sh
+
+#
+# mri_motion_correct v.2
+#
+# 18 May 2001 ch
+#
+
+# ---------------------------------------------------------------------
+# subroutines
+
+usage()
+{
+
+	echo "usage: $progname <outfile> <infile> [...]" >&$1
+
+	if [ $1 -eq 2 ] ; then exit 1 ; fi
+
+	exit 0
+
+} # end usage()
+
+clean_up()
+{
+
+	dir=
+
+	if [ $tmpdir_use ] ; then dir=$tmpdir_use ; else dir=$tmpdir/$tmpext ; fi
+
+	if [ $no_clean ]
+	then
+		echo "not cleaning up; temporary directory is $dir"
+	else
+		echo "cleaning up..."
+		if [ -d $dir ] ; then rm -rf $dir ; fi
+		if [ $1 -ne 1 ] ; then rm -f $transcript_file ; fi
+	fi
+
+} # end clean_up
+
+exit_gracefully()
+{
+
+	if [ $1 -eq 2 ] ; then echo "" ; echo "$progname: caught ctl-c" >&2 ; fi
+	if [ $1 -eq 15 ] ; then echo "" ; echo "$progname: caught sigterm" >&2 ; fi
+	clean_up $1
+	exit $1
+
+} # end exit_gracefully
+
+get_size()
+{
+
+	tmpfile=$tmpdir_use/size_file
+
+	mri_convert --in_info --read_only $1 &> $transcript_file
+	ev=$?
+	echo "--------" >> $transcript_file
+	echo "command was: mri_convert --in_info --read_only $1" >> $transcript_file
+	echo "exit value was: $ev" >> $transcript_file
+	if [ $ev -ne 0 ] ; then return 1 ; fi
+
+	mv $transcript_file $tmpfile
+
+	height=
+	width=
+	depth=
+	nframe=
+	type=
+
+	height=`grep 'height = ' $tmpfile | awk '{print $NF}'`
+	width=`grep 'width = ' $tmpfile | awk '{print $NF}'`
+	depth=`grep 'depth = ' $tmpfile | awk '{print $NF}'`
+	nframe=`grep 'nframe = ' $tmpfile | awk '{print $NF}'`
+	type=`grep 'type = ' $tmpfile | awk '{print $NF}'`
+
+	error=
+
+	if [ ! $height ] ; then return 2 ; fi
+	if [ ! $width ] ; then return 2 ; fi
+	if [ ! $depth ] ; then return 2 ; fi
+	if [ ! $nframe ] ; then return 2 ; fi
+	if [ ! $type ] ; then return 2 ; fi
+
+	# from mri.h: 
+	# define MRI_UCHAR   0
+	# define MRI_INT     1
+	# define MRI_LONG    2
+	# define MRI_FLOAT   3
+	# define MRI_SHORT   4
+	# define MRI_BITMAP  5
+
+	if [ $type -lt 0 -o $type -gt 4 ] ; then return 3 ; fi
+
+	if [ $type -eq 0 ] ; then bpp=1 ; fi
+	if [ $type -eq 1 ] ; then bpp=4 ; fi
+	if [ $type -eq 2 ] ; then bpp=4 ; fi
+	if [ $type -eq 3 ] ; then bpp=4 ; fi
+	if [ $type -eq 4 ] ; then bpp=2 ; fi
+
+	filesize=`echo "$height $width $depth $nframe $bpp * * * * p" | dc`
+
+	rm $tmpfile
+
+	echo $filesize
+
+} # end get_size()
+
+check_size()
+{
+
+	avail=`df -k $tmpdir_use | tail -1 | awk '{print $(NF-2)}'`
+
+	files_sizes=0
+	first_size=
+
+	while [ $1 ]
+	do
+		echo -n "checking size of $1..."
+		size=`get_size $1`
+		ev=$?
+		if [ $ev -eq 1 ]
+		then
+			echo " ERROR"
+			echo "$progname: error reading volume $1" >&2
+			echo "transcript of last command is in $transcript_file" >&2
+			exit_gracefully 1
+		elif [ $ev -eq 2 ]
+		then
+			echo " ERROR"
+			echo "$progname: error while getting size of $1" >&2
+			exit_gracefully 1
+		elif [ $ev -eq 3 ]
+		then
+			echo " ERROR"
+			echo "$progname: error while getting size of $1 (bad data type $type)" >&2
+			exit_gracefully 1
+		fi
+
+
+		if [ $ev -ne 0 ] ; then exit $ev ; fi
+		echo " done"
+
+		if [ $size -eq 0 ]
+		then
+			echo "$progname: size of $1 is 0, exiting" >&2
+			exit_gracefully 1
+		fi
+
+		if [ ! $first_size ]
+		then
+			first_size=$size
+			files_sizes=$size
+		else
+			# --- all but the first volume are also resliced ---
+			files_sizes=`echo "$files_sizes $size $first_size + + p" | dc`
+		fi
+
+		shift
+
+	done
+
+	files_sizes=`echo "$files_sizes 1000 / p" | dc`
+
+	pct=`echo "$files_sizes 100 * $avail / p" | dc`
+
+	if [ $avail -lt $files_sizes ]
+	then
+		echo "$progname: not enough space in $tmpdir to run" >&2
+		exit_gracefully 1
+	fi
+
+	if [ $pct -gt 90 ]
+	then
+		echo "WARNING: $files_sizes Kb needed, $avail Kb available in $tmpdir (you're cutting it close!)"
+	fi
+	
+} # end check_size()
+
+# ---------------------------------------------------------------------
+# definitions
+
+mni_bin_dir=~inverse/bin/mni_tools-Linux/bin
+mni_lib_dir=~inverse/bin/mni_tools-Linux/lib
+perl_lib_dir=~inverse/bin/motion_correct/lib/perl5
+
+mri_convert_default_dir=~inverse/freesurfer_alpha/bin/Linux/mri_convert
+
+# ----- update variables -----
+PATH=${mni_bin_dir}:${PATH}:${mri_convert_default_dir}
+
+if [ $LD_LIBARAY_PATH ] ; then LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${mni_lib_dir}
+else LD_LIBRARY_PATH=$mni_lib_dir ; fi
+
+if [ $PERLLIB ] ; then PERLLIB=${PERLLIB}:${perl_lib_dir}
+else PERLLIB=$perl_lib_dir ; fi
+
+export PATH
+export LD_LIBRARY_PATH
+export PERLLIB
+
+# ----- check for "which" -----
+have_which=
+which which &> /dev/null
+if [ $? -eq 0 ] ; then have_which=y ; fi
+
+# ----- get the base program name -----
+progname=
+if [ $have_which ]
+then
+	which basename &> /dev/null
+	if [ $? -eq 0 ] ; then progname=`basename $0` ; fi
+fi
+if [ ! $progname ] ; then progname=`echo $0 | awk -F'/' '{print $NF}'` ; fi
+
+no_clean=
+
+infile=
+outfile=
+
+tmpdir=/tmp
+tmpext=$progname.$$
+
+# ---------------------------------------------------------------------
+# begin execution
+
+# ----- check that we're on a Linux machine -----
+os=`uname`
+
+if [ $os != "Linux" ]
+then
+	echo "$progname must be run on a Linux machine" >&2
+	exit 1
+fi
+
+# ----- deal with the command line -----
+
+if [ $# -eq 0 ] ; then usage 1 ; fi
+
+while [ $1 ]
+do
+	# ----- check for switches (leading -s) -----
+	if [ `echo $1 | sed 's/^\(.\).*$/\1/'` = "-" ]
+	then
+		if [ $1 = "-t" ]
+		then
+			shift
+			if [ x$1 = x ] ; then usage 2 ; fi
+			tmpdir=$1
+		elif [ $1 = "-nc" ]
+		then
+			no_clean=y
+		else
+			echo "$progname: unknown option $1" >&2
+			exit 1
+		fi
+	else
+		if [ ! $outfile ] ; then outfile=$1 ; 
+		elif [ `echo $infile | wc | awk '{print $2}'` -eq 0 ] ; then infile=$1 ; 
+		else infile=$infile" $1" ; fi
+	fi
+	shift
+done
+
+# ----- trap ctl-c and sigterm -----
+
+trap 'exit_gracefully 2' SIGINT
+trap 'exit_gracefully 15' SIGTERM
+
+# ----- check the temporary diectory -----
+
+if [ ! -d $tmpdir ]
+then
+	echo "$progname: can't find directory $tmpdir" >&2
+	exit 1
+fi
+
+mkdir $tmpdir/$tmpext
+if [ ! -d $tmpdir ]
+then
+	echo "$progname: error creating temporary directory in $tmpdir" >&2
+	exit 1
+fi
+
+tmpdir_use=$tmpdir/$tmpext
+transcript_file=$tmpdir/mmc-transcript.$$
+
+# ----- check for mri_convert -----
+
+have_mri_convert=
+
+if [ $have_which ]
+then
+  which mri_convert
+	which mri_convert &> /dev/null
+	if [ $? -eq 0 ] ; then have_mri_convert=y ; fi
+else
+	mri_convert &> /dev/null
+	if [ $? -eq 0 -o $? -eq 1 ] ; then have_mri_convert=y ; fi
+fi
+
+if [ ! $have_mri_convert ]
+then
+	echo "$progname: can't find mri_convert" >&2
+	exit 1
+fi
+
+# ----- count the number of input volumes -----
+c=0
+c=`echo $infile | wc -w`
+
+# ----- check for minc stuff -- mritoself and the programs that it needs -----
+# ----- we actually only need this if there's more than one volume -----
+
+# return values: 127 for not found
+
+if [ $c -gt 1 ]
+then
+	for p in mincresample mincaverage minctracc
+	do
+		echo -n "checking for $p..."
+		$p &> $transcript_file
+		ev=$?
+		echo "--------" >> $transcript_file
+		echo "command was: $p" >> $transcript_file
+		echo "exit value was: $ev" >> $transcript_file
+		if [ $ev -eq 127 ]
+		then
+			echo " ERROR"
+			echo "exit value is $ev" >> $transcript_file
+			echo "path is $PATH" >> $transcript_file
+			echo "$progname: couldn't find $p" >&2
+			echo "transcript of last command is in $transcript_file" >&2
+			exit_gracefully 1
+		fi
+		echo "found"
+	done
+fi
+
+# ----- proceed -----
+
+if [ $c -eq 1 ]
+then
+	echo "only one input file -- no motion correction needed"
+	echo -n "converting $infile to $outfile..."
+	mri_convert $infile $outfile &> $transcript_file
+	ev=$?
+	echo "--------" >> $transcript_file
+	echo "command was: mri_convert $infile $outfile" >> $transcript_file
+	echo "exit value was: $ev" >> $transcript_file
+	if [ $ev -ne 0 ]
+	then
+		echo " ERROR"
+		echo "$progname: error converting $infile to $outfile" >&2
+		echo "transcript of last command is in $transcript_file" >&2
+		exit_gracefully 1
+	else
+		echo " done"
+	fi
+else
+
+	check_size $infile
+
+	volumes_to_average=
+
+	i=0
+	for f in $infile
+	do
+
+		echo -n "converting $f to minc (volume $i)..."
+		mri_convert $f $tmpdir_use/$i.mnc &> $transcript_file
+		ev=$?
+		echo "--------" >> $transcript_file
+		echo "command was: mri_convert $f $tmpdir_use/$i.mnc" >> $transcript_file
+		echo "exit value was: $ev" >> $transcript_file
+		if [ $ev -ne 0 ]
+		then
+			echo " ERROR"
+			echo "$progname: error converting $f to minc" >&2
+			echo "transcript of last command is in $transcript_file" >&2
+			exit_gracefully 1
+		fi
+		echo " done"
+
+		if [ $i -eq 0 ]
+		then
+			volumes_to_average=$tmpdir_use/$i.mnc
+		else
+
+			echo -n "registering this volume ($i) to volume 0..."
+			minctracc -lsq6 $tmpdir_use/$i.mnc $tmpdir_use/0.mnc $tmpdir_use/${i}_to_0.xfm &> $transcript_file
+			ev=$?
+			echo "--------" >> $transcript_file
+			echo "command was: minctracc -lsq6 $tmpdir_use/$i.mnc $tmpdir_use/0.mnc $tmpdir_use/${i}_to_0.xfm" >> $transcript_file
+			echo "exit value was: $ev" >> $transcript_file
+			if [ $ev -ne 0 ]
+			then
+				echo " ERROR"
+				echo "$progname: error registering $f to volume 0" >&2
+				echo "transcript of last command is in $transcript_file" >&2
+				exit_gracefully 1
+			fi
+			echo " done"
+
+			echo -n "reslicing registered volume..."
+			mincresample -transformation $tmpdir_use/${i}_to_0.xfm -like $tmpdir_use/0.mnc $tmpdir_use/${i}.mnc $tmpdir_use/${i}_to_0.mnc &> $transcript_file
+			ev=$?
+			echo "--------" >> $transcript_file
+			echo "command was: mincresample -transformation $tmpdir_use/${i}_to_0.xfm -like $tmpdir_use/0.mnc $tmpdir_use/${i}.mnc $tmpdir_use/${i}_to_0.mnc" >> $transcript_file
+			echo "exit value was: $ev" >> $transcript_file
+			if [ $ev -ne 0 ]
+			then
+				echo " ERROR"
+				echo "$progname: error reslicing volume $i" >&2
+				echo "transcript of last command is in $transcript_file" >&2
+				exit_gracefully 1
+			fi
+			echo " done"
+
+			echo -n "removing unsliced minc data and transform file..."
+			rm $tmpdir_use/$i.mnc $tmpdir_use/${i}_to_0.xfm
+			echo "done"
+
+			volumes_to_average="$volumes_to_average $tmpdir_use/${i}_to_0.mnc"
+
+		fi
+
+		i=`echo "$i 1 + p" | dc`
+	done
+
+	echo -n "averaging volumes..."
+	mincaverage $volumes_to_average $tmpdir_use/avg.mnc &> $transcript_file
+	ev=$?
+	echo "--------" >> $transcript_file
+	echo "command was: mincaverage $volumes_to_average $tmpdir_use/avg.mnc &> $transcript_file" >> $transcript_file
+	echo "exit value was: $ev" >> $transcript_file
+	if [ $ev -ne 0 ]
+	then
+		echo " ERROR"
+		echo "$progname: error averaging volumes" >&2
+		echo "transcript of last command is in $transcript_file" >&2
+		exit_gracefully 1
+	fi
+	echo "done"
+
+	echo -n "creating output volume..."
+	mri_convert $tmpdir_use/avg.mnc $outfile &> $transcript_file
+	ev=$?
+	echo "--------" >> $transcript_file
+	echo "command was: mri_convert $tmpdir_use/avg.mnc $outfile" >> $transcript_file
+	echo "exit value was: $ev" >> $transcript_file
+	if [ $ev -ne 0 ]
+	then
+		echo " ERROR"
+		echo "$progname: creating output volume" >&2
+		echo "transcript of last command is in $transcript_file" >&2
+		exit_gracefully 1
+	fi
+	echo "done"
+
+fi
+
+# ----- clean up and exit -----
+
+rm -f $transcript_file
+
+exit_gracefully 0
+
+# eof
