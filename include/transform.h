@@ -3,8 +3,8 @@
 /*                                                                     */
 /* Warning: Do not edit the following four lines.  CVS maintains them. */
 /* Revision Author: $Author: tosa $                                           */
-/* Revision Date  : $Date: 2003/09/05 19:34:21 $                                             */
-/* Revision       : $Revision: 1.21 $                                         */
+/* Revision Date  : $Date: 2003/09/17 21:53:32 $                                             */
+/* Revision       : $Revision: 1.22 $                                         */
 /*                                                                     */
 /***********************************************************************/
 
@@ -122,5 +122,11 @@ TRANSFORM *TransformAlloc(int type, MRI *mri) ;
 int       TransformInvert(TRANSFORM *transform, MRI *mri) ;
 MRI       *TransformApply(TRANSFORM *transform, MRI *mri_src, MRI *mri_dst) ;
 MRI       *TransformApplyInverse(TRANSFORM *transform, MRI *mri_src, MRI *mri_dst) ;
+
+// VOL_GEOM utilities
+void initVolGeom(VOL_GEOM *vg);
+void copyVolGeom(const VOL_GEOM *src, VOL_GEOM *dst);
+void writeVolGeom(FILE *fp, const VOL_GEOM *vg);
+void readVolGeom(FILE *fp, VOL_GEOM *vg);
 
 #endif
