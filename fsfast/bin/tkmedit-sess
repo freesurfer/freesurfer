@@ -1,7 +1,7 @@
 #!/bin/csh -f
 # tkmedit-sess
 #
-set VERSION = '$Id: tkmedit-sess,v 1.11 2004/04/02 18:23:07 greve Exp $';
+set VERSION = '$Id: tkmedit-sess,v 1.12 2005/01/19 20:03:09 greve Exp $';
 set inputargs = ($argv);
 
 which pawd > /dev/null
@@ -24,6 +24,7 @@ set contrast   = ();
 set space      = ();
 set subject    = ();
 set mrivolid   = orig;
+set auxvolid   = ();
 
 set mapdir = ();
 set hdrdir = ();
@@ -97,6 +98,7 @@ id            >> $LF
 echo "$0"     >> $LF
 echo "$argv"  >> $LF
 $PWDCMD           >> $LF
+echo "setenv SUBJECTS_DIR $SUBJECTS_DIR"  | tee -a $LF
 uname -a      >> $LF
 date          >> $LF
 which tkmedit >> $LF
@@ -250,6 +252,16 @@ echo "INFO: subject is $subject"
 
 if($subject != talairach && $space == tal) set mrivolid = talairach
 
+if($#auxvolid) then
+  if(! -e $SUBJECTS_DIR/$subject/mri/$auxvolid) then
+    echo "ERROR: $auxvolid does not exist for subject $subject"
+    exit 1;
+  endif
+else
+  set auxvolid = brain;
+  if(! -e $SUBJECTS_DIR/$subject/mri/$auxvolid) set auxvolid = ();
+endif
+
 set hdroption  = ""
 set offsetoption = ""
 
@@ -362,6 +374,7 @@ if($usestatic) set TKMEDIT = $TKMEDIT.static
 set cmd = ($TKMEDIT $anatoption $mapoption $hdroption $offsetoption)
 set cmd = ($cmd -fthresh $fthresh -fmid $fmid -fslope $fslope )
 set cmd = ($cmd $segoption);
+if($#auxvolid) set cmd = ($cmd -aux $auxvolid);
 echo "------------------------"|& tee -a $LF
 echo "SUBJECTS_DIR $SUBJECTS_DIR"|& tee -a $LF
 $PWDCMD|& tee -a $LF
@@ -409,6 +422,12 @@ while( $#argv != 0 )
     case "-volid":
       if ( $#argv == 0) goto arg1err;
       set mrivolid = $argv[1]; shift;
+      breaksw
+
+    case "-auxid":
+    case "-aux":
+      if ( $#argv == 0) goto arg1err;
+      set auxvolid = $argv[1]; shift;
       breaksw
 
     case "-mapmeanimg":
@@ -831,6 +850,7 @@ check_params:
     echo "ERROR: space must be native with -talreg. Rerun without -space."
     exit 1
   endif
+
 
 goto check_params_return;
 ############--------------##################
