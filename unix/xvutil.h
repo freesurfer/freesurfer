@@ -121,6 +121,8 @@ typedef struct
   Panel_item      fname_panel_item ;
   int             (*fname_func)(char *fname) ;
   IMAGE           *(*get_next_image)(IMAGE *Iold, int which, int dir) ;
+  int             orig_disp_rows ;  /* original value of display_rows */
+  int             orig_disp_cols ;  /* original values of display_cols */
 } XV_FRAME ;
 
 
@@ -150,6 +152,7 @@ int XVsetMessagePosition(XV_FRAME *xvf, int which, int col, int row) ;
 int XVsetImageSize(XV_FRAME *xvf, int which, int rows, int cols) ;
 void XVsetMinPanelWidth(XV_FRAME *xvf, int min_panel_width) ;
 int XVresize(XV_FRAME *xvf) ;
+int XVchangeDisplaySize(XV_FRAME *xvf) ;
 void buttonQuit(Panel_item item, Event *event) ;
 int XVaddImageCol(XV_FRAME *xvf) ;
 int XVdeleteImageCol(XV_FRAME *xvf) ;
