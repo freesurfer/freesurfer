@@ -1814,7 +1814,6 @@ GCAremoveOutlyingSamples(GCA *gca, GCA_SAMPLE *gcas, MRI *mri_inputs,
 {
   int        x, y, z, xt, yt, zt, width, height, depth, val,
              i, nremoved, xp, yp, zp ;
-  GC1D       *gc ;
   double     dist ;
 
 
@@ -1840,7 +1839,8 @@ GCAremoveOutlyingSamples(GCA *gca, GCA_SAMPLE *gcas, MRI *mri_inputs,
 
     if (xp == Ggca_x && yp == Ggca_y && zp == Ggca_z)
       DiagBreak() ;
-    
+
+#if 0    
     gc = GCAfindPriorGC(gca, xp, yp, zp, gcas[i].label) ;
     if (gc == NULL)
     {
@@ -1848,6 +1848,9 @@ GCAremoveOutlyingSamples(GCA *gca, GCA_SAMPLE *gcas, MRI *mri_inputs,
       continue ;
     }
     dist = fabs(val - gc->mean) / sqrt(gc->var) ;
+#else
+    dist = fabs(val - gcas[i].mean) / sqrt(gcas[i].var) ;
+#endif
     if (dist >= nsigma)
     {
       nremoved++ ;
@@ -1942,9 +1945,6 @@ GCAcomputeLogSampleProbability(GCA *gca, GCA_SAMPLE *gcas,
 {
   int        x, y, z, xt, yt, zt, width, height, depth, val,
              xn, yn, zn, i, xp, yp, zp ;
-  GCA_NODE   *gcan ;
-  GCA_PRIOR  *gcap ;
-  GC1D       *gc ;
   float      dist ;
   double     total_log_p, log_p ;
 
@@ -1968,27 +1968,11 @@ GCAcomputeLogSampleProbability(GCA *gca, GCA_SAMPLE *gcas,
     gcas[i].x = x ; gcas[i].y = y ; gcas[i].z = z ;
     val = MRIvox(mri_inputs, x, y, z) ;
 
-    gcan = &gca->nodes[xn][yn][zn] ;
-    gcap = &gca->priors[xp][yp][zp] ;
-    gc = GCAfindPriorGC(gca, xp, yp, zp, gcas[i].label) ;
-#define TRIM_DISTANCES 0
-#if TRIM_DISTANCES
-         
-    dist = (val-gc->mean) ;
-#define TRIM_DIST 20
-    if (abs(dist) > TRIM_DIST)
-      dist = TRIM_DIST ;
-    log_p =
-      -log(sqrt(gc->var)) - 
-      0.5 * (dist*dist/gc->var) +
-      log(getPrior(gcap, gcas[i].label)) ;
-#else
     dist = (val-gcas[i].mean) ;
     log_p =
       -log(sqrt(gcas[i].var)) - 
       0.5 * (dist*dist/gcas[i].var) +
       log(gcas[i].prior) ;
-#endif
     total_log_p += log_p ;
     gcas[i].log_p = log_p ;
 
@@ -1996,7 +1980,7 @@ GCAcomputeLogSampleProbability(GCA *gca, GCA_SAMPLE *gcas,
     {
       fprintf(stderr, 
               "total log p not finite at (%d, %d, %d) var=%2.2f\n", 
-                                    x, y, z, gc->var) ;
+                                    x, y, z, gcas[i].var) ;
       DiagBreak() ;
     }
   }
