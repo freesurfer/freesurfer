@@ -1,10 +1,10 @@
 /*============================================================================
  Copyright (c) 1996 Martin Sereno and Anders Dale
 =============================================================================*/
-/*   $Id: tkregister2.c,v 1.27 2004/08/27 21:02:37 greve Exp $   */
+/*   $Id: tkregister2.c,v 1.28 2004/09/13 18:52:11 greve Exp $   */
 
 #ifndef lint
-static char vcid[] = "$Id: tkregister2.c,v 1.27 2004/08/27 21:02:37 greve Exp $";
+static char vcid[] = "$Id: tkregister2.c,v 1.28 2004/09/13 18:52:11 greve Exp $";
 #endif /* lint */
 
 #define TCL
@@ -486,8 +486,10 @@ int Register(ClientData clientData,Tcl_Interp *interp, int argc, char *argv[])
     MatrixMultiply(Mtc,Dtarg,Mtc);
     MatrixMultiply(Mtc,invTtarg,Mtc);
 
-    MRIvol2Vol(targ_vol, mritmp, Vt2s, SAMPLE_TRILINEAR, 0);
-    MRIfree(&targ_vol);
+    if(LoadVol){
+      MRIvol2Vol(targ_vol, mritmp, Vt2s, SAMPLE_TRILINEAR, 0);
+      MRIfree(&targ_vol);
+    }
     targ_vol = mritmp;
 
     MatrixFree(&Ttargcor);
@@ -3592,7 +3594,7 @@ char **argv;
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tkregister2.c,v 1.27 2004/08/27 21:02:37 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: tkregister2.c,v 1.28 2004/09/13 18:52:11 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
