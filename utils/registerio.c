@@ -17,8 +17,8 @@
   float2int - 0=tkreg.
   -------------------------------------------------------------*/
 int regio_read_register(char *regfile, char **subject, float *inplaneres, 
-			float *betplaneres, float *intensity,  MATRIX **R,
-			int *float2int)
+      float *betplaneres, float *intensity,  MATRIX **R,
+      int *float2int)
 {
   FILE *fp;
   char tmp[1000];
@@ -82,10 +82,10 @@ int regio_read_register(char *regfile, char **subject, float *inplaneres,
     for(c=0;c<4;c++){
       n = fscanf(fp,"%f",&val);
       if(n != 1){
-	perror("regio_read_register()");
-	fprintf(stderr,"Error reading R[%d][%d] from %s\n",r,c,regfile);
-	fclose(fp);
-	return(1);
+  perror("regio_read_register()");
+  fprintf(stderr,"Error reading R[%d][%d] from %s\n",r,c,regfile);
+  fclose(fp);
+  return(1);
       }
       (*R)->rptr[r+1][c+1] = val;
     }
@@ -100,8 +100,8 @@ int regio_read_register(char *regfile, char **subject, float *inplaneres,
 }
 /* -------------------------------------------------------------- */
 int regio_print_register(FILE *fp, char *subject, float inplaneres, 
-			 float betplaneres, float intensity, MATRIX *R,
-			 int float2int)
+       float betplaneres, float intensity, MATRIX *R,
+       int float2int)
 {
   int r,c;
   
@@ -123,8 +123,8 @@ int regio_print_register(FILE *fp, char *subject, float inplaneres,
 
 /* -------------------------------------------------------------- */
 int regio_write_register(char *regfile, char *subject, float inplaneres, 
-			 float betplaneres, float intensity, MATRIX *R,
-			 int float2int)
+       float betplaneres, float intensity, MATRIX *R,
+       int float2int)
 {
   FILE *fp;
 
@@ -135,7 +135,7 @@ int regio_write_register(char *regfile, char *subject, float inplaneres,
   }
 
   regio_print_register(fp, subject, inplaneres, betplaneres, intensity, R,
-		       float2int);
+           float2int);
   fclose(fp);
 
   return(0);
@@ -145,7 +145,7 @@ int regio_read_mincxfm(char *xfmfile, MATRIX **R)
 {
   FILE *fp;
   char tmpstr[1000];
-  int r,c,n;
+  int r,c,n,nlines;
   float val;
 
   memset(tmpstr,'\0',1000);
@@ -157,19 +157,13 @@ int regio_read_mincxfm(char *xfmfile, MATRIX **R)
     return(1);
   }
 
-  /* skip 5 lines */
-  fgets(tmpstr,1000,fp);
-  if(strcasecmp(tmpstr,"MNI Transform File\n") != 0){
-    fprintf(stderr,"%s does not appear to be a MNI xfm file\n",xfmfile);
-    fprintf(stderr,"--%s--\n",tmpstr);
-    fclose(fp);
-    return(1);
-  }
+  /* Count the number of lines */
+  nlines = 0;
+  while(fgets(tmpstr,1000,fp) != NULL) nlines ++;
+  rewind(fp);
 
-  fgets(tmpstr,1000,fp);
-  fgets(tmpstr,1000,fp);
-  fgets(tmpstr,1000,fp);
-  fgets(tmpstr,1000,fp);
+  /* skip all but the last 3 lines */
+  for(n=0;n<nlines-3;n++) fgets(tmpstr,1000,fp);
 
   *R = MatrixAlloc(4,4,MATRIX_REAL);
   if(*R == NULL){
@@ -184,17 +178,18 @@ int regio_read_mincxfm(char *xfmfile, MATRIX **R)
     for(c=0;c<4;c++){
       n = fscanf(fp,"%f",&val);
       if(n != 1){
-	perror("regio_read_xfm()");
-	fprintf(stderr,"Error reading R[%d][%d] from %s\n",r,c,xfmfile);
-	fclose(fp);
-	return(1);
+  perror("regio_read_xfm()");
+  fprintf(stderr,"Error reading R[%d][%d] from %s\n",r,c,xfmfile);
+  fclose(fp);
+  return(1);
       }
       (*R)->rptr[r+1][c+1] = val;
+      /*printf("%7.4f ",val);*/
     }
+    /*printf("\n");*/
   }
   (*R)->rptr[3+1][3+1] = 1.0;
 
   fclose(fp);
-
   return(0);
 }
