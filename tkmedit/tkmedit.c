@@ -1228,7 +1228,9 @@ void transformFV(float x, float y, float z, float* x_1, float* y_1,float* z_1)
 void readFVVolume(const char* prefixname)
 {
   int fvi;
+#ifdef Linux
   int fvj;
+#endif
   int fvsize;
   int fvl;
   char fvfname[255];
