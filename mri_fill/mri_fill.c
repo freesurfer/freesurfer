@@ -12,7 +12,7 @@
 #include "mrimorph.h"
 #include "timer.h"
 
-static char vcid[] = "$Id: mri_fill.c,v 1.46 2001/04/02 20:47:17 fischl Exp $";
+static char vcid[] = "$Id: mri_fill.c,v 1.47 2001/04/03 15:30:17 fischl Exp $";
 
 /*-------------------------------------------------------------------
                                 CONSTANTS
@@ -1281,7 +1281,7 @@ find_cutting_plane(MRI *mri, Real x_tal, Real y_tal,Real z_tal,int orientation,
     }
     else    /* search for middle of corpus callosum */
     {
-      int valid[MAX_SLICES], num_on, max_num_on, max_on_slice_start ;
+      int valid[MAX_SLICES] /*, num_on, max_num_on, max_on_slice_start*/ ;
       
       for (slice = 1 ; slice < MAX_SLICES-1 ; slice++)
       {
@@ -1289,7 +1289,23 @@ find_cutting_plane(MRI *mri, Real x_tal, Real y_tal,Real z_tal,int orientation,
           ((area[slice]    >= MIN_AREA)   && (area[slice]    <= MAX_AREA) &&
            (aspects[slice] >= MIN_ASPECT) && (aspects[slice] <= MAX_ASPECT));
       }
-    
+
+#if 1
+      min_area = mri_slices[1]->width*mri_slices[1]->height*mri_slices[1]->depth;
+      for (slice = 1 ; slice < MAX_SLICES-1 ; slice++)
+      {
+        float slice_area ;
+
+        if (!valid[slice])
+          continue ;
+        slice_area = MRItotalVoxelsOn(mri_slices[slice], WM_MIN_VAL) ;
+        if (slice_area < min_area)
+        {
+          min_area = slice_area ;
+          min_slice = slice ;
+        }
+      }
+#else    
       max_on_slice_start = max_num_on = num_on = 0 ;
       for (slice = 1 ; slice < MAX_SLICES-1 ; slice++)
       {
@@ -1309,9 +1325,9 @@ find_cutting_plane(MRI *mri, Real x_tal, Real y_tal,Real z_tal,int orientation,
         max_num_on = num_on ;
         max_on_slice_start = slice - num_on ;
       }
-      
       min_slice = max_on_slice_start + (max_num_on-1)/2 ;
       min_area = area[min_slice] ;
+#endif      
     }
     
     if (min_slice < 0)
