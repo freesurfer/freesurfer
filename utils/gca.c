@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2004/04/06 19:35:20 $
-// Revision       : $Revision: 1.123 $
+// Revision Date  : $Date: 2004/04/08 14:51:42 $
+// Revision       : $Revision: 1.124 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -7815,10 +7815,14 @@ GCAmaxLikelihoodBorderLabel(GCA *gca, MRI *mri_inputs, MRI *mri_labels,
     DiagBreak() ;  
 
   load_vals(mri_inputs, x, y, z, vals, gca->ninputs) ;
+  orig_label = best_label = MRIvox(mri_labels, x, y, z) ;
+
   // current GCA_NODE at this point
   gcan = findSourceGCAN(gca, mri_inputs, transform, x, y, z) ;
+	if (gcan == NULL)
+		return(orig_label) ;
+
   // current label
-  orig_label = best_label = MRIvox(mri_labels, x, y, z) ;
   // look for classifier for this label and get the p value
   gc = NULL ;
   for (n = 0 ; n < gcan->nlabels ; n++)
@@ -7831,8 +7835,8 @@ GCAmaxLikelihoodBorderLabel(GCA *gca, MRI *mri_inputs, MRI *mri_labels,
   if (gc == NULL)
   {
     ErrorPrintf(ERROR_BADPARM, 
-		"GCAmaxLikelihoodBorderLabel(%d, %d, %d): couldn't find gc for label %d", 
-		x, y, z, best_label) ;
+								"GCAmaxLikelihoodBorderLabel(%d, %d, %d): couldn't find gc for label %d", 
+								x, y, z, best_label) ;
     max_p = 0.0 ;
   }
   else
@@ -7845,15 +7849,17 @@ GCAmaxLikelihoodBorderLabel(GCA *gca, MRI *mri_inputs, MRI *mri_labels,
     yi = mri_inputs->yi[y+ynbr_offset[i]] ;
     zi = mri_inputs->zi[z+znbr_offset[i]] ;
     gcan = findSourceGCAN(gca, mri_inputs, transform, xi, yi, zi) ;
+		if (gcan == NULL)
+			continue ;
     // get the neighbor label
     label = MRIvox(mri_labels, xi, yi, zi) ;
     gc = NULL ;
     for (n = 0 ; n < gcan->nlabels ; n++)
       if (gcan->labels[n] == label)
       {
-	// get the classifier for this label at this location
-	gc  = &gcan->gcs[n] ;
-	break ;
+				// get the classifier for this label at this location
+				gc  = &gcan->gcs[n] ;
+				break ;
       }
     if (gc == NULL)
       continue ;  /* label can't occur here */
@@ -7870,8 +7876,8 @@ GCAmaxLikelihoodBorderLabel(GCA *gca, MRI *mri_inputs, MRI *mri_labels,
     p = GCAcomputeConditionalDensity(gc, vals, gca->ninputs, label) ;
     //
     if (((best_label == orig_label && p > min_ratio*max_p) || // starting loop
-	 (best_label != orig_label && p > max_p)) &&          // later in the loop
-	GCAisPossible(gca, mri_labels, label, transform, x, y, z))
+				 (best_label != orig_label && p > max_p)) &&          // later in the loop
+				GCAisPossible(gca, mri_labels, label, transform, x, y, z))
     {
       max_p = p ;
       best_label = label ;
