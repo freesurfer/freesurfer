@@ -1,7 +1,7 @@
 #!/bin/csh -f
 # surf-sess
 #
-set VERSION = '$Id: surf-sess,v 1.6 2004/05/04 19:33:53 greve Exp $'
+set VERSION = '$Id: surf-sess,v 1.7 2004/11/10 21:28:02 greve Exp $'
 set FASTVER = `cat $FMRI_ANALYSIS_DIR/docs/version`;
 set inputargs = ($argv);
 
@@ -25,6 +25,7 @@ set hemilist     = ();
 set subject      = ();
 set srcsubject   = ();
 set surf         = ();
+set thiscurv     = curv
 set SessList     = ();
 set isxavgmethod = ();
 set IsGroup = 0;
@@ -270,6 +271,7 @@ setenv colscale 1
 setenv colscalebarflag 1
 setenv invphaseflag 0
 setenv truncphaseflag 0
+set curv = $hemi.$thiscurv
 if($UseAvgCurv) then
   setenv curv $hemi.avg_curv
   set fname = $SUBJECTS_DIR/$subject/surf/$curv
@@ -518,6 +520,11 @@ while( $#argv != 0 )
       if ( $#argv == 0) goto arg1err;
       set patch = $argv[1]; shift;
       set flat = 1;
+      breaksw
+
+    case "-curv":
+      if ( $#argv == 0) goto arg1err;
+      set thiscurv = $argv[1]; shift
       breaksw
 
     case "-flat":
@@ -782,6 +789,7 @@ usage_exit:
   echo "   -spacedir spacedir     : get data from spacedir"
   echo "   -subject  subjectname  : name of subject on which to paint (with group)"
   echo "   -surf     surfacename  : name of surface upon which to visualize"
+  echo "   -curv     curvname     : name of curvature (<curv>,sulc,etc)"
   echo "   -fthresh  fthreshvalue : color map threshold ($fthresh)"
   echo "   -fmid     fmidvalue    : middle of the color map ($fmid)";
   echo "   -fslope   fslopevalue  : slope of the color scale ($fslope)";
