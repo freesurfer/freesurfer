@@ -86,13 +86,13 @@
 **	and convert the object to and from its "stream" representation.
 **	In addition, the package can parse a file which contains a stream
 **	and create its internal object.
-** Last Update:		$Author: brucefis $, $Date: 2002/11/12 19:50:34 $
+** Last Update:		$Author: vicka $, $Date: 2003/01/16 17:55:04 $
 ** Source File:		$RCSfile: dcm.c,v $
-** Revision:		$Revision: 1.6 $
+** Revision:		$Revision: 1.7 $
 ** Status:		$State: Exp $
 */
 
-static char rcsid[] = "$Revision: 1.6 $ $RCSfile: dcm.c,v $";
+static char rcsid[] = "$Revision: 1.7 $ $RCSfile: dcm.c,v $";
 
 #include "ctn_os.h"
 #include <ctype.h>
@@ -3704,7 +3704,7 @@ exportFixedFields(DCM_ELEMENT * e,
 **	    Set caller's rtnLength to the amount of data copied.
 **
 */
-union {
+static union {
     unsigned short sh[2];
     unsigned char ch[4];
 }   groupElement;
