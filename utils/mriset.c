@@ -306,6 +306,117 @@ MRIerode(MRI *mri_src, MRI *mri_dst)
         Description
 ------------------------------------------------------*/
 MRI *
+MRIdilateThreshLabel(MRI *mri_src, MRI *mri_val, MRI *mri_dst, int label, 
+                     int niter, int thresh)
+{
+  int     width, height, depth, x, y, z, x0, y0, z0, xi, yi, zi,
+          xmin, xmax, ymin, ymax, zmin, zmax, i, nadded ;
+  BUFTYPE *psrc, out_val, val ;
+  MRI     *mri_tmp = NULL ;
+
+  width = mri_src->width ;
+  height = mri_src->height ;
+  depth = mri_src->depth ;
+
+  /* get everything outside of bounding box */
+  mri_dst = MRIcopy(mri_src, mri_dst) ;  
+
+  for (i = 0 ; i < niter ; i++)
+  {
+    nadded = 0 ;
+    mri_tmp = MRIcopy(mri_dst, mri_tmp) ; /* will allocate first time */
+    xmax = 0 ; xmin = width-1 ;
+    ymax = 0 ; ymin = height-1 ;
+    zmax = 0 ; zmin = depth-1 ;
+    for (z = 0 ; z < depth ; z++)
+    {
+      for (y = 0 ; y < height ; y++)
+      {
+        psrc = &MRIvox(mri_src, 0, y, z) ;
+        for (x = 0 ; x < width ; x++)
+        {
+          if (*psrc++ == label)
+          {
+            if (x-1 < xmin)
+              xmin = x-1 ;
+            if (x+1 > xmax)
+              xmax = x+1 ;
+            if (y-1 < ymin)
+              ymin = y-1 ;
+            if (y+1 > ymax)
+              ymax = y+1 ;
+            if (z-1 < zmin)
+              zmin = z-1 ;
+            if (z+1 > zmax)
+              zmax = z+1 ;
+          }
+        }
+      }
+    }
+    xmin = MAX(0, xmin) ; xmax = MIN(width-1, xmax) ;
+    ymin = MAX(0, ymin) ; ymax = MIN(height-1, ymax) ;
+    zmin = MAX(0, zmin) ; zmax = MIN(depth-1, zmax) ;
+    for (z = zmin ; z <= zmax ; z++)
+    {
+      for (y = ymin ; y <= ymax ; y++)
+      {
+        for (x = xmin ; x <= xmax ; x++)
+        {
+          out_val = MRIvox(mri_tmp, x, y, z) ;
+          if (MRIvox(mri_val, x, y, z) >= thresh)
+          {
+            for (z0 = -1 ; z0 <= 1 ; z0++)
+            {
+              zi = mri_tmp->zi[z+z0] ;
+              for (y0 = -1 ; y0 <= 1 ; y0++)
+              {
+                yi = mri_tmp->yi[y+y0] ;
+                for (x0 = -1 ; x0 <= 1 ; x0++)
+                {
+                  xi = mri_tmp->xi[x+x0] ;
+                  val = MRIvox(mri_tmp, xi,yi,zi) ;
+                  if (val == label)
+                    out_val = label ;
+                }
+              }
+            }
+            if (out_val == label)
+            {
+              if (xi < xmin)
+                xmin = xi ;
+              if (xi > xmax)
+                xmax = xi ;
+              if (yi < ymin)
+                ymin = yi ;
+              if (yi > ymax)
+                ymax = yi ;
+              if (zi < zmin)
+                zmin = zi ;
+              if (zi > zmax)
+                zmax = zi ;
+              if (MRIvox(mri_dst, x,y,z) != label)
+                nadded++ ;
+            }
+          }
+          MRIvox(mri_dst, x,y,z) = out_val ;
+        }
+      }
+    }
+    if (nadded == 0)
+      break ;
+  }
+  MRIfree(&mri_tmp) ;
+
+  return(mri_dst) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+MRI *
 MRIdilateLabel(MRI *mri_src, MRI *mri_dst, int label, int niter)
 {
   int     width, height, depth, x, y, z, x0, y0, z0, xi, yi, zi,
@@ -1379,4 +1490,99 @@ MRIsetValues(MRI *mri, int val)
   }
   
   return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+MRI *
+MRIsoapBubbleLabel(MRI *mri_src, MRI *mri_label, MRI *mri_dst, int label, 
+                   int niter)
+{
+  int     width, height, depth, x, y, z, x0, y0, z0, xi, yi, zi,
+          xmin, xmax, ymin, ymax, zmin, zmax, i, n;
+  BUFTYPE *plabel ;
+  MRI     *mri_tmp = NULL ;
+  float   mean ;
+
+  width = mri_src->width ;
+  height = mri_src->height ;
+  depth = mri_src->depth ;
+
+  mri_dst = MRIcopy(mri_src, mri_dst) ;  
+
+  xmax = 0 ; xmin = width-1 ;
+  ymax = 0 ; ymin = height-1 ;
+  zmax = 0 ; zmin = depth-1 ;
+  for (z = 0 ; z < depth ; z++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      plabel = &MRIvox(mri_label, 0, y, z) ;
+      for (x = 0 ; x < width ; x++)
+      {
+        if (*plabel++ == label)
+        {
+          if (x-1 < xmin)
+            xmin = x-1 ;
+          if (x+1 > xmax)
+            xmax = x+1 ;
+          if (y-1 < ymin)
+            ymin = y-1 ;
+          if (y+1 > ymax)
+            ymax = y+1 ;
+          if (z-1 < zmin)
+            zmin = z-1 ;
+          if (z+1 > zmax)
+            zmax = z+1 ;
+        }
+      }
+    }
+  }
+  xmin = MAX(0, xmin) ; xmax = MIN(width-1, xmax) ;
+  ymin = MAX(0, ymin) ; ymax = MIN(height-1, ymax) ;
+  zmin = MAX(0, zmin) ; zmax = MIN(depth-1, zmax) ;
+
+  for (i = 0 ; i < niter ; i++)
+  {
+    mri_tmp = MRIcopy(mri_dst, mri_tmp) ; /* will allocate first time */
+    for (z = zmin ; z <= zmax ; z++)
+    {
+      for (y = ymin ; y <= ymax ; y++)
+      {
+        for (x = xmin ; x <= xmax ; x++)
+        {
+          if (x == 97 && y == 131 && z == 181)
+            DiagBreak() ;
+          if (x == 97 && y == 131 && z == 181 && i > 171)
+            DiagBreak() ;
+          if (MRIvox(mri_label, x, y, z) == label)
+          {
+            mean = MRIvox(mri_tmp, x, y, z) ; n = 1 ;
+            for (z0 = -1 ; z0 <= 1 ; z0++)
+            {
+              zi = mri_tmp->zi[z+z0] ;
+              for (y0 = -1 ; y0 <= 1 ; y0++)
+              {
+                yi = mri_tmp->yi[y+y0] ;
+                for (x0 = -1 ; x0 <= 1 ; x0++)
+                {
+                  xi = mri_tmp->xi[x+x0] ;
+                  mean += MRIvox(mri_tmp, xi,yi,zi) ;
+                  n++ ;
+                }
+              }
+            }
+            MRIvox(mri_dst, x,y,z) = mean / n ;
+          }
+        }
+      }
+    }
+  }
+  MRIfree(&mri_tmp) ;
+
+  return(mri_dst) ;
 }
