@@ -24,6 +24,9 @@
 #define FILTER_EXP_LAPLACIAN 8
 #define FILTER_LAPLACIAN     9
 #define FILTER_EXPONENTIAL   10
+#define FILTER_DIFFUSE_CURV  FILTER_DIFFUSE
+#define FILTER_DIFFUSE_GRAD  11
+#define FILTER_OFFSET        0x0100
 
 IMAGE    *ImageNitShiFilter(IMAGE *Isrc, IMAGE *Ix, IMAGE *Iy, int wsize, 
                            double sigma, IMAGE *Idst) ;
