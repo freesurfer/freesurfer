@@ -22,7 +22,7 @@
 #include "transform.h"
 #include "talairachex.h"
 
-static char vcid[] = "$Id: mri_fill.c,v 1.73 2003/12/18 17:15:47 tosa Exp $";
+static char vcid[] = "$Id: mri_fill.c,v 1.74 2004/02/26 20:40:03 tosa Exp $";
 
 
 /*-------------------------------------------------------------------
@@ -237,7 +237,7 @@ main(int argc, char *argv[])
   // Gdiag = 0xFFFFFFFF;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_fill.c,v 1.73 2003/12/18 17:15:47 tosa Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_fill.c,v 1.74 2004/02/26 20:40:03 tosa Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -1098,7 +1098,7 @@ get_option(int argc, char *argv[])
     lh_tal_x = atof(argv[2]) ;
     lh_tal_y = atof(argv[3]) ;
     lh_tal_z = atof(argv[4]) ;
-    fprintf(stderr, "using (%2.1f, %2.1f, %2.1f) as lh seed\n",
+    fprintf(stderr, "using Talairach position (%2.1f, %2.1f, %2.1f) as lh seed\n",
             lh_tal_x, lh_tal_y, lh_tal_z) ;
     nargs = 3 ;
   }
@@ -1114,7 +1114,7 @@ get_option(int argc, char *argv[])
     rh_tal_x = atof(argv[2]) ;
     rh_tal_y = atof(argv[3]) ;
     rh_tal_z = atof(argv[4]) ;
-    fprintf(stderr, "using (%2.1f, %2.1f, %2.1f) as rh seed\n",
+    fprintf(stderr, "using Talairach position (%2.1f, %2.1f, %2.1f) as rh seed\n",
             rh_tal_x, rh_tal_y, rh_tal_z) ;
     nargs = 3 ;
   }
@@ -1148,7 +1148,7 @@ get_option(int argc, char *argv[])
     pons_tal_y = atof(argv[3]) ;
     pons_tal_z = atof(argv[4]) ;
     nargs = 3 ;
-    fprintf(stderr, "using pons seed point (%2.0f, %2.0f, %2.0f)\n",
+    fprintf(stderr, "using Talairach position (%2.0f, %2.0f, %2.0f) as pons seed point\n",
             pons_tal_x, pons_tal_y, pons_tal_z) ;
     pons_seed_set = 1 ;
     break ;
@@ -1157,7 +1157,7 @@ get_option(int argc, char *argv[])
     cc_tal_y = atof(argv[3]) ;
     cc_tal_z = atof(argv[4]) ;
     nargs = 3 ;
-    fprintf(stderr, "using corpus callosum seed point (%2.0f, %2.0f, %2.0f)\n",
+    fprintf(stderr, "using Talairach position (%2.0f, %2.0f, %2.0f) as corpus callosum seed point\n",
             cc_tal_x, cc_tal_y, cc_tal_z) ;
     cc_seed_set = 1 ;
     break ;
