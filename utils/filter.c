@@ -1949,8 +1949,8 @@ imageMeanFilter3x3(IMAGE *Isrc, IMAGE *Idst)
   *IMAGEFpix(Idst, cols-1, 0) = (left + middle) / 4.0f ;
 
   /* bottom right corner */
-  left = *IMAGEFpix(Isrc, cols-2, rows-2) + *IMAGEFpix(Isrc, cols-2, rows-2) ; 
-  middle = *IMAGEFpix(Isrc, cols-1, rows-1) + *IMAGEFpix(Isrc, cols-1, rows-1);
+  left = *IMAGEFpix(Isrc, cols-2, rows-2) + *IMAGEFpix(Isrc, cols-2, rows-1);
+  middle = *IMAGEFpix(Isrc, cols-1, rows-2) + *IMAGEFpix(Isrc,cols-1,rows-1);
   *IMAGEFpix(Idst, cols-1, rows-1) = (left + middle) / 4.0f ;
 
 
@@ -1977,8 +1977,8 @@ imageMeanFilter3x3(IMAGE *Isrc, IMAGE *Idst)
   }
 
   /* bottom left corner and initialize for bottom row */
-  left = *IMAGEFpix(Isrc, 0, rows-2) + *IMAGEFpix(Isrc, 0, rows-2) ; 
-  middle = *IMAGEFpix(Isrc, 1, rows-1) + *IMAGEFpix(Isrc, 1, rows-1);
+  left = *IMAGEFpix(Isrc, 0, rows-2) + *IMAGEFpix(Isrc, 0, rows-1) ; 
+  middle = *IMAGEFpix(Isrc, 1, rows-2) + *IMAGEFpix(Isrc, 1, rows-1);
   *IMAGEFpix(Idst, 0, rows-1) = (left + middle) / 4.0f ;
 
   /* do bottom row */
