@@ -113,12 +113,14 @@ ImageNitShiFilter(IMAGE *Isrc, IMAGE *Ix, IMAGE *Iy, int wsize, double sigma,
   ImageConvolveGaussian(IE, Iblur, IE, 0) ;
   ImageConvolveGaussian(IF, Iblur, IF, 0) ;
   ImageConvolveGaussian(IG, Iblur, IG, 0) ;
-  
+
+#if 0  
 ImageWrite(Ix, "Ix.hipl") ;
 ImageWrite(Iy, "Iy.hipl") ;
 ImageWrite(IE, "IE.hipl");
 ImageWrite(IF, "IF.hipl");
 ImageWrite(IG, "IG.hipl");
+#endif
 
   /* now apply actual filter */
   sigma_sq = 2.0f * (float)(sigma * sigma) ;
