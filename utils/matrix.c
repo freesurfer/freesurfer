@@ -1174,8 +1174,9 @@ void svd(float **A, float **V, float *z, int m, int n) ;
 /* z is an m->cols dimensional vector, mV is an cols x cols dimensional
    identity matrix. Note that all the matrices are (as usual) one based.
 */
-MATRIX *
-MatrixSVD(MATRIX *mA, VECTOR *v_z, MATRIX *mV)
+/* This looks to be the same as [u s v] = svd(mA), where
+   v = mV, and s = diag(v_z) */
+MATRIX *MatrixSVD(MATRIX *mA, VECTOR *v_z, MATRIX *mV)
 {
   mV = MatrixIdentity(mA->rows, mV) ;
 
@@ -2755,4 +2756,146 @@ MATRIX *MatrixDRand48(int rows, int cols, MATRIX *m)
   }
 
   return(m);
+}
+/*--------------------------------------------------------------------
+  MatrixFactorSqrSVD() - factors a square matrix M into D such that M
+  = D'D. This is like a cholesky factorization, except that D will be
+  non-causal. M must be positive semidefinite (ie, all the eigenvalues
+  must be greater than zero). If the Invert flag is non-zero, then M =
+  inv(D'D), in which case M must be positive definite. D will be the
+  same size as M. If D is NULL, it will be allocated.
+
+  Internally, intermediate matrices are held static and reallocated
+  only if the dimensions of M change from call to call. This makes the
+  code more efficient.
+
+  Return: D
+  -----------------------------------------------------------------*/
+MATRIX *MatrixFactorSqrSVD(MATRIX *M, int Invert, MATRIX *D)
+{
+  static int matalloc = 1;
+  static VECTOR *S = NULL;
+  static MATRIX *U = NULL, *V = NULL, *Vt = NULL;
+  static int Mrows = -1, Mcols = -1;
+  float s;
+  int r,c;
+
+  if(M->rows != M->cols){
+    printf("ERROR: MatrixFactorSqrSVD: matrix is not square\n");
+    return(NULL);
+  }
+
+  if(D == NULL)
+    D = MatrixAlloc(M->rows,M->cols,MATRIX_REAL);
+  else{
+    if(D->rows != M->rows || D->cols != M->cols){
+      printf("ERROR: MatrixFactorSqrSVD: dimension mismatch\n");
+      return(NULL);
+    }
+  }
+
+  if(!matalloc){
+    /* Check that M is the same size as last time */
+    if(Mrows != M->rows || Mcols != M->cols){
+      MatrixFree(&U);
+      MatrixFree(&S);
+      MatrixFree(&V);
+      MatrixFree(&Vt);
+      matalloc = 1;
+    }
+  }
+  if(matalloc){
+    /* Allocate intermediate matrices */
+    U  = MatrixAlloc(M->rows,M->cols,MATRIX_REAL);
+    S  = MatrixAlloc(M->rows,1,MATRIX_REAL);
+    V  = MatrixAlloc(M->rows,M->cols,MATRIX_REAL);
+    Vt = MatrixAlloc(M->rows,M->cols,MATRIX_REAL);
+  }
+
+  /* Make a local copy of M because SVD alters it */
+  MatrixCopy(M,U);
+
+  /* Compute SVD of matrix [u s v'] = svd(M)*/
+  if(MatrixSVD(U, S, V) == NULL){
+    printf("ERROR: MatrixFactorSqrSVD: cound not SVD\n");
+    return(NULL);
+  }
+
+  /* Check for pos/posdef. Invert if necessary.*/
+  for(r=1; r <= S->rows; r++){
+    s = S->rptr[r][1];
+    if(!Invert && s < 0 ) {
+      printf("ERROR: MatrixFactorSqrSVD: matrix is not positive.\n");
+      return(NULL);
+    }    
+    if(Invert && s <= 0 ) {
+      printf("ERROR: MatrixFactorSqrSVD: matrix is not positive definite.\n");
+      return(NULL);
+    }
+    if(Invert) s = 1.0/s;
+    S->rptr[r][1] = sqrt(s);
+  }
+
+  MatrixTranspose(V,Vt);
+
+  /* D = U*diag(S)*V' */
+  /* U = U*diag(S): Multiply each column of U by S. */
+  for(c=1; c <= U->cols; c++)
+    for(r=1; r <= U->rows; r++)
+      U->rptr[r][c] *= S->rptr[c][1];
+
+  /* D = U*Vt = U*diag(S)*V'*/
+  MatrixMultiply(U,Vt,D);
+
+  matalloc = 0;
+  Mrows = M->rows;
+  Mcols = M->cols;
+  return(D);
+}
+/*-------------------------------------------------------------
+  MatrixToeplitz() - creates a toeplitz matrix T (ie, a matrix
+  where all the elements on a diagonal have the same value.
+  The value on the ith diagonal equals the ith value of v.
+  T will be square in the number of rows of v. There are three
+  subtypes of matrices possible: (1) Lower: only diagonals
+  below and including the main, (2) Upper: only diagonals
+  above and including the main, and (3) Symetric: both upper
+  and lower.
+  ---------------------------------------------------------*/
+MATRIX *MatrixToeplitz(VECTOR *v, MATRIX *T, int Type)
+{
+  int r,c;
+
+  if(Type != MATRIX_SYM && Type != MATRIX_UPPER && Type != MATRIX_LOWER){
+    printf("ERROR: Type = %d, unrecognized\n",Type);
+    return(NULL);
+  }
+
+  if(T==NULL){
+    T = MatrixAlloc(v->rows,v->rows,MATRIX_REAL);
+    if(T==NULL) return(NULL);
+  }
+  else{
+    if(T->rows != v->rows || T->cols != v->rows){
+      printf("ERROR: dimension mismatch\n");
+      return(NULL);
+    }
+  }      
+
+  for(r = 1; r <= T->rows; r++){
+    for(c = 1; c <= T->cols; c++){
+      if(r==c){
+	T->rptr[r][c] = v->rptr[1][1];
+	continue;
+      }
+      if( (r > c && Type == MATRIX_UPPER) || 
+	  (r < c && Type == MATRIX_LOWER)){
+	T->rptr[r][c] = 0.0;
+	continue;
+      }
+      T->rptr[r][c] = v->rptr[abs(r-c)+1][1];
+    }
+  }
+
+  return(T);
 }
