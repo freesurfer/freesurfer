@@ -343,7 +343,7 @@ scuba_bundle: scuba2
 	@test -d scuba2.app/Contents/MacOS/ || mkdir -p scuba2.app/Contents/MacOS/
 	@rm -f scuba2.app/Contents/MacOS/scuba2
 	@cp scuba2 scuba2.app/Contents/MacOS/
-
+	@cp -r scuba2.app $(DESTDIR)$(bindir)
 
 .PHONY: scuba_bundle
 
