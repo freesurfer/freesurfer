@@ -775,12 +775,17 @@ ImageCopy(IMAGE *Isrc, IMAGE *Idst)
   int  old, ecode, frame, nframes ;
   byte *src_image, *dst_image ;
 
+  if (Idst && 
+      (Idst->numpix < Isrc->numpix || Idst->num_frame < Isrc->num_frame))
+#if 1
+    ImageFree(&Idst) ;
+#else
+    ErrorReturn(NULL, (ERROR_BADPARM, "ImageCopy: dst not big enough")) ;
+#endif
+
   if (!Idst)
     Idst = ImageAlloc(Isrc->rows, Isrc->cols, Isrc->pixel_format, 
                       Isrc->num_frame) ;
-
-  if (Idst->numpix < Isrc->numpix || Idst->num_frame < Isrc->num_frame)
-    ErrorReturn(NULL, (ERROR_BADPARM, "ImageCopy: dst not big enough")) ;
 
   src_image = Isrc->image ;
   dst_image = Idst->image ;
