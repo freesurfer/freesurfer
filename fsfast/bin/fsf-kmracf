@@ -5,9 +5,10 @@
 #  2. Save kmapvol?
 #  3. Another type of init?
 #  4. Init from another run?
+#  5. Apply KJW prior to kmeans?
 #
 
-set VERSION = '$Id: fsf-kmracf,v 1.1 2004/05/25 23:46:52 greve Exp $'
+set VERSION = '$Id: fsf-kmracf,v 1.2 2004/05/27 01:42:26 greve Exp $'
 set inputargs = ($argv);
 set racfstem = ();
 set xmatfile = ();
@@ -19,6 +20,7 @@ set initmethod = ();
 set outmatfile = ();
 set kmapstem = ();
 set RandSeed = ();
+set FixWht = 1;
 
 set monly = 0;
 set MLF = ();
@@ -51,7 +53,7 @@ rm -f $MLF
 tee $MLF > /dev/null <<EOF
 
 tic;
-racfstem    = '$racfstem';
+racfstem   = '$racfstem';
 xmatfile   = '$xmatfile';
 maskstem   = '$maskstem';
 nclasses   =  $nclasses;
@@ -61,6 +63,7 @@ initmethod = '$initmethod';
 outmatfile = '$outmatfile';
 kmapstem   = '$kmapstem';
 RandSeed   =  [$RandSeed];
+FixWht     =  $FixWht;
 
 if(isempty(RandSeed)) RandSeed = sum(100*clock); end
 randn('state',RandSeed); 
@@ -105,6 +108,8 @@ ar1edge = fast_histeq(ar1,nclasses);
 [nf nv] = size(racf);
 
 km0 = zeros(nkvect,nclasses);
+km0(:,1) = racfwht(2:nkvect+1);
+
 indrandinit = [];
 switch(initmethod)
 
@@ -118,21 +123,21 @@ switch(initmethod)
   case 'rand'
     fprintf('Using Random Init (seed = %d)\n',RandSeed);
     tmp = randperm(nv);
-    indrandinit = tmp(1:nclasses);
-    km0 = racf(:,indrandinit);
+    indrandinit = tmp(1:nclasses-1);
+    km0(:,2:nclasses) = racf(:,indrandinit);
 
   case 'svd'
     fprintf('Using SVD Init\n');
     [u s v] = svd(Mracf);
-    km0 = u(:,1:nclasses);
+    km0(:,2:nclasses) = u(:,2:nclasses-1);
 
 end
 
 % Get the intial dmin %
-[km kmap dmin0 nitersused] = fast_kmeans(racf,nclasses,km0,1,0);
+[km kmap dmin0 nitersused] = fast_kmeans(racf,nclasses,km0,1,FixWht);
 
 fprintf('Staring  kmeans    %7.1f\n',toc);
-[km kmap dmin nitersused] = fast_kmeans(racf,nclasses,km0,niters,0);
+[km kmap dmin nitersused] = fast_kmeans(racf,nclasses,km0,niters,FixWht);
 fprintf('Finished kmeans    %7.1f\n',toc);
 fprintf('dmin = %g, niters = %d\n',mean(dmin),nitersused);
 
@@ -152,7 +157,7 @@ end
 save(outmatfile,'design','X','R','racfstem','racfwht',...
      'xmatfile','maskstem','nclasses','niters','nitersused',...
      'nkvect','initmethod','RandSeed','mask','dmin0','dmin',...
-     'mristr','km0','km','kmap','indrandinit','ar1edge',...
+     'mristr','km0','km','kmap','indrandinit','ar1edge','FixWht',...
      'Mracf','nperclass','dminc','kmracf','kmracfstd','kmapstem');
 
 
@@ -184,9 +189,9 @@ while( $#argv != 0 )
   
   switch($flag)
 
-    case "--acf":
+    case "--racf":
       if ( $#argv == 0) goto arg1err;
-      set acfstem = $argv[1]; shift;
+      set racfstem = $argv[1]; shift;
       breaksw
 
     case "--X":
@@ -245,6 +250,10 @@ while( $#argv != 0 )
       set monly = 1;
       breaksw
 
+    case "--nofix":
+      set FixWht = 0;
+      breaksw
+
     case "--debug":
       set verbose = 1;
       set echo = 1; # turns on terminal echoing
@@ -265,8 +274,8 @@ goto parse_args_return;
 ############--------------##################
 check_params:
 
-  if($#acfstem == 0) then
-    echo "ERROR: no acf specified"    
+  if($#racfstem == 0) then
+    echo "ERROR: no racf specified"    
     exit 1;
   endif
 
@@ -322,12 +331,13 @@ usage_exit:
   echo ""
   echo "USAGE: fsf-kmracf"
   echo ""
-  echo "  --acf acfstem "
+  echo "  --racf racfstem "
   echo "  --X X"
   echo "  --mask maskstem"
   echo "  --nclasses n"
   echo "  --niters   n"
   echo "  --nkvect   n"
+  echo "  --nofix      : do not fix white"
   echo "  --init method : ar1, svd, rand"
   echo "  --seed randseed: for rand init (default auto)"
   echo "  --o outmat"
