@@ -56,6 +56,9 @@ static int *xctrl ;
 static int *yctrl ;
 static int *zctrl ;
 
+static char *control_volume_fname = NULL ;
+static char *bias_volume_fname = NULL ;
+
 /*-----------------------------------------------------
                     GLOBAL FUNCTIONS
 -------------------------------------------------------*/
@@ -637,7 +640,7 @@ MRInormFindControlPoints(MRI *mri_src, int wm_target, float intensity_above,
         {
 #define WSIZE   5
 #define WHALF  ((WSIZE-1)/2)
-          ctrl = 1 ;
+          ctrl = 128 ;
           for (zk = -WHALF ; ctrl && zk <= WHALF ; zk++)
           {
             zi = pzi[z+zk] ;
@@ -712,7 +715,7 @@ MRInormFindControlPoints(MRI *mri_src, int wm_target, float intensity_above,
                      is currently a control point.
                   */
                   if (MRIvox(mri_ctrl, xi, yi, zi))
-                    ctrl = 1 ;
+                    ctrl = 128 ;
                 }
               }
             }
@@ -746,7 +749,7 @@ MRInormFindControlPoints(MRI *mri_src, int wm_target, float intensity_above,
 #undef WSIZE
 #define WSIZE   9
 #define WHALF  ((WSIZE-1)/2)
-          ctrl = 1 ;
+          ctrl = 128 ;
           for (zk = -WHALF ; ctrl && zk <= WHALF ; zk++)
           {
             zi = pzi[z+zk] ;
@@ -831,7 +834,7 @@ MRInormFindControlPoints(MRI *mri_src, int wm_target, float intensity_above,
             }
             if (low_gradients >= 9)
             {
-              MRIvox(mri_ctrl, x, y, z) = 1 ;
+              MRIvox(mri_ctrl, x, y, z) = 128 ;
               nfilled++ ;
             }
           }
@@ -853,9 +856,9 @@ MRInormFindControlPoints(MRI *mri_src, int wm_target, float intensity_above,
   /* read in control points from a file (if specified) */
   for (i = 0 ; i < num_control_points ; i++)
   {
-    if (!MRIvox(mri_ctrl, xctrl[i], yctrl[i], zctrl[i]))
+    /*    if (!MRIvox(mri_ctrl, xctrl[i], yctrl[i], zctrl[i]))*/
     {
-      MRIvox(mri_ctrl, xctrl[i], yctrl[i], zctrl[i]) = 1 ;
+      MRIvox(mri_ctrl, xctrl[i], yctrl[i], zctrl[i]) = 255 ;
       nctrl++ ;
     }
   }
@@ -938,7 +941,20 @@ MRI3dNormalize(MRI *mri_src, MRI *mri_bias, int wm_target, MRI *mri_norm,
     free_bias = 1 ;
     mri_ctrl = MRInormFindControlPoints(mri_src, wm_target, intensity_above, 
                                         intensity_below, NULL);
+    if (control_volume_fname)
+    {
+      fprintf(stderr, "writing control point volume to %s...\n",
+              control_volume_fname) ;
+      MRIwrite(mri_ctrl, control_volume_fname) ;
+    }
+    MRIbinarize(mri_ctrl, mri_ctrl, 1, CONTROL_NONE, CONTROL_MARKED) ;
     mri_bias = MRIbuildBiasImage(mri_src, mri_ctrl, NULL) ;
+    if (bias_volume_fname)
+    {
+      fprintf(stderr, "writing bias field volume to %s...\n",
+              bias_volume_fname) ;
+      MRIwrite(mri_bias, bias_volume_fname) ;
+    }
     if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
     {
       static int pass = 0 ;
@@ -1014,6 +1030,8 @@ mriBuildVoronoiDiagramFloat(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst)
       pdst = &MRIFvox(mri_dst, 0, y, z) ;
       for (x = 0 ; x < width ; x++)
       {
+        if (x == 141 && y == 68 && z == 127)
+          DiagBreak() ;
         ctrl = *pctrl++ ;
         src = *psrc++ ;
         if (!ctrl)
@@ -1158,6 +1176,8 @@ MRIbuildVoronoiDiagram(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst)
       pdst = &MRIvox(mri_dst, 0, y, z) ;
       for (x = 0 ; x < width ; x++)
       {
+        if (x == 167 && y == 127 && z == 126)
+          DiagBreak() ;
         ctrl = *pctrl++ ;
         src = *psrc++ ;
         if (!ctrl)
@@ -1216,6 +1236,8 @@ MRIbuildVoronoiDiagram(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst)
         pdst = &MRIvox(mri_dst, 0, y, z) ;
         for (x = 0 ; x < width ; x++)
         {
+          if (x == 167 && y == 127 && z == 126)
+            DiagBreak() ;
           mark = *pmarked++ ;
           if (mark != CONTROL_MARKED)  /* not a neighbor of a marked point */
           {
@@ -1809,6 +1831,19 @@ MRI3dUseFileControlPoints(MRI *mri, char *fname)
     xctrl[i] = nint(xv) ; yctrl[i] = nint(yv) ; zctrl[i] = nint(zv) ;
   }
   fclose(fp) ;
+  return(NO_ERROR) ;
+}
+
+int
+MRI3dWriteControlPoints(char *t_control_volume_fname)
+{
+  control_volume_fname = t_control_volume_fname ;
+  return(NO_ERROR) ;
+}
+int
+MRI3dWriteBias(char *t_bias_volume_fname)
+{
+  bias_volume_fname = t_bias_volume_fname ;
   return(NO_ERROR) ;
 }
 
