@@ -1,4 +1,4 @@
-#! /usr/local/bin/tclsh7.4
+#! /usr/bin/tclsh
 #############################################################################
 # called by views scripts: saveviews  [save requested subset of views]
 ##############################################################################

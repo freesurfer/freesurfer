@@ -1,8 +1,8 @@
-#! /usr/local/bin/tclsh7.4
+#! /usr/bin/tclsh
 ##############################################################################
 # surfer script: mk-fieldsign    [calc,write fieldsign using patch--optional disp]
 # This is a slight modification of fs-make.tcl
-# $Id: mk-fieldsign.tcl,v 1.1 2004/02/11 22:15:22 kteich Exp $
+# $Id: mk-fieldsign.tcl,v 1.2 2004/11/19 15:15:32 tosa Exp $
 ##############################################################################
 
 #### session dir autoset to $cwd/.. when cwd=scripts

@@ -1,4 +1,4 @@
-#! /usr/local/bin/tclsh7.4
+#! /usr/bin/tclsh
 #############################################################################
 # surfer script: polar-views  [disp phase-encoded data on 3D folded/unfolded]
 ##############################################################################

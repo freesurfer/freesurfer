@@ -1,4 +1,4 @@
-#! /usr/local/bin/tclsh7.4
+#! /usr/bin/tclsh
 #############################################################################
 # tksurfer script: twocond-flat [read,smooth,disp phase-encoded data 2D patch]
 #############################################################################

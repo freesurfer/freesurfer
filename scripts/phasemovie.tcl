@@ -1,4 +1,4 @@
-#! /usr/local/bin/tclsh7.4
+#! /usr/bin/tclsh
 #############################################################################
 # surfer script: phasemovie.tcl  [save phase movie; interactive or batch]
 ##############################################################################

@@ -1,4 +1,4 @@
-#! /usr/local/bin/tclsh7.4
+#! /usr/bin/tclsh
 ##################################################################
 # tksurfer script: real-flat [read,smooth,disp real data 2D patch]
 ##################################################################

@@ -1,4 +1,4 @@
-#! /usr/local/bin/tclsh7.4
+#! /usr/bin/tclsh
 ##############################################################################
 # tksurfer script: real-views [disp two-condition data on 3D folded/unfolded]
 ##############################################################################

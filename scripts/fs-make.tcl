@@ -1,4 +1,4 @@
-#! /usr/local/bin/tclsh7.4
+#! /usr/bin/tclsh
 ##############################################################################
 # surfer script: fs-make    [calc,write fieldsign using patch--optional disp]
 ##############################################################################

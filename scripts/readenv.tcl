@@ -1,4 +1,4 @@
-#! /usr/local/bin/tclsh7.4
+#! /usr/bin/tclsh
 ###########################################################################
 # read names/values of non-cap setenv vars to override default parms
 # in csh scripts:

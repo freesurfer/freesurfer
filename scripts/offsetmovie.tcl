@@ -1,4 +1,4 @@
-#! /usr/local/bin/tclsh7.4
+#! /usr/bin/tclsh
 ##############################################################################
 # surfer script: offsetmovie     [save offset movie; interactive or batch]
 ##############################################################################

@@ -1,4 +1,4 @@
-#! /usr/local/bin/tclsh7.4
+#! /usr/bin/tclsh
 #############################################################################
 # tksurfer script: solmovie-flat [render dipole estimates on flat surface]
 #############################################################################
