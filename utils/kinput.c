@@ -47,7 +47,7 @@ KinputAlloc(int rows, int cols, int nscales, int input_size, float sigma,
   for (scale = 1 ; scale < nscales ; scale++)
   {
     kinput->gImages[scale] = 
-      ImageGaussian1d(sigma*sigma_scale_factor*(float)(scale)) ;
+      ImageGaussian1d(sigma*sigma_scale_factor*(float)(scale), 0) ;
     kinput->parms.sigmas[scale] = (float)scale * sigma_scale_factor * sigma ;
   }
 #endif
