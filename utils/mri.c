@@ -9,9 +9,9 @@
  */
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2005/02/14 16:12:27 $
-// Revision       : $Revision: 1.295 $
-char *MRI_C_VERSION = "$Revision: 1.295 $";
+// Revision Date  : $Date: 2005/02/17 19:06:51 $
+// Revision       : $Revision: 1.296 $
+char *MRI_C_VERSION = "$Revision: 1.296 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -3941,26 +3941,57 @@ MRIdivide(MRI *mri1, MRI *mri2, MRI *mri_dst)
     MRIcopyHeader(mri1, mri_dst) ;
   }
 
-  for (z = 0 ; z < depth ; z++)
-  {
-    for (y = 0 ; y < height ; y++)
-    {
-      p1 = mri1->slices[z][y] ;
-      p2 = mri2->slices[z][y] ;
-      pdst = mri_dst->slices[z][y] ;
-      for (x = 0 ; x < width ; x++)
-      {
-        if  (!*p2)
-        {
-          p2++ ;
-          *pdst = 255 ;
-        }
-        else
-          *pdst++ = *p1++ / *p2++ ;
-      }
-    }
-  }
-  return(mri_dst) ;
+	if (mri1->type != MRI_UCHAR || mri2->type != MRI_UCHAR)
+	{
+		Real val1, val2, dst ;
+
+		for (z = 0 ; z < depth ; z++)
+		{
+			for (y = 0 ; y < height ; y++)
+			{
+				pdst = mri_dst->slices[z][y] ;
+				for (x = 0 ; x < width ; x++)
+				{
+					if (x == Gx && y == Gy && z==Gz)
+						DiagBreak() ;
+					val1 = MRIgetVoxVal(mri1, x, y, z, 0) ;
+					val2 = MRIgetVoxVal(mri2, x, y, z, 0) ;
+					if  (FZERO(val2))
+					{
+						dst = FZERO(val1) ? 0 : 255 ;
+					}
+					else
+						dst = val1 / val2 ;
+					if (abs(dst) > 1000)
+						DiagBreak() ;
+					MRIsetVoxVal(mri_dst, x, y, z, 0, dst) ;
+				}
+			}
+		}
+	}
+	else   /* both UCHAR volumes */
+	{
+		for (z = 0 ; z < depth ; z++)
+		{
+			for (y = 0 ; y < height ; y++)
+			{
+				p1 = mri1->slices[z][y] ;
+				p2 = mri2->slices[z][y] ;
+				pdst = mri_dst->slices[z][y] ;
+				for (x = 0 ; x < width ; x++)
+				{
+					if  (!*p2)
+					{
+						*pdst = FZERO(*p1) ? 0 : 255 ;
+						p2++ ;
+					}
+					else
+						*pdst++ = *p1++ / *p2++ ;
+				}
+			}
+		}
+	}
+	return(mri_dst) ;
 }
 /*-----------------------------------------------------
   Parameters:
