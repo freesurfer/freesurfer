@@ -36,7 +36,7 @@
 #include "label.h"
 #include "macros.h"
 
-static char vcid[] = "$Id: mris2rgb.c,v 1.26 1999/05/21 19:12:35 fischl Exp $";
+static char vcid[] = "$Id: mris2rgb.c,v 1.27 1999/10/13 18:10:36 fischl Exp $";
 
 /*-------------------------------- CONSTANTS -----------------------------*/
 
@@ -100,7 +100,7 @@ static int talairach_flag = 0 ;
 static int medial_flag = 0 ;
 static int lateral_flag = 0 ;
 static int posterior_flag = 0 ;
-static int basal_flag = 0 ;
+static int ventral_flag = 0 ;
 static int frontal_flag = 0 ;
 static int dorsal_flag = 0 ;
 
@@ -110,6 +110,10 @@ static float angle_offset = 0.0f ;
 static float x_angle = 0.0f ;
 static float y_angle = 0.0f ;
 static float z_angle = 0.0f ;
+
+static float x_trans = 0.0f ;
+static float y_trans = 0.0f ;
+static float z_trans = 0.0f ;
 
 static float scale = 1.0f ;
 
@@ -210,7 +214,7 @@ main(int argc, char *argv[])
   xinit() ;             /* open connection with x server */
 
 
-  if (!medial_flag && !posterior_flag && !basal_flag && !frontal_flag &&
+  if (!medial_flag && !posterior_flag && !ventral_flag && !frontal_flag &&
       !dorsal_flag)
     lateral_flag = 1 ;   /* default view if no other specified */
   
@@ -490,7 +494,7 @@ main(int argc, char *argv[])
         }
       }
       
-      if (dorsal_flag)
+      if (ventral_flag)
       {
         if (drawn)  /* clear old display */
           clear_pixmaps(mris) ;
@@ -515,20 +519,20 @@ main(int argc, char *argv[])
         if (!tiff_flag)
         {
           grabPixels(frame_xdim, frame_ydim, red, green, blue) ;
-          sprintf(out_fname, "%s/%s.%s.rgb", out_prefix, "dorsal", name) ;
+          sprintf(out_fname, "%s/%s.%s.rgb", out_prefix, "ventral", name) ;
           fprintf(stderr, "writing rgb file %s\n", out_fname) ;
           save_rgb(out_fname, frame_xdim, frame_ydim, red, green, blue) ;
         }
         else
         {
           grabPixelsTIFF(frame_xdim, frame_ydim, rgb) ;
-          sprintf(out_fname, "%s/%s.%s.tiff", out_prefix, "dorsal", name) ;
+          sprintf(out_fname, "%s/%s.%s.tiff", out_prefix, "ventral", name) ;
           fprintf(stderr, "writing TIFF file %s\n", out_fname) ;
           save_TIFF(out_fname, frame_xdim, frame_ydim, rgb) ;
         }
       }
       
-      if (basal_flag)
+      if (dorsal_flag)
       {
         if (drawn)  /* clear old display */
           clear_pixmaps(mris) ;
@@ -553,14 +557,14 @@ main(int argc, char *argv[])
         if (!tiff_flag)
         {
           grabPixels(frame_xdim, frame_ydim, red, green, blue) ;
-          sprintf(out_fname, "%s/%s.%s.rgb", out_prefix, "basal", name) ;
+          sprintf(out_fname, "%s/%s.%s.rgb", out_prefix, "dorsal", name) ;
           fprintf(stderr, "writing rgb file %s\n", out_fname) ;
           save_rgb(out_fname, frame_xdim, frame_ydim, red, green, blue) ;
         }
         else
         {
           grabPixelsTIFF(frame_xdim, frame_ydim, rgb) ;
-          sprintf(out_fname, "%s/%s.%s.tiff", out_prefix, "basal", name) ;
+          sprintf(out_fname, "%s/%s.%s.tiff", out_prefix, "dorsal", name) ;
           fprintf(stderr, "writing TIFF file %s\n", out_fname) ;
           save_TIFF(out_fname, frame_xdim, frame_ydim, rgb) ;
         }
@@ -823,8 +827,8 @@ get_option(int argc, char *argv[])
   }
   else if (!stricmp(option, "basal") || !stricmp(option, "ventral"))
   {
-    fprintf(stderr, "generating basal views.\n");
-    basal_flag = 1 ;
+    fprintf(stderr, "generating ventral views.\n");
+    ventral_flag = 1 ;
   }
   else if (!stricmp(option, "frontal") || !stricmp(option, "anterior"))
   {
@@ -878,32 +882,50 @@ get_option(int argc, char *argv[])
     num_spoints++ ;
   }
   else if (!stricmp(option, "time"))
-    {
-      compile_flags |= TIME_FLAG ;
-      fprintf(stderr, "Processing temporal information ...\n") ;
-    }  
+  {
+    compile_flags |= TIME_FLAG ;
+    fprintf(stderr, "Processing temporal information ...\n") ;
+  }  
   else if (!stricmp(option, "stan"))
-    {
-      compile_flags |= STAN_FLAG ;
-      fprintf(stderr, "Processing spatio-temporal analysis results ...\n") ;
-    }  
+  {
+    compile_flags |= STAN_FLAG ;
+    fprintf(stderr, "Processing spatio-temporal analysis results ...\n") ;
+  }  
   else if (!stricmp(option, "lin"))
-    {
-      compile_flags |= LIN_FLAG ;
-      fprintf(stderr, "Processing linear estimation results ...\n") ;
-    }  
+  {
+    compile_flags |= LIN_FLAG ;
+    fprintf(stderr, "Processing linear estimation results ...\n") ;
+  }  
   else if (!stricmp(option, "fthresh"))
-    {
+  {
     nargs = 1 ;
     fthresh = atof(argv[2]) ;
     fprintf(stderr, "fthresh = %f \n", fthresh) ;
-    }  
+  }  
+  else if (!stricmp(option, "xtrans"))
+  {
+    nargs = 1 ;
+    x_trans = atof(argv[2]) ;
+    fprintf(stderr, "x_trans = %2.2f \n", x_trans) ;
+  }  
+  else if (!stricmp(option, "ytrans"))
+  {
+    nargs = 1 ;
+    y_trans = atof(argv[2]) ;
+    fprintf(stderr, "y_trans = %2.2f \n", y_trans) ;
+  }  
+  else if (!stricmp(option, "ztrans"))
+  {
+    nargs = 1 ;
+    y_trans = atof(argv[2]) ;
+    fprintf(stderr, "z_trans = %2.2f \n", z_trans) ;
+  }  
   else if (!stricmp(option, "pre_fthresh"))
-    {
+  {
     nargs = 1 ;
     pre_fthresh = atof(argv[2]) ;
     fprintf(stderr, "pre_fthresh = %f \n", pre_fthresh) ;
-    }  
+  }  
   else if (!stricmp(option, "fmid"))
     {
     nargs = 1 ;
@@ -911,27 +933,27 @@ get_option(int argc, char *argv[])
     fprintf(stderr, "fmid = %f \n", fmid) ;
     }  
   else if (!stricmp(option, "fslope"))
-    {
+  {
     nargs = 1 ;
     fslope = atof(argv[2]) ;
     fprintf(stderr, "fslope = %f \n", fslope) ;
-    }  
+  }  
   else if (!stricmp(option, "t_fthresh"))
-    {
+  {
     nargs = 1 ;
     time_fthresh = atof(argv[2]) ;
     fprintf(stderr, "time_fthresh = %f \n", time_fthresh) ;
-    }  
+  }  
   else if (!stricmp(option, "cscale"))
-    {
+  {
       compile_flags |= CSCALE_FLAG ;
       fprintf(stderr, "Drawing color scale ...\n") ;
-    }  
+  }  
   else if (!stricmp(option, "legend"))
-    {
+  {
       compile_flags |= LEG_FLAG ;
       fprintf(stderr, "Writing color scale legend ...\n") ;
-    }  
+  }  
   else switch (toupper(*option))
   {
   case 'W':
