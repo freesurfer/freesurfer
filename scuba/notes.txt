@@ -238,9 +238,7 @@ option menus for data collections in label dlogs
 
 
 static version
- - find out how to pass arguments to scuba.tcl
  - redo argument letters
- - remove scuba sh file and make the static version the default build
 
 
 BRUCE'S LIST:::
