@@ -11,8 +11,7 @@ if(fid == -1)
   return;
 end
 
-% Scroll through blank/comment lines
-
+% Scroll through blank/comment lines at beginning
 
 % Read the first line %
 line = fgets(fid);
@@ -44,9 +43,7 @@ if(cfgversion ~= 2)
   return;
 end
 
-cfg.version = 2;
-cfg.erm = [];
-cfg.extreg = '';
+cfg = fast_anacfgstruct;
 
 lineno = 0;
 while(1)
@@ -86,6 +83,10 @@ while(1)
      [cfg.useevschweight n] = sscanf(line,'%*s %d',1);  
      if(n == 0) err = 1; end
    
+   case 'usetpexclude'
+     [cfg.usetpexclude n] = sscanf(line,'%*s %d',1);  
+     if(n == 0) err = 1; end
+   
    case 'tr'
      [cfg.TR n] = sscanf(line,'%*s %f',1);  
      if(n == 0) err = 1; end
@@ -99,7 +100,7 @@ while(1)
      if(n == 0) err = 1; end
     
    case 'inorm'
-     [cfg.TR n] = sscanf(line,'%*s %f',1);  
+     [cfg.inorm n] = sscanf(line,'%*s %f',1);  
      if(n == 0) err = 1; end
     
    case 'runlistfile'
@@ -110,81 +111,48 @@ while(1)
      [cfg.prewhiten n] = sscanf(line,'%*s %s',1);  
      if(n == 0) err = 1; end
     
-   case 'evschfname'
-     [cfg.evschfname n] = sscanf(line,'%*s %s',1);  
+   case 'evschrname'
+     [cfg.evschrname n] = sscanf(line,'%*s %s',1);  
      if(n == 0) err = 1; end
     
-   case 'extreg'
-     [extreg n] = sscanf(line,'%*s %s',1);  
+   case 'rfxextregrname'
+     [rfxextregrname n] = sscanf(line,'%*s %s',1);  
      if(n ~= 0) 
-       cfg.extreg = strvcat(cfg.extreg,extreg);
+       cfg.rfxextregrname = strvcat(cfg.rfxextregrname, rfxextregrname);
        % Read possible nextreg, not an error if not there %
-       [nextreg n] = sscanf(line,'%*s %*s %d',1);  
-       nth = size(cfg.extreg,1);
-       if(n ~= 0) cfg.nextreg(nth) = nextreg; 
-       else       cfg.nextreg(nth) = -1;
+       [nrfxextreg n] = sscanf(line,'%*s %*s %d',1);  
+       nth = size(cfg.extregrname,1);
+       if(n ~= 0) cfg.nrfxextreg(nth) = nrfxextreg; 
+       else       cfg.nrfxextreg(nth) = -1;
        end
      else
        err = 1; 
      end
     
-   case 'erm'
-    ntherm = length(cfg.erm);
-    [evid n]      = sscanf(line,'%*s %d',1);  
-    if(n == 0) err = 1; end
-    [label n]     = sscanf(line,'%*s %*d %s',1);  
-    if(n == 0) err = 1; end
-    [modelname n] = sscanf(line,'%*s %*d %*s %s',1);  
-    if(n == 0) err = 1; end
-    [bcw n]       = sscanf(line,'%*s %*d %*s %*s %f',1);  
-    if(n == 0) err = 1; end
-    [psdmin n]    = sscanf(line,'%*s %*d %*s %*s %*f %f',1);  
-    if(n == 0) err = 1; end
-    [dpsd n]      = sscanf(line,'%*s %*d %*s %*s %*f %*f %f',1);  
-    if(n == 0) err = 1; end
-    [psdmax n]    = sscanf(line,'%*s %*d %*s %*s %*f %*f %*f %f',1);  
-    if(n == 0) err = 1; end
-    params = [];
-    fmt0 = '%*s %*d %*s %*s %*f %*f %*f %*f';
-    while(1)
-      fmt = sprintf('%s %%f',fmt0);
-      [ptmp n] = sscanf(line,fmt,1);
-      if(n==0) break; end
-      params = [params ptmp];
-      fmt0 = sprintf('%s %%*f',fmt0);
-    end
-    % Check nparams vs expected nparams
-    if(~err) 
-      cfg.erm(ntherm+1).evid = evid;
-      cfg.erm(ntherm+1).label = label;
-      cfg.erm(ntherm+1).model = modelname;
-      cfg.erm(ntherm+1).bcw = bcw;
-      cfg.erm(ntherm+1).psdmin = psdmin;
-      cfg.erm(ntherm+1).dpsd = dpsd;
-      cfg.erm(ntherm+1).psdmax = psdmax;
-      cfg.erm(ntherm+1).params = params;
+   case 'cond'
+    ccfg = fast_readcondline(line);
+    if(isempty(ccfg)) 
+      err = 1; 
+    else
+      nthcond = length(cfg.cond) + 1;
+      if(nthcond == 1) cfg.cond = ccfg;
+      else             cfg.cond(nthcond) = ccfg;
+      end
     end
     
-   case 'mask'
-     [cfg.mask n] = sscanf(line,'%*s %s',1);  
+   case 'maskstem'
+     [cfg.maskstem n] = sscanf(line,'%*s %s',1);  
      if(n == 0) err = 1; end
     
    case 'slicetiming'
      [cfg.slicetiming n] = sscanf(line,'%*s %s',1);  
      if(n == 0) err = 1; end
     
-   case 'periodic'
-     [cfg.periodic.basis n] = sscanf(line,'%*s %s',1);  
-     if(n == 0) err = 1; end
-     [cfg.periodic.freq n] = sscanf(line,'%*s %*s %g',1);  
-     if(n == 0) err = 1; end
-     [cfg.periodic.phase n] = sscanf(line,'%*s %*s %*s %g',1);  
-     if(n == 0) err = 1; end
-    
   end % switch
   
   if(err)
-    tagerror(tag,fsfcfgfile,line,lineno,nexp,n);
+    fprintf('ERROR: tag %s, file %s\n',tag,cfgfile);
+    fprintf('  LINE (%d):  %s\n',lineno,line);
     fclose(fid);
     cfg = [];
     return;
@@ -196,8 +164,3 @@ fclose(fid);
 
 return;
 %--------------------------------------------------------------%
-function tagerror(tag,cfgfile,line,lineno,nexp,nact)
-fprintf('ERROR: tag %s, file %s\n',tag,cfgfile);
-fprintf('  LINE (%d):  %s\n',lineno,line);
-fprintf('  Expected %d, found %d\n',nexp,nact);
-return;
