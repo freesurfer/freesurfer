@@ -1,7 +1,7 @@
 #!/bin/csh -f
 # spmregister-sess
 #
-set VERSION = '$Id: spmregister-sess,v 1.7 2003/12/19 21:53:46 greve Exp $';
+set VERSION = '$Id: spmregister-sess,v 1.8 2004/04/05 21:56:54 greve Exp $';
 set inputargs = ($argv);
 set DateString = "`date '+%y%m%d%H%M'`"
 
@@ -80,6 +80,10 @@ foreach sess ($SessList)
     exit 1;
   endif
   set subject = `cat subjectname`;
+  if($#subject == 0) then
+    echo "ERROR: subjectname file is empty"
+    exit 1;
+  endif
   if(! -e $SUBJECTS_DIR/$subject) then
     echo "ERROR: $subject is not in SUBJECTS_DIR" |& tee -a $LF
     echo "  SUBJECTS_DIR is $SUBJECTS_DIR" |& tee -a $LF
