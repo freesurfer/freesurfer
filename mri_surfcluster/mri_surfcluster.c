@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Finds clusters on the surface.
-  $Id: mri_surfcluster.c,v 1.12 2004/10/04 16:39:23 greve Exp $
+  $Id: mri_surfcluster.c,v 1.13 2004/10/19 23:32:42 greve Exp $
 */
 
 #include <stdio.h>
@@ -44,7 +44,7 @@ static int  stringmatch(char *str1, char *str2);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surfcluster.c,v 1.12 2004/10/04 16:39:23 greve Exp $";
+static char vcid[] = "$Id: mri_surfcluster.c,v 1.13 2004/10/19 23:32:42 greve Exp $";
 char *Progname = NULL;
 
 char *subjectdir = NULL;
@@ -110,6 +110,13 @@ SURFCLUSTERSUM *scs;
 int overallmaxvtx,overallminvtx;
 float overallmax,overallmin;
 
+CHT  *cht; // Cluster Hit Table 
+char *chtfile=NULL;
+double ithr, sthr;
+int    n_ithr, nth_ithr, n_sthr, nth_sthr, NClusters;
+double ithr_lo, ithr_hi, sthr_lo, sthr_hi;
+char *ithr_sign;
+
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv)
 {
@@ -120,7 +127,7 @@ int main(int argc, char **argv)
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_surfcluster.c,v 1.12 2004/10/04 16:39:23 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_surfcluster.c,v 1.13 2004/10/19 23:32:42 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -240,21 +247,54 @@ int main(int argc, char **argv)
   printf("Done loading source values (nvtxs = %d)\n",srcsurf->nvertices);
   printf("overall max = %g at vertex %d\n",overallmax,overallmaxvtx);
   printf("overall min = %g at vertex %d\n",overallmin,overallminvtx);
-
+  printf("surface nvertices %d\n",srcsurf->nvertices);
 
   /* Compute total cortex surface area */
-  totarea = 0.0;
+  MRIScomputeMetricProperties(srcsurf) ;
+  //printf("surface area %f\n",srcsurf->total_area);
+
+  totarea = 0;
   for(vtx = 0; vtx < srcsurf->nvertices; vtx++)
     totarea += srcsurf->vertices[vtx].area;
-  printf("Total Cortical Surface Area %g (mm^2)\n",totarea);
+  printf("surface area %f\n",totarea);
 
-  /*---------------------------------------------------------*/
-  /* This is where all the action is */
-  printf("Searching for Clusters ...\n");
-  scs = sclustMapSurfClusters(srcsurf,thmin,thmax,thsignid,
-            minarea,&NClusters,XFM);
-  printf("Found %d clusters\n",NClusters);
-  /*---------------------------------------------------------*/
+  //printf("Surface status %d\n",srcsurf->status);
+  totarea = srcsurf->total_area;
+
+  totarea = 0;
+  for (vtx = 0 ; vtx < srcsurf->nfaces ; vtx++)
+    totarea += srcsurf->faces[vtx].area;
+  printf("surface area %f\n",totarea);
+
+
+  if(cht == NULL){
+    /*---------------------------------------------------------*/
+    /* This is where all the action is */
+    printf("Searching for Clusters ...\n");
+    scs = sclustMapSurfClusters(srcsurf,thmin,thmax,thsignid,
+				minarea,&NClusters,XFM);
+    printf("Found %d clusters\n",NClusters);
+    /*---------------------------------------------------------*/
+  }
+  else{
+    cht->nvox = srcsurf->nvertices;
+    cht->totsize = srcsurf->total_area;
+    printf("Counting clusters across threshold\n");
+    for(nth_ithr=0; nth_ithr < cht->n_ithr; nth_ithr++ ){
+      ithr = cht->ithr[nth_ithr];
+      for(nth_sthr=0; nth_sthr < cht->n_sthr; nth_sthr++ ){
+	sthr = cht->sthr[nth_sthr];
+	scs = sclustMapSurfClusters(srcsurf,ithr,-1,cht->ithr_signid,
+				    sthr,&NClusters,NULL);
+	printf("  %6.2f %6.2f %3d \n",ithr,sthr,NClusters);
+	if(NClusters > 0) cht->hits[nth_ithr][nth_sthr] ++;
+	free(scs);
+      }
+    }
+    cht->nsim ++;
+    CHTwrite(chtfile,cht);
+    exit(0);
+  }
 
   if(FixMNI){
     printf("INFO: fixing MNI talairach coordinates\n");
@@ -380,8 +420,8 @@ static int parse_commandline(int argc, char **argv)
       if(nargc < 1) argnerr(option,1);
       hemi = pargv[0];
       if(!stringmatch(hemi,"lh") && !stringmatch(hemi,"rh")){
-  printf("ERROR: hemi = %s, must be lh or rh\n",hemi);
-  exit(1);
+	printf("ERROR: hemi = %s, must be lh or rh\n",hemi);
+	exit(1);
       }
       nargsused = 1;
     }
@@ -415,9 +455,9 @@ static int parse_commandline(int argc, char **argv)
       if(nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%f",&thmin);
       if(thmin < 0) {
-  printf("ERROR: thmin = %g, must be >= 0\n",thmin);
-  printf("       use sign to set sign\n");
-  exit(1);
+	printf("ERROR: thmin = %g, must be >= 0\n",thmin);
+	printf("       use sign to set sign\n");
+	exit(1);
       }
       nargsused = 1;
     }
@@ -425,9 +465,9 @@ static int parse_commandline(int argc, char **argv)
       if(nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%f",&thmax);
       if(thmax < 0) {
-  printf("ERROR: thmax = %g, must be >= 0\n",thmax);
-  printf("       use sign to set sign\n");
-  exit(1);
+	printf("ERROR: thmax = %g, must be >= 0\n",thmax);
+	printf("       use sign to set sign\n");
+	exit(1);
       }
       nargsused = 1;
     }
@@ -435,10 +475,10 @@ static int parse_commandline(int argc, char **argv)
       if(nargc < 1) argnerr(option,1);
       thsign = pargv[0];
       if(!stringmatch(thsign,"abs") && 
-   !stringmatch(thsign,"pos") && 
-   !stringmatch(thsign,"neg") ){
-  printf("ERROR: thsign = %s, must be abs, pos, or neg\n",thsign);
-  exit(1);
+	 !stringmatch(thsign,"pos") && 
+	 !stringmatch(thsign,"neg") ){
+	printf("ERROR: thsign = %s, must be abs, pos, or neg\n",thsign);
+	exit(1);
       }
       nargsused = 1;
     }
@@ -453,7 +493,7 @@ static int parse_commandline(int argc, char **argv)
       if(nargc < 1) argnerr(option,1);
       maskid = pargv[0]; nargsused = 1;
       if(nth_is_arg(nargc, pargv, 1)){
-  maskfmt = pargv[1]; nargsused ++;
+	maskfmt = pargv[1]; nargsused ++;
       }
     }
     else if (!strcmp(option, "--masksubj")){
@@ -465,10 +505,10 @@ static int parse_commandline(int argc, char **argv)
       if(nargc < 1) argnerr(option,1);
       masksign = pargv[0];
       if(!stringmatch(masksign,"abs") && 
-   !stringmatch(masksign,"pos") && 
-   !stringmatch(masksign,"neg") ){
-  printf("ERROR: masksign = %s, must be abs, pos, or neg\n",masksign);
-  exit(1);
+	 !stringmatch(masksign,"pos") && 
+	 !stringmatch(masksign,"neg") ){
+	printf("ERROR: masksign = %s, must be abs, pos, or neg\n",masksign);
+	exit(1);
       }
       nargsused = 1;
     }
@@ -476,13 +516,13 @@ static int parse_commandline(int argc, char **argv)
       if(nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%f",&maskthresh);
       if(maskthresh < 0) {
-  printf("ERROR: maskthresh = %g, must be >= 0\n",maskthresh);
-  printf("       use masksign to set sign\n");
-  exit(1);
+	printf("ERROR: maskthresh = %g, must be >= 0\n",maskthresh);
+	printf("       use masksign to set sign\n");
+	exit(1);
       }
       nargsused = 1;
     }
-
+    
     else if (!strcmp(option, "--label")){
       if(nargc < 1) argnerr(option,1);
       labelfile = pargv[0];
@@ -508,7 +548,7 @@ static int parse_commandline(int argc, char **argv)
       if(nargc < 1) argnerr(option,1);
       omaskid = pargv[0]; nargsused = 1;
       if(nth_is_arg(nargc, pargv, 1)){
-  omaskfmt = pargv[1]; nargsused ++;
+	omaskfmt = pargv[1]; nargsused ++;
       }
     }
     else if (!strcmp(option, "--omasksubj")){
@@ -550,6 +590,37 @@ static int parse_commandline(int argc, char **argv)
       if(nargc < 1) argnerr(option,1);
       subjectsdir = pargv[0];
       nargsused = 1;
+    }
+    else if (!strcmp(option, "--cht")){
+      if(nargc < 8) argnerr(option,8);
+      chtfile = pargv[0];
+      sscanf(pargv[1],"%d",&n_ithr);
+      sscanf(pargv[2],"%lf",&ithr_lo);
+      sscanf(pargv[3],"%lf",&ithr_hi);
+      ithr_sign = pargv[4];
+      thsign = ithr_sign;
+      sscanf(pargv[5],"%d",&n_sthr); // Area threshold is in mm
+      sscanf(pargv[6],"%lf",&sthr_lo);
+      sscanf(pargv[7],"%lf",&sthr_hi);
+      cht = CHTalloc(n_ithr,ithr_lo,ithr_hi, n_sthr,sthr_lo,sthr_hi);
+      if(cht==NULL){
+	printf("ERROR: with cht params\n");
+        exit(1);
+      }
+      if(CHTsetSignString(cht, thsign) == -100){
+	printf("ERROR: with cht params\n");
+        exit(1);
+      }
+      if(fio_FileExistsReadable(chtfile)) {
+	CHTfree(&cht); // Overwrite input parameters with those from file
+	cht = CHTread(chtfile);
+	if(cht == NULL){
+	  printf("ERROR: reading cht file %s\n",chtfile);
+	  exit(1);
+	}
+	CHTprint(stdout, cht);
+      }
+      nargsused = 8;
     }
 
     else{
@@ -602,6 +673,8 @@ static void print_usage(void)
   printf("   --o outid <fmt>   : input with non-clusters set to 0\n");
   printf("   --ocn ocnid <fmt> : value is cluster number \n");
   printf("   --olab labelbase  : output clusters as labels \n");
+  printf("\n");
+  printf("   --cht chtfile nithr ithrlo ithrhi ithrsign nsthr sthrlo sthrhi\n");
   printf("\n");
   printf("   --xfm xfmfile     : talairach transform (def is talairach.xfm) \n");
   printf("   --<no>fixmni      : <do not> fix MNI talairach coordinates\n");
@@ -753,7 +826,7 @@ static void print_help(void)
 "summary file is shown below.\n"
 "\n"
 "Cluster Growing Summary (mri_surfcluster)\n"
-"$Id: mri_surfcluster.c,v 1.12 2004/10/04 16:39:23 greve Exp $\n"
+"$Id: mri_surfcluster.c,v 1.13 2004/10/19 23:32:42 greve Exp $\n"
 "Input :      minsig-0-lh.w\n"
 "Frame Number:      0\n"
 "Minimum Threshold: 5\n"
