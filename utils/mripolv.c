@@ -33,7 +33,7 @@
                     MACROS AND CONSTANTS
 -------------------------------------------------------*/
 
-#define DEBUG_POINT(x,y,z)  (((x) == 7)&&((y)==15)&&((z)==15))
+#define DEBUG_POINT(x,y,z)  (((x) == 35)&&((y)==4)&&((z)==31))
 #define MAXLEN 256
 
 
@@ -106,18 +106,15 @@ MRIpolvMean(MRI *mri_src, MRI *mri_dst, MRI *mri_polv, int wsize)
     mri_dst = MRIclone(mri_src, NULL) ;
 
   pxi = mri_src->xi ; pyi = mri_src->yi ; pzi = mri_src->zi ;
-  depth -= whalf ;   /* don't do outer ring of pixels, so we don't have */
-  width -= whalf ;   /* to deal with boundary conditions */
-  height -= whalf ;
   n = wsize*wsize ;
-  for (z = whalf ; z < depth ; z++)
+  for (z = 0 ; z < depth ; z++)
   {
-    DiagHeartbeat((float)(z-whalf) / (float)(depth-whalf-1)) ;
+    DiagHeartbeat((float)z / (float)(depth-1)) ;
     for (y = whalf ; y < height ; y++)
     {
-      pdst = &MRIvox(mri_dst, whalf, y, z) ;  /* ptr to destination */
-      pptr = &MRIvox(mri_polv, whalf, y, z) ; /* ptr to normal vectors */
-      for (x = whalf ; x < width ; x++)
+      pdst = &MRIvox(mri_dst, 0, y, z) ;  /* ptr to destination */
+      pptr = &MRIvox(mri_polv, 0, y, z) ; /* ptr to normal vectors */
+      for (x = 0 ; x < width ; x++)
       {
         vertex = *pptr++ ;
         e1_x = e1_x_v[vertex] ;  /* basis vectors for plane */
@@ -182,18 +179,15 @@ MRIpolvMedian(MRI *mri_src, MRI *mri_dst, MRI *mri_polv, int wsize)
     mri_dst = MRIclone(mri_src, NULL) ;
 
   pxi = mri_src->xi ; pyi = mri_src->yi ; pzi = mri_src->zi ;
-  depth -= whalf ;   /* don't do outer ring of pixels, so we don't have */
-  width -= whalf ;   /* to deal with boundary conditions */
-  height -= whalf ;
   n = wsize*wsize ;
-  for (z = whalf ; z < depth ; z++)
+  for (z = 0 ; z < depth ; z++)
   {
-    DiagHeartbeat((float)(z-whalf) / (float)(depth-whalf-1)) ;
-    for (y = whalf ; y < height ; y++)
+    DiagHeartbeat((float)z / (float)(depth-1)) ;
+    for (y = 0 ; y < height ; y++)
     {
-      pdst = &MRIvox(mri_dst, whalf, y, z) ;  /* ptr to destination */
-      pptr = &MRIvox(mri_polv, whalf, y, z) ; /* ptr to normal vectors */
-      for (x = whalf ; x < width ; x++)
+      pdst = &MRIvox(mri_dst, 0, y, z) ;  /* ptr to destination */
+      pptr = &MRIvox(mri_polv, 0, y, z) ; /* ptr to normal vectors */
+      for (x = 0 ; x < width ; x++)
       {
         vertex = *pptr++ ;
         e1_x = e1_x_v[vertex] ;  /* basis vectors for plane */
@@ -209,6 +203,8 @@ MRIpolvMedian(MRI *mri_src, MRI *mri_dst, MRI *mri_polv, int wsize)
            */
         pvals = plane_vals ;
         /* now find the values in this plane */
+if (DEBUG_POINT(x,y,z))
+  DiagBreak() ;
         for (yk = -whalf ; yk <= whalf ; yk++)
         {
           xbase = (float)x + (float)yk * e2_x ;
@@ -508,10 +504,6 @@ MRIextractPlane(MRI *mri_src, MRI *mri_dst, MRI *mri_polv, int x, int y,
       xi = mri_src->xi[nint(xbase + xk*e1_x)] ;
       yi = mri_src->yi[nint(ybase + xk*e1_y)] ;
       zi = mri_src->zi[nint(zbase + xk*e1_z)] ;
-#if 0
-if (x == 8 && y == 15 && z == 15 && (xi < 7 || !MRIvox(mri_src,xi,yi,zi)))
-  DiagBreak() ;
-#endif
       MRIvox(mri_dst, xk+whalf,yk+whalf,0) = MRIvox(mri_src, xi, yi, zi) ;
     }
   }
@@ -565,6 +557,7 @@ MRIplaneOfLeastVarianceNormal(MRI *mri_src, MRI *mri_dst, int wsize)
         maxi = mini = -1 ;
         min_var = 100000.0f ;    /* minimum variance of set of planes */
         max_var = -100000.0f ;   /* maximum variance of set of planes */
+
         for (vertex = 0 ; vertex < NVERTICES ; vertex++)
         {
           a = ic_x_vertices[vertex] ;   /* vector on unit sphere */
@@ -669,21 +662,24 @@ MRIcentralPlaneOfLeastVarianceNormal(MRI *mri_src, MRI *mri_dst, int wsize)
   if (!mri_dst)
     mri_dst = MRIclone(mri_src, NULL) ;
 
+#if 0
   depth -= whalf ;   /* don't do outer ring of pixels, so we don't have */
   width -= whalf ;   /* to deal with boundary conditions */
   height -= whalf ;
+#endif
+
   if (mri_src->roi.dx > 0)
   {
-    x0 = MAX(whalf, mri_src->roi.x) ;
-    y0 = MAX(whalf, mri_src->roi.y) ;
-    z0 = MAX(whalf, mri_src->roi.z) ;
-    x1 = MIN(x0 + mri_src->roi.dx - 1, width) ;
-    y1 = MIN(y0 + mri_src->roi.dy - 1, height) ;
-    z1 = MIN(z0 + mri_src->roi.dz - 1, depth) ;
+    x0 = MAX(0, mri_src->roi.x) ;
+    y0 = MAX(0, mri_src->roi.y) ;
+    z0 = MAX(0, mri_src->roi.z) ;
+    x1 = MIN(x0 + mri_src->roi.dx - 1, width-1) ;
+    y1 = MIN(y0 + mri_src->roi.dy - 1, height-1) ;
+    z1 = MIN(z0 + mri_src->roi.dz - 1, depth-1) ;
   }
   else
   {
-    x0 = y0 = z0 = whalf ;
+    x0 = y0 = z0 = 0 ;
     x1 = width-1 ;
     y1 = height-1 ;
     z1 = depth-1 ;
