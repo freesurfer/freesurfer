@@ -44,6 +44,7 @@ static char *gaussian_class_names[GAUSSIAN_NCLASSES] =
 {
   "BACKGROUND",
   "GREY MATTER",
+  "SUBCORTICAL GREY MATTER",
   "WHITE MATTER",
   "BRIGHT MATTER"
 } ;
@@ -415,7 +416,8 @@ MRICclassify(MRIC *mric, MRI *mri_src, MRI *mri_dst,
             *pclasses++ = (BUFTYPE)classno*CLASS_SCALE ;
           if (pprobs)
             *pprobs++ = prob ;
-          if (classno == WHITE_MATTER && prob > conf)
+          if ((classno == WHITE_MATTER || classno == SUBCORTICAL_GRAY_MATTER)
+              && prob > conf)
             *pdst++ = src ;
           else
             *pdst++ = 0 /*src*/ ;
@@ -680,6 +682,7 @@ MRICbuildTargetImage(MRI *mri_src, MRI *mri_target, MRI *mri_wm,
 {
   int     x, y, z, width, height, depth ;
   BUFTYPE *psrc, *pwm, *ptarget, src, wm, target ;
+  Real    xt, yt, zt ;
 
   if (lo_lim <= 0)
     lo_lim = LO_LIM ;
@@ -704,7 +707,16 @@ MRICbuildTargetImage(MRI *mri_src, MRI *mri_target, MRI *mri_wm,
       {
         src = *psrc++ ;
         wm = *pwm++ ;
-        if (wm)
+        if (wm == 255)
+        {
+          MRIvoxelToTalairach(mri_target, (Real)x, (Real)y, (Real)z,
+                                 &xt, &yt, &zt) ;
+          if (zt < TALAIRACH_SUBCORTICAL_GRAY_MAX_Z)
+            target = SUBCORTICAL_GRAY_MATTER ;
+          else
+            target = WHITE_MATTER ;
+        }
+        else if (wm)
           target = WHITE_MATTER ;
         else if (src > hi_lim)
           target = BRIGHT_MATTER ;
@@ -828,15 +840,18 @@ MRInormalizePriors(MRI *mri_priors)
 
 ------------------------------------------------------*/
 int
-MRICupdateStatistics(MRIC *mric, int round, MRI *mri_src, MRI *mri_target, 
+MRICupdateStatistics(MRIC *mric, int round, MRI *mri_src, MRI *mri_wm, 
                      MRI_REGION *box)
 {
   GCLASSIFY  *gc ;
   GCLASS     *gcl ;
   int        x, y, z, classno, nclasses, width, height, depth, row, col,
              x1,y1,z1 ;
-  BUFTYPE    *psrc, *ptarget, src, target ;
+  BUFTYPE    *psrc, *ptarget, src ;
   float      inputs[MAX_INPUTS+1], covariance ;
+  MRI        *mri_target ;
+
+  mri_target = MRICbuildTargetImage(mri_src, NULL, mri_wm, LO_LIM, HI_LIM) ;
 
   nclasses = mric->classifier[round].gc->nclasses ;
   gc = mric->classifier[round].gc ;
@@ -857,21 +872,7 @@ MRICupdateStatistics(MRIC *mric, int round, MRI *mri_src, MRI *mri_target,
       for (x = box->x ; x <= x1 ; x++)
       {
         src = *psrc++ ;
-        target = *ptarget++ ;
-        
-        /* decide what class it is */
-        if (target)
-          classno = WHITE_MATTER ;
-        else
-        {
-          if (src < LO_LIM)
-            classno = BACKGROUND ;
-          else if (src > HI_LIM)
-            classno = BRIGHT_MATTER ;
-          else
-            classno = GREY_MATTER ;
-        }
-
+        classno = (int)*ptarget++ ;
         gcl = &gc->classes[classno] ;
         gcl->nobs++ ;
 
@@ -885,13 +886,14 @@ MRICupdateStatistics(MRIC *mric, int round, MRI *mri_src, MRI *mri_target,
             covariance = gcl->m_covariance->rptr[row][col] +
               inputs[row]*inputs[col] ;
             gcl->m_covariance->rptr[row][col] = covariance;
-            gcl->m_covariance->rptr[col][row] = covariance;
+            /*            gcl->m_covariance->rptr[col][row] = covariance;*/
           }
         }
       }
     }
   }
 
+  MRIfree(&mri_target) ;
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
@@ -930,6 +932,9 @@ MRICcomputeStatistics(MRIC *mric, int round)
           gcl->m_covariance->rptr[row][col] = covariance ;
           gcl->m_covariance->rptr[col][row] = covariance ;
         }
+        if (Gdiag & DIAG_SHOW)
+          fprintf(stderr, "mean[%d] = %2.3f, var = %2.3f\n",
+                  row, mean_a, gcl->m_covariance->rptr[row][row]) ;
       }
     }
     GCinit(gc, classno) ;
