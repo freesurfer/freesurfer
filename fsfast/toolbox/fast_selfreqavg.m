@@ -1,6 +1,6 @@
 % fast_selfreqavg.m - selective frequency averaging
 %
-% $Id: fast_selfreqavg.m,v 1.6 2003/10/04 20:13:02 greve Exp $
+% $Id: fast_selfreqavg.m,v 1.7 2003/12/02 03:32:31 greve Exp $
 %
 % Things to do:   (nuisance)
 %  1. Save beta, var, and X
@@ -81,6 +81,8 @@ extregstem = '';
 phsigthresh = 2;
 dojkrun = 0;
 condXthresh = 10e5;
+svsignal = 0;
+sveres    = 0;
 end
 
 
@@ -152,6 +154,16 @@ for nthsess = 1:nSess
     mkdirp(anapath);
     mkdirp(conpath);
     mkdirp(estsnrpath);
+
+    if(sveres)
+      eresdir = sprintf('%s/eres',anapath);
+      mkdirp(eresdir);
+    end
+    if(svsignal)
+      signaldir = sprintf('%s/signal',anapath);
+      mkdirp(signaldir);
+    end
+    
     nruns = size(runlist,1);
 
     fprintf('   Run List: ');
@@ -312,6 +324,7 @@ for nthsess = 1:nSess
       
       % Load data for all runs %
       y = [];
+      clear nframes_per_run;
       for nthrun = 1:nruns
 	funcpath = sprintf('%s/%s/%s/%s',...
 			   sess,fsd,runlist(nthrun,:),funcstem);
@@ -322,6 +335,7 @@ for nthsess = 1:nSess
 	end
 	if(inorm) frun = frun*(inormtarg/MeanVal(nthrun)); end
 	nframes = size(frun,3);
+	nframes_per_run(nthrun) = nframes;
 	frun = reshape(frun,[nvslice nframes])';
 	% Multiply frun by Wrun %
 	y = [y; frun];
@@ -334,6 +348,32 @@ for nthsess = 1:nSess
       % Analyze %
       % Multiply X by Wall %
       [beta rvar vdof r] = fast_glmfit(y,X);
+
+      if(sveres)
+	i1 = 1;
+	for nthrun = 1:nruns
+	  nframes = nframes_per_run(nthrun);
+	  i2 = i1 + nframes - 1;
+	  erestmp = reshape(r(i1:i2,:)',[nrows ncols nframes]);
+	  stem = sprintf('%s/e%03d',eresdir,nthrun);
+	  fast_svbslice(erestmp,stem,nthslice,'',mristruct);
+	  i1 = i2 + 1;
+	end
+      end
+      if(svsignal)
+	i1 = 1;
+	for nthrun = 1:nruns
+	  nframes = nframes_per_run(nthrun);
+	  i2 = i1 + nframes - 1;
+	  sigtask = X(i1:i2,1:nTask)*beta(1:nTask,:);
+	  sigtask = reshape(sigtask',[nrows ncols nframes]);
+	  stem = sprintf('%s/s%03d',signaldir,nthrun);
+	  fast_svbslice(sigtask,stem,nthslice,'',mristruct);
+	  i1 = i2 + 1;
+	end
+      end
+      
+      
       % If whiten and not last whitening loop
       %  get residuals
       %  compute acf (unless last whitening loop) 
