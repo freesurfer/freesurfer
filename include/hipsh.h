@@ -1,3 +1,6 @@
+#ifndef HIPSH_H
+#define HIPSH_H
+
 /**************** hipsh.h *********************/ 
 #include "hipl_format.h"
 /******************* seqord.c ***********************/ 
@@ -922,3 +925,15 @@ int h_zc_F(float *imagei,float *imageo,int nr,int nc,int nlpi,int nlpo,double er
 int h_invfourtr3d(struct header *hd);
 int h_invfourtr3d_c(struct header *hd);
 int h_invfourtr3d_C(float (*image)[2],int nr,int nc,int nf);
+
+int h_canny(struct header *Isrc, struct header *Idst, double sigma, 
+      int mask_size,double lfrac,double hfrac,int dothin);
+
+int h_logmap(struct header *phd,struct header *phd_LM,float a,
+             int R,int rows,int cols,int Fx,int Fy,float disk_size) ;
+int h_logmap_f(struct header *phd,struct header *phd_LM,float a,
+               int R,int rows,int cols,int Fx,int Fy,float disk_size) ;
+int h_LMtable_uniform(LMtable *ptable,struct header *phd_w,int Irows,int Icols,
+                      float a,int R,int Fx,int Fy,float disk_size) ;
+
+#endif
