@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Computes glm inferences on the surface.
-  $Id: mris_glm.c,v 1.15 2002/11/19 00:23:53 greve Exp $
+  $Id: mris_glm.c,v 1.16 2002/11/19 00:37:41 greve Exp $
 
 Things to do:
   0. Documentation.
@@ -66,7 +66,7 @@ static char *getstem(char *bfilename);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_glm.c,v 1.15 2002/11/19 00:23:53 greve Exp $";
+static char vcid[] = "$Id: mris_glm.c,v 1.16 2002/11/19 00:37:41 greve Exp $";
 char *Progname = NULL;
 
 char *hemi        = NULL;
@@ -349,7 +349,7 @@ int main(int argc, char **argv)
 	sprintf(tmpstr,"%s.fsgd",getstem(yid));
 	strcpy(fsgd->measname,surfmeasure);
 	sprintf(fsgd->datafile,"%s_000.bfloat",getstem(yid));
-	sprintf(fsgd->DesignMatFile,"%s.X.mat  %s",getstem(yid),gd2mtx_method);
+	sprintf(fsgd->DesignMatFile,"%s.X.mat",getstem(yid));
         MatlabWrite(X,fsgd->DesignMatFile,"X");
       }
       fp = fopen(tmpstr,"w");
@@ -358,7 +358,6 @@ int main(int argc, char **argv)
       fprintf(fp,"SmoothSteps      %d\n",nsmooth);
       fprintf(fp,"SUBECTS_DIR      %s\n",SUBJECTS_DIR);
       fprintf(fp,"SynthSeed        %d\n",synthseed);
-      fprintf(fp,"GDFMatrixMethod  %s\n",gd2mtx_method);
       fclose(fp);
     }
 
@@ -560,6 +559,7 @@ static int parse_commandline(int argc, char **argv)
 	nregressors = X->cols;
 	for(m=0; m<nsubjects; m++) subjectlist[m] = fsgd->subjid[m];
       }
+      strcpy(fsgd->DesignMatMethod,gd2mtx_method);
     }
     else if ( !strcmp(option, "--design") ){
       if(nargc < 1) argnerr(option,1);
