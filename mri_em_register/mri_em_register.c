@@ -450,8 +450,7 @@ main(int argc, char *argv[])
     {
       MRI *mri_aligned ;
       
-      mri_aligned = 
-        MRIapplyRASlinearTransform(mri_in, NULL, parms.lta->xforms[0].m_L) ;
+      mri_aligned = MRIlinearTransform(mri_in, NULL, parms.lta->xforms[0].m_L);
       MRIwriteImageViews(mri_aligned, "before_final_alignment", 400) ;
       MRIfree(&mri_aligned) ;
     }
@@ -478,8 +477,7 @@ main(int argc, char *argv[])
     {
       MRI *mri_aligned ;
       
-      mri_aligned = 
-        MRIapplyRASlinearTransform(mri_in, NULL, parms.lta->xforms[0].m_L) ;
+      mri_aligned = MRIlinearTransform(mri_in, NULL, parms.lta->xforms[0].m_L);
       MRIwriteImageViews(mri_aligned, "after_final_alignment", 400) ;
       MRIfree(&mri_aligned) ;
     }
@@ -740,6 +738,7 @@ register_mri(MRI *mri_in, GCA *gca, MORPH_PARMS *parms, int passno)
     MatrixPrint(stdout, m_L) ;
   }
 
+	parms->start_t++ ;
   printf("computing MAP estimate of linear transform...\n") ;
 
   parms->mri_in = mri_in ;  /* for diagnostics */
@@ -753,8 +752,7 @@ register_mri(MRI *mri_in, GCA *gca, MORPH_PARMS *parms, int passno)
   {
     MRI *mri_aligned ;
 
-    mri_aligned = 
-      MRIapplyRASlinearTransform(mri_in, NULL, parms->lta->xforms[0].m_L) ;
+    mri_aligned = MRIlinearTransform(mri_in, NULL, parms->lta->xforms[0].m_L) ;
     MRIwriteImageViews(mri_aligned, "after_alignment", 400) ;
     MRIfree(&mri_aligned) ;
   }
@@ -767,8 +765,8 @@ static double MAX_ANGLES = DEFAULT_MAX_STEPS ;
 #define MAX_ANGLE       RADIANS(30)
 #define MIN_ANGLE       RADIANS(2)
 
-#define MAX_SCALE       1.3
-#define MIN_SCALE       0.7
+#define MAX_SCALE       2.0
+#define MIN_SCALE       0.5
 
 static int max_angles = DEFAULT_MAX_STEPS ;
 
@@ -892,11 +890,8 @@ find_optimal_transform(MRI *mri, GCA *gca, GCA_SAMPLE *gcas, int nsamples,
                                          -scale*MAX_TRANS, scale*MAX_TRANS, 
                                          MAX_TRANS_STEPS, 2) ;
 
-    if (!translation_only)
-      max_log_p = find_optimal_rotation(gca, gcas, mri, nsamples, m_L,m_origin,
-                                        -scale*max_angle, scale*max_angle, 
-                                        angle_steps, 3) ;
-
+		/* it's more likely that there will be large-scale scaling
+			 than large-scale rotations, so look for scaling first */
     if (!noscale && !translation_only)
     {
       max_log_p = find_optimal_scaling(gca, gcas, mri, nsamples, m_L, m_origin,
@@ -908,6 +903,11 @@ find_optimal_transform(MRI *mri, GCA *gca, GCA_SAMPLE *gcas, int nsamples,
                                                   1-.025*scale, 1+.025*scale, 
                                                   max_angles/3,max_angles/3,3);
     }
+    if (!translation_only)
+      max_log_p = find_optimal_rotation(gca, gcas, mri, nsamples, m_L,m_origin,
+                                        -scale*max_angle, scale*max_angle, 
+                                        angle_steps, 3) ;
+
     if (write_iterations != 0)
     {
       char fname[STRLEN] ;
@@ -936,8 +936,9 @@ find_optimal_transform(MRI *mri, GCA *gca, GCA_SAMPLE *gcas, int nsamples,
     scale *= 0.5 ;
     mean = (max_scale + min_scale)/2 ;
     delta = (max_scale - min_scale)/2 ;
-    max_scale = mean + delta*scale ;
-    min_scale = mean - delta*scale ;
+    max_scale = 1.0 + delta*scale ;
+    min_scale = 1.0 - delta*scale ;
+		parms.start_t = niter+1 ;
   } while (niter++ < MIN_ITER || (max_log_p > old_max+fabs(tol*old_max))) ;
 
   MatrixFree(&m_origin) ;
