@@ -1497,6 +1497,9 @@ typedef struct
   float min_x, max_x;    /* the bounding cube of this label. */
   float min_y, max_y;
   float min_z, max_z;
+
+  int* border_vno;      /* a list of border vnos */
+  int  num_border_vnos;
 } LABL_LABEL;
 
 /* a fixed array of labels. */
@@ -1517,17 +1520,6 @@ int labl_num_labels_created;
 
 /* style in which to draw the labels. */
 LABL_DRAW_STYLE labl_draw_style = LABL_STYLE_OPAQUE;
-
-/* array of flags for each mris vertex, whether or not a surface
-   vertex is a label border. 0 is not a border, 1 is single width
-   border, 2 is double width border. */
-short* labl_is_border = NULL;
-
-/* array of label indices for each mris vertex. */
-int* labl_top_label = NULL;
-
-/* wheter or not the label cache is current. */
-char labl_cache_is_current = 0;
 
 /* whether or not to draw labels. */
 int labl_draw_flag = 1;
@@ -1559,8 +1551,8 @@ int labl_save_all (char* prefix);
 int labl_find_and_set_all_borders ();
 int labl_find_and_set_border (int index);
 
-/* finds the top label for each vertex and caches the value. */
-int labl_update_label_cache ();
+/* returns whether a vno is a border in a label. */
+int labl_vno_is_border (int index, int vno);
 
 /* reads an annotation file and makes multiple labels, one for each
    annotation. tries to associate a structure index by matching the
@@ -1608,8 +1600,7 @@ int labl_send_info (int index);
 int labl_add (LABEL* label, int* new_index);
 
 /* call when a label's internal coordinates have changed. recalcs the
-   extent, invalidates the cache, finds the borders, all that
-   stuff. */
+   extent, finds the borders, all that stuff. */
 int labl_changed (int new_index);
 
 /* removes and deletes the label and bumps down all other labels in
@@ -1620,7 +1611,8 @@ int labl_remove (int index);
 int labl_remove_all ();
 
 /* checks if this vno is in a label. passes back the label index. */
-int labl_find_label_by_vno (int vno, int* index);
+int labl_find_label_by_vno (int vno, int* index_array, int array_size, 
+			    int* num_found);
 
 /* figures out if a click is in a label. if so, selects it. */
 int labl_select_label_by_vno (int vno);
@@ -18151,7 +18143,7 @@ int main(int argc, char *argv[])   /* new main */
   /* end rkt */
   
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.63 2004/03/16 20:58:03 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.64 2004/04/30 22:48:52 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -19926,8 +19918,10 @@ update_labels(int label_set, int vno, float dmin)
   char fname[NAME_LENGTH];
   float x, y, z, sx, sy, sz, rr, dd, phi, theta;
   int field;
-  int label_index;
+  int label_index_array[LABL_MAX_LABELS];
+  int num_labels_found;
   
+
   /* make sure we an interpreter to send commands to */
   if(g_interp==NULL)
     return;
@@ -20068,12 +20062,22 @@ update_labels(int label_set, int vno, float dmin)
   Tcl_Eval(g_interp, command);
   
   /* send label update. */
-  err = labl_find_label_by_vno( vno, &label_index );
-  if (err == ERROR_NONE &&
-      ( label_index >= 0 && label_index < labl_num_labels ))
+  err = labl_find_label_by_vno( vno, label_index_array, 
+				LABL_MAX_LABELS, &num_labels_found );
+  if (err == ERROR_NONE && num_labels_found > 0)
     {
-      sprintf(command, "UpdateLabel %d %d \"%s\"", label_set, LABEL_LABEL, 
-	      labl_labels[label_index].name );
+      if (num_labels_found > 1) 
+	{
+	  sprintf(command, "UpdateLabel %d %d \"%s, %d others\"", 
+		  label_set, LABEL_LABEL,
+		  labl_labels[label_index_array[0]].name,
+		  num_labels_found);
+	} 
+      else
+	{
+	  sprintf(command, "UpdateLabel %d %d \"%s\"", label_set, LABEL_LABEL, 
+		  labl_labels[label_index_array[0]].name );
+	}
       Tcl_Eval(g_interp, command);
     }
   else
@@ -22021,18 +22025,13 @@ int labl_initialize () {
       labl_labels[label].g = 0;
       labl_labels[label].b = 0;
       labl_labels[label].visible = 0;
+      labl_labels[label].border_vno = NULL;
+      labl_labels[label].num_border_vnos = 0;
     }
   
   labl_num_labels = 0;
   labl_selected_label = LABL_NONE_SELECTED;
   labl_table = NULL;
-  if (labl_is_border != NULL)
-    free (labl_is_border);
-  labl_is_border = NULL;
-  if (labl_top_label != NULL)
-    free (labl_top_label);
-  labl_top_label = NULL;
-  labl_cache_is_current = 0;
   labl_draw_style = LABL_STYLE_OPAQUE;
   labl_num_labels_created = 0;
   labl_color_table_name = (char*) calloc (NAME_LENGTH, sizeof(char));
@@ -22287,13 +22286,8 @@ int labl_save_all (char* prefix)
 
 int labl_find_and_set_all_borders () 
 {
-  int vno;
   int label;
   
-  /* first clear all the borders */
-  for (vno = 0; vno < mris->nvertices; vno++)
-    labl_is_border[vno] = 0;
-
   /* for each label we have, find the border */
   for (label = 0; label < labl_num_labels; label++ )
     {
@@ -22305,109 +22299,135 @@ int labl_find_and_set_all_borders ()
 
 int labl_find_and_set_border (int index)
 {
-  int label_vno;
+  int label_vno, label_vno_check;
   LABEL* label;
   VERTEX* v;
   int neighbor_vno;
-  int neighbor_label;
   char* border = NULL;
-  
+  char* border2 = NULL;
+  int num_borders = 0;
+  int num_borders2 = 0;
+  int label_index_array[LABL_MAX_LABELS];
+  int num_labels_found, found_label_index;
+  int vno_in_label, vno_in_other_label;
+
   if (index < 0 || index >= labl_num_labels)
     return (ERROR_BADPARM);
   
-  /* make our label border flag array if we haven't already. */
-  if (NULL == labl_is_border)
-    {
-      labl_is_border = (short*) calloc (mris->nvertices, sizeof(short));
-      if (NULL == labl_is_border)
-	return (ERROR_NO_MEMORY);
-    }
-  
   /* make an array of border flags for just the outline. */
   border = (char*) calloc (mris->nvertices, sizeof(char));
+  num_borders = 0;
+  border2 = (char*) calloc (mris->nvertices, sizeof(char));
+  num_borders2 = 0;
   
   /* for each vertex in the label... */
   label = labl_labels[index].label;
   for (label_vno = 0; label_vno < label->n_points; label_vno++)
     {  
-      labl_is_border[label->lv[label_vno].vno] = 0;
-      
-      /* get the vno and look at this vertex in the mris. if it has any
-	 neighbors that are not in the same label... */
+      /* get the vno and look at this vertex in the mris. if it has
+	 any neighbors that are not in the same label AND still not in
+	 the label... */
       v = &(mris->vertices[label->lv[label_vno].vno]);
       for (neighbor_vno = 0; neighbor_vno < v->vnum; neighbor_vno++ )
 	{
-	  labl_find_label_by_vno (v->v[neighbor_vno], &neighbor_label);
-	  
-	  /* it's a border if this vno is in a different (or no)
-             label. makr it so in the real border flag array and our
-             temp one. */
-	  if (neighbor_label != index)
+	  labl_find_label_by_vno (v->v[neighbor_vno], label_index_array,
+				  LABL_MAX_LABELS, &num_labels_found);
+	  if( num_labels_found > 0 ) 
 	    {
+	      vno_in_other_label = 0;
+	      vno_in_label = 0;
+	      for (found_label_index = 0; found_label_index < num_labels_found;
+		   found_label_index++)
+		{
+		  if (label_index_array[found_label_index] != index)
+		    vno_in_other_label = 1;
+		  if (label_index_array[found_label_index] == index)
+		    vno_in_label = 1;
+		}
+		  
+	      /* it's a border if this vno is in a different (or no)
+		 label and not in this label. makr it so in the real
+		 border flag array and our temp one. */
+	      if (vno_in_other_label && !vno_in_label)
+		{
+		  border[label->lv[label_vno].vno] = TRUE;
+		  num_borders++;
+		}
+	    }
+	  else 
+	    {
+	      /* it's also a border if the vno is in no label. */
 	      border[label->lv[label_vno].vno] = TRUE;
-	      labl_is_border[label->lv[label_vno].vno] = 1;
+	      num_borders++;
 	    }
 	}
     }
-  
-  /* go through again and fill neighboring vertices, so our outline is
-     2 vertices thick. this time check only the temp array with the
-     outer outline, and not already colored in the real array.. */
+
+  /* Go down the label vno list. For each one, if it's a border, check
+     its surrounding vertices. For each one, if it's inside the label,
+     mark it in the border2 list. */
   for (label_vno = 0; label_vno < label->n_points; label_vno++)
-    {  
-      v = &(mris->vertices[label->lv[label_vno].vno]);
-      for (neighbor_vno = 0; neighbor_vno < v->vnum; neighbor_vno++ )
+    {
+      if (border[label->lv[label_vno].vno])
 	{
-	  if (border[v->v[neighbor_vno]] && 
-	      0 == labl_is_border[label->lv[label_vno].vno])
+	  v = &(mris->vertices[label->lv[label_vno].vno]);
+	  for (neighbor_vno = 0; neighbor_vno < v->vnum; neighbor_vno++ )
 	    {
-	      labl_is_border[label->lv[label_vno].vno] = 2;
-	      break;
+	      /* If it's inside the label...*/
+	      for (label_vno_check = 0; label_vno_check < label->n_points; 
+		   label_vno_check++)
+		{
+		  if (label->lv[label_vno_check].vno == v->v[neighbor_vno])
+		    {
+		      /* Add it to border2. */
+		      border2[v->v[neighbor_vno]] = 1;
+		    }
+		}
 	    }
+	}
+    }
+
+  /* Allocate the array on the label and go through the border and
+     border2 array, writing index numbers to the label array. */
+  if (NULL != labl_labels[index].border_vno)
+    free (labl_labels[index].border_vno);
+
+  labl_labels[index].border_vno = 
+    calloc (num_borders + num_borders2, sizeof(int));
+  labl_labels[index].num_border_vnos = 0;
+  for (label_vno = 0; label_vno < label->n_points; label_vno++)
+    {
+      v = &(mris->vertices[label->lv[label_vno].vno]);
+      if (border[label->lv[label_vno].vno] ||
+	  border2[label->lv[label_vno].vno])
+	{
+	  labl_labels[index].border_vno[labl_labels[index].num_border_vnos] = 
+	    label->lv[label_vno].vno;
+	  labl_labels[index].num_border_vnos++;
 	}
     }
   
   free (border);
+  free (border2);
   
   return (ERROR_NONE);
 }
 
-int labl_update_label_cache ()
+int labl_vno_is_border (int index, int vno)
 {
-  int vno;
-  int label_index;
-  int label_vno;
-  LABEL* label;
-  
-  /* init the cache if not already done so. */
-  if (NULL == labl_top_label)
+  int border_index;
+
+  if (index < 0 || index >= labl_num_labels)
+    return 0;
+
+  for (border_index = 0; 
+       border_index < labl_labels[index].num_border_vnos; border_index++)
     {
-      labl_top_label = (int*) calloc (mris->nvertices, sizeof(int));
-      if (NULL == labl_top_label)
-	return (ERROR_NO_MEMORY);
+      if (labl_labels[index].border_vno[border_index] == vno)
+	return 1;
     }
-  
-  /* clear the cache. */
-  for (vno = 0; vno < mris->nvertices; vno++)
-    labl_top_label[vno] = -1;
-  
-  /* for each label.. */
-  for (label_index = 0; label_index < labl_num_labels; label_index++)
-    {
-      label = labl_labels[label_index].label;
-      
-      /* for each vertex... */
-      for (label_vno = 0; label_vno < label->n_points; label_vno++)
-	{
-	  /* set the value in the cache. */
-	  labl_top_label[label->lv[label_vno].vno] = label_index;
-	}
-    }
-  
-  /* cache is now current. */
-  labl_cache_is_current = 1;
-  
-  return (ERROR_NONE);
+
+  return 0;
 }
 
 int labl_import_annotation (char *fname) 
@@ -23140,9 +23160,6 @@ int labl_changed (int index)
   labl_labels[index].max_y = max_y + LABL_FUDGE;
   labl_labels[index].max_z = max_z + LABL_FUDGE;
   
-  /* invalidate the cache. */
-  labl_cache_is_current = 0;
-  
   /* find the border. */
   labl_find_and_set_border (index);
 
@@ -23190,9 +23207,6 @@ int labl_remove (int index)
   else if (labl_selected_label > index)
     labl_selected_label--;
   
-  /* invalidate the cache. */
-  labl_cache_is_current = 0;
-  
   /* find all the borders again. */
   labl_find_and_set_all_borders ();
   
@@ -23214,30 +23228,21 @@ int labl_remove_all () {
   return (ERROR_NONE);
 }
 
-int labl_find_label_by_vno (int vno, int* index)
+int labl_find_label_by_vno (int vno, int* index_array, int array_size, 
+			    int* out_num_found)
 {
   int label_index;
   int label_vno;
   float x, y, z;
   LABEL* label;
-  
-  /* update the cache if not done so. */
-  if(!labl_cache_is_current)
-    {
-      labl_update_label_cache();
-    }
-  
-  /* if it updated properly, use it to get our value. */
-  if (labl_top_label && labl_cache_is_current)
-    {
-      *index = labl_top_label[vno];
-      return(ERROR_NONE);
-    }
+  int num_found;
   
   /* get the location of this vertex. */
   x = mris->vertices[vno].origx;
   y = mris->vertices[vno].origy;
   z = mris->vertices[vno].origz;
+
+  num_found = 0;
   
   /* go through each label looking for this vno... */
   for (label_index = 0; label_index < labl_num_labels; label_index++)
@@ -23257,7 +23262,12 @@ int labl_find_label_by_vno (int vno, int* index)
 	    {
 	      if (label->lv[label_vno].vno == vno)
 		{
-		  *index = label_index;
+
+		  if (num_found < array_size) 
+		    {
+		      index_array[num_found] = label_index;
+		      num_found++;
+		    }
 		  
 		  if (labl_debug)
 		    {
@@ -23272,39 +23282,42 @@ int labl_find_label_by_vno (int vno, int* index)
 			      labl_labels[label_index].b, 
 			      labl_labels[label_index].visible );
 		    }
-		  
-		  return (ERROR_NONE);
 		}
 	    }
 	}
     }
   
-  /* get here, there's no label. */
-  *index = -1;
-  
+  *out_num_found = num_found;
+
   return (ERROR_NONE);
 } 
 
 int labl_select_label_by_vno (int vno)
 {
   int label_index = -1;
-  
+  int num_found;
+
   if (vno < 0 || vno >= mris->nvertices)
     return (ERROR_BADPARM);
   
   /* try and find a label. if found, select it. */
   labl_debug = 1;
-  labl_find_label_by_vno (vno, &label_index);
+  labl_find_label_by_vno (vno, &label_index, 1, &num_found);
   labl_debug = 0;
-  labl_select (label_index);
+  if (num_found > 0)
+    labl_select (label_index);
+  else
+    labl_select (-1);
   
   return (ERROR_NONE);
 } 
 
 int labl_apply_color_to_vertex (int vno, GLubyte* r, GLubyte* g, GLubyte* b )
 {
-  int label_index = -1;
-  
+  int label_index_array[LABL_MAX_LABELS];
+  int num_labels_found, found_label_index;
+  int label_index;
+
   if (vno < 0 || vno >= mris->nvertices)
     return (ERROR_BADPARM);
   
@@ -23314,40 +23327,48 @@ int labl_apply_color_to_vertex (int vno, GLubyte* r, GLubyte* g, GLubyte* b )
   }
   
   /* try and find a label. if found... */
-  labl_find_label_by_vno (vno, &label_index);
-  if (-1 != label_index)
+  labl_find_label_by_vno (vno, label_index_array, 
+			  LABL_MAX_LABELS, &num_labels_found);
+  if (num_labels_found > 0)
     {
-      /* if this is the selected label and this is a border of width 1
-         or 2, make it yellow. */
-      if (labl_selected_label == label_index && labl_is_border[vno])
+      for (found_label_index = 0; found_label_index < num_labels_found;
+	   found_label_index++)
 	{
-	  *r = 255;
-	  *g = 255;
-	  *b = 0;
-	}
-      /* else if this label is visible... */
-      else if (labl_labels[label_index].visible)
-	{
-	  /* color it in the given drawing style. */
-	  switch (labl_draw_style)
+	  label_index = label_index_array[found_label_index];
+
+	  /* if this is the selected label and this is a border of width 1
+	     or 2, make it yellow. */
+	  if (labl_selected_label == label_index &&
+	      labl_vno_is_border(labl_selected_label, vno))
 	    {
-	    case LABL_STYLE_OPAQUE:
-	      *r = labl_labels[label_index].r;
-	      *g = labl_labels[label_index].g;
-	      *b = labl_labels[label_index].b;
-	      break;
-	    case LABL_STYLE_OUTLINE:
-	      /* if this is a border of width 1, color it the color of the
-		 label. */
-	      if (1 == labl_is_border[vno])
+	      *r = 255;
+	      *g = 255;
+	      *b = 0;
+	    }
+	  /* else if this label is visible... */
+	  else if (labl_labels[label_index].visible)
+	    {
+	      /* color it in the given drawing style. */
+	      switch (labl_draw_style)
 		{
+		case LABL_STYLE_OPAQUE:
 		  *r = labl_labels[label_index].r;
 		  *g = labl_labels[label_index].g;
 		  *b = labl_labels[label_index].b;
+		  break;
+		case LABL_STYLE_OUTLINE:
+		  /* if this is a border of width 1, color it the color of the
+		     label. */
+		  if (labl_vno_is_border (label_index, vno))
+		    {
+		      *r = labl_labels[label_index].r;
+		      *g = labl_labels[label_index].g;
+		      *b = labl_labels[label_index].b;
+		    }
+		  break;
+		default:
+		  ;
 		}
-	      break;
-	    default:
-	      ;
 	    }
 	}
     }
@@ -23932,17 +23953,19 @@ int fill_flood_from_seed (int seed_vno, FILL_PARAMETERS* params)
   int iter;
   int min_vno, max_vno, step_vno;
   int vno;
-  int label = 0;
+  int this_label = 0;
   int neighbor_index;
   int neighbor_vno;
-  int neighbor_label;
   VERTEX* v;
   VERTEX* neighbor_v;
   float fvalue;
   float seed_curv = 0;
   float seed_fvalue = 0;
   int new_index;
-  
+  int label_index_array[LABL_MAX_LABELS];
+  int num_labels_found, found_label_index;
+  int skip;
+
   if (seed_vno < 0 || seed_vno >= mris->nvertices)
     return (ERROR_BADPARM);
   if (NULL == params)
@@ -23958,7 +23981,7 @@ int fill_flood_from_seed (int seed_vno, FILL_PARAMETERS* params)
   
   /* find seed values for some conditions. */
   if (params->dont_cross_label)
-    labl_find_label_by_vno (seed_vno, &label);
+    this_label = labl_selected_label;
   if (params->dont_cross_cmid)
     seed_curv = mris->vertices[seed_vno].curv;
   if (params->dont_cross_fthresh)
@@ -24035,10 +24058,26 @@ int fill_flood_from_seed (int seed_vno, FILL_PARAMETERS* params)
 		     move on. */
 		  if (params->dont_cross_label)
 		    {
-		      labl_find_label_by_vno (neighbor_vno, &neighbor_label);
-		      if (neighbor_label != label)
+
+		      labl_find_label_by_vno (neighbor_vno, 
+					      label_index_array,
+					      LABL_MAX_LABELS,
+					      &num_labels_found);
+		      if (num_labels_found > 0) 
 			{
-			  continue;
+			  skip = 0;
+			  for (found_label_index = 0;
+			       found_label_index < num_labels_found;
+			       found_label_index++)
+			    {
+			      if (label_index_array[found_label_index] !=
+				  this_label)
+				{
+				  skip = 1;
+				  break;
+				}
+			    }
+			  if (skip) continue;
 			}
 		    }
 		  
