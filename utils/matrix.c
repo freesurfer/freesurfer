@@ -1008,6 +1008,60 @@ MatrixSVD(MATRIX *mA, VECTOR *v_z, MATRIX *mV)
   svd(mA->rptr, mV->rptr, v_z->data, mA->rows, mA->cols) ;
   return(mV) ;
 }
+float
+MatrixSVDEigenValues(MATRIX *m, float *evalues)
+{
+  float cond ;
+  VECTOR  *v_w ;
+  MATRIX  *m_U, *m_V ;
+  int     row, rows, cols, nevalues, i ;
+  float   wmax, wmin, wi ;
+  EVALUE  *eigen_values ;
+
+  cols = m->cols ;
+  rows = m->rows ;
+  m_U = MatrixCopy(m, NULL) ;
+  v_w = RVectorAlloc(cols, MATRIX_REAL) ;
+  m_V = MatrixAlloc(cols, cols, MATRIX_REAL) ;
+  nevalues = m->rows ;
+  memset(evalues, 0, nevalues*sizeof(evalues[0])) ;
+  
+  /* calculate condition # of matrix */
+  if (svdcmp(m_U->rptr, rows, cols, v_w->rptr[1], m_V->rptr) != NO_ERROR)
+    return(Gerror) ;
+
+  eigen_values = (EVALUE *)calloc((UINT)nevalues, sizeof(EIGEN_VALUE));
+  for (i = 0 ; i < nevalues ; i++)
+  {
+    eigen_values[i].eno = i ;
+    eigen_values[i].evalue = RVECTOR_ELT(v_w, i+1) ;
+  }
+  qsort((char *)eigen_values, nevalues, sizeof(EVALUE), compare_evalues) ;
+  for (i = 0 ; i < nevalues ; i++)
+    evalues[i] = eigen_values[i].evalue ;
+
+  wmax = 0.0f ;
+  wmin = wmax = RVECTOR_ELT(v_w,1) ;
+  for (row = 2 ; row <= rows ; row++)
+  {
+    wi = fabs(RVECTOR_ELT(v_w,row)) ;
+    if (wi > wmax)
+      wmax = wi ;
+    if (wi < wmin)
+      wmin = wi ;
+  }
+
+  if (FZERO(wmin))
+    cond = -1.0f ;
+  else
+    cond = wmax / wmin ;
+
+  free(eigen_values) ;
+  MatrixFree(&m_U) ;
+  VectorFree(&v_w) ;
+  MatrixFree(&m_V) ;
+  return(cond) ;
+}
 /*
    use SVD to find the inverse of m, usually useful if m is 
    ill-conditioned or singular.
@@ -1315,7 +1369,9 @@ int m,n;
         }
         break;
       }
-      if (its==30) nrerror("SVDCMP: No convergence in 30 iterations");
+      if (its==30) 
+        return(Gerror = ERROR_BADPARMS) ;
+      /*nrerror("SVDCMP: No convergence in 30 iterations");*/
       x=w[l];
       nm=k-1;
       y=w[nm];
@@ -1914,7 +1970,6 @@ float
 MatrixConditionNumber(MATRIX *m)
 {
   float cond ;
-
   VECTOR  *v_w ;
   MATRIX  *m_U, *m_V ;
   int     row, rows, cols ;

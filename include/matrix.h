@@ -75,6 +75,7 @@ MATRIX *MatrixEigenSystem(MATRIX *m, float *evalues, MATRIX *m_dst) ;
 MATRIX *MatrixSVD(MATRIX *mA, VECTOR *v_z, MATRIX *mV) ;
 MATRIX *MatrixSVDInverse(MATRIX *m, MATRIX *m_inverse) ;
 float  MatrixConditionNumber(MATRIX *m) ;
+float  MatrixSVDEigenValues(MATRIX *m, float *evalues) ;
 
 /* statistical stuff */
 MATRIX *MatrixCovariance(MATRIX *mInputs, MATRIX *mCov, VECTOR *mMeans) ;
