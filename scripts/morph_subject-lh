@@ -1,31 +1,78 @@
-#!/bin/tcsh
-pushd $SUBJECTS_DIR/$1/
-touch NOTES
-echo " " >> NOTES
-echo $0 $* >> NOTES
-whoami >> NOTES
-date >> NOTES
-hostname >> NOTES
-popd
+#!/bin/tcsh -ef
+# Note: please use the check-out/check-in procedures when
+# editing this file.
+#
+# $Id: morph_subject-lh,v 1.2 2002/01/28 17:42:13 greve Exp $
+#
 
+set version = '$Id: morph_subject-lh,v 1.2 2002/01/28 17:42:13 greve Exp $';
 
 set hemi = lh
 
+if($#argv != 1) then
+  echo "USAGE: morph_subject-$hemi subjid"
+  echo $version
+  exit 1;
+endif
+
+set subjdir =  $SUBJECTS_DIR/$1
+if(! -e $subjdir) then
+  echo "ERROR: $subjdir does not exist"
+  exit 1;
+endif
+
+pushd $SUBJECTS_DIR/$1
+
+touch NOTES
+echo " "      >> NOTES
+echo $0 $*    >> NOTES
+echo $version >> NOTES
+whoami        >> NOTES
+date          >> NOTES
+hostname      >> NOTES
+popd
+
+mkdir -p $SUBJECTS_DIR/$1/scripts
 pushd $SUBJECTS_DIR/$1/scripts
+
 #if (-e $SUBJECTS_DIR/$1/surf/$hemi.sphere == 0) \
-#		mris_sphere -w 0 ../surf/$hemi.inflated ../surf/$hemi.sphere ;\
+#    mris_sphere -w 0 ../surf/$hemi.inflated ../surf/$hemi.sphere ;\
 #endif
 
-mris_sphere -w 0 ../surf/$hemi.inflated ../surf/$hemi.sphere
-mris_register -w 0 -curv \
-		../surf/$hemi.sphere \
-		$MRI_DIR/average/$hemi.average.tif \
-		../surf/$hemi.sphere.reg
-mris_register -w 0 -curv -reverse \
-		../surf/$hemi.sphere \
-		$MRI_DIR/average/rh.average.tif \
-		../surf/$hemi.rh.sphere.reg
+set StartDate = `date`;
 
+#-----------------------------------------------------------------#
+mris_sphere -w 0 ../surf/$hemi.inflated ../surf/$hemi.sphere
+
+#-----------------------------------------------------------------#
+mris_register -w 0 -curv \
+    ../surf/$hemi.sphere \
+    $MRI_DIR/average/$hemi.average.tif \
+    ../surf/$hemi.sphere.reg
+
+#-----------------------------------------------------------------#
+mris_register -w 0 -curv -reverse \
+    ../surf/$hemi.sphere \
+    $MRI_DIR/average/rh.average.tif \
+    ../surf/$hemi.rh.sphere.reg
+
+#-----------------------------------------------------------------#
+morph_rgb-$hemi $1
+
+
+#mris_register -w 0 ../surf/$hemi.sphere $MRI_DIR/average/$hemi.average.tif ../surf/$hemi.sphere.dist_new
+
+#-----------------------------------------------------------------#
+map_central_sulcus $1 $hemi
+
+echo "Started at: $StartDate"
+echo "Ended at:   `date`"
+
+
+
+exit 0;
+
+#--------------- Ignore ------------------------#
 set SVIT_DIR    = $SUBJECTS_DIR/$1/svit
 if (-e $SVIT_DIR == 0) \
     mkdir $SVIT_DIR ;\
@@ -33,13 +80,12 @@ endif
 
 set SLF = $SVIT_DIR/$hemi.sphere.reg.svit.log
 mri-structvits -subject $1 -umask 0 \
-		-hemi $hemi -outdir $SVIT_DIR -can sphere.reg | tee -a $SLF
-mri-structvits -subject $1 -umask 0 \
-		-hemi $hemi -outdir $SVIT_DIR -can rh.sphere.reg | tee -a $SLF
-morph_rgb-$hemi $1
+    -hemi $hemi -outdir $SVIT_DIR -can sphere.reg | tee -a $SLF
+if($status)then
+  echo "ERROR: mri-structvits"
+  exit 1;
+endif
+#mri-structvits -subject $1 -umask 0 \
+#    -hemi $hemi -outdir $SVIT_DIR -can rh.sphere.reg | tee -a $SLF
 
-
-#mris_register -w 0 ../surf/$hemi.sphere $MRI_DIR/average/$hemi.average.tif ../surf/$hemi.sphere.dist_new
-
-popd
 
