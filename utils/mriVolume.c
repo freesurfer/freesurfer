@@ -2180,7 +2180,7 @@ void Volm_GetValueAtXYSlice_ ( mriVolumeRef this,
 			       float*            oValue) {
   
   Volm_ConvertXYSliceToIdx_( iOrientation, iPoint, inSlice, &this->mTmpVoxel );
-  Volm_GetValueAtIdx_( this, &idx, oValue );
+  Volm_GetValueAtIdx_( this, &this->mTmpVoxel, oValue );
 }
 
 void Volm_GetValueAtIdx_ ( mriVolumeRef this,
