@@ -6237,10 +6237,10 @@ tBoolean xUtil_FaceIntersectsPlane( MRI_SURFACE*     ipSurface,
 void xUtil_NormalizeVertexToVoxel( vertex_type*     ipVertex,
            Surf_tVertexSet iSurface,
            mri_tOrientation iOrientation,
-          xVoxelRef         opVoxel ) {
-
- xVoxelRef pRASVox = NULL;
- xVoxelRef pAnatomicalVox = NULL;
+           xVoxelRef         opVoxel ) {
+  
+  xVoxelRef pRASVox = NULL;
+  xVoxelRef pAnatomicalVox = NULL;
   Real rXVox = 0;
   Real rYVox = 0;
   Real rZVox = 0;
@@ -6266,8 +6266,8 @@ void xUtil_NormalizeVertexToVoxel( vertex_type*     ipVertex,
   rXVox = xVoxl_GetFloatX( pAnatomicalVox );
   rYVox = xVoxl_GetFloatY( pAnatomicalVox );
   rZVox = xVoxl_GetFloatZ( pAnatomicalVox );
-
-
+  
+  
   switch( iOrientation ) {
   case mri_tOrientation_Horizontal:
     xVoxl_SetFloat( opVoxel, (float)rXVox, (float)rZVox, (float)rYVox );
@@ -6281,7 +6281,7 @@ void xUtil_NormalizeVertexToVoxel( vertex_type*     ipVertex,
   default:
     break;
   }
-
+  
   xVoxl_Delete( &pRASVox );
   xVoxl_Delete( &pAnatomicalVox );
 }
@@ -6291,9 +6291,9 @@ void xUtil_NormalizeVertexToVoxel( vertex_type*     ipVertex,
 
 tBoolean xUtil_LineIntersectsPlane(xVoxelRef         ipLineVoxA,
            xVoxelRef         ipLineVoxB,
-            int              inPlane,
-            tBoolean         ipInterpolate,
-            xPoint2fRef      opIntersectionPt ) {
+           int              inPlane,
+           tBoolean         ipInterpolate,
+           xPoint2fRef      opIntersectionPt ) {
   
   float    fPlane           = inPlane;
   float    fDistanceA       = 0;
@@ -6368,10 +6368,73 @@ DspA_tErr DspA_AdjustSurfaceDrawPoint_( tkmDisplayAreaRef this,
   return DspA_tErr_NoErr;
 }
 
+
+DspA_tErr DspA_AdjustSurfaceAnaIdx ( tkmDisplayAreaRef this,
+             xVoxelRef         iAnaIdx ) {
+
+  DspA_tErr eResult = DspA_tErr_NoErr;
+
+  /* verify us. */
+  eResult = DspA_Verify( this );
+  if( DspA_tErr_NoErr != eResult )
+    goto error;
+
+  /* these are .51 because tkmDisplayArea automatically moves cursors
+     on .0 boundaries to .5 boundaries. when looking at an orig
+     vertex, the bounds are on .0, and the cursor misses the
+     vertex. .51 prevents that from happening. */
+  xVoxl_SetFloatX( iAnaIdx, xVoxl_GetFloatX(iAnaIdx) + 0.51 );
+  xVoxl_SetFloatY( iAnaIdx, xVoxl_GetFloatY(iAnaIdx) + 0.51 );
+  xVoxl_SetFloatZ( iAnaIdx, xVoxl_GetFloatZ(iAnaIdx) + 0.51 );
+
+  goto cleanup;
+
+ error:
+
+  /* print error message */
+  if( DspA_tErr_NoErr != eResult ) {
+    DebugPrint( ("Error %d in DspA_AdjustSurfaceAnaIdx: %s\n",
+     eResult, DspA_GetErrorString(eResult) ) );
+  }
+
+ cleanup:
+
+  return eResult;
+}
+
+DspA_tErr DspA_UnadjustSurfaceAnaIdx ( tkmDisplayAreaRef this,
+             xVoxelRef         iAnaIdx ) {
+
+  DspA_tErr eResult = DspA_tErr_NoErr;
+
+  /* verify us. */
+  eResult = DspA_Verify( this );
+  if( DspA_tErr_NoErr != eResult )
+    goto error;
+
+  xVoxl_SetFloatX( iAnaIdx, xVoxl_GetFloatX(iAnaIdx) - 0.50 );
+  xVoxl_SetFloatY( iAnaIdx, xVoxl_GetFloatY(iAnaIdx) - 0.50 );
+  xVoxl_SetFloatZ( iAnaIdx, xVoxl_GetFloatZ(iAnaIdx) - 0.50 );
+
+  goto cleanup;
+
+ error:
+
+  /* print error message */
+  if( DspA_tErr_NoErr != eResult ) {
+    DebugPrint( ("Error %d in DspA_UnadjustSurfaceAnaIdx: %s\n",
+     eResult, DspA_GetErrorString(eResult) ) );
+  }
+
+ cleanup:
+
+  return eResult;
+}
+
 DspA_tErr DspA_ParsePointList_( tkmDisplayAreaRef this,
         GLenum            inMode,
         xGrowableArrayRef iList ) {
-
+  
   DspA_tErr  eResult        = DspA_tErr_NoErr;
   xGArr_tErr eList          = xGArr_tErr_NoErr;
   tBoolean   bOperationOpen = FALSE;

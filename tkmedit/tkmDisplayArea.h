@@ -425,6 +425,10 @@ tBoolean xUtil_LineIntersectsPlane ( xVoxelRef         ipLineVoxA,
              xPoint2fRef      opIntersectionPt );
 DspA_tErr DspA_AdjustSurfaceDrawPoint_ ( tkmDisplayAreaRef this,
            xPoint2fRef       ipPoint );
+DspA_tErr DspA_AdjustSurfaceAnaIdx   ( tkmDisplayAreaRef this,
+               xVoxelRef         iAnaIdx );
+DspA_tErr DspA_UnadjustSurfaceAnaIdx ( tkmDisplayAreaRef this,
+               xVoxelRef         iAnaIdx );
 DspA_tErr DspA_ParsePointList_ ( tkmDisplayAreaRef this,
          GLenum            inMode,
          xGrowableArrayRef ipList );

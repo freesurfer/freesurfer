@@ -194,6 +194,13 @@ MWin_tErr MWin_GetOrientation    ( tkmMeditWindowRef   this,
 MWin_tErr MWin_GetSelectedHeadPt ( tkmMeditWindowRef   this,
            HPtL_tHeadPointRef* opHeadPoint );
 
+/* tkmedit needs to adjust the cursor to align with the surface when
+   goto/finding a vertex. bad design. */
+MWin_tErr MWin_AdjustSurfaceAnaIdx   ( tkmMeditWindowRef this,
+               xVoxelRef         iAnaIdx );
+MWin_tErr MWin_UnadjustSurfaceAnaIdx ( tkmMeditWindowRef this,
+               xVoxelRef         iAnaIdx );
+
 /* for cursor linking. a display area whose cursor was set calls this
    function. if we have cursor linking turned on, this will set all display
    cursors or flags. */
