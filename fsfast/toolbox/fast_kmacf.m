@@ -53,65 +53,108 @@ end
 
 if(nmaxlag == -1 | nmaxlag > nf) nmaxlag = nf; end
 
-XX = load(xmatfile);
-X = XX.Xfinal;
-T = X*inv(X'*X)*X';
-R = eye(size(T)) - T;
-M = fast_kjw_mtx(R,nmaxlag);
-Mkjw = inv(M);
-
-
-% Fit racf with 
+% Fit racf with polyz
 if(fitpolyz)
   fprintf('Fitting to polyz %d (%g)\n',polyzorder,toc);
   [pc acfmask] = fast_polyzacf_fit(acfmask,polyzorder,nmaxlag);
   fprintf(' ... done %g\n',toc);
 end
 
+if(usekjw)
+  XX = load(xmatfile);
+  X = XX.Xfinal;
+  T = X*inv(X'*X)*X';
+  R = eye(size(T)) - T;
+  M = fast_kjw_mtx(R,nmaxlag);
+  Mkjw = inv(M);
+  yacfmasked = Mkjw*acfmask(1:nmaxlag,:);
+  yacfmasked = yacfmasked./repmat(yacfmasked(1,:),[nmaxlag 1]);
+  acfmasktrunc = yacfmasked(2:nmaxlag,:);
+else
+  acfmasktrunc = acfmask(2:nmaxlag,:);
+end
 
-yacfmasked = Mkjw*acfmask(1:nmaxlag,:);
-yacfmasked = yacfmasked./repmat(yacfmasked(1,:),[nmaxlag 1]);
-
-acfmasktrunc = yacfmasked(2:nmaxlag,:);
-% apply taper to trunc only
+kmeans0 = []; 
+if(~isempty(initmethod) & strcmpi(initmethod,'firstlag'))
+  fprintf('Initializing kmeans with first lag %g\n',toc);
+  [h x] = hist(acfmasktrunc(1,:),nclusters);
+  [kmeans, kmap, d2min, niters, acffit] = ...
+      fast_kmeans(acfmasktrunc(1,:),nclusters,x,10);
+  kmeans0 = zeros(nmaxlag-1,nclusters);
+  for k = 1:nclusters
+    indk = find(kmap==k);
+    nindk = length(indk);
+    %fprintf('k=%d   %d\n',k,nindk);
+    racfk = mean(acfmasktrunc(:,indk),2);
+    kmeans0(:,k) = racfk;
+  end
+end
+if(~isempty(initmethod) & strcmpi(initmethod,'svd'))
+  fprintf('Initializing kmeans with svd %g\n',toc);
+  Macf = acfmask *acfmask';
+  [u s v] = svd(Macf);
+  kmeans0 = u(1:nmaxlag-1,1:nclusters);
+end
 
 fprintf('Starting kmeans  %g\n',toc);
 [kmeans, kmap, d2min, niters, acffit] = ...
-    fast_kmeans(acfmasktrunc,nclusters,[],nitersmax);
+    fast_kmeans(acfmasktrunc,nclusters,kmeans0,nitersmax);
 fprintf('Done kmeans  %g\n',toc);
 
-kmapvol = zeros(1,nv);
-if(~isempty(indmask))
-  kmapvol(indmask) = kmap;
-else
-  kmapvol = kmap;
-end  
-kmapvol = reshape(kmapvol,[nslices nrows ncols]);
-kmapstem = sprintf('%s-kmap',outbasestem);
-fmri_svbvolume(kmapvol,kmapstem);
+% Sort so that the racf closest to white is first %
+kmeans0 = kmeans;
+kmap0 = kmap;
+rms = sum(kmeans.^2);
+[rmssorted indsort] = sort(rms);
+kmeans = kmeans(:,indsort);
+kmaptmp = kmap0;
+for k = 1:nclusters
+  indk = find(kmap==indsort(k));  
+  kmaptmp(indk) = k;
+end
+kmap = kmaptmp;
 
 racfkm = zeros(nf,nclusters);
-yacfkm = zeros(nf,nclusters);
+if(usekjw) yacfkm = zeros(nf,nclusters); end
 for k = 1:nclusters
   indk = find(kmap==k);
   nindk = length(indk);
   racfk = mean(acfmask(:,indk),2); % full acf, inc 1
-  yacfk = mean(yacfmasked(:,indk),2); % full acf, inc 1
   [rcnd rmineig] = fast_acfcond(racfk);
-  [ycnd ymineig] = fast_acfcond(yacfk);
-  fprintf('k = %2d, nindk = %5d (%4.1f%%) , ymineig = %g, ycnd=%g \n',...
-	  k,nindk,100*nindk/nmask,ymineig,ycnd);
   racfkm(:,k) = racfk;
-  yacfkm(1:nmaxlag,k) = yacfk;
+  fprintf('k = %2d, nindk = %5d (%4.1f%%) %6.5f ',...
+	  k,nindk,100*nindk/nmask,sqrt(mean(racfk(2:end).^2)));
+  if(usekjw) 
+    yacfk = mean(yacfmasked(:,indk),2);  % full acf, inc 1
+    [ycnd ymineig] = fast_acfcond(yacfk); 
+    yacfkm(1:nmaxlag,k) = yacfk;
+    fprintf(' ymineig = %g, ycnd=%g \n',ymineig,ycnd);
+  else
+    fprintf('\n');
+  end
 end
 
-tmp(1,:,:) = yacfkm';
-kmeansfile = sprintf('%s-kmyacf_000.bfloat',outbasestem);
+kmapvol = zeros(1,nv);
+if(~isempty(indmask)) kmapvol(indmask) = kmap;
+else                  kmapvol = kmap;
+end  
+kmapvol = reshape(kmapvol,[nslices nrows ncols]);
+kmapstem = sprintf('%s-%s-kmap',outbasestem,kmacfid);
+fprintf('Saving kmap to %s\n',kmapstem);
+fmri_svbvolume(kmapvol,kmapstem);
+
+clear tmp;
+tmp(1,:,:) = racfkm';
+kmeansfile = sprintf('%s-%s-racf_000.bfloat',outbasestem,kmacfid);
+fprintf('Saving kmeans to %s\n',kmeansfile);
 fmri_svbfile(tmp,kmeansfile);
 
-tmp(1,:,:) = yacfkm';
-kmeansfile = sprintf('%s-kmracf_000.bfloat',outbasestem);
-fmri_svbfile(tmp,kmeansfile);
+if(usekjw)
+  clear tmp;
+  tmp(1,:,:) = yacfkm';
+  kmeansfile = sprintf('%s-kmyacf_000.bfloat',outbasestem);
+  fmri_svbfile(tmp,kmeansfile);
+end
 
 fprintf('fast_kmacf done %g\n',toc);
 
