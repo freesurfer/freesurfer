@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/03/08 23:12:20 $
-// Revision       : $Revision: 1.86 $
+// Revision Date  : $Date: 2004/03/09 15:07:57 $
+// Revision       : $Revision: 1.87 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -219,7 +219,7 @@ int main(int argc, char *argv[])
   nskip = 0;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_convert.c,v 1.86 2004/03/08 23:12:20 tosa Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_convert.c,v 1.87 2004/03/09 15:07:57 tosa Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -1412,9 +1412,10 @@ int main(int argc, char *argv[])
 	  if (mriOrig)
 	  {
 	    getVolGeom(mriOrig, &lt->src);
+	    fprintf(stderr, "INFO: Succeeded in retrieving the source volume info.\n");
 	  }
 	  else
-	    fprintf(stderr, "INFO: failed to find %s as a source volume. The inverse c_(ras) may not be valid.\n",
+	    fprintf(stderr, "INFO: Failed to find %s as a source volume. The inverse c_(ras) may not be valid.\n",
 		    buf);
 
 	}
