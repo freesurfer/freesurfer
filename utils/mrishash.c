@@ -1262,7 +1262,7 @@ checkFace(MRIS_HASH_TABLE *mht, MRI_SURFACE *mris, int fno1)
     u2[1] = (double)mris->vertices[f2->v[2]].y ;
     u2[2] = (double)mris->vertices[f2->v[2]].z ;
     filled = tri_tri_intersect(v0,v1,v2,u0,u1,u2) ;
-    if (filled)
+    if (filled && (Gdiag & DIAG_SHOW))
     {
       int    intersect, n ;
       VERTEX *v ;
@@ -1271,7 +1271,8 @@ checkFace(MRIS_HASH_TABLE *mht, MRI_SURFACE *mris, int fno1)
               "face %d (%d,%d,%d) intersects with face %d (%d,%d,%d)!!!\n", 
               fno1, f1->v[0],f1->v[1],f1->v[2],
               fno2, f2->v[0],f2->v[1],f2->v[2]) ;
-      MRISwrite(mris, "lh.bad") ;
+			if (Gdiag & DIAG_WRITE)
+				MRISwrite(mris, "bad") ;
       DiagBreak() ;
       intersect = mhtDoesFaceIntersect(mht, mris, fno1) ;
       if (!intersect)

@@ -615,6 +615,93 @@ MRIdilateLabel(MRI *mri_src, MRI *mri_dst, int label, int niter)
         Description
 ------------------------------------------------------*/
 MRI *
+MRIdilateLabelUchar(MRI *mri_src, MRI *mri_dst, int label, int niter)
+{
+  int     width, height, depth, x, y, z, x0, y0, z0, xi, yi, zi,
+          xmin, xmax, ymin, ymax, zmin, zmax, i;
+  BUFTYPE *psrc, out_val, val ;
+  MRI     *mri_tmp = NULL ;
+
+  width = mri_src->width ;
+  height = mri_src->height ;
+  depth = mri_src->depth ;
+
+  /* get everything outside of bounding box */
+  mri_dst = MRIcopy(mri_src, mri_dst) ;  
+
+  for (i = 0 ; i < niter ; i++)
+  {
+    mri_tmp = MRIcopy(mri_dst, mri_tmp) ; /* will allocate first time */
+    xmax = 0 ; xmin = width-1 ;
+    ymax = 0 ; ymin = height-1 ;
+    zmax = 0 ; zmin = depth-1 ;
+    for (z = 0 ; z < depth ; z++)
+    {
+      for (y = 0 ; y < height ; y++)
+      {
+        psrc = &MRIvox(mri_src, 0, y, z) ;
+        for (x = 0 ; x < width ; x++)
+        {
+          if (*psrc++ == label)
+          {
+            if (x-1 < xmin)
+              xmin = x-1 ;
+            if (x+1 > xmax)
+              xmax = x+1 ;
+            if (y-1 < ymin)
+              ymin = y-1 ;
+            if (y+1 > ymax)
+              ymax = y+1 ;
+            if (z-1 < zmin)
+              zmin = z-1 ;
+            if (z+1 > zmax)
+              zmax = z+1 ;
+          }
+        }
+      }
+    }
+    xmin = MAX(0, xmin) ; xmax = MIN(width-1, xmax) ;
+    ymin = MAX(0, ymin) ; ymax = MIN(height-1, ymax) ;
+    zmin = MAX(0, zmin) ; zmax = MIN(depth-1, zmax) ;
+    for (z = zmin ; z <= zmax ; z++)
+    {
+      for (y = ymin ; y <= ymax ; y++)
+      {
+        for (x = xmin ; x <= xmax ; x++)
+        {
+          out_val = MRIvox(mri_tmp, x, y, z) ;
+          for (z0 = -1 ; z0 <= 1 ; z0++)
+          {
+            zi = mri_tmp->zi[z+z0] ;
+            for (y0 = -1 ; y0 <= 1 ; y0++)
+            {
+              yi = mri_tmp->yi[y+y0] ;
+              for (x0 = -1 ; x0 <= 1 ; x0++)
+              {
+                xi = mri_tmp->xi[x+x0] ;
+                val = MRIvox(mri_tmp, xi,yi,zi) ;
+                if (val == label)
+                  out_val = label ;
+              }
+            }
+          }
+          MRIvox(mri_dst, x,y,z) = out_val ;
+        }
+      }
+    }
+  }
+  MRIfree(&mri_tmp) ;
+
+  return(mri_dst) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+MRI *
 MRIdilate(MRI *mri_src, MRI *mri_dst)
 {
   int     width, height, depth, x, y, z, x0, y0, z0, xi, yi, zi, same,

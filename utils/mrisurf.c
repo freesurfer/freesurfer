@@ -218,8 +218,6 @@ static int   mrisRemoveNegativeArea(MRI_SURFACE *mris,INTEGRATION_PARMS *parms,
 static double mrisLineMinimize(MRI_SURFACE *mris, INTEGRATION_PARMS *parms);
 static double mrisLineMinimizeSearch(MRI_SURFACE *mris, 
                                      INTEGRATION_PARMS *parms);
-static double  mrisMomentumTimeStep(MRI_SURFACE *mris, float momentum, 
-                                    float dt, float tol, float n_averages) ;
 static double  mrisAsynchronousTimeStep(MRI_SURFACE *mris, float momentum, 
                                     float dt, MHT *mht, float max_mag) ;
 static double  mrisAsynchronousTimeStepNew(MRI_SURFACE *mris, float momentum, 
@@ -269,10 +267,8 @@ static int   mrisComputeAngleAreaTerms(MRI_SURFACE *mris,
 static int   mrisComputeNonlinearAreaTerm(MRI_SURFACE *mris, 
                                        INTEGRATION_PARMS *parms) ;
 static int   mrisClearDistances(MRI_SURFACE *mris) ;
-static int   mrisClearGradient(MRI_SURFACE *mris) ;
 static int   mrisClearExtraGradient(MRI_SURFACE *mris) ;
 static int   mrisClearMomentum(MRI_SURFACE *mris) ;
-static int   mrisApplyGradient(MRI_SURFACE *mris, double dt) ;
 static int   mrisValidVertices(MRI_SURFACE *mris) ;
 static int   mrisValidFaces(MRI_SURFACE *mris) ;
 static int   mrisLabelVertices(MRI_SURFACE *mris, float cx, float cy, 
@@ -3713,7 +3709,7 @@ MRISremoveNegativeVertices(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
     }
     else
       mrisComputeVertexDistances(mris) ;
-    mrisClearGradient(mris) ;      
+    MRISclearGradient(mris) ;      
     mrisComputeSpringTerm(mris, parms->l_spring) ;
     mrisComputeDistanceTerm(mris, parms) ;
     mrisComputeAngleAreaTerms(mris, parms) ;
@@ -3729,7 +3725,7 @@ MRISremoveNegativeVertices(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
       delta_t = mrisLineMinimize(mris, parms) ;
       break ;
     case INTEGRATE_MOMENTUM:
-      delta_t = mrisMomentumTimeStep(mris, parms->momentum, parms->dt, 
+      delta_t = MRISmomentumTimeStep(mris, parms->momentum, parms->dt, 
                                      parms->tol, parms->n_averages) ;
       break ;
     case INTEGRATE_ADAPTIVE:
@@ -4989,7 +4985,7 @@ MRISintegrate(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int n_averages)
     if (!FZERO(parms->l_curv))
       MRIScomputeSecondFundamentalForm(mris) ;
 
-    mrisClearGradient(mris) ;      /* clear old deltas */
+    MRISclearGradient(mris) ;      /* clear old deltas */
     mrisComputeDistanceTerm(mris, parms) ;
     mrisComputeAngleAreaTerms(mris, parms) ;
     mrisComputeCorrelationTerm(mris, parms) ;
@@ -5016,7 +5012,7 @@ MRISintegrate(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int n_averages)
       delta_t = mrisLineMinimize(mris, parms) ;
       break ;
     case INTEGRATE_MOMENTUM:
-      delta_t = mrisMomentumTimeStep(mris, parms->momentum, parms->dt, 
+      delta_t = MRISmomentumTimeStep(mris, parms->momentum, parms->dt, 
                                      tol, parms->n_averages) ;
       break ;
     case INTEGRATE_ADAPTIVE:
@@ -6110,7 +6106,7 @@ mrisAdaptiveTimeStep(MRI_SURFACE *mris,INTEGRATION_PARMS *parms)
   starting_sse = MRIScomputeSSE(mris, parms) ;
 
   MRISstoreCurrentPositions(mris) ;
-  delta_t = mrisMomentumTimeStep(mris, parms->momentum, parms->dt, parms->tol,
+  delta_t = MRISmomentumTimeStep(mris, parms->momentum, parms->dt, parms->tol,
                                  parms->n_averages) ;
 
   sse = MRIScomputeSSE(mris, parms) ;
@@ -6349,8 +6345,8 @@ mrisAsynchronousTimeStepNew(MRI_SURFACE *mris, float momentum,
 
         Description
 ------------------------------------------------------*/
-static double
-mrisMomentumTimeStep(MRI_SURFACE *mris, float momentum, float dt, float tol, 
+double
+MRISmomentumTimeStep(MRI_SURFACE *mris, float momentum, float dt, float tol, 
                      float n_averages)
 {
   double  delta_t, mag ;
@@ -6525,7 +6521,7 @@ mrisLineMinimize(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     for (delta_t = delta ; delta_t <= max_dt ; delta_t += delta)
     {
       predicted_sse = starting_sse - grad * delta_t ;
-      mrisApplyGradient(mris, delta_t) ;
+      MRISapplyGradient(mris, delta_t) ;
       mrisProjectSurface(mris) ;
       MRIScomputeMetricProperties(mris) ;
         
@@ -6543,7 +6539,7 @@ mrisLineMinimize(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   min_delta = 0.0f ; /* to get rid of compiler warning */
   for (delta_t = min_dt ; delta_t < max_dt ; delta_t *= 10.0)
   {
-    mrisApplyGradient(mris, delta_t) ;
+    MRISapplyGradient(mris, delta_t) ;
     mrisProjectSurface(mris) ;
     MRIScomputeMetricProperties(mris) ;
     sse = MRIScomputeSSE(mris, parms) ;
@@ -6560,7 +6556,7 @@ mrisLineMinimize(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   if (FZERO(min_delta))  /* dt=0 is min starting point, look mag smaller */
   {
     min_delta = min_dt/10.0 ;  /* start at smallest step */
-    mrisApplyGradient(mris, min_delta) ;
+    MRISapplyGradient(mris, min_delta) ;
     mrisProjectSurface(mris) ;
     MRIScomputeMetricProperties(mris) ;
     min_sse = MRIScomputeSSE(mris, parms) ;
@@ -6578,11 +6574,11 @@ mrisLineMinimize(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   /* bracket the minimum by sampling on either side */
   N = 3 ;
   dt0 = min_delta - (min_delta/2) ;    dt2 = min_delta + (min_delta/2) ;
-  mrisApplyGradient(mris, dt0) ;
+  MRISapplyGradient(mris, dt0) ;
   mrisProjectSurface(mris) ;           MRIScomputeMetricProperties(mris) ;
   sse0 = MRIScomputeSSE(mris, parms) ; MRISrestoreOldPositions(mris) ;
   
-  mrisApplyGradient(mris, dt2) ;
+  MRISapplyGradient(mris, dt2) ;
   mrisProjectSurface(mris) ;           MRIScomputeMetricProperties(mris) ;
   sse2 = MRIScomputeSSE(mris, parms) ; MRISrestoreOldPositions(mris) ;
   
@@ -6629,7 +6625,7 @@ mrisLineMinimize(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
       new_min_delta = -b/a ;
       if (new_min_delta < 10.0f*min_delta && new_min_delta > min_delta/10.0f)
       {
-        mrisApplyGradient(mris, new_min_delta) ;
+        MRISapplyGradient(mris, new_min_delta) ;
         mrisProjectSurface(mris) ;           
         MRIScomputeMetricProperties(mris) ;
         sse = MRIScomputeSSE(mris, parms) ;
@@ -6661,7 +6657,7 @@ mrisLineMinimize(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   }
   if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
     fprintf(stdout, "min %d (%2.3f)\n", mini, dt_in[mini]) ;
-  mrisApplyGradient(mris, dt_in[mini]) ;
+  MRISapplyGradient(mris, dt_in[mini]) ;
   return(dt_in[mini]) ;
 }
 /*-----------------------------------------------------
@@ -6735,7 +6731,7 @@ mrisLineMinimizeSearch(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   min_delta = 0.0f ; /* to get rid of compiler warning */
   for (delta_t = min_dt ; delta_t < max_dt ; delta_t *= 10.0)
   {
-    mrisApplyGradient(mris, delta_t) ;
+    MRISapplyGradient(mris, delta_t) ;
     mrisProjectSurface(mris) ;
     MRIScomputeMetricProperties(mris) ;
     sse = MRIScomputeSSE(mris, parms) ;
@@ -6752,7 +6748,7 @@ mrisLineMinimizeSearch(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   if (FZERO(min_delta))  /* dt=0 is min starting point, look mag smaller */
   {
     min_delta = min_dt/10.0 ;  /* start at smallest step */
-    mrisApplyGradient(mris, min_delta) ;
+    MRISapplyGradient(mris, min_delta) ;
     mrisProjectSurface(mris) ;
     MRIScomputeMetricProperties(mris) ;
     min_sse = MRIScomputeSSE(mris, parms) ;
@@ -6772,7 +6768,7 @@ mrisLineMinimizeSearch(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   min_sse = starting_sse ;
   while (!done)
   {
-    mrisApplyGradient(mris, delta_t) ;
+    MRISapplyGradient(mris, delta_t) ;
     mrisProjectSurface(mris) ;
     MRIScomputeMetricProperties(mris) ;
     sse = MRIScomputeSSE(mris, parms) ;
@@ -10198,7 +10194,7 @@ MRISinflateBrain(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     parms->l_dist = l_dist * sqrt(n_averages) ;
     for (n = parms->start_t ; n < parms->start_t+niterations ; n++)
     {
-      mrisClearGradient(mris) ;
+      MRISclearGradient(mris) ;
       mrisComputeDistanceTerm(mris, parms) ;
       mrisComputeSphereTerm(mris, parms->l_sphere, parms->a) ;
       mrisComputeExpansionTerm(mris, parms->l_expand) ;
@@ -10219,7 +10215,7 @@ MRISinflateBrain(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
         delta_t = mrisLineMinimize(mris, parms) ;
         break ;
       case INTEGRATE_MOMENTUM:
-        delta_t = mrisMomentumTimeStep(mris, parms->momentum, parms->dt, 
+        delta_t = MRISmomentumTimeStep(mris, parms->momentum, parms->dt, 
                                        parms->tol, 0/*parms->n_averages*/) ;
         break ;
       case INTEGRATE_ADAPTIVE:
@@ -10373,7 +10369,7 @@ MRISinflateToSphere(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
       if (!FZERO(parms->l_repulse_ratio))
         mht_v_current =
           MHTfillVertexTableRes(mris,mht_v_current,CURRENT_VERTICES, 3.0f);
-      mrisClearGradient(mris) ;
+      MRISclearGradient(mris) ;
       mrisComputeDistanceTerm(mris, parms) ;
       mrisComputeSphereTerm(mris, parms->l_sphere, parms->a) ;
       mrisComputeExpansionTerm(mris, parms->l_expand) ;
@@ -10393,7 +10389,7 @@ MRISinflateToSphere(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
         delta_t = mrisLineMinimize(mris, parms) ;
         break ;
       case INTEGRATE_MOMENTUM:
-        delta_t = mrisMomentumTimeStep(mris, parms->momentum, parms->dt, 
+        delta_t = MRISmomentumTimeStep(mris, parms->momentum, parms->dt, 
                                        parms->tol, 0/*parms->n_averages*/) ;
         break ;
       case INTEGRATE_ADAPTIVE:
@@ -10448,8 +10444,8 @@ MRISinflateToSphere(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 
         Description
 ------------------------------------------------------*/
-static int
-mrisApplyGradient(MRI_SURFACE *mris, double dt)
+int
+MRISapplyGradient(MRI_SURFACE *mris, double dt)
 {
   int     vno, nvertices ;
   VERTEX  *v ;
@@ -10501,8 +10497,8 @@ mrisClearDistances(MRI_SURFACE *mris)
 
         Description
 ------------------------------------------------------*/
-static int
-mrisClearGradient(MRI_SURFACE *mris)
+int
+MRISclearGradient(MRI_SURFACE *mris)
 {
   int     vno, nvertices ;
   VERTEX  *v ;
@@ -16714,7 +16710,7 @@ MRISpositionSurfaces(MRI_SURFACE *mris, MRI **mri_flash, int nvolumes,
   {
 
     /* compute and apply wm derivatative */
-    mrisClearGradient(mris) ; mrisClearExtraGradient(mris) ;
+    MRISclearGradient(mris) ; mrisClearExtraGradient(mris) ;
     MRISrestoreVertexPositions(mris, ORIGINAL_VERTICES) ;  /* make wm positions current */
     MRISsaveVertexPositions(mris, TMP_VERTICES) ;          /* white->tmp */
     MRIScomputeMetricProperties(mris) ;
@@ -16735,7 +16731,7 @@ MRISpositionSurfaces(MRI_SURFACE *mris, MRI **mri_flash, int nvolumes,
     wm_sse = MRIScomputeSSE(mris, parms) ;  /* needs update orig to compute sse */
 
     /* store current wm positions in TMP vertices, and pial in INFLATED vertices for undo */
-    mrisClearGradient(mris) ;
+    MRISclearGradient(mris) ;
     MRISrestoreVertexPositions(mris, PIAL_VERTICES) ;  /* make pial positions current */
     MRISsaveVertexPositions(mris, INFLATED_VERTICES) ; /* pial->inflated */
     MRIScomputeMetricProperties(mris) ; 
@@ -16975,7 +16971,7 @@ MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth,
       mht_v_current = MHTfillVertexTable(mris, mht_v_current,CURRENT_VERTICES);
     if (!(parms->flags & IPFLAG_NO_SELF_INT_TEST))
       mht = MHTfillTable(mris, mht) ;
-    mrisClearGradient(mris) ;
+    MRISclearGradient(mris) ;
     mrisComputeIntensityTerm(mris, l_intensity, mri_brain, mri_smooth,
                              parms->sigma);
     mrisComputeIntensityGradientTerm(mris, parms->l_grad,mri_brain,mri_smooth);
@@ -17013,7 +17009,7 @@ MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth,
       delta_t = mrisLineMinimize(mris, parms) ;
       break ;
     case INTEGRATE_MOMENTUM:
-      delta_t = mrisMomentumTimeStep(mris, parms->momentum, parms->dt, 
+      delta_t = MRISmomentumTimeStep(mris, parms->momentum, parms->dt, 
                                      parms->tol, avgs) ;
       break ;
     case INTEGRATE_ADAPTIVE:
@@ -33737,5 +33733,63 @@ MRISeraseOutsideOfSurface(float h,MRI* mri_dst,MRIS *mris,unsigned char val)
         
   MRIfree(&mri_buff);
   return brainsize;
+}
+
+int
+MRISspringTermWithGaussianCurvature(MRI_SURFACE *mris, double gaussian_norm, double l_spring)
+{
+  int     vno, n, m ;
+  VERTEX  *vertex, *vn ;
+  float   sx, sy, sz, x, y, z, scale ;
+
+  if (FZERO(l_spring))
+    return(NO_ERROR) ;
+
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    vertex = &mris->vertices[vno] ;
+    if (vertex->ripflag)
+      continue ;
+    if (vno == Gdiag_no)
+      DiagBreak() ;
+
+    x = vertex->x ;    y = vertex->y ;   z = vertex->z ;
+
+    sx = sy = sz = 0.0 ;
+    n=0;
+    for (m = 0 ; m < vertex->vnum ; m++)
+    {
+      vn = &mris->vertices[vertex->v[m]] ;
+      if (!vn->ripflag)
+      {
+        sx += vn->x - x;
+        sy += vn->y - y;
+        sz += vn->z - z;
+        n++;
+      }
+    }
+    if (n>0)
+    {
+      sx = sx/n;
+      sy = sy/n;
+      sz = sz/n;
+    }
+		scale = pow(vertex->K, gaussian_norm) ;
+		if (scale > 1)
+			scale = 1 ;
+		scale *= l_spring ;
+    sx *= scale ;              /* move in normal direction */
+    sy *= scale ;
+    sz *= scale ;
+    
+    vertex->dx += sx ;
+    vertex->dy += sy ;
+    vertex->dz += sz ;
+    if (vno == Gdiag_no)
+      fprintf(stdout, "v %d spring normal term:  (%2.3f, %2.3f, %2.3f)\n",
+              vno, sx, sy, sz) ;
+  }
+
+  return(NO_ERROR) ;
 }
 
