@@ -4,9 +4,9 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2003/06/10 17:56:32 $
-// Revision       : $Revision: 1.157 $
-char *VERSION = "$Revision: 1.157 $";
+// Revision Date  : $Date: 2003/06/12 01:09:19 $
+// Revision       : $Revision: 1.158 $
+char *VERSION = "$Revision: 1.158 $";
 
 #define TCL
 #define TKMEDIT 
@@ -1041,7 +1041,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
      shorten our argc and argv count. If those are the only args we
      had, exit. */
   /* rkt: check for and handle version tag */
-  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.157 2003/06/10 17:56:32 kteich Exp $");
+  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.158 2003/06/12 01:09:19 kteich Exp $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
   argc -= nNumProcessedVersionArgs;
@@ -6088,7 +6088,7 @@ tkm_tErr AllocateSelectionVolume () {
   
   DebugEnterFunction( ("AllocateSelectionVolume()") );
 
-  DebugAssertThrow( (NULL != gAnatomicalVolume[tkm_tVolumeType_Main]) );
+  DebugAssertQuietThrow( (NULL != gAnatomicalVolume[tkm_tVolumeType_Main]) );
 
   /* If the volume already exists, delete it. */
   if( NULL != gSelectionVolume ) 
