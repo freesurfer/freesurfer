@@ -3,10 +3,10 @@
   ===========================================================================*/
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/09/16 14:56:31 $
-// Revision       : $Revision: 1.223 $
-char *VERSION = "$Revision: 1.223 $";
+// Revision Author: $Author: kteich $
+// Revision Date  : $Date: 2004/10/15 16:47:55 $
+// Revision       : $Revision: 1.224 $
+char *VERSION = "$Revision: 1.224 $";
 
 #define TCL
 #define TKMEDIT 
@@ -1065,7 +1065,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
      shorten our argc and argv count. If those are the only args we
      had, exit. */
   /* rkt: check for and handle version tag */
-  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.223 2004/09/16 14:56:31 tosa Exp $", "$Name:  $");
+  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.224 2004/10/15 16:47:55 kteich Exp $", "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
   argc -= nNumProcessedVersionArgs;
@@ -2901,8 +2901,20 @@ void UpdateAndRedraw () {
 
 void tkm_HandleIdle () {
   
+#if defined(Linux) || defined(sun) || defined(SunOS) | defined(Darwin)
+  struct timeval tv;
+#endif
+
   /* just call the tk event handling function */
   Tk_DoOneEvent( TK_ALL_EVENTS | TK_DONT_WAIT );
+
+#if defined(Linux) || defined(sun) || defined(SunOS) | defined(Darwin)
+    tv.tv_sec = 0;
+    tv.tv_usec = 10000;
+    select(0, NULL, NULL, NULL, &tv);
+#else
+    sginap((long)1);   /* block for 10 msec */
+#endif
 }
 
 // ================================================================== SURFACES
@@ -5023,7 +5035,7 @@ int main ( int argc, char** argv ) {
     DebugPrint( ( "%s ", argv[nArg] ) );
   }
   DebugPrint( ( "\n\n" ) );
-  DebugPrint( ( "$Id: tkmedit.c,v 1.223 2004/09/16 14:56:31 tosa Exp $ $Name:  $\n" ) );
+  DebugPrint( ( "$Id: tkmedit.c,v 1.224 2004/10/15 16:47:55 kteich Exp $ $Name:  $\n" ) );
 
   
   /* init glut */
