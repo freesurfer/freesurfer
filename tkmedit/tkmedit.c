@@ -268,7 +268,7 @@ static int   num_control_points = 0 ;
 
 // ======================================================= kevin teich's stuff
 
-#include "tkmDebug.h"
+#include "xDebug.h"
 #include "tkmVoxel.h"
 #include "tkmVoxelList.h"
 #include "tkmVoxelSpace.h"
@@ -326,7 +326,7 @@ void ReadVolumeWithMRIRead ( char * inFileOrPath );
 
                                      /* pixel offsets in bits, used in drawing
                                         loops to composite pixels together */
-#if defined(IRIX) || defined(SunOS)
+#if defined ( IRIX ) || defined ( SunOS )
 #define kPixelOffset_Alpha                0
 #define kPixelOffset_Green                8
 #define kPixelOffset_Blue                 16
@@ -341,7 +341,7 @@ void ReadVolumeWithMRIRead ( char * inFileOrPath );
                                        /* color values for 
                                           drawing functions */
            
-#if defined(IRIX) || defined(SunOS)
+#if defined ( IRIX ) || defined ( SunOS )
 #define kRGBAColor_Red      0xff0000ff
 #define kRGBAColor_Green    0x00ff00ff
 #define kRGBAColor_Yellow   0xffff00ff
@@ -363,9 +363,9 @@ void ReadVolumeWithMRIRead ( char * inFileOrPath );
                                        /* draws a crosshair cursor into a 
                                           video buffer. */
 void DrawCrosshairInBuffer ( char * inBuffer,       // the buffer
-                               int inX, int inY,      // location in buffer
-                               int inSize,            // radius of crosshair
-                               long inColor );        // color, should be a
+           int inX, int inY,      // location in buffer
+           int inSize,            // radius of crosshair
+           long inColor );        // color, should be a
                                                       // kRGBAColor_ value
 
                                    /* draws a crosshair centered on the
@@ -547,6 +547,16 @@ void SelectCtrlPt ( int inScreenX, int inScreenY,     // screen pt clicked
                                            from the control point space */
 void DeleteSelectedCtrlPts ();
 
+                                   /* make the input anatomical voxel a
+              control point */
+void NewCtrlPt ( VoxelRef inVoxel );
+
+                                   /* convert the cursor to anatomical coords
+              and make it a control point. */
+void NewCtrlPtFromCursor ();
+
+                                   /* deselect all control points */
+void DeselectAllCtrlPts ();
 
                                        /* reads the control.dat file, 
                                           transforms all pts from RAS space 
@@ -560,7 +570,9 @@ void WriteCtrlPtFile ( char * inDir );
 
                                        /* tsia */
 void ToggleCtrlPtDisplayStatus ();
+void SetCtrlPtDisplayStatus ( char inDisplay );
 void ToggleCtrlPtDisplayStyle ();
+void SetCtrlPtDisplayStyle ( int inStyle );
 
                                        /* global storage for ctrl space. */
 VoxelSpaceRef gCtrlPtList = NULL;
@@ -574,7 +586,7 @@ VoxelListRef gSelectionList = NULL;
 char gIsDisplayCtrlPts;
 
                                        /* style of control point to draw */
-#define kCtrlPtStyle_FilledVoxel                    1
+#define kCtrlPtStyle_FilledVoxel              1
 #define kCtrlPtStyle_Crosshair                2
 char gCtrlPtDrawStyle;
 
@@ -849,12 +861,17 @@ inline unsigned char GetVoxelValue ( int x, int y, int z );
 
 // ============================================================== EDITING UNDO
 
+#include "xUndoList.h"
+
                                    /* this is a pretty simple implementation
               of undo that only supports pixel 
               editing. when editing, the pixels that
               were changed are saved along with their
               previous values in a list, one list per
               editing click. */
+
+void InitUndoList ();
+void DeleteUndoList ();
 
                                    /* note that the list is cleared when the
               mouse button 2 or 3 is pressed down
@@ -876,7 +893,29 @@ void ClearUndoList ();
 void AddVoxelAndValueToUndoList ( VoxelRef inVoxel, int inValue );
 void RestoreUndoList ();
 
-VoxelValueListRef gUndoList;
+                                   /* we need a struct for the undo list. this
+              is what we add to it and what we get
+              back when the list is restored. */
+typedef struct {
+  VoxelRef mVoxel;
+  unsigned char mValue;
+} UndoEntry, *UndoEntryRef;
+
+void NewUndoEntry           ( UndoEntryRef* outEntry, 
+            VoxelRef inVoxel, unsigned char inValue );
+void DeleteUndoEntry        ( UndoEntryRef* ioEntry );
+
+                                   /* these are our callback functions for the
+              undo list. the first deletes an entry
+              and the second actually performs the
+              undo action and hands back the undone
+              voxel. */
+void DeleteUndoEntryWrapper ( xUndL_tEntryPtr* inEntryToDelete );
+void UndoActionWrapper      ( xUndL_tEntryPtr  inUndoneEntry, 
+            xUndL_tEntryPtr* outNewEntry );
+void PrintEntryWrapper      ( xUndL_tEntryPtr  inEntry );
+
+xUndoListRef gUndoList = NULL;
 
 // ==========================================================================
 
@@ -1228,9 +1267,7 @@ void transformFV(float x, float y, float z, float* x_1, float* y_1,float* z_1)
 void readFVVolume(const char* prefixname)
 {
   int fvi;
-#ifdef Linux
   int fvj;
-#endif
   int fvsize;
   int fvl;
   char fvfname[255];
@@ -2561,7 +2598,7 @@ do_one_gl_event(Tcl_Interp *interp)   /* tcl */
         case XK_Z: 
 
     // kt - ctrl-z undo
-    if (  current.xkey.state & ControlMask &&
+    if ( current.xkey.state & ControlMask &&
          IsInMode ( kMode_Edit ) ) {
 
       RestoreUndoList ();
@@ -3248,7 +3285,6 @@ write_point(char *dir)
   Real theTalX, theTalY, theTalZ;
   int theVoxX, theVoxY, theVoxZ;
   Real theRASX, theRASY, theRASZ;
-  char theResult;
   VoxelRef theVoxel;
 
   // make a new voxel
@@ -3279,19 +3315,7 @@ write_point(char *dir)
   // space.
   if ( IsInMode ( kMode_CtrlPt ) ) {
 
-    // get vox coords
-    ScreenToVoxel ( plane, jc, ic, imc, &theVoxX, &theVoxY, &theVoxZ );
-    
-    // add voxel space pt to list of ctrl pts
-    Voxel_Set ( theVoxel, theVoxX, theVoxY, theVoxZ );
-    theResult = VSpace_AddVoxel ( gCtrlPtList, theVoxel );
-    if ( theResult != kVSpaceErr_NoErr )
-      DebugPrint "write_point(): Error in VSpace_AddVoxel: %s\n",
-        VSpace_GetErrorString ( theResult ) EndDebugPrint;
-
-    OutputPrint "Made control point (%d,%d,%d).\n",
-      theVoxX, theVoxY, theVoxZ  EndOutputPrint;
-    
+    NewCtrlPtFromCursor ();
   }
 
   if (fp==NULL) {
@@ -4283,7 +4307,7 @@ void HandleMouseUp ( XButtonEvent inEvent ) {
  
     // always zoom out on button 3.
     if ( 3 == inEvent.button ) {
-       RecenterViewToScreenPt ( EXPAND_VOXEL_INT(theScreenVoxel) );
+      RecenterViewToScreenPt ( EXPAND_VOXEL_INT(theScreenVoxel) );
       ZoomViewOut ();
     }     
   }
@@ -7960,16 +7984,6 @@ int                  W_norm_allslices  WBEGIN
                        norm_allslices(atoi(argv[1])); WEND
 
                        // kt
-int W_ProcessCtrlPtFile WBEGIN
-     ERR ( 1, "Wrong # args: ProcessCtrlPtFile" )
-     ProcessCtrlPtFile ( tfname );
-     WEND
-
-int W_WriteCtrlPtFile WBEGIN
-     ERR ( 1, "Wrong # args: WriteCtrlPtFile" )
-     WriteCtrlPtFile ( tfname );
-     WEND
-     
 int TclScreenToVoxel ( ClientData inClientData, Tcl_Interp * inInterp,
                        int argc, char ** argv );
 int TclVoxelToScreen ( ClientData inClientData, Tcl_Interp * inInterp,
@@ -7995,12 +8009,26 @@ int TclRestoreCursorLocation WBEGIN
      RestoreCursorLocation ();
      WEND
 
+     // zooming
+int W_ZoomViewIn WBEGIN
+     ERR ( 1, "Wrong # args: ZoomViewIn" )
+     ZoomViewIn ();
+     redraw ();
+     WEND
+
+int W_ZoomViewOut WBEGIN
+     ERR ( 1, "Wrong # args: ZoomViewOut" )
+     ZoomViewOut ();
+     redraw ();
+     WEND
+
 int W_UnzoomView WBEGIN
      ERR ( 1, "Wrong # args: UnzoomView" )
      UnzoomView ();
+     redraw ();
      WEND
 
-     // for changing modes from the cmd line
+     // for changing modes
 int W_CtrlPtMode WBEGIN
      ERR ( 1, "Wrong # args: CtrlPtMode" )
      SetMode ( kMode_CtrlPt );
@@ -8032,6 +8060,60 @@ int W_SetBrush3DStatus WBEGIN
      SetBrush3DStatus ( atoi(argv[1]) );
      WEND
 
+     // control points
+int W_HideControlPoints WBEGIN
+     ERR ( 1, "Wrong # args: HideControlPoints" )
+     SetCtrlPtDisplayStatus ( FALSE );
+     redraw ();
+     WEND
+
+int W_ShowControlPoints WBEGIN
+     ERR ( 1, "Wrong # args: ShowControlPoints" )
+     SetCtrlPtDisplayStatus ( TRUE );
+     redraw ();
+     WEND
+
+int W_SetControlPointsStyle WBEGIN
+     ERR ( 2, "Wrong # args: SetControlPointsStyle 1=filled|2=crosshair" )
+     SetCtrlPtDisplayStyle ( atoi(argv[1]) );
+     redraw ();
+     WEND
+
+int W_DeselectAllControlPoints WBEGIN
+     ERR ( 1, "Wrong # args: DeselectAllControlPoints" )
+     DeselectAllCtrlPts ();
+     redraw ();
+     WEND
+
+int W_NewControlPoint WBEGIN
+     ERR ( 1, "Wrong # args: NewControlPoint" )
+     NewCtrlPtFromCursor ();
+     redraw ();
+     WEND
+
+int W_DeleteSelectedControlPoints WBEGIN
+     ERR ( 1, "Wrong # args: DeleteSelectedControlPoints" )
+     DeleteSelectedCtrlPts ();
+     redraw ();
+     WEND
+
+int W_ProcessContrlPointFile WBEGIN
+     ERR ( 1, "Wrong # args: ProcessControlPointFile" )
+     ProcessCtrlPtFile ( tfname );
+     WEND
+
+int W_WriteControlPointFile WBEGIN
+     ERR ( 1, "Wrong # args: WriteControlPointFile" )
+     WriteCtrlPtFile ( tfname );
+     WEND
+     
+     // editing
+int W_UndoLastEdit WBEGIN 
+     ERR ( 1, "Wrong # args: UndoLastEdit" )
+     RestoreUndoList ();
+     redraw ();
+     WEND
+
      // saving and loading labels
 int W_SaveSelectionToLabelFile WBEGIN
      ERR ( 2, "Wrong # args: SaveSelectionToLabelFile label_name" )
@@ -8041,8 +8123,63 @@ int W_SaveSelectionToLabelFile WBEGIN
 int W_LoadSelectionFromLabelFile WBEGIN
      ERR ( 2, "Wrong # args: LoadSelectionFromLabelFile label_name" )
      LoadSelectionFromLabelFile ( argv[1] );
+     redraw ();
      WEND
 
+// surface
+int W_ShowCurrentSurface WBEGIN
+     ERR ( 1, "Wrong # args: ShowCurrentSurface" )
+     SetCurrentSurfaceDisplayStatus ( TRUE );
+     redraw ();
+     WEND
+
+int W_HideCurrentSurface WBEGIN
+     ERR ( 1, "Wrong # args: HideCurrentSurface" )
+     SetCurrentSurfaceDisplayStatus ( FALSE );
+     redraw ();
+     WEND
+
+int W_ShowCanonicalSurface WBEGIN
+     ERR ( 1, "Wrong # args: ShowCanonicalSurface" )
+     SetCanonicalSurfaceDisplayStatus ( TRUE );
+     redraw ();
+     WEND
+
+int W_HideCanonicalSurface WBEGIN
+     ERR ( 1, "Wrong # args: HideCanonicalSurface" )
+     SetCanonicalSurfaceDisplayStatus ( FALSE );
+     redraw ();
+     WEND
+
+int W_ShowOriginalSurface WBEGIN
+     ERR ( 1, "Wrong # args: ShowOriginalSurface" )
+     SetOriginalSurfaceDisplayStatus ( TRUE );
+     redraw ();
+     WEND
+
+int W_HideOriginalSurface WBEGIN
+     ERR ( 1, "Wrong # args: HideOriginalSurface" )
+     SetOriginalSurfaceDisplayStatus ( FALSE );
+     redraw ();
+     WEND
+
+int W_ShowSurfaceVertices WBEGIN
+     ERR ( 1, "Wrong # args: ShowSurfaceVertices" )
+     SetSurfaceVertexDisplayStatus ( TRUE );
+     redraw ();
+     WEND
+
+int W_HideSurfaceVertices WBEGIN
+     ERR ( 1, "Wrong # args: HideSurfaceVertices" )
+     SetSurfaceVertexDisplayStatus ( FALSE );
+     redraw ();
+     WEND
+
+int W_SetSurfaceVertexStyle WBEGIN
+     ERR ( 2, "Wrong # args: SetSurfaceVertexStyle 0=not_interp|1=interp" )
+     SetAverageSurfaceVerticesStatus ( atoi(argv[1]) );
+     redraw ();
+     WEND
 
 
   // end_kt
@@ -8075,7 +8212,6 @@ char **argv;
   FILE *fp ;
   char theErr;
 
-  
   // kt
 
   // init our debugging macro code, if any.
@@ -8101,9 +8237,7 @@ char **argv;
   }
 
   // init the undo list.
-  if ( VoxelValueList_New ( &gUndoList ) != kVoxelValueListErr_NoErr ) {
-    DebugPrint "Error allocating undo list.\n" EndDebugPrint;
-  }
+  InitUndoList ();
 
   // and the selection module.
   InitSelectionModule ();
@@ -8278,56 +8412,121 @@ char **argv;
   Tcl_CreateCommand(interp, "read_canonical_vertex_positions",       
                     W_read_canonical_vertex_positions,   REND);
 
-  Tcl_CreateCommand(interp, "orig",               W_show_orig_surface,REND);
-  Tcl_CreateCommand(interp, "canonical",          W_show_canonical_surface,REND);
-  Tcl_CreateCommand(interp, "pial",               W_show_canonical_surface,REND);
-  Tcl_CreateCommand(interp, "current",            W_show_current_surface,REND);
-  Tcl_CreateCommand(interp, "smooth",             W_smooth_surface,REND);
+  Tcl_CreateCommand(interp, "orig",      W_show_orig_surface,      REND);
+  Tcl_CreateCommand(interp, "canonical", W_show_canonical_surface, REND);
+  Tcl_CreateCommand(interp, "pial",      W_show_canonical_surface, REND);
+  Tcl_CreateCommand(interp, "current",   W_show_current_surface,   REND);
+  Tcl_CreateCommand(interp, "smooth",    W_smooth_surface,         REND);
   
   Tcl_CreateCommand(interp, "wmfilter_corslice",  W_wmfilter_corslice,  REND);
   Tcl_CreateCommand(interp, "norm_slice",         W_norm_slice,         REND);
   Tcl_CreateCommand(interp, "norm_allslices",     W_norm_allslices,     REND);
 
   // kt
-  Tcl_CreateCommand ( interp, "ProcessCtrlPtFile", W_ProcessCtrlPtFile, REND );
-  Tcl_CreateCommand ( interp, "WriteCtrlPtFile", W_WriteCtrlPtFile, REND );
-  Tcl_CreateCommand ( interp, "UnzoomView", W_UnzoomView, REND );
   Tcl_CreateCommand ( interp, "ScreenToVoxel", TclScreenToVoxel,
                       (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
   Tcl_CreateCommand ( interp, "VoxelToScreen", TclVoxelToScreen,
                       (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
-  Tcl_CreateCommand ( interp, "HideCursor", TclHideCursor, REND );
-  Tcl_CreateCommand ( interp, "ShowCursor", TclShowCursor, REND );
-  Tcl_CreateCommand ( interp, "hidecursor", TclHideCursor, REND );
-  Tcl_CreateCommand ( interp, "showcursor", TclShowCursor, REND );
-  Tcl_CreateCommand ( interp, "SaveCursorLocation", TclSaveCursorLocation, REND);
+  Tcl_CreateCommand ( interp, "SaveCursorLocation", 
+          TclSaveCursorLocation, REND);
   Tcl_CreateCommand ( interp, "RestoreCursorLocation", 
                       TclRestoreCursorLocation, REND);
 
+  // cursor
+  Tcl_CreateCommand ( interp, "HideCursor", TclHideCursor, REND );
+  Tcl_CreateCommand ( interp, "hidecursor", TclHideCursor, REND );
+  Tcl_CreateCommand ( interp, "ShowCursor", TclShowCursor, REND );
+  Tcl_CreateCommand ( interp, "showcursor", TclShowCursor, REND );
+
+  // zooming
+  Tcl_CreateCommand ( interp, "ZoomViewIn",  W_ZoomViewIn,  REND );
+  Tcl_CreateCommand ( interp, "ZoomViewOut", W_ZoomViewOut, REND );
+  Tcl_CreateCommand ( interp, "UnzoomView",  W_UnzoomView,  REND );
+
+
   // for changing modes.
-  Tcl_CreateCommand ( interp, "CtrlPtMode", W_CtrlPtMode, REND );
+  Tcl_CreateCommand ( interp, "CtrlPtMode",       W_CtrlPtMode, REND );
   Tcl_CreateCommand ( interp, "ControlPointMode", W_CtrlPtMode, REND );
-  Tcl_CreateCommand ( interp, "EditMode", W_EditMode, REND );
-  Tcl_CreateCommand ( interp, "SelectMode", W_SelectMode, REND );
-  Tcl_CreateCommand ( interp, "ctrlptmode", W_CtrlPtMode, REND );
-  Tcl_CreateCommand ( interp, "controlptmode", W_CtrlPtMode, REND );
-  Tcl_CreateCommand ( interp, "editmode", W_EditMode, REND );
-  Tcl_CreateCommand ( interp, "selectmode", W_SelectMode, REND );
+  Tcl_CreateCommand ( interp, "EditMode",         W_EditMode,   REND );
+  Tcl_CreateCommand ( interp, "SelectMode",       W_SelectMode, REND );
+  Tcl_CreateCommand ( interp, "ctrlptmode",       W_CtrlPtMode, REND );
+  Tcl_CreateCommand ( interp, "controlptmode",    W_CtrlPtMode, REND );
+  Tcl_CreateCommand ( interp, "editmode",         W_EditMode,   REND );
+  Tcl_CreateCommand ( interp, "selectmode",       W_SelectMode, REND );
+
+  // ctrl pts
+  Tcl_CreateCommand ( interp, "HideControlPoints", 
+          W_HideControlPoints,           REND );
+  Tcl_CreateCommand ( interp, "ShowControlPoints", 
+          W_ShowControlPoints,           REND );
+  Tcl_CreateCommand ( interp, "SetControlPointsStyle",
+          W_SetControlPointsStyle,       REND );
+  Tcl_CreateCommand ( interp, "DeselectAllControlPoints",
+          W_DeselectAllControlPoints,    REND );
+  Tcl_CreateCommand ( interp, "NewControlPoint",   
+          W_NewControlPoint,             REND );
+  Tcl_CreateCommand ( interp, "DeleteSelectedControlPoints",
+          W_DeleteSelectedControlPoints, REND );
+  Tcl_CreateCommand ( interp, "ProcessControlPointFile", 
+          W_ProcessContrlPointFile,      REND );
+  Tcl_CreateCommand ( interp, "WriteControllPtFile",
+          W_WriteControlPointFile,       REND );
+
+  // edit
+  Tcl_CreateCommand ( interp, "UndoLastEdit", W_UndoLastEdit, REND );
 
   // brush control
-  Tcl_CreateCommand ( interp, "SetBrushRadius", W_SetBrushRadius, REND );
-  Tcl_CreateCommand ( interp, "SetBrushShape", W_SetBrushShape, REND );
+  Tcl_CreateCommand ( interp, "SetBrushRadius",   W_SetBrushRadius,   REND );
+  Tcl_CreateCommand ( interp, "SetBrushShape",    W_SetBrushShape,    REND );
   Tcl_CreateCommand ( interp, "SetBrush3DStatus", W_SetBrush3DStatus, REND );
 
   // labels
   Tcl_CreateCommand ( interp, "savelabel", 
-          W_SaveSelectionToLabelFile, REND );
+          W_SaveSelectionToLabelFile,   REND );
   Tcl_CreateCommand ( interp, "SaveLabel", 
-          W_SaveSelectionToLabelFile, REND );
+          W_SaveSelectionToLabelFile,   REND );
   Tcl_CreateCommand ( interp, "loadlabel", 
           W_LoadSelectionFromLabelFile, REND );
   Tcl_CreateCommand ( interp, "LoadLabel", 
           W_LoadSelectionFromLabelFile, REND );
+
+  // surfaces
+  Tcl_CreateCommand ( interp, "LoadMainSurface",       
+          W_read_surface,                    REND );
+  Tcl_CreateCommand ( interp, "LoadOriginalSurface",       
+          W_read_orig_vertex_positions,      REND );
+  Tcl_CreateCommand ( interp, "LoadCanonicalSurface",       
+          W_read_canonical_vertex_positions, REND );
+  Tcl_CreateCommand ( interp, "GotoMainVertex",        
+          W_goto_vertex,                     REND );
+  Tcl_CreateCommand ( interp, "GotoOriginalVertex",   
+          W_goto_orig_vertex,                REND );
+  Tcl_CreateCommand ( interp, "GotoCanonicalVertex",  
+          W_goto_canon_vertex,               REND );
+  Tcl_CreateCommand ( interp, "ShowMainVertex",  
+          W_show_vertex,                     REND );
+  Tcl_CreateCommand ( interp, "ShowOriginalVertex",  
+          W_show_orig_vertex,                REND );
+  Tcl_CreateCommand ( interp, "ShowCanonicalVertex",  
+          W_show_canon_vertex,               REND );
+  Tcl_CreateCommand ( interp, "ShowMainSurface", 
+          W_ShowCurrentSurface,              REND );
+  Tcl_CreateCommand ( interp, "HideMainSurface", 
+          W_HideCurrentSurface,              REND );
+  Tcl_CreateCommand ( interp, "ShowOriginalSurface", 
+          W_ShowOriginalSurface,             REND );
+  Tcl_CreateCommand ( interp, "HideOriginalSurface", 
+          W_HideOriginalSurface,             REND );
+  Tcl_CreateCommand ( interp, "ShowCanonicalSurface", 
+          W_ShowCanonicalSurface,            REND );
+  Tcl_CreateCommand ( interp, "HideCanonicalSurface", 
+          W_HideCanonicalSurface,            REND );
+  Tcl_CreateCommand ( interp, "ShowSurfaceVertices",
+          W_ShowSurfaceVertices,             REND );
+  Tcl_CreateCommand ( interp, "HideSurfaceVertices",
+          W_HideSurfaceVertices,             REND );
+  Tcl_CreateCommand ( interp, "SetSurfaceVertexStyle",
+          W_SetSurfaceVertexStyle,           REND );
 
   // end_kt
 
@@ -8554,7 +8753,7 @@ char **argv;
     DebugPrint "Error in VSpace_Delete: %s\n",
       VSpace_GetErrorString(theErr) EndDebugPrint;
 
-  VoxelValueList_Delete ( &gUndoList );
+  DeleteUndoList ();
 
   DeleteDebugging;
 
@@ -8649,21 +8848,21 @@ static void Prompt(interp, partial)
 
 void ReadVolumeWithMRIRead ( char * inFileOrPath ) {
 
-  MRI * theVolume;
+  MRI * theUnconformedVolume, *theVolume;
   int theSlice, theRow, theCol;
 
   // pass the path to MRIRead
-  theVolume = MRIread ( inFileOrPath );
+  theUnconformedVolume = MRIread ( inFileOrPath );
 
   // make sure the result is good.
-  if ( NULL == theVolume ) {
+  if ( NULL == theUnconformedVolume ) {
     OutputPrint "Couldn't read volume data at %s\n", 
       inFileOrPath EndOutputPrint;
     exit ( 1 );
   }
 
   // conform it.
-  theVolume = MRIconform ( theVolume );
+  theVolume = MRIconform ( theUnconformedVolume );
 
   // grab all the data we need.
   imnr0 = theVolume->imnr0;
@@ -8681,14 +8880,18 @@ void ReadVolumeWithMRIRead ( char * inFileOrPath ) {
   zz1 = theVolume->zend;
 
   // grab the tal transforms.
-  copy_general_transform ( &theVolume->transform, &talairach_transform );
-  linear_transform = get_linear_transform_ptr ( &talairach_transform );
-  inverse_linear_transform = 
-    get_inverse_linear_transform_ptr ( &talairach_transform );
-  
+  if ( NULL != theVolume->linear_transform ) {
+    copy_general_transform ( &theVolume->transform, &talairach_transform );
+    linear_transform = get_linear_transform_ptr ( &talairach_transform );
+    inverse_linear_transform = 
+      get_inverse_linear_transform_ptr ( &talairach_transform );
+  }
+
   // if we got them, make note of it.
   if ( NULL != linear_transform  && NULL != inverse_linear_transform )
     transform_loaded = TRUE;
+  else
+    transform_loaded = FALSE;
 
   numimg = imnr1-imnr0+1; // really the number of slices
 
@@ -8960,22 +9163,29 @@ void WriteCtrlPtFile ( char * inDir ) {
 void ToggleCtrlPtDisplayStatus () {
 
   // toggle the status.
-  gIsDisplayCtrlPts = !gIsDisplayCtrlPts;
+  SetCtrlPtDisplayStatus ( !gIsDisplayCtrlPts );
+}
 
-  // print a little note.
-  if ( gIsDisplayCtrlPts ) {
-    fprintf ( stdout, "Control points display is ON.\n" ); 
-  } else {
-    fprintf ( stdout, "Control points display is OFF.\n" ); 
+void SetCtrlPtDisplayStatus ( char inStatus ) {
+
+  if ( inStatus != gIsDisplayCtrlPts ) {
+
+    // toggle the status.
+    gIsDisplayCtrlPts = inStatus;
+    
+    // print a little note.
+    if ( gIsDisplayCtrlPts ) {
+      OutputPrint "Control points display is ON.\n" EndOutputPrint;
+    } else {
+      OutputPrint "Control points display is OFF.\n" EndOutputPrint;
+    }
+
+    // if we're not in control points mode, we still won't be able to
+    // view control points.
+    if ( !IsInMode(kMode_CtrlPt) ) {
+      OutputPrint "NOTE: You are in editing mode, not control point mode. You will not be able to see control points until you enter control point mode. This can be done by entering \"CtrlPtMode\" at the prompt.\n" EndOutputPrint;
+    }
   }
-
-  // if we're not in control points mode, we still won't be able to
-  // view control points.
-  if ( !control_points ) {
-    fprintf ( stdout, "NOTE: You are in editing mode, not control point mode. You will not be able to see control points until you enter control point mode. This can be done by entering \"CtrlPtMode\" at the prompt.\n" );
-  }
-
-  PR;
 }
 
 void ToggleCtrlPtDisplayStyle () {
@@ -8983,20 +9193,35 @@ void ToggleCtrlPtDisplayStyle () {
   // if it's one, change it to another.
   switch ( gCtrlPtDrawStyle ) {
   case kCtrlPtStyle_FilledVoxel: 
-    gCtrlPtDrawStyle = kCtrlPtStyle_Crosshair;
-    fprintf ( stdout, "Control point display style is CROSSHAIR.\n" );
+    SetCtrlPtDisplayStyle ( kCtrlPtStyle_Crosshair );
     break;
   case kCtrlPtStyle_Crosshair:
-    gCtrlPtDrawStyle = kCtrlPtStyle_FilledVoxel;
-    fprintf ( stdout, "Control point display style is FILLED VOXEL.\n" );
+    SetCtrlPtDisplayStyle ( kCtrlPtStyle_FilledVoxel );
     break;
   }
+}
 
-  if ( !control_points ) {
-    fprintf ( stdout, "NOTE: You are in editing mode, not control point mode. You will not be able to see control points until you enter control point mode. This can be done by entering \"CtrlPtMode\" at the prompt.\n" );
+void SetCtrlPtDisplayStyle ( int inStyle ) {
+
+  if ( inStyle != gCtrlPtDrawStyle ) {
+    
+    // set the style
+    gCtrlPtDrawStyle = inStyle;
+    
+    // notify the user of the new style
+    switch ( gCtrlPtDrawStyle ) {
+    case kCtrlPtStyle_FilledVoxel: 
+      OutputPrint "Control point display style is FILLED VOXEL.\n" EndOutputPrint;
+      break;
+    case kCtrlPtStyle_Crosshair:
+      OutputPrint "Control point display style is CROSSHAIR.\n" EndOutputPrint;
+      break;
+    }
+
+    if ( !IsInMode(kMode_CtrlPt) ) {
+      OutputPrint "NOTE: You are in editing mode, not control point mode. You will not be able to see control points until you enter control point mode. This can be done by entering \"CtrlPtMode\" at the prompt.\n" EndOutputPrint;
+    }
   }
-
-  PR;
 }
 
                                        /* draw control point. switches on 
@@ -9158,11 +9383,8 @@ void SelectCtrlPt ( int inScreenX, int inScreenY,     // screen pt clicked
         } else {
 
           // remove all points from selection and add this point
-          theResult = VList_ClearList ( gSelectionList );
-          if ( theResult != kVListErr_NoErr )
-            DebugPrint "SelectCtrlPt(): Error in VList_ClearList: %s\n",
-              VList_GetErrorString ( theResult ) EndDebugPrint;
-          
+    DeselectAllCtrlPts ();
+
           theResult = VList_AddVoxel ( gSelectionList, theVoxel );
           if ( theResult != kVListErr_NoErr )
             DebugPrint "SelectCtrlPt(): Error in VList_AddVoxel: %s\n",
@@ -9177,7 +9399,48 @@ void SelectCtrlPt ( int inScreenX, int inScreenY,     // screen pt clicked
 
 }
 
+void DeselectAllCtrlPts () {
 
+  char theResult;
+  
+  if ( IsInMode ( kMode_CtrlPt ) ) {
+
+    theResult = VList_ClearList ( gSelectionList );
+    if ( theResult != kVListErr_NoErr )
+      DebugPrint "DeselectAllControlPoints(): Error in VList_ClearList: %s\n",
+  VList_GetErrorString ( theResult ) EndDebugPrint;
+  }
+}
+
+void NewCtrlPt ( VoxelRef inVoxel ) {
+
+  char theResult;
+  
+  if ( IsInMode ( kMode_CtrlPt ) ) {
+    
+    // add the voxel to the ctrl pt space
+    theResult = VSpace_AddVoxel ( gCtrlPtList, inVoxel );
+    if ( theResult != kVSpaceErr_NoErr )
+      DebugPrint "NewControlPoint(): Error in VSpace_AddVoxel: %s\n",
+  VSpace_GetErrorString ( theResult ) EndDebugPrint;
+    
+    OutputPrint "Made control point (%d,%d,%d).\n",
+      EXPAND_VOXEL_INT(inVoxel)  EndOutputPrint;
+  }
+}
+
+void NewCtrlPtFromCursor () {
+
+  VoxelRef theVoxel;
+
+  Voxel_New ( &theVoxel );
+
+  // get the cursor as an anatomical voxel and add it.
+  GetCursorInVoxelCoords ( theVoxel );
+  NewCtrlPt ( theVoxel );
+  
+  Voxel_Delete ( &theVoxel );
+}
 
                                         /* remove the selected control points 
                                            from the control point space */
@@ -9674,9 +9937,6 @@ void EditVoxel ( VoxelRef inVoxel, void * inData ) {
   int theEditAction;
   int theNewPixelValue, thePixelValue;
 
-  DebugPrint "EditVoxel ( (%d, %d, %d), %d )\n",
-    EXPAND_VOXEL_INT(inVoxel), *(int*)inData EndDebugPrint;
-  
   // get the action from the data ptr.
   theEditAction = *(int*)inData;
 
@@ -10858,81 +11118,190 @@ unsigned char GetVoxelValue ( int x, int y, int z ) {
   return 0;
 }
 
+// ============================================================== EDITING UNDO
+
+void InitUndoList () {
+
+  xUndL_tErr theErr;
+
+  // new our list.
+  theErr = xUndL_New ( &gUndoList, 
+           &UndoActionWrapper, &DeleteUndoEntryWrapper );
+  if ( xUndL_tErr_NoErr != theErr ) {
+    DebugPrint "InitUndoList(): Error in xUndL_New %d: %s\n",
+      theErr, xUndL_GetErrorString ( theErr ) EndDebugPrint;
+    gUndoList = NULL;
+  }
+
+  // set the print function so we can print if necessary.
+  theErr = xUndL_SetPrintFunction ( gUndoList, &PrintEntryWrapper );
+  if ( xUndL_tErr_NoErr != theErr ) {
+    DebugPrint "InitUndoList(): Error in xUndL_SetPrintFunction %d: %s\n",
+      theErr, xUndL_GetErrorString ( theErr ) EndDebugPrint;
+    gUndoList = NULL;
+  }
+}
+
+void DeleteUndoList () {
+
+  xUndL_tErr theErr;
+
+  // delete the list.
+  theErr = xUndL_Delete ( &gUndoList );
+  if ( xUndL_tErr_NoErr != theErr ) {
+    DebugPrint "DeleteUndoList(): Error in xUndL_Delete %d: %s\n",
+      theErr, xUndL_GetErrorString ( theErr ) EndDebugPrint;
+  }
+}
+
+void NewUndoEntry ( UndoEntryRef* outEntry,
+        VoxelRef inVoxel, unsigned char inValue ) {
+
+  UndoEntryRef this = NULL;
+  
+  // assume failure.
+  *outEntry = NULL;
+
+  // allocate the entry.
+  this = (UndoEntryRef) malloc ( sizeof(UndoEntry) );
+  if ( NULL == this ) {
+    DebugPrint "NewUndoEntry(): Error allocating entry.\n" EndDebugPrint;
+    return;
+  }
+
+  // copy the voxel in.
+  Voxel_New ( &(this->mVoxel) );
+  Voxel_Copy ( this->mVoxel, inVoxel );
+
+  // copy the value in.
+  this->mValue = inValue;
+
+  *outEntry = this;
+}
+
+void DeleteUndoEntry ( UndoEntryRef* ioEntry ) {
+
+  UndoEntryRef this = NULL;
+
+  this = *ioEntry;
+  if ( NULL == this ) {
+    DebugPrint "DeleteUndoEntry(): Got NULL entry.\n" EndDebugPrint;
+    return;
+  }
+  
+  // delete the voxel.
+  Voxel_Delete ( &(this->mVoxel) );
+  
+  // delete the entry.
+  free ( this );
+
+  *ioEntry = NULL;
+}
+
+void PrintUndoEntry ( UndoEntryRef this ) {
+
+  if ( NULL == this ) {
+    DebugPrint "PrintUndoEntry() : INVALID ENTRY\n" EndDebugPrint;
+    return;
+  }
+
+  DebugPrint "%p voxel (%d,%d,%d)  value = %d\n", this,
+    EXPAND_VOXEL_INT(this->mVoxel), this->mValue EndDebugPrint;
+
+}
+
 void ClearUndoList () {
 
-  VoxelValueList_ErrorCode theErr;
+  xUndL_tErr theErr;
 
-  theErr = VoxelValueList_ClearList ( gUndoList );
-  
-  if ( kVoxelValueListErr_NoErr != theErr ) {
-    DebugPrint "ClearUndoList(): Error clearing list: %d\n",
-      theErr EndDebugPrint;
-    return;
+  // clear the list.
+  theErr = xUndL_Clear ( gUndoList );
+  if ( xUndL_tErr_NoErr != theErr ) {
+    DebugPrint "ClearUndoList(): Error in xUndL_Clear %d: %s\n",
+      theErr, xUndL_GetErrorString ( theErr ) EndDebugPrint;
   }
 }
 
 void AddVoxelAndValueToUndoList ( VoxelRef inVoxel, int inValue ) {
 
-  VoxelValueList_ErrorCode theErr;
-  float theFloatValue;
+  UndoEntryRef theEntry = NULL;
+  xUndL_tErr theErr;
 
-  theFloatValue = (float) inValue;
-
-  theErr = VoxelValueList_AddVoxelAndValue ( gUndoList, 
-               inVoxel, theFloatValue );
-  
-  if ( kVoxelValueListErr_NoErr != theErr ) {
-    DebugPrint "AddVoxelAndValueToUndoList(): Error adding (%d,%d,%d) %d: %d\n",
-      Voxel_GetX(inVoxel), Voxel_GetY(inVoxel),
-      Voxel_GetZ(inVoxel), inValue, theErr EndDebugPrint;
+  // make the entry.
+  NewUndoEntry ( &theEntry, inVoxel, (unsigned char)inValue );
+  if ( NULL == theEntry ) {
+    DebugPrint "AddVoxelAndValueToUndoList(): Couldn't create entry.\n"
+      EndDebugPrint;
     return;
+  }
+
+  // add the entry.
+  theErr = xUndL_AddEntry ( gUndoList, theEntry );
+  if ( xUndL_tErr_NoErr != theErr ) {
+   DebugPrint "AddVoxelAndValueToUndoList(): Error in xUndL_AddEntry %d: %s\n",
+      theErr, xUndL_GetErrorString ( theErr ) EndDebugPrint;
   }
 }
 
 void RestoreUndoList () {
   
-  VoxelValueList_ErrorCode theErr;
-  VoxelRef theVoxel;
-  VoxelValueListRef theSwapList;
-  float theFloatValue, theSwapFloatValue;
-  unsigned char theValue, theSwapValue;
+  xUndL_tErr theErr;
 
-  Voxel_New ( &theVoxel );
-  
-  theErr = VoxelValueList_New ( &theSwapList );
-  if ( kVoxelValueListErr_NoErr != theErr ) {
-    DebugPrint "RestoreUndoList(): Error making swap list: %d\n",
-      theErr EndDebugPrint;
+  // restore the list.
+  theErr = xUndL_Restore ( gUndoList );
+  if ( xUndL_tErr_NoErr != theErr ) {
+    DebugPrint "RestoreUndoList(): Error in xUndL_Restore %d: %s\n",
+      theErr, xUndL_GetErrorString ( theErr ) EndDebugPrint;
   }
-  
-  DebugPrint "RestoreUndoList()\n" EndDebugPrint;
+}
 
-  while ( kVoxelValueListErr_NoErr ==
-    VoxelValueList_GetNextVoxelAndValue ( gUndoList,
-            theVoxel, &theFloatValue ) ) {
+void DeleteUndoEntryWrapper ( xUndL_tEntryPtr* inEntryToDelete ) {
+
+  if ( NULL == *inEntryToDelete ) {
+    DebugPrint "DeleteUndoEntryWrapper(): Got null entry.\n" EndDebugPrint;
+    return;
+  }
     
-    // get the value at this voxel and add it to the new list.
-    theSwapValue = GetVoxelValue ( Voxel_GetX(theVoxel), Voxel_GetY(theVoxel), 
-           Voxel_GetZ(theVoxel) );
-    theSwapFloatValue = (float) theSwapValue;
-    theErr = VoxelValueList_AddVoxelAndValue ( theSwapList, 
-                 theVoxel, theSwapValue );
-    if ( kVoxelValueListErr_NoErr != theErr ) {
-      DebugPrint "RestoreUndoList(): Error adding value to swap list: %d\n",
-  theErr EndDebugPrint;
-    }
-  
-    // set the new value.
-    theValue = (unsigned char) theFloatValue;
-    SetVoxelValue ( Voxel_GetX(theVoxel), Voxel_GetY(theVoxel), 
-        Voxel_GetZ(theVoxel), theValue );
+  // just typecast and call.
+  DeleteUndoEntry ( (UndoEntryRef*)inEntryToDelete );
+  *inEntryToDelete = NULL;
+}
+
+void UndoActionWrapper      ( xUndL_tEntryPtr  inUndoneEntry, 
+            xUndL_tEntryPtr* outNewEntry ) {
+
+  UndoEntryRef theEntryToUndo, theUndoneEntry;
+  unsigned char theVoxelValue;
+
+                                   /* we're getting an undo entry that should
+              be undone or restored. we also want to
+              create a new entry and pass it back, so
+              we can undo the undo. */
+
+  // get the entry and check it.
+  theEntryToUndo = (UndoEntryRef) inUndoneEntry;
+  if ( NULL == theEntryToUndo ) {
+    DebugPrint "UndoActionWrapper(): Got null entry.\n" EndDebugPrint;
+    return;
   }
 
-  Voxel_Delete ( &theVoxel );
+  // get the value at this voxel.
+  theVoxelValue = GetVoxelValue ( EXPAND_VOXEL_INT(theEntryToUndo->mVoxel) );
 
-  // delete the old undo list and set our ptr to the new one.
-  VoxelValueList_Delete ( &gUndoList );
-  gUndoList = theSwapList;
+  // create an entry for it.
+  NewUndoEntry ( &theUndoneEntry, theEntryToUndo->mVoxel, theVoxelValue );
+
+  // set the voxel value.
+  SetVoxelValue ( EXPAND_VOXEL_INT(theEntryToUndo->mVoxel),
+      theEntryToUndo->mValue );
+
+  // pass back the new entry.
+  *outNewEntry = theUndoneEntry;
+}
+
+void PrintEntryWrapper ( xUndL_tEntryPtr inEntry ) {
+
+  PrintUndoEntry ( (UndoEntryRef) inEntry );
 }
 
 void SetMode ( Interface_Mode inMode ) {

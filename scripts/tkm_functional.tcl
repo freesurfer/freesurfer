@@ -253,13 +253,13 @@ wm title $theWindow "Functional Data"
 
 # canvas for the graph
 canvas $gCanvas -width 400 -height 300
-pack $gCanvas
+pack $gCanvas -expand true -fill both
 
 # create graph
-emu_graph gGraph -canvas $gCanvas
+emu_graph gGraph -canvas $gCanvas -width 330 -height 250
 bind $gCanvas <ButtonRelease-1> { 
     HandleGraphClick %x %y
- }
+}
 
 # graph key frame is a bunch of labels that display the color of each
 # condition. secret: you can click on the label to select that condition.
@@ -450,18 +450,17 @@ pack $theThresholdMaxField -side left
 
 
 # draw some inital data
-#set theDummyData {0 0 1 1}
-#set theDummyErrors {0 0}
-#SetGraphData 0 $theDummyData $theDummyError
+set theTestData0 {-6 3 -4 -2.2 -2 0.333 0 4.001 2 6 4 -3.2 6 4.67 8 10.40 \
+    10 14.9901 12 12.1 14 24.1 16 9.2 18 2.09 20 -9.19 22 10.99}
+set theTestData1 {-6 -5 -4 34.2 -2 12.333 0 12.001 2 2 4 10 6 34.67 8 90.40 \
+    10 47.9901 12 89.1 14 90.1 16 30.2 18 35.09 20 14.19 22 13.99}
+set theTestData2 {-6 -4 -4 12.2 -2 10.333 0 45.001 2 4 4 20 6 25.67 8 13.40 \
+    10 24.9901 12 40.1 14 45.1 16 43.2 18 39.09 20 14.19 22 13.99}
+set theErrors {10 6.5 8.9 12 9.4 7.9 9.1 5.3 7.9 4.5 13.2 16.4 9.1 8.9 9.55}
 
-#set theTestData0 {-6 3 -4 -2.2 -2 0.333 0 4.001 2 6 4 -3.2 6 4.67 8 10.40 \
-#    10 14.9901 12 12.1 14 24.1 16 9.2 18 2.09 20 -9.19 22 10.99}
-#set theTestData1 {-6 -5 -4 34.2 -2 12.333 0 12.001 2 2 4 10 6 34.67 8 90.40 \
-#    10 47.9901 12 89.1 14 90.1 16 30.2 18 35.09 20 14.19 22 13.99}
-#set theTestData2 {-6 -4 -4 12.2 -2 10.333 0 45.001 2 4 4 20 6 25.67 8 13.40 \
-#    10 24.9901 12 40.1 14 45.1 16 43.2 18 39.09 20 14.19 22 13.99}
-#set theErrors {10 6.5 8.9 12 9.4 7.9 9.1 5.3 7.9 4.5 13.2 16.4 9.1 8.9 9.55}
-
-#SetGraphData 0 $theTestData0 $theErrors
-#SetGraphData 1 $theTestData1 $theErrors
-#SetGraphData 2 $theTestData2 $theErrors
+SetGraphData 0 $theTestData0
+SetGraphData 1 $theTestData1
+SetGraphData 2 $theTestData2
+SetGraphErrorBars 0 $theErrors
+SetGraphErrorBars 1 $theErrors
+SetGraphErrorBars 2 $theErrors
