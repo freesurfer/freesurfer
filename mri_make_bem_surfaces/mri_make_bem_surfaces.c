@@ -96,7 +96,7 @@ double ostilt = 0.5;    /* Outside stilt length (mm) */
 double fstrength=1.0;
 double fzero=40.0;
 double fsteepness=0.50;
-double fmax=10000;
+double mmbsfmax=10000;
 double brainval = 80;
 double skullval = 20;
 double scalpval = 70;
@@ -198,7 +198,7 @@ main(int argc,char *argv[])
     read_image_info(mfname);
     read_images(mfname);
 
-    fzero = 10; fmax = 255; dfrac = 0.7; istilt = 0;
+    fzero = 10; mmbsfmax = 255; dfrac = 0.7; istilt = 0;
     fsteepness=0.50; fstrength=1.0;
     if (centerflag && MRIloaded)
       init_surf_to_image();
@@ -262,7 +262,7 @@ main(int argc,char *argv[])
     read_image_info(mfname);
     read_images(mfname);
 
-    fzero = 20; fmax = 1000; dfrac = 1.5; istilt = 0; fsteepness=0.20; fstrength=1.0;
+    fzero = 20; mmbsfmax = 1000; dfrac = 1.5; istilt = 0; fsteepness=0.20; fstrength=1.0;
     if (centerflag && MRIloaded)
       init_surf_to_image();
 
