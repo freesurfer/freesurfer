@@ -3454,7 +3454,7 @@ lmConvolve1d(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *Igaussian, IMAGE *Idst,
           continue ;    /* not a real pixel */
         out = 0.0f ;
 
-        /* first track from central pixel leftwards */
+        /* first track from central pixel downwards (South) */
         kernel = IMAGEFpix(Igaussian, khalf, 0) ;
         npix = pix ;
         for (k = khalf ; k >= 0 ; k--)
@@ -3465,7 +3465,7 @@ lmConvolve1d(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *Igaussian, IMAGE *Idst,
           npix = npix->nbd[N_S] ;
         }
 
-        /* now track rightwards */
+        /* now track upwards (North) */
         kernel = IMAGEFpix(Igaussian, khalf+1, 0) ;
         npix = pix->nbd[N_N] ;
         for (k = khalf+1 ; k < klen ; k++)
