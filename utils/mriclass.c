@@ -641,11 +641,30 @@ MRICcomputeInputs(MRI *mri, int x,int y,int z,float *inputs,int features)
   static int         old_features = 0 ;
   static MRI_REGION  region = {0,0, 0, 0,0,0} ;
   static MRI  *mri_prev = NULL, *mri_zscore3 = NULL, *mri_zscore5 = NULL ,
-              *mri_direction = NULL, *mri_mean3 = NULL, *mri_mean5 = NULL ;
+              *mri_direction = NULL, *mri_mean3 = NULL, *mri_mean5 = NULL,
+              *mri_cpolv = NULL, *mri_cpolv_mean3 = NULL, 
+              *mri_cpolv_mean5 = NULL, *mri_cpolv_median3 = NULL,
+              *mri_cpolv_median5 = NULL ;
   int         x0, y0, z0 ;
   MRI_REGION  rbig ;
   float       *in ;
+  char        *cp ;
 
+  cp = getenv("cpolv") ;
+  if (cp && !mri_cpolv)
+    mri_cpolv = MRIread(cp) ;
+  
+  if ((features & FEATURE_CPOLV) && (!mri_cpolv || !MRImatch(mri,mri_cpolv)
+                                     || (mri != mri_prev)))
+  {
+    if (mri_cpolv)
+      MRIfree(&mri_cpolv) ;
+    if (Gdiag & DIAG_HEARTBEAT)
+      fprintf(stderr, "computing cpolv...\n") ;
+    mri_cpolv = MRIplaneOfLeastVarianceNormal(mri, NULL, 5) ;
+    if (Gdiag & DIAG_WRITE)
+        MRIwrite(mri_cpolv, "cpolv.mnc") ;
+  }
   total++ ;
 /* 
    if the specified point is outside of the precomputed window,
@@ -676,6 +695,15 @@ MRICcomputeInputs(MRI *mri, int x,int y,int z,float *inputs,int features)
       MRIfree(&mri_mean5) ;
     if (mri_direction)
       MRIfree(&mri_direction) ;
+    if (mri_cpolv_mean3)
+      MRIfree(&mri_cpolv_mean3) ;
+    if (mri_cpolv_mean5)
+      MRIfree(&mri_cpolv_mean5) ;
+    if (mri_cpolv_median3)
+      MRIfree(&mri_cpolv_median3) ;
+    if (mri_cpolv_median5)
+      MRIfree(&mri_cpolv_median5) ;
+
     if (features & FEATURE_ZSCORE3)
     {
       static int first = 1 ;
@@ -741,11 +769,19 @@ MRICcomputeInputs(MRI *mri, int x,int y,int z,float *inputs,int features)
       mri_mean3 = MRImeanRegion(mri, NULL, 3, &region) ;
     if (features & FEATURE_MEAN5)
       mri_mean5 = MRImeanRegion(mri, NULL, 5, &region) ;
+    if (features & FEATURE_CPOLV_MEAN3)
+      mri_cpolv_mean3 = MRIpolvMeanRegion(mri, NULL, mri_cpolv, 3, &region) ;
+    if (features & FEATURE_CPOLV_MEAN5)
+      mri_cpolv_mean5 = MRIpolvMeanRegion(mri, NULL, mri_cpolv, 5, &region) ;
+    if (features & FEATURE_CPOLV_MEDIAN3)
+      mri_cpolv_median3 = MRIpolvMedianRegion(mri, NULL, mri_cpolv,3,&region);
+    if (features & FEATURE_CPOLV_MEDIAN5)
+      mri_cpolv_median5 = MRIpolvMedianRegion(mri, NULL, mri_cpolv,5,&region);
   }
   else
     buffered++ ;
 
-  /* x0,y0,z0 are coordinates in region based images (not input mri) */
+  /* x0,y0,z0 are coordinates in region based images (not input mri or polv) */
   x0 = x-region.x ; y0 = y - region.y ; z0 = z - region.z ;
   in = &inputs[1] ;  /* inputs are 1-based because of NRC */
   if (features & FEATURE_INTENSITY)
@@ -760,6 +796,14 @@ MRICcomputeInputs(MRI *mri, int x,int y,int z,float *inputs,int features)
     *in++ = MRIFvox(mri_mean3, x0, y0, z0) ;
   if (features & FEATURE_MEAN5)
     *in++ = MRIFvox(mri_mean5, x0, y0, z0) ;
+  if (features & FEATURE_CPOLV_MEAN3)
+    *in++ = (float)MRIvox(mri_cpolv_mean3, x0, y0, z0) ;
+  if (features & FEATURE_CPOLV_MEAN5)
+    *in++ = (float)MRIvox(mri_cpolv_mean5, x0, y0, z0) ;
+  if (features & FEATURE_CPOLV_MEDIAN3)
+    *in++ = (float)MRIvox(mri_cpolv_mean3, x0, y0, z0) ;
+  if (features & FEATURE_CPOLV_MEDIAN5)
+    *in++ = (float)MRIvox(mri_cpolv_median5, x0, y0, z0) ;
   
   return(NO_ERROR) ;
 }
