@@ -6,11 +6,11 @@
 //  
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2003/09/16 19:14:36 $
-// Revision       : $Revision: 1.16 $
+// Revision Date  : $Date: 2004/11/09 20:32:26 $
+// Revision       : $Revision: 1.17 $
 //
 ////////////////////////////////////////////////////////////////////
-char *MRIFLOOD_VERSION = "$Revision: 1.16 $";
+char *MRIFLOOD_VERSION = "$Revision: 1.17 $";
 
 #include <math.h>
 #include <stdlib.h>
@@ -109,7 +109,18 @@ MRI *MRISribbon(MRI_SURFACE *inner_mris,MRI_SURFACE *outer_mris,MRI *mri_src,MRI
   printf("Creating volume inside outer shell...\n");
   /* Create volume inside outer shell */
   /* Create shell corresponding to surface in MRI volume (includes outer shell in surface) */
-  MRISpartialshell(mri_src,outer_mris,mri_inter,1);
+  /////////////////////////////////////////////////////////////////////////////////////
+  // you should not combine MRISpartialshell() with MRIfloodoutside(), since
+  // partialshell produces the shell value of 1 to 255.  However, floodoutside uses
+  // 1 as the filled value, not shell value.  For example,
+  //
+  //      *   255  (MRISshell)        * 254  (MRISpartialshell)
+  //     255   X                      1  X
+  //
+  // In the former, X is never set to 1, but the latter X becomes 1 by floodoutside
+  // Thus floodouside never becomes really floodoutside.
+  //////////////////////////////////////////////////////////////////////////////////////
+  MRISshell(mri_src,outer_mris,mri_inter,1);
   MRISfloodoutside(mri_inter,mri_inter);
   MRISaccentuate(mri_inter,mri_inter,1,254);
   MRIcomplement(mri_inter,mri_inter);
