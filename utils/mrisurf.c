@@ -46,6 +46,7 @@
 
 /*------------------------ STATIC PROTOTYPES -------------------------*/
 
+static int   mrisBuildFileName(MRI_SURFACE *mris, char *sname, char *fname) ;
 static int   mrisCheck(MRI_SURFACE *mris) ;
 static int   mrisClipGradient(MRI_SURFACE *mris, float max_len) ;
 static int   mrisClipMomentumGradient(MRI_SURFACE *mris, float max_len) ;
@@ -9568,25 +9569,18 @@ mrisLogStatus(MRI_SURFACE *mris,INTEGRATION_PARMS *parms,FILE *fp, float dt)
 int
 MRISreadVertexPositions(MRI_SURFACE *mris, char *name)
 {
-  char    fname[200], path[200], *cp ;
+  char    fname[200] ;
   int     vno, nvertices, nfaces, magic, version, tmp, ix, iy, iz, n ;
   VERTEX  *vertex ;
   FILE    *fp ;
 
-  cp = strchr(name, '/') ;
-  if (cp)
-    strcpy(fname, name) ;     /* path already specified */
-  else                        /* no path - use same as was used in MRISread */
-  {
-    FileNamePath(mris->fname, path) ;
-    sprintf(fname, "%s/%s.%s", path, 
-            mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", name) ;
-  }
+  mrisBuildFileName(mris, name, fname) ;
+
   fp = fopen(fname, "rb") ;
   if (!fp)
     ErrorReturn(ERROR_NOFILE,
                 (ERROR_NOFILE,
-                 "MRISreadVertexPosition(%s): could not open file", name));
+                 "MRISreadVertexPositions(%s): could not open file", fname));
 
   fread3(&magic, fp) ;
   if (magic == NEW_VERSION_MAGIC_NUMBER) 
@@ -14622,6 +14616,33 @@ MRIScomputeDistanceErrors(MRI_SURFACE *mris, int nbhd_size, int max_nbrs)
   total_mean_error /= total_mean ;
   fprintf(stderr, "mean dist = %2.3f, rms error = %2.2f%%\n",
           total_mean, 100.0*total_mean_error) ;
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+static int
+mrisBuildFileName(MRI_SURFACE *mris, char *sname, char *fname)
+{
+  char   *cp, path[200] ;
+  
+  cp = strchr(sname, '/') ;
+  if (!cp)                 /* no path - use same one as mris was read from */
+  {
+    cp = strchr(sname, '.') ;
+    FileNamePath(mris->fname, path) ;
+    if (cp)
+      sprintf(fname, "%s/%s", path, sname) ;
+    else   /* no hemisphere specified */
+      sprintf(fname, "%s/%s.%s", path, 
+              mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", sname) ;
+  }
+  else   
+    strcpy(fname, sname) ;  /* path specified explicitly */
   return(NO_ERROR) ;
 }
 
