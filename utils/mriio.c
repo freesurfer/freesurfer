@@ -629,7 +629,7 @@ MRI *MRIread(char *fname)
   {
     MRIfree(&mri);
     ErrorReturn(NULL, (ERROR_BADPARM, 
-		       "Read one slice only. Did you put all the slices in the same directory?"));
+                       "Read one slice only. Did you put all the slices in the same directory?"));
   }
   else
     return(mri);
@@ -657,6 +657,7 @@ MRI *MRIreadHeader(char *fname, int type)
   int usetype;
   MRI *mri = NULL;
   char modFname[STRLEN];
+  struct stat stat_buf;
 
   usetype = type;
 
@@ -671,8 +672,13 @@ MRI *MRIreadHeader(char *fname, int type)
 
   if(usetype == MRI_VOLUME_TYPE_UNKNOWN){
     usetype = mri_identify(modFname);
-    if(usetype == MRI_VOLUME_TYPE_UNKNOWN){
-      printf("ERROR: could not determine type of %s\n",fname);
+    if(usetype == MRI_VOLUME_TYPE_UNKNOWN)
+    {
+      // just check again
+      if (stat(fname, &stat_buf) < 0)
+        printf("ERROR: cound not stat %s.  Does it exist?\n", fname);
+      else
+        printf("ERROR: could not determine type of %s\n",fname);
       return(NULL);
     }
   }
@@ -739,12 +745,12 @@ int MRIwriteType(MRI *mri, char *fname, int type)
 int
 MRIwriteFrame(MRI *mri, char *fname, int frame)
 {
-	MRI *mri_tmp ;
+        MRI *mri_tmp ;
 
-	mri_tmp =  MRIcopyFrame(mri, NULL, frame, 0) ;
-	MRIwrite(mri_tmp, fname) ;
-	MRIfree(&mri_tmp) ;
-	return(NO_ERROR) ;
+        mri_tmp =  MRIcopyFrame(mri, NULL, frame, 0) ;
+        MRIwrite(mri_tmp, fname) ;
+        MRIfree(&mri_tmp) ;
+        return(NO_ERROR) ;
 }
 
 int MRIwrite(MRI *mri, char *fname)
@@ -826,20 +832,20 @@ static MRI *corRead(char *fname, int read_volume)
     last_slash = cur_char;
     while( *(cur_char+1) != '\0' )
       {
-	if(*cur_char == '/') 
-	  last_slash = cur_char;
-	cur_char++;
+        if(*cur_char == '/') 
+          last_slash = cur_char;
+        cur_char++;
       }
     *last_slash = '\0';
     if(stat(fname_use, &stat_buf) < 0)
       {
-	errno = 0;
-	ErrorReturn(NULL, (ERROR_BADFILE, "corRead(): can't stat %s", fname_use));
+        errno = 0;
+        ErrorReturn(NULL, (ERROR_BADFILE, "corRead(): can't stat %s", fname_use));
       }
     if(!S_ISDIR(stat_buf.st_mode))
       {
-	errno = 0;
-	ErrorReturn(NULL, (ERROR_BADFILE, "corRead(): %s isn't a directory", fname_use));
+        errno = 0;
+        ErrorReturn(NULL, (ERROR_BADFILE, "corRead(): %s isn't a directory", fname_use));
       }
   }
 
@@ -1079,12 +1085,12 @@ printf("%g, %g, %g\n", z_r, z_a, z_s);
 if(x_r == 0.0 && x_a == 0.0 && x_s == 0.0 && y_r == 0.0 && y_a == 0.0 && y_s == 0.0 && z_r == 0.0 && z_a == 0.0 && z_s == 0.0)
 {
   fprintf(stderr,
-	  "-----------------------------------------------------------------\n"
-	  "Could not find the direction cosine information.\n"
-	  "Will use the CORONAL orientation.\n"
-	  "If not suitable, please provide the information in COR-.info file\n"
-	  "-----------------------------------------------------------------\n" 
-	  );
+          "-----------------------------------------------------------------\n"
+          "Could not find the direction cosine information.\n"
+          "Will use the CORONAL orientation.\n"
+          "If not suitable, please provide the information in COR-.info file\n"
+          "-----------------------------------------------------------------\n" 
+          );
   x_r = -1.0;
   y_s = -1.0;
   z_a = 1.0;
@@ -1842,7 +1848,7 @@ static MRI *mincRead(char *fname, int read_volume)
   // test transform their way and our way:
   // MRIvoxelToWorld(mri, voxel[0], voxel[1], voxel[2], &wx, &wy, &wz);
   // printf("MNI calculated %.2f, %.2f, %.2f vs. MRIvoxelToWorld: %.2f, %.2f, %.2f\n",
-  //  	 worldr, worlda, worlds, wx, wy, wz);
+  //     worldr, worlda, worlds, wx, wy, wz);
 
   /* ----- copy the data from the file to the mri structure ----- */
   if(read_volume){
@@ -3311,12 +3317,12 @@ static MRI *get_b_info(char *fname_passed, int read_volume, char *directory, cha
   else
   { /* ----- get defaults ----- */
     fprintf(stderr,
-	  "-----------------------------------------------------------------\n"
-	  "Could not find the direction cosine information.\n"
-	  "Will use the CORONAL orientation.\n"
-	  "If not suitable, please provide the information in %s file\n"
-	    "-----------------------------------------------------------------\n", 
-	  bhdr_name);
+          "-----------------------------------------------------------------\n"
+          "Could not find the direction cosine information.\n"
+          "Will use the CORONAL orientation.\n"
+          "If not suitable, please provide the information in %s file\n"
+            "-----------------------------------------------------------------\n", 
+          bhdr_name);
     sprintf(fname, "%s/%s_000.hdr", directory, stem);
     if((fp = fopen(fname, "r")) == NULL)
     {
@@ -4743,13 +4749,13 @@ static MRI *analyzeRead(char *fname, int read_volume)
     T->rptr[3][3] =  mri->zsize;
     T->rptr[3][4] = -mri->zsize*(mri->depth/2.0);
     fprintf(stderr,
-	    "-----------------------------------------------------------------\n"
-	    "Could not find the direction cosine information.\n"
-	    "Will use the HORIZONTAL orientation.\n"
-	    "If not suitable, please provide the information in %s file\n"
-	    "-----------------------------------------------------------------\n",
-	    matfile
-	    );
+            "-----------------------------------------------------------------\n"
+            "Could not find the direction cosine information.\n"
+            "Will use the HORIZONTAL orientation.\n"
+            "If not suitable, please provide the information in %s file\n"
+            "-----------------------------------------------------------------\n",
+            matfile
+            );
 
   }
 
@@ -4809,9 +4815,9 @@ static MRI *analyzeRead(char *fname, int read_volume)
       sprintf(imgfile,fmt,frame+1,"img");
       fp = fopen(imgfile,"r");
       if(fp == NULL){
-	printf("ERROR: analyzeRead(): could not open %s\n",imgfile);
-	MRIfree(&mri);
-	return(NULL);
+        printf("ERROR: analyzeRead(): could not open %s\n",imgfile);
+        MRIfree(&mri);
+        return(NULL);
       }
       fseek(fp, (int)(hdr->dime.vox_offset), SEEK_SET);
     }
@@ -5076,7 +5082,7 @@ static int analyzeWriteFrame(MRI *mri, char *fname, int frame)
     k = i + mri->depth*frame; 
     for(j = 0;j < mri->height;j++){
       if(fwrite(mri->slices[k][j], bytes_per_voxel, mri->width, fp) != 
-	 mri->width)
+         mri->width)
       {
         errno = 0;
         ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "analyzeWriteFrame(): "
@@ -8442,21 +8448,21 @@ mghRead(char *fname, int read_volume, int frame)
   }
   else
   {
-		if (frame >= 0)
-		{
-			start_frame = end_frame = frame ;
-			fseek(fp, frame*width*height*depth*bpv, SEEK_CUR) ;
-			nframes = 1 ;
-		}
-		else
-		{  /* hack - # of frames < -1 means to only read in that
-					many frames. Otherwise I would have had to change the whole
-					MRIread interface and that was too much of a pain. Sorry.
-			 */
-			if (frame < -1)  
-			{ nframes = frame*-1 ; } 
-			start_frame = 0 ; end_frame = nframes-1 ;
-		}
+                if (frame >= 0)
+                {
+                        start_frame = end_frame = frame ;
+                        fseek(fp, frame*width*height*depth*bpv, SEEK_CUR) ;
+                        nframes = 1 ;
+                }
+                else
+                {  /* hack - # of frames < -1 means to only read in that
+                                        many frames. Otherwise I would have had to change the whole
+                                        MRIread interface and that was too much of a pain. Sorry.
+                         */
+                        if (frame < -1)  
+                        { nframes = frame*-1 ; } 
+                        start_frame = 0 ; end_frame = nframes-1 ;
+                }
     if (type == MRI_UCHAR)
       buf = (BUFTYPE *)calloc(bytes, sizeof(BUFTYPE)) ;
     else
@@ -8550,13 +8556,13 @@ mghRead(char *fname, int read_volume, int frame)
   else
   {
     fprintf(stderr,
-	  "-----------------------------------------------------------------\n"
-	  "Could not find the direction cosine information.\n"
-	  "Will use the CORONAL orientation.\n"
-	  "If not suitable, please provide the information in %s.\n"
-	  "-----------------------------------------------------------------\n",
-	  fname  
-	  );
+          "-----------------------------------------------------------------\n"
+          "Could not find the direction cosine information.\n"
+          "Will use the CORONAL orientation.\n"
+          "If not suitable, please provide the information in %s.\n"
+          "-----------------------------------------------------------------\n",
+          fname  
+          );
     setDirectionCosine(mri, MRI_CORONAL);
   }
 #if 0
@@ -8574,9 +8580,19 @@ mghRead(char *fname, int read_volume, int frame)
     {
       mri->flip_angle = fval; // flip_angle is double. I cannot use the same trick.
       if (freadFloatEx(&(mri->te), fp))
-	freadFloatEx(&(mri->ti), fp);
+        if (freadFloatEx(&(mri->ti), fp))
+          if (freadFloatEx(&(mri->fov), fp))
+            ;
     }
   fclose(fp) ;
+
+  // xstart, xend, ystart, yend, zstart, zend are not stored
+  mri->xstart = - mri->width/2.;
+  mri->xend = mri->width/2.;
+  mri->ystart = - mri->height/2.;
+  mri->yend = mri->height/2.;
+  mri->zstart = - mri->depth/2.;
+  mri->zend = mri->depth/2.;
 
   return(mri) ;
 }
@@ -8707,6 +8723,7 @@ mghWrite(MRI *mri, char *fname, int frame)
   fwriteFloat(mri->flip_angle, fp) ;
   fwriteFloat(mri->te, fp) ;
   fwriteFloat(mri->ti, fp) ;
+  fwriteFloat(mri->fov, fp); // somebody forgot this
 
   fclose(fp) ;
   return(NO_ERROR) ;
@@ -9183,24 +9200,24 @@ MRIunpackFileName(char *inFname, int *pframe, int *ptype, char *outFname)
   analyze4d, spm.
   ---------------------------------------------------------------*/
 int MRIwriteAnyFormat(MRI *mri, char *fileid, char *fmt, 
-		      int mriframe, MRIS *surf)
+                      int mriframe, MRIS *surf)
 {
   int fmtid, err, n, r, c, s;
   float *v=NULL,f;
   MRI *mritmp=NULL;
 
   if(fmt != NULL && (!strcmp(fmt,"paint") || !strcmp(fmt,"w") || 
-		     !strcmp(fmt,"wfile")) ){
+                     !strcmp(fmt,"wfile")) ){
 
       /* Save as a wfile */
       if(surf == NULL){
-	printf("ERROR: MRIwriteAnyFormat: need surf with paint format\n");
-	return(1);
+        printf("ERROR: MRIwriteAnyFormat: need surf with paint format\n");
+        return(1);
       }
       if(mriframe >= mri->nframes){
-	printf("ERROR: MRIwriteAnyFormat: frame (%d) exceeds number of\n"
-	       "       frames\n",mriframe >= mri->nframes);
-	return(1);
+        printf("ERROR: MRIwriteAnyFormat: frame (%d) exceeds number of\n"
+               "       frames\n",mriframe >= mri->nframes);
+        return(1);
       }
 
       /* Copy current surf values into v (temp storage) */
@@ -9210,8 +9227,8 @@ int MRIwriteAnyFormat(MRI *mri, char *fileid, char *fmt,
       /* Copy the mri values into the surf values */
       err = MRIScopyMRI(surf, mri, mriframe, "val");
       if(err){
-	printf("ERROR: MRIwriteAnyFormat: could not copy MRI to MRIS\n");
-	return(1);
+        printf("ERROR: MRIwriteAnyFormat: could not copy MRI to MRIS\n");
+        return(1);
       }
 
       /* Write the surf values */
@@ -9223,8 +9240,8 @@ int MRIwriteAnyFormat(MRI *mri, char *fileid, char *fmt,
 
       /* Check for errors from write of values */
       if(err){
-	printf("ERROR: MRIwriteAnyFormat: MRISwriteValues\n");
-	return(1);
+        printf("ERROR: MRIwriteAnyFormat: MRISwriteValues\n");
+        return(1);
       }
 
       return(0);
@@ -9234,17 +9251,17 @@ int MRIwriteAnyFormat(MRI *mri, char *fileid, char *fmt,
   if(mriframe > -1){
     if(mriframe >= mri->nframes){
       printf("ERROR: MRIwriteAnyFormat: frame (%d) exceeds number of\n"
-	     "       frames\n",mriframe >= mri->nframes);
+             "       frames\n",mriframe >= mri->nframes);
       return(1);
     }
     mritmp = MRIallocSequence(mri->width, mri->height, mri->depth, 
-			      mri->type, 1);
+                              mri->type, 1);
     for(c=0; c < mri->width; c++){
       for(r=0; r < mri->height; r++){
-	for(s=0; s < mri->depth; s++){
-	  f = MRIgetVoxVal(mri, c, r, s, mriframe);
-	  MRIsetVoxVal(mritmp, c, r, s, 0, f);
-	}
+        for(s=0; s < mri->depth; s++){
+          f = MRIgetVoxVal(mri, c, r, s, mriframe);
+          MRIsetVoxVal(mritmp, c, r, s, 0, f);
+        }
       }
     }
   }
