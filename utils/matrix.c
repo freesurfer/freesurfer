@@ -2517,3 +2517,32 @@ MATRIX *MatrixVertCat(MATRIX *m1, MATRIX *m2, MATRIX *mcat)
   
   return(mcat);
 }
+/*-------------------------------------------------------------
+  MatrixConstVal() - sets all the elements to the given value.
+  If X is NULL, then a matrix rows-by-cols is alloced. If X
+  is non-NULL, then rows and cols are ignored.
+  -------------------------------------------------------------*/
+MATRIX *MatrixConstVal(float val, int rows, int cols, MATRIX *X)
+{
+  int r,c;
+
+  if(X==NULL) X = MatrixAlloc(rows,cols,MATRIX_REAL);
+
+  for(r=1; r <= X->rows; r++){
+    for(c=1; c <= X->cols; c++){
+      X->rptr[r][c] = val;
+    }
+  }
+
+  return(X);
+}
+/*--------------------------------------------------------------------
+  MatrixZero() - sets all the elements to zero.  If X is NULL, then a
+  matrix rows-by-cols is alloced. If X is non-NULL, then rows and cols
+  are ignored.
+  ------------------------------------------------------------------*/
+MATRIX *MatrixZero(int rows, int cols, MATRIX *X)
+{
+  X = MatrixConstVal(0,rows,cols,X);
+  return(X);
+}
