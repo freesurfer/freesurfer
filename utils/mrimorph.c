@@ -2514,7 +2514,21 @@ MRIapplyInverse3DMorph(MRI *mri_ref,MORPH_3D *m3d,MRI *mri_morphed)
           MRIsampleVolume(mri_ref, xd, yd, zd, &val);
         else
           val = 0.0 ;
-        MRIvox(mri_morphed,x,y,z) = val ;
+        switch (mri_morphed->type)
+        {
+        case MRI_UCHAR:
+          MRIvox(mri_morphed,x,y,z) = val ;
+          break ;
+        case MRI_FLOAT:
+          MRIFvox(mri_morphed,x,y,z) = val ;
+          break ;
+        default:
+          ErrorReturn(NULL, 
+                      (ERROR_UNSUPPORTED, 
+                       "MRIinverse3DMorph: unsupported volume type %d",
+                       mri_morphed->type)) ;
+          break ;
+        }
       }
     }
   }
