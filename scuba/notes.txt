@@ -347,11 +347,12 @@ x undo
 ======== HERE
 
 x fix brush radius
-  x be able to set radius < 0.1
-  - set radius increment based on voxel size
+  x set radius increment based on voxel size
+  x set to single voxel
 
-- fill tool
-  - gradient option, cacls fuzziness per voxel instead of only on seed
+x fill tool
+  x gradient option, cacls fuzziness per voxel instead of only on seed
+  x faster (remove updates)
 
 - histo tool
   - redesign so that it can be left open
@@ -359,13 +360,6 @@ x fix brush radius
     - preview function
     - zoom
   - Cancel OK -> Close Fill
-
-
-- brush
-  - simplify FindRASPointsInSquare/Circle 
-    - pass center and normal instead of square
-    - find square bounds within funtion
-    - should work on oblique view planes
 
 - autosave volume
 
@@ -390,7 +384,7 @@ BRUCE'S LIST:::
 
 x data collection transform 
 x markers
-- b/c controled by mouse, perhaps mod+mouse when nav tool is on
+x b/c controled by mouse, perhaps mod+mouse when nav tool is on
 x import/export control points
 
 x Segment Slice by Histogram
@@ -413,7 +407,6 @@ BUGS:::
 - test_ScubaFrame
 - oblique viewing planes
   - lines not picked up (only first vertex is checked)
-  - circle brush doesn't work in proper plane
   - fill not in view plane
 - new value stuff doesn't show up unless you click Tools panel first, then click voxelEditing button
 - sometimes readius jumps to 0

@@ -162,13 +162,13 @@ ScubaLayer2DMRI::DrawIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
 	mVolume->MakeLocationFromRAS( RAS );
       
       int selectColor[3];
-      if( mVolume->IsLocationInBounds( loc ) ) {
+      if( mVolume->IsInBounds( loc ) ) {
 
 	switch( mSampleMethod ) {
-	case nearest: value = mVolume->GetMRINearestValueAtLocation(loc);break;
-	case trilinear:value = mVolume->GetMRITrilinearValueAtRAS( RAS );break;
-	case sinc:     value = mVolume->GetMRISincValueAtRAS( RAS );     break;
-	case magnitude:value = mVolume->GetMRIMagnitudeValueAtRAS( RAS );break;
+	case nearest:  value = mVolume->GetMRINearestValue( loc );   break;
+	case trilinear:value = mVolume->GetMRITrilinearValue( loc ); break;
+	case sinc:     value = mVolume->GetMRISincValue( loc );      break;
+	case magnitude:value = mVolume->GetMRIMagnitudeValue( loc ); break;
 	}
 	
 	switch( mColorMapMethod ) { 
@@ -184,7 +184,7 @@ ScubaLayer2DMRI::DrawIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
 	dest[2] = aColorTimesOneMinusOpacity[dest[2]] + 
 	  aColorTimesOpacity[color[2]];
 	
-	if( mVolume->IsLocationSelected( loc, selectColor ) ) {
+	if( mVolume->IsSelected( loc, selectColor ) ) {
 	  // Write the RGB value to the buffer. Write a 255 in the
 	  // alpha byte.
 	  dest[0] = (GLubyte) (((float)dest[0] * (1.0 - mROIOpacity)) +
@@ -355,10 +355,11 @@ ScubaLayer2DMRI::GetInfoAtRAS ( float iRAS[3],
   }
 
   // Look up the value of the volume at this point.
-  if ( mVolume->IsRASInMRIBounds( iRAS ) ) {
+  VolumeLocation& loc = (VolumeLocation&) mVolume->MakeLocationFromRAS( iRAS );
+  if ( mVolume->IsInBounds( loc ) ) {
     
     float value;
-    value = mVolume->GetMRINearestValueAtRAS( iRAS ); 
+    value = mVolume->GetMRINearestValue( loc ); 
 
     // If this is a LUT volume, use the label from the lookup file,
     // otherwise just display the value.
@@ -946,7 +947,9 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
     if( iInput.IsShiftKeyDown() && iInput.IsButtonDownEvent() &&
 	(2 == iInput.Button() || 3 == iInput.Button()) ) {
 
-      if( mVolume->IsRASInMRIBounds(iRAS) ) {
+      VolumeLocation& loc =
+	(VolumeLocation&) mVolume->MakeLocationFromRAS( iRAS );
+      if( mVolume->IsInBounds( loc ) ) {
 
 	VolumeCollectionFlooder::Params params;
 	params.mSourceCollection  = iTool.GetFloodSourceCollection();
@@ -959,6 +962,8 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
 	params.mViewNormal[1]     = iViewState.mPlaneNormal[1];
 	params.mViewNormal[2]     = iViewState.mPlaneNormal[2];
 	params.mbOnlyZero         = iTool.GetOnlyFloodZero();
+	params.mFuzzinessType     = 
+	  (VolumeCollectionFlooder::Params::FuzzinessType) iTool.GetFuzzinessType();
 	if( !iTool.GetFlood3D() ) {
 	  params.mbWorkPlaneX     = (iViewState.mInPlane == 0);
 	  params.mbWorkPlaneY     = (iViewState.mInPlane == 1);
@@ -1022,33 +1027,41 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
       if( iInput.IsButtonDown() ) {
 
 	// Find a square centered on the point we clicked with the
-	// radius of the brush radius. TODO: make it in the viewing
-	// plane.
+	// radius of the brush radius. We get the window point, offset
+	// by the radius (* zoom level), and get an RAS point from
+	// that. These are the corners of our plane.
+	Point2<int> window;
 	Point3<float> sq[4];
 	float rad = iTool.GetBrushRadius();
-	switch( iViewState.mInPlane ) {
-	case ViewState::X:
-	  sq[0].Set( iRAS ); sq[0][1] -= rad; sq[0][2] -= rad;
-	  sq[1].Set( iRAS ); sq[1][1] += rad; sq[1][2] -= rad;
-	  sq[2].Set( iRAS ); sq[2][1] += rad; sq[2][2] += rad;
-	  sq[3].Set( iRAS ); sq[3][1] -= rad; sq[3][2] += rad;
-	  break;
-	case ViewState::Y:
-	  sq[0].Set( iRAS ); sq[0][0] -= rad; sq[0][2] -= rad;
-	  sq[1].Set( iRAS ); sq[1][0] += rad; sq[1][2] -= rad;
-	  sq[2].Set( iRAS ); sq[2][0] += rad; sq[2][2] += rad;
-	  sq[3].Set( iRAS ); sq[3][0] -= rad; sq[3][2] += rad;
-	  break;
-	case ViewState::Z:
-	  sq[0].Set( iRAS ); sq[0][0] -= rad; sq[0][1] -= rad;
-	  sq[1].Set( iRAS ); sq[1][0] += rad; sq[1][1] -= rad;
-	  sq[2].Set( iRAS ); sq[2][0] += rad; sq[2][1] += rad;
-	  sq[3].Set( iRAS ); sq[3][0] -= rad; sq[3][1] += rad;
-	  break;
-	} 
+
+	// Get our four plane points.
+	iTranslator.TranslateRASToWindow( iRAS, window.xy() );
+	window[0] -= (int)( iViewState.mZoomLevel * rad );
+	window[1] -= (int)( iViewState.mZoomLevel * rad );
+	iTranslator.TranslateWindowToRAS( window.xy(), sq[0].xyz() );
+
+	iTranslator.TranslateRASToWindow( iRAS, window.xy() );
+	window[0] += (int)( iViewState.mZoomLevel * rad );
+	window[1] -= (int)( iViewState.mZoomLevel * rad );
+	iTranslator.TranslateWindowToRAS( window.xy(), sq[1].xyz() );
+
+	iTranslator.TranslateRASToWindow( iRAS, window.xy() );
+	window[0] += (int)( iViewState.mZoomLevel * rad );
+	window[1] += (int)( iViewState.mZoomLevel * rad );
+	iTranslator.TranslateWindowToRAS( window.xy(), sq[2].xyz() );
+
+	iTranslator.TranslateRASToWindow( iRAS, window.xy() );
+	window[0] -= (int)( iViewState.mZoomLevel * rad );
+	window[1] += (int)( iViewState.mZoomLevel * rad );
+	iTranslator.TranslateWindowToRAS( window.xy(), sq[3].xyz() );
+
+	// Now get the RAS points in this square or circle.
 	list<Point3<float> > points;
 	ScubaToolState::Shape shape = iTool.GetBrushShape();
 	switch( shape ) {
+	case ScubaToolState::voxel:
+	  points.push_back( Point3<float>(iRAS) );
+	  break;
 	case ScubaToolState::square: {
 	  mVolume->FindRASPointsInSquare( sq[0].xyz(), sq[1].xyz(),
 					  sq[2].xyz(), sq[3].xyz(),
@@ -1063,37 +1076,56 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
 	  break;
 	}
 	
+	// For each point we got...
 	list<Point3<float> >::iterator tPoints;
 	for( tPoints = points.begin(); tPoints != points.end(); ++tPoints ) {
-	  Point3<float> point = *tPoints;
-	  if( mVolume->IsRASInMRIBounds(point.xyz()) ) {
 
+	  // If the point is in bounds...
+	  Point3<float> point = *tPoints;
+	  VolumeLocation& loc =
+	    (VolumeLocation&) mVolume->MakeLocationFromRAS( point.xyz() );
+	  
+	  if( mVolume->IsInBounds( loc ) ) {
+
+	    // Depending on whether we're editing or selecting, and
+	    // whether we're actioning or unactioning, perform the
+	    // proper action. Also create the proper undo item.
 	    UndoAction* action = NULL;
 	    if( ScubaToolState::voxelEditing == iTool.GetMode() ) {
-	      float origValue = mVolume->GetMRINearestValueAtRAS( point.xyz());
-	      if( iInput.Button() == 2 ) {
-		if( iTool.GetOnlyBrushZero() && origValue != 0 ) {
-		  continue; // if only brushing zero, skip if not zero
-		}
-		mVolume->SetMRIValueAtRAS( point.xyz(), iTool.GetNewValue() );
-		action = 
-		  new UndoVoxelEditAction(mVolume, iTool.GetNewValue(),
-					  origValue,point.xyz());
-	      } else if( iInput.Button() == 3 ) {
-		mVolume->SetMRIValueAtRAS( point.xyz(), 0 );
-		action = 
-		  new UndoVoxelEditAction(mVolume, 0, origValue,point.xyz());
-	      }
-	    } else if( ScubaToolState::roiEditing == iTool.GetMode() ) {
-	      if( iInput.Button() == 2 ) {
-		mVolume->SelectRAS( point.xyz() );
-		action = new UndoSelectionAction( mVolume, true, point.xyz() );
-	      } else if( iInput.Button() == 3 ) {
-		mVolume->UnselectRAS( point.xyz() );
-		action =new UndoSelectionAction( mVolume, false, point.xyz() );
-	      }
-	    }
 
+	      // Editing. Get the original value for the undo item.
+	      float origValue = mVolume->GetMRINearestValue( loc );
+
+	      // If only brushing zero, skip if not zero.
+	      if( iTool.GetOnlyBrushZero() && origValue != 0 )
+		continue; 
+
+	      // New value depends on voxel button.
+	      float newValue = iInput.Button() == 2 ? iTool.GetNewValue() : 0;
+
+	      // Set value and make undo item.
+	      mVolume->SetMRIValue( loc, iTool.GetNewValue() );
+	      action = new UndoVoxelEditAction( mVolume, newValue,
+						origValue, point.xyz() );
+
+
+	      // Selecting. 
+	    } else if( ScubaToolState::roiEditing == iTool.GetMode() ) {
+
+	      // New value depends on voxel button.
+	      bool bSelect = iInput.Button() == 2 ? true : false;
+
+	      // Select or unselect.
+	      if( iInput.Button() == 2 ) {
+		mVolume->Select( loc );
+	      } else if( iInput.Button() == 3 ) {
+		mVolume->Unselect( loc );
+	      }
+
+	      action = new UndoSelectionAction( mVolume, bSelect, point.xyz());
+	    }
+	    
+	    // Add the undo item.
 	    undoList.AddAction( action );
 	  }
 	}
@@ -1461,6 +1493,15 @@ ScubaLayer2DMRI::GetPreferredInPlaneIncrements ( float oIncrements[3] ) {
   oIncrements[2] = mVolume->GetVoxelZSize();
 }
 
+float
+ScubaLayer2DMRI::GetPreferredBrushRadiusIncrement () {
+  
+  float smallestVoxelSize = 
+    MIN( mVolume->GetVoxelXSize(), 
+	 MIN ( mVolume->GetVoxelYSize(), mVolume->GetVoxelZSize() ) );
+  return (smallestVoxelSize / 2.0);
+}
+
 
 // ======================================================================
 
@@ -1485,6 +1526,8 @@ ScubaLayer2DMRIFloodVoxelEdit::DoBegin () {
   UndoManager& undoList = UndoManager::GetManager();
 
   undoList.BeginAction( "Voxel Fill" );
+
+  mVolume->BeginBatchChanges();
 }
 
 void 
@@ -1498,6 +1541,8 @@ ScubaLayer2DMRIFloodVoxelEdit::DoEnd () {
   // End our undo action.
   UndoManager& undoList = UndoManager::GetManager();
   undoList.EndAction();
+
+  mVolume->EndBatchChanges();
 }
 
 bool
@@ -1525,10 +1570,13 @@ void
 ScubaLayer2DMRIFloodVoxelEdit::DoVoxel ( float iRAS[3] ) {
   UndoManager& undoList = UndoManager::GetManager();
 
-  float origValue = mVolume->GetMRINearestValueAtRAS( iRAS );
+  VolumeLocation& loc = (VolumeLocation&) mVolume->MakeLocationFromRAS( iRAS );
 
-  mVolume->SetMRIValueAtRAS( iRAS, mValue );
+  // Save the original value. Set the new value. 
+  float origValue = mVolume->GetMRINearestValue( loc );
+  mVolume->SetMRIValue( loc, mValue );
 
+  // Make an undo item with the old value and add it to the list.
   UndoVoxelEditAction* action = 
     new UndoVoxelEditAction( mVolume, mValue, origValue, iRAS );
 
@@ -1549,13 +1597,15 @@ UndoVoxelEditAction::UndoVoxelEditAction ( VolumeCollection* iVolume,
 void
 UndoVoxelEditAction::Undo () {
 
-  mVolume->SetMRIValueAtRAS( mRAS, mOrigValue );
+  VolumeLocation& loc = (VolumeLocation&) mVolume->MakeLocationFromRAS( mRAS );
+  mVolume->SetMRIValue( loc, mOrigValue );
 }
 
 void
 UndoVoxelEditAction::Redo () {
 
-  mVolume->SetMRIValueAtRAS( mRAS, mNewValue );
+  VolumeLocation& loc = (VolumeLocation&) mVolume->MakeLocationFromRAS( mRAS );
+  mVolume->SetMRIValue( loc, mNewValue );
 }
 
 // ============================================================
@@ -1630,13 +1680,15 @@ void
 ScubaLayer2DMRIFloodSelect::DoVoxel ( float iRAS[3] ) {
   UndoManager& undoList = UndoManager::GetManager();
 
+  VolumeLocation& loc = (VolumeLocation&) mVolume->MakeLocationFromRAS( iRAS );
+
   if( mbSelect ) {
-    mVolume->SelectRAS( iRAS );
+    mVolume->Select( loc );
     UndoSelectionAction* action = 
       new UndoSelectionAction( mVolume, true, iRAS );
     undoList.AddAction( action );
   } else {
-    mVolume->UnselectRAS( iRAS );
+    mVolume->Unselect( loc );
     UndoSelectionAction* action =
       new UndoSelectionAction( mVolume, false, iRAS );
     undoList.AddAction( action );
@@ -1654,19 +1706,23 @@ UndoSelectionAction::UndoSelectionAction ( VolumeCollection* iVolume,
 
 void
 UndoSelectionAction::Undo () {
+  VolumeLocation& loc = (VolumeLocation&) mVolume->MakeLocationFromRAS( mRAS );
+
   if( mbSelect ) {
-    mVolume->UnselectRAS( mRAS );
+    mVolume->Unselect( loc );
   } else {
-    mVolume->SelectRAS( mRAS );
+    mVolume->Select( loc );
   }
 }
 
 void
 UndoSelectionAction::Redo () {
+  VolumeLocation& loc = (VolumeLocation&) mVolume->MakeLocationFromRAS( mRAS );
+
   if( mbSelect ) {
-    mVolume->SelectRAS( mRAS );
+    mVolume->Select( loc );
   } else {
-    mVolume->UnselectRAS( mRAS );
+    mVolume->Unselect( loc );
   }
 }
 
@@ -1738,8 +1794,10 @@ EdgePathFinder::GetEdgeCost ( Point2<int>& iPoint ) {
   // Get the magnitude value at this point.
   float RAS[3];
   mTranslator->TranslateWindowToRAS( iPoint.xy(), RAS );
-  if( mVolume->IsRASInMRIBounds( RAS ) ) {
-    return 1.0 / (mVolume->GetMRIMagnitudeValueAtRAS( RAS ) + 0.0001);
+  VolumeLocation& loc = (VolumeLocation&) mVolume->MakeLocationFromRAS( RAS );
+
+  if( mVolume->IsInBounds( loc ) ) {
+    return 1.0 / (mVolume->GetMRIMagnitudeValue( loc ) + 0.0001);
   } else {
     return mLongestEdge;
   }

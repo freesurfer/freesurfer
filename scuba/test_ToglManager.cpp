@@ -10,9 +10,9 @@ using namespace std;
 
 char* Progname = "test_ToglManager";
 
-class TestFrame : public ToglFrame {
+class TestFrame : public WindowFrame {
 public:
-  TestFrame( ToglFrame::ID iID );
+  TestFrame( WindowFrame::ID iID );
   virtual ~TestFrame();
 protected:
   virtual void DoDraw();
@@ -28,7 +28,7 @@ protected:
 };
 
 
-TestFrame::TestFrame( ToglFrame::ID iID ) : ToglFrame( iID ) {
+TestFrame::TestFrame( WindowFrame::ID iID ) : WindowFrame( iID ) {
   SetOutputStreamToCerr();
   DebugOutput( << "Created TestFrame " << iID );
   bTimerCalled = false;
@@ -46,7 +46,7 @@ TestFrame::DoDraw() {
   glRasterPos2i( mWidth/2, mHeight/2 );
   glClearColor( 0, 0, 0, 1 );
   glClear( GL_COLOR_BUFFER_BIT );
-  for( int nChar = 0; nChar < strlen(sID); nChar++ ) {
+  for( int nChar = 0; nChar < (int)strlen(sID); nChar++ ) {
     glutBitmapCharacter( GLUT_BITMAP_HELVETICA_18, sID[nChar] );
   }
 }
@@ -96,14 +96,15 @@ TestFrame::DoKeyUp( int iWindow[2], InputState& iInput ) {
 }
 
 
-class TestFrameFactory : public ToglFrameFactory {
+class TestFrameFactory : public WindowFrameFactory {
 public:
-  virtual ToglFrame* NewToglFrame( ToglFrame::ID iID ) { 
+  virtual WindowFrame* NewWindowFrame( WindowFrame::ID iID ) { 
     return new TestFrame( iID );
   }
 };
 
 
+#if BUILD_TCL_TEST
 extern "C" {
 int Test_toglmanager_Init ( Tcl_Interp* iInterp ) {
 
@@ -120,7 +121,7 @@ int Test_toglmanager_Init ( Tcl_Interp* iInterp ) {
   return TCL_OK;
 }
 }
-
+#endif
 
 class InputStateTester {
 public:

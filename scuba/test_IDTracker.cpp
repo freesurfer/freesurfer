@@ -1,9 +1,11 @@
 #include <iostream>
 #include <stdexcept>
 #include "IDTracker.h"
+#include "Scuba-impl.h"
 
 using namespace std;
 
+char* Progname = "test_IDTracker";
 
 class A : public IDTracker<A> {
   

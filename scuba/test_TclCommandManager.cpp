@@ -10,8 +10,11 @@ extern "C" {
 }
 
 #include "TclCommandManager.h"
+#include "Scuba-impl.h"
 
 #define Assert(x,s)   if(!(x)) { throw logic_error( s ); }
+
+char* Progname = "test_TclCommandManager";
 
 using namespace std;
 

@@ -99,6 +99,8 @@ class ScubaLayer2DMRI : public Layer {
 				 
   virtual void GetPreferredInPlaneIncrements ( float oIncrements[3] );
 
+  virtual float GetPreferredBrushRadiusIncrement ();
+
  
  protected:
   

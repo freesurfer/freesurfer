@@ -28,6 +28,9 @@ Layer::Layer() {
   commandMgr.AddCommand( *this, "SetLayerOpacity", 2, "layerID opacity",
 			 "Set the opacity for this layer. opacity should be "
 			 "a float from 0 to 1." );
+  commandMgr.AddCommand( *this, "GetLayerPreferredBrushRadiusIncrement", 1,
+			 "layerID", "Return a preferrerd brush radius "
+			 "increment based on the data." );
 
 }
 
@@ -141,6 +144,22 @@ Layer::DoListenToTclCommand( char* isCommand, int iArgc, char** iasArgv ) {
     }
   }
   
+  // GetLayerPreferredBrushRadiusIncrement <layerID>
+  if( 0 == strcmp( isCommand, "GetLayerPreferredBrushRadiusIncrement" ) ) {
+    int layerID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad layer ID";
+      return error;
+    }
+    
+    if( mID == layerID ) {
+      sReturnFormat = "f";
+      stringstream ssReturnValues;
+      ssReturnValues << GetPreferredBrushRadiusIncrement();
+      sReturnValues = ssReturnValues.str();
+    }
+  }
+
   return ok;
 }
 
@@ -341,6 +360,12 @@ Layer::GetPreferredInPlaneIncrements ( float oIncrements[3] ) {
   oIncrements[0] = 1.0;
   oIncrements[1] = 1.0;
   oIncrements[2] = 1.0;
+}
+
+float
+Layer::GetPreferredBrushRadiusIncrement () {
+  
+  return 1.0;
 }
 
 

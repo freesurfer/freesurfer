@@ -27,7 +27,7 @@ class ScubaToolState : public TclCommandListener, public IDTracker<ScubaToolStat
   void SetBrushRadius ( float iRadius ) { mBrushRadius = iRadius; }
   float GetBrushRadius () { return mBrushRadius; }
 
-  enum Shape { square, circle };
+  enum Shape { voxel, square, circle };
   void SetBrushShape ( Shape iShape ) { mBrushShape = iShape; }
   Shape GetBrushShape () { return mBrushShape; }
 
@@ -61,6 +61,10 @@ class ScubaToolState : public TclCommandListener, public IDTracker<ScubaToolStat
   void SetOnlyFloodZero ( bool ibOnlyZero ) { mbOnlyFloodZero = ibOnlyZero; }
   bool GetOnlyFloodZero () { return mbOnlyFloodZero; }
 
+  enum FuzzinessType { seed, gradient };
+  void SetFuzzinessType ( FuzzinessType iType ) { mFloodFuzzinessType =iType; }
+  FuzzinessType GetFuzzinessType () { return mFloodFuzzinessType; }
+
   virtual TclCommandResult
     DoListenToTclCommand ( char* isCommand, int iArgc, char** iasArgv );
 
@@ -88,6 +92,7 @@ class ScubaToolState : public TclCommandListener, public IDTracker<ScubaToolStat
   bool mbFlood3D;
   int mFloodSourceCollection;
   bool mbOnlyFloodZero;
+  FuzzinessType mFloodFuzzinessType;
 
   // Edge path settings.
   float mEdgePathStraightBias;

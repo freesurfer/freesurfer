@@ -10,7 +10,7 @@ if { $err } {
     load [file dirname [info script]]/libscuba[info sharedlibextension] scuba
 }
 
-DebugOutput "\$Id: scuba.tcl,v 1.60 2004/10/08 18:30:34 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.61 2004/10/11 02:08:59 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -647,9 +647,13 @@ proc ToolBarWrapper { isName iValue } {
 		SetROIType $gaROI(current,id) $gaROI(current,type)
 		RedrawFrame [GetMainFrameID]
 	    }
-	    circle - square {
+	    voxel - circle - square {
 		SetToolBrushShape $gaFrame([GetMainFrameID],toolID) \
 		    $gaTool(current,brushShape)
+	    }
+	    seed - gradient { 
+		SetToolFloodFuzzinessType $gaFrame([GetMainFrameID],toolID) \
+		    $gaTool(current,fuzzinessType)
 	    }
 	}
     }
@@ -1458,16 +1462,18 @@ proc MakeToolsPanel { ifwTop } {
 	-variable gaTool(current,brushShape) \
 	-command { ToolBarWrapper } \
 	-buttons {
+	    {-type text -name voxel -label "Voxel"}
 	    {-type text -name circle -label "Circle"}
 	    {-type text -name square -label "Square"}
 	}
 
     tkuMakeSliders $fwPropsBrushSub.swRadius -sliders {
 	{-label "Radius" -variable gaTool(current,radius) 
-	    -min 0.01 -max 20 -entry true
-	    -resolution 0.5
+	    -min 1.0 -max 20 -entry true
+	    -resolution 1.0
 	    -command {SetToolBrushRadius $gaFrame([GetMainFrameID],toolID) $gaTool(current,radius)} }
     }
+    set gaWidget(toolProperties,radiusSlider) $fwPropsBrushSub.swRadius
 
     tkuMakeCheckboxes $fwPropsBrushSub.cb \
 	-font [tkuNormalFont] \
@@ -1517,6 +1523,16 @@ proc MakeToolsPanel { ifwTop } {
 	    -command {SetToolFloodMaxDistance $gaFrame([GetMainFrameID],toolID) $gaTool(current,maxDistance)}}
     }
 
+    tkuMakeToolbar $fwPropsFillSub.tbwFuzzinessType \
+	-allowzero false \
+	-radio true \
+	-variable gaTool(current,fuzzinessType) \
+	-command { ToolBarWrapper } \
+	-buttons {
+	    {-type text -name seed -label "Seed"}
+	    {-type text -name gradient -label "Gradient"}
+	}
+
     tkuMakeCheckboxes $fwPropsFillSub.cb3D \
 	-font [tkuNormalFont] \
 	-checkboxes { 
@@ -1536,8 +1552,9 @@ proc MakeToolsPanel { ifwTop } {
     grid $fwPropsFillSub.owSourceCollection -column 0 -row 0 -sticky ew
     grid $fwPropsFillSub.cbFillOptions      -column 0 -row 1 -sticky ew
     grid $fwPropsFillSub.swFuzziness        -column 0 -row 2 -sticky ew
-    grid $fwPropsFillSub.cb3D               -column 0 -row 3 -sticky ew
-    grid $fwPropsFillSub.cbOnlyFloodZero    -column 0 -row 4 -sticky ew
+    grid $fwPropsFillSub.tbwFuzzinessType   -column 0 -row 3 -sticky ew
+    grid $fwPropsFillSub.cb3D               -column 0 -row 4 -sticky ew
+    grid $fwPropsFillSub.cbOnlyFloodZero    -column 0 -row 5 -sticky ew
 
     set gaWidget(toolProperties,fill) $fwPropsFill
 
@@ -2738,6 +2755,8 @@ proc SelectToolInToolProperties { iTool } {
 		[GetToolFloodStopAtPaths $gaTool(current,id)]
 	    set gaTool(current,fuzziness) \
 		[GetToolFloodFuzziness $gaTool(current,id)]
+	    set gaTool(current,fuzzinessType) \
+		[GetToolFloodFuzzinessType $gaTool(current,id)]
 	    set gaTool(current,maxDistance) \
 		[GetToolFloodMaxDistance $gaTool(current,id)]
 	    set gaTool(current,flood3D) \
@@ -2769,11 +2788,18 @@ proc SelectToolInToolProperties { iTool } {
 }
 
 proc ToolTargetLayerMenuCallback { iLayer } {
-    
     global gaTool
-
+    global gaWidget
+    
     set gaTool(current,targetLayer) $iLayer
     SetToolLayerTarget $gaTool(current,id) $gaTool(current,targetLayer)
+
+    # Update the radius slider.
+    set inc [GetLayerPreferredBrushRadiusIncrement $iLayer]
+    set min $inc
+    set max [expr 20 * $inc]
+    tkuUpdateSlidersRange $gaWidget(toolProperties,radiusSlider) \
+	$min $max $inc
 }
 
 proc ToolFloodSourceCollectionMenuCallback { iLayer } {
@@ -3868,7 +3894,7 @@ proc DoLoadVolumeDlog {} {
 	-type2 checkbox \
 	-prompt2 "Automatically add new layer to all views" \
 	-defaultvalue2 1 \
-	-shortcuts $glShortcutDirs \
+	-shortcutdirs [list $glShortcutDirs] \
 	-okCmd { 
 	    set frameID -1
 	    if { %s2 } {
@@ -3897,7 +3923,7 @@ proc DoSaveVolumeAsDlog {} {
 	    -prompt3 "Save Volume As: " \
 	    -defaultvalue3 [GetDefaultFileLocation SaveVolume] \
 	    -defaultdir3 [GetDefaultFileLocation SaveVolume] \
-	    -shortcuts $glShortcutDirs \
+	    -shortcutdirs [list $glShortcutDirs] \
 	    -okCmd { 
 		set err [catch {
 		    SetVolumeCollectionFileName $gaCollection(current,id) %s3
@@ -3930,7 +3956,7 @@ proc DoSaveCopyOfVolumeAsDlog {} {
 	    -prompt3 "Save Volume: " \
 	    -defaultvalue3 [GetDefaultFileLocation SaveVolume] \
 	    -defaultdir3 [GetDefaultFileLocation SaveVolume] \
-	    -shortcuts $glShortcutDirs \
+	    -shortcutdirs [list $glShortcutDirs] \
 	    -okCmd { 
 		set err [catch {
 		    SaveVolumeWithFileName $gaCollection(current,id) %s3
@@ -3963,7 +3989,7 @@ proc DoSaveLabelDlog {} {
 		-prompt2 "Save Label: " \
 		-defaultvalue2 [GetDefaultFileLocation SaveLabel] \
 		-defaultdir2 [GetDefaultFileLocation SaveLabel] \
-		-shortcuts $glShortcutDirs \
+		-shortcutdirs [list $glShortcutDirs] \
 		-okCmd { 
 		    set err [catch {
 			WriteVolumeROIToLabel $gaCollection(current,id) \
@@ -3999,7 +4025,7 @@ proc DoLoadLabelDlog {} {
 	    -prompt2 "Load Label: " \
 	    -defaultdir2 [GetDefaultFileLocation LoadLabel] \
 	    -defaultvalue2 [GetDefaultFileLocation LoadLabel] \
-	    -shortcuts $glShortcutDirs \
+	    -shortcutdirs [list $glShortcutDirs] \
 	    -okCmd { 
 		set err [catch {
 		    set roiID [NewVolumeROIFromLabel \
@@ -4038,7 +4064,7 @@ proc DoLoadLabelDlog {} {
 	     -prompt2 "Save Volume: " \
 	     -defaultdir2 [GetDefaultFileLocation ExportSegmentation] \
 	     -defaultvalue2 [GetDefaultFileLocation ExportSegmentation] \
-	     -shortcuts $glShortcutDirs \
+	     -shortcutdirs [list $glShortcutDirs] \
 	     -okCmd { 
 		 set err [catch {
 		     WriteVolumeROIsToSegmentation \
@@ -4062,7 +4088,7 @@ proc DoLoadTransformDlog {} {
 	-prompt1 "Load Transform: " \
 	-defaultdir1 [GetDefaultFileLocation Transform] \
 	-defaultvalue1 [GetDefaultFileLocation Transform] \
-	-shortcuts $glShortcutDirs \
+	-shortcutdirs [list $glShortcutDirs] \
 	-okCmd { 
 	    LoadTransform %s1
 	}
@@ -4077,7 +4103,7 @@ proc DoSaveTIFFDlog {} {
 	-prompt1 "Save TIFF: " \
 	-defaultdir1 [GetDefaultFileLocation TIFF] \
 	-defaultvalue1 [GetDefaultFileLocation TIFF] \
-	-shortcuts $glShortcutDirs \
+	-shortcutdirs [list $glShortcutDirs] \
 	-okCmd { 
 	    set err [catch {
 		CaptureFrameToFile [GetMainFrameID] %s1
@@ -4100,7 +4126,7 @@ proc DoExportMarkersToControlPointsDlog {} {
 	    -prompt1 "Will save the markers as control points using \n \"$gaCollection(current,label)\":" \
 	    -defaultdir1 [GetDefaultFileLocation ControlPoints] \
 	    -defaultvalue1 [file join [GetDefaultFileLocation ControlPoints] control.dat]\
-	    -shortcuts $glShortcutDirs \
+	    -shortcutdirs [list $glShortcutDirs] \
 	    -okCmd { 
 		set err [catch { 
 		    ExportMarkersToControlPoints $gaCollection(current,id) %s1
@@ -4129,7 +4155,7 @@ proc DoImportMarkersFromControlPointsDlog {} {
 	    -prompt1 "Will import control points as markers using volume\n \"$gaCollection(current,label)\":" \
 	    -defaultdir1 [GetDefaultFileLocation ControlPoints] \
 	    -defaultvalue1 [file join [GetDefaultFileLocation ControlPoints] control.dat]\
-	    -shortcuts $glShortcutDirs \
+	    -shortcutdirs [list $glShortcutDirs] \
 	    -okCmd { 
 		set err [catch {
 		   ImportMarkersFromControlPoints $gaCollection(current,id) %s1
@@ -4153,7 +4179,7 @@ proc DoSaveSceneSetupScriptDlog {} {
 	-prompt1 "Save Script: " \
 	-defaultdir1 [GetDefaultFileLocation Scene] \
 	-defaultvalue1 [GetDefaultFileLocation Scene] \
-	-shortcuts $glShortcutDirs \
+	-shortcutdirs [list $glShortcutDirs] \
 	-okCmd { 
 	    SaveSceneScript %s1
 	}
@@ -4173,7 +4199,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.60 2004/10/08 18:30:34 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.61 2004/10/11 02:08:59 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.

@@ -89,7 +89,8 @@ ScubaTransformTester::Test ( Tcl_Interp* iInterp ) {
 					     0, 0,  2,   0,
 					     0, 0,  0,   1 );
 
-    mWorldToIndexTransform = mDataToWorldTransform->Inverse();
+    Transform44 worldToData = mDataToWorldTransform->Inverse();
+    mWorldToIndexTransform = worldToData;
     mWorldToIndexTransform.ApplyTransform( mDataToIndexTransform );
 
     Transform44& t = mWorldToIndexTransform;

@@ -79,7 +79,7 @@ check_PROGRAMS= testIDTracker testBroadcaster testUtilities \
 	testTclCommandManager testPreferencesManager testUndoManager \
 	testDataCollection testScubaDataCollections testVolumeCollection \
 	testSurfaceCollection testScubaLayers testScubaLayer2DMRI \
-	testScubaLayer2DMRIS testScubaView testScubaFrame \
+	testScubaView testScubaFrame \
 	testScubaTransform testScubaColorLUT testScubaROI testScubaROIVolume \
 	testVectorOps testRASToVoxel testCoordTimer
 
@@ -113,7 +113,7 @@ testDataManager_SOURCES=test_DataManager.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS)
 testTclCommandManager_SOURCES=test_TclCommandManager.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS) 
-testPreferencesManager_SOURCES=test_PreferenceManager.cpp \
+testPreferencesManager_SOURCES=test_PreferencesManager.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS) 
 testUndoManager_SOURCES=test_UndoManager.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS)
@@ -131,10 +131,8 @@ testSurfaceCollection_SOURCES= test_SurfaceCollection.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS) 
 
 testScubaLayers_SOURCES=test_ScubaLayers.cpp \
-	$(UTILITIES_SRCS) $(BASIC_SRCS) $(GUI_SRCS) $(LAYER_SRCS)
+	$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS) $(GUI_SRCS) $(LAYER_SRCS)
 testScubaLayer2DMRI_SOURCES=test_ScubaLayer2DMRI.cpp \
-	$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS) $(GUI_SRCS) $(LAYER_SRCS) 
-testScubaLayer2DMRIS_SOURCES=test_ScubaLayer2DMRIS.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS) $(GUI_SRCS) $(LAYER_SRCS) 
 
 testScubaView_SOURCES=test_ScubaView.cpp \

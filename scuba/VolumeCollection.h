@@ -90,19 +90,16 @@ class VolumeCollection : public DataCollection {
   void RASToDataRAS  ( float const iRAS[3], float oDataRAS[3] );
 
   // Bounds testing.
-  bool IsRASInMRIBounds ( float const iRAS[3] );
-  bool IsMRIIndexInMRIBounds ( int const iIndex[3] );
-  bool IsLocationInBounds ( VolumeLocation& iLoc );
+  bool IsInBounds ( VolumeLocation& iLoc );
 
   // Calculates values.
-  float GetMRINearestValueAtRAS ( float  iRAS[3] );
-  float GetMRINearestValueAtLocation ( VolumeLocation& iLoc );
-  float GetMRITrilinearValueAtRAS ( float iRAS[3] );
-  float GetMRISincValueAtRAS ( float  iRAS[3] );
-  float GetMRIMagnitudeValueAtRAS ( float iRAS[3] );
+  float GetMRINearestValue   ( VolumeLocation& iLoc );
+  float GetMRITrilinearValue ( VolumeLocation& iLoc );
+  float GetMRISincValue      ( VolumeLocation& iLoc );
+  float GetMRIMagnitudeValue ( VolumeLocation& iLoc );
   
   // Sets value.
-  void SetMRIValueAtRAS ( float iRAS[3], float iValue );
+  void SetMRIValue ( VolumeLocation& iLoc, float iValue );
   
   virtual TclCommandResult
     DoListenToTclCommand ( char* isCommand, int iArgc, char** iasArgv );
@@ -114,15 +111,13 @@ class VolumeCollection : public DataCollection {
   virtual ScubaROI* DoNewROI ();
 
 
-  // For the selection cache. This is just for quick lookup to see if
-  // any ROI is at this point.
-  void SelectRAS ( float iRAS[3] );
-  void UnselectRAS ( float iRAS[3] );
+  // Select or unselect in the current ROI.
+  void Select   ( VolumeLocation& iLoc );
+  void Unselect ( VolumeLocation& iLoc );
 
   // Return whether or not an ROI is at this point, and if so, returns
   // the color. If multiple ROIs are present, blends the color.
-  bool IsRASSelected ( float iRAS[3], int oColor[3] );
-  bool IsLocationSelected ( VolumeLocation& iLoc, int oColor[3] );
+  bool IsSelected ( VolumeLocation& iLoc, int oColor[3] );
 
   // Return whether or not an ROI is present other than the one passed
   // in.
@@ -252,6 +247,8 @@ class VolumeCollectionFlooder {
     int mMaxDistance;
     bool mbDiagonal;
     bool mbOnlyZero;
+    enum FuzzinessType { seed, gradient };
+    FuzzinessType mFuzzinessType;
   };
 
   class CheckPair {

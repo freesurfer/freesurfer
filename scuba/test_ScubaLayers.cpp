@@ -29,6 +29,7 @@ using namespace std;
 
 // Togl tester ---------------------------------------------------------
 
+#if BUILD_TCL_TEST
 extern "C" {
 int Test_scubalayers_Init ( Tcl_Interp* iInterp ) {
 
@@ -56,7 +57,7 @@ int Test_scubalayers_Init ( Tcl_Interp* iInterp ) {
   return TCL_OK;
 }
 }
-
+#endif
 
 
 // Non-togl tester --------------------------------------------------------

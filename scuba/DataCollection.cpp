@@ -10,7 +10,7 @@ DeclareIDTracker(DataCollection);
 
 DataCollection::DataCollection() {
   mSelectedROIID = -1;
-
+  mbSuspendDataChangedMessage = false;
 
   // Try setting our initial transform to the default transform with
   // id 0. If it's not there, create it.
@@ -290,5 +290,19 @@ DataCollection::GetDataToWorldTransform () {
 void
 DataCollection::DataChanged () {
   
-  SendBroadcast( "dataChanged", NULL );
+  if( !mbSuspendDataChangedMessage ) {
+    SendBroadcast( "dataChanged", NULL );
+  }
+}
+
+
+void 
+DataCollection::BeginBatchChanges () {
+  mbSuspendDataChangedMessage = true;
+}
+
+void 
+DataCollection::EndBatchChanges () {
+  mbSuspendDataChangedMessage = false;
+  DataChanged();
 }

@@ -140,13 +140,17 @@ VolumeCollectionTester::Test ( Tcl_Interp* iInterp ) {
 
 
     world.Set( -50, 0, -80 );
-    if( !vol.IsRASInMRIBounds( world.xyz() ) ) {
-      cerr << "IsRASInMRIBounds failed. world " << world << endl;
+    VolumeLocation& loc = 
+      (VolumeLocation&) vol.MakeLocationFromRAS( world.xyz() );
+    if( !vol.IsInBounds( loc ) ) {
+      cerr << "IsInBounds failed. world " << world << endl;
       throw( runtime_error( "failed" ) );
     }
     world.Set( -257, 0, 0 );
-    if( vol.IsRASInMRIBounds( world.xyz() ) ) {
-      cerr << "IsRASInMRIBounds failed. world " << world << endl;
+    VolumeLocation& loc2 =
+      (VolumeLocation&) vol.MakeLocationFromRAS( world.xyz() );
+    if( vol.IsInBounds( loc2 ) ) {
+      cerr << "IsInBounds failed. world " << world << endl;
       throw( runtime_error( "failed" ) );
     }
 
@@ -157,7 +161,9 @@ VolumeCollectionTester::Test ( Tcl_Interp* iInterp ) {
 				    0, 0, 0, 1 );
     vol.SetDataToWorldTransform( dataTransform.GetID() );
     world.Set( 0, -258, -254 );
-    if( vol.IsRASInMRIBounds( world.xyz() ) ) {
+    VolumeLocation& loc3 =
+      (VolumeLocation&) vol.MakeLocationFromRAS( world.xyz() );
+    if( vol.IsInBounds( loc3 ) ) {
       vol.RASToMRIIndex( world.xyz(), index.xyz() );
       cerr << "IsRASInMRIBounds failed. world " << world 
 	   << " index " << index << endl;

@@ -9,6 +9,7 @@
 extern "C" {
 #include "mrisurf.h"
 }
+#include "Scuba-impl.h"
 
 #define Assert(x,e)   if(!(x)) { throw e; }
 

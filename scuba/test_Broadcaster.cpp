@@ -5,6 +5,7 @@
 #include <stdexcept>
 #include "Broadcaster.h"
 #include "Listener.h"
+#include "Scuba-impl.h"
 
 
 char* Progname = "test_Broadcaster";

@@ -45,7 +45,7 @@ WindowFrame::MouseMoved( int iWindow[2], InputState& iInput ) {
   if( iWindow[0] > 0 && iWindow[0] < mWidth-1 &&
       iWindow[1] > 0 && iWindow[1] < mHeight-1 ) {
     
-    if( iInput.IsButtonDown() ) {
+    if( iInput.IsButtonDragEvent() ) {
     
       // Calculate the delta. Make sure there is one; if not, no mouse
       // moved event.
@@ -77,16 +77,7 @@ WindowFrame::MouseMoved( int iWindow[2], InputState& iInput ) {
 	  windowI[0] = (int) rint( windowF[0] );
 	  windowI[1] = (int) rint( windowF[1] );
 	  
-	  if( windowI[0] > 0 && windowI[0] < mWidth-1 &&
-	      windowI[1] > 0 && windowI[1] < mHeight-1 ) {
-	    
-	    // this->DoMouseMoved( windowI, iInput );
-
-	  } else {
-
-	    cerr << "BLAH" << endl;
-	    break;
-	  }
+	  this->DoMouseMoved( windowI, iInput );
 	  
 	  // Increment the float window coords.
 	  windowF[0] += delta[0];

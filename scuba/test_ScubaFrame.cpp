@@ -4,6 +4,9 @@
 extern "C" {
 #include "glut.h"
 }
+#include "Scuba-impl.h"
+
+char* Progname = "test_ScubaFrame";
 
 using namespace std;
 
@@ -124,6 +127,7 @@ public:
 
 // Togl tester ---------------------------------------------------------
 
+#if BUILD_TCL_TEST
 extern "C" {
 int Test_scubaframe_Init ( Tcl_Interp* iInterp ) {
 
@@ -145,7 +149,7 @@ int Test_scubaframe_Init ( Tcl_Interp* iInterp ) {
   return TCL_OK;
 }
 }
-
+#endif
 
 
 // Non-togl tester --------------------------------------------------------

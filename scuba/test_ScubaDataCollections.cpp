@@ -1,6 +1,7 @@
 #include "ToglManager.h"
 #include "ScubaDataCollectionFactory.h"
 #include "VolumeCollection.h"
+#include "Scuba-impl.h"
 
 char* Progname = "test_ScubaDataCollections";
 

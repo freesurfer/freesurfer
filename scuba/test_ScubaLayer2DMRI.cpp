@@ -2,6 +2,7 @@
 #include "ScubaFrame.h"
 #include "ScubaView.h"
 #include "ScubaLayer2DMRI.h"
+#include "Scuba-impl.h"
 
 char* Progname = "test_ScubaLayers";
 

@@ -4,19 +4,18 @@
 
 using namespace std;
 
-template IDTracker<ScubaToolState>;
-int IDTracker<ScubaToolState>::mNextID = 0;
-map<int,ScubaToolState*> IDTracker<ScubaToolState>::mIDMap;
+DeclareIDTracker(ScubaToolState);
 
 
 ScubaToolState::ScubaToolState() {
   mMode = navigation;
   mBrushRadius = 0.5;
-  mBrushShape = circle;
+  mBrushShape = voxel;
   mbBrush3D = false;
   mbFloodStopAtPaths = true;
   mbFloodStopAtROIs = true;
   mFloodFuzziness = 0;
+  mFloodFuzzinessType = seed;
   mFloodMaxDistance = 0;
   mbFlood3D = true;
   mEdgePathStraightBias = 0.9;
@@ -51,10 +50,10 @@ ScubaToolState::ScubaToolState() {
 			 "Gets the current brush radius of a tool." );
   commandMgr.AddCommand( *this, "SetToolBrushShape", 2, "toolID shape",
 			 "Sets the current brush shape of a tool. shape "
-			 "should be square or circle." );
+			 "should be voxel, square or circle." );
   commandMgr.AddCommand( *this, "GetToolBrushShape", 1, "toolID",
 			 "Gets the current brush shape of a tool, "
-			 "square or circle." );
+			 "voxel, square or circle." );
   commandMgr.AddCommand( *this, "SetToolBrush3D", 2, "toolID 3D",
 			 "Sets the current brush 3D of a tool." );
   commandMgr.AddCommand( *this, "GetToolBrush3D", 1, "toolID",
@@ -84,6 +83,12 @@ ScubaToolState::ScubaToolState() {
   commandMgr.AddCommand( *this, "SetToolFloodSourceCollection", 2, 
 			 "toolID colID", "Sets the current flood "
 			 "source collection of a tool." );
+  commandMgr.AddCommand( *this, "SetToolFloodFuzzinessType", 2, "toolID type",
+			 "Sets the tool's fuzziness type. Should be seed "
+			 "or gradient." );
+  commandMgr.AddCommand( *this, "GetToolFloodFuzzinessType", 1, "toolID",
+			 "Returns the tool's fuzziness type: seed "
+			 "or gradient." );
   commandMgr.AddCommand( *this, "GetToolFloodSourceCollection", 1, 
 			 "toolID", "Gets the current flood "
 			 "source collection of a tool." );
@@ -260,6 +265,52 @@ ScubaToolState::DoListenToTclCommand ( char* isCommand,
     }
   }
 
+  // SetToolFloodFuzzinessType <toolID> <type>
+  if( 0 == strcmp( isCommand, "SetToolFloodFuzzinessType" ) ) {
+    int toolID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad tool ID";
+      return error;
+    }
+    
+    if( GetID() == toolID ) {
+
+      FuzzinessType type;
+      if( 0 == strcmp( iasArgv[2], "seed" )) {
+	type = seed;
+      } else if ( 0 == strcmp( iasArgv[2], "gradient" )) {
+	type = gradient;
+      } else {
+	sResult = "bad type \"" + string(iasArgv[2]) + 
+	  "\", should be seed or gradient.";
+	return error;
+      }
+      SetFuzzinessType( type );
+    }
+  }
+
+  // GetToolFloodFuzzinessType <toolID>
+  if( 0 == strcmp( isCommand, "GetToolFloodFuzzinessType" ) ) {
+    int toolID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad tool ID";
+      return error;
+    }
+    
+    if( GetID() == toolID ) {
+
+      switch( GetFuzzinessType() ) {
+      case seed:
+	sReturnValues = "seed";
+	break;
+      case gradient:
+	sReturnValues = "gradient";
+	break;
+      }
+      sReturnFormat = "s";
+    }
+  }
+
   // SetToolLayerTarget <toolID> <layerID>
   if( 0 == strcmp( isCommand, "SetToolLayerTarget" ) ) {
     int toolID = strtol(iasArgv[1], (char**)NULL, 10);
@@ -343,13 +394,15 @@ ScubaToolState::DoListenToTclCommand ( char* isCommand,
     if( GetID() == toolID ) {
 
       Shape shape;
-      if( 0 == strcmp( iasArgv[2], "square" )) {
+      if( 0 == strcmp( iasArgv[2], "voxel" )) {
+	shape = voxel;
+      } else if( 0 == strcmp( iasArgv[2], "square" )) {
 	shape = square;
       } else if ( 0 == strcmp( iasArgv[2], "circle" )) {
 	shape = circle;
       } else {
 	sResult = "bad shape \"" + string(iasArgv[2]) + 
-	  "\", should be square or circle.";
+	  "\", should be voxel, square or circle.";
 	return error;
       }
       SetBrushShape( shape );
@@ -367,6 +420,9 @@ ScubaToolState::DoListenToTclCommand ( char* isCommand,
     if( GetID() == toolID ) {
 
       switch( GetBrushShape() ) {
+      case voxel:
+	sReturnValues = "voxel";
+	break;
       case square:
 	sReturnValues = "square";
 	break;

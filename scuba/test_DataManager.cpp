@@ -9,6 +9,7 @@ extern "C" {
 #undef USE_NON_CONST
 }
 #include "DataManager.h"
+#include "Scuba-impl.h"
 
 #define Assert(x,s)   \
   if(!(x)) { \

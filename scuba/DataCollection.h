@@ -46,7 +46,7 @@ class DataCollection : public DebugReporter,
 
   virtual DataLocation& MakeLocationFromRAS ( float const iRAS[3] );
 
-  // Used to poll for any displayable data at the given point.
+  // used to poll for any displayable data at the given point.
   virtual void GetInfo( DataLocation& iLoc,
 			std::map<std::string,std::string>& iLabelValues );
 
@@ -72,6 +72,11 @@ class DataCollection : public DebugReporter,
   virtual void SetDataToWorldTransform ( int iTransformID );
   int GetDataToWorldTransform ();
 
+  // Suppresses the dataChanged message. Use when changing a lot of
+  // voxels in a row that don't need updates in between. Will call
+  // DataChanged() at the end.
+  void BeginBatchChanges ();
+  void EndBatchChanges ();
 
 protected:
   std::string msLabel;
@@ -81,6 +86,7 @@ protected:
   
   // For self to call when data has changed.
   virtual void DataChanged ();
+  bool mbSuspendDataChangedMessage;
  
   // The data to world transform. Should be applied to all requests
   // for data at RAS points.

@@ -100,6 +100,8 @@ class Layer : public DebugReporter,
 
   virtual void GetPreferredInPlaneIncrements ( float oIncrements[3] );
 
+  virtual float GetPreferredBrushRadiusIncrement ();
+  
  protected:
 
   int mWidth;

@@ -2282,7 +2282,10 @@ ScubaView::GetVolumeHistogramInView ( VolumeCollection& iSourceVol,
   for( window[1] = 0; window[1] < mHeight; window[1]++ ) {
     for( window[0] = 0; window[0] < mWidth; window[0]++ ) {
       TranslateWindowToRAS( window, RAS.xyz() );
-      if( iSourceVol.IsRASInMRIBounds( RAS.xyz() ) ) {
+      VolumeLocation& loc = 
+	(VolumeLocation&) iSourceVol.MakeLocationFromRAS( RAS.xyz() );
+      
+      if( iSourceVol.IsInBounds( loc ) ) {
 	iSourceVol.RASToMRIIndex( RAS.xyz(), index.xyz() );
 
 	// If they gave us an ROI to use, make sure this is in the
@@ -2361,7 +2364,9 @@ ScubaView::EndValueRangeFill () {
   for( window[1] = 0; window[1] < mHeight; window[1]++ ) {
     for( window[0] = 0; window[0] < mWidth; window[0]++ ) {
       TranslateWindowToRAS( window, RAS.xyz() );
-      if( sourceVol.IsRASInMRIBounds( RAS.xyz() ) ) {
+      VolumeLocation& loc =
+	(VolumeLocation&) sourceVol.MakeLocationFromRAS( RAS.xyz() );
+      if( sourceVol.IsInBounds( loc ) ) {
 	sourceVol.RASToMRIIndex( RAS.xyz(), index.xyz() );
 
 	// If they gave us an ROI to use, make sure this is in the
@@ -2375,14 +2380,14 @@ ScubaView::EndValueRangeFill () {
 	// We need to see if we should fill this voxel. Go through our
 	// list and see if it falls into a range. If so, edit the
 	// value in the dest.
-	float value = sourceVol.GetMRINearestValueAtRAS( RAS.xyz() );
+	float value = sourceVol.GetMRINearestValue( loc );
 	list<ValueRangeFillElement>::iterator tRange;
 	for( tRange = mValueRangeFillParams->mFillElements.begin();
 	     tRange != mValueRangeFillParams->mFillElements.end();
 	     ++tRange ) {
 	  ValueRangeFillElement& element = *tRange;
 	  if( value > element.mBegin && value < element.mEnd ) {
-	    destVol.SetMRIValueAtRAS( RAS.xyz(), element.mValue );
+	    destVol.SetMRIValue( loc, element.mValue );
 	    break;
 	  }
 	}
