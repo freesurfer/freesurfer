@@ -349,6 +349,9 @@ Volm_tErr Volm_SetBrightnessAndContrast ( mriVolumeRef this,
 Volm_tErr Volm_SetColorMinMax           ( mriVolumeRef this,
 					  float        ifMin,
 					  float        ifMax );
+Volm_tErr Volm_GetBrightnessAndContrast ( mriVolumeRef this,
+					  float*       ofBrightness,
+					  float*       ofContrast );
 
 Volm_tErr Volm_SaveToSnapshot      ( mriVolumeRef this );
 Volm_tErr Volm_RestoreFromSnapshot ( mriVolumeRef this );
