@@ -1160,7 +1160,8 @@ ScubaView::DoMouseUp( int iWindow[2],
   }
 
   // Handle marker tool.
-  if( iTool.GetMode() == ScubaToolState::marker ) {
+  if( iTool.GetMode() == ScubaToolState::marker && 
+      !iInput.IsControlKeyDown() ) {
 
     float world[3];
     TranslateWindowToRAS( iWindow, world );
