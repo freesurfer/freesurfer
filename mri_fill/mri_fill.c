@@ -14,7 +14,7 @@
 #include "mrinorm.h"
 #include "cma.h"
 
-static char vcid[] = "$Id: mri_fill.c,v 1.59 2003/01/24 19:30:52 fischl Exp $";
+static char vcid[] = "$Id: mri_fill.c,v 1.60 2003/02/18 20:03:16 fischl Exp $";
 
 /*-------------------------------------------------------------------
                                 CONSTANTS
@@ -223,6 +223,7 @@ main(int argc, char *argv[])
     MRIcopyLabel(mri_im, mri_labels, labels[i]) ;
     MRIreplaceValues(mri_im, mri_im, labels[i], 0) ;
   }
+	mri_saved_labels = MRIcopy(mri_labels, NULL) ;
 
   if (atlas_name && 0)
   {
@@ -333,7 +334,6 @@ main(int argc, char *argv[])
       MRIreplaceValues(mri_mask, mri_mask, 1, 0) ;
       extend_to_lateral_borders(mri_mask, mri_mask, 0) ;
       MRImask(mri_tmp, mri_mask, mri_tmp, 255, 0) ;
-			mri_saved_labels = MRIcopy(mri_labels, NULL) ;
       MRImask(mri_labels, mri_mask, mri_labels, 255, 0) ;
       if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
       {
@@ -2741,7 +2741,8 @@ edit_segmentation(MRI *mri_wm, MRI *mri_seg)
         case Right_Hippocampus:
           yi = mri_wm->yi[y+1] ;
           label = MRIvox(mri_seg, x,yi, z) ;
-          if ((label == Left_Cerebral_Cortex || label == Right_Cerebral_Cortex)
+          if (((label == Left_Cerebral_Cortex || label == Right_Cerebral_Cortex) ||
+							 (label == Left_Cerebral_White_Matter || label == Right_Cerebral_White_Matter))
               && (MRIvox(mri_wm, x, yi, z) < WM_MIN_VAL))
           {
             MRIvox(mri_wm, x, yi, z) = 255 ;
