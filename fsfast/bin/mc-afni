@@ -1,6 +1,6 @@
 #!/bin/csh -f
 
-set VERSION = '$Id: mc-afni,v 1.2 2004/04/05 21:55:40 greve Exp $';
+set VERSION = '$Id: mc-afni,v 1.3 2004/11/15 23:21:10 greve Exp $';
 
 unset verbose ;
 
@@ -50,6 +50,15 @@ foreach cmd (to3d 3dvolreg)
     exit 1;
   endif
 end
+
+set mcdat = $outdir/$outbase.mcdat 
+if(-e $mcdat) then
+  if(! -w $mcdat) then
+    echo "ERROR: $mcdat file exists but you do not have write permission"
+    echo "change the permissions on this file and re-run"
+    exit 1;
+  endif
+endif
 
 ## Get dimensions of input ##
 set hdr0 = $instem"_000.hdr";
@@ -117,7 +126,6 @@ pushd $afnisession > /dev/null
 if(-e $afniprefix.volreg+orig.BRIK) rm -f $afniprefix.volreg+orig.BRIK;
 if(-e $afniprefix.volreg+orig.HEAD) rm -f $afniprefix.volreg+orig.HEAD;
 
-set mcdat = $outdir/$outbase.mcdat 
 pwd
 if($#targstem != 0 && $targstem != $instem) then
   set leave_echo_on = 1;
