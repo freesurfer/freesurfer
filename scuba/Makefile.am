@@ -57,14 +57,17 @@ GUI_SRCS= \
 	TclProgressDisplayManager.cpp \
 	togl.c
 
-bin_PROGRAMS = scuba qtscuba
+bin_PROGRAMS = scuba
 scuba_SOURCES=$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS) $(GUI_SRCS) $(LAYER_SRCS) scuba.cpp 
 LDADD= $(addprefix $(top_srcdir)/,$(LIBS_MGH)) $(LIBS_TCL_OPENGL)
 scuba_LDFLAGS=
 
-qtscuba_SOURCES=$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS) $(GUI_SRCS) $(LAYER_SRCS) QTScubaWidget.cpp qtscuba.cpp
-qtscuba_CXXFLAGS=-I${QTDIR}/include
-qtscuba_LDFLAGS=-L${QTDIR}/lib -lqt-mt
+if WANT_QTSCUBA
+	bin_PROGRAMS += qtscuba
+	qtscuba_SOURCES=$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS) $(GUI_SRCS) $(LAYER_SRCS) QTScubaWidget.cpp qtscuba.cpp
+	qtscuba_CXXFLAGS=-I${QTDIR}/include
+	qtscuba_LDFLAGS=-L${QTDIR}/lib -lqt-mt
+endif
 
 foodir=$(prefix)/lib/tcl
 foo_SCRIPTS=scuba.tcl tkcon.tcl
