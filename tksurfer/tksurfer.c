@@ -1921,6 +1921,10 @@ int Surfer(ClientData clientData, Tcl_Interp *interp, int argc, char *argv[])
   sprintf(lstem,"%s",argv[2]);
   sprintf(lext,"%s",argv[3]);
   tclscriptflag = FALSE;
+
+  /* rkt: commented this part out. i'm not sure how it was accepting
+     any other command line options with it active. */
+#if 0
   if (argc>=5) {
     strcpy(str,argv[4]);
     if (MATCH_STR("-tcl"))
@@ -1943,6 +1947,7 @@ int Surfer(ClientData clientData, Tcl_Interp *interp, int argc, char *argv[])
       exit(1);
     }
   }
+#endif
   
   /* subjects dir from environment */
   if (sdir)
@@ -18127,7 +18132,7 @@ int main(int argc, char *argv[])   /* new main */
   /* end rkt */
   
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.50 2003/08/20 17:22:19 kteich Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.51 2003/08/22 18:20:36 kteich Exp $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
