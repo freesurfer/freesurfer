@@ -148,6 +148,9 @@ FunV_tErr FunV_New ( tkmFunctionalVolumeRef* oppVolume,
   /* return the volume */
   *oppVolume = this;
   
+  /* init tkregMat */
+  this->tkregMat = NULL;
+
   goto cleanup;
   
  error:
@@ -227,7 +230,11 @@ FunV_tErr FunV_Delete ( tkmFunctionalVolumeRef* ioppVolume ) {
   
   /* trash signature */
   this->mSignature = 0x1;
-  
+
+  /* free up tkregMat */
+  if (NULL != this->tkregMat)
+    MatrixFree(&this->tkregMat);
+
   goto cleanup;
   
  error:
@@ -513,7 +520,7 @@ FunV_tErr FunV_LoadFunctionalVolume_ ( tkmFunctionalVolumeRef this,
   
   /* load the volume */
   eVolume = FunD_New( &pVolume, iTransform, 
-		      isPath, isStem, isHeaderStem, isRegistration );
+		      isPath, isStem, isHeaderStem, isRegistration, this->tkregMat );
   if( FunD_tErr_NoError != eVolume ) {
     eResult = FunV_tErr_ErrorLoadingVolume;
     goto error;
@@ -3410,7 +3417,7 @@ int FunV_TclOlRestoreRegistration ( ClientData iClientData,
   if( this->mpOverlayVolume ) {
     
     /* restore the regsitration */
-    FunD_ParseRegistrationAndInitMatricies( this->mpOverlayVolume );
+    FunD_ParseRegistrationAndInitMatricies( this->mpOverlayVolume, this->tkregMat );
     
     /* udpate the overlay */
     eResult = FunV_OverlayChanged_( this );

@@ -3,10 +3,10 @@
   ===========================================================================*/
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2003/05/19 21:27:44 $
-// Revision       : $Revision: 1.149 $
-char *VERSION = "$Revision: 1.149 $";
+// Revision Author: $Author: tosa $
+// Revision Date  : $Date: 2003/05/20 16:17:49 $
+// Revision       : $Revision: 1.150 $
+char *VERSION = "$Revision: 1.150 $";
 
 #define TCL
 #define TKMEDIT 
@@ -997,7 +997,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
      shorten our argc and argv count. If those are the only args we
      had, exit. */
   /* rkt: check for and handle version tag */
-  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.149 2003/05/19 21:27:44 kteich Exp $");
+  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.150 2003/05/20 16:17:49 tosa Exp $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
   argc -= nNumProcessedVersionArgs;
@@ -7422,8 +7422,10 @@ void ConvertAnaIdxToRAS ( xVoxelRef iAnaIdx,
 
 tkm_tErr LoadFunctionalOverlay( char* isPathAndStem, 
         char* isOffsetPathAndStem,
-        char* isRegistration ) {
-  
+        char* isRegistration ) 
+{
+  MATRIX    *tkregMat = NULL;
+  MRI       *pMRI;
   tkm_tErr  eResult       = tkm_tErr_NoErr;
   char      sPathAndStem[tkm_knPathLen]   = "";
   char      sOffsetPathAndStem[tkm_knPathLen]  = "";
@@ -7460,12 +7462,32 @@ tkm_tErr LoadFunctionalOverlay( char* isPathAndStem,
   }
   
   /* attempt to load. */
+  // the need for computing conformed volume to functional volume
+  // caused to pass tkregMatrix
+  pMRI = gAnatomicalVolume[tkm_tVolumeType_Main]->mpMriValues;
+  tkregMat = MatrixAlloc( 4, 4, MATRIX_REAL );
+  MatrixClear(tkregMat );
+  *MATRIX_RELT(tkregMat,1,1) = -pMRI->xsize;
+  *MATRIX_RELT(tkregMat,2,3) = pMRI->zsize;
+  *MATRIX_RELT(tkregMat,3,2) = -pMRI->ysize;
+  *MATRIX_RELT(tkregMat,1,4) = pMRI->xsize*pMRI->width/ 2.0;
+  *MATRIX_RELT(tkregMat,2,4) = -pMRI->zsize*pMRI->depth/ 2.0;
+  *MATRIX_RELT(tkregMat,3,4) = pMRI->ysize*pMRI->height/ 2.0;
+  *MATRIX_RELT(tkregMat,4,4) = 1.0;
+
+  if (gFunctionalVolume->tkregMat!=NULL)
+  {
+    MatrixFree(&gFunctionalVolume->tkregMat);
+    gFunctionalVolume->tkregMat = NULL;
+  }
+  gFunctionalVolume->tkregMat = tkregMat;
   DebugNote( ("Loading overlay") );
   eFunctional = FunV_LoadOverlay( gFunctionalVolume, 
 				  gIdxToRASTransform,
 				  sPathAndStem,
 				  psOffsetPathAndStem,
 				  psRegistration );
+
   DebugAssertThrowX( (FunV_tErr_NoError == eFunctional),
          eResult, tkm_tErr_CouldntLoadOverlay );
   
@@ -7494,8 +7516,10 @@ tkm_tErr LoadFunctionalOverlay( char* isPathAndStem,
 
 tkm_tErr LoadFunctionalTimeCourse( char* isPathAndStem,
            char* isOffsetPathAndStem,
-           char* isRegistration ) {
-  
+           char* isRegistration ) 
+{
+  MATRIX *tkregMat = NULL;
+  MRI    *pMRI = NULL;
   tkm_tErr  eResult            = tkm_tErr_NoErr;
   char      sPathAndStem[tkm_knPathLen]        = "";
   char      sOffsetPathAndStem[tkm_knPathLen] = "";
@@ -7533,12 +7557,30 @@ tkm_tErr LoadFunctionalTimeCourse( char* isPathAndStem,
   
   /* attempt to load. */
   DebugNote( ("Loading time course") );
+  // the need for computing conformed volume to functional volume
+  // caused to pass tkregMatrix
+  pMRI = gAnatomicalVolume[tkm_tVolumeType_Main]->mpMriValues;
+  tkregMat = MatrixAlloc( 4, 4, MATRIX_REAL );
+  MatrixClear(tkregMat );
+  *MATRIX_RELT(tkregMat,1,1) = -pMRI->xsize;
+  *MATRIX_RELT(tkregMat,2,3) = pMRI->zsize;
+  *MATRIX_RELT(tkregMat,3,2) = -pMRI->ysize;
+  *MATRIX_RELT(tkregMat,1,4) = pMRI->xsize*pMRI->width/ 2.0;
+  *MATRIX_RELT(tkregMat,2,4) = -pMRI->zsize*pMRI->depth/ 2.0;
+  *MATRIX_RELT(tkregMat,3,4) = pMRI->ysize*pMRI->height/ 2.0;
+  *MATRIX_RELT(tkregMat,4,4) = 1.0;
+  if (gFunctionalVolume->tkregMat!=NULL)
+  {
+    MatrixFree(&gFunctionalVolume->tkregMat);
+    gFunctionalVolume->tkregMat = NULL;
+  }
+  gFunctionalVolume->tkregMat = tkregMat;
   eFunctional = FunV_LoadTimeCourse( gFunctionalVolume, 
 				     gIdxToRASTransform,
 				     sPathAndStem, 
 				     psOffsetPathAndStem,
 				     psRegistration );
-  
+
   DebugAssertThrowX( (FunV_tErr_NoError == eFunctional),
          eResult, tkm_tErr_CouldntLoadOverlay );
   
