@@ -2903,30 +2903,45 @@ DspA_tErr DspA_HandleKeyDown_ ( tkmDisplayAreaRef this,
   switch ( ipEvent->mKey ) {
 
   case '1':
+  case '2':
+  case '3':
+  case '4':
+  case '5':
+  case '6':
+  case '7':
+  case '8':
+  case '9':
     /* ctrl 1 goes to main volume */
-    if ( ipEvent->mbCtrlKey ) {
+    if ( ipEvent->mKey == '1' &&
+   ipEvent->mbCtrlKey ) {
       eResult = DspA_SetDisplayFlag( this, 
              DspA_tDisplayFlag_AuxVolume, FALSE );
       if ( DspA_tErr_NoErr != eResult )
   goto error;
+      break;
     }
-    break;
 
-  case '2':
     /* ctrl 2 goes to aux volume */
-    if ( ipEvent->mbCtrlKey ) {
+    if ( ipEvent->mKey == '1' &&
+   ipEvent->mbCtrlKey ) {
       eResult = DspA_SetDisplayFlag( this, 
              DspA_tDisplayFlag_AuxVolume, TRUE );
       if ( DspA_tErr_NoErr != eResult )
   goto error;
     }
+    
+    /* any other number sets the radius of the brush. */
+    eResult = DspA_SetBrushShape( this, (int)(ipEvent->mKey - '0'),
+          sBrush.mShape, sBrush.mb3D );
+    if ( DspA_tErr_NoErr != eResult )
+      goto error;
     break;
 
   case 'c':
     /* alt-c toggles main and aux view. */
     if( ipEvent->mbAltKey ) {
       eResult = DspA_ToggleDisplayFlag( this, DspA_tDisplayFlag_AuxVolume );
-    /* ctrl+c toggles cursor display */
+      /* ctrl+c toggles cursor display */
     } else if( ipEvent->mbCtrlKey ) {
       eResult = DspA_ToggleDisplayFlag( this, DspA_tDisplayFlag_Cursor );
     } else {
