@@ -35,7 +35,7 @@
 #include "tiffio.h"
 #include "label.h"
 
-static char vcid[] = "$Id: mris2rgb.c,v 1.24 1999/05/20 00:33:29 fischl Exp $";
+static char vcid[] = "$Id: mris2rgb.c,v 1.25 1999/05/20 04:30:56 fischl Exp $";
 
 /*-------------------------------- CONSTANTS -----------------------------*/
 
@@ -134,6 +134,7 @@ static int         configuration[] =
 #endif
 static char *curvature_fname = NULL ;
 static char *coord_fname = NULL ;
+static char *canon_fname = NULL ;
 static float cslope = 10.0f ;
 static int   patch_flag = 0 ;
 
@@ -273,6 +274,7 @@ main(int argc, char *argv[])
       MRIScenter(mris, mris) ;
       MRISscaleBrain(mris, mris,rescale) ;
     }
+
     if (coord_fname)
     {
       if (MRISreadCanonicalCoordinates(mris, coord_fname) != NO_ERROR)
@@ -289,7 +291,7 @@ main(int argc, char *argv[])
       VERTEX *v, *vn ;
 
       MRISreadOriginalProperties(mris, NULL) ;
-      vno = MRIStalairachToVertex(mris, x_tpoint[i], y_tpoint[i], z_tpoint[i]) ;
+      vno = MRIStalairachToVertex(mris, x_tpoint[i], y_tpoint[i], z_tpoint[i]);
       if (vno >= 0)
       {
         fprintf(stderr, "marking talairach vertex %d\n", vno) ;
@@ -371,7 +373,10 @@ main(int argc, char *argv[])
     if (mrisp)
     {
       MRISsaveVertexPositions(mris, TMP_VERTICES) ;
-      MRISrestoreVertexPositions(mris, CANONICAL_VERTICES) ;
+      if (canon_fname == NULL)
+        ErrorExit(ERROR_BADPARM, 
+                  "%s: must specify canonical coordinate system "
+                  "(-canon <fname>)", Progname) ;
       if (normalize_param)
       {
         MRISnormalizeFromParameterization(mrisp, mris, param_no) ;
@@ -380,6 +385,14 @@ main(int argc, char *argv[])
         MRISfromParameterization(mrisp, mris, 0) ;
       MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
     }
+    if (coord_fname)
+    {
+      if (MRISreadCanonicalCoordinates(mris, coord_fname) != NO_ERROR)
+        ErrorExit(Gerror, "%s: could not read canonical coordinate system",
+                  Progname) ;
+    }
+    else
+      MRISsaveVertexPositions(mris, CANONICAL_VERTICES) ;
     if (curvature_fname)
       MRISreadCurvatureFile(mris, curvature_fname) ;
 
@@ -773,7 +786,7 @@ get_option(int argc, char *argv[])
     coord_thickness = atof(argv[2]) ;
     coord_spacing = atof(argv[3]) ;
     fprintf(stderr, 
-        "spacing coordinate lines %2.2f degrees apart, with thickness %2.1f\n",
+        "spacing coordinate lines %2.2f degrees apart, with thickness %2.2f\n",
             coord_spacing, coord_thickness) ;
     nargs = 2 ;
     OGLUsetCoordParms(coord_thickness, coord_spacing) ;
@@ -787,8 +800,8 @@ get_option(int argc, char *argv[])
   }
   else if (!stricmp(option, "canon"))
   {
-    coord_fname = argv[2] ;
-    fprintf(stderr, "reading coordinate locations from %s.\n", coord_fname);
+    canon_fname = argv[2] ;
+    fprintf(stderr, "reading canonical coordinates from %s.\n", canon_fname);
     nargs = 1 ;
   }
   else if (!stricmp(option, "lateral"))
@@ -1361,3 +1374,25 @@ MRISsoapBubble(MRI_SURFACE *mris, int niter)
   fprintf(stderr, "\n") ;
   return(NO_ERROR) ;
 }
+#if 0
+static int issphere(MRI_SURFACE *mris) ;
+static int
+issphere(MRI_SURFACE *mris)
+{
+  VERTEX   *v ;
+  float    x, y, z, ravg, r ;
+  int      vno ;
+
+  ravg = MRISaverageRadius(mris) ;
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    x = (v->x-mris->xctr) ; y = (v->y-mris->yctr) ; z = (v->z-mris->zctr) ; 
+    r = sqrt(x*x + y*y + z*z) ;
+    if (fabs((r-ravg) / ravg) > .01)
+      return(0) ;
+  }
+  return(1) ;
+}
+
+#endif
