@@ -3047,6 +3047,11 @@ ImageExtractInto(IMAGE *Isrc, IMAGE *Idst, int x0, int y0,
   float    *fsrc, *fdst ;
   int      xin, yin, yout, x1, y1, yend, xend ;
 
+  if ((dx <= 0) || (dy <= 0))
+    ErrorReturn(NULL,
+                (ERROR_BADPARM, "ImageExtractInto: invalid dx or dy (%d, %d)",
+                 dx, dy)) ;
+
   if (!Idst)
     Idst = ImageAlloc(dy, dx, Isrc->pixel_format, Isrc->num_frame) ;
   else
@@ -3127,6 +3132,11 @@ ImageExtract(IMAGE *Isrc, IMAGE *Idst, int x0, int y0,int dx, int dy)
   UCHAR    *csrc, *cdst ;
   float    *fsrc, *fdst ;
   int      xin, yin, xout, yout, x1, y1, yend, xend ;
+
+  if ((dx <= 0) || (dy <= 0))
+    ErrorReturn(NULL,
+                (ERROR_BADPARM, "ImageExtract: invalid dx or dy (%d, %d)",
+                 dx, dy)) ;
 
   if (!Idst)
     Idst = ImageAlloc(dy, dy, Isrc->pixel_format, Isrc->num_frame) ;
