@@ -75,7 +75,6 @@ release:
 	    f=`echo "$$p" | sed 's|^.*/||;$(transform)'`; \
 	    echo " $(INSTALL_SCRIPT) $$d$$p $(DESTDIR)$(libdir)/tcl/$$f"; \
 	    $(INSTALL_SCRIPT) $$d$$p $(DESTDIR)$(libdir)/tcl/$$f; \
-	    cat $(DESTDIR)$(libdir)/tcl/$$f | sed 's|/usr/local/bin/tclsh7.4|/usr/bin/tclsh|' > $(DESTDIR)$(libdir)/tcl/$$f; \
 	  else :; fi; \
 	done
 	$(mkinstalldirs) $(DESTDIR)$(prefix)
