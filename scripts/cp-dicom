@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set VERSION = '$Id: cp-dicom,v 1.2 2004/08/19 19:05:06 greve Exp $';
+set VERSION = '$Id: cp-dicom,v 1.3 2004/08/21 20:12:51 greve Exp $';
 
 set inputargs = ($argv);
 set dcmdir = ();
@@ -25,22 +25,23 @@ parse_args_return:
 goto check_params;
 check_params_return:
 
-set flist = `ls $dcmdir/*`;
+set flist = (`ls $dcmdir`);
 echo "Found $#flist"
 @ nthfile = 1;
 foreach f ($flist)
-  set series = `mri_probedicom --i $f --t 20 11`;
+  set ff = $dcmdir/$f
+  set series = `mri_probedicom --i $ff --t 20 11`;
   if(! $status) then
-    set protocol = `mri_probedicom --i $f --t 18 1030`;
+    set protocol = `mri_probedicom --i $ff --t 18 1030`;
     if(! $status) then
       set protocol = `echo $protocol | sed 's/*//g' | sed 's/ //g'`
       set seriesdir = $outdir/$protocol-$series
     else
       set seriesdir = $outdir/$series
     endif
-    echo "$nthfile/$#flist   $series   $f"
+    echo "$nthfile/$#flist   $series   $ff"
     mkdir -p $seriesdir
-    cp $f $seriesdir
+    cp $ff $seriesdir
   endif
   @ nthfile = $nthfile + 1;
 end
