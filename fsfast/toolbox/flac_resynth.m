@@ -1,6 +1,6 @@
 % flac_resynth.m
 
-flac_resynth_version = '$Id: flac_resynth.m,v 1.4 2005/01/23 17:17:52 greve Exp $';
+flac_resynth_version = '$Id: flac_resynth.m,v 1.5 2005/03/19 00:17:23 greve Exp $';
 
 flac_resynth_version_no = sscanf(flac_resynth_version,'%*s %*s %s',1);
 
@@ -25,22 +25,30 @@ flac_resynth_version_no = sscanf(flac_resynth_version,'%*s %*s %s',1);
 %outconmaskfspec = 'samc-rsyn-mask';
 %noiserlf = 'rest.rlf';
 
-flacfile = '~/links/sg1/swftst/flac/sm-f00.flac';
-sess = '~/links/sg1/swftst/mgh-103.1';
+%flacfile = '~/links/sg1/swftst/flac/sm-f00.flac';
+%sess = '~/links/sg1/swftst/mgh-103.1';
+%outfspec = 'fmc-rsyn';
+%outconmaskfspec = 'rsyn-mask';
+%noiserlf = 'rest.rlf';
+
+flacfile = '~/links/sg1/mind-swf/flac/sirp.flac';
+sess = '~/links/sg1/mind-swf/M02101222';
 outfspec = 'fmc-rsyn';
 outconmaskfspec = 'rsyn-mask';
 noiserlf = 'rest.rlf';
 
-conmaskname = 'omnibus';
-conmap = 'fsigclust';
-fsigthresh = 2;
-signalscale = .75; % globally scale task betas
+conmaskname = 'probe';
+conmap = 'fsigclust.p1';
+%conmap = 'fsig';
+fsigthresh = 0;
+signalscale = 1; % globally scale task betas
 noisetempcor = 1; % Temporally correlated noise
 noisespatcor = 1; % Spatially  correlated noise
 SynthSeed = -1;
 nevreg = 10;
 usebetaffx = 1;
 useconffx = 1;
+rvarnorm = 1; % make rest run var same as task run, vox-by-vox
 monly = 1;
 okfile = '/tmp/flac_resynth.ok';
 
@@ -97,6 +105,8 @@ else
   noiseext = 0;
 end
 
+%maskfspec = sprintf('%s/bold/masks/synth.mgh',flac.sess);
+%mask = MRIread(maskfspec);
 mask = MRIread(flac.maskfspec);
 if(isempty(mask)) 
   if(~monly) quit; end
@@ -160,7 +170,18 @@ if(nindconmask == 0)
   if(~monly) quit; end
   return;
 end
-  
+
+if(rvarnorm)
+  % Load the fixed-effects variance
+  rvarfspec = sprintf('%s/fla/%s/ffx/rvar.mgh',fsdpath,...
+			 flac.name);
+  rvar = MRIread(rvarfspec);
+  if(isempty(rvar)) 
+    if(~monly) quit; end
+    return;
+  end
+end
+
 %----------------------------------------------------------------%
 fprintf('Synthesizing\n');
 for nthrun = 1:nruns
@@ -177,6 +198,13 @@ for nthrun = 1:nruns
     noisefspec = sprintf('%s/%s/%s',fsdpath,...
 			 noiserunlist(nthrun,:),flac.funcstem);
     noise = MRIread(noisefspec);
+    if(rvarnorm)
+      nvar = std(noise.vol,[],4).^2;
+      ind = find(nvar==0);
+      nvar(ind) = 1000;
+      fvar = sqrt(rvar.vol./nvar);
+      noise.vol = noise.vol.*repmat(fvar,[1 1 1 flac.ntp]);
+    end
     noise.vol = fast_vol2mat(noise.vol);
   else
   
@@ -319,6 +347,11 @@ if(~isempty(outconmaskfspec))
   fname = sprintf('%s/%s/masks/%s%s',flac.sess,flac.fsd,...
 		  outconmaskfspec,flac.formatext);
   MRIwrite(conmask,fname);
+  fname = sprintf('%s/%s/masks/%s-dil%s',flac.sess,flac.fsd,...
+		  outconmaskfspec,flac.formatext);
+  conmaskdil1 = conmask;
+  conmaskdil1.vol = fast_dilate(conmask.vol,1);
+  MRIwrite(conmaskdil1,fname);
 end
 
 fmri_touch(okfile);

@@ -25,7 +25,9 @@ tic;
 % targflacfile = '~/links/sg1/xval/flac/rest.flac';
 % 
 
-fast_swfflac_nbhd_sess_ver = '$Id: fast_swfflac_nbhd_sess.m,v 1.3 2005/01/23 17:09:21 greve Exp $';
+
+
+fast_swfflac_nbhd_sess_ver = '$Id: fast_swfflac_nbhd_sess.m,v 1.4 2005/03/19 00:16:44 greve Exp $';
 
 SynthSeed = round(sum(100*clock)); 
 randn('state',SynthSeed); 
@@ -41,6 +43,7 @@ fprintf('useffxbeta = %d\n',useffxbeta);
 fprintf('snconly = %d\n',snconly);
 fprintf('gnorm = %d\n',gnorm);
 fprintf('sop = %d\n',sop);
+fprintf('assumeiid = %d\n',assumeiid);
 fprintf('gscaleuse = %d\n',gscaleuse);
 fprintf('synthtarg = %g\n',synthtarg);
 fprintf('SynthSeed = %g\n',SynthSeed);
@@ -77,6 +80,7 @@ if(isempty(contrastind))
   fprintf('ERROR: contrast %s not found in flac\n',contrast);
   return;
 end
+C = flac.con(contrastind).C;
 
 % Handle when the target flac is diff than source
 if(~exist('targflacfile','var')) targflacfile = []; end
@@ -127,8 +131,29 @@ if(~snconly)
   fprintf('%2d %2d %2d\n',rcs_delta');
 end
 
+% Load reference info
+if(0)
+clear drill;
+drill.brain = mask;
+drill.refmask = MRIread('~/links/sg1/xval/dng/bold/masks/samc-rsyn-mask.mgh');
+drill.indref = find(drill.refmask.vol);
+drill.nref = length(drill.indref);
+drill.betaref = MRIread('~/links/sg1/xval/dng/bold/fla/samc/ffx/beta.mgh');
+drill.betaref.vol = fast_vol2mat(drill.betaref.vol);
+drill.gamref = drill.betaref;
+drill.gamref.vol = C*drill.betaref.vol;
+drill.F0    = MRIread('~/links/sg1/xval/dng/bold/fla/samc-rsyn/ffx/omnibus/f.mgh');
+drill.Fsig0 = MRIread('~/links/sg1/xval/dng/bold/fla/samc-rsyn/ffx/omnibus/fsig.mgh');
+drill.Fsnc0    = MRIread('~/links/sg1/xval/dng/bold/fla/samc-rsyn-snc-00-gn/ffx/omnibus/f.mgh');
+drill.Fsigsnc0 = MRIread('~/links/sg1/xval/dng/bold/fla/samc-rsyn-snc-00-gn/ffx/omnibus/fsig.mgh');
+drill.rdgamssesnc0 = MRIread('~/links/sg1/xval/dng/bold/fla/samc-rsyn-snc-00-gn/ffx/omnibus/rdgamsse.mgh');
+end
+
+ntp = flac.ntp;
+
 % Go through each run
 for jthrun = 1:nruns
+  nthref = 1;
   fprintf('\n\n');
   fprintf('Processing jth run %d (%6.1f)\n',jthrun,toc);
   jflac = targflac;
@@ -143,7 +168,7 @@ for jthrun = 1:nruns
 
   % Perform FFX with jackknifing
   fprintf('  Computing FFX\n');
-  [Fsig F betaffx] = flacffx(flac,contrast,0,jthrun);
+  [Fsig F betaffx] = flacffx(flac,contrast,1,jthrun);
   Fp = Fsig;
   Fp.vol = 10.^(-Fsig.vol); % convert to p
   
@@ -183,11 +208,10 @@ for jthrun = 1:nruns
     beta.vol = beta.vol(:,indmask);
 
     % Project into the contrast subspace
-    C = flac.con(contrastind).C;
     srun = (jX*C'*C)*beta.vol;
 
     sjk = [sjk; srun];
-    clear srun beta;
+    %clear srun beta;
     
   end % Loop over kthrun
   
@@ -260,6 +284,7 @@ for jthrun = 1:nruns
   end
 
   % Loop through each voxel in the mask
+  nillcond = 0;
   nadjust = 0;
   yswf = zeros(y.nframes,Nvmask);
   for nthind = 1:Nvmask
@@ -281,12 +306,12 @@ for jthrun = 1:nruns
     else
       indm = [nthind]; % only target voxel
     end
+    indm0 = indm;
     
-    if(fdr < 1)
+    pvaltarg = Fp.vol(indv0);    
+    pvalm = Fp.vol(indmask(indm));
+    if(fdr < 1 & ~sop)
       % Get the p-values
-      pvaltarg = Fp.vol(indv0);    
-      pvalm = Fp.vol(indmask(indm));
-      %pthresh = fast_fdrthresh(pvalm,fdr);% do this globally now
       nover = length(find(pvalm < pthresh));
       if(pvaltarg > pthresh & nover > 0)
 	% Target is not sig but others are
@@ -294,64 +319,155 @@ for jthrun = 1:nruns
 	indkeep = find(pvalm >= pvaltarg); 
 	indm = indm(indkeep);
 	nadjust = nadjust + 1;
+      else 
+	indkeep = [1:length(indm0)]';
       end
     end
     if(sop)
-      % Spill-over protection
-      pvaltarg = Fp.vol(indv0);    
-      pvalm = Fp.vol(indmask(indm));
-      indkeep = find(pvalm >= pvaltarg); 
+      if(pvaltarg > pthresh)
+	% Target is not sig, so keep only insig nbhrs
+	indkeep = find(pvalm > pthresh); 
+      else
+	% Target is sig, so keep only sig nbhrs
+	indkeep = find(pvalm <= pthresh); 	
+      end
       indm = indm(indkeep);
     end
+    nnbrs = length(indm)-1;
     
     % Extract the time courses 
+    yraw = y.vol(:,indmask(indm));
     yjknbhd = yjk(:,indm);
     sjknbhd = sjk(:,indm);
+    rjknbhd = rjk(:,indm);
     sjktarg = sjk(:,nthind);
     rjktarg = rjk(:,nthind);
 
-    if(usesnc) 
-      yjknbhd0 = yjknbhd;
-      sjknbhd0 = sjknbhd;
-      yjknbhd2 = [yjknbhd0 rjksnc]; 
-      yjknbhd = [yjknbhd yjksnc]; 
-      sjknbhd = [sjknbhd sjksnc]; 
-    end
+    if(~assumeiid)
+      if(usesnc) 
+	yjknbhd = [yjknbhd yjksnc]; 
+	sjknbhd = [sjknbhd sjksnc]; 
+      end
+      
+      % Compute and apply the filter
+      yjkscm = yjknbhd'*yjknbhd;
+      yjkscm_cond = cond(yjkscm);
+      if(yjkscm_cond < 10e10)
+	if(sncor)
+	  G = inv(yjknbhd'*yjknbhd)*yjknbhd'*sjktarg;
+	else
+	  G = inv(yjknbhd'*yjknbhd)*sjknbhd'*sjktarg;
+	end    
+      else
+	nillcond = nillcond + 1;
+	G = zeros(size(yjknbhd,2),1);
+	G(1) = 1;
+      end
 
-    % Compute and apply the filter
-    if(sncor)
-      %G0 = inv(yjknbhd0'*yjknbhd0)*yjknbhd0'*sjktarg;
-      %sjktarg0hat = yjknbhd0*G0;
-      G = inv(yjknbhd'*yjknbhd)*yjknbhd'*sjktarg;
+      if(gnorm)  
+	sjktarghat = sjknbhd*G;
+	tmp = sjktarghat'*sjktarghat;
+	if(tmp ~= 0)
+	  Gscale = inv(sjktarghat'*sjktarghat)*sjktarghat'*sjktarg;
+	else
+	  Gscale = 1;
+	end
+	G = Gscale*G;
+	%G = G/sqrt(sum(G.^2));
+      end
+      
+      if(usesnc) 
+	%yraw0 = yraw;
+	yraw = [yraw yrawsnc];
+      end
+      
+      %yswfv0 = yraw0*G0;
+      yswfv = yraw*G;
     else
-      G = inv(yjknbhd'*yjknbhd)*sjknbhd'*sjktarg;
-    end    
+      % assume iid
+      if(nnbrs > 0)
+	snottarg = sjknbhd(:,2:end);
+	sm = sum(snottarg.*snottarg);
+	indtmp = find(sm==0);
+	sm(indtmp) = 10e10;
+	G0 = (snottarg'*sjktarg)'./sm;
+	G = [1 G0]/size(sjknbhd,2);
+	G = G(:);
+	%shat0 = snottarg.*repmat(G0,[ntpmin 1]);
+	%shat = sjknbhd*G;
+	nn = 1:ntpmin;
+	%plot(nn,sjktarg,nn,shat);
+	yswfv = yraw*G;
+      else
+	yswfv = yraw;
+      end
 
-    if(gnorm)  
-      sjktarghat = sjknbhd*G;
-      Gscale = inv(sjktarghat'*sjktarghat)*sjktarghat'*sjktarg;
-      G = Gscale*G;
-      %G = G/sqrt(sum(G.^2));
+      if(usesnc & nnbrs > 0)
+	rtil = rjknbhd*G;
+	Gsnc = inv(rjksnc'*rjksnc)*rjksnc'*rtil;
+	Gsnc = Gsnc(:);
+	yswfv = yswfv - yrawsnc*Gsnc;
+	%rtilhat = rjksnc*Gsnc;
+	%d = rtil-rtilhat;
+      end
+      %if(Fp.vol(indv0)<.01) keyboard; end
     end
 
-    yraw = y.vol(:,indmask(indm));
-    if(usesnc) 
-      %yraw0 = yraw;
-      yraw = [yraw yrawsnc];
-    end
-
-    %yswfv0 = yraw0*G0;
-    yswfv = yraw*G;
     yswf(:,nthind) = yswfv;
+    
+    
+    %if(indv0 == 23151) 
+    if(0)
+    if(drill.refmask.vol(indv0))
+      G0 = zeros(length(indm0),1);
+      G0 = G;
+      yjknbhd0 = yjk(:,indm0);
+      sjknbhd0 = sjk(:,indm0);
+      rjknbhd0 = rjk(:,indm0);
+      yraw0 = y.vol(:,indmask(indm0));
+      drill.indv0(nthref) = indv0;
+      drill.v(nthref).indm0 = indm0;
+      drill.v(nthref).pvalm0 = pvalm;
+      drill.v(nthref).sjknbhd0 = sjknbhd0;
+      drill.v(nthref).rjknbhd0 = rjknbhd0;
+      %drill.v(nthref).yjknbhd0 = yjknbhd0; % equals s+r
+      drill.v(nthref).G0 = G0;
+      drill.v(nthref).yraw0 = yraw0;
+      drill.yswf(:,nthref)  = yswfv;
+      drill.Gscale(nthref) = Gscale;
+      nthref = nthref + 1;
 
-    if(0 & Fp.vol(indmask(nthind)) < .001) 
+      if(0)
       fprintf('nthind = %d, %g\n',nthind,Fp.vol(indmask(nthind)) );
-      keyboard; 
+      matfile = sprintf('swf.drill.%d.%d.mat',indv0,jthrun);
+      if(str2num(version('-release')) < 14)
+	save(matfile,'indv0','jthrun','indmask','indm0','indkeep',...
+	     'indm','pthresh','pvaltarg','pvalm','yjknbhd0','sjknbhd0',...
+	     'rjknbhd0','yraw0','G','Gscale');
+      else
+	save(matfile,'indv0','jthrun','indmask','indm0','indkeep',...
+	     'indm','pthresh','pvaltarg','pvalm','yjknbhd0','sjknbhd0',...
+	     'rjknbhd0','yraw0','G','Gscale','-v6');
+      end
+      end
+    end
     end
 
   end % loop over mask voxels
-  fprintf('nadjust = %d/%d = %g%%\n',nadjust,Nvmask,100*nadjust/Nvmask);
-  
+  fprintf('nadjust  = %d/%d = %g%%\n',nadjust,Nvmask,100*nadjust/Nvmask);
+  fprintf('nillcond = %d/%d = %g%%\n',nillcond,Nvmask,100*nillcond/Nvmask);
+
+  if(0)
+  fprintf('Saving drill\n');
+  drillmat = sprintf('drill-%d.mat',jthrun);
+  if(str2num(version('-release')) < 14)
+    save(drillmat,'drill','jX','pthresh');
+  else
+    save(drillmat,'drill','jthrun','jX','pthresh','-v6');
+  end  
+  drill.v = []; %clears v but keeps other components
+  end
+
   % Set mean to be the same as the original
   ymn = mean(y.vol(:,indmask));  
   yswfmn = mean(yswf);
@@ -379,12 +495,14 @@ for jthrun = 1:nruns
   fprintf(fp,'fdr       = %g\n',fdr);
   fprintf(fp,'FDRThreshold is %g\n',pthresh);
   fprintf(fp,'nadjust   = %g (%g%%)\n',nadjust,100*nadjust/Nvmask);
+  fprintf(fp,'nillcond  = %g (%g%%)\n',nillcond,100*nillcond/Nvmask);
   fprintf(fp,'useffxbeta = %d\n',useffxbeta);
   fprintf(fp,'usesnc = %d\n',usesnc);
   fprintf(fp,'snconly = %d\n',snconly);
   fprintf(fp,'sncdim = %d\n',sncdim);
   fprintf(fp,'sncor = %d\n',sncor);
   fprintf(fp,'sop = %d\n',sop);
+  fprintf('assumeiid = %d\n',assumeiid);
   fprintf(fp,'gnorm = %d\n',gnorm);
   fprintf(fp,'nbhd_inplane = %d\n',nbhd_inplane);
   fprintf(fp,'nnbhd = %d\n',size(rcs_delta,1)+1);
