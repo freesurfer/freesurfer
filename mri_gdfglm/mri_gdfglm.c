@@ -5,7 +5,7 @@
   Date:    4/4/03
   Purpose: performs glm analysis given group descirptor file
            and dependent variable table
-  $Id: mri_gdfglm.c,v 1.1 2003/04/05 23:04:53 greve Exp $
+  $Id: mri_gdfglm.c,v 1.2 2003/04/09 22:25:49 greve Exp $
 */
 
 #include <stdio.h>
@@ -17,18 +17,35 @@
 #include "error.h"
 #include "diag.h"
 #include "proto.h"
+#include "matfile.h"
 
 #include "matrix.h"
+#include "fsgdf.h"
+#include "fio.h"
+#include "sig.h"
+
+#ifdef X
+  #undef X
+#endif
 
 typedef struct tagDEPVARTABLE{
   char *dvtfile;
   char **RowNames;
   char **ColNames;
   MATRIX *D;
+  int transposed;
 } DEPVARTABLE, DVT;
 
-DVT *ReadDVT(char *dvtfile);
-int DumpDVT(DVT *dvt, FILE *fp);
+DVT *DVTalloc(int nrows, int ncols, char *dvtfile);
+DVT *DVTread(char *dvtfile);
+int  DVTdump(DVT *dvt, FILE *fp);
+int  DVTsetName(DVT *dvt, int nth, char *Name, int dimid);
+int  DVTfree(DVT **ppdvt);
+DVT *DVTtranspose(DVT *dvt);
+int DVTgetNameIndex(DVT *dvt, char *Name, int dimid);
+MATRIX *DVTgetDepVar(DVT *dvt, int nDepVars, char **DepVarList,
+		     float *DepVarWeight);
+DVT *DVTpruneRows(DVT *indvt, int nKeep, char **KeepList);
 
 static int  parse_commandline(int argc, char **argv);
 static void check_options(void);
@@ -41,10 +58,12 @@ static void dump_options(FILE *fp);
 static int  isflag(char *flag);
 static int  nth_is_arg(int nargc, char **argv, int nth);
 static int  singledash(char *flag);
+static int CheckReps(char **List, int nList);
+static double ContrastVMF(MATRIX *X, MATRIX *C);
 //static int  stringmatch(char *str1, char *str2);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_gdfglm.c,v 1.1 2003/04/05 23:04:53 greve Exp $";
+static char vcid[] = "$Id: mri_gdfglm.c,v 1.2 2003/04/09 22:25:49 greve Exp $";
 char *Progname = NULL;
 
 typedef struct tagCOVARPRUNE{
@@ -61,13 +80,13 @@ int  nClassList = 0;
 char *ClassList[100];
 
 int   nwClass = 0;
-float wClass[200];
+float *wClass;
 
 int  nCovarList = 0;
 char *CovarList[100];
 
 int  nwCovar = 0;
-float wCovar[200];
+float *wCovar = NULL;
 
 int  nCovarPrune = 0;
 COVARPRUNE CovarPrune[200];
@@ -77,17 +96,32 @@ int   nDepVarList = 0;
 char  *DepVarList[100];
 
 int   nwDepVar = 0;
-float wDepVar[200];
+float *wDepVar = NULL;
 
 char *WLMSDepVar = NULL;
 
 char *OutBase = NULL;
+int KeepSubjId = 0;
 
-DVT *dvt;
+DVT *dvt0, *dvt;
+FSGD *fsgd0, *fsgd;
+
+MATRIX *X, *Xnorm, *pinvX;
+MATRIX *y,  *beta, *yhat, *r, *ces, *C;
+MATRIX *all;
+float Xcondition;
+double rvar, rmean, dof, tval, sigtval, vmf;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv)
 {
+  int n, v, c;
+  FILE *fp;
+  char *covarname;
+  char SumFile[2000];
+  char DatFile[2000];
+  char MatFile[2000];
+  char OutGDFile[2000];
 
   Progname = argv[0] ;
   argc --;
@@ -97,10 +131,151 @@ int main(int argc, char **argv)
 
   if(argc == 0) usage_exit();
 
+  printf("\n\n");
+  printf("%s ",Progname);
+  for(n=0; n < argc; n++) printf("%s ",argv[n]);
+  printf("\n\n");
+  printf("%s\n\n",vcid);
+
   parse_commandline(argc, argv);
   check_options();
-
   dump_options(stdout);
+
+  X = gdfMatrixDODS(fsgd,NULL);
+  if(X==NULL) exit(1);
+  if(debug) MatrixPrint(stdout,X);
+  
+
+  Xnorm = MatrixNormalizeCol(X,NULL);
+  Xcondition = sqrt(MatrixNSConditionNumber(Xnorm));
+  MatrixFree(&Xnorm);
+  printf("INFO: Normalized Design Matrix Condition Number is %g\n",
+	 Xcondition);
+  if(Xcondition > 100000){
+    printf("ERROR: Design matrix is badly conditioned, check for linear\n"
+	   "dependency  between columns (ie, two or more columns \n"
+	   "that add up to another column).\n\n");
+    exit(1);
+  }
+
+  printf("Extracting DepVar\n");
+  y = DVTgetDepVar(dvt,nDepVarList,DepVarList,wDepVar);
+
+  printf("Performing Estimation\n");
+  pinvX = MatrixPseudoInverse(X,NULL);
+  beta = MatrixMultiply(pinvX,y,NULL);
+  yhat = MatrixMultiply(X,beta,NULL);
+  r = MatrixSubtract(y,yhat,NULL);
+  dof = X->rows-X->cols;
+  rvar = VectorVar(r, &rmean); 
+  rvar = rvar * (X->rows-1)/dof;
+
+  printf("Beta: -----------------\n");
+  MatrixPrint(stdout,beta);
+  printf("---------------------------------\n\n");
+  printf("rvar = %g, rstd = %g\n",rvar,sqrt(rvar));
+
+  C = gdfContrastDODS(fsgd, wClass, wCovar);
+  printf("C: -----------------\n");
+  MatrixPrint(stdout,C);
+  printf("---------------------------------\n\n");
+  ces = MatrixMultiply(C,beta,NULL);
+  vmf = ContrastVMF(X,C);
+  tval = ces->rptr[1][1]/sqrt(rvar*vmf);
+  sigtval = sigt(tval, rint(dof));
+  printf("ces = %g, vmf = %g, t = %g, sigt = %g\n",
+	 ces->rptr[1][1],vmf,tval,sigtval);
+
+  sprintf(SumFile,"%s.sum",OutBase);
+  fp = fopen(SumFile,"w");
+  fprintf(fp,"mri_gdfglm summary file\n\n");
+  fprintf(fp,"Group Descriptor File %s\n",GDFile);
+  fprintf(fp,"Dependent Variable File %s\n",DVTFile);
+  fprintf(fp,"Dependent Variable Weights: ");
+  if(wDepVar == NULL)
+    fprintf(fp," all 1s\n");
+  else{
+    fprintf(fp,"\n");
+    for(n=0; n < nwDepVar; n++)
+      fprintf(fp," %s %g\n",DepVarList[n],wDepVar[n]);
+  }
+
+  fprintf(fp,"\n");
+  fprintf(fp,"Class Contrast Weights: ");
+  if(nwClass == 0)
+    fprintf(fp," all 1s\n");
+  else{
+    fprintf(fp,"\n");
+    for(n=0; n < nwClass; n++)
+      fprintf(fp," %s %g\n",fsgd->classlabel[n],wClass[n]);
+  }
+  fprintf(fp,"\n");
+
+  fprintf(fp,"Covar Contrast Weights: ");
+  if(nwCovar == 0)
+    if(!TestOffset) fprintf(fp," all 1s\n");
+    else            fprintf(fp," all 0s\n");
+  else{
+    fprintf(fp,"\n");
+    for(n=0; n < nwCovar; n++)
+      fprintf(fp," %s %g",CovarList[n],wCovar[n]);
+    fprintf(fp,"\n");
+  }
+  fprintf(fp,"TestOffset = %d\n",TestOffset);
+  fprintf(fp,"\n");
+
+  fprintf(fp,"Parameter Estimates and Contrast Weighting:\n\n");
+  n = 0;
+  for(v=0; v < fsgd->nvariables+1; v++){
+    if(v==0) covarname = "Offset";
+    else     covarname = fsgd->varlabel[v-1];
+    for(c=0; c < fsgd->nclasses; c++){
+      fprintf(fp,"%-10s %-10s  %12.5f   %5.2f\n",fsgd->classlabel[c],
+	      covarname,beta->rptr[n+1][1],C->rptr[1][n+1]);
+      n++;
+    }
+    fprintf(fp,"\n");
+  }
+  fprintf(fp,"\n");
+
+  fprintf(fp,"Residual Variance %g\n",rvar);
+  fprintf(fp,"Residual StdDev   %g\n",sqrt(rvar));
+  fprintf(fp,"DOF %g\n",dof);
+  fprintf(fp,"\n");
+
+  fprintf(fp,"Contrast Effect Size       %g\n",ces->rptr[1][1]);
+  fprintf(fp,"Variance Reduction Factor  %g\n",1/vmf);
+  fprintf(fp,"t-Ratio                    %g\n",tval);
+  fprintf(fp,"Significance               %g\n",sigtval);
+  fprintf(fp,"\n");
+  fclose(fp);
+  
+  /*----------------------------------------*/
+  sprintf(DatFile,"%s.dat",OutBase);
+  fp = fopen(DatFile,"w");
+  for(n=0; n < fsgd->ninputs; n++){
+    fprintf(fp,"%2d ",n);
+    if(KeepSubjId) fprintf(fp,"%s",fsgd->subjid[n]);
+    for(v=0; v < fsgd->nvariables; v++)
+      fprintf(fp," %g",fsgd->varvals[n][v]);
+    fprintf(fp," %g %g",y->rptr[n+1][1],yhat->rptr[n+1][1]);
+    fprintf(fp,"\n");
+  }
+  fclose(fp);
+
+  /*----------------------------------------*/
+  sprintf(MatFile,"%s.mat",OutBase);
+  all = MatrixHorCat(X,y,NULL);
+  all = MatrixHorCat(all,yhat,NULL);
+  all = MatrixHorCat(all,r,NULL);
+  MatlabWrite(all,MatFile,"X");
+
+  /*----------------------------------------*/
+  sprintf(OutGDFile,"%s.gdf",OutBase);
+  fp = fopen(OutGDFile,"w");
+  gdfPrintHeader(fp,fsgd);
+  fclose(fp);
+
 
   return(0);
 }
@@ -109,6 +284,8 @@ static int parse_commandline(int argc, char **argv)
 {
   int  nargc , nargsused;
   char **pargv, *option ;
+  DVT *dvttmp;
+  float ftmp[2000];
 
   if(argc < 1) usage_exit();
 
@@ -126,17 +303,21 @@ static int parse_commandline(int argc, char **argv)
     if (!strcasecmp(option, "--help"))  print_help() ;
     else if (!strcasecmp(option, "--version")) print_version() ;
     else if (!strcasecmp(option, "--debug"))   debug = 1;
+    else if (!strcasecmp(option, "--keepid"))  KeepSubjId = 1;
 
     else if (!strcmp(option, "--gdf")){
       if(nargc < 1) argnerr(option,1);
       GDFile = pargv[0];
+      fsgd0 = gdfRead(GDFile,0);
+      if(fsgd0 == NULL) exit(1); 
       nargsused = 1;
     }
-    else if (!strcmp(option, "--dvtf")){
+    else if (!strcmp(option, "--dvt")){
       if(nargc < 1) argnerr(option,1);
       DVTFile = pargv[0];
-      dvt = ReadDVT(DVTFile);
-      DumpDVT(dvt,stdout);
+      dvttmp = DVTread(DVTFile);
+      dvt0 = DVTtranspose(dvttmp);
+      DVTfree(&dvttmp);
       nargsused = 1;
     }
     else if (!strcmp(option, "--classes")){
@@ -178,10 +359,12 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcmp(option, "--wdepvar")){
       if(nargc < 1) argnerr(option,1);
       while(nth_is_arg(nargc, pargv, nargsused)){
-	sscanf(pargv[nargsused],"%f",&wDepVar[nwDepVar]);
+	sscanf(pargv[nargsused],"%f",&ftmp[nwDepVar]);
 	nwDepVar++;
 	nargsused++;
       }
+      wDepVar = (float *)calloc(sizeof(float),nwDepVar);
+      memcpy(wDepVar,ftmp,sizeof(float)*nwDepVar);
     }
     else if (!strcmp(option, "--wlms")){
       if(nargc < 1) argnerr(option,1);
@@ -191,22 +374,28 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcmp(option, "--wclass")){
       if(nargc < 1) argnerr(option,1);
       while(nth_is_arg(nargc, pargv, nargsused)){
-	sscanf(pargv[nargsused],"%f",&wClass[nwClass]);
+	sscanf(pargv[nargsused],"%f",&ftmp[nwClass]);
 	nwClass++;
 	nargsused++;
       }
+      wClass = (float *)calloc(sizeof(float),nwClass);
+      memcpy(wClass,ftmp,sizeof(float)*nwClass);
     }
     else if (!strcmp(option, "--wcovar")){
       if(nargc < 1) argnerr(option,1);
       while(nth_is_arg(nargc, pargv, nargsused)){
-	sscanf(pargv[nargsused],"%f",&wCovar[nwCovar]);
+	sscanf(pargv[nargsused],"%f",&ftmp[nwCovar]);
 	nwCovar++;
 	nargsused++;
       }
+      wCovar = (float *)calloc(sizeof(float),nwCovar+1); 
+      memcpy(&wCovar[1],ftmp,sizeof(float)*nwCovar);
+      wCovar[0] = 0.0;
+      //Note: the first weight is for offset
     }
-    else if (!strcmp(option, "--testoffset")){
-      TestOffset = 1;
-    }
+
+    else if(!strcmp(option, "--testoffset")) TestOffset = 1;
+
     else if (!strcmp(option, "--o")){
       if(nargc < 1) argnerr(option,1);
       OutBase = pargv[0];
@@ -240,19 +429,20 @@ static void print_usage(void)
   printf("\n");
   printf("   --classes Class1 Class2 : use subset of classes  \n");
   printf("   --covar Covar1 Corvar2 ... : use subset of covars\n");
-  printf("   --covarprune Covar Min Max : exclude when out of range\n");
+  //printf("   --covarprune Covar Min Max : exclude when out of range\n");
   printf("   --depvar DepVar1 <DepVar2 ...> : spec dependent variables \n");
   printf("   --wdepvar wdv1 wdv2 ... : weight depvars (default is 1) \n");
-  printf("   --wlms DepVar \n");
+  //printf("   --wlms DepVar \n");
 
 
   printf("\n");
   printf("   --wclass wc1 wc2 ... : Class weights (def 1)\n");
   printf("   --wcovar wcv1 wcvw ... : Covar slope weights  \n");
-  printf("   --testoffset : test offset, not covariat slope \n");
+  printf("   --testoffset : test offset, not covariate slope \n");
 
   printf("\n");
   printf("   --o output base name\n");
+  printf("   --keepid : print subjid in output.dat\n");
 
   printf("\n");
 }
@@ -261,8 +451,130 @@ static void print_help(void)
 {
   print_usage() ;
   printf(
-  "Performs glm analysis given group descirptor file
-   and dependent variable table\n");
+  "
+Performs glm analysis given group descriptor file (GDF) and dependent
+variable table (DVT).
+
+
+--gdf gdffile
+
+Path to the GDF. See http://surfer.nmr.mgh.harvard.edu/docs/fsgdf.txt
+for more info. This file will have a list of Classes and Variables.
+Hereafter, the Variables are referred to as Covariates.
+
+--dvt dvtfile
+
+Path to the dependent variable table (DVT). This is a text file that
+contains the data table. The first column is the list the names of
+each row. The first row is the list of the names of each column. There
+needs to be a text place-holder at the first row/column. The rest
+of the table is filled with numbers. Each column should be a subject, 
+and each row an observation for that subject. The arguments of --depvar
+must come from the row names. A DVT is produced by make-segvol-table.
+
+--classes Class1 <Class2 ...>
+
+Use only the subjects that belong to the specfied list of classes.
+The class names must come from the classes as specified in the GDF. If
+unspecfied, all classes are used.
+
+--covar Covar1 <Covar2 ...>
+
+Use only the variables that belong to the specfied list. The names
+must come from the variables as specified in the GDF. If unspecfied,
+all variables are used.
+
+--depvar DepVar1 <DepVar2 ...>
+
+Select variables from the DVT. The a weighted average of variables
+will be computed as the final dependent variable. If unspecified, all
+variables will be used. See --wdepvar.
+
+--wdepvar wDepVar1 wDepVar2 ...
+
+Set the weights of the dependent variables. The final dependent
+variable will be computed as a weighted average of the dependent
+variables. The number of weights must be equal to either the number of
+DepVars listed in --depvar or (if --depvar is unspecfied) the number
+of dependent variables in the DVT. If unspecfied, the weights are set
+to compute a simple average.
+
+--wclass WC1 WC2 ...
+
+Class weights for establishing a contrast. The number of weights must
+be equal to the number of classes (ie, the number listed in --classes
+or the number in the GDF). If unspecified, all weights are set to 1.
+This applies only to the contrast; if the weight of a class is set to
+0, that class is still included in the parameter estimation. If
+positive and negative weights are used, they should sum to the same
+value.
+
+--wcovar WCV1 WCV2 ...
+
+Covariate weights for establishing a contrast. The number of weights
+must be equal to the number of covariates (ie, the number listed in
+--covar or the number in the GDF). If unspecified, all weights are set
+to 1.  This applies only to the contrast; if the weight of a covariate
+is set to 0, that covariate is still included in the parameter
+estimation. If positive and negative weights are used, they should sum
+to the same value.
+
+--testoffset
+
+The offset is like a special covariate.
+
+--o basename
+
+Base name of output files. There will be four output files created:
+(1) the summary file (basename.sum), (2) the data file (basename.dat),
+(3) the GDF (basename.gdf), and a matrix file (basename.mat). The 
+summary file has a list of the parameters used in the analysis
+as well as the results, including parameter estimates, contrast
+effect size, and signficance. The data file contains a table of 
+the final data with each subject on a different row. The first
+column is the subject number, the next nCV are the nCV covariates,
+the next column is the final dependent variable, and the final column 
+is the best fit of the dependent variable. The GDF is the final
+GDF; this will be the same as the input GDF if no classes, covariates
+or subjects have been excluded. The matfile is a matrix in matlab4
+format that contains the design matrix concatenated with the 
+final dependent variable, the fit of final dependent variable,
+and the residual.
+
+EXAMPLES:
+
+Consider the following Group Descriptor File:
+------------------------------------------
+GroupDescriptorFile 1
+  Title AlbertGroup
+  Class NormMale   
+  Class AlzMale    
+  Class NormFemale 
+  CLASS AlzFemale  
+  DefaultVariable Age
+  Variables   Age MMSE
+Input 003007 AlzMale 75 30 
+...
+------------------------------------------
+
+(1) Test whether the left hippocampal volume signficantly varies 
+with MMSE for the Alzheimer group regressing out the effect of gender 
+and age:
+
+mri_gdfglm --gdf albert.gdf --dvt asegvol.dat --o lhipmmse 
+  --wclass 0.5 -0.5 0.5 -0.5  --wcovar 0 1 
+  --depvar Left-Hippocampus 
+
+(2) Test whether the left-right difference in hippocampal volume 
+signficantly varies across gender using only the normal subjects,
+and regressing out the effect of age but not MMSE.
+
+mri_gdfglm --gdf albert.gdf --dvt asegvol.dat --o hip-lrdiff-mvf 
+  --depvar Left-Hippocampus Right-Hippocampus --wdepvar  1 -1 
+  --classes NormMale NormFemale   --wclass  1 -1  --covar Age 
+  --testoffset 
+
+");
   exit(1) ;
 }
 /* --------------------------------------------- */
@@ -283,6 +595,9 @@ static void argnerr(char *option, int n)
 /* --------------------------------------------- */
 static void check_options(void)
 {
+  int n,nC,nV;
+  char **ppctmp;
+
   if(GDFile == NULL){
     printf("ERROR: no gdf file\n");
     exit(1);
@@ -299,22 +614,108 @@ static void check_options(void)
     printf("ERROR: no dep vars specified\n");
     exit(1);
   }
-  if(nwClass != 0 && nClassList != 0 && nwClass != nClassList ){
-    printf("ERROR: diff number of classes and class weights\n");
-    exit(1);
-  }
-  if(nwCovar != 0 && nCovarList != 0 && nwCovar != nCovarList ){
-    printf("ERROR: diff number of covars and covar weights\n");
-    exit(1);
+  else{
+    for(n=0; n < nDepVarList; n++){
+      if(DVTgetNameIndex(dvt0,DepVarList[n],2) == -1){
+	printf("ERROR: DepVar %s does not exist\n",DepVarList[n]);
+	exit(1);
+      }
+    }
   }
   if(nwDepVar != 0 && nDepVarList != 0 && nwDepVar != nDepVarList ){
     printf("ERROR: diff number of dep vars and weights\n");
     exit(1);
   }
-  /* Check that DepVars, Covars, and Classes are not repeated */
+  if(nClassList != 0){
+    for(n=0; n < nClassList; n++){
+      if(gdfClassNo(fsgd0,ClassList[n]) == -1){
+	printf("ERROR: Class %s does not exist\n",ClassList[n]);
+	exit(1);
+      }
+    }
+    if(CheckReps(ClassList,nClassList)){
+      printf("ERROR: repetition found in class list\n");
+      exit(1);
+    }
+  }
+  if(nCovarList != 0){
+    for(n=0; n < nCovarList; n++){
+      if(gdfGetVarLabelNo(fsgd0,CovarList[n]) == -1){
+	printf("ERROR: Covar %s does not exist\n",CovarList[n]);
+	exit(1);
+      }
+    }
+    if(CheckReps(CovarList,nCovarList)){
+      printf("ERROR: repetition found in covar list\n");
+      exit(1);
+    }
+  }
 
-  if(TestOffset && nwCovar != 0){
-    printf("ERROR: cannot test offset and set covar weights\n");
+  if(CheckReps(DepVarList,nDepVarList)){
+    printf("ERROR: repetition found in dep var list\n");
+    exit(1);
+  }
+
+  if(WLMSDepVar != NULL){
+    if(DVTgetNameIndex(dvt0,WLMSDepVar,2) == -1){
+      printf("ERROR: WLMS DepVar %s does not exist\n",WLMSDepVar);
+      exit(1);
+    }      
+    /* Should have a check here to make sure that wlms depvar
+       is not redundant with DepVarList and that DepVarList
+       exists. */
+  }
+
+  /* Get new fsgd if needed */
+  if(nClassList != 0 || nCovarList != 0){
+    if(nClassList == 0) nC = -1;
+    else                nC = nClassList;
+    if(nCovarList == 0) nV = -1;
+    else                nV = nCovarList;
+    printf("Getting FSGDF Subset nC=%d, nV=%d\n",nC,nV);
+    fflush(stdout);
+    fsgd = gdfSubSet(fsgd0,nC,ClassList,nV,CovarList);
+    if(fsgd == NULL) exit(1);
+  } else fsgd = fsgd0;
+
+  /* Prune DVT if needed */
+  if(nClassList != 0){
+    printf("INFO: pruning DVT rows\n");
+    ppctmp = gdfCopySubjIdppc(fsgd);
+    //DVTdump(dvt0,stdout);
+    dvt = DVTpruneRows(dvt0,fsgd->ninputs,ppctmp);
+    if(dvt==NULL) exit(1);
+  } else dvt = dvt0;
+
+  if(nwClass != 0 && nClassList != 0 && nwClass != nClassList ){
+    printf("ERROR: diff number of classes and class weights\n");
+    exit(1);
+  }
+  if(nwClass != 0 && nwClass != fsgd->nclasses){
+    printf("ERROR: diff number of classes and class weights\n");
+    exit(1);
+  }
+  if(TestOffset){
+    if(nwCovar == 0)
+      wCovar = (float *) calloc(sizeof(float),fsgd->nvariables+1);
+    wCovar[0] = 1.0;
+  }
+  else if(wCovar == NULL){
+    wCovar = (float *) calloc(sizeof(float),fsgd->nvariables+1);
+    for(n=1; n < fsgd->nvariables+1; n++) wCovar[n] = 1.0;
+    wCovar[0] = 0.0;
+  }
+  if(debug){
+    for(n=0; n < fsgd->nvariables+1; n++) 
+      printf("wCovar[%d] = %g\n",n,wCovar[n]);
+  }
+
+  if(nwCovar != 0 && nCovarList != 0 && nwCovar != nCovarList ){
+    printf("ERROR: diff number of covars and covar weights\n");
+    exit(1);
+  }
+  if(nwCovar != 0 && nwCovar != fsgd->nvariables ){
+    printf("ERROR: diff number of covars and covar weights\n");
     exit(1);
   }
 
@@ -371,8 +772,6 @@ static void dump_options(FILE *fp)
     }
   }
 
-
-
   fprintf(fp,"Dependent Variables (%d)\n",nDepVarList);    
   for(n = 0; n < nDepVarList; n++){
     fprintf(fp,"%2d %s ",n+1,DepVarList[n]);
@@ -392,6 +791,27 @@ static void dump_options(FILE *fp)
   fprintf(fp," \n");
   fprintf(fp," \n");
 
+  if(debug){
+    fprintf(fp,"----------------------------------------\n");
+    fprintf(fp,"Dependent Variable Table\n");
+    DVTdump(dvt,stdout);
+    fprintf(fp,"----------------------------------------\n");
+    if(dvt != dvt0){
+      fprintf(fp,"----------------------------------------\n");
+      fprintf(fp,"Dependent Variable Table (Original)\n");
+      DVTdump(dvt0,stdout);
+      fprintf(fp,"----------------------------------------\n");
+    }
+
+    fprintf(fp,"Group Descriptor\n");
+    gdfPrintHeader(fp,fsgd);
+    fprintf(fp,"----------------------------------------\n");
+    if(fsgd != fsgd0){
+      fprintf(fp,"Group Descriptor (Original)\n");
+      gdfPrintHeader(fp,fsgd0);
+      fprintf(fp,"----------------------------------------\n");
+    }
+  }
   return;
 }
 /*---------------------------------------------------------------*/
@@ -456,12 +876,57 @@ static int nth_is_arg(int nargc, char **argv, int nth)
 //  return(0);
 //}
 
+/*------------------------------------------------------------*/
+static int CheckReps(char **List, int nList)
+{
+  int n1, n2;
 
-DVT *ReadDVT(char *dvtfile)
+  for(n1 = 0; n1 < nList; n1++){
+    for(n2 = n1+1; n2 < nList; n2++){
+      if(strcmp(List[n1],List[n2])==0) return(1);
+    }
+  }
+  return(0);
+}
+
+/*------------------------------------------------------------
+  ContrastVMF() - computes the variance multiplication factor
+  ------------------------------------------------------------*/
+static double ContrastVMF(MATRIX *X, MATRIX *C)
+{
+  float vmf;
+  MATRIX *Xt, *XtX, *iXtX, *CiXtX, *Ct, *CiXtXCt;
+
+  Xt = MatrixTranspose(X,NULL);
+  XtX = MatrixMultiply(Xt,X,NULL);
+  iXtX = MatrixInverse(XtX,NULL);
+  CiXtX = MatrixMultiply(C,iXtX,NULL);
+  Ct = MatrixTranspose(C,NULL);
+  CiXtXCt = MatrixMultiply(CiXtX,Ct,NULL);
+
+  vmf = CiXtXCt->rptr[1][1];
+
+  MatrixFree(&Xt);
+  MatrixFree(&XtX);
+  MatrixFree(&iXtX);
+  MatrixFree(&CiXtX);
+  MatrixFree(&Ct);
+  MatrixFree(&CiXtXCt);
+  
+  return(vmf);
+}
+
+
+
+
+/*------------------------------------------------------------*/
+/*------------------------------------------------------------*/
+/*------------------------------------------------------------*/
+DVT *DVTread(char *dvtfile)
 {
   DVT *dvt = NULL;
   FILE *fp;
-  int nrows, ncols, r, c, lentmpstr;
+  int nrows, ncols, r, c;
   char tmpstr[4001];
 
   if(!fio_FileExistsReadable(dvtfile)){
@@ -487,17 +952,11 @@ DVT *ReadDVT(char *dvtfile)
 
   nrows = nrows-1;
   ncols = ncols-1;
-
   printf("%s  nrows = %d, ncols = %d\n",dvtfile,nrows,ncols);
 
-  dvt = (DVT *)calloc(sizeof(DVT),1);
-
-  dvt->dvtfile = (char *) calloc(sizeof(char),strlen(dvtfile)+1);
-  memcpy(dvt->dvtfile,dvtfile,strlen(dvtfile));
-
-  dvt->D = MatrixAlloc(nrows,ncols,MATRIX_REAL);
-  dvt->RowNames = (char **)calloc(sizeof(char *),nrows);
-  dvt->ColNames = (char **)calloc(sizeof(char *),ncols);
+  dvt = DVTalloc(nrows,ncols,dvtfile);
+  if(dvt == NULL) return(NULL);
+  dvt->transposed = 0;
 
   fp = fopen(dvtfile,"r");
 
@@ -505,18 +964,14 @@ DVT *ReadDVT(char *dvtfile)
   fscanf(fp,"%s",tmpstr); /* swallow the first one */
   for(c=0; c < ncols; c++){
     fscanf(fp,"%s",tmpstr);
-    lentmpstr = strlen(tmpstr);
-    dvt->ColNames[c] = (char *) calloc(sizeof(char),lentmpstr+1);
-    memcpy(dvt->ColNames[c],tmpstr,lentmpstr);
+    DVTsetName(dvt,c,tmpstr,2);
   }
 
   for(r=0; r < nrows; r++){
     /* First column is row name */
     fscanf(fp,"%s",tmpstr);
-    lentmpstr = strlen(tmpstr);
-    dvt->RowNames[r] = (char *) calloc(sizeof(char),lentmpstr+1);
-    memcpy(dvt->RowNames[r],tmpstr,lentmpstr);
-    printf("r=%d, RowName = %s\n",r,dvt->RowNames[r]);
+    DVTsetName(dvt,r,tmpstr,1);
+    //printf("r=%d, RowName = %s\n",r,dvt->RowNames[r]);
     for(c=0; c < ncols; c++){
       fscanf(fp,"%f",&dvt->D->rptr[r+1][c+1]);
     }
@@ -525,9 +980,8 @@ DVT *ReadDVT(char *dvtfile)
   fclose(fp);
   return(dvt);
 }
-
 /*-----------------------------------------------------*/
-int DumpDVT(DVT *dvt, FILE *fp)
+int DVTdump(DVT *dvt, FILE *fp)
 {
   int c,r;
 
@@ -536,17 +990,186 @@ int DumpDVT(DVT *dvt, FILE *fp)
   fprintf(fp,"%s \n",dvt->dvtfile);
   fprintf(fp,"nrows = %d\n",dvt->D->rows);
   fprintf(fp,"ncols = %d\n",dvt->D->cols);
+  fprintf(fp,"transposed = %d\n",dvt->transposed);
 
   fprintf(fp,"\n");
+  fprintf(fp,"Column Names \n");
   for(c = 0; c < dvt->D->cols; c++)
     fprintf(fp,"%3d %s\n",c+1,dvt->ColNames[c]);
 
   fprintf(fp,"\n");
+  fprintf(fp,"Row Names \n");
   for(r = 0; r < dvt->D->rows; r++)
     fprintf(fp,"%3d %s\n",r+1,dvt->RowNames[r]);
+
+  fprintf(fp,"\n");
+  for(r = 0; r < dvt->D->rows; r++){
+    fprintf(fp,"%3d %s",r+1,dvt->RowNames[r]);
+    for(c = 0; c < dvt->D->cols; c++){
+      fprintf(fp," %g",dvt->D->rptr[r+1][c+1]);
+    }
+    fprintf(fp,"\n");
+  }
 
   fprintf(fp,"\n");
 
   return(0);
 
+}
+/*-----------------------------------------------------*/
+DVT *DVTalloc(int nrows, int ncols, char *dvtfile)
+{
+  DVT *dvt;
+
+  dvt = (DVT *)calloc(sizeof(DVT),1);
+
+  if(dvtfile != NULL){
+    dvt->dvtfile = (char *) calloc(sizeof(char),strlen(dvtfile)+1);
+    memcpy(dvt->dvtfile,dvtfile,strlen(dvtfile));
+  }
+
+  dvt->D = MatrixAlloc(nrows,ncols,MATRIX_REAL);
+  dvt->RowNames = (char **)calloc(sizeof(char *),nrows);
+  dvt->ColNames = (char **)calloc(sizeof(char *),ncols);
+
+  return(dvt);
+}
+/*-----------------------------------------------------
+  DVTsetName() - sets the name of either the nth row or
+  nth column depending upon dimid (1=row, 2=col). nth
+  is 0-based.
+  -----------------------------------------------------*/
+int DVTsetName(DVT *dvt, int nth, char *Name, int dimid)
+{
+  int len;
+
+  if( (dimid == 1 && nth >= dvt->D->rows) ||
+      (dimid == 2 && nth >= dvt->D->cols) ){
+    printf("ERROR: nth=%d exceeds matrix dimensions\n",nth);
+    return(1);
+  }
+
+  len = strlen(Name);
+  if(dimid == 1){
+    dvt->RowNames[nth] = (char *) calloc(sizeof(char),len+1);
+    memcpy(dvt->RowNames[nth],Name,len);
+  }
+  else{
+    dvt->ColNames[nth] = (char *) calloc(sizeof(char),len+1);
+    memcpy(dvt->ColNames[nth],Name,len);
+  }
+
+  return(0);
+}
+/*-----------------------------------------------------*/
+int DVTfree(DVT **ppdvt)
+{
+  DVT *dvt;
+  int r,c;
+
+  dvt = *ppdvt;
+
+  if(dvt->dvtfile != NULL) free(dvt->dvtfile);
+  for(c = 0; c < dvt->D->cols; c++) free(dvt->ColNames[c]);
+  for(r = 0; r < dvt->D->rows; r++) free(dvt->RowNames[r]);
+  free(dvt->ColNames);
+  free(dvt->RowNames);
+  MatrixFree(&(dvt->D));
+
+  free(*ppdvt);
+
+  return(0);
+}
+/*-----------------------------------------------------*/
+DVT *DVTtranspose(DVT *dvt)
+{
+  DVT *dvtt;
+  int r,c;
+
+  dvtt = DVTalloc(dvt->D->cols,dvt->D->rows,dvt->dvtfile);
+
+  for(c = 0; c < dvtt->D->cols; c++) 
+    DVTsetName(dvtt,c,dvt->RowNames[c],2);
+  for(r = 0; r < dvtt->D->rows; r++) 
+    DVTsetName(dvtt,r,dvt->ColNames[r],1);
+
+  MatrixTranspose(dvt->D, dvtt->D);
+
+  dvtt->transposed = !dvt->transposed;
+
+  return(dvtt);
+}
+/*-----------------------------------------------------
+  DVTgetNameIndex() - gets the 0-based index of Name.
+  If dimid=1, gets from RowNames, othwise ColNames.
+  Returns -1 if Name is not in list.
+  -----------------------------------------------------*/
+int DVTgetNameIndex(DVT *dvt, char *Name, int dimid)
+{
+  if(dimid == 1)
+    return(gdfStringIndex(Name, dvt->RowNames, dvt->D->rows));
+  else
+    return(gdfStringIndex(Name, dvt->ColNames, dvt->D->cols));
+  return(-1); // should never get here.
+}
+/*--------------------------------------------------------
+  
+  --------------------------------------------------------*/
+DVT *DVTpruneRows(DVT *indvt, int nKeep, char **KeepList)
+{
+  DVT *dvt;
+  int n, index, c,j;
+
+  dvt = DVTalloc(nKeep,indvt->D->cols,indvt->dvtfile);
+  for(n=0; n < nKeep; n++){
+    //printf("n=%d, %s\n",n,KeepList[n]);
+    index = gdfStringIndex(KeepList[n],indvt->RowNames,indvt->D->rows);
+    if(index == -1){
+      printf("ERROR: DVT RowName --%s-- not found\n",KeepList[n]);
+      for(j=0; j < dvt->D->rows; j++)
+	printf("%2d %s   %s\n",j,KeepList[n],indvt->RowNames[j]);
+      return(NULL);
+    }
+    DVTsetName(dvt,n,KeepList[n],1);
+    for(c=0; c < indvt->D->cols; c++)
+      dvt->D->rptr[n+1][c+1] = indvt->D->rptr[index][c+1];
+  }
+
+  for(c=0; c < indvt->D->cols; c++)
+    DVTsetName(dvt,c,indvt->ColNames[c],2);
+
+  return(dvt);
+}
+
+/*------------------------------------------------------
+  DVTgetDepVar() - extracts dependent variables, weights,
+  returns a single column.
+  ------------------------------------------------------*/
+MATRIX *DVTgetDepVar(DVT *dvt, 
+		     int   nDepVars, 
+		     char **DepVarList,
+		     float *DepVarWeight)
+{
+  MATRIX *y, *W;
+  int index,n;
+  float wc;
+
+  W = MatrixConstVal(1, dvt->D->cols, 1, NULL);
+  if(nDepVars != 0){
+    for(n=0; n < dvt->D->cols; n++){
+      index = gdfStringIndex(dvt->ColNames[n],DepVarList,nDepVarList);
+      if(index == -1) wc = 0;
+      else if(DepVarWeight != NULL) wc = DepVarWeight[index];
+      else wc = 1.0;
+      W->rptr[n+1][1] = wc;
+    }
+  }
+  //printf("W-------------\n");
+  //MatrixPrint(stdout,W);
+  //printf("W-------------\n");
+
+  y = MatrixMultiply(dvt->D,W,NULL);
+  MatrixFree(&W);
+
+  return(y);
 }
