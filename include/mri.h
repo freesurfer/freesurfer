@@ -268,13 +268,6 @@ MRI        *MRIapplyHistogram(MRI *mri_src, MRI *mri_dst, HISTOGRAM *histo) ;
 MRI        *MRIcrunch(MRI *mri_src, MRI *mri_dst) ;
 HISTOGRAM  *MRIgetEqualizeHisto(MRI *mri, HISTOGRAM *histo_eq, int low, 
                                 int norm) ;
-MRI        *MRIhistoNormalize(MRI *mri_src, MRI *mri_norm, MRI *mri_template,
-                  int low) ;
-MRI        *MRIsplineNormalize(MRI *mri_src, MRI *mri_dst, MRI **pmri_bias,
-                               float *inputs, float *outputs, int npoints) ;
-MRI        *MRIadaptiveHistoNormalize(MRI *mri_src, MRI *mri_norm, 
-                                      MRI *mri_template, int wsize,
-                                      int hsize, int low) ;
 
 /* these are adaptive (i.e. only operate on a subregion of the whole image */
 MRI_REGION *MRIclipRegion(MRI *mri, MRI_REGION *reg_src, MRI_REGION *reg_clip);
@@ -288,14 +281,7 @@ MRI        *MRIapplyHistogramToRegion(MRI *mri_src, MRI *mri_dst,
                                     HISTOGRAM *histo, MRI_REGION *region) ;
 HISTOGRAM  *MRIgetEqualizeHistoRegion(MRI *mri, HISTOGRAM *histo_eq, int low, 
                                       MRI_REGION *region, int norm) ;
-MRI        *MRIhistoNormalizeRegion(MRI *mri_src, MRI *mri_norm, 
-                                    MRI *mri_template, int low, 
-                                    MRI_REGION *wreg, 
-                                    MRI_REGION *h_src_reg, 
-                                    MRI_REGION *h_tmp_reg) ;
 MRI        *MRIextractRegion(MRI *mri_src, MRI *mri_dst, MRI_REGION *region) ;
 
-/* used in MRIsplineNormalize */
-#define MAX_SPLINE_POINTS  30
 
 #endif
