@@ -1703,14 +1703,6 @@ Volm_tErr Volm_ConvertIdxToScanner ( mriVolumeRef this,
   eResult = Volm_Verify( this );
   DebugAssertThrow( (eResult == Volm_tErr_NoErr) );
   
-#if 0  
-  DebugNote( ("Checking parameters") );
-  DebugAssertThrowX( (iIdx != NULL && oScanner != NULL), 
-		     eResult, Volm_tErr_InvalidParamater );
-  eResult = Volm_VerifyIdx_( this, iIdx );
-  DebugAssertThrow( (eResult == Volm_tErr_NoErr) );
-#endif
-  
   /* make sure we have the scanner transform */
   DebugAssertThrowX( (NULL != this->mScannerTransform),
 		     eResult, Volm_tErr_ScannerTransformNotPresent );
