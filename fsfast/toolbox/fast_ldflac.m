@@ -1,7 +1,7 @@
 function flac = fast_ldflac(flacfile)
 % flac = fast_ldflac(flacfile)
 %
-% $Id: fast_ldflac.m,v 1.6 2004/11/01 05:10:28 greve Exp $
+% $Id: fast_ldflac.m,v 1.7 2004/11/14 22:30:54 greve Exp $
 
 flac = [];
 if(nargin > 1)
@@ -19,6 +19,8 @@ flac.mask = '';
 flac.inorm = [];
 flac.whiten = 0;
 flac.fixacf = 0;
+flac.format = '';
+flac.formatext = '';
 %flac.ev = []; % Leave commented
 if(nargin == 0) return; end
 
@@ -70,6 +72,15 @@ while(1)
    case 'whiten',      flac.whiten      = sscanf(tline,'%*s %d',1);
    case 'acfbins',     flac.acfbins     = sscanf(tline,'%*s %d',1);
    case 'fixacf',      flac.fixacf      = sscanf(tline,'%*s %d',1);
+   case 'FORMAT',      
+    flac.format  = sscanf(tline,'%*s %s',1);
+    if(strcmp(flac.format,'bvolume')) flac.formatext = ''; 
+    elseif(strcmp(flac.format,'mgh')) flac.formatext = '.mgh'; 
+    elseif(strcmp(flac.format,'mgz')) flac.formatext = '.mgz'; 
+    else
+      fprintf('ERROR: format %s unrecognized\n',flac.format);
+      flac=[]; return; 
+    end
    case 'EV', 
     ev = flac_ev_parse(tline);
     if(isempty(ev)) flac=[]; return; end
