@@ -5,11 +5,11 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2003/04/11 15:58:19 $
-// Revision       : $Revision: 1.13 $
+// Revision Date  : $Date: 2003/04/14 19:23:42 $
+// Revision       : $Revision: 1.14 $
 //
 ////////////////////////////////////////////////////////////////////
-char *MRI_WATERSHED_VERSION = "$Revision: 1.13 $";
+char *MRI_WATERSHED_VERSION = "$Revision: 1.14 $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -340,11 +340,6 @@ get_option(int argc, char *argv[],STRIP_PARMS *parms)
     usageHelp();
     exit(0);
   }
-  else if (!strcmp(option, "-version"))
-  {
-    fprintf(stderr,"%s\n\n", MRI_WATERSHED_VERSION );
-    exit(0);
-  } 
   else if (!strcmp(option, "more"))
   {
     parms->skull_type=1;
@@ -547,7 +542,7 @@ int main(int argc, char *argv[])
 
   /************* Command line****************/
 
-  nargs = handle_version_option (argc, argv, "$Id: mri_watershed.cpp,v 1.13 2003/04/11 15:58:19 tosa Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_watershed.cpp,v 1.14 2003/04/14 19:23:42 tosa Exp $");
   argc -= nargs ;
   if (1 == argc)
     exit (0);
@@ -4021,7 +4016,7 @@ static unsigned long MRISpeelBrain(float h,MRI* mri_dst,MRIS *mris,unsigned char
   // calculate the normals
   MRIScomputeNormals(mris);
         
-  free(mri_buff);
+  MRIfree(&mri_buff);
   fprintf(stderr,"\n      mri_strip_skull: done peeling brain");
   return brainsize;
 }
@@ -6189,13 +6184,13 @@ static void MRISComputeLocalValues(MRI_variables *MRI_var)
     {
       distance=0;n=0;
       for (m=0;m<v->vnum;m++)
-  {
-    if(mris->vertices[v->v[m]].marked==1)
       {
-        distance+=mris->vertices[v->v[m]].mean;
-        n++;
+	if(mris->vertices[v->v[m]].marked==1)
+	{
+	  distance+=mris->vertices[v->v[m]].mean;
+	  n++;
+	}
       }
-  }
       if(n)
         distance/=(float)n;
       else distance=1000;
@@ -6207,14 +6202,14 @@ static void MRISComputeLocalValues(MRI_variables *MRI_var)
       vsphere->z=v->val2;
 
       if(!n)
-  {
-    vsphere->mean=0.5;
-    nmissing++;
-  }
+      {
+	vsphere->mean=0.5;
+	nmissing++;
+      }
       else
-  vsphere->mean=1.;
-      
-    }else
+	vsphere->mean=1.;
+    }
+    else
     {
       vsphere->marked=0;
       nmissing++;
@@ -6224,21 +6219,21 @@ static void MRISComputeLocalValues(MRI_variables *MRI_var)
       /*if Atlas Mode on, we can use the spatial information to infer where the surface is*/
       if(MRI_var->atlas)
       {
-  sse=vsphere->tz;
-  if(sse>0)
-    {   
-      x = v->x ; y = v->y ; z = v->z ; 
-      MRIworldToVoxel(mri, x, y, z, &xw, &yw, &zw) ;
-      MRIsampleVolume(mri, xw, yw, zw, &val) ;    
-      if(val>mean_csf && val<MRI_var->WM_intensity)/*probably GM intensity*/
-        {
-    vsphere->z=(val+vsphere->z)/2.;
-    if(SQR(sse)<1.)
-      vsphere->mean=0.5;
-    else
-      vsphere->mean=0.25;
-        }
-    }
+	sse=vsphere->tz;
+	if(sse>0)
+	{   
+	  x = v->x ; y = v->y ; z = v->z ; 
+	  MRIworldToVoxel(mri, x, y, z, &xw, &yw, &zw) ;
+	  MRIsampleVolume(mri, xw, yw, zw, &val) ;    
+	  if(val>mean_csf && val<MRI_var->WM_intensity)/*probably GM intensity*/
+	  {
+	    vsphere->z=(val+vsphere->z)/2.;
+	    if(SQR(sse)<1.)
+	      vsphere->mean=0.5;
+	    else
+	      vsphere->mean=0.25;
+	  }
+	}
       }
     }
   }
@@ -6266,10 +6261,10 @@ static void MRISComputeLocalValues(MRI_variables *MRI_var)
       n=1;
       for (m=0;m<v->vnum;m++)
       {
-  csf+=mrisphere->vertices[v->v[m]].tx*mrisphere->vertices[v->v[m]].ty;
-  w1+=mrisphere->vertices[v->v[m]].ty;
-  gm+=mrisphere->vertices[v->v[m]].tz*mrisphere->vertices[v->v[m]].ty;
-  n++;
+	csf+=mrisphere->vertices[v->v[m]].tx*mrisphere->vertices[v->v[m]].ty;
+	w1+=mrisphere->vertices[v->v[m]].ty;
+	gm+=mrisphere->vertices[v->v[m]].tz*mrisphere->vertices[v->v[m]].ty;
+	n++;
       }
       vsphere->x=csf/w1;
       vsphere->z=gm/w1;
@@ -6285,35 +6280,35 @@ static void MRISComputeLocalValues(MRI_variables *MRI_var)
     vsphere->tz=vsphere->z;
   }
   for(k=0;k<nvertices;k++)
-    {
-      v=&mris->vertices[k];
-      vsphere = &mrisphere->vertices[k] ;
-      /*after two iterations compute the local statistics*/
-      
-      csf=vsphere->tx;
-      gm=vsphere->tz;
-      mean_csf=csf;
-      var_csf=SQR(csf);
-      mean_gray=gm;
-      var_gray=SQR(gm);
-      n=1;
-      for (m=0;m<v->vnum;m++)
   {
-    csf=mrisphere->vertices[v->v[m]].tx;
-    gm=mrisphere->vertices[v->v[m]].tz;
-    mean_csf+=csf;
-    mean_gray+=gm;
-    var_csf+=SQR(csf);
-    var_gray+=SQR(gm);
-    n++;
-  }
-      vsphere->x=mean_csf/(float)n;
-      vsphere->z=mean_gray/(float)n;
-      vsphere->odx=MAX(0.,var_csf/(float)n-SQR(vsphere->x));
-      vsphere->odz=MAX(0.,var_gray/(float)n-SQR(vsphere->z));
-      vsphere->odx=MAX(5.,MIN(20.,sqrt(vsphere->odx)));
-      vsphere->odz=MAX(5.,MIN(20.,sqrt(vsphere->odz)));
+    v=&mris->vertices[k];
+    vsphere = &mrisphere->vertices[k] ;
+    /*after two iterations compute the local statistics*/
+    
+    csf=vsphere->tx;
+    gm=vsphere->tz;
+    mean_csf=csf;
+    var_csf=SQR(csf);
+    mean_gray=gm;
+    var_gray=SQR(gm);
+    n=1;
+    for (m=0;m<v->vnum;m++)
+    {
+      csf=mrisphere->vertices[v->v[m]].tx;
+      gm=mrisphere->vertices[v->v[m]].tz;
+      mean_csf+=csf;
+      mean_gray+=gm;
+      var_csf+=SQR(csf);
+      var_gray+=SQR(gm);
+      n++;
     }
+    vsphere->x=mean_csf/(float)n;
+    vsphere->z=mean_gray/(float)n;
+    vsphere->odx=MAX(0.,var_csf/(float)n-SQR(vsphere->x));
+    vsphere->odz=MAX(0.,var_gray/(float)n-SQR(vsphere->z));
+    vsphere->odx=MAX(5.,MIN(20.,sqrt(vsphere->odx)));
+    vsphere->odz=MAX(5.,MIN(20.,sqrt(vsphere->odz)));
+  }
 
   MRISsetNeighborhoodSize(mris, 1) ;
   /*reaverage the local values*/
@@ -7214,7 +7209,7 @@ static int calcBrainSize(const MRI* mri_src, const MRIS *mris)
 	if (MRIvox(mri_buff,i,j,k)!=64)
 	  brainsize++;
       }
-  free(mri_buff);
+  MRIfree(&mri_buff);
   return brainsize;
 }
 #endif
