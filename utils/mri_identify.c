@@ -69,7 +69,7 @@ int is_brik(char *fname)
   if(dot)
   {
     dot++;
-    if(!strcmp(dot, "BRIK"))
+    if(!stricmp(dot, "BRIK"))
       return(1);
   }
 
@@ -87,7 +87,7 @@ int is_siemens(char *fname)
   dot = strrchr(fname, '.');
   if(dot)
   {
-    if(!strcmp(dot+1, "ima"))
+    if(!stricmp(dot+1, "ima"))
       return(1);
   }
 

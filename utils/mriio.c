@@ -18,6 +18,7 @@
 #include <string.h>
 #include <math.h>
 #include <string.h>
+#include <ctype.h>
 #include <unistd.h>
 #include <memory.h>
 #include <sys/stat.h>
@@ -3051,7 +3052,7 @@ siemensRead(char *fname, int read_volume, int frame)
   int i;
   int width, height, depth;
   char fname_format[STRLEN], *dot, fname_use[STRLEN];
-  int initial_image_number, ino_min, ino_max;
+  int initial_image_number, ino_min, ino_max, upper_ext ;
   char slice_direction[7];
   short *pixel_data;
   double center_x, center_y, center_z;
@@ -3069,10 +3070,11 @@ siemensRead(char *fname, int read_volume, int frame)
     ErrorReturn(NULL,
                 (ERROR_BADPARM, "siemensRead(%s): bad file name", fname));
 
-  if(strcmp(dot, ".ima") != 0)
+  if(stricmp(dot, ".ima") != 0)
     ErrorReturn(NULL,
                 (ERROR_BADPARM, "siemensRead(%s): bad file name", fname));
 
+  upper_ext = isupper((int)*(dot+1)) ;
   for(dot--;isdigit((int)*dot) && dot > fname;dot--);
 
   if(dot != fname)
@@ -3080,7 +3082,10 @@ siemensRead(char *fname, int read_volume, int frame)
     dot++;
     strncpy(fname_format, fname, dot - fname);
     fname_format[dot-fname] = '\0';
-    strcat(fname_format, "%d.ima");
+    if (upper_ext)
+      strcat(fname_format, "%d.IMA");
+    else
+      strcat(fname_format, "%d.ima");
     }
   else
     {
@@ -3088,7 +3093,10 @@ siemensRead(char *fname, int read_volume, int frame)
       dot++;
     strncpy(fname_format, fname, dot - fname);
     fname_format[dot-fname] = '\0';
-    strcat(fname_format, "%d.ima");
+    if (upper_ext)
+      strcat(fname_format, "%d.IMA");
+    else
+      strcat(fname_format, "%d.ima");
     }
 
   initial_image_number = strtol(dot, NULL, 10);
