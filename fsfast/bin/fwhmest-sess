@@ -84,7 +84,7 @@ echo "# maskstem    $mask"      >> $outfile
 echo "# polyfit     $PolyOrder" >> $outfile
 echo "# RunListFile $rlf"       >> $outfile
 echo "#"   >> $outfile
-echo "# Subject Run DLH Resels Volume" >> $outfile
+echo "# Subject Run FWHMx FWHMy FWHMz FWHMxyz" >> $outfile
 
 set StartTime = `date`;
 
@@ -111,12 +111,19 @@ foreach sess ($SessList)
     $cmd |& tee -a $LF
     if($status) exit 1;
 
-    set fwhm = `cat $instem.fwhm.dat`;
-    set DLH = $fwhm[2];
-    set Volume = $fwhm[4];
-    set Resels = $fwhm[6];
-    echo "$sessid $run  $DLH $Resels $Volume" | tee -a $outfile
+    #set fwhm = `cat $instem.fwhm.dat`;
+    #set DLH = $fwhm[2];
+    #set Volume = $fwhm[4];
+    #set Resels = $fwhm[6];
+    #echo "$sessid $run  $DLH $Resels $Volume" | tee -a $outfile
 
+    set tmp = `cat $instem.fwhm.dat | grep FWHM | grep mm`;
+    set FWHMx = $tmp[3];
+    set FWHMy = $tmp[7];
+    set FWHMz = $tmp[11];
+    set FWHMxyz = `echo "$FWHMx * $FWHMy * $FWHMz" | bc -l `;
+    set dd = ($sessid $run $FWHMx $FWHMy $FWHMz $FWHMxyz)
+    printf "%-15s %s %6.4f %6.4f %6.4f %6.4f\n" $dd | tee -a $outfile
   end
 
 end
