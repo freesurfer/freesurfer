@@ -1,108 +1,141 @@
 #############################################################################
-# Name:    FreeSurfeEnv.csh
+# Name:    FreeSurferEnv.csh
 # Purpose: sets up the environment to run FreeSurfer and FS-FAST 
 # Usage:   
 #   1. Create an environment variable called FREESURFER_HOME and set it
 #      to the directory in which FreeSurfer is installed.
 #   2. From a csh or tcsh shell or (.login): 
 #      source FreeSurfeEnv.csh
-#   3. There are four environment variables that, if set prior
-#      to sourcing, will not be changed:
+#   3. There are environment variables that should point to locations
+#      of software or data used by FreeSurfer. If set prior
+#      to sourcing, they will not be changed, but will otherwise be
+#      set to default locations:
 #        FSFAST_HOME
-#        FSL_DIR
-#        AFNI_DIR  
 #        SUBJECTS_DIR
-#        NO_MINC
 #        MINC_BIN_DIR  
 #        MINC_LIB_DIR  
-#        NO_FSFAST
+#        AFNI_DIR  
+#        FSL_DIR
 #   4. If NO_MINC is set (to anything), then all the MINC stuff is ignored.
 #   5. If NO_FSFAST is set (to anything), then the startup.m stuff is
 #      ignored
+#   6. The script will print the final settings for the above variables
+#      as well as any warnings about missing directories. If 
+#      FS_FREESURFERENV_NO_OUTPUT is set, then no normal output will
+#      be made (only error messages).
 #
-# $Id: FreeSurferEnv.csh,v 1.1 2003/05/07 21:52:04 kteich Exp $
+#   The most convenient way to use this script is to write another
+#   script that sets FREESURFER_HOME and possibly SUBJECTS_DIR for
+#   your set-up, as well as NO_MINC, NO_FSFAST, or
+#   FS_FREESURFERENV_NO_OUTPUT as appropriate, and then source this
+#   script.
+#
+#
+# $Id: FreeSurferEnv.csh,v 1.2 2003/05/09 16:08:12 kteich Exp $
 #############################################################################
 
-setenv os `uname -s`
+set VERSION = '$Id: FreeSurferEnv.csh,v 1.2 2003/05/09 16:08:12 kteich Exp $'
 
-## Turn on verboseness if desired ##
-if($?FS_VERBOSE) then
-  set echo
-  set verbose
+## Get the name of the operating system
+set os = `uname -s`
+setenv OS $os
+
+
+## Set this environment variable to suppress the output.
+if( $?FS_FREESURFERENV_NO_OUTPUT ) then
+    set output = 0
+else
+    set output = 1
 endif
 
-set VERSION = '$Id: FreeSurferEnv.csh,v 1.1 2003/05/07 21:52:04 kteich Exp $'
 
-echo "Setting up enviroment for FreeSurfer/FS-FAST"
-echo $VERSION
-
-## ------- Set up a working path ---------- ##
-if(! $?path ) then
-  set path = ( . ~/bin /bin /usr/bin /usr/local/bin /usr/bsd \
-               /usr/sbin /sbin /usr/etc /usr/ucb)
-  rehash;
+if( $output ) then
+    echo "Setting up enviroment for FreeSurfer/FS-FAST"
+    echo $VERSION
 endif
 
-### ------- Set and check the FREESURFER_HOME directory ----------- ###
+
+## Check if FREESURFER_HOME variable exists, then check if the actual
+## directory exists.
 if(! $?FREESURFER_HOME) then
   echo "ERROR: environment variable FREESURFER_HOME is not defined"
-  echo "Run the command 'setenv FREESURFER_HOME  FreeSurferHome'"
-  echo "where FreeSurferHome is the directory where FreeSurfer is installed"
-endif
-if(! -e $FREESURFER_HOME) then
-  echo "ERROR: $FREESURFER_HOME does not exist.  Environment not reset.";
+  echo "       Run the command 'setenv FREESURFER_HOME  FreeSurferHome'"
+  echo "       where FreeSurferHome is the directory where FreeSurfer is"
+  echo "       installed."
   exit 1;
 endif
 
-# ----- Override pre-existing settings -------- #
-if(! $?FS_OVERRIDE) setenv FS_OVERRIDE 0;
+if(! -e $FREESURFER_HOME) then
+  echo "ERROR: $FREESURFER_HOME "
+  echo "       does not exist. Check that this value is correct.";
+  exit 1;
+endif
 
-##------------------------------------------------------------##
+## Now we'll set directory locations based on FREESURFER_HOME for use
+## by other programs and scripts.
+
+## If FS_OVERRIDE is set, this script will automatically assign
+## defaults to all locations. Otherwise, it will only do so if the
+## variable isn't already set
+if(! $?FS_OVERRIDE) then
+    setenv FS_OVERRIDE 0
+endif
+
+
 if(! $?FSFAST_HOME || $FS_OVERRIDE) then
   setenv FSFAST_HOME $FREESURFER_HOME/fsfast
 endif
-##------------------------------------------------------------##
+
 if(! $?SUBJECTS_DIR  || $FS_OVERRIDE) then
   setenv SUBJECTS_DIR $FREESURFER_HOME/subjects
 endif
-##------------------------------------------------------------##
+
 if(! $?NO_MINC && (! $?MINC_BIN_DIR  || $FS_OVERRIDE)) then
   setenv MINC_BIN_DIR $FREESURFER_HOME/minc/bin
 endif
-##------------------------------------------------------------##
+
 if(! $?NO_MINC && (! $?MINC_LIB_DIR  || $FS_OVERRIDE)) then
   setenv MINC_LIB_DIR $FREESURFER_HOME/minc/lib
 endif
-##------------------------------------------------------------##
+
 if(! $?AFNI_DIR  || $FS_OVERRIDE) then
   setenv AFNI_DIR $FREESURFER_HOME/afni
 endif
 
-##------------------------------------------------------------##
 if(! $?FSL_DIR  || $FS_OVERRIDE) then
   setenv FSL_DIR $FREESURFER_HOME/fsl
 endif
 
+setenv MRI_DIR          $FREESURFER_HOME 
+setenv CSURF_DIR        $FREESURFER_HOME
+setenv LOCAL_DIR        $FREESURFER_HOME/local
+setenv FUNCTIONALS_DIR  $FREESURFER_HOME/sessions
+
+## Make sure these directories exist.
 foreach d ($FSFAST_HOME $SUBJECTS_DIR $AFNI_DIR)
-  if(! -e $d )   echo "WARNING: $d does not exist"
+  if(! -e $d ) then
+      if( $output ) then
+	  echo "WARNING: $d does not exist"
+      endif
+  endif
 end
 
-echo "FREESURFER_HOME $FREESURFER_HOME"
-echo "FSFAST_HOME     $FSFAST_HOME"
-echo "AFNI_DIR        $AFNI_DIR"
-echo "FSL_DIR         $FSL_DIR"
-echo "SUBJECTS_DIR    $SUBJECTS_DIR"
+## Set the Tcl/Tk and Tix library locations.
+setenv TCL_LIBRARY   $LOCAL_DIR/lib/tcl8.3
+setenv TK_LIBRARY    $LOCAL_DIR/lib/tk8.3
+setenv TIX_LIBRARY   $LOCAL_DIR/lib/$os/tix4.1
 
-setenv CSURF_DIR $FREESURFER_HOME
+if( $output ) then
+    echo "FREESURFER_HOME $FREESURFER_HOME"
+    echo "FSFAST_HOME     $FSFAST_HOME"
+    echo "AFNI_DIR        $AFNI_DIR"
+    echo "FSL_DIR         $FSL_DIR"
+    echo "SUBJECTS_DIR    $SUBJECTS_DIR"
+endif
 
-## Get the name of the operating system ##
-set os = `uname -s`
-
-setenv LOCAL_DIR        $CSURF_DIR/local      # utils
-setenv FUNCTIONALS_DIR  $CSURF_DIR/sessions   # demo functional ???
-
-## Talairach subject in anatomical database ##
+## Talairach subject in anatomical database.
 setenv FS_TALAIRACH_SUBJECT talairach
+
 
 ######## --------- Functional Analysis Stuff ----------- #######
 if( ! $?NO_FSFAST) then
@@ -125,28 +158,34 @@ if( ! $?NO_FSFAST) then
   set tmp2 = `grep FMRI_ANALYSIS_DIR $SUF | wc -l`;
   
   if($tmp1 == 0 && $tmp2 == 0) then
-    echo ""
-    echo "WARNING: The $SUF file does not appear to be";
-    echo "         configured correctly. You may not be able"
-    echo "         to run the FS-FAST programs";
-    echo "Try adding the following three lines to $SUF"
-    echo "----------------cut-----------------------"
-    echo "fsfasthome = getenv('FSFAST_HOME');"         
-    echo "fsfasttoolbox = sprintf('%s/toolbox',fsfasthome);"
-    echo "path(path,fsfasttoolbox);"                        
-    echo "clear fsfasthome fsfasttoolbox;"
-    echo "----------------cut-----------------------"
-    echo ""
+      if( $output ) then
+	  echo ""
+	  echo "WARNING: The $SUF file does not appear to be";
+	  echo "         configured correctly. You may not be able"
+	  echo "         to run the FS-FAST programs";
+	  echo "Try adding the following three lines to $SUF"
+	  echo "----------------cut-----------------------"
+	  echo "fsfasthome = getenv('FSFAST_HOME');"         
+	  echo "fsfasttoolbox = sprintf('%s/toolbox',fsfasthome);"
+	  echo "path(path,fsfasttoolbox);"                        
+	  echo "clear fsfasthome fsfasttoolbox;"
+	  echo "----------------cut-----------------------"
+	  echo ""
+       endif
   endif
 endif
 
 ### ----------- MINC Stuff -------------- ####
 if(! $?NO_MINC) then
   if(! -d $MINC_BIN_DIR) then
-    echo "WARNING: $MINC_BIN_DIR does not exist.";
+      if( $output ) then
+	  echo "WARNING: $MINC_BIN_DIR does not exist.";
+      endif
   endif
   if(! -d $MINC_LIB_DIR) then
-    echo "WARNING: $MINC_LIB_DIR does not exist.";
+      if( $output ) then
+	  echo "WARNING: $MINC_LIB_DIR does not exist.";
+      endif
   endif
   ## Set Load library path ##
   if(! $?LD_LIBRARY_PATH ) then
@@ -159,31 +198,26 @@ endif
 ### ----------- AFNI ------------ ####
 setenv AFNI_BIN $AFNI_DIR/$os
 if(! -d $AFNI_BIN) then
-  echo "WARNING: $AFNI_BIN does not exist.";
+    if( $output ) then
+	echo "WARNING: $AFNI_BIN does not exist.";
+    endif
 endif
 
 ### ----------- FSL ------------ ####
 setenv FSL_BIN $FSL_DIR/bin
 if(! -d $FSL_BIN) then
-  echo "WARNING: $FSL_BIN does not exist.";
+    if( $output ) then
+	echo "WARNING: $FSL_BIN does not exist.";
+    endif
 endif
 
-setenv LOCAL_DIR     $CSURF_DIR/local
 
-### ---------- TCL/TK: Version ------------- ###
-## Version 7.4/4.0 is needed for tksurfer stuff
-## Version 8 is needed for tony's browser
-## We'll set the version to 7.4/4.0 and put tony's
-## browser into a wrapper which sets the version to
-## 8.0 before running the browser. See browse-sessions.
-#setenv TCL_LIBRARY   $LOCAL_DIR/lib/tcl7.4
-#setenv TK_LIBRARY    $LOCAL_DIR/lib/tk4.0
-setenv TCL_LIBRARY   $LOCAL_DIR/lib/tcl8.3  # tcl startup
-setenv TK_LIBRARY    $LOCAL_DIR/lib/tk8.3   # tk startup
-
-setenv TIX_LIBRARY   $LOCAL_DIR/lib/$os/tix4.1
-
-setenv DIAG          0x4040
+## Set up the path. They should probably already have one, but set a
+## basic one just in case they don't. Then add one with all the
+## directories we just set.
+if(! $?path ) then
+  set path = ( ~/bin /bin /usr/bin /usr/local/bin )
+endif
 
 set path = ( $path \
              $FSFAST_HOME/bin     \
@@ -200,18 +234,14 @@ if(! $?NO_MINC) then
 endif
 rehash;
 
-# next to be removed!
-setenv MRI_DIR $CSURF_DIR  # back compat (test w/o)
 
-if($FS_OVERRIDE) then
-  setenv FS_OVERRIDE = 0;
-  echo "INFO: reseting FS_OVERRIDE to 0"
+## Add path to OS-specific dynamic libraries.
+if(! $?LD_LIBRARY_PATH ) then
+    setenv LD_LIBRARY_PATH  $FREESURFER_HOME/lib/$os
+else
+    setenv LD_LIBRARY_PATH  "$LD_LIBRARY_PATH":"$FREESURFER_HOME/lib/$os"
 endif
 
-if($?FS_VERBOSE) then
-  unset echo ;
-  unset verbose;
-endif
 
 exit 0;
 ####################################################################
