@@ -1,5 +1,5 @@
 % fast_group_glm.m - see groupreg-sess
-% $Id: fast_group_glm.m,v 1.1 2004/12/01 21:04:04 greve Exp $
+% $Id: fast_group_glm.m,v 1.2 2005/01/10 18:37:16 greve Exp $
 %
 % InstemList = splitstring('$InstemList');
 % FLAXMatList = splitstring('$FLAXMatList');
@@ -14,7 +14,7 @@
 
 tic;
 
-ver = '$Id: fast_group_glm.m,v 1.1 2004/12/01 21:04:04 greve Exp $';
+ver = '$Id: fast_group_glm.m,v 1.2 2005/01/10 18:37:16 greve Exp $';
 fprintf('%s\n',ver);
 
 Cflastruct = load(FLAConMat);
@@ -89,6 +89,7 @@ for slice = 1:ns
   fprintf('slice = %d (%g)\n',slice,toc);
 
   y = [];
+  yvar = [];
   for n = 1:ninputs
 
     instem = deblank(InstemList(n,:));
@@ -98,8 +99,20 @@ for slice = 1:ns
       if(QuitOnError) exit; end
       return;
     end
-
     yn = reshape(yn,[nvslice nf])';
+
+    if(WLS)
+      invarstem = deblank(InVarStemList(n,:));      
+      ynvar = fast_ldbslice(invarstem,slice-1);
+      if(isempty(ynvar))
+	fprintf('ERROR: loading %s\n',invarstem);
+	if(QuitOnError) exit; end
+	return;
+      end
+      ynvar = ynvar(:)';
+      yvar = [yvar; ynvar];
+    end
+    
     y = [y; yn];
 
     xflafile = deblank(FLAXMatList(n,:));
@@ -110,7 +123,16 @@ for slice = 1:ns
     Cfla0 = zeros(1,NBetafla);
     Cfla0(1:NBetatask) = Cfla;
     
+  end % Loop over inputs
+  
+  if(WLS)
+    % Rescale Var so that the sum=1 at each voxel
+    yvarsum = sum(yvar);
+    yvar = yvar ./ repmat(yvarsum,[ninputs 1]);
+    % Divide each input by the variance
+    y = y ./ yvar;
   end
+  
 
   [beta rvar] = fast_glmfit(y,X);
   [F, Fsig, ces] = fast_fratio(beta,X,rvar,C);
