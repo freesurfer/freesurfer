@@ -53,7 +53,7 @@ char *class_names[GAUSSIAN_NCLASSES] =
                     STATIC DATA
 -------------------------------------------------------*/
 
-static int  total = 0, buffered = 0, total_computed = 0 ;
+static int  total_calls = 0, buffered = 0, total_computed = 0 ;
 
 /*-----------------------------------------------------
                     STATIC PROTOTYPES
@@ -402,9 +402,9 @@ MRICclassify(MRIC *mric, MRI *mri_src, MRI *mri_dst,
   VECTOR     *v_inputs ;
   GCLASSIFY  *gc ;
   int        x, y, z, width, depth, height, classno, nclasses, xt, yt,zt,
-             round, x1, y1, z1, x0, type ;
+             round, x1, y1, z1, x0, type, c ;
   BUFTYPE    *psrc, src, *pdst, *pclasses ;
-  float      prob, *pprobs = NULL ;
+  float      prob, *pprobs = NULL, total, min_output ;
   Real       xrt, yrt, zrt ;
   MRI        *mri_priors, *mri_in ;
   MRI_REGION bounding_box ;
@@ -486,6 +486,16 @@ MRICclassify(MRIC *mric, MRI *mri_src, MRI *mri_dst,
             break ;
           case CLASSIFIER_RBF:
             classno = RBFclassify(rbf, v_inputs) ;
+            min_output = RVECTOR_ELT(rbf->v_outputs, 1) ;
+            for (c = 2 ; c <= rbf->noutputs ; c++)
+              if (RVECTOR_ELT(rbf->v_outputs, c) < min_output)
+                min_output = RVECTOR_ELT(rbf->v_outputs, c) ;
+            for (total = 0.0f, c = 1 ; c <= rbf->noutputs ; c++)
+              total += RVECTOR_ELT(rbf->v_outputs, c)-min_output ;
+            if (!FZERO(total))
+              prob = (RVECTOR_ELT(rbf->v_outputs, classno+1)-min_output)/total;
+            else
+              prob = 0.0f ;
             break ;
           }
           
@@ -493,8 +503,7 @@ MRICclassify(MRIC *mric, MRI *mri_src, MRI *mri_dst,
             *pclasses++ = (BUFTYPE)classno*CLASS_SCALE ;
           if (pprobs)
             *pprobs++ = prob ;
-          if ((classno == WHITE_MATTER)
-              && prob > conf)
+          if ((classno == WHITE_MATTER) && (prob > conf))
             *pdst++ = src ;
           else
             *pdst++ = 0 /*src*/ ;
@@ -505,11 +514,14 @@ MRICclassify(MRIC *mric, MRI *mri_src, MRI *mri_dst,
     mri_in = mri_classes ;  /* all subsequent rounds */
   }
 
-  fprintf(stderr, "total = %d, buffered = %d, computed = %d\n",
-          total, buffered, total_computed);
-  fprintf(stderr, "efficiency = %2.3f%%\n", 
-          100.0f*(float)(mri_src->width*mri_src->height*mri_src->depth) / 
-          (float)total_computed) ;
+  if (Gdiag & DIAG_SHOW)
+  {
+    fprintf(stderr, "total = %d, buffered = %d, computed = %d\n",
+            total_calls, buffered, total_computed);
+    fprintf(stderr, "efficiency = %2.3f%%\n", 
+            100.0f*(float)(mri_src->width*mri_src->height*mri_src->depth) / 
+            (float)total_computed) ;
+  }
   if (m_priors)
     MatrixFree(&m_priors) ;
 
@@ -541,7 +553,7 @@ MRICcomputeInputs(MRI *mri, int x,int y,int z,VECTOR *v_inputs,int features)
   char        *cp ;
 
   if (mri != mri_prev)   /* reset counters */
-    total = buffered = total_computed = 0 ;
+    total_calls = buffered = total_computed = 0 ;
 
   if ((features & FEATURE_CPOLV) && (!mri_cpolv || !MRImatch(mri,mri_cpolv)
                                      || (mri != mri_prev)))
@@ -559,11 +571,11 @@ MRICcomputeInputs(MRI *mri, int x,int y,int z,VECTOR *v_inputs,int features)
     }
 
     if (!mri_cpolv)
-      mri_cpolv = MRIplaneOfLeastVarianceNormal(mri, NULL, POLV_WSIZE) ;
+      mri_cpolv = MRIcentralPlaneOfLeastVarianceNormal(mri, NULL, POLV_WSIZE) ;
     if (Gdiag & DIAG_WRITE)
       MRIwrite(mri_cpolv, "cpolv.mnc") ;
   }
-  total++ ;
+  total_calls++ ;
 /* 
    if the specified point is outside of the precomputed window,
    Update the window and compute a new set of input images.
@@ -728,18 +740,23 @@ MRICcomputeInputs(MRI *mri, int x,int y,int z,VECTOR *v_inputs,int features)
   if (features & FEATURE_CPOLV_MEAN3)
     VECTOR_ELT(v_inputs, index++) = (float)MRIvox(mri_cpolv_mean3, x0, y0, z0) ;
   if (features & FEATURE_CPOLV_MEAN5)
-    VECTOR_ELT(v_inputs, index++) = (float)MRIvox(mri_cpolv_mean5, x0, y0, z0) ;
+    VECTOR_ELT(v_inputs, index++) = (float)MRIvox(mri_cpolv_mean5, x0,y0,z0) ;
   if (features & FEATURE_CPOLV_MEDIAN3)
-    VECTOR_ELT(v_inputs, index++) = (float)MRIvox(mri_cpolv_median3, x0, y0, z0);
+    VECTOR_ELT(v_inputs, index++) = (float)MRIvox(mri_cpolv_median3, x0,y0,z0);
   if (features & FEATURE_CPOLV_MEDIAN5)
-    VECTOR_ELT(v_inputs, index++) = (float)MRIvox(mri_cpolv_median5, x0, y0, z0);
+    VECTOR_ELT(v_inputs, index++) = (float)MRIvox(mri_cpolv_median5, x0,y0,z0);
   if (features & FEATURE_MIN3)
     VECTOR_ELT(v_inputs, index++) = (float)MRIvox(mri_min3, x0, y0, z0) ;
   if (features & FEATURE_MIN5)
     VECTOR_ELT(v_inputs, index++) = (float)MRIvox(mri_min5, x0, y0, z0) ;
   if (features & FEATURE_MIN7)
     VECTOR_ELT(v_inputs, index++) = (float)MRIvox(mri_min7, x0, y0, z0) ;
-  
+  if (features & FEATURE_X_POSITION)
+    VECTOR_ELT(v_inputs, index++) = (float)x ;
+  if (features & FEATURE_Y_POSITION)
+    VECTOR_ELT(v_inputs, index++) = (float)y ;
+  if (features & FEATURE_Z_POSITION)
+    VECTOR_ELT(v_inputs, index++) = (float)z ;
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
