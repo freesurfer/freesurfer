@@ -659,9 +659,10 @@ static MRI *mri_read(char *fname, int type, int volume_flag, int start_frame, in
           for(k = 0;k < mri2->depth;k++)
             MRIFseq_vox(mri2, i, j, k, t) = MRIFseq_vox(mri, i, j, k, t + start_frame);
 
-  if(nan_inf_check(mri) != NO_ERROR)
+  // only check for newly created volume
+  if(nan_inf_check(mri2) != NO_ERROR)
   {
-    MRIfree(&mri);
+    MRIfree(&mri2);
     return(NULL);
   }
 
@@ -679,27 +680,27 @@ static int nan_inf_check(MRI *mri)
   if(mri->type != MRI_FLOAT)
     return(NO_ERROR);
 
-    for(i = 0;i < mri->width;i++)
-      for(j = 0;j < mri->height;j++)
-        for(k = 0;k < mri->depth;k++)
-          for(t = 0;t < mri->nframes;t++)
-            if(!devFinite((MRIFseq_vox(mri, i, j, k, t))))
-            {
-              if(devIsinf((MRIFseq_vox(mri, i, j, k, t))) != 0)
-              {
-                errno = 0;
-                ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "nan_inf_check(): Inf at voxel %d, %d, %d, %d", i, j, k, t));
-              }
-              else if(devIsnan((MRIFseq_vox(mri, i, j, k, t))))
-              {
-                errno = 0;
-                ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "nan_inf_check(): NaN at voxel %d, %d, %d, %d", i, j, k, t));
-              }
-              else
-              {
-                errno = 0;
-                ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "nan_inf_check(): bizarre value (not Inf, not NaN, but not finite) at %d, %d, %d, %d", i, j, k, t));
-              }
+  for(i = 0;i < mri->width;i++)
+    for(j = 0;j < mri->height;j++)
+      for(k = 0;k < mri->depth;k++)
+	for(t = 0;t < mri->nframes;t++)
+	  if(!devFinite((MRIFseq_vox(mri, i, j, k, t))))
+	  {
+	    if(devIsinf((MRIFseq_vox(mri, i, j, k, t))) != 0)
+	    {
+	      errno = 0;
+	      ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "nan_inf_check(): Inf at voxel %d, %d, %d, %d", i, j, k, t));
+	    }
+	    else if(devIsnan((MRIFseq_vox(mri, i, j, k, t))))
+	    {
+	      errno = 0;
+	      ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "nan_inf_check(): NaN at voxel %d, %d, %d, %d", i, j, k, t));
+	    }
+	    else
+	    {
+	      errno = 0;
+	      ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "nan_inf_check(): bizarre value (not Inf, not NaN, but not finite) at %d, %d, %d, %d", i, j, k, t));
+	    }
           }
 
   return(NO_ERROR);
@@ -12165,61 +12166,61 @@ readGCA(char *fname)
 MRI *
 MRIremoveNaNs(MRI *mri_src, MRI *mri_dst)
 {
-	int x, y, z, nans=0 ;
-	float val ;
+  int x, y, z, nans=0 ;
+  float val ;
 
-	if (mri_dst != mri_src)
-		mri_dst = MRIcopy(mri_src, mri_dst) ;
+  if (mri_dst != mri_src)
+    mri_dst = MRIcopy(mri_src, mri_dst) ;
 
-	for (x = 0 ; x < mri_dst->width ; x++)
+  for (x = 0 ; x < mri_dst->width ; x++)
+  {
+    for (y = 0 ; y < mri_dst->height ; y++)
+    {
+      for (z = 0 ; z < mri_dst->depth ; z++)
+      {
+	val = MRIgetVoxVal(mri_dst, x, y, z, 0) ;
+	if (!finite(val))
 	{
-		for (y = 0 ; y < mri_dst->height ; y++)
-		{
-			for (z = 0 ; z < mri_dst->depth ; z++)
-			{
-				val = MRIgetVoxVal(mri_dst, x, y, z, 0) ;
-				if (!finite(val))
-				{
-					nans++ ;
-					MRIsetVoxVal(mri_dst, x, y, z, 0, 0) ;
-				}
-			}
-		}
+	  nans++ ;
+	  MRIsetVoxVal(mri_dst, x, y, z, 0, 0) ;
 	}
-	if (nans > 0)
-		ErrorPrintf(ERROR_BADPARM, "WARNING: %d NaNs found in volume %s...\n", nans, mri_src->fname) ;
-	return(mri_dst) ;
+      }
+    }
+  }
+  if (nans > 0)
+    ErrorPrintf(ERROR_BADPARM, "WARNING: %d NaNs found in volume %s...\n", nans, mri_src->fname) ;
+  return(mri_dst) ;
 }
 
 static int
 rawWrite(MRI *mri, char *fname)
 {
-	int  x, y, z ;
-	FILE *fp ;
-	Real val ;
-	float fval ;
+  int  x, y, z ;
+  FILE *fp ;
+  Real val ;
+  float fval ;
 
-	fp = fopen(fname, "wb") ;
+  fp = fopen(fname, "wb") ;
 
-	for (x = 0 ; x < mri->width ; x++)
+  for (x = 0 ; x < mri->width ; x++)
+  {
+    for (y = 0 ; y < mri->height ; y++)
+    {
+      for (z = 0 ; z < mri->depth ; z++)
+      {
+	val = MRIgetVoxVal(mri, x, y, z, 0) ;
+	fval = (float)val ;
+	if (fwrite(&fval, sizeof(float), 1, fp) != 1)
 	{
-		for (y = 0 ; y < mri->height ; y++)
-		{
-			for (z = 0 ; z < mri->depth ; z++)
-			{
-				val = MRIgetVoxVal(mri, x, y, z, 0) ;
-				fval = (float)val ;
-				if (fwrite(&fval, sizeof(float), 1, fp) != 1)
-				{
-					errno = 0;
-					ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, 
-																			"rawWrite(): error writing to file %s", fname));
-				}
-			}
-		}
+	  errno = 0;
+	  ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, 
+				      "rawWrite(): error writing to file %s", fname));
 	}
+      }
+    }
+  }
 
-	fclose(fp) ;
-	return(NO_ERROR) ;
+  fclose(fp) ;
+  return(NO_ERROR) ;
 }
 
