@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2004/06/13 17:34:03 $
-// Revision       : $Revision: 1.104 $
+// Revision Date  : $Date: 2004/07/07 22:16:00 $
+// Revision       : $Revision: 1.105 $
 
 #include "tkmDisplayArea.h"
 #include "tkmMeditWindow.h"
@@ -1774,6 +1774,19 @@ DspA_tErr DspA_SetDisplayFlag ( tkmDisplayAreaRef this,
     
     break;
     
+  case DspA_tDisplayFlag_MaskFunctionalOverlayToAux:
+
+    /* if no func data or aux data, set to false. */
+    if( NULL == this->mpFunctionalVolume ||
+	NULL == this->mpVolume[tkm_tVolumeType_Aux] ) {
+      bNewValue = FALSE;
+    }
+    
+    /* if the flag is different, set dirty flag */
+    if( this->mabDisplayFlags[iWhichFlag] != bNewValue )
+      this->mbSliceChanged = TRUE;
+    
+    break;
   case DspA_tDisplayFlag_HistogramPercentChange:
     
     /* if no VLI data, set to false. */
@@ -5535,6 +5548,7 @@ DspA_tErr DspA_DrawFunctionalOverlayToFrame_ ( tkmDisplayAreaRef this ) {
   xColor3f              newColor    = {0,0,0};
   GLubyte*              pDest       = NULL;
   xVoxel                anaIdx;
+  float                 anaValue    = 0;
   int                   yMin        = 0;
   int                   yMax        = 0;
   int                   yInc        = 0;
@@ -5563,9 +5577,21 @@ DspA_tErr DspA_DrawFunctionalOverlayToFrame_ ( tkmDisplayAreaRef this ) {
       eFunctional = FunV_GetValueAtAnaIdx( this->mpFunctionalVolume,
 					   &anaIdx, TRUE, &funcValue );
       
-      /* if it was a valid voxel */
-      if( FunV_tErr_NoError == eFunctional ) {
-	
+
+      /* If we're masking to the aux volume, check its value first. */
+      if(this->mabDisplayFlags[DspA_tDisplayFlag_MaskFunctionalOverlayToAux]){
+
+	Volm_GetValueAtIdx( this->mpVolume[tkm_tVolumeType_Aux],
+			    &anaIdx, &anaValue );
+      }
+
+      /* if it was a valid voxel and if we're masking to aux the aux
+	 value is not 0 */
+      if( FunV_tErr_NoError == eFunctional &&
+      ((this->mabDisplayFlags[DspA_tDisplayFlag_MaskFunctionalOverlayToAux] && 
+	anaValue != 0)   ||
+       !this->mabDisplayFlags[DspA_tDisplayFlag_MaskFunctionalOverlayToAux])) {
+
 	/* Get the current color and convert it to float. */
 	color.mfRed   = (float)pDest[DspA_knRedPixelCompIndex] /
 	  (float)DspA_knMaxPixelValue;
@@ -5876,7 +5902,7 @@ DspA_tErr DspA_DrawSelectionToFrame_ ( tkmDisplayAreaRef this ) {
 	  xVoxl_GetZ(&anaIdx) != 0 ) {
 	
 
-	Volm_GetValueAtIdx_( this->mpSelection, &anaIdx, &value );
+	Volm_GetValueAtIdx( this->mpSelection, &anaIdx, &value );
 	if( 1.0 == value ) {
 	  
 	  /* get the current color in the buffer */

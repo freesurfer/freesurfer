@@ -60,6 +60,7 @@ typedef enum {
   DspA_tDisplayFlag_FunctionalOverlay,
   DspA_tDisplayFlag_FunctionalColorScaleBar,
   DspA_tDisplayFlag_MaskToFunctionalOverlay,
+  DspA_tDisplayFlag_MaskFunctionalOverlayToAux,
   DspA_tDisplayFlag_HistogramPercentChange,
   DspA_tDisplayFlag_SegmentationVolumeOverlay,
   DspA_tDisplayFlag_AuxSegmentationVolume,

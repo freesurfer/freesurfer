@@ -1,6 +1,6 @@
 #! /usr/bin/tixwish
 
-# $Id: tkmedit.tcl,v 1.78 2004/05/21 17:31:57 kteich Exp $
+# $Id: tkmedit.tcl,v 1.79 2004/07/07 22:16:07 kteich Exp $
 
 
 source $env(FREESURFER_HOME)/lib/tcl/tkm_common.tcl
@@ -64,6 +64,7 @@ set glDisplayFlag { \
   flag_FunctionalOverlay \
   flag_FunctionalColorScaleBar \
   flag_MaskToFunctionalOverlay \
+  flag_MaskFunctionalOverlayToAux \
   flag_HistogramPercentChange \
   flag_SegmentationVolumeOverlay \
   flag_AuxSegmentationVolumeOverlay \
@@ -273,6 +274,9 @@ set gBrushInfo(target)   $DspA_tBrushTarget(main)
 set gBrushInfo(radius)   1
 set gBrushInfo(shape)    $DspA_tBrushShape_Square
 set gBrushInfo(3d)       true
+set gBrushInfo(3dfill)   false
+set gBrushInfo(fuzzy)    0
+set gBrushInfo(distance) 0
 
 foreach tool "$DspA_tBrush_EditOne $DspA_tBrush_EditTwo" {
     set gEditBrush($tool,mode)  0
@@ -514,6 +518,13 @@ proc UpdateBrushInfo { inBrush inLow inHigh inNewValue inMode inCloneSource } {
     set gEditBrush($inBrush,new)          $inNewValue
     set gEditBrush($inBrush,mode)         $inMode
     set gEditBrush($inBrush,cloneSource)  $inCloneSource
+}
+
+proc UpdateAnatomicalFillInfo { ib3D inFuzzy inDistance } {
+    global gBrushInfo
+    set gBrushInfo(3dfill)   $ib3D
+    set gBrushInfo(fuzzy)    $inFuzzy
+    set gBrushInfo(distance) $inDistance
 }
 
 proc UpdateCursorColor { ifRed ifGreen ifBlue } {
@@ -1597,6 +1608,7 @@ proc DoEditBrushInfoDlog {} {
     global tkm_tVolumeType
     global gEditBrush
     global gVolume
+    global gBrushInfo
 
     set wwDialog .wwEditBrushInfoDlog
 
@@ -1605,78 +1617,112 @@ proc DoEditBrushInfoDlog {} {
 	
 	set fwTop                $wwDialog.fwTop
 	set fwInfo               $fwTop.fwInfo
+	set fwFillInfo           $fwTop.fwFillInfo
 	set fwButtons            $wwDialog.fwButtons
 	
 	frame $fwTop
 	
-  tixNoteBook $fwInfo
-  foreach tool "$DspA_tBrush_EditOne $DspA_tBrush_EditTwo" {
+	tixNoteBook $fwInfo
+	foreach tool "$DspA_tBrush_EditOne $DspA_tBrush_EditTwo" {
+	    
+	    $fwInfo add pane$tool -label $ksaBrushString($tool)
+	    
+	    set fw [$fwInfo subwidget pane$tool]
+	    set fwThresh         $fw.fwThresh
+	    set fwMode           $fw.fwMode
+	    set fwNewValue       $fw.fwNewValue
+	    set fwCloneSrc       $fw.fwCloneSrc
+	    set fwDefaults       $fw.fwDefaults
+	    
+	    # This is a hack. Even though the volume min/max of a COR volume
+	    # might be 0-253, 255 is still a valid value, so we'll change
+	    # the max here to allow that.
+	    set min $gVolume(0,minValue)
+	    set max $gVolume(0,maxValue)
+	    if { $max < 255 } { set max 255 }
+	    
+	    # low, high, and new value sliders
+	    tkm_MakeSliders $fwThresh \
+		[list \
+		     [list {"Low"} gEditBrush($tool,low) $min $max \
+			  200 "SetEditBrushConfiguration" 1] \
+		     [list {"High"} gEditBrush($tool,high) $min $max \
+			  200 "SetEditBrushConfiguration" 1 ]]
+	    
+	    tkm_MakeRadioButtons $fwMode y "Mode" gEditBrush($tool,mode) \
+		[list \
+		     [list text "New Value" $DspA_tBrushMode(set) \
+			  "SetBrushInfoModeParamsState set $fwCloneSrc $fwNewValue"] \
+		     [list text "Clone" $DspA_tBrushMode(clone) \
+			  "SetBrushInfoModeParamsState clone $fwCloneSrc $fwNewValue"]]
+	    
+	    tkm_MakeEntry $fwNewValue "New Value" gEditBrush($tool,new) \
+		6 "SetEditBrushConfiguration"
+	    
+	    tkm_MakeRadioButtons $fwCloneSrc y "Clone Source" \
+		gEditBrush($tool,cloneSource) \
+		[list \
+		     [list text "Main Volume" $tkm_tVolumeType(main) \
+			  "SetEditBrushConfiguration"] \
+		     [list text "Aux Volume"  $tkm_tVolumeType(aux) \
+			  "SetEditBrushConfiguration"]]
+	    
+	    
+	    
+	    # defaults button
+	    tkm_MakeButtons $fwDefaults \
+		[list \
+		     [list text "Restore Defaults" "SetBrushInfoToDefaults $tool"]]
+	    
+	    # pack them in a column
+	    pack $fwThresh $fwMode $fwNewValue $fwCloneSrc $fwDefaults \
+		-side top                           \
+		-anchor w                           \
+		-expand yes                         \
+		-fill x
+	}
+	
+	
+	# fill characteristics
+	tixLabelFrame $fwFillInfo \
+	    -label "Fill Parameters" \
+	    -labelside acrosstop \
+	    -options { label.padX 5 }
+	
+	set fwFillInfoSub [$fwFillInfo subwidget frame]
+	set fwFill      $fwFillInfoSub.fwFill
+	set fw3D        $fwFill.fw3D
+	set fwSliders   $fwFill.fwSliders
+	set fwNote      $fwFill.fwNotes
+	
+	frame $fwFill
 
-      $fwInfo add pane$tool -label $ksaBrushString($tool)
+	# 3d
+	tkm_MakeCheckboxes $fw3D y { 
+	    { text "3D" gBrushInfo(3dfill) "SendFillAnatomicalInfo" } }
 
-      set fw [$fwInfo subwidget pane$tool]
-      set fwThresh         $fw.fwThresh
-      set fwMode           $fw.fwMode
-      set fwNewValue       $fw.fwNewValue
-      set fwCloneSrc       $fw.fwCloneSrc
-      set fwDefaults       $fw.fwDefaults
-      
-      # This is a hack. Even though the volume min/max of a COR volume
-      # might be 0-253, 255 is still a valid value, so we'll change
-      # the max here to allow that.
-      set min $gVolume(0,minValue)
-      set max $gVolume(0,maxValue)
-      if { $max < 255 } { set max 255 }
-
-      # low, high, and new value sliders
-      tkm_MakeSliders $fwThresh \
-	  [list \
-	       [list {"Low"} gEditBrush($tool,low) $min $max \
-		    200 "SetEditBrushConfiguration" 1] \
-	       [list {"High"} gEditBrush($tool,high) $min $max \
-		    200 "SetEditBrushConfiguration" 1 ]]
-
-      tkm_MakeRadioButtons $fwMode y "Mode" gEditBrush($tool,mode) \
-	  [list \
-	       [list text "New Value" $DspA_tBrushMode(set) \
-		  "SetBrushInfoModeParamsState set $fwCloneSrc $fwNewValue"] \
-	       [list text "Clone" $DspA_tBrushMode(clone) \
-		  "SetBrushInfoModeParamsState clone $fwCloneSrc $fwNewValue"]]
-
-      tkm_MakeEntry $fwNewValue "New Value" gEditBrush($tool,new) \
-	  6 "SetEditBrushConfiguration"
-      
-      tkm_MakeRadioButtons $fwCloneSrc y "Clone Source" \
-	  gEditBrush($tool,cloneSource) \
-	  [list \
-	       [list text "Main Volume" $tkm_tVolumeType(main) \
-		    "SetEditBrushConfiguration"] \
-	       [list text "Aux Volume"  $tkm_tVolumeType(aux) \
-		    "SetEditBrushConfiguration"]]
+	# fuzziness and max distance
+	tkm_MakeSliders $fwSliders { 
+	    { "Fuzziness" gBrushInfo(fuzzy) 
+		0 255 50 "SendFillAnatomicalInfo" 1 } 
+	    {  "\"Max Distance\"" gBrushInfo(distance) 
+		0 255 50 "SendFillAnatomicalInfo" 1 } }
+	tkm_MakeSmallLabel $fwNote "enter 0 for no limit"
+	
+	pack $fw3D $fwSliders $fwNote $fwFill \
+	    -side top \
+	    -expand yes \
+	    -fill x
 
 
-
-      # defaults button
-      tkm_MakeButtons $fwDefaults \
-	  [list \
-	       [list text "Restore Defaults" "SetBrushInfoToDefaults $tool"]]
-
-      # pack them in a column
-      pack $fwThresh $fwMode $fwNewValue $fwCloneSrc $fwDefaults \
-        -side top                           \
-        -anchor w                           \
-        -expand yes                         \
-        -fill x
-  }
-
-  # buttons. 
-  tkm_MakeCloseButton $fwButtons $wwDialog
-
-  pack $fwTop $fwInfo $fwButtons \
-    -side top       \
-    -expand yes     \
-    -fill x
-   }
+	# buttons. 
+	tkm_MakeCloseButton $fwButtons $wwDialog
+	
+	pack $fwTop $fwInfo $fwFillInfo $fwButtons \
+	    -side top       \
+	    -expand yes     \
+	    -fill x
+    }
 }
 
 proc SetBrushInfoModeParamsState { iWhich cloneBase setBase } {
@@ -2931,6 +2977,13 @@ proc SetEditBrushConfiguration { } {
     }
 }
 
+proc SendFillAnatomicalInfo { } {
+    global gBrushInfo
+    SetAnatomicalFillInfo \
+	$gBrushInfo(3dfill) $gBrushInfo(fuzzy) $gBrushInfo(distance)
+
+}
+
 proc SetSegmentationVolumeConfiguration {} {
 
     global gfSegmentationVolumeAlpha
@@ -3726,6 +3779,11 @@ proc CreateMenuBar { ifwMenuBar } {
 	    "Mask to Functional Overlay"
 	    "SendDisplayFlagValue flag_MaskToFunctionalOverlay"
 	    gbDisplayFlag(flag_MaskToFunctionalOverlay) 
+	    tMenuGroup_OverlayOptions }
+	{ check
+	    "Mask Functional Overlay to Aux Volume"
+	    "SendDisplayFlagValue flag_MaskFunctionalOverlayToAux"
+	    gbDisplayFlag(flag_MaskFunctionalOverlayToAux) 
 	    tMenuGroup_OverlayOptions }
 	{ check
 	    "Show Histogram Percent Change"
