@@ -1,6 +1,6 @@
 /*----------------------------------------------------------
   Name: mri_surf2surf.c
-  $Id: mri_surf2surf.c,v 1.5 2002/02/18 19:55:48 greve Exp $
+  $Id: mri_surf2surf.c,v 1.6 2002/04/19 21:25:45 greve Exp $
   Author: Douglas Greve
   Purpose: Resamples data from one surface onto another. If
   both the source and target subjects are the same, this is
@@ -38,14 +38,13 @@ static void print_version(void) ;
 static void argnerr(char *option, int n);
 static void dump_options(FILE *fp);
 static int  singledash(char *flag);
-static int  check_format(char *fmt);
 int GetNVtxsFromWFile(char *wfile);
 int GetICOOrderFromValFile(char *filename, char *fmt);
 int GetNVtxsFromValFile(char *filename, char *fmt);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surf2surf.c,v 1.5 2002/02/18 19:55:48 greve Exp $";
+static char vcid[] = "$Id: mri_surf2surf.c,v 1.6 2002/04/19 21:25:45 greve Exp $";
 char *Progname = NULL;
 
 char *surfreg = "sphere.reg";
@@ -782,24 +781,6 @@ static void check_options(void)
   return;
 }
 
-/* --------------------------------------------- */
-int check_format(char *trgfmt)
-{
-  if( strcasecmp(trgfmt,"bvolume") != 0 &&
-      strcasecmp(trgfmt,"bfile") != 0 &&
-      strcasecmp(trgfmt,"bshort") != 0 &&
-      strcasecmp(trgfmt,"bfloat") != 0 &&
-      strcasecmp(trgfmt,"w") != 0 &&
-      strcasecmp(trgfmt,"curv") != 0 &&
-      strcasecmp(trgfmt,"paint") != 0 ){
-    fprintf(stderr,"ERROR: format %s unrecoginized\n",trgfmt);
-    fprintf(stderr,"Legal values are: bvolume, bfile, bshort, bfloat, and \n");
-    fprintf(stderr,"                  paint, w\n");
-    exit(1);
-  }
-  return(0);
-}
-
 /*---------------------------------------------------------------*/
 static int singledash(char *flag)
 {
@@ -893,3 +874,22 @@ int GetICOOrderFromValFile(char *filename, char *fmt)
   
   return(IcoOrder);
 }
+#if 0
+/* --------------------------------------------- */
+int check_format(char *trgfmt)
+{
+  if( strcasecmp(trgfmt,"bvolume") != 0 &&
+      strcasecmp(trgfmt,"bfile") != 0 &&
+      strcasecmp(trgfmt,"bshort") != 0 &&
+      strcasecmp(trgfmt,"bfloat") != 0 &&
+      strcasecmp(trgfmt,"w") != 0 &&
+      strcasecmp(trgfmt,"curv") != 0 &&
+      strcasecmp(trgfmt,"paint") != 0 ){
+    fprintf(stderr,"ERROR: format %s unrecoginized\n",trgfmt);
+    fprintf(stderr,"Legal values are: bvolume, bfile, bshort, bfloat, and \n");
+    fprintf(stderr,"                  paint, w\n");
+    exit(1);
+  }
+  return(0);
+}
+#endif
