@@ -18229,7 +18229,7 @@ int main(int argc, char *argv[])   /* new main */
   /* end rkt */
   
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.81 2004/11/02 00:51:28 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.82 2004/11/03 23:07:40 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -22068,14 +22068,25 @@ int sclv_set_threshold_using_fdr (int field, float rate)
 {
   double threshold;
   int err;
+  int sign;
 
-  err = MRISfdr(mris, rate, 0, 1, 0, &threshold);
+  /* if they are truncating, they only want the positive or negative
+     values. if inverse is on, they want the negative values, else
+     they just want the positive. */
+  sign = 0;
+  if (truncphaseflag) 
+    {
+    if (invphaseflag)
+      sign = -1;
+    else
+      sign = 1;
+  }
+
+  err = MRISfdr2vwth(mris, rate, sign, 1, 0, &threshold);
   if( err ){
     printf ("surfer: Error calculating threshold with FDR.\n");
     return (err);
   }
-
-  fprintf(stderr,"fdr got %f\n",threshold);
 
   sclv_field_info[field].fthresh = threshold;
   sclv_field_info[field].fmid = threshold + 1.5; 
