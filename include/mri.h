@@ -275,10 +275,13 @@ IMAGE *MRItoImageView(MRI *mri, IMAGE *I, int slice, int view, int frame) ;
 #define MRISvox(mri,x,y,z)  (((short *)mri->slices[z][y])[x])
 #define MRIFvox(mri,x,y,z)  (((float *)(mri->slices[z][y]))[x])
 #define MRIvox(mri,x,y,z)   (((BUFTYPE *)mri->slices[z][y])[x])
+#define MRISCvox(mri,x,y,z) (((signed char *)mri->slices[z][y])[x])
 #define MRIIvox(mri,x,y,z)  (((int *)mri->slices[z][y])[x])
 #define MRILvox(mri,x,y,z)  (((long *)mri->slices[z][y])[x])
 
 #define MRISseq_vox(mri,x,y,z,n)  (((short*)mri->slices[z+(n)*mri->depth][y])\
+                                   [x])
+#define MRISCseq_vox(mri,x,y,z,n)  (((signed char*)mri->slices[z+(n)*mri->depth][y])\
                                    [x])
 #define MRIFseq_vox(mri,x,y,z,n)  (((float*)(mri->slices[z+((n)*mri->depth)]\
                                                         [y]))[x])
