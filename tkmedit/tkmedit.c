@@ -7680,10 +7680,10 @@ void GetDTIColorAtVoxel ( xVoxelRef        iAnaIdx,
   float     b = 0;
 
   /* Get the x, y, z, FA values */
-  x = Volm_GetRawValueAtIdx_( gDTIVolume[tkm_tDTIVolumeType_X], iAnaIdx);
-  y = Volm_GetRawValueAtIdx_( gDTIVolume[tkm_tDTIVolumeType_Y], iAnaIdx);
-  z = Volm_GetRawValueAtIdx_( gDTIVolume[tkm_tDTIVolumeType_Z], iAnaIdx);
-  FA = Volm_GetRawValueAtIdx_( gDTIVolume[tkm_tDTIVolumeType_FA], iAnaIdx);
+  Volm_GetValueAtIdx( gDTIVolume[tkm_tDTIVolumeType_X], iAnaIdx, &x);
+  Volm_GetValueAtIdx( gDTIVolume[tkm_tDTIVolumeType_Y], iAnaIdx, &y);
+  Volm_GetValueAtIdx( gDTIVolume[tkm_tDTIVolumeType_Z], iAnaIdx, &z);
+  Volm_GetValueAtIdx( gDTIVolume[tkm_tDTIVolumeType_FA], iAnaIdx, &FA);
   sqrtFA = sqrt(FA);
   
   /* Make the colors */
