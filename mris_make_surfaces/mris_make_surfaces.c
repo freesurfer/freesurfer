@@ -15,7 +15,7 @@
 #include "mrishash.h"
 #include "macros.h"
 
-static char vcid[] = "$Id: mris_make_surfaces.c,v 1.9 1999/01/10 03:19:46 fischl Exp $";
+static char vcid[] = "$Id: mris_make_surfaces.c,v 1.10 1999/01/21 00:18:56 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -28,6 +28,8 @@ static int  mrisFindMiddleOfGray(MRI_SURFACE *mris) ;
 
 char *Progname ;
 
+static int navgs = 10 ;
+static int create = 0 ;
 static float sigma = 0.5f ;  /* should be around 1 */
 
 static INTEGRATION_PARMS  parms ;
@@ -187,6 +189,20 @@ main(int argc, char *argv[])
     sprintf(fname, "%s/%s/surf/%s.%s", sdir, sname, hemi, WHITE_MATTER_NAME) ;
     fprintf(stderr, "writing white matter surface to %s...\n", fname) ;
     MRISwrite(mris, fname) ;
+    if (create)
+    {
+      MRIScomputeMetricProperties(mris) ;
+      MRIScomputeSecondFundamentalForm(mris) ;
+      MRISuseMeanCurvature(mris) ;
+      MRISaverageCurvatures(mris, navgs) ;
+      sprintf(fname, "%s.curv",mris->hemisphere == LEFT_HEMISPHERE?"lh":"rh");
+      fprintf(stderr, "writing smoothed curvature to %s\n", fname) ;
+      MRISwriteCurvature(mris, fname) ;
+      sprintf(fname, "%s.area",mris->hemisphere == LEFT_HEMISPHERE?"lh":"rh");
+      fprintf(stderr, "writing smoothed area to %s\n", fname) ;
+      MRISwriteArea(mris, fname) ;
+    }
+
     if (parms.flags & IPFLAG_NO_SELF_INT_TEST)
     {
       msec = TimerStop(&then) ;
@@ -402,6 +418,10 @@ get_option(int argc, char *argv[])
   case 'V':
     Gdiag_no = atoi(argv[2]) ;
     nargs = 1 ;
+    break ;
+  case 'C':
+    create = 1 ;
+    fprintf(stderr, "creating area and curvature files for wm surface...\n") ;
     break ;
   case 'W':
     sscanf(argv[2], "%d", &parms.write_iterations) ;
