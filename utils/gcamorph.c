@@ -4,8 +4,8 @@
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/05/26 22:07:40 $
-// Revision       : $Revision: 1.37 $
+// Revision Date  : $Date: 2004/05/27 13:38:50 $
+// Revision       : $Revision: 1.38 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -407,6 +407,7 @@ GCAMread(char *fname)
     fp = popen(command, "r");
     if (errno)
     {
+      pclose(fp);
       ErrorReturn(NULL, (ERROR_BADPARM, "GCAMread(%s): zcat encountered error.",
 			 fname)) ;
     }

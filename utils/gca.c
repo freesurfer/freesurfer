@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/05/26 22:07:27 $
-// Revision       : $Revision: 1.137 $
+// Revision Date  : $Date: 2004/05/27 13:39:31 $
+// Revision       : $Revision: 1.138 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1662,6 +1662,7 @@ GCAread(char *fname)
     fp = popen(command, "r");
     if (errno)
     {
+      pclose(fp);
       errno = 0;
       ErrorReturn(NULL, (ERROR_BADPARM,"GCAread(%s): zcat encountered error",
 			 fname)) ;

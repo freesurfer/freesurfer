@@ -8325,6 +8325,7 @@ mghRead(char *fname, int read_volume, int frame)
       }
       if (errno)
       {
+	pclose(fp);
 	errno = 0;
 	ErrorReturn(NULL, (ERROR_BADPARM,"mghRead(%s, %d): zcat encountered error",
 			   fname, frame)) ;
