@@ -407,9 +407,8 @@ Volm_tErr Volm_SetFromMRI_ ( mriVolumeRef this,
   Volm_tErr eResult           = Volm_tErr_NoErr;
   MATRIX*   identity          = NULL;
   MATRIX*   scannerTransform  = NULL;
-  MATRIX*   idxToRASTransform = NULL;
-  MATRIX    *m_resample ;
-  MATRIX *BtoRAS;
+  MATRIX*   m_resample;
+  MATRIX*   m_resample_inv ;
 
   DebugEnterFunction( ("Volm_SetFromMRI_( this=%p, iMRI=%p )", this, iMRI ) );
   
@@ -427,35 +426,47 @@ Volm_tErr Volm_SetFromMRI_ ( mriVolumeRef this,
   this->mfColorMin = this->mfMinValue;
   this->mfColorMax = this->mfMaxValue;
 
-  /* find the resampling matrix */
-  DebugNote( ("Computing norming matrix ") );
-  m_resample = MRIgetConformMatrix( iMRI );
-  DebugAssertThrowX( (NULL != m_resample), 
-                     eResult, Volm_tErr_CouldntNormalizeVolume );
-  //#define _VID_DEBUG  
-#ifdef _VID_DEBUG
-  fprintf(stderr, "m_resample = \n");
-  MatrixPrint(stderr, m_resample);
-#endif
   
-  /* grab the end-start values as our dimension. also nframes. */
-  /* 
-  this->mnDimensionX = abs(iMRI->xend - iMRI->xstart);
-  this->mnDimensionY = abs(iMRI->yend - iMRI->ystart);
-  this->mnDimensionZ = abs(iMRI->zend - iMRI->zstart);
-  */
+  /* Grab the dimensions and number of frames. */
   this->mnDimensionX = iMRI->width;
   this->mnDimensionY = iMRI->height;
   this->mnDimensionZ = iMRI->depth;
   this->mnDimensionFrame = iMRI->nframes;
 
-  this->m_resample = m_resample ;
-  this->m_resample_orig = MatrixCopy(m_resample, NULL) ;
-  DebugNote( ("Calculating inverse of resample matrix") );
-  this->m_resample_inv = MatrixInverse( m_resample, NULL );
 
   /* set the volumes in this */
   this->mpMriValues = iMRI;
+
+
+  /* Initialize the resample matrix. */
+  DebugNote( ("Computing norming matrix ") );
+  m_resample = MRIgetConformMatrix( iMRI );
+  DebugAssertThrowX( (NULL != m_resample), 
+                     eResult, Volm_tErr_CouldntNormalizeVolume );
+  DebugNote( ("Setting resample RAS matrix") );
+  this->mResampleToRAS = m_resample;
+  DebugNote( ("Calculating inverse of resample matrix") );
+  m_resample_inv = MatrixInverse( m_resample, NULL );
+  DebugNote( ("Setting inverse resample RAS matrix") );
+  this->mResampleToRASInverse = m_resample_inv;
+  DebugNote( ("Copying original resample RAS matrix") );
+  this->mResampleToRASOrig = MatrixCopy(m_resample, NULL) ;
+
+
+  /* Calculate the resample matrices that don't use the RAS
+     transform. This just does the pixel size transform. */
+  DebugNote( ("Setting resample to slice matrix") );
+  this->mResampleToSlice = MatrixIdentity( 4, NULL );
+  stuff_four_by_four( this->mResampleToSlice,
+		      1.0/this->mpMriValues->xsize, 0, 0, 0,
+		      0, 1.0/this->mpMriValues->ysize, 0, 0,
+		      0, 0, 1.0/this->mpMriValues->zsize, 0,
+		      0, 0, 0, 1 );
+  DebugNote( ("Calculating inverse of resample to slice matrix") );
+  this->mResampleToSliceInverse =MatrixInverse( this->mResampleToSlice, NULL );
+  DebugNote( ("Copying original resample to slice matrix") );
+  this->mResampleToSliceOrig = MatrixCopy( this->mResampleToSlice, NULL );
+
   
   /* grab the scanner transform and copy it into our transform */
   if( NULL != this->mScannerTransform ) {
@@ -474,23 +485,54 @@ Volm_tErr Volm_SetFromMRI_ ( mriVolumeRef this,
   DebugNote( ("Copying identity matrix into scanner transform") );
   Trns_CopyAtoRAS( this->mScannerTransform, identity );
   Trns_CopyBtoRAS( this->mScannerTransform, identity );
+
+
+  /* Set the initial resample method. */
+  Volm_SetResampleMethod( this, Volm_tResampleMethod_RAS );
+
+
+  DebugCatch;
+  DebugCatchError( eResult, Volm_tErr_NoErr, Volm_GetErrorString );
+  EndDebugCatch;
   
-  /* do the same for the idx -> ras transform. note that this is the
-     same as the scanner transform...? */
+  if( NULL != scannerTransform )
+    MatrixFree( &scannerTransform );
+  if( NULL != identity )
+    MatrixFree( &identity );
+  
+  DebugExitFunction;
+  
+  return eResult;
+}
+
+Volm_tErr Volm_CalculateIdxToRAS_ ( mriVolumeRef this ) {
+
+  Volm_tErr eResult           = Volm_tErr_NoErr;
+  MATRIX*   identity          = NULL;
+  MATRIX*   idxToRASTransform = NULL;
+  MATRIX*   BtoRAS            = NULL;
+  
+  DebugEnterFunction( ("Volm_CalculateIdxToRAS_( this=%p )", this) );
+  
+  DebugNote( ("Verifying volume") );
+  eResult = Volm_Verify( this );
+
+  /* do the same for the idx -> ras transform. ? */
   if( NULL != this->mIdxToRASTransform ) {
     DebugNote( ("Deleting existing idx to ras transform") );
     Trns_Delete( &(this->mIdxToRASTransform) );
   }
   
-  
   /* Build the idxToRAS transform. */
   DebugNote( ("Creating idx to ras transform") );
   Trns_New( &this->mIdxToRASTransform );
   
+  identity = MatrixIdentity( 4, NULL );
+
   /* AtoRAS is extract_i_to_r. This includes the voxel size
      calculation. */
   DebugNote( ("Getting idx to ras matrix") );
-  idxToRASTransform = extract_i_to_r( iMRI );
+  idxToRASTransform = extract_i_to_r( this->mpMriValues );
   DebugAssertThrowX( (NULL != idxToRASTransform),
 		     eResult, Volm_tErr_AllocationFailed );
   DebugNote( ("Copying idx to ras transform matrix into AtoRAS") );
@@ -504,28 +546,21 @@ Volm_tErr Volm_SetFromMRI_ ( mriVolumeRef this,
   /*        = extract_i_to_r * m_resample */
   DebugNote( ("Copying calc'd matrix into BtoRAS") );
   BtoRAS = MatrixMultiply(idxToRASTransform, this->m_resample, NULL);
+
   Trns_CopyBtoRAS(this->mIdxToRASTransform, BtoRAS);
   
   DebugNote( ("Freeing BtoRAS tmp matrix") );
   MatrixFree(&BtoRAS);
-  
-#if 0
-  DebugPrint( ("mIdxToRASTransform-----\n") );
-  Trns_DebugPrint_( this->mIdxToRASTransform );
-#endif
 
 
+  DebugAssertThrow( (eResult == Volm_tErr_NoErr) );
   DebugCatch;
   DebugCatchError( eResult, Volm_tErr_NoErr, Volm_GetErrorString );
   EndDebugCatch;
-  
-  if( NULL != scannerTransform )
-    MatrixFree( &scannerTransform );
-  if( NULL != idxToRASTransform )
-    MatrixFree( &idxToRASTransform );
+
   if( NULL != identity )
     MatrixFree( &identity );
-  
+
   DebugExitFunction;
   
   return eResult;
@@ -1020,6 +1055,54 @@ Volm_tErr Volm_GetValueMinMax ( mriVolumeRef this,
   *ofMin = this->mfMinValue;
   *ofMax = this->mfMaxValue;
   
+  DebugCatch;
+  DebugCatchError( eResult, Volm_tErr_NoErr, Volm_GetErrorString );
+  EndDebugCatch;
+  
+  DebugExitFunction;
+  
+  return eResult;
+}
+
+Volm_tErr Volm_SetResampleMethod ( mriVolumeRef         this, 
+				   Volm_tResampleMethod iMethod ) {
+
+  Volm_tErr eResult = Volm_tErr_NoErr;
+  
+  DebugEnterFunction( ("Volm_SetResampleMethod( this=%p, iMethod=%d )",
+		       this, (int)iMethod ) );
+  
+  DebugNote( ("Verifying volume") );
+  eResult = Volm_Verify( this );
+  DebugAssertThrow( (eResult == Volm_tErr_NoErr) );
+  
+  DebugNote( ("Checking parameters") );
+  DebugAssertThrowX( (iMethod >= 0 && iMethod < Volm_knNumResampleMethods),
+		     eResult, Volm_tErr_InvalidParamater );
+  
+  /* Set the resample method. */
+  this->mResampleMethod = iMethod;
+
+  /* Point the matrices correctly. */
+  switch( this->mResampleMethod ) {
+  case Volm_tResampleMethod_RAS:
+    this->m_resample      = this->mResampleToRAS;
+    this->m_resample_orig = this->mResampleToRASOrig;
+    this->m_resample_inv  = this->mResampleToRASInverse;
+    break;
+  case Volm_tResampleMethod_Slice:
+    this->m_resample      = this->mResampleToSlice;
+    this->m_resample_orig = this->mResampleToSliceOrig;
+    this->m_resample_inv  = this->mResampleToSliceInverse;
+    break;
+  default:
+    break;
+  }
+    
+
+  /* Recalc the idxtoras transform. */
+  Volm_CalculateIdxToRAS_( this );
+
   DebugCatch;
   DebugCatchError( eResult, Volm_tErr_NoErr, Volm_GetErrorString );
   EndDebugCatch;
