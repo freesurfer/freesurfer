@@ -1,7 +1,7 @@
 #!/bin/csh -f
 # stxgrinder-sess
 #
-set VERSION = '$Id: mkcontrast-sess,v 1.1 2003/03/04 21:22:09 greve Exp $'
+set VERSION = '$Id: mkcontrast-sess,v 1.2 2004/02/20 17:59:50 greve Exp $'
 set cmdargs = ($argv);
 
 set contrast   = ();
@@ -22,15 +22,18 @@ set taurange   = (1.25 1.25);
 set sumconds = (-sumconds);
 set rmprestim = ();
 
+set PrintHelp = 0;
+
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
 set n = `echo $argv | grep version | wc -l` 
 if($n != 0) then
   echo $VERSION
   exit 0;
-endif
-
-if($#argv == 0) then
-  goto usage_exit;
-  exit 1;
 endif
 
 # Create a log file #
@@ -399,4 +402,68 @@ usage_exit:
   echo "   -umask umask      : set unix file permission mask"
   echo "   -scriptonly       : don't run, just generate a script"
   echo "   -version          : print version and exit"
+  echo ""
+  echo "   -help"
+  echo ""
+  if(! $PrintHelp) exit 1;
+  echo $VERSION
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+
 exit 1;
+
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+This program creates a contrast matrix that is then used as input to 
+test hypotheses. The actual voxel-by-voxel statistical test is performed
+by stxgrinder-sess. 
+
+-analysis analysisname (or use -an)
+
+Name of the analysis to create the contrast for. The analysis must
+have been defined by mkanalysis-sess. Also, selxavg-sess must have
+been run at least once.
+
+-contrast contrastname (or use -co)
+
+The name of the contrast. This name is then used in later programes (eg,
+stxgrinder-sess). mkcontrast-sess will create a matlab file in the
+study analysis directory. This file will be called contrastname.mat.
+When stxgrinder-sess is run, it will create a subdirectory called
+contrastname under the analysis directory for each sessions.
+
+-a a1 <-a a2 ...>
+-c c1 <-c c2 ...>
+
+These specify which conditions to use in the contrast, where a1, a2,
+c1, c2, etc, are the condition numbers as found in the paradigm
+file. The -a conditions will be weighted positively. The -c conditions
+will be weighted negatively. Eg, -a 2 -c 1 -c 3 will weight conditions
+1 and 3 by -0.5 and condition 2 by +1.
+
+-setwdelay
+
+For FIR designs, allows the user to set the weight for each
+post-stimulus delay. When the program runs, it will prompt the
+user to enter the weights (eg, if there are 10 points in the FIR,
+then the user will enter a list of 10 numbers). If you do not
+want to include a point, set its weight to 0. Eg, if there are
+10 points, but you only want to consider points 3-7, then enter
+0 0 1 1 1 1 1 0 0 0. These weights are applied on a condition-by-
+condtion basis. See also -sumdelays.
+
+-sumdelays
+
+For FIR designs, sum the points inside the FIR window so that each
+condition is represented by a single number (ie, the sum). If delay
+weights have been specified (see -setwdelay), then the weighted sum is
+computed.
+
+-rmprestim
+
+For FIR designs, compute a contrast such that the average hemodynamic 
+response prior to stimulus on set is subtracted from the hemodynamic
+response waveform. This is good for removing baseline shifts.
+
+
