@@ -5297,7 +5297,7 @@ static MRI *gdfRead(char *fname, int read_volume)
 
   fclose(fp);
 
-  if(!(path_d && ipr_d && st_d && s_d && o_d))
+  if(!(path_d && ipr_d && st_d && s_d))
   {
     errno = 0;
     ErrorPrintf(ERROR_BADPARM, "gdfRead(): missing field(s) from %s:", fname);
@@ -5309,9 +5309,13 @@ static MRI *gdfRead(char *fname, int read_volume)
       ErrorPrintf(ERROR_BADPARM, "  SL_THICK");
     if(!s_d)
       ErrorPrintf(ERROR_BADPARM, "  SIZE");
-    if(!o_d)
-      ErrorPrintf(ERROR_BADPARM, "  ORIENTATION");
     return(NULL);
+  }
+
+  if(!(o_d))
+  {
+    printf("missing field ORIENTATION in file %s; assuming 'coronal'\n", fname);
+    sprintf(orientation_string, "coronal");
   }
 
   if(!(dt_d))
@@ -5329,7 +5333,7 @@ static MRI *gdfRead(char *fname, int read_volume)
   if(!(u_d))
   {
     printf("missing field UNITS in file %s; assuming 'mm'\n", fname);
-    sprintf(data_type_string, "mm");
+    sprintf(units_string, "mm");
   }
 
   StrLower(data_type_string);
