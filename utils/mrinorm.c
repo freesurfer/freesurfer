@@ -38,6 +38,7 @@
                     STATIC PROTOTYPES
 -------------------------------------------------------*/
 
+static int mriNormAddFileControlPoints(MRI *mri_ctrl, int value) ;
 static MRI *mriSplineNormalizeShort(MRI *mri_src,MRI *mri_dst, 
                                     MRI **pmri_field, float *inputs,
                                     float *outputs, int npoints) ;
@@ -1032,6 +1033,9 @@ MRInormFindControlPoints(MRI *mri_src, int wm_target, float intensity_above,
 #undef WHALF
   mriRemoveOutliers(mri_ctrl, 2) ;
 
+#if 1
+  nctrl += mriNormAddFileControlPoints(mri_ctrl, 255) ;
+#else
   /* read in control points from a file (if specified) */
   for (i = 0 ; i < num_control_points ; i++)
   {
@@ -1041,6 +1045,7 @@ MRInormFindControlPoints(MRI *mri_src, int wm_target, float intensity_above,
       nctrl++ ;
     }
   }
+#endif
 
   if (Gdiag & DIAG_SHOW)
     fprintf(stderr, "%d control points found.\n", nctrl) ;
@@ -1101,7 +1106,7 @@ MRIbuildBiasImage(MRI *mri_src, MRI *mri_ctrl, MRI *mri_bias)
 ------------------------------------------------------*/
 MRI *
 MRI3dNormalize(MRI *mri_src, MRI *mri_bias, int wm_target, MRI *mri_norm,
-               float intensity_above, float intensity_below)
+               float intensity_above, float intensity_below, int only_file)
 {
   int     width, height, depth, x, y, z, src, bias, free_bias ;
   BUFTYPE *psrc, *pbias, *pnorm ;
@@ -1118,8 +1123,18 @@ MRI3dNormalize(MRI *mri_src, MRI *mri_bias, int wm_target, MRI *mri_norm,
     MRI  *mri_ctrl ;
 
     free_bias = 1 ;
-    mri_ctrl = MRInormFindControlPoints(mri_src, wm_target, intensity_above, 
-                                        intensity_below, NULL);
+    if (!only_file)
+      mri_ctrl = MRInormFindControlPoints(mri_src, wm_target, intensity_above, 
+                                          intensity_below, NULL);
+    else
+    {
+      int nctrl ;
+
+      mri_ctrl = MRIclone(mri_src, NULL) ;
+      nctrl = mriNormAddFileControlPoints(mri_ctrl, 255) ;
+      fprintf(stderr, "only using %d control points from file...\n", nctrl) ;
+    }
+      
     if (control_volume_fname)
     {
       fprintf(stderr, "writing control point volume to %s...\n",
@@ -2229,3 +2244,19 @@ MRI3dWriteBias(char *t_bias_volume_fname)
   return(NO_ERROR) ;
 }
 
+static int
+mriNormAddFileControlPoints(MRI *mri_ctrl, int value)
+{
+  int  i, nctrl ;
+
+  /* read in control points from a file (if specified) */
+  for (nctrl = i = 0 ; i < num_control_points ; i++)
+  {
+    /*    if (!MRIvox(mri_ctrl, xctrl[i], yctrl[i], zctrl[i]))*/
+    {
+      MRIvox(mri_ctrl, xctrl[i], yctrl[i], zctrl[i]) = value ;
+      nctrl++ ;
+    }
+  }
+  return(nctrl) ;
+}
