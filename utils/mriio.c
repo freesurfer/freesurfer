@@ -8309,7 +8309,7 @@ local_buffer_to_image(BUFTYPE *buf, MRI *mri, int slice, int frame)
 #define MGH_VERSION       1
 
 // declare function pointer
-int (*myclose)(FILE *stream);
+static int (*myclose)(FILE *stream);
 
 static MRI *
 mghRead(char *fname, int read_volume, int frame)

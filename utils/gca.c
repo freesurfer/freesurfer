@@ -2,9 +2,9 @@
 // originally written by Bruce Fischl
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2004/06/30 17:04:55 $
-// Revision       : $Revision: 1.147 $
+// Revision Author: $Author: tosa $
+// Revision Date  : $Date: 2004/06/30 19:05:31 $
+// Revision       : $Revision: 1.148 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1492,7 +1492,7 @@ GCAtrain(GCA *gca, MRI *mri_inputs, MRI *mri_labels, TRANSFORM *transform, GCA *
 }
 
 // declare function pointer
-int (*myclose)(FILE *stream);
+static int (*myclose)(FILE *stream);
 
 int
 GCAwrite(GCA *gca, char *fname)

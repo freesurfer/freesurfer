@@ -3,8 +3,8 @@
 //
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Date  : $Date: 2004/06/10 15:29:00 $
-// Revision       : $Revision: 1.50 $
+// Revision Date  : $Date: 2004/06/30 19:05:55 $
+// Revision       : $Revision: 1.51 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -200,7 +200,7 @@ void GCAMreadGeom(GCA_MORPH *gcam, FILE *fp)
 }
 
 // declare function pointer
-int (*myclose)(FILE *stream);
+static int (*myclose)(FILE *stream);
 
 int
 GCAMwrite(GCA_MORPH *gcam, char *fname)
