@@ -1,5 +1,5 @@
-function [vol, M, dcmvolinfo, dcminfo] = load_dicom_fl(flist)
-% [vol, M, dcmvolinfo] = load_dicom_fl(flist)
+function [vol, M, dcminfo] = load_dicom_fl(flist)
+% [vol, M, dcminfo] = load_dicom_fl(flist)
 %
 % Loads a volume from the dicom files in flist.
 %
@@ -11,19 +11,15 @@ function [vol, M, dcmvolinfo, dcminfo] = load_dicom_fl(flist)
 % vol(i1,i2,i3), xyz1 = M*[i1 i2 i3 1] where the
 % indicies are 0-based. 
 %
-% dcmvolinfo is a structure that contains some usefull
-% parameters (eg, TR, TE, flip angle, etc).
-%
 % Does not handle multiple frames correctly yet.
 %
-% $Id: load_dicom_fl.m,v 1.3 2002/12/21 00:58:33 greve Exp $
+% $Id: load_dicom_fl.m,v 1.4 2003/01/10 02:22:39 greve Exp $
 
 vol=[];
 M=[];
-dcmvolinfo = [];
 
 if(nargin ~= 1)
-  fprintf('[vol, M, dcmvolinfo] = load_dicom_fl(flist)\n');
+  fprintf('[vol, M] = load_dicom_fl(flist)\n');
   return;
 end
 
@@ -72,25 +68,23 @@ D = diag(delta);
 
 % XYZ of first voxel in first slice %
 P0 = dcminfo(1).ImagePositionPatient;
+P00 = P0;
 
 % Change Siemens to be RAS %
 Manufacturer = dcminfo(1).Manufacturer;
 if(strcmpi(Manufacturer,'Siemens'))
-  % Lines below are for 
-  % correcting for if P0 is at corner of 
-  % the first voxel instead of at the center
-  % Pcrs0 = [-0.5 -0.5 0]'; %'
-  % P0 = P0 - Mdc*D*Pcrs0;
-
   % Change to RAS
   Mdc(1,:) = -Mdc(1,:); 
   Mdc(2,:) = -Mdc(2,:); 
   P0(1)    = -P0(1);
   P0(2)    = -P0(2);
+  % Correcting for P0 being at corner of 
+  % the first voxel instead of at the center
+  M = [Mdc*D P0; 0 0 0 1];
+  M = M*[[eye(3) [0.5 0.5 0]']; 0 0 0 1];  %'
+else
+  M = [Mdc*D P0; 0 0 0 1];
 end
-
-% Compute vox2ras transform %
-M = [Mdc*D P0; 0 0 0 1];
 
 % Pre-allocate vol. Note: column and row designations do
 % not really mean anything. The "column" is the fastest
@@ -124,18 +118,6 @@ if(0 & ~strcmpi(dcminfo(1).PhaseEncodingDirection,'ROW'))
   M(:,1) = Mtmp(:,2);
   M(:,2) = Mtmp(:,1);
 end
-
-dcmvolinfo.Institution = dcminfo(1).InstitutionName;
-dcmvolinfo.Manufacturer= dcminfo(1).Manufacturer;
-dcmvolinfo.StudyDate   = dcminfo(1).StudyDate;
-dcmvolinfo.StudyTime   = dcminfo(1).StudyTime;
-dcmvolinfo.PatientName = dcminfo(1).PatientsName;
-dcmvolinfo.Series      = dcminfo(1).SeriesNumber;
-dcmvolinfo.AcqType     = dcminfo(1).MRAcquisitionType;
-dcmvolinfo.FlipAngle   = dcminfo(1).FlipAngle;
-dcmvolinfo.EchoTime    = dcminfo(1).EchoTime;
-dcmvolinfo.VoxelSize   = delta;
-dcmvolinfo.PhaseEncodingDirection = dcminfo(1).PhaseEncodingDirection 
 
 return;
 
