@@ -21,8 +21,6 @@ static void print_usage(void) ;
 
 char *Progname ;
 
-static int verbose = 0 ;
-
 
 #define NAME_LEN      100
 
@@ -48,7 +46,7 @@ main(int argc, char *argv[])
   
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_annot_to_segmentation.c,v 1.2 2004/03/03 18:54:30 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_annot_to_segmentation.c,v 1.3 2004/03/03 18:54:50 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
