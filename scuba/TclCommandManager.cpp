@@ -42,9 +42,9 @@ TclCommandManager::AddCommand (  TclCommandListener& iListener,
 }
   
 void
-TclCommandManager::Start( Tcl_Interp* iInterp ) {
+TclCommandManager::Start( Tcl_Interp const* iInterp ) {
 
-  mInterp = iInterp;
+  mInterp = (Tcl_Interp*)iInterp;
   mbStarted = true;
 
   std::list<Command*>::iterator tCommand;

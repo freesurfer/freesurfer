@@ -5,11 +5,8 @@
 
 using namespace std;
 
-
-
-
-T
-Loader::GetData( char const* ifnData ) {
+template <class T>
+T DataLoader<T>::GetData( string const& ifnData ) {
 
   list<T>::iterator tData;
   string fnData( ifnData );
@@ -32,9 +29,9 @@ Loader::GetData( char const* ifnData ) {
   return data;
 }
 
-
+template <typename T>
 void
-Loader::ReleaseData( T* ioData ) {
+DataLoader<T>::ReleaseData( T* ioData ) {
 
   list<T>::iterator tData;
 
@@ -58,6 +55,7 @@ Loader::ReleaseData( T* ioData ) {
 }
 
 
+MRILoader DataManager::mMRILoader;
 
 DataManager::DataManager() {
 
@@ -71,6 +69,7 @@ DataManager::GetManager() {
   return sManager;
 }
 
+#if 0
 MRI*
 DataManager::GetMRI( char const* ifnMRI ) {
 
@@ -95,7 +94,7 @@ DataManager::GetMRI( char const* ifnMRI ) {
       return mri;
     }
   }
-
+  
 #ifdef DEBUG
       cerr << "\tNot found, calling MRIread" << endl;
 #endif
@@ -156,6 +155,36 @@ DataManager::CountLoadedMRIs() const {
 
   return mlMRI.size();
 }
+#endif
 
 
 
+MRI* 
+MRILoader::LoadData( std::string& ifnData ) { 
+
+  // Use MRIread to load the MRI object. Need to make a non-const, 
+  // c-string copy of the file name.
+  char* fnMRI = strdup( ifnData.c_str() );
+  MRI* mri = MRIread( fnMRI ); 
+  free( fnMRI );
+  if( NULL == mri ) {
+    throw (char const*) "Couldn't load MRI.";
+  }
+  return mri;
+}
+
+void
+MRILoader::FreeData( MRI** ioMRI ) { 
+
+  // Call MRIfree. This will set *ioMRI to NULL if successful.
+  MRIfree( ioMRI ); 
+}
+
+bool
+MRILoader::DoesFileNameMatchObject( MRI* iData, std::string& ifnData ) {
+
+  // Look at the fname member in the MRI structure and compare it
+  // to the file name we're getting.
+  std::string fnCur( iData->fname );
+  return (fnCur == ifnData);
+}
