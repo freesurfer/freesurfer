@@ -36,10 +36,12 @@
 #include "diag.h"
 #include "canny.h"
 #include "tiffio.h"
+#ifndef IRIX
 #include "jpeglib.h"
 #include "pgm.h"
 #include "ppm.h"
 #include "pbm.h"
+#endif
 
 /*-----------------------------------------------------
                     MACROS AND CONSTANTS
@@ -122,7 +124,7 @@ ImageFWrite(IMAGE *I, FILE *fp, char *fname)
   case HIPS_IMAGE:
     ecode = fwrite_header(fp,I,"fwrite") ;
     if (ecode != HIPS_OK)
-      ErrorExit(ERROR_NO_FILE, "ImageFWrite: fwrite_header failed (%d)\n",ecode);
+     ErrorExit(ERROR_NO_FILE,"ImageFWrite: fwrite_header failed (%d)\n",ecode);
     
     image = I->image ;
     for (frame = 0 ; frame < I->num_frame ; frame++)
@@ -130,7 +132,7 @@ ImageFWrite(IMAGE *I, FILE *fp, char *fname)
       ecode = fwrite_image(fp, I, frame, "fwrite") ;
       if (ecode != HIPS_OK)
         ErrorExit(ERROR_NO_FILE, 
-                "ImageFWrite: fwrite_image frame %d failed (%d)\n",ecode,frame);
+               "ImageFWrite: fwrite_image frame %d failed (%d)\n",ecode,frame);
       I->image += I->sizeimage ;  /* next frame */
     }
     I->image = image ;
@@ -872,6 +874,49 @@ TiffWriteImage(IMAGE *I, char *fname, int frame)
   return(NO_ERROR) ;
 }
 
+#ifdef IRIX
+static IMAGE *JPEGReadImage(char *fname)
+{
+  ErrorReturn(NULL, (ERROR_UNSUPPORTED, "jpeg not supported on IRIX")) ; 
+}
+static IMAGE *JPEGReadHeader(FILE *fp, IMAGE *I)
+{
+  ErrorReturn(NULL, (ERROR_UNSUPPORTED, "jpeg not supported on IRIX")) ; 
+}
+static int JPEGWriteImage(IMAGE *I, char *fname, int frame)
+{
+  ErrorReturn(ERROR_UNSUPPORTED, (ERROR_UNSUPPORTED, 
+                                 "jpeg not supported on IRIX")) ; 
+}
+static IMAGE *PGMReadImage(char *fname)
+{
+  ErrorReturn(NULL, (ERROR_UNSUPPORTED, "pgm not supported on IRIX")) ; 
+}
+static IMAGE *PGMReadHeader(FILE *fp, IMAGE *I)
+{
+  ErrorReturn(NULL, (ERROR_UNSUPPORTED, "pgm not supported on IRIX")) ; 
+}
+static int PGMWriteImage(IMAGE *I, char *fname, int frame)
+{
+  ErrorReturn(NULL, (ERROR_UNSUPPORTED, "pgm not supported on IRIX")) ; 
+}
+static IMAGE *PPMReadImage(char *fname)
+{
+  ErrorReturn(NULL, (ERROR_UNSUPPORTED, "ppm not supported on IRIX")) ; 
+}
+static IMAGE *PPMReadHeader(FILE *fp, IMAGE *I)
+{
+  ErrorReturn(NULL, (ERROR_UNSUPPORTED, "ppm not supported on IRIX")) ; 
+}
+static IMAGE *PBMReadImage(char *fname)
+{
+  ErrorReturn(NULL, (ERROR_UNSUPPORTED, "pbm not supported on IRIX")) ; 
+}
+static IMAGE *PBMReadHeader(FILE *fp, IMAGE *I)
+{
+  ErrorReturn(NULL, (ERROR_UNSUPPORTED, "pbm not supported on IRIX")) ; 
+}
+#else
 static IMAGE *
 JPEGReadImage(char *fname) 
 {
@@ -1130,3 +1175,4 @@ PPMReadHeader(FILE *fp, IMAGE *I)
 }
 
 
+#endif
