@@ -682,10 +682,12 @@ int   MRISaccumulateStandardErrorsOnSurface(MRI_SURFACE *mris,
 int   MRIScomputeAverageCircularPhaseGradient(MRI_SURFACE *mris, LABEL *area,
                                             float *pdx,float *pdy,float *pdz);
 
+#define GRAY_WHITE     1
+#define GRAY_CSF       2
 int   MRIScomputeBorderValues(MRI_SURFACE *mris,MRI *mri_brain,
                               MRI *mri_smooth, Real inside_hi, Real border_hi,
                               Real border_low, Real outside_low, double sigma,
-                              float max_dist, FILE *log_fp);
+                              float max_dist, FILE *log_fp, int white);
 int  MRIScomputeWhiteSurfaceValues(MRI_SURFACE *mris, MRI *mri_brain, 
                                    MRI *mri_smooth);
 int  MRIScomputeGraySurfaceValues(MRI_SURFACE *mris, MRI *mri_brain, 
@@ -731,6 +733,10 @@ int MRISripLabel(MRI_SURFACE *mris, LABEL *area) ;
 int MRISripNotLabel(MRI_SURFACE *mris, LABEL *area) ;
 int MRISsegmentMarked(MRI_SURFACE *mris, LABEL ***plabel_array, int *pnlabels,
                       float min_label_area) ;
+
+/* multi-timepoint (or stc) files */
+int  MRISwriteStc(char *fname, MATRIX *m_data, float epoch_begin_lat,
+                  float sample_period, int *vertices) ;
 
 #if 1
 #include "mrishash.h"
