@@ -3175,7 +3175,7 @@ mrisRemoveNegativeArea(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
     return(0) ;   /* no steps */
 
   tol = parms->tol ;
-  parms->tol = 1e-1 ;
+  parms->tol = 1e-2 ;
   niter = parms->niterations ;
   old_averages = parms->n_averages ;
   parms->niterations = 25 ;
@@ -9933,4 +9933,94 @@ MRISzeroNegativeAreas(MRI_SURFACE *mris)
   }
   return(NO_ERROR) ;
 }
+/*-----------------------------------------------------
+        Parameters:
 
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+int
+MRISfindClosestCannonicalVertex(MRI_SURFACE *mris, float x, float y, float z)
+{
+  int    vno, min_v ;
+  VERTEX *v ;
+  float  d, min_d, dx, dy, dz ;
+
+  min_d = 10000.0f ;
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    dx = v->cx - x ; dy = v->cy - y ; dz = v->cz - z ;
+    d = sqrt(dx*dx + dy*dy + dz*dz) ;
+    if (d < min_d)
+    {
+      min_d = d ;
+      min_v = vno ;
+    }
+  }
+
+  return(min_v) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+int
+MRISuseCurvatureDifference(MRI_SURFACE *mris)
+{
+  int    vno ;
+  VERTEX *vertex ;
+  float   kmin, kmax ;
+
+  kmin = 100000.0f ; kmax = -100000.0f ;
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    vertex = &mris->vertices[vno] ;
+    if (vertex->ripflag)
+      continue ;
+    vertex->curv = fabs(vertex->k1 - vertex->k2) ;
+    if (vertex->curv > kmax)
+      kmax = vertex->curv ;
+    if (vertex->curv < kmin)
+      kmin = vertex->curv ;
+  }
+
+  mris->min_curv = kmin ; mris->max_curv = kmax ;
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+int
+MRISuseCurvatureMax(MRI_SURFACE *mris)
+{
+  int    vno ;
+  VERTEX *vertex ;
+  float   kmin, kmax ;
+
+  kmin = 100000.0f ; kmax = -100000.0f ;
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    vertex = &mris->vertices[vno] ;
+    if (vertex->ripflag)
+      continue ;
+    vertex->curv = MAX(fabs(vertex->k1), fabs(vertex->k2)) ;
+    if (vertex->curv > kmax)
+      kmax = vertex->curv ;
+    if (vertex->curv < kmin)
+      kmin = vertex->curv ;
+  }
+
+  mris->min_curv = kmin ; mris->max_curv = kmax ;
+  return(NO_ERROR) ;
+}

@@ -305,6 +305,8 @@ typedef struct
 #include "stats.h"
 
 
+int MRISfindClosestCannonicalVertex(MRI_SURFACE *mris, float x, float y, 
+                                    float z) ;
 double       MRIScomputeCorrelationError(MRI_SURFACE *mris, 
                                          MRI_SP *mrisp_template, int fno) ;
 MRI_SURFACE  *MRISread(char *fname) ;
@@ -391,6 +393,8 @@ int          MRIStopologicalDefectIndex(MRI_SURFACE *mris) ;
 int          MRISremoveTopologicalDefects(MRI_SURFACE *mris,float curv_thresh);
 
 int          MRIScomputeSecondFundamentalForm(MRI_SURFACE *mris) ;
+int          MRISuseCurvatureDifference(MRI_SURFACE *mris) ;
+int          MRISuseCurvatureMax(MRI_SURFACE *mris) ;
 int          MRISuseAreaErrors(MRI_SURFACE *mris) ;
 int          MRISuseGaussianCurvature(MRI_SURFACE *mris) ;
 int          MRISclearCurvature(MRI_SURFACE *mris) ;
