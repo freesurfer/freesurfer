@@ -50,7 +50,7 @@ main(int argc, char *argv[])
   MRI          *mri_in_reduced, *mri_ref_reduced ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_register.c,v 1.18 2003/09/05 04:45:37 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_register.c,v 1.19 2003/09/22 14:25:35 tosa Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -160,14 +160,17 @@ main(int argc, char *argv[])
     mri_ref_red = MRIcopy(mri_ref_reduced, NULL) ;
     fprintf(stderr, "computing optimal linear transformation...\n") ;
     parms.lta = register_mri(mri_in_red, mri_ref_red, &parms) ;
-    MRIfree(&mri_in_red) ; MRIfree(&mri_ref_red) ;
     strcpy(fname, out_fname) ;
     cp = strrchr(fname, '.') ;
     if (!cp)
       cp = fname+strlen(fname) ;
     strcpy(cp, ".lta") ;
     fprintf(stderr, "writing output transformation to %s...\n", fname) ;
-    LTAwrite(parms.lta, fname) ;
+    // add src and ref information to lta
+    getVolGeom(mri_in_red, &parms.lta->xforms[0].src);
+    getVolGeom(mri_ref_red, &parms.lta->xforms[0].dst);
+    LTAwriteEx(parms.lta, fname) ;
+    MRIfree(&mri_in_red) ; MRIfree(&mri_ref_red) ;
   }
 
   parms.mri_ref = mri_ref ; parms.mri_in = mri_in ;
