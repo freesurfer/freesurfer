@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Computes glm inferences on the surface.
-  $Id: mris_glm.c,v 1.14 2002/11/15 23:03:22 greve Exp $
+  $Id: mris_glm.c,v 1.15 2002/11/19 00:23:53 greve Exp $
 
 Things to do:
   0. Documentation.
@@ -66,7 +66,7 @@ static char *getstem(char *bfilename);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_glm.c,v 1.14 2002/11/15 23:03:22 greve Exp $";
+static char vcid[] = "$Id: mris_glm.c,v 1.15 2002/11/19 00:23:53 greve Exp $";
 char *Progname = NULL;
 
 char *hemi        = NULL;
@@ -349,8 +349,7 @@ int main(int argc, char **argv)
 	sprintf(tmpstr,"%s.fsgd",getstem(yid));
 	strcpy(fsgd->measname,surfmeasure);
 	sprintf(fsgd->datafile,"%s_000.bfloat",getstem(yid));
-	sprintf(fsgd->DesignMatFile,"%s.X.mat",getstem(yid));
-	sprintf(fsgd->DesignMatMethod,"%s",gd2mtx_method);
+	sprintf(fsgd->DesignMatFile,"%s.X.mat  %s",getstem(yid),gd2mtx_method);
         MatlabWrite(X,fsgd->DesignMatFile,"X");
       }
       fp = fopen(tmpstr,"w");
