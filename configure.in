@@ -43,8 +43,8 @@ AC_C_BIGENDIAN_CROSS
 echo "byte order is " $BYTEORDER
 AC_SUBST(BYTEORDER)
 
-AC_MSG_NOTICE(Setitng OS from host ...)
-case "${host}" in
+AC_MSG_NOTICE(Setitng OS from target ...)
+case "${target}" in
  i*86-*-linux-gnu*)
  OS=Linux
  OS_CPPFLAGS="-Wall -fwritable-strings"
@@ -699,7 +699,7 @@ mris_ca_label/Makefile mris_classify_thickness/Makefile mris_compute_acorr/Makef
 mris_compute_overlap/Makefile mris_convert/Makefile mris_curvature/Makefile \
 mris_curvature_stats/Makefile mris_entropy/Makefile mris_errors/Makefile \
 mris_euler_number/Makefile mris_expand/Makefile mris_fix_topology/Makefile \
-mris_flatten/Makefile mris_glm/Makefile mris_inflate/Makefile mris_jacobian/Makefile \
+mris_flatten/Makefile mris_glm/Makefile mris_inflate/Makefile mris_info/Makefile mris_jacobian/Makefile \
 mris_label_area/Makefile mris_label_mode/Makefile mris_make_average_surface/Makefile \
 mris_make_surfaces/Makefile mris_make_template/Makefile \
 mris_morph_stats/Makefile mris_multiscale_stats/Makefile \

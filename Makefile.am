@@ -25,7 +25,7 @@ mris_add_template mris_anatomical_stats mris_average_curvature \
 mris_ca_label mris_classify_thickness mris_compute_acorr mris_compute_overlap mris_convert \
 mris_curvature mris_curvature_stats \
 mris_entropy mris_errors mris_euler_number mris_expand \
-mris_fix_topology mris_flatten mris_inflate mris_jacobian \
+mris_fix_topology mris_flatten mris_inflate mris_info mris_jacobian \
 mris_label_area mris_label_mode \
 mris_make_average_surface mris_make_surfaces mris_make_template \
 mris_morph_stats mris_multiscale_stats \
