@@ -430,11 +430,17 @@ DspA_tErr DspA_SetVolume ( tkmDisplayAreaRef this,
     eResult = DspA_SetCursor( this, pCenter );
     if( DspA_tErr_NoErr != eResult )
       goto error;
+    eResult = DspA_SetZoomCenter( this, pCenter );
+    if( DspA_tErr_NoErr != eResult )
+      goto error;
+  }
+  else
+  {
+    eResult = DspA_SetCursor( this, this->mpCursor );
+    if( DspA_tErr_NoErr != eResult )
+      goto error;
   }
 
-  eResult = DspA_SetZoomCenter( this, pCenter );
-  if( DspA_tErr_NoErr != eResult )
-    goto error;
 
   /* show cursor. */
   eResult = DspA_SetDisplayFlag( this, DspA_tDisplayFlag_Cursor, TRUE );
