@@ -10614,7 +10614,7 @@ GCAmapRenormalize(GCA *gca, MRI *mri, TRANSFORM *transform)
 		nbins = 256 ; h = HISTOalloc(nbins) ;
 		
 		hsmooth = HISTOcopy(h, NULL) ;
-		for (l = 0 ; l <= MAX_GCA_LABELS ; l++)
+		for (l = 0 ; l <= MAX_GCA_LABELS ; l++)  /* don't do Unknown class */
 		{
 			label_scales[l] = 1 ;  /* mark it as unusable */
 			GCAlabelMean(gca, l, means) ;
@@ -10624,6 +10624,8 @@ GCAmapRenormalize(GCA *gca, MRI *mri, TRANSFORM *transform)
 			std = 4*sqrt(*MATRIX_RELT(m_cov, frame+1,frame+1)) ;
 			MatrixFree(&m_cov) ;
 			label_means[l] = means[frame] ;
+			if (IS_UNKNOWN(l))
+				continue ;
 			printf("label %s (%d): mean = %2.3f +- %2.1f\n", cma_label_to_name(l), l, label_means[l], std) ;
 			if (l == Gdiag_no)
 				DiagBreak() ;
