@@ -43,6 +43,7 @@ static Real pons_tal_y = -22.0 ;
 static Real pons_tal_z = -17.0 ;
 #else
 
+/* test coords - not very close */
 static Real cc_tal_x = -4.0 ;
 static Real cc_tal_y = -32.0 ;
 static Real cc_tal_z = 27.0 ;
@@ -499,7 +500,8 @@ static MRI *
 find_cutting_plane(MRI *mri, Real x_tal, Real y_tal,Real z_tal,int orientation,
                    int *pxv, int *pyv, int *pzv)
 {
-  MRI        *mri_slices[MAX_SLICES], *mri_filled[MAX_SLICES], *mri_cut ;
+  MRI        *mri_slices[MAX_SLICES], *mri_filled[MAX_SLICES], *mri_cut,
+             *mri_erode ;
   Real       dx, dy, dz, x, y, z, dist, min_dist ;
   int        slice, offset, area[MAX_SLICES], min_area, min_slice,xo,yo,
              xv, yv, zv, x0, y0, z0, xi, yi, zi, MIN_AREA, MAX_AREA, done,
@@ -537,7 +539,6 @@ find_cutting_plane(MRI *mri, Real x_tal, Real y_tal,Real z_tal,int orientation,
   mri_filled[0] = MRIfillFG(mri_slices[0],NULL,xo,yo, 0, (int)WM_MIN_VAL,127);
   MRIboundingBox(mri_filled[0], 1, &region) ;
   area[0] = region.dx * region.dy ;
-
 #if 0
 #undef DIAG_VERBOSE_ON
 #define DIAG_VERBOSE_ON  1
@@ -545,9 +546,9 @@ find_cutting_plane(MRI *mri, Real x_tal, Real y_tal,Real z_tal,int orientation,
   
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
   {
-    sprintf(fname, "%s_slice.mnc", orientation == MRI_SAGITTAL ? "cc":"pons");
+    sprintf(fname, "%s_seed.mnc", orientation == MRI_SAGITTAL ? "cc":"pons");
     MRIwrite(mri_slices[0], fname) ;
-    sprintf(fname, "%s_filled.mnc", orientation == MRI_SAGITTAL ? "cc":"pons");
+    sprintf(fname, "%s_seed.mnc", orientation == MRI_SAGITTAL ? "cc":"pons");
     MRIwrite(mri_filled[0], fname) ;
   }
   
@@ -565,6 +566,9 @@ find_cutting_plane(MRI *mri, Real x_tal, Real y_tal,Real z_tal,int orientation,
 
   if (done)  /* center the seed */
   {
+    mri_erode = MRIerode(mri_filled[0], NULL) ;
+    MRIerode(mri_erode, mri_filled[0]) ;
+    MRIfree(&mri_erode) ;
     x0 = region.x + region.dx / 2 ;
     y0 = region.y + region.dy / 2 ;
     min_dist = 10000 ; xi = yi = 0 ;
@@ -622,10 +626,10 @@ find_cutting_plane(MRI *mri, Real x_tal, Real y_tal,Real z_tal,int orientation,
 
           if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
           {
-            sprintf(fname, "%s_slice.mnc", 
+            sprintf(fname, "%s_seed.mnc", 
                     orientation == MRI_SAGITTAL ? "cc":"pons");
             MRIwrite(mri_slices[0], fname) ;
-            sprintf(fname, "%s_filled.mnc", 
+            sprintf(fname, "%s_seed.mnc", 
                     orientation == MRI_SAGITTAL ? "cc":"pons");
             MRIwrite(mri_filled[0], fname) ;
           }
@@ -642,6 +646,9 @@ find_cutting_plane(MRI *mri, Real x_tal, Real y_tal,Real z_tal,int orientation,
               (region.y+region.dy < SLICE_SIZE-1))
           {
             /* center the seed */
+            mri_erode = MRIerode(mri_filled[0], NULL) ;
+            MRIerode(mri_erode, mri_filled[0]) ;
+            MRIfree(&mri_erode) ;
             x0 = region.x + region.dx / 2 ;
             y0 = region.y + region.dy / 2 ;
             min_dist = 10000 ;
@@ -753,7 +760,7 @@ find_cutting_plane(MRI *mri, Real x_tal, Real y_tal,Real z_tal,int orientation,
 
   offset = min_slice - HALF_SLICES ;
   x = x_tal + dx*offset ; y = y_tal + dy*offset ; z = z_tal + dz*offset ; 
-  MRItalairachToVoxel(mri, x_tal, y,  z, &x, &y, &z) ;
+  MRItalairachToVoxel(mri, x, y,  z, &x, &y, &z) ;
   *pxv = nint(x) ; *pyv = nint(y) ; *pzv = nint(z) ;
   mri_cut = MRIcopy(mri_filled[min_slice], NULL) ;
   if (Gdiag & DIAG_SHOW)
