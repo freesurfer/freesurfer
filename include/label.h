@@ -23,7 +23,7 @@ typedef struct
   int    n_points ;           /* # of points in area */
   char   name[100] ;          /* name of label file */
   char   subject_name[100] ;  /* name of subject */
-  LV     *lv ;                /* labelled vertices */
+  LV     *lv ;                /* labeled vertices */
   General_transform transform ;   /* the next two are from this struct */
   Transform         *linear_transform ;
   Transform         *inverse_linear_transform ;
