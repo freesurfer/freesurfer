@@ -9,8 +9,8 @@
 typedef struct
 {
   short   type ;
-  short   rows ;
-  short   cols ;
+  int     rows ;
+  int     cols ;
   float **rptr;    /* pointer to an array of rows */
   float *data;     /* pointer to base of data */
 } MATRIX, VECTOR ;
