@@ -9,6 +9,7 @@
 #include "analyze.h"
 #include "volume_io.h"
 #include "machine.h"
+#include "signa.h"
 #include "fio.h"
 
 extern int errno;
@@ -68,6 +69,8 @@ int mri_identify(char *fname_passed)
     return(MRI_CORONAL_SLICE_DIRECTORY);
   else if(is_genesis(fname))
     return(GENESIS_FILE);
+  else if(is_signa(fname))
+    return(SIGNA_FILE);
   else if(is_ge_lx(fname))
     return(GE_LX_FILE);
   else if(is_sdt(fname))
