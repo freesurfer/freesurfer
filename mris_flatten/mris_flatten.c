@@ -14,7 +14,7 @@
 #include "macros.h"
 #include "utils.h"
 
-static char vcid[] = "$Id: mris_flatten.c,v 1.4 1997/12/16 16:45:50 fischl Exp $";
+static char vcid[] = "$Id: mris_flatten.c,v 1.5 1997/12/18 16:27:05 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -35,9 +35,8 @@ static int inflate = 0 ;
 static double disturb = 0 ;
 static int mrisDisturbVertices(MRI_SURFACE *mris, double amount) ;
 static int randomly_flatten = 0 ;
-static float min_neg_pct = 0.05f/100.0f ;  /* less than 0.05% negative */
-static int   min_neg = 20 ;
 static int   nospring = 0 ;
+static float scale = 2 ;
 
 int
 main(int argc, char *argv[])
@@ -62,11 +61,10 @@ main(int argc, char *argv[])
   parms.l_dist = 1.0 ;
   parms.l_spring = 0.0 ;
   parms.l_area = 1.0 ;
-  parms.shrink = 1.0 ;
   parms.l_boundary = 0.0 ;
   parms.l_curv = 0.0 ;
   parms.niterations = 1 ;
-  parms.write_iterations = 25 ;
+  parms.write_iterations = 10 ;
   parms.a = parms.b = parms.c = 0.0f ;  /* ellipsoid parameters */
   parms.dt_increase = 1.01 /* DT_INCREASE */;
   parms.dt_decrease = 0.98 /* DT_DECREASE*/ ;
@@ -77,8 +75,8 @@ main(int argc, char *argv[])
   parms.ici_desired = -1.0 ;
   parms.base_name[0] = 0 ;
   parms.Hdesired = 0.0 ;   /* a flat surface */
-  parms.nbhd_size = 8 ;
-  parms.max_nbrs = 4 ;
+  parms.nbhd_size = 4 ;    /* out to 4-connected neighbors */
+  parms.max_nbrs = 20 ;    /* 20 at each distance */
 
   ac = argc ;
   av = argv ;
@@ -133,8 +131,10 @@ main(int argc, char *argv[])
     MRISsetNeighborhoodSize(mris, nbrs) ;
 
     if (Gdiag & DIAG_SHOW)
-      fprintf(stderr,"surface unfolded - minimizing metric distortion...\n");
+      fprintf(stderr,"minimizing metric distortion induced by projection...\n");
     /*      MRISscaleUp(mris) ;*/
+    MRISscaleBrain(mris, mris, scale) ;
+    MRIScomputeMetricProperties(mris) ;
     MRISunfold(mris, &parms) ;  /* optimize metric properties of flat map */
     if (Gdiag & DIAG_SHOW)
       fprintf(stderr, "writing flattened patch to %s\n", out_patch_fname) ;
@@ -196,14 +196,6 @@ get_option(int argc, char *argv[])
     nargs = 1 ;
     fprintf(stderr, "using l_curv = %2.3f\n", parms.l_curv) ;
   }
-#if 0
-  else if (!stricmp(option, "neg"))
-  {
-    sscanf(argv[2], "%f", &parms.l_neg) ;
-    nargs = 1 ;
-    fprintf(stderr, "using l_neg = %2.3f\n", parms.l_neg) ;
-  }
-#endif
   else if (!stricmp(option, "nospring"))
     nospring = 1 ;
   else if (!stricmp(option, "area"))
@@ -211,14 +203,6 @@ get_option(int argc, char *argv[])
     sscanf(argv[2], "%f", &parms.l_area) ;
     nargs = 1 ;
     fprintf(stderr, "using l_area = %2.3f\n", parms.l_area) ;
-  }
-  else if (!stricmp(option, "neg"))
-  {
-    min_neg = atoi(argv[2]) ;
-    min_neg_pct = (float)atof(argv[3])/100.0f ;
-    nargs = 2 ;
-    fprintf(stderr,"negative vertex thresholds: count: %d or area: %2.2f%%\n",
-            min_neg, 100.0f*min_neg_pct) ;
   }
   else if (!stricmp(option, "boundary"))
   {
@@ -324,8 +308,8 @@ get_option(int argc, char *argv[])
     fprintf(stderr, "momentum = %2.2f\n", (float)parms.momentum) ;
     break ;
   case 'S':
-    parms.shrink = atof(argv[2]) ;
-    fprintf(stderr, "using shrink = %2.3f\n", (float)parms.shrink) ;
+    scale = atof(argv[2]) ;
+    fprintf(stderr, "scaling brain by = %2.3f\n", (float)scale) ;
     nargs = 1 ;
     break ;
   case 'W':
