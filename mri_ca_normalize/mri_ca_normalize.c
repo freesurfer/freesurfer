@@ -733,7 +733,7 @@ static int
 uniform_region(MRI *mri, int x, int y, int z, int wsize, GCA_SAMPLE *gcas)
 {
   int   xk, yk, zk, whalf, xi, yi, zi ;
-  float val0, val, sigma ;
+  Real   val0, val, sigma, min_val,max_val, thresh ;
 
   whalf = (wsize-1)/2 ;
   sigma = sqrt(gcas->var) ;
@@ -742,6 +742,8 @@ uniform_region(MRI *mri, int x, int y, int z, int wsize, GCA_SAMPLE *gcas)
     sigma = 0.05*val0 ;
   if (sigma > 0.1*val0)    /* don't let it be too big */
     sigma = 0.1*val0 ;
+	min_val = max_val = val0 ;
+	thresh = 1.0*sigma ;
 
   for (xk = -whalf ; xk <= whalf ; xk++)
   {
@@ -752,9 +754,13 @@ uniform_region(MRI *mri, int x, int y, int z, int wsize, GCA_SAMPLE *gcas)
       for (zk = -whalf ; zk <= whalf ; zk++)
       {
         zi = mri->zi[z+zk] ;
-        val = MRIvox(mri, xi, yi,  zi) ;
-        if (fabs(val-val0) > 1.5*sigma)
-          return(0) ;
+				MRIsampleVolume(mri, (Real)xi, (Real)yi, (Real)zi, &val) ;
+				if (val < min_val)
+					min_val = val ;
+				if (val > max_val)
+					max_val = val ;
+				if (fabs(val-val0) > thresh || fabs(max_val-min_val) > thresh)
+					return(0) ;
       }
     }
   }
