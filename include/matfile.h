@@ -28,6 +28,7 @@ MATRIX  *MatlabRead(const char *fname) ;
 int     MatlabWrite(MATRIX *mat, const char *fname, char *name) ;
 int     MatFileWrite(const char *fname,
                     float *data, int rows, int cols, char *name) ;
+int Matlab_Install_printf( int (*new_printf)(const char *szFormat, ...) );
 
 #define MAT_BYTE     0
 #define MAT_DOUBLE   1
