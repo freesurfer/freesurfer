@@ -14,7 +14,7 @@
 #include "mrisurf.h"
 #include "macros.h"
 
-static char vcid[] = "$Id: mris_show.c,v 1.4 1997/07/25 22:15:38 fischl Exp $";
+static char vcid[] = "$Id: mris_show.c,v 1.5 1997/09/08 20:46:56 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -63,8 +63,7 @@ static int current_list = ORIG_SURFACE_LIST ;
 #define SCALE_FACTOR   0.55f
 #define FOV            (256.0f*SCALE_FACTOR)
 
-static float momentum = -1.0f ;
-static int niterations = 50 ;
+static INTEGRATION_PARMS  parms ;
 
 int
 main(int argc, char *argv[])
@@ -76,6 +75,15 @@ main(int argc, char *argv[])
   Progname = argv[0] ;
   ErrorInit(NULL, NULL, NULL) ;
   DiagInit(NULL, NULL, NULL) ;
+
+  parms.projection = PROJECT_ELLIPSOID ;
+  parms.tol = TOL ;
+  parms.n_averages = N_AVERAGES ;
+  parms.l_angle = L_ANGLE ;
+  parms.l_area = L_AREA ;
+  parms.niterations = NITERATIONS ;
+  parms.write_iterations = WRITE_ITERATIONS ;
+  parms.a = parms.b = parms.c = 0.0f ;  /* ellipsoid parameters */
 
   ac = argc ;
   av = argv ;
@@ -179,17 +187,9 @@ get_option(int argc, char *argv[])
     exit(1) ;
     break ;
   case 'N':
-    sscanf(argv[2], "%d", &niterations) ;
+    sscanf(argv[2], "%d", &parms.niterations) ;
     nargs = 1 ;
-    fprintf(stderr, "using niterations = %d\n", niterations) ;
-    break ;
-  case 'M':
-    sscanf(argv[2], "%f", &momentum) ;
-    if (momentum >= 1.0f)
-      ErrorExit(ERROR_BADPARM, "%s: invalid momentum %2.3f",
-                Progname, momentum) ;
-    nargs = 1 ;
-    fprintf(stderr, "using momentum = %2.3f\n", momentum) ;
+    fprintf(stderr, "using niterations = %d\n", parms.niterations) ;
     break ;
   default:
     fprintf(stderr, "unknown option %s\n", argv[1]) ;
@@ -547,10 +547,10 @@ keyboard_handler(unsigned char key, int x, int y)
     glRotatef(angle, 0.0f, 1.0f, 0.0f) ;
     break ;
   case 'u':
-    niter = niterations ;
+    niter = parms.niterations ;
   case 'U':
-    MRISunfold(mris, niter, momentum, 1.0f, 0.0f, 0.0f) ;
-    /*    MRISprojectOntoEllipsoid(mris_ellipsoid, mris_ellipsoid, 0.0f, 0.0f, 0.0f);*/
+    MRISunfold(mris, &parms) ;
+
 #if COMPILE_SURFACE
     glDeleteLists(ELLIPSOID_LIST, 1) ;
     glNewList(ELLIPSOID_LIST, GL_COMPILE) ;
