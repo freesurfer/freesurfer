@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Computes glm inferences on the surface.
-  $Id: mris_glm.c,v 1.28 2004/08/24 23:04:35 greve Exp $
+  $Id: mris_glm.c,v 1.29 2004/10/06 22:03:04 greve Exp $
 
 Things to do:
   0. Documentation.
@@ -73,7 +73,7 @@ static char *getstem(char *bfilename);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_glm.c,v 1.28 2004/08/24 23:04:35 greve Exp $";
+static char vcid[] = "$Id: mris_glm.c,v 1.29 2004/10/06 22:03:04 greve Exp $";
 char *Progname = NULL;
 
 char *hemi        = NULL;
@@ -196,7 +196,7 @@ int main(int argc, char **argv)
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv, 
-      "$Id: mris_glm.c,v 1.28 2004/08/24 23:04:35 greve Exp $", "$Name:  $");
+      "$Id: mris_glm.c,v 1.29 2004/10/06 22:03:04 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -506,7 +506,10 @@ int main(int argc, char **argv)
     /* Compute t-ratio  */
     if(tid != NULL || sigid != NULL || tmaxfile != NULL || SynthPDF != 0){
       if(nsim == 1) printf("INFO: computing t \n"); fflush(stdout);
-      t = fMRIcomputeT(ces, X, C, eresvar, t);
+      if(C->rows == 1)
+	t = fMRIcomputeT(ces, X, C, eresvar, t);
+      else
+	t = fMRIcomputeF(ces, X, C, eresvar, t); // Note: sigF does not work
       if(tid != NULL && MCSim == 0) {
 	if(IsSurfFmt(tfmt) && IcoSurf == NULL)
 	  IcoSurf = MRISloadSurfSubject(trgsubject,hemi,surfregid,SUBJECTS_DIR);
@@ -527,7 +530,10 @@ int main(int argc, char **argv)
     /* Compute significance of t-ratio  */
     if(sigid != NULL || SynthPDF != 0){
       if(nsim == 1) printf("INFO: computing t significance \n");fflush(stdout);
-      sig = fMRIsigT(t, DOF, sig);
+      if(C->rows == 1)
+	sig = fMRIsigT(t, DOF, sig);
+      else
+	sig = fMRIsigF(t, DOF, C->rows, sig); // This does not work
       MRIlog10(sig,sig,1);
       if(sigfmt != NULL && MCSim == 0){
 	if(IsSurfFmt(sigfmt) && IcoSurf == NULL)
@@ -1400,6 +1406,7 @@ static void check_options(void)
       }      
       if(C->rows != 1){
 	printf("ERROR: the contrast matrix can only have one row.\n");
+	printf("Ask Doug to add F-test.\n");
 	exit(1);
       }
     }
