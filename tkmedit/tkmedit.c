@@ -4,9 +4,9 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2003/05/21 22:28:53 $
-// Revision       : $Revision: 1.152 $
-char *VERSION = "$Revision: 1.152 $";
+// Revision Date  : $Date: 2003/06/05 14:45:05 $
+// Revision       : $Revision: 1.153 $
+char *VERSION = "$Revision: 1.153 $";
 
 #define TCL
 #define TKMEDIT 
@@ -1020,7 +1020,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
      shorten our argc and argv count. If those are the only args we
      had, exit. */
   /* rkt: check for and handle version tag */
-  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.152 2003/05/21 22:28:53 kteich Exp $");
+  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.153 2003/06/05 14:45:05 kteich Exp $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
   argc -= nNumProcessedVersionArgs;
@@ -3198,7 +3198,7 @@ int TclSetSelectedHeadPointLabel ( ClientData inClientData,
            int argc, char* argv[] ) {
   
   if ( argc != 2 ) {
-    Tcl_SetResult ( inInterp, "wrong # args: SetSelectedHeadPointLabel",
+    Tcl_SetResult ( inInterp, "wrong # args: SetSelectedHeadPointLabel label",
         TCL_VOLATILE );
     return TCL_ERROR;
   }
@@ -3532,8 +3532,7 @@ int TclUnloadGCA ( ClientData inClientData,
        int argc, char* argv[] ) {
   
   if ( argc != 1 ) {
-    Tcl_SetResult ( inInterp, "wrong # args: UnloadGCA "
-        "volume", TCL_VOLATILE );
+    Tcl_SetResult ( inInterp, "wrong # args: UnloadGCA", TCL_VOLATILE );
     return TCL_ERROR;
   }
   
