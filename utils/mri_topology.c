@@ -1887,10 +1887,10 @@ static void SmoothImage(MRI *mri,TC_PARMS *parms)
   MRIfree(&mri_tmp);
 }
 
-#define PI 3.14159
+#define MRI_PI 3.14159
 static double gauss(double x,double m,double v)
 {
-  return (1./(sqrt((double)2.*PI*v))*exp(-(double)0.5*SQR((x-m))/v));
+  return (1./(sqrt((double)2.*MRI_PI*v))*exp(-(double)0.5*SQR((x-m))/v));
 }
 
 #define NLABELS 50
