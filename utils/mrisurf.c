@@ -7206,13 +7206,60 @@ MRISreadAnnotation(MRI_SURFACE *mris, char *sname)
         Description
 ------------------------------------------------------*/
 int
-MRISreadValues(MRI_SURFACE *mris, char *fname)
+MRISwriteAnnotation(MRI_SURFACE *mris, char *sname)
 {
-  int i,k,num,ilat;
+  int   i,j,vno,num;
+  FILE  *fp;
+  char  *cp, fname[STRLEN], path[STRLEN];
+
+  cp = strchr(sname, '/') ;
+  if (!cp)                 /* no path - use same one as mris was read from */
+  {
+    cp = strchr(sname, '.') ;
+    FileNamePath(mris->fname, path) ;
+    if (cp)
+      sprintf(fname, "%s/../label/%s", path, sname) ;
+    else   /* no hemisphere specified */
+      sprintf(fname, "%s/../label/%s.%s", path, 
+              mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", sname) ;
+  }
+  else
+    strcpy(fname, sname) ;  /* full path specified */
+
+  fp = fopen(fname,"wb");
+  if (fp==NULL) 
+    ErrorReturn(ERROR_NOFILE, (ERROR_NOFILE, "could not write annot file %s",
+                                fname)) ;
+  fwriteInt(num, fp) ;
+  for (j=0;j<num;j++)
+  {
+    i = mris->vertices[vno].annotation ;
+    fwriteInt(vno,fp) ; i = fwriteInt(i,fp) ;
+  }
+  fclose(fp);
+
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+int
+MRISreadValues(MRI_SURFACE *mris, char *sname)
+{
+  int   i,k,num,ilat;
   float f;
   float lat;
-  FILE *fp;
+  FILE  *fp;
+  char  *cp, fname[STRLEN] ;
 
+  strcpy(fname, sname) ;
+  cp = strrchr(fname, '.') ;
+  if (!cp || *(cp+1) != 'w')
+    strcat(fname, ".w") ;
   fp = fopen(fname,"r");
   if (fp==NULL) 
     ErrorReturn(ERROR_NOFILE, (ERROR_NOFILE,
@@ -19847,6 +19894,62 @@ MRISbuildFileName(MRI_SURFACE *mris, char *sname, char *fname)
   }
   else   
     strcpy(fname, sname) ;  /* path specified explicitly */
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+int
+MRISmodeFilterVals(MRI_SURFACE *mris, int niter)
+{
+  int    histo[256], i, n, vno, ino, index, max_histo, max_index ;
+  VERTEX *v, *vn ;
+
+  for (ino  = 0 ; ino < niter ; ino++)
+  {
+    for (vno = 0 ; vno < mris->nvertices ; vno++)
+    {
+      v = &mris->vertices[vno] ;
+      if (v->ripflag)
+        continue ;
+      if (vno == Gdiag_no)
+        DiagBreak() ;
+
+      memset(histo, 0, sizeof(histo)) ;
+      for (n = 0 ; n < v->vnum ; n++)
+      {
+        vn = &mris->vertices[v->v[n]] ;
+        index = (int)nint(vn->val) ;
+        if (index < 0 || index > 255)
+          continue ;
+        histo[index]++ ;
+      }
+      max_histo = histo[0] ; max_index = 0 ;
+      for (i = 1 ; i < 256 ; i++)
+      {
+        if (histo[i] > max_histo)
+        {
+          max_histo = histo[i] ;
+          max_index = i ;
+        }
+      }
+      v->valbak = max_index ;
+
+    }
+    for (vno = 0 ; vno < mris->nvertices ; vno++)
+    {
+      v = &mris->vertices[vno] ;
+      if (v->ripflag)
+        continue ;
+      if (vno == Gdiag_no)
+        DiagBreak() ;
+      v->val = v->valbak ;
+    }
+  }
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
