@@ -11,7 +11,11 @@ function pedmat = tdr_pedmatrix(TE,echospacing,delsamp,tDwell,nrows,ncols,perev)
 % The perev indicates that k-space was traversed in the reverse
 % phase encode direction. This changes where the center of k-space is
 % in the PED matrix. No reversals or flipping of the PED matrix are
-% applied even when the perev is set.
+% applied even when the perev is set. The upper left voxel in the
+% PED matrix will always have the shortest PED because that was
+% the first voxel to be acquired. Setting perev has a subtle
+% effect. It only shifts the sample times so that the center of
+% k-space is at nrows/2-1 instead of nrows/2+1.
 %
 % TE - echo time - time at which the center of k-space is traversed.
 % echospacing - time between lines/echoes
@@ -23,7 +27,7 @@ function pedmat = tdr_pedmatrix(TE,echospacing,delsamp,tDwell,nrows,ncols,perev)
 %           matrix is not flipped UD). If perev is not given or is
 %           empty, no reversal is assumed.
 %
-% $Id: tdr_pedmatrix.m,v 1.2 2004/01/16 22:19:07 greve Exp $
+% $Id: tdr_pedmatrix.m,v 1.3 2004/01/22 00:51:12 greve Exp $
 %
 
 pedmat = [];
