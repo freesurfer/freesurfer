@@ -919,6 +919,10 @@ VolumeCollection::IsSelected ( VolumeLocation& iLoc, int oColor[3] ) {
     
     return bSelected;
   }
+  catch( runtime_error e ) {
+    cerr << "Error in IsSelected(): " << e.what() << endl;
+    return false;
+  }
   catch(...) {
     return false;
   }
@@ -1297,6 +1301,8 @@ VolumeCollection::WriteROIsToSegmentation ( string ifnVolume ) {
   if( NULL == segVolume ) {
     throw runtime_error( "Couldn't create seg volume" );
   }
+
+  MRIcopyHeader( mMRI, segVolume );
 
   // Go through the volume...
   int index[3];
