@@ -193,6 +193,7 @@ ScubaColorLUT::ReadFile () {
 
     int nLine = 0;
     int maxEntry = 0;
+    int nLastEntry = -1;
     while( !fLUT.eof() ) {
 
       string sLine;
@@ -216,6 +217,20 @@ ScubaColorLUT::ReadFile () {
       mEntries[nEntry].msLabel  = sLabel;
       if( nEntry > maxEntry ) maxEntry = nEntry;
     
+      if( nEntry != nLastEntry + 1 ) {
+	DebugOutput( << "Went from entry " << nLastEntry
+		     << " to " << nEntry );
+
+	for( int i = nLastEntry+1; i < nEntry; i++ ) {
+	  mEntries[i].color[0] = 255;
+	  mEntries[i].color[1] = 0;
+	  mEntries[i].color[2] = 0;
+	  mEntries[i].msLabel  = "Missing entry";
+	}
+	nLastEntry--; // right now nLastEntry == nEntry, so dec it
+      }
+      nLastEntry = nEntry;
+
       nLine++;
     }
 
