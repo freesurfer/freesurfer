@@ -1,7 +1,7 @@
 #!/bin/csh -f
 # isxavg-re-abb-sess
 #
-set VERSION = '$Id: isxavg-re-abb-sess,v 1.3 2003/08/13 17:27:26 greve Exp $';
+set VERSION = '$Id: isxavg-re-abb-sess,v 1.4 2004/02/23 20:04:08 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -13,6 +13,7 @@ set srcspacedir  = ();
 set umaskarg = ();
 set hemi = ();
 set logcode = ();
+set nolog = 0;
 #set contrastlist = ();
 set MLF = ();
 set monly = 0;
@@ -36,8 +37,12 @@ if(! -e $logdir | ! -w $logdir) then
   echo "WARNING: could not create $logdir"
   set LF = /dev/null
 else
-  set LF = $logdir/isxavg-re-abb-sess$logcode.log
-  if(-e $LF) mv $LF $LF.old
+  if($nolog) then
+    set LF = /dev/null
+  else
+    set LF = $logdir/isxavg-re-abb-sess$logcode.log
+    if(-e $LF) mv $LF $LF.old
+  endif
 endif
 echo "--------------------------------------------------------------"
 echo "isxavg-re-abb-sess logfile is $LF"
@@ -235,6 +240,10 @@ while( $#argv != 0 )
       set usepct = 0;
       breaksw
 
+    case "-nolog":
+      set nolog = 1;
+      breaksw
+
     case "-logcode":
       set logcode = $$;
       breaksw
@@ -344,6 +353,7 @@ usage_exit:
   echo "   -df srchdirfile ..."
   echo "   -s  sessid      ..."
   echo "   -d  srchdir     ..."
+  echo "   -nolog : don't create a log file"
   #echo "   -logcode       : add a unique suffix to log file"
   echo "   -umask umask   : set unix file permission mask"
   echo "   -version       : print version and exit"
