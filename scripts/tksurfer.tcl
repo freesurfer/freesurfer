@@ -2214,7 +2214,7 @@ proc CreateMenuBar { ifwMenuBar } {
       { labl_remove_all; UpdateAndRedraw } \
       mg_LabelLoaded } \
       \
-      { command "Copy Label Statistic to Overlay..." \
+      { command "Copy Label Statistics to Overlay..." \
       { DoLabelToOverlayDlog } \
       mg_LabelLoaded } } } \
       \
