@@ -17,7 +17,7 @@
 #include "version.h"
 #include "label.h"
 
-static char vcid[] = "$Id: mris_make_surfaces.c,v 1.51 2004/07/02 21:23:18 fischl Exp $";
+static char vcid[] = "$Id: mris_make_surfaces.c,v 1.52 2004/07/19 21:44:53 greve Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -131,6 +131,8 @@ static  float   max_border_white = MAX_BORDER_WHITE,
   max_csf = MAX_CSF ;
 static char sdir[STRLEN] = "" ;
 
+static int MGZ = 0; // for use with MGZ format
+
 int
 main(int argc, char *argv[])
 {
@@ -146,7 +148,7 @@ main(int argc, char *argv[])
   M3D           *m3d ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_make_surfaces.c,v 1.51 2004/07/02 21:23:18 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_make_surfaces.c,v 1.52 2004/07/19 21:44:53 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -212,6 +214,7 @@ main(int argc, char *argv[])
   strcpy(mdir, cp) ;
   
   sprintf(fname, "%s/%s/mri/filled", sdir, sname) ;
+  if(MGZ) sprintf(fname, "%s.mgz",fname);
   fprintf(stderr, "reading volume %s...\n", fname) ;
   mri_filled = MRIread(fname) ;
   if (!mri_filled)
@@ -226,8 +229,8 @@ main(int argc, char *argv[])
   { label_val = rh_label ; replace_val = lh_label ; }
 
   sprintf(fname, "%s/%s/mri/%s", sdir, sname, T1_name) ;
+  if(MGZ) sprintf(fname, "%s.mgz",fname);
   fprintf(stderr, "reading volume %s...\n", fname) ;
-
   // mri_T1 = mri_T1_pial = MRIread(fname) ; 
   mri_T1 = MRIread(fname);
   mri_T1_pial = MRIread(fname); // cached volume
@@ -241,6 +244,7 @@ main(int argc, char *argv[])
   if (white_fname != NULL)
   {
     sprintf(fname, "%s/%s/mri/%s", sdir, sname, white_fname) ;
+    if(MGZ) sprintf(fname, "%s.mgz",fname);
     fprintf(stderr, "reading volume %s...\n", fname) ;
     mri_T1_white = MRIread(fname) ;
     if (!mri_T1_white)
@@ -325,6 +329,7 @@ main(int argc, char *argv[])
   MRIfree(&mri_filled) ;
 
   sprintf(fname, "%s/%s/mri/wm", sdir, sname) ;
+  if(MGZ) sprintf(fname, "%s.mgz",fname);
   fprintf(stderr, "reading volume %s...\n", fname) ;
   mri_wm = MRIread(fname) ;
   if (!mri_wm)
@@ -1110,6 +1115,11 @@ get_option(int argc, char *argv[])
   {
     max_thickness = atof(argv[2]) ; nargs = 1 ;
     printf("using max_thickness = %2.1f\n", max_thickness) ;
+  }
+  else if (!stricmp(option, "mgz"))
+  {
+    MGZ = 1;
+    printf("INFO: assuming MGZ format for volumes.\n");
   }
   else switch (toupper(*option))
   {
