@@ -2,7 +2,7 @@
    DICOM 3.0 reading functions
    Author: Sebastien Gicquel and Douglas Greve
    Date: 06/04/2001
-   $Id: DICOMRead.c,v 1.46 2003/09/22 21:55:38 tosa Exp $
+   $Id: DICOMRead.c,v 1.47 2003/10/01 21:15:23 tosa Exp $
 *******************************************************/
 
 #include <stdio.h>
@@ -113,16 +113,17 @@ MRI * sdcmLoadVolume(char *dcmfile, int LoadVolume)
   /* there are some Siemens files don't have the slice dircos */
   {
     xs = sdfi_list[0]->ImgPos[0]; ys = sdfi_list[0]->ImgPos[1]; zs = sdfi_list[0]->ImgPos[2];
-    xe = sdfi_list[nlist-1]->ImgPos[0]; ys = sdfi_list[nlist-1]->ImgPos[1]; zs = sdfi_list[nlist-1]->ImgPos[2];
+    xe = sdfi_list[nlist-1]->ImgPos[0]; ye = sdfi_list[nlist-1]->ImgPos[1]; ze = sdfi_list[nlist-1]->ImgPos[2];
     /* check sign. inner product of what we have so far with the vector we found */
     /* using two slices.  They should be parallel and thus we can use the sign.  */
     /* no need to normalize the vector, since we are interested in only sign.    */
-    sign = sdfi->Vs[0]*(xe-xs) + sdfi->Vs[1]*(ye-ys) + sdfi->Vs[2]*(ze-zs);
+    /* Note that DICOM is LPS ... we need RAS                                    */
+    /* this means that first two must use xs-xe, ys-ye, but ze-zs                */
+    sign = sdfi->Vs[0]*(xs-xe) + sdfi->Vs[1]*(ys-ye) + sdfi->Vs[2]*(ze-zs);
     if (sign < 0)
     {
-      sdfi->Vs[0] *= -1;
-      sdfi->Vs[1] *= -1;
-      sdfi->Vs[2] *= -1;
+      // warn
+      fprintf(stderr, "INFO: c_s sign is flipped (this should not happen).\n");
     }
   }
 
@@ -1303,12 +1304,11 @@ SDCMFILEINFO *GetSDCMFileInfo(char *dcmfile)
     /* we have x_(r,a,s) and y_(r,a,s).  z_(r,a,s) must be orthogonal to these */
     /* get the cross product of x_(r,a,s) and y_(r,a,s) is in proportion to z_(r,a,s) */
     /* also x_(r,a,s) and y_(r,a,s) are normalized and thus cross product is also normalized */
-    /* the only thing needed is to decide the direction ambiguity */
+    /* Note that RAS is right-handed coords and sign is fixed  */
     xr = sdcmfi->Vc[0]; xa = sdcmfi->Vc[1]; xs = sdcmfi->Vc[2]; 
     yr = sdcmfi->Vr[0]; ya = sdcmfi->Vr[1]; ys = sdcmfi->Vr[2];
     zr = xa*ys - xs*ya; za = xs*yr - xr*ys; zs = xr*ya - xa*yr;
-    /* we have sign ambiguity here at this point */
-    /* need to look at at least two files later  */
+    /* confirm sign by two files later  */
     sdcmfi->Vs[0] = zr; sdcmfi->Vs[1] = za; sdcmfi->Vs[2] = zs;
   }
 
