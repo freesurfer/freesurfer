@@ -25,7 +25,7 @@
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_probedicom.c,v 1.2 2002/04/30 22:13:10 greve Exp $";
+static char vcid[] = "$Id: mri_probedicom.c,v 1.3 2002/09/10 22:02:28 kteich Exp $";
 char *Progname = NULL;
 
 static int  parse_commandline(int argc, char **argv);
@@ -565,7 +565,6 @@ char *RepString(int RepCode)
   case DCM_UI: repstring = "Unique Identifier"; break;
   case DCM_UL: repstring = "Unsigned Long"; break;
   case DCM_US: repstring = "Unsigned Short"; break;
-  case DCM_UNKNOWN: repstring = "Unknown"; break;
   default: 
     fprintf(stderr,"RepString: %d unrecognized",RepCode);
 
@@ -621,7 +620,6 @@ int AllocElement(DCM_ELEMENT *e)
   case DCM_ST: 
   case DCM_TM: 
   case DCM_UI: 
-  case DCM_UNKNOWN: 
     e->d.string = (char *) calloc(e->length+1,sizeof(char));
     e->d.string[e->length] = '\0'; /* add null terminator */
     break;
@@ -679,7 +677,6 @@ int FreeElement(DCM_ELEMENT *e)
   case DCM_ST: 
   case DCM_TM: 
   case DCM_UI: 
-  case DCM_UNKNOWN: 
     free(e->d.string);
     e->d.string = NULL;
     break;
@@ -793,7 +790,6 @@ char *ElementValueString(DCM_ELEMENT *e)
   case DCM_ST: 
   case DCM_TM: 
   case DCM_UI: 
-  case DCM_UNKNOWN: 
     sprintf(tmpstr,"%s",e->d.string); 
     break;
   case DCM_SS: sprintf(tmpstr,"%d",(int)(*(e->d.ss)));  break;
@@ -1186,7 +1182,6 @@ char *ElementValueFormat(DCM_ELEMENT *e)
   case DCM_ST: 
   case DCM_TM: 
   case DCM_UI: 
-  case DCM_UNKNOWN: 
     formatstring = "%s";
     break;
   case DCM_SS: formatstring = "%d";  break;
@@ -1353,7 +1348,6 @@ size_t RepSize(int RepCode)
   case DCM_UI: repsize = sizeof(char); break;
   case DCM_UL: repsize = sizeof(unsigned long); break;
   case DCM_US: repsize = sizeof(unsigned short); break;
-  case DCM_UNKNOWN: repsize = sizeof(char); break;
   default: 
     fprintf(stderr,"RepSize: %d unrecognized",RepCode);
   }
