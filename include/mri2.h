@@ -12,3 +12,5 @@ int  mri_save_as_cor(MRI *vol,  char *cordir, int frame, int rescale);
 int mri_minmax(MRI *vol, float *min, float *max);
 MRI *mri_load_cor_as_float(char *cordir);
 MRI *mri_load_wfile(char *wfile);
+size_t mri_sizeof(MRI *vol);
+MRI *mri_reshape(MRI *vol, int ncols, int nrows, int nslices, int nframes);
