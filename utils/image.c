@@ -3478,49 +3478,52 @@ ImageYDerivative(IMAGE *inImage, IMAGE *yImage)
 int
 ImageConvolve3x3(IMAGE *inImage, float kernel[], IMAGE *outImage)
 {
-  int     rows, cols, x, y, xk, yk, k, xi, yi ;
+  int     rows, cols, x, y, xk, yk, k, xi, yi, frame ;
   float   *fkpix, sum, *fopix, *fipix ;
 
   rows = inImage->rows ;
   cols = inImage->cols ;
 
-  switch (inImage->pixel_format)
+  for (frame = 0 ; frame < inImage->num_frame ; frame++)
   {
-  case PFFLOAT:
-    fopix = (float *)IMAGEFpix(outImage, 0, 0) ;
-    for (y = 0 ; y < rows ; y++)
+    switch (inImage->pixel_format)
     {
-      for (x = 0 ; x < cols ; x++, fopix++)
+    case PFFLOAT:
+      fopix = (float *)IMAGEFseq_pix(outImage, 0, 0, frame) ;
+      for (y = 0 ; y < rows ; y++)
       {
-        fkpix = kernel ;
-        for (sum = 0.0, k = 0, yk = -1 ; yk <= 1 ; yk++)
+        for (x = 0 ; x < cols ; x++, fopix++)
         {
-          yi = y + yk ;    /* image coordinate */
-          if (yi < 0)
-            yi = 0 ;
-          else if (yi >= rows)
-            yi = rows-1 ;
-
-          for (xk = -1 ; xk <= 1 ; xk++, k++, fkpix++)
+          fkpix = kernel ;
+          for (sum = 0.0, k = 0, yk = -1 ; yk <= 1 ; yk++)
           {
-            xi = x + xk ;   /* image coordinate */
-            if (xi < 0)
-              xi = 0 ;
-            else if (xi >= cols)
-              xi = cols-1 ;
-            fipix = IMAGEFpix(inImage, xi, yi) ;
-            sum = sum + *fipix * *fkpix ;
+            yi = y + yk ;    /* image coordinate */
+            if (yi < 0)
+              yi = 0 ;
+            else if (yi >= rows)
+              yi = rows-1 ;
+            
+            for (xk = -1 ; xk <= 1 ; xk++, k++, fkpix++)
+            {
+              xi = x + xk ;   /* image coordinate */
+              if (xi < 0)
+                xi = 0 ;
+              else if (xi >= cols)
+                xi = cols-1 ;
+              fipix = IMAGEFseq_pix(inImage, xi, yi, frame) ;
+              sum = sum + *fipix * *fkpix ;
+            }
           }
+          *fopix = sum ;
         }
-        *fopix = sum ;
       }
+      break ;
+    default:
+      fprintf(stderr, "ImageConvolve3x3: unsupported pixel format %d\n",
+              inImage->pixel_format) ;
+      exit(-1);
+      break ;
     }
-    break ;
-  default:
-    fprintf(stderr, "ImageConvolve3x3: unsupported pixel format %d\n",
-            inImage->pixel_format) ;
-    exit(-1);
-    break ;
   }
 
   return(0) ;
@@ -4671,10 +4674,16 @@ ImageNormalizeOffsetDistances(IMAGE *Isrc, IMAGE *Idst, int maxsteps)
 ----------------------------------------------------------------------*/
 #define ISSMALL(m)   (fabs(m) < 0.00001f)
 
+static float avg[] = { 1.0f/9.0f, 1.0f/9.0f, 1.0f/9.0f,
+                       1.0f/9.0f, 1.0f/9.0f, 1.0f/9.0f,
+                       1.0f/9.0f, 1.0f/9.0f, 1.0f/9.0f } ;
 #if 1
 IMAGE *
 ImageSmoothOffsets(IMAGE *Isrc, IMAGE *Idst, int wsize)
 {
+#if 0
+  ImageConvolve3x3(Isrc, avg, Idst) ;
+#else
   float  *src_xpix, *src_ypix, *dst_xpix, *dst_ypix, slope, dx,dy, f,
          xf, yf, *wdx, *wdy, *wphase, *wmag, dist, mag  ;
   int    x0, y0, rows, cols, x, y, delta, i, whalf, *wx, *wy ;
@@ -4866,7 +4875,7 @@ ImageSmoothOffsets(IMAGE *Isrc, IMAGE *Idst, int wsize)
   free(wdy) ;
   free(wphase) ;
   free(wmag) ;
-
+#endif
   return(Idst) ;
 }
 #else
