@@ -35,6 +35,7 @@ bool compareBad(const MRI *base, const MRI *tmp)
   // RAS voxel position should be the same
   // get the base->tmp voxel map
   MATRIX *b2t = MatrixMultiply(tmp->r_to_i__, base->i_to_r__, NULL);
+  cout << endl;
   for (int k = 0; k < base->depth; k++)
     for (int j=0; j < base->height; ++j)
       for (int i=0; i < base->width; ++i)
@@ -54,11 +55,13 @@ bool compareBad(const MRI *base, const MRI *tmp)
 	  {
 	    if (bad == false)
 	      bad = true;
+	    cout << endl;
 	    cout << "base: (" << i << "," <<j << "," << k << ") =" << MRIvox(base, i,j,k)
 		 << "    tmp: (" << it << "," << jt << "," << kt << ") = " << MRIvox(tmp, i,j,k) << endl;
 	  }
 	}
       }
+  cout << endl;
   return bad;
 }
 
@@ -85,7 +88,7 @@ int main(int argc, char *argv[])
       cout << "Failed comparison for " << file[6].c_str() << " and " << file[i].c_str() << endl;
     }
     else
-      cout << "Good for " << file[6].c_str() << " and " << file[i].c_str() << endl;
+      cout << "Good comparison for " << file[6].c_str() << " and " << file[i].c_str() << endl;
   }
   return (bad==true) ? 1 : 0;
 }
