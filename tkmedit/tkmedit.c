@@ -191,20 +191,6 @@ char *rfname;        /* script */
 
 // ===========================================================================
 
-
-// =========================================================== READING VOLUMES
-
-                                   /* this function takes a path and passes
-              it to MRIRead. it then takes the MRI
-              struct and grabs all the information
-              it needs from it. this is an alternative
-              function to read_images and is 
-              independent of the SUBJECTS_DIR env
-              variable. */
-
-
-// ===========================================================================
-
 // ==================================================== COORDINATE CONVERSIONS
 
 #include "mriTransform.h"
@@ -501,12 +487,21 @@ xUndoListRef gUndoList = NULL;
 
 // ==========================================================================
 
+/* =========================================================== HEAD POINTS */
+
+#include "mriHeadPointList.h"
+
+mriHeadPointListRef gHeadPoints = NULL;
+
+void LoadHeadPts ( char* isHeadPtsFile, 
+       char* isTransformFile );
+
+/* ======================================================================= */
+
 /* ========================================================== MEDIT WINDOW */
 
 tkmMeditWindowRef gMeditWindow = NULL;
 int gDoRedraw = 1;
-
-void flush_redraws ();
 
 /* ======================================================================= */
 
@@ -658,39 +653,42 @@ int Medit(ClientData clientData, Tcl_Interp *interp, int argc, char *argv[]) {
   int  bFatalError = FALSE;
   char sArg[128];
   
-  int bSubjectDeclared = FALSE;
-  int bUsingMRIRead = FALSE;
-  char sSubject[128];
-  char sImageDir[128];
-  int bSurfaceDeclared = FALSE;
-  char sSurface[128];
-  int bLocalImageDir = FALSE;
-  int bNoEdit = FALSE;
-  int tclscriptflag = 0;
-  int bLoadingAuxVolume = FALSE;
-  char sAuxVolume[128];
-  int bLoadingOverlay = FALSE;
-  char sOverlayPath[128];
-  char sOverlayStem[128];
-  int bLoadingTimeCourse = FALSE;
-  char sTimeCoursePath[128];
-  char sTimeCourseStem[128];
-  int bLoadingParcellation = FALSE;
-  char sParcellationPath[256];
-  char sParcellationColorFile[256];
-  char bThresh = FALSE;
-  FunV_tFunctionalValue min = 0;
-  char bMid = FALSE;
-  FunV_tFunctionalValue mid = 0;
-  char bSlope = FALSE;
-  FunV_tFunctionalValue slope = 0;
-  char bRevPhaseFlag = FALSE;
-  int nRevPhaseFlag = 0;
-  char bTruncPhaseFlag = FALSE;
-  int nTruncPhaseFlag = 0;
-  char bUseOverlayCacheFlag = FALSE;
-  int nUseOverlayCacheFlag = 0;
-  char sPathAndStem[256] = "";
+  tBoolean                bSubjectDeclared            = FALSE;
+  tBoolean                bUsingMRIRead               = FALSE;
+  char                    sSubject[128]               = "";
+  char                    sImageDir[128]              = "";
+  tBoolean                bSurfaceDeclared            = FALSE;
+  char                    sSurface[128]               = "";
+  tBoolean                bLocalImageDir              = FALSE;
+  tBoolean                bNoEdit                     = FALSE;
+  int                     tclscriptflag               = 0;
+  tBoolean                bLoadingAuxVolume           = FALSE;
+  char                    sAuxVolume[128]             = "";
+  tBoolean                bLoadingOverlay             = FALSE;
+  char                    sOverlayPath[128]           = "";
+  char                    sOverlayStem[128]           = "";
+  tBoolean                bLoadingTimeCourse          = FALSE;
+  char                    sTimeCoursePath[128]        = "";
+  char                    sTimeCourseStem[128]        = "";
+  tBoolean                bLoadingParcellation        = FALSE;
+  char                    sParcellationPath[256]      = "";
+  char                    sParcellationColorFile[256] = "";
+  tBoolean                bThresh                     = FALSE;
+  FunV_tFunctionalValue   min                         = 0;
+  tBoolean                bMid                        = FALSE;
+  FunV_tFunctionalValue   mid                         = 0;
+  tBoolean                bSlope                      = FALSE;
+  FunV_tFunctionalValue   slope                       = 0;
+  tBoolean                bRevPhaseFlag               = FALSE;
+  int                     nRevPhaseFlag               = 0;
+  tBoolean                bTruncPhaseFlag             = FALSE;
+  int                     nTruncPhaseFlag             = 0;
+  tBoolean                bUseOverlayCacheFlag        = FALSE;
+  int                     nUseOverlayCacheFlag        = 0;
+  char                    sPathAndStem[256]           = "";
+  tBoolean                bLoadingHeadPts             = FALSE;
+  char                    sHeadPts[256]               = "";
+  char                    sHeadPtsTransform[256]      = "";
 
   /* first get the functional threshold so we don't overwrite the defaults */
   eFunctional = FunV_GetThreshold( gFunctionalVolume, &min, &min, &slope );
@@ -997,6 +995,26 @@ printf("   tkmedit anders T1 -overlay /path/to/bfile/overlay/data/stem -timecour
       nCurrentArg += 1;
     }
 
+  } else if( MATCH( sArg, "-headpts" ) ) {
+
+    /* check for the value following the switch */
+    if( argc > nCurrentArg + 2
+        && '-' != argv[nCurrentArg+1][0] 
+        && '-' != argv[nCurrentArg+2][0] ) {
+      
+      /* read in the head pts and transform file name */
+      strcpy( sHeadPts, argv[nCurrentArg+1] );
+      strcpy( sHeadPtsTransform, argv[nCurrentArg+2] );
+      bLoadingHeadPts = TRUE;
+      nCurrentArg += 3;
+
+    } else { 
+      
+      /* misuse of that switch */
+      OutputPrint "-headpts requires two arguments, the head points file and the transform file\n" EndOutputPrint;
+      nCurrentArg += 1;
+    }
+
   } else if( MATCH( sArg, "-overlaycache" ) ) {
 
     /* check for the value following the switch */
@@ -1293,6 +1311,11 @@ printf("   tkmedit anders T1 -overlay /path/to/bfile/overlay/data/stem -timecour
     /* load parcellation */
     if( bLoadingParcellation ) {
       LoadParcellationVolume( sParcellationPath, sParcellationColorFile );
+    }
+
+    /* load head pts */
+    if( bLoadingHeadPts ) {
+      LoadHeadPts( sHeadPts, sHeadPtsTransform );
     }
 
     /* load functional data */
@@ -1903,16 +1926,12 @@ read_images(char *fpref) {
   char* pEnd;
   int   eRead;
 
-  DebugPrint "read_images( %s )\n", fpref EndDebugPrint;
-
   /* if there is a /COR- at the end, take it off and pass
      the rest to ReadVolumeWithMRIRead */
   strcpy( sPath, fpref );
   pEnd = strstr( sPath, "/COR-" );
   if( NULL != pEnd )
     *pEnd = '\0';
-
-  DebugPrint "ReadVolumeWithMRIRead( %s )\n", sPath EndDebugPrint;
 
   /* attempt to read the volume */
   eRead = ReadVolumeWithMRIRead( &gAnatomicalVolume, 
@@ -2075,8 +2094,17 @@ void LoadSurface ( char* isName ) {
 
   Surf_tErr eSurface = Surf_tErr_NoErr;
   tBoolean bLoaded = FALSE;
+  char sName[256] = "";
 
-  eSurface = Surf_New( &gSurface, isName, gRASTransform );
+  /* if the name doesn't have a / at the front, we need to append some stuff */
+  if( isName[0] != '/' ) {
+    sprintf( sName, "%s/%s/surf/%s", subjectsdir, pname, isName );
+  } else {
+    /* copy the name */
+    strcpy( sName, isName );
+  }
+
+  eSurface = Surf_New( &gSurface, sName, gRASTransform );
   if( Surf_tErr_NoErr != eSurface ) {
     DebugPrint "Surf error %d in LoadSurface: %s\n",
       eSurface, Surf_GetErrorString( eSurface ) EndDebugPrint;
@@ -6102,6 +6130,32 @@ void PrintEntryWrapper ( xUndL_tEntryPtr inEntry ) {
 
   PrintUndoEntry ( (UndoEntryRef) inEntry );
 }
+
+/* ============================================================ HEAD POINTS */
+
+void LoadHeadPts ( char* isHeadPtsFile, 
+       char* isTransformFile ) {
+  
+  HPtL_tErr eHeadPts = HPtL_tErr_NoErr;
+  
+  eHeadPts = HPtL_New( &gHeadPoints,
+           isHeadPtsFile,
+           isTransformFile,
+           gRASTransform );
+  if ( HPtL_tErr_NoErr != eHeadPts ) {
+    OutputPrint "ERROR: Couldn't load head points file.\n" EndOutputPrint;
+    DebugPrint "HPtL error %d in LoadHeadPts: %s\n",
+      eHeadPts, HPtL_GetErrorString( eHeadPts ) EndDebugPrint;
+    goto cleanup;
+  }
+
+  MWin_SetHeadPointList( gMeditWindow, -1, gHeadPoints );
+
+ cleanup:
+  return;
+}
+
+/* ============================================================ ACCESS FUNCS */
 
 void tkm_ConvertVolumeToRAS (xVoxelRef inVolumeVox,xVoxelRef outRASVox ) {
 

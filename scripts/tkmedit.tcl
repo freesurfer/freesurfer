@@ -44,10 +44,10 @@ source $env(MRI_DIR)/lib/tcl/tkm_wrappers.tcl
 # constants
 set ksWindowName "TkMedit Tools"
 
-# DspA_tOrientation
-set DspA_tOrientation_Coronal    0
-set DspA_tOrientation_Horizontal 1
-set DspA_tOrientation_Sagittal   2
+# mri_tOrientation
+set mri_tOrientation_Coronal    0
+set mri_tOrientation_Horizontal 1
+set mri_tOrientation_Sagittal   2
 
 # DspA_tDisplayFlag
 set DspA_tDisplayFlag_AuxVolume                   1
@@ -83,14 +83,19 @@ set MWin_tDisplayConfiguration_2x2 1
 set MWin_tVolumeType_Main 0
 set MWin_tVolumeType_Aux  1
 
-# tkm_tSurfaceType
-set tkm_tSurfaceType_Current   0
-set tkm_tSurfaceType_Original  1
-set tkm_tSurfaceType_Canonical 2
+# Surf_tVertexSet
+set Surf_tVertexSet_Main      0
+set Surf_tVertexSet_Original  1
+set Surf_tVertexSet_Canonical 2
 
 # tFunctionalVolume
 set tFunctionalVolume_Overlay    0
 set tFunctionalVolume_TimeCourse 1
+
+# mri_tCoordSpace
+set mri_tCoordSpace_VolumeIdx 0
+set mri_tCoordSpace_RAS       1
+set mri_tCoordSpace_Talairach 2
 
 # our global vars
 set gOrientation 0
@@ -505,19 +510,19 @@ proc DoLoadLabelDlog {} {
 
 proc LoadSurface { isSurfaceName } {
 
-    global tkm_tSurfaceType_Current tkm_tSurfaceType_Original
-    global tkm_tSurfaceType_Canonical
+    global Surf_tVertexSet_Main Surf_tVertexSet_Original
+    global Surf_tVertexSet_Canonical
     global gLoadingSurface
 
-    if { $tkm_tSurfaceType_Current == $gLoadingSurface } { 
+    if { $Surf_tVertexSet_Main == $gLoadingSurface } { 
   LoadMainSurface $isSurfaceName
     }
 
-    if { $tkm_tSurfaceType_Original == $gLoadingSurface } {
+    if { $Surf_tVertexSet_Original == $gLoadingSurface } {
   LoadOriginalSurface $isSurfaceName
     }
     
-    if { $tkm_tSurfaceType_Canonical == $gLoadingSurface } {
+    if { $Surf_tVertexSet_Canonical == $gLoadingSurface } {
   LoadCanonicalSurface $isSurfaceName
     }
 }
@@ -555,17 +560,17 @@ proc DoLoadSurfaceDlog { iSurface } {
 
 proc FindVertex { inVertex } {
 
-    global tkm_tSurfaceType_Current tkm_tSurfaceType_Original
-    global tkm_tSurfaceType_Canonical
+    global Surf_tVertexSet_Main Surf_tVertexSet_Original
+    global Surf_tVertexSet_Canonical
     global gFindingSurface
 
-    if { $tkm_tSurfaceType_Current   == $gFindingSurface } {
+    if { $Surf_tVertexSet_Main   == $gFindingSurface } {
   GotoMainVertex $inVertex
     }
-    if { $tkm_tSurfaceType_Original  == $gFindingSurface } {
+    if { $Surf_tVertexSet_Original  == $gFindingSurface } {
   GotoOriginalVertex $inVertex
     }
-    if { $tkm_tSurfaceType_Canonical == $gFindingSurface } {
+    if { $Surf_tVertexSet_Canonical == $gFindingSurface } {
   GotoCanonicalVertex $inVertex
     }
 }
@@ -983,6 +988,7 @@ proc DoTranslateDlog {} {
     -pady 5
     }
 }
+
 proc DoLoadParcellationDlog {} {
 
     global gDialog
@@ -1043,6 +1049,68 @@ proc DoSaveRGBDlog {} {
 
   pack $fwMain $fwButtons \
     -side top       \
+    -expand yes     \
+    -fill x         \
+    -padx 5         \
+    -pady 5
+    }
+}
+
+proc DoGotoPointDlog {} {
+
+    global gDialog
+    global mri_tCoordSpace_VolumeIdx mri_tCoordSpace_RAS 
+    global mri_tCoordSpace_Talairach
+    global gnVolX gnVolY gnVolZ
+    
+    set wwDialog .wwGotoPointDlog
+
+    # try to create the dlog...
+    if { [Dialog_Create $wwDialog "Goto Point" {-borderwidth 10}] } {
+
+  set fwLabel       $wwDialog.fwLabel
+  set fwCoordSpace  $wwDialog.fwCoordSpace
+  set fwVolumeIdx   $fwCoordSpace.fwVolumeIdx
+  set fwRAS         $fwCoordSpace.fwRAS
+  set fwTalCoords   $fwCoordSpace.fwTalCoords
+  set fwWhere       $wwDialog.fwWhere
+  set fwX           $fwWhere.fwX
+  set fwY           $fwWhere.fwY
+  set fwZ           $fwWhere.fwZ
+  set fwButtons     $wwDialog.fwButtons
+
+  set fX $gnVolX
+  set fY $gnVolY
+  set fZ $gnVolZ
+  set coordSpace $mri_tCoordSpace_VolumeIdx
+
+  # coord space radios
+  tkm_MakeNormalLabel $fwLabel "Coordinate space:"
+  frame $fwCoordSpace
+  tkm_MakeRadioButton $fwVolumeIdx "Volume Index" \
+    coordSpace $mri_tCoordSpace_VolumeIdx
+  tkm_MakeRadioButton $fwRAS "RAS" \
+    coordSpace $mri_tCoordSpace_RAS
+  tkm_MakeRadioButton $fwTalCoords "Talairach" \
+    coordSpace $mri_tCoordSpace_Talairach
+  pack $fwLabel $fwVolumeIdx $fwRAS $fwTalCoords \
+    -side left
+
+  # x y z fields
+  frame $fwWhere
+  tkm_MakeEntry $fwX "X" fX 5
+  tkm_MakeEntry $fwY "Y" fY 5
+  tkm_MakeEntry $fwZ "Z" fZ 5
+  pack $fwX $fwY $fwZ \
+    -side left
+
+  # buttons. 
+  tkm_MakeCancelOKButtons $fwButtons $wwDialog \
+    { SetCursor $coordSpace $fX $fY $fZ }
+
+  pack $fwLabel $fwCoordSpace $fwWhere $fwButtons \
+    -side top       \
+    -anchor w       \
     -expand yes     \
     -fill x         \
     -padx 5         \
@@ -1249,8 +1317,8 @@ proc CreateWindow { iwwTop } {
 
 proc CreateMenuBar { ifwMenuBar } {
 
-    global DspA_tOrientation_Sagittal DspA_tOrientation_Horizontal 
-    global DspA_tOrientation_Coronal
+    global mri_tOrientation_Sagittal mri_tOrientation_Horizontal 
+    global mri_tOrientation_Coronal
     global DspA_tTool_Select DspA_tTool_Edit DspA_tTool_CtrlPts 
     global DspA_tTool_CustomEdit
     global gnVolX gnVolY gnVolZ
@@ -1315,16 +1383,16 @@ proc CreateMenuBar { ifwMenuBar } {
       \
       { command \
       "Load Main Surface..." \
-      "DoLoadSurfaceDlog $tkm_tSurfaceType_Current" } \
+      "DoLoadSurfaceDlog $Surf_tVertexSet_Main" } \
       \
       { command \
       "Load Original Surface..." \
-      "DoLoadSurfaceDlog $tkm_tSurfaceType_Original" \
+      "DoLoadSurfaceDlog $Surf_tVertexSet_Original" \
       tMenuGroup_SurfaceLoading } \
       \
       { command \
       "Load Pial Surface..." \
-      "DoLoadSurfaceDlog $tkm_tSurfaceType_Canonical" \
+      "DoLoadSurfaceDlog $Surf_tVertexSet_Canonical" \
       tMenuGroup_SurfaceLoading } \
       \
       { command \
@@ -1403,6 +1471,12 @@ proc CreateMenuBar { ifwMenuBar } {
       "Configure Time Course Graph..." \
       TimeCourse_DoConfigDlog \
       tMenuGroup_TimeCourseOptions } \
+       \
+      { separator } \
+       \
+       { command \
+       "Goto Point..." \
+       DoGotoPointDlog } \
        \
       { separator } \
        \
@@ -1543,15 +1617,7 @@ proc CreateMenuBar { ifwMenuBar } {
       \
       { command \
       "Mirror" \
-      Mirror } \
-      \
-      { command \
-      "Translate..." \
-      DoTranslateDlog } \
-      \
-      { command \
-      "Rotate..." \
-      DoRotateDlog } }
+      Mirror } }
     
     # ctrl pts menu
     tkm_MakeMenu $mbwCtrlPts "Control Points" \
@@ -1587,15 +1653,15 @@ proc CreateMenuBar { ifwMenuBar } {
       \
       { command \
       "Find Main Vertex..." \
-      { DoFindVertexDlog $tkm_tSurfaceType_Current } } \
+      { DoFindVertexDlog $Surf_tVertexSet_Main } } \
       \
       { command \
       "Find Original Vertex..." \
-      { DoFindVertexDlog $tkm_tSurfaceType_Original } } \
+      { DoFindVertexDlog $Surf_tVertexSet_Original } } \
       \
       { command \
       "Find Pial Vertex..." \
-      { DoFindVertexDlog $tkm_tSurfaceType_Canonical } } }
+      { DoFindVertexDlog $Surf_tVertexSet_Canonical } } }
      
     pack $mbwVolume $mbwEdit $mbwDisplay $mbwTools \
       $mbwCtrlPts $mbwSurface  \
@@ -1608,7 +1674,7 @@ proc CreateCursorFrame { ifwCursor } {
     global gfwAuxVolValue gfwFuncValue
     global gbLinkedCursor gsVolCoords gsRASCoords 
     global gsTalCoords gsVolName gnVolValue  gsFuncCoords
-    global gsAuxVolValue gnAuxVolValue gfwFuncCoords gfFuncValue
+    global gsAuxVolName gnAuxVolValue gfwFuncCoords gfFuncValue
     global gsParcellationLabel gfwParcellationLabel
 
     frame $ifwCursor
@@ -1660,6 +1726,13 @@ proc CreateCursorFrame { ifwCursor } {
     pack $fwVolValueLabel $fwVolValue -side left \
       -anchor w
 
+    # the aux volume value
+    frame $gfwAuxVolValue
+    tkm_MakeActiveLabel $fwAuxVolValueLabel "" gsAuxVolName
+    tkm_MakeActiveLabel $fwAuxVolValue "" gnAuxVolValue
+    pack $fwAuxVolValueLabel $fwAuxVolValue -side left \
+      -anchor w
+
     # the parcellation label
     tkm_MakeActiveLabel $gfwParcellationLabel "Parcellation: " gsParcellationLabel
 
@@ -1680,8 +1753,8 @@ proc CreateCursorFrame { ifwCursor } {
 
 proc CreateDisplayFrame { ifwDisplay } {
 
-    global DspA_tOrientation_Sagittal DspA_tOrientation_Horizontal 
-    global DspA_tOrientation_Coronal
+    global mri_tOrientation_Sagittal mri_tOrientation_Horizontal 
+    global mri_tOrientation_Coronal
     global gOrientation gnVolX gnVolY gnVolZ gnZoomLevel
     global gb3D gbCursor gbSelection gbControlPoints gbFunctional
     global gbMainSurface gbOriginalSurface gbCanonicalSurface
@@ -1704,34 +1777,34 @@ proc CreateDisplayFrame { ifwDisplay } {
 
     # sagittal orientation radio button
     tkm_MakeRadioButton $fwSagittalButton \
-      "Sagittal (R -- L)" gOrientation $DspA_tOrientation_Sagittal \
+      "Sagittal (R -- L)" gOrientation $mri_tOrientation_Sagittal \
       { SetOrientation $gOrientation }
 
     # sagittal slice slider
     tkm_MakeSlider $fwSagittalScale "" gnVolX 0 255 200 \
-      { SetCursor $gnVolX $gnVolY $gnVolZ }       \
+      { SetCursor $mri_tCoordSpace_VolumeIdx $gnVolX $gnVolY $gnVolZ } \
       1
 
     # horizontal orientaiton radio button
     tkm_MakeRadioButton $fwHorizontalButton \
       "Horizontal (Sup -- Inf)" gOrientation \
-      $DspA_tOrientation_Horizontal \
+      $mri_tOrientation_Horizontal \
       { SetOrientation $gOrientation }
 
     # horiontal slice slider
     tkm_MakeSlider $fwHorizontalScale "" gnVolY 0 255 200 \
-      { SetCursor $gnVolX $gnVolY $gnVolZ }       \
+      { SetCursor $mri_tCoordSpace_VolumeIdx $gnVolX $gnVolY $gnVolZ } \
       1
 
     # coronal orientaiton radio button
     tkm_MakeRadioButton $fwCoronalButton \
       "Coronal (Post -- Ant)" gOrientation \
-      $DspA_tOrientation_Coronal \
+      $mri_tOrientation_Coronal \
       { SetOrientation $gOrientation }
 
     # coronal slice slider
     tkm_MakeSlider $fwCoronalScale "" gnVolZ 0 255 200 \
-      { SetCursor $gnVolX $gnVolY $gnVolZ }       \
+      { SetCursor $mri_tCoordSpace_VolumeIdx $gnVolX $gnVolY $gnVolZ } \
       1
 
     # zoom label

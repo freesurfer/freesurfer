@@ -1,14 +1,15 @@
 #ifndef tkmMeditWindow_h
 #define tkmMeditWindow_h
 
+#include "tcl.h"
 #include "xTypes.h"
-#include "tkmedit.h"
-#include "xGLutWindow.h"
 #include "xDebug.h"
+#include "xGLutWindow.h"
+#include "tkmedit.h"
 #include "tkmDisplayArea.h"
 #include "tkmFunctionalVolume.h"
-#include "tcl.h"
 #include "mriSurface.h"
+#include "mriHeadPointList.h"
 
 typedef enum {
 
@@ -130,6 +131,9 @@ MWin_tErr MWin_SetControlPointsSelectionList ( tkmMeditWindowRef this,
 MWin_tErr MWin_SetSelectionSpace             ( tkmMeditWindowRef this, 
                  int               inDispIndex,
                  x3DListRef        ipVoxels );
+MWin_tErr MWin_SetHeadPointList              ( tkmMeditWindowRef this,
+                 int               inDispIndex,
+                 mriHeadPointListRef iList );
 
 
 /* viewing state changes. specify the display area the same way as above. */

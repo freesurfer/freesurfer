@@ -250,12 +250,13 @@ FunV_tErr FunV_LoadOverlay ( tkmFunctionalVolumeRef this,
 
   /* attempt to load the volume */
   eResult = FunV_LoadFunctionalVolume_( this, &(this->mpOverlayVolume), 
-          sPath, sStem, NULL, NULL );
-  if( FunV_tErr_NoError != eResult )
+          sPath, sStem, NULL, NULL, TRUE );
+  if( FunV_tErr_NoError != eResult ) {
     goto error;
+  }
 
   /* if we have more than one condition, set condition to 1. */
- FunD_GetNumConditions( this->mpOverlayVolume, &nNumConditions );
+  FunD_GetNumConditions( this->mpOverlayVolume, &nNumConditions );
   if( nNumConditions > 1 ) {
     this->mnCondition = 1;
   }
@@ -265,7 +266,8 @@ FunV_tErr FunV_LoadOverlay ( tkmFunctionalVolumeRef this,
   
   /* attempt to load offset volume, if there is one */
   eResult = FunV_LoadFunctionalVolume_( this, &(this->mpOverlayOffsetVolume),
-              sPath, sOffsetStem, sOffsetStem, NULL );
+          sPath, sOffsetStem, sOffsetStem, NULL,
+          FALSE);
   if( FunV_tErr_NoError != eResult ) {
     /* no offset, that's fine. */
     this->mpOverlayOffsetVolume = NULL;
@@ -364,7 +366,7 @@ FunV_tErr FunV_LoadTimeCourse ( tkmFunctionalVolumeRef this,
   /* attempt to load the volume */
   eResult = FunV_LoadFunctionalVolume_( this, 
           &(this->mpTimeCourseVolume), 
-          sPath, sStem, NULL, NULL );
+          sPath, sStem, NULL, NULL, TRUE );
   if( FunV_tErr_NoError != eResult )
     goto error;
 
@@ -373,7 +375,8 @@ FunV_tErr FunV_LoadTimeCourse ( tkmFunctionalVolumeRef this,
   
   /* attempt to load offset volume, if there is one */
   eResult = FunV_LoadFunctionalVolume_( this,&(this->mpTimeCourseOffsetVolume),
-              sPath, sOffsetStem, sOffsetStem, NULL );
+          sPath, sOffsetStem, sOffsetStem, NULL,
+          FALSE );
   if( FunV_tErr_NoError != eResult ) {
     /* no offset, that's fine. */
     this->mpTimeCourseOffsetVolume = NULL;
@@ -420,16 +423,17 @@ FunV_tErr FunV_LoadTimeCourse ( tkmFunctionalVolumeRef this,
 }
 
 FunV_tErr FunV_LoadFunctionalVolume_ ( tkmFunctionalVolumeRef this,
-              mriFunctionalDataRef*             ioppVolume,
+               mriFunctionalDataRef*  ioppVolume,
                char*                  isPath,
                char*                  isStem,
                char*                  isHeaderStem,
-               char*                  isRegPath ) {
+               char*                  isRegPath,
+               tBoolean               ibPrintErrors ) {
 
-  FunV_tErr         eResult     = FunV_tErr_NoError;
-  FunD_tErr  eVolume     = FunD_tErr_NoError;
- mriFunctionalDataRef         pVolume     = NULL;
-
+  FunV_tErr            eResult     = FunV_tErr_NoError;
+  FunD_tErr            eVolume     = FunD_tErr_NoError;
+  mriFunctionalDataRef pVolume     = NULL;
+ 
   /* verify us */
   eResult = FunV_Verify( this );
   if( FunV_tErr_NoError != eResult )
@@ -457,6 +461,12 @@ FunV_tErr FunV_LoadFunctionalVolume_ ( tkmFunctionalVolumeRef this,
   goto cleanup;
 
  error:
+
+  if( FunD_tErr_NoError != eVolume
+      && ibPrintErrors ) {
+    OutputPrint "ERROR: Couldn't load overlay in %s/%s.\n\tReason: %s\n",
+      isPath, isStem, FunD_GetErrorString( eVolume ) EndOutputPrint;
+  }
 
   /* print error message */
   if( FunV_tErr_NoError != eResult ) {
@@ -967,8 +977,6 @@ FunV_tErr FunV_SetTimePoint ( tkmFunctionalVolumeRef this,
   eResult = FunV_Verify( this );
   if( FunV_tErr_NoError != eResult )
     goto error;
-
-  DebugPrint "FunV_SetTimePoint( %d )\n", inTimePoint EndDebugPrint;
 
   /* if it's valid, set it */
   if (FunD_IsTimePointValid( this->mpOverlayVolume, inTimePoint )) {

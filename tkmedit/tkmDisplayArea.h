@@ -10,6 +10,7 @@
 #include "tkmFunctionalVolume.h"
 #include "mriSurface.h"
 #include "xGrowableArray.h"
+#include "mriHeadPointList.h"
 
 typedef enum {
 
@@ -31,6 +32,7 @@ typedef enum {
   DspA_tErr_ErrorAccessingWindow,
   DspA_tErr_ErrorAccessingFunctionalVolume,
   DspA_tErr_ErrorAccessingSurfaceList,
+  DspA_tErr_ErrorAccessingHeadPointList,
   DspA_tErr_InvalidErrorCode,
   DspA_knNumErrorCodes
 
@@ -54,6 +56,7 @@ typedef enum {
   DspA_tDisplayFlag_FocusFrame,
   DspA_tDisplayFlag_Axes,
   DspA_tDisplayFlag_MaxIntProj,
+  DspA_tDisplayFlag_HeadPoints,
   DspA_knNumDisplayFlags
   
 } DspA_tDisplayFlag;
@@ -130,7 +133,7 @@ struct tkmDisplayArea {
   x3DListRef             mpControlPoints;
   xListRef               mpSelectedControlPoints;
   x3DListRef             mpSelection;
-
+  mriHeadPointListRef    mHeadPoints;
 };
 typedef struct tkmDisplayArea tkmDisplayArea;
 typedef tkmDisplayArea *tkmDisplayAreaRef;
@@ -191,6 +194,8 @@ DspA_tErr DspA_SetControlPointsSelectionList ( tkmDisplayAreaRef this,
                  xListRef          ipVoxels );
 DspA_tErr DspA_SetSelectionSpace             ( tkmDisplayAreaRef this, 
                  x3DListRef        ipVoxels );
+DspA_tErr DspA_SetHeadPointList              ( tkmDisplayAreaRef this,
+                 mriHeadPointListRef iList );
 
 /* viewing state changes */
 DspA_tErr DspA_SetCursor             ( tkmDisplayAreaRef this, 
@@ -292,6 +297,7 @@ DspA_tErr DspA_BuildCurrentFrame_            ( tkmDisplayAreaRef this );
 DspA_tErr DspA_DrawFunctionalOverlayToFrame_ ( tkmDisplayAreaRef this );
 DspA_tErr DspA_DrawControlPointsToFrame_     ( tkmDisplayAreaRef this );
 DspA_tErr DspA_DrawSelectionToFrame_         ( tkmDisplayAreaRef this );
+DspA_tErr DspA_DrawHeadPointsToFrame_        ( tkmDisplayAreaRef this );
 
 /* other drawing subfunctions */
 DspA_tErr DspA_BuildSurfaceDrawLists_  ( tkmDisplayAreaRef this );

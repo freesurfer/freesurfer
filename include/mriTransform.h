@@ -60,6 +60,14 @@ Trns_tErr Trns_CopyBtoRAS     ( mriTransformRef this,
 Trns_tErr Trns_CopyARAStoBRAS ( mriTransformRef this,
         MATRIX*         iARAStoBRAS );
 
+/* access internal matrices */
+Trns_tErr Trns_GetAtoRAS     ( mriTransformRef this,
+             MATRIX**        opMatrix );
+Trns_tErr Trns_GetBtoRAS     ( mriTransformRef this,
+             MATRIX**        opMatrix );
+Trns_tErr Trns_GetARAStoBRAS ( mriTransformRef this,
+             MATRIX**        opMatrix );
+
 /* converts from a voxel in A space to one in B space, i.e. 
    A -> A_RAS, A_RAS -> B_RAS, B_RAS -> B */
 Trns_tErr Trns_ConvertAtoB ( mriTransformRef this,
@@ -82,9 +90,16 @@ Trns_tErr Trns_CalcMatricies_ ( mriTransformRef this );
 
 
 /* debugging support */
-Trns_tErr Trns_Verify ( mriTransformRef this );
-void Trns_DebugPrint_ ( mriTransformRef this );
-void Trns_Signal ( char* inMsg, int inLineNum, Trns_tErr ieCode );
-char* Trns_GetErrorString ( Trns_tErr ieCode );
+Trns_tErr Trns_Verify         ( mriTransformRef this );
+void      Trns_DebugPrint_    ( mriTransformRef this );
+void      Trns_Signal         ( char*           inMsg, 
+        int             inLineNum, 
+        Trns_tErr       ieCode );
+char*     Trns_GetErrorString ( Trns_tErr       ieCode );
 
 #endif
+
+
+
+
+

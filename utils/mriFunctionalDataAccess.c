@@ -7,13 +7,6 @@
 #include "xDebug.h"
 #include "xVoxel.h"
 
-#ifndef OutputPrint
-#define OutputPrint            fprintf ( stdout,
-#endif
-#ifndef EndOutputPrint
-#define EndOutputPrint         );
-#endif
-
 #ifndef min
 #define min(x,y) x<y?x:y
 #endif
@@ -127,7 +120,7 @@ FunD_tErr FunD_New ( mriFunctionalDataRef* outVolume,
   if( FunD_tErr_NoError != theError ) {
     DebugPrint "FunD_New(): Failed to parse stem.dat\n" EndDebugPrint;
   } else {
-    OutputPrint "Using stem.dat header for functional data.\n" EndOutputPrint;
+    DebugPrint "FunD_New(): Using stem.dat header for functional data.\n" EndDebugPrint;
   }
 
   // if we couldn't find it...
@@ -138,7 +131,7 @@ FunD_tErr FunD_New ( mriFunctionalDataRef* outVolume,
     if( FunD_tErr_NoError != theError ) {
       DebugPrint "FunD_New(): Failed to parse analyse.dat\n" EndDebugPrint;
     } else {
-      OutputPrint "Using analyse.dat header for functional data.\n" EndOutputPrint;
+      DebugPrint "FunD_New(): Using analyse.dat header for functional data.\n" EndDebugPrint;
     }
   }
 
@@ -150,7 +143,7 @@ FunD_tErr FunD_New ( mriFunctionalDataRef* outVolume,
     if( FunD_tErr_NoError != theError ) {
       DebugPrint "FunD_New(): Failed to parse bfile header\n" EndDebugPrint;
     } else {
-      OutputPrint "Using bfile header for functional data.\n" EndOutputPrint;
+      DebugPrint "FunD_New(): Using bfile header for functional data.\n" EndDebugPrint;
     }
   }
 
@@ -264,12 +257,10 @@ FunD_tErr FunD_GuessStem ( char* inPathName, char* outStem ) {
 #define MACRO_ReturnErrorOrCheckForQuestionable(err,flag,keyword) \
        if ( FunD_tErr_UnrecognizedHeaderFormat == err ) {        \
             DebugPrint "FunD_ParseStemHeader(): Error parsing keyword %s\n", keyword EndDebugPrint;                                            \
-            OutputPrint "While parsing header file for functional data, found an invalid value for %s.\n", keyword EndOutputPrint;               \
             fclose ( theHeaderFile );                             \
             return err;                                           \
        } else if ( FunD_tErr_QuestionableHeaderFormat == err ){  \
             DebugPrint "FunD_ParseStemHeader(): Keyword %s had questionable value\n", keyword EndDebugPrint;                                   \
-            OutputPrint "While parsing header file for functional data, found a questionable value for %s.\n", keyword EndOutputPrint;           \
             flag = TRUE;                                          \
        }
 

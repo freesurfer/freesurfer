@@ -61,13 +61,13 @@ proc tkm_MakeActiveLabel { isTop isText isVariable {inWidth -1} } {
       -text $isText \
       -font $kNormalFont
 
-    entry $isTop.ew                       \
-      -textvariable $isVariable     \
-      -width $inWidth               \
-      -font $kNormalFont            \
-      -state disabled               \
-      -highlightbackground $kHighlightBgColor    \
-      -relief flat 
+    entry $isTop.ew \
+      -textvariable $isVariable \
+      -width $inWidth \
+      -font $kNormalFont \
+      -state disabled \
+      -highlightbackground $kHighlightBgColor \
+      -relief flat
 
     pack $isTop.lw $isTop.ew \
       -side left \

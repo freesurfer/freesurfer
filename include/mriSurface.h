@@ -56,7 +56,7 @@ typedef struct {
   MRIS* mSurface;
   
   /* face list */
-  Surf_tFaceRef maFaces; 
+  Surf_tFace* maFaces; 
 
   /* for checking which faces to iterate over */
   float mfLongestEdge;

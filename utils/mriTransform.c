@@ -214,6 +214,84 @@ Trns_tErr Trns_CopyARAStoBRAS ( mriTransformRef this,
   return eResult;
 }
 
+Trns_tErr Trns_GetAtoRAS ( mriTransformRef this,
+         MATRIX**        opMatrix ) {
+
+  Trns_tErr eResult = Trns_tErr_NoErr;
+
+  eResult = Trns_Verify( this );
+  if( Trns_tErr_NoErr != eResult )
+    goto error;
+
+  /* return the matrix */
+  *opMatrix = this->mAtoRAS;
+
+  goto cleanup;
+
+ error:
+
+  if( Trns_tErr_NoErr != eResult ) {
+    DebugPrint "Error %d in Trns_GetAtoRAS: %s\n",
+      eResult, Trns_GetErrorString( eResult ) EndDebugPrint;
+  }
+
+ cleanup:
+
+  return eResult;
+}
+
+Trns_tErr Trns_GetBtoRAS ( mriTransformRef this,
+         MATRIX**         opMatrix ) {
+
+  Trns_tErr eResult = Trns_tErr_NoErr;
+
+  eResult = Trns_Verify( this );
+  if( Trns_tErr_NoErr != eResult )
+    goto error;
+
+  /* return the matrix */
+  *opMatrix = this->mBtoRAS;
+
+  goto cleanup;
+
+ error:
+
+  if( Trns_tErr_NoErr != eResult ) {
+    DebugPrint "Error %d in Trns_GetBtoRAS: %s\n",
+      eResult, Trns_GetErrorString( eResult ) EndDebugPrint;
+  }
+
+ cleanup:
+
+  return eResult;
+}
+
+Trns_tErr Trns_GetARAStoBRAS ( mriTransformRef this,
+             MATRIX**        opMatrix ) {
+
+  Trns_tErr eResult = Trns_tErr_NoErr;
+
+  eResult = Trns_Verify( this );
+  if( Trns_tErr_NoErr != eResult )
+    goto error;
+
+  /* return the matrix */
+  *opMatrix = this->mARAStoBRAS;
+
+  goto cleanup;
+
+ error:
+
+  if( Trns_tErr_NoErr != eResult ) {
+    DebugPrint "Error %d in Trns_GetARAStoBRAS: %s\n",
+      eResult, Trns_GetErrorString( eResult ) EndDebugPrint;
+  }
+
+ cleanup:
+
+  return eResult;
+}
+
 Trns_tErr Trns_ConvertAtoB ( mriTransformRef this,
            xVoxelRef       iAVoxel,
            xVoxelRef       oBVoxel ) {

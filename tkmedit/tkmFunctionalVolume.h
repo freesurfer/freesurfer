@@ -146,11 +146,12 @@ FunV_tErr FunV_LoadTimeCourse ( tkmFunctionalVolumeRef this,
 
 /* this loads a specific volume. will delete one if it already exists. */
 FunV_tErr FunV_LoadFunctionalVolume_ ( tkmFunctionalVolumeRef this,
-              mriFunctionalDataRef*             ioppVolume,
+              mriFunctionalDataRef*   ioppVolume,
                char*                  isPath,
                char*                  isStem,
                char*                  isHeaderStem,
-               char*                  isRegPath );
+               char*                  isRegPath,
+               tBoolean               ibPrintErrors );
 
 /* this takes a functional volume and converts it into an anatomical
    space volume, so it can be indexed with anatomical coords. */

@@ -836,6 +836,60 @@ MWin_tErr MWin_SetSelectionSpace ( tkmMeditWindowRef this,
   return eResult;
 }
 
+MWin_tErr MWin_SetHeadPointList ( tkmMeditWindowRef   this, 
+          int                 inDispIndex,
+          mriHeadPointListRef iList ) {
+  
+  MWin_tErr eResult     = MWin_tErr_NoErr;
+  DspA_tErr eDispResult = DspA_tErr_NoErr;
+  int       nDispIndex    = 0;
+  int       nDispIndexMin = inDispIndex;
+  int       nDispIndexMax = inDispIndex+1;
+
+  /* verify us. */
+  eResult = MWin_Verify ( this );
+  if ( MWin_tErr_NoErr != eResult )
+    goto error;
+
+  /* verify the display index. */
+  eResult = MWin_VerifyDisplayIndex ( this, inDispIndex );
+  if ( MWin_tErr_NoErr != eResult )
+    goto error;
+
+  /* if working on all displays, set the iteration bounds. */
+  if ( MWin_kAllDisplayAreas == inDispIndex ) {
+    nDispIndexMin = 0;
+    nDispIndexMax = MWin_knMaxNumAreas;
+  }
+
+  /* set the list */
+  for ( nDispIndex = nDispIndexMin; 
+  nDispIndex < nDispIndexMax; 
+  nDispIndex++ ) {
+
+    eDispResult = DspA_SetHeadPointList ( this->mapDisplays[nDispIndex],
+            iList );
+    if ( DspA_tErr_NoErr != eDispResult ) {
+      eResult = MWin_tErr_ErrorAccessingDisplay;
+      goto error;
+    }
+  }
+
+  goto cleanup;
+
+ error:
+
+  /* print error message */
+  if ( MWin_tErr_NoErr != eResult ) {
+    DebugPrint "Error %d in MWin_SetHeadPointList: %s\n",
+      eResult, MWin_GetErrorString(eResult) EndDebugPrint;
+  }
+
+ cleanup:
+
+  return eResult;
+}
+
 MWin_tErr MWin_SetLinkedCursorFlag ( tkmMeditWindowRef this, 
              tBoolean          ibLinkedCursor ) {
 

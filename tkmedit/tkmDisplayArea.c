@@ -47,11 +47,12 @@ char DspA_ksaErrorStrings [DspA_knNumErrorCodes][256] = {
   "Invalid screen point.",
   "Error accessing surface.",
   "Out of memory.",
-  "Couldn't access control points.",
-  "Coulnd't access selection.",
-  "Couldn't access parent window.",
-  "Couldn't access functional volume.",
-  "Couldn't access surface cache list.",
+  "Error accessing control points.",
+  "Error accessing selection.",
+  "Error accessing parent window.",
+  "Error accessing functional volume.",
+  "Error accessing surface cache list.",
+  "Error accessing head point list.",
   "Invalid error code."
 };
 
@@ -665,6 +666,44 @@ DspA_tErr DspA_SetSelectionSpace ( tkmDisplayAreaRef this,
   /* print error message */
   if ( DspA_tErr_NoErr != eResult ) {
     DebugPrint "Error %d in DspA_SetSelectionSpace: %s\n",
+      eResult, DspA_GetErrorString(eResult) EndDebugPrint;
+  }
+
+ cleanup:
+
+  return eResult;
+}
+
+DspA_tErr DspA_SetHeadPointList ( tkmDisplayAreaRef   this, 
+          mriHeadPointListRef iList ) {
+
+  DspA_tErr eResult = DspA_tErr_NoErr;
+
+  /* verify us. */
+  eResult = DspA_Verify ( this );
+  if ( DspA_tErr_NoErr != eResult )
+    goto error;
+
+  /* save the selected voxels */
+  this->mHeadPoints = iList;
+
+  /* turn selection display on. */
+  if ( NULL != this->mHeadPoints ) {
+
+    eResult = DspA_SetDisplayFlag( this, DspA_tDisplayFlag_HeadPoints, TRUE );
+    if ( DspA_tErr_NoErr != eResult )
+      goto error;
+  }
+
+  DspA_Redraw_( this );
+
+  goto cleanup;
+
+ error:
+
+  /* print error message */
+  if ( DspA_tErr_NoErr != eResult ) {
+    DebugPrint "Error %d in DspA_SetHeadPointList: %s\n",
       eResult, DspA_GetErrorString(eResult) EndDebugPrint;
   }
 
@@ -2349,6 +2388,15 @@ DspA_tErr DspA_HandleDraw_ ( tkmDisplayAreaRef this ) {
     }
   }
 
+  /* draw head points */
+  if( this->mabDisplayFlags[DspA_tDisplayFlag_HeadPoints] ) {
+    eResult = DspA_DrawHeadPointsToFrame_( this );
+    if ( DspA_tErr_NoErr != eResult ) {
+      DspA_Signal( "DspA_HandleDraw_", __LINE__, eResult );
+      eResult = DspA_tErr_NoErr;
+    }
+  }
+
   /* draw the frame buffer */
   eResult = DspA_DrawFrameBuffer_ ( this );
   if ( DspA_tErr_NoErr != eResult ) {
@@ -3328,6 +3376,69 @@ DspA_tErr DspA_DrawSelectionToFrame_ ( tkmDisplayAreaRef this ) {
    /* print error message */
   if ( DspA_tErr_NoErr != eResult ) {
     DebugPrint "Error %d in DspA_DrawSelectionToFrame_: %s\n",
+      eResult, DspA_GetErrorString(eResult) EndDebugPrint;
+  }
+
+ cleanup:
+
+  return eResult;
+}
+
+DspA_tErr DspA_DrawHeadPointsToFrame_ ( tkmDisplayAreaRef this ) {
+
+  DspA_tErr          eResult     = DspA_tErr_NoErr;
+  HPtL_tErr          eHeadPtList = HPtL_tErr_NoErr;
+  HPtL_tHeadPointRef pHeadPt     = NULL;
+  xPoint2n           bufferPt    = {0,0};
+  float              faColor[3]  = {0, 0, 0};
+  xVoxel             anaIdx;
+  
+  /* reset the iterator */
+  eHeadPtList = HPtL_ResetIterator( this->mHeadPoints );
+  if( HPtL_tErr_NoErr != eHeadPtList ) {
+    goto error;
+  }
+
+  while( (eHeadPtList = HPtL_NextPoint( this->mHeadPoints, &pHeadPt ))
+   == HPtL_tErr_NoErr ) {
+
+    /* color is red if cardinal, green if not. */
+    if ( strcmp( pHeadPt->msLabel, "cardinal") == 0 ) {
+      faColor[0] = 1;
+      faColor[1] = 0;
+      faColor[2] = 0;
+    } else {
+      faColor[0] = 0;
+      faColor[1] = 1;
+      faColor[2] = 0;
+    }      
+  
+    /* convert ras pt to volume pt */
+    tkm_ConvertRASToVolume( &(pHeadPt->mClientPoint), &anaIdx );
+
+    /* convert to buffer point. */
+    eResult = DspA_ConvertVolumeToBuffer_ ( this, &anaIdx, &bufferPt );
+    if ( DspA_tErr_NoErr != eResult )
+      continue;
+  
+    /* draw a point here. */
+    DspA_DrawCrosshairIntoFrame_( this, faColor, &bufferPt, 
+          DspA_knControlPointCrosshairSize );
+  }
+
+  if( eHeadPtList != HPtL_tErr_LastPoint )
+    goto error;
+
+  goto cleanup;
+
+ error:
+
+  if( HPtL_tErr_NoErr != eHeadPtList )
+    eResult = DspA_tErr_ErrorAccessingHeadPointList;
+
+  /* print error message */
+  if ( DspA_tErr_NoErr != eResult ) {
+    DebugPrint "Error %d in DspA_DrawHeadPointsToFrame_: %s\n",
       eResult, DspA_GetErrorString(eResult) EndDebugPrint;
   }
 

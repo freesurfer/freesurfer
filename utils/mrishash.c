@@ -35,6 +35,7 @@ static int mhtDoesFaceVoxelListIntersect(MRIS_HASH_TABLE *mht,
                                          VOXEL_LIST *vl, int fno) ;
 
 static int mhtHatchFace(MRIS_HASH_TABLE *mht,MRI_SURFACE *mris,int fno,int on);
+
 /*static int hash(MRIS_HASH_TABLE *mht, int z) ;*/
 static int mhtAddFacePositions(MRIS_HASH_TABLE *mht, float x, float y, 
                               float z, int fno) ;
@@ -46,7 +47,6 @@ static int mhtRemoveFacePosition(MRIS_HASH_TABLE *mht, int xv, int yv,
                                  int zv, int fno) ;
 static int mhtDoesFaceIntersect(MRIS_HASH_TABLE *mht,
                                 MRI_SURFACE *mris,int fno);
-static int mhtHatchFace(MRIS_HASH_TABLE *mht,MRI_SURFACE *mris,int fno,int on);
 #if 0
 static int checkAllVertexFaces(MRIS_HASH_TABLE *mht,MRI_SURFACE *mris,int vno);
 #endif
@@ -174,11 +174,25 @@ MHTfillVertexTableRes(MRI_SURFACE *mris,MRIS_HASH_TABLE *mht, int which,
 MRIS_HASH_TABLE *
 MHTfillTable(MRI_SURFACE *mris,MRIS_HASH_TABLE *mht)
 {
+  return(MHTfillTableAtResolution(mris, mht, CURRENT_VERTICES, VOXEL_RES)) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+MRIS_HASH_TABLE *
+MHTfillTableAtResolution(MRI_SURFACE *mris,MRIS_HASH_TABLE *mht, int which,
+                         float res)
+{
   int     fno ;
   FACE    *f ;
   int     xv, yv, zv ;
   MHBT    *bucket ;
   static int ncalls = 0 ;
+
 #if 0
   int     n, vno ;
   VERTEX  *v, *vn ;
@@ -192,7 +206,9 @@ MHTfillTable(MRI_SURFACE *mris,MRIS_HASH_TABLE *mht)
     ErrorExit(ERROR_NO_MEMORY, 
               "MHTfillTable: could not allocate hash table.\n") ;
 
-  mht->vres = VOXEL_RES ;
+  mht->which_vertices = which ;
+
+  mht->vres = res ;
   for (xv = 0 ; xv < TABLE_SIZE ; xv++)
   {
     for (yv = 0 ; yv < TABLE_SIZE ; yv++)
@@ -497,7 +513,7 @@ MHTremoveAllFaces(MRIS_HASH_TABLE *mht, MRI_SURFACE *mris, VERTEX *v)
        V1      b        V2        
 ------------------------------------------------------*/
 #define SQRT_2        (1.4142136)
-#define SAMPLE_DIST   (VOXEL_RES/(2.0*SQRT_2))
+#define SAMPLE_DIST   (mht->vres/(2.0*SQRT_2))
 
 static int
 mhtHatchFace(MRIS_HASH_TABLE *mht, MRI_SURFACE *mris, int fno, int on)
@@ -514,9 +530,25 @@ mhtHatchFace(MRIS_HASH_TABLE *mht, MRI_SURFACE *mris, int fno, int on)
   v0 = &mris->vertices[face->v[0]] ;
   v1 = &mris->vertices[face->v[1]] ;
   v2 = &mris->vertices[face->v[2]] ;
-  adx = v1->x - v0->x ; ady = v1->y - v0->y ; adz = v1->z - v0->z ;
+  switch (mht->which_vertices)
+  {
+  case ORIGINAL_VERTICES:
+    adx = v1->origx - v0->origx ; ady = v1->origy - v0->origy ; 
+    adz = v1->origz - v0->origz ;
+    cdx = v2->origx - v0->origx ; cdy = v2->origy - v0->origy ; 
+    cdz = v2->origz - v0->origz ;
+    break ;
+  case CANONICAL_VERTICES:
+    adx = v1->cx - v0->cx ; ady = v1->cy - v0->cy ; adz = v1->cz - v0->cz ;
+    cdx = v2->cx - v0->cx ; cdy = v2->cy - v0->cy ; cdz = v2->cz - v0->cz ;
+    break ;
+  default:
+  case CURRENT_VERTICES:
+    adx = v1->x - v0->x ; ady = v1->y - v0->y ; adz = v1->z - v0->z ;
+    cdx = v2->x - v0->x ; cdy = v2->y - v0->y ; cdz = v2->z - v0->z ;
+    break ;
+  }
   alen = sqrt(SQR(adx)+SQR(ady)+SQR(adz)) ;
-  cdx = v2->x - v0->x ; cdy = v2->y - v0->y ; cdz = v2->z - v0->z ;
   clen = sqrt(SQR(cdx)+SQR(cdy)+SQR(cdz)) ;
   
   /*
@@ -543,10 +575,26 @@ mhtHatchFace(MRIS_HASH_TABLE *mht, MRI_SURFACE *mris, int fno, int on)
   
   /* delta_t0 is % of alen or clen (whichever is bigger) of SAMPLE_DIST */
   for (t0 = 0 ; t0 <= 1.0f ; t0 += delta_t0)
+    {
+      /* compute points (xa,ya,za) and (xc,yc,zc) on the a and c lines resp. */
+      switch (mht->which_vertices)
   {
-    /* compute points (xa,ya,za) and (xc,yc,zc) on the a and c lines resp. */
+  default:
+  case CURRENT_VERTICES:
     xa = v0->x + t0*adx ; ya = v0->y + t0*ady ; za = v0->z + t0*adz ;
     xc = v0->x + t0*cdx ; yc = v0->y + t0*cdy ; zc = v0->z + t0*cdz ;
+    break ;
+  case ORIGINAL_VERTICES:
+    xa = v0->origx + t0*adx ; ya = v0->origy + t0*ady ; 
+    za = v0->origz + t0*adz ;
+    xc = v0->origx + t0*cdx ; yc = v0->origy + t0*cdy ; 
+    zc = v0->origz + t0*cdz ;
+    break ;
+  case CANONICAL_VERTICES:
+    xa = v0->cx + t0*adx ; ya = v0->cy + t0*ady ; za = v0->cz + t0*adz ;
+    xc = v0->cx + t0*cdx ; yc = v0->cy + t0*cdy ; zc = v0->cz + t0*cdz ;
+    break ;
+  }      
     dx = xc-xa ; dy = yc-ya ; dz = zc-za ;
     len = sqrt(SQR(dx)+SQR(dy)+SQR(dz)) ;
     if (FZERO(len))
@@ -580,8 +628,22 @@ mhtHatchFace(MRIS_HASH_TABLE *mht, MRI_SURFACE *mris, int fno, int on)
   
   /* compute last line on the a and c lines resp. */
   t0 = 1.0f ;
-  xa = v0->x + t0*adx ; ya = v0->y + t0*ady ; za = v0->z + t0*adz ;
-  xc = v0->x + t0*cdx ; yc = v0->y + t0*cdy ; zc = v0->z + t0*cdz ;
+  switch (mht->which_vertices)
+  {
+  default:
+  case CURRENT_VERTICES:
+    xa = v0->x + t0*adx ; ya = v0->y + t0*ady ; za = v0->z + t0*adz ;
+    xc = v0->x + t0*cdx ; yc = v0->y + t0*cdy ; zc = v0->z + t0*cdz ;
+    break ;
+  case ORIGINAL_VERTICES:
+    xa = v0->origx + t0*adx ; ya = v0->origy + t0*ady; za = v0->origz + t0*adz;
+    xc = v0->origx + t0*cdx ; yc = v0->origy + t0*cdy; zc = v0->origz + t0*cdz;
+    break ;
+  case CANONICAL_VERTICES:
+    xa = v0->cx + t0*adx ; ya = v0->cy + t0*ady ; za = v0->cz + t0*adz ;
+    xc = v0->cx + t0*cdx ; yc = v0->cy + t0*cdy ; zc = v0->cz + t0*cdz ;
+    break ;
+  }
   dx = xc-xa ; dy = yc-ya ; dz = zc-za ;
   len = sqrt(SQR(dx)+SQR(dy)+SQR(dz)) ;
   if (FZERO(len))

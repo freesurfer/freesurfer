@@ -90,6 +90,8 @@ set gsTimeCourseLocation ""
 set gsTimeCourseDataName ""
 set gbAutoRangeGraph 1
 
+set gbFunctionalWindowOpen 0
+
 # ============================================================== DRAWING GRAPH
 
 proc TimeCourse_BeginDrawingGraph {} {
@@ -409,14 +411,16 @@ proc HandleGraphClick { inX inY } {
 
 proc ShowFunctionalWindow {} {
 
-    global gwwTop
+    global gwwTop gbFunctionalWindowOpen
     wm deiconify $gwwTop
+    set gbFunctionalWindowOpen 1
 }
 
 proc HideFunctionalWindow {} {
 
-    global gwwTop
+    global gwwTop gbFunctionalWindowOpen
     wm withdraw $gwwTop
+    set gbFunctionalWindowOpen 0
 }
 
 proc Overlay_DoConfigDlog {} { 
@@ -775,10 +779,14 @@ proc Overlay_UpdateDataName { isName } {
 } 
 
 proc Overlay_UpdateTimePoint { inTimePoint inTimeSecond } {
-    global gnTimePoint gnTimeSecond
+
+    global gnTimePoint gnTimeSecond gbFunctionalWindowOpen
     set gnTimePoint  $inTimePoint
     set gnTimeSecond $inTimeSecond
-    TimeCourse_DrawCurrentTimePoint
+
+    if { $gbFunctionalWindowOpen == 1 } {
+  TimeCourse_DrawCurrentTimePoint
+    }
 }
 
 proc Overlay_UpdateCondition { inCondition } {
@@ -943,7 +951,7 @@ CreateGraphFrame      $fwGraph
 
 set gfwGraph $fwGraph
 
-wm withdraw $gwwTop
+HideFunctionalWindow
 
 proc TestData {} {
 
