@@ -3,8 +3,8 @@
 //
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Date  : $Date: 2005/02/03 01:48:56 $
-// Revision       : $Revision: 1.58 $
+// Revision Date  : $Date: 2005/02/03 18:14:30 $
+// Revision       : $Revision: 1.59 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -295,6 +295,8 @@ GCAMregister(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms)
 		double  rtx, rty, rtz, rx, ry, rz, d, dmin, rxmin, rymin, rzmin ;
 		int     xmin, ymin, zmin, whalf, xk, yk, zk, xi, yi, zi, x, y, z ;
 		GCA_MORPH_NODE *gcamn_nbr, *gcamn ;
+
+		xmin = ymin = zmin = 0.0 ;
 
 		m_vox2ras = MRIgetVoxelToRasXform(mri) ;
 		v1 = VectorAlloc(4, MATRIX_REAL) ; v2 = VectorAlloc(4, MATRIX_REAL) ; 
@@ -2837,7 +2839,8 @@ gcamComputeSSE(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms)
          binary_sse ;
 
   nvox = gcam->width*gcam->height*gcam->width ;
-  label_sse = map_sse = a_sse = sse = l_sse = s_sse = j_sse = d_sse = 0.0;
+  binary_sse = 
+		label_sse = map_sse = a_sse = sse = l_sse = s_sse = j_sse = d_sse = 0.0;
 
   check_gcam(gcam) ;
   gcamComputeMetricProperties(gcam) ;
