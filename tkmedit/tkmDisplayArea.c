@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2003/04/23 21:10:33 $
-// Revision       : $Revision: 1.62 $
+// Revision Date  : $Date: 2003/04/30 21:53:58 $
+// Revision       : $Revision: 1.63 $
 
 #include "tkmDisplayArea.h"
 #include "tkmMeditWindow.h"
@@ -3189,9 +3189,10 @@ DspA_tErr DspA_HandleMouseMoved_ ( tkmDisplayAreaRef this,
 DspA_tErr DspA_HandleKeyDown_ ( tkmDisplayAreaRef this, 
 				xGWin_tEventRef   ipEvent ) {
   
-  DspA_tErr eResult       = DspA_tErr_NoErr;
-  MWin_tErr eWindowResult = MWin_tErr_NoErr;
-  FunV_tErr eFunctional   = FunV_tErr_NoError;
+  DspA_tErr eResult        = DspA_tErr_NoErr;
+  MWin_tErr eWindowResult  = MWin_tErr_NoErr;
+  FunV_tErr eFunctional    = FunV_tErr_NoError;
+  tBoolean  bOverlayLoaded = FALSE;
   
   /* Ctrl key combos */
   if( ipEvent->mbCtrlKey && !ipEvent->mbAltKey ) {
@@ -3332,12 +3333,15 @@ DspA_tErr DspA_HandleKeyDown_ ( tkmDisplayAreaRef this,
       break;
     case 'f':
       if( NULL != this->mpFunctionalVolume ) {
-	if( 1 == this->mabDisplayFlags[DspA_tDisplayFlag_Anatomical] ) {
-	  DspA_SetDisplayFlag( this, DspA_tDisplayFlag_Anatomical, 0 );
-	  DspA_SetDisplayFlag( this, DspA_tDisplayFlag_FunctionalOverlay, 1 );
-	} else {
-	  DspA_SetDisplayFlag( this, DspA_tDisplayFlag_Anatomical, 1 );
-	  DspA_SetDisplayFlag( this, DspA_tDisplayFlag_FunctionalOverlay, 0 );
+	FunV_IsOverlayPresent( this->mpFunctionalVolume, &bOverlayLoaded );
+	if( bOverlayLoaded ) {
+	  if( 1 == this->mabDisplayFlags[DspA_tDisplayFlag_Anatomical] ) {
+	    DspA_SetDisplayFlag( this, DspA_tDisplayFlag_Anatomical, 0 );
+	    DspA_SetDisplayFlag( this, DspA_tDisplayFlag_FunctionalOverlay,1 );
+	  } else {
+	    DspA_SetDisplayFlag( this, DspA_tDisplayFlag_Anatomical, 1 );
+	    DspA_SetDisplayFlag( this, DspA_tDisplayFlag_FunctionalOverlay,0 );
+	  }
 	}
       }
       break;
