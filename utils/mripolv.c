@@ -1429,7 +1429,7 @@ MRIpolvCount(MRI *mri_src, MRI *mri_dst, MRI *mri_polv, int wsize,
 #define WHITE_LOW    90
 #define GRAY_HI      95
 #define WHITE_HI    130
-#define WSIZE       13
+#define WSIZE       9
 
 #define PSLOPE       1.0
 #define NSLOPE       1.0
