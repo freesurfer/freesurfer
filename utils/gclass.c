@@ -143,7 +143,10 @@ GCtrain(GCLASSIFY *gc, int class, MATRIX *m_inputs)
   gcl = &gc->classes[class] ;
   gcl->nobs = m_inputs->rows ;
   if (gcl->nobs == 0)      /* no training data */
+  {
+    gcl->ill_cond = 1 ;
     return(NO_ERROR) ;
+  }
 #if 0
   else if (gcl->nobs <= gc->nvars)  /* not enough training data */
     gcl->m_covariance = MatrixIdentity(gc->nvars, NULL) ;
@@ -155,11 +158,17 @@ GCtrain(GCLASSIFY *gc, int class, MATRIX *m_inputs)
 
   det = MatrixDeterminant(gcl->m_covariance);
   if (FZERO(det))  /* matrix is singular or ill-conditioned */
+  {
+    gcl->ill_cond = 1 ;
     return(NO_ERROR) ;
+  }
 
   m_sigma_inverse = MatrixInverse(gcl->m_covariance, NULL) ;
   if (!m_sigma_inverse)   /* don't really know what to do.... */
+  {
     m_sigma_inverse = MatrixIdentity(gc->nvars, NULL) ;
+    gcl->ill_cond = 1 ;
+  }
   m_uT = MatrixTranspose(gcl->m_u, NULL) ;
   det = MatrixDeterminant(gcl->m_covariance) ;
   gcl->m_W = MatrixScalarMul(m_sigma_inverse, -0.5f, gcl->m_W) ;
@@ -270,9 +279,9 @@ fprintf(stdout, "GCclassify(%2.3f)\n", m_x->rptr[1][1]) ;
   {
     gcl = &gc->classes[cno] ;
 #if 1
-    if (gcl->nobs <= gc->nvars)    /* covariance matrix was ill-conditioned */
+    if (gcl->nobs <= gc->nvars+1)  /* covariance matrix was ill-conditioned */
 #else
-    if (!gcl->m_W || !gcl->m_wT)
+    if (gcl->ill_cond)
 #endif
     {
       gc->log_probabilities[cno] = -10000.0f ;
