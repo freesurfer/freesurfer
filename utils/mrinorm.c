@@ -419,7 +419,7 @@ MRInormFindPeaks(MNI *mni, float *inputs, float *outputs)
 #if 0
       outputs[i-deleted] = mni->desired_wm_value / (float)peak ;
 #else
-      outputs[i-deleted] = (float)peak ;
+      outputs[i-deleted] = (float)mni->histograms[i].bins[peak] ;
 #endif
     }
   }
@@ -598,10 +598,11 @@ MRInormalize(MRI *mri_src, MRI *mri_dst, MNI *mni)
 #define SCALE  2
 
 MRI *
-MRInormFindControlPoints(MRI *mri_src,float sigma,int wm_target,MRI *mri_ctrl)
+MRInormFindControlPoints(MRI *mri_src, int wm_target, float intensity_above, 
+                         float intensity_below, MRI *mri_ctrl)
 {
   int     width, height, depth, x, y, z, xk, yk, zk, xi, yi, zi, *pxi, *pyi, 
-          *pzi, ctrl, nctrl, wm_delta ;
+          *pzi, ctrl, nctrl ;
   BUFTYPE *psrc, val0, val, low_thresh, hi_thresh ;
 
   if (!wm_target)
@@ -611,9 +612,6 @@ MRInormFindControlPoints(MRI *mri_src,float sigma,int wm_target,MRI *mri_ctrl)
     mri_ctrl = MRIalloc(width, height, depth, MRI_UCHAR) ;
 
   pxi = mri_src->xi ; pyi = mri_src->yi ; pzi = mri_src->zi ;
-  if (sigma < 0)
-    sigma = 0.15f ;
-  wm_delta = nint((float)wm_target * sigma) ;
   /*
     find points which are close to wm_target, and in relatively
     homogenous regions.
@@ -626,9 +624,10 @@ MRInormFindControlPoints(MRI *mri_src,float sigma,int wm_target,MRI *mri_ctrl)
       for (x = 0 ; x < width ; x++)
       {
         val0 = MRIvox(mri_src, x, y, z) ;
-        if (val0 >= wm_target-wm_delta && val0 <= wm_target+wm_delta)
+        if (val0 >= wm_target-intensity_below && val0 <= wm_target+intensity_above)
         {
-          low_thresh = wm_target-wm_delta; hi_thresh = wm_target+2.5*wm_delta;
+          low_thresh = wm_target-intensity_below; 
+          hi_thresh =  wm_target+intensity_above;
 
 #define WHALF  ((5-1)/2)
           ctrl = 1 ;
@@ -700,7 +699,7 @@ MRIbuildBiasImage(MRI *mri_src, MRI *mri_ctrl, MRI *mri_bias)
 ------------------------------------------------------*/
 MRI *
 MRI3dNormalize(MRI *mri_src, MRI *mri_bias, int wm_target, MRI *mri_norm,
-               float sigma)
+               float intensity_above, float intensity_below)
 {
   int     width, height, depth, x, y, z, src, bias, free_bias ;
   BUFTYPE *psrc, *pbias, *pnorm ;
@@ -717,8 +716,20 @@ MRI3dNormalize(MRI *mri_src, MRI *mri_bias, int wm_target, MRI *mri_norm,
     MRI  *mri_ctrl ;
 
     free_bias = 1 ;
-    mri_ctrl = MRInormFindControlPoints(mri_src, sigma, wm_target, NULL);
+    mri_ctrl = MRInormFindControlPoints(mri_src, wm_target, intensity_above, 
+                                        intensity_below, NULL);
     mri_bias = MRIbuildBiasImage(mri_src, mri_ctrl, NULL) ;
+    if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+    {
+      static int pass = 0 ;
+      char fname[500] ;
+
+      fprintf(stderr, "writing out control and bias volumes...\n") ;
+      sprintf(fname, "src%d.mgh", pass) ; MRIwrite(mri_src, fname) ;
+      sprintf(fname, "ctrl%d.mgh", pass) ; MRIwrite(mri_ctrl, fname) ;
+      sprintf(fname, "bias%d.mgh", pass) ; MRIwrite(mri_bias, fname) ;
+      pass++ ;
+    }
     MRIfree(&mri_ctrl) ;
   }
   else
