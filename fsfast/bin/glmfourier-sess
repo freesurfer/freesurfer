@@ -2,7 +2,7 @@
 # glmfourier-sess
 #
 
-set VERSION = '$Id: glmfourier-sess,v 1.1 2004/06/03 23:35:02 greve Exp $';
+set VERSION = '$Id: glmfourier-sess,v 1.2 2004/06/11 17:44:01 greve Exp $';
 set analysis = ();
 set monly = ();
 set MLF = ();
@@ -50,8 +50,10 @@ set nbins      = `cat $cfgfile | awk '{if($1 == "nbins") print $2}'`;
 set mask       = `cat $cfgfile | awk '{if($1 == "mask") print $2}'`;
 set extreg     = `cat $cfgfile | awk '{if($1 == "extreg") print $2}'`;
 set nextreg    = `cat $cfgfile | awk '{if($1 == "nextreg") print $2}'`;
+set fixracf    = `cat $cfgfile | awk '{if($1 == "fixracf") print 1}'`;
+if($#fixracf == 0) set fixracf = 0;
 
-set LF = log/glmfourier.log
+set LF = log/glmfourier-$analysis.log
 if(-e $LF) mv $LF $LF.bak
 
 date | tee -a $LF
@@ -97,6 +99,7 @@ foreach sess ($SessList)
     set cmd = ($cmd --tr $TR --nbins $nbins)
     if($#mask != 0) set cmd = ($cmd --mask $sess/$fsd/masks/$mask)
     set cmd = ($cmd --o $sess/$fsd/$analysis-$run)
+    if($fixracf) set cmd = ($cmd --fixracf)
     set cmd = ($cmd --monly $MLFtmp)
     echo $cmd | tee -a $LF
     $cmd | tee -a $LF
@@ -113,13 +116,15 @@ rm -f $MLFtmp
 
 set StartTime = `date`;
 if(! $monly) then
-  cat $MLF | matlab -display iconic
+  cat $MLF | matlab -display iconic | tee -a $LF
   rm -f $MLF
 endif
 
+echo ""
 echo "Started at $StartTime" | tee -a $LF
 echo "Ended   at `date`"     | tee -a $LF
 echo "glmfourier-sess Done"    | tee -a $LF
+echo ""
 
 exit 0;
 ###############################################
@@ -138,6 +143,12 @@ while( $#argv != 0 )
     case "-a":
       if ( $#argv == 0) goto arg1err;
       set analysis = $argv[1]; shift;
+      breaksw
+
+    case "-monly":
+      if ( $#argv == 0) goto arg1err;
+      set MLF = $argv[1]; shift;
+      set monly = 1;
       breaksw
 
     case "-g":
