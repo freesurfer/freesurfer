@@ -1,6 +1,6 @@
 #! /bin/sh
 
-ECHO=echo
+ECHO=
 DATE=`(set \`date +%y%m%d\`; echo $1)`
 
 if [ "${1}" = "" ] ; then
