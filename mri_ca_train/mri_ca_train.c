@@ -12,9 +12,11 @@
 #include "timer.h"
 #include "gca.h"
 #include "transform.h"
+#include "cma.h"
 
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
+static int replaceLabels(MRI *mri_seg) ;
 
 char *Progname ;
 static void usage_exit(int code) ;
@@ -125,6 +127,7 @@ main(int argc, char *argv[])
       if (!mri_seg)
         ErrorExit(ERROR_NOFILE, "%s: could not read segmentation file %s",
                   Progname, fname) ;
+      replaceLabels(mri_seg) ;
       MRIeraseBorderPlanes(mri_seg) ;
       
       sprintf(fname, "%s/%s/mri/%s", subjects_dir, subject_name, orig_dir) ;
@@ -312,3 +315,26 @@ usage_exit(int code)
   printf("\t-gradient - use intensity gradient as input to classifier.\n") ;
   exit(code) ;
 }
+static int input_labels[] = {  
+  Left_Cerebral_Exterior,
+  Right_Cerebral_Exterior,
+  Left_Cerebellum_Cortex,
+  Right_Cerebellum_Cortex
+} ;
+static int output_labels[] = {  
+  Left_Cerebral_Cortex,
+  Right_Cerebral_Cortex,
+  Left_Cerebellum_Exterior,
+  Right_Cerebellum_Exterior
+} ;
+  
+static int
+replaceLabels(MRI *mri_seg)
+{
+  int    i ;
+
+  for (i = 0 ; i < sizeof(output_labels)/sizeof(output_labels[0]) ; i++)
+    MRIreplaceValues(mri_seg, mri_seg, input_labels[i], output_labels[i]) ;
+  return(NO_ERROR) ;
+}
+
