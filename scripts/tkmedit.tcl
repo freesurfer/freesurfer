@@ -1,6 +1,6 @@
 #! /usr/bin/tixwish
 
-# $Id: tkmedit.tcl,v 1.44 2003/05/05 18:22:22 kteich Exp $
+# $Id: tkmedit.tcl,v 1.45 2003/05/07 16:41:19 kteich Exp $
 
 source $env(MRI_DIR)/lib/tcl/tkm_common.tcl
 
@@ -2565,7 +2565,7 @@ proc SetAndSendDisplayFlag { iFlag iValue } {
 proc MakeKeyBindings { iwTop } {
 
     global Surf_tVertexSet_Main Surf_tVertexSet_Original Surf_tVertexSet_Pial
-    
+    global gnZoomLevel
 
     bind $iwTop <Control-Key-1> \
 	{SetAndSendDisplayFlag flag_AuxVolume 0}
@@ -2599,6 +2599,15 @@ proc MakeKeyBindings { iwTop } {
 	{ToggleAndSendDisplayFlag flag_ControlPoints}
     bind $iwTop <Control-Key-c> \
 	{ToggleAndSendDisplayFlag flag_Cursor}
+    bind $iwTop <Control-Key-plus> \
+	{SetZoomLevelWrapper [expr $gnZoomLevel / 2] }
+    bind $iwTop <Control-Key-minus> \
+	{SetZoomLevelWrapper [expr $gnZoomLevel / 2] }
+
+    bind $iwTop <Alt-Key-plus> \
+	{SetZoomLevelWrapper 32 }
+    bind $iwTop <Alt-Key-minus> \
+	{SetZoomLevelWrapper 1 }
 
     bind $iwTop <Key-n> \
 	{SetTool $DspA_tTool_Navigate}
