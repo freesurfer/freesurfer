@@ -20038,7 +20038,7 @@ MRISaccumulateImaginaryMeansOnSurface(MRI_SURFACE *mris, int total_dof,
     if (v->ripflag)
       continue ;
 
-    v->mean_imag = (v->mean*total_dof + v->val*new_dof) / ndof ;
+    v->mean_imag = (v->mean_imag*total_dof + v->val*new_dof) / ndof ;
   }
 
   return(NO_ERROR) ;
