@@ -158,4 +158,9 @@ void swapImage(RGB_IMAGE *image) ;
 #define _IORW           0200
 #endif
 
+
+int    RGBwrite(IMAGE *I, char *fname, int frame) ;
+IMAGE *RGBReadImage(char *fname);
+IMAGE *RGBReadHeader(char *fname, IMAGE *);
+
 #endif  /* !__GL_IMAGE_H__ */
