@@ -97,6 +97,8 @@
 #ifdef SunOS
 #define exp2(f)     pow(2.0,(f))
 #define log2(f)     (log(f) / log(2.0))
+#define ceilf(f)    (int)ceil((double)f)
+#define floorf(f)   (int)floor((double)f)
 #endif
 
 #define ISPOW2(n)   (exp2((float)nint(log2((float)n))) == (float)n)
