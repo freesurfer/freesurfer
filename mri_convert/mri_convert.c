@@ -65,6 +65,7 @@ main(int argc, char *argv[])
   {
     MRI  *mri_tmp ;
 
+    fprintf(stderr,"reordering dimensions to (%d, %d, %d)\n",xdim,ydim,zdim);
     mri_tmp = MRIreorder(mri, NULL, xdim, ydim, zdim) ;
     MRIfree(&mri) ;
     mri = mri_tmp ;
