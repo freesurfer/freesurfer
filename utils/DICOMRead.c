@@ -2,7 +2,7 @@
    DICOM 3.0 reading functions
    Author: Sebastien Gicquel and Douglas Greve
    Date: 06/04/2001
-   $Id: DICOMRead.c,v 1.13 2001/09/26 20:55:07 greve Exp $
+   $Id: DICOMRead.c,v 1.14 2001/11/14 20:34:00 greve Exp $
 *******************************************************/
 
 #include <stdio.h>
@@ -26,13 +26,14 @@
 #include "mri_identify.h"
 #include "fio.h"
 #include "mosaic.h"
+#include "diag.h"
 
 #define _DICOMRead_SRC
 #include "DICOMRead.h"
 
+static int DCMPrintCond(CONDITION cond);
+
 static bool IsTagPresent[NUMBEROFTAGS];
-
-
 
 //#define _DEBUG
 
@@ -135,9 +136,9 @@ MRI * sdcmLoadVolume(char *dcmfile, int LoadVolume)
   }
 
   /* set the various paramters for the mri structure */
-  vol->xsize = sdfi->VolRes[0];
-  vol->ysize = sdfi->VolRes[1];
-  vol->zsize = sdfi->VolRes[2];
+  vol->xsize = sdfi->VolRes[0]; /* x = col */
+  vol->ysize = sdfi->VolRes[1]; /* y = row */
+  vol->zsize = sdfi->VolRes[2]; /* z = slice */
   vol->x_r   = sdfi->Vc[0];
   vol->x_a   = sdfi->Vc[1];
   vol->x_s   = sdfi->Vc[2];
@@ -157,7 +158,7 @@ MRI * sdcmLoadVolume(char *dcmfile, int LoadVolume)
   if(! sdfi->IsMosaic )
     vol->tr    = sdfi->RepetitionTime;
   else
-    vol->tr    = sdfi->RepetitionTime * (sdfi->VolDim[2]+1) / 1000.0;
+    vol->tr    = sdfi->RepetitionTime * (sdfi->VolDim[2]) / 1000.0; /* Plus Gap */
 
   /* Return now if we're not loading pixel data */
   if(!LoadVolume) return(vol);
@@ -256,12 +257,15 @@ DCM_ELEMENT *GetElementFromFile(char *dicomfile, long grpid, long elid)
   tag=DCM_MAKETAG(grpid,elid);
   cond = DCM_GetElement(&object, tag, element);
   if(cond != DCM_NORMAL){
+    DCM_CloseObject(&object);
     free(element);
     return(NULL);
   }
   AllocElementData(element);
   cond = DCM_GetElementValue(&object, element, &rtnLength, &Ctx);
+  /* Does Ctx have to be freed? */
   if(cond != DCM_NORMAL){
+    DCM_CloseObject(&object);
     FreeElementData(element);
     free(element);
     return(NULL);
@@ -279,9 +283,12 @@ DCM_OBJECT *GetObjectFromFile(char *fname, unsigned long options)
 {
   CONDITION cond;
   DCM_OBJECT *object;
+  int ok;
   
-  if(! IsDICOM(fname)){
+  ok = IsDICOM(fname);
+  if(! ok){
     fprintf(stderr,"ERROR: %s is not a dicom file\n",fname);
+    COND_DumpConditions();
     return(NULL);
   }
 
@@ -597,80 +604,18 @@ int dcmGetVolRes(char *dcmfile, float *ColRes, float *RowRes, float *SliceRes)
 
   FreeElementData(e); free(e);
 
-  /* Load the Slice Thickness - this may not be correct for mosaics*/
-  e = GetElementFromFile(dcmfile, 0x18, 0x50);
+  /* Load the Spacing Between Slices */
+  e = GetElementFromFile(dcmfile, 0x18, 0x88);
   if(e == NULL){
-    FreeElementData(e); free(e);
-    return(1);
+    /* If 18,88 does not exist, load the slice thickness */
+    e = GetElementFromFile(dcmfile, 0x18, 0x50);
+    if(e == NULL) return(1);
   }
   sscanf(e->d.string,"%f",SliceRes);
   FreeElementData(e); free(e);
 
   return(0);
 }
-/*-----------------------------------------------------------------------
-  sdcmMosaicSliceRes() - computes the slice resolution as the distance
-  between the first two slices. The slice locations are obtained from
-  the Siemens ASCII header. One can get the slice thickness from tag
-  (18,50), but this will not include a skip. See also dcmGetVolRes().
-  -----------------------------------------------------------------------*/
-float sdcmMosaicSliceRes(char *dcmfile)
-{
-  char * strtmp;
-  float x0, y0, z0;
-  float x1, y1, z1;
-  float thickness;
-
-  /* --- First Slice ---- */
-  strtmp = SiemensAsciiTag(dcmfile,"sSliceArray.asSlice[0].sPosition.dSag");
-  if(strtmp != NULL){
-    sscanf(strtmp,"%f",&x0);
-    free(strtmp);
-  }
-  else x0 = 0;
-
-  strtmp = SiemensAsciiTag(dcmfile,"sSliceArray.asSlice[0].sPosition.dCor");
-  if(strtmp != NULL){
-    sscanf(strtmp,"%f",&y0);
-    free(strtmp);
-  }
-  else y0 = 0;
-
-  strtmp = SiemensAsciiTag(dcmfile,"sSliceArray.asSlice[0].sPosition.dTra");
-  if(strtmp != NULL){
-    sscanf(strtmp,"%f",&z0);
-    free(strtmp);
-  }
-  else z0 = 0;
-
-  /* --- Second Slice ---- */
-  strtmp = SiemensAsciiTag(dcmfile,"sSliceArray.asSlice[1].sPosition.dSag");
-  if(strtmp != NULL){
-    sscanf(strtmp,"%f",&x1);
-    free(strtmp);
-  }
-  else x1 = 0;
-
-  strtmp = SiemensAsciiTag(dcmfile,"sSliceArray.asSlice[1].sPosition.dCor");
-  if(strtmp != NULL){
-    sscanf(strtmp,"%f",&y1);
-    free(strtmp);
-  }
-  else y1 = 0;
-
-  strtmp = SiemensAsciiTag(dcmfile,"sSliceArray.asSlice[1].sPosition.dTra");
-  if(strtmp != NULL){
-    sscanf(strtmp,"%f",&z1);
-    free(strtmp);
-  }
-  else z1 = 0;
-
-  /* Compute distance between slices */
-  thickness = sqrt( (x0-x1)*(x0-x1) + (y0-y1)*(y0-y1) + (z0-z1)*(z0-z1) );
-
-  return(thickness);
-}
-
 /*-----------------------------------------------------------------------
   dcmGetSeriesNo - Gets the series number from tag (20,11). 
   Returns -1 if error.
@@ -958,7 +903,7 @@ int sdcmIsMosaic(char *dcmfile, int *pNcols, int *pNrows, int *pNslices, int *pN
   err = dcmGetVolRes(dcmfile, &ColRes, &RowRes, &SliceRes);
   if(err) return(-1);
 
-  if(strcmp(PhEncDir,"COL")==0){
+  if(strncmp(PhEncDir,"COL",3)==0){
     /* Each row is a different phase encode */
     NrowsExp = (int)(rint(PhEncFOV/RowRes));
     NcolsExp = (int)(rint(ReadOutFOV/ColRes));
@@ -1117,9 +1062,8 @@ SDCMFILEINFO *GetSDCMFileInfo(char *dcmfile)
          &(sdcmfi->VolRes[2]));
 
   if(sdcmfi->IsMosaic){
-    sdcmfi->VolRes[2] = sdcmMosaicSliceRes(dcmfile);
     sdcmIsMosaic(dcmfile, &(sdcmfi->VolDim[0]), &(sdcmfi->VolDim[1]),
-     &(sdcmfi->VolDim[2]), &(sdcmfi->NFrames));
+     &(sdcmfi->VolDim[2]), &(sdcmfi->NFrames) );
   }
   else{
     sdcmfi->VolDim[0] = sdcmfi->NImageCols;
@@ -1602,6 +1546,8 @@ int sdfiAssignRunNo2(SDCMFILEINFO **sdfi_list, int nlist)
   char *FirstFileName;
   int *RunList, *RunNoList;
 
+  nframes = 0; /* to stop compiler warnings */
+
   RunNoList = sdfiRunNoList(sdfi_list,nlist,&NRuns);
   if(NRuns==0) return(NRuns);
 
@@ -1616,8 +1562,9 @@ int sdfiAssignRunNo2(SDCMFILEINFO **sdfi_list, int nlist)
       sdfi0->NFrames = nfilesperrun;
       if(nfilesperrun != (sdfi0->lRepetitions+1)){
   fprintf(stderr,"WARNING: Run %d appears to be truncated\n",nthrun+1);
-  fprintf(stderr,"nfilesperrun = %d, lRep+1 = %d\n",
+  fprintf(stderr,"  Files Found: %d, Files Expected (lRep+1): %d\n",
     nfilesperrun, (sdfi0->lRepetitions+1));
+  DumpSDCMFileInfo(stderr,sdfi0);
   fflush(stderr);
   sdfi0->ErrorFlag = 1;
       }
@@ -1656,7 +1603,7 @@ int sdfiAssignRunNo2(SDCMFILEINFO **sdfi_list, int nlist)
   }
   nthslice++;
       }/* end loop over files in the run */
-
+      
       sdfi0->VolDim[2] = nthslice;
       sdfi0->NFrames   = nframes;
     }/* end if it is NOT a mosaic */
@@ -2239,7 +2186,14 @@ int sdfiFixImagePosition(SDCMFILEINFO *sdfi)
   nctmos = sdfi->NImageCols/sdfi->VolDim[0];
   nrtmos = sdfi->NImageRows/sdfi->VolDim[1];
 
-  for(n=0;n<2;n++){
+#ifdef _DEBUG
+  printf("--------- sdfiFixImagePosition() -------------\n");
+  printf("Old ImgPos:   ");
+  for(n=0;n<3;n++) printf("%7.1f ",sdfi->ImgPos[n]);
+  printf("\n");
+#endif
+
+  for(n=0;n<3;n++){
     /* Compute the center of the mosaic */
     ImgCenter[n] = sdfi->ImgPos[n] + 
       sdfi->Vc[n] * MosColFoV/2 + 
@@ -2252,13 +2206,16 @@ int sdfiFixImagePosition(SDCMFILEINFO *sdfi)
     sdfi->ImgPos[n] = NewImgPos[n];
   }
 
-  //printf("Image Center (Fix): ");
-  //for(n=0;n<2;n++) printf("%g ",ImgCenter[n]);
-  //printf("\n");
+#ifdef _DEBUG
+  printf("Image Center: ");
+  for(n=0;n<3;n++) printf("%7.1f ",ImgCenter[n]);
+  printf("\n");
 
-  //printf("New ImgPos   (Fix): ");
-  //for(n=0;n<2;n++) printf("%g ",NewImgPos[n]);
-  //printf("\n");
+  printf("New ImgPos:   ");
+  for(n=0;n<3;n++) printf("%7.1f ",sdfi->ImgPos[n]);
+  printf("\n");
+  printf("--------- ---------------------  -------------\n");
+#endif
 
   return(0);
 }
@@ -3238,35 +3195,61 @@ void SortFiles(char *fNames[], int nFiles, DICOMInfo ***ptrDicomArray, int *nStu
 
 int IsDICOM(char *fname)
 {
-
+  int d;
   CONDITION cond;
   DCM_OBJECT** object=(DCM_OBJECT**)calloc(1, sizeof(DCM_OBJECT*));
 
+  d = 0;
+  //if(!strcmp(fname,"/mnt/cdrom/10190001/14597100")) d = 1;
 
+  if(d) printf("-------------------------------\n");
+
+  if(d) printf("Opening as part10\n");
   cond=DCM_OpenFile(fname, DCM_PART10FILE, object);
-  if (cond != DCM_NORMAL)
-    cond=DCM_OpenFile(fname, DCM_ORDERLITTLEENDIAN, object);
-  if (cond != DCM_NORMAL)
-    cond=DCM_OpenFile(fname, DCM_ORDERBIGENDIAN, object);
-  if (cond != DCM_NORMAL)
-    cond=DCM_OpenFile(fname, DCM_FORMATCONVERSION, object);
+  if (cond != DCM_NORMAL && d) DCMPrintCond(cond);
 
-#ifdef _DCM_DEBUG
-  switch (cond)
-    {
+  if (cond != DCM_NORMAL){
+    if(d) printf("Opening as littleendian\n");
+    cond=DCM_OpenFile(fname, DCM_ORDERLITTLEENDIAN, object);
+    if (cond != DCM_NORMAL && d) DCMPrintCond(cond);
+  }
+
+  if (cond != DCM_NORMAL){
+    if(d) printf("Opening as bigendian\n");
+    cond=DCM_OpenFile(fname, DCM_ORDERBIGENDIAN, object);
+    if (cond != DCM_NORMAL && d) DCMPrintCond(cond);
+  }
+
+  if (cond != DCM_NORMAL){
+    if(d) printf("Opening as bigendian\n");
+    cond=DCM_OpenFile(fname, DCM_FORMATCONVERSION, object);
+    if (cond != DCM_NORMAL && d) DCMPrintCond(cond);
+  }
+
+  if(cond == DCM_NORMAL) DCM_CloseObject(object);
+
+#if 0
+  if(cond != DCM_NORMAL){
+    DCMPrintCond(cond);
+    DiagBreak();
+  }
+#endif
+
+  return(cond == DCM_NORMAL);
+}
+/*---------------------------------------------------------------*/
+static int DCMPrintCond(CONDITION cond)
+{
+  switch (cond){
     case DCM_NORMAL: printf("DCM_NORMAL\n"); break;
     case DCM_ILLEGALOPTION: printf("DCM_ILLEGALOPTION\n"); break;
     case DCM_OBJECTCREATEFAILED: printf("DCM_OBJECTCREATEFAILED\n"); break;
     case DCM_FILEOPENFAILED: printf("DCM_FILEOPENFAILED\n"); break;
     case DCM_FILEACCESSERROR: printf("DCM_FILEACCESSERROR\n"); break;
     case DCM_ELEMENTOUTOFORDER: printf("DCM_ELEMENTOUTOFORDER\n"); break;
-    default: printf("don't know what's wrong...\n"); break;
-    }
-#endif
-
-  DCM_CloseObject(object);
-
-  return(cond == DCM_NORMAL);
+    default: printf("DCMPrintCond: %d unrecognized\n",(int)cond); break;
+  }
+  return(0);
 }
 
 /*******************************************************
@@ -3966,4 +3949,71 @@ MRI * sdcmLoadVolume(char *dcmfile, int LoadVolume)
 
   return(vol);
 }
+#endif
+
+#if 0
+/* This has been replaced by probing tag 18,88 */
+/*-----------------------------------------------------------------------
+  sdcmMosaicSliceRes() - computes the slice resolution as the distance
+  between the first two slices. The slice locations are obtained from
+  the Siemens ASCII header. One can get the slice thickness from tag
+  (18,50), but this will not include a skip. See also dcmGetVolRes().
+  -----------------------------------------------------------------------*/
+float sdcmMosaicSliceRes(char *dcmfile)
+{
+  char * strtmp;
+  float x0, y0, z0;
+  float x1, y1, z1;
+  float thickness;
+
+  /* --- First Slice ---- */
+  strtmp = SiemensAsciiTag(dcmfile,"sSliceArray.asSlice[0].sPosition.dSag");
+  if(strtmp != NULL){
+    sscanf(strtmp,"%f",&x0);
+    free(strtmp);
+  }
+  else x0 = 0;
+
+  strtmp = SiemensAsciiTag(dcmfile,"sSliceArray.asSlice[0].sPosition.dCor");
+  if(strtmp != NULL){
+    sscanf(strtmp,"%f",&y0);
+    free(strtmp);
+  }
+  else y0 = 0;
+
+  strtmp = SiemensAsciiTag(dcmfile,"sSliceArray.asSlice[0].sPosition.dTra");
+  if(strtmp != NULL){
+    sscanf(strtmp,"%f",&z0);
+    free(strtmp);
+  }
+  else z0 = 0;
+
+  /* --- Second Slice ---- */
+  strtmp = SiemensAsciiTag(dcmfile,"sSliceArray.asSlice[1].sPosition.dSag");
+  if(strtmp != NULL){
+    sscanf(strtmp,"%f",&x1);
+    free(strtmp);
+  }
+  else x1 = 0;
+
+  strtmp = SiemensAsciiTag(dcmfile,"sSliceArray.asSlice[1].sPosition.dCor");
+  if(strtmp != NULL){
+    sscanf(strtmp,"%f",&y1);
+    free(strtmp);
+  }
+  else y1 = 0;
+
+  strtmp = SiemensAsciiTag(dcmfile,"sSliceArray.asSlice[1].sPosition.dTra");
+  if(strtmp != NULL){
+    sscanf(strtmp,"%f",&z1);
+    free(strtmp);
+  }
+  else z1 = 0;
+
+  /* Compute distance between slices */
+  thickness = sqrt( (x0-x1)*(x0-x1) + (y0-y1)*(y0-y1) + (z0-z1)*(z0-z1) );
+
+  return(thickness);
+}
+
 #endif
