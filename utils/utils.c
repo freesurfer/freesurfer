@@ -13,8 +13,8 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/06/01 16:44:04 $
-// Revision       : $Revision: 1.39 $
+// Revision Date  : $Date: 2004/06/02 13:53:04 $
+// Revision       : $Revision: 1.40 $
 
 ------------------------------------------------------------------------*/
 
@@ -1014,7 +1014,7 @@ int getMemoryUsed()
   int memused = 0;
   int numassigned = 0;
   /////////////////////////////////////////////////////////////////////////
-  // Linux /proc/$pid/status file memory usage information
+  // Linux /proc/$pid/status file memory usage information in Kbytes
   // VmSize : virtual memory usage of entire process
   // VmRSS  : resident set currently in physical memory including code, data, stack
   // VmData : virtual memory usage of heap
@@ -1058,3 +1058,7 @@ int getMemoryUsed()
 #endif
 }
 
+void printMemoryUsed()
+{
+  printf("heap used: %d\n", getMemoryUsed()); 
+}
