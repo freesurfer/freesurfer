@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2004/05/26 22:05:28 $
-// Revision       : $Revision: 1.103 $
+// Revision Date  : $Date: 2004/06/13 17:34:03 $
+// Revision       : $Revision: 1.104 $
 
 #include "tkmDisplayArea.h"
 #include "tkmMeditWindow.h"
@@ -221,9 +221,12 @@ DspA_tErr DspA_New ( tkmDisplayAreaRef* oppWindow,
   this->mLineDistance = 0;
   
   /* set default brush info */
-  sBrush.mnRadius = 1;
-  sBrush.mShape   = DspA_tBrushShape_Square;
-  sBrush.mb3D     = FALSE;
+  sBrush.mnRadius    = 1;
+  sBrush.mShape      = DspA_tBrushShape_Square;
+  sBrush.mb3D        = FALSE;
+  sBrush.mb3DFill    = FALSE;
+  sBrush.mnFuzzy     = 0;
+  sBrush.mnDistance  = 0;
   DspA_SetBrushInfoToDefault( this, DspA_tBrush_EditOne );
   DspA_SetBrushInfoToDefault( this, DspA_tBrush_EditTwo );
   
@@ -2022,6 +2025,51 @@ DspA_tErr DspA_SetBrushShape ( tkmDisplayAreaRef this,
   return eResult;
 }
 
+
+DspA_tErr DspA_SetAnatomicalFillInfo ( tkmDisplayAreaRef this,
+				       tBoolean          ib3DFill,
+				       int               inFuzzy,
+				       int               inDistance ) {
+
+  DspA_tErr eResult            = DspA_tErr_NoErr;
+  char      sTclArguments[STRLEN] = "";
+  
+  /* verify us. */
+  eResult = DspA_Verify ( this );
+  if ( DspA_tErr_NoErr != eResult )
+    goto error;
+  
+  /* Set the brush info */
+  sBrush.mb3DFill   = ib3DFill;
+  sBrush.mnFuzzy    = inFuzzy;
+  sBrush.mnDistance = inDistance;
+  
+  /* if we're the currently focused display... */
+  if( sFocusedDisplay == this ) {
+    
+    /* send the tcl update. */
+    sprintf ( sTclArguments, "%d %d %d",
+	      (int)sBrush.mb3DFill, (int)sBrush.mnFuzzy, 
+	      (int)sBrush.mnDistance );
+    tkm_SendTclCommand( tkm_tTclCommand_UpdateAnatomicalFillInfo,
+			sTclArguments );
+  }
+  
+  goto cleanup;
+  
+ error:
+  
+  /* print error message */
+  if ( DspA_tErr_NoErr != eResult ) {
+    DebugPrint( ("Error %d in DspA_SetBrushShape: %s\n",
+		 eResult, DspA_GetErrorString(eResult) ) );
+  }
+  
+ cleanup:
+  
+  return eResult;
+}
+
 DspA_tErr DspA_SetBrushInfo ( tkmDisplayAreaRef this,
 			      DspA_tBrush       iBrush,
 			      DspA_tBrushInfoRef iInfo ) {
@@ -2834,21 +2882,23 @@ DspA_tErr DspA_HandleEvent ( tkmDisplayAreaRef this,
 DspA_tErr DspA_HandleMouseUp_ ( tkmDisplayAreaRef this, 
 				xGWin_tEventRef   ipEvent ) {
   
-  DspA_tErr    eResult     = DspA_tErr_NoErr;
-  xPoint2n     bufferPt    = {0,0};
-  xVoxelRef    pVolumeVox  = NULL;
-  xVoxel       MRIIdx;
-  int          nSegIndex   = 0;
-  tkm_tSegType segType     = tkm_tSegType_Main;
+  DspA_tErr       eResult       = DspA_tErr_NoErr;
+  xPoint2n        bufferPt      = {0,0};
+  xVoxelRef       pVolumeVox    = NULL;
+  xVoxel          MRIIdx;
+  int             nVolValue     = 0;
+  tkm_tVolumeType volumeType = tkm_tVolumeType_Main;
+  int             nSegIndex     = 0;
+  tkm_tSegType    segType       = tkm_tSegType_Main;
   DspA_tSegBrushSettings segBrush;
-  tBoolean     bSelect     = FALSE;
-  xVoxel       lineVox;
-  xVoxel     lineVox1;
-  xVoxel     lineVox2;
-  xVoxel       lineIdx1;
-  xVoxel       lineIdx2;
-  xVoxel       lineRAS1;
-  xVoxel       lineRAS2;
+  tBoolean        bSelect       = FALSE;
+  xVoxel          lineVox;
+  xVoxel          lineVox1;
+  xVoxel          lineVox2;
+  xVoxel          lineIdx1;
+  xVoxel          lineIdx2;
+  xVoxel          lineRAS1;
+  xVoxel          lineRAS2;
   
   xVoxl_New( &pVolumeVox );
   
@@ -2924,9 +2974,47 @@ DspA_tErr DspA_HandleMouseUp_ ( tkmDisplayAreaRef this,
   case DspA_tTool_EditVoxels:
     
     /* If Shift-edit, restore-undo around the clicked point. */
+#if 0
     if( ipEvent->mbShiftKey ) {
       tkm_RestoreUndoVolumeAroundMRIIdx( pVolumeVox );
     }
+#endif
+
+    /* Shift-2 or Shift-3 does a fill. */
+    if( ipEvent->mbShiftKey &&
+	!ipEvent->mbCtrlKey &&
+	!ipEvent->mbAltKey ) {
+
+      switch( ipEvent->mButton ) {
+      case 2:
+      case 3:
+	/* button determines whether we're using paint or erase value */
+	if( 2 == ipEvent->mButton ) {
+	  nVolValue = sBrush.mInfo[DspA_tBrush_EditOne].mNewValue;
+	} else if ( 3 == ipEvent->mButton ) {
+	  nVolValue = sBrush.mInfo[DspA_tBrush_EditTwo].mNewValue;
+	}
+
+	if( this->mabDisplayFlags[DspA_tDisplayFlag_AuxVolume] ) {
+	  volumeType = tkm_tVolumeType_Aux;
+	} else {
+	  volumeType = tkm_tVolumeType_Main;
+	}
+
+	tkm_FloodFillAnatomicalVolume( volumeType, 
+				       pVolumeVox, 
+				       nVolValue, 
+				       sBrush.mb3DFill, 
+				       sBrush.mnFuzzy,
+				       sBrush.mnDistance );
+	this->mbSliceChanged = TRUE;
+	DspA_Redraw_( this );
+	break;
+      }
+    }
+    
+
+
     break;
 
 

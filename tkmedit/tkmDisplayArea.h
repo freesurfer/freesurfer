@@ -143,6 +143,11 @@ typedef struct {
   /* thresholds */
   DspA_tBrushInfo mInfo[ DspA_knNumBrushes ];
   
+  /* for flood fill. */
+  tBoolean mb3DFill;
+  int      mnFuzzy;
+  int      mnDistance;
+
 } DspA_tBrushSettings;
 
 /* segmentation brush settings. */
@@ -441,6 +446,10 @@ DspA_tErr DspA_SetBrushShape         ( tkmDisplayAreaRef this,
 				       int               inRadius,
 				       DspA_tBrushShape  iShape,
 				       tBoolean          ib3D );
+DspA_tErr DspA_SetAnatomicalFillInfo ( tkmDisplayAreaRef this,
+				       tBoolean          ib3DFill,
+				       int               inFuzzy,
+				       int               inDistance );
 DspA_tErr DspA_SetBrushInfo          ( tkmDisplayAreaRef this,
 				       DspA_tBrush       iBrush,
 				       DspA_tBrushInfoRef iInfo ); 

@@ -4,9 +4,9 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2004/06/12 21:47:45 $
-// Revision       : $Revision: 1.207 $
-char *VERSION = "$Revision: 1.207 $";
+// Revision Date  : $Date: 2004/06/13 17:34:03 $
+// Revision       : $Revision: 1.208 $
+char *VERSION = "$Revision: 1.208 $";
 
 #define TCL
 #define TKMEDIT 
@@ -416,6 +416,22 @@ void SetAnatomicalVolumeRegion ( tkm_tVolumeType iVolume,
 int EditAnatomicalVolume ( xVoxelRef iMRIIdx, int inValue );
 int EditAuxAnatomicalVolume ( xVoxelRef iMRIIdx, int inValue );
 
+typedef struct {
+  int             mnValue;
+  int             mnCount;
+  tkm_tVolumeType mVolume;
+} tkm_tFloodFillAnatomicalCallbackData;
+
+tkm_tErr FloodFillAnatomicalVolume ( tkm_tVolumeType iVolume,
+				     xVoxelRef       iAnaIdx,
+				     int             inValue,
+				     tBoolean        ib3D,
+				     int             inFuzzy,
+				     int             inDistance );
+/* Callback for the flood. */
+Volm_tVisitCommand FloodFillAnatomicalCallback ( xVoxelRef iMRIIdx,
+						 float     iValue,
+						 void*     iData );
 void ConvertRASToAnaIdx ( xVoxelRef iRAS,
 			  xVoxelRef oAnaIdx );
 
@@ -1035,7 +1051,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
      shorten our argc and argv count. If those are the only args we
      had, exit. */
   /* rkt: check for and handle version tag */
-  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.207 2004/06/12 21:47:45 kteich Exp $", "$Name:  $");
+  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.208 2004/06/13 17:34:03 kteich Exp $", "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
   argc -= nNumProcessedVersionArgs;
@@ -4989,7 +5005,7 @@ int main ( int argc, char** argv ) {
     DebugPrint( ( "%s ", argv[nArg] ) );
   }
   DebugPrint( ( "\n\n" ) );
-  DebugPrint( ( "$Id: tkmedit.c,v 1.207 2004/06/12 21:47:45 kteich Exp $ $Name:  $\n" ) );
+  DebugPrint( ( "$Id: tkmedit.c,v 1.208 2004/06/13 17:34:03 kteich Exp $ $Name:  $\n" ) );
 
   
   /* init glut */
@@ -8103,6 +8119,122 @@ int EditAuxAnatomicalVolume ( xVoxelRef iMRIIdx, int inValue ) {
   
   return (int)value;
 }
+
+tkm_tErr FloodFillAnatomicalVolume ( tkm_tVolumeType iVolume,
+				     xVoxelRef       iAnaIdx,
+				     int             inValue,
+				     tBoolean        ib3D,
+				     int             inFuzzy,
+				     int             inDistance ) {
+  
+  tkm_tErr                    eResult      = tkm_tErr_NoErr;
+  Volm_tFloodParams           params;
+  tkm_tFloodFillAnatomicalCallbackData  callbackData;
+  Volm_tErr                   eVolume      = Volm_tErr_NoErr;
+
+  DebugEnterFunction( ("FloodFillAnatomicalVolume( iVolume=%d, "
+		       "iAnaIdx=%d,%d,%d, iVnalue=%d, ib3D=%d, inFuzzy=%d "
+		       "inDistance=%d )", iVolume, xVoxl_ExpandInt(iAnaIdx),
+		       inValue, ib3D, inFuzzy, inDistance) );
+  
+  DebugAssertThrowX( (NULL != iAnaIdx), eResult, tkm_tErr_InvalidParameter );
+  
+  xVoxl_Copy( &params.mSourceIdx, iAnaIdx );
+  params.mfFuzziness             = inFuzzy;
+  params.mComparatorType         = Volm_tValueComparator_EQ;
+  params.mComparatorFunc         = NULL;
+  params.mfMaxDistance           = inDistance;
+  params.mb3D                    = ib3D;
+  MWin_GetOrientation ( gMeditWindow, &params.mOrientation );
+
+  /* Set some local parameters telling us what to do on the
+     callback. */
+  callbackData.mnValue  = inValue;
+  callbackData.mnCount  = 0;
+  callbackData.mVolume  = iVolume;
+
+  /* Set the callback function data. Tell it to use the callback data
+     we just initialized. */
+  params.mpFunction     = FloodFillAnatomicalCallback;
+  params.mpFunctionData = (void*)&callbackData;
+
+  /* Now get the source volume value. */
+  Volm_GetValueAtIdx( gAnatomicalVolume[iVolume],
+		      iAnaIdx, &params.mfSourceValue );
+
+  /* Start listening for a cancel. */
+  xUtil_StartListeningForUserCancel();
+
+  /* Do it! */
+  eVolume = Volm_Flood( gAnatomicalVolume[iVolume], &params );
+  
+  /* If we filled more than 1000 voxels, we printed a message and
+     started printing update dots. Now close off the message. */
+  if( callbackData.mnCount > 1000 ) {
+    printf( "done. %d voxels filled. \n", callbackData.mnCount );
+  }
+
+  /* Stop listening for the cancel. */
+  xUtil_StopListeningForUserCancel();
+
+  UpdateAndRedraw();
+  
+  DebugCatch;
+  DebugCatchError( eResult, tkm_tErr_NoErr, tkm_GetErrorString );
+  EndDebugCatch;
+  
+  DebugExitFunction;
+
+  return eResult;
+}
+
+Volm_tVisitCommand FloodFillAnatomicalCallback ( xVoxelRef iAnaIdx,
+						 float     iValue,
+						 void*     iData ) {
+  tkm_tFloodFillAnatomicalCallbackData* callbackData;
+
+  /* Grab our callback data and edit the volume. */
+  callbackData = (tkm_tFloodFillAnatomicalCallbackData*)iData;
+  if( tkm_tVolumeType_Main == callbackData->mVolume ) {
+
+    EditAnatomicalVolume( iAnaIdx, callbackData->mnValue );
+
+    /* if this is an edit on the main volume, add it to the undo list
+       using the EditAnatomicalVolume function and also add it to the
+       undo volume. */
+    AddVoxelAndValueToUndoList( EditAnatomicalVolume, iAnaIdx, iValue ); 
+
+    AddMRIIdxAndValueToUndoVolume( iAnaIdx, iValue ); 
+
+  } else {
+
+    EditAuxAnatomicalVolume( iAnaIdx, callbackData->mnValue );
+
+    /* if this is an edit on the aux volume, add it to the undo list
+       using the EditAuxAnatomicalVolume function. */
+    AddVoxelAndValueToUndoList( EditAuxAnatomicalVolume, iAnaIdx, iValue ); 
+  }
+
+  /* Incremenet our count. If it's over 1000, print a message saying
+     the user can cancel and start printing update dots. */
+  callbackData->mnCount++;
+  if( callbackData->mnCount == 1000 ) {
+    printf( "Filling (press ctrl-c to cancel) " );
+  }
+  if( callbackData->mnCount > 1000 && 
+      callbackData->mnCount % 100 == 0 ) {
+    printf( "." );
+    fflush( stdout );
+  }
+  
+  /* Check the user cancel. If they canceled, stop. */
+  if( xUtil_DidUserCancel() ) {
+    return Volm_tVisitComm_Stop;
+  }
+
+  return Volm_tVisitComm_Continue;
+}
+
 
 void ConvertRASToAnaIdx ( xVoxelRef iRAS,
         xVoxelRef oAnaIdx ) {
@@ -11255,6 +11387,17 @@ void tkm_CloneAnatomicalVolumeInRangeArray( tkm_tVolumeType  iDestVolume,
   
 }
 
+void tkm_FloodFillAnatomicalVolume ( tkm_tSegType    iVolume,
+				     xVoxelRef       iAnaIdx,
+				     int             inIndex,
+				     tBoolean        ib3D,
+				     int             inFuzzy,
+				     int             inDistance ) {
+ 
+  FloodFillAnatomicalVolume( iVolume, iAnaIdx, inIndex, ib3D, 
+			     inFuzzy, inDistance );
+}
+
 void tkm_SetAnatomicalVolumeRegion ( tkm_tVolumeType iVolume,
 				     int             iAnaX0,
 				     int             iAnaX1,
@@ -11527,6 +11670,7 @@ char *kTclCommands [tkm_knNumTclCommands] = {
   "UpdateBrushTarget",
   "UpdateBrushShape",
   "UpdateBrushInfo",
+  "UpdateAnatomicalFillInfo",
   "UpdateFloodSelectParams",
   "UpdateCursorColor",
   "UpdateCursorShape",

@@ -341,6 +341,10 @@ int MWin_TclSetBrushShape    ( ClientData  iClientData,
 			       Tcl_Interp* ipInterp,
 			       int   argc,
 			       char*   argv[] );
+int MWin_TclSetAnatomicalFillInfo ( ClientData  iClientData, 
+				    Tcl_Interp* ipInterp,
+				    int   argc,
+			       char*   argv[] );
 int MWin_TclSetBrushInfo     ( ClientData  iClientData, 
 			       Tcl_Interp* ipInterp,
 			       int   argc,

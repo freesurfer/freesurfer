@@ -2919,6 +2919,9 @@ MWin_tErr MWin_RegisterTclCommands ( tkmMeditWindowRef this,
   Tcl_CreateCommand ( ipInterp, "SetBrushShape",
 		      MWin_TclSetBrushShape,
 		      (ClientData) this, (Tcl_CmdDeleteProc*) NULL );
+  Tcl_CreateCommand ( ipInterp, "SetAnatomicalFillInfo",
+		      MWin_TclSetAnatomicalFillInfo,
+		      (ClientData) this, (Tcl_CmdDeleteProc*) NULL );
   Tcl_CreateCommand ( ipInterp, "SetBrushInfo",
 		      MWin_TclSetBrushInfo,
 		      (ClientData) this, (Tcl_CmdDeleteProc*) NULL );
@@ -3808,10 +3811,83 @@ int MWin_TclSetBrushShape ( ClientData  ipClientData,
   return eTclResult;
 }
 
+int MWin_TclSetAnatomicalFillInfo ( ClientData  ipClientData, 
+				    Tcl_Interp* ipInterp,
+				    int         argc,
+				    char*       argv[] ) {
+  
+  tkmMeditWindowRef this         = NULL;
+  int               eTclResult   = TCL_OK;
+  MWin_tErr         eResult      = MWin_tErr_NoErr;
+  DspA_tErr         eDispResult  = DspA_tErr_NoErr;
+  char              sError[256]  = "";       
+  tBoolean          b3DFill      = FALSE;
+  int               nFuzzy       = 0;
+  int               nDistance    = 0;
+
+  /* grab us from the client data ptr */
+  this = (tkmMeditWindowRef) ipClientData;
+
+  /* verify us. */
+  eResult = MWin_Verify ( this );
+  if ( MWin_tErr_NoErr != eResult )
+    goto error;
+
+  /* if not accepting commands yet, return. */
+  if( !this->mbAcceptingTclCommands )
+    goto cleanup;
+
+  /* verify the last clicked display area index. */
+  eResult = MWin_VerifyDisplayIndex ( this, this->mnLastClickedArea );
+  if ( MWin_tErr_NoErr != eResult )
+    goto error;
+
+  /* verify the number of arguments. */
+  if ( argc < 4 ) {
+    eResult = MWin_tErr_WrongNumberArgs;
+    goto error;
+  }
+
+  /* parse the args and get a low, high, and new value */
+  b3DFill    = (tBoolean) atoi( argv[1] );
+  nFuzzy     = (int) atoi( argv[2] );
+  nDistance  = (int) atoi( argv[3] );
+
+  /* set the brush of the last clicked display. */
+  eDispResult = 
+    DspA_SetAnatomicalFillInfo ( this->mapDisplays[this->mnLastClickedArea],
+				 b3DFill, nFuzzy, nDistance );
+  if ( DspA_tErr_NoErr != eDispResult ) {
+    eResult = MWin_tErr_ErrorAccessingDisplay;
+    goto error;
+  }
+  goto cleanup;
+
+ error:
+
+  /* print error message */
+  if ( MWin_tErr_NoErr != eResult ) {
+
+    sprintf ( sError, "Error %d in MWin_TclSetAnatomicalFillInfo: %s\n",
+        eResult, MWin_GetErrorString(eResult) );
+
+    DebugPrint( (sError ) );
+
+    /* set tcl result, volatile so tcl will make a copy of it. */
+    Tcl_SetResult( ipInterp, MWin_GetErrorString(eResult), TCL_VOLATILE );
+  }
+
+  eTclResult = TCL_ERROR;
+
+ cleanup:
+
+  return eTclResult;
+}
+
 int MWin_TclSetBrushInfo ( ClientData  ipClientData, 
-         Tcl_Interp* ipInterp,
-         int         argc,
-         char*       argv[] ) {
+			   Tcl_Interp* ipInterp,
+			   int         argc,
+			   char*       argv[] ) {
 
   tkmMeditWindowRef this         = NULL;
   int               eTclResult   = TCL_OK;

@@ -107,6 +107,7 @@ typedef enum {
   tkm_tTclCommand_UpdateBrushTarget,
   tkm_tTclCommand_UpdateBrushShape,
   tkm_tTclCommand_UpdateBrushInfo,
+  tkm_tTclCommand_UpdateAnatomicalFillInfo,
   tkm_tTclCommand_UpdateFloodSelectParams,
   tkm_tTclCommand_UpdateCursorColor,
   tkm_tTclCommand_UpdateCursorShape,
@@ -310,6 +311,13 @@ void tkm_CloneAnatomicalVolumeInRangeArray( tkm_tVolumeType  iDestVolume,
 					    int              inCount,
 					    Volm_tValue      inLow, 
 					    Volm_tValue      inHigh );
+void tkm_FloodFillAnatomicalVolume ( tkm_tSegType      iVolume,
+				     xVoxelRef         iMRIIdx,
+				     int               inValue,
+				     tBoolean          ib3D,
+				     int               inFuzzy,
+				     int               inDistance );
+
 
 /* Sets a region in the anatomical volume to a new value. */
 void tkm_SetAnatomicalVolumeRegion ( tkm_tVolumeType iVolume,
