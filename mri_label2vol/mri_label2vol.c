@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Converts a label to a segmentation volume.
-  $Id: mri_label2vol.c,v 1.5 2004/08/17 21:31:14 tosa Exp $
+  $Id: mri_label2vol.c,v 1.6 2004/08/18 17:51:28 tosa Exp $
 */
 
 
@@ -52,7 +52,7 @@ static int load_annotation(char *annotfile, MRIS *Surf);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_label2vol.c,v 1.5 2004/08/17 21:31:14 tosa Exp $";
+static char vcid[] = "$Id: mri_label2vol.c,v 1.6 2004/08/18 17:51:28 tosa Exp $";
 char *Progname = NULL;
 
 char *LabelList[100];
@@ -102,7 +102,7 @@ int main(int argc, char **argv)
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv, 
-      "$Id: mri_label2vol.c,v 1.5 2004/08/17 21:31:14 tosa Exp $", "$Name:  $");
+      "$Id: mri_label2vol.c,v 1.6 2004/08/18 17:51:28 tosa Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -443,229 +443,226 @@ static void print_help(void)
 {
   print_usage() ;
 
-#if GCC_VERSION < 30300
   printf(
 
-"
-Help Outline:
-  - SUMMARY
-  - ARGUMENTS
-  - RESOLVING MULTI-LABEL AMBIGUITIES
-  - CHECKING YOUR RESULTS
-  - EXAMPLES
-  - KNOWN BUGS
-  - SEE ALSO
+"\n"
+"Help Outline:\n"
+"  - SUMMARY  \n"
+"  - ARGUMENTS \n"
+"  - RESOLVING MULTI-LABEL AMBIGUITIES\n"
+"  - CHECKING YOUR RESULTS\n"
+"  - EXAMPLES\n"
+"  - KNOWN BUGS\n"
+"  - SEE ALSO\n"
+"\n"
+"SUMMARY\n"
+"\n"
+"Converts a label or a set of labels into a volume. For a single lable,\n"
+"the volume will be binary: 1 where the label is and 0 where it is not.\n"
+"For multiple labels, the volume will be 0 where no labels were found\n"
+"otherwise the value will the the label number. For a voxel to be\n"
+"declared part of a label, it must have enough hits in the voxel and\n"
+"it must have more hits than any other label.\n"
+"\n"
+"ARGUMENTS\n"
+"\n"
+"--label labelfile <--label labelfile>\n"
+"\n"
+"Enter the name of the label file. For multiple labels, use multiple\n"
+"--label flags. Labels can be created manually with tkmedit and\n"
+"tksurfer or automatically from a subcortical segmentation or cortical\n"
+"annotation. Labels are simple text files. The first line is a header.\n"
+"Each following line contains data with 5 columns. The first column is\n"
+"the vertex number of the label point. The next 3 columns are the X, Y,\n"
+"and Z of the point. The last can be ignored. If the label is not a \n"
+"surface-based label, then the vertex number will be -1.\n"
+"\n"
+"--annot annotfile\n"
+"\n"
+"FreeSurfer can perform automatic parcellation of the cortical surface,\n"
+"the results of which are stored in an annotation file. This is a\n"
+"binary file that assigns each surface vertex to a cortical area\n"
+"designated by a unique number. These annotations can be converted to\n"
+"separate labels using mri_annotation2label. These labels can then be\n"
+"input to mri_label2vol using --label. Or, the annotation file can be\n"
+"read in directly using --annot. The map of annotation numbers to \n"
+"annotation names can be found at Simple_surface_labels2002.txt \n"
+"in $FREESURFER_HOME. Note that you have to add 1 to the number in \n"
+"this file to get the number stored in the output volume.\n"
+"\n"
+"--temp tempvolid\n"
+"\n"
+"Template volume. The output volume will have the same size and geometry\n"
+"as the template. Template must have geometry information (ie, direction\n"
+"cosines and voxel sizes). Required.\n"
+"\n"
+"--reg regmatfile\n"
+"\n"
+"tkregister-style registration matrix (see tkregister2 --help) which maps\n"
+"the XYZ of the label to the XYZ of the template volume. If not specified,\n"
+"then the identity is assumed.\n"
+"\n"
+"--fillthresh thresh\n"
+"\n"
+"Relative threshold which the number hits in a voxel must exceed for\n"
+"the voxel to be considered a candidate for membership in the label. A\n"
+"'hit' is when a label point falls into a voxel. thresh is a value\n"
+"between 0 and 1 indicating the fraction of the voxel volume that must\n"
+"be filled by label points. The voxel volume is determined from the\n"
+"template. It is assumed that the each label point represents a voxel\n"
+"1mm3 in size (which can be changed with --labvoxvol). So, the actual\n"
+"number of hits needed to exceed threshold is\n"
+"thresh*TempVoxVol/LabVoxVol. The default value is 0, meaning that any\n"
+"label point that falls into a voxel makes that voxel a candidate for\n"
+"membership in the label.  Note: a label must also have the most hits\n"
+"in the voxel before that voxel will actually be assigned to the label\n"
+"in the volume. Note: the label voxel volume becomes a little ambiguous\n"
+"for surface labels, particularly when they are 'filled in' with\n"
+"projection.\n"
+"\n"
+"--labvoxvol voxvol\n"
+"\n"
+"Volume covered by each label point. Default is 1mm3. This only affects\n"
+"the fill threshold (--fillthresh). Note: the label voxel volume\n"
+"becomes a little ambiguous for surface labels, particularly when they\n"
+"are projected.\n"
+"\n"
+"--proj type start stop delta\n"
+"\n"
+"Project the label along the surface normal. type can be abs or frac. \n"
+"abs means that the start, stop, and delta are measured in mm. frac\n"
+"means that start, stop, and delta are relative to the thickness at\n"
+"each vertex. The label definition is changed to fill in label\n"
+"points in increments of delta from start to stop. Requires subject\n"
+"and hemi in order to load in a surface and thickness. Uses the\n"
+"white surface. The label MUST have been defined on the surface.\n"
+"\n"
+"--subject subjectid\n"
+"\n"
+"FREESURFER subject identifier. Needed when using --proj.\n"
+"\n"
+"--hemi hemi\n"
+"\n"
+"Hemisphere to use loading the surface for --proj. Legal values are\n"
+"lh and rh.\n"
+"\n"
+"--o volid\n"
+"\n"
+"Single frame output volume in which each voxel will have the number of\n"
+"the label to which it is assigned (or 0 for no label). The label\n"
+"number is the order in which it appears on the command-line.  Takes\n"
+"any format accepted by mri_convert (eg, spm, analyze, bshort, mgh).\n"
+"\n"
+"--hits hitvolid\n"
+"\n"
+"Hit volume. This is a multi-frame volume, with one frame for each\n"
+"label. The value at each voxel for a given frame is the number of hits\n"
+"that voxel received for that label. This is mostly good as a debugging\n"
+"tool, but you could use it to implement your own multi-label\n"
+"arbitration routine. Or you could binarize to have each label\n"
+"represented separately. Takes any format accepted by mri_convert (eg,\n"
+"spm, analyze, bshort, mgh).\n"
+"\n"
+"RESOLVING MULTI-LABEL AMBIGUITIES\n"
+"\n"
+"When there are multiple lables, it is possible that more than one\n"
+"label will map to a single voxel in the output volume. When this\n"
+"happens, the voxel is assigned to the label with the most label\n"
+"points in that voxel. Note that the voxel must still pass the \n"
+"fill threshold test in order to be considered part of the label.\n"
+"\n"
+"CHECKING YOUR RESULTS\n"
+"\n"
+"It is very important to check that the conversion of the label to the\n"
+"volume was done correctly. It may be that it is way off or it could be\n"
+"off around the edges. This is particularly true for surface-based\n"
+"labels or when converting a label to a low-resolution space.\n"
+"To check the result, load the orig volume into tkmedit. The orig\n"
+"volume should be in the label space. Load the mri_label2vol output\n"
+"volume as an overlay; this makes the labeled voxels appear as\n"
+"'activity'.  Finally, load the label itself. You should see the label\n"
+"(in green) sitting on top of the 'activity' of the labeled volume.\n"
+"See EXAMPLE 1 for an example.\n"
+"\n"
+"\n"
+"EXAMPLES\n"
+"\n"
+"1. Convert a label into a binary mask in the functional space; require\n"
+"that a functional voxel be filled at least 50%% by the label:\n"
+"\n"
+"mri_label2vol \n"
+"  --label lh-avg_central_sulcus.label \n"
+"  --temp f_000.bshort \n"
+"  --reg register.dat \n"
+"  --fillthresh .5 \n"
+"  --o cent-lh_000.bshort\n"
+"\n"
+"To see how well the label is mapped into the functional volume, run\n"
+"\n"
+"tkmedit bert orig \n"
+"  -overlay ./cent-lh_000.bshort \n"
+"  -overlay-reg ./register.dat -fthresh .5 -fmid 1\n"
+"\n"
+"Then load the label with File->Label->LoadLabel. The label should\n"
+"overlap with the overlay. The overlap will not be perfect but it\n"
+"should be very close.\n"
+"\n"
+"2. Convert a surface label into a binary mask in the functional space.\n"
+"Fill in all the cortical gray matter. Require that a functional voxel\n"
+"be filled at least 30%% by the label:\n"
+"\n"
+"mri_label2vol \n"
+"  --label lh-avg_central_sulcus.label \n"
+"  --temp f_000.bshort \n"
+"  --reg register.dat \n"
+"  --fillthresh .3 \n"
+"  --proj frac 0 1 .1 \n"
+"  --subject bert --hemi lh\n"
+"  --o cent-lh_000.bshort\n"
+"\n"
+"3. Convert a surface label into a binary mask in the functional space.\n"
+"Sample a 1mm ribbon 2mm below the gray/white surface. Do not require a \n"
+"fill threshold:\n"
+"\n"
+"mri_label2vol \n"
+"  --label lh-avg_central_sulcus.label \n"
+"  --temp f_000.bshort \n"
+"  --reg register.dat \n"
+"  --proj abs -3 -2 .1 \n"
+"  --subject bert --hemi lh\n"
+"  --o cent-lh_000.bshort\n"
+"\n"
+"4. Convert two labels into a volume in the same space as the labels:\n"
+"\n"
+"mri_label2vol \n"
+"  --label lh-avg_central_sulcus.label \n"
+"  --label lh-avg_calcarine_sulcus.label \n"
+"  --temp $SUBJECTS_DIR/bert/orig\n"
+"  --o cent_calc.img\n"
+"\n"
+"The voxels corresponding to lh-avg_central_sulcus.label will have a of \n"
+"value of 1 whereas those assigned to lh-avg_calcarine_sulcus.label will\n"
+"have a value of 2.\n"
+"\n"
+"KNOWN BUGS\n"
+"\n"
+"1. When the output type is COR, all the voxels will be zero. The work-around\n"
+"is to save it as some other type, then use mri_convert with --no_rescale 1\n"
+"to convert it to COR.\n"
+"\n"
+"2. Cannot convert surface labels with different hemispheres.\n"
+"\n"
+"\n"
+"\n"
+"SEE ALSO\n"
+"\n"
+"mri_label2label, mri_cor2label, mri_annotation2label, mri_mergelabels,\n"
+"tkregister2, mri_convert, tkmedit, tksurfer.\n"
+"\n"
+"http://surfer.nmr.mgh.harvard.edu/docs/tkmedit_guide.html\n"
+"http://surfer.nmr.mgh.harvard.edu/docs/tksurfer_doc.html\n"
+"\n"
 
-SUMMARY
-
-Converts a label or a set of labels into a volume. For a single lable,
-the volume will be binary: 1 where the label is and 0 where it is not.
-For multiple labels, the volume will be 0 where no labels were found
-otherwise the value will the the label number. For a voxel to be
-declared part of a label, it must have enough hits in the voxel and
-it must have more hits than any other label.
-
-ARGUMENTS
-
---label labelfile <--label labelfile>
-
-Enter the name of the label file. For multiple labels, use multiple
---label flags. Labels can be created manually with tkmedit and
-tksurfer or automatically from a subcortical segmentation or cortical
-annotation. Labels are simple text files. The first line is a header.
-Each following line contains data with 5 columns. The first column is
-the vertex number of the label point. The next 3 columns are the X, Y,
-and Z of the point. The last can be ignored. If the label is not a 
-surface-based label, then the vertex number will be -1.
-
---annot annotfile
-
-FreeSurfer can perform automatic parcellation of the cortical surface,
-the results of which are stored in an annotation file. This is a
-binary file that assigns each surface vertex to a cortical area
-designated by a unique number. These annotations can be converted to
-separate labels using mri_annotation2label. These labels can then be
-input to mri_label2vol using --label. Or, the annotation file can be
-read in directly using --annot. The map of annotation numbers to 
-annotation names can be found at Simple_surface_labels2002.txt 
-in $FREESURFER_HOME. Note that you have to add 1 to the number in 
-this file to get the number stored in the output volume.
-
---temp tempvolid
-
-Template volume. The output volume will have the same size and geometry
-as the template. Template must have geometry information (ie, direction
-cosines and voxel sizes). Required.
-
---reg regmatfile
-
-tkregister-style registration matrix (see tkregister2 --help) which maps
-the XYZ of the label to the XYZ of the template volume. If not specified,
-then the identity is assumed.
-
---fillthresh thresh
-
-Relative threshold which the number hits in a voxel must exceed for
-the voxel to be considered a candidate for membership in the label. A
-'hit' is when a label point falls into a voxel. thresh is a value
-between 0 and 1 indicating the fraction of the voxel volume that must
-be filled by label points. The voxel volume is determined from the
-template. It is assumed that the each label point represents a voxel
-1mm3 in size (which can be changed with --labvoxvol). So, the actual
-number of hits needed to exceed threshold is
-thresh*TempVoxVol/LabVoxVol. The default value is 0, meaning that any
-label point that falls into a voxel makes that voxel a candidate for
-membership in the label.  Note: a label must also have the most hits
-in the voxel before that voxel will actually be assigned to the label
-in the volume. Note: the label voxel volume becomes a little ambiguous
-for surface labels, particularly when they are 'filled in' with
-projection.
-
---labvoxvol voxvol
-
-Volume covered by each label point. Default is 1mm3. This only affects
-the fill threshold (--fillthresh). Note: the label voxel volume
-becomes a little ambiguous for surface labels, particularly when they
-are projected.
-
---proj type start stop delta
-
-Project the label along the surface normal. type can be abs or frac. 
-abs means that the start, stop, and delta are measured in mm. frac
-means that start, stop, and delta are relative to the thickness at
-each vertex. The label definition is changed to fill in label
-points in increments of delta from start to stop. Requires subject
-and hemi in order to load in a surface and thickness. Uses the
-white surface. The label MUST have been defined on the surface.
-
---subject subjectid
-
-FREESURFER subject identifier. Needed when using --proj.
-
---hemi hemi
-
-Hemisphere to use loading the surface for --proj. Legal values are
-lh and rh.
-
---o volid
-
-Single frame output volume in which each voxel will have the number of
-the label to which it is assigned (or 0 for no label). The label
-number is the order in which it appears on the command-line.  Takes
-any format accepted by mri_convert (eg, spm, analyze, bshort, mgh).
-
---hits hitvolid
-
-Hit volume. This is a multi-frame volume, with one frame for each
-label. The value at each voxel for a given frame is the number of hits
-that voxel received for that label. This is mostly good as a debugging
-tool, but you could use it to implement your own multi-label
-arbitration routine. Or you could binarize to have each label
-represented separately. Takes any format accepted by mri_convert (eg,
-spm, analyze, bshort, mgh).
-
-RESOLVING MULTI-LABEL AMBIGUITIES
-
-When there are multiple lables, it is possible that more than one
-label will map to a single voxel in the output volume. When this
-happens, the voxel is assigned to the label with the most label
-points in that voxel. Note that the voxel must still pass the 
-fill threshold test in order to be considered part of the label.
-
-CHECKING YOUR RESULTS
-
-It is very important to check that the conversion of the label to the
-volume was done correctly. It may be that it is way off or it could be
-off around the edges. This is particularly true for surface-based
-labels or when converting a label to a low-resolution space.
-To check the result, load the orig volume into tkmedit. The orig
-volume should be in the label space. Load the mri_label2vol output
-volume as an overlay; this makes the labeled voxels appear as
-'activity'.  Finally, load the label itself. You should see the label
-(in green) sitting on top of the 'activity' of the labeled volume.
-See EXAMPLE 1 for an example.
-
-
-EXAMPLES
-
-1. Convert a label into a binary mask in the functional space; require
-that a functional voxel be filled at least 50%% by the label:
-
-mri_label2vol 
-  --label lh-avg_central_sulcus.label 
-  --temp f_000.bshort 
-  --reg register.dat 
-  --fillthresh .5 
-  --o cent-lh_000.bshort
-
-To see how well the label is mapped into the functional volume, run
-
-tkmedit bert orig 
-  -overlay ./cent-lh_000.bshort 
-  -overlay-reg ./register.dat -fthresh .5 -fmid 1
-
-Then load the label with File->Label->LoadLabel. The label should
-overlap with the overlay. The overlap will not be perfect but it
-should be very close.
-
-2. Convert a surface label into a binary mask in the functional space.
-Fill in all the cortical gray matter. Require that a functional voxel
-be filled at least 30%% by the label:
-
-mri_label2vol 
-  --label lh-avg_central_sulcus.label 
-  --temp f_000.bshort 
-  --reg register.dat 
-  --fillthresh .3 
-  --proj frac 0 1 .1 
-  --subject bert --hemi lh
-  --o cent-lh_000.bshort
-
-3. Convert a surface label into a binary mask in the functional space.
-Sample a 1mm ribbon 2mm below the gray/white surface. Do not require a 
-fill threshold:
-
-mri_label2vol 
-  --label lh-avg_central_sulcus.label 
-  --temp f_000.bshort 
-  --reg register.dat 
-  --proj abs -3 -2 .1 
-  --subject bert --hemi lh
-  --o cent-lh_000.bshort
-
-4. Convert two labels into a volume in the same space as the labels:
-
-mri_label2vol 
-  --label lh-avg_central_sulcus.label 
-  --label lh-avg_calcarine_sulcus.label 
-  --temp $SUBJECTS_DIR/bert/orig
-  --o cent_calc.img
-
-The voxels corresponding to lh-avg_central_sulcus.label will have a of 
-value of 1 whereas those assigned to lh-avg_calcarine_sulcus.label will
-have a value of 2.
-
-KNOWN BUGS
-
-1. When the output type is COR, all the voxels will be zero. The work-around
-is to save it as some other type, then use mri_convert with --no_rescale 1
-to convert it to COR.
-
-2. Cannot convert surface labels with different hemispheres.
-
-
-
-SEE ALSO
-
-mri_label2label, mri_cor2label, mri_annotation2label, mri_mergelabels,
-tkregister2, mri_convert, tkmedit, tksurfer.
-
-http://surfer.nmr.mgh.harvard.edu/docs/tkmedit_guide.html
-http://surfer.nmr.mgh.harvard.edu/docs/tksurfer_doc.html
-
-"
-
-#endif
 );
 
 
