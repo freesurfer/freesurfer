@@ -944,6 +944,10 @@ VolumeCollection::FindRASPointsInSquare ( float iPointA[3], float iPointB[3],
 	for( int nCorner = 0; nCorner < 8; nCorner++ ) {
 	  MRIIndexToRAS( voxelIdx[nCorner].xyz(), voxelRAS[nCorner].xyz() );
 	}
+	Point3<float> centerRAS;
+	centerRAS.Set( (voxelRAS[0].x() + voxelRAS[1].x()) / 2.0,
+		       (voxelRAS[0].y() + voxelRAS[2].y()) / 2.0,
+		       (voxelRAS[0].z() + voxelRAS[4].z()) / 2.0 );
 
 	// Make segments for each edge.
 	Point3<float> segmentRAS[12][2];
@@ -987,7 +991,7 @@ VolumeCollection::FindRASPointsInSquare ( float iPointA[3], float iPointB[3],
 	    }
 	    
 	    if( fabs(angleSum - 2.0*M_PI) <= (float)0.0001 ) {
-	      oPoints.push_back( voxelRAS[0] );
+	      oPoints.push_back( centerRAS );
 	      break;
 	    }
 
