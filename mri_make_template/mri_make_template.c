@@ -52,10 +52,12 @@ static char *xform_mean_fname = NULL ;
 static char *xform_covariance_fname = NULL ;
 static int stats_only = 0 ;
 
+static char subjects_dir[STRLEN] = "" ;
+
 int
 main(int argc, char *argv[])
 {
-  char   **av, subjects_dir[STRLEN], *cp ;
+  char   **av, *cp ;
   int    ac, nargs, i, dof, no_transform, which, sno = 0, nsubjects = 0 ;
   MRI    *mri, *mri_mean = NULL, *mri_std, *mri_T1,*mri_binary,*mri_dof=NULL,
          *mri_priors = NULL ;
@@ -65,11 +67,6 @@ main(int argc, char *argv[])
   ErrorInit(NULL, NULL, NULL) ;
   DiagInit(NULL, NULL, NULL) ;
 
-  cp = getenv("SUBJECTS_DIR") ;
-  if (!cp)
-    ErrorExit(ERROR_BADPARM, "%s: SUBJECTS_DIR not defined in environment.\n",
-              Progname) ;
-  strcpy(subjects_dir, cp) ;
   ac = argc ;
   av = argv ;
   for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++)
@@ -77,6 +74,15 @@ main(int argc, char *argv[])
     nargs = get_option(argc, argv) ;
     argc -= nargs ;
     argv += nargs ;
+  }
+
+  if (!strlen(subjects_dir))
+  {
+    cp = getenv("SUBJECTS_DIR") ;
+    if (!cp)
+      ErrorExit(ERROR_BADPARM,"%s: SUBJECTS_DIR not defined in environment.\n",
+                Progname) ;
+    strcpy(subjects_dir, cp) ;
   }
 
   if (argc < 3)
@@ -136,6 +142,7 @@ main(int argc, char *argv[])
               ErrorExit(ERROR_NOFILE, 
                         "%s: could not open transform file %s\n",
                         Progname, fname) ;
+            /*            LTAtoVoxelCoords(lta, mri_T1) ;*/
             if (which != BUILD_PRIORS)
             {
               mri_tmp = LTAtransform(mri_T1, NULL, lta) ;
@@ -276,6 +283,7 @@ main(int argc, char *argv[])
           if (!lta)
             ErrorExit(ERROR_NOFILE, "%s: could not open transform file %s\n",
                       Progname, fname) ;
+          /*          LTAtoVoxelCoords(lta, mri_T1) ;*/
           if (xform_mean_fname)
           {
             MATRIX *m_ras ;
@@ -315,6 +323,11 @@ main(int argc, char *argv[])
                     Progname) ;
       }
 
+      if (!stats_only)
+      {
+        fprintf(stderr, "updating mean and variance estimates...\n") ;
+        MRIaccumulateMeansAndVariances(mri_T1, mri_mean, mri_std) ;
+      }
       MRIfree(&mri_T1) ;
     }
 
@@ -372,14 +385,19 @@ main(int argc, char *argv[])
             out_fname) ;
     MRIwrite(mri, out_fname) ;
     MRIfree(&mri_mean) ; MRIfree(&mri) ;
-    fprintf(stderr, "\nwriting T1 variances to %s...\n", out_fname);
     mri = MRIfloatToChar(mri_std, NULL) ;
     if (dof <= 1) /* can't calulate variances - set them to reasonable val */
       MRIreplaceValues(mri, mri, 0, 1) ;
     if (!var_fname)
+    {
+      fprintf(stderr, "\nwriting T1 variances to %s...\n", out_fname);
       MRIappend(mri, out_fname) ;
+    }
     else
+    {
+      fprintf(stderr, "\nwriting T1 variances to %s...\n", var_fname);
       MRIwrite(mri, var_fname) ;
+    }
     MRIfree(&mri_std) ; MRIfree(&mri) ;
 
   }
@@ -408,6 +426,11 @@ get_option(int argc, char *argv[])
   else if (!stricmp(option, "statsonly"))
   {
     stats_only = 1 ;
+  }
+  else if (!stricmp(option, "sdir"))
+  {
+    strcpy(subjects_dir, argv[2]) ;
+    nargs = 1 ;
   }
   else switch (toupper(*option))
   {
