@@ -1,7 +1,7 @@
 function r = swapview(varargin)
 % r = swapview(varargin)
 
-version = '$Id: swapview.m,v 1.2 2003/07/31 05:31:28 greve Exp $';
+version = '$Id: swapview.m,v 1.3 2003/08/01 00:04:05 greve Exp $';
 r = 1;
 
 %% Print usage if there are no arguments %%
@@ -92,8 +92,17 @@ if(~isempty(strmatch(flag,'-init')) | isempty(hcurrentfig))
 	    [1  50 50 50], 'Callback', 'swapview(''voltoggle'');');
   uicontrol('Style', 'pushbutton', 'String', 'State','Position', ...
 	    [1 100 50 50], 'Callback', 'swapview(''state'');');
-  s.curpostxt = uicontrol('Style', 'text','Position',[1 150 50 25]);
+  s.curpostxt = uicontrol('Style', 'text','Position',[1 150 80 25]);
 
+  nslices = size(s.vol1,3);
+  d = 1/(nslices-1);
+  s.sliceslider = uicontrol('Style','slider','Min',1,'Max',nslices,...
+			    'SliderStep',[d 3*d],...
+			    'value',s.curvox(3),...
+			    'position', [1 200 20 120],...
+			    'callback','swapview(''sliceslider'');');
+  
+  
   fprintf('\n');
   fprintf(' ----------------------------------\n');
   fprintf(' For help press "h"\n');
@@ -160,29 +169,42 @@ switch(flag)
   h = findobj(s.curvolmenu,'Tag','CurVolMenuVol2');
   set(h,'checked','on');
   s.curvol = 2;
-   
-  case {'voltoggle'}
-   if(s.curvol == 1) swapview('vol2');
-   else              swapview('vol1');
-   end
-   return;
+  
+ case {'voltoggle'}
+  if(s.curvol == 1) swapview('vol2');
+  else              swapview('vol1');
+  end
+  return;
+  
+ case {'setslice'}
+  s.displayimg1 = s.vol1(:,:,s.curvox(3),s.curvox(4));
+  s.displayimg2 = s.vol2(:,:,s.curvox(3),s.curvox(4));
+  redraw = 1;
    
  case{'upslice'}
   if(s.mosview) return; end
   s.curvox(3) = s.curvox(3) + 1;
   if(s.curvox(3) > size(s.vol1,3)) s.curvox(3) = 1; end
-  s.displayimg1 = s.vol1(:,:,s.curvox(3),s.curvox(4));
-  s.displayimg2 = s.vol2(:,:,s.curvox(3),s.curvox(4));
-  redraw = 1;
- 
+  set(gcf,'UserData',s);
+  swapview('setslice');
+  return;
+  
  case{'downslice'}
   if(s.mosview) return; end
   s.curvox(3) = s.curvox(3) - 1;
   if(s.curvox(3) < 1) s.curvox(3) = size(s.vol1,3); end
-  s.displayimg1 = s.vol1(:,:,s.curvox(3),s.curvox(4));
-  s.displayimg2 = s.vol2(:,:,s.curvox(3),s.curvox(4));
-  redraw = 1;
+  set(gcf,'UserData',s);
+  swapview('setslice');
+  return;
  
+ case {'sliceslider'}
+  v = round(get(s.sliceslider,'value'));
+  %fprintf('v = %g\n',v);
+  s.curvox(3) = v;
+  set(gcf,'UserData',s);
+  swapview('setslice');
+  return;
+   
  case{'state'}
   fprintf('\n\n');
   printstate(s);
@@ -489,6 +511,7 @@ function printstate(s)
   fprintf('\n');
   fprintf('Current Plane View: %d\n',s.curview);
   fprintf('Mos View: %d\n',s.mosview);
+  fprintf('SliceSlider: %g\n',get(s.sliceslider,'value'));
 return;
 
 %--------------------------------------------------%
