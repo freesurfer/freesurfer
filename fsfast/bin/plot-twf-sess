@@ -1,8 +1,8 @@
 #!/bin/csh -f
 # plotmc-sess
 #
-# $Id: plot-twf-sess,v 1.1 2003/03/04 21:22:09 greve Exp $
-set VERSION = '$Id: plot-twf-sess,v 1.1 2003/03/04 21:22:09 greve Exp $';
+# $Id: plot-twf-sess,v 1.2 2003/03/10 21:43:45 greve Exp $
+set VERSION = '$Id: plot-twf-sess,v 1.2 2003/03/10 21:43:45 greve Exp $';
 set FASTVER = `cat $FSFAST_HOME/docs/version`;
 
 set inputargs = ($argv);
@@ -103,21 +103,23 @@ foreach sess ($SessList)
   cd $sess/$fsd
 
   if($#RunList == 0) then
-  if($#runlistfile == 0) then
-    set RunList = `getrunlist .`;
-    if($status || $#RunList == 0) then
-      echo "ERROR: $sess/$fsd has no runs"  |& tee -a $LF
-      exit 1;
+    if($#runlistfile == 0) then
+      set RunListUse = `getrunlist .`;
+      if($status || $#RunListUse == 0) then
+        echo "ERROR: $sess/$fsd has no runs"  |& tee -a $LF
+        exit 1;
+      endif
+    else
+      if(! -e $runlistfile) then
+        echo "ERROR: ($sessbase) could not find runlistfile $runlistfile"
+        exit 1;
+      endif
+      set RunListUse = (`cat $runlistfile`);
     endif
   else
-    if(! -e $runlistfile) then
-      echo "ERROR: ($sessbase) could not find runlistfile $runlistfile"
-      exit 1;
-    endif
-    set RunList = (`cat $runlistfile`);
+    set RunListUse = $RunList;
   endif
-  endif
-  echo "INFO ($sessbase): RunList = $RunList"
+  echo "INFO ($sessbase): RunList = $RunListUse"
 
   if(-w .) then
     set imgfile = $datfile.jpg;
@@ -134,7 +136,7 @@ foreach sess ($SessList)
   set gnpcmd = ($gnpcmd plot [$xmin : $xmax] [$ymin : $ymax] )
 
   set MCDatList = ();
-  foreach Run ($RunList)
+  foreach Run ($RunListUse)
     set mcdat = $Run/$datfile
     if(! -e $mcdat) then
       echo "ERROR: cannot find $mcdat"
@@ -142,7 +144,7 @@ foreach sess ($SessList)
     endif
     set MCDatList = ($MCDatList $mcdat);
     set c = ",";
-    if($Run == $RunList[$#RunList]) set c = "";
+    if($Run == $RunListUse[$#RunListUse]) set c = "";
     set gnpcmd = ($gnpcmd '"'$mcdat'"' u $datcolx : $datcoly t '"'$Run'"' $c)
   end
   if($debug) echo $gnpcmd
