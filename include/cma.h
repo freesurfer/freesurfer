@@ -82,6 +82,8 @@
 
 #define IS_UNKNOWN(label)  (((label) == Unknown) || (label < 0) || (label == Bright_Unknown) || (label == Dark_Unknown))
 
+#define IS_BRAIN(label)  (!IS_UNKNOWN(label) && (label != Fat) && (label != Bone))
+
 #define MAX_CMA_LABEL 83
 
 #endif
