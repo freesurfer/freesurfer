@@ -1676,6 +1676,24 @@ void mincGetVolInfo(char *infoline, VOL_GEOM *vgSrc, VOL_GEOM *vgDst)
   retVal = mincFindVolume(infoline, &psrcVol, &pdstVol);
   mincGetVolumeInfo(psrcVol, vgSrc); // src may not be found
   mincGetVolumeInfo(pdstVol, vgDst); // dst can be found
+  if (vgDst->valid==0)
+  {
+    if (getenv("USE_AVERAGE305"))
+    {
+      // average_305 value
+      fprintf(stderr, "INFO: using average_305 info, since \n");
+      fprintf(stderr, "INFO: environmentatl var USE_AVERAGE_305 set\n");
+      vgDst->width = 172; vgDst->height = 220; vgDst->depth = 156;
+      vgDst->xsize = 1; vgDst->ysize = 1; vgDst->zsize = 1;
+      vgDst->x_r = 1; vgDst->x_a = 0; vgDst->x_s = 0;
+      vgDst->y_r = 0; vgDst->y_a = 1; vgDst->y_s = 0;
+      vgDst->z_r = 0; vgDst->z_a = 0; vgDst->z_s = 1;      
+      vgDst->c_r = -0.0950;
+      vgDst->c_a = -16.5100;
+      vgDst->c_s = 9.7500;
+      vgDst->valid = 1;
+    }
+  }
   free(psrcVol);
   free(pdstVol);
 }
@@ -1792,7 +1810,7 @@ LTAreadEx(const char *fname)
   {
   case REGISTER_DAT:
     printf("INFO: This REGISTER_DAT transform is valid only for volumes between "
-	   " COR types with c_(r,a,s) = 0.");
+	   " COR types with c_(r,a,s) = 0.\n");
     lta = ltaReadRegisterDat((char *) fname);
     if (!lta)
       return(NULL) ;
