@@ -4925,9 +4925,45 @@ MRISscaleBrain(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst, float scale)
 {
   VERTEX  *v;
   int     k;
-  float   xlo, ylo, zlo, xhi, yhi, zhi ;
+  float   xlo, ylo, zlo, xhi, yhi, zhi, x0, y0, z0 ;
 
-  mris_dst = MRIScenter(mris_src, mris_dst) ;
+  /*  mris_dst = MRIScenter(mris_src, mris_dst) ;*/
+  xhi=yhi=zhi= -10000;
+  xlo=ylo=zlo= 10000;
+
+  /* find the center */
+  for (k=0;k<mris_dst->nvertices;k++) 
+  {
+    v = &mris_dst->vertices[k];
+    if (v->ripflag)
+      continue ;
+    if (v->x > xhi) xhi = v->x;
+    if (v->x < xlo) xlo = v->x;
+    if (v->y > yhi) yhi = v->y;
+    if (v->y < ylo) ylo = v->y;
+    if (v->z > zhi) zhi = v->z;
+    if (v->z < zlo) zlo = v->z;
+  }
+
+  /* scale around the center */
+  x0 = (xlo+xhi)/2.0f ; y0 = (ylo+yhi)/2.0f ; z0 = (zlo+zhi)/2.0f ;
+  for (k=0;k<mris_dst->nvertices;k++) 
+  {
+    v = &mris_dst->vertices[k];
+    if (v->ripflag)
+      continue ;
+    v->x = (v->x - x0) * scale + x0 ; 
+    v->y = (v->y - y0) * scale + y0 ; 
+    v->z = (v->z - z0) * scale + z0 ;
+    if (v->x > xhi) xhi = v->x;
+    if (v->x < xlo) xlo = v->x;
+    if (v->y > yhi) yhi = v->y;
+    if (v->y < ylo) ylo = v->y;
+    if (v->z > zhi) zhi = v->z;
+    if (v->z < zlo) zlo = v->z;
+  }
+
+  /* recompute the dimensions */
   xhi=yhi=zhi= -10000;
   xlo=ylo=zlo= 10000;
   for (k=0;k<mris_dst->nvertices;k++) 
@@ -4935,7 +4971,6 @@ MRISscaleBrain(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst, float scale)
     v = &mris_dst->vertices[k];
     if (v->ripflag)
       continue ;
-    v->x *= scale ; v->y *= scale ; v->z *= scale ;
     if (v->x > xhi) xhi = v->x;
     if (v->x < xlo) xlo = v->x;
     if (v->y > yhi) yhi = v->y;
