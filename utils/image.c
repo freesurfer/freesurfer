@@ -2343,6 +2343,9 @@ ImageValRange(IMAGE *image, float *pfmin, float *pfmax)
   size = image->rows * image->cols * image->num_frame ;
   switch (image->pixel_format)
   {
+  case PFDBLCOM:
+    *pfmin = *pfmax = 0.0f ;
+    break ;
   case PFFLOAT:
     fpix = IMAGEFpix(image, 0, 0) ;
     if (!isnan(*fpix))
