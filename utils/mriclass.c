@@ -59,6 +59,7 @@ char *class_names[GAUSSIAN_NCLASSES] =
 {
   "CSF",
   "GREY MATTER",
+  "THIN STRANDS",
   "BORDER PIXELS",
   "WHITE MATTER",
   "BRIGHT MATTER"
@@ -76,6 +77,7 @@ static int  total_calls = 0, buffered = 0, total_computed = 0 ;
 
 static int mricComputeGCStatistics(MRIC *mric, FILE *fp, int nfiles,int round);
 static int mricTrainRBF(MRIC *mric, FILE *fp, int nfiles, int round) ;
+static int mricRetrainRBF(MRIC *mric, FILE *fp, int nfiles, int round) ;
 static int mricGetClassifierInput(VECTOR *v_inputs, int no, void *parm,
                                   int same_class,int *pclass) ;
 
@@ -197,6 +199,49 @@ MRICalloc(int nrounds, int *types, int *features, void *parms)
         Description
 ------------------------------------------------------*/
 int
+MRICretrain(MRIC *mric, char *file_name)
+{
+  char       line[300], *cp ;
+  FILE       *fp ;
+  int        nfiles, round ;
+
+  /* first figure out the total # of files */
+  fp = fopen(file_name, "r") ;
+  if (!fp)
+    ErrorReturn(ERROR_NO_FILE, 
+                (ERROR_NO_FILE, "MRICtrain(%s): could not open file",
+                 file_name)) ;
+  
+  nfiles = 0 ;
+  while ((cp = fgetl(line, 299, fp)) != NULL)
+    nfiles++ ;
+  fprintf(stderr, "processing %d files\n", nfiles) ;
+    
+  for (round = 0 ; round < mric->nrounds ; round++)
+  {
+    rewind(fp) ;
+    switch (mric->type[round])
+    {
+    case CLASSIFIER_RBF:
+      MRICsetRegionSize(mric, 3, 3, 3) ;  /* inputs are at random locations */
+      mricRetrainRBF(mric, fp, nfiles, round) ;
+      break ;
+    case CLASSIFIER_GAUSSIAN:
+      break ;
+    }
+  }
+  fclose(fp) ;
+
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+int
 MRICtrain(MRIC *mric, char *file_name, char *prior_fname)
 {
   char       line[300], *cp ;
@@ -233,7 +278,8 @@ MRICtrain(MRIC *mric, char *file_name, char *prior_fname)
     switch (mric->type[round])
     {
     case CLASSIFIER_RBF:
-      mricTrainRBF(mric, fp, nfiles, round) ;
+      if (mricTrainRBF(mric, fp, nfiles, round) != NO_ERROR)
+        return(Gerror) ;
       break ;
     case CLASSIFIER_GAUSSIAN:
       mricComputeGCStatistics(mric, fp, nfiles, round) ;
@@ -621,12 +667,16 @@ if (DEBUG_POINT(x,y,z))
 ------------------------------------------------------*/
 #define DEFAULT_REGION_SIZE 8
 static int region_size = DEFAULT_REGION_SIZE ;
+static int region_height = 0 ;
+static int region_width = 0 ;
 
 int
-MRICsetRegionSize(MRIC *mric, int rsize)
+MRICsetRegionSize(MRIC *mric, int rwidth, int rheight, int rdepth)
 {
   int old_rsize = region_size ;
-  region_size = rsize ;
+  region_size = rdepth ;
+  region_height = rheight ;
+  region_width = rwidth ;
   return(old_rsize) ;
 }
 /*-----------------------------------------------------
@@ -642,6 +692,7 @@ MRICresetRegionSize(MRIC *mric)
 {
   int old_rsize = region_size ;
   region_size = DEFAULT_REGION_SIZE ;
+  region_height = region_width = 0 ;
   return(old_rsize) ;
 }
 /*-----------------------------------------------------
@@ -663,10 +714,12 @@ MRICcomputeInputs(MRIC *mric, MRI *mri, int x,int y,int z,VECTOR *v_inputs,
               *mri_cpolv = NULL, *mri_cpolv_mean3 = NULL, 
               *mri_cpolv_mean5 = NULL, *mri_cpolv_median3 = NULL,
               *mri_cpolv_median5 = NULL,
-              *mri_min3 = NULL, *mri_min5 = NULL, *mri_min7 = NULL ;
+              *mri_min3 = NULL, *mri_min5 = NULL, *mri_min7 = NULL,
+              *mri_cpolv_zscore5 = NULL, *mri_cpolv_zscore7 = NULL,
+              *mri_cpolv_curv5 = NULL, *mri_cpolv_curv7 = NULL, 
+              *mri_cpolv_order = NULL ;
 
   int         x0, y0, z0, index ;
-  MRI_REGION  rbig ;
   char        *cp ;
 
   if (mri != mri_prev)   /* reset counters */
@@ -708,18 +761,41 @@ MRICcomputeInputs(MRIC *mric, MRI *mri, int x,int y,int z,VECTOR *v_inputs,
   if (!mri_prev || mri_prev != mri || (old_features != features) ||
       (REGIONinside(&region,x,y,z) == REGION_OUTSIDE))
   {
-    MRI *mri_std, *mri_mean, *mri_region, *mri_grad ;
+    MRI         *mri_std, *mri_mean, *mri_region, *mri_grad, *mri_big = NULL;
+    MRI_REGION  rbig ;
+    int         x0, y0, z0 ;  /* starting coords in mri_region */
 
     old_features = features ;
+
+    /* compute clip region with border */
     region.x = x ;
     region.y = y ;
     region.z = z ;
-    region.dx = mri->width ;
-    region.dy = mri->height ;
+    region.dx = region_width > 0 ? region_width : mri->width ;
+    region.dy = region_height > 0 ? region_height : mri->height ;
     region.dz = region_size ;
     MRIclipRegion(mri, &region, &region) ;
     total_computed += (region.dx*region.dy*region.dz) ;
+    
+    REGIONexpand(&region, &rbig, 2) ; 
+    MRIclipRegion(mri, &rbig, &rbig) ;
+    mri_region = MRIextractRegion(mri, NULL, &rbig) ;
+    x0 = region.x - rbig.x ;
+    y0 = region.y - rbig.y ;
+    z0 = region.z - rbig.z ;
+
     mri_prev = mri ;
+    if (mri_cpolv_curv5)
+      MRIfree(&mri_cpolv_curv5) ;
+    if (mri_cpolv_curv7)
+      MRIfree(&mri_cpolv_curv7) ;
+    if (mri_cpolv_zscore5)
+      MRIfree(&mri_cpolv_zscore5) ;
+    if (mri_cpolv_order)
+      MRIfree(&mri_cpolv_order) ;
+    if (mri_cpolv_zscore7)
+      MRIfree(&mri_cpolv_zscore7) ;
+
     if (mri_min3)
       MRIfree(&mri_min3) ;
     if (mri_min5)
@@ -746,6 +822,56 @@ MRICcomputeInputs(MRIC *mric, MRI *mri, int x,int y,int z,VECTOR *v_inputs,
     if (mri_cpolv_median5)
       MRIfree(&mri_cpolv_median5) ;
 #endif
+
+    if (features & FEATURE_CPOLV_ORDER)
+    {
+      static int first = 1 ;
+#define ORDER_THRESH  2
+      mri_big = MRIpolvOrder(mri_region, NULL, mri_cpolv, 5, ORDER_THRESH) ;
+      mri_cpolv_order = 
+        MRIextract(mri_big, NULL, x0,y0,z0,region.dx,region.dy, region.dz) ;
+      if (first && (Gdiag & DIAG_WRITE))
+      {
+        MRIwrite(mri_region, "region.mnc") ;
+        MRIwrite(mri_big, "big.mnc") ;
+        MRIwrite(mri_cpolv_order, "order.mnc") ;
+        first = 0 ;
+      }
+
+      MRIfree(&mri_big) ;
+    }
+
+    if (features & FEATURE_CPOLV_ZSCORE5)
+    {
+      mri_big = MRIpolvZscore(mri_region, NULL, mri_cpolv, 5) ;
+      mri_cpolv_zscore5 = 
+        MRIextract(mri_big, NULL, x0,y0,z0,region.dx,region.dy, region.dz) ;
+      MRIfree(&mri_big) ;
+    }
+
+    if (features & FEATURE_CPOLV_ZSCORE7)
+    {
+      mri_big = MRIpolvZscore(mri_region, NULL, mri_cpolv, 7) ;
+      mri_cpolv_zscore7 = 
+        MRIextract(mri_big, NULL, x0,y0,z0,region.dx,region.dy, region.dz) ;
+      MRIfree(&mri_big) ;
+    }
+
+    if (features & FEATURE_CPOLV_CURV5)
+    {
+      mri_big = MRIpolvNormalCurvature(mri_region, NULL, mri_cpolv, 5) ;
+      mri_cpolv_curv5 = 
+        MRIextract(mri_big, NULL, x0,y0,z0,region.dx,region.dy, region.dz) ;
+      MRIfree(&mri_big) ;
+    }
+
+    if (features & FEATURE_CPOLV_CURV7)
+    {
+      mri_big = MRIpolvNormalCurvature(mri_region, NULL, mri_cpolv, 7) ;
+      mri_cpolv_curv7 = 
+        MRIextract(mri_big, NULL, x0,y0,z0,region.dx,region.dy, region.dz) ;
+      MRIfree(&mri_big) ;
+    }
 
     if (features & FEATURE_ZSCORE3)
     {
@@ -782,33 +908,24 @@ MRICcomputeInputs(MRIC *mric, MRI *mri, int x,int y,int z,VECTOR *v_inputs,
     if (features & FEATURE_DIRECTION)
     {
       static int first = 1 ;
-      MRI        *mri_tmp ;
-      int        x0, y0, z0 ;
 
       /* expand region by 2 voxels to avoid border effects */
-      REGIONexpand(&region, &rbig, 2) ; 
-      MRIclipRegion(mri, &rbig, &rbig) ;
-      mri_region = MRIextractRegion(mri, NULL, &rbig) ;
       mri_grad = MRIsobel(mri_region, NULL, NULL) ;
-      mri_tmp = MRIdirectionMap(mri_grad, NULL, 3) ;
-      x0 = region.x - rbig.x ;
-      y0 = region.y - rbig.y ;
-      z0 = region.z - rbig.z ;
+      mri_big = MRIdirectionMap(mri_grad, NULL, 3) ;
 
       mri_direction = 
-        MRIextract(mri_tmp, NULL, x0,y0,z0,region.dx,region.dy, region.dz) ;
+        MRIextract(mri_big, NULL, x0,y0,z0,region.dx,region.dy, region.dz) ;
       if ((Gdiag & DIAG_WRITE) && first)
       {
         first = 0 ;
         MRIwrite(mri_direction, "dir.mnc") ;
         MRIwrite(mri_region, "region.mnc") ;
         MRIwrite(mri_grad, "grad.mnc") ;
-        MRIwrite(mri_tmp, "tmp.mnc") ;
+        MRIwrite(mri_big, "tmp.mnc") ;
       }
-      MRIfree(&mri_region) ;
       MRIfree(&mri_grad) ;
-      MRIfree(&mri_tmp) ;
     }
+    MRIfree(&mri_region) ;
     if (features & FEATURE_MEAN3)
       mri_mean3 = MRImeanRegion(mri, NULL, 3, &region) ;
     if (features & FEATURE_MEAN5)
@@ -906,6 +1023,14 @@ MRICcomputeInputs(MRIC *mric, MRI *mri, int x,int y,int z,VECTOR *v_inputs,
     VECTOR_ELT(v_inputs, index++) = 
       MRIFseq_vox(mric->mri_priors, xt, yt, zt, WHITE_MATTER) ;
   }
+  if (features & FEATURE_CPOLV_ZSCORE5)
+    VECTOR_ELT(v_inputs, index++) = MRIFvox(mri_cpolv_zscore5, x0, y0, z0) ;
+  if (features & FEATURE_CPOLV_ZSCORE7)
+    VECTOR_ELT(v_inputs, index++) = MRIFvox(mri_cpolv_zscore7, x0, y0, z0) ;
+  if (features & FEATURE_CPOLV_CURV5)
+    VECTOR_ELT(v_inputs, index++) = MRIFvox(mri_cpolv_curv5, x0, y0, z0) ;
+  if (features & FEATURE_CPOLV_CURV7)
+    VECTOR_ELT(v_inputs, index++) = MRIFvox(mri_cpolv_curv7, x0, y0, z0) ;
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
@@ -923,11 +1048,10 @@ MRICbuildTargetImage(MRI *mri_src, MRI *mri_target, MRI *mri_wm,
                      int lo_lim, int hi_lim)
 {
   int     x, y, z, width, height, depth ;
-  BUFTYPE *psrc, *pwm, *ptarget, src, wm, target ;
-#if 0
-  Real    xt, yt, zt ;
-#endif
+  BUFTYPE *psrc, *pwm, *ptarget, src, wm, target, *pthin, thin ;
+  MRI     *mri_thin ;
 
+  mri_thin = MRIfindThinWMStrands(mri_wm, NULL, 2) ;
   if (lo_lim <= 0)
     lo_lim = LO_LIM ;
   if (hi_lim <= 0)
@@ -947,14 +1071,15 @@ MRICbuildTargetImage(MRI *mri_src, MRI *mri_target, MRI *mri_wm,
       psrc = &MRIvox(mri_src, 0, y, z) ;
       ptarget = &MRIvox(mri_target, 0, y, z) ;
       pwm = &MRIvox(mri_wm, 0, y, z) ;
+      pthin = &MRIvox(mri_thin, 0, y, z) ;
       for (x = 0 ; x < width ; x++)
       {
         src = *psrc++ ;
-#if 0
-        MRIvoxelToTalairach(mri_target, (Real)x, (Real)y, (Real)z,&xt,&yt,&zt);
-#endif
         wm = *pwm++ ;
-        if (wm)
+        thin = *pthin++ ;
+        if (thin)
+          target = THIN_STRAND ;
+        else if (wm)
         {
           int xi, yi, zi, xk,yk,zk ;
 
@@ -1288,6 +1413,14 @@ MRICfeatureName(MRIC *mric, int round, int feature_number)
     return("ZSCORE3") ;
   if (f & FEATURE_ZSCORE5)
     return("ZSCORE5") ;
+  if (f & FEATURE_CPOLV_ZSCORE5)
+    return("CPOLV ZSCORE5") ;
+  if (f & FEATURE_CPOLV_ZSCORE7)
+    return("CPOLV ZSCORE7") ;
+  if (f & FEATURE_CPOLV_CURV5)
+    return("CPOLV NORMAL CURVATURE 5") ;
+  if (f & FEATURE_CPOLV_CURV7)
+    return("CPOLV NORMAL CURVATURE 7") ;
   if (f & FEATURE_DIRECTION)
     return("DIRECTION") ;
   if (f & FEATURE_MEAN3)
@@ -1323,17 +1456,87 @@ MRICfeatureName(MRIC *mric, int round, int feature_number)
         Description
 
 ------------------------------------------------------*/
-int
-MRICfeatureNumberCode(int feature_number)
+char *
+MRICfeatureNumberToName(int feature_number)
 {
   int f, fno ;
-
-  /* first ninputs-1 correspond to inputs #s, rest to frames in priors */
 
   /* find bit which corresponds to this # */
   for (f = 0x001, fno = 0 ; f != MAX_FEATURE ; f<<=1)
     if (fno++ == feature_number)
       break ;
+
+  if (f & FEATURE_INTENSITY)
+    return("INTENSITY") ;
+  if (f & FEATURE_ZSCORE3)
+    return("ZSCORE3") ;
+  if (f & FEATURE_ZSCORE5)
+    return("ZSCORE5") ;
+  if (f & FEATURE_CPOLV_ZSCORE5)
+    return("CPOLV ZSCORE5") ;
+  if (f & FEATURE_CPOLV_ZSCORE7)
+    return("CPOLV ZSCORE7") ;
+  if (f & FEATURE_CPOLV_CURV5)
+    return("CPOLV NORMAL CURVATURE 5") ;
+  if (f & FEATURE_CPOLV_CURV7)
+    return("CPOLV NORMAL CURVATURE 7") ;
+  if (f & FEATURE_DIRECTION)
+    return("DIRECTION") ;
+  if (f & FEATURE_MEAN3)
+    return("MEAN3") ;
+  if (f & FEATURE_MEAN5)
+    return("MEAN5") ;
+  if (f &  FEATURE_CPOLV_MEAN3)
+    return("CPOLV MEAN3") ;
+  if (f & FEATURE_CPOLV_MEAN5)
+    return("CPOLV MEAN5") ;
+  if (f & FEATURE_CPOLV_MEDIAN3)
+    return("CPOLV MEDIAN3") ;
+  if (f & FEATURE_CPOLV_MEDIAN5)
+    return("CPOLV MEDIAN 5") ;
+  if (f & FEATURE_MIN3)
+    return("MIN3") ;
+  if (f & FEATURE_MIN5)
+    return("MIN5") ;
+  if (f & FEATURE_MIN7)
+    return("MIN7") ;
+  if (f & FEATURE_PRIORS)
+    return("PRIORS") ;
+  if (f & FEATURE_POSITION)
+    return("POSITION") ;
+#if 0
+  if (f & FEATURE_X_POSITION)
+    return("X POSITION") ;
+  if (f & FEATURE_Y_POSITION)
+    return("Y POSITION") ;
+  if (f & FEATURE_Z_POSITION)
+    return("Z POSITION") ;
+#endif
+  if (f & FEATURE_CPOLV_ORDER)
+    return("CPOLV ORDER") ;
+
+  return("unknown") ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+
+------------------------------------------------------*/
+int
+MRICfeatureNumberCode(int feature_number)
+{
+  int f, fno ;
+
+  /* find bit which corresponds to this # */
+  for (f = 0x001, fno = 0 ; f != MAX_FEATURE ; f<<=1)
+    if (fno++ == feature_number)
+      break ;
+
+  if (f & FEATURE_POSITION)
+    return(FEATURE_POSITION) ;
 
   return(f) ;
 }
@@ -1471,6 +1674,44 @@ mricTrainRBF(MRIC *mric, FILE *fp, int nfiles, int round)
   rewind(fp) ;
   
   if (RBFtrain(mric->classifier[round].rbf,mricGetClassifierInput,
+               &parms,0.0f) != NO_ERROR)
+    return(Gerror) ;
+
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+          Train a Radial Basis Function classifier.
+------------------------------------------------------*/
+static int 
+mricRetrainRBF(MRIC *mric, FILE *fp, int nfiles, int round)
+{
+  char             *cp, source_fname[100], line[100] ;
+  GET_INPUT_PARMS  parms ;
+  int              fno ;
+  MRI              *mri ;
+
+  parms.fp = fp ;
+  parms.mric = mric ;
+  parms.round = round ;
+
+  fno = 0 ;
+  rewind(fp) ;
+  while ((cp = fgetl(line, 299, fp)) != NULL)
+  {
+    sscanf(cp, "%s %*s", source_fname) ;
+    mri = MRIreadInfo(source_fname) ;
+    parms.npixels[fno] = mri->width * mri->height * mri->depth ;
+    fno++ ;
+    MRIfree(&mri) ;
+  }
+  rewind(fp) ;
+  
+  if (RBFretrain(mric->classifier[round].rbf,mricGetClassifierInput,
                &parms,0.0f) != NO_ERROR)
     return(Gerror) ;
 
