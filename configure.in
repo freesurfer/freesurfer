@@ -44,24 +44,29 @@ esac
 AC_SUBST(OS)
 AC_SUBST(OS_CPPFLAGS)
 
-############# special directory for MNI packages 
-ac_mni_includes=NO 
-ac_mni_libraries=NO 
-ac_mni_bindir=NO
-# initialize empty
-mni_libraries=""
-mni_includes=""
 ##############################################################
 # mgh put packages and create softlinks
 # default path for mni tools
 ##############################################################
-mghdir=/usr/pubsw
-if [ [ -d $mghdir ] ]; then
-  ac_mni_includes=$mghdir/include
-  ac_mni_libraries=$mghdir/lib
-  ac_mni_bin=$mghdir/bin
-fi
+# get the path for X includes and X libraries
+AC_PATH_X
+ACX_PTHREAD
 
+mghdir=/usr/pubsw/packages
+#############################################################
+# MNI
+#############################################################
+ac_mni_includes=NO 
+ac_mni_libraries=NO 
+ac_mni_bindir=NO
+mni_libraries=""
+mni_includes=""
+# default is to use MGH installation
+if [ [ -d $mghdir/mni/current ] ]; then
+  ac_mni_includes=$mghdir/mni/current/include
+  ac_mni_libraries=$mghdir/mni/current/lib
+  ac_mni_bin=$mghdir/mni/current/bin
+fi
 # modify when --with-mni-dir option given
 ################################################################
 AC_ARG_WITH(mni-dir,
@@ -81,16 +86,63 @@ if test ! "$ac_mni_libraries" = "NO"; then
   LDFLAGS="$LDFLAGS $mni_libraries"
 fi
 
+AC_SUBST(mni_includes)
+AC_SUBST(mni_libraries)
+
+###############################################################
+# Tcl/Tk
+###############################################################
+ac_tcl_includes="NO"
+ac_tcl_libraries="NO"
+ac_tcl_bindir="NO"
+tcl_includes=""
+tcl_libraries=""
+# default is to use MGH installation
+if [ [ -d $mghdir/tcl/current ] ]; then
+  ac_tcl_includes=$mghdir/tcl/current/include
+  ac_tcl_libraries=$mghdir/tcl/current/lib
+  ac_tcl_bindir=$mghdir/tcl/current/bin
+fi
+
+AC_ARG_WITH(tcl-dir,
+  [  --with-tcl-dir=DIR      where the root of Tcl/Tk is installed.],
+  [  ac_tcl_includes="$withval"/include
+     ac_tcl_libraries="$withval"/lib
+     ac_tcl_bindir="$withval"/bin
+  ])
+
+# modify CXXFLAGS and LDFLAGS
+if test ! "$ac_tcl_includes" = "NO"; then
+  tcl_includes=-I$ac_tcl_includes
+  CPPFLAGS="$CPPFLAGS $tcl_includes"
+fi
+if test ! "$ac_tcl_libraries" = "NO"; then 
+  tcl_libraries=-L$ac_tcl_libraries 
+  LDFLAGS="$LDFLAGS $tcl_libraries"
+fi
+
+AC_SUBST(tcl_includes)
+AC_SUBST(tcl_libraries)
+
 # generic mods
 CPPFLAGS="$CPPFLAGS -D$OS -DANSI $OS_CPPFLAGS"
 
-# get the path for X includes and X libraries
-AC_PATH_X
+#####################################################
+# OpenGL
+#####################################################
+AX_CHECK_GLUT
+#####################################################
+# produces GLUT_CFLAGS GLUT_LIBS
+LIBS_TCL_OPENGL="$GLUT_LIBS -lBLT -ltix -ltk -ltcl"
+AC_SUBST(LIBS_TCL_OPENGL)
+
+LIBS_MGH="-lutils -lrgb -ldicom -lunix -lhipsstubs"
+AC_SUBST(LIBS_MGH)
+
 #####################################################
 # Checks for libraries.
 # the order is important
 #####################################################
-AC_CHECK_LIB([pthread], [pthread_create])
 AC_CHECK_LIB([m], [floor])
 AC_CHECK_LIB([z], [gzopen])
 AC_CHECK_LIB([crypt], [crypt])
@@ -99,24 +151,15 @@ AC_CHECK_LIB([jpeg], [jpeg_start_compress])
 # three mni libs
 AC_CHECK_LIB([netcdf], [nccreate],[],
   [AC_MSG_ERROR("FATAL:netcdf lib not found.  Set LDFLAGS or --with-mni-dir.")] )
-AC_CHECK_LIB([volume_io], [transform_point],[],
-  [AC_MSG_ERROR("FATAL:volume_io lib not found.  Set LDFLAGS or --with-mni-dir.")] )
 AC_CHECK_LIB([minc], [main], [],
   [AC_MSG_ERROR("FATAL:minc lib not found.  Set LDFLAGS or --with-mni-dir.")] )
+AC_CHECK_LIB([volume_io], [transform_point],[],
+  [AC_MSG_ERROR("FATAL:volume_io lib not found.  Set LDFLAGS or --with-mni-dir.")] )
 # the entire libs here is passed as LIBS
 # thus save the current one
 ac_save_libs=$LIBS
 ac_save_cppflags=$CPPFLAGS
 ac_save_ldflags=$LDFLAGS
-## check OpenGL
-AC_CHECK_LIB([GL],[glBegin],[],
-  [AC_MSG_ERROR("FATAL:OpenGL lib (libGL) not found.  Set LDFLAGS or --with-gl-dir.")] )
-AC_CHECK_LIB([GLU],[glBegin],[],
-  [AC_MSG_ERROR("FATAL:OpenGL util lib (libGLU) not found.  Set LDFLAGS or --with-gl-dir.")] )
-LIBS="$LIBS -lXi -lXmu -lX11"
-LDFLAGS="$LDFLAGS -L$ac_x_libraries"
-AC_CHECK_LIB([glut],[glutInit],[],
-  [AC_MSG_ERROR("FATAL:OpenGL util lib (libGLU) not found.  Set LDFLAGS or --with-gl-dir.")] )
 ## check Tcl/Tk/BLT
 AC_CHECK_LIB([tcl],[Tcl_Init],[],
   [AC_MSG_ERROR("FATAL: libtcl not found.  Set LDFLAGS or --with-tcl-dir.")] )
@@ -173,3 +216,4 @@ AC_CHECK_FUNCS([bzero calloc floor ftime getenv getcwd getpagesize gettimeofday 
 AC_OUTPUT(Makefile)
 AC_OUTPUT(utils/Makefile)
 AC_OUTPUT(mri_convert/Makefile)
+AC_OUTPUT(tkmedit/Makefile)
