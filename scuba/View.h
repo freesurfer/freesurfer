@@ -7,13 +7,20 @@
 #include "InputState.h"
 #include "TclCommandManager.h"
 #include "ScubaToolState.h"
+#include "Listener.h"
+#include "Broadcaster.h"
 
 // This is a base class used by ScubaFrame as an interface to views,
 // or the internal components of the Frame. Each Frame can have
 // multiple non-overlapping Views, and each View can have multiple
 // layers.
 
-class View : public DebugReporter, public IDTracker<View>, public TclCommandListener {
+class View : public DebugReporter, 
+	     public IDTracker<View>,
+	     public TclCommandListener,
+	     public Broadcaster,
+	     public Listener
+{
   
   friend class ViewTester;
 
@@ -37,7 +44,11 @@ public:
   std::string GetLabel() { return msLabel; }
 
   virtual TclCommandResult
-    DoListenToTclCommand ( char* iCommand, int iArgc, char** iArgv );
+    DoListenToTclCommand ( char* isCommand, int iArgc, char** iArgv );
+
+  // Handle broadcast messages.
+  virtual void
+    DoListenToMessage ( std::string isMessage, void* iData );
 
   // Redisplay posters.
   void RequestRedisplay() { mbPostRedisplay = true; }

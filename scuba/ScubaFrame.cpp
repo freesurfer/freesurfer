@@ -515,6 +515,14 @@ ScubaFrame::DoListenToTclCommand( char* isCommand, int iArgc, char** iasArgv ) {
 }
 
 void
+ScubaFrame::DoListenToMessage ( string isMessage, void* iData ) {
+  
+  if( isMessage == "viewChanged" ) {
+    RequestRedisplay();
+  }
+}
+
+void
 ScubaFrame::TranslateWindowToView ( int iWindow[2], int inCol, int inRow,
 				    int oView[2] ) {
 
@@ -741,21 +749,14 @@ ScubaFrame::SetViewConfiguration( ScubaFrame::ViewConfiguration iConfig ) {
   // First disable existing views that won't be in the new
   // configuration.
   if( cNewRows < mcRows ) {
-    fprintf( stderr, "cNewRows %d < mcRows %d\n", cNewRows, mcRows );
     for( int nRow = cNewRows-1; nRow < mcRows; nRow++ ) {
       int cCols = mcCols[nRow];
-      fprintf( stderr, "cNewRows-1 %d nRow %d mcRows %d cCols %d\n",
-	       cNewRows-1, nRow, mcRows, cCols );
       if( cNewCols[nRow] < cCols ) {
-	fprintf( stderr, "cNewCols %d < cCols %d\n", cNewCols[nRow], cCols );
 	for( int nCol = cNewCols[nRow]-1; nCol < cCols; nCol++ ) {
-	  fprintf( stderr, "geting view at col row %d %d\n", nCol, nRow );
 	  View* view;
 	  try {
 	    view = GetViewAtColRow( nCol, nRow );
-	    fprintf( stderr, "got it\n" );
 	    view->SetVisibleInFrame( false );
-	    fprintf( stderr, "set visible to false\n" );
 	  } 
 	  catch(...) {
 	    fprintf( stderr, "didn't get it\n" );
@@ -789,6 +790,8 @@ ScubaFrame::SetViewConfiguration( ScubaFrame::ViewConfiguration iConfig ) {
 	  
 	  view->SetVisibleInFrame( true );
 	
+	  view->AddListener( this );
+
 	} else {
 	  DebugOutput( << "Couldn't create new view because factory "
 		       << "has not been set" );

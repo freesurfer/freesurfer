@@ -11,9 +11,9 @@
 #include "ScubaWindowToRASTranslator.h"
 #include "ScubaToolState.h"
 #include "ScubaTransform.h"
-#include "Listener.h"
 
-class ScubaView : public View, public ScubaWindowToRASTranslator, public Listener {
+class ScubaView : public View, 
+		  public ScubaWindowToRASTranslator {
 
   friend class ScubaViewTester;
 
@@ -58,11 +58,11 @@ class ScubaView : public View, public ScubaWindowToRASTranslator, public Listene
 
   // Handle broadcast messages.
   virtual void
-    DoListenToMessage ( std::string isCommand, void* iData );
+    DoListenToMessage ( std::string isMessage, void* iData );
 
   // Implement ScubaWindowToRASTranslator.
-  void TranslateWindowToRAS ( int iWindow[2], float oRAS[3] );
-  void TranslateRASToWindow ( float iRAS[3], int oWindow[2] );
+  void TranslateWindowToRAS ( int const iWindow[2], float oRAS[3] );
+  void TranslateRASToWindow ( float const iRAS[3], int oWindow[2] );
 
   // Get the first draw level with no layer assigned to it.
   int GetFirstUnusedDrawLevel ();
@@ -170,7 +170,6 @@ protected:
   std::string msZoomViewOut;
 
   // Link stuff.
-  static int mCurrentBroadcaster;
   static std::map<int,bool> mViewIDLinkedList;
 
   // The world to view transform, or the 'view transform.' Applied to
@@ -194,7 +193,11 @@ class ScubaViewFactory : public ViewFactory {
 
 class ScubaViewBroadcaster : public Broadcaster {
  public:
+  ScubaViewBroadcaster();
   static ScubaViewBroadcaster& GetBroadcaster ();
+  virtual void SendBroadcast ( std::string iMessage, void* iData );
+ protected:
+  int mCurrentBroadcaster;
 };
 
 

@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2004/04/29 18:33:58 $
-// Revision       : $Revision: 1.10 $
+// Revision Date  : $Date: 2004/06/10 23:15:06 $
+// Revision       : $Revision: 1.11 $
 
 #ifndef TclCommandManager_h
 #define TclCommandManager_h
@@ -30,9 +30,9 @@ class TclCommandListener {
   enum TclCommandResult { ok, error };
 
   TclCommandResult 
-    ListenToTclCommand ( char* iCommand, int iArgc, char** iArgv );
+    ListenToTclCommand ( char* isCommand, int iArgc, char** iArgv );
   virtual TclCommandResult
-    DoListenToTclCommand ( char* iCommand, int iArgc, char** iArgv ) = 0;
+    DoListenToTclCommand ( char* isCommand, int iArgc, char** iArgv ) = 0;
   
   virtual ~TclCommandListener();
 

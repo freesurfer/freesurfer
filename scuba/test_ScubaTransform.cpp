@@ -42,37 +42,7 @@ ScubaTransformTester::Test ( Tcl_Interp* iInterp ) {
 
     ScubaTransform transform;
     
-    // Make sure starts out as identity.
-    for( int r = 0; r < 4; r++ ) {
-      for( int c = 0; c < 4; c++ ) {
-	if( r == c ) { 
-	  Assert((transform.GetCR(c,r) == 1),
-		 "Didn't start out as identity");
-	} else {
-	  Assert((transform.GetCR(c,r) == 0),
-		 "Didn't start out as identity");
-	}
-      }
-    }
-
-    // Set a bunch of values, make sure they got set.
-    for( int r = 0; r < 4; r++ ) {
-      for( int c = 0; c < 4; c++ ) {
-	transform.SetCR( c, r, (r * 4) + c);
-      }
-    }
-    for( int r = 0; r < 4; r++ ) {
-      for( int c = 0; c < 4; c++ ) {
-	float value = transform.GetCR( c, r );
-	ssError << "Check failed for " << c << ", " << r;
-	Assert((value - (r*4) == c &&
-		(value - c) / 4 == r),
-	       ssError.str() );
-      }
-    }
-
     // Set to identity, make sure multing a vector returns same vector.
-    transform.MakeIdentity();
     float in[3], out[3];
     in[0] = 5;  in[1] = 35.67; in[2] = 1000;
     transform.MultiplyVector3( in, out );
@@ -82,15 +52,19 @@ ScubaTransformTester::Test ( Tcl_Interp* iInterp ) {
 
     // Set to a scale matrix, make sure multing a vector returns
     // correct response.
-    transform.SetTransform( 5, 0, 0, 0,
-			    0, 5, 0, 0,
-			    0, 0, 5, 0,
-			    0, 0, 0, 1 );
+    transform.SetMainTransform( 5, 0, 0, 0,
+				0, 5, 0, 0,
+				0, 0, 5, 0,
+				0, 0, 0, 1 );
 
     in[0] = 5;  in[1] = 6; in[2] = 7;
     transform.MultiplyVector3( in, out );
-    Assert((in[0]*5 == out[0] && in[1]*5 == out[1] && in[2]*5 == out[2]),
-	   "Scale mult check failed");
+    if( !(in[0]*5 == out[0] && in[1]*5 == out[1] && in[2]*5 == out[2]) ) {
+      ssError << "Scale mult check failed" << endl
+	      << transform << endl
+	      << "out " << Point3<float>(out) << endl;
+      throw(runtime_error(ssError.str()));
+    }
 
     // Check the inverse.
     transform.InvMultiplyVector3( out, in );
@@ -98,71 +72,33 @@ ScubaTransformTester::Test ( Tcl_Interp* iInterp ) {
 	    FEQUAL( in[1], 6.0 ) && FEQUAL( in[2], 7.0) ),
 	   "Inv scale mult check failed");
 
+    
+    // Try the test case from VolumeCollection.
+    ScubaTransform t1;
+    ScubaTransform* mDataToWorldTransform = 
+      &ScubaTransform::FindByID( t1.GetID() );
+    ScubaTransform mDataToIndexTransform;
+    Transform44 mWorldToIndexTransform;
 
-    Point3<float> p( 1, 0, 0 );
-    Point3<float> q;
+    mDataToIndexTransform.SetMainTransform( -1, 0,  0, 128,
+					     0, 0, -1, 128,
+					     0, 1,  0, 128,
+					     0, 0,  0,   1 );
+    mDataToWorldTransform->SetMainTransform( 2, 0,  0,   0,
+					     0, 2,  0,   0,
+					     0, 0,  2,   0,
+					     0, 0,  0,   1 );
 
-    transform.MakeXRotation( M_PI );
-    p.Set( 1, 0, 0 );
-    transform.MultiplyVector3( p.xyz(), q.xyz() );
-    Assert(VFEQUAL(q,1,0,0), "X Rotation failed");
-    p.Set( 0, 1, 0 );
-    transform.MultiplyVector3( p.xyz(), q.xyz() );
-    Assert(VFEQUAL(q,0,-1,0), "X Rotation failed");
-    p.Set( 0, 0, 1 );
-    transform.MultiplyVector3( p.xyz(), q.xyz() );
-    Assert(VFEQUAL(q,0,0,-1), "X Rotation failed");
+    mWorldToIndexTransform = mDataToWorldTransform->Inverse();
+    mWorldToIndexTransform.ApplyTransform( mDataToIndexTransform );
 
-    transform.MakeYRotation( M_PI );
-    p.Set( 1, 0, 0 );
-    transform.MultiplyVector3( p.xyz(), q.xyz() );
-    Assert(VFEQUAL(q,-1,0,0), "Y Rotation failed");
-    p.Set( 0, 1, 0 );
-    transform.MultiplyVector3( p.xyz(), q.xyz() );
-    Assert(VFEQUAL(q,0,1,0), "Y Rotation failed");
-    p.Set( 0, 0, 1 );
-    transform.MultiplyVector3( p.xyz(), q.xyz() );
-    Assert(VFEQUAL(q,0,0,-1), "Y Rotation failed");
+    Transform44& t = mWorldToIndexTransform;
+    Assert((t(0,0) == -0.5 && t(1,0) == 0 && t(2,0) == 0 && t(3,0) == 128 &&
+	    t(0,1) == 0 && t(1,1) == 0 && t(2,1) == -0.5 && t(3,1) == 128 &&
+	    t(0,2) == 0 && t(1,2) == 0.5 && t(2,2) == 0 && t(3,2) == 128 &&
+	    t(0,3) == 0 && t(1,3) == 0 && t(2,3) == 0 && t(3,3) == 1),
+	   "ApplyTransform case didn't work.");
 
-    transform.MakeZRotation( M_PI );
-    p.Set( 1, 0, 0 );
-    transform.MultiplyVector3( p.xyz(), q.xyz() );
-    Assert(VFEQUAL(q,-1,0,0), "Z Rotation failed");
-    p.Set( 0, 1, 0 );
-    transform.MultiplyVector3( p.xyz(), q.xyz() );
-    Assert(VFEQUAL(q,0,-1,0), "Z Rotation failed");
-    p.Set( 0, 0, 1 );
-    transform.MultiplyVector3( p.xyz(), q.xyz() );
-    Assert(VFEQUAL(q,0,0,1), "Z Rotation failed");
-
-    ScubaTransform m;
-    for( int r = 0; r < 4; r++ ) {
-      for( int c = 0; c < 4; c++ ) {
-	m.SetCR( c, r, (r * 4) + c);
-      }
-    }
-    ScubaTransform id;
-    id.MakeIdentity();
-    ScubaTransform n = m * id;
-    for( int r = 0; r < 4; r++ ) {
-      for( int c = 0; c < 4; c++ ) {
-	Assert( (FEQUAL(n(c,r),m(c,r))), "Operator* failed" );
-      }
-    }
-
-    p.Set( 0, 1, 0 );
-    Point3<float> v( 1, 0, 0 );
-    m.MakeRotation( p.xyz(), v.xyz(), M_PI );
-    p.Set( 1, 0, 0 );
-    m.MultiplyVector3( p.xyz(), q.xyz() );
-    Assert(VFEQUAL(q,1,2,0), "Rotation failed");
-
-    p.Set( 0, 0, 1 );
-    v.Set( 0, 1, 0 );
-    m.MakeRotation( p.xyz(), v.xyz(), M_PI );
-    p.Set( 0, 0, 0 );
-    m.MultiplyVector3( p.xyz(), q.xyz() );
-    Assert(VFEQUAL(q,0,0,2), "Rotation failed");
 
 
     // Try the tcl commands.
@@ -175,7 +111,7 @@ ScubaTransformTester::Test ( Tcl_Interp* iInterp ) {
     AssertTclOK( rTcl );
     for( int r = 0; r < 4; r++ ) {
       for( int c = 0; c < 4; c++ ) {
-	float value = transform.GetCR( c, r );
+	float value = transform.m( c, r );
 	ssError << "TCL set check failed for " << c << ", " << r;
 	Assert((value - (r*4) == c &&
 		(value - c) / 4 == r),
@@ -198,8 +134,16 @@ ScubaTransformTester::Test ( Tcl_Interp* iInterp ) {
 	       ssError.str() );
       }
     }
-    
 
+    ScubaTransform l;
+    sprintf( sCommand, "LoadTransformFromLTAFile %d sample.lta", l.GetID() );
+    rTcl = Tcl_Eval( iInterp, sCommand );
+    AssertTclOK( rTcl );
+    Assert((l(0,0) == 1 && l(1,0) == 2 && l(2,0) == 3 && l(3,0) == 4 &&
+	    l(0,1) == 5 && l(1,1) == 6 && l(2,1) == 7 && l(3,1) == 8 &&
+	    l(0,2) == 9 && l(1,2) == 10 && l(2,2) == 11 && l(3,2) == 12 &&
+	    l(0,3) == 13 && l(1,3) == 14 && l(2,3) == 15 && l(3,3) == 16),
+	   "LTA didn't load properly.");
 
   }
   catch( runtime_error e ) {

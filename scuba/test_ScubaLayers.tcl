@@ -111,7 +111,7 @@ set err [catch { set layerID [MakeLayer 2DMRI] } sResult]
 if { 0 != $err } { puts $sResult; exit }
 puts "Made layer $layerID"
  
-set err [catch { SetVolumeCollection $layerID $volumeID } sResult]
+set err [catch { Set2DMRILayerVolumeCollection $layerID $volumeID } sResult]
 if { 0 != $err } { puts $sResult; exit }
 puts "Set layer $layerID volume to $volumeID"
 

@@ -272,7 +272,7 @@ char* xGWin_GetErrorString ( xGWin_tErr ieCode ) {
 }
 
 void xGWin_AddWindowIDToLookupList ( int            inWindowID,
-             xGLutWindowRef ipWindow ) {
+				     xGLutWindowRef ipWindow ) {
 
   /* this used to be a list of number/ptr nodes, but the glut specification
      says that numbers always start at 1 and increase sequentially, so i
@@ -292,7 +292,7 @@ void xGWin_AddWindowIDToLookupList ( int            inWindowID,
 }
 
 void xGWin_GetWindowFromID ( int             inWindowID,
-           xGLutWindowRef* oppWindow ) {
+			     xGLutWindowRef* oppWindow ) {
 
   // check the bounds.
   if ( inWindowID < 0 

@@ -457,10 +457,10 @@ Trns_tErr Trns_GetBtoA ( mriTransformRef this,
   return eResult;
 }
 
-#define mp(l,m) DebugPrint( ("%s\n", l ) ); MatrixPrint(stderr,m);
+#define mp(l,m) fprintf(stderr, "%s\n", l ); MatrixPrint(stderr,m);
 
 Trns_tErr Trns_ApplyTransform ( mriTransformRef this,
-        MATRIX*         iTransform ) {
+				MATRIX*         iTransform ) {
 
   Trns_tErr eResult         = Trns_tErr_NoErr;
   MATRIX*   mTranslation    = NULL;
@@ -478,9 +478,6 @@ Trns_tErr Trns_ApplyTransform ( mriTransformRef this,
   eResult = Trns_Verify( this );
   if( Trns_tErr_NoErr != eResult )
     goto error;
-
-  //  mp("\nTrns_ApplyTransform (",iTransform);
-  //  DebugPrint( (")\n" ) );
 
   /* init our matricies */
   mTranslation    = MatrixAlloc( 4, 4, MATRIX_REAL );
@@ -546,8 +543,6 @@ Trns_tErr Trns_ApplyTransform ( mriTransformRef this,
   MatrixMultiply( mNewScale, mTmp2, mTmp1 );
   MatrixMultiply( mTranslation, mTmp1, mTmp2 );
   MatrixMultiply( mNewTranslation, mTmp2, mNew );
-
-  mp("final",mNew);
 
   /* set the new matrix */
   eResult = Trns_CopyARAStoBRAS( this, mNew );

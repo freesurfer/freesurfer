@@ -70,6 +70,18 @@ public:
     }
   }
 
+  // Prints ID list.
+  static void PrintIDList( std::ostream& os ) {
+
+    typename std::map<int,ClassType*>::iterator tIDObject;
+    for( tIDObject = mIDMap.begin(); tIDObject != mIDMap.end(); ++tIDObject ) {
+      int id = (*tIDObject).first;
+      ClassType* object = (*tIDObject).second;
+      if( NULL != object ) {
+	os << id << " ";
+      }
+    }
+  }
 
 protected:
 

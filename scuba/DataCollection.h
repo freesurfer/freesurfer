@@ -9,8 +9,14 @@
 #include "IDTracker.h"
 #include "TclCommandManager.h"
 #include "ScubaROI.h"
+#include "ScubaTransform.h"
 
-class DataCollection : public DebugReporter, public IDTracker<DataCollection>, public TclCommandListener {
+class DataCollection : public DebugReporter,
+		       public IDTracker<DataCollection>, 
+		       public TclCommandListener, 
+		       public Listener,    // transformChanged
+		       public Broadcaster  // dataChanged
+{
 
   friend class DataCollectionTester;
 
@@ -32,17 +38,33 @@ class DataCollection : public DebugReporter, public IDTracker<DataCollection>, p
   virtual TclCommandResult
     DoListenToTclCommand ( char* isCommand, int iArgc, char** iasArgv );
 
+  // Handle broadcast messages.
+  virtual void
+    DoListenToMessage ( std::string isMessage, void* iData );
+
   int NewROI ();
   void SelectROI ( int iROIID );
   virtual ScubaROI* DoNewROI ();
 
   int GetSelectedROI () { return mSelectedROIID; }
 
+  virtual void SetDataToWorldTransform ( int iTransformID );
+  int GetDataToWorldTransform ();
+
+
 protected:
   std::string msLabel;
 
   int mSelectedROIID;
   std::map<int,ScubaROI*> mROIMap;
+  
+  // For self to call when data has changed.
+  virtual void DataChanged ();
+ 
+  // The data to world transform. Should be applied to all requests
+  // for data at RAS points.
+  ScubaTransform* mDataToWorldTransform;
+
 };
 
 

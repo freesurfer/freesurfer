@@ -2,11 +2,7 @@
 
 using namespace std;
 
-
-template IDTracker<View>;
-int IDTracker<View>::mNextID = 0;
-map<int,View*> IDTracker<View>::mIDMap;
-
+DeclareIDTracker(View);
 
 View::View() {
   mWidth = 0;
@@ -67,9 +63,15 @@ View::KeyUp( int iWindow[2], InputState& iInput, ScubaToolState& iTool ) {
 }
 
 TclCommandListener::TclCommandResult 
-View::DoListenToTclCommand ( char* iCommand, int iArgc, char** iArgv ) {
+View::DoListenToTclCommand ( char* isCommand, int iArgc, char** iArgv ) {
   return ok;
 }
+
+void
+View::DoListenToMessage ( string isMessage, void* iData ) {
+
+}
+
 
 void
 View::DoDraw() {

@@ -11,18 +11,27 @@
 #include "ScubaWindowToRASTranslator.h"
 #include "ScubaToolState.h"
 #include "InputState.h"
+#include "Listener.h"
+#include "Broadcaster.h"
 
-class LayerStaticTclListener : public DebugReporter, public TclCommandListener {
+class LayerStaticTclListener : public DebugReporter, 
+			       public TclCommandListener {
+
   public :
     LayerStaticTclListener ();
     ~LayerStaticTclListener ();
 
     virtual TclCommandResult
-      DoListenToTclCommand ( char* iCommand, int iArgc, char** iArgv );
+      DoListenToTclCommand ( char* isCommand, int iArgc, char** iArgv );
 };
 
 
-class Layer : public DebugReporter, public IDTracker<Layer>, public TclCommandListener {
+class Layer : public DebugReporter, 
+	      public IDTracker<Layer>,
+	      public TclCommandListener,
+	      public Listener,    // dataChanged
+	      public Broadcaster  // layerChanged
+{
 
   friend class ScubaViewTester;
 
@@ -46,6 +55,10 @@ class Layer : public DebugReporter, public IDTracker<Layer>, public TclCommandLi
 
   virtual TclCommandResult
     DoListenToTclCommand ( char* isCommand, int iArgc, char** iasArgv );
+
+  // Handle broadcast messages.
+  virtual void
+    DoListenToMessage ( std::string isMessage, void* iData );
 
   void SetLabel( std::string isLabel ) { msLabel = isLabel; }
   std::string GetLabel() { return msLabel; }

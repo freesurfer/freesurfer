@@ -143,10 +143,20 @@ Layer::DoListenToTclCommand( char* isCommand, int iArgc, char** iasArgv ) {
   return ok;
 }
 
+
+void
+Layer::DoListenToMessage ( string isMessage, void* iData ) {
+
+  if( isMessage == "dataChanged" ) {
+    RequestRedisplay();
+    SendBroadcast( "layerChanged", NULL );
+  }
+}
+
 void
 Layer::HandleTool ( float iRAS[3], ViewState& iViewState,
 		    ScubaWindowToRASTranslator& iTranslator,
-		    ScubaToolState& iTool, InputState& iInput ){
+		    ScubaToolState& iTool, InputState& iInput ) {
 
 }
 

@@ -40,7 +40,7 @@ class ScubaToolState : public TclCommandListener, public IDTracker<ScubaToolStat
   bool GetFlood3D () { return mbFlood3D; }
 
   virtual TclCommandResult
-    DoListenToTclCommand ( char* iCommand, int iArgc, char** iasArgv );
+    DoListenToTclCommand ( char* isCommand, int iArgc, char** iasArgv );
 
  protected:
 

@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2004/04/28 21:53:48 $
-// Revision       : $Revision: 1.6 $
+// Revision Date  : $Date: 2004/06/10 23:15:05 $
+// Revision       : $Revision: 1.7 $
 
 #ifndef DataManager_h
 #define DataManager_h
@@ -19,6 +19,15 @@
 extern "C" { 
 #include "mri.h"
 #include "mrisurf.h"
+#ifdef X
+  #undef X 
+#endif
+#ifdef Y
+  #undef Y
+#endif
+#ifdef Z
+  #undef Z
+#endif
 }
 
 

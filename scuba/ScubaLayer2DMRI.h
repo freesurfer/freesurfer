@@ -8,6 +8,7 @@
 #include "Timer.h"
 #include "ShortestPathFinder.h"
 #include "PointList3.h"
+#include "Listener.h"
 
 class ScubaLayer2DMRI : public Layer {
 
@@ -41,7 +42,7 @@ class ScubaLayer2DMRI : public Layer {
   virtual std::string GetTypeDescription () { return "2DMRI"; }
 
   virtual TclCommandResult
-    DoListenToTclCommand ( char* iCommand, int iArgc, char** iArgv );
+    DoListenToTclCommand ( char* isCommand, int iArgc, char** iArgv );
 
   virtual void HandleTool ( float iRAS[3], ViewState& iViewState,
 			    ScubaWindowToRASTranslator& iTranslator,

@@ -1,3 +1,4 @@
+#include <iomanip>
 #include "ScubaTransform.h"
 
 using namespace std;
@@ -8,10 +9,6 @@ ScubaTransformStaticTclListener ScubaTransform::mStaticListener;
 
 ScubaTransform::ScubaTransform() {
   msLabel = "";
-  m = MatrixIdentity( 4, NULL );
-  mInv = MatrixInverse( m, NULL );
-  mTmpVec4Src = VectorAlloc( 4, MATRIX_REAL );
-  mTmpVec4Dest = VectorAlloc( 4, MATRIX_REAL );
 
   TclCommandManager& commandMgr = TclCommandManager::GetManager();
   commandMgr.AddCommand( *this, "SetTransformLabel", 2, "transformID label",
@@ -25,169 +22,17 @@ ScubaTransform::ScubaTransform() {
   commandMgr.AddCommand( *this, "GetTransformValues", 1, "transformID",
 			 "Returns a list of transform values in "
 			 "column order." );
+  commandMgr.AddCommand( *this, "LoadTransformFromLTAFile", 2, 
+			 "transformID LTAFileName", "Loads an LTA from a "
+			 "file into an existing transform." );
+  commandMgr.AddCommand( *this, "InvertTransform", 1, "transformID",
+			 "Inverts a transform." );
 }
 
 ScubaTransform::~ScubaTransform() {
 
 }
 
-void
-ScubaTransform::SetTransform ( float i0j0, float i1j0, float i2j0, float i3j0,
-			  float i0j1, float i1j1, float i2j1, float i3j1,
-			  float i0j2, float i1j2, float i2j2, float i3j2,
-			  float i0j3, float i1j3, float i2j3, float i3j3 ) {
-
-  SetCR(0,0,i0j0);  SetCR(1,0,i1j0);  SetCR(2,0,i2j0);  SetCR(3,0,i3j0);
-  SetCR(0,1,i0j1);  SetCR(1,1,i1j1);  SetCR(2,1,i2j1);  SetCR(3,1,i3j1);
-  SetCR(0,2,i0j2);  SetCR(1,2,i1j2);  SetCR(2,2,i2j2);  SetCR(3,2,i3j2);
-  SetCR(0,3,i0j3);  SetCR(1,3,i1j3);  SetCR(2,3,i2j3);  SetCR(3,3,i3j3);
-
-  ValuesChanged();
-}
-
-void
-ScubaTransform::SetTransform ( MATRIX* iMatrix ) {
-
-  for( int nCol = 0; nCol < 4; nCol++ ) {
-    for( int nRow = 0; nRow < 4; nRow++ ) {
-      SetCR(nCol,nRow, *MATRIX_RELT(iMatrix,(nRow+1),(nCol+1)) );
-    }
-  }
-
-  ValuesChanged();
-}
-
-void 
-ScubaTransform::MakeIdentity () {
-
-  MatrixIdentity( 4, m );
-
-  ValuesChanged();
-}
-
-void 
-ScubaTransform::MultiplyVector3 ( float const iVector[3], float oVector[3] ) {
-
-  oVector[0] =
-    *MATRIX_RELT(m,1,1) * iVector[0] +
-    *MATRIX_RELT(m,1,2) * iVector[1] +
-    *MATRIX_RELT(m,1,3) * iVector[2] +
-    *MATRIX_RELT(m,1,4);
-  oVector[1] =
-    *MATRIX_RELT(m,2,1) * iVector[0] +
-    *MATRIX_RELT(m,2,2) * iVector[1] +
-    *MATRIX_RELT(m,2,3) * iVector[2] +
-    *MATRIX_RELT(m,2,4);
-  oVector[2] =
-    *MATRIX_RELT(m,3,1) * iVector[0] +
-    *MATRIX_RELT(m,3,2) * iVector[1] +
-    *MATRIX_RELT(m,3,3) * iVector[2] +
-    *MATRIX_RELT(m,3,4);
-}
-
-void 
-ScubaTransform::MultiplyVector3 ( int const iVector[3], float oVector[3] ) {
-
-  float iVectorF[3];
-  iVectorF[0] = iVector[0];
-  iVectorF[1] = iVector[1];
-  iVectorF[2] = iVector[2];
-
-  oVector[0] =
-    *MATRIX_RELT(m,1,1) * iVectorF[0] +
-    *MATRIX_RELT(m,1,2) * iVectorF[1] +
-    *MATRIX_RELT(m,1,3) * iVectorF[2] +
-    *MATRIX_RELT(m,1,4);
-  oVector[1] =
-    *MATRIX_RELT(m,2,1) * iVectorF[0] +
-    *MATRIX_RELT(m,2,2) * iVectorF[1] +
-    *MATRIX_RELT(m,2,3) * iVectorF[2] +
-    *MATRIX_RELT(m,2,4);
-  oVector[2] =
-    *MATRIX_RELT(m,3,1) * iVectorF[0] +
-    *MATRIX_RELT(m,3,2) * iVectorF[1] +
-    *MATRIX_RELT(m,3,3) * iVectorF[2] +
-    *MATRIX_RELT(m,3,4);
-}
-
-void 
-ScubaTransform::MultiplyVector3 ( float const iVector[3], int oVector[3] ) {
-
-  oVector[0] = (int) ( *MATRIX_RELT(m,1,1) * iVector[0] +
-		       *MATRIX_RELT(m,1,2) * iVector[1] +
-		       *MATRIX_RELT(m,1,3) * iVector[2] +
-		       *MATRIX_RELT(m,1,4) );
-  oVector[1] = (int) ( *MATRIX_RELT(m,2,1) * iVector[0] +
-		       *MATRIX_RELT(m,2,2) * iVector[1] +
-		       *MATRIX_RELT(m,2,3) * iVector[2] +
-		       *MATRIX_RELT(m,2,4) );
-  oVector[2] = (int) ( *MATRIX_RELT(m,3,1) * iVector[0] +
-		       *MATRIX_RELT(m,3,2) * iVector[1] +
-		       *MATRIX_RELT(m,3,3) * iVector[2] +
-		       *MATRIX_RELT(m,3,4) );
-}
-
-void 
-ScubaTransform::InvMultiplyVector3 ( float const iVector[3], float oVector[3] ) {
-
-  oVector[0] =
-    *MATRIX_RELT(mInv,1,1) * iVector[0] +
-    *MATRIX_RELT(mInv,1,2) * iVector[1] +
-    *MATRIX_RELT(mInv,1,3) * iVector[2] +
-    *MATRIX_RELT(mInv,1,4);
-  oVector[1] =
-    *MATRIX_RELT(mInv,2,1) * iVector[0] +
-    *MATRIX_RELT(mInv,2,2) * iVector[1] +
-    *MATRIX_RELT(mInv,2,3) * iVector[2] +
-    *MATRIX_RELT(mInv,2,4);
-  oVector[2] =
-    *MATRIX_RELT(mInv,3,1) * iVector[0] +
-    *MATRIX_RELT(mInv,3,2) * iVector[1] +
-    *MATRIX_RELT(mInv,3,3) * iVector[2] +
-    *MATRIX_RELT(mInv,3,4);
-}
-
-void 
-ScubaTransform::InvMultiplyVector3 ( int const iVector[3], float oVector[3] ) {
-
-  float iVectorF[3];
-  iVectorF[0] = iVector[0];
-  iVectorF[1] = iVector[1];
-  iVectorF[2] = iVector[2];
-
-  oVector[0] =
-    *MATRIX_RELT(mInv,1,1) * iVectorF[0] +
-    *MATRIX_RELT(mInv,1,2) * iVectorF[1] +
-    *MATRIX_RELT(mInv,1,3) * iVectorF[2] +
-    *MATRIX_RELT(mInv,1,4);
-  oVector[1] =
-    *MATRIX_RELT(mInv,2,1) * iVectorF[0] +
-    *MATRIX_RELT(mInv,2,2) * iVectorF[1] +
-    *MATRIX_RELT(mInv,2,3) * iVectorF[2] +
-    *MATRIX_RELT(mInv,2,4);
-  oVector[2] =
-    *MATRIX_RELT(mInv,3,1) * iVectorF[0] +
-    *MATRIX_RELT(mInv,3,2) * iVectorF[1] +
-    *MATRIX_RELT(mInv,3,3) * iVectorF[2] +
-    *MATRIX_RELT(mInv,3,4);
-}
-
-void 
-ScubaTransform::InvMultiplyVector3 ( float const iVector[3], int oVector[3] ) {
-
-  oVector[0] = (int) ( *MATRIX_RELT(mInv,1,1) * iVector[0] +
-		       *MATRIX_RELT(mInv,1,2) * iVector[1] +
-		       *MATRIX_RELT(mInv,1,3) * iVector[2] +
-		       *MATRIX_RELT(mInv,1,4) );
-  oVector[1] = (int) ( *MATRIX_RELT(mInv,2,1) * iVector[0] +
-		       *MATRIX_RELT(mInv,2,2) * iVector[1] +
-		       *MATRIX_RELT(mInv,2,3) * iVector[2] +
-		       *MATRIX_RELT(mInv,2,4) );
-  oVector[2] = (int) ( *MATRIX_RELT(mInv,3,1) * iVector[0] +
-		       *MATRIX_RELT(mInv,3,2) * iVector[1] +
-		       *MATRIX_RELT(mInv,3,3) * iVector[2] +
-		       *MATRIX_RELT(mInv,3,4) );
-}
 
 TclCommandListener::TclCommandResult
 ScubaTransform::DoListenToTclCommand( char* isCommand, int iArgc, char** iasArgv ) {
@@ -242,13 +87,10 @@ ScubaTransform::DoListenToTclCommand( char* isCommand, int iArgc, char** iasArgv
 	}
       }
 
-      for( int r = 0; r < 4; r++ ) {
-	for( int c = 0; c < 4; c++ ) {
-	  SetCR( c, r, v[c][r] );
-	}
-      }
-
-      ValuesChanged();
+      SetMainTransform( v[0][0], v[1][0], v[2][0], v[3][0],
+			v[0][1], v[1][1], v[2][1], v[3][1],
+			v[0][2], v[1][2], v[2][2], v[3][2],
+			v[0][3], v[1][3], v[2][3], v[3][3] );
     }
   }
 
@@ -267,33 +109,61 @@ ScubaTransform::DoListenToTclCommand( char* isCommand, int iArgc, char** iasArgv
 
       for( int r = 0; r < 4; r++ ) {
 	for( int c = 0; c < 4; c++ ) {
-	  ssResult << GetCR(c,r) << " ";
+	  ssResult << m(c,r) << " ";
 	}
       }
       
       sReturnValues = ssResult.str();
     }
   }
+
+  // LoadTransformFromLTAFile <transformID> <fileName>
+  if( 0 == strcmp( isCommand, "LoadTransformFromLTAFile" ) ) {
+    int transformID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad transform ID";
+      return error;
+    }
+    
+    if( mID == transformID ) {
+      
+      string fnLTA( iasArgv[2] );
+      try {
+	LoadFromLTAFile( fnLTA );
+      }
+      catch(...) {
+	sReturnFormat = "s";
+	stringstream ssResult;
+	ssResult << "Couldn't load transform " << fnLTA;
+	sReturnValues = ssResult.str();
+	return error;
+      }
+      
+    }
+  }
   
+  // InvertTransform <transformID>
+  if( 0 == strcmp( isCommand, "InvertTransform" ) ) {
+    int transformID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad transform ID";
+      return error;
+    }
+    
+    if( mID == transformID ) {
+      SetMainTransform( this->Inverse() );
+    }
+  }
+
   return ok;
 }
 
 void
 ScubaTransform::ValuesChanged () {
 
-  CalculateInverse();
   SendBroadcast( "transformChanged", NULL );
+  Transform44::ValuesChanged();
 }
-
-void
-ScubaTransform::CalculateInverse () {
-
-  if( NULL != m ) {
-    MatrixInverse( m, mInv );
-  }
-}
-
-
 
 ScubaTransformStaticTclListener::ScubaTransformStaticTclListener () {
 
@@ -344,15 +214,15 @@ ScubaTransformStaticTclListener::DoListenToTclCommand ( char* isCommand,
 }
 
 ostream& 
-operator <<  ( ostream& os, ScubaTransform iTransform ) { 
+operator <<  ( ostream& os, ScubaTransform& iTransform ) { 
   os << "Transform " << iTransform.GetLabel() << ":" << endl;
-  os << iTransform.GetCR(0,0) << " " << iTransform.GetCR(1,0) << " "
-     << iTransform.GetCR(2,0) << " " << iTransform.GetCR(3,0) << endl;
-  os << iTransform.GetCR(0,1) << " " << iTransform.GetCR(1,1) << " "
-     << iTransform.GetCR(2,1) << " " << iTransform.GetCR(3,1) << endl;
-  os << iTransform.GetCR(0,2) << " " << iTransform.GetCR(1,2) << " "
-     << iTransform.GetCR(2,2) << " " << iTransform.GetCR(3,2) << endl;
-  os << iTransform.GetCR(0,3) << " " << iTransform.GetCR(1,3) << " "
-     << iTransform.GetCR(2,3) << " " << iTransform.GetCR(3,3) << endl;
+  os << setw(6) << iTransform(0,0) << " " << setw(6) << iTransform(1,0) << " "
+     << setw(6) << iTransform(2,0) << " " << setw(6) << iTransform(3,0) << endl;
+  os << setw(6) << iTransform(0,1) << " " << setw(6) << iTransform(1,1) << " "
+     << setw(6) << iTransform(2,1) << " " << setw(6) << iTransform(3,1) << endl;
+  os << setw(6) << iTransform(0,2) << " " << setw(6) << iTransform(1,2) << " "
+     << setw(6) << iTransform(2,2) << " " << setw(6) << iTransform(3,2) << endl;
+  os << setw(6) << iTransform(0,3) << " " << setw(6) << iTransform(1,3) << " "
+     << setw(6) << iTransform(2,3) << " " << setw(6) << iTransform(3,3) << endl;
   return os;
 }

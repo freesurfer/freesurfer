@@ -6,9 +6,20 @@
 #include "ScubaROIVolume.h"
 extern "C" {
 #include "mri.h"
+#ifdef X
+  #undef X 
+#endif
+#ifdef Y
+  #undef Y
+#endif
+#ifdef Z
+  #undef Z
+#endif
 }
 #include "Volume3.h"
 #include "Point3.h"
+#include "ScubaTransform.h"
+#include "Broadcaster.h"
 
 class VolumeCollection : public DataCollection {
 
@@ -42,6 +53,7 @@ class VolumeCollection : public DataCollection {
   void RASToMRIIndex ( float iRAS[3], float oIndex[3] );
   void MRIIndexToRAS ( int iIndex[3], float oRAS[3] );
   void MRIIndexToRAS ( float iIndex[3], float oRAS[3] );
+  void RASToDataRAS  ( float iRAS[3], float oDataRAS[3] );
 
   bool IsRASInMRIBounds ( float iRAS[3] );
   bool IsMRIIndexInMRIBounds ( int iIndex[3] );
@@ -58,6 +70,9 @@ class VolumeCollection : public DataCollection {
 
   virtual TclCommandResult
     DoListenToTclCommand ( char* isCommand, int iArgc, char** iasArgv );
+
+  virtual void
+    DoListenToMessage ( std::string isMessage, void* iData );
 
   virtual ScubaROI* DoNewROI ();
 
@@ -86,23 +101,29 @@ class VolumeCollection : public DataCollection {
   float* GetMinRASBounds () { return mMinRASBounds; }
   float* GetMaxRASBounds () { return mMaxRASBounds; }
 
+  virtual void SetDataToWorldTransform ( int iTransformID ) {
+    DataCollection::SetDataToWorldTransform( iTransformID );
+    CalcWorldToIndexTransform();
+  }
+
 protected:
+
+  void CalcWorldToIndexTransform ();
+
   std::string mfnMRI;
   MRI* mMRI;
   MRI* mMagnitudeMRI;
 
-#if 0
-  MATRIX* mWorldToIndexMatrix;
-  MATRIX* mIndexToWorldMatrix;
-  VECTOR* mWorldCoord;
-  VECTOR* mIndexCoord;
-#endif
+  // We're dealing with two transforms here, data->world which is
+  // defined in DataCollection, and data->index which is defined
+  // here. Actually it goes world->data->index and
+  // index->data->world. We composite these in the last transform.
+  Transform44 mDataToIndexTransform;
+  Transform44 mWorldToIndexTransform;
 
-  ScubaTransform mWorldToIndexTransform;
-
-  Volume3<Point3<int> >* mWorldToIndexCache;
-  void CalcWorldToIndexCache ();
-  inline void WorldToIndexCacheIndex ( float const iRAS[3],
+  Volume3<Point3<int> >* mDataToIndexCache;
+  void CalcDataToIndexCache ();
+  inline void DataToIndexCacheIndex ( float const iRAS[3],
 				       int oCacheIndex[3] ) const;
 
   float mVoxelSize[3];

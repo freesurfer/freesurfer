@@ -9,6 +9,7 @@
 extern "C" {
 #include "mri.h"
 }
+#include "Scuba-impl.h"
 
 #define Assert(x,s)   \
   if(!(x)) { \
@@ -86,6 +87,67 @@ VolumeCollectionTester::Test ( Tcl_Interp* iInterp ) {
       throw( runtime_error("typecast failed for NewROI") );
     }
 
+
+    // Try our conversions.
+    Point3<float> world;
+    Point3<float> data;
+    Point3<int> index;
+    world.Set( -50, 0, -80 );
+    vol.RASToMRIIndex( world.xyz(), index.xyz() );
+    if( index.x() != 178 || index.y() != 208 || index.z() != 128 ) {
+      cerr << "RASToMRIIndex failed. world " 
+	   << world << " index " << index << endl;
+      throw( runtime_error( "failed" ) );
+    } 
+
+    // Set a transform that scales the volume up by 2x in the world.
+    ScubaTransform dataTransform;
+    dataTransform.SetMainTransform( 2, 0, 0, 0,
+				    0, 2, 0, 0,
+				    0, 0, 2, 0,
+				    0, 0, 0, 1 );
+    vol.SetDataToWorldTransform( dataTransform.GetID() );
+
+    world.Set( -50, 0, -80 );
+    vol.RASToDataRAS( world.xyz(), data.xyz() );
+    if( !(FEQUAL(data.x(),-25)) || 
+	!(FEQUAL(data.y(),0)) || 
+	!(FEQUAL(data.z(),-40)) ) {
+      cerr << "RASToDataRAS failed. world " 
+	   << world << " data " << data << endl;
+      throw( runtime_error( "failed" ) );
+    } 
+    
+    vol.RASToMRIIndex( world.xyz(), index.xyz() );
+
+    if( index.x() != 153 || index.y() != 168 || index.z() != 128 ) {
+      cerr << "RASToMRIIndex with data transform failed. world " 
+	   << world << " index " << index << endl;
+      throw( runtime_error( "failed" ) );
+    }
+
+
+    if( !vol.IsRASInMRIBounds( world.xyz() ) ) {
+      cerr << "IsRASInMRIBounds failed. world " << world << endl;
+      throw( runtime_error( "failed" ) );
+    }
+    world.Set( -257, 0, 0 );
+    if( vol.IsRASInMRIBounds( world.xyz() ) ) {
+      cerr << "IsRASInMRIBounds failed. world " << world << endl;
+      throw( runtime_error( "failed" ) );
+    }
+
+
+    dataTransform.SetMainTransform( 2, 0, 0, 0,
+				    0, 3, 0, 0,
+				    0, 0, 2, 0,
+				    0, 0, 0, 1 );
+    vol.SetDataToWorldTransform( dataTransform.GetID() );
+    world.Set( 0, -258, -254 );
+    if( vol.IsRASInMRIBounds( world.xyz() ) ) {
+      cerr << "IsRASInMRIBounds failed. world " << world << endl;
+      throw( runtime_error( "failed" ) );
+    }
 
     // Check the tcl commands.
     char sCommand[1024];

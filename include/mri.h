@@ -1,4 +1,4 @@
- #ifndef MRI_H
+#ifndef MRI_H
 #define MRI_H
 
 #include "const.h"

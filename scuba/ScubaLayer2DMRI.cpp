@@ -111,6 +111,8 @@ ScubaLayer2DMRI::SetVolumeCollection ( VolumeCollection& iVolume ) {
   mMinVisibleValue = mVolume->GetMRIMinValue();
   mMaxVisibleValue = mVolume->GetMRIMaxValue();
 
+  mVolume->AddListener( this );
+
   BuildGrayscaleLUT();
 }
 
@@ -124,34 +126,8 @@ ScubaLayer2DMRI::DrawIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
     return;
   }
 
-  // Get window begininng and ending.
-  int winBoundsA[2], winBoundsB[2], windowMin[2], windowMax[2];
-  iTranslator.TranslateRASToWindow( mVolume->GetMinRASBounds(), winBoundsA );
-  iTranslator.TranslateRASToWindow( mVolume->GetMaxRASBounds(), winBoundsB );
-  windowMin[0] = MAX( 0, MIN( winBoundsA[0], winBoundsB[0] ) );
-  windowMin[1] = MAX( 0, MIN( winBoundsA[1], winBoundsB[1] ) );
-  windowMax[0] = MIN( iWidth, MAX( winBoundsA[0], winBoundsB[0] ) );
-  windowMax[1] = MIN( iHeight, MAX( winBoundsA[1], winBoundsB[1] ) );
-
-  // Translate window back to RAS and check the bounds. If no good,
-  // move the window coords in until they're okay. It's okay to be a
-  // little sloppy here; we change both coords and check again when we
-  // probably just need to change one.
-  float testRAS[3];
-  iTranslator.TranslateWindowToRAS( windowMin, testRAS );
-  while( !mVolume->IsRASInMRIBounds( testRAS ) ) {
-    windowMin[0] += 1; windowMin[1] += 1;
-    iTranslator.TranslateWindowToRAS( windowMin, testRAS );
-  }
-  iTranslator.TranslateWindowToRAS( windowMax, testRAS );
-  while( !mVolume->IsRASInMRIBounds( testRAS ) ) {
-    windowMax[0] -= 1; windowMax[1] -= 1;
-    iTranslator.TranslateWindowToRAS( windowMax, testRAS );
-  }
-
   // Buffer for window -> RAS coords.
-  Array2<Point3<float> > windowToRAS( windowMax[0], windowMax[1] );
-
+  Array2<Point3<float> > windowToRAS( iWidth, iHeight );
 
   // Precalc our color * opacity.
   GLubyte aColorTimesOpacity[256];
@@ -161,96 +137,69 @@ ScubaLayer2DMRI::DrawIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
     aColorTimesOneMinusOpacity[i] = (GLubyte)( (float)i * (1.0 - mOpacity) );
   }
 
-  GLubyte* dest;
+  GLubyte* dest = iBuffer;
   int window[2];
   float RAS[3];
   float value = 0;
   int color[3];
-#if 0
-  for( window[1] = windowMin[1]; window[1] < windowMax[1]; window[1]++ ) {
-    dest = iBuffer + (window[1] * iWidth * 4) + (windowMin[0] * 4);
-    for( window[0] = windowMin[0]; window[0] <= windowMax[0]; window[0]++ ) {
+  
+
+  for( window[1] = 0; window[1] < iHeight; window[1]++ ) {
+    for( window[0] = 0; window[0] < iWidth; window[0]++ ) {
 
       // Translate the window coord to an RAS and put it in our cache.
       iTranslator.TranslateWindowToRAS( window, RAS );
       windowToRAS.Set( window[0], window[1], Point3<float>( RAS ) );
 
-      value = mVolume->GetMRINearestValueAtRAS( RAS ); 
-      GetGrayscaleColorForValue( value, dest, color );
 
-      dest[0] = aColorTimesOneMinusOpacity[dest[0]] + 
-	aColorTimesOpacity[color[0]];
-      dest[1] = aColorTimesOneMinusOpacity[dest[1]] + 
-	aColorTimesOpacity[color[1]];
-      dest[2] = aColorTimesOneMinusOpacity[dest[2]] + 
-	aColorTimesOpacity[color[2]];
-      dest[3] = (GLubyte) 255;
-
-      dest += 4;
-    }
-  }
-#endif
-  for( window[1] = windowMin[1]; window[1] < windowMax[1]; window[1]++ ) {
-    dest = iBuffer + (window[1] * iWidth * 4) + (windowMin[0] * 4);
-    for( window[0] = windowMin[0]; window[0] <= windowMax[0]; window[0]++ ) {
-
-      // Translate the window coord to an RAS and put it in our cache.
-      iTranslator.TranslateWindowToRAS( window, RAS );
-      windowToRAS.Set( window[0], window[1], Point3<float>( RAS ) );
-
-      switch( mSampleMethod ) {
-      case nearest:  value = mVolume->GetMRINearestValueAtRAS( RAS );  break;
-      case trilinear:value = mVolume->GetMRITrilinearValueAtRAS( RAS );break;
-      case sinc:     value = mVolume->GetMRISincValueAtRAS( RAS );     break;
-      case magnitude:value = mVolume->GetMRIMagnitudeValueAtRAS( RAS );break;
+      if( mVolume->IsRASInMRIBounds( RAS ) ) {
+	
+	switch( mSampleMethod ) {
+	case nearest:  value = mVolume->GetMRINearestValueAtRAS( RAS );  break;
+	case trilinear:value = mVolume->GetMRITrilinearValueAtRAS( RAS );break;
+	case sinc:     value = mVolume->GetMRISincValueAtRAS( RAS );     break;
+	case magnitude:value = mVolume->GetMRIMagnitudeValueAtRAS( RAS );break;
+	}
+	
+	//      memset (color, 0, sizeof(int) * 3);
+	switch( mColorMapMethod ) { 
+	case grayscale: GetGrayscaleColorForValue( value, dest, color );break;
+	case heatScale: GetHeatscaleColorForValue( value, dest, color );break;
+	case LUT:       GetColorLUTColorForValue( value, dest, color ); break;
+	}
+	
+	dest[0] = aColorTimesOneMinusOpacity[dest[0]] + 
+	  aColorTimesOpacity[color[0]];
+	dest[1] = aColorTimesOneMinusOpacity[dest[1]] + 
+	  aColorTimesOpacity[color[1]];
+	dest[2] = aColorTimesOneMinusOpacity[dest[2]] + 
+	  aColorTimesOpacity[color[2]];
+	dest[3] = (GLubyte) 255;
       }
-
-      //      memset (color, 0, sizeof(int) * 3);
-      switch( mColorMapMethod ) { 
-      case grayscale: GetGrayscaleColorForValue( value, dest, color );break;
-      case heatScale: GetHeatscaleColorForValue( value, dest, color );break;
-      case LUT:       GetColorLUTColorForValue( value, dest, color ); break;
-      }
-
-      dest[0] = aColorTimesOneMinusOpacity[dest[0]] + 
-	aColorTimesOpacity[color[0]];
-      dest[1] = aColorTimesOneMinusOpacity[dest[1]] + 
-	aColorTimesOpacity[color[1]];
-      dest[2] = aColorTimesOneMinusOpacity[dest[2]] + 
-	aColorTimesOpacity[color[2]];
-      dest[3] = (GLubyte) 255;
-
+      
       dest += 4;
     }
   }
 
-  // Precalc our color * opacity.
-  GLubyte aColorTimesROIOpacity[256];
-  GLubyte aColorTimesOneMinusROIOpacity[256];
-  for( int i = 0; i < 256; i++ ) {
-    aColorTimesROIOpacity[i] = (GLubyte)( (float)i * mROIOpacity );
-    aColorTimesOneMinusROIOpacity[i] = 
-      (GLubyte)( (float)i * (1.0 - mROIOpacity) );
-  }
-
-  for( window[1] = windowMin[1]; window[1] < windowMax[1]; window[1]++ ) {
-    dest = iBuffer + (window[1] * iWidth * 4) + (windowMin[0] * 4);
-    for( window[0] = windowMin[0]; window[0] < windowMax[0]; window[0]++ ) {
+  for( window[1] = 0; window[1] < iHeight; window[1]++ ) {
+    for( window[0] = 0; window[0] < iWidth; window[0]++ ) {
       
       // Use our buffer to get an RAS point.
       Point3<float> RAS = windowToRAS.Get( window[0], window[1] );
 
       int selectColor[3];
-      if( mVolume->IsRASSelected( RAS.xyz(), selectColor ) ) {
+      if( mVolume->IsRASInMRIBounds( RAS.xyz() ) ) {
+	if( mVolume->IsRASSelected( RAS.xyz(), selectColor ) ) {
 	
 	// Write the RGB value to the buffer. Write a 255 in the
 	// alpha byte.
-	dest[0] = aColorTimesOneMinusROIOpacity[dest[0]] +
-	  aColorTimesROIOpacity[selectColor[0]];
-	dest[1] = aColorTimesOneMinusROIOpacity[dest[1]] +
-	  aColorTimesROIOpacity[selectColor[1]];
-	dest[2] = aColorTimesOneMinusROIOpacity[dest[2]] +
-	  aColorTimesROIOpacity[selectColor[2]];
+	dest[0] = (GLubyte) (((float)dest[0] * (1.0 - mROIOpacity)) +
+			     ((float)selectColor[0] * mROIOpacity));
+	dest[1] = (GLubyte) (((float)dest[1] * (1.0 - mROIOpacity)) +
+			     ((float)selectColor[1] * mROIOpacity));
+	dest[2] = (GLubyte) (((float)dest[2] * (1.0 - mROIOpacity)) +
+			     ((float)selectColor[2] * mROIOpacity));
+      }
       }
       
       // Advance our pixel buffer pointer.
@@ -1396,7 +1345,9 @@ UndoSelectionAction::UndoSelectionAction ( VolumeCollection* iVolume,
 					   bool ibSelect, float iRAS[3] ) {
   mVolume = iVolume;
   mbSelect = ibSelect;
-  memcpy( mRAS, iRAS, sizeof(float) * 3 );
+  mRAS[0] = iRAS[0];
+  mRAS[1] = iRAS[1];
+  mRAS[2] = iRAS[2];
 }
 
 void
@@ -1431,14 +1382,14 @@ EdgePathFinder::EdgePathFinder ( int iViewWidth, int iViewHeight,
 float 
 EdgePathFinder::GetEdgeCost ( Point2<int>& iPoint ) {
 
-  // Get the 1/magnitude value at this point. We add 0.1 to it because
+  // Get the magnitude value at this point. We add 0.1 to it because
   // if it's 0, there's no preference for straight lines, since
   // diagonal lines will have the same cost, which in some cases makes
   // a really weird looking line.
   float RAS[3];
   mTranslator->TranslateWindowToRAS( iPoint.xy(), RAS );
   if( mVolume->IsRASInMRIBounds( RAS ) ) {
-    return 1.0 / (mVolume->GetMRIMagnitudeValueAtRAS( RAS ) + 0.0001);
+    return mVolume->GetMRIMagnitudeValueAtRAS( RAS ) + 0.1;
   } else {
     return mLongestEdge;
   }

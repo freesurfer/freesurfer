@@ -6,12 +6,13 @@
 #include "PreferencesManager.h"
 #include "ScubaGlobalPreferences.h"
 #include "Timer.h"
+#include "Point2.h"
+#include "Point3.h"
 
 using namespace std;
 
 int const ScubaView::kBytesPerPixel = 4;
 map<int,bool> ScubaView::mViewIDLinkedList;
-int ScubaView::mCurrentBroadcaster = -1;
 
 int const ScubaView::kcInPlaneMarkerColors = 12;
 float kInPlaneMarkerColors[ScubaView::kcInPlaneMarkerColors][3] = {
@@ -56,17 +57,16 @@ ScubaView::ScubaView() {
 
     ScubaTransform* transform = new ScubaTransform();
     transform->SetLabel( "Identity" );
-    transform->AddListener( this );
     
     try {
       mWorldToView = &(ScubaTransform::FindByID( 0 ));
+      mWorldToView->AddListener( this );
     }
     catch(...) {
       DebugOutput( << "Couldn't make default transform!" );
     }
   }
-
-
+  
   TclCommandManager& commandMgr = TclCommandManager::GetManager();
   commandMgr.AddCommand( *this, "SetViewInPlane", 2, "viewID inPlane",
 			 "Sets the in plane in a view. inPlane should be "
@@ -234,6 +234,9 @@ ScubaView::SetLayerAtLevel ( int iLayerID, int iLevel ) {
       if( 0 == iLevel ) {
 	layer.GetPreferredInPlaneIncrements( mInPlaneMovementIncrements );
       }
+
+      // Listen to it.
+      layer.AddListener( this );
 
     }
     catch(...) {
@@ -766,23 +769,28 @@ ScubaView::DoListenToTclCommand( char* isCommand, int iArgc, char** iasArgv ) {
 }
 
 void
-ScubaView::DoListenToMessage ( string isCommand, void* iData ) {
+ScubaView::DoListenToMessage ( string isMessage, void* iData ) {
   
-  if( isCommand == "transformChanged" ) {
+  if( isMessage == "transformChanged" ) {
     RebuildOverlayDrawList(); // our overlay coords are different now
     RequestRedisplay();
   }
 
-  if( isCommand == "DrawCoordinateOverlay" ||
-      isCommand == "DrawCenterCrosshairOverlay" ) {
+  if( isMessage == "layerChanged" ) {
+    RequestRedisplay();
+    SendBroadcast( "viewChanged", NULL );
+  }
+
+  if( isMessage == "DrawCoordinateOverlay" ||
+      isMessage == "DrawCenterCrosshairOverlay" ) {
     RebuildOverlayDrawList(); // our overlay will be different
     RequestRedisplay();
   }
 
   // If we're linked, we need to change our view.
-  if( isCommand == "2DRASCenterChanged" ||
-      isCommand == "2DZoomLevelChanged" ||
-      isCommand == "2DInPlaneChanged" ) {
+  if( isMessage == "2DRASCenterChanged" ||
+      isMessage == "2DZoomLevelChanged" ||
+      isMessage == "2DInPlaneChanged" ) {
     int viewID = *(int*)iData;
     if( mViewIDLinkedList[GetID()] && mViewIDLinkedList[viewID] ) {
       View& view = View::FindByID( viewID );
@@ -790,11 +798,11 @@ ScubaView::DoListenToMessage ( string isCommand, void* iData ) {
       ScubaView& scubaView = (ScubaView&)view;
 
       // Change center or zoom level if linked. Don't link the in plane.
-      if( isCommand == "2DRASCenterChanged" ) {
+      if( isMessage == "2DRASCenterChanged" ) {
 	float RASCenter[3];
 	scubaView.Get2DRASCenter( RASCenter );
 	Set2DRASCenter( RASCenter );
-      } else if ( isCommand == "2DZoomLevelChanged" ) {
+      } else if ( isMessage == "2DZoomLevelChanged" ) {
 	float zoomLevel;
 	zoomLevel = scubaView.Get2DZoomLevel();
 	Set2DZoomLevel( zoomLevel );
@@ -809,14 +817,16 @@ ScubaView::DoListenToMessage ( string isCommand, void* iData ) {
   }
 
   // We cache these values but down have to act on them right away.
-  if( isCommand == "KeyMoveViewLeft" )  msMoveViewLeft  = *(string*)iData;
-  if( isCommand == "KeyMoveViewRight" ) msMoveViewRight = *(string*)iData;
-  if( isCommand == "KeyMoveViewUp" )    msMoveViewUp    = *(string*)iData;
-  if( isCommand == "KeyMoveViewDown" )  msMoveViewDown  = *(string*)iData;
-  if( isCommand == "KeyMoveViewIn" )    msMoveViewIn    = *(string*)iData;
-  if( isCommand == "KeyMoveViewOut" )   msMoveViewOut   = *(string*)iData;
-  if( isCommand == "KeyZoomViewIn" )    msZoomViewIn    = *(string*)iData;
-  if( isCommand == "KeyZoomViewOut" )   msZoomViewOut   = *(string*)iData;
+  if( isMessage == "KeyMoveViewLeft" )  msMoveViewLeft  = *(string*)iData;
+  if( isMessage == "KeyMoveViewRight" ) msMoveViewRight = *(string*)iData;
+  if( isMessage == "KeyMoveViewUp" )    msMoveViewUp    = *(string*)iData;
+  if( isMessage == "KeyMoveViewDown" )  msMoveViewDown  = *(string*)iData;
+  if( isMessage == "KeyMoveViewIn" )    msMoveViewIn    = *(string*)iData;
+  if( isMessage == "KeyMoveViewOut" )   msMoveViewOut   = *(string*)iData;
+  if( isMessage == "KeyZoomViewIn" )    msZoomViewIn    = *(string*)iData;
+  if( isMessage == "KeyZoomViewOut" )   msZoomViewOut   = *(string*)iData;
+
+  View::DoListenToMessage( isMessage, iData );
 }
 
 void
@@ -1226,7 +1236,7 @@ ScubaView::DoKeyUp( int iWindow[2],
 }
 
 void
-ScubaView::TranslateWindowToRAS ( int iWindow[2], float oRAS[3] ) {
+ScubaView::TranslateWindowToRAS ( int const iWindow[2], float oRAS[3] ) {
 
   // At zoom level one every pixel is an RAS point, so we're scaled by
   // that and then offset by the RAS center. We find a 3D point by
@@ -1270,7 +1280,7 @@ ScubaView::ConvertWindowToRAS ( float iWindow, float iRASCenter,
 }
 
 void
-ScubaView::TranslateRASToWindow ( float iRAS[3], int oWindow[2] ) {
+ScubaView::TranslateRASToWindow ( float const iRAS[3], int oWindow[2] ) {
   
   float viewRAS[3];
   mWorldToView->MultiplyVector3( iRAS, viewRAS );
@@ -1617,6 +1627,10 @@ ScubaView::DrawOverlay () {
   glCallList( kOverlayDrawListID + mID );
 }
 
+ScubaViewBroadcaster::ScubaViewBroadcaster () {
+  mCurrentBroadcaster = -1;
+}
+
 ScubaViewBroadcaster&
 ScubaViewBroadcaster::GetBroadcaster () {
   static ScubaViewBroadcaster* sBroadcaster = NULL;
@@ -1624,4 +1638,27 @@ ScubaViewBroadcaster::GetBroadcaster () {
     sBroadcaster = new ScubaViewBroadcaster();
   }
   return *sBroadcaster;
+}
+
+void
+ScubaViewBroadcaster::SendBroadcast ( std::string isMessage, void* iData ) {
+
+  // If this is a message for linked views, we want to basically put a
+  // mutex on broadcasting.
+  if( isMessage == "2DRASCenterChanged" ||
+      isMessage == "2DZoomLevelChanged" ||
+      isMessage == "2DInPlaneChanged" ) {
+
+    // If -1, no current broadcaster. Save this one's ID and pass the
+    // message along. If it is -1, don't pass the broadcast.
+    if( mCurrentBroadcaster == -1 ) {
+      
+      int viewID = *(int*)iData;
+      mCurrentBroadcaster = viewID;
+      
+      Broadcaster::SendBroadcast( isMessage, iData );
+
+      mCurrentBroadcaster = -1;
+    }
+  }
 }

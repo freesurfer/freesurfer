@@ -10,7 +10,7 @@ if { $err } {
     load [file dirname [info script]]/libscuba[info sharedlibextension] scuba
 }
 
-DebugOutput "\$Id: scuba.tcl,v 1.31 2004/05/26 21:26:40 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.32 2004/06/10 23:15:06 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -163,6 +163,17 @@ proc GetDefaultFileLocation { iType } {
 		    set gsaDefaultLocation($iType) [exec pwd]
 		}	       
 	    }
+	    Transform {
+		if { [info exists env(SUBJECTS_DIR)] } {
+		    if { [info exists gSubject(homeDir)] } {
+			set gsaDefaultLocation($iType) $gSubject(homeDir)/mri/transforms
+		    } else {
+			set gsaDefaultLocation($iType) $env(SUBJECTS_DIR)
+		    }
+		} else {
+		    set gsaDefaultLocation($iType) [exec pwd]
+		}	       
+	    }
 	    LUT {
 		if { [info exists env(FREESURFER_HOME)] } {
 		    set gsaDefaultLocation($iType) $env(FREESURFER_HOME)
@@ -233,6 +244,7 @@ proc FindFile { ifn } {
 	    
 	    # Check a couple of the common places to find files.
 	    lappend lfn [file join $gSubject(homeDir) mri $ifn]
+	    lappend lfn [file join $gSubject(homeDir) mri transforms $ifn]
 	    lappend lfn [file join $gSubject(homeDir) label $ifn]
 	    lappend lfn [file join $gSubject(homeDir) surf $ifn]
 	    foreach fnTest $lfn {
@@ -410,6 +422,7 @@ proc MakeMenuBar { ifwTop } {
     tkuMakeMenu -menu $gaMenu(file) -label "File" -items {
 	{command "Load Volume..." { DoLoadVolumeDlog } }
 	{command "Load Label..." { DoLoadLabelDlog } }
+	{command "Load Transform..." { DoLoadTransformDlog } }
 	{separator}
 	{command "Save Label..." { DoSaveLabelDlog } }
 	{command "Export Labels as Segmenation..." { DoExportLabelsDlog } }
@@ -929,6 +942,18 @@ proc MakeSubjectsLoaderPanel { ifwTop } {
     grid $fwData.surfacesButton -column 1 -row 2 -sticky e
 
 
+    tixOptionMenu $fwData.transformsMenu \
+	-label "Transforms:"
+    set gaWidget(subjectsLoader,transformMenu) $fwData.transformsMenu
+
+    button $fwData.transformsButton \
+	-text "Load" \
+	-command {LoadTransform [$gaWidget(subjectsLoader,transformMenu) cget -value]}
+    
+    grid $fwData.transformsMenu     -column 0 -row 3 -sticky ew
+    grid $fwData.transformsButton   -column 1 -row 3 -sticky e
+
+
     grid columnconfigure $fwData 0 -weight 1
     grid columnconfigure $fwData 1 -weight 0
     
@@ -1062,9 +1087,17 @@ proc MakeDataCollectionsPropertiesPanel { ifwTop } {
 	-notify 1
     set gaWidget(collectionProperties,labelEntry) $fwPropsCommon.ewLabel
 
-    grid $fwPropsCommon.ewID      -column 0 -row 0               -sticky nw
-    grid $fwPropsCommon.ewType    -column 1 -row 0               -sticky new
-    grid $fwPropsCommon.ewLabel   -column 0 -row 1 -columnspan 2 -sticky we
+    tixOptionMenu $fwPropsCommon.mwTransform \
+	-label "Transform:" \
+	-variable gaCollection(current,transformID) \
+	-command "CollectionPropertiesTransformMenuCallback"
+    set gaWidget(collectionProperties,transformMenu) \
+	$fwPropsCommon.mwTransform
+    
+    grid $fwPropsCommon.ewID       -column 0 -row 0               -sticky nw
+    grid $fwPropsCommon.ewType     -column 1 -row 0               -sticky new
+    grid $fwPropsCommon.ewLabel    -column 0 -row 1 -columnspan 2 -sticky we
+    grid $fwPropsCommon.mwTransform -column 0 -row 2 -columnspan 2 -sticky we
 
 
     frame $fwPropsVolume
@@ -1567,6 +1600,12 @@ proc MakeTransformsPanel { ifwTop } {
 
     grid $fwProps.bwSetTransform -column 0 -row 6 -columnspan 4 -sticky ew
 
+    button $fwProps.bwInvert -text "Invert" \
+	-command { InvertTransform $gaTransform(current,id); UpdateTransformList }
+
+    grid $fwProps.bwInvert -column 0 -row 7 -columnspan 4 -sticky ew
+
+
     frame $fwCommands
     button $fwCommands.bwMakeTransform -text "Make New Transform" \
 	-command { set transformID [MakeNewTransform]; SetTransformLabel $transformID "New Transform"; UpdateTransformList; SelectTransformInTransformProperties $transformID }
@@ -1650,6 +1689,7 @@ proc SelectCollectionInCollectionProperties { iColID } {
     set gaCollection(current,id) $iColID
     set gaCollection(current,type) [GetCollectionType $iColID]
     set gaCollection(current,label) [GetCollectionLabel $iColID]
+    set gaCollection(current,transformID) [GetDataTransform $iColID]
     tkuRefreshEntryNotify $gaWidget(collectionProperties,labelEntry)
 
     # Make sure that this is the item selected in the menu. Disale the
@@ -1659,6 +1699,12 @@ proc SelectCollectionInCollectionProperties { iColID } {
     $gaWidget(collectionProperties,menu) config -value $iColID
     $gaWidget(collectionProperties,menu) config -disablecallback 0
     
+    # Select the right transform in the transform menu
+    $gaWidget(collectionProperties,transformMenu) config -disablecallback 1
+    $gaWidget(collectionProperties,transformMenu) config \
+	-value $gaCollection(current,transformID)
+    $gaWidget(collectionProperties,transformMenu) config -disablecallback 0    
+
     # Do the type specific stuff.
     switch $gaCollection(current,type) {
 	Volume { 
@@ -1774,6 +1820,17 @@ proc ROIPropertiesLUTMenuCallback { iLUTID } {
     SelectLUTInROIProperties $iLUTID
 }
 
+
+proc CollectionPropertiesTransformMenuCallback { iTransformID } {
+    dputs "CollectionPropertiesTransformMenuCallback  $iTransformID  "
+
+    global gaCollection
+    global gaTransform
+    
+    # Set the transform in this collection and redraw.
+    SetDataTransform $gaCollection(current,id) $iTransformID
+    RedrawFrame [GetMainFrameID]
+}
 
 proc SelectLUTInROIProperties { iLUTID } {
     dputs "SelectLUTInROIProperties  $iLUTID  "
@@ -2306,6 +2363,22 @@ proc SelectSubjectInSubjectsLoader { isSubject } {
 	}
     }
     
+
+    set lEntries [$gaWidget(subjectsLoader,transformMenu) entries]
+    foreach entry $lEntries { 
+	$gaWidget(subjectsLoader,transformMenu) delete $entry
+    }
+    # For transforms, look for all the $sSubject/mri/transforms/*lta and *xfm.
+    set lContents [dir -full $env(SUBJECTS_DIR)/$isSubject/mri/transforms]
+    foreach sItem $lContents {
+	if { [file extension $sItem] == ".lta" ||
+	     [file extension $sItem] == ".xfm" } {
+	    $gaWidget(subjectsLoader,transformMenu) add \
+		command "$env(SUBJECTS_DIR)/$isSubject/mri/transforms/$sItem" \
+		-label $sItem
+	}
+    }
+    
 }
 
 proc LoadVolumeFromSubjectsLoader { isVolume } {
@@ -2436,6 +2509,10 @@ proc UpdateTransformList {} {
 
     # Now rebuild the transform list in the view props panel.
     FillMenuFromList $gaWidget(viewProperties,transformMenu) \
+	$gaTransform(idList) "GetTransformLabel %s" {} false
+
+    # Now rebuild the transform list in the collection props panel.
+    FillMenuFromList $gaWidget(collectionProperties,transformMenu) \
 	$gaTransform(idList) "GetTransformLabel %s" {} false
 }
 
@@ -2959,6 +3036,8 @@ proc LoadVolume { ifnVolume ibCreateLayer iFrameIDToAdd } {
 
     # Add this directory to the shortcut dirs if it isn't there already.
     AddDirToShortcutDirsList [file dirname $ifnVolume]
+
+    SetStatusBarText "Loaded $ifnVolume."
 }
 
 proc LoadSurface { ifnSurface ibCreateLayer iFrameIDToAdd } {
@@ -2991,6 +3070,30 @@ proc LoadSurface { ifnSurface ibCreateLayer iFrameIDToAdd } {
 
     # Add this directory to the shortcut dirs if it isn't there already.
     AddDirToShortcutDirsList [file dirname $ifnSurface]
+
+    SetStatusBarText "Loaded $ifnSurface."
+}
+
+proc LoadTransform { ifnLTA } {
+    dputs "LoadTransform"
+    
+    set fnTransform [FindFile $ifnLTA]
+
+    set transformID [MakeNewTransform]
+
+    set sLabel [ExtractLabelFromFileName $fnTransform]
+
+    SetTransformLabel $transformID $sLabel
+
+    UpdateTransformList
+
+    set err [catch {
+	LoadTransformFromLTAFile $transformID $fnTransform } sResult]
+    if { 0 != $err } { tkuErrorDlog "$sResult"; return }
+
+    SelectTransformInTransformProperties $transformID
+
+    SetStatusBarText "Loaded $ifnLTA."
 }
 
 proc DoLoadVolumeDlog {} {
@@ -3118,6 +3221,20 @@ proc DoLoadLabelDlog {} {
 	 tkuErrorDlog "There are no data collections. Load some data and try again."
      }
 
+}
+
+proc DoLoadTransformDlog {} {
+    dputs "DoLoadTransformDlog  "
+
+    global glShortcutDirs
+
+    tkuDoFileDlog -title "Load Transform" \
+	-prompt1 "Load Transform: " \
+	-defaultdir1 [GetDefaultFileLocation Transform] \
+	-shortcuts $glShortcutDirs \
+	-okCmd { 
+	    LoadTransform %s1
+	}
 }
 
 
@@ -3348,3 +3465,7 @@ proc UpdateFrame {} {
 }
 
 #after 1000  { UpdateFrame }
+
+
+
+

@@ -195,6 +195,40 @@ DataCollectionTester::Test ( Tcl_Interp* iInterp ) {
 	      "in list returned by Tcl GetROIIDListForCollection" );
     }
 
+
+    // Test transform functions.
+    int transformID = col1.GetDataToWorldTransform();
+    Assert( (0 == transformID), "initial transform should be 0" );
+
+    ScubaTransform t1;
+    col1.SetDataToWorldTransform( t1.GetID() );
+    Assert( (col1.GetDataToWorldTransform() == t1.GetID()), 
+	    "GetDataToWorldTransform didn't match transforms ID" );
+
+    // Test transform tcl functions.
+    sprintf( sCommand, "GetDataTransform %d", col1.GetID() );
+    rTcl = Tcl_Eval( iInterp, sCommand );
+    AssertTclOK( rTcl );
+    sTclResult = Tcl_GetStringResult( iInterp );
+    stringstream ssID( sTclResult );
+    ssID >> transformID;
+    Assert( (col1.GetDataToWorldTransform() == transformID), 
+	    "tcl GetDataTransform didn't match GetDataToWorldTransform" );
+
+    ScubaTransform t2;
+    sprintf( sCommand, "SetDataTransform %d %d", col1.GetID(), t2.GetID() );
+    rTcl = Tcl_Eval( iInterp, sCommand );
+    AssertTclOK( rTcl );
+
+    sprintf( sCommand, "GetDataTransform %d", col1.GetID() );
+    rTcl = Tcl_Eval( iInterp, sCommand );
+    AssertTclOK( rTcl );
+    sTclResult = Tcl_GetStringResult( iInterp );
+    stringstream ssID2( sTclResult );
+    ssID2 >> transformID;
+    Assert( (col1.GetDataToWorldTransform() == t2.GetID()), 
+	    "tcl GetDataTransform didn't match transform's ID" );
+    
     
   }
   catch( exception e ) {

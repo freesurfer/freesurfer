@@ -15,7 +15,7 @@ class ScubaLayerFactory : public DebugReporter, public TclCommandListener {
   static ScubaLayerFactory& GetFactory();
 
   virtual TclCommandResult
-    DoListenToTclCommand ( char* iCommand, int iArgc, char** iArgv );
+    DoListenToTclCommand ( char* isCommand, int iArgc, char** iArgv );
 
   Layer& MakeLayer ( std::string iType );
   

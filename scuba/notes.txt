@@ -262,6 +262,23 @@ x     - functions to NewTask, UpdateTask, CheckForTaskButtons
 x   - change scuba.tcl functions
 x     - display text, progress, have buttons on right
 
+- data transforms
+  x DataCollection transform
+  x VolumeCollection uses combo of world->data and data->index
+  x interface for setting transform in VolumeCollection
+  x split ScubaTransform and Transform
+  x Transform::ApplyTransform 
+  x since mWorldToIndexTransform is composed of two ScubaTransforms, it should be a normal Matrix, but since it's used like a ScubaTransform, it should be a Transform
+    x secondary class Transform with InvMultiply stuff?  so have Matrix44, Transform44, and ScubaTransform
+  - make test_ stuff work
+  x add changed messages to DataCollection, Layer, View, so that one message can propogate RequestRedisplays up to Frame and cause a redraw
+  - volume still not updating when its transform is changed
+  x clean up a few ScubaTransforms
+  x Load Transform
+  x button to Invert scuba transform
+  - need to duplicate the stuff in mriVolume.c:736?
+
+
 DRAWING TOOLS:::
 
 - connecting lines
@@ -272,6 +289,8 @@ DRAWING TOOLS:::
 
 BRUCE'S LIST:::
 
+- data collection transform 
+- markers
 - b/c controled by mouse, perhaps mod+mouse when nav tool is on
 
 
@@ -281,7 +300,7 @@ BUGS:::
 - brings up tkcon window briefly when booting
 - sometimes filling returns an error with NewTask tcl cmd
 - crashing on ROI fill
-
+- linking doesn't work at all
 
 FUTURE IDEAS:::
 
@@ -298,3 +317,6 @@ nav tools draw onscreen sliders for feedback
 
 optimization
  - replace if's in DrawIntoBuffer with function pointers, i.e. GetValueAtRASForSampleMethod and GetColorOfValueForColorMapMethod - woudn't matter much
+
+
+

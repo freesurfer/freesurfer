@@ -182,6 +182,20 @@ ScubaViewTester::Test( Tcl_Interp* iInterp ) {
     ScubaView view;
     view.SetFlipLeftRightYZ( false );
     
+
+    // Make sure they both have the default transform.
+    int viewTransformID = view.GetWorldToViewTransform();
+    Assert( (viewTransformID == 0), "view didn't get default transform" );
+
+    ScubaView view2;
+    int view2TransformID = view2.GetWorldToViewTransform();
+    Assert( (view2TransformID == 0), "view2 didn't get default transform" );
+
+    ScubaView view3;
+    int view3TransformID = view3.GetWorldToViewTransform();
+    Assert( (view3TransformID == 0), "view3 didn't get default transform" );
+
+
     // Set our view state stuff and check it.
     float center[3] = { 5.0, 5.1, 5.2 };
     view.Set2DRASCenter( center );

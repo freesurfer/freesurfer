@@ -11,6 +11,28 @@ DeclareIDTracker(DataCollection);
 DataCollection::DataCollection() {
   mSelectedROIID = -1;
 
+
+  // Try setting our initial transform to the default transform with
+  // id 0. If it's not there, create it.
+  try { 
+    mDataToWorldTransform = &(ScubaTransform::FindByID( 0 ));
+    mDataToWorldTransform->AddListener( this );
+  }
+  catch(...) {
+
+    ScubaTransform* transform = new ScubaTransform();
+    transform->SetLabel( "Identity" );
+
+    try {
+      mDataToWorldTransform = &(ScubaTransform::FindByID( 0 ));
+      mDataToWorldTransform->AddListener( this );
+    }
+    catch(...) {
+      DebugOutput( << "Couldn't make default transform!" );
+    }
+  }
+  
+
   TclCommandManager& commandMgr = TclCommandManager::GetManager();
   commandMgr.AddCommand( *this, "SetCollectionLabel", 2, "collectionID label",
 			 "Set the label for a collection." );
@@ -26,6 +48,11 @@ DataCollection::DataCollection() {
   commandMgr.AddCommand( *this, "GetROIIDListForCollection", 1, "colID",
 			 "Returns a lit of roiIDs belonging to this "
 			 "collection." );
+  commandMgr.AddCommand( *this, "SetDataTransform", 2, "colID transformID",
+			 "Set the data to world transform for a view." );
+  commandMgr.AddCommand( *this, "GetDataTransform", 1, "colID",
+			 "Returns the transformID of a view's data to "
+			 "world transform." );
 }
 
 DataCollection::~DataCollection() {
@@ -158,7 +185,49 @@ DataCollection::DoListenToTclCommand( char* isCommand, int iArgc, char** iasArgv
     }
   }
 
+  // SetDataTransform <colID> <transformID>
+  if( 0 == strcmp( isCommand, "SetDataTransform" ) ) {
+    int colID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad collection ID";
+      return error;
+    }
+    
+    if( mID == colID ) {
+      
+      int transformID = strtol( iasArgv[2], (char**)NULL, 10 );
+      if( ERANGE == errno ) {
+	sResult = "bad transformID";
+	return error;
+      }
+      
+      SetDataToWorldTransform( transformID );
+    }
+  }
+
+  // GetDataTransform <viewID>
+  if( 0 == strcmp( isCommand, "GetDataTransform" ) ) {
+    int colID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad collection ID";
+      return error;
+    }
+    
+    if( mID == colID ) {
+
+      sReturnFormat = "i";
+      stringstream ssReturnValues;
+      ssReturnValues << (int)GetDataToWorldTransform();
+      sReturnValues = ssReturnValues.str();
+    }
+  }
+
   return ok;
+}
+
+void
+DataCollection::DoListenToMessage ( string isMessage, void* iData ) {
+  
 }
 
 int
@@ -194,3 +263,27 @@ DataCollection::DoNewROI () {
   return NULL;
 }
  
+void
+DataCollection::SetDataToWorldTransform ( int iTransformID ) {
+
+  try {
+    mDataToWorldTransform->RemoveListener( this );
+    mDataToWorldTransform = &(ScubaTransform::FindByID( iTransformID ));
+    mDataToWorldTransform->AddListener( this );
+  }
+  catch(...) {
+    DebugOutput( << "Couldn't find transform " << iTransformID );
+  }
+}
+
+int
+DataCollection::GetDataToWorldTransform () {
+
+  return mDataToWorldTransform->GetID();
+}
+
+void
+DataCollection::DataChanged () {
+  
+  SendBroadcast( "dataChanged", NULL );
+}

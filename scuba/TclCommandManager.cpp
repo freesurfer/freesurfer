@@ -6,13 +6,13 @@
 using namespace std;
 
 TclCommandListener::TclCommandResult
-TclCommandListener::ListenToTclCommand ( char* iCommand, 
+TclCommandListener::ListenToTclCommand ( char* isCommand, 
 					 int iArgc, char** iArgv ) {
   sReturnFormat.clear();
   sReturnValues.clear();
   sResult.clear();
 
-  return this->DoListenToTclCommand( iCommand, iArgc, iArgv );
+  return this->DoListenToTclCommand( isCommand, iArgc, iArgv );
 }
 
 TclCommandListener::~TclCommandListener () {

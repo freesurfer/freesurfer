@@ -29,7 +29,7 @@ class ScubaLayer2DMRIS : public Layer {
   virtual std::string GetTypeDescription () { return "2DMRIS"; }
 
   virtual TclCommandResult
-    DoListenToTclCommand ( char* iCommand, int iArgc, char** iArgv );
+    DoListenToTclCommand ( char* isCommand, int iArgc, char** iArgv );
 
   void SetLineColor3d ( int iaLineColor[3] ) {
     maLineColor[0] = iaLineColor[0];

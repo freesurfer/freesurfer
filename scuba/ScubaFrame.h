@@ -7,8 +7,12 @@
 #include "IDTracker.h"
 #include "View.h"
 #include "ScubaToolState.h"
+#include "Listener.h"
 
-class ScubaFrame : public ToglFrame, public TclCommandListener {
+class ScubaFrame : public ToglFrame, 
+		   public TclCommandListener,
+		   public Listener // viewChanged
+{
 
   friend class ScubaFrameTester;
 
@@ -23,7 +27,10 @@ public:
   void SetViewConfiguration( ViewConfiguration iConfig );
 
   virtual TclCommandResult
-    DoListenToTclCommand( char* iCommand, int iArgc, char** iArgv );
+    DoListenToTclCommand( char* isCommand, int iArgc, char** iArgv );
+
+  virtual void
+    DoListenToMessage ( std::string isMessage, void* iData );
 
   // Sets the factory to use for creating new frames.
   static void SetViewFactory( ViewFactory* const iFactory ) { 
