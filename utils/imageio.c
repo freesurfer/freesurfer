@@ -60,6 +60,7 @@ static int JPEGWriteImage(IMAGE *I, char *fname, int frame) ;
 static IMAGE *PGMReadImage(char *fname) ;
 static IMAGE *PGMReadHeader(FILE *fp, IMAGE *) ;
 static int PGMWriteImage(IMAGE *I, char *fname, int frame) ;
+static int PPMWriteImage(IMAGE *I, char *fname, int frame) ;
 static IMAGE *PPMReadImage(char *fname) ;
 static IMAGE *PPMReadHeader(FILE *fp, IMAGE *) ;
 static IMAGE *PBMReadImage(char *fname) ;
@@ -135,6 +136,9 @@ ImageFWrite(IMAGE *I, FILE *fp, char *fname)
     break;
   case PGM_IMAGE:
     PGMWriteImage(I, fname, frame);
+    break;
+  case PPM_IMAGE:
+    PPMWriteImage(I, fname, frame);
     break;
   case HIPS_IMAGE:
     if (endian == END_UNDEF)
@@ -1162,6 +1166,47 @@ PGMReadImage(char *fname)
   pm_close(infile);
 
   return I;
+}
+
+static int 
+PPMWriteImage(IMAGE *I, char *fname, int frame)
+{
+  FILE *outf;
+  int i,j;
+  byte pval;
+  pixel *cpix, *pp;
+  if (I->pixel_format != PFBYTE)
+    ErrorReturn(ERROR_UNSUPPORTED, 
+                (ERROR_UNSUPPORTED, 
+                 "PPMWrite: only PFBYTE currently supported")) ;
+    
+  if ((outf = fopen(fname, "wb")) == NULL)
+    ErrorReturn(ERROR_UNSUPPORTED, 
+                (ERROR_UNSUPPORTED, 
+                 "PPMWrite: only PFBYTE currently supported")) ;
+
+  cpix = (pixel *)malloc(sizeof(pixel)*I->ocols);
+  if (!cpix)
+    ErrorReturn(ERROR_UNSUPPORTED,
+    (ERROR_UNSUPPORTED,
+     "Could not allocate color pixel buffer"));
+
+  ppm_writeppminit(outf, I->ocols, I->orows, 255, 0);
+  for(i=I->orows-1;i>=0;i--)
+    {
+      for(pp = cpix, j = 0; j<I->ocols; j++, pp++)
+  {
+    pval = *IMAGEpix(I,j,i);
+    PPM_ASSIGN(*pp, pval, pval, pval);
+  }
+      ppm_writeppmrow(outf, cpix, I->ocols, 255, 0);
+    }
+
+  fclose(outf);
+  
+  free(cpix);
+
+  return NO_ERROR;
 }
 
 static int 
