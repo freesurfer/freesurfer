@@ -15,7 +15,7 @@ function [u,s,v,M] = fast_svd(y,M)
 %
 % Note: all vectors are returned even if the corresponding value is 0
 %
-% $Id: fast_svd.m,v 1.5 2004/11/14 22:31:56 greve Exp $
+% $Id: fast_svd.m,v 1.6 2004/12/10 00:31:48 greve Exp $
 %
 
 u=[];
@@ -55,7 +55,8 @@ s = sqrt(s);
 % which will be removed during normalization
 v = y'*u; 
 vss2 = sqrt(sum(v.^2));
-v = v./repmat(vss2,[nc 1]);
+indnz = find(vss2~=0);
+v(:,indnz) = v(:,indnz)./repmat(vss2(indnz),[nc 1]);
 
 return;
 
