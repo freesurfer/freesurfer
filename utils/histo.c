@@ -1010,3 +1010,22 @@ HISTOaddSample(HISTOGRAM *histo, float val, float bmin, float bmax)
   return(bin_no) ;
 }
 
+int
+HISTOfindNextValley(HISTOGRAM *h, int b0)
+{
+  int  b ;
+  float prev_val, val ;
+
+  prev_val = h->counts[b0] ;
+  if (b0 >= h->nbins)
+    return(b0) ;
+  for (b = b0+1 ; b < h->nbins ; b++)
+  {
+    val = h->counts[b] ;
+    if (val > prev_val)
+      return(b) ;
+    prev_val = val ;
+  }
+  return(-1) ;
+}
+
