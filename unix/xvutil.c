@@ -120,8 +120,6 @@ static void            (*XVkb_handler)(Event *event, DIMAGE *dimage) = NULL;
 static void            (*XVquit_func)(void) = NULL;
 static void            (*XVrepaint_handler)(XV_FRAME *xvf,DIMAGE *dimage)=NULL;
 
-static int             brightness_shift = 0 ;  /* yuck - but what the hell */
-
 /*----------------------------------------------------------------------
             Parameters:
 
@@ -368,20 +366,17 @@ xvInitColors(XV_FRAME *xvf)
            Description:
 ----------------------------------------------------------------------*/
 int
-XVbrighten(XV_FRAME *xvf, int offset)
+XVbrighten(XV_FRAME *xvf, int which, int offset)
 {
-  int           which ;
   DIMAGE        *dimage ;
 
   /* global is a hack, but too much trouble otherwise */
-  brightness_shift += offset ;  
-  for (which = 0 ; which < xvf->rows*xvf->cols; which++)
-  {
-    dimage = xvGetDimage(which, 0) ;
-    if (!dimage)
-      continue ;
-    XVshowImage(xvf, which, dimage->sourceImage, dimage->frame) ;
-  }
+  dimage = xvGetDimage(which, 0) ;
+  if (!dimage)
+    return(ERROR_BAD_PARM) ;
+
+  dimage->bshift += offset ;
+  XVshowImage(xvf, which, dimage->sourceImage, dimage->frame) ;
 
   return(NO_ERROR) ;
 }
@@ -552,7 +547,7 @@ XVshowImage(XV_FRAME *xvf, int which, IMAGE *image, int frame)
   substtable = (unsigned long *) xv_get(xvf->cms,CMS_INDEX_TABLE);
   for (i=0;i<MAX_COLORS;i++)
   {
-    c = i + brightness_shift ;
+    c = i + dimage->bshift ;
     if (c < 0)
       c = 0 ;
     if (c > MAX_GRAY)
@@ -735,15 +730,14 @@ xv_dimage_event_handler(Xv_Window xv_window, Event *event)
       switch ((char)event->ie_code)
       {
       case '+':
-        XVbrighten(xvf, 1) ;
+        XVbrighten(xvf, which, 1) ;
         break ;
       case '-':
-        XVbrighten(xvf, -1) ;
+        XVbrighten(xvf, which, -1) ;
         break ;
       case '\n':
       case '\r':
-        brightness_shift = 0 ;
-        XVbrighten(xvf, 0) ;
+        XVbrighten(xvf, which, dimage->bshift = 0) ;
         break ;
       }
     }
@@ -1469,6 +1463,7 @@ xvCreateImage(XV_FRAME *xvf, DIMAGE *dimage, int x, int y, int which)
   dimage->which = which ;
   dimage->x = x ;
   dimage->y = y ;
+  dimage->bshift = 0 ;
   
   dimage->canvas =
     (Canvas)xv_create((Xv_opaque)xvf->frame, CANVAS,
