@@ -1093,6 +1093,19 @@ MRIturnOnFG(MRI *mri, MRI *mri_fg)
       }
     }
   }
+
+  /* now remove islands */
+  for (z = 0 ; z < depth ; z++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      for (x = 0 ; x < width ; x++)
+      {
+        if ((MRIvox(mri_fg, x, y, z) == 0) && (MRIvox(mri,x,y,z) > 0))
+          MRIvox(mri, x, y, z) = 0 ;
+      }
+    }
+  }
   return(NO_ERROR) ;
 }
 static BUFTYPE findLabel(MRI *mri, int x0, int y0, int z0) ;
