@@ -4,8 +4,8 @@
 /*                                                                     */
 /* Warning: Do not edit the following four lines.  CVS maintains them. */
 /* Revision Author: $Author: fischl $                                           */
-/* Revision Date  : $Date: 2003/12/09 20:43:27 $                                             */
-/* Revision       : $Revision: 1.18 $                                         */
+/* Revision Date  : $Date: 2003/12/09 22:48:41 $                                             */
+/* Revision       : $Revision: 1.19 $                                         */
 /***********************************************************************/
 
 #include <stdio.h>
@@ -43,6 +43,8 @@ static char *mask_fname = NULL ;
 static char *insert_fname = NULL ;
 static int  insert_label = 0 ;
 static char *histo_fname = NULL ;
+
+static float scale = 0 ;
 
 static GCA_PARMS parms ;
 static char *seg_dir = "seg" ;
@@ -168,6 +170,10 @@ main(int argc, char *argv[])
       if (!mri_seg)
         ErrorExit(ERROR_NOFILE, "%s: could not read segmentation file %s",
                   Progname, fname) ;
+			if (mri_seg->type != MRI_UCHAR)
+        ErrorExit(ERROR_NOFILE, "%s: segmentation file %s is not type UCHAR",
+                  Progname, fname) ;
+
       if (binarize)
       {
         int i ;
@@ -845,6 +851,11 @@ get_option(int argc, char *argv[])
   }
   else switch (toupper(*option))
   {
+	case 'S':
+		scale = atof(argv[2]) ;
+		printf("scaling all volumes by %2.3f after reading...\n", scale) ;
+		nargs = 1 ;
+		break ;
   case 'A':
     navgs = atoi(argv[2]) ;
     printf("applying %d mean filters to classifiers after training\n",navgs);
