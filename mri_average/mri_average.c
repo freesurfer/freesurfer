@@ -37,7 +37,8 @@ static double ryrot = 0.0 ;
 static int thresh_low = 0 ;
 static int nreductions = 2 ;
 static int conform = 1 ;
-
+static int sinc_flag = 1;
+static int sinchalfwindow = 3;
 
 int
 main(int argc, char *argv[])
@@ -230,6 +231,19 @@ get_option(int argc, char *argv[])
     fprintf(stderr, "reducing input images %d times before aligning...\n",
             nreductions) ;
   }
+  else if (!stricmp(option, "sinc"))
+  {
+    sinchalfwindow = atoi(argv[2]);
+    sinc_flag = 1;
+    nargs = 1;
+    fprintf(stderr,"using sinc interpolation with windowwidth of %d\n",
+      2*sinchalfwindow);
+  }
+  else if (!stricmp(option, "trilinear"))
+  {
+    sinc_flag = 0;
+    fprintf(stderr,"using trilinear interpolation\n");
+  }
   else if (!stricmp(option, "window"))
   {
     window_flag = 1 ;
@@ -317,7 +331,10 @@ align_with_average(MRI *mri_src, MRI *mri_avg)
   }
   if (Gdiag & DIAG_WRITE)
   {
-    mri_aligned = MRIlinearTransform(mri_src, NULL, m_L) ;
+    if(sinc_flag)
+      mri_aligned = MRIsincTransform(mri_src, NULL, m_L,sinchalfwindow) ;
+    else
+      mri_aligned = MRIlinearTransform(mri_src, NULL, m_L) ;
     MRIwriteImageViews(mri_aligned, "after_pca", 400) ;
     MRIfree(&mri_aligned) ;
   }
@@ -352,7 +369,10 @@ align_with_average(MRI *mri_src, MRI *mri_avg)
   MatrixPrint(stderr, parms.lta->xforms[0].m_L) ;
   fprintf(stderr, "\n") ;
 
-  mri_aligned = MRIlinearTransform(mri_src, NULL, parms.lta->xforms[0].m_L) ;
+  if(sinc_flag)
+    mri_aligned = MRIsincTransform(mri_src, NULL, parms.lta->xforms[0].m_L,sinchalfwindow) ;
+  else
+    mri_aligned = MRIlinearTransform(mri_src, NULL, parms.lta->xforms[0].m_L) ;
   if (Gdiag & DIAG_WRITE)
     MRIwriteImageViews(mri_aligned, "after_alignment", 400) ;
   MRIfree(&mri_in_red) ; MRIfree(&mri_ref_red) ;
