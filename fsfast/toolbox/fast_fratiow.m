@@ -16,7 +16,7 @@ function [F, dof1, dof2, ces] = fast_fratiow(beta,X,rvar,C,nacf,nacfmap)
 %
 % See also: fast_glmfitw, FTest, fast_glmfit, fast_fratio.
 %
-% $Id: fast_fratiow.m,v 1.2 2004/06/07 00:16:08 greve Exp $
+% $Id: fast_fratiow.m,v 1.3 2004/11/14 22:33:26 greve Exp $
 
 if(nargin < 4 | nargin > 6)
   fprintf('[F dof1 dof2 ces] = fast_fratiow(beta,X,rvar,C,<nacf>,<nacfmap>)\n');
@@ -72,7 +72,8 @@ else
     if(isempty(indbin)) continue; end
     if(nthbin ~= 0)
       nacfbin = nacf(:,nthbin);
-      W = inv(chol(toeplitz(nacfbin))');
+      %W = inv(chol(toeplitz(nacfbin))');
+      W = chol(inv(toeplitz(nacfbin)));
       Xbin = W*X;
     else
       Xbin = X;

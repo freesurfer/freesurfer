@@ -13,7 +13,7 @@ function [beta, rvar, vdof, r] = fast_glmfitw(y,X,nacf,nacfmap)
 %
 % See also: fast_fratiow, FTest, fast_glmfit, fast_fratio.
 %
-% $Id: fast_glmfitw.m,v 1.1 2004/06/04 14:36:22 greve Exp $
+% $Id: fast_glmfitw.m,v 1.2 2004/11/14 22:33:26 greve Exp $
 
 if(nargin < 2 | nargin > 4)
   fprintf('[beta, rvar, vdof, r] = fast_glmfitw(y,X,<nacf>,<nacfmap>)\n');
@@ -61,7 +61,8 @@ for nthbin = 0:nbins
   if(isempty(indbin)) continue; end
   if(nthbin ~= 0)
     nacfbin = nacf(:,nthbin);
-    W = inv(chol(toeplitz(nacfbin))');
+    %W = inv(chol(toeplitz(nacfbin))');
+    W = chol(inv(toeplitz(nacfbin)));
     ybin = W*y(:,indbin);
     Xbin = W*X;
   else
