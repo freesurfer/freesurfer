@@ -7,6 +7,7 @@
 #include <errno.h>
 
 #include "macros.h"
+#include "fio.h"
 #include "error.h"
 #include "diag.h"
 #include "proto.h"
@@ -14,7 +15,7 @@
 #include "mri.h"
 #include "macros.h"
 
-static char vcid[] = "$Id: mris_label_mode.c,v 1.1 2001/03/09 22:23:08 fischl Exp $";
+static char vcid[] = "$Id: mris_label_mode.c,v 1.2 2001/03/13 16:18:02 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -387,12 +388,12 @@ ReadAnnotFile(MRI_SURFACE *mris, char *fname)
                 (ERROR_NOFILE, "ReadAnnotFile(%s): file not found",fname));
   for (k=0;k<vertex_index;k++)
     AnnotLabel[k]=0;
-  fread(&num,1,sizeof(int),fp);
+  num = freadInt(fp);
   printf("num=%d\n",num);
   for (j=0;j<num;j++)
   {
-    fread(&k,1,sizeof(int),fp);
-    fread(&i,1,sizeof(float),fp);
+    k = freadInt(fp);
+    i = freadFloat(fp);
     if (k>=vertex_index||k<0)
       printf("vertex index out of range: %d i=%d\n",k,i);
     else
@@ -417,14 +418,14 @@ WriteAnnotFile(MRI_SURFACE *mris, char *fname)
                  fname, errno)) ;
   for (k=0,num=0;k<vertex_index;k++) if (AnnotLabel[k]!=0) num++;
   printf("num = %d\n",num);
-  fwrite(&num,1,sizeof(int),fp);
+  fwriteFloat(num,fp);
   for (k=0;k<vertex_index;k++)
   {
     if (AnnotLabel[k]!=0)
     {
-      fwrite(&k,1,sizeof(int),fp);
+      fwriteInt(k,fp);
       i = AnnotLabel[k];
-      fwrite(&i,1,sizeof(int),fp);
+      fwriteInt(i,fp);
     }
   }
   fclose(fp);
@@ -448,14 +449,14 @@ WriteAnnotFreqFile(MRI_SURFACE *mris,char *fname)
                  fname, errno)) ;
   for (k=0,num=0;k<vertex_index;k++) if (AnnotLabel[k]!=0) num++;
   printf("num = %d\n",num);
-  fwrite(&num,1,sizeof(int),fp);
+  fwriteInt(num,fp);
   for (k=0;k<vertex_index;k++)
   {
     if (AnnotLabel[k]!=0)
     {
-      fwrite(&k,1,sizeof(int),fp);
+      fwriteInt(k,fp);
       f = ((float)AnnotCount[k])/TotalCount;
-      fwrite(&f,1,sizeof(float),fp);
+      fwriteFloat(f,fp);
     }
   }
   fclose(fp);
@@ -478,17 +479,17 @@ WriteAnnotHistFile(MRI_SURFACE *mris, char *fname)
                  fname, errno)) ;
   for (k=0,num=0;k<vertex_index;k++) if (AnnotHistNumVertex[k]>0) num++;
   printf("num = %d\n",num);
-  fwrite(&num,1,sizeof(int),fp);
+  fwriteInt(num,fp);
   for (k=0;k<vertex_index;k++)
   {
     if (AnnotHistNumVertex[k]>0)
     {
-      fwrite(&k,1,sizeof(int),fp);
-      fwrite(&AnnotHistNumVertex[k],1,sizeof(int),fp);
+      fwriteInt(k,fp);
+      fwriteInt(AnnotHistNumVertex[k],fp);
       for (i=0;i<AnnotHistNumVertex[k];i++)
-        fwrite(&AnnotHistLabelVertex[k][i],1,sizeof(float),fp);
+        fwriteInt(AnnotHistLabelVertex[k][i],fp);
       for (i=0;i<AnnotHistNumVertex[k];i++)
-        fwrite(&AnnotHistCountVertex[k][i],1,sizeof(float),fp);
+        fwriteInt(AnnotHistCountVertex[k][i],fp);
     }
   }
   fclose(fp);
