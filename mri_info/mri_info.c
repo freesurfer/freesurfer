@@ -11,6 +11,8 @@
 #include "volume_io.h"
 #include "analyze.h"
 #include "mri_identify.h"
+#include "error.h"
+#include "diag.h"
 
 struct ge_header {
   int magic;
@@ -50,6 +52,8 @@ static char *month[] = {
 
 static char *type_text[] = { "unsigned char", "int", "long", "float", "short", "bitmap" };
 
+char *Progname ;
+
 static void usage(char *prog_name, int exit_val)
 {
 
@@ -62,6 +66,10 @@ static void usage(char *prog_name, int exit_val)
 
 int main(int argc, char *argv[])
 {
+
+  Progname = argv[0] ;
+  ErrorInit(NULL, NULL, NULL) ;
+  DiagInit(NULL, NULL, NULL) ;
 
   if(argc < 2)
     {
