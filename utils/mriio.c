@@ -2624,12 +2624,12 @@ siemensRead(char *fname, int read_volume, int frame)
   mri->xsize = mri->ysize = mri->zsize = 1.0;
   mri->thick = mri->zsize;
 
-  mri->xend = 128;
-  mri->yend = 128;
-  mri->zend = 128;
-  mri->xstart = -128;
-  mri->ystart = -128;
-  mri->zstart = -128;
+  mri->xend = mri->width/2;
+  mri->yend = mri->height/2;
+  mri->zend = mri->depth/2;
+  mri->xstart = -mri->xend;
+  mri->ystart = -mri->yend;
+  mri->zstart = -mri->zend;
 
   mri->fov = 256;
 
