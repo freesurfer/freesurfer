@@ -109,7 +109,7 @@ StatFreeRegistration(fMRI_REG **preg)
 SV *
 StatReadVolume(char *prefix)
 {
-  char         path[100], fname[100], line[MAX_LINE_LEN], *cp ;
+  char         path[STRLEN], fname[STRLEN], line[MAX_LINE_LEN], *cp ;
   STAT_VOLUME  *sv ;
   FILE         *fp ;
   int          dof_mean, dof_sigma, event_number, slice_number, which_alloc,
@@ -844,7 +844,7 @@ StatAccumulateTalairachVolume(SV *sv_tal, SV *sv)
 int
 StatWriteVolume(SV *sv, char *prefix)
 {
-  char         path[100], fname[100] ;
+  char         path[STRLEN], fname[STRLEN] ;
   FILE         *fp ;
   int          event_number, width, height, nslices, t, 
                event, nitems, x, y, z ;
@@ -1055,7 +1055,7 @@ StatWriteRegistration(fMRI_REG *reg, char *fname)
 int
 StatReadTransform(STAT_VOLUME *sv, char *name)
 {
-  char  *cp, subjects[100], fname[100] ;
+  char  *cp, subjects[STRLEN], fname[STRLEN] ;
   int   event ;
 
   /* read in the Talairach transform file */
@@ -1092,7 +1092,7 @@ StatReadTransform(STAT_VOLUME *sv, char *name)
 int       
 StatVolumeExists(char *prefix)
 {
-  char   fname[100] ;
+  char   fname[STRLEN] ;
   FILE   *fp ;
 
   sprintf(fname, "%s_%3.3d.bfloat", prefix, 0) ;
