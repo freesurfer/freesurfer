@@ -123,7 +123,7 @@ KinputInit(KINPUT *kinput, IMAGE *image)
     ImageConvolveGaussian(kinput->yInputs, kinput->gImages[scale], 
                          kinput->yInputs, scale) ;
   }
-#if 1
+#if 0
 ImageWrite(image, "i.hipl") ;
 ImageWriteFrames(kinput->xInputs, "xin.hipl", 0, kinput->xInputs->num_frame) ;
 ImageWriteFrames(kinput->yInputs, "yin.hipl", 0, kinput->yInputs->num_frame) ;
