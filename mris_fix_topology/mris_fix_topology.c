@@ -16,7 +16,7 @@
 #include "icosahedron.h"
 #include "mrishash.h"
 
-static char vcid[] = "$Id: mris_fix_topology.c,v 1.2 1999/03/01 00:04:14 fischl Exp $";
+static char vcid[] = "$Id: mris_fix_topology.c,v 1.3 1999/04/20 14:44:13 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -28,11 +28,9 @@ static void print_version(void) ;
 
 char *Progname ;
 
-static int small = 0 ;
-static int huge = 1 ;
 
-static INTEGRATION_PARMS parms ;
-static int avgs = 10 ;
+static char *sphere_name = "qsphere" ;
+static char *orig_name = "smoothwm" ;
 
 #define MAX_VERTICES  0
 #define MAX_FACES     0
@@ -42,17 +40,11 @@ main(int argc, char *argv[])
 {
   char          **av, *hemi, *sname, sdir[400], *cp, fname[500] ;
   int           ac, nargs ;
-  MRI_SURFACE   *mris, *mris_ico ;
-  int           msec ;
+  MRI_SURFACE   *mris, *mris_corrected ;
+  int           msec, nvert, nfaces, nedges, eno ;
   struct timeb  then ;
-  float         radius ;
 
-  memset(&parms, 0, sizeof(parms)) ;
-  parms.l_tspring = 1 ; parms.l_curv = .0 ; parms.niterations = 0 ;
-  parms.tol = 1e-4 ; parms.dt = 0.1f ;
-  parms.projection = NO_PROJECTION ;
-  parms.integration_type = INTEGRATE_MOMENTUM ;
-
+  Gdiag |= DIAG_WRITE ;
   Progname = argv[0] ;
   ErrorInit(NULL, NULL, NULL) ;
   DiagInit(NULL, NULL, NULL) ;
@@ -68,7 +60,7 @@ main(int argc, char *argv[])
 
   if (argc < 2)
     usage_exit() ;
-
+ 
   TimerStart(&then) ;
   sname = argv[1] ;
   hemi = argv[2] ;
@@ -78,83 +70,60 @@ main(int argc, char *argv[])
               "%s: SUBJECTS_DIR not defined in environment.\n", Progname) ;
   strcpy(sdir, cp) ;
 
-  fprintf(stderr, "creating icosahedral representation...\n") ;
-
-  /*  if (huge)*/
-    mris_ico = ic163842_make_surface(MAX_VERTICES, MAX_FACES) ;
-#if 0
-  else
-  {
-    if (small)
-      mris_ico = ic10242_make_surface(MAX_VERTICES, MAX_FACES) ;
-    else
-      mris_ico = ic40962_make_surface(MAX_VERTICES, MAX_FACES) ;
-  }
-#endif
-  if (!mris_ico)
-    ErrorExit(ERROR_NOFILE, "%s: could not create/read MR surface.",Progname) ;
-  mris_ico->hemisphere = stricmp(hemi, "lh") ? 
-      RIGHT_HEMISPHERE : LEFT_HEMISPHERE ;
-
-  sprintf(fname, "%s/%s/surf/%s.%s", sdir, sname, hemi, "qsphere") ;
+  sprintf(fname, "%s/%s/surf/%s.%s", sdir, sname, hemi, sphere_name) ;
   fprintf(stderr, "reading input surface %s...\n", fname) ;
   mris = MRISread(fname) ;
   if (!mris)
     ErrorExit(ERROR_NOFILE, "%s: could not read input surface %s",
               Progname, fname) ;
+  strcpy(mris->subject_name, sname) ;
+  eno = MRIScomputeEulerNumber(mris, &nvert, &nfaces, &nedges) ;
+  fprintf(stderr, "before topology correction, eno=%d (nv=%d, nf=%d, ne=%d,"
+          " g=%d)\n", eno, nvert, nfaces, nedges, (2-eno)/2) ;
+  MRISprojectOntoSphere(mris, mris, 100.0f) ;
+  MRISsaveVertexPositions(mris, CANONICAL_VERTICES) ;
   MRIScomputeMetricProperties(mris) ;
-  MRISreadOriginalProperties(mris, "orig") ;
-/*
-  MRISreadCanonicalCoordinates(mris, "inflated") ;
-*/
-/*
-  MRISreadCanonicalCoordinates(mris, "sphere") ;
-*/
-  /* save orig. vertex coords */
-  radius = MRISaverageRadius(mris_ico) ;
-  MRISscaleBrain(mris_ico, mris_ico, 100.0f/radius) ;
-  MRISsaveVertexPositions(mris_ico, ORIGINAL_VERTICES) ;
+  MRISreadOriginalProperties(mris, orig_name) ;
 
-  fprintf(stderr, "mapping icosahedron to cortical surface...\n") ;
+  fprintf(stderr, "using quasi-homeomorphic spherical map to tessellate "
+          "cortical surface...\n") ;
 
-  MRISreadOriginalProperties(mris, "smoothwm") ;
-  MRISinverseSphericalMap(mris, mris_ico) ;
+  mris_corrected = MRIScorrectTopology(mris, NULL) ;
   MRISfree(&mris) ;
-  MRISrestoreVertexPositions(mris_ico, ORIGINAL_VERTICES) ;
+  eno = MRIScomputeEulerNumber(mris_corrected, &nvert, &nfaces, &nedges) ;
+  fprintf(stderr, "after topology correction, eno=%d (nv=%d, nf=%d, ne=%d,"
+          " g=%d)\n", eno, nvert, nfaces, nedges, (2-eno)/2) ;
+
+  if (!mris_corrected)  /* for now */
+    exit(0) ;
+
+  sprintf(fname, "%s/%s/surf/%s.%s", sdir, sname, hemi, "inflated_corrected");
+  fprintf(stderr, "writing corrected surface to %s...\n", fname) ;
+  MRISwrite(mris_corrected, fname) ;
+
+  MRISrestoreVertexPositions(mris_corrected, ORIGINAL_VERTICES) ;
+  sprintf(fname, "%s/%s/surf/%s.%s", sdir, sname, hemi, "smoothwm_corrected");
+  fprintf(stderr, "writing corrected surface to %s...\n", fname) ;
+  MRISwrite(mris_corrected, fname) ;
+
+  MRISrestoreVertexPositions(mris_corrected, CANONICAL_VERTICES) ;
+  sprintf(fname, "%s/%s/surf/%s.%s", sdir, sname, hemi, "sphere_corrected");
+  fprintf(stderr, "writing corrected surface to %s...\n", fname) ;
+  MRISwrite(mris_corrected, fname) ;
 
 #if 0
-  MRISaverageVertexPositions(mris_ico, 5) ;
-#else
-  {
-    
-    sprintf(mris_ico->fname, 
-            "%s/%s/surf/%s.%s", sdir, sname, hemi, "smoothwm_ico") ;
-    /*    MRISsetNeighborhoodSize(mris_ico, 2) ;*/
-    
-    MRIScomputeMetricProperties(mris_ico) ;
-    strcpy(parms.base_name, "smoothwm_ico") ;
-    mris_ico->status = MRIS_SURFACE ;  /* no longer a sphere */
-    MRISstoreMetricProperties(mris_ico) ;
-    MRISprintTessellationStats(mris_ico, stderr) ;
-    if (parms.niterations > 0)
-      MRISintegrate(mris_ico, &parms, 0) ;
-  }
-#endif
-  sprintf(fname, "%s/%s/surf/%s.%s", sdir, sname, hemi, "smoothwm_ico") ;
-  fprintf(stderr, "writing corrected surface to %s...\n", fname) ;
-  MRISwrite(mris_ico, fname) ;
-
   fprintf(stderr, "computing curvature of regenerated surface...\n") ;
-  MRISsetNeighborhoodSize(mris_ico, 2) ;
-  MRIScomputeSecondFundamentalForm(mris_ico) ;
-  MRISuseMeanCurvature(mris_ico) ;
-  MRISaverageCurvatures(mris_ico, 10) ;
-  MRISwriteCurvature(mris_ico, "curv_ico") ;
+  MRISsetNeighborhoodSize(mris_corrected, 2) ;
+  MRIScomputeSecondFundamentalForm(mris_corrected) ;
+  MRISuseMeanCurvature(mris_corrected) ;
+  MRISaverageCurvatures(mris_corrected, 10) ;
+  MRISwriteCurvature(mris_corrected, "curv_corrected") ;
+#endif
 
 /*
   sprintf(fname, "%s/%s/surf/%s.%s", sdir, sname, hemi, "ico_geo") ;
   fprintf(stderr, "writing output surface to %s...\n", fname) ;
-  MRISwrite(mris_ico, fname) ;
+  MRISwrite(mris_corrected, fname) ;
 */
 
   msec = TimerStop(&then) ;
@@ -179,42 +148,24 @@ get_option(int argc, char *argv[])
     print_help() ;
   else if (!stricmp(option, "-version"))
     print_version() ;
+  else if (!stricmp(option, "name"))
+  {
+    sphere_name = argv[2] ;
+    fprintf(stderr,"reading spherical homeomorphism from '%s'\n",sphere_name);
+    nargs = 1 ;
+  }
+  else if (!stricmp(option, "orig"))
+  {
+    orig_name = argv[2] ;
+    fprintf(stderr,"reading original coordinates from '%s'\n",orig_name);
+    nargs = 1 ;
+  }
   else switch (toupper(*option))
   {
   case '?':
   case 'U':
     print_usage() ;
     exit(1) ;
-    break ;
-  case 'W':
-    Gdiag |= DIAG_WRITE ;
-    sscanf(argv[2], "%d", &parms.write_iterations) ;
-    nargs = 1 ;
-    fprintf(stderr, "using write iterations = %d\n", parms.write_iterations) ;
-    break ;
-  case 'N':
-    sscanf(argv[2], "%d", &parms.niterations) ;
-    nargs = 1 ;
-    fprintf(stderr, "using niterations = %d\n", parms.niterations) ;
-    break ;
-  case 'M':
-    parms.integration_type = INTEGRATE_MOMENTUM ;
-    parms.momentum = atof(argv[2]) ;
-    nargs = 1 ;
-    fprintf(stderr, "momentum = %2.2f\n", (float)parms.momentum) ;
-    break ;
-  case 'A':
-    avgs = atoi(argv[2]) ;
-    nargs = 1 ;
-    break ;
-  case 'S':
-    small = 1 ;
-    break ;
-  case 'H':
-    huge = 1 ;
-    break ;
-  case 'B':
-    small = 0 ;
     break ;
   case 'V':
     Gdiag_no = atoi(argv[2]) ;
