@@ -1,6 +1,6 @@
 #! /usr/bin/tixwish
 
-# $Id: tkmedit.tcl,v 1.46 2003/05/12 18:34:17 kteich Exp $
+# $Id: tkmedit.tcl,v 1.47 2003/05/16 19:41:49 kteich Exp $
 
 source $env(MRI_DIR)/lib/tcl/tkm_common.tcl
 
@@ -2729,7 +2729,7 @@ proc CreateMenuBar { ifwMenuBar } {
 		    {DoFileDlog LoadPialAuxSurface}
 		    tMenuGroup_SurfaceLoading }
 	    }}
-	    { commandcd 
+	    { command 
 		"Load Aux Annotation"
 		{DoFileDlog LoadAuxSurfaceAnnotation}
 		tMenuGroup_SurfaceLoading }
