@@ -75,7 +75,7 @@ ImageCalculateOffset(IMAGE *Ix, IMAGE *Iy, int wsize, IMAGE *Ioffset)
 
            Description:
 ----------------------------------------------------------------------*/
-#define NS_FSCALE  10000.0f  /* to scale to approx. same range as new stuff */
+#define NS_FSCALE  100000.0f  /* to scale to approx. same range as new stuff */
 
 IMAGE *
 ImageCalculateNitShiOffset(IMAGE *Ix, IMAGE *Iy, int wsize, 
