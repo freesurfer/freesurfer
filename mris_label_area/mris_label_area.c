@@ -38,7 +38,7 @@ main(int argc, char *argv[])
   FILE   *log_fp ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_label_area.c,v 1.3 2003/09/05 04:45:42 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_label_area.c,v 1.4 2005/03/29 02:54:52 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -58,7 +58,7 @@ main(int argc, char *argv[])
     argv += nargs ;
   }
 
-  if (argc < 3)
+  if (argc < 6)
     usage_exit(1) ;
 
 
