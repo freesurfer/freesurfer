@@ -2166,7 +2166,7 @@ MatrixConditionNumber(MATRIX *m)
   }
 
   if (FZERO(wmin))
-    cond = -1.0f ;
+    cond = 1e8 ;   /* something big */
   else
     cond = wmax / wmin ;
 
