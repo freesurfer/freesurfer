@@ -236,7 +236,39 @@ MATRIX *MRIfixTkReg(MRI *ref, MRI *mov, MATRIX *R)
 
   return(D);
 }
-
+/*-------------------------------------------------------------------
+  MRIgetVoxVal() - returns voxel value as a float regardless of
+  the underlying data type.
+  -------------------------------------------------------------------*/
+float MRIgetVoxVal(MRI *mri, int c, int r, int s, int f)
+{
+  switch(mri->type){
+  case MRI_UCHAR: return( (float) MRIseq_vox(mri,c,r,s,f)); break;
+  case MRI_SHORT: return( (float) MRISseq_vox(mri,c,r,s,f)); break;
+  case MRI_INT:   return( (float) MRIIseq_vox(mri,c,r,s,f)); break;
+  case MRI_LONG:  return( (float) MRILseq_vox(mri,c,r,s,f)); break;
+  case MRI_FLOAT: return( (float) MRIFseq_vox(mri,c,r,s,f)); break;
+  }
+  return(-10000000000.9);
+}
+/*-------------------------------------------------------------------
+  MRIsetVoxVal() - sets voxel value to that passed as the float
+  voxval, regardless of the underlying data type. If the underlying
+  type is integer-based, then it is rounded to the nearest integer. No
+  attempt is made to prevent overflows.
+  -------------------------------------------------------------------*/
+int MRIsetVoxVal(MRI *mri, int c, int r, int s, int f, float voxval)
+{
+  switch(mri->type){
+  case MRI_UCHAR: MRIseq_vox(mri,c,r,s,f)  = nint(voxval); break;
+  case MRI_SHORT: MRISseq_vox(mri,c,r,s,f) = nint(voxval); break;
+  case MRI_INT:   MRIIseq_vox(mri,c,r,s,f) = nint(voxval); break;
+  case MRI_LONG:  MRILseq_vox(mri,c,r,s,f) = nint(voxval); break;
+  case MRI_FLOAT: MRIFseq_vox(mri,c,r,s,f) = voxval;       break;
+  default: return(1); break;
+  }
+  return(0);
+}
 
 /*-----------------------------------------------------
 ------------------------------------------------------*/
