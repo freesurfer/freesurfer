@@ -1826,7 +1826,41 @@ MRIreduce(MRI *mri_src, MRI *mri_dst)
 
   mtmp1 = MRIconvolve1d(mri_src, NULL, kernel, KERNEL_SIZE, MRI_WIDTH) ;
   mtmp2 = MRIconvolve1d(mtmp1, NULL, kernel, KERNEL_SIZE, MRI_HEIGHT) ;
+  MRIfree(&mtmp1) ;
   mri_dst = MRIreduce1d(mtmp2, mri_dst, kernel, KERNEL_SIZE, MRI_DEPTH) ;
+
+  MRIcopyHeader(mri_src, mri_dst) ;
+  
+  mri_dst->thick = mri_src->thick * 2.0f ;
+  mri_dst->ps = mri_src->ps * 2.0f ;
+  mri_dst->scale = mri_src->scale * 2 ;
+  mri_dst->xsize = mri_src->xsize * 2.0f ;
+  mri_dst->ysize = mri_src->ysize * 2.0f ;
+  mri_dst->zsize = mri_src->zsize * 2.0f ;
+
+  MRIfree(&mtmp2) ;
+  return(mri_dst) ;
+}
+MRI *
+MRIreduceByte(MRI *mri_src, MRI *mri_dst)
+{
+  int  width, height, depth ;
+  MRI  *mtmp1, *mtmp2 ;
+
+  width = mri_src->width ;
+  height = mri_src->height ;
+  depth = mri_src->depth ;
+
+  if (width <= 1 || height <= 1 || depth <= 1)
+    ErrorExit(ERROR_BADPARM, "MRIreduce: insufficient dimension (%d, %d, %d)",
+              width, height, depth) ;
+
+  mtmp1 = MRIclone(mri_src,NULL) ;
+  MRIconvolve1d(mri_src, mtmp1, kernel, KERNEL_SIZE, MRI_WIDTH) ;
+  mtmp2 = MRIclone(mri_src,NULL) ;
+  MRIconvolve1d(mtmp1, mtmp2, kernel, KERNEL_SIZE, MRI_HEIGHT) ;
+  MRIfree(&mtmp1) ;
+  mri_dst = MRIreduce1dByte(mtmp2, mri_dst, kernel, KERNEL_SIZE, MRI_DEPTH) ;
 
   MRIcopyHeader(mri_src, mri_dst) ;
   
@@ -1836,7 +1870,6 @@ MRIreduce(MRI *mri_src, MRI *mri_dst)
   mri_dst->ysize = mri_src->ysize * 2.0f ;
   mri_dst->zsize = mri_src->zsize * 2.0f ;
 
-  MRIfree(&mtmp1) ;
   MRIfree(&mtmp2) ;
   return(mri_dst) ;
 }
@@ -2020,8 +2053,8 @@ MRIconvolve1dByte(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis)
   int           x, y, z, width, height, halflen, depth, *xi, *yi, *zi ;
   register int  i ;
   BUFTYPE       *inBase ;
-  BUFTYPE       total, *inBase_f, *outPix ;
-  float         *ki ;
+  BUFTYPE       *inBase_f, *outPix ;
+  float         *ki, total ;
 
   width = mri_src->width ;
   height = mri_src->height ;
@@ -2059,7 +2092,7 @@ MRIconvolve1dByte(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis)
             for (ki = k, i = 0 ; i < len ; i++)
               total += *ki++ * (float)(*(inBase + xi[x+i-halflen])) ;
             
-            *outPix++ = total ;
+            *outPix++ = (BUFTYPE)nint(total) ;
           }
         }
       }
@@ -2077,7 +2110,7 @@ MRIconvolve1dByte(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis)
             for (ki = k, i = 0 ; i < len ; i++)
               total += *ki++ * (float)(MRIvox(mri_src, x,yi[y+i-halflen],z));
             
-            *outPix++ = total ;
+            *outPix++ = (BUFTYPE)nint(total) ;
           }
         }
       }
@@ -2095,7 +2128,7 @@ MRIconvolve1dByte(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis)
             for (ki = k, i = 0 ; i < len ; i++)
               total += *ki++ * (float)(MRIvox(mri_src, x,y,zi[z+i-halflen]));
             
-            *outPix++ = total ;
+            *outPix++ = (BUFTYPE)nint(total) ;
           }
         }
       }
@@ -2119,7 +2152,7 @@ MRIconvolve1dByte(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis)
             for (ki = k, i = 0 ; i < len ; i++)
               total += *ki++ * (*(inBase_f + xi[x+i-halflen])) ;
             
-            *outPix++ = total ;
+            *outPix++ = (BUFTYPE)nint(total) ;
           }
         }
       }
@@ -2137,7 +2170,7 @@ MRIconvolve1dByte(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis)
             for (ki = k, i = 0 ; i < len ; i++)
               total += *ki++ * MRIvox(mri_src, x,yi[y+i-halflen],z);
             
-            *outPix++ = total ;
+            *outPix++ = (BUFTYPE)nint(total) ;
           }
         }
       }
@@ -2155,7 +2188,7 @@ MRIconvolve1dByte(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis)
             for (ki = k, i = 0 ; i < len ; i++)
               total += *ki++ * MRIvox(mri_src, x,y,zi[z+i-halflen]);
             
-            *outPix++ = total ;
+            *outPix++ = (BUFTYPE)nint(total) ;
           }
         }
       }
@@ -2192,7 +2225,9 @@ MRIreduce1d(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis)
   if (!mri_dst)
   {
     mri_dst = MRIalloc(swidth/2, sheight/2, sdepth/2, MRI_UCHAR) ;
-    mri_dst->imnr1 = mri_dst->depth-1 ;
+    mri_dst->imnr1 = mri_dst->imnr0 + mri_dst->depth - 1 ;
+    MRIsetResolution(mri_dst, 
+                     mri_src->xsize*2, mri_src->ysize*2, mri_src->zsize*2) ;
   }
 
   if ((mri_dst->type != MRI_UCHAR) || (mri_src->type != MRI_FLOAT))
@@ -2285,6 +2320,133 @@ MRIreduce1d(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis)
               zi = sdepth - 1 ;
             
             total = total + k[i] * MRIFvox(mri_src, xi, yi, zi) ;
+          }
+          MRIvox(mri_dst, x, y, z) = (BUFTYPE)nint(total) ;
+        }
+      }
+    }
+    break ;
+  }
+
+/*  mri_dst = MRIcopy(mri_src, mri_dst) ;*/
+
+  return(mri_dst) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+
+------------------------------------------------------*/
+MRI *
+MRIreduce1dByte(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis)
+{
+  int    x, y, z, i, dheight, dwidth, ddepth, xi,yi, zi, halflen  ;
+  int    sheight, swidth, sdepth ;
+  float  total ;
+
+  swidth = mri_src->width ;
+  sheight = mri_src->height ;
+  sdepth = mri_src->depth ;
+
+  if (!mri_dst)
+  {
+    mri_dst = MRIalloc(swidth/2, sheight/2, sdepth/2, MRI_UCHAR) ;
+    mri_dst->imnr1 = mri_dst->imnr0 + mri_dst->depth - 1 ;
+  }
+
+  if ((mri_dst->type != MRI_UCHAR) || (mri_src->type != MRI_UCHAR))
+    ErrorReturn(NULL,
+                (ERROR_UNSUPPORTED, 
+                 "MRIreduce1d: src %d or dst %d format unsupported",
+                 mri_src->type, mri_dst->type)) ;
+
+  dwidth = mri_dst->width ;
+  dheight = mri_dst->height ;
+  ddepth = mri_dst->depth ;
+
+
+  halflen = (len-1)/2 ;
+  switch (axis)
+  {
+  case MRI_WIDTH:
+    for (z = 0 ; z < ddepth ; z++)
+    {
+      zi = 2*z ;
+      for (y = 0 ; y < dheight ; y++)
+      {
+        yi = 2*y ;
+        for (x = 0 ; x < dwidth ; x++)
+        {
+          total = 0.0f ;
+          
+          for (i = 0 ; i < len ; i++)
+          {
+            /* Neumann boundary conditions */
+            xi = 2*x + i - halflen ;
+            if (xi < 0)
+              xi = 0 ;
+            else if (xi >= swidth)
+              xi = swidth - 1 ;
+            
+            total = total + k[i] * (float)MRIvox(mri_src, xi, yi, zi) ;
+          }
+          MRIvox(mri_dst, x, y, z) = (BUFTYPE)nint(total) ;
+        }
+      }
+    }
+    break ;
+  case MRI_HEIGHT:
+    for (z = 0 ; z < ddepth ; z++)
+    {
+      zi = 2*z ;
+      for (y = 0 ; y < dheight ; y++)
+      {
+        for (x = 0 ; x < dwidth ; x++)
+        {
+          total = 0.0f ;
+          xi = 2*x ;
+          
+          for (i = 0 ; i < len ; i++)
+          {
+            /* Neumann boundary conditions */
+            yi = 2*y + i - halflen ;
+            if (yi < 0)
+              yi = 0 ;
+            else if (yi >= sheight)
+              yi = sheight - 1 ;
+            
+            total = total + k[i] * (float)MRIvox(mri_src, xi, yi, zi) ;
+          }
+          MRIvox(mri_dst, x, y, z) = (BUFTYPE)nint(total) ;
+        }
+      }
+    }
+    break ;
+  case MRI_DEPTH:
+    for (z = 0 ; z < ddepth ; z++)
+    {
+      zi = 2*z ;
+      for (y = 0 ; y < dheight ; y++)
+      {
+        yi = 2*y ;
+        for (x = 0 ; x < dwidth ; x++)
+        {
+          total = 0.0f ;
+          xi = 2*x ;
+          
+          for (i = 0 ; i < len ; i++)
+          {
+            /* Neumann boundary conditions */
+            zi = 2*z + i - halflen ;
+            if (zi < 0)
+              zi = 0 ;
+            else if (zi >= sdepth)
+              zi = sdepth - 1 ;
+            
+            total = total + k[i] * (float)MRIvox(mri_src, xi, yi, zi) ;
           }
           MRIvox(mri_dst, x, y, z) = (BUFTYPE)nint(total) ;
         }
