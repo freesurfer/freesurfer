@@ -4,9 +4,9 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2003/02/10 17:29:44 $
-// Revision       : $Revision: 1.124 $
-char *VERSION = "$Revision: 1.124 $";
+// Revision Date  : $Date: 2003/02/10 20:10:20 $
+// Revision       : $Revision: 1.125 $
+char *VERSION = "$Revision: 1.125 $";
 
 #define TCL
 #define TKMEDIT 
@@ -8835,21 +8835,42 @@ tkm_tErr LoadDTIVolume ( char*              isNameEV,
   DebugAssertThrowX( (Volm_tErr_NoErr == eVolm), 
 		     eResult, tkm_tErr_CouldntLoadDTIVolume );
   
-  /* Now go through the EV volume and divide each value by the
-     corresponding value in the FA volume. */
+  /* Now go through the EV volume and assign the processed color value
+     scaled by the FA value. */
   xVoxl_Set( &EVIdx, 0, 0, 0 );
   xVoxl_Set( &FAIdx, 0, 0, 0 );
   Volm_GetDimensions( EVVolume, &zEVX, &zEVY, &zEVZ );
   Volm_GetDimensions( FAVolume, &zFAX, &zFAY, &zFAZ );
   do {
+    if( EVIdx.mfX == 128 && EVIdx.mfY == 128 && EVIdx.mfZ == 128 )
+      {
+	float x, y, z, fa;
+	Volm_GetValueAtIdxFrameUnsafe( EVVolume, &EVIdx, 0, &x );
+	Volm_GetValueAtIdxFrameUnsafe( EVVolume, &EVIdx, 1, &y );
+	Volm_GetValueAtIdxFrameUnsafe( EVVolume, &EVIdx, 2, &z );
+	Volm_GetValueAtIdxUnsafe( FAVolume, &FAIdx, &fa );
+	fprintf( stderr, "\nEV %.2f %.2f %.2f FA %.2f", x, y, z, sqrt(fa) );
+      }
+
+
     Volm_GetValueAtIdxUnsafe( FAVolume, &FAIdx, &FAValue );
     FAValue = sqrt( FAValue );
 
     for( nFrame = 0; nFrame < 3; nFrame++ ) {
       Volm_GetValueAtIdxFrameUnsafe( EVVolume, &EVIdx, nFrame, &EVValue );
-      Volm_SetValueAtIdxFrame( EVVolume, &EVIdx, nFrame, EVValue / FAValue );
+      Volm_SetValueAtIdxFrame( EVVolume, &EVIdx, nFrame, 
+			       EVValue * MIN( 1, FAValue) );
     }
     
+    if( EVIdx.mfX == 128 && EVIdx.mfY == 128 && EVIdx.mfZ == 128 )
+      {
+	float x, y, z;
+	Volm_GetValueAtIdxFrameUnsafe( EVVolume, &EVIdx, 0, &x );
+	Volm_GetValueAtIdxFrameUnsafe( EVVolume, &EVIdx, 1, &y );
+	Volm_GetValueAtIdxFrameUnsafe( EVVolume, &EVIdx, 2, &z );
+	fprintf( stderr, " final %.2f %.2f %.2f\n", x, y, z );
+      }
+
     xVoxl_IncrementUntilLimits( &FAIdx, zFAX, zFAY, zFAZ );
     
     if( xVoxl_GetY( &EVIdx ) == 0 ) {
@@ -8929,7 +8950,8 @@ void GetDTIColorAtVoxel ( xVoxelRef        iAnaIdx,
 
   if( x != 0 && y != 0 && z != 0 ) {
     
-    /* Map to the colors. */
+    /* Map to the colors. We use fabs() here because the value in the
+       volume could be negative. */
     for( comp = xColr_tComponent_Red; comp <= xColr_tComponent_Blue; comp++ ) {
       switch( gaDTIAxisForComponent[comp] ) {
       case tAxis_X: xColr_SetComponent( &color, comp, fabs(x) ); break;
@@ -8940,13 +8962,13 @@ void GetDTIColorAtVoxel ( xVoxelRef        iAnaIdx,
     }
   
     /* Blend with the destination color. */
-    oColor->mfRed = MIN( 1, (gfDTIAlpha * color.mfRed) + 
-      (float)((1.0-gfDTIAlpha) * iBaseColor->mfRed));
+    oColor->mfRed   = MIN( 1, (gfDTIAlpha * color.mfRed) + 
+			   (float)((1.0-gfDTIAlpha) * iBaseColor->mfRed));
     oColor->mfGreen = MIN( 1, (gfDTIAlpha * color.mfGreen) + 
-      (float)((1.0-gfDTIAlpha) * iBaseColor->mfGreen));
-    oColor->mfBlue = MIN( 1, (gfDTIAlpha * color.mfBlue) + 
-      (float)((1.0-gfDTIAlpha) * iBaseColor->mfBlue));
-  
+			   (float)((1.0-gfDTIAlpha) * iBaseColor->mfGreen));
+    oColor->mfBlue  = MIN( 1, (gfDTIAlpha * color.mfBlue) + 
+			   (float)((1.0-gfDTIAlpha) * iBaseColor->mfBlue));
+    
   } else {
     *oColor = *iBaseColor;
   }
