@@ -6,7 +6,7 @@
   Purpose: averages the voxels within an ROI. The ROI
            can be constrained structurally (with a label file)
            and/or functionally (with a volumetric mask)
-  $Id: mri_vol2roi.c,v 1.1 2001/03/20 23:12:30 greve Exp $
+  $Id: mri_vol2roi.c,v 1.2 2001/03/21 16:58:50 greve Exp $
 */
 
 #include <stdio.h>
@@ -46,10 +46,13 @@ static int  check_format(char *fmt);
 /*static int  isoptionflag(char *flag);*/
 
 int CompleteResFOVDim(float **trgres, float **trgfov, int **trgdim);
+int CountLabelHits(MRI *SrcVol, MATRIX *Qsrc, MATRIX *Fsrc, 
+		   MATRIX *Wsrc, MATRIX *Dsrc, 
+		   MATRIX *Msrc2lbl, LABEL *Label, int float2int);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2roi.c,v 1.1 2001/03/20 23:12:30 greve Exp $";
+static char vcid[] = "$Id: mri_vol2roi.c,v 1.2 2001/03/21 16:58:50 greve Exp $";
 char *Progname = NULL;
 
 char *roifile    = NULL;
@@ -286,6 +289,9 @@ int main(int argc, char **argv)
 	}
       }
     }	  
+    nlabelhits = CountLabelHits(mSrcVol, Qsrc, Fsrc, 
+				Wsrc, Dsrc, Msrc2lbl, Label, float2int);
+
   }
 
   /*-------------------------------------------------------*/
@@ -339,8 +345,8 @@ int main(int argc, char **argv)
     if(oldtxtstyle){
       printf("INFO: saving as old style txt\n");
       fprintf(fp,"%d \n",nmskhits);
-      fprintf(fp,"%d \n",nlabelhits);
     }
+    fprintf(fp,"%d \n",nlabelhits);
     fprintf(fp,"%d \n",nfinalhits);
     for(f=0; f < mROI->nframes; f++) 
       fprintf(fp,"%9.4f\n",MRIFseq_vox(mROI,0,0,0,f));
@@ -726,4 +732,36 @@ LABEL   *LabelReadFile(char *labelfile)
                 (ERROR_BADFILE, 
                  "%s: no data in label file %s", Progname, fname));
   return(area) ;
+}
+
+/*------------------------------------------------------------
+  int CountLabelHits(): This constructs a mask only from the
+  label as a way to count the number of functional voxels in
+  the label itself.
+  ------------------------------------------------------------*/
+int CountLabelHits(MRI *SrcVol, MATRIX *Qsrc, MATRIX *Fsrc, 
+		   MATRIX *Wsrc, MATRIX *Dsrc, 
+		   MATRIX *Msrc2lbl, LABEL *Label, int float2int)
+{
+  MRI * LabelMskVol;
+  int nlabelhits, nfinalhits;
+  int r,c,s;
+  float val;
+
+  LabelMskVol = label2mask_linear(mSrcVol, Qsrc, Fsrc, Wsrc, 
+				  Dsrc, NULL, Msrc2lbl,
+				  Label, float2int, 
+				  &nlabelhits, &nfinalhits);
+
+  nlabelhits = 0;
+  for(r=0;r<LabelMskVol->height;r++){
+    for(c=0;c<LabelMskVol->width;c++){
+      for(s=0;s<LabelMskVol->depth;s++){
+	val = MRIFseq_vox(LabelMskVol,c,r,s,0); 
+	if(val > 0.5) nlabelhits ++;
+      }
+    }
+  }	  
+  MRIfree(&LabelMskVol);
+  return(nlabelhits);
 }
