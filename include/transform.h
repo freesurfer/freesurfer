@@ -3,8 +3,8 @@
 /*                                                                     */
 /* Warning: Do not edit the following four lines.  CVS maintains them. */
 /* Revision Author: $Author: tosa $                                           */
-/* Revision Date  : $Date: 2004/11/24 14:45:17 $                                             */
-/* Revision       : $Revision: 1.31 $                                         */
+/* Revision Date  : $Date: 2004/11/24 14:48:58 $                                             */
+/* Revision       : $Revision: 1.32 $                                         */
 /*                                                                     */
 /***********************************************************************/
 
@@ -95,7 +95,7 @@ int      LTAprint(FILE *fp, const LTA *lta);
 #define LINEAR_VOX_TO_VOX       0
 #define LINEAR_VOXEL_TO_VOXEL   LINEAR_VOX_TO_VOX
 #define LINEAR_RAS_TO_RAS       1
-#define LINEAR_PHYSVOXEL_TO_PHYSVOXEL 2
+#define LINEAR_PHYSVOX_TO_PHYSVOX 2
 #define TRANSFORM_ARRAY_TYPE    10
 #define MORPH_3D_TYPE           11
 #define MNI_TRANSFORM_TYPE      12
