@@ -66,7 +66,7 @@ int SVMtrain(SVMreal** data, int posCount, int negCount, int featureCount)
 double SVMclassify(SVMreal* vec)
 {
   if ( svmMode != SVM_MODEL_MODE ) {
-    cerr << "SVMclassify error: no classifier model has been created. Must train/read in "
+    std::cerr << "SVMclassify error: no classifier model has been created. Must train/read in "
 	 << "a classifier before using this function. Zero is returned.\n";
     return 0;
   }
@@ -81,7 +81,7 @@ double SVMclassify(SVMreal* vec)
 int SVMweights(SVMreal* weights, SVMreal* vec)
 {
   if ( svmMode != SVM_MODEL_MODE ) {
-    cerr << "SVMweights error: no classifier model has been created. Must train/read in "
+    std::cerr << "SVMweights error: no classifier model has been created. Must train/read in "
 	 << "a classifier before using this function.\n";
     return 0;
   }
@@ -148,7 +148,7 @@ void SVMsetParam(SVMparam* svm)
 int SVMgetFeatureCount(int* count)
 {
   if ( svmMode != SVM_MODEL_MODE ) {
-    cerr << "SVMgetSvCount error: no classifier model has been created. Must train/read in "
+    std::cerr << "SVMgetSvCount error: no classifier model has been created. Must train/read in "
 	 << "a classifier before using this function.\n";
     return 0;
   }
@@ -162,7 +162,7 @@ int SVMgetFeatureCount(int* count)
 int SVMgetSvCount(int* count)
 {
   if ( svmMode != SVM_MODEL_MODE ) {
-    cerr << "SVMgetSvCount error: no classifier model has been created. Must train/read in "
+    std::cerr << "SVMgetSvCount error: no classifier model has been created. Must train/read in "
 	 << "a classifier before using this function.\n";
     return 0;
   }
@@ -175,7 +175,7 @@ int SVMgetSvCount(int* count)
 int SVMgetB(double* b)
 {
   if ( svmMode != SVM_MODEL_MODE ) {
-    cerr << "SVMgetB error: no classifier model has been created. Must train/read in "
+    std::cerr << "SVMgetB error: no classifier model has been created. Must train/read in "
 	 << "a classifier before using this function.\n";
     return 0;
   }
@@ -188,7 +188,7 @@ int SVMgetB(double* b)
 int SVMgetAlphas(SVMreal* alpha) 
 {
   if ( svmMode != SVM_MODEL_MODE ) {
-    cerr << "SVMgetAlphas error: no classifier model has been created. Must train/read in "
+    std::cerr << "SVMgetAlphas error: no classifier model has been created. Must train/read in "
 	 << "a classifier before using this function.\n";
     return 0;
   }
@@ -202,7 +202,7 @@ int SVMgetAlphas(SVMreal* alpha)
 int SVMgetSvIndex(int* svIndex)
 {
   if ( svmMode != SVM_MODEL_MODE ) {
-    cerr << "SVMgetSvIndex error: no classifier model has been created. Must train/read in "
+    std::cerr << "SVMgetSvIndex error: no classifier model has been created. Must train/read in "
 	 << "a classifier before using this function.\n";
     return 0;
   }
@@ -216,7 +216,7 @@ int SVMgetSvIndex(int* svIndex)
 int SVMgetDistMatrix(double** distMatrix)
 {
   if ( svmMode == SVM_NULL_MODE ) {
-    cerr << "SVMgetDistMatrix error: no similarity table has been created. Must "
+    std::cerr << "SVMgetDistMatrix error: no similarity table has been created. Must "
 	 << "train/cross-validate or read in a classifier before using this function.\n";
     return 0;
   }
@@ -265,7 +265,7 @@ int SVMwriteClassifier( char* fileName, int binary)
 
 void SVMprintSvmOptions()
 {
-  svmParam.printUsage(cerr);
+  svmParam.printUsage(std::cerr);
 }
 
 void SVMparseSvmOptions(char* argv[], int argc)
@@ -300,13 +300,13 @@ int SVMparseDataOptions(char *argv[], int argc, int *k, int posCount, int negCou
  
 void SVMprintDataOptions() 
 {
-  DataParam::printUsage(cerr);
+  DataParam::printUsage(std::cerr);
 }
 
 
 void SVMprintDataOptionHelp() 
 {
-  DataParam::printUsageHelp(cerr);
+  DataParam::printUsageHelp(std::cerr);
 }
 
 

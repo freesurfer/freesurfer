@@ -62,8 +62,8 @@ class DataParam {
 
   bool readData(SvmRealMatrix& data);
 
-  static ostream& printUsage(ostream& s);
-  static ostream& printUsageHelp(ostream& s);
+  static std::ostream& printUsage(std::ostream& s);
+  static std::ostream& printUsageHelp(std::ostream& s);
 };
  
 
