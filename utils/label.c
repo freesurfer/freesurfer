@@ -1114,6 +1114,8 @@ LabelMarkSurface(LABEL *area, MRI_SURFACE *mris)
   for (n = 0 ; n < area->n_points ; n++)
   {
     vno = area->lv[n].vno ;
+    if (vno < 0)
+      continue ;
     v = &mris->vertices[vno] ;
     if (v->ripflag)
       continue ;
@@ -1128,20 +1130,51 @@ LabelMarkSurface(LABEL *area, MRI_SURFACE *mris)
 
         Description
 ------------------------------------------------------*/
+#include "mrishash.h"
 int
 LabelFillUnassignedVertices(MRI_SURFACE *mris, LABEL *area)
 {
-  int    n ;
-  LV     *lv ;
+  int     n, i, vno, min_vno ;
+  LV      *lv ;
+  MHT     *mht ;
+  MHBT    *bucket ;
+  MHB     *bin ;
+  VERTEX  *v ;
+  float   dx, dy, dz, x, y, z, dist, min_dist ;
 
+  /* if we can't find a vertex within 10 mm of the point, something is wrong */
+  mht = MHTfillVertexTableRes(mris, NULL, ORIGINAL_VERTICES, 10.0) ;
   for (n = 0 ; n < area->n_points ; n++)
   {
     lv = &area->lv[n] ;
     if (lv->vno >= 0 && lv->vno <= mris->nvertices)
       continue ;
-    lv->vno = MRISfindClosestOriginalVertex(mris, lv->x, lv->y, lv->z) ;
+    bucket = MHTgetBucket(mht, lv->x, lv->y, lv->z) ;
+
+    x = lv->x ; y = lv->y ; z = lv->z ;
+    min_dist = 10000.0 ; min_vno = -1 ;
+    if (Gdiag_no == 55)
+      lv->vno = MRISfindClosestOriginalVertex(mris, lv->x, lv->y, lv->z) ;
+    if (bucket)
+    {
+      for (bin = bucket->bins, i = 0 ; i < bucket->nused ; i++, bin++)
+      {
+        vno = bin->fno ; v = &mris->vertices[vno] ;
+        if (vno == Gdiag_no)
+          DiagBreak() ;
+        dx = v->origx - x ; dy = v->origy - y ; dz = v->origz - z ;
+        dist = sqrt(dx*dx + dy*dy + dz*dz) ;
+        if (dist < min_dist)
+        {
+          min_dist = dist ;
+          min_vno = vno ;
+        }
+      }
+    }
+    lv->vno = min_vno ;
   }
   LabelRemoveDuplicates(area) ;
+  MHTfree(&mht) ;
   return(NO_ERROR) ;
 }
 
