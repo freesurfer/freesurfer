@@ -60,6 +60,9 @@ class VolumeCollection : public DataCollection {
   // Creates an MRI using an existing data collection as a template.
   void MakeUsingTemplate ( int iCollectionID );
 
+  // Load an MRI from the currently named volume.
+  void LoadVolume ();
+
   // Get the MRI. If we're loading an MRI, this requires the MRI to be
   // set first.
   MRI* GetMRI ();
@@ -202,7 +205,6 @@ protected:
 
   // Faster way of getting values.
   float GetMRINearestValueAtIndexUnsafe ( int iIndex[3] );
-
 
   // Filename to use when reading or writing.
   std::string mfnMRI;

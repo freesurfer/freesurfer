@@ -19,6 +19,8 @@ SurfaceCollection::SurfaceCollection () :
   commandMgr.AddCommand( *this, "SetSurfaceCollectionFileName", 2, 
 			 "collectionID fileName", 
 			 "Sets the file name for a given surface collection.");
+  commandMgr.AddCommand( *this, "LoadSurfaceFromFileName", 1, "collectionID", 
+			 "Loads the surface from the file name.");
   commandMgr.AddCommand( *this, "GetSurfaceCollectionFileName", 1, 
 			 "collectionID", 
 			 "Gets the file name for a given surface collection.");
@@ -58,11 +60,33 @@ SurfaceCollection::~SurfaceCollection() {
 void
 SurfaceCollection::SetSurfaceFileName ( string& ifnMRIS ) {
 
+  mfnMRIS = ifnMRIS;
+}
 
+void
+SurfaceCollection::LoadSurface () {
+
+  /* If we already have data... */
   if( NULL != mMRIS ) {
-    
+
+    /* Try to load this and see what we get. If it's the same as what
+       we already have, we're fine. If not, keep this one and release
+       the one we have. */
     DataManager dataMgr = DataManager::GetManager();
     MRISLoader mrisLoader = dataMgr.GetMRISLoader();
+    MRIS* newMRIS = NULL;
+    try { 
+      newMRIS = mrisLoader.GetData( mfnMRIS );
+    }
+    catch( exception e ) {
+      throw logic_error( "Couldn't load MRIS" );
+    }
+
+    if( newMRIS == mMRIS ) {
+      return;
+    }
+
+    /* Release old data. */
     try { 
       mrisLoader.ReleaseData( &mMRIS );
     } 
@@ -70,12 +94,9 @@ SurfaceCollection::SetSurfaceFileName ( string& ifnMRIS ) {
       cerr << "Couldn't release data"  << endl;
     }
 
-    mMRIS = NULL;
+    /* Save new data. */
+    mMRIS = newMRIS;
   }
-
-  mfnMRIS = ifnMRIS;
-
-  GetMRIS();
 }
 
 MRIS*
@@ -117,9 +138,6 @@ SurfaceCollection::GetMRIS () {
     }
 
     CalcWorldToSurfaceTransform();
-
-    
-
   }
 
   if( msLabel == "" ) {
@@ -145,6 +163,19 @@ SurfaceCollection::DoListenToTclCommand ( char* isCommand,
       
       string fnSurface = iasArgv[2];
       SetSurfaceFileName( fnSurface );
+    }
+  }
+  
+  // LoadSurfaceFromFileName <collectionID>
+  if( 0 == strcmp( isCommand, "LoadSurfaceFromFileName" ) ) {
+    int collectionID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad collection ID";
+      return error;
+    }
+    
+    if( mID == collectionID ) {
+      LoadSurface();
     }
   }
   

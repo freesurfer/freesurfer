@@ -18,6 +18,8 @@ class SurfaceCollection : public DataCollection {
 
   void SetSurfaceFileName ( std::string& ifnMRIS );
 
+  void LoadSurface ();
+
   MRIS* GetMRIS();
 
   // For getting the surface to data transform from a volume.

@@ -33,6 +33,8 @@ VolumeCollection::VolumeCollection () :
   commandMgr.AddCommand( *this, "SetVolumeCollectionFileName", 2, 
 			 "collectionID fileName", 
 			 "Sets the file name for a given volume collection.");
+  commandMgr.AddCommand( *this, "LoadVolumeFromFileName", 1, "collectionID", 
+			 "Loads the volume from the file name.");
   commandMgr.AddCommand( *this, "GetVolumeCollectionFileName", 1, 
 			 "collectionID", 
 			 "Gets the file name for a given volume collection.");
@@ -94,26 +96,9 @@ VolumeCollection::MakeLocationFromRAS ( float const iRAS[3] ) {
 void
 VolumeCollection::SetFileName ( string& ifnMRI ) {
 
-  if( NULL != mMRI ) {
-    
-    DataManager dataMgr = DataManager::GetManager();
-    MRILoader mriLoader = dataMgr.GetMRILoader();
-    try { 
-      mriLoader.ReleaseData( &mMRI );
-    } 
-    catch(...) {
-      cerr << "Couldn't release data"  << endl;
-    }
-    
-    mMRI = NULL;
-  }
-
   mfnMRI = ifnMRI;
   mfnAutosave = MakeAutosaveFileName( mfnMRI );
-
-  GetMRI();
 }
-
 
 void
 VolumeCollection::MakeUsingTemplate ( int iCollectionID ) {
@@ -153,6 +138,42 @@ VolumeCollection::MakeUsingTemplate ( int iCollectionID ) {
   // Set a temporary filename.
   string fn = "New_Volume.mgh";
   SetFileName( fn );
+}
+
+void
+VolumeCollection::LoadVolume () {
+
+  /* If we already have data... */
+  if( NULL != mMRI ) {
+
+    /* Try to load this and see what we get. If it's the same as what
+       we already have, we're fine. If not, keep this one and release
+       the one we have. */
+    DataManager dataMgr = DataManager::GetManager();
+    MRILoader mriLoader = dataMgr.GetMRILoader();
+    MRI* newMRI = NULL;
+    try { 
+      newMRI = mriLoader.GetData( mfnMRI );
+    }
+    catch( exception e ) {
+      throw logic_error( "Couldn't load MRI" );
+    }
+
+    if( newMRI == mMRI ) {
+      return;
+    }
+
+    /* Release old data. */
+    try { 
+      mriLoader.ReleaseData( &mMRI );
+    } 
+    catch(...) {
+      cerr << "Couldn't release data"  << endl;
+    }
+
+    /* Save new data. */
+    mMRI = newMRI;
+  }
 }
 
 MRI*
@@ -535,6 +556,20 @@ VolumeCollection::DoListenToTclCommand ( char* isCommand,
       
       string fnVolume = iasArgv[2];
       SetFileName( fnVolume );
+    }
+  }
+  
+  // LoadVolumeFromFileName <collectionID>
+  if( 0 == strcmp( isCommand, "LoadVolumeFromFileName" ) ) {
+    int collectionID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad collection ID";
+      return error;
+    }
+    
+    if( mID == collectionID ) {
+      
+      LoadVolume();
     }
   }
   
