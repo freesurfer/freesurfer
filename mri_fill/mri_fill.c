@@ -22,7 +22,7 @@
 #include "transform.h"
 #include "talairachex.h"
 
-static char vcid[] = "$Id: mri_fill.c,v 1.74 2004/02/26 20:40:03 tosa Exp $";
+static char vcid[] = "$Id: mri_fill.c,v 1.75 2004/05/13 19:53:38 tosa Exp $";
 
 
 /*-------------------------------------------------------------------
@@ -95,9 +95,22 @@ static Real pons_tal_x = -2.0 ;
 static Real pons_tal_y = -15.0 /* -22.0 */ ;
 static Real pons_tal_z = -17.0 ;
 
-
 static int cc_seed_set = 0 ;
 static int pons_seed_set = 0 ;
+
+// seed specified in volume position ///////////////
+static Real cc_vol_x = 0;
+static Real cc_vol_y = 0;
+static Real cc_vol_z = 0;
+
+static Real pons_vol_x = 0;
+static Real pons_vol_y = 0;
+static Real pons_vol_z = 0;
+
+static int cc_seed_vol_set = 0;
+static int pons_seed_vol_set = 0;
+////////////////////////////////////////////////////
+
 static int lh_seed_set = 0 ;
 static int rh_seed_set = 0 ;
 
@@ -237,7 +250,7 @@ main(int argc, char *argv[])
   // Gdiag = 0xFFFFFFFF;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_fill.c,v 1.74 2004/02/26 20:40:03 tosa Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_fill.c,v 1.75 2004/05/13 19:53:38 tosa Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -404,6 +417,15 @@ main(int argc, char *argv[])
       mri_talheader->c_a = dst->c_a;
       mri_talheader->c_s = dst->c_s;
     }
+    // when modify c_(ras), you must recalculate i_to_r__ and r_to_i__
+    // when you modify c_(ras), you must recalculate i_to_r__ and r_to_i__
+    if (mri_talheader->i_to_r__)
+      MatrixFree(&mri_talheader->i_to_r__);
+    if (mri_talheader->r_to_i__)
+      MatrixFree(&mri_talheader->r_to_i__);
+    
+    mri_talheader->i_to_r__ = extract_i_to_r(mri_talheader);
+    mri_talheader->r_to_i__ = extract_r_to_i(mri_talheader);
   }
   /////////////////////////////////////////////////////////////////////////////////
   mri_tal = MRIalloc(mri_im->width, mri_im->height, mri_im->depth, mri_im->type);
@@ -433,7 +455,31 @@ main(int argc, char *argv[])
   ///////////////////////////////////////////////////////////////////////////
   // find corpus callosum (work under the talairach volume)
   ///////////////////////////////////////////////////////////////////////////
-  if (!cc_seed_set)
+  // cc_seed is not given by tal position
+  if (cc_seed_set)
+  {
+    printf("Using the seed to calculate the cutting plane\n");
+    mri_cc =
+      find_cutting_plane(mri_tal, cc_tal_x, cc_tal_y, cc_tal_z,
+                         MRI_SAGITTAL, &x_cc, &y_cc, &z_cc, cc_seed_set, lta) ;
+  }
+  // cc_seed is give by voxel position
+  else if (cc_seed_vol_set) 
+  {
+    // compute the tal position using lta
+    MRIvoxelToTalairachEx(mri_im, cc_vol_x, cc_vol_y, cc_vol_z,
+			  &cc_tal_x, &cc_tal_y, &cc_tal_z, lta);
+    printf("Calculated talairach cc position (%.2f, %.2f, %.2f)\n",
+	   cc_tal_x, cc_tal_y, cc_tal_z);
+
+    // mark as cc_seed_set by the tal
+    cc_seed_set = 1;
+    printf("Using the seed to calculate the cutting plane\n");
+    mri_cc =
+      find_cutting_plane(mri_tal, cc_tal_x, cc_tal_y, cc_tal_z,
+                         MRI_SAGITTAL, &x_cc, &y_cc, &z_cc, cc_seed_set, lta) ;
+  }
+  else // seed is not set
   {
     if (find_corpus_callosum(mri_tal,&cc_tal_x,&cc_tal_y,&cc_tal_z, lta) 
         != NO_ERROR)
@@ -443,10 +489,6 @@ main(int argc, char *argv[])
         find_cutting_plane(mri_tal, cc_tal_x, cc_tal_y, cc_tal_z,
                            MRI_SAGITTAL, &x_cc, &y_cc, &z_cc, cc_seed_set, lta) ;
   }
-  else
-    mri_cc =
-      find_cutting_plane(mri_tal, cc_tal_x, cc_tal_y, cc_tal_z,
-                         MRI_SAGITTAL, &x_cc, &y_cc, &z_cc, cc_seed_set, lta) ;
 
   if (!mri_cc)  /* heuristic failed - use Talairach coordinates */
   {
@@ -495,6 +537,17 @@ main(int argc, char *argv[])
   ////////////////////////////////////////////////////////////////////////////
   // finding pons location
   ////////////////////////////////////////////////////////////////////////////
+  if (pons_seed_vol_set)
+  {
+    // compute the tal position using lta
+    MRIvoxelToTalairachEx(mri_im, pons_vol_x, pons_vol_y, pons_vol_z,
+			  &pons_tal_x, &pons_tal_y, &pons_tal_z, lta);
+    printf("Using voxel pons seed point, calculated talairach pons position (%.2f, %.2f, %.2f)\n",
+	   pons_tal_x, pons_tal_y, pons_tal_z);
+
+    // mark as cc_seed_set by the tal
+    pons_seed_set = 1;
+  }
   if (!pons_seed_set)   /* find pons automatically - no help from user */
   {
     MRI  *mri_mask=NULL ;
@@ -1141,6 +1194,26 @@ get_option(int argc, char *argv[])
     fprintf(stderr, "INFO: Using %s and its offset for Talairach volume ...\n", argv[2]);
     nargs = 1; // consumed 1 args
   }
+  else if (!strcmp(option, "PV"))
+  {
+    pons_vol_x = atof(argv[2]) ;
+    pons_vol_y = atof(argv[3]) ;
+    pons_vol_z = atof(argv[4]) ;
+    nargs = 3 ;
+    fprintf(stderr, "using voxel position (%2.0f, %2.0f, %2.0f) as pons seed point\n",
+            pons_vol_x, pons_vol_y, pons_vol_z) ;
+    pons_seed_vol_set = 1 ;
+  }
+  else if (!strcmp(option, "CV"))
+  {
+    cc_vol_x = atof(argv[2]) ;
+    cc_vol_y = atof(argv[3]) ;
+    cc_vol_z = atof(argv[4]) ;
+    nargs = 3 ;
+    fprintf(stderr, "using voxel position (%2.0f, %2.0f, %2.0f) as corpus callosum seed point\n",
+            cc_vol_x, cc_vol_y, cc_vol_z) ;
+    cc_seed_vol_set = 1 ;
+  }
   else switch (toupper(*option))
   {
   case 'P':
@@ -1214,6 +1287,14 @@ print_help(void)
   fprintf(stderr, 
           "\t-T <threshold> - specify fill_holes threshold (default=%d)\n",
           DEFAULT_NEIGHBOR_THRESHOLD) ;
+  fprintf(stderr,
+	  "\t-xform <xformname> - use xform dst offset to get an accurate Talairach volume\n");
+  fprintf(stderr,
+	  "Seed point options in Talairach coordinates:\n");
+  fprintf(stderr, 
+          "\t-C <x> <y> <z> - the Talairach coords of the seed for the corpus callosum\n") ;
+  fprintf(stderr, 
+          "\t-P <x> <y> <z> - the Talairach coords of the seed for the pons\n");
   fprintf(stderr, 
           "\t-lh <x> <y> <z> - the Talairach coords of the white matter seed\n"
           "\t                 for the left hemisphere\n") ;
@@ -1221,13 +1302,13 @@ print_help(void)
           "\t-rh <x> <y> <z> - the Talairach coords of the white matter seed\n"
           "\t                 for the right hemisphere\n") ;
   fprintf(stderr, 
-          "\t-P <x> <y> <z> - the Talairach coords of the seed for the "
-          "pons\n");
+	  "Alternative seed point options in voxel coordinates:\n");
   fprintf(stderr, 
-          "\t-C <x> <y> <z> - the Talairach coords of the seed for the\n"
-          "\t                 corpus callosum\n") ;
+          "\t-CV <x> <y> <z> - the voxel coords of the seed for the corpus callosum\n") ;
+  fprintf(stderr, 
+          "\t-PV <x> <y> <z> - the voxel coords of the seed for the pons\n");
   fprintf(stderr,
-	  "\t-xform <xformname> - use xform dst offset to get an accurate Talairach volume\n");
+          "\n");
   exit(0) ;
 }
 
