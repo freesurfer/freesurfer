@@ -1,4 +1,15 @@
 #!/bin/csh -f
+# talairach2
+########################################################
+
+set VERSION = '$Id';
+
+# Look for version #
+set n = `echo $argv | grep version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
 
 if($#argv != 1) then
   echo "USAGE: talairach2 subjectid"
