@@ -1,6 +1,6 @@
 #! /usr/bin/tixwish
 
-# $Id: tkm_wrappers.tcl,v 1.22 2003/04/07 20:02:53 kteich Exp $
+# $Id: tkm_wrappers.tcl,v 1.23 2003/04/18 22:47:32 kteich Exp $
 
 # tkm_MakeBigLabel fwFrame "Label Text"
 # tkm_MakeSmallLabel fwFrame "Label Text"
@@ -565,24 +565,15 @@ proc tkm_MakeMenu { isMenuButton isMenuName ilMenuItems } {
     
     global kLabelFont kNormalFont glUnderlineList
     
-    # for every letter in menu name..
-    # if this letter is not in the underline list...
-    # add the letter to the list.
-    # underline this index.
-    # if no letters left, underline nothing.
-    
     menubutton $isMenuButton \
 	-text $isMenuName \
 	-font $kNormalFont \
 	-menu $isMenuButton.mw
-    #      -underline $nUnderline
-    
-    # start an underline list for this menu
     
     tkm_AddMenuItemsToMenu $isMenuButton.mw $ilMenuItems
 }
 
-# { command   "Item Name" command_to_execute                group_name }
+# { command   "Item Name" command_to_execute                group_name } 
 # { radio     "Item Name" command_to_execute variable value group_name }
 # { check     "Item Name" command_to_execute variable       group_name }
 # { cascade   "Item Name" {items list}                      group_name }
@@ -606,74 +597,83 @@ proc tkm_AddMenuItemsToMenu { isMenu ilMenuItems } {
 	
 	set bProcessed 0
 	
-	if { [string compare $sType "command"] == 0 } {
-	    
-	    # for every letter in item name..
-	    # if this letter is not in the local underline list...
-	    # add the letter to the list.
-	    # underline this index.
-	    # if no letters left, underline nothing.
-	    
-	    $isMenu add command \
-		-label [lindex $lItem 1] \
-		-command [lindex $lItem 2] \
-		-font $kNormalFont
-	    #              -underline $nUnderline
-	    
-	    set sGroupName [lindex $lItem 3]
-	    if { [string compare $sGroupName ""] != 0 } {
-		tkm_AddItemToMenuGroup $sGroupName $isMenu $nItemNum
+	switch $sType {
+
+	    "command" - "radio" - "check" {
+		
+		set sNameAndAccel [lindex $lItem 1]
+		set sName ""
+		set sAccel ""
+		if { [string first : $sNameAndAccel] != -1 } {
+		    set sName [string range $sNameAndAccel \
+				   0 [expr [string first : $sNameAndAccel] - 1]]
+		    set sAccel [string range $sNameAndAccel \
+				[expr [string first : $sNameAndAccel] + 1] end]
+		} else {
+		    set sName $sNameAndAccel
+		}
+
+		set sGroupName ""
+
+		switch $sType { 
+		    "command" {
+			$isMenu add command \
+			    -label $sName \
+			    -command [lindex $lItem 2] \
+			    -font $kNormalFont \
+			    -accelerator $sAccel
+
+			set sGroupName [lindex $lItem 3]
+		    }
+		    "radio" {
+			$isMenu add radio \
+			    -label $sName \
+			    -command [lindex $lItem 2] \
+			    -variable [lindex $lItem 3] \
+			    -value [lindex $lItem 4] \
+			    -font $kNormalFont \
+			    -accelerator $sAccel
+			
+			set sGroupName [lindex $lItem 5]
+		    }
+		    "check" {
+			$isMenu add check \
+			    -label $sName \
+			    -command [lindex $lItem 2] \
+			    -variable [lindex $lItem 3] \
+			    -font $kNormalFont \
+			    -accelerator $sAccel
+			
+			set sGroupName [lindex $lItem 4]
+		    }
+		}
+
+		if { [string compare $sGroupName ""] != 0 } {
+		    tkm_AddItemToMenuGroup $sGroupName $isMenu $nItemNum
+		}
+
+		set bProcessed 1
 	    }
-	    
-	    set bProcessed 1
-	}
-	if { [string compare $sType "radio" ] == 0 } {
-	    $isMenu add radio \
-		-label [lindex $lItem 1] \
-		-command [lindex $lItem 2] \
-		-variable [lindex $lItem 3] \
-		-value [lindex $lItem 4] \
-		-font $kNormalFont      
-	    
-	    set sGroupName [lindex $lItem 5]
-	    if { [string compare $sGroupName ""] != 0 } {
-		tkm_AddItemToMenuGroup $sGroupName $isMenu $nItemNum
+	    "separator" {
+		$isMenu add separator
+		set bProcessed 1
 	    }
-	    
-	    set bProcessed 1
-	}
-	if { [string compare $sType "check" ] == 0 } {
-	    $isMenu add check \
-		-label [lindex $lItem 1] \
-		-command [lindex $lItem 2] \
-		-variable [lindex $lItem 3] \
-		-font $kNormalFont      
-	    
-	    set sGroupName [lindex $lItem 4]
-	    if { [string compare $sGroupName ""] != 0 } {
-		tkm_AddItemToMenuGroup $sGroupName $isMenu $nItemNum
+	    "cascade" {
+		$isMenu add cascade \
+		    -label [lindex $lItem 1] \
+		    -menu $isMenu.cmw$nItemNum \
+		    -font $kNormalFont      
+		
+		set lCascadeItems [lindex $lItem 2]
+		tkm_AddMenuItemsToMenu $isMenu.cmw$nItemNum $lCascadeItems
+		
+		set sGroupName [lindex $lItem 3]
+		if { [string compare $sGroupName ""] != 0 } {
+		    tkm_AddItemToMenuGroup $sGroupName $isMenu $nItemNum
+		}
+		set bProcessed 1
 	    }
-	    
-	    set bProcessed 1
-	}
-	if { [string compare $sType "separator"] == 0 } {
-	    $isMenu add separator
-	    set bProcessed 1
-	}
-	if { [string compare $sType "cascade"] == 0 } {
-	    $isMenu add cascade \
-		-label [lindex $lItem 1] \
-		-menu $isMenu.cmw$nItemNum \
-		-font $kNormalFont      
-	    
-	    set lCascadeItems [lindex $lItem 2]
-	    tkm_AddMenuItemsToMenu $isMenu.cmw$nItemNum $lCascadeItems
-	    
-	    set sGroupName [lindex $lItem 3]
-	    if { [string compare $sGroupName ""] != 0 } {
-		tkm_AddItemToMenuGroup $sGroupName $isMenu $nItemNum
-	    }
-	    set bProcessed 1
+	    default {}
 	}
 	
 	if { $bProcessed == 0 } {
