@@ -4,6 +4,7 @@
 #include <unistd.h>
 #include "mri.h"
 #include "error.h"
+#include "histo.h"
 #include "mri_conform.h"
 
 MRI *conform_type(MRI *mri);
@@ -26,6 +27,9 @@ MRI *MRIconform(MRI *mri)
 
 }  /*  end MRIconform()  */
 
+#define N_BINS 256
+#define FRACTION_SCALE 0.01
+
 MRI *conform_type(MRI *mri)
 {
 
@@ -34,6 +38,15 @@ MRI *conform_type(MRI *mri)
   float min = 0.0, max = 0.0;
   float scale;
   float this = 0.0;
+  int counts[N_BINS];
+  float bin_size;
+  int i;
+  int bin;
+  int nv, nv_needed;
+  float e1, e2;
+
+  for(i = 0;i < N_BINS;i++)
+    counts[i] = 0;
 
   if(mri->slices == NULL)
   {
@@ -77,7 +90,59 @@ MRI *conform_type(MRI *mri)
         
       }
 
-  scale = 255.0 / (max - min);
+  bin_size = (float)(max - min) / (float)N_BINS;
+
+  for(x = 0;x < mri->width;x++)
+    for(y = 0;y < mri->height;y++)
+      for(z = 0;z < mri->depth;z++)
+      {
+      if(mri->type == MRI_UCHAR)
+        this = (float)MRIvox(mri, x, y, z);
+      if(mri->type == MRI_INT)
+        this = (float)MRIIvox(mri, x, y, z);
+      if(mri->type == MRI_LONG)
+        this = (float)MRILvox(mri, x, y, z);
+      if(mri->type == MRI_FLOAT)
+        this = (float)MRIFvox(mri, x, y, z);
+      if(mri->type == MRI_SHORT)
+        this = (float)MRISvox(mri, x, y, z);
+
+      if(this == max)
+        bin = N_BINS - 1;
+      else
+        bin = (int)((this - (float)min) / bin_size) + 1;
+      if(bin < 0)
+        printf("bin < 0\n");
+      if(bin > N_BINS - 1)
+        printf("bin > N_BINS - 1\n");
+
+      counts[bin]++;
+
+      }
+
+  nv_needed = (int)(mri->height * mri->width * mri->depth * FRACTION_SCALE);
+
+  nv = 0;
+  for(i = 0;i < N_BINS && nv < nv_needed;i++)
+    nv += counts[i];
+
+  if(i == -1)
+    ErrorExit(ERROR_BADPARM, "MRIconform (value scaling): histogram is too thin for\na clipping fraction of %g",
+              FRACTION_SCALE);
+
+  e1 = (i-1) * bin_size + min;
+
+  nv = 0;
+  for(i = N_BINS-1;i >= 0 && nv < nv_needed;i--)
+    nv += counts[i];
+
+  if(i == N_BINS)
+    ErrorExit(ERROR_BADPARM, "MRIconform (value scaling): histogram is too thin for\na clipping fraction of %g",
+              FRACTION_SCALE);
+
+  e2 = (i+1) * bin_size + min;
+
+  scale = 255.0 / (e2 - e1);
 
   mri2 = MRIallocSequence(mri->width, mri->height, mri->depth, MRI_UCHAR, 1);
   MRIcopyHeader(mri, mri2);
@@ -97,7 +162,12 @@ MRI *conform_type(MRI *mri)
       if(mri->type == MRI_SHORT)
         this = (float)MRISvox(mri, x, y, z);
 
-      MRIvox(mri2, x, y, z) = (unsigned char)(scale * (this - min));
+      if(this <= e1)
+        MRIvox(mri2, x, y, z) = 0;
+      else if(this >= e2)
+        MRIvox(mri2, x, y, z) = 255;
+      else
+        MRIvox(mri2, x, y, z) = (unsigned char)(scale * (this - e1));
 
       }
 
