@@ -1,8 +1,8 @@
 #!/bin/csh -f
 # func2tal
-# $Id: func2tal,v 1.5 2003/08/19 05:47:12 greve Exp $
+# $Id: func2tal,v 1.6 2003/08/26 17:35:21 greve Exp $
 
-set FUNC2TAL_VER = '$Id: func2tal,v 1.5 2003/08/19 05:47:12 greve Exp $';
+set FUNC2TAL_VER = '$Id: func2tal,v 1.6 2003/08/26 17:35:21 greve Exp $';
 
 set inputargs = ($argv)
 
@@ -33,12 +33,9 @@ set taldim = `echo 256/$res | bc`;
 # Make sure there is a copy of register.dat in
 # the functional directory (needed by stat_normalize)
 set fregfile = $funcdir/register.dat
-if(! -e $fregfile) then
-  cp $regfile $fregfile;
-  set rmfregfile = 1;
-else
-  set rmfregfile = 0;
-endif
+if(-e $fregfile) cp $fregfile $fregfile.bak
+cp $regfile $fregfile;
+set rmfregfile = 1;
 
 ## Create the talairach directory if necessary ##
 set taldir = `dirname $talstem`;
