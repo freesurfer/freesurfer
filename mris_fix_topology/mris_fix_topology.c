@@ -16,7 +16,7 @@
 #include "mrishash.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_fix_topology.c,v 1.21 2004/10/26 17:42:05 segonne Exp $";
+static char vcid[] = "$Id: mris_fix_topology.c,v 1.22 2004/10/26 23:03:38 segonne Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -58,7 +58,7 @@ main(int argc, char *argv[])
   struct timeb  then ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_fix_topology.c,v 1.21 2004/10/26 17:42:05 segonne Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_fix_topology.c,v 1.22 2004/10/26 23:03:38 segonne Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -102,13 +102,15 @@ main(int argc, char *argv[])
 
   ac = argc ;
   av = argv ;
+	fprintf(stderr,"\n*************************************************************\n");
+	fprintf(stderr,"Setting options\n\n");
   for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++)
   {
     nargs = get_option(argc, argv) ;
     argc -= nargs ;
     argv += nargs ;
   }
-
+	
   if (argc < 2)
     usage_exit() ;
  
@@ -333,6 +335,10 @@ get_option(int argc, char *argv[])
 		parms.smooth=1;
 		parms.match=1;
 		parms.volume_resolution=2;
+		parms.l_mri = 1.0f ;
+		parms.l_curv = 1.0f ;
+		parms.l_qcurv = 1.0f;
+		parms.l_unmri = 10.0f ;
 		nsmooth=0;
 		add=0;
     fprintf(stderr,"using optimized parameters\n");
