@@ -19,7 +19,7 @@ PathManager::PathManager () {
 Path<float>*
 PathManager::NewPath () {
 
-  Path<float>* path = new Path<float>();
+  Path<float>* path = new Path<float>;
   path->AddListener( this );
   mPaths.push_back( path );
   return path;
