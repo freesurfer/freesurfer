@@ -254,9 +254,8 @@ fi
 echo "$as_me:$LINENO: result: $ac_cv_prog_cc_cpuflags" >&5
 echo "${ECHO_T}$ac_cv_prog_cc_cpuflags" >&6
 
-if test $ac_cv_prog_cc_cpuflags = yes; then
+if test $ac_cv_prog_cc_cpuflags = no; then
  CPUFLAGS=""
-else
  AC_MSG_NOTICE("this gcc cannot accept $CPUFLAGS")
 fi 
 
@@ -267,6 +266,7 @@ CXXFLAGS="$CPUFLAGS $CXXFLAGS"
 #####
 else
   AC_MSG_NOTICE([cpu optimization not done. you must use gcc.])
+
 # if gcc
 fi
 ##############################################################
