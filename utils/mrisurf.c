@@ -15210,11 +15210,17 @@ MRISmeasureCorticalThickness(MRI_SURFACE *mris, int nbhd_size)
           dot = dx*nx + dy*ny + dz*nz ;
           if (dot < 0) /* must be outwards from surface */
             continue ;
+          dot = vn2->nx*nx + vn2->ny*ny + vn2->nz*nz ;
+          if (dot < 0) /* must be outwards from surface */
+            continue ;
           dist = sqrt(dx*dx + dy*dy + dz*dz) ;
           if (dist < min_dist)
           {
             min_n = ns ;
             min_dist = dist ;
+            if (min_n == nbhd_size && DIAG_VERBOSE_ON)
+              fprintf(stderr, "%d --> %d = %2.3f\n",
+                      vno,vn->v[n], dist) ;
           }
         }
       }
@@ -15232,7 +15238,7 @@ MRISmeasureCorticalThickness(MRI_SURFACE *mris, int nbhd_size)
     v->curv = min_dist ;
   }
 
-  for (n = 0 ; n < nbhd_size ; n++)
+  for (n = 0 ; n <= nbhd_size ; n++)
     fprintf(stderr, "%d vertices at %d distance\n", nbr_count[n], n) ;
   return(NO_ERROR) ;
 }
@@ -21684,7 +21690,7 @@ MRIScorrectTopology(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected)
         kept_vertices-- ;
   }
 
-  face_trans = (int *)calloc(mris->nfaces, sizeof(int)) ;
+  face_trans  =(int *)calloc(mris->nfaces, sizeof(int)) ;
   vertex_trans = (int *)calloc(mris->nvertices, sizeof(int)) ;
   memset(vertex_trans, -1, mris->nvertices*sizeof(int)) ;
   memset(face_trans, -1, mris->nfaces*sizeof(int)) ;
