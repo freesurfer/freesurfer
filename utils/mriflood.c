@@ -6,11 +6,11 @@
 //  
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2003/04/22 21:31:00 $
-// Revision       : $Revision: 1.14 $
+// Revision Date  : $Date: 2003/04/24 15:57:45 $
+// Revision       : $Revision: 1.15 $
 //
 ////////////////////////////////////////////////////////////////////
-char *MRIFLOOD_VERSION = "$Revision: 1.14 $";
+char *MRIFLOOD_VERSION = "$Revision: 1.15 $";
 
 #include <math.h>
 #include <stdlib.h>
@@ -679,6 +679,14 @@ MRI *MRISpartialribbon(MRI_SURFACE *inner_mris_lh,MRI_SURFACE *outer_mris_lh,MRI
   if (mri_mask) 
   {
     printf("Using CMA labels to fine tune results\n");
+    //
+    // change made by tosa
+    //
+    // We decided to use the partial shell for better classification
+    // the original routine uses just the full shell to do the cma comparison
+    // By doing this, we save the separate calculation time for the full shell
+    // and reuse the full shell calculation
+    //
     // original routines
     // printf("Creating full volume outside inner shells...\n");
     // MRISshell(mri_src,inner_mris_lh,mri_inter1,1); // must clear
