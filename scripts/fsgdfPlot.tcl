@@ -96,6 +96,9 @@ foreach sSourceFileName { tkUtils.tcl } {
 #     gwPlot - the graph widget
 #     lwInfo - the info label widget
 #     bWindowBuilt - boolean indicating if the window has been built
+#     state
+#       window
+#         geometry - if hidden and reshown, will appear with same geometry
 
 # constant values for stuff
 set kValid(lMarkers) {square circle diamond plus cross splus scross triangle}
@@ -925,6 +928,10 @@ proc FsgdfPlot_ShowWindow { iID } {
 	FsgdfPlot_BuildWindow $iID
     }
     wm deiconify $gWidgets($iID,wwTop)
+    if { [info exists gWidgets($iID,state,window,geometry)] } {
+	wm geometry $gWidgets($iID,wwTop) $gWidgets($iID,state,window,geometry)
+	puts "set geomtery $gWidgets($iID,state,window,geometry)"
+    }
 }
 
 proc FsgdfPlot_HideWindow { iID } {
@@ -932,6 +939,9 @@ proc FsgdfPlot_HideWindow { iID } {
     if { !$gbLibLoaded } { return }
     if { [lsearch $gGDF(lID) $iID] == -1 } { puts "ID not found"; return }
     if { [info exists gWidgets($iID,wwTop)] } {
+	set gWidgets($iID,state,window,geometry) \
+	    [wm geometry $gWidgets($iID,wwTop)]
+	puts "saved geometry $gWidgets($iID,state,window,geometry)"
 	wm withdraw $gWidgets($iID,wwTop)
     }
 }
