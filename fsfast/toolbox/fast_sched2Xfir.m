@@ -1,6 +1,6 @@
-function X = fast_sched2Xfir(tPres,ntrs,TR,IRFPSD,BCW,tDelay,PerEvW)
+function X = fast_sched2Xfir(tPres,ntrs,TR,PSD,tDelay,PerEvW)
 %
-% X = fast_sched2Xfir(tPres,ntrs,TR,IRFPSD,BCW,tDelay,PerEvW)
+% X = fast_sched2Xfir(tPres,ntrs,TR,PSD,tDelay,PerEvW)
 %
 % Creates a design matrix (aka stimulus convolution matrix) modeling
 % the hemodynamic response as an FIR with adjustable tap weights. The
@@ -12,7 +12,8 @@ function X = fast_sched2Xfir(tPres,ntrs,TR,IRFPSD,BCW,tDelay,PerEvW)
 % event before t=0 will have an effect on the matrix if its Post 
 % Stimulus Window encompasses t=0; otherwise it is ignored. Events 
 % found after the termination of data collection are ignored (a warning 
-% is printed). If tPres is empty, a matrix of zeros is returned. 
+% is printed). If tPres is empty, a matrix of the correct size
+% filled with zeros is returned. 
 %
 % ntrs - number of functional volumes collected (do not include 
 % discarded acquisitions or prescan time).
@@ -20,17 +21,11 @@ function X = fast_sched2Xfir(tPres,ntrs,TR,IRFPSD,BCW,tDelay,PerEvW)
 % TR - TR of the exmperiment (ie, time between acquisitions of 
 % functional volumes) in seconds.
 %
-% IRFPSD - three component vector indicating the Post Stimulus
-% Delay window of the Impulse Response Function. The three
-% components are: PSDMin dPSD PSDMax. dPSD has also been called
-% the TER. Note: this models the Impulse Response only. The
-% Event Response is the Impulse Response convolved with 
-% a Box Car (see BCW)
-%
-% BCW - Box Car Width (in sec). The Event Response is the Impulse
-% Response convolved with a Box Car of width BCW. The Event
-% Response PSD Window is that of the IRF except that 
-% ERFPSDMax = IRFPSDMax + BCW.
+% PSD - three/four component vector indicating the Post Stimulus
+% Delay window. The components are: PSDMin dPSD PSDMax BCW. dPSD 
+% has also been called the TER. BCW is the Box Car Width. If BCW
+% is not present, it is assumed to be 0. See fast_psdwin for more 
+% details
 %
 % tDelay - set the definition of t=0. This can be handy for
 % taking the slice acquisition delay into account. Ie, creating
@@ -42,56 +37,31 @@ function X = fast_sched2Xfir(tPres,ntrs,TR,IRFPSD,BCW,tDelay,PerEvW)
 % matrix entry for each presentation is given the value W(n) instead
 % of 1. Ignored if W=[].
 %
-% X will have size: Ntp by (ERFPSDMax-IRFPSDMin)/dIRFPSD
+% X will have size: Ntp by (PSDMax+BCW-PSDMin-dPSD)/dPSD
 % 
-% $Id: fast_sched2Xfir.m,v 1.3 2003/03/17 06:29:23 greve Exp $ 
+% See also: fast_psdwin
+%
+% $Id: fast_sched2Xfir.m,v 1.4 2003/03/18 06:18:27 greve Exp $ 
 
 X = [];
 
-if(nargin < 4 & nargin > 7)
-  msg = 'X = fast_sched2Xfir(tPres,ntrs,TR,IRFPSD,<BCW,tDelay,PerEvW>)';
+if(nargin < 4 & nargin > 6)
+  msg = 'X = fast_sched2Xfir(tPres,ntrs,TR,PSD,<tDelay,PerEvW>)';
   fprintf('%s\n',msg);
   return;
 end
 
-if(exist('BCW') ~= 1) BCW = 0; end
 if(exist('tDelay') ~= 1) tDelay = 0; end
 
-% Compute Event Response Function Post Stimulus Window %
-PSDMin = IRFPSD(1);
-dPSD   = IRFPSD(2);
-PSDMax = IRFPSD(3)+BCW;
+% Compute number of columns of X
+Nh = fast_psdwin(PSD,'npsdwin');
+if(isempty(Nh)) return; end
 
-% Check that the TR is an integer mult of the dPSD %
-if(rem(TR,dPSD) ~= 0)
-  msg = sprintf('ERROR: TR (%g) must be a multiple of dPSD (%g)',...
-		TR,dPSD);
-  fprintf('%s\n',msg);
-  return;
-end
-
-% Check that the PSDMin is an integer mult of the dPSD %
-if(rem(PSDMin,dPSD) ~= 0)
-  msg = sprintf('ERROR: PSDMin (%g) must be a multiple of dPSD (%g)',...
-		PSDMin,dPSD);
-  fprintf('%s\n',msg);
-  return;
-end
-
-% Check that the BCW is an integer mult of the dPSD %
-if(rem(BCW,dPSD) ~= 0)
-  msg = sprintf('ERROR: BCW (%g) must be a multiple of dPSD (%g)',...
-		BCW,dPSD);
-  fprintf('%s\n',msg);
-  return;
-end
-
-% Check that the PSDMax is an integer mult of the dPSD %
-if(rem(PSDMax,dPSD) ~= 0)
-  msg = sprintf('ERROR: PSDMax (%g) must be a multiple of dPSD (%g)',...
-		PSDMax,dPSD);
-  fprintf('%s\n',msg);
-  return;
+PSDMin = PSD(1);
+dPSD   = PSD(2);
+PSDMax = PSD(3);
+if(length(PSD) == 3) BCW = 0;
+else BCW = PSD(4);
 end
 
 TimeWindow = PSDMax - PSDMin;
@@ -100,11 +70,9 @@ TimeWindow = PSDMax - PSDMin;
 tmax = TR*(ntrs - 1);
 % Compute the resampling rate
 Rss = TR/dPSD;
-% Compute the number of Estimates
-Nh = round(TimeWindow/dPSD);
 % Compute the Post Stimulus Delay at the start of the last 
-% point in the window
-TPostStim = PSDMax - dPSD;
+% point in the window, including BWC
+TPostStim = fast_psdwin(PSD,'erfpsdmax') - dPSD;
 
 % Number of presentations
 Npres = length(tPres);
