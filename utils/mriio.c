@@ -7330,8 +7330,6 @@ MRIunpackFileName(char *inFname, int *pframe, int *ptype, char *outFname)
       *ptype = SIEMENS_FILE;
     else if(is_analyze(outFname))
       *ptype = MRI_ANALYZE_FILE;
-    else if (is_signa(outFname))
-      *ptype = SIGNA_FILE ;
     else if(is_sdt(outFname))
       *ptype = SDT_FILE;
     else if(is_mgh(outFname))
@@ -7340,6 +7338,8 @@ MRIunpackFileName(char *inFname, int *pframe, int *ptype, char *outFname)
       *ptype = MRI_MINC_FILE;
     else if(is_bshort(outFname))
       *ptype = BSHORT_FILE;
+    else if (is_signa(outFname))
+      *ptype = SIGNA_FILE ;
     else 
     {
       if(stat(outFname, &stat_buf) < 0)
