@@ -5,7 +5,7 @@ function [kvec, gvec, K, icenter] = kspacevector2(nReadout,tDwell,Tru,Tft,Trd,Td
 % Tds = time after start of ramp up until sampline starts
 % Tdelay = delay waveform
 %
-% $Id: kspacevector2.m,v 1.1 2003/10/04 20:08:47 greve Exp $
+% $Id: kspacevector2.m,v 1.2 2003/11/06 19:44:39 greve Exp $
 
 
 kvec = [];
@@ -49,7 +49,7 @@ kvec0Ad = kvec0mid - kvec0A;
 kvec0B  = kvec0(ind0B);
 kvec0Bd = - kvec0mid;
 icenter0 = ind0A + kvec0Ad/(kvec0B-kvec0A)-1;
-fprintf('icenter0 = %g\n',icenter0)
+%fprintf('icenter0 = %g\n',icenter0)
 
 %indadc = [1:nReadout] + round((Tds+Tdelay)/tDwell);
 indadc = [1:nReadout] + round(Tds/tDwell);
@@ -69,7 +69,7 @@ kvecB  = kvec(indB);
 kvecBd = kvecB - kvecmid;
 
 icenter = indA + kvecAd/(kvecB-kvecA)-1;
-fprintf('icenter = %g\n',icenter)
+%fprintf('icenter = %g\n',icenter)
 
 rvec = [0:nReadout-1];
 %rvec = rvec - rvec(kcenter);
