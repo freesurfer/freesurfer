@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 
 #include "utils.h"
 #include "const.h"
@@ -39,9 +40,15 @@ read_named_annotation_table(char *name)
   if (num_entries)
     return(NO_ERROR) ;   /* already read */
 
-  cp = getenv("MRI_DIR") ;
-  if (!cp)
-    cp = "." ;
+  cp = strchr(name, '/') ;
+  if (!cp)                 /* no path - use same one as mris was read from */
+	{
+		cp = getenv("MRI_DIR") ;
+		if (!cp)
+			cp = "." ;
+	}
+	else
+		cp = "" ;  /* use path in name */
 
   sprintf(fname, "%s/%s", cp, name) ;
   fp = fopen(fname, "r") ;
