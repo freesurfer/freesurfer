@@ -4,8 +4,8 @@
 /*                                                                     */
 /* Warning: Do not edit the following four lines.  CVS maintains them. */
 /* Revision Author: $Author: tosa $                                           */
-/* Revision Date  : $Date: 2004/01/09 23:10:26 $                                             */
-/* Revision       : $Revision: 1.21 $                                         */
+/* Revision Date  : $Date: 2004/01/13 21:20:22 $                                             */
+/* Revision       : $Revision: 1.22 $                                         */
 /***********************************************************************/
 
 #include <stdio.h>
@@ -66,6 +66,7 @@ static char subjects_dir[STRLEN] ;
 static char *heq_fname = NULL ;
 
 static char *input_names[MAX_GCA_INPUTS] = { T1_name } ;
+
 int
 main(int argc, char *argv[])
 {
@@ -76,6 +77,9 @@ main(int argc, char *argv[])
   GCA          *gca, *gca_prune = NULL ;
   MRI          *mri_seg, *mri_tmp, *mri_eq = NULL, *mri_inputs ;
   TRANSFORM    *transform ;
+  LTA *lta;
+  int          used[MAX_GCA_INPUTS];
+  int          counts;
 
   Progname = argv[0] ;
 
@@ -130,6 +134,8 @@ main(int argc, char *argv[])
 
   printf("training on %d subject and writing results to %s\n",
          nsubjects, out_fname) ;
+
+  // gca_inputs can be T1, PD, ...per subject
   if (gca_inputs == 0)
     gca_inputs = ninputs ;   /* gca reads same # of inputs as we read from command line - not the case if we are mapping to flash */
   n = 0 ;
@@ -144,14 +150,19 @@ main(int argc, char *argv[])
       extra += gca_inputs ;
     gca_inputs += extra ;
   }
+
+  //////////////////////////////////////////////////////////////////////////////////////////
   do
   {
+    // set up gca direction cosines, width, height, depth defaults
     gca = GCAalloc(gca_inputs, parms.prior_spacing, parms.node_spacing, DEFAULT_VOLUME_SIZE, 
                    DEFAULT_VOLUME_SIZE,DEFAULT_VOLUME_SIZE, gca_flags);
 
     /////////////////////////////////////////////////////////////////////////
     // weird way options and subject name are mixed here
 
+    //////////////////////////////////////////////////////////////////////////////////
+    // first calculate mean
     //////////////////////////////////////////////////////////////////////////////////
     // going through the subject one at a time
     for (nargs = i = 0 ; i < nsubjects+options ; i++)
@@ -182,13 +193,13 @@ main(int argc, char *argv[])
 
       if (binarize)
       {
-        int i ;
-        for (i = 0 ; i < 256 ; i++)
+        int j ;
+        for (j = 0 ; j < 256 ; j++)
         {
-          if (i == binarize_in)
-            MRIreplaceValues(mri_seg, mri_seg, i, binarize_out) ;
+          if (j == binarize_in)
+            MRIreplaceValues(mri_seg, mri_seg, j, binarize_out) ;
           else
-            MRIreplaceValues(mri_seg, mri_seg, i, 0) ;
+            MRIreplaceValues(mri_seg, mri_seg, j, 0) ;
         }
       }
       if (insert_fname)
@@ -209,8 +220,13 @@ main(int argc, char *argv[])
       replaceLabels(mri_seg) ;
       MRIeraseBorderPlanes(mri_seg) ;
 
+      // subjects loop index i
       if (i != 0)  /* not the first image read - reorder it to be in the same order as 1st */
       {
+	// initialize the flag array
+	for (input =0; input < ninputs; input++)
+	  used[input] = 0;
+
         for (input = 0 ; input < ninputs ; input++)
         { 
           sprintf(fname, "%s/%s/mri/%s", subjects_dir, subject_name,input_names[input]);
@@ -219,15 +235,31 @@ main(int argc, char *argv[])
             ErrorExit(ERROR_NOFILE, "%s: could not read image from file %s", Progname, fname) ;
           for (o = 0 ; o < ninputs ; o++)
             if (FEQUAL(TRs[o],mri_tmp->tr) && FEQUAL(FAs[o],mri_tmp->flip_angle) && FEQUAL(TEs[o], mri_tmp->te))
-              ordering[input] = o ;
+            {
+	      // this o is not used, then use it
+	      if (used[o] == 0)
+	      {
+		ordering[input] = o ;
+		used[o] = 1;
+		break;
+	      }
+	    }
           MRIfree(&mri_tmp) ;
         }
+	// verify whether it has input values are used
+	counts = 0;
+	for (input = 0; input < ninputs; input++)
+	  if (used[input] == 1) counts++;
+	if (counts != ninputs)
+	  ErrorExit(ERROR_BADPARM,
+		    "Input TR, TE, FlipAngle for each subjects must match.\n");
       }
       else
         for (o = 0 ; o < ninputs ; o++)
           ordering[o] = o ;
 
-      if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+      
+      // if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
       {
         printf("ordering images: ") ;
         for (o = 0 ; o < ninputs ; o++)
@@ -238,6 +270,7 @@ main(int argc, char *argv[])
       ////////////////////////////////////////////////////////////////////////////
       fprintf(stderr, "Gather all input volumes for the subject %s.\n", subject_name);
       // inputs must be coregistered
+      // note that inputs are T1, PD, ... per subject
       for (input = 0 ; input < ninputs ; input++)
       {      
         sprintf(fname, "%s/%s/mri/%s", subjects_dir, subject_name,input_names[ordering[input]]);
@@ -317,13 +350,16 @@ main(int argc, char *argv[])
         }
         MRIcopyFrame(mri_tmp, mri_inputs, 0, input) ;
         MRIfree(&mri_tmp) ;
-      }
+      }// end of inputs per subject
+
       if (i == 0 && flash)   /* first subject */
         GCAsetFlashParameters(gca, TRs, FAs, TEs) ;
+
+      ///////////////////////////////////////////////////////////////////////////////////////
+      printf("***************************************************************************\n");
       printf("processing subject %s, %d of %d...\n", subject_name,i+1-nargs,
              nsubjects);
-
-      // input is ready now
+      printf("***************************************************************************\n");
 
       ///////////////////////////////////////////////////////////////////////////////
       // use the direction cosines etc from mri_inputs in gca
@@ -332,7 +368,7 @@ main(int argc, char *argv[])
       // xform_name is given
       if (xform_name)
       {
-				// we read talairach.xfm which is a RAS-to-RAS
+	// we read talairach.xfm which is a RAS-to-RAS
         sprintf(fname, "%s/%s/mri/transforms/%s", 
                 subjects_dir, subject_name, xform_name) ;
 	printf("INFO: reading transform file %s...\n", fname);
@@ -355,6 +391,16 @@ main(int argc, char *argv[])
 	}
 	// modify transform to store inverse also
 	TransformInvert(transform, mri_inputs) ;
+	// verify inverse
+	lta = (LTA *) transform->xform;
+	{
+	  MATRIX *go = lta->xforms[0].m_L;
+	  MATRIX *back = lta->inv_xforms[0].m_L;
+	  MATRIX *seki = MatrixMultiply(back, go, NULL);
+	  fprintf(stderr, "You should see the unit matrix to verify the inverse.\n");
+	  MatrixPrint(stderr, seki);
+	  MatrixFree(&seki);
+	}
       }
       else
         transform = TransformAlloc(LINEAR_VOXEL_TO_VOXEL, NULL) ;
@@ -422,17 +468,19 @@ main(int argc, char *argv[])
       ////////////////////////////////////////////////////////////////////
       // train gca 
       ////////////////////////////////////////////////////////////////////
-      // segmentation is o
+      // segmentation is seg volume
       // inputs       is the volumes of all inputs
       // transform    is for this subject
+      // gca_prune    is so far null
+      // noint        is whether to use intensity information or not
       GCAtrain(gca, mri_inputs, mri_seg, transform, gca_prune, noint) ;
       MRIfree(&mri_seg) ; MRIfree(&mri_inputs) ; TransformFree(&transform) ;
     }
-    
     GCAcompleteMeanTraining(gca) ;
     
     /////////////////////////////////////////////////////////////////////////////////////
     /* now compute covariances */
+    /////////////////////////////////////////////////////////////////////////////////////
     for (nargs = i = 0 ; i < nsubjects+options ; i++)
     {
       subject_name = argv[i+1] ;
@@ -480,9 +528,10 @@ main(int argc, char *argv[])
       replaceLabels(mri_seg) ;
       MRIeraseBorderPlanes(mri_seg) ;
       
+      // inputs are T1, PD, .... per subject
       for (input = 0 ; input < ninputs ; input++)
       {      
-        sprintf(fname, "%s/%s/mri/%s", subjects_dir, subject_name,input_names[input]);
+        sprintf(fname, "%s/%s/mri/%s", subjects_dir, subject_name,input_names[ordering[input]]);
         if (DIAG_VERBOSE_ON)
           printf("reading co-registered input from %s...\n", fname) ;
         mri_tmp = MRIread(fname) ;
@@ -544,7 +593,7 @@ main(int argc, char *argv[])
         }
         MRIcopyFrame(mri_tmp, mri_inputs, 0, input) ;
         MRIfree(&mri_tmp) ;
-      }
+      } // end of building inputs
       
       if (xform_name)
       {
@@ -571,6 +620,16 @@ main(int argc, char *argv[])
 	  // after this  transform->type = LINEAR_VOX_TO_VOX
 	}
         TransformInvert(transform, mri_inputs) ;
+	// verify inverse
+	lta = (LTA *) transform->xform;
+	{
+	  MATRIX *go = lta->xforms[0].m_L;
+	  MATRIX *back = lta->inv_xforms[0].m_L;
+	  MATRIX *seki = MatrixMultiply(back, go, NULL);
+	  fprintf(stderr, "You should see the unit matrix to verify the inverse.\n");
+	  MatrixPrint(stderr, seki);
+	  MatrixFree(&seki);
+	}
       }
       else
         transform = TransformAlloc(LINEAR_VOXEL_TO_VOXEL, NULL) ;
@@ -640,8 +699,9 @@ main(int argc, char *argv[])
     GCAcompleteCovarianceTraining(gca) ;
     if (gca_prune)
       GCAfree(&gca_prune) ;
-    gca_prune = gca ;
+    gca_prune = gca ;  // gca_prune is non-zero now
   } while (n++ < prune) ;
+  /////////////////////////////  end of do ////////////////////////////////////////////
 
   if (smooth > 0)
   {
@@ -895,11 +955,11 @@ get_option(int argc, char *argv[])
   }
   else switch (toupper(*option))
   {
-	case 'S':
-		scale = atof(argv[2]) ;
-		printf("scaling all volumes by %2.3f after reading...\n", scale) ;
-		nargs = 1 ;
-		break ;
+  case 'S':
+    scale = atof(argv[2]) ;
+    printf("scaling all volumes by %2.3f after reading...\n", scale) ;
+    nargs = 1 ;
+    break ;
   case 'A':
     navgs = atoi(argv[2]) ;
     printf("applying %d mean filters to classifiers after training\n",navgs);
