@@ -9,6 +9,7 @@
 #include "const.h"
 #include "proto.h"
 #include "utils.h"
+#include "machine.h"
 
 #define REG_ROWS      4
 #define REG_COLS      4
@@ -112,7 +113,7 @@ StatReadVolume(char *prefix)
   FILE         *fp ;
   int          dof_mean, dof_sigma, event_number, slice_number, which_alloc,
                width, height, nframes, nslices, t, event, nitems, x, y, z ;
-  float        *buf ;
+  float        *buf, fval ;
 
   FileNamePath(prefix, path) ;
   sv = (SV *)calloc(1, sizeof(SV)) ;
@@ -242,7 +243,11 @@ StatReadVolume(char *prefix)
         {
           for (x = 0 ; x < width ; x++)
           {
-            MRIFseq_vox(sv->mri_avgs[event],x,y,z,t) = buf[y*width+x] ;
+            fval = buf[y*width+x] ;
+#ifdef Linux
+            fval = swapFloat(fval) ;
+#endif
+            MRIFseq_vox(sv->mri_avgs[event],x,y,z,t) = fval ;
           }
         }
       }
@@ -257,7 +262,11 @@ StatReadVolume(char *prefix)
         {
           for (x = 0 ; x < width ; x++)
           {
-            MRIFseq_vox(sv->mri_stds[event],x,y,z,t) = buf[y*width+x] ;
+            fval = buf[y*width+x] ;
+#ifdef Linux
+            fval = swapFloat(fval) ;
+#endif
+            MRIFseq_vox(sv->mri_stds[event],x,y,z,t) = fval ;
           }
         }
       }
@@ -287,7 +296,11 @@ StatReadVolume(char *prefix)
         {
           for (x = 0 ; x < width ; x++)
           {
-            MRIFseq_vox(sv->mri_avg_dofs[event],x,y,z,t) = buf[y*width+x] ;
+            fval = buf[y*width+x] ;
+#ifdef Linux
+            fval = swapFloat(fval) ;
+#endif
+            MRIFseq_vox(sv->mri_avg_dofs[event],x,y,z,t) = fval ;
           }
         }
       }
@@ -302,7 +315,11 @@ StatReadVolume(char *prefix)
         {
           for (x = 0 ; x < width ; x++)
           {
-            MRIFseq_vox(sv->mri_std_dofs[event],x,y,z,t) = buf[y*width+x] ;
+            fval = buf[y*width+x] ;
+#ifdef Linux
+            fval = swapFloat(fval) ;
+#endif
+            MRIFseq_vox(sv->mri_std_dofs[event],x,y,z,t) = fval ;
           }
         }
       }
@@ -809,7 +826,7 @@ StatWriteVolume(SV *sv, char *prefix)
   FILE         *fp ;
   int          event_number, width, height, nslices, t, 
                event, nitems, x, y, z ;
-  float        *buf ;
+  float        *buf, fval ;
 
   width = sv->slice_width ; height = sv->slice_height ; nslices = sv->nslices ;
   FileNamePath(prefix, path) ;
@@ -872,7 +889,11 @@ StatWriteVolume(SV *sv, char *prefix)
         {
           for (x = 0 ; x < sv->slice_width ; x++)
           {
-            buf[y*width+x] = MRIFseq_vox(sv->mri_avgs[event],x,y,z,t) ;
+            fval = MRIFseq_vox(sv->mri_avgs[event],x,y,z,t) ;
+#ifdef Linux
+            fval = swapFloat(fval) ;
+#endif
+            buf[y*width+x] = fval ;
           }
         }
         if (fwrite(buf, sizeof(float), nitems, fp) != nitems)
@@ -888,7 +909,11 @@ StatWriteVolume(SV *sv, char *prefix)
         {
           for (x = 0 ; x < width ; x++)
           {
-            buf[y*width+x] = MRIFseq_vox(sv->mri_stds[event],x,y,z,t) ;
+            fval = MRIFseq_vox(sv->mri_stds[event],x,y,z,t) ;
+#ifdef Linux
+            fval = swapFloat(fval) ;
+#endif
+            buf[y*width+x] = fval ;
           }
         }
         if (fwrite(buf, sizeof(float), nitems, fp) != nitems)
@@ -916,7 +941,13 @@ StatWriteVolume(SV *sv, char *prefix)
           for (y = 0 ; y < sv->slice_height ; y++)
           {
             for (x = 0 ; x < sv->slice_width ; x++)
-              buf[y*width+x] = MRIFseq_vox(sv->mri_avg_dofs[event],x,y,z,t) ;
+            {
+              fval = MRIFseq_vox(sv->mri_avg_dofs[event],x,y,z,t) ;
+#ifdef Linux
+              fval = swapFloat(fval) ;
+#endif
+              buf[y*width+x] = fval ;
+            }
           }
           if (fwrite(buf, sizeof(float), nitems, fp) != nitems)
             ErrorReturn(ERROR_BADFILE, 
@@ -930,7 +961,13 @@ StatWriteVolume(SV *sv, char *prefix)
           for (y = 0 ; y < height ; y++)
           {
             for (x = 0 ; x < width ; x++)
-              buf[y*width+x] = MRIFseq_vox(sv->mri_std_dofs[event],x,y,z,t) ;
+            {
+              fval = MRIFseq_vox(sv->mri_std_dofs[event],x,y,z,t) ;
+#ifdef Linux
+              fval = swapFloat(fval) ;
+#endif
+              buf[y*width+x] = fval ;
+            }
           }
           if (fwrite(buf, sizeof(float), nitems, fp) != nitems)
             ErrorReturn(ERROR_BADFILE, 
