@@ -963,3 +963,24 @@ FileNameExtension(char *fname, char *ext)
 
   return(ext) ;
 }
+
+#include <glob.h>
+
+char *
+FileNameFromWildcard(char *inStr, char *outStr)
+{
+  char *cp ;
+  glob_t  gbuf ;
+
+  if (inStr != outStr)
+    strcpy(outStr, inStr) ;
+  cp = strchr(inStr, '*') ;
+  if (NULL != cp)
+  {
+    if (glob(inStr, 0, NULL, &gbuf) == 0 && gbuf.gl_pathc > 0)
+      strcpy(outStr, gbuf.gl_pathv[0]) ;
+  }
+
+  return(outStr) ;
+}
+
