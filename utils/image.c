@@ -227,7 +227,7 @@ ImageFRead(FILE *fp, char *fname, int frame)
     ecode = fread_image(fp, I, frame, fname) ;
     if (ecode != HIPS_OK)
       ErrorExit(ERROR_NO_FILE, "ImageFRead: fread_image failed (%d)\n", ecode);
-    I->image += I->sizepix ;
+    I->image += I->sizeimage ;
   }
   I->image = startpix ;
   return(I) ;
@@ -488,63 +488,80 @@ ImageResize(IMAGE *Isrc, IMAGE *Idst, int drows, int dcols)
 IMAGE *
 ImageCopy(IMAGE *Isrc, IMAGE *Idst)
 {
-  int  old, ecode ;
+  int  old, ecode, frame, nframes ;
+  byte *src_image, *dst_image ;
 
   if (!Idst)
     Idst = ImageAlloc(Isrc->rows, Isrc->cols, Isrc->pixel_format, 
                       Isrc->num_frame) ;
 
-  if (Idst->pixel_format == Isrc->pixel_format)
+  src_image = Isrc->image ;
+  dst_image = Idst->image ;
+  nframes = Isrc->num_frame ;
+  Isrc->num_frame = Idst->num_frame = 1 ;
+  
+  for (frame = 0 ; frame < nframes ; frame++)
   {
-    ecode = h_copy(Isrc, Idst) ;
-    if (ecode != HIPS_OK)
-      ErrorExit(ecode, "ImageCopy: h_copy failed (%d)\n", ecode) ;
-  }
-  else
-  {
-    switch (Idst->pixel_format)
+    if (Idst->pixel_format == Isrc->pixel_format)
     {
-    case PFFLOAT:
-      old = hips_cplxtor ;
-      hips_cplxtor = CPLX_REAL ;
-      ecode = h_tof(Isrc, Idst) ;
+      ecode = h_copy(Isrc, Idst) ;
       if (ecode != HIPS_OK)
-        ErrorExit(ecode, "ImageCopy: h_tof failed (%d)\n", ecode) ;
-      hips_cplxtor = old ;
-      break ;
-    case PFCOMPLEX:
-      old = hips_rtocplx ;
-      hips_rtocplx = CPLX_RVI0 ;
-      ecode = h_toc(Isrc, Idst) ;
-      if (ecode != HIPS_OK)
-        ErrorExit(ecode, "ImageCopy: h_toc failed (%d)\n", ecode) ;
-      hips_rtocplx = old ;
-      break ;
-    case PFDBLCOM:
-      old = hips_rtocplx ;
-      hips_rtocplx = CPLX_RVI0 ;
-      ecode = h_todc(Isrc, Idst) ;
-      if (ecode != HIPS_OK)
-        ErrorExit(ecode, "ImageCopy: h_todc failed (%d)\n", ecode) ;
-      hips_rtocplx = old ;
-      break ;
-    case PFINT:
-      ecode = h_toi(Isrc, Idst) ;
-      if (ecode != HIPS_OK)
-        ErrorExit(ecode, "ImageCopy: h_toi failed (%d)\n", ecode) ;
-      break ;
-    case PFBYTE:
-      ecode = h_tob(Isrc, Idst) ;
-      if (ecode != HIPS_OK)
-        ErrorExit(ecode, "ImageCopy: h_tob failed (%d)\n", ecode) ;
-      break ;
-    default:
-      ErrorExit(ERROR_UNSUPPORTED,
-                "ImageCopy %d-->%d, unsupported conversion\n",
-                Isrc->pixel_format, Idst->pixel_format) ;
-      break ;
+        ErrorExit(ecode, "ImageCopy: h_copy failed (%d)\n", ecode) ;
     }
+    else
+    {
+      switch (Idst->pixel_format)
+      {
+      case PFFLOAT:
+        old = hips_cplxtor ;
+        hips_cplxtor = CPLX_REAL ;
+        ecode = h_tof(Isrc, Idst) ;
+        if (ecode != HIPS_OK)
+          ErrorExit(ecode, "ImageCopy: h_tof failed (%d)\n", ecode) ;
+        hips_cplxtor = old ;
+        break ;
+      case PFCOMPLEX:
+        old = hips_rtocplx ;
+        hips_rtocplx = CPLX_RVI0 ;
+        ecode = h_toc(Isrc, Idst) ;
+        if (ecode != HIPS_OK)
+          ErrorExit(ecode, "ImageCopy: h_toc failed (%d)\n", ecode) ;
+        hips_rtocplx = old ;
+        break ;
+      case PFDBLCOM:
+        old = hips_rtocplx ;
+        hips_rtocplx = CPLX_RVI0 ;
+        ecode = h_todc(Isrc, Idst) ;
+        if (ecode != HIPS_OK)
+          ErrorExit(ecode, "ImageCopy: h_todc failed (%d)\n", ecode) ;
+        hips_rtocplx = old ;
+        break ;
+      case PFINT:
+        ecode = h_toi(Isrc, Idst) ;
+        if (ecode != HIPS_OK)
+          ErrorExit(ecode, "ImageCopy: h_toi failed (%d)\n", ecode) ;
+        break ;
+      case PFBYTE:
+        ecode = h_tob(Isrc, Idst) ;
+        if (ecode != HIPS_OK)
+          ErrorExit(ecode, "ImageCopy: h_tob failed (%d)\n", ecode) ;
+        break ;
+      default:
+        ErrorExit(ERROR_UNSUPPORTED,
+                  "ImageCopy %d-->%d, unsupported conversion\n",
+                  Isrc->pixel_format, Idst->pixel_format) ;
+        break ;
+      }
+    }
+    Isrc->firstpix += Isrc->sizeimage ;
+    Idst->firstpix += Idst->sizeimage ;
+    Isrc->image += Isrc->sizeimage ;
+    Idst->image += Idst->sizeimage ;
   }
+
+  Isrc->firstpix = Isrc->image = src_image ;
+  Idst->firstpix = Idst->image = dst_image ;
+  Isrc->num_frame =  Idst->num_frame = nframes ;
 
   return(Idst) ;
 }
@@ -1065,9 +1082,10 @@ IMAGE *
 ImageScale(IMAGE *Isrc, IMAGE *Idst, float new_min, float new_max)
 {
   float  scale, old_min, old_max ;
-  int    ecode;
+  int    ecode, nframes, frame ;
   Pixelval pmin, pmax ;
   IMAGE  *Iout ;
+  byte   *src_image, *out_image ;
 
   if (!Idst)
     Idst = ImageAlloc(Isrc->rows, Isrc->cols, Isrc->pixel_format, 
@@ -1080,35 +1098,52 @@ ImageScale(IMAGE *Isrc, IMAGE *Idst, float new_min, float new_max)
   else
     Iout = Idst ;
 
-  ecode = h_minmax(Isrc, &pmin, &pmax, 0) ;
-  switch (Isrc->pixel_format)
+
+  src_image = Isrc->image ;
+  out_image = Iout->image ;
+  nframes = Isrc->num_frame ;
+  Isrc->num_frame =  Iout->num_frame = 1 ;
+  for (frame = 0 ; frame < nframes ; frame++)
   {
-  case PFBYTE:
-    old_min = (float)pmin.v_byte ;
-    old_max = (float)pmax.v_byte ;
-    break ;
-  case PFINT:
-    old_min = (float)pmin.v_int ;
-    old_max = (float)pmax.v_int ;
-    break ;
-  case PFFLOAT:
-    old_min = pmin.v_float ;
-    old_max = pmax.v_float ;
-    break ;
-  default:
-    ErrorExit(ERROR_UNSUPPORTED, 
-              "ImageScale: unsupported pixel format %d\n",
-              Isrc->pixel_format) ;
-    break ;
+    ecode = h_minmax(Isrc, &pmin, &pmax, 0) ;
+    switch (Isrc->pixel_format)
+    {
+    case PFBYTE:
+      old_min = (float)pmin.v_byte ;
+      old_max = (float)pmax.v_byte ;
+      break ;
+    case PFINT:
+      old_min = (float)pmin.v_int ;
+      old_max = (float)pmax.v_int ;
+      break ;
+    case PFFLOAT:
+      old_min = pmin.v_float ;
+      old_max = pmax.v_float ;
+      break ;
+    default:
+      ErrorExit(ERROR_UNSUPPORTED, 
+                "ImageScale: unsupported pixel format %d\n",
+                Isrc->pixel_format) ;
+      break ;
+    }
+    
+    if (ecode != HIPS_OK)
+      ErrorExit(ecode, "ImageScale: h_minmax failed (%d)\n", ecode) ;
+    
+    scale = (new_max - new_min) / (old_max - old_min) ;
+    ecode = h_linscale(Isrc, Iout, scale, new_min - old_min * scale) ;
+    if (ecode != HIPS_OK)
+      ErrorExit(ecode, "ImageScale: h_linscale failed (%d)\n", ecode) ;
+
+    Isrc->firstpix += Isrc->sizeimage ;
+    Iout->firstpix += Iout->sizeimage ;
+    Isrc->image += Isrc->sizeimage ;
+    Iout->image += Iout->sizeimage ;
   }
 
-  if (ecode != HIPS_OK)
-    ErrorExit(ecode, "ImageScale: h_minmax failed (%d)\n", ecode) ;
-
-  scale = (new_max - new_min) / (old_max - old_min) ;
-  ecode = h_linscale(Isrc, Iout, scale, new_min - old_min * scale) ;
-  if (ecode != HIPS_OK)
-    ErrorExit(ecode, "ImageScale: h_linscale failed (%d)\n", ecode) ;
+  Isrc->firstpix = Isrc->image = src_image ;
+  Iout->firstpix = Iout->image = out_image ;
+  Isrc->num_frame =  Iout->num_frame = nframes ;
 
   if (Iout != Idst)  /* copy it to desired format */
   {
@@ -1396,13 +1431,13 @@ int
 ImageScaleDown(IMAGE *inImage, IMAGE *outImage, float scale)
 {
   int    inRow, inCol, outRow, outCol, inCols, inRows, 
-         outRows, outCols ;
+         outRows, outCols, frame ;
   UCHAR  *outPix ;
-
+  byte   *in_image, *out_image ;
   float  *foutPix ;
 
   if (!ImageCheckSize(inImage, outImage, nint((float)inImage->rows*scale),
-                          nint((float)inImage->cols*scale), 0) )
+                          nint((float)inImage->cols*scale), inImage->num_frame) )
   {
     fprintf(stderr, "ImageScaleDown: output image not big enough\n") ;
     return(-1) ;
@@ -1415,86 +1450,98 @@ ImageScaleDown(IMAGE *inImage, IMAGE *outImage, float scale)
   outRows = outImage->rows ;
   outCols = outImage->cols ;
 
-  switch (inImage->pixel_format)
+  in_image = inImage->image ;
+  out_image = outImage->image ;
+  for (frame = 0 ; frame < inImage->num_frame ; frame++)
   {
-  case PFBYTE:
-    switch (outImage->pixel_format)
-    {
-    case PFFLOAT:  /* byte --> float */
-      foutPix = IMAGEFpix(outImage, 0, 0) ;
-      for (outRow = 0 ; outRow < outRows ; outRow++)
-        for (outCol = 0 ; outCol < outCols ; outCol++, foutPix++)
-        {
-          /* map center point to this output point */
-          inRow = nint((float)outRow / scale) ;
-          inCol = nint((float)outCol / scale) ;
-          *foutPix = (float)*IMAGEpix(inImage, inCol, inRow) ;
-        }
-      break ;
-    case PFBYTE:  /* byte --> byte */
-      outPix = IMAGEpix(outImage, 0, 0) ;
-      for (outRow = 0 ; outRow < outRows ; outRow++)
-        for (outCol = 0 ; outCol < outCols ; outCol++, outPix++)
-        {
-          /* map center point to this output point */
-          inRow = nint((float)outRow / scale) ;
-          inCol = nint((float)outCol / scale) ;
-          if (inRow >= inRows || outRow >= outRows ||
-              inCol >= inCols || outCol >= outCols)
-          {
-            fprintf(stderr, "in: %d, %d --> out: %d, %d!\n",
-                    inRow, inCol, outRow, outCol) ;
-            exit(2) ;
-          }
-          *outPix = *IMAGEpix(inImage, inCol, inRow) ;
-        }
-      break ;
-    default:
-      fprintf(stderr, "ImageScaleDown: unsupported output pixel format %d\n", 
-              outImage->pixel_format) ;
-      return(-1) ;
-      break ;
-    }
-    break ;
-  case PFFLOAT:   /* float --> byte */
-    switch (outImage->pixel_format)
+    switch (inImage->pixel_format)
     {
     case PFBYTE:
-      outPix = IMAGEpix(outImage, 0, 0) ;
-      for (outRow = 0 ; outRow < outRows ; outRow++)
-        for (outCol = 0 ; outCol < outCols ; outCol++, outPix++)
-        {
-          /* map center point to this output point */
-          inRow = nint((float)outRow / scale) ;
-          inCol = nint((float)outCol / scale) ;
-          *outPix = (UCHAR)*IMAGEFpix(inImage, inCol, inRow) ;
-        }
+      switch (outImage->pixel_format)
+      {
+      case PFFLOAT:  /* byte --> float */
+        foutPix = IMAGEFpix(outImage, 0, 0) ;
+        for (outRow = 0 ; outRow < outRows ; outRow++)
+          for (outCol = 0 ; outCol < outCols ; outCol++, foutPix++)
+          {
+            /* map center point to this output point */
+            inRow = nint((float)outRow / scale) ;
+            inCol = nint((float)outCol / scale) ;
+            *foutPix = (float)*IMAGEpix(inImage, inCol, inRow) ;
+          }
+        break ;
+      case PFBYTE:  /* byte --> byte */
+        outPix = IMAGEpix(outImage, 0, 0) ;
+        for (outRow = 0 ; outRow < outRows ; outRow++)
+          for (outCol = 0 ; outCol < outCols ; outCol++, outPix++)
+          {
+            /* map center point to this output point */
+            inRow = nint((float)outRow / scale) ;
+            inCol = nint((float)outCol / scale) ;
+            if (inRow >= inRows || outRow >= outRows ||
+                inCol >= inCols || outCol >= outCols)
+            {
+              fprintf(stderr, "in: %d, %d --> out: %d, %d!\n",
+                      inRow, inCol, outRow, outCol) ;
+              exit(2) ;
+            }
+            *outPix = *IMAGEpix(inImage, inCol, inRow) ;
+          }
+        break ;
+      default:
+        fprintf(stderr, "ImageScaleDown: unsupported output pixel format %d\n",
+                outImage->pixel_format) ;
+        return(-1) ;
+        break ;
+      }
       break ;
-    case PFFLOAT:
-      foutPix = IMAGEFpix(outImage, 0, 0) ;
-      for (outRow = 0 ; outRow < outRows ; outRow++)
-        for (outCol = 0 ; outCol < outCols ; outCol++, foutPix++)
-        {
-          /* map center point to this output point */
-          inRow = nint((float)outRow / scale) ;
-          inCol = nint((float)outCol / scale) ;
-          *foutPix = (float)*IMAGEFpix(inImage, inCol, inRow) ;
-        }
+    case PFFLOAT:   /* float --> byte */
+      switch (outImage->pixel_format)
+      {
+      case PFBYTE:
+        outPix = IMAGEpix(outImage, 0, 0) ;
+        for (outRow = 0 ; outRow < outRows ; outRow++)
+          for (outCol = 0 ; outCol < outCols ; outCol++, outPix++)
+          {
+            /* map center point to this output point */
+            inRow = nint((float)outRow / scale) ;
+            inCol = nint((float)outCol / scale) ;
+            *outPix = (UCHAR)*IMAGEFpix(inImage, inCol, inRow) ;
+          }
+        break ;
+      case PFFLOAT:
+        foutPix = IMAGEFpix(outImage, 0, 0) ;
+        for (outRow = 0 ; outRow < outRows ; outRow++)
+          for (outCol = 0 ; outCol < outCols ; outCol++, foutPix++)
+          {
+            /* map center point to this output point */
+            inRow = nint((float)outRow / scale) ;
+            inCol = nint((float)outCol / scale) ;
+            *foutPix = (float)*IMAGEFpix(inImage, inCol, inRow) ;
+          }
+        break ;
+      default:
+        fprintf(stderr, "ImageScaleDown: unsupported output pixel format %d\n",
+                outImage->pixel_format) ;
+        return(-1) ;
+        break ;
+      }
       break ;
+    case PFINT:
+      
     default:
-      fprintf(stderr, "ImageScaleDown: unsupported output pixel format %d\n", 
-              outImage->pixel_format) ;
-      return(-1) ;
-      break ;
+      fprintf(stderr, "ImageScaleDown: unsupported pixel format %d\n", 
+              inImage->pixel_format) ;
+      return(-2) ;
     }
-    break ;
-  case PFINT:
-
-  default:
-    fprintf(stderr, "ImageScaleDown: unsupported pixel format %d\n", 
-            inImage->pixel_format) ;
-    return(-2) ;
+    inImage->image += inImage->sizeimage ;
+    inImage->firstpix += inImage->sizeimage ;
+    outImage->image += outImage->sizeimage ;
+    outImage->firstpix += outImage->sizeimage ;
   }
+  inImage->image = inImage->firstpix = in_image ;
+  outImage->image = outImage->firstpix = out_image ;
+  
 
   return(0) ;
 }
@@ -1507,13 +1554,14 @@ int
 ImageScaleUp(IMAGE *inImage, IMAGE *outImage, float scale)
 {
   int    inRow, inCol, outRow, outCol, inCols, inRows, endCol, endRow,
-         outRows, outCols ;
+         outRows, outCols, frame ;
   UCHAR  *inPix, *outPix ;
   UINT   *inIPix, *outIPix ;
   float  *finPix, *foutPix ;
+  byte   *in_image, *out_image ;
 
   if (!ImageCheckSize(inImage, outImage, nint(inImage->rows*scale),
-                          nint(inImage->cols*scale), 0))
+                          nint(inImage->cols*scale), inImage->num_frame))
   {
     fprintf(stderr, 
           "ImageScaleUp: output image not large enough %d x %d -> %d x %d\n",
@@ -1527,121 +1575,133 @@ ImageScaleUp(IMAGE *inImage, IMAGE *outImage, float scale)
   inRows = inImage->rows ;
   inCols = inImage->cols ;
 
-  switch (inImage->pixel_format)
+  in_image = inImage->image ;
+  out_image = outImage->image ;
+  for (frame = 0 ; frame < inImage->num_frame ; frame++)
   {
-  case PFBYTE:
-    switch (outImage->pixel_format)
+    switch (inImage->pixel_format)
     {
     case PFBYTE:
-      outPix = IMAGEpix(outImage, 0, 0) ;
-      for (outRow = 0 ; outRow < outRows ; outRow++)
+      switch (outImage->pixel_format)
       {
-        for (outCol = 0 ; outCol < outCols ; outCol++)
+      case PFBYTE:
+        outPix = IMAGEpix(outImage, 0, 0) ;
+        for (outRow = 0 ; outRow < outRows ; outRow++)
         {
-          inCol = (int)((float)outCol / scale) ;
-          inRow = (int)((float)outRow / scale) ;
-          inPix = IMAGEpix(inImage, inCol, inRow) ;
-          *outPix++ = *inPix ;
+          for (outCol = 0 ; outCol < outCols ; outCol++)
+          {
+            inCol = (int)((float)outCol / scale) ;
+            inRow = (int)((float)outRow / scale) ;
+            inPix = IMAGEpix(inImage, inCol, inRow) ;
+            *outPix++ = *inPix ;
+          }
         }
+        break ;
+      case PFFLOAT:
+        inPix = IMAGEpix(inImage, 0, 0) ;
+        for (inRow = 0 ; inRow < inRows ; inRow++)
+          for (inCol = 0 ; inCol < inCols ; inCol++, inPix++)
+          {
+            /* fill in a scale x scale area in the output image */
+            endRow = nint( (float)inRow * scale + scale) ;
+            endCol = nint( (float)inCol * scale + scale) ;
+            for (outRow = nint( (float)inRow *scale);outRow < endRow ;outRow++)
+            {
+              foutPix = IMAGEFpix(outImage, nint((float)inCol * scale),outRow);
+              
+              for (outCol = nint( (float)inCol * scale);outCol < endCol ; 
+                   outCol++,foutPix++)
+                *foutPix = (float)(*inPix) ;
+            }
+          }
+        break ;
+      default:
+        fprintf(stderr, "ImageScaleUp: unsupported output pixel format %d\n", 
+                outImage->pixel_format) ;
+        return(-1) ;
+        break ;
       }
       break ;
     case PFFLOAT:
-      inPix = IMAGEpix(inImage, 0, 0) ;
-      for (inRow = 0 ; inRow < inRows ; inRow++)
-        for (inCol = 0 ; inCol < inCols ; inCol++, inPix++)
-        {
-          /* fill in a scale x scale area in the output image */
-          endRow = nint( (float)inRow * scale + scale) ;
-          endCol = nint( (float)inCol * scale + scale) ;
-          for (outRow = nint( (float)inRow *scale); outRow < endRow ; outRow++)
+      switch (outImage->pixel_format)
+      {
+      case PFBYTE:
+        finPix = IMAGEFpix(inImage, 0, 0) ;
+        for (inRow = 0 ; inRow < inRows ; inRow++)
+          for (inCol = 0 ; inCol < inCols ; inCol++, finPix++)
           {
-            foutPix = IMAGEFpix(outImage, nint((float)inCol * scale), outRow) ;
-            
-            for (outCol = nint( (float)inCol * scale);outCol < endCol ; 
-     outCol++,foutPix++)
-              *foutPix = (float)(*inPix) ;
+            /* fill in a scale x scale area in the output image */
+            endRow = nint( (float)inRow * scale + scale) ;
+            endCol = nint( (float)inCol * scale + scale) ;
+            for (outRow = nint( (float)inRow*scale);outRow < endRow ;outRow++)
+            {
+              outPix = IMAGEpix(outImage, nint((float)inCol * scale), outRow) ;
+              
+              for (outCol = nint( (float)inCol * scale) ; outCol < endCol ; 
+                   outCol++, outPix++)
+                *outPix = (UCHAR)(*finPix) ;
+            }
           }
-        }
+        break ;
+      case PFFLOAT:
+        finPix = IMAGEFpix(inImage, 0, 0) ;
+        for (inRow = 0 ; inRow < inRows ; inRow++)
+          for (inCol = 0 ; inCol < inCols ; inCol++, finPix++)
+          {
+            /* fill in a scale x scale area in the output image */
+            endRow = nint( (float)inRow * scale + scale) ;
+            endCol = nint( (float)inCol * scale + scale) ;
+            for (outRow = nint( (float)inRow*scale);outRow < endRow ;outRow++)
+            {
+              foutPix = IMAGEFpix(outImage, nint((float)inCol * scale),outRow);
+              
+              for (outCol = nint( (float)inCol * scale) ; outCol < endCol ; 
+                   outCol++,foutPix++)
+                *foutPix = *finPix ;
+            }
+          }
+        break ;
+      default:
+        fprintf(stderr, "ImageScaleUp: unsupported output pixel format %d\n", 
+                outImage->pixel_format) ;
+        return(-1) ;
+        break ;
+      }
       break ;
-    default:
-      fprintf(stderr, "ImageScaleUp: unsupported output pixel format %d\n", 
-              outImage->pixel_format) ;
-      return(-1) ;
-      break ;
-    }
-    break ;
-  case PFFLOAT:
-    switch (outImage->pixel_format)
-    {
-    case PFBYTE:
-      finPix = IMAGEFpix(inImage, 0, 0) ;
+    case PFINT:
+      inIPix = IMAGEIpix(inImage, 0, 0) ;
+      inRows = inImage->rows ;
+      inCols = inImage->cols ;
       for (inRow = 0 ; inRow < inRows ; inRow++)
-        for (inCol = 0 ; inCol < inCols ; inCol++, finPix++)
+        for (inCol = 0 ; inCol < inCols ; inCol++, inIPix++)
         {
           /* fill in a scale x scale area in the output image */
           endRow = nint( (float)inRow * scale + scale) ;
           endCol = nint( (float)inCol * scale + scale) ;
           for (outRow = nint( (float)inRow * scale);outRow < endRow ; outRow++)
           {
-            outPix = IMAGEpix(outImage, nint((float)inCol * scale), outRow) ;
+            outIPix = IMAGEIpix(outImage, nint((float)inCol * scale), outRow) ;
             
-            for (outCol = nint( (float)inCol * scale) ; outCol < endCol ; 
-     outCol++, outPix++)
-              *outPix = (UCHAR)(*finPix) ;
-          }
-        }
-      break ;
-    case PFFLOAT:
-      finPix = IMAGEFpix(inImage, 0, 0) ;
-      for (inRow = 0 ; inRow < inRows ; inRow++)
-        for (inCol = 0 ; inCol < inCols ; inCol++, finPix++)
-        {
-          /* fill in a scale x scale area in the output image */
-          endRow = nint( (float)inRow * scale + scale) ;
-          endCol = nint( (float)inCol * scale + scale) ;
-          for (outRow = nint( (float)inRow * scale);outRow < endRow ; outRow++)
-          {
-            foutPix = IMAGEFpix(outImage, nint((float)inCol * scale), outRow) ;
-            
-            for (outCol = nint( (float)inCol * scale) ; outCol < endCol ; 
-     outCol++,foutPix++)
-              *foutPix = *finPix ;
+            for (outCol = nint( (float)inCol * scale); outCol < endCol ; 
+                 outCol++, outIPix++)
+              *outIPix = *inIPix ;
           }
         }
       break ;
     default:
-      fprintf(stderr, "ImageScaleUp: unsupported output pixel format %d\n", 
-              outImage->pixel_format) ;
-      return(-1) ;
-      break ;
+      fprintf(stderr, "ImageScaleUp: unsupported pixel format %d\n", 
+              inImage->pixel_format) ;
+      return(-2) ;
     }
-    break ;
-  case PFINT:
-    inIPix = IMAGEIpix(inImage, 0, 0) ;
-    inRows = inImage->rows ;
-    inCols = inImage->cols ;
-    for (inRow = 0 ; inRow < inRows ; inRow++)
-      for (inCol = 0 ; inCol < inCols ; inCol++, inIPix++)
-      {
-        /* fill in a scale x scale area in the output image */
-        endRow = nint( (float)inRow * scale + scale) ;
-        endCol = nint( (float)inCol * scale + scale) ;
-        for (outRow = nint( (float)inRow * scale);outRow < endRow ; outRow++)
-        {
-          outIPix = IMAGEIpix(outImage, nint((float)inCol * scale), outRow) ;
-          
-          for (outCol = nint( (float)inCol * scale); outCol < endCol ; 
-         outCol++, outIPix++)
-            *outIPix = *inIPix ;
-        }
-      }
-    break ;
-  default:
-    fprintf(stderr, "ImageScaleUp: unsupported pixel format %d\n", 
-            inImage->pixel_format) ;
-    return(-2) ;
+    inImage->image += inImage->sizeimage ;
+    inImage->firstpix += inImage->sizeimage ;
+    outImage->image += outImage->sizeimage ;
+    outImage->firstpix += outImage->sizeimage ;
   }
 
+  inImage->image = inImage->firstpix = in_image ;
+  outImage->image = outImage->firstpix = out_image ;
+  
   return(0) ;
 }
 /*----------------------------------------------------------------------
@@ -2080,11 +2140,11 @@ ImageUnpackFileName(char *inFname, int *pframe, int *ptype, char *outFname)
   if (colon)   /* : in filename indicates frame # */
   {
     if (sscanf(colon+1, "%d", pframe) < 1)
-      *pframe = 0 ;
+      *pframe = -1 ;
     *colon = 0 ;
   }
   else
-    *pframe = 0 ;
+    *pframe = -1 ;
 
   if (dot)
   {
@@ -2098,5 +2158,60 @@ ImageUnpackFileName(char *inFname, int *pframe, int *ptype, char *outFname)
     *ptype = HIPS_IMAGE ;
 
   return(NO_ERROR) ;
+}
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+              compare 2 images. Return values are:
+              0  - images are the same
+              1  - images are linearly independent
+              -1 - images are linearly dependent
+----------------------------------------------------------------------*/
+int
+ImageCmp(IMAGE *Isrc, IMAGE *Idst)
+{
+  int      ret, ecode ;
+  IMAGE    *Idiv ;
+  Pixelval pmin, pmax ;
+  float    fmin, fmax ;
+
+  Idiv = ImageAlloc(Isrc->rows, Isrc->cols, Isrc->pixel_format, 1) ;
+
+  ecode = h_div(Isrc, Idst, Idiv) ;
+  if (ecode != HIPS_OK)
+    ErrorReturn(-1, (ecode, "ImageCmp: h_div returned %d", ecode)) ;
+
+  ecode = h_minmax(Idiv, &pmin, &pmax, 0) ;
+  if (ecode != HIPS_OK)
+    ErrorExit(ecode, "ImageCmp: h_minmax failed (%d)\n", ecode) ;
+
+  switch (Isrc->pixel_format)
+  {
+  case PFBYTE:
+    fmin = (float)pmin.v_byte ;
+    fmax = (float)pmax.v_byte ;
+    break ;
+  case PFFLOAT:
+    fmin = pmin.v_float ;
+    fmax = pmax.v_float ;
+    break ;
+  default:
+    ErrorExit(ERROR_UNSUPPORTED, 
+              "ImageCmp: unsupported pixel format %d\n", Isrc->pixel_format);
+    break ;
+  }
+
+  if (fmin != fmax)  /* if Idiv is constant - they are linearly dependent */
+    ret = 1 ;
+  else
+  {
+    if (FEQUAL(fmin, 1.0f))
+      ret = 0 ;
+    else
+      ret = -1 ;
+  }
+
+  return(ret);
 }
 
