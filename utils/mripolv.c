@@ -185,7 +185,7 @@ MRIpolvNormalCurvature(MRI *mri_src, MRI *mri_dst, MRI *mri_polv, int wsize)
   n = wsize-1 ;  /* excludes central point */
   for (z = 0 ; z < depth ; z++)
   {
-    DiagHeartbeat((float)z / (float)(depth-1)) ;
+    /*    DiagHeartbeat((float)z / (float)(depth-1)) ;*/
     for (y = whalf ; y < height ; y++)
     {
       pdst = &MRIFvox(mri_dst, 0, y, z) ;  /* ptr to destination */
@@ -1366,7 +1366,7 @@ MRIfindThinWMStrands(MRI *mri_src, MRI *mri_dst, int wsize)
   n = wsize*wsize ;
   for (z = 0 ; z < depth ; z++)
   {
-    DiagHeartbeat((float)z / (float)(depth-1)) ;
+    /*    DiagHeartbeat((float)z / (float)(depth-1)) ;*/
     for (y = 0 ; y < height ; y++)
     {
       psrc = &MRIvox(mri_src, 0, y, z) ;  /* ptr to destination */
