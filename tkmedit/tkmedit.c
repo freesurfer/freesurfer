@@ -39,7 +39,6 @@
 #define TCL
 
 
-
 #ifdef TCL
 #  define PR   {if(promptflag){fputs("% ", stdout);} fflush(stdout);}
 int            tk_NumMainWindows = 0;
@@ -204,6 +203,7 @@ int dip_spacing = 10; /* voxels */
 float tm[4][4];
 int jold[MAXPTS],iold[MAXPTS],imold[MAXPTS];
 float ptx[MAXPTS],pty[MAXPTS],ptz[MAXPTS];
+
 float par[MAXPARS],dpar[MAXPARS];
 
 static MRI_SURFACE *mris ;
@@ -225,6 +225,14 @@ double ffrac3=1.0,ffrac2=1.0,ffrac1=1.0,ffrac0=1.0;
 int imc=0,ic=0,jc=0;
 int impt = -1,ipt = -1,jpt = -1;
 float x_click, y_click, z_click ;
+
+// status of the mouse and keyboard modifiers
+int ctrlkeypressed = FALSE;
+int altkeypressed = FALSE;
+int shiftkeypressed = FALSE;
+int button1pressed = FALSE;
+int button2pressed = FALSE;
+int button3pressed = FALSE;
 
 char *subjectsdir;   /* SUBJECTS_DIR */
 char *srname;        /* sessiondir--from cwd */
@@ -255,6 +263,313 @@ int               transform_loaded = 0 ;
 
 static int   control_points = 0 ;
 static int   num_control_points = 0 ;
+
+
+// kt
+                                     /* constants */
+#define kDebugging                        1         // debugging output
+
+#define kBytesPerPixel                    4         // assume 32 bit pixels
+#define kPixelComponentLevel_Max          255       // assume 1 byte components
+
+                                     /* pixel offsets in bits, used in drawing
+                                        loops to composite pixels together */
+
+#define kPixelOffset_Alpha                24
+#define kPixelOffset_Green                16
+#define kPixelOffset_Blue                 8
+#define kPixelOffset_Red                  0
+
+
+#define kCtrlPtCrosshairRadius            5
+#define kCursorCrosshairRadius            5
+
+
+                                     /* nifty inline utility functions */
+
+#define isOdd(x) (x%2)
+
+                                     /* struct and methods for a CtrlPtSpace 
+                                        class, a 3d buffer of char values. */
+
+typedef struct {
+  char * mBuffer;
+  int mIndexSize, mByteSize;
+} CtrlPtSpace;
+
+// error constants
+#define kCtrlPtSpaceErr_NoErr                          0
+#define kCtrlPtSpaceErr_InvalidSpacePtr                1
+#define kCtrlPtSpaceErr_InvalidSize                    2
+#define kCtrlPtSpaceErr_MemoryAllocFailed              3
+#define kCtrlPtSpaceErr_SpaceNotInited                 4
+#define kCtrlPtSpaceErr_CoordsOutOfBounds              5
+#define kCtrlPtSpaceErr_InvalidOutputAddress           6
+
+char kCtrlPtSpace_ErrString [7][256] = {
+  "No error.",
+  "Invalid pointer to strucutre (probably null).",
+  "Invalid size (probably < 0).",
+  "Space internal memory allocation failed. Size too big?",
+  "Space structure not initialized (buffer ptr was probably null).",
+  "Specified coordinates are out of bounds (either < 0 or > max index).",
+  "Invalid output pointer address (probably null)." };
+
+                                     /* Note: all CtrlPtSpace functions 
+                                        return error codes, defined above. */
+
+                                     /* allocates memory equal to inSize^3 
+                                        chars and fills it with inValue. */
+char CtrlPtSpace_Init ( CtrlPtSpace * inSpace,  // space to init
+                        short inSize,           // size to init to
+                        char inValue );         // value to fill space
+
+                                     /* frees the memory associated with the 
+                                        space. */
+char CtrlPtSpace_Delete ( CtrlPtSpace * inSpace ); // space to delete
+
+                                     /* returns the value at the specified
+          coord. */
+char CtrlPtSpace_GetValue ( CtrlPtSpace * inSpace,      // space to use 
+                            short x, short y, short z,  // coords of val 
+                            char * outValue );          // value returned
+
+                                     /* takes the xyz coords and returns the 
+                                        index into the buffer. no error 
+                                        checking, assumes space is set up 
+                                        and coords are valid. intended 
+                                        for "internal" use only. */
+long CtrlPtSpace_CoordToIndex ( CtrlPtSpace * inSpace,       // space to use
+                                short x, short y, short z ); // coords
+
+                                      /* sets the value at the specified
+                                         coord, overwriting previous value if 
+                                         existing. */
+char CtrlPtSpace_SetValue ( CtrlPtSpace * inSpace,      // space to use 
+                            short x, short y, short z,  // coords of val
+                            char inValue );             // val to set 
+
+                                      /* prints out all non-zero values 
+                                         in the space */
+char CtrlPtSpace_PrintDebug ( CtrlPtSpace * inSpace );
+
+                                      /* return the max index value. */
+char CtrlPtSpace_IndexSize ( CtrlPtSpace * inSpace, int * outIndex );
+
+                                      /* give it an error number, it gives 
+                                         you an error string ptr */
+char * CtrlPtSpace_GetErrorString ( int inErr );
+
+                                      /* tcl wrappers. i had trouble getting
+                                         tcl to work with functios that 
+                                         returned chars so i wrote these to 
+                                         call the the other ones. these will 
+                                         also look for errors and print 
+                                         error messages. */
+void TclCtrlPtSpace_SetValue ( CtrlPtSpace * inSpace,
+                               short x, short y, short z,
+                               char inValue );           
+void TclCtrlPtSpace_PrintDebug ( CtrlPtSpace * inSpace );
+
+
+
+                                       /* managers for the list of selected
+                                          control pts. really just an array
+                                          and some accessor methods. each
+                                          returns an error code. */
+#define kVListErr_NoErr                                0
+#define kVListErr_InvalidPtr                           1
+#define kVListErr_ListFull                             2
+#define kVListErr_VoxelNotInList                       3
+#define kVListErr_IndexOutOfBounds                     4
+#define kVListErr_InvalidList                          5
+
+char kVList_ErrString [6][256] = {
+  "No error.",
+  "Invalid list pointer (probably null).",
+  "Cannot add a voxel, list is full.",
+  "Voxel not found in list.",
+  "Index is out of bounds (either < 0 or > list size).",
+  "Invalid list (failed basic sanity check, probably garbage memory)." };
+
+                                       /* a voxel data struct */
+typedef struct {
+  int mX, mY, mZ;
+} Voxel;
+
+                                       /* voxel list is just an array. each
+                                          addition to the list is actually
+                                          copied into the array. */
+#define kVList_ListSize                                100
+typedef struct {
+  Voxel mVoxel [kVList_ListSize];
+  int mFirstEmpty;
+} VoxelList;
+
+
+                                       /* init the voxel list. */
+char VList_Init ( VoxelList * inList );
+
+                                       /* clean up after the list. */
+char VList_Delete ( VoxelList * inList );
+
+                                       /* add a voxel to the list. */
+char VList_AddVoxel ( VoxelList * inList, 
+                      Voxel * inVoxel );
+
+                                       /* remove a voxel from the list */
+char VList_RemoveVoxel ( VoxelList * inList,
+                         Voxel * inVoxel );
+
+                                       /* output whether or not the voxel 
+                                          is in the list */
+char VList_IsInList ( VoxelList * inList,
+                      Voxel * inVoxel,
+                      char * outIsInList );
+
+                                       /* if voxel is in list, returns its 
+                                          position, otherwise returns an error 
+                                          and -1 for the index. index is
+                                          0-based. no error checking, 
+                                          intended for internal use. */
+int VList_IndexInList ( VoxelList * inList, 
+                        Voxel * inVoxel );
+
+                                       /* clear all voxels in the list */
+char VList_ClearList ( VoxelList * inList );
+
+                                       /* get the number of voxels in the 
+                                          list */
+char VList_GetCount ( VoxelList * inList,
+                      int * outCount );
+
+                                       /* return the data in the nth voxel,
+                                          n is 0-based index.*/
+char VList_GetNthVoxel ( VoxelList * inList,
+                         int inIndex,
+                         Voxel * outVoxel );
+
+                                       /* print out all the voxels in the 
+                                          list */
+char VList_PrintDebug ( VoxelList * inList );
+void TclVList_PrintDebug ( VoxelList * inList );
+
+                                      /* give it an error number, it gives 
+                                         you an error string ptr */
+char * VList_GetErrorString ( int inErr );
+
+
+                                       /* draw control point. switches on 
+                                          the current display style of the 
+                                          point. */
+void DrawCtrlPt ( char * inBuffer,  // video buffer to draw into
+                  int inX, int inY, // x,y location in the buffer
+                  long inColor );   // color to draw in
+
+                                       /* handles the clicking of ctrl pts */
+void SelectCtrlPt ();
+
+                                        /* remove the selected control points 
+                                           from the control point space */
+void DeleteSelectedCtrlPts ();
+
+
+                                       /* reads the control.dat file, 
+                                          transforms all pts from RAS space 
+                                          to voxel space, and adds them as 
+                                          control pts */
+void ProcessCtrlPtFile ( char * inDir );
+
+                                       /* writes all control points to the
+                                          control.dat file in RAS space */
+void WriteCtrlPtFile ( char * inDir );
+
+                                       /* tsia */
+void ToggleCtrlPtDisplayStatus ();
+void ToggleCtrlPtDisplayStyle ();
+                                       /* converts screen coords to 
+                                          voxel coords and back */
+void ScreenToVoxel ( int j, int i, int im,      // incoming screen coords
+                     int *x, int *y, int *z);   // outgoing voxel coords
+
+void VoxelToScreen ( int x, int y, int z,       // incoming voxel coords
+                     int *j, int *i, int *im ); // outgoing screen coords 
+
+                                       /* converts ras coords to
+                                          voxel coords and back */
+void RASToVoxel ( Real x, Real y, Real z,        // incoming ras coords
+                  int *xi, int *yi, int *zi );   // outgoing voxel coords
+
+void VoxelToRAS ( int xi, int yi, int zi,        // incoming voxel coords
+                  Real *x, Real *y, Real *z );   // outgoing RAS coords
+
+                                       /* print info about a screen point */
+void PrintScreenPointInformation ( int j, int i, int im );
+
+                                       /* draws a crosshair cursor into a 
+                                          video buffer. */
+void DrawCrosshairInBuffer ( char * inBuffer,       // the buffer
+                               int inX, int inY,      // location in buffer
+                               int inSize,            // radius of crosshair
+                               long inColor );        // color, should be a
+                                                      // kRGBAColor_ value
+
+                                       /* fills a box with a color.
+                                          starts drawing with the input coords
+                                          as the upper left and draws a box 
+                                          the dimesnions of the size */
+void FillBoxInBuffer ( char * inBuffer,       // the buffer
+                       int inX, int inY,      // location in buffer
+                       int inSize,            // width/height of pixel
+                       long inColor );        // color, should be a
+                                              // kRGBAColor_ value
+
+
+                                       /* fast pixel blitting */
+inline
+void SetGrayPixelInBuffer ( char * inBuffer, int inIndex,
+                            unsigned char inGray );
+
+inline
+void SetColorPixelInBuffer ( char * inBuffer, int inIndex,
+                             unsigned char inRed, unsigned char inGreen,
+                             unsigned char inBlue );
+
+inline
+void SetCompositePixelInBuffer ( char * inBuffer, int inIndex,
+                                 long inPixel );
+
+                                       /* color values for 
+                                          drawing functions, 
+                                          alpha|b|g|r order (weird endian) */
+#define kRGBAColor_Red      0xff0000ff
+#define kRGBAColor_Green    0xff00ff00
+#define kRGBAColor_Yellow   0xff00ffff
+
+                                       /* global storage for ctrl space. */
+CtrlPtSpace gCtrlPtSpace;
+
+                                       /* global storage for selected ctrl 
+                                          pts. */
+VoxelList gSelectionList;
+
+                                       /* flag for displaying ctrl pts. if 
+                                          true, draws ctrl pts in draw loop. */
+char gIsDisplayCtrlPts;
+
+                                       /* style of control point to draw */
+#define kCtrlPtStyle_Point                    1
+#define kCtrlPtStyle_Crosshair                2
+char gCtrlPtDrawStyle;
+
+                                       /* whether or not we've added the 
+                                          contents of the control.dat file to
+                                          our control pt space. we only want
+                                          to add it once. */
+char gParsedCtrlPtFile;
+
+// end_kt 
+
 
 /*--------------------- prototypes ------------------------------*/
 #ifdef Linux
@@ -1114,19 +1429,26 @@ void compose(unsigned char* stbuffer, unsigned char* outbuffer, int dir)
     curs = 2;
 
   for(h=0; h<ydim; h++) {
+
     for(w=0; w<xdim; w++) {
+
       if(do_overlay == 1) { 
+
         if(fcache[h*512+w]!=NO_VALUE)
+
           setStatColor(fcache[h*512+w],&red,&green,&blue,
                        stbuffer[h*512+w]/255.0);
         else {
+
           red = green = blue = hacked_map[stbuffer[h*512+w]+MAPOFFSET];
           if (truncflag)
             if (stbuffer[h*512+w]<white_lolim+MAPOFFSET || 
                 stbuffer[h*512+w]>white_hilim+MAPOFFSET)
               red = green = blue = hacked_map[MAPOFFSET];
         }
+
       } else {
+
         red = green = blue = hacked_map[stbuffer[h*512+w]+MAPOFFSET];
         if (truncflag)
           if (stbuffer[h*512+w]<white_lolim+MAPOFFSET || 
@@ -1270,6 +1592,7 @@ void draw_image_hacked(int imc, int ic, int jc)
 }
 
 #endif
+
 /*--------------------- twitzels hack end ---------------------------*/
 
 #ifdef TCL
@@ -1745,17 +2068,12 @@ do_one_gl_event(Tcl_Interp *interp)   /* tcl */
   char buf[1000];
   char command[NAME_LENGTH];
   KeySym ks;
-  static int ctrlkeypressed = FALSE;
-  static int altkeypressed = FALSE;
-  static int shiftkeypressed = FALSE;
-  static int button1pressed = FALSE;
-  static int button2pressed = FALSE;
-  static int button3pressed = FALSE;
   short sx,sy; /* Screencoord sx,sy; */
   XWindowAttributes wat;
   Window junkwin;
   int rx, ry;
 
+  
   if (!openglwindowflag) return;
   if (updatepixval) {
     Tcl_Eval(interp,"pixvaltitle 1 1 1");
@@ -1806,11 +2124,22 @@ do_one_gl_event(Tcl_Interp *interp)   /* tcl */
           button1pressed = TRUE;
         }
         if (current.xbutton.button == 2) {  /** middle **/
+
+          // kt - changed button 2 to go to select_pixel. original function
+          // is commented out.
+
+          /*
           if (drawsecondflag) {
             printf("medit: N.B.: editing image in hidden buffer\n"); PR}
           select_pixel(sx,sy,FALSE);
           edit_pixel(TO_WHITE);
+          */
+            
           button2pressed = TRUE;
+          select_pixel ( sx, sy, TRUE );          
+
+          // end_kt
+
         }
         if (current.xbutton.button == 3) {  /** right **/
           if (drawsecondflag) {
@@ -1843,102 +2172,203 @@ do_one_gl_event(Tcl_Interp *interp)   /* tcl */
         break;
 
       case KeyPress:
-  XLookupString(&current.xkey, buf, sizeof(buf), &ks, 0);
+        XLookupString(&current.xkey, buf, sizeof(buf), &ks, 0);
         switch (ks) {
 
-          case XK_c: case XK_0: case XK_apostrophe:
-            if (altkeypressed) Tcl_Eval(interp,
-              ".mri.main.right.cmp.aCOMPARE.bu invoke");
+        case XK_c: 
+        case XK_0: 
+        case XK_apostrophe:
+          if (altkeypressed) Tcl_Eval(interp,
+                ".mri.main.right.cmp.aCOMPARE.bu invoke");
+          break;
+
+        case XK_M:
+        case XK_m:
+          if (altkeypressed) 
+            Tcl_Eval(interp,
+                     ".mri.main.left.view.butt.left.amaxflag.ck invoke");
+          break;
+
+        case XK_d:
+
+          if (altkeypressed) 
+
+            Tcl_Eval(interp, 
+                     ".mri.main.left.view.butt.left.asurface.ck invoke");
+
+          // kt
+          else if ( ctrlkeypressed ) {
+
+            DeleteSelectedCtrlPts ();
+            redraw ();
+          }
+          // end_kt
+
+          break;
+
+        case XK_b:
+          if (altkeypressed) Tcl_Eval(interp,
+                                      "set prad 0");
+          break;
+
+        case XK_v:
+          if (altkeypressed) Tcl_Eval(interp,
+                 "set pradtmp $prad; set prad $pradlast; set pradlast $pradtmp");
             break;
-          case XK_M:
-            if (altkeypressed) Tcl_Eval(interp,
-              ".mri.main.left.view.butt.left.amaxflag.ck invoke");
+            
+        case XK_B:
+          if (altkeypressed) Tcl_Eval(interp,
+                  "set prad [expr ($prad+1)]");
             break;
-          case XK_m:
-            if (altkeypressed) Tcl_Eval(interp,
-              ".mri.main.left.view.butt.left.amaxflag.ck invoke");
+
+        case XK_asterisk:
+          if (altkeypressed) Tcl_Eval(interp,
+                  "set fsquash [expr $fsquash * 1.1]; set_scale");
             break;
-          case XK_d:
-            if (altkeypressed) Tcl_Eval(interp,
-              ".mri.main.left.view.butt.left.asurface.ck invoke");
+
+        case XK_slash:
+          if (altkeypressed) Tcl_Eval(interp,
+                  "set fsquash [expr $fsquash / 1.1]; set_scale");
+          break;
+
+        case XK_plus:
+          if (altkeypressed) Tcl_Eval(interp,
+                   "set fthresh [expr $fthresh + 0.05]; set_scale");
             break;
-          case XK_b:
-            if (altkeypressed) Tcl_Eval(interp,
-              "set prad 0");
+
+        case XK_minus:
+          if (altkeypressed) Tcl_Eval(interp,
+                   "set fthresh [expr $fthresh - 0.05]; set_scale");
             break;
-          case XK_v:
-            if (altkeypressed) Tcl_Eval(interp,
-              "set pradtmp $prad; set prad $pradlast; set pradlast $pradtmp");
-            break;
-          case XK_B:
-            if (altkeypressed) Tcl_Eval(interp,
-              "set prad [expr ($prad+1)]");
-            break;
-          case XK_asterisk:
-            if (altkeypressed) Tcl_Eval(interp,
-              "set fsquash [expr $fsquash * 1.1]; set_scale");
-            break;
-          case XK_slash:
-            if (altkeypressed) Tcl_Eval(interp,
-              "set fsquash [expr $fsquash / 1.1]; set_scale");
-            break;
-          case XK_plus:
-            if (altkeypressed) Tcl_Eval(interp,
-              "set fthresh [expr $fthresh + 0.05]; set_scale");
-            break;
-          case XK_minus:
-            if (altkeypressed) Tcl_Eval(interp,
-              "set fthresh [expr $fthresh - 0.05]; set_scale");
-            break;
-          case XK_w:
-            if (altkeypressed) Tcl_Eval(interp,
-              ".mri.main.left.head.save.aSAVEIMG.bu invoke");
-            break;
-          case XK_x: case XK_X: plane=SAGITTAL;redraw();break;
-          case XK_y: case XK_Y: plane=HORIZONTAL;redraw();break;
-          case XK_z: case XK_Z: plane=CORONAL;redraw();break;
-          case XK_r:
-            if (altkeypressed) {
-              /*Tcl_Eval(interp,"raise .");*/
-              goto_point(tfname);
-              redraw();
-            }
-            break;
-          case XK_f:
-            if (altkeypressed) write_point(tfname);
-            break;
-          case XK_I:
-            if (altkeypressed) { mirror(); redraw();}
-            break;
-          case XK_R:
-            if (altkeypressed) {
-              read_hpts(hpfname);
-              read_htrans(htfname);
-              redraw();
-            }
-            break;
-          case XK_W:
-            if (altkeypressed) write_htrans(htfname);
-            break;
-          case XK_Up:
-            Tcl_Eval(interp,"changeslice up; sendupdate");
-            break;
-          case XK_Down:
-            Tcl_Eval(interp,"changeslice down; sendupdate");
-            break;
-          case XK_Right:
-            Tcl_Eval(interp,"changeslice up; sendupdate");
-            break;
-          case XK_Left:
-            Tcl_Eval(interp,"changeslice down; sendupdate");
-            break;
+
+        case XK_w:
+          if (altkeypressed) Tcl_Eval(interp,
+                  ".mri.main.left.head.save.aSAVEIMG.bu invoke");
+          break;
+
+        case XK_x: 
+        case XK_X: 
+          plane=SAGITTAL;
+          redraw();
+          break;
+        
+        case XK_y: 
+        case XK_Y: 
+
+          // kt
+          if ( ctrlkeypressed ) {
+
+            ToggleCtrlPtDisplayStyle ();
+            redraw ();
+
+          } else {
+            // end_kt
+
+            plane=HORIZONTAL;
+            redraw();
+          }
+
+          break;
+
+        case XK_z: 
+        case XK_Z: 
+          plane=CORONAL;
+          redraw();
+          break;
+
+        case XK_r:
+          if (altkeypressed) {
+            /*Tcl_Eval(interp,"raise .");*/
+            goto_point(tfname);
+            redraw();
+          }
+          break;
+
+        case XK_f:
+          if (altkeypressed) write_point(tfname);
+          break;
+
+        case XK_I:
+          if (altkeypressed) { mirror(); redraw();}
+          break;
+
+        case XK_R:
+          if (altkeypressed) {
+            read_hpts(hpfname);
+            read_htrans(htfname);
+            redraw();
+          }
+          break;
+
+        case XK_W:
+          if (altkeypressed) 
+            write_htrans(htfname);
+          break;
+          
+          // kt
+        case XK_h:
+
+          if ( ctrlkeypressed ) {
+           
+            // toggle the display status of the ctrl pts
+            ToggleCtrlPtDisplayStatus ();
+            redraw ();
+          }
+
+          break;
+
+        case XK_s:
+
+          if ( ctrlkeypressed ) {
+
+            // write the ctrl pt file.
+            WriteCtrlPtFile ( tfname );
+
+          }
+
+          break;
+
+        case XK_n:
+
+          if ( ctrlkeypressed ) {
+
+            // clear all selected points.
+            VList_ClearList ( &gSelectionList );
+
+            redraw ();
+          }
+
+          break;
+          // end_kt
+
+        case XK_Up:
+        case XK_Right:
+          Tcl_Eval(interp,"changeslice up; sendupdate");
+          break;
+          
+        case XK_Down:
+        case XK_Left:
+          Tcl_Eval(interp,"changeslice down; sendupdate");
+          break;
 
           /* TODO: install X versions of rotate headpoints bindings */
 
           /* modifiers */
-          case XK_Shift_L:   case XK_Shift_R:   shiftkeypressed=TRUE; break;
-          case XK_Control_L: case XK_Control_R: ctrlkeypressed=TRUE;  break;
-          case XK_Alt_L:     case XK_Alt_R:     altkeypressed=TRUE;   break;
+        case XK_Shift_L:   
+        case XK_Shift_R:
+          shiftkeypressed=TRUE; 
+          break;
+
+        case XK_Control_L: 
+        case XK_Control_R: 
+          ctrlkeypressed=TRUE; 
+          break;
+
+        case XK_Alt_L:     
+        case XK_Alt_R:
+          altkeypressed=TRUE;   
+          break;
+
         }
         break;
 
@@ -2567,6 +2997,22 @@ void
 select_control_points(void)
 {
   control_points = 1 ;
+
+  // kt
+  fprintf ( stdout, "Control point mode is ON.\n" );
+
+  // process the control pt file, adding all pts to it.
+  ProcessCtrlPtFile ( tfname );
+
+  if ( !gIsDisplayCtrlPts )
+    fprintf ( stdout, "NOTE: Control points are currently not being displayed. To display control points, press ctrl-h.\n" );
+
+  PR;
+
+  // redraw new control pts
+  redraw ();
+
+  // end_kt
 }
 
 void
@@ -2609,39 +3055,81 @@ write_point(char *dir)
   FILE *fp;
   float xpt,ypt,zpt;
   Real  x, y, z, x_tal, y_tal, z_tal ;
+  int theVoxX, theVoxY, theVoxZ;
 
-  if (control_points)
-  {
+  if (control_points) {
+
     sprintf(fname,"%s/control.dat",dir);
-    if (control_points > 0 || num_control_points++ > 0)
-      fp=fopen(fname,"a");
-    else
-    {
+    if (control_points > 0 || num_control_points++ > 0) {
+
+      // kt -changed from "a" to "a+" to create file if it doesn't exist
+      fp=fopen(fname,"a+");
+
+    } else {
+
       fprintf(stderr, "opening control point file %s...\n", fname) ;
       fp=fopen(fname,"w");
     }
-  }
-  else
-  {
+
+  } else {
+
     sprintf(fname,"%s/edit.dat",dir);
     fp=fopen(fname,"w");
   }
-  if (fp==NULL) {printf("medit: ### can't create file %s\n",fname);PR return;}
-  xpt = xx1-ps*jc/fsf;
-  ypt = yy0+st*imc/fsf;
-  zpt = zz1-ps*(255.0-ic/fsf);
-  fprintf(fp,"%f %f %f\n",xpt,ypt,zpt);
-  if (transform_loaded)
-  {
-    if (control_points)
-      fprintf(stderr, "writing control point to file...\n") ;
-    else
-      fprintf(stderr, "writing transformed point to file...\n") ;
-    x = (Real)xpt ; y = (Real)ypt ; z = (Real)zpt ;
-    transform_point(linear_transform, x, y, z, &x_tal, &y_tal, &z_tal) ;
-    if (!control_points)
-      fprintf(fp, "%f %f %f\n", x_tal, y_tal, z_tal) ;
-    xtalairach = x_tal;  ytalairach = y_tal;  ztalairach = z_tal; 
+
+  // kt
+  
+  // if we're in control point mode, add this point to the control point
+  // space.
+  if ( control_points ) {
+
+    // get vox coords
+    ScreenToVoxel ( jc, ic, imc, &theVoxX, &theVoxY, &theVoxZ );
+    
+    // add voxel space pt to CtrlPtSpace
+    CtrlPtSpace_SetValue ( &gCtrlPtSpace, theVoxX, theVoxY, theVoxZ, 1 );
+    fprintf ( stdout, "Added control point (%d,%d,%d).\n",
+              theVoxX, theVoxY, theVoxZ ); PR;
+  }  
+
+  // end_kt
+
+
+  if (fp==NULL) {
+    printf("medit: ### can't create file %s\n",fname); PR 
+    return;
+  }
+
+  if ( !control_points ) {
+
+    // screen to ras
+    xpt = xx1-ps*jc/fsf;
+    ypt = yy0+st*imc/fsf;
+    zpt = zz1-ps*(255.0-ic/fsf);
+    
+    // write RAS space pt to file
+    fprintf ( fp,"%f %f %f\n",xpt,ypt,zpt );
+    
+    if (transform_loaded)
+    {
+      if (control_points)
+        fprintf(stderr, "writing control point to file...\n") ;
+      else
+        fprintf(stderr, "writing transformed point to file...\n") ;
+      
+      /* go to reals (doubles) */
+      x = (Real)xpt ; y = (Real)ypt ; z = (Real)zpt ;
+      
+      /* run tal transform to get in tal space */
+      transform_point(linear_transform, x, y, z, &x_tal, &y_tal, &z_tal) ;
+      
+      if (!control_points)
+        // write tal space point to file
+        fprintf(fp, "%f %f %f\n", x_tal, y_tal, z_tal) ;
+      
+      xtalairach = x_tal;  ytalairach = y_tal;  ztalairach = z_tal; 
+    }
+
   }
   /*else { fprintf(stderr, "NOT writing transformed point to file...\n") ; }*/
   fclose(fp);
@@ -2709,6 +3197,9 @@ void set_cursor(float xpt, float ypt, float zpt)
   Real   x, y, z, x_tal, y_tal, z_tal ;
   int    xi, yi, zi ;
 
+  // we get xpt,ypt,zpt in ras space
+
+  // ras to screen
   x = y = z = 0.0;
   if (ptype==0) /* Horizontal */
   {
@@ -2738,7 +3229,12 @@ void set_cursor(float xpt, float ypt, float zpt)
 
   if (imc/zf>=0 && imc/zf<imnr1) 
   {
-    xi = (int)(jc/zf) ; yi = (int)((ydim-1-ic)/zf) ; zi = (int)(imc/zf) ;
+
+    // convert screen coordinates to voxel coordinates
+    xi = (int)(jc/zf); 
+    yi = (int)((ydim-1-ic)/zf); 
+    zi = (int)(imc/zf) ;
+
     selectedpixval = im[zi][yi][xi];
     printf("%s=%d ",imtype,selectedpixval);
     if (second_im_allocated) 
@@ -2763,6 +3259,8 @@ void set_cursor(float xpt, float ypt, float zpt)
     printf(
     "imnr(P/A)=%d, i(I/S)=%d, j(R/L)=%d (x=%2.1f y=%2.1f z=%2.1f)\n",
             zi,yi,xi,xx1-ps*jc/fsf,yy0+st*imc/fsf,zz1-ps*(255.0-ic/fsf));
+
+    // screen to ras
     x = (Real)(xx1-ps*jc/fsf) ;
     y = (Real)(yy0+st*imc/fsf) ;
     z = (Real)(zz1-ps*(255.0-ic/fsf)) ;
@@ -2850,33 +3348,39 @@ void redraw(void)
   set_scale();
   color(BLACK);
   /* clear(); */
+
   if (drawsecondflag && second_im_allocated) {
+
     draw_second_image(imc,ic,jc);
+
 #if 0    
     wintitle(imtype2);
 #else
     sprintf(title_str, "%s:%s (%s=%d, %s=%d)", pname, imtype2,imtype, 
             selectedpixval, imtype2, secondpixval) ;
 #endif
-  }
-  else 
-  {
+
+  } else {
+
     if (do_overlay)
       draw_image_hacked(imc,ic,jc);
     else
       draw_image(imc,ic,jc); 
 
-
 #if 0
     wintitle(imtype);
 #else
     if (second_im_allocated)
+
       sprintf(title_str, "%s:%s (%s=%d, %s=%d)", pname, imtype,imtype, 
               selectedpixval, imtype2, secondpixval) ;
     else
+
       sprintf(title_str, "%s:%s (%s=%d)", pname, imtype,imtype,selectedpixval);
 #endif
+
   }
+
   wintitle(title_str);
   if (ptsflag && !all3flag) drawpts();
   if (surfflag && surfloaded)
@@ -3377,9 +3881,13 @@ show_vertex(void)
 void
 select_pixel( short sx, short sy, int printflag)
 {
+
+  // kt - cleaned up formatting, added comments and questions
+
   long ox,oy,lx,ly;
   Real  x, y, z, x_tal, y_tal, z_tal ;
   int   xi,yi, zi ;
+  char theResult, theValue;
 
   x = y = z = 0.0;
   getorigin(&ox,&oy);
@@ -3388,12 +3896,8 @@ select_pixel( short sx, short sy, int printflag)
   /* hack: x-y of click on tk win caught by qread when clicks buffered! */
   if (sx<ox || sx>ox+lx) sx = ox+lx/2;
   if (sy<oy || sy>oy+ly) sy = oy+ly/2;
-/*
-  printf("sx=%d, sy=%d, ox=%d, oy=%d, lx=%d, ly=%d\n",
-         sx,sy,ox,oy,lx,ly);
-*/
 
-  if (all3flag) {
+  if ( all3flag ) {
     if (sx-ox<xdim/2 && sy-oy>ydim/2) {  /* COR */
       ic = 2*((sy-oy)-ydim/2);
       jc = 2*(sx-ox);
@@ -3409,67 +3913,106 @@ select_pixel( short sx, short sy, int printflag)
     if (sx-ox>xdim/2 && sy-oy<ydim/2) {  /* max=>center */
       ic = jc = imc = xdim/2;
     }
-  }
-  else {
-    if (plane==CORONAL) {
+
+  } else {
+
+    // depending what plane we're in, use our screen coords to get
+    // screenspace i/j/im coords.
+    switch ( plane ) {
+
+      // in coronal, x is j and y is i
+    case CORONAL: 
+      jc = (sx-ox);
       ic = (sy-oy);
+      break;
+      
+      // in horizontal, x is j and y is im
+    case HORIZONTAL:
       jc = (sx-ox);
-    }
-    else if (plane==HORIZONTAL) {
       imc = (sy-oy);
-      jc = (sx-ox);
-    }
-    else if (plane==SAGITTAL) {
+      break;
+
+      // in sagittal, x is im and y is i
+    case SAGITTAL:
       imc = (sx-ox);
       ic = (sy-oy);
+      break;
     }
   }
-  if (printflag)
-  {
-    if (imc/zf>=0 && imc/zf<imnr1) 
-    {
-      xi = (int)(jc/zf) ; yi = (int)((ydim-1-ic)/zf) ; zi = (int)(imc/zf) ;
+
+  if (printflag) {
+
+    printf ( "\nSelected pixel data:\nValue:" );
+
+    if ( imc/zf >= 0 && imc/zf < imnr1 ) {
+      
+      // get our voxel coords
+      ScreenToVoxel ( jc, ic, imc, &xi, &yi, &zi );
+      
+      // find the voxel value.
       selectedpixval = im[zi][yi][xi];
-      printf("%s=%d ",imtype,selectedpixval);
-      if (second_im_allocated) 
-      {
+      printf(" %s = %d",imtype,selectedpixval);
+      
+      if (second_im_allocated) {
+
         secondpixval =im2[zi][yi][xi];        
-        printf("%s=%d ", imtype2,secondpixval); 
+        printf(" %s = %d", imtype2,secondpixval); 
       }
-    }
-    else
+
+    } else
+      
       xi = yi = zi = 0 ;   /* ??? something should be done here */
-    if (ptype==0) /* Horizontal */
-    {
-      printf("imnr(P/A)=%d, i(I/S)=%d, j(R/L)=%d (x=%2.1f y=%2.1f z=%2.1f)\n",
-         zi,yi,yi,xx1-ps*jc/fsf,yy0+ps*ic/fsf,zz0+st*imc/fsf);
-      x = (Real)(xx1-ps*jc/fsf) ;
-      y = (Real)(yy0+ps*ic/fsf) ;
-      z = (Real)(zz0+st*imc/fsf) ;
-    } else if (ptype==2) /* Coronal */
-    {
-      printf("imnr(P/A)=%d, i(I/S)=%d, j(R/L)=%d (x=%2.1f y=%2.1f z=%2.1f)\n",
-             zi, yi, xi,xx1-ps*jc/fsf,yy0+st*imc/fsf,zz1-ps*(255.0-ic/fsf));
-      x = (Real)(xx1-ps*jc/fsf) ;
-      y = (Real)(yy0+st*imc/fsf) ;
-      z = (Real)(zz1-ps*(255.0-ic/fsf)) ;
-    } else if (ptype==1) /* Sagittal */
-    {
-      printf("imnr(P/A)=%d, i(I/S)=%d, j(R/L)=%d (x=%2.1f y=%2.1f z=%2.1f)\n",
-             zi, yi, xi, xx1-ps*jc/fsf,yy0+ps*ic/fsf,zz0+st*imc/fsf);
-      x = (Real)(xx1-ps*jc/fsf) ;
-      y = (Real)(yy0+ps*ic/fsf) ;
-      z = (Real)(zz0+st*imc/fsf) ;
-    }
-    x_click = x ; y_click = y ; z_click = z ;
-    if (transform_loaded)
-    {
+
+
+    // get the RAS coords
+    VoxelToRAS ( xi, yi, zi, &x, &y, &z );
+
+    // kt - print out a bunch of coords
+    printf ( "\nCoords: Voxel (%d, %d, %d) Screen (%d, %d, %d) \n        RAS (%2.1f, %2.1f, %2.1f) ",
+             xi,yi,zi, jc,ic,imc, x,y,z );
+
+    x_click = x; 
+    y_click = y; 
+    z_click = z;
+
+
+    // if we have the tal transform..
+    if (transform_loaded) {
+
+      // do that.
       transform_point(linear_transform, x, y, z, &x_tal, &y_tal, &z_tal) ;
-      printf("TALAIRACH: (%2.1f, %2.1f, %2.1f)\n", x_tal, y_tal, z_tal) ;
-      xtalairach = x_tal;  ytalairach = y_tal;  ztalairach = z_tal; 
+      printf("Tal (%2.1f, %2.1f, %2.1f)", x_tal, y_tal, z_tal) ;
+
+      xtalairach = x_tal;  
+      ytalairach = y_tal;  
+      ztalairach = z_tal; 
     }
-    PR
+
+    // get the value for this voxel
+    theResult = CtrlPtSpace_GetValue ( &gCtrlPtSpace,
+                                       xi, yi, zi, &theValue );
+    if ( theResult != kCtrlPtSpaceErr_NoErr ) {
+      fprintf ( stderr, "Error in CtrlPtSpace_GetValue: %s\n",
+                CtrlPtSpace_GetErrorString ( theResult ) );
+      theValue = 0;
+    }
+
+    if ( theValue )
+      printf ( "\nThis is a control point." );
+
+    printf ( "\n" );
+
+    PR;
+
   }
+  // kt
+  
+  // if button2 is down, we want to select control pts.
+  if ( button2pressed )
+    SelectCtrlPt ();
+  
+  // end_kt
+
   /* twitzels stuff */
   if(statsloaded)
     printOutFunctionalCoordinate(x,y,z);
@@ -3483,113 +4026,544 @@ select_pixel( short sx, short sy, int printflag)
 
 void draw_image(int imc,int ic,int jc)
 {
-  int i,j,imnr,k;
+  int i,j,k;
+  int theDestIndex;
   int hax,hay,curs;
-  int zimc,zic,zjc;
+  int theVoxX, theVoxY, theVoxZ;
+  int theScreenX, theScreenY, theScreenZ;
+  char theCtrlPtValue, theErr, isSelected;
+  Voxel theVoxel;
+  long theColor;
   /*  Colorindex v; */
   GLubyte v;
-  int idx_buf;
   hax = xdim/2;
   hay = ydim/2;
   if (all3flag) curs = 15;
   else          curs = 2;
 
-  if (maxflag && !all3flag) 
-  {
+  
+  // kt - cleaned up a bunch of code, simplified some things, changed var
+  // names, tightened up the draw loop, hopefully making it faster.
+
+  if ( maxflag && !all3flag ) {
+
     k = 0;
-    if (plane==CORONAL)
-      for (i=ydim-1;i>=0;i--)
-        for (j=0;j<xdim;j++)  vidbuf[k++] = sim[0][i/zf][j/zf]+MAPOFFSET;
-    else if (plane==HORIZONTAL)
-      for (i=0;i<ydim;i++)
-        for (j=0;j<xdim;j++)  vidbuf[k++] = sim[1][i/zf][j/zf]+MAPOFFSET;
-    else if (plane==SAGITTAL)
-      for (i=ydim-1;i>=0;i--)
-        for (j=0;j<xdim;j++)  vidbuf[k++] = sim[2][i/zf][j/zf]+MAPOFFSET;
-  }
-  else 
-  {
-    if (plane==CORONAL || all3flag) 
-    {
-      k = 0;
-      zimc = imc/zf;
-      if (zimc>=0&&zimc<imnr1) 
-      {
-        for (i=0;i<ydim;i++)
-          for (j=0;j<xdim;j++) 
-          {
-            if (i == 128 && j == 128)
-              DiagBreak() ;
-            if (all3flag && (i%2 || j%2)) continue;
-            v = im[zimc][(ydim-i-1)/zf][j/zf]+MAPOFFSET;
-            if (truncflag)
-              if (v<white_lolim+MAPOFFSET || v>white_hilim+MAPOFFSET)
-                v=MAPOFFSET;
-            if (all3flag)
-            {
-              idx_buf = 4*((xdim*hay) + k + ((i/2)*hax)) ;
-              vidbuf[idx_buf] = vidbuf[idx_buf+1] = vidbuf[idx_buf + 2] = hacked_map[v];
-              vidbuf[idx_buf + 3]=255;
-              k++;
-            }
-            else
-            {
-              /*
-                vidbuf[k] = v;
-                k++;
-              */
-              vidbuf[k] = vidbuf[k+1] = vidbuf[k+2]= hacked_map[v]; 
-              vidbuf[k+3]=255;
-              k+=4;
-            }
-          }
-        for (i=ic-curs;i<=ic+curs;i++) 
-        {
-          if (all3flag) k = 4*(xdim*hay + i/2*xdim/2+jc/2 + i/2*hax);
-          else      k = 4*(i*xdim+jc);
-          vidbuf[k] = 255; vidbuf[k+1] = vidbuf[k+2] = 0; 
-          vidbuf[k+3]=255;
-        }
-        for (j=jc-curs;j<=jc+curs;j++) {
-          if (all3flag) k = 4*(xdim*hay + ic/2*xdim/2+j/2 + ic/2*hax);
-          else          k = 4*(ic*xdim+j);
-          vidbuf[k] = 255; vidbuf[k+1] = vidbuf[k+2] = 0; 
-          vidbuf[k+3]=NUMVALS-1;
-        }
+    switch ( plane ) {
+
+    case CORONAL:
+      for ( i = ydim-1; i >= 0; i-- )   // i from bottom to top
+        for ( j = 0; j < xdim; j++ )    // j from left to right
+          vidbuf[k++] = sim[0][i/zf][j/zf]+MAPOFFSET;
+      break;
+
+    case HORIZONTAL:
+      for ( i = 0; i < ydim; i++ )      // i from top to bottom
+        for ( j = 0; j < xdim; j++ )    // j from left to right
+          vidbuf[k++] = sim[1][i/zf][j/zf]+MAPOFFSET;
+      break;
+
+    case SAGITTAL:
+      for ( i = ydim-1; i >= 0; i-- )   // i from bottom to top
+        for ( j = 0; j < xdim; j++ )    // j from left to right
+          vidbuf[k++] = sim[2][i/zf][j/zf]+MAPOFFSET;
+      break;
+    }
+
+  } else {
+
+    if ( CORONAL == plane || all3flag ) {
+
+      // if we're in full screen...
+      if ( !all3flag ) {
+
+        // start at the beginning
+        theDestIndex = 0;
+
+      } else {
+
+        // else we're in all3 view, and start halfway down.
+        theDestIndex = kBytesPerPixel * xdim * hay;
       }
-      else {  /* outside=black */
-        for (i=0;i<ydim;i++)
-          for (j=0;j<xdim;j++) {
-            if (all3flag && (i%2 || j%2)) continue;
-            vidbuf[k++] = MAPOFFSET;
+      
+      // this is our z axis in this view.
+      theScreenZ = imc;
+
+      if ( theScreenZ >= 0 && theScreenZ < imnr1*zf ) {
+
+        // start drawing image
+
+        for ( theScreenY = 0; theScreenY < ydim; theScreenY++ ) {
+
+          // skip odd lines if we're in all3 view.
+          if ( all3flag && isOdd(theScreenY ) )
+            continue;
+
+          for ( theScreenX = 0; theScreenX < xdim; theScreenX++ ) {
+
+            // ?? don't know what this does.
+            if ( 128 == theScreenX && 128 == theScreenY )
+              DiagBreak();
+
+            // if drawing all 3, skip odd cols
+            if ( all3flag && isOdd ( theScreenX ) )
+              continue;
+
+            // get the voxel coords
+            ScreenToVoxel ( theScreenX, theScreenY, theScreenZ,
+                            &theVoxX, &theVoxY, &theVoxZ );
+
+            // get the index into hacked_map from im
+            v = im[theVoxZ][theVoxY][theVoxX] + MAPOFFSET;
+
+             // if we're truncating values and the index is below the min
+            // or above the max, set it to MAPOFFSET
+            if ( truncflag )
+              if ( v < white_lolim + MAPOFFSET || 
+                   v > white_hilim + MAPOFFSET )
+                v = MAPOFFSET;
+
+            // kt - replaced idx_buf stuff in all3 view code with faster 
+            // indexing using theDestIndex and pixel compositing
+            
+            // draw the value as a gray pixel.
+            SetGrayPixelInBuffer ( vidbuf, theDestIndex, hacked_map[v] );
+
+            // next pixel
+            theDestIndex += kBytesPerPixel;
+            
+            // if we're in all3 view..
+            if ( all3flag )
+              
+              // everytime we complete a line, drop k down to the beginning
+              // of the next line by skipping hax pixels. check xdim-2
+              // because we skip xdim-1; it's odd and we skip odd pixels
+              if ( xdim - 2 == theScreenX )
+                theDestIndex += kBytesPerPixel * hax;
+          } 
+        }
+
+        // end drawing image
+
+
+        // kt - added code to draw ctrl pts
+
+                                        /* the CtrlPtSpace structure contains
+                                           the locations of all the ctrl pts.
+                                           to find them, we search the space
+                                           in two dimensions, the third
+                                           dimension fixed according to the
+                                           slice displayed, which is a 
+                                           different coordinate for each
+                                           orientation.
+
+                                           when we find a pt, we have the 
+                                           coords of the pt in voxel space.
+                                           we covert them back to screen
+                                           space and then use the other two
+                                           coords to draw the pt on the
+                                           screen. */
+
+        // only draw if we're supposed to.
+        if ( gIsDisplayCtrlPts ) {
+
+          // run the same loop as before...
+          theScreenZ = imc;
+          
+          // walk through the entire plane in the coord space...
+          for ( theScreenY = 0; theScreenY < ydim; theScreenY++ ) {
+            for ( theScreenX = 0; theScreenX < xdim; theScreenX++ ) {
+              
+              // get our voxel coords
+              ScreenToVoxel ( theScreenX, theScreenY, theScreenZ,
+                              &theVoxX, &theVoxY, &theVoxZ );
+
+              // see if we have a point
+              theErr = CtrlPtSpace_GetValue ( &gCtrlPtSpace, 
+                                              theVoxX, theVoxY, theVoxZ,
+                                              &theCtrlPtValue );            
+              
+              if ( theErr != kCtrlPtSpaceErr_NoErr ) {
+                fprintf ( stderr, "Error in CtrlPtSpace_GetValue: %s\n",
+                          CtrlPtSpace_GetErrorString(theErr) );
+                theCtrlPtValue = 0;
+              }
+              
+              // if we have a point...
+              if ( theCtrlPtValue ) {
+                
+                // build a voxel from it.
+                theVoxel.mX = theVoxX;
+                theVoxel.mY = theVoxY;
+                theVoxel.mZ = theVoxZ;
+
+                // see if it's selected. 
+                theErr = VList_IsInList ( &gSelectionList, &theVoxel,
+                                          &isSelected );
+                if ( theErr != kVListErr_NoErr ) {
+                  fprintf ( stderr, "Error in VList_IsInList: %s\n",
+                            VList_GetErrorString(theErr) );
+                  isSelected = FALSE;
+                }
+
+                // if it's selected, draw in one color, else use another
+                // color
+                if ( isSelected )
+                  theColor = kRGBAColor_Yellow;
+                else
+                  theColor = kRGBAColor_Green;
+                
+                // draw the point.
+                if ( !all3flag ) {
+
+                  DrawCtrlPt ( vidbuf, theScreenX, theScreenY, theColor );
+                  
+                } else {
+
+                  // halve our coords in the all3 view. since our final copy is
+                  // actually y-flipped, our draw into the upper left corner
+                  // is actually a draw into the lower left corner. to make
+                  // sure the cursor shows up in the right place, we have to
+                  // add hay to the y coord here.
+                  DrawCtrlPt ( vidbuf, 
+                               theScreenX/2, hay + theScreenY/2, theColor );
+                  
+                }
+              }
+            }
           }
+        } // end draw control points
+
+        // kt - replaced cursor drawing loops with function
+        if ( !all3flag ) {
+
+          DrawCrosshairInBuffer ( vidbuf, jc, ic, 
+                                    kCursorCrosshairRadius, 
+                                    kRGBAColor_Red );
+
+        } else {
+          
+          // adjust coords for all3 view.
+          DrawCrosshairInBuffer ( vidbuf, jc/2, hay + ic/2, 
+                                    kCursorCrosshairRadius, 
+                                    kRGBAColor_Red );
+          
+        }
+
+        // end_kt
+
+      } else { 
+
+        // fill the screen with black.
+        for ( theScreenY = 0; theScreenY < ydim; theScreenY++ ) {
+          if ( all3flag && isOdd(theScreenY ) )
+            continue;
+          for ( theScreenX = 0; theScreenX < xdim; theScreenX++ ) {
+            if ( all3flag && isOdd(theScreenX) )
+              continue;
+            vidbuf [ theDestIndex++ ] = MAPOFFSET;
+          }
+        }
       }
     }
+
+    // this section is not commented except where it differs from the
+    // above section. it is essentially the same except for determining
+    // the x/y/z coords in various spaces and determining the drawing
+    // location of the all3 view panels.
+      
+    if ( HORIZONTAL == plane || all3flag ) {
+
+      // start at position 0 regardless of all3flag status, because the
+      // horizontal all3 panel is in the lower left hand corner.
+      theDestIndex = 0;
+      
+      theScreenY = ( ydim-1 - ic );
+
+      if ( theScreenY >= 0 && theScreenY < ynum*zf ) {
+
+        for ( theScreenZ = 0; theScreenZ < ydim; theScreenZ++ ) {
+          
+          if ( all3flag && isOdd(theScreenZ) )
+            continue;
+          
+          for ( theScreenX = 0; theScreenX < xdim; theScreenX++ ) {
+
+            if ( all3flag && isOdd(theScreenX) )
+              continue;
+ 
+            // different mapping from screen space to voxel space
+            // here we use ic instead of theScreenY becayse we already 
+            // flipped theScreenY and we would just be flipping it again
+            // here.
+            ScreenToVoxel ( theScreenX, ic, theScreenZ,
+                            &theVoxX, &theVoxY, &theVoxZ );
+
+            v = im[theVoxZ][theVoxY][theVoxX] + MAPOFFSET;
+
+            if ( truncflag )
+              if ( v < white_lolim + MAPOFFSET || 
+                   v > white_hilim + MAPOFFSET )
+                v = MAPOFFSET;
+
+            // ?? don't know what this does.
+            if ( ( imc == theScreenY && abs(theScreenX-jc) <= curs) ||
+                 ( jc == theScreenY && abs(theScreenY-imc) <= curs) ) 
+              v=0 /*NUMVALS+MAPOFFSET*/;
+
+            SetGrayPixelInBuffer ( vidbuf, theDestIndex, hacked_map[v] );
+
+            theDestIndex += kBytesPerPixel;
+
+            if ( all3flag )
+              if ( xdim - 2 == theScreenX )
+                theDestIndex += kBytesPerPixel * hax;
+          } 
+        }
+        
+        if ( gIsDisplayCtrlPts ) {
+
+          theScreenY = ic;
+          
+          for ( theScreenZ = 0; theScreenZ < ydim; theScreenZ++ ) {
+            for ( theScreenX = 0; theScreenX < xdim; theScreenX++ ) {
+              
+              ScreenToVoxel ( theScreenX, theScreenY, theScreenZ,
+                              &theVoxX, &theVoxY, &theVoxZ );
+
+              theErr = CtrlPtSpace_GetValue ( &gCtrlPtSpace, 
+                                              theVoxX, theVoxY, theVoxZ,
+                                              &theCtrlPtValue );            
+              
+              if ( theErr != kCtrlPtSpaceErr_NoErr ) {
+                fprintf ( stderr, "Error in CtrlPtSpace_GetValue: %s\n",
+                          CtrlPtSpace_GetErrorString(theErr) );
+                theCtrlPtValue = 0;
+              }
+              
+              if ( theCtrlPtValue ) {
+
+                theVoxel.mX = theVoxX;
+                theVoxel.mY = theVoxY;
+                theVoxel.mZ = theVoxZ;
+
+                theErr = VList_IsInList ( &gSelectionList, &theVoxel,
+                                          &isSelected );
+                if ( theErr != kVListErr_NoErr ) {
+                  fprintf ( stderr, "Error in VList_IsInList: %s\n",
+                            VList_GetErrorString(theErr) );
+                  isSelected = FALSE;
+                }
+
+                if ( isSelected )
+                  theColor = kRGBAColor_Yellow;
+                else
+                  theColor = kRGBAColor_Green;
+
+                if ( !all3flag ) {
+                  
+                  DrawCtrlPt ( vidbuf, theScreenX, theScreenZ, theColor );
+
+                } else {
+                  
+                  DrawCtrlPt ( vidbuf, 
+                               theScreenX/2, theScreenZ/2, theColor );
+                                                              
+                }
+              }
+            }
+          }
+        } // end display control points
+
+      if ( !all3flag ) {
+          
+          DrawCrosshairInBuffer ( vidbuf, jc, imc, 
+                                    kCursorCrosshairRadius, 
+                                    kRGBAColor_Red );
+          
+        } else {
+          
+          DrawCrosshairInBuffer ( vidbuf, jc/2, imc/2, 
+                                    kCursorCrosshairRadius, 
+                                    kRGBAColor_Red );
+          
+        }
+        
+      } else {
+        for ( theScreenY = 0; theScreenY < ydim; theScreenY++ ) {
+          if ( all3flag && isOdd(theScreenY) )
+            continue;
+          for ( theScreenX = 0; theScreenX < xdim; theScreenX++ ) {
+            if ( all3flag && isOdd(theScreenX) )
+              continue;
+            vidbuf [ theDestIndex ] = MAPOFFSET;
+          }
+        }
+      }
+    }
+
+    if ( SAGITTAL == plane || all3flag ) {
+
+      if ( !all3flag )
+        theDestIndex = 0;
+      else
+        // start in lower right quad
+        theDestIndex = kBytesPerPixel * ( xdim*hay + hax );
+
+      theScreenX = jc;
+
+      if ( theScreenX >= 0 && theScreenX < xnum*zf ) {
+
+        for ( theScreenY = 0; theScreenY < ydim; theScreenY++ ) {
+
+          if ( all3flag && isOdd(theScreenY) )
+            continue;
+          
+          for ( theScreenZ = 0; theScreenZ < xdim; theScreenZ++ ) {
+
+            if ( all3flag && isOdd(theScreenZ) )
+              continue;
+
+            ScreenToVoxel ( theScreenX, theScreenY, theScreenZ,
+                            &theVoxX, &theVoxY, &theVoxZ );
+
+            v = im[theVoxZ][theVoxY][theVoxX] + MAPOFFSET;
+
+            if ( truncflag )
+              if ( v < white_lolim + MAPOFFSET ||
+                   v > white_hilim + MAPOFFSET )
+                v = MAPOFFSET;
+
+            SetGrayPixelInBuffer ( vidbuf, theDestIndex, hacked_map[v] );
+
+            theDestIndex += kBytesPerPixel;
+
+            if ( all3flag )
+              if ( xdim - 2 == theScreenZ )
+                theDestIndex += kBytesPerPixel * hax;
+
+          }
+        }
+
+        if ( gIsDisplayCtrlPts ) {
+        
+          theScreenX = jc;
+          
+          for ( theScreenY = 0; theScreenY < ydim; theScreenY++ ) {
+            for ( theScreenZ = 0; theScreenZ < xdim; theScreenZ++ ) {
+              
+              ScreenToVoxel ( theScreenX, theScreenY, theScreenZ,
+                              &theVoxX, &theVoxY, &theVoxZ );
+
+              theErr = CtrlPtSpace_GetValue ( &gCtrlPtSpace, 
+                                              theVoxX, theVoxY, theVoxZ,
+                                              &theCtrlPtValue );            
+              
+              if ( theErr != kCtrlPtSpaceErr_NoErr ) {
+                fprintf ( stderr, "Error in CtrlPtSpace_GetValue: %s\n",
+                          CtrlPtSpace_GetErrorString(theErr) );
+                theCtrlPtValue = 0;
+              }
+              
+              if ( theCtrlPtValue ) {
+                
+                theVoxel.mX = theVoxX;
+                theVoxel.mY = theVoxY;
+                theVoxel.mZ = theVoxZ;
+
+                theErr = VList_IsInList ( &gSelectionList, &theVoxel,
+                                          &isSelected );
+                if ( theErr != kVListErr_NoErr ) {
+                  fprintf ( stderr, "Error in VList_IsInList: %s\n",
+                            VList_GetErrorString(theErr) );
+                  isSelected = FALSE;
+                }
+
+                if ( isSelected )
+                  theColor = kRGBAColor_Yellow;
+                else
+                  theColor = kRGBAColor_Green;
+
+                if ( !all3flag ) {
+                  
+                  DrawCtrlPt ( vidbuf, theScreenZ, theScreenY, theColor );
+                  
+                } else {
+                  
+                  DrawCtrlPt ( vidbuf, 
+                               hax + theScreenZ/2, hay + theScreenY/2, 
+                               theColor );
+                  
+                }
+              }
+            }
+          }
+        } // end dray ctrl pnts          
+
+        if ( !all3flag ) {
+          
+          DrawCrosshairInBuffer ( vidbuf, imc, ic, 
+                                    kCursorCrosshairRadius, 
+                                    kRGBAColor_Red );
+          
+        } else {
+          
+          // draw into lower right hand quad
+          DrawCrosshairInBuffer ( vidbuf, hax + imc/2, hay + ic/2, 
+                                    kCursorCrosshairRadius, 
+                                    kRGBAColor_Red );
+          
+        }
+
+      } else {
+        for ( theScreenY = 0; theScreenY < ydim; theScreenY++ ) {
+          if ( all3flag && isOdd(theScreenY) )
+            continue;
+          for ( theScreenX = 0; theScreenX < xdim; theScreenX++ ) {
+            if ( all3flag && isOdd(theScreenX) )
+              continue;
+            vidbuf [ theDestIndex ] = MAPOFFSET;
+          }
+        }
+      }
+    }
+
+#if 0
+
     if (plane==HORIZONTAL || all3flag) 
     {
+
       k = 0;
-      zic = (ydim-1-ic)/zf;
+      zic = (ydim-1-ic)/zf;                  // switch ( plane ) theScreenZ = 
       if (zic>=0&&zic<ynum) {
-        for (imnr=0;imnr<ydim;imnr++)
-          for (j=0;j<xdim;j++) {
+        for (imnr=0;imnr<ydim;imnr++)        // for theScreenY = 0..ydim
+          for (j=0;j<xdim;j++) {             // for theScreenX = 0..xdim
             if (all3flag && (imnr%2 || j%2)) continue;
+
+            theVoxX = j / zf;                // switch ( plane ) {
+            theVoxY = (ydim-1-ic) / zf;      //   theVoxX = ...
+            theVoxZ = imnr / zf;
+
             v = im[imnr/zf][zic][j/zf]+MAPOFFSET;
+
             if (truncflag)
               if (v<white_lolim+MAPOFFSET || v>white_hilim+MAPOFFSET)
                 v=MAPOFFSET;
+
             if ((imnr==imc&&abs(j-jc)<=curs)||
                 (j==jc&&abs(imnr-imc)<=curs)) 
               v=0 /*NUMVALS+MAPOFFSET*/;
+
             if (all3flag) 
             {
+              
               /* idx_buf = 4*((xdim*hay) + hax + k + ((imnr/2)*hax)) ; */
-        idx_buf = 4*(k + ((imnr/2)*hax));
+              idx_buf = 4* ( k + ((imnr/2)*hax) );
               vidbuf[idx_buf] = vidbuf[idx_buf+1] = vidbuf[idx_buf + 2] = hacked_map[v];
               vidbuf[idx_buf + 3]=255;
               k++;
-            }
-            else
-            {
+
+            } else {
+
               vidbuf[k] = vidbuf[k+1] = vidbuf[k+2]= hacked_map[v]; 
               vidbuf[k+3]=255;
               k+=4;
@@ -3597,19 +4571,37 @@ void draw_image(int imc,int ic,int jc)
             
           }
         for (imnr=imc-curs;imnr<=imc+curs;imnr++) {
+
           if (all3flag) 
-      /* k = 4*(xdim*hay+hax + imnr/2*xdim/2+jc/2 + imnr/2*hax); */
-      k = 4*(imnr/2*xdim/2+jc/2 + imnr/2*hax);
-    else          k = 4*(imnr*xdim+jc);
-          vidbuf[k] = 255 ; vidbuf[k+1] = vidbuf[k+2] = 0;
-          vidbuf[k+3]=255;
+
+            /* k = 4*(xdim*hay+hax + imnr/2*xdim/2+jc/2 + imnr/2*hax); */
+            k = 4*( imnr/2*xdim/2 + jc/2 + imnr/2*hax );
+          
+           else          
+
+            k = 4*( imnr*xdim + jc);
+
+          vidbuf[k]   = 0; 
+          vidbuf[k+1] = 255;
+          vidbuf[k+2] = 0;
+          vidbuf[k+3] = 255;
         }
+
         for (j=jc-curs;j<=jc+curs;j++) {
-          if (all3flag) /*k = 4*(xdim*hay + hax + imc/2*xdim/2+j/2 + imc/2*hax); */
-      k = 4*(imc/2*xdim/2+j/2 + imc/2*hax);
-          else          k = 4*(imc*xdim+j);
-          vidbuf[k] = 255 ; vidbuf[k+1] = vidbuf[k+2] = 0;
-          vidbuf[k+3]=255;
+
+          if (all3flag) 
+
+            /*k = 4*(xdim*hay + hax + imc/2*xdim/2+j/2 + imc/2*hax); */
+            k = 4*(imc/2*xdim/2+j/2 + imc/2*hax);
+
+          else 
+
+            k = 4*(imc*xdim+j);
+
+          vidbuf[k]   = 0; 
+          vidbuf[k+1] = 255;
+          vidbuf[k+2] = 0;
+          vidbuf[k+3] = 255;
         }
       }
       else {
@@ -3621,6 +4613,7 @@ void draw_image(int imc,int ic,int jc)
       }
     }
     if (plane==SAGITTAL || all3flag) {
+
       k = 0;
       zjc = jc/zf;
       if (zjc>=0&&zjc<xnum) {
@@ -3629,7 +4622,9 @@ void draw_image(int imc,int ic,int jc)
           for (imnr=0;imnr<xdim;imnr++) {
             if (all3flag && (i%2 || imnr%2)) continue;
             /*v = im[imnr/zf][i/zf][zjc]+MAPOFFSET;*/
+
             v = im[imnr/zf][(ydim-1-i)/zf][zjc]+MAPOFFSET;
+
             if (truncflag)
               if (v<white_lolim+MAPOFFSET || v>white_hilim+MAPOFFSET)
                 v=MAPOFFSET;
@@ -3671,22 +4666,36 @@ void draw_image(int imc,int ic,int jc)
         }
       }
     }
-    if (all3flag) 
-    {
-      k = 0;
-      for (i=0;i<ydim;i++)
-        for (j=0;j<xdim;j++) 
-        {
-          if (i%2 || j%2) continue;
-          {
-            idx_buf = 4*(hax + k + i/2*hax);
-            vidbuf[idx_buf] = vidbuf[idx_buf+1] = vidbuf[idx_buf+2]= 
-              sim[2][255-i/zf][j/zf]+MAPOFFSET;
-            vidbuf[idx_buf+3] = 255;
-            k++;
-          }
+
+#endif
+    
+    // copy a bunch of stuff from sim. this is the lower right hand corner
+    // of the all3 view.
+    if ( all3flag ) {
+
+      theDestIndex = kBytesPerPixel * hax;
+
+      // drawing every other line..
+      for ( theScreenY = 0; theScreenY < ydim; theScreenY += 2 )
+        for ( theScreenX = 0; theScreenX < xdim; theScreenX += 2 ) {
+
+          //          idx_buf = 4*(hax + k + i/2*hax);
+
+          v = sim[2][255-theScreenY/zf][theScreenX/zf] + MAPOFFSET;
+
+          *(long*)&(vidbuf[theDestIndex]) =
+            ( (unsigned char)kPixelComponentLevel_Max << kPixelOffset_Alpha |
+              (unsigned char)v << kPixelOffset_Blue |
+              (unsigned char)v << kPixelOffset_Green |
+              (unsigned char)v << kPixelOffset_Red );
+
+          theDestIndex += kBytesPerPixel;
+
+          if ( theScreenX == xdim - 2 )
+            theDestIndex += kBytesPerPixel * hax;
         }
     }
+
     rectwrite(0,0,xdim-1,ydim-1,vidbuf);
   }
 }
@@ -4108,7 +5117,6 @@ draw_surface(void)
   float h,xc,yc,zc,x,y,z,tx,ty,tz,lx,ly,lz,d,ld,vc[10][2];
   float fsf = zf;
 
-
   if (all3flag) linewidth(surflinewidth/2.0);
   else          linewidth(surflinewidth);
 
@@ -4415,15 +5423,24 @@ drawpts(void)
 
   if (plane==CORONAL)
   {
+
     ortho2(0.0,xnum-1,0.0,ynum+1);
+
     yc = yy0+st*imc/fsf;
+
+    /* for each point to draw... */
     for (k=npts-1;k>=0;k--)
     {
-      x = ptx[k]*tm[0][0]+pty[k]*tm[0][1]+ptz[k]*tm[0][2]+tm[0][3];
-      y = ptx[k]*tm[1][0]+pty[k]*tm[1][1]+ptz[k]*tm[1][2]+tm[1][3];
-      z = ptx[k]*tm[2][0]+pty[k]*tm[2][1]+ptz[k]*tm[2][2]+tm[2][3];
-      if (maxflag || fabs(y-yc)<st)
-      {
+
+      /* mult point by trans matrix ?? */
+      x = ptx[k]*tm[0][0] + pty[k]*tm[0][1] + ptz[k]*tm[0][2] + tm[0][3];
+      y = ptx[k]*tm[1][0] + pty[k]*tm[1][1] + ptz[k]*tm[1][2] + tm[1][3];
+      z = ptx[k]*tm[2][0] + pty[k]*tm[2][1] + ptz[k]*tm[2][2] + tm[2][3];
+
+      /* point in view ?? */
+      if (maxflag || fabs(y-yc)<st) {
+    
+        /* make four identical vectors */
         v1[0] = (xx1-x)/ps-ptsize2/ps;
         v1[1] = ynum-((zz1-z)/ps)-ptsize2/ps;
         v2[0] = (xx1-x)/ps+ptsize2/ps;
@@ -4432,15 +5449,23 @@ drawpts(void)
         v3[1] = ynum-((zz1-z)/ps)+ptsize2/ps;
         v4[0] = (xx1-x)/ps-ptsize2/ps;
         v4[1] = ynum-((zz1-z)/ps)+ptsize2/ps;
+
+        /* start drawing polygon... */
         bgnpolygon();
+
+        /* choose color */
         if (k<3)
           color(RED);
         else
           color(GREEN);
+
+        /* draw point */
         v2f(v1);
         v2f(v2);
         v2f(v3);
         v2f(v4);
+
+        /* done drawing polygon */
         endpolygon();
       }
     }
@@ -5505,6 +6530,36 @@ int                  W_norm_allslices  WBEGIN
   ERR(2,"Wrong # args: norm_allslices <dir: 0=PostAnt,1=InfSup,2=LeftRight>")
                        norm_allslices(atoi(argv[1])); WEND
 
+                       // kt
+int W_ProcessCtrlPtFile WBEGIN
+     ERR ( 1, "Wrong # args: ProcessCtrlPtFile" )
+     ProcessCtrlPtFile ( tfname );
+     WEND
+
+int W_WriteCtrlPtFile WBEGIN
+     ERR ( 1, "Wrong # args: WriteCtrlPtFile" )
+     WriteCtrlPtFile ( tfname );
+     WEND
+     
+int W_TclCtrlPtSpace_PrintDebug WBEGIN
+     ERR ( 1, "Wrong # args: TclCtrlPtSpace_PrintDebug" )
+     TclCtrlPtSpace_PrintDebug ( &gCtrlPtSpace );
+     WEND
+
+int W_TclCtrlPtSpace_SetValue WBEGIN
+     ERR ( 5, "Wrong # args: TclCtrlPtSpace_SetValue <x, y, z, val>")
+     TclCtrlPtSpace_SetValue ( &gCtrlPtSpace, atoi(argv[1]), atoi(argv[2]),
+                               atoi(argv[3]), atoi(argv[4]) );
+     WEND
+     
+int W_TclVList_PrintDebug WBEGIN
+     ERR ( 1, "Wrong # args: TclVList_PrintDebug" )
+     TclVList_PrintDebug ( &gSelectionList );
+     WEND
+
+
+  // end_kt
+
 /*=======================================================================*/
 
 /* for tcl/tk */
@@ -5514,6 +6569,10 @@ static Tk_Window mainWindow;
 static Tcl_Interp *interp;
 static Tcl_DString command;
 static int tty;
+
+// static Tk_Cursor theCrossCursor;
+
+
 
 int main(argc, argv)   /* new main */
 int argc;
@@ -5527,6 +6586,36 @@ char **argv;
   char script_tcl[NAME_LENGTH];
   char *envptr;
   FILE *fp ;
+   char theErr;
+
+  // kt
+
+  // init the control pt space
+  theErr = CtrlPtSpace_Init ( &gCtrlPtSpace, NUMVALS, 0 );
+  if ( theErr ) {
+    fprintf ( stderr, "Error in CtrlPtSpace_Init: %s\n", 
+              CtrlPtSpace_GetErrorString (theErr) );
+    exit (1);
+  }
+
+  // init the selection list 
+  theErr = VList_Init ( &gSelectionList );
+  if ( theErr ) {
+    fprintf ( stderr, "Error in VList_Init: %s\n",  
+              VList_GetErrorString(theErr) );
+    exit (1);
+  }
+
+  // start off not displaying control pts.
+  gIsDisplayCtrlPts = FALSE;
+
+  // start off in crosshair mode
+  gCtrlPtDrawStyle = kCtrlPtStyle_Crosshair;
+
+  // haven't parsed control.dat yet.
+  gParsedCtrlPtFile = FALSE;
+
+  // end_kt
 
   initmap_hacked();
   /* get tkmedit tcl startup script location from environment */
@@ -5587,6 +6676,11 @@ char **argv;
   if (mainWindow == NULL) {
     fprintf(stderr, "%s\n", interp->result);
     exit(1); }
+
+
+  //  theCrossCursor = Tk_GetCursor ( interp, mainWindow, "cross" );
+  //  Tk_DefineCursor ( mainWindow, theCrossCursor );
+
 
   /* set the "tcl_interactive" variable */
   tty = isatty(0);
@@ -5660,6 +6754,18 @@ char **argv;
   Tcl_CreateCommand(interp, "wmfilter_corslice",  W_wmfilter_corslice,  REND);
   Tcl_CreateCommand(interp, "norm_slice",         W_norm_slice,         REND);
   Tcl_CreateCommand(interp, "norm_allslices",     W_norm_allslices,     REND);
+
+  // kt
+  Tcl_CreateCommand ( interp, "ProcessCtrlPtFile", W_ProcessCtrlPtFile, REND );
+  Tcl_CreateCommand ( interp, "WriteCtrlPtFile", W_WriteCtrlPtFile, REND );
+  Tcl_CreateCommand ( interp, "TclCtrlPtSpace_PrintDebug", 
+                      W_TclCtrlPtSpace_PrintDebug, REND );
+  Tcl_CreateCommand ( interp, "TclCtrlPtSpace_SetValue", 
+                      W_TclCtrlPtSpace_SetValue, REND );
+  Tcl_CreateCommand ( interp, "TclVList_PrintDebug", 
+                      W_TclVList_PrintDebug, REND );
+  // end_kt
+
   /*=======================================================================*/
 
   /***** link global BOOLEAN variables to tcl equivalents */
@@ -5685,6 +6791,12 @@ char **argv;
   Tcl_LinkVar(interp,"all3flag",(char *)&all3flag,TCL_LINK_BOOLEAN);
   Tcl_LinkVar(interp,"changeplanelock",(char *)&changeplanelock, 
                                                         TCL_LINK_BOOLEAN);
+  // kt
+  Tcl_LinkVar ( interp,
+                "gIsDisplayCtrlPts",
+                (char*)&gIsDisplayCtrlPts, 
+                TCL_LINK_BOOLEAN );
+
   /*=======================================================================*/
   /***** link global INT variables to tcl equivalents */
   Tcl_LinkVar(interp,"zf",(char *)&zf, TCL_LINK_INT);
@@ -5721,6 +6833,7 @@ char **argv;
   Tcl_LinkVar(interp,"xtalairach",(char *)&xtalairach, TCL_LINK_DOUBLE);
   Tcl_LinkVar(interp,"ytalairach",(char *)&ytalairach, TCL_LINK_DOUBLE);
   Tcl_LinkVar(interp,"ztalairach",(char *)&ztalairach, TCL_LINK_DOUBLE);
+  
   /*=======================================================================*/
   /***** link global malloced STRING vars */
   Tcl_LinkVar(interp,"home",        (char *)&subjectsdir,TCL_LINK_STRING);
@@ -5792,6 +6905,21 @@ char **argv;
   }
 
   Tcl_Eval(interp, "exit");
+
+  // kt - delete the structs we inited before
+
+  theErr = CtrlPtSpace_Delete ( &gCtrlPtSpace );
+  if ( theErr )
+    fprintf ( stderr, "Error in CtrlPtSpace_Delete: %s\n",
+              CtrlPtSpace_GetErrorString(theErr) );
+
+  theErr = VList_Delete ( &gSelectionList );
+  if ( theErr )
+    fprintf ( stderr, "Error in VList_Delete: %s\n",  
+              VList_GetErrorString(theErr) );
+
+  // end_kt
+
   exit(0);
 }
 
@@ -5873,3 +7001,1054 @@ static void Prompt(interp, partial)
   fflush(stdout);
 }
 
+
+
+// kt
+
+                                     /* allocates memory equal to inSize^3 
+                                        chars and fills it with inValue. */
+char CtrlPtSpace_Init ( CtrlPtSpace * inSpace,  // space to init
+                        short inSize,           // size to init to
+                        char inValue ){         // value to fill space
+
+  int i;
+
+  // assert space exists
+  if ( NULL == inSpace ) 
+    return kCtrlPtSpaceErr_InvalidSpacePtr;
+
+  // assert good memory size
+  if ( inSize <= 0 ) 
+    return kCtrlPtSpaceErr_InvalidSize;
+
+  // attempt to allocate memory of inSize^3 chars. assert success.
+  inSpace->mBuffer = (char*) malloc ( inSize*inSize*inSize * sizeof(char) );
+  if ( NULL == inSpace->mBuffer ) 
+    return kCtrlPtSpaceErr_MemoryAllocFailed;
+
+  // set size.
+  inSpace->mByteSize = inSize*inSize*inSize * sizeof(char);
+  inSpace->mIndexSize = inSize;
+
+  // fill with default value. 
+  // kt_TODO: if inValue is 0, use bzero, much faster.
+  for ( i = 0; i < inSpace->mByteSize; i++ )
+    inSpace->mBuffer[i] = inValue;
+
+  return kCtrlPtSpaceErr_NoErr;
+}
+
+                                     /* frees the memory associated with the 
+                                        space. */
+char CtrlPtSpace_Delete ( CtrlPtSpace * inSpace ) {// space to delete
+
+  // assert space exists
+  if ( NULL == inSpace )
+    return kCtrlPtSpaceErr_InvalidSpacePtr;
+
+  // assert space has already been inited.
+  if ( NULL == inSpace->mBuffer ||
+       inSpace->mByteSize <= 0 )
+    return kCtrlPtSpaceErr_SpaceNotInited;
+
+  // free the space
+  free ( inSpace->mBuffer );
+
+  // set ptr and size to 0
+  inSpace->mBuffer = NULL;
+  inSpace->mByteSize = 0;
+
+  return kCtrlPtSpaceErr_NoErr;
+}
+
+                                     /* takes the xyz coords and returns the 
+                                        index into the buffer. no error 
+                                        checking, assumes space is set up 
+                                        and coords are valid. intended 
+                                        for "internal" use only. */
+long CtrlPtSpace_CoordToIndex ( CtrlPtSpace * inSpace,       // space to use
+                                short x, short y, short z ) {// coords
+  
+  // z-y-x order.
+  return ( z*inSpace->mIndexSize*inSpace->mIndexSize ) +
+    ( y*inSpace->mIndexSize ) + x;
+
+}
+
+                                    /* returns the value at the specified 
+                                        coord. */
+char CtrlPtSpace_GetValue ( CtrlPtSpace * inSpace,      // space to use 
+                            short x, short y, short z,  // coords of val 
+                            char * outValue ) {         // value returned
+
+  // assert space exists
+  if ( NULL == inSpace )
+    return kCtrlPtSpaceErr_InvalidSpacePtr;
+
+  // assert space has already been inited.
+  if ( NULL == inSpace->mBuffer ||
+       inSpace->mByteSize <= 0 )
+    return kCtrlPtSpaceErr_SpaceNotInited;
+
+  // assert coords are in bounds.
+  if ( x < 0 || x >= inSpace->mIndexSize ||
+       y < 0 || y >= inSpace->mIndexSize ||
+       z < 0 || z >= inSpace->mIndexSize )
+    return kCtrlPtSpaceErr_CoordsOutOfBounds;
+
+  // assert return value is okay.
+  if ( NULL == outValue )
+    return kCtrlPtSpaceErr_InvalidOutputAddress;
+
+  // grab value.
+  *outValue = inSpace->mBuffer [ CtrlPtSpace_CoordToIndex ( inSpace,x,y,z ) ];
+
+  return kCtrlPtSpaceErr_NoErr;
+}
+
+                                        /* sets the value at the specified
+                                         coord, overwriting previous value if 
+                                         existing. */
+char CtrlPtSpace_SetValue ( CtrlPtSpace * inSpace,      // space to use 
+                            short x, short y, short z,  // coords of val
+                            char inValue ) {            // val to set 
+  // assert space exists
+  if ( NULL == inSpace )
+    return kCtrlPtSpaceErr_InvalidSpacePtr;
+
+  // assert space has already been inited.
+  if ( NULL == inSpace->mBuffer ||
+       inSpace->mByteSize <= 0 )
+    return kCtrlPtSpaceErr_SpaceNotInited;
+
+  // assert coords are in bounds.
+  if ( x < 0 || x >= inSpace->mIndexSize ||
+       y < 0 || y >= inSpace->mIndexSize ||
+       z < 0 || z >= inSpace->mIndexSize )
+    return kCtrlPtSpaceErr_CoordsOutOfBounds;
+
+  // put value.
+  inSpace->mBuffer [ CtrlPtSpace_CoordToIndex ( inSpace,x,y,z ) ] =
+    inValue;
+
+  return kCtrlPtSpaceErr_NoErr;
+}
+
+                                      /* return the max index value. */
+char CtrlPtSpace_IndexSize ( CtrlPtSpace * inSpace, int * outIndex ) {
+
+  // assert space exists
+  if ( NULL == inSpace )
+    return kCtrlPtSpaceErr_InvalidSpacePtr;
+
+  // assert space has already been inited.
+  if ( NULL == inSpace->mBuffer ||
+       inSpace->mByteSize <= 0 )
+    return kCtrlPtSpaceErr_SpaceNotInited;
+
+  // set the index value.
+  *outIndex = inSpace->mIndexSize;
+
+  return kCtrlPtSpaceErr_NoErr;
+}
+
+                                      /* prints out all non-zero values 
+                                         in the space */
+char CtrlPtSpace_PrintDebug ( CtrlPtSpace * inSpace ) {
+
+  int theX, theY, theZ;
+  char theValue;
+
+  // assert space exists
+  if ( NULL == inSpace )
+    return kCtrlPtSpaceErr_InvalidSpacePtr;
+
+  // assert space has already been inited.
+  if ( NULL == inSpace->mBuffer ||
+       inSpace->mByteSize <= 0 )
+    return kCtrlPtSpaceErr_SpaceNotInited;
+
+  fprintf ( stderr, "Printing out non-zero values in CtrlPtSpace...\n" );
+
+  // step through the entire space, looking for non-zero values..
+  for ( theZ = 0; theZ < inSpace->mIndexSize; theZ++ ) {
+    for ( theY = 0; theY < inSpace->mIndexSize; theY++ ) {
+      for ( theX = 0; theX < inSpace->mIndexSize; theX++ ) {
+
+        CtrlPtSpace_GetValue ( inSpace, theX, theY, theZ, &theValue );
+
+        // if we get one, print it out
+        if ( theValue != 0 ) {
+          fprintf ( stderr, "\t(%d,%d,%d) = %d\n", 
+                    theX, theY, theZ, theValue );
+        }
+      }
+    }
+  }
+
+  fprintf ( stderr, "\tDone.\n\n" );
+  PR;
+
+  return kCtrlPtSpaceErr_NoErr;
+
+}
+
+char * CtrlPtSpace_GetErrorString ( int inErr ) {
+
+  return (char*)(kCtrlPtSpace_ErrString[inErr]);
+}
+                                      /* tcl wrappers. i had trouble getting
+                                         tcl to work with functios that 
+                                         returned chars so i wrote these to 
+                                         call the the other ones. these will 
+                                         also look for errors and print 
+                                         error messages. */
+void TclCtrlPtSpace_PrintDebug ( CtrlPtSpace * inSpace ) {
+
+  char theErr;
+  theErr = CtrlPtSpace_PrintDebug ( inSpace );
+  if ( theErr != kCtrlPtSpaceErr_NoErr )
+    fprintf ( stderr, "TclCtrlPtSpace_PrintDebug: Error %s\n", 
+              CtrlPtSpace_GetErrorString(theErr) );
+  else
+    fprintf ( stderr, "TclCtrlPtSpace_PrintDebug: Done.\n" );
+}
+
+void TclCtrlPtSpace_SetValue ( CtrlPtSpace * inSpace,
+                               short x, short y, short z,
+                               char inValue ) {
+
+  char theErr;
+  theErr = CtrlPtSpace_SetValue ( inSpace, x, y, z, inValue );
+  if ( theErr != kCtrlPtSpaceErr_NoErr )
+    fprintf ( stderr, "TclCtrlPtSpace_SetValue: Error %d\n", theErr );
+  else
+    fprintf ( stderr, "TclCtrlPtSpace_SetValue: Done.\n" );
+}
+
+
+                                       /* init the voxel list. */
+char VList_Init ( VoxelList * inList ) {
+
+  if ( NULL == inList )
+    return kVListErr_InvalidPtr;
+
+  // nothing to really do here except mark our list empty.
+  inList->mFirstEmpty = 0;
+
+  return kVListErr_NoErr;
+}
+
+                                       /* clean up after the list. */
+char VList_Delete ( VoxelList * inList ) {
+
+  if ( NULL == inList )
+    return kVListErr_InvalidPtr;
+
+  if ( inList->mFirstEmpty < 0 ||
+       inList->mFirstEmpty >= kVList_ListSize )
+    return kVListErr_InvalidList;
+
+  // nothing to do here.
+  return kVListErr_NoErr;
+}
+
+                                       /* add a voxel to the list. */
+char VList_AddVoxel ( VoxelList * inList, 
+                      Voxel * inVoxel ) {
+
+  if ( NULL == inList )
+    return kVListErr_InvalidPtr;
+
+  if ( inList->mFirstEmpty < 0 ||
+       inList->mFirstEmpty >= kVList_ListSize )
+    return kVListErr_InvalidList;
+
+  // make sure we have space to add this voxel.
+  if ( inList->mFirstEmpty + 1 >= kVList_ListSize )
+    return kVListErr_ListFull;
+
+  // see if it already exists. if it does, return no error. 
+  // !! should this return an error?
+  if ( VList_IndexInList ( inList, inVoxel ) >= 0 )
+    return kVListErr_NoErr;
+
+  // copy the voxel into the last spot.
+  inList->mVoxel [ inList->mFirstEmpty ] = *inVoxel;
+  inList->mFirstEmpty++;
+
+  return kVListErr_NoErr;
+}
+
+                                       /* remove a voxel from the list */
+char VList_RemoveVoxel ( VoxelList * inList,
+                         Voxel * inVoxel ) {
+
+  int theIndex;
+
+  if ( NULL == inList )
+    return kVListErr_InvalidPtr;
+
+  if ( inList->mFirstEmpty < 0 ||
+       inList->mFirstEmpty >= kVList_ListSize )
+    return kVListErr_InvalidList;
+
+  // find the index this voxel is at.
+  theIndex = VList_IndexInList ( inList, inVoxel );
+  if ( theIndex < 0 )
+    return kVListErr_VoxelNotInList;
+
+  // if this isn't the last space, copy the last one into it.
+  if ( theIndex != inList->mFirstEmpty - 1 )
+    inList->mVoxel [ theIndex ] = inList->mVoxel [ inList->mFirstEmpty-1 ];
+
+  // shorten the list.
+  inList->mFirstEmpty--;
+
+  return kVListErr_NoErr;
+}
+
+                                       /* output whether or not the voxel 
+                                          is in the list */
+char VList_IsInList ( VoxelList * inList,
+                      Voxel * inVoxel,
+                      char * outIsInList ) {
+
+  int theIndex;
+
+  if ( NULL == inList )
+    return kVListErr_InvalidPtr;
+
+  if ( inList->mFirstEmpty < 0 ||
+       inList->mFirstEmpty >= kVList_ListSize )
+    return kVListErr_InvalidList;
+
+  // see if we can find an index for this voxel.
+  theIndex = VList_IndexInList ( inList, inVoxel );
+  if ( theIndex < 0 )
+    *outIsInList = FALSE;
+  else
+    *outIsInList = TRUE;
+
+  return kVListErr_NoErr;
+}
+
+  
+
+                                       /* if voxel is in list, returns its 
+                                          position, otherwise returns an error 
+                                          and -1 for the index. index is
+                                          0-based. no error checking, 
+                                          intended for internal use. */
+int VList_IndexInList ( VoxelList * inList, 
+                        Voxel * inVoxel ) {
+
+  int theIndex;
+
+  // step through the entire list..
+  for ( theIndex = 0; theIndex < inList->mFirstEmpty; theIndex++ ) {
+
+    // if we found it..
+    if ( inList->mVoxel[theIndex].mX == inVoxel->mX &&
+         inList->mVoxel[theIndex].mY == inVoxel->mY &&
+         inList->mVoxel[theIndex].mZ == inVoxel->mZ )
+
+      // return the index.
+      return theIndex;
+
+  }
+
+  // not found.
+  return -1;
+}
+  
+
+                                       /* clear all voxels in the list */
+char VList_ClearList ( VoxelList * inList ) {
+
+  if ( NULL == inList )
+    return kVListErr_InvalidPtr;
+
+  if ( inList->mFirstEmpty < 0 ||
+       inList->mFirstEmpty >= kVList_ListSize )
+    return kVListErr_InvalidList;
+
+  // set the first empty list member to 0, clears the list.
+  inList->mFirstEmpty = 0;
+
+  return kVListErr_NoErr;
+}
+
+                                       /* get the number of voxels in the 
+                                          list */
+char VList_GetCount ( VoxelList * inList,
+                      int * outCount ) {
+
+    if ( NULL == inList )
+    return kVListErr_InvalidPtr;
+
+    if ( inList->mFirstEmpty < 0 ||
+         inList->mFirstEmpty >= kVList_ListSize )
+      return kVListErr_InvalidList;
+
+    // the number of items is the index of the first empty.
+    *outCount = inList->mFirstEmpty;
+
+    return kVListErr_NoErr;
+}
+    
+
+                                       /* return the data in the nth voxel,
+                                          n is 0-based index.*/
+char VList_GetNthVoxel ( VoxelList * inList,
+                         int inIndex,
+                         Voxel * outVoxel ) {
+
+  if ( NULL == inList )
+    return kVListErr_InvalidPtr;
+  
+  if ( inList->mFirstEmpty < 0 ||
+       inList->mFirstEmpty >= kVList_ListSize )
+    return kVListErr_InvalidList;
+  
+  if ( inIndex < 0 ||
+       inIndex >= inList->mFirstEmpty )
+    return kVListErr_IndexOutOfBounds;
+  
+  // copy the data into outgoing voxel;
+  *outVoxel = inList->mVoxel [ inIndex ];
+  
+  return kVListErr_NoErr;
+}
+
+                                       /* print out all the voxels in the 
+                                          list */
+char VList_PrintDebug ( VoxelList * inList ) {
+
+  int theIndex, theCount;
+  char theResult;
+  Voxel theVoxel;
+
+  if ( NULL == inList )
+    return kVListErr_InvalidPtr;
+  
+  if ( inList->mFirstEmpty < 0 ||
+       inList->mFirstEmpty >= kVList_ListSize )
+    return kVListErr_InvalidList;
+  
+  theResult = VList_GetCount ( inList, &theCount );
+  if ( theResult != kVListErr_NoErr )
+    return theResult;
+
+  fprintf ( stderr, "Printing out voxel list...\n" );
+
+  for ( theIndex = 0; theIndex < theCount; theIndex++ ) {
+
+    theResult = VList_GetNthVoxel ( inList, theIndex, &theVoxel );
+    if ( theResult != kVListErr_NoErr )
+      return theResult;
+
+    fprintf ( stderr, "\t(%d,%d,%d)\n",
+              theVoxel.mX, theVoxel.mY, theVoxel.mZ );
+  }
+
+  fprintf ( stderr, "\tDone.\n\n" );
+  PR;
+  
+  return kVListErr_NoErr;
+}
+
+void TclVList_PrintDebug ( VoxelList * inList ) {
+
+  char theErr;
+  theErr = VList_PrintDebug ( inList );
+  if ( theErr != kVListErr_NoErr )
+    fprintf ( stderr, "TclVList_PrintDebug: Error %s\n", 
+              VList_GetErrorString(theErr) );
+  else
+    fprintf ( stderr, "TclVList_PrintDebug: Done.\n" );
+}
+
+char * VList_GetErrorString ( int inErr ) {
+
+  return (char*)(kVList_ErrString[inErr]);
+}
+
+                                       /* reads the control.dat file, 
+                                          transforms all pts from RAS space 
+                                          to voxel space, and adds them as 
+                                          control pts */
+void ProcessCtrlPtFile ( char * inDir ) {
+
+  char theFilename [NAME_LENGTH];
+  FILE * theFile;
+  float theTempX, theTempY, theTempZ;
+  Real theRASX, theRASY, theRASZ;
+  int theVoxX, theVoxY, theVoxZ;
+  int theResult;
+
+  // don't parse the file if we already have.
+  if ( TRUE == gParsedCtrlPtFile )
+    return;
+
+  // check to see if we have a transform. if not, we can't process anything.
+  if ( !transform_loaded ) {
+    fprintf ( stderr, "ProcessCtrlPtFile: No transform loaded.\n" );
+    return;
+  }
+
+  // if we're not in control point mode, return.
+  if ( 0 == control_points )
+    return;
+
+  // create the filename
+  sprintf ( theFilename, "%s/control.dat", inDir );
+  
+  // open for reading. position file ptr at beginning of file.
+  theFile = fopen ( theFilename, "r" );
+  
+  // check for success. if not, print an error and return.
+  if ( NULL == theFile ) {
+    fprintf ( stderr, "ProcessCtrlPtFile: Couldn't open %s for processing.\n",
+              theFilename );
+    return;
+  }
+
+  // while we have points left
+  fprintf ( stderr, "ProcessCtrlPtFile: Opened %s, reading...\n", theFilename );
+  while ( !feof(theFile) ) {
+    
+    // read in some numbers
+    theResult = fscanf ( theFile, "%f %f %f", &theTempX, &theTempY, &theTempZ );
+
+    // if not successful, file is wierd. print error, close file, and return.
+    if ( theResult < 3 &&
+         theResult != EOF ) {
+
+      fprintf ( stderr, "ProcessCtrlPtFile: Error parsing file, expected three float values but didn't get them.\n" );
+      fclose ( theFile );
+      return;
+    }
+
+    // if we got 3 pts, we got a point.
+    if ( 3 == theResult ) {
+
+      // cast to reals
+      theRASX = (Real) theTempX;
+      theRASY = (Real) theTempY;
+      theRASZ = (Real) theTempZ;
+
+      // transform from ras to voxel
+      RASToVoxel ( theRASX, theRASY, theRASZ,
+                   &theVoxX, &theVoxY, &theVoxZ );
+      
+      fprintf ( stderr, "\t%f %f %f -> %d %d %d\n", 
+                theRASX, theRASY, theRASZ,
+                (short)theVoxX, (short)theVoxY, (short)theVoxZ );
+      
+      // add it to our cntrl points space
+      CtrlPtSpace_SetValue ( &gCtrlPtSpace, theVoxX, theVoxY, theVoxZ, 1 );
+    }
+  }
+
+  // close the file.
+  fclose ( theFile );
+
+  fprintf ( stderr, "\tDone.\n" );
+
+  // mark that we have processed the file, and shouldn't do it again.
+  gParsedCtrlPtFile = TRUE;
+}
+
+                                       /* writes all control points to the
+                                          control.dat file in RAS space */
+void WriteCtrlPtFile ( char * inDir ) {
+
+  char theFilename [NAME_LENGTH];
+  FILE * theFile;
+  int theVoxX, theVoxY, theVoxZ;
+  Real theRASX, theRASY, theRASZ;
+  char theResult, theValue;
+  int theIndexSize;
+  
+  // create the filename.
+  sprintf ( theFilename, "%s/control.dat", inDir );
+
+  // open the file for writing.
+  theFile = fopen ( theFilename, "w" );
+
+  // check for success.
+  if ( NULL == theFile ) {
+    fprintf ( stderr, "WriteCtrlPtFile: Couldn't create %s for writing.\n",
+              theFilename );
+    return;
+  }
+
+
+  // find the size of our ctrl pt space.
+  theResult = CtrlPtSpace_IndexSize ( &gCtrlPtSpace, &theIndexSize );
+  if ( theResult != kCtrlPtSpaceErr_NoErr ) {
+    fprintf ( stderr, "WriteCtrlPtFile: Error reading CtrlPtSpace: %s\n", 
+              CtrlPtSpace_GetErrorString(theResult) );
+    return;
+  }
+  
+  fprintf ( stderr, "WriteCtrlPtFile: Writing control points to %s...\n",
+            theFilename );
+
+  // go through our voxel space, looking for points.
+  for ( theVoxZ = 0; theVoxZ < theIndexSize; theVoxZ++ ) {
+    for ( theVoxY = 0; theVoxY < theIndexSize; theVoxY++ ) {
+      for ( theVoxX = 0; theVoxX < theIndexSize; theVoxX++ ) {
+        
+        // get the value for this point.
+        theResult = CtrlPtSpace_GetValue ( &gCtrlPtSpace, 
+                                           theVoxX, theVoxY, theVoxZ, 
+                                           &theValue );
+        if ( theResult != kCtrlPtSpaceErr_NoErr ) {
+          fprintf ( stderr, "WriteCtrlPtFile: Error reading CtrlPtSpace(%d,%d,%d): %s\n", 
+                    theVoxX, theVoxY, theVoxZ, 
+                    CtrlPtSpace_GetErrorString(theResult) );
+          return;
+        }
+
+        // if it's a pt, write it to the file.
+        if ( theValue != 0 ) {
+
+          // transform to ras space first.
+          VoxelToRAS ( theVoxX, theVoxY, theVoxZ,
+                       &theRASX, &theRASY, &theRASZ );
+
+          // write to the file
+          fprintf ( theFile, "%f %f %f\n", theRASX, theRASY, theRASZ );
+
+          fprintf ( stderr, "%d %d %d -> %f %f %f\n", 
+                    theVoxX, theVoxY, theVoxZ,
+                    theRASX, theRASY, theRASZ );
+
+        }
+
+      }
+    }
+  }
+
+  // close file
+  fclose ( theFile );
+
+  fprintf ( stderr, "\tDone.\n" );
+
+}
+
+void ToggleCtrlPtDisplayStatus () {
+
+  // toggle the status.
+  gIsDisplayCtrlPts = !gIsDisplayCtrlPts;
+
+  // print a little note.
+  if ( gIsDisplayCtrlPts ) {
+    fprintf ( stdout, "Control points display is ON.\n" ); 
+  } else {
+    fprintf ( stdout, "Control points display is OFF.\n" ); 
+  }
+
+  // if we're not in control points mode, we still won't be able to
+  // view control points.
+  if ( !control_points ) {
+    fprintf ( stdout, "NOTE: You are in editing mode, not control point mode. You will not be able to see control points until you enter control point mode. This can be done by entering \"select_control_points\" at the prompt.\n" );
+  }
+
+  PR;
+}
+
+void ToggleCtrlPtDisplayStyle () {
+
+  // if it's one, change it to another.
+  switch ( gCtrlPtDrawStyle ) {
+  case kCtrlPtStyle_Point: 
+    gCtrlPtDrawStyle = kCtrlPtStyle_Crosshair;
+    fprintf ( stdout, "Control point display style is CROSSHAIR.\n" );
+    break;
+  case kCtrlPtStyle_Crosshair:
+    gCtrlPtDrawStyle = kCtrlPtStyle_Point;
+    fprintf ( stdout, "Control point display style is POINT.\n" );
+    break;
+  }
+
+  if ( !control_points ) {
+    fprintf ( stdout, "NOTE: You are in editing mode, not control point mode. You will not be able to see control points until you enter control point mode. This can be done by entering \"select_control_points\" at the prompt.\n" );
+  }
+
+  PR;
+}
+
+                                       /* converts screen coords to 
+                                          255 based voxel coords and back */
+void ScreenToVoxel ( int j, int i, int im,      // incoming screen coords
+                     int *x, int *y, int *z) {  // outgoing voxel coords
+
+
+  // our coords should be in good screen space.
+  if ( j < 0 || i < 0 || im < 0 ||
+       j >= xdim || i >= ydim || im > xdim ){  /* should be using something
+                                                  other than x/ydim? */
+    fprintf ( stderr, "!!! ScreenToVoxel: screen coords out of bounds, (j,i,im) = (%d,%d,%d)\n", j, i, im );
+    return;
+  }
+
+  // scales screen points down according to the zoom level of the 
+  // screen (usually 2). flips the i/y axis.
+  *x = j / zf;
+  *y = ((ydim - 1) - i) / zf;
+  *z = im / zf;
+}
+
+void VoxelToScreen ( int x, int y, int z,       // incoming voxel coords
+                     int *j, int *i, int *im ){ // outgoing screen coords
+
+  // voxel coords should be in good space
+  if ( x < 0 || y < 0 || z < 0 ||
+       x >= 256 || y >= 256 || z >= 256 ) {       // !! bounds??
+
+    fprintf ( stderr, "!!! VoxelToScreen: voxel coords out of bounds, (x,y,z) = (%d,%d,%d)\n", x, y, z );
+    return;
+  }
+  
+  // scales voxel coords up according to zoom level of the screen. flips
+  // the i/y axis.
+  *j = x * zf;
+  *i = (ydim - 1) - (zf * y);
+  *im = z * zf;
+}
+
+void RASToVoxel ( Real x, Real y, Real z,        // incoming ras coords
+                  int *xi, int *yi, int *zi ) {  // outgoing voxel coords
+
+  // we need to stay in the same type so as not to typecast the 
+  // conversion to int until right at the very end.
+  float fydim, fx, fy, fz;
+  fydim = (float) ydim;
+  fx = (float) x;
+  fy = (float) y; 
+  fz = (float) z;
+
+  *xi = (int) ( (xx1 - fx) / ps );
+  *yi = (int) ( ( (zz1 - fz) / ps ) - (float)255.0 + ( (fydim - (float)1.0) / fsf ) );
+  *zi = (int) ( (fy - yy0) / st );
+}               
+ 
+void VoxelToRAS ( int xi, int yi, int zi,        // incoming voxel coords
+                  Real *x, Real *y, Real *z ) {  // outgoing RAS coords
+
+   // need to go to real first for typecasting.
+   Real rxi, ryi, rzi, rydim;
+   rxi = (Real) xi;
+   ryi = (Real) yi;
+   rzi = (Real) zi;
+   rydim = (Real) ydim;
+
+   *x = (Real) ( xx1 - ( ps*rxi ) );
+   *y = (Real) ( yy0 + ( st*rzi ) );
+   *z = (Real) ( zz1 - ( ps * ( 255.0 - ( (rydim-1.0) / fsf ) + ryi ) ) );
+}
+
+                                      /* draws a crosshair cursor into a 
+                                         video buffer. */
+void DrawCrosshairInBuffer ( char * inBuffer,       // the buffer
+                               int inX, int inY,      // location in buffer
+                               int inSize,            // radius of crosshair
+                               long inColor ) {       // color, should be a
+                                                      // kRGBAColor_ value
+ 
+
+  int x, y, theBufIndex;
+
+  // go across the x line..
+  for ( x = inX - inSize; x <= inX + inSize; x++ ) {
+
+    // 4 bytes per pixel, cols * y down, x across
+    theBufIndex = 4 * ( inY*xdim + x );
+
+    // copy the color in.
+    SetCompositePixelInBuffer ( inBuffer, theBufIndex, inColor );
+  }
+
+  // same thing down the y line...
+  for ( y = inY - inSize; y <= inY + inSize; y++ ) {
+    theBufIndex = 4 * ( y*xdim + inX );
+    SetCompositePixelInBuffer ( inBuffer, theBufIndex, inColor );
+  }
+}
+
+                                       /* fills a box with a color.
+                                          starts drawing with the input coords
+                                          as the upper left and draws a box 
+                                          the dimesnions of the size */
+void FillBoxInBuffer ( char * inBuffer,       // the buffer
+                       int inX, int inY,      // location in buffer
+                       int inSize,            // width/height of pixel
+                       long inColor ) {       // color, should be a
+                                              // kRGBAColor_ value
+
+
+  int x, y, theBufIndex;
+
+  // from y-size+1 to y and x to x+size. the y is messed up because
+  // our whole image is yflipped.
+  for ( y = inY - inSize + 1; y <= inY; y++ ) {
+    for ( x = inX; x < inX + inSize; x++ ) {
+
+      // 4 bytes per pixel, cols * y down, x across
+      theBufIndex = 4 * ( y*xdim + x );
+
+      // copy the color in.
+      SetCompositePixelInBuffer ( inBuffer, theBufIndex, inColor );
+    }
+  }
+}
+
+
+                                                 /* fast pixel blitting */
+
+inline
+void SetGrayPixelInBuffer ( char * inBuffer, int inIndex,
+                            unsigned char inGray ) {
+
+  // instead of copying each component one at a time, we combine
+  // all components into a single long by bitshifting them to the
+  // right place and then copying it all in at once.
+  SetCompositePixelInBuffer ( inBuffer, inIndex, 
+    ( (unsigned char)kPixelComponentLevel_Max << kPixelOffset_Alpha |
+      (unsigned char)inGray << kPixelOffset_Blue |
+      (unsigned char)inGray << kPixelOffset_Green |
+      (unsigned char)inGray << kPixelOffset_Red ) );
+}
+
+inline
+void SetColorPixelInBuffer ( char * inBuffer, int inIndex,
+                             unsigned char inRed, unsigned char inGreen,
+                             unsigned char inBlue ) {
+
+  SetCompositePixelInBuffer ( inBuffer, inIndex, 
+    ( (unsigned char)kPixelComponentLevel_Max << kPixelOffset_Alpha |
+      (unsigned char)inBlue << kPixelOffset_Blue |
+      (unsigned char)inGreen<< kPixelOffset_Green |
+      (unsigned char)inRed << kPixelOffset_Red ) );
+}
+
+inline
+void SetCompositePixelInBuffer ( char * inBuffer, int inIndex,
+                                 long inPixel ) {
+
+  *(long*)&(inBuffer[inIndex]) = (long) inPixel;
+}
+
+
+                                       /* draw control point. switches on 
+                                          the current display style of the 
+                                          point. */
+void DrawCtrlPt ( char * inBuffer,  // video buffer to draw into
+                  int inX, int inY, // x,y location in the buffer
+                  long inColor ) {  // color to draw in
+
+  switch ( gCtrlPtDrawStyle ) {
+
+  case kCtrlPtStyle_Point:
+
+    if ( !all3flag ) {
+      FillBoxInBuffer ( inBuffer, inX, inY, zf, inColor );
+    } else {
+      FillBoxInBuffer ( inBuffer, inX, inY, 1, inColor );
+    }
+
+    break;
+
+  case kCtrlPtStyle_Crosshair:
+
+    DrawCrosshairInBuffer ( inBuffer, inX, inY, 
+                            kCtrlPtCrosshairRadius, inColor );
+    break;
+  }
+}
+                
+                                       /* handles the clicking of ctrl pts */
+void SelectCtrlPt () {
+
+  int theVoxX, theVoxY, theVoxZ;
+  char theValue, theResult;
+  Voxel theVoxel;
+  
+  // find the voxel they selected
+  ScreenToVoxel ( jc, ic, imc, &theVoxX, &theVoxY, &theVoxZ );
+
+  // is this a ctrl pt?
+  theResult = CtrlPtSpace_GetValue ( &gCtrlPtSpace,
+                                     theVoxX, theVoxY, theVoxZ, &theValue );
+
+  if ( theResult != kCtrlPtSpaceErr_NoErr ) {
+    fprintf ( stderr, "SelectCtrlPt: Error reading CtrlPtSpace(%d,%d,%d): %s\n", 
+              theVoxX, theVoxY, theVoxZ, 
+              CtrlPtSpace_GetErrorString(theResult) );
+    return;
+  }
+
+ 
+  if ( theValue ) {
+
+    // make a voxel
+    theVoxel.mX = theVoxX;
+    theVoxel.mY = theVoxY;
+    theVoxel.mZ = theVoxZ;
+
+    // if shift key is down
+    if ( shiftkeypressed ) {
+
+      // add this point to the selection
+      theResult = VList_AddVoxel ( &gSelectionList, &theVoxel );
+      if ( theResult != kVListErr_NoErr )
+        fprintf ( stderr, "Error in VList_AddVoxel: %s\n",
+                  VList_GetErrorString ( theResult ) );
+    
+      // else if shift key is not down...
+    } else {
+
+      // if ctrl key is down
+      if ( ctrlkeypressed ) {
+
+        // remove this point from selection
+        theResult = VList_RemoveVoxel ( &gSelectionList, &theVoxel );
+        if ( theResult != kVListErr_NoErr )
+          fprintf ( stderr, "Error in VList_RemoveVoxel: %s\n",
+                    VList_GetErrorString ( theResult ) );
+        
+      // no shift and no ctrl key
+      } else {
+
+        // remove all points from selection and add this point
+        theResult = VList_ClearList ( &gSelectionList );
+        if ( theResult != kVListErr_NoErr )
+          fprintf ( stderr, "Error in VList_CkearList: %s\n",
+                    VList_GetErrorString ( theResult ) );
+
+        theResult = VList_AddVoxel ( &gSelectionList, &theVoxel );
+        if ( theResult != kVListErr_NoErr )
+          fprintf ( stderr, "Error in VList_AddVoxel: %s\n",
+                    VList_GetErrorString ( theResult ) );
+
+      }
+    }
+
+  } else {
+
+    /*
+    // if they didn't click on a ctrl pt, clear the selection.
+    theResult = VList_ClearList ( &gSelectionList );
+    if ( theResult != kVListErr_NoErr )
+      fprintf ( stderr, "Error in VList_CkearList: %s\n",
+                VList_GetErrorString ( theResult ) );
+    
+    fprintf ( stderr, " Selection cleared.\n" );
+    */
+  }
+}
+
+                                        /* remove the selected control points 
+                                           from the control point space */
+void DeleteSelectedCtrlPts () {
+
+  char theResult;
+  int theCount, theIndex;
+  Voxel theCtrlPt;
+
+  // get the number of selected points we have
+  theResult = VList_GetCount ( &gSelectionList, &theCount );
+  if ( theResult != kVListErr_NoErr ) {
+    fprintf ( stderr, "Error in VList_GetCount: %s\n",
+              VList_GetErrorString ( theResult ) );
+    return;
+  }
+
+  fprintf ( stderr, "Deleting selected control points... " );
+
+  // for each one...
+  for ( theIndex = 0; theIndex < theCount; theIndex++ ) {
+
+    // get it
+    theResult = VList_GetNthVoxel ( &gSelectionList, theIndex, &theCtrlPt );
+    if ( theResult != kVListErr_NoErr ) {
+      fprintf ( stderr, "Error in VList_GetNthVoxel: %s\n",
+                VList_GetErrorString ( theResult ) );
+      continue;
+    }
+    
+    // set its value in the space to 0
+    theResult = CtrlPtSpace_SetValue ( &gCtrlPtSpace, theCtrlPt.mX, 
+                                       theCtrlPt.mY, theCtrlPt.mZ, 0 );
+    if ( theResult != kCtrlPtSpaceErr_NoErr ) {
+      fprintf ( stderr, "Error in CtrlPtSpace_SetValue: %s\n",
+                CtrlPtSpace_GetErrorString ( theResult ) );
+      continue;
+    }        
+  }
+
+  // remove all pts from the selection list
+  theResult = VList_ClearList ( &gSelectionList );
+  if ( theResult != kVListErr_NoErr ) {
+    fprintf ( stderr, "Error in VList_ClearList: %s\n",
+              VList_GetErrorString ( theResult ) );
+    return;
+  }
+
+  fprintf ( stderr, " done.\n" );
+  PR;
+}
+
+
+void PrintScreenPointInformation ( int j, int i, int ic ) {
+
+  int theVoxX, theVoxY, theVoxZ;
+  Real theRASX, theRASY, theRASZ, theTalX, theTalY, theTalZ;
+  int thePixelValue;
+
+  // get the voxel coords
+  ScreenToVoxel ( j, i, ic, &theVoxX, &theVoxY, &theVoxZ );
+
+  // grab the value and print it
+  thePixelValue = im[theVoxZ][theVoxY][theVoxX];
+  printf ( "Value: %s = %d", imtype, thePixelValue );
+
+  // if there's a second image, print that value too
+  if ( second_im_allocated ) {
+    thePixelValue = im2[theVoxZ][theVoxY][theVoxZ];
+    printf ( ", %s = %d", imtype2, thePixelValue );
+  }
+
+  printf ( "\n" );
+
+  // get the ras coords
+  VoxelToRAS ( theVoxX, theVoxY, theVoxZ, &theRASX, &theRASY, &theRASZ );
+
+  // print the screen, vox, and ras coords
+  printf ( "Coords: Screen (%d,%d,%d) Voxel (%d,%d,%d)\n",
+           j, i, ic, theVoxX, theVoxY, theVoxZ );
+  printf ( "        RAS (%2.1f,%2.1f,%2.1f)",
+           theRASX, theRASY, theRASZ );
+
+  // if we have a transform
+  if ( transform_loaded ) {
+
+    // get that point too
+    transform_point ( linear_transform,
+                      theRASX, theRASY, theRASZ,
+                      &theTalX, &theTalY, &theTalZ );
+
+    // and print it
+    printf ( " Talairch (%2.1f,%2.1f,%2.1f)",
+             theTalX, theTalY, theTalZ );
+  }
+
+  print ( "\n" );
+  PR;
+}
+
+
+// end_kt
