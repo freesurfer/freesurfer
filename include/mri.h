@@ -116,9 +116,15 @@ MRI   *MRIextract(MRI *mri_src, MRI *mri_dst, int x0, int y0, int z0,
 MRI   *MRIextractInto(MRI *mri_src, MRI *mri_dst, int x0, int y0, int z0,
                   int dx, int dy, int dz, int x1, int y1, int z1) ;
 
+
+MRI   *MRImean(MRI *mri_src, MRI *mri_dst, int wsize) ;
+MRI   *MRIstd(MRI *mri_src, MRI*mri_dst, MRI *mri_mean, int wsize) ;
+MRI   *MRInorm(MRI *mri_src, MRI*mri_dst, MRI *mri_mean, MRI *mri_std) ;
+
 #include "image.h"
 
 IMAGE *MRItoImage(MRI *mri, IMAGE *I, int slice) ;
+IMAGE *MRItoImageView(MRI *mri, IMAGE *I, int slice, int view) ;
 
 
 
