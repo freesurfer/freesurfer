@@ -3569,7 +3569,7 @@ MRISflatten(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 
         Description
 ------------------------------------------------------*/
-static float sigmas[] = { 2.0f, 1.0f, 0.5f, 0.25 } ;
+static float sigmas[] = { 4.0f, 2.0f, 1.0f, 0.5f } ;
 #define NSIGMAS  (sizeof(sigmas)  / sizeof(sigmas[0]))
 
 static char *surface_names[] = 
@@ -3641,6 +3641,9 @@ MRISregister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
 
   for (sno = 1 ; sno < SURFACES ; sno++)
   {
+    if (!first && ((parms->flags & IP_USE_CURVATURE) == 0))
+      break ;
+
     ino = parms->frame_no = sno*IMAGES_PER_SURFACE ;
     if (curvature_names[sno])  /* read in precomputed curvature file */
     {
@@ -3671,41 +3674,36 @@ MRISregister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
     MRISstoreMeanCurvature(mris) ;
 
     if (Gdiag & DIAG_SHOW)
-      fprintf(stderr, "calculating curvature of %s surface\n",fname) ;
+    {
+      if (curvature_names[sno])
+        fprintf(stderr, "reading precomputed curvature from %s\n",fname) ;
+      else
+        fprintf(stderr, "calculating curvature of %s surface\n",fname) ;
+    }
+
     if (Gdiag & DIAG_WRITE)
       fprintf(parms->fp,"calculating curvature of %s surface\n",fname);
 
-    if (first)  /* only do rigid alignment first time through */
-    {
-      first = 0 ;
-      if (Gdiag & DIAG_SHOW)
-        fprintf(stderr, "finding optimal rigid alignment\n") ;
-      if (Gdiag & DIAG_WRITE)
-        fprintf(parms->fp, "finding optimal rigid alignment\n") ;
-      parms->mrisp = MRIStoParameterization(mris, NULL, 1, 0) ;
-      parms->mrisp_template = mrisp_template ;
-      MRISrigidBodyAlignGlobal(mris, parms, 4.0f, 16.0f, 8) ;
-      MRISPfree(&parms->mrisp) ;
-    }
-    else if (parms->flags & IP_USE_CURVATURE)
+    if (!first && parms->flags & IP_USE_CURVATURE)
     {
       /* only small adjustments needed after 1st time around */
       parms->tol *= 2.0f ;
-      parms->l_corr /= 10.0f ;  /* should be more adaptive */
+      parms->l_corr /= 20.0f ;  /* should be more adaptive */
       mrisLogIntegrationParms(parms->fp, mris, parms) ;
       mrisLogIntegrationParms(stderr, mris, parms) ;
     }
     else
-      break ;   /* finished */
+      if (!first) /* don't do curvature alignment */
+        break ;   /* finished */
 
     for (i = 0 ; i < NSIGMAS ; i++)  /* for each spatial scale (blurring) */
     {
       parms->sigma = sigma = sigmas[i] ;
       parms->dt = base_dt ;
       if (Gdiag & DIAG_SHOW)
-        fprintf(stderr, "blurring surfaces with sigma=%2.2f...", sigma) ;
+        fprintf(stderr, "\nblurring surfaces with sigma=%2.2f...", sigma) ;
       if (Gdiag & DIAG_WRITE)
-        fprintf(parms->fp,"correlating surfaces with with sigma=%2.2f\n",
+        fprintf(parms->fp,"\ncorrelating surfaces with with sigma=%2.2f\n",
                 sigma) ;
       MRISuseMeanCurvature(mris) ;
       mrisp = MRIStoParameterization(mris, NULL, 1, 0) ;
@@ -3718,6 +3716,14 @@ MRISregister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
       MRISfromParameterization(parms->mrisp_template, mris, ino);
       MRISnormalizeCurvature(mris) ;
       MRIStoParameterization(mris, parms->mrisp_template, 1, ino) ;
+
+#if 0
+      /* normalize variances for both source and target */
+      MRISfromParameterization(parms->mrisp_template, mris, ino+1);
+      MRISnormalizeCurvature(mris) ;
+      MRIStoParameterization(mris, parms->mrisp_template, 1, ino+1) ;
+#endif
+
       if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
       {
         sprintf(fname, "%s/%s.%4.4dtarget%2.2f", 
@@ -3734,6 +3740,7 @@ MRISregister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
       MRISnormalizeCurvature(mris) ;
       MRIStoParameterization(mris, parms->mrisp, 1, 0) ;
       MRISPfree(&mrisp) ;
+
       if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
       {
         MRISPwrite(parms->mrisp, "mrisp_blur.hipl") ;
@@ -3758,14 +3765,38 @@ MRISregister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
         if (Gdiag & DIAG_SHOW)
           fprintf(stderr, "done.\n") ;
       }
+      if (first)  /* only do rigid alignment first time through */
+      {
+        first = 0 ;
+        if ((parms->flags & IP_NO_RIGID_ALIGN) == 0)
+        {
+          if (Gdiag & DIAG_SHOW)
+            fprintf(stderr, "finding optimal rigid alignment\n") ;
+          if (Gdiag & DIAG_WRITE)
+            fprintf(parms->fp, "finding optimal rigid alignment\n") ;
+          MRISrigidBodyAlignGlobal(mris, parms, 4.0f, 32.0f, 8) ;
+        }
+      }
+
       mrisClearMomentum(mris) ;
       done = 0 ;
       mrisIntegrationEpoch(mris, parms, parms->n_averages) ;
     }
   }
 
-  parms->tol = 1e-2 ;  /* remove everything possible pretty much */
+  parms->tol /= 10 ;  /* remove everything possible pretty much */
+  if (Gdiag & DIAG_SHOW)
+    fprintf(stderr, "removing remaining folds...\n") ;
+  if (Gdiag & DIAG_WRITE)
+    fprintf(parms->fp, "removing remaining folds...\n") ;
+#if 1
+  parms->l_nlarea *= 5 ;
+  mrisIntegrationEpoch(mris, parms, parms->n_averages) ;
+#else
+  parms->l_nlarea = 1 ; parms->l_corr /= 10.0 ;
+  parms->l_area = parms->l_parea = 0 ;
   mrisRemoveNegativeArea(mris,parms,parms->n_averages,MAX_NEG_AREA_PCT,3);
+#endif
   MRISPfree(&parms->mrisp) ; MRISPfree(&parms->mrisp_template) ;
   msec = TimerStop(&start) ;
   if (Gdiag & DIAG_SHOW)
@@ -4394,7 +4425,7 @@ mrisRemoveNegativeArea(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
      */
   cmod = 1.0f ;
   if (!FZERO(l_corr))
-  { sdenom = "corr" ; pdenom = &parms->l_corr  ; cmod = 10.0f ; }
+  { sdenom = "corr" ; pdenom = &parms->l_corr  ; /*cmod = 10.0f ;*/ }
   else
   { sdenom = "dist" ; pdenom = &parms->l_dist  ; }
 
@@ -13172,6 +13203,59 @@ MRISnormalizeCurvature(MRI_SURFACE *mris)
         Description
 ------------------------------------------------------*/
 int
+MRISnormalizeCurvatureVariance(MRI_SURFACE *mris)
+{
+  double    mean, var, std ;
+  int       vno, vtotal ;
+  VERTEX    *v ;
+
+  for (mean = 0.0f, vtotal = vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    mean += v->curv ;
+    vtotal++ ;
+  }
+
+  mean /= (double)vtotal ;
+
+  for (var = 0.0f, vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    std = v->curv - mean ;
+    var += std * std ;
+  }
+
+  var /= (double)vtotal ;
+  std = sqrt(var) ;
+
+  if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+    fprintf(stderr, "curvature mean = %2.3f, std = %2.3f\n", mean, std) ;
+
+  /* now normalize the curvatures so they have unit standard deviation, but
+     leave the mean alone */
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    v->curv = (v->curv - mean) / std  + mean ;
+  }
+
+  mrisComputeCurvatureValues(mris) ;
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+int
 MRISscaleDistances(MRI_SURFACE *mris, float scale)
 {
   int       vno, n ;
@@ -13560,7 +13644,7 @@ MRISrigidBodyAlignGlobal(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
   for (degrees = max_degrees ; degrees >= min_degrees ; degrees /= 2.0f)
   {
     mina = minb = ming = 0.0 ;
-    min_sse = mrisComputeCorrelationError(mris, parms, 0) ;
+    min_sse = mrisComputeCorrelationError(mris, parms, 1) ;  /* was 0 !!!! */
     delta = 2*degrees / (float)nangles ;
     if (Gdiag & DIAG_SHOW)
       fprintf(stderr, "scanning %2.2f degree nbhd, min sse = %2.2f\n", 
@@ -13580,7 +13664,7 @@ MRISrigidBodyAlignGlobal(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
         {
           MRISsaveVertexPositions(mris, TMP_VERTICES) ;
           MRISrotate(mris, mris, alpha, beta, gamma) ;
-          sse = mrisComputeCorrelationError(mris, parms, 0) ;
+          sse = mrisComputeCorrelationError(mris, parms, 1) ;  /* was 0 !!!! */
           MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
           if (sse < min_sse)
           {
@@ -13603,7 +13687,7 @@ MRISrigidBodyAlignGlobal(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
     if (!FZERO(mina) || !FZERO(minb) || !FZERO(ming))
     {
       MRISrotate(mris, mris, mina, minb, ming) ;
-      sse = mrisComputeCorrelationError(mris, parms, 0) ;
+      sse = mrisComputeCorrelationError(mris, parms, 1) ;  /* was 0 !!!! */
       if (Gdiag & DIAG_SHOW)
         fprintf(stderr, "min sse = %2.2f at (%2.2f, %2.2f, %2.2f)\n",
                 sse, (float)DEGREES(mina), (float)DEGREES(minb), 
@@ -14586,47 +14670,85 @@ mrisEraseFace(MRI_SURFACE *mris, MRI *mri, int fno)
           ORIGINAL_VERTICES, and that the current vertex positions reflect
           the pial surface.
 ------------------------------------------------------*/
-#define MIN_GRAY              55
-#define MAX_GRAY              100
-#define WHALF                 (5-1)/2
-#define MAX_THICKNESS 6.0f
 
 #if 1
 int
-MRISmeasureCorticalThickness(MRI_SURFACE *mris)
+MRISmeasureCorticalThickness(MRI_SURFACE *mris, int nbhd_size)
 {
-  int     vno, n ;
-  VERTEX  *v, *vn ;
-  float   dx, dy, dz, dist, min_dist ;
+  int     vno, n, vlist[100000], vtotal, ns, i, vnum, nbr_count[100], min_n ;
+  VERTEX  *v, *vn, *vn2 ;
+  float   dx, dy, dz, dist, min_dist, nx, ny, nz, dot ;
+
+  memset(nbr_count, 0, 100*sizeof(int)) ;
 
   /* current vertex positions are gray matter, orig are white matter */
+#if 0
   MRISsetNeighborhoodSize(mris, 2) ;
   MRIScomputeMetricProperties(mris) ;  /* fill in new distances */
+#endif
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
+    if (!(vno % 10000))
+      fprintf(stderr, "%d of %d vertices processed\n", vno,mris->nvertices) ;
     v = &mris->vertices[vno] ;
     if (v->ripflag)
       continue ;
+    nx = v->nx ; ny = v->ny ; nz = v->nz ;
     if (vno == Gdiag_no)
       DiagBreak() ;
     dx = v->x - v->origx ; dy = v->y - v->origy ; dz = v->z - v->origz ; 
     min_dist = sqrt(dx*dx + dy*dy + dz*dz) ;
-    for (n = 0 ; n < v->vtotal ; n++)
+    v->marked = 1 ; vtotal = 1 ; vlist[0] = vno ;
+    min_n = 0 ;
+    for (ns = 1 ; ns <= nbhd_size ; ns++)
     {
-      vn = &mris->vertices[v->v[n]] ;
+      vnum = 0 ;  /* will be # of new neighbors added to list */
+      for (i = 0 ; i < vtotal ; i++)
+      {
+        vn = &mris->vertices[vlist[i]] ;
+        if (vn->ripflag)
+          continue ;
+        if (vn->marked && vn->marked < ns-1)
+          continue ;
+        for (n = 0 ; n < vn->vnum ; n++)
+        {
+          vn2 = &mris->vertices[vn->v[n]] ;
+          if (vn2->ripflag || vn2->marked)  /* already processed */
+            continue ;
+          vlist[vtotal+vnum++] = vn->v[n] ;
+          vn2->marked = ns ;
+          dx = vn2->x-v->origx ; dy = vn2->y-v->origy ; dz = vn2->z-v->origz ;
+          dot = dx*nx + dy*ny + dz*nz ;
+          if (dot < 0) /* must be outwards from surface */
+            continue ;
+          dist = sqrt(dx*dx + dy*dy + dz*dz) ;
+          if (dist < min_dist)
+          {
+            min_n = ns ;
+            min_dist = dist ;
+          }
+        }
+      }
+      vtotal += vnum ;
+    }
+
+    nbr_count[min_n]++ ;
+    for (n = 0 ; n < vtotal ; n++)
+    {
+      vn = &mris->vertices[vlist[n]] ;
       if (vn->ripflag)
         continue ;
-      dx = vn->x - v->origx ; dy = vn->y - v->origy ; dz = vn->z - v->origz ; 
-      dist = sqrt(dx*dx + dy*dy + dz*dz) ;
-      if (dist < min_dist)
-        min_dist = dist ;
+      vn->marked = 0 ;
     }
     v->curv = min_dist ;
   }
 
+  for (n = 0 ; n < nbhd_size ; n++)
+    fprintf(stderr, "%d vertices at %d distance\n", nbr_count[n], n) ;
   return(NO_ERROR) ;
 }
 #else
+#define MAX_THICKNESS 6.0f
 int
 MRISmeasureCorticalThickness(MRI_SURFACE *mris)
 {
@@ -15528,6 +15650,7 @@ MRISsequentialAverageVertexPositions(MRI_SURFACE *mris, int navgs)
         Description
 ------------------------------------------------------*/
 #if 0
+#define WHALF                 (5-1)/2
 static int
 mrisComputeWhiteSurfaceValues(MRI_SURFACE *mris, MRI *mri_brain, 
                               MRI *mri_wm, float nsigma)
