@@ -8305,7 +8305,7 @@ mghRead(char *fname, int read_volume, int frame)
   size_t tag_data_size;
   char *ext;
   int gzipped=0;
-  char command[1024];
+  char command[STRLEN];
 
   ext = strrchr(fname, '.') ;
   if (ext)
@@ -8601,7 +8601,7 @@ mghWrite(MRI *mri, char *fname, int frame)
   ext = strrchr(fname, '.') ;
   if (ext)
   {
-    char command[1024];
+    char command[STRLEN];
     ++ext;
     // if mgz, then it is compressed
     if (!stricmp(ext, "mgz"))

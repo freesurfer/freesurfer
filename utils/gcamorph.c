@@ -3,8 +3,8 @@
 //
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Date  : $Date: 2004/05/27 19:36:37 $
-// Revision       : $Revision: 1.43 $
+// Revision Date  : $Date: 2004/05/28 20:05:13 $
+// Revision       : $Revision: 1.44 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -26,6 +26,8 @@
 #include "cma.h"
 #include "mri.h"
 #include "tags.h"
+#include "utils.h"
+
 #define GCAM_VERSION   1.0
 #define MIN_STD (2.0)
 #define MIN_VAR (MIN_STD*MIN_STD)
@@ -209,7 +211,7 @@ GCAMwrite(GCA_MORPH *gcam, char *fname)
 
   if (strstr(fname, ".m3z"))
   {
-    char command[64];
+    char command[STRLEN];
     // write gzipped file
     myclose=pclose;
     strcpy(command, "gzip -f -c > " );
@@ -409,7 +411,7 @@ GCAMread(char *fname)
 
   if (strstr(fname, ".m3z"))
   {
-    char command[512];
+    char command[STRLEN];
     strcpy(command, "zcat ");
     strcat(command, fname);
     myclose=pclose;
@@ -2683,9 +2685,12 @@ gcamLimitGradientMagnitude(GCA_MORPH *gcam, GCA_MORPH_PARMS *parms, MRI *mri)
            max_norm, xmax, ymax, zmax,
            gcam->nodes[xmax][ymax][zmax].area,
            gcam->nodes[xmax][ymax][zmax].area/gcam->nodes[xmax][ymax][zmax].orig_area) ;
+    fflush(stdout);
     printf("vals(means) = ") ;
     for (r = 0 ; r < gcam->gca->ninputs ; r++)
       printf("%2.1f (%2.1f)  ", vals[r], gcamn->gc ? gcamn->gc->means[r] :-0.0);
+    fflush(stdout);
+    printf("memory used: %d Kbytes\n", getMemoryUsed());
     printf("\n") ;
   }
 

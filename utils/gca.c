@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/05/27 19:33:39 $
-// Revision       : $Revision: 1.141 $
+// Revision Date  : $Date: 2004/05/28 20:05:03 $
+// Revision       : $Revision: 1.142 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1503,7 +1503,7 @@ GCAwrite(GCA *gca, char *fname)
 
   if (strstr(fname, ".gcz"))
   {
-    char command[512];
+    char command[STRLEN];
     myclose = pclose;
     strcpy(command, "gzip -f -c > ");
     strcat(command, fname);
@@ -1662,7 +1662,7 @@ GCAread(char *fname)
 
   if (strstr(fname, ".gcz"))
   {
-    char command[512];
+    char command[STRLEN];
     myclose = pclose;
     strcpy(command, "zcat ");
     strcat(command, fname);
