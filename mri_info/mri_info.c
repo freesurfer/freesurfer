@@ -3,11 +3,11 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2003/07/02 18:35:56 $
-// Revision       : $Revision: 1.22 $
+// Revision Date  : $Date: 2003/08/04 15:51:43 $
+// Revision       : $Revision: 1.23 $
 //
 ////////////////////////////////////////////////////////////////////
-char *MRI_INFO_VERSION = "$Revision: 1.22 $";
+char *MRI_INFO_VERSION = "$Revision: 1.23 $";
 #include <stdio.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -84,7 +84,7 @@ int main(int argc, char *argv[])
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_info.c,v 1.22 2003/07/02 18:35:56 tosa Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_info.c,v 1.23 2003/08/04 15:51:43 tosa Exp $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -153,9 +153,9 @@ static void do_file(char *fname)
 	 mri->type == MRI_TENSOR  ? "TENSOR" :
 	 mri->type == MRI_FLOAT   ? "FLOAT" : "UNKNOWN", mri->type) ;
   printf("           fov: %2.3f\n", mri->fov) ;
-  printf("        xstart: %2.1f, xend: %2.1f\n", mri->xstart, mri->xend) ;
-  printf("        ystart: %2.1f, yend: %2.1f\n", mri->ystart, mri->yend) ;
-  printf("        zstart: %2.1f, zend: %2.1f\n", mri->zstart, mri->zend) ;
+  printf("        xstart: %2.1f, xend: %2.1f\n", mri->xstart*mri->xsize, mri->xend*mri->xsize) ;
+  printf("        ystart: %2.1f, yend: %2.1f\n", mri->ystart*mri->ysize, mri->yend*mri->ysize) ;
+  printf("        zstart: %2.1f, zend: %2.1f\n", mri->zstart*mri->zsize, mri->zend*mri->zsize) ;
   printf("            TR: %2.2f msec, TE: %2.2f msec, TI: %2.2f msec, flip angle: %2.2f degrees\n",
 	 mri->tr, mri->te, mri->ti, DEGREES(mri->flip_angle)) ;
   printf("       nframes: %d\n", mri->nframes) ;
