@@ -83,6 +83,8 @@ typedef struct
   IMAGE       *zoomImage ;  /* zoomed image */
   int         sync ;        /* sync zooming and stuff with other images */
   HISTOGRAM   *histo ;
+  float       fmin ;        /* fixed minimum for display scaling */
+  float       fmax ;        /* fixed maximum for display scaling */
 } DISPLAY_IMAGE, DIMAGE ;
 
 typedef struct
@@ -136,6 +138,8 @@ void XVclearImage(XV_FRAME *xvf, int which, int dotitle) ;
 void XVclearImageTitle(XV_FRAME *xvf, int which) ;
 int  XVshowImageTitle(XV_FRAME *xvf, int which, ...) ;
 void XVshowImage(XV_FRAME *xvf, int which, IMAGE *image, int frame) ;
+void XVshowImageRange(XV_FRAME *xvf, int which, IMAGE *image, int frame, 
+                      float fmin, float fmax) ;
 void XVdrawBox(XV_FRAME *xvf, int which, int x, int y, int dx, int dy, 
                int color) ;
 void XVdrawLine(XV_FRAME *xvf, int which, int x, int y, int dx, int dy,  
