@@ -2648,26 +2648,48 @@ int
 ImageAddSpeckleNoise(IMAGE *inImage,IMAGE *outImage, float amp)
 {
   long    npix ;
-  float  *inPix, *outPix, gnoise ;
+  float  *inPix, *outPix, gnoise, out ;
+  byte   *psrc, *pdst ;
 
-  if (inImage->pixel_format != PFFLOAT)
+  if (inImage->pixel_format != outImage->pixel_format)
     ErrorReturn(-1, (ERROR_UNSUPPORTED, 
-                     "ImageAddNoise: unsupported input format %d\n",
-                     inImage->pixel_format)) ;
-
-  if (outImage->pixel_format != PFFLOAT)
-    ErrorReturn(-1, (ERROR_UNSUPPORTED, 
-                     "ImageAddNoise: unsupported output format %d\n",
+                     "ImageAddSpeckleNoise: unsupported output format %d\n",
                      outImage->pixel_format)) ;
 
   npix = (long)inImage->rows * inImage->cols * inImage->num_frame ;
-  inPix = IMAGEFpix(inImage, 0, 0) ;
-  outPix = IMAGEFpix(outImage, 0, 0) ;
-  while (npix--)
+  switch (inImage->pixel_format)
   {
-    gnoise = (float)randomNumber(1.0-(double)amp, 1.0+(double)amp) ;
-    *outPix++ += *inPix++ * gnoise ;
+  case PFFLOAT:
+    inPix = IMAGEFpix(inImage, 0, 0) ;
+    outPix = IMAGEFpix(outImage, 0, 0) ;
+    while (npix--)
+    {
+      gnoise = (float)randomNumber(1.0-(double)amp, 1.0+(double)amp) ;
+      *outPix++ += *inPix++ * gnoise ;
+    }
+    break ;
+  case PFBYTE:
+    psrc = IMAGEpix(inImage, 0, 0) ;
+    pdst = IMAGEpix(outImage, 0, 0) ;
+    while (npix--)
+    {
+      gnoise = (float)randomNumber(1.0-(double)amp, 1.0+(double)amp) ;
+      out = (float)(*psrc++) * gnoise ;
+      if (out > 255.0f)
+        out = 255.0f ;
+      else if (out < 0.0f)
+        out = 0.0f ;
+      *pdst++ += (byte)out ;
+    }
+    break ;
+  default:
+    ErrorReturn(-1, (ERROR_UNSUPPORTED, 
+                     "ImageAddSpeckleNoise: unsupported input format %d\n",
+                     inImage->pixel_format)) ;
+
+    break ;
   }
+
   return(0) ;
 }
 /*----------------------------------------------------------------------
@@ -2744,26 +2766,47 @@ int
 ImageAddNoise(IMAGE *inImage, IMAGE *outImage, float amp)
 {
   long    npix ;
-  float  *inPix, *outPix, gnoise ;
+  float  *inPix, *outPix, gnoise, out ;
+  byte   *psrc, *pdst ;
 
-  if (inImage->pixel_format != PFFLOAT)
-    ErrorReturn(-1, (ERROR_UNSUPPORTED, 
-                     "ImageAddNoise: unsupported input format %d\n",
-                     inImage->pixel_format)) ;
-
-  if (outImage->pixel_format != PFFLOAT)
+  if (inImage->pixel_format != outImage->pixel_format)
     ErrorReturn(-1, (ERROR_UNSUPPORTED, 
                      "ImageAddNoise: unsupported output format %d\n",
                      outImage->pixel_format)) ;
 
   npix = (long)inImage->rows * inImage->cols * inImage->num_frame ;
-  inPix = IMAGEFpix(inImage, 0, 0) ;
-  outPix = IMAGEFpix(outImage, 0, 0) ;
-  while (npix--)
+  switch (inImage->pixel_format)
   {
-    gnoise = (float)randomNumber(-(double)amp, (double)amp) ;
-    *outPix++ = *inPix++ + gnoise ;
+  case PFFLOAT:
+    inPix = IMAGEFpix(inImage, 0, 0) ;
+    outPix = IMAGEFpix(outImage, 0, 0) ;
+    while (npix--)
+    {
+      gnoise = (float)randomNumber(-(double)amp, (double)amp) ;
+      *outPix++ = *inPix++ + gnoise ;
+    }
+    break ;
+  case PFBYTE:
+    psrc = IMAGEpix(inImage, 0, 0) ;
+    pdst = IMAGEpix(outImage, 0, 0) ;
+    while (npix--)
+    {
+      gnoise = (float)randomNumber(-(double)amp, (double)amp) ;
+      out = (float)(*psrc++) + gnoise ;
+      if (out > 255.0f)
+        out = 255.0f ;
+      else if (out < 0.0f)
+        out = 0.0f ;
+      *pdst++ = (byte)out ;
+    }
+    break ;
+  default:
+    ErrorReturn(-1, (ERROR_UNSUPPORTED, 
+                     "ImageAddNoise: unsupported input format %d\n",
+                     inImage->pixel_format)) ;
+    break ;
   }
+
   return(0) ;
 }
 /*----------------------------------------------------------------------
