@@ -158,7 +158,8 @@ void
 Path<T>::PathChanged () {
   
   // Broadcast this change.
-  SendBroadcast( "pathChanged", (void*)&IDTracker<Path<T> >::mID );
+  int id = this->GetID();
+  SendBroadcast( "pathChanged", (void*)&id );
 }
 
 template <typename T>
@@ -166,7 +167,8 @@ void
 Path<T>::PathVertexAdded () {
   
   // Broadcast this change.
-  SendBroadcast( "pathVertexAdded", (void*)&IDTracker<Path<T> >::mID );
+  int id = this->GetID();
+  SendBroadcast( "pathVertexAdded", (void*)&id );
 }
 
 template <typename T>
