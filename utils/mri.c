@@ -2963,6 +2963,7 @@ MRIdump(MRI *mri, FILE *fp)
   fprintf(fp, "%6.6s = %d\n", "height", mri->height);
   fprintf(fp, "%6.6s = %d\n", "width", mri->width);
   fprintf(fp, "%6.6s = %d\n", "depth", mri->depth);
+  fprintf(fp, "%6.6s = %d\n", "nframes", mri->nframes);
   fprintf(fp, "%6.6s = %d\n", "imnr0", mri->imnr0);
   fprintf(fp, "%6.6s = %d\n", "imnr1", mri->imnr1);
   fprintf(fp, "%6.6s = %d\n", "xnum", mri->width);
