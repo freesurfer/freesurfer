@@ -17,6 +17,7 @@
 #include <math.h>
 #include <memory.h>
 #include <fcntl.h>
+#include <unistd.h>
 
 #include <hipl_format.h>
 
@@ -173,10 +174,11 @@ ImageFWrite(IMAGE *I, FILE *fp, char *fname)
         Description
 ------------------------------------------------------*/
 IMAGE *
-ImageFRead(FILE *fp, char *fname)
+ImageFRead(FILE *fp, char *fname, int frame)
 {
-  int    ecode ;
+  int    ecode, end_frame ;
   IMAGE  *I ;
+  char   *startpix ;
 
   if (!fname)
     fname = "ImageFRead" ;
@@ -188,10 +190,40 @@ ImageFRead(FILE *fp, char *fname)
   ecode = fread_header(fp, I, fname) ;
   if (ecode != HIPS_OK)
     ErrorExit(ERROR_NO_FILE, "ImageFRead: fread_header failed (%d)\n",ecode);
+
+  if (frame < 0)    /* read all frames */
+  {
+    end_frame = I->num_frame-1 ;
+    frame = 0 ;
+  }
+  else              /* read only specified frame */
+  {
+    if (fseek(fp, I->sizeimage*frame, SEEK_CUR) < 0)
+    {
+      ImageFree(&I) ;
+      ErrorReturn(NULL, 
+                  (ERROR_BADFILE, 
+                   "ImageFRead(%s, %d) - could not seek to specified frame",
+                   fname, frame)) ;
+    }
+    end_frame = frame ;
+  }
+  if (end_frame >= I->num_frame)
+    ErrorReturn(NULL, 
+                (ERROR_BADFILE,
+                 "ImageFRead(%s, %d) - frame out of bounds", fname, frame)) ;
+  I->num_frame = end_frame - frame + 1 ;
   alloc_image(I) ;
-  ecode = fread_image(fp, I, 0, "file") ;
-  if (ecode != HIPS_OK)
-    ErrorExit(ERROR_NO_FILE, "ImageFRead: fread_image failed (%d)\n", ecode);
+
+  startpix = I->image ;
+  for ( ; frame <= end_frame ; frame++)
+  {
+    ecode = fread_image(fp, I, frame, fname) ;
+    if (ecode != HIPS_OK)
+      ErrorExit(ERROR_NO_FILE, "ImageFRead: fread_image failed (%d)\n", ecode);
+    I->image += I->sizepix ;
+  }
+  I->image = startpix ;
   return(I) ;
 }
 /*-----------------------------------------------------
@@ -207,9 +239,12 @@ ImageRead(char *fname)
   IMAGE   *I = NULL ;
   MATRIX  *mat ;
   FILE    *fp ;
-  int     type ;
+  int     type, frame ;
+  char    buf[100] ;
 
-  type = ImageType(fname) ;
+  strcpy(buf, fname) ;   /* don't destroy callers string */
+  fname = buf ;
+  ImageUnpackFileName(fname, &frame, &type, fname) ;
 
   switch (type)
   {
@@ -224,8 +259,9 @@ ImageRead(char *fname)
   case HIPS_IMAGE:
     fp = fopen(fname, "rb") ;
     if (!fp)
-      ErrorReturn(NULL, (ERROR_NO_FILE, "ImageRead(%s) failed\n", fname)) ;
-    I = ImageFRead(fp, fname) ;
+      ErrorReturn(NULL, (ERROR_NO_FILE, "ImageRead(%s, %d) failed\n", 
+                         fname, frame)) ;
+    I = ImageFRead(fp, fname, frame) ;
     fclose(fp) ;
     break ;
   default:
@@ -240,21 +276,79 @@ ImageRead(char *fname)
 
         Description
 ------------------------------------------------------*/
+static unsigned char thicken_se[9] = { 255, 1, 255, 1, 1, 1, 255, 1, 255 } ;
 IMAGE *
-ImageMorph(IMAGE *Isrc, IMAGE *Idst, int which)
+ImageDilate(IMAGE *Isrc, IMAGE *Idst, int which)
 {
+  int    ecode, center_row, center_col, gray ;
+  IMAGE  Ise, *Iin, *Itmp, *Iout ;
+
+  init_header(&Ise, "orig", "seq", 1, "today", 3, 3, PFBYTE, 1, "temp");
+
   if (!Idst)
     Idst = ImageAlloc(Isrc->rows, Isrc->cols, PFBYTE, Isrc->num_frame) ;
+
+  if (Isrc->pixel_format != PFBYTE)
+  {
+    Itmp = ImageScale(Isrc, NULL, 0, 255) ;
+    Iin = ImageAlloc(Isrc->rows, Isrc->cols, PFBYTE, Isrc->num_frame) ;
+    ImageCopy(Itmp, Iin) ;
+    ImageFree(&Itmp) ;
+  }
+  else
+    Iin = Isrc ;
+
+  if (Idst->pixel_format != PFBYTE)
+    Iout = ImageAlloc(Isrc->rows, Isrc->cols, PFBYTE, Isrc->num_frame) ;
+  else
+    Iout = Idst ;
+
+  ImageReplace(Iin, Iin, 255.0f, 1.0f) ;
+  ImageReplace(Iin, Iin, 0.0f, 255.0f) ;
 
   switch (which)
   {
   case MORPH_THICKEN:
+    Ise.image = Ise.firstpix = thicken_se ;
+    center_row = Ise.rows / 2 ;
+    center_col = Ise.cols / 2 ;
+    ecode = h_morphdil(Iin, &Ise, Iout, center_row, center_col, 128) ;
     break ;
   default:
     ErrorExit(ERROR_UNSUPPORTED, 
               "ImageMorph: unsupported morphological operation %d\n", which) ;
     break ;
   }
+
+  if (Iin != Isrc)   /* source image was not in proper format */
+    ImageFree(&Iin) ;
+  else    /* translate back to original format */
+  {
+    ImageReplace(Isrc, Isrc, 255.0f, 0.0f) ;
+    ImageReplace(Isrc, Isrc, 1.0f, 255.0f) ;
+  }
+
+  if (Idst != Iout)
+  {
+    ImageCopy(Iout, Idst) ;
+    ImageFree(&Iout) ;
+  }
+
+  ImageReplace(Idst, Idst, 255.0f, 0.0f) ;
+  ImageReplace(Idst, Idst, 1.0f, 255.0f) ;
+  
+  return(Idst) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+IMAGE   *
+ImageErode(IMAGE *Isrc, IMAGE *Idst, int which)
+{
   return(Idst) ;
 }
 /*-----------------------------------------------------
@@ -421,37 +515,40 @@ ImageResize(IMAGE *Isrc, IMAGE *Idst, int drows, int dcols)
   x_scale = (float)dcols / (float)Isrc->cols ;
   y_scale = (float)drows / (float)Isrc->rows ;
 
-  switch (Isrc->pixel_format)
-  {
-  case PFBYTE:
+  if (FEQUAL(x_scale, 1.0f))
+    ImageCopy(Isrc, Idst) ;
+  else
+    switch (Isrc->pixel_format)
+    {
+    case PFBYTE:
 #if 0
-    ecode = h_affine(Isrc, Idst, x_scale, 0.0f, 0.0f, 0.0f, y_scale, 0.0f) ;
-    if (ecode != HIPS_OK)
-      ErrorExit(ecode,
-                "ImageResize: h_affine(%2.3f, %2.3f) returned %d\n",ecode);
+      ecode = h_affine(Isrc, Idst, x_scale, 0.0f, 0.0f, 0.0f, y_scale, 0.0f) ;
+      if (ecode != HIPS_OK)
+        ErrorExit(ecode,
+                  "ImageResize: h_affine(%2.3f, %2.3f) returned %d\n",ecode);
 #else
-    if (x_scale > 1.0f)
-      ecode = h_enlarge(Isrc, Idst, x_scale, y_scale) ;
-    else 
-      ecode = h_reduce(Isrc, Idst, nint(1.0f/x_scale), nint(1.0f/y_scale)) ;
-    if (ecode != HIPS_OK)
-      ErrorExit(ecode,
-                "ImageResize: h_%s(%2.3f, %2.3f) returned %d\n",
-                x_scale > 1.0f ? "enlarge" : "reduce", ecode);
+      if (x_scale > 1.0f)
+        ecode = h_enlarge(Isrc, Idst, x_scale, y_scale) ;
+      else 
+        ecode = h_reduce(Isrc, Idst, nint(1.0f/x_scale), nint(1.0f/y_scale)) ;
+      if (ecode != HIPS_OK)
+        ErrorExit(ecode,
+                  "ImageResize: h_%s(%2.3f, %2.3f) returned %d\n",
+                  x_scale > 1.0f ? "enlarge" : "reduce", ecode);
 #endif
-    break ;
-  default:
-    if (x_scale > 1.0f)
-      ecode = h_enlarge(Isrc, Idst, nint(x_scale), nint(y_scale)) ;
-    else 
-      ecode = h_reduce(Isrc, Idst, nint(1.0f/x_scale), nint(1.0f/y_scale)) ;
-    if (ecode != HIPS_OK)
-      ErrorExit(ecode,
-                "ImageResize: h_%s(%2.3f, %2.3f) returned %d\n",
-                x_scale > 1.0f ? "enlarge" : "reduce", ecode);
-    break ;
-  }
-
+      break ;
+    default:
+      if (x_scale > 1.0f)
+        ecode = h_enlarge(Isrc, Idst, nint(x_scale), nint(y_scale)) ;
+      else 
+        ecode = h_reduce(Isrc, Idst, nint(1.0f/x_scale), nint(1.0f/y_scale)) ;
+      if (ecode != HIPS_OK)
+        ErrorExit(ecode,
+                  "ImageResize: h_%s(%2.3f, %2.3f) returned %d\n",
+                  x_scale > 1.0f ? "enlarge" : "reduce", ecode);
+      break ;
+    }
+  
   return(Idst) ;
 }
 /*-----------------------------------------------------
@@ -577,11 +674,7 @@ ImageCorrelate(IMAGE *Itemplate, IMAGE *Isrc, int zeropad, IMAGE *Icorr)
   Iconj = ImageConjugate(Itemplate, NULL) ;
   Ifsrc = ImageDFT(Isrc, NULL) ;
   Ifcorr = ImageMul(Iconj, Ifsrc, NULL) ;
-  Icorr = ImageInverseDFT(Ifcorr, NULL) ;
-
-  ImageFree(&Iconj) ;
-  ImageFree(&Ifcorr) ;
-  ImageFree(&Ifsrc) ;
+  Icorr = ImageInverseDFT(Ifcorr, Icorr) ;
 
   ecode = h_flipquad(Icorr, Icorr) ;
   if (ecode != HIPS_OK)
@@ -593,9 +686,13 @@ ImageWrite(Isrc, "Isrc.hipl") ;
 ImageWrite(Ifsrc, "Ifsrc.hipl") ;
 ImageWrite(Iconj, "Iconj.hipl") ;
 ImageWrite(Ifcorr, "Ifcorr.hipl") ;
-ImageWrite(Icorr, "Icorr.hipl") ;
 ImageWrite(Icorr, "Iflip.hipl") ;
 #endif
+
+  ImageFree(&Iconj) ;
+  ImageFree(&Ifcorr) ;
+  ImageFree(&Ifsrc) ;
+
   return(Icorr) ;
 }
 /*-----------------------------------------------------
@@ -619,8 +716,35 @@ ImageCopyArea(IMAGE *Isrc, IMAGE *Idst, int srow, int scol,
         Description
 ------------------------------------------------------*/
 int
-ImageClearArea(IMAGE *I, int row, int col, int rows, int cols, float val)
+ImageClearArea(IMAGE *I, int r0, int c0, int rows, int cols, float val)
 {
+  float   *fptr ;
+  int     row, col ;
+  char    *cptr, cval ;
+
+  rows = MIN(I->rows, r0+rows) ;
+  cols = MIN(I->cols, c0+cols) ;
+  
+  for (row = r0 ; row < rows ; row++)
+  {
+    switch (I->pixel_format)
+    {
+    case PFFLOAT:
+      fptr = IMAGEFpix(I, c0, row) ;
+      for (col = c0 ; col < cols ; col++)
+        *fptr++ = val ;
+      break ;
+    case PFBYTE:
+      cptr = IMAGEpix(I, c0, row) ;
+      cval = (char)val ;
+      for (col = c0 ; col < cols ; col++)
+        *cptr++ = cval ;
+      break ;
+    default:
+      ErrorReturn(ERROR_UNSUPPORTED, (ERROR_UNSUPPORTED, "ImageClearArea: only handles PFFLOAT")) ;
+      break ;
+    }
+  }
   return(0) ;
 }
 /*-----------------------------------------------------
@@ -633,8 +757,33 @@ ImageClearArea(IMAGE *I, int row, int col, int rows, int cols, float val)
 float
 ImageFindPeak(IMAGE *I, int *prow, int *pcol, float *pval)
 {
-  float  max_val ;
+  float  max_val, *fpix, val ;
+  int    max_row, max_col, row, col, rows, cols ;
 
+  if (I->pixel_format != PFFLOAT)
+    ErrorReturn(0.0f, (ERROR_UNSUPPORTED, "ImageFindPeak: only supports PFFLOAT")) ;
+
+  rows = I->rows ;
+  cols = I->cols ;
+
+  fpix = IMAGEFpix(I, 0, 0) ;
+  max_val = -1000000.0f ;
+  for (row = 0 ; row < rows ; row++)
+  {
+    for (col = 0 ; col < cols ; col++)
+    {
+      val = *fpix++ ;
+      if (val >= max_val)
+      {
+        max_val = val ;
+        max_row = row ;
+        max_col = col ;
+      }
+    }
+  }
+
+  *prow = max_row ;
+  *pcol = max_col ;
   return(max_val) ;
 }
 /*-----------------------------------------------------
@@ -945,6 +1094,32 @@ ImageType(char *fname)
   }
 
   return(HIPS_IMAGE) ;
+} 
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+int
+ImageFrame(char *fname)
+{
+  char *colon, buf[200] ;
+  int   frame ;
+
+  strcpy(buf, fname) ;
+  colon = strrchr(buf, ':') ;
+
+  if (colon)
+  {
+    sscanf(colon+1, "%d", &frame) ;
+    *colon = 0 ;
+  }
+  else
+    frame = 0 ;
+
+  return(frame) ;
 } 
 /*-----------------------------------------------------
         Parameters:
@@ -1877,5 +2052,101 @@ ImageAddScalar(IMAGE *Isrc, IMAGE *Idst, float scalar)
   }
 
   return(Idst) ;
+}
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+----------------------------------------------------------------------*/
+IMAGE    *
+ImageReplace(IMAGE *Isrc, IMAGE *Idst, float inpix, float outpix)
+{
+  float  *fin, *fout ;
+  char   *cin, *cout, cinpix, coutpix ;
+  int    npix ;
+
+  if (!Idst)
+    Idst = ImageAlloc(Isrc->rows, Isrc->cols, Isrc->pixel_format, Isrc->num_frame) ;
+
+  if (Idst->pixel_format != Isrc->pixel_format)
+    ErrorReturn(NULL, (ERROR_BADPARM, "ImageReplace: src and dst formats must match")) ;
+
+  npix = Isrc->numpix * Isrc->num_frame ;
+  switch (Isrc->pixel_format)
+  {
+  case PFFLOAT:
+    fin = IMAGEFpix(Isrc, 0, 0) ;
+    fout = IMAGEFpix(Idst, 0, 0) ;
+    while (npix--)
+    {
+      if (*fin == inpix)
+      {
+        *fout++ = outpix ;
+        fin++;
+      }
+      else
+        *fout++ = *fin++ ;
+    }
+    break ;
+  case PFBYTE:
+    cinpix = (char)inpix ;
+    coutpix = (char)outpix ;
+    cin = IMAGEpix(Isrc, 0, 0) ;
+    cout = IMAGEpix(Idst, 0, 0) ;
+    while (npix--)
+    {
+      if (*cin == cinpix)
+      {
+        *cout++ = coutpix ;
+        cin++;
+      }
+      else
+        *cout++ = *cin++ ;
+    }
+    break ;
+  default:
+    ErrorReturn(NULL, 
+                (ERROR_UNSUPPORTED, "ImageReplace: unsupported pixel format %d", Isrc->pixel_format));
+    break ;
+  }
+
+  return(Idst) ;
+}
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+              decompose a file name, extracting the type and the frame #.
+----------------------------------------------------------------------*/
+int
+ImageUnpackFileName(char *inFname, int *pframe, int *ptype, char *outFname)
+{
+  char *colon, *dot, buf[100] ;
+
+  strcpy(outFname, inFname) ;
+  colon = strrchr(outFname, ':') ;
+  dot = strchr(outFname, '.') ;
+
+  if (colon)   /* : in filename indicates frame # */
+  {
+    if (sscanf(colon+1, "%d", pframe) < 1)
+      *pframe = 0 ;
+    *colon = 0 ;
+  }
+  else
+    *pframe = 0 ;
+
+  if (dot)
+  {
+    dot = StrUpper(strcpy(buf, dot+1)) ;
+    if (!strcmp(dot, "MAT"))
+      *ptype = MATLAB_IMAGE ;
+    else
+      *ptype = HIPS_IMAGE ;
+  }
+  else
+    *ptype = HIPS_IMAGE ;
+
+  return(NO_ERROR) ;
 }
 
