@@ -61,7 +61,8 @@ Volm_tErr Volm_New ( mriVolumeRef* opVolume ) {
   bzero( this->msOriginalPath, sizeof( this->msOriginalPath ) );
   this->mfColorBrightness      = Volm_kfDefaultBrightness;
   this->mfColorContrast        = Volm_kfDefaultContrast;
-  bzero( this->maColorTable, sizeof( this->maColorTable ) );
+  bzero( this->mafColorTable, sizeof( this->mafColorTable ) );
+  bzero( this->manColorTable, sizeof( this->manColorTable ) );
 
   /* make our color table with default values */
   eResult = Volm_MakeColorTable( this );
@@ -259,9 +260,11 @@ Volm_tErr Volm_DeepClone  ( mriVolumeRef  this,
   clone->mfColorBrightness = this->mfColorBrightness;
   clone->mfColorContrast   = this->mfColorContrast;
   
-  /* allocate and copy color table */
-  memcpy( clone->maColorTable, this->maColorTable, 
-	  sizeof( this->maColorTable ));
+  /* allocate and copy color tables */
+  memcpy( clone->mafColorTable, this->mafColorTable, 
+	  sizeof( this->manColorTable ));
+  memcpy( clone->manColorTable, this->manColorTable, 
+	  sizeof( this->mafColorTable ));
   
   /* return the clone */
   *opVolume = clone;
@@ -475,6 +478,8 @@ Volm_tErr Volm_SetFromMRI_ ( mriVolumeRef this,
     that check for? */
 
   //  if (iMRI->slice_direction != MRI_CORONAL)
+#define FORCE_USE_EMBEDDED_CRAS
+#ifndef FORCE_USE_EMBEDDED_CRAS
   if ( 
       (iMRI->ras_good_flag &&
        ( iMRI->x_r != -1.0 
@@ -494,6 +499,7 @@ Volm_tErr Volm_SetFromMRI_ ( mriVolumeRef this,
       || (!iMRI->ras_good_flag && iMRI->slice_direction != MRI_CORONAL)
       )
     {
+#endif
       DebugNote( ("Creating idx to ras transform") );
       Trns_New( &this->mIdxToRASTransform );
       DebugNote( ("Getting idx to ras matrix") );
@@ -506,9 +512,14 @@ Volm_tErr Volm_SetFromMRI_ ( mriVolumeRef this,
       DebugNote( ("Copying identity matrix into idx to ras transform") );
       Trns_CopyARAStoBRAS( this->mIdxToRASTransform, identity ); /* no display xform */
       Trns_CopyBtoRAS( this->mIdxToRASTransform, identity );
+
+      fprintf( stderr, "Using embedded idxToRAS transform:\n" );
+      MatrixPrint( stderr, idxToRASTransform );
+#ifndef FORCE_USE_EMBEDDED_CRAS
     }
   else 
     {
+      fprintf( stderr, "Using standard idxToRAS transform.\n" );
       idxToRASTransform = MatrixAlloc( 4, 4, MATRIX_REAL );
       MatrixClear( idxToRASTransform );
       *MATRIX_RELT(idxToRASTransform,1,1) = -1.0;
@@ -527,7 +538,8 @@ Volm_tErr Volm_SetFromMRI_ ( mriVolumeRef this,
       Trns_CopyAtoRAS( this->mIdxToRASTransform, identity );
       Trns_CopyBtoRAS( this->mIdxToRASTransform, identity );
     }
-  
+#endif
+
   DebugCatch;
   DebugCatchError( eResult, Volm_tErr_NoErr, Volm_GetErrorString );
   EndDebugCatch;
@@ -942,9 +954,9 @@ Volm_tErr Volm_UnloadDisplayTransform ( mriVolumeRef this ) {
 
 
 
-void Volm_GetColorAtIdx ( mriVolumeRef this,
-			  xVoxelRef    iIdx,
-			  xColor3fRef  oColor ) {
+void Volm_GetIntColorAtIdx ( mriVolumeRef this,
+			     xVoxelRef    iIdx,
+			     xColor3nRef  oColor ) {
   
   float  value = 0;
   int    colorIdx = 0;
@@ -971,25 +983,25 @@ void Volm_GetColorAtIdx ( mriVolumeRef this,
     colorIdx = value;
   }
 
-  *oColor = this->maColorTable[colorIdx];
+  *oColor = this->manColorTable[colorIdx];
 }
 
 void Volm_GetColorAtXYSlice ( mriVolumeRef     this,
 			      mri_tOrientation iOrientation,
 			      xPoint2nRef      iPoint,
 			      int              inSlice,
-			      xColor3fRef      oColor ) {
+			      xColor3nRef      oColor ) {
   
-  xVoxel   idx;
+  xVoxel idx;
 
   Volm_ConvertXYSliceToIdx_( iOrientation, iPoint, inSlice, &idx );
-  Volm_GetColorAtIdx( this, &idx, oColor );  
+  Volm_GetIntColorAtIdx( this, &idx, oColor );  
 }
 
-void Volm_GetMaxColorAtIdx ( mriVolumeRef     this,
-			     xVoxelRef        iIdx,
-			     mri_tOrientation iOrientation,
-			     xColor3fRef      oColor ) {
+void Volm_GetMaxIntColorAtIdx ( mriVolumeRef     this,
+				xVoxelRef        iIdx,
+				mri_tOrientation iOrientation,
+				xColor3nRef      oColor ) {
   xPoint2n    point;
   int         nSlice;
   
@@ -1000,14 +1012,14 @@ void Volm_GetMaxColorAtIdx ( mriVolumeRef     this,
   
   /* Convert to an xy slice and get the color. */
   Volm_ConvertIdxToXYSlice_( iIdx, iOrientation, &point, &nSlice );
-  Volm_GetMaxColorAtXYSlice( this, iOrientation, &point, nSlice, oColor );
+  Volm_GetMaxIntColorAtXYSlice( this, iOrientation, &point, nSlice, oColor );
 }
 
-void Volm_GetMaxColorAtXYSlice ( mriVolumeRef     this,
-				 mri_tOrientation iOrientation,
-				 xPoint2nRef      iPoint,
-				 int              inSlice,
-				 xColor3fRef      oColor ) {
+void Volm_GetMaxIntColorAtXYSlice ( mriVolumeRef     this,
+				    mri_tOrientation iOrientation,
+				    xPoint2nRef      iPoint,
+				    int              inSlice,
+				    xColor3nRef      oColor ) {
   
   float value = 0;
   int   colorIdx = 0;
@@ -1022,7 +1034,7 @@ void Volm_GetMaxColorAtXYSlice ( mriVolumeRef     this,
   Volm_GetMaxValueAtXYSlice_( this, iOrientation, iPoint, &value );
   colorIdx = (int) (255.0 * (value - this->min_val) / 
 		    (this->max_val - this->min_val)) ;
-  *oColor = this->maColorTable[colorIdx];
+  *oColor = this->manColorTable[colorIdx];
 }
 
 Volm_tErr Volm_GetDimensions ( mriVolumeRef this,
@@ -1807,13 +1819,18 @@ Volm_tErr Volm_MakeColorTable ( mriVolumeRef this ) {
     if( fComponent > Volm_knMaxValue )
       fComponent = Volm_knMaxValue;
     
+    /* set the integer color */
+    this->manColorTable[value].mnRed   = (int)fComponent;
+    this->manColorTable[value].mnGreen = (int)fComponent;
+    this->manColorTable[value].mnBlue  = (int)fComponent;
+
     /* normalize to 0 - 1 */
     fComponent = (float)fComponent / (float)Volm_knMaxValue;
     
-    /* set the color */
-    this->maColorTable[value].mfRed   = fComponent;
-    this->maColorTable[value].mfGreen = fComponent;
-    this->maColorTable[value].mfBlue  = fComponent;
+    /* set the float color */
+    this->mafColorTable[value].mfRed   = fComponent;
+    this->mafColorTable[value].mfGreen = fComponent;
+    this->mafColorTable[value].mfBlue  = fComponent;
   }
   
   DebugCatch;
