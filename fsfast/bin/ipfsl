@@ -1,10 +1,10 @@
 #!/bin/csh -f
 # ipfsl - front-end for FSL's IP program
 #
-# $Id: ipfsl,v 1.1 2003/03/04 21:22:08 greve Exp $
+# $Id: ipfsl,v 1.2 2005/01/23 17:15:58 greve Exp $
 #
 
-set VERSION = '$Id: ipfsl,v 1.1 2003/03/04 21:22:08 greve Exp $';
+set VERSION = '$Id: ipfsl,v 1.2 2005/01/23 17:15:58 greve Exp $';
 set FASTVER = `cat $FSFAST_HOME/docs/version`;
 
 set inputargs = ($argv);
@@ -15,6 +15,7 @@ set maskstem   = ();
 set makemask   = 0;
 set pctthresh  = ();
 set fslargs    = ();
+set fmt        = bhdr;
 
 set scratchdir = ();
 set cleanup    = 1;
@@ -68,20 +69,8 @@ echo "Scratch Dir is $scratchdir"
 set inbase  = `basename $instem`;
 set outbase = `basename $outstem`;
 
-#---------------------------------------------------#
-if( -e $instem"_000.bshort") then
-  set bvoltype = bshort;
-else
-  if( -e $instem"_000.bfloat") then
-    set bvoltype = bfloat
-  else
-    echo "ERROR: cannot find $instem"
-    exit 1;
-  endif
-endif
-
 echo "# ---------- Converting bvolume to .img ------------------ #"
-set cmd = (mri_convert $instem --in_type $bvoltype )
+set cmd = (mri_convert $instem.$fmt)
 set cmd = ($cmd $scratchdir/$inbase.img --out_type analyze4d)
 $cmd
 if($status) then
@@ -108,7 +97,7 @@ cp $inmatfile $outmatfile
 
 echo "# ---------- Converting output to bvolume ------------------ #"
 set cmd = (mri_convert $scratchdir/$outbase.img --in_type analyze4d)
-set cmd = ($cmd $outstem --out_type $bvoltype)
+set cmd = ($cmd $outstem.$fmt)
 $cmd
 if($status) then
   pwd
@@ -120,7 +109,7 @@ endif
 if($makemask) then
   echo "# ---------- Converting mask to bshort ------------------ #"
   set cmd = (mri_convert $scratchdir/$maskbase.img --in_type analyze4d)
-  set cmd = ($cmd $maskstem --out_type bshort)
+  set cmd = ($cmd $maskstem.$fmt )
   $cmd
   if($status) then
     pwd
@@ -195,6 +184,11 @@ while( $#argv != 0 )
       endif
       set fslargs = ($fslargs $flag $argv[1] $argv[2]); 
       shift;shift;
+      breaksw
+
+    case "-fmt":
+      if ( $#argv == 0) goto arg1err;
+      set fmt = $argv[1]; shift;
       breaksw
 
     case "-scratch":
@@ -272,6 +266,7 @@ usage_exit:
   echo "Required Arguments:";
   echo "   -i instem"
   echo "   -o outstem "
+  echo "   -fmt format : bhdr (default) or mgh (img should work too)"
   echo "   -pctthresh thresh : percent of grand-mean for thresholding"
   echo ""
   echo "IP Optional Arguments:";
