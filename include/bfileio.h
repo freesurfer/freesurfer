@@ -17,7 +17,7 @@ more info.
 #define BFMSGLEN 2000
 #ifdef BFILEIO_SRC
   int  bferr = 0;
-  char bfmsg[BFMSGLEN];
+  char bfmsg[BFMSGLEN] = {0};
 #else
   extern int  bferr;
   extern char bfmsg[BFMSGLEN];
