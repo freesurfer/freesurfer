@@ -1,11 +1,12 @@
 #!/bin/tcsh -f
 # tdr-fidmat - used tdr_fidmat.m
 
-set VERSION = '$Id: tdr-fidmat,v 1.7 2004/02/10 22:33:56 greve Exp $';
+set VERSION = '$Id: tdr-fidmat,v 1.8 2004/04/13 19:43:32 greve Exp $';
 
 set inputargs = ($argv);
 
-set rawkdir    = ();
+set rawkfiddir = ();
+set rawkepidir = ();
 set outmat     = ();
 set fwhm       = 0;
 set monly      = 0;
@@ -15,47 +16,15 @@ set TE         = ();
 set PERev      = ();
 set RORev      =  0;
 set Interleaved = 1;
+set nslices    = ();
 
-set fidecho1ped = 1810;   # PED of first echo (us)
-set fidechospacing = 820; # Time between FID echoes (Actually use double)
-set nfidechoes = 99; # But we'll only use half (odd echoes), 
-set epiechospacing = 470; # us
-set epidelsamp = 30;      # us
-set epitdwell = 3.2;      # us
+#set fidecho1ped   = 1980;   # PED of first FID echo (us)
+#set fidechospacing = 820; # Time between FID echoes (us) (Actually uses double)
+#set nfidechoes     = 64; # But we'll only use half (odd echoes), 
 
-set nslices    = 35; 
-set nrows      = 64;
-set ncols      = 128;
-
-if(1) then
-  # for martin: TE = 40
-  echo ""
-  echo "INFO: Using martins parameters"
-  echo ""
-  set fidecho1ped    = 2940; # PED of first echo (us) alTE[0]
-  set fidechospacing =  990; # FID echoe spacing (us) sWiPMemBlock.adFree[2]
-  set nfidechoes     =   64; # sWiPMemBlock.alFree[10]
-  set epiechospacing = 530;  # us  echospacing
-  set epidelsamp     = 60;   # us
-  set epitdwell      = 1.6;      # us
-  set nslices        = 23; 
-  set nrows          = 128; 
-  set ncols          = 256;
-endif
-
-if(0) then
-  # for p41 7T
-  echo ""
-  echo "INFO: Using p41-7T parameters"
-  echo ""
-  set nslices        = 12; 
-  set nrows          = 64; 
-  set ncols          = 128;
-  set epitdwell      =   2.7;      # us
-  set epidelsamp     =  27;      # us
-  set epiechospacing = 400;   # us
-  set fidecho1ped    = 1930;   # PED of first echo (us)
-endif
+#set epiechospacing = 470; # us
+#set epidelsamp = 30;      # us
+#set epitdwell = 3.2;      # us
 
 set PrintHelp = 0;
 if($#argv == 0) goto usage_exit;
@@ -109,24 +78,79 @@ date          >> $LF
 
 set StartTime = `date`;
 
-if(0) then #------------------------
-set fidrlf = $rawkdir/fid.rlf
-if(! -e $fidrlf) then
-  echo "ERROR: cannot find $fidrlf" |& tee -a $LF
-  exit 1;
-endif
-
-set tmp = `cat $fidrlf`;
-set fiddir = $rawkdir/$tmp[1];
-if(! -e $fiddir) then
-  echo "ERROR: cannot find $fiddir" |& tee -a $LF
-  exit 1;
-endif
-endif #------------------------
-
 pushd $rawkfiddir > /dev/null
 set rawkfiddir = `pwd`;
 popd > /dev/null
+
+# Get FID parameters
+set fidmeasasc = $rawkfiddir/meas.asc
+set tmp = `parse-measasc $fidmeasasc "alTE[0]"`
+if($status) then
+  echo "$tmp" | tee -a $LF
+  exit 1;
+endif
+set fidecho1ped = $tmp
+
+set tmp = `parse-measasc $fidmeasasc "sWiPMemBlock.adFree[2]"`
+if($status) then
+  echo "$tmp"| tee -a $LF
+  exit 1;
+endif
+set fidechospacing = `echo "$tmp*1000" |bc -l`; # convert to us
+
+set tmp = `parse-measasc $fidmeasasc "sWiPMemBlock.alFree[10]"`
+if($status) then
+  echo "$tmp"| tee -a $LF
+  exit 1;
+endif
+set nfidechoes = $tmp
+
+set tmp = `parse-measasc $fidmeasasc "m_iNoOfFourierColumns"`
+if($status) then
+  echo "$tmp"| tee -a $LF
+  exit 1;
+endif
+set ncols = $tmp;
+
+set tmp = `parse-measasc $fidmeasasc "m_iNoOfFourierLines"`
+if($status) then
+  echo "$tmp"| tee -a $LF
+  exit 1;
+endif
+set nrows = $tmp;
+
+# Get EPI parameters
+set epimeasasc = $rawkepidir/meas.asc
+set tmp = `parse-measasc $epimeasasc "m_lEchoSpacing"`
+if($status) then
+  echo "$tmp"| tee -a $LF
+  exit 1;
+endif
+set epiechospacing = $tmp
+
+set tmp = `parse-measasc $epimeasasc "m_alRegridDelaySamplesTime"`
+if($status) then
+  echo "$tmp"| tee -a $LF
+  exit 1;
+endif
+set epidelsamp = $tmp
+
+set tmp = `parse-measasc $epimeasasc "sRXSPEC.alDwellTime[0]"`
+if($status) then
+  echo "$tmp"| tee -a $LF
+  exit 1;
+endif
+set epitdwell = `echo "$tmp/1000" |bc -l`; # convert to us
+
+echo "fidecho1ped $fidecho1ped" | tee -a $LF
+echo "fidechospacing $fidechospacing" | tee -a $LF
+echo "nfidechoes $nfidechoes" | tee -a $LF
+echo "epiechospacing $epiechospacing" | tee -a $LF
+echo "epidelsamp $epidelsamp " | tee -a $LF
+echo "epitdwell $epitdwell " | tee -a $LF
+echo "nrows $nrows" | tee -a $LF
+echo "ncols $ncols" | tee -a $LF
+echo "nslices $nslices" | tee -a $LF
 
 set fidmghdir = $outdir/tmp/fid
 if($convmdh) then
@@ -210,8 +234,19 @@ while( $#argv != 0 )
   switch($flag)
 
     case "--rawkdir":
+    case "--fidkdir":
       if ( $#argv == 0) goto arg1err;
       set rawkfiddir = $argv[1]; shift;
+      breaksw
+
+    case "--epikdir":
+      if ( $#argv == 0) goto arg1err;
+      set rawkepidir = $argv[1]; shift;
+      breaksw
+
+    case "--nslices":
+      if ( $#argv == 0) goto arg1err;
+      set nslices = $argv[1]; shift;
       breaksw
 
     case "--outmat":
@@ -227,11 +262,6 @@ while( $#argv != 0 )
     case "--nfidechoes":
       if ( $#argv == 0) goto arg1err;
       set nfidechoes = $argv[1]; shift;
-      breaksw
-
-    case "--fidesp":
-      if ( $#argv == 0) goto arg1err;
-      set fidechospacing = $argv[1]; shift;
       breaksw
 
     case "--TE":
@@ -287,11 +317,20 @@ goto parse_args_return;
 check_params:
 
   if($#rawkfiddir == 0) then
-    echo "ERROR: must specify a rawkdir"
+    echo "ERROR: must specify an fid rawk dir"
     exit 1;
   endif
   if(! -e $rawkfiddir ) then
     echo "ERROR: $rawkfiddir does not exist"
+    exit 1;
+  endif
+
+  if($#rawkepidir == 0) then
+    echo "ERROR: must specify an epi rawk dir"
+    exit 1;
+  endif
+  if(! -e $rawkepidir ) then
+    echo "ERROR: $rawkepidir does not exist"
     exit 1;
   endif
 
@@ -310,6 +349,11 @@ check_params:
     exit 1;
   endif
 
+  if($#nslices == 0) then
+    echo "ERROR: must specify nslices"
+    exit 1;
+  endif
+
 goto check_params_return;
 ############--------------##################
 
@@ -324,12 +368,14 @@ usage_exit:
   echo ""
   echo "USAGE: tdr-fidmat"
   echo ""
-  echo "  --rawkdir dir"
+  echo "  --fidkdir dir : directory where FID map meas.{out,asc}"
+  echo "  --epikdir dir : directory where EPI map meas.asc"
+  echo "  --nslices N "
   echo "  --outmat  matfile"
-  echo "  --TE TE  : in ms"
+  echo "  --TE TE  : TE of functional in ms"
   echo "  --perev PERev : must supply"
-  echo "  --rorev RORev : default is no RORev"
-  echo "  --noitnterleaved : dont assume slice interleaving"
+  echo "  --rorev RORev : default is no RORev (0)"
+  echo "  --noitnterleaved : do not assume slice interleaving"
   echo "  --fwhm    fwhm"
   echo "  --nfidechoes n : number of fid echoes (sWiPMemBlock.adFree[1])"
   echo "  --fidesp t  : fid echo spacing (sWiPMemBlock.adFree[2])"
@@ -349,4 +395,12 @@ exit 1;
 #---- Everything below here is printed out as part of help -----#
 BEGINHELP
 
-Computes the FID map for a functional set of data
+Computes the FID map for a functional set of data.
+
+EPI rawk dir only needed to get EPI parameters. You still must
+specify a TE (in ms) and number of slices.
+
+BUGS:
+
+If there is an even number of slices with interleaving, it will
+get the interleaving wrong.
