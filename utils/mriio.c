@@ -10884,6 +10884,10 @@ mghAppend(MRI *mri, char *fname, int frame)
   }
   mghWrite(nmri, fname, -1); // write all frames
 
+  // free memory!
+  MRIfree(&omri);
+  MRIfree(&nmri);
+
   return(NO_ERROR) ;
 }
 
