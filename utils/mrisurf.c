@@ -5821,7 +5821,14 @@ MRISreadCanonicalCoordinates(MRI_SURFACE *mris, char *sname)
   if (!cp)                 /* no path - use same one as mris was read from */
   {
     FileNamePath(mris->fname, path) ;
-    sprintf(fname, "%s/%s", path, sname) ;
+    cp = strstr(sname, "rh.") ;
+    if (!cp)
+      cp = strstr(sname, "lh.") ;
+    if (!cp)   /* no hemisphere specified */
+      sprintf(fname, "%s/%s.%s", path, 
+              mris->hemisphere == LEFT_HEMISPHERE?"lh":"rh", sname) ;
+    else
+      sprintf(fname, "%s/%s", path, sname) ;
   }
   else   
     strcpy(fname, sname) ;  /* path specified explcitly */
