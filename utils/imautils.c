@@ -389,6 +389,7 @@ IMAFILEINFO *imaLoadFileInfo(char *imafile)
   char tmpstr[1000];
   int FirstImageNo;
   int nVolVoxs, nMosVoxs;
+  char Separator;
 
   fp = fopen(imafile,"r");
   if(fp == NULL){
@@ -398,7 +399,8 @@ IMAFILEINFO *imaLoadFileInfo(char *imafile)
 
   ifi = (IMAFILEINFO *) calloc(sizeof(IMAFILEINFO),1);
 
-  err = imaParseName(imafile,&ifi->StudyNo,&ifi->SeriesNo,&ifi->ImageNo);
+  err = imaParseName(imafile,&ifi->StudyNo,&ifi->SeriesNo,&ifi->ImageNo,
+         &Separator);
   if(err) {
     free(ifi);
     return(NULL);
@@ -653,7 +655,8 @@ int imaDumpFileInfo(FILE *fp, IMAFILEINFO *ifi)
 /*--------------------------------------------------------------------
   imaParseName() - studyno-seriesno-imageno.ima
   --------------------------------------------------------------------*/
-int imaParseName(char *imafile, int *StudyNo, int *SeriesNo, int *ImageNo)
+int imaParseName(char *imafile, int *StudyNo, int *SeriesNo, int *ImageNo,
+     char *Separator)
 {
   char *imabase;
   int baselen, n, m;
@@ -665,17 +668,30 @@ int imaParseName(char *imafile, int *StudyNo, int *SeriesNo, int *ImageNo)
   //printf("%s\n",imafile);
   //printf("%s, %d\n",imabase,baselen);
 
+  /* First try with Separator = '-' */
+  *Separator = '-';
+
   /* Read the Series Number */
   memset(tmpstr,0,500);
   n = 0;  m = 0;
-  while(n < baselen && imabase[n] != '-'){
+  while(n < baselen && imabase[n] != *Separator){
     //printf("%2d %c  %2d\n",n,imabase[n],m);
     tmpstr[m] = imabase[n];
     n++; m++;
   }
   if(n == baselen){
-    printf("ERROR: could not parse %s\n",imafile);
-    return(1);
+    /* '-' did not work, try with '_' */
+    *Separator = '_';
+    n = 0;  m = 0;
+    while(n < baselen && imabase[n] != *Separator){
+      //printf("%2d %c  %2d\n",n,imabase[n],m);
+      tmpstr[m] = imabase[n];
+      n++; m++;
+    }
+    if(n == baselen){
+      printf("ERROR: could not parse %s\n",imafile);
+      return(1);
+    }
   }
   sscanf(tmpstr,"%d",StudyNo);
   //printf("StudyNo %d\n",*StudyNo);
@@ -683,7 +699,7 @@ int imaParseName(char *imafile, int *StudyNo, int *SeriesNo, int *ImageNo)
   /* Read the Series (Run) Number */
   memset(tmpstr,0,500);
   n++;  m = 0;
-  while(n < baselen && imabase[n] != '-'){
+  while(n < baselen && imabase[n] != *Separator){
     tmpstr[m] = imabase[n];
     n++; m++;
   }
@@ -768,6 +784,7 @@ int imaCountFilesInSeries(char *imafile, int *FirstImageNo)
   int err, n;
   FILE *fp;
   char filename[1000];
+  char Separator;
 
   fp = fopen(imafile,"r");
   if(fp == NULL){
@@ -775,7 +792,7 @@ int imaCountFilesInSeries(char *imafile, int *FirstImageNo)
     return(0);
   }
 
-  err = imaParseName(imafile,&StudyNo,&SeriesNo,&ImageNo);
+  err = imaParseName(imafile,&StudyNo,&SeriesNo,&ImageNo,&Separator);
   if(err) return(-1);
 
   imadir = fio_dirname(imafile);
@@ -785,7 +802,10 @@ int imaCountFilesInSeries(char *imafile, int *FirstImageNo)
   n = ImageNo;
   while(1){
     n--;
-    sprintf(filename,"%s/%d-%d-%d.%s",imadir,StudyNo,SeriesNo,n,imaext);
+    if(Separator == '-')
+      sprintf(filename,"%s/%d-%d-%d.%s",imadir,StudyNo,SeriesNo,n,imaext);
+    else
+      sprintf(filename,"%s/%d_%d_%d.%s",imadir,StudyNo,SeriesNo,n,imaext);
     //printf("%s\n",filename);
     fp = fopen(filename,"r");
     if(fp == NULL) break;
@@ -797,7 +817,10 @@ int imaCountFilesInSeries(char *imafile, int *FirstImageNo)
   n = ImageNo;
   while(1){
     n++;
-    sprintf(filename,"%s/%d-%d-%d.%s",imadir,StudyNo,SeriesNo,n,imaext);
+    if(Separator == '-')
+      sprintf(filename,"%s/%d-%d-%d.%s",imadir,StudyNo,SeriesNo,n,imaext);
+    else
+      sprintf(filename,"%s/%d_%d_%d.%s",imadir,StudyNo,SeriesNo,n,imaext);
     //printf("%s\n",filename);
     fp = fopen(filename,"r");
     if(fp == NULL) break;
