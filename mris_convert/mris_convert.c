@@ -14,7 +14,7 @@
 #include "fio.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_convert.c,v 1.15 2003/09/05 04:45:40 kteich Exp $";
+static char vcid[] = "$Id: mris_convert.c,v 1.16 2004/11/15 18:10:09 fischl Exp $";
 
 
 /*-------------------------------- CONSTANTS -----------------------------*/
@@ -56,7 +56,7 @@ main(int argc, char *argv[])
   int          ac, nargs ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_convert.c,v 1.15 2003/09/05 04:45:40 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_convert.c,v 1.16 2004/11/15 18:10:09 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -206,7 +206,8 @@ get_option(int argc, char *argv[])
     break ;
   case '?':
   case 'U':
-    print_usage() ;
+	case 'H':
+    print_help() ;
     exit(1) ;
     break ;
   default:
@@ -221,7 +222,7 @@ get_option(int argc, char *argv[])
 static void
 usage_exit(void)
 {
-  print_usage() ;
+  print_help() ;
   exit(1) ;
 }
 
@@ -240,6 +241,8 @@ print_help(void)
   fprintf(stderr, 
           "\nThis program will convert an MRI surface to ascii.\n") ;
   fprintf(stderr, "\nvalid options are:\n\n") ;
+	fprintf(stderr, "\n\t-p                input is a patch not a full surface\n") ;
+	fprintf(stderr, "\n\t-c <curv file>    input is curvature file (must still specifiy surface)\n") ;
   exit(1) ;
 }
 
