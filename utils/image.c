@@ -1652,10 +1652,8 @@ ImageCopyFrames(IMAGE *inImage, IMAGE *outImage,int start, int nframes,
   int   size, frameno, pix_per_frame, end ;
 
   if (!ImageCheckSize(inImage, outImage, 0, 0, dst_frame + nframes))
-  {
-    fprintf(stderr, "ImageCopyFrames: outImage not large enough\n") ;
-    return(-1) ;
-  }
+    ErrorReturn(-1, (ERROR_NO_MEMORY,
+                     "ImageCopyFrames: outImage not large enough\n")) ;
 
   end = start + nframes - 1 ;
   pix_per_frame = inImage->rows * inImage->cols ;
@@ -2118,9 +2116,9 @@ ImageScaleUp(IMAGE *inImage, IMAGE *outImage, float scale)
           }
         break ;
       default:
-        fprintf(stderr, "ImageScaleUp: unsupported output pixel format %d\n", 
-                outImage->pixel_format) ;
-        return(-1) ;
+        ErrorReturn(-1, (ERROR_UNSUPPORTED, 
+                         "ImageScaleUp: unsupported output pixel format %d\n", 
+                         outImage->pixel_format)) ;
         break ;
       }
       break ;
@@ -2164,9 +2162,9 @@ ImageScaleUp(IMAGE *inImage, IMAGE *outImage, float scale)
           }
         break ;
       default:
-        fprintf(stderr, "ImageScaleUp: unsupported output pixel format %d\n", 
-                outImage->pixel_format) ;
-        return(-1) ;
+        ErrorReturn(-1, (ERROR_UNSUPPORTED, 
+                         "ImageScaleUp: unsupported output pixel format %d\n", 
+                         outImage->pixel_format)) ;
         break ;
       }
       break ;
@@ -2191,9 +2189,10 @@ ImageScaleUp(IMAGE *inImage, IMAGE *outImage, float scale)
         }
       break ;
     default:
-      fprintf(stderr, "ImageScaleUp: unsupported pixel format %d\n", 
-              inImage->pixel_format) ;
-      return(-2) ;
+      ErrorReturn(-2, (ERROR_UNSUPPORTED, 
+                       "ImageScaleUp: unsupported input pixel format %d\n", 
+                       inImage->pixel_format)) ;
+      break ;
     }
     inImage->image += inImage->sizeimage ;
     inImage->firstpix += inImage->sizeimage ;
@@ -2222,10 +2221,9 @@ ImageReflect(IMAGE *inImage, IMAGE *outImage, int how)
   unsigned int  *isrc, *idst, *itmp ;
 
   if (!ImageCheckSize(inImage, outImage, 0, 0, 0))
-  {
-    fprintf(stderr, "ImageReflect: output image not large enough\n") ;
-    return(-1) ;
-  }
+    ErrorReturn(-1, (ERROR_NO_MEMORY, 
+                     "ImageReflect: output image not large enough\n")) ;
+
   ImageSetSize(outImage, inImage->rows, inImage->cols) ;
 
   switch(inImage->pixel_format)
@@ -2298,17 +2296,14 @@ ImageAddSpeckleNoise(IMAGE *inImage,IMAGE *outImage, float amp)
   float  *inPix, *outPix, gnoise ;
 
   if (inImage->pixel_format != PFFLOAT)
-  {
-    fprintf(stderr, "ImageAddNoise: unsupported input format %d\n",
-            inImage->pixel_format) ;
-    return(-1) ;
-  }
+    ErrorReturn(-1, (ERROR_UNSUPPORTED, 
+                     "ImageAddNoise: unsupported input format %d\n",
+                     inImage->pixel_format)) ;
+
   if (outImage->pixel_format != PFFLOAT)
-  {
-    fprintf(stderr, "ImageAddNoise: unsupported output format %d\n",
-            outImage->pixel_format) ;
-    return(-1) ;
-  }
+    ErrorReturn(-1, (ERROR_UNSUPPORTED, 
+                     "ImageAddNoise: unsupported output format %d\n",
+                     outImage->pixel_format)) ;
 
   npix = (long)inImage->rows * inImage->cols * inImage->num_frame ;
   inPix = IMAGEFpix(inImage, 0, 0) ;
@@ -2334,17 +2329,14 @@ ImageAddSaltNoise(IMAGE *inImage,IMAGE *outImage, float density)
   float  *inPix, *outPix, gnoise, in ;
 
   if (inImage->pixel_format != PFFLOAT)
-  {
-    fprintf(stderr, "ImageAddNoise: unsupported input format %d\n",
-            inImage->pixel_format) ;
-    return(-1) ;
-  }
+    ErrorReturn(-1, (ERROR_UNSUPPORTED, 
+                     "ImageAddSaltNoise: unsupported input format %d\n",
+                     inImage->pixel_format)) ;
+
   if (outImage->pixel_format != PFFLOAT)
-  {
-    fprintf(stderr, "ImageAddNoise: unsupported output format %d\n",
-            outImage->pixel_format) ;
-    return(-1) ;
-  }
+    ErrorReturn(-1, (ERROR_UNSUPPORTED, 
+                     "ImageAddSaltNoise: unsupported output format %d\n",
+                     outImage->pixel_format)) ;
 
   npix = (long)inImage->rows * inImage->cols * inImage->num_frame ;
   inPix = IMAGEFpix(inImage, 0, 0) ;
@@ -2377,17 +2369,14 @@ ImageAddNoise(IMAGE *inImage, IMAGE *outImage, float amp)
   float  *inPix, *outPix, gnoise ;
 
   if (inImage->pixel_format != PFFLOAT)
-  {
-    fprintf(stderr, "ImageAddNoise: unsupported input format %d\n",
-            inImage->pixel_format) ;
-    return(-1) ;
-  }
+    ErrorReturn(-1, (ERROR_UNSUPPORTED, 
+                     "ImageAddNoise: unsupported input format %d\n",
+                     inImage->pixel_format)) ;
+
   if (outImage->pixel_format != PFFLOAT)
-  {
-    fprintf(stderr, "ImageAddNoise: unsupported output format %d\n",
-            outImage->pixel_format) ;
-    return(-1) ;
-  }
+    ErrorReturn(-1, (ERROR_UNSUPPORTED, 
+                     "ImageAddNoise: unsupported output format %d\n",
+                     outImage->pixel_format)) ;
 
   npix = (long)inImage->rows * inImage->cols * inImage->num_frame ;
   inPix = IMAGEFpix(inImage, 0, 0) ;
@@ -2487,9 +2476,10 @@ ImageValRange(IMAGE *image, float *pfmin, float *pfmax)
     *pfmin = (float)bmin ;
     break ;
   default:
-    fprintf(stderr, "ImageValRange: unsupported pixel format %d\n",
-            image->pixel_format) ;
-    return(-1);
+    ErrorReturn(-1, (ERROR_UNSUPPORTED, 
+                     "ImageValRange: unsupported pixel format %d\n",
+                     image->pixel_format)) ;
+    break ;  /* not used */
   }
 
     
@@ -3635,7 +3625,7 @@ ImageNormalizeComplex(IMAGE *Isrc, IMAGE *Idst, float thresh)
   float  real, imag, mag ;
 
   if (Isrc->pixel_format != PFCOMPLEX)
-    ErrorReturn(NULL,(ERROR_BADPARM,"ImageNormalizeComplex: Isrc not complex"));
+   ErrorReturn(NULL,(ERROR_BADPARM,"ImageNormalizeComplex: Isrc not complex"));
   rows = Isrc->rows ;
   cols = Isrc->cols ;
   if (!Idst)
@@ -3699,7 +3689,7 @@ ImageNormalizeFrames(IMAGE *Isrc, IMAGE *Idst)
       flen = (float)sqrt(flen) ;
 
       if (FZERO(flen))
-        return(-2) ;
+        flen = .00001f ;
 
       fsrcPtr = IMAGEFpix(Isrc, 0, 0) + frameno * pix_per_frame ;
       fdstPtr = IMAGEFpix(Idst, 0, 0) + frameno * pix_per_frame ;
@@ -3710,9 +3700,10 @@ ImageNormalizeFrames(IMAGE *Isrc, IMAGE *Idst)
     }
     break ;
   default:
-    fprintf(stderr, "ImageNormalizeFrames: unsupported pixel format %d\n",
-            Isrc->pixel_format) ;
-    return(-1);
+    ErrorReturn(-1,(ERROR_UNSUPPORTED,
+                    "ImageNormalizeFrames: unsupported pixel format %d\n",
+                    Isrc->pixel_format)) ;
+    break ;   /* never used */
   }
   
   return(0) ;
