@@ -17,14 +17,16 @@ int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
 static MRI *align_with_average(MRI *mri_src, MRI *mri_avg) ;
 char *FileNameRemoveExtension(char *in_fname, char *out_fname) ;
-static MRI *align_pca(MRI *mri_src, MRI *mri_avg) ;
-static MRI *apply_pca(MRI *mri_in, MRI *mri_ref, MRI *mri_reg,
-                         MATRIX *m_in_evectors, double in_means[3],
-                         MATRIX *m_ref_evectors, double ref_means[3]) ;
+static MATRIX *align_pca(MRI *mri_src, MRI *mri_avg) ;
+static MATRIX *apply_pca(MRI *mri_in, MRI *mri_ref, MRI *mri_reg,
+                      MATRIX *m_in_evectors, double in_means[3],
+                      MATRIX *m_ref_evectors, double ref_means[3]) ;
+
 MRI *MRIscaleMeanIntensities(MRI *mri_src, MRI *mri_ref, MRI *mri_dst) ;
 
 char *Progname ;
 static int align = 1 ;
+static int window_flag = 0 ;
 static MORPH_PARMS  parms ;
 
 static void usage_exit(int code) ;
@@ -36,7 +38,7 @@ static double rzrot = 0.0 ;
 static double rxrot = 0.0 ;
 static double ryrot = 0.0 ;
 static int thresh_low = 0 ;
-static int nreductions = 1 ;
+static int nreductions = 2 ;
 static int conform = 1 ;
 
 
@@ -231,6 +233,11 @@ get_option(int argc, char *argv[])
     fprintf(stderr, "reducing input images %d times before aligning...\n",
             nreductions) ;
   }
+  else if (!stricmp(option, "window"))
+  {
+    window_flag = 1 ;
+    fprintf(stderr, "applying hanning window to volumes...\n") ;
+  }
   else if (!stricmp(option, "noconform"))
   {
     conform = 0 ;
@@ -293,9 +300,10 @@ usage_exit(int code)
 static MRI *
 align_with_average(MRI *mri_src, MRI *mri_avg)
 {
-  MRI     *mri_aligned, *mri_in_red, *mri_ref_red, *mri_tmp ;
+  MRI     *mri_aligned, *mri_in_red, *mri_ref_red ;
   MRI     *mri_in_windowed, *mri_ref_windowed, *mri_in_tmp, *mri_ref_tmp ;
   int     i ;
+  MATRIX  *m_L ;
 
   fprintf(stderr, "initializing alignment using PCA...\n") ;
   if (Gdiag & DIAG_WRITE)
@@ -304,53 +312,59 @@ align_with_average(MRI *mri_src, MRI *mri_avg)
     MRIwriteImageViews(mri_src, "before_pca", 400) ;
   }
 
-  mri_aligned = align_pca(mri_src, mri_avg) ;
+  m_L = align_pca(mri_src, mri_avg) ;
+  if (Gdiag & DIAG_SHOW)
+  {
+    printf("initial transform:\n") ;
+    MatrixPrint(stdout, m_L) ;
+  }
   if (Gdiag & DIAG_WRITE)
+  {
+    mri_aligned = MRIlinearTransform(mri_src, NULL, m_L) ;
     MRIwriteImageViews(mri_aligned, "after_pca", 400) ;
+    MRIfree(&mri_aligned) ;
+  }
 
   fprintf(stderr, "aligning volume with average...\n") ;
-#define WINDOW_IMAGES 0
-#if WINDOW_IMAGES
-  mri_in_windowed = MRIwindow(mri_aligned, NULL, WINDOW_HANNING,127,127,127,100.0f);
-  mri_ref_windowed = MRIwindow(mri_avg,NULL,WINDOW_HANNING,127,127,127,100.0f);
-#else
-  mri_in_windowed = MRIcopy(mri_aligned, NULL) ;
-  mri_ref_windowed = MRIcopy(mri_avg, NULL) ;
-#endif
 
-  MRIscaleMeanIntensities(mri_in_windowed, mri_ref_windowed, mri_in_windowed);
+  if (window_flag)
+  {
+    mri_in_windowed =
+      MRIwindow(mri_src, NULL, WINDOW_HANNING,127,127,127,100.0f);
+    mri_ref_windowed =
+      MRIwindow(mri_avg,NULL,WINDOW_HANNING,127,127,127,100.0f);
+    mri_src = mri_in_windowed ; mri_avg = mri_ref_windowed ;
+  }
 
-  mri_in_red = mri_in_tmp = MRIcopy(mri_in_windowed, NULL) ;
-  mri_ref_red = mri_ref_tmp = MRIcopy(mri_ref_windowed, NULL) ;
+  MRIscaleMeanIntensities(mri_src, mri_avg, mri_src);
+
+  mri_in_red = mri_in_tmp = MRIcopy(mri_src, NULL) ;
+  mri_ref_red = mri_ref_tmp = MRIcopy(mri_avg, NULL) ;
   for (i = 0 ; i < nreductions ; i++)
   {
     mri_in_red = MRIreduceByte(mri_in_tmp, NULL) ;
     mri_ref_red = MRIreduceByte(mri_ref_tmp,NULL);
     MRIfree(&mri_in_tmp); MRIfree(&mri_ref_tmp) ;
-    if (i < nreductions-1)
-    {
-      mri_in_tmp = MRIcopy(mri_in_red, NULL) ;
-      mri_ref_tmp = MRIcopy(mri_ref_red, NULL) ;
-    }
+    mri_in_tmp = mri_in_red ; mri_ref_tmp = mri_ref_red ;
   }
   parms.mri_ref = mri_avg ;
-  parms.mri_in = mri_aligned ;  /* for diagnostics */
-  MRIrigidAlign(mri_in_red, mri_ref_red, &parms) ;
+  parms.mri_in = mri_src ;  /* for diagnostics */
+  MRIrigidAlign(mri_in_red, mri_ref_red, &parms, m_L) ;
 
   fprintf(stderr, "transforming input volume...\n") ;
   MatrixPrint(stderr, parms.lta->xforms[0].m_L) ;
   fprintf(stderr, "\n") ;
 
-  mri_tmp = MRIcopy(mri_aligned, NULL) ;
-  mri_aligned = MRIlinearTransform(mri_tmp, NULL, parms.lta->xforms[0].m_L) ;
-  MRIfree(&mri_tmp) ;
+  mri_aligned = MRIlinearTransform(mri_src, NULL, parms.lta->xforms[0].m_L) ;
+  if (Gdiag & DIAG_WRITE)
+    MRIwriteImageViews(mri_aligned, "after_alignment", 400) ;
   MRIfree(&mri_in_red) ; MRIfree(&mri_ref_red) ;
 
   return(mri_aligned) ;
 }
 
 
-static MRI *
+static MATRIX *
 align_pca(MRI *mri_in, MRI *mri_ref)
 {
   int    row, col, i ;
@@ -421,15 +435,15 @@ align_pca(MRI *mri_in, MRI *mri_ref)
                       m_ref_evectors, ref_means)) ;
 }
 
-static MRI *
+static MATRIX *
 apply_pca(MRI *mri_in, MRI *mri_ref, MRI *mri_reg,
              MATRIX *m_in_evectors, double in_means[3],
              MATRIX *m_ref_evectors, double ref_means[3])
 {
   float   dx, dy, dz ;
-  MATRIX  *mRot, *m_in_T, *mOrigin ;
+  MATRIX  *mRot, *m_in_T, *mOrigin, *m_L, *m_R, *m_T, *m_tmp ;
   double  x_angle, y_angle, z_angle, r11, r21, r31, r32, r33, cosy ;
-  MRI     *mri_tmp ;
+  int     row, col ;
 
   m_in_T = MatrixTranspose(m_in_evectors, NULL) ;
   mRot = MatrixMultiply(m_ref_evectors, m_in_T, NULL) ;
@@ -459,28 +473,52 @@ apply_pca(MRI *mri_in, MRI *mri_ref, MRI *mri_reg,
 
   fprintf(stderr, "translating volume by %2.1f, %2.1f, %2.1f\n",
           dx, dy, dz) ;
-
-  mri_tmp = MRItranslate(mri_in, NULL, dx, dy, dz) ;
-
   fprintf(stderr, "rotating volume by (%2.2f, %2.2f, %2.2f)\n",
           DEGREES(x_angle), DEGREES(y_angle), DEGREES(z_angle)) ;
-#if 1
-  if (Gdiag & DIAG_WRITE)
-    MRIwriteImageViews(mri_tmp, "after_trans", 400) ;
-  fprintf(stderr, "rotation matrix:\n") ;
-  MatrixPrint(stderr, mRot) ;
-  mri_reg = MRIrotate_I(mri_tmp, mri_reg, mRot, mOrigin) ;
-#else
-  mri_reg = MRIcopy(mri_tmp, NULL) ;
-#endif
-  MRIfree(&mri_tmp) ;
 
-  if (Gdiag & DIAG_WRITE)
-    MRIwrite(mri_reg, "reg.mgh") ;
+  /* build full rigid transform */
+  m_R = MatrixAlloc(4,4,MATRIX_REAL) ;
+  m_T = MatrixAlloc(4,4,MATRIX_REAL) ;
+  for (row = 1 ; row <= 3 ; row++)
+  {
+    for (col = 1 ; col <= 3 ; col++)
+    {
+      *MATRIX_RELT(m_R,row,col) = *MATRIX_RELT(mRot, row, col) ;
+    }
+    *MATRIX_RELT(m_T,row,row) = 1.0 ;
+  }
+  *MATRIX_RELT(m_R, 4, 4) = 1.0 ;
+
+  /* translation so that origin is at ref eigenvector origin */
+  dx = -ref_means[0] ; dy = -ref_means[1] ; dz = -ref_means[2] ;
+  *MATRIX_RELT(m_T, 1, 4) = dx ; *MATRIX_RELT(m_T, 2, 4) = dy ;
+  *MATRIX_RELT(m_T, 3, 4) = dz ; *MATRIX_RELT(m_T, 4, 4) = 1 ;
+  m_tmp = MatrixMultiply(m_R, m_T, NULL) ;
+  *MATRIX_RELT(m_T, 1, 4) = -dx ; *MATRIX_RELT(m_T, 2, 4) = -dy ;
+  *MATRIX_RELT(m_T, 3, 4) = -dz ;
+  MatrixMultiply(m_T, m_tmp, m_R) ;
+
+  /* now apply translation to take in centroid to ref centroid */
+  dx = ref_means[0] - in_means[0] ; dy = ref_means[1] - in_means[1] ;
+  dz = ref_means[2] - in_means[2] ;
+  *MATRIX_RELT(m_T, 1, 4) = dx ; *MATRIX_RELT(m_T, 2, 4) = dy ;
+  *MATRIX_RELT(m_T, 3, 4) = dz ; *MATRIX_RELT(m_T, 4, 4) = 1 ;
+
+  m_L = MatrixMultiply(m_R, m_T, NULL) ;
+  if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+  {
+    printf("m_T:\n") ;
+    MatrixPrint(stdout, m_T) ;
+    printf("m_R:\n") ;
+    MatrixPrint(stdout, m_R) ;
+    printf("m_L:\n") ;
+    MatrixPrint(stdout, m_L) ;
+  }
+  MatrixFree(&m_R) ; MatrixFree(&m_T) ;
 
   MatrixFree(&mRot) ;
   VectorFree(&mOrigin) ;
-  return(mri_reg) ;
+  return(m_L) ;
 }
 char *
 FileNameRemoveExtension(char *in_fname, char *out_fname)
