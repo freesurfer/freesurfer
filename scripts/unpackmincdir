@@ -1,0 +1,643 @@
+#!/bin/csh -f
+# Name: unpackmincdir
+# Purpose: unpacks the functionals and anatomicals and copies others
+
+set VERSION = '$Id: unpackmincdir,v 1.1 2001/05/25 17:14:29 greve Exp $';
+
+set n = `echo $argv | grep version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+
+if(! $?MRI_UMASK) then
+  setenv MRI_UMASK `umask`;
+endif
+
+set srcdir   = ();
+set targdir  = ();
+set ScanSeqInfo = ();
+set funcseq  = ();
+set fsd = ();
+set anatseq  = ();
+set t1episeq = ();
+set t2convseq = ();
+set minconly = 0;
+set anatonly = 0;
+set nocopy   = 0;
+set funcseq_def  = ep2d_fid_ts_20b2604;
+set fsd_def      = bold;
+set anatseq_def  = mpr_ns_t1_4b130;
+set t1episeq_def = se_12b130
+set t2convseq_def = tse7_96b65
+set protonden_def = tse5_17b130_119b130 # proton density
+
+#set funcseqlist = (ep2d_fid_ts_20b2604 ep2d_fid_ts_15b3125 ep2d_fid_ts_39b1953)
+#set anatseqlist = (mpr_ns_t1_4b130 mpr_ns_t1_3b279_lg_FOV  mpr_ns_t1_3b279)
+
+if($#argv == 0) then
+  goto usage_exit;
+  exit 1;
+endif
+
+echo $VERSION
+set  StartDate = `date`;
+echo $StartDate
+
+set cmdargs = ($argv);
+
+goto parse_args;
+parse_args_return:
+
+umask $MRI_UMASK
+
+if($#funcseq  == 0) set funcseq  = $funcseq_def;
+if($#fsd      == 0) set fsd      = $fsd_def;
+if($#anatseq  == 0) set anatseq  = $anatseq_def;
+if($#t1episeq == 0) set t1episeq = $t1episeq_def;
+if($#t2convseq == 0) set t2convseq = $t2convseq_def;
+
+if($#ScanSeqInfo == 0) then
+  # set ScanSeqInfo = /homes/nmrnew/home/greve/bin/myminc/scanseq.info
+  set ScanSeqInfo = $CSURF_DIR/scanseq.unpackinfo
+endif
+
+if(! -e $ScanSeqInfo ) then
+  echo "ERROR: cannot find $ScanSeqInfo"
+  exit 1;
+endif
+
+goto check_params;
+check_params_return:
+
+## Check if the target directory exists ##
+if(-d $targdir) then
+  echo "WARNING: destination directory $targdir already exists, overwriting."
+endif
+
+set SrcBase = `basename $srcdir`;
+
+## Create the Target Directory ##
+mkdir -p $targdir;
+if(! -e $targdir) then
+  echo "ERROR: could not create target directory"
+  exit 1;
+endif
+
+## get full path name for target directory ##
+pushd $targdir > /dev/null;
+set targdir = `pwd`;
+popd > /dev/null;
+
+## Set up a log file ##
+set LF = $targdir/unpack.log
+rm -f $LF
+touch $LF
+echo "Log file for unpackmincdir" >> $LF
+echo "$VERSION"         >> $LF
+pwd                     >> $LF
+echo "$0"               >> $LF
+echo "$cmdargs"         >> $LF
+uname -a                >> $LF
+id                      >> $LF
+date                    >> $LF
+echo "Source: $srcdir"  >> $LF
+echo "Target: $targdir" >> $LF
+echo "-------------------------------------" >> $LF
+echo "ScanSeqInfo File: $ScanSeqInfo">> $LF
+cat $ScanSeqInfo >> $LF
+echo "-------------------------------------" >> $LF
+echo " " >> $LF
+echo " " >> $LF
+
+#### Check that there is enough space on the target disk ########
+set AvailSpace = `df -k $targdir | grep % | tail -n 1 | awk '{print $3}'`
+set NeededSpace = `du -s $srcdir | awk '{print $1}'`;
+echo "Available Disk Space: $AvailSpace"
+echo "Needed    Disk Space: $NeededSpace"
+if($AvailSpace < $NeededSpace) then
+  echo "WARNING: there may not enough room on target disk to unpack data." | tee -a $LF
+  echo " ... continuing"
+  df -k $targdir | tee -a $LF
+  du -s $srcdir  | tee -a $LF
+  #exit 1;
+endif
+
+## Check to make sure that the proper binaries are in the path ##
+set bins = (minc_to_bshort mri_make_register mri_convert minc_to_cor )
+foreach bin ($bins)
+  set tmp = `which $bin`;
+  if(! -e "$tmp") then
+    echo "ERROR: cannot find $bin in path" | tee -a $LF
+    exit 1;
+  endif
+end
+
+### Get a list of the minc files in the source directory ###
+pushd $srcdir
+set mincfiles = `ls -t -r *.mnc *.mnc.gz`;
+if($status || $#mincfiles == 0) then
+  echo "ERROR: cannot find any minc files in $srcdir" | tee -a $LF
+  exit 1;
+endif
+set tmp = `echo $mincfiles[1] | sed 's/-/ /g'`;
+if($#tmp == 7) then
+  set base = $tmp[1]-$tmp[2]-$tmp[3]-$tmp[4]-$tmp[5];
+else
+  set base = $tmp[1]-$tmp[2]-$tmp[3]-$tmp[4]-$tmp[5]-$tmp[6];
+endif
+echo "Base is $base" | tee -a $LF
+
+## This is a hack to assure that only properly named minc files
+## are unpacked (not things like yk-0-sonata-20000806-161824-2sl426-mri.mnc)
+set mincfiles = ();
+@ run = 1;
+while($run < 100)
+  set tmp1 = "$base-$run-mri.mnc";
+  set tmp2 = "$base-$run-mri.mnc.gz";
+  if(-e $tmp1 ) set mincfiles = ($mincfiles $tmp1);
+  if(-e $tmp2 ) set mincfiles = ($mincfiles $tmp2);
+  @ run = $run + 1;
+end
+if($#mincfiles == 0) then
+  echo "ERROR: cannot find any minc files in $srcdir" | tee -a $LF
+  exit 1;
+endif
+
+echo "INFO: found $#mincfiles minc files"  | tee -a $LF
+foreach minc ($mincfiles)
+  echo "   $n. $minc" | tee -a $LF
+  @ n = $n + 1;
+end
+popd
+
+## Get list of unique sequence names (for sorting) ##
+# set seqlist = `getscanseqlist $srcdir`;
+goto getscanseqlist;
+getscanseqlist_return:
+echo "INFO: Found $#seqlist unique scanning sequences:"  | tee -a $LF
+set nseqlist = ();
+foreach seq ($seqlist)
+  echo "  $seq"  | tee -a $LF
+  set nseqlist = ($nseqlist 0);
+end
+
+## Create a session.info file ##
+set ff = $srcdir/$mincfiles[1];
+set SessInfo = $targdir/session.info
+rm -f $SessInfo
+touch $SessInfo
+set full_name = `mincinfo -attvalue patient:full_name $ff | tee -a $SessInfo`;
+set patientid = `mincinfo -attvalue patient:id $ff | tee -a $SessInfo`;
+set birthdate = `mincinfo -attvalue patient:birthdate $ff | tee -a $SessInfo`;
+set sex       = `mincinfo -attvalue patient:sex $ff | tee -a $SessInfo`;
+set scannerid = `mincinfo -attvalue study:station_id $ff | tee -a $SessInfo`;
+set scanndate = `mincinfo -attvalue study:study_id $ff | tee -a $SessInfo`;
+
+## Sort and unpack each minc file ##
+set nthfile = 1;
+set unpackdirlist = ();
+set bshortdirlist = ();
+set cordirlist    = ();
+foreach minc ($mincfiles)
+  echo "--  $nthfile/$#mincfiles  -----------------------------------------"  | tee -a $LF
+
+  ## Get some basic info from the header ##
+  set f = $srcdir/$minc;
+  set seq  = `mincinfo -attvalue acquisition:scanning_sequence $f`;
+  set seq  = `basename $seq`;
+  set run  = `mincinfo -attvalue acquisition:acquisition_id $f`;
+  if($#run == 0) set run  = `mincinfo -attvalue study:acquisition_id $f`; # backcompat
+  set nx   = `mincinfo -dimlength xspace $f`;
+  set ny   = `mincinfo -dimlength yspace $f`;
+  set nz   = `mincinfo -dimlength zspace $f`;
+  set dx   = `mincinfo -attvalue  xspace:step $f`;
+  set dy   = `mincinfo -attvalue  yspace:step $f`;
+  set dz   = `mincinfo -attvalue  zspace:step $f`;
+
+  ## Check for a time dimension ##
+  set ntp  = `mincinfo -dimlength time $f`;
+  if( ! $status ) then
+    set datadim_actual = 4;
+    set TR   = `mincinfo -attvalue time:step $f`;
+  else
+    set datadim_actual = 3;
+    set TR = ();
+  endif
+
+  ## Look for the Sequence in the Info file ##
+  set tmp = `cat $ScanSeqInfo | awk -v seq=$seq '{if($1 == seq) print $0}'`;
+  echo tmp $tmp
+  if($#tmp != 0) then
+    if($#tmp != 5) then
+      echo "ERROR: $ScanSeqInfo file appears to be formatted incorrectly"  | tee -a $LF
+      exit 1;
+    endif
+    set datadim_exp  = $tmp[2];  # expected dimension of the data 3 or 4
+    set unpackformat = $tmp[3];
+
+    if($#funcseq != 0) then
+      if($seq == $funcseq) then
+        set unpackdir = $fsd;
+      else
+        set unpackdir = $tmp[4];
+      endif
+    endif
+
+    if($datadim_exp == 4 && $datadim_actual == 3) then
+      ## This is probably a single t2epi, so change output dir  ##
+      if($unpackdir == bold) then
+         set unpackdir = t2epi;
+      else
+         set unpackdir = $unpackdir-notime
+      endif
+    endif
+
+  else
+    ## Sequence is not in info file, just copy minc files ##
+    echo "INFO: $seq unrecognized, just copying minc files"  | tee -a $LF
+    set unpackformat = minc;
+    set unpackdir    = $seq;
+    set datadim_exp  = ();
+  endif
+
+  ## Create a run subdir based on the run within the session ##
+  set runsubdir = `printf %03d $run`;
+
+  if($minconly) set unpackformat = minc;
+
+  echo "File:             $minc"  | tee -a $LF
+  echo "Sequence:         $seq"   | tee -a $LF
+  echo "Run:              $run"   | tee -a $LF
+  echo "Expected Dim:     $datadim_exp"     | tee -a $LF
+  echo "Actual Dim:       $datadim_actual"  | tee -a $LF
+  echo "Unpacking Format: $unpackformat"    | tee -a $LF
+  echo "UnpackDir:        $unpackdir"       | tee -a $LF
+  echo "Run SubDir:        $runsubdir"      | tee -a $LF
+
+  set unpackdirlist = ($unpackdirlist $unpackdir);
+
+  ## Keep track of bshort and COR directories ##
+  if(! -d $targdir/$unpackdir) then
+    if($unpackformat == bshort) then
+       set bshortdirlist = ($bshortdirlist $unpackdir);
+    else if($unpackformat == COR) then
+       set cordirlist = ($cordirlist $unpackdir);
+    endif
+  endif
+
+  ## Create the output directory ##
+  set outdir = $targdir/$unpackdir/$runsubdir
+  mkdir -p $outdir
+
+  ## Determine if the file is compressed ##
+  set mincbase = `basename $minc .gz`;
+  if("$mincbase.gz" == $minc) then
+    set IsCompressed = 1;
+  else
+    set IsCompressed = 0;
+  endif
+  ### Set up for when minc is compressed ###
+  set rmf2 = 0;
+  if($IsCompressed && $unpackformat != minc) then
+    set f2 = $outdir/tmp.mnc
+    if(! $nocopy) then
+       gunzip -c $f > $f2  | tee -a $LF
+       set rmf2 = 1;
+    endif
+  else
+    set f2 = $f;
+  endif
+
+  if($unpackformat != minc) then
+    ## Dump the minc header into the output directory ##
+    mincheader $f >  $outdir/`basename $mincbase .mnc`;
+
+    set seqinfofile = $targdir/$unpackdir/seq.info
+    minc2seqinfo $f | tee $seqinfofile | tee -a $LF
+    if($status) then
+      echo "ERROR: minc2seqinfo failed"
+      exit 1;
+    endif
+    #-----------------------------------------------------#
+    if(0) then
+    ## Create a sequence info file ##
+    rm -f $seqinfofile
+    echo "sequencename $seq" >> $seqinfofile
+    echo "nx $nx" >> $seqinfofile
+    echo "ny $ny" >> $seqinfofile
+    echo "nz $nz" >> $seqinfofile
+    echo "dx $dx" >> $seqinfofile # need absolute value #
+    echo "dy $dy" >> $seqinfofile
+    echo "dz $dz" >> $seqinfofile
+    if($#TR != 0) then
+      echo "TR $TR"  >> $seqinfofile
+    endif
+    endif
+    #-----------------------------------------------------#
+
+  endif
+
+  ### Unpack ###
+  switch ($unpackformat)
+
+    case "minc":
+      echo "Copying $minc to $outdir"  | tee -a $LF
+      if(! $nocopy) then 
+        cp $f $outdir
+        set st = $status;
+        if($st) then
+          echo "ERROR: cp exited with status $st" | tee -a $LF
+          exit $st;
+        endif
+      endif
+      breaksw
+
+    case "bshort":
+      echo "Converting $minc to bshort in $outdir"  |  tee -a $LF
+      if(! $nocopy) then
+        set cmd =  "minc_to_bshort $f2 $outdir/f"
+        echo "-----------------------------------------" |& tee -a $LF
+        pwd                                              |& tee -a $LF
+        echo $cmd                                        |& tee -a $LF
+        echo "-----------------------------------------" |& tee -a $LF
+        $cmd       |& tee -a $LF
+        set st = $status;
+        if($st) then
+          echo "ERROR: minc_to_bshort exited with status $st" | tee -a $LF
+          exit $st;
+        endif
+      endif
+      breaksw
+
+    case "COR":
+      echo "Converting $minc to COR in $outdir"  |  tee -a $LF
+      if(! $nocopy) then 
+        set cmd = "minc_to_cor $f2 $outdir"
+        #set cmd = "~/sg1/mri_convert/mri_convert $f2 $outdir"
+        echo "-----------------------------------------" |& tee -a $LF
+        pwd                                              |& tee -a $LF
+        echo $cmd                                        |& tee -a $LF
+        echo "-----------------------------------------" |& tee -a $LF
+        $cmd       |& tee -a $LF
+        set st = $status;
+        if($st) then
+          echo "ERROR: mri_convert exited with status $st" | tee -a $LF
+          exit $st;
+        endif
+      endif
+      breaksw
+
+    default:
+      echo "ERROR: unpack format $unpackformat not recognized"  | tee -a $LF
+      exit 1;
+      breaksw
+
+  endsw
+
+  if($rmf2 && ! $nocopy) rm -f $f2;
+
+  @ nthfile = $nthfile + 1;
+
+end ## foreach (mincfiles) ##
+
+echo -----------------------------------------------------------------  | tee -a $LF
+
+if(0) then
+##   -- Rename the run subdirectories to be sequential --    ##
+## This is sort of a hack and should probably be done better ##
+echo "Renaming run directories"  | tee -a $LF
+foreach subd ($unpackdirlist)
+  # echo $subd
+  set td =  $targdir/$subd
+  # echo $td
+  if(-e $td) then
+    pushd $td > /dev/null;
+    @ n = 1;
+    set runlist = `ls -d 0??`;
+    # echo $runlist
+    foreach run ($runlist)
+      set thisrun = `printf %03d $n`;
+      if($run != $thisrun) mv $run $thisrun
+      @ n = $n + 1;
+    end
+    popd > /dev/null;
+  endif
+end
+echo -----------------------------------------------------------------
+endif
+
+### ---- Create a header registration file for t1epi and fsd ------- ####
+if(-d $targdir/3danat) then
+
+  set anatdir = `getfirstrundir-sess $targdir/3danat`;
+  foreach fsd ($bshortdirlist)
+
+    if(-d $targdir/$fsd) then
+      echo "Creating $fsd header registration"  | tee -a $LF
+      pushd `getfirstrundir-sess $targdir/$fsd` > /dev/null;
+      if(! $nocopy )  then
+        mri_make_register -r register.dat -a analyse.dat \
+           subject f $anatdir $anatdir   |& tee -a $LF
+        mv register.dat ../same-session-reg.dat
+      endif
+      popd > /dev/null;
+    endif
+
+  end
+  echo -----------------------------------------------------------------
+endif
+
+set EndDate = `date`;
+echo "Started on $StartDate"  | tee -a $LF
+echo "Ended   on $EndDate"    | tee -a $LF
+echo " "  | tee -a $LF
+echo "unpackmincdir COMPLETED SUCCESSFULLY"  | tee -a $LF
+echo " "  | tee -a $LF
+
+exit 0;
+#########################################################################
+##########################################################################
+###########################################################################
+
+
+############--------------##################
+parse_args:
+
+set cmdline = "$argv";
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-src":
+      if ( $#argv == 0) goto arg1err;
+      set srcdir = $argv[1]; shift;
+      breaksw
+
+    case "-targ":
+      if ( $#argv == 0) goto arg1err;
+      set targdir = $argv[1]; shift;
+      breaksw
+
+    case "-scanseqinfo":
+      if ( $#argv == 0) goto arg1err;
+      set ScanSeqInfo = $argv[1]; shift;
+      breaksw
+
+    case "-funcseq":
+      if ( $#argv == 0) goto arg1err;
+      set funcseq = $argv[1]; shift;
+      breaksw
+
+    case "-fsd":
+      if ( $#argv == 0) goto arg1err;
+      set fsd = $argv[1]; shift;
+      breaksw
+
+    case "-anatseq":
+      if ( $#argv == 0) goto arg1err;
+      set anatseq = $argv[1]; shift;
+      breaksw
+
+    case "-t1episeq":
+      if ( $#argv == 0) goto arg1err;
+      set t1epi = $argv[1]; shift;
+      breaksw
+
+    case "-umask":
+      if ( $#argv == 0) goto arg1err;
+      setenv MRI_UMASK $1; shift;
+      breaksw
+
+    case "-minconly":
+      set minconly = 1;
+      breaksw
+
+    case "-anatonly":
+      set anatonly = 1;
+      breaksw
+
+    case "-nocopy":
+      set nocopy = 1;
+      breaksw
+
+    case "-verbose":
+      set verbose = 1;
+      breaksw
+
+    case "-echo":
+      set echo = 1;
+      breaksw
+
+    case "-debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized.
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+  if ($#srcdir == 0) then
+     echo "ERROR: must specify a source directory";
+     exit 1
+  endif
+
+  if(! -d $srcdir ) then
+    echo "ERROR: $srcdir does not exist"
+    exit 1;
+  endif
+
+  if ($#targdir == 0) then
+     echo "ERROR: must specify a target directory";
+     exit 1
+  endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo "USAGE: unpackmincdir -src sourcedir -targ targdir"
+  echo "         -scanseqinfo file : scan sequence directives (freesurfer_alpha/scanseq.info)"
+  echo "         -funcseq  seqname : use seqname for functionals ($funcseq_def)"
+  echo "         -fsd      dir     : functional subdirectory ($fsd_def)"
+#  echo "         -anatseq  seqname : use seqname for 3d anatomicals ($anatseq_def)"
+#  echo "         -t1episeq seqname : use seqname for t1 EPIs ($t1episeq_def)"
+#  echo "         -anatonly : only copy/convert 3d anatomicals"
+  echo "         -minconly    : do not unpack into bshorts"
+  echo "         -nocopy      : create directories but do not copy/convert data"
+  echo "         -umask umask : unix file permission mask ($MRI_UMASK)"
+exit 1;
+
+############--------------------------------###################
+# Gets a list of unique scan sequence names #
+getscanseqlist:
+
+pushd  $srcdir > /dev/null
+set flist = `ls`;
+set seqlist = ();
+set fminc = ()
+foreach f ($flist)
+  set n = `echo $f | grep .mnc | wc -l`;
+  if($n == 1) then
+    set seq = `mincinfo -attvalue acquisition:scanning_sequence $f`;
+    set seq = `basename $seq`;
+    set seqlist = ($seqlist $seq);
+  endif
+end
+
+if($#seqlist == 0) then
+  echo "ERROR: no files with scanning sequence attvalue found"
+  exit 1;
+endif
+
+set uniqseq = $seqlist[1];
+foreach seq ($seqlist)
+  #echo ----- $seq ------
+  set isuniq = 1;
+  @ n = 1;
+  while($n <= $#uniqseq)
+    #echo $n $seq $uniqseq[$n]
+    if($seq == $uniqseq[$n]) then
+      set isuniq = 0;
+    endif
+    @ n = $n + 1;
+  end
+  if($isuniq) set uniqseq = ($uniqseq $seq);
+
+end
+
+set seqlist = ($uniqseq);
+
+popd > /dev/null;
+
+goto getscanseqlist_return;
+
+
+###################### Junk ################################
+  # @ seqid = 1;
+  # while( $seqid <= $#seqlist)
+  #   if($seq == $seqlist[$seqid]) break;
+  #   @ seqid = $seqid + 1;
+  # end
+  # @ nseqlist[$seqid] = $nseqlist[$seqid] + 1;
+  # echo "Sequence $seq, Id = $seqid, seqnth = $nseqlist[$seqid], run = $run"

@@ -1,0 +1,252 @@
+#!/bin/csh -f
+# Name: unpackimadir
+# Purpose: converts data in an IMA directory to MINC and
+# then calls unpackmincdir to convert to Sessions format 
+# (deletes the original MINC). Any arguments that unpackimadir
+# does not recognize are passed to unpackmincdir.  The 
+# temporary minc files can be kept by specifying -keepminc.
+# The temporary minc directory can be specified with -mincdir,
+# otherwise it will be put in the output directory.
+
+set VERSION = '$Id: unpackimadir,v 1.1 2001/05/25 17:15:15 greve Exp $';
+set unpackmincdiropts = ();
+set srcdir   = ();
+set targdir  = ();
+set mincdir  = ();
+set removeminc = 1;
+
+set n = `echo $argv | grep version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+
+if($#argv == 0) then
+  goto usage_exit;
+  exit 1;
+endif
+
+echo $VERSION
+set  StartDate = `date`;
+echo $StartDate
+
+set cmdargs = ($argv);
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+# use pawd (if it exists) instead of pwd #
+which pawd;
+if(! $status) alias pwd pawd;
+
+## Check if the target directory exists ##
+if(-d $targdir) then
+  echo "WARNING: destination directory $targdir already exists, overwriting."
+endif
+
+## Create the Target Directory ##
+mkdir -p $targdir;
+if(! -e $targdir) then
+  echo "ERROR: could not create target directory"
+  exit 1;
+endif
+
+## get full path name for target directory ##
+pushd $targdir > /dev/null;
+set targdir = `pwd`;
+popd > /dev/null;
+
+## Set up a log file ##
+set LF = $targdir/unpackima.log
+rm -f $LF
+touch $LF
+echo "Log file for unpackimadir" >> $LF
+echo "$VERSION"         >> $LF
+pwd                     >> $LF
+echo "$0"               >> $LF
+echo "$cmdargs"         >> $LF
+uname -a                >> $LF
+id                      >> $LF
+date                    >> $LF
+echo "Source: $srcdir"  >> $LF
+echo "Target: $targdir" >> $LF
+echo " " >> $LF
+echo "ima2mnc: `which ima2mnc` " >> $LF
+echo " " >> $LF
+
+# Set up the minc directory. ima2mnc will put the output in a 
+# subdirectory of mincdir. We don't know what the name of that
+# subdirectory will be, so we restrict mincdir to be empty so
+# that we know that anything new will have been created by
+# ima2mnc.
+if($#mincdir == 0) set mincdir = $targdir/mincfiles_$$
+mkdir -p $mincdir
+pushd $mincdir > /dev/null
+set mincdir = `pwd`;
+set n = `ls | wc -w`;
+if($n != 0) then
+  echo "ERROR: mincdir $mincdir is not empty"
+  exit 1;
+endif
+popd > /dev/null
+echo "mincdir is $mincdir"
+
+# Convert ima to minc #
+set cmd = (ima2mnc $srcdir $mincdir)
+echo "---------------------------------------------------"
+pwd
+echo $cmd
+echo "---------------------------------------------------"
+$cmd |& tee -a $LF
+if($status) then
+  echo "ERROR: ima2mnc failed" | tee -a $LF
+  exit 1;
+endif
+
+# Go into mincdir to get the name of the directory where
+# the mincfiles are stored. This will be called mincsrcdir.
+pushd $mincdir > /dev/null
+set mincdir = `pwd`;
+set n = `ls | wc -w`;
+if($n == 0) then
+  echo "ERROR: no minc files created in $mincdir"
+  exit 1;
+endif
+if($n > 1) then
+  echo "ERROR: too many minc subdirectories in $mincdir"
+  exit 1;
+endif
+set tmp = `ls`;
+set mincsrcdir = $mincdir/$tmp
+popd > /dev/null
+echo "mincsrcdir is $mincsrcdir"
+
+# Convert minc into sessions format #
+set cmd = (unpackmincdir -src $mincsrcdir -targ $targdir)
+echo "---------------------------------------------------"
+pwd
+echo $cmd
+echo "---------------------------------------------------"
+$cmd |& tee -a $LF
+if($status) then
+  echo "ERROR: unpackmincdir failed" | tee -a $LF
+  exit 1;
+endif
+
+# Clean up #
+if($removeminc) then
+  echo "INFO: removing temporary minc files"
+  rm -r $mincdir
+endif
+
+set EndDate = `date`;
+echo "Started on $StartDate"  | tee -a $LF
+echo "Ended   on $EndDate"    | tee -a $LF
+echo " "  | tee -a $LF
+echo "unpackimadir COMPLETED SUCCESSFULLY"  | tee -a $LF
+echo " "  | tee -a $LF
+
+exit 0;
+###########################################################################
+###########################################################################
+###########################################################################
+
+############--------------##################
+parse_args:
+
+set cmdline = "$argv";
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-src":
+      if ( $#argv == 0) goto arg1err;
+      set srcdir = $argv[1]; shift;
+      breaksw
+
+    case "-targ":
+      if ( $#argv == 0) goto arg1err;
+      set targdir = $argv[1]; shift;
+      breaksw
+
+    case "-mincdir":
+      if ( $#argv == 0) goto arg1err;
+      set mincdir = $argv[1]; shift;
+      breaksw
+
+    case "-umask":
+      if ( $#argv == 0) goto arg1err;
+      setenv MRI_UMASK $1; shift;
+      breaksw
+
+    case "-removeminc":
+      set removeminc = 1;
+      breaksw
+
+    case "-noremoveminc":
+    case "-keepminc":
+      set removeminc = 0;
+      breaksw
+
+    case "-verbose":
+      set unpackmincdiropts = ($unpackmincdiropts $flag);
+      set verbose = 1;
+      breaksw
+
+    case "-echo":
+      set unpackmincdiropts = ($unpackmincdiropts $flag);
+      set echo = 1;
+      breaksw
+
+    case "-debug":
+      set unpackmincdiropts = ($unpackmincdiropts $flag);
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    default:
+      set unpackmincdiropts = ($unpackmincdiropts $flag);
+      breaksw
+  endsw
+
+end
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+  if ($#srcdir == 0) then
+     echo "ERROR: must specify a source directory";
+     exit 1
+  endif
+
+  if(! -d $srcdir ) then
+    echo "ERROR: $srcdir does not exist"
+    exit 1;
+  endif
+
+  if ($#targdir == 0) then
+     echo "ERROR: must specify a target directory";
+     exit 1
+  endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo "USAGE: unpackimadir -src sourcedir -targ targdir"
+exit 1;
+
