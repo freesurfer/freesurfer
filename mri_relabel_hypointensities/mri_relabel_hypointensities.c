@@ -16,7 +16,7 @@
 #include "mrishash.h"
 #include "cma.h"
 
-static char vcid[] = "$Id: mri_relabel_hypointensities.c,v 1.3 2003/09/15 14:32:18 fischl Exp $";
+static char vcid[] = "$Id: mri_relabel_hypointensities.c,v 1.4 2003/09/15 15:12:20 tosa Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -58,37 +58,37 @@ main(int argc, char *argv[])
   if (argc < 3)
     usage_exit() ;
 
-	in_aseg_name = argv[1] ;
+  in_aseg_name = argv[1] ;
   surf_dir = argv[2] ;
-	out_aseg_name = argv[3] ;
+  out_aseg_name = argv[3] ;
 
   mri_aseg = MRIread(in_aseg_name) ;
   if (!mri_aseg)
     ErrorExit(ERROR_NOFILE, "%s: could not read input segmentation %s", Progname, in_aseg_name) ;
 
 
-	for (h = 0 ; h <= 1 ; h++)
-	{
-		if (h == 0)
-			hemi = "lh" ;
-		else
-			hemi = "rh" ;
-		sprintf(fname, "%s/%s.%s", surf_dir, hemi, surf_name)  ;
-		printf("reading input surface %s...\n", fname) ;
-		mris = MRISread(fname) ;
-		if (!mris)
-			ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
-								Progname, fname) ;
-		MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ;
-		MRIScomputeMetricProperties(mris) ;
-
-		printf("relabeling %s hypointensities...\n", hemi) ;
+  for (h = 0 ; h <= 1 ; h++)
+  {
+    if (h == 0)
+      hemi = "lh" ;
+    else
+      hemi = "rh" ;
+    sprintf(fname, "%s/%s.%s", surf_dir, hemi, surf_name)  ;
+    printf("reading input surface %s...\n", fname) ;
+    mris = MRISread(fname) ;
+    if (!mris)
+      ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
+		Progname, fname) ;
+    MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ;
+    MRIScomputeMetricProperties(mris) ;
+    
+    printf("relabeling %s hypointensities...\n", hemi) ;
 		relabel_hypointensities(mri_aseg, mris, h) ;
 		MRISfree(&mris) ;
-	}
-	relabel_hypointensities_neighboring_gray(mri_aseg) ;
-
-	MRIwrite(mri_aseg, out_aseg_name) ;
+  }
+  relabel_hypointensities_neighboring_gray(mri_aseg) ;
+  
+  MRIwrite(mri_aseg, out_aseg_name) ;
   exit(0) ;
   return(0) ;  /* for ansi */
 }
@@ -175,88 +175,89 @@ print_version(void)
 static int
 relabel_hypointensities(MRI *mri, MRI_SURFACE *mris, int right)
 {
-	int   x, y, z, label, changed ;
-	MRIS_HASH_TABLE *mht ;
-	VERTEX           *v ;
-	float            dx, dy, dz, dot, dist ;
-	Real             xw, yw, zw ;
-
-	mht = MHTfillVertexTableRes(mris,NULL, CURRENT_VERTICES, 8.0f) ;
-	for (changed = x = 0 ; x < mri->width ; x++)
-	{
-		for (y = 0 ; y < mri->height ; y++)
-		{
-			for (z = 0 ; z < mri->depth ; z++)
-			{
-				if (x == Gx && y == Gy && z == Gz)
-					DiagBreak() ;
-				label = MRIvox(mri, x, y, z) ;
-				if (label == Left_WM_hypointensities)
-					MRIvox(mri, x, y, z) = WM_hypointensities ;
-				else if (label == Right_WM_hypointensities)
-					MRIvox(mri, x, y, z) = WM_hypointensities ;
-				if ((!right && (label != Left_Cerebral_Cortex)) ||
+  int   x, y, z, label, changed ;
+  MRIS_HASH_TABLE *mht ;
+  VERTEX           *v ;
+  float            dx, dy, dz, dot, dist ;
+  Real             xw, yw, zw ;
+  
+  mht = MHTfillVertexTableRes(mris,NULL, CURRENT_VERTICES, 8.0f) ;
+  for (changed = x = 0 ; x < mri->width ; x++)
+  {
+    for (y = 0 ; y < mri->height ; y++)
+    {
+      for (z = 0 ; z < mri->depth ; z++)
+      {
+	if (x == Gx && y == Gy && z == Gz)
+	  DiagBreak() ;
+	label = MRIvox(mri, x, y, z) ;
+	if (label == Left_WM_hypointensities)
+	  MRIvox(mri, x, y, z) = WM_hypointensities ;
+	else if (label == Right_WM_hypointensities)
+	  MRIvox(mri, x, y, z) = WM_hypointensities ;
+	if ((!right && (label != Left_Cerebral_Cortex)) ||
 						(right && (label != Right_Cerebral_Cortex)))
-					continue ;
-
-				MRIvoxelToWorld(mri, x, y, z, &xw, &yw, &zw) ;
-				v = MHTfindClosestVertexInTable(mht, mris, xw, yw, zw) ;
-				if (v == NULL)  /* no vertices within range - assume it is hypointensity */
-				{
-					dot = -1 ;
-					dist = 1000 ;
-				}
-				else
-				{
-					dx = xw - v->x ; dy = yw - v->y ; dz = zw - v->z ; 
-					dot = v->nx*dx + v->ny*dy + v->nz*dz ;
-					dist = sqrt(dx*dx+dy*dy+dz*dz) ;
-				}
-				if (dot < 0 && dist > 1)
-				{
-					changed++ ;
-					MRIvox(mri, x, y, z) = WM_hypointensities ;
-				}
-			}
-		}
+	  continue ;
+	
+	// MRIvoxelToWorld(mri, x, y, z, &xw, &yw, &zw) ;
+	MRIvoxelToSurfaceRAS(mri, x, y, z, &xw, &yw, &zw);
+	v = MHTfindClosestVertexInTable(mht, mris, xw, yw, zw) ;
+	if (v == NULL)  /* no vertices within range - assume it is hypointensity */
+	{
+	  dot = -1 ;
+	  dist = 1000 ;
 	}
-
-	printf("%d voxels changed to hypointensity...\n", changed) ;
-	MHTfree(&mht) ;
-	return(NO_ERROR) ;
+	else
+	{
+	  dx = xw - v->x ; dy = yw - v->y ; dz = zw - v->z ; 
+	  dot = v->nx*dx + v->ny*dy + v->nz*dz ;
+	  dist = sqrt(dx*dx+dy*dy+dz*dz) ;
+	}
+	if (dot < 0 && dist > 1)
+	{
+	  changed++ ;
+	  MRIvox(mri, x, y, z) = WM_hypointensities ;
+	}
+      }
+    }
+  }
+  
+  printf("%d voxels changed to hypointensity...\n", changed) ;
+  MHTfree(&mht) ;
+  return(NO_ERROR) ;
 }
 int
 relabel_hypointensities_neighboring_gray(MRI *mri)
 {
-	int    x, y, z, label, changed, i ;
-	MRI    *mri_tmp = NULL ;
-
-	for (changed = i = 0 ; i < 2 ; i++)
+  int    x, y, z, label, changed, i ;
+  MRI    *mri_tmp = NULL ;
+  
+  for (changed = i = 0 ; i < 2 ; i++)
+  {
+    mri_tmp = MRIcopy(mri, mri_tmp) ;
+    for (x = 0 ; x < mri->width ; x++)
+    {
+      for (y = 0 ; y < mri->height ; y++)
+      {
+	for (z = 0 ; z < mri->depth ; z++)
 	{
-		mri_tmp = MRIcopy(mri, mri_tmp) ;
-		for (x = 0 ; x < mri->width ; x++)
-		{
-			for (y = 0 ; y < mri->height ; y++)
-			{
-				for (z = 0 ; z < mri->depth ; z++)
-				{
-					label = MRIvox(mri_tmp, x, y, z) ;
-					if (label != WM_hypointensities)
-						continue ;
-					if (MRIneighbors(mri_tmp, x, y, z, Left_Cerebral_Cortex) > 0)
-					{
-						MRIvox(mri, x, y, z) = Left_Cerebral_Cortex ;
-						changed++ ;
-					}
-					else  if (MRIneighbors(mri_tmp, x, y, z, Right_Cerebral_Cortex) > 0)
-					{
-						MRIvox(mri, x, y, z) = Right_Cerebral_Cortex ;
-						changed++ ;
-					}
-				}
-			}
-		}
+	  label = MRIvox(mri_tmp, x, y, z) ;
+	  if (label != WM_hypointensities)
+	    continue ;
+	  if (MRIneighbors(mri_tmp, x, y, z, Left_Cerebral_Cortex) > 0)
+	  {
+	    MRIvox(mri, x, y, z) = Left_Cerebral_Cortex ;
+	    changed++ ;
+	  }
+	  else  if (MRIneighbors(mri_tmp, x, y, z, Right_Cerebral_Cortex) > 0)
+	  {
+	    MRIvox(mri, x, y, z) = Right_Cerebral_Cortex ;
+	    changed++ ;
+	  }
 	}
-	printf("%d hypointense voxels neighboring cortex changed\n", changed) ;
-	return(NO_ERROR) ;
+      }
+    }
+  }
+  printf("%d hypointense voxels neighboring cortex changed\n", changed) ;
+  return(NO_ERROR) ;
 }
