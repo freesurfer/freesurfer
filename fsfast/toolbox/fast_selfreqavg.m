@@ -1,6 +1,6 @@
 % fast_selfreqavg.m - selective frequency averaging
 %
-% $Id: fast_selfreqavg.m,v 1.2 2003/07/25 05:20:04 greve Exp $
+% $Id: fast_selfreqavg.m,v 1.3 2003/08/02 01:01:01 greve Exp $
 %
 % Things to do:
 %  1. Save beta, var, and X
@@ -30,25 +30,28 @@ tic;
 
 sesslist = '';
 %sesslist = strvcat(sesslist,'/space/greve/2/users/greve/birn-pilot/mgh-dng-22');
-sesslist = strvcat(sesslist,'/home/greve/sg1/mgh-dng-22');
+%sesslist = strvcat(sesslist,'/home/greve/sg1/mgh-dng-22');
+sesslist = strvcat(sesslist,'/space/greve/2/users/greve/birn-pilot/duke-test2');
 
 TR = 3; % Will be needed for tpx
 fsd = 'bold';
-ananame = 'sfatst';
+ananame = 'sm-per';
+runlistfile = 'sm.rlf';
+%ananame = 'bh-per';
+%runlistfile = 'bh.rlf';
 conname = 'omnibus';
 funcstem = 'fmcsm5';
 inorm = 1;
 inormtarg = 1000;
 ncycles = 8;
-nharmonics = 3; % plus 1 for fundamental 
+nharmonics = 2; % plus 1 for fundamental 
 polyfit    = 2;
 extregstem = '';
-%extregstem = 'mcextreg';
-%runlistfile = 'bh.rlf';
-runlistfile = '';
+extregstem = 'mcextreg';
+%runlistfile = '';
 phsigthresh = 2;
-dojkrun = 1;
-doperrun = 0;
+dojkrun = 0;
+doperrun = 1;
 condXthresh = 10e5;
 
 nSess = size(sesslist,1);
@@ -114,7 +117,8 @@ for nthsess = 1:nSess
     
     % This is needed to get the number of slices %
     funcpath0 = sprintf('%s/%s/%s/%s',sess,fsd,runlist(1,:),funcstem);
-    [nrows ncols nframes fs nslices endian bext] = fmri_bfiledim(funcpath0);
+    [nrows ncols nframes fs nslices endian bext] = ...
+	fmri_bfiledim(funcpath0);
     if(isempty(nrows))
       fprintf('ERROR: reading volume %s\n',funcpath0);
       return;
@@ -134,7 +138,8 @@ for nthsess = 1:nSess
       % Get the number of frames for the nth run %
       funcpath = sprintf('%s/%s/%s/%s',sess,fsd,...
 			 runlist(nthrun,:),funcstem);
-      [nrows ncols nframes fs nslices e bext] = fmri_bfiledim(funcpath);
+      [nrows ncols nframes fs nslices e bext] = ...
+	  fmri_bfiledim(funcpath);
       if(isempty(nrows))
 	fprintf('ERROR: reading volume %s\n',funcpath);
 	return;
@@ -208,7 +213,8 @@ for nthsess = 1:nSess
     fprintf('Design Efficiency: %g\n',eff);
     vrf = 1./d;
     vrfmn = mean(vrf);
-    fprintf('VRF: Mean = %g, Min = %g, Max = %g\n',mean(vrf),min(vrf),max(vrf));
+    fprintf('VRF: Mean = %g, Min = %g, Max = %g\n',...
+	    mean(vrf),min(vrf),max(vrf));
 
     % Total number of regressors 
     nBeta = size(X,2); 
@@ -237,12 +243,16 @@ for nthsess = 1:nSess
     % --------- Process each slice separately ---------- %
     fprintf('Processing data (%g)\n',toc);
     for nthslice = 0:nslices-1
-      fprintf('nth slice = %d (%g)\n',nthslice,toc);
+      %fprintf('nth slice = %d (%g)\n',nthslice,toc);
+      %fprintf('%2d (%g) ',nthslice,toc);
+      fprintf('%2d ',nthslice);
+      if(rem(nthslice,5)==0) fprintf('\n'); end
       
       % Load data for all runs %
       y = [];
       for nthrun = 1:nruns
-	funcpath = sprintf('%s/%s/%s/%s',sess,fsd,runlist(nthrun,:),funcstem);
+	funcpath = sprintf('%s/%s/%s/%s',...
+			   sess,fsd,runlist(nthrun,:),funcstem);
 	[frun tmp1 tmp2 bhdrstr] = fast_ldbslice(funcpath,nthslice);
 	if(isempty(frun))
 	  fprintf('ERROR: reading volume %s\n',funcpath);
@@ -289,7 +299,7 @@ for nthsess = 1:nSess
 
     % End whitening loop here 
   
-  fprintf('\n\n');
+    fprintf('\n\n');
   end % external run loop 
 
   fprintf('\n\n');
