@@ -13,7 +13,7 @@
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_parse_sdcmdir.c,v 1.1 2002/03/13 21:04:50 greve Exp $";
+static char vcid[] = "$Id: mri_parse_sdcmdir.c,v 1.2 2002/03/13 21:07:35 greve Exp $";
 char *Progname = NULL;
 
 static int  parse_commandline(int argc, char **argv);
@@ -108,13 +108,13 @@ int main(int argc, char **argv)
     protoname = strip_white_space(sdfi->ProtocolName);
 
     fprintf(outstream,
-	    "%4d %s  %3d %d  %4d %d  %3d %3d %3d %3d  %8.4f %8.4f %s\n",
-	    nthfile+1, fname,
-	    sdfi->SeriesNo, sdfi->ErrorFlag,
-	    sdfi->ImageNo, sdfi->IsMosaic,
-	    sdfi->VolDim[0], sdfi->VolDim[1], sdfi->VolDim[2], sdfi->NFrames, 
-	    sdfi->RepetitionTime, sdfi->EchoTime,
-	    protoname);
+      "%4d %s  %3d %d  %4d %d  %3d %3d %3d %3d  %8.4f %8.4f %s\n",
+      nthfile+1, fname,
+      sdfi->SeriesNo, sdfi->ErrorFlag,
+      sdfi->ImageNo, sdfi->IsMosaic,
+      sdfi->VolDim[0], sdfi->VolDim[1], sdfi->VolDim[2], sdfi->NFrames, 
+      sdfi->RepetitionTime, sdfi->EchoTime,
+      protoname);
     fflush(outstream);
     free(fname);
     free(psname);
@@ -172,9 +172,9 @@ static int parse_commandline(int argc, char **argv)
       memcpy(SDCMStatusFile,pargv[0],strlen(pargv[0]));
       fptmp = fopen(SDCMStatusFile,"w");
       if(fptmp == NULL){
-	fprintf(stderr,"ERROR: could not open %s for writing\n",
-		SDCMStatusFile);
-	exit(1);
+  fprintf(stderr,"ERROR: could not open %s for writing\n",
+    SDCMStatusFile);
+  exit(1);
       }
       fprintf(fptmp,"0\n");
       fclose(fptmp);
@@ -186,7 +186,7 @@ static int parse_commandline(int argc, char **argv)
     else{
       fprintf(stderr,"ERROR: Option %s unknown\n",option);
       if(singledash(option))
-	fprintf(stderr,"       Did you really mean -%s ?\n",option);
+  fprintf(stderr,"       Did you really mean -%s ?\n",option);
       exit(-1);
     }
     nargc -= nargsused;
