@@ -3839,15 +3839,13 @@ ImageStatistics(IMAGE *Isrc, float *pmean, float *pvar)
 IMAGE *
 ImageZeroPad(IMAGE *Isrc, IMAGE *Idst)
 {
-  int  drows, dcols, logrows, logcols, scols, srows, dcol, drow ;
+  int  drows, dcols, scols, srows, dcol, drow ;
 
   scols = Isrc->cols ;
   srows = Isrc->rows ;
-  logcols = nint(log2((double)scols)) ;
-  logrows = nint(log2((double)srows)) ;
 
-  dcols = nint(exp2((double)(logcols+1))) ;
-  drows = nint(exp2((double)(logrows+1))) ;
+  dcols = nint(exp2(ceil(log2((double)scols)))) ;
+  drows = nint(exp2(ceil(log2((double)srows)))) ;
 
   if (!Idst)
     Idst = ImageAlloc(drows, dcols, Isrc->pixel_format, Isrc->num_frame) ;
