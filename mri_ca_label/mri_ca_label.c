@@ -39,7 +39,7 @@ static char *wm_fname = NULL ;
 static int fixed_flag = 0 ;
 static char *heq_fname = NULL ;
 static int max_iter = 200 ;
-static int mle_niter = 4 ;
+static int mle_niter = 2 ;
 static int no_gibbs = 0 ;
 static int anneal = 0 ;
 static char *mri_fname = NULL ;
@@ -508,7 +508,14 @@ preprocess(MRI *mri_in, MRI *mri_labeled, GCA *gca, LTA *lta,
 {
   int i ;
 
-  
+  GCArelabel_cortical_gray_and_white(gca, mri_in, mri_labeled,mri_labeled,lta);
+  if (gca_write_iterations != 0)
+  {
+    char fname[STRLEN] ;
+    sprintf(fname, "%s_cortex.mgh", gca_write_fname) ;
+    printf("writing snapshot to %s...\n", fname) ;
+    MRIwrite(mri_labeled, fname) ;
+  }
   if (hippocampus_flag)
     edit_hippocampus(mri_in, mri_labeled, gca, lta, mri_fixed) ;
   if (expand_flag) 
@@ -555,8 +562,8 @@ static int
 edit_hippocampus(MRI *mri_in, MRI *mri_labeled, GCA *gca, LTA *lta, 
                  MRI *mri_fixed)
 {
-  int   width, height, depth, x, y, z, label, val, nchanged, dleft, 
-        dright, dpos, dant, dup, ddown, dup_hippo, ddown_gray, i ;
+  int   width, height, depth, x, y, z, label, nchanged, dleft, 
+        dright, dpos, dant, dup, ddown, dup_hippo, ddown_gray, i, left ;
   MRI   *mri_tmp ;
   float phippo, pwm ;
 
@@ -573,10 +580,11 @@ edit_hippocampus(MRI *mri_in, MRI *mri_labeled, GCA *gca, LTA *lta,
         if (x == 96 && y == 123 && z == 132)  /* wm should be pallidum */
           DiagBreak() ;
         label = MRIvox(mri_labeled, x, y, z) ;
-        val = MRIvox(mri_in, x, y, z) ;
 
-        if (label == Left_Hippocampus)
+        left = 0 ;
+        switch (label)
         {
+        case Left_Hippocampus:
           pwm = GCAlabelProbability(mri_in, gca, lta, x, y, z, 
                                     Left_Cerebral_White_Matter) ;
           phippo = GCAlabelProbability(mri_in, gca, lta, x, y, z, 
@@ -604,9 +612,8 @@ edit_hippocampus(MRI *mri_in, MRI *mri_labeled, GCA *gca, LTA *lta,
             nchanged++ ;
             MRIvox(mri_tmp, x, y, z) = Left_Cerebral_White_Matter ;
           }
-        }
-        else if (label == Right_Hippocampus)
-        {
+          break ;
+        case Right_Hippocampus:
           pwm = GCAlabelProbability(mri_in, gca, lta, x, y, z, 
                                     Right_Cerebral_White_Matter) ;
           phippo = GCAlabelProbability(mri_in, gca, lta, x, y, z, 
@@ -633,11 +640,15 @@ edit_hippocampus(MRI *mri_in, MRI *mri_labeled, GCA *gca, LTA *lta,
             nchanged++ ;
             MRIvox(mri_tmp, x, y, z) = Right_Cerebral_White_Matter ;
           }
+          break ;
+        default:
+          break ;
         }
       }
     }
   }
 
+  MRIcopy(mri_tmp, mri_labeled) ;
   for (i = 0 ; i < 2 ; i++)
   {
     for (z = 0 ; z < depth ; z++)
@@ -646,13 +657,14 @@ edit_hippocampus(MRI *mri_in, MRI *mri_labeled, GCA *gca, LTA *lta,
       {
         for (x = 0 ; x < width ; x++)
         {
-          if (x == 96 && y == 123 && z == 132)  
+          if (x == 153 && y == 123 && z == 121)  
             DiagBreak() ;
           label = MRIvox(mri_tmp, x, y, z) ;
-          val = MRIvox(mri_in, x, y, z) ;
-          
-          if (label == Left_Hippocampus)
+
+          left = 0 ;
+          switch (label)
           {
+          case Left_Hippocampus:
             ddown = distance_to_label(mri_tmp, Left_Cerebral_White_Matter,
                                       x,y,z,0,1,0,2);
             dup = distance_to_label(mri_tmp,
@@ -669,9 +681,8 @@ edit_hippocampus(MRI *mri_in, MRI *mri_labeled, GCA *gca, LTA *lta,
               nchanged++ ;
               MRIvox(mri_tmp, x, y, z) = Left_Cerebral_Cortex ;
             }
-          }
-          else if (label == Right_Hippocampus)
-          {
+            break ;
+          case Right_Hippocampus:
             ddown = distance_to_label(mri_tmp,Right_Cerebral_White_Matter,
                                       x,y,z,0,1,0,3);
             dup = distance_to_label(mri_tmp,Right_Cerebral_White_Matter,
@@ -689,13 +700,61 @@ edit_hippocampus(MRI *mri_in, MRI *mri_labeled, GCA *gca, LTA *lta,
               nchanged++ ;
               MRIvox(mri_tmp, x, y, z) = Right_Cerebral_Cortex ;
             }
+          default:
+            break ;
           }
         }
       }
     }
+    MRIcopy(mri_tmp, mri_labeled) ;
   }
 
-  MRIcopy(mri_tmp, mri_labeled) ;
+  /* change gray to hippocampus based on wm */
+  for (i = 0 ; i < 3 ; i++)
+  {
+    for (z = 0 ; z < depth ; z++)
+    {
+      for (y = 0 ; y < height ; y++)
+      {
+        for (x = 0 ; x < width ; x++)
+        {
+          if (x == 153 && y == 118 && z == 115)  
+            DiagBreak() ;
+          label = MRIvox(mri_tmp, x, y, z) ;
+
+          left = 0 ;
+          switch (label)
+          {
+          case Left_Cerebral_Cortex:
+            left = 1 ;
+          case Right_Cerebral_Cortex:
+            /*
+              if the current label is gray, and there is white matter below
+              and hippocampus above, change to hippocampus.
+            */
+            ddown = distance_to_label(mri_labeled,
+                                      left ? Left_Cerebral_White_Matter :
+                                      Right_Cerebral_White_Matter,
+                                      x,y,z,0,1,0,3);
+            dup = distance_to_label(mri_labeled,
+                                    left ?  Left_Hippocampus :
+                                    Right_Hippocampus,x,y,z,0,-1,0,2);
+            if (dup <= 2 && ddown <= 3)
+            {
+              nchanged++ ;
+              MRIvox(mri_tmp, x, y, z) = left ? Left_Hippocampus : 
+                Right_Hippocampus ;
+            }
+            break ;
+          default:
+            break ;
+          }
+        }
+      }
+    }
+    MRIcopy(mri_tmp, mri_labeled) ;
+  }
+
   MRIfree(&mri_tmp) ;
   printf("%d hippocampal voxels changed.\n", nchanged) ;
   return(NO_ERROR) ;
