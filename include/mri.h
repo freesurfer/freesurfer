@@ -667,7 +667,7 @@ int  MRIcomputeClassStatistics(MRI *mri_T1, MRI *mri_labeled,
 #define DEGENERATE_FILL      240
 
 MRI *MRIchangeType(MRI *src, int dest_type, float f_low, float f_high);
-MRI *MRIresample(MRI *src, MRI *template, int resample_type);
+MRI *MRIresample(MRI *src, MRI *template_vol, int resample_type);
 int MRIlimits(MRI *mri, float *min, float *max);
 int MRIprintStats(MRI *mri, FILE *stream);
 int MRIstats(MRI *mri, float *min, float *max, int *n_voxels, float *mean, float *std);
