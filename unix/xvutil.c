@@ -148,8 +148,8 @@ XValloc(int rows, int cols, int button_rows, int display_rows,
     display_rows = DISPLAY_SIZE ;
   if (!display_cols)
     display_cols = display_rows ;
-  xvf->display_rows = display_rows ;
-  xvf->display_cols = display_cols ;
+  xvf->orig_disp_rows = xvf->display_rows = display_rows ;
+  xvf->orig_disp_cols = xvf->display_cols = display_cols ;
 
   xvf->dimages = (DIMAGE **)calloc(rows, sizeof(DIMAGE *)) ;
   if (!xvf->dimages)
@@ -2316,7 +2316,6 @@ xvGetTitle(XV_FRAME *xvf, int which, char *title, int with_value)
 
   return(title) ;
 }
-
 /*----------------------------------------------------------------------
             Parameters:
 
@@ -2392,3 +2391,16 @@ XVshowHistogram(XV_FRAME *xvf, int which, HISTOGRAM *histo)
 
   return(NO_ERROR) ;
 }
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+----------------------------------------------------------------------*/
+int
+XVchangeDisplaySize(XV_FRAME *xvf)
+{
+  xvf->orig_disp_rows = xvf->display_rows ;
+  xvf->orig_disp_cols = xvf->display_cols ;
+  return(NO_ERROR) ;
+}
+
