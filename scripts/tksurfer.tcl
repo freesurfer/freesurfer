@@ -1,6 +1,6 @@
 #! /usr/bin/tixwish
 
-# $Id: tksurfer.tcl,v 1.45 2003/05/13 20:05:37 kteich Exp $
+# $Id: tksurfer.tcl,v 1.46 2003/07/15 17:18:52 kteich Exp $
 
 package require BLT;
 
@@ -1356,6 +1356,8 @@ proc DoLoadOverlayDlog {} {
 	
 	set fwFile             $wwDialog.fwFile
 	set fwFileNote         $wwDialog.fwFileNote
+	set fwRegistration     $wwDialog.fwRegistration
+	set fwRegistrationNote $wwDialog.fwRegistrationNote
 	set fwField            $wwDialog.fwField
 	set fwFieldNote        $wwDialog.fwFieldNote
 	set fwButtons          $wwDialog.fwButtons
@@ -1367,7 +1369,17 @@ proc DoLoadOverlayDlog {} {
 	
 	[$fwFile.ew subwidget entry] icursor end
 
-	tkm_MakeSmallLabel $fwFileNote "The values file (.w) or one of the binary volume files (.bfloat/.bshort/.hdr)" 400
+	tkm_MakeSmallLabel $fwFileNote "Values file (.w), binary volume file (.bfloat/.bshort/.hdr), COR-.info file, or other" 400
+	
+	set sRegistrationFileName [GetDefaultLocation LoadOverlayRegistration]
+	tkm_MakeFileSelector $fwRegistration "Use Registration:" \
+	    sRegistrationFileName \
+	    [list GetDefaultLocation LoadOverlayRegistration] \
+	    $glShortcutDirs
+	
+	[$fwRegistration.ew subwidget entry] icursor end
+
+	tkm_MakeSmallLabel $fwRegistrationNote "Optional register.dat file. Leave blank for .v files or to use register.dat in same directory as volume" 400
 	
 	tixOptionMenu $fwField -label "Into Field:" \
 	    -variable nFieldIndex \
@@ -1377,16 +1389,18 @@ proc DoLoadOverlayDlog {} {
 		menubutton.width 8
 	    }
 	
-	tkm_MakeSmallLabel $fwFieldNote "The layer to load the values into" 400
+	tkm_MakeSmallLabel $fwFieldNote "The layer into which to load the values" 400
 	FillOverlayLayerMenu $fwField first-empty
 	
 	# buttons.
-        tkm_MakeCancelOKButtons $fwButtons $wwDialog \
-	    {set fnFunctional [ExpandFileName $sFileName kFileName_Surface]; 
-		SetDefaultLocation LoadOverlay $sFileName;
-		DoLoadValueFile $nFieldIndex }
+        tkm_MakeCancelOKButtons $fwButtons $wwDialog { 
+	    SetDefaultLocation LoadOverlay $sFileName;
+	    SetDefaultLocation LoadOverlayRegistration $sRegistrationFileName;
+	    DoLoadFunctionalFile $nFieldIndex $sFileName $sRegistrationFileName
+	}
 	
-	pack $fwFile $fwFileNote $fwField $fwFieldNote $fwButtons \
+	pack $fwFile $fwFileNote $fwRegistration $fwRegistrationNote \
+	    $fwField $fwFieldNote $fwButtons \
 	    -side top       \
 	    -expand yes     \
 	    -fill x         \
@@ -1418,6 +1432,8 @@ proc DoLoadTimeCourseDlog {} {
 	
 	set fwFile             $wwDialog.fwFile
 	set fwFileNote         $wwDialog.fwFileNote
+	set fwRegistration     $wwDialog.fwRegistration
+	set fwRegistrationNote $wwDialog.fwRegistrationNote
 	set fwButtons          $wwDialog.fwButtons
 	
 	set sFileName [GetDefaultLocation LoadTimeCourse]
@@ -1429,13 +1445,26 @@ proc DoLoadTimeCourseDlog {} {
 
 	tkm_MakeSmallLabel $fwFileNote "One of the binary volume files (.bfloat/.bshort/.hdr)" 400
 	
-	# buttons.
-        tkm_MakeCancelOKButtons $fwButtons $wwDialog \
-	    {set fnFunctional [ExpandFileName $sFileName kFileName_Surface]; 
-		SetDefaultLocation LoadTimeCourse $sFileName;
-		DoSpecifyStemAndRegistration -1 }
+	set sRegistrationFileName [GetDefaultLocation LoadTimeCourseRegistration]
+	tkm_MakeFileSelector $fwRegistration "Use Registration:" \
+	    sRegistrationFileName \
+	    [list GetDefaultLocation LoadOverlayRegistration] \
+	    $glShortcutDirs
 	
-	pack $fwFile $fwFileNote $fwButtons \
+	[$fwRegistration.ew subwidget entry] icursor end
+
+	tkm_MakeSmallLabel $fwRegistrationNote "Optional register.dat file. Leave blank for .v files or to use register.dat in same directory as volume" 400
+	
+	# buttons.
+        tkm_MakeCancelOKButtons $fwButtons $wwDialog {
+	    SetDefaultLocation LoadTimeCourse $sFileName;
+	    SetDefaultLocation LoadTimeCourseRegistration \
+		$sRegistrationFileName
+	    DoLoadFunctionalFile -1 $sFileName $sRegistrationFileName
+	}
+	
+	pack $fwFile $fwFileNote $fwRegistration $fwRegistrationNote \
+	    $fwButtons \
 	    -side top       \
 	    -expand yes     \
 	    -fill x         \
@@ -1452,95 +1481,24 @@ proc DoLoadTimeCourseDlog {} {
     }
 }
 
-proc DoLoadValueFile { inField } {
+proc DoLoadFunctionalFile { inField isFileName isRegistrationFileName } {
 
-    global fnFunctional val
+    global val
 
-    # if ends in bfloat, pass to DoSpecifyStemAndRegistration
-    set sExtension [file extension $fnFunctional]
-    if { $sExtension == ".bfloat" || 
-	 $sExtension == ".bshort" ||
-	 $sExtension == ".hdr" } {
-	DoSpecifyStemAndRegistration $inField
-	
+    set sExtension [file extension $isFileName]
+    if { $inField == -1 } {
+	func_load_timecourse $isFileName $isRegistrationFileName
     } else {
-	# else pass to normal function
-	set val $fnFunctional
-	sclv_read_binary_values $inField
+	if { $sExtension == ".w" } {
+	    set val $isFileName
+	    sclv_read_binary_values $inField
+	} else {
+	    sclv_read_bfile_values $inField $isFileName $isRegistrationFileName
+	}
 	sclv_copy_view_settings_from_field $inField 0
 	OverlayLayerChanged
-	UpdateAndRedraw
     }
-}
-
-# If inFiled is 0-9, we're loading an overlay, if it's -1, we're
-# loading a time course.
-proc DoSpecifyStemAndRegistration { inField } {
-
-    global fnFunctional nField sPath sStem sRegistration
-    global gDialog gaLinkedVars
-    global glShortcutDirs
-    
-    set wwDialog .wwDoSpecifyStemAndRegistration
-
-    set nField $inField
-
-    set knWidth 400
-    set sPath [file dirname $fnFunctional]
-    set sStem [lindex [split [file rootname [file tail $fnFunctional]] _] 0]
-
-    # try to create the dlog...
-    if { [Dialog_Create $wwDialog "Specify Registration" {-borderwidth 10}] } {
-
-	set fwStem             $wwDialog.fwStem
-	set fwStemNote         $wwDialog.fwStemNote
-	set fwReg              $wwDialog.fwReg
-	set fwRegNote          $wwDialog.fwRegNote
-	set fwButtons          $wwDialog.fwButtons
-	
-	tkm_MakeEntry $fwStem "Stem:" sStem
-	
-	tkm_MakeSmallLabel $fwStemNote "The stem of the volume" 400
-	
-	set sRegistration [file join $sPath register.dat]
-	SetDefaultLocation SpecifyRegistration $sPath
-	tkm_MakeFileSelector $fwReg "Registration file:" sRegistration \
-	    [list GetDefaultLocation SpecifyRegistration] \
-	    $glShortcutDirs
-	
-	[$fwReg.ew subwidget entry] icursor end
-
-	tkm_MakeSmallLabel $fwRegNote \
-	    "The file name of the registration file to load" 
-	
-	# buttons.
-        tkm_MakeCancelOKButtons $fwButtons $wwDialog \
-	    { 
-		SetDefaultLocation SpecifyRegistration $sRegistration;
-		if { $nField == -1 } {
-		    func_load_timecourse $sPath $sStem $sRegistration;
-		} else {
-		  sclv_read_bfile_values $nField $sPath $sStem $sRegistration; 
-		    sclv_copy_view_settings_from_field $nField 0; 
-		    OverlayLayerChanged
-		}
-		UpdateAndRedraw; 
-	    }
-	
-	pack $fwStem $fwStemNote $fwReg $fwRegNote $fwButtons \
-	    -side top       \
-	    -expand yes     \
-	    -fill x         \
-	    -padx 5         \
-	    -pady 5
-	
-	# after the next idle, the window will be mapped. set the min
-	# width to our width and the min height to the mapped height.
-	after idle [format {
-	    update idletasks
-	    wm minsize %s %d [winfo reqheight %s]
-	} $wwDialog $knWidth $wwDialog] 
-    }
+    UpdateAndRedraw
 }
 
 proc DoSaveValuesAsDlog {} {
@@ -4309,7 +4267,8 @@ proc GetDefaultLocation { iType } {
 	    LoadTimeCourse_Volume - LoadTimeCourse_Register -
 	    LoadFieldSign - SaveFieldSignAs -
 	    LoadFieldMask - SaveFieldMaskAs - 
-	    LoadOverlay - LoadTimeCourse {
+	    LoadOverlay - LoadTimeCourse - 
+	    LoadOverlayRegistration - LoadTimeCourseRegistration {
 		set gsaDefaultLocation($iType) \
 		    [ExpandFileName "" kFileName_FMRI]
 	    }

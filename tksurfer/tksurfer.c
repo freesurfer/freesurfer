@@ -1288,8 +1288,8 @@ static int func_num_conditions = 0;
 
 int func_initialize ();
 
-int func_load_timecourse (char* dir, char* stem, char* registration);
-int func_load_timecourse_offset (char* dir, char* stem, char* registration);
+int func_load_timecourse (char* fname, char* registration);
+int func_load_timecourse_offset (char* fname, char* registration);
 
 int func_select_marked_vertices ();
 int func_select_label ();
@@ -1396,8 +1396,7 @@ int sclv_unload_field (int field);
 int sclv_read_binary_values (char* fname, int field);
 int sclv_read_binary_values_frame (char* fname, int field);
 
-int sclv_read_bfile_values (char* dir, char* stem, 
-			    char* registration, int field);
+int sclv_read_bfile_values (char* fname, char* registration, int field);
 
 /* writes .w files only */
 int sclv_write_binary_values (char* fname, int field);
@@ -1741,19 +1740,14 @@ int Surfer(ClientData clientData, Tcl_Interp *interp, int argc, char *argv[])
   char *word;
   char path[MAX_DIR_DEPTH][NAME_LENGTH];
   int  nargs ;
-  char *functional_path = NULL, *functional_stem = NULL, *patch_name = NULL ;
+  char *functional_fname = NULL, *patch_name = NULL ;
   /* begin rkt */
-  char timecourse_path_and_stem[NAME_LENGTH];
+  char timecourse_fname[NAME_LENGTH];
   int load_timecourse = FALSE;
   int use_timecourse_reg = FALSE;
-  char timecourse_offset_path_and_stem[NAME_LENGTH];
+  char timecourse_offset_fname[NAME_LENGTH];
   int load_timecourse_offset = FALSE;
-  char timecourse_path[NAME_LENGTH];
-  char timecourse_stem[NAME_LENGTH];
   char timecourse_reg[NAME_LENGTH];
-  char timecourse_offset_path[NAME_LENGTH];
-  char timecourse_offset_stem[NAME_LENGTH];
-  xUtil_tErr util_error;
   /* end rkt */
   
   InitDebugging("tksurfer") ;
@@ -1764,9 +1758,8 @@ int Surfer(ClientData clientData, Tcl_Interp *interp, int argc, char *argv[])
       /*      fprintf(stderr, "argv[%d] = %s\n", i, argv[i]);*/
       if (!stricmp(argv[i], "-o")) 
 	{
-	  nargs = 3 ;
-	  functional_path = argv[i+1] ;
-	  functional_stem = argv[i+2] ;
+	  nargs = 2 ;
+	  functional_fname = argv[i+1] ;
 	}
       else if (!stricmp(argv[i], "-fslope"))
 	{
@@ -1843,8 +1836,8 @@ int Surfer(ClientData clientData, Tcl_Interp *interp, int argc, char *argv[])
       /* begin rkt */
       else if (!stricmp(argv[i], "-timecourse"))
 	{
-	  nargs = 2;
-	  strncpy (timecourse_path_and_stem, argv[i+1], sizeof(timecourse_path_and_stem));
+	  nargs = 1;
+	  strncpy (timecourse_fname, argv[i+1], sizeof(timecourse_fname));
 	  load_timecourse = TRUE;
 	}
       else if (!stricmp(argv[i], "-timecourse-reg"))
@@ -1855,8 +1848,9 @@ int Surfer(ClientData clientData, Tcl_Interp *interp, int argc, char *argv[])
 	}
       else if (!stricmp(argv[i], "-timecourse-offset"))
 	{
-	  nargs = 2;
-	  strncpy (timecourse_offset_path_and_stem, argv[i+1], sizeof(timecourse_offset_path_and_stem));
+	  nargs = 1;
+	  strncpy (timecourse_offset_fname, argv[i+1], 
+		   sizeof(timecourse_offset_fname));
 	  load_timecourse_offset = TRUE;
 	}
       /* end rkt */
@@ -2061,11 +2055,10 @@ int Surfer(ClientData clientData, Tcl_Interp *interp, int argc, char *argv[])
       if (FileExists(fname))
         read_canon_vertex_coordinates(fname) ;
     }
-  if (functional_path)  /* -o specified on command line */
+  if (functional_fname)  /* -o specified on command line */
     {
       char fname[STRLEN] ;
       
-      sprintf(fname, "%s/%s", functional_path, functional_stem) ;
       read_binary_values(fname) ;
       read_binary_curvature(cfname) ; val_to_stat() ;
       overlayflag = TRUE ;
@@ -2078,36 +2071,18 @@ int Surfer(ClientData clientData, Tcl_Interp *interp, int argc, char *argv[])
   /* begin rkt */
   if (load_timecourse)
     {
-      
-      util_error=xUtil_BreakStringIntoPathAndStem (timecourse_path_and_stem,
-						   timecourse_path, timecourse_stem);
-      if (util_error!=xUtil_tErr_NoError)
-	ErrorPrintf(0,"Couldn't load time course: file not found?\n");
-      else {
-	if (use_timecourse_reg)
-	  func_load_timecourse (timecourse_path, 
-				timecourse_stem, timecourse_reg);
-	else
-	  func_load_timecourse (timecourse_path, timecourse_stem, NULL);
-      }
+      if (use_timecourse_reg)
+	func_load_timecourse (timecourse_fname, timecourse_reg);
+      else
+	func_load_timecourse (timecourse_fname, NULL);
     }
   
   if (load_timecourse_offset)
     {
-      
-      util_error = xUtil_BreakStringIntoPathAndStem 
-	(timecourse_offset_path_and_stem, 
-	 timecourse_offset_path, timecourse_offset_stem);
-      if (util_error!=xUtil_tErr_NoError)
-	ErrorPrintf(0,"Couldn't load time course: file not found?\n");
-      else {
-	if (use_timecourse_reg)
-	  func_load_timecourse_offset (timecourse_offset_path, 
-				       timecourse_offset_stem,timecourse_reg);
-	else
-	  func_load_timecourse_offset (timecourse_offset_path,
-				       timecourse_offset_stem, NULL);
-      }
+      if (use_timecourse_reg)
+	func_load_timecourse_offset (timecourse_offset_fname, timecourse_reg);
+      else
+	func_load_timecourse_offset (timecourse_offset_fname, NULL);
     }
   
   /* end rkt */
@@ -7706,7 +7681,8 @@ sclv_read_binary_values(char *fname, int field)  /* marty: openclose */
   /* save the directory for later */
   FileNamePath (fname, val_dir );
   
-  /* read the file. if not found, bail. */
+  /* read the file. if not found, bail. This sets all the v->val
+     values to the new surface values. */
   error_code = MRISreadValues(mris, fname) ;
   if (error_code != NO_ERROR)
     {
@@ -7791,7 +7767,7 @@ sclv_read_binary_values(char *fname, int field)  /* marty: openclose */
 }
 
 int
-sclv_read_bfile_values (char* dir, char* stem, char* registration, int field)
+sclv_read_bfile_values (char* fname, char* registration, int field)
 {
   FunD_tErr volume_error;
   mriFunctionalDataRef volume;
@@ -7802,12 +7778,14 @@ sclv_read_bfile_values (char* dir, char* stem, char* registration, int field)
   
   /* create volume. */
   volume_error = FunD_New (&volume, sclv_client_transform,
-			   dir, stem, NULL, registration, 
+			   fname, NULL, registration, 
 			   sclv_register_transform );
   if (volume_error!=FunD_tErr_NoError)
     {
-      printf("surfer: couldn't load %s/%s\n",dir,stem);
-      ErrorReturn(func_convert_error(volume_error),(func_convert_error(volume_error),"sclv_read_bfloat_values: error in FunD_New\n"));
+      printf("surfer: couldn't load %s\n",fname);
+      ErrorReturn(func_convert_error(volume_error),
+		  (func_convert_error(volume_error),
+		   "sclv_read_bfloat_values: error in FunD_New\n"));
     }
   
   /* save the volume and mark this field as binary */
@@ -17734,24 +17712,24 @@ ERR(1,"Wrong # args: swap_buffers")
      int W_func_load_timecourse (ClientData clientData,Tcl_Interp *interp,
 				 int argc,char *argv[])
 {
-  if(argc!=3&&argc!=4)
+  if(argc!=2&&argc!=3)
     {
-      Tcl_SetResult(interp,"Wrong # args: func_load_timecourse dir stem"
-		    " [registration]",TCL_VOLATILE);
+      Tcl_SetResult(interp,"Wrong # args: func_load_timecourse volumeFileName"
+		    " [registrationFileName]",TCL_VOLATILE);
       return TCL_ERROR;
     }
   
-  if (argc==3)
-    func_load_timecourse (argv[1],argv[2],NULL);
-  /* even if we have 4 args, tcl could have passed us a blank string
+  if (argc==2)
+    func_load_timecourse (argv[1],NULL);
+  /* even if we have 3 args, tcl could have passed us a blank string
      for the 4th. if it's blank, call the load function with a null
      registration, otherwise it will think it's a valid file name. */
-  if (argc==4)
+  if (argc==3)
     {
-      if (strcmp(argv[3],"")==0)
-	func_load_timecourse (argv[1],argv[2],NULL);
+      if (strcmp(argv[2],"")==0)
+	func_load_timecourse (argv[1],NULL);
       else
-	func_load_timecourse (argv[1],argv[2],argv[3]);
+	func_load_timecourse (argv[1],argv[2]);
     }
   return TCL_OK;
 }
@@ -17761,15 +17739,15 @@ int W_func_load_timecourse_offset (ClientData clientData,Tcl_Interp *interp,
 {
   if(argc!=2&&argc!=3)
     {
-      Tcl_SetResult(interp,"Wrong # args: func_load_timecourse_offset dir stem"
+      Tcl_SetResult(interp,"Wrong # args: func_load_timecourse_offset fname"
 		    " [registration]",TCL_VOLATILE);
       return TCL_ERROR;
     }
   
   if (argc==2)
-    func_load_timecourse_offset (argv[1],argv[2],NULL);
+    func_load_timecourse_offset (argv[1],NULL);
   if (argc==3)
-    func_load_timecourse_offset (argv[1],argv[2],argv[3]);
+    func_load_timecourse_offset (argv[1],argv[2]);
   
   return TCL_OK;
 }
@@ -17777,24 +17755,24 @@ int W_func_load_timecourse_offset (ClientData clientData,Tcl_Interp *interp,
 int W_sclv_read_bfile_values (ClientData clientData,Tcl_Interp *interp,
 			      int argc,char *argv[])
 {
-  if(argc!=4&&argc!=5)
+  if(argc!=3&&argc!=4)
     {
-      Tcl_SetResult(interp,"Wrong # args: read_bfile_values field dir stem "
+      Tcl_SetResult(interp,"Wrong # args: read_bfile_values field fname "
 		    " [registration]",TCL_VOLATILE);
       return TCL_ERROR;
     }
   
-  if (argc==4)
-    sclv_read_bfile_values (argv[2],argv[3],NULL,atoi(argv[1]));
+  if (argc==3)
+    sclv_read_bfile_values (argv[2],NULL,atoi(argv[1]));
   /* even if we have 4 args, tcl could have passed us a blank string
      for the 4th. if it's blank, call the read function with a null
      registration, otherwise it will think it's a valid file name. */
-  if (argc==5)
+  if (argc==4)
     {
-      if (strcmp(argv[4],"")==0)
-	sclv_read_bfile_values (argv[2],argv[3],NULL,atoi(argv[1]));
+      if (strcmp(argv[3],"")==0)
+	sclv_read_bfile_values (argv[2],NULL,atoi(argv[1]));
       else
-	sclv_read_bfile_values (argv[2],argv[3],argv[4],atoi(argv[1]));
+	sclv_read_bfile_values (argv[2],argv[3],atoi(argv[1]));
     }
   return TCL_OK;
 }
@@ -18127,7 +18105,7 @@ int main(int argc, char *argv[])   /* new main */
   /* end rkt */
   
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.44 2003/07/01 14:15:44 tosa Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.45 2003/07/15 17:18:35 kteich Exp $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -20895,14 +20873,14 @@ int func_initialize()
   return(ERROR_NONE);
 }
 
-int func_load_timecourse (char* dir, char* stem, char* registration)
+int func_load_timecourse (char* fname, char* registration)
 {
   FunD_tErr volume_error;
   char tcl_cmd[1024];
   float time_resolution;
   
-  if (dir==NULL||stem==NULL)
-    ErrorReturn(ERROR_BADPARM,(ERROR_BADPARM,"func_load_timecourse: dir or stem was null\n"));
+  if (fname==NULL)
+    ErrorReturn(ERROR_BADPARM,(ERROR_BADPARM,"func_load_timecourse: fname was null\n"));
   
   /* delete existing */
   if (func_timecourse!=NULL)
@@ -20914,15 +20892,15 @@ int func_load_timecourse (char* dir, char* stem, char* registration)
   
   /* create new volume */
   volume_error = FunD_New (&func_timecourse, sclv_client_transform,
-			   dir, stem, NULL, registration, 
+			   fname, NULL, registration, 
 			   sclv_register_transform);
   if (volume_error!=FunD_tErr_NoError)
     {
-      printf("### surfer: couldn't load %s/%s\n",dir,stem);
+      printf("### surfer: couldn't load %s\n",fname);
       ErrorReturn(func_convert_error(volume_error),(func_convert_error(volume_error),"func_load_timecourse: error in FunD_New\n"));
     }
   
-  printf("surfer: loaded timecourse %s/%s\n",dir,stem);
+  printf("surfer: loaded timecourse %s\n",fname);
   
   /* get the time res, num conditions, and num presitm points */
   FunD_GetNumPreStimTimePoints (func_timecourse, &func_num_prestim_points);
@@ -20947,12 +20925,12 @@ int func_load_timecourse (char* dir, char* stem, char* registration)
   return(ERROR_NONE);
 }
 
-int func_load_timecourse_offset (char* dir, char* stem, char* registration)
+int func_load_timecourse_offset (char* fname, char* registration)
 {
   FunD_tErr volume_error;
 
-  if (dir==NULL||stem==NULL)
-    ErrorReturn(ERROR_BADPARM,(ERROR_BADPARM,"func_load_timecourse_offset: dir or stem was null\n"));
+  if (fname==NULL)
+    ErrorReturn(ERROR_BADPARM,(ERROR_BADPARM,"func_load_timecourse_offset: fname was null\n"));
   
   /* delete existing */
   if (func_timecourse_offset!=NULL)
@@ -20964,7 +20942,7 @@ int func_load_timecourse_offset (char* dir, char* stem, char* registration)
   
   /* create new volume */
   volume_error = FunD_New (&func_timecourse_offset, sclv_client_transform,
-			   dir, stem, NULL, registration, 
+			   fname, NULL, registration, 
 			   sclv_register_transform );
   if (volume_error!=FunD_tErr_NoError)
     ErrorReturn(func_convert_error(volume_error),(func_convert_error(volume_error),"func_load_timecourse_offset: error in FunD_New\n"));
@@ -20972,7 +20950,7 @@ int func_load_timecourse_offset (char* dir, char* stem, char* registration)
   /* enable offset display */
   func_use_timecourse_offset = TRUE;
   
-  printf("surfer: loaded timecourse offset %s/%s\n",dir,stem);
+  printf("surfer: loaded timecourse offset %s\n",fname);
   
   /* if we have a tcl shell, notify the graph we loaded an offset. */
   if (g_interp!=NULL)
@@ -21240,6 +21218,7 @@ int func_calc_avg_timecourse_values (int condition, int* num_good_voxels,
   
   int tp,num_timepoints;
   float* sums;
+  tBoolean present;
   FUNC_SELECTED_VOXEL selected_voxel;
   xVoxel voxel;
   xGArr_tErr array_error = xGArr_tErr_NoErr;
@@ -21320,7 +21299,8 @@ int func_calc_avg_timecourse_values (int condition, int* num_good_voxels,
     offset = offset_sum / (float)(*num_good_voxels);
   
   /* if there is error data present.. */
-  if (FunD_IsErrorDataPresent(func_timecourse)) 
+  FunD_IsErrorDataPresent(func_timecourse, &present);
+  if (present)
     {
       
       /* get the deviations at all time points */
@@ -21361,8 +21341,6 @@ int func_convert_error (FunD_tErr volume_error)
     case FunD_tErr_UnrecognizedHeaderFormat:
     case FunD_tErr_QuestionableHeaderFormat:
     case FunD_tErr_CouldntDetermineDataType:
-    case FunD_tErr_SliceFileNotFound:
-    case FunD_tErr_ErrorReadingSliceData:
       error = ERROR_NOFILE;
       break;
     case FunD_tErr_CouldntAllocateVolume:
@@ -21455,6 +21433,16 @@ sclv_calc_frequencies(int field)
   
   sclv_field_info[field].num_freq_bins = SCLV_NUM_FREQUENCY_BINS;
   
+  /* get the value range. */
+  num_values = (sclv_field_info[field].max_value - 
+		sclv_field_info[field].min_value);
+  valPerBin = num_values / (float)sclv_field_info[field].num_freq_bins;
+	  
+  fprintf (stderr, 
+	   "field %d min %.2f max %.2f num_values %.2f valPerBin %.2f\n",
+	   field, sclv_field_info[field].min_value, 
+	   sclv_field_info[field].max_value, num_values, valPerBin);
+
   /* allocate storage for each time point and condition... */
   sclv_field_info[field].frequencies = 
     calloc( sclv_field_info[field].num_conditions, sizeof(int**) );
@@ -21476,11 +21464,6 @@ sclv_calc_frequencies(int field)
 	     and condition into the vertex fields as well as calculate
 	     the correct max/mins. */
 	  sclv_set_timepoint_of_field (field, timepoint, condition);
-	  
-	  /* get the value range. */
-	  num_values = (sclv_field_info[field].max_value - 
-			sclv_field_info[field].min_value);
-	  valPerBin = num_values / (float)sclv_field_info[field].num_freq_bins;
 	  
 	  /* for each vertex, get the scalar value. find the bin it
 	     should go in and inc the count in that bin. */
@@ -21616,6 +21599,7 @@ int sclv_set_timepoint_of_field (int field,
   
   /* check the timepoint and condition. if they're not what we're already
      using...*/
+  DisableDebuggingOutput;
   if (timepoint != sclv_field_info[field].cur_timepoint ||
       condition != sclv_field_info[field].cur_condition )
     {
@@ -21650,8 +21634,9 @@ int sclv_set_timepoint_of_field (int field,
       /* send the info for the current field */
       if (field == sclv_current_field)
 	sclv_send_current_field_info();
-    }
-  
+    } 
+  EnableDebuggingOutput;
+ 
   return (ERROR_NONE);
 }
 
