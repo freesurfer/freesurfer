@@ -28,6 +28,9 @@ class ViewState {
   void UpdateEntireRect ();
   int mUpdateRect[4];
 
+  void CopyUpdateRect ( int& oWindowLeft,  int& oWindowTop,
+			int& oWindowRight, int& oWindowBottom );
+  void CopyUpdateRect ( int oWindowUpdate[4] );
 };
 
 std::ostream& operator << ( std::ostream& os, ViewState& iInput );

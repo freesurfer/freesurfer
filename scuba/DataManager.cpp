@@ -104,7 +104,7 @@ DataManager::GetMRISLoader() {
 }
 
 // This line necessary to generate the right code.
-template DataLoader<MRI*>;
+template class DataLoader<MRI*>;
 list<MRI*> DataLoader<MRI*>::mlData;
 map<MRI*,int> DataLoader<MRI*>::mRefs;
 
@@ -141,7 +141,7 @@ MRILoader::DoesFileNameMatchObject( MRI* iData, std::string& ifnData ) {
 
 
 // This line necessary to generate the right code.
-template DataLoader<MRIS*>;
+template class DataLoader<MRIS*>;
 list<MRIS*> DataLoader<MRIS*>::mlData;
 map<MRIS*,int> DataLoader<MRIS*>::mRefs;
 

@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2004/10/08 17:22:04 $
-// Revision       : $Revision: 1.6 $
+// Revision Date  : $Date: 2005/02/23 22:41:49 $
+// Revision       : $Revision: 1.7 $
 
 // This file is necessary for creating the instantiations for template
 // classes. Note that we actually include the .cpp files here.  Then
@@ -24,21 +24,21 @@
 
 using namespace std;
 
-template Volume3<bool>;
-template Point3<int>;
+template class Volume3<bool>;
+template class Point3<int>;
 template ostream& operator << ( ostream&, Point3<int> );
-template Point3<float>;
+template class Point3<float>;
 template ostream& operator << ( ostream&, Point3<float> );
-template Point2<int>;
+template class Point2<int>;
 template ostream& operator << ( ostream&, Point2<int> );
-template Point2<float>;
+template class Point2<float>;
 template ostream& operator << ( ostream&, Point2<float> );
-template Array2<float>;
-template Array2<int>;
-template Array2<bool>;
-template Array2<listElement>;
-template Path<float>;
+template class Array2<float>;
+template class Array2<int>;
+template class Array2<bool>;
+template class Array2<listElement>;
+template class Path<float>;
 DeclareIDTracker(Path<float>); //ugh
-template Volume3<Point3<int> >;
-template Array2<Point3<float> >;
-template Array2<VolumeLocation*>;
+template class Volume3<Point3<int> >;
+template class Array2<Point3<float> >;
+template class Array2<VolumeLocation*>;

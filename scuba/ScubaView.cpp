@@ -207,6 +207,8 @@ ScubaView::ScubaView() {
   map<string,string> labelValueMap;
   mLabelValueMaps["mouse"] = labelValueMap;
   mLabelValueMaps["cursor"] = labelValueMap;
+
+  mViewState.ResetUpdateRect();
 }
 
 ScubaView::~ScubaView() {
@@ -2711,9 +2713,38 @@ ScubaView::DrawFrameBuffer () {
 
 #endif  
 
-  glRasterPos2i( 0, 0 );
-  glDrawPixels( mWidth, mHeight, GL_RGBA, GL_UNSIGNED_BYTE, mBuffer );
+  // Get the update bounds.
+  int windowUpdateBounds[4];
+  mViewState.CopyUpdateRect( windowUpdateBounds );
 
+  // Configure OpenGL so it only draws the subimage defined by the
+  // bounds.
+  glPixelStorei( GL_UNPACK_ROW_LENGTH, mWidth );
+  glPixelStorei( GL_UNPACK_SKIP_PIXELS, windowUpdateBounds[0] );
+  glPixelStorei( GL_UNPACK_SKIP_ROWS, windowUpdateBounds[1] );
+
+  // Draw.
+  glRasterPos2i( windowUpdateBounds[0], windowUpdateBounds[1] );
+  glDrawPixels( windowUpdateBounds[2] - windowUpdateBounds[0],
+		windowUpdateBounds[3] - windowUpdateBounds[1],
+		GL_RGBA, GL_UNSIGNED_BYTE, mBuffer );
+
+#if 0
+  cerr << "Rect : (" 
+       << windowUpdateBounds[0] << ", " << windowUpdateBounds[1] << ") (" 
+       << windowUpdateBounds[2] << ", " << windowUpdateBounds[3] << ")" <<endl;
+
+  glColor3f( 0, 1, 0 );
+  glBegin( GL_LINE_STRIP );
+  glVertex2d( mViewState.mUpdateRect[0], mViewState.mUpdateRect[1] );
+  glVertex2d( mViewState.mUpdateRect[2], mViewState.mUpdateRect[1] );
+  glVertex2d( mViewState.mUpdateRect[2], mViewState.mUpdateRect[3] );
+  glVertex2d( mViewState.mUpdateRect[0], mViewState.mUpdateRect[3] );
+  glVertex2d( mViewState.mUpdateRect[0], mViewState.mUpdateRect[1] );
+  glEnd();
+#endif
+
+  mViewState.ResetUpdateRect();
 }
 
 void 

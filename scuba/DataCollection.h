@@ -3,7 +3,7 @@
 
 
 #include <map>
-#include <list>
+#include <vector>
 #include "string_fixed.h"
 #include "DebugReporter.h"
 #include "IDTracker.h"
@@ -63,6 +63,8 @@ class DataCollection : public DebugReporter,
   // Handle broadcast messages.
   virtual void
     DoListenToMessage ( std::string isMessage, void* iData );
+
+  std::vector<int> GetROIList ();
 
   int NewROI ();
   void SelectROI ( int iROIID );

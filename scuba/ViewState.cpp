@@ -58,30 +58,30 @@ ViewState::AddUpdateRect ( int iWindowLeft,  int iWindowTop,
 
   if( iWindowLeft != -1 ) {
     if( mUpdateRect[0] == -1 ) 
-      mUpdateRect[0] = iWindowLeft;
+      mUpdateRect[0] = MAX( 0, iWindowLeft );
     else
-      mUpdateRect[0] = MIN( mUpdateRect[0], iWindowLeft );
+      mUpdateRect[0] = MAX( 0, MIN( mUpdateRect[0], iWindowLeft ) );
   }
 
   if( iWindowTop != -1 ) {
     if( mUpdateRect[1] == -1 ) 
-      mUpdateRect[1] = iWindowTop;
+      mUpdateRect[1] = MAX( 0, iWindowTop );
     else
-      mUpdateRect[1] = MIN( mUpdateRect[1], iWindowTop );
+      mUpdateRect[1] = MAX( 0, MIN( mUpdateRect[1], iWindowTop ) );
   }
 
   if( iWindowRight != -1 ) {
     if( mUpdateRect[2] == -1 ) 
-      mUpdateRect[2] = iWindowRight;
+      mUpdateRect[2] = MIN( mBufferHeight, iWindowRight );
     else
-      mUpdateRect[2] = MAX( mUpdateRect[2], iWindowRight );
+      mUpdateRect[2] = MIN( mBufferWidth, MAX( mUpdateRect[2], iWindowRight ));
   }
 
   if( iWindowBottom != -1 ) {
     if( mUpdateRect[3] == -1 ) 
-      mUpdateRect[3] = iWindowBottom;
+      mUpdateRect[3] = MIN( mBufferHeight, iWindowBottom );
     else
-      mUpdateRect[3] = MAX( mUpdateRect[3], iWindowBottom );
+      mUpdateRect[3] = MIN( mBufferHeight, MAX( mUpdateRect[3],iWindowBottom));
   }
 }
 
@@ -91,4 +91,36 @@ ViewState::UpdateEntireRect () {
   mUpdateRect[1] = 0;
   mUpdateRect[2] = mBufferWidth;
   mUpdateRect[3] = mBufferHeight;
+}
+
+void
+ViewState::CopyUpdateRect ( int& oWindowLeft,  int& oWindowTop,
+			    int& oWindowRight, int& oWindowBottom ) {
+
+  if( mUpdateRect[0] == -1 ) 
+    oWindowLeft = 0;
+  else
+    oWindowLeft = mUpdateRect[0];
+  
+  if( mUpdateRect[1] == -1 ) 
+    oWindowTop = 0;
+  else
+    oWindowTop = mUpdateRect[1];
+  
+  if( mUpdateRect[2] == -1 ) 
+    oWindowRight = mBufferWidth;
+  else
+    oWindowRight = mUpdateRect[2];
+  
+  if( mUpdateRect[3] == -1 ) 
+    oWindowBottom = mBufferHeight;
+  else
+    oWindowBottom = mUpdateRect[3];
+}
+
+void
+ViewState::CopyUpdateRect ( int oWindowUpdate[4] ) {
+
+  CopyUpdateRect( oWindowUpdate[0], oWindowUpdate[1],
+		  oWindowUpdate[2], oWindowUpdate[3] );
 }

@@ -150,7 +150,7 @@ class VolumeCollection : public DataCollection {
 
   // Enable or disable world to index transform.
   void SetUseWorldToIndexTransform ( bool ibUse );
-
+  bool GetUseWorldToIndexTransform () { return mbUseDataToIndexTransform; }
 
   // Finds and returns RAS points in a square area. Each RAS will
   // translate to a unique voxel. INPUT POINTS MUST BE IN CLOCKWISE OR

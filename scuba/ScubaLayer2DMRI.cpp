@@ -154,7 +154,7 @@ ScubaLayer2DMRI::SetVolumeCollection ( VolumeCollection& iVolume ) {
 
 void 
 ScubaLayer2DMRI::DrawIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
-				  ViewState&,
+				  ViewState& iViewState,
 				  ScubaWindowToRASTranslator& iTranslator ) {
 
   if( NULL == mVolume ) {
@@ -222,19 +222,32 @@ ScubaLayer2DMRI::DrawIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
     mColIncrementRAS[nRow][2] = RAS2[2] - mRowStartRAS[nRow][2];
   }
 
+  // Get the update bounds. We'll only iterate over those.
+  int windowUpdateBounds[4];
+  iViewState.CopyUpdateRect( windowUpdateBounds );
+
   // Create a dummy location, we'll change it soon. Note to self:
   // learn how to use C++ references properly.
   RAS[0] = RAS[1] = RAS[2] = 0;
   VolumeLocation& loc = (VolumeLocation&) mVolume->MakeLocationFromRAS( RAS );
 
-  for( window[1] = 0; window[1] < iHeight; window[1]++ ) {
+  for( window[1] = windowUpdateBounds[1];
+       window[1] < windowUpdateBounds[3]; window[1]++ ) {
+ 
+    // Grab the RAS beginning for this row and column.
+    RAS[0] = mRowStartRAS[window[1]][0] + 
+      windowUpdateBounds[0]*mColIncrementRAS[window[1]][0];
+    RAS[1] = mRowStartRAS[window[1]][1] + 
+      windowUpdateBounds[0]*mColIncrementRAS[window[1]][1];
+    RAS[2] = mRowStartRAS[window[1]][2] + 
+      windowUpdateBounds[0]*mColIncrementRAS[window[1]][2];
 
-    // Grab the RAS beginning for this row.
-    RAS[0] = mRowStartRAS[window[1]][0];
-    RAS[1] = mRowStartRAS[window[1]][1];
-    RAS[2] = mRowStartRAS[window[1]][2];
+    // Find this row start.
+    dest = iBuffer +
+      (((iWidth * window[1]) + windowUpdateBounds[0]) * mBytesPerPixel);
 
-    for( window[0] = 0; window[0] < iWidth; window[0]++ ) {
+    for( window[0] = windowUpdateBounds[0]; 
+	 window[0] < windowUpdateBounds[2]; window[0]++ ) {
 
       // Set the location from this RAS.
       loc.SetFromRAS( RAS );
@@ -1186,6 +1199,7 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
 	// that. These are the corners of our plane.
 	Point2<int> window;
 	Point3<float> sq[4];
+	Point2<int> sqw[2];
 	float rad = iTool.GetBrushRadius();
 
 	// Get our four plane points.
@@ -1193,6 +1207,8 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
 	window[0] -= (int)( iViewState.mZoomLevel * rad );
 	window[1] -= (int)( iViewState.mZoomLevel * rad );
 	iTranslator.TranslateWindowToRAS( window.xy(), sq[0].xyz() );
+	sqw[0][0] = window[0];
+	sqw[0][1] = window[1];
 
 	iTranslator.TranslateRASToWindow( iRAS, window.xy() );
 	window[0] += (int)( iViewState.mZoomLevel * rad );
@@ -1203,11 +1219,17 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
 	window[0] += (int)( iViewState.mZoomLevel * rad );
 	window[1] += (int)( iViewState.mZoomLevel * rad );
 	iTranslator.TranslateWindowToRAS( window.xy(), sq[2].xyz() );
+	sqw[1][0] = window[0];
+	sqw[1][1] = window[1];
 
 	iTranslator.TranslateRASToWindow( iRAS, window.xy() );
 	window[0] -= (int)( iViewState.mZoomLevel * rad );
 	window[1] += (int)( iViewState.mZoomLevel * rad );
 	iTranslator.TranslateWindowToRAS( window.xy(), sq[3].xyz() );
+
+	iViewState.AddUpdateRect( sqw[0][0], sqw[0][1],
+				  sqw[1][0], sqw[1][1] );
+
 
 	// Now get the RAS points in this square or circle.
 	list<Point3<float> > points;

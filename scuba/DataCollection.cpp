@@ -235,6 +235,20 @@ DataCollection::DoListenToMessage ( string, void* ) {
   
 }
 
+vector<int>
+DataCollection::GetROIList () {
+  
+  std::vector<int> lROIs;
+  map<int,ScubaROI*>::iterator tIDROI;
+  for( tIDROI = mROIMap.begin();
+       tIDROI != mROIMap.end(); ++tIDROI ) {
+    int roiID = (*tIDROI).first;
+    lROIs.push_back( roiID );
+  }
+
+  return lROIs;
+}
+
 int
 DataCollection::NewROI () {
 
