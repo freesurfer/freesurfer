@@ -43,6 +43,12 @@
                     GLOBAL FUNCTIONS
 -------------------------------------------------------*/
 
+#define DEBUG_FILTER 0
+IMAGE *Ifilter = NULL ;
+#if DEBUG_FILTER
+extern int Gx, Gy ;
+#endif
+
 /*----------------------------------------------------------------------
             Parameters:
 
@@ -56,6 +62,12 @@ ImageNitShiFilter(IMAGE *Isrc, IMAGE *Ix, IMAGE *Iy, int wsize, double sigma,
   IMAGE  *Iin, *Iout ;
   int    rows, cols, x, y, whalf, xk, yk, xs, ys ;
   float  norm, total, *dpix, *spix, fmin, fmax,fval, Eval,Fval,Gval, sigma_sq;
+
+#if DEBUG_FILTER
+  if (Ifilter)
+    ImageFree(&Ifilter) ;
+  Ifilter = ImageAlloc(wsize, wsize, PFFLOAT, 1) ;
+#endif
 
   rows = Isrc->rows ;
   cols = Isrc->cols ;
@@ -140,11 +152,25 @@ ImageWrite(IG, "IG.hipl");
           Gval = *IMAGEFpix(IG, xs, ys) ;
 
           fval = exp(-(Eval*xk*xk + 2*Fval*xk*yk + Gval*yk*yk) / sigma_sq) ;
+#if DEBUG_FILTER
+          if (x == Gx && y == Gy)
+            *IMAGEFpix(Ifilter, xk+whalf, yk+whalf) = fval ;
+#endif          
           total += fval * *spix ;
           norm += fval ;
         }
       }
 
+#if DEBUG_FILTER
+      if (x == Gx && y == Gy)
+        for (yk = -whalf ; yk <= whalf ; yk++)
+        {
+          for (xk = -whalf ; xk <= whalf ; xk++)
+          {
+            *IMAGEFpix(Ifilter, xk+whalf, yk+whalf) /= norm ;
+          }
+        }
+#endif          
       *dpix++ = total / norm ;
     }
   }
