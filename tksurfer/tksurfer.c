@@ -1079,6 +1079,8 @@ void cncl_handle_sigint (int signal);
 #define MENUSET_OVERLAY_LOADED         5
 #define MENUSET_CURVATURE_LOADED       6
 #define MENUSET_LABEL_LOADED           7
+#define MENUSET_FIELDSIGN_LOADED       8
+#define MENUSET_FIELDMASK_LOADED       9
 
 int enable_menu_set (int set, int enable);
 
@@ -8490,17 +8492,20 @@ read_fieldsign(char *fname)
   printf("surfer: mris->nvertices = %d, vnum = %d\n",mris->nvertices,vnum);
   if (vnum!=mris->nvertices) {
     printf("surfer: ### incompatible vertex number in file %s\n",fname);
-    printf("   ...file read anyway\n");PR
-					 }
-  for (k=0;k<vnum;k++)
+    printf("   ...file read anyway\n");
+  }
+  for (k=0;k<mris->nvertices;k++)
     {
       f = freadFloat(fp);
       mris->vertices[k].fieldsign = f;
     }
   fclose(fp);
   fieldsignflag = TRUE;
-  PR
-    }
+
+  enable_menu_set (MENUSET_FIELDSIGN_LOADED, 1);
+  if (g_interp)
+    Tcl_Eval (g_interp, "ShowLabel kLabel_Fieldsign 1");
+}
 
 void
 write_fieldsign(char *fname)
@@ -8537,14 +8542,16 @@ read_fsmask(char *fname)
   vnum = freadInt(fp);
   if (vnum!=mris->nvertices)
     printf("surfer: warning: incompatible vertex number in file %s\n",fname);
-  for (k=0;k<vnum;k++)
+  for (k=0;k<mris->nvertices;k++)
     {
       f = freadFloat(fp);
       mris->vertices[k].fsmask = f;
     }
   fclose(fp);
   PR
-    }
+
+  enable_menu_set (MENUSET_FIELDMASK_LOADED, 1);
+}
 
 void
 write_fsmask(char *fname)
@@ -12535,7 +12542,8 @@ fill_color_array(MRI_SURFACE *mris, float *colors)
   /* begin rkt */
   GLubyte r_base, b_base, g_base;
   GLubyte r_overlay, b_overlay, g_overlay;
-  float val;
+  float val, val2;
+  int mode;
   /* end rkt */
   
   for (n=0;n<mris->nvertices;n++)
@@ -12552,17 +12560,40 @@ fill_color_array(MRI_SURFACE *mris, float *colors)
 	     just use the solid background color. */
 	  if (surfcolor && overlayflag && curvflag)
 	    {
-	      get_color_vals (0, v->curv, REAL_VAL,
-			      &r_base, &g_base, &b_base);
+	      mode = REAL_VAL;
+	      val2 = v->curv;
 	    } 
 	  else if (surfcolor && curvflag)
 	    {
-	      get_color_vals (0, v->curv, GREEN_RED_CURV, 
-			      &r_base, &g_base, &b_base);
+	      mode = GREEN_RED_CURV;
+	      val2 = v->curv;
 	    } else {
-	      get_color_vals (0, 0, REAL_VAL,  
-			      &r_base, &g_base, &b_base);
+	      mode = REAL_VAL;
+	      val2 = 0;
 	    }
+
+	  val = 0;
+	  if (fieldsignflag)
+	    {
+	      val = v->fsmask * v->fieldsign;
+	      if (v->fieldsign > 0)
+		{
+		  if (!revphaseflag)
+		    mode = FIELDSIGN_POS;
+		  else
+		    mode = FIELDSIGN_NEG;
+		}
+	      else
+		{
+		  if (!revphaseflag)
+		    mode = FIELDSIGN_NEG;
+		  else
+		    mode = FIELDSIGN_POS;
+		}
+	    }
+
+	  get_color_vals (val, val2, mode,
+			  &r_base, &g_base, &b_base);
 	  
 	  /* save the base color for later comparison, but set our
 	     final rgb values to it for now. */
@@ -18993,6 +19024,8 @@ int main(int argc, char *argv[])   /* new main */
   enable_menu_set (MENUSET_OVERLAY_LOADED, 0);
   enable_menu_set (MENUSET_CURVATURE_LOADED, 0);
   enable_menu_set (MENUSET_LABEL_LOADED, 0);
+  enable_menu_set (MENUSET_FIELDSIGN_LOADED, 0);
+  enable_menu_set (MENUSET_FIELDMASK_LOADED, 0);
   /* end rkt */
   
   /* if command line script exists, now run as batch job (possibly exiting) */
@@ -20390,6 +20423,12 @@ enable_menu_set (int set, int enable) {
 	  break;
 	case MENUSET_LABEL_LOADED:
 	  sprintf (tcl_cmd, "%s mg_LabelLoaded", tcl_cmd);
+	  break;
+	case MENUSET_FIELDSIGN_LOADED:
+	  sprintf (tcl_cmd, "%s mg_FieldSignLoaded", tcl_cmd);
+	  break;
+	case MENUSET_FIELDMASK_LOADED:
+	  sprintf (tcl_cmd, "%s mg_FieldMaskLoaded", tcl_cmd);
 	  break;
 	default:
 	  ErrorReturn(ERROR_BADPARM,(ERROR_BADPARM,
