@@ -305,6 +305,8 @@ typedef struct
 #include "stats.h"
 
 
+double       MRIScomputeCorrelationError(MRI_SURFACE *mris, 
+                                         MRI_SP *mrisp_template, int fno) ;
 MRI_SURFACE  *MRISread(char *fname) ;
 MRI_SURFACE  *MRISfastRead(char *fname) ;
 int          MRISreadOriginalProperties(MRI_SURFACE *mris, char *sname) ;
@@ -352,7 +354,13 @@ MRI_SURFACE  *MRISunfold(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
                          int max_passes) ;
 int          MRISregister(MRI_SURFACE *mris, MRI_SP *mrisp_template, 
                            INTEGRATION_PARMS *parms, int max_passes) ;
-int          MRISrigidBodyAlign(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) ;
+int          MRISrigidBodyAlignLocal(MRI_SURFACE *mris, 
+                                     INTEGRATION_PARMS *parms) ;
+int          MRISrigidBodyAlignGlobal(MRI_SURFACE *mris, 
+                                      INTEGRATION_PARMS *parms,
+                                      float min_degrees,
+                                      float max_degrees,
+                                      int nangles) ;
 MRI_SURFACE  *MRISunfoldOnSphere(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, 
                                  int max_passes);
 MRI_SURFACE  *MRISflatten(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) ;
