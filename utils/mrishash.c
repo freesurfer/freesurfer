@@ -1268,6 +1268,9 @@ MHTgetBucket(MRIS_HASH_TABLE *mht, float x, float y, float z)
   xv = WORLD_TO_VOXEL(mht,x) ; 
   yv = WORLD_TO_VOXEL(mht,y) ; 
   zv = WORLD_TO_VOXEL(mht,z) ;
+  if (xv >= FIELD_OF_VIEW || yv >= FIELD_OF_VIEW || zv >= FIELD_OF_VIEW ||
+      xv < 0 || yv < 0 || zv < 0)
+    return(NULL) ;
   if (!mht->buckets[xv][yv])
     return(NULL) ;
   
