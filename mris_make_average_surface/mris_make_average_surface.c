@@ -13,8 +13,9 @@
 #include "mri.h"
 #include "macros.h"
 #include "icosahedron.h"
+#include "transform.h"
 
-static char vcid[] = "$Id: mris_make_average_surface.c,v 1.3 2002/11/15 17:21:18 fischl Exp $";
+static char vcid[] = "$Id: mris_make_average_surface.c,v 1.4 2003/01/22 00:49:48 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -25,6 +26,7 @@ static void print_help(void) ;
 static void print_version(void) ;
 
 static char *orig_name = "orig" ;
+static char *xform_name = "talairach.xfm" ;
 
 static int ico_no = 6 ;
 
@@ -39,6 +41,8 @@ main(int argc, char *argv[])
   VERTEX       *v ;
   MRI_SURFACE  *mris, *mris_ico ;
   MRI_SP       *mrisp, *mrisp_total ;
+	LTA          *lta ;
+	MRI          *mri ;
 
   Progname = argv[0] ;
   ErrorInit(NULL, NULL, NULL) ;
@@ -80,17 +84,31 @@ main(int argc, char *argv[])
     if (MRISreadOriginalProperties(mris, orig_name) != NO_ERROR)
       ErrorExit(ERROR_BADFILE,"%s: could not read orig file for %s.\n",
                 Progname, argv[1]);
+
+    sprintf(fname, "%s/%s/mri/transforms/%s", sdir, argv[i], xform_name) ;
+		lta = LTAread(fname) ;
+		if (!lta)
+			ErrorExit(ERROR_BADPARM, "%s: could not read transform from %s", Progname, fname) ;
+
+    sprintf(fname, "%s/%s/mri/T1", sdir, argv[i]) ;
+		mri = MRIreadHeader(fname, MRI_CORONAL_SLICE_DIRECTORY) ;
+		if (!mri)
+			ErrorExit(ERROR_BADPARM, "%s: could not read reference MRI volume from %s", Progname, fname) ;
+
     MRISsaveVertexPositions(mris, CANONICAL_VERTICES) ;
     MRISrestoreVertexPositions(mris, ORIGINAL_VERTICES) ;
-    MRIStalairachTransform(mris, mris) ;
+#if 0
+    MRIStalairachTransform(mris, mris, lta) ;
+#else
+		MRIStransform(mris, mri, lta) ;
+#endif
     MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ;
     MRISrestoreVertexPositions(mris, CANONICAL_VERTICES) ;
     mrisp = MRIScoordsToParameterization(mris, NULL, SCALE) ;
     MRISPaccumulate(mrisp, mrisp_total, 0) ;
     MRISPaccumulate(mrisp, mrisp_total, 1) ;
     MRISPaccumulate(mrisp, mrisp_total, 2) ;
-    MRISPfree(&mrisp) ;
-    MRISfree(&mris) ;
+    MRISPfree(&mrisp) ; MRISfree(&mris) ; LTAfree(&lta) ; MRIfree(&mri) ;
     n++ ;
   }
 
@@ -137,6 +155,16 @@ main(int argc, char *argv[])
   if (Gdiag & DIAG_SHOW)
     fprintf(stderr,"writing average orig surface to to %s\n", fname);
   MRISwrite(mris_ico,  fname) ;
+	{
+		char path[STRLEN] ;
+		LTA  *lta ;
+
+		FileNamePath(fname, path) ;
+		lta = LTAalloc(1, NULL) ;
+		sprintf(fname, "%s/../mri/transforms/%s", path,xform_name) ;
+		LTAwrite(lta, fname) ;
+		LTAfree(&lta) ;
+	}
 
   MRISfree(&mris_ico) ;
   MRISPfree(&mrisp_total) ;
@@ -166,6 +194,11 @@ get_option(int argc, char *argv[])
     ico_no = atoi(argv[2]) ;
     nargs = 1 ;
     break ;
+	case 'X':
+		xform_name = argv[2] ;
+		nargs = 1 ;
+		printf("using xform %s...\n", xform_name) ;
+		break ;
   case '?':
   case 'U':
     print_usage() ;
@@ -205,6 +238,9 @@ print_usage(void)
           " <output subject name >\n", Progname) ;
 	printf("this program will generate an average of the orig surfaces of all the subjects\n"
 				 "specified (unless the -s <surface name> flag is used)\n") ;
+	printf("\tthe transform defaults to %s in the subject's mri/transforms directory, but can\n",
+				 xform_name) ;
+	printf("\tbe changed using the -x <xform name> switch\n") ;
 }
 
 static void
