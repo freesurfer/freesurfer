@@ -128,6 +128,11 @@ static int voxel_center_to_center_voxel(MRI *mri, float *x, float *y, float *z);
 static MRI *gdfRead(char *fname, int read_volume);
 static int gdfWrite(MRI *mri, char *fname);
 
+static MRI *ximgRead(char *fname, int read_volume);
+
+static MRI *nifti1Read(char *fname, int read_volume);
+static int nifti1Write(MRI *mri, char *fname);
+
 /********************************************/
 
 static void short_local_buffer_to_image(short *buf, MRI *mri, int slice, int frame) ;
@@ -484,6 +489,14 @@ static MRI *mri_read(char *fname, int type, int volume_flag, int start_frame, in
   {
     mri = brukerRead(fname_copy, volume_flag);
   }
+  else if(type == XIMG_FILE)
+  {
+    mri = ximgRead(fname_copy, volume_flag);
+  }
+  else if(type == NIFTI1_FILE)
+  {
+    mri = nifti1Read(fname_copy, volume_flag);
+  }
   else
   {
     fprintf(stderr,"mri_read(): type = %d\n",type);
@@ -762,6 +775,25 @@ int MRIwriteType(MRI *mri, char *fname, int type)
   else if(type == GDF_FILE)
   {
     error = gdfWrite(mri, fname);
+  }
+  else if(type == NIFTI1_FILE)
+  {
+    error = nifti1Write(mri, fname);
+  }
+  else if(type == GENESIS_FILE || 
+          type == GE_LX_FILE || 
+          type == SIEMENS_FILE || 
+          type == SDT_FILE || 
+          type == OTL_FILE || 
+          type == RAW_FILE || 
+          type == SIGNA_FILE || 
+          type == DICOM_FILE || 
+          type == SIEMENS_DICOM_FILE || 
+          type == BRUKER_FILE || 
+          type == XIMG_FILE)
+  {
+    errno = 0;
+    ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "MRIwriteType(): reading of file type not supported"));
   }
   else
   {
@@ -7960,6 +7992,30 @@ MRI *MRIreadOtl(char *fname, int width, int height, int slices, char *color_file
   return(mri);
 
 } /* end MRIreadOtl() */
+
+static MRI *ximgRead(char *fname, int read_volume)
+{
+
+  errno = 0;
+  ErrorReturn(NULL, (ERROR_UNSUPPORTED, "ximgRead(): unsupported"));
+
+} /* end ximgRead() */
+
+static MRI *nifti1Read(char *fname, int read_volume)
+{
+
+  errno = 0;
+  ErrorReturn(NULL, (ERROR_UNSUPPORTED, "nifti1Read(): unsupported"));
+
+} /* end nifti1Read() */
+
+static int nifti1Write(MRI *mri, char *fname)
+{
+
+  errno = 0;
+  ErrorReturn(ERROR_UNSUPPORTED, (ERROR_UNSUPPORTED, "nifti1Write(): unsupported"));
+
+} /* end nifti1Write() */
 
 MRI *MRIreadGeRoi(char *fname, int n_slices)
 {
