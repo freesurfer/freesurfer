@@ -34,6 +34,7 @@ static double TE = -1 ;
 static char *sample_fname = NULL ;
 static char *transformed_sample_fname = NULL ;
 static char *normalized_transformed_sample_fname = NULL ;
+static char *ctl_point_fname = NULL ;
 static int novar = 0 ;
 
 #define MIN_SPACING   2.0
@@ -471,16 +472,24 @@ main(int argc, char *argv[])
           nleft_used, nright_used ;
     MRI   *mri_norm ;
 
+    GCAcomputeLogSampleProbability(gca, parms.gcas, mri_in, 
+                                   parms.lta->xforms[0].m_L, nsamples) ;
+#if 0
+    GCAnormalizedLogSampleProbability(gca, parms.gcas, mri_in, 
+                                     parms.lta->xforms[0].m_L, nsamples) ;
+#endif
     /* make "unknowns" the bottom of the list */
     for (nleft_cbm = nright_cbm = nused = i = 0 ; i < nsamples ; i++)
     {
       label = parms.gcas[i].label ;
-      if (label == Unknown || 
-          ((label != Left_Cerebral_White_Matter ) &&
+      if (((label != Left_Cerebral_White_Matter ) &&
            (label != Right_Cerebral_White_Matter ) &&
            (label != Left_Cerebellum_White_Matter ) &&
            (label != Right_Cerebellum_White_Matter )))
+      {
         parms.gcas[i].log_p = -100000 ;
+        parms.gcas[i].label = 0 ;
+      }
       else
       {
         nused++ ;
@@ -490,6 +499,9 @@ main(int argc, char *argv[])
           nright_cbm++ ;
       }
     }
+    GCAremoveOutlyingSamples(gca, parms.gcas, mri_in, 
+                                     parms.lta->xforms[0].m_L, nsamples, 2.0) ;
+
 
     /* rank samples by log probability */
     ordered_indices = (int *)calloc(nsamples, sizeof(int)) ;
@@ -568,7 +580,7 @@ main(int argc, char *argv[])
                                     parms.lta) ;
 
       mri_norm = GCAnormalizeSamples(mri_in, gca, parms.gcas, nsamples,
-                                     parms.lta) ;
+                                     parms.lta, ctl_point_fname) ;
       printf("writing normalized volume to %s...\n", norm_fname) ;
       MRIwrite(mri_norm, norm_fname) ;
       MRIfree(&mri_norm) ;
@@ -1308,6 +1320,11 @@ get_option(int argc, char *argv[])
   }
   else switch (*option)
   {
+  case 'F':
+    ctl_point_fname = argv[2] ;
+    nargs = 1 ;
+    printf("reading manually defined control points from %s\n", ctl_point_fname) ;
+    break ;
   case 'D':
     tx = atof(argv[2]) ; ty = atof(argv[3]) ; tz = atof(argv[4]) ;
     nargs = 3 ;
