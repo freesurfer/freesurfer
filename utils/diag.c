@@ -15,6 +15,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "error.h"
 #include "image.h"
 #include "diag.h"
 #include "windiag.h"
@@ -326,3 +327,14 @@ DiagShowPctDone(float pct_done, int nprints)
   }
 }
 
+int
+check_finite(char *where, double what)
+{
+  if (!finite(what))
+  {
+    ErrorPrintf(ERROR_BADPARM, "%s not finite!\n",where) ;
+    DiagBreak() ;
+    return(0) ;
+  }
+  return(1) ;
+}
