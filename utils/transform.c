@@ -166,7 +166,7 @@ LTAread(char *fname)
     m_tmp = MatrixMultiply(lta->xforms[0].m_L, W, NULL) ;
     MatrixMultiply(V, m_tmp, lta->xforms[0].m_L) ;
     MatrixFree(&V) ; MatrixFree(&W) ; MatrixFree(&m_tmp) ;
-    lta->type = LINEAR_RAS_TO_RAS ;
+    lta->type = LINEAR_VOX_TO_VOX ;
     break ;
   case LINEAR_VOX_TO_VOX:
   case LINEAR_RAS_TO_RAS:
