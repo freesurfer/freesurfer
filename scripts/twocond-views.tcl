@@ -38,11 +38,14 @@ source $env(MRI_DIR)/lib/tcl/readenv.tcl
 puts "tksurfer: [file tail $script]: read curvature"
 read_binary_curv
 
+
+
 #### read statistics data
 if {$statflag} {
   puts "tksurfer: [file tail $script]: read and smooth F-stats"
   setfile val */$dir/${floatstem}${statname}-$hemi.w
   read_binary_values
+
   smooth_val $smoothsteps
   swap_stat_val
 } else {
@@ -58,6 +61,10 @@ if {$statflag} {
   read_binary_values
   smooth_val $smoothsteps
 }
+
+if [info exists curvsteps] { smooth_curv $curvsteps }
+if [info exists condition0] { twocond $condition0 $condition1 }
+if [info exists mask]       { mask_label $mask }
 
 #### scale and position brain
 puts "tksurfer: [file tail $script]: scale, position brain"
