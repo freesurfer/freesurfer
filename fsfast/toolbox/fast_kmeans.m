@@ -6,7 +6,7 @@ function [kmeans, kmap, d2min, niters, yhat] = fast_kmeans(y,nc,kmeans0,nitersma
 % If kmeans0 is not specified, uses first nc of y.
 % The mean squared error is mean(d2min) = mean(reshape1d(y-yhat).^2)
 %
-% $Id: fast_kmeans.m,v 1.2 2003/04/07 02:20:52 greve Exp $
+% $Id: fast_kmeans.m,v 1.3 2003/04/15 03:55:01 greve Exp $
 
 kmeans = [];
 kmap = [];
@@ -50,7 +50,7 @@ while(niters < nitersmax & ndiff ~= 0)
 
   kmap0 = kmap;
   niters = niters + 1;
-  if(mod(niters,10)==0 | niters == 1)
+  if(1 | mod(niters,10)==0 | niters == 1)
     fprintf('%3d %5d %14.13f %g\n',niters,ndiff,mean(d2min),toc);
   end
 

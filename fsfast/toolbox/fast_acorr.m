@@ -28,7 +28,7 @@ function R = fast_acorr(x,scaling,dof)
 %   5. fast_acorr can incorporate dof information
 %   6. fast_acorr is much faster because it uses an FFT.
 % 
-% $Id: fast_acorr.m,v 1.2 2003/04/08 04:48:22 greve Exp $
+% $Id: fast_acorr.m,v 1.3 2003/04/15 03:51:32 greve Exp $
 
 if(nargin ~= 1 & nargin ~= 2 & nargin ~= 3)
   msg = 'USAGE: R = fast_acorr(x,<scaling>)';
@@ -38,7 +38,8 @@ end
 % Get dims of x %
 [ntrs ncols] = size(x);
 
-if(~exist('scaling')) scaling = 'coeff'; end
+if(~exist('scaling')) scaling = []; end
+%if(isempty(scaling))  scaling = 'unbiasedcoeff'; end
 if(isempty(scaling))  scaling = 'coeff'; end
 if(~exist('dof'))     dof = ntrs; end
 

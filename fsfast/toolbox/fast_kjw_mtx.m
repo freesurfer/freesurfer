@@ -15,7 +15,7 @@ tic;
 fprintf('KJW Matrix: Stage 1\n');
 Dl = eye(nf);
 for l = 1:p
-  fprintf('l = %d, %g\n',l,toc);
+  if(mod(l,5)==0 | l==1) fprintf('l = %d, %g\n',l,toc); end
   %Dl = diag(ones(nf-(l-1),1),l-1);  
   D(:,:,l) = Dl;
   DpDt(:,:,l) = Dl+Dl'; %'
@@ -25,7 +25,7 @@ end
 fprintf('KJW Matrix: Stage 2\n');
 M = zeros(p,p);
 for l = 1:p
-  fprintf('l = %d, %g\n',l,toc);
+  if(mod(l,5)==0 | l==1) fprintf('l = %d, %g\n',l,toc); end
   %Dl = diag(ones(p-l,1),l);
   Dl = D(:,:,l);
   %RDl = fast_mshift(R,[0 l-1],0);
@@ -35,7 +35,7 @@ for l = 1:p
     M(l,j) = trace(RDlR*DpDt(:,:,j)); 
   end
 end
-
+fprintf('KJW Matrix: cond = %g  (%g)\n',cond(M),toc);
 
 
 return;
