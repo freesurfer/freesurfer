@@ -9,12 +9,12 @@
 
 #ifdef SPARC
 
-int fprintf(FILE *fp, char *fmt, ...) ;
-int printf(char *fmt, ...) ;
-int vsprintf(char *str, char *fmt, va_list args) ;
-int vfprintf(FILE *fp, char *fmt, va_list args) ;
-int vprintf(char *fmt, va_list args) ;
-int sscanf(char *str, char *fmt, ...) ;
+int fprintf(FILE *fp, const char *fmt, ...) ;
+int printf(const char *fmt, ...) ;
+int vsprintf(char *str, const char *fmt, va_list args) ;
+int vfprintf(FILE *fp, const char *fmt, va_list args) ;
+int vprintf(const char *fmt, va_list args) ;
+int sscanf(char *str, const char *fmt, ...) ;
 void system(char *command_string) ;
 void perror(char *s) ;
 int fgetc(FILE *fp) ; 
@@ -34,7 +34,7 @@ void ftime(struct timeb *tm) ;
 
 #include "macros.h"
 
-#define iszero    FZERO
+int stricmp(char *str1, char *str2) ;
 #define nint(f)   ((int)(rint((double)f)))
 
 #endif   /* LINUX */
