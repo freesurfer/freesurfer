@@ -1,7 +1,7 @@
 /*
   fsgdf.c
   Utilities for reading freesurfer group descriptor file format 
-  $Id: fsgdf.c,v 1.10 2002/11/13 19:29:05 kteich Exp $
+  $Id: fsgdf.c,v 1.11 2002/11/15 22:48:28 kteich Exp $
 
   See:   http://surfer.nmr.mgh.harvard.edu/docs/fsgdf.txt
 
@@ -70,6 +70,9 @@ static int gdfCheckClassRep(FSGD *gd);
 static int gdfCheckAllClassesUsed(FSGD *gd);
 static int gdfCheckSubjRep(FSGD *gd);
 static int gdfGetDefVarLabelNo(FSGD *gd);
+
+
+char *Progname = "fsgdf";
 
 /*--------------------------------------------------*/
 FSGD *gdfAlloc(int version)
