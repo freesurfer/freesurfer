@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2005/01/03 15:37:28 $
-// Revision       : $Revision: 1.317 $
+// Revision Date  : $Date: 2005/01/03 15:39:29 $
+// Revision       : $Revision: 1.318 $
 //////////////////////////////////////////////////////////////////
 #include <stdio.h>
 #include <string.h>
@@ -41905,8 +41905,8 @@ int MRISsurf2surf(MRIS *mris, MRI *dst, LTA *lta)
     getVolGeom(dst, &lta->inv_xforms[0].src);
     if (mris->vg.valid==1)
     {
-      copyVolGeom(&mris->vg, &lta->xforms[0].dst);
-      copyVolGeom(&mris->vg, &lta->inv_xforms[0].src);
+      copyVolGeom(&mris->vg, &lta->xforms[0].src);
+      copyVolGeom(&mris->vg, &lta->inv_xforms[0].dst);
     }
   }
   src = MRIallocHeader(mris->vg.width, mris->vg.height, mris->vg.depth, MRI_VOLUME_TYPE_UNKNOWN);
