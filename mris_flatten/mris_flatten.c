@@ -14,7 +14,7 @@
 #include "macros.h"
 #include "utils.h"
 
-static char vcid[] = "$Id: mris_flatten.c,v 1.20 1998/12/16 22:33:24 fischl Exp $";
+static char vcid[] = "$Id: mris_flatten.c,v 1.21 2000/06/07 18:52:49 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -94,6 +94,8 @@ main(int argc, char *argv[])
   out_patch_fname = argv[2] ;
   FileNamePath(in_patch_fname, path) ;
   cp = strrchr(in_patch_fname, '/') ;
+  if (!cp)
+    cp = in_patch_fname ;
   cp = strchr(cp, '.') ;
   if (cp)
   {
