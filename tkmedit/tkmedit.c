@@ -2,11 +2,16 @@
   Copyright (c) 1996 Martin Sereno and Anders Dale
   ===========================================================================*/
 
+#ifdef HAVE_CONFIG_H 
+#include <config.h>
+#endif /* HAVE_CONFIG_H */
+#undef VERSION
+
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2004/12/20 02:08:29 $
-// Revision       : $Revision: 1.232 $
-char *VERSION = "$Revision: 1.232 $";
+// Revision Author: $Author: tosa $
+// Revision Date  : $Date: 2004/12/22 15:15:04 $
+// Revision       : $Revision: 1.233 $
+char *VERSION = "$Revision: 1.233 $";
 
 #define TCL
 #define TKMEDIT 
@@ -41,12 +46,15 @@ char *VERSION = "$Revision: 1.232 $";
 // for RedHat Enterprise Linux.
 // stupid tix people who cannot handle version.   I had to use gcc version.
 // you cannot include itk.h either(producing so many unknowns) either.
-// #ifndef Itcl_Init
-// int Itcl_Init(Tcl_Interp* interp);
-// #endif
-// #ifndef Itk_Init
-// int Itk_Init(Tcl_Interp* interp);
-// #endif
+#if NEEDS_ITCL_ITK
+#ifndef Itcl_Init
+int Itcl_Init(Tcl_Interp* interp);
+#endif
+#ifndef Itk_Init
+int Itk_Init(Tcl_Interp* interp);
+#endif
+#endif
+
 //////////////////////////////////////////////////////
 #include <tix.h>
 #include <blt.h>
@@ -1068,7 +1076,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
      shorten our argc and argv count. If those are the only args we
      had, exit. */
   /* rkt: check for and handle version tag */
-  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.232 2004/12/20 02:08:29 kteich Exp $", "$Name:  $");
+  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.233 2004/12/22 15:15:04 tosa Exp $", "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
   argc -= nNumProcessedVersionArgs;
@@ -5165,7 +5173,7 @@ int main ( int argc, char** argv ) {
     DebugPrint( ( "%s ", argv[nArg] ) );
   }
   DebugPrint( ( "\n\n" ) );
-  DebugPrint( ( "$Id: tkmedit.c,v 1.232 2004/12/20 02:08:29 kteich Exp $ $Name:  $\n" ) );
+  DebugPrint( ( "$Id: tkmedit.c,v 1.233 2004/12/22 15:15:04 tosa Exp $ $Name:  $\n" ) );
 
   
   /* init glut */
@@ -5472,14 +5480,16 @@ int main ( int argc, char** argv ) {
   }
 
   ////////// do the following only for RedHat Enterprise Linux
-  // eTcl = Itcl_Init(interp);
-  // if( TCL_OK != eTcl ) {
-  //   DebugPrint( ("Itlc_Init returned %d: %s\n", (int)eTcl, interp->result) );
-  // }
-  // eTcl = Itk_Init(interp);
-  // if( TCL_OK != eTcl ) {
-  //   DebugPrint( ("Itk_Init returned %d: %s\n", (int)eTcl, interp->result) );
-  // }
+#if NEEDS_ITCL_ITK  
+  eTcl = Itcl_Init(interp);
+  if( TCL_OK != eTcl ) {
+     DebugPrint( ("Itlc_Init returned %d: %s\n", (int)eTcl, interp->result) );
+  }
+  eTcl = Itk_Init(interp);
+  if( TCL_OK != eTcl ) {
+    DebugPrint( ("Itk_Init returned %d: %s\n", (int)eTcl, interp->result) );
+  }
+#endif
   ///////////////////////////////////////////////////////////////////
   eTcl = Tix_Init( interp );
   if( TCL_OK != eTcl ) {
