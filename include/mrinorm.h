@@ -32,6 +32,13 @@
 /* 50% overlap in adjacent windows */
 #define OVERLAP                             0.5f
 
+/* maximum gradient measured in (intensity change/voxel) */
+/* allow about 3 voxel change between adjacent windows */
+#define MAX_GRADIENT                        (3.0f/5.0f)
+
+/* relative to slice at Talairach origin (i.e. 4 slices above it) */
+#define STARTING_SLICE                      4
+#define SLICE_OFFSET                        3
 
 #define HISTO_BINS                          0
 #define BACKGROUND_INTENSITY                30
