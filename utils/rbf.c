@@ -84,9 +84,6 @@ static int   rbfNormalizeObservation(RBF *rbf, VECTOR *v_in, VECTOR *v_out) ;
 static float rbfTrain(RBF *rbf, int (*get_observation_func)
                (VECTOR *v_obs, int no, void *parm,int same_class,int *pclass),
                       void *parm, int which) ;
-static int   rbfExamineTrainingSet(RBF *rbf, int (*get_observation_func)
-               (VECTOR *v_obs, int no, void *parm,int same_class,int *pclass),
-                                   void *parm) ;
 static float rbfComputeCurrentError(RBF *rbf, int (*get_observation_func)
                (VECTOR *v_obs, int no, void *parm,int same_class,int *pclass),
                       void *parm) ;
@@ -205,7 +202,7 @@ RBFtrain(RBF *rbf, int (*get_observation_func)
   /* must examine training set before allocating training set data, because
      we need to know how many observations are in the training set.
      */
-  rbfExamineTrainingSet(rbf, get_observation_func, parm) ;
+  RBFexamineTrainingSet(rbf, get_observation_func, parm) ;
 
   /* do allocation of training-specific stuff */
   if (rbfAllocateTrainingParameters(rbf) != NO_ERROR)
@@ -1067,8 +1064,8 @@ RBFread(char *fname)
           values of the various input dimensions, as well as the
           total # of training samples.
 ------------------------------------------------------*/
-static int
-rbfExamineTrainingSet(RBF *rbf, int (*get_observation_func)
+int
+RBFexamineTrainingSet(RBF *rbf, int (*get_observation_func)
                       (VECTOR *v_obs, int no, void *parm, int same_class,
                        int *pclass), void *parm)
 {
@@ -1093,7 +1090,7 @@ rbfExamineTrainingSet(RBF *rbf, int (*get_observation_func)
   for (row = 1 ; row <= rbf->ninputs ; row++)
   {
     v = VECTOR_ELT(v_obs, row) ;
-    rbf->max_inputs[row-1] = v ;
+    rbf->min_inputs[row-1] = v ;
     rbf->max_inputs[row-1] = v ;
     means[row-1] = v ;
     stds[row-1] = v*v ;
@@ -1106,8 +1103,8 @@ rbfExamineTrainingSet(RBF *rbf, int (*get_observation_func)
       v = VECTOR_ELT(v_obs, i+1) ;
       if (v > rbf->max_inputs[i])
         rbf->max_inputs[i] = v ;
-      else if (v < rbf->min_inputs[i])
-        rbf->max_inputs[i] = v ;
+      if (v < rbf->min_inputs[i])
+        rbf->min_inputs[i] = v ;
       means[i] += v ;
       stds[i] += (v*v) ;
     }
@@ -1474,3 +1471,71 @@ RBFreadFrom(FILE *fp)
   return(rbf) ;
 }
 
+#if 0
+int
+RBFbuildScatterPlot(RBF *rbf, int class, MATRIX *m_scatter,
+                 char *training_file_name)
+{
+  static int       first = 0 ;
+  int              obs_no = 0, i, x, y, nbins, half_bins, bin_offset ;
+  VECTOR           *v_obs ;
+  float            *means, *stds, v, mean, std, z[2] ;
+  RBF              *rbf ;
+  GET_INPUT_PARMS  parms ;
+  FILE             *fp ;
+
+  nbins = m_scatter->rows ;
+  half_bins = (nbins-1)/2 ;
+  bin_offset = half_bins ;
+  if (!first)
+  {
+    first = 1 ;
+    MRICexamineTrainingSet(mric, training_file_name, SCATTER_ROUND) ;
+  }
+
+  fp = fopen(training_file_name, "r") ;
+  if (!fp)
+    ErrorReturn(ERROR_NO_FILE, 
+                (ERROR_NO_FILE, 
+                 "MRICbuildScatterPlot(%s): could not open file",
+                 training_file_name));
+  parms.fp = fp ;
+  parms.mric = mric ;
+  parms.round = SCATTER_ROUND ;
+
+
+  rbf = mric->classifier[SCATTER_ROUND].rbf ;
+
+  v_obs = VectorAlloc(rbf->ninputs, MATRIX_REAL) ;
+
+  /* not really a good idea to be messing with the CS internal parameters,
+     but it's much easier than the alternative, because all the other CS stuff
+     is class-specific, but the means and stds for normalizing the inputs 
+     should be across all classes.
+     */
+  means = rbf->cs[0]->means ;
+  stds = rbf->cs[0]->stds ;
+
+  /* now fill in scatter plot */
+  while (mricGetClassifierInput(v_obs, obs_no++, &parms,1,&class) == NO_ERROR)
+  {
+    for (i = 0 ; i < rbf->ninputs ; i++)
+    {
+      mean = means[i] ;
+      std = stds[i] ;
+      v = VECTOR_ELT(v_obs, i+1) ;
+      z[i] = (v - mean) / std ;
+    }
+
+    /* map 0 to half_bins, -MAX_SIGMA*sigma to 0, MAX_SIGMA*sigma to nbins */
+    x = z[0]/MAX_SIGMA*half_bins + bin_offset ;
+    y = z[1]/MAX_SIGMA*half_bins + bin_offset ;
+    if (x < 0) x = 0 ; else if (x >= nbins) x = nbins-1 ;
+    if (y < 0) y = 0 ; else if (y >= nbins) y = nbins-1 ;
+    m_scatter->rptr[x][y] += 1.0f ;
+  }
+
+  VectorFree(&v_obs) ;
+  return(NO_ERROR) ;
+}
+#endif
