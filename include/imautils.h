@@ -25,7 +25,8 @@ typedef struct {
 
   int  StudyNo;
   int  SeriesNo;
-  int  NFilesInSeries;
+  int  NFilesInSeries;    /* Actual number */
+  int  NFilesInSeriesExp; /* Expected */
   int  ImageNo;    /* within the study, not series */
   int  NImageRows;
   int  NImageCols;
@@ -41,7 +42,9 @@ typedef struct {
   int   IsMosaic;    /* Image is a mosaic of slices */
   int   VolDim[3];   /* number of cols rows slices */
   float VolRes[3];   /* Resolution of col, row, slice in mm */
-  int   NFrames;     /* Equals lRepetitions + 1 */
+  int   NFrames;     
+
+  int   NFilesPerFrame;
 
   //float VolCenter[3]; /* Exact RAS center of the volume */
   
