@@ -28,6 +28,7 @@ int     ErrorPrintf(int ecode, char *fmt, ...) ;
 #define NO_ERROR              0
 #define ERROR_NONE            NO_ERROR
 #define ERROR_NO_FILE         -1
+#define ERROR_NOFILE          ERROR_NO_FILE
 #define ERROR_NO_MEMORY       -2
 #define ERROR_UNSUPPORTED     -3
 #define ERROR_BADPARM         -4
