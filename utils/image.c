@@ -1733,7 +1733,7 @@ ImageCopyFrames(IMAGE *inImage, IMAGE *outImage,int start, int nframes,
           break ;
       default:
           ErrorExit(ERROR_UNSUPPORTED, 
-                    "ImageCopyFrames: unsupported image pixel format %d -> %d\n"
+                    "ImageCopyFrames: unsupported image pixel format %d -> %d"
                     , inImage->pixel_format, outImage->pixel_format) ;
           break ;
         }
@@ -1744,6 +1744,11 @@ ImageCopyFrames(IMAGE *inImage, IMAGE *outImage,int start, int nframes,
       iIn = IMAGEIpix(inImage, 0, 0) + pix_per_frame * frameno ;
       switch (outImage->pixel_format)
       {
+      case PFFLOAT:
+        fdst = IMAGEFpix(outImage, 0, 0) + pix_per_frame * frameno ;
+        while (size--)
+          *fdst++ = (float)*iIn++ ;
+        break ;
       case PFINT:
         iOut = IMAGEIpix(outImage, 0, 0) + pix_per_frame * frameno ;
         hmemcpy((char *)iOut, (char *)iIn, pix_per_frame*sizeof(int)) ;
@@ -1755,7 +1760,7 @@ ImageCopyFrames(IMAGE *inImage, IMAGE *outImage,int start, int nframes,
         break ;
       default:
         ErrorExit(ERROR_UNSUPPORTED, 
-                  "ImageCopyFrames: unsupported image pixel format %d -> %d\n",
+                  "ImageCopyFrames: unsupported image pixel format %d -> %d",
                   inImage->pixel_format, outImage->pixel_format) ;
         break ;
       }

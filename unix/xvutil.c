@@ -825,6 +825,9 @@ xv_dimage_event_handler(Xv_Window xv_window, Event *event)
     case PFBYTE:
       val = (double)*IMAGEseq_pix(dimage->sourceImage, x, y, dimage->frame) ;
       break ;
+    case PFINT:
+      val = (double)*IMAGEIseq_pix(dimage->sourceImage, x, y, dimage->frame) ;
+      break ;
     }
     
     sscanf(dimage->title_string, "%s", title) ; 
@@ -852,6 +855,10 @@ xv_dimage_event_handler(Xv_Window xv_window, Event *event)
           case PFBYTE:
             sprintf(buf, "%d", (int)
                     *IMAGEseq_pix(dimage2->sourceImage, x, y,dimage2->frame));
+            break ;
+          case PFINT:
+            sprintf(buf, "%d",
+                    *IMAGEIseq_pix(dimage2->sourceImage, x, y,dimage2->frame));
             break ;
           }
           XVshowImageTitle(xvf, i, "%s (%s)", title, buf) ;
