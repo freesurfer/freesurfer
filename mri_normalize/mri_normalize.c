@@ -22,7 +22,7 @@ static MRI_NORM_INFO  mni ;
 static int verbose = 1 ;
 static int num_3d_iter = 2 ;
 
-static float intensity_above = 25 ;
+static float intensity_above = 20 ;
 static float intensity_below = 10 ;
 
 int
