@@ -4,8 +4,8 @@
 /*                                                                     */
 /* Warning: Do not edit the following four lines.  CVS maintains them. */
 /* Revision Author: $Author: fischl $                                           */
-/* Revision Date  : $Date: 2003/12/09 22:48:41 $                                             */
-/* Revision       : $Revision: 1.19 $                                         */
+/* Revision Date  : $Date: 2003/12/29 17:18:37 $                                             */
+/* Revision       : $Revision: 1.20 $                                         */
 /***********************************************************************/
 
 #include <stdio.h>
@@ -237,29 +237,30 @@ main(int argc, char *argv[])
         mri_tmp = MRIread(fname) ;
         if (!mri_tmp)
           ErrorExit(ERROR_NOFILE, "%s: could not read image from file %s", Progname, fname) ;
-	// input check 1
-	if (getSliceDirection(mri_tmp) != MRI_CORONAL)
-	{
-	  ErrorExit(ERROR_BADPARM,"%s: must be in coronal direction, but it is not\n", 
-		    fname);
-	}
-	// input check 2
-	if (mri_tmp->xsize != 1 || mri_tmp->ysize != 1 || mri_tmp->zsize != 1)
-	{
-	  ErrorExit(ERROR_BADPARM,"%s: must have 1mm voxel size, but have (%f, %f, %f)\n", 
-		    fname, mri_tmp->xsize, mri_tmp->ysize, mri_tmp->ysize);
-	}
-	// input check 3
-	if (mri_tmp->c_r != 0 || mri_tmp->c_a != 0 || mri_tmp->c_s != 0)
-	{
-	  printf("INFO: make input volume c_(r,a,s) = 0\n");
-	  printf("INFO: %s has c_r = %f, c_a = %f, c_s = %f\n", fname, 
-		 mri_tmp->c_r, mri_tmp->c_a, mri_tmp->c_s);
-	  mri_tmp->c_r = 0;
-	  mri_tmp->c_a = 0;
-	  mri_tmp->c_s = 0;
-	}
-	// input check 4
+
+				// input check 1
+				if (getSliceDirection(mri_tmp) != MRI_CORONAL)
+				{
+					ErrorExit(ERROR_BADPARM,"%s: must be in coronal direction, but it is not\n", 
+										fname);
+				}
+				// input check 2
+				if (mri_tmp->xsize != 1 || mri_tmp->ysize != 1 || mri_tmp->zsize != 1)
+				{
+					ErrorExit(ERROR_BADPARM,"%s: must have 1mm voxel size, but have (%f, %f, %f)\n", 
+										fname, mri_tmp->xsize, mri_tmp->ysize, mri_tmp->ysize);
+				}
+				// input check 3
+				if (mri_tmp->c_r != 0 || mri_tmp->c_a != 0 || mri_tmp->c_s != 0)
+				{
+					printf("INFO: make input volume c_(r,a,s) = 0\n");
+					printf("INFO: %s has c_r = %f, c_a = %f, c_s = %f\n", fname, 
+								 mri_tmp->c_r, mri_tmp->c_a, mri_tmp->c_s);
+					mri_tmp->c_r = 0;
+					mri_tmp->c_a = 0;
+					mri_tmp->c_s = 0;
+				}
+				// input check 4
         if (i == 0)
         {
           TRs[input] = mri_tmp->tr ;
@@ -332,12 +333,12 @@ main(int argc, char *argv[])
         if (!transform)
           ErrorExit(ERROR_NOFILE, "%s: could not read transform from file %s",
                     Progname, fname);
-	// change the transform to vox-to-vox
-	if (transform->type == LINEAR_RAS_TO_RAS)
-	{
-	  modify_transform(transform, mri_inputs);
-	}
-	// TransformInvert(transform, mri_inputs) ;
+				// change the transform to vox-to-vox
+				if (transform->type == LINEAR_RAS_TO_RAS)
+				{
+					modify_transform(transform, mri_inputs);
+				}
+				// TransformInvert(transform, mri_inputs) ;
       }
       else
         transform = TransformAlloc(LINEAR_VOXEL_TO_VOXEL, NULL) ;
@@ -463,6 +464,28 @@ main(int argc, char *argv[])
           ErrorExit(ERROR_NOFILE, "%s: could not read T1 data from file %s",
                     Progname, fname) ;
         
+				// input check 1
+				if (getSliceDirection(mri_tmp) != MRI_CORONAL)
+				{
+					ErrorExit(ERROR_BADPARM,"%s: must be in coronal direction, but it is not\n", 
+										fname);
+				}
+				// input check 2
+				if (mri_tmp->xsize != 1 || mri_tmp->ysize != 1 || mri_tmp->zsize != 1)
+				{
+					ErrorExit(ERROR_BADPARM,"%s: must have 1mm voxel size, but have (%f, %f, %f)\n", 
+										fname, mri_tmp->xsize, mri_tmp->ysize, mri_tmp->ysize);
+				}
+				// input check 3
+				if (mri_tmp->c_r != 0 || mri_tmp->c_a != 0 || mri_tmp->c_s != 0)
+				{
+					printf("INFO: make input volume c_(r,a,s) = 0\n");
+					printf("INFO: %s has c_r = %f, c_a = %f, c_s = %f\n", fname, 
+								 mri_tmp->c_r, mri_tmp->c_a, mri_tmp->c_s);
+					mri_tmp->c_r = 0;
+					mri_tmp->c_a = 0;
+					mri_tmp->c_s = 0;
+				}
         if (input == 0)
         {
           int nframes = ninputs ;
@@ -516,17 +539,11 @@ main(int argc, char *argv[])
         if (!transform)
           ErrorExit(ERROR_NOFILE, "%s: could not read transform from file %s",
                     Progname, fname) ;
-        if (DIAG_VERBOSE_ON)
-          printf("reading transform from %s...\n", fname) ;
-        transform = TransformRead(fname);
-        if (!transform)
-          ErrorExit(ERROR_NOFILE, "%s: could not read transform from file %s",
-                    Progname, fname);
-	// change the transform to vox-to-vox
-	if (transform->type == LINEAR_RAS_TO_RAS)
-	{
-	  modify_transform(transform, mri_inputs);
-	}
+				// change the transform to vox-to-vox
+				if (transform->type == LINEAR_RAS_TO_RAS)
+				{
+					modify_transform(transform, mri_inputs);
+				}
         // TransformInvert(transform, mri_inputs) ;
       }
       else
