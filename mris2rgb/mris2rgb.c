@@ -37,7 +37,7 @@
 #include "label.h"
 #include "macros.h"
 
-static char vcid[] = "$Id: mris2rgb.c,v 1.28 2000/04/04 16:41:23 fischl Exp $";
+static char vcid[] = "$Id: mris2rgb.c,v 1.29 2003/01/23 19:02:17 tosa Exp $";
 
 /*-------------------------------- CONSTANTS -----------------------------*/
 
@@ -123,11 +123,11 @@ static int current_list = ORIG_SURFACE_LIST ;
 static int curvature_flag = 0 ;
 
 /*#if defined(Linux) || defined(__sun__)*/
-#ifdef Linux
-static OSMesaContext context ;
-static void *buffer = NULL ;
+//#ifdef Linux
+//static OSMesaContext context ;
+//static void *buffer = NULL ;
 
-#else
+//#else
 static Display     *display = NULL ;
 static XVisualInfo *visual ;
 static Pixmap      pixmap ;
@@ -138,7 +138,7 @@ static int         configuration[] =
   GLX_DOUBLEBUFFER, GLX_RGBA, GLX_DEPTH_SIZE, 16, GLX_RED_SIZE, 1, 
   GLX_GREEN_SIZE, 1, GLX_BLUE_SIZE, 1, None
 } ;
-#endif
+// #endif
 static char *curvature_fname = NULL ;
 static char *coord_fname = NULL ;
 static char *canon_fname = NULL ;
@@ -1107,33 +1107,33 @@ static void
 xend(void)
 {
   /*#if defined(Linux) || defined(__sun__)*/
-#ifdef Linux
-  OSMesaDestroyContext(context);
-  if (buffer)
-  {
-    free(buffer) ;
-    buffer = NULL ;
-  }
-#else
+  //#ifdef Linux
+  //OSMesaDestroyContext(context);
+  //if (buffer)
+  //{
+  //  free(buffer) ;
+  //  buffer = NULL ;
+  //}
+  //#else
   glXDestroyContext(display, context) ;
   glXDestroyGLXPixmap(display, glxpixmap) ;
   XCloseDisplay(display) ;
-#endif
+  //#endif
 }
 
 static void
 xinit(void)
 {
   /*#if defined(Linux) || defined(__sun__)*/
-#ifdef Linux
-  context = OSMesaCreateContext( GL_RGBA, NULL );
+  //#ifdef Linux
+  //context = OSMesaCreateContext( GL_RGBA, NULL );
   /* Allocate the image buffer */
-  buffer = calloc(1, frame_xdim * frame_ydim * 4 );
+  //buffer = calloc(1, frame_xdim * frame_ydim * 4 );
   
   /* Bind the buffer to the context and make it current */
-  OSMesaMakeCurrent( context, buffer,GL_UNSIGNED_BYTE,frame_xdim,frame_ydim);
+  //OSMesaMakeCurrent( context, buffer,GL_UNSIGNED_BYTE,frame_xdim,frame_ydim);
 
-#else
+  //#else
   display = XOpenDisplay(NULL) ;
   if (!display)
     ErrorExit(ERROR_BADPARM, "could not open display\n") ;
@@ -1155,7 +1155,7 @@ xinit(void)
                          frame_xdim, frame_ydim, visual->depth) ;
   glxpixmap = glXCreateGLXPixmap(display, visual, pixmap) ;
   glXMakeCurrent(display, glxpixmap, context) ;
-#endif
+  //#endif
 }
 
 static void
@@ -1286,19 +1286,19 @@ static void
 clear_pixmaps(MRI_SURFACE *mris)
 {
   /*#if defined(Linux) || defined(__sun__)*/
-#ifdef Linux
-  OSMesaDestroyContext(context);
-  if (buffer)
-  {
-    free(buffer) ;
-    buffer = NULL ;
-  }
-  xinit() ;   /* create new ones */
-  OGLUinit(mris, frame_xdim, frame_ydim) ;  /* reinitialize stuff */
-#else
+  //#ifdef Linux
+  //OSMesaDestroyContext(context);
+  //if (buffer)
+  //{
+  //  free(buffer) ;
+  //  buffer = NULL ;
+  //}
+  //xinit() ;   /* create new ones */
+  //OGLUinit(mris, frame_xdim, frame_ydim) ;  /* reinitialize stuff */
+  //#else
   glClearColor(0.0, 0.0, 0.0, 1.0);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-#endif
+  //#endif
   glLoadIdentity();
 }
 static int 
