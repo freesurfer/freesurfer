@@ -651,11 +651,49 @@ compare_sort_array(const void *pf1, const void *pf2)
            Description:
 ----------------------------------------------------------------------*/
 IMAGE *
+ImageConvolveGaussianByte(IMAGE *Isrc,IMAGE *gImage, IMAGE *Iout,int dst_frameno)
+{
+  static IMAGE     *Itmp = NULL ;
+  int              ksize ;
+  float            *kernel ;
+  byte             *buf ;
+
+  if (!ImageCheckSize(Isrc, Itmp, 0, 0, 0))
+  {
+    if (Itmp)
+      ImageFree(&Itmp) ;
+    Itmp = ImageAlloc(Isrc->rows, Isrc->cols, PFBYTE, 1) ;
+  }
+  if (!Iout)
+    Iout = ImageAlloc(Isrc->rows, Isrc->cols, PFBYTE, 1) ;
+
+  ImageSetSize(Itmp, Isrc->rows, Isrc->cols) ;
+
+  kernel = IMAGEFpix(gImage, 0, 0) ;
+  ksize = gImage->cols ;
+  ImageConvolve1dByte(Isrc, Itmp, kernel, ksize, IMAGE_VERTICAL) ;
+
+  buf = IMAGEpix(Iout, 0, 0) ;
+  Iout->image = IMAGEseq_pix(Iout, 0, 0, dst_frameno) ;
+  ImageConvolve1dByte(Itmp, Iout, kernel, ksize, IMAGE_HORIZONTAL) ;
+
+  Iout->image = buf ;
+  return(Iout) ;
+}
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+----------------------------------------------------------------------*/
+IMAGE *
 ImageConvolveGaussian(IMAGE *Isrc,IMAGE *gImage, IMAGE *Iout, int dst_frameno)
 {
   static IMAGE     *Itmp = NULL ;
   int              ksize ;
   float            *kernel, *buf ;
+
+  if (Isrc->pixel_format == PFBYTE)
+    return(ImageConvolveGaussianByte(Isrc, gImage, Iout, dst_frameno)) ;
 
   if (!ImageCheckSize(Isrc, Itmp, 0, 0, 0))
   {
@@ -804,6 +842,101 @@ ImageConvolve1d(IMAGE *I, IMAGE *J, float k[], int len, int axis)
           total += *ki++ * *(inBase + yi_LUT[y+i-halflen]*width) ;
 
         *outPix++ = total ;
+      }
+    }
+  }
+}
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+----------------------------------------------------------------------*/
+void
+ImageConvolve1dByte(IMAGE *I, IMAGE *J, float k[], int len, int axis)
+{
+  int           x, y, width, height, halflen ;
+  register int  i ;
+  register float *ki, total ;
+  byte           *inBase, *outPix ;
+  static int *xi_LUT = NULL,LUT_width, LUT_height, *yi_LUT = NULL, LUT_len = 0;
+
+  width = I->cols ;
+  height = I->rows ;
+
+
+  halflen = len/2 ;
+
+  if ((LUT_len != len) || (LUT_width != width))
+  {
+    LUT_width = width ;
+    if (xi_LUT)
+      free(xi_LUT-LUT_len/2) ;
+    xi_LUT = (int *)calloc(width+2*halflen, sizeof(int)) ;
+    if (!xi_LUT)
+      ErrorExit(ERROR_NO_MEMORY, "ImageConvolve1d: could not allocate LUT\n");
+    xi_LUT += halflen ;
+    for (i = -halflen ; i < width+halflen ; i++)
+    {
+      if (i < 0)
+        xi_LUT[i] = 0 ;
+      else if (i >= width)
+        xi_LUT[i] = width-1 ;
+      else
+        xi_LUT[i] = i ;
+    }
+  }
+
+  if ((LUT_len != len) || (LUT_height != height))
+  {
+    LUT_height = height ;
+    if (yi_LUT)
+      free(yi_LUT-LUT_len/2) ;
+    yi_LUT = (int *)calloc(height+2*halflen, sizeof(int)) ;
+    if (!yi_LUT)
+      ErrorExit(ERROR_NO_MEMORY, "ImageConvolve1d: could not allocate LUT\n");
+    yi_LUT += halflen ;
+    for (i = -halflen ; i < height+halflen ; i++)
+    {
+      if (i < 0)
+        yi_LUT[i] = 0 ;
+      else if (i >= height)
+        yi_LUT[i] = height-1 ;
+      else
+        yi_LUT[i] = i ;
+    }
+  }
+  LUT_len = len ;
+
+  outPix = IMAGEpix(J, 0, 0) ;
+  if (axis == IMAGE_HORIZONTAL)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      inBase = IMAGEpix(I, 0, y) ;
+      for (x = 0 ; x < width ; x++)
+      {
+        total = 0.0f ;
+
+        for (ki = k, i = 0 ; i < len ; i++)
+          total += *ki++ * (float)*(inBase + xi_LUT[x+i-halflen]) ;
+
+        *outPix++ = (byte)total ;
+      }
+    }
+  }
+  else
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      for (x = 0 ; x < width ; x++)
+      {
+        inBase = IMAGEpix(I, x, 0) ;
+        total = 0.0f ;
+
+        for (ki = k, i = 0 ; i < len ; i++)
+          total += *ki++ * (float)*(inBase + yi_LUT[y+i-halflen]*width) ;
+
+        *outPix++ = (byte)total ;
       }
     }
   }
