@@ -942,15 +942,19 @@ MRISsampleDistances(MRI_SURFACE *mris, int *nbrs, int max_nbhd)
   vnbrs = (int *)calloc(MAX_VERTICES, sizeof(int)) ;
   vall = (int *)calloc(MAX_VERTICES, sizeof(int)) ;
   total_nbrs = 0 ;
-  for (max_possible = 0, n = 1 ; n <= max_nbhd ; n++)
+  for (vtotal = max_possible = 0, n = 1 ; n <= max_nbhd ; n++)
+  {
     max_possible += nbrs[n] ;
+    if (n > mris->nsize)
+      vtotal += nbrs[n] ;
+  }
 
   if (Gdiag & DIAG_HEARTBEAT)
     fprintf(stderr, 
             "\nsampling %d dists/vertex (%2.1f at each dist) = %2.1fMB\n",
-            max_possible, 
-            (float)max_possible/((float)max_nbhd-(float)mris->nsize),
-            (float)max_possible*mris->nvertices*sizeof(float)*3.0f / 
+            vtotal, 
+            (float)vtotal/((float)max_nbhd-(float)mris->nsize),
+            (float)vtotal*mris->nvertices*sizeof(float)*3.0f / 
             (1024.0f*1024.0f)) ;
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
@@ -5254,7 +5258,7 @@ MRISwriteCurvature(MRI_SURFACE *mris, char *sname)
 {
   int    k,i ;
   float  curv;
-  char   fname[200], *cp, path[200] ;
+  char   fname[200], *cp, path[200], name[100] ;
   FILE   *fp;
   
   cp = strchr(sname, '/') ;
@@ -5268,9 +5272,18 @@ MRISwriteCurvature(MRI_SURFACE *mris, char *sname)
     else
       sprintf(fname, "%s/%s", path, sname) ;
   }
-  else   
-    strcpy(fname, sname) ;  /* path specified explcitly */
-  fp = fopen(fname,"wb");
+  else
+  {
+    FileNamePath(sname, path) ;
+    FileNameOnly(sname, name) ;
+    cp = strchr(sname, '.') ;
+    if (!cp)
+      sprintf(fname, "%s/%s.%s", path, 
+              mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", name) ;
+    else
+      sprintf(fname, "%s/%s", path, name) ;
+  }
+  fp = fopen(fname,"wb");  fp = fopen(fname,"wb");
   if (fp==NULL) 
     ErrorReturn(ERROR_NOFILE, 
                 (ERROR_NOFILE, "MRISwriteCurvature: could not open %s", 
@@ -5692,13 +5705,39 @@ MRISwriteCurvatureToWFile(MRI_SURFACE *mris, char *fname)
         Description
 ------------------------------------------------------*/
 int
-MRISwriteValues(MRI_SURFACE *mris, char *fname)
+MRISwriteValues(MRI_SURFACE *mris, char *sname)
 {
   int k,num;                   /* loop counters */
   float f;
+  char  fname[200], *cp, path[200], name[100] ;
   FILE *fp;
   double sum=0,sum2=0,max= -1000,min=1000;
 
+  cp = strchr(sname, '/') ;
+  if (!cp)                 /* no path - use same one as mris was read from */
+  {
+    FileNamePath(mris->fname, path) ;
+    cp = strchr(sname, '.') ;
+    if (!cp)
+      sprintf(fname, "%s/%s.%s", path, 
+              mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", sname) ;
+    else
+      sprintf(fname, "%s/%s", path, sname) ;
+  }
+  else
+  {
+    FileNamePath(sname, path) ;
+    FileNameOnly(sname, name) ;
+    cp = strchr(sname, '.') ;
+    if (!cp)
+      sprintf(fname, "%s/%s.%s", path, 
+              mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", name) ;
+    else
+      sprintf(fname, "%s/%s", path, name) ;
+  }
+  cp = strrchr(fname, '.') ;
+  if (!cp || *(cp+1) != 'w')
+    strcat(fname, ".w") ;
   if (Gdiag & DIAG_SHOW)
     fprintf(stderr, "writing out surface values to %s.\n", fname) ;
 
@@ -14506,6 +14545,83 @@ MRIScopyCurvatureToValues(MRI_SURFACE *mris)
       continue ;
     v->val = v->curv ;
   }
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+int
+MRIScomputeDistanceErrors(MRI_SURFACE *mris, int nbhd_size, int max_nbrs)
+{
+  VERTEX  *v ;
+  int     vno, n, nvertices ;
+  double  dist_scale, pct, dist, odist, mean, mean_error, smean,
+          total_mean_error, total_mean ;
+
+  MRIScomputeMetricProperties(mris) ;
+  if (mris->patch)
+    dist_scale = 1.0 ;
+  else
+    dist_scale = sqrt(mris->orig_area / mris->total_area) ;
+
+  total_mean = total_mean_error = mean = 0.0 ;
+  for (pct = 0.0, nvertices = vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+    {
+      v->val = 0.0f ;
+      continue ;
+    }
+    for (smean = mean_error = mean = 0.0, n = 0 ; n < v->vtotal ; n++)
+    {
+      nvertices++ ;
+      dist = dist_scale*v->dist[n] ;
+      odist = v->dist_orig[n] ;
+#if 0
+      mean += (dist - odist) * (dist - odist) ;
+#else
+      mean += odist ;
+#endif
+      total_mean += odist ;
+      smean += dist - odist ;
+#define USE_FABS  1
+#if USE_FABS
+      mean_error += fabs(dist-odist) ;
+      total_mean_error += fabs(dist-odist) ;
+#else
+      mean_error += (dist-odist)*(dist-odist) ;
+      total_mean_error += (dist-odist)*(dist-odist) ;
+#endif
+      if (!FZERO(odist))
+        pct += fabs(dist - odist) / odist ;
+    }
+    mean /= (double)v->vtotal ;
+#if USE_FABS
+    mean_error /= (double)v->vtotal ;
+#else
+    mean_error = sqrt(mean_error / (double)v->vtotal) ;
+#endif
+#if 0
+    if (smean < 0.0f)
+      mean_error *= -1.0f ;
+#endif
+    v->val = mean_error / mean ;
+  }
+
+#if USE_FABS
+  total_mean_error /= (double)nvertices ;
+#else
+  total_mean_error = sqrt(total_mean_error / (double)nvertices) ;
+#endif
+  total_mean /= (double)nvertices ;
+  total_mean_error /= total_mean ;
+  fprintf(stderr, "mean dist = %2.3f, rms error = %2.2f%%\n",
+          total_mean, 100.0*total_mean_error) ;
   return(NO_ERROR) ;
 }
 
