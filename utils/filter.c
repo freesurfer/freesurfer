@@ -1049,6 +1049,8 @@ ImageGaussian1d(float sigma, int max_len)
 
   /* build the kernel in k */
   len = (int)nint(8.0f * sigma)+1 ;
+  if (ISEVEN(len))   /* ensure it's even */
+    len++ ;
   if (max_len && (max_len < len))
     len = max_len ;
   half = len/2 ;
