@@ -1542,6 +1542,7 @@ int MHTfindClosestVertexNo(MRIS_HASH_TABLE *mht, MRI_SURFACE *mris,
 
   *min_dist = 10000000 ; 
   vmin = NULL ;
+  vtxno_min = 0;
 
   /* go through each bin in the bucket */
   for (i = 0 ; i < bucket->nused ; i++){
