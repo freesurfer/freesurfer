@@ -19859,8 +19859,7 @@ void cncl_initialize ()
   /* init the flags and register our handler. */
   cncl_listening = 0;
   cncl_canceled = 0;
-  /* this doesn't seem to work. */
-  //  signal (SIGINT, cncl_handle_sigint);
+  signal (SIGINT, cncl_handle_sigint);
 }
 
 void cncl_start_listening ()
@@ -19879,20 +19878,21 @@ void cncl_stop_listening ()
 int cncl_user_canceled () 
 {
   /* just return the canceled flag. */
-  return cncl_canceled;
+  return (cncl_canceled);
 }
 
 void cncl_handle_sigint (int signal)
 {
+
   /* if we're listening, set the flag, if not, exit normally. */
   if (cncl_listening) 
     {
-      printf ("canceled!\n" );
       cncl_canceled = 1;
-    } 
+   } 
   else
     {
       printf ("Killed\n");
+      fflush ( stdout );
       exit (1);
     }
 }
@@ -22744,8 +22744,9 @@ int fbnd_new_line_from_marked_vertices ()
   cncl_start_listening ();
   for (marked_index = 0; marked_index < nmarked-1; marked_index++)
     {
-      if (cncl_user_canceled())
-	break;
+      if (cncl_user_canceled()) {
+	goto cancel;
+      }
       
       src_vno = marked[marked_index];
       dest_vno = marked[marked_index+1];
@@ -22771,9 +22772,10 @@ int fbnd_new_line_from_marked_vertices ()
       done = FALSE;
       while (!done)
 	{
-	  if (cncl_user_canceled())
-	    break;
-	  
+	  if (cncl_user_canceled()) {
+	    goto cancel;
+	  }
+
 	  /* find the vertex with the shortest edge. */
 	  closest_dist = 999999;
 	  closest_vno = -1;
@@ -22848,9 +22850,17 @@ int fbnd_new_line_from_marked_vertices ()
 	  path_vno = pred[path_vno];
 	}
     }
-  cncl_stop_listening ();
-  
   printf (" done\n");
+  fflush (stdout);
+  
+  goto done;
+
+ cancel:
+  printf (" canceled\n");
+  fflush (stdout);
+  
+ done:
+  cncl_stop_listening ();
   
   fbnd_add (num_path, path, NULL);
   
