@@ -38,4 +38,7 @@ int     ErrorPrintf(int ecode, char *fmt, ...) ;
 #define ERROR_BAD_FILE        ERROR_BADFILE
 #define ERROR_SIZE            -6
 
+
+extern int Gerror ;    /* global error value */
+
 #endif
