@@ -200,10 +200,15 @@ typedef struct
   int          zeros ;
   int          hemisphere ;            /* which hemisphere */
   int          initialized ;
+#if 0
   General_transform transform ;   /* the next two are from this struct (MNI transform) */
   Transform         *linear_transform ;
   Transform         *inverse_linear_transform ;
-  int               free_transform ;
+#endif
+  LTA         *lta; 
+  MATRIX      *SRASToTalSRAS_;
+  MATRIX      *TalSRASToSRAS_;        
+  int          free_transform ;
   double       radius ;           /* radius (if status==MRIS_SPHERE) */
   float        a, b, c ;          /* ellipsoid parameters */
   char         fname[STRLEN] ;    /* file it was originally loaded from */
@@ -501,9 +506,15 @@ MRI_SURFACE  *MRIScenter(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst) ;
 int MRISorigVertexToVoxel(VERTEX *v, MRI *mri,Real *pxv, Real *pyv, Real *pzv) ;
 int          MRISvertexToVoxel(VERTEX *v, MRI *mri,Real *pxv, Real *pyv, 
                                Real *pzv) ;
+#if 0
 int          MRISworldToTalairachVoxel(MRI_SURFACE *mris, MRI *mri, 
                                        Real xw, Real yw, Real zw,
                                        Real *pxv, Real *pyv, Real *pzv) ;
+#endif
+int          MRISsurfaceRASToTalairachVoxel(MRI_SURFACE *mris, MRI *mri, 
+                                       Real xw, Real yw, Real zw,
+                                       Real *pxv, Real *pyv, Real *pzv) ;
+
 int          MRIStalairachToVertex(MRI_SURFACE *mris, 
                                        Real xt, Real yt, Real zt) ;
 int           MRIScanonicalToVertex(MRI_SURFACE *mris, Real phi, Real theta) ;
