@@ -8,13 +8,15 @@
 #include "mri.h"
 #include "rbf.h"
 
-#define NCLASSES                           4
+#define NCLASSES                           5
 #define GAUSSIAN_NCLASSES                  NCLASSES
 #define BACKGROUND                         0
 #define GREY_MATTER                        1
 #define GRAY_MATTER                        GREY_MATTER
-#define WHITE_MATTER                       2
-#define BRIGHT_MATTER                      3
+#define BORDER_MATTER                      2
+#define WHITE_MATTER                       3
+#define BRIGHT_MATTER                      4
+
 #define LO_LIM                             70
 #define HI_LIM                             100
 #define DEFINITELY_BACKGROUND              50
@@ -22,6 +24,7 @@
 /* range for scatter matrix plotting */
 #define MAX_SIGMA                          2.0f
 
+#define ISWHITE(c)  (((c) == BORDER_MATTER) || ((c) == WHITE_MATTER))
 
 /* all stuff classified as white below this value is assigned to
    the subcortical gray class, as long as its Talairach coordinate is

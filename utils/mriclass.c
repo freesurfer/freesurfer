@@ -59,6 +59,7 @@ char *class_names[GAUSSIAN_NCLASSES] =
 {
   "CSF",
   "GREY MATTER",
+  "BORDER PIXELS",
   "WHITE MATTER",
   "BRIGHT MATTER"
 } ;
@@ -530,7 +531,7 @@ MRICclassify(MRIC *mric, MRI *mri_src, MRI *mri_dst,
             *pclasses++ = (BUFTYPE)classno*CLASS_SCALE ;
           if (pprobs)
             *pprobs++ = prob ;
-          if ((classno == WHITE_MATTER) && (prob > conf))
+          if (ISWHITE(classno) && (prob > conf))
             *pdst++ = src ;
           else
             *pdst++ = 0 /*src*/ ;
@@ -792,7 +793,7 @@ MRICcomputeInputs(MRIC *mric, MRI *mri, int x,int y,int z,VECTOR *v_inputs,
     MRI  *mri_priors ;
 
     mri_priors = mric->mri_priors ;
-    MRIvoxelToVoxel(mri, mri_priors, (Real)x, (Real)y, (Real)z,&xrt, &yrt,&zrt);
+    MRIvoxelToVoxel(mri, mri_priors, (Real)x, (Real)y, (Real)z,&xrt,&yrt,&zrt);
     xt = mri_priors->xi[nint(xrt)] ;
     yt = mri_priors->yi[nint(yrt)] ;
     zt = mri_priors->zi[nint(zrt)] ;
@@ -848,7 +849,25 @@ MRICbuildTargetImage(MRI *mri_src, MRI *mri_target, MRI *mri_wm,
 #endif
         wm = *pwm++ ;
         if (wm)
+        {
+          int xi, yi, zi, xk,yk,zk ;
+
           target = WHITE_MATTER ;
+          for (zk = z-1 ; zk <= z+1 ; zk++)
+          {
+            zi = mri_target->zi[zk] ;
+            for (yk = y-1 ; yk <= y+1 ; yk++)
+            {
+              yi = mri_target->yi[yk] ;
+              for (xk = x-1 ; xk <= x+1 ; xk++)
+              {
+                xi = mri_target->xi[xk] ;
+                if (!MRIvox(mri_wm, xi,yi,zi))
+                  target = BORDER_MATTER ;
+              }
+            }
+          }
+        }
         else if (src > hi_lim)
           target = BRIGHT_MATTER ;
         else if (src < lo_lim)
