@@ -424,7 +424,7 @@ ImageRead(char *fname)
     if (!mat)
       ErrorReturn(NULL, (ERROR_NO_FILE, "ImageRead(%s) failed\n", fname)) ;
     I = ImageFromMatrix(mat, NULL) ;
-    h_invert(I,I) ;
+    ImageInvert(I, I) ;
     MatrixFree(&mat) ;
     break ;
   case HIPS_IMAGE:
@@ -488,22 +488,19 @@ ImageDFT(IMAGE *Isrc, IMAGE *Idst)
   else
     Itmp = NULL ;
 
-  hips_rtocplx = CPLX_RVI0 ;
-  ecode = h_toc(Isrc, Idst) ;
-  if  (ecode != HIPS_OK)
+  if (Isrc->pixel_format != PFCOMPLEX)
   {
-    ImageFree(&Idst) ;
-    ErrorReturn(NULL, (ecode, "ImageDFT: h_fourtr failed (%d)\n", ecode)) ;
+    hips_rtocplx = CPLX_RVI0 ;
+    ecode = h_toc(Isrc, Idst) ;
+    if  (ecode != HIPS_OK)
+    {
+      ImageFree(&Idst) ;
+      ErrorReturn(NULL, (ecode, "ImageDFT: h_toc failed (%d)\n", ecode)) ;
+    }
   }
-#if 0
-  loglen = log2(Isrc->rows) ;
-  if ((Isrc->rows == Isrc->cols) && (floor(loglen) == loglen)) /* FFT */
-  {
-  }
-  else   /* not a power of 2 - use DFT */
-  {
-  }
-#endif
+  else
+    ImageCopy(Isrc, Idst) ;
+
   ecode = h_fourtr(Idst) ;
   if  (ecode != HIPS_OK)
     ErrorExit(ecode, "ImageDFT: h_fourtr failed (%d)\n", ecode) ;
@@ -3511,18 +3508,15 @@ ImageSobel(IMAGE *inImage, IMAGE *gradImage,
   {
     ImageSetSize(gradImage, rows, cols) ;
     gradpix = IMAGEFpix(gradImage, 0, 0) ;
-  }
 
-  xpix = IMAGEFpix(dxImage, 0, 0) ;
-  ypix = IMAGEFpix(dyImage, 0, 0) ;
-  for (y = 0 ; y < rows ; y++)
-  {
-    for (x = 0 ; x < cols ; x++)
+    xpix = IMAGEFpix(dxImage, 0, 0) ;
+    ypix = IMAGEFpix(dyImage, 0, 0) ;
+    for (y = 0 ; y < rows ; y++)
     {
-      xval = *xpix++ ;
-      yval = *ypix++ ;
-      if (gradImage)
+      for (x = 0 ; x < cols ; x++)
       {
+        xval = *xpix++ ;
+        yval = *ypix++ ;
         gval = sqrt(xval * xval + yval * yval) ;
         *gradpix++ = gval ;
       }
@@ -3790,32 +3784,16 @@ ImageConvolve1d(IMAGE *I, IMAGE *J, float k[], int len, int axis)
         for (ki = k, i = 0 ; i < len ; i++)
         {
           xi = x + i - halflen ;
-#if 0
-          /* Neumann boundary conditions */
-          if (xi < 0)
-            xi = -xi ;
-          else if (xi >= width)
-            xi = width - (xi - width+1) ;
-#else
           if (xi < 0)
             xi = 0 ;
           else if (xi >= width)
             xi = width - 1 ;
-#endif
 
-#if 0          
-          total += *ki * *IMAGEFpix(I, xi, y) ;
-#else
           inPix = inBase + xi ;
           total += *ki++ * *inPix ;
-#endif
         }
 
-#if 0
-        *IMAGEFpix(J, x, y) = total ;
-#else
         *outPix++ = total ;
-#endif
       }
     }
   }
@@ -3836,19 +3814,10 @@ ImageConvolve1d(IMAGE *I, IMAGE *J, float k[], int len, int axis)
           else if (yi >= height)
             yi = height - 1 ;
 
-#if 0
-          total += *ki * *IMAGEFpix(I, x, yi) ;
-#else
           inPix = inBase + yi*width ;
           total += *ki++ * *inPix ;
-#endif
-
         }
-#if 0
-        *IMAGEFpix(J, x, y) = total ;
-#else
         *outPix++ = total ;
-#endif
       }
     }
   }
@@ -4024,8 +3993,12 @@ ImageGaussian(float xsigma, float ysigma)
   int       x, y, xlen, ylen, xhalf, yhalf ;
 
   /* build the kernel in k */
-  xlen = (int)nint(8.0f * xsigma)+1 ;
-  ylen = (int)nint(8.0f * ysigma)+1 ;
+  xlen = (int)nint(6.0f * xsigma)+1 ;
+  ylen = (int)nint(6.0f * ysigma)+1 ;
+  if (EVEN(xlen))
+    xlen++ ;
+  if (EVEN(ylen))
+    ylen++ ;
   xhalf = xlen/2 ;
   yhalf = ylen/2 ;
   image = ImageAlloc(xlen, ylen, PFFLOAT, 1) ;
@@ -4078,8 +4051,9 @@ ImageGaussian(float xsigma, float ysigma)
             Parameters:
 
            Description:
-             construct a gaussian bump which tails to 0. Returns
-             an image which is (4*sigma)+1
+             construct a splined gaussian bump which tails to 0. 
+             Returns an image which is (8*sigma)+1 
+             (Nitzberg and Shiota, 1993)
 ----------------------------------------------------------------------*/
 IMAGE *
 ImageGaussian1d(float sigma, int max_len)
@@ -4104,7 +4078,7 @@ ImageGaussian1d(float sigma, int max_len)
     if (fabs(fx) <= two_sigma)
       k = exp(-fx*fx/(two_sigma*sigma)) ;  /* parens added!! */
     else if (two_sigma < fabs(fx) && fabs(fx) <= 4*sigma)
-      k = 1.0f / (16.0f * M_E * M_E) * pow(4.0f - fabs(fx)/sigma, 4.0) ;
+      k = 1.0f / (16.0f * M_E * M_E) * pow(4.0f - fabs(fx)/sigma, 4.0f) ;
     else
       k = 0 ;
 
@@ -5292,4 +5266,223 @@ ImageOffsetMedialAxis(IMAGE *Ioffset, IMAGE *Iedge)
   }
   return(Iedge) ;
 }
+/*----------------------------------------------------------------------
+            Parameters:
 
+           Description:
+               generate a complex image from a real and an imaginary one
+----------------------------------------------------------------------*/
+IMAGE *
+ImageCombine(IMAGE *Ireal, IMAGE *Iimag, IMAGE *Idst)
+{
+  int    x, y, rows, cols ;
+  float  *real, *imag ;
+  CPIX   *dst ;
+
+  rows = Ireal->rows ;
+  cols = Ireal->cols ;
+
+  if (!Idst)
+    Idst = ImageAlloc(rows, cols, PFCOMPLEX, 1) ;
+
+  if (Idst->pixel_format != PFCOMPLEX)
+    ErrorReturn(NULL, (ERROR_UNSUPPORTED, 
+                       "ImageCombine: destination must be complex")) ;
+
+  dst = IMAGECpix(Idst, 0, 0) ;
+  real = IMAGEFpix(Ireal, 0, 0) ;
+  imag = IMAGEFpix(Iimag, 0, 0) ;
+
+  for (y = 0 ; y < rows ; y++)
+  {
+    for (x = 0 ; x < cols ; x++)
+    {
+      dst->imag = *imag++ ;
+      dst->real = *real++ ;
+      dst++ ;
+    }
+  }
+
+  return(Idst) ;
+}
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+              flip an image about its horizontal axis
+----------------------------------------------------------------------*/
+IMAGE *
+ImageInvert(IMAGE *Isrc, IMAGE *Idst)
+{
+  IMAGE *Ireal, *Iimag ;
+  int   ecode ;
+
+  if (!Idst)
+    Idst = ImageAlloc(Isrc->rows, Isrc->cols, Isrc->pixel_format, 1) ;
+
+  switch (Isrc->pixel_format)
+  {
+  case PFCOMPLEX:
+    Iimag = ImageAlloc(Isrc->rows, Isrc->cols, PFFLOAT, 1) ;
+    Ireal = ImageSplit(Isrc, NULL, Iimag) ;
+    ecode = h_invert(Ireal, Ireal) ;
+    if (ecode != HIPS_OK)
+      ErrorReturn(NULL, (ecode, "ImageInvert: h_invert failed %d", ecode)) ;
+    ecode = h_invert(Iimag, Iimag) ;
+    if (ecode != HIPS_OK)
+      ErrorReturn(NULL, (ecode, "ImageInvert: h_invert failed %d", ecode)) ;
+    ImageCombine(Ireal, Iimag, Idst) ;
+    break ;
+  default:
+    ecode = h_invert(Isrc, Idst) ;
+    if (ecode != HIPS_OK)
+      ErrorReturn(NULL, (ecode, "ImageInvert: h_invert failed %d", ecode)) ;
+    break ;
+  }
+  return(Idst) ;
+}
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+               generate a complex image from a real and an imaginary one
+----------------------------------------------------------------------*/
+IMAGE *
+ImageSplit(IMAGE *Icomp, IMAGE *Ireal, IMAGE *Iimag)
+{
+  int    x, y, rows, cols ;
+  float  *real, *imag = NULL ;
+  CPIX   *cpix ;
+
+  rows = Icomp->rows ;
+  cols = Icomp->cols ;
+
+  if (!Ireal)
+    Ireal = ImageAlloc(rows, cols, PFFLOAT, 1) ;
+
+  if (Icomp->pixel_format != PFCOMPLEX)
+    ErrorReturn(NULL, (ERROR_UNSUPPORTED, 
+                       "ImageSplit: destination must be complex")) ;
+
+  cpix = IMAGECpix(Icomp, 0, 0) ;
+  real = IMAGEFpix(Ireal, 0, 0) ;
+  if (Iimag)
+    imag = IMAGEFpix(Iimag, 0, 0) ;
+
+  for (y = 0 ; y < rows ; y++)
+  {
+    for (x = 0 ; x < cols ; x++)
+    {
+      if (Iimag)
+        *imag++ = cpix->imag ;
+      *real++ = cpix->real ;
+      cpix++ ;
+    }
+  }
+
+  return(Ireal) ;
+}
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+               shrink an image using Gaussian blurred sampling.
+----------------------------------------------------------------------*/
+IMAGE *
+ImageShrink(IMAGE *Isrc, IMAGE *Idst)
+{
+  IMAGE   *Iin, *Iout, *Igaussian ;
+  int     srows, scols, drows, dcols, x, y, xc, yc, xhalf, yhalf,xk,yk,ys ;
+  float   smax, smin, xscale, yscale, *dpix ;
+  register int xs ;
+  register float *spix, *gpix, total ;
+  
+
+  srows = Isrc->rows ;
+  scols = Isrc->cols ;
+  drows = Idst->rows ;
+  dcols = Idst->cols ;
+
+  if (Isrc->pixel_format != PFFLOAT)
+  {
+    Iin = ImageAlloc(srows, scols, PFFLOAT, 1) ;
+    ImageCopy(Isrc, Iin) ;
+    ImageValRange(Isrc, &smin, &smax) ;
+  }
+  else
+    Iin = Isrc ;
+
+  if (Idst->pixel_format != PFFLOAT)
+    Iout = ImageAlloc(drows, dcols, PFFLOAT, 1) ;
+  else
+    Iout = Idst ;
+
+/* 
+  create a Gaussian sampling function whose sigma depends on the 
+  amount of scaling.
+*/
+  xscale = (float)scols / (float)dcols ;
+  yscale = (float)srows / (float)drows ;
+#if 0
+  Igaussian = ImageGaussian(xscale/4.0f, yscale/4.0f) ;
+#else
+  Igaussian = ImageGaussian(xscale/10.0f, yscale/10.0f) ;
+/*  fprintf(stderr, "grows,gcols = %d,%d\n", Igaussian->rows, Igaussian->cols);*/
+#endif
+
+  xhalf = (Igaussian->cols-1) / 2 ;
+  yhalf = (Igaussian->rows-1) / 2 ;
+
+#if 0
+fprintf(stderr, 
+        "ImageShrink: xscale %2.3f, yscale %2.3f, grows,gcols = %d,%d\n",
+        xscale, yscale, Igaussian->rows, Igaussian->cols) ;
+#endif
+
+  /* for each dst pixel, Gaussian sample region around it */
+  dpix = IMAGEFpix(Iout, 0, 0) ;
+  for (y = 0 ; y < drows ; y++)
+  {
+    for (x = 0 ; x < dcols ; x++)
+    {
+      total = 0.0f ;
+
+      xc = nint((float)x * xscale) ;  /* center of Gaussian in source coords */
+      yc = nint((float)y * yscale) ;
+
+      /* apply kernel */
+      gpix = IMAGEFpix(Igaussian, 0, 0) ;
+      for (yk = -yhalf ; yk <= yhalf ; yk++)
+      {
+        ys = yc + yk ;
+        if (ys < 0)
+          ys = 0 ;
+        else if (ys >= srows)
+          ys = srows - 1 ;
+
+        for (xk = -xhalf ; xk <= xhalf ; xk++)
+        {
+          xs = xc + xk ;
+          if (xs < 0)
+            xs = 0 ;
+          else if (xs >= scols)
+            xs = scols - 1 ;
+
+          spix = IMAGEFpix(Iin, xs, ys) ;
+          total += *spix * *gpix++ ;
+        }
+      }
+
+      *dpix++ = total ;
+    }
+  }
+  
+  if (Iin != Isrc)
+    ImageFree(&Iin) ;
+  if (Iout != Idst)
+  {
+    ImageCopy(Iout, Idst) ;
+    ImageFree(&Iout) ;
+  }
+  return(Idst) ;
+}
