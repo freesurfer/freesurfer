@@ -84,11 +84,21 @@ extern unsigned long Gdiag ;    /* global diagnostic flag */
 #define PLOT_HORIZONTAL 0
 #define PLOT_VERTICAL   1
 
+#ifndef BLACK
 #define BLACK  0
+#endif
+#ifndef WHITE
 #define WHITE  1
+#endif
+#ifndef FLIP
 #define FLIP   2
+#endif
+#ifndef RED
 #define RED    3
+#endif
+#ifndef GREEN
 #define GREEN  4
+#endif
 
 
 
