@@ -835,7 +835,7 @@ MWin_tErr MWin_SetControlPointsSpace ( tkmMeditWindowRef this,
 
 MWin_tErr MWin_SetSelectionSpace ( tkmMeditWindowRef this, 
 				   int               inDispIndex,
-				   char***           ipVolume ) {
+				   mriVolumeRef      ipVolume ) {
   
   MWin_tErr eResult     = MWin_tErr_NoErr;
   DspA_tErr eDispResult = DspA_tErr_NoErr;
