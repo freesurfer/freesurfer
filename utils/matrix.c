@@ -258,6 +258,7 @@ MatrixMultiply(MATRIX *m1, MATRIX *m2, MATRIX *m3)
   int   col, row, i, rows, cols, m1_cols ;
   float *r3 ;
   register float val, *r1, *r2 ;
+  MATRIX   *m_tmp1 = NULL, *m_tmp2 = NULL ;
 
   if (m1->cols != m2->rows)
     ErrorReturn(NULL,
@@ -276,7 +277,17 @@ MatrixMultiply(MATRIX *m1, MATRIX *m2, MATRIX *m3)
                 (ERROR_BADPARM, 
                  "MatrixMultiply: (%d x %d) * (%d x %d) != (%d x %d)\n",
                  m1->rows, m1->cols, m2->rows, m2->cols, m3->rows, m3->cols)) ;
-  
+
+  if (m3 == m2)
+  {
+    m_tmp1 = MatrixCopy(m2, NULL) ;
+    m2 = m_tmp1 ;
+  }
+  if (m3 == m1)
+  {
+    m_tmp2 = MatrixCopy(m1, NULL) ;
+    m1 = m_tmp2 ;
+  }
   /*  MatrixClear(m3) ;*/
   cols = m3->cols ;
   rows = m3->rows ;
@@ -326,6 +337,10 @@ MatrixMultiply(MATRIX *m1, MATRIX *m2, MATRIX *m3)
     break ;
   }
 
+  if (m_tmp1)
+    MatrixFree(&m_tmp1) ;
+  if (m_tmp2)
+    MatrixFree(&m_tmp2) ;
   return(m3) ;
 }
 
@@ -1446,28 +1461,25 @@ MatrixAllocRotation(int n, float angle, int which)
   MATRIX *m ;
   float  s, c ;
 
-  m = MatrixAlloc(n, n, MATRIX_REAL) ;
+  m = MatrixIdentity(n, NULL) ;
 
   c = cos(angle) ;
   s = sin(angle) ;
   switch (which)
   {
   case X_ROTATION:
-    m->rptr[1][1] = 1 ;
     m->rptr[2][2] = c ;
     m->rptr[2][3] = s ;
     m->rptr[3][2] = -s ;
     m->rptr[3][3] = c ;
     break ;
   case Y_ROTATION:
-    m->rptr[2][2] = 1 ;
     m->rptr[1][1] = c ;
     m->rptr[1][3] = -s ;
     m->rptr[3][1] = s ;
     m->rptr[3][3] = c ;
     break ;
   case Z_ROTATION:
-    m->rptr[3][3] = 1 ;
     m->rptr[1][1] = c ;
     m->rptr[1][2] = s ;
     m->rptr[2][1] = -s ;
@@ -1717,6 +1729,37 @@ MatrixFinalCovariance(MATRIX *mInputs, MATRIX *mCov, VECTOR *mNobs)
   return(mCov) ;
 }
 int
+MatrixAsciiWrite(char *fname, MATRIX *m)
+{
+  FILE  *fp ;
+  int   ret ;
+
+  fp = fopen(fname, "w") ;
+  if (!fp)
+    ErrorReturn(ERROR_NO_FILE, 
+                (ERROR_NO_FILE, "MatrixAsciiWrite: could not open file %s",
+                 fname)) ;
+  ret = MatrixAsciiWriteInto(fp, m) ;
+  fclose(fp) ;
+  return(ret) ;
+}
+
+MATRIX *
+MatrixAsciiRead(char *fname, MATRIX *m)
+{
+  FILE  *fp ;
+
+  fp = fopen(fname, "r") ;
+  if (!fp)
+    ErrorReturn(NULL, 
+                (ERROR_NO_FILE, "MatrixAsciiRead: could not open file %s",
+                 fname)) ;
+  m = MatrixAsciiReadFrom(fp, m) ;
+  fclose(fp) ;
+  return(m) ;
+}
+
+int
 MatrixAsciiWriteInto(FILE *fp, MATRIX *m)
 {
   int row, col ;
@@ -1727,10 +1770,10 @@ MatrixAsciiWriteInto(FILE *fp, MATRIX *m)
     for (col = 1 ; col <= m->cols ; col++)
     {
       if (m->type == MATRIX_COMPLEX)
-        fprintf(fp, "%f %f   ", 
+        fprintf(fp, "%+f %+f   ", 
                 MATRIX_CELT_REAL(m,row,col), MATRIX_CELT_IMAG(m,row,col));
       else
-        fprintf(fp, "%f  ", m->rptr[row][col]) ;
+        fprintf(fp, "%+f  ", m->rptr[row][col]) ;
     }
     fprintf(fp, "\n") ;
   }
