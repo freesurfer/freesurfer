@@ -2,7 +2,7 @@
 # Makefile.am for libutils.a
 #
 # Makefile.am specify i addtion to the standard
-AM_CPPFLAGS=-I$(top_srcdir)/include -I$(top_srcdir)/include/dicom
+AM_CPPFLAGS=$(X_CFLAGS) -I$(top_srcdir)/include -I$(top_srcdir)/include/dicom
 AM_LDFLAGS=
 
 lib_LIBRARIES= libutils.a
