@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/07/01 21:45:32 $
-// Revision       : $Revision: 1.149 $
+// Revision Date  : $Date: 2004/07/19 20:03:30 $
+// Revision       : $Revision: 1.150 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -10553,7 +10553,7 @@ alloc_gcs(int nlabels, int flags, int ninputs)
   {
     gcs[i].nlabels = (short *)calloc(GIBBS_NEIGHBORHOOD, sizeof(short)) ;
     gcs[i].labels = (unsigned char **)calloc(GIBBS_NEIGHBORHOOD, sizeof(unsigned char *)) ;
-    gcs[i].label_priors = (float **)calloc(GIBBS_NEIGHBORHOOD, sizeof(float)) ;
+    gcs[i].label_priors = (float **)calloc(GIBBS_NEIGHBORHOOD, sizeof(float *)) ;
     if (!gcs[i].nlabels || !gcs[i].labels || !gcs[i].label_priors)
       ErrorExit(ERROR_NOMEMORY, "alloc_gcs(%d, %x): could not allocated %d gcs(%d)",
                 nlabels, flags, nlabels, i) ;
