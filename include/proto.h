@@ -8,6 +8,11 @@
 #include <time.h>
 #include <sys/timeb.h>
 
+
+/*----------------- ALL PLATFORMS *--------------------*/
+int stricmp(char *str1, char *str2) ;
+
+
 /*----------- SunOS -----------------------*/
 #ifdef SunOSX
 
@@ -55,13 +60,11 @@ char tolower(char c) ;
 int fseek(FILE *fp, long offset, int whence) ;
 int fread(void *ptr, int size, int nitems, FILE *fp) ;
 int fwrite(void *ptr, int size, int nitems, FILE *fp) ;
-int stricmp(char *str1, char *str2) ;
 #endif   /* SunOS */
 
 /*----------- Linux -----------------------*/
 #ifdef Linux
 #include "macros.h"
-int stricmp(char *str1, char *str2) ;
 #define nint(f)   ((int)(rint((double)f)))
 
 int getw(FILE *stream);
@@ -73,7 +76,6 @@ void swab(const void *from, void *to, size_t n);
 
 #ifdef SunOS
 #define nint(f)   ((int)(rint((double)f)))
-int stricmp(char *str1, char *str2) ;
 #include <ieeefp.h>
 
 #endif
@@ -82,7 +84,6 @@ int stricmp(char *str1, char *str2) ;
 #ifdef IRIX
 #define nint(f)   ((int)(rint((double)f)))
 /*#define isnan(f)  0*/
-int stricmp(char *str1, char *str2) ;
 double rint(double x) ;
 #endif
 
