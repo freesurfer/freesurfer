@@ -1,6 +1,6 @@
 /*----------------------------------------------------------
   Name: vol2surf.c
-  $Id: mri_vol2surf.c,v 1.11 2002/10/23 15:57:16 fischl Exp $
+  $Id: mri_vol2surf.c,v 1.12 2002/11/27 00:59:59 greve Exp $
   Author: Douglas Greve
   Purpose: Resamples a volume onto a surface. The surface
   may be that of a subject other than the source subject.
@@ -56,7 +56,7 @@ static void dump_options(FILE *fp);
 static int  singledash(char *flag);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2surf.c,v 1.11 2002/10/23 15:57:16 fischl Exp $";
+static char vcid[] = "$Id: mri_vol2surf.c,v 1.12 2002/11/27 00:59:59 greve Exp $";
 char *Progname = NULL;
 
 char *defaulttypestring;
@@ -256,8 +256,9 @@ int main(int argc, char **argv)
   fflush(stdout);
 
   /* Load the thickness for projection along the normal*/
-  if(ProjFrac > 0){
-    sprintf(fname,"%s/%s/surf/%s.%s",SUBJECTS_DIR,srcsubject,hemi,thicknessname);
+  if(ProjFrac != 0){
+    sprintf(fname,"%s/%s/surf/%s.%s",SUBJECTS_DIR,srcsubject,
+	    hemi,thicknessname);
     printf("Reading thickness %s\n",fname);
     MRISreadCurvatureFile(Surf, fname);
     printf("Done\n");
@@ -740,9 +741,10 @@ static void print_help(void)
 "\n"
 "  --projfrac fraction : fraction (0,1) of the cortical thickness \n"
 "    at each vertex to project along the surface normal. Default 0. \n"
-"    When set at 0.5 with the white surface, this should sample in the middle \n"
-"    of the cortical surface. This requires that a ?h.thickness file \n"
-"    exist for the source subject. \n"
+"    When set at 0.5 with the white surface, this should sample in the\n"
+"    middle of the cortical surface. This requires that a ?h.thickness file \n"
+"    exist for the source subject. Note, the faction can be less than\n"
+"    zero, in which case it will project into the white matter.\n"
 "\n"
 "  --out  output path : location to store the data (see below)\n"
 "  --out_type format of output (see below)\n"
@@ -938,7 +940,7 @@ static void dump_options(FILE *fp)
     fprintf(fp,"trgsubject = %s\n",trgsubject);
     fprintf(fp,"surfreg = %s\n",surfreg);
   }
-  if(ProjFrac > 0.0){
+  if(ProjFrac != 0.0){
     fprintf(fp,"ProjFrac = %g\n",ProjFrac);
     fprintf(fp,"thickness = %s\n",thicknessname);
   }
