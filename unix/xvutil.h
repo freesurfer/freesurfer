@@ -90,6 +90,7 @@ typedef struct
   Panel_item      msg_item[MSGS] ;
   DIMAGE          **dimages ;
   int             min_panel_width ;
+  int             precision ;
 } XV_FRAME ;
 
 
@@ -121,6 +122,7 @@ int XVresize(XV_FRAME *xvf) ;
 void buttonQuit(Panel_item item, Event *event) ;
 int XVaddImageCol(XV_FRAME *xvf) ;
 int XVdeleteImageCol(XV_FRAME *xvf) ;
+int XVsetPrecision(XV_FRAME *xvf, int precision) ;
 
 #define WINDOW_PAD          3
 
