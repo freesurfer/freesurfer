@@ -4,9 +4,9 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2003/03/11 19:15:13 $
-// Revision       : $Revision: 1.131 $
-char *VERSION = "$Revision: 1.131 $";
+// Revision Date  : $Date: 2003/03/12 19:10:01 $
+// Revision       : $Revision: 1.132 $
+char *VERSION = "$Revision: 1.132 $";
 
 #define TCL
 #define TKMEDIT 
@@ -2619,21 +2619,18 @@ tkm_tErr LoadSurface ( tkm_tSurfaceType iType,
     Surf_Delete( &gSurface[iType] );
   }
 
-  /* make the transformation for the surface. it's the composition of
-     idxtoras and the conform matrix. */
+  /* Make the transformation for the surface. It's the composition of
+     the AnaIdxToRAS matrix and the conform matrix. */
   DebugNote( ("Getting conform matrix") );
   conformMatrix = 
     MRIgetConformMatrix(gAnatomicalVolume[tkm_tVolumeType_Main]->mpMriValues);
   DebugAssertThrowX( (NULL != conformMatrix),
 		     eResult, tkm_tErr_CouldntAllocate );
-  // MatrixInverse( conformMatrix, conformMatrix );
-  MatrixPrint( stderr, conformMatrix );
 
   DebugNote( ("Cloning gIdxToRASTransform to surfaceTransform") );
   eTrns = Trns_DeepClone( gIdxToRASTransform, &surfaceTransform );
   DebugAssertThrowX( (Trns_tErr_NoErr == eTrns),
 		     eResult, tkm_tErr_CouldntAllocate );
-
 
   DebugNote( ("Copying conformMatrix to BtoRAS in surfaceTransform") );
   eTrns = Trns_CopyBtoRAS( surfaceTransform, conformMatrix );
@@ -2766,8 +2763,6 @@ void UnloadSurface ( tkm_tSurfaceType iType ) {
   tkm_tErr  eResult  = tkm_tErr_NoErr;
   Surf_tErr eSurface = Surf_tErr_NoErr;
   
-  printf( "UnloadSurface %d\n", (int)iType );
-    
   DebugAssertThrowX( (NULL != gSurface[iType]),
          eResult, tkm_tErr_InvalidParameter );
   if( !gSurface[iType] )
@@ -2783,6 +2778,17 @@ void UnloadSurface ( tkm_tSurfaceType iType ) {
   /* if this is our main surface, disable our loading options */
   if( tkm_tSurfaceType_Main == iType ) {
     tkm_SendTclCommand( tkm_tTclCommand_ShowSurfaceLoadingOptions, "0" );
+    tkm_SendTclCommand( tkm_tTclCommand_ShowSurfaceViewingOptions, "0" );
+    tkm_SendTclCommand(tkm_tTclCommand_ShowCanonicalSurfaceViewingOptions,"0");
+    tkm_SendTclCommand(tkm_tTclCommand_ShowOriginalSurfaceViewingOptions,"0");
+    MWin_SetDisplayFlag( gMeditWindow, -1,
+			 DspA_tDisplayFlag_MainSurface, FALSE );
+    MWin_SetDisplayFlag( gMeditWindow, -1, 
+			 DspA_tDisplayFlag_CanonicalSurface, FALSE );
+    MWin_SetDisplayFlag( gMeditWindow, -1, 
+			 DspA_tDisplayFlag_OriginalSurface, FALSE );
+    MWin_SetDisplayFlag( gMeditWindow, -1,
+			 DspA_tDisplayFlag_InterpolateSurfaceVertices, FALSE );
   }
   
   /* update the medit window. */
@@ -4497,6 +4503,7 @@ int main ( int argc, char** argv ) {
   
   
   gm_ras2screen = MatrixInverse(gm_screen2ras, NULL) ;
+
   /* write the time started, progam name, and arguments to the debug output */
   time( &theTime );
   DebugPrint( ( "tkmedit started: %s\n\t", ctime( &theTime ) ) );
@@ -6515,6 +6522,11 @@ tkm_tErr LoadVolume ( tkm_tVolumeType iType,
     }
   }
   
+
+  gm_screen2ras = extract_i_to_r( gAnatomicalVolume[iType]->mpMriValues );
+  gm_ras2screen = extract_r_to_i( gAnatomicalVolume[iType]->mpMriValues );
+
+
   DebugCatch;
   DebugCatchError( eResult, tkm_tErr_NoErr, tkm_GetErrorString );
   
@@ -7618,6 +7630,8 @@ tkm_tErr NewSegmentationVolume ( tkm_tSegType    iVolume,
     DebugNote( ("Setting segmentation in main window") );
     MWin_SetSegmentationVolume( gMeditWindow, iVolume, 
 				-1, gSegmentationVolume[iVolume] );
+    MWin_SetSegmentationColorTable( gMeditWindow, iVolume, 
+				    -1, gColorTable );
   }
   
   DebugCatch;
@@ -7723,6 +7737,8 @@ tkm_tErr LoadSegmentationVolume ( tkm_tSegType iVolume,
     DebugNote( ("Setting segmentation in main window") );
     MWin_SetSegmentationVolume( gMeditWindow, iVolume, 
 		      -1, gSegmentationVolume[iVolume] );
+    MWin_SetSegmentationColorTable( gMeditWindow, iVolume, 
+				    -1, gColorTable );
   }
   
   DebugCatch;
@@ -8031,6 +8047,8 @@ tkm_tErr ImportSurfaceAnnotationToSegmentation ( tkm_tSegType iVolume,
     DebugNote( ("Setting main segmentation in main window") );
     MWin_SetSegmentationVolume( gMeditWindow, iVolume, 
 		      -1, gSegmentationVolume[iVolume] );
+    MWin_SetSegmentationColorTable( gMeditWindow, iVolume, 
+				    -1, gColorTable );
   }
   
   DebugCatch;
@@ -8128,8 +8146,14 @@ void SetSegmentationAlpha ( float ifAlpha ) {
   char sTclArguments[STRLEN] = "";
   
   if( ifAlpha >= 0 && ifAlpha <= 1.0 ) {
+
     gfSegmentationAlpha = ifAlpha;
-    UpdateAndRedraw ();
+
+    if( NULL != gMeditWindow ) {
+      MWin_SetSegmentationAlpha( gMeditWindow, -1, ifAlpha );
+      UpdateAndRedraw ();    
+    }
+
   }
   
   sprintf( sTclArguments, "%f", gfSegmentationAlpha );
@@ -8939,16 +8963,16 @@ tkm_tErr LoadDTIVolume ( char*              isNameEV,
      scaled by the FA value. (r,g,b) = min(FA,1) * (evx,evy,evz) */
   xVoxl_Set( &EVIdx, 0, 0, 0 );
   do {
-
+    
     /* We're going by the MRI index of the FA volume because it's most
        likely smaller than the screen bounds (256^3) and will be much
        quicker. But we have to convert from MRI idx to screen idx
        before using the index function. Yeah, this is kind of
        backwards. */
     Volm_ConvertMRIIdxToScreenIdx_( EVVolume, &EVIdx, &screenIdx );
-
+      
     Volm_GetValueAtIdxUnsafe( FAVolume, &screenIdx, &FAValue );
-
+    
     for( nFrame = 0; nFrame < 3; nFrame++ ) {
       Volm_GetValueAtIdxFrameUnsafe( EVVolume, &screenIdx, nFrame, &EVValue );
       Volm_SetValueAtIdxFrame( EVVolume, &screenIdx, nFrame, 
@@ -8956,13 +8980,13 @@ tkm_tErr LoadDTIVolume ( char*              isNameEV,
     }
     
     if( xVoxl_GetY( &EVIdx ) == 0 ) {
-            fprintf( stdout, "\rProcessing DTI volumes: %.2f%% done", 
-      	       (xVoxl_GetFloatZ( &EVIdx ) / (float)zEVZ) * 100.0 );
+      fprintf( stdout, "\rProcessing DTI volumes: %.2f%% done", 
+	       (xVoxl_GetFloatZ( &EVIdx ) / (float)zEVZ) * 100.0 );
     }
-
-    } while( xVoxl_IncrementUntilLimits( &EVIdx, zEVX, zEVY, zEVZ ) );
     
-  fprintf( stdout, "\rProcessing DTI volumes: 100%% dane.         " );
+  } while( xVoxl_IncrementUntilLimits( &EVIdx, zEVX, zEVY, zEVZ ) );
+  
+  fprintf( stdout, "\rProcessing DTI volumes: 100%% done.         \n" );
 
   /* Delete the FA volume. */
   Volm_Delete( &FAVolume );
@@ -8985,6 +9009,19 @@ tkm_tErr LoadDTIVolume ( char*              isNameEV,
   gaDTIAxisForComponent[xColr_tComponent_Red] = iRedAxis;
   gaDTIAxisForComponent[xColr_tComponent_Green] = iGreenAxis;
   gaDTIAxisForComponent[xColr_tComponent_Blue] = iBlueAxis;
+
+  if( NULL != gMeditWindow ) {
+    DebugNote( ("Setting DTI axis -> component in main window") );
+    MWin_SetDTIAxisForComponent( gMeditWindow, -1, 
+				 gaDTIAxisForComponent[xColr_tComponent_Red],
+				 xColr_tComponent_Red );
+    MWin_SetDTIAxisForComponent( gMeditWindow, -1, 
+				 gaDTIAxisForComponent[xColr_tComponent_Green],
+				 xColr_tComponent_Green );
+    MWin_SetDTIAxisForComponent( gMeditWindow, -1, 
+				 gaDTIAxisForComponent[xColr_tComponent_Blue],
+				 xColr_tComponent_Blue );
+  }
 
   DebugCatch;
   DebugCatchError( eResult, tkm_tErr_NoErr, tkm_GetErrorString );
@@ -9048,10 +9085,10 @@ void GetDTIColorAtVoxel ( xVoxelRef        iAnaIdx,
        volume could be negative. */
     for( comp = xColr_tComponent_Red; comp <= xColr_tComponent_Blue; comp++ ) {
       switch( gaDTIAxisForComponent[comp] ) {
-      case tAxis_X: xColr_SetComponent( &color, comp, fabs(x) ); break;
-      case tAxis_Y: xColr_SetComponent( &color, comp, fabs(y) ); break;
-      case tAxis_Z: xColr_SetComponent( &color, comp, fabs(z) ); break;
-      default: xColr_SetComponent( &color, comp, 0 ); break;
+      case tAxis_X: xColr_SetFloatComponent( &color, comp, fabs(x) ); break;
+      case tAxis_Y: xColr_SetFloatComponent( &color, comp, fabs(y) ); break;
+      case tAxis_Z: xColr_SetFloatComponent( &color, comp, fabs(z) ); break;
+      default: xColr_SetFloatComponent( &color, comp, 0 ); break;
       }
     }
   
@@ -9083,8 +9120,13 @@ void SetDTIAlpha ( float ifAlpha ) {
   char sTclArguments[STRLEN] = "";
   
   if( ifAlpha >= 0 && ifAlpha <= 1.0 ) {
+
     gfDTIAlpha = ifAlpha;
-    UpdateAndRedraw ();
+
+    if( NULL != gMeditWindow ) {
+      MWin_SetDTIAlpha( gMeditWindow, -1, ifAlpha );
+      UpdateAndRedraw ();    
+    }
   }
   
   sprintf( sTclArguments, "%f", gfDTIAlpha );

@@ -10,6 +10,7 @@
 #include "mriVolume.h"
 #include "tkmFunctionalVolume.h"
 #include "mriSurface.h"
+#include "mriColorLookupTable.h"
 #include "xGrowableArray.h"
 #include "mriHeadPointList.h"
 #include "gca.h"
@@ -244,6 +245,10 @@ struct tkmDisplayArea {
   int                    manSurfaceLineWidth[Surf_knNumVertexSets];
   xColor3f               maSurfaceLineColor[Surf_knNumVertexSets];
 
+  float                  mfSegmentationAlpha;
+  tkm_tAxis              maDTIAxisForComponent[xColr_knNumComponents];
+  float                  mfDTIAlpha;
+
   /* for navigation tool */
   xVoxelRef              mpOriginalZoomCenter;
   int                    mnOriginalSlice;
@@ -258,9 +263,9 @@ struct tkmDisplayArea {
   xGrowableArrayRef*     maSurfaceLists[tkm_knNumSurfaceTypes];
   
   /* display data */
-  mriVolumeRef           mpVolume;
-  mriVolumeRef           mpAuxVolume;
+  mriVolumeRef           mpVolume[tkm_knNumVolumeTypes];
   mriVolumeRef           mSegmentationVolume[tkm_knNumSegTypes];
+  mriColorLookupTableRef mSegmentationColorTable[tkm_knNumSegTypes];
   mriSurfaceRef          mpSurface[tkm_knNumSurfaceTypes];
   tkmFunctionalVolumeRef mpFunctionalVolume;
   x3DListRef             mpControlPoints;
@@ -324,6 +329,9 @@ DspA_tErr DspA_SetAuxVolume                  ( tkmDisplayAreaRef this,
 DspA_tErr DspA_SetSegmentationVolume         ( tkmDisplayAreaRef this,
 					       tkm_tSegType      iType,
 					       mriVolumeRef      iVolume );
+DspA_tErr DspA_SetSegmentationColorTable     ( tkmDisplayAreaRef this,
+					       tkm_tSegType      iType,
+					       mriColorLookupTableRef iCLUT );
 DspA_tErr DspA_SetSurface                    ( tkmDisplayAreaRef this, 
 					       tkm_tSurfaceType  iType,
 					       mriSurfaceRef     ipSurface );
@@ -394,6 +402,14 @@ DspA_tErr DspA_SetParcBrushInfo      ( tkmDisplayAreaRef this,
 				       DspA_tParcBrushSettings* iSettings );
 DspA_tErr DspA_ChangeSliceBy         ( tkmDisplayAreaRef this,
 				       int               inDelta );
+DspA_tErr DspA_SetSegmentationAlpha  ( tkmDisplayAreaRef this,
+				       float             ifAlpha );
+DspA_tErr DspA_SetDTIAlpha           ( tkmDisplayAreaRef this,
+				       float             ifAlpha );
+DspA_tErr DspA_SetDTIAxisForComponent ( tkmDisplayAreaRef this,
+					tkm_tAxis         iAxis,
+					xColr_tComponent  iComponent );
+
 
 /* only one display can be focused at a time. focusing on one will unfocus
    the previously focused one. */
@@ -498,9 +514,12 @@ DspA_tErr DspA_DrawFrameAroundDisplay_ ( tkmDisplayAreaRef this );
 DspA_tErr DspA_DrawAxes_               ( tkmDisplayAreaRef this );
 
 /* build the frame buffer */
-DspA_tErr DspA_BuildCurrentFrame_            ( tkmDisplayAreaRef this );
-DspA_tErr DspA_DrawFunctionalOverlayToFrame_ ( tkmDisplayAreaRef this );
-DspA_tErr DspA_DrawSelectionToFrame_         ( tkmDisplayAreaRef this );
+DspA_tErr DspA_BuildCurrentFrame_              ( tkmDisplayAreaRef this );
+DspA_tErr DspA_DrawSegmentationOverlayToFrame_ ( tkmDisplayAreaRef this );
+DspA_tErr DspA_DrawDTIOverlayToFrame_          ( tkmDisplayAreaRef this );
+DspA_tErr DspA_DrawUndoableVoxelsOverlayToFrame_ ( tkmDisplayAreaRef this );
+DspA_tErr DspA_DrawFunctionalOverlayToFrame_   ( tkmDisplayAreaRef this );
+DspA_tErr DspA_DrawSelectionToFrame_           ( tkmDisplayAreaRef this );
 
 /* other drawing subfunctions */
 DspA_tErr DspA_BuildSurfaceDrawLists_  ( tkmDisplayAreaRef this,

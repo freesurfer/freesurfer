@@ -647,6 +647,63 @@ MWin_tErr MWin_SetSegmentationVolume ( tkmMeditWindowRef this,
 
   return eResult;
 }
+
+MWin_tErr MWin_SetSegmentationColorTable ( tkmMeditWindowRef this,
+					   tkm_tSegType      iType,
+					   int               inDispIndex,
+					   mriColorLookupTableRef iCLUT ) {
+
+  MWin_tErr eResult       = MWin_tErr_NoErr;
+  DspA_tErr eDispResult   = DspA_tErr_NoErr;
+  int       nDispIndex    = 0;
+  int       nDispIndexMin = inDispIndex;
+  int       nDispIndexMax = inDispIndex+1;
+  
+  /* verify us. */
+  eResult = MWin_Verify ( this );
+  if ( MWin_tErr_NoErr != eResult )
+    goto error;
+
+  /* verify the display index. */
+  eResult = MWin_VerifyDisplayIndex ( this, inDispIndex );
+  if ( MWin_tErr_NoErr != eResult )
+    goto error;
+
+  /* if working on all displays, set the iteration bounds. */
+  if ( MWin_kAllDisplayAreas == inDispIndex ) {
+    nDispIndexMin = 0;
+    nDispIndexMax = MWin_knMaxNumAreas;
+  }
+
+  /* set the volume */
+  for ( nDispIndex = nDispIndexMin; 
+  nDispIndex < nDispIndexMax; 
+  nDispIndex++ ) {
+
+    eDispResult = 
+      DspA_SetSegmentationColorTable ( this->mapDisplays[nDispIndex], 
+				       iType, iCLUT );
+    if ( DspA_tErr_NoErr != eDispResult ) {
+      eResult = MWin_tErr_ErrorAccessingDisplay;
+      goto error;
+    }
+  }
+
+  goto cleanup;
+
+ error:
+
+  /* print error message */
+  if ( MWin_tErr_NoErr != eResult ) {
+    DebugPrint( ("Error %d in MWin_SetSegmentationVolume: %s\n",
+      eResult, MWin_GetErrorString(eResult) ) );
+  }
+
+ cleanup:
+
+  return eResult;
+}
+
 MWin_tErr MWin_SetSurface ( tkmMeditWindowRef this, 
           int               inDispIndex,
           tkm_tSurfaceType  iType,
@@ -1635,6 +1692,169 @@ MWin_tErr MWin_SetDisplayFlag ( tkmMeditWindowRef this,
   /* print error message */
   if ( MWin_tErr_NoErr != eResult ) {
     DebugPrint( ("Error %d in MWin_SetDisplayFlag: %s\n",
+      eResult, MWin_GetErrorString(eResult) ) );
+  }
+
+ cleanup:
+
+  return eResult;
+}
+
+MWin_tErr MWin_SetSegmentationAlpha ( tkmMeditWindowRef this,
+				      int               inDispIndex,
+				      float             ifAlpha ) {
+
+  MWin_tErr eResult       = MWin_tErr_NoErr;
+  DspA_tErr eDispResult   = DspA_tErr_NoErr;
+  int       nDispIndex    = 0;
+  int       nDispIndexMin = inDispIndex;
+  int       nDispIndexMax = inDispIndex+1;
+
+  /* verify us. */
+  eResult = MWin_Verify ( this );
+  if ( MWin_tErr_NoErr != eResult )
+    goto error;
+
+  /* verify the display index. */
+  eResult = MWin_VerifyDisplayIndex ( this, inDispIndex );
+  if ( MWin_tErr_NoErr != eResult )
+    goto error;
+
+  /* if working on all displays, set the iteration bounds. */
+  if ( MWin_kAllDisplayAreas == inDispIndex ) {
+    nDispIndexMin = 0;
+    nDispIndexMax = MWin_knMaxNumAreas;
+  }
+
+  /* set the alpha */
+  for ( nDispIndex = nDispIndexMin; 
+	nDispIndex < nDispIndexMax; 
+	nDispIndex++ ) {
+    
+    eDispResult = DspA_SetSegmentationAlpha ( this->mapDisplays[nDispIndex],
+					      ifAlpha );
+    if ( DspA_tErr_NoErr != eDispResult ) {
+      eResult = MWin_tErr_ErrorAccessingDisplay;
+      goto error;
+    }
+  }
+
+  goto cleanup;
+
+ error:
+
+  /* print error message */
+  if ( MWin_tErr_NoErr != eResult ) {
+    DebugPrint( ("Error %d in MWin_SetSegmentationAlpha: %s\n",
+      eResult, MWin_GetErrorString(eResult) ) );
+  }
+
+ cleanup:
+
+  return eResult;
+}
+
+MWin_tErr MWin_SetDTIAlpha ( tkmMeditWindowRef this,
+				      int               inDispIndex,
+				      float             ifAlpha ) {
+
+  MWin_tErr eResult       = MWin_tErr_NoErr;
+  DspA_tErr eDispResult   = DspA_tErr_NoErr;
+  int       nDispIndex    = 0;
+  int       nDispIndexMin = inDispIndex;
+  int       nDispIndexMax = inDispIndex+1;
+
+  /* verify us. */
+  eResult = MWin_Verify ( this );
+  if ( MWin_tErr_NoErr != eResult )
+    goto error;
+
+  /* verify the display index. */
+  eResult = MWin_VerifyDisplayIndex ( this, inDispIndex );
+  if ( MWin_tErr_NoErr != eResult )
+    goto error;
+
+  /* if working on all displays, set the iteration bounds. */
+  if ( MWin_kAllDisplayAreas == inDispIndex ) {
+    nDispIndexMin = 0;
+    nDispIndexMax = MWin_knMaxNumAreas;
+  }
+
+  /* set the alpha */
+  for ( nDispIndex = nDispIndexMin; 
+	nDispIndex < nDispIndexMax; 
+	nDispIndex++ ) {
+    
+    eDispResult = DspA_SetDTIAlpha ( this->mapDisplays[nDispIndex], ifAlpha );
+    if ( DspA_tErr_NoErr != eDispResult ) {
+      eResult = MWin_tErr_ErrorAccessingDisplay;
+      goto error;
+    }
+  }
+
+  goto cleanup;
+
+ error:
+
+  /* print error message */
+  if ( MWin_tErr_NoErr != eResult ) {
+    DebugPrint( ("Error %d in MWin_SetDTIAlpha: %s\n",
+      eResult, MWin_GetErrorString(eResult) ) );
+  }
+
+ cleanup:
+
+  return eResult;
+}
+
+MWin_tErr MWin_SetDTIAxisForComponent ( tkmMeditWindowRef this,
+					int               inDispIndex,
+					tkm_tAxis         iAxis,
+					xColr_tComponent  iComponent ) {
+
+  MWin_tErr eResult       = MWin_tErr_NoErr;
+  DspA_tErr eDispResult   = DspA_tErr_NoErr;
+  int       nDispIndex    = 0;
+  int       nDispIndexMin = inDispIndex;
+  int       nDispIndexMax = inDispIndex+1;
+
+  /* verify us. */
+  eResult = MWin_Verify ( this );
+  if ( MWin_tErr_NoErr != eResult )
+    goto error;
+
+  /* verify the display index. */
+  eResult = MWin_VerifyDisplayIndex ( this, inDispIndex );
+  if ( MWin_tErr_NoErr != eResult )
+    goto error;
+
+  /* if working on all displays, set the iteration bounds. */
+  if ( MWin_kAllDisplayAreas == inDispIndex ) {
+    nDispIndexMin = 0;
+    nDispIndexMax = MWin_knMaxNumAreas;
+  }
+
+  /* set the axis */
+  for ( nDispIndex = nDispIndexMin; 
+	nDispIndex < nDispIndexMax; 
+	nDispIndex++ ) {
+    
+    eDispResult = 
+      DspA_SetDTIAxisForComponent ( this->mapDisplays[nDispIndex], 
+				    iAxis, iComponent );
+    if ( DspA_tErr_NoErr != eDispResult ) {
+      eResult = MWin_tErr_ErrorAccessingDisplay;
+      goto error;
+    }
+  }
+
+  goto cleanup;
+
+ error:
+
+  /* print error message */
+  if ( MWin_tErr_NoErr != eResult ) {
+    DebugPrint( ("Error %d in MWin_SetDTIAxisForComponent: %s\n",
       eResult, MWin_GetErrorString(eResult) ) );
   }
 

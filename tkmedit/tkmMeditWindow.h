@@ -116,6 +116,10 @@ MWin_tErr MWin_SetSegmentationVolume  ( tkmMeditWindowRef this,
 					tkm_tSegType      iVolume,
 					int               inDispIndex,
 					mriVolumeRef      iGroup );
+MWin_tErr MWin_SetSegmentationColorTable  ( tkmMeditWindowRef this,
+					    tkm_tSegType      iVolume,
+					    int               inDispIndex,
+					mriColorLookupTableRef iCLUT );
 MWin_tErr MWin_SetSurface             ( tkmMeditWindowRef this, 
 					int               inDispIndex,
 					tkm_tSurfaceType  iType,
@@ -185,6 +189,16 @@ MWin_tErr MWin_SetVolumeColorScale   ( tkmMeditWindowRef this,
 				       int     inMin,
 				       int     inMid,
 				       int     inMax );
+MWin_tErr MWin_SetSegmentationAlpha ( tkmMeditWindowRef this,
+				      int               inDispIndex,
+				      float             ifAlpha );
+MWin_tErr MWin_SetDTIAlpha           ( tkmMeditWindowRef this,
+				       int               inDispIndex,
+				       float             ifAlpha );
+MWin_tErr MWin_SetDTIAxisForComponent ( tkmMeditWindowRef this,
+					int               inDispIndex,
+					tkm_tAxis         iAxis,
+					xColr_tComponent  iComponent );
 
 /* get the viewing state of the last clicked display area */
 MWin_tErr MWin_GetCursor   ( tkmMeditWindowRef   this,

@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2003/03/11 19:15:13 $
-// Revision       : $Revision: 1.53 $
+// Revision Date  : $Date: 2003/03/12 19:10:00 $
+// Revision       : $Revision: 1.54 $
 
 #include "tkmDisplayArea.h"
 #include "tkmMeditWindow.h"
@@ -109,6 +109,7 @@ DspA_tErr DspA_New ( tkmDisplayAreaRef* oppWindow,
   DspA_tErr         eResult      = DspA_tErr_NoErr;
   tkmDisplayAreaRef this         = NULL;
   int               nFlag        = 0;
+  int               nVolume      = 0;
   int               nSegVolume   = 0;
   int               nSurface     = 0;
   xColor3f          color;
@@ -156,11 +157,11 @@ DspA_tErr DspA_New ( tkmDisplayAreaRef* oppWindow,
   this->mnSegmentationVolumeIndex        = -1;
   for( nSurface = 0; nSurface < Surf_knNumVertexSets; nSurface++ )
     DspA_SetSurfaceLineWidth( this, nSurface, 1 );
-  xColr_Set( &color, 1, 1, 0 );
+  xColr_SetFloat( &color, 1, 1, 0 );
   DspA_SetSurfaceLineColor( this, Surf_tVertexSet_Main, &color );
-  xColr_Set( &color, 0, 1, 0 );
+  xColr_SetFloat( &color, 0, 1, 0 );
   DspA_SetSurfaceLineColor( this, Surf_tVertexSet_Original, &color );
-  xColr_Set( &color, 1, 0, 0 );
+  xColr_SetFloat( &color, 1, 0, 0 );
   DspA_SetSurfaceLineColor( this, Surf_tVertexSet_Pial, &color );
   
   
@@ -169,8 +170,9 @@ DspA_tErr DspA_New ( tkmDisplayAreaRef* oppWindow,
     this->mabDisplayFlags[nFlag] = FALSE;
   
   /* null ptrs for display data. */
-  this->mpVolume                = NULL;
-  this->mpAuxVolume             = NULL;
+  for( nVolume = 0; nVolume < tkm_knNumVolumeTypes; nVolume++ ) {
+    this->mpVolume[nVolume] = NULL;
+  }
   for( nSegVolume = 0; nSegVolume < tkm_knNumSegTypes; nSegVolume++ ) {
     this->mSegmentationVolume[nSegVolume] = NULL;
   }
@@ -334,15 +336,17 @@ DspA_tErr DspA_UpdateWindowTitle ( tkmDisplayAreaRef this ) {
     goto error;
   
   /* get the title information */
-  Volm_CopySubjectName( this->mpVolume, sSubjectName, sizeof(sSubjectName) );
-  Volm_CopyVolumeName( this->mpVolume, sVolumeName, sizeof(sVolumeName) );
-  if( NULL != this->mpAuxVolume ) {
-    Volm_CopyVolumeName( this->mpAuxVolume, 
+  Volm_CopySubjectName( this->mpVolume[tkm_tVolumeType_Main], 
+			sSubjectName, sizeof(sSubjectName) );
+  Volm_CopyVolumeName( this->mpVolume[tkm_tVolumeType_Main],
+		       sVolumeName, sizeof(sVolumeName) );
+  if( NULL != this->mpVolume[tkm_tVolumeType_Aux] ) {
+    Volm_CopyVolumeName( this->mpVolume[tkm_tVolumeType_Aux], 
 			 sAuxVolumeName, sizeof(sAuxVolumeName) );
   }
   
   /* if we don't have an aux volume */
-  if( NULL == this->mpAuxVolume ) {
+  if( NULL == this->mpVolume[tkm_tVolumeType_Aux] ) {
     
     /* just use the subject and volume name */
     sprintf( sTitle, "%s: %s", sSubjectName, sVolumeName );
@@ -402,7 +406,7 @@ DspA_tErr DspA_SetVolume ( tkmDisplayAreaRef this,
     goto error;
   
   /* save the main volume */
-  this->mpVolume = ipVolume;
+  this->mpVolume[tkm_tVolumeType_Main] = ipVolume;
   
   /* save the volume size */
   this->mnVolumeSizeX = inSizeX;
@@ -441,7 +445,8 @@ DspA_tErr DspA_SetVolume ( tkmDisplayAreaRef this,
   DspA_UpdateWindowTitle( this );
   
   /* send volume name */
-  Volm_CopyVolumeName( this->mpVolume, sVolumeName, sizeof(sVolumeName) );
+  Volm_CopyVolumeName( this->mpVolume[tkm_tVolumeType_Main], 
+		       sVolumeName, sizeof(sVolumeName) );
   sprintf( sTclArguments, "\"%s value\"", sVolumeName );
   tkm_SendTclCommand( tkm_tTclCommand_UpdateVolumeName, sTclArguments );
   
@@ -526,13 +531,14 @@ DspA_tErr DspA_SetAuxVolume ( tkmDisplayAreaRef this,
   }
   
   /* save the aux volume */
-  this->mpAuxVolume = ipVolume;
+  this->mpVolume[tkm_tVolumeType_Aux] = ipVolume;
   
   /* if we got a volume... */
-  if( NULL != this->mpAuxVolume ) {
+  if( NULL != this->mpVolume[tkm_tVolumeType_Aux] ) {
     
     /* send volume name to tk window */
-    Volm_CopyVolumeName( this->mpAuxVolume, sVolumeName, sizeof(sVolumeName) );
+    Volm_CopyVolumeName( this->mpVolume[tkm_tVolumeType_Aux],
+			 sVolumeName, sizeof(sVolumeName) );
     xUtil_snprintf( sTclArguments, sizeof(sTclArguments),
 		    "\"%s value\"", sVolumeName );
     tkm_SendTclCommand( tkm_tTclCommand_UpdateAuxVolumeName, sTclArguments );
@@ -649,6 +655,45 @@ DspA_tErr DspA_SetSegmentationVolume ( tkmDisplayAreaRef this,
   /* print error message */
   if( DspA_tErr_NoErr != eResult ) {
     DebugPrint( ("Error %d in DspA_SetSegmentationVolume: %s\n",
+		 eResult, DspA_GetErrorString(eResult) ) );
+  }
+  
+ cleanup:
+  
+  return eResult;
+}
+
+DspA_tErr DspA_SetSegmentationColorTable ( tkmDisplayAreaRef this,
+					   tkm_tSegType      iType,
+					   mriColorLookupTableRef iCLUT ) {
+  
+  DspA_tErr eResult            = DspA_tErr_NoErr;
+  
+  /* verify us. */
+  eResult = DspA_Verify( this );
+  if( DspA_tErr_NoErr != eResult )
+    goto error;
+  
+  DebugAssertThrowX( (iType >= 0 && iType < tkm_knNumSegTypes),
+		     eResult, DspA_tErr_InvalidParameter );
+
+  /* save the table */
+  this->mSegmentationColorTable[iType] = iCLUT;
+  
+  /* if we have a segmentation displayed, redraw */
+  if( NULL != this->mSegmentationVolume[iType] &&
+      this->mabDisplayFlags[DspA_tDisplayFlag_SegmentationVolumeOverlay] ) {
+    this->mbSliceChanged = TRUE;
+    DspA_Redraw_( this );
+  }
+  
+  goto cleanup;
+  
+ error:
+  
+  /* print error message */
+  if( DspA_tErr_NoErr != eResult ) {
+    DebugPrint( ("Error %d in DspA_SetSegmentationColorTable: %s\n",
 		 eResult, DspA_GetErrorString(eResult) ) );
   }
   
@@ -1100,13 +1145,16 @@ DspA_tErr DspA_ConvertAndSetCursor ( tkmDisplayAreaRef this,
   switch( iFromSpace ) {
   case mri_tCoordSpace_VolumeIdx:
    // src may not be (256,256,256) so that we convert into "normalized" coords
-    Volm_ConvertMRIIdxToScreenIdx_(this->mpVolume, ipCoord, &anaIdx);
+    Volm_ConvertMRIIdxToScreenIdx_(this->mpVolume[tkm_tVolumeType_Main],
+				   ipCoord, &anaIdx);
     break;
   case mri_tCoordSpace_RAS:
-    Volm_ConvertRASToIdx( this->mpVolume, ipCoord, &anaIdx );
+    Volm_ConvertRASToIdx( this->mpVolume[tkm_tVolumeType_Main],
+			  ipCoord, &anaIdx );
     break;
   case mri_tCoordSpace_Talairach:
-    Volm_ConvertTalToIdx( this->mpVolume, ipCoord, &anaIdx );
+    Volm_ConvertTalToIdx( this->mpVolume[tkm_tVolumeType_Main], 
+			  ipCoord, &anaIdx );
     break;
   default:
     eResult = DspA_tErr_InvalidParameter;
@@ -1497,7 +1545,7 @@ DspA_tErr DspA_SetDisplayFlag ( tkmDisplayAreaRef this,
   case DspA_tDisplayFlag_AuxVolume:
     
     /* if no aux volume, set to false. */
-    if( NULL == this->mpAuxVolume )
+    if( NULL == this->mpVolume[tkm_tVolumeType_Aux] )
       bNewValue = FALSE;
     
     /* if the flag is different, set dirty flag */
@@ -2092,7 +2140,7 @@ DspA_tErr DspA_SetParcBrushInfo ( tkmDisplayAreaRef        this,
     goto error;
   
   if( iSettings->mSrc < tkm_tVolumeType_Main ||
-      iSettings->mSrc >= tkm_knNumVolumeTypes ||
+      iSettings->mSrc >= tkm_knNumVolumeTargets ||
       iSettings->mnFuzzy < 0 ||
       iSettings->mnFuzzy >= 256 ) {
     eResult = DspA_tErr_InvalidParameter;
@@ -2173,6 +2221,109 @@ DspA_tErr DspA_ChangeSliceBy ( tkmDisplayAreaRef this,
  cleanup:
   
   xVoxl_Delete( &pCursor );
+  
+  return eResult;
+}
+
+DspA_tErr DspA_SetSegmentationAlpha ( tkmDisplayAreaRef this,
+				      float             ifAlpha ) {
+  
+  DspA_tErr  eResult = DspA_tErr_NoErr;
+
+  /* verify us. */
+  eResult = DspA_Verify ( this );
+  if ( DspA_tErr_NoErr != eResult )
+    goto error;
+  
+  /* Set the alpha. */
+  if( this->mfSegmentationAlpha != ifAlpha ) {
+    
+    this->mfSegmentationAlpha = ifAlpha;
+    
+    this->mbSliceChanged = TRUE;
+    DspA_Redraw_( this );
+  }
+
+  goto cleanup;
+  
+ error:
+  
+  /* print error message */
+  if ( DspA_tErr_NoErr != eResult ) {
+    DebugPrint( ("Error %d in DspA_SetSegmentationAlpha: %s\n",
+		 eResult, DspA_GetErrorString(eResult) ) );
+  }
+  
+ cleanup:
+  
+  return eResult;
+}
+
+DspA_tErr DspA_SetDTIAlpha ( tkmDisplayAreaRef this,
+			     float             ifAlpha ) {
+  
+  DspA_tErr  eResult = DspA_tErr_NoErr;
+
+  /* verify us. */
+  eResult = DspA_Verify ( this );
+  if ( DspA_tErr_NoErr != eResult )
+    goto error;
+  
+  /* Set the alpha. */
+  if( this->mfDTIAlpha != ifAlpha ) {
+    
+    this->mfDTIAlpha = ifAlpha;
+    
+    this->mbSliceChanged = TRUE;
+    DspA_Redraw_( this );
+  }
+
+  goto cleanup;
+  
+ error:
+  
+  /* print error message */
+  if ( DspA_tErr_NoErr != eResult ) {
+    DebugPrint( ("Error %d in DspA_SetDTIAlpha: %s\n",
+		 eResult, DspA_GetErrorString(eResult) ) );
+  }
+  
+ cleanup:
+  
+  return eResult;
+}
+
+DspA_tErr DspA_SetDTIAxisForComponent ( tkmDisplayAreaRef this,
+					tkm_tAxis         iAxis,
+					xColr_tComponent  iComponent ) {
+
+  DspA_tErr  eResult = DspA_tErr_NoErr;
+
+  /* verify us. */
+  eResult = DspA_Verify ( this );
+  if ( DspA_tErr_NoErr != eResult )
+    goto error;
+  
+  /* Set the axis. */
+  if( this->maDTIAxisForComponent[iComponent] != iAxis ) {
+    
+    this->maDTIAxisForComponent[iComponent] = iAxis;
+    
+    this->mbSliceChanged = TRUE;
+    DspA_Redraw_( this );
+  }
+
+  goto cleanup;
+  
+ error:
+  
+  /* print error message */
+  if ( DspA_tErr_NoErr != eResult ) {
+    DebugPrint( ("Error %d in DspA_SetDTIAxisForComponent: %s\n",
+		 eResult, DspA_GetErrorString(eResult) ) );
+  }
+  
+ cleanup:
   
   return eResult;
 }
@@ -2620,7 +2771,7 @@ DspA_tErr DspA_HandleMouseUp_ ( tkmDisplayAreaRef this,
 	DspA_SetParcBrushInfo( this, &parcBrush );
 	
       } else {
-	
+
 	DebugNote( ("Calling DspA_BrushVoxels_ from mouse up") );
 	parcBrush.mDest = segType;
 	eResult = DspA_BrushVoxels_( this, pVolumeVox,  
@@ -2736,6 +2887,7 @@ DspA_tErr DspA_HandleMouseDown_ ( tkmDisplayAreaRef this,
   if( ( 2 == ipEvent->mButton
 	|| 3 == ipEvent->mButton )
       && DspA_tTool_EditVoxels == sTool 
+      && !ipEvent->mbShiftKey
       && !ipEvent->mbCtrlKey
       && !ipEvent->mbAltKey ) {
     
@@ -3733,13 +3885,43 @@ DspA_tErr DspA_HandleDraw_ ( tkmDisplayAreaRef this ) {
   
   /* if the slice changed, build the current frame buffer */
   if( this->mbSliceChanged ) {
+
+    /* Draw the anatomical or lack thereof. (If anatomical is not
+       displayed, will just clear entire buffer to black.) */
     eResult = DspA_BuildCurrentFrame_ ( this );
     if ( DspA_tErr_NoErr != eResult ) {
       DspA_Signal( "DspA_HandleDraw_", __LINE__, eResult );
       eResult = DspA_tErr_NoErr;
     }
     
-    /* draw the selection */
+    /* Segmentation overlay */
+    if( this->mabDisplayFlags[DspA_tDisplayFlag_SegmentationVolumeOverlay] ) {
+      eResult = DspA_DrawSegmentationOverlayToFrame_( this );
+      if ( DspA_tErr_NoErr != eResult ) {
+	DspA_Signal( "DspA_HandleDraw_", __LINE__, eResult );
+	eResult = DspA_tErr_NoErr;
+      }
+    }
+
+    /* DTI overlay */
+    if( this->mabDisplayFlags[DspA_tDisplayFlag_DTIOverlay] ) {
+      eResult = DspA_DrawDTIOverlayToFrame_( this );
+      if ( DspA_tErr_NoErr != eResult ) {
+	DspA_Signal( "DspA_HandleDraw_", __LINE__, eResult );
+	eResult = DspA_tErr_NoErr;
+      }
+    }
+
+    /* Undoable voxels overlay */
+    if( this->mabDisplayFlags[DspA_tDisplayFlag_UndoVolume] ) {
+      eResult = DspA_DrawUndoableVoxelsOverlayToFrame_( this );
+      if ( DspA_tErr_NoErr != eResult ) {
+	DspA_Signal( "DspA_HandleDraw_", __LINE__, eResult );
+	eResult = DspA_tErr_NoErr;
+      }
+    }
+
+    /* Selection overlay */
     if( this->mabDisplayFlags[DspA_tDisplayFlag_Selection] ) {
       eResult = DspA_DrawSelectionToFrame_( this );
       if ( DspA_tErr_NoErr != eResult ) {
@@ -3747,25 +3929,27 @@ DspA_tErr DspA_HandleDraw_ ( tkmDisplayAreaRef this ) {
 	eResult = DspA_tErr_NoErr;
       }
     }
-  }
-  
-  /* draw functional overlay. */
-  if( this->mabDisplayFlags[DspA_tDisplayFlag_FunctionalOverlay] ) {
-    eResult = DspA_DrawFunctionalOverlayToFrame_( this );
-    if ( DspA_tErr_NoErr != eResult ) {
-      DspA_Signal( "DspA_HandleDraw_", __LINE__, eResult );
-      eResult = DspA_tErr_NoErr;
+
+    /* Draw functional overlay */
+    if( this->mabDisplayFlags[DspA_tDisplayFlag_FunctionalOverlay] ) {
+      eResult = DspA_DrawFunctionalOverlayToFrame_( this );
+      if ( DspA_tErr_NoErr != eResult ) {
+	DspA_Signal( "DspA_HandleDraw_", __LINE__, eResult );
+	eResult = DspA_tErr_NoErr;
+      }
     }
   }
   
-  /* draw the frame buffer */
+  /* Draw the frame buffer to screen. */
   eResult = DspA_DrawFrameBuffer_ ( this );
   if ( DspA_tErr_NoErr != eResult ) {
     DspA_Signal( "DspA_HandleDraw_", __LINE__, eResult );
     eResult = DspA_tErr_NoErr;
   }
   
-  /* draw head points */
+  /* Now a couple overlays that draw with direct openGL commands. */
+
+  /* Head points */
   if( this->mabDisplayFlags[DspA_tDisplayFlag_HeadPoints] ) {
     eResult = DspA_DrawHeadPoints_( this );
     if ( DspA_tErr_NoErr != eResult ) {
@@ -3774,7 +3958,7 @@ DspA_tErr DspA_HandleDraw_ ( tkmDisplayAreaRef this ) {
     }
   }
   
-  /* draw the control points */
+  /* Control points */
   if( this->mabDisplayFlags[DspA_tDisplayFlag_ControlPoints] ) {
     eResult = DspA_DrawControlPoints_( this );
     if ( DspA_tErr_NoErr != eResult ) {
@@ -3783,23 +3967,29 @@ DspA_tErr DspA_HandleDraw_ ( tkmDisplayAreaRef this ) {
     }
   }
   
-  /* draw the control points */
-  //  if( this->mabDisplayFlags[DspA_tDisplayFlag_VectorField] ) {
-  eResult = DspA_DrawVectorField_( this );
-  if ( DspA_tErr_NoErr != eResult ) {
-    DspA_Signal( "DspA_HandleDraw_", __LINE__, eResult );
-    eResult = DspA_tErr_NoErr;
+#if 0
+  /* Vector field */
+  if( this->mabDisplayFlags[DspA_tDisplayFlag_VectorField] ) {
+    eResult = DspA_DrawVectorField_( this );
+    if ( DspA_tErr_NoErr != eResult ) {
+      DspA_Signal( "DspA_HandleDraw_", __LINE__, eResult );
+      eResult = DspA_tErr_NoErr;
+    }
   }
-  //  }
-  
-  /* draw the surface */
-  eResult = DspA_DrawSurface_ ( this );
-  if ( DspA_tErr_NoErr != eResult ) {
-    DspA_Signal( "DspA_HandleDraw_", __LINE__, eResult );
-    eResult = DspA_tErr_NoErr;
+#endif  
+
+  /* Draw the surface */
+  if( this->mabDisplayFlags[DspA_tDisplayFlag_MainSurface] ||
+      this->mabDisplayFlags[DspA_tDisplayFlag_OriginalSurface] ||
+      this->mabDisplayFlags[DspA_tDisplayFlag_CanonicalSurface] ) {
+    eResult = DspA_DrawSurface_ ( this );
+    if ( DspA_tErr_NoErr != eResult ) {
+      DspA_Signal( "DspA_HandleDraw_", __LINE__, eResult );
+      eResult = DspA_tErr_NoErr;
+    }
   }
   
-  /* draw the cursor */
+  /* Draw the cursor */
   if( this->mabDisplayFlags[DspA_tDisplayFlag_Cursor] ) {
     eResult = DspA_DrawCursor_ ( this );
     if ( DspA_tErr_NoErr != eResult ) {
@@ -4277,45 +4467,24 @@ void DspA_DrawHorizontalArrow_ ( xPoint2nRef iStart,
 
 DspA_tErr DspA_BuildCurrentFrame_ ( tkmDisplayAreaRef this ) {
   
-  DspA_tErr             eResult     = DspA_tErr_NoErr;
-  xPoint2n              volumePt    = {0, 0};
-  GLubyte*              pDest       = NULL;
-  //  unsigned char         ucValue     = 0;
-  xVoxelRef             pVoxel      = NULL;
-  xVoxelRef             pFuncMin    = NULL;
-  xVoxelRef             pFuncMax    = NULL;
-  FunV_tErr             eFunctional = FunV_tErr_NoError;
-  FunV_tFunctionalValue funcValue   = 0.0;
-  xColor3f              color       = {0,0,0};
-  xColor3f              funcColor   = {0,0,0};
-  xColor3f              segColor    = {0,0,0};
-  xColor3f              dtiColor    = {0,0,0};
-  int                   nY          = 0;
-
-  //  xUtil_StartTimer();
-  
-  /* make our voxels */
-  xVoxl_New ( &pVoxel );
-  xVoxl_New ( &pFuncMin );
-  xVoxl_New ( &pFuncMax );
-  
-  /* if we have and are showing functional data... */
-  if( this->mabDisplayFlags[DspA_tDisplayFlag_FunctionalOverlay] 
-      && NULL != this->mpFunctionalVolume ) {
-    
-    /* get our overlay func bounds in antomical space */
-    FunD_GetBoundsInAnatomical( this->mpFunctionalVolume->mpOverlayVolume, 
-				pFuncMin, pFuncMax );
-  }
+  DspA_tErr       eResult  = DspA_tErr_NoErr;
+  xPoint2n        bufferPt = {0, 0};
+  GLubyte*        pDest    = NULL;
+  tkm_tVolumeType volume   = tkm_tVolumeType_Main;
+  xVoxel          anaIdx;
+  xColor3n        color    = {0,0,0};
+  int             yMin     = 0;
+  int             yMax     = 0;
+  int             yInc     = 0;
   
   /* if we're in zoom level one, set zoom center to 128,128,128 */
   if( 1 == this->mnZoomLevel ) {
     
     /* set a voxel to 128,128,128, setting the zoom center will not change
        the current slice. */
-    xVoxl_Set( pVoxel, this->mnVolumeSizeX/2, 
+    xVoxl_Set( &anaIdx, this->mnVolumeSizeX/2, 
 	       this->mnVolumeSizeY/2, this->mnVolumeSizeZ/2 );
-    eResult = DspA_SetZoomCenter( this, pVoxel );
+    eResult = DspA_SetZoomCenter( this, &anaIdx );
     if( DspA_tErr_NoErr != eResult )
       goto error;
   }
@@ -4325,164 +4494,190 @@ DspA_tErr DspA_BuildCurrentFrame_ ( tkmDisplayAreaRef this ) {
   
   DisableDebuggingOutput;
   
-  for ( nY = 0; nY < this->mnVolumeSizeY; nY ++ ) {
-    for ( volumePt.mnX = 0; 
-	  volumePt.mnX < this->mnVolumeSizeX; volumePt.mnX ++ ) {
+  /* Decide which volume we're looking at. */
+  if( this->mabDisplayFlags[DspA_tDisplayFlag_AuxVolume] ) {
+    volume = tkm_tVolumeType_Aux;
+  } else {
+    volume = tkm_tVolumeType_Main;
+  }
+  
+  if( mri_tOrientation_Horizontal == this->mOrientation ){
+    yMin = 0; yMax = this->mnVolumeSizeY; yInc = 1;
+  } else {
+    yMin = this->mnVolumeSizeY; yMax = 0; yInc = -1;
+  }
+
+  /* If the anatomical flag is not on, just paint the whole thing
+     black. */
+  if( !this->mabDisplayFlags[DspA_tDisplayFlag_Anatomical] ) {
+
+    for ( bufferPt.mnY = yMin; bufferPt.mnY != yMax; bufferPt.mnY += yInc) {
+      for ( bufferPt.mnX = 0;
+	    bufferPt.mnX < this->mnVolumeSizeX; bufferPt.mnX ++ ) {
+
+	/* set the pixel */
+	pDest[DspA_knRedPixelCompIndex]   = 0;
+	pDest[DspA_knGreenPixelCompIndex] = 0;
+	pDest[DspA_knBluePixelCompIndex]  = 0;
+	pDest[DspA_knAlphaPixelCompIndex] = 1;
+	
+	/* advance our pointer. */
+	pDest += DspA_knNumBytesPerPixel;
+      }
+    }	
+
+  } else {
+
+    /* If the maximum intensity projection flag is on, loop through
+       getting the max int value. Otherwise loop through getting the
+       normal color value. */
+    if( this->mabDisplayFlags[DspA_tDisplayFlag_MaxIntProj] ) {
       
-      /* y flip the volume pt to flip the image over. */
-      volumePt.mnY = BUFFER_Y_FLIP(nY);
+      for ( bufferPt.mnY = yMin; bufferPt.mnY != yMax; bufferPt.mnY += yInc) {
+	for ( bufferPt.mnX = 0; 
+	      bufferPt.mnX < this->mnVolumeSizeX; bufferPt.mnX ++ ) {
+	  
+	  /* get a volume voxel.*/
+	  eResult = DspA_ConvertBufferToVolume_ ( this, &bufferPt, &anaIdx );
+	  if ( DspA_tErr_NoErr != eResult )
+	    goto error;
+	  
+	  Volm_GetMaxIntColorAtIdx( this->mpVolume[volume], &anaIdx,
+				    this->mOrientation, &color );
+
+	  /* set the pixel */
+	  pDest[DspA_knRedPixelCompIndex]   = (GLubyte)color.mnRed;
+	  pDest[DspA_knGreenPixelCompIndex] = (GLubyte)color.mnGreen;
+	  pDest[DspA_knBluePixelCompIndex]  = (GLubyte)color.mnBlue;
+	  pDest[DspA_knAlphaPixelCompIndex] = DspA_knMaxPixelValue;
+	  
+	  /* advance our pointer. */
+	  pDest += DspA_knNumBytesPerPixel;
+	}
+      }
+
+    } else {
+
+      /* Just loop through getting the anatomical color at this index. */
+      for ( bufferPt.mnY = yMin; bufferPt.mnY != yMax; bufferPt.mnY += yInc) {
+	for ( bufferPt.mnX = 0; 
+	      bufferPt.mnX < this->mnVolumeSizeX; bufferPt.mnX ++ ) {
+	  
+	  /* get a volume voxel.*/
+	  eResult = DspA_ConvertBufferToVolume_ ( this, &bufferPt, &anaIdx );
+	  if ( DspA_tErr_NoErr != eResult )
+	    goto error;
+	  
+	  Volm_GetIntColorAtIdx( this->mpVolume[volume],
+				 &anaIdx, &color );
+
+	  /* set the pixel */
+	  pDest[DspA_knRedPixelCompIndex]   = (GLubyte)color.mnRed;
+	  pDest[DspA_knGreenPixelCompIndex] = (GLubyte)color.mnGreen;
+	  pDest[DspA_knBluePixelCompIndex]  = (GLubyte)color.mnBlue;
+	  pDest[DspA_knAlphaPixelCompIndex] = DspA_knMaxPixelValue;
+	  
+	  /* advance our pointer. */
+	  pDest += DspA_knNumBytesPerPixel;
+	}
+      }
+    }
+  }
+  
+  goto cleanup;
+  
+ error:
+  
+  /* print error message */
+  if ( DspA_tErr_NoErr != eResult ) {
+    DebugPrint( ("Error %d in DspA_BuildCurrentFrame_: %s\n",
+		 eResult, DspA_GetErrorString(eResult) ) );
+  }
+  
+ cleanup:
+  
+  EnableDebuggingOutput;
+  
+  return eResult;
+}
+
+DspA_tErr DspA_DrawSegmentationOverlayToFrame_ ( tkmDisplayAreaRef this ) {
+
+  DspA_tErr  eResult     = DspA_tErr_NoErr;
+  Volm_tErr  eVolume     = Volm_tErr_NoErr;
+  CLUT_tErr  eCLUT       = CLUT_tErr_NoErr;
+  tkm_tSegType seg       = tkm_tSegType_Main;
+  xPoint2n   bufferPt    = {0, 0};
+  GLubyte*   pDest       = NULL;
+  xVoxel     anaIdx;
+  xColor3n   color       = {0,0,0};
+  xColor3n   overlayColor = {0, 0, 0};
+  xColor3n   newColor    = {0,0,0};
+  int        yMin        = 0;
+  int        yMax        = 0;
+  int        yInc        = 0;
+  float      value;
+  
+  /* get a ptr to the frame buffer. */
+  pDest = this->mpFrameBuffer;
+  
+  DisableDebuggingOutput;
+  
+  if( mri_tOrientation_Horizontal == this->mOrientation ){
+    yMin = 0; yMax = this->mnVolumeSizeY; yInc = 1;
+  } else {
+    yMin = this->mnVolumeSizeY; yMax = 0; yInc = -1;
+  }
+
+  if( this->mabDisplayFlags[DspA_tDisplayFlag_AuxSegmentationVolume] ) {
+    seg = tkm_tSegType_Aux;
+  } else {
+    seg = tkm_tSegType_Main;
+  }
+
+  for ( bufferPt.mnY = yMin; bufferPt.mnY != yMax; bufferPt.mnY += yInc) {
+    for ( bufferPt.mnX = 0; 
+	  bufferPt.mnX < this->mnVolumeSizeX; bufferPt.mnX ++ ) {
       
-      /* get a volume voxel.*/
-      eResult = DspA_ConvertBufferToVolume_ ( this, &volumePt, pVoxel );
+      /* Get a volume voxel. */
+      eResult = DspA_ConvertBufferToVolume_ ( this, &bufferPt, &anaIdx );
       if ( DspA_tErr_NoErr != eResult )
 	goto error;
       
-      /* I removed the code that checked the voxel here, since it
-	 shouldn't be necessary and is really slow. */
-      /*
-	eResult = DspA_VerifyVolumeVoxel_( this, pVoxel );
-	if( DspA_tErr_NoErr == eResult ) {
-	if ( xVoxl_GetX( pVoxel ) >= 0 &&
-   	   xVoxl_GetY( pVoxel ) >= 0 &&
-	   xVoxl_GetZ( pVoxel ) >= 0 &&
-	   xVoxl_GetX( pVoxel ) < this->mnVolumeSizeX &&
-	   xVoxl_GetY( pVoxel ) < this->mnVolumeSizeY &&
-	   xVoxl_GetZ( pVoxel ) < this->mnVolumeSizeZ ) {
-      */
-	
-      if( 1 ) {
+      /* Get the value in the volume. */
+      eVolume = Volm_GetValueAtIdxUnsafe( this->mSegmentationVolume[seg],
+					  &anaIdx, &value );
+      if ( Volm_tErr_NoErr != eVolume )
+	goto error;
 
-	/* if we are drawing anatomical data... */
-	if( this->mabDisplayFlags[DspA_tDisplayFlag_Anatomical] ) {
-	  
-	  /* get the normal or max color for the main or aux volume, 
-	     depending on our display flags. */
-	  if( this->mabDisplayFlags[DspA_tDisplayFlag_AuxVolume] ) {
-	    if( this->mabDisplayFlags[DspA_tDisplayFlag_MaxIntProj] ) {
-	      Volm_GetMaxColorAtIdx( this->mpAuxVolume, pVoxel,
-				     this->mOrientation, &color );
-	    } else {
-	      Volm_GetColorAtIdx( this->mpAuxVolume, pVoxel, &color );
-	    }
-	  } else {
-	    if( this->mabDisplayFlags[DspA_tDisplayFlag_MaxIntProj] ) {
-	      Volm_GetMaxColorAtIdx( this->mpVolume, pVoxel,
-				     this->mOrientation, &color );
-	    } else {
-	      Volm_GetColorAtIdx( this->mpVolume, pVoxel, &color );
-	    }
-	  }
-	  
-	} else {
-	  
-	  /* color is just black */
-	  color.mfRed   = 0;
-	  color.mfGreen = 0;
-	  color.mfBlue  = 0;
-	}
+      if( 0 != value ) {
+
+	/* Get a color from the look up table. */
+	eCLUT = CLUT_GetColorInt( this->mSegmentationColorTable[seg],
+				  value, &overlayColor );
+	if( CLUT_tErr_NoErr != eCLUT )
+	  goto error;
 	
-	/* If we are showing the DTI volume, get a blended color at this
-	   voxel and use this color. */
-	if( this->mabDisplayFlags[DspA_tDisplayFlag_DTIOverlay] ) {
-	  tkm_GetDTIColorAtVoxel( pVoxel, this->mOrientation, 
-				  &color, &dtiColor );
-	  color = dtiColor;
-	}
+	/* Get the color at the dest. */
+	color.mnRed   = pDest[DspA_knRedPixelCompIndex];
+	color.mnGreen = pDest[DspA_knGreenPixelCompIndex];
+	color.mnBlue  = pDest[DspA_knBluePixelCompIndex];
 	
-	/* if we are showing segmentation... */
-	if(this->mabDisplayFlags[DspA_tDisplayFlag_SegmentationVolumeOverlay]){
-	  
-	  /* get seg color blended in. */
-	  if(this->mabDisplayFlags[DspA_tDisplayFlag_AuxSegmentationVolume]) {
-	    tkm_GetSegmentationColorAtVoxel( tkm_tSegType_Aux, 
-					     pVoxel, &color, &segColor );
-	  } else {
-	    tkm_GetSegmentationColorAtVoxel( tkm_tSegType_Main, 
-					     pVoxel, &color, &segColor );
-	  }
-	  color = segColor;
-	}
+	newColor.mnRed = 
+	  ((float)color.mnRed * (1.0 - this->mfSegmentationAlpha)) +
+	  ((float)overlayColor.mnRed * this->mfSegmentationAlpha);
+	newColor.mnGreen = 
+	  ((float)color.mnGreen * (1.0 - this->mfSegmentationAlpha)) +
+	  ((float)overlayColor.mnGreen * this->mfSegmentationAlpha);
+	newColor.mnBlue = 
+	  ((float)color.mnBlue * (1.0 - this->mfSegmentationAlpha)) +
+	  ((float)overlayColor.mnBlue * this->mfSegmentationAlpha);
 	
-	/* if we are showing undoable voxels... */
-	if( this->mabDisplayFlags[DspA_tDisplayFlag_UndoVolume] ) {
-	  
-	  /* is this is one of them, draw with a blue overlay */
-	  if( tkm_IsAnaIdxInUndoVolume ( pVoxel ) ) {
-	    xColr_HilightComponent( &color, xColr_tComponent_Blue );
-	  }
-	}
-	
-	/* if we have and are showing functional data, or our
-	   mask arg is on... */
-	if( ( this->mabDisplayFlags[DspA_tDisplayFlag_FunctionalOverlay] ||
-	      this->mabDisplayFlags[DspA_tDisplayFlag_MaskToFunctionalOverlay] ) &&
-	    NULL != this->mpFunctionalVolume ) {
-	  
-	  /* if this voxel is in our func bounds... */
-	  if( xVoxl_GetX(pVoxel) >= xVoxl_GetX(pFuncMin)
-	      && xVoxl_GetX(pVoxel) <= xVoxl_GetX(pFuncMax)
-	      && xVoxl_GetY(pVoxel) >= xVoxl_GetY(pFuncMin)
-	      && xVoxl_GetY(pVoxel) <= xVoxl_GetY(pFuncMax)
-	      && xVoxl_GetZ(pVoxel) >= xVoxl_GetZ(pFuncMin)
-	      && xVoxl_GetZ(pVoxel) <= xVoxl_GetZ(pFuncMax) ) {
-	    
-	    /* get a functional value. */
-	    eFunctional = 
-	      FunV_GetValueAtAnaIdx( this->mpFunctionalVolume,
-				     pVoxel, &funcValue );
-	    
-	    /* if it was a valid voxel */
-	    if( FunV_tErr_NoError == eFunctional ) {
-	      
-	      /* get a color value. use the red compoonent for
-		 base value. */
-	      eFunctional = FunV_GetColorForValue ( this->mpFunctionalVolume,
-						    funcValue, 
-						    &color, &funcColor );
-	      
-	      /* if the color is not all black.. */
-	      if( funcColor.mfRed != 0 || 
-		  funcColor.mfGreen != 0 || 
-		  funcColor.mfBlue  != 0 ) {
-		
-		/* set the color to this func color */
-		color = funcColor;
-	      }
-	    } 
-	    
-	  } else {
-	    eFunctional = FunV_tErr_InvalidAnatomicalVoxel;
-	  }
-	  
-	  /* if we are out of functional bounds and our mask arg is on, then 
-	     this pixel is black. */
-	  if( FunV_tErr_InvalidAnatomicalVoxel == eFunctional &&
-	      this->mabDisplayFlags[DspA_tDisplayFlag_MaskToFunctionalOverlay]) {
-	    color.mfRed   = 0;
-	    color.mfGreen = 0;
-	    color.mfBlue  = 0;
-	  }
-	}
-	
-      } else {
-        
-        /* voxel was out of bounds, set to out of bounds color. */
-        color.mfRed   = 0;
-        color.mfGreen = 0;
-        color.mfBlue  = 0;
-        
-        /* clear error flag. */
-        eResult = DspA_tErr_NoErr;
+	/* set the pixel */
+	pDest[DspA_knRedPixelCompIndex]   = (GLubyte)newColor.mnRed;
+	pDest[DspA_knGreenPixelCompIndex] = (GLubyte)newColor.mnGreen;
+	pDest[DspA_knBluePixelCompIndex]  = (GLubyte)newColor.mnBlue;
       }
-      
-      /* set the pixel */
-      pDest[DspA_knRedPixelCompIndex]   = 
-        (GLubyte)(color.mfRed * (float)DspA_knMaxPixelValue);
-      pDest[DspA_knGreenPixelCompIndex] = 
-        (GLubyte)(color.mfGreen * (float)DspA_knMaxPixelValue);
-      pDest[DspA_knBluePixelCompIndex]  = 
-        (GLubyte)(color.mfBlue * (float)DspA_knMaxPixelValue);
-      pDest[DspA_knAlphaPixelCompIndex] = DspA_knMaxPixelValue;
       
       /* advance our pointer. */
       pDest += DspA_knNumBytesPerPixel;
@@ -4495,7 +4690,7 @@ DspA_tErr DspA_BuildCurrentFrame_ ( tkmDisplayAreaRef this ) {
   
   /* print error message */
   if ( DspA_tErr_NoErr != eResult ) {
-    DebugPrint( ("Error %d in DspA_BuildCurrentFrame_: %s\n",
+    DebugPrint( ("Error %d in DspA_DrawSegmentationOverlayToFrame_: %s\n",
                  eResult, DspA_GetErrorString(eResult) ) );
   }
   
@@ -4503,16 +4698,193 @@ DspA_tErr DspA_BuildCurrentFrame_ ( tkmDisplayAreaRef this ) {
   
   EnableDebuggingOutput;
   
-  /* delete the voxel. */
-  xVoxl_Delete ( &pVoxel );
-  xVoxl_Delete ( &pFuncMin );
-  xVoxl_Delete ( &pFuncMax );
+  return eResult;
+}
+
+DspA_tErr DspA_DrawDTIOverlayToFrame_ ( tkmDisplayAreaRef this ) {
+
+  DspA_tErr  eResult     = DspA_tErr_NoErr;
+  xPoint2n   bufferPt    = {0, 0};
+  GLubyte*   pDest       = NULL;
+  xVoxel     anaIdx;
+  xColr_tComponent comp;
+  int   color;
+  int   overlayColor;
+  int   newColor;
+  int        yMin        = 0;
+  int        yMax        = 0;
+  int        yInc        = 0;
+  float      value       = 0;
   
-  //  xUtil_StopTimer( "build frame buffer" );
+  DisableDebuggingOutput;
+  
+  if( mri_tOrientation_Horizontal == this->mOrientation ){
+    yMin = 0; yMax = this->mnVolumeSizeY; yInc = 1;
+  } else {
+    yMin = this->mnVolumeSizeY; yMax = 0; yInc = -1;
+  }
+
+  for( comp = xColr_tComponent_Red; comp <= xColr_tComponent_Blue; comp++ ) {
+
+    /* get a ptr to the frame buffer. depending on the component, we
+       want to stagger it so first we process all the red components,
+       then the green, etc.*/
+    pDest = this->mpFrameBuffer;
+    switch( comp ) {
+    case xColr_tComponent_Red:   pDest += DspA_knRedPixelCompIndex;   break;
+    case xColr_tComponent_Green: pDest += DspA_knGreenPixelCompIndex; break;
+    case xColr_tComponent_Blue:  pDest += DspA_knBluePixelCompIndex;  break;
+    default:
+    }
+  
+    for ( bufferPt.mnY = yMin; bufferPt.mnY != yMax; bufferPt.mnY += yInc) {
+      for ( bufferPt.mnX = 0; 
+	    bufferPt.mnX < this->mnVolumeSizeX; bufferPt.mnX ++ ) {
+      
+	/* Get a volume voxel. */
+	eResult = DspA_ConvertBufferToVolume_ ( this, &bufferPt, &anaIdx );
+	if ( DspA_tErr_NoErr != eResult )
+	  goto error;
+
+	/* Map to the colors. Get the value of the corresponding
+	   axis. x is in frame 0, y in 1, and z in two. */
+	switch( this->maDTIAxisForComponent[comp] ) {
+	case tAxis_X: 
+	  Volm_GetValueAtIdxFrameUnsafe( this->mpDTIVolume, 
+					 &anaIdx, 0, &value );
+	  break;
+	case tAxis_Y: 
+	  Volm_GetValueAtIdxFrameUnsafe( this->mpDTIVolume, 
+					 &anaIdx, 1, &value );
+	  break;
+	case tAxis_Z: 
+	  Volm_GetValueAtIdxFrameUnsafe( this->mpDTIVolume, 
+					 &anaIdx, 2, &value );
+	  break;
+	default:
+	  break;
+	}
+	
+	if( 0 != value ) {
+	  
+	  /* Convert float value to 0-255. Use fabs() here because the
+	     value in the volume could be negative. */
+	  overlayColor = 
+	    (int)((float)fabs(value) * (float)DspA_knMaxPixelValue); 
+      
+	  /* Get the color at the dest. */
+	  color = *pDest;
+
+	  /* Do the blend. */
+	  newColor = ((float)color * (1.0 - this->mfDTIAlpha)) +
+	    ((float)overlayColor * this->mfDTIAlpha);
+	  
+	  /* set the pixel */
+	  *pDest = (GLubyte)newColor;
+	}
+	
+	/* advance our pointer. */
+	pDest += DspA_knNumBytesPerPixel;
+      }
+    }
+  }
+  
+  goto cleanup;
+  
+ error:
+  
+  /* print error message */
+  if ( DspA_tErr_NoErr != eResult ) {
+    DebugPrint( ("Error %d in DspA_DrawDTIOverlayToFrame_: %s\n",
+                 eResult, DspA_GetErrorString(eResult) ) );
+  }
+  
+ cleanup:
+  
+  EnableDebuggingOutput;
   
   return eResult;
 }
 
+DspA_tErr DspA_DrawUndoableVoxelsOverlayToFrame_ ( tkmDisplayAreaRef this ) {
+
+  DspA_tErr  eResult     = DspA_tErr_NoErr;
+  xPoint2n   bufferPt    = {0, 0};
+  GLubyte*   pDest       = NULL;
+  xVoxel     anaIdx;
+  xColor3n   color;
+  int        yMin        = 0;
+  int        yMax        = 0;
+  int        yInc        = 0;
+  
+  DisableDebuggingOutput;
+  
+  if( mri_tOrientation_Horizontal == this->mOrientation ){
+    yMin = 0; yMax = this->mnVolumeSizeY; yInc = 1;
+  } else {
+    yMin = this->mnVolumeSizeY; yMax = 0; yInc = -1;
+  }
+
+  /* get a ptr to the frame buffer. */
+  pDest = this->mpFrameBuffer;
+
+  for ( bufferPt.mnY = yMin; bufferPt.mnY != yMax; bufferPt.mnY += yInc) {
+    for ( bufferPt.mnX = 0; 
+	  bufferPt.mnX < this->mnVolumeSizeX; bufferPt.mnX ++ ) {
+      
+	/* Get a volume voxel. */
+	eResult = DspA_ConvertBufferToVolume_ ( this, &bufferPt, &anaIdx );
+	if ( DspA_tErr_NoErr != eResult )
+	  goto error;
+
+	/* Is this voxel is in the undo volume? */
+	if( tkm_IsAnaIdxInUndoVolume ( &anaIdx ) ) {
+
+	  /* Get the color at the dest. */
+	  color.mnRed   = pDest[DspA_knRedPixelCompIndex];
+	  color.mnGreen = pDest[DspA_knGreenPixelCompIndex];
+	  color.mnBlue  = pDest[DspA_knBluePixelCompIndex];
+	  
+	  /* Highlight the blue component. */
+	  color.mnBlue = MIN( DspA_knMaxPixelValue, 
+			      color.mnBlue + DspA_knMaxPixelValue / 2 );
+
+	  /* If the other components are two bright to let the
+	     highlight show, lower them a bit. */
+	  if( color.mnBlue - color.mnGreen < DspA_knMaxPixelValue / 2 ) {
+	    color.mnGreen = color.mnBlue - DspA_knMaxPixelValue / 2;
+	  }
+	  if( color.mnBlue - color.mnRed < DspA_knMaxPixelValue / 2 ) {
+	    color.mnRed = color.mnBlue - DspA_knMaxPixelValue / 2;
+	  }
+	  
+	  /* set the pixel */
+	  pDest[DspA_knRedPixelCompIndex]   = (GLubyte)color.mnRed;
+	  pDest[DspA_knGreenPixelCompIndex] = (GLubyte)color.mnGreen;
+	  pDest[DspA_knBluePixelCompIndex]  = (GLubyte)color.mnBlue;
+	}
+
+	/* advance our pointer. */
+	pDest += DspA_knNumBytesPerPixel;
+    }
+  }
+  
+  goto cleanup;
+  
+ error:
+  
+  /* print error message */
+  if ( DspA_tErr_NoErr != eResult ) {
+    DebugPrint( ("Error %d in DspA_DrawUndoableVoxelsOverlayToFrame_: %s\n",
+                 eResult, DspA_GetErrorString(eResult) ) );
+  }
+  
+ cleanup:
+  
+  EnableDebuggingOutput;
+  
+  return eResult;
+}
 
 DspA_tErr DspA_DrawFunctionalOverlayToFrame_ ( tkmDisplayAreaRef this ) {
   
@@ -4521,10 +4893,76 @@ DspA_tErr DspA_DrawFunctionalOverlayToFrame_ ( tkmDisplayAreaRef this ) {
   xPoint2n              bufferPt    = {0,0};
   FunV_tFunctionalValue max         = 0;
   FunV_tFunctionalValue funcValue   = 0.0;
-  xColor3f              color       = {0,0,0};
-  xColor3f              funcColor   = {0,0,0};
-  GLubyte*              pFrame      = NULL;
+  xColor3f   color;
+  xColor3f              newColor   = {0,0,0};
+  GLubyte*   pDest       = NULL;
+  xVoxel     anaIdx;
+  int        yMin        = 0;
+  int        yMax        = 0;
+  int        yInc        = 0;
   
+  DisableDebuggingOutput;
+  
+  if( mri_tOrientation_Horizontal == this->mOrientation ){
+    yMin = 0; yMax = this->mnVolumeSizeY; yInc = 1;
+  } else {
+    yMin = this->mnVolumeSizeY; yMax = 0; yInc = -1;
+  }
+
+  /* get a ptr to the frame buffer. */
+  pDest = this->mpFrameBuffer;
+
+  for ( bufferPt.mnY = yMin; bufferPt.mnY != yMax; bufferPt.mnY += yInc) {
+    for ( bufferPt.mnX = 0; 
+	  bufferPt.mnX < this->mnVolumeSizeX; bufferPt.mnX ++ ) {
+      
+      /* Get a volume voxel. */
+      eResult = DspA_ConvertBufferToVolume_ ( this, &bufferPt, &anaIdx );
+      if ( DspA_tErr_NoErr != eResult )
+	goto error;
+
+      /* get a functional value. */
+      eFunctional = FunV_GetValueAtAnaIdx( this->mpFunctionalVolume,
+					   &anaIdx, &funcValue );
+      
+      /* if it was a valid voxel */
+      if( FunV_tErr_NoError == eFunctional ) {
+	
+	/* Get the current color and convert it to float. */
+	color.mfRed   = (float)pDest[DspA_knRedPixelCompIndex] /
+	  (float)DspA_knMaxPixelValue;
+	color.mfGreen = (float)pDest[DspA_knGreenPixelCompIndex] /
+	  (float)DspA_knMaxPixelValue;
+	color.mfBlue  = (float)pDest[DspA_knBluePixelCompIndex] /
+	  (float)DspA_knMaxPixelValue;
+	
+	/* get a color value. this function automatically does the
+	   appropriate blending. */
+	eFunctional = FunV_GetColorForValue ( this->mpFunctionalVolume,
+					      funcValue, &color, &newColor );
+	
+	/* Set the color back in the buffer, converting back to int. */
+	pDest[DspA_knRedPixelCompIndex]   = 
+	  (GLubyte)(newColor.mfRed * DspA_knMaxPixelValue);
+	pDest[DspA_knGreenPixelCompIndex] =
+	  (GLubyte)(newColor.mfGreen * DspA_knMaxPixelValue);
+	pDest[DspA_knBluePixelCompIndex]  =
+	  (GLubyte)(newColor.mfBlue * DspA_knMaxPixelValue);
+
+      } else if( FunV_tErr_InvalidAnatomicalVoxel == eFunctional &&
+	   this->mabDisplayFlags[DspA_tDisplayFlag_MaskToFunctionalOverlay]) {
+	
+	pDest[DspA_knRedPixelCompIndex]   = (GLubyte)0;
+	pDest[DspA_knGreenPixelCompIndex] = (GLubyte)0;
+	pDest[DspA_knBluePixelCompIndex]  = (GLubyte)0;
+      }
+
+      /* advance our pointer. */
+      pDest += DspA_knNumBytesPerPixel;
+    }
+  }
+
+
   /* if we're drawing the color scale bar... */
   if( this->mabDisplayFlags[DspA_tDisplayFlag_FunctionalColorScaleBar] ) {
     
@@ -4548,7 +4986,7 @@ DspA_tErr DspA_DrawFunctionalOverlayToFrame_ ( tkmDisplayAreaRef this ) {
       
       /* get the functional color for this value */
       eFunctional = FunV_GetColorForValue( this->mpFunctionalVolume,
-                                           funcValue, &color, &funcColor );
+                                           funcValue, &color, &newColor );
       if( FunV_tErr_NoError != eFunctional ) {
         eResult = DspA_tErr_ErrorAccessingFunctionalVolume;
         goto error;
@@ -4559,17 +4997,17 @@ DspA_tErr DspA_DrawFunctionalOverlayToFrame_ ( tkmDisplayAreaRef this ) {
             bufferPt.mnX < this->mnVolumeSizeX; bufferPt.mnX++ ) {
         
         /* write it back to the buffer. */
-        pFrame = this->mpFrameBuffer + 
+        pDest = this->mpFrameBuffer + 
           ( (bufferPt.mnY * this->mnVolumeSizeY) + bufferPt.mnX ) * 
           DspA_knNumBytesPerPixel;
         
-        pFrame[DspA_knRedPixelCompIndex]   = 
-          (GLubyte)(funcColor.mfRed * DspA_knMaxPixelValue);
-        pFrame[DspA_knGreenPixelCompIndex] = 
-          (GLubyte)(funcColor.mfGreen * DspA_knMaxPixelValue);
-        pFrame[DspA_knBluePixelCompIndex]  = 
-          (GLubyte)(funcColor.mfBlue * DspA_knMaxPixelValue);
-        pFrame[DspA_knAlphaPixelCompIndex] = DspA_knMaxPixelValue;
+        pDest[DspA_knRedPixelCompIndex]   = 
+          (GLubyte)(newColor.mfRed * DspA_knMaxPixelValue);
+        pDest[DspA_knGreenPixelCompIndex] = 
+          (GLubyte)(newColor.mfGreen * DspA_knMaxPixelValue);
+        pDest[DspA_knBluePixelCompIndex]  = 
+          (GLubyte)(newColor.mfBlue * DspA_knMaxPixelValue);
+        pDest[DspA_knAlphaPixelCompIndex] = DspA_knMaxPixelValue;
       }
     }
   }
@@ -4693,8 +5131,8 @@ DspA_tErr DspA_DrawVectorField_ ( tkmDisplayAreaRef this ) {
   
   DspA_tErr    eResult    = DspA_tErr_NoErr;
   float        faColor[3] = {0, 0, 0};
-  //  xVoxel       start;
-  //  xVoxel       direction;
+  xVoxel       start;
+  xVoxel       direction;
   
   /* decide which list we want out of the space. */
   switch ( this->mOrientation ) {
@@ -4716,14 +5154,11 @@ DspA_tErr DspA_DrawVectorField_ ( tkmDisplayAreaRef this ) {
   faColor[2] = 0;
   
   /* this was some test code. it still doesn't work quite right. */
-#if 0  
   xVoxl_Set( &start, 120.5, 120.5, 120.5 );
   xVoxl_SetFloat( &direction, .5, .3, .1 );
-  //  while( xVoxl_IncrementWithMinUntilLimit( &start, 120.5, 121.5 ) ) {
-  
-  DspA_DrawVector_( this, faColor, &start, &direction );
-  //  }
-#endif
+  while( xVoxl_IncrementWithMinUntilLimit( &start, 120.5, 121.5 ) ) {
+    DspA_DrawVector_( this, faColor, &start, &direction );
+  }
   
   goto cleanup;
   
@@ -4809,7 +5244,7 @@ DspA_tErr DspA_DrawSelectionToFrame_ ( tkmDisplayAreaRef this ) {
 	      ( (nY * this->mnVolumeSizeX) + nX ) * DspA_knNumBytesPerPixel;
 	    
 	    /* get the current color in the buffer */
-	    xColr_Set( &color, (float)pFrame[DspA_knRedPixelCompIndex] /
+	    xColr_SetFloat( &color, (float)pFrame[DspA_knRedPixelCompIndex] /
 		       (float)DspA_knMaxPixelValue,
 		       (float)pFrame[DspA_knGreenPixelCompIndex] /
 		       (float)DspA_knMaxPixelValue,
@@ -5523,11 +5958,11 @@ DspA_tErr DspA_GetClosestInterpSurfVoxel ( tkmDisplayAreaRef this,
   if( NULL != osDescription ) {
     
     /* convert the ana idx coords to RAS. */
-    Volm_ConvertIdxToRAS( this->mpVolume, 
+    Volm_ConvertIdxToRAS( this->mpVolume[tkm_tVolumeType_Main], 
 			  &closestAnaIdx, &closestRAS );
-    Volm_ConvertIdxToRAS( this->mpVolume, 
+    Volm_ConvertIdxToRAS( this->mpVolume[tkm_tVolumeType_Main], 
 			  &closestNeighborAnaIdx, &closestNeighborRAS );
-    Volm_ConvertIdxToRAS( this->mpVolume, 
+    Volm_ConvertIdxToRAS( this->mpVolume[tkm_tVolumeType_Main], 
 			  &closestInterpAnaIdx, &closestInterpRAS );
 
     sprintf( osDescription, "Index: %d Distance: %.2f\n"
@@ -6054,13 +6489,15 @@ DspA_tErr DspA_SendViewStateToTcl_ ( tkmDisplayAreaRef this ) {
 				   this->mpCursor );
   
   /* send volume name */
-  Volm_CopyVolumeName( this->mpVolume, sVolumeName, sizeof(sVolumeName) );
+  Volm_CopyVolumeName( this->mpVolume[tkm_tVolumeType_Main],
+		       sVolumeName, sizeof(sVolumeName) );
   sprintf( sTclArguments, "\"%s value\"", sVolumeName );
   tkm_SendTclCommand( tkm_tTclCommand_UpdateVolumeName, sTclArguments );
   
   /* send the aux volume name if it's loaded */
-  if( NULL != this->mpAuxVolume ) {
-    Volm_CopyVolumeName( this->mpAuxVolume, sVolumeName, sizeof(sVolumeName) );
+  if( NULL != this->mpVolume[tkm_tVolumeType_Aux] ) {
+    Volm_CopyVolumeName( this->mpVolume[tkm_tVolumeType_Aux],
+			 sVolumeName, sizeof(sVolumeName) );
     sprintf( sTclArguments, "\"%s value\"", sVolumeName );
     tkm_SendTclCommand( tkm_tTclCommand_UpdateAuxVolumeName, sTclArguments );
   }
@@ -6144,7 +6581,8 @@ DspA_tErr DspA_SendPointInformationToTcl_ ( tkmDisplayAreaRef this,
 
   /* send the anatomical index. */
   // translate the screen idx into the src Idx
-  Volm_ConvertIdxToMRIIdx(this->mpVolume, iAnaIdx, &MRIIdx);
+  Volm_ConvertIdxToMRIIdx(this->mpVolume[tkm_tVolumeType_Main],
+			  iAnaIdx, &MRIIdx);
   // *****************************************************************************
   // To be implemented: need to tell whether these values are valid or not.
   sprintf(sTclArguments, "%s %d %d %d", DspA_ksaDisplaySet[iSet], xVoxl_ExpandInt(&MRIIdx) ); 
@@ -6156,34 +6594,39 @@ DspA_tErr DspA_SendPointInformationToTcl_ ( tkmDisplayAreaRef this,
   tkm_SendTclCommand( tkm_tTclCommand_UpdateVolumeSlice, sTclArguments );
   
   /* also convert to RAS and send those coords along. */
-  Volm_ConvertIdxToRAS( this->mpVolume, iAnaIdx, &voxel );
+  Volm_ConvertIdxToRAS( this->mpVolume[tkm_tVolumeType_Main],
+			iAnaIdx, &voxel );
   sprintf( sTclArguments, "%s %.1f %.1f %.1f", 
 	   DspA_ksaDisplaySet[iSet], xVoxl_ExpandFloat( &voxel ) );
   tkm_SendTclCommand( tkm_tTclCommand_UpdateRASCursor, sTclArguments );
   
   /* also convert to mni and send those coords along. */
-  if (NULL != this->mpVolume->mpMriValues->linear_transform) {
-    Volm_ConvertIdxToMNITal( this->mpVolume, iAnaIdx, &voxel );
+  if (NULL != this->mpVolume[tkm_tVolumeType_Main]->mpMriValues->linear_transform) {
+    Volm_ConvertIdxToMNITal( this->mpVolume[tkm_tVolumeType_Main],
+			     iAnaIdx, &voxel );
     sprintf( sTclArguments, "%s %.1f %.1f %.1f", 
              DspA_ksaDisplaySet[iSet], xVoxl_ExpandFloat( &voxel ) );
     tkm_SendTclCommand( tkm_tTclCommand_UpdateMNICursor, sTclArguments );
     
     /* and the tal coords */
-    Volm_ConvertIdxToTal( this->mpVolume, iAnaIdx, &voxel );
+    Volm_ConvertIdxToTal( this->mpVolume[tkm_tVolumeType_Main],
+			  iAnaIdx, &voxel );
     sprintf( sTclArguments, "%s %.1f %.1f %.1f", 
              DspA_ksaDisplaySet[iSet], xVoxl_ExpandFloat( &voxel ) );
     tkm_SendTclCommand( tkm_tTclCommand_UpdateTalCursor, sTclArguments );
   }
   
   /* and the scanner coords */
-  Volm_ConvertIdxToScanner( this->mpVolume, iAnaIdx, &voxel );
+  Volm_ConvertIdxToScanner( this->mpVolume[tkm_tVolumeType_Main],
+			    iAnaIdx, &voxel );
   sprintf( sTclArguments, "%s %.1f %.1f %.1f", 
 	   DspA_ksaDisplaySet[iSet], xVoxl_ExpandFloat( &voxel ) );
   tkm_SendTclCommand( tkm_tTclCommand_UpdateScannerCursor, sTclArguments );
   
   /* also get the volume value and send that along. */
-  Volm_GetValueAtIdx( this->mpVolume, iAnaIdx, &fVolumeValue );
-  switch (this->mpVolume->mpMriValues->type)
+  Volm_GetValueAtIdx( this->mpVolume[tkm_tVolumeType_Main],
+		      iAnaIdx, &fVolumeValue );
+  switch (this->mpVolume[tkm_tVolumeType_Main]->mpMriValues->type)
     {
     default:
       sprintf( sTclArguments, "%s %d", 
@@ -6217,10 +6660,11 @@ DspA_tErr DspA_SendPointInformationToTcl_ ( tkmDisplayAreaRef this,
   tkm_SendTclCommand( tkm_tTclCommand_UpdateVolumeValue, sTclArguments );
   
   /* send aux volume value if it's loaded. */
-  if( NULL != this->mpAuxVolume ) 
+  if( NULL != this->mpVolume[tkm_tVolumeType_Aux] ) 
     {
-      Volm_GetValueAtIdx( this->mpAuxVolume, iAnaIdx, &fVolumeValue );
-      switch (this->mpAuxVolume->mpMriValues->type)
+      Volm_GetValueAtIdx( this->mpVolume[tkm_tVolumeType_Aux],
+			  iAnaIdx, &fVolumeValue );
+      switch (this->mpVolume[tkm_tVolumeType_Aux]->mpMriValues->type)
 	{
 	default:
 	  sprintf( sTclArguments, "%s %d", 
@@ -6390,7 +6834,8 @@ DspA_tErr DspA_SendPointInformationToTcl_ ( tkmDisplayAreaRef this,
      the info to the screen */
   if( NULL != this->mGCAVolume &&
       DspA_tDisplaySet_Cursor == iSet ) {
-    GCAdump( this->mGCAVolume, this->mpVolume->mpMriValues,
+    GCAdump( this->mGCAVolume, 
+	     this->mpVolume[tkm_tVolumeType_Main]->mpMriValues,
 	     xVoxl_ExpandInt( iAnaIdx ), this->mGCATransform, stdout, 0 );
   }
   
@@ -6722,10 +7167,12 @@ DspA_tErr DspA_SmartCutAtCursor ( tkmDisplayAreaRef this ) {
      moment. Also gegt the dimensions from this volume. */
   if( this->mabDisplayFlags[DspA_tDisplayFlag_AuxVolume] ) {
     volume = tkm_tVolumeType_Aux;
-    eVolume = Volm_GetDimensions( this->mpAuxVolume, &maxX, &maxY, &maxZ );
+    eVolume = Volm_GetDimensions( this->mpVolume[tkm_tVolumeType_Aux],
+				  &maxX, &maxY, &maxZ );
   } else {
     volume = tkm_tVolumeType_Main;
-    eVolume = Volm_GetDimensions( this->mpVolume, &maxX, &maxY, &maxZ );
+    eVolume = Volm_GetDimensions( this->mpVolume[tkm_tVolumeType_Main],
+				  &maxX, &maxY, &maxZ );
   }
 
   /* Mins are zero. */
