@@ -9,9 +9,9 @@
  */
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2005/01/26 21:35:19 $
-// Revision       : $Revision: 1.287 $
-char *MRI_C_VERSION = "$Revision: 1.287 $";
+// Revision Date  : $Date: 2005/01/27 16:01:32 $
+// Revision       : $Revision: 1.288 $
+char *MRI_C_VERSION = "$Revision: 1.288 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -2686,7 +2686,7 @@ MRIextractInto(MRI *mri_src, MRI *mri_dst, int x0, int y0, int z0,
   }
   // calculate c_ras
   Real c_r, c_a, c_s;
-  MRIcalcCRASforExtractedVolume(mri_src, x0, y0, z0, dx, dy, dz, &c_r, &c_a, &c_s); 
+  MRIcalcCRASforExtractedVolume(mri_src, mri_dst, x0, y0, z0, x1, y1, z1, &c_r, &c_a, &c_s); 
   mri_dst->c_r = c_r;
   mri_dst->c_a = c_a;
   mri_dst->c_s = c_s;
@@ -11598,25 +11598,26 @@ void MRIcalcCRASforSampledVolume(MRI *src, MRI *dst, Real *pr, Real *pa, Real *p
  * MRIcalcCRASfroExtractedVolume
  * 
  * @param src  MRI* src volume
- * @param x0   start position
+ * @param x0   src start position of the extraction region
  * @param y0 
  * @param z0 
- * @param dx   width
- * @param dy   height
- * @param dz   depth
+ * @param x1   target start position of the extracted region
+ * @param y1   
+ * @param z1   
  * @param pr   output Real*  c_r 
  * @param pa                 c_a
  * @param ps                 c_s
  */
-void MRIcalcCRASforExtractedVolume(MRI *src, int x0, int y0, int z0, int dx, int dy, int dz, 
+void MRIcalcCRASforExtractedVolume(MRI *src, MRI *dst, int x0, int y0, int z0, int x1, int y1, int z1, 
 				   Real *pr, Real *pa, Real *ps)
 {
   int cx, cy, cz;
   // The "center" voxel position of the extracted volume in the original voxel position 
-  // is given by
-  cx = (x0+x0+dx)/2;  // integer divide cutoff extra
-  cy = (y0+y0+dy)/2;
-  cz = (z0+z0+dz)/2;
+  //        x1 of dst corresponds to x0 of src
+  // Thus, the "center" of dst corresponds to that of the src is
+  cx = x0+dst->width/2 - x1;  // integer divide cutoff extra
+  cy = y0+dst->height/2 - y1;
+  cz = z0+dst->depth/2 - z1;
 
   if (!src->i_to_r__)
   {
