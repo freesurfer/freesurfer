@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2005/02/25 22:56:10 $
-// Revision       : $Revision: 1.334 $
+// Revision Date  : $Date: 2005/02/25 23:00:12 $
+// Revision       : $Revision: 1.335 $
 //////////////////////////////////////////////////////////////////
 #include <stdio.h>
 #include <string.h>
@@ -2882,7 +2882,7 @@ mrisReadTransform(MRIS *mris, char *mris_fname)
       else
       {
 	fprintf(stderr, "INFO: cannot find mri/orig volume to get c_(ras) information.\n");
-	fprintf(stderr, "INFO: transform src volume information cannot be found. assume c_(ras_ = 0\n");
+	fprintf(stderr, "INFO: transform src volume information cannot be found. assume c_(ras) = 0\n");
 	fprintf(stderr, "INFO: destination surface points may be shifted in the volume.\n");
 	fprintf(stderr, "INFO: you should put the src info in the transform.\n");
 	lt->src.c_r = 0;
