@@ -2,7 +2,7 @@
    DICOM 3.0 reading functions
    Author: Sebastien Gicquel and Douglas Greve
    Date: 06/04/2001
-   $Id: DICOMRead.c,v 1.31 2003/07/02 15:35:30 tosa Exp $
+   $Id: DICOMRead.c,v 1.32 2003/07/17 18:15:17 ebeth Exp $
 *******************************************************/
 
 #include <stdio.h>
@@ -609,6 +609,7 @@ int dcmGetVolRes(char *dcmfile, float *ColRes, float *RowRes, float *SliceRes)
   char *s;
   int ns,n;
   int slash_not_found;
+  int tag_not_found;
 
   /* Load the Pixel Spacing - this is a string of the form:
      ColRes\RowRes   */
@@ -634,14 +635,37 @@ int dcmGetVolRes(char *dcmfile, float *ColRes, float *RowRes, float *SliceRes)
 
   FreeElementData(e); free(e);
 
-  /* Load the Spacing Between Slices */
-  e = GetElementFromFile(dcmfile, 0x18, 0x88);
+
+  /*E* // Load the Spacing Between Slices
+    e = GetElementFromFile(dcmfile, 0x18, 0x88);
   if(e == NULL){
-    /* If 18,88 does not exist, load the slice thickness */
+    // If 18,88 does not exist, load the slice thickness
     e = GetElementFromFile(dcmfile, 0x18, 0x50);
     if(e == NULL) return(1);
   }
   sscanf(e->d.string,"%f",SliceRes);
+  FreeElementData(e); free(e);
+  */
+
+  e = GetElementFromFile(dcmfile, 0x18, 0x88);
+  if (e == NULL) //tag not found
+    tag_not_found =1;
+  else
+    {
+      sscanf(e->d.string,"%f",SliceRes);
+      if (*SliceRes == 0) //tag found but was zero
+	tag_not_found = 1;
+      FreeElementData(e);
+      free(e);
+    }
+  if (tag_not_found) //so either no tag or tag was zero
+    {
+      e = GetElementFromFile(dcmfile, 0x18, 0x50);
+      if(e == NULL) return(1); //no tag
+      sscanf(e->d.string,"%f",SliceRes);
+      if (*SliceRes == 0) return(1); //tag exists but zero
+    }
+  fprintf(stderr, "SliceRes=%f\n",*SliceRes);
   FreeElementData(e); free(e);
 
   return(0);
@@ -3833,7 +3857,7 @@ int RASFromOrientation(MRI *mri, DICOMInfo *dcm)
    called-by: DICOMInfo2MRI
 *******************************************************/
 
-//#define _RASFDEBUG
+#define _RASFDEBUG
 #define _FIRSTMINUSLAST
 
 int RASFromOrientation(MRI *mri, DICOMInfo *dcm)
@@ -4000,63 +4024,63 @@ int RASFromOrientation(MRI *mri, DICOMInfo *dcm)
       fprintf (stderr, "[ ");
 #endif
       for (j=0; j<3; j++)
-  { 
-    T3x3[i][j] = Mdc[i][j] * Delta[j];
+	{ 
+	  T3x3[i][j] = Mdc[i][j] * Delta[j];
 #ifdef _RASFDEBUG
-    fprintf (stderr, "%f ", T3x3[i][j]);
+	  fprintf (stderr, "%f ", T3x3[i][j]);
 #endif
-  }
+	}
 #ifdef _RASFDEBUG
       fprintf (stderr, " ]\n");
 #endif
     }
-
+  
   /* fill in n, number */
   n[0] = dcm->Columns -1;
   n[1] = dcm->Rows -1;
   n[2] = dcm->NumberOfFrames -1;  /*E* This is Slices :( */
   /*E* The -1 is for how many center-to-center lengths there are.  */
-
+  
 #ifdef _RASFDEBUG
   fprintf(stderr, "n = %d\t%d\t%d\n\n", n[0], n[1], n[2]);
 #endif
-
+  
   /*E*
     Doug: c_ras = center = T * n /2.0
-
+    
     i.e. P_o + Mdc * Delta * n/2
-
+    
     Okay, that's: take first voxel and go to center by adding on half
     of [ reorder and rescale the nc/nr/ns ] = lengths of the sides of
     the volume.
-
+    
     dcmImagePosition differs from DICOM file first image position by
     factors of -1 -1 1.  Sebastien code also multiplies by
     diag{-1,-1,1}, so it should be fine to use dcmImagePosition.
-
+    
   */
-
+  
   dcmImagePosition(dcm->FileName, c_ras, c_ras+1, c_ras+2); /*E* = P_o */
 #ifdef _RASFDEBUG
   fprintf(stderr,
-    "dcmImagePosition, which converts LPS to RAS, gave: %f %f %f\n",
-    c_ras[0], c_ras[1], c_ras[2]);
+	  "dcmImagePosition, which converts LPS to RAS, gave: %f %f %f\n",
+	  c_ras[0], c_ras[1], c_ras[2]);
 #endif
 
   for (i=0; i<3; i++)
     {
       for (j=0; j<3; j++)
-  {
-    c_ras[i] += T3x3[i][j] * (float) n[j] /2.;
+	{
+	  c_ras[i] += T3x3[i][j] * (float) n[j] /2.;
 #ifdef _RASFDEBUG
-    fprintf(stderr,
-      "c_ras[%d] += T3x3[%d][%d] * n[%d] /2.\n",
-      i,i,j,j);
-    fprintf(stderr,
-      "adding T3x3[%d][%d] = %f, n[%d] = %d, T3x3[%d][%d] * n[%d] /2. = %f\n",
-      i, j, T3x3[i][j], j, n[j], i, j, j, T3x3[i][j] * (float) n[j] /2.);
+	  fprintf(stderr,
+		  "c_ras[%d] += T3x3[%d][%d] * n[%d] /2.\n",
+		  i,i,j,j);
+	  fprintf(stderr,
+		  "adding T3x3[%d][%d] = %f, n[%d] = %d, T3x3[%d][%d] * n[%d] /2. = %f\n",
+		  i, j, T3x3[i][j], j, n[j], i, j, j, T3x3[i][j] * (float) n[j] /2.);
 #endif
-  }
+	}
     }
 
 #ifdef _RASFDEBUG
@@ -4080,6 +4104,17 @@ int RASFromOrientation(MRI *mri, DICOMInfo *dcm)
   mri->c_a = c_ras[1];
   mri->c_s = c_ras[2];
   mri->ras_good_flag = 1;
+
+#ifdef _RASFDEBUG
+  fprintf(stderr, "x_r = %f\t y_r = %f\t z_r = %f\t c_r = %f\t\n",
+	  mri->x_r, mri->y_r, mri->z_r, mri->c_r);
+  fprintf(stderr, "x_a = %f\t y_a = %f\t z_a = %f\t c_a = %f\t\n",
+	  mri->x_a, mri->y_a, mri->z_a, mri->c_a);
+  fprintf(stderr, "x_s = %f\t y_s = %f\t z_s = %f\t c_s = %f\t\n",
+	  mri->x_s, mri->y_s, mri->z_s, mri->c_s);
+#endif
+
+
 
   return 0;
 }
