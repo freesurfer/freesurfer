@@ -23,7 +23,7 @@ void
 main(int argc, char *argv[])
 {
   char   **av ;
-  int    ac, nargs, i ;
+  int    ac, nargs ;
   MRI    *mri_src, *mri_dst = NULL ;
   char   *in_fname, *out_fname ;
 
