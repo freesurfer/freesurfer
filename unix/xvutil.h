@@ -22,6 +22,7 @@
 #include <xview/notify.h>
 
 #include "image.h"
+#include "const.h"
 
 #if 1
 #ifdef STDC_SWITCHED
@@ -42,11 +43,12 @@
 #define XYELLOW   5
 #define XPURPLE   6
 
+
 typedef struct
 {
   Canvas      canvas ;
   Panel_item  title_item ;
-  char        title_string[100] ;
+  char        title_string[STR_LEN] ;
   IMAGE       *dispImage ;
   IMAGE       *sourceImage ;
   XImage      *ximage ;
@@ -79,7 +81,7 @@ typedef struct
   int             cols ;
   int             button_rows ;
   int             display_size ;
-  char            msg_str[MSGS][100] ;
+  char            msg_str[MSGS][STR_LEN] ;
   Panel_item      msg_item[MSGS] ;
   DIMAGE          **dimages ;
 } XV_FRAME ;
