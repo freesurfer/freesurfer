@@ -1036,6 +1036,8 @@ static void deconvolve_weights(char *weight_fname, char *scale_fname) ;
 /* begin rkt */
 static int init_vertex_arrays(MRI_SURFACE *mris) ;
 
+void flip_normals (char *axes);
+
 void swap_vertex_fields(int a, int b); /* params are FIELD_*  */
 static void print_vertex_data(int vno, FILE *fp, float dmin) ;
 static void update_labels(int label_set, int vno, float dmin) ; /* LABELSET_ */
@@ -5031,7 +5033,7 @@ redraw(void)
   logshearvar = sqrt(logshearvar/navg - logshearavg*logshearavg);
   
   draw_surface();
-  
+
   if (selection>=0) draw_cursor(selection,TRUE);
   
   /* begin rkt */
@@ -5450,6 +5452,7 @@ find_vertex_at_screen_point(short sx,short sy,int* ovno, float* od) {
       m[j][i] = f;
     }
 #endif
+
   getorigin(&ox,&oy);
   getsize(&lx,&ly);
   wx = (sx-ox-lx/2.0)*2*fov*sf/lx;
@@ -5669,6 +5672,25 @@ write_val_histogram(float min, float max, int nbins)
   for (i=0;i<nbins;i++)
     fprintf(fp,"%f %f\n",min+(i+0.5)*(max-min)/nbins,chist[i]);
   fclose(fp);
+}
+
+void
+print_view_matrix() 
+{
+  int      i, j ;
+  float m[4][4];
+
+  getmatrix(m);
+  printf("----- view matrix\n");
+  for (i=0;i<4;i++) 
+    {
+      for (j=0;j<4;j++)
+	{
+	  printf("%f ",m[j][i]);
+	}
+      printf("\n");
+    }
+  printf("-----------------\n");
 }
 
 void
@@ -8443,7 +8465,7 @@ read_binary_curvature(char *fname)
   
   /* turn on the curvflag */
   curvflag = 1;
-  
+
   /* end rkt */
 } 
 
@@ -8910,6 +8932,48 @@ compute_normals(void)  /* no triangle area in msurfer, no explodeflag here */
 	v->ny = snorm[1];
 	v->nz = snorm[2];
       }
+}
+
+void
+flip_normals (char *axes)
+{
+  int flip_x, flip_y, flip_z;
+  int    vno ;
+  VERTEX *v ;
+
+  printf ("surfer: flipping normals for ");
+  flip_x = flip_y = flip_z = 0;
+  if (NULL != strstr (axes, "x")) 
+    {
+      flip_x = 1;
+      printf ("x ");
+    }
+  if (NULL != strstr (axes, "y")) 
+    {
+      flip_y = 1;
+      printf ("y ");
+    }
+  if (NULL != strstr (axes, "z")) 
+    {
+      flip_z = 1;
+      printf ("z ");
+    }
+  if (!flip_x && !flip_y && !flip_z)
+    {
+      printf ("no axes. Please specify x y or z or a combination, i.e. xz\n");
+      return;
+    }
+  printf ("\n");
+
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+    {
+      v = &mris->vertices[vno] ;
+      if (flip_x) v->nx = -v->nx;
+      if (flip_y) v->ny = -v->ny;
+      if (flip_z) v->nz = -v->nz;
+    }
+  vertex_array_dirty = 1;
+  color_scale_changed = 1;
 }
 
 void
@@ -12667,7 +12731,7 @@ fill_color_array(MRI_SURFACE *mris, float *colors)
 	  r = r_base;
 	  g = g_base;
 	  b = b_base;
-	  
+
 	  /* if overlay flag is on... */
 	  if (overlayflag)
 	    {
@@ -16983,6 +17047,7 @@ int W_swap_vertex_fields PARM;
 int W_undo_last_action PARM;
 int W_get_marked_vnos PARM;
 int W_save_tiff PARM;
+int W_flip_normals PARM;
 /* end rkt */
 
 #define TkCreateMainWindow Tk_CreateMainWindow
@@ -17835,11 +17900,11 @@ ERR(1,"Wrong # args: swap_buffers")
      sclv_write_binary_values(vfname,atoi(argv[1]));  WEND
      
      int                  W_read_surface_vertex_set  WBEGIN
-     ERR(3,"Wrong # args: read_surface_vertex_set file")
+     ERR(3,"Wrong # args: read_surface_vertex_set field file")
      vset_read_vertex_set(atoi(argv[1]), argv[2]);  WEND
      
      int                  W_set_current_vertex_set  WBEGIN
-     ERR(2,"Wrong # args: set_current_vertex_set file")
+     ERR(2,"Wrong # args: set_current_vertex_set field")
      vset_set_current_set(atoi(argv[1]));  WEND
      
      int                  W_sclv_load_label_value_file  WBEGIN 
@@ -18166,6 +18231,10 @@ int W_get_marked_vnos ( ClientData clientData, Tcl_Interp *interp,
      ERR(2,"Wrong # args: save_tiff filename")
      save_tiff(argv[1]); WEND
 
+     int W_flip_normals WBEGIN
+     ERR(2,"Wrong # args: flip_normals axes")
+     flip_normals(argv[1]); WEND
+
 /* end rkt */
 /*=======================================================================*/
 
@@ -18255,7 +18324,7 @@ int main(int argc, char *argv[])   /* new main */
   /* end rkt */
   
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.86 2004/12/14 21:13:48 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.87 2004/12/17 00:27:43 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -18996,6 +19065,9 @@ int main(int argc, char *argv[])   /* new main */
   
   Tcl_CreateCommand(interp, "save_tiff",
                     (Tcl_CmdProc*) W_save_tiff, REND);
+  
+  Tcl_CreateCommand(interp, "flip_normals",
+                    (Tcl_CmdProc*) W_flip_normals, REND);
   
 
 
@@ -20092,84 +20164,84 @@ print_vertex_data(int vno, FILE *fp, float dmin)
 {
   VERTEX   *v ;
   int      i, j, imnr ;
-  
+
   v = &mris->vertices[vno] ;
   if (twocond_flag)
-	{
-		if (!FZERO(v->imag_val))
-			fprintf(fp, "cond %d: %2.3f +- %2.3f, cond %d: %2.3f +- %2.3f, "
-							"scale=%2.0f\n",
-							cond0, v->val, v->valbak, cond1, v->val2, v->val2bak,
-							v->imag_val);
-		else
-			fprintf(fp, "cond %d: %2.3f +- %2.3f, cond %d: %2.3f +- %2.3f\n",
-							cond0, v->val, v->valbak, cond1, v->val2, v->val2bak);
-		PR;
-	}
+    {
+      if (!FZERO(v->imag_val))
+	fprintf(fp, "cond %d: %2.3f +- %2.3f, cond %d: %2.3f +- %2.3f, "
+		"scale=%2.0f\n",
+		cond0, v->val, v->valbak, cond1, v->val2, v->val2bak,
+		v->imag_val);
+      else
+	fprintf(fp, "cond %d: %2.3f +- %2.3f, cond %d: %2.3f +- %2.3f\n",
+		cond0, v->val, v->valbak, cond1, v->val2, v->val2bak);
+      PR;
+    }
   else if (disc_flag)
-	{
-		fprintf(fp, "v %d:\n\tdisc:\t\t%2.3f\n\tmdiff:"
-						"\t\t%2.3f\n\tthickness:\t%2.3f\n\toffset:\t\t%2.3f\n"
-						"\tdiff:\t\t%2.3f\n\tproj:\t\t%2.3f\n",
-						vno, v->imag_val, v->valbak, v->val2, v->val2bak,
-						v->val2-v->val2bak, v->val); PR;
+    {
+      fprintf(fp, "v %d:\n\tdisc:\t\t%2.3f\n\tmdiff:"
+	      "\t\t%2.3f\n\tthickness:\t%2.3f\n\toffset:\t\t%2.3f\n"
+	      "\tdiff:\t\t%2.3f\n\tproj:\t\t%2.3f\n",
+	      vno, v->imag_val, v->valbak, v->val2, v->val2bak,
+	      v->val2-v->val2bak, v->val); PR;
       
-	}
+    }
   else
-	{
+    {
 #if 0
-		fprintf(fp, "surfer: dmin=%3.4f, vno=%d, x=%3.4f, y=%3.4f, z=%3.4f, "
-						"nz=%3.4f\n", dmin,vno,v->x,
-						v->y,
-						v->z,nzs);PR;
+      fprintf(fp, "surfer: dmin=%3.4f, vno=%d, x=%3.4f, y=%3.4f, z=%3.4f, "
+	      "nz=%3.4f\n", dmin,vno,v->x,
+	      v->y,
+	      v->z,nzs);PR;
 #else
-		fprintf(fp, "surfer: dmin=%3.4f, vno=%d, x=%3.4f, y=%3.4f, z=%3.4f\n", 
-						dmin,vno,v->x, v->y, v->z);PR;
+      fprintf(fp, "surfer: dmin=%3.4f, vno=%d, x=%3.4f, y=%3.4f, z=%3.4f\n", 
+	      dmin,vno,v->x, v->y, v->z);PR;
 #endif
-		fprintf(fp, "surfer: curv=%f, fs=%f\n",v->curv,v->fieldsign);PR;
-		fprintf(fp, "surfer: val=%f, val2=%f\n",v->val,v->val2);PR;
-		fprintf(fp, "surfer: amp=%f, angle=%f deg (%f)\n",hypot(v->val,v->val2),
-						(float)(atan2(v->val2,v->val)*180/M_PI),
-						(float)(atan2(v->val2,v->val)/(2*M_PI)));PR;
-	}
+      fprintf(fp, "surfer: curv=%f, fs=%f\n",v->curv,v->fieldsign);PR;
+      fprintf(fp, "surfer: val=%f, val2=%f\n",v->val,v->val2);PR;
+      fprintf(fp, "surfer: amp=%f, angle=%f deg (%f)\n",hypot(v->val,v->val2),
+	      (float)(atan2(v->val2,v->val)*180/M_PI),
+	      (float)(atan2(v->val2,v->val)/(2*M_PI)));PR;
+    }
   if (annotationloaded)
-	{
-		int  r, g, b ;
-		r = v->annotation & 0x00ff ;
-		g = (v->annotation >> 8) & 0x00ff ;
-		b = (v->annotation >> 16) & 0x00ff ;
-		fprintf(fp, "annot = %d (%d, %d, %d)\n", v->annotation, r, g, b) ;
-	}
+    {
+      int  r, g, b ;
+      r = v->annotation & 0x00ff ;
+      g = (v->annotation >> 8) & 0x00ff ;
+      b = (v->annotation >> 16) & 0x00ff ;
+      fprintf(fp, "annot = %d (%d, %d, %d)\n", v->annotation, r, g, b) ;
+    }
   if (MRIflag && MRIloaded)
-	{
-		imnr = (int)((v->y-yy0)/st+0.5);
-		i = (int)((zz1-v->z)/ps+0.5);
-		j = (int)((xx1-v->x)/ps+0.5);
-		fprintf(fp, "surfer: mrival=%d imnr=%d, i=%d, j=%d\n",
-						im[imnr][i][j],imnr,i,j);PR;
-	}
+    {
+      imnr = (int)((v->y-yy0)/st+0.5);
+      i = (int)((zz1-v->z)/ps+0.5);
+      j = (int)((xx1-v->x)/ps+0.5);
+      fprintf(fp, "surfer: mrival=%d imnr=%d, i=%d, j=%d\n",
+	      im[imnr][i][j],imnr,i,j);PR;
+    }
   if (parc_flag && v->val > 0 && parc_names[(int)nint(v->val)])
     fprintf(stderr, "parcellation name: %s\n", parc_names[(int)nint(v->val)]) ;
-	if (Ggcsa != NULL)
-	{
-		VERTEX *v_classifier, *v_prior ;
-		int     vno_classifier, vno_prior ;
-		GCSA_NODE *gcsan ;
-		CP_NODE *cpn ;
-		float   x, y, z ;
-
-		v = &mris->vertices[vno] ;
-		x = v->x ; y = v->y ; z = v->z ;
-		v->x = v->cx ; v->y = v->cy ; v->z = v->cz ;
-    v_prior = GCSAsourceToPriorVertex(Ggcsa, v) ;
-    v_classifier = GCSAsourceToClassifierVertex(Ggcsa, v_prior) ;
-    vno_classifier = v_classifier - Ggcsa->mris_classifiers->vertices ;
-    vno_prior = v_prior - Ggcsa->mris_priors->vertices ;
-		gcsan = &Ggcsa->gc_nodes[vno_classifier] ;
-		cpn = &Ggcsa->cp_nodes[vno_prior] ;
-		dump_gcsan(gcsan, cpn, stdout, 0) ;
-		v->x = x ; v->y = y ; v->z = z ;
-	}
+  if (Ggcsa != NULL)
+    {
+      VERTEX *v_classifier, *v_prior ;
+      int     vno_classifier, vno_prior ;
+      GCSA_NODE *gcsan ;
+      CP_NODE *cpn ;
+      float   x, y, z ;
+      
+      v = &mris->vertices[vno] ;
+      x = v->x ; y = v->y ; z = v->z ;
+      v->x = v->cx ; v->y = v->cy ; v->z = v->cz ;
+      v_prior = GCSAsourceToPriorVertex(Ggcsa, v) ;
+      v_classifier = GCSAsourceToClassifierVertex(Ggcsa, v_prior) ;
+      vno_classifier = v_classifier - Ggcsa->mris_classifiers->vertices ;
+      vno_prior = v_prior - Ggcsa->mris_priors->vertices ;
+      gcsan = &Ggcsa->gc_nodes[vno_classifier] ;
+      cpn = &Ggcsa->cp_nodes[vno_prior] ;
+      dump_gcsan(gcsan, cpn, stdout, 0) ;
+      v->x = x ; v->y = y ; v->z = z ;
+    }
 }
 
 static void 
@@ -20202,8 +20274,10 @@ update_labels(int label_set, int vno, float dmin)
   Tcl_Eval(g_interp, command);
   sprintf(command, "UpdateLabel %d %d %f", label_set, LABEL_DISTANCE, dmin);
   Tcl_Eval(g_interp, command);
-  sprintf(command, "UpdateLabel %d %d \"(%.2f  %.2f  %.2f)\"", 
-	  label_set, LABEL_COORDS_RAS, v->origx, v->origy, v->origz);
+  sprintf(command,"UpdateLabel %d %d \"(%.2f  %.2f  %.2f) FIXME\"", 
+	  label_set, LABEL_COORDS_RAS, 
+	  //	  v->origx, v->origy, v->origz);
+	  v->x, v->y, v->z);
   Tcl_Eval(g_interp, command);
   if (MRIflag && MRIloaded) 
     {
@@ -20745,6 +20819,7 @@ vset_initialize()
 int
 vset_read_vertex_set(int set, char* fname)
 {
+
   /* copy the current main verts into tmp */
   MRISsaveVertexPositions( mris, TMP_VERTICES );
   
@@ -22152,10 +22227,14 @@ int sclv_set_threshold_using_fdr (int field, float rate, int only_marked)
 	  v = &mris->vertices[vno];
 	  saved_undefval[vno] = v->undefval;
 	  if (v->marked)
-	    v->undefval = 1;
+	    {
+	      v->undefval = 1;
+	      num_marked++;
+	    }
 	  else
 	    v->undefval = 0;
 	}
+      printf ("surfer: performing FDR on %d vertices\n", num_marked);
     }
 
   /* call the fdr function. we pass our surface, the rate, the sign we
