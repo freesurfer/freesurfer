@@ -1,6 +1,6 @@
 #!/bin/csh -f
 
-set VERSION = '$Id: bfileconvert,v 1.1 2003/03/04 21:22:08 greve Exp $'
+set VERSION = '$Id: bfileconvert,v 1.2 2003/10/02 19:16:12 greve Exp $'
 set cmdargs = ($argv);
 
 set invol   = ();
@@ -64,8 +64,10 @@ echo ");" >> $mfile
 if(! $monly) then
   cat $mfile | matlab -display iconic
   rm $mfile
-  set bhdr = $invol.bhdr
-  if(-e $bhdr) cp $bhdr $outvol.bhdr
+  # bhdr now handled in fast_bfileconvert
+  #set ibhdr = $invol.bhdr
+  #set obhdr = $outvol.bhdr
+  #if(-e $ibhdr && ! -e $obhdr) cp $ibhdr $obhdr
 endif
 
 echo " "
