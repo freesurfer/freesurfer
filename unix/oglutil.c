@@ -17,7 +17,7 @@
 #include "macros.h"
 #include "oglutil.h"
 
-static char vcid[] = "$Id: oglutil.c,v 1.1 1997/10/27 16:44:30 fischl Exp $";
+static char vcid[] = "$Id: oglutil.c,v 1.2 1997/10/30 23:48:54 fischl Exp $";
 
 
 /*-------------------------------- CONSTANTS -----------------------------*/
@@ -162,7 +162,6 @@ OGLUcompile(MRI_SURFACE *mris, int *marked_vertices, int flags, float cslope)
   face_type    *f;
   vertex_type  *v ;
   float        v1[3], min_curv, max_curv, offset ;
-  Real         x, y, z ;
 
   if (Gdiag & DIAG_SHOW)
     fprintf(stderr, "compiling surface tesselation...") ;
@@ -241,6 +240,52 @@ OGLUcompile(MRI_SURFACE *mris, int *marked_vertices, int flags, float cslope)
       glVertex3fv(v1);                /* specify the position of the vertex*/
     }
     glEnd() ;   /* done specifying this polygon */
+  }
+
+
+
+  if (flags & TP_FLAG) for (mv = 0 ; marked_vertices[mv] >= 0 ; mv++)
+  {
+    float v2[3], v3[3] ;
+#define LINE_LEN  10.0
+
+    v = &mris->vertices[marked_vertices[mv]] ;
+    glLineWidth(2.0f);
+
+    glBegin(GL_LINES);
+    glColor3ub(0,255,255);
+    load_brain_coords(v->e1x,v->e1y,v->e1z,v1);
+    glNormal3fv(v1);
+    load_brain_coords(v->x,v->y,v->z,v2);
+    load_brain_coords(v->x+LINE_LEN*v->nx,v->y+LINE_LEN*v->ny,
+                      v->z+LINE_LEN*v->nz,v3);
+    glVertex3fv(v2);
+    glVertex3fv(v3);
+    glEnd() ;
+
+#if 1
+    glBegin(GL_LINES);
+    glColor3ub(255,255,0);
+    load_brain_coords(v->nx,v->ny,v->nz,v1);
+    glNormal3fv(v1);
+    load_brain_coords(v->x,v->y,v->z,v2);
+    load_brain_coords(v->x+LINE_LEN*v->e1x,v->y+LINE_LEN*v->e1y,
+                      v->z+LINE_LEN*v->e1z,v3);
+    glVertex3fv(v2);
+    glVertex3fv(v3);
+    glEnd() ;
+
+    glBegin(GL_LINES);
+    glColor3ub(255,255,0);
+    load_brain_coords(v->nx,v->ny,v->nz,v1);
+    glNormal3fv(v1);
+    load_brain_coords(v->x,v->y,v->z,v2);
+    load_brain_coords(v->x+LINE_LEN*v->e2x,v->y+LINE_LEN*v->e2y,
+                      v->z+LINE_LEN*v->e2z,v3);
+    glVertex3fv(v2);
+    glVertex3fv(v3);
+    glEnd() ;
+#endif
   }
 
   if (Gdiag & DIAG_SHOW)

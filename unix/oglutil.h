@@ -12,5 +12,7 @@ int    OGLUcompile(MRI_SURFACE *mris, int *marked_vertices, int flags,
 extern double oglu_fov ;
 
 #define PATCH_FLAG   0x0001
+#define TP_FLAG      0x0002   /* show tangent plane and principal directions */
+                              /*  of marked vertices */
 
 #endif
