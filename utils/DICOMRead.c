@@ -2,7 +2,7 @@
    DICOM 3.0 reading functions
    Author: Sebastien Gicquel and Douglas Greve
    Date: 06/04/2001
-   $Id: DICOMRead.c,v 1.63 2004/09/29 14:32:31 tosa Exp $
+   $Id: DICOMRead.c,v 1.64 2004/09/29 15:43:22 tosa Exp $
 *******************************************************/
 
 #include <stdio.h>
@@ -2008,12 +2008,12 @@ int sdfiAssignRunNo2(SDCMFILEINFO **sdfi_list, int nlist)
     if(sdfi0->IsMosaic){ /* It is a mosaic */
       sdfi0->NFrames = nfilesperrun;
       if(nfilesperrun != (sdfi0->lRepetitions+1)){
-  fprintf(stderr,"WARNING: Run %d appears to be truncated\n",nthrun+1);
-  fprintf(stderr,"  Files Found: %d, Files Expected (lRep+1): %d\n",
-    nfilesperrun, (sdfi0->lRepetitions+1));
-  DumpSDCMFileInfo(stderr,sdfi0);
-  fflush(stderr);
-  sdfi0->ErrorFlag = 1;
+	fprintf(stderr,"WARNING: Run %d appears to be truncated\n",nthrun+1);
+	fprintf(stderr,"  Files Found: %d, Files Expected (lRep+1): %d\n",
+		nfilesperrun, (sdfi0->lRepetitions+1));
+	DumpSDCMFileInfo(stderr,sdfi0);
+	fflush(stderr);
+	sdfi0->ErrorFlag = 1;
       }
     }
 
@@ -2024,31 +2024,31 @@ int sdfiAssignRunNo2(SDCMFILEINFO **sdfi_list, int nlist)
       firstpass = 1;
 
       while(nthfile < nfilesperrun){
-  sdfi    = sdfi_list[RunList[nthfile]];
-  sdfitmp = sdfi_list[RunList[nthfile]];
-  nthframe = 0;
-  while(sdfiSameSlicePos(sdfi,sdfitmp)){
-    nthframe++;
-    nthfile++;
-    if(nthfile < nfilesperrun) 
-      sdfitmp = sdfi_list[RunList[nthfile]];
-    else                   
-      break;
-  }
-  if(firstpass){
-    firstpass = 0;
-    nframes = nthframe;
-  }
-  if(nthframe != nframes){
-    fprintf(stderr,"WARNING: Run %d appears to be truncated\n",
-      RunNoList[nthrun]);
-    fprintf(stderr,"  Slice = %d, nthframe = %d, nframes = %d, %d\n",
-      nthslice,nthframe,nframes,firstpass);
-    fflush(stderr);
-    sdfi0->ErrorFlag = 1;
-    break;
-  }
-  nthslice++;
+	sdfi    = sdfi_list[RunList[nthfile]];
+	sdfitmp = sdfi_list[RunList[nthfile]];
+	nthframe = 0;
+	while(sdfiSameSlicePos(sdfi,sdfitmp)){
+	  nthframe++;
+	  nthfile++;
+	  if(nthfile < nfilesperrun) 
+	    sdfitmp = sdfi_list[RunList[nthfile]];
+	  else                   
+	    break;
+	}
+	if(firstpass){
+	  firstpass = 0;
+	  nframes = nthframe;
+	}
+	if(nthframe != nframes){
+	  fprintf(stderr,"WARNING: Run %d appears to be truncated\n",
+		  RunNoList[nthrun]);
+	  fprintf(stderr,"  Slice = %d, nthframe = %d, nframes = %d, %d\n",
+		  nthslice,nthframe,nframes,firstpass);
+	  fflush(stderr);
+	  sdfi0->ErrorFlag = 1;
+	  break;
+	}
+	nthslice++;
       }/* end loop over files in the run */
       
       sdfi0->VolDim[2] = nthslice;
@@ -2064,6 +2064,7 @@ int sdfiAssignRunNo2(SDCMFILEINFO **sdfi_list, int nlist)
     }
 
     free(RunList);
+    free(RunNoList);
     free(FirstFileName);
   } /* end loop over runs */
 
