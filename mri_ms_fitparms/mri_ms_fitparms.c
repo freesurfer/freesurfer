@@ -5,8 +5,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2004/03/23 16:59:17 $
-// Revision       : $Revision: 1.29 $
+// Revision Date  : $Date: 2004/05/06 15:41:26 $
+// Revision       : $Revision: 1.30 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -120,7 +120,7 @@ main(int argc, char *argv[])
   int    modified;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_ms_fitparms.c,v 1.29 2004/03/23 16:59:17 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ms_fitparms.c,v 1.30 2004/05/06 15:41:26 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -752,96 +752,96 @@ estimate_ms_params(MRI **mri_flash, MRI **mri_flash_synth, int nvolumes, MRI *mr
     for (y = 0 ; y < height ; y++)
       for (x = 0 ; x < width ; x++)
       {
-	if (x == 0 && y == 0 && z == 4)
-	  DiagBreak() ;
-	ss = 0;
-	for (j = 0 ; j < nvolumes ; j++)
-	{
-	  mri = mri_flash[j] ;
-	  voxvec1->data[0]=x; voxvec1->data[1]=y; voxvec1->data[2]=z;
-	  MatrixMultiply(vox2ras[j],voxvec1,rasvec1);
-	  MatrixMultiply(M_reg[j],rasvec1,rasvec2);
-	  MatrixMultiply(ras2vox[j],rasvec2,voxvec2);
-	  xf=voxvec2->data[0]; yf=voxvec2->data[1]; zf=voxvec2->data[2];
-	  if(InterpMethod==SAMPLE_SINC)
-	    MRIsincSampleVolume(mri, xf, yf, zf, sinchalfwindow, &val) ;
-	  else
-	    MRIsampleVolumeType(mri, xf, yf, zf, &val, InterpMethod) ;
-	  ImageValues[j] = val;
-	  ss += val*val;
-	}
-	norm = sqrt(ss);
-	if (norm>0) 
-	  for (j = 0 ; j < nvolumes ; j++) 
-	    ImageValues[j] /= norm;
+				if (x == 0 && y == 0 && z == 4)
+					DiagBreak() ;
+				ss = 0;
+				for (j = 0 ; j < nvolumes ; j++)
+				{
+					mri = mri_flash[j] ;
+					voxvec1->data[0]=x; voxvec1->data[1]=y; voxvec1->data[2]=z;
+					MatrixMultiply(vox2ras[j],voxvec1,rasvec1);
+					MatrixMultiply(M_reg[j],rasvec1,rasvec2);
+					MatrixMultiply(ras2vox[j],rasvec2,voxvec2);
+					xf=voxvec2->data[0]; yf=voxvec2->data[1]; zf=voxvec2->data[2];
+					if(InterpMethod==SAMPLE_SINC)
+						MRIsincSampleVolume(mri, xf, yf, zf, sinchalfwindow, &val) ;
+					else
+						MRIsampleVolumeType(mri, xf, yf, zf, &val, InterpMethod) ;
+					ImageValues[j] = val;
+					ss += val*val;
+				}
+				norm = sqrt(ss);
+				if (norm>0) 
+					for (j = 0 ; j < nvolumes ; j++) 
+						ImageValues[j] /= norm;
    
-	min_indx = best_indx = 0;
-	max_indx = nvalues-1; 
-	best_indx = -1;
-	center_indx = -1;
-	best_se = 10000000;
-	nevals = 0;
-	for (stepindx=0; stepindx<nstep; stepindx++) 
-	{
-	  for (indx=min_indx; indx<=max_indx; indx+=step[stepindx])
-	    if (indx!=center_indx)
-	    {
-	      se = 0;
-	      for (j = 0 ; j < nvolumes ; j++)
-	      {
-		err = ImageValues[j]-SignalTableValues[indx][j];
-		se += err*err; 
-	      }
-	      if (se<best_se)
-	      {
-		best_se = se;
-		best_indx = indx;
-	      }
-	      nevals++;
-	    }
-	  min_indx = MAX(best_indx-step[stepindx]/2,1);
-	  max_indx = MIN(best_indx+step[stepindx]/2,nvalues-1);
-	  center_indx = best_indx;
-	}
+				min_indx = best_indx = 0;
+				max_indx = nvalues-1; 
+				best_indx = -1;
+				center_indx = -1;
+				best_se = 10000000;
+				nevals = 0;
+				for (stepindx=0; stepindx<nstep; stepindx++) 
+				{
+					for (indx=min_indx; indx<=max_indx; indx+=step[stepindx])
+						if (indx!=center_indx)
+						{
+							se = 0;
+							for (j = 0 ; j < nvolumes ; j++)
+							{
+								err = ImageValues[j]-SignalTableValues[indx][j];
+								se += err*err; 
+							}
+							if (se<best_se)
+							{
+								best_se = se;
+								best_indx = indx;
+							}
+							nevals++;
+						}
+					min_indx = MAX(best_indx-step[stepindx]/2,1);
+					max_indx = MIN(best_indx+step[stepindx]/2,nvalues-1);
+					center_indx = best_indx;
+				}
 
-	T1 = SignalTableT1[best_indx];
-	MRIsetVoxVal(mri_T1, x, y, z, 0, T1);
+				T1 = SignalTableT1[best_indx];
+				MRIsetVoxVal(mri_T1, x, y, z, 0, T1);
 
-	PD = norm/SignalTableNorm[best_indx];
-	if ((short)PD < 0)
-	  PD = (double)(0x7fff-1) ;
-	MRIsetVoxVal(mri_PD, x, y, z, 0, PD);
-	if (mri_flash_synth)
-	{
-	  for (j = 0 ; j < nvolumes ; j++)
-	  {
-	    mri = mri_flash_synth[j] ;
-	    MRIsetVoxVal(mri, x, y, z, 0, PD*SignalTableNorm[best_indx]*SignalTableValues[best_indx][j]);
-	  }
-	  sse = 0;
-	  for (j = 0 ; j < nvolumes ; j++)
-	  {
-	    err = MRIgetVoxVal(mri_flash_synth[j], x, y, z, 0)-ImageValues[j]*norm;
-	    sse += err*err; 
-	  }
-	}
-	else
-	{
-	  sse = 0;
-	  for (j = 0 ; j < nvolumes ; j++)
-	  {
-	    float pred_val ;
+				PD = norm/SignalTableNorm[best_indx];
+				if ((short)PD < 0)
+					PD = (double)(0x7fff-1) ;
+				MRIsetVoxVal(mri_PD, x, y, z, 0, PD);
+				if (mri_flash_synth)
+				{
+					for (j = 0 ; j < nvolumes ; j++)
+					{
+						mri = mri_flash_synth[j] ;
+						MRIsetVoxVal(mri, x, y, z, 0, PD*SignalTableNorm[best_indx]*SignalTableValues[best_indx][j]);
+					}
+					sse = 0;
+					for (j = 0 ; j < nvolumes ; j++)
+					{
+						err = MRIgetVoxVal(mri_flash_synth[j], x, y, z, 0)-ImageValues[j]*norm;
+						sse += err*err; 
+					}
+				}
+				else
+				{
+					sse = 0;
+					for (j = 0 ; j < nvolumes ; j++)
+					{
+						float pred_val ;
 
-	    pred_val = PD*SignalTableNorm[best_indx]*SignalTableValues[best_indx][j] ;
-	    err = pred_val-ImageValues[j]*norm;
-	    sse += err*err; 
-	  }
-	}
+						pred_val = PD*SignalTableNorm[best_indx]*SignalTableValues[best_indx][j] ;
+						err = pred_val-ImageValues[j]*norm;
+						sse += err*err; 
+					}
+				}
 
-	total_sse += sse ;
-	MRIsetVoxVal(mri_sse, x, y, z, 0, sqrt(sse));
-	if (T1 >= 4999 && ImageValues[0] > 70 && ImageValues[1] > 70)
-	  DiagBreak() ;
+				total_sse += sse ;
+				MRIsetVoxVal(mri_sse, x, y, z, 0, sqrt(sse));
+				if (T1 >= 4999 && ImageValues[0] > 70 && ImageValues[1] > 70)
+					DiagBreak() ;
       }
   total_sse = sqrt(total_sse / (width*height*depth)) ;
   return(total_sse) ;
@@ -1390,7 +1390,7 @@ estimate_rigid_regmatrix(MRI *mri_source, MRI *mri_target, MATRIX *M_reg)
 /*
   int      nstep=10, step[10]={512, 256, 128, 64, 32,16,8,4,2,1}, scale;
 */
-  int      nstep=5, step[5]={16,8,4,2,1}, scale;
+  int      nstep=8, step[8]={128, 64, 32, 16,8,4,2,1}, scale;
 #else
   int      nstep=1, step[1]={1}, scale;
 #endif
