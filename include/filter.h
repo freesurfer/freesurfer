@@ -34,6 +34,7 @@
 #define FILTER_OPEN              18
 #define FILTER_CLOSE             19
 #define FILTER_MINMAX            20
+#define FILTER_DIRECTION         21
 #define FILTER_OFFSET            0x0100
 
 #define FILTER_MEDIAN_OFFSET     (FILTER_MEDIAN | FILTER_OFFSET)
