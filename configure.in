@@ -712,6 +712,8 @@ mris_transform/Makefile mris_translate_annotation/Makefile mris_twoclass/Makefil
 mris_w_to_curv/Makefile fsgdf/Makefile fslutils/Makefile optseq2/Makefile spm2bfloat/Makefile statcombine/Makefile \
 stat_normalize/Makefile regdat2xfm/Makefile scuba/Makefile test_window_env/Makefile \
 brik2bfloat/Makefile minc_to_bshort/Makefile paint/Makefile \
-histo_compute_joint_density/Makefile histo_register_block/Makefile scripts/Makefile images/Makefile ) 
+histo_compute_joint_density/Makefile histo_register_block/Makefile scripts/Makefile images/Makefile \
+distribution/Makefile distribution/lib/Makefile distribution/lib/bem/Makefile distribution/average/Makefile \
+ ) 
 
 
