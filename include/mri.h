@@ -168,6 +168,8 @@ int   MRItalairachVoxelToVoxel(MRI *mri, Real xt, Real yt, Real zt,
                                Real *pxv, Real *pyv, Real *pzv) ;
 int   MRIvoxelToTalairach(MRI *mri, Real xv, Real yv, Real zv,
                                Real *pxt, Real *pyt, Real *pzt) ;
+int   MRItalairachToVoxel(MRI *mri, Real xt, Real yt, Real zt,
+                               Real *pxv, Real *pyv, Real *pzv) ;
 
 
 #include "image.h"
