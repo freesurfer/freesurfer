@@ -892,19 +892,19 @@ ScubaFrame::CaptureToFile ( string ifn ) {
     glReadBuffer( GL_FRONT );
     
     // Save our unpack attributes.
-    glGetBooleanv(GL_UNPACK_SWAP_BYTES, &swapbytes);
-    glGetBooleanv(GL_UNPACK_LSB_FIRST, &lsbfirst);
-    glGetIntegerv(GL_UNPACK_ROW_LENGTH, &rowlength);
-    glGetIntegerv(GL_UNPACK_SKIP_ROWS, &skiprows);
-    glGetIntegerv(GL_UNPACK_SKIP_PIXELS, &skippixels);
-    glGetIntegerv(GL_UNPACK_ALIGNMENT, &alignment);
+    glGetBooleanv(GL_PACK_SWAP_BYTES, &swapbytes);
+    glGetBooleanv(GL_PACK_LSB_FIRST, &lsbfirst);
+    glGetIntegerv(GL_PACK_ROW_LENGTH, &rowlength);
+    glGetIntegerv(GL_PACK_SKIP_ROWS, &skiprows);
+    glGetIntegerv(GL_PACK_SKIP_PIXELS, &skippixels);
+    glGetIntegerv(GL_PACK_ALIGNMENT, &alignment);
 
     // Set them.
-    glPixelStorei(GL_UNPACK_SWAP_BYTES, GL_FALSE);
-    glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
-    glPixelStorei(GL_UNPACK_SKIP_ROWS, 0);
-    glPixelStorei(GL_UNPACK_SKIP_PIXELS, 0);
-    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+    glPixelStorei(GL_PACK_SWAP_BYTES, GL_FALSE);
+    glPixelStorei(GL_PACK_ROW_LENGTH, 0);
+    glPixelStorei(GL_PACK_SKIP_ROWS, 0);
+    glPixelStorei(GL_PACK_SKIP_PIXELS, 0);
+    glPixelStorei(GL_PACK_ALIGNMENT, 1);
 
     // Read RGB pixel data.
     pixelData = (GLubyte*) malloc( mWidth * mHeight * 3 );
@@ -916,12 +916,12 @@ ScubaFrame::CaptureToFile ( string ifn ) {
     }
 
     // Restore the attributes.
-    glPixelStorei(GL_UNPACK_SWAP_BYTES, swapbytes);
-    glPixelStorei(GL_UNPACK_LSB_FIRST, lsbfirst);
-    glPixelStorei(GL_UNPACK_ROW_LENGTH, rowlength);
-    glPixelStorei(GL_UNPACK_SKIP_ROWS, skiprows);
-    glPixelStorei(GL_UNPACK_SKIP_PIXELS, skippixels);
-    glPixelStorei(GL_UNPACK_ALIGNMENT, alignment);
+    glPixelStorei(GL_PACK_SWAP_BYTES, swapbytes);
+    glPixelStorei(GL_PACK_LSB_FIRST, lsbfirst);
+    glPixelStorei(GL_PACK_ROW_LENGTH, rowlength);
+    glPixelStorei(GL_PACK_SKIP_ROWS, skiprows);
+    glPixelStorei(GL_PACK_SKIP_PIXELS, skippixels);
+    glPixelStorei(GL_PACK_ALIGNMENT, alignment);
 
     // Open a TIFF.
     char fn[1000];
