@@ -355,7 +355,7 @@ MRInormFillHistograms(MRI *mri, MNI *mni)
 int 
 MRInormFindPeaks(MNI *mni, float *inputs, float *outputs)
 {
-  int        i, peak, deleted, nwindows ;
+  int        i, peak, deleted, nwindows, npeaks ;
   HISTOGRAM  *hsmooth = NULL ;
   MRI_REGION *reg ;
 
@@ -374,7 +374,127 @@ MRInormFindPeaks(MNI *mni, float *inputs, float *outputs)
     }
   }
 
-  return(nwindows - deleted) ;
+  npeaks = nwindows - deleted ;
+  npeaks = MRInormCheckPeaks(mni, inputs, outputs, npeaks) ;
+  return(npeaks) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+          the variation in the magnetic field should be relatively
+          slow. Use this to do a consistency check on the peaks, removing
+          any outliers.
+
+          Note that the algorithm only deletes the furthest outlier on
+          each iteration. This is because you can get a patch of bad
+          peaks, the middle of which looks fine by the local slope
+          test. However, the outside of the patch will be eroded at
+          each iteration, and the avg and sigma estimates will improve.
+          Of course, this is slower, but since the number of peaks is
+          small (20 or so), time isn't a concern.
+
+          Also, I use both forwards and backwards derivatives to try
+          and arbitrate which of two neighboring peaks is bad (the bad
+          one is more likely to have both fwd and bkwd derivatives far
+          from the mean).
+------------------------------------------------------*/
+#define MAX_ABSOLUTE_SLOPE   0.05f   /* (% scaling change)/voxel */
+#define MAX_RELATIVE_SLOPE   4.0f    /* sigmas from the mean */
+#define MIN_ABSOLUTE_SLOPE   0.01f   /* (% scaling change)/voxel */
+int
+MRInormCheckPeaks(MNI *mni, float *inputs, float *outputs, int npeaks)
+{
+  int        i, deleted = 0, maxi ;
+  float      forward_dy[MAX_SPLINE_POINTS], backward_dy[MAX_SPLINE_POINTS],
+             avg_dy, sigma_dy, bdy, fdy, sbdy, sfdy, max_dy ;
+
+  if (npeaks < 3)  /* must have at least 3 peaks */
+    return(0) ;
+
+  do
+  {
+    /* compute forward difference derivatives */
+    for (avg_dy = 0.0f, i = 0 ; i < npeaks-1 ; i++)
+    {
+      forward_dy[i] = (outputs[i+1] - outputs[i]) / (inputs[i+1] - inputs[i]);
+      avg_dy += forward_dy[i] ;
+    }
+    avg_dy /= (float)(npeaks-1) ;
+    for (sigma_dy = 0.0f, i = 0 ; i < npeaks-1 ; i++)
+      sigma_dy += (avg_dy - forward_dy[i]) * (avg_dy - forward_dy[i]) ;
+    sigma_dy = sqrt(sigma_dy) / (float)(npeaks-2) ;
+
+    forward_dy[npeaks-1] = forward_dy[npeaks-2] ;
+
+    /* compute backwards difference derivatives */
+    for (i = 1 ; i < npeaks ; i++)
+      backward_dy[i] = (outputs[i] - outputs[i-1]) / (inputs[i] - inputs[i-1]);
+    backward_dy[0] = backward_dy[1] ;
+
+    if (Gdiag & DIAG_SHOW)
+    {
+      fprintf(stdout, "avg = %2.5f, sigma = %2.5f\n", avg_dy, sigma_dy) ;
+      for (i = 0 ; i < npeaks ; i++)
+      {
+        bdy = fabs(backward_dy[i]) ;
+        fdy = fabs(forward_dy[i]) ;
+        sbdy = (bdy - avg_dy) / sigma_dy ;
+        sfdy = (fdy - avg_dy) / sigma_dy ;
+        fprintf(stdout, "%d:  fwd = %2.3f (%2.3f), backwd = %2.3f (%2.3f)\n",
+                i, fdy, sfdy, bdy, sbdy) ;
+      }
+      
+      /* now check for deletions */
+      maxi = -1 ;
+      max_dy = 0.0f ;
+      for (i = 0 ; i < npeaks ; i++)
+      {
+        bdy = fabs(backward_dy[i]) ;
+        fdy = fabs(forward_dy[i]) ;
+        if (fdy + bdy > max_dy)
+        {
+          max_dy = fdy + bdy ;
+          maxi = i ;
+        }
+
+      }
+      bdy = fabs(backward_dy[maxi]) ;
+      fdy = fabs(forward_dy[maxi]) ;
+      sbdy = (bdy - avg_dy) / sigma_dy ;
+      sfdy = (fdy - avg_dy) / sigma_dy ;
+      /*
+        Delete the max point if the slope is too high, or it is in the 
+        ambiguous region (MIN_ABS < slope < MAX_ABS) but it is an outlier.
+        */
+      if (((bdy > MAX_ABSOLUTE_SLOPE) || (fdy > MAX_ABSOLUTE_SLOPE) ||
+          (sbdy > MAX_RELATIVE_SLOPE) || (sfdy > MAX_RELATIVE_SLOPE)) &&
+          ((bdy > MIN_ABSOLUTE_SLOPE) || (fdy > MIN_ABSOLUTE_SLOPE)))
+      {
+        int nelts ;
+
+        /*        if (Gdiag & DIAG_SHOW)*/
+          fprintf(stdout, "deleting peak %d = %2.1f\n", maxi, outputs[maxi]) ;
+        deleted = 1 ;
+        nelts = npeaks - maxi - 1 ;
+        if (nelts)  /* not the last item in the list */
+        {
+          memmove(inputs+maxi, inputs+maxi+1, nelts*sizeof(inputs[0])) ;
+          memmove(outputs+maxi, outputs+maxi+1, nelts*sizeof(outputs[0])) ;
+        }
+        npeaks-- ;
+      }
+      else
+        deleted = 0 ;
+    }
+  } while (deleted > 0) ;
+
+  if (Gdiag & DIAG_SHOW)
+    fflush(stdout) ;
+
+  return(npeaks) ;
 }
 /*-----------------------------------------------------
         Parameters:
