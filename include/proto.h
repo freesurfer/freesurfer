@@ -93,9 +93,8 @@ int ftime(struct timeb *tp) ;
 #if 0
 int getw(FILE *stream);
 int putw(int w, FILE *stream);
-#endif
-
 void swab(const void *from, void *to, size_t n);
+#endif
 
 #endif   /* Linux */
 
