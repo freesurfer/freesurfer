@@ -34,6 +34,8 @@
                     MACROS AND CONSTANTS
 -------------------------------------------------------*/
 
+#define POLV_WSIZE             5
+#define DEBUG_POINT(x,y,z)     (((x) == 40)&&((y)==62)&&((z)==94))
 
 /*-----------------------------------------------------
                     STATIC DATA
@@ -201,7 +203,7 @@ MRICtrain(MRIC *mric, char *file_name, char *prior_fname)
       }
       
       MRIboundingBox(mri_src, DEFINITELY_BACKGROUND, &bounding_box) ;
-      REGIONexpand(&bounding_box, &bounding_box, 5) ;
+      REGIONexpand(&bounding_box, &bounding_box, POLV_WSIZE/2) ;
       MRIclipRegion(mri_src, &bounding_box, &bounding_box) ;
       REGIONcopy(&bounding_box, &mri_src->roi) ;
       MRICupdateStatistics(mric, round, mri_src, mri_target, &bounding_box) ;
@@ -342,7 +344,7 @@ MRICclassify(MRIC *mric, MRI *mri_src, MRI *mri_dst,
   MRI_REGION bounding_box ;
 
   MRIboundingBox(mri_src, DEFINITELY_BACKGROUND, &bounding_box) ;
-  REGIONexpand(&bounding_box, &bounding_box, 5) ;
+  REGIONexpand(&bounding_box, &bounding_box, POLV_WSIZE/2) ;
   MRIclipRegion(mri_src, &bounding_box, &bounding_box) ;
   REGIONcopy(&bounding_box, &mri_src->roi) ;
   x0 = bounding_box.x ;
@@ -477,7 +479,7 @@ MRICcomputeInputs(MRI *mri, int x,int y,int z,float *inputs,int features)
     }
 
     if (!mri_cpolv)
-      mri_cpolv = MRIplaneOfLeastVarianceNormal(mri, NULL, 5) ;
+      mri_cpolv = MRIplaneOfLeastVarianceNormal(mri, NULL, POLV_WSIZE) ;
     if (Gdiag & DIAG_WRITE)
       MRIwrite(mri_cpolv, "cpolv.mnc") ;
   }
