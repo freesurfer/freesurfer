@@ -99,6 +99,7 @@ extern char                 xDbg_sCurNoteDesc[xDbg_knMaxDescLength];
 #define DebugEnterFunction(ARGS) \
                    xDbg_PushStack( xDbg_sStackDesc, xDbg_sCurNoteDesc ); \
                    xDbg_SetStackDesc ARGS ; \
+                   xDbg_SetCurrentNote((""));
 
 #define DebugExitFunction        xDbg_PopStack()
 
