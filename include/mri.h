@@ -80,6 +80,9 @@ typedef struct
   char          path_to_t1[STRLEN];
   char          fname_format[STRLEN];
 
+  /* for gdf volumes */
+  char          gdf_image_stem[STRLEN];
+
 /* 
   each slice is an array of rows (mri->height of them) each of which is 
   mri->width long.
