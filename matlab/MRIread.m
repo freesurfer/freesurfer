@@ -14,7 +14,7 @@ function mri = MRIread(fspec,headeronly)
 %
 % If headeronly=1, then the pixel data is not read in.
 %
-% $Id: MRIread.m,v 1.1 2004/11/09 19:16:32 greve Exp $
+% $Id: MRIread.m,v 1.2 2004/11/10 18:39:49 greve Exp $
 
 mri = [];
 
@@ -78,6 +78,7 @@ mri.vox2ras0 = M;
 mri.vox2ras1 = vox2ras_0to1(M);
 
 % Dimensions not redundant when using header only
+volsz(length(volsz)+1:4) = 1; % Make sure all dims are represented
 mri.width   = volsz(2);
 mri.height  = volsz(1);
 mri.depth   = volsz(3);
