@@ -25,7 +25,7 @@
 # 4. This file format is subject to change, particularly to add
 # options to apply distortion correction when unpacking.
 # 
-# $Id: numaris4-protocols.unpackcfg,v 1.18 2003/09/19 21:39:22 greve Exp $
+# $Id: numaris4-protocols.unpackcfg,v 1.19 2003/09/19 21:50:13 greve Exp $
 #
 localizer                scout        bshort f
 circle_localizer         scout        bshort f
@@ -62,3 +62,4 @@ FieldMap(phase)TE4.445-1 fieldmap     bshort f
 FieldMap(phase)TE2.225-1 fieldmap     bshort f
 gresuccflip              succflip     bshort f
 single_echo_func_senmt_aa bold-se     bshort f
+singleechofunctionalaa bold-se     bshort f
