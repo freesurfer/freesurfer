@@ -5,8 +5,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2004/01/23 16:18:36 $
-// Revision       : $Revision: 1.26 $
+// Revision Date  : $Date: 2004/01/27 21:07:35 $
+// Revision       : $Revision: 1.27 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -38,7 +38,7 @@ MRI *MRIssqrt(MRI *mri_src, MRI *mri_dst) ;
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
 
-static double sigma = 8 ;
+static double sigma = 4 ;
 static  double base_dt  = 1e-6;
 static double momentum = 0.9 ;
 static int debug_slice = -1 ;
@@ -120,7 +120,7 @@ main(int argc, char *argv[])
   int    modified;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_ms_fitparms.c,v 1.26 2004/01/23 16:18:36 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ms_fitparms.c,v 1.27 2004/01/27 21:07:35 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -587,7 +587,7 @@ get_option(int argc, char *argv[])
 		}
 		{
 			int i ;
-			for (i = 0 ; i < 5 ; i++)
+			for (i = 0 ; i < 1 ; i++)
 				MRIerode(mri_ctrl, mri_ctrl) ;
 		}
 		mri_v = MRIbuildVoronoiDiagram(mri_faf, mri_ctrl, NULL) ;
@@ -1651,10 +1651,25 @@ dFLASH_dk(MRI *mri_T1, MRI *mri_PD, MRI *mri_fa, double TR, double flip_angle, i
 static int
 average_volumes_with_different_echo_times(MRI **mri_flash, MRI **mri_all_flash, int nvolumes_total)
 {
-  int i, j, nvolumes, averaged[MAX_IMAGES], navgs ;
+  int i, j, nvolumes, averaged[MAX_IMAGES], navgs, all_tes_equal ;
   MRI    *mri_avg ;
 
   memset(averaged, 0, sizeof(averaged)) ;
+
+  for (all_tes_equal = 1, i = 1 ; i < nvolumes_total ; i++)
+	{
+		if (mri_all_flash[i]->te != mri_all_flash[0]->te)
+		{
+			all_tes_equal = 0 ;
+			break ;
+		}
+	}
+	if (all_tes_equal)
+	{
+		for (i = 0 ; i < nvolumes_total ; i++)
+			mri_flash[i] = mri_all_flash[i] ;
+		return(nvolumes_total) ;
+	}
 
   for (nvolumes = i = 0 ; i < nvolumes_total ; i++)
   {
@@ -1667,9 +1682,9 @@ average_volumes_with_different_echo_times(MRI **mri_flash, MRI **mri_all_flash, 
     for (j = i+1 ; j < nvolumes_total ; j++)
     {
       if (averaged[j])
-	continue ;
+				continue ;
       if (PARAMETERS_MATCH(mri_all_flash[j], mri_avg) == 0)
-	continue ;
+				continue ;
       MRIaverage(mri_all_flash[j], navgs, mri_avg) ;
       averaged[j] = 1 ;
       navgs++ ;
