@@ -334,6 +334,7 @@ typedef struct
 } INTEGRATION_PARMS ;
 
 #define IP_USE_CURVATURE  0x0001
+#define IP_NO_RIGID_ALIGN 0x0002
 
 
 /* can't include this before structure, as stats.h includes this file. */
@@ -372,6 +373,7 @@ int          MRISwritePatchAscii(MRI_SURFACE *mris, char *fname) ;
 int          MRISwriteDists(MRI_SURFACE *mris, char *fname) ;
 int          MRISwriteCurvature(MRI_SURFACE *mris, char *fname) ;
 int          MRISnormalizeCurvature(MRI_SURFACE *mris) ;
+int          MRISnormalizeCurvatureVariance(MRI_SURFACE *mris) ;
 int          MRISzeroMeanCurvature(MRI_SURFACE *mris) ;
 int          MRISnonmaxSuppress(MRI_SURFACE *mris) ;
 int          MRISscaleCurvatures(MRI_SURFACE *mris, 
@@ -615,7 +617,7 @@ MRI   *MRISwriteSurfaceIntoVolume(MRI_SURFACE *mris, MRI *mri_template,
 int   MRISmeasureCorticalThickness(MRI_SURFACE *mris, MRI *mri_brain, 
                                    MRI *mri_wm, float nsigma) ;
 #else
-int   MRISmeasureCorticalThickness(MRI_SURFACE *mris) ;
+int   MRISmeasureCorticalThickness(MRI_SURFACE *mris, int nbhd_size) ;
 #endif
 
 int   MRISmarkRandomVertices(MRI_SURFACE *mris, float prob_marked) ;
@@ -684,7 +686,7 @@ int MRISripDefectiveFaces(MRI_SURFACE *mris) ;
 int MRISunrip(MRI_SURFACE *mris) ;
 int MRISdivideLongEdges(MRI_SURFACE *mris, double thresh) ;
 int MRISremoveTriangleLinks(MRI_SURFACE *mris) ;
-int MRISsetOriginalFile(char *orig_name) ;
+int MRISsetOriginalFileName(char *orig_name) ;
 
 #if 1
 #include "mrishash.h"
