@@ -156,15 +156,20 @@ MRI   *MRImultiply(MRI *mri1, MRI *mri2, MRI *mri_dst) ;
 MRI   *MRIabs(MRI *mri, MRI *mri_dst) ;
 MRI   *MRIscalarMul(MRI *mri_src, MRI *mri_dst, float scalar) ;
 
+#include "mrisegment.h"
+
 /* filtering */
+int   MRIcpolvAllQuadrantsFilled(MRI *mri, int x, int y, int z,int vertex,
+                                 int wsize) ;
 MRI   *MRIremoveIslands(MRI *mri_src, MRI*mri_dst, int wsize, int thresh) ;
 MRI   *MRIresegmentThinWMStrands(MRI *mri_src, MRI *mri_dst, int thickness);
 MRI   *MRIthickenThinWMStrands(MRI *mri_src, MRI *mri_dst, int thickness,
-                               int nvoxels) ;
+                               int nsegments) ;
 MRI   *MRIfindThinWMStrands(MRI *mri_src, MRI *mri_dst, int wsize);
 MRI   *MRIcentralPlaneOfLeastVarianceNormal(MRI *mri_src, MRI *mri_dst, 
                                             int wsize);
 MRI   *MRIplaneOfLeastVarianceNormal(MRI *mri_src, MRI *mri_dst, int wsize) ;
+int   MRIcpolvMaxWhiteAtVoxel(MRI *mri, int x, int y, int z, int wsize) ;
 MRI   *MRIpolvZscore(MRI *mri_src, MRI *mri_dst, MRI *mri_polv, int wsize) ;
 MRI   *MRIpolvNormalCurvature(MRI *mri_src, MRI *mri_dst, MRI *mri_polv, 
                               int wsize) ;
@@ -587,5 +592,12 @@ int MRIsetValues(MRI *mri, int val) ;
 #define TRI_LOW_PRIORS           3
 #define TRI_LOW_STATS            4
 #define TRI_OFF_STATS            6
+
+
+#define BASAL_GANGLIA_FILL   50
+#define THICKEN_FILLED_VAL   200
+#define NBHD_FILLED_VAL      210
+#define VENTRICLE_FILL_VAL   220
+#define DIAGONAL_FILL_VALL   230
 
 #endif
