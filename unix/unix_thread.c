@@ -1,4 +1,5 @@
-#ifndef Linux
+#ifndef IRIX
+#ifndef LINUX
 /*
    @(#)unix_thread.c  1.3
    3/24/94
@@ -414,4 +415,5 @@ int MachThreadResume(int iTid) {return(1) ;}
 int MachThreadGetTid(void) {return(1) ;}
 void MachThreadExit(int status) {}
 
+#endif
 #endif

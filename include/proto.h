@@ -42,6 +42,12 @@ int stricmp(char *str1, char *str2) ;
 #define nint(f)   ((int)(rint((double)f)))
 #endif   /* Linux */
 
+/*----------- IRIX (SGI) -------------------*/
+#ifdef IRIX
+#define nint(f)   ((int)(rint((double)f)))
+#define isnan(f)  0
+#endif
+
 /*----------- MSDOS -----------------------*/
 #ifdef _MSDOS
 #define nint(f)   ((int)((double)f+0.5))

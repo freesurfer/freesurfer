@@ -75,6 +75,11 @@
 #define log2(f)     (log(f) / log(2.0))
 #endif
 
+#ifdef IRIX
+#define exp2(f)     pow(2.0,(f))
+#define log2(f)     (log(f) / log(2.0))
+#endif
+
 #ifdef _MSDOS
 #include <math.h>
 #define exp2(f)     pow(2.0,(f))
