@@ -1,8 +1,8 @@
 #!/bin/csh -f
 # selxavg-sess
 #
-# $Id: selxavg-sess,v 1.7 2004/02/10 23:49:11 greve Exp $
-set VERSION = '$Id: selxavg-sess,v 1.7 2004/02/10 23:49:11 greve Exp $';
+# $Id: selxavg-sess,v 1.8 2004/02/17 22:02:56 greve Exp $
+set VERSION = '$Id: selxavg-sess,v 1.8 2004/02/17 22:02:56 greve Exp $';
 set FASTVER = `cat $FMRI_ANALYSIS_DIR/docs/version`;
 
 set inputargs = ($argv);
@@ -238,8 +238,7 @@ foreach sess ($SessList)
   end # loop over runs
 
   # Count number of conditions, compare with analysis
-  set ncondact = `cat $pars | awk '{if($2 != "") print $2}' | sort | uniq | wc -l`
-  @ ncondact = $ncondact - 1;
+  set ncondact = `countncond $pars`;
   if($ncondact != $ncond) then
     echo "ERROR: there are $ncondact non-null conditions in the "
     echo "paradigm file. However, $ncond non-null conditions were"
