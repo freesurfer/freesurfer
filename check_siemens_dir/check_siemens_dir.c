@@ -17,7 +17,9 @@ struct file {
 
 char *Progname;
 
+#ifdef Linux
 void swab(const void *from, void *to, size_t n);
+#endif
 
 void check_directory(DIR *dp, char *dir_name);
 
