@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Computes glm inferences on the surface.
-  $Id: mris_glm.c,v 1.17 2003/04/17 18:38:12 kteich Exp $
+  $Id: mris_glm.c,v 1.18 2003/06/30 20:40:38 greve Exp $
 
 Things to do:
   0. Documentation.
@@ -67,7 +67,7 @@ static char *getstem(char *bfilename);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_glm.c,v 1.17 2003/04/17 18:38:12 kteich Exp $";
+static char vcid[] = "$Id: mris_glm.c,v 1.18 2003/06/30 20:40:38 greve Exp $";
 char *Progname = NULL;
 
 char *hemi        = NULL;
@@ -166,7 +166,8 @@ int main(int argc, char **argv)
   int  nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_glm.c,v 1.17 2003/04/17 18:38:12 kteich Exp $");
+  nargs = handle_version_option (argc, argv, 
+	  "$Id: mris_glm.c,v 1.18 2003/06/30 20:40:38 greve Exp $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -498,6 +499,8 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--debug"))   debug = 1;
     else if (!strcasecmp(option, "--force"))   Force = 1;
     else if (!strcasecmp(option, "--parseonly")) ParseOnly = 1;
+    else if (!strcasecmp(option, "--allowsubjrep")) 
+      fsgdf_AllowSubjRep = 1; /* external, see fsgdf.h */
 
     else if (!strcmp(option, "--synth")){
       if(nargc < 1) argnerr(option,1);
@@ -1057,6 +1060,11 @@ Substitute white gaussian noise for the data. Good for debugging.
 Look for FreeSurfer reconstructions in subjectsdir. If unspecified,
 the SUBJECTS_DIR envionment variable will be used.
 
+--allowsubjrep
+
+Allow repetitions in the subject name in the fsgdf file. This is
+only usefull for testing purposes.
+
 
 OUTPUT FORMATS:
 
@@ -1310,6 +1318,8 @@ static int nth_is_arg(int nargc, char **argv, int nth)
 /*------------------------------------------------------------*/
 static int stringmatch(char *str1, char *str2)
 {
+  if(str1 == NULL && str2 != NULL) return(0);
+  if(str2 == NULL && str1 != NULL) return(0);
   if(! strcmp(str1,str2)) return(1);
   return(0);
 }
