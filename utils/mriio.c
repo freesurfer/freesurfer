@@ -3935,7 +3935,7 @@ int read_bhdr(MRI *mri, FILE *fp)
   float brr, bra, brs; /* bottom right coordinates */
   float xr, xa, xs;
   float yr, ya, ys;
-  MATRIX *T, *CRSCenter, *RASCenter, *v;
+  MATRIX *T, *CRSCenter, *RASCenter;
 
   while(!feof(fp)){
 
