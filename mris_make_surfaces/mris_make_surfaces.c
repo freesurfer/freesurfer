@@ -16,7 +16,7 @@
 #include "mrimorph.h"
 #include "mrinorm.h"
 
-static char vcid[] = "$Id: mris_make_surfaces.c,v 1.31 2000/02/03 15:41:20 fischl Exp $";
+static char vcid[] = "$Id: mris_make_surfaces.c,v 1.32 2000/02/07 15:54:05 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -91,7 +91,7 @@ static float max_thickness = 5.0 ;
 #define MIN_WHITE_BORDER_GRAY  70
 
 #define MAX_GRAY               95
-#define MIN_GRAY               50
+#define MIN_CSF_BORDER_GRAY    40
 #define MAX_CSF_BORDER_GRAY    75
 #define MIN_CSF                10
 
@@ -467,12 +467,19 @@ main(int argc, char *argv[])
 #endif
     parms.n_averages = n_averages ; parms.l_tsmooth = l_tsmooth ;
     MRIScomputeBorderValues(mris, mri_T1, mri_smooth, MAX_GRAY, 
-                            MAX_CSF_BORDER_GRAY, MIN_GRAY, MIN_CSF,
+                            MAX_CSF_BORDER_GRAY, MIN_CSF_BORDER_GRAY, MIN_CSF,
                             current_sigma, max_thickness+1, parms.fp) ;
     if (vavgs)
     {
       fprintf(stderr, "averaging target values for %d iterations...\n",vavgs) ;
       MRISaverageMarkedVals(mris, vavgs) ;
+      if (Gdiag_no > 0)
+      {
+        VERTEX *v ;
+        v = &mris->vertices[Gdiag_no] ;
+        fprintf(stderr,"v %d, target value = %2.1f, mag = %2.1f, dist=%2.2f\n",
+              Gdiag_no, v->val, v->mean, v->d) ;
+      }
     }
 
 #if 0
