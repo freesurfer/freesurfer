@@ -4,9 +4,9 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2003/02/27 20:57:52 $
-// Revision       : $Revision: 1.128 $
-char *VERSION = "$Revision: 1.128 $";
+// Revision Date  : $Date: 2003/02/28 22:46:28 $
+// Revision       : $Revision: 1.129 $
+char *VERSION = "$Revision: 1.129 $";
 
 #define TCL
 #define TKMEDIT 
@@ -8783,7 +8783,6 @@ tkm_tErr LoadDTIVolume ( char*              isNameEV,
   mriVolumeRef FAVolume = NULL;
   xVoxel       screenIdx;
   xVoxel       EVIdx;
-  xVoxel       FAIdx;
   int          zEVX;
   int          zEVY;
   int          zEVZ;
@@ -8873,7 +8872,6 @@ tkm_tErr LoadDTIVolume ( char*              isNameEV,
 
   /* Now go through the EV volume and assign the processed color value
      scaled by the FA value. (r,g,b) = min(FA,1) * (evx,evy,evz) */
-  //  xVoxl_Set( &FAIdx, 0, 0, 0 );
   xVoxl_Set( &EVIdx, 0, 0, 0 );
   do {
 
@@ -8891,9 +8889,6 @@ tkm_tErr LoadDTIVolume ( char*              isNameEV,
       Volm_SetValueAtIdxFrame( EVVolume, &screenIdx, nFrame, 
 			       EVValue * MIN( 1, FAValue) );
     }
-    
-    /* Increment the FA index too */
-    //    xVoxl_IncrementUntilLimits( &FAIdx, zFAX, zFAY, zFAZ );
     
     if( xVoxl_GetY( &EVIdx ) == 0 ) {
             fprintf( stdout, "\rProcessing DTI volumes: %.2f%% done", 
