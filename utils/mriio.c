@@ -36,8 +36,8 @@
 #include "utils.h"
 #include "mri_identify.h"
 #include "fio.h"
-#include "mri_conform.h"
 #include "matfile.h"
+#include "math.h"
 
 /*-----------------------------------------------------
                     MACROS AND CONSTANTS
@@ -89,6 +89,7 @@ static MRI *analyzeRead(char *fname, int read_volume, int frame) ;
 static int analyzeWrite(MRI *mri, char *fname, int frame) ;
 static void flipAnalyzeHeader(dsr *header);
 static int write_analyze_header(char *fpref, MRI *mri) ;
+static int write_analyze_mat(char *fpref, MRI *mri) ;
 static int write_analyze_image(char *fpref, MRI *mri) ;
 static void get_file_limits(char *format_string, int initial, int *min, int *max, int ge_check_flag);
 
@@ -398,6 +399,9 @@ MRIread(char *fpref)
     free(buf) ;
     break ;
   }
+
+  if(mri == NULL)
+    return(NULL);
 
   if (!MRIisValid(mri))
     MRIflipByteOrder(mri, mri) ;
@@ -1592,15 +1596,19 @@ analyzeWrite(MRI *mri, char *fname, int frame)
   else
     start_frame = end_frame = frame ;
 
+/*
   if (mri->slice_direction != MRI_CORONAL)
     ErrorReturn(ERROR_UNSUPPORTED, 
             (ERROR_UNSUPPORTED,"analyzeWrite: unsupported slice direction %d", 
              mri->slice_direction)) ;
+*/
 
   switch (mri->type)
   {
   case MRI_UCHAR: type = DT_UNSIGNED_CHAR ; break ;
   case MRI_FLOAT: type = DT_FLOAT ;         break ;
+  case MRI_INT:   type = DT_SIGNED_INT ;    break ;
+  case MRI_SHORT: type = DT_SIGNED_SHORT ;  break ;
   default:
     ErrorReturn(ERROR_UNSUPPORTED, 
                 (ERROR_UNSUPPORTED, "analyzeWrite: unsupported MRI type %d",
@@ -1610,6 +1618,7 @@ analyzeWrite(MRI *mri, char *fname, int frame)
 
   write_analyze_header(fname, mri) ;
   write_analyze_image(fname, mri) ;
+  write_analyze_mat(fname, mri);
 
   return(NO_ERROR) ;
 }
@@ -1681,8 +1690,8 @@ analyzeRead(char *fname, int read_volume, int frame)
                  hdr.dime.datatype)) ;
 
   width = hdr.dime.dim[1];
-  height = hdr.dime.dim[2];
-  depth = hdr.dime.dim[3];
+  depth = hdr.dime.dim[2];
+  height = hdr.dime.dim[3];
 
   if(!read_volume)
     mri_dst = MRIallocHeader(width, height, depth, type);
@@ -1851,12 +1860,12 @@ analyzeRead(char *fname, int read_volume, int frame)
   mri_dst->imnr0 = 0;
   mri_dst->imnr1 = mri_dst->width - 1;
 
-  mri_dst->xstart = -(mri_dst->width * mri_dst->xsize) / 2;
-  mri_dst->xend = -mri_dst->xstart;
-  mri_dst->ystart = -(mri_dst->height * mri_dst->ysize) / 2;
-  mri_dst->xend = -mri_dst->xstart;
-  mri_dst->zstart = -(mri_dst->depth * mri_dst->zsize) / 2;
-  mri_dst->xend = -mri_dst->xstart;
+  mri_dst->xstart = -(*(short *)&hdr.hist.originator[0] * mri_dst->xsize);
+  mri_dst->xend = mri_dst->xstart + mri_dst->xsize * mri_dst->width;
+  mri_dst->ystart = -(*(short *)&hdr.hist.originator[2] * mri_dst->ysize);
+  mri_dst->yend = mri_dst->ystart + mri_dst->ysize * mri_dst->height;
+  mri_dst->zstart = -(*(short *)&hdr.hist.originator[4] * mri_dst->zsize);
+  mri_dst->zend = mri_dst->zstart + mri_dst->zsize * mri_dst->depth;
 
 /* direction */
 
@@ -1877,9 +1886,14 @@ analyzeRead(char *fname, int read_volume, int frame)
     fclose(fp);
     omat = MatlabRead(file_name);
 
-    xmax = 1 + IMAX3(abs(*MATRIX_RELT(omat, 1, 1)), abs(*MATRIX_RELT(omat, 2, 1)), abs(*MATRIX_RELT(omat, 3, 1)));
-    ymax = 1 + IMAX3(abs(*MATRIX_RELT(omat, 1, 2)), abs(*MATRIX_RELT(omat, 2, 2)), abs(*MATRIX_RELT(omat, 3, 2)));
-    zmax = 1 + IMAX3(abs(*MATRIX_RELT(omat, 1, 3)), abs(*MATRIX_RELT(omat, 2, 3)), abs(*MATRIX_RELT(omat, 3, 3)));
+    *MATRIX_RELT(omat, 1, 1) = - *MATRIX_RELT(omat, 1, 1);
+    *MATRIX_RELT(omat, 1, 2) = - *MATRIX_RELT(omat, 1, 2);
+    *MATRIX_RELT(omat, 1, 3) = - *MATRIX_RELT(omat, 1, 3);
+    *MATRIX_RELT(omat, 1, 4) = - *MATRIX_RELT(omat, 1, 4);
+
+    xmax = 1 + IMAX3(fabs(*MATRIX_RELT(omat, 1, 1)), fabs(*MATRIX_RELT(omat, 2, 1)), fabs(*MATRIX_RELT(omat, 3, 1)));
+    ymax = 1 + IMAX3(fabs(*MATRIX_RELT(omat, 1, 2)), fabs(*MATRIX_RELT(omat, 2, 2)), fabs(*MATRIX_RELT(omat, 3, 2)));
+    zmax = 1 + IMAX3(fabs(*MATRIX_RELT(omat, 1, 3)), fabs(*MATRIX_RELT(omat, 2, 3)), fabs(*MATRIX_RELT(omat, 3, 3)));
 
     xsign = SIGN(*MATRIX_RELT(omat, xmax, 1));
     ysign = SIGN(*MATRIX_RELT(omat, ymax, 2));
@@ -1910,19 +1924,31 @@ analyzeRead(char *fname, int read_volume, int frame)
 
     /* must be each of 1, 2, and 3 in some order */
     if(xmax + ymax + zmax != 6 || xmax * ymax * zmax != 6)
-      ErrorReturn(NULL, (ERROR_BADPARM, "genesisRead(%s): error interpreting slice direction", fname));
+      ErrorReturn(NULL, (ERROR_BADPARM, "analyzeRead(%s): error interpreting slice direction", fname));
 
-/*
-   first: left-right
-   second: p->a
-   third: i->s
-*/
+    mri_dst->x_r = *MATRIX_RELT(omat, 1, 1);
+    mri_dst->x_a = *MATRIX_RELT(omat, 1, 2);
+    mri_dst->x_s = *MATRIX_RELT(omat, 1, 3);
+
+    mri_dst->y_r = *MATRIX_RELT(omat, 2, 1);
+    mri_dst->y_a = *MATRIX_RELT(omat, 2, 2);
+    mri_dst->y_s = *MATRIX_RELT(omat, 2, 3);
+
+    mri_dst->z_r = *MATRIX_RELT(omat, 3, 1);
+    mri_dst->z_a = *MATRIX_RELT(omat, 3, 2);
+    mri_dst->z_s = *MATRIX_RELT(omat, 3, 3);
+
+    mri_dst->c_r = *MATRIX_RELT(omat, 4, 1);
+    mri_dst->c_a = *MATRIX_RELT(omat, 4, 2);
+    mri_dst->c_s = *MATRIX_RELT(omat, 4, 3);
+
+    mri_dst->ras_good_flag = 1;
 
   }
 
   return(mri_dst) ;
 
-}
+} /* end analyzeRead() */
 
 /*-----------------------------------------------------
         Parameters:
@@ -1939,6 +1965,7 @@ write_analyze_header(char *fname, MRI *mri)
   int   nwritten, i ;
   dsr   hdr ;
   float fmin, fmax ;
+  char  c;
 
   memset(&hdr, 0, sizeof(hdr)) ;
   hdr.hk.sizeof_hdr = sizeof(hdr) ;
@@ -1946,9 +1973,9 @@ write_analyze_header(char *fname, MRI *mri)
   hdr.hk.session_error = 0 ;
   for (i=0;i<8;i++)
     hdr.dime.dim[i] = 0 ;
-  hdr.dime.dim[3] = mri->width ; 
-  hdr.dime.dim[2] = mri->height ;
-  hdr.dime.dim[1] = mri->depth ;
+  hdr.dime.dim[1] = mri->width ; 
+  hdr.dime.dim[2] = mri->depth ;
+  hdr.dime.dim[3] = mri->height ;
   hdr.dime.dim[4] = mri->nframes ;
 
   switch (mri->type)
@@ -1961,6 +1988,14 @@ write_analyze_header(char *fname, MRI *mri)
     hdr.dime.datatype = DT_UNSIGNED_CHAR ;
     hdr.dime.bitpix = sizeof(unsigned char) * 8 ;
     break ;
+  case MRI_INT:
+    hdr.dime.datatype = DT_SIGNED_INT ;
+    hdr.dime.bitpix = sizeof(int) * 8 ;
+    break;
+  case MRI_SHORT:
+    hdr.dime.datatype = DT_SIGNED_SHORT ;
+    hdr.dime.bitpix = sizeof(short) * 8 ;
+    break;
   default:
     ErrorReturn(ERROR_UNSUPPORTED, 
                 (ERROR_UNSUPPORTED, 
@@ -1971,8 +2006,8 @@ write_analyze_header(char *fname, MRI *mri)
     hdr.dime.pixdim[i] = 0 ;
   hdr.dime.pixdim[4] = 1.0 ;
   hdr.dime.pixdim[3] = mri->xsize ;
-  hdr.dime.pixdim[2] = mri->ysize ;
-  hdr.dime.pixdim[1] = mri->zsize ;
+  hdr.dime.pixdim[2] = mri->zsize ;
+  hdr.dime.pixdim[1] = mri->ysize ;
 
   hdr.dime.compressed = 0 ;
   hdr.dime.verified = 0 ;
@@ -1987,7 +2022,20 @@ write_analyze_header(char *fname, MRI *mri)
   hdr.hist.omin = 0 ;
   hdr.hist.smax = 0 ;
   hdr.hist.smin = 0 ;
-  
+
+  if(mri->ras_good_flag)
+  {
+    *(short *)&hdr.hist.originator[0] = -(short)floor(mri->xstart / mri->xsize);
+    *(short *)&hdr.hist.originator[2] = -(short)floor(mri->zstart / mri->zsize);
+    *(short *)&hdr.hist.originator[4] = -(short)floor(mri->ystart / mri->xsize);
+  }
+  else
+  {
+    *(short *)&hdr.hist.originator[0] = (short)floor(mri->width / 2);
+    *(short *)&hdr.hist.originator[2] = (short)floor(mri->depth / 2);
+    *(short *)&hdr.hist.originator[4] = (short)floor(mri->height / 2);
+  }
+
   strcpy(hdr_fname, fname) ;
   dot = strrchr(hdr_fname, '.') ;
   if (dot)
@@ -2023,6 +2071,13 @@ write_analyze_header(char *fname, MRI *mri)
   hdr.hist.omin = swapInt(hdr.hist.omin) ;
   hdr.hist.smax = swapInt(hdr.hist.smax) ;
   hdr.hist.smin = swapInt(hdr.hist.smin) ;
+
+  c = hdr.hist.originator[0]; hdr.hist.originator[0] = hdr.hist.originator[1]; hdr.hist.originator[1] = c;
+  c = hdr.hist.originator[2]; hdr.hist.originator[2] = hdr.hist.originator[3]; hdr.hist.originator[3] = c;
+  c = hdr.hist.originator[4]; hdr.hist.originator[4] = hdr.hist.originator[5]; hdr.hist.originator[5] = c;
+  c = hdr.hist.originator[6]; hdr.hist.originator[6] = hdr.hist.originator[7]; hdr.hist.originator[7] = c;
+  c = hdr.hist.originator[8]; hdr.hist.originator[8] = hdr.hist.originator[9]; hdr.hist.originator[9] = c;
+
 #endif
   nwritten = fwrite(&hdr, sizeof(char), sizeof(dsr),fp);
   fclose(fp);
@@ -2033,6 +2088,84 @@ write_analyze_header(char *fname, MRI *mri)
                  nwritten, sizeof(dsr))) ;
   return(NO_ERROR) ;
 }
+
+static int
+write_analyze_mat(char *fname, MRI *mri)
+{
+
+  char mat_fname[STRLEN];
+  char *dot;
+  MATRIX *m, *o, *r;
+
+  strcpy(mat_fname, fname) ;
+  dot = strrchr(mat_fname, '.') ;
+  if (dot)
+    *dot = 0 ;
+  strcat(mat_fname, ".mat") ;
+
+  m = MatrixAlloc(4, 4, MATRIX_REAL);
+
+/* fastest: rl (x)
+   next:    pa (z)
+   slowest: is (y) */
+
+  if(mri->ras_good_flag)
+  {
+
+    *MATRIX_RELT(m, 1, 1) = mri->x_r;
+    *MATRIX_RELT(m, 2, 1) = mri->x_a;
+    *MATRIX_RELT(m, 3, 1) = -mri->x_s;
+    *MATRIX_RELT(m, 4, 1) = 0;
+
+    *MATRIX_RELT(m, 1, 2) = mri->z_r;
+    *MATRIX_RELT(m, 2, 2) = mri->z_a;
+    *MATRIX_RELT(m, 3, 2) = -mri->z_s;
+    *MATRIX_RELT(m, 4, 2) = 0;
+
+    *MATRIX_RELT(m, 1, 3) = mri->y_r;
+    *MATRIX_RELT(m, 2, 3) = mri->y_a;
+    *MATRIX_RELT(m, 3, 3) = -mri->y_s;
+    *MATRIX_RELT(m, 4, 3) = 0;
+
+    /* the originator should map to zero */
+
+    *MATRIX_RELT(m, 1, 4) = 0;
+    *MATRIX_RELT(m, 2, 4) = 0;
+    *MATRIX_RELT(m, 3, 4) = 0;
+    *MATRIX_RELT(m, 4, 4) = 1;
+
+    o = MatrixAlloc(4, 1, MATRIX_REAL);
+    *MATRIX_RELT(o, 1, 1) = floor(mri->xstart / mri->xsize);
+    *MATRIX_RELT(o, 2, 1) = floor(mri->zstart / mri->zsize);
+    *MATRIX_RELT(o, 3, 1) = floor(mri->ystart / mri->ysize);
+    *MATRIX_RELT(o, 4, 1) = 1;
+
+    r = MatrixMultiply(m, o, NULL);
+
+    *MATRIX_RELT(m, 1, 4) = *MATRIX_RELT(r, 1, 1);
+    *MATRIX_RELT(m, 2, 4) = *MATRIX_RELT(r, 2, 1);
+    *MATRIX_RELT(m, 3, 4) = *MATRIX_RELT(r, 3, 1);
+    *MATRIX_RELT(m, 4, 4) = 1;
+
+    MatrixFree(&r);
+    MatrixFree(&o);
+
+  }
+  else
+  {
+    *MATRIX_RELT(m, 1, 1) = -mri->xsize;  *MATRIX_RELT(m, 1, 2) = 0;           *MATRIX_RELT(m, 1, 3) = 0;           *MATRIX_RELT(m, 1, 4) = (float)floor(mri->width / 2);
+    *MATRIX_RELT(m, 2, 1) = 0;           *MATRIX_RELT(m, 2, 2) = mri->zsize;  *MATRIX_RELT(m, 2, 3) = 0;           *MATRIX_RELT(m, 2, 4) = -(float)floor(mri->depth / 2);
+    *MATRIX_RELT(m, 3, 1) = 0;           *MATRIX_RELT(m, 3, 2) = 0;           *MATRIX_RELT(m, 3, 3) = mri->ysize;  *MATRIX_RELT(m, 3, 4) = -(float)floor(mri->height / 2);
+    *MATRIX_RELT(m, 4, 1) = 0;           *MATRIX_RELT(m, 4, 2) = 0;           *MATRIX_RELT(m, 4, 3) = 0;           *MATRIX_RELT(m, 4, 4) = 1;
+  }
+
+  MatlabWrite(m, mat_fname, "M");
+
+  MatrixFree(&m);
+
+  return(NO_ERROR);
+
+} /* end write_analyze_mat() */
 /*-----------------------------------------------------
         Parameters:
 
@@ -2043,21 +2176,32 @@ write_analyze_header(char *fname, MRI *mri)
 static int
 write_analyze_image(char *fname, MRI *mri)
 {
-  int    x, y, z, bufsize, bytes_per_pix, width, height, depth, xd, yd, zd ;
+  int    x, y, z, bufsize, bytes_per_pix, xd, yd, zd ;
   FILE   *fp;
   int    nwritten ;
   char   *buf ;
   float  f ;
 
-  bytes_per_pix = mri->type == MRI_FLOAT ? sizeof(float) : sizeof(char) ;
-  width = mri->depth ;
-  height = mri->height ;
-  depth = mri->width ;
-  bufsize = width * height ;
+  if(mri->type == MRI_FLOAT)
+    bytes_per_pix = sizeof(float);
+  else if(mri->type == MRI_UCHAR)
+    bytes_per_pix = sizeof(char);
+  else if(mri->type == MRI_INT)
+    bytes_per_pix = sizeof(int);
+  else if(mri->type == MRI_SHORT)
+    bytes_per_pix = sizeof(short);
+  else
+    ErrorReturn(ERROR_UNSUPPORTED, (ERROR_UNSUPPORTED, "write_analyze_image() unsupported data type %d: ", mri->type));
+
+  bufsize =  mri->width * mri->depth;
 
   fp = fopen(fname,"wb");
   if (fp==NULL) 
     ErrorReturn(ERROR_NOFILE, (ERROR_NOFILE, "File %s not found\n",fname)) ;
+
+/* fastest: rl (x)
+   next:    pa (z)
+   slowest: is (y) */
 
   buf = (char *)calloc(bufsize, bytes_per_pix) ;
   if (!buf)
@@ -2065,22 +2209,23 @@ write_analyze_image(char *fname, MRI *mri)
     fclose(fp) ;
     ErrorReturn(ERROR_NOMEMORY, 
                 (ERROR_NOMEMORY, 
-                "read_analyze_image: could not allocate %d x %d x %d buffer",
-                 width, height, bytes_per_pix)) ;
+                "write_analyze_image: could not allocate %d x %d x %d buffer",
+                 mri->width, mri->height, bytes_per_pix)) ;
   }
 
-  for (z = 0 ; z < depth ; z++)
+  for (y = 0 ; y < mri->height ; y++)
   {
-    for (y = 0 ; y < height ; y++)
+    for (z = 0 ; z < mri->depth ; z++)
     {
-      for (x = 0 ; x < width ; x++)
+      for (x = 0 ; x < mri->width ; x++)
       {
-/* patch for spm visit -- converts cor to spm readable and oriented volume (left-right possibly reversed) */
-        xd = z  ; yd = (height-y-1) ; zd = (width-x-1) ;
-zd = (height-y-1) ; xd = (width-x-1) ; yd = z;
-zd = y ; xd = x ; yd = (depth-z-1);
+        zd = z  ; yd = (mri->height-y-1) ; xd = x ;
         if (mri->type == MRI_FLOAT)
           f = MRIFvox(mri, xd, yd, zd) ;
+        else if(mri->type == MRI_INT)
+          f = (float)MRIIvox(mri, xd, yd, zd) ;
+        else if(mri->type == MRI_SHORT)
+          f = (float)MRISvox(mri, xd, yd, zd) ;
         else
           f = (float)MRIvox(mri, xd, yd, zd) ;
         switch (mri->type)
@@ -2090,10 +2235,16 @@ zd = y ; xd = x ; yd = (depth-z-1);
           exit(1);
           break;
         case MRI_UCHAR:
-          *(unsigned char *)(buf+bytes_per_pix*(y*width+x)) = (char)nint(f) ;
+          *(unsigned char *)(buf+bytes_per_pix*(z*mri->width + x)) = (char)nint(f) ;
           break;
         case MRI_FLOAT:
-          *(float *)(buf+bytes_per_pix*(y*width+x)) = f ;
+          *(float *)(buf+bytes_per_pix*(z*mri->width + x)) = orderFloatBytes(f) ;
+          break;
+        case MRI_INT:
+          *(int *)(buf+bytes_per_pix*(z*mri->width + x)) = orderIntBytes((int)f) ;
+          break;
+        case MRI_SHORT:
+          *(short *)(buf+bytes_per_pix*(z*mri->width + x)) = orderShortBytes((short)f) ;
           break;
         }
       }
@@ -2570,9 +2721,9 @@ genesisRead(char *fname, int read_volume, int frame)
     /* determine the axis reordering that's needed */
     /* start with the x axis; is the R, A, or S coordinate the longest? */
 
-    xmax = IMAX3(abs(x_vec[0]), abs(x_vec[1]), abs(x_vec[2]));
-    ymax = IMAX3(abs(y_vec[0]), abs(y_vec[1]), abs(y_vec[2]));
-    zmax = IMAX3(abs(z_vec[0]), abs(z_vec[1]), abs(z_vec[2]));
+    xmax = IMAX3(fabs(x_vec[0]), fabs(x_vec[1]), fabs(x_vec[2]));
+    ymax = IMAX3(fabs(y_vec[0]), fabs(y_vec[1]), fabs(y_vec[2]));
+    zmax = IMAX3(fabs(z_vec[0]), fabs(z_vec[1]), fabs(z_vec[2]));
 
     xsign = SIGN(x_vec[xmax]);
     ysign = SIGN(y_vec[ymax]);
@@ -2833,9 +2984,9 @@ gelxRead(char *fname, int read_volume, int frame)
     /* determine the axis reordering that's needed */
     /* start with the x axis; is the R, A, or S coordinate the longest? */
 
-    xmax = IMAX3(abs(x_vec[0]), abs(x_vec[1]), abs(x_vec[2]));
-    ymax = IMAX3(abs(y_vec[0]), abs(y_vec[1]), abs(y_vec[2]));
-    zmax = IMAX3(abs(z_vec[0]), abs(z_vec[1]), abs(z_vec[2]));
+    xmax = IMAX3(fabs(x_vec[0]), fabs(x_vec[1]), fabs(x_vec[2]));
+    ymax = IMAX3(fabs(y_vec[0]), fabs(y_vec[1]), fabs(y_vec[2]));
+    zmax = IMAX3(fabs(z_vec[0]), fabs(z_vec[1]), fabs(z_vec[2]));
 
     xsign = SIGN(x_vec[xmax]);
     ysign = SIGN(y_vec[ymax]);
@@ -2894,6 +3045,14 @@ siemensRead(char *fname, int read_volume, int frame)
   int initial_image_number, ino_min, ino_max;
   char slice_direction[7];
   short *pixel_data;
+  double center_x, center_y, center_z;
+  double normal_x, normal_y, normal_z;
+  double row_vec_x, row_vec_y, row_vec_z;
+  double col_vec_x, col_vec_y, col_vec_z;
+  double x_vec[3], y_vec[3], z_vec[3];
+  int xmax, ymax, zmax;
+  int xsign, ysign, zsign;
+  double d;
 
   frame = 0;
 
@@ -2941,8 +3100,18 @@ siemensRead(char *fname, int read_volume, int frame)
   else
     mri = MRIallocHeader(width, height, depth, MRI_SHORT) ;
 
-  mri->xsize = mri->ysize = mri->zsize = 1.0;
-  mri->thick = mri->zsize;
+  fseek(fp, 1544, SEEK_SET);
+  fread(&d, 8, 1, fp);
+  d = orderDoubleBytes(d);
+  mri->thick = d;
+  mri->zsize = mri->thick;
+  fseek(fp, 5000, SEEK_SET);
+  fread(&d, 8, 1, fp);
+  d = orderDoubleBytes(d);
+  mri->xsize = d;
+  fread(&d, 8, 1, fp);
+  d = orderDoubleBytes(d);
+  mri->ysize = d;
 
   mri->xend = mri->width/2;
   mri->yend = mri->height/2;
@@ -2963,6 +3132,93 @@ siemensRead(char *fname, int read_volume, int frame)
 
   fseek(fp, 5814, SEEK_SET);
   fread(slice_direction, 1, 7, fp);
+
+  fseek(fp, 3768, SEEK_SET);
+  fread(&center_x, 8, 1, fp);  center_x = orderDoubleBytes(center_x);
+  fread(&center_y, 8, 1, fp);  center_y = orderDoubleBytes(center_y);
+  fread(&center_z, 8, 1, fp);  center_z = orderDoubleBytes(center_z);
+  fread(&normal_x, 8, 1, fp);  normal_x = orderDoubleBytes(normal_x);
+  fread(&normal_y, 8, 1, fp);  normal_y = orderDoubleBytes(normal_y);
+  fread(&normal_z, 8, 1, fp);  normal_z = orderDoubleBytes(normal_z);
+  fseek(fp, 3832, SEEK_SET);
+  fread(&row_vec_x, 8, 1, fp);  row_vec_x = orderDoubleBytes(row_vec_x);
+  fread(&row_vec_y, 8, 1, fp);  row_vec_y = orderDoubleBytes(row_vec_y);
+  fread(&row_vec_z, 8, 1, fp);  row_vec_z = orderDoubleBytes(row_vec_z);
+  fread(&col_vec_x, 8, 1, fp);  col_vec_x = orderDoubleBytes(col_vec_x);
+  fread(&col_vec_y, 8, 1, fp);  col_vec_y = orderDoubleBytes(col_vec_y);
+  fread(&col_vec_z, 8, 1, fp);  col_vec_z = orderDoubleBytes(col_vec_z);
+
+  x_vec[0] = row_vec_x;
+  x_vec[1] = row_vec_y;
+  x_vec[2] = row_vec_z;
+
+  y_vec[0] = -col_vec_x;
+  y_vec[1] = -col_vec_y;
+  y_vec[2] = -col_vec_z;
+
+  z_vec[0] = normal_x;
+  z_vec[1] = normal_y;
+  z_vec[2] = normal_z;
+
+  /* determine the axis reordering that's needed */
+  /* start with the x axis; is the R, A, or S coordinate the longest? */
+
+  xmax = IMAX3(fabs(x_vec[0]), fabs(x_vec[1]), fabs(x_vec[2]));
+  ymax = IMAX3(fabs(y_vec[0]), fabs(y_vec[1]), fabs(y_vec[2]));
+  zmax = IMAX3(fabs(z_vec[0]), fabs(z_vec[1]), fabs(z_vec[2]));
+
+  xsign = SIGN(x_vec[xmax]);
+  ysign = SIGN(y_vec[ymax]);
+  zsign = SIGN(z_vec[zmax]);
+
+  if(xmax == 0)
+    mri->xdir = -XDIM * xsign;
+  if(xmax == 1)
+    mri->xdir = ZDIM * xsign;
+  if(xmax == 2)
+    mri->xdir = -YDIM * xsign;
+
+  if(ymax == 0)
+    mri->ydir = -XDIM * ysign;
+  if(ymax == 1)
+    mri->ydir = ZDIM * ysign;
+  if(ymax == 2)
+    mri->ydir = -YDIM * ysign;
+
+  if(zmax == 0)
+    mri->zdir = -XDIM * zsign;
+  if(zmax == 1)
+    mri->zdir = ZDIM * zsign;
+  if(zmax == 2)
+    mri->zdir = -YDIM * zsign;
+
+  /* sanity check -- have all the axes been used? */
+  xmax = abs(xmax + 1);
+  ymax = abs(ymax + 1);
+  zmax = abs(zmax + 1);
+
+  /* must be each of 1, 2, and 3 in some order */
+
+  if(xmax + ymax + zmax != 6 || xmax * ymax * zmax != 6)
+    ErrorReturn(NULL, (ERROR_BADPARM, "siemensRead(%s): error interpreting slice direction", fname));
+
+  /* assign {xyz}_{ras} coordinates */
+  mri->x_r = x_vec[0] * mri->xsize;
+  mri->x_a = x_vec[1] * mri->xsize;
+  mri->x_s = x_vec[2] * mri->xsize;
+  mri->y_r = y_vec[0] * mri->ysize;
+  mri->y_a = y_vec[1] * mri->ysize;
+  mri->y_s = y_vec[2] * mri->ysize;
+  mri->z_r = z_vec[0] * mri->zsize;
+  mri->z_a = z_vec[1] * mri->zsize;
+  mri->z_s = z_vec[2] * mri->zsize;
+  mri->c_r = center_x + mri->depth / 2 * mri->z_r;
+  mri->c_a = center_y + mri->depth / 2 * mri->z_a;
+  mri->c_s = center_z + mri->depth / 2 * mri->z_s;
+
+  mri->ras_good_flag = 1;
+
+  mri->slice_direction = MRI_UNDEFINED;
 
   fclose(fp);
 
@@ -2989,36 +3245,6 @@ swab(pixel_data, pixel_data, mri->height * mri->width * 2);
     free(pixel_data);
 
     }
-
-  if(strncmp(slice_direction, "Sag>Tra", 7) == 0)
-  {
-    mri->xdir = -ZDIM;
-    mri->ydir = YDIM;
-    mri->zdir = XDIM;
-  }
-  else if(strncmp(slice_direction, "Sag>Cor", 7) == 0)
-  {
-    mri->xdir = XDIM;
-    mri->ydir = YDIM;
-    mri->zdir = ZDIM;
-  }
-  else if(strncmp(slice_direction, "Sag", 3) == 0)
-  {
-    mri->xdir = -ZDIM;
-    mri->ydir = YDIM;
-    mri->zdir = XDIM;
-  }
-  else if(strncmp(slice_direction, "Tra", 3) == 0)
-  {
-    mri->xdir = YDIM;
-    mri->ydir = ZDIM;
-    mri->zdir = XDIM;
-  }
-  else
-  {
-    fprintf(stderr, "siemensRead(%s): unknown slice direction in file\n", fname);
-    fprintf(stderr, "                 using an arbitrary direction");
-  }
 
   return(mri);
 
@@ -4008,40 +4234,47 @@ static MRI *sdtRead(char *fname, int read_volume, int frame)
   return(mri);
 
 } /* end sdtRead() */
+
 static void flipAnalyzeHeader(dsr *header)
-  header->hk.sizeof_hdr = orderIntBytes(header->hk.sizeof_hdr);
-  header->hk.extents = orderIntBytes(header->hk.extents);
-  header->hk.session_error = orderShortBytes(header->hk.session_error);
+{
+
+  int i;
   char c;
 
   header->hk.sizeof_hdr = swapInt(header->hk.sizeof_hdr);
-    header->dime.dim[i] = orderShortBytes(header->dime.dim[i]);
-    header->dime.pixdim[i] = orderFloatBytes(header->dime.pixdim[i]);
+  header->hk.extents = swapInt(header->hk.extents);
+  header->hk.session_error = swapShort(header->hk.session_error);
 
   for(i = 0;i < 8;i++)
-  header->dime.unused1 = orderShortBytes(header->dime.unused1);
-  header->dime.datatype = orderShortBytes(header->dime.datatype);
-  header->dime.bitpix = orderShortBytes(header->dime.bitpix);
-  header->dime.dim_un0 = orderShortBytes(header->dime.dim_un0);
-  header->dime.vox_offset = orderFloatBytes(header->dime.vox_offset);
-  header->dime.roi_scale = orderFloatBytes(header->dime.roi_scale);
-  header->dime.funused1 = orderFloatBytes(header->dime.funused1);
-  header->dime.funused2 = orderFloatBytes(header->dime.funused2);
-  header->dime.cal_max = orderFloatBytes(header->dime.cal_max);
-  header->dime.cal_min = orderFloatBytes(header->dime.cal_min);
-  header->dime.compressed = orderIntBytes(header->dime.compressed);
-  header->dime.verified = orderIntBytes(header->dime.verified);
-  header->dime.glmax = orderIntBytes(header->dime.glmax);
-  header->dime.glmin = orderIntBytes(header->dime.glmin);
+  {
+    header->dime.dim[i] = swapShort(header->dime.dim[i]);
+    header->dime.pixdim[i] = swapFloat(header->dime.pixdim[i]);
+  }
 
-  header->hist.views = orderIntBytes(header->hist.views);
-  header->hist.vols_added = orderIntBytes(header->hist.vols_added);
-  header->hist.start_field = orderIntBytes(header->hist.start_field);
-  header->hist.field_skip = orderIntBytes(header->hist.field_skip);
-  header->hist.omax = orderIntBytes(header->hist.omax);
-  header->hist.omin = orderIntBytes(header->hist.omin);
-  header->hist.smax = orderIntBytes(header->hist.smax);
-  header->hist.smin = orderIntBytes(header->hist.smin);
+  header->dime.unused1 = swapShort(header->dime.unused1);
+  header->dime.datatype = swapShort(header->dime.datatype);
+  header->dime.bitpix = swapShort(header->dime.bitpix);
+  header->dime.dim_un0 = swapShort(header->dime.dim_un0);
+  header->dime.vox_offset = swapFloat(header->dime.vox_offset);
+  header->dime.roi_scale = swapFloat(header->dime.roi_scale);
+  header->dime.funused1 = swapFloat(header->dime.funused1);
+  header->dime.funused2 = swapFloat(header->dime.funused2);
+  header->dime.cal_max = swapFloat(header->dime.cal_max);
+  header->dime.cal_min = swapFloat(header->dime.cal_min);
+  header->dime.compressed = swapInt(header->dime.compressed);
+  header->dime.verified = swapInt(header->dime.verified);
+  header->dime.glmax = swapInt(header->dime.glmax);
+  header->dime.glmin = swapInt(header->dime.glmin);
+
+  header->hist.views = swapInt(header->hist.views);
+  header->hist.vols_added = swapInt(header->hist.vols_added);
+  header->hist.start_field = swapInt(header->hist.start_field);
+  header->hist.field_skip = swapInt(header->hist.field_skip);
+  header->hist.omax = swapInt(header->hist.omax);
+  header->hist.omin = swapInt(header->hist.omin);
+  header->hist.smax = swapInt(header->hist.smax);
+  header->hist.smin = swapInt(header->hist.smin);
+
   c = header->hist.originator[0]; header->hist.originator[0] = header->hist.originator[1]; header->hist.originator[1] = c;
   c = header->hist.originator[2]; header->hist.originator[2] = header->hist.originator[3]; header->hist.originator[3] = c;
   c = header->hist.originator[4]; header->hist.originator[4] = header->hist.originator[5]; header->hist.originator[5] = c;
