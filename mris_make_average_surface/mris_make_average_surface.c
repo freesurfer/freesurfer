@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2005/02/25 20:10:59 $
-// Revision       : $Revision: 1.11 $
+// Revision Date  : $Date: 2005/02/28 17:03:02 $
+// Revision       : $Revision: 1.12 $
 //
 ////////////////////////////////////////////////////////////////////
 #include <stdio.h>
@@ -25,7 +25,7 @@
 #include "transform.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_make_average_surface.c,v 1.11 2005/02/25 20:10:59 tosa Exp $";
+static char vcid[] = "$Id: mris_make_average_surface.c,v 1.12 2005/02/28 17:03:02 tosa Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -54,9 +54,10 @@ main(int argc, char *argv[])
   MRI_SP       *mrisp, *mrisp_total ;
   LTA          *lta ;
   MRI          *mri ;
+  VOL_GEOM      vg;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_make_average_surface.c,v 1.11 2005/02/25 20:10:59 tosa Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_make_average_surface.c,v 1.12 2005/02/28 17:03:02 tosa Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -120,6 +121,8 @@ main(int argc, char *argv[])
     MRIStalairachTransform(mris, mris, lta) ;
 #else
     MRIStransform(mris, mri, lta, 0) ;
+    // copy volume geometry of the transformed volume
+    memcpy((void *) &vg, (void *) &(mris->vg), sizeof(VOL_GEOM)); 
 #endif
     MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ;
     MRISrestoreVertexPositions(mris, CANONICAL_VERTICES) ;
@@ -130,7 +133,7 @@ main(int argc, char *argv[])
     MRISPfree(&mrisp) ; MRISfree(&mris) ; LTAfree(&lta) ; MRIfree(&mri) ;
     n++ ;
   }
-
+  // mrisp_total lost info on the modified surface
   sprintf(ico_fname, "%s/lib/bem/ic%d.tri", mdir, ico_no) ;
   fprintf(stderr, "reading icosahedron from %s...\n", ico_fname) ;
   mris_ico = ICOread(ico_fname) ;
@@ -141,6 +144,8 @@ main(int argc, char *argv[])
                  DEFAULT_RADIUS/MRISaverageRadius(mris_ico)) ;
   MRISsaveVertexPositions(mris_ico, CANONICAL_VERTICES) ;
   MRIScoordsFromParameterization(mrisp_total, mris_ico) ;
+  // copy geometry info
+  memcpy((void *) &mris_ico->vg, (void *) &vg, sizeof (VOL_GEOM));
 
   if (Gdiag_no >= 0)
   {
