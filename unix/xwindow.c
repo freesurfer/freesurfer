@@ -520,6 +520,7 @@ static int WaitForMainWindow(Display *d, XEvent *e, char *arg)
     }
 }
 
+#if 0
 static int WaitForOverlayWindow(Display *d, XEvent *e, char *arg)
 {
 
@@ -529,6 +530,7 @@ static int WaitForOverlayWindow(Display *d, XEvent *e, char *arg)
   return GL_FALSE;
     }
 }
+#endif
 
 GLenum tkoInitDisplay(void)
 {
