@@ -270,7 +270,7 @@ xvInitColors(XV_FRAME *xvf)
       xcolors[i].green = 200 ;
       break ;
     case YELLOW_INDEX:
-      xcolors[i].green = xcolors[i].red = 255 ;
+      xcolors[i].green = xcolors[i].red = 200 ;
       xcolors[i].blue = 0 ;
       break ;
     case CYAN_INDEX:
