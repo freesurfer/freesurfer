@@ -23488,7 +23488,6 @@ MRIStransform(MRI_SURFACE *mris, MRI *mri, LTA *lta, MRI *mri_dst)
     TransformWithMatrix(surfaceRASFromSurfaceRAS, v->x, v->y, v->z, &xw, &yw, &zw);
     v->x = xw ; v->y = yw ; v->z = zw ;
   }
-  MRIfree(&mri_dst);
   mrisComputeSurfaceDimensions(mris) ;
 
  mristransform_cleanup:
