@@ -18,8 +18,20 @@
 
 #define MAX_INPUTS           4
 
+
+/* bitfield of feature types */
+#define FEATURE_INTENSITY      0x00001
+#define FEATURE_ZSCORE3        0x00002
+#define FEATURE_ZSCORE5        0x00004
+#define FEATURE_POLV_MEDIAN    0x00008
+#define FEATURE_DIRECTION      0x00010
+#define FEATURE_MEAN3          0x00020
+#define FEATURE_MEAN5          0x00040
+#define MAX_FEATURE            FEATURE_MEAN5
+
 typedef struct
 {
+  int         features ;    /* bit field of above features */
   int         type ;        /* what kind of classifier are we using */
   int         ninputs ;     /* # of inputs to the classifier */
   void        *parms ;      /* classifier specific parameters */
@@ -30,7 +42,7 @@ typedef struct
   char        prior_fname[100] ;
 } MRI_CLASSIFIER, MRIC ;
 
-MRIC   *MRICalloc(int type, int ninputs, void *parms) ;
+MRIC   *MRICalloc(int type, int features, void *parms) ;
 int    MRICfree(MRIC **pmri) ;
 int    MRICtrain(MRIC *mric, char *file_name, char *prior_fname) ;
 /*int    MRICclassify(MRIC *mric, MRI *mri_src, float *pprob) ;*/
@@ -43,7 +55,7 @@ int    MRICcomputeMeans(MRIC *mric) ;
 int    MRICupdateCovariances(MRIC *mric, MRI *mri_src, MRI *mri_target, 
                              BOX *bbox) ;
 int    MRICcomputeCovariances(MRIC *mric) ;
-int    MRICcomputeInputs(MRI *mri, int x,int y,int z,float *obs, int ninputs) ;
+int    MRICcomputeInputs(MRI *mri, int x,int y,int z,float *obs, int features);
 MRI    *MRICbuildTargetImage(MRI *mri_src, MRI *mri_target, MRI *mri_wm,
                              int lo_lim, int hi_lim) ;
 MRI    *MRICupdatePriors(MRI *mri_target, MRI *mri_priors, int scale) ;
