@@ -1324,8 +1324,9 @@ MRISsampleDistances(MRI_SURFACE *mris, int *nbrs, int max_nbhd)
 
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
-    if ((Gdiag & DIAG_HEARTBEAT) && (!(vno % (mris->nvertices/25))))
-      fprintf(stderr, " %%%1.0f", 100.0f*(float)vno / (float)mris->nvertices) ;
+    if ((Gdiag & DIAG_HEARTBEAT) && (!(vno % (mris->nvertices/10))))
+      fprintf(stderr, "%%%1.0f done\n", 
+              100.0f*(float)vno / (float)mris->nvertices) ;
     v = &mris->vertices[vno] ;
     if (vno == Gdiag_no)
       DiagBreak()  ;
