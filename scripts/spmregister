@@ -1,0 +1,358 @@
+#!/bin/csh -f
+# 
+# $Id: spmregister,v 1.1 2003/11/03 21:45:06 greve Exp $
+set VERSION = '$Id: spmregister,v 1.1 2003/11/03 21:45:06 greve Exp $';
+
+set subjid = ();
+set refvol = ();
+set movvol = ();
+set debug = 0;
+set tmpdir = ();
+set cleanup = 1;
+set monly = 0;
+set MLF = ();
+set PrintHelp = 0;
+
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | grep version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+set n = `echo $argv | grep help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+
+goto parse_args;
+parse_args_return:
+goto check_params;
+check_params_return:
+
+echo $VERSION
+date
+
+
+set movvoldir = `dirname $movvol`;
+if($#tmpdir == 0) set tmpdir = $movvoldir/tmp.$$
+mkdir -p $tmpdir
+
+set LF = $movvoldir/spmregister.log
+if(-e $LF) mv $LF $LF.old
+echo "Log file is $LF"
+
+echo "Logfile for spmregister" >> $LF
+date >> $LF
+
+set StartTime = `date`;
+set DateString = "`date '+%y%m%d%H%M'`"
+
+# Convert reference to analyze
+set refvol = $SUBJECTS_DIR/$subjid/mri/brain
+if(! -e $refvol) then
+  echo "ERROR: $refvol not found"
+  exit 1;
+endif
+set refvolbase = $tmpdir/refvol.spmregister
+set refvolimg  = $refvolbase.img
+set cmd = (mri_convert $refvol $refvolimg)
+echo "--------------------------------------" |& tee -a $LF
+pwd        |& tee -a $LF
+echo $cmd  |& tee -a $LF
+$cmd       |& tee -a $LF
+if($status) exit 1;
+
+# Convert input to analyze #
+set movvolbase = $tmpdir/movvol.spmregister
+set movvolimg  = $movvolbase.img
+set cmd = (mri_convert $movvol $movvolimg)
+echo "--------------------------------------" |& tee -a $LF
+pwd        |& tee -a $LF
+echo $cmd  |& tee -a $LF
+$cmd       |& tee -a $LF
+if($status) exit 2;
+
+if($#MLF == 0) set MLF = $tmpdir/spmregister.$$.m
+rm -f $MLF
+echo "Matlab file is $MLF" |& tee -a $LF
+
+set okfile = $tmpdir/spmregister.$$.ok
+rm -f $okfile
+
+if(-e $regfile) mv $regfile $regfile.$DateString
+
+#--------------------------------------------------------#
+tee $MLF <<EOF
+
+targvol = '$refvolimg';
+srcvol  = '$movvolimg';
+okfile  = '$okfile';
+
+if(exist('spm_coreg') ~= 2)
+  fprintf('ERROR: cannot find spm_coreg.m. Make sure that the spm2\n');
+  fprintf('   package is in your matlab path (check ~/matlab/startup)\n');
+  return; quit;
+end
+
+global defaults
+spm_defaults			% load spm2's default fields
+
+fprintf('INFO: Assuming RAS coordinate system\n');
+defaults.analyze.flip = 0; 
+
+%===========================================================================
+% coregistration  defaults
+%===========================================================================
+
+defaults.coreg.estimate.cost_fun = 'nmi';
+defaults.coreg.estimate.sep      = [4 2];
+defaults.coreg.estimate.tol      = [0.02 0.02 0.02 0.001 0.001 0.001 0.01 0.01 0.01 0.001 0.001 0.001];
+defaults.coreg.estimate.fwhm     = [7 7];
+defaults.coreg.estimate.params	 = [0 0 0  0 0 0];
+defaults.coreg.estimate.graphics = 0; % dont crate ps file
+
+
+%===========================================================================
+% coregister files
+%===========================================================================
+
+disp(sprintf('using %s as the target image',targvol));
+disp(sprintf('using %s as the source image',srcvol));
+
+[pth1,nam1,ext1] = fileparts(deblank(targvol));
+[pth2,nam2,ext2] = fileparts(deblank(srcvol));
+
+VG	= spm_vol(spm_get('Files',pth1,[nam1 ext1]));	% target image
+if(isempty(VG))
+  fprintf('ERROR: loading target %s\n',targvol);
+  return; quit;
+end
+VF	= spm_vol(spm_get('Files',pth2,[nam2 ext2]));	% source image
+if(isempty(VF))
+  fprintf('ERROR: loading source %s\n',srcvol);
+  return; quit;
+end
+
+fprintf('\n\nINFO: ignore warnings about scalefactor\n\n');
+
+disp('determining coregistration parameters...')
+
+tic;
+x  = spm_coreg(VG.fname,VF.fname,defaults.coreg.estimate);
+fprintf('Finished after %g sec\n',toc);
+
+%---------write out the .mat file---see spm_coreg_ui.m line 283
+
+M  = inv(spm_matrix(x));
+MM = zeros(4,4,1);
+MM = spm_get_space(deblank(VF.fname));
+spm_get_space(deblank(VF.fname), M*MM);
+
+fprintf('\n\nINFO: ignore warnings about scalefactor\n\n');
+
+fp = fopen(okfile,'w');
+fclose(fp);
+
+return;
+quit;
+
+EOF
+#--------------------------------------------------------#
+
+if($monly) exit 1;
+
+cat $MLF | matlab -nosplash -display iconic -nodesktop |& tee -a $LF
+rm $MLF
+
+if(! -e $okfile) then
+  echo "ERROR: matlab exited with errors" |& tee -a $LF
+  exit 1;
+endif
+
+# Computer the registration file #
+set cmd = (tkregister2 --s $subjid --mov $movvolimg \
+           --regheader --noedit --reg $regfile);
+echo "--------------------------------------------------" |& tee -a $LF
+pwd        |& tee -a $LF
+echo $cmd  |& tee -a $LF
+$cmd       |& tee -a $LF
+if($status) exit 1;
+
+# Cleanup
+if($cleanup) then
+  echo "Cleaning up" |& tee -a $LF
+  rm -r $tmpdir
+endif
+
+echo " " |& tee -a $LF
+echo "Started at $StartTime " |& tee -a $LF
+echo "Ended   at `date`" |& tee -a $LF
+echo " " |& tee -a $LF
+echo "spmregister Done" |& tee -a $LF
+echo " "
+
+echo "To check results, run:"
+echo "tkregister2 --mov $movvol --reg $regfile"
+echo " "
+
+
+exit 0;
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "--s":
+      if ( $#argv < 1) goto arg1err;
+      set subjid = $argv[1]; shift;
+      breaksw
+
+    case "--mov":
+      if ( $#argv < 1) goto arg1err;
+      set movvol = $argv[1]; shift;
+      breaksw
+
+    case "--reg":
+      if ( $#argv < 1) goto arg1err;
+      set regfile = $argv[1]; shift;
+      breaksw
+
+    case "--tmp":
+      if ( $#argv < 1) goto arg1err;
+      set tmpdir = $argv[1]; shift;
+      set cleanup = 0;
+      breaksw
+
+    case "--monly":
+      if ( $#argv < 1) goto arg1err;
+      set MLF = $argv[1]; shift;
+      set monly = 1;
+      breaksw
+
+    case "--verbose":
+      set verbose = 1;
+      breaksw
+
+    case "--nocleanup":
+      set cleanup = 0;
+      breaksw
+
+    case "--echo":
+      set echo = 1;
+      breaksw
+
+    case "--debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    case "--umask":
+      if ( $#argv == 0) goto arg1err;
+      umask $1; shift;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+  if($#subjid == 0) then
+    echo "ERROR: must spec a subject id"
+    exit 1;
+  endif
+
+  if($#movvol == 0) then
+    echo "ERROR: must spec an movput vol"
+    exit 1;
+  endif
+
+  if($#regfile == 0) then
+    echo "ERROR: must spec an output reg file"
+    exit 1;
+  endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+arg2err:
+  echo "ERROR: flag $flag requires two arguments"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "USAGE: spmregister"
+  echo ""
+  echo "Required Arguments:";
+  echo "   --s subjid"
+  echo "   --mov volid  : input/movable volume"
+  echo "   --reg register.dat"
+  echo ""
+  echo "Optional Arguments"
+  echo "   --nocleanup  : do not delete temporary files"
+  echo "   --version : print version and exit"
+  echo "   --help    : print help and exit"
+  echo ""
+
+  if($PrintHelp) \
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+Registers a volume to its FreeSurfer anatomical using SPMs spm_coreg
+and creates a FreeSurfer register.dat file. Does not resample. Requires
+matlab and spm2. The registration is rigid (ie, 6 DOF).
+
+--s subjid
+
+Id of the subject as found in SUBJECTS_DIR. The reference volume
+is the mri/brain volume. This is converted to analyze using 
+mri_convert.
+
+--mov volid
+
+Volume identifier of the movable volume. This must be specified in
+a way suitable for mri_convert.
+
+--reg regfile
+
+Output registration file. This will map RAS in the reference to
+RAS in the movable.
+
+BUGS
+
+There may be a series of warnings of the form:
+"Warning: Assuming a scalefactor of 1 for refvol.spm_rigid_register.img". 
+This can be ignored.
+
+See Also: tkregister2, mri_convert, mri_rigid_register, fsl_rigid_register
+
+
