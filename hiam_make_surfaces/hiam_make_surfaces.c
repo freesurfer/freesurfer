@@ -7,8 +7,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: pengyu $
-// Revision Date  : $Date: 2004/01/27 22:14:05 $
-// Revision       : $Revision: 1.1 $
+// Revision Date  : $Date: 2004/04/14 19:58:57 $
+// Revision       : $Revision: 1.2 $
 ////////////////////////////////////////////
 
 #include <stdio.h>
@@ -300,6 +300,7 @@ main(int argc, char *argv[])
 					sprintf(ofname, "%s/%s/surf/movie/%s.refined%d", data_dir, argv[1], argv[2],counter/write_iterations);
 					fprintf(stderr, "writing out reconstructed surface after %d iteration to %d \n", i, counter/write_iterations );
 					MRISwrite(mris, ofname) ;
+					//measure the volume this new surface encloses and compare with the original//
 				}
 			}
 			if (i<0) SmoothSpikes(mris, 3);
