@@ -5,7 +5,7 @@
 # editing.
 #
 # mkfsdist
-# $Id: mkfsdist,v 1.29 2003/06/30 20:08:42 kteich Exp $
+# $Id: mkfsdist,v 1.30 2003/08/01 22:14:25 kteich Exp $
 #
 # Usage: mkfsdist sourcedir targetdir platform [options]
 #
@@ -17,19 +17,20 @@
 # TO MAKE THE DISTRO:
 
 # - Create the target directory, something like freesurfer-DATE/. this
-#   is the destination directory. For example, ~/work/freesurfer-030512/.
+#   is the destination directory. For example, ~/work/freesurfer-20030512/.
 
 # - Copy freesurfer_dev or freesurfer_alpha to a new directory called
-#   freesurfer/. For example, ~/work/freesurfer/.
+#   freesurfer/. For example, ~/work/freesurfer-20030512/freesurfer/.
 
 # - Run mkfsdist:
-#    $ mkfsdist ~/work/freesurfer ~/work/freesurfer-030512 PLATFORM
+#    $ mkfsdist ~/work/freesurfer-20030512/freesurfer 
+#           ~/work/freesurfer-20030512 PLATFORM
 #   with appropriate substitutions. PLATFORM can be Linux or Darwin 
 #   or Solaris.
 
-# - mkfsdist will fill ~/work/freesurfer-030512 with tarballs and other
+# - mkfsdist will fill ~/work/freesurfer-20030512 with tarballs and other
 #   files. Tar up this directory:
-#    $ tar cfzv freesurfer-030512-Linux.tar.gz ~/work/freesurfer-030512
+#    $ tar cfzv freesurfer-20030512-Linux.tar.gz ~/work/freesurfer-20030512
 #   with appropriate OS name in the tarball name.
 
 
@@ -71,7 +72,7 @@
 #  files found in tar-exclude-more and tar-exclude-gca.
 #
 # 
-set VERSION = '$Id: mkfsdist,v 1.29 2003/06/30 20:08:42 kteich Exp $';
+set VERSION = '$Id: mkfsdist,v 1.30 2003/08/01 22:14:25 kteich Exp $';
 
 # To include the autoseg in the distribution set environment varible
 # KEEPAUTOSEG to 1 before running mkfsdist (ie, setenv KEEPAUTOSEG 1)
