@@ -1,3 +1,12 @@
+//
+// mri_convert.c
+// original: written by Bruce Fischl (Apr 16, 1997)
+//
+// Warning: Do not edit the following four lines.  CVS maintains them.
+// Revision Author: $Author: tosa $
+// Revision Date  : $Date: 2003/07/07 19:15:01 $
+// Revision       : $Revision: 1.54 $
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -104,7 +113,7 @@ int main(int argc, char *argv[])
   int force_ras_good = FALSE;
   char gdf_image_stem[STRLEN];
   int in_matrix_flag, out_matrix_flag;
-  float minSize;
+  float conform_size;
 
   for(i=0;i<argc;i++) printf("%s ",argv[i]);
   printf("\n");
@@ -187,9 +196,10 @@ int main(int argc, char *argv[])
   in_matrix_flag = FALSE;
   out_matrix_flag = FALSE;
   conform_min = FALSE;
+  conform_size = 1.0;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_convert.c,v 1.53 2003/07/03 22:07:56 tosa Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_convert.c,v 1.54 2003/07/07 19:15:01 tosa Exp $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -214,6 +224,8 @@ int main(int argc, char *argv[])
       conform_flag = FALSE;
     else if (strcmp(argv[i], "-cm") == 0 || strcmp(argv[i], "--conform_min") == 0)
       conform_min = TRUE;
+    else if (strcmp(argv[i], "-cs") == 0 || strcmp(argv[i], "--conform_size") == 0)
+      get_floats(argc, argv, &i, &conform_size, 1);
     else if(strcmp(argv[i], "-po") == 0 || strcmp(argv[i], "--parse_only") == 0)
       parse_only_flag = TRUE;
     else if(strcmp(argv[i], "-ii") == 0 || strcmp(argv[i], "--in_info") == 0)
@@ -234,7 +246,8 @@ int main(int argc, char *argv[])
       in_matrix_flag = TRUE;
     else if(strcmp(argv[i], "-om") == 0 || strcmp(argv[i], "--out_matrix") == 0)
       out_matrix_flag = TRUE;
-    else if(strcmp(argv[i], "--force_ras_good") == 0) force_ras_good = TRUE;
+    else if(strcmp(argv[i], "--force_ras_good") == 0) 
+      force_ras_good = TRUE;
     else if(strcmp(argv[i], "-at") == 0 || strcmp(argv[i], "--apply_transform") == 0 || strcmp(argv[i], "-T") == 0)
     {
       get_string(argc, argv, &i, transform_fname);
@@ -628,10 +641,10 @@ int main(int argc, char *argv[])
   /* 2) for GE: through-plane correction requires rewarping the
            in-plane unwarped image, which requires map inversion */
   if( strcmp(unwarp_partialUnwarp, "through-plane") == 0 )      
-    {
-      fprintf(stderr, "\n%s: through-plane only unwarping not supported at present.\n", Progname);
-      exit(1);
-    }
+  {
+    fprintf(stderr, "\n%s: through-plane only unwarping not supported at present.\n", Progname);
+    exit(1);
+  }
   /* !@# end */
   
       }
@@ -646,17 +659,17 @@ int main(int argc, char *argv[])
     {
       /* File name to write percent complete for Siemens DICOM */
       if( (argc-1) - i < 1 ){
-  fprintf(stderr,"ERROR: option --statusfile requires one argument\n");
-  exit(1);
+        fprintf(stderr,"ERROR: option --statusfile requires one argument\n");
+        exit(1);
       }
       i++;
       SDCMStatusFile = (char *) calloc(strlen(argv[i])+1,sizeof(char));
       memcpy(SDCMStatusFile,argv[i],strlen(argv[i]));
       fptmp = fopen(SDCMStatusFile,"w");
       if(fptmp == NULL){
-  fprintf(stderr,"ERROR: could not open %s for writing\n",
-    SDCMStatusFile);
-  exit(1);
+        fprintf(stderr,"ERROR: could not open %s for writing\n",
+                SDCMStatusFile);
+        exit(1);
       }
       fprintf(fptmp,"0\n");
       fclose(fptmp);
@@ -665,22 +678,22 @@ int main(int argc, char *argv[])
     else if(strcmp(argv[i], "--sdcmlist") == 0)
     {
       /* File name that contains a list of Siemens DICOM files
-   that are in the same run as the one listed on the
-   command-line. If not present, the directory will be scanned,
-   but this can take a while.
+         that are in the same run as the one listed on the
+         command-line. If not present, the directory will be scanned,
+         but this can take a while.
       */
       if( (argc-1) - i < 1 ){
-  fprintf(stderr,"ERROR: option --sdcmlist requires one argument\n");
-  exit(1);
+        fprintf(stderr,"ERROR: option --sdcmlist requires one argument\n");
+        exit(1);
       }
       i++;
       SDCMListFile = (char *) calloc(strlen(argv[i])+1,sizeof(char));
       memcpy(SDCMListFile,argv[i],strlen(argv[i]));
       fptmp = fopen(SDCMListFile,"r");
       if(fptmp == NULL){
-  fprintf(stderr,"ERROR: could not open %s for reading\n",
-    SDCMListFile);
-  exit(1);
+        fprintf(stderr,"ERROR: could not open %s for reading\n",
+                SDCMListFile);
+        exit(1);
       }
       fclose(fptmp);
     }
@@ -690,8 +703,8 @@ int main(int argc, char *argv[])
     {
       /* Choose the amount of zero padding for spm output files */
       if( (argc-1) - i < 1 ){
-  fprintf(stderr,"ERROR: option --out_nspmzeropad requires one argument\n");
-  exit(1);
+        fprintf(stderr,"ERROR: option --out_nspmzeropad requires one argument\n");
+        exit(1);
       }
       i++;
       sscanf(argv[i],"%d",&N_Zero_Pad_Output);
@@ -701,8 +714,8 @@ int main(int argc, char *argv[])
     {
       /* Choose the amount of zero padding for spm input files */
       if( (argc-1) - i < 1 ){
-  fprintf(stderr,"ERROR: option --in_nspmzeropad requires one argument\n");
-  exit(1);
+        fprintf(stderr,"ERROR: option --in_nspmzeropad requires one argument\n");
+        exit(1);
       }
       i++;
       sscanf(argv[i],"%d",&N_Zero_Pad_Input);
@@ -822,6 +835,7 @@ int main(int argc, char *argv[])
     printf("output volume name: %s\n", out_name);
     printf("parse_only_flag = %d\n", parse_only_flag);
     printf("conform_flag = %d\n", conform_flag);
+    printf("conform_size = %f\n", conform_size);
     printf("in_info_flag = %d\n", in_info_flag);
     printf("out_info_flag = %d\n", out_info_flag);
     printf("in_matrix_flag = %d\n", in_matrix_flag);
@@ -911,7 +925,7 @@ int main(int argc, char *argv[])
     {
       errno = 0;
       ErrorPrintf(ERROR_BADPARM, "parcellation read: must specify"
-		  "a volume depth with either in_like or in_k_count");
+                  "a volume depth with either in_like or in_k_count");
       exit(1);
     }
 
@@ -919,7 +933,7 @@ int main(int argc, char *argv[])
     {
       errno = 0;
       ErrorPrintf(ERROR_BADPARM, "parcellation read: must specify a"
-		  "color file name");
+                  "color file name");
       if(in_like_flag)
         MRIfree(&mri_in_like);
       exit(1);
@@ -957,7 +971,7 @@ int main(int argc, char *argv[])
 
     if(in_like_flag)
       mri = MRIreadOtl(in_name, mri_in_like->width, mri_in_like->height, 
-		       mri_in_like->depth, color_file_name, read_otl_flags);
+                       mri_in_like->depth, color_file_name, read_otl_flags);
     else
       mri = MRIreadOtl(in_name, 0, 0, in_n_k, color_file_name, read_otl_flags);
 
@@ -993,7 +1007,7 @@ int main(int argc, char *argv[])
     {
       errno = 0;
       ErrorPrintf(ERROR_BADPARM, "roi read: must specify a volume"
-		  "depth with either in_like or in_k_count");
+                  "depth with either in_like or in_k_count");
       if(in_like_flag)
         MRIfree(&mri_in_like);
       exit(1);
@@ -1021,7 +1035,7 @@ int main(int argc, char *argv[])
     else
     {
       if(force_in_type_flag){
-	//printf("MRIreadType()\n");
+        //printf("MRIreadType()\n");
         mri = MRIreadType(in_name, in_volume_type);
       }
       else{
@@ -1040,7 +1054,7 @@ int main(int argc, char *argv[])
   if(unwarp_flag)
     {
       /* if unwarp_flag is true, unwarp the distortions due
-   to gradient coil nonlinearities */
+         to gradient coil nonlinearities */
       printf("INFO: unwarping ... ");
       mri_unwarped = unwarpGradientNonlinearity(mri, 
             unwarp_gradientType, 
@@ -1223,94 +1237,94 @@ int main(int argc, char *argv[])
       printf("Reading transform\n");
       lta_transform = LTAread(transform_fname);
       if(lta_transform  == NULL){
-    fprintf(stderr, "ERROR: Reading transform from file %s\n", 
-      transform_fname);
-    exit(1);
-  }
+        fprintf(stderr, "ERROR: Reading transform from file %s\n", 
+                transform_fname);
+        exit(1);
+      }
       
       printf("Input Matrix --------------------------\n");
       MatrixPrint(stdout,lta_transform->xforms[0].m_L);
       printf("---------------------------------\n");
-
+      
       if(invert_transform_flag)
       {
-  inverse_transform_matrix = MatrixInverse(lta_transform->xforms[0].m_L,
-             NULL);
+        inverse_transform_matrix = MatrixInverse(lta_transform->xforms[0].m_L,
+                                                 NULL);
         if(inverse_transform_matrix == NULL)
         {
           fprintf(stderr, "ERROR: inverting transform\n");
-    MatrixPrint(stdout,lta_transform->xforms[0].m_L);
+          MatrixPrint(stdout,lta_transform->xforms[0].m_L);
           exit(1);
         }
-
+        
         MatrixFree(&(lta_transform->xforms[0].m_L));
         lta_transform->xforms[0].m_L = inverse_transform_matrix;
       }
-
+      
       /* Think about calling MRIlinearTransform() here; need vox2vox
-   transform. Can create NN version. In theory, LTAtransform()
+         transform. Can create NN version. In theory, LTAtransform()
          can handle multiple transforms, but the inverse assumes only
          one. NN is good for ROI*/
-
+      
       printf("INFO: resampling input volume \n");
       printf("---------------------------------\n");
       printf("Resampling Matrix input to LTAtransform(): \n");
       MatrixPrint(stdout,lta_transform->xforms[0].m_L);
       printf("---------------------------------\n");
-
+      
       if (lta_transform->type == LINEAR_RAS_TO_RAS){
-  /* What does this do? M = M*V*W, where V is world2vox
-     transform for COR, and W is vox2world transform for
-     COR. Maybe it changes the center?*/
-  printf("INFO: LTAvoxelTransformToCoronalRasTransform()\n");
-  LTAvoxelTransformToCoronalRasTransform(lta_transform);
+        /* What does this do? M = M*V*W, where V is world2vox
+           transform for COR, and W is vox2world transform for
+           COR. Maybe it changes the center?*/
+        printf("INFO: LTAvoxelTransformToCoronalRasTransform()\n");
+        LTAvoxelTransformToCoronalRasTransform(lta_transform);
       }
-
+      
 #if 1
       /* LTAtransform() runs either MRIapplyRASlinearTransform() 
-   for RAS2RAS or MRIlinearTransform() for Vox2Vox. Since
-      the matrix is transformed to Vox2Vox, the LTAtransform line
-      should give the same results as the MRIlinearTransfrom().*/
+         for RAS2RAS or MRIlinearTransform() for Vox2Vox. Since
+         the matrix is transformed to Vox2Vox, the LTAtransform line
+         should give the same results as the MRIlinearTransfrom().*/
       mri_transformed = LTAtransform(mri, NULL, lta_transform);
       //mri_transformed = MRIlinearTransform(mri, NULL, 
       //           lta_transform->xforms[0].m_L);
 #else
       /* This part is experimental. The section that uses NEAREST
-   can be used for transforming ROIs that need to be resampled
-   given the transform matrix. */
+         can be used for transforming ROIs that need to be resampled
+         given the transform matrix. */
       if (lta_transform->type == LINEAR_RAS_TO_RAS){
-  mri_transformed = 
-    MRIapplyRASlinearTransform(mri,NULL,
-             lta_transform->xforms[0].m_L);
+        mri_transformed = 
+          MRIapplyRASlinearTransform(mri,NULL,
+                                     lta_transform->xforms[0].m_L);
       }
       else{
-  printf("INFO: transforming using nearest\n");
-  mri_transformed = 
-    MRIlinearTransformInterp(mri, NULL,
-           lta_transform->xforms[0].m_L,
-           SAMPLE_NEAREST);
+        printf("INFO: transforming using nearest\n");
+        mri_transformed = 
+          MRIlinearTransformInterp(mri, NULL,
+                                   lta_transform->xforms[0].m_L,
+                                   SAMPLE_NEAREST);
       }
 #endif
       if(mri_transformed == NULL){
         fprintf(stderr, "ERROR: applying transform to volume\n");
         exit(1);
       }
-
+      
       LTAfree(&lta_transform);
       MRIfree(&mri);
       mri = mri_transformed;
     }
-
+    
     else if(transform_type == MORPH_3D_TYPE)
     {
-
+      
       if((m3d_transform = MRI3DreadSmall(transform_fname)) == NULL)
       {
         fprintf(stderr, "error reading transform from file %s\n", 
-    transform_fname);
+                transform_fname);
         exit(1);
       }
-
+      
       if(invert_transform_flag)
         mri_transformed = MRIapplyInverse3DMorph(mri, m3d_transform, NULL);
       else
@@ -1357,25 +1371,16 @@ int main(int argc, char *argv[])
     {
       if(out_volume_type == MRI_CORONAL_SLICE_DIRECTORY)
       {
+        if (conform_min == TRUE)
+          conform_size = findMinSize(mri);
         template->width = template->height = template->depth = 256;
         template->imnr0 = 1;
         template->imnr1 = 256;
         template->type = MRI_UCHAR;
-	if (conform_min==TRUE)
-	{
-	  // find out the min size 
-	  minSize = findMinSize(mri);
-	  template->thick = minSize;
-	  template->ps = minSize;
-	  template->xsize = template->ysize = template->zsize = minSize;
-	  printf("Data is conformed to %g size for all directions\n", minSize); 
-	}
-	else
-	{
-	  template->thick = 1.0;
-	  template->ps = 1.0;
-	  template->xsize = template->ysize = template->zsize = 1.0;
-	}
+        template->thick = conform_size;
+        template->ps = conform_size;
+        template->xsize = template->ysize = template->zsize = conform_size;
+        printf("Data is conformed to %g mm size for all directions\n", conform_size); 
         template->xstart = template->ystart = template->zstart = -128.0;
         template->xend = template->yend = template->zend = 128.0;
         template->x_r = -1.0;  template->x_a =  0.0;  template->x_s =  0.0;
@@ -1384,8 +1389,8 @@ int main(int argc, char *argv[])
       }
     }
     else if(out_volume_type != MRI_CORONAL_SLICE_DIRECTORY)
-        printf("the output volume is not a COR- directory."
-         "The --no_conform (-nc) argument is not needed\n");
+      printf("the output volume is not a COR- directory."
+             "The --no_conform (-nc) argument is not needed\n");
 
   }
 
@@ -1475,7 +1480,7 @@ int main(int argc, char *argv[])
   if(mri->type != template->type)
   {
     printf("changing data type from %d to %d (noscale = %d)...\n",
-	   mri->type,template->type,no_scale_flag);
+           mri->type,template->type,no_scale_flag);
     mri2 = MRIchangeType(mri, template->type, 0.0, 0.999, no_scale_flag);
     if(mri2 == NULL) {
       printf("ERROR: MRIchangeType\n");
@@ -1576,13 +1581,13 @@ int main(int argc, char *argv[])
     printf("writing to %s...\n", out_name);
     if(force_out_type_flag){
       if(MRIwriteType(mri, out_name, out_volume_type) != NO_ERROR){
-	printf("ERROR: writing %s as %d\n",out_name,out_volume_type);
+        printf("ERROR: writing %s as %d\n",out_name,out_volume_type);
         exit(1);
       }
     }
     else{
       if(MRIwrite(mri, out_name) != NO_ERROR){
-	printf("ERROR: writing %s\n",out_name);
+        printf("ERROR: writing %s\n",out_name);
         exit(1);
       }
     }
@@ -1817,7 +1822,9 @@ void usage(FILE *stream)
   printf("  -o, --output_volume\n");
   printf("  -nc, --no_conform\n");
   printf("  -cm, --conform_min\n");
-  printf("            conform to the src min direction size.\n");
+  printf("            conform to the src min direction size (valid only for COR type)\n");
+  printf("  -cs, --conform_size size_in_mm\n");
+  printf("            conform to the size given in mm (valid only for COR type)\n");
   printf("  -po, --parse_only\n");
   printf("  -is, --in_stats\n");
   printf("  -os, --out_stats\n");
