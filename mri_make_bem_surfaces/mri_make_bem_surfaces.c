@@ -15,7 +15,7 @@
 #include "icosahedron.h"
 
 /* prototypes */
-static void read_datfile(char *fname) ;
+/* static void read_datfile(char *fname) ; */
 static void init_surf_to_image(void) ;
 static void make_filenames(char *lsubjectsdir) ;
 static void shrink(int niter, int nsmoothsteps) ;
@@ -26,10 +26,10 @@ static void write_geometry(char *fname) ;
 static void read_geometry(char *fname) ;
 static void read_images(char *fpref) ;
 static void read_image_info(char *fpref) ;
-static void buffer_to_image(unsigned char *buf, unsigned char **im, int ysize,
-                            int xsize) ;
+static void estimate_thickness(int niter);
+/* static void buffer_to_image(unsigned char *buf, unsigned char **im, int ysize, int xsize) ;
 static void file_name(char *fpref, char *fname, int num, char *form) ;
-static char *lcalloc(size_t nmemb, size_t size);
+static char *lcalloc(size_t nmemb, size_t size); */
 
 #if 0
 static void write_datfile(char *fname) ;
@@ -153,10 +153,10 @@ char *Progname ;
 int
 main(int argc,char *argv[])
 {
-    FILE *fptr;
+    /* FILE *fptr; */
     char fpref[STRLEN];
     char *data_dir,*mri_dir;
-    struct stat buf;
+    /* struct stat buf; */
 
     Progname = argv[0] ;
     DiagInit(NULL, NULL, NULL) ;
@@ -736,6 +736,8 @@ shrink(int niter, int nsmoothsteps)
           ninside=20;
           noutside=3;
           minmeanerr = 1e10;
+          meanerr0 = 1e10;
+          mindelpos = -maxdelpos; /* by Dav */
           for (delpos= -maxdelpos; delpos<maxdelpos; delpos++)
           {
             for (h= -noutside;h<ninside;h++)
@@ -847,6 +849,8 @@ shrink(int niter, int nsmoothsteps)
           ninside=5;
           noutside=20;
           minmeanerr = 1e10;
+          meanerr0 = 1e10;
+          mindelpos = -maxdelpos; /* by Dav */
           for (delpos= -maxdelpos; delpos<maxdelpos; delpos++)
           {
             for (h= -noutside;h<ninside;h++)
@@ -1018,8 +1022,8 @@ shrink(int niter, int nsmoothsteps)
 static void
 estimate_thickness(int niter)
 {
-  float x,y,z,sx,sy,sz,val,inval,outval,nc,force,force0,force1,force2;
-  float d,dx,dy,dz,sval,sinval,soutval,snc,inmean,sum,nsum;
+  float x,y,z,sx,sy,sz,val,inval,outval,/*nc,*/force /*,force0,force1,force2*/;
+  float /* d,*/ dx,dy,dz,sval,sinval,soutval,snc,inmean,sum,nsum;
   float nx,ny,nz;
   ss_vertex_type *v;
   int imnr,i,j,iter,k,m,n;
@@ -1027,7 +1031,7 @@ estimate_thickness(int niter)
   int navg,an,nclip,inim,ini,inj,outim,outi,outj;
   int delpos, mindelpos;
   int ninside=20,noutside=40;
-  float meanerr, minmeanerr, meanerr0, fskull, fscalp;
+  float meanerr, minmeanerr, fskull, fscalp; /* meanerr0, */
   float insamp[50],outsamp[50];
   float delx=1.0,dely=1.0,delz=1.0,valt,xt,yt,zt;
   int imt,it,jt,h;
@@ -1129,6 +1133,7 @@ estimate_thickness(int niter)
         }
         inmean = sum/nsum;
         minmeanerr = 1e10;
+        mindelpos = minskullthickness;
         for (delpos= minskullthickness; delpos<maxskullthickness; delpos++)
         {
           sum = nsum = 0;
@@ -1219,7 +1224,7 @@ make_filenames(char *lsubjectsdir)
   /* TODO: fix rest of infile/outfile/datfile mess, init here */
 }
 
-static void
+/* static void
 read_datfile(char *fname)
 {
   FILE *fp;
@@ -1248,6 +1253,7 @@ lcalloc(size_t nmemb, size_t size)
   return p;
 }
 
+
 static void
 file_name(char *fpref, char *fname, int num, char *form)
 {
@@ -1257,6 +1263,7 @@ file_name(char *fpref, char *fname, int num, char *form)
   strcpy(fname,fpref);
   strcat(fname,ext);
 }
+
 
 static void
 buffer_to_image(unsigned char *buf, unsigned char **im, int ysize, int xsize)
@@ -1274,3 +1281,4 @@ buffer_to_image(unsigned char *buf, unsigned char **im, int ysize, int xsize)
       sum += im[i][j];
     }
 }
+*/
