@@ -43,7 +43,7 @@
                     GLOBAL FUNCTIONS
 -------------------------------------------------------*/
 
-#define DEBUG_FILTER 1
+#define DEBUG_FILTER 0
 IMAGE *Ifilter = NULL ;
 #if DEBUG_FILTER
 extern int Gx, Gy ;
