@@ -2,7 +2,7 @@
 # epidewarp.fsl
 #
 
-set VERSION = '$Id: epidewarp.fsl,v 1.8 2004/12/02 19:13:38 greve Exp $'
+set VERSION = '$Id: epidewarp.fsl,v 1.9 2004/12/03 18:03:54 greve Exp $'
 set inputargs = ($argv);
 
 set dph = ();
@@ -440,7 +440,7 @@ check_params:
     exit 1;
   endif
 
-  if($#tmpdir == 0) set tmpdir = $outdir/tmp-epidewarp.fsl
+  if($#tmpdir == 0) set tmpdir = $outdir/tmp-epidewarp.$$.fsl
   mkdir -p $tmpdir
   if($status) then
     echo "ERROR: cannot create $tmpdir"
@@ -660,6 +660,9 @@ Prints copious amounts to the screen.
 
 SUGGESTED FIELD MAP PARAMETERS
 
+These field map parameters are begin used by the Biomedical
+Informatics Research Network (www.nbirn.net).
+
 TR = 500ms (1000ms with phased-array)
 TE1: Minimum possible
 TE2 = TE1 + DeltaTE
@@ -698,7 +701,9 @@ will be supported. However, if you have a problem or question, you can
 send it to analysis-bugs@nmr.mgh.harvard.edu and we will get to as we
 can. If you want your question to have a chance of being answered,
 include all of the following: your command-line, text printed out by
-the program, log file, and a description of the problem.
+the program, log file, and a description of the problem. Of course, if
+you have made it this far into the documentation, you probably alrealy
+know these things.
 
 AUTHORS
 
