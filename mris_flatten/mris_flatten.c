@@ -14,7 +14,7 @@
 #include "macros.h"
 #include "utils.h"
 
-static char vcid[] = "$Id: mris_flatten.c,v 1.6 1997/12/19 19:39:22 fischl Exp $";
+static char vcid[] = "$Id: mris_flatten.c,v 1.7 1998/01/08 16:43:43 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -37,13 +37,15 @@ static int mrisDisturbVertices(MRI_SURFACE *mris, double amount) ;
 static int randomly_flatten = 0 ;
 static int   nospring = 0 ;
 static float scale = 3 ;
-static int   max_passes = 3 ;
+static int   max_passes = 2 ;
+
+#define SMOOTHWM_FNAME  "smoothwm" 
 
 int
 main(int argc, char *argv[])
 {
-  char         **av, *in_surf_fname, *in_patch_fname, *out_patch_fname, 
-               fname[100], path[100], *cp ;
+  char         **av, in_surf_fname[100], *in_patch_fname, *out_patch_fname, 
+               fname[100], path[100], *cp, hemi[10] ;
   int          ac, nargs ;
   MRI_SURFACE  *mris ;
 
@@ -54,7 +56,7 @@ main(int argc, char *argv[])
   parms.dt = .1 ;
   parms.projection = PROJECT_PLANE ;
   parms.tol = 1e-2 ;
-  parms.n_averages = 1024 ;
+  parms.n_averages = 1024 /* 1024 */ ;
   parms.min_averages = 0 ;
   parms.l_angle = 0.0 /* L_ANGLE */ ;
   parms.l_area = 0.0 /* L_AREA */ ;
@@ -88,14 +90,23 @@ main(int argc, char *argv[])
     argv += nargs ;
   }
 
-  if (argc < 4)
+  if (argc < 3)
     usage_exit() ;
 
   parms.base_dt = base_dt_scale * parms.dt ;
-  in_surf_fname = argv[1] ;
-  in_patch_fname = argv[2] ;
-  out_patch_fname = argv[3] ;
-  FileNamePath(in_surf_fname, path) ;
+  in_patch_fname = argv[1] ;
+  out_patch_fname = argv[2] ;
+  FileNamePath(in_patch_fname, path) ;
+  cp = strrchr(in_patch_fname, '/') ;
+  cp = strchr(cp, '.') ;
+  if (cp)
+  {
+    strncpy(hemi, cp-2, 2) ;
+    hemi[2] = 0 ;
+  }
+  else
+    strcpy(hemi, "lh") ;
+  sprintf(in_surf_fname, "%s/%s.%s", path, hemi, SMOOTHWM_FNAME) ;
 
   if (parms.base_name[0] == 0)
   {
@@ -116,8 +127,7 @@ main(int argc, char *argv[])
   if (MRISreadPatch(mris, in_patch_fname) != NO_ERROR)
     ErrorExit(ERROR_BADPARM, "%s: could not read patch file %s",
               Progname, in_patch_fname) ;
-  if (Gdiag & DIAG_SHOW)
-    fprintf(stderr, "reading original vertex positions...") ;
+  fprintf(stderr, "reading original vertex positions...\n") ;
   if (!FZERO(disturb))
     mrisDisturbVertices(mris, disturb) ;
   if (parms.niterations > 0)
@@ -131,14 +141,12 @@ main(int argc, char *argv[])
     MRISreadOriginalProperties(mris, "smoothwm") ;
     MRISsetNeighborhoodSize(mris, nbrs) ;
 
-    if (Gdiag & DIAG_SHOW)
-      fprintf(stderr,"minimizing metric distortion induced by projection...\n");
-    /*      MRISscaleUp(mris) ;*/
+    /* optimize metric properties of flat map */
+    fprintf(stderr,"minimizing metric distortion induced by projection...\n");
     MRISscaleBrain(mris, mris, scale) ;
     MRIScomputeMetricProperties(mris) ;
-    MRISunfold(mris, &parms, max_passes) ;  /* optimize metric properties of flat map */
-    if (Gdiag & DIAG_SHOW)
-      fprintf(stderr, "writing flattened patch to %s\n", out_patch_fname) ;
+    MRISunfold(mris, &parms, max_passes) ;
+    fprintf(stderr, "writing flattened patch to %s\n", out_patch_fname) ;
     MRISwritePatch(mris, out_patch_fname) ;
   }
 
