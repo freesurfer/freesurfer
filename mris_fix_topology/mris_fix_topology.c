@@ -16,7 +16,7 @@
 #include "icosahedron.h"
 #include "mrishash.h"
 
-static char vcid[] = "$Id: mris_fix_topology.c,v 1.4 1999/08/13 21:58:51 fischl Exp $";
+static char vcid[] = "$Id: mris_fix_topology.c,v 1.5 1999/08/14 02:03:49 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -31,7 +31,7 @@ char *Progname ;
 
 static char *sphere_name = "qsphere" ;
 static char *orig_name = "orig" ;
-static char suffix[STRLEN] = "_corrected" ;
+static char suffix[STRLEN] = "" ;
 static int  add = 1 ;
 
 #define MAX_VERTICES  0
