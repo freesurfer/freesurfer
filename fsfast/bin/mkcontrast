@@ -5,7 +5,7 @@
 ############################################################
 
 set fmrianalver = `cat $FMRI_ANALYSIS_DIR/docs/version`;
-set MKCONTRAST_VER = '$Id: mkcontrast,v 1.1 2003/03/04 21:22:09 greve Exp $';
+set MKCONTRAST_VER = '$Id: mkcontrast,v 1.2 2003/03/20 20:46:48 greve Exp $';
 
 set CorrIdeal = 0;
 set monly = 0;
@@ -24,7 +24,7 @@ set GammaFit = 0;
 set ShowCMtx = 0;
 set datfile = ();
 set wpsa = (); # weights for pre-stim avg
-set RmPrestim = 0;
+set RmPreStim = 0;
 set sxadat = ();
 
 set nircorr = 0;
@@ -119,12 +119,17 @@ $TARGET <<EOF
   WCond  = [$wcond];
   NDelay = $ndelays;
   WDelay = [$wdelay];
-  WPSA   = [$wpsa];
+  %WPSA   = [$wpsa]; % Whats this?
   TER        = $TER;
   TimeWindow = NDelay*TER; % Hack so that it works with gammafit
   sumconds  = $sumconds;
   sumdelays = $sumdelays;
   nircorr = $nircorr;
+  TPreStim = [$TPreStim];
+  RmPreStim = [$RmPreStim];
+  rdelta    = [$rdelta];
+  rtau      = [$rtau];
+  ndelays   = [$ndelays];
 
   if(isempty(WCond))
     WCond = ones(1,NCond);
@@ -137,21 +142,21 @@ $TARGET <<EOF
   if(nircorr == 0)
     % ---- Do not correlate with assumed response ----- %
     % ContrastMtx_0 = fmri_mrestriction2(WCond,WDelay,sumconds,sumdelays);
-    ContrastMtx_0 = fast_contrastmtx(TER,TimeWindow,$TPreStim,...
-        NCond,sumconds,WCond,sumdelays,WDelay,$RmPrestim);
+    ContrastMtx_0 = fast_contrastmtx(TER,TimeWindow,TPreStim,...
+        NCond,sumconds,WCond,sumdelays,WDelay,RmPreStim);
   else
     % ---- Correlate with assumed response ------- %
     if(nircorr == 1)
-      delta = ($rdelta[2] + $rdelta[1])/2;
-      tau   = ($rtau[2] + $rtau[1])/2;
+      delta = (rdelta(2) + rdelta(1))/2;
+      tau   = (rtau(2) + rtau(1))/2;
     else
-      ddelta = ($rdelta[2] - $rdelta[1])/(nircorr-1);
-      delta  = $rdelta[1] + ddelta*[0:nircorr-1];
-      dtau   = ($rtau[2] - $rtau[1])/(nircorr-1);
-      tau    = $rtau[1] + dtau*[0:nircorr-1];
+      ddelta = (rdelta(2) - rdelta(1))/(nircorr-1);
+      delta  = rdelta(1) + ddelta*[0:nircorr-1];
+      dtau   = (rtau(2) - rtau(1))/(nircorr-1);
+      tau    = rtau(1) + dtau*[0:nircorr-1];
     end
 
-    t = -$TPreStim + $TER * [0:$ndelays-1];
+    t = -TPreStim + TER * [0:ndelays-1];
     h = fmri_hemodyn(t,delta,tau);
 
     ContrastMtx_0 = [];
@@ -164,8 +169,9 @@ $TARGET <<EOF
 
   end
 
-  %size(ContrastMtx_0)
-  save('$cmtxfile','ContrastMtx_0','WCond','WDelay','-V4');
+  save('$cmtxfile','ContrastMtx_0','WCond','WDelay','TER',...
+    'TimeWindow','TPreStim','RmPreStim','sumconds','sumdelays',...
+    'nircorr','rdelta','rtau','-V4');
 
   if($ShowCMtx)
     hcmtx = figure(1);
@@ -243,7 +249,7 @@ while( $#argv != 0 )
       breaksw
 
     case "-rmprestim"
-      set RmPrestim = 1;
+      set RmPreStim = 1;
       breaksw
 
     case "-sumconds"
@@ -389,12 +395,12 @@ check_params:
     endif
   endif
 
-  if($RmPrestim != 0 && $#sxadat == 0) then
+  if($RmPreStim != 0 && $#sxadat == 0) then
     echo "ERROR: need sxadat wiht -rmprestim"
     exit 1;
   endif
 
-  if($RmPrestim != 0 && $GammaFit != 0) then
+  if($RmPreStim != 0 && $GammaFit != 0) then
     echo "ERROR: cannot remove prestim baseline with gamma fit"
     exit 1;
   endif
