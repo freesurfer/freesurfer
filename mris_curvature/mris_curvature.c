@@ -13,7 +13,7 @@
 #include "mri.h"
 #include "macros.h"
 
-static char vcid[] = "$Id: mris_curvature.c,v 1.12 1998/04/18 18:07:24 fischl Exp $";
+static char vcid[] = "$Id: mris_curvature.c,v 1.13 1998/05/25 02:33:10 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -36,12 +36,17 @@ static int patch_flag = 0 ;
 static int neg_flag = 0 ;
 static int param_no = 0 ;
 static int normalize_param = 0 ;
+static int ratio_flag = 0 ;
+static int contrast_flag = 0 ;
 
+#define MAX_NBHD_SIZE 100
+static int nbhd_size = 0 ;
+static int nbrs_per_distance = 0 ;
 
 int
 main(int argc, char *argv[])
 {
-  char         **av, *in_fname,fname[100],hemi[10], path[100], name[100],*cp;
+  char         **av, *in_fname,fname[200],hemi[10], path[200], name[200],*cp ;
   int          ac, nargs, nhandles ;
   MRI_SURFACE  *mris ;
   double       ici, fi, var ;
@@ -64,19 +69,17 @@ main(int argc, char *argv[])
 
   in_fname = argv[1] ;
 
+  FileNamePath(in_fname, path) ;
+  FileNameOnly(in_fname, name) ;
+  cp = strchr(name, '.') ;
+  if (!cp)
+    ErrorExit(ERROR_BADPARM, "%s: could not scan hemisphere from '%s'",
+              Progname, fname) ;
+  strncpy(hemi, cp-2, 2) ;
+  hemi[2] = 0 ;
+    
   if (patch_flag)  /* read the orig surface, then the patch file */
   {
-    FileNamePath(in_fname, path) ;
-    FileNameOnly(in_fname, name) ;
-    cp = strchr(name, '.') ;
-    if (cp)
-    {
-      strncpy(hemi, cp-2, 2) ;
-      hemi[2] = 0 ;
-    }
-    else
-      strcpy(hemi, "lh") ;
-    
     sprintf(fname, "%s/%s.orig", path, hemi) ;
     mris = MRISfastRead(fname) ;
     if (!mris)
@@ -99,6 +102,9 @@ main(int argc, char *argv[])
 
   MRISsetNeighborhoodSize(mris, nbrs) ;
 
+  if (nbhd_size > 0)
+    MRISsampleAtEachDistance(mris, nbhd_size, nbrs_per_distance) ;
+
   if (param_file)
   {
     MRI_SP *mrisp ;
@@ -110,14 +116,6 @@ main(int argc, char *argv[])
     MRISPfree(&mrisp) ;
     if (normalize)
       MRISnormalizeCurvature(mris) ;
-    FileNamePath(in_fname, path) ;
-    FileNameOnly(in_fname, name) ;
-    cp = strchr(name, '.') ;
-    if (!cp)
-      ErrorExit(ERROR_BADPARM, "%s: could not scan hemisphere from '%s'",
-                Progname, fname) ;
-    strncpy(hemi, cp-2, 2) ;
-    hemi[2] = 0 ;
     sprintf(fname, "%s/%s.param", path,name) ; 
     fprintf(stderr, "writing parameterized curvature to %s...", fname) ;
     MRISwriteCurvature(mris, fname) ;
@@ -145,18 +143,32 @@ main(int argc, char *argv[])
 
     if (diff_flag)
     {
-      FileNamePath(in_fname, path) ;
-      FileNameOnly(in_fname, name) ;
-      cp = strchr(name, '.') ;
-      if (!cp)
-        ErrorExit(ERROR_BADPARM, "%s: could not scan hemisphere from '%s'",
-                  Progname, fname) ;
-      strncpy(hemi, cp-2, 2) ;
-      hemi[2] = 0 ;
       MRISuseCurvatureDifference(mris) ;
       MRISaverageCurvatures(mris, navgs) ;
       sprintf(fname, "%s/%s.diff", path,name) ; 
       fprintf(stderr, "writing curvature difference to %s...", fname) ;
+      MRISwriteCurvature(mris, fname) ;
+      fprintf(stderr, "done.\n") ;
+    }
+    if (ratio_flag)
+    {
+      MRISuseCurvatureRatio(mris) ;
+      MRISaverageCurvatures(mris, navgs) ;
+      if (normalize)
+        MRISnormalizeCurvature(mris) ;
+      sprintf(fname, "%s/%s.ratio", path,name) ; 
+      fprintf(stderr, "writing curvature ratio to %s...", fname) ;
+      MRISwriteCurvature(mris, fname) ;
+      fprintf(stderr, "done.\n") ;
+    }
+    if (contrast_flag)
+    {
+      MRISuseCurvatureContrast(mris) ;
+      MRISaverageCurvatures(mris, navgs) ;
+      if (normalize)
+        MRISnormalizeCurvature(mris) ;
+      sprintf(fname, "%s/%s.contrast", path,name) ; 
+      fprintf(stderr, "writing curvature contrast to %s...", fname) ;
       MRISwriteCurvature(mris, fname) ;
       fprintf(stderr, "done.\n") ;
     }
@@ -167,14 +179,6 @@ main(int argc, char *argv[])
         mris->status = MRIS_PLANE ;
       MRIScomputeMetricProperties(mris) ;
       neg = MRIScountNegativeTriangles(mris) ;
-      FileNamePath(in_fname, path) ;
-      FileNameOnly(in_fname, name) ;
-      cp = strchr(name, '.') ;
-      if (!cp)
-        ErrorExit(ERROR_BADPARM, "%s: could not scan hemisphere from '%s'",
-                  Progname, fname) ;
-      strncpy(hemi, cp-2, 2) ;
-      hemi[2] = 0 ;
       MRISuseNegCurvature(mris) ;
       MRISaverageCurvatures(mris, navgs) ;
       sprintf(fname, "%s/%s.neg", path,name) ; 
@@ -207,16 +211,10 @@ main(int argc, char *argv[])
 
     if (max_flag)
     {
-      FileNamePath(in_fname, path) ;
-      FileNameOnly(in_fname, name) ;
-      cp = strchr(name, '.') ;
-      if (!cp)
-        ErrorExit(ERROR_BADPARM, "%s: could not scan hemisphere from '%s'",
-                  Progname, fname) ;
-      strncpy(hemi, cp-2, 2) ;
-      hemi[2] = 0 ;
       MRISuseCurvatureMax(mris) ;
       MRISaverageCurvatures(mris, navgs) ;
+      if (normalize)
+        MRISnormalizeCurvature(mris) ;
       sprintf(fname, "%s/%s.max", path,name) ; 
       fprintf(stderr, "writing curvature maxima to %s...", fname) ;
       MRISwriteCurvature(mris, fname) ;
@@ -225,15 +223,6 @@ main(int argc, char *argv[])
 
     if (write_flag)
     {
-      FileNamePath(in_fname, path) ;
-      FileNameOnly(in_fname, name) ;
-      cp = strchr(name, '.') ;
-      if (!cp)
-        ErrorExit(ERROR_BADPARM, "%s: could not scan hemisphere from '%s'",
-                  Progname, fname) ;
-      strncpy(hemi, cp-2, 2) ;
-      hemi[2] = 0 ;
-      
       MRISuseGaussianCurvature(mris) ;
       MRISaverageCurvatures(mris, navgs) ;
       sprintf(fname, "%s/%s.K", path,name) ; 
@@ -265,8 +254,20 @@ get_option(int argc, char *argv[])
   option = argv[1] + 1 ;            /* past '-' */
   if (!stricmp(option, "-help"))
     print_help() ;
-  if (!stricmp(option, "diff"))
+  else if (!stricmp(option, "distances") || !stricmp(option, "vnum"))
+  {
+    nbhd_size = atoi(argv[2]) ;
+    nbrs_per_distance = atoi(argv[3]) ;
+    fprintf(stderr, "sampling %d neighbors out to a distance of %d mm\n",
+            nbrs_per_distance, nbhd_size) ;
+    nargs = 2 ;
+  }
+  else if (!stricmp(option, "diff"))
     diff_flag = 1 ;
+  else if (!stricmp(option, "ratio") || !stricmp(option, "defect"))
+    ratio_flag = 1 ;
+  else if (!stricmp(option, "contrast"))
+    contrast_flag = 1 ;
   else if (!stricmp(option, "neg"))
     neg_flag = 1 ;
   else if (!stricmp(option, "max"))
@@ -301,6 +302,7 @@ get_option(int argc, char *argv[])
   else switch (toupper(*option))
   {
   case 'N':
+    fprintf(stderr, "normalizing curvature values.\n") ;
     normalize = 1 ;
     break ;
   case 'P':
