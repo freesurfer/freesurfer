@@ -10,7 +10,7 @@ if { $err } {
     load [file dirname [info script]]/libscuba[info sharedlibextension] scuba
 }
 
-DebugOutput "\$Id: scuba.tcl,v 1.45 2004/08/14 23:57:19 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.46 2004/08/14 23:58:26 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -629,6 +629,8 @@ proc MakeTaskArea { ifwTop } {
 
     set gaTask(buttonFrame) $fwButtons
 
+    # Make our button frame and five dummy buttons. Leave them
+    # unpacked now. Later we'll configure and pack them as needed.
     pack $gaTask(buttonFrame)
     button $gaTask(buttonFrame).bw0
     button $gaTask(buttonFrame).bw1
@@ -3074,11 +3076,14 @@ proc NewTask { args } {
 
     set nButton 0
     foreach btn $aArgs(-buttons) {
-	$gaTask(buttonFrame).bw$nButton config -text $btn \
-	    -command "TaskCallback \"$btn\""
-	pack $gaTask(buttonFrame).bw$nButton \
-	    -side left -anchor e
-	incr nButton
+	# Configure and pack our buttons, up to 5 of them.
+	if { $nButton < 5 } {
+	    $gaTask(buttonFrame).bw$nButton config -text $btn \
+		-command "TaskCallback \"$btn\""
+	    pack $gaTask(buttonFrame).bw$nButton \
+		-side left -anchor e
+	    incr nButton
+	}
     }
     set gaTask(numButtons) $nButton
 
@@ -3127,6 +3132,7 @@ proc EndTask {} {
     set gaTask(label) "Ready."
     set gaTask(progress) ""
 
+    # Unpack our buttons.
     for { set nButton 0 } { $nButton < $gaTask(numButtons) } { incr nButton } {
 	pack forget $gaTask(buttonFrame).bw$nButton
     }
