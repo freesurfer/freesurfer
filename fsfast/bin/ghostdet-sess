@@ -1,0 +1,293 @@
+#!/bin/csh -f
+# ghostdet-sess
+#
+# $Id: ghostdet-sess,v 1.1 2004/05/07 03:45:12 greve Exp $
+
+set VERSION = '$Id: ghostdet-sess,v 1.1 2004/05/07 03:45:12 greve Exp $';
+
+set cmdargs = ($argv);
+
+set funcstem  = f; 
+set fsd       = "bold";
+set RunListFile = ();
+set PrintHelp = 0;
+set SessSumFile = ();
+set SessSumOnly = 0;
+
+if($#argv == 0)  goto usage_exit;
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+  exit 1;
+endif
+
+set SessList = `getsesspath $argv`;
+if($status || $#SessList == 0) then
+  getsesspath $argv 
+  exit 1;
+endif
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+if($#SessSumFile) then
+  if(-e $SessSumFile) mv $SessSumFile $SessSumFile.bak
+endif 
+
+#------------------------------------------------------------------#
+set StartTime = `date`;
+foreach sess ($SessList)
+  set sessid = `basename $sess`;
+
+  echo "------------------------------------------------" 
+  echo $sess 
+  date 
+
+  ### Check that the target directory is there ###
+  if(! -d $sess/$fsd) then
+    echo "ERROR: $sess/$fsd does not exist"   
+    exit 1;
+  endif
+
+  ### Check that the target directory is writable ###
+  if(! -w $sess/$fsd) then
+    echo "ERROR: $sess/$fsd is not writable"   
+    exit 1;
+  endif
+
+  ### Goto the functional subdirectory ###
+  pushd $sess/$fsd > /dev/null
+
+  if($#RunListFile == 0) then
+    set RunList = `getrunlist .`;
+    if($status || $#RunList == 0) then
+      echo "ERROR: $sess/$fsd has no runs"  
+      exit 1;
+    endif
+  else  
+    if(! -e $RunListFile) then
+      echo "ERROR: cannot find $RunListFile"
+      exit 1;
+    endif
+    set RunList = (`cat $RunListFile`);
+  endif
+  echo "RunList $RunList" 
+
+  ## Go through each run ##
+  foreach run ($RunList)
+
+    if(! $SessSumOnly) then
+      # Construct and run the command for this run #
+      set cmd = (ghostdet --i $run/$funcstem)
+      pwd
+      echo $cmd
+      $cmd
+      if($status) then
+        echo "ERROR: ghostdet failed"
+        exit 1
+      endif
+    endif
+
+    if($#SessSumFile) then
+      set sumfile = $run/$funcstem.ghost.sum
+      if(! -e $sumfile) then
+        echo "ERROR: $sumfile does not exist, rerun without -sumonly"
+        exit 1;
+      endif
+      set tmp = `cat $sumfile | awk '{print $2}'`
+      echo "$sessid $run $tmp[1-8]" >> $SessSumFile
+    endif
+
+  end # Loop over runs
+
+  popd > /dev/null
+
+end # Loop over sessions #
+
+echo "Started at $StartTime" 
+echo "Ended   at `date`"     
+echo "ghostdet-sess Done" 
+
+exit 0;
+###############################################
+
+
+############--------------##################
+parse_args:
+set cmdline = "$argv";
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-i":
+      if ( $#argv == 0) goto arg1err;
+      set funcstem = $argv[1]; shift;
+      breaksw
+
+    case "-fsd":
+      if ( $#argv == 0) goto arg1err;
+      set fsd = $argv[1]; shift;
+      breaksw
+
+    case "-rlf":
+      if ( $#argv == 0) goto arg1err;
+      set RunListFile = $argv[1]; shift;
+      breaksw
+
+    case "-sum":
+      if ( $#argv == 0) goto arg1err;
+      set SessSumFile = $argv[1]; shift;
+      breaksw
+
+    case "-sumonly":
+      set SessSumOnly = 1;
+      breaksw
+
+    case "-verbose":
+      set verbose = 1;
+      breaksw
+
+    case "-echo":
+      set echo = 1;
+      breaksw
+
+    case "-debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    case "-g":
+    case "-s":
+    case "-sf":
+    case "-d":
+    case "-df":
+      shift;
+      # ignore getsesspath arguments 
+      breaksw
+
+    case "-cwd":
+      # ignore getsesspath arguments 
+      breaksw
+
+    case "-umask":
+      if ( $#argv == 0) goto arg1err;
+      setenv MRI_UMASK $1; shift;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+if($SessSumOnly && $#SessSumFile == 0) then
+  echo "ERROR: need sum file with -sumonly"
+  exit 1;
+endif
+
+if($#SessSumFile) then
+  set sfdir = `dirname $SessSumFile`
+  mkdir -p $sfdir;
+  pushd $sfdir > /dev/null
+  set sfdir = `pwd`;
+  popd > /dev/null
+  set SessSumFile = $sfdir/`basename $SessSumFile`;
+endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "USAGE: ghostdet-sess"
+  echo ""
+  echo "Opttional Arguments"
+  echo "   -f funcstem      : input  functional volume stem <f>"
+  echo "   -fsd fsd         : functional subdir <bold> "
+  echo "   -rlf runlistfile : run list file "
+  echo "   -sum sumfile     : summarize all sessions and save in sumfile"
+  echo "   -sumonly         : only summarize"
+  echo ""
+  echo "Session Arguments (Required)"
+  echo "   -sf sessidfile  "
+  echo "   -df srchdirfile "
+  echo "   -s  sessid      "
+  echo "   -d  srchdir     "
+  echo "   -fsd fsdir      (optional)"
+  echo ""
+  echo "Other Arguments"
+  echo "   -noinorm        : do not intensity norm smoothed volume"
+  echo "   -umask umask    : set unix file permission mask"
+  echo "   -version        : print version and exit"
+  echo "   -help           : print help and exit"
+  echo ""
+
+  if(! $PrintHelp) exit 1;
+
+  echo $VERSION
+
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+
+  echo "------------------------------------------------------------"
+  ghostdet --help
+
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+Measures ghost suppression for EPI functional scans. By default, you
+only need to supply the session info. It will check each raw data
+file with stem f in sess/bold/RRR, where RRR is the three-digit,
+zero-padded run number. The input stem can be changed with -f. The
+FSD can be changed with -fsd. The runs analyzed can be changed with
+a run list file. The output will be saved with each input volume in
+a file called f.ghost.sum. The contents of this summary file are
+expalined in ghostdet --help (which appears at the end of this
+help too). 
+
+This information can be summarized for all sessions listed by adding
+-sum sumfile. Each row will be the results for a single session/run.
+The columns have the following interpretation:
+
+1. Session Id
+2. Run
+3. brain_mean 
+4. ghost_mean
+5. air_mean
+6. brain_ghost_ratio
+7. brain_air_ratio  
+8. ghost_air_ratio  
+9. n_air    
+10. n_brain 
+
+See ghostdet --help for what these parameters mean.
+
+If you have already run the ghost detection and just want a summary
+file, then use -sumonly.
+
+
+
+
