@@ -1493,3 +1493,30 @@ MHTgetBucket(MRIS_HASH_TABLE *mht, float x, float y, float z)
   bucket = mht->buckets[xv][yv][zv] ;
   return(bucket) ;
 }
+VERTEX *
+MHTfindClosestVertex(MRIS_HASH_TABLE *mht, MRI_SURFACE *mris, VERTEX *v)
+{
+  VERTEX    *vmin, *vdst ;
+  int       i ;
+  double    dist, min_dist ;
+  MHB       *bin ;
+  MHBT      *bucket ;
+
+  bucket = MHTgetBucket(mht, v->x, v->y, v->z) ;
+  if (!bucket)
+    return(NULL) ;
+  bin = bucket->bins ; min_dist = 10000000 ; vmin = NULL ;
+  for (i = 0 ; i < bucket->nused ; i++, bin++)
+  {
+    vdst = &mris->vertices[bin->fno] ;
+    dist = sqrt(SQR(vdst->x-v->x)+SQR(vdst->y-v->y)+SQR(vdst->z-v->z)) ;
+    if (dist < min_dist)
+    {
+      min_dist = dist ;
+      vmin = vdst ;
+    }
+  }
+
+  return(vmin) ;
+}
+
