@@ -1935,7 +1935,10 @@ LTA *ltaMNIreadEx(const char *fname)
   {
     no_volinfo = 1;
     if (!strncmp("Transform_Type", line, 14))
+    {
+      fgetl(line,900,fp);
       goto get_transform;
+    }
   }
   // second line in %
   fgetl(line, 900, fp);
@@ -1946,12 +1949,18 @@ LTA *ltaMNIreadEx(const char *fname)
       fgetl(line, 900, fp) ; /* variable # of comments */
     fgetl(line, 900, fp) ; 
     if (!strncmp("Transform_Type", line, 14))
+    {
+      fgetl(line,900,fp);
       goto get_transform;
+    }
   }
   else
   {
     if (!strncmp("Transform_Type", line, 14))
+    {
+      fgetl(line, 900, fp);
       goto get_transform;
+    }
     while (line[0] == '%')
       fgetl(line, 900, fp) ; /* variable # of comments */
   }
