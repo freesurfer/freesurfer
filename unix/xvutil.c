@@ -2336,6 +2336,7 @@ XVshowHistogram(XV_FRAME *xvf, int which, HISTOGRAM *histo)
   if (!histo)
     return(NO_ERROR) ;
 
+  XVclearImage(xvf, which, 0) ;
   dimage = xvGetDimage(xvf, which, DIMAGE_ALLOC) ;
   if (!dimage)
     return(NO_ERROR) ;
