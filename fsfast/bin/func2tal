@@ -1,8 +1,8 @@
 #!/bin/csh -f
 # func2tal
-# $Id: func2tal,v 1.6 2003/08/26 17:35:21 greve Exp $
+# $Id: func2tal,v 1.7 2003/08/27 22:57:06 greve Exp $
 
-set FUNC2TAL_VER = '$Id: func2tal,v 1.6 2003/08/26 17:35:21 greve Exp $';
+set FUNC2TAL_VER = '$Id: func2tal,v 1.7 2003/08/27 22:57:06 greve Exp $';
 
 set inputargs = ($argv)
 
@@ -15,7 +15,7 @@ set regfile  = ();
 set white    = 0;
 set DontRun  = 0;
 set xfmfile  = talairach.xfm # xfm found in mri/transforms
-set fixxfm   = 0;
+set fixxfm   = 1;
 
 if($#argv == 0) then
   goto usage_exit;
