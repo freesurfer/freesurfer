@@ -7356,7 +7356,6 @@ static int read_otl_file(FILE *fp, MRI *mri, int slice, mriColorLookupTableRef c
     if(label[0] == '\0')
     {
       empty_label_flag = 1;
-      CMAfreeOutlineField(&of);
       errno = 0;
       ErrorPrintf(ERROR_BADPARM, "empty LABEL in otl file %d (outline %d)", slice, i);
     }
@@ -7515,6 +7514,9 @@ static int read_otl_file(FILE *fp, MRI *mri, int slice, mriColorLookupTableRef c
   }
 
   CMAassignLabels(of);
+
+  if(zero_outlines_flag)
+    CMAzeroOutlines(of);
 
   scale_x = 512 / mri->width;
   scale_y = 512 / mri->height;
