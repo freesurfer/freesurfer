@@ -9262,6 +9262,28 @@ MRISinflateToSphere(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   write_iterations = parms->write_iterations ;
   n_averages = parms->n_averages ;
 
+#if 1
+  if (Gdiag & DIAG_WRITE)
+  {
+    char fname[STRLEN] ;
+    
+    sprintf(fname, "%s.%s.out", 
+            mris->hemisphere == RIGHT_HEMISPHERE ? "rh" : "lh",
+            parms->base_name);
+    if (!parms->fp)
+    {
+      if (!parms->start_t)
+        parms->fp = fopen(fname, "w") ;
+      else
+        parms->fp = fopen(fname, "a") ;
+
+      if (!parms->fp)
+        ErrorExit(ERROR_NOFILE, "MRISunfold: could not open log file %s\n",
+                  fname) ;
+    }
+    mrisLogIntegrationParms(parms->fp, mris,parms) ;
+  }
+#else
   if (Gdiag & DIAG_WRITE)
   {
     char fname[STRLEN] ;
@@ -9276,6 +9298,7 @@ MRISinflateToSphere(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     Progname, fname) ;
     mrisLogIntegrationParms(parms->fp, mris, parms) ;
   }
+#endif
   if (Gdiag & DIAG_SHOW)
     mrisLogIntegrationParms(stderr, mris, parms) ;
 
