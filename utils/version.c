@@ -29,8 +29,10 @@
    The binary may also want to exit if there are no other options to
    handle, i.e.
 
-    if (1 == argc)
+    nargs = handle_version_option (argc, argv, "dollarIDdollar");
+    if (nargs && argc - nargs == 1)
       exit (0);
+    argc -= nargs;
 */
 int
 handle_version_option (int argc, char** argv, char* id_string) 
