@@ -59,3 +59,6 @@ bin_PROGRAMS = scuba
 scuba_SOURCES=$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS) $(GUI_SRCS) $(LAYER_SRCS) scuba.cpp 
 scuba_LDADD= $(addprefix $(top_srcdir)/,$(LIBS_MGH)) $(LIBS_TCL_OPENGL)
 scuba_LDFLAGS=
+
+foodir=$(prefix)/lib/tcl
+foo_SCRIPTS=scuba.tcl
