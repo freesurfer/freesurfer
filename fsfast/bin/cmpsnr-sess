@@ -1,0 +1,406 @@
+#!/bin/csh -f
+# svdfilter-sess
+#
+# $Id: cmpsnr-sess,v 1.1 2003/11/28 19:19:01 greve Exp $
+set VERSION = '$Id: cmpsnr-sess,v 1.1 2003/11/28 19:19:01 greve Exp $';
+
+set inputargs = ($argv);
+set DateStr = "`date '+%y%m%d%H%M'`"
+
+set StudyDir = `pwd`;
+
+set analysis1 = ();
+set analysis2 = ();
+
+set contrast = ();
+set map = ();
+set sigthresh = 3;
+set mask = brain;
+
+set monly = 0;
+set MLF = ();
+set QuitOnError = 0;
+set PrintHelp = 0;
+
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | grep version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+set n = `echo $argv | grep help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+
+set SessList = `getsesspath $argv`;
+if($status || $#SessList == 0) then
+  getsesspath $argv 
+  exit 1;
+endif
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+# get full path for cfg and info files #
+pushd $analysis1 > /dev/null;
+set analysisdir1 = `pwd`;
+popd > /dev/null;
+set cfgfile  = $analysisdir1/analysis.cfg
+set infofile = $analysisdir1/analysis.info
+if(! -e $infofile) then
+  echo "ERROR: cannot find $infofile"
+  exit 1;
+endif
+
+## Get parameters from the info file ##
+set fsd         = `cat $infofile | awk '{if($1 == "fsd") print $2}'`;
+set runlistfile = `cat $infofile | awk '{if($1 == "runlistfile") print $2}'`;
+
+set designtype  = `cat $infofile | awk '{if($1 == "designtype") print $2}'`;
+if($designtype != "event-related" && $designtype != "blocked") then
+  echo "ERROR: the design type of this analysis is $designtype"
+  echo "  kmacfwht-sess can only be used to analyse event-related and blocked"
+  exit 1;
+endif
+
+##### Create a log file ######
+set logdir = `pwd`/log;
+mkdir -p $logdir
+if(! -e $logdir) then
+  echo "WARNING: could not create $logdir"
+  set LF = /dev/null
+else
+  set LF = $logdir/cmpsnr-$DateStr.log
+  if(-e $LF) mv $LF $LF.old
+endif
+echo "--------------------------------------------------------------"
+echo "cmpsnr-sess logfile is $LF"
+echo "--------------------------------------------------------------"
+
+echo "cmpsnr-sess log file" >> $LF
+echo $VERSION >> $LF
+id            >> $LF
+pwd           >> $LF
+echo $0         >> $LF
+echo $inputargs >> $LF
+uname -a        >> $LF
+date            >> $LF
+
+### Go through each session ###
+set StartTime = `date`;
+foreach sess ($SessList)
+
+  set sessbase = `basename $sess`;
+  echo "-------------------------------------------" |& tee -a $LF
+  echo "$sess " |& tee -a $LF
+  date |& tee -a $LF
+
+  set fsdpath = $sess/$fsd
+  cd $fsdpath
+
+  if(! $monly) set MLF = /tmp/cmpsnr-$$.m
+  rm -f $MLF
+  echo "MLF is $MLF" |& tee -a $LF
+
+  set RunList = `getrunlist . $runlistfile`;
+  if($status || $#RunList == 0) then
+     echo "ERROR: $sess/$fsd has no runs"  |& tee -a $LF
+     exit 1;
+  endif
+  #echo "INFO ($sessbase): RunList = $RunList" 
+
+  set mask    = masks/$mask
+  set resvar1 = $analysis1/estsnr/resvar
+  set snrvar1 = $analysis1/estsnr/snrvar
+  set resvar2 = $analysis2/estsnr/resvar
+  set snrvar2 = $analysis2/estsnr/snrvar
+  if($#contrast) then
+    set map1    = $analysis1/$contrast/$map
+    set map2    = $analysis2/$contrast/$map
+  else
+    set map1 = ();
+    set map2 = ();
+  endif
+
+  set dpctresvar = $analysis2/estsnr/resvar-dpct-$analysis1
+  set dpctsnrvar = $analysis2/estsnr/snrvar-dpct-$analysis1
+
+#-----------------------------------------------------------------#
+tee $MLF>/dev/null <<EOF
+
+clear all;
+fsd = '$fsdpath';
+
+maskstem    = '$mask';
+
+resvar1stem = '$resvar1';
+snrvar1stem = '$snrvar1';
+map1stem    = '$map1';
+resvar2stem = '$resvar2';
+snrvar2stem = '$snrvar2';
+map2stem    = '$map2';
+sigthresh   = [$sigthresh];
+
+dpctresvarstem = '$dpctresvar';
+dpctsnrvarstem = '$dpctsnrvar';
+
+mask = fmri_ldbvolume(maskstem);
+indmask = find(mask);
+indmasknot = find(~mask);
+fprintf('Found %d in mask\n',length(indmask));
+
+if(~isempty(map1stem))
+  map1 = fmri_ldbvolume(map1stem);
+  map2 = fmri_ldbvolume(map2stem);
+  indmap = find(abs(map1) > sigthresh | abs(map2) > sigthresh);
+  indmapnot = find(abs(map1) < sigthresh & abs(map2) < sigthresh);
+  fprintf('Found %d voxels above threshold\n',length(indmap));
+else
+  indmap = [];
+  indmapnot = [];
+end
+
+resvar1 = fmri_ldbvolume(resvar1stem);
+snrvar1 = fmri_ldbvolume(snrvar1stem);
+resvar2 = fmri_ldbvolume(resvar2stem);
+snrvar2 = fmri_ldbvolume(snrvar2stem);
+
+indz = find(resvar1==0);
+resvar1(indz) = 10^10;
+indz = find(snrvar1==0);
+snrvar1(indz) = 10^10;
+
+dpctresvar = 100*(resvar1-resvar2)./resvar1; % decreases hot
+dpctresvar(indmasknot) = 0;
+
+dpctsnrvar = 100*(snrvar2-snrvar1)./snrvar1; % increases hot
+dpctsnrvar(indmasknot) = 0;
+if(~isempty(indmapnot)) dpctsnrvar(indmapnot) = 0; end
+
+fprintf('Saving to %s\n',dpctresvarstem);
+fmri_svbvolume(dpctresvar,dpctresvarstem);
+fprintf('Saving to %s\n',dpctsnrvarstem);
+fmri_svbvolume(dpctsnrvar,dpctsnrvarstem);
+
+
+EOF
+#-----------------------------------------------------------------#
+
+  if(! $monly ) then
+    cat $MLF | matlab -display iconic |& tee -a $LF
+  endif
+
+end # Sessions
+
+echo " "
+echo "Started at $StartTime "
+echo "Ended   at `date`"
+echo " "
+echo "cmpsnr-sess Done"
+echo " "
+
+exit 0;
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-a1":
+    case "-analysis1":
+      if ( $#argv < 1) goto arg1err;
+      set analysis1 = $argv[1]; shift;
+      set analysis1 = `basename $analysis1`; # remove trailing /
+      breaksw
+
+    case "-a2":
+    case "-analysis2":
+      if ( $#argv < 1) goto arg1err;
+      set analysis2 = $argv[1]; shift;
+      set analysis2 = `basename $analysis2`; # remove trailing /
+      breaksw
+
+    case "-c":
+      if ( $#argv == 0) goto arg1err;
+      set contrast = $argv[1]; shift;
+      breaksw
+
+    case "-m":
+      if ( $#argv == 0) goto arg1err;
+      set map = $argv[1]; shift;
+      breaksw
+
+    case "-sigthresh":
+      if ( $#argv == 0) goto arg1err;
+      set sigthresh = $argv[1]; shift;
+      breaksw
+
+    case "-monly":
+      if ( $#argv == 0) goto arg1err;
+      set MLF = $argv[1]; shift;
+      set monly = 1;
+      breaksw
+
+    case "-mask":
+      if ( $#argv == 0) goto arg1err;
+      set mask = $argv[1]; shift;
+      breaksw
+
+    case "-nomask":
+      set mask = ();
+      breaksw
+
+    case "-help":
+      goto help;
+      breaksw
+
+    case "-verbose":
+      set verbose = 1;
+      breaksw
+
+    case "-echo":
+      set echo = 1;
+      breaksw
+
+    case "-debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    case "-g":
+    case "-s":
+    case "-sf":
+    case "-d":
+    case "-df":
+      shift;
+      # ignore getsesspath arguments 
+      breaksw
+
+    case "-cwd":
+      # ignore getsesspath arguments 
+      breaksw
+
+    case "-umask":
+      if ( $#argv == 0) goto arg1err;
+      umask $1; shift;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+  if($#analysis1 == 0) then
+    echo "ERROR: no analysis1 name specified"
+    exit 1
+  endif
+
+  if($#analysis2 == 0) then
+    echo "ERROR: no analysis2 name specified"
+    exit 1
+  endif
+
+  if(! -d $analysis1 ) then
+    echo "ERROR: analysis $analysis1 does not exist"
+    exit 1;
+  endif
+
+  if(! -d $analysis2 ) then
+    echo "ERROR: analysis $analysis2 does not exist"
+    exit 1;
+  endif
+
+  if($#contrast != 0 && $#map == 0) then
+    if($contrast == omnibus) then
+      set map = fsig;
+    else
+      set map = sig;
+    endif
+  endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+arg2err:
+  echo "ERROR: flag $flag requires two arguments"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "USAGE: cmpsnr-sess"
+  echo ""
+  echo "Required Arguments:";
+  echo "   -analysis1  analysis1name : name of functional analysis"
+  echo "   -analysis2  analysis2name : name of functional analysis"
+  echo ""
+  echo "Optional Arguments:";
+  echo "   -c contrast : mask snr with union above thresh" 
+  echo "   -sigthresh  sigthresh : -log10(pthresh)"
+  echo "   -mask  stem: default is brain"
+  echo "   -nomask  : do not use a mask"
+  echo ""
+  echo "Session Arguments (Required)"
+  echo "   -sf sessidfile  ..."
+  echo "   -df srchdirfile ..."
+  echo "   -s  sessid      ..."
+  echo "   -d  srchdir     ..."
+  echo ""
+  echo "Session Arguments (Optional)"
+  echo "   -umask umask   : set unix file permission mask"
+  echo "   -version       : print version and exit"
+  echo ""
+  echo ""
+
+  if($PrintHelp) \
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+Computes a comparison maps between two analyses. The maps are based on
+the residual error variance (estsnr/resvar) and the signal-to-noise
+ratio (estsnr/snrvar) created when selxavg-sess is run with the -svsnr
+flag. The SNR is just the f-ratio of the omnibus. The resvar
+comparison map is computed as a percent change from analysis1 to
+analysis2 (ie, a positive indcates that the resvar was less in
+analysis2).  The snrvar comparison map is computed as a percent change
+from analysis2 to analysis1 (ie, a positive indcates that the snrvar
+was more in analysis2). The output is placed in
+analysis2/estsnr/meas-dpct-analysis1, where meas is either resvar or
+snrvar.
+
+By default, both maps are generated with the voxels outside of the
+brain set to zero. If a contrast is given, the snr maps are futher
+masked to show only voxels that were active at sigthresh in either
+analysis.
