@@ -662,8 +662,9 @@ RBFprintActivations(RBF *rbf,VECTOR *v_obs,VECTOR *v_error,int class,FILE *fp)
   fprintf(fp, " --> ") ;
   for (i = 1 ; i <= rbf->noutputs ; i++)
   {
-    fprintf(fp, "%+2.2f (%+2.2f) ", RVECTOR_ELT(rbf->v_outputs, i),
-            VECTOR_ELT(v_error,i)) ;
+    fprintf(fp, "%+2.2f ", RVECTOR_ELT(rbf->v_outputs, i)) ;
+    if (v_error)
+      fprintf(fp, "(%+2.2f) ", VECTOR_ELT(v_error,i)) ;
   }
   if (class >= 0)
     fprintf(fp, " : %d \n", class) ;
