@@ -46,6 +46,10 @@
 #define MRIS_ASCII_FILE     1
 #define MRIS_GEO_FILE       2    /* movie.byu format */
 
+#define NEG_AREA_K          100.0
+/* limit the size of the ratio so that the exp() doesn't explode */
+#define MAX_NEG_RATIO       (-100 / NEG_AREA_K)
+
 /*------------------------ STATIC PROTOTYPES -------------------------*/
 
 static double mrisFindClosestFilledVoxel(MRI_SURFACE *mris, MRI *mri_filled, 
@@ -71,6 +75,7 @@ static int         mrisReadTriangleFilePositions(MRI_SURFACE*mris,
 static int   mrisReadBinaryAreas(MRI_SURFACE *mris, char *mris_fname) ;
 /*static int   mrisReadFieldsign(MRI_SURFACE *mris, char *fname) ;*/
 static double mrisComputeSSE(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) ;
+static double mrisComputeNonlinearAreaSSE(MRI_SURFACE *mris) ;
 static double mrisComputeSpringEnergy(MRI_SURFACE *mris) ;
 static double mrisComputeIntensityError(MRI_SURFACE *mris, 
                                         INTEGRATION_PARMS *parms);
@@ -135,6 +140,8 @@ static int   mrisComputeQuadraticCurvatureTerm(MRI_SURFACE *mris,
 static int   mrisComputePolarCorrelationTerm(MRI_SURFACE *mris, 
                                               INTEGRATION_PARMS *parms) ;
 static int   mrisComputeAngleAreaTerms(MRI_SURFACE *mris, 
+                                       INTEGRATION_PARMS *parms) ;
+static int   mrisComputeNonlinearAreaTerm(MRI_SURFACE *mris, 
                                        INTEGRATION_PARMS *parms) ;
 static int   mrisClearDistances(MRI_SURFACE *mris) ;
 static int   mrisClearGradient(MRI_SURFACE *mris) ;
@@ -4405,7 +4412,7 @@ mrisComputeSSE(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 {
   double  sse, sse_area, sse_angle, delta, sse_curv, sse_spring, sse_dist,
           area_scale, sse_corr, sse_neg_area, l_corr, sse_val, sse_sphere,
-          sse_grad ;
+          sse_grad, sse_nl_area ;
   int     ano, fno ;
   FACE    *face ;
 
@@ -4418,8 +4425,9 @@ mrisComputeSSE(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   area_scale = 1.0 ;
 #endif
 
-  sse_corr = sse_angle = sse_neg_area = sse_val = sse_sphere =
+  sse_nl_area = sse_corr = sse_angle = sse_neg_area = sse_val = sse_sphere =
     sse_area = sse_spring = sse_curv = sse_dist = sse_grad = 0.0 ;
+
   if (!FZERO(parms->l_angle)||!FZERO(parms->l_area)||(!FZERO(parms->l_parea)))
   {
     for (fno = 0 ; fno < mris->nfaces ; fno++)
@@ -4427,6 +4435,7 @@ mrisComputeSSE(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
       face = &mris->faces[fno] ;
       if (face->ripflag)
         continue ;
+
       delta = (double)(area_scale*face->area - face->orig_area) ;
 #if ONLY_NEG_AREA_TERM
       if (face->area < 0.0f)
@@ -4446,6 +4455,8 @@ mrisComputeSSE(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
         ErrorExit(ERROR_BADPARM, "sse not finite at face %d!\n",fno);
     }
   }
+  if (!FZERO(parms->l_narea))
+    sse_nl_area = mrisComputeNonlinearAreaSSE(mris) ;
   if (!FZERO(parms->l_dist))
     sse_dist = mrisComputeDistanceError(mris) ;
   if (!FZERO(parms->l_spring))
@@ -4468,11 +4479,55 @@ mrisComputeSSE(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     (double)parms->l_intensity    * sse_val + 
     (double)parms->l_grad    * sse_grad + 
     (double)parms->l_parea  * sse_area + 
+    (double)parms->l_narea  * sse_nl_area + 
     (double)parms->l_angle  * sse_angle + 
     (double)parms->l_dist   * sse_dist + 
     (double)parms->l_spring * sse_spring + 
     (double)l_corr          * sse_corr + 
     (double)parms->l_curv   * CURV_SCALE * sse_curv ;
+  return(sse) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+static double
+mrisComputeNonlinearAreaSSE(MRI_SURFACE *mris)
+{
+  double  sse, area_scale, error, ratio ;
+  int     fno ;
+  FACE    *face ;
+
+#if METRIC_SCALE
+  if (mris->patch)
+    area_scale = 1.0 ;
+  else
+    area_scale = mris->orig_area / mris->total_area ;
+#else
+  area_scale = 1.0 ;
+#endif
+
+  sse = 0.0 ;
+  for (fno = 0 ; fno < mris->nfaces ; fno++)
+  {
+    face = &mris->faces[fno] ;
+    if (face->ripflag)
+      continue ;
+    if (!FZERO(face->orig_area))
+      ratio = area_scale*face->area / face->orig_area ;
+    else
+      ratio = 0.0f ;
+    if (ratio < MAX_NEG_RATIO)
+      ratio = MAX_NEG_RATIO ;
+    error = (1.0 / NEG_AREA_K) * log(1.0+exp(-NEG_AREA_K*ratio)) ;
+
+    sse += error ;
+    if (!finite(sse) || !finite(error))
+      ErrorExit(ERROR_BADPARM, "nlin area sse not finite at face %d!\n",fno);
+  }
   return(sse) ;
 }
 /*-----------------------------------------------------
@@ -9967,6 +10022,8 @@ mrisLogIntegrationParms(FILE *fp, MRI_SURFACE *mris,INTEGRATION_PARMS *parms)
     fprintf(fp, ", l_area=%2.4f", parms->l_area) ;
   if (!FZERO(parms->l_parea))
     fprintf(fp, ", l_parea=%2.4f", parms->l_parea) ;
+  if (!FZERO(parms->l_narea))
+    fprintf(fp, ", l_narea=%2.4f", parms->l_narea) ;
   if (!FZERO(parms->l_angle))
     fprintf(fp, ", l_angle=%2.4f", parms->l_angle) ;
   if (!FZERO(parms->l_corr))
@@ -10249,6 +10306,8 @@ mrisComputeAngleAreaTerms(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   l_angle = parms->l_angle ;
   l_area = parms->l_area ;
   l_parea = parms->l_parea ;
+  if (!FZERO(parms->l_narea))
+    mrisComputeNonlinearAreaTerm(mris, parms) ;
 
   if (FZERO(l_area) && FZERO(l_angle) && FZERO(l_parea))
     return(NO_ERROR) ;
@@ -10346,6 +10405,100 @@ mrisComputeAngleAreaTerms(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
         vo->dx -= V3_X(v_sum); vo->dy -= V3_Y(v_sum); vo->dz -= V3_Z(v_sum) ;
       }
     }
+  }    /* done with all faces */
+  
+  VectorFree(&v_a) ;
+  VectorFree(&v_b) ;
+  VectorFree(&v_tmp) ;
+  VectorFree(&v_sum) ;
+  VectorFree(&v_n) ;
+
+  VectorFree(&v_a_x_n) ;
+  VectorFree(&v_b_x_n) ;
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+static int
+mrisComputeNonlinearAreaTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
+{
+  int     fno, ano ;
+  VERTEX  *v0, *v1, *v2, *va, *vb, *vo ;
+  VECTOR  *v_a, *v_b, *v_a_x_n, *v_b_x_n, *v_n, *v_tmp, *v_sum ;
+  FACE    *face ;
+  double  orig_area, area, delta, len, area_scale, scale, l_narea, ratio ;
+
+#if METRIC_SCALE
+  if (mris->patch || 
+      (mris->status != MRIS_SPHERE && 
+       mris->status != MRIS_PARAMETERIZED_SPHERE))
+    area_scale = 1.0f ;
+  else
+    area_scale = mris->total_area / mris->orig_area ;
+#else
+  area_scale = 1.0f ;
+#endif
+
+  l_narea = parms->l_narea ;
+
+  if (FZERO(l_narea))
+    return(NO_ERROR) ;
+
+  v_a = VectorAlloc(3, MATRIX_REAL) ;
+  v_b = VectorAlloc(3, MATRIX_REAL) ;
+  v_n = VectorAlloc(3, MATRIX_REAL) ;
+
+  v_tmp = VectorAlloc(3, MATRIX_REAL) ;   
+  v_sum = VectorAlloc(3, MATRIX_REAL) ;   
+  v_a_x_n = VectorAlloc(3, MATRIX_REAL) ;      
+  v_b_x_n = VectorAlloc(3, MATRIX_REAL) ;      
+
+  /* calculcate movement of each vertex caused by each triangle */
+  for (fno = 0 ; fno < mris->nfaces ; fno++)
+  {
+    face = &mris->faces[fno] ;
+    if (face->ripflag)
+      continue ;
+    VECTOR_LOAD(v_n, face->nx, face->ny, face->nz) ;
+    v0 = &mris->vertices[face->v[0]] ;
+    v1 = &mris->vertices[face->v[1]] ;
+    v2 = &mris->vertices[face->v[2]] ;
+    VERTEX_EDGE(v_a, v0, v1) ;  
+    VERTEX_EDGE(v_b, v0, v2) ;
+    orig_area = area_scale * face->orig_area ; area = face->area ;
+    if (!FZERO(orig_area))
+      ratio = area / orig_area ;
+    else
+      ratio = 0.0f ;
+
+    if (ratio < MAX_NEG_RATIO)
+      ratio = MAX_NEG_RATIO ;
+    scale = l_narea * (1 - (1/(1.0+exp(-NEG_AREA_K*ratio)))) ;
+    delta = scale * (area - orig_area) ; 
+
+    V3_CROSS_PRODUCT(v_a, v_n, v_a_x_n) ;
+    V3_CROSS_PRODUCT(v_b, v_n, v_b_x_n) ;
+
+    /* calculate movement of vertices in order, 0-3 */
+    
+    /* v0 */
+    V3_SCALAR_MUL(v_a_x_n, -1.0f, v_sum) ;
+    V3_ADD(v_sum, v_b_x_n, v_sum) ;
+    V3_SCALAR_MUL(v_sum, delta, v_sum) ;
+    v0->dx += V3_X(v_sum) ; v0->dy += V3_Y(v_sum) ; v0->dz += V3_Z(v_sum) ;
+    
+    /* v1 */
+    V3_SCALAR_MUL(v_b_x_n, -delta, v_sum) ;
+    v1->dx += V3_X(v_sum) ; v1->dy += V3_Y(v_sum) ; v1->dz += V3_Z(v_sum) ;
+    
+    /* v2 */
+    V3_SCALAR_MUL(v_a_x_n, delta, v_sum) ;
+    v2->dx += V3_X(v_sum) ; v2->dy += V3_Y(v_sum) ; v2->dz += V3_Z(v_sum) ;
   }    /* done with all faces */
   
   VectorFree(&v_a) ;
@@ -10483,7 +10636,7 @@ mrisLogStatus(MRI_SURFACE *mris,INTEGRATION_PARMS *parms,FILE *fp, float dt)
 #endif
   if (FZERO(parms->l_corr) && FZERO(parms->l_pcorr))
     fprintf(fp, "%3.3d: dt: %2.1f, sse: %2.3f (%2.3f, %2.1f, %2.3f), "
-            "neg: %d (%%%2.2f), avgs: %d\n", 
+            "neg: %d (%%%2.3f), avgs: %d\n", 
             parms->t, dt, sse, area_rms, (float)DEGREES(angle_rms), dist_rms,
             negative, 100.0*mris->neg_area/(mris->neg_area+mris->total_area),
             parms->n_averages);
