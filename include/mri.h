@@ -408,6 +408,7 @@ float MRIsampleZDerivative(MRI *mri, int x, int y, int z, int dir) ;
 /* resampling routines */
 MRI   *MRIupsample2(MRI *mri_src, MRI *mri_dst) ;
 MRI   *MRIdownsample2(MRI *mri_src, MRI *mri_dst) ;
+MRI   *MRIdownsample2LabeledVolume(MRI *mri_src, MRI *mri_dst) ;
 
 
 #include "image.h"

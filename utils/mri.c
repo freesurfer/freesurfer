@@ -4530,6 +4530,71 @@ MRIupsample2(MRI *mri_src, MRI *mri_dst)
 
   return(mri_dst) ;
 }
+MRI *
+MRIdownsample2LabeledVolume(MRI *mri_src, MRI *mri_dst)
+{
+  int     width, depth, height, x, y, z, x1, y1, z1, counts[255], label, max_count,
+          out_label ;
+  BUFTYPE *psrc ;
+  
+  if (mri_src->type != MRI_UCHAR)
+    ErrorReturn(NULL, 
+                (ERROR_UNSUPPORTED, 
+                 "MRIdownsample2LabeledVolume: source must be UCHAR"));
+
+  width = mri_src->width/2 ;
+  height = mri_src->height/2 ;
+  depth = mri_src->depth/2 ;
+
+  if (!mri_dst)
+  {
+    mri_dst = MRIalloc(width, height, depth, mri_src->type) ;
+    MRIcopyHeader(mri_src, mri_dst) ;
+  }
+
+  MRIclear(mri_dst) ;
+  for (z = 0 ; z < depth ; z++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      for (x = 0 ; x < width ; x++)
+      {
+        memset(counts, 0, sizeof(counts)) ;
+        for (z1 = 2*z ; z1 <= 2*z+1 ; z1++)
+        {
+          for (y1 = 2*y ; y1 <= 2*y+1 ; y1++)
+          {
+            psrc = &MRIvox(mri_src, 2*x, y1, z1) ;
+            for (x1 = 2*x ; x1 <= 2*x+1 ; x1++)
+            {
+              label = *psrc++ ;
+              counts[label]++ ;
+            }
+          }
+        }
+        for (out_label = label = 0, max_count = counts[0] ; label <= 255 ; label++)
+        {
+          if (counts[label] > max_count)
+          {
+            out_label = label ;
+            max_count = counts[label] ;
+          }
+        }
+        MRIvox(mri_dst, x, y, z) = out_label ;
+      }
+    }
+  }
+
+  mri_dst->imnr0 = mri_src->imnr0 ;
+  mri_dst->imnr1 = mri_src->imnr0 + mri_dst->depth - 1 ;
+  mri_dst->xsize = mri_src->xsize*2 ;
+  mri_dst->ysize = mri_src->ysize*2 ;
+  mri_dst->zsize = mri_src->zsize*2 ;
+
+  mri_dst->ras_good_flag = 0;
+
+  return(mri_dst) ;
+}
 /*-----------------------------------------------------
         Parameters:
 
