@@ -1,6 +1,6 @@
 /*----------------------------------------------------------
   Name: vol2surf.c
-  $Id: mri_vol2surf.c,v 1.2 2001/02/06 23:27:22 greve Exp $
+  $Id: mri_vol2surf.c,v 1.3 2001/02/07 22:42:35 greve Exp $
   Author: Douglas Greve
   Purpose: Resamples a volume onto a surface. The surface
   may be that of a subject other than the source subject.
@@ -56,7 +56,7 @@ static int  check_format(char *fmt);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2surf.c,v 1.2 2001/02/06 23:27:22 greve Exp $";
+static char vcid[] = "$Id: mri_vol2surf.c,v 1.3 2001/02/07 22:42:35 greve Exp $";
 char *Progname = NULL;
 
 char *srcvolid   = NULL;
@@ -117,8 +117,8 @@ int main(int argc, char **argv)
   int n,err, f, vtx, svtx, tvtx;
   int nrows_src, ncols_src, nslcs_src, nfrms, endian, srctype;
   float ipr, bpr, intensity;
-  float colres_src, rowres_src, slcres_src;
-  float *framepower;
+  float colres_src=0, rowres_src=0, slcres_src=0;
+  float *framepower = NULL;
   char fname[2000];
   int nTrg121,nSrc121,nSrcLost;
   int nTrgMulti,nSrcMulti;

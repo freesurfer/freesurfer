@@ -1,6 +1,6 @@
 /*----------------------------------------------------------
   Name: mri_vol2surf.c
-  $Id: mri_surf2surf.c,v 1.2 2001/02/07 21:55:57 greve Exp $
+  $Id: mri_surf2surf.c,v 1.3 2001/02/07 22:42:07 greve Exp $
   Author: Douglas Greve
   Purpose: Resamples data from one surface onto another. If
   both the source and target subjects are the same, this is
@@ -43,7 +43,7 @@ int GetNVtxsFromValFile(char *filename, char *fmt);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surf2surf.c,v 1.2 2001/02/07 21:55:57 greve Exp $";
+static char vcid[] = "$Id: mri_surf2surf.c,v 1.3 2001/02/07 22:42:07 greve Exp $";
 char *Progname = NULL;
 
 char *surfreg = "sphere.reg";
@@ -89,7 +89,7 @@ int cavtx = 0; /* command-line vertex -- for debugging */
 int main(int argc, char **argv)
 {
   int f,vtx,tvtx,svtx,n;
-  float *framepower;
+  float *framepower = NULL;
   char fname[2000];
   int nTrg121,nSrc121,nSrcLost;
   int nTrgMulti,nSrcMulti;
@@ -588,7 +588,7 @@ int GetNVtxsFromWFile(char *wfile)
 /*---------------------------------------------------------------*/
 int GetNVtxsFromValFile(char *filename, char *fmt)
 {
-  int nVtxs;
+  int nVtxs=0;
   int err,nrows, ncols, nslcs, nfrms, endian, type;
 
   if(!strcmp(fmt,"curv")){
