@@ -476,7 +476,8 @@ mriVolumeRef gDTIVolume;
 tAxis gaDTIAxisForComponent[xColr_knNumComponents];
 float gfDTIAlpha = 0.6;
 
-tkm_tErr LoadDTIVolume ( char*              isName,
+tkm_tErr LoadDTIVolume ( char*              isNameEV,
+                         char*              isNameFA,
 			 tAxis              iRedAxis,
 			 tAxis              iGreenAxis,
 			 tAxis              iBlueAxis );
@@ -4016,17 +4017,18 @@ int TclLoadDTIVolumes ( ClientData inClientData, Tcl_Interp* inInterp,
   
   tkm_tErr eResult = tkm_tErr_NoErr;
   
-  if ( argc != 5 ) {
+  if ( argc != 6 ) {
     Tcl_SetResult ( inInterp, "wrong # args: LoadDTIVolumes "
-		    "volume_name:string red_axis:[0=x,y=1,z=2] "
+		    "ev_volume_name:string fa_volume_name:string "
+                    "red_axis:[0=x,y=1,z=2] "
 		    "green_axis:[0=x,y=1,z=2] blue_axis:[0=x,y=1,z=2]",
 		    TCL_VOLATILE );
     return TCL_ERROR;
   }
   
   if( gbAcceptingTclCommands ) {
-    eResult = LoadDTIVolume( argv[1], 
-			     atoi(argv[2]), atoi(argv[3]), atoi(argv[4]) );
+    eResult = LoadDTIVolume( argv[1], argv[2],
+			     atoi(argv[3]), atoi(argv[4]), atoi(argv[5]) );
   }
   
   return TCL_OK;
@@ -8273,7 +8275,8 @@ void SwapROIGroupAndVolume ( mriVolumeRef   iGroup,
 
 // =============================================================== DTI VOLUMES
 
-tkm_tErr LoadDTIVolume ( char*              isName,
+tkm_tErr LoadDTIVolume ( char*              isNameEV,
+                         char*              isNameFA,
 			 tAxis              iRedAxis,
 			 tAxis              iGreenAxis,
 			 tAxis              iBlueAxis ) {
@@ -8282,12 +8285,25 @@ tkm_tErr LoadDTIVolume ( char*              isName,
   Volm_tErr    eVolm = Volm_tErr_NoErr;
   char         sError[tkm_knErrStringLen] = "";
   char         sNameWithHint[tkm_knPathLen] = "";
-  mriVolumeRef volume = NULL;
+  mriVolumeRef EVVolume = NULL;
+  mriVolumeRef FAVolume = NULL;
+  xVoxel       EVIdx;
+  xVoxel       FAIdx;
+  int          zEVX;
+  int          zEVY;
+  int          zEVZ;
+  int          zFAX;
+  int          zFAY;
+  int          zFAZ;
+  float        EVValue;
+  float        FAValue;
+  int          nFrame;
   
-  DebugEnterFunction( ("LoadDTIVolume( isName=%s, iRedAxis=%d, "
-		       "iGreenAxis=%d, iBlueAxis=%d )", isName,
+  DebugEnterFunction( ("LoadDTIVolume( isNameEV=%s, isNameFA=%s, iRedAxis=%d, "
+		       "iGreenAxis=%d, iBlueAxis=%d )", isNameEV, isNameFA,
 		       (int)iRedAxis, (int)iGreenAxis, (int)iBlueAxis ));
-  DebugAssertThrowX( (NULL != isName), eResult, tkm_tErr_InvalidParameter );
+  DebugAssertThrowX( (NULL != isNameEV), eResult, tkm_tErr_InvalidParameter );
+  DebugAssertThrowX( (NULL != isNameFA), eResult, tkm_tErr_InvalidParameter );
   DebugAssertThrowX( (iRedAxis >= 0 && iRedAxis < knNumAxes),
 		     eResult, tkm_tErr_InvalidParameter );
   DebugAssertThrowX( (iGreenAxis >= 0 && iGreenAxis < knNumAxes),
@@ -8296,29 +8312,29 @@ tkm_tErr LoadDTIVolume ( char*              isName,
 		     eResult, tkm_tErr_InvalidParameter );
   
   /* Create our volume */
-  eVolm = Volm_New( &volume );
+  eVolm = Volm_New( &EVVolume );
   DebugAssertThrowX( (Volm_tErr_NoErr == eVolm), 
 		     eResult, tkm_tErr_ErrorAccessingVolume );
   
   /* First try loading it with just this name. */
-  DebugNote( ("Importing data %s", isName) );
-  eVolm = Volm_ImportData( volume, isName );
+  DebugNote( ("Importing data %s", isNameEV) );
+  eVolm = Volm_ImportData( EVVolume, isNameEV );
   if( Volm_tErr_NoErr != eVolm ) {
     
     /* Try it again with a BFLOAT hint. */
     DebugNote( ("Copying BFLOAT hint to string") );
-    sprintf( sNameWithHint, "%s@BFLOAT", isName );
+    sprintf( sNameWithHint, "%s@BFLOAT", isNameEV );
     
     DebugNote( ("Importing data %s", sNameWithHint) );
-    eVolm = Volm_ImportData( volume, sNameWithHint );
+    eVolm = Volm_ImportData( EVVolume, sNameWithHint );
     if( Volm_tErr_NoErr != eVolm ) {
       
       /* Try it again with a BSHORT hint. */
       DebugNote( ("Copying BSHORT hint to string") );
-      sprintf( sNameWithHint, "%s@BSHORT", isName );
+      sprintf( sNameWithHint, "%s@BSHORT", isNameEV );
       
       DebugNote( ("Importing data %s", sNameWithHint) );
-      eVolm = Volm_ImportData( volume, sNameWithHint );
+      eVolm = Volm_ImportData( EVVolume, sNameWithHint );
     }
   }
   
@@ -8326,13 +8342,70 @@ tkm_tErr LoadDTIVolume ( char*              isName,
   DebugAssertThrowX( (Volm_tErr_NoErr == eVolm), 
 		     eResult, tkm_tErr_CouldntLoadDTIVolume );
   
-  /* If we already have a volume, delete it. */
+
+  /* Now do the same with the FA volume. */
+  eVolm = Volm_New( &FAVolume );
+  DebugAssertThrowX( (Volm_tErr_NoErr == eVolm), 
+		     eResult, tkm_tErr_ErrorAccessingVolume );
+  
+  DebugNote( ("Importing data %s", isNameFA) );
+  eVolm = Volm_ImportData( FAVolume, isNameFA );
+  if( Volm_tErr_NoErr != eVolm ) {
+    
+    DebugNote( ("Copying BFLOAT hint to string") );
+    sprintf( sNameWithHint, "%s@BFLOAT", isNameFA );
+    
+    DebugNote( ("Importing data %s", sNameWithHint) );
+    eVolm = Volm_ImportData( FAVolume, sNameWithHint );
+    if( Volm_tErr_NoErr != eVolm ) {
+      
+      DebugNote( ("Copying BSHORT hint to string") );
+      sprintf( sNameWithHint, "%s@BSHORT", isNameFA );
+      
+      DebugNote( ("Importing data %s", sNameWithHint) );
+      eVolm = Volm_ImportData( FAVolume, sNameWithHint );
+    }
+  }
+  
+  DebugAssertThrowX( (Volm_tErr_NoErr == eVolm), 
+		     eResult, tkm_tErr_CouldntLoadDTIVolume );
+  
+  /* Now go through the EV volume and divide each value by the
+     corresponding value in the FA volume. */
+  xVoxl_Set( &EVIdx, 0, 0, 0 );
+  xVoxl_Set( &FAIdx, 0, 0, 0 );
+  Volm_GetDimensions( EVVolume, &zEVX, &zEVY, &zEVZ );
+  Volm_GetDimensions( FAVolume, &zFAX, &zFAY, &zFAZ );
+  do {
+    Volm_GetValueAtIdxUnsafe( FAVolume, &FAIdx, &FAValue );
+    FAValue = sqrt( FAValue );
+
+    for( nFrame = 0; nFrame < 3; nFrame++ ) {
+      Volm_GetValueAtIdxFrameUnsafe( EVVolume, &EVIdx, nFrame, &EVValue );
+      Volm_SetValueAtIdxFrame( EVVolume, &EVIdx, nFrame, EVValue / FAValue );
+    }
+    
+    xVoxl_IncrementUntilLimits( &FAIdx, zFAX, zFAY, zFAZ );
+    
+    if( xVoxl_GetY( &EVIdx ) == 0 ) {
+      fprintf( stdout, "\rProcessing DTI volumes: %.2f%% done", 
+	       (xVoxl_GetFloatZ( &EVIdx ) / (float)zEVZ) * 100.0 );
+    }
+
+  } while( xVoxl_IncrementUntilLimits( &EVIdx, zEVX, zEVY, zEVZ ) );
+    
+  fprintf( stdout, "\rProcessing DTI volumes: 100%% dane.        \n" );
+
+  /* Delete the FA volume. */
+  Volm_Delete( &FAVolume );
+
+  /* If we already have DTI volumes, delete it. */
   if( NULL != gDTIVolume ) {
     Volm_Delete( &gDTIVolume );
   }
   
-  /* Use this volume. */
-  gDTIVolume = volume;
+  /* Use these DTI volumes. */
+  gDTIVolume = EVVolume;
   
   /* Set it in the window. */
   if( NULL != gMeditWindow ) {
@@ -8348,7 +8421,8 @@ tkm_tErr LoadDTIVolume ( char*              isName,
   DebugCatch;
   DebugCatchError( eResult, tkm_tErr_NoErr, tkm_GetErrorString );
   
-  xUtil_snprintf( sError, sizeof(sError), "Loading DTI volume %s", isName );
+  xUtil_snprintf( sError, sizeof(sError), "Loading DTI volumes %s and %s",
+		  isNameEV, isNameFA );
   tkm_DisplayError( sError,
         tkm_GetErrorString(eResult),
         "Tkmedit couldn't read the DTI volume you specified. "

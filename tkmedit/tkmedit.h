@@ -179,14 +179,6 @@ typedef enum {
 } tkm_tSurfaceType;
 
 typedef enum {
-  tkm_tDTIVolumeType_X = 0,
-  tkm_tDTIVolumeType_Y,
-  tkm_tDTIVolumeType_Z,
-  tkm_tDTIVolumeType_FA,
-  tkm_knNumDTIVolumeTypes,
-} tkm_tDTIVolumeType;
-
-typedef enum {
   tkm_tAxis_X = 0,
   tkm_tAxis_Y,
   tkm_tAxis_Z,
