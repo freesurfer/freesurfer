@@ -123,6 +123,8 @@ MRI   *MRIabs(MRI *mri, MRI *mri_dst) ;
 
 /* filtering */
 MRI   *MRIplaneOfLeastVarianceNormal(MRI *mri_src, MRI *mri_dst, int wsize) ;
+MRI   *MRIpolvMean(MRI *mri_src, MRI *mri_dst, MRI *mri_polv, int wsize) ;
+
 MRI   *MRIsobel(MRI *mri_src, MRI *mri_grad, MRI *mri_mag);
 MRI   *MRIxSobel(MRI *mri_src, MRI *mri_x, int frame) ;
 MRI   *MRIySobel(MRI *mri_src, MRI *mri_y, int frame) ;
@@ -162,6 +164,9 @@ MRI   *MRIextract(MRI *mri_src, MRI *mri_dst, int x0, int y0, int z0,
                   int dx, int dy, int dz) ;
 MRI   *MRIextractInto(MRI *mri_src, MRI *mri_dst, int x0, int y0, int z0,
                   int dx, int dy, int dz, int x1, int y1, int z1) ;
+
+MRI   *MRIextractPlanes(MRI *mri_src, MRI *mri_dst, MRI *mri_polv, int wsize,
+                        int x, int y, int z);
 
 /* morphology */
 MRI   *MRImorph(MRI *mri_src, MRI *mri_dst, int which) ;
@@ -233,5 +238,26 @@ IMAGE *MRItoImageView(MRI *mri, IMAGE *I, int slice, int view, int frame) ;
 #define MRI_SAGITAL     1
 #define MRI_HORIZONTAL  2
 #define MRI_AXIAL       MRI_HORIZONTAL
+
+/* vertices of an icasohedron (sp?), used by all POLV functions */
+#define NVERTICES    21
+extern float ic_x_vertices[]  ;
+extern float ic_y_vertices[]  ;
+extern float ic_z_vertices[]  ;
+
+
+/* histogram stuff */
+#define MAX_BINS  256
+typedef struct
+{
+  int     nbins ;
+  BUFTYPE bins[MAX_BINS] ;    /* upper end of the range that maps to this bin */
+  int     counts[MAX_BINS] ;  /* # of voxels which map to this bin */
+} MRI_HISTO ;
+
+MRI_HISTO  *MRIhistogram(MRI *mri, int nbins) ;
+int        MRIfreeHistogram(MRI_HISTO **pmrih) ;
+int        MRIvalRange(MRI *mri, float *pmin, float *pmax) ;
+int        MRIdumpHistogram(MRI_HISTO *mrih, FILE *fp) ;
 
 #endif
