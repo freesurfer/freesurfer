@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/01/13 15:51:33 $
-// Revision       : $Revision: 1.85 $
+// Revision Date  : $Date: 2004/01/13 21:45:30 $
+// Revision       : $Revision: 1.86 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -31,9 +31,9 @@ int Ggca_z = -1 ;
 int Gxp = -1;
 int Gyp = -1;
 int Gzp = -1;
-int Gxn = 32;
-int Gyn = 21;
-int Gzn = 32;
+int Gxn = -1; // 32;
+int Gyn = -1; // 21;
+int Gzn = -1; // 32;
 
 /* this is the hack section */
 double PRIOR_FACTOR = 0.1 ;
@@ -173,9 +173,9 @@ void GCAcleanup()
 // set up mri's used in GCA
 void GCAsetup(GCA *gca)
 {
-  MATRIX *mnode;
-  MATRIX *mtal;
-  MATRIX *mprior;
+  // MATRIX *mnode;
+  // MATRIX *mtal;
+  // MATRIX *mprior;
   // set up node part ////////////////////////////////////////////////////////////////
   if (mri_node__)
   {
@@ -196,10 +196,10 @@ void GCAsetup(GCA *gca)
   mri_node__->ysize = gca->node_spacing;
   mri_node__->zsize = gca->node_spacing;
 
-  fprintf(stderr, "node voxelToRAS\n");
-  mnode = extract_i_to_r(mri_node__);
-  MatrixPrint(stderr, mnode);
-  MatrixFree(&mnode);
+  // fprintf(stderr, "node voxelToRAS\n");
+  // MATRIX *mnode = extract_i_to_r(mri_node__);
+  // MatrixPrint(stderr, mnode);
+  // MatrixFree(&mnode);
 
   // setup prior part ////////////////////////////////////////////////////////////////
   if (mri_prior__)
@@ -221,10 +221,10 @@ void GCAsetup(GCA *gca)
   mri_prior__->ysize = gca->prior_spacing;
   mri_prior__->zsize = gca->prior_spacing;
 
-  fprintf(stderr, "prior voxelToRAS\n");
-  mprior = extract_i_to_r(mri_prior__);
-  MatrixPrint(stderr, mprior);
-  MatrixFree(&mprior);
+  // fprintf(stderr, "prior voxelToRAS\n");
+  // MATRIX *mprior = extract_i_to_r(mri_prior__);
+  // MatrixPrint(stderr, mprior);
+  // MatrixFree(&mprior);
   
   // set up the default talairach volume /////////////////////////////////////////////
   if (mri_tal__)
@@ -246,11 +246,10 @@ void GCAsetup(GCA *gca)
   mri_tal__->ysize = gca->ysize;
   mri_tal__->zsize = gca->zsize;
 
-  fprintf(stderr, "tal voxelToRAS\n");
-  mtal = extract_i_to_r(mri_tal__);
-  MatrixPrint(stderr, mtal);
-  MatrixFree(&mtal);
-
+  //fprintf(stderr, "tal voxelToRAS\n");
+  //mtal = extract_i_to_r(mri_tal__);
+  // MatrixPrint(stderr, mtal);
+  // MatrixFree(&mtal);
 }
 
 // using the values of mri, modify gca
@@ -261,9 +260,9 @@ void GCAreinit(MRI *mri, GCA *gca)
   // Keep the direction cosine the same to avoid used by
   // different mri
   // modify direction cosines etc.
-  // gca->x_r = mri->x_r; gca->y_r = mri->y_r; gca->z_r = mri->z_r; 
-  // gca->x_a = mri->x_a; gca->y_a = mri->y_a; gca->z_a = mri->z_a; 
-  // gca->x_s = mri->x_s; gca->y_s = mri->y_s; gca->z_s = mri->z_s; 
+  gca->x_r = mri->x_r; gca->y_r = mri->y_r; gca->z_r = mri->z_r; 
+  gca->x_a = mri->x_a; gca->y_a = mri->y_a; gca->z_a = mri->z_a; 
+  gca->x_s = mri->x_s; gca->y_s = mri->y_s; gca->z_s = mri->z_s; 
   gca->c_r = mri->c_r;
   gca->c_a = mri->c_a;
   gca->c_s = mri->c_s;
@@ -477,8 +476,8 @@ dump_gcan(GCA *gca, GCA_NODE *gcan, FILE *fp, int verbose, GCA_PRIOR *gcap)
   int       n, i, j, n1 ;
   GC1D      *gc ;
   float     prior ;
-	VECTOR    *v_means = NULL ;
-	MATRIX    *m_cov = NULL ;
+  VECTOR    *v_means = NULL ;
+  MATRIX    *m_cov = NULL ;
 
   for (n = 0 ; n < gcan->nlabels ; n++)
   {
@@ -1135,6 +1134,41 @@ GCANfree(GCA_NODE *gcan, int ninputs)
   }
   return(NO_ERROR) ;
 }
+
+void PrintInfoOnLabels(GCA *gca, int label, int xn, int yn, int zn,
+		       int xp, int yp, int zp, 
+		       int x, int y, int z)
+{
+  GCA_NODE  *gcan ;
+  GCA_PRIOR *gcap ;
+  GC1D *gc ;
+  int  i ;
+  // using node to find the label
+  gc = GCAfindGC(gca, xn, yn, zn, label) ;
+  if (gc)
+  {
+    gcan = &gca->nodes[xn][yn][zn];
+    fprintf(stderr, "\n Node (%3d, %3d, %3d) pos (%3d, %3d, %3d) label=%d, labels:", xn, yn, zn, x, y, z, label); 
+    for (i=0; i < gcan->nlabels; ++i)
+      fprintf(stderr, "%4d ", gcan->labels[i]);
+    fprintf(stderr, "\n");
+    gcap = &gca->priors[xp][yp][zp];
+    fprintf(stderr, "Prior (%3d, %3d, %3d) pos (%3d, %3d, %3d) label=%d\n", xp, yp, zp, x, y, z, label); 
+    fprintf(stderr, "prior label histogram  (label):");
+    for (i=0; i < gcap->nlabels; ++i)
+      fprintf(stderr, "%4d ", gcap->labels[i]);
+    fprintf(stderr, "\n");
+    fprintf(stderr, "                     :(counts):");
+    for (i=0; i < gcap->nlabels; ++i)
+      fprintf(stderr, "%4.f ", gcap->priors[i]);
+    fprintf(stderr, "\n");
+    fprintf(stderr, "mean: ");
+    for (i = 0 ; i < gca->ninputs ; i++)
+      fprintf(stderr, "%2.1f ", gc->means[i] / gc->ntraining) ;
+    fprintf(stderr, "\n");
+  }	
+}
+
 int
 GCAtrainCovariances(GCA *gca, MRI *mri_inputs, MRI *mri_labels, TRANSFORM *transform)
 {
@@ -1178,10 +1212,15 @@ GCAtrainCovariances(GCA *gca, MRI *mri_inputs, MRI *mri_labels, TRANSFORM *trans
 	      printf("src (%d, %d, %d), prior (%d, %d, %d), node (%d, %d, %d), label = %d\n",
 		     x,y,z, xp, yp, zp, xn, yn, zn, label);
 	    }
-
 	    // update the value
 	    GCAupdateNodeCovariance(gca, mri_inputs, xn, yn, zn, vals,label) ;
 	    
+	    //////////////debug code //////////////////////////////////////
+	    if (xn == Gxn && yn == Gyn && zn == Gzn)
+	    {
+	      fprintf(stderr, "Train Covariance\n");
+	      PrintInfoOnLabels(gca, label, xn,yn,zn, xp,yp,zp, x,y,z);
+	    }
 	    if (xn == Ggca_x && yn == Ggca_y && zn == Ggca_z && 
 		(label == Ggca_label || Ggca_label < 0))
 	    {
@@ -1286,59 +1325,21 @@ GCAtrain(GCA *gca, MRI *mri_inputs, MRI *mri_labels, TRANSFORM *transform, GCA *
         if (!GCAsourceVoxelToNode(gca, mri_inputs, transform, x, y, z, &xn, &yn, &zn))
 	  if (!GCAsourceVoxelToPrior(gca, mri_inputs, transform, x, y, z, &xp, &yp, &zp))
 	  {
-	    // debugging code /////////////////////////////////////////////////////////////
-	    if (xp == Gxp && yp == Gyp && zp == Gzp)
-	    {
-	      GC1D *gc ;
-	      int  i ;
-	      // using node to find the label
-	      gc = GCAfindGC(gca, xn, yn, zn, label) ;
-	      if (gc)
-	      {
-		gcan = &gca->nodes[xn][yn][zn];
-		printf("\npos (%d, %d, %d) label=%d, Node (%d, %d, %d) labels:", x, y, z, label, xn, yn, zn); 
-		for (i=0; i < gcan->nlabels; ++i)
-		  printf("%d ", gcan->labels[i]);
-                printf("\n");
-		gcap = &gca->priors[xp][yp][zp];
-		printf("pos (%d, %d, %d) label=%d, Prior (%d, %d, %d) labels:", x, y, z, label, xp, yp, zp); 
-		for (i=0; i < gcap->nlabels; ++i)
-		  printf("%d ", gcap->labels[i]);
-                printf("\n");
-	      }	
-	    }
-	    if (xn == Gxn && yn == Gyn && zn == Gzn)
-	    {
-	      GC1D *gc ;
-	      int  i ;
-	      // using node to find the label
-	      gc = GCAfindGC(gca, xn, yn, zn, label) ;
-	      if (gc)
-	      {
-		gcan = &gca->nodes[xn][yn][zn];
-		printf("\npos (%d, %d, %d) label=%d, Node (%d, %d, %d) labels:", x, y, z, label, xn, yn, zn); 
-		for (i=0; i < gcan->nlabels; ++i)
-		  printf("%d ", gcan->labels[i]);
-                printf("\n");
-		gcap = &gca->priors[xp][yp][zp];
-		printf("pos (%d, %d, %d) label=%d, Prior (%d, %d, %d) labels:", x, y, z, label, xp, yp, zp); 
-		for (i=0; i < gcap->nlabels; ++i)
-		  printf("%d ", gcap->labels[i]);
-                printf("\n");
-	      }	
-	    }
 	    // got node point (xn, yn. zn) and prior point (xp, yp, zp) for
 	    // this label volume point (x, y, z)
 	    // update the value at this prior point
 	    GCAupdatePrior(gca, mri_inputs, xp, yp, zp, label) ;
-	    
 	    if ((GCAupdateNode(gca, mri_inputs, xn, yn, zn, 
 			       vals,label,gca_prune, noint) == NO_ERROR) &&
 		!(gca->flags & GCA_NO_MRF))
-	      //                                       node        label point
+	      //                                         node        label point
 	      GCAupdateNodeGibbsPriors(gca, mri_labels, xn, yn, zn, x, y,z, label);
 
 	    /// debugging code /////////////////////////////////////////////////////
+	    if (xn == Gxn && yn == Gyn && zn == Gzn)
+	    {
+	      PrintInfoOnLabels(gca, label, xn,yn,zn, xp,yp,zp, x,y,z);
+	    }
 	    if (xn == Ggca_x && yn == Ggca_y && zn == Ggca_z && 
 		(label == Ggca_label || Ggca_label < 0))
 	    {
