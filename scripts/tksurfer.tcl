@@ -36,28 +36,28 @@ foreach sSourceFileName { tkm_wrappers.tcl } {
 set ksWindowName "TkSurfer Tools"
 set ksImageDir   "$env(MRI_DIR)/lib/images/"
 
+# ===================================================== DEFAULT FILE LOCATIONS
+
+# subject/surf : surface, vertices
+# subject/surf + pwd : overlay, time course, curvature, path
+# CSURF_DIR : clut
+# subject/label + pwd : label, annotation
+# subject/fmri + pwd : field sign, field mask
+# subject/rgb + pwd : rgb
+
+array set gaFileNameDefDirs [list \
+    kFileName_Surface   "$home/$subject/surf" \
+    kFileName_Script    "$home/$subject/scripts" \
+    kFileName_Label     "$home/$subject/label" \
+    kFileName_BEM       "$home/$subject/bem" \
+    kFileName_FMRI      "$home/$subject/fmri" \
+    kFileName_RGB       "$home/$subject/rgb" \
+    kFileName_Home      "$home/$subject" \
+    kFileName_PWD       "$env(PWD)" \
+    kFileName_CSURF     "$env(CSURF_DIR)" \
+]
+
 # =========================================================== LINKED VARIABLES
-
-array set gaFileLocations {
-    surf { insurf outsurf curv sulc patch annot \
-      area origcoords ellcoords vrmlsurf targsurf targcurv }
-    fs { fs fm }
-    scripts { script }
-    label { label }
-    bem { dip dec }
-    rgb { rgb }
-    . { val named_rgbdir num_rgbdir }
-}
-
-array set gaFileNameSubDirs {
-    kFileName_Surface   "surf"
-    kFileName_FieldSign "fs"
-    kFileName_Script    "scripts"
-    kFileName_Label     "label"
-    kFileName_BEM       "bem"
-    kFileName_RGB       "rgb"
-    kFileName_Home      "."
-}
 
 ### current transforms
 set xrot 0
@@ -621,9 +621,10 @@ proc DoConfigLightingDlog {} {
     }
 }
 
-proc FillOverlayLayerMenu { iowOverlay } {
+proc FillOverlayLayerMenu { iowOverlay {ibSelectCurrentField 0} } {
     global gaScalarValueID
     global gsaLabelContents
+    global gaLinkedVars
 
     $iowOverlay config -disablecallback 1
 
@@ -640,6 +641,10 @@ proc FillOverlayLayerMenu { iowOverlay } {
     }
     
     $iowOverlay config -disablecallback 0
+
+    if { $ibSelectCurrentField } {
+  $iowOverlay config -value $gaLinkedVars(currentvaluefield)
+    }
 }
 
 proc SetMin { iWidget inThresh } {
@@ -1145,7 +1150,7 @@ proc SetOverlayField {} {
     global gaLinkedVars
     global gbwHisto
     sclv_set_current_field $gaLinkedVars(currentvaluefield)
-    Histo_Unzoom $gbwHisto
+    catch { Histo_Unzoom $gbwHisto }
     SendLinkedVarGroup view
     UpdateAndRedraw 
 }
@@ -1267,13 +1272,7 @@ proc DoLoadOverlayDlog {} {
       }
   
   tkm_MakeSmallLabel $fwFieldNote "The layer to load the values into" 400
-  
-  set nIndex 0
-  while { [info exists gaScalarValueID($nIndex,label)] } {
-      $fwField add command $nIndex \
-    -label $gsaLabelContents($gaScalarValueID($nIndex,label),name)
-      incr nIndex
-  }
+  FillOverlayLayerMenu $fwField
   
   # buttons.
         tkm_MakeCancelOKButtons $fwButtons $wwDialog \
@@ -1425,9 +1424,46 @@ proc DoSaveValuesAsDlog {} {
     }
 }
 
+proc DoLabelToOverlayDlog {} {
+
+    global gDialog
+
+    set wwDialog .wwLabelToOverlayDlog
+
+    if { [Dialog_Create $wwDialog "Copy Label Statistics to Overlay" {-borderwidth 10}] } {
+
+  set fwMain             $wwDialog.fwMain
+  set fwTarget           $wwDialog.fwTarget
+  set fwButtons          $wwDialog.fwButtons
+  
+  frame $fwMain
+  
+  # target scalar field
+  tixOptionMenu $fwTarget -label "Target Field:" \
+      -variable nFieldIndex \
+      -options {
+    label.anchor e
+    label.width 5
+    menubutton.width 8
+      }
+  
+  FillOverlayLayerMenu $fwTarget 1
+  
+  # buttons.
+  tkm_MakeCancelOKButtons $fwButtons $wwDialog \
+      { label_to_stat $nFieldIndex; UpdateAndRedraw } {}
+  
+  pack $fwMain $fwTarget $fwButtons \
+      -side top       \
+      -expand yes     \
+      -fill x         \
+      -padx 5         \
+      -pady 5
+    }
+}
+
 proc DoSmoothOverlayDlog {} {
 
-    global gaScalarValueID gsaLabelContents
     global gDialog
 
     set wwDialog .wwSmoothOverlayDlog
@@ -1453,12 +1489,7 @@ proc DoSmoothOverlayDlog {} {
       menubutton.width 8
   }
   
-  set nIndex 0
-  while { [info exists gaScalarValueID($nIndex,label)] } {
-      $fwTarget add command $nIndex \
-        -label $gsaLabelContents($gaScalarValueID($nIndex,label),name)
-      incr nIndex
-  }
+  FillOverlayLayerMenu $fwTarget 1
 
   # buttons.
   tkm_MakeCancelOKButtons $fwButtons $wwDialog \
@@ -1605,6 +1636,38 @@ proc DoSendToSubjectDlog {} {
     -fill x         \
     -padx 5         \
     -pady 5
+    }
+}
+
+proc DoSelectVertexDlog {} {
+
+    global gDialog
+
+    set wwDialog .wwSelectVertexDlog
+
+    if { [Dialog_Create $wwDialog "Select Vertex" {-borderwidth 10}] } {
+
+  set fwMain             $wwDialog.fwMain
+  set fwVno              $wwDialog.fwVno
+  set fwButtons          $wwDialog.fwButtons
+  
+  frame $fwMain
+  
+  # field for vno
+  tkm_MakeEntry $fwVno "Vertex number: " vno 6 
+
+  # buttons.
+  tkm_MakeDialogButtons $fwButtons $wwDialog [list \
+    [list Apply { select_vertex_by_vno $vno }] \
+    [list Close {}] \
+        ]
+  
+  pack $fwMain $fwVno $fwButtons \
+      -side top       \
+      -expand yes     \
+      -fill x         \
+      -padx 5         \
+      -pady 5
     }
 }
 
@@ -2125,6 +2188,9 @@ proc CreateMenuBar { ifwMenuBar } {
       { command "Send to Subject..." \
       { DoSendToSubjectDlog } } \
       \
+      { command "Select Vertex..." \
+      { DoSelectVertexDlog } } \
+      \
       { separator } \
       \
       { command "Run Script..." \
@@ -2146,6 +2212,10 @@ proc CreateMenuBar { ifwMenuBar } {
       \
       { command "Delete All Labels" \
       { labl_remove_all; UpdateAndRedraw } \
+      mg_LabelLoaded } \
+      \
+      { command "Copy Label Statistic to Overlay..." \
+      { DoLabelToOverlayDlog } \
       mg_LabelLoaded } } } \
       \
       { cascade "Cut" { \
@@ -2203,7 +2273,7 @@ proc CreateMenuBar { ifwMenuBar } {
       \
       { cascade "Surface" { \
       { command "Smooth Curvature..." \
-      { DoSmoothCurvatureDlog } \
+      { DoSmoothvCurvatureDlog } \
       mg_CurvatureLoaded } \
       \
       { command "Clear Curvature" \
@@ -2706,7 +2776,7 @@ proc CreateLabelFrame { ifwTop iSet } {
     $label == "kLabel_Mean" ||  \
     $label == "kLabel_MeanImag" ||  \
     $label == "kLabel_StdError" } { 
-      tkm_MakeEntry $fwLabel "" gsaLabelContents($label,name) 14
+      tkm_MakeEntry $fwLabel "" gsaLabelContents($label,name) 14 {UpdateOverlayDlogInfo}
   } else {
       tkm_MakeActiveLabel $fwLabel "" gsaLabelContents($label,name) 14
   }
@@ -3762,7 +3832,7 @@ proc LoadSurface { isFileName } {
 proc ExpandFileName { isFileName {iFileType ""} } {
 
     global session home subject
-    global gaFileNameSubDirs
+    global gaFileNameDefDirs
 
     # look at the first char
     set sFirstChar [string range $isFileName 0 0]
@@ -3778,10 +3848,10 @@ proc ExpandFileName { isFileName {iFileType ""} } {
     set sFileName [file tail $sTail]  ;# only file name 
     if { $sSubDir == "." } {
         set sExpandedFileName \
-          $home/$sSubject/$sFileName 
+      $home/$sSubject/$sFileName 
     } else {
         set sExpandedFileName \
-          $home/$sSubject/$sSubDir/$sFileName
+      $home/$sSubject/$sSubDir/$sFileName
     }
       } else {
     set sTail [string range $isFileName 1 end]
@@ -3789,22 +3859,22 @@ proc ExpandFileName { isFileName {iFileType ""} } {
     if { $sSubject == "." } {
         set sSubject [file tail $sTail]
         set sExpandedFileName \
-          $home/$sSubject
+      $home/$sSubject
     } else {
         set sFileName [file tail $sTail]
         set sExpandedFileName \
-          $home/$sSubject/$sFileName
+      $home/$sSubject/$sFileName
     }
       }
   }
   "*" {
       set sExpandedFileName \
-        $session/[string range $isFileName 2 end]
+    $session/[string range $isFileName 2 end]
   } 
   "#" {
       if { [info exists env(CSURF_DIR)] } {
     set sExpandedFileName \
-           $env(CSURF_DIR)/lib/tcl/[string range $isFileName 2 end]
+        $env(CSURF_DIR)/lib/tcl/[string range $isFileName 2 end]
       } else {
     set sExpandedFileName $isFileName
       }
@@ -3814,19 +3884,27 @@ proc ExpandFileName { isFileName {iFileType ""} } {
       # subdirectory.
       set sSubDir ""
       if { $iFileType != "" } {
-    if { [info exists gaFileNameSubDirs($iFileType)] } {
-        set sSubDir $gaFileNameSubDirs($iFileType)
+    if { [info exists gaFileNameDefDirs($iFileType)] } {
+        set sSubDir $gaFileNameDefDirs($iFileType)
     }
       }
-      if { $sSubDir == "" } {
-    puts "No expansion found!!!!"
-    set sExpandedFileName $isFileName
-      } elseif { $sSubDir == "." } {
-    set sExpandedFileName \
-      $home/$subject/$isFileName 
+      # if the first char is a slash, just append the filename.
+      set sFirstChar [string range $sSubDir 0 0]
+      if { $sFirstChar == "/" } {
+    set sExpandedFileName $sSubDir/$isFileName
       } else {
-    set sExpandedFileName \
+    puts "shouldn't get here: $sSubDir"
+    
+    if { $sSubDir == "" } {
+        puts "No expansion found!!!!"
+        set sExpandedFileName $isFileName
+    } elseif { $sSubDir == "." } {
+        set sExpandedFileName \
+      $home/$subject/$isFileName 
+    } else {
+        set sExpandedFileName \
       $home/$subject/$sSubDir/$isFileName
+    }
       }
   }
     }
@@ -4025,13 +4103,13 @@ set tDlogSpecs(LoadTimeCourse) [list \
   -prompt1 "Load Volume:" \
   -type1 dir \
   -note1 "The directory containing the binary volume to load" \
-  -default1 [list ExpandFileName "" kFileName_Home] \
+  -default1 [list ExpandFileName "" kFileName_Surface] \
   -prompt2 "Stem:" \
   -type2 text \
   -note2 "The stem of the binary volume" \
   -prompt3 "Registration File:" \
   -note3 "The file name of the registration file to load. Leave blank to use register.dat in the same directory." \
-  -default3 [list ExpandFileName "" kFileName_Home] \
+  -default3 [list ExpandFileName "" kFileName_Surface] \
   -okCmd {func_load_timecourse %s1 %s2 %s3;}]
 
 set tDlogSpecs(LoadCurvature) [list \
@@ -4067,26 +4145,29 @@ set tDlogSpecs(SavePatchAs) [list \
 set tDlogSpecs(LoadColorTable) [list \
   -title "Load Color Table" \
   -prompt1 "Load Color Table:" \
-  -default1 [list ExpandFileName "" kFileName_Label] \
+  -default1 [list ExpandFileName "" kFileName_CSURF] \
   -note1 "The file name of the color table" \
-  -okCmd {labl_load_color_table [ExpandFileName %s1 kFileName_Label]; \
+  -okCmd {labl_load_color_table [ExpandFileName %s1 kFileName_CSURF]; \
   UpdateLinkedVarGroup label} ]
 set tDlogSpecs(LoadLabel) [list \
   -title "Load Label" \
   -prompt1 "Load Label:" \
   -default1 [list ExpandFileName "" kFileName_Label] \
+  -presets1 [list $env(PWD)] \
   -note1 "The file name of the label data" \
-             -okCmd {labl_load [ExpandFileName %s1 kFileName_Label]; labl_mark_vertices $gnSelectedLabel; UpdateAndRedraw;  }]
+  -okCmd {labl_load [ExpandFileName %s1 kFileName_Label]; labl_mark_vertices $gnSelectedLabel; UpdateAndRedraw;  }]
 set tDlogSpecs(SaveLabelAs) [list \
   -title "Save Selected Label" \
   -prompt1 "Save Selected Label:" \
   -default1 [list ExpandFileName "" kFileName_Label] \
+  -presets1 [list $env(PWD)] \
   -note1 "The file name of the label data to save" \
   -okCmd {labl_save $gnSelectedLabel [ExpandFileName %s1 kFileName_Label] }]
 set tDlogSpecs(ImportAnnotation) [list \
   -title "Import Annotaion" \
   -prompt1 "Import Annotation:" \
   -default1 [list ExpandFileName "" kFileName_Label] \
+  -presets1 [list $env(PWD)] \
   -note1 "The file name of the annotaion" \
   -okCmd {labl_import_annotation [ExpandFileName %s1 kFileName_Label]; \
   UpdateAndRedraw;} ]
@@ -4094,6 +4175,7 @@ set tDlogSpecs(ExportAnnotation) [list \
   -title "Export Annotaion" \
   -prompt1 "Export Annotation:" \
   -default1 [list ExpandFileName "" kFileName_Label] \
+  -presets1 [list $env(PWD)] \
   -note1 "The file name of the annotaion to save" \
   -okCmd {labl_export_annotation [ExpandFileName %s1 kFileName_Label]} ]
 
@@ -4109,31 +4191,35 @@ set tDlogSpecs(SaveDipolesAs) [list \
 set tDlogSpecs(LoadFieldSign) [list \
   -title "Load Field Sign" \
   -prompt1 "Load Field Sign:" \
-  -default1 [list ExpandFileName "" kFileName_BEM] \
+  -default1 [list ExpandFileName "" kFileName_FMRI] \
+  -presets1 [list $env(PWD)] \
   -note1 "The file name of the field sign data" \
-  -okCmd {set fs [ExpandFileName %s1 kFileName_BEM]; \
+  -okCmd {set fs [ExpandFileName %s1 kFileName_FMRI]; \
   read_fieldsign; RestoreView;} ]
 set tDlogSpecs(SaveFieldSignAs) [list \
   -title "Save Field Sign As" \
   -prompt1 "Save Field Sign:" \
-  -default1 [list ExpandFileName "" kFileName_FieldSign] \
+  -default1 [list ExpandFileName "" kFileName_FMRI] \
+  -presets1 [list $env(PWD)] \
   -note1 "The file name of the field sign data to save" \
-  -okCmd {set fs [ExpandFileName %s1 kFileName_FieldSign]; \
+  -okCmd {set fs [ExpandFileName %s1 kFileName_FMRI]; \
   CheckFileAndDoCmd $fs write_fieldsign} ]
 
 set tDlogSpecs(LoadFieldMask) [list \
   -title "Load Field Mask" \
   -prompt1 "Load Field Mask:" \
-  -default1 [list ExpandFileName "" kFileName_FieldSign] \
+  -default1 [list ExpandFileName "" kFileName_FMRI] \
+  -presets1 [list $env(PWD)] \
   -note1 "The file name of the field mask data" \
-  -okCmd {set fm [ExpandFileName %s1 kFileName_FieldSign]; \
+  -okCmd {set fm [ExpandFileName %s1 kFileName_FMRI]; \
   read_fsmask; RestoreView;} ]
 set tDlogSpecs(SaveFieldMaskAs) [list \
   -title "Save Field Mask As" \
   -prompt1 "Save Field Mask:" \
-  -default1 [list ExpandFileName "" kFileName_FieldSign] \
+  -default1 [list ExpandFileName "" kFileName_FMRI] \
+  -presets1 [list $env(PWD)] \
   -note1 "The file name of the field mask data to save" \
-  -okCmd {set fm [ExpandFileName %s1 kFileName_FieldSign]; \
+  -okCmd {set fm [ExpandFileName %s1 kFileName_FMRI]; \
   CheckFileAndDoCmd $fm write_fsmask} ]
 
 set tDlogSpecs(RunScript) [list \
@@ -4154,6 +4240,7 @@ set tDlogSpecs(SaveRGBAs) [list \
   -title "Save RGB" \
   -prompt1 "Save RGB As:" \
   -default1 [list ExpandFileName "" kFileName_RGB] \
+  -presets1 [list $env(PWD)] \
   -note1 "The file name of the RGB file to save" \
   -okCmd {set rgb [ExpandFileName %s1 kFileName_RGB]; save_rgb} ]
 
