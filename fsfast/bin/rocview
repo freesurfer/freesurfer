@@ -1,9 +1,9 @@
 #!/bin/csh -f
 # rocview
 #
-# $Id: rocview,v 1.2 2003/04/15 04:01:03 greve Exp $
+# $Id: rocview,v 1.3 2003/04/20 21:17:51 greve Exp $
 
-set VERSION = '$Id: rocview,v 1.2 2003/04/15 04:01:03 greve Exp $';
+set VERSION = '$Id: rocview,v 1.3 2003/04/20 21:17:51 greve Exp $';
 set inputargs = ($argv);
 
 set fprvolid = ();
@@ -75,7 +75,7 @@ tee -a > /dev/null $MLF  <<EOF
 
 fprvolid = splitstring('$fprvolid');
 tprvolid = '$tprvolid';
-maskvolid = '$maskvolid';
+maskvolid = splitstring('$maskvolid');
 frame = [$frame];
 outfile = '$outfile';
 inout = $inout;
@@ -92,9 +92,10 @@ polarity = $polarity;
 log10p = $log10p;
 zstat  = $zstat;
 
-if(~isempty(maskvolid))
+if(size(maskvolid,1)==1)
   fprintf('Loading %s\n',maskvolid);
   maskvol = fmri_ldbvolume(maskvolid);
+  maskvol = maskvol(:,:,:,1);
   maskvol = maskvol > 0.5;
   if(inout) maskvol = ~maskvol; end
   if(cutends)
@@ -120,7 +121,25 @@ if(~isempty(fprvolid))
     sz = size(nthfprvol);
     if(length(sz) == 3) sz = [sz 1]; end
     nthfprvol = reshape(nthfprvol, [prod(sz(1:3)) sz(4)]);
-    if(~isempty(indmask)) nthfprvol = nthfprvol(indmask); end
+    if(size(maskvolid,1)==1)
+      if(~isempty(indmask)) nthfprvol = nthfprvol(indmask); end
+    end
+    if(size(maskvolid,1) > 1)
+      nthmaskvolid = deblank(maskvolid(nth,:));
+      maskvol = fmri_ldbvolume(nthmaskvolid);
+      if(isempty(maskvol)) return; end
+      maskvol = maskvol(:,:,:,1);
+      maskvol = maskvol > 0.5;
+      if(inout) maskvol = ~maskvol; end
+      if(cutends)
+        fprintf('Cutting ends\n');
+        maskvol(1,:,:) = 0;
+        maskvol(size(maskvol,1),:,:) = 0;
+      end
+      indmask = find(maskvol == 1);
+      fprintf('   %d %s   %d\n',nth,nthmaskvolid,length(indmask));
+      if(~isempty(indmask)) nthfprvol = nthfprvol(indmask); end
+    end
     fprvol = [fprvol; nthfprvol];
   end
 
@@ -230,7 +249,7 @@ while( $#argv != 0 )
 
     case "-mask":
       if ( $#argv == 0) goto arg1err;
-      set maskvolid = $argv[1]; shift;
+      set maskvolid = ($maskvolid $argv[1]); shift;
       breaksw
 
     case "-roi":
@@ -354,6 +373,11 @@ check_params:
     exit 1
   endif
 
+  if($#maskvolid != 0 && $#maskvolid != 1 && $#maskvolid != $#fprvolid) then
+    echo "ERROR: when spec more than one mask, the number must"
+    echo "       be the same as the number of fpr vols"
+    exit 1;
+  endif
 goto check_params_return;
 ############--------------##################
 
