@@ -4,7 +4,7 @@ Purpose: Routines for handling bfile (bshort and bfloat) I/O.
 Author:  Douglas Greve
 Date:    11/22/00
 
-$Id: bfileio.c,v 1.6 2002/11/12 19:53:58 brucefis Exp $
+$Id: bfileio.c,v 1.7 2003/03/17 18:43:26 greve Exp $
 
 Bfile names are assumed to have the following format:
   stem_%03d.bext 
@@ -254,7 +254,8 @@ float * bf_ldbfile(char * bfname, int *nrows, int *ncols, int *nfrms)
   /* create a buffer to hold the data */
   fdata = calloc(ntot, sizeof(float));
   if(fdata == NULL){
-    sprintf(bfmsg,"bf_ldbfile(): could not alloc float %d",(int)(ntot*sizeof(float)));
+    sprintf(bfmsg,"bf_ldbfile(): could not alloc float %d",
+	    (int)(ntot*sizeof(float)));
     bferr = 1; fprintf(stderr,"%s \n",bfmsg);
     fclose(fp);
     return(NULL);
@@ -282,7 +283,8 @@ float * bf_ldbfile(char * bfname, int *nrows, int *ncols, int *nfrms)
     /* create a temp short buf */
     sdata = calloc(ntot, sizeof(short));
     if(sdata == NULL){
-      sprintf(bfmsg,"bf_ldbfile(): could not alloc %d",(int)(ntot*sizeof(short)));
+      sprintf(bfmsg,"bf_ldbfile(): could not alloc %d",
+	      (int)(ntot*sizeof(short)));
       bferr = 1; fprintf(stderr,"%s \n",bfmsg);
       free(fdata);
       return(NULL);
@@ -774,22 +776,22 @@ float bf_getval(BF_DATA *bfd, int r, int c, int s, int f)
 
   if(s < 0 || s >= bfd->nslcs){
     fprintf(stderr,"ERROR: bf_getval: slice %d out of bounds\n",s);
-    return(1.0/0.0);
+    return(-10000000000000.0);
   }
 
   if(r < 0 || r >= bfd->nrows){
     fprintf(stderr,"ERROR: bf_getval: row %d out of bounds\n",r);
-    return(1.0/0.0);
+    return(-10000000000000.0);
   }
 
   if(c < 0 || c >= bfd->ncols){
     fprintf(stderr,"ERROR: bf_getval: column %d out of bounds\n",r);
-    return(1.0/0.0);
+    return(-10000000000000.0);
   }
 
   if(f < 0 || f >= bfd->nfrms){
     fprintf(stderr,"ERROR: bf_getval: frame %d out of bounds\n",r);
-    return(1.0/0.0);
+    return(-10000000000000.0);
   }
 
   i = bf_rcf2index(bfd,r,c,f);
@@ -836,7 +838,7 @@ int bf_setval(float val, BF_DATA *bfd, int r, int c, int s, int f)
   i = bf_rcf2index(bfd,r,c,f);
 
   *(bfd->slcdata[s]+i) = val; 
-  return(val);
+  return(0);
 }
 
 /* ----------------------------------------------------------
