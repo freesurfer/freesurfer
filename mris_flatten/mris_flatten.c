@@ -14,7 +14,7 @@
 #include "macros.h"
 #include "utils.h"
 
-static char vcid[] = "$Id: mris_flatten.c,v 1.12 1998/02/27 18:56:54 fischl Exp $";
+static char vcid[] = "$Id: mris_flatten.c,v 1.13 1998/03/25 16:24:31 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -52,7 +52,7 @@ main(int argc, char *argv[])
   Progname = argv[0] ;
   ErrorInit(NULL, NULL, NULL) ;
   DiagInit(NULL, NULL, NULL) ;
-
+  Gdiag |= DIAG_SHOW ;
   parms.dt = .1 ;
   parms.projection = PROJECT_PLANE ;
   parms.tol = 1e-1 ;
@@ -342,7 +342,7 @@ get_option(int argc, char *argv[])
     break ;
   case '?':
   case 'U':
-    print_usage() ;
+    print_help() ;
     exit(1) ;
     break ;
   case 'N':
@@ -380,6 +380,8 @@ print_help(void)
   fprintf(stderr, 
        "\nThis program will flatten a surface patch\n");
   fprintf(stderr, "\nvalid options are:\n\n") ;
+  fprintf(stderr, " -w <# iterations>  "
+          "write out the surface every # of iterations.\n") ;
   exit(1) ;
 }
 
