@@ -2263,7 +2263,8 @@ proc CreateMenuBar { ifwMenuBar } {
       { check \
       "Field Sign" \
       "ShowLabel kLabel_Fieldsign $gbShowLabel(kLabel_Fieldsign)"\
-      gbShowLabel(kLabel_Fieldsign) } \
+      gbShowLabel(kLabel_Fieldsign) \
+	mg_FieldSignLoaded} \
       { check \
       "Overlay Layer 1" \
       "ShowLabel kLabel_Val $gbShowLabel(kLabel_Val)"\
