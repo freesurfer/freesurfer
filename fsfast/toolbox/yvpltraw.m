@@ -62,6 +62,8 @@ switch(cbflag)
     ud.showlegend = 1;
     ud.fixaxes = 0;
     ud.axis = [];
+    ud.tpx = [];
+    ud.rescale = []; % this should not be necessary
     [ud err] = load_parfile(ud);
     [ud err] = load_tpx(ud);
     ud = load_rescale(ud);
@@ -209,7 +211,7 @@ else
   ud.resvar = sum((ud.vall - yhatall).^2)/trace(ud.R);
 end
 
-if(~isempty(ud.tpx(ud.nthrun).incl))
+if(~isempty(ud.tpx) & ~isempty(ud.tpx(ud.nthrun).incl))
   ud.t = ud.t(ud.tpx(ud.nthrun).incl);
   ud.raw = ud.raw(ud.tpx(ud.nthrun).incl);
   ud.yhat = ud.yhat(ud.tpx(ud.nthrun).incl);
@@ -356,10 +358,12 @@ function [ud, err] = load_voxel_allruns(ud)
       err = 1;
       return;
     end
-    if(~isempty(ud.tpx(nthrun).excl))
+    if(~isempty(ud.tpx) & ~isempty(ud.tpx(nthrun).excl))
       v(ud.tpx(nthrun).excl) = 0;
     end
-    v = v*ud.rescale(nthrun);
+    if(~isempty(ud.rescale))
+      v = v*ud.rescale(nthrun);
+    end
     
     vall = [vall; v];
   end
