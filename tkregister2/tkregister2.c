@@ -1,10 +1,10 @@
 /*============================================================================
  Copyright (c) 1996 Martin Sereno and Anders Dale
 =============================================================================*/
-/*   $Id: tkregister2.c,v 1.15 2003/08/05 19:19:25 kteich Exp $   */
+/*   $Id: tkregister2.c,v 1.16 2003/08/11 23:07:04 greve Exp $   */
 
 #ifndef lint
-static char vcid[] = "$Id: tkregister2.c,v 1.15 2003/08/05 19:19:25 kteich Exp $";
+static char vcid[] = "$Id: tkregister2.c,v 1.16 2003/08/11 23:07:04 greve Exp $";
 #endif /* lint */
 
 #define TCL
@@ -355,8 +355,14 @@ int Register(ClientData clientData,Tcl_Interp *interp, int argc, char *argv[])
     sprintf(talxfmfile,"%s/talairach.xfm",talxfmdir);
     if(!mkheaderreg){
       if(!fio_DirIsWritable(talxfmdir,0)){
-	printf("ERROR: cannot write to %s\n",talxfmdir);
-	exit(1);
+	printf("\n");
+	printf("\n");
+	printf("WARNING: cannot write to %s.\n",talxfmdir);
+	printf("You will not be able to save any edits.\n");
+	printf("Hit Enter to continue: ");
+	getc(stdin);
+	printf(" ... continuing\n");
+	printf("\n");
       }
       if(regio_read_mincxfm(talxfmfile, &RegMat)) exit(1);
       printf("talairach.xfm ---------------------\n");
@@ -3380,7 +3386,7 @@ char **argv;
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tkregister2.c,v 1.15 2003/08/05 19:19:25 kteich Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: tkregister2.c,v 1.16 2003/08/11 23:07:04 greve Exp $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
