@@ -1,5 +1,7 @@
 # tkUtils.tcl (tku)
 
+# $Id: tkUtils.tcl,v 1.4 2003/04/07 20:02:53 kteich Exp $
+
 # tkuMakeMenu isMenuButton "Menu Name" {item...}
 # item = { command   "Item Name" command                [group_name] }
 # item = { radio     "Item Name" command variable value [group_name] }

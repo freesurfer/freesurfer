@@ -1,5 +1,7 @@
 #! /usr/bin/tixwish
 
+# $Id: tkm_functional.tcl,v 1.16 2003/04/07 20:02:53 kteich Exp $
+
 package require BLT;
 
 source $env(MRI_DIR)/lib/tcl/tkm_common.tcl

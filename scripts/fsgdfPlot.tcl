@@ -1,5 +1,7 @@
 #! /usr/bin/tixwish
 
+# $Id: fsgdfPlot.tcl,v 1.5 2003/04/07 20:02:53 kteich Exp $
+
 package require Tix;
 package require BLT;
 
