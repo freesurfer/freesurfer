@@ -577,15 +577,12 @@ MRISfastRead(char *fname)
   {
     if (MRISreadBinaryCurvature(mris, fname) != NO_ERROR)
       return(NULL) ;
+#if 0
     if (mrisReadBinaryAreas(mris, fname) != NO_ERROR)
       return(NULL) ;
+#endif
   }
 
-  mris->radius = MRISaverageRadius(mris) ;
-#if 0
-  MRIScomputeMetricProperties(mris) ;
-#endif
-  /*  mrisFindPoles(mris) ;*/
 
   MRISstoreCurrentPositions(mris) ;
   return(mris) ;
