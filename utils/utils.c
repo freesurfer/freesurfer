@@ -29,6 +29,8 @@
 #include <errno.h>
 #include <ctype.h>
 #include <sys/types.h>
+#include <sys/param.h>
+#include <unistd.h>
 
 #include <time.h> /* msvc (dng) */
 
@@ -639,4 +641,37 @@ StrRemoveSpaces(char *str)
 
   return(str) ;
 }
+/*------------------------------------------------------------------------
+       Parameters:
 
+      Description:
+         calculate the distance between 2 angles.
+
+    Return Values:
+       remove leading spaces from a string
+------------------------------------------------------------------------*/
+#ifdef SunOS
+extern char *getwd(char *pathname) ;
+#endif
+
+char *
+FileNameAbsolute(char *fname, char *absFname)
+{
+  char pathname [MAXPATHLEN] ;
+  int  len ;
+
+  if (*fname == '/')
+  {
+    if (absFname != fname)
+      strcpy(absFname, fname) ;
+  }
+  else   /* not already absolute */
+  {
+    len = strlen(fname) ;
+    if (fname[len-1] == '/')
+      fname[len-1] = 0 ;
+    getwd(pathname) ;
+    sprintf(absFname, "%s/%s", pathname, fname) ;
+  }
+  return(absFname) ;
+}
