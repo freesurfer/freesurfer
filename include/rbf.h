@@ -62,6 +62,9 @@ int   RBFwriteInto(RBF *rbf, FILE *fp) ;
 RBF   *RBFreadFrom(FILE *fp) ;
 RBF   *RBFcopyWeights(RBF *rbf_src, RBF *rbf_dst) ;
 float RBFcomputeErrors(RBF *rbf, int class, VECTOR *v_error) ;
+int   RBFexamineTrainingSet(RBF *rbf, int (*get_observation_func)
+                            (VECTOR *v_obs, int no, void *parm,
+                             int same_class,int *pclass), void *parm) ;
                
 
 #endif
