@@ -4553,6 +4553,8 @@ ImageValid(IMAGE *I)
   long   size, total, bad ;
   float  *fpix ;
   double *dpix, exponent, val ;
+  DCPIX  *dcpix, dcval ;
+  CPIX   *cpix, cval ;
 
   size = (long)I->rows * (long)I->cols * (long)I->num_frame ;
 
@@ -4592,6 +4594,54 @@ ImageValid(IMAGE *I)
     }
     break ;
   case PFDBLCOM:
+    dcpix = IMAGEDCpix(I, 0, 0); 
+    while (size--)
+    {
+      dcval = *dcpix++ ;
+      if ((dcval.real == 0.0) && (dcval.imag == 0.0))
+        continue ;
+      total++ ;
+      exponent = log10(fabs(dcval.real)) ;
+      if (exponent > 10.0)   /* any values this big are indicative */
+        return(0) ;
+
+      if ((exponent > 6.0) || (exponent < -20))
+        bad++ ;
+      else  /* check imaginary part */
+      {
+        exponent = log10(fabs(dcval.imag)) ;
+        if (exponent > 10.0)   /* any values this big are indicative */
+          return(0) ;
+
+        if ((exponent > 6.0) || (exponent < -20))
+          bad++ ;
+      }
+    }
+    break ;
+  case PFCOMPLEX:
+    cpix = IMAGECpix(I, 0, 0); 
+    while (size--)
+    {
+      cval = *cpix++ ;
+      if ((cval.real == 0.0) && (cval.imag == 0.0))
+        continue ;
+      total++ ;
+      exponent = log10(fabs(cval.real)) ;
+      if (exponent > 10.0)   /* any values this big are indicative */
+        return(0) ;
+
+      if ((exponent > 6.0) || (exponent < -20))
+        bad++ ;
+      else  /* check imaginary part */
+      {
+        exponent = log10(fabs(cval.imag)) ;
+        if (exponent > 10.0)   /* any values this big are indicative */
+          return(0) ;
+
+        if ((exponent > 6.0) || (exponent < -20))
+          bad++ ;
+      }
+    }
     break ;
   }
 
