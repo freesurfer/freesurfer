@@ -1,3 +1,4 @@
+#include "string_fixed.h"
 #include <iomanip>
 #include <sstream>
 #include <stdexcept>

@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <stdexcept>
 #include <iomanip>
-#include "glut.h"
+#include "GL/glut.h"
 #include "ScubaView.h"
 #include "PreferencesManager.h"
 #include "ScubaGlobalPreferences.h"

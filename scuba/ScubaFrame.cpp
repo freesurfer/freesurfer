@@ -1,7 +1,7 @@
 #include "ScubaFrame.h"
 #include "PreferencesManager.h"
 extern "C" {
-#include "glut.h"
+#include "GL/glut.h"
 #include "rgb_image.h"
 }
 #include "ScubaView.h"

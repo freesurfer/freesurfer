@@ -1,3 +1,4 @@
+#include "string_fixed.h"
 #include <iomanip>
 #include <stdexcept>
 #include "Transform44.h"
