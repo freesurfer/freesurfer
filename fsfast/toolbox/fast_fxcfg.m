@@ -46,7 +46,22 @@ switch(DoWhat)
  case 'loadsesscfg'
   if(isempty(flacfg)) pr_fla_needed(DoWhat); return; end
   rt = load_sesscfg(flacfg);
- 
+ case 'nfixedreg'
+  % number of fixed-effect regressors
+  if(isempty(flacfg)) pr_fla_needed(DoWhat); return; end
+  nfx = length(flacfg.fxlist);
+  svnthfx = flacfg.nthfx;
+  nfixedreg = 0;
+  for nthfx = 1:nfx
+    if(strcmp(flacfg.fxlist(nthfx).fx.fxtype,'fixed'))
+      flacfg.nthfx = nthfx;
+      nr = fast_fxcfg('nregressors',flacfg);
+      nfixedreg = nfixedreg + nr;
+    end
+  end
+  flacfg.nthfx = svnthfx;
+  rt = nfixedreg;
+  
  case 'checkermid'
   % returns 1 if ok, 0 or [] otherwise
   if(isempty(flacfg)) pr_fla_needed(DoWhat); return; end
@@ -274,19 +289,10 @@ if(isempty(d))
   flacfg = []; return;
 end
 
-if(isempty(flacfg.runlistfile))
-  runlist = fast_runlist(afsd);
-  if(isempty(runlist))
-    fprintf('ERROR: cannot find any runs in %s\n',afsd);
-    flacfg = []; return;
-  end
-else
-  rlf = sprintf('%s/%s',afsd,flacfg.runlistfile);
-  runlist = fast_runlist(rlf);
-  if(isempty(runlist))
-    fprintf('ERROR: reading %s\n',rlf);
-    flacfg = []; return;
-  end
+runlist = fast_runlist(afsd,flacfg.runlistfile);
+if(isempty(runlist))
+  fprintf('ERROR: with runs or runlistfile in %s\n',afsd);
+  flacfg = []; return;
 end
 
 sesscfg = fast_sesscfg_struct;
@@ -315,6 +321,7 @@ for nthrun = 1:length(runlist)
   end
   sesscfg.fstemlist = strvcat(sesscfg.fstemlist,fstem);
   sesscfg.ntp(nthrun) = ntp;
+  sesscfg.volsize = [nrows ncols nslices];
   % Could check spat dims here %
 
   if(~isempty(flacfg.evschfname))
