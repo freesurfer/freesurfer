@@ -3,8 +3,8 @@
 //
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Date  : $Date: 2004/09/14 13:39:30 $
-// Revision       : $Revision: 1.53 $
+// Revision Date  : $Date: 2004/11/04 16:08:34 $
+// Revision       : $Revision: 1.54 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -3504,6 +3504,7 @@ gcamWriteMRI(GCA_MORPH *gcam, MRI *mri, int which)
   if (!mri)
   {
     mri = MRIalloc(gcam->width, gcam->height, gcam->depth, MRI_FLOAT) ;
+		MRIsetResolution(mri, gcam->spacing, gcam->spacing, gcam->spacing) ;
   }
   if (!mri)
     ErrorExit(ERROR_NOMEMORY, "gcamWrite: could not allocate %dx%dx%d MRI\n",
@@ -3833,127 +3834,25 @@ gcamFindOptimalTimeStep(GCA_MORPH *gcam, GCA_MORPH_PARMS *parms, MRI *mri)
 static double
 gcamLabelEnergy(GCA_MORPH *gcam, MRI *mri, double label_dist)
 {
-  int             x, y, z, num, wm_label, xn, yn, zn, best_label ;
-  float           error, sse, vals[MAX_GCA_INPUTS], yi, yk, min_dist ;
-  GCA_MORPH_NODE  *gcamn, *gcamn_inf, *gcamn_sup ;
-  GC1D            *wm_gc ;
-  GCA_NODE        *gcan ;
+  int             x, y, z ;
+  float           sse ;
+  GCA_MORPH_NODE  *gcamn ;
 
   sse = 0.0 ;
-  for (num = 0, x = 0 ; x < gcam->width ; x++)
+  for (x = 0 ; x < gcam->width ; x++)
     for (y = 0 ; y < gcam->height ; y++)
       for (z = 0 ; z < gcam->depth ; z++)
       {
         if (x == Gx && y == Gy && z == Gz)
           DiagBreak() ;
-        if ((y == gcam->height-1) || (y == 0))
-          continue ;
         
-        /* only process nodes which are hippocampus superior to something else,
-           or white matter inferior to hippocampus 
-        */
+
         gcamn = &gcam->nodes[x][y][z] ;
 
-        if (gcamn->invalid/* == GCAM_POSITION_INVALID*/)
+        if (gcamn->invalid || ((gcamn->status & GCAM_LABEL_NODE) == 0))
           continue;
 
-        if (y == 0 || y == gcam->height-1 || gcamn->y == 0 || gcamn->y == mri->height-1)
-          continue ;
-        
-        gcamn = &gcam->nodes[x][y][z] ;
-	if ((gcamn->status & GCAM_LABEL_NODE) == 0)
-	  continue ;
-
-        if (x == Gx && y == Gy && z == Gz)
-          DiagBreak() ;
-        if (x == Gx && y == (Gy-1) && z == Gz)
-          DiagBreak() ;
-        if (x == Gx && y == (Gy+1) && z == Gz)
-          DiagBreak() ;
-
-        if ((y == gcam->height-1) || (y == 0))
-          continue ;
-        if ((fabs(gcamn->x-Gvx)<=gcam->spacing) &&
-            (fabs(gcamn->y-Gvy)<=gcam->spacing) &&
-            (fabs(gcamn->z-Gvz)<=gcam->spacing))
-          DiagBreak() ;
-        
-        /* only process nodes which are hippocampus superior to something else,
-           or white matter inferior to hippocampus 
-        */
-        if (y == 0 || y == gcam->height-1 || gcamn->y == 0 || gcamn->y == mri->height-1)
-          continue ;
-        if (!IS_HIPPO(gcamn->label) && !IS_WM(gcamn->label))
-          continue ;
-        if (!IS_WM(gcamn->label))   /* only do white matter for now */
-          continue ;
-	if (fabs(2*x-107) <= 2 && fabs(2*y-162)<=2 && fabs(2*z-133)<=2)
-	  DiagBreak() ;
-        gcamn_inf = &gcam->nodes[x][y+1][z] ;
-        gcamn_sup = &gcam->nodes[x][y-1][z] ;
-        if (
-            ((IS_HIPPO(gcamn->label) && IS_WM(gcamn_inf->label)) ||
-             (IS_WM(gcamn->label) && IS_HIPPO(gcamn_sup->label))) == 0)
-          continue ;  /* only hippo above wm, or wm below hippo */
-        if (IS_HIPPO(gcamn->label))
-          load_vals(mri, gcamn->x, gcamn->y+1, gcamn->z, vals, gcam->gca->ninputs) ;
-        else
-          load_vals(mri, gcamn->x, gcamn->y, gcamn->z, vals, gcam->gca->ninputs) ;
-
-#if 0
-        label = gcamMLElabelAtLocation(gcam, x, y, z, vals) ;
-        if (IS_WM(label))  /* already has wm immediately inferior */
-          continue ;
-#endif
-	if (GCApriorToNode(gcam->gca, x, y, z, &xn, &yn, &zn) != NO_ERROR)
-	  continue ;
-        
-        if ((IS_HIPPO(gcamn->label) && gcamn->label == Left_Hippocampus) ||
-            (IS_WM(gcamn->label) && gcamn->label == Left_Cerebral_White_Matter))
-          wm_label = Left_Cerebral_White_Matter ;
-        else
-          wm_label = Right_Cerebral_White_Matter ;
-        wm_gc = GCAfindPriorGC(gcam->gca, x, y, z, wm_label) ;
-        if (wm_gc == NULL)
-          continue ;
-	gcan = GCAbuildRegionalGCAN(gcam->gca, xn, yn, zn, 3) ;
-        
-	min_dist = label_dist+1 ;
-        for (yk = -label_dist ; yk <= label_dist ; yk += 0.1)
-        {
-          yi = gcamn->y+yk ;   /* sample inferiorly */
-          if ((yi >= (mri->height-1)) || (yi <= 0))
-            break ;
-          load_vals(mri, gcamn->x, yi, gcamn->z, vals, gcam->gca->ninputs) ;
-					
-	  best_label = GCAmaxLikelihoodLabel(gcan, vals, gcam->gca->ninputs, NULL) ;
-	  if (best_label != gcamn->label)
-	    continue ;
-
-	  if (fabs(yk) < fabs(min_dist))
-	  {
-	    if (is_temporal_wm(gcam, mri, gcan, gcamn->x, yi, gcamn->z, gcam->gca->ninputs))
-	      min_dist = yk ;
-	  }
-        }
-
-	if (min_dist > label_dist)  /* couldn't find any labels that match */
-	  min_dist = 0 ;
-
-	GCAfreeRegionalGCAN(&gcan) ;
-
-        error = min_dist ;
-        sse += (error*error) ;
-        if (IS_HIPPO(gcamn_sup->label) && (gcamn_sup->status &GCAM_LABEL_NODE))
-          sse += (error*error) ;
-        if (IS_WM(gcamn_inf->label) && (gcamn_inf->status &GCAM_LABEL_NODE))
-          sse += (error*error) ;
-        
-        if (x == Gx && y == Gy && z == Gz)
-          printf("E_label: node(%d,%d,%d): %2.1f\n", x, y, z, error)  ;
-
-        if (!FZERO(error))
-          num++ ;
+				sse += fabs(gcamn->label_dist) ;
       }
   
   return(sse) ;
@@ -3962,16 +3861,23 @@ gcamLabelEnergy(GCA_MORPH *gcam, MRI *mri, double label_dist)
 static int
 gcamLabelTerm(GCA_MORPH *gcam, MRI *mri, double l_label, double label_dist)
 {
-  int             x, y, z, wm_label, num = 0, xn, yn, zn, best_label, sup_wm, sup_ven ;
+  int             x, y, z, wm_label, num, xn, yn, zn, best_label, sup_wm, sup_ven ;
   Real            dy;
   GCA_MORPH_NODE  *gcamn, *gcamn_inf, *gcamn_sup, *gcamn_medial, *gcamn_lateral, *gcamn_ant, *gcamn_post ;
-  float           vals[MAX_GCA_INPUTS], yk, yi, min_dist ;
+  float           vals[MAX_GCA_INPUTS], yi, yk, min_dist ;
   GC1D            *wm_gc ;
   GCA_NODE        *gcan ;
+	MRI             *mri_dist, *mri_dist_after ;
+	int             xo, yo, zo, xv, yv, zv, nremoved ;
 
   if (FZERO(l_label))
     return(NO_ERROR) ;
 
+	mri_dist = MRIalloc(gcam->width, gcam->height, gcam->depth, MRI_FLOAT) ;
+	MRIsetResolution(mri_dist, gcam->spacing, gcam->spacing, gcam->spacing) ;
+
+	
+	GCAMsetStatus(gcam, GCAM_USE_LIKELIHOOD) ; /* no label nodes */
   for (x = 0 ; x < gcam->width ; x++)
     for (y = 0 ; y < gcam->height ; y++)
       for (z = 0 ; z < gcam->depth ; z++)
@@ -3981,8 +3887,6 @@ gcamLabelTerm(GCA_MORPH *gcam, MRI *mri, double l_label, double label_dist)
 
         if (gcamn->invalid/* == GCAM_POSITION_INVALID*/)
           continue;
-
-        gcamn->status = GCAM_USE_LIKELIHOOD ;
 
         if (x == Gx && y == Gy && z == Gz)
           DiagBreak() ;
@@ -4085,7 +3989,7 @@ gcamLabelTerm(GCA_MORPH *gcam, MRI *mri, double l_label, double label_dist)
 					min_dist = 0 ; max_log_p = -1e20 ;
 					for (yk = -label_dist/3 ; yk <= label_dist/3 ; yk += SAMPLE_DIST)
 					{
-						yi = gcamn->y+yk ;   /* sample inferiorly */
+						yi = gcamn->y+yk ;   
 						if ((yi >= (mri->height-1)) || (yi <= 0))
 							break ;
 						load_vals(mri, gcamn->x, yi, gcamn->z, vals, gcam->gca->ninputs) ;
@@ -4120,6 +4024,7 @@ gcamLabelTerm(GCA_MORPH *gcam, MRI *mri, double l_label, double label_dist)
 					}
 				}
 
+				gcamn->label_dist = MRIFvox(mri_dist, x, y, z) = min_dist ;
 #if 1
 #define MAX_MLE_DIST 1
 				if (fabs(min_dist) > MAX_MLE_DIST)
@@ -4129,23 +4034,19 @@ gcamLabelTerm(GCA_MORPH *gcam, MRI *mri, double l_label, double label_dist)
         if (!FZERO(min_dist))
         {       
           gcamn->status = (GCAM_IGNORE_LIKELIHOOD | GCAM_LABEL_NODE) ; 
-          if (fabs(min_dist) >= 1) 
-            num++ ; 
           if (IS_WM(gcamn_inf->label) && ((gcamn_inf->status & GCAM_LABEL_NODE)==0))
           {
-            gcamn_inf->status = (GCAM_IGNORE_LIKELIHOOD & GCAM_LABEL_NODE) ;
+            gcamn_inf->status = (GCAM_IGNORE_LIKELIHOOD | GCAM_LABEL_NODE) ;
             gcamn_inf->dy += (l_label)*dy ;
-            if (fabs(min_dist) >= 1) 
-              num++ ;
+						gcamn_inf->label_dist = MRIFvox(mri_dist, x, y+1, z) = gcamn->label_dist ;
             if (x == Gx && (y+1) == Gy && z == Gz)
               printf("l_label: node(%d,%d,%d): dy = %2.2f\n", x, y+1, z, gcamn_inf->dy)  ;
           }
           if (IS_HIPPO(gcamn_sup->label) && ((gcamn_sup->status & GCAM_LABEL_NODE)==0))
           {
-            gcamn_sup->status = (GCAM_IGNORE_LIKELIHOOD & GCAM_LABEL_NODE) ;
+            gcamn_sup->status = (GCAM_IGNORE_LIKELIHOOD | GCAM_LABEL_NODE) ;
             gcamn_sup->dy += (l_label)*dy ;
-            if (fabs(min_dist) >= 1) 
-              num++ ;
+						gcamn_sup->label_dist = MRIFvox(mri_dist, x, y-1, z) = gcamn->label_dist ;
             if (x == Gx && (y-1) == Gy && z == Gz)
               printf("l_label: node(%d,%d,%d): dy = %2.2f\n", x, y-1, z, gcamn_sup->dy)  ;
           }
@@ -4156,7 +4057,80 @@ gcamLabelTerm(GCA_MORPH *gcam, MRI *mri, double l_label, double label_dist)
 				GCAfreeRegionalGCAN(&gcan) ;
       }
 	
-  
+
+	if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+		MRIwrite(mri_dist, "dist_before.mgz") ;
+	mri_dist_after = MRIcopy(mri_dist, NULL) ;
+
+	/* do neighborhood consistency check */
+	nremoved = 0 ;
+  for (x = 0 ; x < gcam->width ; x++)
+    for (y = 0 ; y < gcam->height ; y++)
+      for (z = 0 ; z < gcam->depth ; z++)
+      {
+				float diff, val0, oval ;
+				int   delete ;
+
+        gcamn = &gcam->nodes[x][y][z] ;
+				if (x == Gx && y == Gy && z == Gz)
+					DiagBreak() ;
+				if ((gcamn->status & GCAM_LABEL_NODE) == 0)
+					continue ;
+				val0 = MRIFvox(mri_dist, x, y, z) ;
+				delete = 0 ;
+				for (xo = -2 ; xo <= 2 && !delete ; xo++)
+				{
+					xv = mri_dist->xi[x+xo] ;
+					for (yo = -2 ; yo <= 2 && !delete ; yo++)
+					{
+						yv = mri_dist->yi[y+yo] ;
+						for (zo = -2 ; zo <= 2 && !delete ; zo++)
+						{
+							zv = mri_dist->zi[z+zo] ;
+							oval = MRIFvox(mri_dist, xv, yv, zv) ;
+							if (!FZERO(oval))
+							{
+								diff = fabs(oval - val0) ;
+								if (diff > 3)   /* shouldn't ever be this big */
+								{
+									if (fabs(val0) > fabs(oval) && (val0*oval < 0))  /*if their signs are different and difference is big */
+										delete = 1 ;
+								}
+							}
+						}
+					}
+				}
+				if (delete)
+				{
+					nremoved++ ;
+					MRIFvox(mri_dist_after, x, y, z) = 0 ;
+					gcamn->dy = 0 ;
+					gcamn->status = GCAM_USE_LIKELIHOOD ;
+					gcamn_inf = &gcam->nodes[x][y+1][z] ;
+					if (gcamn_inf->status & GCAM_LABEL_NODE)
+					{
+						nremoved++ ;
+						gcamn_inf->status = GCAM_USE_LIKELIHOOD ;
+						MRIFvox(mri_dist_after, x, y+1, z) = 0 ;
+						gcamn_inf->dy = 0 ;
+					}
+					gcamn_sup = &gcam->nodes[x][y-1][z] ;
+					if (gcamn_sup->status & GCAM_LABEL_NODE)
+					{
+						nremoved++ ;
+						gcamn_sup->status = GCAM_USE_LIKELIHOOD ;
+						gcamn_sup->dy = 0 ;
+						MRIFvox(mri_dist_after, x, y-1, z) = 0 ;
+					}
+				}
+			}
+
+	if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+		MRIwrite(mri_dist_after, "dist_after.mgz") ;
+
+	printf("%d inconsistent label nodes removed...\n", nremoved) ;
+
+	/* do posterior/anterior consistency check */
   for (x = 0 ; x < gcam->width ; x++)
     for (y = 0 ; y < gcam->height ; y++)
       for (z = 0 ; z < gcam->depth ; z++)
@@ -4190,8 +4164,6 @@ gcamLabelTerm(GCA_MORPH *gcam, MRI *mri, double l_label, double label_dist)
 							(gcamn_medial->dy*gcamn->dy < 0))
 					{
 						gcamn->status = GCAM_USE_LIKELIHOOD ;
-						if (gcamn->dy/l_label >= 1)
-							num-- ;
 						gcamn->dy = 0 ;
 						continue ;
 					}
@@ -4208,13 +4180,30 @@ gcamLabelTerm(GCA_MORPH *gcam, MRI *mri, double l_label, double label_dist)
 					{
 						gcamn->status = GCAM_USE_LIKELIHOOD ;
 						gcamn->dy = 0 ;
-						num-- ;
 						continue ;
 					}
 				}
       }
   
-  
+
+	num = 0 ;
+  for (x = 0 ; x < gcam->width ; x++)
+    for (y = 0 ; y < gcam->height ; y++)
+      for (z = 0 ; z < gcam->depth ; z++)
+      {
+                                
+        gcamn = &gcam->nodes[x][y][z] ;
+        
+        if ((gcamn->invalid/* == GCAM_POSITION_INVALID*/) || 
+						((gcamn->status & GCAM_LABEL_NODE) == 0))
+          continue;
+				if (fabs(gcamn->dy)/l_label >= 1)
+					num++ ;
+				gcamn->label_dist = gcamn->dy ;   /* for use in label energy */
+			}
+
+
+  MRIfree(&mri_dist) ; MRIfree(&mri_dist_after) ;
   if (Gdiag & DIAG_SHOW)
     printf("\t%d nodes for which label term applies\n", num) ;
   return(NO_ERROR) ;
@@ -4579,6 +4568,18 @@ is_temporal_wm(GCA_MORPH *gcam, MRI *mri, GCA_NODE *gcan, float xf, float yf, fl
     label = GCAmaxLikelihoodLabel(gcan, vals, gcam->gca->ninputs, NULL) ;
     if (IS_WM(label) || IS_THALAMUS(label))
       nwhite++ ;
+  }
+  for (yk = -1 ; yk > -2*MAX_TEMPORAL_WM ; yk--)
+  {
+    yi = yf-yk ;
+    if (yi < 0 || yi >= mri->height)
+      break ;
+    load_vals(mri, xf, yi, zf, vals, gcam->gca->ninputs) ;
+    label = GCAmaxLikelihoodLabel(gcan, vals, gcam->gca->ninputs, NULL) ;
+    if (IS_WM(label) || IS_THALAMUS(label))
+      nwhite++ ;
+		else
+			break ;  /* if moving inferiorly and find non-wm voxel, then stop counting - should be hippo */
   }
 
   return(nwhite <= MAX_TEMPORAL_WM) ;  /* must be main body of white matter - too much of it */
