@@ -1,0 +1,861 @@
+#include<stdio.h>
+#include<stdlib.h>
+#include<math.h>
+
+#include "error.h"
+#include "diag.h"
+
+#include "matrix.h"
+#include "matfile.h"
+#include "evschutils.h"
+
+static int EVSCompare(const void *evsch1, const void *evsch2);
+
+/*-------------------------------------------------------------*/
+MATRIX *EvSch2FIRMtx(int EvId, EVSCH *EvSch, float tDelay, float TR,
+		     int Ntps, float PSDMin, float PSDMax, float dPSD,
+		     MATRIX *X)
+{
+  float tMax, tmp, PSDWindow, tPSD, PSD;
+  int RSR, Npsds, nthPSD, n, rA, rB;
+
+  /* Compute number of PSDs in the window */
+  PSDWindow = PSDMax-PSDMin;
+  tmp = rint(PSDWindow/dPSD) - PSDWindow/dPSD;
+  if(tmp > .0001){
+    printf("ERROR: EvSch2FIRMtx: PSDWindow (%g) is not an integer multiple of dPSD (%g)\n",
+	   PSDWindow,dPSD);
+    return(NULL);
+  }
+  Npsds = rint(PSDWindow/dPSD);
+
+  /* Compute resampling rate */
+  tmp = rint(TR/dPSD) - TR/dPSD;
+  if(tmp > .0001){
+    printf("ERROR: EvSch2FIRMtx: TR (%g) is not an integer multiple "
+           " of dPSD (%g)\n", TR, dPSD);
+    return(NULL);
+  }
+  RSR = rint(TR/dPSD);
+
+  /* Compute the time of the last row in X */
+  tMax = TR*(Ntps-1);
+
+  /* Create X with all zeros */
+  if(X==NULL)  X = MatrixAlloc(Ntps,Npsds,MATRIX_REAL);
+  else{
+    if(X->rows != Ntps || X->rows != Npsds){
+      printf("ERROR: EvSch2FIRMtx: dimensions of X mismatch\n");
+      return(NULL);
+    }
+    X = MatrixZero(Ntps,Npsds,X);
+  }
+
+  /* Fill-in the non-zero entries of X for each event */
+  /* nthPSD will be the column in X */
+  for(nthPSD = 0; nthPSD < Npsds; nthPSD++){
+    PSD = nthPSD*dPSD + PSDMin;
+
+    for(n = 0; n < EvSch->nevents; n++){
+
+      if(EvSch->eventid[n] != EvId) continue;
+
+      tPSD = EvSch->tevent[n] + tDelay + PSD;
+      if(tPSD < 0.0)  continue;
+      if(tPSD > tMax) break;
+
+      /* Could compute the time of the closest row, then skip if
+	 fabs(tRow-tPSD) > dPSD/2 ????? This would be easily
+         extended to the cases where the data were not aquired
+	 uniformly in time. */
+
+      /* rA would be the row of X if the rows of X were separated by dPSD */
+      rA = (int)rint(tPSD/dPSD);
+
+      /* If rA does not fall into a row of X, skip */
+      if( (rA % RSR) != 0) continue;
+
+      /* rB is the row of X */
+      rB = rA/RSR;
+      if(EvSch->weight != NULL)	X->rptr[rB+1][nthPSD+1] = EvSch->weight[n];
+      else     	                X->rptr[rB+1][nthPSD+1] = 1;
+
+    }
+  }
+
+  return(X);
+}
+/*-------------------------------------------------------------*/
+MATRIX *EVSfirMtxAll(EVSCH *EvSch, float tDelay, float TR, int Ntps, 
+		     float PSDMin, float PSDMax, float dPSD)
+{
+  int ev;
+  MATRIX *Xevfir=NULL, *Xtmp=NULL, *Xfir=NULL;
+
+  for(ev=1; ev <= EvSch->nEvTypes; ev++){    
+    Xevfir = EvSch2FIRMtx(ev, EvSch, 0, TR, Ntps, 
+			  PSDMin, PSDMax, dPSD, Xevfir);
+    if(Xevfir == NULL){
+      printf("ERROR: EVSfirMtxAll: Cannot compute Xevfir\n");
+      return(NULL);
+    }
+    Xtmp  = MatrixHorCat(Xfir,Xevfir,NULL); 
+    if(Xfir != NULL) MatrixFree(&Xfir);
+    Xfir = Xtmp;
+    
+    MatrixFree(&Xevfir);
+    Xevfir = NULL;
+  }
+
+
+  return(Xfir);
+}
+/*-------------------------------------------------------------*/
+EVENT_SCHEDULE *AllocEvSch(int nevents, int allocweight)
+{
+  EVENT_SCHEDULE *EvSch;
+
+  EvSch = (EVENT_SCHEDULE *) calloc(sizeof(EVENT_SCHEDULE),1);
+  EvSch->nevents = nevents;
+
+  EvSch->tevent  = (float *)calloc(sizeof(float),nevents);
+  EvSch->eventid = (int *)calloc(sizeof(int),nevents);
+  if(allocweight) EvSch->weight  = (float *)calloc(sizeof(float),nevents);
+
+  EvSch->nEvTypes = 0;
+  EvSch->nEvReps  = NULL;
+  EvSch->EvDur    = NULL;
+
+  return(EvSch);
+}
+/*-------------------------------------------------------------*/
+int EVSfree(EVENT_SCHEDULE **ppEvSch)
+{
+  EVENT_SCHEDULE *pEvSch;
+
+  pEvSch = *ppEvSch;
+
+  if(pEvSch->tevent  != NULL) free(pEvSch->tevent);
+  if(pEvSch->eventid != NULL) free(pEvSch->eventid);
+  if(pEvSch->weight  != NULL) free(pEvSch->weight);
+  if(pEvSch->nEvReps != NULL) free(pEvSch->nEvReps);
+  if(pEvSch->EvDur   != NULL) free(pEvSch->EvDur);
+
+  free(*ppEvSch);
+
+  *ppEvSch = NULL;
+
+  return(0);
+}
+
+/*-------------------------------------------------------------*/
+int PrintEvSch(FILE *fp, EVENT_SCHEDULE *EvSch)
+{
+  int n;
+  for(n=0; n < EvSch->nevents; n++){
+    //fprintf(fp,"%3d %8.4f  %3d ",n,EvSch->tevent[n],EvSch->eventid[n]);
+    fprintf(fp,"%8.4f  %3d ",EvSch->tevent[n],EvSch->eventid[n]);
+    if(EvSch->weight != 0) fprintf(fp,"  %8.4f",EvSch->weight[n]);
+    fprintf(fp,"\n");
+  }
+  return(0);
+}
+/*-----------------------------------------------------------------*/
+int EVSwritePar(char *parfile, EVENT_SCHEDULE *EvSch, 
+		char **lables, float TR, float tMax)
+{
+  FILE *fp;
+
+  fp = fopen(parfile,"w");
+  if(fp==NULL){
+    printf("ERROR: cannot open %s\n",parfile);
+    return(1);
+  }
+  PrintEvSch(fp, EvSch);
+  fclose(fp);
+
+  return(0);
+}
+/*-----------------------------------------------------------------*/
+EVENT_SCHEDULE *EVSsynth(int nEvTypes, int *nPer, float *tPer, 
+			 float tRes, float tMax, float tPreScan,
+			 int nCB1Search)
+{
+  int id,m,n,nevents, nSlotsNull,nSlotsTot, *EvSeq;
+  float tStimTot,t,tScanTot, tNullTot;
+  EVENT_SCHEDULE *EvSch;
+
+  /* Compute the total amount of stimulation time */
+  tStimTot = 0.0;
+  nevents = 0;
+  for(n=0;n<nEvTypes;n++){
+    nevents += nPer[n];
+    tStimTot += (nPer[n]*tPer[n]);
+  }
+
+  /* Compute the total amount of scan time and compare to stim time */
+  tScanTot = tMax + tPreScan;
+  if(tStimTot > tScanTot){
+    printf("ERROR: too much stim time (%g/%g)\n",tStimTot,tScanTot);
+    return(NULL);
+  }
+
+  /* Synthesize the sequence */
+  if(nCB1Search > 1)
+    EvSch = EVScb1Optimize(nEvTypes, nPer, nCB1Search);
+  else
+    EvSch = EVScb1Optimize(nEvTypes, nPer, 1);
+
+  /* The code  below is for synthesizing the timing */
+  /* Compute the total amount of null time */
+  tNullTot = tScanTot-tStimTot;
+
+  /* Comute number of slots allocated for null */
+  nSlotsNull = (int)floor(tNullTot/tRes);
+
+  /* Comute number of slots at given temp res, include slots for null */
+  nSlotsTot = nevents + nSlotsNull;
+
+  /* Create a non-random sequence of 0s and 1s, 1 = Non-Null */
+  EvSeq = (int *) calloc(sizeof(int),nSlotsTot);
+  for(n=0;n < nevents; n++) EvSeq[n] = 1;
+  /* Randomize the sequence of nulls and non-nulls*/
+  RandPermList(nSlotsTot,EvSeq);
+
+  /* Compute the the timing */
+  m = 0;
+  t = -tPreScan;
+  for(n=0; n < nSlotsTot; n++){
+    //printf("%6.2f %d\n",t,EvSeq[n]);
+    if(EvSeq[n] != 0){
+      id = EvSch->eventid[m];
+      EvSch->tevent[m] = t;
+      t += tPer[id-1];
+      m++;
+    }
+    else t += tRes;
+  }
+
+  /* Alloc and fill the number the event-type duration */
+  EvSch->EvDur   = (float *) calloc(sizeof(float),nEvTypes);
+  for(n=0;n<nEvTypes;n++) EvSch->EvDur[n] = tPer[n];
+
+  free(EvSeq);
+  return(EvSch);
+}
+/*-----------------------------------------------------------*/
+EVSCH *EVScb1Optimize(int nEvTypes, int *nEvReps, int nSearch)
+{
+  EVSCH *EvSch, *EvSchBest;
+  int n;
+  
+  for(n=0; n < nSearch; n++){
+
+    EvSch = EVSRandSequence(nEvTypes,nEvReps);
+    EVScb1Error(EvSch);
+
+#if 0
+    printf("n = %3d, cb1err = %g, %d ---------------\n",
+	   n,EvSch->cb1err,EvSch->nevents);
+    printf("nEvTypes = %d: ",nEvTypes);
+    for(m=0;m<nEvTypes;m++) printf("%d ",nEvReps[m]);
+    printf("\n");
+    fflush(stdout);
+    PrintEvSch(stdout,EvSch);
+#endif
+
+    if(n==0) EvSchBest = EvSch;
+    else{
+      if(EvSchBest->cb1err > EvSch->cb1err){
+	EVSfree(&EvSchBest);
+	EvSchBest = EvSch;
+      }
+      else EVSfree(&EvSch);
+    }
+  }
+
+  return(EvSchBest);
+}
+/*-----------------------------------------------------------*/
+EVSCH *EVSRandSequence(int nEvTypes, int *nEvReps)
+{
+  EVSCH *EvSch;
+  int nevents, m,n,nthev;
+  
+  nevents = 0;
+  for(n=0;n<nEvTypes;n++) nevents += nEvReps[n];
+
+  EvSch = AllocEvSch(nevents,0);
+  EvSch->nEvTypes = nEvTypes;
+
+  /* Alloc and fill the number of reps (but not the duration) */
+  EvSch->nEvReps = (int *) calloc(sizeof(int),nEvTypes);
+  for(n=0;n<nEvTypes;n++)  EvSch->nEvReps[n] = nEvReps[n];
+
+  /* Fill the event list with the proper number of each type */
+  nthev = 0;
+  for(n=0;n<nEvTypes;n++){
+    for(m=0; m < nEvReps[n]; m++){
+      EvSch->eventid[nthev] = n+1;
+      nthev++;
+    }
+  }
+
+  /* Randomly permute the event list to randomize */
+  RandPermList(nevents,EvSch->eventid);
+
+  return(EvSch);
+}
+/*-----------------------------------------------------------*/
+int EVSRandTiming(EVSCH *EvSch, float *EvDur, 
+		  float tRes, float tMax, float tPreScan)
+{
+  float t,tStimTot,tScanTot,tNullTot,tNullAvg,tNullSum;
+  float tNull0, tNull;
+  int id,n;
+
+  tStimTot = 0.0;
+  EvSch->EvDur = (float *) calloc(sizeof(float),EvSch->nEvTypes);  
+  for(n=0; n < EvSch->nEvTypes; n++){
+    tStimTot += (EvSch->nEvReps[n]*EvDur[n]);
+    EvSch->EvDur[n] = EvDur[n];
+  }
+
+  /* Make sure the stimulation time does not exceed the scanning time */
+  tScanTot = tMax + tPreScan;
+  if(tStimTot > tScanTot){
+    printf("ERROR: too much stim time (%g/%g)\n",tStimTot,tScanTot);
+    return(1);
+  }
+
+  /* Prep for the loop */
+  tNullTot = tScanTot-tStimTot;
+  tNullAvg = tNullTot/EvSch->nevents;
+  tNullSum = 0.0;
+  t = -tPreScan;
+
+  /* Loop through all the events */
+  for(n=0;n < EvSch->nevents; n++){
+
+    id = EvSch->eventid[n];
+
+    /* Set the event time to the current time */
+    EvSch->tevent[n] = t;
+
+    /* Add the event duration to the current time */
+    t += EvSch->EvDur[id-1];
+
+    /* Add a random amount of null to the current time */
+    if(tNullSum < tNullTot){
+      tNull0 = 2*drand48()*tNullAvg; /* will average tNullAvg */
+      if(tRes > 0) tNull = tRes * rint(tNull0/tRes);
+      else         tNull = tNull0;
+      if(tNull + tNullSum > tNullTot){
+	/* Not much left, give it all to this null */
+	tNull0 = tNullTot-tNullSum;
+	if(tRes > 0) tNull = tRes * rint(tNull0/tRes);
+	else         tNull = tNull0;
+      }
+      t += tNull;
+      tNullSum += tNull;
+    }
+  }
+
+  return(0);
+}
+
+/*-----------------------------------------------------------------*/
+EVENT_SCHEDULE *SynthEvSch(int nEvTypes, int *nPer, float *tPer, 
+			   float tRes, float tMax, float tPreScan)
+{
+  int r,m,n,nevents, nslots, *EvSeq;
+  float tStimTot,t,tScan;
+  EVENT_SCHEDULE *EvSch;
+
+  tStimTot = 0.0;
+  nevents = 0;
+  for(n=0;n<nEvTypes;n++){
+    nevents += nPer[n];
+    tStimTot += (nPer[n]*tPer[n]);
+  }
+
+  tScan = tMax + tPreScan;
+  if(tStimTot > tScan){
+    printf("ERROR: too much stim time (%g/%g)\n",tStimTot,tScan);
+    return(NULL);
+  }
+
+  nslots = (int)floor(tScan/tRes);
+
+  EvSeq = (int *) calloc(sizeof(int),nslots);
+
+  /* Create a non-random sequence */
+  r = 0;
+  for(n=0;n<nEvTypes;n++){
+    for(m=0; m < nPer[n]; m++){
+      EvSeq[r] = n+1;
+      r++;
+    }
+  }
+
+  /* Randomize the sequence */
+  RandPermList(nslots,EvSeq);
+
+  EvSch = AllocEvSch(nevents,0);
+
+  /* Randomize the timing */
+  m = 0;
+  t = -tPreScan;
+  for(n=0; n < nslots; n++){
+    if(EvSeq[n] != 0){
+      EvSch->eventid[m] = EvSeq[n];
+      EvSch->tevent[m]  = t;
+      m++;
+      t += tPer[EvSeq[n]-1];
+    }
+    else t += tRes;
+  }
+
+  free(EvSeq);
+
+  EvSch->nEvTypes = nEvTypes;
+  EvSch->nEvReps = (int *) calloc(sizeof(int),nEvTypes);
+  EvSch->EvDur   = (float *) calloc(sizeof(float),nEvTypes);
+  for(n=0;n<nEvTypes;n++){
+    EvSch->nEvReps[n] = nPer[n];
+    EvSch->EvDur[n]   = tPer[n];
+  }
+
+  return(EvSch);
+}
+/*-------------------------------------------------------------*/
+EVENT_SCHEDULE *RandEvSch(int nevents, int ntypes, float dtmin, 
+			  float dtnullavg, int randweights)
+{
+  EVENT_SCHEDULE *EvSch;
+  float t;
+  int n;
+
+  EvSch = AllocEvSch(nevents,randweights);
+
+  t = 0;
+  for(n=0; n < EvSch->nevents; n++){
+    EvSch->tevent[n] = t;
+    EvSch->eventid[n] = (int) floor(drand48()*ntypes) + 1;
+    if(EvSch->weight != 0) EvSch->weight[n] = drand48();
+    t += dtmin + drand48()*dtnullavg;
+  }
+  return(EvSch);
+}
+/*------------------------------------------*/
+int EVSmaxId(EVSCH *EvSch)
+{
+  int n,id,condmax;
+
+  condmax = -1;
+  for(n=0; n < EvSch->nevents; n++){
+    id = EvSch->eventid[n];
+    if(id > condmax) condmax = id;
+  }
+
+  return(condmax);
+}
+/*-------------------------------------------------------------*/
+EVENT_SCHEDULE *EVSreadPar(char *parfile)
+{
+  FILE *fp;
+  EVENT_SCHEDULE * EvSch;
+  int nevents, id, ev;
+  char tmpstring[2001];
+  float tev;
+
+  fp = fopen(parfile,"r");
+  if(fp==NULL){
+    printf("ERROR: cannot open %s\n",parfile);
+    return(NULL);
+  }
+
+  /* Count the number of non-null events */
+  nevents = 0;
+  while(fgets(tmpstring,2000,fp) != NULL){
+    sscanf(tmpstring,"%f %d",&tev,&id);
+    if(id != 0) nevents++;
+  }
+  fclose(fp);
+  //printf("INFO: found %d events\n",nevents);
+  
+  EvSch = AllocEvSch(nevents,0);
+
+  /* Close/Open to rewind */
+  fp = fopen(parfile,"r");
+  nevents = 0;
+  while(fgets(tmpstring,2000,fp) != NULL){
+    sscanf(tmpstring,"%f %d",&tev,&id);
+    if(id != 0){
+      EvSch->tevent[nevents]  = tev;
+      EvSch->eventid[nevents] = id;
+      nevents++;
+    }
+  }
+  fclose(fp);
+
+  EvSch->nEvTypes = EVSmaxId(EvSch); /* holes? */
+
+  /* Fill in the number of repetitions */
+  EvSch->nEvReps = (int *) calloc(sizeof(int),EvSch->nEvTypes);
+  for(ev=0; ev < nevents; ev++){
+    id = EvSch->eventid[ev];
+    EvSch->nEvReps[id-1] ++;
+  }
+
+
+  return(EvSch);
+}
+/*------------------------------------------------------------
+  RandPerm() - returns a list of randomly permuted integers
+  between 0 and N-1. Should be the same as matlab's.
+  ------------------------------------------------------------*/
+int *RandPerm(int N, int *v)
+{
+  int tmp,n,n2;
+
+  if(v==NULL) v = (int *) calloc(sizeof(int),N);
+  for(n=0;n < N;n++) v[n] = n;
+
+  for(n=0;n < N;n++){
+    n2 = (int)floor(drand48()*N);
+    tmp = v[n];
+    v[n] = v[n2];
+    v[n2] = tmp;
+  }
+
+  return(v);
+}
+/*---------------------------------------------------------------
+  RandPermList() - randomly permutes members of the given list.
+  ------------------------------------------------------------*/
+int RandPermList(int N, int *v)
+{
+  int *p, *vp, n;
+
+  if(v==NULL){
+    printf("ERROR: RandPermVect: vector is null\n");
+    return(1);
+  }
+
+  p = RandPerm(N,NULL);
+  vp = (int *) calloc(sizeof(int),N);
+  for(n=0;n<N;n++) vp[n] = v[n];
+  for(n=0;n<N;n++) v[n]  = vp[p[n]];
+
+  free(p);
+  free(vp);
+
+  return(0);
+}
+/*------------------------------------------*/
+int EvSchSort(EVSCH **EvSchList, int nList)
+{
+  qsort(EvSchList,nList,sizeof(EVSCH **),EVSCompare);
+  return(0);
+}
+/*--------------------------------------------------------------*/
+static int EVSCompare(const void *evsch1, const void *evsch2)
+{
+  EVSCH *EvSch1, *EvSch2;
+
+  EvSch1 = *((EVSCH **) evsch1);
+  EvSch2 = *((EVSCH **) evsch2);
+
+  //printf("cost: %g %g\n",EvSch1->cost,EvSch2->cost);
+
+  /* Sort so that the highest cost is first */
+  if(EvSch1->cost > EvSch2->cost) return(-1);
+  if(EvSch1->cost < EvSch2->cost) return(+1);
+  return(0);
+}
+/*--------------------------------------------------------------
+  EVScb1Matrix() - computes the first-order counter-balance
+  matrix. The number in element i,j is the number of times that
+  condition i was followed by condition j. This does not include
+  condition 0.
+  --------------------------------------------------------------*/
+MATRIX *EVScb1Matrix(EVSCH *EvSch)
+{
+  MATRIX *Ncb1;
+  int nthev, i,j;
+
+  Ncb1 = MatrixZero(EvSch->nEvTypes,EvSch->nEvTypes,NULL);
+
+  for(nthev=0; nthev < EvSch->nevents-1; nthev++){
+    i = EvSch->eventid[nthev];
+    j = EvSch->eventid[nthev+1];
+    if(i==0 || j==0) continue;
+    Ncb1->rptr[i][j]++;
+  }
+
+  return(Ncb1);
+}
+/*--------------------------------------------------------------
+  EVScb1ProbMatrix() - computes an estimate of the first-order
+  counter-balance PROBABILITY matrix. The value in element i,j is the
+  probability (or rate) that condition i was followed by condition
+  j. This does not include condition 0. In theory, the rows of
+  Pcb1 should sum to 1.0, but this will not be the case for
+  which ever condition the sequence ends on.
+  --------------------------------------------------------------*/
+MATRIX *EVScb1ProbMatrix(EVSCH *EvSch)
+{
+  MATRIX *Ncb1, *Pcb1=NULL;
+  int i,j;
+
+  Ncb1 = EVScb1Matrix(EvSch);
+  Pcb1 = MatrixZero(EvSch->nEvTypes,EvSch->nEvTypes,NULL);
+
+  for(i=1; i<= EvSch->nEvTypes; i++){
+    for(j=1; j<= EvSch->nEvTypes; j++){
+      Pcb1->rptr[i][j] = Ncb1->rptr[i][j]/EvSch->nEvReps[i-1];
+      /* Note: i-1 needed in nEvReps because its normal C array */
+    }
+  }
+  MatrixFree(&Ncb1);
+
+  return(Pcb1);
+}
+/*--------------------------------------------------------------
+  EVScb1IdealProbMatrix() - computes the ideal first-order
+  counter-balance PROBABILITY matrix. The value in element i,j is the
+  ideal probability that condition i should be followed by condition
+  j, which is just equal to the probability of condition j. This does
+  not include condition 0.
+  --------------------------------------------------------------*/
+MATRIX *EVScb1IdealProbMatrix(EVSCH *EvSch)
+{
+  MATRIX *IdealPcb1;
+  int i,j;
+
+  IdealPcb1 = MatrixZero(EvSch->nEvTypes,EvSch->nEvTypes,NULL);
+
+  for(i=1; i<= EvSch->nEvTypes; i++){
+    for(j=1; j<= EvSch->nEvTypes; j++){
+      //printf("i=%d, j=%d, IP = %g, nEVj=%d, nev=%d\n",i,j,
+      //     IdealPcb1->rptr[i][j],EvSch->nEvReps[j-1],EvSch->nevents);
+      IdealPcb1->rptr[i][j] = (float)EvSch->nEvReps[j-1]/EvSch->nevents;
+      /* Note: j-1 needed in nEvReps because its normal C array */
+    }
+  }
+
+  return(IdealPcb1);
+}
+/*------------------------------------------------------------
+  EVScb1Error() - computes a measure of how far a given sequence is
+  from having ideal first-order counter-balancing. It is computed as
+  the relative difference between the ideal counter-balance
+  probability matrix and the actual matrix, averaged over all the
+  elements in the matrix.
+  ------------------------------------------------------------*/
+float EVScb1Error(EVSCH *EvSch)
+{
+  MATRIX *IdealPcb1, *Pcb1;
+  int i,j;
+  float cb1err;
+
+  IdealPcb1 = EVScb1IdealProbMatrix(EvSch);
+  Pcb1 = EVScb1ProbMatrix(EvSch);
+
+  cb1err = 0;
+  for(i=1; i<= EvSch->nEvTypes; i++){
+    for(j=1; j<= EvSch->nEvTypes; j++){
+      cb1err += fabs(IdealPcb1->rptr[i][j]-Pcb1->rptr[i][j])/
+	IdealPcb1->rptr[i][j];
+    }
+  }
+  cb1err /= (EvSch->nEvTypes*EvSch->nEvTypes);
+
+  MatrixFree(&IdealPcb1);
+  MatrixFree(&Pcb1);
+
+  EvSch->cb1err = cb1err;
+
+  return(cb1err);
+}
+/*----------------------------------------------------*/
+int EVScostId(char *CostString)
+{
+  if(! strcmp("eff",CostString) )       return(EVS_COST_EFF);
+  if(! strcmp("vrfavg",CostString) )    return(EVS_COST_VRFAVG);
+  if(! strcmp("vrfstd",CostString) )    return(EVS_COST_VRFSTD);
+  if(! strcmp("vrfavgstd",CostString) ) return(EVS_COST_VRFAVGSTD);
+
+  return(EVS_COST_UNKNOWN);
+}
+/*----------------------------------------------------*/
+char *EVScostString(int CostId)
+{
+  switch(CostId){
+  case EVS_COST_UNKNOWN:   return("unknown");    break;
+  case EVS_COST_EFF:       return("eff");        break;
+  case EVS_COST_VRFAVG:    return("vrfavg");     break;
+  case EVS_COST_VRFSTD:    return("vrfstd");     break;
+  case EVS_COST_VRFAVGSTD: return("vrfavgstd");  break; 
+  }
+
+  return(NULL);
+}
+/*--------------------------------------------------------------------
+  EVSdesignMtxStats() - computes statistics about design relevant for
+  optimization. stats should have at least 6 elements. Returns 1 is
+  the design is singular, 0 otherwise.  This needs to be modified to
+  compute the VRF differently when there are different numbers of
+  stimuli in each event type.
+  -------------------------------------------------------------------*/
+int EVSdesignMtxStats(MATRIX *Xtask, MATRIX *Xnuis, EVSCH *EvSch)
+{
+  MATRIX *X=NULL, *Xt=NULL, *XtX=NULL;
+  MATRIX *iXtX=NULL, *VRF=NULL;
+  int r,m,nTaskAvgs;
+  float diagsum;
+  double dtmp, dtmp1, dtmp2;
+
+  X = MatrixHorCat(Xtask,Xnuis,NULL); 
+
+  Xt = MatrixTranspose(X,Xt);
+  XtX = MatrixMultiply(Xt,X,XtX);
+
+  /* Compute the Inverse */
+  iXtX = MatrixInverse(XtX,NULL);
+
+  /* Make sure that it was actually inverted */
+  if(iXtX != NULL){
+    r = 0;
+    nTaskAvgs = Xtask->cols;
+
+    VRF = MatrixAlloc(nTaskAvgs,1,MATRIX_REAL);
+
+    diagsum = 0.0;
+    for(m=0; m < nTaskAvgs; m++){/* exctract diag */
+      diagsum += iXtX->rptr[m+1][m+1]; 
+      VRF->rptr[m+1][1] = 1.0/(iXtX->rptr[m+1][m+1]); 
+    }
+    EvSch->eff = 1.0/diagsum;
+    EvSch->vrfstd = VectorStdDev(VRF,&dtmp);
+    EvSch->vrfavg = dtmp;
+    EvSch->vrfrange = VectorRange(VRF,&dtmp1,&dtmp2);
+    EvSch->vrfmin = dtmp1;
+    EvSch->vrfmax = dtmp2;
+
+    MatrixFree(&iXtX);
+    MatrixFree(&VRF);
+  }
+  else r = 1;
+
+  MatrixFree(&X);
+  MatrixFree(&Xt);
+  MatrixFree(&XtX);
+
+  return(r);
+}
+/*------------------------------------------------------------------*/
+float EVScost(EVSCH *EvSch, int CostId, float *params)
+{
+
+  switch(CostId){
+  case EVS_COST_EFF:       
+    EvSch->cost = EvSch->eff; 
+    break;
+  case EVS_COST_VRFAVG:    
+    EvSch->cost = EvSch->vrfavg; 
+    break;
+  case EVS_COST_VRFSTD:    
+    EvSch->cost = -EvSch->vrfstd; 
+    break;
+  case EVS_COST_VRFAVGSTD: 
+    EvSch->cost = EvSch->vrfavg-params[0]*EvSch->vrfstd; 
+    break;
+  default:
+    printf("ERROR: CostId %d unrecoginized\n",CostId);
+    return(-1000000.0);
+    break;
+  }
+
+  return(EvSch->cost);
+}
+/*-------------------------------------------------------------
+  EVSfirXtXIdeal() - computes the ideal XtX matrix for the FIR
+  signal model. The XtX matrix can be broken down into nEvTypes-
+  by-nEvTypes blocks, each nPSD-by-nPSD. The value at the nth row 
+  and mth col within the block at i,j within the block matrix
+  represents the number of times one would expect to see Event
+  Type i followed (n-m) dPSDs by Event Type j. If m > n, then
+  j actually preceeds i.
+
+  The block at row=i and col=j within the block matrix represents
+  EVT j (col) being followed by EVT i (row). 
+
+  Within block i,j, the nth col corresponds to condition j being
+  shifted by n, and the mth row corresponds to condition i being
+  shifted by m, with respect to the start of the scan. In other
+  words, element m,n represents condition i appearing (n-m) dPSDs
+  after condition j.
+
+  For example, for two conditions in block i=2,j=1, the number at the
+  first row (m=1) and third column (n=3) represents the expected
+  number of times that EVT1 (j=1) should be followed by EVT2 (i=2) by
+  3-1=2 dPSDs.
+  -------------------------------------------------------------*/
+MATRIX *EVSfirXtXIdeal(int nEvTypes, int *nEvReps, float *EvDur, 
+		       float TR, int Ntp, 
+		       float PSDMin, float PSDMax, float dPSD)
+{
+  MATRIX *XtX=NULL;
+  int Npsd, Navgs, npsd1, npsd2, nevt1, nevt2;
+  int n, nslots, nshift;
+  int r,c;
+  int *EvDur_dPSD;
+  float vx;
+  
+  Npsd = (int)(rint((PSDMax-PSDMin)/dPSD));
+  Navgs = nEvTypes * Npsd;
+
+  EvDur_dPSD = (int *) calloc(sizeof(int),nEvTypes);
+  for(n=0;n<nEvTypes;n++) EvDur_dPSD[n] = (int)(rint(EvDur[n]/dPSD));
+
+  nslots = (int)(rint(TR*Ntp/dPSD));
+
+  XtX = MatrixAlloc(Navgs,Navgs,MATRIX_REAL);
+
+  /* Loop through the Event Type Block matrix */
+  for(nevt1 = 0; nevt1 < nEvTypes; nevt1++){   /* block rows (j)*/
+    for(nevt2 = 0; nevt2 < nEvTypes; nevt2++){ /* block cols (i)*/
+
+      for(npsd1=0; npsd1 < Npsd; npsd1++){   /* rows (m)*/
+	for(npsd2=0; npsd2 < Npsd; npsd2++){ /* cols (n)*/
+
+	  /* nshift is the number of dPSDs that EVT1 follows EVT2*/
+	  nshift = npsd2-npsd1; /* n-m */
+	  r = nevt1*Npsd + npsd1 + 1;
+	  c = nevt2*Npsd + npsd2 + 1;
+
+	  if(nevt1==nevt2){
+	    /* diagonal block */
+	    if(nshift==0) vx = nEvReps[nevt1];
+	    else if(abs(nshift) < EvDur_dPSD[nevt1])  vx = 0.0;
+	    else vx = nEvReps[nevt1]*nEvReps[nevt1]/nslots;
+	  }
+	  else{
+	    /* off-diagonal block */
+	    if(nshift == 0 || 
+	       (nshift > 0 && nshift < EvDur_dPSD[nevt2]) ||
+	       (nshift < 0 && -nshift < EvDur_dPSD[nevt1])) vx = 0.0;
+	    else vx = (float)nEvReps[nevt1]*nEvReps[nevt2]/nslots;
+	  }
+	  XtX->rptr[r][c] = vx;
+	}
+      }
+
+    }
+  }
+
+  free(EvDur_dPSD);
+  return(XtX);
+}
