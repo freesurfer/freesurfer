@@ -6,8 +6,8 @@
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/01/28 23:20:23 $
-// Revision       : $Revision: 1.32 $
+// Revision Date  : $Date: 2004/01/28 23:23:56 $
+// Revision       : $Revision: 1.33 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -136,7 +136,7 @@ main(int argc, char *argv[])
   float        old_log_p, log_p ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_em_register.c,v 1.32 2004/01/28 23:20:23 tosa Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_em_register.c,v 1.33 2004/01/28 23:23:56 tosa Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -437,7 +437,6 @@ main(int argc, char *argv[])
   // now start working (remember this is vox-to-vox transform)
   parms.lta->xforms[0].m_L = MatrixIdentity(4, NULL) ;
   i = 0 ;
-  //goto tosajump;
   /////////////////////////////////////////////////////////////////////////////////////
   // change scale up to nscales (spacing is halved)
   // default nscales = 1
@@ -465,7 +464,6 @@ main(int argc, char *argv[])
     GCAfreeSamples(&parms.gcas, nsamples) ;
     parms.tol *= 10 ; i++ ;
   } 
-tosajump:
   // change nsamples to all samples
   parms.gcas = GCAfindAllSamples(gca, &nsamples, NULL) ;
   {
@@ -972,7 +970,7 @@ find_optimal_transform(MRI *mri, GCA *gca, GCA_SAMPLE *gcas, int nsamples,
 	   dx,dy,dz, max_log_p) ;
 #else ///////////////this is executed  ////////////////////////////////////
     fprintf(stderr, "************************************************\n");
-    fprintf(stderr, "First Search limited to translation only.\n",
+    fprintf(stderr, "First Search limited to translation only.\n");
     fprintf(stderr, "************************************************\n");
     max_log_p = find_optimal_translation(gca, gcas, mri, nsamples, m_L,
                                          -100, 100, 11, 3) ;
