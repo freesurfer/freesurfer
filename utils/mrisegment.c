@@ -30,6 +30,8 @@
 -------------------------------------------------------*/
 
 
+#define VOX_INCREASE  1.25
+
 /*-----------------------------------------------------
                     STATIC PROTOTYPES
 -------------------------------------------------------*/
@@ -173,8 +175,12 @@ MRIsegment(MRI *mri, float low_val, float hi_val)
                   if (mseg2->found == 0)
                   {
                     mseg2->found = 1 ;  /* prevent merging more than once */
-                    mriSegmentMerge(mriseg, label, border_labels[nvox],
-                                    mri_labeled) ;
+                    if (mriSegmentMerge(mriseg, label, border_labels[nvox],
+                                        mri_labeled)  != NO_ERROR)
+                    {
+                      MRIsegmentFree(&mriseg) ;
+                      return(NULL) ;
+                    }
                   }
                 }
                   
@@ -187,7 +193,15 @@ MRIsegment(MRI *mri, float low_val, float hi_val)
           }
           /* add it to the existing list */
           if (mseg->nvoxels >= mseg->max_voxels)
-            mriSegmentReallocateVoxels(mriseg, label, mseg->max_voxels*2);
+          {
+            if (mriSegmentReallocateVoxels(mriseg, label, 
+                                           nint(mseg->max_voxels*VOX_INCREASE))
+                != NO_ERROR)
+            {
+              MRIsegmentFree(&mriseg) ;
+              return(NULL) ;
+            }
+          }
           mseg->voxels[mseg->nvoxels].x = x ;
           mseg->voxels[mseg->nvoxels].y = y ;
           mseg->voxels[mseg->nvoxels].z = z ;
@@ -283,7 +297,10 @@ mriSegmentMerge(MRI_SEGMENTATION *mriseg, int s0, int s1, MRI *mri_labeled)
   mseg0 = &mriseg->segments[s0] ; mseg1 = &mriseg->segments[s1] ; 
   total_voxels = mseg0->nvoxels+mseg1->nvoxels ;
   if (total_voxels >= mseg0->max_voxels)
-    mriSegmentReallocateVoxels(mriseg, s0, total_voxels+10) ;
+  {
+    if (mriSegmentReallocateVoxels(mriseg, s0, total_voxels+10) != NO_ERROR)
+      return(Gerror) ;
+  }
 
   for (v = mseg0->nvoxels ; v < total_voxels ; v++)
   {
@@ -327,7 +344,14 @@ mriSegmentReallocateVoxels(MRI_SEGMENTATION *mriseg, int sno,
   
   mseg->voxels = (MSV *)calloc(max_voxels, sizeof(MSV)) ;
   if (!mseg->voxels)
-    ErrorExit(ERROR_NOMEMORY, "mriSegmentReallocVox: could not alloc voxels");
+  {
+    if (old_voxels)
+      free(old_voxels) ;
+    ErrorReturn(ERROR_NOMEMORY, 
+                (ERROR_NOMEMORY,
+                 "mriSegmentReallocVox: could not alloc %d voxels for sno %d",
+                 max_voxels, sno)) ;
+  }
 
   mseg->max_voxels = max_voxels ;
 
@@ -518,7 +542,15 @@ MRIsegmentDilate(MRI_SEGMENTATION *mriseg, MRI *mri)
             if (MRIvox(mri, xi, yi, zi) && !MRIvox(mri_segments,xi,yi,zi))
             {
               if (mseg->nvoxels >= mseg->max_voxels)
-                mriSegmentReallocateVoxels(mriseg, segno, mseg->max_voxels*2);
+              {
+                if (mriSegmentReallocateVoxels(mriseg, segno, 
+                                               mseg->max_voxels*VOX_INCREASE)
+                    != NO_ERROR)
+                {
+                  /*                  MRIsegmentFree(&mseg) ;*/
+                  return(Gerror) ;
+                }
+              }
               mseg->voxels[mseg->nvoxels].x = xi ;
               mseg->voxels[mseg->nvoxels].y = yi ;
               mseg->voxels[mseg->nvoxels].z = zi ;
@@ -632,7 +664,16 @@ MRIsegmentDilateThreshold(MRI_SEGMENTATION *mriseg, MRI *mri_binary,
                 (val >= low_thresh) && (val <= hi_thresh))
             {
               if (mseg->nvoxels >= mseg->max_voxels)
-                mriSegmentReallocateVoxels(mriseg, segno, mseg->max_voxels*2);
+              {
+                if (mriSegmentReallocateVoxels(mriseg, segno, 
+                                               nint(mseg->max_voxels
+                                                    *VOX_INCREASE)) != 
+                    NO_ERROR)
+                {
+                  /*                  MRIsegmentFree(&mseg) ;*/
+                  return(Gerror) ;
+                }
+              }
               mseg->voxels[mseg->nvoxels].x = xi ;
               mseg->voxels[mseg->nvoxels].y = yi ;
               mseg->voxels[mseg->nvoxels].z = zi ;
