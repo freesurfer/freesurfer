@@ -1003,7 +1003,7 @@ xv_dimage_event_handler(Xv_Window xv_window, Event *event)
         rows = xvf->display_rows ;
         cols = xvf->display_cols ;
         aspect = 
-          (float)dimage->sourceImage->rows / (float)dimage->sourceImage->cols ;
+          (float)dimage->sourceImage->rows/(float)dimage->sourceImage->cols;
         if (rows > cols)
           XVsetImageSize(xvf, which, rows, nint((float)rows / aspect)) ;
         else
@@ -1664,6 +1664,9 @@ XVdrawPoint(XV_FRAME *xvf, int which, int x, int y, int color)
   case XGREEN:
     gc = dimage->greenGC ;
     break ;
+  case XYELLOW:
+    gc = dimage->yellowGC ;
+    break ;
   case XXOR:
     gc = dimage->xorGC ;
     break ;
@@ -1804,6 +1807,86 @@ XVdrawBox(XV_FRAME *xvf, int which, int x, int y, int dx, int dy, int color)
            Description:
 ----------------------------------------------------------------------*/
 void
+XVdrawLinef(XV_FRAME *xvf, int which, float x, float y, float dx, 
+                 float dy,  int color)
+{
+  GC      gc ;
+  Display *display ;
+  Window  window ;
+  int     x0, y0, x1, y1, yi, xi ;
+  DIMAGE  *dimage ;
+  float   xscale, yscale ;
+
+  dimage = XVgetDimage(xvf, which, DIMAGE_IMAGE) ;
+  if (!dimage)
+    return ;
+
+  display = xvf->display ;
+  window = dimage->window ;
+
+  /* convert to window coordinate system */
+  xscale = dimage->xscale ;
+  yscale = dimage->yscale ;
+  xi = nint(((float)(x-dimage->x0) +0.5f)* xscale) ;
+  if (xvf->ydir < 0)
+    yi = nint((float)(((dimage->zoomImage->rows-1) - 
+                      (y-dimage->y0)) +0.5f)* yscale) ;
+  else
+  {
+    if (dimage->dy)
+      yi = nint(((float)(dimage->y0+y+dimage->dy-dimage->sourceImage->rows) 
+                + 0.5f) * yscale) ;
+    else 
+      yi = nint(((float)(y-dimage->y0)+0.5f) * yscale) ;
+  }
+
+  dx = ((float)dx * xscale) ;
+  dy = ((float)(xvf->ydir*dy) * yscale) ;
+
+  switch (color)
+  {
+  case XWHITE:
+    gc = dimage->whiteGC ;
+    break ;
+  case XCYAN:
+    gc = dimage->cyanGC ;
+    break ;
+  case XBLUE:
+    gc = dimage->blueGC ;
+    break ;
+  case XGREEN:
+    gc = dimage->greenGC ;
+    break ;
+  case XYELLOW:
+    gc = dimage->yellowGC ;
+    break ;
+  case XXOR:
+    gc = dimage->xorGC ;
+    break ;
+  case XRED:
+  default:
+    gc = dimage->redGC ;
+    break ;
+  }
+
+  XSetLineAttributes(display, gc, 0, LineSolid, CapRound, JoinBevel) ;
+
+  /* top line */
+  x0 = xi ;
+  y0 = yi ;
+  x1 = xi + nint(dx) ;
+  y1 = yi + nint(dy) ;
+  XDrawLine(display, window, gc, x0, y0, x1, y1) ;
+
+
+/*  XFlush(display);*/
+}
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+----------------------------------------------------------------------*/
+void
 XVdrawLine(XV_FRAME *xvf, int which, int x, int y, int dx, int dy, int color)
 {
   GC      gc ;
@@ -1852,6 +1935,9 @@ XVdrawLine(XV_FRAME *xvf, int which, int x, int y, int dx, int dy, int color)
     break ;
   case XGREEN:
     gc = dimage->greenGC ;
+    break ;
+  case XYELLOW:
+    gc = dimage->yellowGC ;
     break ;
   case XXOR:
     gc = dimage->xorGC ;
@@ -2444,7 +2530,7 @@ XVdoSync(XV_FRAME *xvf, int which)
         aspect = (float)dimage->dy / (float)dimage->dx ;
       else
         aspect = 
-          (float)dimage->sourceImage->rows / (float)dimage->sourceImage->cols ;
+          (float)dimage->sourceImage->rows/(float)dimage->sourceImage->cols;
 
 #if 0
       if (aspect > 1.0f)
