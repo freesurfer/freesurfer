@@ -19,6 +19,7 @@
 #include "matrix.h"
 #include "diag.h"
 #include "error.h"
+#include "macros.h"
 #include "gclass.h"
 
 /*-----------------------------------------------------
@@ -104,6 +105,10 @@ GCalloc(int nclasses, int nvars, char *class_names[])
         Returns value:
 
         Description
+             each col of m_inputs is a vector containing
+             observations of one variable. Thus, the # of rows
+             is the # of observations, and the # of cols is the #
+             of variables.
 ------------------------------------------------------*/
 int
 GCtrain(GCLASSIFY *gc, int class, MATRIX *m_inputs)
@@ -114,9 +119,24 @@ GCtrain(GCLASSIFY *gc, int class, MATRIX *m_inputs)
 
   gcl = &gc->classes[class] ;
   gcl->nobs = m_inputs->rows ;
-  MatrixCovariance(m_inputs, gcl->m_covariance, gcl->m_u) ;
+  if (gcl->nobs == 0)      /* no training data */
+    return(NO_ERROR) ;
+#if 0
+  else if (gcl->nobs <= gc->nvars)  /* not enough training data */
+    gcl->m_covariance = MatrixIdentity(gc->nvars, NULL) ;
+#endif
+  else
+    MatrixCovariance(m_inputs, gcl->m_covariance, gcl->m_u) ;
+  if (gcl->nobs <= gc->nvars)  /* not enough training data */
+    MatrixMakeDiagonal(gcl->m_covariance, gcl->m_covariance) ;
+
+  det = MatrixDeterminant(gcl->m_covariance);
+  if (FZERO(det))  /* matrix is ill-conditioned */
+    return(NO_ERROR) ;
 
   m_sigma_inverse = MatrixInverse(gcl->m_covariance, NULL) ;
+  if (!m_sigma_inverse)   /* don't really know what to do.... */
+    m_sigma_inverse = MatrixIdentity(gc->nvars, NULL) ;
   m_uT = MatrixTranspose(gcl->m_u, NULL) ;
   det = MatrixDeterminant(gcl->m_covariance) ;
   gcl->m_W = MatrixScalarMul(m_sigma_inverse, -0.5f, NULL) ;
@@ -206,8 +226,11 @@ GCclassify(GCLASSIFY *gc, MATRIX *m_x, float *prisk)
   int     cno, class = -1 ;
   GCLASS  *gcl ;
   MATRIX  *m_xT, *m_tmp, *m_tmp2, *m_tmp3 ;
-  float   log_p, max_p ;
+  float   log_p, max_p, sum_p ;
 
+  if (m_x->cols != 1 || m_x->rows != gc->nvars)
+    ErrorReturn(ERROR_BADPARM,
+                (ERROR_BADPARM, "GCclassify: inappropriately sized m_x")) ;
 #if 0
 fprintf(stdout, "GCclassify(%2.3f)\n", m_x->rptr[1][1]) ;
 #endif
@@ -217,10 +240,18 @@ fprintf(stdout, "GCclassify(%2.3f)\n", m_x->rptr[1][1]) ;
 */
   m_xT = MatrixTranspose(m_x, NULL) ;
   max_p = -100000.0f ;
+  class = -1 ;
+  sum_p = 0.0f ;
   m_tmp = m_tmp2 = m_tmp3 = NULL ;
   for (cno = 0 ; cno < gc->nclasses ; cno++)
   {
     gcl = &gc->classes[cno] ;
+    if (!gcl->m_W)    /* covariance matrix was ill-conditioned */
+    {
+      gc->log_probabilities[cno] = -10000.0f ;
+      continue ;
+    }
+
     m_tmp = MatrixMultiply(gcl->m_W, m_x, m_tmp) ;
     m_tmp2 = MatrixMultiply(m_xT, m_tmp, m_tmp2) ;
     m_tmp3 = MatrixMultiply(gcl->m_wT, m_x, m_tmp3) ;
@@ -230,6 +261,7 @@ fprintf(stdout, "class %d: log(p) = %2.3f + %2.3f + %2.3f = %2.3f\n",
         cno, gcl->w0, m_tmp2->rptr[1][1], m_tmp3->rptr[1][1], log_p) ;
 #endif
     gc->log_probabilities[cno] = log_p ;
+    sum_p += exp(log_p) ;
     if (log_p > max_p)
     {
       max_p = log_p ;
@@ -237,13 +269,17 @@ fprintf(stdout, "class %d: log(p) = %2.3f + %2.3f + %2.3f = %2.3f\n",
     }
   }
 
-  if (prisk)
-    *prisk = exp(max_p) ;
+  if (prisk && class >= 0 && !FZERO(sum_p))
+    *prisk = exp(max_p) / sum_p ;
 
-  MatrixFree(&m_xT) ;
-  MatrixFree(&m_tmp) ;
-  MatrixFree(&m_tmp2) ;
-  MatrixFree(&m_tmp3) ;
+  if (m_xT)
+    MatrixFree(&m_xT) ;
+  if (m_tmp)
+    MatrixFree(&m_tmp) ;
+  if (m_tmp2)
+    MatrixFree(&m_tmp2) ;
+  if (m_tmp3)
+    MatrixFree(&m_tmp3) ;
   return(class) ;
 }
 
