@@ -68,6 +68,6 @@ int devIsinf(float value);
 int devIsnan(float value);
 int devFinite(float value);
 
-int getMemoryUsed(); // return total virtual memory used by Progname. works only under Linux /proc system
-
+int getMemoryUsed(); // return total virtual memory used by Progname in Kbytes. works only under Linux /proc system
+void printMemoryUsed(); // print function of the above.   
 #endif
