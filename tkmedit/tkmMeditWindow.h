@@ -49,145 +49,145 @@ typedef enum {
 
 struct tkmMeditWindow {
 
-  tSignature       mSignature;
+  tSignature     mSignature;
 
   /* window data */
   xGLutWindowRef   mpGLutWindow;
-  int              mnID;
-  int              mnWidth;
-  int              mnHeight;
+  int       mnID;
+  int       mnWidth;
+  int       mnHeight;
 
   /* our display areas */
-  int                    mnRows;
-  int                    mnCols;
+  int       mnRows;
+  int       mnCols;
   MWin_tLinkPolicy    mLinkPolicy;
   struct tkmDisplayArea* mapDisplays [MWin_knMaxNumAreas];
-  int                    mnLastClickedArea;
+  int       mnLastClickedArea;
 
   /* linking the cursor? */
-  tBoolean         mbLinkedCursor;
+  tBoolean     mbLinkedCursor;
 
   /* accepting commands from tcl? */
-  tBoolean         mbAcceptingTclCommands;
+  tBoolean     mbAcceptingTclCommands;
 };
 typedef struct tkmMeditWindow tkmMeditWindow;
 typedef tkmMeditWindow *tkmMeditWindowRef;
 
 MWin_tErr MWin_New    ( tkmMeditWindowRef* oppWindow,
-      char*              isTitle,
-      int                inWidth, 
-      int                inHeight );
+      char*     isTitle,
+      int     inWidth, 
+      int     inHeight );
 MWin_tErr MWin_Delete ( tkmMeditWindowRef* ioppWindow );
 
 
 /* set window title */
 MWin_tErr MWin_SetWindowTitle ( tkmMeditWindowRef ipWindow,
-        char*             isTitle );
+  char*      isTitle );
 
 /* get window width and height */
 MWin_tErr MWin_GetWindowSize ( tkmMeditWindowRef ipWindow,
-             int*              onX,
-             int*              onY,
-             int*              onWidth,
-             int*              onHeight );
+       int*         onX,
+       int*         onY,
+       int*         onWidth,
+       int*         onHeight );
 
 /* configuration the display set up */
 MWin_tErr MWin_SetDisplayConfiguration ( tkmMeditWindowRef   this,
-           int                 inCols,
-           int                 inRows,
-           MWin_tLinkPolicy iPolicy );
+     int           inCols,
+     int           inRows,
+     MWin_tLinkPolicy iPolicy );
 MWin_tErr MWin_PositionDisplays_       ( tkmMeditWindowRef this );
 
 /* setting display info. specify by display area index, starting from 0
    for the upper-left area. use -1 to specify all areas. */
-MWin_tErr MWin_SetVolume                     ( tkmMeditWindowRef this,
-                                               int               inDispIndex,
-                                               mriVolumeRef      ipVolume,
-                                               int               inSizeX,
-                                               int               inSizeY,
-                                               int               inSizeZ );
-MWin_tErr MWin_SetAuxVolume                  ( tkmMeditWindowRef this,
-                                               int               inDispIndex,
-                                               mriVolumeRef      ipVolume,
-                                               int               inSizeX,
-                                               int               inSizeY,
-                                               int               inSizeZ) ;
-MWin_tErr MWin_SetROIGroup                   ( tkmMeditWindowRef this,
-                 int               inDispIndex,
-                 mriVolumeRef      iGroup );
-MWin_tErr MWin_SetTensor                   ( tkmMeditWindowRef this,
-                 int               inDispIndex,
-                 mriVolumeRef      iTensor );
-MWin_tErr MWin_SetSurface                    ( tkmMeditWindowRef this, 
-                 int               inDispIndex,
-                 mriSurfaceRef     ipSurface );
-MWin_tErr MWin_SetOverlayVolume              ( tkmMeditWindowRef this,
-                 int               inDispIndex,
-                 tkmFunctionalVolumeRef ipVol );
-MWin_tErr MWin_SetControlPointsSpace         ( tkmMeditWindowRef this,
-                 int               inDispIndex,
-                 x3DListRef        ipVoxels );
-MWin_tErr MWin_SetSelectionSpace             ( tkmMeditWindowRef this, 
-                 int               inDispIndex,
-                 x3DListRef        ipVoxels );
-MWin_tErr MWin_SetHeadPointList              ( tkmMeditWindowRef this,
-                 int               inDispIndex,
-                 mriHeadPointListRef iList );
-MWin_tErr MWin_SetGCA                        ( tkmMeditWindowRef this,
-                 int               inDispIndex,
-                 GCA*              iVolume,
-                 LTA*              iTransform );
-MWin_tErr MWin_SetVLIs                        ( tkmMeditWindowRef this,
-                 int               inDispIndex,
-                 VLI*              iVLI1,
-                 VLI*              iVLI2,
-                 char*             isVLI1_name,
-                 char*             isVLI2_name );
+MWin_tErr MWin_SetVolume         ( tkmMeditWindowRef this,
+                 int     inDispIndex,
+                 mriVolumeRef   ipVolume,
+                 int     inSizeX,
+                 int     inSizeY,
+                 int     inSizeZ );
+MWin_tErr MWin_SetAuxVolume         ( tkmMeditWindowRef this,
+                 int     inDispIndex,
+                 mriVolumeRef   ipVolume,
+                 int     inSizeX,
+                 int     inSizeY,
+                 int     inSizeZ) ;
+MWin_tErr MWin_SetROIGroup         ( tkmMeditWindowRef this,
+     int       inDispIndex,
+     mriVolumeRef     iGroup );
+MWin_tErr MWin_SetTensor       ( tkmMeditWindowRef this,
+     int       inDispIndex,
+     mriVolumeRef     iTensor );
+MWin_tErr MWin_SetSurface         ( tkmMeditWindowRef this, 
+     int       inDispIndex,
+     mriSurfaceRef     ipSurface );
+MWin_tErr MWin_SetOverlayVolume         ( tkmMeditWindowRef this,
+     int       inDispIndex,
+     tkmFunctionalVolumeRef ipVol );
+MWin_tErr MWin_SetControlPointsSpace       ( tkmMeditWindowRef this,
+     int       inDispIndex,
+     x3DListRef     ipVoxels );
+MWin_tErr MWin_SetSelectionSpace       ( tkmMeditWindowRef this, 
+     int       inDispIndex,
+     x3DListRef     ipVoxels );
+MWin_tErr MWin_SetHeadPointList         ( tkmMeditWindowRef this,
+     int       inDispIndex,
+     mriHeadPointListRef iList );
+MWin_tErr MWin_SetGCA           ( tkmMeditWindowRef this,
+     int       inDispIndex,
+     GCA*       iVolume,
+     LTA*       iTransform );
+MWin_tErr MWin_SetVLIs            ( tkmMeditWindowRef this,
+     int       inDispIndex,
+     VLI*       iVLI1,
+     VLI*       iVLI2,
+     char*       isVLI1_name,
+     char*       isVLI2_name );
 
 
 /* viewing state changes. specify the display area the same way as above. */
 MWin_tErr MWin_SetLinkedCursorFlag   ( tkmMeditWindowRef this, 
-               tBoolean          ibLinkCursor );
+         tBoolean     ibLinkCursor );
 MWin_tErr MWin_ToggleLinkedCursorFlag( tkmMeditWindowRef this );
-MWin_tErr MWin_SetCursor             ( tkmMeditWindowRef this, 
-               int               inDispIndex,
-               xVoxelRef         ipCursor );
+MWin_tErr MWin_SetCursor       ( tkmMeditWindowRef this, 
+         int     inDispIndex,
+         xVoxelRef   ipCursor );
 MWin_tErr MWin_ConvertAndSetCursor   ( tkmMeditWindowRef this, 
-               int               inDispIndex,
-               mri_tCoordSpace   iFromSpace,
-               xVoxelRef         ipCursor );
-MWin_tErr MWin_SetOrientation        ( tkmMeditWindowRef this, 
-               int               inDispIndex,
-               mri_tOrientation  iOrientation );
-MWin_tErr MWin_SetSlice              ( tkmMeditWindowRef this, 
-               int               inDispIndex,
-               int               inSlice );
-MWin_tErr MWin_SetZoomCenter         ( tkmMeditWindowRef this, 
-               int               inDispIndex,
-               xVoxelRef         ipCenter );
-MWin_tErr MWin_SetZoomLevel          ( tkmMeditWindowRef this, 
-               int               inDispIndex,
-               int               inLevel );
+         int     inDispIndex,
+         mri_tCoordSpace   iFromSpace,
+         xVoxelRef   ipCursor );
+MWin_tErr MWin_SetOrientation       ( tkmMeditWindowRef this, 
+         int     inDispIndex,
+         mri_tOrientation   iOrientation );
+MWin_tErr MWin_SetSlice         ( tkmMeditWindowRef this, 
+         int     inDispIndex,
+         int     inSlice );
+MWin_tErr MWin_SetZoomCenter       ( tkmMeditWindowRef this, 
+         int     inDispIndex,
+         xVoxelRef   ipCenter );
+MWin_tErr MWin_SetZoomLevel       ( tkmMeditWindowRef this, 
+         int     inDispIndex,
+         int     inLevel );
 MWin_tErr MWin_SetZoomCenterToCursor ( tkmMeditWindowRef this,
-               int               inDispIndex );
+         int     inDispIndex );
 MWin_tErr MWin_HiliteSurfaceVertex   ( tkmMeditWindowRef this,
-               int               inDispIndex,
-               Surf_tVertexSet  inSurface,
-               int               inVertex );
-MWin_tErr MWin_SetDisplayFlag        ( tkmMeditWindowRef this,
-               int               inDispIndex,
-               DspA_tDisplayFlag iWhichFlag,
-               tBoolean          ibNewValue );
+         int     inDispIndex,
+         Surf_tVertexSet  inSurface,
+         int     inVertex );
+MWin_tErr MWin_SetDisplayFlag       ( tkmMeditWindowRef this,
+         int     inDispIndex,
+         DspA_tDisplayFlag iWhichFlag,
+         tBoolean     ibNewValue );
 MWin_tErr MWin_SetVolumeColorScale   ( tkmMeditWindowRef this,
-               int               inDispIndex,
-               int               inMin,
-               int               inMid,
-               int               inMax );
+         int     inDispIndex,
+         int     inMin,
+         int     inMid,
+         int     inMax );
 
 /* get the viewing state of the last clicked display area */
-MWin_tErr MWin_GetCursor         ( tkmMeditWindowRef   this,
-           xVoxelRef           opCursor );
-MWin_tErr MWin_GetOrientation    ( tkmMeditWindowRef   this,
+MWin_tErr MWin_GetCursor   ( tkmMeditWindowRef   this,
+           xVoxelRef         opCursor );
+MWin_tErr MWin_GetOrientation   ( tkmMeditWindowRef   this,
            mri_tOrientation*   oOrientation );
 
 /* tkmedit needs to get the selected head pt. bad design. */
@@ -197,38 +197,38 @@ MWin_tErr MWin_GetSelectedHeadPt ( tkmMeditWindowRef   this,
 /* tkmedit needs to adjust the cursor to align with the surface when
    goto/finding a vertex. bad design. */
 MWin_tErr MWin_AdjustSurfaceAnaIdx   ( tkmMeditWindowRef this,
-               xVoxelRef         iAnaIdx );
+               xVoxelRef   iAnaIdx );
 MWin_tErr MWin_UnadjustSurfaceAnaIdx ( tkmMeditWindowRef this,
-               xVoxelRef         iAnaIdx );
+               xVoxelRef   iAnaIdx );
 
 /* for cursor linking. a display area whose cursor was set calls this
    function. if we have cursor linking turned on, this will set all display
    cursors or flags. */
-MWin_tErr MWin_CursorChanged       ( tkmMeditWindowRef this,
-             tkmDisplayAreaRef ipDisplay,
-             xVoxelRef         ipCursor );
-MWin_tErr MWin_ZoomLevelChanged    ( tkmMeditWindowRef this,
-             tkmDisplayAreaRef ipDisplay,
-             int               inZoomLevel );
+MWin_tErr MWin_CursorChanged     ( tkmMeditWindowRef this,
+       tkmDisplayAreaRef ipDisplay,
+       xVoxelRef         ipCursor );
+MWin_tErr MWin_ZoomLevelChanged     ( tkmMeditWindowRef this,
+       tkmDisplayAreaRef ipDisplay,
+       int         inZoomLevel );
 MWin_tErr MWin_DisplayFlagChanged  ( tkmMeditWindowRef this,
-             tkmDisplayAreaRef ipDisplay,
-             DspA_tDisplayFlag iWhichFlag,
-             tBoolean          ibNewValue );
+       tkmDisplayAreaRef ipDisplay,
+       DspA_tDisplayFlag iWhichFlag,
+       tBoolean         ibNewValue );
 MWin_tErr MWin_OrientationChanged  ( tkmMeditWindowRef this,
-             tkmDisplayAreaRef ipDisplay,
-             mri_tOrientation  iOrientation );
-MWin_tErr MWin_SliceChanged        ( tkmMeditWindowRef this,
-             tkmDisplayAreaRef ipDisplay,
-             int               inDelta );
+       tkmDisplayAreaRef ipDisplay,
+       mri_tOrientation  iOrientation );
+MWin_tErr MWin_SliceChanged     ( tkmMeditWindowRef this,
+       tkmDisplayAreaRef ipDisplay,
+       int         inDelta );
 
 /* callback for xGLutWindow. this just passes the ptr, a tkmMeditWindowRef,
    and the event to our normal event handler below. */
-void MWin_EventCallback ( void*           ipWindow,
-        xGWin_tEventRef ipEvent );
+void MWin_EventCallback ( void*      ipWindow,
+  xGWin_tEventRef ipEvent );
 
 /* routes events to the display areas */
 void MWin_HandleEvent ( tkmMeditWindowRef this, 
-      xGWin_tEventRef   ipEvent );
+      xGWin_tEventRef  ipEvent );
 
 
 /* takes redraw requests from tkmedit */
@@ -248,104 +248,117 @@ MWin_tErr MWin_PlaceToolWindow_ ( tkmMeditWindowRef this );
 
 /* focus on a different display area */
 MWin_tErr MWin_ChangeFocusedDisplayAreaBy_( tkmMeditWindowRef this,
-              int               inDelta );  
+        int    inDelta );  
 
 /* register tcl commands */
 MWin_tErr MWin_RegisterTclCommands ( tkmMeditWindowRef this,
-             Tcl_Interp*       ipInterp );
+       Tcl_Interp*       ipInterp );
 
 /* accept or reject tcl commands. this is done to keep the inital var
    settings in the tk window from affecting the medit window. */
 MWin_tErr MWin_AcceptTclCommands ( tkmMeditWindowRef this,
-           tBoolean          ibAccept );
+     tBoolean       ibAccept );
 
-MWin_tErr MWin_Verify             ( tkmMeditWindowRef this );
+MWin_tErr MWin_Verify      ( tkmMeditWindowRef this );
 MWin_tErr MWin_VerifyDisplayIndex ( tkmMeditWindowRef this,
-            int               nDisplayIndex );
+      int          nDisplayIndex );
 
 char* MWin_GetErrorString ( MWin_tErr ieCode );
 
 /* these tcl commands call the cooresponding on the display area that
    was last clicked on. */
 int MWin_TclSetLinkedCursorFlag ( ClientData  iClientData, 
-          Tcl_Interp* ipInterp,
-          int         argc,
-          char*       argv[] );
-int MWin_TclSetCursor        ( ClientData  iClientData, 
-             Tcl_Interp* ipInterp,
-             int         argc,
-             char*       argv[] );
-int MWin_TclSetSlice         ( ClientData  iClientData, 
-             Tcl_Interp* ipInterp,
-             int         argc,
-             char*       argv[] );
+    Tcl_Interp* ipInterp,
+    int        argc,
+    char*        argv[] );
+int MWin_TclSetCursor       ( ClientData  iClientData, 
+       Tcl_Interp* ipInterp,
+       int   argc,
+       char*   argv[] );
+int MWin_TclSetSlice       ( ClientData  iClientData, 
+       Tcl_Interp* ipInterp,
+       int   argc,
+       char*   argv[] );
 int MWin_TclSetOrientation   ( ClientData  iClientData, 
-             Tcl_Interp* ipInterp,
-             int         argc,
-             char*       argv[] );
+       Tcl_Interp* ipInterp,
+       int   argc,
+       char*   argv[] );
 int MWin_TclSetZoomLevel     ( ClientData  iClientData, 
-             Tcl_Interp* ipInterp,
-             int         argc,
-             char*       argv[] );
+       Tcl_Interp* ipInterp,
+       int   argc,
+       char*   argv[] );
 int MWin_TclSetZoomCenter    ( ClientData  iClientData, 
-             Tcl_Interp* ipInterp,
-             int         argc,
-             char*       argv[] );
+       Tcl_Interp* ipInterp,
+       int   argc,
+       char*   argv[] );
 int MWin_TclSetDisplayConfig ( ClientData  iClientData, 
-             Tcl_Interp* ipInterp,
-             int         argc,
-             char*       argv[] );
+       Tcl_Interp* ipInterp,
+       int   argc,
+       char*   argv[] );
 int MWin_TclSetDisplayFlag   ( ClientData  iClientData, 
-             Tcl_Interp* ipInterp,
-             int         argc,
-             char*       argv[] );
-int MWin_TclSetTool          ( ClientData  iClientData, 
-             Tcl_Interp* ipInterp,
-             int         argc,
-             char*       argv[] );
+       Tcl_Interp* ipInterp,
+       int   argc,
+       char*   argv[] );
+int MWin_TclSetTool       ( ClientData  iClientData, 
+       Tcl_Interp* ipInterp,
+       int   argc,
+       char*   argv[] );
 int MWin_TclSetBrushShape    ( ClientData  iClientData, 
-             Tcl_Interp* ipInterp,
-             int         argc,
-             char*       argv[] );
+       Tcl_Interp* ipInterp,
+       int   argc,
+       char*   argv[] );
 int MWin_TclSetBrushInfo     ( ClientData  iClientData, 
-             Tcl_Interp* ipInterp,
-             int         argc,
-             char*       argv[] );
-int MWin_TclSetBrushInfoToDefaults ( ClientData  ipClientData, 
-             Tcl_Interp* ipInterp,
-             int         argc,
-             char*       argv[] );
+       Tcl_Interp* ipInterp,
+       int   argc,
+       char*   argv[] );
+int MWin_TclSetBrushInfoToDefaults ( ClientData   ipClientData, 
+       Tcl_Interp* ipInterp,
+       int   argc,
+       char*   argv[] );
 int MWin_TclSetCursorColor   ( ClientData  iClientData, 
-             Tcl_Interp* ipInterp,
-             int         argc,
-             char*       argv[] );
+       Tcl_Interp* ipInterp,
+       int   argc,
+       char*   argv[] );
 int MWin_TclSetCursorShape   ( ClientData  iClientData, 
-             Tcl_Interp* ipInterp,
-             int         argc,
-             char*       argv[] );
+       Tcl_Interp* ipInterp,
+       int   argc,
+       char*   argv[] );
 int MWin_TclSetSurfaceLineWidth ( ClientData  iClientData,
-          Tcl_Interp* ipInterp,
-          int         argc,
-          char*       argv[] );
+    Tcl_Interp* ipInterp,
+    int        argc,
+    char*        argv[] );
 int MWin_TclSetSurfaceLineColor ( ClientData  iClientData,
-          Tcl_Interp* ipInterp,
-          int         argc,
-          char*       argv[] );
+    Tcl_Interp* ipInterp,
+    int        argc,
+    char*        argv[] );
 int MWin_TclSetParcBrushInfo ( ClientData  iClientData, 
-             Tcl_Interp* ipInterp,
-             int         argc,
-             char*       argv[] );
+       Tcl_Interp* ipInterp,
+       int   argc,
+       char*   argv[] );
 int MWin_TclSelectCurrentROI ( ClientData  iClientData, 
-             Tcl_Interp* ipInterp,
-             int         argc,
-             char*       argv[] );
+       Tcl_Interp* ipInterp,
+       int   argc,
+       char*   argv[] );
 int MWin_TclGraphCurrentROIAvg ( ClientData  iClientData, 
-             Tcl_Interp* ipInterp,
-             int         argc,
-             char*       argv[] );
-int MWin_TclRedrawAll        ( ClientData  iClientData, 
-             Tcl_Interp* ipInterp,
-             int         argc,
-             char*       argv[] );
+       Tcl_Interp* ipInterp,
+       int   argc,
+       char*   argv[] );
+int MWin_TclSetSurfaceDistanceAtCursor ( ClientData  iClientData, 
+           Tcl_Interp* ipInterp,
+           int   argc,
+           char*   argv[] );
+int MWin_TclRedrawAll       ( ClientData  iClientData, 
+       Tcl_Interp* ipInterp,
+       int   argc,
+       char*   argv[] );
 
 #endif
+
+
+
+
+
+
+
+
+
