@@ -8,6 +8,7 @@ function rt = fast_fxcfg_gamma(DoWhat,thing)
 %  matrix - X matrix. thing=flacfg
 %  irfmatrix - thing=flacfg
 %  erfmatrix - thing=flacfg
+%  irftaxis, erftaxis
 %  parseline - parses the line, thing = line
 %  createline - create a model line. thing=flacfg
 %  autopsd - returns psdwindow
@@ -25,7 +26,7 @@ function rt = fast_fxcfg_gamma(DoWhat,thing)
 %  8. Tau
 %  9. Number of Derivatives to add
 %
-% $Id: fast_fxcfg_gamma.m,v 1.3 2003/04/15 03:57:03 greve Exp $
+% $Id: fast_fxcfg_gamma.m,v 1.4 2003/08/12 05:29:47 greve Exp $
 
 rt = [];
 
