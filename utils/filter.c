@@ -2224,3 +2224,143 @@ ImageGreyErode(IMAGE *Isrc, IMAGE *Idst)
   }
   return(Idst) ;
 }
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+IMAGE   *
+ImageCorrelate(IMAGE *Itemplate, IMAGE *Isrc, int zeropad, IMAGE *Icorr)
+{
+  IMAGE *Iconj, *Ifcorr, *Ifsrc, *Ireal, *Iimag ;
+  int   ecode ;
+
+#if 0
+  if (zeropad)
+    ErrorReturn(NULL, (ERROR_UNSUPPORTED, 
+                       "ImageCorrelate: zero padding unsupported")) ;
+#else
+  if (zeropad)
+    Isrc = ImageZeroPad(Isrc, NULL) ;
+#endif
+
+  /* assumes the template as already been FTed */
+  Iconj = ImageConjugate(Itemplate, NULL) ;
+  Ifsrc = ImageDFT(Isrc, NULL) ;
+  Ifcorr = ImageMul(Iconj, Ifsrc, NULL) ;
+  Icorr = ImageInverseDFT(Ifcorr, Icorr) ;
+
+  if (Icorr->pixel_format == PFCOMPLEX)
+  {
+    /* flipquad can't handle complex images, do it separately */
+    Ireal = ImageAlloc(Icorr->rows, Icorr->cols, PFFLOAT, 1) ;
+    Iimag = ImageAlloc(Icorr->rows, Icorr->cols, PFFLOAT, 1) ;
+    ImageSplit(Icorr, Ireal, Iimag) ;
+    ecode = h_flipquad(Ireal, Ireal) ;
+    if (ecode != HIPS_OK)
+      ErrorExit(ecode, "ImageCorrelate: h_flipquad failed (%d)\n", ecode) ;
+    ecode = h_flipquad(Iimag, Iimag) ;
+    if (ecode != HIPS_OK)
+      ErrorExit(ecode, "ImageCorrelate: h_flipquad failed (%d)\n", ecode) ;
+    ImageCombine(Ireal, Iimag, Icorr) ;
+    ImageFree(&Ireal) ;
+    ImageFree(&Iimag) ;
+  }
+  else
+  {
+    ecode = h_flipquad(Icorr, Icorr) ;
+    if (ecode != HIPS_OK)
+      ErrorExit(ecode, "ImageCorrelate: h_flipquad failed (%d)\n", ecode) ;
+  }
+
+#if 0
+ImageWrite(Itemplate, "Itemplate.hipl") ;
+ImageWrite(Isrc, "Isrc.hipl") ;
+ImageWrite(Ifsrc, "Ifsrc.hipl") ;
+ImageWrite(Iconj, "Iconj.hipl") ;
+ImageWrite(Ifcorr, "Ifcorr.hipl") ;
+ImageWrite(Icorr, "Iflip.hipl") ;
+#endif
+
+  ImageFree(&Iconj) ;
+  ImageFree(&Ifcorr) ;
+  ImageFree(&Ifsrc) ;
+
+  return(Icorr) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+           perform a spatial correlation of Ikernel with Isrc around the
+           region of the point x0,y0. The size of the correlation region is 
+           given by wsize 
+------------------------------------------------------*/
+IMAGE *
+ImageCorrelateRegion(IMAGE *Isrc, IMAGE *Ikernel, IMAGE *Idst, int row0, 
+                     int col0, int wsize)
+{
+  int    col_offset, row_offset, row, col, rows, cols, whalf, krow0, kcol0,
+         rowstart, rowend, colstart, colend, krow, kcol, drow,dcol ;
+  CPIX   *src, *kernel ;
+  float  sreal, simag, kreal, kimag, val, *dst, total ;
+  
+  rows = Isrc->rows ;
+  cols = Isrc->cols ;
+
+  if (!Idst)
+    Idst = ImageAlloc(rows, cols, PFFLOAT, 1) ;
+
+  kcol0 = col0 - Isrc->cols/2 ;
+  krow0 = row0 - Isrc->rows/2 ;
+
+  whalf = (wsize-1)/2 ;
+  rowstart = MAX(row0 - whalf, 0) ;
+  colstart = MAX(col0 - whalf, 0) ;
+  rowend = MIN(rows-1, row0+wsize) ;
+  colend = MIN(cols-1, col0+wsize) ;
+
+  for (row_offset = -whalf ; row_offset <= whalf ; row_offset++)
+  {
+    drow = row0 + row_offset ;
+    if (drow < 0 || drow >= rows)
+      continue ;
+
+    dst = IMAGEFpix(Idst, col0-whalf, drow) ;
+    for (col_offset = -whalf ; col_offset <= whalf ; col_offset++, dst++)
+    {
+      dcol = col0 + col_offset ;
+      if (dcol < 0 || dcol >= cols)
+        continue ;
+      total = 0.0f ;
+      for (row = 0 ; row < rows ; row++)
+      {
+        krow = row + row_offset + krow0 ;
+        if (krow < 0 || krow >= rows)
+          continue ;
+
+        src = IMAGECpix(Isrc, 0, row) ;
+        for (col = 0 ; col < cols ; col++, src++)
+        {
+          kcol = col + col_offset + kcol0 ;
+          if (kcol < 0 || kcol >= cols)
+            continue ;
+          kernel = IMAGECpix(Ikernel, krow, kcol) ;
+          kreal = kernel->real ;
+          kimag = kernel->imag ;
+          sreal = src->real ;
+          simag = src->imag ;
+          val = kreal*sreal + kimag*simag ;  /* real part */
+          total += val ;
+        }
+      }
+      *dst = total ;
+    }
+  }
+
+  return(Idst) ;
+}
