@@ -397,9 +397,9 @@ MRISread(char *fname)
   else 
   {
     if (MRISreadBinaryCurvature(mris, fname) != NO_ERROR)
-      return(NULL) ;
+     fprintf(stderr, "ignoring curvature file...\n") ; /*return(NULL) ;*/
     if (mrisReadBinaryAreas(mris, fname) != NO_ERROR)
-      return(NULL) ;
+     fprintf(stderr, "ignoring area file...\n") ; /*return(NULL) ;*/
   }
 
   mris->radius = MRISaverageRadius(mris) ;
@@ -1062,7 +1062,7 @@ MRISsampleDistances(MRI_SURFACE *mris, int *nbrs, int max_nbhd)
               min_angle *= 0.75f ;  /* be more liberal */
               niter = 0 ;
             }
-          } while (!done) ;
+          } while (!done && !FZERO(min_angle)) ;
           vn = &mris->vertices[vnbrs[i]] ;
           v->v[v->vtotal] = vnbrs[i] ;
           v->dist_orig[v->vtotal] = vn->d ;
@@ -2941,7 +2941,12 @@ MRISunfold(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int max_passes)
               mris->hemisphere == RIGHT_HEMISPHERE ? "rh" : "lh",
               parms->base_name);
       if (!parms->start_t)
+      {
         parms->fp = fopen(fname, "w") ;
+        if (!parms->fp)
+          ErrorExit(ERROR_NOFILE, "MRISunfold: could not open log file %s\n",
+                    fname) ;
+      }
       mrisLogIntegrationParms(parms->fp, mris,parms) ;
       for (i = mris->nsize+1 ; i <= parms->nbhd_size ; i++)
         if (nbrs[i])
@@ -2974,10 +2979,26 @@ MRISunfold(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int max_passes)
       mrisClearMomentum(mris) ;
     }
 
+    {
+      char   *cp ;
+      double max_pct ;
+
+      cp = getenv("DISTURB_DISTANCES") ;
+      if (cp)
+      {
+        max_pct = atof(cp) ;
+        fprintf(stderr, "disturbing distances by %%%2.1f\n", (float)max_pct) ;
+        if (Gdiag & DIAG_WRITE)
+          fprintf(parms->fp, "disturbing distances by %%%2.1f\n", 
+                  (float)max_pct);
+        MRISdisturbOriginalDistances(mris, max_pct) ;
+      }
+    }
+
     if (!passno)
     {
       double tol = parms->tol ;
-      parms->tol = 1 ;
+      parms->tol = 0.5 ;
       if (niter > 30)
         parms->niterations = 30 ;
       mrisRemoveNegativeArea(mris, parms, base_averages, MAX_NEG_AREA_PCT, 2);
@@ -3407,7 +3428,7 @@ mrisIntegrate(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int n_averages)
 {
   int     t, write_iterations, niterations, nsmall, neg ;
   double  l_dist, l_area, l_spring, sse, old_sse, delta_t, total_small = 0.0, 
-          sse_thresh, pct_neg, pct_neg_area, total_vertices 
+          sse_thresh, pct_neg, pct_neg_area, total_vertices, tol
           /*, scale, last_neg_area */ ;
 
   l_spring = parms->l_spring ;
@@ -3415,7 +3436,8 @@ mrisIntegrate(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int n_averages)
   l_area = parms->l_area ;
   write_iterations = parms->write_iterations ;
   niterations = parms->niterations ;
-  sse_thresh = parms->tol ;
+  tol = parms->tol * sqrt(((double)n_averages + 1.0) / 1024.0);
+  sse_thresh = tol ;
     
   mrisProjectSurface(mris) ;
   MRIScomputeMetricProperties(mris) ;
@@ -3486,7 +3508,7 @@ mrisIntegrate(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int n_averages)
       break ;
     case INTEGRATE_MOMENTUM:
       delta_t = mrisMomentumTimeStep(mris, parms->momentum, parms->dt, 
-                                     parms->tol, parms->n_averages) ;
+                                     tol, parms->n_averages) ;
       break ;
     case INTEGRATE_ADAPTIVE:
       delta_t = mrisAdaptiveTimeStep(mris, parms);
@@ -3544,7 +3566,7 @@ mrisIntegrate(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int n_averages)
     if ((parms->integration_type == INTEGRATE_LINE_MINIMIZE) ||
         (parms->integration_type == INTEGRATE_LM_SEARCH))
     {
-      if ((100*(old_sse - sse) / sse) < parms->tol)
+      if ((100*(old_sse - sse) / sse) < tol)
         break ;
     }
     old_sse = sse ;
@@ -7545,6 +7567,45 @@ MRISstoreMetricProperties(MRI_SURFACE *mris)
     }
   }
   mris->orig_area = mris->total_area ;
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+int
+MRISrestoreMetricProperties(MRI_SURFACE *mris)
+{
+  int     vno, nvertices, fno, ano, tno, n ;
+  VERTEX  *v ;
+  FACE    *f ;
+
+  nvertices = mris->nvertices ;
+  for (vno = 0 ; vno < nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    v->area = v->origarea ;
+    for (n = 0 ; n < v->vtotal ; n++)
+      v->dist[n] = v->dist_orig[n] ;
+  }
+  for (fno = 0 ; fno < mris->nfaces ; fno++)
+  {
+    f = &mris->faces[fno] ;
+    if (f->ripflag)
+      continue ;
+    for (tno = 0 ; tno < TRIANGLES_PER_FACE ; tno++)
+    {
+      f->area[tno] = f->orig_area[tno] ;
+      for (ano = 0 ; ano < ANGLES_PER_TRIANGLE ; ano++)
+        f->angle[tno][ano] = f->orig_angle[tno][ano] ;
+    }
+  }
+  mris->total_area = mris->orig_area ;
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
@@ -12199,3 +12260,144 @@ mrisNeighborAtVoxel(MRI_SURFACE *mris, MRI *mri, int vno, int xv,int yv,int zv)
   }
   return(0) ;
 }
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+double
+MRIScomputeAnalyticDistanceError(MRI_SURFACE *mris, int which, FILE *fp)
+{
+  int     vno, n, vtotal, *pv, ndists ;
+  VERTEX  *v, *vn ;
+  float   d, xd, yd, zd, circumference = 0.0f, angle, odist ;
+  double  pct_orig, pct, mean, mean_orig_error, mean_error,
+          smean_error, smean_orig_error ;
+  VECTOR  *v1, *v2 ;
+
+  v1 = VectorAlloc(3, MATRIX_REAL) ;
+  v2 = VectorAlloc(3, MATRIX_REAL) ;
+
+  mean_orig_error = mean_error = pct_orig = pct=  mean = 0.0 ;
+  smean_orig_error = smean_error = 0.0 ;
+  ndists = 0 ;
+  for (vno=0;vno<mris->nvertices;vno++)
+  {
+    v = &mris->vertices[vno];
+    if (v->ripflag)
+      continue ;
+    if (vno == Gdiag_no)
+      DiagBreak() ;
+    vtotal = v->vtotal ;
+    switch (which)
+    {
+    default:   /* don't really know what to do in other cases */
+    case MRIS_PLANE:
+      for (pv = v->v, n = 0 ; n < vtotal ; n++)
+      {
+        vn = &mris->vertices[*pv++] ;
+        if (vn->ripflag)
+          continue ;
+        xd = v->origx - vn->origx ; yd = v->origy - vn->origy ; 
+        zd = v->origz - vn->origz ;
+        d = xd*xd + yd*yd + zd*zd ;
+        odist = sqrt(d) ;
+        mean_orig_error += fabs(v->dist_orig[n] - odist) ;
+        mean_error += fabs(v->dist[n] - odist) ;
+        smean_orig_error += (v->dist_orig[n] - odist) ;
+        smean_error += (v->dist[n] - odist) ;
+        mean += odist ;
+        ndists++ ;
+      }
+      break ;
+    case MRIS_PARAMETERIZED_SPHERE:
+    case MRIS_SPHERE:
+      VECTOR_LOAD(v1, v->origx, v->origy, v->origz) ;  /* radius vector */
+      if (FZERO(circumference))   /* only calculate once */
+        circumference = M_PI * 2.0 * V3_LEN(v1) ;
+      for (pv = v->v, n = 0 ; n < vtotal ; n++)
+      {
+        vn = &mris->vertices[*pv++] ;
+        if (vn->ripflag)
+          continue ;
+        VECTOR_LOAD(v2, vn->origx, vn->origy, vn->origz) ;  /* radius vector */
+        angle = fabs(Vector3Angle(v1, v2)) ;
+        d = circumference * angle / (2.0 * M_PI) ;
+        odist = d ;
+        mean_orig_error += fabs(v->dist_orig[n] - odist) ;
+        mean_error += fabs(v->dist[n] - odist) ;
+        smean_orig_error += (v->dist_orig[n] - odist) ;
+        smean_error += (v->dist[n] - odist) ;
+        mean += fabs(odist) ;
+        ndists++ ;
+      }
+      break ;
+    }
+  }
+
+  mean /= (double)ndists ; mean_error /= (double)ndists ;
+  mean_orig_error /= (double)ndists ; 
+  smean_orig_error /= (double)ndists ; smean_error /= (double)ndists ; 
+  pct = mean_error / mean ; pct_orig = mean_orig_error / mean ;
+  fprintf(stderr, 
+      "mean orig = %2.3f mm (%%%2.2f), final = %2.3f mm (%%%2.2f)\n",
+          mean_orig_error, 100.0*pct_orig, mean_error, 100.0*pct) ;
+  fprintf(stderr, "signed mean orig error = %2.3f, final mean error = %2.3f\n",
+          smean_orig_error, smean_error) ;
+  if (fp)
+  {
+    char  *cp ;
+    float measured_error, disturb_pct ;
+
+    cp = getenv("DISTURB_DISTANCES") ;
+    if (cp)
+      disturb_pct = atof(cp) ;
+    else
+      disturb_pct = 0.0 ;
+    measured_error = MRISpercentDistanceError(mris) ;
+    fprintf(fp, "%2.3f  %2.3f  %2.3f  %2.3f  %2.3f  %2.3f  %2.3f\n",
+            100.0f*(float)mrisValidVertices(mris) / (float)mris->nvertices,
+            disturb_pct,
+            100.0*pct_orig, mean_orig_error, 100.0*pct, mean_error, 
+            measured_error) ;
+#if 0
+    fprintf(fp, 
+            "mean orig = %2.3f mm (%%%2.2f), final = %2.3f mm (%%%2.2f)\n",
+            mean_orig_error, 100.0*pct_orig, mean_error, 100.0*pct) ;
+    fprintf(fp, "signed mean orig error = %2.3f, final mean error = %2.3f\n",
+            smean_orig_error, smean_error) ;
+#endif
+  }
+  VectorFree(&v1) ; VectorFree(&v2) ;
+  return(pct) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+int
+MRISdisturbOriginalDistances(MRI_SURFACE *mris, double max_pct)
+{
+  int    vno, n ;
+  VERTEX *v ;
+  
+
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    for (n = 0 ; n < v->vtotal ; n++)
+    {
+      v->dist_orig[n] *= (1.0 + randomNumber(-max_pct/100.0f, max_pct/100.0f));
+    }
+  }
+
+  return(NO_ERROR) ;
+}
+
