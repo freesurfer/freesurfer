@@ -315,6 +315,8 @@ typedef struct
 
 int MRISfindClosestCanonicalVertex(MRI_SURFACE *mris, float x, float y, 
                                     float z) ;
+int MRISfindClosestOriginalVertex(MRI_SURFACE *mris, float x, float y, 
+                                    float z) ;
 int MRISfindClosestVertex(MRI_SURFACE *mris, float x, float y, float z) ;
 double       MRIScomputeCorrelationError(MRI_SURFACE *mris, 
                                          MRI_SP *mrisp_template, int fno) ;
@@ -322,6 +324,8 @@ MRI_SURFACE  *MRISread(char *fname) ;
 MRI_SURFACE  *MRISfastRead(char *fname) ;
 int          MRISreadOriginalProperties(MRI_SURFACE *mris, char *sname) ;
 int          MRISreadCanonicalCoordinates(MRI_SURFACE *mris, char *sname) ;
+int          MRIScanonicalToWorld(MRI_SURFACE *mris, Real phi, Real theta,
+                                  Real *pxw, Real *pyw, Real *pzw) ;
 int          MRISreadPatch(MRI_SURFACE *mris, char *pname) ;
 int          MRISreadTriangleProperties(MRI_SURFACE *mris, char *mris_fname) ;
 int          MRISreadBinaryCurvature(MRI_SURFACE *mris, char *mris_fname) ;
@@ -371,6 +375,9 @@ int          MRISvertexToVoxel(VERTEX *v, MRI *mri,Real *pxv, Real *pyv,
 int          MRISworldToTalairachVoxel(MRI_SURFACE *mris, MRI *mri, 
                                        Real xw, Real yw, Real zw,
                                        Real *pxv, Real *pyv, Real *pzv) ;
+int          MRIStalairachToVertex(MRI_SURFACE *mris, 
+                                       Real xt, Real yt, Real zt) ;
+int           MRIScanonicalToVertex(MRI_SURFACE *mris, Real phi, Real theta) ;
 MRI_SURFACE  *MRIStalairachTransform(MRI_SURFACE *mris_src, 
                                     MRI_SURFACE *mris_dst);
 MRI_SURFACE  *MRISunfold(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, 

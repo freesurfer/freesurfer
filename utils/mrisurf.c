@@ -11177,6 +11177,39 @@ MRISfindClosestVertex(MRI_SURFACE *mris, float x, float y, float z)
         Description
 ------------------------------------------------------*/
 int
+MRISfindClosestOriginalVertex(MRI_SURFACE *mris, float x, float y, float z)
+{
+  int    vno, min_v = -1 ;
+  VERTEX *v ;
+  float  d, min_d, dx, dy, dz ;
+
+  min_d = 10000.0f ;
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    if (vno == 91007 || vno == 91814)
+      DiagBreak() ;
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    dx = v->origx - x ; dy = v->origy - y ; dz = v->origz - z ;
+    d = sqrt(dx*dx + dy*dy + dz*dz) ;
+    if (d < min_d)
+    {
+      min_d = d ;
+      min_v = vno ;
+    }
+  }
+
+  return(min_v) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+int
 MRISfindClosestCanonicalVertex(MRI_SURFACE *mris, float x, float y, float z)
 {
   int    vno, min_v = -1 ;
@@ -11368,6 +11401,40 @@ MRISuseNegCurvature(MRI_SURFACE *mris)
 
   mris->min_curv = 0 ; mris->max_curv = 1 ;
   return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+int
+MRIStalairachToVertex(MRI_SURFACE *mris, Real xt, Real yt, Real zt)
+{
+  int     vno ;
+  Real    xw, yw, zw ;
+
+  transform_point(mris->inverse_linear_transform, xt, yt, zt, &xw, &yw, &zw) ;
+  vno = MRISfindClosestOriginalVertex(mris, xw, yw, zw) ;
+  return(vno) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+int
+MRIScanonicalToVertex(MRI_SURFACE *mris, Real phi, Real theta)
+{
+  int     vno ;
+  Real    xw, yw, zw ;
+
+  MRIScanonicalToWorld(mris, phi, theta, &xw, &yw, &zw);
+  vno = MRISfindClosestCanonicalVertex(mris, xw, yw, zw) ;
+  return(vno) ;
 }
 /*-----------------------------------------------------
         Parameters:
@@ -13339,7 +13406,14 @@ mrisLimitGradientDistance(MRI_SURFACE *mris, MRI *mri_filled, int vno)
     {
       dot = v->odx * dx + v->ody * dy + v->odz * dz ;
       if (dot >= 0)   
+      {
+        /* take out component toward neighbor */
+#if 1
+        v->odx -= dot * dx ; v->ody -= dot * dy ; v->odz -= dot * dz ;
+#else
         max_outward = 0 ;   /* don't allow outward movement */
+#endif
+      }
     }
   }
 
@@ -14286,7 +14360,6 @@ MRISuseCurvatureRatio(MRI_SURFACE *mris)
   mris->min_curv = min_curv ; mris->max_curv = max_curv ;
   return(NO_ERROR) ;
 }
-
 /*-----------------------------------------------------
         Parameters:
 
@@ -14343,7 +14416,13 @@ MRISuseCurvatureContrast(MRI_SURFACE *mris)
   mris->min_curv = min_curv ; mris->max_curv = max_curv ;
   return(NO_ERROR) ;
 }
+/*-----------------------------------------------------
+        Parameters:
 
+        Returns value:
+
+        Description
+------------------------------------------------------*/
 static double
 mrisComputeSphereError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 {
@@ -14383,5 +14462,24 @@ mrisComputeSphereError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   }
   
   return(parms->l_sphere * sse) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+int
+MRIScanonicalToWorld(MRI_SURFACE *mris, Real phi, Real theta,
+                                  Real *pxw, Real *pyw, Real *pzw)
+{
+  Real x, y, z, radius ;
+  
+  radius = mris->radius ;
+  *pxw = x = radius * sin(phi) * cos(theta) ;
+  *pyw = y = radius * sin(phi) * sin(theta) ;
+  *pzw = z = radius * cos(phi) ;
+  return(NO_ERROR) ;
 }
 
