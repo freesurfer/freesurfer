@@ -1196,8 +1196,6 @@ XVMRIsetPoint(XV_FRAME *xvf, int which, int x, int y, int z)
   {
     for (which2 = 0 ; which2 < xvf->rows*xvf->cols ; which2++)
     {
-      if (which2 == which)
-        continue ;
       dimage2 = XVgetDimage(xvf, which2, DIMAGE_IMAGE) ;
       mri2 = mris[which2] ;
       if (dimage2 /* && (which2 != which) */ && mri2)
@@ -1224,6 +1222,8 @@ XVMRIsetPoint(XV_FRAME *xvf, int which, int x, int y, int z)
           break ;
         }
         XVshowImageTitle(xvf, which2, "%s (%s)", title, buf) ;
+        if (which2 == which)
+          continue ;
         /*
           this dont redraw stuff is such a hack, but I can't think
           of an easy way to prevent tons of irritating redraws
