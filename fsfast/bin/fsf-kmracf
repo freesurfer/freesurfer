@@ -1,0 +1,347 @@
+#!/bin/csh -f
+# fsf-kmracf
+# Things to do
+#  1. Init first km to racfwht and fix
+#  2. Save kmapvol?
+#  3. Another type of init?
+#  4. Init from another run?
+#
+
+set VERSION = '$Id: fsf-kmracf,v 1.1 2004/05/25 23:46:52 greve Exp $'
+set inputargs = ($argv);
+set racfstem = ();
+set xmatfile = ();
+set maskstem = ();
+set nclasses = ();
+set niters   = ();
+set nkvect   = ();
+set initmethod = ();
+set outmatfile = ();
+set kmapstem = ();
+set RandSeed = ();
+
+set monly = 0;
+set MLF = ();
+
+## If there are no arguments, just print useage and exit ##
+set PrintHelp = 0;
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+set n = `echo $argv | grep -e -version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+set StartTime = `date`;
+
+#----------------------------------------------#
+if($#MLF == 0) set MLF = $outdir/fsf_glmfit_tmp.m
+rm -f $MLF
+tee $MLF > /dev/null <<EOF
+
+tic;
+racfstem    = '$racfstem';
+xmatfile   = '$xmatfile';
+maskstem   = '$maskstem';
+nclasses   =  $nclasses;
+niters     =  $niters;
+nkvect     =  $nkvect;
+initmethod = '$initmethod';
+outmatfile = '$outmatfile';
+kmapstem   = '$kmapstem';
+RandSeed   =  [$RandSeed];
+
+if(isempty(RandSeed)) RandSeed = sum(100*clock); end
+randn('state',RandSeed); 
+
+design = load(xmatfile);
+if(isempty(design)) return; end
+X = design.X;
+[nfx nbeta] = size(X);
+R = eye(nfx) - X*inv(X'*X)*X';
+racfwht = fast_cvm2acor(R);
+
+fprintf('Loading ACF\n');
+[racf mristr] = fast_ldbslice(racfstem);
+if(isempty(racf))
+  fprintf('ERROR: with racf %s\n',racfstem);
+  return;
+end
+racf = fast_vol2mat(racf);
+
+if(~isempty(maskstem))
+  fprintf('Loading Mask\n');
+  [mask mristr] = fast_ldbslice(maskstem);
+  if(isempty(mask))
+    fprintf('ERROR: with mask %s\n',maskstem);
+    return;
+  end
+  indmask = find(mask);
+  racf = racf(:,indmask);
+  fprintf('nmask = %d\n',length(indmask));
+else
+  mask = [];
+  indmask = [];
+end
+
+racf0 = racf;
+racf = racf(2:nkvect+1,:);
+
+Mracf = racf*racf';
+ar1 = racf(2,:);
+ar1edge = fast_histeq(ar1,nclasses);
+
+[nf nv] = size(racf);
+
+km0 = zeros(nkvect,nclasses);
+indrandinit = [];
+switch(initmethod)
+
+  case 'ar1'
+    fprintf('Using AR1 Init\n');
+    for c = 2:nclasses
+      ind = find(ar1edge(c-1) < ar1 & ar1 < ar1edge(c) );
+      km0(:,c) = mean(racf(:,ind),2);
+    end
+
+  case 'rand'
+    fprintf('Using Random Init (seed = %d)\n',RandSeed);
+    tmp = randperm(nv);
+    indrandinit = tmp(1:nclasses);
+    km0 = racf(:,indrandinit);
+
+  case 'svd'
+    fprintf('Using SVD Init\n');
+    [u s v] = svd(Mracf);
+    km0 = u(:,1:nclasses);
+
+end
+
+% Get the intial dmin %
+[km kmap dmin0 nitersused] = fast_kmeans(racf,nclasses,km0,1,0);
+
+fprintf('Staring  kmeans    %7.1f\n',toc);
+[km kmap dmin nitersused] = fast_kmeans(racf,nclasses,km0,niters,0);
+fprintf('Finished kmeans    %7.1f\n',toc);
+fprintf('dmin = %g, niters = %d\n',mean(dmin),nitersused);
+
+kmapvol = zeros(size(mask));
+
+for c = 1:nclasses
+  ind = find(kmap==c);
+  nperclass(c) = length(ind);
+  if(nperclass(c)==0) continue; end
+  kmracf(:,c)    = mean(racf0(:,ind),2);
+  kmracfstd(:,c) = std(racf0(:,ind),[],2);
+  dminc(c)    = mean(dmin(ind));
+  kmapvol(indmask(ind)) = c;
+end
+
+
+save(outmatfile,'design','X','R','racfstem','racfwht',...
+     'xmatfile','maskstem','nclasses','niters','nitersused',...
+     'nkvect','initmethod','RandSeed','mask','dmin0','dmin',...
+     'mristr','km0','km','kmap','indrandinit','ar1edge',...
+     'Mracf','nperclass','dminc','kmracf','kmracfstd','kmapstem');
+
+
+fprintf('fsf-kmracf: matlab: done (t=%g)\n',toc);
+
+EOF
+#----------------------------------------------#
+
+if(! $monly) then
+  cat $MLF | matlab -display iconic
+  rm -f $MLF
+endif
+
+
+echo "Started at $StartTime" 
+echo "Ended   at `date`"     
+
+echo "fsf-kmracf done"
+
+
+exit 0
+
+##############################################################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "--acf":
+      if ( $#argv == 0) goto arg1err;
+      set acfstem = $argv[1]; shift;
+      breaksw
+
+    case "--X":
+      if ( $#argv == 0) goto arg1err;
+      set xmatfile = $argv[1]; shift;
+      if(! -e $xmatfile) then
+        echo "ERROR: cannot find $xmatfile"
+        exit 1;
+      endif
+      breaksw
+
+    case "--mask":
+    case "--m":
+      if ( $#argv == 0) goto arg1err;
+      set maskstem = $argv[1]; shift;
+      breaksw
+
+    case "--nclasses":
+      if ( $#argv == 0) goto arg1err;
+      set nclasses = $argv[1]; shift;
+      breaksw
+
+    case "--niters":
+      if ( $#argv == 0) goto arg1err;
+      set niters = $argv[1]; shift;
+      breaksw
+
+    case "--nkvect":
+      if ( $#argv == 0) goto arg1err;
+      set  nkvect = $argv[1]; shift;
+      breaksw
+
+    case "--init":
+      if ( $#argv == 0) goto arg1err;
+      set initmethod = $argv[1]; shift;
+      breaksw
+
+    case "--seed":
+      if ( $#argv == 0) goto arg1err;
+      set RandSeed = $argv[1]; shift;
+      breaksw
+
+    case "--kmap":
+      if ( $#argv == 0) goto arg1err;
+      set kmapstem = $argv[1]; shift;
+      breaksw
+
+    case "--o":
+      if ( $#argv == 0) goto arg1err;
+      set outmatfile = $argv[1]; shift;
+      breaksw
+
+    case "--monly":
+      if ( $#argv == 0) goto arg1err;
+      set MLF = $argv[1]; shift;
+      set monly = 1;
+      breaksw
+
+    case "--debug":
+      set verbose = 1;
+      set echo = 1; # turns on terminal echoing
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+  if($#acfstem == 0) then
+    echo "ERROR: no acf specified"    
+    exit 1;
+  endif
+
+  if($#xmatfile == 0) then
+    echo "ERROR: no design matrix specified"    
+    exit 1;
+  endif
+
+  if($#nclasses == 0) then
+    echo "ERROR: nclasses not specified"    
+    exit 1;
+  endif
+
+  if($#niters == 0) then
+    echo "ERROR: niters not specified"    
+    exit 1;
+  endif
+
+  if($#nkvect == 0) then
+    echo "ERROR: nkvect not specified"    
+    exit 1;
+  endif
+
+  if($#initmethod == 0) then
+    echo "ERROR: init method not specified"    
+    exit 1;
+  endif
+  if($initmethod != ar1 && $initmethod != svd &&\
+     $initmethod != rand) then
+    echo "ERROR: init method = $initmethod, must be ar1, svd, rand"
+    exit 1;
+  endif
+
+  if($#outmatfile == 0) then
+    echo "ERROR: out mat file not specified"    
+    exit 1;
+  endif
+
+  set outdir = `dirname $outmatfile`;
+  mkdir -p $outdir
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "USAGE: fsf-kmracf"
+  echo ""
+  echo "  --acf acfstem "
+  echo "  --X X"
+  echo "  --mask maskstem"
+  echo "  --nclasses n"
+  echo "  --niters   n"
+  echo "  --nkvect   n"
+  echo "  --init method : ar1, svd, rand"
+  echo "  --seed randseed: for rand init (default auto)"
+  echo "  --o outmat"
+  echo "  --kmap kmapstem"
+  echo ""
+
+  if(! $PrintHelp) exit 1;
+
+  echo $VERSION
+
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+
+exit 1;
+
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
