@@ -609,3 +609,16 @@ angleDistance(float theta1, float theta2)
 
   return(adist) ;
 }
+#ifdef LINUX
+int
+stricmp(char *str1, char *str2)
+{
+  char buf1[100], buf2[100] ;
+
+  strcpy(buf1, str1) ;
+  strcpy(buf2, str2) ;
+  StrUpper(buf1) ;
+  StrUpper(buf2) ;
+  return(strcmp(buf1, buf2)) ;
+}
+#endif
