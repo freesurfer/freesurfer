@@ -4,8 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Converts a label to a segmentation volume.
-  $Id: mri_label2vol.c,v 1.1 2004/08/03 19:38:15 greve Exp $
-
+  $Id: mri_label2vol.c,v 1.2 2004/08/03 22:30:44 greve Exp $
 */
 
 
@@ -50,7 +49,7 @@ static int get_crs(MATRIX *Tras2vox, float x, float y, float z,
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_label2vol.c,v 1.1 2004/08/03 19:38:15 greve Exp $";
+static char vcid[] = "$Id: mri_label2vol.c,v 1.2 2004/08/03 22:30:44 greve Exp $";
 char *Progname = NULL;
 
 char *LabelList[100];
@@ -98,7 +97,7 @@ int main(int argc, char **argv)
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv, 
-      "$Id: mri_label2vol.c,v 1.1 2004/08/03 19:38:15 greve Exp $", "$Name:  $");
+      "$Id: mri_label2vol.c,v 1.2 2004/08/03 22:30:44 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -406,7 +405,15 @@ static void print_help(void)
   print_usage() ;
   printf(
 
-"SUMMARY
+"
+HELP OUTLINE:
+  - SUMMARY
+  - ARGUMENTS
+  - EXAMPLES
+  - KNOWN BUGS
+  - SEE ALSO
+
+SUMMARY
 
 Converts a label or a set of labels into a volume. For a single lable,
 the volume will be binary: 1 where the label is and 0 where it is not.
@@ -420,7 +427,10 @@ ARGUMENTS
 --label labelfile <--label labelfile>
 
 Enter the name of the label file. For multiple labels, use multiple
---label flags. Required.
+--label flags. Labels can be created manually with tkmedit and
+tksurfer or automatically from a subcortical segmentation or cortical
+annotation.
+
 
 --temp tempvolid
 
@@ -449,7 +459,8 @@ label point that falls into a voxel makes that voxel a candidate for
 membership in the label.  Note: a label must also have the most hits
 in the voxel before that voxel will actually be assigned to the label
 in the volume. Note: the label voxel volume becomes a little ambiguous
-for surface labels, particularly when they are projected.
+for surface labels, particularly when they are 'filled in' with
+projection.
 
 --labvoxvol voxvol
 
@@ -482,28 +493,40 @@ lh and rh.
 Single frame output volume in which each voxel will have the number of
 the label to which it is assigned (or 0 for no label). The label
 number is the order in which it appears on the command-line.  Takes
-any format accepted by mri_convert (eg, spm, analyze, bshort, mgh,
-COR).
+any format accepted by mri_convert (eg, spm, analyze, bshort, mgh).
 
 --hits hitvolid
 
 Hit volume. This is a multi-frame volume, with one frame for each
 label. The value at each voxel for a given frame is the number of hits
-that voxel received for that label.  Takes any format accepted by
-mri_convert (eg, spm, analyze, bshort, mgh, COR).
+that voxel received for that label. This is mostly good as a debugging
+tool, but you could use it to implement your own multi-label
+arbitration routine. Or you could binarize to have each label
+represented separately. Takes any format accepted by mri_convert (eg,
+spm, analyze, bshort, mgh).
 
 
 EXAMPLES
 
 1. Convert a label into a binary mask in the functional space; require
-that a functional voxel be filled at least 20%% by the label:
+that a functional voxel be filled at least 50%% by the label:
 
 mri_label2vol 
   --label lh-avg_central_sulcus.label 
   --temp f_000.bshort 
   --reg register.dat 
-  --fillthresh .2 
+  --fillthresh .5 
   --o cent-lh_000.bshort
+
+To see how well the label is mapped into the functional volume, run
+
+tkmedit bert orig 
+  -overlay ./cent-lh_000.bshort 
+  -overlay-reg ./register.dat -fthresh .5 -fmid 1
+
+Then load the label with File->Label->LoadLabel. The label should
+overlap with the overlay. The overlap will not be perfect but it
+should be very close.
 
 2. Convert a surface label into a binary mask in the functional space.
 Fill in all the cortical gray matter. Require that a functional voxel
@@ -542,10 +565,17 @@ The voxels corresponding to lh-avg_central_sulcus.label will have a of
 value of 1 whereas those assigned to lh-avg_calcarine_sulcus.label will
 have a value of 2.
 
+KNOWN BUGS
+
+1. When the output type is COR, all the voxels will be zero.
+
 SEE ALSO
 
 mri_label2label, mri_cor2label, mri_annotation2label, mri_mergelabels,
-tkregister2, mri_convert 
+tkregister2, mri_convert, tkmedit, tksurfer.
+
+http://surfer.nmr.mgh.harvard.edu/docs/tkmedit_guide.html
+http://surfer.nmr.mgh.harvard.edu/docs/tksurfer_doc.html
 
 "
 
