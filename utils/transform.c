@@ -610,46 +610,109 @@ LTAtransform(MRI *mri_src, MRI *mri_dst, LTA *lta)
   Real        x1, x2, x3 ;
   MATRIX      *m_L, *m_L_inv ;
   LT *tran = &lta->xforms[0];
+  MATRIX *r2i = 0;
+  MATRIX *i2r = 0;
+  MATRIX *tmp = 0;
+  MATRIX *v2v = 0;
+  MRI *resMRI = 0;
 
   if (lta->num_xforms == 1)
   {
+    /////////////////////////////////////////////////////////////////////////
+    //  The transform was created using src and dst
+    //           src vox ----> RAS
+    //            |             |
+    //            V             V
+    //           dst vox ----> RAS
+    //
+    //  Note: RAS is the physical space.  vox is the way to embed voxel in physical space
+    //
+    //  You can take arbitray embedding of the dst but keeping the RAS same.
+    //
+    //           src vox ----> RAS
+    //            | v2v         | r2r
+    //            V             V
+    //           dst vox ----> RAS
+    //            |             || identity
+    //            V             ||
+    //           dst' vox ---> RAS
+    //
+    //  where dst->dst' map is given by V2V' = r2i(dst')*i2r(dst)
+    //
+    //  Note that in order to obtain src->dst' with r2r, you "don't need any info from dst"
+    //  since
+    //          src->dst'  = r2i(dst')* r2r * i2r(src)
+    //
+    //  However, using v2v, you need the information from dst
+    //  since
+    //          src->dst'  = r2i(dst')* i2r(dst) * v2v
+    //
+    ///////////////////////////////////////////////////////////////////////////////////
+    // when the dst volume is not given
     if (!mri_dst) 
     {
+      // use the same volume size as the src
       mri_dst = MRIclone(mri_src, NULL);
-      if (DIAG_VERBOSE_ON)
-	fprintf(stderr, "INFO: Copied c_(r,a,s) from the src\n");
-    }
-    if (tran->dst.valid == 1) // transform dst is valid
-    {
-      // modify dst c_(r,a,s) using the transform dst value
-      // to make the better positioning
-      if (DIAG_VERBOSE_ON)
-	fprintf(stderr, "INFO: Modifying dst c_(r,a,s), using the transform dst\n");
-      mri_dst->c_r = tran->dst.c_r;
-      mri_dst->c_a = tran->dst.c_a;
-      mri_dst->c_s = tran->dst.c_s;
-      mri_dst->ras_good_flag = 1;
-    }
-    else if(getenv("USE_AVERAGE305"))
-    {
-      fprintf(stderr, "INFO: Environmental variable USE_AVERAGE305 set\n");
-      fprintf(stderr, "INFO: Modifying dst c_(r,a,s), using average_305 values\n");
-      mri_dst->c_r = -0.0950;
-      mri_dst->c_a = -16.5100;
-      mri_dst->c_s = 9.7500;
-      mri_dst->ras_good_flag = 1;
-    }
-    else
-      fprintf(stderr, "INFO: Transform dst volume info is not used (valid flag = 0).\n");
 
+      if (tran->dst.valid == 1) // transform dst is valid
+      {
+	// modify dst c_(r,a,s) using the transform dst value
+	// to make the better positioning (i.e. put the head in the same position in
+	// the volume as the dst was)
+	if (DIAG_VERBOSE_ON)
+	  fprintf(stderr, "INFO: Modifying dst c_(r,a,s), using the transform dst\n");
+	mri_dst->c_r = tran->dst.c_r;
+	mri_dst->c_a = tran->dst.c_a;
+	mri_dst->c_s = tran->dst.c_s;
+	mri_dst->ras_good_flag = 1;
+      }
+      else if(getenv("USE_AVERAGE305"))
+      {
+	fprintf(stderr, "INFO: Environmental variable USE_AVERAGE305 set\n");
+	fprintf(stderr, "INFO: Modifying dst c_(r,a,s), using average_305 values\n");
+	mri_dst->c_r = -0.0950;
+	mri_dst->c_a = -16.5100;
+	mri_dst->c_s = 9.7500;
+	mri_dst->ras_good_flag = 1;
+      }
+      else
+	fprintf(stderr, "INFO: Transform dst volume info is not used (valid flag = 0).\n");
+    }
+    ////////////////////////////////////////////////////////////////////////
     if (lta->type == LINEAR_RAS_TO_RAS)
     {
+      // don't need any info from dst
       return(MRIapplyRASlinearTransform(mri_src, mri_dst, lta->xforms[0].m_L)) ;
     }
-    else // vox-to-vox
+    else if (lta->type == LINEAR_VOX_TO_VOX)// vox-to-vox
     {
-      return(MRIlinearTransform(mri_src, mri_dst, lta->xforms[0].m_L)) ;
+      if (lta->xforms[0].dst.valid)
+      {
+	i2r = vg_i_to_r(&lta->xforms[0].dst); // allocated
+	r2i = extract_r_to_i(mri_dst);
+	tmp = MatrixMultiply(i2r, lta->xforms[0].m_L, NULL);
+	v2v = MatrixMultiply(r2i, tmp, NULL);
+	resMRI = MRIlinearTransform(mri_src, mri_dst, v2v);
+	MatrixFree(&v2v); v2v = 0;
+	MatrixFree(&i2r); i2r = 0;
+	MatrixFree(&r2i); r2i = 0;
+	MatrixFree(&tmp); tmp = 0;
+	return resMRI;
+      }
+      else
+      {
+	fprintf(stderr, "INFO: assumes that the dst volume given is the same as the dst for the transform\n");
+	return(MRIlinearTransform(mri_src, mri_dst, lta->xforms[0].m_L)) ;
+      }
     }
+    else if (lta->type == LINEAR_PHYSVOX_TO_PHYSVOX)
+    {
+      // must have both transform src and dst geometry information
+      LTAchangeType(lta, LINEAR_RAS_TO_RAS);
+      return(MRIapplyRASlinearTransform(mri_src, mri_dst, lta->xforms[0].m_L)) ;
+    }
+    else
+      ErrorExit(ERROR_BADPARM, "LTAtransform: unknown linear transform\n");
   }
   fprintf(stderr, "applying octree transform to image...\n") ;
   if (!mri_dst)
