@@ -1900,49 +1900,26 @@ findLabel(MRI *mri, int x, int y, int z)
           Set an MRI intensity values to 0
 ------------------------------------------------------*/
 int
-MRIsetValues(MRI *mri, int val)
+MRIsetValues(MRI *mri, float val)
 {
-  int   width, depth, height, bytes, y, z, frame, nframes ;
+  int   width, depth, height, x, y, z, frame, nframes ;
 
   width = mri->width ;
   height = mri->height ;
   depth = mri->depth ;
   nframes = mri->nframes ;
-  bytes = width ;
-
-  switch (mri->type)
-  {
-  case MRI_UCHAR:
-    bytes *= sizeof(unsigned char) ;
-    break ;
-  case MRI_INT:
-    bytes *= sizeof(int) ;
-    break ;
-  case MRI_LONG:
-    bytes *= sizeof(long) ;
-    break ;
-  case MRI_FLOAT:
-    bytes *= sizeof(float) ;
-    break ;
-  case MRI_SHORT:
-    bytes *= sizeof(short) ;
-    break;
-  case MRI_BITMAP:
-    bytes /= 8 ;
-    break ;
-  case MRI_TENSOR:
-    bytes /= 8 ;
-    break ;
-  default:
-    break ;
-  }
 
   for (frame = 0 ; frame < nframes ; frame++)
-  {
-    for (z = 0 ; z < depth ; z++)
-    {
-      for (y = 0 ; y < height ; y++)
-        memset(mri->slices[z+frame*depth][y], val, bytes) ;
+	{
+		for (x = 0 ; x < width  ; x++)
+		{
+			for (y = 0 ; y < height ; y++)
+			{
+				for (z = 0 ; z < depth ; z++)
+				{
+					MRIsetVoxVal(mri, x, y, z, frame, val) ;
+				}
+			}
     }
   }
   
