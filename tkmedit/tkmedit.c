@@ -325,6 +325,8 @@ char *Progname ;
 
 /*--------------------- twitzels hacks ------------------------------*/
 
+char hacked_map[256];
+
 /*--------------------- functional ----------------------------------*/
 #ifndef FUNCTIONAL_C
 #define FUNCTIONAL_C
@@ -1031,7 +1033,7 @@ void compose(unsigned char* stbuffer, unsigned char* outbuffer)
     ccolor1 = NUMVALS-1;
     ccolor2 = 0;
   }
-
+  
   hax = xdim/2;
   hay = ydim/2;
   
@@ -1046,10 +1048,17 @@ void compose(unsigned char* stbuffer, unsigned char* outbuffer)
   if(fcache[h*512+w]!=NO_VALUE)
     setStatColor(fcache[h*512+w],&red,&green,&blue,stbuffer[h*512+w]/255.0);
   else {
-    red = green = blue = stbuffer[h*512+w];
+    red = green = blue = hacked_map[stbuffer[h*512+w]+MAPOFFSET];
+    if (truncflag)
+      if (stbuffer[h*512+w]<white_lolim+MAPOFFSET || stbuffer[h*512+w]>white_hilim+MAPOFFSET)
+        red = green = blue = hacked_map[MAPOFFSET];
   }
       } else {
-  red = green = blue = stbuffer[h*512+w];
+  red = green = blue = hacked_map[stbuffer[h*512+w]+MAPOFFSET];
+  if (truncflag)
+    if (stbuffer[h*512+w]<white_lolim+MAPOFFSET || stbuffer[h*512+w]>white_hilim+MAPOFFSET)
+      red = green = blue = hacked_map[MAPOFFSET];
+  
       }
       outbuffer[4*h*xdim+4*w]=red;
       outbuffer[4*h*xdim+4*w+1]=green;
@@ -1057,7 +1066,7 @@ void compose(unsigned char* stbuffer, unsigned char* outbuffer)
       outbuffer[4*h*xdim+4*w+3]=255;
     }
   }
-
+  
   if(all3flag || plane==SAGITTAL) {
     for (i=ic-curs;i<=ic+curs;i++) {
       if (all3flag) 
@@ -2629,6 +2638,18 @@ void set_cursor(float xpt, float ypt, float zpt)
   PR
 }
 
+void initmap_hacked(void)
+{
+  int i;
+  for(i=0; i < 256; i++)
+    hacked_map[i]=i;
+}
+
+void mapcolor_hacked(unsigned char idx, unsigned char v)
+{
+  hacked_map[idx]=v;
+}
+ 
 void set_scale(void)
 {
   Colorindex i;
@@ -2651,6 +2672,7 @@ void set_scale(void)
       v = f*fscale+0.5;
     }
     mapcolor(i+MAPOFFSET,v,v,v);
+    mapcolor_hacked(i+MAPOFFSET,v);
   }
   mapcolor(NUMVALS+MAPOFFSET,v,0.0,0.0);
 }
@@ -5162,6 +5184,7 @@ char **argv;
   char *envptr, *getenv();
   FILE *fp, *fopen();
 
+  initmap_hacked();
   /* get tkmedit tcl startup script location from environment */
   envptr = getenv("MRI_DIR");
   if (envptr==NULL) {
