@@ -29,7 +29,7 @@
 #include "tiffio.h"
 #include "label.h"
 
-static char vcid[] = "$Id: mris2rgb.c,v 1.15 1998/06/02 14:01:56 fischl Exp $";
+static char vcid[] = "$Id: mris2rgb.c,v 1.16 1998/06/03 04:55:23 fischl Exp $";
 
 /*-------------------------------- CONSTANTS -----------------------------*/
 
@@ -131,6 +131,7 @@ static int compile_flags = 0 ;
 
 static int nmarked = 0 ;
 static int marked_vertices[MAX_MARKED] = { -1 } ;
+static int marked_colors[MAX_MARKED] = { 1 } ;
 static int noscale = 1 ;
 static int fov = -1 ;
 static MRI_SURFACE_PARAMETERIZATION *mrisp = NULL ;
@@ -146,6 +147,7 @@ static int num_tpoints = 0 ;
 
 static float phi_spoint[MAX_POINTS], theta_spoint[MAX_POINTS] ;
 static int num_spoints = 0 ;
+static int mark_color = 1 ;
 
 
 /*-------------------------------- FUNCTIONS ----------------------------*/
@@ -154,8 +156,8 @@ int
 main(int argc, char *argv[])
 {
   char            **av, *in_fname, *out_prefix, out_fname[100], name[100],
-    path[100], *cp, hemi[100], fname[100], *surf_fname ;
-  int             ac, nargs, size, ino, old_status, i, drawn ;
+                  path[100], *cp, hemi[100], fname[100], *surf_fname ;
+  int             ac, nargs, size, ino, old_status, i, drawn, is_flat ;
   float           angle = 0.0f ;
   unsigned short  *red=NULL, *green=NULL, *blue=NULL;
   unsigned char   *rgb=NULL;
@@ -210,7 +212,8 @@ main(int argc, char *argv[])
     else
       strcpy(hemi, "lh") ;
 
-    if (patch_flag)  /* read the orig surface, then the patch file */
+    is_flat = (strstr(name, "flat") != NULL || strstr(name, "patch")) ;
+    if (patch_flag || is_flat) /* read the orig surface, then the patch file */
     {
       FileNamePath(in_fname, path) ;
       sprintf(fname, "%s/%s.orig", path, hemi) ;
@@ -300,7 +303,7 @@ main(int argc, char *argv[])
     }
     
     for (i = 0 ; i < nmarked ; i++)
-      mris->vertices[marked_vertices[i]].marked = MARK_WHITE ;
+      mris->vertices[marked_vertices[i]].marked = marked_colors[i] ;
     if (talairach_flag)
     {
       MRIStalairachTransform(mris, mris) ;
@@ -314,7 +317,7 @@ main(int argc, char *argv[])
       OGLUsetFOV(fov) ;
     else   /* try and pick an appropriate one */
     {
-      if (patch_flag)
+      if (patch_flag || is_flat)
       {
         int   ngood, vno ;
         float pct_vertices ;
@@ -375,7 +378,7 @@ main(int argc, char *argv[])
     if (normalize_flag)
       MRISnormalizeCurvature(mris) ;
 
-    if (patch_flag)
+    if (patch_flag || is_flat)
     {
       angle = 90.0f ;
       glRotatef(angle, 1.0f, 0.0f, 0.0f) ;
@@ -789,6 +792,11 @@ get_option(int argc, char *argv[])
             (float)z_tpoint[num_tpoints]) ;
     num_tpoints++ ;
   }
+  else if (!stricmp(option, "mark"))
+  {
+    mark_color = atoi(argv[2]) ;
+    nargs = 1 ;
+  }
   else if (!stricmp(option, "spoint"))
   {
     nargs = 2 ;
@@ -814,7 +822,11 @@ get_option(int argc, char *argv[])
     if (nmarked+area->n_points >= MAX_MARKED)
       area->n_points = MAX_MARKED - nmarked ;
     for (i = 0 ; i < area->n_points ; i++)
+    {
+      marked_colors[nmarked] = mark_color ;
       marked_vertices[nmarked++] = area->lv[i].vno ;
+    }
+    mark_color++ ;   /* so next label will have different color */
     LabelFree(&area) ;
     break ;
   }
