@@ -16,11 +16,11 @@ function yak2(varargin)
 %
 % yak(cbstring) % for callback functions
 %
-% $Id: yak2.m,v 1.5 2004/01/15 03:38:15 greve Exp $
+% $Id: yak2.m,v 1.6 2004/11/01 04:39:14 greve Exp $
 
 if(nargin == 0)
   msg = 'USAGE: hfig = yak2(flag,options)';
-  msg = sprintf('%s\n$Id: yak2.m,v 1.5 2004/01/15 03:38:15 greve Exp $',msg);
+  msg = sprintf('%s\n$Id: yak2.m,v 1.6 2004/11/01 04:39:14 greve Exp $',msg);
   qoe(msg);error(msg);
 end
 
@@ -410,6 +410,7 @@ switch (cbflag)
       s = sprintf(' %s+ - step to the next image\n',s);
       s = sprintf(' %s- - step to the previous image\n',s);
       s = sprintf(' %sc - toggle on crosshair\n',s);
+      s = sprintf(' %sd - apply FDR thresholding\n',s);
       s = sprintf(' %sf - goto a row/col\n',s);
       s = sprintf(' %sh - help (this message)\n',s);
       s = sprintf(' %si - toggle interpolation\n',s);
@@ -460,23 +461,50 @@ switch (cbflag)
         lines  = 1;
         def = {sprintf('%7.4f',ud.PMax),sprintf('%7.4f',ud.PMin)};
         answer   = inputdlg(prompt,title,lines,def);
-        amax = sscanf(answer{1},'%f');
-        amin = sscanf(answer{2},'%f');
-        if(amax <= amin)
-          msg = sprintf('Max threshold (%f) cannot be less than min (%f)',...
-                         amax,amin);
-          errordlg(msg);
-        elseif(amax ~= ud.PMax | amin ~= ud.PMin)
-          ud.PMin = amin;
-          ud.PMax = amax;
-          ud.ovmax = ud.PMax;
-          ud.ovmin = ud.PMin;
-          [ud.DisplayImg ud.CMap ud.CScale ] = ...
-                 imgoverlaytc2(ud.UnderlayImgTC,ud.ActImg(:,:,ud.CurPlaneNo),...
-                 ud.ovmin,ud.ovmax,ud.tail,ud.interp);
-          ud = redraw(ud);
-          setstatus(ud);
-        end 
+	if(~isempty(answer))
+	  amax = sscanf(answer{1},'%f');
+	  amin = sscanf(answer{2},'%f');
+	  if(amax <= amin)
+	    msg = sprintf('Max threshold (%f) cannot be less than min (%f)',...
+			  amax,amin);
+	    errordlg(msg);
+	  elseif(amax ~= ud.PMax | amin ~= ud.PMin)
+	    ud.PMin = amin;
+	    ud.PMax = amax;
+	    ud.ovmax = ud.PMax;
+	    ud.ovmin = ud.PMin;
+	    [ud.DisplayImg ud.CMap ud.CScale ] = ...
+		imgoverlaytc2(ud.UnderlayImgTC,ud.ActImg(:,:,ud.CurPlaneNo),...
+			      ud.ovmin,ud.ovmax,ud.tail,ud.interp);
+	    ud = redraw(ud);
+	    setstatus(ud);
+	  end 
+	end
+      else
+        msg = sprintf('There is no overlay image for which to adjust thresholds.');
+        errordlg(msg);
+      end
+
+    case 'd' 
+      if(~isempty(ud.ActImg))
+        title  = 'False Discovery Rate';
+        prompt = {'FDR:'};
+        lines  = 1;
+        def = {sprintf('%7.4f',ud.FDR)};
+        answer   = inputdlg(prompt,title,lines,def);
+        ud.FDR = sscanf(answer{1},'%f');
+	p = 10.^(-abs(ud.ActImg(:,:,ud.CurPlaneNo)));
+	pthresh = fast_fdrthresh(p,ud.FDR);
+	ud.PMin = -log10(pthresh);
+	ud.PMax = ud.PMin + 3;
+	
+	ud.ovmax = ud.PMax;
+	ud.ovmin = ud.PMin;
+	[ud.DisplayImg ud.CMap ud.CScale ] = ...
+	    imgoverlaytc2(ud.UnderlayImgTC,ud.ActImg(:,:,ud.CurPlaneNo),...
+			  ud.ovmin,ud.ovmax,ud.tail,ud.interp);
+	ud = redraw(ud);
+	setstatus(ud);
       else
         msg = sprintf('There is no overlay image for which to adjust thresholds.');
         errordlg(msg);
@@ -752,6 +780,7 @@ function ud = new_user_data
                'interp',        0, ...
                'PMin',         .01, ...
                'PMax',         .00001, ...
+               'FDR',          .01, ...
                'ovmin',        log(.01),...
                'ovmax',        log(.00001),...
                'tail',         'both',...

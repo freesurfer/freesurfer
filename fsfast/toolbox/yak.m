@@ -16,11 +16,11 @@ function yak(varargin)
 %
 % yak(cbstring) % for callback functions
 %
-% $Id: yak.m,v 1.3 2003/08/03 23:54:42 greve Exp $
+% $Id: yak.m,v 1.4 2004/11/01 04:39:14 greve Exp $
 
 if(nargin == 0)
   msg = 'USAGE: hfig = yak(flag,options)';
-  msg = sprintf('%s\n$Id: yak.m,v 1.3 2003/08/03 23:54:42 greve Exp $',msg);
+  msg = sprintf('%s\n$Id: yak.m,v 1.4 2004/11/01 04:39:14 greve Exp $',msg);
   qoe(msg);error(msg);
 end
 
@@ -378,6 +378,7 @@ switch (cbflag)
       s = sprintf(' %s+ - step to the next image\n',s);
       s = sprintf(' %s- - step to the previous image\n',s);
       s = sprintf(' %sc - toggle on crosshair\n',s);
+      s = sprintf(' %sd - apply FDR thresholding\n',s);
       s = sprintf(' %sf - goto a row/col\n',s);
       s = sprintf(' %sh - help (this message)\n',s);
       s = sprintf(' %si - toggle interpolation\n',s);
@@ -451,7 +452,32 @@ switch (cbflag)
         errordlg(msg);
       end
 
-    case 'f' 
+         case 'd' 
+      if(~isempty(ud.ActImg))
+        title  = 'False Discovery Rate';
+        prompt = {'FDR:'};
+        lines  = 1;
+        def = {sprintf('%7.4f',ud.FDR)};
+        answer   = inputdlg(prompt,title,lines,def);
+        ud.FDR = sscanf(answer{1},'%f');
+	p = 10.^(-abs(ud.ActImg(:,:,ud.CurPlaneNo)));
+	pthresh = fast_fdrthresh(p,ud.FDR);
+	ud.PMin = -log10(pthresh);
+	ud.PMax = ud.PMin + 3;
+	
+	ud.ovmax = ud.PMax;
+	ud.ovmin = ud.PMin;
+	[ud.DisplayImg ud.CMap ud.CScale ] = ...
+	    imgoverlaytc2(ud.UnderlayImgTC,ud.ActImg(:,:,ud.CurPlaneNo),...
+			  ud.ovmin,ud.ovmax,ud.tail,ud.interp);
+	ud = redraw(ud);
+	setstatus(ud);
+      else
+        msg = sprintf('There is no overlay image for which to adjust thresholds.');
+        errordlg(msg);
+      end
+
+     case 'f' 
       title  = 'Goto Row/Col';
       prompt = {'Row:','Col'};
       lines  = 1;
@@ -719,6 +745,7 @@ function ud = new_user_data
                'interp',        0, ...
                'PMin',         .01, ...
                'PMax',         .00001, ...
+               'FDR',          .01, ...
                'ovmin',        log(.01),...
                'ovmax',        log(.00001),...
                'tail',         'both',...
