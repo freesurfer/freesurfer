@@ -1,6 +1,6 @@
 #! /usr/bin/tixwish
 
-# $Id: tkmedit.tcl,v 1.52 2003/07/11 20:14:11 kteich Exp $
+# $Id: tkmedit.tcl,v 1.53 2003/07/11 22:35:38 kteich Exp $
 
 source $env(MRI_DIR)/lib/tcl/tkm_common.tcl
 
@@ -694,6 +694,9 @@ proc GetDefaultLocation { iType } {
 	    LoadFunctional-overlay - LoadFunctional-timecourse {
 		set gsaDefaultLocation($iType) $gsSubjectDirectory/fmri
 	    }
+	    SpecifyRegistration-overlay - SpecifyRegistration-timecourse {
+		set gsaDefaultLocation($iType) ""
+	    }
 	    LoadGCA_Volume - SaveGCA {
 		if { [info exists env(CSURF_DIR)] } {
 		    set gsaDefaultLocation($iType) $env(CSURF_DIR)/average
@@ -903,6 +906,36 @@ set tDlogSpecs(ImportSurfaceAnnotation) [list \
   -okCmd {ImportSurfaceAnnotationToSegmentation 0 %s1 %s2; \
   SetDefaultLocation ImportSegmentation_Volume %s1; \
   SetDefaultLocation Segmentation_ColorTable %s2} ]
+set tDlogSpecs(LoadFunctionalOverlay) [list \
+  -title "Load Functional Overlay" \
+  -prompt1 "Load Volume File:" \
+  -note1 "Binary volume file (.bfloat/.bshort/.hdr) or COR-.info or other" \
+  -entry1 [list GetDefaultLocation LoadFunctional-overlay] \
+  -default1 [list GetDefaultLocation LoadFunctional-overlay] \
+  -presets1 $glShortcutDirs \
+  -prompt2 "Load Registration File:" \
+  -note2 "The register.dat file, or leave blank to look in same directory" \
+  -entry2 [list GetDefaultLocation SpecifyRegistration-overlay] \
+  -default2 [list GetDefaultLocation SpecifyRegistration-overlay] \
+  -presets2 $glShortcutDirs \
+  -okCmd {LoadFunctionalOverlay %s1 %s2; \
+  SetDefaultLocation LoadFunctional-overlay %s1; \
+  SetDefaultLocation SpecifyRegistration-overlay %s2} ]
+set tDlogSpecs(LoadFunctionalTimeCourse) [list \
+  -title "Load Functional Time Course" \
+  -prompt1 "Load Volume File:" \
+  -note1 "Binary volume file (.bfloat/.bshort/.hdr) or COR-.info or other" \
+  -entry1 [list GetDefaultLocation LoadFunctional-timecourse] \
+  -default1 [list GetDefaultLocation LoadFunctional-timecourse] \
+  -presets1 $glShortcutDirs \
+  -prompt2 "Load Registration File:" \
+  -note2 "The register.dat file, or leave blank to look in same directory" \
+  -entry2 [list GetDefaultLocation SpecifyRegistration-timecourse] \
+  -default2 [list GetDefaultLocation SpecifyRegistration-timecourse] \
+  -presets2 $glShortcutDirs \
+  -okCmd {LoadFunctionalTimeCourse %s1 %s2; \
+  SetDefaultLocation LoadFunctional-timecourse %s1; \
+  SetDefaultLocation SpecifyRegistration-timecourse %s2} ]
 set tDlogSpecs(PrintTimeCourse) [list \
   -title "Print Time Course" \
   -prompt1 "Save Summary As:" \
@@ -2918,10 +2951,10 @@ proc CreateMenuBar { ifwMenuBar } {
 	{ separator }
 	{ command
 	    "Load Overlay Data..."
-	    {DoLoadFunctionalDlog overlay} }
+	    {DoFileDlog LoadFunctionalOverlay} }
 	{ command
 	    "Load Time Course Data..."
-	    {DoLoadFunctionalDlog timecourse} }
+	    {DoFileDlog LoadFunctionalTimeCourse} }
 	{ command
 	    "Save Overlay Registration"
 	    Overlay_SaveRegistration
@@ -3052,7 +3085,7 @@ proc CreateMenuBar { ifwMenuBar } {
 	{ separator }
 	{ command
 	    "Clear Selection / Label"
-	    ClearSelection }
+	    "ClearSelection; RedrawAll" }
 	{ command
 	    "Clear Undo Volume"
 	    ClearUndoVolume } 

@@ -1,6 +1,6 @@
 #! /usr/bin/tixwish
 
-# $Id: tkm_functional.tcl,v 1.16 2003/04/07 20:02:53 kteich Exp $
+# $Id: tkm_functional.tcl,v 1.17 2003/07/11 22:35:38 kteich Exp $
 
 package require BLT;
 
@@ -115,10 +115,11 @@ proc TimeCourse_ClearData {} {
 
 proc TimeCourse_UpdateGraphData { inDataSet ilPoints } {
     global glGraphData gnNumDataSets
+
     # save our graph data
     set glGraphData($inDataSet) $ilPoints
     if {[expr $inDataSet + 1] > $gnNumDataSets} {
-  set gnNumDataSets [expr $inDataSet + 1]
+	set gnNumDataSets [expr $inDataSet + 1]
     }
 }
 
@@ -144,52 +145,52 @@ proc TimeCourse_DrawGraph {} {
 
     # if no data, return
     if {$gnNumDataSets == 0} {
-  return;
+	return;
     }
     
-
+    
     foreach dataSet $glGraphColors {
-  
-  # if not visible, draw some dummy data in this color. make
-  # sure to use the already established min and max as the dummy
-  # data so we don't mess up our range. 
-  if { $gGraphSetting($dataSet,visible) == 0 } {
-      continue;
-  }
-  
-  # get the condition index for this color
-  set nCondition $gGraphSetting($dataSet,condition)
-  
-  # make sure we have this data
-  if { [catch { set lGraphData $glGraphData($nCondition) } sResult]} {
-      # no data
-      continue;
-  }
-  set nLength [llength $lGraphData]
-  if { $nLength <= 0 } {
-      continue;
-  }
-  
-  # try to size the spacing of the ticks on the x axis appropriatly.
-  # get the x range of this data and find out how many points we have.
-  # then get the width of the graph and divide it by the number
-  # of points. if < 40 pixels, set the step size to the width divided
-  # by 40. otherwise set it to half time res (half because the minor
-  # tick goes in between each major tick).
-  set nNumPoints [expr $nLength / 2]
-  set nWidth [$gwGraph cget -width]
-  set nWidthPerTick [expr $nWidth / $nNumPoints]
-  if { $nWidthPerTick < $knMinWidthPerTick } {
-      set nNumMarks [expr $nWidth / $knMinWidthPerTick]
-      set nWidthPerTick [expr $nNumPoints / $nNumMarks]
-      $gwGraph axis configure x -stepsize $nWidthPerTick
-  } else {
-      set nWidthPerTick [expr $gnTimeResolution / 2]
-      if { $nWidthPerTick < 1 } {
-    set nWidthPerTick 1
-      }
-      $gwGraph axis configure x -stepsize $nWidthPerTick
-  }
+	
+	# if not visible, draw some dummy data in this color. make
+	# sure to use the already established min and max as the dummy
+	# data so we don't mess up our range. 
+	if { $gGraphSetting($dataSet,visible) == 0 } {
+	    continue;
+	}
+	
+	# get the condition index for this color
+	set nCondition $gGraphSetting($dataSet,condition)
+	
+	# make sure we have this data
+	if { [catch { set lGraphData $glGraphData($nCondition) } sResult]} {
+	    # no data
+	    continue;
+	}
+	set nLength [llength $lGraphData]
+	if { $nLength <= 0 } {
+	    continue;
+	}
+	
+	# try to size the spacing of the ticks on the x axis appropriatly.
+	# get the x range of this data and find out how many points we have.
+	# then get the width of the graph and divide it by the number
+	# of points. if < 40 pixels, set the step size to the width divided
+	# by 40. otherwise set it to half time res (half because the minor
+	# tick goes in between each major tick).
+	set nNumPoints [expr $nLength / 2]
+	set nWidth [$gwGraph cget -width]
+	set nWidthPerTick [expr $nWidth / $nNumPoints]
+	if { $nWidthPerTick < $knMinWidthPerTick } {
+	    set nNumMarks [expr $nWidth / $knMinWidthPerTick]
+	    set nWidthPerTick [expr $nNumPoints / $nNumMarks]
+	    $gwGraph axis configure x -stepsize $nWidthPerTick
+	} else {
+	    set nWidthPerTick [expr $gnTimeResolution / 2]
+	    if { $nWidthPerTick < 1 } {
+		set nWidthPerTick 1
+	    }
+	    $gwGraph axis configure x -stepsize $nWidthPerTick
+	}
   
 
   # if we're subtracting the prestim avg..
@@ -633,8 +634,8 @@ proc TimeCourse_UpdateGraphLabel { isDataSet isLabel } {
 
     set nDataSet [lsearch -exact $glAllColors $isDataSet]
     if { $nDataSet == -1 } {
-  puts "TimeCourse_UpdateGraphLabel: Couldn't find $isDataSet\n"
-  return;
+	puts "TimeCourse_UpdateGraphLabel: Couldn't find $isDataSet\n"
+	return;
     }
 
     set gGraphSetting($isDataSet,label) $isLabel

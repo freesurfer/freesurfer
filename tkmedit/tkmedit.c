@@ -4,9 +4,9 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2003/07/11 20:13:19 $
-// Revision       : $Revision: 1.162 $
-char *VERSION = "$Revision: 1.162 $";
+// Revision Date  : $Date: 2003/07/11 22:35:25 $
+// Revision       : $Revision: 1.163 $
+char *VERSION = "$Revision: 1.163 $";
 
 #define TCL
 #define TKMEDIT 
@@ -445,12 +445,12 @@ void SendVolumeColorScaleUpdate ( tkm_tVolumeType iVolume );
 
 tkmFunctionalVolumeRef gFunctionalVolume = NULL;
 
-tkm_tErr LoadFunctionalOverlay    ( char* isPathAndStem, 
-            char* isOffsetPath,
-            char* isRegistration );
-tkm_tErr LoadFunctionalTimeCourse ( char* isPathAndStem, 
-            char* isOffsetPath,
-            char* isRegistration );
+tkm_tErr LoadFunctionalOverlay    ( char* isFileName, 
+				    char* isOffsetFileName,
+				    char* isRegistrationFileName );
+tkm_tErr LoadFunctionalTimeCourse ( char* isFileName, 
+				    char* isOffsetFileName,
+				    char* isRegistrationFileName );
 
 tkm_tErr SmoothOverlayData ( float ifSigma );
 
@@ -969,16 +969,16 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
   tBoolean      bLoadingAuxTransform      = FALSE;
   char        sAuxTransform[tkm_knPathLen]    = "";
   tBoolean      bLoadingOverlay      = FALSE;
-  char        sOverlayPathAndStem[tkm_knPathLen]  = "";
-  char        sOverlayOffsetPathAndStem[tkm_knPathLen] = "";
+  char        sOverlayFileName[tkm_knPathLen]  = "";
+  char        sOverlayOffsetFileName[tkm_knPathLen] = "";
   char        sOverlayRegistration[tkm_knPathLen]  = "";
-  char*        psOverlayOffsetPathAndStem    = NULL;
+  char*        psOverlayOffsetFileName    = NULL;
   char*        psOverlayRegistration      = NULL;
   tBoolean      bLoadingTimeCourse      = FALSE;
-  char        sTimeCoursePathAndStem[tkm_knPathLen] = "";
-  char        sTimeCourseOffsetPathAndStem[tkm_knPathLen]  = "";
+  char        sTimeCourseFileName[tkm_knPathLen] = "";
+  char        sTimeCourseOffsetFileName[tkm_knPathLen]  = "";
   char        sTimeCourseRegistration[tkm_knPathLen]= "";
-  char*        psTimeCourseOffsetPathAndStem    = NULL;
+  char*        psTimeCourseOffsetFileName    = NULL;
   char*        psTimeCourseRegistration    = NULL;
   tBoolean      bEnablingRegistration      = FALSE;
   tBoolean      bLoadingSegmentation      = FALSE;
@@ -1045,7 +1045,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
      shorten our argc and argv count. If those are the only args we
      had, exit. */
   /* rkt: check for and handle version tag */
-  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.162 2003/07/11 20:13:19 kteich Exp $");
+  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.163 2003/07/11 22:35:25 kteich Exp $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
   argc -= nNumProcessedVersionArgs;
@@ -1075,7 +1075,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
     printf("-mm-main <min> <max>             : color scale min and max for main volume\n");
     printf("-bc-aux <brightness> <contrast>  : brightness and contrast for aux volume\n");
     printf("-mm-aux <min> <max>              : color scale min and max for aux volume\n");
-    printf("-overlay <path/stem>        : load functional overlay volume\n");
+    printf("-overlay <file>             : load functional overlay volume\n");
     printf("-overlay-reg <registration> : load registration file for overlay volume \n");
     printf("                            : (default is register.dat in same path as\n");
     printf("                            :  volume)\n");
@@ -1090,7 +1090,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
     printf("-overlaycache <1|0>      : uses overlay cache (default off)\n");
     printf("\n");
     printf("-sdir <subjects dir>       : (default is getenv(SUBJECTS_DIR)\n");
-    printf("-timecourse <path/stem>    : load functional timecourse volume\n");
+    printf("-timecourse <file          >    : load functional timecourse volume\n");
     printf("-timecourse-reg <registration>  : load registration file for timecourse   \n");
     printf("                                : volume (default is register.dat in\n");
     printf("                                : same path as volume)\n");
@@ -1260,7 +1260,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
 	  
 	  /* read the overlay path and stem */
 	  DebugNote( ("Parsing overlay in -o option") );
-	  xUtil_snprintf( sOverlayPathAndStem, sizeof(sOverlayPathAndStem),
+	  xUtil_snprintf( sOverlayFileName, sizeof(sOverlayFileName),
 			  "%s/%s",argv[nCurrentArg+1], argv[nCurrentArg+2] );
 	  bLoadingOverlay = TRUE;
 	  nCurrentArg += 3;
@@ -1281,8 +1281,8 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
 	  
 	  /* read in time course path and stem. */
 	  DebugNote( ("Parsing time course in -o option") );
-	  xUtil_snprintf( sTimeCoursePathAndStem, 
-			  sizeof(sTimeCoursePathAndStem),
+	  xUtil_snprintf( sTimeCourseFileName, 
+			  sizeof(sTimeCourseFileName),
 			  "%s/%s",
 			  argv[nCurrentArg], argv[nCurrentArg+1] );
 	  bLoadingTimeCourse = TRUE;
@@ -1297,8 +1297,8 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
 	  
 	  /* copy arg into a destructible string */
 	  DebugNote( ("Parsing -overlay option") );
-	  xUtil_strncpy( sOverlayPathAndStem, argv[nCurrentArg+1],
-			 sizeof(sOverlayPathAndStem) );
+	  xUtil_strncpy( sOverlayFileName, argv[nCurrentArg+1],
+			 sizeof(sOverlayFileName) );
 	  bLoadingOverlay = TRUE;
 	  nCurrentArg += 2;
 	  
@@ -1343,9 +1343,9 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
 	  
 	  /* copy arg  */
 	  DebugNote( ("Parsing -overlay-offset option") );
-	  psOverlayOffsetPathAndStem = sOverlayOffsetPathAndStem;
-	  xUtil_strncpy( sOverlayOffsetPathAndStem, argv[nCurrentArg+1],
-			 sizeof(sOverlayOffsetPathAndStem) );
+	  psOverlayOffsetFileName = sOverlayOffsetFileName;
+	  xUtil_strncpy( sOverlayOffsetFileName, argv[nCurrentArg+1],
+			 sizeof(sOverlayOffsetFileName) );
 	  nCurrentArg += 2;
 	  
 	} else {
@@ -1365,8 +1365,8 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
 	  
 	  /* copy arg into a destructible string */
 	  DebugNote( ("Parsing -timecourse option") );
-	  xUtil_strncpy( sTimeCoursePathAndStem, argv[nCurrentArg+1],
-			 sizeof(sTimeCoursePathAndStem) );
+	  xUtil_strncpy( sTimeCourseFileName, argv[nCurrentArg+1],
+			 sizeof(sTimeCourseFileName) );
 	  bLoadingTimeCourse = TRUE;
 	  nCurrentArg += 2;
 	  
@@ -1411,9 +1411,9 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
 	  
 	  /* copy arg  */
 	  DebugNote( ("Parsing -timecourse-offset option") );
-	  psTimeCourseOffsetPathAndStem = sTimeCourseOffsetPathAndStem;
-	  xUtil_strncpy( sTimeCourseOffsetPathAndStem, argv[nCurrentArg+1],
-			 sizeof(sTimeCourseOffsetPathAndStem) );
+	  psTimeCourseOffsetFileName = sTimeCourseOffsetFileName;
+	  xUtil_strncpy( sTimeCourseOffsetFileName, argv[nCurrentArg+1],
+			 sizeof(sTimeCourseOffsetFileName) );
 	  nCurrentArg += 2;
 	  
 	} else {
@@ -2203,9 +2203,9 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
   
   /* load functional overlay data */
   if( bLoadingOverlay ) {
-    eResult = LoadFunctionalOverlay( sOverlayPathAndStem,
-             psOverlayOffsetPathAndStem,
-             psOverlayRegistration );
+    eResult = LoadFunctionalOverlay( sOverlayFileName,
+				     psOverlayOffsetFileName,
+				     psOverlayRegistration );
     
     if( eResult == tkm_tErr_NoErr && bSmooth ) {
       eResult = SmoothOverlayData( smoothSigma );
@@ -2214,8 +2214,8 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
   
   /* load functional time course data */
   if( bLoadingTimeCourse ) {
-    eResult = LoadFunctionalTimeCourse( sTimeCoursePathAndStem, 
-          psTimeCourseOffsetPathAndStem,
+    eResult = LoadFunctionalTimeCourse( sTimeCourseFileName, 
+          psTimeCourseOffsetFileName,
           psTimeCourseRegistration );
   }
   
@@ -3012,6 +3012,8 @@ void UnloadSurface ( tkm_tSurfaceType iType ) {
   tkm_tErr  eResult  = tkm_tErr_NoErr;
   Surf_tErr eSurface = Surf_tErr_NoErr;
   
+  DebugEnterFunction( ("UnloadSurface( iType=%d )", (int)iType ) );
+  
   DebugAssertThrowX( (NULL != gSurface[iType]),
          eResult, tkm_tErr_InvalidParameter );
   if( !gSurface[iType] )
@@ -3054,6 +3056,9 @@ void WriteSurfaceValues ( tkm_tSurfaceType iType,
         char*       isFileName ) {
   
   tkm_tErr  eResult  = tkm_tErr_NoErr;
+
+  DebugEnterFunction( ("WriteSurfaceValues( iType=%d, isFileName=%s )",
+		       (int)iType, isFileName) );
   
   DebugAssertThrowX( (NULL != gSurface[iType]),
          eResult, tkm_tErr_InvalidParameter );
@@ -4498,39 +4503,27 @@ int TclSetSegmentationAlpha ( ClientData inClientData,
 }
 
 int TclLoadFunctionalOverlay ( ClientData inClientData, 
-             Tcl_Interp* inInterp,
-             int argc, char* argv[] ) {
+			       Tcl_Interp* inInterp,
+			       int argc, char* argv[] ) {
   
-  char sPathAndStem[tkm_knPathLen] = "";
+  char sFileName[tkm_knPathLen] = "";
   char sRegistration[tkm_knPathLen] = "";
   
-  if ( argc != 2 && argc != 3 && argc != 4 ) {
-    Tcl_SetResult ( inInterp,
-        "wrong # args: LoadFunctionalOverlay directory "
-        "stem [registration]",
-        TCL_VOLATILE );
+  if ( argc != 2 && argc != 3 ) {
+    Tcl_SetResult ( inInterp, "wrong # args: LoadFunctionalOverlay "
+		    "filename [registration]", TCL_VOLATILE );
     return TCL_ERROR;
   }
   
   if( gbAcceptingTclCommands ) {
     
-    /* if we have a path and a stem, first concatenate the first two
-       arguments to make a stem and path.  then, if we have a third
-       argument, pass it as the registration, else pass null. */
-    if( argc >= 3 && argv[2][0] != '\0' ) {
-      xUtil_snprintf( sPathAndStem, sizeof(sPathAndStem),
-		      "%s/%s", argv[1], argv[2] );
-    } else {
-      /* no path and stem, just use the file name. */
-      xUtil_strncpy( sPathAndStem, argv[1], sizeof(sPathAndStem) );
-    }
+    xUtil_strncpy( sFileName, argv[1], sizeof(sFileName) );
 
-    if( argc == 4 &&
-	argv[3][0] != '\0' ) {
-      xUtil_strncpy( sRegistration, argv[3], sizeof(sRegistration) );
-      LoadFunctionalOverlay( sPathAndStem, NULL, sRegistration );
+    if( argc > 2 && argv[2][0] != '\0' ) {
+      xUtil_strncpy( sRegistration, argv[2], sizeof(sRegistration) );
+      LoadFunctionalOverlay( sFileName, NULL, sRegistration );
     } else {
-      LoadFunctionalOverlay( sPathAndStem, NULL, NULL );
+      LoadFunctionalOverlay( sFileName, NULL, NULL );
     }
   }  
   
@@ -4538,33 +4531,27 @@ int TclLoadFunctionalOverlay ( ClientData inClientData,
 }
 
 int TclLoadFunctionalTimeCourse ( ClientData inClientData, 
-          Tcl_Interp* inInterp,
-          int argc, char* argv[] ) {
+				  Tcl_Interp* inInterp,
+				  int argc, char* argv[] ) {
   
-  char sPathAndStem[tkm_knPathLen]  = "";
+  char sFileName[tkm_knPathLen] = "";
   char sRegistration[tkm_knPathLen] = "";
   
-  if ( argc != 3 && argc != 4 ) {
-    Tcl_SetResult ( inInterp,
-        "wrong # args: LoadFunctionalTimeCourse directory "
-        "stem [registration]",
-        TCL_VOLATILE );
+  if ( argc != 2 && argc != 3 ) {
+    Tcl_SetResult ( inInterp, "wrong # args: LoadFunctionalTimeCourse "
+		    "filename [registration]", TCL_VOLATILE );
     return TCL_ERROR;
   }
   
   if( gbAcceptingTclCommands ) {
     
-    /* first concatenate the first two arguments to make a stem and path.
-       then, if we have a third argument, pass it as the registration,
-       else pass null. */
-    xUtil_snprintf( sPathAndStem,  sizeof(sPathAndStem),
-        "%s/%s", argv[1], argv[2] );
-    if( argc == 4 &&
-  argv[3][0] != '\0' ) {
-      xUtil_strncpy( sRegistration, argv[3], sizeof(sRegistration) );
-      LoadFunctionalTimeCourse( sPathAndStem, NULL, sRegistration );
+    xUtil_strncpy( sFileName, argv[1], sizeof(sFileName) );
+
+    if( argc > 2 && argv[2][0] != '\0' ) {
+      xUtil_strncpy( sRegistration, argv[2], sizeof(sRegistration) );
+      LoadFunctionalTimeCourse( sFileName, NULL, sRegistration );
     } else {
-      LoadFunctionalTimeCourse( sPathAndStem, NULL, NULL );
+      LoadFunctionalTimeCourse( sFileName, NULL, NULL );
     }
   }  
   
@@ -5730,6 +5717,8 @@ void tkm_Quit () {
   
   /* shut down tcl. this also quits the app. */
   SendTCLCommand ( "exit" );
+
+  DebugExitFunction;
   
   exit( 0 );
 }
@@ -5892,6 +5881,8 @@ void WriteControlPointFile ( ) {
   xVoxelRef  idx          = NULL;
   xVoxel     ras;
   
+  DebugEnterFunction( ("WriteControlPointFile()") );
+
   /* make the file name */
   DebugNote( ("Making file name from control.dat") );
   MakeFileName( "control.dat", tkm_tFileName_ControlPoints, 
@@ -7904,50 +7895,51 @@ void ConvertAnaIdxToRAS ( xVoxelRef iAnaIdx,
 }
 // ========================================================= FUNCTIONAL VOLUME
 
-tkm_tErr LoadFunctionalOverlay( char* isPathAndStem, 
-        char* isOffsetPathAndStem,
-        char* isRegistration ) 
-{
-  MATRIX    *tkregMat = NULL;
-  MRI       *pMRI;
-  tkm_tErr  eResult       = tkm_tErr_NoErr;
-  char      sPathAndStem[tkm_knPathLen]   = "";
-  char      sOffsetPathAndStem[tkm_knPathLen]  = "";
-  char      sRegistration[tkm_knPathLen] = "";
-  char*      psOffsetPathAndStem     = NULL;
-  char*      psRegistration     = NULL;
-  FunV_tErr eFunctional       = FunV_tErr_NoError;
-  char      sError[tkm_knErrStringLen]   = "";
+tkm_tErr LoadFunctionalOverlay( char* isFileName, 
+				char* isOffsetFileName,
+				char* isRegistrationFileName ) {
+
+  MATRIX*   tkregMat                              = NULL;
+  MRI*      pMRI                                  = NULL;
+  tkm_tErr  eResult                               = tkm_tErr_NoErr;
+  char      sFileName[tkm_knPathLen]              = "";
+  char      sOffsetFileName[tkm_knPathLen]        = "";
+  char      sRegistrationFileName[tkm_knPathLen]  = "";
+  char*     psOffsetFileName                      = NULL;
+  char*     psRegistrationFileName                = NULL;
+  FunV_tErr eFunctional                           = FunV_tErr_NoError;
+  char      sError[tkm_knErrStringLen]            = "";
   
-  DebugEnterFunction( ("LoadFunctionalOverlay( isPathAndStem=%s, "
-           "isOffsetPathAndStem=%s, isRegistration=%s )", 
-           isPathAndStem, isOffsetPathAndStem, isRegistration) );
+  DebugEnterFunction( ("LoadFunctionalOverlay( isFileName=%s, "
+		       "isOffsetFileName=%s, isRegistrationFileName=%s )", 
+		       isFileName, isOffsetFileName, isRegistrationFileName) );
   
-  /* make our path and stem filename. if we have a registraltion file name,
-     make that too. */
-  DebugNote( ("Making file name from %s", isPathAndStem) );
-  MakeFileName( isPathAndStem, tkm_tFileName_Functional, 
-    sPathAndStem, sizeof(sPathAndStem) );
-  if( NULL != isOffsetPathAndStem ) {
-    DebugNote( ("Making file name from %s", isOffsetPathAndStem) );
-    MakeFileName( isOffsetPathAndStem, tkm_tFileName_Functional, 
-      sOffsetPathAndStem, sizeof(sOffsetPathAndStem) );
-    psOffsetPathAndStem = sOffsetPathAndStem;
+  /* Make our filename. If we have an offset or registration file
+     name, make that too. */
+  DebugNote( ("Making file name from %s", isFileName) );
+  MakeFileName( isFileName, tkm_tFileName_Functional, 
+		sFileName, sizeof(sFileName) );
+
+  if( NULL != isOffsetFileName ) {
+    DebugNote( ("Making file name from %s", isOffsetFileName) );
+    MakeFileName( isOffsetFileName, tkm_tFileName_Functional, 
+		  sOffsetFileName, sizeof(sOffsetFileName) );
+    psOffsetFileName = sOffsetFileName;
   } else {
-    psOffsetPathAndStem = NULL;
+    psOffsetFileName = NULL;
   }
-  if( NULL != isRegistration ) {
-    DebugNote( ("Making file name from %s", isRegistration) );
-    MakeFileName( isRegistration, tkm_tFileName_Functional, 
-      sRegistration, sizeof(sRegistration) );
-    psRegistration = sRegistration;
+
+  if( NULL != isRegistrationFileName ) {
+    DebugNote( ("Making file name from %s", isRegistrationFileName) );
+    MakeFileName( isRegistrationFileName, tkm_tFileName_Functional, 
+		  sRegistrationFileName, sizeof(sRegistrationFileName) );
+    psRegistrationFileName = sRegistrationFileName;
   } else {
-    psRegistration = NULL;
+    psRegistrationFileName = NULL;
   }
   
-  /* attempt to load. */
-  // the need for computing conformed volume to functional volume
-  // caused to pass tkregMatrix
+  /* Calculate a matrix for transforming conformed volume to
+     functional volume and set it in the functional volume. */
   pMRI = gAnatomicalVolume[tkm_tVolumeType_Main]->mpMriValues;
   tkregMat = MatrixAlloc( 4, 4, MATRIX_REAL );
   MatrixClear(tkregMat );
@@ -7958,39 +7950,40 @@ tkm_tErr LoadFunctionalOverlay( char* isPathAndStem,
   *MATRIX_RELT(tkregMat,2,4) = -pMRI->zsize*pMRI->depth/ 2.0;
   *MATRIX_RELT(tkregMat,3,4) = pMRI->ysize*pMRI->height/ 2.0;
   *MATRIX_RELT(tkregMat,4,4) = 1.0;
-
-  if (gFunctionalVolume->tkregMat!=NULL)
-  {
-    MatrixFree(&gFunctionalVolume->tkregMat);
+  if( gFunctionalVolume->tkregMat != NULL ) {
+    MatrixFree( &gFunctionalVolume->tkregMat );
     gFunctionalVolume->tkregMat = NULL;
   }
   gFunctionalVolume->tkregMat = tkregMat;
-  DebugNote( ("Loading overlay") );
-  eFunctional = FunV_LoadOverlay( gFunctionalVolume, 
-				  gIdxToRASTransform,
-				  sPathAndStem,
-				  psOffsetPathAndStem,
-				  psRegistration );
 
+  /* Load the overlay. */
+  DebugNote( ("Loading overlay") );
+  eFunctional = FunV_LoadOverlay( gFunctionalVolume, gIdxToRASTransform,
+				  sFileName, psOffsetFileName,
+				  psRegistrationFileName );
   DebugAssertThrowX( (FunV_tErr_NoError == eFunctional),
-         eResult, tkm_tErr_CouldntLoadOverlay );
+		     eResult, tkm_tErr_CouldntLoadOverlay );
   
   /* turn overlay display on */
   MWin_SetDisplayFlag( gMeditWindow, -1, DspA_tDisplayFlag_FunctionalOverlay, 
-           TRUE );
+		       TRUE );
   
+  if( gMeditWindow ) {
+    tkm_SendTclCommand( tkm_tTclCommand_ShowFuncOverlayOptions, "1" );
+  }
+
   DebugCatch;
   DebugCatchError( eResult, tkm_tErr_NoErr, tkm_GetErrorString );
   
   xUtil_snprintf( sError, sizeof(sError), "Loading functional overlay %s", 
-      isPathAndStem );
+		  isFileName );
   tkm_DisplayError( sError,
-        tkm_GetErrorString(eResult),
-        "Tkmedit couldn't read the overlay volume you "
-        "specified. This could be because the volume "
-        "wasn't found or was unreadable, or because a "
-        "valid header type couldn't be find, or a "
-        "registration file couldn't be found or opened." );
+		    tkm_GetErrorString(eResult),
+		    "Tkmedit couldn't read the overlay volume you "
+		    "specified. This could be because the volume "
+		    "wasn't found or was unreadable, or because a "
+		    "valid header type couldn't be find, or a "
+		    "registration file couldn't be found or opened." );
   EndDebugCatch;
   
   DebugExitFunction;
@@ -7998,51 +7991,51 @@ tkm_tErr LoadFunctionalOverlay( char* isPathAndStem,
   return eResult;
 }
 
-tkm_tErr LoadFunctionalTimeCourse( char* isPathAndStem,
-           char* isOffsetPathAndStem,
-           char* isRegistration ) 
-{
-  MATRIX *tkregMat = NULL;
-  MRI    *pMRI = NULL;
-  tkm_tErr  eResult            = tkm_tErr_NoErr;
-  char      sPathAndStem[tkm_knPathLen]        = "";
-  char      sOffsetPathAndStem[tkm_knPathLen] = "";
-  char      sRegistration[tkm_knPathLen]      = "";
-  char*      psOffsetPathAndStem          = NULL;
-  char*      psRegistration          = NULL;
-  FunV_tErr eFunctional            = FunV_tErr_NoError;
-  char      sError[tkm_knErrStringLen]        = "";
+tkm_tErr LoadFunctionalTimeCourse( char* isFileName, 
+				   char* isOffsetFileName,
+				   char* isRegistrationFileName ) {
+
+  MATRIX*   tkregMat                              = NULL;
+  MRI*      pMRI                                  = NULL;
+  tkm_tErr  eResult                               = tkm_tErr_NoErr;
+  char      sFileName[tkm_knPathLen]              = "";
+  char      sOffsetFileName[tkm_knPathLen]        = "";
+  char      sRegistrationFileName[tkm_knPathLen]  = "";
+  char*     psOffsetFileName                      = NULL;
+  char*     psRegistrationFileName                = NULL;
+  FunV_tErr eFunctional                           = FunV_tErr_NoError;
+  char      sError[tkm_knErrStringLen]            = "";
   
-  DebugEnterFunction( ("LoadFunctionalTimeCourse( isPathAndStem=%s, "
-           "isOffsetPathAndStem=%s, isRegistration=%s )", 
-           isPathAndStem, isOffsetPathAndStem, isRegistration) );
+  DebugEnterFunction( ("LoadFunctionalTimeCourse( isFileName=%s, "
+		       "isOffsetFileName=%s, isRegistrationFileName=%s )", 
+		       isFileName, isOffsetFileName, isRegistrationFileName) );
   
-  /* make our path and stem filename. if we have a registration file name,
-     make that too. */
-  DebugNote( ("Making file name from %s", isPathAndStem) );
-  MakeFileName( isPathAndStem, tkm_tFileName_Functional, 
-    sPathAndStem, sizeof(sPathAndStem) );
-  if( NULL != isOffsetPathAndStem ) {
-    DebugNote( ("Making file name from %s", isOffsetPathAndStem) );
-    MakeFileName( isOffsetPathAndStem, tkm_tFileName_Functional, 
-      sOffsetPathAndStem, sizeof(sOffsetPathAndStem) );
-    psOffsetPathAndStem = sOffsetPathAndStem;
+  /* Make our filename. If we have an offset or registration file
+     name, make that too. */
+  DebugNote( ("Making file name from %s", isFileName) );
+  MakeFileName( isFileName, tkm_tFileName_Functional, 
+		sFileName, sizeof(sFileName) );
+
+  if( NULL != isOffsetFileName ) {
+    DebugNote( ("Making file name from %s", isOffsetFileName) );
+    MakeFileName( isOffsetFileName, tkm_tFileName_Functional, 
+		  sOffsetFileName, sizeof(sOffsetFileName) );
+    psOffsetFileName = sOffsetFileName;
   } else {
-    psOffsetPathAndStem = NULL;
+    psOffsetFileName = NULL;
   }
-  if( NULL != isRegistration ) {
-    DebugNote( ("Making file name from %s", isRegistration) );
-    MakeFileName( isRegistration, tkm_tFileName_Functional, 
-      sRegistration, sizeof(sRegistration) );
-    psRegistration = sRegistration;
+
+  if( NULL != isRegistrationFileName ) {
+    DebugNote( ("Making file name from %s", isRegistrationFileName) );
+    MakeFileName( isRegistrationFileName, tkm_tFileName_Functional, 
+		  sRegistrationFileName, sizeof(sRegistrationFileName) );
+    psRegistrationFileName = sRegistrationFileName;
   } else {
-    psRegistration = NULL;
+    psRegistrationFileName = NULL;
   }
   
-  /* attempt to load. */
-  DebugNote( ("Loading time course") );
-  // the need for computing conformed volume to functional volume
-  // caused to pass tkregMatrix
+  /* Calculate a matrix for transforming conformed volume to
+     functional volume and set it in the functional volume. */
   pMRI = gAnatomicalVolume[tkm_tVolumeType_Main]->mpMriValues;
   tkregMat = MatrixAlloc( 4, 4, MATRIX_REAL );
   MatrixClear(tkregMat );
@@ -8053,39 +8046,44 @@ tkm_tErr LoadFunctionalTimeCourse( char* isPathAndStem,
   *MATRIX_RELT(tkregMat,2,4) = -pMRI->zsize*pMRI->depth/ 2.0;
   *MATRIX_RELT(tkregMat,3,4) = pMRI->ysize*pMRI->height/ 2.0;
   *MATRIX_RELT(tkregMat,4,4) = 1.0;
-  if (gFunctionalVolume->tkregMat!=NULL)
-  {
-    MatrixFree(&gFunctionalVolume->tkregMat);
+  if( gFunctionalVolume->tkregMat != NULL ) {
+    MatrixFree( &gFunctionalVolume->tkregMat );
     gFunctionalVolume->tkregMat = NULL;
   }
   gFunctionalVolume->tkregMat = tkregMat;
-  eFunctional = FunV_LoadTimeCourse( gFunctionalVolume, 
-				     gIdxToRASTransform,
-				     sPathAndStem, 
-				     psOffsetPathAndStem,
-				     psRegistration );
 
+  /* Load the overlay. */
+  DebugNote( ("Loading overlay") );
+  eFunctional = FunV_LoadTimeCourse( gFunctionalVolume, gIdxToRASTransform,
+				     sFileName, psOffsetFileName,
+				     psRegistrationFileName );
   DebugAssertThrowX( (FunV_tErr_NoError == eFunctional),
-         eResult, tkm_tErr_CouldntLoadOverlay );
+		     eResult, tkm_tErr_CouldntLoadOverlay );
   
+  /* turn overlay display on */
+  MWin_SetDisplayFlag( gMeditWindow, -1, DspA_tDisplayFlag_FunctionalOverlay, 
+		       TRUE );
+ 
+ 
   DebugCatch;
   DebugCatchError( eResult, tkm_tErr_NoErr, tkm_GetErrorString );
   
-  xUtil_snprintf( sError, sizeof(sError), "Loading functional time course %s", 
-      isPathAndStem );
+  xUtil_snprintf( sError, sizeof(sError), "Loading functional overlay %s", 
+		  isFileName );
   tkm_DisplayError( sError,
-        tkm_GetErrorString(eResult),
-        "Tkmedit couldn't read the time course volume you "
-        "specified. This could be because the volume "
-        "wasn't found or was unreadable, or because a "
-        "valid header type couldn't be find, or a "
-        "registration file couldn't be found or opened." );
+		    tkm_GetErrorString(eResult),
+		    "Tkmedit couldn't read the time course volume you "
+		    "specified. This could be because the volume "
+		    "wasn't found or was unreadable, or because a "
+		    "valid header type couldn't be find, or a "
+		    "registration file couldn't be found or opened." );
   EndDebugCatch;
   
   DebugExitFunction;
   
   return eResult;
 }
+
 
 tkm_tErr SmoothOverlayData ( float ifSigma ) {
   
@@ -8712,6 +8710,10 @@ tkm_tErr ImportSurfaceAnnotationToSegmentation ( tkm_tSegType iVolume,
   float        len                     = 0;
   float        d                       = 0;
   char         sError[tkm_knErrStringLen] = "";
+
+  DebugEnterFunction( ("ImportSurfaceAnnotationToSegmentation( iVolume=%d "
+		       "isAnnotationFileName=%s, isColorFileName=%s )",
+		       (int)iVolume, isAnnotationFileName, isColorFileName) );
 
   DebugAssertThrowX( (iVolume >= 0 && iVolume <= tkm_knNumSegTypes),
 		     eResult, tkm_tErr_InvalidParameter );
