@@ -1,0 +1,270 @@
+#!/bin/csh -f
+# fsf-kmnacf
+
+set VERSION = '$Id: fsf-kmnacf,v 1.1 2004/05/27 03:20:47 greve Exp $'
+set inputargs = ($argv);
+set kmracfmatfile = ();
+set arorder = 2;
+set initmethod = ();
+set residstem  = ();
+set WeightExp  = 1;
+set UseWhite = 0;
+set outmatfile = ();
+
+set monly = 0;
+set MLF = ();
+
+## If there are no arguments, just print useage and exit ##
+set PrintHelp = 0;
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+set n = `echo $argv | grep -e -version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+set StartTime = `date`;
+
+#----------------------------------------------#
+if($#MLF == 0) set MLF = $outdir/fsf_glmfit_tmp.m
+rm -f $MLF
+tee $MLF > /dev/null <<EOF
+
+tic;
+kmracfmatfile = '$kmracfmatfile';
+arorder    = '$arorder';
+initmethod = '$initmethod';
+residstem  = '$residstem';
+WeightExp  =  $WeightExp;
+UseWhite   =  $UseWhite;
+outmatfile = '$outmatfile';
+
+kmr = load(kmracfmatfile);
+if(isempty(kmr)) return; end
+
+nf = size(kmr.kmracf,1);
+
+if(WeightExp > 0) w = (1./[1:nf]').^WeightExp; 
+else              w = [];
+end
+
+p0   = zeros(kmr.nclasses,arorder+UseWhite);
+popt = zeros(kmr.nclasses,arorder+UseWhite);
+
+for c = 1:kmr.nclasses
+  fprintf('Opt class %d (%g)\n',c,toc);
+
+   switch(initmethod)
+
+     case 'ar1'
+       phi = zeros(1,arorder);
+       phi(1) = kmr.kmracf(2,c);
+       alpha = 0;
+     case 'ar1w'
+       phi = zeros(1,arorder);
+       [alpha phi(1)] = fast_ar1w_fit(kmr.kmracf(1:4,c));
+       p0(c,:) = [phi alpha];
+     case 'rand'
+       phi = 1.9*(rand(1,2)-.5);
+       while(max(abs(roots([1 -phi])))>.95)
+         phi = 1.9*(rand(1,2)-.5);
+       end
+       alpha = rand;
+    end
+
+   end
+
+   if(UseWhite) p0(c,:) = [phi alpha];
+   else         p0(c,:) = phi;
+   end
+
+   maxroot(c) = max(abs(roots([1 -phi])));
+   if(maxroot(c) > .95)
+     fprintf('Warning: init AR model is close to unstable\n');
+   end
+   if(maxroot(c) > 1)
+     fprintf('Error: init AR model is unstable\n');
+     return;
+   end
+
+   [popt(c,:) fiterr(c) exitflag(c) optstr(c)] = ...
+      fminsearch('fast_arnw_fiterr',p0(c,:),[],kmr.kmracf,kmr.R,w,UseWhite);
+
+   if(UseWhite)
+     nacfopt(:,c) = fast_arnw_acf(popt(1:end-1),nf,popt(end));
+   else
+     nacfopt(:,c) = fast_arnw_acf(popt,nf);
+   end
+
+end
+
+save(outmatfile,'kmracfmatfile','arorder','initmethod','residstem','WeightExp',...
+     'UseWhite','kmr','nf','w','p0','popt','maxroot','fiterr','exitflat',...
+     'optstr','nacfopt');
+
+fprintf('fsf-kmnacf: matlab: done (t=%g)\n',toc);
+
+EOF
+#----------------------------------------------#
+
+if(! $monly) then
+  cat $MLF | matlab -display iconic
+  rm -f $MLF
+endif
+
+echo "Started at $StartTime" 
+echo "Ended   at `date`"     
+
+echo "fsf-kmracf done"
+
+
+exit 0
+
+##############################################################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "--kmracf":
+      if ( $#argv == 0) goto arg1err;
+      set kmracfmatfile = $argv[1]; shift;
+      if(! -e $kmracfmatfile) then
+        echo "ERROR: cannot find $kmracfmatfile"
+        exit 1;
+      endif 
+      breaksw
+
+    case "--order":
+      if ( $#argv == 0) goto arg1err;
+      set arorder = $argv[1]; shift;
+      breaksw
+
+    case "--init":
+      if ( $#argv == 0) goto arg1err;
+      set initmethod = $argv[1]; shift;
+      breaksw
+
+    case "--r":
+      if ( $#argv == 0) goto arg1err;
+      set residstem = $argv[1]; shift;
+      breaksw
+
+    case "--w":
+      if ( $#argv == 0) goto arg1err;
+      set WeightExp = $argv[1]; shift;
+      breaksw
+
+    case "--nowhite":
+       set UseWhite = 1;
+      breaksw
+
+    case "--o":
+      if ( $#argv == 0) goto arg1err;
+      set outmatfile = $argv[1]; shift;
+      breaksw
+
+    case "--monly":
+      if ( $#argv == 0) goto arg1err;
+      set MLF = $argv[1]; shift;
+      set monly = 1;
+      breaksw
+
+    case "--debug":
+      set verbose = 1;
+      set echo = 1; # turns on terminal echoing
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+  if($#kmracfmatfile == 0) then
+    echo "ERROR: no kmracf mat file specified"    
+    exit 1;
+  endif
+
+  if($#initmethod == 0) then
+    echo "ERROR: init method not specified"    
+    exit 1;
+  endif
+
+  if($initmethod != ar1  && $initmethod != ar1w &&\
+     $initmethod != rand && $initmethod != arburg) then
+    echo "ERROR: init method = $initmethod unrecognized"
+    exit 1;
+  endif
+
+  if($initmethod == 'arburg' && $#residstem == 0) then
+    echo "ERROR: resid needed with arburg init method"    
+    exit 1;
+  endif
+
+  if($#outmatfile == 0) then
+    echo "ERROR: out mat file not specified"    
+    exit 1;
+  endif
+
+  set outdir = `dirname $outmatfile`;
+  mkdir -p $outdir
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "USAGE: fsf-kmnacf"
+  echo ""
+  echo "  --kmracf kmracf.mat : output of fsf-kmracf "
+  echo "  --order order : AR order <$arorder>"
+  echo "  --init method : ar1w, ar1, arburg, rand"
+  echo "  --r residstem : needed for arburg init"
+  echo "  --w exponent  : weight exponent <$WeightExp>"
+  echo "  --nowhite     : use pure AR (no white component)"
+  echo ""
+  echo "  --o outmatfile"
+  echo ""
+
+  if(! $PrintHelp) exit 1;
+
+  echo $VERSION
+
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+
+exit 1;
+
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
