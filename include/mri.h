@@ -243,7 +243,12 @@ MRI   *MRIextractValues(MRI *mri_src, MRI *mri_dst, float min_val,
 MRI   *MRIwmfilter(MRI *mri_src, MRI *mri_cpolv, MRI *mri_dst,
                    float nslope, float pslope) ;
 MRI   *MRIorder(MRI *mri_src, MRI *mri_dst, int wsize, float pct) ;
+#if 1
+MRI   *MRIremoveHoles(MRI *mri_src, MRI*mri_dst, int wsize, float pct, 
+                      int use_all) ;
+#else
 MRI   *MRIremoveHoles(MRI *mri_src, MRI*mri_dst, int wsize, float pct) ;
+#endif
 
 /* morphology */
 MRI   *MRImorph(MRI *mri_src, MRI *mri_dst, int which) ;
@@ -313,7 +318,7 @@ MRI   *MRIextractTalairachPlane(MRI *mri_src, MRI *mri_dst, int orientation,
 int   MRIeraseTalairachPlane(MRI *mri, MRI *mri_mask, int orientation, 
                              int x, int y, int z,int size,int fill_val);
 
-MRI   *MRIextractPlane(MRI *mri_src, MRI *mri_dst, int orientation, int where);
+MRI   *MRIextractPlane(MRI *mri_src, MRI *mri_dst, int orientation,int where);
 int   MRIerasePlane(MRI *mri, float x0, float y0, float z0,
                     float dx, float dy, float dz, int fill_val);
 
@@ -445,5 +450,81 @@ MRI *MRIvariancesToStds(MRI *mri_var, MRI *mri_std, int dst_frame) ;
 MRI *MRIconcatenateFrames(MRI *mri_frame1, MRI *mri_frame2, MRI *mri_dst);
 MRI *MRIcopyFrame(MRI *mri_src, MRI *mri_dst, int src_frame, int dst_frame) ;
 double MRImeanFrame(MRI *mri, int frame) ;
+
+int   MRIcountPlanarAboveThreshold(MRI *mri_src, int vertex, int x, int y, 
+                                   int z, int wsize, int lo_lim, int hi_lim);
+int   MRIcountCpolvAtVoxel(MRI *mri_src, int x, int y, int z, int wsize, 
+                           int *pnum, int label_to_check) ;
+
+
+MRI *MRIhistoSegment(MRI *mri_src, MRI *mri_labeled, int wm_low, int wm_hi,
+                     int gray_hi, int wsize, float sigma) ;
+MRI *MRIhistoSegmentVoxel(MRI *mri_src, MRI *mri_labeled, int wm_low, 
+                          int wm_hi, int gray_hi, int wsize, int x, int y, 
+                          int z, HISTOGRAM *histo, HISTOGRAM *hsmooth, 
+                          float sigma) ;
+MRI *MRIcpolvSmooth(MRI *mri_orig,MRI *mri_src, MRI *mri_dst, int wsize, 
+                    int low_val, int hi_val, int niter) ;
+MRI *MRIextractVertexCoords(MRI *mri_src, int *px, int *py, int *pz, 
+                            int vertex, int x, int y,int z, int wsize) ;
+
+MRI *MRIextractVertexPlane(MRI *mri_src, MRI *mri_dst, int vertex, int x, 
+                           int y, int z, int wsize) ;
+int  MRIwhiteInPlane(MRI *mri_src, int x, int y, int z, int vertex, int wsize);
+int  MRIneighborhoodPlanarDirection(MRI *mri_src, int xv, int yv, int zv,
+                                    int nsize, int wsize) ;
+int  MRIneighborhoodCpolv(MRI *mri_src, int xv, int yv, int zv,int nsize,
+                          int wsize, int *pnum_white) ;
+int  MRIneighborhoodBlackCpolv(MRI *mri_src, int xv, int yv, int zv, 
+                               int nsize, int wsize, int *pnum_black) ;
+
+MRI *MRIorderSegment(MRI *mri_src, MRI *mri_labeled, float thresh, int wsize);
+MRI *MRIthresholdLabel(MRI *mri_src, MRI *mri_labeled, MRI *mri_dst, 
+                       int wm_low) ;
+MRI *MRIintensitySegmentation(MRI *mri_src, MRI *mri_labeled,
+                              float wm_low, float wm_hi, float gray_hi) ;
+MRI *MRImeanLabel(MRI *mri_src, MRI *mri_label, MRI*mri_dst, int wsize) ;
+MRI *MRIcpolvVote(MRI *mri_src, MRI *mri_labeled, MRI *mri_dst, int wsize, 
+                  int niter, int use_all) ;
+MRI *MRIcpolvThreshold(MRI *mri_src, MRI *mri_labeled, MRI *mri_dst,
+                       int wm_low, int gray_hi,int wsize) ;
+MRI *MRImaskLabels(MRI *mri_src, MRI *mri_mask, MRI *mri_dst) ;
+
+
+MRI *MRIwmfilterMarked(MRI *mri_src, MRI *mri_mask, MRI *mri_dst, int wsize, 
+                       float pct, int onoff) ;
+int  MRIcountCpolvAtVoxel(MRI *mri_src, int x, int y, int z, int wsize, 
+                          int *pnum, int label_to_check) ;
+int  MRIcountCpolvOnAtVoxel(MRI *mri_src, int x, int y, int z, int wsize, 
+                            int *pnum) ;
+MRI *MRIcentralPlaneOfLeastVarianceNormalMarked(MRI *mri_src, MRI *mri_mask,
+                                                MRI *mri_dst, int wsize) ;
+int  MRIcountCpolvOffAtVoxel(MRI *mri_src,int x, int y, int z, int wsize, 
+                             int *pnum) ;
+int  MRIcentralPlaneOfLeastVarianceNormalVoxel(MRI *mri_src, int wsize,
+                                               int x, int y, int z) ;
+int MRIcpolvMedianCurveVoxel(MRI *mri, MRI *mri_labeled, int x0, int y0, 
+                             int z0, int wsize, float len) ;
+float MRIcpolvMedianAtVoxel(MRI *mri_src, int vertex, 
+                             float x, float y, float z, int wsize);
+MRI   *MRIcpolvMedianCurveSegment(MRI *mri,MRI *mri_labeled, MRI *mri_dst,
+                                int wsize,float len);
+
+MRI   *MRImarkBorderVoxels(MRI *mri_src, MRI *mri_dst) ;
+int   MRIborderClassifyVoxel(MRI *mri_src, MRI *mri_labeled, int wsize, int x, 
+                             int y, int z, float *ppw, float *ppg) ;
+int   MRIreclassifyBorder(MRI *mri_src, MRI *mri_labeled, MRI *mri_border, 
+                          MRI *mri_dst, int wsize) ;
+
+int   MRIclassifyAmbiguous(MRI *mri_src, MRI *mri_labeled, MRI *mri_border, 
+                          MRI *mri_dst, int wsize) ;
+
+MRI   *MRIremoveBrightStuff(MRI *mri_src, MRI *mri_dst, int threshold) ;
+int   MRIreclassify(MRI *mri_src, MRI *mri_labeled, 
+                    MRI *mri_dst, float wm_low, float gray_hi, int wsize) ;
+
+#define MRI_NOT_WHITE   1
+#define MRI_AMBIGUOUS   128
+#define MRI_WHITE       255
 
 #endif
