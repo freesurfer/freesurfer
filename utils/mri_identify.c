@@ -13,6 +13,7 @@
 #include "signa.h"
 #include "fio.h"
 #include "DICOMRead.h"
+#include "Bruker.h"
 
 extern int errno;
 
@@ -43,6 +44,7 @@ char *type_to_string(int type)
   case SDT_FILE:    tmpstr = "varian"; break;
   case OTL_FILE:    tmpstr = "outline"; break;
   case GDF_FILE:    tmpstr = "gdf"; break;
+  case BRUKER_FILE: tmpstr = "bruker"; break;
   default: tmpstr = "unknown"; break;
   }
 
@@ -97,7 +99,8 @@ int string_to_type(char *string)
     type = OTL_FILE;
   if(strcmp(ls, "gdf") == 0)
     type = GDF_FILE;
-
+  if(strcmp(ls, "bruker")==0)
+    type = BRUKER_FILE;
   return(type);
 
 } /* end string_to_type() */
@@ -141,6 +144,8 @@ int mri_identify(char *fname_passed)
     return(OTL_FILE);
   else if(is_gdf(fname))
     return(GDF_FILE);
+  else if (is_bruker(fname))
+    return(BRUKER_FILE);
   else
     return(MRI_VOLUME_TYPE_UNKNOWN);
 
@@ -164,13 +169,33 @@ int is_cor(char *fname)
   fname2 = strdup(fname);
   base = basename(fname2);
   if(strncmp(base,"COR-",4) == 0)
-    iscor = 1;;
+    iscor = 1;
+  else // reset flag
+    iscor = 0;
 
   free(fname2);
 
   return(iscor);;
 
 }  /*  end is_cor()  */
+
+int is_bruker(char *fname)
+{
+  struct stat stat_buf;
+  char methodFile[512];
+  char acqpFile[512];
+  char dataFile[512];
+  char d3procFile[512];
+
+  if(stat(fname, &stat_buf) < 0)
+    return(0);
+
+  /* if it's a directory, it's a COR dir. */
+  if(!S_ISDIR(stat_buf.st_mode))
+    return 0;
+  // must check all these files exist or not
+  return checkBrukerFiles(fname, methodFile, acqpFile, dataFile, d3procFile, 0);
+}
 
 int is_brik(char *fname)
 {
