@@ -382,7 +382,7 @@ IMAFILEINFO *imaLoadFileInfo(char *imafile)
 {
   IMAFILEINFO *ifi;
   FILE *fp;
-  int len, err;
+  int itmp,len, err;
   double dtmp, FoVHeight, FoVWidth;
   long  ltmp, Year, Month, Day, Hour, Min, Sec;
   short stmp;
@@ -419,6 +419,11 @@ IMAFILEINFO *imaLoadFileInfo(char *imafile)
   len = strlen(tmpstr);
   ifi->PatientDOB = (char *) calloc(sizeof(char),len+1);
   memcpy(ifi->PatientDOB,tmpstr,len);
+
+  imaLoadValFromKey(fp,"G10_PatMod_PatientSex", &itmp);
+  if(itmp == 1) memcpy(ifi->PatientGender,"female",6);
+  else          memcpy(ifi->PatientGender,"male",  4);
+
 
   imaLoadValFromKey(fp,"G08_Ide_StudyDate_Year", &Year);
   imaLoadValFromKey(fp,"G08_Ide_StudyDate_Month",&Month);
@@ -534,6 +539,7 @@ int imaDumpFileInfo(FILE *fp, IMAFILEINFO *ifi)
   fprintf(fp,"FileName          %s\n",ifi->FileName);
   fprintf(fp,"PatientName       %s\n",ifi->PatientName);
   fprintf(fp,"PatientDOB        %s\n",ifi->PatientDOB);
+  fprintf(fp,"PatientGender     %s\n",ifi->PatientGender);
   fprintf(fp,"StudyDate         %s\n",ifi->StudyDate);
   fprintf(fp,"StudyTime         %s\n",ifi->StudyTime);
   //fprintf(fp,"SeriesTime        %s\n",ifi->SeriesTime);
