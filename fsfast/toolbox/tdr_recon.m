@@ -2,14 +2,18 @@
 % reconstruction according to the time-domain reconstruction
 % algorithm 
 %
-% $Id: tdr_recon.m,v 1.2 2003/09/25 02:12:39 greve Exp $
+% $Id: tdr_recon.m,v 1.3 2003/09/26 18:18:19 greve Exp $
 tic;
 
 
 if(0)
   %topdir = '/space/greve/2/users/greve/dng072203';
   topdir = '/space/greve/2/users/greve/fb-104.2/';
-  run = 2;
+  TE0 = 20;
+  run = 1;
+  usefid = 1;
+  %nframes = 85;
+  nframes = 1;
   
   if(TE0 == 30)
     kepidir = sprintf('%s/rawk/sing-echo-r%d/mgh',topdir,run);
@@ -21,9 +25,8 @@ if(0)
     end
   end
   
-  rcolmatfile = sprintf('%s/R%2d.2.mat',topdir,TE0);
-  usefid = 1;
-  nframes = 85;
+  %rcolmatfile = sprintf('%s/R%2d.1.mat',topdir,TE0);
+  rcolmatfile = sprintf('%s/R%2d.mat',topdir,TE0);
 
   sessdir = sprintf('%s/tdr-te%2d-r%d',topdir,TE0,run);
   bhdrfile = sprintf('%s/siemens-te30/bold/001/f.bhdr',topdir);
