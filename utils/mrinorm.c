@@ -2970,6 +2970,8 @@ mriSoapBubbleFloat(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst,int niter)
         ptmp = &MRIFvox(mri_tmp, 0, y, z) ;
         for (x = 0 ; x < width ; x++)
         {
+					if (x == Gx && y == Gy && z == Gz)
+						DiagBreak() ;
           ctrl = MRIgetVoxVal(mri_ctrl, x, y, z, 0) ;
           if (ctrl == CONTROL_MARKED)   /* marked point - don't change it */
           {
