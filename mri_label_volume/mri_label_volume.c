@@ -20,6 +20,8 @@ char *Progname ;
 static char *log_fname = NULL ;
 static void usage_exit(int code) ;
 
+static int in_label = -1 ;
+static int out_label = -1 ;
 
 int
 main(int argc, char *argv[])
@@ -54,6 +56,9 @@ main(int argc, char *argv[])
     ErrorExit(ERROR_NOFILE, "%s: could not read volume from %s",Progname,
               argv[1]) ;
   label = atoi(argv[2]) ;
+
+  if (in_label >= 0)
+    MRIreplaceValues(mri, mri, in_label, out_label) ;
 
   volume = MRIvoxelsInLabel(mri, label) ;
   if (log_fname)
@@ -99,6 +104,12 @@ get_option(int argc, char *argv[])
   option = argv[1] + 1 ;            /* past '-' */
   switch (toupper(*option))
   {
+  case 'T':
+    in_label = atoi(argv[2]) ;
+    out_label = atoi(argv[3]) ;
+    nargs = 2 ;
+    printf("translating label %d to label %d\n", in_label, out_label) ;
+    break ;
   case 'L':
     log_fname = argv[2] ;
     nargs = 1 ;
