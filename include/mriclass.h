@@ -69,5 +69,6 @@ int    MRInormalizePriors(MRI *mri_priors) ;
 int    MRICupdateStatistics(MRIC *mric, int round, MRI *mri_src, 
                             MRI *mri_target, MRI_REGION *box) ;
 int    MRICcomputeStatistics(MRIC *mric, int round) ;
+char   *MRICclassName(MRIC *mric, int round, int classno) ;
 
 #endif
