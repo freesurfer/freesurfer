@@ -479,7 +479,30 @@ estimate_rigid_regmatrix(MRI *mri_source, MRI *mri_target, MATRIX *M_reg, MRI *m
   MATRIX   *voxmat1, *voxmat2 ;
   double   voxval1[MAX_VOX], voxval2[MAX_VOX], sum1, sum2, wt[MAX_VOX],
 		       max_wt ;
+	MRI      *mri_source_edge, *mri_target_edge ;
 
+	if (noskull)
+	{
+		MRI *mri_tmp, *mri_tmp2 ;
+		int i ;
+
+#define VOXELS_FROM_EDGE 2
+		mri_tmp = MRIbinarize(mri_source, NULL, 1, 128, 0) ; mri_tmp2 = NULL ;
+		for (i = 0 ;i < VOXELS_FROM_EDGE ; i++)
+		{
+			mri_tmp2 = MRIdilate(mri_tmp, mri_tmp2) ;
+			MRIcopy(mri_tmp2, mri_tmp) ;
+		}
+		mri_source_edge = mri_tmp ; MRIfree(&mri_tmp2) ;
+
+		mri_tmp = MRIbinarize(mri_target, NULL, 1, 128, 0) ; mri_tmp2 = NULL ;
+		for (i = 0 ;i < VOXELS_FROM_EDGE ; i++)
+		{
+			mri_tmp2 = MRIdilate(mri_tmp, mri_tmp2) ;
+			MRIcopy(mri_tmp2, mri_tmp) ;
+		}
+		mri_target_edge = mri_tmp ; MRIfree(&mri_tmp2) ;
+	}
 
 
   vox2ras_source = MRIgetVoxelToRasXform(mri_source) ;
@@ -711,11 +734,14 @@ estimate_rigid_regmatrix(MRI *mri_source, MRI *mri_target, MATRIX *M_reg, MRI *m
 	MatrixPrint(stdout, M_reg_opt) ;
 
 
+	if (noskull)
+		printf("ignoring skull-stripped voxels...\n") ;
   for (stepindx=0; stepindx<NSTEP; stepindx++) 
   {
     scale = step[stepindx];
     changed = 1;
     pass = 0;
+
     while (changed)
     {
       pass++;
@@ -781,8 +807,19 @@ estimate_rigid_regmatrix(MRI *mri_source, MRI *mri_target, MATRIX *M_reg, MRI *m
           err = val1-val2;
 
 					/* ignore background voxels when doing fine alignment */
-					if (noskull && (dt*scale <= 2 && (FZERO(val1) || FZERO(val2))))
-						err = 0 ;
+					if (noskull)
+					{
+						Real b1, b2, xf1, yf1, zf1 ;
+
+						MRIsampleVolume(mri_target_edge, xf, yf, zf, &b2) ;
+						xf1 = voxmat1->rptr[1][indx];
+						yf1 = voxmat1->rptr[2][indx];
+						zf1 = voxmat1->rptr[3][indx];
+						MRIsampleVolume(mri_source_edge, xf1, yf1, zf1, &b1) ;
+						
+						if (b1 > 0.1 && b2 > 0.1 && (FZERO(val1) || FZERO(val2)))
+							err = 0 ;
+					}
 
           sse += (err*err*wt[indx]);
         }
@@ -942,6 +979,10 @@ estimate_rigid_regmatrix(MRI *mri_source, MRI *mri_target, MATRIX *M_reg, MRI *m
   }
   *E*/
 
+	if (noskull)
+	{
+		MRIfree(&mri_source_edge) ; MRIfree(&mri_target_edge) ;
+	}
   MatrixCopy(M_reg_opt, M_reg);
 }
 
