@@ -1848,9 +1848,10 @@ MRIconvolveGaussian(MRI *mri_src, MRI *mri_dst, MRI *mri_gaussian)
   if (!mri_dst)
     mri_dst = MRIclone(mri_src, NULL) ;
 
+	mtmp1 = NULL ;
   for (frame = 0 ; frame < mri_src->nframes ; frame++)
   {
-    mtmp1 = MRIcopyFrame(mri_src, NULL, frame, 0) ;
+    mtmp1 = MRIcopyFrame(mri_src, mtmp1, frame, 0) ;
     MRIconvolve1d(mri_src, mtmp1, kernel, klen, MRI_WIDTH, frame, 0) ;
     MRIconvolve1d(mtmp1, mri_dst, kernel, klen, MRI_HEIGHT, 0, frame) ;
     MRIconvolve1d(mri_dst, mtmp1, kernel, klen, MRI_DEPTH, frame, 0) ;
@@ -1859,8 +1860,7 @@ MRIconvolveGaussian(MRI *mri_src, MRI *mri_dst, MRI *mri_gaussian)
   }
 
   MRIcopyHeader(mri_src, mri_dst) ;
-  
-  MRIfree(&mtmp1) ;
+	MRIfree(&mtmp1) ;
 
   return(mri_dst) ;
 }

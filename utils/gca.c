@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2004/04/06 15:36:10 $
-// Revision       : $Revision: 1.122 $
+// Revision Date  : $Date: 2004/04/06 19:35:20 $
+// Revision       : $Revision: 1.123 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -4203,7 +4203,7 @@ GCAfindStableSamples(GCA *gca, int *pnsamples, int min_spacing,float min_prior, 
           DiagBreak() ;
         gcaRegionStats(gca, x, y, z, prior_stride/2, priors, vars, means) ;
 
-	///////////// diag code /////////////////////////////////////
+				///////////// diag code /////////////////////////////////////
         if (priors[4] > .5*min_prior ||  /* left lat ven */
             priors[5] > .5*min_prior ||  /* inf left lat ven */
             priors[14] > .5*min_prior ||  /* 3rd ven */
@@ -4217,23 +4217,23 @@ GCAfindStableSamples(GCA *gca, int *pnsamples, int min_spacing,float min_prior, 
         max_prior = -1 ;
 
         if ((different_nbr_max_labels(gca, x, y, z, 1, 0) > 0) &&
-	    (exclude_list && exclude_list[0] == 0) &&
+						(exclude_list && exclude_list[0] == 0) &&
             (priors[0] >= min_prior) &&
-            (priors[0] >= .9*max_priors[0]))
+            (priors[0] >= .5*max_priors[0]))
           best_label = 0 ;
         else 
           best_label = -1 ;
 
         for (label = 1 ; label < MAX_DIFFERENT_LABELS ; label++)
         {
-	  /* ignore it if:
-	     1. It's prior is less than min_prior and 
-	     it's prior is less than the max for this class.
-	     2. It's prior is less than 1/2 of min prior regardless.
-	  */
+					/* ignore it if:
+						 1. It's prior is less than min_prior and 
+						 it's prior is less than the max for this class.
+						 2. It's prior is less than 1/2 of min prior regardless.
+					*/
           if (((priors[label] < min_prior) && (priors[label] < prior_factor*max_priors[label])) || 
-	      (priors[label] < .5*min_prior) ||
-	      (exclude_list && exclude_list[label] > 0))
+							(priors[label] < .5*min_prior) ||
+							(exclude_list && exclude_list[label] > 0))
             continue ;
 
           if ((best_label == 0) ||
@@ -4261,8 +4261,8 @@ GCAfindStableSamples(GCA *gca, int *pnsamples, int min_spacing,float min_prior, 
             if (gcaFindBestSample(gca, x, y, z, best_label, prior_stride/2, 
                                   &gcas[nfound]) == NO_ERROR)
 #else
-	      gcaFindClosestMeanSample(gca, 255, min_prior, x, y, z, 0,
-				       prior_stride/2, &gcas[nfound]);
+							gcaFindClosestMeanSample(gca, 255, min_prior, x, y, z, 0,
+																			 prior_stride/2, &gcas[nfound]);
             if (means[0] > 100)
 #endif
             {
@@ -4272,16 +4272,16 @@ GCAfindStableSamples(GCA *gca, int *pnsamples, int min_spacing,float min_prior, 
                    (means[0] >= max_unknown))) /* disabled check */
               {
                 if (!GCApriorToVoxel(gca, mri_filled, x, y, z, &xv, &yv, &zv))
-		{
-		  if (MRIvox(mri_filled, xv, yv, zv) == 0)
-		  {
-		    mriFillRegion(mri_filled, xv, yv, zv, 1, MIN_UNKNOWN_DIST) ;
-		    /*                MRIvox(mri_filled, xv, yv, zv) = 1 ;*/
-		    nzeros++ ;
-		    label_counts[best_label]++ ;
-		    nfound++ ;
-		  }
-		}
+								{
+									if (MRIvox(mri_filled, xv, yv, zv) == 0)
+									{
+										mriFillRegion(mri_filled, xv, yv, zv, 1, MIN_UNKNOWN_DIST) ;
+										/*                MRIvox(mri_filled, xv, yv, zv) = 1 ;*/
+										nzeros++ ;
+										label_counts[best_label]++ ;
+										nfound++ ;
+									}
+								}
               }
               else
                 DiagBreak() ;
@@ -4293,8 +4293,8 @@ GCAfindStableSamples(GCA *gca, int *pnsamples, int min_spacing,float min_prior, 
             if (gcaFindBestSample(gca, x, y, z, best_label, prior_stride/2, 
                                   &gcas[nfound]) == NO_ERROR)
             {
-	      for (r = 0 ; r < gca->ninputs ; r++)
-		total_means[r] += means[best_label][r] ;
+							for (r = 0 ; r < gca->ninputs ; r++)
+								total_means[r] += means[best_label][r] ;
               label_counts[best_label]++ ;
               nfound++ ;
             }
@@ -4535,16 +4535,16 @@ different_nbr_max_labels(GCA *gca, int x, int y, int z, int wsize, int label)
           continue ;
         
         gcap = &gca->priors[xi][yi][zi] ;
-	if (gcap == NULL)
-	  continue;
-	max_p = gcap->priors[0] ; max_label = gcap->labels[0] ;
+				if (gcap == NULL)
+					continue;
+				max_p = gcap->priors[0] ; max_label = gcap->labels[0] ;
         for (n = 1 ; n < gcap->nlabels ; n++)
           if (gcap->priors[n] >= max_p)
-	  {
-	    max_label = gcap->labels[n] ; max_p = gcap->priors[n] ;
-	  }
-	if (max_label != label) // if the label is different from the one given 
-	  nbrs++ ;              // count them
+					{
+						max_label = gcap->labels[n] ; max_p = gcap->priors[n] ;
+					}
+				if (max_label != label) // if the label is different from the one given 
+					nbrs++ ;              // count them
       }
     }
   }
@@ -4697,8 +4697,8 @@ gcaFindBestSample(GCA *gca, int x, int y, int z,int label,int wsize,
           continue ;
 
         gcap = &gca->priors[xi][yi][zi] ;
-	if (gcap==NULL)
-	  continue;
+				if (gcap==NULL)
+					continue;
         for (n = 0 ; n < gcap->nlabels ; n++)
         {
           if (gcap->labels[n] != label)
@@ -4706,24 +4706,24 @@ gcaFindBestSample(GCA *gca, int x, int y, int z,int label,int wsize,
           DiagBreak() ;
           prior = gcap->priors[n] ;
           if (!GCApriorToNode(gca, xi, yi, zi, &xn, &yn, &zn))
-	  {
-	    gc = GCAfindGC(gca, xn, yn, zn, label) ;
-	    if (!gc)
-	      continue ;
+					{
+						gc = GCAfindGC(gca, xn, yn, zn, label) ;
+						if (!gc)
+							continue ;
 	    
-	    if (prior > max_prior
+						if (prior > max_prior
 #if 0
-		||
-		(FEQUAL(prior, max_prior) && (gc->var < min_var)) ||
-		(label == 0 && gc->mean > best_gc->mean)
+								||
+								(FEQUAL(prior, max_prior) && (gc->var < min_var)) ||
+								(label == 0 && gc->mean > best_gc->mean)
 #endif
-		)
-	    {
-	      max_prior = prior ; /*min_var = gc->var ;*/
-	      best_gc = gc ; best_x = xi ; best_y = yi ; best_z = zi ; 
-	      best_n = n ;
-	    }
-	  }
+								)
+						{
+							max_prior = prior ; /*min_var = gc->var ;*/
+							best_gc = gc ; best_x = xi ; best_y = yi ; best_z = zi ; 
+							best_n = n ;
+						}
+					}
         }
       }
     }
@@ -4744,7 +4744,7 @@ gcaFindBestSample(GCA *gca, int x, int y, int z,int label,int wsize,
   gcas->covars = (float *)calloc((gca->ninputs*(gca->ninputs+1))/2, sizeof(float)) ;
   if (!gcas->means || !gcas->covars)
     ErrorExit(ERROR_NOMEMORY, "GCAfindStableSamples: could not allocate mean (%d) and covariance (%d) matrices",
-	      gca->ninputs, gca->ninputs*(gca->ninputs+1)/2) ;
+							gca->ninputs, gca->ninputs*(gca->ninputs+1)/2) ;
   for (r = v = 0 ; r < gca->ninputs ; r++)
   {
     gcas->means[r] = best_gc->means[r] ;
