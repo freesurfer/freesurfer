@@ -4,9 +4,9 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2004/10/28 19:37:31 $
-// Revision       : $Revision: 1.228 $
-char *VERSION = "$Revision: 1.228 $";
+// Revision Date  : $Date: 2004/10/28 20:21:47 $
+// Revision       : $Revision: 1.229 $
+char *VERSION = "$Revision: 1.229 $";
 
 #define TCL
 #define TKMEDIT 
@@ -1068,7 +1068,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
      shorten our argc and argv count. If those are the only args we
      had, exit. */
   /* rkt: check for and handle version tag */
-  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.228 2004/10/28 19:37:31 kteich Exp $", "$Name:  $");
+  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.229 2004/10/28 20:21:47 kteich Exp $", "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
   argc -= nNumProcessedVersionArgs;
@@ -5024,7 +5024,7 @@ int main ( int argc, char** argv ) {
     DebugPrint( ( "%s ", argv[nArg] ) );
   }
   DebugPrint( ( "\n\n" ) );
-  DebugPrint( ( "$Id: tkmedit.c,v 1.228 2004/10/28 19:37:31 kteich Exp $ $Name:  $\n" ) );
+  DebugPrint( ( "$Id: tkmedit.c,v 1.229 2004/10/28 20:21:47 kteich Exp $ $Name:  $\n" ) );
 
   
   /* init glut */
@@ -6091,7 +6091,8 @@ void WriteControlPointFile ( ) {
   
   
   /* get the ctrl pts in the list... */
-  for( nPlane = 0; nPlane < gnAnatomicalDimensionZ; nPlane++ ) {
+  x3Lst_GetPlaneSize( gControlPointList, &nPlaneSize );
+  for( nPlane = 0; nPlane < nPlaneSize; nPlane++ ) {
     
     /* get the list for this x value. */
     e3DList = x3Lst_GetItemsInXPlane( gControlPointList, nPlane, &list );
@@ -6115,7 +6116,6 @@ void WriteControlPointFile ( ) {
 
   /* get the ctrl pts in the list... */
   nPoint = 0;
-  x3Lst_GetPlaneSize( gControlPointList, &nPlaneSize );
   for( nPlane = 0; nPlane < nPlaneSize; nPlane++ ) {
     
     /* get the list for this x value. */
