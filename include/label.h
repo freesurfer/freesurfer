@@ -33,6 +33,7 @@ int     LabelDump(FILE *fp, LABEL *area) ;
 LABEL   *LabelRead(char *subject_name, char *label_name) ;
 int     LabelWrite(LABEL *area, char *fname) ;
 int     LabelToCanonical(LABEL *area, MRI_SURFACE *mris) ;
+int     LabelMarkSurface(LABEL *area, MRI_SURFACE *mris) ;
 int     LabelToOriginal(LABEL *area, MRI_SURFACE *mris) ;
 int     LabelFromCanonical(LABEL *area, MRI_SURFACE *mris) ;
 int     LabelFromTalairach(LABEL *area, MRI_SURFACE *mris) ;
