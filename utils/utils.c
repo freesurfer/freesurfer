@@ -792,3 +792,23 @@ StrSkipNumber(char *str)
   return(str) ;
 }
 
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+float
+deltaAngle(float angle1, float angle2)
+{
+  float   delta ;
+
+  delta = angle1 - angle2 ;
+  if (delta > M_PI)
+    delta = 2.0 * M_PI - delta ;
+  else if (delta < -M_PI)
+    delta = -2.0f * M_PI - delta ;
+
+  return(delta) ;
+}
