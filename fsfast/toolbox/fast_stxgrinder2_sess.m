@@ -1,5 +1,5 @@
 % fast_stxgrinder2_sess
-% $Id: fast_stxgrinder2_sess.m,v 1.2 2003/08/04 00:03:44 greve Exp $
+% $Id: fast_stxgrinder2_sess.m,v 1.3 2003/08/11 22:48:03 greve Exp $
 
 % These variables must be defined previously
 % SessList = splitstring('$SessList');
@@ -131,24 +131,24 @@ for nthsess = 1:nsess
 
         if(tTestSave & ~strcmp(contrast,'omnibus') & ...
 	   ~strcmp(contrast,'zomnibus'))
-          cesstem = sprintf('%s/ces',condir);
+          cesstem = sprintf('%s/ces%s',condir,hemicode);
           tmp = reshape(ces', [nrows ncols J]);
           fast_svbslice(tmp,cesstem,slice,'',mristruct);
 
-          cespctstem = sprintf('%s/cespct',condir);
+          cespctstem = sprintf('%s/cespct%s',condir,hemicode);
           tmp = 100*(ces./repmat(h0,[J 1]));
           tmp = reshape(tmp', [nrows ncols J]);
           fast_svbslice(tmp,cespctstem,slice,'',mristruct);
 
-          cesvarstem = sprintf('%s/cesvar',condir);
+          cesvarstem = sprintf('%s/cesvar%s',condir,hemicode);
           tmp = reshape(cesvar', [nrows ncols J]);
           fast_svbslice(tmp,cesvarstem,slice,'',mristruct);
 
-          tstem = sprintf('%s/t',condir);
+          tstem = sprintf('%s/t%s',condir,hemicode);
           tmp = reshape(t', [nrows ncols J]);
           fast_svbslice(tmp,tstem,slice,'',mristruct);
 
-          pstem = sprintf('%s/sig',condir);
+          pstem = sprintf('%s/sig%s',condir,hemicode);
 	  tmp = p; indz = find(p==0); tmp(indz) = 1;
           tmp = -sign(tmp) .* log10(abs(tmp));
           tmp = reshape(tmp', [nrows ncols J]);
@@ -162,13 +162,13 @@ for nthsess = 1:nsess
           ind = sub2ind(size(p),imin,1:nv);
           pmin = J*p(ind);
           
-          pminstem = sprintf('%s/minsig',condir);
+          pminstem = sprintf('%s/minsig%s',condir,hemicode);
 	  tmp = pmin; indz = find(pmin==0); tmp(indz) = 1;
           tmp = -sign(tmp) .* log10(abs(tmp));
           tmp = reshape(tmp', [nrows ncols 1]);
           fast_svbslice(tmp,pminstem,slice,'',mristruct);
 
-          iminstem = sprintf('%s/iminsig',condir);
+          iminstem = sprintf('%s/iminsig%s',condir,hemicode);
           tmp = reshape(imin', [nrows ncols 1]);
           fast_svbslice(tmp,iminstem,slice,'bshort',mristruct);
         end % Handle multiple rows in C
@@ -181,11 +181,11 @@ for nthsess = 1:nsess
           end
           Fsig = FTest(J, hd.DOF, F, FTestDOFMax);
 
-          Fstem = sprintf('%s/f',condir);
+          Fstem = sprintf('%s/f%s',condir,hemicode);
           tmp = reshape(F', [nrows ncols 1]);
           fast_svbslice(tmp,Fstem,slice,'',mristruct);
 
-          Fsigstem = sprintf('%s/fsig',condir);
+          Fsigstem = sprintf('%s/fsig%s',condir,hemicode);
 	  tmp = Fsig; indz = find(Fsig==0); tmp(indz) = 1;
           tmp = -log10(abs(tmp)); % dont adjust sign
           tmp = reshape(tmp', [nrows ncols 1]);
