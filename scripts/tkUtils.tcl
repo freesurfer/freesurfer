@@ -346,6 +346,7 @@ proc tkuDoSubPercent { isPercent isString isSubstitution } {
 proc tkuDoFileDlog { args } {
 
     global gDialog
+    global sFileName1 sFileName2 sFileName3 sFileName4 sFileName5
 
     set lFields {1 2 3 4 5}
     set knWidth 400
@@ -383,7 +384,9 @@ proc tkuDoFileDlog { args } {
 	    # create a variable for this prompt. even if we don't use this
 	    # field, we'll need it later (ugh)
 	    set fwPrompt$nField  $wwDialog.fwPrompt$nField
-	    
+	
+	    puts "sFileName$nField is ${sFileName$nField}"
+    
 	    # if they didn't enter a prompt, skip this field
 	    if { [string match "$aArgs(-prompt$nField)" ""] == 1 } {
 		continue;
@@ -393,22 +396,21 @@ proc tkuDoFileDlog { args } {
 	    # selecter widget. bind it to sFileName[1..5]
 	    switch $aArgs(-type$nField) {
 		file { 
-		    set sFileName$nField ""
 		    tkuMakeFileSelector [set fwPrompt$nField] \
 			-text "$aArgs(-prompt$nField)" \
 			-variable sFileName$nField \
 			-getdefaultdir $aArgs(-default$nField) 
 		}
 		dir { 
-		    set sFileName$nField "";
-		    tkm_MakeDirectorySelector [set fwPrompt$nField] \
-			"$aArgs(-prompt$nField)" sFileName$nField \
-			$aArgs(-default$nField) 
+		    tkuMakeDirectorySelector [set fwPrompt$nField] \
+			-text "$aArgs(-prompt$nField)" \
+			-variable sFileName$nField \
+			-getdefaultdir $aArgs(-default$nField) 
 		}
 		text { 
-		    set sFileName$nField $aArgs(-default$nField)
-		    tkm_MakeEntry [set fwPrompt$nField] \
-			"$aArgs(-prompt$nField)" sFileName$nField 
+		    tkuMakeEntry [set fwPrompt$nField] \
+			-label "$aArgs(-prompt$nField)" \
+			-variable sFileName$nField 
 		}
 		default { continue; }
 	    }
