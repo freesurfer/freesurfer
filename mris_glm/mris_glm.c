@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Computes glm inferences on the surface.
-  $Id: mris_glm.c,v 1.20 2003/09/05 04:45:42 kteich Exp $
+  $Id: mris_glm.c,v 1.21 2004/02/13 21:44:43 greve Exp $
 
 Things to do:
   0. Documentation.
@@ -35,6 +35,7 @@ Things to do:
 #include "fsgdf.h"
 #include "mri2.h"
 #include "version.h"
+#include "pdf.h"
 
 #ifdef X
 #undef X
@@ -67,7 +68,7 @@ static char *getstem(char *bfilename);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_glm.c,v 1.20 2003/09/05 04:45:42 kteich Exp $";
+static char vcid[] = "$Id: mris_glm.c,v 1.21 2004/02/13 21:44:43 greve Exp $";
 char *Progname = NULL;
 
 char *hemi        = NULL;
@@ -142,7 +143,15 @@ char *trgsubject = NULL;
 
 int dof;
 int debug = 0;
-int synthseed = 0;
+
+int SynthPDF = 0;
+int SynthSeed = -1;
+double  SynthGaussianMean;
+double  SynthGaussianStd;
+char   *SynthCDFFile;
+double *SynthCDF;
+double *SynthXCDF;
+int     SynthNCDF;
 
 MRI_SURFACE *IcoSurf, *SurfReg;
 MRI *SrcVals, *beta, *yhat, *eres, *eresvar, *ces, *t, *sig;
@@ -167,7 +176,7 @@ int main(int argc, char **argv)
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv, 
-      "$Id: mris_glm.c,v 1.20 2003/09/05 04:45:42 kteich Exp $", "$Name:  $");
+      "$Id: mris_glm.c,v 1.21 2004/02/13 21:44:43 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -253,7 +262,7 @@ int main(int argc, char **argv)
     /* Alloc enough data for all the subjects */
     SrcVals = MRIallocSequence(IcoSurf->nvertices, 1, 1,MRI_FLOAT,nsubjects);
     
-    if(synthseed == 0){
+    if(SynthPDF == 0){
 
       /* Load in all the subjects' data, one at a time */      
       for(nthsubj = 0; nthsubj < nsubjects; nthsubj++){
@@ -346,9 +355,17 @@ int main(int argc, char **argv)
       }
     }
     else{
-      printf("INFO: synthesizing randn, seed = %d\n",synthseed);fflush(stdout);
-      srand48(synthseed);
-      MRIrandn(IcoSurf->nvertices, 1, 1,nsubjects, 0.0, 1, SrcVals);
+      if(SynthSeed < 0) SynthSeed = PDFtodSeed();
+      printf("INFO: synthesizing, pdf = %d, seed = %d\n",
+	     SynthPDF,SynthSeed);
+      srand48(SynthSeed);
+      if(SynthPDF == 1)
+	MRIrandn(IcoSurf->nvertices, 1, 1,nsubjects, 
+		 SynthGaussianMean, SynthGaussianStd, SrcVals);
+      if(SynthPDF == 2)
+	MRIsampleCDF(IcoSurf->nvertices, 1, 1,nsubjects, 
+		 SynthXCDF, SynthCDF, SynthNCDF,SrcVals);
+
       if(nsmooth > 0) MRISsmoothMRI(IcoSurf, SrcVals, nsmooth, SrcVals);
     }
 
@@ -365,7 +382,7 @@ int main(int argc, char **argv)
 	fprintf(fp,"Creator          %s\n",Progname);
 	fprintf(fp,"SmoothSteps      %d\n",nsmooth);
 	fprintf(fp,"SUBECTS_DIR      %s\n",SUBJECTS_DIR);
-	fprintf(fp,"SynthSeed        %d\n",synthseed);
+	fprintf(fp,"SynthSeed        %d\n",SynthSeed);
 	fclose(fp);
       }
     }
@@ -478,7 +495,7 @@ static int parse_commandline(int argc, char **argv)
   extern MATRIX *X;
   int  nargc , nargsused;
   char **pargv, *option ;
-  int m;
+  int m, err;
   float fvtmp[1000];
 
   if(argc < 1) usage_exit();
@@ -502,9 +519,24 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--allowsubjrep")) 
       fsgdf_AllowSubjRep = 1; /* external, see fsgdf.h */
 
-    else if (!strcmp(option, "--synth")){
+    else if (!strcmp(option, "--seed")){
       if(nargc < 1) argnerr(option,1);
-      sscanf(pargv[0],"%d",&synthseed);
+      sscanf(pargv[0],"%d",&SynthSeed);
+      nargsused = 1;
+    }
+    else if (!strcmp(option, "--gaussian")){
+      if(nargc < 2) argnerr(option,2);
+      sscanf(pargv[0],"%lf",&SynthGaussianMean);
+      sscanf(pargv[1],"%lf",&SynthGaussianStd);
+      SynthPDF = 1;
+      nargsused = 2;
+    }
+    else if (!strcmp(option, "--cdf")){
+      if(nargc < 1) argnerr(option,1);
+      SynthCDFFile = pargv[0];
+      err = PDFloadCDF(SynthCDFFile, &SynthXCDF, &SynthCDF, &SynthNCDF);
+      if(err) exit(1);
+      SynthPDF = 2;
       nargsused = 1;
     }
     else if (!strcmp(option, "--icoorder")){
@@ -781,8 +813,12 @@ static void print_usage(void)
   printf("   --t       name <fmt> : t-ratio of contrast \n");
   printf("   --sigt    name <fmt> : signficance of t-ratio (ie, t-Test) \n");
   printf("\n");
+  printf("Synthesis Options\n");
+  printf("   --gaussian mean std : synthesize data with guassian\n");
+  printf("   --cdf cdffile : synthesize data with given cdf\n");
+  printf("   --seed seed : random number seed when synth data (-1 for auto)\n");
+  printf("\n");
   printf("   --force              : force processing with badly cond X\n");
-  printf("   --synth seed : substitute white gaussian noise for data\n");
   printf("   --sd    subjectsdir : default is env SUBJECTS_DIR\n");
   printf("\n");
   printf("   --version : print version and exit\n");
@@ -1049,9 +1085,25 @@ static void print_help(void)
 "exceeds 10000.\n"
 "\n"
 "\n"
-"--synth seed\n"
+"--gaussian mean std\n"
 "\n"
-"Substitute white gaussian noise for the data. Good for debugging.\n"
+"Synthesize input data using white gaussian noise with the given\n"
+"mean and stddev. Good for debugging and Monte Carlo simulations.\n"
+"\n"
+"--cdf cdffile\n"
+"\n"
+"Synthesize input data by drawing samples from the given CDF. The CDF\n"
+"text file has two columns. The first column is the x at which the cdf is \n"
+"sampled.  The second column is the value of the cdf. cdf[n] is the \n"
+"probability that the random number will be <= x[n]. Good for debugging\n"
+"and Monte Carlo simulations.\n"
+"\n"
+"--seed seed\n"
+"\n"
+"Seed for random number generator to use when synthesizing data. Good \n"
+"for debugging and Monte Carlo simulations. If no seed is given, one\n"
+"will automatically be chosen based on the time-of-day. This option has\n"
+"no effect unless --gaussian or --cdf is used.\n"
 "\n"
 "--sd subjectsdir\n"
 "\n"
