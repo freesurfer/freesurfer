@@ -34,46 +34,46 @@
 ** @$=@$=@$=
 */
 /*
-**        DICOM 93
-**         Electronic Radiology Laboratory
-**       Mallinckrodt Institute of Radiology
-**    Washington University School of Medicine
+**				DICOM 93
+**		     Electronic Radiology Laboratory
+**		   Mallinckrodt Institute of Radiology
+**		Washington University School of Medicine
 **
-** Module Name(s):  COND_PushCondition
-**      COND_ExtractConditions
-**      COND_TopCondition
-**      COND_PopCondition
-**      COND_DumpConditions
-**      COND_CopyText
-**      COND_WriteConditions
-** Author, Date:  Stephen M. Moore, 15-Apr-93
-** Intent:    This file contains functions implementing a simple
-**      error facility.  It was first written by Stephen Moore
-**      (smm@wuerl.wustl.edu) to support PACS development at
-**      the Mallinckrodt Institute of Radiology.  The function
-**      names have been modified to have a slightly more
-**      generic name, but the basic model and concepts are
-**      the same.
+** Module Name(s):	COND_PushCondition
+**			COND_ExtractConditions
+**			COND_TopCondition
+**			COND_PopCondition
+**			COND_DumpConditions
+**			COND_CopyText
+**			COND_WriteConditions
+** Author, Date:	Stephen M. Moore, 15-Apr-93
+** Intent:		This file contains functions implementing a simple
+**			error facility.  It was first written by Stephen Moore
+**			(smm@wuerl.wustl.edu) to support PACS development at
+**			the Mallinckrodt Institute of Radiology.  The function
+**			names have been modified to have a slightly more
+**			generic name, but the basic model and concepts are
+**			the same.
 **
-**      The condition package maintains a stack of
-**      <condition, message> pairs that callers can push or
-**      pop.  When a routine returns an abnormal value, it
-**      should push a condition onto the stack so that the
-**      caller can examine the value at a later time.  Nested
-**      routines may push a number of conditions onto the
-**      stack providing more detailed information about why
-**      a routine did not return normally.
+**			The condition package maintains a stack of
+**			<condition, message> pairs that callers can push or
+**			pop.  When a routine returns an abnormal value, it
+**			should push a condition onto the stack so that the
+**			caller can examine the value at a later time.  Nested
+**			routines may push a number of conditions onto the
+**			stack providing more detailed information about why
+**			a routine did not return normally.
 **
-**      The stack is maintained as a simple stack array.  If
-**      it overflows, we dump the stack to stdout and reset it.
+**			The stack is maintained as a simple stack array.  If
+**			it overflows, we dump the stack to stdout and reset it.
 **
-** Last Update:    $Author: inverse $, $Date: 2001/06/15 22:49:56 $
-** Source File:    $RCSfile: condition.c,v $
-** Revision:    $Revision: 1.1 $
-** Status:    $State: Exp $
+** Last Update:		$Author: kteich $, $Date: 2002/09/10 21:40:19 $
+** Source File:		$RCSfile: condition.c,v $
+** Revision:		$Revision: 1.2 $
+** Status:		$State: Exp $
 */
 
-static char rcsid[] = "$Revision: 1.1 $ $RCSfile: condition.c,v $";
+static char rcsid[] = "$Revision: 1.2 $ $RCSfile: condition.c,v $";
 
 
 /*
@@ -83,6 +83,7 @@ static char rcsid[] = "$Revision: 1.1 $ $RCSfile: condition.c,v $";
 */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
 #include "dicom.h"
@@ -108,11 +109,11 @@ static void dumpstack(FILE * fp);
 **  FUNCTIONAL DESCRIPTION:
 **
 **      COND_PushCondition
-**  This routine is used to log a condition on the stack.  The user
-**  passes an error code (currently uninterpreted), a format string
-**  and optional format arguments.  We use the vsprintf routine to
-**  interpret the user's format string and arguments, and we place the
-**  error condition and resultant string on the stack.
+**	This routine is used to log a condition on the stack.  The user
+**	passes an error code (currently uninterpreted), a format string
+**	and optional format arguments.  We use the vsprintf routine to
+**	interpret the user's format string and arguments, and we place the
+**	error condition and resultant string on the stack.
 **
 **  FORMAL PARAMETERS:
 **
@@ -132,51 +133,51 @@ static void dumpstack(FILE * fp);
 **  SIDE EFFECTS:
 **
 **      Places a new entry on the stack.  If the stack
-**  fills up, drop the last condition.
-**  Calls a user-established callback just before return.
+**	fills up, drop the last condition.
+**	Calls a user-established callback just before return.
 **
 */
 CONDITION
 COND_PushCondition(CONDITION cond, char *controlString,...)
 {
     va_list
-  args;
+	args;
     char
         buffer[1024];
 
 /*lint -e40 -e50 */
     va_start(args, controlString);
     if (controlString == NULL)
-  controlString = "NULL Control string passedto PushCondition";
+	controlString = "NULL Control string passedto PushCondition";
     (void) vsprintf(buffer, controlString, args);
     va_end(args);
 /*lint +e40 +e50 */
+
+#ifdef CTN_USE_THREADS
+    if (THR_ObtainMutex(FAC_COND) != THR_NORMAL) {
+	fprintf(stderr, "COND_PushCondition unable to obtain mutex\n");
+	return cond;
+    }
+#endif
 
     stackPtr++;
     EDBStack[stackPtr].statusCode = cond;
     buffer[256] = '\0';
 
-#ifdef CTN_USE_THREADS
-    if (THR_ObtainMutex(FAC_COND) != THR_NORMAL) {
-  fprintf(stderr, "COND_PushCondition unable to obtain mutex\n");
-  return cond;
-    }
-#endif
-
     (void) strcpy(EDBStack[stackPtr].statusText, buffer);
     if (ErrorCallback != NULL)
-  ErrorCallback(EDBStack[stackPtr].statusCode,
-          EDBStack[stackPtr].statusText);
+	ErrorCallback(EDBStack[stackPtr].statusCode,
+		      EDBStack[stackPtr].statusText);
 
     if (stackPtr >= MAXEDB - 2) {
-      //dumpstack(stderr);
-  //fprintf(stderr, "CONDITION Stack overflow\n");
-  stackPtr = 0;
+      //	dumpstack(stderr);
+      //	fprintf(stderr, "CONDITION Stack overflow\n");
+	stackPtr = 0;
     }
 #ifdef CTN_USE_THREADS
     if (THR_ReleaseMutex(FAC_COND) != THR_NORMAL) {
-  fprintf(stderr, "COND_PushCondition unable to release mutex, exiting\n");
-  exit(1);
+	fprintf(stderr, "COND_PushCondition unable to release mutex, exiting\n");
+	exit(1);
     }
 #endif
 
@@ -190,12 +191,12 @@ COND_PushCondition(CONDITION cond, char *controlString,...)
 **  FUNCTIONAL DESCRIPTION:
 **
 **  COND_ExtractConditions
-**  This routine walks through the stack and passes the condition
-**  codes and text back to the user.  The caller supplies a
-**  callback routine.  We start at the top of the stack and
-**  call the user's callback for each message on the stack.  The
-**  user can terminate the process at any time by returning
-**  a zero from his callback.
+**	This routine walks through the stack and passes the condition
+**	codes and text back to the user.  The caller supplies a
+**	callback routine.  We start at the top of the stack and
+**	call the user's callback for each message on the stack.  The
+**	user can terminate the process at any time by returning
+**	a zero from his callback.
 **
 **  FORMAL PARAMETERS:
 **
@@ -224,21 +225,21 @@ COND_ExtractConditions(CTNBOOLEAN(*callback) ())
 
 #ifdef CTN_USE_THREADS
     if (THR_ObtainMutex(FAC_COND) != THR_NORMAL) {
-  fprintf(stderr, "COND_ExtractConditions unable to obtain mutex, exiting\n");
-  exit(1);
+	fprintf(stderr, "COND_ExtractConditions unable to obtain mutex, exiting\n");
+	exit(1);
     }
 #endif
 
     for (index = stackPtr, returnflag = 1; index >= 0 && returnflag != 0;
-   index--) {
-  returnflag = callback(EDBStack[index].statusCode,
-            EDBStack[index].statusText);
+	 index--) {
+	returnflag = callback(EDBStack[index].statusCode,
+			      EDBStack[index].statusText);
     }
 
 #ifdef CTN_USE_THREADS
     if (THR_ReleaseMutex(FAC_COND) != THR_NORMAL) {
-  fprintf(stderr, "COND_ExtractConditions unable to release mutex, exiting\n");
-  exit(1);
+	fprintf(stderr, "COND_ExtractConditions unable to release mutex, exiting\n");
+	exit(1);
     }
 #endif
     return COND_NORMAL;
@@ -249,11 +250,11 @@ COND_ExtractConditions(CTNBOOLEAN(*callback) ())
 **  FUNCTIONAL DESCRIPTION:
 **
 **      COND_TopCondition
-**  This routine is used to look at the top condition message on
-**  the stack.  The user passes pointers to areas to place
-**  the error message.  The function also returns the code
-**  for the top error message.  If the stack is empty, the
-**  success code (0) is returned.
+**	This routine is used to look at the top condition message on
+**	the stack.  The user passes pointers to areas to place
+**	the error message.  The function also returns the code
+**	for the top error message.  If the stack is empty, the
+**	success code (0) is returned.
 **
 **  FORMAL PARAMETERS:
 **
@@ -281,26 +282,26 @@ COND_TopCondition(CONDITION * code, char *text, unsigned long maxlength)
     CONDITION rtnValue;
 #ifdef CTN_USE_THREADS
     if (THR_ObtainMutex(FAC_COND) != THR_NORMAL) {
-  fprintf(stderr, "COND_TopCondition unable to obtain mutex, exiting\n");
-  exit(1);
+	fprintf(stderr, "COND_TopCondition unable to obtain mutex, exiting\n");
+	exit(1);
     }
 #endif
 
     if (stackPtr >= 0) {
-  *code = EDBStack[stackPtr].statusCode;
-  (void) strncpy(text, EDBStack[stackPtr].statusText, maxlength - 1);
-  text[maxlength - 1] = '\0';
-  rtnValue = EDBStack[stackPtr].statusCode;
+	*code = EDBStack[stackPtr].statusCode;
+	(void) strncpy(text, EDBStack[stackPtr].statusText, maxlength - 1);
+	text[maxlength - 1] = '\0';
+	rtnValue = EDBStack[stackPtr].statusCode;
     } else {
-  *code = COND_NORMAL;
-  *text = '\0';
-  rtnValue = COND_NORMAL;
+	*code = COND_NORMAL;
+	*text = '\0';
+	rtnValue = COND_NORMAL;
     }
 
 #ifdef CTN_USE_THREADS
     if (THR_ReleaseMutex(FAC_COND) != THR_NORMAL) {
-  fprintf(stderr, "COND_TopCondition unable to release mutex, exiting\n");
-  exit(1);
+	fprintf(stderr, "COND_TopCondition unable to release mutex, exiting\n");
+	exit(1);
     }
 #endif
     return rtnValue;
@@ -311,18 +312,18 @@ COND_TopCondition(CONDITION * code, char *text, unsigned long maxlength)
 **  FUNCTIONAL DESCRIPTION:
 **
 **      COND_PopCondition
-**  This routine pops one or all conditions off the stack.
-**  The user passes a flag which indicates the operation.
-**  After the clear, the current top error code is returned.
-**  If the stack is empty at this point, the success code (0)
-**  is returned.
+**	This routine pops one or all conditions off the stack.
+**	The user passes a flag which indicates the operation.
+**	After the clear, the current top error code is returned.
+**	If the stack is empty at this point, the success code (0)
+**	is returned.
 **
 **  FORMAL PARAMETERS:
 **
 **      clearstack:
 **          Flag which indicates if the entire stack is to be cleared.
-**    0      Just pop the top error
-**    non zero    Clear the entire stack
+**		0	    Just pop the top error
+**		non zero    Clear the entire stack
 **
 **  RETURN VALUE:
 **
@@ -337,32 +338,32 @@ CONDITION
 COND_PopCondition(CTNBOOLEAN clearstack)
 {
     CONDITION
-  value;
+	value;
 
 #ifdef CTN_USE_THREADS
     if (THR_ObtainMutex(FAC_COND) != THR_NORMAL) {
-  fprintf(stderr, "COND_PopCondition unable to obtain mutex, exiting\n");
-  exit(1);
+	fprintf(stderr, "COND_PopCondition unable to obtain mutex, exiting\n");
+	exit(1);
     }
 #endif
 
     if (stackPtr >= 0)
-  value = EDBStack[stackPtr].statusCode;
+	value = EDBStack[stackPtr].statusCode;
     else
-  value = COND_NORMAL;
+	value = COND_NORMAL;
 
     if (clearstack) {
-  stackPtr = -1;
+	stackPtr = -1;
     } else if (stackPtr <= 0) {
-  stackPtr = -1;
+	stackPtr = -1;
     } else {
-  stackPtr--;
+	stackPtr--;
     }
 
 #ifdef CTN_USE_THREADS
     if (THR_ReleaseMutex(FAC_COND) != THR_NORMAL) {
-  fprintf(stderr, "COND_PopCondition unable to release mutex, exiting\n");
-  exit(1);
+	fprintf(stderr, "COND_PopCondition unable to release mutex, exiting\n");
+	exit(1);
     }
 #endif
 
@@ -374,16 +375,16 @@ COND_PopCondition(CTNBOOLEAN clearstack)
 **  FUNCTIONAL DESCRIPTION:
 **
 **      COND_EstablishCallback
-**  Establishes a callback routine to be called whenever a
-**  new condition is placed on the stack.  There is no stack
-**  mechanism for these callbacks, so each new callback routine
-**  completely supersedes the previous one.
+**	Establishes a callback routine to be called whenever a
+**	new condition is placed on the stack.  There is no stack
+**	mechanism for these callbacks, so each new callback routine
+**	completely supersedes the previous one.
 **
 **  FORMAL PARAMETERS:
 **
 **      callback:
 **          The new callback routine.  If NULL, this will
-**      disable callbacks.
+**	    disable callbacks.
 **
 **  RETURN VALUE:
 **
@@ -399,8 +400,8 @@ COND_EstablishCallback(void (*callback) ())
 {
 #ifdef CTN_USE_THREADS
     if (THR_ObtainMutex(FAC_COND) != THR_NORMAL) {
-  fprintf(stderr, "COND_EstablishCallback unable to obtain mutex, exiting\n");
-  exit(1);
+	fprintf(stderr, "COND_EstablishCallback unable to obtain mutex, exiting\n");
+	exit(1);
     }
 #endif
 
@@ -408,8 +409,8 @@ COND_EstablishCallback(void (*callback) ())
 
 #ifdef CTN_USE_THREADS
     if (THR_ReleaseMutex(FAC_COND) != THR_NORMAL) {
-  fprintf(stderr, "COND_EstablishCallback unable to release mutex, exiting\n");
-  exit(1);
+	fprintf(stderr, "COND_EstablishCallback unable to release mutex, exiting\n");
+	exit(1);
     }
 #endif
     return COND_NORMAL;
@@ -419,15 +420,15 @@ COND_EstablishCallback(void (*callback) ())
 /* function name
 **
 ** Purpose:
-**  Describe the purpose of the function
+**	Describe the purpose of the function
 **
 ** Parameter Dictionary:
-**  Define the parameters to the function
+**	Define the parameters to the function
 **
 ** Return Values:
 **
 ** Algorithm:
-**  Description of the algorithm (optional) and any other notes.
+**	Description of the algorithm (optional) and any other notes.
 */
 
 void
@@ -435,8 +436,8 @@ COND_DumpConditions(void)
 {
 #ifdef CTN_USE_THREADS
     if (THR_ObtainMutex(FAC_COND) != THR_NORMAL) {
-  fprintf(stderr, "COND_DumpConditions unable to obtain mutex\n");
-  return;
+	fprintf(stderr, "COND_DumpConditions unable to obtain mutex\n");
+	return;
     }
 #endif
 
@@ -445,8 +446,8 @@ COND_DumpConditions(void)
 
 #ifdef CTN_USE_THREADS
     if (THR_ReleaseMutex(FAC_COND) != THR_NORMAL) {
-  fprintf(stderr, "COND_DumpConditions unable to release mutex\n");
-  return;
+	fprintf(stderr, "COND_DumpConditions unable to release mutex\n");
+	return;
     }
 #endif
 }
@@ -458,8 +459,8 @@ dumpstack(FILE * lfp)
         index;
 
     for (index = 0; index <= stackPtr; index++)
-  fprintf(lfp, "%8x %s\n", EDBStack[index].statusCode,
-    EDBStack[index].statusText);
+	fprintf(lfp, "%8x %s\n", EDBStack[index].statusCode,
+		EDBStack[index].statusText);
 }
 
 /*
@@ -467,8 +468,8 @@ dumpstack(FILE * lfp)
 **  FUNCTIONAL DESCRIPTION:
 **
 **      COND_CopyText
-**  This function copies as much text as possible from the
-**  condition stack and places it in the caller's buffer.
+**	This function copies as much text as possible from the
+**	condition stack and places it in the caller's buffer.
 **
 **  FORMAL PARAMETERS:
 **
@@ -496,28 +497,28 @@ COND_CopyText(char *txt, size_t length)
 
 #ifdef CTN_USE_THREADS
     if (THR_ObtainMutex(FAC_COND) != THR_NORMAL) {
-  fprintf(stderr, "COND_CopyText unable to obtain mutex\n");
-  return;
+	fprintf(stderr, "COND_CopyText unable to obtain mutex\n");
+	return;
     }
 #endif
 
     j = stackPtr;
     while (length > 2 && j >= 0) {
-  i = strlen(EDBStack[j].statusText);
-  if (i > length)
-      i = length - 2;
-  strncpy(txt, EDBStack[j].statusText, i);
-  txt[i++] = '\n';
-  txt[i] = '\0';
-  length -= i;
-  txt += i;
-  j--;
+	i = strlen(EDBStack[j].statusText);
+	if (i > length)
+	    i = length - 2;
+	strncpy(txt, EDBStack[j].statusText, i);
+	txt[i++] = '\n';
+	txt[i] = '\0';
+	length -= i;
+	txt += i;
+	j--;
     }
 
 #ifdef CTN_USE_THREADS
     if (THR_ReleaseMutex(FAC_COND) != THR_NORMAL) {
-  fprintf(stderr, "COND_CopyText unable to release mutex, exiting\n");
-  exit(1);
+	fprintf(stderr, "COND_CopyText unable to release mutex, exiting\n");
+	exit(1);
     }
 #endif
 }
@@ -525,15 +526,15 @@ COND_CopyText(char *txt, size_t length)
 /* COND_WriteConditions
 **
 ** Purpose:
-**  Write the condition stack to a file, ie stdout or stderr.
+**	Write the condition stack to a file, ie stdout or stderr.
 **
 ** Parameter Dictionary:
-**  File * lfp, the file to which the stack is written.
+**	File * lfp, the file to which the stack is written.
 **
 ** Return Values:
 **
 ** Algorithm:
-**  A reiteration of the COND_DumpConditions except this takes an argument.
+**	A reiteration of the COND_DumpConditions except this takes an argument.
 */
 
 void
@@ -541,8 +542,8 @@ COND_WriteConditions(FILE * lfp)
 {
 #ifdef CTN_USE_THREADS
     if (THR_ObtainMutex(FAC_COND) != THR_NORMAL) {
-  fprintf(stderr, "COND_WriteConditions unable to obtain mutex\n");
-  return;
+	fprintf(stderr, "COND_WriteConditions unable to obtain mutex\n");
+	return;
     }
 #endif
     dumpstack(lfp);
@@ -550,8 +551,8 @@ COND_WriteConditions(FILE * lfp)
 
 #ifdef CTN_USE_THREADS
     if (THR_ReleaseMutex(FAC_COND) != THR_NORMAL) {
-  fprintf(stderr, "COND_WriteConditions unable to release mutex\n");
-  return;
+	fprintf(stderr, "COND_WriteConditions unable to release mutex\n");
+	return;
     }
 #endif
 }

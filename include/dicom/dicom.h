@@ -46,25 +46,18 @@
 **			Radiology.  It also defines unique identifiers
 **			for standard classes and objects defined by the
 **			standard.
-** Last Update:		$Author: kteich $, $Date: 2002/08/07 01:09:09 $
+** Last Update:		$Author: kteich $, $Date: 2002/09/10 21:40:30 $
 ** Source File:		$RCSfile: dicom.h,v $
-** Revision:		$Revision: 1.1 $
+** Revision:		$Revision: 1.2 $
 ** Status:		$State: Exp $
 */
 
 #ifndef DICOM_IS_IN
 #define DICOM_IS_IN 1
 
-#define LITTLE_ENDIAN_ARCHITECTURE
-
-typedef unsigned short U16;	/* unsigned, 16 bit */
-typedef short S16;		/* signed, 16 bit */
-typedef unsigned long U32;
-typedef long S32;
-
-#ifdef _MSC_VER
+//#ifdef _MSC_VER
 #include "dicom_platform.h"
-#endif
+//#endif
 
 #ifdef  __cplusplus
 extern "C" {
@@ -85,11 +78,37 @@ extern "C" {
 ** also want to define INTSIZE and LONGSIZE.
 */
 
-  //short c;
-  //    char c;			/* See note above */
+//    short c;
+//    char c;			/* See note above */
+#endif
+
+    typedef unsigned short U16;	/* unsigned, 16 bit */
+    typedef short S16;		/* signed, 16 bit */
+
+#if LONGSIZE == 64 && INTSIZE == 32	/* Such as an Alpha */
+    typedef unsigned int U32;
+    typedef int S32;
+
+#elif LONGSIZE == 32		/* Most 32 bit workstations */
+    typedef unsigned long U32;
+    typedef long S32;
+
+#else				/* Something we do not support */
+
+/* The writers of this code assume that we can find a 32 bit integer
+** defined for this system as an int or a long.  If that assumption
+** is not true, this code will not operate properly.
+** This code will trip the compiler.
+*/
+
+//    short c;
+//    char c;			/* See note above */
+
 #endif
 
 #endif
+
+
 
 #define	FORM_COND(facility, severity, value) \
 	(CONDITION)((((unsigned long)value)<<16) | \
@@ -182,7 +201,7 @@ extern "C" {
 #define DIM_OF(a) (sizeof(a) / sizeof(a[0]))
 #define IN_RANGE(n, lo, hi) ((lo) <= n && (n) <= (hi))
 #define STRUCT_OFFSET(s, f)  (off_t)(((s *)(0))->f)
-  /*
+
 #ifdef NO_STRERROR
     static char *
         strerror(int e) {
@@ -192,7 +211,7 @@ extern "C" {
 	    return string;
     }
 #endif
-  */
+
 #define	DICOM_AS_LENGTH	4
 #define	DICOM_CS_LENGTH	16
 #define	DICOM_DS_LENGTH	16

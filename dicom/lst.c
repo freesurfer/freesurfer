@@ -33,22 +33,22 @@
 ** @$=@$=@$=
 */
 /*
-**        DICOM 93
-**         Electronic Radiology Laboratory
-**       Mallinckrodt Institute of Radiology
-**    Washington University School of Medicine
+**				DICOM 93
+**		     Electronic Radiology Laboratory
+**		   Mallinckrodt Institute of Radiology
+**		Washington University School of Medicine
 **
 ** Module Name(s):
-** Author, Date:  Thomas R. Leith, 15-Apr-93
-** Intent:    This package implements atomic functions on
-**      linked lists.
-** Last Update:    $Author: inverse $, $Date: 2001/06/15 22:50:35 $
-** Source File:    $RCSfile: lst.c,v $
-** Revision:    $Revision: 1.1 $
-** Status:    $State: Exp $
+** Author, Date:	Thomas R. Leith, 15-Apr-93
+** Intent:		This package implements atomic functions on
+**			linked lists.
+** Last Update:		$Author: kteich $, $Date: 2002/09/10 21:40:19 $
+** Source File:		$RCSfile: lst.c,v $
+** Revision:		$Revision: 1.2 $
+** Status:		$State: Exp $
 */
 
-static char rcsid[] = "$Revision: 1.1 $ $RCSfile: lst.c,v $";
+static char rcsid[] = "$Revision: 1.2 $ $RCSfile: lst.c,v $";
 
 #include <stdlib.h>
 #include <string.h>
@@ -58,8 +58,8 @@ static char rcsid[] = "$Revision: 1.1 $ $RCSfile: lst.c,v $";
 #endif
 
 #include "dicom.h"
-#include "lstprivate.h"    /* Private definitions */
-#include "lst.h"    /* Public definitions */
+#include "lstprivate.h"		/* Private definitions */
+#include "lst.h"		/* Public definitions */
 
 #define CURRENT  (*list)->current
 #define OLD_NEXT (*list)->current->next
@@ -79,7 +79,7 @@ LST_Create(void)
 
     ptr = CTN_MALLOC(sizeof(LST_HEAD));
     if (ptr == NULL)
-  return NULL;
+	return NULL;
 
     ptr->head = NULL;
     ptr->tail = NULL;
@@ -100,7 +100,7 @@ LST_Destroy(LST_HEAD ** list)
 {
 
     if ((*list)->count != 0)
-  return LST_LISTNOTEMPTY;
+	return LST_LISTNOTEMPTY;
 
     CTN_FREE(*list);
     *list = NULL;
@@ -117,15 +117,15 @@ LST_Enqueue(LST_HEAD ** list, LST_NODE * node)
  *
  */
 {
-    node->next = NULL;    /* no next node              */
-    node->previous = (*list)->tail;  /* previous is old tail      */
-    if ((*list)->head == NULL)  /* if list was empty...      */
-  (*list)->head = node;  /* it has a head now!        */
+    node->next = NULL;		/* no next node              */
+    node->previous = (*list)->tail;	/* previous is old tail      */
+    if ((*list)->head == NULL)	/* if list was empty...      */
+	(*list)->head = node;	/* it has a head now!        */
     else
-  (*list)->tail->next = node;  /* old tail now has a next   */
+	(*list)->tail->next = node;	/* old tail now has a next   */
 
-    (*list)->tail = node;  /* list now has a new tail    */
-    (*list)->count++;    /* bump the counter           */
+    (*list)->tail = node;	/* list now has a new tail    */
+    (*list)->count++;		/* bump the counter           */
     return LST_NORMAL;
 }
 
@@ -138,15 +138,15 @@ LST_Push(LST_HEAD ** list, LST_NODE * node)
  */
 
 {
-    node->next = (*list)->head;  /* set the forward link      */
-    node->previous = NULL;  /* set rearward link         */
-    if ((*list)->tail == NULL)  /* if the list was empty     */
-  (*list)->tail = node;  /* set the tail pointer      */
-    else      /* otherwise,                */
-  (*list)->head->previous = node;  /* old head now has a previous                  */
+    node->next = (*list)->head;	/* set the forward link      */
+    node->previous = NULL;	/* set rearward link         */
+    if ((*list)->tail == NULL)	/* if the list was empty     */
+	(*list)->tail = node;	/* set the tail pointer      */
+    else			/* otherwise,                */
+	(*list)->head->previous = node;	/* old head now has a previous                  */
 
-    (*list)->head = node;  /* set new first node        */
-    (*list)->count++;    /* bump the counter          */
+    (*list)->head = node;	/* set new first node        */
+    (*list)->count++;		/* bump the counter          */
     return LST_NORMAL;
 
 }
@@ -163,17 +163,17 @@ LST_Dequeue(LST_HEAD ** list)
     * ptr;
 
     if ((*list)->head == NULL) {/* list is empty             */
-  (*list)->count = 0;
-  return NULL;
+	(*list)->count = 0;
+	return NULL;
     }
-    ptr = (*list)->head;  /* save the head             */
-    (*list)->head = ptr->next;  /* set new head of list      */
-    if ((*list)->head == NULL)  /* if the list is now empty  */
-  (*list)->tail = NULL;  /* there is no tail anymore  */
+    ptr = (*list)->head;	/* save the head             */
+    (*list)->head = ptr->next;	/* set new head of list      */
+    if ((*list)->head == NULL)	/* if the list is now empty  */
+	(*list)->tail = NULL;	/* there is no tail anymore  */
     else
-  (*list)->head->previous = NULL;  /* new head has no previous  */
-    ptr->next = NULL;    /* hide data from user       */
-    (*list)->count--;    /* list has one fewer node   */
+	(*list)->head->previous = NULL;	/* new head has no previous  */
+    ptr->next = NULL;		/* hide data from user       */
+    (*list)->count--;		/* list has one fewer node   */
     /* now                       */
     return ptr;
 }
@@ -192,17 +192,17 @@ LST_Pop(LST_HEAD ** list)
     * ptr;
 
     if ((*list)->head == NULL) {/* list is empty             */
-  (*list)->count = 0;
-  return NULL;
+	(*list)->count = 0;
+	return NULL;
     }
-    ptr = (*list)->head;  /* save the head             */
-    (*list)->head = ptr->next;  /* set new head of list      */
-    if ((*list)->head == NULL)  /* if the list is now empty  */
-  (*list)->tail = NULL;  /* there is no tail anymore  */
+    ptr = (*list)->head;	/* save the head             */
+    (*list)->head = ptr->next;	/* set new head of list      */
+    if ((*list)->head == NULL)	/* if the list is now empty  */
+	(*list)->tail = NULL;	/* there is no tail anymore  */
     else
-  (*list)->head->previous = NULL;  /* new head has no previous  */
-    ptr->next = NULL;    /* hide data from user       */
-    (*list)->count--;    /* list has one fewer node   */
+	(*list)->head->previous = NULL;	/* new head has no previous  */
+    ptr->next = NULL;		/* hide data from user       */
+    (*list)->count--;		/* list has one fewer node   */
     /* now                       */
     return ptr;
 }
@@ -269,47 +269,47 @@ LST_Insert(LST_HEAD ** list, LST_NODE * node, LST_END where)
 
 {
     if ((where != LST_K_BEFORE) && (where != LST_K_AFTER))
-  goto badend;
+	goto badend;
 
     if ((*list)->head == NULL) {/* if the list was empty     */
-  (*list)->tail = node;  /* set the tail pointer      */
-  (*list)->head = node;  /* set the head pointer      */
-  (*list)->count = 0;  /* will get bumped later...  */
-  (node)->next = NULL;  /* there is no next          */
-  (node)->previous = NULL;/* and no previous           */
+	(*list)->tail = node;	/* set the tail pointer      */
+	(*list)->head = node;	/* set the head pointer      */
+	(*list)->count = 0;	/* will get bumped later...  */
+	(node)->next = NULL;	/* there is no next          */
+	(node)->previous = NULL;/* and no previous           */
 
-    } else if (CURRENT == NULL)  /* is he mixing semantics?   */
-  goto nocurrent;
+    } else if (CURRENT == NULL)	/* is he mixing semantics?	 */
+	goto nocurrent;
 
-    else if ((CURRENT == (*list)->head) &&  /* if at the head           */
-       (where == LST_K_BEFORE)) {  /* and inserting BEFORE   */
-  node->next = CURRENT;  /* splice new node in       */
-  CURRENT->previous = node;  /* before the current     */
-  node->previous = NULL;  /* new one has no previous  */
-  (*list)->head = node;  /* new one is first now     */
+    else if ((CURRENT == (*list)->head) &&	/* if at the head           */
+	     (where == LST_K_BEFORE)) {	/* and inserting BEFORE   */
+	node->next = CURRENT;	/* splice new node in       */
+	CURRENT->previous = node;	/* before the current     */
+	node->previous = NULL;	/* new one has no previous  */
+	(*list)->head = node;	/* new one is first now     */
 
-    } else if ((CURRENT == (*list)->tail) &&  /* if at the tail           */
-         (where == LST_K_AFTER)) {  /* and inserting AFTER    */
-  node->next = NULL;  /* new node has no next     */
-  node->previous = (*list)->tail;  /* previous is old tail     */
-  CURRENT->next = node;  /* splice new node in       */
-  (*list)->tail = node;  /* new node is now the tail */
+    } else if ((CURRENT == (*list)->tail) &&	/* if at the tail           */
+	       (where == LST_K_AFTER)) {	/* and inserting AFTER    */
+	node->next = NULL;	/* new node has no next     */
+	node->previous = (*list)->tail;	/* previous is old tail     */
+	CURRENT->next = node;	/* splice new node in       */
+	(*list)->tail = node;	/* new node is now the tail */
 
-    } else if (where == LST_K_AFTER) {  /* not a special case       */
-  OLD_NEXT->previous = node;  /* we preceed a node        */
-  node->next = OLD_NEXT;  /* the old next follows us  */
-  node->previous = CURRENT;  /* the current preceeds us  */
-  CURRENT->next = node;  /* we follow current        */
+    } else if (where == LST_K_AFTER) {	/* not a special case       */
+	OLD_NEXT->previous = node;	/* we preceed a node        */
+	node->next = OLD_NEXT;	/* the old next follows us  */
+	node->previous = CURRENT;	/* the current preceeds us  */
+	CURRENT->next = node;	/* we follow current        */
 
-    } else {      /* not a special case       */
-  OLD_PREV->next = node;  /* we follow the previous   */
-  node->previous = OLD_PREV;  /* of current            */
-  node->next = CURRENT;  /* current follows us and   */
-  CURRENT->previous = node;  /* we preceed current     */
+    } else {			/* not a special case       */
+	OLD_PREV->next = node;	/* we follow the previous   */
+	node->previous = OLD_PREV;	/* of current            */
+	node->next = CURRENT;	/* current follows us and   */
+	CURRENT->previous = node;	/* we preceed current     */
     };
 
-    (*list)->count++;    /* bump the counter          */
-    (*list)->current = node;  /* and set current        */
+    (*list)->count++;		/* bump the counter          */
+    (*list)->current = node;	/* and set current        */
     return LST_NORMAL;
 
 badend:
@@ -337,45 +337,45 @@ LST_Remove(LST_HEAD ** list, LST_END dir)
     * ptr;
 
     if ((dir != LST_K_BEFORE) && (dir != LST_K_AFTER))
-  goto baddir;
+	goto baddir;
     if (CURRENT == NULL)
-  goto nocurrent;
+	goto nocurrent;
     if ((*list)->head == NULL)
-  goto listempty;
+	goto listempty;
 
-    ptr = CURRENT;    /* save node                 */
+    ptr = CURRENT;		/* save node                 */
 
-    if (CURRENT == (*list)->head) {  /* removing the head         */
-  (*list)->head = OLD_NEXT;  /* set new head of list      */
-  if ((*list)->head == NULL)  /* if the list is now empty  */
-      (*list)->tail = NULL;  /* no tail anymore either    */
-  else
-      (*list)->head->previous = NULL;  /* new head has no previous  */
-  if (dir == LST_K_BEFORE)/* there is nothing before   */
-      (*list)->current = NULL;  /* the head of the list      */
-  else      /* otherwise, remain         */
-      (*list)->current = (*list)->head;  /* at the head...         */
+    if (CURRENT == (*list)->head) {	/* removing the head         */
+	(*list)->head = OLD_NEXT;	/* set new head of list      */
+	if ((*list)->head == NULL)	/* if the list is now empty  */
+	    (*list)->tail = NULL;	/* no tail anymore either    */
+	else
+	    (*list)->head->previous = NULL;	/* new head has no previous  */
+	if (dir == LST_K_BEFORE)/* there is nothing before   */
+	    (*list)->current = NULL;	/* the head of the list      */
+	else			/* otherwise, remain         */
+	    (*list)->current = (*list)->head;	/* at the head...         */
 
-    } else if (CURRENT == (*list)->tail) {  /* removing the tail         */
-  (*list)->tail = OLD_PREV;  /* set new tail of list      */
-  (*list)->tail->next = NULL;  /* new tail has no next      */
-  if (dir == LST_K_AFTER)  /* there is nothing after    */
-      (*list)->current = NULL;  /* the tail of a list        */
-  else      /* otherwise, remain         */
-      (*list)->current = (*list)->tail;  /* at the tail...            */
+    } else if (CURRENT == (*list)->tail) {	/* removing the tail         */
+	(*list)->tail = OLD_PREV;	/* set new tail of list      */
+	(*list)->tail->next = NULL;	/* new tail has no next      */
+	if (dir == LST_K_AFTER)	/* there is nothing after    */
+	    (*list)->current = NULL;	/* the tail of a list        */
+	else			/* otherwise, remain         */
+	    (*list)->current = (*list)->tail;	/* at the tail...            */
 
-    } else {      /* not a special case        */
-  OLD_PREV->next = CURRENT->next;  /* set forward pointer       */
-  OLD_NEXT->previous = CURRENT->previous;  /* set backward pointer      */
-  if (dir == LST_K_BEFORE)/* depending on direction,   */
-      (*list)->current = CURRENT->previous;  /* set current             */
-  else      /* in the                    */
-      (*list)->current = CURRENT->next;  /* list head                 */
+    } else {			/* not a special case        */
+	OLD_PREV->next = CURRENT->next;	/* set forward pointer       */
+	OLD_NEXT->previous = CURRENT->previous;	/* set backward pointer      */
+	if (dir == LST_K_BEFORE)/* depending on direction,   */
+	    (*list)->current = CURRENT->previous;	/* set current             */
+	else			/* in the                    */
+	    (*list)->current = CURRENT->next;	/* list head                 */
     }
 
-    (*list)->count--;    /* one fewer nodes now       */
-    ptr->previous = NULL;  /* hide data from user       */
-    ptr->next = NULL;    /* hide data from user       */
+    (*list)->count--;		/* one fewer nodes now       */
+    ptr->previous = NULL;	/* hide data from user       */
+    ptr->next = NULL;		/* hide data from user       */
     return ptr;
 
 baddir:
@@ -402,13 +402,13 @@ LST_Next(LST_HEAD ** list)
  */
 {
     if ((*list)->head == NULL) {/* list is empty            */
-  (*list)->count = 0;
-  return NULL;
+	(*list)->count = 0;
+	return NULL;
     }
-    if (CURRENT == NULL) {  /* there is no CURRENT      */
-  return NULL;
+    if (CURRENT == NULL) {	/* there is no CURRENT      */
+	return NULL;
     }
-    CURRENT = CURRENT->next;  /* Set current to next and return it */
+    CURRENT = CURRENT->next;	/* Set current to next and return it */
     return CURRENT;
 }
 
@@ -423,14 +423,14 @@ LST_Previous(LST_HEAD ** list)
  */
 {
     if ((*list)->head == NULL) {/* list is empty     */
-  (*list)->count = 0;
-  return NULL;
+	(*list)->count = 0;
+	return NULL;
     }
-    if (CURRENT == NULL) {  /* there is no CURRENT       */
-  return NULL;
+    if (CURRENT == NULL) {	/* there is no CURRENT       */
+	return NULL;
     }
-    if (CURRENT->previous == NULL) {  /* no PREVIOUS               */
-  return NULL;
+    if (CURRENT->previous == NULL) {	/* no PREVIOUS               */
+	return NULL;
     }
     CURRENT = CURRENT->previous;/* found it                  */
     return CURRENT;
@@ -455,16 +455,16 @@ LST_Position(LST_HEAD ** list, LST_NODE * node)
  */
 {
     if ((*list)->head == NULL) {/* list is empty     */
-  return NULL;
+	return NULL;
     }
     if (node == NULL)
-  return NULL;
+	return NULL;
     if (((node->previous == NULL) && ((*list)->head == node)) ||
-  ((node->next == NULL) && ((*list)->tail == node)) ||
-  (node->previous->next == node)) {  /* its probably OK       */
+	((node->next == NULL) && ((*list)->tail == node)) ||
+	(node->previous->next == node)) {	/* its probably OK       */
 
-  CURRENT = node;
-  return CURRENT;
+	CURRENT = node;
+	return CURRENT;
     };
 
     return NULL;
@@ -479,16 +479,16 @@ CONDITION
 LST_Sort(LST_HEAD ** list, size_t nodeSize, int (*compare) ())
 {
     LST_NODE
-  * n1,
-  *n2;
+	* n1,
+	*n2;
     LST_HEAD
-  temp,
-  *head;
+	temp,
+	*head;
     CTNBOOLEAN
-  inserted;
+	inserted;
 
     if ((*list)->head == NULL) {/* list is empty     */
-  return LST_NORMAL;
+	return LST_NORMAL;
     }
     head = &temp;
     head->head = NULL;
@@ -497,19 +497,19 @@ LST_Sort(LST_HEAD ** list, size_t nodeSize, int (*compare) ())
     head->count = 0;
 
     while ((n1 = LST_Dequeue(list)) != NULL) {
-  n2 = LST_Head(&head);
-  if (n2 != NULL)
-      (void) LST_Position(&head, n2);
-  inserted = FALSE;
-  while (n2 != NULL && !inserted) {
-      if (compare(n1, n2) < 0) {
-    (void) LST_Insert(&head, n1, LST_K_BEFORE);
-    inserted = TRUE;
-      } else
-    n2 = LST_Next(&head);
-  }
-  if (n2 == NULL)
-      (void) LST_Enqueue(&head, n1);
+	n2 = LST_Head(&head);
+	if (n2 != NULL)
+	    (void) LST_Position(&head, n2);
+	inserted = FALSE;
+	while (n2 != NULL && !inserted) {
+	    if (compare(n1, n2) < 0) {
+		(void) LST_Insert(&head, n1, LST_K_BEFORE);
+		inserted = TRUE;
+	    } else
+		n2 = LST_Next(&head);
+	}
+	if (n2 == NULL)
+	    (void) LST_Enqueue(&head, n1);
     }
     **list = *head;
     return LST_NORMAL;
@@ -528,12 +528,12 @@ LST_Index(LST_HEAD ** l, int index)
 
     n = LST_Head(l);
     if (n == NULL)
-  return NULL;
+	return NULL;
 
     index--;
     LST_Position(l, n);
     while (index-- > 0 && n != NULL)
-  n = LST_Next(l);
+	n = LST_Next(l);
 
     return n;
 }

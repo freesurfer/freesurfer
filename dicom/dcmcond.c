@@ -32,23 +32,23 @@
 /* Copyright marker.  Copyright will be inserted above.  Do not remove */
 
 /*
-**        DICOM 93
-**         Electronic Radiology Laboratory
-**       Mallinckrodt Institute of Radiology
-**    Washington University School of Medicine
+**				DICOM 93
+**		     Electronic Radiology Laboratory
+**		   Mallinckrodt Institute of Radiology
+**		Washington University School of Medicine
 **
-** Module Name(s):  DCM_Message
-** Author, Date:  Stephen M. Moore, 27-Apr-93
-** Intent:    Define the ASCIZ messages that go with each DCM
-**      error number and provide a function for looking up
-**      the error message.
-** Last Update:    $Author: inverse $, $Date: 2001/06/15 22:50:11 $
-** Source File:    $RCSfile: dcmcond.c,v $
-** Revision:    $Revision: 1.1 $
-** Status:    $State: Exp $
+** Module Name(s):	DCM_Message
+** Author, Date:	Stephen M. Moore, 27-Apr-93
+** Intent:		Define the ASCIZ messages that go with each DCM
+**			error number and provide a function for looking up
+**			the error message.
+** Last Update:		$Author: kteich $, $Date: 2002/09/10 21:40:19 $
+** Source File:		$RCSfile: dcmcond.c,v $
+** Revision:		$Revision: 1.2 $
+** Status:		$State: Exp $
 */
 
-static char rcsid[] = "$Revision: 1.1 $ $RCSfile: dcmcond.c,v $";
+static char rcsid[] = "$Revision: 1.2 $ $RCSfile: dcmcond.c,v $";
 
 #include <stdio.h>
 #include <sys/types.h>
@@ -115,6 +115,8 @@ data in stream or file in %s"},
     {DCM_NOTASEQUENCE,
     "DCM Attempt to perform sequence operation on element (%04x %04x) not a sequence in %s"},
     {DCM_GENERALWARNING, "DCM General warning in %s: %s"},
+    {DCM_UNEVENFRAGMENTLENGTH,
+    "DCM attempt to add fragment with uneven length (%ld) in %s"},
     {0, NULL}
 
 };
@@ -123,18 +125,18 @@ data in stream or file in %s"},
 /* DCM_Message
 **
 ** Purpose:
-**  Find the ASCIZ message that goes with an DCM error number and
-**  return a pointer to static memory containing that error message.
+**	Find the ASCIZ message that goes with an DCM error number and
+**	return a pointer to static memory containing that error message.
 **
 ** Parameter Dictionary:
-**  condition  The error condition for which the message is to be
-**      returned
+**	condition	The error condition for which the message is to be
+**			returned
 **
 ** Return Values:
-**  The error message if a valid error condition was reported else NULL.
+**	The error message if a valid error condition was reported else NULL.
 **
 ** Algorithm:
-**  Description of the algorithm (optional) and any other notes.
+**	Description of the algorithm (optional) and any other notes.
 */
 
 char *
@@ -144,8 +146,8 @@ DCM_Message(CONDITION condition)
         index;
 
     for (index = 0; messageVector[index].message != NULL; index++)
-  if (condition == messageVector[index].cond)
-      return messageVector[index].message;
+	if (condition == messageVector[index].cond)
+	    return messageVector[index].message;
 
     return NULL;
 }
@@ -155,9 +157,9 @@ DCM_DumpVector()
     int index;
 
     for (index = 0; index < (int) DIM_OF(messageVector); index++) {
-  if (messageVector[index].message != NULL)
-      printf("%8x %8d %s\n", messageVector[index].cond,
-       messageVector[index].cond,
-       messageVector[index].message);
+	if (messageVector[index].message != NULL)
+	    printf("%8x %8d %s\n", messageVector[index].cond,
+		   messageVector[index].cond,
+		   messageVector[index].message);
     }
 }

@@ -44,9 +44,9 @@
 ** Intent:		This header defines platform specific values for
 **			MIR CTN software.  This version happens to be for
 **			Windows NT.
-** Last Update:		$Author: kteich $, $Date: 2002/08/07 01:09:11 $
+** Last Update:		$Author: kteich $, $Date: 2002/09/10 21:40:31 $
 ** Source File:		$RCSfile: dicom_platform.h,v $
-** Revision:		$Revision: 1.1 $
+** Revision:		$Revision: 1.2 $
 ** Status:		$State: Exp $
 */
 
@@ -62,7 +62,7 @@ extern "C" {
 #define SHORTSIZE 16
 #define	LITTLE_ENDIAN_ARCHITECTURE
 #define	TBL_SQLSERVER
-#define	CTN_USE_THREADS
+  // #define	CTN_USE_THREADS
 
 #ifdef  __cplusplus
 }

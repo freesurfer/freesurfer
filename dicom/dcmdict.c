@@ -32,25 +32,25 @@
 /* Copyright marker.  Copyright will be inserted above.  Do not remove */
 
 /*
-**        DICOM 93
-**         Electronic Radiology Laboratory
-**       Mallinckrodt Institute of Radiology
-**    Washington University School of Medicine
+**				DICOM 93
+**		     Electronic Radiology Laboratory
+**		   Mallinckrodt Institute of Radiology
+**		Washington University School of Medicine
 **
-** Module Name(s):  DCM_LookupElement(DCM_ELEMENT *element)
-** Author, Date:  Stephen M. Moore, 30-Apr-93
-** Intent:    This module contains the routine and data which
-**      define the DICOM data dictionary.  A number of
-**      static objects are maintained which define how
-**      elements in the DICOM V3.0 standard are to be
-**      interpreted.
-** Last Update:    $Author: inverse $, $Date: 2001/06/15 22:50:16 $
-** Source File:    $RCSfile: dcmdict.c,v $
-** Revision:    $Revision: 1.1 $
-** Status:    $State: Exp $
+** Module Name(s):	DCM_LookupElement(DCM_ELEMENT *element)
+** Author, Date:	Stephen M. Moore, 30-Apr-93
+** Intent:		This module contains the routine and data which
+**			define the DICOM data dictionary.  A number of
+**			static objects are maintained which define how
+**			elements in the DICOM V3.0 standard are to be
+**			interpreted.
+** Last Update:		$Author: kteich $, $Date: 2002/09/10 21:40:19 $
+** Source File:		$RCSfile: dcmdict.c,v $
+** Revision:		$Revision: 1.2 $
+** Status:		$State: Exp $
 */
 
-static char rcsid[] = "$Revision: 1.1 $ $RCSfile: dcmdict.c,v $";
+static char rcsid[] = "$Revision: 1.2 $ $RCSfile: dcmdict.c,v $";
 
 #include <stdio.h>
 #include <sys/types.h>
@@ -65,9 +65,9 @@ static char rcsid[] = "$Revision: 1.1 $ $RCSfile: dcmdict.c,v $";
 **  IMAGE, ...) is defined in a list separately.  The object DCMDICT
 **  below is used to define the entry for a single data element in a
 **  known group.  We define the fields:
-**  element
-**  representation
-**  english Description
+**	element
+**	representation
+**	english Description
 **  The outer layer DCM dictionary consists of a list of groups.  The
 **  group entries define the "group" number and give a pointer to the
 **  DCMDICT list for that group.  The intent is to search the outer layer
@@ -188,9 +188,12 @@ static DCMDICT ID_dictionary[] = {
     {DCM_IDACCESSIONNUMBER, DCM_SH, "ID Accession Number"},
     {DCM_IDQUERYLEVEL, DCM_CS, "ID Query Level"},
     {DCM_IDRETRIEVEAETITLE, DCM_AE, "ID Retrieve AE Title"},
+    {DCM_IDINSTANCEAVAILABILITY, DCM_CS, "ID Instance Availability"},
     {DCM_IDFAILEDINSTANCEUIDLIST, DCM_UI, "ID Failed SOP Instances"},
     {DCM_IDMODALITY, DCM_CS, "ID Modality"},
-    {DCM_IDMODALITYSUBTYPE, DCM_SQ, "ID Modality Subtype"},  /* Sup 30 0.6 */
+    {DCM_IDMODALITIESINSTUDY, DCM_CS, "ID Modalities in Study"},
+    {DCM_IDMODALITYSUBTYPE, DCM_SQ, "ID Modality Subtype"},	/* Sup 30 0.6 */
+    {DCM_IDPRESENTATIONINTENTTYPE, DCM_CS, "ID Presentation Intent Type"},
     {DCM_IDCONVERSIONTYPE, DCM_CS, "ID Conversion Type"},
     {DCM_IDMANUFACTURER, DCM_LO, "ID Manufacturer"},
     {DCM_IDINSTITUTIONNAME, DCM_LO, "ID Institution Name"},
@@ -204,7 +207,7 @@ static DCMDICT ID_dictionary[] = {
     {DCM_IDCODINGSCHEMEVERSION, DCM_SH, "ID Coding Scheme Version"},
     /* Sup 15, Version 1.2_interim_971226 */
     {DCM_IDCODEMEANING, DCM_LO, "ID Code Meaning"},
-    {DCM_IDMAPPINGRESOURCE, DCM_CS, "ID Mapping Resource"},  /* Sup 15, 1.1a */
+    {DCM_IDMAPPINGRESOURCE, DCM_CS, "ID Mapping Resource"},	/* Sup 15, 1.1a */
     {DCM_IDCONTEXTGROUPVERSION, DCM_DT, "ID Context Group Version"},
     /* Sup 15, Version 1.1a */
     {DCM_IDCODESETEXTENSIONFLAG, DCM_CS, "ID Code Set Extension Flag"},
@@ -215,7 +218,7 @@ static DCMDICT ID_dictionary[] = {
     /* 0x010D: Sup 15, Version 1.1 */
     {DCM_IDMAPPINGRESOURCESEQ, DCM_SQ, "ID Mapping Resource Sequence"},
     /* Sup 15, Version 1.1 */
-    {DCM_IDCONTEXTIDENTIFIER, DCM_CS, "ID Context Identifier"},  /* Sup 15 */
+    {DCM_IDCONTEXTIDENTIFIER, DCM_CS, "ID Context Identifier"},	/* Sup 15 */
     {DCM_IDNETWORKID, DCM_LO, "ID Network ID (RET)"},
     {DCM_IDSTATIONNAME, DCM_SH, "ID Station Name"},
     {DCM_IDSTUDYDESCRIPTION, DCM_LO, "ID Study Description"},
@@ -238,9 +241,9 @@ static DCMDICT ID_dictionary[] = {
     {DCM_IDREFERENCEDOVERLAYSEQ, DCM_SQ, "ID Referenced Overlay Sequence"},
     {DCM_IDREFERENCEDIMAGESEQ, DCM_SQ, "ID Referenced Image Sequence"},
     {DCM_IDREFERENCEDCURVESEQ, DCM_SQ, "ID Referenced Curve Sequence"},
-    {DCM_IDREFERENCEDPREVIOUSWAVEFORM, DCM_SQ, "ID Referenced Previous Waveform"},  /* Sup 30 0.6 */
-    {DCM_IDREFERENCEDSIMULTANEOUSWAVEFORMS, DCM_SQ, "ID Referenced Simultaneous Waveforms"},  /* Sup 30 0.6 */
-    {DCM_IDREFERENCEDSUBSEQUENTWAVEFORM, DCM_SQ, "ID Referenced Subsequent Waveform"},  /* Sup 30 0.6 */
+    {DCM_IDREFERENCEDPREVIOUSWAVEFORM, DCM_SQ, "ID Referenced Previous Waveform"},	/* Sup 30 0.6 */
+    {DCM_IDREFERENCEDSIMULTANEOUSWAVEFORMS, DCM_SQ, "ID Referenced Simultaneous Waveforms"},	/* Sup 30 0.6 */
+    {DCM_IDREFERENCEDSUBSEQUENTWAVEFORM, DCM_SQ, "ID Referenced Subsequent Waveform"},	/* Sup 30 0.6 */
     {DCM_IDREFERENCEDSOPCLASSUID, DCM_UI, "ID Referenced SOP Class UID"},
     {DCM_IDREFERENCEDSOPINSTUID, DCM_UI, "ID Referenced SOP Instance UID"},
     {DCM_IDREFERENCEDFRAMENUMBER, DCM_IS, "ID Referenced Frame Number"},
@@ -403,12 +406,12 @@ static DCMDICT ACQ_dictionary[] = {
     {DCM_ACQFRAMINGTYPE, DCM_LO, "ACQ Framing Type"},
     {DCM_ACQFRAMETIMEVECTOR, DCM_DS, "ACQ Frame Time Vector"},
     {DCM_ACQFRAMEDELAY, DCM_DS, "ACQ Frame Delay"},
-    {DCM_ACQIMAGETRIGGERDELAY, DCM_DS, "ACQ Image Trigger Delay"},  /* Sup 30 0.6 */
-    {DCM_ACQGROUPTIMEOFFSET, DCM_DS, "ACQ Group Time Offset"},  /* Sup 30 0.6 */
-    {DCM_ACQTRIGGERTIMEOFFSET, DCM_DS, "ACQ Trigger Time Offset"},  /* Sup 30 0.6 */
-    {DCM_ACQSYNCTRIGGER, DCM_CS, "ACQ Synchronization Trigger"},  /* Sup 30 0.6 */
-    {DCM_ACQSYNCFRAMEOFREFERENCE, DCM_UI, "ACQ Synchronization Frame of Reference"},  /* Sup 30 0.6 */
-    {DCM_ACQTRIGGERSAMPLEPOSITION, DCM_UL, "ACQ Trigger Sample Position"},  /* Sup 30 0.6 */
+    {DCM_ACQIMAGETRIGGERDELAY, DCM_DS, "ACQ Image Trigger Delay"},	/* Sup 30 0.6 */
+    {DCM_ACQGROUPTIMEOFFSET, DCM_DS, "ACQ Group Time Offset"},	/* Sup 30 0.6 */
+    {DCM_ACQTRIGGERTIMEOFFSET, DCM_DS, "ACQ Trigger Time Offset"},	/* Sup 30 0.6 */
+    {DCM_ACQSYNCTRIGGER, DCM_CS, "ACQ Synchronization Trigger"},	/* Sup 30 0.6 */
+    {DCM_ACQSYNCFRAMEOFREFERENCE, DCM_UI, "ACQ Synchronization Frame of Reference"},	/* Sup 30 0.6 */
+    {DCM_ACQTRIGGERSAMPLEPOSITION, DCM_UL, "ACQ Trigger Sample Position"},	/* Sup 30 0.6 */
     {DCM_ACQRADIOPHARMROUTE, DCM_LO, "ACQ Radiopharmaceutical Route"},
     {DCM_ACQRADIOPHARMVOLUME, DCM_DS, "ACQ Radiopharmaceutical Volume"},
     {DCM_ACQRADIOPHARMSTARTTIME, DCM_TM, "ACQ Radiopharmaceutical Start Time"},
@@ -503,7 +506,11 @@ static DCMDICT ACQ_dictionary[] = {
     {DCM_ACQTOMOLAYERHEIGHT, DCM_DS, "ACQ Tomo Layer Height (mm)"},
     {DCM_ACQTOMOANGLE, DCM_DS, "ACQ Tomo Angle"},
     {DCM_ACQTOMOTIME, DCM_DS, "ACQ Tomo Time"},
+    {0x00181490, DCM_CS, "ACQ Tomo Type"},			/* 2002.04.26 */
+    {0x00181491, DCM_CS, "ACQ Tomo Class"},			/* 2002.04.26 */
+    {0x00181495, DCM_IS, "ACQ Number of Tomosynthesis Source Images"}, /* 2002.04.26 */
     {DCM_ACQPOSITIONERMOTION, DCM_CS, "ACQ Positioner Motion"},
+    {0x00181508, DCM_CS, "ACQ Positioner Type"},		/* 2002.04.26 */
     {DCM_ACQPOSITIONERPRIMARYANGLE, DCM_DS, "ACQ Positioner Primary Angle"},
     {DCM_ACQPOSITIONERSECONDARYANGLE, DCM_DS, "ACQ Positioner Secondary Angle"},
     {DCM_ACQPOSITIONERPRIMARYANGLEINCR, DCM_DS, "ACQ Positioner Primary Angle Increment"},
@@ -527,10 +534,10 @@ static DCMDICT ACQ_dictionary[] = {
     {DCM_ACQRADIUSOFCIRCULARCOLLIMATOR, DCM_IS, "ACQ Radius of Circular Collimator"},
     {DCM_ACQVERTICESOFPOLYGONALCOLLIMATOR, DCM_IS, "ACQ Vertices of the Polygonal Collimator"},
     {DCM_ACQACQUISITIONTIMESYNCHRONIZED, DCM_CS,
-    "ACQ Acquisition Time Synchronized"},  /* Sup 30 0.7 */
-    {DCM_ACQTIMESOURCE, DCM_SH, "ACQ Time Source"},  /* Sup 30 0.7 */
+    "ACQ Acquisition Time Synchronized"},	/* Sup 30 0.7 */
+    {DCM_ACQTIMESOURCE, DCM_SH, "ACQ Time Source"},	/* Sup 30 0.7 */
     {DCM_ACQTIMEDISTRIBUTIONPROTOCOL, DCM_CS,
-    "ACQ Time Distribution Protocol"},  /* Sup 30 0.7 */
+    "ACQ Time Distribution Protocol"},	/* Sup 30 0.7 */
     {DCM_ACQCOMMENTS, DCM_RET, "ACQ Comments"},
     {DCM_ACQOUTPUTPOWER, DCM_SH, "ACQ Output Power"},
     {DCM_ACQTRANSDUCERDATA, DCM_LO, "ACQ Transducer Data"},
@@ -595,7 +602,17 @@ static DCMDICT ACQ_dictionary[] = {
     {DCM_ACQTABLEYBREAKPOINTS, DCM_FD, "ACQ Table of Y Break Points"},
     {DCM_ACQNUMBEROFTABLEENTRIES, DCM_UL, "ACQ Number of Table Entries"},
     {DCM_ACQTABLEOFPIXELVALUES, DCM_UL, "ACQ Table of Pixel Values"},
-    {DCM_ACQTABLEOFPARAMETERVALUES, DCM_FL, "ACQ Table of Parameter Values"}
+    {DCM_ACQTABLEOFPARAMETERVALUES, DCM_FL, "ACQ Table of Parameter Values"},
+
+    {0x00187000, DCM_CS, "ACQ Detector Conditions Nominal Flag"}, /* 2002.04.26 */
+    {0x00187001, DCM_DS, "ACQ Detector Temperature"},		/* 2002.04.26 */
+    {0x00187004, DCM_CS, "ACQ Detector Type"},			/* 2002.04.26 */
+    {0x00187005, DCM_CS, "ACQ Detector Configuration"},		/* 2002.04.26 */
+    {0x00187006, DCM_LT, "ACQ Detector Description"},		/* 2002.04.26 */
+    {0x00187008, DCM_LT, "ACQ Detector Mode"},			/* 2002.04.26 */
+    {0x0018700A, DCM_SH, "ACQ Detector ID"},			/* 2002.04.26 */
+
+    {0x00187028, DCM_DS, "ACQ Detector Active Origin"}		/* 2002.04.26 */
 };
 
 /* Define the entries for the RELATIONSHIP group (0020)
@@ -626,6 +643,7 @@ static DCMDICT REL_dictionary[] = {
     {DCM_RELLOCATION, DCM_RET, "REL Location (RET)"},
     {DCM_RELFRAMEOFREFERENCEUID, DCM_UI, "REL Frame of Reference UID"},
     {DCM_RELLATERALITY, DCM_CS, "REL Laterality"},
+    { DCM_MAKETAG(0x0020, 0x0062), DCM_CS, "REL Image Laterality"},
     {DCM_RELIMAGEGEOMETRYTYPE, DCM_RET, "REL Image Geometry Type (RET)"},
     {DCM_RELMASKINGIMAGE, DCM_RET, "REL Masking Image (RET)"},
     {DCM_RELTEMPORALPOSITIONID, DCM_IS, "REL Temporal Position Identifier"},
@@ -642,9 +660,10 @@ static DCMDICT REL_dictionary[] = {
     {DCM_RELNUMBERPATRELATEDSTUDIES, DCM_IS,
     "REL Number of Patient Related Studies"},
     {DCM_RELNUMBERPATRELATEDSERIES, DCM_IS, "REL Number of Patient Related Series"},
-    {DCM_RELNUMBERPATRELATEDIMAGES, DCM_IS, "REL Number of Patient Related Images"},
+    {DCM_RELNUMBERPATRELATEDIMAGES, DCM_IS, "REL Number of Patient Related Instances"},
     {DCM_RELNUMBERSTUDYRELATEDSERIES, DCM_IS, "REL Number of Study Related Series"},
-    {DCM_RELNUMBERSTUDYRELATEDIMAGES, DCM_IS, "REL Number of Study Related Images"},
+    {DCM_RELNUMBERSTUDYRELATEDIMAGES, DCM_IS, "REL Number of Study Related Instances"},
+    {DCM_RELNUMBERSERIESRELATEDINST, DCM_IS, "REL Number of Series Related Instances"},
     {DCM_RELSOURCEIMAGEID, DCM_RET, "REL Source Image IDs (RET)"},
     {DCM_RELMODIFYINGDEVICEID, DCM_RET, "REL Modifying Device ID (RET)"},
     {DCM_RELMODIFIEDIMAGEID, DCM_RET, "REL Modified Image ID (RET)"},
@@ -694,9 +713,12 @@ static DCMDICT IMG_dictionary[] = {
     {DCM_IMGSMALLESTIMAGEPIXELVALUEPLANE, DCM_CTX, "IMG Smallest Pixel Value in Plane"},
     {DCM_IMGLARGESTIMAGEPIXELVALUEPLANE, DCM_CTX, "IMG Largest Pixel Value in Plane"},
     {DCM_IMGPIXELPADDINGVALUE, DCM_CTX, "IMG Pixel Padding Value"},
-    {DCM_IMGWAVEFORMPADDINGVALUE, DCM_CTX, "IMG Waveform Padding Value"},  /* Sup 30 0.6 */
+    {DCM_IMGWAVEFORMPADDINGVALUE, DCM_CTX, "IMG Waveform Padding Value"},	/* Sup 30 0.6 */
     {DCM_IMGIMAGELOCATION, DCM_RET, "IMG Image Location"},
+    {DCM_MAKETAG(0x0028, 0x0300), DCM_CS, "IMG Quality Control Image"},
+    {DCM_MAKETAG(0x0028, 0x0301), DCM_CS, "IMG Burned In Annotation"},
     {DCM_IMGPIXELINTENSITYRELATIONSHIP, DCM_CS, "IMG Pixel Intensity Relationship"},
+    {DCM_MAKETAG(0x0028, 0x1041), DCM_SS, "IMG Pixel Intensity Relationship Sign"},
     {DCM_IMGWINDOWCENTER, DCM_DS, "IMG Window Center"},
     {DCM_IMGWINDOWWIDTH, DCM_DS, "IMG Window Width"},
     {DCM_IMGRESCALEINTERCEPT, DCM_DS, "IMG Rescale Intercept"},
@@ -778,7 +800,7 @@ static DCMDICT SDY_dictionary[] = {
     {DCM_SDYCOMPLETIONTIME, DCM_TM, "SDY Study Completion Time"},
     {DCM_SDYSTUDYCOMPONENTSTATUSID, DCM_CS, "SDY Study Component Status ID"},
     {DCM_SDYREQUESTEDPRODESCRIPTION, DCM_LO, "SDY Requested Procedure Description"},
-    {DCM_SDYREQUESTEDPROCODESEQ, DCM_SQ, "SDY Requested Procedure Code"},
+    {DCM_SDYREQUESTEDPROCODESEQ, DCM_SQ, "SDY Requested Procedure Code Seq"},
     {DCM_SDYREQUESTEDCONTRASTAGENT, DCM_LO, "SDY Requested Contrast Agent"},
     {DCM_SDYCOMMENTS, DCM_LT, "SDY Comments"}
 };
@@ -814,35 +836,35 @@ static DCMDICT VIS_dictionary[] = {
 */
 static DCMDICT WAV_dictionary[] = {
     {DCM_MAKETAG(0x003a, 0x0000), DCM_UL, "WAV Group Length"},
-    {DCM_MAKETAG(0x003a, 0x0002), DCM_SQ, "WAV Waveform Sequence"},  /* Sup 30 0.6 */
-    {DCM_MAKETAG(0x003a, 0x0005), DCM_US, "WAV Number of Channels"},  /* Sup 30 0.6 */
-    {DCM_MAKETAG(0x003a, 0x0010), DCM_UL, "WAV Number of Samples"},  /* Sup 30 0.6 */
-    {DCM_MAKETAG(0x003a, 0x001a), DCM_DS, "WAV Sampling Frequency"},  /* Sup 30 0.6 */
-    {DCM_MAKETAG(0x003a, 0x0020), DCM_SH, "WAV Group Label"},  /* Sup 30 0.6 */
-    {DCM_MAKETAG(0x003a, 0x0103), DCM_CS, "WAV Data Value Representation"},  /* Sup 30 0.6 */
-    {DCM_MAKETAG(0x003a, 0x0200), DCM_SQ, "WAV Channel Definition"},  /* Sup 30 0.6 */
-    {DCM_MAKETAG(0x003a, 0x0202), DCM_IS, "WAV Channel Number"},  /* Sup 30 0.6 */
-    {DCM_MAKETAG(0x003a, 0x0203), DCM_SH, "WAV Channel Label"},  /* Sup 30 0.6 */
-    {DCM_MAKETAG(0x003a, 0x0205), DCM_CS, "WAV Channel Status"},  /* Sup 30 0.6 */
-    {DCM_MAKETAG(0x003a, 0x0208), DCM_SQ, "WAV Waveform Source"},  /* Sup 30 0.6 */
-    {DCM_MAKETAG(0x003a, 0x0209), DCM_SQ, "WAV Waveform Source Modifiers"},  /* Sup 30 0.6 */
-    {DCM_MAKETAG(0x003a, 0x020a), DCM_SQ, "WAV Differential Waveform Source"},  /* Sup 30 0.6 */
-    {DCM_MAKETAG(0x003a, 0x020b), DCM_SQ, "WAV Differential Waveform Source Modifiers"},  /* Sup 30 0.6 */
-    {DCM_MAKETAG(0x003a, 0x0210), DCM_DS, "WAV Channel Sensitivity"},  /* Sup 30 0.6 */
-    {DCM_MAKETAG(0x003a, 0x0211), DCM_SQ, "WAV Channel Sensitivity Units"},  /* Sup 30 0.6 */
-    {DCM_MAKETAG(0x003a, 0x0212), DCM_DS, "WAV Channel Sensitivity Correction Factor"},  /* Sup 30 0.6 */
-    {DCM_MAKETAG(0x003a, 0x0213), DCM_DS, "WAV Channel Baseline"},  /* Sup 30 0.6 */
-    {DCM_MAKETAG(0x003a, 0x0214), DCM_DS, "WAV Channel Time Skew"},  /* Sup 30 0.6 */
-    {DCM_MAKETAG(0x003a, 0x0215), DCM_DS, "WAV Channel Sample Skew"},  /* Sup 30 0.6 */
-    {DCM_MAKETAG(0x003a, 0x0218), DCM_DS, "WAV Channel Offset"},  /* Sup 30 0.6 */
-    {DCM_MAKETAG(0x003a, 0x021a), DCM_US, "WAV Bits Per Sample"},  /* Sup 30 0.6 */
-    {DCM_MAKETAG(0x003a, 0x0216), DCM_CTX, "WAV Channel Minimum Value"},  /* Sup 30 0.6 */
-    {DCM_MAKETAG(0x003a, 0x0217), DCM_CTX, "WAV Channel Maximum Value"},  /* Sup 30 0.6 */
-    {DCM_MAKETAG(0x003a, 0x0220), DCM_DS, "WAV Filter Low Frequency"},  /* Sup 30 0.6 */
-    {DCM_MAKETAG(0x003a, 0x0221), DCM_DS, "WAV Filter High Frequency"},  /* Sup 30 0.6 */
-    {DCM_MAKETAG(0x003a, 0x0222), DCM_DS, "WAV Notch Filter Frequency"},  /* Sup 30 0.6 */
-    {DCM_MAKETAG(0x003a, 0x0223), DCM_DS, "WAV Notch Filter Bandwidth"},  /* Sup 30 0.6 */
-    {DCM_MAKETAG(0x003a, 0x1000), DCM_CTX, "WAV Waveform Data"}  /* Sup 30 0.6 */
+    {DCM_MAKETAG(0x003a, 0x0002), DCM_SQ, "WAV Waveform Sequence"},	/* Sup 30 0.6 */
+    {DCM_MAKETAG(0x003a, 0x0005), DCM_US, "WAV Number of Channels"},	/* Sup 30 0.6 */
+    {DCM_MAKETAG(0x003a, 0x0010), DCM_UL, "WAV Number of Samples"},	/* Sup 30 0.6 */
+    {DCM_MAKETAG(0x003a, 0x001a), DCM_DS, "WAV Sampling Frequency"},	/* Sup 30 0.6 */
+    {DCM_MAKETAG(0x003a, 0x0020), DCM_SH, "WAV Group Label"},	/* Sup 30 0.6 */
+    {DCM_MAKETAG(0x003a, 0x0103), DCM_CS, "WAV Data Value Representation"},	/* Sup 30 0.6 */
+    {DCM_MAKETAG(0x003a, 0x0200), DCM_SQ, "WAV Channel Definition"},	/* Sup 30 0.6 */
+    {DCM_MAKETAG(0x003a, 0x0202), DCM_IS, "WAV Channel Number"},	/* Sup 30 0.6 */
+    {DCM_MAKETAG(0x003a, 0x0203), DCM_SH, "WAV Channel Label"},	/* Sup 30 0.6 */
+    {DCM_MAKETAG(0x003a, 0x0205), DCM_CS, "WAV Channel Status"},	/* Sup 30 0.6 */
+    {DCM_MAKETAG(0x003a, 0x0208), DCM_SQ, "WAV Waveform Source"},	/* Sup 30 0.6 */
+    {DCM_MAKETAG(0x003a, 0x0209), DCM_SQ, "WAV Waveform Source Modifiers"},	/* Sup 30 0.6 */
+    {DCM_MAKETAG(0x003a, 0x020a), DCM_SQ, "WAV Differential Waveform Source"},	/* Sup 30 0.6 */
+    {DCM_MAKETAG(0x003a, 0x020b), DCM_SQ, "WAV Differential Waveform Source Modifiers"},	/* Sup 30 0.6 */
+    {DCM_MAKETAG(0x003a, 0x0210), DCM_DS, "WAV Channel Sensitivity"},	/* Sup 30 0.6 */
+    {DCM_MAKETAG(0x003a, 0x0211), DCM_SQ, "WAV Channel Sensitivity Units"},	/* Sup 30 0.6 */
+    {DCM_MAKETAG(0x003a, 0x0212), DCM_DS, "WAV Channel Sensitivity Correction Factor"},	/* Sup 30 0.6 */
+    {DCM_MAKETAG(0x003a, 0x0213), DCM_DS, "WAV Channel Baseline"},	/* Sup 30 0.6 */
+    {DCM_MAKETAG(0x003a, 0x0214), DCM_DS, "WAV Channel Time Skew"},	/* Sup 30 0.6 */
+    {DCM_MAKETAG(0x003a, 0x0215), DCM_DS, "WAV Channel Sample Skew"},	/* Sup 30 0.6 */
+    {DCM_MAKETAG(0x003a, 0x0218), DCM_DS, "WAV Channel Offset"},	/* Sup 30 0.6 */
+    {DCM_MAKETAG(0x003a, 0x021a), DCM_US, "WAV Bits Per Sample"},	/* Sup 30 0.6 */
+    {DCM_MAKETAG(0x003a, 0x0216), DCM_CTX, "WAV Channel Minimum Value"},	/* Sup 30 0.6 */
+    {DCM_MAKETAG(0x003a, 0x0217), DCM_CTX, "WAV Channel Maximum Value"},	/* Sup 30 0.6 */
+    {DCM_MAKETAG(0x003a, 0x0220), DCM_DS, "WAV Filter Low Frequency"},	/* Sup 30 0.6 */
+    {DCM_MAKETAG(0x003a, 0x0221), DCM_DS, "WAV Filter High Frequency"},	/* Sup 30 0.6 */
+    {DCM_MAKETAG(0x003a, 0x0222), DCM_DS, "WAV Notch Filter Frequency"},	/* Sup 30 0.6 */
+    {DCM_MAKETAG(0x003a, 0x0223), DCM_DS, "WAV Notch Filter Bandwidth"},	/* Sup 30 0.6 */
+    {DCM_MAKETAG(0x003a, 0x1000), DCM_CTX, "WAV Waveform Data"}	/* Sup 30 0.6 */
 };
 
 /* Define the entries for the Procedure Step group, 0040
@@ -858,29 +880,67 @@ static DCMDICT PRC_dictionary[] = {
     {DCM_PRCSCHEDULEDPERFORMINGPHYSNAME, DCM_PN, "PRC Scheduled Performing Physician's Name"},
     {DCM_PRCSCHEDULEDPROCSTEPDESCRIPTION, DCM_LO, "PRC Scheduled Step Description"},
     {DCM_PRCSCHEDULEDACTIONITEMCODESEQ, DCM_SQ, "PRC Scheduled Action Item Code Sequence"},
-    {DCM_PRCSCHEDULEDPROCSTEPID, DCM_SH, "PRC Scheduled Step ID"},
+    {DCM_PRCSCHEDULEDPROCSTEPID, DCM_SH, "PRC Scheduled Procedure Step ID"},
     {DCM_PRCSCHEDULEDSTATIONNAME, DCM_SH, "PRC Scheduled Station Name"},
     {DCM_PRCSCHEDULEDPROCSTEPLOCATION, DCM_SH, "PRC Scheduled Procedure Step Location"},
     {DCM_PRCPREMEDICATION, DCM_LO, "PRC Pre-Medication"},
+    {DCM_PRCSTATUS, DCM_CS, "PRC SPStep Status"},
+    {DCM_PRCREFSTANDALONESOPSEQ, DCM_SQ, "PRC Ref Standalone SOP Inst Seq"},
+    {DCM_PRCPERFORMEDSTATIONAET, DCM_AE, "PRC Performed Station AE Title"},
+    {DCM_PRCPERFORMEDSTATIONNAME, DCM_SH, "PRC Performed Station Name"},
+    {DCM_PRCPERFORMEDLOCATION, DCM_SH, "PRC Performed Location"},
+    {DCM_PRCPPSSTARTDATE, DCM_DA, "PRC PPS Start Date"},
+    {DCM_PRCPPSSTARTTIME, DCM_TM, "PRC PPS Start Time"},
+    {DCM_PRCPPSENDDATE, DCM_DA, "PRC PPS End Date"},
+    {DCM_PRCPPSENDTIME, DCM_TM, "PRC PPS End Time"},
+    {DCM_PRCPPSSTATUS, DCM_CS, "PRC PPS Status"},
+    {DCM_PRCPPSID, DCM_CS, "PRC PPS ID"},
+    {DCM_PRCPPSDESCRIPTION, DCM_LO, "PRC PPS Description"},
+    {DCM_PRCPPTYPEDESCRIPTION, DCM_LO, "PRC Perf Procedure Type Description"},
+    {DCM_PRCPERFORMEDAISEQUENCE, DCM_SQ, "PRC Perf AI Sequence"},
+    {DCM_PRCSCHEDSTEPATTRSEQ, DCM_SQ, "PRC Scheduled Step Attr Seq"},
+    {DCM_PRCREQUESTATTRIBUTESSEQ, DCM_SQ, "PRC Request Attributes Seq"},
+    {DCM_PRCCOMMENTSPPS, DCM_ST, "PRC Comments on PPS"},
+    {DCM_PRCQUANTITYSEQ, DCM_SQ, "PRC Quantity Sequence"},
+    {DCM_PRCQUANTITY, DCM_DS, "PRC Quantity"},
+    {DCM_PRCMEASURINGUNITSSEQ, DCM_SQ, "PRC Measuring Units Sequence"},
+    {DCM_PRCBILLINGITEMSEQ, DCM_SQ, "PRC Billing Item Seq"},
+    {DCM_PRCTOTALTIMEFLUOROSCOPY, DCM_US, "PRC Total Time Fluoroscopy"},
+    {DCM_PRCTOTALNUMBEREXPOSURES, DCM_US, "PRC Total Number Exposures"},
+    {DCM_PRCENTRANCEDOSE, DCM_US, "PRC Entrance Dose"},
+    {DCM_PRCEXPOSEDAREA, DCM_US, "PRC Exposed Area"},
+    {DCM_PRCDISTANCESOURCEENTRANCE, DCM_DS, "PRC Distance Source to Entrance"},
+    {DCM_PRCCOMMENTSRADIATIONDOSE, DCM_ST, "PRC Comments on Radiation Dose"},
+
+    {0x00400312, DCM_DS, "PRC X-Ray Output"},		/* 2002.04.26 */
+    {0x00400314, DCM_DS, "PRC Half Value Layer"},	/* 2002.04.26 */
+    {0x00400316, DCM_DS, "PRC Organ Dose"},		/* 2002.04.26 */
+    {0x00400318, DCM_CS, "PRC Organ Exposed"},		/* 2002.04.26 */
+
+    {DCM_PRCBILLINGPROCEDURESTEPSEQ, DCM_SQ, "PRC Billing Proc Step Seq"},
+    {DCM_PRCFILMCONSUMPTIONSEQ, DCM_SQ, "PRC Film Consumption Seq"},
+    {DCM_PRCBILLINGSUPPLIESDEVICESEQ, DCM_SQ, "PRC Billing Supplies/Devices Seq"},
+    {DCM_PRCREFERENCEDPPS, DCM_SQ, "PRC Ref Procedure Step Seq"},
+    {DCM_PRCPERFORMEDSERIESSEQ, DCM_SQ, "PRC Performed Series Seq"},
     {DCM_PRCSCHEDULEDPROCSTEPSEQ, DCM_SQ, "PRC Scheduled Procedure Step Sequence"},
     {DCM_PRCCOMMENTSONSCHEDULEDPROCSTEP, DCM_LT, "PRC Comments on the Scheduled Procedure Step"},
-    {DCM_MAKETAG(0x0040, 0x050a), DCM_LO, "PRC Specimen Accession Number"},  /* Sup 15 */
-    {DCM_MAKETAG(0x0040, 0x0550), DCM_SQ, "PRC Specimen Sequence"},  /* Sup 15 */
-    {DCM_MAKETAG(0x0040, 0x0551), DCM_LO, "PRC Specimen Identifier"},  /* Sup 15 */
-    {DCM_MAKETAG(0x0040, 0x0552), DCM_SQ, "PRC Specimen Description Sequence"},  /* Sup 15 */
-    {DCM_MAKETAG(0x0040, 0x0553), DCM_ST, "PRC Specimen Description"},  /* Sup 15 */
-    {DCM_MAKETAG(0x0040, 0x0555), DCM_SQ, "PRC Acquisition Context Sequence"},  /* Sup 15 */
-    {DCM_MAKETAG(0x0040, 0x0556), DCM_ST, "PRC Acquisition Context Description"},  /* Sup 15 */
-    {DCM_MAKETAG(0x0040, 0x059a), DCM_SQ, "PRC Specimen Type Code Sequence"},  /* Sup 15 */
-    {DCM_MAKETAG(0x0040, 0x06fa), DCM_LO, "PRC Slide Identifier"},  /* Sup 15 */
-    {DCM_MAKETAG(0x0040, 0x071a), DCM_SQ, "PRC Image Center Point Coordinates Sequence"},  /* Sup 15 */
-    {DCM_MAKETAG(0x0040, 0x072a), DCM_DS, "PRC X offset in Slide Coordinate System"},  /* Sup 15 */
-    {DCM_MAKETAG(0x0040, 0x073a), DCM_DS, "PRC Y offset in Slide Coordinate System"},  /* Sup 15 */
-    {DCM_MAKETAG(0x0040, 0x074a), DCM_DS, "PRC Z offset in Slide Coordinate System"},  /* Sup 15 */
-    {DCM_MAKETAG(0x0040, 0x08d8), DCM_SQ, "PRC Pixel Spacing Sequence"},  /* Sup 15 */
-    {DCM_MAKETAG(0x0040, 0x08da), DCM_SQ, "PRC Coordinate System Axis Code Sequence"},  /* Sup 15 */
-    {DCM_MAKETAG(0x0040, 0x08ea), DCM_SQ, "PRC Measurement Units Code Sequence"},  /* Sup 15 */
-    {DCM_MAKETAG(0x0040, 0x09f8), DCM_SQ, "PRC Vital Stain Code Sequence"},  /* Sup 15 */
+    {DCM_MAKETAG(0x0040, 0x050a), DCM_LO, "PRC Specimen Accession Number"},	/* Sup 15 */
+    {DCM_MAKETAG(0x0040, 0x0550), DCM_SQ, "PRC Specimen Sequence"},	/* Sup 15 */
+    {DCM_MAKETAG(0x0040, 0x0551), DCM_LO, "PRC Specimen Identifier"},	/* Sup 15 */
+    {DCM_MAKETAG(0x0040, 0x0552), DCM_SQ, "PRC Specimen Description Sequence"},	/* Sup 15 */
+    {DCM_MAKETAG(0x0040, 0x0553), DCM_ST, "PRC Specimen Description"},	/* Sup 15 */
+    {DCM_MAKETAG(0x0040, 0x0555), DCM_SQ, "PRC Acquisition Context Sequence"},	/* Sup 15 */
+    {DCM_MAKETAG(0x0040, 0x0556), DCM_ST, "PRC Acquisition Context Description"},	/* Sup 15 */
+    {DCM_MAKETAG(0x0040, 0x059a), DCM_SQ, "PRC Specimen Type Code Sequence"},	/* Sup 15 */
+    {DCM_MAKETAG(0x0040, 0x06fa), DCM_LO, "PRC Slide Identifier"},	/* Sup 15 */
+    {DCM_MAKETAG(0x0040, 0x071a), DCM_SQ, "PRC Image Center Point Coordinates Sequence"},	/* Sup 15 */
+    {DCM_MAKETAG(0x0040, 0x072a), DCM_DS, "PRC X offset in Slide Coordinate System"},	/* Sup 15 */
+    {DCM_MAKETAG(0x0040, 0x073a), DCM_DS, "PRC Y offset in Slide Coordinate System"},	/* Sup 15 */
+    {DCM_MAKETAG(0x0040, 0x074a), DCM_DS, "PRC Z offset in Slide Coordinate System"},	/* Sup 15 */
+    {DCM_MAKETAG(0x0040, 0x08d8), DCM_SQ, "PRC Pixel Spacing Sequence"},	/* Sup 15 */
+    {DCM_MAKETAG(0x0040, 0x08da), DCM_SQ, "PRC Coordinate System Axis Code Sequence"},	/* Sup 15 */
+    {DCM_MAKETAG(0x0040, 0x08ea), DCM_SQ, "PRC Measurement Units Code Sequence"},	/* Sup 15 */
+    {DCM_MAKETAG(0x0040, 0x09f8), DCM_SQ, "PRC Vital Stain Code Sequence"},	/* Sup 15 */
     {DCM_PRCREQUESTEDPROCEDUREID, DCM_SH, "PRC Requested Procedure ID"},
     {DCM_PRCREASONFORREQUESTEDPROC, DCM_LO, "PRC Reason for the Requested Procedure"},
     {DCM_PRCREQUESTEDPROCPRIORITY, DCM_SH, "PRC Patient Transport Arrangements"},
@@ -901,28 +961,95 @@ static DCMDICT PRC_dictionary[] = {
     {DCM_PRCORDERENTEREDBY, DCM_PN, "PRC Order Entered By"},
     {DCM_PRCORDERENTERERSLOCATION, DCM_SH, "PRC Order Enterer's Location"},
     {DCM_PRCORDERCALLBACKPHONENUMBER, DCM_SH, "PRC Order Callback Phone Number"},
+    {DCM_MAKETAG(0x0040, 0x2016), DCM_LO, "PRC Placer Order Number/ISR"},
+    {DCM_MAKETAG(0x0040, 0x2017), DCM_LO, "PRC Filler Order Number/ISR"},
+
     {DCM_PRCIMAGINGSERVICEREQCOMMENTS, DCM_LT, "PRC Imaging Service Request Comments"},
     {DCM_PRCCONFIDIENTIALITYCONSTRAINTPATIENTDATADES, DCM_LO, "PRC Confidientiality Constraint Patient Data..."},
 
-    {DCM_MAKETAG(0x0040, 0xa043), DCM_SQ, "PRC Concept-name Code Sequence"},  /* Sup 15 */
-    {DCM_MAKETAG(0x0040, 0xa0a0), DCM_CS, "PRC Referenced Type of Data"},  /* Sup 30 0.6 */
-    {DCM_MAKETAG(0x0040, 0xa0b0), DCM_US, "PRC Referenced Waveform Channels"},  /* Sup 30 0.6 */
-    {DCM_MAKETAG(0x0040, 0xa121), DCM_DA, "PRC Date"},  /* Sup 15 */
-    {DCM_MAKETAG(0x0040, 0xa122), DCM_TM, "PRC Time"},  /* Sup 15 */
-    {DCM_MAKETAG(0x0040, 0xa123), DCM_PN, "PRC Person Name"},  /* Sup 15 */
-    {DCM_MAKETAG(0x0040, 0xa130), DCM_CS, "PRC Temporal Range Type"},  /* Sup 30 0.6 */
-    {DCM_MAKETAG(0x0040, 0xa132), DCM_UL, "PRC Referenced Sample Offsets"},  /* Sup 30 0.6 */
-    {DCM_MAKETAG(0x0040, 0xa138), DCM_DS, "PRC Referenced Time Offsets"},  /* Sup 30 0.6 */
-    {DCM_MAKETAG(0x0040, 0xa13a), DCM_DT, "PRC Referenced Datetime"},  /* Sup 30 0.6 */
-    {DCM_MAKETAG(0x0040, 0xa168), DCM_SQ, "PRC Concept Code Sequence"},  /* Sup 15 */
-    {DCM_MAKETAG(0x0040, 0xa16a), DCM_ST, "PRC Bibliographics Citation"},  /* Sup 15 */
-    {DCM_MAKETAG(0x0040, 0xa180), DCM_US, "PRC Annotation Group Number"},  /* Sup 30 0.6 */
-    {DCM_MAKETAG(0x0040, 0xa195), DCM_SQ, "PRC Concept-name Code Sequence Modifier"},  /* Sup 15 */
-    {DCM_MAKETAG(0x0040, 0xa30a), DCM_DS, "PRC Numeric Value"},  /* Sup 15 */
-    {DCM_MAKETAG(0x0040, 0xa353), DCM_ST, "PRC Address"},  /* Sup 15 */
-    {DCM_MAKETAG(0x0040, 0xa354), DCM_LO, "PRC Telephone Number"},  /* Sup 15 */
-    {DCM_MAKETAG(0x0040, 0xa992), DCM_ST, "PRC Uniform Resource Locator"},  /* Sup 15 */
-    {DCM_MAKETAG(0x0040, 0xb020), DCM_SQ, "PRC Annotation Sequence"}  /* Sup 30 0.6 */
+    {DCM_PRCGPSPSSTATUS, DCM_CS, "PRC General Purpose Sched Procedure Step Status"},
+    {DCM_PRCGPPPSSTATUS, DCM_CS, "PRC Gen. Purpose Perf Procedure Step Status"},
+    {DCM_PRCGPSPSPRIORITY, DCM_CS, "PRC Gen. Purpose Sched Procedure Step Priority"},
+    {DCM_PRCSCHEDULEDPROCAPPCODESEQ, DCM_SQ, "PRC Scheduled Proccessing Application Code Seq"},
+    {DCM_PRCGPSPSSTARTDATETIME, DCM_DT, "PRC Sched Procedure Step Start Date and Time"},
+    {DCM_PRCGPSPSMULTIPLECOPIESFLAG, DCM_CS, "PRC Multiple Copies Flag"},
+    {DCM_PRCPERFORMEDPROCAPPCODESEQ, DCM_SQ, "PRC Performed Proccessing Applications Code Seq"},
+    {DCM_PRCHUMANPERFORMERCODESEQ, DCM_SQ, "PRC Human Performer Code Sequence"},
+    {DCM_PRCGPSPSEXPECTEDCOMPLETEDATETIME, DCM_DT, "PRC Expected Completion Date and Time"},
+    {DCM_PRCRESULTINGGPPERFPROCSTEPSEQ, DCM_SQ, "PRC Resulting Gen Purpose Perf Proc Steps Seq"},
+    {DCM_PRCREFERENCEDGPSCHEDPROCSTEPSEQ, DCM_SQ, "PRC Referenced Gen Purp Sched Proc Steps Seq"},
+    {DCM_PRCSCHEDWORKITEMCODESEQ, DCM_SQ, "PRC Scheduled Workitem Code Sequence"},
+    {DCM_PRCPERFORMEDWORKITEMCODESEQ, DCM_SQ, "PRC Performed Workitem Code Sequence"},
+    {DCM_PRCINPUTAVAILFLAG, DCM_CS, "PRC Input Availability Flag"},
+    {DCM_PRCINPUTINFOSEQ, DCM_SQ, "PRC Input Information Sequence"},
+    {DCM_PRCRELEVANTINFOSEQ, DCM_SQ, "PRC Relevant Information Sequence"},
+    {DCM_PRCREFERENCEDGPSPSTRANSACTIONUID, DCM_UI, "PRC Referenced Gen Purp SPS Transaction UID"},
+    {DCM_PRCSCHEDSTATIONNAMECODESEQ, DCM_SQ, "PRC Scheduled Station Name Code Sequence"},
+    {DCM_PRCSCHEDSTATIONCLASSCODESEQ, DCM_SQ, "PRC Scheduled Station Class Code Sequence"},
+    {DCM_PRCSCHEDSTATIONLOCCODESEQ, DCM_SQ, "PRC Sched Station Geographic Location Code Seq"},
+    {DCM_PRCPERFORMEDSTATIONNAMECODESEQ, DCM_SQ, "PRC Performed Station Name Code Seq"},
+    {DCM_PRCPERFORMEDSTATIONCLASSCODESEQ, DCM_SQ, "PRC Performed Station Class Code Sequence"},
+    {DCM_PRCPERFORMEDSTATIONLOCCODESEQ, DCM_SQ, "PRC Perf Station Geographic Location Code Seq"},
+    {DCM_PRCREQSUBSWORKITEMCODESEQ, DCM_SQ, "PRC Requested Subsequent Workitem Code Sequence"},
+    {DCM_PRCNONDICOMOUTPUTCODESEQ, DCM_SQ, "PRC Non-DICOM Output Code Sequence"},
+    {DCM_PRCOUTPUTINFOSEQ, DCM_SQ, "PRC Output Information Sequence"},
+    {DCM_PRCSCHEDHUMANPERFORMERSSEQ, DCM_SQ, "PRC Scheduled Human Performers Sequence"},
+    {DCM_PRCHUMANPERFORMERSORG, DCM_LO, "PRC Human Performer's Organization"},
+    {DCM_PRCHUMANPERFORMERSNAME, DCM_PN, "PRC Human Performer's Name"},
+
+
+    {DCM_MAKETAG(0x0040, 0xa010), DCM_CS, "PRC Relationship Type"}, /* Sup 23*/
+    {DCM_MAKETAG(0x0040, 0xa027), DCM_LO, "PRC Verifying Organization"}, /* Sup 23*/
+    {DCM_MAKETAG(0x0040, 0xa030), DCM_DT, "PRC Verification DateTime"}, /* Sup 23*/
+    {DCM_MAKETAG(0x0040, 0xa032), DCM_DT, "PRC Observation DateTime"}, /* Sup 23*/
+    {DCM_MAKETAG(0x0040, 0xa040), DCM_CS, "PRC Value Type"}, /* Sup 23*/
+
+    {DCM_MAKETAG(0x0040, 0xa043), DCM_SQ, "PRC Concept-name Code Sequence"},	/* Sup 23 */
+    {DCM_MAKETAG(0x0040, 0xa050), DCM_CS, "PRC Continuity of Content"}, /* Sup 23*/
+    {DCM_MAKETAG(0x0040, 0xa073), DCM_SQ, "PRC Verifying Observer Sequence"}, /* Sup 23*/
+    {DCM_MAKETAG(0x0040, 0xa075), DCM_PN, "PRC Verifying Observer Name"}, /* Sup 23*/
+    {DCM_MAKETAG(0x0040, 0xa088), DCM_SQ, "PRC Verifying Observer Identification Code Seq"}, /* Sup 23*/
+    {DCM_MAKETAG(0x0040, 0xa0a0), DCM_CS, "PRC Referenced Type of Data"},	/* Sup 30 0.6 */
+    {DCM_MAKETAG(0x0040, 0xa0b0), DCM_US, "PRC Referenced Waveform Channels"},	/* Sup 30 0.6 */
+    {DCM_MAKETAG(0x0040, 0xa120), DCM_DT, "PRC Date Time"}, /* Sup 23*/
+    {DCM_MAKETAG(0x0040, 0xa121), DCM_DA, "PRC Date"},	/* Sup 15 */
+    {DCM_MAKETAG(0x0040, 0xa122), DCM_TM, "PRC Time"},	/* Sup 15 */
+    {DCM_MAKETAG(0x0040, 0xa123), DCM_PN, "PRC Person Name"},	/* Sup 15 */
+    {DCM_MAKETAG(0x0040, 0xa124), DCM_UI, "PRC UID"}, /* Sup 23*/
+    {DCM_MAKETAG(0x0040, 0xa130), DCM_CS, "PRC Temporal Range Type"},	/* Sup 30 0.6 */
+    {DCM_MAKETAG(0x0040, 0xa132), DCM_UL, "PRC Referenced Sample Offsets"},	/* Sup 30 0.6 */
+    {DCM_MAKETAG(0x0040, 0xa138), DCM_DS, "PRC Referenced Time Offsets"},	/* Sup 30 0.6 */
+    {DCM_MAKETAG(0x0040, 0xa13a), DCM_DT, "PRC Referenced Datetime"},	/* Sup 30 0.6 */
+    {DCM_MAKETAG(0x0040, 0xa160), DCM_UT, "PRC Text Value"},	/* */
+    {DCM_MAKETAG(0x0040, 0xa168), DCM_SQ, "PRC Concept Code Sequence"},	/* Sup 15 */
+    {DCM_MAKETAG(0x0040, 0xa16a), DCM_ST, "PRC Bibliographics Citation"},	/* Sup 15 */
+    {DCM_MAKETAG(0x0040, 0xa180), DCM_US, "PRC Annotation Group Number"},	/* Sup 30 0.6 */
+    {DCM_MAKETAG(0x0040, 0xa195), DCM_SQ, "PRC Concept-name Code Sequence Modifier"},	/* Sup 15 */
+
+    {DCM_MAKETAG(0x0040, 0xa300), DCM_SQ, "PRC Measured Value Sequence"}, /* Sup 23 */
+    {DCM_MAKETAG(0x0040, 0xa30a), DCM_DS, "PRC Numeric Value"},	/* Sup 15 */
+    {DCM_MAKETAG(0x0040, 0xa353), DCM_ST, "PRC Address"},	/* Sup 15 */
+    {DCM_MAKETAG(0x0040, 0xa354), DCM_LO, "PRC Telephone Number"},	/* Sup 15 */
+    {DCM_MAKETAG(0x0040, 0xa360), DCM_SQ, "PRC Predecessor Documents Sequence"}, /* Sup 23 */
+    {DCM_MAKETAG(0x0040, 0xa370), DCM_SQ, "PRC Referenced Request Sequence"}, /* Sup 23 */
+    {DCM_MAKETAG(0x0040, 0xa372), DCM_SQ, "PRC Performed Procedure Code Sequence"}, /* Sup 23 */
+    {DCM_MAKETAG(0x0040, 0xa375), DCM_SQ, "PRC Current Reqeusted Procedure Evidence Seq"}, /* Sup 23 */
+    {DCM_MAKETAG(0x0040, 0xa385), DCM_SQ, "PRC Pertinent Other Evidence Sequence"}, /* Sup 23 */
+    {DCM_MAKETAG(0x0040, 0xa491), DCM_CS, "PRC Completion Flag"}, /* Sup 23 */
+    {DCM_MAKETAG(0x0040, 0xa492), DCM_LO, "PRC Completion Flag Description"}, /* Sup 23 */
+    {DCM_MAKETAG(0x0040, 0xa493), DCM_CS, "PRC Verification Flag"}, /* Sup 23 */
+    {DCM_MAKETAG(0x0040, 0xa504), DCM_SQ, "PRC Content Template Sequence"}, /* Sup 23 */
+    {DCM_MAKETAG(0x0040, 0xa525), DCM_SQ, "PRC Identical Documents Sequence"}, /* Sup 23 */
+    {DCM_MAKETAG(0x0040, 0xa730), DCM_SQ, "PRC Content Sequence"}, /* Sup 23 */
+    {DCM_MAKETAG(0x0040, 0xa992), DCM_ST, "PRC Uniform Resource Locator"},	/* Sup 15 */
+    {DCM_MAKETAG(0x0040, 0xb020), DCM_SQ, "PRC Annotation Sequence"},	/* Sup 30 0.6 */
+    {DCM_MAKETAG(0x0040, 0xadb00), DCM_CS, "PRC Template Identifier"}, /* Sup 23 */
+    {DCM_MAKETAG(0x0040, 0xadb06), DCM_DT, "PRC Template Version"}, /* Sup 23 */
+    {DCM_MAKETAG(0x0040, 0xadb07), DCM_DT, "PRC Template Local Version"}, /* Sup 23 */
+    {DCM_MAKETAG(0x0040, 0xadb0b), DCM_CS, "PRC Template Extension Flag"}, /* Sup 23 */
+    {DCM_MAKETAG(0x0040, 0xadb0c), DCM_UI, "PRC Template Extension Organization UID"}, /* Sup 23 */
+    {DCM_MAKETAG(0x0040, 0xadb0d), DCM_UI, "PRC Template Extension Creator UID"}, /* Sup 23 */
+    {DCM_MAKETAG(0x0040, 0xadb73), DCM_UL, "PRC Referenced Content Item Identifier"} /* Sup 23 */
 };
 
 /* Define the entries for the DEVICE group, 0050
@@ -1056,37 +1183,65 @@ static DCMDICT NMI_dictionary[] = {
     {DCM_NMIPATIENTGANTRYRELATIONSHIPCODESEQ, DCM_SQ, "NMI Patient Gantry Relationship Code Sequence"},
     {DCM_NMISERIESTYPE, DCM_CS, "NMI Series Type"},
     {DCM_NMIUNITS, DCM_CS, "NMI Units"},
-    {DCM_NMICOUNTSSOURCE, DCM_CS, "NMI Counts Source"},  /* 1002 */
-    {DCM_NMIREPROJECTIONMETHOD, DCM_CS, "NMI Reprojection Method"},  /* 1004 */
+    {DCM_NMICOUNTSSOURCE, DCM_CS, "NMI Counts Source"},	/* 1002 */
+    {DCM_NMIREPROJECTIONMETHOD, DCM_CS, "NMI Reprojection Method"},	/* 1004 */
     {DCM_NMIRANDOMSCORRECTIONMETHOD, DCM_CS,
-    "NMI Randoms Correction Method"},  /* 1100 */
+    "NMI Randoms Correction Method"},	/* 1100 */
     {DCM_NMIATTENUATIONCORRECTIONMETHOD, DCM_LO,
-    "NMI Attenuation Correction Method"},  /* 1101 */
-    {DCM_NMIDECAYCORRECTION, DCM_CS, "NMI Decay Correction"},  /* 1102 */
-    {DCM_NMIRECONSTRUCTIONMETHOD, DCM_LO, "NMI Reconstruction Method"},  /* 1103 */
+    "NMI Attenuation Correction Method"},	/* 1101 */
+    {DCM_NMIDECAYCORRECTION, DCM_CS, "NMI Decay Correction"},	/* 1102 */
+    {DCM_NMIRECONSTRUCTIONMETHOD, DCM_LO, "NMI Reconstruction Method"},	/* 1103 */
     {DCM_NMIDETECTORLINESRESPONSEUSED, DCM_LO,
-    "NMI Detector Lines of Response Used"},  /* 1104 */
-    {DCM_NMISCATTERCORRECTIONMETHOD, DCM_LO, "NMI Scatter Correction Method"},  /* 1105 */
-    {DCM_NMIAXIALACCEPTANCE, DCM_DS, "NMI Axial Acceptance"},  /* 1200 */
-    {DCM_NMIAXIALMASH, DCM_IS, "NMI Axial Mash"},  /* 1201 */
-    {DCM_NMITRANSVERSEMASH, DCM_IS, "NMI Transverse Mash"},  /* 1202 */
-    {DCM_NMIDETECTORELEMENTSIZE, DCM_DS, "NMI Detector Element Size"},  /* 1203 */
-    {DCM_NMICOINCIDENCEWINDOWWIDTH, DCM_DS, "NMI Coincidence Window Width"},  /* 1210 */
-    {DCM_NMISECONDARYCOUNTSTYPE, DCM_CS, "NMI Secondary Counts Type"},  /* 1220 */
-    {DCM_NMIFRAMEREFERENCETIME, DCM_DS, "NMI Frame Reference Time"},  /* 1300 */
+    "NMI Detector Lines of Response Used"},	/* 1104 */
+    {DCM_NMISCATTERCORRECTIONMETHOD, DCM_LO, "NMI Scatter Correction Method"},	/* 1105 */
+    {DCM_NMIAXIALACCEPTANCE, DCM_DS, "NMI Axial Acceptance"},	/* 1200 */
+    {DCM_NMIAXIALMASH, DCM_IS, "NMI Axial Mash"},	/* 1201 */
+    {DCM_NMITRANSVERSEMASH, DCM_IS, "NMI Transverse Mash"},	/* 1202 */
+    {DCM_NMIDETECTORELEMENTSIZE, DCM_DS, "NMI Detector Element Size"},	/* 1203 */
+    {DCM_NMICOINCIDENCEWINDOWWIDTH, DCM_DS, "NMI Coincidence Window Width"},	/* 1210 */
+    {DCM_NMISECONDARYCOUNTSTYPE, DCM_CS, "NMI Secondary Counts Type"},	/* 1220 */
+    {DCM_NMIFRAMEREFERENCETIME, DCM_DS, "NMI Frame Reference Time"},	/* 1300 */
     {DCM_NMIPRIMARYCOUNTSACCUMULATED, DCM_IS,
-    "NMI Primary (Prompts) Counts Accumulated"},  /* 1310 */
+    "NMI Primary (Prompts) Counts Accumulated"},	/* 1310 */
     {DCM_NMISECONDARYCOUNTSACCUMULATED, DCM_IS,
-    "NMI Secondary Counts Accumulated"},  /* 1311 */
-    {DCM_NMISLICESENSITIVITYFACTOR, DCM_DS, "NMI Slice Sensitivity Factor"},  /* 1320 */
-    {DCM_NMIDECAYFACTOR, DCM_DS, "NMI Decay Factor"},  /* 1321 */
-    {DCM_NMIDOSECALIBRATIONFACTOR, DCM_DS, "NMI Dose Calibration Factor"},  /* 1322 */
-    {DCM_NMISCATTERFRACTIONFACTOR, DCM_DS, "NMI Scatter Fraction Factor"},  /* 1323 */
-    {DCM_NMIDEADTIMEFACTOR, DCM_DS, "NMI Dead Time Factor"},  /* 1324 */
-    {DCM_NMIIMAGEINDEX, DCM_US, "NMI Image Index"},  /* 1330 */
-    {DCM_NMICOUNTSINCLUDED, DCM_CS, "NMI Counts Included"},  /* 1400 */
+    "NMI Secondary Counts Accumulated"},	/* 1311 */
+    {DCM_NMISLICESENSITIVITYFACTOR, DCM_DS, "NMI Slice Sensitivity Factor"},	/* 1320 */
+    {DCM_NMIDECAYFACTOR, DCM_DS, "NMI Decay Factor"},	/* 1321 */
+    {DCM_NMIDOSECALIBRATIONFACTOR, DCM_DS, "NMI Dose Calibration Factor"},	/* 1322 */
+    {DCM_NMISCATTERFRACTIONFACTOR, DCM_DS, "NMI Scatter Fraction Factor"},	/* 1323 */
+    {DCM_NMIDEADTIMEFACTOR, DCM_DS, "NMI Dead Time Factor"},	/* 1324 */
+    {DCM_NMIIMAGEINDEX, DCM_US, "NMI Image Index"},	/* 1330 */
+    {DCM_NMICOUNTSINCLUDED, DCM_CS, "NMI Counts Included"},	/* 1400 */
     {DCM_NMIDEADTIMECORRECTIONFLAG, DCM_CS,
-    "NMI Dead Time Correction Flag"},  /* 1401 */
+    "NMI Dead Time Correction Flag"},	/* 1401 */
+};
+
+/* Define the entries for the Graphics group, 0070 */
+static DCMDICT GRP_dictionary[] = {
+    {DCM_MAKETAG(0x0070, 0x0000), DCM_UL, "GRP Group Length"},
+    {DCM_MAKETAG(0x0070, 0x0022), DCM_FL, "GRP Graphic Data"}, /* Sup 33 */
+    {DCM_MAKETAG(0x0070, 0x0023), DCM_CS, "GRP Graphic Type"}, /* Sup 33 */
+    {DCM_MAKETAG(0x0070, 0x0024), DCM_CS, "GRP Graphic Filled"}, /* Sup 33 */
+    {DCM_MAKETAG(0x0070, 0x0041), DCM_CS, "GRP Image Horizontal Flip"}, /* Sup 33*/
+    {DCM_MAKETAG(0x0070, 0x0042), DCM_US, "GRP Image Rotation"}, /* Sup 33 */
+    {DCM_MAKETAG(0x0070, 0x0052), DCM_SL, "GRP Displayed Area Top LH Corner"},
+    {DCM_MAKETAG(0x0070, 0x0053), DCM_SL, "GRP Displayed Area Bottom RH Corner"},
+    {DCM_MAKETAG(0x0070, 0x005a), DCM_SQ, "GRP Display Area Selection Seq"},
+    {DCM_MAKETAG(0x0070, 0x0060), DCM_SQ, "GRP Graphic Layer Sequence"},
+    {DCM_MAKETAG(0x0070, 0x0062), DCM_IS, "GRP Graphic Layer Order"},
+    {DCM_MAKETAG(0x0070, 0x0066), DCM_US, "GRP Graphic Layer Rec Disp GS Val"},
+    {DCM_MAKETAG(0x0070, 0x0067), DCM_US, "GRP Graphic Layer Rec Disp RGB Val"},
+    {DCM_MAKETAG(0x0070, 0x0068), DCM_LO, "GRP Graphic Layer Description"},
+
+    {DCM_MAKETAG(0x0070, 0x0080), DCM_CS, "GRP Presentation Label"}, /* Sup 33 */
+    {DCM_MAKETAG(0x0070, 0x0081), DCM_LO, "GRP Presentation Description"}, /* Sup 33 */
+    {DCM_MAKETAG(0x0070, 0x0082), DCM_DA, "GRP Presentation Creation Date"}, /* Sup 33 */
+    {DCM_MAKETAG(0x0070, 0x0083), DCM_TM, "GRP Presentation Creation Time"}, /* Sup 33 */
+    {DCM_MAKETAG(0x0070, 0x0084), DCM_PN, "GRP Presentation Creators Name"}, /* Sup 33 */
+    {DCM_MAKETAG(0x0070, 0x0100), DCM_CS, "GRP Presentation Size Mode"}, /* Sup 33 */
+    {DCM_MAKETAG(0x0070, 0x0101), DCM_DS, "GRP Presentation Pixel Spacing"}, /* Sup 33 */
+    {DCM_MAKETAG(0x0070, 0x0102), DCM_IS, "GRP Presentation Pixel Aspect Ratio"}, /* Sup 33 */
+    {DCM_MAKETAG(0x0070, 0x0103), DCM_FL, "GRP Presentation Pixel Magnification Ratio"}, /* Sup 33 */
 };
 
 /* Define the entries for the OLY (Overlay) group */
@@ -1209,6 +1364,15 @@ static DCMDICT IOB_dictionary[] = {
     {DCM_IOBOVERLAYMODE, DCM_CS, "IOB Overlay Mode"},
     {DCM_IOBTHRESHOLDDENSITY, DCM_CS, "IOB Threshold Density"},
     {DCM_IOBREFIMAGEBOXSEQUENCE, DCM_SQ, "IOB Ref Image Box Sequence (RET)"}
+};
+
+/* Defines entries for Presentation LUT Group (2050)
+*/
+static DCMDICT PLUT_dictionary[] = {
+    {DCM_MAKETAG(0x2050, 0x0000), DCM_UL, "PLUT Group Length"},
+    {DCM_MAKETAG(0x2050, 0x0010), DCM_SQ, "PLUT Presentation LUT Sequence"},
+    {DCM_MAKETAG(0x2050, 0x0020), DCM_CS, "PLUT Presentation LUT Shape"},
+    {DCM_MAKETAG(0x2050, 0x0500), DCM_SQ, "PLUT Referenced Presentation LUT Sequence"}
 };
 
 /* Defines the entries in the PRINTJOB group (2100)
@@ -1661,6 +1825,8 @@ static GROUPPTR group_dictionary[] = {
     sizeof(DEV_dictionary) / sizeof(DCMDICT), DEV_dictionary},
     {DCM_GROUPNMIMAGE,
     sizeof(NMI_dictionary) / sizeof(DCMDICT), NMI_dictionary},
+    {DCM_GROUPGRAPHICS,
+    sizeof(GRP_dictionary) / sizeof(DCMDICT), GRP_dictionary},
     {DCM_GROUPMEDIA,
     sizeof(MED_dictionary) / sizeof(DCMDICT), MED_dictionary},
     {DCM_GROUPBASICFILMSESSION,
@@ -1671,10 +1837,16 @@ static GROUPPTR group_dictionary[] = {
     sizeof(BIB_dictionary) / sizeof(DCMDICT), BIB_dictionary},
     {DCM_GROUPBASICANNOTATIONBOX,
     sizeof(BAB_dictionary) / sizeof(DCMDICT), BAB_dictionary},
+
     {DCM_GROUPBASICIMAGEOVERLAYBOX,
     sizeof(IOB_dictionary) / sizeof(DCMDICT), IOB_dictionary},
+
+    {0x2050,
+    sizeof(PLUT_dictionary) / sizeof(DCMDICT), PLUT_dictionary},
+
     {DCM_GROUPPRINTJOB,
     sizeof(PJ_dictionary) / sizeof(DCMDICT), PJ_dictionary},
+
     {DCM_GROUPPRINTER,
     sizeof(PRN_dictionary) / sizeof(DCMDICT), PRN_dictionary},
     {0x3002,
@@ -1715,33 +1887,33 @@ static GROUPPTR group_dictionary[] = {
 /* DCM_LookupElement
 **
 ** Purpose:
-**  Lookup an element in the DICOM dictionary and return information
-**  about the element, including representation, type and english
-**  description.
+**	Lookup an element in the DICOM dictionary and return information
+**	about the element, including representation, type and english
+**	description.
 **
 ** Parameter Dictionary:
-**  element    Pointer to an DCM element (group, element) to
-**      be found in the dictionary.
+**	element		Pointer to an DCM element (group, element) to
+**			be found in the dictionary.
 **
 ** Return Values:
-**  DCM_NORMAL
-**  DCM_UNRECOGNIZEDGROUP
-**  DCM_UNRECOGNIZEDELEMENT
+**	DCM_NORMAL
+**	DCM_UNRECOGNIZEDGROUP
+**	DCM_UNRECOGNIZEDELEMENT
 **
 ** Algorithm:
-**  Set representation, type, englishDescription fields of caller's
-**  element to NULL values
-**  Search group_dictionary to find caller's group.
-**  If group not found,
-**      return DCM_UNRECOGNIZEDGROUP
-**  Search particular group list to find caller's element.
-**  If element not found,
-**      return DCM_UNRECOGNIZEDELEMENT
-**  Else
-**      Copy representation, type, englishDescription from dictionary
-**      to caller's element
-**      return DCM_NORMAL
-**  EndIf
+**	Set representation, type, englishDescription fields of caller's
+**	element to NULL values
+**	Search group_dictionary to find caller's group.
+**	If group not found,
+**	    return DCM_UNRECOGNIZEDGROUP
+**	Search particular group list to find caller's element.
+**	If element not found,
+**	    return DCM_UNRECOGNIZEDELEMENT
+**	Else
+**	    Copy representation, type, englishDescription from dictionary
+**	    to caller's element
+**	    return DCM_NORMAL
+**	EndIf
 */
 
 CONDITION
@@ -1753,45 +1925,45 @@ DCM_LookupElement(DCM_ELEMENT * element)
         index,
         entries;
     GROUPPTR
-  * p;
+	* p;
     DCMDICT
-  * dictionaryPtr;
+	* dictionaryPtr;
 
-    element->representation = DCM_UNKNOWN;
+    element->representation = DCM_UN;
     (void) strcpy(element->description, "");
 
     for (index = 0, p = NULL;
-   index < sizeof(group_dictionary) / sizeof(group_dictionary[0]) && p == NULL;
-   index++)
-  if (DCM_TAG_GROUP(element->tag) == group_dictionary[index].group)
-      p = &group_dictionary[index];
+	 index < sizeof(group_dictionary) / sizeof(group_dictionary[0]) && p == NULL;
+	 index++)
+	if (DCM_TAG_GROUP(element->tag) == group_dictionary[index].group)
+	    p = &group_dictionary[index];
 
     if (p == NULL) {
-  if (DCM_TAG_ELEMENT(element->tag) == 0x0000) {
-      element->representation = DCM_UL;
-      (void) strcpy(element->description, "Unknown group length");
-      return DCM_NORMAL;
-  }
-  return COND_PushCondition(DCM_UNRECOGNIZEDGROUP,
-          DCM_Message(DCM_UNRECOGNIZEDGROUP),
-          DCM_TAG_GROUP(element->tag),
-          "DCM_LookupElement");
+	if (DCM_TAG_ELEMENT(element->tag) == 0x0000) {
+	    element->representation = DCM_UL;
+	    (void) strcpy(element->description, "Unknown group length");
+	    return DCM_NORMAL;
+	}
+	return COND_PushCondition(DCM_UNRECOGNIZEDGROUP,
+				  DCM_Message(DCM_UNRECOGNIZEDGROUP),
+				  DCM_TAG_GROUP(element->tag),
+				  "DCM_LookupElement");
     }
     entries = p->entries;
     dictionaryPtr = p->dict;
 
     for (found = 0; !found && entries > 0; entries--)
-  if (element->tag == dictionaryPtr->tag)
-      found++;
-  else
-      dictionaryPtr++;
+	if (element->tag == dictionaryPtr->tag)
+	    found++;
+	else
+	    dictionaryPtr++;
 
     if (!found)
-  return COND_PushCondition(DCM_UNRECOGNIZEDELEMENT,
-          DCM_Message(DCM_UNRECOGNIZEDELEMENT),
-          DCM_TAG_GROUP(element->tag),
-          DCM_TAG_ELEMENT(element->tag),
-          "DCM_LookupElement");
+	return COND_PushCondition(DCM_UNRECOGNIZEDELEMENT,
+				  DCM_Message(DCM_UNRECOGNIZEDELEMENT),
+				  DCM_TAG_GROUP(element->tag),
+				  DCM_TAG_ELEMENT(element->tag),
+				  "DCM_LookupElement");
 
 
     element->representation = dictionaryPtr->representation;
@@ -1819,12 +1991,14 @@ static GROUP_DESCRIPTION groupTable[] = {
     {0x0040, "Procedure Step"},
     {0x0050, "Device"},
     {0x0054, "NM Image"},
+    {0x0070, "Graphics"},
     {0x0088, "Media"},
     {0x2000, "Basic Film Session"},
     {0x2010, "Basic Film Box"},
     {0x2020, "Basic Image Box"},
     {0x2030, "Basic Annotation Box"},
     {0x2040, "Basic Image Overlay Box"},
+    {0x2050, "Presentation LUT"},
     {0x2100, "Print Job"},
     {0x2110, "Printer"},
     {0x3002, "RT"},
@@ -1846,40 +2020,40 @@ static GROUP_DESCRIPTION groupTable[] = {
 /* DCM_GroupDictionary
 **
 ** Purpose:
-**  DCM_GroupDictionary is used to lookup descriptions of groups in
-**  the internal DCM group dictionary.  Caller specifies one group
-**  with a group number or all groups by passing 0xffff.  For each
-**  group that matches (the one group or wildcard), this function
-**  invokes the caller's callback function.
-**  When the callback function is invoked, the arguments are the
-**  group number, an ASCII description of the group and user context
-**  information that was passed by the caller originally.
+**	DCM_GroupDictionary is used to lookup descriptions of groups in
+**	the internal DCM group dictionary.  Caller specifies one group
+**	with a group number or all groups by passing 0xffff.  For each
+**	group that matches (the one group or wildcard), this function
+**	invokes the caller's callback function.
+**	When the callback function is invoked, the arguments are the
+**	group number, an ASCII description of the group and user context
+**	information that was passed by the caller originally.
 **
 ** Parameter Dictionary:
-**  group    The number of the group to be found in the dictionary.
-**  ctx    User context information to be passed to callback
-**      function.
-**  callback  The user's callback function, invoked once for each
-**      group that is found during the dictionary lookup.
+**	group		The number of the group to be found in the dictionary.
+**	ctx		User context information to be passed to callback
+**			function.
+**	callback	The user's callback function, invoked once for each
+**			group that is found during the dictionary lookup.
 **
 ** Return Values:
-**  DCM_NORMAL
+**	DCM_NORMAL
 ** Notes:
 **
 ** Algorithm:
-**  Description of the algorithm (optional) and any other notes.
+**	Description of the algorithm (optional) and any other notes.
 */
 
 CONDITION
 DCM_GroupDictionary(unsigned short group, void *ctx,
-    void (*callback) (unsigned short g, char *description, void *ctx))
+	  void (*callback) (unsigned short g, char *description, void *ctx))
 {
     int i;
 
     for (i = 0; i < (int) DIM_OF(groupTable); i++) {
-  if ((group == 0xffff) || (group == groupTable[i].group)) {
-      callback(groupTable[i].group, groupTable[i].description, ctx);
-  }
+	if ((group == 0xffff) || (group == groupTable[i].group)) {
+	    callback(groupTable[i].group, groupTable[i].description, ctx);
+	}
     }
     return DCM_NORMAL;
 }
@@ -1887,41 +2061,41 @@ DCM_GroupDictionary(unsigned short group, void *ctx,
 /* DCM_ElementDictionary
 **
 ** Purpose:
-**  DCM_ElementDictionary is used to lookup descriptions of elements in
-**  the internal DCM element dictionary.  The caller can specify one
-**  element to be found or a number of elements as follows:
-**    (Group,  Element)  Description
-**    GGGG,    EEEE    Lookup one particular element (GGGGEEEE)
-**    GGGG,    0xffff    Lookup all elements in group GGGG
-**    0xffff,  EEEE    Lookup all elements in all groups with
-**          element number EEEE
-**    0xffff,  0xffff    Lookup all elements in all groups
-**  For each element that matches (the one element or wildcard), this
-**  function invokes the caller's callback function.
-**  When the callback function is invoked, the arguments are the
-**  element tag, an ASCII description of the element, the element value
-**  representation and user context information that was passed by
-**  the caller originally.
+**	DCM_ElementDictionary is used to lookup descriptions of elements in
+**	the internal DCM element dictionary.  The caller can specify one
+**	element to be found or a number of elements as follows:
+**		(Group,  Element)	Description
+**		GGGG,    EEEE		Lookup one particular element (GGGGEEEE)
+**		GGGG,    0xffff		Lookup all elements in group GGGG
+**		0xffff,  EEEE		Lookup all elements in all groups with
+**					element number EEEE
+**		0xffff,  0xffff		Lookup all elements in all groups
+**	For each element that matches (the one element or wildcard), this
+**	function invokes the caller's callback function.
+**	When the callback function is invoked, the arguments are the
+**	element tag, an ASCII description of the element, the element value
+**	representation and user context information that was passed by
+**	the caller originally.
 **
 ** Parameter Dictionary:
-**  tag    The tag of the element to be found in the dictionary.
-**  ctx    User context information to be passed to callback
-**      function.
-**  callback  The user's callback function, invoked once for each
-**      element that is found during the dictionary lookup.
+**	tag		The tag of the element to be found in the dictionary.
+**	ctx		User context information to be passed to callback
+**			function.
+**	callback	The user's callback function, invoked once for each
+**			element that is found during the dictionary lookup.
 **
 ** Return Values:
-**  DCM_NORMAL
+**	DCM_NORMAL
 ** Notes:
 **
 ** Algorithm:
-**  Description of the algorithm (optional) and any other notes.
+**	Description of the algorithm (optional) and any other notes.
 */
 
 CONDITION
 DCM_ElementDictionary(DCM_TAG tag, void *ctx,
   void (*callback) (DCM_TAG t, char *description, DCM_VALUEREPRESENTATION r,
-        void *ctx))
+		    void *ctx))
 {
     int i;
     unsigned long j;
@@ -1929,20 +2103,20 @@ DCM_ElementDictionary(DCM_TAG tag, void *ctx,
     DCMDICT *dictionaryPtr;
 
     for (i = 0; i < (int) DIM_OF(group_dictionary); i++) {
-  if ((DCM_TAG_GROUP(tag) == group_dictionary[i].group) ||
-      (DCM_TAG_GROUP(tag) == 0xffff)) {
-      p = &group_dictionary[i];
-      dictionaryPtr = p->dict;
-      for (j = 0; j < p->entries; j++, dictionaryPtr++) {
-    if ((DCM_TAG_ELEMENT(tag) == 0xffff) ||
-        (DCM_TAG_ELEMENT(tag) == DCM_TAG_ELEMENT(dictionaryPtr->tag))) {
-        callback(dictionaryPtr->tag,
-           dictionaryPtr->englishDescription,
-           dictionaryPtr->representation,
-           ctx);
-    }
-      }
-  }
+	if ((DCM_TAG_GROUP(tag) == group_dictionary[i].group) ||
+	    (DCM_TAG_GROUP(tag) == 0xffff)) {
+	    p = &group_dictionary[i];
+	    dictionaryPtr = p->dict;
+	    for (j = 0; j < p->entries; j++, dictionaryPtr++) {
+		if ((DCM_TAG_ELEMENT(tag) == 0xffff) ||
+		    (DCM_TAG_ELEMENT(tag) == DCM_TAG_ELEMENT(dictionaryPtr->tag))) {
+		    callback(dictionaryPtr->tag,
+			     dictionaryPtr->englishDescription,
+			     dictionaryPtr->representation,
+			     ctx);
+		}
+	    }
+	}
     }
     return DCM_NORMAL;
 }

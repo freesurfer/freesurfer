@@ -42,9 +42,9 @@
 ** Intent:
 **	This file defines private structures for the DICOM information
 **	object package.
-** Last Update:		$Author: kteich $, $Date: 2002/08/07 01:09:08 $
+** Last Update:		$Author: kteich $, $Date: 2002/09/10 21:40:30 $
 ** Source File:		$RCSfile: dcmprivate.h,v $
-** Revision:		$Revision: 1.1 $
+** Revision:		$Revision: 1.2 $
 ** Status:		$State: Exp $
 */
 
@@ -70,6 +70,7 @@ typedef struct {
     size_t allocatedDataLength;
     size_t originalDataLength;
     size_t paddedDataLength;
+    int fragmentFlag;
 }   PRV_ELEMENT_ITEM;
 
 #define	DCM_OBJUNDEFINED 0x01
