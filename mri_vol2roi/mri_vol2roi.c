@@ -6,7 +6,7 @@
   Purpose: averages the voxels within an ROI. The ROI
            can be constrained structurally (with a label file)
            and/or functionally (with a volumetric mask)
-  $Id: mri_vol2roi.c,v 1.19 2004/02/09 17:01:55 greve Exp $
+  $Id: mri_vol2roi.c,v 1.20 2004/06/10 17:16:06 greve Exp $
 */
 
 #include <stdio.h>
@@ -54,7 +54,7 @@ int BTypeFromStem(char *stem);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2roi.c,v 1.19 2004/02/09 17:01:55 greve Exp $";
+static char vcid[] = "$Id: mri_vol2roi.c,v 1.20 2004/06/10 17:16:06 greve Exp $";
 char *Progname = NULL;
 
 char *roifile    = NULL;
@@ -129,7 +129,7 @@ int main(int argc, char **argv)
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_vol2roi.c,v 1.19 2004/02/09 17:01:55 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_vol2roi.c,v 1.20 2004/06/10 17:16:06 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -653,7 +653,9 @@ static void print_help(void)
 "volume. The ROI can be defined in one of three ways: (1) as set of\n"
 "voxels in a mask volume the same size as the source volume, (2) as a\n"
 "set of label points (defined in a label file), or (3) the intersection\n"
-"of (1) and (2).\n"
+"of (1) and (2). mri_vol2roi can also be used to create a binary mask\n"
+"volume from a label; see CREATING A BINARY MASK VOLUME FROM A LABEL\n"
+"below.\n"
 "\n"
 "The result is a text file (argument of --roiavgtxt) with the following \n"
 "rows of information. (1) The number of source voxels in the label (0\n"
@@ -766,6 +768,21 @@ static void print_help(void)
 "Save the column, row, and slice of the voxels in the mask in a text\n"
 "file. The indicies are zero-based.\n"
 "\n"
+"CREATING A BINARY MASK VOLUME FROM A LABEL\n"
+"\n"
+"mri_vol2roi can be used to create a binary mask volume, ie, a volume\n"
+"with 1s where the label is and 0s everywhere else. Use something like: \n"
+" \n"
+"   mri_vol2roi --label your.label --srcvol f --srcreg register.dat \n"
+"     --finalmskvol labelbinmask --roiavg /tmp/not.wanted.dat\n"
+" \n"
+"This will create a bshort volume with stem labelbinmask. This will\n"
+"be the same size/geometry as the srcvol f. register.dat is the registration \n"
+"matrix between the label space and srcvol space. mri_vol2roi requires \n"
+"an output for the ROI information (--roiavg), but in this application \n"
+"the user typically does not want this information (still has to be \n"
+"there on the command line). \n"
+" \n"
 "BUGS\n"
 "\n"
 "The matrix used with --labelreg must map to the subject's\n"
