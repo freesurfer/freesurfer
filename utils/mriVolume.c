@@ -54,7 +54,9 @@ Volm_tErr Volm_New ( mriVolumeRef* opVolume ) {
   this->mnDimensionFrame       = 1;
   this->mpMriValues           = NULL;
   this->mpSnapshot             = NULL;
-  this->mpMaxValues            = NULL;
+  this->mpMaxValuesX           = NULL;
+  this->mpMaxValuesY           = NULL;
+  this->mpMaxValuesZ           = NULL;
   this->mSampleType            = Volm_tSampleType_Nearest;
   this->mIdxToRASTransform     = NULL;
   this->mDisplayTransform      = NULL;
@@ -145,8 +147,14 @@ Volm_tErr Volm_Delete ( mriVolumeRef* iopVolume ) {
   if( NULL != this->mpSnapshot ) {
     free( this->mpSnapshot );
   }
-  if( NULL != this->mpMaxValues ) {
-    free( this->mpMaxValues );
+  if( NULL != this->mpMaxValuesX ) {
+    free( this->mpMaxValuesX );
+  }
+  if( NULL != this->mpMaxValuesY ) {
+    free( this->mpMaxValuesY );
+  }
+  if( NULL != this->mpMaxValuesZ ) {
+    free( this->mpMaxValuesZ );
   }
   if( NULL != this->mDisplayTransform ) {
     Trns_Delete( &(this->mDisplayTransform) );
@@ -589,6 +597,48 @@ Volm_tErr Volm_CalculateIdxToRAS_ ( mriVolumeRef this ) {
   return eResult;
 }
 
+Volm_tErr Volm_GetMaxValueAtMRIIdx_ ( mriVolumeRef     this,
+				      xVoxelRef        iMRIIdx,
+				      mri_tOrientation iOrientation,
+				      float*           oValue ) {
+
+  Volm_tErr eResult              = Volm_tErr_NoErr;
+
+  DebugEnterFunction( ("Volm_GetMaxValueAtMRIIdx_( this=%p, iMRIIdx=%p, "
+		       "iOrientation=%d, oValue=%p )", this, iMRIIdx,
+		       iOrientation, oValue) );
+  
+  DebugNote( ("Verifying volume") );
+  eResult = Volm_Verify( this );
+  DebugAssertThrow( (eResult == Volm_tErr_NoErr) );
+
+  if( NULL == this->mpMaxValuesX ) {
+    Volm_FindMaxValues( this );
+  }
+
+  switch( iOrientation ) {
+  case mri_tOrientation_Sagittal:
+    *oValue = this->mpMaxValuesX[xVoxl_GetY(iMRIIdx)][xVoxl_GetZ(iMRIIdx)];
+    break;
+  case mri_tOrientation_Horizontal:
+    *oValue = this->mpMaxValuesY[xVoxl_GetX(iMRIIdx)][xVoxl_GetZ(iMRIIdx)];
+    break;
+  case mri_tOrientation_Coronal:
+    *oValue = this->mpMaxValuesZ[xVoxl_GetX(iMRIIdx)][xVoxl_GetY(iMRIIdx)];
+    break;
+  default:
+    *oValue = 0;
+  }
+
+  DebugCatch;
+  DebugCatchError( eResult, Volm_tErr_NoErr, Volm_GetErrorString );
+  EndDebugCatch;
+
+  DebugExitFunction;
+  
+  return eResult;
+}
+
 Volm_tErr Volm_ExportNormToCOR ( mriVolumeRef this,
 				 char*        isPath ) {
   
@@ -921,55 +971,20 @@ void Volm_GetIntColorAtIdx ( mriVolumeRef this,
   *oColor = this->manColorTable[colorIdx];
 }
 
-void Volm_GetColorAtXYSlice ( mriVolumeRef     this,
-			      mri_tOrientation iOrientation,
-			      xPoint2nRef      iPoint,
-			      int              inSlice,
-			      xColor3nRef      oColor ) {
-  
-  xVoxel idx;
-
-  Volm_ConvertXYSliceToIdx_( iOrientation, iPoint, inSlice, &idx );
-  Volm_GetIntColorAtIdx( this, &idx, oColor );  
-}
 
 void Volm_GetMaxIntColorAtIdx ( mriVolumeRef     this,
 				xVoxelRef        iIdx,
 				mri_tOrientation iOrientation,
 				xColor3nRef      oColor ) {
-  xPoint2n    point;
-  int         nSlice;
-  
-  /* if we haven't find the max values yet, find them. */
-  if( NULL == this->mpMaxValues ) {
-    Volm_FindMaxValues( this );
-  }
-  
-  /* First convert to MRI index */
-  Volm_ConvertScreenIdxToMRIIdx_( this, iIdx, &this->mTmpVoxel );
+  xVoxel MRI;
+  float  value    = 0;
+  int    colorIdx = 0;
 
-  /* Convert to an xy slice and get the color. */
-  Volm_ConvertIdxToXYSlice_( &this->mTmpVoxel, iOrientation, &point, &nSlice );
-  Volm_GetMaxIntColorAtXYSlice( this, iOrientation, &point, nSlice, oColor );
-}
+  
+  Volm_ConvertIdxToMRIIdx( this, iIdx, &MRI );
 
-void Volm_GetMaxIntColorAtXYSlice ( mriVolumeRef     this,
-				    mri_tOrientation iOrientation,
-				    xPoint2nRef      iPoint,
-				    int              inSlice,
-				    xColor3nRef      oColor ) {
-  
-  float value = 0;
-  int   colorIdx = 0;
-  
-  /* if we haven't find the max values yet, find them. */
-  if( NULL == this->mpMaxValues ) {
-    Volm_FindMaxValues( this );
-  }
-  
-  /* Get the value and normalize it to 0-255. Return this entry in the
-     color table. */
-  Volm_GetMaxValueAtXYSlice_( this, iOrientation, iPoint, &value );
+  Volm_GetMaxValueAtMRIIdx_( this, &MRI, iOrientation, &value );
+
   colorIdx = (int) (255.0 * (value - this->mfMinValue) / 
 		    (this->mfMaxValue - this->mfMinValue)) ;
   *oColor = this->manColorTable[colorIdx];
@@ -2338,12 +2353,11 @@ Volm_tErr Volm_VisitAllVoxels ( mriVolumeRef        this,
 Volm_tErr Volm_FindMaxValues ( mriVolumeRef this ) {
   
   Volm_tErr        eResult     = Volm_tErr_NoErr;
-  mri_tOrientation orientation = mri_tOrientation_None;
-  xPoint2n         point       = {0, 0};
-  int              nSlice      = 0;
   float            value       = 0;
-  float            maxValue    = 0;
-  int              nSize       = 0;
+  int              nX          = 0;
+  int              nY          = 0;
+  int              nZ          = 0;
+  xVoxel           MRI;
 #ifdef Solaris
   int              i           = 0;
 #endif
@@ -2358,48 +2372,59 @@ Volm_tErr Volm_FindMaxValues ( mriVolumeRef this ) {
   DebugAssertThrowX( (NULL != this->mpMriValues), 
 		     eResult, Volm_tErr_MRIVolumeNotPresent );
   
-  /* we need 3 slices worth of data. if we have some allocated, delete them,
-     and reallocate them. */
-  if( NULL != this->mpMaxValues )
-    free( this->mpMaxValues );
-  nSize = 
-    MAX(this->mnDimensionX, this->mnDimensionY) * 
-    MAX(this->mnDimensionX, this->mnDimensionZ) *
-    mri_knNumOrientations ;
-  this->mpMaxValues = (float*) malloc( nSize * sizeof(float) );
-  DebugAssertThrowX( (NULL != this->mpMaxValues),
-		     eResult, Volm_tErr_AllocationFailed );
+  /* Allocate our buffers. */
+  if( NULL != this->mpMaxValuesX )
+    free( this->mpMaxValuesX );
+  if( NULL != this->mpMaxValuesY )
+    free( this->mpMaxValuesY );
+  if( NULL != this->mpMaxValuesZ )
+    free( this->mpMaxValuesZ );
 
-#ifdef Solaris
-  DebugNote( ("Zeroing visited volume iteratively") );
-  for( i = 0; i < nSize; i++ )
-    this->mpMaxValues[i] = 0;
-#else
-  DebugNote( ("Zeroing visted volume with bzero") );
-  bzero( this->mpMaxValues, nSize );
-#endif
-  
-  /* go through the max value buffer. for each orientation */
-  for( orientation = 0;
-       orientation < mri_knNumOrientations; 
-       orientation++ ) {
-    
-    /* for every point in... */
-    for( point.mnY = 0; point.mnY < this->mnDimensionY; point.mnY++ ) {
-      for( point.mnX = 0; point.mnX < this->mnDimensionX; point.mnX++ ) {
-        
-        /* now go thru every slice in the volume at this point.
-           for every slice... */
-        for( nSlice = 0; nSlice < this->mnDimensionZ; nSlice++ ) {
-          
-          /* get the value and max value at this point. if the value
-	     is greater, make it the new max value. */
-          Volm_GetValueAtXYSlice_( this, orientation, &point, nSlice, &value );
-          Volm_GetMaxValueAtXYSlice_( this, orientation, &point, &maxValue );
-          if( value > maxValue ) {
-            Volm_SetMaxValueAtXYSlice_( this, orientation, &point, value ); 
-	  }
-        }
+  this->mpMaxValuesX = (float**) calloc( this->mnDimensionY, sizeof(float*) );
+  DebugAssertThrowX( (NULL != this->mpMaxValuesX),
+		     eResult, Volm_tErr_AllocationFailed );
+  for( nY = 0; nY < this->mnDimensionY; nY++ ) {
+    this->mpMaxValuesX[nY] = 
+      (float*) calloc( this->mnDimensionZ, sizeof(float*) );
+    DebugAssertThrowX( (NULL != this->mpMaxValuesX[nY]),
+		       eResult, Volm_tErr_AllocationFailed );
+  }
+
+  this->mpMaxValuesY = (float**) calloc( this->mnDimensionX, sizeof(float*) );
+  DebugAssertThrowX( (NULL != this->mpMaxValuesY),
+		     eResult, Volm_tErr_AllocationFailed );
+  for( nX = 0; nX < this->mnDimensionX; nX++ ) {
+    this->mpMaxValuesY[nX] = 
+      (float*) calloc( this->mnDimensionZ, sizeof(float*) );
+    DebugAssertThrowX( (NULL != this->mpMaxValuesY[nX]),
+		       eResult, Volm_tErr_AllocationFailed );
+  }
+
+  this->mpMaxValuesZ = (float**) calloc( this->mnDimensionX, sizeof(float*) );
+  DebugAssertThrowX( (NULL != this->mpMaxValuesZ),
+		     eResult, Volm_tErr_AllocationFailed );
+  for( nX = 0; nX < this->mnDimensionX; nX++ ) {
+    this->mpMaxValuesZ[nX] = 
+      (float*) calloc( this->mnDimensionY, sizeof(float*) );
+    DebugAssertThrowX( (NULL != this->mpMaxValuesZ[nX]),
+		       eResult, Volm_tErr_AllocationFailed );
+  }
+
+  /* Go through the volume and select high values. */
+  for( nZ = 0; nZ < this->mnDimensionZ; nZ++ ) {
+    for( nY = 0; nY < this->mnDimensionY; nY++ ) {
+      for( nX = 0; nX < this->mnDimensionX; nX++ ) {
+	xVoxl_Set( &MRI, nX, nY, nZ );
+	Volm_GetValueAtMRIIdx_( this, &MRI, &value );
+	if( value > this->mpMaxValuesX[nY][nZ] ) {
+	  this->mpMaxValuesX[nY][nZ] = value;
+	}
+	if( value > this->mpMaxValuesY[nX][nZ] ) {
+	  this->mpMaxValuesY[nX][nZ] = value;
+	}
+	if( value > this->mpMaxValuesZ[nX][nY] ) {
+	  this->mpMaxValuesZ[nX][nY] = value;
+	}
       }
     }
   }
@@ -2412,7 +2437,7 @@ Volm_tErr Volm_FindMaxValues ( mriVolumeRef this ) {
   
   return eResult;
 }
-
+  
 Volm_tErr Volm_MakeColorTable ( mriVolumeRef this ) {
   
   Volm_tErr   eResult    = Volm_tErr_NoErr;
@@ -3325,69 +3350,6 @@ void Volm_ConvertMRIIdxToScreenIdx_ ( mriVolumeRef this,
   }
 }
 
-void Volm_ConvertIdxToXYSlice_ ( xVoxelRef         iIdx,
-				 mri_tOrientation  iOrientation,
-				 xPoint2nRef       oPoint,
-				 int*              onSlice ) {
-  
-  switch( iOrientation ) {
-  case mri_tOrientation_Coronal:
-    oPoint->mnX = xVoxl_GetX( &this->mTmpVoxel );
-    oPoint->mnY = xVoxl_GetY( &this->mTmpVoxel );
-    *onSlice    = xVoxl_GetZ( &this->mTmpVoxel );
-    break;
-  case mri_tOrientation_Horizontal:
-    oPoint->mnX = xVoxl_GetX( &this->mTmpVoxel );
-    oPoint->mnY = xVoxl_GetZ( &this->mTmpVoxel );
-    *onSlice    = xVoxl_GetY( &this->mTmpVoxel );
-    break;
-  case mri_tOrientation_Sagittal:
-    oPoint->mnX = xVoxl_GetZ( &this->mTmpVoxel );
-    oPoint->mnY = xVoxl_GetY( &this->mTmpVoxel );
-    *onSlice    = xVoxl_GetZ( &this->mTmpVoxel );
-    break;
-  default:
-    DebugPrintStack;
-    DebugPrint( ("Volm_ConvertIdxToXYSlice_ called with invalid "
-		 "orientation %d", iOrientation) );
-    oPoint->mnX = oPoint->mnY = *onSlice = 0;
-    break;
-  }
-}
-
-void Volm_ConvertXYSliceToIdx_ ( mri_tOrientation  iOrientation,
-				 xPoint2nRef       iPoint,
-				 int               inSlice,
-				 xVoxelRef         oIdx ) {
-  
-  switch( iOrientation ) {
-  case mri_tOrientation_Coronal:
-    xVoxl_Set( oIdx, iPoint->mnX, iPoint->mnY, inSlice );
-    break;
-  case mri_tOrientation_Horizontal:
-    xVoxl_Set( oIdx, iPoint->mnX, inSlice, iPoint->mnY );
-    break;
-  case mri_tOrientation_Sagittal:
-    xVoxl_Set( oIdx, inSlice, iPoint->mnY, iPoint->mnX );
-    break;
-  default:
-    DebugPrintStack;
-    DebugPrint( ("Volm_ConvertXYSliceToIdx_ called with invalid "
-		 "orientation %d", iOrientation) );
-    xVoxl_Set( oIdx, 0, 0, 0 );
-    break;
-  }
-}
-
-int Volm_GetMaxValueIndex_ ( mriVolumeRef     this,
-			     mri_tOrientation iOrientation, 
-			     xPoint2nRef      iPoint ) {
-  
-  return (iOrientation * this->mnDimensionZ * this->mnDimensionY) +
-    (iPoint->mnY * this->mnDimensionX) +
-    iPoint->mnX;
-}
-
 
 void Volm_GetValueAtIdx_ ( mriVolumeRef this,
 			   xVoxelRef    iIdx,
@@ -3472,15 +3434,6 @@ void Volm_GetValueAtMRIIdx_ ( mriVolumeRef this,
     }
 }
 
-void Volm_GetValueAtXYSlice_ ( mriVolumeRef this,
-			       mri_tOrientation  iOrientation,
-			       xPoint2nRef       iPoint,
-			       int               inSlice,
-			       float*            oValue) {
-  
-  Volm_ConvertXYSliceToIdx_( iOrientation, iPoint, inSlice, &this->mTmpVoxel );
-  Volm_GetValueAtIdx_( this, &this->mTmpVoxel, oValue );
-}
 
 void Volm_GetValueAtIdxFrame_ ( mriVolumeRef this,
 				xVoxelRef    iIdx,
@@ -3550,15 +3503,6 @@ void Volm_GetSampledValueAtIdx_ ( mriVolumeRef      this,
 }
 
 
-void Volm_GetSampledValueAtXYSlice_  ( mriVolumeRef this,
-				       mri_tOrientation  iOrientation,
-				       xPoint2nRef       iPoint,
-				       int               inSlice,
-				       float*            oValue ) {
-
-  Volm_ConvertXYSliceToIdx_( iOrientation, iPoint, inSlice, &this->mTmpVoxel );
-  Volm_GetSampledValueAtIdx_( this, &this->mTmpVoxel, oValue );
-}
 
 void Volm_GetSampledValueAtIdxFrame_ ( mriVolumeRef      this,
 				       xVoxelRef         iIdx,
@@ -3582,14 +3526,6 @@ void Volm_GetSampledValueAtIdxFrame_ ( mriVolumeRef      this,
   *oValue = (float)value;
 }
 
-void Volm_GetMaxValueAtXYSlice_ ( mriVolumeRef     this,
-				  mri_tOrientation iOrientation, 
-				  xPoint2nRef      iPoint,
-				  float*           oValue ) {
-  
-  *oValue = 
-    this->mpMaxValues[Volm_GetMaxValueIndex_(this,iOrientation,iPoint)];
-}
 
 
 void Volm_SetValueAtIdx_ ( mriVolumeRef     this,
@@ -3714,14 +3650,6 @@ void Volm_SetValueAtIdxFrame_ ( mriVolumeRef     this,
 	(int) iValue;
       break ;
     }
-}
-
-void Volm_SetMaxValueAtXYSlice_ ( mriVolumeRef     this,
-				  mri_tOrientation iOrientation, 
-				  xPoint2nRef      iPoint,
-				  float            iValue ) {
-  
-  this->mpMaxValues[Volm_GetMaxValueIndex_(this,iOrientation,iPoint)] = iValue;
 }
 
 
