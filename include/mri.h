@@ -158,7 +158,8 @@ MRI   *MRIscalarMul(MRI *mri_src, MRI *mri_dst, float scalar) ;
 
 /* filtering */
 MRI   *MRIresegmentThinWMStrands(MRI *mri_src, MRI *mri_dst, int thickness);
-MRI   *MRIthickenThinWMStrands(MRI *mri_src, MRI *mri_dst, int thickness) ;
+MRI   *MRIthickenThinWMStrands(MRI *mri_src, MRI *mri_dst, int thickness,
+                               int nvoxels) ;
 MRI   *MRIfindThinWMStrands(MRI *mri_src, MRI *mri_dst, int wsize);
 MRI   *MRIcentralPlaneOfLeastVarianceNormal(MRI *mri_src, MRI *mri_dst, 
                                             int wsize);
