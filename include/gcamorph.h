@@ -55,6 +55,7 @@ typedef struct
   float  momentum ;
   int    niterations ;
   char   base_name[STRLEN] ;
+  double l_log_likelihood ;
   double l_likelihood ;
   double l_area ;
   double l_jacobian ;
@@ -93,6 +94,7 @@ int       GCAMsampleMorph(GCA_MORPH *gcam, float x, float y, float z,
                           float *pxd, float *pyd, float *pzd) ;
 int       GCAMcomputeLabels(MRI *mri, GCA_MORPH *gcam) ;
 MRI       *GCAMbuildMostLikelyVolume(GCA_MORPH *gcam, MRI *mri) ;
+MRI       *GCAMbuildVolume(GCA_MORPH *gcam, MRI *mri) ;
 int       GCAMinvert(GCA_MORPH *gcam, MRI *mri) ;
 int       GCAMfreeInverse(GCA_MORPH *gcam) ;
 int       GCAMcomputeMaxPriorLabels(GCA_MORPH *gcam) ;

@@ -58,5 +58,6 @@ int       HISTOfindFirstPeakInRegion(HISTOGRAM *h, int wsize, float min_pct,
 int       HISTOfindHighestPeakInRegion(HISTOGRAM *h, int b0, int b1);
 int       HISTOplot(HISTOGRAM *histo, char *fname) ;
 int       HISTOaddSample(HISTOGRAM *histo, float val, float bmin, float bmax) ;
+int       HISTOfindCurrentPeak(HISTOGRAM *histo, int b0, int wsize) ;
 
 #endif

@@ -643,6 +643,7 @@ int  MRIneighborhoodPlanarDirection(MRI *mri_src, int xv, int yv, int zv,
                                     int nsize, int wsize) ;
 int  MRIneighborhoodCpolv(MRI *mri_src, int xv, int yv, int zv,int nsize,
                           int wsize, int *pnum_white) ;
+int MRIneighborsInWindow(MRI *mri, int x, int y, int z, int wsize, int val) ;
 int  MRIneighborhoodBlackCpolv(MRI *mri_src, int xv, int yv, int zv, 
                                int nsize, int wsize, int *pnum_black) ;
 

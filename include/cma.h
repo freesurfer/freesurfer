@@ -103,6 +103,7 @@
 #define IS_BRAIN(label)  (!IS_UNKNOWN(label) && (label != Fat) && (label != Bone))
 
 #define IS_WM(label) (((label) == Left_Cerebral_White_Matter) || ((label) == Right_Cerebral_White_Matter) || ((label) == Left_Temporal_Cerebral_White_Matter) || ((label) == Right_Temporal_Cerebral_White_Matter))
+#define IS_GM(label) (((label) == Left_Cerebral_Cortex) || ((label) == Right_Cerebral_Cortex))
 
 #define IS_CEREBELLAR_WM(label) (((label) == Left_Cerebellum_White_Matter) || ((label) == Right_Cerebellum_White_Matter))
 

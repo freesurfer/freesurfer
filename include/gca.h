@@ -18,6 +18,10 @@
 /* for flags field */
 #define GCA_NO_FLAGS          0x0000
 #define GCA_NO_MRF            0x0001
+#define GCA_XGRAD             0x0002
+#define GCA_YGRAD             0x0004
+#define GCA_ZGRAD             0x0008
+#define GCA_GRAD              (GCA_XGRAD | GCA_YGRAD | GCA_ZGRAD)
 
 typedef struct
 {
@@ -226,6 +230,7 @@ int   GCAhistogramTissueStatistics(GCA *gca, MRI *mri_T1, MRI *mri_PD,
 int   GCAnormalizeTissueStatistics(GCA *gca) ;
 char *cma_label_to_name(int label) ;
 int  GCArenormalize(MRI *mri_in, MRI *mri_labeled, GCA *gca, TRANSFORM *transform) ;
+int  GCAmapRenormalize(GCA *gca, MRI *mri, TRANSFORM *transform) ;
 int  GCArenormalizeAdaptive(MRI *mri_in, MRI *mri_labeled, GCA *gca, TRANSFORM *transform,
                             int wsize, float pthresh) ;
 int  GCArenormalizeLabels(MRI *mri_in, MRI *mri_labeled, GCA *gca, TRANSFORM *transform) ;
@@ -283,6 +288,7 @@ int GCAfixSingularCovarianceMatrices(GCA *gca) ;
 int GCAregularizeCovariance(GCA *gca, float regularize) ;
 int GCAnormalizeMeans(GCA *gca, float target) ;
 double GCAcomputeConditionalLogDensity(GC1D *gc, float *vals, int ninputs, int label) ;
+double GCAcomputeNormalizedConditionalDensity(GCA *gca, int xp, int yp, int zp, float *vals, int label);
 
 
 
