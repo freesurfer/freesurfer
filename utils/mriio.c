@@ -9084,7 +9084,7 @@ mghRead(char *fname, int read_volume, int frame)
   mri->yend = mri->height/2.*mri->ysize;
   mri->zstart = - mri->depth/2.*mri->zsize;
   mri->zend = mri->depth/2.*mri->zsize;
-
+  strcpy(mri->fname, fname);
   return(mri) ;
 }
 
