@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2003/03/10 23:27:54 $
-// Revision       : $Revision: 1.52 $
+// Revision Date  : $Date: 2003/03/11 19:15:13 $
+// Revision       : $Revision: 1.53 $
 
 #include "tkmDisplayArea.h"
 #include "tkmMeditWindow.h"
@@ -2621,6 +2621,7 @@ DspA_tErr DspA_HandleMouseUp_ ( tkmDisplayAreaRef this,
 	
       } else {
 	
+	DebugNote( ("Calling DspA_BrushVoxels_ from mouse up") );
 	parcBrush.mDest = segType;
 	eResult = DspA_BrushVoxels_( this, pVolumeVox,  
 				     NULL, DspA_EditSegmentationVoxels_ );
@@ -2959,6 +2960,7 @@ DspA_tErr DspA_HandleMouseMoved_ ( tkmDisplayAreaRef this,
       && !(ipEvent->mbAltKey)) {
     
     /* edit the parc volume */
+    DebugNote( ("Calling DspA_BrushVoxels_ from mouse moved") );
     sParcBrush.mDest = segType;
     eResult = DspA_BrushVoxels_( this, &anaIdx, 
 				 NULL, DspA_EditSegmentationVoxels_ );
@@ -3561,8 +3563,13 @@ void DspA_SelectVoxels_ ( xVoxelRef ipaVoxel, int inCount, void* ipData ) {
 void DspA_EditSegmentationVoxels_ ( xVoxelRef ipaVoxel, int inCount, 
 				    void* ipData ) {
 
+  DebugEnterFunction( ("DspA_EditSegmentationVoxels_( ipaVoxel=%p, "
+		       "inCount=%d, ipData=%p", ipaVoxel, inCount, ipData) );
+
   tkm_EditSegmentationArray( sParcBrush.mDest, 
 			     ipaVoxel, inCount, sParcBrush.mNewValue );
+
+  DebugExitFunction;
 }
 
 DspA_tErr DspA_SelectCurrentSegLabel ( tkmDisplayAreaRef this ) {

@@ -4,9 +4,9 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2003/03/06 21:20:17 $
-// Revision       : $Revision: 1.130 $
-char *VERSION = "$Revision: 1.130 $";
+// Revision Date  : $Date: 2003/03/11 19:15:13 $
+// Revision       : $Revision: 1.131 $
+char *VERSION = "$Revision: 1.131 $";
 
 #define TCL
 #define TKMEDIT 
@@ -6480,10 +6480,11 @@ tkm_tErr LoadVolume ( tkm_tVolumeType iType,
   
 #endif
   
-  /*  if (Gdiag & DIAG_SHOW)*/
+  /*  if (Gdiag & DIAG_SHOW)
   printf("setting anatomical dimensions to %d, %d, %d\n",
    gnAnatomicalDimensionX, gnAnatomicalDimensionY, gnAnatomicalDimensionZ  );
-  
+  */
+
   /* set the default color scale */
   SetVolumeBrightnessAndContrast( iType, 
 				  Volm_kfDefaultBrightness,
@@ -8450,12 +8451,36 @@ int EditSegmentation ( tkm_tSegType iVolume,
 
   int        nOldValue = 0;
   Volm_tValue newValue = 0;
-  
+  static int nVolumeIndexBugs = 0;
+
+  DebugEnterFunction( ("EditSegmentation( iVolume=%d, iAnaIdx=%d,%d,%d, "
+		       "inIndex=%d )", iVolume, xVoxl_ExpandInt( iAnaIdx ),
+		       inIndex) );
+
+  /* For some reason, David was getting random bugs where iVolume
+     would be way out of bounds. I'm trying to track this down while
+     still letting him work. */
+  if( iVolume != tkm_tSegType_Main ) {
+    nVolumeIndexBugs++;
+    if( nVolumeIndexBugs == 1 ) {
+      fprintf( stderr, 
+	       "ATTENTION: Please send the .xdebug_tkmedit file\n"
+	       "           to Kevin when you're done. Thanks.\n" );
+    }
+    if( nVolumeIndexBugs < 5 ) {
+      xDbg_Printf( "EditSegmentation: iVolume was %d. Stack:\n", iVolume );
+      xDbg_PrintStack ();
+    }
+    iVolume = tkm_tSegType_Main;
+  }
+
   GetSegLabel( iVolume, iAnaIdx, &nOldValue, NULL );
   newValue = (Volm_tValue)inIndex;
   Volm_SetValueAtIdx( gSegmentationVolume[iVolume], iAnaIdx, newValue );
   Volm_SetValueAtIdx( gSegmentationChangedVolume[iVolume], iAnaIdx, 1 );
   
+  DebugExitFunction;
+
   return nOldValue;
 }
 
@@ -8591,8 +8616,13 @@ void SetSegmentationValue ( tkm_tSegType iVolume,
 			    xVoxelRef    iAnaIdx,
 			    int          inIndex ) {
   
-  /* TODO: add the change to the undo list. */
+  DebugEnterFunction( ("SetSegmentationValue( iVolume=%d, iaAnaIdx=%p "
+		       "inIndex=%d )", iVolume, iAnaIdx, inIndex) );
+
+  DebugNote( ("Passing to EditSegmentation") );
   EditSegmentation( iVolume, iAnaIdx, inIndex );
+
+  DebugExitFunction;
 }
 
 void SetSegmentationValues ( tkm_tSegType iVolume,
@@ -8602,9 +8632,16 @@ void SetSegmentationValues ( tkm_tSegType iVolume,
 
   int nVoxel = 0;
   
+  DebugEnterFunction( ("SetSegmentationValues( iVolume=%d, iaAnaIdx=%p "
+		       "inCount=%d, inIndex=%d )", iVolume, iaAnaIdx,
+		       inCount, inIndex) );
+
   for( nVoxel = 0; nVoxel < inCount; nVoxel++ ) {
+    DebugNote( ("EditSegmentation on voxel index %d", inIndex) );
     EditSegmentation( iVolume, &(iaAnaIdx[nVoxel]), inIndex );
   }
+
+  DebugExitFunction;
 }
 
 
@@ -10487,7 +10524,12 @@ void tkm_EditSegmentation ( tkm_tSegType iVolume,
 			    xVoxelRef    iAnaIdx,
 			    int          inIndex ) {
   
+  DebugEnterFunction( ("tkm_EditSegmentation( iVolume=%d, iAnaIdx=%p, "
+		       "inIndex=%d )", iVolume, iAnaIdx, inIndex) );
+
   SetSegmentationValue( iVolume, iAnaIdx, inIndex );
+
+  DebugExitFunction;
 }
 
 void tkm_EditSegmentationArray ( tkm_tSegType iVolume,
@@ -10495,7 +10537,13 @@ void tkm_EditSegmentationArray ( tkm_tSegType iVolume,
 				 int          inCount,
 				 int          inIndex ) {
   
+  DebugEnterFunction( ("tkm_EditSegmentationArray( iVolume=%d, iaAnaIdx=%p "
+		       "inCount=%d, inIndex=%d )", iVolume, iaAnaIdx,
+		       inCount, inIndex) );
+
   SetSegmentationValues( iVolume, iaAnaIdx, inCount, inIndex );
+
+  DebugExitFunction;
 }
 
 
