@@ -69,6 +69,7 @@ typedef struct
   int           *xi ;
   int           *yi ;
   int           *zi ;
+  int           yinvert ;  /* for converting between MNC and coronal slices */
 } MRI_IMAGE, MRI ;
 
 /* single pixel filtering */
@@ -261,6 +262,9 @@ extern float ic_z_vertices[]  ;
 
 #include "histo.h"
 
+#define MRI_CORONAL_SLICE_DIRECTORY   0
+#define MRI_MINC_FILE                 1
+
 int        MRIvalRange(MRI *mri, float *pmin, float *pmax) ;
 HISTOGRAM  *MRIhistogram(MRI *mri, int nbins) ;
 MRI        *MRIhistoEqualize(MRI *mri_src, MRI *mri_dst, int low) ;
@@ -282,6 +286,8 @@ MRI        *MRIapplyHistogramToRegion(MRI *mri_src, MRI *mri_dst,
 HISTOGRAM  *MRIgetEqualizeHistoRegion(MRI *mri, HISTOGRAM *histo_eq, int low, 
                                       MRI_REGION *region, int norm) ;
 MRI        *MRIextractRegion(MRI *mri_src, MRI *mri_dst, MRI_REGION *region) ;
-
+int        MRIfileType(char *fname) ;
+Volume     MRItoVolume(MRI *mri) ;
+MRI        *MRIfromVolume(Volume volume) ;
 
 #endif
