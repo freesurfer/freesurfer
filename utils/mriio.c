@@ -4018,8 +4018,11 @@ static MRI *analyzeRead(char *fname, int read_volume)
 
   /* Get the number of frames as either the fourth dimension or 
      the number of files. */
-  if(nfiles == 1) nframes = hdr->dime.dim[4];
-  else            nframes = nfiles;
+  if(nfiles == 1){
+    nframes = hdr->dime.dim[4];
+    if(nframes==0) nframes = 1;
+  }
+  else  nframes = nfiles;
   ncols = hdr->dime.dim[1];
   nrows = hdr->dime.dim[2];
   nslcs = hdr->dime.dim[3];
@@ -4135,7 +4138,7 @@ static MRI *analyzeRead(char *fname, int read_volume)
 
       /* --------- Row Loop ------------------*/
       for(row = 0; row < mri->height; row++){
-
+  
         nread = fread(buf, bytes_per_voxel, mri->width, fp);
         if(nread != mri->width){
     MRIfree(&mri);free(buf);fclose(fp);
@@ -4147,31 +4150,32 @@ static MRI *analyzeRead(char *fname, int read_volume)
           ErrorReturn(NULL, (ERROR_BADFILE, "analyzeRead2(): error reading "
            "from file %s\n", imgfile));
         }
-
+  
         if(swap){
-    if(bytes_per_voxel == 2) byteswapbufshort((void*)buf,bytes_per_voxel*mri->width);
-    if(bytes_per_voxel == 4) byteswapbuffloat((void*)buf,bytes_per_voxel*mri->width);
+    if(bytes_per_voxel == 2) 
+      byteswapbufshort((void*)buf,bytes_per_voxel*mri->width);
+    if(bytes_per_voxel == 4) 
+      byteswapbuffloat((void*)buf,bytes_per_voxel*mri->width);
     //nflip(buf, bytes_per_voxel, mri->width); /* byte swap */
   }
-
-  memcpy(mri->slices[k][row], buf, bytes_per_voxel*mri->width); /* copy */
-
+  
+  memcpy(mri->slices[k][row], buf, bytes_per_voxel*mri->width); /*copy*/
+  
       } /* End Row Loop */
     }  /* End Slice Loop */
-
+    
     /* Close file if each frame is in a separate file */
     if(N_Zero_Pad_Input > -1) fclose(fp); 
-
+    
   }  /* End Frame Loop */
-
+  
   if(N_Zero_Pad_Input < 0) fclose(fp); 
-
+  
   free(buf);
   free(hdr);
-
+  
   MRIlimits(mri,&min,&max);
   printf("INFO: analyzeRead(): min = %g, max = %g\n",min,max);
-  
 
   return(mri);
 }
