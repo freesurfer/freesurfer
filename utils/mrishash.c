@@ -634,17 +634,17 @@ mhtAddFacePositions(MRIS_HASH_TABLE *mht,float xw, float yw, float zw, int fno)
 
   if ((ceil(x) - x) < 0.5)
     mhtAddFacePosition(mht, xv+1, yv, zv, fno) ;
-  if ((x - floor(x)) < 0.5)
+  else
     mhtAddFacePosition(mht, xv-1, yv, zv, fno) ;
 
   if ((ceil(y) - y) < 0.5)
     mhtAddFacePosition(mht, xv, yv+1, zv, fno) ;
-  if ((y - floor(y)) < 0.5)
+  else
     mhtAddFacePosition(mht, xv, yv-1, zv, fno) ;
     
   if ((ceil(z) - z) < 0.5)
     mhtAddFacePosition(mht, xv, yv, zv+1, fno) ;
-  if ((z - floor(z)) < 0.5)
+  else
     mhtAddFacePosition(mht, xv, yv, zv-1, fno) ;
   return(NO_ERROR) ;
 }
