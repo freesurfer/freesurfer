@@ -34505,7 +34505,7 @@ double MRISavgVetexRadius(MRIS *Surf, double *StdDev)
   MRISgaussianSmooth() - perform gaussian smoothing on a spherical 
   surface. The gaussian is defined by stddev GStd and is truncated
   at TruncFactor stddevs. Note: this will change the val2bak of all 
-  the vertices.
+  the vertices. See also MRISspatialFilter() and MRISgaussianWeights().
   -------------------------------------------------------------------*/
 MRI *MRISgaussianSmooth(MRIS *Surf, MRI *Src, double GStd, MRI *Targ,
 			double TruncFactor)
@@ -34781,4 +34781,190 @@ int MRISextendedNeighbors(MRIS *SphSurf,int TargVtxNo, int CurVtxNo,
   }
 
   return(0);
+}
+/*--------------------------------------------------------------------------
+ MRISgaussianWeights() - fills the weight (4th) row of the MRI dist
+ struct.  dist is the distance between vertices as returned by
+ MRISdistSphere().  The first 3 rows of dist correspond to: 0=actual
+ number of extended neighbors, 1=vertex number of extended neighbors,
+ 2=distance along the sphere. The weight will be placed in the 4th
+ row.  Each of the extended neighbrs is placed in a frame. The weights
+ for a given vertex will be normalized so that the sum=1. 
+ --------------------------------------------------------------------------*/
+int MRISgaussianWeights(MRIS *surf, MRI *dist, double GStd)
+{
+  int n,m,nXNbrs;
+  double GVar2,f,gsum,d,g;
+
+  GVar2 = 2*(GStd*GStd); /* twice the variance */
+  f = 1/(sqrt(2*M_PI)*GStd);
+
+  for(n=0; n < surf->nvertices; n++){
+    nXNbrs = MRIFseq_vox(dist,n,0,0,0); /*1st row is number of ext neighbors*/
+    gsum = 0; 
+    for(m=0; m < nXNbrs; m++){
+      d = MRIFseq_vox(dist,n,2,0,m); /*3rd row is dist to ext neighbors*/
+      g = f*exp( -(d*d)/(GVar2) );   /* gaussian weight */
+      MRIFseq_vox(dist,n,3,0,m) = g; /*4th row is weight of  ext neighbors*/
+      gsum += g;
+    }
+    /* Normalize */
+    for(m=0; m < nXNbrs; m++) MRIFseq_vox(dist,n,3,0,m) /= gsum;
+  }
+  return(0);
+}
+/*-------------------------------------------------------------------
+  MRISspatialFilter() - spatially fillters Src by computing the dot
+  product of Src and the weights wdist. The wdist MRI struct must
+  be as computed by MRISgaussianWeights() and MRISdistSphere(). It is
+  assumed that the weights are already normalized.
+  -------------------------------------------------------------------*/
+MRI *MRISspatialFilter(MRI *Src, MRI *wdist, MRI *Targ)
+{
+  int n, nXNbrs, m, vtxno, frame;
+  float w, val;
+  MRI *SrcCopy = NULL;
+
+  if(wdist->width != Src->width){
+    printf("ERROR: MRISspatialFilter: wdist/Src dimension mismatch\n");
+    return(NULL);
+  }
+
+  /* Make a copy in case this is done in place */
+  SrcCopy = MRIcopy(Src,NULL);
+
+  // Set the target to 0
+  Targ = MRIconst(Src->width,Src->height,Src->depth,Src->nframes,0,Targ);
+  if(Targ==NULL){
+    printf("ERROR: MRISgaussianSmooth: Targ\n");
+    return(NULL);
+  }
+
+
+  /* Loop thru each target vertex */
+  for(n=0; n < Targ->width; n++){
+    nXNbrs = MRIFseq_vox(wdist,n,0,0,0); /*1st row is number of ext neighbors*/
+    for(m=0; m < nXNbrs; m++){
+      vtxno = MRIFseq_vox(wdist,n,1,0,m); /*2nd row is the vtxno of ext neighbors*/
+      w     = MRIFseq_vox(wdist,n,3,0,m); /*4th row is the weight of ext neighbors*/
+      for(frame=0; frame < Targ->nframes; frame++){
+	val = w * MRIFseq_vox(SrcCopy,vtxno,0,0,frame);
+	MRIFseq_vox(Targ,n,0,0,frame) += val;
+      } /* frame */
+    } /* neighbor */
+  } /* primary vertex */
+
+  MRIfree(&SrcCopy);
+  return(Targ);
+}
+
+/*-------------------------------------------------------------------
+  MRISdistSphere() - distance between two vertices on the sphere. The
+  MRI structure returned is of size (nvertices,4,1,nXNbrsMax). Where
+  nXNbrsMax is the maximum number of extended neighbors. The first 3
+  rows correspond to: 0=actual number of extended neighbors for that
+  vertex, 1=vertex number of extended neighbors, 2=distance along the
+  sphere. The last row is free and can be used for computing
+  weights. Each of the extended neighbors is placed in a frame. The
+  extended neighborhood of a vertex includes itself. See also
+  MRISgaussianWeights().
+  -------------------------------------------------------------------*/
+MRI *MRISdistSphere(MRIS *surf, double dmax)
+{
+  int vtxno;
+  MRI *dist;
+  double Radius, Radius2, d, costheta, theta;
+  int n, err, *nXNbrs, nXNbrsMax;
+  double *XNbrDotProd, DotProdThresh;
+  int *XNbrVtxNoTmp, **XNbrVtxNo;
+  float **XNbrDist;
+  double VertexRadiusStdDev;
+
+  // Create temp variables to hold info that will eventually 
+  // go into MRI dist
+  nXNbrs  = (int *)calloc(surf->nvertices,sizeof(int));
+  XNbrVtxNo = (int **)   calloc(surf->nvertices,sizeof(int*));
+  XNbrDist  = (float **) calloc(surf->nvertices,sizeof(float*));
+
+  // Compute the average radius of the sphere
+  Radius = MRISavgVetexRadius(surf, &VertexRadiusStdDev);
+  Radius2 = Radius*Radius; // Square of the radius
+  printf("Radius = %g +/- %g\n",Radius,VertexRadiusStdDev);
+
+  // Compute dot product threshold that corresponds to dmax
+  // distance along the surface of the sphere.
+  DotProdThresh = Radius2*cos(dmax/Radius)*(1.0001);
+
+  /* These are needed by MRISextendedNeighbors()*/
+  XNbrVtxNoTmp = (int *) calloc(surf->nvertices,sizeof(int));
+  XNbrDotProd  = (double *) calloc(surf->nvertices,sizeof(double));
+
+  /*-------- Loop through the vertices ------------------*/
+  nXNbrsMax = 0;
+  for(vtxno = 0; vtxno < surf->nvertices; vtxno++){
+
+    /* Get a count of the number of extended neighbors (including self)*/
+    nXNbrs[vtxno] = 0;
+    err = MRISextendedNeighbors(surf,vtxno,vtxno,DotProdThresh, XNbrVtxNoTmp, 
+				XNbrDotProd, &(nXNbrs[vtxno]), surf->nvertices);
+
+    if(vtxno%1000==0){
+      // print something every 1000 vertices
+      printf("vtxno = %d, nXNbrs = %d (Max=%d)\n",vtxno,nXNbrs[vtxno],nXNbrsMax);
+      fflush(stdout);
+    }
+
+    /*Keep track of max*/
+    if(nXNbrsMax < nXNbrs[vtxno]) nXNbrsMax = nXNbrs[vtxno];
+
+    // Alloc enough for this vertex
+    XNbrDist[vtxno]  = (float*)calloc(nXNbrs[vtxno],sizeof(float));
+    XNbrVtxNo[vtxno] = (int*)calloc(nXNbrs[vtxno],sizeof(int));
+
+    // Can just copy vertex numbers 
+    memcpy(XNbrVtxNo[vtxno],XNbrVtxNoTmp,nXNbrs[vtxno]*sizeof(int));
+
+    /* Loop through the extended neighbors */
+    for(n = 0; n < nXNbrs[vtxno]; n++){
+
+      // Compute the cos of the angle betweent the two vertices
+      // based on the dot product between the two
+      costheta = XNbrDotProd[n]/Radius2;
+
+      // cos theta might be slightly > 1 due to precision
+      if(costheta > +1.0) costheta = +1.0;
+      if(costheta < -1.0) costheta = -1.0;
+
+      // Compute the angle between the vertices
+      theta = acos(costheta);
+
+      /* Compute the distance bet vertices along the surface of the sphere */
+      d = Radius * theta;
+      XNbrDist[vtxno][n] = d;
+
+    } /* end loop over vertex2 */
+    
+  } /* end loop over vertex1 */
+  
+  printf("nNbrsMax = %d\n",nXNbrsMax);
+
+  free(XNbrVtxNoTmp);
+  free(XNbrDotProd);
+
+  /* Copy info into the dist structure */
+  /*row 0=nXNbrs, 1=XNbrVtxNo, 2=XNbrDist, 3 = free */
+  dist = MRIallocSequence(surf->nvertices, 4, 1, MRI_FLOAT, nXNbrsMax);
+
+  for(vtxno = 0; vtxno < surf->nvertices; vtxno++){
+    MRIFseq_vox(dist,vtxno,0,0,0) = nXNbrs[vtxno];
+    for(n = 0; n < nXNbrs[vtxno]; n++){
+      MRIFseq_vox(dist,vtxno,1,0,n) = XNbrVtxNo[vtxno][n];
+      MRIFseq_vox(dist,vtxno,2,0,n) = XNbrDist[vtxno][n];
+    }
+    free(XNbrVtxNo[vtxno]);
+    free(XNbrDist[vtxno]);
+  }
+  free(nXNbrs);
+
+  return(dist);
 }

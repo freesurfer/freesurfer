@@ -975,3 +975,7 @@ int MRISextendedNeighbors(MRIS *SphSurf,int TargVtxNo, int CurVtxNo,
 			  int nXNbrsMax);
 MRI *MRISgaussianSmooth(MRIS *Surf, MRI *Src, double GStd, MRI *Targ,
 			double TruncFactor);
+MRI *MRISdistSphere(MRIS *surf, double dmax);
+int MRISgaussianWeights(MRIS *surf, MRI *dist, double GStd);
+MRI *MRISspatialFilter(MRI *Src, MRI *wdist, MRI *Targ);
+
