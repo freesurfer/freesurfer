@@ -3,9 +3,10 @@
 
 #include "mri.h"
 
+// in order to conserve memory, we change int to short
 typedef struct
 {
-  int   x, y, z ;
+  short x, y, z; // int   x, y, z ;
 } MRI_SEGMENT_VOXEL, MSV ;
 
 typedef struct
@@ -17,10 +18,10 @@ typedef struct
   int      label ;
   int      found ;      /* for use during segmentation */
   float    cx, cy, cz ; /* centroid */
-  int      x0, x1 ;
-  int      y0, y1 ;
-  int      z0, z1 ;
-  int      ignore ;
+  short x0, x1; // int      x0, x1 ;
+  short y0, y1; // int      y0, y1 ;
+  short z0, z1; // int      z0, z1 ;
+  short ignore; // int      ignore; 
 } MRI_SEGMENT ;
 
 typedef struct
