@@ -11,3 +11,4 @@ mri_watershed_SOURCES=mri_watershed.cpp
 mri_watershed_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH))
 mri_watershed_LDFLAGS=$(OS_LDFLAGS)
 
+SUBDIRS=brain_volume
