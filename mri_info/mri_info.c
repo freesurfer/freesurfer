@@ -412,7 +412,6 @@ static void read_ge_5x_file(char *fname, struct stat stat_buf)
   printf("series description: %s\n", string);
   read_short(fp, header.series_header_offset + 140, &s);
   printf("number of acquisitions: %hd\n", s);
-  
 
   read_short(fp, header.image_header_offset + 12, &s);
   printf("image number: %hd\n", s);
@@ -438,6 +437,40 @@ static void read_ge_5x_file(char *fname, struct stat stat_buf)
   printf("pulse sequence name: %s\n",string);
   read_string(fp, header.image_header_offset + 362, string, 17);
   printf("coil name: %s\n",string);
+
+  read_float(fp, header.image_header_offset + 130, &f);
+  printf("center R: %g\n", f);
+  read_float(fp, header.image_header_offset + 134, &f);
+  printf("center A: %g\n", f);
+  read_float(fp, header.image_header_offset + 138, &f);
+  printf("center S: %g\n", f);
+  read_float(fp, header.image_header_offset + 142, &f);
+  printf("normal R: %g\n", f);
+  read_float(fp, header.image_header_offset + 146, &f);
+  printf("normal A: %g\n", f);
+  read_float(fp, header.image_header_offset + 150, &f);
+  printf("normal S: %g\n", f);
+  read_float(fp, header.image_header_offset + 154, &f);
+  printf("top left R: %g\n", f);
+  read_float(fp, header.image_header_offset + 158, &f);
+  printf("top left A: %g\n", f);
+  read_float(fp, header.image_header_offset + 162, &f);
+  printf("top left S: %g\n", f);
+  read_float(fp, header.image_header_offset + 166, &f);
+  printf("top right R: %g\n", f);
+  read_float(fp, header.image_header_offset + 170, &f);
+  printf("top right A: %g\n", f);
+  read_float(fp, header.image_header_offset + 174, &f);
+  printf("top right S: %g\n", f);
+  read_float(fp, header.image_header_offset + 178, &f);
+  printf("bottom right R: %g\n", f);
+  read_float(fp, header.image_header_offset + 182, &f);
+  printf("bottom right A: %g\n", f);
+  read_float(fp, header.image_header_offset + 186, &f);
+  printf("bottom right S: %g\n", f);
+
+  read_short(fp, header.image_header_offset + 398, &s);
+  printf("number of slices in scan group: %hd\n", s);
 
   fclose(fp);
 
