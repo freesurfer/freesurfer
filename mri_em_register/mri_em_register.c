@@ -469,6 +469,13 @@ main(int argc, char *argv[])
     parms.lta->type = LINEAR_VOX_TO_VOX ;
   LTAwrite(parms.lta, out_fname) ;
 
+  if (parms.lta->type == LINEAR_RAS_TO_RAS)  /* convert back to voxel */
+  {
+    printf("converting xform back to voxel...\n") ;
+    MRIrasXformToVoxelXform(mri_in, mri_in, 
+                            parms.lta->xforms[0].m_L, parms.lta->xforms[0].m_L) ;
+    parms.lta->type = LINEAR_RAS_TO_RAS ;
+  }
   if (transformed_sample_fname)
   {
     printf("writing transformed samples to %s...\n", 
